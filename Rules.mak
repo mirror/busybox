@@ -35,6 +35,7 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # by asking the CC compiler what arch it compiles things for, so unless
 # your compiler is broken, you should not need to specify TARGET_ARCH
 CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
+#CROSS           =/usr/i386-linux-uclibc/bin/i386-uclibc-
 CC             = $(CROSS)gcc
 AR             = $(CROSS)ar
 AS             = $(CROSS)as
@@ -161,7 +162,7 @@ ifeq ($(strip $(DODEBUG)),y)
     LDFLAGS +=-Wl,-warn-common
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
-    CFLAGS  += $(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE
+    CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
     LDFLAGS += -s -Wl,-warn-common
     STRIPCMD:=$(STRIP) --remove-section=.note --remove-section=.comment
 endif
