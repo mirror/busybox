@@ -18,9 +18,11 @@
 #include "busybox.h"
 
 
+#ifdef CONFIG_FEATURE_U_W_TMP
 // import from utmp.c
 static void checkutmp(int picky);
 static void setutmp(const char *name, const char *line);
+#endif
 
 // import from encrypt.c
 extern char *pw_encrypt(const char *clear, const char *salt);
@@ -119,7 +121,9 @@ extern int login_main(int argc, char **argv)
 	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 )) 
 		return EXIT_FAILURE;		/* Must be a terminal */
 
+#ifdef CONFIG_FEATURE_U_W_TMP
 	checkutmp ( !amroot );
+#endif
 
 	tmp = ttyname ( 0 );
 	if ( tmp && ( strncmp ( tmp, "/dev/", 5 ) == 0 ))
@@ -212,7 +216,9 @@ auth_ok:
 	if ( check_nologin ( pw-> pw_uid == 0 ))
 		return EXIT_FAILURE;
 
+#ifdef CONFIG_FEATURE_U_W_TMP
 	setutmp ( username, tty );
+#endif
 	if ( *tty != '/' ) 
 		snprintf ( full_tty, sizeof( full_tty ) - 1, "/dev/%s", tty);
 	else
@@ -356,6 +362,7 @@ static void motd ( )
 }
 
 
+#ifdef CONFIG_FEATURE_U_W_TMP
 // vv  Taken from tinylogin utmp.c  vv
 
 #define _WTMP_FILE "/var/log/wtmp"
@@ -437,3 +444,4 @@ static void setutmp(const char *name, const char *line)
 	endutent();
 	updwtmp(_WTMP_FILE, &utent);
 }
+#endif /* CONFIG_FEATURE_U_W_TMP */

@@ -37,8 +37,6 @@
 #define USE_SYSLOG
 #endif
 
-extern void updwtmp(const char *filename, const struct utmp *ut);
-
  /* If USE_SYSLOG is undefined all diagnostics go directly to /dev/console. */
 #ifdef	USE_SYSLOG
 #include <syslog.h>
@@ -52,7 +50,10 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 
 #ifdef LOGIN_PROCESS			/* defined in System V utmp.h */
 #define	SYSV_STYLE				/* select System V style getty */
+#ifdef CONFIG_FEATURE_U_W_TMP
+extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
+#endif  /* LOGIN_PROCESS */
 
  /*
   * Things you may want to modify.
@@ -218,7 +219,6 @@ static struct Speedtab speedtab[] = {
 
 static void parse_args(int argc, char **argv, struct options *op);
 static void parse_speeds(struct options *op, char *arg);
-static void update_utmp(char *line);
 static void open_tty(char *tty, struct termio *tp, int local);
 static void termio_init(struct termio *tp, int speed, struct options *op);
 static void auto_baud(struct termio *tp);
@@ -233,6 +233,10 @@ static void termio_final(struct options *op, struct termio *tp,
 static int caps_lock(const char *s);
 static int bcode(const char *s);
 static void error(const char *fmt, ...) __attribute__ ((noreturn));
+
+#ifdef CONFIG_FEATURE_U_W_TMP
+static void update_utmp(char *line);
+#endif
 
 /* The following is used for understandable diagnostics. */
 
@@ -286,8 +290,11 @@ int getty_main(int argc, char **argv)
 
 	/* Update the utmp file. */
 
+
 #ifdef	SYSV_STYLE
+#ifdef CONFIG_FEATURE_U_W_TMP
 	update_utmp(options.tty);
+#endif
 #endif
 
 	debug("calling open_tty\n");
@@ -492,6 +499,7 @@ static void parse_speeds(struct options *op, char *arg)
 }
 
 #ifdef	SYSV_STYLE
+#ifdef CONFIG_FEATURE_U_W_TMP
 
 /* update_utmp - update our utmp entry */
 static void update_utmp(char *line)
@@ -544,7 +552,8 @@ static void update_utmp(char *line)
 	}
 }
 
-#endif
+#endif /* CONFIG_FEATURE_U_W_TMP */
+#endif /* SYSV_STYLE */
 
 /* open_tty - set up tty as standard { input, output, error } */
 static void open_tty(char *tty, struct termio *tp, int local)
