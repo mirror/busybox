@@ -55,7 +55,7 @@ char *fgets_str(FILE *file, const char *terminating_string)
 			break;
 		}
 	}
-	if (idx == 0) {
+	if (idx == 0 || linebuf[0] == '\n') {
 		return NULL;
 	}
 	linebuf[idx] = '\0';
