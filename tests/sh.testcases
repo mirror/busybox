@@ -1,0 +1,33 @@
+# try running this with bash, ksh, ash, and hush.
+echo `echo -e foo\\\necho bar`
+
+echo THIS IS A TEST >foo
+cat $(echo FOO | tr 'A-Z' 'a-z')
+cat foo | tr 'A-Z' 'a-z'
+cat $(echo FOO | tr 'A-Z' 'a-z') | tr 'A-Z' 'a-z'
+
+cat foo | if true;  then tr 'A-Z' 'a-z'; else echo bar1; fi
+cat foo | if false; then tr 'A-Z' 'a-z'; else echo bar2; fi
+if true;  then tr 'A-Z' 'a-z'; else echo bar3; fi <foo
+if false; then tr 'A-Z' 'a-z'; else echo bar4; fi <foo
+if true || false; then echo foo; else echo bar5; fi
+if true && false; then echo bar6; else echo foo; fi
+
+# ash, lash, and hush do not create fish; bash and ksh do.  Tough.
+# Thanks to Tapani Tarvainen <tt@mit.jyu.fi> for this stress test.
+unset TMP
+rm -f fish
+TMP=fish >$TMP
+ls fish
+
+# The following example shows that hush's parser is
+# not _really_ Bourne compatible
+echo "echo Hello World" >"a=b"
+unset a
+chmod a+x "a=b"
+PATH=$PATH:.
+"a=b"
+echo $a
+
+# assuming the shell wasn't too buggy, clean up the mess
+rm -f a=b fish foo

@@ -30,6 +30,7 @@ basename `pwd`
 
 # cat
 cat tester.sh
+echo hello there | cat tester.sh -
 
 # chmod
 # chown
@@ -39,7 +40,6 @@ cat tester.sh
 # clear - can't be tested here
 # cmp
 # cp
-# mv
 
 # cut
 echo "1234" | cut -c1
@@ -102,36 +102,35 @@ echo -n "no newline"
 
 
 # expr
-# XXX: something's wrong with the way I'm doing these. Figure it out later.
-#expr 1 \| 1
-#expr 1 \| 0
-#expr 0 \| 1
-#expr 0 \| 0
-#
-#expr 1 \& 1
-#expr 1 \& 0
-#expr 0 \& 1
-#expr 0 \& 0
-#
-#expr 0 \< 1
-#expr 1 \< 0
-#
-#expr 1 \> 0
-#expr 0 \> 1
-#
-#expr 0 \<= 1
-#expr 1 \<= 0
-#expr 1 \<= 1
-#
-#expr 1 \>= 0
-#expr 0 \>= 1
-#expr 1 \>= 1
-#
-#expr 1 + 2
-#expr 2 - 1
-#expr 2 \* 3
-#expr 12 / 2
-#expr 12 % 5
+expr 1 \\| 1
+expr 1 \\| 0
+expr 0 \\| 1
+expr 0 \\| 0
+
+expr 1 \\& 1
+expr 1 \\& 0
+expr 0 \\& 1
+expr 0 \\& 0
+
+expr 0 \\< 1
+expr 1 \\< 0
+
+expr 1 \\> 0
+expr 0 \\> 1
+
+expr 0 \\<= 1
+expr 1 \\<= 0
+expr 1 \\<= 1
+
+expr 1 \\>= 0
+expr 0 \\>= 1
+expr 1 \\>= 1
+
+expr 1 + 2
+expr 2 - 1
+expr 2 \\* 3
+expr 12 / 2
+expr 12 % 5
 
 # somebody else can do all the string stuff
 
@@ -156,7 +155,10 @@ grep -lc strdup ../*.c
 grep -cv strdup ../*.c
 
 # gunzip
+
 # gzip
+echo testing 1 2 3 >tmpfile1; gzip tmpfile1; echo tmpfile*; md5sum tmpfile1.gz; rm tmpfile1.gz
+echo testing 1 2 3 | gzip >tmpfile1.gz; md5sum tmpfile1.gz; rm tmpfile1.gz
 # halt
 
 # head
@@ -183,7 +185,8 @@ id -un
 
 
 # ifconfig
-#ifconfig
+# requires BB_FEATURE_IFCONFIG_STATUS
+ifconfig
 #ifconfig -a
 #ifconfig eth0
 #ifconfig lo
@@ -196,7 +199,7 @@ id -un
 # not going to do any more
 
 # length
-# ln
+# ln - see ln_tests.mk
 # loadacm
 # loadfont
 # loadkmap
@@ -240,6 +243,7 @@ mount
 # not going to test any more
 
 # mt
+# mv - see mv_tests.mk
 # nc
 # nfsmount
 # nslookup
@@ -267,7 +271,10 @@ touch F ; rm F
 
 # rmdir
 # rmmod - won't test: dangerous
+
 # route
+route
+
 # rpmunpack
 
 # sed - we can do some one-liners here; probably needs it's own input file
@@ -282,6 +289,8 @@ sed -e '/test/s/dangerous/PELIGROSO/' testcases
 sh -c "echo a b c"
 sh -c ">"
 sh -c "a"
+#sh sh.testcases
+
 
 # sleep - can't test: produces no output
 
@@ -310,10 +319,25 @@ echo "please tee me!" | tee A B C ; echo "tee me too!" | tee -a A B C ; cat A B 
 
 # test
 # tftp
+
 # touch
+touch tmpfile1; ls tmpfile1; rm -f tmpfile1
+touch -c tmpfile1; ls tmpfile1; rm -f tmpfile1
+
 # tr
+echo "cbaab" | tr abc zyx
+echo "TESTING A B C" | tr [A-Z] [a-z]
+# not GNU compatible
+echo fdhrnzvfu bffvsentr | tr [a-z] [n-z][a-m]
+echo abc[] | tr a[b AXB
+echo testing | tr -d aeiou
+
+# true
 true ; echo $?
+
+# false
 false ; echo $?
+
 # tty
 # umount
 # uname

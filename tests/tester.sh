@@ -87,7 +87,7 @@ unalias -a	# gets rid of aliases that might create different output
 
 
 # do extra setup (if any)
-if [ ! -z $SETUP ] 
+if [ ! -z "$SETUP" ] 
 then
 	[ $DEBUG -ge 2 ] && echo "running setup commands in $SETUP"
 	source $SETUP
@@ -120,8 +120,12 @@ do
 
 				# change line to include "busybox" before every statement
 				line="$BUSYBOX $line"
-				line=${line//;/; $BUSYBOX }
-				line=${line//|/| $BUSYBOX }
+				# is this a bash-2-ism?
+				# line=${line//;/; $BUSYBOX }
+				# line=${line//|/| $BUSYBOX }
+				# assume $BUSYBOX has no commas
+				line=`echo $line | sed -e 's,;,; '$BUSYBOX, \
+				                       -e 's,|,| '$BUSYBOX,`
 
 				# execute line using busybox programs
 				[ $DEBUG -ge 2 ] && echo "testing: $line" | tee -a $LOGFILE
@@ -143,11 +147,11 @@ done
 
 
 # do normal cleanup
-[ $KEEPTMPFILES == "no" ] && rm -f $BB_OUT $GNU_OUT
+[ "$KEEPTMPFILES" = "no" ] && rm -f $BB_OUT $GNU_OUT
 
 
 # do extra cleanup (if any)
-if [ ! -z $CLEANUP ] 
+if [ ! -z "$CLEANUP" ] 
 then
 	[ $DEBUG -ge 2 ] && echo "running cleanup commands in $CLEANUP"
 	source $CLEANUP
