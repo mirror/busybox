@@ -202,13 +202,6 @@ void bb_show_usage(void)
 #undef DEBUG
 #endif
 
-/* CGI environ size */
-#ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
-#define ENVSIZE 70    /* set max CGI variable */
-#else
-#define ENVSIZE 15    /* minimal requires */
-#endif
-
 #define MAX_POST_SIZE (64*1024) /* 64k. Its Small? May be ;) */
 
 #define MAX_MEMORY_BUFF 8192    /* IO buffer */
@@ -228,10 +221,6 @@ typedef struct HT_ACCESS_IP {
 
 typedef struct
 {
-#ifdef CONFIG_FEATURE_HTTPD_CGI
-  char *envp[ENVSIZE+1];
-  int envCount;
-#endif
   char buf[MAX_MEMORY_BUFF];
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
@@ -659,20 +648,17 @@ static void parse_conf(const char *path, int flag)
 	    c = strchr(cf, ':');
 	    *c++ = 0;
 	    cur->after_colon = c;
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	    if(*cf == '/')
-		free(p0);
-#endif
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	    else if(*cf == '.') {
+	    if(*cf == '.') {
 		/* config .mime line move top for overwrite previous */
 		cur->next = config->mime_a;
 		config->mime_a = cur;
+		continue;
 	    }
 #endif
-
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	    else if(prev == NULL) {
+	    free(p0);
+	    if(prev == NULL) {
 		/* first line */
 		config->auth = prev = cur;
 	    } else {
@@ -809,19 +795,16 @@ static char *decodeString(char *orig, int flag_plus_to_space)
 static void addEnv(const char *name_before_underline,
 			const char *name_after_underline, const char *value)
 {
-  char *s;
+  char *s = NULL;
   const char *underline;
 
-  if (config->envCount >= ENVSIZE)
-	return;
   if (!value)
 	value = "";
   underline = *name_after_underline ? "_" : "";
   asprintf(&s, "%s%s%s=%s", name_before_underline, underline,
 					name_after_underline, value);
   if(s) {
-    config->envp[config->envCount++] = s;
-    config->envp[config->envCount] = 0;
+    putenv(s);
   }
 }
 
@@ -1242,7 +1225,7 @@ static int sendCgi(const char *url,
 		  // now run the program.  If it fails,
 		  // use _exit() so no destructors
 		  // get called and make a mess.
-		  execve(realpath_buff, argp, config->envp);
+		  execv(realpath_buff, argp);
 		}
 	    }
       }
