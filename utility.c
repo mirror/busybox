@@ -1637,11 +1637,6 @@ extern int print_file_by_name(char *filename)
 	if ((file = wfopen(filename, "r")) == NULL)
 		return FALSE;
 	print_file(file);
-	if (errno) {
-		errorMsg("%s: %s\n", filename, strerror(errno));
-		errno = 0;
-		return FALSE;
-	}
 	return TRUE;
 }
 #endif /* BB_CAT */
