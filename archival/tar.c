@@ -738,11 +738,13 @@ int tar_main(int argc, char **argv)
 		gz_close(gunzip_pid);
 	}
 #endif // CONFIG_FEATURE_TAR_GZIP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	if (src_filename) {
 		free(src_filename);
 	}
 	if (file_list_name) {
 		free(file_list_name);
 	}
+#endif
 	return(EXIT_SUCCESS);
 }
