@@ -84,13 +84,13 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	}
 #endif
 #ifdef CONFIG_FEATURE_FIND_MTIME
-	if (mtime_days != 0) {
+	if (mtime_char != 0) {
 		time_t file_age = time(NULL) - statbuf->st_mtime;
 		time_t mtime_secs = mtime_days * 24 * 60 * 60;
-		if (!((isdigit(mtime_char) && mtime_secs >= file_age &&
-						mtime_secs < file_age + 24 * 60 * 60) ||
-				(mtime_char == '+' && mtime_secs >= file_age) || 
-				(mtime_char == '-' && mtime_secs < file_age)))
+		if (!((isdigit(mtime_char) && file_age >= mtime_secs &&
+						file_age < mtime_secs + 24 * 60 * 60) ||
+				(mtime_char == '+' && file_age >= mtime_secs + 24 * 60 * 60) || 
+				(mtime_char == '-' && file_age < mtime_secs)))
 			goto no_match;
 	}
 #endif
