@@ -23,6 +23,7 @@
 #define BB_DF
 #define BB_DIRNAME
 #define BB_DMESG
+#define BB_DOS2UNIX
 #define BB_DUTMP
 #define BB_DU
 #define BB_DUMPKMAP
@@ -98,6 +99,7 @@
 #define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
+#define BB_UNRPM
 #define BB_UPTIME
 #define BB_USLEEP
 #define BB_WC
@@ -109,6 +111,7 @@
 #define BB_UMOUNT
 #define BB_UNIQ
 #define BB_UNAME
+#define BB_UNIX2DOS
 #define BB_UPDATE
 #define BB_YES
 // End of Applications List
@@ -173,7 +176,7 @@
 #define BB_FEATURE_USE_INITTAB
 //
 //Enable init being called as /linuxrc
-//#define BB_FEATURE_LINUXRC
+#define BB_FEATURE_LINUXRC
 //
 //Have init enable core dumping for child processes (for debugging only) 
 //#define BB_FEATURE_INIT_COREDUMPS
@@ -203,7 +206,7 @@
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
 // Enable support for mounting remote NFS volumes
-//#define BB_FEATURE_NFSMOUNT
+#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
 // (i.e. in case of an unreachable NFS system).

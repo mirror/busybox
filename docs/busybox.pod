@@ -55,16 +55,17 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
-dc, dd, deallocvt, df, dirname, dmesg, du, dumpkmap, dutmp, echo, false, fbset,
-fdflush, find, free, freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt,
-head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
-loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
-mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-nslookup, ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm, rmdir, rmmod, sed,
-setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
-tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
-uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
+ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date, dc,
+dd, deallocvt, df, dirname, dmesg, dos2unix, du, dumpkmap, dutmp, echo, false,
+fbset, fdflush, find, free, freeramdisk, fsck.minix, getopt, grep, gunzip,
+gzip, halt, head, hostid, hostname, id, init, insmod, kill, killall, length,
+ln, loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
+mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc, nslookup,
+ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm, rmdir,
+rmmod, sed, setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
+tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, unix2dos,
+unrpm, update, uptime, usleep, uudecode, uuencode, wc, which, whoami, yes,
+zcat, [
 
 -------------------------------
 
@@ -409,6 +410,14 @@ Example:
 Usage: dmesg [B<-c>] [B<-n> level] [B<-s> bufsize]
 
 Print or controls the kernel ring buffer.
+
+-------------------------------
+
+=item dos2unix
+
+Usage: dos2unix < dosfile > unixfile
+
+Converts a text file from dos format to unix format.
 
 -------------------------------
 
@@ -1929,6 +1938,22 @@ Example:
 
 -------------------------------
 
+=item unix2dos
+
+Usage: unix2dos < unixfile > dosfile
+
+Converts a text file from unix format to dos format.
+
+-------------------------------
+
+=item unrpm
+
+Usage: unrpm < package.rpm | gzip -d | cpio -idmuv
+
+Extracts an rpm archive.
+
+-------------------------------
+
 =item update
 
 Usage: update [options]
@@ -2157,4 +2182,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.68 2000/09/15 17:24:13 proski Exp $
+# $Id: busybox.pod,v 1.69 2000/09/20 19:22:26 andersen Exp $

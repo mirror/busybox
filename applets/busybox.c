@@ -64,6 +64,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_DMESG
 	{"dmesg", dmesg_main, _BB_DIR_BIN, dmesg_usage},
 #endif
+#ifdef BB_DOS2UNIX
+	{"dos2unix", dos2unix_main, _BB_DIR_USR_BIN, dos2unix_usage},
+#endif
 #ifdef BB_DU
 	{"du", du_main, _BB_DIR_USR_BIN, du_usage},
 #endif
@@ -312,6 +315,12 @@ const struct BB_applet applets[] = {
 #endif
 #ifdef BB_UNIQ
 	{"uniq", uniq_main, _BB_DIR_USR_BIN, uniq_usage},
+#endif
+#ifdef BB_UNIX2DOS
+	{"unix2dos", unix2dos_main, _BB_DIR_USR_BIN, unix2dos_usage},
+#endif
+#ifdef BB_UNRPM
+	{"unrpm", unrpm_main, _BB_DIR_USR_BIN, unrpm_usage},
 #endif
 #ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN, update_usage},

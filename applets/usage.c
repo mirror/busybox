@@ -207,6 +207,15 @@ const char dmesg_usage[] =
 	;
 #endif
 
+#if defined BB_DOS2UNIX
+const char dos2unix_usage[] =
+	"dos2unix < dosfile > unixfile\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nConverts a text file from dos format to unix format.\n"
+#endif
+	;
+#endif
+
 #if defined BB_DU
 const char du_usage[] =
 	"du [OPTION]... [FILE]...\n"
@@ -1303,6 +1312,24 @@ const char uniq_usage[] =
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nDiscard all but one of successive identical lines from INPUT\n"
 	"(or standard input), writing to OUTPUT (or standard output).\n"
+#endif
+	;
+#endif
+
+#if defined BB_UNIX2DOS
+const char unix2dos_usage[] =
+	"unix2dos < unixfile > dosfile\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nConverts a text file from unix format to dos format.\n"
+#endif
+	;
+#endif
+
+#if defined BB_UNRPM
+const char unrpm_usage[] =
+	"unrpm < package.rpm | gzip -d | cpio -idmuv\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nExtracts an rpm archive.\n"
 #endif
 	;
 #endif

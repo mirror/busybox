@@ -20,6 +20,7 @@
 	* Added 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
 	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
 	    wouldn't work (since it thought -r was an option).  Doh!
+	* Added dos2unix, unix2dos, and unrpm.c thanks to robotti@metconnect.com.
 
 
 

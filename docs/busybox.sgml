@@ -1,5 +1,4 @@
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [
-]>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [ ]>
 <book id="BusyBoxDocumentation">
  <bookinfo>
   <title>BusyBox - The Swiss Army Knife of Embedded Linux</title>
@@ -744,6 +743,19 @@
 			-s BUFSIZE	Query ring buffer using a buffer of BUFSIZE
 		</screen>
 		</para>
+	</sect1>
+
+	<sect1 id="dos2unix">
+	    <title>dos2unix</title>
+
+		<para>
+		Usage: dos2unix < dosfile > unixfile
+		</para>
+
+		<para>
+		Converts a text file from dos format to unix format.
+		</para>
+
 	</sect1>
 
 	<sect1 id="du">
@@ -3393,6 +3405,32 @@
 			c
 		</screen>
 		</para>
+	</sect1>
+	
+	<sect1 id="unix2dos">
+	    <title>unix2dos</title>
+
+		<para>
+		Usage: unix2dos < unixfile > dosfile
+		</para>
+
+		<para>
+		Converts a text file from unix format to dos format.
+		</para>
+
+	</sect1>
+
+	<sect1 id="unrpm">
+	    <titleunrpmuniq</title>
+
+		<para>
+		Usage: unrpm < package.rpm | gzip -d | cpio -idmuv
+		</para>
+
+		<para>
+		Extracts an rpm archive.
+		</para>
+
 	</sect1>
 
 	<sect1 id="update">
