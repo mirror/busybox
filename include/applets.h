@@ -367,9 +367,6 @@
 #ifdef CONFIG_MESG
 	APPLET(mesg, mesg_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_MINIT
-	APPLET(minit, minit_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
-#endif
 #ifdef CONFIG_MKDIR
 	APPLET(mkdir, mkdir_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -400,9 +397,6 @@
 #ifdef CONFIG_MSH
 	APPLET_NOUSAGE("msh", msh_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_MSVC
-	APPLET(msvc, msvc_main, _BB_DIR_BIN, _BB_SUID_NEVER)
-#endif
 #ifdef CONFIG_MT
 	APPLET(mt, mt_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -432,9 +426,6 @@
 #endif
 #ifdef CONFIG_PATCH
 	APPLET(patch, patch_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
-#endif
-#ifdef CONFIG_PIDFILEHACK
-	APPLET(pidfilehack, pidfilehack_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_PIDOF
 	APPLET(pidof, pidof_main, _BB_DIR_BIN, _BB_SUID_NEVER)

@@ -1591,11 +1591,6 @@
 	"\ty\tAllow write access to your terminal.\n" \
 	"\tn\tDisallow write access to your terminal.\n"
 
-#define minit_trivial_usage \
-	"[-spPrRC]"
-#define minit_full_usage \
-	"A small replacement for SysV init"
-
 #define mkdir_trivial_usage \
 	"[OPTION] DIRECTORY..."
 #define mkdir_full_usage \
@@ -1726,25 +1721,6 @@
 	"$ mount /dev/fd0 /mnt -t msdos -o ro\n" \
 	"$ mount /tmp/diskimage /opt -t ext2 -o loop\n"
 
-#define msvc_trivial_usage \
-	"-[udorspchaitkx] service"
-#define msvc_full_usage \
-	"[option] service\n" \
-	"Where option is one of\n" \
-	"\t-u\tUp.  If the service is not running, start it.  If the service stops, restart it.\n" \
-	"\t-d\tDown.  If the service is running, stop it, do not restart it.\n" \
-	"\t-o\tOnce.  If the service is not running, start it.  Do not restart it if it stops.\n" \
-	"\t-r\tTell supervise that the service is normally running; this affects status messages.\n" \
-	"\t-s\tTell supervise that the service is normally stopped; this affects status messages.\n" \
-	"\t-p\tPause.  Send the service a STOP signal.\n" \
-	"\t-c\tContinue.  Send the service a CONT signal.\n" \
-	"\t-h\tHangup.  Send the service a HUP signal.\n" \
-	"\t-a\tAlarm.  Send the service an ALRM signal.\n" \
-	"\t-i\tInterrupt.  Send the service an INT signal.\n" \
-	"\t-t\tTerminate.  Send the service a TERM signal.\n" \
-	"\t-k\tKill.  Send the service a KILL signal.\n" \
-	"\t-x\tExit.  supervise will quit as soon as the service is down."
-
 #define mt_trivial_usage \
 	"[-f device] opcode value"
 #define mt_full_usage \
@@ -1860,11 +1836,6 @@
 	"[-p<num>]"
 #define patch_example_usage \
 	"$ patch -p1 <example.diff"
-
-#define pidfilehack_trivial_usage \
-	"[daemon.pid] [daemon]"
-#define pidfilehack_full_usage \
-	"service /var/run/daemon.pid /usr/sbin/daemon args...\n"
 
 #define pidof_trivial_usage \
 	"process-name [process-name ...]"

@@ -26,9 +26,6 @@ INIT-y:=
 INIT-$(CONFIG_HALT)			+= halt.o
 INIT-$(CONFIG_INIT)			+= init.o
 INIT-$(CONFIG_MESG)			+= mesg.o
-INIT-$(CONFIG_MINIT)			+= minit.o
-INIT-$(CONFIG_MSVC)			+= msvc.o
-INIT-$(CONFIG_PIDFILEHACK)		+= pidfilehack.o
 INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
 

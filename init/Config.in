@@ -61,30 +61,6 @@ config CONFIG_REBOOT
 	help
 	  Stop all processes and reboot the system.
 
-config CONFIG_MINIT
-	bool "minit"
-	default n
-	depends on ! CONFIG_INIT
-	help
-	  Minimal init, based on minit v0.9.1.  This is a simple
-	  init replacement that handles starting/stopping services,
-	  and service dependencies.  See http://www.fefe.de/minit/
-	  for additional information.
-
-config CONFIG_PIDFILEHACK
-	bool "pidfilehack"
-	default y
-	depends on CONFIG_MINIT
-	help
-	  pidfilehack is used by minit to run servers.
-
-config CONFIG_MSVC
-	bool "msvc"
-	default y
-	depends on CONFIG_MINIT
-	help
-	  msvc is used to start and stop processes controlled by minit
-
 config CONFIG_MESG
 	bool "mesg"
 	default y
