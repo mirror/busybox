@@ -15,8 +15,9 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.1 2001/02/14 08:11:27 andersen Exp $
+ * $Id: route.c,v 1.2 2001/02/14 19:26:39 andersen Exp $
  *
+ * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  */
 
 #include "busybox.h"
@@ -343,6 +344,63 @@ INET_setroute(int action, int options, char **args)
 	return (0);
 }
 
+void displayroutes(void)
+{
+	char buff[256];
+	int  nl = 0 ;
+	struct in_addr dest;
+	struct in_addr gw;
+	struct in_addr mask;
+	int flgs, ref, use, metric;
+	char flags[4];
+	unsigned long int d,g,m;
+
+	char sdest[16], sgw[16];
+
+
+	FILE *fp = fopen("/proc/net/route", "r");
+
+	if(fp==0) {
+		perror_msg_and_die("/proc/net/route");
+	}
+	while( fgets(buff, sizeof(buff), fp) != NULL ) {
+		if(nl) {
+			int ifl = 0;
+			while(buff[ifl]!=' ' && buff[ifl]!='\t' && buff[ifl]!='\0')
+				ifl++;
+			buff[ifl]=0;    /* interface */
+			if(sscanf(buff+ifl+1, "%lx%lx%d%d%d%d%lx",
+			   &d, &g, &flgs, &ref, &use, &metric, &m)!=7) {
+				error_msg_and_die( "Unsuported kernel route format\n");
+			}
+			dest.s_addr = d;
+			gw.s_addr   = g;
+			mask.s_addr = m;
+			if(nl==1)
+				printf("Kernel IP routing table\n\
+Destination\tGateway\t\tGenmask\t\tFlags Metric Ref    Use Iface\n");
+
+			ifl = 0;        /* parse flags */
+			if(flgs&1)
+				flags[ifl++]='U';
+			if(flgs&2)
+				flags[ifl++]='G';
+			if(flgs&4)
+				flags[ifl++]='H';
+			flags[ifl]=0;
+			strcpy(sdest,  (dest.s_addr==0 ? "default" :
+					inet_ntoa(dest)));
+			strcpy(sgw,    (gw.s_addr==0   ? "*"       :
+					inet_ntoa(gw)));
+			printf("%-16s%-16s%-16s%-6s%-7d%-9d%-2d%s\n",
+				sdest, sgw,
+				inet_ntoa(mask),
+				flags, metric, ref, use, buff);
+		}
+	nl++;
+	}
+}
+
 int route_main(int argc, char **argv)
 {
 	int what = 0;
@@ -351,9 +409,8 @@ int route_main(int argc, char **argv)
 	argv++;
 
 	if (*argv == NULL) {
-		//displayroutes();
-		fprintf(stderr, "print routes is not implemented yet\n");
-		usage(route_usage);
+		displayroutes();
+		exit(EXIT_SUCCESS);
 	} else {
 		/* check verb */
 		if (!strcmp(*argv, "add"))
@@ -368,5 +425,5 @@ int route_main(int argc, char **argv)
 
 	INET_setroute(what, 0, ++argv);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
