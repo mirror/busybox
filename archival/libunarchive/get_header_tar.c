@@ -105,10 +105,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	} else {
 		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
-	tmp = last_char_is(archive_handle->file_header->name, '/');
-	if (tmp) {
-		*tmp = '\0';
-	}
 
 	file_header->mode = strtol(tar.formated.mode, NULL, 8);
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
@@ -126,7 +122,11 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 # ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	case 0:
 	case '0':
-		file_header->mode |= S_IFREG;
+		if (last_char_is(file_header->name, '/')) {
+			file_header->mode |= S_IFDIR;
+		} else {
+			file_header->mode |= S_IFREG;
+		}
 		break;
 #if 0
 	/* hard links are detected as entries with 0 size, a link name, 
