@@ -143,7 +143,7 @@ static void logMessage (int pri, char *msg)
 				c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
 		for (c_pri = prioritynames;
 				c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
-		if (*c_fac->c_name == '\0' || *c_pri->c_name == '\0')
+		if (c_fac->c_name == NULL || c_pri->c_name == NULL)
 			snprintf(res, sizeof(res), "<%d>", pri);
 		else
 			snprintf(res, sizeof(res), "%s.%s", c_fac->c_name, c_pri->c_name);
