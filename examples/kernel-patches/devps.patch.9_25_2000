@@ -1,237 +1,24 @@
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/alpha/defconfig linux/arch/alpha/defconfig
---- linux-2.2.15-pre13.virgin/arch/alpha/defconfig	Tue Jan  4 11:12:10 2000
-+++ linux/arch/alpha/defconfig	Tue Mar  7 19:57:29 2000
-@@ -239,6 +239,9 @@
- # CONFIG_SERIAL_CONSOLE is not set
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- CONFIG_MOUSE=y
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/arm/defconfig linux/arch/arm/defconfig
---- linux-2.2.15-pre13.virgin/arch/arm/defconfig	Thu Feb 25 11:46:46 1999
-+++ linux/arch/arm/defconfig	Tue Mar  7 20:01:46 2000
-@@ -156,6 +156,10 @@
- CONFIG_SCSI_PPA=m
- CONFIG_SCSI_PPA_HAVE_PEDANTIC=2
- 
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
-+
- #
- # Network device support
- #
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/i386/defconfig linux/arch/i386/defconfig
---- linux-2.2.15-pre13.virgin/arch/i386/defconfig	Tue Mar  7 19:46:57 2000
-+++ linux/arch/i386/defconfig	Tue Mar  7 19:57:40 2000
-@@ -300,6 +300,9 @@
- # CONFIG_SERIAL_CONSOLE is not set
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- CONFIG_MOUSE=y
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/i386/kernel/Makefile linux/arch/i386/kernel/Makefile
---- linux-2.2.15-pre13.virgin/arch/i386/kernel/Makefile	Wed Jan 20 11:18:53 1999
-+++ linux/arch/i386/kernel/Makefile	Tue Mar  7 19:52:45 2000
-@@ -14,8 +14,8 @@
- 
- O_TARGET := kernel.o
- O_OBJS   := process.o signal.o entry.o traps.o irq.o vm86.o \
--            ptrace.o ioport.o ldt.o setup.o time.o sys_i386.o
--OX_OBJS  := i386_ksyms.o
-+            ptrace.o ioport.o ldt.o time.o sys_i386.o
-+OX_OBJS  := i386_ksyms.o setup.o
- MX_OBJS  :=
- 
- ifdef CONFIG_PCI
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/m68k/defconfig linux/arch/m68k/defconfig
---- linux-2.2.15-pre13.virgin/arch/m68k/defconfig	Thu Feb 25 11:46:46 1999
-+++ linux/arch/m68k/defconfig	Tue Mar  7 19:58:10 2000
-@@ -223,6 +223,9 @@
- CONFIG_AMIGAMOUSE=y
- CONFIG_ATARIMOUSE=y
- CONFIG_AMIGA_BUILTIN_SERIAL=y
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- # CONFIG_GVPIOEXT is not set
- # CONFIG_GVPIOEXT_LP is not set
- # CONFIG_GVPIOEXT_PLIP is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/mips/defconfig linux/arch/mips/defconfig
---- linux-2.2.15-pre13.virgin/arch/mips/defconfig	Mon Aug  9 13:04:38 1999
-+++ linux/arch/mips/defconfig	Tue Mar  7 19:58:30 2000
-@@ -252,6 +252,9 @@
- CONFIG_SERIAL=m
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- # CONFIG_UNIX98_PTYS is not set
- # CONFIG_MOUSE is not set
- # CONFIG_QIC02_TAPE is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/apus_defconfig linux/arch/ppc/apus_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/apus_defconfig	Thu Feb 25 11:46:47 1999
-+++ linux/arch/ppc/apus_defconfig	Tue Mar  7 19:59:14 2000
-@@ -303,6 +303,9 @@
- CONFIG_SERIAL=m
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- # CONFIG_MOUSE is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/chrp_defconfig linux/arch/ppc/chrp_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/chrp_defconfig	Thu Feb 25 11:46:47 1999
-+++ linux/arch/ppc/chrp_defconfig	Tue Mar  7 19:58:57 2000
-@@ -261,6 +261,9 @@
- # CONFIG_SERIAL_CONSOLE is not set
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- # CONFIG_UNIX98_PTYS is not set
- # CONFIG_MOUSE is not set
- # CONFIG_UMISC is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/common_defconfig linux/arch/ppc/common_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/common_defconfig	Tue Jan  4 11:12:12 2000
-+++ linux/arch/ppc/common_defconfig	Tue Mar  7 19:59:35 2000
-@@ -337,6 +337,9 @@
- CONFIG_SERIAL=m
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- CONFIG_MOUSE=y
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/defconfig linux/arch/ppc/defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/defconfig	Tue Jan  4 11:12:12 2000
-+++ linux/arch/ppc/defconfig	Tue Mar  7 19:58:43 2000
-@@ -337,6 +337,9 @@
- CONFIG_SERIAL=m
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- CONFIG_MOUSE=y
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/gemini_defconfig linux/arch/ppc/gemini_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/gemini_defconfig	Tue Jan  4 11:12:12 2000
-+++ linux/arch/ppc/gemini_defconfig	Tue Mar  7 19:59:23 2000
-@@ -285,6 +285,9 @@
- CONFIG_SERIAL_CONSOLE=y
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- # CONFIG_MOUSE is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/mbx_defconfig linux/arch/ppc/mbx_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/mbx_defconfig	Wed Mar 10 22:30:32 1999
-+++ linux/arch/ppc/mbx_defconfig	Tue Mar  7 19:59:49 2000
-@@ -192,6 +192,9 @@
- CONFIG_SERIAL_CONSOLE=y
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- # CONFIG_UNIX98_PTYS is not set
- # CONFIG_MOUSE is not set
- # CONFIG_QIC02_TAPE is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/ppc/pmac_defconfig linux/arch/ppc/pmac_defconfig
---- linux-2.2.15-pre13.virgin/arch/ppc/pmac_defconfig	Tue Oct 26 18:53:39 1999
-+++ linux/arch/ppc/pmac_defconfig	Tue Mar  7 19:59:59 2000
-@@ -368,6 +368,9 @@
- # CONFIG_SERIAL is not set
- # CONFIG_SERIAL_EXTENDED is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- CONFIG_UNIX98_PTYS=y
- CONFIG_UNIX98_PTY_COUNT=256
- # CONFIG_PRINTER is not set
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/s390/defconfig linux/arch/s390/defconfig
---- linux-2.2.15-pre13.virgin/arch/s390/defconfig	Tue Mar  7 19:46:57 2000
-+++ linux/arch/s390/defconfig	Tue Mar  7 20:02:36 2000
-@@ -64,6 +64,9 @@
- CONFIG_3215_CONSOLE=y
- CONFIG_HWC=y
- CONFIG_HWC_CONSOLE=y
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
- 
- #
- # Networking options
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/sparc/defconfig linux/arch/sparc/defconfig
---- linux-2.2.15-pre13.virgin/arch/sparc/defconfig	Tue Mar  7 19:46:57 2000
-+++ linux/arch/sparc/defconfig	Tue Mar  7 20:01:00 2000
-@@ -219,6 +219,10 @@
- CONFIG_SUNQE=m
- CONFIG_MYRI_SBUS=m
- 
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
-+
- #
- # Unix98 PTY support
- #
-diff -ur --new-file linux-2.2.15-pre13.virgin/arch/sparc64/defconfig linux/arch/sparc64/defconfig
---- linux-2.2.15-pre13.virgin/arch/sparc64/defconfig	Tue Mar  7 19:46:57 2000
-+++ linux/arch/sparc64/defconfig	Tue Mar  7 20:01:16 2000
-@@ -262,6 +262,10 @@
- CONFIG_EEXPRESS_PRO100=m
- CONFIG_SK98LIN=m
- 
-+# CONFIG_DEVPS is not set
-+# CONFIG_DEVMTAB is not set
-+# CONFIG_DEVMODULES is not set
-+
- #
- # Unix 98 PTY support
- #
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/Config.in linux/drivers/char/Config.in
---- linux-2.2.15-pre13.virgin/drivers/char/Config.in	Tue Mar  7 19:46:58 2000
-+++ linux/drivers/char/Config.in	Tue Mar  7 19:52:45 2000
-@@ -56,6 +56,9 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/Config.in linux/drivers/char/Config.in
+--- linux-2.2.18-9.virgin/drivers/char/Config.in	Mon Sep 18 15:02:30 2000
++++ linux/drivers/char/Config.in	Mon Sep 25 16:33:16 2000
+@@ -56,6 +56,8 @@
     dep_tristate 'Microgate SyncLink card support' CONFIG_SYNCLINK m
     dep_tristate 'HDLC line discipline support' CONFIG_N_HDLC m
  fi
 +tristate 'Devps support' CONFIG_DEVPS
 +tristate 'Devmounts support' CONFIG_DEVMTAB
-+tristate 'Devmodules support' CONFIG_DEVMODULES
  bool 'Unix98 PTY support' CONFIG_UNIX98_PTYS
  if [ "$CONFIG_UNIX98_PTYS" = "y" ]; then
  	int 'Maximum number of Unix98 PTYs in use (0-2048)' CONFIG_UNIX98_PTY_COUNT 256
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/Makefile linux/drivers/char/Makefile
---- linux-2.2.15-pre13.virgin/drivers/char/Makefile	Tue Mar  7 19:46:58 2000
-+++ linux/drivers/char/Makefile	Tue Mar  7 19:52:45 2000
-@@ -620,6 +620,30 @@
-   L_OBJS += dz.o
- endif
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/Makefile linux/drivers/char/Makefile
+--- linux-2.2.18-9.virgin/drivers/char/Makefile	Mon Sep 18 15:02:30 2000
++++ linux/drivers/char/Makefile	Mon Sep 25 18:01:12 2000
+@@ -697,6 +697,22 @@
+ M_OBJS          += $(sort $(filter     $(module-list), $(obj-m)))
+ 
  
 +ifeq ($(CONFIG_DEVPS),y)
-+L_OBJS += devps.o
++O_OBJS += devps.o
 +else
 +  ifeq ($(CONFIG_DEVPS),m)
 +  M_OBJS += devps.o
@@ -239,302 +26,20 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/Makefile linux/driver
 +endif
 +
 +ifeq ($(CONFIG_DEVMTAB),y)
-+L_OBJS += devmtab.o
++O_OBJS += devmtab.o
 +else
 +  ifeq ($(CONFIG_DEVMTAB),m)
 +  M_OBJS += devmtab.o
 +  endif
 +endif
 +
-+ifeq ($(CONFIG_DEVMODULES),y)
-+L_OBJS += devmodules.o
-+else
-+  ifeq ($(CONFIG_DEVMODULES),m)
-+  M_OBJS += devmodules.o
-+  endif
-+endif
-+
  include $(TOPDIR)/Rules.make
  
  fastdep:
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devmodules.c linux/drivers/char/devmodules.c
---- linux-2.2.15-pre13.virgin/drivers/char/devmodules.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/devmodules.c	Tue Mar  7 22:37:42 2000
-@@ -0,0 +1,270 @@
-+/* vi: set sw=8 ts=8: */
-+/*
-+ * linux/drivers/char/devmodules.c
-+ *
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
-+ *
-+ * May be copied or modified under the terms of the GNU General Public License.
-+ * See linux/COPYING for more information.
-+ *
-+ * This driver implements an interface whereby programs such as lsmod(8) may
-+ * obtain all the information they need to do their jobs.  Now you may ask,
-+ * "Why not use /proc/modules?".  Thanks for asking.  Because /proc is big and
-+ * bloated, and because using this driver we can avoid all that bloat and avoid
-+ * having the kernel need to pretty print stuff and avoid having user-space
-+ * then have to parse the stuff the kernel wasted its time formatting.
-+ *
-+ *
-+ * Suggestions are welcome. Patches that work are more welcome though. ;-)
-+ *
-+ * When using this driver, running:
-+ * 	mknod /dev/modules c 10 23
-+ * could be considered helpful.
-+ *
-+ * ----------------------------------
-+ * 1.00  Mar 07, 2000 -- Initial version.
-+ *
-+ *
-+ *************************************************************************/
-+
-+#define DEVMODULES_VERSION "1.00"
-+
-+#include <linux/config.h>
-+#include <linux/module.h>
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/pagemap.h>
-+#include <linux/malloc.h>
-+#include <linux/miscdevice.h>
-+#include <linux/devmodules.h>
-+#include <linux/wrapper.h>
-+#include <asm/pgtable.h>
-+#include <asm/uaccess.h>
-+
-+
-+/* Some variables used by this device */
-+static struct wait_queue *devmodules_waitq = NULL;
-+static int devmodules_already_opened = 0;
-+static char *devmodulesfile = NULL;
-+static int devmodules_ptr;
-+static int devmodules_size;
-+
-+
-+
-+/****************************************************************************
-+ * Handle opening and closing of the device
-+ */
-+
-+static long long
-+devmodules_lseek (struct file *file, long long offset, int orig)
-+{
-+	return -ESPIPE;
-+}
-+
-+static ssize_t
-+devmodules_read (struct file *file, char *buf, size_t count, loff_t * ppos)
-+{
-+	int n = devmodules_size - devmodules_ptr;
-+
-+	if (devmodules_size == 0) {
-+		/* Make some space */
-+		if (!(devmodulesfile = (char *) get_free_page (GFP_KERNEL)))
-+			return -ENOMEM;
-+		/* Grab the module list */
-+		get_module_list (devmodulesfile);
-+		devmodules_ptr = 0;
-+		devmodules_size = strlen (devmodulesfile);
-+		n = devmodules_size - devmodules_ptr;
-+	}
-+
-+	if (n > count)
-+		n = count;
-+	if (n <= 0)
-+		return 0;
-+
-+	if (copy_to_user (buf, devmodulesfile, n))
-+		return -EFAULT;
-+	devmodules_ptr += n;
-+	return n;
-+}
-+
-+static int devmodules_open (struct inode *ip, struct file *fp)
-+{
-+	/* Only let one process use us at any time -- putting other
-+	 * processes to sleep.  Those opening us O_NONBLOCK will
-+	 * get an EAGAIN error */
-+	if ((fp->f_flags & O_NONBLOCK) && devmodules_already_opened) 
-+		return -EAGAIN;
-+
-+	MOD_INC_USE_COUNT;
-+
-+	while (devmodules_already_opened) {
-+		int i, got_signal=0;
-+
-+		/* Go to sleep until we get woken up 
-+		 * by devmodules_close or we receive a signal */
-+		module_interruptible_sleep_on(&devmodules_waitq);
-+
-+		for(i=0; i<_NSIG_WORDS && !got_signal; i++)
-+			got_signal = current->signal.sig[i] & ~current->blocked.sig[i];
-+
-+		/* If we got a signal, decrement the use count
-+		 * and return to user space */
-+		if (got_signal) {
-+			MOD_DEC_USE_COUNT;
-+			return -EINTR;
-+	        }
-+	}
-+
-+	/* Since we got here, then devmodules_already_opened must equal 0 */
-+	devmodules_already_opened=1;
-+	devmodules_ptr = 0;
-+	devmodules_size = 0;
-+
-+	return 0;
-+}
-+
-+static int devmodules_release (struct inode *ip, struct file *fp)
-+{
-+	/* Clean up */
-+	if (devmodulesfile != NULL) {
-+		free_page ((unsigned long) devmodulesfile);
-+		devmodulesfile = NULL;
-+	}
-+
-+	/* Zero out the reference counter */
-+	devmodules_already_opened=0;
-+
-+	/* Wake up anybody that is waiting to access this device */
-+	module_wake_up(&devmodules_waitq);
-+
-+	MOD_DEC_USE_COUNT;
-+
-+	return 0;
-+}
-+
-+static int
-+devmodules_ioctl (struct inode *ip, struct file *fp,
-+	       unsigned int cmd, unsigned long arg)
-+{
-+	switch (cmd) {
-+
-+	case DEVMODULES_COUNT_MODULES:{
-+#ifdef CONFIG_MODULES
-+			return(count_kmodules());
-+#else
-+			return -ENOSYS;
-+#endif
-+		}
-+
-+	case DEVMODULES_GET_MODULES_LIST:{
-+#if !defined CONFIG_MODULES
-+			return -ENOSYS;
-+#else
-+
-+			int stat, count;
-+			struct k_module_item* module_list;
-+
-+
-+			/* How many are there? */
-+			count = count_kmodules();
-+
-+			/* Make some space */
-+			module_list = (struct k_module_item *)kmalloc(sizeof(struct k_module_item) * count, GFP_KERNEL);
-+			if (!module_list)
-+				return -ENOMEM;
-+			memset(module_list, 0, sizeof(struct k_module_item) * count);
-+
-+			/* Grab the list of modules */
-+			get_kmodule_list(count, module_list);
-+
-+			/* Make sure there is enough room */
-+			stat = verify_area (VERIFY_WRITE, (struct k_module_item *) arg,
-+					    sizeof(struct k_module_item) * count);
-+			if (stat) {
-+				printk (KERN_INFO
-+					"devmodules: Insufficient space was provided.\n");
-+				return stat;
-+			}
-+
-+			/* Send it to user space */
-+			copy_to_user_ret ((struct k_module_item *) arg, module_list,
-+					  sizeof(struct k_module_item) * count, 
-+					  -EFAULT);
-+
-+			/* Clean up */
-+			kfree( module_list);
-+			return 0;
-+#endif
-+		}
-+
-+	default:
-+		return -EINVAL;
-+
-+	}
-+	return 0;
-+}
-+
-+
-+
-+/****************************************************************************
-+ * Set up the file operations devmodules will support
-+ */
-+static struct file_operations devmodules_fops = {
-+	devmodules_lseek,
-+	devmodules_read,
-+	NULL,			/* No write */
-+	NULL,			/* No readdir */
-+	NULL,			/* No poll */
-+	devmodules_ioctl,
-+	NULL,			/* No mmap */
-+	devmodules_open,
-+	NULL,			/* flush */
-+	devmodules_release,
-+	NULL,			/* fsync */
-+	NULL,			/* fasync */
-+	NULL,			/* check_media_change */
-+	NULL			/* revalidate */
-+};
-+
-+static struct miscdevice devmodules_misc_dev = {
-+	DEVMODULES_MINOR,
-+	"devmodules",
-+	&devmodules_fops
-+};
-+
-+/* The real driver initialization function */
-+extern int devmodules_init (void)
-+{
-+	printk (KERN_INFO "devmodules: driver %s loaded\n", DEVMODULES_VERSION);
-+
-+	if (misc_register (&devmodules_misc_dev)) {
-+		printk ("devmodules: can't register misc device %d\n",
-+			DEVMODULES_MINOR);
-+		return -EIO;
-+	}
-+
-+	return 0;
-+}
-+
-+#ifdef MODULE
-+
-+MODULE_AUTHOR ("Erik Andersen <andersee@debian.org>");
-+MODULE_DESCRIPTION
-+	("devmodules driver -- exports filesystem and mount information to user space");
-+
-+/* Stub driver initialization function */
-+int init_module (void)
-+{
-+	return (devmodules_init ());
-+}
-+
-+void cleanup_module (void)
-+{
-+	printk (KERN_INFO "devmodules: driver unloaded\n");
-+	misc_deregister (&devmodules_misc_dev);
-+}
-+
-+#endif	/* MODULE */
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devmtab.c linux/drivers/char/devmtab.c
---- linux-2.2.15-pre13.virgin/drivers/char/devmtab.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/devmtab.c	Tue Mar  7 19:52:45 2000
-@@ -0,0 +1,304 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/devmtab.c linux/drivers/char/devmtab.c
+--- linux-2.2.18-9.virgin/drivers/char/devmtab.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/devmtab.c	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,295 @@
 +/* vi: set sw=8 ts=8: */
 +/*
 + * linux/drivers/char/devmtab.c
@@ -762,15 +267,6 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devmtab.c linux/drive
 +			return 0;
 +		}
 +
-+	case DEVMTAB_SET_ROOTFS_DEVNAME:{
-+			char rootdevname[256];
-+
-+			copy_from_user_ret (rootdevname, (char*) arg,
-+					sizeof(rootdevname), -EFAULT);
-+			return( set_root_filesystem_name( rootdevname));
-+		}
-+
-+
 +	default:
 +		return -EINVAL;
 +
@@ -839,9 +335,9 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devmtab.c linux/drive
 +}
 +
 +#endif	/* MODULE */
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devps.c linux/drivers/char/devps.c
---- linux-2.2.15-pre13.virgin/drivers/char/devps.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/devps.c	Tue Mar  7 19:52:45 2000
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/devps.c linux/drivers/char/devps.c
+--- linux-2.2.18-9.virgin/drivers/char/devps.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/devps.c	Mon Sep 25 17:00:57 2000
 @@ -0,0 +1,518 @@
 +/* vi: set sw=8 ts=8: */
 +/*
@@ -1361,29 +857,28 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/devps.c linux/drivers
 +}
 +
 +#endif				/* endif MODULE */
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/makedevps.sh linux/drivers/char/makedevps.sh
---- linux-2.2.15-pre13.virgin/drivers/char/makedevps.sh	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/makedevps.sh	Tue Mar  7 23:31:52 2000
-@@ -0,0 +1,6 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/makedevps.sh linux/drivers/char/makedevps.sh
+--- linux-2.2.18-9.virgin/drivers/char/makedevps.sh	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/makedevps.sh	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,5 @@
 +#!/bin/sh -x
 +
 +gcc -Wall -g -I /usr/src/linux/include ps-devps.c -o ps-devps
 +gcc -Wall -g -I /usr/src/linux/include mounts.c -o mounts
-+gcc -Wall -g -I /usr/src/linux/include modules.c -o modules
 +
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/misc.c linux/drivers/char/misc.c
---- linux-2.2.15-pre13.virgin/drivers/char/misc.c	Tue Mar  7 19:46:58 2000
-+++ linux/drivers/char/misc.c	Tue Mar  7 19:52:45 2000
-@@ -84,6 +84,8 @@
- extern void hfmodem_init(void);
- extern int pc110pad_init(void);
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/misc.c linux/drivers/char/misc.c
+--- linux-2.2.18-9.virgin/drivers/char/misc.c	Mon Sep 18 15:02:31 2000
++++ linux/drivers/char/misc.c	Mon Sep 25 17:00:57 2000
+@@ -85,6 +85,8 @@
  extern int pmu_device_init(void);
+ extern int tosh_init(void);
+ extern int rng_init(void);
 +extern int devps_init(void);
 +extern int devmtab_init(void);
  
  static int misc_read_proc(char *buf, char **start, off_t offset,
  			  int len, int *eof, void *private)
-@@ -267,6 +269,12 @@
+@@ -268,6 +270,12 @@
  #endif
  #ifdef CONFIG_PMAC_PBOOK
  	pmu_device_init();
@@ -1396,116 +891,10 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/misc.c linux/drivers/
  #endif
  #ifdef CONFIG_SGI_NEWPORT_GFX
  	gfx_register ();
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/modules.c linux/drivers/char/modules.c
---- linux-2.2.15-pre13.virgin/drivers/char/modules.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/modules.c	Tue Mar  7 23:35:26 2000
-@@ -0,0 +1,102 @@
-+/* vi: set sw=4 ts=4: */
-+/*
-+ * devmodules tester
-+ *
-+ *
-+ * Copyright (C) 2000 by Erik Andersen <andersee@debian.org>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ *
-+ */
-+
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <errno.h>
-+#include <string.h>
-+#include <unistd.h>
-+#include <time.h>
-+#include <fcntl.h>
-+#include <sys/ioctl.h>
-+#include <sys/types.h>
-+#include <linux/devmodules.h>
-+
-+
-+int main (int argc, char **argv)
-+{
-+	char device[80] = "/dev/modules";
-+	int fd;           /* file descriptor for devmodules device */
-+	int i, num_modules;
-+	struct k_module_item *modlist;
-+
-+	if (argc > 1 && **(argv + 1) == '-') {
-+		fprintf(stderr, "Usage: modules\n\nLists loaded modules\n\nThis version of modules accepts no options.\n\n");
-+		exit(1);
-+	}
-+
-+	/* open device */ 
-+	fd = open(device, O_RDONLY);
-+	if (fd < 0) {
-+		fprintf (stderr, "open failed for `%s': %s\n",
-+			 device, strerror (errno));
-+		exit (1);
-+	}
-+
-+	/* How many modules?  We need to know to allocate 
-+	 * enough space for later... */
-+	num_modules = ioctl (fd, DEVMODULES_COUNT_MODULES);
-+	if (num_modules<0) {
-+		fprintf (stderr, "\nDEVMODULES_COUNT_MODULES: %s\n", 
-+			strerror (errno));
-+		exit (1);
-+	} 
-+	modlist = (struct k_module_item *) calloc ( num_modules, sizeof(struct k_module_item));
-+
-+	/* Grab the list of loaded modules  */
-+	if (ioctl (fd, DEVMODULES_GET_MODULES_LIST, modlist)<0) {
-+		fprintf (stderr, "\nDEVMODULES_GET_MODULES_LIST: %s\n", 
-+			strerror (errno));
-+		exit (1);
-+	} 
-+	fprintf( stdout, "\nEquivalent of /proc/modules:\n");
-+	for( i = 0 ; i < num_modules ; i++) {
-+		fprintf( stdout, "%-20s%8lu%4ld", modlist[i].name,
-+				modlist[i].size, modlist[i].usecount); 
-+		if (modlist[i].flags & MOD_DELETED)
-+			fprintf( stdout, " (deleted)");
-+		else if (modlist[i].flags & MOD_RUNNING) {
-+			if (modlist[i].flags & MOD_AUTOCLEAN)
-+				fprintf( stdout, " (autoclean)");
-+			if (!(modlist[i].flags & MOD_USED_ONCE))
-+				fprintf( stdout, " (unused)");
-+		}
-+		else if (modlist[i].flags & MOD_INITIALIZING)
-+			fprintf( stdout, " (initializing)");
-+		else
-+			fprintf( stdout, " (uninitialized)");
-+		/* TODO: Add in module reference list */
-+		fprintf( stdout, "\n");
-+	}
-+
-+	/* Clean up */
-+	free( modlist);
-+	if (close (fd) != 0) {
-+		fprintf (stderr, "close failed for `%s': %s\n",
-+			 device, strerror (errno));
-+		exit (1);
-+	}
-+ 
-+	exit (0);
-+}
-+
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/mounts.c linux/drivers/char/mounts.c
---- linux-2.2.15-pre13.virgin/drivers/char/mounts.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/mounts.c	Tue Mar  7 23:29:27 2000
-@@ -0,0 +1,124 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/mounts.c linux/drivers/char/mounts.c
+--- linux-2.2.18-9.virgin/drivers/char/mounts.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/mounts.c	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,116 @@
 +/* vi: set sw=4 ts=4: */
 +/*
 + * devmtab tester
@@ -1610,14 +999,6 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/mounts.c linux/driver
 +	}
 +
 +
-+	/* Change the root filesystem's device name */
-+	if (ioctl (fd, DEVMTAB_SET_ROOTFS_DEVNAME, "/dev/foo")<0) {
-+		fprintf (stderr, "\nDEVMTAB_SET_ROOTFS_DEVNAME: %s\n", 
-+			strerror (errno));
-+		exit (1);
-+	} 
-+
-+	
 +	/* clean up */
 +	free( fslist);
 +	free( mntentlist);
@@ -1630,10 +1011,10 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/mounts.c linux/driver
 +	exit (0);
 +}
 +
-diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/ps-devps.c linux/drivers/char/ps-devps.c
---- linux-2.2.15-pre13.virgin/drivers/char/ps-devps.c	Wed Dec 31 17:00:00 1969
-+++ linux/drivers/char/ps-devps.c	Tue Mar  7 19:52:45 2000
-@@ -0,0 +1,147 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/ps-devps.c linux/drivers/char/ps-devps.c
+--- linux-2.2.18-9.virgin/drivers/char/ps-devps.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/ps-devps.c	Mon Sep 25 17:32:19 2000
+@@ -0,0 +1,148 @@
 +/* vi: set sw=4 ts=4: */
 +/*
 + * Mini ps implementation for use with the Linux devps driver
@@ -1694,7 +1075,8 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/ps-devps.c linux/driv
 +	}
 +
 +	/* open device */ 
-+	fd = open(device, O_RDWR);
++	//fd = open(device, O_RDWR);
++	fd = open(device, O_RDONLY);
 +	if (fd < 0) {
 +		fprintf (stderr, "open failed for `%s': %s\n",
 +			 device, strerror (errno));
@@ -1781,9 +1163,9 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/drivers/char/ps-devps.c linux/driv
 +	exit (1);
 +}
 +
-diff -ur --new-file linux-2.2.15-pre13.virgin/fs/Makefile linux/fs/Makefile
---- linux-2.2.15-pre13.virgin/fs/Makefile	Mon Mar  6 10:23:14 2000
-+++ linux/fs/Makefile	Tue Mar  7 19:52:45 2000
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/fs/Makefile linux/fs/Makefile
+--- linux-2.2.18-9.virgin/fs/Makefile	Wed Aug 25 18:29:49 1999
++++ linux/fs/Makefile	Mon Sep 25 16:33:16 2000
 @@ -11,9 +11,10 @@
  L_OBJS    = $(join $(SUB_DIRS),$(SUB_DIRS:%=/%.o))
  O_TARGET := fs.o
@@ -1796,31 +1178,9 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/Makefile linux/fs/Makefile
  
  MOD_LIST_NAME := FS_MODULES
  ALL_SUB_DIRS = coda minix ext2 fat msdos vfat proc isofs nfs umsdos ntfs \
-diff -ur --new-file linux-2.2.15-pre13.virgin/fs/proc/array.c linux/fs/proc/array.c
---- linux-2.2.15-pre13.virgin/fs/proc/array.c	Tue Mar  7 19:47:04 2000
-+++ linux/fs/proc/array.c	Tue Mar  7 19:52:45 2000
-@@ -44,6 +44,7 @@
-  *
-  */
- 
-+#include <linux/module.h>
- #include <linux/types.h>
- #include <linux/errno.h>
- #include <linux/sched.h>
-@@ -1306,10 +1307,6 @@
- }
- #endif
- 
--#ifdef CONFIG_MODULES
--extern int get_module_list(char *);
--extern int get_ksyms_list(char *, char **, off_t, int);
--#endif
- extern int get_device_list(char *);
- extern int get_partition_list(char *);
- extern int get_filesystem_list(char *);
-diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
---- linux-2.2.15-pre13.virgin/fs/super.c	Tue Jan  4 11:12:23 2000
-+++ linux/fs/super.c	Tue Mar  7 19:52:45 2000
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/fs/super.c linux/fs/super.c
+--- linux-2.2.18-9.virgin/fs/super.c	Mon Sep 18 15:02:34 2000
++++ linux/fs/super.c	Mon Sep 25 17:00:57 2000
 @@ -18,6 +18,7 @@
   */
  
@@ -1837,7 +1197,7 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
  
  #include <asm/uaccess.h>
  
-@@ -309,7 +311,57 @@
+@@ -311,7 +313,57 @@
  	{ 0, NULL }
  };
  
@@ -1896,7 +1256,7 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
  {
  	struct vfsmount *tmp = vfsmntlist;
  	struct proc_fs_info *fs_infop;
-@@ -379,8 +431,54 @@
+@@ -383,8 +435,37 @@
  
  	return len;
  }
@@ -1915,23 +1275,6 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
 +	return count;
 +}
 +EXPORT_SYMBOL(count_kfstypes);
-+
-+extern int set_root_filesystem_name( char *newname)
-+{
-+	struct vfsmount *tmp = vfsmntlist;
-+	char *name;
-+
-+	if (tmp && newname) {
-+		kfree( tmp->mnt_devname);
-+		name = (char *) kmalloc(strlen(newname)+1, GFP_KERNEL);
-+		if (!name)
-+			return -ENOMEM;
-+		strcpy(name, newname);
-+		tmp->mnt_devname = name;
-+	}
-+	return 0;
-+}
-+EXPORT_SYMBOL(set_root_filesystem_name);
 +
 +extern void get_kfstype_list(int count, struct k_fstype* fstypelist)
 +{
@@ -1952,7 +1295,7 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
  {
  	int len = 0;
  	struct file_system_type * tmp;
-@@ -394,6 +492,7 @@
+@@ -398,6 +479,7 @@
  	}
  	return len;
  }
@@ -1960,68 +1303,9 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/fs/super.c linux/fs/super.c
  
  struct file_system_type *get_fs_type(const char *name)
  {
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/devmodules.h linux/include/linux/devmodules.h
---- linux-2.2.15-pre13.virgin/include/linux/devmodules.h	Wed Dec 31 17:00:00 1969
-+++ linux/include/linux/devmodules.h	Tue Mar  7 23:37:48 2000
-@@ -0,0 +1,55 @@
-+/* vi: set sw=8 ts=8: */
-+/*
-+ * -- <linux/devmodules.h>
-+ *  
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
-+ * 
-+ * May be copied or modified under the terms of the GNU General Public License.
-+ * See linux/COPYING for more information.
-+ *
-+ * This driver implements an interface whereby programs such as lsmod(8) may
-+ * obtain all the information they need to do their jobs without needing to 
-+ * use /proc.
-+ *
-+ */
-+ 
-+#ifndef	_LINUX_DEVMODULES_H
-+#define	_LINUX_DEVMODULES_H
-+
-+
-+/*******************************************************
-+ * The list of all ioctl(2) commands suported by devmodules.
-+ * For the devmodules ioctls, I have commandeered some of the
-+ * higher bits of byte 0xeb.
-+ *******************************************************/
-+#define DEVMODULES_COUNT_MODULES      0xebba /* How many modules are there? */ 
-+#define DEVMODULES_GET_MODULES_LIST   0xebbb /* Get a list of all installed modules */ 
-+
-+/*******************************************************
-+ * devmodules ioctl(2) structures
-+ *******************************************************/
-+
-+/* An array of these is returned by the DEVMODULES_GET_MODULES_LIST ioctl.
-+ */
-+struct k_module_item {
-+	char          name[255];/* Name of the module */
-+	unsigned long size;     /* Size of module in bytes */
-+	unsigned long flags;    /* Flags set by the module */
-+	long usecount;          /* Module use count value */
-+
-+	/* TODO: Add in module reference list */
-+
-+};
-+
-+/* Possible bits for k_module_item's flags.  */
-+#define MOD_UNINITIALIZED       0
-+#define MOD_RUNNING             1
-+#define MOD_DELETED             2
-+#define MOD_AUTOCLEAN           4
-+#define MOD_VISITED             8
-+#define MOD_USED_ONCE           16
-+#define MOD_JUST_FREED          32
-+#define MOD_INITIALIZING        64
-+
-+
-+#endif  /* _LINUX_DEVMODULES_H */
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/devmtab.h linux/include/linux/devmtab.h
---- linux-2.2.15-pre13.virgin/include/linux/devmtab.h	Wed Dec 31 17:00:00 1969
-+++ linux/include/linux/devmtab.h	Tue Mar  7 19:52:45 2000
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/devmtab.h linux/include/linux/devmtab.h
+--- linux-2.2.18-9.virgin/include/linux/devmtab.h	Wed Dec 31 17:00:00 1969
++++ linux/include/linux/devmtab.h	Mon Sep 25 17:00:57 2000
 @@ -0,0 +1,55 @@
 +/* vi: set sw=8 ts=8: */
 +/*
@@ -2078,9 +1362,9 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/devmtab.h linux/incl
 +};
 +
 +#endif  /* _LINUX_DEVMTAB_H */
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/devps.h linux/include/linux/devps.h
---- linux-2.2.15-pre13.virgin/include/linux/devps.h	Wed Dec 31 17:00:00 1969
-+++ linux/include/linux/devps.h	Tue Mar  7 19:52:45 2000
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/devps.h linux/include/linux/devps.h
+--- linux-2.2.18-9.virgin/include/linux/devps.h	Wed Dec 31 17:00:00 1969
++++ linux/include/linux/devps.h	Mon Sep 25 17:00:57 2000
 @@ -0,0 +1,78 @@
 +/*
 + * -- <linux/devps.h>
@@ -2160,10 +1444,10 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/devps.h linux/includ
 +};
 +
 +#endif  /* _LINUX_DEVPS_H */
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/fs.h linux/include/linux/fs.h
---- linux-2.2.15-pre13.virgin/include/linux/fs.h	Mon Mar  6 10:23:14 2000
-+++ linux/include/linux/fs.h	Tue Mar  7 21:14:11 2000
-@@ -566,6 +566,17 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/fs.h linux/include/linux/fs.h
+--- linux-2.2.18-9.virgin/include/linux/fs.h	Mon Sep 18 15:08:47 2000
++++ linux/include/linux/fs.h	Mon Sep 25 17:37:50 2000
+@@ -573,6 +573,16 @@
  	struct semaphore s_vfs_rename_sem;	/* Kludge */
  };
  
@@ -2176,141 +1460,19 @@ diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/fs.h linux/include/l
 +extern int get_filesystem_info(char *buf);
 +extern int get_filesystem_list(char *buf);
 +extern void get_mtab_entries( int count, struct k_mntent* mntentlist);
-+extern int set_root_filesystem_name( char *newname);
 +
  /*
   * VFS helper functions..
   */
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/miscdevice.h linux/include/linux/miscdevice.h
---- linux-2.2.15-pre13.virgin/include/linux/miscdevice.h	Mon Aug  9 13:04:41 1999
-+++ linux/include/linux/miscdevice.h	Tue Mar  7 22:24:50 2000
-@@ -11,6 +11,9 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/miscdevice.h linux/include/linux/miscdevice.h
+--- linux-2.2.18-9.virgin/include/linux/miscdevice.h	Mon Aug  9 13:04:41 1999
++++ linux/include/linux/miscdevice.h	Mon Sep 25 16:33:17 2000
+@@ -11,6 +11,8 @@
  #define APOLLO_MOUSE_MINOR 7
  #define PC110PAD_MINOR 9
  #define MAC_MOUSE_MINOR 10
 +#define DEVPS_MINOR		21
 +#define DEVMTAB_MINOR		22
-+#define DEVMODULES_MINOR	23
  #define WATCHDOG_MINOR		130	/* Watchdog timer     */
  #define TEMP_MINOR		131	/* Temperature Sensor */
  #define RTC_MINOR 135
-diff -ur --new-file linux-2.2.15-pre13.virgin/include/linux/module.h linux/include/linux/module.h
---- linux-2.2.15-pre13.virgin/include/linux/module.h	Tue Mar  7 19:47:04 2000
-+++ linux/include/linux/module.h	Tue Mar  7 21:26:48 2000
-@@ -8,6 +8,7 @@
- #define _LINUX_MODULE_H
- 
- #include <linux/config.h>
-+#include <linux/types.h>
- 
- #ifdef __GENKSYMS__
- #  define _set_ver(sym) sym
-@@ -143,6 +144,21 @@
- 
- /* Find a symbol exported by the kernel or another module */
- extern unsigned long get_module_symbol(char *, char *);
-+/* Used by /proc and devmodules to export kernel symbols */
-+extern int get_ksyms_list(char *buf, char **start, off_t offset, int length);
-+/* Used by /proc and devmodules to export the list of modules 
-+ * in human readable form */
-+extern int get_module_list(char *);
-+#if defined CONFIG_DEVMODULES || defined CONFIG_DEVMODULES_MODULE
-+#include <linux/devmodules.h>
-+/* Used by devmodules to export the list of modules 
-+ * in machine readable form */
-+extern void get_kmodule_list( int count, struct k_module_item* modlst);
-+/* Used by devmodules to export the number of modules */
-+extern int count_kmodules(void);
-+#endif
-+
-+
- 
- #if defined(MODULE) && !defined(__GENKSYMS__)
- 
-diff -ur --new-file linux-2.2.15-pre13.virgin/kernel/Makefile linux/kernel/Makefile
---- linux-2.2.15-pre13.virgin/kernel/Makefile	Wed May  6 12:01:46 1998
-+++ linux/kernel/Makefile	Tue Mar  7 22:47:07 2000
-@@ -11,11 +11,11 @@
- 	$(CPP) -traditional $< -o $*.s
- 
- O_TARGET := kernel.o
--O_OBJS    = sched.o dma.o fork.o exec_domain.o panic.o printk.o sys.o \
--	    module.o exit.o itimer.o info.o time.o softirq.o resource.o \
-+O_OBJS    = sched.o dma.o exec_domain.o panic.o printk.o sys.o \
-+	    exit.o itimer.o info.o time.o softirq.o resource.o \
- 	    sysctl.o acct.o capability.o
- 
--OX_OBJS  += signal.o
-+OX_OBJS  += fork.o module.o signal.o
- 
- ifeq ($(CONFIG_KMOD),y)
- O_OBJS += kmod.o
-diff -ur --new-file linux-2.2.15-pre13.virgin/kernel/fork.c linux/kernel/fork.c
---- linux-2.2.15-pre13.virgin/kernel/fork.c	Tue Oct 26 18:53:42 1999
-+++ linux/kernel/fork.c	Tue Mar  7 19:52:45 2000
-@@ -36,6 +36,7 @@
- kmem_cache_t *files_cachep; 
- 
- struct task_struct *pidhash[PIDHASH_SZ];
-+EXPORT_SYMBOL(pidhash);
- 
- struct task_struct **tarray_freelist = NULL;
- spinlock_t taskslot_lock = SPIN_LOCK_UNLOCKED;
-diff -ur --new-file linux-2.2.15-pre13.virgin/kernel/module.c linux/kernel/module.c
---- linux-2.2.15-pre13.virgin/kernel/module.c	Tue Mar  7 19:47:05 2000
-+++ linux/kernel/module.c	Tue Mar  7 22:42:58 2000
-@@ -816,10 +816,40 @@
- 	module_unmap(mod);
- }
- 
-+/* Used by devmodules to export the number of modules */
-+extern int 
-+count_kmodules(void)
-+{
-+	int i=0;
-+	struct module *mod;
-+	for (mod = module_list; mod != &kernel_module; mod = mod->next, i++);
-+	return i;
-+}
-+EXPORT_SYMBOL(count_kmodules);
-+
-+extern void 
-+get_kmodule_list( int count, struct k_module_item* modlst)
-+{
-+	int i = 0;
-+	struct module *mod = module_list;
-+
-+	while (mod && i < count)
-+	{
-+		strncpy(modlst[i].name, mod->name, 
-+				sizeof(modlst[i].name));
-+		modlst[i].size = mod->size;
-+		modlst[i].flags = mod->flags;
-+		modlst[i].usecount = (long)atomic_read(&mod->uc.usecount);
-+		mod = mod->next;
-+		i++;
-+	}
-+}
-+EXPORT_SYMBOL(get_kmodule_list);
-+
-+
- /*
-  * Called by the /proc file system to return a current list of modules.
-  */
--
- int get_module_list(char *p)
- {
- 	size_t left = PAGE_SIZE;
-@@ -897,11 +927,11 @@
- fini:
- 	return PAGE_SIZE - left;
- }
-+EXPORT_SYMBOL(get_module_list);
- 
- /*
-  * Called by the /proc file system to return a current list of ksyms.
-  */
--
- int
- get_ksyms_list(char *buf, char **start, off_t offset, int length)
- {
