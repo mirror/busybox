@@ -34,7 +34,7 @@ struct dep_t {
 };
 
 
-static struct dep_t *build_dep ( )
+static struct dep_t *build_dep ( void )
 {
 	struct utsname un;
 	FILE *f;
@@ -55,7 +55,7 @@ static struct dep_t *build_dep ( )
 		return 0;
 	
 	while ( fgets ( buffer, sizeof( buffer), f )) {
-		int l = strlen ( buffer );
+		int l = xstrlen ( buffer );
 		char *p = 0;
 		
 		if ( buffer [l-1] == '\n' ) {
@@ -74,6 +74,7 @@ static struct dep_t *build_dep ( )
 			if ( col ) {
 				char *mods;
 				char *mod;
+				int ext = 0;
 				
 				*col = 0;
 				mods = strrchr ( buffer, '/' );
@@ -83,10 +84,11 @@ static struct dep_t *build_dep ( )
 				else
 					mods++;
 					
-				mod = (char *) malloc ( col - mods + 1 );	
-				strncpy ( mod, mods, col - mods );
-				mod [col - mods] = 0;
-
+				if (( *(col-2) == '.' ) && ( *(col-1) == 'o' ))
+					ext = 2;
+				
+				mod = xstrndup ( mods, col - mods - ext );
+					
 				if ( !current ) {
 					first = current = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
 				}
@@ -99,7 +101,7 @@ static struct dep_t *build_dep ( )
 				current-> m_deparr = 0;
 				current-> m_next = 0;
 						
-				/* printf ( "%s:\n", mod );	 */
+				//printf ( "%s:\n", mod );
 						
 				p = col + 1;		
 			}
@@ -113,6 +115,7 @@ static struct dep_t *build_dep ( )
 			char *end = &buffer [l-1];
 			char *deps = strrchr ( end, '/' );
 			char *dep;
+			int ext = 0;
 			
 			while ( isblank ( *end ) || ( *end == '\\' ))
 				end--;
@@ -128,15 +131,16 @@ static struct dep_t *build_dep ( )
 			else
 				deps++;
 			
-			dep = (char *) malloc ( end - deps + 2 );
-			strncpy ( dep, deps, end - deps + 1 );
-			dep [end - deps + 1] = 0;
+			if (( *(end-1) == '.' ) && ( *end == 'o' ))
+				ext = 2;
+			
+			dep = xstrndup ( deps, end - deps - ext + 1 );
 			
 			current-> m_depcnt++;
-			current-> m_deparr = (char **) realloc ( current-> m_deparr, sizeof ( char *) * current-> m_depcnt );
+			current-> m_deparr = (char **) xrealloc ( current-> m_deparr, sizeof ( char *) * current-> m_depcnt );
 			current-> m_deparr [current-> m_depcnt - 1] = dep;		
 			
-			/* printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] ); */
+			//printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] );
 		}
 	
 		if ( buffer [l-1] == '\\' )
@@ -152,26 +156,33 @@ static struct dep_t *build_dep ( )
 
 static struct dep_t *find_dep ( struct dep_t *dt, char *mod )
 {
-	int lm = strlen ( mod );
-	int hasext = 0;
-	
+	int lm = xstrlen ( mod );
+	int extpos = 0;
+
 	if (( mod [lm-2] == '.' ) && ( mod [lm-1] == 'o' ))
-		hasext = 1;
-	
+		extpos = 2;
+
+	if ( extpos > 0 )	
+		mod [lm - extpos] = 0;
+
 	while ( dt ) {
-		if ( hasext && !strcmp ( dt-> m_module, mod ))
+		if ( !strcmp ( dt-> m_module, mod ))
 			break;
-		else if ( !hasext && !strncmp ( dt-> m_module, mod, strlen ( dt-> m_module ) - 2 ))
-			break;
-			
+
 		dt = dt-> m_next;
 	}
+	if ( extpos > 0 )
+		mod [lm - extpos] = '.';
+
 	return dt;
 }
 
+#define MODPROBE_EXECUTE	0x1
+#define MODPROBE_INSERT		0x2
+#define MODPROBE_REMOVE		0x4
 
 static void check_dep ( char *mod, int do_syslog, 
-		int show_only, int verbose, int recursing )
+		int show_only, int verbose, int flags )
 {
 	static struct dep_t *depend = (struct dep_t *) -1;	
 	struct dep_t *dt;
@@ -179,24 +190,29 @@ static void check_dep ( char *mod, int do_syslog,
 	if ( depend == (struct dep_t *) -1 )
 		depend = build_dep ( );
 	
-	/* printf ( "CHECK: %s (%p)\n", mod, depend ); */
-	
 	if (( dt = find_dep ( depend, mod ))) {
 		int i;
 			
 		for ( i = 0; i < dt-> m_depcnt; i++ ) 
 			check_dep ( dt-> m_deparr [i], do_syslog, 
-					show_only, verbose, 1);
+					show_only, verbose, flags|MODPROBE_EXECUTE);
 	}
-	if ( recursing  ) {
+	if ( flags & MODPROBE_EXECUTE ) {
 		char lcmd [256];
-		
-		snprintf(lcmd, sizeof(lcmd)-1, "insmod %s -q -k %s 2>/dev/null", 
-				do_syslog ? "-s" : "", mod );
-		if (show_only || verbose)
-			printf("%s\n", lcmd);
-		if (!show_only)
-			system ( lcmd );	
+		if ( flags & MODPROBE_INSERT ) {
+			snprintf(lcmd, sizeof(lcmd)-1, "insmod %s -q -k %s 2>/dev/null", 
+					do_syslog ? "-s" : "", mod );
+		}
+		if ( flags & MODPROBE_REMOVE ) {
+			snprintf(lcmd, sizeof(lcmd)-1, "insmod %s -q -k %s 2>/dev/null", 
+					do_syslog ? "-s" : "", mod );
+		}
+		if ( flags & (MODPROBE_REMOVE|MODPROBE_INSERT) ) {
+			if (verbose)
+				printf("%s\n", lcmd);
+			if (!show_only)
+				system ( lcmd );
+		}
 	}
 }	
 
@@ -273,10 +289,15 @@ extern int modprobe_main(int argc, char** argv)
 					optind < argc ? argv[optind] : "");
 			if (do_syslog)
 				syslog(LOG_INFO, "%s", cmd);
-			if (show_only || verbose)
+			if (verbose)
 				printf("%s\n", cmd);
 			if (!show_only)
 				rc = system(cmd);
+				
+#ifdef CONFIG_MODPROBE_DEPEND
+			if ( optind < argc )
+				check_dep ( argv [optind], do_syslog, show_only, verbose, MODPROBE_REMOVE);
+#endif				
 		} while (++optind < argc);
 		exit(EXIT_SUCCESS);
 	}
@@ -292,7 +313,7 @@ extern int modprobe_main(int argc, char** argv)
 			autoclean ? "-k" : "");
 
 #ifdef CONFIG_MODPROBE_DEPEND
-	check_dep ( argv [optind], do_syslog, show_only, verbose, 0);
+	check_dep ( argv [optind], do_syslog, show_only, verbose, MODPROBE_INSERT);
 #endif
 
 	while (optind < argc) {
@@ -302,7 +323,7 @@ extern int modprobe_main(int argc, char** argv)
 	}
 	if (do_syslog)
 		syslog(LOG_INFO, "%s", cmd);
-	if (show_only || verbose)
+	if (verbose)
 		printf("%s\n", cmd);
 	if (!show_only)
 		rc = system(cmd);
