@@ -6,6 +6,10 @@
 mainmenu_option next_comment
 comment 'Editors'
 
+bool 'awk'	    CONFIG_AWK
+if [ "$CONFIG_AWK" = "y" ]; then
+    bool '  Enable math functions (requires libm)'      CONFIG_FEATURE_AWK_MATH
+fi
 bool 'sed'	    CONFIG_SED
 bool 'vi'	    CONFIG_VI
 if [ "$CONFIG_VI" = "y" ]; then

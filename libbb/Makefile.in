@@ -34,8 +34,8 @@ LIBBB_SRC:= \
 	my_getgrgid.c my_getpwnam.c my_getpwnamegid.c my_getpwuid.c \
 	parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
 	print_file.c process_escape_sequence.c read_package_field.c \
-	recursive_action.c safe_read.c safe_strncpy.c syscalls.c \
-	syslog_msg_with_name.c time_string.c trim.c \
+	recursive_action.c run_parts.c safe_read.c safe_strncpy.c \
+	syscalls.c syslog_msg_with_name.c time_string.c trim.c \
 	vdprintf.c verror_msg.c vperror_msg.c wfopen.c xgetcwd.c xreadlink.c \
 	xregcomp.c interface.c remove_file.c last_char_is.c copyfd.c \
 	vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \

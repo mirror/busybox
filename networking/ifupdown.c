@@ -1017,10 +1017,10 @@ static int doit(char *str)
 	return (1);
 }
 
-static int execute_all(interface_defn *ifd, execfn *exec, char *opt)
+static int execute_all(interface_defn *ifd, execfn *exec, const char *opt)
 {
 	int i;
-	char buf[100];
+//	char buf[100];
 
 	for (i = 0; i < ifd->n_options; i++) {
 		if (strcmp(ifd->option[i].name, opt) == 0) {
@@ -1030,8 +1030,9 @@ static int execute_all(interface_defn *ifd, execfn *exec, char *opt)
 		}
 	}
 
-	sprintf(buf, "run-parts /etc/network/if-%s.d", opt);
-	(*exec) (buf);
+	runparts("/etc/network/if-"opt".d");
+//	sprintf(buf, "run-parts /etc/network/if-%s.d", opt);
+//	(*exec) (buf);
 
 	return (1);
 }

@@ -49,57 +49,91 @@
  * done - declare run_parts_main() as extern and any other function as static?
  */
 
-#include <getopt.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <ctype.h>
 
 #include "libbb.h"
 
-/* run_parts_main */
-/* Process options */
-int run_parts_main(int argc, char **argv)
+/* valid_name */
+/* True or false? Is this a valid filename (upper/lower alpha, digits,
+ * underscores, and hyphens only?)
+ */
+static int valid_name(const struct dirent *d)
 {
-	char **args = xmalloc(2 * sizeof(char *));
-	unsigned char test_mode = 0;
-	unsigned short argcount = 1;
-	int opt;
+	char *c = d->d_name;
 
-	umask(022);
-
-	while ((opt = getopt(argc, argv, "tu:a:")) != -1) {
-		switch (opt) {
-		case 't':		/* Enable test mode */
-			test_mode = 1;
-			break;
-		case 'u':		/* Set the umask of the programs executed */
-			/* Check and set the umask of the program executed. As stated in the original
-			 * run-parts, the octal conversion in libc is not foolproof; it will take the 
-			 * 8 and 9 digits under some circumstances. We'll just have to live with it.
-			 */
-			{
-				const unsigned int mask = (unsigned int) strtol(optarg, NULL, 8);
-				if (mask > 07777) {
-					perror_msg_and_die("bad umask value");
-				}
-				umask(mask);
-			}
-			break;
-		case 'a':		/* Pass an argument to the programs */
-			/* Add an argument to the commands that we will call.
-			 * Called once for every argument. */
-			args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
-			args[argcount++] = optarg;
-			args[argcount] = 0;
-			break;
-		default:
-			show_usage();
+	while (*c) {
+		if (!isalnum(*c) && (*c != '_') && (*c != '-')) {
+			return 0;
 		}
+		++c;
+	}
+	return 1;
+}
+
+/* run_parts */
+/* Find the parts to run & call run_part() */
+extern int run_parts(char **args, const unsigned char test_mode)
+{
+	struct dirent **namelist = 0;
+	struct stat st;
+	char *filename;
+	int entries;
+	int i;
+	int exitstatus = 0;
+
+	/* scandir() isn't POSIX, but it makes things easy. */
+	entries = scandir(args[0], &namelist, valid_name, alphasort);
+
+	if (entries == -1) {
+		perror_msg_and_die("failed to open directory %s", args[0]);
 	}
 
-	/* We require exactly one argument: the directory name */
-	if (optind != (argc - 1)) {
-		show_usage();
-	}
+	for (i = 0; i < entries; i++) {
 
-	args[0] = argv[optind];
-	return(run_parts(args, test_mode));
+		filename = concat_path_file(args[0], namelist[i]->d_name);
+
+		if (stat(filename, &st) < 0) {
+			perror_msg_and_die("failed to stat component %s", filename);
+		}
+		if (S_ISREG(st.st_mode) && !access(filename, X_OK)) {
+			if (test_mode)
+				printf("run-parts would run %s\n", filename);
+			else {
+				int result;
+				int pid;
+
+				if ((pid = fork()) < 0) {
+					perror_msg_and_die("failed to fork");
+				} else if (!pid) {
+					execv(args[0], args);
+					perror_msg_and_die("failed to exec %s", args[0]);
+				}
+
+				waitpid(pid, &result, 0);
+
+				if (WIFEXITED(result) && WEXITSTATUS(result)) {
+					perror_msg("%s exited with return code %d", args[0], WEXITSTATUS(result));
+					exitstatus = 1;
+				} else if (WIFSIGNALED(result)) {
+					perror_msg("%s exited because of uncaught signal %d", args[0], WTERMSIG(result));
+					exitstatus = 1;
+				}
+			}
+		} 
+		else if (!S_ISDIR(st.st_mode)) {
+			error_msg("component %s is not an executable plain file", filename);
+			exitstatus = 1;
+		}
+
+		free(namelist[i]);
+		free(filename);
+	}
+	free(namelist);
+	
+	return(exitstatus);
 }

@@ -23,12 +23,20 @@ EDITOR_DIR:=$(TOPDIR)editors/
 endif
 
 EDITOR-y:=
+EDITOR-$(CONFIG_AWK)	   += awk.o
 EDITOR-$(CONFIG_SED)       += sed.o
 EDITOR-$(CONFIG_VI)        += vi.o
 EDITOR_SRC:= $(EDITOR-y)
 EDITOR_OBJ:= $(patsubst %.c,$(EDITOR_DIR)%.o, $(EDITOR_SRC))
 
 libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+
+needlibm-y:=
+needlibm-$(CONFIG_FEATURE_AWK_MATH) := y
+
+ifeq ($(needlibm-y),y)
+  LIBRARIES += -lm
+endif
 
 $(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
 	$(AR) -ro $@ $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
