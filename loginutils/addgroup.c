@@ -83,7 +83,7 @@ static int group_study(const char *filename, struct group *g)
 }
 
 /* append a new user to the passwd file */
-static int addgroup(const char *filename, char *group, gid_t gid)
+static int addgroup(const char *filename, char *group, gid_t gid, const char *user)
 {
 	FILE *etc_group;
 
@@ -106,7 +106,7 @@ static int addgroup(const char *filename, char *group, gid_t gid)
 	/* add entry to group */
 	etc_group = xfopen(filename, "a");
 
-	fprintf(etc_group, entryfmt, group, default_passwd, gr.gr_gid, "");
+	fprintf(etc_group, entryfmt, group, default_passwd, gr.gr_gid, user);
 	fclose(etc_group);
 
 
@@ -133,6 +133,7 @@ static int addgroup(const char *filename, char *group, gid_t gid)
 int addgroup_main(int argc, char **argv)
 {
 	char *group;
+	char *user;
 	gid_t gid = 0;
 
 	if (argc < 2) {
@@ -145,6 +146,12 @@ int addgroup_main(int argc, char **argv)
 	} else {
 		show_usage();
 	}
+
+	if (argc == 4) {
+		user = argv[3];
+	} else {
+		user = "";
+	}
 	
 	if (geteuid() != 0) {
 		error_msg_and_die
@@ -152,7 +159,7 @@ int addgroup_main(int argc, char **argv)
 	}
 
 	/* werk */
-	return addgroup(group_file, group, gid);
+	return addgroup(GROUP_FILE, group, gid, user);
 }
 
-/* $Id: addgroup.c,v 1.6 2002/11/14 11:10:14 andersen Exp $ */
+/* $Id: addgroup.c,v 1.7 2002/12/12 08:57:16 andersen Exp $ */
