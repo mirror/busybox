@@ -37,7 +37,7 @@
 #undef PROTOTYPES
 #include "applets.h"
 
-struct BB_applet *applet_using;
+static struct BB_applet *applet_using;
 
 /* The -1 arises because of the {0,NULL,0,-1} entry above. */
 const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);

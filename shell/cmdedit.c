@@ -1290,7 +1290,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			put_prompt();
 #else
 			len = 0;
-			break_out = -1; /* for control traps */
+			break_out = -1; /* to control traps */
 #endif
 			break;
 		case 4:
@@ -1304,7 +1304,8 @@ prepare_to_die:
 				/* cmdedit_reset_term() called in atexit */
 				exit(EXIT_SUCCESS);
 #else
-				len = break_out = -1; /* for control stoped jobs */
+				/* to control stopped jobs */
+				len = break_out = -1;
 				break;
 #endif
 			} else {
@@ -1430,12 +1431,12 @@ rewrite_line:
 				break;
 			case '1':
 			case 'H':
-				/* Home (Ctrl-A) */
+				/* <Home> */
 				input_backward(cursor);
 				break;
 			case '4':
 			case 'F':
-				/* End (Ctrl-E) */
+				/* <End> */
 				input_end();
 				break;
 			default:
@@ -1496,10 +1497,11 @@ rewrite_line:
 #if MAX_HISTORY >= 1
 	/* Handle command history log */
 	/* cleanup may be saved current command line */
-	free(history[MAX_HISTORY]);
-	history[MAX_HISTORY] = 0;
 	if (len> 0) {                                      /* no put empty line */
 		int i = n_history;
+
+		free(history[MAX_HISTORY]);
+		history[MAX_HISTORY] = 0;
 			/* After max history, remove the oldest command */
 		if (i >= MAX_HISTORY) {
 			free(history[0]);
