@@ -523,13 +523,13 @@ static void telopt(byte c)
 {
 	switch (c)
 	{
-		case TELOPT_ECHO:		to_echo(c);	break;
-		case TELOPT_SGA:		to_sga(c);	break;
+		case TELOPT_ECHO:		to_echo();	break;
+		case TELOPT_SGA:		to_sga();	break;
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-		case TELOPT_TTYPE:		to_ttype(c);break;
+		case TELOPT_TTYPE:		to_ttype();break;
 #endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-		case TELOPT_NAWS:		to_naws(c);
+		case TELOPT_NAWS:		to_naws();
 								putiac_naws(c, win_width, win_height);
 								break;
 #endif
