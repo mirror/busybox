@@ -51,7 +51,7 @@ FILE *cin;
 
 static struct termios initial_settings, new_settings;
 
-void gotsig(int sig)
+static void gotsig(int sig)
 {
 	setTermSettings(fileno(cin), &initial_settings);
 	fprintf(stdout, "\n");

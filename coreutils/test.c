@@ -156,8 +156,8 @@ struct t_op {
 	{0,	0,	0}
 };
 
-char **t_wp;
-struct t_op const *t_wp_op;
+static char **t_wp;
+static struct t_op const *t_wp_op;
 static gid_t *group_array = NULL;
 static int ngroups;
 

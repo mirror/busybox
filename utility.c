@@ -962,6 +962,7 @@ void my_getgrgid(char *group, long gid)
 	my_getid("/etc/group", group, gid, NULL);
 }
 
+#if defined BB_ID
 /* gets a gid given a user name */
 long my_getpwnamegid(char *name)
 {
@@ -969,6 +970,7 @@ long my_getpwnamegid(char *name)
 	my_getid("/etc/passwd", name, -1, &gid);
 	return gid;
 }
+#endif
 
 #endif
  /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR \
