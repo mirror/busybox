@@ -1,7 +1,7 @@
 0.53pre
 
     Critical Bugfixes:
-	* None yet
+	* Matt Kraai -- Fixed wget output file opening.
 
     New Applets:
 	* Vladimir Oleynik -- traceroute
