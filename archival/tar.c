@@ -39,7 +39,7 @@
 #include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_io_error
-#define bb_need_name_longer_then_foo
+#define bb_need_name_longer_than_foo
 #include "messages.c"
 #include <stdio.h>
 #include <dirent.h>
@@ -535,7 +535,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 		if ( skipNextHeaderFlag == TRUE ) { 
 			skipNextHeaderFlag=FALSE;
-			errorMsg(name_longer_then_foo, NAME_SIZE); 
+			errorMsg(name_longer_than_foo, NAME_SIZE); 
 			tarExtractRegularFile(&header, FALSE, FALSE);
 			continue;
 		}
@@ -915,7 +915,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	}
 
 	if (strlen(fileName) >= NAME_SIZE) {
-		errorMsg(name_longer_then_foo, NAME_SIZE);
+		errorMsg(name_longer_than_foo, NAME_SIZE);
 		return ( TRUE);
 	}
 
@@ -1004,7 +1004,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	}
 
 	/* To be pedantically correct, we would check if the tarball
-	 * is smaller then 20 tar blocks, and pad it if it was smaller,
+	 * is smaller than 20 tar blocks, and pad it if it was smaller,
 	 * but that isn't necessary for GNU tar interoperability, and
 	 * so is considered a waste of space */
 
