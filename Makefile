@@ -23,6 +23,9 @@ VERSION   := 0.46
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
+# If you want a static binary, turn this on.
+DOSTATIC = false
+
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
@@ -36,9 +39,6 @@ DODEBUG = false
 # eg: `export DMALLOC_OPTIONS=debug=0x14f47d83,inter=100,log=logfile`
 # Do not enable this for production builds...
 DODMALLOC = false
-
-# If you want a static binary, turn this on.
-DOSTATIC = false
 
 # If you are running a cross compiler, you may want to set this
 # to something more interesting...
@@ -181,6 +181,9 @@ distclean: clean
 
 install: busybox busybox.links
 	./install.sh $(PREFIX)
+
+install-hardlinks: busybox busybox.links
+	./install.sh $(PREFIX) --hardlinks
 
 dist release: distclean doc
 	cd ..;					\
