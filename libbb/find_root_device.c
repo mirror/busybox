@@ -39,16 +39,18 @@ extern char *find_real_root_device_name(const char* name)
 	struct dirent *entry;
 	struct stat statBuf, rootStat;
 	char *fileName;
+	dev_t dev;
 
 	if (stat("/", &rootStat) != 0) {
-		error_msg("could not stat '/'");
+		perror_msg("could not stat '/'");
 		return NULL;
 	}
+	if ((dev = rootStat.st_rdev)==0) dev=rootStat.st_dev;
 
 	dir = opendir("/dev");
 	if (!dir) {
-		error_msg("could not open '/dev'");
-		return NULL;
+		perror_msg("could not open '/dev'");
+		goto fallback;
 	}
 
 	while((entry = readdir(dir)) != NULL) {
@@ -64,14 +66,18 @@ extern char *find_real_root_device_name(const char* name)
 		 * devices, so make sure this is a block device */
 		if (stat(fileName, &statBuf) == 0 && 
 				S_ISBLK(statBuf.st_mode)!=0 &&
-				statBuf.st_rdev == rootStat.st_rdev) {
+				statBuf.st_rdev == dev) {
 			return fileName; 
 		}
 		free(fileName);
 	}
 	closedir(dir);
 
-	return NULL;
+fallback:
+	/* don't use stack space, caller expects to free() result */
+	fileName=xmalloc(20);
+	sprintf(fileName,"(rdev %u)",(unsigned int) rootStat.st_rdev);
+	return fileName;
 }
 
 
