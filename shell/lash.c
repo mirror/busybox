@@ -27,6 +27,7 @@
 
 
 #define BB_FEATURE_SH_BACKTICKS
+//#define BB_FEATURE_SH_IF_EXPRESSIONS
 
 
 
@@ -53,6 +54,14 @@
 
 enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 	REDIRECT_APPEND
+};
+
+#define REGULAR_JOB_CONTEXT		0x1
+#define IF_EXP_CONTEXT			0x2
+#define THEN_EXP_CONTEXT		0x4
+#define ELSE_EXP_CONTEXT		0x8
+
+enum jobContext { REGULAR_APP, IF_CONTEXT, THEN_CONTEXT
 };
 
 struct jobSet {
@@ -86,12 +95,12 @@ struct job {
 	struct childProgram *progs;	/* array of programs in job */
 	struct job *next;			/* to track background commands */
 	int stoppedProgs;			/* number of programs alive, but stopped */
+	int jobContext;				/* bitmask defining current context */
 };
 
 struct builtInCommand {
 	char *cmd;					/* name */
 	char *descr;				/* description */
-	char *usage;				/* usage */
 	int (*function) (struct job *, struct jobSet * jobList);	/* function ptr */
 };
 
@@ -107,6 +116,12 @@ static int builtin_export(struct job *cmd, struct jobSet *junk);
 static int builtin_source(struct job *cmd, struct jobSet *jobList);
 static int builtin_unset(struct job *cmd, struct jobSet *junk);
 static int builtin_read(struct job *cmd, struct jobSet *junk);
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
+static int builtin_if(struct job *cmd, struct jobSet *junk);
+static int builtin_then(struct job *cmd, struct jobSet *junk);
+static int builtin_else(struct job *cmd, struct jobSet *junk);
+static int builtin_fi(struct job *cmd, struct jobSet *junk);
+#endif
 
 
 /* function prototypes for shell stuff */
@@ -122,30 +137,38 @@ static int busy_loop(FILE * input);
  * can change global variables in the parent shell process but they will not
  * work with pipes and redirects; 'unset foo | whatever' will not work) */
 static struct builtInCommand bltins[] = {
-	{"bg", "Resume a job in the background", "bg [%%job]", builtin_fg_bg},
-	{"cd", "Change working directory", "cd [dir]", builtin_cd},
-	{"exit", "Exit from shell()", "exit", builtin_exit},
-	{"fg", "Bring job into the foreground", "fg [%%job]", builtin_fg_bg},
-	{"jobs", "Lists the active jobs", "jobs", builtin_jobs},
-	{"export", "Set environment variable", "export [VAR=value]", builtin_export},
-	{"unset", "Unset environment variable", "unset VAR", builtin_unset},
-	{"read", "Input environment variable", "read [VAR]", builtin_read},
-	{NULL, NULL, NULL, NULL}
+	{"bg", "Resume a job in the background", builtin_fg_bg},
+	{"cd", "Change working directory", builtin_cd},
+	{"exit", "Exit from shell()", builtin_exit},
+	{"fg", "Bring job into the foreground", builtin_fg_bg},
+	{"jobs", "Lists the active jobs", builtin_jobs},
+	{"export", "Set environment variable", builtin_export},
+	{"unset", "Unset environment variable", builtin_unset},
+	{"read", "Input environment variable", builtin_read},
+	{NULL, NULL, NULL}
 };
 
 /* Table of forking built-in functions (things that fork cannot change global
  * variables in the parent process, such as the current working directory) */
 static struct builtInCommand bltins_forking[] = {
-	{"env", "Print all environment variables", "env", builtin_env},
-	{"pwd", "Print current directory", "pwd", builtin_pwd},
-	{".", "Source-in and run commands in a file", ". filename", builtin_source},
-	{"help", "List shell built-in commands", "help", builtin_help},
-	{NULL, NULL, NULL, NULL}
+	{"env", "Print all environment variables", builtin_env},
+	{"pwd", "Print current directory", builtin_pwd},
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
+	{"if", NULL, builtin_if},
+	{"then", NULL, builtin_then},
+	{"else", NULL, builtin_else},
+	{"fi", NULL, builtin_fi},
+#endif
+	{".", "Source-in and run commands in a file", builtin_source},
+	{"help", "List shell built-in commands", builtin_help},
+	{NULL, NULL, NULL}
 };
 
 static char *prompt = "# ";
 static char *cwd;
 static char *local_pending_command = NULL;
+static char *promptStr = NULL;
+static struct jobSet jobList = { NULL, NULL };
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 void win_changed(int junk)
@@ -256,9 +279,13 @@ static int builtin_help(struct job *dummy, struct jobSet *junk)
 	fprintf(stdout, "\nBuilt-in commands:\n");
 	fprintf(stdout, "-------------------\n");
 	for (x = bltins; x->cmd; x++) {
+		if (x->descr==NULL)
+			continue;
 		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
 	}
 	for (x = bltins_forking; x->cmd; x++) {
+		if (x->descr==NULL)
+			continue;
 		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
 	}
 	fprintf(stdout, "\n\n");
@@ -338,6 +365,44 @@ static int builtin_read(struct job *cmd, struct jobSet *junk)
 
 	return (res);
 }
+
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
+/* Built-in handler for 'if' commands */
+static int builtin_if(struct job *cmd, struct jobSet *junk)
+{
+	cmd->jobContext |= IF_EXP_CONTEXT;
+	printf("Hit an if -- jobContext=%d\n", cmd->jobContext);
+	return TRUE;
+}
+
+/* Built-in handler for 'then' (part of the 'if' command) */
+static int builtin_then(struct job *cmd, struct jobSet *junk)
+{
+	if (cmd->jobContext & IF_EXP_CONTEXT) {
+		fprintf(stderr, "unexpected token `then'\n");
+		fflush(stderr);
+		return FALSE;
+	}
+	cmd->jobContext |= THEN_EXP_CONTEXT;
+	printf("Hit an then -- jobContext=%d\n", cmd->jobContext);
+	return TRUE;
+}
+
+/* Built-in handler for 'else' (part of the 'if' command) */
+static int builtin_else(struct job *cmd, struct jobSet *junk)
+{
+	printf("Hit an else\n");
+	cmd->jobContext |= ELSE_EXP_CONTEXT;
+	return TRUE;
+}
+
+/* Built-in handler for 'fi' (part of the 'if' command) */
+static int builtin_fi(struct job *cmd, struct jobSet *junk)
+{
+	printf("Hit an fi\n");
+	return TRUE;
+}
+#endif
 
 /* Built-in '.' handler (read-in and execute commands from file) */
 static int builtin_source(struct job *cmd, struct jobSet *junk)
@@ -471,7 +536,6 @@ static int getCommand(FILE * source, char *command)
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		int len;
-		char *promptStr;
 		len=fprintf(stdout, "%s %s", cwd, prompt);
 		fflush(stdout);
 		promptStr=(char*)xmalloc(sizeof(char)*(len+1));
@@ -587,8 +651,9 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 	   Getting clean memory relieves us of the task of NULL 
 	   terminating things and makes the rest of this look a bit 
 	   cleaner (though it is, admittedly, a tad less efficient) */
-	job->cmdBuf = command = calloc(1, 2*strlen(*commandPtr) + 1);
+	job->cmdBuf = command = calloc(2*strlen(*commandPtr) + 1, sizeof(char));
 	job->text = NULL;
+	job->jobContext = REGULAR_JOB_CONTEXT;
 
 	prog = job->progs;
 	prog->numRedirections = 0;
@@ -863,7 +928,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2])
 {
-	struct job *job;
+	struct job *theJob;
 	int i;
 	int nextin, nextout;
 	int pipefds[2];				/* pipefd[0] is for reading */
@@ -957,33 +1022,33 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 	newJob->pgrp = newJob->progs[0].pid;
 
-	/* find the ID for the job to use */
+	/* find the ID for the theJob to use */
 	newJob->jobId = 1;
-	for (job = jobList->head; job; job = job->next)
-		if (job->jobId >= newJob->jobId)
-			newJob->jobId = job->jobId + 1;
+	for (theJob = jobList->head; theJob; theJob = theJob->next)
+		if (theJob->jobId >= newJob->jobId)
+			newJob->jobId = theJob->jobId + 1;
 
-	/* add the job to the list of running jobs */
+	/* add the theJob to the list of running jobs */
 	if (!jobList->head) {
-		job = jobList->head = malloc(sizeof(*job));
+		theJob = jobList->head = malloc(sizeof(*theJob));
 	} else {
-		for (job = jobList->head; job->next; job = job->next);
-		job->next = malloc(sizeof(*job));
-		job = job->next;
+		for (theJob = jobList->head; theJob->next; theJob = theJob->next);
+		theJob->next = malloc(sizeof(*theJob));
+		theJob = theJob->next;
 	}
 
-	*job = *newJob;
-	job->next = NULL;
-	job->runningProgs = job->numProgs;
-	job->stoppedProgs = 0;
+	*theJob = *newJob;
+	theJob->next = NULL;
+	theJob->runningProgs = theJob->numProgs;
+	theJob->stoppedProgs = 0;
 
 	if (inBg) {
-		/* we don't wait for background jobs to return -- append it 
-		   to the list of backgrounded jobs and leave it alone */
-		printf("[%d] %d\n", job->jobId,
+		/* we don't wait for background theJobs to return -- append it 
+		   to the list of backgrounded theJobs and leave it alone */
+		printf("[%d] %d\n", theJob->jobId,
 			   newJob->progs[newJob->numProgs - 1].pid);
 	} else {
-		jobList->fg = job;
+		jobList->fg = theJob;
 
 		/* move the new process group into the foreground */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
@@ -1037,7 +1102,6 @@ static int busy_loop(FILE * input)
 {
 	char *command;
 	char *nextCommand = NULL;
-	struct jobSet jobList = { NULL, NULL };
 	struct job newJob;
 	pid_t  parent_pgrp;
 	int i;
@@ -1070,7 +1134,8 @@ static int busy_loop(FILE * input)
 				newJob.numProgs) {
 				int pipefds[2] = {-1,-1};
 				runCommand(&newJob, &jobList, inBg, pipefds);
-			} else {
+			}
+			else {
 				free(command);
 				command = (char *) calloc(BUFSIZ, sizeof(char));
 				nextCommand = NULL;
@@ -1079,7 +1144,7 @@ static int busy_loop(FILE * input)
 			/* a job is running in the foreground; wait for it */
 			i = 0;
 			while (!jobList.fg->progs[i].pid ||
-				   jobList.fg->progs[i].isStopped) i++;
+				   jobList.fg->progs[i].isStopped == 1) i++;
 
 			waitpid(jobList.fg->progs[i].pid, &status, WUNTRACED);
 
@@ -1128,6 +1193,22 @@ static int busy_loop(FILE * input)
 }
 
 
+#ifdef BB_FEATURE_CLEAN_UP
+void free_memory(void)
+{
+	if (promptStr)
+		free(promptStr);
+	if (cwd)
+		free(cwd);
+	if (local_pending_command)
+		free(local_pending_command);
+
+	if (jobList.fg && !jobList.fg->runningProgs) {
+		removeJob(&jobList, jobList.fg);
+	}
+}
+#endif
+
 
 int shell_main(int argc, char **argv)
 {
@@ -1136,6 +1217,10 @@ int shell_main(int argc, char **argv)
 	/* initialize the cwd -- this is never freed...*/
 	cwd=(char*)xmalloc(sizeof(char)*MAX_LINE+1);
 	getcwd(cwd, sizeof(char)*MAX_LINE);
+
+#ifdef BB_FEATURE_CLEAN_UP
+	atexit(free_memory);
+#endif
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 	cmdedit_init();
