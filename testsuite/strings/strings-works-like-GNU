@@ -1,0 +1,8 @@
+rm -f foo bar
+strings -af ../../busybox > foo
+busybox strings -af ../../busybox > bar
+test ! -f foo -a -f bar
+if [ $? = 0 ] ; then
+    diff -q foo bar
+fi;
+

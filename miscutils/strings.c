@@ -22,99 +22,106 @@
  * Original copyright notice is retained at the end of this file.
  *
  * Modified for BusyBox by Erik Andersen <andersee@debian.org>
+ * Badly hacked by Tito Ragusa <farmatito@tiscali.it>
  */
 
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <string.h> 
-#include <getopt.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <getopt.h>
 #include <unistd.h>
 #include <ctype.h>
 #include "busybox.h"
 
 #define ISSTR(ch)	(isprint(ch) || ch == '\t')
 
-int strings_main(int argc, char **argv) 
+int strings_main(int argc, char **argv)
 {
 	extern char *optarg;
 	extern int optind;
-	int ch, cnt;
-	int exitcode;
-	int oflg, fflg;
-	char *file;
-	size_t foff, minlen;
-	unsigned char *bfr, *C;
-	int i;
-
-	exitcode = fflg = oflg = 0;
-	minlen = -1;
-	while ((ch = getopt(argc, argv, "an:of")) > 0)
-		switch(ch) {
+	int n=4, c, i, opt=0, a=0;
+	long    t, count;
+	FILE *file;
+	char *string;
+	
+	while ((i = getopt(argc, argv, "an:of")) > 0)
+		switch(i)
+		{
 			case 'a':
 				break;
 			case 'f':
-				fflg = 1;
+				opt++;
 				break;
 			case 'n':
-				minlen = atoi(optarg);
+				n = atoi(optarg);
+				if(!(n/1))
+					show_usage();
 				break;
 			case 'o':
-				oflg = 1;
+				opt++;
+				opt++;
 				break;
 			default:
 				show_usage();
 		}
+
 	argc -= optind;
 	argv += optind;
 
-	if (minlen == -1)
-		minlen = 4;
+	i=0;
 
-	bfr = xmalloc(minlen);
-	bfr[minlen] = '\0';
-	file = "stdin";
-	do {
-		if (*argv) {
-			fprintf(stderr, "opening '%s'\n", *argv);
-			file = *argv++;
-			if (!freopen(file, "r", stdin)) {
-				perror_msg("%s", file);
-				exitcode = EXIT_FAILURE;
-				continue;
-			}
-		}
-		foff = 0;
+	if(!argc )
+	{
+		file = stdin;
+		goto pipe;
+	}
 
-		for (cnt = 0; (ch = getchar()) != EOF;) {
-			foff++;
-			if (ISSTR(ch)) {
-				if (!cnt)
-					C = bfr;
-				*C++ = ch;
-				if (++cnt < minlen)
-					continue;
-				if (fflg)
-					printf("%s:", file);
-				if (oflg)
-					printf("%7lo %s", (long)(foff - minlen), (char *)bfr);
-				else
-					printf("%s", bfr);
-				i=0;
-				while ((ch = getchar()) != EOF && ISSTR(ch))
+	for(a=0;a<argc;a++)
+	{
+		file=xfopen(argv[a],"r");
+
+		pipe:
+		
+		count=0;
+		string=xmalloc(n);
+		string[n]='\0';
+		n--;
+		while(1)
+		{
+			c=fgetc(file);
+			if(ISSTR(c))
+			{
+				if(i==0)
+					t=count;
+				if(i<=n)
+					string[i]=c;
+				if(i==n)
 				{
-					putchar((char)ch);
-					i++;
+					if(opt == 1 || opt == 3 )
+						printf("%s: ",(!argv[a])?"{stdin}":argv[a]);
+					if(opt >= 2 )
+						printf("%7lo ",t);
+					printf("%s",string);
 				}
-				if(i>0)
-					foff+=(i+1);
-				else
-					foff++;
-				putchar('\n');
+				if(i>n)
+					putchar(c);
+				i++;
 			}
-			cnt = 0;
+			else
+			{
+				if(i>n)
+					puts("");
+				i=0;
+			}
+			count++;
+			if(c==EOF)
+				break;
 		}
-	} while (*argv);
-	exit(exitcode);
+		if(file!=stdin)
+			fclose(file);
+	}
+	free(string);
+	exit(EXIT_SUCCESS);
 }
 
 /*
@@ -130,7 +137,7 @@ int strings_main(int argc, char **argv)
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
  *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
  *
  * 4. Neither the name of the University nor the names of its contributors
