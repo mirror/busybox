@@ -140,7 +140,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.80 2002/04/01 14:25:51 miles Exp $"
+#ident "$Id: insmod.c,v 1.81 2002/04/12 00:28:59 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -357,12 +357,19 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.80 2002/04/01 14:25:51 miles Exp $"
+#ident "$Id: insmod.c,v 1.81 2002/04/12 00:28:59 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
 #include <stdio.h>
 #include <elf.h>
+#include <endian.h>
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define ELFDATAM	ELFDATA2LSB
+#elif __BYTE_ORDER == __BIG_ENDIAN
+#define ELFDATAM	ELFDATA2MSB
+#endif
 
 
 /* Machine-specific elf macros for i386 et al.  */
@@ -382,37 +389,24 @@ static const int MODUTILS_OBJ_H = 1;
 
 #define ELFCLASSM	ELFCLASS32
 
-#if (defined(__mc68000__))					
-#define ELFDATAM	ELFDATA2MSB
-#endif
-
-
 
 #if defined(__sh__)
 
 #define MATCH_MACHINE(x) (x == EM_SH)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
-#define ELFDATAM	ELFDATA2LSB
 
 #elif defined(__arm__)
 
 #define MATCH_MACHINE(x) (x == EM_ARM)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
-#ifdef __ARMEB__
-#define ELFDATAM	ELFDATA2MSB
-#endif
-#ifdef __ARMEL__
-#define ELFDATAM	ELFDATA2LSB
-#endif
 
 #elif defined(__powerpc__)
 
 #define MATCH_MACHINE(x) (x == EM_PPC)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
-#define ELFDATAM    ELFDATA2MSB
 
 #elif defined(__mips__)
 
@@ -428,12 +422,6 @@ static const int MODUTILS_OBJ_H = 1;
 #define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
-#ifdef __MIPSEB__
-#define ELFDATAM        ELFDATA2MSB
-#endif
-#ifdef __MIPSEL__
-#define ELFDATAM        ELFDATA2LSB
-#endif
 
 #elif defined(__i386__)
 
@@ -448,7 +436,6 @@ static const int MODUTILS_OBJ_H = 1;
 
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
-#define ELFDATAM	ELFDATA2LSB
 
 #elif defined(__mc68000__) 
 
@@ -465,7 +452,6 @@ static const int MODUTILS_OBJ_H = 1;
 #define MATCH_MACHINE(x)	((x) == EM_V850 || (x) == EM_CYGNUS_V850)
 #define SHT_RELM		SHT_RELA
 #define Elf32_RelM		Elf32_Rela
-#define ELFDATAM		ELFDATA2LSB
 
 #define SYMBOL_PREFIX	"_"
 
