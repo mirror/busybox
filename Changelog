@@ -41,6 +41,7 @@
 	    couldn't maintain it very well, so including it was not really
 	    very appropriate.  Those wanting an fdisk are invited to
 	    grab a copy from util-linux.
+	* Fixed NFS so it supports 2.4.x kernels and NFSv3.
 
 
 	 -Erik Andersen

@@ -255,11 +255,15 @@ extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t* findPidByName( char* pidName);
-extern void *xmalloc (size_t size);
 extern int find_real_root_device_name(char* name);
 extern char *get_line_from_file(FILE *file);
 extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
+
+extern void *xmalloc (size_t size);
+extern char *xstrdup (const char *s);
+extern char *xstrndup (const char *s, int n);
+
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which

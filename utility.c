@@ -1456,6 +1456,36 @@ extern void *xmalloc(size_t size)
 	return cp;
 }
 
+#if defined BB_FEATURE_NFSMOUNT
+extern char * xstrdup (const char *s) {
+	char *t;
+
+	if (s == NULL)
+		return NULL;
+
+	t = strdup (s);
+
+	if (t == NULL)
+		fatalError(memory_exhausted, "");
+
+	return t;
+}
+
+extern char * xstrndup (const char *s, int n) {
+	char *t;
+
+	if (s == NULL)
+		fatalError("xstrndup bug");
+
+	t = xmalloc(n+1);
+	strncpy(t,s,n);
+	t[n] = 0;
+
+	return t;
+}
+#endif
+
+
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap)
 {

@@ -25,6 +25,8 @@
  * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
  * - added Native Language Support
  * 
+ * Modified by Olaf Kirch and Trond Myklebust for new NFS code,
+ * plus NFSv3 stuff.
  */
 
 /*
@@ -47,27 +49,117 @@
 #include <arpa/inet.h>
 
 #include "nfsmount.h"
+#include <linux/nfs.h>  /* For the kernels nfs stuff */
 
-#include <linux/nfs.h>
-/* we suppose that libc-dev is providing NFSv3 headers (kernel >= 2.2) */
-#include <linux/nfs_mount.h>
 
-#define _
+/* Disable the nls stuff */
+# undef bindtextdomain
+# define bindtextdomain(Domain, Directory) /* empty */
+# undef textdomain
+# define textdomain(Domain) /* empty */
+# define _(Text) (Text)
+# define N_(Text) (Text)
+
+#define MS_MGC_VAL		0xc0ed0000 /* Magic number indicatng "new" flags */
+#define MS_RDONLY        1      /* Mount read-only */
+#define MS_NOSUID        2      /* Ignore suid and sgid bits */
+#define MS_NODEV         4      /* Disallow access to device special files */
+#define MS_NOEXEC        8      /* Disallow program execution */
+#define MS_SYNCHRONOUS  16      /* Writes are synced at once */
+#define MS_REMOUNT      32      /* Alter flags of a mounted FS */
+#define MS_MANDLOCK     64      /* Allow mandatory locks on an FS */
+#define S_QUOTA         128     /* Quota initialized for file/directory/symlink */
+#define S_APPEND        256     /* Append-only file */
+#define S_IMMUTABLE     512     /* Immutable file */
+#define MS_NOATIME      1024    /* Do not update access times. */
+#define MS_NODIRATIME   2048    /* Do not update directory access times */
+
+
+/*
+ * We want to be able to compile mount on old kernels in such a way
+ * that the binary will work well on more recent kernels.
+ * Thus, if necessary we teach nfsmount.c the structure of new fields
+ * that will come later.
+ *
+ * Moreover, the new kernel includes conflict with glibc includes
+ * so it is easiest to ignore the kernel altogether (at compile time).
+ */
+
+#define NFS_MOUNT_VERSION	4
+
+struct nfs2_fh {
+        char                    data[32];
+};
+struct nfs3_fh {
+        unsigned short          size;
+        unsigned char           data[64];
+};
+
+struct nfs_mount_data {
+	int		version;		/* 1 */
+	int		fd;			/* 1 */
+	struct nfs2_fh	old_root;		/* 1 */
+	int		flags;			/* 1 */
+	int		rsize;			/* 1 */
+	int		wsize;			/* 1 */
+	int		timeo;			/* 1 */
+	int		retrans;		/* 1 */
+	int		acregmin;		/* 1 */
+	int		acregmax;		/* 1 */
+	int		acdirmin;		/* 1 */
+	int		acdirmax;		/* 1 */
+	struct sockaddr_in addr;		/* 1 */
+	char		hostname[256];		/* 1 */
+	int		namlen;			/* 2 */
+	unsigned int	bsize;			/* 3 */
+	struct nfs3_fh	root;			/* 4 */
+};
+
+/* bits in the flags field */
+
+#define NFS_MOUNT_SOFT		0x0001	/* 1 */
+#define NFS_MOUNT_INTR		0x0002	/* 1 */
+#define NFS_MOUNT_SECURE	0x0004	/* 1 */
+#define NFS_MOUNT_POSIX		0x0008	/* 1 */
+#define NFS_MOUNT_NOCTO		0x0010	/* 1 */
+#define NFS_MOUNT_NOAC		0x0020	/* 1 */
+#define NFS_MOUNT_TCP		0x0040	/* 2 */
+#define NFS_MOUNT_VER3		0x0080	/* 3 */
+#define NFS_MOUNT_KERBEROS	0x0100	/* 3 */
+#define NFS_MOUNT_NONLM		0x0200	/* 3 */
+
+
+#define UTIL_LINUX_VERSION "2.10m"
+#define util_linux_version "util-linux-2.10m"
+
 #define HAVE_inet_aton
-#define MS_REMOUNT	32			/* Alter flags of a mounted FS */
-#define sloppy 0
-#define EX_FAIL 1
-#define EX_BG 1
-#define xstrdup strdup
-#define xstrndup strndup
+#define HAVE_scsi_h
+#define HAVE_blkpg_h
+#define HAVE_kd_h
+#define HAVE_termcap
+#define HAVE_locale_h
+#define HAVE_libintl_h
+#define ENABLE_NLS
+#define HAVE_langinfo_h
+#define HAVE_progname
+#define HAVE_openpty
+#define HAVE_nanosleep
+#define HAVE_personality
+#define HAVE_tm_gmtoff
 
-
+extern char *xstrdup (const char *s);
+extern char *xstrndup (const char *s, int n);
 static char *nfs_strerror(int stat);
 
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
+#define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
-static int linux_version_code(void)
-{
+#define EX_FAIL			32       /* mount failure */
+#define EX_BG			256       /* retry in background (internal only) */
+
+
+static int
+linux_version_code(void) {
 	struct utsname my_utsname;
 	int p, q, r;
 
@@ -75,15 +167,15 @@ static int linux_version_code(void)
 		p = atoi(strtok(my_utsname.release, "."));
 		q = atoi(strtok(NULL, "."));
 		r = atoi(strtok(NULL, "."));
-		return MAKE_VERSION(p, q, r);
+		return MAKE_VERSION(p,q,r);
 	}
 	return 0;
 }
 
 /*
- * nfs_mount_version according to the kernel sources seen at compile time.
+ * nfs_mount_version according to the sources seen at compile time.
  */
-static int nfs_mount_version = NFS_MOUNT_VERSION;
+int nfs_mount_version = NFS_MOUNT_VERSION;
 
 /*
  * Unfortunately, the kernel prints annoying console messages
@@ -96,22 +188,77 @@ static int nfs_mount_version = NFS_MOUNT_VERSION;
  *	NFS_MOUNT_VERSION: these nfsmount sources at compile time
  *	nfs_mount_version: version this source and running kernel can handle
  */
-static void find_kernel_nfs_mount_version(void)
-{
-	int kernel_version = linux_version_code();
+static void
+find_kernel_nfs_mount_version(void) {
+	static int kernel_version = 0;
+
+	if (kernel_version)
+		return;
+
+	kernel_version = linux_version_code();
 
 	if (kernel_version) {
-		if (kernel_version < MAKE_VERSION(2, 1, 32))
-			nfs_mount_version = 1;
-		else
-			nfs_mount_version = 3;
+	     if (kernel_version < MAKE_VERSION(2,1,32))
+		  nfs_mount_version = 1;
+	     else if (kernel_version < MAKE_VERSION(2,3,99))
+		  nfs_mount_version = 3;
+	     else
+		  nfs_mount_version = 4; /* since 2.3.99pre4 */
 	}
 	if (nfs_mount_version > NFS_MOUNT_VERSION)
-		nfs_mount_version = NFS_MOUNT_VERSION;
+	     nfs_mount_version = NFS_MOUNT_VERSION;
 }
 
-int nfsmount(const char *spec, const char *node, unsigned long *flags,
-			 char **extra_opts, char **mount_opts, int running_bg)
+static struct pmap *
+get_mountport(struct sockaddr_in *server_addr,
+      long unsigned prog,
+      long unsigned version,
+      long unsigned proto,
+      long unsigned port)
+{
+struct pmaplist *pmap;
+static struct pmap p = {0, 0, 0, 0};
+
+server_addr->sin_port = PMAPPORT;
+pmap = pmap_getmaps(server_addr);
+
+if (version > MAX_NFSPROT)
+	version = MAX_NFSPROT;
+if (!prog)
+	prog = MOUNTPROG;
+p.pm_prog = prog;
+p.pm_vers = version;
+p.pm_prot = proto;
+p.pm_port = port;
+
+while (pmap) {
+	if (pmap->pml_map.pm_prog != prog)
+		goto next;
+	if (!version && p.pm_vers > pmap->pml_map.pm_vers)
+		goto next;
+	if (version > 2 && pmap->pml_map.pm_vers != version)
+		goto next;
+	if (version && version <= 2 && pmap->pml_map.pm_vers > 2)
+		goto next;
+	if (pmap->pml_map.pm_vers > MAX_NFSPROT ||
+	    (proto && p.pm_prot && pmap->pml_map.pm_prot != proto) ||
+	    (port && pmap->pml_map.pm_port != port))
+		goto next;
+	memcpy(&p, &pmap->pml_map, sizeof(p));
+next:
+	pmap = pmap->pml_next;
+}
+if (!p.pm_vers)
+	p.pm_vers = MOUNTVERS;
+if (!p.pm_port)
+	p.pm_port = MOUNTPORT;
+if (!p.pm_prot)
+	p.pm_prot = IPPROTO_TCP;
+return &p;
+}
+
+int nfsmount(const char *spec, const char *node, int *flags,
+	     char **extra_opts, char **mount_opts, int running_bg)
 {
 	static char *prev_bg_host;
 	char hostdir[1024];
@@ -119,9 +266,8 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	char *hostname;
 	char *dirname;
 	char *old_opts;
-	char *mounthost = NULL;
+	char *mounthost=NULL;
 	char new_opts[1024];
-	fhandle root_fhandle;
 	struct timeval total_timeout;
 	enum clnt_stat clnt_stat;
 	static struct nfs_mount_data data;
@@ -130,13 +276,18 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	struct hostent *hp;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in mount_server_addr;
+	struct pmap* pm_mnt;
 	int msock, fsock;
 	struct timeval retry_timeout;
-	struct fhstatus status;
+	union {
+		struct fhstatus nfsv2;
+		struct mountres3 nfsv3;
+	} status;
 	struct stat statbuf;
 	char *s;
 	int port;
 	int mountport;
+	int proto;
 	int bg;
 	int soft;
 	int intr;
@@ -162,7 +313,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	mclient = NULL;
 	if (strlen(spec) >= sizeof(hostdir)) {
 		fprintf(stderr, _("mount: "
-						  "excessively long host:dir argument\n"));
+			"excessively long host:dir argument\n"));
 		goto fail;
 	}
 	strcpy(hostdir, spec);
@@ -175,11 +326,11 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 		if ((s = strchr(hostdir, ','))) {
 			*s = '\0';
 			fprintf(stderr, _("mount: warning: "
-							  "multiple hostnames not supported\n"));
+				"multiple hostnames not supported\n"));
 		}
 	} else {
 		fprintf(stderr, _("mount: "
-						  "directory to mount not in host:dir format\n"));
+			"directory to mount not in host:dir format\n"));
 		goto fail;
 	}
 
@@ -190,18 +341,20 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	{
 		if ((hp = gethostbyname(hostname)) == NULL) {
 			fprintf(stderr, _("mount: can't get address for %s\n"),
-					hostname);
+				hostname);
 			goto fail;
 		} else {
 			if (hp->h_length > sizeof(struct in_addr)) {
-				fprintf(stderr, _("mount: got bad hp->h_length\n"));
+				fprintf(stderr,
+					_("mount: got bad hp->h_length\n"));
 				hp->h_length = sizeof(struct in_addr);
 			}
-			memcpy(&server_addr.sin_addr, hp->h_addr, hp->h_length);
+			memcpy(&server_addr.sin_addr,
+			       hp->h_addr, hp->h_length);
 		}
 	}
 
-	memcpy(&mount_server_addr, &server_addr, sizeof(mount_server_addr));
+	memcpy (&mount_server_addr, &server_addr, sizeof (mount_server_addr));
 
 	/* add IP address to mtab options for use when unmounting */
 
@@ -210,10 +363,12 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	if (!old_opts)
 		old_opts = "";
 	if (strlen(old_opts) + strlen(s) + 10 >= sizeof(new_opts)) {
-		fprintf(stderr, _("mount: " "excessively long option argument\n"));
+		fprintf(stderr, _("mount: "
+			"excessively long option argument\n"));
 		goto fail;
 	}
-	sprintf(new_opts, "%s%saddr=%s", old_opts, *old_opts ? "," : "", s);
+	sprintf(new_opts, "%s%saddr=%s",
+		old_opts, *old_opts ? "," : "", s);
 	*extra_opts = xstrdup(new_opts);
 
 	/* Set default options.
@@ -221,13 +376,13 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	 * let the kernel decide.
 	 * timeo is filled in after we know whether it'll be TCP or UDP. */
 	memset(&data, 0, sizeof(data));
-	data.retrans = 3;
-	data.acregmin = 3;
-	data.acregmax = 60;
-	data.acdirmin = 30;
-	data.acdirmax = 60;
+	data.retrans	= 3;
+	data.acregmin	= 3;
+	data.acregmax	= 60;
+	data.acdirmin	= 30;
+	data.acdirmax	= 60;
 #if NFS_MOUNT_VERSION >= 2
-	data.namlen = NAME_MAX;
+	data.namlen	= NAME_MAX;
 #endif
 
 	bg = 0;
@@ -237,21 +392,21 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	nocto = 0;
 	nolock = 0;
 	noac = 0;
-	retry = 10000;				/* 10000 minutes ~ 1 week */
+	retry = 10000;		/* 10000 minutes ~ 1 week */
 	tcp = 0;
 
 	mountprog = MOUNTPROG;
-	mountvers = MOUNTVERS;
+	mountvers = 0;
 	port = 0;
 	mountport = 0;
 	nfsprog = NFS_PROGRAM;
-	nfsvers = NFS_VERSION;
+	nfsvers = 0;
 
 	/* parse options */
 
 	for (opt = strtok(old_opts, ","); opt; opt = strtok(NULL, ",")) {
 		if ((opteq = strchr(opt, '='))) {
-			val = atoi(opteq + 1);
+			val = atoi(opteq + 1);	
 			*opteq = '\0';
 			if (!strcmp(opt, "rsize"))
 				data.rsize = val;
@@ -274,27 +429,29 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 				data.acregmax = val;
 				data.acdirmin = val;
 				data.acdirmax = val;
-			} else if (!strcmp(opt, "retry"))
+			}
+			else if (!strcmp(opt, "retry"))
 				retry = val;
 			else if (!strcmp(opt, "port"))
 				port = val;
 			else if (!strcmp(opt, "mountport"))
-				mountport = val;
+			        mountport = val;
 			else if (!strcmp(opt, "mounthost"))
-				mounthost = xstrndup(opteq + 1,
-									 strcspn(opteq + 1, " \t\n\r,"));
+			        mounthost=xstrndup(opteq+1,
+						  strcspn(opteq+1," \t\n\r,"));
 			else if (!strcmp(opt, "mountprog"))
 				mountprog = val;
 			else if (!strcmp(opt, "mountvers"))
 				mountvers = val;
 			else if (!strcmp(opt, "nfsprog"))
 				nfsprog = val;
-			else if (!strcmp(opt, "nfsvers") || !strcmp(opt, "vers"))
+			else if (!strcmp(opt, "nfsvers") ||
+				 !strcmp(opt, "vers"))
 				nfsvers = val;
 			else if (!strcmp(opt, "proto")) {
-				if (!strncmp(opteq + 1, "tcp", 3))
+				if (!strncmp(opteq+1, "tcp", 3))
 					tcp = 1;
-				else if (!strncmp(opteq + 1, "udp", 3))
+				else if (!strncmp(opteq+1, "udp", 3))
 					tcp = 0;
 				else
 					printf(_("Warning: Unrecognized proto= option.\n"));
@@ -304,24 +461,24 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 					data.namlen = val;
 				else
 #endif
-					printf(_
-						   ("Warning: Option namlen is not supported.\n"));
+				printf(_("Warning: Option namlen is not supported.\n"));
 			} else if (!strcmp(opt, "addr"))
-				/* ignore */ ;
+				/* ignore */;
 			else {
 				printf(_("unknown nfs mount parameter: "
-						 "%s=%d\n"), opt, val);
+				       "%s=%d\n"), opt, val);
 				goto fail;
 			}
-		} else {
+		}
+		else {
 			val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
 				opt += 2;
 			}
-			if (!strcmp(opt, "bg"))
+			if (!strcmp(opt, "bg")) 
 				bg = val;
-			else if (!strcmp(opt, "fg"))
+			else if (!strcmp(opt, "fg")) 
 				bg = !val;
 			else if (!strcmp(opt, "soft"))
 				soft = val;
@@ -343,17 +500,16 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 				if (nfs_mount_version >= 3)
 					nolock = !val;
 				else
-					printf(_
-						   ("Warning: option nolock is not supported.\n"));
+					printf(_("Warning: option nolock is not supported.\n"));
 			} else {
-				if (!sloppy) {
-					printf(_("unknown nfs mount option: "
-							 "%s%s\n"), val ? "" : "no", opt);
-					goto fail;
-				}
+				printf(_("unknown nfs mount option: "
+					   "%s%s\n"), val ? "" : "no", opt);
+				goto fail;
 			}
 		}
 	}
+	proto = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
+
 	data.flags = (soft ? NFS_MOUNT_SOFT : 0)
 		| (intr ? NFS_MOUNT_INTR : 0)
 		| (posix ? NFS_MOUNT_POSIX : 0)
@@ -367,6 +523,19 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	if (nfs_mount_version >= 3)
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
 #endif
+	if (nfsvers > MAX_NFSPROT) {
+		fprintf(stderr, "NFSv%d not supported!\n", nfsvers);
+		return 0;
+	}
+	if (mountvers > MAX_NFSPROT) {
+		fprintf(stderr, "NFSv%d not supported!\n", nfsvers);
+		return 0;
+	}
+	if (nfsvers && !mountvers)
+		mountvers = (nfsvers < 3) ? 1 : nfsvers;
+	if (nfsvers && nfsvers < mountvers) {
+		mountvers = nfsvers;
+	}
 
 	/* Adjust options if none specified */
 	if (!data.timeo)
@@ -374,21 +543,22 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 
 #ifdef NFS_MOUNT_DEBUG
 	printf("rsize = %d, wsize = %d, timeo = %d, retrans = %d\n",
-		   data.rsize, data.wsize, data.timeo, data.retrans);
+		data.rsize, data.wsize, data.timeo, data.retrans);
 	printf("acreg (min, max) = (%d, %d), acdir (min, max) = (%d, %d)\n",
-		   data.acregmin, data.acregmax, data.acdirmin, data.acdirmax);
+		data.acregmin, data.acregmax, data.acdirmin, data.acdirmax);
 	printf("port = %d, bg = %d, retry = %d, flags = %.8x\n",
-		   port, bg, retry, data.flags);
+		port, bg, retry, data.flags);
 	printf("mountprog = %d, mountvers = %d, nfsprog = %d, nfsvers = %d\n",
-		   mountprog, mountvers, nfsprog, nfsvers);
+		mountprog, mountvers, nfsprog, nfsvers);
 	printf("soft = %d, intr = %d, posix = %d, nocto = %d, noac = %d\n",
-		   (data.flags & NFS_MOUNT_SOFT) != 0,
-		   (data.flags & NFS_MOUNT_INTR) != 0,
-		   (data.flags & NFS_MOUNT_POSIX) != 0,
-		   (data.flags & NFS_MOUNT_NOCTO) != 0,
-		   (data.flags & NFS_MOUNT_NOAC) != 0);
+		(data.flags & NFS_MOUNT_SOFT) != 0,
+		(data.flags & NFS_MOUNT_INTR) != 0,
+		(data.flags & NFS_MOUNT_POSIX) != 0,
+		(data.flags & NFS_MOUNT_NOCTO) != 0,
+		(data.flags & NFS_MOUNT_NOAC) != 0);
 #if NFS_MOUNT_VERSION >= 2
-	printf("tcp = %d\n", (data.flags & NFS_MOUNT_TCP) != 0);
+	printf("tcp = %d\n",
+		(data.flags & NFS_MOUNT_TCP) != 0);
 #endif
 #endif
 
@@ -404,7 +574,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	 * give up immediately, to avoid the initial timeout.
 	 */
 	if (bg && !running_bg &&
-		prev_bg_host && strcmp(hostname, prev_bg_host) == 0) {
+	    prev_bg_host && strcmp(hostname, prev_bg_host) == 0) {
 		if (retry > 0)
 			retval = EX_BG;
 		return retval;
@@ -413,24 +583,25 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	/* create mount deamon client */
 	/* See if the nfs host = mount host. */
 	if (mounthost) {
-		if (mounthost[0] >= '0' && mounthost[0] <= '9') {
-			mount_server_addr.sin_family = AF_INET;
-			mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
-		} else {
-			if ((hp = gethostbyname(mounthost)) == NULL) {
-				fprintf(stderr, _("mount: can't get address for %s\n"),
-						hostname);
-				goto fail;
-			} else {
-				if (hp->h_length > sizeof(struct in_addr)) {
-					fprintf(stderr, _("mount: got bad hp->h_length?\n"));
-					hp->h_length = sizeof(struct in_addr);
-				}
-				mount_server_addr.sin_family = AF_INET;
-				memcpy(&mount_server_addr.sin_addr,
-					   hp->h_addr, hp->h_length);
-			}
-		}
+	  if (mounthost[0] >= '0' && mounthost[0] <= '9') {
+	    mount_server_addr.sin_family = AF_INET;
+	    mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
+	  } else {
+		  if ((hp = gethostbyname(mounthost)) == NULL) {
+			  fprintf(stderr, _("mount: can't get address for %s\n"),
+				  hostname);
+			  goto fail;
+		  } else {
+			  if (hp->h_length > sizeof(struct in_addr)) {
+				  fprintf(stderr,
+					  _("mount: got bad hp->h_length?\n"));
+				  hp->h_length = sizeof(struct in_addr);
+			  }
+			  mount_server_addr.sin_family = AF_INET;
+			  memcpy(&mount_server_addr.sin_addr,
+				 hp->h_addr, hp->h_length);
+		  }
+	  }
 	}
 
 	/*
@@ -460,7 +631,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	for (;;) {
 		if (bg && stat(node, &statbuf) == -1) {
 			if (running_bg) {
-				sleep(val);		/* 1, 2, 4, 8, 16, 30, ... */
+				sleep(val);	/* 1, 2, 4, 8, 16, 30, ... */
 				val *= 2;
 				if (val > 30)
 					val = 30;
@@ -470,28 +641,60 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 			if (t - prevt < 30)
 				sleep(30);
 
-			/* contact the mount daemon via TCP */
-			mount_server_addr.sin_port = htons(mountport);
-			msock = RPC_ANYSOCK;
-			mclient = clnttcp_create(&mount_server_addr,
-									 mountprog, mountvers, &msock, 0, 0);
+			pm_mnt = get_mountport(&mount_server_addr,
+				       mountprog,
+				       mountvers,
+				       proto,
+ 				       mountport);
 
-			/* if this fails, contact the mount daemon via UDP */
-			if (!mclient) {
-				mount_server_addr.sin_port = htons(mountport);
-				msock = RPC_ANYSOCK;
+			/* contact the mount daemon via TCP */
+			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+			msock = RPC_ANYSOCK;
+
+			switch (pm_mnt->pm_prot) {
+			case IPPROTO_UDP:
 				mclient = clntudp_create(&mount_server_addr,
-										 mountprog, mountvers,
-										 retry_timeout, &msock);
+						 pm_mnt->pm_prog,
+						 pm_mnt->pm_vers,
+						 retry_timeout,
+						 &msock);
+		  if (mclient)
+			  break;
+		  mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+		  msock = RPC_ANYSOCK;
+		case IPPROTO_TCP:
+			mclient = clnttcp_create(&mount_server_addr,
+						 pm_mnt->pm_prog,
+						 pm_mnt->pm_vers,
+						 &msock, 0, 0);
+			break;
+		default:
+			mclient = 0;
 			}
 			if (mclient) {
 				/* try to mount hostname:dirname */
 				mclient->cl_auth = authunix_create_default();
+
+			/* make pointers in xdr_mountres3 NULL so
+			 * that xdr_array allocates memory for us
+			 */
+			memset(&status, 0, sizeof(status));
+
+			if (pm_mnt->pm_vers == 3)
+				clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
+						      (xdrproc_t) xdr_dirpath,
+						      (caddr_t) &dirname,
+						      (xdrproc_t) xdr_mountres3,
+						      (caddr_t) &status,
+					total_timeout);
+			else
 				clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
-									  (xdrproc_t) xdr_dirpath,
-									  (caddr_t) & dirname,
-									  (xdrproc_t) xdr_fhstatus,
-									  (caddr_t) & status, total_timeout);
+						      (xdrproc_t) xdr_dirpath,
+						      (caddr_t) &dirname,
+						      (xdrproc_t) xdr_fhstatus,
+						      (caddr_t) &status,
+						      total_timeout);
+
 				if (clnt_stat == RPC_SUCCESS)
 					break;		/* we're done */
 				if (errno != ECONNREFUSED) {
@@ -511,7 +714,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 			prevt = t;
 		}
 		if (!bg)
-			goto fail;
+		        goto fail;
 		if (!running_bg) {
 			prev_bg_host = xstrdup(hostname);
 			if (retry > 0)
@@ -522,21 +725,52 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 		if (t >= timeout)
 			goto fail;
 	}
+	nfsvers = (pm_mnt->pm_vers < 2) ? 2 : pm_mnt->pm_vers;
 
-	if (status.fhs_status != 0) {
-		fprintf(stderr,
-				_("mount: %s:%s failed, reason given by server: %s\n"),
-				hostname, dirname, nfs_strerror(status.fhs_status));
-		goto fail;
+	if (nfsvers == 2) {
+		if (status.nfsv2.fhs_status != 0) {
+			fprintf(stderr,
+				"mount: %s:%s failed, reason given by server: %s\n",
+				hostname, dirname,
+				nfs_strerror(status.nfsv2.fhs_status));
+			goto fail;
+		}
+		memcpy(data.root.data,
+		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
+		       NFS_FHSIZE);
+#if NFS_MOUNT_VERSION >= 4
+		data.root.size = NFS_FHSIZE;
+		memcpy(data.old_root.data,
+		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
+		       NFS_FHSIZE);
+#endif
+	} else {
+#if NFS_MOUNT_VERSION >= 4
+		fhandle3 *fhandle;
+		if (status.nfsv3.fhs_status != 0) {
+			fprintf(stderr,
+				"mount: %s:%s failed, reason given by server: %s\n",
+				hostname, dirname,
+				nfs_strerror(status.nfsv3.fhs_status));
+			goto fail;
+		}
+		fhandle = &status.nfsv3.mountres3_u.mountinfo.fhandle;
+		memset(data.old_root.data, 0, NFS_FHSIZE);
+		memset(&data.root, 0, sizeof(data.root));
+		data.root.size = fhandle->fhandle3_len;
+		memcpy(data.root.data,
+		       (char *) fhandle->fhandle3_val,
+		       fhandle->fhandle3_len);
+
+		data.flags |= NFS_MOUNT_VER3;
+#endif
 	}
-	memcpy((char *) &root_fhandle, (char *) status.fhstatus_u.fhs_fhandle,
-		   sizeof(root_fhandle));
 
 	/* create nfs socket for kernel */
 
 	if (tcp) {
 		if (nfs_mount_version < 3) {
-			printf(_("NFS over TCP is not supported.\n"));
+	     		printf(_("NFS over TCP is not supported.\n"));
 			goto fail;
 		}
 		fsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -553,7 +787,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	if (port == 0) {
 		server_addr.sin_port = PMAPPORT;
 		port = pmap_getport(&server_addr, nfsprog, nfsvers,
-							tcp ? IPPROTO_TCP : IPPROTO_UDP);
+			tcp ? IPPROTO_TCP : IPPROTO_UDP);
 		if (port == 0)
 			port = NFS_PORT;
 #ifdef NFS_MOUNT_DEBUG
@@ -565,14 +799,14 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	printf(_("using port %d for nfs deamon\n"), port);
 #endif
 	server_addr.sin_port = htons(port);
-	/*
-	 * connect() the socket for kernels 1.3.10 and below only,
-	 * to avoid problems with multihomed hosts.
-	 * --Swen
-	 */
+	 /*
+	  * connect() the socket for kernels 1.3.10 and below only,
+	  * to avoid problems with multihomed hosts.
+	  * --Swen
+	  */
 	if (linux_version_code() <= 66314
-		&& connect(fsock, (struct sockaddr *) &server_addr,
-				   sizeof(server_addr)) < 0) {
+	    && connect(fsock, (struct sockaddr *) &server_addr,
+		       sizeof (server_addr)) < 0) {
 		perror(_("nfs connect"));
 		goto fail;
 	}
@@ -580,8 +814,6 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	/* prepare data structure for kernel */
 
 	data.fd = fsock;
-	memcpy((char *) &data.root, (char *) &root_fhandle,
-		   sizeof(root_fhandle));
 	memcpy((char *) &data.addr, (char *) &server_addr, sizeof(data.addr));
 	strncpy(data.hostname, hostname, sizeof(data.hostname));
 
@@ -594,7 +826,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 
 	/* abort */
 
-  fail:
+fail:
 	if (msock != -1) {
 		if (mclient) {
 			auth_destroy(mclient->cl_auth);
@@ -605,7 +837,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	if (fsock != -1)
 		close(fsock);
 	return retval;
-}
+}	
 
 /*
  * We need to translate between nfs status return values and
@@ -624,37 +856,33 @@ static struct {
 	enum nfs_stat stat;
 	int errnum;
 } nfs_errtbl[] = {
-	{
-	NFS_OK, 0}, {
-	NFSERR_PERM, EPERM}, {
-	NFSERR_NOENT, ENOENT}, {
-	NFSERR_IO, EIO}, {
-	NFSERR_NXIO, ENXIO}, {
-	NFSERR_ACCES, EACCES}, {
-	NFSERR_EXIST, EEXIST}, {
-	NFSERR_NODEV, ENODEV}, {
-	NFSERR_NOTDIR, ENOTDIR}, {
-	NFSERR_ISDIR, EISDIR},
+	{ NFS_OK,		0		},
+	{ NFSERR_PERM,		EPERM		},
+	{ NFSERR_NOENT,		ENOENT		},
+	{ NFSERR_IO,		EIO		},
+	{ NFSERR_NXIO,		ENXIO		},
+	{ NFSERR_ACCES,		EACCES		},
+	{ NFSERR_EXIST,		EEXIST		},
+	{ NFSERR_NODEV,		ENODEV		},
+	{ NFSERR_NOTDIR,	ENOTDIR		},
+	{ NFSERR_ISDIR,		EISDIR		},
 #ifdef NFSERR_INVAL
-	{
-	NFSERR_INVAL, EINVAL},		/* that Sun forgot */
+	{ NFSERR_INVAL,		EINVAL		},	/* that Sun forgot */
 #endif
-	{
-	NFSERR_FBIG, EFBIG}, {
-	NFSERR_NOSPC, ENOSPC}, {
-	NFSERR_ROFS, EROFS}, {
-	NFSERR_NAMETOOLONG, ENAMETOOLONG}, {
-	NFSERR_NOTEMPTY, ENOTEMPTY}, {
-	NFSERR_DQUOT, EDQUOT}, {
-	NFSERR_STALE, ESTALE},
+	{ NFSERR_FBIG,		EFBIG		},
+	{ NFSERR_NOSPC,		ENOSPC		},
+	{ NFSERR_ROFS,		EROFS		},
+	{ NFSERR_NAMETOOLONG,	ENAMETOOLONG	},
+	{ NFSERR_NOTEMPTY,	ENOTEMPTY	},
+	{ NFSERR_DQUOT,		EDQUOT		},
+	{ NFSERR_STALE,		ESTALE		},
 #ifdef EWFLUSH
-	{
-	NFSERR_WFLUSH, EWFLUSH},
+	{ NFSERR_WFLUSH,	EWFLUSH		},
 #endif
-		/* Throw in some NFSv3 values for even more fun (HP returns these) */
-	{
-	71, EREMOTE}, {
-	-1, EIO}
+	/* Throw in some NFSv3 values for even more fun (HP returns these) */
+	{ 71,			EREMOTE		},
+
+	{ -1,			EIO		}
 };
 
 static char *nfs_strerror(int stat)
@@ -670,621 +898,92 @@ static char *nfs_strerror(int stat)
 	return buf;
 }
 
-#if 0
-int my_getport(struct in_addr server, struct timeval *timeo, ...)
+bool_t
+xdr_fhandle (XDR *xdrs, fhandle objp)
 {
-	struct sockaddr_in sin;
-	struct pmap pmap;
-	CLIENT *clnt;
-	int sock = RPC_ANYSOCK, port;
+	//register int32_t *buf;
 
-	pmap.pm_prog = prog;
-	pmap.pm_vers = vers;
-	pmap.pm_prot = prot;
-	pmap.pm_port = 0;
-	sin.sin_family = AF_INET;
-	sin.sin_addr = server;
-	sin.sin_port = htons(111);
-	clnt = clntudp_create(&sin, 100000, 2, *timeo, &sock);
-	status = clnt_call(clnt, PMAP_GETPORT,
-					   &pmap, (xdrproc_t) xdr_pmap,
-					   &port, (xdrproc_t) xdr_uint);
-	if (status != SUCCESS) {
-		/* natter */
-		port = 0;
-	}
-
-	clnt_destroy(clnt);
-	close(sock);
-	return port;
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-
-/*
- * Please do not edit this file.
- * It was generated using rpcgen.
- */
-
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-
-/*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user or with the express written consent of
- * Sun Microsystems, Inc.
- *
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- *
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- *
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- *
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
- */
-/*
- * Copyright (c) 1985, 1990 by Sun Microsystems, Inc.
- */
-
-/* from @(#)mount.x	1.3 91/03/11 TIRPC 1.0 */
-
-bool_t xdr_fhandle(XDR * xdrs, fhandle objp)
-{
-
-	if (!xdr_opaque(xdrs, objp, FHSIZE)) {
-		return (FALSE);
-	}
-	return (TRUE);
+	 if (!xdr_opaque (xdrs, objp, FHSIZE))
+		 return FALSE;
+	return TRUE;
 }
 
-bool_t xdr_fhstatus(XDR * xdrs, fhstatus * objp)
+bool_t
+xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_u_int(xdrs, &objp->fhs_status)) {
-		return (FALSE);
-	}
+	 if (!xdr_u_int (xdrs, &objp->fhs_status))
+		 return FALSE;
 	switch (objp->fhs_status) {
 	case 0:
-		if (!xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle)) {
-			return (FALSE);
-		}
+		 if (!xdr_fhandle (xdrs, objp->fhstatus_u.fhs_fhandle))
+			 return FALSE;
 		break;
 	default:
 		break;
 	}
-	return (TRUE);
+	return TRUE;
 }
 
-bool_t xdr_dirpath(XDR * xdrs, dirpath * objp)
+bool_t
+xdr_dirpath (XDR *xdrs, dirpath *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_string(xdrs, objp, MNTPATHLEN)) {
-		return (FALSE);
-	}
-	return (TRUE);
+	 if (!xdr_string (xdrs, objp, MNTPATHLEN))
+		 return FALSE;
+	return TRUE;
 }
 
-bool_t xdr_name(XDR * xdrs, name * objp)
+bool_t
+xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_string(xdrs, objp, MNTNAMLEN)) {
-		return (FALSE);
-	}
-	return (TRUE);
+	 if (!xdr_bytes (xdrs, (char **)&objp->fhandle3_val, (u_int *) &objp->fhandle3_len, FHSIZE3))
+		 return FALSE;
+	return TRUE;
 }
 
-bool_t xdr_mountlist(XDR * xdrs, mountlist * objp)
+bool_t
+xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_pointer
-		(xdrs, (char **) objp, sizeof(struct mountbody),
-		 (xdrproc_t) xdr_mountbody)) {
-		return (FALSE);
-	}
-	return (TRUE);
+	 if (!xdr_fhandle3 (xdrs, &objp->fhandle))
+		 return FALSE;
+	 if (!xdr_array (xdrs, (char **)&objp->auth_flavours.auth_flavours_val, (u_int *) &objp->auth_flavours.auth_flavours_len, ~0,
+		sizeof (int), (xdrproc_t) xdr_int))
+		 return FALSE;
+	return TRUE;
 }
 
-bool_t xdr_mountbody(XDR * xdrs, mountbody * objp)
+bool_t
+xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_name(xdrs, &objp->ml_hostname)) {
-		return (FALSE);
-	}
-	if (!xdr_dirpath(xdrs, &objp->ml_directory)) {
-		return (FALSE);
-	}
-	if (!xdr_mountlist(xdrs, &objp->ml_next)) {
-		return (FALSE);
-	}
-	return (TRUE);
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
 }
 
-bool_t xdr_groups(XDR * xdrs, groups * objp)
+bool_t
+xdr_mountres3 (XDR *xdrs, mountres3 *objp)
 {
+	//register int32_t *buf;
 
-	if (!xdr_pointer
-		(xdrs, (char **) objp, sizeof(struct groupnode),
-		 (xdrproc_t) xdr_groupnode)) {
-		return (FALSE);
+	 if (!xdr_mountstat3 (xdrs, &objp->fhs_status))
+		 return FALSE;
+	switch (objp->fhs_status) {
+	case MNT_OK:
+		 if (!xdr_mountres3_ok (xdrs, &objp->mountres3_u.mountinfo))
+			 return FALSE;
+		break;
+	default:
+		break;
 	}
-	return (TRUE);
+	return TRUE;
 }
 
-bool_t xdr_groupnode(XDR * xdrs, groupnode * objp)
-{
-
-	if (!xdr_name(xdrs, &objp->gr_name)) {
-		return (FALSE);
-	}
-	if (!xdr_groups(xdrs, &objp->gr_next)) {
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
-bool_t xdr_exports(XDR * xdrs, exports * objp)
-{
-
-	if (!xdr_pointer
-		(xdrs, (char **) objp, sizeof(struct exportnode),
-		 (xdrproc_t) xdr_exportnode)) {
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
-bool_t xdr_exportnode(XDR * xdrs, exportnode * objp)
-{
-
-	if (!xdr_dirpath(xdrs, &objp->ex_dir)) {
-		return (FALSE);
-	}
-	if (!xdr_groups(xdrs, &objp->ex_groups)) {
-		return (FALSE);
-	}
-	if (!xdr_exports(xdrs, &objp->ex_next)) {
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
-bool_t xdr_ppathcnf(XDR * xdrs, ppathcnf * objp)
-{
-
-	register long *buf;
-
-	int i;
-
-	if (xdrs->x_op == XDR_ENCODE) {
-		buf = (long *) XDR_INLINE(xdrs, 6 * BYTES_PER_XDR_UNIT);
-		if (buf == NULL) {
-			if (!xdr_int(xdrs, &objp->pc_link_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_max_canon)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_max_input)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_name_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_path_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_pipe_buf)) {
-				return (FALSE);
-			}
-
-		} else {
-			IXDR_PUT_LONG(buf, objp->pc_link_max);
-			IXDR_PUT_SHORT(buf, objp->pc_max_canon);
-			IXDR_PUT_SHORT(buf, objp->pc_max_input);
-			IXDR_PUT_SHORT(buf, objp->pc_name_max);
-			IXDR_PUT_SHORT(buf, objp->pc_path_max);
-			IXDR_PUT_SHORT(buf, objp->pc_pipe_buf);
-		}
-		if (!xdr_u_char(xdrs, &objp->pc_vdisable)) {
-			return (FALSE);
-		}
-		if (!xdr_char(xdrs, &objp->pc_xxx)) {
-			return (FALSE);
-		}
-		buf = (long *) XDR_INLINE(xdrs, 2 * BYTES_PER_XDR_UNIT);
-		if (buf == NULL) {
-			if (!xdr_vector
-				(xdrs, (char *) objp->pc_mask, 2, sizeof(short),
-				 (xdrproc_t) xdr_short)) {
-				return (FALSE);
-			}
-
-		} else {
-			{
-				register short *genp;
-
-				for (i = 0, genp = objp->pc_mask; i < 2; i++) {
-					IXDR_PUT_SHORT(buf, *genp++);
-				}
-			};
-		}
-
-		return (TRUE);
-	} else if (xdrs->x_op == XDR_DECODE) {
-		buf = (long *) XDR_INLINE(xdrs, 6 * BYTES_PER_XDR_UNIT);
-		if (buf == NULL) {
-			if (!xdr_int(xdrs, &objp->pc_link_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_max_canon)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_max_input)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_name_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_path_max)) {
-				return (FALSE);
-			}
-			if (!xdr_short(xdrs, &objp->pc_pipe_buf)) {
-				return (FALSE);
-			}
-
-		} else {
-			objp->pc_link_max = IXDR_GET_LONG(buf);
-			objp->pc_max_canon = IXDR_GET_SHORT(buf);
-			objp->pc_max_input = IXDR_GET_SHORT(buf);
-			objp->pc_name_max = IXDR_GET_SHORT(buf);
-			objp->pc_path_max = IXDR_GET_SHORT(buf);
-			objp->pc_pipe_buf = IXDR_GET_SHORT(buf);
-		}
-		if (!xdr_u_char(xdrs, &objp->pc_vdisable)) {
-			return (FALSE);
-		}
-		if (!xdr_char(xdrs, &objp->pc_xxx)) {
-			return (FALSE);
-		}
-		buf = (long *) XDR_INLINE(xdrs, 2 * BYTES_PER_XDR_UNIT);
-		if (buf == NULL) {
-			if (!xdr_vector
-				(xdrs, (char *) objp->pc_mask, 2, sizeof(short),
-				 (xdrproc_t) xdr_short)) {
-				return (FALSE);
-			}
-
-		} else {
-			{
-				register short *genp;
-
-				for (i = 0, genp = objp->pc_mask; i < 2; i++) {
-					*genp++ = IXDR_GET_SHORT(buf);
-				}
-			};
-		}
-		return (TRUE);
-	}
-
-	if (!xdr_int(xdrs, &objp->pc_link_max)) {
-		return (FALSE);
-	}
-	if (!xdr_short(xdrs, &objp->pc_max_canon)) {
-		return (FALSE);
-	}
-	if (!xdr_short(xdrs, &objp->pc_max_input)) {
-		return (FALSE);
-	}
-	if (!xdr_short(xdrs, &objp->pc_name_max)) {
-		return (FALSE);
-	}
-	if (!xdr_short(xdrs, &objp->pc_path_max)) {
-		return (FALSE);
-	}
-	if (!xdr_short(xdrs, &objp->pc_pipe_buf)) {
-		return (FALSE);
-	}
-	if (!xdr_u_char(xdrs, &objp->pc_vdisable)) {
-		return (FALSE);
-	}
-	if (!xdr_char(xdrs, &objp->pc_xxx)) {
-		return (FALSE);
-	}
-	if (!xdr_vector
-		(xdrs, (char *) objp->pc_mask, 2, sizeof(short),
-		 (xdrproc_t) xdr_short)) {
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
-
-/*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user or with the express written consent of
- * Sun Microsystems, Inc.
- *
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- *
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- *
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- *
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
- */
-/*
- * Copyright (c) 1985, 1990 by Sun Microsystems, Inc.
- */
-
-/* from @(#)mount.x	1.3 91/03/11 TIRPC 1.0 */
-
-#include <string.h>				/* for memset() */
-
-/* Default timeout can be changed using clnt_control() */
-static struct timeval TIMEOUT = { 25, 0 };
-
-void *mountproc_null_1(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call
-		(clnt, MOUNTPROC_NULL, (xdrproc_t) xdr_void, argp,
-		 (xdrproc_t) xdr_void, &clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-fhstatus *mountproc_mnt_1(argp, clnt)
-dirpath *argp;
-CLIENT *clnt;
-{
-	static fhstatus clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_MNT, (xdrproc_t) xdr_dirpath,
-				  (caddr_t) argp, (xdrproc_t) xdr_fhstatus,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-mountlist *mountproc_dump_1(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static mountlist clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_DUMP, (xdrproc_t) xdr_void,
-				  (caddr_t) argp, (xdrproc_t) xdr_mountlist,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-void *mountproc_umnt_1(argp, clnt)
-dirpath *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNT, (xdrproc_t) xdr_dirpath,
-				  (caddr_t) argp, (xdrproc_t) xdr_void,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-void *mountproc_umntall_1(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNTALL, (xdrproc_t) xdr_void,
-				  (caddr_t) argp, (xdrproc_t) xdr_void,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-exports *mountproc_export_1(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static exports clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORT, (xdrproc_t) xdr_void,
-				  (caddr_t) argp, (xdrproc_t) xdr_exports,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-exports *mountproc_exportall_1(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static exports clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORTALL, (xdrproc_t) xdr_void,
-				  (caddr_t) argp, (xdrproc_t) xdr_exports,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-void *mountproc_null_2(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call
-		(clnt, MOUNTPROC_NULL, (xdrproc_t) xdr_void, argp,
-		 (xdrproc_t) xdr_void, &clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-fhstatus *mountproc_mnt_2(argp, clnt)
-dirpath *argp;
-CLIENT *clnt;
-{
-	static fhstatus clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_MNT, (xdrproc_t) xdr_dirpath,
-				  (caddr_t) argp, (xdrproc_t) xdr_fhstatus,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-mountlist *mountproc_dump_2(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static mountlist clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_DUMP, (xdrproc_t) xdr_void, argp,
-				  (xdrproc_t) xdr_mountlist, (caddr_t) & clnt_res,
-				  TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-void *mountproc_umnt_2(argp, clnt)
-dirpath *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNT, (xdrproc_t) xdr_dirpath,
-				  (caddr_t) argp, (xdrproc_t) xdr_void,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-void *mountproc_umntall_2(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static char clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNTALL, (xdrproc_t) xdr_void,
-				  (caddr_t) argp, (xdrproc_t) xdr_void,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *) &clnt_res);
-}
-
-exports *mountproc_export_2(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static exports clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORT, (xdrproc_t) xdr_void,
-				  argp, (xdrproc_t) xdr_exports, (caddr_t) & clnt_res,
-				  TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-exports *mountproc_exportall_2(argp, clnt)
-void *argp;
-CLIENT *clnt;
-{
-	static exports clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORTALL, (xdrproc_t) xdr_void, argp,
-				  (xdrproc_t) xdr_exports, (caddr_t) & clnt_res,
-				  TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-ppathcnf *mountproc_pathconf_2(argp, clnt)
-dirpath *argp;
-CLIENT *clnt;
-{
-	static ppathcnf clnt_res;
-
-	memset((char *) &clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_PATHCONF, (xdrproc_t) xdr_dirpath,
-				  (caddr_t) argp, (xdrproc_t) xdr_ppathcnf,
-				  (caddr_t) & clnt_res, TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}

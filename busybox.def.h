@@ -195,13 +195,13 @@
 // Enable support for a real /etc/mtab file instead of /proc/mounts
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
+// Enable support for mounting remote NFS volumes
+// (This does not yet work with Linux 2.[34].x kernels)
+#define BB_FEATURE_NFSMOUNT
+//
 // Enable support forced filesystem unmounting 
 // (i.e. in case of an unreachable NFS system).
 #define BB_FEATURE_MOUNT_FORCE
-//
-// Enable support for mounting remote NFS volumes
-// (This does not yet work with Linux 2.[34].x kernels)
-//#define BB_FEATURE_NFSMOUNT
 //
 // Enable support for creation of tar files.
 #define BB_FEATURE_TAR_CREATE
