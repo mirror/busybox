@@ -171,7 +171,7 @@ int from_sys_clock ( int utc )
 int check_utc ( void )
 {
 	int utc = 0;
-	FILE *f = fopen ( "/etc/adjtime", "r" );
+	FILE *f = fopen ( "/var/lib/hwclock/adjtime", "r" );
 	
 	if ( f ) {
 		char buffer [128];
@@ -254,5 +254,3 @@ extern int hwclock_main ( int argc, char **argv )
 		return show_clock ( utc );	
 	}	
 }
-
-
