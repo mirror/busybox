@@ -262,9 +262,15 @@
 // Only relevant if BB_SH is enabled.
 #define BB_FEATURE_SH_TAB_COMPLETION
 //
+// Enable a simpler shell prompt of the form "path #" instead of the default
+// "[username@hostname path]#".  Some deeply embedded systems don't have
+// usernames or even hostnames and the default prompt can look rather hideous
+// on them. Uncomment this option for a simpler, path-only prompt (which was
+// the default until around BusyBox-0.48):
+#define BB_FEATURE_SH_SIMPLE_PROMPT
+//
 // Attempts to match usernames in a ~-prefixed path
-// XXX: Doesn't work without NSS, off by default
-//#define BB_FEATURE_USERNAME_COMPLETION  /* require NSS */
+//#define BB_FEATURE_USERNAME_COMPLETION
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY

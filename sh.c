@@ -779,6 +779,24 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
+#if defined(BB_FEATURE_SH_SIMPLE_PROMPT)
+static char* setup_prompt_string(int state)
+{
+       char prompt_str[BUFSIZ];
+
+       /* Set up the prompt */
+       if (state == 0) {
+               /* simple prompt */
+               sprintf(prompt_str, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
+       } else {
+               strcpy(prompt_str,"> ");
+       }
+
+       return(strdup(prompt_str));  /* Must free this memory */
+}
+
+#else
+
 static char* setup_prompt_string(int state)
 {
 	char user[9],buf[255],*s;
@@ -809,6 +827,8 @@ static char* setup_prompt_string(int state)
 	}
 	return(strdup(prompt_str));  /* Must free this memory */
 }
+
+#endif 
 
 static int get_command(FILE * source, char *command)
 {
