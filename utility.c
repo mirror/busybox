@@ -1634,12 +1634,14 @@ extern void print_file(FILE *file)
 extern int print_file_by_name(char *filename)
 {
 	FILE *file;
-	file = fopen(filename, "r");
-	if (file == NULL) {
+	if ((file = wfopen(filename, "r")) == NULL)
+		return FALSE;
+	print_file(file);
+	if (errno) {
 		errorMsg("%s: %s\n", filename, strerror(errno));
+		errno = 0;
 		return FALSE;
 	}
-	print_file(file);
 	return TRUE;
 }
 #endif /* BB_CAT */
@@ -1716,6 +1718,18 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 		regerror(ret, preg, errmsg, errmsgsz);
 		fatalError("xregcomp: %s\n", errmsg);
 	}
+}
+#endif
+
+#if defined BB_CAT || defined BB_HEAD
+FILE *wfopen(const char *path, const char *mode)
+{
+	FILE *fp;
+	if ((fp = fopen(path, mode)) == NULL) {
+		errorMsg("%s: %s\n", path, strerror(errno));
+		errno = 0;
+	}
+	return fp;
 }
 #endif
 

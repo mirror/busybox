@@ -26,17 +26,16 @@
 #include <errno.h>
 #include <stdio.h>
 
-int head(int len, FILE * src)
+int head(int len, FILE *fp)
 {
 	int i;
-	char buffer[1024];
+	char *input;
 
 	for (i = 0; i < len; i++) {
-		fgets(buffer, 1024, src);
-		if (feof(src)) {
+		if ((input = get_line_from_file(fp)) == NULL)
 			break;
-		}
-		fputs(buffer, stdout);
+		fputs(input, stdout);
+		free(input);
 	}
 	return 0;
 }
@@ -44,60 +43,54 @@ int head(int len, FILE * src)
 /* BusyBoxed head(1) */
 int head_main(int argc, char **argv)
 {
-	char opt;
-	int len = 10, tmplen, i;
+	FILE *fp;
+	int need_headers, opt, len = 10, status = EXIT_SUCCESS;
 
 	/* parse argv[] */
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			opt = argv[i][1];
-			switch (opt) {
-			case 'n':
-				tmplen = 0;
-				if (++i < argc)
-					tmplen = atoi(argv[i]);
-				if (tmplen < 1)
-					usage(head_usage);
-				len = tmplen;
+	while ((opt = getopt(argc, argv, "n:")) > 0) {
+		switch (opt) {
+		case 'n':
+			len = atoi(optarg);
+			if (len >= 1)
 				break;
-			case '-':
-			case 'h':
-				usage(head_usage);
-			default:
-				errorMsg("invalid option -- %c\n", opt);
-				usage(head_usage);
-			}
-		} else {
-			break;
+			/* fallthrough */
+		default:
+			usage(head_usage);
 		}
 	}
 
 	/* get rest of argv[] or stdin if nothing's left */
-	if (i >= argc) {
+	if (argv[optind] == NULL) {
 		head(len, stdin);
+		return status;
+	} 
 
-	} else {
-		int need_headers = ((argc - i) > 1);
-
-		for (; i < argc; i++) {
-			FILE *src;
-
-			src = fopen(argv[i], "r");
-			if (!src) {
-				errorMsg("%s: %s\n", argv[i], strerror(errno));
-			} else {
-				/* emulating GNU behaviour */
-				if (need_headers) {
-					fprintf(stdout, "==> %s <==\n", argv[i]);
-				}
-				head(len, src);
-				if (i < argc - 1) {
-					fprintf(stdout, "\n");
-				}
-			}
+	need_headers = optind != (argc - 1);
+	while (argv[optind]) {
+		if (strcmp(argv[optind], "-") == 0) {
+			fp = stdin;
+			argv[optind] = "standard input";
+		} else {
+			if ((fp = wfopen(argv[optind], "r")) == NULL)
+				status = EXIT_FAILURE;
 		}
+		if (fp) {
+			if (need_headers) {
+				fprintf(stdout, "==> %s <==\n", argv[optind]);
+			}
+			head(len, fp);
+			if (errno) {
+				errorMsg("%s: %s\n", argv[optind], strerror(errno));
+				status = EXIT_FAILURE;
+				errno = 0;
+			}
+			if (optind < argc - 1)
+				fprintf(stdout, "\n");
+			if (fp != stdin)
+				fclose(fp);
+		}
+		optind++;
 	}
-	return(0);
-}
 
-/* $Id: head.c,v 1.14 2000/09/25 21:45:57 andersen Exp $ */
+	return status;
+}

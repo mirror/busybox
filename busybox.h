@@ -395,6 +395,7 @@ extern int print_file_by_name(char *filename);
 extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
+extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 
 #ifndef DMALLOC 
