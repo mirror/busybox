@@ -128,8 +128,13 @@ static struct dep_t *build_dep ( void )
 	strcat ( filename, un.release );
 	strcat ( filename, "/modules.dep" );
 
-	if (( fd = open ( filename, O_RDONLY )) < 0 )
-		return 0;
+	if (( fd = open ( filename, O_RDONLY )) < 0 ) {
+
+		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
+		if (( fd = open ( "/lib/modules/modules.dep", O_RDONLY )) < 0 ) {
+			return 0;
+		}
+	}
 
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
 		int l = bb_strlen ( buffer );
