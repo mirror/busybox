@@ -116,37 +116,6 @@ static int package_compare(const void *p1, const void *p2)
 		((package_t *)p2)->package);
 }
 
-/*
- * NOTE: this was handled by a "rm -rf" shell command
- * Maybe theis behaviour should be integrated into the rm applet
- * (i dont appreciate the rm applets recursive action fn)-bug1
- */
-static int remove_dir(const char *dirname)
-{
-	struct dirent *fp;
-	DIR *dp = opendir(dirname);
-	while ((fp = readdir(dp)) != NULL) {
-		struct stat statbuf;
-		char *filename;
-
-		filename = (char *) xcalloc(1, strlen(dirname) + strlen(fp->d_name) + 2);
-		strcpy(filename, dirname);
-		strcat(filename, fp->d_name);
-		lstat(filename, &statbuf);
-
-		if ((strcmp(fp->d_name, ".") != 0) && (strcmp(fp->d_name, "..") != 0)) {
-			if (S_ISDIR(statbuf.st_mode)) {
-				remove_dir(strcat(filename, "/"));
-			}
-			else if (remove(filename) == -1) {
-				perror_msg(filename);
-			}
-		}
-	}
-	remove(dirname);
-	return EXIT_SUCCESS;
-}
-
 #ifdef DODEPENDS
 #include <ctype.h>
 
