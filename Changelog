@@ -1,3 +1,10 @@
+0.49pre
+	 
+	* me -- md5sum was broken.  Now fixed.
+	* Matt Kraai -- new sort.c
+
+	 -Erik Andersen, <not released yet>
+
 0.48
 
 	* Glenn McGrath -- tar now supports uncompressing tar files,

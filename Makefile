@@ -19,7 +19,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.48
+VERSION   := 0.49pre
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
