@@ -43,21 +43,17 @@ static const char freeramdisk_usage[] =
 extern int
 freeramdisk_main(int argc, char **argv)
 {
-	char  rname[256] = "/dev/ram";
 	int   f;
 
-	if (argc < 2 || ( argv[1] && *argv[1] == '-')) {
+	if (argc != 2 || *argv[1] == '-') {
 		usage(freeramdisk_usage);
 	}
 
-	if (argc >1)
-		strcpy(rname, argv[1]);
-
-	if ((f = open(rname, O_RDWR)) == -1) {
-		fatalError( "freeramdisk: cannot open %s: %s\n", rname, strerror(errno));
+	if ((f = open(argv[1], O_RDWR)) == -1) {
+		fatalError( "freeramdisk: cannot open %s: %s\n", argv[1], strerror(errno));
 	}
 	if (ioctl(f, BLKFLSBUF) < 0) {
-		fatalError( "freeramdisk: failed ioctl on %s: %s\n", rname, strerror(errno));
+		fatalError( "freeramdisk: failed ioctl on %s: %s\n", argv[1], strerror(errno));
 	}
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
