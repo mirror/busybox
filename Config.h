@@ -396,14 +396,6 @@
 	#define BB_NFSMOUNT
 #endif
 //
-#if defined BB_IFCONFIG
-	#ifdef BB_FEATURE_IFCONFIG_STATUS
-		#define BB_INTERFACE
-	#endif
-#else
-	#undef BB_INTERFACE
-#endif	
-//
 #if defined BB_FEATURE_AUTOWIDTH
 	#ifndef BB_FEATURE_USE_TERMIOS
 		#define BB_FEATURE_USE_TERMIOS

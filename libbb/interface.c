@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.6 2001/04/09 23:52:18 andersen Exp $
+ * Version:     $Id: interface.c,v 1.1 2001/04/19 16:55:27 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -37,7 +37,7 @@
 
 /* #define KEEP_UNUSED */
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* 
  * 
@@ -353,7 +353,7 @@ static int INET_resolve(char *name, struct sockaddr_in *sin, int hostfirst)
  *	    & 0x4000: host instead of net, 
  *	    & 0x0fff: don't resolve
  */
-static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin, 
+static int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in, 
 			 int numeric, unsigned int netmask)
 {
     struct hostent *ent;
@@ -363,14 +363,14 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin,
     int host = 0;
 
     /* Grmpf. -FvK */
-    if (sin->sin_family != AF_INET) {
+    if (s_in->sin_family != AF_INET) {
 #ifdef DEBUG
-	fprintf(stderr, _("rresolve: unsupport address family %d !\n"), sin->sin_family);
+	fprintf(stderr, _("rresolve: unsupport address family %d !\n"), s_in->sin_family);
 #endif
 	errno = EAFNOSUPPORT;
 	return (-1);
     }
-    ad = (unsigned long) sin->sin_addr.s_addr;
+    ad = (unsigned long) s_in->sin_addr.s_addr;
 #ifdef DEBUG
     fprintf (stderr, "rresolve: %08lx, mask %08x, num %08x \n", ad, netmask, numeric);
 #endif
@@ -384,7 +384,7 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin,
 	}
     }
     if (numeric & 0x0FFF) {
-        safe_strncpy(name, inet_ntoa(sin->sin_addr), len);
+        safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
 	return (0);
     }
 
@@ -424,9 +424,9 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin,
 	    safe_strncpy(name, np->n_name, len);
     }
     if ((ent == NULL) && (np == NULL))
-	safe_strncpy(name, inet_ntoa(sin->sin_addr), len);
+	safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
     pn = (struct addr *) xmalloc(sizeof(struct addr));
-    pn->addr = *sin;
+    pn->addr = *s_in;
     pn->next = INET_nn;
     pn->host = host;
     pn->name = (char *) xmalloc(strlen(name) + 1);
@@ -570,15 +570,18 @@ static struct aftype inet_aftype =
 /* Display an UNSPEC address. */
 static char *UNSPEC_print(unsigned char *ptr)
 {
-    static char buff[64];
+    static char buff[sizeof(struct sockaddr)*3+1];
     char *pos;
     unsigned int i;
 
     pos = buff;
     for (i = 0; i < sizeof(struct sockaddr); i++) {
-	pos += sprintf(pos, "%02X-", (*ptr++ & 0377));
+	/* careful -- not every libc's sprintf returns # bytes written */
+	sprintf(pos, "%02X-", (*ptr++ & 0377));
+	pos += 3;
     }
-    buff[strlen(buff) - 1] = '\0';
+    /* Erase trailing "-".  Works as long as sizeof(struct sockaddr) != 0 */
+    *--pos = '\0';
     return (buff);
 }
 
@@ -1029,17 +1032,18 @@ static int if_readconf(void)
     struct ifconf ifc;
     struct ifreq *ifr;
     int n, err = -1;
-    int skfd;
+    /* XXX Should this re-use the global skfd? */
+    int skfd2;
 
     /* SIOCGIFCONF currently seems to only work properly on AF_INET sockets
        (as of 2.1.128) */ 
-    skfd = get_socket_for_af(AF_INET);
-    if (skfd < 0) {
+    skfd2 = get_socket_for_af(AF_INET);
+    if (skfd2 < 0) {
 	fprintf(stderr, _("warning: no inet socket available: %s\n"),
 		strerror(errno));
 	/* Try to soldier on with whatever socket we can get hold of.  */
-	skfd = sockets_open(0);
-	if (skfd < 0)
+	skfd2 = sockets_open(0);
+	if (skfd2 < 0)
 	    return -1;
     }
 
@@ -1048,7 +1052,7 @@ static int if_readconf(void)
 	ifc.ifc_len = sizeof(struct ifreq) * numreqs;
 	ifc.ifc_buf = xrealloc(ifc.ifc_buf, ifc.ifc_len);
 
-	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+	if (ioctl(skfd2, SIOCGIFCONF, &ifc) < 0) {
 	    perror("SIOCGIFCONF");
 	    goto out;
 	}
@@ -1466,25 +1470,10 @@ struct hwtype {
     int suppress_null_addr;
 };
 
-/* Display an UNSPEC address. */
-static char *pr_unspec(unsigned char *ptr)
-{
-    static char buff[64];
-    char *pos;
-    unsigned int i;
-
-    pos = buff;
-    for (i = 0; i < sizeof(struct sockaddr); i++) {
-	pos += sprintf(pos, "%02X-", (*ptr++ & 0377));
-    }
-    buff[strlen(buff) - 1] = '\0';
-    return (buff);
-}
-
 static struct hwtype unspec_hwtype =
 {
     "unspec", "UNSPEC", -1, 0,
-    pr_unspec, NULL, NULL
+    UNSPEC_print, NULL, NULL
 };
 
 static struct hwtype loop_hwtype =
