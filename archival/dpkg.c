@@ -1332,7 +1332,7 @@ extern int dpkg_main(int argc, char **argv)
 {
 	deb_file_t **deb_file = NULL;
 	status_node_t *status_node;
-	char opt = 0;
+	int opt;
 	int package_num;
 	int dpkg_opt = 0;
 	int deb_count = 0;

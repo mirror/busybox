@@ -23,6 +23,7 @@
 	    -- Fix tar segfault when include list is empty and exclude list is
 	       not.
 	    -- Fix sed s/$/@/ handling (noted by Joshua Hudson).
+	    -- Fix opt type in dpkg (closes: #118975).
 	* Magick
 	    -- made init run inittab command's in the order they show up
 		in the inittab file (FIFO instead of LIFO).
