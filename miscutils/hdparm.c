@@ -1023,10 +1023,13 @@ static void identify (uint16_t *id_supplied, const char *devname)
 
 #define VERSION "v5.4"
 
-#undef DO_FLUSHCACHE		/* under construction: force cache flush on -W0 */
-#define TIMING_BUF_MB		2
+#define TIMING_MB		64
+#define TIMING_BUF_MB		1
 #define TIMING_BUF_BYTES	(TIMING_BUF_MB * 1024 * 1024)
+#define TIMING_BUF_COUNT	(timing_MB / TIMING_BUF_MB)
 #define BUFCACHE_FACTOR		2
+
+#undef DO_FLUSHCACHE		/* under construction: force cache flush on -W0 */
 
 static int verbose = 0, get_identity = 0, get_geom = 0, noisy = 1, quiet = 0;
 static int flagcount = 0, do_flush = 0, is_scsi_hd = 0, is_xt_hd = 0;
@@ -1303,13 +1306,15 @@ static int read_big_block (int fd, char *buf)
 	return 0;
 }
 
-static void time_cache (int fd)
+static double correction = 0.0;
+
+void time_cache (int fd)
 {
+	int i;
 	char *buf;
 	struct itimerval e1, e2;
 	int shmid;
-	double elapsed, elapsed2;
-	unsigned int iterations, total_MB;
+	int timing_MB = TIMING_MB;
 
 	if ((shmid = shmget(IPC_PRIVATE, TIMING_BUF_BYTES, 0600)) == -1) {
 		bb_perror_msg ("could not allocate sharedmem buf");
@@ -1332,7 +1337,12 @@ static void time_cache (int fd)
 	sync();
 	sleep(3);
 
-	/*
+	/* Calculate a correction factor for the basic
+	 * overhead of doing a read() from the buffer cache.
+	 * To do this, we read the data once to "cache it" and
+	 * to force full preallocation of our timing buffer,
+	 * and then we re-read it 10 times while timing it.
+	 *
 	 * getitimer() is used rather than gettimeofday() because
 	 * it is much more consistent (on my machine, at least).
 	 */
@@ -1346,42 +1356,34 @@ static void time_cache (int fd)
 	sync();
 	sleep(1);
 
-	/* Now do the timing */
-	iterations = 0;
+	/* Time re-reading from the buffer-cache */
 	getitimer(ITIMER_REAL, &e1);
-	do {
-		++iterations;
-		if (seek_to_zero (fd) || read_big_block (fd, buf))
-			goto quit;
-		getitimer(ITIMER_REAL, &e2);
-		elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-		 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
-	} while (elapsed < 2.0);
-	total_MB = iterations * TIMING_BUF_MB;
-
-	elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
+	for (i = (BUFCACHE_FACTOR * TIMING_BUF_COUNT) ; i > 0; --i) {
+		if (seek_to_zero (fd)) goto quit;
+		if (read_big_block (fd, buf)) goto quit;
+	}
+	getitimer(ITIMER_REAL, &e2);
+	correction = (e1.it_value.tv_sec - e2.it_value.tv_sec)
 	 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
 
-	/* Now remove the lseek() and getitimer() overheads from the elapsed time */
+	/* Now remove the lseek() from the correction factor */
 	getitimer(ITIMER_REAL, &e1);
-	do {
-		if (seek_to_zero (fd))
-			goto quit;
-		getitimer(ITIMER_REAL, &e2);
-		elapsed2 = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-		 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
-	} while (--iterations);
+	for (i = (BUFCACHE_FACTOR * TIMING_BUF_COUNT) ; i > 0; --i) {
+		if (seek_to_zero (fd)) goto quit;
+	}
+	getitimer(ITIMER_REAL, &e2);
+	correction -= (e1.it_value.tv_sec - e2.it_value.tv_sec)
+	 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
 
-	elapsed -= elapsed2;
-
-	if ((BUFCACHE_FACTOR * total_MB) >= elapsed)  /* more than 1MB/s */
-		printf("%3u MB in %5.2f seconds = %6.2f MB/sec\n",
-			(BUFCACHE_FACTOR * total_MB), elapsed,
-			(BUFCACHE_FACTOR * total_MB) / elapsed);
+	if ((BUFCACHE_FACTOR * timing_MB) >= correction)  /* more than 1MB/s */
+		printf("%2d MB in %5.2f seconds =%6.2f MB/sec\n",
+			(BUFCACHE_FACTOR * timing_MB), correction,
+			(BUFCACHE_FACTOR * timing_MB) / correction);
 	else
-		printf("%3u MB in %5.2f seconds = %6.2f kB/sec\n",
-			(BUFCACHE_FACTOR * total_MB), elapsed,
-			(BUFCACHE_FACTOR * total_MB) / elapsed * 1024);
+		printf("%2d MB in %5.2f seconds =%6.2f kB/sec\n",
+			(BUFCACHE_FACTOR * timing_MB), correction,
+			(BUFCACHE_FACTOR * timing_MB) / correction * 1024);
+	correction /= BUFCACHE_FACTOR;
 
 	flush_buffer_cache(fd);
 	sleep(1);
@@ -1390,24 +1392,14 @@ quit:
 		bb_perror_msg ("could not detach sharedmem buf");
 }
 
-static void time_device (int fd)
+void time_device (int fd)
 {
+	int i;
 	char *buf;
 	double elapsed;
 	struct itimerval e1, e2;
 	int shmid;
-	unsigned int max_iterations = 1024, total_MB, iterations;
-	static long parm;
-
-	//
-	// get device size
-	//
-	if (do_ctimings || do_timings) {
-		if (ioctl(fd, BLKGETSIZE, &parm))
-			bb_perror_msg(" BLKGETSIZE failed");
-		else
-			max_iterations = parm / (2 * 1024) / TIMING_BUF_MB;
-	}
+	int timing_MB = TIMING_MB;
 
 	if ((shmid = shmget(IPC_PRIVATE, TIMING_BUF_BYTES, 0600)) == -1) {
 		bb_perror_msg ("could not allocate sharedmem buf");
@@ -1440,24 +1432,35 @@ static void time_device (int fd)
 	setitimer(ITIMER_REAL, &(struct itimerval){{1000,0},{1000,0}}, NULL);
 
 	/* Now do the timings for real */
-	iterations = 0;
 	getitimer(ITIMER_REAL, &e1);
-	do {
-		++iterations;
-		if (read_big_block (fd, buf))
-			goto quit;
-		getitimer(ITIMER_REAL, &e2);
-		elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
-		 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
-	} while (elapsed < 3.0 && iterations < max_iterations);
+	for (i = TIMING_BUF_COUNT; i > 0; --i) {
+		if (read_big_block (fd, buf)) goto quit;
+	}
+	getitimer(ITIMER_REAL, &e2);
 
-	total_MB = iterations * TIMING_BUF_MB;
-	if ((total_MB / elapsed) > 1.0)  /* more than 1MB/s */
-		printf("%3u MB in %5.2f seconds = %6.2f MB/sec\n",
-			total_MB, elapsed, total_MB / elapsed);
+	elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
+	 + ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
+	if (timing_MB >= elapsed)  /* more than 1MB/s */
+		printf("%2d MB in %5.2f seconds =%6.2f MB/sec\n",
+			timing_MB, elapsed, timing_MB / elapsed);
 	else
-		printf("%3u MB in %5.2f seconds = %6.2f kB/sec\n",
-			total_MB, elapsed, total_MB / elapsed * 1024);
+		printf("%2d MB in %5.2f seconds =%6.2f kB/sec\n",
+			timing_MB, elapsed, timing_MB / elapsed * 1024);
+
+	if (elapsed <= (correction * 2))
+		printf("Hmm.. suspicious results: probably not enough free memory for a proper test.\n");
+#if 0  /* the "estimate" is just plain wrong for many systems.. */
+	else if (correction != 0.0) {
+		printf(" Estimating raw driver speed: ");
+		elapsed -= correction;
+		if (timing_MB >= elapsed)  /* more than 1MB/s */
+			printf("%2d MB in %5.2f seconds =%6.2f MB/sec\n",
+				timing_MB, elapsed, timing_MB / elapsed);
+		else
+			printf("%2d MB in %5.2f seconds =%6.2f kB/sec\n",
+				timing_MB, elapsed, timing_MB / elapsed * 1024);
+	}
+#endif
 quit:
 	if (-1 == shmdt(buf))
 		bb_perror_msg ("could not detach sharedmem buf");
