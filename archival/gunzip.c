@@ -582,6 +582,7 @@ int gunzip_main(int argc, char **argv)
 
 	if (strcmp(applet_name, "zcat") == 0) {
 		force = 1;
+		tostdout = 1;
 	}
 
 	/* Parse any options */
