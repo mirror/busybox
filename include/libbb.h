@@ -188,7 +188,11 @@ extern void *xcalloc(size_t nmemb, size_t size);
 #endif
 extern char *bb_xstrdup (const char *s);
 extern char *bb_xstrndup (const char *s, int n);
-extern char * safe_strncpy(char *dst, const char *src, size_t size);
+extern char *safe_strncpy(char *dst, const char *src, size_t size);
+extern int safe_strtoi(char *arg, int* value);
+extern int safe_strtod(char *arg, double* value);
+extern int safe_strtol(char *arg, long* value);
+extern int safe_strtoul(char *arg, unsigned long* value);
 
 struct suffix_mult {
 	const char *suffix;
