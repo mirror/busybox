@@ -863,7 +863,7 @@
 "\n" \
 "		Unrecognized actions (like initdefault) will cause init to emit an\n" \
 "		error message, and then go along with its business.  All actions are\n" \
-"		run in the reverse order from how they appear in /etc/inittab.\n" \
+"		run in the order they appear in /etc/inittab.\n" \
 "\n" \
 "	<process>: \n" \
 "\n" \
