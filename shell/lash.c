@@ -1261,7 +1261,7 @@ static int pseudo_exec(struct child_prog *child)
 
 	/* Do not use perror_msg_and_die() here, since we must not 
 	 * call exit() but should call _exit() instead */
-	fprintf(stderr, "%s: %s\n", child->argv[0], strerror(err));
+	fprintf(stderr, "%s: %m\n", child->argv[0]);
 	_exit(EXIT_FAILURE);
 }
 
