@@ -847,7 +847,7 @@ typedef struct {
 #define SUN_SSWAP32(x) (sun_other_endian ? __swap32(x) \
 				 : (uint32_t)(x))
 
-#if defined(FDISK_SUPPORT_LARGE_DISKS)
+#if defined(CONFIG_LFS) || defined(FDISK_SUPPORT_LARGE_DISKS)
 /*
  * llseek.c -- stub calling the llseek system call
  *
@@ -856,21 +856,13 @@ typedef struct {
  */
 
 
-#include <syscall.h>
-
-
 #if defined(__alpha__) || defined(__ia64__) || defined(__s390x__)
 
 #define my_llseek lseek
 
 #else
 
-static int _llseek (unsigned int, unsigned long,
-		   unsigned long, fdisk_loff_t *, unsigned int);
-
-static _syscall5(int,_llseek,unsigned int,f_d,unsigned long,offset_high,
-		 unsigned long, offset_low,fdisk_loff_t *,result,
-		 unsigned int, origin);
+#include <syscall.h>
 
 static fdisk_loff_t my_llseek (unsigned int f_d, fdisk_loff_t offset,
 		unsigned int origin)
@@ -878,7 +870,7 @@ static fdisk_loff_t my_llseek (unsigned int f_d, fdisk_loff_t offset,
 	fdisk_loff_t result;
 	int retval;
 
-	retval = _llseek (f_d, ((unsigned long long) offset) >> 32,
+	retval = syscall(__NR__llseek, f_d, ((unsigned long long) offset) >> 32,
 			((unsigned long long) offset) & 0xffffffff,
 			&result, origin);
 	return (retval == -1 ? (fdisk_loff_t) retval : result);
