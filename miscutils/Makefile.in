@@ -34,7 +34,6 @@ MISCUTILS-$(CONFIG_MAKEDEVS)		+= makedevs.o
 MISCUTILS-$(CONFIG_MT)			+= mt.o
 MISCUTILS-$(CONFIG_STRINGS)		+= strings.o
 MISCUTILS-$(CONFIG_TIME)		+= time.o
-MISCUTILS-$(CONFIG_UPDATE)		+= update.o
 MISCUTILS-$(CONFIG_WATCHDOG)		+= watchdog.o
 
 libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)

@@ -613,9 +613,6 @@
 #ifdef CONFIG_UNZIP
 	APPLET(unzip, unzip_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_UPDATE
-	APPLET(update, update_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
-#endif
 #ifdef CONFIG_UPTIME
 	APPLET(uptime, uptime_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

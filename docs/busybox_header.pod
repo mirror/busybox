@@ -62,8 +62,8 @@ Currently defined functions include:
         dpkg-deb, du, dumpkmap, dumpleases, dutmp, echo, egrep, env, expr,
         false, fbset, fdflush, fdformat, fgrep, find, fold, free, freeramdisk,
         fsck.minix, ftpget, ftpput, getopt, getty, grep, gunzip, gzip,
-        halt, head, hexdump, hostid, hostname, httpd, hush, hwclock, id,
-        ifconfig, ifdown, ifup, inetd, init, insmod, ip, ipcalc, iplink,
+        halt, hdparm, head, hexdump, hostid, hostname, httpd, hush, hwclock, 
+		id, ifconfig, ifdown, ifup, inetd, init, insmod, ip, ipcalc, iplink,
         iproute, iptunnel, kill, killall, klogd, lash, length, linuxrc,
         ln, loadacm, loadfont, loadkmap, logger, login, logname, logread,
         losetup, ls, lsmod, makedevs, md5sum, mesg, minit, mkdir, mkfifo,
@@ -75,7 +75,7 @@ Currently defined functions include:
         sha1sum, sleep, sort, start-stop-daemon, strings, stty, su, sulogin,
         swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, telnetd,
         test, tftp, time, top, touch, tr, traceroute, true, tty, udhcpc,
-        udhcpd, umount, uname, uncompress, uniq, unix2dos, unzip, update,
+        udhcpd, umount, uname, uncompress, uniq, unix2dos, unzip, 
         uptime, usleep, uudecode, uuencode, vconfig, vi, vlock, watch,
         watchdog, wc, wget, which, who, whoami, xargs, yes, zcat, [
 

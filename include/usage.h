@@ -2533,15 +2533,6 @@
 	"\t-x\texclude these files\n" \
 	"\t-d\textract files into this directory"
 
-#define update_trivial_usage \
-	"[options]"
-#define update_full_usage \
-	"Periodically flushes filesystem buffers.\n\n" \
-	"Options:\n" \
-	"\t-S\tforce use of sync(2) instead of flushing\n" \
-	"\t-s SECS\tcall sync this often (default 30)\n" \
-	"\t-f SECS\tflush some buffers this often (default 5)"
-
 #define uptime_trivial_usage \
 	""
 #define uptime_full_usage \
