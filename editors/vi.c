@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.3 2001/04/04 19:33:32 andersen Exp $";
+	"$Id: vi.c,v 1.4 2001/04/16 15:46:44 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -32,13 +32,17 @@ char *vi_Version =
 /*
  * Things To Do:
  *	EXINIT
- *	$HOME/.exrc
+ *	$HOME/.exrc  and  ./.exrc
  *	add magic to search	/foo.*bar
  *	add :help command
  *	:map macros
  *	how about mode lines:   vi: set sw=8 ts=8:
  *	if mark[] values were line numbers rather than pointers
  *	   it would be easier to change the mark when add/delete lines
+ *	More intelligence in refresh()
+ *	":r !cmd"  and  "!cmd"  to filter text through an external command
+ *	A true "undo" facility
+ *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
 //----  Feature --------------  Bytes to immplement
@@ -87,7 +91,7 @@ char *vi_Version =
 #define TRUE			((int)1)
 #define FALSE			((int)0)
 #endif							/* TRUE */
-#define MAX_SCR_COLS		300
+#define MAX_SCR_COLS		BUFSIZ
 
 // Misc. non-Ascii keys that report an escape sequence
 #define VI_K_UP			128	// cursor key Up
@@ -253,7 +257,8 @@ static int mycmp(Byte *, Byte *, int);	// string cmp based in "ignorecase"
 #endif							/* BB_FEATURE_VI_SEARCH */
 #ifdef BB_FEATURE_VI_COLON
 static void Hit_Return(void);
-static Byte *get_address(Byte *, int *);	// get colon addr, if present
+static Byte *get_one_address(Byte *, int *);	// get colon addr, if present
+static Byte *get_address(Byte *, int *, int *);	// get two colon addrs, if present
 static void colon(Byte *);	// execute the "colon" mode cmds
 #endif							/* BB_FEATURE_VI_COLON */
 #if defined(BB_FEATURE_VI_SEARCH) || defined(BB_FEATURE_VI_COLON)
@@ -379,7 +384,7 @@ extern int vi_main(int argc, char **argv)
 static void edit_file(Byte * fn)
 {
 	char c;
-	int cnt, size;
+	int cnt, size, ch;
 
 #ifdef BB_FEATURE_VI_USE_SIGNALS
 	char *msg;
@@ -397,13 +402,15 @@ static void edit_file(Byte * fn)
 #endif							/* BB_FEATURE_VI_WIN_RESIZE */
 	new_screen(rows, columns);	// get memory for virtual screen
 
+	ch= 0;
 	cnt = file_size(fn);	// file size
 	size = 2 * cnt;		// 200% of file size
 	new_text(size);		// get a text[] buffer
 	screenbegin = dot = end = text;
 	if (fn != 0) {
-		file_insert(fn, text, cnt);
-	} else {
+		ch= file_insert(fn, text, cnt);
+	}
+	if (ch < 1) {
 		(void) char_insert(text, '\n');	// start empty buf with dummy line
 	}
 	file_modified = FALSE;
@@ -459,6 +466,7 @@ static void edit_file(Byte * fn)
 			msg = "(alarm)";
 
 		psbs("-- caught signal %d %s--", sig, msg);
+		screenbegin = dot = text;
 	}
 #endif							/* BB_FEATURE_VI_USE_SIGNALS */
 
@@ -693,7 +701,7 @@ static void crash_test()
 {
 	static time_t oldtim;
 	time_t tim;
-	char d[2], buf[100], msg[BUFSIZ];
+	char d[2], buf[BUFSIZ], msg[BUFSIZ];
 
 	msg[0] = '\0';
 	if (end < text) {
@@ -785,6 +793,8 @@ static void do_cmd(Byte c)
 		}
 	}
 	if (cmd_mode == 1) {
+		//  hitting "Insert" twice means "R" replace mode
+		if (c == VI_K_INSERT) goto dc5;
 		// insert the char c at "dot"
 		if (1 <= c && c <= 127) {
 			dot = char_insert(dot, c);	// only ASCII chars
@@ -800,13 +810,12 @@ static void do_cmd(Byte c)
 		//case 0x0f:        // si
 		//case 0x10:        // dle
 		//case 0x11:        // dc1
-		//case 0x12:        // dc2
 		//case 0x13:        // dc3
-	case 0x14:			// dc4  ctrl-T
 #ifdef BB_FEATURE_VI_CRASHME
+	case 0x14:			// dc4  ctrl-T
 		crashme = (crashme == 0) ? 1 : 0;
-#endif							/* BB_FEATURE_VI_CRASHME */
 		break;
+#endif							/* BB_FEATURE_VI_CRASHME */
 		//case 0x16:        // syn
 		//case 0x17:        // etb
 		//case 0x18:        // can
@@ -824,9 +833,7 @@ static void do_cmd(Byte c)
 		//case '=':     // =- 
 		//case '@':     // @- 
 		//case 'F':     // F- 
-		//case 'G':     // G- 
 		//case 'K':     // K- 
-		//case 'M':     // M- 
 		//case 'Q':     // Q- 
 		//case 'S':     // S- 
 		//case 'T':     // T- 
@@ -837,8 +844,8 @@ static void do_cmd(Byte c)
 		//case '_':     // _- 
 		//case '`':     // `- 
 		//case 'g':     // g- 
-		//case 'm':     // m- 
 		//case 't':     // t- 
+		//case 'u':	// u- FIXME- there is no undo
 		//case 'v':     // v- 
 	default:			// unrecognised command
 		buf[0] = c;
@@ -879,7 +886,7 @@ static void do_cmd(Byte c)
 		break;
 	case 'h':			// h- move left
 	case VI_K_LEFT:	// cursor key Left
-	case 8:			// ^h- move left    (This may be ERASE char)
+	case 8:			// ctrl-H- move left    (This may be ERASE char)
 	case 127:			// DEL- move left   (This may be ERASE char)
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
@@ -896,6 +903,7 @@ static void do_cmd(Byte c)
 		dot = move_to_col(dot, ccol + offset);	// try stay in same col
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
+	case 18:			// ctrl-R  force redraw
 		place_cursor(0, 0);	// put cursor in correct place
 		clear_to_eos();	// tel terminal to erase display
 		(void) mysleep(10);
@@ -1003,7 +1011,6 @@ static void do_cmd(Byte c)
 		dot = string_insert(dot, p);	// insert the string
 		end_cmd_q();	// stop adding to q
 		break;
-	case 'u':			// u- 
 	case 'U':			// U- Undo; replace current line with original version
 		if (reg[Ureg] != 0) {
 			p = begin_line(dot);
@@ -1185,7 +1192,7 @@ static void do_cmd(Byte c)
 		write(1, ":", 1);	// write out the : prompt
 		for (cnt = 0; cnt < 8; cnt++) {
 			c1 = get_one_char();
-			if (c1 == '\n' || c1 == '\r') {
+			if (c1 == '\n' || c1 == '\r' || c1 == 27) {
 				break;
 			}
 			buf[cnt] = c1;
@@ -1280,6 +1287,13 @@ static void do_cmd(Byte c)
 			end_cmd_q();	// stop adding to q
 #endif							/* BB_FEATURE_VI_DOT_CMD */
 		break;
+	case 'G':     		// G- goto to a line number (default= E-O-F)
+		dot = end - 1;                          // assume E-O-F
+		if (cmdcnt > 0) {
+			dot = find_line(cmdcnt);        // what line is #cmdcnt
+		}
+		dot_skip_over_ws();
+		break;
 	case 'H':			// H- goto top line on screen
 		dot = screenbegin;
 		if (cmdcnt > (rows - 1)) {
@@ -1324,6 +1338,11 @@ static void do_cmd(Byte c)
 		dot_begin();
 		dot_skip_over_ws();
 		break;
+	case 'M':                       // M- goto middle line on screen
+		dot = screenbegin;
+		for (cnt = 0; cnt < (rows-1) / 2; cnt++)
+			dot = next_line(dot);
+		break;
 	case 'O':			// O- open a empty line above
 		//    0i\n\033-i
 		p = begin_line(dot);
@@ -1340,6 +1359,7 @@ static void do_cmd(Byte c)
 		goto dc_i;
 		break;
 	case 'R':			// R- continuous Replace char
+	  dc5:
 		cmd_mode = 2;
 		psb("-- Replace --");
 		break;
@@ -1432,13 +1452,19 @@ static void do_cmd(Byte c)
 				}
 			}
 			dot = yank_delete(p, q, 0, yf);	// delete word
-		} else if (strchr("0bBeE$", c1)) {
+		} else if (strchr("^0bBeE$", c1)) {
 			// single line copy text into a register and delete
 			dot = yank_delete(p, q, 0, yf);	// delete word
-		} else if (strchr("cdykjHL+-{}\r\n", c1)) {
+		} else if (strchr("cdykjHL%+-{}\r\n", c1)) {
 			// multiple line copy text into a register and delete
 			dot = yank_delete(p, q, 1, yf);	// delete lines
-			if (c == 'd') {
+			if (c == 'c') {
+				dot = char_insert(dot, '\n');
+				// on the last line of file don't move to prev line
+				if (dot != (end-1)) {
+					dot_prev();
+				}
+			} else if (c == 'd') {
 				dot_begin();
 				dot_skip_over_ws();
 			}
@@ -1574,7 +1600,7 @@ static void do_cmd(Byte c)
 
 //----- The Colon commands -------------------------------------
 #ifdef BB_FEATURE_VI_COLON
-static Byte *get_address(Byte * p, int *addr)	// get colon addr, if present
+static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 {
 	int st;
 	Byte *q;
@@ -1583,7 +1609,7 @@ static Byte *get_address(Byte * p, int *addr)	// get colon addr, if present
 	Byte c;
 #endif							/* BB_FEATURE_VI_YANKMARK */
 #ifdef BB_FEATURE_VI_SEARCH
-	Byte *pat, buf[1024];
+	Byte *pat, buf[BUFSIZ];
 #endif							/* BB_FEATURE_VI_SEARCH */
 
 	*addr = -1;			// assume no addr
@@ -1637,12 +1663,41 @@ static Byte *get_address(Byte * p, int *addr)	// get colon addr, if present
 	return (p);
 }
 
+static Byte *get_address(Byte *p, int *b, int *e)	// get two colon addrs, if present
+{
+	//----- get the address' i.e., 1,3   'a,'b  -----
+	// get FIRST addr, if present
+	while (isblnk(*p))
+		p++;				// skip over leading spaces
+	if (*p == '%') {			// alias for 1,$
+		p++;
+		*b = 1;
+		*e = count_lines(text, end-1);
+		goto ga0;
+	}
+	p = get_one_address(p, b);
+	while (isblnk(*p))
+		p++;
+	if (*p == ',') {			// is there a address seperator
+		p++;
+		while (isblnk(*p))
+			p++;
+		// get SECOND addr, if present
+		p = get_one_address(p, e);
+	}
+ga0:
+	while (isblnk(*p))
+		p++;				// skip over trailing spaces
+	return (p);
+}
+
 static void colon(Byte * buf)
 {
 	Byte c, *orig_buf, *buf1, *q, *r;
-	Byte *fn, cmd[100], args[100];
+	Byte *fn, cmd[BUFSIZ], args[BUFSIZ];
 	int i, l, li, ch, st, b, e;
 	int useforce, forced;
+	struct stat st_buf;
 
 	// :3154        // if (-e line 3154) goto it  else stay put
 	// :4,33w! foo      // write a portion of buffer to file "foo"
@@ -1656,6 +1711,7 @@ static void colon(Byte * buf)
 	// :/123/,/abc/d    // delete lines from "123" line to "abc" line
 	// :/xyz/       // goto the "xyz" line
 	// :s/find/replace/ // substitute pattern "find" with "replace"
+	// :!<cmd>      // run <cmd> then return
 	//
 	if (strlen((char *) buf) <= 0)
 		goto vc1;
@@ -1669,36 +1725,21 @@ static void colon(Byte * buf)
 	r = end - 1;
 	li = count_lines(text, end - 1);
 	fn = cfn;			// default to current file
+	memset(cmd, '\0', BUFSIZ);         // clear cmd[]
+	memset(args, '\0', BUFSIZ);        // clear args[]
 
-	// look for optional FIRST address(es)  :.  :1  :1,9   :'q,'a
-	while (isblnk(*buf))
-		buf++;
-
-	// get FIRST addr, if present
-	buf = get_address(buf, &b);
-	while (isblnk(*buf))
-		buf++;
-	if (*buf == ',') {
-		buf++;
-		while (isblnk(*buf))
-			buf++;
-		// look for SECOND address
-		buf = get_address(buf, &e);
-	}
-	while (isblnk(*buf))
-		buf++;
+	// look for optional address(es)  :.  :1  :1,9   :'q,'a   :%
+	buf = get_address(buf, &b, &e);
 
 	// remember orig command line
 	orig_buf = buf;
 
 	// get the COMMAND into cmd[]
 	buf1 = cmd;
-	*buf1 = '\0';
 	while (*buf != '\0') {
 		if (isspace(*buf))
 			break;
 		*buf1++ = *buf++;
-		*buf1 = '\0';
 	}
 	// get any ARGuments
 	while (isblnk(*buf))
@@ -1731,6 +1772,16 @@ static void colon(Byte * buf)
 			dot = find_line(b);	// what line is #b
 			dot_skip_over_ws();
 		}
+	} else if (strncmp((char *) cmd, "!", 1) == 0) {	// run a cmd
+		// :!ls   run the <cmd>
+		(void) alarm(0);		// wait for input- no alarms
+		place_cursor(rows - 1, 0);	// go to Status line
+		clear_to_eol();			// clear the line
+		cookmode();
+		system(orig_buf+1);		// run the cmd
+		rawmode();
+		Hit_Return();			// let user see results
+		(void) alarm(3);		// done waiting for input
 	} else if (strncmp((char *) cmd, "=", i) == 0) {	// where is the address
 		if (b < 0) {	// no addr given- use defaults
 			b = e = count_lines(text, dot);
@@ -1744,39 +1795,91 @@ static void colon(Byte * buf)
 		dot = yank_delete(q, r, 1, YANKDEL);	// save, then delete lines
 		dot_skip_over_ws();
 	} else if (strncasecmp((char *) cmd, "edit", i) == 0) {	// Edit a file
-		// don't exit if the file been modified
+		int sr;
+		sr= 0;
+		// don't edit, if the current file has been modified
 		if (file_modified == TRUE && useforce != TRUE) {
 			psbs("No write since last change (:edit! overrides)");
 			goto vc1;
 		}
-		fn = args;
-		if (strlen((char *) fn) <= 0) {
-			// no file name given, re-edit current file
-			fn = cfn;
+		if (strlen(args) > 0) {
+			// the user supplied a file name
+			fn= args;
+		} else if (cfn != 0 && strlen(cfn) > 0) {
+			// no user supplied name- use the current filename
+			fn= cfn;
+			goto vc5;
+		} else {
+			// no user file name, no current name- punt
+			psbs("No current filename");
+			goto vc1;
 		}
+
+		// see if file exists- if not, its just a new file request
+		if ((sr=stat((char*)fn, &st_buf)) < 0) {
+			// This is just a request for a new file creation.
+			// The file_insert below will fail but we get
+			// an empty buffer with a file name.  Then the "write"
+			// command can do the create.
+		} else {
+			if ((st_buf.st_mode & (S_IFREG)) == 0) {
+				// This is not a regular file
+				psbs("\"%s\" is not a regular file", fn);
+				goto vc1;
+			}
+			if ((st_buf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) {
+				// dont have any read permissions
+				psbs("\"%s\" is not readable", fn);
+				goto vc1;
+			}
+		}
+
+		// There is a read-able regular file
+		// make this the current file
+		q = (Byte *) strdup((char *) fn);	// save the cfn
 		if (cfn != 0)
-			free(cfn);
-		cfn = (Byte *) strdup((char *) fn);	// make this the current file
+			free(cfn);		// free the old name
+		cfn = q;			// remember new cfn
+
+	  vc5:
 		// delete all the contents of text[]
 		new_text(2 * file_size(fn));
 		screenbegin = dot = end = text;
+
 		// insert new file
-		if (fn != 0) {
-			ch = file_insert(fn, text, file_size(fn));
+		ch = file_insert(fn, text, file_size(fn));
+
+		if (ch < 1) {
+			// start empty buf with dummy line
+			(void) char_insert(text, '\n');
+			ch= 1;
 		}
 		file_modified = FALSE;
 #ifdef BB_FEATURE_VI_YANKMARK
-		if (reg[Ureg] != 0)
+		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
-		if (reg[YDreg] != 0)
+			reg[Ureg]= 0;
+		}
+		if (YDreg >= 0 && YDreg < 28 && reg[YDreg] != 0) {
 			free(reg[YDreg]);	//   free default yank/delete register
+			reg[YDreg]= 0;
+		}
 		for (li = 0; li < 28; li++) {
 			mark[li] = 0;
 		}				// init the marks
 #endif							/* BB_FEATURE_VI_YANKMARK */
 		// how many lines in text[]?
 		li = count_lines(text, end - 1);
-		psb("\"%s\" %dL, %dC", cfn, li, ch);
+                psb("\"%s\"%s"
+#ifdef BB_FEATURE_VI_READONLY
+			"%s"
+#endif							/* BB_FEATURE_VI_READONLY */
+			" %dL, %dC", cfn,
+			(sr < 0 ? " [New file]" : ""),
+#ifdef BB_FEATURE_VI_READONLY
+			(readonly == TRUE ? " [Read only]" : ""),
+#endif							/* BB_FEATURE_VI_READONLY */
+			li, ch);
 	} else if (strncasecmp((char *) cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
 			ni((Byte *) "No address allowed on this command");
@@ -1863,12 +1966,22 @@ static void colon(Byte * buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
+		l= readonly;			// remember current files' status
 		ch = file_insert(fn, q, file_size(fn));
+		readonly= l;
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
-		psb("\"%s\" %dL, %dC", fn, li, ch);
+                psb("\"%s\""
+#ifdef BB_FEATURE_VI_READONLY
+			"%s"
+#endif							/* BB_FEATURE_VI_READONLY */
+			" %dL, %dC", fn,
+#ifdef BB_FEATURE_VI_READONLY
+			(readonly == TRUE ? " [Read only]" : ""),
+#endif							/* BB_FEATURE_VI_READONLY */
+			li, ch);
 		if (ch > 0) {
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
@@ -1983,7 +2096,7 @@ static void colon(Byte * buf)
 			fn = args;
 		}
 #ifdef BB_FEATURE_VI_READONLY
-		if (readonly == TRUE) {
+		if (readonly == TRUE && useforce == FALSE) {
 			psbs("\"%s\" File is read only", fn);
 			goto vc3;
 		}
@@ -1991,6 +2104,7 @@ static void colon(Byte * buf)
 		// how many lines in text[]?
 		li = count_lines(q, r);
 		ch = r - q + 1;
+		// see if file exists- if not, its just a new file request
 		if (useforce == TRUE) {
 			// if "fn" is not write-able, chmod u+w
 			// sprintf(syscmd, "chmod u+w %s", fn);
@@ -2547,12 +2661,14 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
 	p = q = dot;
 
 	if (strchr("cdy><", c)) {
+		// these cmds operate on whole lines
 		p = q = begin_line(p);
 		for (cnt = 1; cnt < cmdcnt; cnt++) {
 			q = next_line(q);
 		}
 		q = end_line(q);
-	} else if (strchr("$0bBeE", c)) {
+	} else if (strchr("^%$0bBeE", c)) {
+		// These cmds operate on char positions
 		do_cmd(c);		// execute movement cmd
 		q = dot;
 	} else if (strchr("wW", c)) {
@@ -2563,11 +2679,13 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
 			dot--;		// stay off NL
 		q = dot;
 	} else if (strchr("H-k{", c)) {
+		// these operate on multi-lines backwards
 		q = end_line(dot);	// find NL
 		do_cmd(c);		// execute movement cmd
 		dot_begin();
 		p = dot;
 	} else if (strchr("L+j}\r\n", c)) {
+		// these operate on multi-lines forwards
 		p = begin_line(dot);
 		do_cmd(c);		// execute movement cmd
 		dot_end();		// find NL
@@ -3190,7 +3308,7 @@ static Byte readit(void)	// read (maybe cursor) key from stdin
 	FD_ZERO(&rfds);
 	FD_SET(0, &rfds);
 	tv.tv_sec = 0;
-	tv.tv_usec = 10000;	// Wait 1/100 seconds- 1 Sec=1000000
+	tv.tv_usec = 50000;	// Wait 5/100 seconds- 1 Sec=1000000
 
 	// keep reading while there are input chars and room in buffer
 	while (select(1, &rfds, NULL, NULL, &tv) > 0 && bufsiz <= (BUFSIZ - 5)) {
@@ -3267,7 +3385,7 @@ static Byte get_one_char()
 #if defined(BB_FEATURE_VI_SEARCH) || defined(BB_FEATURE_VI_COLON)
 static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 {
-	Byte buf[500];
+	Byte buf[BUFSIZ];
 	Byte c;
 	int i;
 	static Byte *obufp = NULL;
@@ -3278,9 +3396,9 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	clear_to_eol();		// clear the line
 	write(1, prompt, strlen((char *) prompt));	// write out the :, /, or ? prompt
 
-	for (i = strlen((char *) buf); i < 500;) {
+	for (i = strlen((char *) buf); i < BUFSIZ;) {
 		c = get_one_char();	// read user input
-		if (c == '\n' || c == '\r')
+		if (c == '\n' || c == '\r' || c == 27)
 			break;		// is this end of input
 		if (c == erase_char) {	// user wants to erase prev char
 			i--;		// backup to prev char
@@ -3310,7 +3428,7 @@ static int file_size(Byte * fn) // what is the byte size of "fn"
 	struct stat st_buf;
 	int cnt, sr;
 
-	if (fn == 0)
+	if (fn == 0 || strlen(fn) <= 0)
 		return (-1);
 	cnt = -1;
 	sr = stat((char *) fn, &st_buf);	// see if file exists
@@ -3322,30 +3440,43 @@ static int file_size(Byte * fn) // what is the byte size of "fn"
 
 static int file_insert(Byte * fn, Byte * p, int size)
 {
-	int fd, cnt, sr;
-	struct stat st_buf;
+	int fd, cnt;
 
 	cnt = -1;
-	if (fn == 0) {
+#ifdef BB_FEATURE_VI_READONLY
+	readonly = FALSE;
+#endif							/* BB_FEATURE_VI_READONLY */
+	if (fn == 0 || strlen((char*) fn) <= 0) {
 		psbs("No filename given");
 		goto fi0;
 	}
-	sr = stat((char *) fn, &st_buf);	// see if file exists
-	if (sr < 0) {
-		psbs("\"%s\" %s", fn, "count not stat file");
+	if (size == 0) {
+		// OK- this is just a no-op
+		cnt = 0;
 		goto fi0;
 	}
-	if (size <= 0 || (int) st_buf.st_size <= 0) {
-		psbs("The file size (%d) is too small", size);
-		if ((int) st_buf.st_size <= 0)
-			psbs("\"%s\" is empty", fn);
+	if (size < 0) {
+		psbs("Trying to insert a negative number (%d) of characters", size);
 		goto fi0;
 	}
-	// There is a file with content
-	fd = open((char *) fn, O_RDWR);
+	if (p < text || p > end) {
+		psbs("Trying to insert file outside of memory");
+		goto fi0;
+	}
+
+	// see if we can open the file
+	fd = open((char *) fn, O_RDWR);			// assume read & write
 	if (fd < 0) {
-		psbs("\"%s\" %s", fn, "could not open file");
-		goto fi0;
+		// could not open for writing- maybe file is read only
+		fd = open((char *) fn, O_RDONLY);	// try read-only
+		if (fd < 0) {
+			psbs("\"%s\" %s", fn, "could not open file");
+			goto fi0;
+		}
+#ifdef BB_FEATURE_VI_READONLY
+		// got the file- read-only
+		readonly = TRUE;
+#endif							/* BB_FEATURE_VI_READONLY */
 	}
 	p = text_hole_make(p, size);
 	cnt = read(fd, p, size);
@@ -3527,7 +3658,7 @@ static void psb(char *format, ...)
 
 static void ni(Byte * s) // display messages
 {
-	Byte buf[9];
+	Byte buf[BUFSIZ];
 
 	print_literal(buf, s);
 	psbs("\'%s\' is not implemented", buf);
@@ -3552,13 +3683,13 @@ static void edit_status(void)	// show file status on status line
 #ifdef BB_FEATURE_VI_READONLY
 		"%s"
 #endif							/* BB_FEATURE_VI_READONLY */
-		"%s line %d of %d --%d%%--  (%dx%d)",
+		"%s line %d of %d --%d%%--",
 		(cfn != 0 ? (char *) cfn : "No file"),
 #ifdef BB_FEATURE_VI_READONLY
 		(readonly == TRUE ? " [Read only]" : ""),
 #endif							/* BB_FEATURE_VI_READONLY */
 		(file_modified == TRUE ? " [modified]" : ""),
-		cur, tot, percent, rows, columns);
+		cur, tot, percent);
 }
 
 //----- Force refresh of all Lines -----------------------------
