@@ -27,7 +27,7 @@
 
 static char* pattern=NULL;
 static char* directory=NULL;
-int dereferenceFlag=FALSE;
+static int dereferenceFlag=FALSE;
 
 static const char find_usage[] = "find [path...] [expression]\n"
 "default path is the current directory; default expression is -print\n"

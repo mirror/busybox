@@ -33,11 +33,10 @@
 
 
 /* Some useful definitions */
-typedef int     BOOL;
 #define STDIN	0
 #define STDOUT	1
-#define FALSE   ((BOOL) 1)
-#define TRUE    ((BOOL) 0)
+#define FALSE   ((int) 1)
+#define TRUE    ((int) 0)
 
 #define PATH_LEN        1024
 #define BUF_SIZE        8192
@@ -97,6 +96,7 @@ extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_more_main(int argc, char** argv);
 extern int more_main(int argc, char** argv);
+extern int cp_main(int argc, char** argv);
 extern int chgrp_main(int argc, char** argv);
 extern int chmod_main(int argc, char** argv);
 extern int chown_main(int argc, char** argv);
@@ -172,20 +172,21 @@ struct chunk {
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);
-BOOL isDirectory(const char *name);
-BOOL isDevice(const char *name);
-BOOL copyFile(const char *srcName, const char *destName, BOOL setModes);
-const char *buildName(const char *dirName, const char *fileName);
-BOOL makeString(int argc, const char **argv, char *buf, int bufLen);
+int isDirectory(const char *name);
+int isDevice(const char *name);
+int copyFile(const char *srcName, const char *destName, int setModes,
+	        int followLinks);
+char *buildName(const char *dirName, const char *fileName);
+int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
 char *chunkstrdup(const char *str);
 void freeChunks(void);
 int fullWrite(int fd, const char *buf, int len);
 int fullRead(int fd, char *buf, int len);
-int recursiveAction(const char *fileName, BOOL recurse, BOOL followLinks,
+int recursiveAction(const char *fileName, int recurse, int followLinks,
 	  int (*fileAction) (const char *fileName),
 	  int (*dirAction) (const char *fileName));
-BOOL match(const char* text, const char * pattern);
+int match(const char* text, const char * pattern);
 const char* timeString(time_t timeVal);
 
 

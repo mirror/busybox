@@ -27,31 +27,30 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
 #include <utime.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #if 0
 
-extern char *
-join_paths(char * buffer, const char * a, const char * b)
+extern char *join_paths(char *buffer, const char *a, const char *b)
 {
-	int	length = 0;
+    int length = 0;
 
-	if ( a && *a ) {
-		length = strlen(a);
-		memcpy(buffer, a, length);
-	}
-	if ( b && *b ) {
-		if ( length > 0 && buffer[length - 1] != '/' )
-			buffer[length++] = '/';
-		if ( *b == '/' )
-			b++;
-		strcpy(&buffer[length], b);
-	}
-	return buffer;
+    if (a && *a) {
+	length = strlen(a);
+	memcpy(buffer, a, length);
+    }
+    if (b && *b) {
+	if (length > 0 && buffer[length - 1] != '/')
+	    buffer[length++] = '/';
+	if (*b == '/')
+	    b++;
+	strcpy(&buffer[length], b);
+    }
+    return buffer;
 }
 
 #endif
@@ -61,73 +60,72 @@ join_paths(char * buffer, const char * a, const char * b)
 
 
 
-static	CHUNK *	chunkList;
+static CHUNK *chunkList;
 
 
 /*
  * Return the standard ls-like mode string from a file mode.
  * This is static and so is overwritten on each call.
  */
-const char *
-modeString(int mode)
+const char *modeString(int mode)
 {
-	static	char	buf[12];
+    static char buf[12];
 
-	strcpy(buf, "----------");
+    strcpy(buf, "----------");
 
-	/*
-	 * Fill in the file type.
-	 */
-	if (S_ISDIR(mode))
-		buf[0] = 'd';
-	if (S_ISCHR(mode))
-		buf[0] = 'c';
-	if (S_ISBLK(mode))
-		buf[0] = 'b';
-	if (S_ISFIFO(mode))
-		buf[0] = 'p';
+    /*
+     * Fill in the file type.
+     */
+    if (S_ISDIR(mode))
+	buf[0] = 'd';
+    if (S_ISCHR(mode))
+	buf[0] = 'c';
+    if (S_ISBLK(mode))
+	buf[0] = 'b';
+    if (S_ISFIFO(mode))
+	buf[0] = 'p';
 #ifdef	S_ISLNK
-	if (S_ISLNK(mode))
-		buf[0] = 'l';
+    if (S_ISLNK(mode))
+	buf[0] = 'l';
 #endif
 #ifdef	S_ISSOCK
-	if (S_ISSOCK(mode))
-		buf[0] = 's';
+    if (S_ISSOCK(mode))
+	buf[0] = 's';
 #endif
 
-	/*
-	 * Now fill in the normal file permissions.
-	 */
-	if (mode & S_IRUSR)
-		buf[1] = 'r';
-	if (mode & S_IWUSR)
-		buf[2] = 'w';
-	if (mode & S_IXUSR)
-		buf[3] = 'x';
-	if (mode & S_IRGRP)
-		buf[4] = 'r';
-	if (mode & S_IWGRP)
-		buf[5] = 'w';
-	if (mode & S_IXGRP)
-		buf[6] = 'x';
-	if (mode & S_IROTH)
-		buf[7] = 'r';
-	if (mode & S_IWOTH)
-		buf[8] = 'w';
-	if (mode & S_IXOTH)
-		buf[9] = 'x';
+    /*
+     * Now fill in the normal file permissions.
+     */
+    if (mode & S_IRUSR)
+	buf[1] = 'r';
+    if (mode & S_IWUSR)
+	buf[2] = 'w';
+    if (mode & S_IXUSR)
+	buf[3] = 'x';
+    if (mode & S_IRGRP)
+	buf[4] = 'r';
+    if (mode & S_IWGRP)
+	buf[5] = 'w';
+    if (mode & S_IXGRP)
+	buf[6] = 'x';
+    if (mode & S_IROTH)
+	buf[7] = 'r';
+    if (mode & S_IWOTH)
+	buf[8] = 'w';
+    if (mode & S_IXOTH)
+	buf[9] = 'x';
 
-	/*
-	 * Finally fill in magic stuff like suid and sticky text.
-	 */
-	if (mode & S_ISUID)
-		buf[3] = ((mode & S_IXUSR) ? 's' : 'S');
-	if (mode & S_ISGID)
-		buf[6] = ((mode & S_IXGRP) ? 's' : 'S');
-	if (mode & S_ISVTX)
-		buf[9] = ((mode & S_IXOTH) ? 't' : 'T');
+    /*
+     * Finally fill in magic stuff like suid and sticky text.
+     */
+    if (mode & S_ISUID)
+	buf[3] = ((mode & S_IXUSR) ? 's' : 'S');
+    if (mode & S_ISGID)
+	buf[6] = ((mode & S_IXGRP) ? 's' : 'S');
+    if (mode & S_ISVTX)
+	buf[9] = ((mode & S_IXOTH) ? 't' : 'T');
 
-	return buf;
+    return buf;
 }
 
 
@@ -135,15 +133,14 @@ modeString(int mode)
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
  */
-BOOL
-isDirectory(const char * name)
+int isDirectory(const char *name)
 {
-	struct	stat	statBuf;
+    struct stat statBuf;
 
-	if (stat(name, &statBuf) < 0)
-		return FALSE;
+    if (stat(name, &statBuf) < 0)
+	return FALSE;
 
-	return S_ISDIR(statBuf.st_mode);
+    return S_ISDIR(statBuf.st_mode);
 }
 
 
@@ -151,15 +148,14 @@ isDirectory(const char * name)
  * Return TRUE if a filename is a block or character device.
  * Nonexistant files return FALSE.
  */
-BOOL
-isDevice(const char * name)
+int isDevice(const char *name)
 {
-	struct	stat	statBuf;
+    struct stat statBuf;
 
-	if (stat(name, &statBuf) < 0)
-		return FALSE;
+    if (stat(name, &statBuf) < 0)
+	return FALSE;
 
-	return S_ISBLK(statBuf.st_mode) || S_ISCHR(statBuf.st_mode);
+    return S_ISBLK(statBuf.st_mode) || S_ISCHR(statBuf.st_mode);
 }
 
 
@@ -169,102 +165,118 @@ isDevice(const char * name)
  * error message output.  (Failure is not indicted if the attributes cannot
  * be set.)
  */
-BOOL
+int
 copyFile(
-	const char *	srcName,
-	const char *	destName,
-	BOOL		setModes
-)
+	 const char *srcName,
+	 const char *destName, int setModes, int followLinks)
 {
-	int		rfd;
-	int		wfd;
-	int		rcc;
-	char		buf[BUF_SIZE];
-	struct	stat	statBuf1;
-	struct	stat	statBuf2;
-	struct	utimbuf	times;
-	
-	if (stat(srcName, &statBuf1) < 0)
-	{
-		perror(srcName);
+    int rfd;
+    int wfd;
+    int rcc;
+    char buf[BUF_SIZE];
+    struct stat statBuf1;
+    struct stat statBuf2;
+    struct utimbuf times;
 
-		return FALSE;
+    if (stat(srcName, &statBuf1) < 0) {
+	perror(srcName);
+	return FALSE;
+    }
+
+    if (stat(destName, &statBuf2) < 0) {
+	statBuf2.st_ino = -1;
+	statBuf2.st_dev = -1;
+    }
+
+    if ((statBuf1.st_dev == statBuf2.st_dev) &&
+	(statBuf1.st_ino == statBuf2.st_ino)) {
+	fprintf(stderr, "Copying file \"%s\" to itself\n", srcName);
+	return FALSE;
+    }
+
+    if (S_ISDIR(statBuf1.st_mode)) {
+	/* Make sure the directory is writable */
+	if (mkdir(destName, 0777777 ^ umask(0))) {
+	    perror(destName);
+	    return (FALSE);
 	}
-
-	if (stat(destName, &statBuf2) < 0)
-	{
-		statBuf2.st_ino = -1;
-		statBuf2.st_dev = -1;
+    } else if (S_ISFIFO(statBuf1.st_mode)) {
+	if (mkfifo(destName, 644)) {
+	    perror(destName);
+	    return (FALSE);
 	}
-
-	if ((statBuf1.st_dev == statBuf2.st_dev) &&
-		(statBuf1.st_ino == statBuf2.st_ino))
-	{
-		fprintf(stderr, "Copying file \"%s\" to itself\n", srcName);
-
-		return FALSE;
+    } else if (S_ISBLK(statBuf1.st_mode) || S_ISCHR(statBuf1.st_mode)) {
+	if (mknod(destName, 644, statBuf1.st_rdev)) {
+	    perror(destName);
+	    return (FALSE);
 	}
+    } else if (S_ISLNK(statBuf1.st_mode)) {
+	char *link_val;
+	int link_size;
 
+	link_val = (char *) alloca(PATH_MAX + 2);
+	link_size = readlink(srcName, link_val, PATH_MAX + 1);
+	if (link_size < 0) {
+	    perror(srcName);
+	    return (FALSE);
+	}
+	link_val[link_size] = '\0';
+	if (symlink(link_val, destName)) {
+	    perror(srcName);
+	    return (FALSE);
+	}
+    } else {
 	rfd = open(srcName, O_RDONLY);
-
-	if (rfd < 0)
-	{
-		perror(srcName);
-
-		return FALSE;
+	if (rfd < 0) {
+	    perror(srcName);
+	    return FALSE;
 	}
 
 	wfd = creat(destName, statBuf1.st_mode);
-
-	if (wfd < 0)
-	{
-		perror(destName);
-		close(rfd);
-
-		return FALSE;
+	if (wfd < 0) {
+	    perror(destName);
+	    close(rfd);
+	    return FALSE;
 	}
 
-	while ((rcc = read(rfd, buf, sizeof(buf))) > 0)
-	{
-		if (fullWrite(wfd, buf, rcc) < 0)
-			goto error_exit;
-	}
-
-	if (rcc < 0)
-	{
-		perror(srcName);
+	while ((rcc = read(rfd, buf, sizeof(buf))) > 0) {
+	    if (fullWrite(wfd, buf, rcc) < 0)
 		goto error_exit;
 	}
-
-	(void) close(rfd);
-
-	if (close(wfd) < 0)
-	{
-		perror(destName);
-
-		return FALSE;
+	if (rcc < 0) {
+	    perror(srcName);
+	    goto error_exit;
 	}
 
-	if (setModes)
-	{
-		(void) chmod(destName, statBuf1.st_mode);
-
-		(void) chown(destName, statBuf1.st_uid, statBuf1.st_gid);
-
-		times.actime = statBuf1.st_atime;
-		times.modtime = statBuf1.st_mtime;
-
-		(void) utime(destName, &times);
-	}
-
-	return TRUE;
-
-
-error_exit:
 	close(rfd);
-	close(wfd);
 
-	return FALSE;
+	if (close(wfd) < 0) {
+	    perror(destName);
+	    return FALSE;
+	}
+    }
+
+    if (setModes == TRUE) {
+	chmod(destName, statBuf1.st_mode);
+	if (followLinks == TRUE)
+	    chown(destName, statBuf1.st_uid, statBuf1.st_gid);
+	else
+	    lchown(destName, statBuf1.st_uid, statBuf1.st_gid);
+
+	times.actime = statBuf1.st_atime;
+	times.modtime = statBuf1.st_mtime;
+
+	utime(destName, &times);
+    }
+
+    return TRUE;
+
+
+  error_exit:
+    close(rfd);
+    close(wfd);
+
+    return FALSE;
 }
 
 
@@ -273,25 +285,25 @@ error_exit:
  * If the directory name is NULL, then the original fileName is returned.
  * The built path is in a static area, and is overwritten for each call.
  */
-const char *
-buildName(const char * dirName, const char * fileName)
+char *buildName(const char *dirName, const char *fileName)
 {
-	const char *	cp;
-	static	char	buf[PATH_LEN];
+    const char *cp;
+    static char buf[PATH_LEN];
 
-	if ((dirName == NULL) || (*dirName == '\0'))
-		return fileName;
-
-	cp = strrchr(fileName, '/');
-
-	if (cp)
-		fileName = cp + 1;
-
-	strcpy(buf, dirName);
-	strcat(buf, "/");
-	strcat(buf, fileName);
-
+    if ((dirName == NULL) || (*dirName == '\0')) {
+	strcpy(buf, fileName);
 	return buf;
+    }
+
+    cp = strrchr(fileName, '/');
+
+    if (cp)
+	fileName = cp + 1;
+
+    strcpy(buf, dirName);
+    strcat(buf, "/");
+
+    return buf;
 }
 
 
@@ -302,41 +314,33 @@ buildName(const char * dirName, const char * fileName)
  * with an error message given.  This does not handle spaces within
  * arguments correctly.
  */
-BOOL
-makeString(
-	int		argc,
-	const char **	argv,
-	char *		buf,
-	int		bufLen
-)
+int makeString( int argc, const char **argv, char *buf, int bufLen)
 {
-	int	len;
+    int len;
 
-	while (argc-- > 0)
-	{
-		len = strlen(*argv);
+    while (argc-- > 0) {
+	len = strlen(*argv);
 
-		if (len >= bufLen)
-		{
-			fprintf(stderr, "Argument string too long\n");
+	if (len >= bufLen) {
+	    fprintf(stderr, "Argument string too long\n");
 
-			return FALSE;
-		}
-
-		strcpy(buf, *argv++);
-
-		buf += len;
-		bufLen -= len;
-
-		if (argc)
-			*buf++ = ' ';
-
-		bufLen--; 
+	    return FALSE;
 	}
 
-	*buf = '\0';
+	strcpy(buf, *argv++);
 
-	return TRUE;
+	buf += len;
+	bufLen -= len;
+
+	if (argc)
+	    *buf++ = ' ';
+
+	bufLen--;
+    }
+
+    *buf = '\0';
+
+    return TRUE;
 }
 
 
@@ -346,23 +350,22 @@ makeString(
  * list of chunks which can be freed all at one time.  You CAN NOT free
  * an individual chunk.
  */
-char *
-getChunk(int size)
+char *getChunk(int size)
 {
-	CHUNK *	chunk;
+    CHUNK *chunk;
 
-	if (size < CHUNK_INIT_SIZE)
-		size = CHUNK_INIT_SIZE;
+    if (size < CHUNK_INIT_SIZE)
+	size = CHUNK_INIT_SIZE;
 
-	chunk = (CHUNK *) malloc(size + sizeof(CHUNK) - CHUNK_INIT_SIZE);
+    chunk = (CHUNK *) malloc(size + sizeof(CHUNK) - CHUNK_INIT_SIZE);
 
-	if (chunk == NULL)
-		return NULL;
+    if (chunk == NULL)
+	return NULL;
 
-	chunk->next = chunkList;
-	chunkList = chunk;
+    chunk->next = chunkList;
+    chunkList = chunk;
 
-	return chunk->data;
+    return chunk->data;
 }
 
 
@@ -371,19 +374,18 @@ getChunk(int size)
  * The returned string cannot be individually freed, but can only be freed
  * with other strings when freeChunks is called.  Returns NULL on failure.
  */
-char *
-chunkstrdup(const char * str)
+char *chunkstrdup(const char *str)
 {
-	int	len;
-	char *	newStr;
+    int len;
+    char *newStr;
 
-	len = strlen(str) + 1;
-	newStr = getChunk(len);
+    len = strlen(str) + 1;
+    newStr = getChunk(len);
 
-	if (newStr)
-		memcpy(newStr, str, len);
+    if (newStr)
+	memcpy(newStr, str, len);
 
-	return newStr;
+    return newStr;
 }
 
 
@@ -391,17 +393,15 @@ chunkstrdup(const char * str)
  * Free all chunks of memory that had been allocated since the last
  * call to this routine.
  */
-void
-freeChunks(void)
+void freeChunks(void)
 {
-	CHUNK *	chunk;
+    CHUNK *chunk;
 
-	while (chunkList)
-	{
-		chunk = chunkList;
-		chunkList = chunk->next;
-		free((char *) chunk);
-	}
+    while (chunkList) {
+	chunk = chunkList;
+	chunkList = chunk->next;
+	free((char *) chunk);
+    }
 }
 
 
@@ -411,27 +411,25 @@ freeChunks(void)
  * The string is returned from a static buffer, and so is overwritten for
  * each call.
  */
-const char *
-timeString(time_t timeVal)
+const char *timeString(time_t timeVal)
 {
-	time_t		now;
-	char *		str;
-	static	char	buf[26];
+    time_t now;
+    char *str;
+    static char buf[26];
 
-	time(&now);
+    time(&now);
 
-	str = ctime(&timeVal);
+    str = ctime(&timeVal);
 
-	strcpy(buf, &str[4]);
-	buf[12] = '\0';
+    strcpy(buf, &str[4]);
+    buf[12] = '\0';
 
-	if ((timeVal > now) || (timeVal < now - 365*24*60*60L))
-	{
-		strcpy(&buf[7], &str[20]);
-		buf[11] = '\0';
-	}
+    if ((timeVal > now) || (timeVal < now - 365 * 24 * 60 * 60L)) {
+	strcpy(&buf[7], &str[20]);
+	buf[11] = '\0';
+    }
 
-	return buf;
+    return buf;
 }
 
 
@@ -445,88 +443,81 @@ timeString(time_t timeVal)
  *  \c		quotes character c
  *  Adapted from code written by Ingo Wilken.
  */
-BOOL
-match(const char * text, const char * pattern)
+int match(const char *text, const char *pattern)
 {
-	const char *	retryPat;
-	const char *	retryText;
-	int		ch;
-	BOOL		found;
+    const char *retryPat;
+    const char *retryText;
+    int ch;
+    int found;
 
-	retryPat = NULL;
-	retryText = NULL;
+    retryPat = NULL;
+    retryText = NULL;
 
-	while (*text || *pattern)
-	{
-		ch = *pattern++;
+    while (*text || *pattern) {
+	ch = *pattern++;
 
-		switch (ch)
-		{
-			case '*':  
-				retryPat = pattern;
-				retryText = text;
-				break;
+	switch (ch) {
+	case '*':
+	    retryPat = pattern;
+	    retryText = text;
+	    break;
 
-			case '[':  
-				found = FALSE;
+	case '[':
+	    found = FALSE;
 
-				while ((ch = *pattern++) != ']')
-				{
-					if (ch == '\\')
-						ch = *pattern++;
+	    while ((ch = *pattern++) != ']') {
+		if (ch == '\\')
+		    ch = *pattern++;
 
-					if (ch == '\0')
-						return FALSE;
+		if (ch == '\0')
+		    return FALSE;
 
-					if (*text == ch)
-						found = TRUE;
-				}
+		if (*text == ch)
+		    found = TRUE;
+	    }
 
-				if (!found)
-				{
-					pattern = retryPat;
-					text = ++retryText;
-				}
+	    if (!found) {
+		pattern = retryPat;
+		text = ++retryText;
+	    }
 
-				/* fall into next case */
+	    /* fall into next case */
 
-			case '?':  
-				if (*text++ == '\0')
-					return FALSE;
+	case '?':
+	    if (*text++ == '\0')
+		return FALSE;
 
-				break;
+	    break;
 
-			case '\\':  
-				ch = *pattern++;
+	case '\\':
+	    ch = *pattern++;
 
-				if (ch == '\0')
-					return FALSE;
+	    if (ch == '\0')
+		return FALSE;
 
-				/* fall into next case */
+	    /* fall into next case */
 
-			default:        
-				if (*text == ch)
-				{
-					if (*text)
-						text++;
-					break;
-				}
+	default:
+	    if (*text == ch) {
+		if (*text)
+		    text++;
+		break;
+	    }
 
-				if (*text)
-				{
-					pattern = retryPat;
-					text = ++retryText;
-					break;
-				}
+	    if (*text) {
+		pattern = retryPat;
+		text = ++retryText;
+		break;
+	    }
 
-				return FALSE;
-		}
-
-		if (pattern == NULL)
-			return FALSE;
+	    return FALSE;
 	}
 
-	return TRUE;
+	if (pattern == NULL)
+	    return FALSE;
+    }
+
+    return TRUE;
 }
 
 
@@ -535,27 +526,25 @@ match(const char * text, const char * pattern)
  * This does multiple writes as necessary.
  * Returns the amount written, or -1 on an error.
  */
-int
-fullWrite(int fd, const char * buf, int len)
+int fullWrite(int fd, const char *buf, int len)
 {
-	int	cc;
-	int	total;
+    int cc;
+    int total;
 
-	total = 0;
+    total = 0;
 
-	while (len > 0)
-	{
-		cc = write(fd, buf, len);
+    while (len > 0) {
+	cc = write(fd, buf, len);
 
-		if (cc < 0)
-			return -1;
+	if (cc < 0)
+	    return -1;
 
-		buf += cc;
-		total+= cc;
-		len -= cc;
-	}
+	buf += cc;
+	total += cc;
+	len -= cc;
+    }
 
-	return total;
+    return total;
 }
 
 
@@ -565,30 +554,28 @@ fullWrite(int fd, const char * buf, int len)
  * Returns the amount read, or -1 on an error.
  * A short read is returned on an end of file.
  */
-int
-fullRead(int fd, char * buf, int len)
+int fullRead(int fd, char *buf, int len)
 {
-	int	cc;
-	int	total;
+    int cc;
+    int total;
 
-	total = 0;
+    total = 0;
 
-	while (len > 0)
-	{
-		cc = read(fd, buf, len);
+    while (len > 0) {
+	cc = read(fd, buf, len);
 
-		if (cc < 0)
-			return -1;
+	if (cc < 0)
+	    return -1;
 
-		if (cc == 0)
-			break;
+	if (cc == 0)
+	    break;
 
-		buf += cc;
-		total+= cc;
-		len -= cc;
-	}
+	buf += cc;
+	total += cc;
+	len -= cc;
+    }
 
-	return total;
+    return total;
 }
 
 
@@ -598,84 +585,82 @@ fullRead(int fd, char * buf, int len)
  * by the fileAction and dirAction function pointers).
  */
 int
-recursiveAction( const char *fileName, BOOL recurse, BOOL followLinks,
-	int (*fileAction)(const char* fileName), 
-	int (*dirAction)(const char* fileName))
+recursiveAction(const char *fileName, int recurse, int followLinks,
+		int (*fileAction) (const char *fileName),
+		int (*dirAction) (const char *fileName))
 {
-    int             status;
-    struct stat     statbuf;
-    struct dirent*  next;
-
-    if (!recurse && S_ISDIR(statbuf.st_mode)) {
-	if (dirAction==NULL)
-	    return(TRUE);
-	else
-	    return(dirAction(fileName));
-    } else {
-	if (fileAction==NULL)
-	    return(TRUE);
-	else
-	    return(fileAction(fileName));
-    }
+    int status;
+    struct stat statbuf;
+    struct dirent *next;
 
     if (followLinks)
-	status = stat(fileName, &statbuf);
-    else
 	status = lstat(fileName, &statbuf);
-
+    else
+	status = stat(fileName, &statbuf);
     if (status < 0) {
 	perror(fileName);
-	return( FALSE);
+	return (FALSE);
+    }
+
+    if (recurse == FALSE) {
+	if (S_ISDIR(statbuf.st_mode)) {
+	    if (dirAction == NULL)
+		return (TRUE);
+	    else
+		return (dirAction(fileName));
+	} else {
+	    if (fileAction == NULL)
+		return (TRUE);
+	    else
+		return (fileAction(fileName));
+	}
     }
 
     if (S_ISDIR(statbuf.st_mode)) {
 	DIR *dir;
+	fprintf(stderr, "Dir: %s\n", fileName);
 	dir = opendir(fileName);
 	if (!dir) {
 	    perror(fileName);
-	    return(FALSE);
+	    return (FALSE);
 	}
-	while ((next = readdir (dir)) != NULL) {
-		char nextFile[NAME_MAX];
-		if ( (strcmp(next->d_name, "..") == 0) || (strcmp(next->d_name, ".") == 0) ) {
-		    continue;
-		}
-		sprintf(nextFile, "%s/%s", fileName, next->d_name);
-		status = recursiveAction(nextFile, TRUE, followLinks, fileAction, dirAction);
-		if (status < 0) {
-		    closedir(dir);
-		    return(FALSE);
-		}
+	if (dirAction != NULL) {
+	    status = dirAction(fileName);
+	    if (status == FALSE) {
+		perror("cp");
+		return (FALSE);
+	    }
 	}
-	status = closedir (dir);
+	while ((next = readdir(dir)) != NULL) {
+	    char nextFile[NAME_MAX];
+	    if ((strcmp(next->d_name, "..") == 0)
+		|| (strcmp(next->d_name, ".") == 0)) {
+		continue;
+	    }
+	    sprintf(nextFile, "%s/%s", fileName, next->d_name);
+	    status =
+		recursiveAction(nextFile, TRUE, followLinks, fileAction,
+				dirAction);
+	    if (status < 0) {
+		closedir(dir);
+		return (FALSE);
+	    }
+	}
+	status = closedir(dir);
 	if (status < 0) {
 	    perror(fileName);
-	    return( FALSE);
+	    return (FALSE);
 	}
-	if (dirAction==NULL)
-	    return(TRUE);
+    } else {
+	fprintf(stderr, "File: %s\n", fileName);
+	if (fileAction == NULL)
+	    return (TRUE);
 	else
-	    return(dirAction(fileName));
+	    return (fileAction(fileName));
     }
-    else {
-	if (fileAction==NULL)
-	    return(TRUE);
-	else
-	    return(fileAction(fileName));
-    }
+    return (TRUE);
 }
 
 
 
 /* END CODE */
-
-
-
-
-
-
-
-
-
-
-

@@ -1,135 +1,95 @@
+/*
+ * Mini umount implementation for busybox
+ *
+ * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
 #include "internal.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
 #include <stdio.h>
-#include <mntent.h>
 #include <sys/mount.h>
+#include <mntent.h>
+#include <fstab.h>
+#include <errno.h>
 
-const char	umount_usage[] = "umount {filesystem|directory}\n"
-"\tumount -a\n"
-"\n"
-"\tUnmount a filesystem.\n"
-"\t-a:\tUnmounts all mounted filesystems.\n";
-
-static char *
-stralloc(const char * string)
-{
-	int	length = strlen(string) + 1;
-	char *	n = malloc(length);
-	memcpy(n, string, length);
-	return n;
-}
-
-extern void
-erase_mtab(const char * name)
-{
-	struct mntent	entries[100];
-	int		count = 0;
-	FILE *		mountTable = setmntent("/etc/mtab", "r");
-	struct mntent *	m;
-
-	if ( mountTable == 0
-	 && (mountTable = setmntent("/proc/mounts", "r")) == 0 ) {
-		name_and_error("/etc/mtab");
-		return;
-	}
-
-	while ( (m = getmntent(mountTable)) != 0 ) {
-		entries[count].mnt_fsname = stralloc(m->mnt_fsname);
-		entries[count].mnt_dir = stralloc(m->mnt_dir);
-		entries[count].mnt_type = stralloc(m->mnt_type);
-		entries[count].mnt_opts = stralloc(m->mnt_opts);
-		entries[count].mnt_freq = m->mnt_freq;
-		entries[count].mnt_passno = m->mnt_passno;
-		count++;
-	}
-	endmntent(mountTable);
-	if ( (mountTable = setmntent("/etc/mtab", "w")) ) {
-		int	i;
-		for ( i = 0; i < count; i++ ) {
-			int result = ( strcmp(entries[i].mnt_fsname, name) == 0
-			 || strcmp(entries[i].mnt_dir, name) == 0 );
-
-			if ( result )
-				continue;
-			else
-				addmntent(mountTable, &entries[i]);
-		}
-		endmntent(mountTable);
-	}
-	else if ( errno != EROFS )
-		name_and_error("/etc/mtab");
-}
+const char umount_usage[] = "\tumount {filesystem|directory}\n"
+"or to unmount all mounted file systems:\n\tumount -a\n";
 
 static int
-umount_all(int noMtab)
+umount_all()
 {
-	struct mntent	entries[100];
-	int				count = 0;
-	FILE *			mountTable = setmntent("/etc/mtab", "r");
-	struct mntent *	m;
-	int				status = 0;
+	int status;
+	struct mntent *m;
+        FILE *mountTable;
 
-	if ( mountTable == 0
-	 && (mountTable = setmntent("/proc/mounts", "r")) == 0 ) {
-		name_and_error("/etc/mtab");
-		return 1;
-	}
-
-	while ( (m = getmntent(mountTable)) != 0 ) {
-		entries[count].mnt_fsname = stralloc(m->mnt_fsname);
-		count++;
-	}
-	endmntent(mountTable);
-
-	while ( count > 0 ) {
-		int result = umount(entries[--count].mnt_fsname) == 0;
-		/* free(entries[count].mnt_fsname); */
-		if ( result ) {
-			if ( !noMtab )
-				erase_mtab(entries[count].mnt_fsname);
+        if ((mountTable = setmntent ("/proc/mounts", "r"))) {
+            while ((m = getmntent (mountTable)) != 0) {
+                char *blockDevice = m->mnt_fsname;
+                if (strcmp (blockDevice, "/dev/root") == 0)
+                    blockDevice = (getfsfile ("/"))->fs_spec;
+		status=umount (m->mnt_dir);
+		if (status!=0) {
+		    /* Don't bother retrying the umount on busy devices */
+		    if (errno==EBUSY) {
+			perror(m->mnt_dir); 
+			continue;
+		    }
+		    printf ("Trying to umount %s failed: %s\n", 
+			    m->mnt_dir, strerror(errno)); 
+		    printf ("Instead trying to umount %s\n", blockDevice); 
+		    status=umount (blockDevice);
+		    if (status!=0) {
+			printf ("Couldn't umount %s on %s (type %s): %s\n", 
+				blockDevice, m->mnt_dir, m->mnt_type, strerror(errno));
+		    }
 		}
-		else {
-			status = 1;
-			name_and_error(entries[count].mnt_fsname);
-		}
-	}
-	return status;
+            }
+            endmntent (mountTable);
+        }
+        return( TRUE);
 }
 
 extern int
-do_umount(const char * name, int noMtab)
+umount_main(int argc, char * * argv)
 {
-	if ( umount(name) == 0 ) {
-		if ( !noMtab )
-			erase_mtab(name);
-		return 0;
+
+    if (argc < 2) {
+	fprintf(stderr, "Usage: %s", umount_usage);
+	return(FALSE);
+    }
+    argc--;
+    argv++;
+
+    /* Parse any options */
+    while (**argv == '-') {
+	while (*++(*argv)) switch (**argv) {
+	    case 'a':
+		return umount_all();
+		break;
+	    default:
+		fprintf(stderr, "Usage: %s\n", umount_usage);
+		exit( FALSE);
 	}
-	return 1;
+    }
+    if ( umount(*argv) == 0 )
+	    return (TRUE);
+    else {
+	perror("umount");
+	return( FALSE);
+    }
 }
 
-extern int
-umount_main(struct FileInfo * i, int argc, char * * argv)
-{
-	int	noMtab = 0;
-
-	if ( argv[1][0] == '-' ) {
-		switch ( argv[1][1] ) {
-		case 'a':
-			return umount_all(noMtab);
-		case 'n':
-			noMtab = 1;
-			break;
-		default:
-			usage(umount_usage);
-			return 1;
-		}
-	}
-	if ( do_umount(argv[1],noMtab) != 0 ) {
-		fprintf(stderr, "%s: %s.\n", argv[1], strerror(errno));
-		return 1;
-	}
-	return 0;
-}

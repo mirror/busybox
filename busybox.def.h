@@ -10,7 +10,7 @@
 #define BB_CHOWN
 #define BB_CHROOT
 #define BB_CLEAR
-//#define BB_CP
+#define BB_CP
 #define BB_DATE
 #define BB_DD
 //#define BB_DESCEND
@@ -54,7 +54,7 @@
 #define BB_TAR
 #define BB_TOUCH
 #define BB_TRUE
-//#define BB_UMOUNT
+#define BB_UMOUNT
 //#define BB_UPDATE
 #define BB_UTILITY
 #define BB_ZCAT

@@ -31,7 +31,7 @@ const char grep_usage[] =
 
 
 
-static BOOL search (const char *string, const char *word, BOOL ignoreCase);
+static int search (const char *string, const char *word, int ignoreCase);
 
 
 extern int grep_main (int argc, char **argv)
@@ -40,9 +40,9 @@ extern int grep_main (int argc, char **argv)
     const char *word;
     const char *name;
     const char *cp;
-    BOOL tellName;
-    BOOL ignoreCase;
-    BOOL tellLine;
+    int tellName;
+    int ignoreCase;
+    int tellLine;
     long line;
     char buf[BUF_SIZE];
 
@@ -125,7 +125,7 @@ extern int grep_main (int argc, char **argv)
 /*
  * See if the specified word is found in the specified string.
  */
-static BOOL search (const char *string, const char *word, BOOL ignoreCase)
+static int search (const char *string, const char *word, int ignoreCase)
 {
     const char *cp1;
     const char *cp2;

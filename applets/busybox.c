@@ -30,7 +30,7 @@ static const struct Applet applets[] = {
     {"clear", clear_main},
 #endif
 #ifdef BB_CP			//bin
-    {"cp", dyadic_main},
+    {"cp", cp_main},
 #endif
 #ifdef BB_DATE			//bin
     {"date", date_main},

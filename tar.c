@@ -73,18 +73,18 @@ typedef struct
 /*
  * Static data.
  */
-static	BOOL		listFlag;
-static	BOOL		extractFlag;
-static	BOOL		createFlag;
-static	BOOL		verboseFlag;
-static	BOOL		tostdoutFlag;
+static	int		listFlag;
+static	int		extractFlag;
+static	int		createFlag;
+static	int		verboseFlag;
+static	int		tostdoutFlag;
 
-static	BOOL		inHeader;
-static	BOOL		badHeader;
-static	BOOL		errorFlag;
-static	BOOL		skipFileFlag;
-static	BOOL		warnedRoot;
-static	BOOL		eofFlag;
+static	int		inHeader;
+static	int		badHeader;
+static	int		errorFlag;
+static	int		skipFileFlag;
+static	int		warnedRoot;
+static	int		eofFlag;
 static	long		dataCc;
 static	int		outFd;
 static	char		outName[TAR_NAME_SIZE];
@@ -114,7 +114,7 @@ static	void	readHeader(const TarHeader * hp,
 /*
  * Local procedures to save files into a tar file.
  */
-static	void	saveFile(const char * fileName, BOOL seeLinks);
+static	void	saveFile(const char * fileName, int seeLinks);
 
 static	void	saveRegularFile(const char * fileName,
 			const struct stat * statbuf);
@@ -122,7 +122,7 @@ static	void	saveRegularFile(const char * fileName,
 static	void	saveDirectory(const char * fileName,
 			const struct stat * statbuf);
 
-static	BOOL	wantFileName(const char * fileName,
+static	int	wantFileName(const char * fileName,
 			int fileCount, char ** fileTable);
 
 static	void	writeHeader(const char * fileName,
@@ -130,7 +130,7 @@ static	void	writeHeader(const char * fileName,
 
 static	void	writeTarFile(int fileCount, char ** fileTable);
 static	void	writeTarBlock(const char * buf, int len);
-static	BOOL	putOctal(char * cp, int len, long value);
+static	int	putOctal(char * cp, int len, long value);
 
 
 extern int 
@@ -383,8 +383,8 @@ readHeader(const TarHeader * hp, int fileCount, char ** fileTable)
 	time_t		mtime;
 	const char *	name;
 	int		cc;
-	BOOL		hardLink;
-	BOOL		softLink;
+	int		hardLink;
+	int		softLink;
 
 	/*
 	 * If the block is completely empty, then this is the end of the
@@ -710,7 +710,7 @@ done:
  * they really are, instead of blindly following them.
  */
 static void
-saveFile(const char * fileName, BOOL seeLinks)
+saveFile(const char * fileName, int seeLinks)
 {
 	int		status;
 	int		mode;
@@ -788,7 +788,7 @@ saveFile(const char * fileName, BOOL seeLinks)
 static void
 saveRegularFile(const char * fileName, const struct stat * statbuf)
 {
-	BOOL		sawEof;
+	int		sawEof;
 	int		fileFd;
 	int		cc;
 	int		dataCount;
@@ -897,7 +897,7 @@ saveDirectory(const char * dirName, const struct stat * statbuf)
 {
 	DIR *		dir;
 	struct dirent *	entry;
-	BOOL		needSlash;
+	int		needSlash;
 	char		fullName[PATH_LEN];
 
 	/*
@@ -1160,7 +1160,7 @@ getOctal(const char * cp, int len)
  * The number is zero and space padded and possibly null padded.
  * Returns TRUE if successful.
  */
-static BOOL
+static int
 putOctal(char * cp, int len, long value)
 {
 	int	tempLength;
@@ -1212,7 +1212,7 @@ putOctal(char * cp, int len, long value)
  * of path prefixes.  An empty list implies that all files are wanted.
  * Returns TRUE if the file is selected.
  */
-static BOOL
+static int
 wantFileName(const char * fileName, int fileCount, char ** fileTable)
 {
 	const char *	pathName;

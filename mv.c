@@ -37,7 +37,7 @@ extern int mv_main (int argc, char **argv)
     const char *srcName;
     const char *destName;
     const char *lastArg;
-    BOOL dirFlag;
+    int dirFlag;
 
     if (argc < 3) {
 	fprintf (stderr, "Usage: %s %s", *argv, mv_usage);
@@ -63,7 +63,7 @@ extern int mv_main (int argc, char **argv)
 
 	destName = lastArg;
 
-	if (dirFlag)
+	if (dirFlag==TRUE)
 	    destName = buildName (destName, srcName);
 
 	if (rename (srcName, destName) >= 0)
@@ -74,7 +74,7 @@ extern int mv_main (int argc, char **argv)
 	    continue;
 	}
 
-	if (!copyFile (srcName, destName, TRUE))
+	if (!copyFile (srcName, destName, TRUE, FALSE))
 	    continue;
 
 	if (unlink (srcName) < 0)
