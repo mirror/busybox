@@ -19,13 +19,31 @@
 	    (it was reading the whole thing and then writing it out).  Also 
 	    updated usage information (was missing conv=notrunc) and added 
 	    conv=sync feature.
-	*  Larry Doolittle (in collaboration with Matt Kraai) -- allow for a 
+	* Larry Doolittle (in collaboration with Matt Kraai) -- allow for a 
 	    pristine source directory -- where all the .o files and such are 
 	    not placed into the source tree.  Thanks Larry!
-	*  Larry Doolittle -- use the applet definitions in applets.h 
+	* Larry Doolittle -- use the applet definitions in applets.h 
 	    to autogenerate the applet function and usage prototypes.
 	* Sebastien Huet, Arne Bernin, and Kent Robotti -- Add in tar -X and
 	    fixed a bug breaking tar --exclude.  
+	* Jonas Holmberg -- echo option handling made GNU-echo compatible
+	* Larry Doolittle -- date option handling made GNU-date compatible
+	* me -- Progress meter (optional) in wget
+	* Doolittle/me -- programs invoked by full path name take
+	    precedence over applets unless
+	    BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+	* Gaute B Strokkenes <gs234@cam.ac.uk> -- applets found using a
+	    binary search instead of linear search.  Much faster!
+	* new applets: cmp readlink
+	* Mark Whitley -- Removed advertising clause of Berkeley license
+	    according to decision by the Regents of the University of
+	    California; included reference
+	* tail's confusing special treatment of single digit options removed;
+	    people should use -n instead
+	* Larry Doolittle -- \r handled now in echo and tr
+	* Matt Kraai -- rewrite of uniq
+	* Mark Whitley -- remix of xargs
+
 
 	 -Erik Andersen
 
