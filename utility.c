@@ -264,7 +264,7 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 }
 #endif
 
-#if defined (BB_AR)
+#if defined (BB_AR) || defined BB_CP_MV
 /*
  * Copy readSize bytes between two file descriptors
  */
@@ -535,7 +535,7 @@ int fullWrite(int fd, const char *buf, int len)
 #endif /* BB_TAR || BB_CP_MV || BB_AR */
 
 
-#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH
+#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH || defined BB_CP_MV
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
