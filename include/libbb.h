@@ -25,6 +25,7 @@
 #define	__LIBCONFIG_H__    1
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
