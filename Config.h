@@ -226,7 +226,7 @@
 // Enable support for mounting remote NFS volumes. 
 // You may need to mount with "-o nolock" if you are
 // not running a local portmapper daemon...
-#define BB_FEATURE_NFSMOUNT
+//#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
 // (i.e., in case of an unreachable NFS system).
