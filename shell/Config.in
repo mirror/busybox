@@ -178,6 +178,11 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	  is generally used when creating a staticly linked version of busybox
 	  for use as a rescue shell, in the event that you screw up your system.
 
+	  Note that when using this option, the shell will attempt to directly
+	  run '/bin/busybox'.  If you do not have the busybox binary sitting in
+	  that exact location with that exact name, this option will not work at
+	  all.
+
 config CONFIG_FEATURE_COMMAND_EDITING
 	bool "command line editing"
 	default n
