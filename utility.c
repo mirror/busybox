@@ -1529,7 +1529,7 @@ extern char *find_unused_loop_device(void)
 }
 #endif							/* BB_FEATURE_MOUNT_LOOP */
 
-#if defined BB_MOUNT || defined BB_DF
+#if defined BB_MOUNT || defined BB_DF || ( defined BB_UMOUNT && ! defined BB_MTAB)
 extern int find_real_root_device_name(char* name)
 {
 	DIR *dir;
