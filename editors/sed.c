@@ -672,12 +672,8 @@ extern int sed_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {
+	while ((opt = getopt(argc, argv, "hne:f:")) > 0) {
 		switch (opt) {
-			case 'V':
-				printf("%s\n", full_version);
-				exit(0);
-				break;
 			case 'h':
 				usage(sed_usage);
 				break;
