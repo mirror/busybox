@@ -242,7 +242,7 @@ full_write.c get_console.c get_last_path_component.c get_line_from_file.c \
 human_readable.c inode_hash.c isdirectory.c kernel_version.c loop.c \
 mode_string.c parse_mode.c parse_number.c print_file.c process_escape_sequence.c \
 my_getgrgid.c my_getpwnamegid.c my_getpwuid.c my_getgrnam.c my_getpwnam.c \
-recursive_action.c safe_read.c safe_strncpy.c syscalls.c \
+recursive_action.c safe_read.c safe_strncpy.c syscalls.c module_syscalls.c \
 syslog_msg_with_name.c time_string.c trim.c vdprintf.c wfopen.c xfuncs.c \
 xregcomp.c error_msg_and_die.c perror_msg.c perror_msg_and_die.c \
 verror_msg.c vperror_msg.c mtab.c mtab_file.c

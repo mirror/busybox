@@ -1,10 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Utility routines.
+ * some system calls possibly missing from libc
  *
- * Copyright (C) tons of folks.  Tracking down who wrote what
- * isn't something I'm going to worry about...  If you wrote something
- * here, please feel free to acknowledge your work.
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.
+ * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +19,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
- * Permission has been granted to redistribute this code under the GPL.
- *
  */
 
 #include <stdio.h>
 #include <errno.h>
-#include <sys/syscall.h>
-#include <linux/unistd.h>
+#include <unistd.h>
+/* Kernel headers before 2.1.mumble need this on the Alpha to get
+   _syscall* defined.  */
+#define __LIBRARY__
 
+
+#include <sys/syscall.h>
+#include <asm/unistd.h>
 #include "libbb.h"
 
+#if defined(__ia64__)
+int sysfs( int option, unsigned int fs_index, char * buf)
+{
+	return(syscall(__NR_sysfs, option, fs_index, buf));
+}
+#else
 _syscall3(int, sysfs, int, option, unsigned int, fs_index, char *, buf);
+#endif
 
 #ifndef __NR_pivot_root
 #warning This kernel does not support the pivot_root syscall
@@ -50,7 +58,14 @@ int pivot_root(const char * new_root,const char * put_old)
 	return -1;
 }
 #else
-_syscall2(int,pivot_root,const char *,new_root,const char *,put_old)
+#  if defined(__ia64__)
+	int pivot_root(const char * new_root,const char * put_old)
+	{
+		return(syscall(__NR_pivot_root, new_root, put_old));
+	}
+#  else
+    _syscall2(int,pivot_root,const char *,new_root,const char *,put_old);
+#  endif
 #endif
 
 
@@ -59,27 +74,6 @@ _syscall2(int,pivot_root,const char *,new_root,const char *,put_old)
 #if __GNU_LIBRARY__ < 5
 /* These syscalls are not included as part of libc5 */
 _syscall2(int, bdflush, int, func, int, data);
-_syscall1(int, delete_module, const char *, name)
-
-#ifndef __NR_query_module
-#warning This kernel does not support the query_module syscall
-#warning -> The query_module system call is being stubbed out...
-int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret)
-{
-	/* BusyBox was compiled against a kernel that did not support
-	 *  the query_module system call.  To make this application work,
-	 *  you will need to recompile with a kernel supporting the
-	 *  query_module system call.
-	 */
-	fprintf(stderr, "\n\nTo make this application work, you will need to recompile\n");
-	fprintf(stderr, "with a kernel supporting the query_module system call. -Erik\n\n");
-	errno=ENOSYS;
-	return -1;
-}
-#else
-_syscall5(int, query_module, const char *, name, int, which,
-		void *, buf, size_t, bufsize, size_t*, ret);
-#endif
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
@@ -107,11 +101,6 @@ _syscall2(int, umount2, const char *, special_file, int, flags);
 
 
 #endif /* __GNU_LIBRARY__ < 5 */
-
-
-#if 0
-_syscall1(int, sysinfo, struct sysinfo *, info);
-#endif
 
 
 /* END CODE */

@@ -60,8 +60,6 @@
 #include <string.h>
 #include <getopt.h>
 #include <sys/utsname.h>
-#include <sys/syscall.h>
-#include <linux/unistd.h>
 #include "busybox.h"
 
 #if defined(__powerpc__)
@@ -119,7 +117,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.54 2001/04/05 03:14:39 andersen Exp $"
+#ident "$Id: insmod.c,v 1.55 2001/04/05 06:08:14 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -325,7 +323,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.54 2001/04/05 03:14:39 andersen Exp $"
+#ident "$Id: insmod.c,v 1.55 2001/04/05 06:08:14 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -674,20 +672,8 @@ int n_ext_modules;
 int n_ext_modules_used;
 
 
-
-/* Some firendly syscalls to cheer everyone's day...  */
-#define __NR_new_sys_init_module  __NR_init_module
-_syscall2(int, new_sys_init_module, const char *, name,
-		  const struct new_module *, info)
-#define __NR_old_sys_init_module  __NR_init_module
-_syscall5(int, old_sys_init_module, const char *, name, char *, code,
-		  unsigned, codesize, struct old_mod_routines *, routines,
-		  struct old_symbol_table *, symtab)
-#ifndef BB_RMMOD
-_syscall1(int, delete_module, const char *, name)
-#else
 extern int delete_module(const char *);
-#endif
+
 
 /* This is kind of troublesome. See, we don't actually support
    the m68k or the arm the same way we support i386 and (now)
@@ -700,29 +686,6 @@ extern int delete_module(const char *);
 
    -- Bryan Rittmeyer <bryan@ixiacom.com>                    */
 
-#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
-_syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks)
-#endif
-
-#if defined(__i386__) || defined(__m68k__) || defined(__arm__) \
- || defined(__powerpc__)
-/* Jump through hoops to fixup error return codes */
-#define __NR__create_module  __NR_create_module
-static inline _syscall2(long, _create_module, const char *, name, size_t,
-						size)
-unsigned long create_module(const char *name, size_t size)
-{
-	long ret = _create_module(name, size);
-
-	if (ret == -1 && errno > 125) {
-		ret = -errno;
-		errno = 0;
-	}
-	return ret;
-}
-#else
-_syscall2(unsigned long, create_module, const char *, name, size_t, size)
-#endif
 static char m_filename[BUFSIZ + 1];
 static char m_fullName[BUFSIZ + 1];
 
