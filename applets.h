@@ -30,6 +30,10 @@
     #define APPLET_NOUSAGE(a,b,c) "\0"
     #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\n\n" d##_full_usage "\0"
   #endif
+#elif defined(MAKE_LINKS)
+#  define APPLET(a,b,c) LINK c a
+#  define APPLET_NOUSAGE(a,b,c) LINK c a
+#  define APPLET_ODDNAME(a,b,c,d) LINK c a
 #else
   const struct BB_applet applets[] = {
   #define APPLET(a,b,c) {#a,b,c},
