@@ -878,1504 +878,970 @@
 		</para>
 	</sect1>
 
+	<sect1 id="fbset">
+	    <title>fbset</title>
+
+		<para>
+		Usage: fbset [OPTION]... [MODE]
+		</para>
+
+		<para>
+		Show and modify frame buffer device settings.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-h						Display option summary
+			-fb DEVICE					Operate on DEVICE
+			-db FILE					Use FILE for mode database
+			-g XRES YRES VXRES VYRES DEPTH			Set all geometry parameters
+			-t PIXCLOCK LEFT RIGHT UPPER LOWER HSLEN VSLEN	Set all timing parameters
+			-xres RES					Set visible horizontal resolution
+			-yres RES					Set visible vertical resolution
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ fbset
+			mode "1024x768-76"
+					# D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz
+					geometry 1024 768 1024 768 16
+					timings 12714 128 32 16 4 128 4
+					accel false
+					rgba 5/11,6/5,5/0,0/0
+			endmode
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="fdflush">
+	    <title>fdflush</title>
+
+		<para>
+		Usage: fdflush DEVICE
+		</para>
+
+		<para>
+		Force floppy disk drive to detect disk change on DEVICE.
+		</para>
+	</sect1>
+
+	<sect1 id="find">
+	    <title>find</title>
+
+		<para>
+		Usage: find [PATH]... [EXPRESSION]
+		</para>
+
+		<para>
+		Search for files in a directory hierarchy. The default
+		PATH is the current directory; default EXPRESSION is
+		'-print'.
+		</para>
+
+		<para>
+		EXPRESSION may consist of:
+		</para>
+
+		<para>
+		<screen>
+			-follow		Dereference symbolic links
+			-name PATTERN	File name (leading directories removed) matches PATTERN
+			-print		Print the full file name followed by a newline to stdout
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ find / -name /etc/passwd
+			/etc/passwd
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="free">
+	    <title>free</title>
+
+		<para>
+		Usage: free
+		</para>
+
+		<para>
+		Displays the amount of free and used system memory.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ free
+			total         used         free       shared      buffers
+			  Mem:       257628       248724         8904        59644        93124
+			 Swap:       128516         8404       120112
+			Total:       386144       257128       129016
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="freeramdisk">
+	    <title>freeramdisk</title>
+
+		<para>
+		Usage: freeramdisk DEVICE
+		</para>
+
+		<para>
+		Free all memory used by the ramdisk DEVICE.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ freeramdisk /dev/ram2
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="fsck.minix">
+	    <title>fsck.minix</title>
+
+		<para>
+		Usage: fsck.minix [OPTION]... DEVICE
+		</para>
+
+		<para>
+		Perform a consistency check on the MINIX filesystem on
+		DEVICE.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all filenames
+			-r	Perform interactive repairs
+			-a	Perform automatic repairs
+			-v	Verbose
+			-s	Output super-block information
+			-m	Activate MINIX-like "mode not cleared" warnings
+			-f	Force file system check.
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="grep">
+	    <title>grep</title>
+
+		<para>
+		Usage: grep [OPTIONS]... PATTERN [FILE]...
+		</para>
+
+		<para>
+		Search for PATTERN in each FILE or stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-h	Suppress the prefixing filename on output
+			-i	Ignore case distinctions
+			-n	Print line number with output lines
+			-q	Be quiet. Returns 0 if result was found, 1 otherwise
+			-v	Select non-matching lines
+		</screen>
+		</para>
+
+		<para>
+		This version of grep matches full regular expressions.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ grep root /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+			$ grep ^[rR]oo. /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="gunzip">
+	    <title>gunzip</title>
+
+		<para>
+		Usage: gunzip [OPTION]... FILE
+		</para>
+
+		<para>
+		Uncompress FILE (or stdin if FILE is '-').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Write output to standard output
+			-t	Test compressed file integrity
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz
+			$ gunzip /tmp/BusyBox-0.43.tar.gz
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
+		</screen>
+		</para>
+	</sect1>
+
+<	<sect1 id="gzip">
+	    <title>gzip</title>
+
+		<para>
+		Usage: gzip [OPTION]... FILE
+		</para>
+
+		<para>
+		Compress FILE (or stdin if FILE is '-') with maximum
+		compression to FILE.gz (or stdout if FILE is '-').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Write output to standard output
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
+			$ gzip /tmp/BusyBox-0.43.tar
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/BusyBox-0.43.tar.gz
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="halt">
+	    <title>halt</title>
+
+		<para>
+		Usage: halt
+		</para>
+
+		<para>
+		Halt the system.
+		</para>
+	</sect1>
+
+	<sect1 id="head">
+	    <title>head</title>
+
+		<para>
+		Usage: head [OPTION] FILE...
+		</para>
+
+		<para>
+		Print first 10 lines of each FILE to standard output.
+		With more than one FILE, precede each with a header
+		giving the file name. With no FILE, or when FILE is -,
+		read standard input.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n NUM	Print first NUM lines instead of first 10
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ head -n 2 /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+			daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="hostid">
+	    <title>hostid</title>
+
+		<para>
+		Usage: hostid
+		</para>
+
+		<para>
+		Prints out a unique 32-bit identifier for the current
+		machine. The 32-bit identifier is intended to be unique
+		among all UNIX systems in existence. 
+		</para>
+	</sect1>
+
+	<sect1 id="hostname">
+	    <title>hostname</title>
+
+		<para>
+		Usage: hostname [OPTION]... [HOSTNAME|-F FILE]
+		</para>
+
+		<para>
+		Get or set the hostname or DNS domain name. If a
+		hostname is given (or a file with the -F parameter), the
+		host name will be set.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Short
+			-i	Addresses for the hostname
+			-d	DNS domain name
+			-F FILE	Use the contents of FILE to specify the hostname
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ hostname
+			slag
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="id">
+	    <title>id</title>
+
+		<para>
+		Usage: id [OPTION]... [USERNAME]
+		</para>
+
+		<para>
+		Print information for USERNAME or the current user.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-g	Print only the group ID
+			-u	Print only the user ID
+			-r	Print the real user ID instead of the effective ID (with -ug)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ id
+			uid=1000(andersen) gid=1000(andersen)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="init">
+	    <title>init</title>
+
+		<para>
+		Usage: init
+		</para>
+
+		<para>
+		Init is the parent of all processes.
+		</para>
+
+		<para>
+		This version of init is designed to be run only by the
+		kernel.
+		</para>
+
+		<para>
+		BusyBox init doesn't support multiple runlevels. The
+		runlevels field of the /etc/inittab file is completely
+		ignored by BusyBox init. If you want runlevels, use
+		sysvinit.
+		</para>
+
+		<para>
+		BusyBox init works just fine without an inittab. If no
+		inittab is found, it has the following default behavior:
+		</para>
+
+		<para>
+		<screen>
+			::sysinit:/etc/init.d/rcS
+			::askfirst:/bin/sh
+		</screen>
+		</para>
+
+		<para>
+		If it detects that /dev/console is _not_ a serial
+		console, it will also run:
+		</para>
+
+		<para>
+		<screen>
+			tty2::askfirst:/bin/sh
+		</screen>
+		</para>
+
+		<para>
+		If you choose to use an /etc/inittab file, the inittab
+		entry format is as follows:
+		</para>
+
+		<para>
+		<screen>
+			&lt;id&gt;:&lt;runlevels&gt;:&lt;action&gt;:&lt;process&gt;
+		</screen>
+		<para>
+
+		<sect2>
+		    <title>id</title>
+			<para>
+                	WARNING: This field has a non-traditional
+			meaning for BusyBox init!  The id field is used
+			by BusyBox init to specify the controlling tty
+			for the specified process to run on.  The
+			contents of this field are appended to "/dev/"
+			and used as-is.  There is no need for this field
+			to be unique, although if it isn't you may have
+			strange results.  If this field is left blank,
+			it is completely ignored.  Also note that if
+			BusyBox detects that a serial console is in use,
+			then all entries containing non-empty id fields
+			will _not_ be run.  BusyBox init does nothing
+			with utmp.  We don't need no stinkin' utmp.
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>runlevels</title>
+
+			<para>
+                	The runlevels field is completely ignored.
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>action</title>
+
+			<para>
+                	Valid actions include: sysinit, respawn,
+			askfirst, wait, once, and ctrlaltdel.
+			</para>
+
+			<para>
+                	askfirst acts just like respawn, but before
+			running the specified process it displays the
+			line "Please press Enter to activate this
+			console." and then waits for the user to press
+			enter before starting the specified process.
+			</para>
+
+			<para>
+                	Unrecognized actions (like initdefault) will
+			cause init to emit an error message, and then go
+			along with its business.
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>process</title>
+
+			<para>
+                	Specifies the process to be executed and its
+			command line.
+			</para>
+		</sect2>
+
+		<para>
+		Example /etc/inittab file:
+		</para>
+
+		<para>
+		<screen>
+			# This is run first except when booting in single-user mode.
+			#
+			::sysinit:/etc/init.d/rcS
+
+			# /bin/sh invocations on selected ttys
+			#
+			# Start an "askfirst" shell on the console (whatever that may be)
+			::askfirst:/bin/sh
+			# Start an "askfirst" shell on /dev/tty2
+			tty2::askfirst:/bin/sh
+
+			# /sbin/getty invocations for selected ttys
+			#
+			tty4::respawn:/sbin/getty 38400 tty4
+			tty5::respawn:/sbin/getty 38400 tty5
+
+			# Example of how to put a getty on a serial line (for a terminal)
+			#
+			#ttyS0::respawn:/sbin/getty -L ttyS0 9600 vt100
+			#ttyS1::respawn:/sbin/getty -L ttyS1 9600 vt100
+			#
+			# Example how to put a getty on a modem line.
+			#ttyS2::respawn:/sbin/getty -x0 -s 57600 ttyS2
+
+			# Stuff to do before rebooting
+			::ctrlaltdel:/bin/umount -a -r &gt; /dev/null 2&gt;&amp;1
+			::ctrlaltdel:/sbin/swapoff -a &gt; /dev/null 2&gt;&amp;1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="insmod">
+	    <title>insmod</title>
+
+		<para>
+		Usage: insmod [OPTION]... MODULE [symbol=value]...
+		</para>
+
+		<para>
+		Loads MODULE into the kernel.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f	Force module to load into the wrong kernel version.
+			-k	Make module autoclean-able.
+			-v	Verbose output
+			-x	Do not export externs
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="kill">
+	    <title>kill</title>
+
+		<para>
+		Usage: kill [OPTION] PID...
+		</para>
+
+		<para>
+		Send a signal (default is SIGTERM) to the specified
+		PID(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all signal names and numbers
+			-SIG	Send signal SIG
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ps | grep apache
+			252 root     root     S [apache]
+			263 www-data www-data S [apache]
+			264 www-data www-data S [apache]
+			265 www-data www-data S [apache]
+			266 www-data www-data S [apache]
+			267 www-data www-data S [apache]
+			$ kill 252
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="killall">
+	    <title>killall</title>
+
+		<para>
+		Usage: killall [OPTION] NAME...
+		</para>
+
+		<para>
+		Send a signal (default is SIGTERM) to the specified
+		NAME(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all signal names and numbers
+			-SIG	Send signal SIG
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ killall apache
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="length">
+	    <title>length</title>
+
+		<para>
+		Usage: length STRING
+		</para>
+
+		<para>
+		Print the length of STRING.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ length "Hello"
+			5
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ln">
+	    <title>ln</title>
+
+		<para>
+		Usage: ln [OPTION]... TARGET FILE|DIRECTORY
+		</para>
+
+		<para>
+		Create a link named FILE or DIRECTORY to the specified
+		TARGET.  You may use '--' to indicate that all following
+		arguments are non-options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Make symbolic link instead of hard link
+			-f	Remove existing destination file
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ln -s BusyBox /tmp/ls
+			$ ls -l /tmp/ls
+			lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -&gt; BusyBox*
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadacm">
+	    <title>loadacm</title>
+
+		<para>
+		Usage: loadacm
+		</para>
+
+		<para>
+		Load an acm from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadacm &lt; /etc/i18n/acmname
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadfont">
+	    <title>loadfont</title>
+
+		<para>
+		Usage: loadfont
+		</para>
+
+		<para>
+		Load a console font from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadfont &lt; /etc/i18n/fontname
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadkmap">
+	    <title>loadkmap</title>
+
+		<para>
+		Usage: loadkmap
+		</para>
+
+		<para>
+		Load a binary keyboard translation table from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadkmap &lt; /etc/i18n/lang-keymap
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="logger">
+	    <title>logger</title>
+
+		<para>
+		Usage: logger [OPTION]... [MESSAGE]
+		</para>
+
+		<para>
+		Write MESSAGE to the system log.  If MESSAGE is '-', log
+		stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Log to stderr as well as the system log
+			-t	Log using the specified tag (defaults to user name)
+			-p	Enter the message with the specified priority
+				This may be numerical or a ``facility.level'' pair
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ logger "hello"
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="logname">
+	    <title>logname</title>
+
+		<para>
+		Usage: logname
+		</para>
+
+		<para>
+		Print the name of the current user.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ logname
+			root
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ls">
+	    <title>ls</title>
+
+		<para>
+		Usage: ls [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Do not hide entries starting with .
+			-c	With  -l:  show ctime (the time of last
+				modification of file status information)
+			-d	List directory entries instead of contents
+			-e	List both full date and full time
+			-l	Use a long listing format
+			-n	List numeric UIDs and GIDs instead of names
+			-p	Append indicator (one of /=@|) to entries
+			-u	With -l: show access time (the time of last
+				access of the file)
+			-x	List entries by lines instead of by columns
+			-A	Do not list implied . and ..
+			-C	List entries by columns
+			-F	Append indicator (one of */=@|) to entries
+			-R	List subdirectories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="lsmod">
+	    <title>lsmod</title>
+
+		<para>
+		Usage: lsmod
+		</para>
+
+		<para>
+		List currently loaded kernel modules.
+		</para>
+	</sect1>
+
+	<sect1 id="makedevs">
+	    <title>makedevs</title>
+
+		<para>
+		Usage: makedevsf NAME TYPE MAJOR MINOR FIRST LAST [s]
+		</para>
+
+		<para>
+		Create a range of block or character special files.
+		</para>
+
+		<para>
+		TYPE may be:
+		</para>
+
+		<para>
+		<screen>
+			b	Make a block (buffered) device
+			c or u	Make a character (un-buffered) device
+			p	Make a named pipe. MAJOR and MINOR are ignored for named pipes
+		</screen>
+		</para>
+
+		<para>
+		FIRST specifies the number appended to NAME to create
+		the first device.  LAST specifies the number of the last
+		item that should be created. If 's' is the last
+		argument, the base device is created as well.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ makedevs /dev/ttyS c 4 66 2 63
+			[creates ttyS2-ttyS63]
+			$ makedevs /dev/hda b 3 0 0 8 s
+			[creates hda,hda1-hda8]
+		</screen>
+		</para>
+	</sect1>
+
 <!-- This is where I have stopped formatting stuff -->
-<varlistentry><term><emphasis>fbset
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: fbset [options] [mode]
-
-
-</para>
-
-<para>
-Show and modify frame buffer device settings
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -h
-        -fb
-        -db
-        -a
-        -i
-        -g
-        -t
-        -accel
-        -hsync
-        -vsync
-        -laced
-        -double
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ fbset
-        mode "1024x768-76"
-                        # D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz
-                        geometry 1024 768 1024 768 16
-                        timings 12714 128 32 16 4 128 4
-                        accel false
-                        rgba 5/11,6/5,5/0,0/0
-        endmode
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>fdflush
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: fdflush device
-
-
-</para>
-
-<para>
-Force floppy disk drive to detect disk change
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>find
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: find [PATH...] [EXPRESSION]
-
-
-</para>
-
-<para>
-Search for files in a directory hierarchy. The default PATH is the current
-directory; default EXPRESSION is '-print'
-
-
-</para>
-
-<para>
-EXPRESSION may consist of:
-
-
-</para>
-
-<para>
-<screen>
-        -follow                 Dereference symbolic links.
-        -name PATTERN   File name (leading directories removed) matches PATTERN.
-        -print                  print the full file name followed by a newline to stdout.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ find / -name /etc/passwd
-        /etc/passwd
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>free
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: free
-
-
-</para>
-
-<para>
-Displays the amount of free and used system memory.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ free
-                                  total         used         free       shared      buffers
-          Mem:       257628       248724         8904        59644        93124
-         Swap:       128516         8404       120112
-        Total:       386144       257128       129016
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>freeramdisk
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: freeramdisk DEVICE
-
-
-</para>
-
-<para>
-Frees all memory used by the specified ramdisk.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ freeramdisk /dev/ram2
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>fsck.minix
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: fsck.minix [<emphasis>-larvsmf</emphasis>] /dev/name
-
-
-</para>
-
-<para>
-Performs a consistency check for MINIX filesystems.
-
-
-</para>
-
-<para>
-OPTIONS:
-
-
-</para>
-
-<para>
-<screen>
-        -l      Lists all filenames
-        -r      Perform interactive repairs
-        -a      Perform automatic repairs
-        -v      verbose
-        -s      Outputs super-block information
-        -m      Activates MINIX-like "mode not cleared" warnings
-        -f      Force file system check.
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>grep
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: grep [OPTIONS]... PATTERN [FILE]...
-
-
-</para>
-
-<para>
-Search for PATTERN in each FILE or standard input.
-
-
-</para>
-
-<para>
-OPTIONS:
-
-
-</para>
-
-<para>
-<screen>
-        -h      suppress the prefixing filename on output
-        -i      ignore case distinctions
-        -n      print line number with output lines
-        -q      be quiet. Returns 0 if result was found, 1 otherwise
-        -v      select non-matching lines
-</screen>
-
-
-</para>
-
-<para>
-This version of grep matches full regular expressions.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ grep root /etc/passwd
-        root:x:0:0:root:/root:/bin/bash
-        $ grep ^[rR]oo. /etc/passwd
-        root:x:0:0:root:/root:/bin/bash
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>gunzip
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: gunzip [OPTION]... FILE
-
-
-</para>
-
-<para>
-Uncompress FILE (or standard input if FILE is '-').
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c      Write output to standard output
-        -t      Test compressed file integrity
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -la /tmp/BusyBox*
-        -rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz
-        $ gunzip /tmp/BusyBox-0.43.tar.gz
-        $ ls -la /tmp/BusyBox*
-        -rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>gzip
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: gzip [OPTION]... FILE
-
-
-</para>
-
-<para>
-Compress FILE with maximum compression. When FILE is '-', reads standard
-input. Implies <emphasis>-c</emphasis>.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c      Write output to standard output instead of FILE.gz
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -la /tmp/BusyBox*
-        -rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
-        $ gzip /tmp/BusyBox-0.43.tar
-        $ ls -la /tmp/BusyBox*
-        -rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/BusyBox-0.43.tar.gz
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>halt
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: halt
-
-
-</para>
-
-<para>
-This command halts the system.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>head
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: head [OPTION] [FILE]...
-
-
-</para>
-
-<para>
-Print first 10 lines of each FILE to standard output. With more than one
-FILE, precede each with a header giving the file name. With no FILE, or
-when FILE is -, read standard input.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -n NUM          Print first NUM lines instead of first 10
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ head -n 2 /etc/passwd
-        root:x:0:0:root:/root:/bin/bash
-        daemon:x:1:1:daemon:/usr/sbin:/bin/sh
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>hostid
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: hostid
-
-
-</para>
-
-<para>
-Prints out a unique 32-bit identifier for the current machine. The 32-bit
-identifier is intended to be unique among all UNIX systems in existence. 
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>hostname
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: hostname [OPTION] {hostname | <emphasis>-F</emphasis> file}
-
-
-</para>
-
-<para>
-Get or set the hostname or DNS domain name. If a hostname is given (or a
-file with the <emphasis>-F</emphasis> parameter), the host name will be set.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -s              Short
-        -i              Addresses for the hostname
-        -d              DNS domain name
-        -F FILE         Use the contents of FILE to specify the hostname
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ hostname
-        slag 
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>id
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Print information for USERNAME or the current user
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -g      prints only the group ID
-        -u      prints only the user ID
-        -r      prints the real user ID instead of the effective ID (with -ug)
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ id
-        uid=1000(andersen) gid=1000(andersen)
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>init
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: init
-
-
-</para>
-
-<para>
-Init is the parent of all processes.
-
-
-</para>
-
-<para>
-This version of init is designed to be run only by the kernel.
-
-
-</para>
-
-<para>
-BusyBox init doesn't support multiple runlevels. The runlevels field of the
-/etc/inittab file is completely ignored by BusyBox init. If you want
-runlevels, use sysvinit.
-
-
-</para>
-
-<para>
-BusyBox init works just fine without an inittab. If no inittab is found, it
-has the following default behavior:
-
-
-</para>
-
-<para>
-<screen>
-        ::sysinit:/etc/init.d/rcS
-        ::askfirst:/bin/sh
-</screen>
-
-
-</para>
-
-<para>
-if it detects that /dev/console is _not_ a serial console, it will also
-run:
-
-
-</para>
-
-<para>
-<screen>
-        tty2::askfirst:/bin/sh
-</screen>
-
-
-</para>
-
-<para>
-If you choose to use an /etc/inittab file, the inittab entry format is as
-follows:
-
-
-</para>
-
-<para>
-<screen>
-        &lt;id&gt;:&lt;runlevels&gt;:&lt;action&gt;:&lt;process&gt;
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        &lt;id&gt;: 
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                WARNING: This field has a non-traditional meaning for BusyBox init!
-                The id field is used by BusyBox init to specify the controlling tty for
-                the specified process to run on.  The contents of this field are
-                appended to "/dev/" and used as-is.  There is no need for this field to
-                be unique, although if it isn't you may have strange results.  If this
-                field is left blank, it is completely ignored.  Also note that if
-                BusyBox detects that a serial console is in use, then all entries
-                containing non-empty id fields will _not_ be run.  BusyBox init does
-                nothing with utmp.  We don't need no stinkin' utmp.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        &lt;runlevels&gt;: 
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                The runlevels field is completely ignored.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        &lt;action&gt;: 
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                Valid actions include: sysinit, respawn, askfirst, wait, 
-                once, and ctrlaltdel.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                askfirst acts just like respawn, but before running the specified
-                process it displays the line "Please press Enter to activate this
-                console." and then waits for the user to press enter before starting
-                the specified process.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                Unrecognized actions (like initdefault) will cause init to emit
-                an error message, and then go along with its business.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        &lt;process&gt;: 
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                Specifies the process to be executed and it's command line.
-</screen>
-
-
-</para>
-
-<para>
-Example /etc/inittab file:
-
-
-</para>
-
-<para>
-<screen>
-        # This is run first except when booting in single-user mode.
-        #
-        ::sysinit:/etc/init.d/rcS
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        # /bin/sh invocations on selected ttys
-        #
-        # Start an "askfirst" shell on the console (whatever that may be)
-        ::askfirst:/bin/sh
-        # Start an "askfirst" shell on /dev/tty2
-        tty2::askfirst:/bin/sh
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        # /sbin/getty invocations for selected ttys
-        #
-        tty4::respawn:/sbin/getty 38400 tty4
-        tty5::respawn:/sbin/getty 38400 tty5
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        # Example of how to put a getty on a serial line (for a terminal)
-        #
-        #ttyS0::respawn:/sbin/getty -L ttyS0 9600 vt100
-        #ttyS1::respawn:/sbin/getty -L ttyS1 9600 vt100
-        #
-        # Example how to put a getty on a modem line.
-        #ttyS2::respawn:/sbin/getty -x0 -s 57600 ttyS2
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        # Stuff to do before rebooting
-        ::ctrlaltdel:/bin/umount -a -r &gt; /dev/null 2&gt;&amp;1
-        ::ctrlaltdel:/sbin/swapoff -a &gt; /dev/null 2&gt;&amp;1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>insmod
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: insmod [OPTION]... MODULE [symbol=value]...
-
-
-</para>
-
-<para>
-Loads the specified kernel modules into the kernel.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-                -f      Force module to load into the wrong kernel version.
-                -k      Make module autoclean-able.
-                -v      verbose output
-                -x      do not export externs
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>kill
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: kill [<emphasis>-signal</emphasis>] process-id [process-id ...]
-
-
-</para>
-
-<para>
-Send a signal (default is SIGTERM) to the specified
-<literal>process(es).</literal>
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -l      List all signal names and numbers.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ps | grep apache
-        252 root     root     S [apache]
-        263 www-data www-data S [apache]
-        264 www-data www-data S [apache]
-        265 www-data www-data S [apache]
-        266 www-data www-data S [apache]
-        267 www-data www-data S [apache]
-        $ kill 252
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>killall
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: killall [<emphasis>-signal</emphasis>] process-name [process-name ...]
-
-
-</para>
-
-<para>
-Send a signal (default is SIGTERM) to the specified
-<literal>process(es).</literal>
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -l      List all signal names and numbers.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ killall apache
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>length
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: length STRING
-
-
-</para>
-
-<para>
-Prints out the length of the specified STRING.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ length "Hello"
-        5
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>ln
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: ln [OPTION] TARGET... LINK_NAME|DIRECTORY
-
-
-</para>
-
-<para>
-Create a link named LINK_NAME or DIRECTORY to the specified TARGET You may
-use '--' to indicate that all following arguments are non-options.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -s      make symbolic links instead of hard links
-        -f      remove existing destination files
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-    $ ln -s BusyBox /tmp/ls
-    $ ls -l /tmp/ls
-    lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -&gt; BusyBox*
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>loadacm
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: loadacm
-
-
-</para>
-
-<para>
-Loads an acm from standard input.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ loadacm &lt; /etc/i18n/acmname
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>loadfont
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: loadfont
-
-
-</para>
-
-<para>
-Loads a console font from standard input.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ loadfont &lt; /etc/i18n/fontname
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>loadkmap
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: loadkmap
-
-
-</para>
-
-<para>
-Loads a binary keyboard translation table from standard input.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ loadkmap &lt; /etc/i18n/lang-keymap
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>logger
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: logger [OPTION]... [MESSAGE]
-
-
-</para>
-
-<para>
-Write MESSAGE to the system log. If MESSAGE is '-', log stdin.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -s      Log to stderr as well as the system log.
-        -t      Log using the specified tag (defaults to user name).
-        -p      Enter the message with the specified priority.
-                This may be numerical or a ``facility.level'' pair.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-                $ logger "hello"
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>logname
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: logname
-
-
-</para>
-
-<para>
-Print the name of the current user.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ logname
-        root
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>ls
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: ls [<emphasis>-1acdelnpuxACFR</emphasis>] [filenames...]
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      do not hide entries starting with .
-        -c      with  -l:  show ctime (the time of last
-                modification of file status information)
-        -d      list directory entries instead of contents
-        -e      list both full date and full time
-        -l      use a long listing format
-        -n      list numeric UIDs and GIDs instead of names
-        -p      append indicator (one of /=@|) to entries
-        -u      with -l: show access time (the time of last
-                access of the file)
-        -x      list entries by lines instead of by columns
-        -A      do not list implied . and ..
-        -C      list entries by columns
-        -F      append indicator (one of */=@|) to entries
-        -R  list subdirectories recursively
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>lsmod
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: lsmod
-
-
-</para>
-
-<para>
-Shows a list of all currently loaded kernel modules.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>makedevs
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: makedevs NAME TYPE MAJOR MINOR FIRST LAST [s]
-
-
-</para>
-
-<para>
-Creates a range of block or character special files
-
-
-</para>
-
-<para>
-TYPEs include:
-
-
-</para>
-
-<para>
-<screen>
-        b:      Make a block (buffered) device.
-        c or u: Make a character (un-buffered) device.
-        p:      Make a named pipe. MAJOR and MINOR are ignored for named pipes.
-</screen>
-
-
-</para>
-
-<para>
-FIRST specifies the number appended to NAME to create the first device.
-LAST specifies the number of the last item that should be created. If 's'
-is the last argument, the base device is created as well.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ makedevs /dev/ttyS c 4 66 2 63
-        [creates ttyS2-ttyS63]
-        $ makedevs /dev/hda b 3 0 0 8 s
-        [creates hda,hda1-hda8]
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>md5sum
 
 </emphasis></term>
