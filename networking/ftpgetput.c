@@ -187,7 +187,7 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 	}
 
 	if (do_continue) {
-		sprintf(buf, "REST %ld", beg_range);
+		sprintf(buf, "REST %ld", (long)beg_range);
 		if (ftpcmd(buf, NULL, control_stream, buf) != 350) {
 			do_continue = 0;
 		} else {
@@ -245,7 +245,7 @@ static int ftp_send(FILE *control_stream, const char *host, const char *server_p
 	fd_local = bb_xopen(local_path, O_RDONLY);
 	fstat(fd_local, &sbuf);
 
-	sprintf(buf, "ALLO %lu", sbuf.st_size);
+	sprintf(buf, "ALLO %lu", (unsigned long)sbuf.st_size);
 	response = ftpcmd(buf, NULL, control_stream, buf);
 	switch (response) {
 	case 200:
