@@ -319,6 +319,32 @@ static struct dep_t *build_dep ( void )
 	return first;
 }
 
+/* return 1 = loaded, 0 = not loaded, -1 = can't tell */
+static int already_loaded (const char *name)
+{
+	int fd;
+	char buffer[256];
+
+	fd = open ("/proc/modules", O_RDONLY);
+	if (fd < 0)
+		return -1;
+
+	while ( reads ( fd, buffer, sizeof( buffer ))) {
+		char *p;
+
+		p = strchr (buffer, ' ');
+		if (p) {
+			*p = 0;
+			if (strcmp (name, buffer) == 0) {
+				close (fd);
+				return 1;
+			}
+		}
+	}
+
+	close (fd);
+	return 0;
+}
 
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
@@ -326,10 +352,13 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 	int rc = 1;
 
 	while ( list ) {
-		if ( do_insert )
-			snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s 2>/dev/null", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module, list-> m_options ? list-> m_options : "" );
-		else
-			snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s 2>/dev/null", do_syslog ? "-s" : "", list-> m_module );
+		if ( do_insert ) {
+			if (already_loaded (list->m_module) != 1)
+				snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module, list-> m_options ? list-> m_options : "" );
+		} else {
+			if (already_loaded (list->m_module) != 0)
+				snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s", do_syslog ? "-s" : "", list-> m_module );
+		}
 		
 		if ( verbose )
 			printf ( "%s\n", lcmd );
