@@ -26,9 +26,9 @@
  */
 
 
-#define BB_FEATURE_SH_BACKTICKS
+//#define BB_FEATURE_SH_BACKTICKS
 //#define BB_FEATURE_SH_IF_EXPRESSIONS
-
+//#define BB_FEATURE_SH_ENVIRONMENT
 
 
 #include "internal.h"
@@ -57,13 +57,11 @@ enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 };
 
 static const unsigned int REGULAR_JOB_CONTEXT=0x1;
-static const unsigned int IF_EXP_CONTEXT=0x2;
-static const unsigned int THEN_EXP_CONTEXT=0x4;
-static const unsigned int ELSE_EXP_CONTEXT=0x8;
+static const unsigned int IF_TRUE_CONTEXT=0x2;
+static const unsigned int IF_FALSE_CONTEXT=0x4;
+static const unsigned int THEN_EXP_CONTEXT=0x8;
+static const unsigned int ELSE_EXP_CONTEXT=0x10;
 
-
-enum jobContext { REGULAR_APP, IF_CONTEXT, THEN_CONTEXT
-};
 
 struct jobSet {
 	struct job *head;			/* head of list of running jobs */
@@ -128,8 +126,7 @@ static int builtin_fi(struct job *cmd, struct jobSet *junk);
 /* function prototypes for shell stuff */
 static void checkJobs(struct jobSet *jobList);
 static int getCommand(FILE * source, char *command);
-static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *isBg);
-static int setupRedirections(struct childProgram *prog);
+static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *inBg);
 static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2]);
 static int busy_loop(FILE * input);
 
@@ -146,6 +143,12 @@ static struct builtInCommand bltins[] = {
 	{"export", "Set environment variable", builtin_export},
 	{"unset", "Unset environment variable", builtin_unset},
 	{"read", "Input environment variable", builtin_read},
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
+	{"if", NULL, builtin_if},
+	{"then", NULL, builtin_then},
+	{"else", NULL, builtin_else},
+	{"fi", NULL, builtin_fi},
+#endif
 	{NULL, NULL, NULL}
 };
 
@@ -154,12 +157,6 @@ static struct builtInCommand bltins[] = {
 static struct builtInCommand bltins_forking[] = {
 	{"env", "Print all environment variables", builtin_env},
 	{"pwd", "Print current directory", builtin_pwd},
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-	{"if", NULL, builtin_if},
-	{"then", NULL, builtin_then},
-	{"else", NULL, builtin_else},
-	{"fi", NULL, builtin_fi},
-#endif
 	{".", "Source-in and run commands in a file", builtin_source},
 	{"help", "List shell built-in commands", builtin_help},
 	{NULL, NULL, NULL}
@@ -170,6 +167,13 @@ static char *cwd;
 static char *local_pending_command = NULL;
 static char *promptStr = NULL;
 static struct jobSet jobList = { NULL, NULL };
+static int argc;
+static char **argv;
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+static int lastBgPid=-1;
+static int lastReturnCode=-1;
+#endif
+
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 void win_changed(int junk)
@@ -369,38 +373,91 @@ static int builtin_read(struct job *cmd, struct jobSet *junk)
 
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 /* Built-in handler for 'if' commands */
-static int builtin_if(struct job *cmd, struct jobSet *junk)
+static int builtin_if(struct job *cmd, struct jobSet *jobList)
 {
-	cmd->jobContext |= IF_EXP_CONTEXT;
-	printf("Hit an if -- jobContext=%d\n", cmd->jobContext);
-	return TRUE;
+	int status;
+	char* charptr1=cmd->text+3; /* skip over the leading 'if ' */
+
+	/* Now run the 'if' command */
+	status=strlen(charptr1);
+	local_pending_command = xmalloc(status+1);
+	strncpy(local_pending_command, charptr1, status); 
+	printf("'if' now running '%s'\n", charptr1);
+	status = busy_loop(NULL); /* Frees local_pending_command */
+	printf("if test returned ");
+	if (status == 0) {
+		printf("TRUE\n");
+		cmd->jobContext |= IF_TRUE_CONTEXT;
+	} else {
+		printf("FALSE\n");
+		cmd->jobContext |= IF_FALSE_CONTEXT;
+	}
+
+	return status;
 }
 
 /* Built-in handler for 'then' (part of the 'if' command) */
 static int builtin_then(struct job *cmd, struct jobSet *junk)
 {
-	if (cmd->jobContext & IF_EXP_CONTEXT) {
-		fprintf(stderr, "unexpected token `then'\n");
-		fflush(stderr);
+	int status;
+	char* charptr1=cmd->text+5; /* skip over the leading 'then ' */
+
+	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
+		errorMsg("unexpected token `then'\n");
 		return FALSE;
 	}
+	/* If the if result was FALSE, skip the 'then' stuff */
+	if (cmd->jobContext & IF_TRUE_CONTEXT) {
+		return TRUE;
+	}
+
 	cmd->jobContext |= THEN_EXP_CONTEXT;
-	printf("Hit an then -- jobContext=%d\n", cmd->jobContext);
-	return TRUE;
+	//printf("Hit an then -- jobContext=%d\n", cmd->jobContext);
+
+	/* Now run the 'then' command */
+	status=strlen(charptr1);
+	local_pending_command = xmalloc(status+1);
+	strncpy(local_pending_command, charptr1, status); 
+	printf("'then' now running '%s'\n", charptr1);
+	return( busy_loop(NULL));
 }
 
 /* Built-in handler for 'else' (part of the 'if' command) */
 static int builtin_else(struct job *cmd, struct jobSet *junk)
 {
-	printf("Hit an else\n");
+	int status;
+	char* charptr1=cmd->text+5; /* skip over the leading 'else ' */
+
+	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
+		errorMsg("unexpected token `else'\n");
+		return FALSE;
+	}
+	/* If the if result was TRUE, skip the 'else' stuff */
+	if (cmd->jobContext & IF_FALSE_CONTEXT) {
+		return TRUE;
+	}
+
 	cmd->jobContext |= ELSE_EXP_CONTEXT;
-	return TRUE;
+	//printf("Hit an else -- jobContext=%d\n", cmd->jobContext);
+
+	/* Now run the 'else' command */
+	status=strlen(charptr1);
+	local_pending_command = xmalloc(status+1);
+	strncpy(local_pending_command, charptr1, status); 
+	printf("'else' now running '%s'\n", charptr1);
+	return( busy_loop(NULL));
 }
 
 /* Built-in handler for 'fi' (part of the 'if' command) */
 static int builtin_fi(struct job *cmd, struct jobSet *junk)
 {
-	printf("Hit an fi\n");
+	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
+		errorMsg("unexpected token `fi'\n");
+		return FALSE;
+	}
+	/* Clear out the if and then context bits */
+	cmd->jobContext &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
+	printf("Hit an fi   -- jobContext=%d\n", cmd->jobContext);
 	return TRUE;
 }
 #endif
@@ -521,6 +578,45 @@ static void checkJobs(struct jobSet *jobList)
 		perror("waitpid");
 }
 
+static int setupRedirections(struct childProgram *prog)
+{
+	int i;
+	int openfd;
+	int mode = O_RDONLY;
+	struct redirectionSpecifier *redir = prog->redirections;
+
+	for (i = 0; i < prog->numRedirections; i++, redir++) {
+		switch (redir->type) {
+		case REDIRECT_INPUT:
+			mode = O_RDONLY;
+			break;
+		case REDIRECT_OVERWRITE:
+			mode = O_RDWR | O_CREAT | O_TRUNC;
+			break;
+		case REDIRECT_APPEND:
+			mode = O_RDWR | O_CREAT | O_APPEND;
+			break;
+		}
+
+		openfd = open(redir->filename, mode, 0666);
+		if (openfd < 0) {
+			/* this could get lost if stderr has been redirected, but
+			   bash and ash both lose it as well (though zsh doesn't!) */
+			errorMsg("error opening %s: %s\n", redir->filename,
+					strerror(errno));
+			return 1;
+		}
+
+		if (openfd != redir->fd) {
+			dup2(openfd, redir->fd);
+			close(openfd);
+		}
+	}
+
+	return 0;
+}
+
+
 static int getCommand(FILE * source, char *command)
 {
 	if (source == NULL) {
@@ -562,17 +658,40 @@ static int getCommand(FILE * source, char *command)
 	return 0;
 }
 
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+#define __MAX_INT_CHARS 7
+static char* itoa(register int i)
+{
+	static char a[__MAX_INT_CHARS];
+	register char *b = a + sizeof(a) - 1;
+	int   sign = (i < 0);
+
+	if (sign)
+		i = -i;
+	*b = 0;
+	do
+	{
+		*--b = '0' + (i % 10);
+		i /= 10;
+	}
+	while (i);
+	if (sign)
+		*--b = '-';
+	return b;
+}
+#endif
+
 static void globLastArgument(struct childProgram *prog, int *argcPtr,
 							 int *argcAllocedPtr)
 {
-	int argc = *argcPtr;
+	int argc_l = *argcPtr;
 	int argcAlloced = *argcAllocedPtr;
 	int rc;
 	int flags;
 	int i;
 	char *src, *dst, *var;
 
-	if (argc > 1) {				/* cmd->globResult is already initialized */
+	if (argc_l > 1) {				/* cmd->globResult is already initialized */
 		flags = GLOB_APPEND;
 		i = prog->globResult.gl_pathc;
 	} else {
@@ -581,19 +700,54 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		i = 0;
 	}
 	/* do shell variable substitution */
-	if(*prog->argv[argc - 1] == '$' && (var = getenv(prog->argv[argc - 1] + 1)))
-		prog->argv[argc - 1] = var;
+	if(*prog->argv[argc_l - 1] == '$') {
+		if ((var = getenv(prog->argv[argc_l - 1] + 1))) {
+			prog->argv[argc_l - 1] = var;
+		} 
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+		else {
+			switch(*(prog->argv[argc_l - 1] + 1)) {
+				case '?':
+					prog->argv[argc_l - 1] = itoa(lastReturnCode);
+					break;
+				case '$':
+					prog->argv[argc_l - 1] = itoa(getpid());
+					break;
+				case '#':
+					prog->argv[argc_l - 1] = itoa(argc-1);
+					break;
+				case '!':
+					if (lastBgPid==-1)
+						*(prog->argv[argc_l - 1])='\0';
+					else
+						prog->argv[argc_l - 1] = itoa(lastBgPid);
+					break;
+				case '0':case '1':case '2':case '3':case '4':
+				case '5':case '6':case '7':case '8':case '9':
+					{
+						int index=*(prog->argv[argc_l - 1] + 1)-48;
+						if (index >= argc) {
+							*(prog->argv[argc_l - 1])='\0';
+						} else {
+							prog->argv[argc_l - 1] = argv[index];
+						}
+					}
+					break;
+			}
+		}
+#endif
+	}
 
-	rc = glob(prog->argv[argc - 1], flags, NULL, &prog->globResult);
+	rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->globResult);
 	if (rc == GLOB_NOSPACE) {
 		errorMsg("out of space during glob operation\n");
 		return;
 	} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
-				strcmp(prog->argv[argc - 1],
+				strcmp(prog->argv[argc_l - 1],
 						prog->globResult.gl_pathv[i]) == 0)) {
 		/* we need to remove whatever \ quoting is still present */
-		src = dst = prog->argv[argc - 1];
+		src = dst = prog->argv[argc_l - 1];
 		while (*src) {
 			if (*src != '\\')
 				*dst++ = *src;
@@ -604,13 +758,13 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		argcAlloced += (prog->globResult.gl_pathc - i);
 		prog->argv =
 			realloc(prog->argv, argcAlloced * sizeof(*prog->argv));
-		memcpy(prog->argv + (argc - 1), prog->globResult.gl_pathv + i,
+		memcpy(prog->argv + (argc_l - 1), prog->globResult.gl_pathv + i,
 			   sizeof(*(prog->argv)) * (prog->globResult.gl_pathc - i));
-		argc += (prog->globResult.gl_pathc - i - 1);
+		argc_l += (prog->globResult.gl_pathc - i - 1);
 	}
 
 	*argcAllocedPtr = argcAlloced;
-	*argcPtr = argc;
+	*argcPtr = argc_l;
 }
 
 /* Return cmd->numProgs as 0 if no command is present (e.g. an empty
@@ -618,12 +772,12 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
    the beginning of the next command (if the original command had more 
    then one job associated with it) or NULL if no more commands are 
    present. */
-static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *isBg)
+static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *inBg)
 {
 	char *command;
 	char *returnCommand = NULL;
 	char *src, *buf, *chptr;
-	int argc = 0;
+	int argc_l = 0;
 	int done = 0;
 	int argvAlloced;
 	int i;
@@ -641,7 +795,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 		return 0;
 	}
 
-	*isBg = 0;
+	*inBg = 0;
 	job->numProgs = 1;
 	job->progs = xmalloc(sizeof(*job->progs));
 
@@ -654,7 +808,6 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 	   cleaner (though it is, admittedly, a tad less efficient) */
 	job->cmdBuf = command = calloc(2*strlen(*commandPtr) + 1, sizeof(char));
 	job->text = NULL;
-	job->jobContext = REGULAR_JOB_CONTEXT;
 
 	prog = job->progs;
 	prog->numRedirections = 0;
@@ -687,17 +840,17 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					   *src == ']') *buf++ = '\\';
 			*buf++ = *src;
 		} else if (isspace(*src)) {
-			if (*prog->argv[argc]) {
-				buf++, argc++;
+			if (*prog->argv[argc_l]) {
+				buf++, argc_l++;
 				/* +1 here leaves room for the NULL which ends argv */
-				if ((argc + 1) == argvAlloced) {
+				if ((argc_l + 1) == argvAlloced) {
 					argvAlloced += 5;
 					prog->argv = realloc(prog->argv,
 										 sizeof(*prog->argv) *
 										 argvAlloced);
 				}
-				globLastArgument(prog, &argc, &argvAlloced);
-				prog->argv[argc] = buf;
+				globLastArgument(prog, &argc_l, &argvAlloced);
+				prog->argv[argc_l] = buf;
 			}
 		} else
 			switch (*src) {
@@ -707,7 +860,10 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				break;
 
 			case '#':			/* comment */
-				done = 1;
+				if (*(src-1)== '$')
+					*buf++ = *src;
+				else
+					done = 1;
 				break;
 
 			case '>':			/* redirections */
@@ -718,16 +874,16 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 											 (i + 1));
 
 				prog->redirections[i].fd = -1;
-				if (buf != prog->argv[argc]) {
+				if (buf != prog->argv[argc_l]) {
 					/* the stuff before this character may be the file number 
 					   being redirected */
 					prog->redirections[i].fd =
-						strtol(prog->argv[argc], &chptr, 10);
+						strtol(prog->argv[argc_l], &chptr, 10);
 
-					if (*chptr && *prog->argv[argc]) {
-						buf++, argc++;
-						globLastArgument(prog, &argc, &argvAlloced);
-						prog->argv[argc] = buf;
+					if (*chptr && *prog->argv[argc_l]) {
+						buf++, argc_l++;
+						globLastArgument(prog, &argc_l, &argvAlloced);
+						prog->argv[argc_l] = buf;
 					}
 				}
 
@@ -765,20 +921,20 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					*buf++ = *chptr++;
 
 				src = chptr - 1;	/* we src++ later */
-				prog->argv[argc] = ++buf;
+				prog->argv[argc_l] = ++buf;
 				break;
 
 			case '|':			/* pipe */
 				/* finish this command */
-				if (*prog->argv[argc])
-					argc++;
-				if (!argc) {
+				if (*prog->argv[argc_l])
+					argc_l++;
+				if (!argc_l) {
 					errorMsg("empty command in pipe\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
 				}
-				prog->argv[argc] = NULL;
+				prog->argv[argc_l] = NULL;
 
 				/* and start the next */
 				job->numProgs++;
@@ -788,7 +944,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				prog->numRedirections = 0;
 				prog->redirections = NULL;
 				prog->freeGlob = 0;
-				argc = 0;
+				argc_l = 0;
 
 				argvAlloced = 5;
 				prog->argv = xmalloc(sizeof(*prog->argv) * argvAlloced);
@@ -809,7 +965,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				break;
 
 			case '&':			/* background */
-				*isBg = 1;
+				*inBg = 1;
 			case ';':			/* multiple commands */
 				done = 1;
 				returnCommand = *commandPtr + (src - *commandPtr) + 1;
@@ -848,7 +1004,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					snprintf(charptr1, 1+ptr-src, src);
 					newJob = xmalloc(sizeof(struct job));
 					/* Now parse and run the backticked command */
-					if (!parseCommand(&charptr1, newJob, &njobList, isBg) 
+					if (!parseCommand(&charptr1, newJob, &njobList, inBg) 
 							&& newJob->numProgs) {
 						pipe(pipefd);
 						runCommand(newJob, &njobList, 0, pipefd);
@@ -890,7 +1046,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					 * and improved version of the command line with the backtick
 					 * results expanded in place... */
 					freeJob(job);
-					return(parseCommand(commandPtr, job, jobList, isBg));
+					return(parseCommand(commandPtr, job, jobList, inBg));
 				}
 				break;
 #endif // BB_FEATURE_SH_BACKTICKS
@@ -901,15 +1057,15 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 		src++;
 	}
 
-	if (*prog->argv[argc]) {
-		argc++;
-		globLastArgument(prog, &argc, &argvAlloced);
+	if (*prog->argv[argc_l]) {
+		argc_l++;
+		globLastArgument(prog, &argc_l, &argvAlloced);
 	}
-	if (!argc) {
+	if (!argc_l) {
 		freeJob(job);
 		return 0;
 	}
-	prog->argv[argc] = NULL;
+	prog->argv[argc_l] = NULL;
 
 	if (!returnCommand) {
 		job->text = xmalloc(strlen(*commandPtr) + 1);
@@ -991,17 +1147,17 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 			 * works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
 				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) {
-					int argc;
+					int argc_l;
 					char** argv=newJob->progs[i].argv;
-					for(argc=0;*argv!=NULL; argv++, argc++);
-					exit((*(a->main)) (argc, newJob->progs[i].argv));
+					for(argc_l=0;*argv!=NULL; argv++, argc_l++);
+					exit((*(a->main)) (argc_l, newJob->progs[i].argv));
 				}
 				a++;
 			}
 #endif
 
 			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
-			fatalError("sh: %s: %s\n", newJob->progs[i].argv[0],
+			fatalError("%s: %s\n", newJob->progs[i].argv[0],
 					   strerror(errno));
 		}
 		if (outPipe[1]!=-1) {
@@ -1048,6 +1204,9 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 		   to the list of backgrounded theJobs and leave it alone */
 		printf("[%d] %d\n", theJob->jobId,
 			   newJob->progs[newJob->numProgs - 1].pid);
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+		lastBgPid=newJob->progs[newJob->numProgs - 1].pid;
+#endif
 	} else {
 		jobList->fg = theJob;
 
@@ -1060,45 +1219,6 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 	return 0;
 }
 
-static int setupRedirections(struct childProgram *prog)
-{
-	int i;
-	int openfd;
-	int mode = O_RDONLY;
-	struct redirectionSpecifier *redir = prog->redirections;
-
-	for (i = 0; i < prog->numRedirections; i++, redir++) {
-		switch (redir->type) {
-		case REDIRECT_INPUT:
-			mode = O_RDONLY;
-			break;
-		case REDIRECT_OVERWRITE:
-			mode = O_RDWR | O_CREAT | O_TRUNC;
-			break;
-		case REDIRECT_APPEND:
-			mode = O_RDWR | O_CREAT | O_APPEND;
-			break;
-		}
-
-		openfd = open(redir->filename, mode, 0666);
-		if (openfd < 0) {
-			/* this could get lost if stderr has been redirected, but
-			   bash and ash both lose it as well (though zsh doesn't!) */
-			errorMsg("error opening %s: %s\n", redir->filename,
-					strerror(errno));
-			return 1;
-		}
-
-		if (openfd != redir->fd) {
-			dup2(openfd, redir->fd);
-			close(openfd);
-		}
-	}
-
-	return 0;
-}
-
-
 static int busy_loop(FILE * input)
 {
 	char *command;
@@ -1106,8 +1226,9 @@ static int busy_loop(FILE * input)
 	struct job newJob;
 	pid_t  parent_pgrp;
 	int i;
-	int status;
 	int inBg;
+	int status;
+	newJob.jobContext = REGULAR_JOB_CONTEXT;
 
 	/* save current owner of TTY so we can restore it on exit */
 	parent_pgrp = tcgetpgrp(0);
@@ -1160,6 +1281,9 @@ static int busy_loop(FILE * input)
 					removeJob(&jobList, jobList.fg);
 					jobList.fg = NULL;
 				}
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+				lastReturnCode=WEXITSTATUS(status);
+#endif
 			} else {
 				/* the child was stopped */
 				jobList.fg->stoppedProgs++;
@@ -1211,9 +1335,11 @@ void free_memory(void)
 #endif
 
 
-int shell_main(int argc, char **argv)
+int shell_main(int argc_l, char **argv_l)
 {
 	FILE *input = stdin;
+	argc = argc_l;
+	argv = argv_l;
 
 	/* initialize the cwd -- this is never freed...*/
 	cwd=(char*)xmalloc(sizeof(char)*MAX_LINE+1);
