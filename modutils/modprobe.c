@@ -115,7 +115,7 @@ static struct dep_t *build_dep ( void )
 	struct utsname un;
 	struct dep_t *first = 0;
 	struct dep_t *current = 0;
-	char buffer[256];
+	char buffer[2048];
 	char *filename = buffer;
 	int continuation_line = 0;
 
