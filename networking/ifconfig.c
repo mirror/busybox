@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.21 2002/12/27 17:42:01 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.22 2003/01/14 08:54:07 andersen Exp $
  *
  */
 
@@ -38,15 +38,21 @@
 #include <ctype.h>		/* isdigit and friends */
 #include <stddef.h>		/* offsetof */
 #include <sys/ioctl.h>
+#include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
+#if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
+#include <netpacket/packet.h>
+#include <net/ethernet.h>
+#else
+#include <asm/types.h>
 #include <linux/if_ether.h>
-#include <net/if.h>
+#endif
 #include "inet_common.h"
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_IFCONFIG_SLIP
-# include <linux/if_slip.h>
+# include <net/if_slip.h>
 #endif
 
 /* I don't know if this is needed for busybox or not.  Anyone? */

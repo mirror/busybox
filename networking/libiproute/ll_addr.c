@@ -11,11 +11,7 @@
 
 #include <arpa/inet.h>
 #include <string.h>
-
-#define sysinfo kernel_sysinfo
-#include <linux/if_arp.h>
-#undef sysinfo
-
+#include <net/if_arp.h>
 #include "utils.h"
 #include "libbb.h"
 

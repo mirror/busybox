@@ -18,16 +18,25 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <linux/if.h>
-#include <linux/if_packet.h>
+#include <net/if.h>
+#include <net/if_packet.h>
+#include <netpacket/packet.h>
+
+#if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
+#include <net/ethernet.h>
+#else
 #include <linux/if_ether.h>
-#include <linux/sockios.h>
+#endif
 
 #include "rt_names.h"
 #include "utils.h"
 #include "ip_common.h"
 
 #include "libbb.h"
+
+
+/* take from linux/sockios.h */
+#define SIOCSIFNAME	0x8923		/* set interface name */
 
 static int do_link;
 

@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.12 2002/11/28 10:20:45 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.13 2003/01/14 08:54:06 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -93,7 +93,7 @@ static int procnetdev_vsn = 1;
 
 
 #ifdef HAVE_HWSLIP
-#include <linux/if_slip.h>
+#include <net/if_slip.h>
 #endif
 
 #if HAVE_AFINET6
@@ -1397,7 +1397,12 @@ static struct hwtype loop_hwtype = {
 
 #if HAVE_HWETHER
 #include <net/if_arp.h>
+
+#if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
+#include <net/ethernet.h>
+#else
 #include <linux/if_ether.h>
+#endif
 
 /* Display an Ethernet address in readable format. */
 static char *pr_ether(unsigned char *ptr)

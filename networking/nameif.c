@@ -32,9 +32,11 @@
 #include <string.h>
 #include <net/if.h>
 #include <netinet/ether.h>
-#include <linux/sockios.h>
 
 #include "busybox.h"
+
+/* take from linux/sockios.h */
+#define SIOCSIFNAME	0x8923		/* set interface name */
 
 /* Octets in one ethernet addr, from <linux/if_ether.h>	 */
 #define ETH_ALEN	6

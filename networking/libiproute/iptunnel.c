@@ -25,10 +25,13 @@
 
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+#include <netinet/in.h>
 
-#define sysinfo kernel_sysinfo
-#include <linux/if_arp.h>
-#undef sysinfo
+#include <net/if.h>
+#include <net/if_arp.h>
+
+#include <asm/types.h>
+#define __constant_htons htons
 #include <linux/if_tunnel.h>
 
 #include "rt_names.h"
