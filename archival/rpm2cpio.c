@@ -85,7 +85,7 @@ extern int rpm2cpio_main(int argc, char **argv)
 
 	/* Skip the signature header */
 	skip_header(rpm_fd);
-	data_align(rpm_fd, lseek(rpm_fd, 0, SEEK_CUR), 8);
+	lseek(rpm_fd, (8 - (lseek(rpm_fd, 0, SEEK_CUR) % 8)) % 8, SEEK_CUR);
 
 	/* Skip the main header */
 	skip_header(rpm_fd);
