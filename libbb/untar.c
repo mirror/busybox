@@ -57,6 +57,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 		char *dir = NULL;
 		
 		if (ferror(src_tar_file) || feof(src_tar_file)) {
+			perror_msg("untar: ");
 			break;
 		}
 
@@ -100,7 +101,6 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 		if (size % 512 != 0) {
 			next_header_offset += (512 - size % 512);
 		}
-
 		/*
 		 * seek to start of control file, return length
 		 *
@@ -139,25 +139,24 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				 * supposed to be a directory, and fall through
 				 */
 				if (raw_tar_header.name[strlen(raw_tar_header.name)-1] != '/') {
-					switch (untar_function) {
-						case (extract_extract): {
-								FILE *dst_file = wfopen(dir, "w");
-								copy_file_chunk(src_tar_file, dst_file, size);
-								fclose(dst_file);
-							}
+					if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
+						FILE *dst_file = wfopen(dir, "w");
+						copy_file_chunk(src_tar_file, dst_file, (unsigned long long) size);
+						uncompressed_count += size;
+						fclose(dst_file);
+					}
+					while (uncompressed_count < next_header_offset) {
+						if (fgetc(src_tar_file) == EOF) {
+							perror_msg("untar");
 							break;
-						default: {
-								int remaining = size;
-								while (remaining-- > 0) {
-									fgetc(src_tar_file);
-								}
-							}
+						}
+						uncompressed_count++;
 					}
 					uncompressed_count += size;
 					break;
 				}
 			case '5':
-				if (untar_function & extract_extract) {
+				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
 					if (create_path(dir, mode) != TRUE) {
 						free(dir);
 						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
@@ -166,7 +165,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				}
 				break;
 			case '1':
-				if (untar_function & extract_extract) {
+				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
 					if (link(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create hard link to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
@@ -175,7 +174,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				}
 				break;
 			case '2':
-				if (untar_function & extract_extract) {
+				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
 					if (symlink(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create symlink to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
