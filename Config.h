@@ -7,7 +7,118 @@
 //
 //
 // BusyBox Applications
+//#define BB_AR
+#define BB_BASENAME
+#define BB_CAT
+#define BB_CHMOD_CHOWN_CHGRP
+#define BB_CHROOT
+#define BB_CHVT
+#define BB_CLEAR
+//#define BB_CMP
+#define BB_CP_MV
+#define BB_CUT
+#define BB_DATE
+//#define BB_DC
+#define BB_DD
+//#define BB_DEALLOCVT
+#define BB_DF
+#define BB_DIRNAME
+#define BB_DMESG
+//#define BB_DOS2UNIX
+//#define BB_DPKG_DEB
+//#define BB_DUTMP
+#define BB_DU
+//#define BB_DUMPKMAP
+#define BB_ECHO
+//#define BB_EXPR
+//#define BB_FBSET
+//#define BB_FDFLUSH
+#define BB_FIND
+#define BB_FREE
+//#define BB_FREERAMDISK
+//#define BB_FSCK_MINIX
+//#define BB_GETOPT
+#define BB_GREP
+#define BB_GUNZIP
+#define BB_GZIP
+#define BB_HALT
+#define BB_HEAD
+//#define BB_HOSTID
+//#define BB_HOSTNAME
+#define BB_ID
+#define BB_INIT
+//#define BB_INSMOD
+#define BB_KILL
+#define BB_KILLALL
+//#define BB_LENGTH
+#define BB_LN
+//#define BB_LOADACM
+//#define BB_LOADFONT
+//#define BB_LOADKMAP
+#define BB_LOGGER
+//#define BB_LOGNAME
+#define BB_LS
+#define BB_LSMOD
+//#define BB_MAKEDEVS
+//#define BB_MD5SUM
+#define BB_MKDIR
+//#define BB_MKFIFO
+//#define BB_MKFS_MINIX
+#define BB_MKNOD
+#define BB_MKSWAP
+//#define BB_MKTEMP
+//#define BB_NC
+#define BB_MORE
+#define BB_MOUNT
+//#define BB_MT
+//#define BB_NSLOOKUP
+//#define BB_PING
+#define BB_POWEROFF
+//#define BB_PRINTF
+#define BB_PS
+#define BB_PWD
+//#define BB_RDATE
+//#define BB_READLINK
+#define BB_REBOOT
+//#define BB_RENICE
+#define BB_RESET
+#define BB_RM
+#define BB_RMDIR
+//#define BB_RMMOD
+//#define BB_RPMUNPACK
+#define BB_SED
+//#define BB_SETKEYCODES
 #define BB_SH
+#define BB_SLEEP
+#define BB_SORT
+#define BB_SWAPONOFF
+#define BB_SYNC
+#define BB_SYSLOGD
+#define BB_TAIL
+#define BB_TAR
+//#define BB_TEE
+//#define BB_TEST
+//#define BB_TELNET
+#define BB_TOUCH
+//#define BB_TR
+#define BB_TRUE_FALSE
+#define BB_TTY
+//#define BB_UUENCODE
+//#define BB_UUDECODE
+#define BB_UMOUNT
+#define BB_UNIQ
+#define BB_UNAME
+//#define BB_UNIX2DOS
+//#define BB_UPDATE
+#define BB_UPTIME
+//#define BB_USLEEP
+//#define BB_WATCHDOG
+#define BB_WC
+//#define BB_WGET
+#define BB_WHICH
+#define BB_WHOAMI
+#define BB_XARGS
+#define BB_YES
 // End of Applications List
 //
 //
@@ -52,7 +163,7 @@
 // calculate terminal & column widths (for more and ls)
 #define BB_FEATURE_AUTOWIDTH
 //
-// show username/groupnames (bypasses libc6 NSS) for ls
+// show username/groupnames for ls
 #define BB_FEATURE_LS_USERNAME
 //
 // show file timestamps in ls
@@ -158,12 +269,10 @@
 // and the default prompt can look rather hideous on them. Uncomment
 // this option for a simpler, path-only prompt (which was the default until
 // around BusyBox-0.48):
-//
 #define BB_FEATURE_SH_SIMPLE_PROMPT
 //
 // Attempts to match usernames in a ~-prefixed path
-// XXX: Doesn't work without NSS, off by default
-#define BB_FEATURE_USERNAME_COMPLETION  /* require NSS */
+//#define BB_FEATURE_USERNAME_COMPLETION
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
