@@ -973,10 +973,11 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 		Specifies the process to be executed and it's command line.
 
 Example /etc/inittab file:
+
 	::sysinit:/etc/init.d/rcS
 	
-		::askfirst:-/bin/sh
-		tty2::askfirst:-/bin/sh
+	::askfirst:-/bin/sh
+	tty2::askfirst:-/bin/sh
 	tty3::askfirst:-/bin/sh
 	tty4::askfirst:-/bin/sh
 	
@@ -984,8 +985,8 @@ Example /etc/inittab file:
 	tty5::respawn:/sbin/getty 38400 tty6
 	
 	
-		
-		::ctrlaltdel:/bin/umount -a -r
+	
+	::ctrlaltdel:/bin/umount -a -r
 	::ctrlaltdel:/sbin/swapoff -a
 
 
@@ -2475,4 +2476,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.91 2001/03/15 21:08:01 beppu Exp $
+# $Id: busybox.pod,v 1.92 2001/03/15 21:20:25 markw Exp $
