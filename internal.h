@@ -26,6 +26,7 @@
 #include "busybox.def.h"
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -174,7 +175,7 @@ extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
 
-#if (__GLIBC__ < 2) && defined BB_SYSLOGD
+#if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap);
 #endif
 

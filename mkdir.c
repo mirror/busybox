@@ -26,7 +26,8 @@
 #include <errno.h>
 #include <sys/param.h>
 
-static const char mkdir_usage[] = "Usage: mkdir [OPTION] DIRECTORY...\n\n"
+static const char mkdir_usage[] =
+"mkdir [OPTION] DIRECTORY...\n\n"
 "Create the DIRECTORY(ies), if they do not already exist\n\n"
 "Options:\n"
 "\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"

@@ -37,7 +37,7 @@ static int del_loop(const char *device);
 #endif
 
 static const char umount_usage[] = 
-"Usage: umount [flags] filesystem|directory\n\n"
+"umount [flags] filesystem|directory\n\n"
 "Flags:\n"
 "\t-a:\tUnmount all file systems"
 #ifdef BB_MTAB

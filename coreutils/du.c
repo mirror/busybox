@@ -35,7 +35,7 @@
 typedef void (Display)(size_t, char *);
 
 static const char du_usage[] =
-"Usage: du [OPTION]... [FILE]...\n\n"
+"du [OPTION]... [FILE]...\n\n"
 "\t-s\tdisplay only a total for each argument\n"
 ;
 
@@ -140,4 +140,4 @@ du_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: du.c,v 1.8 1999/12/17 18:44:15 erik Exp $ */
+/* $Id: du.c,v 1.9 2000/01/23 18:19:02 erik Exp $ */

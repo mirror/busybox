@@ -26,10 +26,12 @@
 #include <stdio.h>
 
 const char head_usage[] =
-"Usage: head [FILE]...\n\n"
+"head [OPTION] [FILE]...\n\n"
 "Print first 10 lines of each FILE to standard output.\n"
 "With more than one FILE, precede each with a header giving the\n"
-"file name. With no FILE, or when FILE is -, read standard input.\n";
+"file name. With no FILE, or when FILE is -, read standard input.\n\n"
+"Options:\n"
+"\t-n NUM\t\tPrint first NUM lines instead of first 10\n";
 
 int
 head(int len, FILE *src)
@@ -49,22 +51,22 @@ head(int len, FILE *src)
 int
 head_main(int argc, char **argv)
 {
-    int	    i = 1;
     char    opt;
-    int	    len = 10;
-
-    /* 1st option is potentially special */
-    if ((argc > 1) && (argv[1][0] == '-') && isDecimal(argv[1][1])) {
-	int tmplen = atoi(&argv[1][1]);
-	if (tmplen) { len = tmplen; }
-	i = 2;
-    }
+    int	    len = 10, tmplen, i;
 
     /* parse argv[] */
-    for ( ; i < argc; i++) {
+    for (i = 1; i < argc; i++) {
 	if (argv[i][0] == '-') {
 	    opt = argv[i][1];
 	    switch (opt) {
+		case 'n':
+		    tmplen = 0;
+		    if (i++ < argc)
+			tmplen = atoi(argv[i]);
+		    if (tmplen < 1)
+			usage(head_usage);
+		    len = tmplen;
+		    break;
 		case '-':
 		case 'h':
 		    usage(head_usage);
@@ -103,4 +105,4 @@ head_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: head.c,v 1.4 1999/12/17 18:52:06 erik Exp $ */
+/* $Id: head.c,v 1.5 2000/01/23 18:19:02 erik Exp $ */

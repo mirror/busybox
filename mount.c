@@ -428,44 +428,42 @@ static int set_loop(const char *device, const char *file, int offset, int *loopr
 	loopinfo.lo_encrypt_key_size = 0;
 	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
 		perror("ioctl: LOOP_SET_FD");
-		exit(1);
+		close(fd);
+		close(ffd);
+		return 1;
 	}
 	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
 		(void) ioctl(fd, LOOP_CLR_FD, 0);
 		perror("ioctl: LOOP_SET_STATUS");
-		exit(1);
+		close(fd);
+		close(ffd);
+		return 1;
 	}
 	close(fd);
 	close(ffd);
 	return 0;
 }
 
-static char *find_unused_loop_device (void)
+char *find_unused_loop_device (void)
 {
-    char dev[20];
-    int i, fd, somedev = 0, someloop = 0;
-    struct stat statbuf;
-    struct loop_info loopinfo;
+	char dev[20];
+	int i, fd;
+	struct stat statbuf;
+	struct loop_info loopinfo;
 
-    for(i = 0; i < 256; i++) {
-      sprintf(dev, "/dev/loop%d", i);
-      if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
-	somedev++;
-	fd = open (dev, O_RDONLY);
-	if (fd >= 0) {
-	  if(ioctl (fd, LOOP_GET_STATUS, &loopinfo) == 0)
-	    someloop++; /* in use */
-	  else if (errno == ENXIO) {
-	    close (fd);
-	    return strdup(dev); /* probably free */
-	  }
-	  close (fd);
-        }
-	continue;
-      }
-      if (i >= 7)
-	break;
-    }
-    return NULL;
+	for(i = 0; i <= 7; i++) {
+		sprintf(dev, "/dev/loop%d", i);
+		if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
+			if ((fd = open (dev, O_RDONLY)) >= 0) {
+				if(ioctl (fd, LOOP_GET_STATUS, &loopinfo) == -1 &&
+				   errno == ENXIO) { /* probably free */
+					close (fd);
+					return strdup(dev);
+				}
+				close (fd);
+			}
+		}
+	}
+        return NULL;
 }
 #endif /* BB_FEATURE_MOUNT_LOOP */

@@ -55,7 +55,7 @@
 
 
 static const char sfdisk_usage[] =
-"Usage: sfdisk [options] device ...\n"
+"sfdisk [options] device ...\n"
 "device: something like /dev/hda or /dev/sda\n"
 "useful options:\n"
 "    -s [or --show-size]: list size of a partition\n"
@@ -2345,7 +2345,7 @@ sfdisk_main(int argc, char **argv) {
     char *unhidearg = 0;
 
     if (argc < 1)
-	usage( sfdisk_usage);
+	usage(sfdisk_usage);
 
     while ((c = getopt_long (argc, argv, short_opts, long_opts, NULL)) != -1) {
 	switch (c) {
@@ -2407,7 +2407,7 @@ sfdisk_main(int argc, char **argv) {
 	    verify = 1; break;
 	  case '?':
 	  default:
-	    usage( sfdisk_usage);
+	    usage(sfdisk_usage);
 
 	  /* undocumented flags */
 	  case 128:
@@ -2461,7 +2461,7 @@ sfdisk_main(int argc, char **argv) {
 	exit(exit_status);
     }
 
-    if (optind == argc) usage( sfdisk_usage);
+    if (optind == argc) usage(sfdisk_usage);
 
     if (opt_list || opt_out_geom || opt_size || verify) {
 	while (optind < argc) {

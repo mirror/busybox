@@ -27,7 +27,7 @@
 #include <errno.h>
 
 static const char uniq_usage[] =
-"Usage: uniq [OPTION]... [INPUT [OUTPUT]]\n"
+"uniq [OPTION]... [INPUT [OUTPUT]]\n"
 "Discard all but one of successive identical lines from INPUT (or\n"
 "standard input), writing to OUTPUT (or standard output).\n"
 "\n"
@@ -193,4 +193,4 @@ uniq_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: uniq.c,v 1.4 2000/01/07 01:57:32 beppu Exp $ */
+/* $Id: uniq.c,v 1.5 2000/01/23 18:19:02 erik Exp $ */

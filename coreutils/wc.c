@@ -28,7 +28,6 @@ static const char wc_usage[] = "wc [OPTION]... [FILE]...\n\n"
 "\t-c\tprint the byte counts\n"
 "\t-l\tprint the newline counts\n"
 "\t-L\tprint the length of the longest line\n"
-"\t-L\tprint the length of the longest line\n"
 "\t-w\tprint the word counts\n";
 
 static int total_lines, total_words, total_chars, max_length;

@@ -54,7 +54,7 @@ static const char tar_usage[] =
 #else
 
 static const char tar_usage[] =
-"tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
+"tar -[xtvOf] [tarFileName] [FILE] ...\n\n"
 "Extract, or list files stored in a tar file.  This\n"
 "version of tar does not support creation of tar files.\n\n"
 "Options:\n"

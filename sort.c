@@ -29,7 +29,7 @@
 #include <errno.h>
 
 static const char sort_usage[] =
-"Usage: sort [OPTION]... [FILE]...\n\n"
+"sort [OPTION]... [FILE]...\n\n"
 ;
 
 /* typedefs _______________________________________________________________ */
@@ -309,4 +309,4 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.8 1999/12/23 22:46:10 beppu Exp $ */
+/* $Id: sort.c,v 1.9 2000/01/23 18:19:02 erik Exp $ */
