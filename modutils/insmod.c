@@ -233,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.83 2002/05/24 06:50:15 andersen Exp $"
+#ident "$Id: insmod.c,v 1.84 2002/06/06 14:24:57 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.83 2002/05/24 06:50:15 andersen Exp $"
+#ident "$Id: insmod.c,v 1.84 2002/06/06 14:24:57 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3426,7 +3426,7 @@ extern int insmod_main( int argc, char **argv)
 	int k_crcs;
 	int k_new_syscalls;
 	int len;
-	char *tmp;
+	char *tmp, *tmp1;
 	unsigned long m_size;
 	ElfW(Addr) m_addr;
 	FILE *fp;
@@ -3464,7 +3464,7 @@ extern int insmod_main( int argc, char **argv)
 				flag_export = 0;
 				break;
 			case 'o':			/* name the output module */
-				strncpy(m_name, optarg, FILENAME_MAX);
+				safe_strncpy(m_name, optarg, sizeof(m_name));
 				break;
 			case 'L':			/* Stub warning */
 				/* This is needed for compatibility with modprobe.
@@ -3482,20 +3482,26 @@ extern int insmod_main( int argc, char **argv)
 	}
 
 	/* Grab the module name */
-	if ((tmp = strrchr(argv[optind], '/')) != NULL) {
-		tmp++;
-	} else {
-		tmp = argv[optind];
-	}
+	tmp1 = xstrdup(argv[optind]);
+	tmp = basename(tmp1);
 	len = strlen(tmp);
 
-	if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o')
-		len -= 2;
-	memcpy(m_fullName, tmp, len);
-	m_fullName[len]='\0';
-	if (*m_name == '\0') {
-		strcpy(m_name, m_fullName);
+	if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o') {
+		len-=2;
+		tmp[len] = '\0';
 	}
+	if (len >= sizeof(m_fullName)) {
+		len = sizeof(m_fullName);
+	}
+	safe_strncpy(m_fullName, tmp, len);
+	if (tmp1)
+		free(tmp1);
+	if (*m_name == '\0') {
+		safe_strncpy(m_name, m_fullName, sizeof(m_name));
+	}
+	len = strlen(m_fullName);
+	if (len > (sizeof(m_fullName)-3))
+		error_msg_and_die("%s: no module by that name found", m_fullName);
 	strcat(m_fullName, ".o");
 
 	/* Get a filedesc for the module.  Check we we have a complete path */
