@@ -25,30 +25,10 @@
  *
  */
 
-/* The parsing engine of this program is officially at a dead-end.
- * Future work in that direction should move to the work posted
- * at http://doolittle.faludi.com/~larry/parser.html .
- * A start on the integration of that work with the rest of sh.c
- * is at http://codepoet.org/sh.c .
+/* This shell's parsing engine is officially at a dead-end.
+ * Future work shell work should be done using hush.c
  */
-//
-//This works pretty well now, and is now on by default.
-#define BB_FEATURE_SH_ENVIRONMENT
-//
-//Backtick support has some problems, use at your own risk!
-//#define BB_FEATURE_SH_BACKTICKS
-//
-//If, then, else, etc. support..  This should now behave basically
-//like any other Bourne shell -- sortof...
-#define BB_FEATURE_SH_IF_EXPRESSIONS
-//
-/* This is currently sortof broken, only for the brave... */
-#undef HANDLE_CONTINUATION_CHARS
-//
-/* This would be great -- if wordexp wouldn't strip all quoting
- * out from the target strings...  As is, a parser needs  */
-#undef BB_FEATURE_SH_WORDEXP
-//
+
 //For debugging/development on the shell only...
 //#define DEBUG_SHELL
 
@@ -71,16 +51,8 @@
 #include <locale.h>
 #endif
 
-//#define BB_FEATURE_SH_WORDEXP
-
-#ifdef BB_FEATURE_SH_WORDEXP
-#include <wordexp.h>
-#define expand_t	wordexp_t
-#undef BB_FEATURE_SH_BACKTICKS
-#else
 #include <glob.h>
 #define expand_t	glob_t
-#endif	
 
 
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
@@ -155,14 +127,6 @@ static int builtin_export(struct child_prog *cmd);
 static int builtin_source(struct child_prog *cmd);
 static int builtin_unset(struct child_prog *cmd);
 static int builtin_read(struct child_prog *cmd);
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-static int builtin_if(struct child_prog *cmd);
-static int builtin_then(struct child_prog *cmd);
-static int builtin_else(struct child_prog *cmd);
-static int builtin_fi(struct child_prog *cmd);
-/* function prototypes for shell stuff */
-static int run_command_predicate(char *cmd);
-#endif
 
 
 /* function prototypes for shell stuff */
@@ -192,12 +156,6 @@ static struct built_in_command bltins[] = {
 	{"read", "Input environment variable", builtin_read},
 	{".", "Source-in and run commands in a file", builtin_source},
 	/* to do: add ulimit */
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-	{"if", NULL, builtin_if},
-	{"then", NULL, builtin_then},
-	{"else", NULL, builtin_else},
-	{"fi", NULL, builtin_fi},
-#endif
 	{NULL, NULL, NULL}
 };
 
@@ -222,14 +180,7 @@ static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
 static struct close_me *close_me_head;
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-static int last_bg_pid;
-static int last_return_code;
-static int show_x_trace;
-#endif
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-static char syntax_err[]="syntax error near unexpected token";
-#endif
+static unsigned int last_jobid;
 
 static char *PS1;
 static char *PS2 = "> ";
@@ -266,14 +217,6 @@ export  cmd->progs[0]
 source  cmd->progs[0]
 unset   cmd->progs[0]
 read    cmd->progs[0]
-if      cmd->job_context,  cmd->text
-then    cmd->job_context,  cmd->text
-else    cmd->job_context,  cmd->text
-fi      cmd->job_context
-
-The use of cmd->text by if/then/else/fi is hopelessly hacky.
-Would it work to increment cmd->progs[0]->argv and recurse,
-somewhat like builtin_exec does?
 
 I added "struct job *family;" to struct child_prog,
 and switched API to builtin_foo(struct child_prog *child);
@@ -325,31 +268,34 @@ static int builtin_exit(struct child_prog *child)
 /* built-in 'fg' and 'bg' handler */
 static int builtin_fg_bg(struct child_prog *child)
 {
-	int i, jobNum;
+	int i, jobnum;
 	struct job *job=NULL;
-	
-	if (!child->argv[1] || child->argv[2]) {
-		error_msg("%s: exactly one argument is expected",
-				child->argv[0]);
-		return EXIT_FAILURE;
-	}
 
-	if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
-		error_msg("%s: bad argument '%s'",
-				child->argv[0], child->argv[1]);
-		return EXIT_FAILURE;
-	}
-
-	for (job = child->family->job_list->head; job; job = job->next) {
-		if (job->jobid == jobNum) {
-			break;
+	/* If they gave us no args, assume they want the last backgrounded task */
+	if (!child->argv[1]) {
+		for (job = child->family->job_list->head; job; job = job->next) {
+			if (job->jobid == last_jobid) {
+				break;
+			}
 		}
-	}
-
-	if (!job) {
-		error_msg("%s: unknown job %d",
-				child->argv[0], jobNum);
-		return EXIT_FAILURE;
+		if (!job) {
+			error_msg("%s: no current job", child->argv[0]);
+			return EXIT_FAILURE;
+		}
+	} else {
+		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
+			error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+			return EXIT_FAILURE;
+		}
+		for (job = child->family->job_list->head; job; job = job->next) {
+			if (job->jobid == jobnum) {
+				break;
+			}
+		}
+		if (!job) {
+			error_msg("%s: %d: no such job", child->argv[0], jobnum);
+			return EXIT_FAILURE;
+		}
 	}
 
 	if (*child->argv[0] == 'f') {
@@ -485,102 +431,6 @@ static int builtin_read(struct child_prog *child)
 	return (res);
 }
 
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-/* Built-in handler for 'if' commands */
-static int builtin_if(struct child_prog *child)
-{
-	struct job *cmd = child->family;
-	int status;
-	char* charptr1=cmd->text+3; /* skip over the leading 'if ' */
-
-	/* Now run the 'if' command */
-	debug_printf( "job=%p entering builtin_if ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
-	status = run_command_predicate(charptr1);
-	debug_printf( "if test returned ");
-	if (status == 0) {
-		debug_printf( "TRUE\n");
-		cmd->job_context |= IF_TRUE_CONTEXT;
-	} else {
-		debug_printf( "FALSE\n");
-		cmd->job_context |= IF_FALSE_CONTEXT;
-	}
-	debug_printf("job=%p builtin_if set job context to %x\n", cmd, cmd->job_context);
-	shell_context++;
-
-	return status;
-}
-
-/* Built-in handler for 'then' (part of the 'if' command) */
-static int builtin_then(struct child_prog *child)
-{
-	struct job *cmd = child->family;
-	char* charptr1=cmd->text+5; /* skip over the leading 'then ' */
-
-	debug_printf( "job=%p entering builtin_then ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
-	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `then'", syntax_err);
-		return EXIT_FAILURE;
-	}
-
-	cmd->job_context |= THEN_EXP_CONTEXT;
-	debug_printf("job=%p builtin_then set job context to %x\n", cmd, cmd->job_context);
-
-	/* If the if result was FALSE, skip the 'then' stuff */
-	if (cmd->job_context & IF_FALSE_CONTEXT) {
-		return EXIT_SUCCESS;
-	}
-
-	/* Seems the if result was TRUE, so run the 'then' command */
-	debug_printf( "'then' now running '%s'\n", charptr1);
-
-	return(run_command_predicate(charptr1));
-}
-
-/* Built-in handler for 'else' (part of the 'if' command) */
-static int builtin_else(struct child_prog *child)
-{
-	struct job *cmd = child->family;
-	char* charptr1=cmd->text+5; /* skip over the leading 'else ' */
-
-	debug_printf( "job=%p entering builtin_else ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
-
-	if (! (cmd->job_context & THEN_EXP_CONTEXT)) {
-		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `else'", syntax_err);
-		return EXIT_FAILURE;
-	}
-	/* If the if result was TRUE, skip the 'else' stuff */
-	if (cmd->job_context & IF_TRUE_CONTEXT) {
-		return EXIT_SUCCESS;
-	}
-
-	cmd->job_context |= ELSE_EXP_CONTEXT;
-	debug_printf("job=%p builtin_else set job context to %x\n", cmd, cmd->job_context);
-
-	/* Now run the 'else' command */
-	debug_printf( "'else' now running '%s'\n", charptr1);
-	return(run_command_predicate(charptr1));
-}
-
-/* Built-in handler for 'fi' (part of the 'if' command) */
-static int builtin_fi(struct child_prog *child)
-{
-	struct job *cmd = child->family;
-	debug_printf( "job=%p entering builtin_fi ('%s')-- context=%d\n", cmd, "", cmd->job_context);
-	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `fi'", syntax_err);
-		return EXIT_FAILURE;
-	}
-	/* Clear out the if and then context bits */
-	cmd->job_context &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
-	debug_printf("job=%p builtin_fi set job context to %x\n", cmd, cmd->job_context);
-	shell_context--;
-	return EXIT_SUCCESS;
-}
-#endif
-
 /* Built-in '.' handler (read-in and execute commands from file) */
 static int builtin_source(struct child_prog *child)
 {
@@ -616,23 +466,6 @@ static int builtin_unset(struct child_prog *child)
 	unsetenv(child->argv[1]);
 	return EXIT_SUCCESS;
 }
-
-#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-/* currently used by if/then/else.
- *
- * Reparsing the command line for this purpose is gross,
- * incorrect, and fundamentally unfixable; in particular,
- * think about what happens with command substitution.
- * We really need to pull out the run, wait, return status
- * functionality out of busy_loop so we can child->argv++
- * and use that, without going back through parse_command.
- */
-static int run_command_predicate(char *cmd)
-{
-	local_pending_command = xstrdup(cmd);
-	return( busy_loop(NULL));
-}
-#endif
 
 static void mark_open(int fd)
 {
@@ -733,6 +566,7 @@ static void checkjobs(struct jobset *j_list)
 
 			if (!job->running_progs) {
 				printf(JOB_STATUS_FORMAT, job->jobid, "Done", job->text);
+				last_jobid=0;
 				remove_job(j_list, job);
 			}
 		} else {
@@ -878,73 +712,10 @@ static int get_command(FILE * source, char *command)
 	return 0;
 }
 
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-static char* itoa(register int i)
-{
-	static char a[7]; /* Max 7 ints */
-	register char *b = a + sizeof(a) - 1;
-	int   sign = (i < 0);
-
-	if (sign)
-		i = -i;
-	*b = 0;
-	do
-	{
-		*--b = '0' + (i % 10);
-		i /= 10;
-	}
-	while (i);
-	if (sign)
-		*--b = '-';
-	return b;
-}
-#endif	
-
-#if defined BB_FEATURE_SH_ENVIRONMENT && ! defined BB_FEATURE_SH_WORDEXP
-char * strsep_space( char *string, int * ix)
-{
-	char *token, *begin;
-
-	begin = string;
-
-	/* Short circuit the trivial case */
-	if ( !string || ! string[*ix])
-		return NULL;
-
-	/* Find the end of the token. */
-	while( string && string[*ix] && !isspace(string[*ix]) ) {
-		(*ix)++;
-	}
-
-	/* Find the end of any whitespace trailing behind 
-	 * the token and let that be part of the token */
-	while( string && string[*ix] && isspace(string[*ix]) ) {
-		(*ix)++;
-	}
-
-	if (! string && *ix==0) {
-		/* Nothing useful was found */
-		return NULL;
-	}
-
-	token = xmalloc(*ix+1);
-	token[*ix] = '\0';
-	strncpy(token, string,  *ix); 
-
-	return token;
-}
-#endif	
-
 
 static int expand_arguments(char *command)
 {
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-	expand_t expand_result;
-	char *src, *dst, *var;
 	int ix = 0;
-	int i=0, length, total_length=0, retval;
-	const char *out_of_space = "out of space during expansion"; 
-#endif
 
 	/* get rid of the terminating \n */
 	chomp(command);
@@ -959,194 +730,6 @@ static int expand_arguments(char *command)
 		ix++;
 	}
 
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-
-
-#ifdef BB_FEATURE_SH_WORDEXP
-	/* This first part uses wordexp() which is a wonderful C lib 
-	 * function which expands nearly everything.  */ 
-	retval = wordexp (command, &expand_result, WRDE_SHOWERR);
-	if (retval == WRDE_NOSPACE) {
-		/* Mem may have been allocated... */
-		wordfree (&expand_result);
-		error_msg(out_of_space);
-		return FALSE;
-	}
-	if (retval < 0) {
-		/* Some other error.  */
-		error_msg("syntax error");
-		return FALSE;
-	}
-	
-	if (expand_result.we_wordc > 0) {
-		/* Convert from char** (one word per string) to a simple char*,
-		 * but don't overflow command which is BUFSIZ in length */
-		*command = '\0';
-		while (i < expand_result.we_wordc && total_length < BUFSIZ) {
-			length=strlen(expand_result.we_wordv[i])+1;
-			if (BUFSIZ-total_length-length <= 0) {
-				error_msg(out_of_space);
-				return FALSE;
-			}
-			strcat(command+total_length, expand_result.we_wordv[i++]);
-			strcat(command+total_length, " ");
-			total_length+=length;
-		}
-		wordfree (&expand_result);
-	}
-#else
-
-	/* Ok.  They don't have a recent glibc and they don't have uClibc.  Chances
-	 * are about 100% they don't have wordexp(). So instead the best we can do
-	 * is use glob and then fixup environment variables and such ourselves.
-	 * This is better then nothing, but certainly not perfect */
-
-	/* It turns out that glob is very stupid.  We have to feed it one word at a
-	 * time since it can't cope with a full string.  Here we convert command
-	 * (char*) into cmd (char**, one word per string) */
-	{
-        
-		int flags = GLOB_NOCHECK
-#ifdef GLOB_BRACE
-				| GLOB_BRACE
-#endif	
-#ifdef GLOB_TILDE
-				| GLOB_TILDE
-#endif	
-			;
-		char *tmpcmd, *cmd, *cmd_copy;
-		/* We need a clean copy, so strsep can mess up the copy while
-		 * we write stuff into the original (in a minute) */
-		cmd = cmd_copy = strdup(command);
-		*command = '\0';
-		for (ix = 0, tmpcmd = cmd; 
-				(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
-			if (*tmpcmd == '\0')
-				break;
-			/* we need to trim() the result for glob! */
-			trim(tmpcmd);
-			retval = glob(tmpcmd, flags, NULL, &expand_result);
-			free(tmpcmd); /* Free mem allocated by strsep_space */
-			if (retval == GLOB_NOSPACE) {
-				/* Mem may have been allocated... */
-				globfree (&expand_result);
-				error_msg(out_of_space);
-				return FALSE;
-			} else if (retval != 0) {
-				/* Some other error.  GLOB_NOMATCH shouldn't
-				 * happen because of the GLOB_NOCHECK flag in 
-				 * the glob call. */
-				error_msg("syntax error");
-				return FALSE;
-			} else {
-			/* Convert from char** (one word per string) to a simple char*,
-			 * but don't overflow command which is BUFSIZ in length */
-				for (i=0; i < expand_result.gl_pathc; i++) {
-					length=strlen(expand_result.gl_pathv[i]);
-					if (total_length+length+1 >= BUFSIZ) {
-						error_msg(out_of_space);
-						return FALSE;
-					}
-					strcat(command+total_length, " ");
-					total_length+=1;
-					strcat(command+total_length, expand_result.gl_pathv[i]);
-					total_length+=length;
-				}
-				globfree (&expand_result);
-			}
-		}
-		free(cmd_copy);
-		trim(command);
-	}
-	
-#endif	
-
-	/* Now do the shell variable substitutions which 
-	 * wordexp can't do for us, namely $? and $! */
-	src = command;
-	while((dst = strchr(src,'$')) != NULL){
-		var = NULL;
-		switch(*(dst+1)) {
-			case '?':
-				var = itoa(last_return_code);
-				break;
-			case '!':
-				if (last_bg_pid==-1)
-					*(var)='\0';
-				else
-					var = itoa(last_bg_pid);
-				break;
-				/* Everything else like $$, $#, $[0-9], etc. should all be
-				 * expanded by wordexp(), so we can in theory skip that stuff
-				 * here, but just to be on the safe side (i.e., since uClibc
-				 * wordexp doesn't do this stuff yet), lets leave it in for
-				 * now. */
-			case '$':
-				var = itoa(getpid());
-				break;
-			case '#':
-				var = itoa(argc-1);
-				break;
-			case '0':case '1':case '2':case '3':case '4':
-			case '5':case '6':case '7':case '8':case '9':
-				{
-					int ixx=*(dst + 1)-48;
-					if (ixx >= argc) {
-						var='\0';
-					} else {
-						var = argv[ixx];
-					}
-				}
-				break;
-
-		}
-		if (var) {
-			/* a single character construction was found, and 
-			 * already handled in the case statement */
-			src=dst+2;
-		} else {
-			/* Looks like an environment variable */
-			char delim_hold;
-			int num_skip_chars=0;
-			int dstlen = strlen(dst);
-			/* Is this a ${foo} type variable? */
-			if (dstlen >=2 && *(dst+1) == '{') {
-				src=strchr(dst+1, '}');
-				num_skip_chars=1;
-			} else {
-				src=dst+1;
-				while(isalnum(*src) || *src=='_') src++;
-			}
-			if (src == NULL) {
-				src = dst+dstlen;
-			}
-			delim_hold=*src;
-			*src='\0';  /* temporary */
-			var = getenv(dst + 1 + num_skip_chars);
-			*src=delim_hold;
-			src += num_skip_chars;
-		}
-		if (var == NULL) {
-			/* Seems we got an un-expandable variable.  So delete it. */
-			var = "";
-		}
-		{
-			int subst_len = strlen(var);
-			int trail_len = strlen(src);
-			if (dst+subst_len+trail_len >= command+BUFSIZ) {
-				error_msg(out_of_space);
-				return FALSE;
-			}
-			/* Move stuff to the end of the string to accommodate
-			 * filling the created gap with the new stuff */
-			memmove(dst+subst_len, src, trail_len+1);
-			/* Now copy in the new stuff */
-			memcpy(dst, var, subst_len);
-			src = dst+subst_len;
-		}
-	}
-
-#endif	
 	return TRUE;
 }
 
@@ -1357,118 +940,12 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				return_command = *command_ptr + (src - *command_ptr) + 1;
 				break;
 
-#ifdef BB_FEATURE_SH_BACKTICKS
-			case '`':
-				/* Exec a backtick-ed command */
-				/* Besides any previous brokenness, I have not
-				 * updated backtick handling for close_me support.
-				 * I don't know if it needs it or not.  -- LRD */
-				{
-					char* charptr1=NULL, *charptr2;
-					char* ptr=NULL;
-					struct job *newjob;
-					struct jobset njob_list = { NULL, NULL };
-					int pipefd[2];
-					int size;
-
-					ptr=strchr(++src, '`');
-					if (ptr==NULL) {
-						fprintf(stderr, "Unmatched '`' in command\n");
-						free_job(job);
-						return 1;
-					}
-
-					/* Make some space to hold just the backticked command */
-					charptr1 = charptr2 = xmalloc(1+ptr-src);
-					memcpy(charptr1, src, ptr-src);
-					charptr1[ptr-src] = '\0';
-					newjob = xmalloc(sizeof(struct job));
-					newjob->job_list = &njob_list;
-					/* Now parse and run the backticked command */
-					if (!parse_command(&charptr1, newjob, inbg) 
-							&& newjob->num_progs) {
-						pipe(pipefd);
-						run_command(newjob, 0, pipefd);
-					}
-					checkjobs(job->job_list);
-					free_job(newjob);  /* doesn't actually free newjob,
-					                     looks like a memory leak */
-					free(charptr2);
-					
-					/* Make a copy of any stuff left over in the command 
-					 * line after the second backtick */
-					charptr2 = xmalloc(strlen(ptr)+1);
-					memcpy(charptr2, ptr+1, strlen(ptr));
-
-
-					/* Copy the output from the backtick-ed command into the
-					 * command line, making extra room as needed  */
-					--src;
-					charptr1 = xmalloc(BUFSIZ);
-					while ( (size=full_read(pipefd[0], charptr1, BUFSIZ-1)) >0) {
-						int newsize=src - *command_ptr + size + 1 + strlen(charptr2);
-						if (newsize > BUFSIZ) {
-							*command_ptr=xrealloc(*command_ptr, newsize);
-						}
-						memcpy(src, charptr1, size); 
-						src+=size;
-					}
-					free(charptr1);
-					close(pipefd[0]);
-					if (*(src-1)=='\n')
-						--src;
-
-					/* Now paste into the *command_ptr all the stuff 
-					 * leftover after the second backtick */
-					memcpy(src, charptr2, strlen(charptr2)+1);
-					free(charptr2);
-
-					/* Now recursively call parse_command to deal with the new
-					 * and improved version of the command line with the backtick
-					 * results expanded in place... */
-					{
-						struct jobset *jl=job->job_list;
-						free_job(job);
-						job->job_list = jl;
-					}
-					return(parse_command(command_ptr, job, inbg));
-				}
-				break;
-#endif // BB_FEATURE_SH_BACKTICKS
-
 			case '\\':
 				src++;
 				if (!*src) {
-/* This is currently a little broken... */
-#ifdef HANDLE_CONTINUATION_CHARS
-					/* They fed us a continuation char, so continue reading stuff
-					 * on the next line, then tack that onto the end of the current
-					 * command */
-					char *command;
-					int newsize;
-					printf("erik: found a continue char at EOL...\n");
-					command = (char *) xcalloc(BUFSIZ, sizeof(char));
-					if (get_command(input, command)) {
-						error_msg("character expected after \\");
-						free(command);
-						free_job(job);
-						return 1;
-					}
-					newsize = strlen(*command_ptr) + strlen(command) + 2;
-					if (newsize > BUFSIZ) {
-						printf("erik: doing realloc\n");
-						*command_ptr=xrealloc(*command_ptr, newsize);
-					}
-					printf("erik: A: *command_ptr='%s'\n", *command_ptr);
-					memcpy(--src, command, strlen(command)); 
-					printf("erik: B: *command_ptr='%s'\n", *command_ptr);
-					free(command);
-					break;
-#else
 					error_msg("character expected after \\");
 					free_job(job);
 					return 1;
-#endif
 				}
 				if (*src == '*' || *src == '[' || *src == ']'
 					|| *src == '?') *buf++ = '\\';
@@ -1598,9 +1075,7 @@ static void insert_job(struct job *newjob, int inbg)
 		   to the list of backgrounded thejobs and leave it alone */
 		printf("[%d] %d\n", thejob->jobid,
 			   newjob->progs[newjob->num_progs - 1].pid);
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-		last_bg_pid=newjob->progs[newjob->num_progs - 1].pid;
-#endif
+		last_jobid = newjob->jobid;
 	} else {
 		newjob->job_list->fg = thejob;
 
@@ -1635,17 +1110,6 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 		}
 
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-		if (show_x_trace==TRUE) {
-			int j;
-			fputc('+', stderr);
-			for (j = 0; child->argv[j]; j++) {
-				fputc(' ', stderr);
-				fputs(child->argv[j], stderr);
-			}
-			fputc('\n', stderr);
-		}
-#endif
 
 		/* Check if the command matches any non-forking builtins,
 		 * but only if this is a simple command.
@@ -1782,11 +1246,6 @@ static int busy_loop(FILE * input)
 				job_list.fg->running_progs--;
 				job_list.fg->progs[i].pid = 0;
 
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-				last_return_code=WEXITSTATUS(status);
-				debug_printf("'%s' exited -- return code %d\n",
-						job_list.fg->text, last_return_code);
-#endif
 				if (!job_list.fg->running_progs) {
 					/* child exited */
 					remove_job(&job_list, job_list.fg);
@@ -1850,16 +1309,12 @@ int shell_main(int argc_l, char **argv_l)
 	argv = argv_l;
 
 	/* These variables need re-initializing when recursing */
+	last_jobid = 0;
 	shell_context = 0;
 	local_pending_command = NULL;
 	close_me_head = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-	last_bg_pid=1;
-	last_return_code=1;
-	show_x_trace=FALSE;
-#endif
 
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *prof_input;
@@ -1886,11 +1341,6 @@ int shell_main(int argc_l, char **argv_l)
 				optind++;
 				argv = argv+optind;
 				break;
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-			case 'x':
-				show_x_trace = TRUE;
-				break;
-#endif
 			case 'i':
 				interactive = TRUE;
 				break;
