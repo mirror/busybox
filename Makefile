@@ -61,6 +61,8 @@ STRIPTOOL = $(CROSS)strip
 OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
     then echo "-Os"; else echo "-O2" ; fi)
 
+WARNINGS = -Wall
+
 ifeq ($(DODMALLOC),true)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC
@@ -70,11 +72,11 @@ ifeq ($(DODMALLOC),true)
 endif
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS += -Wall -g -D_GNU_SOURCE
+    CFLAGS += $(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS += 
     STRIP   =
 else
-    CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
+    CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
     LDFLAGS  += -s
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 
