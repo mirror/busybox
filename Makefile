@@ -299,7 +299,7 @@ docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.lineo.com
 	-  pod2html --noindex $< > \
 	    docs/busybox.lineo.com/BusyBox.html
-	-@ rm -f pod2html*
+	-@ rm -f pod2htm*
 
 
 # New docs based on DOCBOOK SGML
@@ -378,7 +378,7 @@ clean:
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
 	- rm -f multibuild.log Config.h.orig
-	- rm -rf docs/busybox _install libpwd.a libbb.a
+	- rm -rf docs/busybox _install libpwd.a libbb.a pod2htm*
 	- rm -f busybox.links libbb/loop.h *~ slist.mk core applet_source_list
 	- find -name \*.o -exec rm -f {} \;
 
