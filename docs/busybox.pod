@@ -10,10 +10,13 @@ busybox - I am BusyBox of Borg.  Unix will be assimilated.
 
 =head1 DESCRIPTION
 
-BusyBox is a multi-call binary that combines many common Unix utilities into
-a single executable.  This is a size optimization.  Most people will create
-a symlink to busybox for each function name, and BusyBox will act like
-whatever you invoke it as.
+BusyBox is a multi-call binary that combines many common Unix utilities into a
+single executable.  Most people will create a symlink to busybox for each
+function name, and BusyBox will act like whatever you invoke it as.
+
+BusyBox has been written with size-optimization in mind.  It is very easy to
+include or exclude the commands you want installed.  BusyBox tries to make
+itself useful to small systems with limited resources.
 
 =head1 COMMANDS
 
@@ -166,24 +169,44 @@ Erik Andersen <erik@lineo.com>
 
 =head1 AUTHORS
 
-=over 4
+The following people have contributed code to BusyBox whether
+they know it or not.
 
-=item Bruce Perens <perens@technocrat.net>
+Erik Andersen <erik@lineo.com>
 
-The original author.
+=for html <br>
 
-=item Erik Andersen <erik@lineo.com>
+John Beppu <beppu@lineo.com>
 
-He's thrashed around in the code enough to be considered the maintainer.
+=for html <br>
 
-=item Randolph Chung <rchung@debian.org>
+Brian Candler <B.Candler@pobox.com>
 
-ping, fbset, mkfifo, etc.
+=for html <br>
 
-=item John Beppu <beppu@lineo.com>
+Randolph Chung <tausq@debian.org>
 
-sort, head, du, uniq, tee.
+=for html <br>
 
-=back
+Dave Cinege <dcinege@psychosis.com>	
+
+=for html <br>
+
+Bruce Perens <bruce@perens.com>
+
+=for html <br>
+
+Linus Torvalds <torvalds@transmeta.com>
+
+=for html <br>
+
+Charles P. Wright <cpwright@villagenet.com>
+
+=for html <br>
+
+Enrique Zanardi <ezanardi@ull.es>
+
+=for html <br>
 
 =cut
+
