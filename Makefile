@@ -68,7 +68,8 @@ ifndef $(STRIPTOOL)
     STRIPTOOL = strip
 endif
 
-# TODO: Try compiling vs other libcs.  See what -nostdinc and -nostdlib do for that.
+# TODO: Try compiling vs other libcs.  
+# See what -nostdinc and -nostdlib do for them.
 # also try --prefix=/usr/my-libc-stuff
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
@@ -98,14 +99,12 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links docs
+all: busybox busybox.links
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
-
-docs:
-	$(MAKE) -C docs
+	( cd docs ; $(MAKE) )
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
@@ -129,7 +128,7 @@ install: busybox busybox.links
 	./install.sh $(PREFIX)
 
 dist release: distclean
-	$(MAKE) -C docs
+	( cd docs ; $(MAKE) )
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\
