@@ -60,7 +60,7 @@ USE_SYSTEM_PWD_GRP = true
 # Do not enable this for production builds...
 DODMALLOC = false
 
-# Another very useful malloc debugging library.
+# Electric-fence is another very useful malloc debugging library.
 # Do not enable this for production builds...
 DOEFENCE  = false
 
