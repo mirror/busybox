@@ -128,8 +128,12 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case '0':
 		file_header->mode |= S_IFREG;
 		break;
+#if 0
+	/* hard links are detected as entries with 0 size, a link name, 
+	 * and not being a symlink, hence we have nothing to do here */
 	case '1':
-		bb_error_msg("WARNING: Converting hard link to symlink");
+		break;
+#endif
 	case '2':
 		file_header->mode |= S_IFLNK;
 		break;
@@ -173,6 +177,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 # endif
 	}
 #endif
+
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(archive_handle->file_header);
 		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
@@ -185,4 +190,3 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 
 	return(EXIT_SUCCESS);
 }
-

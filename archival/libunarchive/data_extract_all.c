@@ -39,54 +39,52 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		free(name);
 	}                  
 
-	/* Create the filesystem entry */
-	switch(file_header->mode & S_IFMT) {
-		case S_IFREG: {
-#ifdef CONFIG_CPIO
-			if (file_header->link_name && file_header->size == 0) {
-				/* hard link */
-				res = link(file_header->link_name, file_header->name);
-				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-					bb_perror_msg("Couldnt create hard link");
-				}
-			} else
-#endif
-			{
+	/* Handle hard links seperately */
+	if (!S_ISLNK(file_header->mode) && (file_header->link_name) && (file_header->size == 0)) {
+		/* hard link */
+		res = link(file_header->link_name, file_header->name);
+		if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+			bb_perror_msg("Couldnt create hard link");
+		}
+	} else {
+		/* Create the filesystem entry */
+		switch(file_header->mode & S_IFMT) {
+			case S_IFREG: {
 				/* Regular file */
 				unlink(file_header->name);
 				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
 				archive_copy_file(archive_handle, dst_fd);
 				close(dst_fd);
-			}
-			break;
+				break;
+				}
+			case S_IFDIR:
+				unlink(file_header->name);
+				res = mkdir(file_header->name, file_header->mode);
+				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+					bb_perror_msg("extract_archive: %s", file_header->name);
+				}
+				break;
+			case S_IFLNK:
+				/* Symlink */
+				unlink(file_header->name);
+				res = symlink(file_header->link_name, file_header->name);
+				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+					bb_perror_msg("Cannot create symlink from %s to '%s'", file_header->name, file_header->link_name);
+				}
+				break;
+			case S_IFSOCK:
+			case S_IFBLK:
+			case S_IFCHR:
+			case S_IFIFO:
+				unlink(file_header->name);
+				res = mknod(file_header->name, file_header->mode, file_header->device);
+				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+					bb_perror_msg("Cannot create node %s", file_header->name);
+				}
+				break;
+			default:
+				bb_error_msg_and_die("Unrecognised file type");
 		}
-		case S_IFDIR:
-			unlink(file_header->name);
-			res = mkdir(file_header->name, file_header->mode);
-			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				bb_perror_msg("extract_archive: %s", file_header->name);
-			}
-			break;
-		case S_IFLNK:
-			/* Symlink */
-			unlink(file_header->name);
-			res = symlink(file_header->link_name, file_header->name);
-			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				bb_perror_msg("Cannot create symlink from %s to '%s'", file_header->name, file_header->link_name);
-			}
-			break;
-		case S_IFSOCK:
-		case S_IFBLK:
-		case S_IFCHR:
-		case S_IFIFO:
-			unlink(file_header->name);
-			res = mknod(file_header->name, file_header->mode, file_header->device);
-			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				bb_perror_msg("Cannot create node %s", file_header->name);
-			}
-			break;
-		default:
-			bb_error_msg_and_die("Unrecognised file type");
 	}
 
 	chmod(file_header->name, file_header->mode);
