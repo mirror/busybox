@@ -126,7 +126,6 @@ extern int sed_main (int argc, char **argv)
 	    }
     }
 
-    fprintf(stderr, "argc=%d\n", argc);
     while (argc-- > 0) {
 	name = *argv++;
 
@@ -135,10 +134,9 @@ extern int sed_main (int argc, char **argv)
 	    perror (name);
 	    continue;
 	}
-	fprintf(stderr, "filename is '%s'\n", name);
 
-	haystack = (char*)malloc( 80);
-	while (fgets (haystack, sizeof (haystack), fp)) {
+	haystack = (char*)malloc( BUF_SIZE);
+	while (fgets (haystack, BUF_SIZE-1, fp)) {
 
 	    foundOne = replace_match(haystack, needle, newNeedle, ignoreCase);
 	    if (noprintFlag==TRUE && foundOne==TRUE)

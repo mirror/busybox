@@ -778,69 +778,81 @@ int get_console_fd(char* tty_name)
 
 
 #if !defined BB_REGEXP && (defined BB_GREP || defined BB_FIND )  
+
+/* Do a case insensitive strstr() */
+char* stristr(char *haystack, const char *needle)
+{
+    int len = strlen( needle );
+    while( *haystack ) {
+	if( !strncasecmp( haystack, needle, len ) )
+	    break;
+	haystack++;
+    }
+
+    if( !(*haystack) )
+	    haystack = NULL;
+
+    return haystack;
+}
+
 /* This tries to find a needle in a haystack, but does so by
  * only trying to match literal strings (look 'ma, no regexps!)
  * This is short, sweet, and carries _very_ little baggage,
- * unlike its beefier cousin a few lines down...
+ * unlike its beefier cousin in regexp.c
  *  -Erik Andersen
  */
 extern int find_match(char *haystack, char *needle, int ignoreCase)
 {
 
-    if (ignoreCase == FALSE) {
+    if (ignoreCase == FALSE)
 	haystack = strstr (haystack, needle);
-	if (haystack == NULL)
-	    return FALSE;
-	return TRUE;
-    } else {
-	int i;
-	char needle1[BUF_SIZE];
-	char haystack1[BUF_SIZE];
-
-	strncpy( haystack1, haystack, sizeof(haystack1));
-	strncpy( needle1, needle, sizeof(needle1));
-	for( i=0; i<sizeof(haystack1) && haystack1[i]; i++)
-	    haystack1[i]=tolower( haystack1[i]);
-	for( i=0; i<sizeof(needle1) && needle1[i]; i++)
-	    needle1[i]=tolower( needle1[i]);
-	haystack = strstr (haystack1, needle1);
-	if (haystack == NULL)
-	    return FALSE;
-	return TRUE;
-    }
+    else
+	haystack = stristr (haystack, needle);
+    if (haystack == NULL)
+	return FALSE;
+    return TRUE;
 }
 
 
-/* This performs substitutions after a regexp match has been found.  */
+/* This performs substitutions after a string match has been found.  */
 extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
 {
     int foundOne;
-    char *where, *slider;
+    char *where, *slider, *slider1, *oldhayStack;
 
-    if (ignoreCase == FALSE) {
-	/*Find needle in haystack */
+    if (ignoreCase == FALSE)
 	where = strstr (haystack, needle);
-	while(where!=NULL) {
-	    foundOne++;
-	    fprintf(stderr, "A match: haystack='%s'\n", haystack);
+    else
+	where = stristr (haystack, needle);
+
+    if (strcmp(needle, newNeedle)==0)
+	return FALSE;
+
+    oldhayStack = (char*)malloc((unsigned)(strlen(haystack)));
+    while(where!=NULL) {
+	foundOne++;
+	strcpy(oldhayStack, haystack);
+#if 0
+	if ( strlen(newNeedle) > strlen(needle)) {
 	    haystack = (char *)realloc(haystack, (unsigned)(strlen(haystack) - 
 		strlen(needle) + strlen(newNeedle)));
-	    for(slider=haystack;slider!=where;slider++);
-	    *slider=0;
-	    haystack=strcat(haystack, newNeedle);
-	    slider+=1+sizeof(newNeedle);
-	    haystack = strcat(haystack, slider);
-	    where = strstr (where+1, needle);
 	}
-    } else {
-	// FIXME
-	
+#endif
+	for(slider=haystack,slider1=oldhayStack;slider!=where;slider++,slider1++);
+	*slider=0;
+	haystack=strcat(haystack, newNeedle);
+	slider1+=strlen(needle);
+	haystack = strcat(haystack, slider1);
+	where = strstr (slider, needle);
     }
+    free( oldhayStack);
+
     if (foundOne)
 	return TRUE;
     else
 	return FALSE;
 }
+
 
 #endif
 /* END CODE */
