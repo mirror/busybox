@@ -55,7 +55,7 @@ static void klogd_signal(int sig)
 	klogctl(7, NULL, 0);
 	klogctl(0, 0, 0);
 	/* logMessage(0, "Kernel log daemon exiting."); */
-	syslog_msg(LOG_DAEMON, 0, "Kernel log daemon exiting.");
+	syslog_msg(LOG_SYSLOG, LOG_NOTICE, "Kernel log daemon exiting.");
 	exit(TRUE);
 }
 
@@ -76,7 +76,7 @@ static void doKlogd(void)
 	/* "Open the log. Currently a NOP." */
 	klogctl(1, NULL, 0);
 
-	syslog_msg(LOG_DAEMON, 0, "klogd started: " BB_BANNER);
+	syslog_msg(LOG_SYSLOG, LOG_NOTICE, "klogd started: " BB_BANNER);
 
 	while (1) {
 		/* Use kernel syscalls */
@@ -90,7 +90,7 @@ static void doKlogd(void)
 			snprintf(message, 79,
 					 "klogd: Error return from sys_sycall: %d - %s.\n", errno,
 					 strerror(errno));
-			syslog_msg(LOG_DAEMON, LOG_SYSLOG | LOG_ERR, message);
+			syslog_msg(LOG_SYSLOG, LOG_ERR, message);
 			exit(1);
 		}
 
@@ -111,7 +111,7 @@ static void doKlogd(void)
 			}
 			if (log_buffer[i] == '\n') {
 				log_buffer[i] = '\0';	/* zero terminate this message */
-				syslog_msg(LOG_DAEMON, LOG_KERN | priority, start);
+				syslog_msg(LOG_KERN, priority, start);
 				start = &log_buffer[i + 1];
 				priority = LOG_INFO;
 			}
