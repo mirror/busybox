@@ -248,7 +248,7 @@ void write_leases(void)
 				else leases[i].expires -= curr;
 			} /* else stick with the time we got */
 			leases[i].expires = htonl(leases[i].expires);
-			fwrite(leases[i], sizeof(sturct dhcpOfferedAddr), 1, fp);
+			fwrite(&leases[i], sizeof(struct dhcpOfferedAddr), 1, fp);
 
 			/* Then restore it when done. */
 			leases[i].expires = tmp_time;
