@@ -2494,6 +2494,7 @@ int parse_stream_outer(struct in_str *inp)
 		done_word(&temp, &ctx);
 		done_pipe(&ctx,PIPE_SEQ);
 		run_list(ctx.list_head);
+		b_free(&temp);
 	} while (rcode != -1);   /* loop on syntax errors, return on EOF */
 	return 0;
 }
