@@ -37,34 +37,39 @@ int xargs_main(int argc, char **argv)
 	char traceflag = 0;
 	int len_args_from_cmdline, len_cmd_to_be_executed, len, opt;
 
-	while ((opt = getopt(argc, argv, "t")) != EOF) {
-		switch (opt) {
-		case 't':
-			traceflag=1;
-			break;
-		default:
-			fatalError(xargs_usage);
+	/* Note that we do not use getopt here, since
+	 * we only want to interpret initial options,
+	 * not options passed to commands */
+	while (--argc && **(++argv) == '-') {
+		while (*++(*argv)) {
+			switch (**argv) {
+				case 't':
+					traceflag=1;
+					break;
+				default:
+					fatalError(xargs_usage);
+				}
 		}
 	}
 
 	/* Store the command and arguments to be executed (from the command line) */
-	if (optind == argc) {
+	if (argc == 1) {
 		len_args_from_cmdline = 6;
 		args_from_cmdline = xmalloc(len_args_from_cmdline);
 		strcat(args_from_cmdline, "echo ");
 	} else {
-		opt=strlen(argv[optind]);
+		opt=strlen(*argv);
 		len_args_from_cmdline = (opt > 10)? opt : 10;
 		args_from_cmdline = xcalloc(len_args_from_cmdline, sizeof(char));
-		for (; optind < argc; optind++) {
-			if (strlen(argv[optind]) + strlen(args_from_cmdline) >
+		while (argc-- > 0) {
+			if (strlen(*argv) + strlen(args_from_cmdline) >
 				len_args_from_cmdline) {
-				len_args_from_cmdline += strlen(argv[optind]);
+				len_args_from_cmdline += strlen(*argv);
 				args_from_cmdline =
 					xrealloc(args_from_cmdline,
 							 len_args_from_cmdline+1);
 			}
-			strcat(args_from_cmdline, argv[optind]);
+			strcat(args_from_cmdline, *argv);
 			strcat(args_from_cmdline, " ");
 		}
 	}
