@@ -12417,27 +12417,35 @@ findvar(struct var **vpp, const char *name)
 }
 /*      $NetBSD: setmode.c,v 1.29 2003/01/15 23:58:03 kleink Exp $      */
 
-/*
- * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
- * This code for the times builtin.
- */
-
 #include <sys/times.h>
 
-int timescmd(int ac, char **av) {
-	struct tms buf;
-	long int clk_tck = sysconf(_SC_CLK_TCK);
+static const unsigned char timescmd_str[] = {
+	' ',  offsetof(struct tms, tms_utime),
+	'\n', offsetof(struct tms, tms_stime),
+	' ',  offsetof(struct tms, tms_cutime),
+	'\n', offsetof(struct tms, tms_cstime),
+	0
+};
 
+static int timescmd(int ac, char **av)
+{
+	long int clk_tck, s, t;
+	const unsigned char *p;
+	struct tms buf;
+
+	clk_tck = sysconf(_SC_CLK_TCK);
 	times(&buf);
-	out1fmt("%dm%fs %dm%fs\n%dm%fs %dm%fs\n",
-	       (int) (buf.tms_utime / clk_tck / 60),
-	       ((double) buf.tms_utime) / clk_tck,
-	       (int) (buf.tms_stime / clk_tck / 60),
-	       ((double) buf.tms_stime) / clk_tck,
-	       (int) (buf.tms_cutime / clk_tck / 60),
-	       ((double) buf.tms_cutime) / clk_tck,
-	       (int) (buf.tms_cstime / clk_tck / 60),
-	       ((double) buf.tms_cstime) / clk_tck);
+
+	p = timescmd_str;
+	do {
+		t = *(clock_t *)(((char *) &buf) + p[1]);
+		s = t / clk_tck;
+		out1fmt("%ldm%ld.%.3lds%c",
+			s/60, s%60,
+			((t - s * clk_tck) * 1000) / clk_tck,
+			p[0]);
+	} while (*(p += 2));
+
 	return 0;
 }
 
