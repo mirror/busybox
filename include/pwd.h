@@ -1,8 +1,9 @@
 #ifndef	__CONFIG_PWD_H
 #define	__CONFIG_PWD_H
 
-#if defined USE_SYSTEM_PWD_GRP
-#include <pwd.h>
+#if !defined CONFIG_USE_BB_PWD_GRP
+#include_next <pwd.h>
+
 #else
 
 #include <sys/types.h>

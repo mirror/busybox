@@ -68,6 +68,7 @@
 #include <sys/times.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "busybox.h"
 #include "pwd.h"
 
 
@@ -82,7 +83,6 @@
 #include <termios.h>
 #endif
 
-#include "busybox.h"
 #include "cmdedit.h"
 
 /*
@@ -12442,7 +12442,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.50 2002/05/14 23:22:06 sandman Exp $
+ * $Id: ash.c,v 1.51 2002/06/04 20:10:15 sandman Exp $
  */
 static int timescmd (int argc, char **argv)
 {

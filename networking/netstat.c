@@ -29,9 +29,9 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <pwd.h>
 #include "inet_common.h"
 #include "busybox.h"
+#include "pwd.h"
 
 #ifdef CONFIG_ROUTE
 extern void displayroutes(int noresolve, int netstatfmt);

@@ -1,13 +1,15 @@
 #ifndef	__CONFIG_GRP_H
 #define	__CONFIG_GRP_H
 
-#if defined USE_SYSTEM_PWD_GRP
-#include <grp.h>
+#if !defined CONFIG_USE_BB_PWD_GRP
+#include_next <grp.h>
+
 #else
 
 #include <sys/types.h>
 #include <features.h>
 #include <stdio.h>
+
 
 /* The group structure */
 struct group
