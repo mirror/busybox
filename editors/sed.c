@@ -746,7 +746,9 @@ static void process_file(FILE * file)
 restart:
 		/* for every line, go through all the commands */
 		for (sed_cmd = sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
-			int matched;
+			int old_matched, matched;
+
+			old_matched = sed_cmd->in_match;
 
 			/* Determine if this command matches this line: */
 
@@ -783,7 +785,7 @@ restart:
 							: sed_cmd->end_line<=linenum
 						: !sed_cmd->end_match)
 					/* or does this line matches our last address regex */
-					|| (sed_cmd->end_match && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
+					|| (sed_cmd->end_match && old_matched && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
 				);
 			}
 
