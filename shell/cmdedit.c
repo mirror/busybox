@@ -414,7 +414,6 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 	char c = 0;
 	struct history *hp = his_end;
 
-	memset(command, 0, sizeof(command));
 	if (!reset_term) {
 		
 		getTermSettings(inputFd, (void*) &initial_settings);
@@ -462,7 +461,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			xwrite(outputFd, prompt, strlen(prompt));
 
 			/* Reset the command string */
-			memset(command, 0, sizeof(command));
+			memset(command, 0, BUFSIZ);
 			len = cursor = 0;
 
 			break;
