@@ -57,6 +57,9 @@ typedef struct archive_handle_s {
 	/* Count the number of bytes processed */
 	off_t offset;
 
+	/* Temperary storage */
+	char *buffer;
+
 	/* Misc. stuff */
 	unsigned char flags;
 
@@ -70,10 +73,11 @@ extern char filter_accept_reject_list(const llist_t *accept_list, const llist_t 
 
 extern void unpack_ar_archive(archive_handle_t *ar_archive);
 
-extern void data_gunzip(archive_handle_t *archive_handle);
 extern void data_skip(archive_handle_t *archive_handle);
 extern void data_extract_all(archive_handle_t *archive_handle);
+extern void data_extract_all_prefix(archive_handle_t *archive_handle);
 extern void data_extract_to_stdout(archive_handle_t *archive_handle);
+extern void data_extract_to_buffer(archive_handle_t *archive_handle);
 
 extern void header_skip(const file_header_t *file_header);
 extern void header_list(const file_header_t *file_header);

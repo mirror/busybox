@@ -38,6 +38,7 @@
  *
  */
 
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1310,14 +1311,44 @@ void purge_package(const unsigned int package_num)
 	set_status(status_num, "not-installed", 3);
 }
 
+static archive_handle_t *deb_extract(const char *filename, const char *ar_name,
+	const char *tar_gz_name, char *prefix, void (*deb_action_data)(struct archive_handle_s *))
+{
+	archive_handle_t *ar_archive;
+	archive_handle_t *tar_gz_archive;
+
+	/* Setup the tar archive handle */
+	tar_gz_archive = init_handle();
+	tar_gz_archive->filter = filter_accept_reject_list;
+	tar_gz_archive->action_data = deb_action_data;
+	tar_gz_archive->buffer = prefix;
+	if (tar_gz_name) {
+		tar_gz_archive->accept = add_to_list(NULL, tar_gz_name);
+	}
+
+	/* Setup an ar archive handle that refers to the gzip sub archive */	
+	ar_archive = init_handle();
+	ar_archive->action_data_subarchive = get_header_tar_gz;
+	ar_archive->sub_archive = tar_gz_archive;
+	ar_archive->filter = filter_accept_reject_list;
+	ar_archive->accept = add_to_list(NULL, ar_name);
+
+	tar_gz_archive->src_fd = ar_archive->src_fd = xopen(filename, O_RDONLY);
+
+	unpack_ar_archive(ar_archive);
+	close(ar_archive->src_fd);
+
+	return(ar_archive->sub_archive);
+}
+
 void unpack_package(deb_file_t *deb_file)
 {
 	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const unsigned int status_num = search_status_hashtable(package_name);
 	const unsigned int status_package_num = status_hashtable[status_num]->package;
-
-	FILE *out_stream;
 	char *info_prefix;
+	archive_handle_t *archive_handle;
+	FILE *out_stream;
 
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
@@ -1333,8 +1364,8 @@ void unpack_package(deb_file_t *deb_file)
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
 	info_prefix = (char *) xmalloc(strlen(package_name) + 20 + 4 + 2);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
-	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs | extract_unconditional), info_prefix, NULL);
 
+	deb_extract(deb_file->filename, "control.tar.gz", NULL, info_prefix, data_extract_all_prefix);
 	/* Run the preinst prior to extracting */
 	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
@@ -1342,12 +1373,17 @@ void unpack_package(deb_file_t *deb_file)
 	}	
 
 	/* Extract data.tar.gz to the root directory */
-	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_data_tar_gz | extract_all_to_fs | extract_unconditional), "/", NULL);
+	archive_handle = deb_extract(deb_file->filename, "data.tar.gz", NULL, NULL, data_extract_all);
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
 	out_stream = xfopen(info_prefix, "w");			
-	deb_extract(deb_file->filename, out_stream, (extract_quiet | extract_data_tar_gz | extract_list), "/", NULL);
+	while (archive_handle->passed) {
+		/* blindly skip over the leading '.' */
+		fputs(archive_handle->passed->data + 1, out_stream);
+		fputc('\n', out_stream);
+		archive_handle->passed = archive_handle->passed->link;
+	}
 	fclose(out_stream);
 
 	/* change status */
@@ -1440,8 +1476,10 @@ int dpkg_main(int argc, char **argv)
 		deb_file = xrealloc(deb_file, sizeof(deb_file_t *) * (deb_count + 2));
 		deb_file[deb_count] = (deb_file_t *) xmalloc(sizeof(deb_file_t));
 		if (dpkg_opt & dpkg_opt_filename) {
+			archive_handle_t *archive_handle;
 			deb_file[deb_count]->filename = xstrdup(argv[optind]);
-			deb_file[deb_count]->control_file = deb_extract(argv[optind], stdout, (extract_control_tar_gz | extract_one_to_buffer), NULL, "./control");
+			archive_handle = deb_extract(argv[optind], "control.tar.gz", "./control", NULL, data_extract_to_buffer);
+			deb_file[deb_count]->control_file = archive_handle->buffer;
 			if (deb_file[deb_count]->control_file == NULL) {
 				error_msg_and_die("Couldnt extract control file");
 			}
