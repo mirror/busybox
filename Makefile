@@ -202,7 +202,6 @@ ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
     PWD_GRP	= pwd_grp
     PWD_GRP_DIR = $(BB_SRC_DIR)$(PWD_GRP)
     PWD_LIB     = libpwd.a
-    LIBRARIES  += $(PWD_LIB)
     PWD_CSRC=__getpwent.c pwent.c getpwnam.c getpwuid.c putpwent.c getpw.c \
 	    fgetpwent.c __getgrent.c grent.c getgrnam.c getgrgid.c fgetgrent.c \
 	    initgroups.c setgroups.c
