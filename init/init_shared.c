@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/reboot.h>
-#include <sys/reboot.h>
 #include <sys/syslog.h>
 #include "busybox.h"
 #include "init_shared.h"
@@ -94,4 +93,3 @@ extern int bb_shutdown_system(unsigned long magic)
 	return 0; /* Shrug */
 }
 #endif
-
