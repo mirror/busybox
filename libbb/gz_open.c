@@ -22,7 +22,6 @@ extern int gz_open(FILE *compressed_file, int *pid)
 		/* child process */
 		close(unzip_pipe[0]);
 		unzip(compressed_file, fdopen(unzip_pipe[1], "w"));
-		printf("finished unzipping\n");
 		fflush(NULL);
 		fclose(compressed_file);
 		close(unzip_pipe[1]);
