@@ -1512,19 +1512,18 @@
 		<sect2>
 		    <title>id</title>
 			<para>
-                	WARNING: This field has a non-traditional
-			meaning for BusyBox init!  The id field is used
-			by BusyBox init to specify the controlling tty
-			for the specified process to run on.  The
-			contents of this field are appended to "/dev/"
-			and used as-is.  There is no need for this field
-			to be unique, although if it isn't you may have
-			strange results.  If this field is left blank,
-			it is completely ignored.  Also note that if
-			BusyBox detects that a serial console is in use,
-			then all entries containing non-empty id fields
-			will _not_ be run.  BusyBox init does nothing
-			with utmp.  We don't need no stinkin' utmp.
+
+			WARNING: This field has a non-traditional meaning for BusyBox init!
+			The id field is used by BusyBox init to specify the controlling tty
+			for the specified process to run on.  The contents of this field
+			are appended to "/dev/" and used as-is.  There is no need for this
+			field to be unique, although if it isn't you may have strange
+			results.  If this field is left blank, the controlling tty is set
+			to the console.  Also note that if BusyBox detects that a serial
+			console is in use, then only entries whose controlling tty is
+			either the serial console or /dev/null will be run.  BusyBox init
+			does nothing with utmp.  We don't need no stinkin' utmp.
+
 			</para>
 		</sect2>
 
