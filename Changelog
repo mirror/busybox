@@ -20,6 +20,7 @@
 	    -- dpkg rewrite.  Should now be compatable with the real dpkg, 
 		but needs more testing.
 	    -- Updates to archiving tools (gunzip/gzip/cpio/ar/etc) 
+	    -- Rewrote uuencode, will allow base64 encoding to be used by wget
 	* Erik Andersen -- fixed busybox.spec so it should now work on
 	    properly on redhat systems
 	* Matt Kraai 
