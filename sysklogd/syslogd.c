@@ -574,9 +574,7 @@ extern int syslogd_main(int argc, char **argv)
 {
 	int opt;
 
-#if ! defined(__uClinux__)
 	int doFork = TRUE;
-#endif
 
 	char *p;
 
@@ -586,11 +584,9 @@ extern int syslogd_main(int argc, char **argv)
 		case 'm':
 			MarkInterval = atoi(optarg) * 60;
 			break;
-#if ! defined(__uClinux__)
 		case 'n':
 			doFork = FALSE;
 			break;
-#endif
 		case 'O':
 			logFilePath = bb_xstrdup(optarg);
 			break;
@@ -634,7 +630,7 @@ extern int syslogd_main(int argc, char **argv)
 
 	if ((doFork == TRUE) && (daemon(0, 1) < 0)) {
 		bb_perror_msg_and_die("daemon");
-#if ! defined(__uClinux__)
+#if defined(__uClinux__)
 		vfork_daemon_rexec(argc, argv, "-n");
 #endif
 	}
