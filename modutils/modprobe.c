@@ -170,7 +170,8 @@ static struct dep_t *find_dep ( struct dep_t *dt, char *mod )
 }
 
 
-static void check_dep ( char *mod, int loadit )
+static void check_dep ( char *mod, int do_syslog, 
+		int show_only, int verbose, int recursing )
 {
 	static struct dep_t *depend = (struct dep_t *) -1;	
 	struct dep_t *dt;
@@ -184,13 +185,18 @@ static void check_dep ( char *mod, int loadit )
 		int i;
 			
 		for ( i = 0; i < dt-> m_depcnt; i++ ) 
-			check_dep ( dt-> m_deparr [i], 1 );
+			check_dep ( dt-> m_deparr [i], do_syslog, 
+					show_only, verbose, 1);
 	}
-	if ( loadit ) {
-		char lcmd [128];
+	if ( recursing  ) {
+		char lcmd [256];
 		
-		sprintf ( lcmd, "insmod -k %s 2>/dev/null", mod );
-		system ( lcmd );	
+		snprintf(lcmd, sizeof(lcmd)-1, "insmod %s -q -k %s 2>/dev/null", 
+				do_syslog ? "-s" : "", mod );
+		if (show_only || verbose)
+			printf("%s\n", lcmd);
+		if (!show_only)
+			system ( lcmd );	
 	}
 }	
 
@@ -286,7 +292,7 @@ extern int modprobe_main(int argc, char** argv)
 			autoclean ? "-k" : "");
 
 #ifdef CONFIG_MODPROBE_DEPEND
-	check_dep ( argv [optind], 0 );
+	check_dep ( argv [optind], do_syslog, show_only, verbose, 0);
 #endif
 
 	while (optind < argc) {
