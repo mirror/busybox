@@ -307,6 +307,7 @@ out:
 static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 {
 	int idx = 0;
+	int slashes_eaten = 0;
 	char *ptr; /* shorthand */
 
 	/*
@@ -346,18 +347,31 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 		while (ptr[idx] != '\\' && (ptr[idx+1] != '\n' || ptr[idx+1] != '\r')) {
 			idx++;
 			if (!ptr[idx]) {
-				ptr[idx] = '\n';
-				ptr[idx+1] = 0;
-				return idx;
+				goto out;
 			}
 		}
 		/* move the newline over the '\' before it (effectively eats the '\') */
 		memmove(&ptr[idx], &ptr[idx+1], strlen(&ptr[idx+1]));
 		ptr[strlen(ptr)-1] = 0;
+		slashes_eaten++;
 		/* substitue \r for \n if needed */
 		if (ptr[idx] == '\r')
 			ptr[idx] = '\n';
 	}
+
+out:
+	ptr[idx] = '\n';
+	ptr[idx+1] = 0;
+
+	/* this accounts for discrepancies between the modified string and the
+	 * original string passed in to this function */
+	idx += slashes_eaten;
+
+	/* this accounts for the fact that A) we started at index 3, not at index
+	 * 0  and B) that we added an extra '\n' at the end (if you think the next
+	 * line should read 'idx += 4' remember, arrays are zero-based) */
+
+	idx += 3;
 
 	return idx;
 }
@@ -398,9 +412,13 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 			fatalError("only a beginning address can be specified for edit commands\n");
 		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
 	}
+	/* if it was a single-letter command (such as 'p' or 'd') we need to
+	 * increment the index past that command */
+	else
+		idx++;
 
 	/* give back whatever's left over */
-	return (char *)&cmdstr[++idx];
+	return (char *)&cmdstr[idx];
 }
 
 static void add_cmd_str(const char *cmdstr)
@@ -412,7 +430,7 @@ static void add_cmd_str(const char *cmdstr)
 		/* trim leading whitespace and semicolons */
 		memmove(mystr, &mystr[strspn(mystr, "; \n\r\t\v")], strlen(mystr));
 		/* if we ate the whole thing, that means there was just trailing
-		 * whitespace or a final semicolon. either way, get out */
+		 * whitespace or a final / no-op semicolon. either way, get out */
 		if (strlen(mystr) == 0)
 			return;
 		/* if this is a comment, jump past it and keep going */
@@ -427,7 +445,7 @@ static void add_cmd_str(const char *cmdstr)
 		/* load command string into new array element, get remainder */
 		mystr = parse_cmd_str(&sed_cmds[ncmds-1], mystr);
 
-	} while (mystr);
+	} while (mystr && strlen(mystr));
 }
 
 
@@ -447,7 +465,12 @@ static void load_cmd_file(char *filename)
 				(nextline = get_line_from_file(cmdfile)) != NULL) {
 			line = realloc(line, strlen(line) + strlen(nextline) + 1);
 			strcat(line, nextline);
+			free(nextline);
 		}
+		/* eat trailing newline (if any) --if I don't do this, edit commands
+		 * (aic) will print an extra newline */
+		if (line[strlen(line)-1] == '\n')
+			line[strlen(line)-1] = 0;
 		add_cmd_str(line);
 		free(line);
 	}
