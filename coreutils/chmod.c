@@ -5,6 +5,9 @@
  * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
  * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
+ * Reworked by (C) 2002 Vladimir Oleynik <dzo@simtreas.ru>
+ *  to correctly parse '-rwxgoa'
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -31,7 +34,7 @@
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (!parse_mode((char *)junk, &(statbuf->st_mode)))
-		error_msg_and_die("internal error");
+		error_msg_and_die( "unknown mode: %s", (char *)junk);
 	if (chmod(fileName, statbuf->st_mode) == 0)
 		return (TRUE);
 	perror(fileName);
@@ -40,35 +43,44 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 
 int chmod_main(int argc, char **argv)
 {
-	int i;
 	int opt;
 	int recursiveFlag = FALSE;
+	int modeind = 0;   /* Index of the mode argument in `argv'. */
+	char *smode;
+	static const char chmod_modes[] = "Rrwxstugoa,+-=";
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "R")) > 0) {
-		switch (opt) {
-			case 'R':
-				recursiveFlag = TRUE;
+	while (1) {
+		int thisind = optind ? optind : 1;
+
+		opt = getopt(argc, argv, chmod_modes);
+		if (opt == EOF)
 				break;
-			default:
+		smode = strchr(chmod_modes, opt);
+		if(smode == NULL)
 				show_usage();
+		if(smode == chmod_modes) {      /* 'R' */
+			recursiveFlag = TRUE;
+		} else {
+		      if (modeind != 0 && modeind != thisind)
+			show_usage();
+		      modeind = thisind;
 		}
 	}
 
-	if (argc > optind && argc > 2 && argv[optind]) {
-		/* Parse the specified mode */
-		mode_t mode;
-		if (! parse_mode(argv[optind], &mode)) {
-			error_msg_and_die( "unknown mode: %s", argv[optind]);
-		}
-	} else {
+	if (modeind == 0)
+		modeind = optind++;
+
+	opt = optind;
+	if (opt >= argc) {
 		error_msg_and_die(too_few_args);
 	}
 
+	smode = argv[modeind];
 	/* Ok, ready to do the deed now */
-	for (i = optind + 1; i < argc; i++) {
-		if (! recursive_action (argv[i], recursiveFlag, FALSE, FALSE, fileAction,
-					fileAction, argv[optind])) {
+	for (; opt < argc; opt++) {
+		if (! recursive_action (argv[opt], recursiveFlag, FALSE, FALSE, fileAction,
+					fileAction, smode)) {
 			return EXIT_FAILURE;
 		}
 	}
