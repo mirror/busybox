@@ -191,23 +191,25 @@ void message(int device, char *fmt, ...)
 void set_term(int fd)
 {
 	struct termios tty;
-	static const char control_characters[] = {
-		'\003', '\034', '\177', '\025', '\004', '\0',
-		'\1', '\0', '\021', '\023', '\032', '\0', '\022',
-		'\017', '\027', '\026', '\0'
-	};
 
 	tcgetattr(fd, &tty);
 
 	/* set control chars */
-	memcpy(tty.c_cc, control_characters, sizeof(control_characters));
+	tty.c_cc[VINTR]  = 3;	/* C-c */
+	tty.c_cc[VQUIT]  = 28;	/* C-\ */
+	tty.c_cc[VERASE] = 127; /* C-? */
+	tty.c_cc[VKILL]  = 21;	/* C-u */
+	tty.c_cc[VEOF]   = 4;	/* C-d */
+	tty.c_cc[VSTART] = 17;	/* C-q */
+	tty.c_cc[VSTOP]  = 19;	/* C-s */
+	tty.c_cc[VSUSP]  = 26;	/* C-z */
 
 	/* use line dicipline 0 */
 	tty.c_line = 0;
 
 	/* Make it be sane */
-	//tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-	//tty.c_cflag |= HUPCL|CLOCAL;
+	tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
+	tty.c_cflag |= HUPCL|CLOCAL;
 
 	/* input modes */
 	tty.c_iflag = ICRNL | IXON | IXOFF;
