@@ -32,14 +32,24 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+/*
+ |  I'm only implementing non-interactive mode;
+ |  I totally forgot nslookup even had an interactive mode.
+ |
+ |  [ TODO ]
+ |  + find out how to use non-default name servers
+ |  + find out how the real nslookup gets the default name server
+ */
 
 static const char nslookup_usage[] =
-"only implementing non-interactive mode\n"
-"I totally forgot nslookup even had an interactive mode\n"
+    "nslookup [HOST]\n\n"
 ;
 
 
-/* */
+/* I have to see how the real nslookup does this.
+ * I could dig through /etc/resolv.conf, but is there a
+ * better (programatic) way?
+ */
 static void
 server_fprint(FILE *dst)
 {
@@ -67,7 +77,9 @@ addr_fprint(char *addr, FILE *dst)
     return 0;
 }
 
-/* */
+/* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
+ * into a uint32_t
+ */
 static uint32_t
 str_to_addr(const char *addr)
 {
@@ -86,59 +98,63 @@ str_to_addr(const char *addr)
     return htonl(ip);
 }
 
-/* */
+/* takes the NULL-terminated array h_addr_list, and
+ * prints its contents appropriately
+ */
 static int
 addr_list_fprint(char **h_addr_list, FILE *dst)
 {
-    int	    i;
+    int	    i, j;
     char    *addr_string = (h_addr_list[1]) 
 	? "Addresses" 
 	: "Address";
 
     fprintf(dst, "%s:  ", addr_string);
-    for (i = 0; h_addr_list[i]; i++) {
+    for (i = 0, j = 0; h_addr_list[i]; i++, j++) {
 	addr_fprint(h_addr_list[i], dst);
-	if (h_addr_list[i+1]) {
-	    fprintf(dst, ", ");
+
+	/* real nslookup does this */
+	if (j == 4) {
+	    if (h_addr_list[i+1]) {
+		fprintf(dst, "\n          ");
+	    }
+	    j = 0;
+	} else {
+	    if (h_addr_list[i+1]) {
+		fprintf(dst, ", ");
+	    }
 	}
+
     }
     fprintf(dst,"\n");
     return 0;
 }
 
-/* */
+/* gethostbyaddr wrapper */
 static struct hostent *
-lookup_by_name(const char *hostname)
+gethostbyaddr_wrapper(const char *address)
 {
-    struct hostent  *host;
+    struct in_addr  addr;
 
-    host = gethostbyname(hostname);
+    addr.s_addr = str_to_addr(address);
+    return gethostbyaddr((char *) &addr, 4, AF_INET); /* IPv4 only for now */
+}
+
+/* print the results as nslookup would */
+static struct hostent *
+hostent_fprint(struct hostent *host, FILE *dst)
+{
     if (host) {
-	fprintf(stdout, "Name:    %s\n", host->h_name);
-	addr_list_fprint(host->h_addr_list, stdout);
+	fprintf(dst, "Name:    %s\n", host->h_name);
+	addr_list_fprint(host->h_addr_list, dst);
     } else {
-	herror("crap");
+	fprintf(dst, "*** %s\n", hstrerror(h_errno));
     }
     return host;
 }
 
-/* */
-static struct hostent *
-lookup_by_addr(const char *addr)
-{
-    struct hostent  *host;
 
-    host = gethostbyaddr(addr, 4, AF_INET); /* IPv4 only for now */
-    if (host) {
-	fprintf(stdout, "Name:    %s\n", host->h_name);
-	addr_list_fprint(host->h_addr_list, stdout);
-    } else {
-	herror("crap");
-    }
-    return host;
-}
-
-/* */
+/* naive function to check whether char *s is an ip address */
 static int
 is_ip_address(const char *s)
 {
@@ -153,16 +169,20 @@ is_ip_address(const char *s)
 int
 nslookup_main(int argc, char **argv)
 {
-    struct in_addr addr;
+    struct hostent  *host;
+
+    if (argc < 2) {
+	usage(nslookup_usage);
+    }
 
     server_fprint(stdout);
     if (is_ip_address(argv[1])) {
-	addr.s_addr = str_to_addr(argv[1]);
-	lookup_by_addr((char *) &addr); 
+	host = gethostbyaddr_wrapper(argv[1]); 
     } else {
-	lookup_by_name(argv[1]);
+	host = gethostbyname(argv[1]);
     }
+    hostent_fprint(host, stdout);
     return 0;
 }
 
-/* $Id: nslookup.c,v 1.1 2000/01/29 12:59:01 beppu Exp $ */
+/* $Id: nslookup.c,v 1.2 2000/01/30 09:47:16 beppu Exp $ */
