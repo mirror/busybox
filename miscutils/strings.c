@@ -44,7 +44,7 @@ int strings_main(int argc, char **argv)
 	char *file;
 	size_t foff, minlen;
 	unsigned char *bfr, *C;
-
+	int i;
 
 	exitcode = fflg = oflg = 0;
 	minlen = -1;
@@ -96,11 +96,19 @@ int strings_main(int argc, char **argv)
 				if (fflg)
 					printf("%s:", file);
 				if (oflg)
-					printf("%7ld %s", (long)(foff - minlen), (char *)bfr);
+					printf("%7lo %s", (long)(foff - minlen), (char *)bfr);
 				else
 					printf("%s", bfr);
+				i=0;
 				while ((ch = getchar()) != EOF && ISSTR(ch))
+				{
 					putchar((char)ch);
+					i++;
+				}
+				if(i>0)
+					foff+=(i+1);
+				else
+					foff++;
 				putchar('\n');
 			}
 			cnt = 0;
