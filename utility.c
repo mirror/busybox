@@ -46,8 +46,9 @@ int isDirectory(const char *name)
 
     if (stat(name, &statBuf) < 0)
 	return FALSE;
-
-    return S_ISDIR(statBuf.st_mode);
+    if (S_ISDIR(statBuf.st_mode))
+	return TRUE;
+    return(FALSE);
 }
 
 
@@ -467,8 +468,8 @@ int fullRead(int fd, char *buf, int len)
  */
 int
 recursiveAction(const char *fileName, int recurse, int followLinks,
-		int (*fileAction) (const char *fileName),
-		int (*dirAction) (const char *fileName))
+		int (*fileAction) (const char *fileName, struct stat* statbuf),
+		int (*dirAction) (const char *fileName, struct stat* statbuf))
 {
     int status;
     struct stat statbuf;
@@ -487,7 +488,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
     if (recurse == FALSE) {
 	if (S_ISDIR(statbuf.st_mode)) {
 	    if (dirAction != NULL)
-		return (dirAction(fileName));
+		return (dirAction(fileName, &statbuf));
 	    else
 		return (TRUE);
 	} 
@@ -501,7 +502,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	    return (FALSE);
 	}
 	if (dirAction != NULL) {
-	    status = dirAction(fileName);
+	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
 		return (FALSE);
@@ -531,7 +532,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	if (fileAction == NULL)
 	    return (TRUE);
 	else
-	    return (fileAction(fileName));
+	    return (fileAction(fileName, &statbuf));
     }
     return (TRUE);
 }

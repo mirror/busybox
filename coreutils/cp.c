@@ -41,20 +41,23 @@ static int preserveFlag = FALSE;
 static const char *srcName;
 static const char *destName;
 static const char *skipName;
+static int dirFlag = FALSE;
 
 
-static int fileAction(const char *fileName)
+static int fileAction(const char *fileName, struct stat* statbuf)
 {
     char newdestName[NAME_MAX];
     strcpy(newdestName, destName);
-    strcat(newdestName, strstr(fileName, skipName));
+    if (dirFlag==TRUE && newdestName[strlen(newdestName)-1]!= '/' ) {
+	strcat(newdestName, "/");
+	if ( skipName != NULL)
+	    strcat(newdestName, strstr(fileName, skipName));
+    }
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
 }
 
 extern int cp_main(int argc, char **argv)
 {
-
-    int dirFlag;
 
     if (argc < 3) {
 	fprintf(stderr, "Usage: %s", cp_usage);
@@ -91,10 +94,9 @@ extern int cp_main(int argc, char **argv)
 
 
     destName = argv[argc - 1];
-
     dirFlag = isDirectory(destName);
 
-    if ((argc > 3) && !dirFlag) {
+    if ((argc > 3) && dirFlag==FALSE) {
 	fprintf(stderr, "%s: not a directory\n", destName);
 	exit (FALSE);
     }

@@ -41,7 +41,7 @@ extern int mv_main (int argc, char **argv)
 
     if (argc < 3) {
 	fprintf (stderr, "Usage: %s %s", *argv, mv_usage);
-	return (FALSE);
+	exit (FALSE);
     }
     lastArg = argv[argc - 1];
 
@@ -49,8 +49,7 @@ extern int mv_main (int argc, char **argv)
 
     if ((argc > 3) && !dirFlag) {
 	fprintf (stderr, "%s: not a directory\n", lastArg);
-
-	return (FALSE);
+	exit (FALSE);
     }
 
     while (argc-- > 2) {
@@ -80,5 +79,5 @@ extern int mv_main (int argc, char **argv)
 	if (unlink (srcName) < 0)
 	    perror (srcName);
     }
-    return (TRUE);
+    exit (TRUE);
 }

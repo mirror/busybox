@@ -49,20 +49,17 @@ static const char chmod_usage[] = "[-R] MODE[,MODE]... FILE...\n"
 
 
 
-static int fileAction(const char *fileName)
+static int fileAction(const char *fileName, struct stat* statbuf)
 {
-    struct stat statBuf;
-    if (stat(fileName, &statBuf) < 0) {
-	switch (whichApp) {
-	    case CHGRP_APP:
-	    case CHOWN_APP:
-		if (chown(fileName, ((whichApp==CHOWN_APP)? uid: statBuf.st_uid), gid) < 0)
-		    return( TRUE);
-	    case CHMOD_APP:
-		fprintf(stderr, "%s, %d\n", fileName, mode);
-		if (chmod(fileName, mode))
-		    return( TRUE);
-	}
+    switch (whichApp) {
+	case CHGRP_APP:
+	case CHOWN_APP:
+	    if (chown(fileName, ((whichApp==CHOWN_APP)? uid: statbuf->st_uid), gid) < 0)
+		return( TRUE);
+	case CHMOD_APP:
+	    fprintf(stderr, "%s, %d\n", fileName, mode);
+	    if (chmod(fileName, mode))
+		return( TRUE);
     }
     perror(fileName);
     return( FALSE);

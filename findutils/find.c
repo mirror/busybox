@@ -35,7 +35,7 @@ static const char find_usage[] = "find [path...] [expression]\n"
 
 
 
-static int fileAction(const char *fileName)
+static int fileAction(const char *fileName, struct stat* statbuf)
 {
     if (pattern==NULL)
 	fprintf(stdout, "%s\n", fileName);
@@ -44,7 +44,7 @@ static int fileAction(const char *fileName)
     return( TRUE);
 }
 
-static int dirAction(const char *fileName)
+static int dirAction(const char *fileName, struct stat* statbuf)
 {
     DIR *dir;
     struct dirent *entry;
@@ -70,7 +70,7 @@ static int dirAction(const char *fileName)
 int find_main(int argc, char **argv)
 {
     if (argc <= 1) {
-	dirAction( "."); 
+	dirAction( ".", NULL); 
     }
 
     /* peel off the "find" */
@@ -120,7 +120,7 @@ int find_main(int argc, char **argv)
 	    break;
     }
 
-    dirAction( directory); 
+    dirAction( directory, NULL); 
     exit(TRUE);
 }
 
