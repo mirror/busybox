@@ -1365,6 +1365,10 @@ const char uniq_usage[] =
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nDiscard all but one of successive identical lines from INPUT\n"
 	"(or standard input), writing to OUTPUT (or standard output).\n"
+	"Options:\n"
+	"\t-c\tprefix lines by the number of occurrences\n"
+	"\t-d\tonly print duplicate lines\n"
+	"\t-u\tonly print unique lines\n"
 #endif
 	;
 #endif

@@ -28,28 +28,59 @@
 #include <string.h>
 #include <errno.h>
 
+static int print_count;
+static int print_uniq = 1;
+static int print_duplicates = 1;
+
+static void print_line(char *line, int count, FILE *fp)
+{
+	if ((print_duplicates && count > 1) || (print_uniq && count == 1)) {
+		if (print_count)
+			fprintf(fp, "%7d\t%s", count, line);
+		else
+			fputs(line, fp);
+	}
+}
+
 int uniq_main(int argc, char **argv)
 {
 	FILE *in = stdin, *out = stdout;
 	char *lastline = NULL, *input;
+	int opt, count = 0;
 
 	/* parse argv[] */
-	if ((argc > 1 && **(argv + 1) == '-') || argc > 3)
-		usage(uniq_usage);
+	while ((opt = getopt(argc, argv, "cdu")) > 0) {
+		switch (opt) {
+			case 'c':
+				print_count = 1;
+				break;
+			case 'd':
+				print_duplicates = 1;
+				print_uniq = 0;
+				break;
+			case 'u':
+				print_duplicates = 0;
+				print_uniq = 1;
+				break;
+		}
+	}
 
-	if (argv[1] != NULL) {
-		in = xfopen(argv[1], "r");
-		if (argv[2] != NULL)
-			out = xfopen(argv[2], "w");
+	if (argv[optind] != NULL) {
+		in = xfopen(argv[optind], "r");
+		if (argv[optind+1] != NULL)
+			out = xfopen(argv[optind+1], "w");
 	}
 
 	while ((input = get_line_from_file(in)) != NULL) {
 		if (lastline == NULL || strcmp(input, lastline) != 0) {
-			fputs(input, out);
+			print_line(lastline, count, out);
 			free(lastline);
 			lastline = input;
+			count = 0;
 		}
+		count++;
 	}
+	print_line(lastline, count, out);
 	free(lastline);
 
 	return EXIT_SUCCESS;

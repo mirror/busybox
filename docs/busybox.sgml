@@ -3428,6 +3428,18 @@
 		</para>
 
 		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+		-c		prefix lines by the number of occurrences
+		-d		only print duplicate lines
+		-u		only print unique lines
+		</screen>
+		</para>
+
+		<para>
 		Example:
 		</para>
 

@@ -1954,6 +1954,12 @@ Usage: uniq [OPTION]... [INPUT [OUTPUT]]
 
 Discard all but one of successive identical lines from INPUT
 (or standard input), writing to OUTPUT (or standard output).
+	
+Options:
+
+	-c		prefix lines by the number of occurrences
+	-d		only print duplicate lines
+	-u		only print unique lines
 
 Example:
 
@@ -2286,4 +2292,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.79 2000/12/08 20:38:00 andersen Exp $
+# $Id: busybox.pod,v 1.80 2000/12/09 16:37:53 andersen Exp $
