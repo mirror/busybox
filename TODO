@@ -11,13 +11,14 @@ around to it some time. If you have any good ideas, please let me know.
     to happen.  False alarm.  Sorry about the confusion.  
 
 * The busybox shell, lash, is really too weak for serious use, although it is
-    possible to run simple systems with it.  BusyBox 0.49 was supposed to have
-    a new shell, updated to understand full Bourne grammer.  Well, that simply
-    didn't happen in time for the release.  A rewrite is in progress that will
-    result in a new shell that understands the full Bourne grammar.  This new
-    shell is being championed by Larry Doolittle <ldoolitt@recycle.lbl.gov>, and
-    could use your help.  Please see the work in progress at
-	http://doolittle.faludi.com/~larry/parser.html
+    possible to run many simple systems with it.  BusyBox 0.49 was supposed to
+    have a new shell, updated to understand full Bourne grammer.  Well, that
+    simply didn't happen in time for the release.  A rewrite is in progress
+    that will result in a new shell that understands the full Bourne grammar.
+    This new shell is being championed by Larry Doolittle
+    <ldoolitt@recycle.lbl.gov>, and could use your help.  Please see the work
+    in progress at http://doolittle.faludi.com/~larry/parser.html and help
+    us out.
 
  -Erik
 
@@ -31,7 +32,7 @@ Possible apps to include some time:
 -----------
 
 Write a fixup_globals function to do just that right before calling
-non-forking applets.  Or, just always fork...
+non-forking applets.  Or, just always fork in the shell...
 
 -----------------------
 
