@@ -426,7 +426,7 @@ more:
 		sep->se_argv[argc++] = NULL;
 	}
 
-	free(cp);
+	//free(cp);	// BUG: cp is the argv[] container; we must not free it here!
 	return (sep);
 }
 
@@ -589,7 +589,10 @@ static void config(int signum)
 				SWAP(char *, sep->se_argv[i], cp->se_argv[i]);
 #undef SWAP
 			sigprocmask(SIG_SETMASK, &oldmask, NULL);
-			freeconfig(cp);
+			// This freeconfig() is probably a bug, since it will try and free()
+			// each of the argv[] values, which are really just pointers
+			// into the middle of a single line buffer for the config file.
+			//freeconfig(cp);	// BUG?
 		} else {
 			sep = (struct servtab *)xmalloc(sizeof (*sep));
 			*sep = *cp;
