@@ -71,6 +71,7 @@ struct BB_suid_config
 };
 
 static struct BB_suid_config *suid_config;
+static int suid_cfg_readable;
 
 #endif /* CONFIG_FEATURE_SUID_CONFIG */
 
@@ -192,7 +193,7 @@ check_suid (struct BB_applet *applet)
   uid_t rgid = getgid ();
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
-  if (suid_config) {
+  if (suid_cfg_readable) {
 	struct BB_suid_config *sct;
 
 	for (sct = suid_config; sct; sct = sct->m_next) {
@@ -315,6 +316,7 @@ static void parse_config_file(void)
 		return;
 	}
 
+	suid_cfg_readable = 1;
 	sct_head = NULL;
 	section = lc = 0;
 
