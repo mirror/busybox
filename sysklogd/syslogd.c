@@ -22,6 +22,7 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <stdarg.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -145,7 +146,8 @@ static void logMessage( int pri, char* msg)
 
 static void quit_signal(int sig)
 {
-    logMessage(LOG_SYSLOG|LOG_INFO, "syslogd exiting");
+    logMessage(LOG_SYSLOG|LOG_INFO, "System log daemon exiting.");
+    unlink( _PATH_LOG);
     exit( TRUE);
 }
 
@@ -184,32 +186,27 @@ static void doSyslogd(void)
     signal(SIGALRM, domark);
     alarm(MarkInterval);
 
+
+    unlink( _PATH_LOG);
     memset(&sunx, 0, sizeof(sunx));
     sunx.sun_family = AF_UNIX;	/* Unix domain socket */
     strncpy(sunx.sun_path, _PATH_LOG, sizeof(sunx.sun_path));
-    if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0 ) {
+    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0 ) {
         perror("Couldn't obtain descriptor for socket " _PATH_LOG);
 	exit( FALSE);
     }
 
     addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
     if ( (bind(fd, (struct sockaddr *) &sunx, addrLength)) ||
-	    (chmod(_PATH_LOG, 0666) < 0) ||
-	    (listen(fd, 5)) ) 
+	    (fchmod(fd, 0666) < 0) || (listen(fd, 5)) ) 
     {
 	perror("Could not connect to socket " _PATH_LOG);
 	exit( FALSE);
     }
     
     
-    /* Get localhost's name */
-    gethostname(LocalHostName, sizeof(LocalHostName));
-    if ( (p = strchr(LocalHostName, '.')) ) {
-	*p++ = '\0';
-    }
-    
     logMessage(LOG_SYSLOG|LOG_INFO, "syslogd started: "
-	    "BusyBox v" BB_VER " (" BB_BT ") multi-call binary");
+	    "BusyBox v" BB_VER " (" BB_BT ")");
 
 
     while ((conn = accept(fd, (struct sockaddr *) &sunx, 
@@ -258,7 +255,8 @@ static void klogd_signal(int sig)
 {
     //ksyslog(7, NULL, 0);
     //ksyslog(0, 0, 0);
-    logMessage(LOG_SYSLOG|LOG_INFO, "Kernel log daemon terminating.");
+    logMessage(LOG_SYSLOG|LOG_INFO, "Kernel log daemon exiting.");
+    close( kmsg);
     exit( TRUE);
 }
 
@@ -268,6 +266,7 @@ static void doKlogd(void)
     int priority=LOG_INFO;
     struct stat sb;
     char log_buffer[4096];
+    char *logp;
 
     /* Set up sig handlers */
     signal(SIGINT,  klogd_signal);
@@ -275,9 +274,9 @@ static void doKlogd(void)
     signal(SIGTERM, klogd_signal);
     signal(SIGHUP,  klogd_signal);
     logMessage(LOG_SYSLOG|LOG_INFO, "klogd started: "
-	    "BusyBox v" BB_VER " (" BB_BT ") multi-call binary");
+	    "BusyBox v" BB_VER " (" BB_BT ")");
 
-    //ksyslog(1, NULL, 0);
+    ksyslog(1, NULL, 0);
     if ( ((stat(_PATH_KLOG, &sb) < 0) && (errno == ENOENT)) ||
 	    ( (kmsg = open(_PATH_KLOG, O_RDONLY)) < 0 ) ) {
 	char message[80];
@@ -308,7 +307,7 @@ static void doKlogd(void)
 	    exit(1);
 	}
 #endif
-	fprintf(stderr, "the kernel says '%s'\n", log_buffer);
+	logp=log_buffer;
         if ( *log_buffer == '<' )
         {
 	    switch ( *(log_buffer+1) )
@@ -338,9 +337,9 @@ static void doKlogd(void)
 		default:
 		    priority = LOG_DEBUG;
 	    }
-	    *log_buffer += 3;
+	    logp+=3;
         }
-	logMessage(LOG_KERN|priority, log_buffer);
+	logMessage(LOG_KERN|priority, logp);
     }
 
 }
@@ -350,8 +349,9 @@ extern int syslogd_main(int argc, char **argv)
 {
     int	pid, klogd_pid;
     int doFork = TRUE;
+    char *p;
     char **argv1=argv;
-
+    
     while (--argc > 0 && **(++argv1) == '-') {
 	while (*(++(*argv1))) {
 	    switch (**argv1) {
@@ -375,6 +375,12 @@ extern int syslogd_main(int argc, char **argv)
 	    }
 	}
     }
+    
+    /* Store away localhost's name before the fork */
+    gethostname(LocalHostName, sizeof(LocalHostName));
+    if ( (p = strchr(LocalHostName, '.')) ) {
+	*p++ = '\0';
+    }
 
     if (doFork == TRUE) {
 	pid = fork();
@@ -388,7 +394,7 @@ extern int syslogd_main(int argc, char **argv)
 	doSyslogd();
     }
 
-    /* Start klogd process */
+    /* Start up the klogd process */
     klogd_pid = fork();
     if (klogd_pid == 0 ) {
 	    strncpy(argv[0], "klogd", strlen(argv[0]));
