@@ -1431,7 +1431,7 @@
 #define route_trivial_usage \
 	"[{add|del|flush}]"
 #define route_full_usage \
-	"Edit the kernel's routing tables"
+	"Edit the kernel's routing tables.\n\n" \
 	"Options:\n" \
 	"\t-n\tDont resolve names."
 
@@ -1854,7 +1854,7 @@
 #define unzip_trivial_usage \
 	"[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]"
 #define unzip_full_usage \
-	"Extracts files from ZIP archives\n" \
+	"Extracts files from ZIP archives.\n\n" \
 	"Options:\n" \
 	"\t-l\tlist archive contents (short form)\n" \
 	"\t-n\tnever overwrite existing files (default)\n" \
