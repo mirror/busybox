@@ -115,7 +115,11 @@ extern procps_status_t * procps_scan(int save_user_arg0
 		else
 			curstatus.state[2] = ' ';
 
+#ifdef PAGE_SHIFT
 		curstatus.rss <<= (PAGE_SHIFT - 10);     /* 2**10 = 1kb */
+#else
+		curstatus.rss *= (getpagesize() >> 10);     /* 2**10 = 1kb */
+#endif
 
 		if(save_user_arg0) {
 			sprintf(status, "/proc/%d/cmdline", pid);
