@@ -34,7 +34,7 @@
    an RFC 822 complient date output for shell scripting
    mail commands */
 
-const char	date_usage[] = "Usage: date [OPTION]... [+FORMAT]\n"
+const char	date_usage[] = "date [OPTION]... [+FORMAT]\n"
 "  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
 "Display the current time in the given FORMAT, or set the system date.\n"
 "\nOptions:\n\t-R\t\toutput RFC-822 compliant date string\n"
@@ -159,12 +159,6 @@ date_conv_ftime(struct tm *tm_time, const char *t_string) {
 }
 
 
-void
-date_err(void) {
-    fprintf (stderr, "%s\n", date_usage);
-    exit( FALSE);
-}
-
 int
 date_main(int argc, char * * argv)
 {
@@ -190,7 +184,7 @@ date_main(int argc, char * * argv)
 		break;
 	    case 's':
 		set_time = 1;
-		if(date_str != NULL) date_err();
+		if(date_str != NULL) usage ( date_usage);
 		date_str = optarg;
 		break;
 	    case 'u':
@@ -202,11 +196,11 @@ date_main(int argc, char * * argv)
 		/* Look ma, no break.  Don't fix it either. */
 	    case 'd':
 		use_arg = 1;
-		if(date_str != NULL) date_err();
+		if(date_str != NULL) usage ( date_usage);
 		date_str = optarg;
 		break;
 	    case '-':
-		date_err();
+		usage ( date_usage);
 	    }
 	} else {
 	    if ( (date_fmt == NULL) && (strcmp(*argv, "+")==0) )
@@ -215,7 +209,7 @@ date_main(int argc, char * * argv)
 		set_time = 1;
 		date_str=*argv;
 	    } else { 
-		date_err();
+		usage ( date_usage);
 	    }
 	}
 	i--;

@@ -75,9 +75,6 @@ static const struct Applet applets[] = {
 #ifdef BB_LOADKMAP		//sbin
     {"loadkmap", loadkmap_main},
 #endif
-#ifdef BB_LOSETUP		//sbin
-    {"losetup", losetup_main},
-#endif
 #ifdef BB_LS			//bin
     {"ls", ls_main},
 #endif

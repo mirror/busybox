@@ -21,7 +21,7 @@ const char makedevs_usage[] =
 "\tmakedevs /dev/hda b 3 0 0 8 s         (hda,hda1-hda8)\n";
 
 int
-makedevs_main(struct FileInfo * i, int argc, char * * argv)
+makedevs_main(int argc, char * * argv)
 {
 
 const char *basedev = argv[1];
@@ -45,7 +45,7 @@ char buf[255];
 		case 'f':
 			mode = S_IFIFO; break;
 		default:
-			usage(makedevs_usage);
+			fprintf(stderr, "Usage: %s\n", makedevs_usage);
 			return 2;
 	}       
 	mode |= 0660; 

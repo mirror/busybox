@@ -51,8 +51,7 @@ extern int mkdir_main(int argc, char **argv)
 		parentFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "%s\n", mkdir_usage);
-		exit(FALSE);
+		usage( mkdir_usage);
 	    }
 	argc--;
 	argv++;
@@ -60,8 +59,7 @@ extern int mkdir_main(int argc, char **argv)
 
 
     if (argc < 1) {
-	fprintf(stderr, "%s\n", mkdir_usage);
-	exit (FALSE);
+	usage( mkdir_usage);
     }
 
     while (--argc > 0) {

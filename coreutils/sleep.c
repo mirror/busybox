@@ -8,8 +8,7 @@ extern int
 sleep_main(int argc, char * * argv)
 {
         if ( (argc < 2) || (**(argv+1) == '-') ) {
-	    fprintf(stderr, "Usage: %s %s", *argv, sleep_usage);
-	    exit(FALSE);
+	    usage( sleep_usage );
 	}
 
 	if ( sleep(atoi(*(++argv))) != 0 ) {

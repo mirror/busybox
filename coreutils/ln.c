@@ -44,8 +44,7 @@ extern int ln_main(int argc, char **argv)
     char newdestName[NAME_MAX];
 
     if (argc < 3) {
-	fprintf(stderr, "Usage: %s", ln_usage);
-	exit (FALSE);
+	usage (ln_usage);
     }
     argc--;
     argv++;
@@ -61,8 +60,7 @@ extern int ln_main(int argc, char **argv)
 		removeoldFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", ln_usage);
-		exit(FALSE);
+		usage (ln_usage);
 	    }
 	argc--;
 	argv++;

@@ -34,6 +34,14 @@
 #include <unistd.h>
 
 
+/* volatile so gcc knows this is the enod of the line */
+volatile void usage(const char *usage)
+{
+    fprintf(stderr, "Usage: %s\n", usage);
+    exit(FALSE);
+}
+
+
 
 #if defined (BB_CP) || defined (BB_MV)
 /*

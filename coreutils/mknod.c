@@ -1,4 +1,5 @@
 #include "internal.h"
+#include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -13,7 +14,7 @@ const char mknod_usage[] = "mknod file b|c|u|p major minor\n"
 "\tp:\tMake a named pipe. Major and minor are ignored for named pipes.\n";
 
 int
-mknod_main(struct FileInfo * i, int argc, char * * argv)
+mknod_main(int argc, char** argv)
 {
 	mode_t	mode = 0;
 	dev_t	dev = 0;
@@ -30,23 +31,21 @@ mknod_main(struct FileInfo * i, int argc, char * * argv)
 		mode = S_IFIFO;
 		break;
 	default:
-		usage(mknod_usage);
-		return 1;
+		usage (mknod_usage);
 	}
 
 	if ( mode == S_IFCHR || mode == S_IFBLK ) {
 		dev = (atoi(argv[3]) << 8) | atoi(argv[4]);
 		if ( argc != 5 ) {
-			usage(mknod_usage);
-			return 1;
+		    usage (mknod_usage);
 		}
 	}
 
 	mode |= 0666;
 
 	if ( mknod(argv[1], mode, dev) != 0 ) {
-		name_and_error(argv[1]);
-		return 1;
+		perror(argv[1]);
+		return( FALSE);
 	}
-	return 0;
+	return( TRUE);
 }

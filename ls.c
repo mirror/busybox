@@ -19,6 +19,8 @@
  *
  */
 
+// I started writing a newer small one, but it isn't done yet....
+//  -Erik
 #if fooBar
 
 #include <stdio.h>
@@ -110,8 +112,7 @@ int ls_main(int argc, char **argv)
 		recursiveFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", ls_usage);
-		exit( FALSE);
+		usage (ls_usage);
 	}
 	argc--;
 	argv++;
@@ -571,7 +572,7 @@ listerr:
 	return 1;
 }
 
-const char	ls_usage[] = "Usage: ls [-1a"
+const char	ls_usage[] = "ls [-1a"
 #ifdef FEATURE_TIMESTAMPS
 	"c"
 #endif
@@ -668,7 +669,7 @@ ls_main(int argc, char * * argv)
 	exit( i);
 
 print_usage_message:
-	fprintf(stderr, "Usage: %s\n", ls_usage);
+	usage (ls_usage);
 	exit( FALSE);
 }
 

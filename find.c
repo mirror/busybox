@@ -100,8 +100,7 @@ int find_main(int argc, char **argv)
 			pattern=*(++argv);
 			stopit=-TRUE;
 		    } else {
-			fprintf(stderr, "Usage: %s\n", find_usage);
-			exit( FALSE);
+			usage (find_usage);
 		    }
 		}
 		break;
@@ -109,8 +108,7 @@ int find_main(int argc, char **argv)
 		/* Ignore all long options */
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", find_usage);
-		exit( FALSE);
+		usage (find_usage);
 	}
 	if (argc-- > 1)
 	    argv++;

@@ -40,8 +40,7 @@ touch_main(int argc, char **argv)
     int create=TRUE;
 
     if (argc < 2) {
-	fprintf(stderr, "Usage: %s %s", *argv, touch_usage);
-	exit( FALSE);
+	usage( touch_usage);
     }
     argc--;
     argv++;

@@ -42,8 +42,7 @@ extern int mv_main(int argc, char **argv)
     char newdestName[NAME_MAX];
 
     if (argc < 3) {
-	fprintf(stderr, "Usage: %s", mv_usage);
-	exit (FALSE);
+	usage (mv_usage);
     }
     argc--;
     argv++;

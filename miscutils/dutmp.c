@@ -26,8 +26,7 @@ extern int dutmp_fn (int argc, char **argv)
     struct utmp ut;
 
     if ((argc < 2) || (**(argv + 1) == '-')) {
-	fprintf (stderr, "Usage: %s %s\n", *argv, dutmp_usage);
-	exit (FALSE);
+	usage( dutmp_usage);
     }
 
     if ( **(++argv) == 0 ) {

@@ -59,8 +59,7 @@ extern int more_main(int argc, char **argv)
     FILE *file = stdin;
 
     if ( strcmp(*argv,"--help")==0 || strcmp(*argv,"-h")==0 ) {
-	fprintf(stderr, "Usage: %s %s", *argv, more_usage);
-	exit(FALSE);
+	usage (more_usage);
     }
     argc--;
     argv++;

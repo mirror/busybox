@@ -33,8 +33,7 @@ static const char chroot_usage[] = "NEWROOT [COMMAND...]\n"
 int chroot_main(int argc, char **argv)
 {
     if ( (argc < 2) || (**(argv+1) == '-') ) {
-	fprintf(stderr, "Usage: %s %s", *argv, chroot_usage);
-	exit( FALSE);
+	usage( chroot_usage);
     }
     argc--;
     argv++;

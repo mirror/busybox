@@ -33,10 +33,10 @@ static int whichApp;
 static const char* appName;
 
 static const char swapoff_usage[] = 
-"Usage: swapoff device\n"
+"swapoff device\n"
 "\nStop swapping virtual memory pages on the given device.\n";
 static const char swapon_usage[] = 
-"Usage: swapon device\n"
+"swapon device\n"
 "\nStart swapping virtual memory pages on the given device.\n";
 
 
@@ -112,10 +112,10 @@ swap_on_off_main(int argc, char * * argv)
 	}
     }
     swap_enable_disable(*argv);
-    //exit( TRUE);
+    exit( TRUE);
 
 usage_and_exit:
-    fprintf(stderr, "Usage: %s", (whichApp==SWAPON_APP)? swapon_usage : swapoff_usage);
-    exit(FALSE);
+    usage( (whichApp==SWAPON_APP)? swapon_usage : swapoff_usage);
+    exit( FALSE);
 }
 

@@ -27,8 +27,7 @@
 extern int rmdir_main(int argc, char **argv)
 {
     if ( argc==1 || **(argv+1) == '-' ) {
-	fprintf(stderr, "Usage: rmdir [OPTION]... DIRECTORY...\nRemove the DIRECTORY(ies), if they are empty.");
-	exit(FALSE);
+	usage( "rmdir [OPTION]... DIRECTORY...\nRemove the DIRECTORY(ies), if they are empty.");
     }
 
     while (--argc > 0) {

@@ -60,8 +60,7 @@ extern int cp_main(int argc, char **argv)
 {
 
     if (argc < 3) {
-	fprintf(stderr, "Usage: %s", cp_usage);
-	exit (FALSE);
+	usage (cp_usage);
     }
     argc--;
     argv++;
@@ -85,8 +84,7 @@ extern int cp_main(int argc, char **argv)
 		recursiveFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", cp_usage);
-		exit(FALSE);
+		usage (cp_usage);
 	    }
 	argc--;
 	argv++;

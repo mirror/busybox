@@ -130,8 +130,7 @@ extern int kill_main (int argc, char **argv)
     }
     if (had_error) {
 end:
-	fprintf(stderr, "Usage: %s\n", kill_usage);
-	exit ( FALSE);
+	usage (kill_usage);
     }
     exit (TRUE);
 }

@@ -130,6 +130,8 @@ const char* timeString(time_t timeVal);
 
 extern void createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
+extern volatile void usage(const char *usage);
+
 
 #endif
 

@@ -32,8 +32,7 @@ extern int fdflush_main(int argc, char **argv)
     int	value;
     int	fd;
     if ( **(argv+1) == '-' ) {
-	fprintf(stderr, "Usage: fdflush device\n");
-	exit(FALSE);
+	usage( "fdflush device\n");
     }
 
     fd = open(*argv, 0);

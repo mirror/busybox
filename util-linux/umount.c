@@ -71,8 +71,7 @@ umount_main(int argc, char * * argv)
 {
 
     if (argc < 2) {
-	fprintf(stderr, "Usage: %s", umount_usage);
-	exit(FALSE);
+	usage( umount_usage); 
     }
     argc--;
     argv++;
@@ -84,8 +83,7 @@ umount_main(int argc, char * * argv)
 		exit ( umount_all() );
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", umount_usage);
-		exit( FALSE);
+		usage( umount_usage);
 	}
     }
     if ( umount(*argv) == 0 )

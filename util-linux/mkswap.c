@@ -83,7 +83,7 @@ static int bit_test_and_clear (unsigned int *addr, unsigned int nr)
 volatile void fatal_error(const char * fmt_string)
 {
 	fprintf(stderr,fmt_string,program_name,device_name);
-	exit(1);
+	exit(FALSE);
 }
 
 #define die(str) fatal_error("%s: " str "\n")
@@ -170,7 +170,7 @@ static int get_size(const char  *file)
 }
 
 int
-mkswap(char *device_name, int pages, int check)
+mkswap(const char *device_name, int pages, int check)
   {
 	struct stat statbuf;
 	int goodpages;
@@ -219,10 +219,10 @@ mkswap(char *device_name, int pages, int check)
 		die("unable to write signature page");
 
 	close(DEV);
-	return 0;
+	return (TRUE);
 }
 
-int mkswap_main(struct FileInfo * unnecessary, int argc, char ** argv)
+int mkswap_main(int argc, char ** argv)
 {
 	char * tmp;
 	long int pages=0;
@@ -237,17 +237,16 @@ int mkswap_main(struct FileInfo * unnecessary, int argc, char ** argv)
 			if (device_name) {
 				pages = strtol(argv[0],&tmp,0)>>(PAGE_SHIFT-10);
 				if (*tmp) {
-				  	usage(mkswap_usage);
-					exit(1);
+				    usage (mkswap_usage);
 				}
 			} else
 				device_name = argv[0];
 		else while (*++argv[0])
 			switch (argv[0][0]) {
 				case 'c': check=1; break;
-				default: usage(mkswap_usage);
-					exit(1);
+				default: usage (mkswap_usage);
+					exit( TRUE);
 			}
 	}
-	return mkswap(device_name, pages, check);
+	exit( mkswap(device_name, pages, check));
 }

@@ -93,6 +93,6 @@ int dmesg_main (int argc, char **argv)
     exit (TRUE);
 
   end:
-    fprintf (stderr, "Usage: %s\n", dmesg_usage);
+    usage( dmesg_usage);
     exit (FALSE);
 }

@@ -14,7 +14,7 @@ const char			loadkmap_usage[] = "loadkmap\n"
 
 
 int
-loadkmap_main(struct FileInfo * info, int argc, char * * argv)
+loadkmap_main(int argc, char * * argv)
 { 
     struct kbentry ke;
     u_short *ibuff;

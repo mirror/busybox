@@ -1,8 +1,3 @@
-// I may still need some more cleaning...fix my error checking
-
-#include "internal.h"
-#ifdef BB_PRINTF
-
 /* printf - format and print data
    Copyright (C) 90, 91, 92, 93, 94, 95, 1996 Free Software Foundation, Inc.
 
@@ -51,6 +46,7 @@
 
 //   19990508 Busy Boxed! Dave Cinege
 
+#include "internal.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -140,15 +136,18 @@ static void verify __P ((char *s, char *end));
 /* The value to return to the calling program.  */
 static int exit_status;
 
-const char	printf_usage[] = "Usage: printf format [argument...]\n";
+const char	printf_usage[] = "printf format [argument...]\n";
 
 int
-printf_main(struct FileInfo * i, int argc, char * * argv)
+printf_main(int argc, char** argv)
 {
   char *format;
   int args_used;
 
   exit_status = 0;
+  if ( **(argv+1) == '-' ) {
+    usage (printf_usage);
+  }
 
   format = argv[1];
   argc -= 2;
@@ -528,4 +527,3 @@ verify (char *s, char *end)
     }
 }
 
-#endif

@@ -50,7 +50,7 @@ static const struct mt_opcodes	opcodes[] = {
 };
 
 extern int
-mt_main(struct FileInfo * i, int argc, char * * argv)
+mt_main(int argc, char** argv)
 {
 	const char *				file = "/dev/tape";
 	const struct mt_opcodes *	code = opcodes;
@@ -59,8 +59,7 @@ mt_main(struct FileInfo * i, int argc, char * * argv)
 	
 	if ( strcmp(argv[1], "-f") == 0 ) {
 		if ( argc < 4 ) {
-			usage(mt_usage);
-			return 1;
+		    usage (mt_usage);
 		}
 		file = argv[2];
 		argv += 2;
@@ -75,7 +74,7 @@ mt_main(struct FileInfo * i, int argc, char * * argv)
 
 	if ( code->name == 0 ) {
 		fprintf(stderr, "mt: unrecognized opcode %s.\n", argv[1]);
-		return 1;
+		return( FALSE);
 	}
 
 	op.mt_op = code->value;
@@ -85,14 +84,14 @@ mt_main(struct FileInfo * i, int argc, char * * argv)
 		op.mt_count = 1; /* One, not zero, right? */
 
 	if ( (fd = open(file, O_RDONLY, 0)) < 0 ) {
-		name_and_error(file);
-		return 1;
+		perror(file);
+		return( FALSE);
 	}
 
 	if ( ioctl(fd, MTIOCTOP, &op) != 0 ) {
-		name_and_error(file);
-		return 1;
+		perror(file);
+		return( FALSE);
 	}
 
-	return 0;
+	return( TRUE);
 }

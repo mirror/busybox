@@ -42,8 +42,7 @@ extern int cat_more_main(int argc, char **argv)
     }
 
     if ( **(argv+1) == '-' ) {
-	fprintf(stderr, "Usage: cat [file ...]\n");
-	exit(FALSE);
+	usage ("cat [file ...]\n");
     }
     argc--;
     argv++;

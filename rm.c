@@ -25,7 +25,7 @@
 #include <utime.h>
 #include <dirent.h>
 
-static const char* rm_usage = "Usage: rm [OPTION]... FILE...\n"
+static const char* rm_usage = "rm [OPTION]... FILE...\n"
 "Remove (unlink) the FILE(s).\n\n"
 "\t-f\tremove existing destinations, never prompt\n"
 "\t-r\tremove the contents of directories recursively\n";
@@ -58,8 +58,7 @@ extern int rm_main(int argc, char **argv)
 {
 
     if (argc < 2) {
-	fprintf(stderr, "Usage: %s", rm_usage);
-	exit (FALSE);
+	usage( rm_usage);
     }
     argc--;
     argv++;
@@ -75,8 +74,7 @@ extern int rm_main(int argc, char **argv)
 		forceFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "Usage: %s\n", rm_usage);
-		exit(FALSE);
+		usage( rm_usage);
 	    }
 	argc--;
 	argv++;
