@@ -161,7 +161,7 @@
 #define BB_FEATURE_LS_FILETYPES
 //
 // sort the file names (still a bit buggy)
-//#define BB_FEATURE_LS_SORTFILES
+#define BB_FEATURE_LS_SORTFILES
 //
 // enable ls -R
 #define BB_FEATURE_LS_RECURSIVE

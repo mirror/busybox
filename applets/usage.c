@@ -566,33 +566,52 @@ const char logname_usage[] =
 
 #if defined BB_LS
 const char ls_usage[] =
-	"ls [-1a"
+	"ls [-1Aa"
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	"c"
 #endif
-	"d"
+	"Cd"
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	"e"
 #endif
-	"ln"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"p"
-#endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"u"
-#endif
-	"xAC"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"F"
 #endif
+	"iln"
+#ifdef BB_FEATURE_LS_FILETYPES
+	"p"
+#endif
 #ifdef BB_FEATURE_LS_RECURSIVE
 	"R"
+#endif
+#ifdef BB_FEATURE_LS_SORTFILES
+	"rS"
+#endif
+	"s"
+#ifdef BB_FEATURE_AUTOWIDTH
+	"T"
+#endif
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+	"tu"
+#endif
+#ifdef BB_FEATURE_LS_SORTFILES
+	"v"
+#endif
+#ifdef BB_FEATURE_AUTOWIDTH
+	"w"
+#endif
+	"x"
+#ifdef BB_FEATURE_LS_SORTFILES
+	"X"
 #endif
 	"] [filenames...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nList directory contents\n\n"
 	"Options:\n"
+	"\t-1\tlist files in a single column\n"
+	"\t-A\tdo not list implied . and ..\n"
 	"\t-a\tdo not hide entries starting with .\n"
+	"\t-C\tlist entries by columns\n"
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	"\t-c\twith -l: show ctime (the time of last\n"
 	"\t\tmodification of file status information)\n"
@@ -601,27 +620,45 @@ const char ls_usage[] =
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	"\t-e\tlist both full date and full time\n"
 #endif
+#ifdef BB_FEATURE_LS_FILETYPES
+	"\t-F\tappend indicator (one of */=@|) to entries\n"
+#endif
+	"\t-i\tlist the i-node for each file\n"
 	"\t-l\tuse a long listing format\n"
 	"\t-n\tlist numeric UIDs and GIDs instead of names\n"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"\t-p\tappend indicator (one of /=@|) to entries\n"
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"\t-u\twith -l: show access time (the time of last\n"
-	"\t\taccess of the file)\n"
-#endif
-	"\t-x\tlist entries by lines instead of by columns\n"
-	"\t-A\tdo not list implied . and ..\n"
-	"\t-C\tlist entries by columns\n"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"\t-F\tappend indicator (one of */=@|) to entries\n"
-#endif
 #ifdef BB_FEATURE_LS_RECURSIVE
 	"\t-R\tlist subdirectories recursively\n"
 #endif
+#ifdef BB_FEATURE_LS_SORTFILES
+	"\t-r\tsort the listing in reverse order\n"
+	"\t-S\tsort the listing by file size\n"
 #endif
+	"\t-s\tlist the size of each file, in blocks\n"
+#ifdef BB_FEATURE_AUTOWIDTH
+	"\t-T NUM\tassume Tabstop every NUM columns\n"
+#endif
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+	"\t-t\twith -l: show modification time (the time of last\n"
+	"\t\tchange of the file)\n"
+	"\t-u\twith -l: show access time (the time of last\n"
+	"\t\taccess of the file)\n"
+#endif
+#ifdef BB_FEATURE_LS_SORTFILES
+	"\t-v\tsort the listing by version\n"
+#endif
+#ifdef BB_FEATURE_AUTOWIDTH
+	"\t-w NUM\tassume the terminal is NUM columns wide\n"
+#endif
+	"\t-x\tlist entries by lines instead of by columns\n"
+#ifdef BB_FEATURE_LS_SORTFILES
+	"\t-X\tsort the listing by extension\n"
+#endif
+#endif /*  BB_FEATURE_TRIVIAL_HELP */
 	;
-#endif
+#endif /* BB_LS */
 
 #if defined BB_LSMOD
 const char lsmod_usage[] =
