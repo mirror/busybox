@@ -31,16 +31,17 @@ If you wish to install hard links, rather than symlinks, you can use
 
 Supported architectures:
 
-   BusyBox in general will build on any architecture supported by gcc.  It has
-   a few specialized features added for __sparc__ and __alpha__.  insmod
-   functionality is currently limited to ARM, CRIS, H8/300, x86, ia64,
-   x86_64, m68k, MIPS, PowerPC, S390, SH3/4/5, Sparc, v850e, and x86_64
-   for 2.4.x kernels.  For 2.6.x kernels
+   BusyBox in general will build on any architecture supported by gcc.
+   Kernel module loading for 2.2 and 2.4 Linux kernels is currently
+   limited to ARM, CRIS, H8/300, x86, ia64, x86_64, m68k, MIPS, PowerPC,
+   S390, SH3/4/5, Sparc, v850e, and x86_64 for 2.4.x kernels.  For 2.6.x
+   kernels, kernel module loading support should work on all architectures.
+
 
 Supported C Libraries:
 
    uClibc and glibc are supported.  People have been looking at newlib and
-   diet-libc, but they are currently considered unsupported, untested, or
+   dietlibc, but they are currently considered unsupported, untested, or
    worse.  Linux-libc5 is no longer supported -- you should probably use uClibc
    instead if you want a small C library.
 
@@ -81,7 +82,7 @@ an example:
     With GNU date I get the following output:
 
 	$ date
-	Sat Mar 27 14:19:41 MST 2004
+	Fri Oct  8 14:19:41 MDT 2004
 
     But when I use BusyBox date I get this instead:
 
