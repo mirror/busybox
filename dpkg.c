@@ -14,7 +14,7 @@
 
 /* Stupid libc doesn't have a reliable way for use to know 
  * that libc5 is being used.   Assume this is good enough */ 
-#if !defined __GLIBC__ || !defined __UCLIBC__
+#if !defined __GLIBC__ && !defined __UCLIBC__
 #error It looks like you are using libc5, which does not support
 #error tfind().  tfind() is used by busybox dpkg.
 #error Please disable BB_DPKG.  Sorry.
