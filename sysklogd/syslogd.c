@@ -660,7 +660,7 @@ extern int syslogd_main(int argc, char **argv)
 			if (optarg) {
 				int buf_size = atoi(optarg);
 				if (buf_size >= 4) {
-					shm_size = buf_size;
+					shm_size = buf_size * 1024;
 				}
 			}
 			circular_logging = TRUE;
