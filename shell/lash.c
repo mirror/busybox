@@ -416,7 +416,7 @@ static int builtin_read(struct child_prog *child)
 
 	if (child->argv[1]) {
 		/* argument (VAR) given: put "VAR=" into buffer */
-		strcpy(string, child->argv[1]);
+		safe_strncpy(string, child->argv[1], MAX_READ-1);
 		len = strlen(string);
 		string[len++] = '=';
 		string[len]   = '\0';
