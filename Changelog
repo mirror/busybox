@@ -7,6 +7,7 @@
 	    thanks to Eric Delaunay.
 	* more started to read from stdin after the last file was finished, and 
 	    options were not parsed correctly (fix thanks to Eric Delaunay).
+	* more will now use the terminal size if BB_FEATURE_AUTOWIDTH is on.
 	* rm wouldn't remove a symlink unless the symlink was valid.  This was
 	    a side effect of the busybox 0.32 recursiveAction() fix.  Things 
 	    should now work correctly.

@@ -236,7 +236,30 @@ copyFile( const char *srcName, const char *destName,
 
 
 
-#ifdef BB_TAR
+#if defined BB_TAR || defined BB_LS
+
+#define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
+#define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
+
+/* The special bits. If set, display SMODE0/1 instead of MODE0/1 */
+static const mode_t SBIT[] = {
+    0, 0, S_ISUID,
+    0, 0, S_ISGID,
+    0, 0, S_ISVTX
+};
+
+/* The 9 mode bits to test */
+static const mode_t MBIT[] = {
+    S_IRUSR, S_IWUSR, S_IXUSR,
+    S_IRGRP, S_IWGRP, S_IXGRP,
+    S_IROTH, S_IWOTH, S_IXOTH
+};
+
+#define MODE1  "rwxrwxrwx"
+#define MODE0  "---------"
+#define SMODE1 "..s..s..t"
+#define SMODE0 "..S..S..T"
+
 /*
  * Return the standard ls-like mode string from a file mode.
  * This is static and so is overwritten on each call.
@@ -245,64 +268,25 @@ const char *modeString(int mode)
 {
     static char buf[12];
 
-    strcpy(buf, "----------");
-
-    /*
-     * Fill in the file type.
-     */
-    if (S_ISDIR(mode))
-	buf[0] = 'd';
-    if (S_ISCHR(mode))
-	buf[0] = 'c';
-    if (S_ISBLK(mode))
-	buf[0] = 'b';
-    if (S_ISFIFO(mode))
-	buf[0] = 'p';
-    if (S_ISLNK(mode))
-	buf[0] = 'l';
-    if (S_ISSOCK(mode))
-	buf[0] = 's';
-    /*
-     * Now fill in the normal file permissions.
-     */
-    if (mode & S_IRUSR)
-	buf[1] = 'r';
-    if (mode & S_IWUSR)
-	buf[2] = 'w';
-    if (mode & S_IXUSR)
-	buf[3] = 'x';
-    if (mode & S_IRGRP)
-	buf[4] = 'r';
-    if (mode & S_IWGRP)
-	buf[5] = 'w';
-    if (mode & S_IXGRP)
-	buf[6] = 'x';
-    if (mode & S_IROTH)
-	buf[7] = 'r';
-    if (mode & S_IWOTH)
-	buf[8] = 'w';
-    if (mode & S_IXOTH)
-	buf[9] = 'x';
-
-    /*
-     * Finally fill in magic stuff like suid and sticky text.
-     */
-    if (mode & S_ISUID)
-	buf[3] = ((mode & S_IXUSR) ? 's' : 'S');
-    if (mode & S_ISGID)
-	buf[6] = ((mode & S_IXGRP) ? 's' : 'S');
-    if (mode & S_ISVTX)
-	buf[9] = ((mode & S_IXOTH) ? 't' : 'T');
-
+    int i;
+    buf[0] = TYPECHAR(mode);
+    for (i=0; i<9; i++) {
+	if (mode & SBIT[i])
+	    buf[i+1] = (mode & MBIT[i])? 
+		SMODE1[i] : SMODE0[i];
+	else
+	    buf[i+1] = (mode & MBIT[i])? 
+		MODE1[i] : MODE0[i];
+    }
     return buf;
 }
+#endif
 
 
+#ifdef BB_TAR
 /*
- * Get the time string to be used for a file.
- * This is down to the minute for new files, but only the date for old files.
- * The string is returned from a static buffer, and so is overwritten for
- * each call.
+ * Return the standard ls-like time string from a time_t
+ * This is static and so is overwritten on each call.
  */
 const char *timeString(time_t timeVal)
 {
@@ -324,7 +308,6 @@ const char *timeString(time_t timeVal)
 
     return buf;
 }
-
 
 /*
  * Write all of the supplied buffer out to a file.
