@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.38 2001/01/24 23:34:48 andersen Exp $"
+#ident "$Id: insmod.c,v 1.39 2001/01/24 23:59:50 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.38 2001/01/24 23:34:48 andersen Exp $"
+#ident "$Id: insmod.c,v 1.39 2001/01/24 23:59:50 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3039,6 +3039,9 @@ extern int insmod_main( int argc, char **argv)
 	}
 	obj_allocate_commons(f);
 
+	/* done with the module name, on to the optional var=value arguments */
+	++optind;
+
 	if (optind < argc) {
 		if (m_has_modinfo
 			? !new_process_module_arguments(f, argc - optind, argv + optind) 
@@ -3058,11 +3061,8 @@ extern int insmod_main( int argc, char **argv)
 	m_size = obj_load_size(f);
 
 
-	errno = 0;
 	m_addr = create_module(m_name, m_size);
-	switch (errno) {
-	case 0:
-		break;
+	if (m_addr==-1) switch (errno) {
 	case EEXIST:
 		error_msg("A module named %s already exists\n", m_name);
 		goto out;
