@@ -650,7 +650,7 @@ static void display(void)
 		for (pr = endfu->nextpr; pr; pr = pr->nextpr) {
 			switch (pr->flags) {
 			case F_ADDRESS:
-				(void) printf(pr->fmt, eaddress);
+				(void) printf(pr->fmt, (unsigned int) eaddress);
 				break;
 			case F_TEXT:
 				(void) printf(pr->fmt);
