@@ -151,15 +151,21 @@ static const struct Applet applets[] = {
 #ifdef BB_SLEEP			//bin
     {"sleep", sleep_main},
 #endif
-#ifdef BB_TAR			//bin
-    {"tar", tar_main},
+#ifdef BB_SYNC			//bin
+    {"sync", sync_main},
+#endif
+#ifdef BB_SYSLOGD		//sbin
+    {"syslogd", syslogd_main},
+#endif
+#ifdef BB_LOGGER		//usr/bin
+    {"logger", logger_main},
 #endif
 #ifdef BB_SWAPONOFF		//sbin
     {"swapon", swap_on_off_main},
     {"swapoff", swap_on_off_main},
 #endif
-#ifdef BB_SYNC			//bin
-    {"sync", sync_main},
+#ifdef BB_TAR			//bin
+    {"tar", tar_main},
 #endif
 #ifdef BB_TOUCH			//usr/bin
     {"touch", touch_main},

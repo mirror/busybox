@@ -10,6 +10,11 @@
 	    from createPath into mkdir where it belonged, thereby making tar work properly.
 	* Fixed an off-by-one bug in cat.  Given a list of file it wouldn't cat out the
 	    last file in the list.
+	* Fixed 'ls -ln' so numeric group/uid are presented properly, and fixed 'ls -l' 
+	    so when uid/gid is not in /etc/{passwd,group} the numeric group/uid are 
+	    presented properly.  
+	* Also added a TODO.
+
 
 	-Erik Andrsen
 

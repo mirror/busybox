@@ -104,6 +104,8 @@ extern int sed_main(int argc, char** argv);
 extern int sleep_main(int argc, char** argv);
 extern int swap_on_off_main(int argc, char** argv);
 extern int sync_main(int argc, char** argv);
+extern int syslogd_main(int argc, char **argv);
+extern int logger_main(int argc, char **argv);
 extern int tar_main(int argc, char** argv);
 extern int touch_main(int argc, char** argv);
 extern int tput_main(int argc, char** argv);
