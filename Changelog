@@ -7,6 +7,11 @@
 	* Laurence Anderson -- rpm2cpio applet, obsoletes rpmunpack.
 	* Laurence Anderson and Glenn McGrath -- cpio applet, currently 
 	    only supports unpacking the ascii cpio format.
+	* Vladimir Oleynik -- ash, most function busybox shell.
+	* Larry Doolittle -- hush, small shell desinged specifically
+	    for busybox.
+	* Erik Anderson -- msh, minix shell, only uses vfork, so can be
+	    used on uClinux systems.
 
     Other Changes:
     	* Sterling Huxley -- Several bugfixes for the vi applet.
