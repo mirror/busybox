@@ -57,7 +57,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <libintl.h>
 
 
 #ifndef S_IFMT
@@ -171,7 +170,7 @@ int printf_main(int argc, char **argv)
     fprintf(stderr, "excess args ignored");
 */
 
-	exit(exit_status);
+	return(exit_status);
 }
 
 /* Print the text in FORMAT, using ARGV (with ARGC elements) for
