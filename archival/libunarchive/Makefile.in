@@ -55,7 +55,6 @@ LIBUNARCHIVE-y:= \
 	archive_copy_file.o \
 \
 	check_header_gzip.o \
-	check_trailer_gzip.o \
 	data_align.o \
 	decompress_bunzip2.o \
 	find_list_entry.o \

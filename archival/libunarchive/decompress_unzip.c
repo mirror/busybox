@@ -83,28 +83,30 @@ typedef struct huft_s {
 } huft_t;
 
 static int gunzip_src_fd;
-unsigned int gunzip_bytes_out;	/* number of output bytes */
+static unsigned int gunzip_bytes_out;	/* number of output bytes */
 static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
-
-/* This is used to sanify any unused bits from the bitbuffer 
- * so they arent skipped when reading trailers (trailing headers) */
-//unsigned char gunzip_in_buffer_count;
-//unsigned char *gunzip_in_buffer;
 
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
 static const int gunzip_wsize = 0x8000;
-
 static unsigned char *gunzip_window;
+
 static unsigned int *gunzip_crc_table;
-unsigned int gunzip_crc;
+static unsigned int gunzip_crc;
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX 16	/* maximum bit length of any code (16 for explode) */
 #define N_MAX 288	/* maximum number of codes in any set */
 
+/* bitbuffer */
 static unsigned int gunzip_bb;	/* bit buffer */
 static unsigned char gunzip_bk;	/* bits in bit buffer */
+
+/* These control the size of the bytebuffer */
+#define BYTEBUFFER_MAX 0x8000
+static unsigned char *bytebuffer = NULL;
+static unsigned int bytebuffer_offset = 0;
+static unsigned int bytebuffer_size = 0;
 
 static const unsigned short mask_bits[] = {
 	0x0000, 0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
@@ -141,11 +143,6 @@ static const unsigned char cpdext[] = {
 static const unsigned char border[] = {
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
 };
-
-#define BYTEBUFFER_MAX 0x8000
-unsigned char *bytebuffer = NULL;
-unsigned int bytebuffer_offset = 0;
-unsigned int bytebuffer_size = 0;
 
 static void fill_bytebuffer(void)
 {
@@ -1010,4 +1007,34 @@ extern int inflate(int in, int out)
 	}
 	GZ_gzReadClose();
 	return 0;
+}
+
+extern void check_trailer_gzip(int src_fd)
+{
+	unsigned int stored_crc = 0;
+	unsigned char count;
+
+	/* top up the input buffer with the rest of the trailer */
+	count = bytebuffer_size - bytebuffer_offset;
+	if (count < 8) {
+		xread_all(src_fd, &bytebuffer[bytebuffer_size], 8 - count);
+		bytebuffer_size += 8 - count;
+	}
+	for (count = 0; count != 4; count++) {
+		stored_crc |= (bytebuffer[bytebuffer_offset] << (count * 8));
+		bytebuffer_offset++;
+	}
+
+	/* Validate decompression - crc */
+	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
+		error_msg_and_die("crc error");
+	}
+
+	/* Validate decompression - size */
+	if (gunzip_bytes_out !=
+		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
+		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
+		error_msg_and_die("Incorrect length, but crc is correct");
+	}
+
 }
