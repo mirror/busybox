@@ -159,7 +159,7 @@ int addgroup_main(int argc, char **argv)
 	}
 
 	/* werk */
-	return addgroup(GROUP_FILE, group, gid, user);
+	return addgroup(group_file, group, gid, user);
 }
 
-/* $Id: addgroup.c,v 1.7 2002/12/12 08:57:16 andersen Exp $ */
+/* $Id: addgroup.c,v 1.8 2002/12/13 22:02:12 timr Exp $ */
