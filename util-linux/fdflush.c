@@ -2,7 +2,8 @@
 /*
  * Mini fdflush implementation for busybox
  *
- * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
+ * Copyright (C) 1995, 1996 by Bruce Perens <bruce@perens.com>.
+ * Copyright (C) 2003 by Erik Andersen <andersen@codeoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,14 +34,16 @@ extern int fdflush_main(int argc, char **argv)
 {
 	int fd;
 
-	if (argc <= 1 || **(++argv) == '-')
+	if (argc <= 1)
 		show_usage();
-
-	if ((fd = open(*argv, 0)) < 0)
-		perror_msg_and_die("%s", *argv);
+	if ((fd = open(*(++argv), 0)) < 0)
+		goto die_the_death;
 
 	if (ioctl(fd, FDFLUSH, 0))
-		perror_msg_and_die("%s", *argv);
+		goto die_the_death;
 
 	return EXIT_SUCCESS;
+
+die_the_death:
+	perror_msg_and_die(NULL);
 }
