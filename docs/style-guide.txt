@@ -1,0 +1,224 @@
+Busybox Style Guide
+===================
+
+This document describes the coding style conventions used in Busybox. If you
+add a new file to Busybox or are editing an existing file, please format your
+code according to this style. If you are the maintainer of a file that does
+not follow these guidelines, please -- at your own convenience -- modify the
+file(s) you maintain to bring them into conformance with this style guide.
+Please note that this is a low priority task.
+
+To help you format the whitespace of your programs, an ".indent.pro" file is
+included in the main Busybox source directory that contains option flags to
+format code as per this style guide. This way you can run GNU indent on your
+files by typing 'indent myfile.c myfile.h' and it will magically apply all the
+right formatting rules to your file. Please _do_not_ run this on all the files
+in the directory, just your own.
+
+Declaration Order
+-----------------
+
+Here is the order in which code should be laid out in a file:
+
+ - commented author name and email address(es)
+ - commented GPL boilerplate
+ - commented description of program
+ - #includes and #defines
+ - const and globals variables
+ - function declarations (if necessary)
+ - function implementations
+
+Whitespace
+----------
+
+Tabs vs Spaces in Line Indentation: The preference in Busybox is to indent
+lines with tabs. Do not indent lines with spaces and do not indents lines
+using a mixture of tabs and spaces. (The indentation style in the Apache and
+Postfix source does this sort of thing: \s\s\s\sif (expr) {\n\tstmt; --ick.)
+The only exception to this rule is multi-line comments that use an asterisk at
+the beginning of each line, i.e.:
+
+	/t/*
+	/t * This is a block comment.
+	/t * Note that it has multiple lines
+	/t * and that the beginning of each line has a tab plus a space
+	/t * except for the opening '/*' line where the slash
+	/t * is used instead of a space.
+	/t */
+
+Furthermore, The preference is that tabs be set to display at four spaces
+wide, but the beauty of using only tabs (and not spaces) at the beginning of
+lines is that you can set your editor to display tabs at *watever* number of
+spaces is desired and the code will still look fine.
+
+
+Operator Spacing: Put spaces between terms and operators. Example:
+
+	Don't do this:
+
+		for(i=0;i<num_items;i++){
+
+	Do this instead:
+
+		for (i = 0; i < num_items; i++) {
+
+	While it extends the line a bit longer, the spaced version is more
+	readable. An allowable exception to this rule is the situation where
+	excluding the spacing makes it more obvious that we are dealing with a
+	single term (even if it is a compund term) such as:
+
+		if (str[idx] == '/' && str[idx-1] != '\\')
+
+	or
+
+		if ((argc-1) - (optind+1) > 0)
+
+
+Bracket Spacing: If an opening bracket starts a function, it should be on the
+next line with no spacing before it. However, if a bracet follows an opening
+control block, it should be on the same line with a single space (not a tab)
+between it and the opening control block statment. Examples:
+
+	Don't do this:
+
+		while (!done){
+		do{
+
+	Do this instead:
+
+		while (!done) {
+		do {
+
+Also, please "cuddle" your else statments by putting the else keyword on the
+same line after the right bracket that closes an 'if' statment.
+
+	Don't do this:
+
+	if (foo) {
+		stmt;
+	}
+	else {
+		stmt;
+	}
+
+	Do this instead:
+
+	if (foo) {
+		stmt;
+	} else {
+		stmt;
+	}
+
+
+Paren Spacing: Put a space between C keywords and left parens, but not between
+function names and the left paren that starts it's parameter list (whether it
+is being declared or called). Examples:
+
+	Don't do this:
+
+		while(foo) {
+		for(i = 0; i < n; i++) {
+
+	Do this instead:
+
+		while (foo) {
+		for (i = 0; i < n; i++) {
+
+	Do functions like this:
+
+		static int my_func(int foo, char bar)
+		...
+		baz = my_func(1, 2);
+
+Variable and Function Names
+---------------------------
+
+Use the K&R style with names in all lower-case and underscores occasionally
+used to seperate words (e.g. "variable_name" and "numchars" are both
+acceptable). Using underscores makes variable and function names more readable
+because it looks like whitespace; using lower-case is easy on the eyes.
+
+Note: The Busybox codebase is very much a mixture of code gathered from a
+variety of locations. This explains why the current codebase contains such a
+plethora of different naming styles (Java, Pascal, K&R, just-plain-weird,
+etc.). The K&R guideline explained above should therefore be used on new files
+that are added to the repository. Furthermore, the maintainer of an existing
+file that uses alternate naming conventions should -- at his own convenience
+-- convert those names over to K&R style; converting variable names is a very
+low priority task. Perhaps in the future we will include some magical Perl
+script that can go through and convert files--left as an exersize to the
+reader.
+
+
+Tip and Pointers
+----------------
+
+The following are simple coding guidelines that should be followed:
+
+ - Don't use a '#define var 80' when you can use 'static const int var 80'
+   instead. This makes the compiler do typechecking for you (rather than
+   relying on the more error-prone preprocessor) and it makes debugging
+   programs much easier since the value of the variable can be easily queried.
+
+ - If a const variable is used in only one function, do not make it global to
+   the file. Instead, declare it inside the function body.
+
+ - Inside applet files, all functions should be declared static so as to keep
+   the global namespace clean. The only exception to this rule is the
+   "applet_main" function which must be declared extern.
+
+ - If you write a function that performs a task that could be useful outside
+   the immediate file, turn it into a general-purpose function with no ties to
+   any applet and put it in the utility.c file instead.
+
+ - Put all help/usage messages in usage.c. Put other strings in messages.c
+   (Side Note: we might want to use a single file instead of two, food for
+   thought).
+
+ - Do not use old-style function declarations that declare variable types
+   between the parameter list and opening bracket. Example:
+
+	Don't do this:
+
+		int foo(parm1, parm2)
+			char parm1;
+			float parm2;
+		{
+			....
+
+	Do this instead:
+
+		int foo(char parm1, float parm2)
+		{
+			....
+
+ - Please use brackets on all if and else statements, even if it is only one
+   line. Example:
+
+	Don't do this:
+
+		if (foo)
+			stmt;
+		else
+			stmt;
+
+	Do this instead:
+
+		if (foo) {
+			stmt;
+		} else {
+			stmt;
+		}
+
+	The "bracketless" approach is error prone because someday you might add a
+	line like this:
+
+		if (foo)
+			stmt;
+			new_line();
+		else
+			stmt;
+
+	And the resulting behavior of your program would totally bewilder you.
+	(Don't laugh, it happens to us all.) Remember folks, this is C, not
+	Python.
