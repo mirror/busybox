@@ -27,24 +27,19 @@ xgetcwd (char *cwd)
   char *ret;
   unsigned path_max;
 
-  errno = 0;
   path_max = (unsigned) PATH_MAX;
   path_max += 2;                /* The getcwd docs say to do this. */
 
   if(cwd==0)
 	cwd = xmalloc (path_max);
 
-  errno = 0;
   while ((ret = getcwd (cwd, path_max)) == NULL && errno == ERANGE) {
       path_max += PATH_INCR;
       cwd = xrealloc (cwd, path_max);
-      errno = 0;
   }
 
   if (ret == NULL) {
-      int save_errno = errno;
       free (cwd);
-      errno = save_errno;
       perror_msg("getcwd()");
       return NULL;
   }
