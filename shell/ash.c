@@ -3841,6 +3841,8 @@ changepath(const char *newval)
 		builtinloc = bltin;             /* zap builtins */
 	clearcmdentry(firstchange);
 	builtinloc = bltin;
+	/* Ensure that getenv("PATH") stays current */
+	setenv("PATH", newval, 1);
 }
 
 
@@ -4111,8 +4113,6 @@ path_change(const char *newval, int *bltin)
 	}
 	if (builtinloc >= 0 && *bltin < 0)
 		firstchange = 0;
-	/* Ensure that getenv("PATH") stays current */
-	setenv("PATH", newval, 1);
 	return firstchange;
 }
 /*
@@ -12442,7 +12442,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.51 2002/06/04 20:10:15 sandman Exp $
+ * $Id: ash.c,v 1.52 2002/06/06 12:07:28 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
