@@ -43,8 +43,10 @@ static int valid_name(const struct dirent *d)
 	return 1;
 }
 
-/* run_parts */
-/* Find the parts to run & call run_part() */
+/* test mode = 1 is the same as offical run_parts
+ * test_mode = 2 means to fail siliently on missing directories
+ */
+
 extern int run_parts(char **args, const unsigned char test_mode)
 {
 	struct dirent **namelist = 0;
@@ -64,6 +66,9 @@ extern int run_parts(char **args, const unsigned char test_mode)
 	entries = scandir(arg0, &namelist, valid_name, alphasort);
 
 	if (entries == -1) {
+		if (test_mode & 2) {
+			return(2);
+		}
 		perror_msg_and_die("failed to open directory %s", arg0);
 	}
 
@@ -75,8 +80,8 @@ extern int run_parts(char **args, const unsigned char test_mode)
 			perror_msg_and_die("failed to stat component %s", filename);
 		}
 		if (S_ISREG(st.st_mode) && !access(filename, X_OK)) {
-			if (test_mode) {
-				puts("%s", filename);
+			if (test_mode & 1) {
+				puts(filename);
 			} else {
 				/* exec_errno is common vfork variable */
 				volatile int exec_errno = 0;

@@ -1010,7 +1010,7 @@ static int execute_all(interface_defn_t *ifd, execfn *exec, const char *opt)
 
 	buf = xmalloc(xstrlen(opt) + 19);
 	sprintf(buf, "/etc/network/if-%s.d", opt);
-	run_parts(&buf, 0);
+	run_parts(&buf, 2);
 	free(buf);
 	return (1);
 }

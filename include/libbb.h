@@ -86,11 +86,11 @@ char *strtok_r(char *s, const char *delim, char **ptrptr);
 extern void show_usage(void) __attribute__ ((noreturn));
 extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-extern void perror_msg(const char *s, ...);
-extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
+extern void perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void vherror_msg(const char *s, va_list p);
-extern void herror_msg(const char *s, ...);
-extern void herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
+extern void herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 
 /* These two are used internally -- you shouldn't need to use them */
 extern void verror_msg(const char *s, va_list p);
