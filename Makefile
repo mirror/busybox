@@ -268,13 +268,13 @@ CFLAGS += $(CFLAGS_EXTRA)
 
 .EXPORT_ALL_VARIABLES:
 
-all: sh_link applet_source_list busybox busybox.links doc
+all: applet_source_list busybox busybox.links doc
 
 sh_link:
 	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 
-applet_source_list: busybox.sh Config.h
-	(echo -n "APPLET_SOURCES := "; $(SHELL) $^ $(BB_SRC_DIR)) > $@
+applet_source_list: sh_link busybox.sh Config.h
+	@(echo -n "APPLET_SOURCES := "; $(SHELL) busybox.sh Config.h $(BB_SRC_DIR)) > $@
 
 doc: olddoc
 
@@ -430,6 +430,6 @@ dist release: distclean doc
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
 
-.PHONY: tags
+.PHONY: tags sh_link
 tags:
 	ctags -R .
