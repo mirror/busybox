@@ -105,8 +105,9 @@ busybox: $(OBJECTS)
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
+.PHONY: docs
 docs:	docs/busybox.pod
-	cd docs && $(MAKE) clean all 
+	$(MAKE) -C docs clean all 
 
 regexp.o nfsmount.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c
