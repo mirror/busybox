@@ -22,7 +22,7 @@ around to it some time. If you have any good ideas, please let me know.
 * hwclock
 * stty
 * cut
-* expr (maybe?)  (ash builtin?)
+* expr
 
 
 
@@ -41,12 +41,6 @@ Perhaps I need to add a better build system (like the Linux kernel?)
 
 -----------------------
 
-
-There is no exclude file(s) option to tar. LRP's packaging system can not
-function without this. Will you have the time to add this soon?
-
-
------------------------
 
 Feature request:
 

@@ -180,6 +180,9 @@
 // Enable support for creation of tar files.
 #define BB_FEATURE_TAR_CREATE
 //
+// Enable support for "--exclude" for excluding files
+//#define BB_FEATURE_TAR_EXCLUDE
+//
 //// Enable reverse sort
 //#define BB_FEATURE_SORT_REVERSE
 //

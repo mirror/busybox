@@ -52,33 +52,33 @@
 #include <sys/param.h>			/* for PATH_MAX */
 
 
+static const char tar_usage[] =
 #ifdef BB_FEATURE_TAR_CREATE
-
-static const char tar_usage[] =
-	"tar -[cxtvOf] [tarFile] [-X excludeFile] [FILE] ...\n\n"
-	"Create, extract, or list files from a tar file.  Note that\n"
-	"this version of tar packs hard links as separate files.\n\n"
-	"Options:\n"
-
-	"\tc=create, x=extract, t=list contents, v=verbose,\n"
-	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n"
-	"\tX=exclude file\n";
-
+	"tar -[cxtvO] "
 #else
-
-static const char tar_usage[] =
-	"tar -[xtvO] [-f tarFile] [-X excludeFile] [FILE] ...\n\n"
-	"Extract, or list files stored in a tar file.  This\n"
-	"version of tar does not support creation of tar files.\n\n"
-	"Options:\n"
-
-	"\tx=extract, t=list contents, v=verbose,\n"
-	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n"
-	"\tX=exclude file\n";
-
-
+	"tar -[xtvO] "
 #endif
-
+#if defined BB_FEATURE_TAR_EXCLUDE
+	"[--exclude File] "
+#endif
+	"[-f tarFile] [FILE] ...\n\n"
+	"Create, extract, or list files from a tar file.  Note that\n"
+	"this version of tar treats hard links as separate files.\n\n"
+	"Main operation mode:\n"
+#ifdef BB_FEATURE_TAR_CREATE
+	"\tc\t\tcreate\n"
+#endif
+	"\tx\t\textract\n"
+	"\tt\t\tlist\n"
+	"File selection:\n"
+	"\tf\t\tname of tarfile or \"-\" for stdin\n"
+	"\tO\t\textract to stdout\n"
+#if defined BB_FEATURE_TAR_EXCLUDE
+	"\t--exclude\tfile to exclude\n"
+#endif
+	"Informative output:\n"
+	"\tv\t\tverbosely list files processed\n"
+	;
 
 /* Tar file constants  */
 #ifndef MAJOR
@@ -91,31 +91,30 @@ static const char tar_usage[] =
 struct TarHeader
 {
                                 /* byte offset */
-	char name[100];               /*   0 */
-	char mode[8];                 /* 100 */
-	char uid[8];                  /* 108 */
-	char gid[8];                  /* 116 */
-	char size[12];                /* 124 */
-	char mtime[12];               /* 136 */
-	char chksum[8];               /* 148 */
-	char typeflag;                /* 156 */
-	char linkname[100];           /* 157 */
-	char magic[6];                /* 257 */
-	char version[2];              /* 263 */
-	char uname[32];               /* 265 */
-	char gname[32];               /* 297 */
-	char devmajor[8];             /* 329 */
-	char devminor[8];             /* 337 */
-	char prefix[155];             /* 345 */
-	/* padding                       500 */
+	char name[100];               /*   0-99 */
+	char mode[8];                 /* 100-107 */
+	char uid[8];                  /* 108-115 */
+	char gid[8];                  /* 116-123 */
+	char size[12];                /* 124-135 */
+	char mtime[12];               /* 136-147 */
+	char chksum[8];               /* 148-155 */
+	char typeflag;                /* 156-156 */
+	char linkname[100];           /* 157-256 */
+	char magic[6];                /* 257-262 */
+	char version[2];              /* 263-264 */
+	char uname[32];               /* 265-296 */
+	char gname[32];               /* 297-328 */
+	char devmajor[8];             /* 329-336 */
+	char devminor[8];             /* 337-344 */
+	char prefix[155];             /* 345-499 */
+	char padding[12];             /* 500-512 (pad to exactly the TAR_BLOCK_SIZE) */
 };
 typedef struct TarHeader TarHeader;
 
 
 /* A few useful constants */
 #define TAR_MAGIC          "ustar"        /* ustar and a null */
-//#define TAR_VERSION      "00"           /* 00 and no null */
-#define TAR_VERSION        "  "           /* Be compatable with old GNU format */
+#define TAR_VERSION        "  "           /* Be compatable with GNU tar format */
 #define TAR_MAGIC_LEN       6
 #define TAR_VERSION_LEN     2
 #define TAR_BLOCK_SIZE      512
@@ -170,7 +169,9 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 extern int tar_main(int argc, char **argv)
 {
 	char** excludeList=NULL;
+#if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
+#endif
 	const char *tarName=NULL;
 	int listFlag     = FALSE;
 	int extractFlag  = FALSE;
@@ -224,22 +225,26 @@ extern int tar_main(int argc, char **argv)
 					tostdoutFlag = TRUE;
 					tarName = "-";
 					break;
-				case 'X':
-					if (--argc == 0) {
-						fatalError( "Option requires an argument: No file specified\n");
-					}
-					excludeList=realloc( excludeList, sizeof(char**) * (excludeListSize+1));
-					excludeList[excludeListSize] = *(++argv);
-					/* Remove leading "/"s */
-					if (*excludeList[excludeListSize] =='/') {
-						excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
-					}
-					if (excludeList[excludeListSize++] == NULL)
-						fatalError( "Option requires an argument: No file specified\n");
-					stopIt=TRUE;
-					break;
-
 				case '-':
+#if defined BB_FEATURE_TAR_EXCLUDE
+					if (strcmp(*argv, "-exclude")==0) {
+						if (--argc == 0) {
+							fatalError( "Option requires an argument: No file specified\n");
+						}
+						excludeList=realloc( excludeList, sizeof(char**) * (excludeListSize+2));
+						excludeList[excludeListSize] = *(++argv);
+						/* Remove leading "/"s */
+						if (*excludeList[excludeListSize] =='/') {
+							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+						}
+						if (excludeList[excludeListSize++] == NULL)
+							fatalError( "Option requires an argument: No file specified\n");
+						/* Tack a NULL onto the end of the list */
+						excludeList[excludeListSize] = NULL;
+						stopIt=TRUE;
+						break;
+					}
+#endif
 					usage(tar_usage);
 					break;
 
@@ -249,13 +254,6 @@ extern int tar_main(int argc, char **argv)
 			}
 		}
 	}
-#if 0
-	for (i=0; i<excludeListSize; i++) {
-		printf( "%s\n", excludeList[i]);
-		fflush(stdout);
-	}
-#endif
-
 
 	/* 
 	 * Do the correct type of action supplying the rest of the
@@ -336,6 +334,8 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 				errorMsg(io_error, header->name, strerror(errno)); 
 				return( FALSE);
 			}
+		} else {
+			actualWriteSz=writeSize;
 		}
 
 		size -= actualWriteSz;
@@ -532,11 +532,13 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** excludeList)
 {
-	int status, tarFd=0;
+	int status, tarFd=-1;
 	int errorFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
-	//int skipFileFlag=FALSE;
+#if defined BB_FEATURE_TAR_EXCLUDE
+	char** tmpList;
+#endif
 
 	/* Open the tar file for reading.  */
 	if (!strcmp(tarName, "-"))
@@ -557,7 +559,6 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 		/* First, try to read the header */
 		if ( readTarHeader(&rawHeader, &header) == FALSE ) {
-			close( tarFd);
 			if ( *(header.name) == '\0' ) {
 				goto endgame;
 			} else {
@@ -568,7 +569,34 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 		if ( *(header.name) == '\0' )
 				goto endgame;
+		header.tarFd = tarFd;
 
+#if defined BB_FEATURE_TAR_EXCLUDE
+		{
+			int skipFlag=FALSE;
+			/* Check for excluded files....  */
+			for (tmpList=excludeList; tmpList && *tmpList; tmpList++) {
+				/* Do some extra hoop jumping for when directory names
+				 * end in '/' but the entry in tmpList doesn't */
+				if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
+							header.name[strlen(header.name)-1]=='/'
+							&& strncmp( *tmpList, header.name, 
+								MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
+					/* If it is a regular file, pretend to extract it with
+					 * the extractFlag set to FALSE, so the junk in the tarball
+					 * is properly skipped over */
+					if ( header.type==REGTYPE || header.type==REGTYPE0 ) {
+							tarExtractRegularFile(&header, FALSE, FALSE);
+					}
+					skipFlag=TRUE;
+					break;
+				}
+			}
+			/* There are not the droids you're looking for, move along */
+			if (skipFlag==TRUE)
+				continue;
+		}
+#endif
 		/* Special treatment if the list (-t) flag is on */
 		if (verboseFlag == TRUE && extractFlag == FALSE) {
 			int len, len1;
@@ -623,13 +651,6 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			printf("\n");
 		}
 
-#if 0
-		/* See if we want to restore this file or not */
-		skipFileFlag=FALSE;
-		if (wantFileName(outName) == FALSE) {
-			skipFileFlag = TRUE;
-		}
-#endif
 		/* Remove any clutter lying in our way */
 		unlink( header.name);
 
@@ -751,7 +772,9 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 {
 	long chksum=0;
 	struct TarHeader header;
+#if defined BB_FEATURE_TAR_EXCLUDE
 	char** tmpList;
+#endif
 	const unsigned char *cp = (const unsigned char *) &header;
 	ssize_t size = sizeof(struct TarHeader);
 
@@ -769,15 +792,23 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		strncpy(header.name, fileName, sizeof(header.name)); 
 	}
 
-	/* Now that leading '/''s have been removed, 
-	 * check for excluded files....  */
+#if defined BB_FEATURE_TAR_EXCLUDE
+	/* Check for excluded files....  */
 	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
-		printf( "comparing '%s' and '%s'", *tmpList, header.name);
-		if (strcmp( *tmpList, header.name)==0)
-			printf( ": match\n");
-		else
-			printf( "\n");
+		/* Do some extra hoop jumping for when directory names
+		 * end in '/' but the entry in tmpList doesn't */
+		if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
+					header.name[strlen(header.name)-1]=='/'
+					&& strncmp( *tmpList, header.name, 
+						MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
+			/* Set the mode to something that is not a regular file, thereby
+			 * faking out writeTarFile into thinking that nothing further need
+			 * be done for this file.  Yes, I know this is ugly, but it works. */
+			statbuf->st_mode = 0;
+			return( TRUE);
+		}
 	}
+#endif
 
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
@@ -965,6 +996,12 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 	for (size=0; size<(2*TAR_BLOCK_SIZE); size++) {
 		write(tbInfo.tarFd, "\0", 1);
 	}
+
+	/* To be pedantically correct, we would check if the tarball
+	 * is smaller then 20 tar blocks, and pad it if it was smaller,
+	 * but that isn't necessary for GNU tar interoperability, and
+	 * so is considered a waste of space */
+
 	/* Hang up the tools, close up shop, head home */
 	close(tarFd);
 	if (errorFlag == TRUE) {

@@ -25,7 +25,7 @@ BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
-DODEBUG = true
+DODEBUG = false
 
 # If you want a static binary, turn this on.  I can't think
 # of many situations where anybody would ever want it static, 
@@ -72,7 +72,7 @@ endif
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
     CFLAGS += -Wall -g -D_GNU_SOURCE
-    LDFLAGS =
+    LDFLAGS = 
     STRIP   =
 else
     CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
