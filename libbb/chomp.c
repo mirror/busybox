@@ -25,13 +25,11 @@
 #include <string.h>
 #include "libbb.h"
 
-
 void chomp(char *s)
 {
-	char *lc = last_char_is(s, '\n');
-	
-	if(lc)
-		*lc = 0;
+	if (!(s && *s)) return;
+	while (*s && (*s != '\n')) s++;
+	*s = 0;
 }
 
 
