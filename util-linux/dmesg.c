@@ -98,5 +98,5 @@ all_done:
 #endif
 	return EXIT_SUCCESS;
 die_the_death:
-	perror_msg_and_die("klogctl");
+	perror_msg_and_die(NULL);
 }
