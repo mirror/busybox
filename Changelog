@@ -13,7 +13,7 @@
 		    <crosenth@covad.com> and Covad Communications
 	    * 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
 	    * dos2unix, unix2dos, reset, and unrpm.c (and lots of help
-		debugging) thanks to robotti@metconnect.com.
+		debugging) thanks to Kent Robotti <robotti@metconnect.com>.
 	    * 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
 	    * 'xargs' (written by me)
 	    * 'expr' contributed by Edward Betts <edward@debian.org>, based
