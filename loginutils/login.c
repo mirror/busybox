@@ -127,7 +127,9 @@ extern int login_main(int argc, char **argv)
 #endif
 
 	tmp = ttyname ( 0 );
-	if ( tmp )
+	if ( tmp && ( strncmp ( tmp, "/dev/", 5 ) == 0 ))
+		safe_strncpy ( tty, tmp + 5, sizeof( tty ));
+	else if ( tmp && *tmp == '/' )
 		safe_strncpy ( tty, tmp, sizeof( tty ));
 	else
 		safe_strncpy ( tty, "UNKNOWN", sizeof( tty ));
