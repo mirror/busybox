@@ -70,10 +70,15 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 			fprintf(stream, "%s\n", s1);
 		}
 	}
-
 	do {
+		char *buf_ptr;
+
 		if (fgets(buf, 510, stream) == NULL) {
 			bb_perror_msg_and_die("fgets()");
+		}
+		buf_ptr = strstr(buf, "\r\n");
+		if (buf_ptr) {
+			*buf_ptr = '\0';
 		}
 	} while (! isdigit(buf[0]) || buf[3] != ' ');
 
