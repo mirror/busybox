@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
 int busybox_main(int argc, char **argv)
 {
-	int col = 0;
+	int col = 0, len, i;
 
 #ifdef CONFIG_FEATURE_INSTALLER	
 	/* 
