@@ -568,6 +568,8 @@ extern int ls_main(int argc, char **argv)
 				opts |= DISP_RECURSIVE;
 				break;
 #endif
+			case 'g': /* ignore -- for ftp servers */
+				break;
 			default:
 				goto print_usage_message;
 			}

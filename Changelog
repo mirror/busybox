@@ -15,6 +15,8 @@
 	* Added support for being a login shell, so things like
 	    '-su' or '-sh' (stuff where argv[0][0]=='-') will now always 
 	    invoke the shell.  Now you can use BusyBox as a login shell.
+	* ls.c now ignores '-g', since some ftp clients like that sort 
+	    of thing.  Patch thanks to David Vrabel <dvrabel@arcom.co.uk>
 
 	 -Erik Andersen
 
