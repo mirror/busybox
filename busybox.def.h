@@ -174,3 +174,4 @@
 //#define BB_FEATURE_INIT_CHROOT
 #endif
 //
+#define BB_FEATURE_EXTRA_QUIET

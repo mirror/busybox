@@ -843,11 +843,19 @@ extern int init_main(int argc, char **argv)
 
 	/* Hello world */
 #ifndef DEBUG_INIT
-	message(LOG,
+	message(
+#if ! defined BB_FEATURE_EXTRA_QUIET
+			CONSOLE|
+#endif
+			LOG,
 			"init started:  BusyBox v%s (%s) multi-call binary\r\n",
 			BB_VER, BB_BT);
 #else
-	message(LOG,
+	message(
+#if ! defined BB_FEATURE_EXTRA_QUIET
+			CONSOLE|
+#endif
+			LOG,
 			"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n",
 			getpid(), BB_VER, BB_BT);
 #endif
