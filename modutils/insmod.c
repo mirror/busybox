@@ -253,7 +253,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.100 2003/08/13 19:56:33 andersen Exp $"
+#ident "$Id: insmod.c,v 1.101 2003/08/30 06:00:33 bug1 Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -474,7 +474,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.100 2003/08/13 19:56:33 andersen Exp $"
+#ident "$Id: insmod.c,v 1.101 2003/08/30 06:00:33 bug1 Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -650,6 +650,8 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 
 static void arch_create_got (struct obj_file *f);
 
+static int obj_gpl_license(struct obj_file *f, const char **license);
+	
 #ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int arch_init_module (struct obj_file *f, struct new_module *);
 #endif
@@ -658,7 +660,6 @@ static int arch_init_module (struct obj_file *f, struct new_module *);
 //----------------------------------------------------------------------------
 //--------end of modutils obj.h
 //----------------------------------------------------------------------------
-
 
 
 /* SPFX is always a string, so it can be concatenated to string constants.  */
@@ -1927,10 +1928,13 @@ add_symbols_from(
 	struct new_module_symbol *s;
 	size_t i;
 	int used = 0;
+	int gpl;
 #ifdef SYMBOL_PREFIX
 	char *name_buf = 0;
 	size_t name_alloced_size = 0;
 #endif
+
+	gpl = obj_gpl_license(f, NULL) == 0;
 
 	for (i = 0, s = syms; i < nsyms; ++i, ++s) {
 		/* Only add symbols that are already marked external.
@@ -1939,6 +1943,19 @@ add_symbols_from(
 		   dependency on the module.  */
 		struct obj_symbol *sym;
 		char *name = (char *)s->name;
+
+		/* GPL licensed modules can use symbols exported with
+		 * EXPORT_SYMBOL_GPL, so ignore any GPLONLY_ prefix on the
+		 * exported names.  Non-GPL modules never see any GPLONLY_
+		 * symbols so they cannot fudge it by adding the prefix on
+		 * their references.
+		 */
+		if (strncmp((char *)s->name, "GPLONLY_", 8) == 0) {
+			if (gpl)
+				((char *)s->name) += 8;
+			else
+				continue;
+		}
 
 #ifdef SYMBOL_PREFIX
 		/* Prepend SYMBOL_PREFIX to the symbol's name (the
@@ -3611,6 +3628,7 @@ static void hide_special_symbols(struct obj_file *f)
 			sym->info =
 				ELFW(ST_INFO) (STB_LOCAL, ELFW(ST_TYPE) (sym->info));
 }
+
 
 #ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license)
