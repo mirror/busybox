@@ -158,9 +158,9 @@ extern int gunzip_main(int argc, char **argv)
 
 		delete_old_file = TRUE;
 		extension = strrchr(if_name, '.');
-		if (strcmp(extension, ".gz") == 0) {
+		if (extension && strcmp(extension, ".gz") == 0) {
 			length -= 3;
-		} else if (strcmp(extension, ".tgz") == 0) {
+		} else if (extension && strcmp(extension, ".tgz") == 0) {
 			length -= 4;
 		} else {
 			error_msg_and_die("Invalid extension");
