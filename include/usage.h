@@ -1564,11 +1564,12 @@
 #define md5sum_full_usage \
 	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums.\n\n" \
 	"Options:\n" \
-	"With no FILE, or when FILE is -, read standard input.\n\n" \
-	USAGE_MD5_SHA1_SUM_CHECK("\t-c\tcheck MD5 sums against given list\n") \
+	"With no FILE, or when FILE is -, read standard input." \
+	USAGE_MD5_SHA1_SUM_CHECK("\n\n" \
+	"\t-c\tcheck MD5 sums against given list\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
-	USAGE_MD5_SHA1_SUM_CHECK("\t-w\twarn about improperly formated MD5 checksum lines")
+	"\t-w\twarn about improperly formated MD5 checksum lines")
 #define md5sum_example_usage \
 	"$ md5sum < busybox\n" \
 	"6fd11e98b98a58f64ff3398d7b324003\n" \
@@ -2114,11 +2115,12 @@
 #define sha1sum_full_usage \
 	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums.\n\n" \
 	"Options:\n" \
-	"With no FILE, or when FILE is -, read standard input.\n\n" \
-	USAGE_MD5_SHA1_SUM_CHECK("\t-c\tcheck SHA1 sums against given list\n") \
-	USAGE_MD5_SHA1_SUM_CHECK("\nThe following two options are useful only when verifying checksums:\n") \
+	"With no FILE, or when FILE is -, read standard input." \
+	USAGE_MD5_SHA1_SUM_CHECK("\n\n" \
+	"\t-c\tcheck SHA1 sums against given list\n" \
+	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
-	USAGE_MD5_SHA1_SUM_CHECK("\t-w\twarn about improperly formated SHA1 checksum lines")
+	"\t-w\twarn about improperly formated SHA1 checksum lines")
 
 #ifdef CONFIG_FEATURE_FANCY_SLEEP
   #define USAGE_FANCY_SLEEP(a) a
