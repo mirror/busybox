@@ -40,7 +40,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 {
 	const int dpkg_deb_contents = 1;
 	const int dpkg_deb_control = 2;
-	const int dpkg_deb_info = 4;
+//	const int dpkg_deb_info = 4;
 	const int dpkg_deb_extract = 8;
 	const int dpkg_deb_verbose_extract = 16;
 	int opt=0;
