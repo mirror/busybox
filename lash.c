@@ -112,7 +112,9 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg);
 static int busy_loop(FILE * input);
 
 
-/* Table of built-in functions */
+/* Table of built-in functions (these are non-forking builtins, meaning they
+ * can change global variables in the parent shell process but they will not
+ * work with pipes and redirects; 'unset foo | whatever' will not work) */
 static struct builtInCommand bltins[] = {
 	{"bg", "Resume a job in the background", "bg [%%job]", builtin_fg_bg},
 	{"cd", "Change working directory", "cd [dir]", builtin_cd},
@@ -125,7 +127,8 @@ static struct builtInCommand bltins[] = {
 	{NULL, NULL, NULL, NULL}
 };
 
-/* Table of built-in functions */
+/* Table of forking built-in functions (things that fork cannot change global
+ * variables in the parent process, such as the current working directory) */
 static struct builtInCommand bltins_forking[] = {
 	{"env", "Print all environment variables", "env", builtin_env},
 	{"pwd", "Print current directory", "pwd", builtin_pwd},
