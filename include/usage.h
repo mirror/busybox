@@ -299,15 +299,15 @@
 	"o - Pops the value off the top of the stack and uses it to set the output radix.\n" \
 	"    Only 10 and 16 are supported."
 #define dc_example_usage \
-	"$ dc 2 2 +\n" \
+	"$ dc 2 2 + p\n" \
 	"4\n" \
-	"$ dc 8 8 * 2 2 + /\n" \
+	"$ dc 8 8 \\* 2 2 + / p\n" \
 	"16\n" \
-	"$ dc 0 1 and\n" \
+	"$ dc 0 1 and p\n" \
 	"0\n" \
-	"$ dc 0 1 or\n" \
+	"$ dc 0 1 or p\n" \
 	"1\n" \
-	"$ echo 72 9 div 8 mul | dc\n" \
+	"$ echo 72 9 div 8 mul p | dc\n" \
 	"64\n"
 
 #define dd_trivial_usage \
