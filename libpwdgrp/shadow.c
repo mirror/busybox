@@ -54,8 +54,7 @@ void setspent(void)
 	if (shadow) {
 		rewind(shadow);
 	} else {
-		if ((shadow = fopen("/etc/shadow", "r")) == NULL)
-			bb_perror_msg_and_die("/etc/shadow");
+		shadow == bb_xfopen(SHADOW_FILE, "r");
 	}
 }
 
