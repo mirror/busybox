@@ -2,13 +2,13 @@ HOSTCFLAGS += -DLOCALE
 LIBS = -lncurses
 
 ifeq (/usr/include/ncurses/ncurses.h, $(wildcard /usr/include/ncurses/ncurses.h))
-        HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses.h>"
+	HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses.h>"
 else
 ifeq (/usr/include/ncurses/curses.h, $(wildcard /usr/include/ncurses/curses.h))
-        HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
+	HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
 else
 ifeq (/usr/include/ncurses.h, $(wildcard /usr/include/ncurses.h))
-        HOSTCFLAGS += -DCURSES_LOC="<ncurses.h>"
+	HOSTCFLAGS += -DCURSES_LOC="<ncurses.h>"
 else
 	HOSTCFLAGS += -DCURSES_LOC="<curses.h>"
 endif
@@ -27,9 +27,11 @@ all: ncurses lxdialog
 lxdialog: $(OBJS)
 	$(HOSTCC) -o lxdialog $(OBJS) $(LIBS)
 
+.PHONY: ncurses
+
 ncurses:
 	@echo "main() {}" > lxtemp.c
-	@if $(HOSTCC) -lncurses lxtemp.c ; then \
+	@if $(HOSTCC) lxtemp.c $(LIBS) ; then \
 		rm -f lxtemp.c a.out; \
 	else \
 		rm -f lxtemp.c; \
