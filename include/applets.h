@@ -158,7 +158,7 @@
 #ifdef CONFIG_EXPR
 	APPLET(expr, expr_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef CONFIG_TRUE_FALSE
+#ifdef CONFIG_FALSE
 	APPLET(false, false_main, _BB_DIR_BIN)
 #endif
 #ifdef CONFIG_FBSET
@@ -431,7 +431,7 @@
 #ifdef CONFIG_TRACEROUTE
 	APPLET(traceroute, traceroute_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef CONFIG_TRUE_FALSE
+#ifdef CONFIG_TRUE
 	APPLET(true, true_main, _BB_DIR_BIN)
 #endif
 #ifdef CONFIG_TTY
