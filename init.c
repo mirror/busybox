@@ -818,9 +818,9 @@ void parse_inittab(void)
 		/* No inittab file -- set up some default behavior */
 #endif
 		/* Swapoff on halt/reboot */
-		new_initAction(CTRLALTDEL, "/sbin/swapoff -a > /dev/null 2>&1", console);
+		new_initAction(CTRLALTDEL, "/sbin/swapoff -a", console);
 		/* Umount all filesystems on halt/reboot */
-		new_initAction(CTRLALTDEL, "/bin/umount -a -r > /dev/null 2>&1", console);
+		new_initAction(CTRLALTDEL, "/bin/umount -a -r", console);
 		/* Askfirst shell on tty1 */
 		new_initAction(ASKFIRST, SHELL, console);
 		/* Askfirst shell on tty2 */
