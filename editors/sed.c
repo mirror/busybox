@@ -154,6 +154,9 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, rege
 {
 	char *my_str = strdup(str);
 	int idx = 0;
+	char olddelimiter;
+	olddelimiter = sed_cmd->delimiter;
+	sed_cmd->delimiter = '/';
 
 	if (isdigit(my_str[idx])) {
 		do {
@@ -182,6 +185,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, rege
 	}
 
 	free(my_str);
+	sed_cmd->delimiter = olddelimiter;
 	return idx;
 }
 
