@@ -96,7 +96,7 @@ int listen_socket(unsigned int ip, int port, char *inf)
 	struct sockaddr_in addr;
 	int n = 1;
 
-	DEBUG(LOG_INFO, "Opening listen socket on 0x%08x:%d %s\n", ip, port, inf);
+	DEBUG(LOG_INFO, "Opening listen socket on 0x%08x:%d %s", ip, port, inf);
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		DEBUG(LOG_ERR, "socket call failed: %m");
 		return -1;
@@ -136,7 +136,7 @@ int raw_socket(int ifindex)
 	int fd;
 	struct sockaddr_ll sock;
 
-	DEBUG(LOG_INFO, "Opening raw socket on ifindex %d\n", ifindex);
+	DEBUG(LOG_INFO, "Opening raw socket on ifindex %d", ifindex);
 	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
 		DEBUG(LOG_ERR, "socket call failed: %m");
 		return -1;

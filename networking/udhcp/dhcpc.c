@@ -277,7 +277,7 @@ int udhcpc_main(int argc, char *argv[])
 		FD_SET(udhcp_signal_pipe[0], &rfds);
 
 		if (tv.tv_sec > 0) {
-			DEBUG(LOG_INFO, "Waiting on select...\n");
+			DEBUG(LOG_INFO, "Waiting on select...");
 			max_fd = udhcp_signal_pipe[0] > fd ? udhcp_signal_pipe[0] : fd;
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 		} else retval = 0; /* If we already timed out, fall through */
