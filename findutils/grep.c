@@ -48,19 +48,6 @@ static int matched; /* keeps track of whether we ever matched */
 static char *cur_file = NULL; /* the current file we are reading */
 
 
-static void print_matched_line(char *line, int linenum)
-{
-	if (print_count_only)
-		return;
-
-	if (print_filename)
-		printf("%s:", cur_file);
-	if (print_line_num)
-		printf("%i:", linenum);
-
-	puts(line);
-}
-
 static void grep_file(FILE *file)
 {
 	char *line = NULL;
@@ -72,7 +59,11 @@ static void grep_file(FILE *file)
 		chomp(line);
 		linenum++;
 		ret = regexec(&regex, line, 0, NULL, 0);
-		if (ret == 0 && !invert_search) { /* match */
+
+		/* test for a postitive-assertion match (regexec returned success (0)
+		 * and the user did not specify invert search), or a negative-assertion
+		 * match (vice versa) */
+		if ((ret == 0 && !invert_search) || (ret == REG_NOMATCH && invert_search)) {
 
 			/* if we found a match but were told to be quiet, stop here and
 			 * return success */
@@ -81,20 +72,17 @@ static void grep_file(FILE *file)
 				exit(0);
 			}
 
+			/* otherwise, keep track of matches, print the matched line, and
+			 * whatever else the user wanted */
 			nmatches++;
-			print_matched_line(line, linenum);
-
-		}
-		else if (ret == REG_NOMATCH && invert_search) {
-			if (be_quiet) {
-				regfree(&regex);
-				exit(0);
+			if (!print_count_only) {
+				if (print_filename)
+					printf("%s:", cur_file);
+				if (print_line_num)
+					printf("%i:", linenum);
+				puts(line);
 			}
-
-			nmatches++;
-			print_matched_line(line, linenum);
 		}
-
 		free(line);
 	}
 
@@ -186,8 +174,5 @@ extern int grep_main(int argc, char **argv)
 
 	regfree(&regex);
 
-	if (!matched)
-		return 1;
-
-	return 0;
+	return !matched; /* invert return value 0 = success, 1 = failed */
 }
