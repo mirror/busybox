@@ -445,6 +445,10 @@
 	#endif
 #endif
 //
+#ifdef BB_UNIX2DOS
+	#define BB_DOS2UNIX
+#endif	
+//
 #ifdef BB_SYSLOGD
 	#if defined BB_FEATURE_IPC_SYSLOG
 		#define BB_LOGREAD
