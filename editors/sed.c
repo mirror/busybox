@@ -382,7 +382,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("pqd=", sed_cmd->cmd)) {
+	if (strchr("npqd=", sed_cmd->cmd)) {
 		cmdstr++;
 	}
 	/* handle (s)ubstitution command */
@@ -807,6 +807,9 @@ static void process_file(FILE *file)
 					case 'q':	/* Branch to end of script and quit */
 						free(line);
 						return;
+					case 'n':	/* Read next line from input */
+						i = ncmds;
+						break;
 				}
 			}
 
