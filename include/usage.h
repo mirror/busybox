@@ -2736,13 +2736,32 @@
 #define whoami_full_usage \
 	"Prints the user name associated with the current effective user id."
 
+#ifdef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
+#define USAGE_XARGS_CONFIRMATION(a) a
+#else
+#define USAGE_XARGS_CONFIRMATION(a)
+#endif
+#ifdef CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
+#define USAGE_XARGS_TERMOPT(a) a
+#else
+#define USAGE_XARGS_TERMOPT(a)
+#endif
+#ifdef CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
+#define USAGE_XARGS_ZERO_TERM(a) a
+#else
+#define USAGE_XARGS_ZERO_TERM(a)
+#endif
+
+
 #define xargs_trivial_usage \
-	"[COMMAND] [-prt] [ARGS...]"
+	"[COMMAND] [OPTIONS] [ARGS...]"
 #define xargs_full_usage \
 	"Executes COMMAND on every item given by standard input.\n\n" \
 	"Options:\n" \
-	"\t-p\tPrompt the user about whether to run each command\n" \
+	USAGE_XARGS_CONFIRMATION("\t-p\tPrompt the user about whether to run each command\n") \
 	"\t-r\tDo not run command for empty readed lines\n" \
+	USAGE_XARGS_TERMOPT("\t-x\tExit if the size is exceeded\n") \
+	USAGE_XARGS_ZERO_TERM("\t-0\tInput filenames are terminated by a null character\n") \
 	"\t-t\tPrint the command line on stderr before executing it."
 #define xargs_example_usage \
 	"$ ls | xargs gzip\n" \

@@ -97,13 +97,37 @@ config CONFIG_XARGS
 	  xargs is used to execute a specified command on
 	  every item from standard input.  
 
-config CONFIG_FEATURE_XARGS_FANCY
-	bool "  Enable extra options (-x -s -n and -E)"
-	default y
+config CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
+	bool "  Enable prompt and confirmation option -p"
+	default n
 	depends on CONFIG_XARGS
 	help
-	  Default xargs only provides the -t option, this enables the
-	  x, s, n and E options.
+	  Support prompt the user about whether to run each command
+	  line and read a line from the terminal.
+
+config CONFIG_FEATURE_XARGS_SUPPORT_QUOTES
+	bool "  Enable support single and double quotes and backslash"
+	default n
+	depends on CONFIG_XARGS
+	help
+	  Default xargs unsupport single and double quotes
+	  and backslash for can use aruments with spaces.
+
+config CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
+	bool "  Enable support options -x"
+	default n
+	depends on CONFIG_XARGS
+	help
+	  Enable support exit if the size (see the -s or -n option)
+	  is exceeded.
+
+config CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
+	bool "  Enable options -0"
+	default n
+	depends on CONFIG_XARGS
+	help
+	  Enable input filenames are terminated by a null character
+	  instead of by whitespace, and the quotes and backslash
+	  are not special.
 
 endmenu
-
