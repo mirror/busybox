@@ -1057,7 +1057,6 @@ char **create_list(const char *filename)
 	FILE *list_stream;
 	char **file_list = NULL;
 	char *line = NULL;
-	int length = 0;
 	int count = 0;
 
 	/* dont use [xw]fopen here, handle error ourself */
@@ -1066,14 +1065,13 @@ char **create_list(const char *filename)
 		return(NULL);
 	}
 
-	while (getline(&line, &length, list_stream) != -1) {
+	while ((line = get_line_from_file(list_stream)) != NULL) {
 		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
 		chomp(line);
-		file_list[count] = xstrdup(line);
+		file_list[count] = line;
 		count++;
 	}
 	fclose(list_stream);
-	free(line);
 
 	if (count == 0) {
 		return(NULL);
