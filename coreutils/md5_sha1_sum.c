@@ -149,6 +149,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 				if (!(flags & FLAG_SILENT))
 					printf("%s: FAILED\n", filename_ptr);
 				count_failed++;
+				return_value = EXIT_FAILURE;
 			}
 			/* possible free(NULL) */
 			free(hash_value);
@@ -178,7 +179,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 
 			hash_value = hash_file(file_ptr, hash_algo);
 			if (hash_value == NULL) {
-				return_value++;
+				return_value = EXIT_FAILURE;
 			} else {
 				printf("%s  %s\n", hash_value, file_ptr);
 				free(hash_value);
