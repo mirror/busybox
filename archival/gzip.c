@@ -114,7 +114,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) errorMsg(memory_exhausted); \
+      if (array == NULL) error_msg(memory_exhausted); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -251,7 +251,7 @@ extern int save_orig_name;		/* set if original name must be saved */
 
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) errorMsg(msg);}
+#  define Assert(cond,msg) {if(!(cond)) error_msg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
 #  define Tracevv(x) {if (verbose>1) fprintf x ;}
@@ -1381,7 +1381,7 @@ int length;
 			   (char *) window + start, length) != EQUAL) {
 		fprintf(stderr,
 				" start %d, match %d, length %d\n", start, match, length);
-		errorMsg("invalid match\n");
+		error_msg("invalid match\n");
 	}
 	if (verbose > 1) {
 		fprintf(stderr, "\\[%d,%d]", start - match, length);
@@ -1819,9 +1819,9 @@ int gzip_main(int argc, char **argv)
 	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
-		fatalError( "data not read from terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not read from terminal. Use -f to force it.\n");
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		fatalError( "data not written to terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not written to terminal. Use -f to force it.\n");
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -2900,7 +2900,7 @@ int eof;						/* true if this is the last block for a file */
 #endif
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
-			errorMsg("block vanished\n");
+			error_msg("block vanished\n");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		compressed_len = stored_len << 3;
@@ -3083,7 +3083,7 @@ local void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		errorMsg("-l used on binary file\n");
+		error_msg("-l used on binary file\n");
 	}
 }
 
@@ -3239,13 +3239,13 @@ char *env;						/* name of environment variable */
 	nargv = (char **) calloc(*argcp + 1, sizeof(char *));
 
 	if (nargv == NULL)
-		errorMsg(memory_exhausted);
+		error_msg(memory_exhausted);
 	oargv = *argvp;
 	*argvp = nargv;
 
 	/* Copy the program name first */
 	if (oargc-- < 0)
-		errorMsg("argc<=0\n");
+		error_msg("argc<=0\n");
 	*(nargv++) = *(oargv++);
 
 	/* Then copy the environment args */

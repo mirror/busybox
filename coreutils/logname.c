@@ -35,5 +35,5 @@ extern int logname_main(int argc, char **argv)
 		puts(user);
 		return EXIT_SUCCESS;
 	}
-	fatalError("no login name\n");
+	error_msg_and_die("no login name\n");
 }

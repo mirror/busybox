@@ -132,22 +132,22 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
-				errorMsg("Could not find a spare loop device\n");
+				error_msg("Could not find a spare loop device\n");
 				return (FALSE);
 			}
 			if (set_loop(specialfile, lofile, 0, &loro)) {
-				errorMsg("Could not setup loop device\n");
+				error_msg("Could not setup loop device\n");
 				return (FALSE);
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
-				errorMsg("WARNING: loop device is read-only\n");
+				error_msg("WARNING: loop device is read-only\n");
 				flags &= ~MS_RDONLY;
 			}
 		}
 #endif
 		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
 		if (errno == EROFS) {
-			errorMsg("%s is write-protected, mounting read-only\n", specialfile);
+			error_msg("%s is write-protected, mounting read-only\n", specialfile);
 			status = mount(specialfile, dir, filesystemtype, flags |= MS_RDONLY, string_flags);
 		}
 	}
@@ -173,7 +173,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 #endif
 
 	if (errno == EPERM) {
-		fatalError("permission denied. Are you root?\n");
+		error_msg_and_die("permission denied. Are you root?\n");
 	}
 
 	return (FALSE);
@@ -273,18 +273,18 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		/* open device */ 
 		fd = open(device, O_RDONLY);
 		if (fd < 0)
-			fatalError("open failed for `%s': %s\n", device, strerror (errno));
+			error_msg_and_die("open failed for `%s': %s\n", device, strerror (errno));
 
 		/* How many filesystems?  We need to know to allocate enough space */
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
 		if (numfilesystems<0)
-			fatalError("\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", strerror (errno));
+			error_msg_and_die("\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", strerror (errno));
 		fslist = (struct k_fstype *) xcalloc ( numfilesystems, sizeof(struct k_fstype));
 
 		/* Grab the list of available filesystems */
 		status = ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist);
 		if (status<0)
-			fatalError("\nDEVMTAB_GET_FILESYSTEMS: %s\n", strerror (errno));
+			error_msg_and_die("\nDEVMTAB_GET_FILESYSTEMS: %s\n", strerror (errno));
 
 		/* Walk the list trying to mount filesystems 
 		 * that do not claim to be nodev filesystems */
@@ -309,7 +309,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 	if (status == FALSE) {
 		if (whineOnErrors == TRUE) {
-			errorMsg("Mounting %s on %s failed: %s\n",
+			error_msg("Mounting %s on %s failed: %s\n",
 					blockDevice, directory, strerror(errno));
 		}
 		return (FALSE);
@@ -342,18 +342,18 @@ extern int mount_main(int argc, char **argv)
 		/* open device */ 
 		fd = open(device, O_RDONLY);
 		if (fd < 0)
-			fatalError("open failed for `%s': %s\n", device, strerror (errno));
+			error_msg_and_die("open failed for `%s': %s\n", device, strerror (errno));
 
 		/* How many mounted filesystems?  We need to know to 
 		 * allocate enough space for later... */
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
 		if (numfilesystems<0)
-			fatalError( "\nDEVMTAB_COUNT_MOUNTS: %s\n", strerror (errno));
+			error_msg_and_die( "\nDEVMTAB_COUNT_MOUNTS: %s\n", strerror (errno));
 		mntentlist = (struct k_mntent *) xcalloc ( numfilesystems, sizeof(struct k_mntent));
 		
 		/* Grab the list of mounted filesystems */
 		if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)
-			fatalError( "\nDEVMTAB_GET_MOUNTS: %s\n", strerror (errno));
+			error_msg_and_die( "\nDEVMTAB_GET_MOUNTS: %s\n", strerror (errno));
 
 		for( i = 0 ; i < numfilesystems ; i++) {
 			fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
@@ -455,7 +455,7 @@ extern int mount_main(int argc, char **argv)
 		fstabmount = TRUE;
 
 		if (f == NULL)
-			fatalError( "\nCannot read /etc/fstab: %s\n", strerror (errno));
+			error_msg_and_die( "\nCannot read /etc/fstab: %s\n", strerror (errno));
 
 		while ((m = getmntent(f)) != NULL) {
 			if (all == FALSE && directory == NULL && (
@@ -488,7 +488,7 @@ singlemount:
 				rc = nfsmount (device, directory, &flags,
 					&extra_opts, &string_flags, 1);
 				if ( rc != 0) {
-					fatalError("nfsmount failed: %s\n", strerror(errno));	
+					error_msg_and_die("nfsmount failed: %s\n", strerror(errno));	
 					rc = EXIT_FAILURE;
 				}
 			}

@@ -181,7 +181,7 @@ static int my_stat(struct dnode *cur)
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 	if (follow_links == TRUE) {
 		if (stat(cur->fullname, &cur->dstat)) {
-			errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+			error_msg("%s: %s\n", cur->fullname, strerror(errno));
 			status = EXIT_FAILURE;
 			free(cur->fullname);
 			free(cur);
@@ -190,7 +190,7 @@ static int my_stat(struct dnode *cur)
 	} else
 #endif
 	if (lstat(cur->fullname, &cur->dstat)) {
-		errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+		error_msg("%s: %s\n", cur->fullname, strerror(errno));
 		status = EXIT_FAILURE;
 		free(cur->fullname);
 		free(cur);
@@ -511,7 +511,7 @@ struct dnode **list_dir(char *path)
 	nfiles= 0;
 	dir = opendir(path);
 	if (dir == NULL) {
-		errorMsg("%s: %s\n", path, strerror(errno));
+		error_msg("%s: %s\n", path, strerror(errno));
 		status = EXIT_FAILURE;
 		return(NULL);	/* could not open the dir */
 	}
@@ -591,7 +591,7 @@ int list_single(struct dnode *dn)
 				column += 5;
 				break;
 			case LIST_MODEBITS:
-				fprintf(stdout, "%10s", (char *)modeString(dn->dstat.st_mode));
+				fprintf(stdout, "%10s", (char *)mode_string(dn->dstat.st_mode));
 				column += 10;
 				break;
 			case LIST_NLINKS:

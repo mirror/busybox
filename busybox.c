@@ -54,7 +54,7 @@ static char *busybox_fullpath()
 	if (len != -1) {
 		path[len] = 0;
 	} else {
-		errorMsg("%s: %s\n", proc, strerror(errno));
+		error_msg("%s: %s\n", proc, strerror(errno));
 		return NULL;
 	}
 	return strdup(path);
@@ -78,7 +78,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 		rc = Link(busybox, command);
 
 		if (rc) {
-			errorMsg("%s: %s\n", command, strerror(errno));
+			error_msg("%s: %s\n", command, strerror(errno));
 		}
 	}
 }

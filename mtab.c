@@ -76,7 +76,7 @@ void write_mtab(char *blockDevice, char *directory,
 
 #ifdef BB_FEATURE_USE_PROCFS
 		if (filesystemType == 0) {
-			struct mntent *p = findMountPoint(blockDevice, "/proc/mounts");
+			struct mntent *p = find_mount_point(blockDevice, "/proc/mounts");
 
 			if (p && p->mnt_type)
 				filesystemType = p->mnt_type;

@@ -58,12 +58,12 @@ extern int touch_main(int argc, char **argv)
 			if (create == FALSE && errno == ENOENT)
 				return EXIT_SUCCESS;
 			else {
-				fatalError("%s", strerror(errno));
+				error_msg_and_die("%s", strerror(errno));
 			}
 		}
 		close(fd);
 		if (utime(*argv, NULL)) {
-			fatalError("%s", strerror(errno));
+			error_msg_and_die("%s", strerror(errno));
 		}
 		argc--;
 		argv++;

@@ -97,7 +97,7 @@ static long du(char *filename)
 			}
 
 			if (len + strlen(name) + 1 > BUFSIZ) {
-				errorMsg(name_too_long);
+				error_msg(name_too_long);
 				du_depth--;
 				return 0;
 			}
@@ -156,7 +156,7 @@ int du_main(int argc, char **argv)
 		for (i=optind; i < argc; i++) {
 			if ((sum = du(argv[i])) == 0)
 				status = EXIT_FAILURE;
-			if (sum && isDirectory(argv[i], FALSE, NULL)) {
+			if (sum && is_directory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
 			}
 			reset_ino_dev_hashtable();
@@ -166,7 +166,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.28 2000/12/06 15:56:31 kraai Exp $ */
+/* $Id: du.c,v 1.29 2000/12/07 19:56:48 markw Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

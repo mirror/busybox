@@ -28,7 +28,7 @@ extern int reboot_main(int argc, char **argv)
 {
 #ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
-	return(kill(*(findPidByName("init")), SIGINT));
+	return(kill(*(find_pid_by_name("init")), SIGINT));
 #else
 	return(kill(1, SIGINT));
 #endif

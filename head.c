@@ -80,7 +80,7 @@ int head_main(int argc, char **argv)
 			}
 			head(len, fp);
 			if (errno) {
-				errorMsg("%s: %s\n", argv[optind], strerror(errno));
+				error_msg("%s: %s\n", argv[optind], strerror(errno));
 				status = EXIT_FAILURE;
 				errno = 0;
 			}

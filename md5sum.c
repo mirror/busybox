@@ -651,13 +651,13 @@ static int md5_file(const char *filename,
   } else {
     fp = fopen(filename, OPENOPTS(binary));
     if (fp == NULL) {
-      errorMsg("%s: %s\n", filename, strerror(errno));
+      error_msg("%s: %s\n", filename, strerror(errno));
       return FALSE;
     }
   }
 
   if (md5_stream(fp, md5_result)) {
-    errorMsg("%s: %s\n", filename, strerror(errno));
+    error_msg("%s: %s\n", filename, strerror(errno));
 
     if (fp != stdin)
       fclose(fp);
@@ -665,7 +665,7 @@ static int md5_file(const char *filename,
   }
 
   if (fp != stdin && fclose(fp) == EOF) {
-    errorMsg("%s: %s\n", filename, strerror(errno));
+    error_msg("%s: %s\n", filename, strerror(errno));
     return FALSE;
   }
 
@@ -689,7 +689,7 @@ static int md5_check(const char *checkfile_name)
   } else {
     checkfile_stream = fopen(checkfile_name, "r");
     if (checkfile_stream == NULL) {
-      errorMsg("%s: %s\n", checkfile_name, strerror(errno));
+      error_msg("%s: %s\n", checkfile_name, strerror(errno));
       return FALSE;
     }
   }
@@ -722,7 +722,7 @@ static int md5_check(const char *checkfile_name)
     if (split_3(line, line_length, &md5num, &binary, &filename)
         || !hex_digits(md5num)) {
       if (warn) {
-        errorMsg("%s: %lu: improperly formatted MD5 checksum line\n",
+        error_msg("%s: %lu: improperly formatted MD5 checksum line\n",
                  checkfile_name, (unsigned long) line_number);
       }
     } else {
@@ -770,18 +770,18 @@ static int md5_check(const char *checkfile_name)
     free(line);
 
   if (ferror(checkfile_stream)) {
-    errorMsg("%s: read error\n", checkfile_name); /* */
+    error_msg("%s: read error\n", checkfile_name); /* */
     return FALSE;
   }
 
   if (checkfile_stream != stdin && fclose(checkfile_stream) == EOF) {
-    errorMsg("md5sum: %s: %s\n", checkfile_name, strerror(errno));
+    error_msg("md5sum: %s: %s\n", checkfile_name, strerror(errno));
     return FALSE;
   }
 
   if (n_properly_formated_lines == 0) {
     /* Warn if no tests are found.  */
-    errorMsg("%s: no properly formatted MD5 checksum lines found\n",
+    error_msg("%s: no properly formatted MD5 checksum lines found\n",
              checkfile_name);
     return FALSE;
   } else {
@@ -790,13 +790,13 @@ static int md5_check(const char *checkfile_name)
                                  - n_open_or_read_failures);
 
       if (n_open_or_read_failures > 0) {
-        errorMsg("WARNING: %d of %d listed files could not be read\n",
+        error_msg("WARNING: %d of %d listed files could not be read\n",
                  n_open_or_read_failures, n_properly_formated_lines);
         return FALSE;
       }
 
       if (n_mismatched_checksums > 0) {
-        errorMsg("WARNING: %d of %d computed checksums did NOT match\n",
+        error_msg("WARNING: %d of %d computed checksums did NOT match\n",
                  n_mismatched_checksums, n_computed_checkums);
         return FALSE;
       }
@@ -861,22 +861,22 @@ int md5sum_main(int argc,
   }
 
   if (file_type_specified && do_check) {
-    errorMsg("the -b and -t options are meaningless when verifying checksums\n");
+    error_msg("the -b and -t options are meaningless when verifying checksums\n");
 	return EXIT_FAILURE;
   }
 
   if (n_strings > 0 && do_check) {
-    errorMsg("the -g and -c options are mutually exclusive\n");
+    error_msg("the -g and -c options are mutually exclusive\n");
 	return EXIT_FAILURE;
   }
 
   if (status_only && !do_check) {
-    errorMsg("the -s option is meaningful only when verifying checksums\n");
+    error_msg("the -s option is meaningful only when verifying checksums\n");
 	return EXIT_FAILURE;
   }
 
   if (warn && !do_check) {
-    errorMsg("the -w option is meaningful only when verifying checksums\n");
+    error_msg("the -w option is meaningful only when verifying checksums\n");
 	return EXIT_FAILURE;
   }
 
@@ -884,7 +884,7 @@ int md5sum_main(int argc,
     size_t i;
 
     if (optind < argc) {
-      errorMsg("no files may be specified when using -g\n");
+      error_msg("no files may be specified when using -g\n");
 	  return EXIT_FAILURE;
     }
     for (i = 0; i < n_strings; ++i) {
@@ -898,7 +898,7 @@ int md5sum_main(int argc,
     }
   } else if (do_check) {
     if (optind + 1 < argc) {
-      errorMsg("only one argument may be specified when using -c\n");
+      error_msg("only one argument may be specified when using -c\n");
     }
 
     err = md5_check ((optind == argc) ? "-" : argv[optind]);
@@ -951,12 +951,12 @@ int md5sum_main(int argc,
   }
 
   if (fclose (stdout) == EOF) {
-    errorMsg("write error\n");
+    error_msg("write error\n");
 	return EXIT_FAILURE;
   }
 
   if (have_read_stdin && fclose (stdin) == EOF) {
-    errorMsg("standard input\n");
+    error_msg("standard input\n");
 	return EXIT_FAILURE;
   }
 

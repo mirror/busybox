@@ -37,7 +37,7 @@ static const char *srcName;
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (unlink(fileName) < 0) {
-		perrorMsg("%s", fileName);
+		perror_msg("%s", fileName);
 		return (FALSE);
 	}
 	return (TRUE);
@@ -47,11 +47,11 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (recursiveFlag == FALSE) {
 		errno = EISDIR;
-		perrorMsg("%s", fileName);
+		perror_msg("%s", fileName);
 		return (FALSE);
 	} 
 	if (rmdir(fileName) < 0) {
-		perrorMsg("%s", fileName);
+		perror_msg("%s", fileName);
 		return (FALSE);
 	}
 	return (TRUE);
@@ -101,7 +101,7 @@ extern int rm_main(int argc, char **argv)
 			&& errno == ENOENT) {
 			/* do not reports errors for non-existent files if -f, just skip them */
 		} else {
-			if (recursiveAction(srcName, recursiveFlag, FALSE,
+			if (recursive_action(srcName, recursiveFlag, FALSE,
 								TRUE, fileAction, dirAction, NULL) == FALSE) {
 				status = EXIT_FAILURE;
 			}

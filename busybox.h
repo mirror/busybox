@@ -55,8 +55,8 @@
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
-static inline int isDecimal(ch) { return ((ch >= '0') && (ch <= '9')); }
-static inline int isOctal(ch)   { return ((ch >= '0') && (ch <= '7')); }
+static inline int is_decimal(ch) { return ((ch >= '0') && (ch <= '9')); }
+static inline int is_octal(ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 /* Macros for min/max.  */
 #ifndef MIN
@@ -119,14 +119,14 @@ extern const char *applet_name;
 extern int applet_name_compare(const void *x, const void *y);
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
-extern void errorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-extern void fatalError(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-extern void perrorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-extern void fatalPerror(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 
-const char *modeString(int mode);
-const char *timeString(time_t timeVal);
-int isDirectory(const char *name, const int followLinks, struct stat *statBuf);
+const char *mode_string(int mode);
+const char *time_string(time_t timeVal);
+int is_directory(const char *name, const int followLinks, struct stat *statBuf);
 int isDevice(const char *name);
 
 typedef struct ino_dev_hash_bucket_struct {
@@ -139,7 +139,7 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
-int copyFile(const char *srcName, const char *destName,
+int copy_file(const char *srcName, const char *destName,
 		 int setModes, int followLinks, int forceFlag);
 int copy_file_chunk(int srcFd, int dstFd, size_t remaining);
 char *buildName(const char *dirName, const char *fileName);
@@ -147,20 +147,20 @@ int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
 char *chunkstrdup(const char *str);
 void freeChunks(void);
-int fullWrite(int fd, const char *buf, int len);
-int fullRead(int fd, char *buf, int len);
-int recursiveAction(const char *fileName, int recurse, int followLinks, int depthFirst,
+int full_write(int fd, const char *buf, int len);
+int full_read(int fd, char *buf, int len);
+int recursive_action(const char *fileName, int recurse, int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  void* userData);
 
-extern int createPath (const char *name, int mode);
+extern int create_path (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 
 extern int get_kernel_revision(void);
 
 extern int get_console_fd(char* tty_name);
-extern struct mntent *findMountPoint(const char *name, const char *table);
+extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
@@ -169,8 +169,8 @@ extern char *mtab_first(void **iter);
 extern char *mtab_next(void **iter);
 extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
-extern long getNum (const char *cp);
-extern pid_t* findPidByName( char* pidName);
+extern long atoi_w_units (const char *cp);
+extern pid_t* find_pid_by_name( char* pidName);
 extern int find_real_root_device_name(char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);

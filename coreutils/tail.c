@@ -225,7 +225,7 @@ int tail_main(int argc, char **argv)
 				usage(tail_usage);
 			break;
 		default:
-			errorMsg("\nUnknown arg: %c.\n\n",optopt);
+			error_msg("\nUnknown arg: %c.\n\n",optopt);
 			usage(tail_usage);
 		}
 	}
@@ -263,7 +263,7 @@ int tail_main(int argc, char **argv)
 		else
 			fd[test] = open(files[test], O_RDONLY);
 		if (fd[test] == -1)
-			fatalError("Unable to open file %s.\n", files[test]);
+			error_msg_and_die("Unable to open file %s.\n", files[test]);
 		tail_stream(fd[test]);
 
 		bs=BUFSIZ;

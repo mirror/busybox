@@ -296,7 +296,7 @@ static int check_free_memory()
 	unsigned int result, u, s=10;
 
 	if (sysinfo(&info) != 0) {
-		perrorMsg("Error checking free memory: ");
+		perror_msg("Error checking free memory: ");
 		return -1;
 	}
 

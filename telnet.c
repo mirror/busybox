@@ -583,7 +583,7 @@ static int getport(char * p)
 
 	if ((unsigned)(port - 1 ) > 65534)
 	{
-		fatalError("%s: bad port number\n", p);
+		error_msg_and_die("%s: bad port number\n", p);
 	}
 	return port;
 }
@@ -595,7 +595,7 @@ static struct in_addr getserver(char * host)
 	struct hostent * he;
 	if ((he = gethostbyname(host)) == NULL)
 	{
-		fatalError("%s: Unknown host\n", host);
+		error_msg_and_die("%s: Unknown host\n", host);
 	}
 	memcpy(&addr, he->h_addr, sizeof addr);
 
@@ -650,7 +650,7 @@ static int remote_connect(struct in_addr addr, int port)
 
 	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
 	{
-		fatalError("Unable to connect to remote host: %s\n", strerror(errno));
+		error_msg_and_die("Unable to connect to remote host: %s\n", strerror(errno));
 	}
 	return s;
 }

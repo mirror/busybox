@@ -35,12 +35,12 @@ printf("erik: B\n");
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
-				errorMsg("0: illegal VT number\n");
+				error_msg("0: illegal VT number\n");
 			else if (num == 1)
-				errorMsg("VT 1 cannot be deallocated\n");
+				error_msg("VT 1 cannot be deallocated\n");
 			else if (ioctl(fd, VT_DISALLOCATE, num)) {
 				perror("VT_DISALLOCATE");
-				fatalError("could not deallocate console %d\n", num);
+				error_msg_and_die("could not deallocate console %d\n", num);
 			}
 		}
 printf("erik: C\n");

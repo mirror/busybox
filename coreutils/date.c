@@ -56,7 +56,7 @@ struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 				&(tm_time->tm_min), &(tm_time->tm_year));
 
 	if (nr < 4 || nr > 5) {
-		fatalError(invalid_date, t_string); 
+		error_msg_and_die(invalid_date, t_string); 
 	}
 
 	/* correct for century  - minor Y2K problem here? */
@@ -121,7 +121,7 @@ struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 
 	} else {
-		fatalError(invalid_date, t_string); 
+		error_msg_and_die(invalid_date, t_string); 
 	}
 	*tm_time = t;
 	return (tm_time);
@@ -156,7 +156,7 @@ int date_main(int argc, char **argv)
 			case 'u':
 				utc = 1;
 				if (putenv("TZ=UTC0") != 0)
-					fatalError(memory_exhausted);
+					error_msg_and_die(memory_exhausted);
 				break;
 			case 'd':
 				use_arg = 1;
@@ -176,7 +176,7 @@ int date_main(int argc, char **argv)
 	} 
 #if 0
 	else {
-		errorMsg("date_str='%s'  date_fmt='%s'\n", date_str, date_fmt);
+		error_msg("date_str='%s'  date_fmt='%s'\n", date_str, date_fmt);
 		usage(date_usage);
 	}
 #endif
@@ -205,16 +205,16 @@ int date_main(int argc, char **argv)
 		/* Correct any day of week and day of year etc fields */
 		tm = mktime(&tm_time);
 		if (tm < 0)
-			fatalError(invalid_date, date_str); 
+			error_msg_and_die(invalid_date, date_str); 
 		if ( utc ) {
 			if (putenv("TZ=UTC0") != 0)
-				fatalError(memory_exhausted);
+				error_msg_and_die(memory_exhausted);
 		}
 
 		/* if setting time, set it */
 		if (set_time) {
 			if (stime(&tm) < 0) {
-				perrorMsg("cannot set date");
+				perror_msg("cannot set date");
 			}
 		}
 	}

@@ -106,7 +106,7 @@ cmdedit_setwidth(int w)
 		cmdedit_termw = w;
 		cmdedit_scroll = w / 3;
 	} else {
-		errorMsg("\n*** Error: minimum screen width is 21\n");
+		error_msg("\n*** Error: minimum screen width is 21\n");
 	}
 }
 

@@ -181,7 +181,7 @@ static void logMessage (int pri, char *msg)
           v->iov_len = strlen(msg);          
 
           if ( -1 == writev(remotefd,iov, IOV_COUNT)){
-            fatalError("syslogd: cannot write to remote file handle on" 
+            error_msg_and_die("syslogd: cannot write to remote file handle on" 
                        "%s:%d\n",RemoteHost,RemotePort);
           }
         }
@@ -260,13 +260,13 @@ static void init_RemoteLog (void){
   remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (remotefd < 0) {
-    fatalError("syslogd: cannot create socket\n");
+    error_msg_and_die("syslogd: cannot create socket\n");
   }
 
   hostinfo = (struct hostent *) gethostbyname(RemoteHost);
 
   if (!hostinfo) {
-    fatalError("syslogd: cannot resolve remote host name [%s]\n", RemoteHost);
+    error_msg_and_die("syslogd: cannot resolve remote host name [%s]\n", RemoteHost);
   }
 
   remoteaddr.sin_family = AF_INET;
@@ -278,7 +278,7 @@ static void init_RemoteLog (void){
      for future operations
   */
   if ( 0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))){
-    fatalError("syslogd: cannot connect to remote host %s:%d\n", RemoteHost, RemotePort);
+    error_msg_and_die("syslogd: cannot connect to remote host %s:%d\n", RemoteHost, RemotePort);
   }
 
 }
@@ -311,7 +311,7 @@ static void doSyslogd (void)
 	/* Create the syslog file so realpath() can work. */
 	close (open (_PATH_LOG, O_RDWR | O_CREAT, 0644));
 	if (realpath (_PATH_LOG, lfile) == NULL)
-		fatalError ("Could not resolve path to " _PATH_LOG ": %s\n", strerror (errno));
+		error_msg_and_die ("Could not resolve path to " _PATH_LOG ": %s\n", strerror (errno));
 
 	unlink (lfile);
 
@@ -319,14 +319,14 @@ static void doSyslogd (void)
 	sunx.sun_family = AF_UNIX;
 	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
 	if ((sock_fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0)
-		fatalError ("Couldn't obtain descriptor for socket " _PATH_LOG ": %s\n", strerror (errno));
+		error_msg_and_die ("Couldn't obtain descriptor for socket " _PATH_LOG ": %s\n", strerror (errno));
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
 	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) || (listen (sock_fd, 5)))
-		fatalError ("Could not connect to socket " _PATH_LOG ": %s\n", strerror (errno));
+		error_msg_and_die ("Could not connect to socket " _PATH_LOG ": %s\n", strerror (errno));
 
 	if (chmod (lfile, 0666) < 0)
-		fatalError ("Could not set permission on " _PATH_LOG ": %s\n", strerror (errno));
+		error_msg_and_die ("Could not set permission on " _PATH_LOG ": %s\n", strerror (errno));
 
 	FD_ZERO (&fds);
 	FD_SET (sock_fd, &fds);
@@ -349,7 +349,7 @@ static void doSyslogd (void)
 
 		if ((n_ready = select (FD_SETSIZE, &readfds, NULL, NULL, NULL)) < 0) {
 			if (errno == EINTR) continue; /* alarm may have happened. */
-			fatalError ("select error: %s\n", strerror (errno));
+			error_msg_and_die ("select error: %s\n", strerror (errno));
 		}
 
 		for (fd = 0; (n_ready > 0) && (fd < FD_SETSIZE); fd++) {
@@ -363,7 +363,7 @@ static void doSyslogd (void)
 					pid_t pid;
 
 					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
-						fatalError ("accept error: %s\n", strerror (errno));
+						error_msg_and_die ("accept error: %s\n", strerror (errno));
 					}
 
 					pid = fork();

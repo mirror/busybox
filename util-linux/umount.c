@@ -79,7 +79,7 @@ void mtab_read(void)
 		return;
 
 	if ((fp = setmntent(mtab_file, "r")) == NULL) {
-		errorMsg("Cannot open %s\n", mtab_file);
+		error_msg("Cannot open %s\n", mtab_file);
 		return;
 	}
 	while ((e = getmntent(fp))) {
@@ -179,7 +179,7 @@ static int do_umount(const char *name, int useMtab)
 	if (status != 0 && doForce == TRUE) {
 		status = umount2(blockDevice, MNT_FORCE);
 		if (status != 0) {
-			fatalError("forced umount of %s failed!\n", blockDevice);
+			error_msg_and_die("forced umount of %s failed!\n", blockDevice);
 		}
 	}
 #endif
@@ -187,9 +187,9 @@ static int do_umount(const char *name, int useMtab)
 		status = mount(blockDevice, name, NULL,
 					   MS_MGC_VAL | MS_REMOUNT | MS_RDONLY, NULL);
 		if (status == 0) {
-			errorMsg("%s busy - remounted read-only\n", blockDevice);
+			error_msg("%s busy - remounted read-only\n", blockDevice);
 		} else {
-			errorMsg("Cannot remount %s read-only\n", blockDevice);
+			error_msg("Cannot remount %s read-only\n", blockDevice);
 		}
 	}
 	if (status == 0) {

@@ -63,7 +63,7 @@ int nc_main(int argc, char **argv)
 	hostinfo = (struct hostent *) gethostbyname(*argv);
 
 	if (!hostinfo) {
-		fatalError("cannot resolve %s\n", *argv);
+		error_msg_and_die("cannot resolve %s\n", *argv);
 	}
 
 	address.sin_family = AF_INET;

@@ -87,7 +87,7 @@ static void init_signature_page()
 
 #ifdef PAGE_SIZE
 	if (pagesize != PAGE_SIZE)
-		errorMsg("Assuming pages of size %d\n", pagesize);
+		error_msg("Assuming pages of size %d\n", pagesize);
 #endif
 	signature_page = (int *) xmalloc(pagesize);
 	memset(signature_page, 0, pagesize);
@@ -175,7 +175,7 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 
 void die(const char *str)
 {
-	errorMsg("%s\n", str);
+	error_msg("%s\n", str);
 	exit(EXIT_FAILURE);
 }
 
@@ -316,14 +316,14 @@ int mkswap_main(int argc, char **argv)
 		}
 	}
 	if (!device_name) {
-		errorMsg("error: Nowhere to set up swap on?\n");
+		error_msg("error: Nowhere to set up swap on?\n");
 		usage(mkswap_usage);
 	}
 	sz = get_size(device_name);
 	if (!PAGES) {
 		PAGES = sz;
 	} else if (PAGES > sz && !force) {
-		errorMsg("error: size %ld is larger than device size %d\n",
+		error_msg("error: size %ld is larger than device size %d\n",
 				PAGES * (pagesize / 1024), sz * (pagesize / 1024));
 		return EXIT_FAILURE;
 	}
@@ -339,11 +339,11 @@ int mkswap_main(int argc, char **argv)
 			version = 1;
 	}
 	if (version != 0 && version != 1) {
-		errorMsg("error: unknown version %d\n", version);
+		error_msg("error: unknown version %d\n", version);
 		usage(mkswap_usage);
 	}
 	if (PAGES < 10) {
-		errorMsg("error: swap area needs to be at least %ldkB\n",
+		error_msg("error: swap area needs to be at least %ldkB\n",
 				(long) (10 * pagesize / 1024));
 		usage(mkswap_usage);
 	}
@@ -362,7 +362,7 @@ int mkswap_main(int argc, char **argv)
 #endif
 	if (PAGES > maxpages) {
 		PAGES = maxpages;
-		errorMsg("warning: truncating swap area to %ldkB\n",
+		error_msg("warning: truncating swap area to %ldkB\n",
 				PAGES * pagesize / 1024);
 	}
 
@@ -389,7 +389,7 @@ int mkswap_main(int argc, char **argv)
 			for (sum = 0; q >= (unsigned short *) buffer;)
 				sum ^= *q--;
 			if (!sum) {
-				errorMsg("Device '%s' contains a valid Sun disklabel.\n"
+				error_msg("Device '%s' contains a valid Sun disklabel.\n"
 "This probably means creating v0 swap would destroy your partition table\n"
 "No swap created. If you really want to create swap v0 on that device, use\n"
 "the -f option to force it.\n", device_name);

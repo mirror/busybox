@@ -28,7 +28,7 @@ extern int halt_main(int argc, char **argv)
 {
 #ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
-	return(kill(*(findPidByName("init")), SIGUSR1));
+	return(kill(*(find_pid_by_name("init")), SIGUSR1));
 #else
 	return(kill(1, SIGUSR1));
 #endif

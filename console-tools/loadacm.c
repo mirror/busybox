@@ -39,12 +39,12 @@ int loadacm_main(int argc, char **argv)
 
 	fd = open("/dev/tty", O_RDWR);
 	if (fd < 0) {
-		errorMsg("Error opening /dev/tty1: %s\n", strerror(errno));
+		error_msg("Error opening /dev/tty1: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
 
 	if (screen_map_load(fd, stdin)) {
-		errorMsg("Error loading acm: %s\n", strerror(errno));
+		error_msg("Error loading acm: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
 
@@ -72,7 +72,7 @@ int screen_map_load(int fd, FILE * fp)
 		if (parse_failed) {
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
-					errorMsg("16bit screen-map MUST be a regular file.\n"),
+					error_msg("16bit screen-map MUST be a regular file.\n"),
 						exit(1);
 				else
 					perror("fseek failed reading binary 16bit screen-map"),
@@ -83,7 +83,7 @@ int screen_map_load(int fd, FILE * fp)
 				perror("Cannot read [new] map from file"), exit(1);
 #if 0
 			else
-				errorMsg("Input screen-map is binary.\n");
+				error_msg("Input screen-map is binary.\n");
 #endif
 		}
 
@@ -100,7 +100,7 @@ int screen_map_load(int fd, FILE * fp)
 	/* rewind... */
 	if (-1 == fseek(fp, 0, SEEK_SET)) {
 		if (errno == ESPIPE)
-			errorMsg("Assuming 8bit screen-map - MUST be a regular file.\n"),
+			error_msg("Assuming 8bit screen-map - MUST be a regular file.\n"),
 				exit(1);
 		else
 			perror("fseek failed assuming 8bit screen-map"), exit(1);
@@ -113,7 +113,7 @@ int screen_map_load(int fd, FILE * fp)
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
 					/* should not - it succedeed above */
-					errorMsg("fseek() returned ESPIPE !\n"),
+					error_msg("fseek() returned ESPIPE !\n"),
 						exit(1);
 				else
 					perror("fseek for binary 8bit screen-map"), exit(1);
@@ -123,7 +123,7 @@ int screen_map_load(int fd, FILE * fp)
 				perror("Cannot read [old] map from file"), exit(1);
 #if 0
 			else
-				errorMsg("Input screen-map is binary.\n");
+				error_msg("Input screen-map is binary.\n");
 #endif
 		}
 
@@ -132,7 +132,7 @@ int screen_map_load(int fd, FILE * fp)
 		else
 			return 0;
 	}
-	errorMsg("Error parsing symbolic map\n");
+	error_msg("Error parsing symbolic map\n");
 	return(1);
 }
 

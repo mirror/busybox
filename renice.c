@@ -44,7 +44,7 @@ extern int renice_main(int argc, char **argv)
 		if (setpriority(PRIO_PROCESS, ps, prio) == 0) {
 			printf("%d: old priority %d, new priority %d\n", ps, oldp, prio );
 		} else {
-			perrorMsg("%d: setpriority", ps);
+			perror_msg("%d: setpriority", ps);
 			status = EXIT_FAILURE;
 		}
 	}

@@ -100,7 +100,7 @@ int wget_main(int argc, char **argv)
 
 
 	if (do_continue && !fname_out)
-		fatalError("cannot specify continue (-c) without a filename (-O)\n");
+		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
 	/*
 	 * Parse url into components.
 	 */
@@ -117,7 +117,7 @@ int wget_main(int argc, char **argv)
 	if (fname_out != (char *)1) {
 		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) 
 				== NULL)
-			fatalPerror("fopen(%s)", fname_out);
+			perror_msg_and_die("fopen(%s)", fname_out);
 	} else {
 		output = stdout;
 	}
@@ -128,7 +128,7 @@ int wget_main(int argc, char **argv)
 	if (do_continue) {
 		struct stat sbuf;
 		if (fstat(fileno(output), &sbuf) < 0)
-			fatalError("fstat()");
+			error_msg_and_die("fstat()");
 		if (sbuf.st_size > 0)
 			beg_range = sbuf.st_size;
 		else
@@ -147,7 +147,7 @@ int wget_main(int argc, char **argv)
 	 * Retrieve HTTP response line and check for "200" status code.
 	 */
 	if (fgets(buf, sizeof(buf), sfp) == NULL)
-		fatalError("no response from server\n");
+		error_msg_and_die("no response from server\n");
 	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
 		;
 	for ( ; isspace(*s) ; ++s)
@@ -156,13 +156,13 @@ int wget_main(int argc, char **argv)
 		case 200:
 			if (!do_continue)
 				break;
-			fatalError("server does not support ranges\n");
+			error_msg_and_die("server does not support ranges\n");
 		case 206:
 			if (do_continue)
 				break;
 			/*FALLTHRU*/
 		default:
-			fatalError("server returned error: %s", buf);
+			error_msg_and_die("server returned error: %s", buf);
 	}
 
 	/*
@@ -175,7 +175,7 @@ int wget_main(int argc, char **argv)
 			continue;
 		}
 		if (strcmp(buf, "transfer-encoding") == 0) {
-			fatalError("server wants to do %s transfer encoding\n", s);
+			error_msg_and_die("server wants to do %s transfer encoding\n", s);
 			continue;
 		}
 	}
@@ -197,7 +197,7 @@ int wget_main(int argc, char **argv)
 			filesize -= n;
 	}
 	if (n == 0 && ferror(sfp))
-		fatalPerror("network read error");
+		perror_msg_and_die("network read error");
 
 	exit(0);
 }
@@ -211,7 +211,7 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 	*uri_port = 80;
 
 	if (strncmp(url, "http://", 7) != 0)
-		fatalError("not an http url: %s\n", url);
+		error_msg_and_die("not an http url: %s\n", url);
 
 	/* pull the host portion to the front of the buffer */
 	for (s = url, h = url+7 ; *h != '/' && *h != 0; ++h) {
@@ -240,7 +240,7 @@ FILE *open_socket(char *host, int port)
 	memzero(&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
-		fatalError("cannot resolve %s\n", host);
+		error_msg_and_die("cannot resolve %s\n", host);
 	memcpy(&sin.sin_addr, hp->h_addr_list[0], hp->h_length);
 	sin.sin_port = htons(port);
 
@@ -248,11 +248,11 @@ FILE *open_socket(char *host, int port)
 	 * Get the server onto a stdio stream.
 	 */
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		fatalPerror("socket()");
+		perror_msg_and_die("socket()");
 	if (connect(fd, (struct sockaddr *) &sin, sizeof(sin)) < 0)
-		fatalPerror("connect(%s)", host);
+		perror_msg_and_die("connect(%s)", host);
 	if ((fp = fdopen(fd, "r+")) == NULL)
-		fatalPerror("fdopen()");
+		perror_msg_and_die("fdopen()");
 
 	return fp;
 }
@@ -281,7 +281,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 	/* verify we are at the end of the header name */
 	if (*s != ':')
-		fatalError("bad header line: %s\n", buf);
+		error_msg_and_die("bad header line: %s\n", buf);
 
 	/* locate the start of the header value */
 	for (*s++ = '\0' ; *s == ' ' || *s == '\t' ; ++s)
@@ -475,7 +475,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.9 2000/12/07 03:55:35 tausq Exp $
+ *	$Id: wget.c,v 1.10 2000/12/07 19:56:48 markw Exp $
  */
 
 

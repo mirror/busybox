@@ -283,7 +283,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 		}
 	}
 #else
-	errorMsg( "mode reading not compiled in\n");
+	error_msg( "mode reading not compiled in\n");
 #endif
 	return 0;
 }
@@ -433,7 +433,7 @@ extern int fbset_main(int argc, char **argv)
 		PERROR("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
-			errorMsg("Unknown video mode `%s'\n", mode);
+			error_msg("Unknown video mode `%s'\n", mode);
 			return EXIT_FAILURE;
 		}
 	}

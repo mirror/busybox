@@ -74,14 +74,14 @@ int expr_main (int argc, char **argv)
 	VALUE *v;
 
 	if (argc == 1) {
-		fatalError("too few arguments\n");
+		error_msg_and_die("too few arguments\n");
 	}
 
 	args = argv + 1;
 
 	v = eval ();
 	if (*args)
-		fatalError ("syntax error\n");
+		error_msg_and_die ("syntax error\n");
 
 	if (v->type == integer)
 		printf ("%d\n", v->u.i);
@@ -216,7 +216,7 @@ static						\
 int name (l, r) VALUE *l; VALUE *r;		\
 {						\
   if (!toarith (l) || !toarith (r))		\
-    fatalError ("non-numeric argument\n");	\
+    error_msg_and_die ("non-numeric argument\n");	\
   return l->u.i op r->u.i;			\
 }
 
@@ -224,9 +224,9 @@ int name (l, r) VALUE *l; VALUE *r;		\
 int name (l, r) VALUE *l; VALUE *r;		\
 {						\
   if (!toarith (l) || !toarith (r))		\
-    fatalError ( "non-numeric argument\n");	\
+    error_msg_and_die ( "non-numeric argument\n");	\
   if (r->u.i == 0)				\
-    fatalError ( "division by zero\n");		\
+    error_msg_and_die ( "division by zero\n");		\
   return l->u.i op r->u.i;			\
 }
 
@@ -270,7 +270,7 @@ of a basic regular expression is not portable; it is being ignored",
 	re_syntax_options = RE_SYNTAX_POSIX_BASIC;
 	errmsg = re_compile_pattern (pv->u.s, len, &re_buffer);
 	if (errmsg) {
-		fatalError("%s\n", errmsg);
+		error_msg_and_die("%s\n", errmsg);
 	}
 
 	len = re_match (&re_buffer, sv->u.s, strlen (sv->u.s), 0, &re_regs);
@@ -301,19 +301,19 @@ static VALUE *eval7 (void)
 	VALUE *v;
 
 	if (!*args)
-		fatalError ( "syntax error\n");
+		error_msg_and_die ( "syntax error\n");
 
 	if (nextarg ("(")) {
 		args++;
 		v = eval ();
 		if (!nextarg (")"))
-			fatalError ( "syntax error\n");
+			error_msg_and_die ( "syntax error\n");
 			args++;
 			return v;
 		}
 
 	if (nextarg (")"))
-		fatalError ( "syntax error\n");
+		error_msg_and_die ( "syntax error\n");
 
 	return str_value (*args++);
 }
@@ -327,7 +327,7 @@ static VALUE *eval6 (void)
 	if (nextarg ("quote")) {
 		args++;
 		if (!*args)
-			fatalError ( "syntax error\n");
+			error_msg_and_die ( "syntax error\n");
 		return str_value (*args++);
 	}
 	else if (nextarg ("length")) {

@@ -39,7 +39,7 @@ int readlink_main(int argc, char **argv)
 		buf = xrealloc(buf, bufsize);
 		size = readlink(argv[1], buf, bufsize);
 		if (size == -1)
-			fatalError("%s: %s\n", argv[1], strerror(errno));
+			error_msg_and_die("%s: %s\n", argv[1], strerror(errno));
 	}
 
 	buf[size] = '\0';

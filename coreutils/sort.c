@@ -247,7 +247,7 @@ int sort_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				errorMsg("invalid option -- %c\n", opt);
+				error_msg("invalid option -- %c\n", opt);
 				usage(sort_usage);
 			}
 		} else {
@@ -286,4 +286,4 @@ int sort_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: sort.c,v 1.23 2000/09/28 17:49:59 beppu Exp $ */
+/* $Id: sort.c,v 1.24 2000/12/07 19:56:48 markw Exp $ */

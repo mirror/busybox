@@ -142,7 +142,7 @@ static void encode()
   }
 
   if (ferror (stdin))
-    errorMsg("Read error\n");
+    error_msg("Read error\n");
 
   if (trans_ptr == uu_std) {
     putchar (ENC ('\0'));
@@ -178,7 +178,7 @@ int uuencode_main (int argc,
    case 2:
     /* Optional first argument is input file.  */
     if (!freopen (argv[optind], "r", stdin) || fstat (fileno (stdin), &sb)) {
-      errorMsg("%s: %s\n", argv[optind], strerror(errno));
+      error_msg("%s: %s\n", argv[optind], strerror(errno));
       return EXIT_FAILURE;
     }
     mode = sb.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
@@ -199,7 +199,7 @@ int uuencode_main (int argc,
   encode();
   printf(trans_ptr == uu_std ? "end\n" : "====\n");
   if (ferror (stdout)) {
-    errorMsg("Write error\n");
+    error_msg("Write error\n");
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

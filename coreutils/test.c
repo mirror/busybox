@@ -184,7 +184,7 @@ test_main(int argc, char** argv)
 
 	if (strcmp(applet_name, "[") == 0) {
 		if (strcmp(argv[--argc], "]"))
-			fatalError("missing ]\n");
+			error_msg_and_die("missing ]\n");
 		argv[argc] = NULL;
 	}
 	/* Implement special cases from POSIX.2, section 4.62.4 */
@@ -233,9 +233,9 @@ syntax(op, msg)
 	char	*msg;
 {
 	if (op && *op)
-		fatalError("%s: %s\n", op, msg);
+		error_msg_and_die("%s: %s\n", op, msg);
 	else
-		fatalError("%s\n", msg);
+		error_msg_and_die("%s\n", msg);
 }
 
 static int
@@ -470,13 +470,13 @@ getn(s)
 	r = strtol(s, &p, 10);
 
 	if (errno != 0)
-	  fatalError("%s: out of range\n", s);
+	  error_msg_and_die("%s: out of range\n", s);
 
 	while (isspace(*p))
 	  p++;
 	
 	if (*p)
-	  fatalError("%s: bad number\n", s);
+	  error_msg_and_die("%s: bad number\n", s);
 
 	return (int) r;
 }

@@ -113,7 +113,7 @@ static char *license_msg[] = {
 
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) errorMsg(msg);}
+#  define Assert(cond,msg) {if(!(cond)) error_msg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
 #  define Tracevv(x) {if (verbose>1) fprintf x ;}
@@ -297,7 +297,7 @@ int in;					/* input file descriptor */
 
 		method = (int) get_byte();
 		if (method != DEFLATED) {
-			errorMsg("unknown method %d -- get newer version of gzip\n", method);
+			error_msg("unknown method %d -- get newer version of gzip\n", method);
 			exit_code = ERROR;
 			return -1;
 		}
@@ -1114,13 +1114,13 @@ int in, out;					/* input and output file descriptors */
 		int res = inflate();
 
 		if (res == 3) {
-			errorMsg(memory_exhausted);
+			error_msg(memory_exhausted);
 		} else if (res != 0) {
-			errorMsg("invalid compressed data--format violated\n");
+			error_msg("invalid compressed data--format violated\n");
 		}
 
 	} else {
-		errorMsg("internal error, invalid method\n");
+		error_msg("internal error, invalid method\n");
 	}
 
 	/* Get the crc and original length */
@@ -1149,10 +1149,10 @@ int in, out;					/* input and output file descriptors */
 
 	/* Validate decompression */
 	if (orig_crc != updcrc(outbuf, 0)) {
-		errorMsg("invalid compressed data--crc error\n");
+		error_msg("invalid compressed data--crc error\n");
 	}
 	if (orig_len != (ulg) bytes_out) {
-		errorMsg("invalid compressed data--length error\n");
+		error_msg("invalid compressed data--length error\n");
 	}
 
 	/* Check if there are more entries in a pkzip file */
@@ -1225,9 +1225,9 @@ int gunzip_main(int argc, char **argv)
 	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
-		fatalError( "data not read from terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not read from terminal. Use -f to force it.\n");
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		fatalError( "data not written to terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not written to terminal. Use -f to force it.\n");
 
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
@@ -1265,7 +1265,7 @@ int gunzip_main(int argc, char **argv)
 		if (argc <= 0)
 			usage(gunzip_usage);
 		if (strlen(*argv) > MAX_PATH_LEN) {
-			errorMsg(name_too_long);
+			error_msg(name_too_long);
 			exit(WARNING);
 		}
 		strcpy(ifname, *argv);
@@ -1304,7 +1304,7 @@ int gunzip_main(int argc, char **argv)
 
 		/* And get to work */
 		if (strlen(ifname) > MAX_PATH_LEN - 4) {
-			errorMsg(name_too_long);
+			error_msg(name_too_long);
 			exit(WARNING);
 		}
 		strcpy(ofname, ifname);

@@ -296,7 +296,7 @@ static void show_usage(void)
 
 static void die(const char *str)
 {
-	errorMsg("%s\n", str);
+	error_msg("%s\n", str);
 	leave(8);
 }
 

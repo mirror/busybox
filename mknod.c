@@ -84,7 +84,7 @@ int mknod_main(int argc, char **argv)
 	mode |= perm;
 
 	if (mknod(argv[0], mode, dev) != 0)
-		fatalError("%s: %s\n", argv[0], strerror(errno));
+		error_msg_and_die("%s: %s\n", argv[0], strerror(errno));
 	return EXIT_SUCCESS;
 }
 

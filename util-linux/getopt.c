@@ -37,7 +37,7 @@
  *     <misiek@misiek.eu.org>)
  * Ported to Busybox - Alfred M. Szmidt <ams@trillian.itslinux.org>
  *  Removed --version/-V and --help/-h in
- *  Removed prase_error(), using errorMsg() from Busybox instead
+ *  Removed prase_error(), using error_msg() from Busybox instead
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
  *
  */
@@ -258,7 +258,7 @@ void add_long_options(char *options)
                                         arg_opt=required_argument;
                                 }
                                 if (strlen(tokptr) == 0)
-                                        errorMsg("empty long option after -l or --long argument\n");
+                                        error_msg("empty long option after -l or --long argument\n");
                         }
                         add_longopt(tokptr,arg_opt);
                 }
@@ -277,7 +277,7 @@ void set_shell(const char *new_shell)
         else if (!strcmp(new_shell,"csh"))
                 shell=TCSH;
         else
-                errorMsg("unknown shell after -s or --shell argument\n");
+                error_msg("unknown shell after -s or --shell argument\n");
 }
 
 
@@ -326,7 +326,7 @@ int getopt_main(int argc, char *argv[])
                         printf(" --\n");
                         exit(0);
                 } else
-                        fatalError("missing optstring argument\n");
+                        error_msg_and_die("missing optstring argument\n");
         }
 
         if (argv[1][0] != '-' || compatible) {
@@ -377,7 +377,7 @@ int getopt_main(int argc, char *argv[])
 
         if (!optstr) {
                 if (optind >= argc)
-                        fatalError("missing optstring argument\n");
+                        error_msg_and_die("missing optstring argument\n");
                 else {
                         optstr=xmalloc(strlen(argv[optind])+1);
                         strcpy(optstr,argv[optind]);

@@ -75,7 +75,7 @@ extern int mt_main(int argc, char **argv)
 	}
 
 	if (code->name == 0) {
-		errorMsg("unrecognized opcode %s.\n", argv[1]);
+		error_msg("unrecognized opcode %s.\n", argv[1]);
 		return EXIT_FAILURE;
 	}
 

@@ -52,14 +52,14 @@ int loadkmap_main(int argc, char **argv)
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0)
-		fatalPerror("Error opening /dev/tty0");
+		perror_msg_and_die("Error opening /dev/tty0");
 
 	read(0, buff, 7);
 	if (0 != strncmp(buff, BINARY_KEYMAP_MAGIC, 7))
-		fatalError("This is not a valid binary keymap.\n");
+		error_msg_and_die("This is not a valid binary keymap.\n");
 
 	if (MAX_NR_KEYMAPS != read(0, flags, MAX_NR_KEYMAPS))
-		fatalPerror("Error reading keymap flags");
+		perror_msg_and_die("Error reading keymap flags");
 
 	ibuff = (u_short *) xmalloc(ibuffsz);
 
@@ -68,7 +68,7 @@ int loadkmap_main(int argc, char **argv)
 			pos = 0;
 			while (pos < ibuffsz) {
 				if ((readsz = read(0, (char *) ibuff + pos, ibuffsz - pos)) < 0)
-					fatalPerror("Error reading keymap");
+					perror_msg_and_die("Error reading keymap");
 				pos += readsz;
 			}
 			for (j = 0; j < NR_KEYS; j++) {

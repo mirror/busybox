@@ -55,9 +55,9 @@ static int fs_link(const char *link_DestName, const char *link_SrcName, const in
 		strcpy(srcName, link_SrcName);
 
 	if (flag&LN_NODEREFERENCE)
-		srcIsDir = isDirectory(srcName, TRUE, NULL);
+		srcIsDir = is_directory(srcName, TRUE, NULL);
 	else
-		srcIsDir = isDirectory(srcName, FALSE, NULL);	
+		srcIsDir = is_directory(srcName, FALSE, NULL);	
 	
 	if ((srcIsDir==TRUE)&&((flag&LN_NODEREFERENCE)==0)) {
 		strcat(srcName, "/");

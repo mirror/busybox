@@ -169,7 +169,7 @@ extern int grep_main(int argc, char **argv)
 			file = fopen(cur_file, "r");
 			if (file == NULL) {
 				if (!suppress_err_msgs)
-					errorMsg("%s: %s\n", cur_file, strerror(errno));
+					error_msg("%s: %s\n", cur_file, strerror(errno));
 			}
 			else {
 				grep_file(file);

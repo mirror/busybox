@@ -106,7 +106,7 @@ static int checkTarMagic(int srcFd)
 
         headerStart = lseek(srcFd, 0, SEEK_CUR);
         lseek(srcFd, (off_t) 257, SEEK_CUR);
-        fullRead(srcFd, magic, 6);
+        full_read(srcFd, magic, 6);
         lseek(srcFd, headerStart, SEEK_SET);
         if (strncmp(magic, "ustar", 5)!=0)
                 return(FALSE);
@@ -123,7 +123,7 @@ static int readTarHeader(int srcFd, headerL_t *current)
 	off_t initialOffset;
 
         initialOffset = lseek(srcFd, 0, SEEK_CUR);
-        if (fullRead(srcFd, (char *) &rawTarHeader, 512) != 512) {
+        if (full_read(srcFd, (char *) &rawTarHeader, 512) != 512) {
                 lseek(srcFd, initialOffset, SEEK_SET);
                 return(FALSE);
         }
@@ -157,8 +157,8 @@ static int checkArMagic(int srcFd)
         char arMagic[8];
 
         headerStart = lseek(srcFd, 0, SEEK_CUR);
-        if (fullRead(srcFd, arMagic, 8) != 8) {
-                errorMsg("fatal error\n");
+        if (full_read(srcFd, arMagic, 8) != 8) {
+                error_msg("fatal error\n");
                 return (FALSE);
         }
         lseek(srcFd, headerStart, SEEK_SET);
@@ -178,7 +178,7 @@ static int readArEntry(int srcFd, headerL_t *entry)
         off_t   initialOffset;
 
         initialOffset = lseek(srcFd, 0, SEEK_CUR);
-        if (fullRead(srcFd, (char *) &rawArHeader, 60) != 60) {
+        if (full_read(srcFd, (char *) &rawArHeader, 60) != 60) {
                 lseek(srcFd, initialOffset, SEEK_SET);
                 return(FALSE);
         }
@@ -215,7 +215,7 @@ static int readArEntry(int srcFd, headerL_t *entry)
 
 			if (entry->size > MAX_NAME_LENGTH)
 				entry->size = MAX_NAME_LENGTH;
-			fullRead(srcFd, tempName, entry->size);
+			full_read(srcFd, tempName, entry->size);
 			tempName[entry->size-3]='\0';
 			
 			/* read the second header for this entry */
@@ -226,7 +226,7 @@ static int readArEntry(int srcFd, headerL_t *entry)
 			if ((entry->name[0]='/') && (entry->name[1]='0'))
 				strcpy(entry->name, tempName);
 			else {
-				errorMsg("Invalid long filename\n");
+				error_msg("Invalid long filename\n");
 				return(FALSE);
 			}
 		}
@@ -343,7 +343,7 @@ extern int ar_main(int argc, char **argv)
 		usage(ar_usage);
 	
 	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
-		fatalError("Cannot read %s\n", argv[optind]);
+		error_msg_and_die("Cannot read %s\n", argv[optind]);
 
  	optind++;	
 	entry = (headerL_t *) xmalloc(sizeof(headerL_t));
@@ -368,8 +368,8 @@ extern int ar_main(int argc, char **argv)
 	
         while(extractList->next != NULL) {	
 		if (funct & EXT_TO_FILE) {
- 			if (isDirectory(extractList->name, TRUE, NULL)==FALSE)
-				createPath(extractList->name, 0666);
+ 			if (is_directory(extractList->name, TRUE, NULL)==FALSE)
+				create_path(extractList->name, 0666);
 			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
 			lseek(srcFd, extractList->offset, SEEK_SET);
         		copy_file_chunk(srcFd, dstFd, (size_t) extractList->size);
@@ -380,9 +380,9 @@ extern int ar_main(int argc, char **argv)
 		}
 		if ( (funct & DISPLAY) || (funct & VERBOSE)) {
 			if (funct & VERBOSE)
-				printf("%s %d/%d %8d %s ", modeString(extractList->mode), 
+				printf("%s %d/%d %8d %s ", mode_string(extractList->mode), 
 					extractList->uid, extractList->gid,
-					extractList->size, timeString(extractList->mtime));
+					extractList->size, time_string(extractList->mtime));
 		        printf("%s\n", extractList->name);
 		}
 		extractList=extractList->next;

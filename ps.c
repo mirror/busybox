@@ -97,20 +97,20 @@ static void parse_proc_status(char *S, proc_t * P)
 	if (tmp)
 		sscanf(tmp, "Pid:\t%d\n" "PPid:\t%d\n", &P->pid, &P->ppid);
 	else
-		errorMsg("Internal error!\n");
+		error_msg("Internal error!\n");
 
 	/* For busybox, ignoring effective, saved, etc */
 	tmp = strstr(S, "Uid:");
 	if (tmp)
 		sscanf(tmp, "Uid:\t%d", &P->ruid);
 	else
-		errorMsg("Internal error!\n");
+		error_msg("Internal error!\n");
 
 	tmp = strstr(S, "Gid:");
 	if (tmp)
 		sscanf(tmp, "Gid:\t%d", &P->rgid);
 	else
-		errorMsg("Internal error!\n");
+		error_msg("Internal error!\n");
 
 }
 
@@ -135,7 +135,7 @@ extern int ps_main(int argc, char **argv)
 
 	dir = opendir("/proc");
 	if (!dir)
-		fatalError("Can't open /proc\n");
+		error_msg_and_die("Can't open /proc\n");
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
@@ -219,11 +219,11 @@ extern int ps_main(int argc, char **argv)
 	/* open device */ 
 	fd = open(device, O_RDONLY);
 	if (fd < 0) 
-		fatalError( "open failed for `%s': %s\n", device, strerror (errno));
+		error_msg_and_die( "open failed for `%s': %s\n", device, strerror (errno));
 
 	/* Find out how many processes there are */
 	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
-		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 	
 	/* Allocate some memory -- grab a few extras just in case 
 	 * some new processes start up while we wait. The kernel will
@@ -234,7 +234,7 @@ extern int ps_main(int argc, char **argv)
 
 	/* Now grab the pid list */
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
-		fatalError("\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		error_msg_and_die("\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
@@ -252,7 +252,7 @@ extern int ps_main(int argc, char **argv)
 	    info.pid = pid_array[i];
 
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
-			fatalError("\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+			error_msg_and_die("\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
 	    
 		/* Make some adjustments as needed */
 		my_getpwuid(uidName, info.euid);
@@ -282,7 +282,7 @@ extern int ps_main(int argc, char **argv)
 
 	/* close device */
 	if (close (fd) != 0) 
-		fatalError("close failed for `%s': %s\n", device, strerror (errno));
+		error_msg_and_die("close failed for `%s': %s\n", device, strerror (errno));
  
 	exit (0);
 }

@@ -36,7 +36,7 @@ static int df(char *device, const char *mountPoint)
 	long blocks_percent_used;
 
 	if (statfs(mountPoint, &s) != 0) {
-		perrorMsg("%s", mountPoint);
+		perror_msg("%s", mountPoint);
 		return FALSE;
 	}
 
@@ -75,8 +75,8 @@ extern int df_main(int argc, char **argv)
 			usage(df_usage);
 		}
 		while (argc > 1) {
-			if ((mountEntry = findMountPoint(argv[1], mtab_file)) == 0) {
-				errorMsg("%s: can't find mount point.\n", argv[1]);
+			if ((mountEntry = find_mount_point(argv[1], mtab_file)) == 0) {
+				error_msg("%s: can't find mount point.\n", argv[1]);
 				status = EXIT_FAILURE;
 			} else if (!df(mountEntry->mnt_fsname, mountEntry->mnt_dir))
 				status = EXIT_FAILURE;
@@ -89,7 +89,7 @@ extern int df_main(int argc, char **argv)
 
 		mountTable = setmntent(mtab_file, "r");
 		if (mountTable == 0) {
-			perrorMsg("%s", mtab_file);
+			perror_msg("%s", mtab_file);
 			return EXIT_FAILURE;
 		}
 

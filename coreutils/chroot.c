@@ -38,7 +38,7 @@ int chroot_main(int argc, char **argv)
 	argv++;
 
 	if (chroot(*argv) || (chdir("/"))) {
-		fatalError("cannot change root directory to %s: %s\n", *argv, strerror(errno));
+		error_msg_and_die("cannot change root directory to %s: %s\n", *argv, strerror(errno));
 	}
 
 	argc--;
@@ -57,7 +57,7 @@ int chroot_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 #endif
 	}
-	fatalError("cannot execute %s: %s\n", prog, strerror(errno));
+	error_msg_and_die("cannot execute %s: %s\n", prog, strerror(errno));
 
 }
 

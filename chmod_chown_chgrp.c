@@ -64,7 +64,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	case CHMOD_APP:
 		/* Parse the specified modes */
 		if (parse_mode(theMode, &(statbuf->st_mode)) == FALSE) {
-			fatalError( "unknown mode: %s\n", theMode);
+			error_msg_and_die( "unknown mode: %s\n", theMode);
 		}
 		if (chmod(fileName, statbuf->st_mode) == 0)
 			return (TRUE);
@@ -111,7 +111,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	}
 
 	if (argc == 0 || *argv == NULL) {
-		errorMsg(too_few_args);
+		error_msg(too_few_args);
 	}
 
 	if (whichApp == CHMOD_APP) {
@@ -149,24 +149,24 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			if (*argv == p)
 				uid = my_getpwnam(*argv);
 			if (uid == -1) {
-				fatalError( "unknown user name: %s\n", *argv);
+				error_msg_and_die( "unknown user name: %s\n", *argv);
 			}
 		}
 	}
 
 	/* Ok, ready to do the deed now */
 	if (argc < 1) {
-		fatalError(too_few_args);
+		error_msg_and_die(too_few_args);
 	}
 	while (argc-- > 1) {
-		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 
+		if (recursive_action (*(++argv), recursiveFlag, FALSE, FALSE, 
 					fileAction, fileAction, NULL) == FALSE)
 			return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 
   bad_group:
-	fatalError( "unknown group name: %s\n", groupName);
+	error_msg_and_die( "unknown group name: %s\n", groupName);
 }
 
 /*

@@ -250,7 +250,7 @@ static int builtin_exec(struct job *cmd, struct jobSet *junk)
 	{
 		cmd->progs[0].argv++;
 		execvp(cmd->progs[0].argv[0], cmd->progs[0].argv);
-		fatalError("Exec to %s failed: %s\n", cmd->progs[0].argv[0],
+		error_msg_and_die("Exec to %s failed: %s\n", cmd->progs[0].argv[0],
 				strerror(errno));
 	}
 	return EXIT_SUCCESS;
@@ -273,12 +273,12 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 
 	if (!jobList->head) {
 		if (!cmd->progs[0].argv[1] || cmd->progs[0].argv[2]) {
-			errorMsg("%s: exactly one argument is expected\n",
+			error_msg("%s: exactly one argument is expected\n",
 					cmd->progs[0].argv[0]);
 			return EXIT_FAILURE;
 		}
 		if (sscanf(cmd->progs[0].argv[1], "%%%d", &jobNum) != 1) {
-			errorMsg("%s: bad argument '%s'\n",
+			error_msg("%s: bad argument '%s'\n",
 					cmd->progs[0].argv[0], cmd->progs[0].argv[1]);
 			return EXIT_FAILURE;
 			for (job = jobList->head; job; job = job->next) {
@@ -292,7 +292,7 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 	}
 
 	if (!job) {
-		errorMsg("%s: unknown job %d\n",
+		error_msg("%s: unknown job %d\n",
 				cmd->progs[0].argv[0], jobNum);
 		return EXIT_FAILURE;
 	}
@@ -444,7 +444,7 @@ static int builtin_then(struct job *cmd, struct jobSet *junk)
 	char* charptr1=cmd->text+5; /* skip over the leading 'then ' */
 
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		errorMsg("unexpected token `then'\n");
+		error_msg("unexpected token `then'\n");
 		return EXIT_FAILURE;
 	}
 	/* If the if result was FALSE, skip the 'then' stuff */
@@ -471,7 +471,7 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 	char* charptr1=cmd->text+5; /* skip over the leading 'else ' */
 
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		errorMsg("unexpected token `else'\n");
+		error_msg("unexpected token `else'\n");
 		return EXIT_FAILURE;
 	}
 	/* If the if result was TRUE, skip the 'else' stuff */
@@ -495,7 +495,7 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 static int builtin_fi(struct job *cmd, struct jobSet *junk)
 {
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		errorMsg("unexpected token `fi'\n");
+		error_msg("unexpected token `fi'\n");
 		return EXIT_FAILURE;
 	}
 	/* Clear out the if and then context bits */
@@ -646,7 +646,7 @@ static int setupRedirections(struct childProgram *prog)
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			errorMsg("error opening %s: %s\n", redir->filename,
+			error_msg("error opening %s: %s\n", redir->filename,
 					strerror(errno));
 			return 1;
 		}
@@ -820,7 +820,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
 		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->globResult);
 		if (rc == GLOB_NOSPACE) {
-			errorMsg("out of space during glob operation\n");
+			error_msg("out of space during glob operation\n");
 			return;
 		} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
@@ -927,7 +927,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			if (*src == '\\') {
 				src++;
 				if (!*src) {
-					errorMsg("character expected after \\\n");
+					error_msg("character expected after \\\n");
 					freeJob(job);
 					return 1;
 				}
@@ -1009,7 +1009,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					chptr++;
 
 				if (!*chptr) {
-					errorMsg("file name expected after %c\n", *src);
+					error_msg("file name expected after %c\n", *src);
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -1028,7 +1028,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				if (*prog->argv[argc_l])
 					argc_l++;
 				if (!argc_l) {
-					errorMsg("empty command in pipe\n");
+					error_msg("empty command in pipe\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -1055,7 +1055,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					src++;
 
 				if (!*src) {
-					errorMsg("empty command in pipe\n");
+					error_msg("empty command in pipe\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -1114,7 +1114,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					 * command line, making extra room as needed  */
 					--src;
 					charptr1 = xmalloc(BUFSIZ);
-					while ( (size=fullRead(pipefd[0], charptr1, BUFSIZ-1)) >0) {
+					while ( (size=full_read(pipefd[0], charptr1, BUFSIZ-1)) >0) {
 						int newSize=src - *commandPtr + size + 1 + strlen(charptr2);
 						if (newSize > BUFSIZ) {
 							*commandPtr=xrealloc(*commandPtr, src - *commandPtr + 
@@ -1145,7 +1145,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			case '\\':
 				src++;
 				if (!*src) {
-					errorMsg("character expected after \\\n");
+					error_msg("character expected after \\\n");
 					freeJob(job);
 					return 1;
 				}
@@ -1291,7 +1291,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 #endif
 
 			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
-			fatalError("%s: %s\n", newJob->progs[i].argv[0],
+			error_msg_and_die("%s: %s\n", newJob->progs[i].argv[0],
 					strerror(errno));
 		}
 		if (outPipe[1]!=-1) {
@@ -1495,7 +1495,7 @@ int shell_main(int argc_l, char **argv_l)
 			case 'c':
 				input = NULL;
 				if (local_pending_command != 0)
-					fatalError("multiple -c arguments\n");
+					error_msg_and_die("multiple -c arguments\n");
 				local_pending_command = xstrdup(argv[optind]);
 				optind++;
 				argv = argv+optind;

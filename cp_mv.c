@@ -75,7 +75,7 @@ static void name_too_long__exit (void) __attribute__((noreturn));
 static
 void name_too_long__exit (void)
 {
-	fatalError(name_too_long);
+	error_msg_and_die(name_too_long);
 }
 
 static void
@@ -109,14 +109,14 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (srcDirFlag == TRUE) {
 		if (recursiveFlag == FALSE) {
-			errorMsg(omitting_directory, baseSrcName);
+			error_msg(omitting_directory, baseSrcName);
 			return TRUE;
 		}
 		srcBasename = (strstr(fileName, baseSrcName)
 					   + strlen(baseSrcName));
 
 		if (destLen + strlen(srcBasename) > BUFSIZ) {
-			errorMsg(name_too_long);
+			error_msg(name_too_long);
 			return FALSE;
 		}
 		strcat(destName, srcBasename);
@@ -130,7 +130,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 	if (mv_Action_first_time && (dz_i == is_mv)) {
 		mv_Action_first_time = errno = 0;
 		if (rename(fileName, destName) < 0 && errno != EXDEV) {
-			errorMsg("rename(%s, %s): %s\n", fileName, destName, 
+			error_msg("rename(%s, %s): %s\n", fileName, destName, 
 					strerror(errno));
 			goto do_copyFile;	/* Try anyway... */
 		}
@@ -143,7 +143,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 	if (preserveFlag == TRUE && statbuf->st_nlink > 1) {
 		if (is_in_ino_dev_hashtable(statbuf, &name)) {
 			if (link(name, destName) < 0) {
-				errorMsg("link(%s, %s): %s\n", name, destName, strerror(errno));
+				error_msg("link(%s, %s): %s\n", name, destName, strerror(errno));
 				return FALSE;
 			}
 			return TRUE;
@@ -152,7 +152,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 			add_to_ino_dev_hashtable(statbuf, destName);
 		}
 	}
-	return copyFile(fileName, destName, preserveFlag, followLinks, forceFlag);
+	return copy_file(fileName, destName, preserveFlag, followLinks, forceFlag);
 }
 
 static int
@@ -162,11 +162,11 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (S_ISDIR(statbuf->st_mode)) {
 		if (rmdir(fileName) < 0) {
-			errorMsg("rmdir(%s): %s\n", fileName, strerror(errno));
+			error_msg("rmdir(%s): %s\n", fileName, strerror(errno));
 			status = FALSE;
 		}
 	} else if (unlink(fileName) < 0) {
-		errorMsg("unlink(%s): %s\n", fileName, strerror(errno));
+		error_msg("unlink(%s): %s\n", fileName, strerror(errno));
 		status = FALSE;
 	}
 	return status;
@@ -224,7 +224,7 @@ extern int cp_mv_main(int argc, char **argv)
 	
 
 	if (strlen(argv[argc - 1]) > BUFSIZ) {
-		errorMsg(name_too_long);
+		error_msg(name_too_long);
 		goto exit_false;
 	}
 	strcpy(baseDestName, argv[argc - 1]);
@@ -232,9 +232,9 @@ extern int cp_mv_main(int argc, char **argv)
 	if (baseDestLen == 0)
 		goto exit_false;
 
-	destDirFlag = isDirectory(baseDestName, TRUE, &destStatBuf);
+	destDirFlag = is_directory(baseDestName, TRUE, &destStatBuf);
 	if (argc - optind > 2 && destDirFlag == FALSE) {
-		errorMsg(not_a_directory, baseDestName);
+		error_msg(not_a_directory, baseDestName);
 		goto exit_false;
 	}
 
@@ -250,7 +250,7 @@ extern int cp_mv_main(int argc, char **argv)
 
 		if (srcLen == 0) continue; /* "" */
 
-		srcDirFlag = isDirectory(baseSrcName, followLinks, &srcStatBuf);
+		srcDirFlag = is_directory(baseSrcName, followLinks, &srcStatBuf);
 
 		if ((flags_memo = (recursiveFlag == TRUE &&
 						   srcDirFlag == TRUE && destDirFlag == TRUE))) {
@@ -260,26 +260,26 @@ extern int cp_mv_main(int argc, char **argv)
 			char		*pushd, *d, *p;
 
 			if ((pushd = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				errorMsg("getcwd(): %s\n", strerror(errno));
+				error_msg("getcwd(): %s\n", strerror(errno));
 				continue;
 			}
 			if (chdir(baseDestName) < 0) {
-				errorMsg("chdir(%s): %s\n", baseSrcName, strerror(errno));
+				error_msg("chdir(%s): %s\n", baseSrcName, strerror(errno));
 				continue;
 			}
 			if ((d = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				errorMsg("getcwd(): %s\n", strerror(errno));
+				error_msg("getcwd(): %s\n", strerror(errno));
 				continue;
 			}
 			while (!state && *d != '\0') {
 				if (stat(d, &sb) < 0) {	/* stat not lstat - always dereference targets */
-					errorMsg("stat(%s): %s\n", d, strerror(errno));
+					error_msg("stat(%s): %s\n", d, strerror(errno));
 					state = -1;
 					continue;
 				}
 				if ((sb.st_ino == srcStatBuf.st_ino) &&
 					(sb.st_dev == srcStatBuf.st_dev)) {
-					errorMsg("Cannot %s `%s' into a subdirectory of itself, "
+					error_msg("Cannot %s `%s' into a subdirectory of itself, "
 							"`%s/%s'\n", applet_name, baseSrcName,
 							baseDestName, baseSrcName);
 					state = -1;
@@ -290,7 +290,7 @@ extern int cp_mv_main(int argc, char **argv)
 				}
 			}
 			if (chdir(pushd) < 0) {
-				errorMsg("chdir(%s): %s\n", pushd, strerror(errno));
+				error_msg("chdir(%s): %s\n", pushd, strerror(errno));
 				free(pushd);
 				free(d);
 				continue;
@@ -305,11 +305,11 @@ extern int cp_mv_main(int argc, char **argv)
 		status = setjmp(catch);
 		if (status == 0) {
 			mv_Action_first_time = 1;
-			if (recursiveAction(baseSrcName,
+			if (recursive_action(baseSrcName,
 								recursiveFlag, followLinks, FALSE,
 								cp_mv_Action, cp_mv_Action, NULL) == FALSE) goto exit_false;
 			if (dz_i == is_mv &&
-				recursiveAction(baseSrcName,
+				recursive_action(baseSrcName,
 								recursiveFlag, followLinks, TRUE,
 								rm_Action, rm_Action, NULL) == FALSE) goto exit_false;
 		}		

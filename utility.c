@@ -33,7 +33,7 @@
  || defined (BB_LS)		   \
  || defined (BB_RM)		   \
  || defined (BB_TAR)
-/* same conditions as recursiveAction */
+/* same conditions as recursive_action */
 #define bb_need_name_too_long
 #endif
 #define bb_need_memory_exhausted
@@ -84,7 +84,7 @@ extern void usage(const char *usage)
 	exit(EXIT_FAILURE);
 }
 
-static void verrorMsg(const char *s, va_list p)
+static void verror_msg(const char *s, va_list p)
 {
 	fflush(stdout);
 	fprintf(stderr, "%s: ", applet_name);
@@ -92,26 +92,26 @@ static void verrorMsg(const char *s, va_list p)
 	fflush(stderr);
 }
 
-extern void errorMsg(const char *s, ...)
+extern void error_msg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	verrorMsg(s, p);
+	verror_msg(s, p);
 	va_end(p);
 }
 
-extern void fatalError(const char *s, ...)
+extern void error_msg_and_die(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	verrorMsg(s, p);
+	verror_msg(s, p);
 	va_end(p);
 	exit(EXIT_FAILURE);
 }
 
-static void vperrorMsg(const char *s, va_list p)
+static void vperror_msg(const char *s, va_list p)
 {
 	fflush(stdout);
 	fprintf(stderr, "%s: ", applet_name);
@@ -123,21 +123,21 @@ static void vperrorMsg(const char *s, va_list p)
 	fflush(stderr);
 }
 
-extern void perrorMsg(const char *s, ...)
+extern void perror_msg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	vperrorMsg(s, p);
+	vperror_msg(s, p);
 	va_end(p);
 }
 
-extern void fatalPerror(const char *s, ...)
+extern void perror_msg_and_die(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	vperrorMsg(s, p);
+	vperror_msg(s, p);
 	va_end(p);
 	exit(EXIT_FAILURE);
 }
@@ -266,7 +266,7 @@ void reset_ino_dev_hashtable(void)
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
  */
-int isDirectory(const char *fileName, const int followLinks, struct stat *statBuf)
+int is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
 {
 	int status;
 	int didMalloc = 0;
@@ -308,7 +308,7 @@ int copy_file_chunk(int srcfd, int dstfd, size_t chunksize)
                         size = BUFSIZ;
                 else
                         size = chunksize;
-                if (fullWrite(dstfd, buffer, fullRead(srcfd, buffer, size)) < size)
+                if (full_write(dstfd, buffer, full_read(srcfd, buffer, size)) < size)
                         return(FALSE);
                 chunksize -= size;
         }
@@ -325,7 +325,7 @@ int copy_file_chunk(int srcfd, int dstfd, size_t chunksize)
  * -Erik Andersen
  */
 int
-copyFile(const char *srcName, const char *destName,
+copy_file(const char *srcName, const char *destName,
 		 int setModes, int followLinks, int forceFlag)
 {
 	int rfd;
@@ -358,7 +358,7 @@ copyFile(const char *srcName, const char *destName,
 
 	if ((srcStatBuf.st_dev == dstStatBuf.st_dev) &&
 		(srcStatBuf.st_ino == dstStatBuf.st_ino)) {
-		errorMsg("Copying file \"%s\" to itself\n", srcName);
+		error_msg("Copying file \"%s\" to itself\n", srcName);
 		return FALSE;
 	}
 
@@ -491,7 +491,7 @@ static const char SMODE0[] = "..S..S..T";
  * Return the standard ls-like mode string from a file mode.
  * This is static and so is overwritten on each call.
  */
-const char *modeString(int mode)
+const char *mode_string(int mode)
 {
 	static char buf[12];
 
@@ -514,7 +514,7 @@ const char *modeString(int mode)
  * Return the standard ls-like time string from a time_t
  * This is static and so is overwritten on each call.
  */
-const char *timeString(time_t timeVal)
+const char *time_string(time_t timeVal)
 {
 	time_t now;
 	char *str;
@@ -542,7 +542,7 @@ const char *timeString(time_t timeVal)
  * This does multiple writes as necessary.
  * Returns the amount written, or -1 on an error.
  */
-int fullWrite(int fd, const char *buf, int len)
+int full_write(int fd, const char *buf, int len)
 {
 	int cc;
 	int total;
@@ -572,7 +572,7 @@ int fullWrite(int fd, const char *buf, int len)
  * Returns the amount read, or -1 on an error.
  * A short read is returned on an end of file.
  */
-int fullRead(int fd, char *buf, int len)
+int full_read(int fd, char *buf, int len)
 {
 	int cc;
 	int total;
@@ -616,7 +616,7 @@ int fullRead(int fd, char *buf, int len)
  * and so isn't sufficiently portable to take over since glibc2.1
  * is so stinking huge.
  */
-int recursiveAction(const char *fileName,
+int recursive_action(const char *fileName,
 					int recurse, int followLinks, int depthFirst,
 					int (*fileAction) (const char *fileName,
 									   struct stat * statbuf,
@@ -641,7 +641,7 @@ int recursiveAction(const char *fileName,
 				"status=%d followLinks=%d TRUE=%d\n",
 				status, followLinks, TRUE);
 #endif
-		perrorMsg("%s", fileName);
+		perror_msg("%s", fileName);
 		return FALSE;
 	}
 
@@ -666,13 +666,13 @@ int recursiveAction(const char *fileName,
 
 		dir = opendir(fileName);
 		if (!dir) {
-			perrorMsg("%s", fileName);
+			perror_msg("%s", fileName);
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == FALSE) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
-				perrorMsg("%s", fileName);
+				perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}
@@ -684,13 +684,13 @@ int recursiveAction(const char *fileName,
 				continue;
 			}
 			if (strlen(fileName) + strlen(next->d_name) + 1 > BUFSIZ) {
-				errorMsg(name_too_long);
+				error_msg(name_too_long);
 				return FALSE;
 			}
 			memset(nextFile, 0, sizeof(nextFile));
 			sprintf(nextFile, "%s/%s", fileName, next->d_name);
 			status =
-				recursiveAction(nextFile, TRUE, followLinks, depthFirst,
+				recursive_action(nextFile, TRUE, followLinks, depthFirst,
 								fileAction, dirAction, userData);
 			if (status == FALSE) {
 				closedir(dir);
@@ -699,13 +699,13 @@ int recursiveAction(const char *fileName,
 		}
 		status = closedir(dir);
 		if (status < 0) {
-			perrorMsg("%s", fileName);
+			perror_msg("%s", fileName);
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == TRUE) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
-				perrorMsg("%s", fileName);
+				perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}
@@ -729,7 +729,7 @@ int recursiveAction(const char *fileName,
  * while all previous ones get default protections.  Errors are not reported
  * here, as failures to restore files can be reported later.
  */
-extern int createPath(const char *name, int mode)
+extern int create_path(const char *name, int mode)
 {
 	char *cp;
 	char *cpOld;
@@ -1058,7 +1058,7 @@ int get_console_fd(char *tty_name)
 		if (is_a_console(fd))
 			return fd;
 
-	errorMsg("Couldnt get a file descriptor referring to the console\n");
+	error_msg("Couldnt get a file descriptor referring to the console\n");
 	return -1;					/* total failure */
 }
 
@@ -1179,7 +1179,7 @@ extern int check_wildcard_match(const char *text, const char *pattern)
  * Given any other file (or directory), find the mount table entry for its
  * filesystem.
  */
-extern struct mntent *findMountPoint(const char *name, const char *table)
+extern struct mntent *find_mount_point(const char *name, const char *table)
 {
 	struct stat s;
 	dev_t mountDevice;
@@ -1219,16 +1219,16 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
  * Read a number with a possible multiplier.
  * Returns -1 if the number format is illegal.
  */
-extern long getNum(const char *cp)
+extern long atoi_w_units(const char *cp)
 {
 	long value;
 
-	if (!isDecimal(*cp))
+	if (!is_decimal(*cp))
 		return -1;
 
 	value = 0;
 
-	while (isDecimal(*cp))
+	while (is_decimal(*cp))
 		value = value * 10 + *cp++ - '0';
 
 	switch (*cp++) {
@@ -1292,14 +1292,14 @@ extern int device_open(char *device, int mode)
 #endif
 
 #if defined BB_FEATURE_USE_DEVPS_PATCH
-/* findPidByName()
+/* find_pid_by_name()
  *  
  *  This finds the pid of the specified process,
  *  by using the /dev/ps device driver.
  *
  *  Returns a list of all matching PIDs
  */
-extern pid_t* findPidByName( char* pidName)
+extern pid_t* find_pid_by_name( char* pidName)
 {
 	int fd, i, j;
 	char device[] = "/dev/ps";
@@ -1310,11 +1310,11 @@ extern pid_t* findPidByName( char* pidName)
 	/* open device */ 
 	fd = open(device, O_RDONLY);
 	if (fd < 0)
-		fatalError( "open failed for `%s': %s\n", device, strerror (errno));
+		error_msg_and_die( "open failed for `%s': %s\n", device, strerror (errno));
 
 	/* Find out how many processes there are */
 	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
-		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 	
 	/* Allocate some memory -- grab a few extras just in case 
 	 * some new processes start up while we wait. The kernel will
@@ -1325,7 +1325,7 @@ extern pid_t* findPidByName( char* pidName)
 
 	/* Now grab the pid list */
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
-		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 
 	/* Now search for a match */
 	for (i=1, j=0; i<pid_array[0] ; i++) {
@@ -1334,7 +1334,7 @@ extern pid_t* findPidByName( char* pidName)
 
 	    info.pid = pid_array[i];
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
-			fatalError( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+			error_msg_and_die( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
 
 		/* Make sure we only match on the process name */
 		p=info.command_line+1;
@@ -1358,7 +1358,7 @@ extern pid_t* findPidByName( char* pidName)
 
 	/* close device */
 	if (close (fd) != 0) 
-		fatalError( "close failed for `%s': %s\n",device, strerror (errno));
+		error_msg_and_die( "close failed for `%s': %s\n",device, strerror (errno));
 
 	return pidList;
 }
@@ -1367,7 +1367,7 @@ extern pid_t* findPidByName( char* pidName)
 #error Sorry, I depend on the /proc filesystem right now.
 #endif
 
-/* findPidByName()
+/* find_pid_by_name()
  *  
  *  This finds the pid of the specified process.
  *  Currently, it's implemented by rummaging through 
@@ -1375,7 +1375,7 @@ extern pid_t* findPidByName( char* pidName)
  *
  *  Returns a list of all matching PIDs
  */
-extern pid_t* findPidByName( char* pidName)
+extern pid_t* find_pid_by_name( char* pidName)
 {
 	DIR *dir;
 	struct dirent *next;
@@ -1384,7 +1384,7 @@ extern pid_t* findPidByName( char* pidName)
 
 	dir = opendir("/proc");
 	if (!dir)
-		fatalError( "Cannot open /proc: %s\n", strerror (errno));
+		error_msg_and_die( "Cannot open /proc: %s\n", strerror (errno));
 	
 	while ((next = readdir(dir)) != NULL) {
 		FILE *status;
@@ -1423,7 +1423,7 @@ extern void *xmalloc(size_t size)
 	void *ptr = malloc(size);
 
 	if (!ptr)
-		fatalError(memory_exhausted);
+		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
 
@@ -1431,7 +1431,7 @@ extern void *xrealloc(void *old, size_t size)
 {
 	void *ptr = realloc(old, size);
 	if (!ptr)
-		fatalError(memory_exhausted);
+		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
 
@@ -1439,7 +1439,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 {
 	void *ptr = calloc(nmemb, size);
 	if (!ptr)
-		fatalError(memory_exhausted);
+		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
 #endif
@@ -1455,7 +1455,7 @@ extern char * xstrdup (const char *s) {
 	t = strdup (s);
 
 	if (t == NULL)
-		fatalError(memory_exhausted);
+		error_msg_and_die(memory_exhausted);
 
 	return t;
 }
@@ -1467,7 +1467,7 @@ extern char * xstrndup (const char *s, int n) {
 	char *t;
 
 	if (s == NULL)
-		fatalError("xstrndup bug");
+		error_msg_and_die("xstrndup bug");
 
 	t = xmalloc(n+1);
 	strncpy(t,s,n);
@@ -1588,13 +1588,13 @@ extern int find_real_root_device_name(char* name)
 	char fileName[BUFSIZ];
 
 	if (stat("/", &rootStat) != 0) {
-		errorMsg("could not stat '/'\n");
+		error_msg("could not stat '/'\n");
 		return( FALSE);
 	}
 
 	dir = opendir("/dev");
 	if (!dir) {
-		errorMsg("could not open '/dev'\n");
+		error_msg("could not open '/dev'\n");
 		return( FALSE);
 	}
 
@@ -1749,7 +1749,7 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
-		fatalError("xregcomp: %s\n", errmsg);
+		error_msg_and_die("xregcomp: %s\n", errmsg);
 	}
 }
 #endif
@@ -1759,7 +1759,7 @@ FILE *wfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL) {
-		errorMsg("%s: %s\n", path, strerror(errno));
+		error_msg("%s: %s\n", path, strerror(errno));
 		errno = 0;
 	}
 	return fp;
@@ -1773,7 +1773,7 @@ FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL)
-		fatalError("%s: %s\n", path, strerror(errno));
+		error_msg_and_die("%s: %s\n", path, strerror(errno));
 	return fp;
 }
 #endif

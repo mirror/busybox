@@ -35,7 +35,7 @@ extern int rmdir_main(int argc, char **argv)
 
 	while (--argc > 0) {
 		if (rmdir(*(++argv)) == -1) {
-			perrorMsg("%s", *argv);
+			perror_msg("%s", *argv);
 			status = EXIT_FAILURE;
 		}
 	}

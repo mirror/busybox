@@ -262,7 +262,7 @@ static inline int bit(char * a,unsigned int i)
  */
 static volatile void die(char *str)
 {
-	errorMsg("%s\n", str);
+	error_msg("%s\n", str);
 	exit(8);
 }
 
@@ -796,7 +796,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 #ifdef BB_FEATURE_MINIX2
 						version2 = 1;
 #else
-						errorMsg("%s: not compiled with minix v2 support\n",
+						error_msg("%s: not compiled with minix v2 support\n",
 								device_name);
 						exit(-1);
 #endif
