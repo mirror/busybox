@@ -119,7 +119,7 @@ static inline void sem_up(int semid)
  */
 static inline void sem_down(int semid)
 {
-	if ( semop(semid, SMwdn, 2) == -1 )
+	if ( semop(semid, SMwdn, 3) == -1 )
 		perror_msg_and_die("semop[SMwdn]");
 }
 
@@ -155,6 +155,8 @@ void ipcsyslog_init(void){
 		    perror_msg_and_die("semget");
 		}else
     			perror_msg_and_die("semget");
+	    } else {
+		    sem_up(s_semid);
 	    }
 	}else{
 		printf("Buffer already allocated just grab the semaphore?");
@@ -514,6 +516,12 @@ static void doSyslogd (void)
 	FD_ZERO (&fds);
 	FD_SET (sock_fd, &fds);
 
+#ifdef BB_FEATURE_IPC_SYSLOG
+	if (circular_logging == TRUE ){
+	   ipcsyslog_init();
+	}
+#endif
+
         #ifdef BB_FEATURE_REMOTE_LOG
         if (doRemoteLog == TRUE){
           init_RemoteLog();
@@ -618,12 +626,6 @@ extern int syslogd_main(int argc, char **argv)
 	}
 
 	umask(0);
-
-#ifdef BB_FEATURE_IPC_SYSLOG
-	if (circular_logging == TRUE ){
- 	   ipcsyslog_init();
-	}
-#endif
 
 	if (doFork == TRUE) {
 		if (daemon(0, 1) < 0)
