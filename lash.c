@@ -44,6 +44,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <termios.h>
 #include "busybox.h"
 #include "cmdedit.h"
 
@@ -181,7 +182,8 @@ static int argc;
 static char **argv;
 static struct close_me *close_me_head;
 static unsigned int last_jobid;
-
+static int shell_terminal;
+static pid_t shell_pgrp;
 static char *PS1;
 static char *PS2 = "> ";
 
@@ -299,10 +301,9 @@ static int builtin_fg_bg(struct child_prog *child)
 	}
 
 	if (*child->argv[0] == 'f') {
-		/* Make this job the foreground job */
-		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
-			perror_msg("tcsetpgrp"); 
+		/* Put the job into the foreground.  */
+		tcsetpgrp(shell_terminal, job->pgrp);
+
 		child->family->job_list->fg = job;
 	}
 
@@ -310,9 +311,10 @@ static int builtin_fg_bg(struct child_prog *child)
 	for (i = 0; i < job->num_progs; i++)
 		job->progs[i].is_stopped = 0;
 
-	kill(-job->pgrp, SIGCONT);
-
 	job->stopped_progs = 0;
+
+	if (kill(- job->pgrp, SIGCONT) < 0)
+		perror_msg("kill (SIGCONT)");
 
 	return EXIT_SUCCESS;
 }
@@ -1081,7 +1083,7 @@ static void insert_job(struct job *newjob, int inbg)
 
 		/* move the new process group into the foreground */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, newjob->pgrp) && errno != ENOTTY)
+		if (tcsetpgrp(shell_terminal, newjob->pgrp) && errno != ENOTTY)
 			perror_msg("tcsetpgrp");
 	}
 }
@@ -1131,7 +1133,13 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		}
 
 		if (!(child->pid = fork())) {
+			/* Set the handling for job control signals back to the default.  */
+			signal(SIGINT, SIG_DFL);
+			signal(SIGQUIT, SIG_DFL);
+			signal(SIGTSTP, SIG_DFL);
+			signal(SIGTTIN, SIG_DFL);
 			signal(SIGTTOU, SIG_DFL);
+			signal(SIGCHLD, SIG_DFL);
 
 			close_all();
 
@@ -1192,13 +1200,9 @@ static int busy_loop(FILE * input)
 	newjob.job_context = DEFAULT_CONTEXT;
 
 	/* save current owner of TTY so we can restore it on exit */
-	parent_pgrp = tcgetpgrp(0);
+	parent_pgrp = tcgetpgrp(shell_terminal);
 
 	command = (char *) xcalloc(BUFSIZ, sizeof(char));
-
-	/* don't pay any attention to this signal; it just confuses 
-	   things and isn't really meant for shells anyway */
-	signal(SIGTTOU, SIG_IGN);
 
 	while (1) {
 		if (!job_list.fg) {
@@ -1266,7 +1270,7 @@ static int busy_loop(FILE * input)
 			if (!job_list.fg) {
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
-				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
+				if (tcsetpgrp(shell_terminal, getpgrp()) && errno != ENOTTY)
 					perror_msg("tcsetpgrp"); 
 			}
 		}
@@ -1274,7 +1278,7 @@ static int busy_loop(FILE * input)
 	free(command);
 
 	/* return controlling TTY back to parent process group before exiting */
-	if (tcsetpgrp(0, parent_pgrp))
+	if (tcsetpgrp(shell_terminal, parent_pgrp))
 		perror_msg("tcsetpgrp");
 
 	/* return exit status if called with "-c" */
@@ -1300,6 +1304,32 @@ void free_memory(void)
 }
 #endif
 
+/* Make sure we have a controlling tty.  If we get started under a job
+ * aware app (like bash for example), make sure we are now in charge so
+ * we don't fight over who gets the foreground */
+static void setup_job_control()
+{
+	/* Loop until we are in the foreground.  */
+	while (tcgetpgrp (shell_terminal) != (shell_pgrp = getpgrp ()))
+		kill (- shell_pgrp, SIGTTIN);
+
+	/* Ignore interactive and job-control signals.  */
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
+
+	/* Put ourselves in our own process group.  */
+	shell_pgrp = getpid ();
+	if (setpgid (shell_pgrp, shell_pgrp) < 0) {
+		perror_msg_and_die("Couldn't put the shell in its own process group");
+	}
+
+	/* Grab control of the terminal.  */
+	tcsetpgrp(shell_terminal, shell_pgrp);
+}
 
 int shell_main(int argc_l, char **argv_l)
 {
@@ -1359,6 +1389,7 @@ int shell_main(int argc_l, char **argv_l)
 			isatty(fileno(stdin)) && isatty(fileno(stdout))) {
 		interactive=TRUE;
 	}
+	setup_job_control();
 	if (interactive==TRUE) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
