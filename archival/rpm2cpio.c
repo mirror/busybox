@@ -74,6 +74,8 @@ extern int rpm2cpio_main(int argc, char **argv)
 	} else {
 		rpmfile = fopen(argv[1], "r");
 	 	if (!rpmfile) perror_msg_and_die("Can't open rpm file");
+		/* set the buffer size */
+		setvbuf(rpmfile, NULL, _IOFBF, 0x8000);
 	}
 
 	fread (&lead, sizeof(struct rpm_lead), 1, rpmfile);
@@ -85,6 +87,7 @@ extern int rpm2cpio_main(int argc, char **argv)
 	skip_header(rpmfile);
 
 	cpiofile = gz_open(rpmfile, &gunzip_pid);
+
 	copyfd(fileno(cpiofile), fileno(stdout));
 	gz_close(gunzip_pid);
 	fclose(rpmfile);
