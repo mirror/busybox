@@ -241,6 +241,14 @@ const char dos2unix_usage[] =
 	;
 #endif
 
+#if defined BB_DPKG
+const char dpkg_usage[] =
+	"udpkg <-i|-r|--unpack|--configure> my.deb"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+#endif
+	;
+#endif
+
 #if defined BB_DPKG_DEB
 const char dpkg_deb_usage[] =
         "dpkg-deb [-cexX] file directory"

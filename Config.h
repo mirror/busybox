@@ -25,6 +25,7 @@
 #define BB_DIRNAME
 #define BB_DMESG
 //#define BB_DOS2UNIX
+//#define BB_DPKG
 //#define BB_DPKG_DEB
 //#define BB_DUTMP
 #define BB_DU
