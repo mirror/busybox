@@ -366,6 +366,12 @@
 #endif
 #endif
 //
+#ifdef BB_DPKG
+#ifndef BB_DPKG_DEB
+#define BB_DPKG_DEB
+#endif
+#endif
+//
 #ifdef BB_DPKG_DEB
 #ifndef BB_AR
 #define BB_AR
