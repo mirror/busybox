@@ -23,6 +23,10 @@ if [ "$CONFIG_FSCK_MINIX" = "y" -o "$CONFIG_MKFS_MINIX" = "y" ]; then
 fi
 bool 'getopt'		    CONFIG_GETOPT
 bool 'hexdump'  	    CONFIG_HEXDUMP  
+bool 'hwclock'  	    CONFIG_HWCLOCK  
+if [ "$CONFIG_HWCLOCK" = "y" ]; then
+    bool '  Support long options (--hctosys,...)'		CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
+fi
 bool 'losetup'              CONFIG_LOSETUP
 bool 'mkswap'		    CONFIG_MKSWAP
 bool 'more'		    CONFIG_MORE

@@ -700,6 +700,17 @@
 	"$ hostname\n" \
 	"sage \n"
 
+#define hwclock_trivial_usage \
+	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
+#define hwclock_full_usage \
+	"Query and set the hardware clock (RTC)\n\n" \
+	"Options:\n" \
+	"\t-r\tread hardware clock and print result\n" \
+	"\t-s\tset the system time from the hardware clock\n" \
+	"\t-w\tset the hardware clock to the current system time\n" \
+	"\t-u\tthe hardware clock is kept in coordinated universal time\n" \
+	"\t-l\tthe hardware clock is kept in local time"
+
 #define id_trivial_usage \
 	"[OPTIONS]... [USERNAME]"
 #define id_full_usage \

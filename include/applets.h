@@ -218,6 +218,9 @@
 #ifdef CONFIG_HUSH
 	APPLET_NOUSAGE("hush", hush_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_HWCLOCK
+	APPLET(hwclock, hwclock_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_ID
 	APPLET(id, id_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
