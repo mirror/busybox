@@ -84,6 +84,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 		} else if (ar.formated.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
 			data_skip(archive_handle);
+			archive_handle->offset += typed->size;
 			return (get_header_ar(archive_handle)); /* Return next header */
 		} else {
 			/* The number after the '/' indicates the offset in the ar data section
@@ -121,4 +122,3 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 
 	return(EXIT_SUCCESS);
 }
-
