@@ -37,6 +37,10 @@
 	* In 0.43, backspace and delete worked properly, but with 0.45, 
 	    it just echoed a ^? for backspace, and ^H for control-h.  This
 	    was due to a broken macro in init.c, that is now fixed.
+	* Removed sfdisk from BusyBox.  It was buggy, fat, and we really
+	    couldn't maintain it very well, so including it was not really
+	    very appropriate.  Those wanting an fdisk are invited to
+	    grab a copy from util-linux.
 
 
 	 -Erik Andersen

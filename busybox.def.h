@@ -77,7 +77,6 @@
 #define BB_RMMOD
 #define BB_SED
 #define BB_SETKEYCODES
-#define BB_SFDISK
 #define BB_SH
 #define BB_SLEEP
 #define BB_SORT

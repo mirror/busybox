@@ -258,9 +258,6 @@ const struct BB_applet applets[] = {
 #ifdef BB_SETKEYCODES
 	{"setkeycodes", setkeycodes_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_SFDISK
-	{"sfdisk", sfdisk_main, _BB_DIR_SBIN},
-#endif
 #ifdef BB_SH
 	{"sh", shell_main, _BB_DIR_BIN},
 #endif
