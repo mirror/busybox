@@ -395,7 +395,6 @@ static void remove_bg_job(struct pipe *pi);
 static char *get_local_var(const char *var);
 static void  unset_local_var(const char *name);
 static int set_local_var(const char *s, int flg_export);
-static void sigchld_handler(int sig);
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -569,17 +568,21 @@ static int builtin_fg_bg(struct child_prog *child)
 	}
 
 	if (*child->argv[0] == 'f') {
-		/* Make this job the foreground job */
-		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(shell_terminal, pi->pgrp) && errno != ENOTTY)
-			perror_msg("tcsetpgrp-1"); 
+		/* Put the job into the foreground.  */
+		tcsetpgrp(shell_terminal, pi->pgrp);
 	}
 
 	/* Restart the processes in the job */
 	for (i = 0; i < pi->num_progs; i++)
 		pi->progs[i].is_stopped = 0;
 
-	kill(-pi->pgrp, SIGCONT);
+	if ( (i=kill(- pi->pgrp, SIGCONT)) < 0) {
+		if (i == ESRCH) {
+			remove_bg_job(pi);
+		} else {
+			perror_msg("kill (SIGCONT)");
+		}
+	}
 
 	pi->stopped_progs = 0;
 	return EXIT_SUCCESS;
@@ -1185,6 +1188,11 @@ static void remove_bg_job(struct pipe *pi)
 			prev_pipe = prev_pipe->next;
 		prev_pipe->next = pi->next;
 	}
+	if (job_list)
+		last_jobid = job_list->jobid;
+	else
+		last_jobid = 0;
+
 	pi->stopped_progs = 0;
 	free_pipe(pi, 0);
 	free(pi);
@@ -1261,8 +1269,8 @@ static int checkjobs(struct pipe* fg_pipe)
 		perror_msg("waitpid");
 
 	/* move the shell to the foreground */
-	if (interactive && tcsetpgrp(shell_terminal, getpgid(0)))
-		perror_msg("tcsetpgrp-2");
+	//if (interactive && tcsetpgrp(shell_terminal, getpgid(0)))
+	//	perror_msg("tcsetpgrp-2");
 	return -1;
 }
 
@@ -1508,8 +1516,8 @@ static int run_list_real(struct pipe *pi)
 		if ( (rcode==EXIT_SUCCESS && pi->followup==PIPE_OR) ||
 		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
 			skip_more_in_this_rmode=rmode;
+		checkjobs(NULL);
 	}
-	checkjobs(NULL);
 	return rcode;
 }
 
@@ -2530,12 +2538,6 @@ static int parse_file_outer(FILE *f)
 	return rcode;
 }
 
-static void sigchld_handler(int sig)
-{ 
-	checkjobs(NULL);
-	signal(SIGCHLD, sigchld_handler);
-}
-
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
@@ -2552,7 +2554,7 @@ static void setup_job_control()
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
-	signal(SIGCHLD, sigchld_handler);
+	signal(SIGCHLD, SIG_IGN);
 
 	/* Put ourselves in our own process group.  */
 	setsid();
