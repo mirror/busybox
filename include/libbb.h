@@ -108,7 +108,6 @@ int recursive_action(const char *fileName, int recurse, int followLinks, int dep
 	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  void* userData);
 
-extern int create_path (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 
 extern int get_kernel_revision(void);
