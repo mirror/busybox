@@ -52,11 +52,11 @@ endif
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS += -Wall -g -fno-builtin -D_GNU_SOURCE
+    CFLAGS += -Wall -g -D_GNU_SOURCE
     LDFLAGS += 
     STRIP   =
 else
-    CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
     LDFLAGS  += -s
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 

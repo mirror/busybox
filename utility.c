@@ -135,6 +135,7 @@ extern int get_kernel_revision(void)
 
 #if defined BB_FREE || defined BB_INIT || defined BB_UNAME || defined BB_UPTIME
 #include <sys/syscall.h>
+#include <linux/unistd.h>
 _syscall1(int, sysinfo, struct sysinfo *, info);
 #endif                                                 /* BB_INIT */
 

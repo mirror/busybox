@@ -45,7 +45,6 @@
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
-//#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/vt.h>				/* for vt_stat */
 #include <sys/wait.h>
