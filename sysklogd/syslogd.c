@@ -525,7 +525,7 @@ static void doSyslogd (void)
 	}
 #endif
 
-	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " CONFIG_BANNER);
+	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " BB_BANNER);
 
 	for (;;) {
 
