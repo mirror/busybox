@@ -290,8 +290,8 @@ extern int insmod_ng_main( int argc, char **argv);
 /* X86_64  */
 #if defined(__x86_64__)
 #define MATCH_MACHINE(x) (x == EM_X86_64)
-#define SHT_RELM	SHT_REL
-#define Elf64_RelM	Elf64_Rel
+#define SHT_RELM	SHT_RELA
+#define Elf64_RelM	Elf64_Rela
 #define ELFCLASSM	ELFCLASS64
 #endif
 
