@@ -41,7 +41,7 @@ static struct suffix_mult dd_suffixes[] = {
 
 int dd_main(int argc, char **argv)
 {
-	int i, ifd, ofd, sync = FALSE, trunc = TRUE;
+	int i, ifd, ofd, oflag, sync = FALSE, trunc = TRUE;
 	size_t in_full = 0, in_part = 0, out_full = 0, out_part = 0;
 	size_t bs = 512, count = -1;
 	ssize_t n;
@@ -94,8 +94,19 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (outfile != NULL) {
-		if ((ofd = open(outfile, O_WRONLY | O_CREAT, 0666)) < 0)
+		oflag = O_WRONLY | O_CREAT;
+
+		if (!seek && trunc)
+			oflag |= O_TRUNC;
+
+		if ((ofd = open(outfile, oflag, 0666)) < 0)
 			perror_msg_and_die("%s", outfile);
+
+		if (seek && trunc) {
+			if (ftruncate(ofd, seek * bs) < 0)
+				perror_msg_and_die("%s", outfile);
+		}
+
 		statusfp = stdout;
 	} else {
 		ofd = STDOUT_FILENO;
@@ -110,11 +121,6 @@ int dd_main(int argc, char **argv)
 
 	if (seek) {
 		if (lseek(ofd, seek * bs, SEEK_CUR) < 0)
-			perror_msg_and_die("%s", outfile);
-	}
-
-	if (trunc) {
-		if (ftruncate(ofd, seek * bs) < 0)
 			perror_msg_and_die("%s", outfile);
 	}
 
