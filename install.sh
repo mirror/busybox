@@ -2,7 +2,8 @@
 
 set -e
 set -x
-if [ "$1" = "" ]; then
+prefix=$1
+if [ "$prefix" = "" ]; then
     echo "No installation directory, aborting."
     exit 1;
 fi
@@ -11,13 +12,12 @@ if [ "$2" = "--hardlinks" ]; then
 else
     linkopts="-fs"
 fi
-prefix=$1
 h=`sort busybox.links | uniq`
 
 
-rm -f $1/bin/busybox
-mkdir -p $1/bin
-install -m 755 busybox $1/bin/busybox
+rm -f $prefix/bin/busybox
+mkdir -p $prefix/bin
+install -m 755 busybox $prefix/bin/busybox
 
 for i in $h ; do
 	appdir=`dirname $i`
