@@ -21,6 +21,7 @@
  *
  */
 
+/* getopt not needed */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
