@@ -279,6 +279,16 @@ syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
 	_exit(1);
 }
 
+static char * inetd_strdup(const char *s)
+{
+	char *ms = strdup(s);
+
+	if(ms == NULL)
+		syslog_err_and_discard_dg(SOCK_STREAM, "strdup: %m");
+	return ms;
+}
+
+
 static servtab_t *getconfigent(void)
 {
 	static servtab_t serv;
@@ -298,13 +308,15 @@ more:
 	if ((cp == NULL) || (*cp == '#')) {
 		goto more;
 	}
+	/* make bind 0.0.0.0 and other zero default */
+	memset((char *)sep, 0, sizeof *sep);
 
 	cp_ptr = strtok_r(cp, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
 		/* Error */
 		goto more;
 	}
-	sep->se_service = bb_xstrdup(cp_ptr);
+	sep->se_service = inetd_strdup(cp_ptr);
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
@@ -339,7 +351,7 @@ more:
 		}
 		sep->se_family = AF_INET;
 	}
-	sep->se_proto = bb_xstrdup(cp_ptr);
+	sep->se_proto = inetd_strdup(cp_ptr);
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
@@ -361,14 +373,16 @@ more:
 		/* error */
 		goto more;
 	}
+
+	sep->se_user = inetd_strdup(cp_ptr);
 	{
-		char *cp_ptr2 = strchr(cp_ptr, '.');
+		char *cp_ptr2 = strchr(sep->se_user, '.');
+
 		if (cp_ptr2) {
 			*cp_ptr2++ = '\0';
-			sep->se_group = bb_xstrdup(cp_ptr2);
 		}
+		sep->se_group = cp_ptr2;
 	}
-	sep->se_user = bb_xstrdup(cp_ptr);
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
@@ -401,19 +415,16 @@ more:
 		sep->se_bi = NULL;
 	}
 #endif
-	sep->se_server = bb_xstrdup(cp_ptr);
+	sep->se_server = inetd_strdup(cp_ptr);
 
 	argc = 0;
 	while ((cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr)) != NULL) {
 		if (argc < MAXARGV) {
-			sep->se_argv[argc++] = cp_ptr;
+			sep->se_argv[argc++] = inetd_strdup(cp_ptr);
 		}
 	}
-	while (argc <= MAXARGV) {
-		sep->se_argv[argc++] = NULL;
-	}
+	free(cp);
 
-	//free(cp);	// BUG: cp is the argv[] container; we must not free it here!
 	return (sep);
 }
 
