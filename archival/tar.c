@@ -144,6 +144,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 extern int tar_main(int argc, char **argv)
 {
 	char** excludeList=NULL;
+	char** extractList=NULL;
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
 #endif
@@ -230,8 +231,10 @@ extern int tar_main(int argc, char **argv)
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
+		if (*argv)
+			extractList = argv;
 		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag,
-					verboseFlag, argv, excludeList));
+					verboseFlag, extractList, excludeList));
 	}
 
   flagError:
@@ -569,7 +572,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				continue;
 		}
 #endif
-		if (*extractList != NULL) {
+		if (extractList != NULL) {
 			int skipFlag = TRUE;
 			for (tmpList = extractList; *tmpList != NULL; tmpList++) {
 				if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
@@ -580,6 +583,9 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 					 * the extractFlag set to FALSE, so the junk in the tarball
 					 * is properly skipped over */
 					skipFlag = FALSE;
+					memmove(extractList+1, extractList,
+								sizeof(*extractList)*(tmpList-extractList));
+					extractList++;
 					break;
 				}
 			}
@@ -712,6 +718,12 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	/* Stuff to do when we are done */
 endgame:
 	close( tarFd);
+	if (extractList != NULL) {
+		for (; *extractList != NULL; extractList++) {
+			errorMsg("%s: Not found in archive\n", *extractList);
+			errorFlag = TRUE;
+		}
+	}
 	if ( *(header.name) == '\0' ) {
 		if (errorFlag==TRUE)
 			errorMsg( "Error exit delayed from previous errors\n");
