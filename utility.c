@@ -1694,6 +1694,9 @@ char process_escape_sequence(char **ptr)
 	case 'n':
 		c = '\n';
 		break;
+	case 'r':
+		c = '\r';
+		break;
 	case 't':
 		c = '\t';
 		break;
