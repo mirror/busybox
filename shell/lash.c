@@ -73,8 +73,6 @@ static const unsigned int IF_TRUE_CONTEXT=0x2;
 static const unsigned int IF_FALSE_CONTEXT=0x4;
 static const unsigned int THEN_EXP_CONTEXT=0x8;
 static const unsigned int ELSE_EXP_CONTEXT=0x10;
-unsigned int shell_context;
-
 
 
 struct jobset {
@@ -184,6 +182,13 @@ static struct built_in_command bltins_forking[] = {
 	{NULL, NULL, NULL}
 };
 
+
+/* Variables we export */
+unsigned int shell_context;  /* Used in cmdedit.c to reset the
+								context when someone hits ^C */
+
+
+/* Globals that are static to this file */
 static char *cwd;
 static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
