@@ -46,12 +46,25 @@ static const struct suffix_mult dd_suffixes[] = {
 
 int dd_main(int argc, char **argv)
 {
-	int i, ifd, ofd, oflag, sync_flag = FALSE, trunc = TRUE, noerror = FALSE;
-	size_t in_full = 0, in_part = 0, out_full = 0, out_part = 0;
-	size_t bs = 512, count = -1;
+	size_t out_full = 0;
+	size_t out_part = 0;
+	size_t in_full = 0;
+	size_t in_part = 0;
+	size_t count = -1;
+	size_t bs = 512;
 	ssize_t n;
-	off_t seek = 0, skip = 0;
-	char *infile = NULL, *outfile = NULL, *buf;
+	off_t seek = 0;
+	off_t skip = 0;
+	int sync_flag = FALSE;
+	int noerror = FALSE;
+	int trunc = TRUE;
+	int oflag;
+	int ifd;
+	int ofd;
+	int i;
+	char *infile = NULL;
+	char *outfile = NULL;
+	char *buf;
 
 	for (i = 1; i < argc; i++) {
 		if (strncmp("bs=", argv[i], 3) == 0)
@@ -93,8 +106,9 @@ int dd_main(int argc, char **argv)
 	buf = xmalloc(bs);
 
 	if (infile != NULL) {
-		if ((ifd = open(infile, O_RDONLY)) < 0)
+		if ((ifd = open(infile, O_RDONLY)) < 0) {
 			perror_msg_and_die("%s", infile);
+		}
 	} else {
 		ifd = STDIN_FILENO;
 		infile = "standard input";
@@ -103,19 +117,22 @@ int dd_main(int argc, char **argv)
 	if (outfile != NULL) {
 		oflag = O_WRONLY | O_CREAT;
 
-		if (!seek && trunc)
+		if (!seek && trunc) {
 			oflag |= O_TRUNC;
+		}
 
-		if ((ofd = open(outfile, oflag, 0666)) < 0)
+		if ((ofd = open(outfile, oflag, 0666)) < 0) {
 			perror_msg_and_die("%s", outfile);
+		}
 
 		if (seek && trunc) {
 			if (ftruncate(ofd, seek * bs) < 0) {
 				struct stat st;
 
 				if (fstat (ofd, &st) < 0 || S_ISREG (st.st_mode) ||
-						S_ISDIR (st.st_mode))
+						S_ISDIR (st.st_mode)) {
 					perror_msg_and_die("%s", outfile);
+				}
 			}
 		}
 	} else {
@@ -124,13 +141,15 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (skip) {
-		if (lseek(ifd, skip * bs, SEEK_CUR) < 0)
+		if (lseek(ifd, skip * bs, SEEK_CUR) < 0) {
 			perror_msg_and_die("%s", infile);
+		}
 	}
 
 	if (seek) {
-		if (lseek(ofd, seek * bs, SEEK_CUR) < 0)
+		if (lseek(ofd, seek * bs, SEEK_CUR) < 0) {
 			perror_msg_and_die("%s", outfile);
+		}
 	}
 
 	while (in_full + in_part != count) {
@@ -147,33 +166,39 @@ int dd_main(int argc, char **argv)
 				perror_msg_and_die("%s", infile);
 			}
 		}
-		if (n == 0)
+		if (n == 0) {
 			break;
-		if (n == bs)
+		}
+		if (n == bs) {
 			in_full++;
-		else
+		} else {
 			in_part++;
+		}
 		if (sync_flag) {
 			memset(buf + n, '\0', bs - n);
 			n = bs;
 		}
 		n = full_write(ofd, buf, n);
-		if (n < 0)
+		if (n < 0) {
 			perror_msg_and_die("%s", outfile);
-		if (n == bs)
+		}
+		if (n == bs) {
 			out_full++;
-		else
+		} else {
 			out_part++;
+		}
 	}
 
-	if (close (ifd) < 0)
+	if (close (ifd) < 0) {
 		perror_msg_and_die("%s", infile);
+	}
 
-	if (close (ofd) < 0)
+	if (close (ofd) < 0) {
 		perror_msg_and_die("%s", outfile);
+	}
 
-	fprintf(stderr, "%ld+%ld records in", (long)in_full, (long)in_part);
-	fprintf(stderr, "%ld+%ld records out", (long)out_full, (long)out_part);
+	fprintf(stderr, "%ld+%ld records in\n", (long)in_full, (long)in_part);
+	fprintf(stderr, "%ld+%ld records out\n", (long)out_full, (long)out_part);
 
 	return EXIT_SUCCESS;
 }
