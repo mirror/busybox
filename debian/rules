@@ -74,12 +74,18 @@ busybox: install
 	dh_testdir
 	dh_testroot
 	dh_installdirs
-	dh_installdocs       -p$@ docs/BusyBox.txt \
-		docs/BusyBox.html docs/busybox.lineo.com AUTHORS README TODO
-	rm -rf $(bb)/usr/share/doc/busybox/busybox.lineo.com/CVS \
-		$(bb)/usr/share/doc/busybox/busybox.lineo.com/.cvsignore \
-		$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/CVS \
-		$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/.cvsignore
+	#
+	#Note that for busybox, we do not install any docs,
+	# or man apges or anything else.  This is in blatent violation of every
+	# Debian policy out there, since this package is intended to be used
+	# _only_ by the debian-installer.
+	#
+	#dh_installdocs       -p$@ docs/BusyBox.txt \
+	#	docs/BusyBox.html docs/busybox.lineo.com AUTHORS README TODO
+	#rm -rf $(bb)/usr/share/doc/busybox/busybox.lineo.com/CVS \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/.cvsignore \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/CVS \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/.cvsignore
 	#dh_undocumented      -p$@
 	dh_installchangelogs -p$@ Changelog
 	dh_strip             -p$@
@@ -87,6 +93,11 @@ busybox: install
 	dh_fixperms          -p$@
 	dh_installdeb        -p$@
 	dh_shlibdeps         -p$@
+	#
+	#Make _very_ sure there are no docs lurking about.
+	#
+	rm -rf $(bb)/usr/share/doc
+	rm -rf $(bb)/usr/share/man
 	dh_gencontrol        -p$@
 	dh_md5sums           -p$@
 	dh_builddeb          -p$@

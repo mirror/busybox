@@ -10,7 +10,7 @@ busybox (0.45-1) frozen; urgency=low
     times in the past that I would have loved to have this sitting on my system
     (i.e. when libc gets screwed up.)
 
- -- Erik Andersen <andersee@debian.org>  Sun, 18 Jun 2000 21:45:47 -0600
+ -- Erik Andersen <andersee@debian.org>  Tue, 27 Jun 2000 12:26:41 -0600
 
 Local variables:
 mode: debian-changelog
