@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.1 2001/11/10 12:18:42 andersen Exp $
+ * Version:     $Id: inet_common.c,v 1.2 2002/06/06 12:11:55 andersen Exp $
  *
  */
 
@@ -15,6 +15,11 @@
 #include <string.h>
 #include <unistd.h>
 #include "libbb.h"
+
+#ifdef DEBUG
+#include <resolv.h>
+#endif
+
 
 const char bb_INET_default[]="default";
 
@@ -103,7 +108,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
     /* Grmpf. -FvK */
     if (s_in->sin_family != AF_INET) {
 #ifdef DEBUG
-	fprintf(stderr, _("rresolve: unsupport address family %d !\n"), s_in->sin_family);
+	fprintf(stderr, "rresolve: unsupport address family %d !\n", s_in->sin_family);
 #endif
 	errno = EAFNOSUPPORT;
 	return (-1);
