@@ -36,7 +36,7 @@
   udhcp bug#1256
 + Fixed reading of client id (David Poole <davep@portsmith.com>)
 + change sys_errlist[] to strerror() as it aparently doesn't exist
-  (andersee <andersee@codepoet.org>)
+  (Erik Andersen <andersen@codepoet.org>)
 + fixed get_raw_packet so it returns -2 on non fatal errors
   (Ted Lemon <Ted.Lemon@nominum.com>)
 + Improved (hopefully) NAKing behavior (me)

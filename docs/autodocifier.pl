@@ -197,8 +197,8 @@ machine-readable form, and scripts could be used to transform this
 text into other forms if necessary.
 
 F<autodocifier.pl> is one such script.
-It was based on a script by Erik Andersen <andersen@lineo.com>
-which was in turn based on a script by Mark Whitley <markw@lineo.com>
+It was based on a script by Erik Andersen <andersen@codepoet.org>
+which was in turn based on a script by Mark Whitley <markw@codepoet.org>
 
 =head1 OPTIONS
 
@@ -288,4 +288,4 @@ John BEPPU <b@ax9.org>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.23 2001/10/31 04:29:18 beppu Exp $
+# $Id: autodocifier.pl,v 1.24 2003/07/14 21:20:48 andersen Exp $

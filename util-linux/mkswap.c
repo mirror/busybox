@@ -30,7 +30,7 @@
  * - added Native Language Support
  *
  *  from util-linux -- adapted for busybox by
- *  Erik Andersen <andersee@debian.org>. I ripped out Native Language
+ *  Erik Andersen <andersen@codepoet.org>. I ripped out Native Language
  *  Support, made some stuff smaller, and fitted for life in busybox.
  *
  */

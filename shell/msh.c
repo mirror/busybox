@@ -3,12 +3,12 @@
  * Minix shell port for busybox
  *
  * This version of the Minix shell was adapted for use in busybox
- * by Erik Andersen <andersee@debian.org>
+ * by Erik Andersen <andersen@codepoet.org>
  *
  * - backtick expansion did not work properly
  *   Jonas Holmberg <jonas.holmberg@axis.com>
  *   Robert Schwebel <r.schwebel@pengutronix.de>
- *   Erik Andersen <andersee@debian.org>
+ *   Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

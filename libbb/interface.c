@@ -1,6 +1,6 @@
 /*
  * stolen from net-tools-1.59 and stripped down for busybox by 
- *			Erik Andersen <andersee@debian.org>
+ *			Erik Andersen <andersen@codepoet.org>
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.15 2003/03/19 09:12:07 mjn3 Exp $
+ * Version:     $Id: interface.c,v 1.16 2003/07/14 21:20:55 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation

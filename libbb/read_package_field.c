@@ -2,8 +2,8 @@
 /*
  * Utility routines.
  *
- * Copyright (C) many different people.  If you wrote this, please
- * acknowledge your work.
+ * Copyright (C) many different people.  
+ * If you wrote this, please acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -9,14 +9,16 @@
  *
  * Credits:
  *      The parser routines proper are all original material, first
- *      written Dec 2000 and Jan 2001 by Larry Doolittle.
- *      The execution engine, the builtins, and much of the underlying
- *      support has been adapted from busybox-0.49pre's lash,
- *      which is Copyright (C) 2000 by Lineo, Inc., and
- *      written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>.
- *      That, in turn, is based in part on ladsh.c, by Michael K. Johnson and
- *      Erik W. Troan, which they placed in the public domain.  I don't know
- *      how much of the Johnson/Troan code has survived the repeated rewrites.
+ *      written Dec 2000 and Jan 2001 by Larry Doolittle.  The
+ *      execution engine, the builtins, and much of the underlying
+ *      support has been adapted from busybox-0.49pre's lash, which is
+ *      Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ *      written by Erik Andersen <andersen@codepoet.org>.  That, in turn,
+ *      is based in part on ladsh.c, by Michael K. Johnson and Erik W.
+ *      Troan, which they placed in the public domain.  I don't know
+ *      how much of the Johnson/Troan code has survived the repeated
+ *      rewrites.
+ *
  * Other credits:
  *      simple_itoa() was lifted from boa-0.93.15
  *      b_addchr() derived from similar w_addchar function in glibc-2.2

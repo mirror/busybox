@@ -25,7 +25,7 @@
  * HISTORY
  * Revision 3.1  1994/04/17  11:31:54  too
  * initial revision
- * Modified 2000/06/13 for inclusion into BusyBox by Erik Andersen <andersee@debian.org>
+ * Modified 2000/06/13 for inclusion into BusyBox by Erik Andersen <andersen@codepoet.org>
  * Modified 2001/05/07 to add ability to pass TTYPE to remote host by Jim McQuillan
  * <jam@ltsp.org>
  *

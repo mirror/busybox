@@ -9,7 +9,7 @@
  *      Adam Rogoyski    <rogoyski@cs.utexas.edu>
  *      Dave Cinege      <dcinege@psychosis.com>
  *      Jakub Jelinek (c) 1995
- *      Erik Andersen    <andersee@debian.org> (Majorly adjusted for busybox)
+ *      Erik Andersen    <andersen@codepoet.org> (Majorly adjusted for busybox)
  *
  * This code is 'as is' with no warranty.
  *

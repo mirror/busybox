@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (C) 2003 Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2003 Erik Andersen <andersen@codepoet.org>
  */
 
 

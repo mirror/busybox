@@ -2,8 +2,7 @@
 /*
  * Mini lsmod implementation for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * Modified by Alcove, Julien Gaulmin <julien.gaulmin@alcove.fr> and
  * Nicolas Ferre <nicolas.ferre@alcove.fr> to support pre 2.1 kernels

@@ -25,7 +25,7 @@
  * This version of ash is adapted from the source in Debian's ash 0.3.8-5
  * package.
  *
- * Modified by Erik Andersen <andersee@debian.org> and
+ * Modified by Erik Andersen <andersen@codepoet.org> and
  * Vladimir Oleynik <dzo@simtreas.ru> to be used in busybox
  *
  *

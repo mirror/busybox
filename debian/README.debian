@@ -2,9 +2,12 @@ BusyBox for Debian
 ----------------------
 
 BusyBox is being developed and maintained by Erik Andersen
-<andersee@debian.org>.
+<andersen@codepoet.org>.
 
-If you have a problem with BusyBox, send email to the Debian bug tracking
-system that lives at <submit@bugs.lineo.com> 
+If you find any bugs, please submit a detailed bug report to the busybox
+mailing list at <busybox@busybox.net>.  A well-written bug report should
+include a transcript of a shell session that demonstrates the bad behavior and
+enables anyone else to duplicate the bug on their own machine.  Bug reports
+lacking such detail may never be fixed...
 
-Erik Andersen <andersee@debian.org>, Sun, 18 Jun 2000 21:52:00 -0600
+Erik Andersen <andersen@codepoet.org>, Sun, 18 Jun 2000 21:52:00 -0600

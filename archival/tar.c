@@ -9,8 +9,7 @@
  * ground up.  It still has remnents of the old code lying about, but it is
  * very different now (i.e., cleaner, less global variables, etc.)
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * Based in part in the tar implementation in sash
  *  Copyright (c) 1999 by David I. Bell

@@ -1,11 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.35 2003/03/19 09:12:37 mjn3 Exp $
+ * $Id: hostname.c,v 1.36 2003/07/14 21:21:01 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
  *
- * adjusted by Erik Andersen <andersee@debian.org> to remove
+ * adjusted by Erik Andersen <andersen@codepoet.org> to remove
  * use of long options and GNU getopt.  Improved the usage info.
  *
  * This program is free software; you can redistribute it and/or modify

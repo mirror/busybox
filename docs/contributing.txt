@@ -113,45 +113,39 @@ Knife" of embedded Linux, there are some applets that will not be accepted:
 Bug Reporting
 ~~~~~~~~~~~~~
 
-If you find a bug in Busybox, you can send a bug report to our bug tracking
-system (homepage: http://bugs.lineo.com). Instructions on how to send a bug
-report to the tracking system can be found at:
+If you find bugs, please submit a detailed bug report to the busybox mailing
+list at busybox@busybox.net.  A well-written bug report should include a
+transcript of a shell session that demonstrates the bad behavior and enables
+anyone else to duplicate the bug on their own machine. The following is such 
+an example:
 
-	http://bugs.lineo.com/Reporting.html
-	
-The README file that comes with Busybox also describes how to submit a bug.
+    To: busybox@busybox.net
+    From: diligent@testing.linux.org
+    Subject: /bin/date doesn't work
 
-A well-written bug report should include a transcript of a shell session that
-demonstrates the bad behavior and enables anyone else to duplicate the bug on
-their own machine. The following is such an example:
+    Package: busybox
+    Version: 1.00
 
-	When I execute Busybox 'date' it produces unexpected results.
+    When I execute Busybox 'date' it produces unexpected results.
+    With GNU date I get the following output:
 
-	This is using GNU date:
 	$ date
 	Wed Mar 21 14:19:41 MST 2001
 
-	This is using Busybox date:
+    But when I use BusyBox date I get this instead:
+
 	$ date
-	codswaddle
+	llegal instruction
 
+    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder, 
+    and the latest uClibc from CVS.  Thanks for the wonderful program!
 
-Bug Triage
-~~~~~~~~~~
+	-Diligent
 
-Validating and confirming bugs is nearly as important as reporting them in the
-first place. It is valuable to know if a bug can be duplicated on a different
-machine, on a different filesystem, on a different architecture, with a
-different C library, and so forth.
+Note the careful description and use of examples showing not only what BusyBox
+does, but also a counter example showing what an equivalent GNU app does.  Bug
+reports lacking such detail may never be fixed...  Thanks for understanding.
 
-To see a listing of all the bugs currently filed against Busybox, look here:
-
-	http://bugs.lineo.com/db/pa/lbusybox.html
-
-If you have comments to add to a bug (can / can't duplicate, think a bug
-should be closed / reopened), please send it to [bugnumber]@bugs.lineo.com.
-The message you send will automatically be forwarded to the mailing list for
-all to see.
 
 
 Write Documentation
@@ -181,16 +175,6 @@ directory and run the following:
 
 This will show all of the trouble spots or 'questionable' code. Pick a spot,
 any spot, these are all invitations for you to contribute.
-
-
-Consult The Bug-Tracking System
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Head to: http://bugs.lineo.com/db/pa/lBusybox.html and look at the bugs on
-there. Pick one you think you can fix, and fix it. If it's a wishlist item and
-someone's requesting a new feature, take a stab at adding it. Everything
-previously said about "reading the mailing list" and "coordinating with the
-applet maintainer" still applies.
 
 
 Add a New Applet
@@ -309,16 +293,15 @@ are some guidelines on how to test your changes.
 Making Sure Your Patch Doesn't Get Lost
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you don't want your patch to be lost or forgotten, send it to the bug
-tracking system (http://bugs.lineo.com). You do this by emailing your patch in
-a message to submit@bugs.lineo.com with a subject line something like this:
+If you don't want your patch to be lost or forgotten, send it to the busybox
+mailing list with a subject line something like this:
 
 	[PATCH] - Adds "transmogrify" feature to "foo"
 
 In the body, you should have a pseudo-header that looks like the following:
 
     Package: busybox
-    Version: v0.50pre (or whatever the current version is)
+    Version: v1.01pre (or whatever the current version is)
     Severity: wishlist
 
 The remainder of the body should read along these lines:
@@ -327,16 +310,6 @@ The remainder of the body should read along these lines:
 	tested this on [arch] system(s) and it works. I have tested it against the
 	GNU counterparts and the outputs are identical. I have run the scripts in
 	the 'tests' directory and nothing breaks.
-
-Detailed instructions on how to submit a bug to the tracking system are at:
-
-	http://bugs.lineo.com/Reporting.html
-
-If you have a patch that will fix and close a reported bug, please send a
-message to [bugnumber]@bugs.lineo.com with your patch attached. It will catch
-people's attention if you have a subject line like the following:
-
-	[PATCH INCLUDED] - Fix attached, please apply and close this bug
 
 
 

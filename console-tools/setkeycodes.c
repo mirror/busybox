@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1994-1998 Andries E. Brouwer <aeb@cwi.nl>
  *
- * Adjusted for BusyBox by Erik Andersen <andersee@debian.org>
+ * Adjusted for BusyBox by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

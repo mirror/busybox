@@ -1,6 +1,6 @@
 # Rules.make for busybox
 #
-# Copyright (C) 2002 Erik Andersen <andersee@debian.org>
+# Copyright (C) 2002 Erik Andersen <andersen@codepoet.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -3,7 +3,7 @@
  * freeramdisk implementation for busybox
  *
  * Copyright (C) 2000 and written by Emanuele Caratti <wiz@iol.it>
- * Adjusted a bit by Erik Andersen <andersee@debian.org>
+ * Adjusted a bit by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

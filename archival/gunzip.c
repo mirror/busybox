@@ -7,7 +7,7 @@
  * Originally adjusted for busybox by Sven Rudolph <sr1@inf.tu-dresden.de>
  * based on gzip sources
  *
- * Adjusted further by Erik Andersen <andersee@debian.org> to support files as
+ * Adjusted further by Erik Andersen <andersen@codepoet.org> to support files as
  * well as stdin/stdout, and to generally behave itself wrt command line
  * handling.
  *

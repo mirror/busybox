@@ -3,9 +3,9 @@
  * Mini more implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
- * Latest version blended together by Erik Andersen <andersen@lineo.com>,
+ * Latest version blended together by Erik Andersen <andersen@codepoet.org>,
  * based on the original more implementation by Bruce, and code from the 
  * Debian boot-floppies team.
  *

@@ -3,7 +3,7 @@
  * Mini mount implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  *
  * 1999-04-17	Dave Cinege...Rewrote -t auto. Fixed ro mtab.
  *
- * 1999-10-07	Erik Andersen <andersee@debian.org>.
+ * 1999-10-07	Erik Andersen <andersen@codepoet.org>.
  *              Rewrite of a lot of code. Removed mtab usage (I plan on
  *              putting it back as a compile-time option some time), 
  *              major adjustments to option parsing, and some serious 

@@ -3,7 +3,7 @@
  * Mini init implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  * Adjusted by so many folks, it's impossible to keep track.
  *
  * This program is free software; you can redistribute it and/or modify

@@ -147,7 +147,7 @@
 		and variable assignment problems as well.
 
     New Applets:
-	* David McCullough <davidm@lineo.com> -- modprobe
+	* David McCullough <davidm@snapgear.com> -- modprobe
 	* Vladimir Oleynik -- traceroute
 	* Erik Andersen -- pidof
 
@@ -630,7 +630,7 @@
 	    Arne Bernin <arne@matrix.loopback.org>
 	* Fixed NFS so it supports 2.4.x kernels and NFSv3.
 	* Brand, new versions of grep and sed which use libc regex routines,
-	    thanks to Mark Whitley <markw@lineo.com>.  The hand-tooled 
+	    thanks to Mark Whitley <markw@codepoet.org>.  The hand-tooled 
 	    "regexp.[ch]" files have been removed. Much help on these from 
 	    Matt Kraai as well.
 
@@ -1024,7 +1024,7 @@
 	    init is not at PID 1 (like when running in an initrd).
 	* Added a prelinary du implementation.  Some parameter parsing
 	    stuff still needs to be added. -beppu (John Beppu
-	    <beppu@lineo.com>)
+	    <beppu@codepoet.org>)
 	* Implemented tee.  -beppu Implemented head. -beppu
 
 	-Erik Andersen, Dec 10, 1999
@@ -1166,7 +1166,7 @@
 
 0.32
 	* More changes -- If you have any problems please let me know ASAP at
-	    andersee@debian.org
+	    andersen@codepoet.org
 	* usage() now prints the BusyBox version.  This will help folks
 	    realize that they are not in Kansas anymore.
 	* Fixed mkdir -m option so that it works.  kill segfaulted w/o any

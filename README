@@ -1,4 +1,4 @@
-Please see the LICENSE file for copyright information.
+Please see the LICENSE file for details on copying and usage.
     
 BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
@@ -8,13 +8,13 @@ embedded system. The utilities in BusyBox generally have fewer options than
 their full featured GNU cousins; however, the options that are included provide
 the expected functionality and behave very much like their GNU counterparts.
 
+BusyBox was originally written to support the Debian Rescue/Install disks, but
+it also makes an excellent environment for any small or embedded system.
+
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
 systems. To create a working system, just add /dev, /etc, and a kernel.
-
-BusyBox was originally written to support the Debian Rescue/Install disks, but
-it also makes an excellent environment for any small or embedded system.
 
 As of version 0.20 there is now a version number. : ) Also as of version 0.20,
 BusyBox is now modularized to easily allow you to build only the components you
@@ -26,6 +26,9 @@ used by 'make install' to create symlinks to the busybox binary for all
 compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e., 'make PREFIX=/tmp/foo install')
+
+If you wish to install hardlinks, rather than symlinks, you can use 
+'make install-hardlinks' instead.
 
 ----------------
     
@@ -44,8 +47,11 @@ Supported libcs:
 
 Supported kernels:
 
-   Full functionality requires Linux 2.0.x, 2.2.x, or 2.4.x.  A large fraction
-   of the code should run on just about anything.
+   Full functionality requires Linux 2.0.x or better.  A large fraction of the
+   code should run on just about anything.  While the current code is fairly
+   Linux specific, it should be fairly easy to port the majority of the code
+   to, say, FreeBSD or Solaris, or MacOsX, or even Windows (if you are into that
+   sortof thing).
 
 ----------------
 
@@ -89,34 +95,38 @@ the mailing list if you are interested.
 
 Bugs:
 
-If you find bugs, please submit a bug report.  Full instructions on how to
-report a bug are found at http://bugs.busybox.net/Reporting.html.
+If you find bugs, please submit a detailed bug report to the busybox mailing
+list at busybox@busybox.net.  A well-written bug report should include a
+transcript of a shell session that demonstrates the bad behavior and enables
+anyone else to duplicate the bug on their own machine. The following is such 
+an example:
 
-For the impatient: To submit a bug, simply send an email describing the problem
-to submit@bugs.busybox.net.  Bug reports should look something like this:
-
-    To: submit@bugs.busybox.net
+    To: busybox@busybox.net
     From: diligent@testing.linux.org
-    Subject: /bin/true doesn't work
+    Subject: /bin/date doesn't work
 
     Package: busybox
-    Version: 0.51
+    Version: 1.00
 
-    When I invoke '/bin/true' it doesn't work.  I expected it to return 
-    a "0" but it returned a "1" instead.  Here is the transcript:
-	$ /bin/true ; echo $?
-	1
-    With GNU /bin/true, I get the following output:
-	$ /bin/true ; echo $?
-	0
-    I am using Debian 2.2r2, kernel version 2.2.18, and the latest
-    uClibc from CVS.  Thanks for the wonderful program!
+    When I execute Busybox 'date' it produces unexpected results.
+    With GNU date I get the following output:
+
+	$ date
+	Wed Mar 21 14:19:41 MST 2001
+
+    But when I use BusyBox date I get this instead:
+
+	$ date
+	llegal instruction
+
+    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder, 
+    and the latest uClibc from CVS.  Thanks for the wonderful program!
+
 	-Diligent
 
 Note the careful description and use of examples showing not only what BusyBox
 does, but also a counter example showing what an equivalent GNU app does.  Bug
-reports lacking such detail may take a _long_ time to be fixed...  Thanks for
-understanding.
+reports lacking such detail may never be fixed...  Thanks for understanding.
 
 ----------------
 
@@ -144,5 +154,5 @@ For those that are actively contributing there is even CVS write access:
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 
 	<andersen@codepoet.org>
-	<andersee@debian.org>
+	<andersen@codepoet.org>
 

@@ -21,7 +21,7 @@
  *
  * Original copyright notice is retained at the end of this file.
  *
- * Modified for BusyBox by Erik Andersen <andersee@debian.org>
+ * Modified for BusyBox by Erik Andersen <andersen@codepoet.org>
  * Badly hacked by Tito Ragusa <farmatito@tiscali.it>
  */
 

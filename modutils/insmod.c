@@ -6,7 +6,7 @@
  * MIPS, and v850e.
  *
  * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001,2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  * and Ron Alder <alder@lineo.com>
  *
  * Miles Bader <miles@gnu.org> added NEC V850E support.
@@ -247,7 +247,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.97 2003/03/19 09:12:33 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.98 2003/07/14 21:21:00 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -468,7 +468,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.97 2003/03/19 09:12:33 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.98 2003/07/14 21:21:00 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 

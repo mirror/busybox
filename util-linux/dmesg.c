@@ -11,11 +11,11 @@
  * - added Native Language Support
  *
  * from util-linux -- adapted for busybox by 
- * Erik Andersen <andersee@debian.org>. I ripped out Native Language 
+ * Erik Andersen <andersen@codepoet.org>. I ripped out Native Language 
  * Support, replaced getopt, added some gotos for redundant stuff.
  *
  * Audited and cleaned up on 7 March 2003 to reduce size of
- * check error handling by Erik Andersen <andersee@debian.org>
+ * check error handling by Erik Andersen <andersen@codepoet.org>
  */
 
 #include <stdio.h>

@@ -2,8 +2,7 @@
 /*
  * lash -- the BusyBox Lame-Ass SHell
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * Based in part on ladsh.c by Michael K. Johnson and Erik W. Troan, which is
  * under the following liberal license: "We have placed this source code in the

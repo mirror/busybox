@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # vi: set ts=4:
 # Copyright (c) 2001 David Schleef <ds@schleef.org>
-# Copyright (c) 2001 Erik Andersen <andersen@lineo.com>
+# Copyright (c) 2001 Erik Andersen <andersen@codepoet.org>
 # Copyright (c) 2001 Stuart Hughes <stuarth@lineo.com>
 # Copyright (c) 2002 Steven J. Hill <shill@broadcom.com>
 # This program is free software; you can redistribute it and/or modify it 
@@ -233,5 +233,5 @@ David Schleef <ds@schleef.org>
 
 =cut
 
-# $Id: depmod.pl,v 1.2 2002/10/08 21:33:51 sjhill Exp $
+# $Id: depmod.pl,v 1.3 2003/07/14 21:20:51 andersen Exp $
 

@@ -1,10 +1,10 @@
 /*
  * stolen from net-tools-1.59 and stripped down for busybox by
- *                      Erik Andersen <andersee@debian.org>
+ *                      Erik Andersen <andersen@codepoet.org>
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.h,v 1.2 2002/07/03 11:46:38 andersen Exp $
+ * Version:     $Id: inet_common.h,v 1.3 2003/07/14 21:20:52 andersen Exp $
  *
  */
 

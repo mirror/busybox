@@ -14,7 +14,7 @@
 /*
  * Some systems already have updwtmp().  Some don't...  This is
  * the updwtmp() implementation from uClibc, Copyright 2002 by
- * Erik Andersen <andersee@debian.org> 
+ * Erik Andersen <andersen@codepoet.org> 
  */
 extern void updwtmp(const char *wtmp_file, const struct utmp *lutmp)
 {
@@ -96,7 +96,7 @@ ssize_t getline(char **linebuf, size_t *n, FILE *file)
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
- * Modified for uClibc by Erik Andersen <andersee@debian.org>
+ * Modified for uClibc by Erik Andersen <andersen@codepoet.org>
  *
  * The uClibc Library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public License as

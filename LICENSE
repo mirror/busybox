@@ -1,39 +1,3 @@
-Original release code (unless otherwise noted)
-Copyright 1995, 1996 Bruce Perens <bruce@pixar.com>
-
-mkswap
-Copyright 1991 Linus Torvalds
-
-tiny-ls(ls)
-Copyright 1996 Brian Candler <B.Candler@pobox.com>
-
-tarcat, loadkmap, various fixes, Debian maintenance
-Copyright 1998 Enrique Zanardi <ezanardi@ull.es>
-
-more(v2), makedevs, dutmp, modularization, auto links file, 
-various fixes, Linux Router Project maintenance
-Copyright 1998 Dave Cinege <dcinege@psychosis.com>	
-
-mini-gzip(gzip), mini-netcat(mnc)
-Copyright 1998 Charles P. Wright <cpwright@villagenet.com>
-
-Tons of new stuff as noted in header files 
-Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
-Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
-
-
-Please feed suggestions, bug reports, insults, and bribes back to:
-	Erik Andersen 
-	<andersen@codepoet.org>
-	<andersee@debian.org>
-
-
-
-Busybox may be used and distributed under the GNU General Public License.
-
----------------------------------------------------------------------------
-
-
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 
@@ -374,4 +338,3 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Library General
 Public License instead of this License.
-

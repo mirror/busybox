@@ -11,7 +11,7 @@ incorect, _please_ let me know.
 Emanuele Aina <emanuele.aina@tiscali.it>
 	run-parts
 
-Erik Andersen <andersen@codepoet.org>, <andersee@debian.org>
+Erik Andersen <andersen@codepoet.org>, <andersen@codepoet.org>
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
 
@@ -21,7 +21,7 @@ Laurence Anderson <l.d.anderson@warwick.ac.uk>
 Edward Betts <edward@debian.org>
     expr, hostid, logname, tty, wc, whoami, yes
  
-John Beppu <beppu@lineo.com>
+John Beppu <beppu@codepoet.org>
     du, head, nslookup, sort, tee, uniq
 
 Brian Candler <B.Candler@pobox.com>
@@ -76,13 +76,14 @@ Vladimir Oleynik <dzo@simtreas.ru>
     and irreconcilable critic of everything not perfect.
 
 Bruce Perens <bruce@pixar.com>
-    Original author of BusyBox. His code is still in many apps.
+    Original author of BusyBox in 1995, 1996. Some of his code can 
+    still be found hiding here and there...
 
 Tim Riker <Tim@Rikers.org>
     bug fixes, member of fan club
 
 Kent Robotti <robotti@metconnect.com>
-    reset, tons and tons of bug reports and patchs.
+    reset, tons and tons of bug reports and patches.
 
 Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
     wget - Contributed by permission of Covad Communications
@@ -96,7 +97,7 @@ Gyepi Sam <gyepi@praxis-sw.com>
 Linus Torvalds <torvalds@transmeta.com>
     mkswap, fsck.minix, mkfs.minix
 
-Mark Whitley <markw@lineo.com> <markw@codepoet.org>
+Mark Whitley <markw@codepoet.org>
     grep, sed, cut, xargs(previous),
     style-guide, new-applet-HOWTO, bug fixes, etc.
 

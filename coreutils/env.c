@@ -21,7 +21,7 @@
  *
  * Original copyright notice is retained at the end of this file.
  *
- * Modified for BusyBox by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Modified for BusyBox by Erik Andersen <andersen@codepoet.org>
  */
 
 /* BB_AUDIT SUSv3 compliant */
