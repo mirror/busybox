@@ -50,7 +50,7 @@
 #include <netdb.h>
 
 #if 0
-#define DOTRACE 1
+static const int DOTRACE = 1;
 #endif
 
 #ifdef DOTRACE
@@ -67,21 +67,23 @@
 #include <sys/time.h>
 #endif
 
-#define DATABUFSIZE 128
-#define IACBUFSIZE 128
+static const int DATABUFSIZE = 128;
+static const int IACBUFSIZE = 128;
 
-#define CHM_TRY 0
-#define CHM_ON	1
-#define CHM_OFF	2
+static const int CHM_TRY = 0;
+static const int CHM_ON = 1;
+static const int CHM_OFF = 2;
 
-#define UF_ECHO	0x01
-#define UF_SGA	0x02
+static const int UF_ECHO = 0x01;
+static const int UF_SGA = 0x02;
 
-#define TS_0	1
-#define TS_IAC	2
-#define TS_OPT	3
-#define TS_SUB1 4
-#define TS_SUB2	5
+enum {
+	TS_0 = 1,
+	TS_IAC = 2,
+	TS_OPT = 3,
+	TS_SUB1 = 4,
+	TS_SUB2 = 5,
+};
 
 #define WriteCS(fd, str) write(fd, str, sizeof str -1)
 

@@ -49,7 +49,7 @@ static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
 volatile unsigned long statbytes; /* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
-#define STALLTIME	5
+static const int STALLTIME = 5;
 #endif
 
 int wget_main(int argc, char **argv)
@@ -515,7 +515,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.17 2001/01/22 22:48:42 andersen Exp $
+ *	$Id: wget.c,v 1.18 2001/01/23 22:30:04 markw Exp $
  */
 
 

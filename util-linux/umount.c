@@ -28,10 +28,10 @@
 #include <errno.h>
 
 
-#define MNT_FORCE		1
-#define MS_MGC_VAL		0xc0ed0000 /* Magic number indicatng "new" flags */
-#define MS_REMOUNT		32	/* Alter flags of a mounted FS.  */
-#define MS_RDONLY		1	/* Mount read-only.  */
+static const int MNT_FORCE = 1;
+static const int MS_MGC_VAL = 0xc0ed0000; /* Magic number indicatng "new" flags */
+static const int MS_REMOUNT = 32;	/* Alter flags of a mounted FS.  */
+static const int MS_RDONLY = 1;	/* Mount read-only.  */
 
 extern int mount (__const char *__special_file, __const char *__dir,
 			__const char *__fstype, unsigned long int __rwflag,

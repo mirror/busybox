@@ -64,8 +64,8 @@
 #include <getopt.h>
 #include "cmdedit.h"
 
-#define MAX_LINE	256	/* size of input buffer for cwd data */
-#define MAX_READ	128	/* size of input buffer for `read' builtin */
+static const int MAX_LINE = 256;	/* size of input buffer for cwd data */
+static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 extern size_t NUM_APPLETS;
 

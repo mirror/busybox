@@ -30,9 +30,9 @@
 #include <dirent.h>
 #include <errno.h>
 
-#define LN_SYMLINK		1
-#define LN_FORCE			2
-#define LN_NODEREFERENCE	4
+static const int LN_SYMLINK = 1;
+static const int LN_FORCE = 2;
+static const int LN_NODEREFERENCE = 4;
 
 /*
  * linkDestName is where the link points to,

@@ -43,8 +43,8 @@
 #include <errno.h>
 #include <getopt.h>
 
-#define is_cp 0
-#define is_mv 1
+static const int is_cp = 0;
+static const int is_mv = 1;
 static int         dz_i;		/* index into cp_mv_usage */
 
 static const char *cp_mv_usage[] =	/* .rodata */
@@ -62,7 +62,7 @@ static const char *baseSrcName;
 static int		   srcDirFlag;
 static struct stat srcStatBuf;
 
-static char		   baseDestName[BUFSIZ + 1];
+static char		   *pBaseDestName;
 static size_t	   baseDestLen;
 static int		   destDirFlag;
 static struct stat destStatBuf;
@@ -104,7 +104,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 	const char *srcBasename;
 	char	   *name;
 
-	strcpy(destName, baseDestName);
+	strcpy(destName, pBaseDestName);
 	destLen = strlen(destName);
 
 	if (srcDirFlag == TRUE) {
@@ -175,6 +175,8 @@ extern int cp_mv_main(int argc, char **argv)
 {
 	volatile int i;
 	int c;
+	char baseDestName[BUFSIZ + 1]; /* not declared globally == less bss used */
+	pBaseDestName = baseDestName; /* but available globally */
 
 	if (*applet_name == 'c' && *(applet_name + 1) == 'p')
 		dz_i = is_cp;

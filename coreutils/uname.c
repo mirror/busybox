@@ -44,22 +44,22 @@ static void print_element(unsigned int mask, char *element);
 
 /* Values that are bitwise or'd into `toprint'. */
 /* Operating system name. */
-#define PRINT_SYSNAME 1
+static const int PRINT_SYSNAME = 1;
 
 /* Node name on a communications network. */
-#define PRINT_NODENAME 2
+static const int PRINT_NODENAME = 2;
 
 /* Operating system release. */
-#define PRINT_RELEASE 4
+static const int PRINT_RELEASE = 4;
 
 /* Operating system version. */
-#define PRINT_VERSION 8
+static const int PRINT_VERSION = 8;
 
 /* Machine hardware name. */
-#define PRINT_MACHINE 16
+static const int PRINT_MACHINE = 16;
 
  /* Host processor type. */
-#define PRINT_PROCESSOR 32
+static const int PRINT_PROCESSOR = 32;
 
 /* Mask indicating which elements of the name to print. */
 static unsigned char toprint;

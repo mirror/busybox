@@ -41,9 +41,9 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#define TERMINAL_WIDTH	80		/* use 79 if your terminal has linefold bug */
-#define COLUMN_WIDTH	14		/* default if AUTOWIDTH not defined */
-#define COLUMN_GAP	2			/* includes the file type char, if present */
+static const int TERMINAL_WIDTH = 80;		/* use 79 if your terminal has linefold bug */
+static const int COLUMN_WIDTH = 14;		/* default if AUTOWIDTH not defined */
+static const int COLUMN_GAP = 2;			/* includes the file type char, if present */
 
 /************************************************************************/
 
@@ -66,10 +66,12 @@
 #endif
 
 /* what is the overall style of the listing */
-#define STYLE_AUTO		0
-#define STYLE_LONG		1		/* one record per line, extended info */
-#define STYLE_SINGLE	2		/* one record per line */
-#define STYLE_COLUMNS	3		/* fill columns */
+enum {
+STYLE_AUTO = 0,
+STYLE_LONG = 1,		/* one record per line, extended info */
+STYLE_SINGLE = 2,		/* one record per line */
+STYLE_COLUMNS = 3		/* fill columns */
+};
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
@@ -99,23 +101,23 @@
 
 #ifdef BB_FEATURE_LS_SORTFILES
 /* how will the files be sorted */
-#define SORT_FORWARD    0		/* sort in reverse order */
-#define SORT_REVERSE    1		/* sort in reverse order */
-#define SORT_NAME		2		/* sort by file name */
-#define SORT_SIZE		3		/* sort by file size */
-#define SORT_ATIME		4		/* sort by last access time */
-#define SORT_CTIME		5		/* sort by last change time */
-#define SORT_MTIME		6		/* sort by last modification time */
-#define SORT_VERSION	7		/* sort by version */
-#define SORT_EXT		8		/* sort by file name extension */
-#define SORT_DIR		9		/* sort by file or directory */
+static const int SORT_FORWARD = 0;		/* sort in reverse order */
+static const int SORT_REVERSE = 1;		/* sort in reverse order */
+static const int SORT_NAME = 2;		/* sort by file name */
+static const int SORT_SIZE = 3;		/* sort by file size */
+static const int SORT_ATIME = 4;		/* sort by last access time */
+static const int SORT_CTIME = 5;		/* sort by last change time */
+static const int SORT_MTIME = 6;		/* sort by last modification time */
+static const int SORT_VERSION = 7;		/* sort by version */
+static const int SORT_EXT = 8;		/* sort by file name extension */
+static const int SORT_DIR = 9;		/* sort by file or directory */
 #endif
 
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 /* which of the three times will be used */
-#define TIME_MOD    0
-#define TIME_CHANGE 1
-#define TIME_ACCESS 2
+static const int TIME_MOD = 0;
+static const int TIME_CHANGE = 1;
+static const int TIME_ACCESS = 2;
 #endif
 
 #define LIST_SHORT		(LIST_FILENAME)
@@ -125,9 +127,9 @@
 						LIST_SYMLINK)
 #define LIST_ILONG		(LIST_INO | LIST_LONG)
 
-#define SPLIT_DIR		0
-#define SPLIT_FILE		1
-#define SPLIT_SUBDIR	2
+static const int SPLIT_DIR = 0;
+static const int SPLIT_FILE = 1;
+static const int SPLIT_SUBDIR = 2;
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
@@ -150,15 +152,15 @@ struct dnode **list_dir(char *);
 struct dnode **dnalloc(int);
 int list_single(struct dnode *);
 
-static unsigned int disp_opts=	DISP_NORMAL;
-static unsigned int style_fmt=	STYLE_AUTO ;
-static unsigned int list_fmt=	LIST_SHORT ;
+static unsigned int disp_opts;
+static unsigned int style_fmt;
+static unsigned int list_fmt;
 #ifdef BB_FEATURE_LS_SORTFILES
-static unsigned int sort_opts=	SORT_FORWARD;
-static unsigned int sort_order=	SORT_FORWARD;
+static unsigned int sort_opts;
+static unsigned int sort_order;
 #endif
 #ifdef BB_FEATURE_LS_TIMESTAMPS
-static unsigned int time_fmt=	TIME_MOD;
+static unsigned int time_fmt;
 #endif
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 static unsigned int follow_links=FALSE;
@@ -166,12 +168,9 @@ static unsigned int follow_links=FALSE;
 
 static unsigned short column = 0;
 #ifdef BB_FEATURE_AUTOWIDTH
-static unsigned short terminal_width = TERMINAL_WIDTH;
-static unsigned short column_width = COLUMN_WIDTH;
-static unsigned short tabstops = 8;
-#else
-#define terminal_width  TERMINAL_WIDTH
-#define column_width    COLUMN_WIDTH
+static unsigned short terminal_width;
+static unsigned short column_width;
+static unsigned short tabstops;
 #endif
 
 static int status = EXIT_SUCCESS;
@@ -710,9 +709,15 @@ extern int ls_main(int argc, char **argv)
 	list_fmt=  LIST_SHORT;
 #ifdef BB_FEATURE_LS_SORTFILES
 	sort_opts= SORT_NAME;
+	sort_order=	SORT_FORWARD;
 #endif
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	time_fmt= TIME_MOD;
+#endif
+#ifdef BB_FEATURE_AUTOWIDTH
+	terminal_width = TERMINAL_WIDTH;
+	column_width = COLUMN_WIDTH;
+	tabstops = 8;
 #endif
 	nfiles=0;
 

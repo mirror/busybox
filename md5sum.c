@@ -91,7 +91,7 @@
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
 #ifndef _MD5_H
-#define _MD5_H 1
+static const int _MD5_H = 1;
 
 #include <stdio.h>
 
@@ -251,7 +251,7 @@ void *md5_finish_ctx(struct md5_ctx *ctx, void *resbuf)
 int md5_stream(FILE *stream, void *resblock)
 {
   /* Important: BLOCKSIZE must be a multiple of 64.  */
-#define BLOCKSIZE 4096
+static const int BLOCKSIZE = 4096;
   struct md5_ctx ctx;
   char buffer[BLOCKSIZE + 72];
   size_t sum;
@@ -529,7 +529,7 @@ void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
 /* The minimum length of a valid digest line in a file produced
    by `md5sum FILE' and read by `md5sum -c'.  This length does
    not include any newline character at the end of a line.  */
-#define MIN_DIGEST_LINE_LENGTH 35 /* 32 - message digest length
+static const int MIN_DIGEST_LINE_LENGTH = 35; /* 32 - message digest length
                                       2 - blank and binary indicator
                                       1 - minimum filename length */
 

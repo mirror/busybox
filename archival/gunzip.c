@@ -76,40 +76,40 @@ static char *license_msg[] = {
 #define bb_need_name_too_long
 #include "messages.c"
 
-#define RECORD_IO 0
+static const int RECORD_IO = 0;
 
 /* Return codes from gzip */
-#define OK      0
-#define ERROR   1
-#define WARNING 2
+static const int OK = 0;
+static const int ERROR = 1;
+static const int WARNING = 2;
 
-#define DEFLATED     8
-#define INBUFSIZ     0x2000	/* input buffer size */
-#define INBUF_EXTRA  64		/* required by unlzw() */
-#define OUTBUFSIZ    8192	/* output buffer size */
-#define OUTBUF_EXTRA 2048	/* required by unlzw() */
-#define DIST_BUFSIZE 0x2000	/* buffer for distances, see trees.c */
+static const int DEFLATED = 8;
+static const int INBUFSIZ = 0x2000;	/* input buffer size */
+static const int INBUF_EXTRA = 64;		/* required by unlzw() */
+static const int OUTBUFSIZ = 8192;	/* output buffer size */
+static const int OUTBUF_EXTRA = 2048;	/* required by unlzw() */
+static const int DIST_BUFSIZE = 0x2000;	/* buffer for distances, see trees.c */
 
 #define	GZIP_MAGIC  "\037\213"	/* Magic header for gzip files, 1F 8B */
 
 /* gzip flag byte */
-#define EXTRA_FIELD  0x04	/* bit 2 set: extra field present */
-#define ORIG_NAME    0x08	/* bit 3 set: original file name present */
-#define COMMENT      0x10	/* bit 4 set: file comment present */
-#define WSIZE 0x8000		/* window size--must be a power of two, and */
+static const int EXTRA_FIELD = 0x04;	/* bit 2 set: extra field present */
+static const int ORIG_NAME = 0x08;	/* bit 3 set: original file name present */
+static const int COMMENT = 0x10;	/* bit 4 set: file comment present */
+static const int WSIZE = 0x8000;		/* window size--must be a power of two, and */
 				/*  at least 32K for zip's deflate method */
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
-#define BMAX 16		/* maximum bit length of any code (16 for explode) */
-#define N_MAX 288		/* maximum number of codes in any set */
+static const int BMAX = 16;		/* maximum bit length of any code (16 for explode) */
+static const int N_MAX = 288;		/* maximum number of codes in any set */
 
 /* PKZIP header definitions */
-#define LOCSIG 0x04034b50L	/* four-byte lead-in (lsb first) */
-#define LOCCRC 14		/* offset of crc */
-#define LOCLEN 22		/* offset of uncompressed length */
-#define EXTHDR 16		/* size of extended local header, inc sig */
+static const int LOCSIG = 0x04034b50L;	/* four-byte lead-in (lsb first) */
+static const int LOCCRC = 14;		/* offset of crc */
+static const int LOCLEN = 22;		/* offset of uncompressed length */
+static const int EXTHDR = 16;		/* size of extended local header, inc sig */
 
-#define BITS 16
+static const int BITS = 16;
 
 /* Diagnostic functions */
 #ifdef DEBUG
@@ -132,7 +132,7 @@ static char *license_msg[] = {
 #  ifdef BUFSIZ
 #    define MAX_PATH_LEN   BUFSIZ
 #  else
-#    define MAX_PATH_LEN   1024
+static const int MAX_PATH_LEN = 1024;
 #  endif
 #endif
 
@@ -165,8 +165,8 @@ static ush *tab_prefix1;
 /* local variables */
 static int test_mode = 0;	/* check file integrity option */
 static int foreground;		/* set if program run in foreground */
-static int method = DEFLATED;	/* compression method */
-static int exit_code = OK;	/* program exit code */
+static int method;	/* compression method */
+static int exit_code;	/* program exit code */
 static int last_member;	/* set for .zip and .Z files */
 static int part_nb;		/* number of parts in .gz file */
 static long ifile_size;	/* input file size, -1 for devices (debug only) */
@@ -1224,6 +1224,9 @@ int gunzip_main(int argc, char **argv)
 	char *delFileName;
 	char ifname[MAX_PATH_LEN + 1];	/* input file name */
 	char ofname[MAX_PATH_LEN + 1];	/* output file name */
+
+	method = DEFLATED;	/* default compression method */
+	exit_code = OK;	/* let's go out on a limb and assume everything will run fine (wink wink) */
 
 	if (strcmp(applet_name, "zcat") == 0) {
 		force = 1;

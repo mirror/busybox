@@ -167,7 +167,7 @@ _syscall1(int, sysinfo, struct sysinfo *, info);
 #if defined BB_MOUNT || defined BB_UMOUNT
 
 #ifndef __NR_umount2
-#define __NR_umount2           52
+static const int __NR_umount2 = 52;
 #endif
 
 /* Include our own version of <sys/mount.h>, since libc5 doesn't
@@ -180,7 +180,7 @@ extern _syscall5(int, mount, const char *, special_file, const char *, dir,
 
 #if defined BB_INSMOD || defined BB_LSMOD
 #ifndef __NR_query_module
-#define __NR_query_module     167
+static const int __NR_query_module = 167;
 #endif
 _syscall5(int, query_module, const char *, name, int, which,
 		void *, buf, size_t, bufsize, size_t*, ret);
@@ -975,9 +975,9 @@ long my_getpwnamegid(char *name)
 #if (defined BB_CHVT) || (defined BB_DEALLOCVT) || (defined BB_SETKEYCODES)
 
 /* From <linux/kd.h> */ 
-#define KDGKBTYPE       0x4B33  /* get keyboard type */
-#define         KB_84           0x01
-#define         KB_101          0x02    /* this is what we always answer */
+static const int KDGKBTYPE = 0x4B33;  /* get keyboard type */
+static const int KB_84 = 0x01;
+static const int KB_101 = 0x02;    /* this is what we always answer */
 
 int is_a_console(int fd)
 {

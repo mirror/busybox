@@ -64,7 +64,7 @@ extern int gunzip_init();
 #define MINOR(dev) ((dev)&0xff)
 #endif
 
-#define NAME_SIZE	100
+enum { NAME_SIZE = 100 }; /* because gcc won't let me use 'static const int' */
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
 struct TarHeader
@@ -94,9 +94,9 @@ typedef struct TarHeader TarHeader;
 /* A few useful constants */
 #define TAR_MAGIC          "ustar"        /* ustar and a null */
 #define TAR_VERSION        "  "           /* Be compatable with GNU tar format */
-#define TAR_MAGIC_LEN       6
-#define TAR_VERSION_LEN     2
-#define TAR_BLOCK_SIZE      512
+static const int TAR_MAGIC_LEN = 6;
+static const int TAR_VERSION_LEN = 2;
+static const int TAR_BLOCK_SIZE = 512;
 
 /* A nice enum with all the possible tar file content types */
 enum TarFileType 

@@ -165,7 +165,7 @@ static void logMessage (int pri, char *msg)
 #ifdef BB_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
 	if ( -1 != remotefd){
-#define IOV_COUNT 2
+static const int IOV_COUNT = 2;
 		struct iovec iov[IOV_COUNT];
 		struct iovec *v = iov;
 
@@ -206,7 +206,7 @@ static void domark(int sig)
 	}
 }
 
-#define BUFSIZE 1023
+static const int BUFSIZE = 1023;
 static int serveConnection (int conn)
 {
 	char   buf[ BUFSIZE + 1 ];

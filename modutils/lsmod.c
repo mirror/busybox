@@ -59,19 +59,19 @@ int query_module(const char *name, int which, void *buf, size_t bufsize,
 		 size_t *ret);
 
 /* Values for query_module's which.  */
-#define QM_MODULES	1
-#define QM_DEPS		2
-#define QM_REFS		3
-#define QM_SYMBOLS	4
-#define QM_INFO		5
+static const int QM_MODULES = 1;
+static const int QM_DEPS = 2;
+static const int QM_REFS = 3;
+static const int QM_SYMBOLS = 4;
+static const int QM_INFO = 5;
 
 /* Bits of module.flags.  */
-#define NEW_MOD_RUNNING		1
-#define NEW_MOD_DELETED		2
-#define NEW_MOD_AUTOCLEAN	4
-#define NEW_MOD_VISITED		8
-#define NEW_MOD_USED_ONCE	16
-#define NEW_MOD_INITIALIZING	64
+static const int NEW_MOD_RUNNING = 1;
+static const int NEW_MOD_DELETED = 2;
+static const int NEW_MOD_AUTOCLEAN = 4;
+static const int NEW_MOD_VISITED = 8;
+static const int NEW_MOD_USED_ONCE = 16;
+static const int NEW_MOD_INITIALIZING = 64;
 
 
 extern int lsmod_main(int argc, char **argv)

@@ -21,13 +21,13 @@
 #include <sys/kd.h>
 #include <endian.h>
 
-#define PSF_MAGIC1	0x36
-#define PSF_MAGIC2	0x04
+static const int PSF_MAGIC1 = 0x36;
+static const int PSF_MAGIC2 = 0x04;
 
-#define PSF_MODE512    0x01
-#define PSF_MODEHASTAB 0x02
-#define PSF_MAXMODE    0x03
-#define PSF_SEPARATOR  0xFFFF
+static const int PSF_MODE512 = 0x01;
+static const int PSF_MODEHASTAB = 0x02;
+static const int PSF_MAXMODE = 0x03;
+static const int PSF_SEPARATOR = 0xFFFF;
 
 struct psf_header {
 	unsigned char magic1, magic2;	/* Magic number */

@@ -54,10 +54,10 @@
 #include <linux/nfs.h>  /* For the kernels nfs stuff */
 
 #ifndef NFS_FHSIZE
-#define NFS_FHSIZE	32
+static const int NFS_FHSIZE = 32;
 #endif
 #ifndef NFS_PORT
-#define NFS_PORT	2049
+static const int NFS_PORT = 2049;
 #endif
 
 /* Disable the nls stuff */
@@ -68,19 +68,19 @@
 # define _(Text) (Text)
 # define N_(Text) (Text)
 
-#define MS_MGC_VAL		0xc0ed0000 /* Magic number indicatng "new" flags */
-#define MS_RDONLY        1      /* Mount read-only */
-#define MS_NOSUID        2      /* Ignore suid and sgid bits */
-#define MS_NODEV         4      /* Disallow access to device special files */
-#define MS_NOEXEC        8      /* Disallow program execution */
-#define MS_SYNCHRONOUS  16      /* Writes are synced at once */
-#define MS_REMOUNT      32      /* Alter flags of a mounted FS */
-#define MS_MANDLOCK     64      /* Allow mandatory locks on an FS */
-#define S_QUOTA         128     /* Quota initialized for file/directory/symlink */
-#define S_APPEND        256     /* Append-only file */
-#define S_IMMUTABLE     512     /* Immutable file */
-#define MS_NOATIME      1024    /* Do not update access times. */
-#define MS_NODIRATIME   2048    /* Do not update directory access times */
+static const int MS_MGC_VAL = 0xc0ed0000; /* Magic number indicatng "new" flags */
+static const int MS_RDONLY = 1;      /* Mount read-only */
+static const int MS_NOSUID = 2;      /* Ignore suid and sgid bits */
+static const int MS_NODEV = 4;      /* Disallow access to device special files */
+static const int MS_NOEXEC = 8;      /* Disallow program execution */
+static const int MS_SYNCHRONOUS = 16;      /* Writes are synced at once */
+static const int MS_REMOUNT = 32;      /* Alter flags of a mounted FS */
+static const int MS_MANDLOCK = 64;      /* Allow mandatory locks on an FS */
+static const int S_QUOTA = 128;     /* Quota initialized for file/directory/symlink */
+static const int S_APPEND = 256;     /* Append-only file */
+static const int S_IMMUTABLE = 512;     /* Immutable file */
+static const int MS_NOATIME = 1024;    /* Do not update access times. */
+static const int MS_NODIRATIME = 2048;    /* Do not update directory access times */
 
 
 /*
@@ -93,7 +93,7 @@
  * so it is easiest to ignore the kernel altogether (at compile time).
  */
 
-#define NFS_MOUNT_VERSION	4
+static const int NFS_MOUNT_VERSION = 4;
 
 struct nfs2_fh {
         char                    data[32];
@@ -125,16 +125,16 @@ struct nfs_mount_data {
 
 /* bits in the flags field */
 
-#define NFS_MOUNT_SOFT		0x0001	/* 1 */
-#define NFS_MOUNT_INTR		0x0002	/* 1 */
-#define NFS_MOUNT_SECURE	0x0004	/* 1 */
-#define NFS_MOUNT_POSIX		0x0008	/* 1 */
-#define NFS_MOUNT_NOCTO		0x0010	/* 1 */
-#define NFS_MOUNT_NOAC		0x0020	/* 1 */
-#define NFS_MOUNT_TCP		0x0040	/* 2 */
-#define NFS_MOUNT_VER3		0x0080	/* 3 */
-#define NFS_MOUNT_KERBEROS	0x0100	/* 3 */
-#define NFS_MOUNT_NONLM		0x0200	/* 3 */
+static const int NFS_MOUNT_SOFT = 0x0001;	/* 1 */
+static const int NFS_MOUNT_INTR = 0x0002;	/* 1 */
+static const int NFS_MOUNT_SECURE = 0x0004;	/* 1 */
+static const int NFS_MOUNT_POSIX = 0x0008;	/* 1 */
+static const int NFS_MOUNT_NOCTO = 0x0010;	/* 1 */
+static const int NFS_MOUNT_NOAC = 0x0020;	/* 1 */
+static const int NFS_MOUNT_TCP = 0x0040;	/* 2 */
+static const int NFS_MOUNT_VER3 = 0x0080;	/* 3 */
+static const int NFS_MOUNT_KERBEROS = 0x0100;	/* 3 */
+static const int NFS_MOUNT_NONLM = 0x0200;	/* 3 */
 
 
 #define UTIL_LINUX_VERSION "2.10m"
@@ -160,14 +160,14 @@ static char *nfs_strerror(int stat);
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
-#define EX_FAIL			32       /* mount failure */
-#define EX_BG			256       /* retry in background (internal only) */
+static const int EX_FAIL = 32;       /* mount failure */
+static const int EX_BG = 256;       /* retry in background (internal only) */
 
 
 /*
  * nfs_mount_version according to the sources seen at compile time.
  */
-int nfs_mount_version = NFS_MOUNT_VERSION;
+static int nfs_mount_version;
 
 /*
  * Unfortunately, the kernel prints annoying console messages
@@ -187,8 +187,9 @@ find_kernel_nfs_mount_version(void) {
 	if (kernel_version)
 		return;
 
-	kernel_version = get_kernel_revision();
+	nfs_mount_version = NFS_MOUNT_VERSION; /* default */
 
+	kernel_version = get_kernel_revision();
 	if (kernel_version) {
 	     if (kernel_version < MAKE_VERSION(2,1,32))
 		  nfs_mount_version = 1;

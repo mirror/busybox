@@ -44,10 +44,13 @@
 #include <signal.h>
 
 
-#define  MAX_HISTORY   15		/* Maximum length of the linked list for the command line history */
+static const int MAX_HISTORY = 15;		/* Maximum length of the linked list for the command line history */
 
-#define ESC	27
-#define DEL	127
+enum {
+	ESC = 27,
+	DEL = 127,
+};
+
 #define member(c, s) ((c) ? ((char *)strchr ((s), (c)) != (char *)NULL) : 0)
 #define whitespace(c) (((c) == ' ') || ((c) == '\t'))
 

@@ -32,11 +32,11 @@ struct kbentry {
 	unsigned char kb_index;
 	unsigned short kb_value;
 };
-#define KDGKBENT        0x4B46  /* gets one entry in translation table */
+static const int KDGKBENT = 0x4B46;  /* gets one entry in translation table */
 
 /* From <linux/keyboard.h> */
-#define NR_KEYS         128
-#define MAX_NR_KEYMAPS  256
+static const int NR_KEYS = 128;
+static const int MAX_NR_KEYMAPS = 256;
 
 int dumpkmap_main(int argc, char **argv)
 {

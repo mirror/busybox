@@ -33,7 +33,7 @@
 #include <getopt.h>
 
 
-#define RFC_868_BIAS	2208988800UL
+static const int RFC_868_BIAS = 2208988800UL;
 
 int setdate= 0;
 int printdate= 0;

@@ -76,9 +76,9 @@
 
 
 #ifndef MODUTILS_MODULE_H
-#define MODUTILS_MODULE_H 1
+static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.35 2001/01/04 02:00:17 kraai Exp $"
+#ident "$Id: insmod.c,v 1.36 2001/01/23 22:30:04 markw Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -135,7 +135,7 @@ struct old_module
 };
 
 /* Sent to init_module(2) or'ed into the code size parameter.  */
-#define OLD_MOD_AUTOCLEAN 0x40000000 /* big enough, but no sign problems... */
+static const int OLD_MOD_AUTOCLEAN = 0x40000000; /* big enough, but no sign problems... */
 
 int get_kernel_syms(struct old_kernel_sym *);
 int old_sys_init_module(const char *name, char *code, unsigned codesize,
@@ -158,9 +158,9 @@ int old_sys_init_module(const char *name, char *code, unsigned codesize,
 #undef tgt_sizeof_char_p
 #undef tgt_sizeof_void_p
 #undef tgt_long
-#define tgt_sizeof_long		8
-#define tgt_sizeof_char_p	8
-#define tgt_sizeof_void_p	8
+static const int tgt_sizeof_long = 8;
+static const int tgt_sizeof_char_p = 8;
+static const int tgt_sizeof_void_p = 8;
 #define tgt_long		long long
 #endif
 
@@ -222,11 +222,11 @@ struct new_module_info
 };
 
 /* Bits of module.flags.  */
-#define NEW_MOD_RUNNING		1
-#define NEW_MOD_DELETED		2
-#define NEW_MOD_AUTOCLEAN	4
-#define NEW_MOD_VISITED		8
-#define NEW_MOD_USED_ONCE	16
+static const int NEW_MOD_RUNNING = 1;
+static const int NEW_MOD_DELETED = 2;
+static const int NEW_MOD_AUTOCLEAN = 4;
+static const int NEW_MOD_VISITED = 8;
+static const int NEW_MOD_USED_ONCE = 16;
 
 int new_sys_init_module(const char *name, const struct new_module *);
 int query_module(const char *name, int which, void *buf, size_t bufsize,
@@ -234,11 +234,11 @@ int query_module(const char *name, int which, void *buf, size_t bufsize,
 
 /* Values for query_module's which.  */
 
-#define QM_MODULES	1
-#define QM_DEPS		2
-#define QM_REFS		3
-#define QM_SYMBOLS	4
-#define QM_INFO		5
+static const int QM_MODULES = 1;
+static const int QM_DEPS = 2;
+static const int QM_REFS = 3;
+static const int QM_SYMBOLS = 4;
+static const int QM_INFO = 5;
 
 /*======================================================================*/
 /* The system calls unchanged between 2.0 and 2.1.  */
@@ -282,9 +282,9 @@ int delete_module(const char *);
 
 
 #ifndef MODUTILS_OBJ_H
-#define MODUTILS_OBJ_H 1
+static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.35 2001/01/04 02:00:17 kraai Exp $"
+#ident "$Id: insmod.c,v 1.36 2001/01/23 22:30:04 markw Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -517,7 +517,7 @@ int arch_init_module (struct obj_file *f, struct new_module *);
 
 
 #define _PATH_MODULES	"/lib/modules"
-#define STRVERSIONLEN	32
+static const int STRVERSIONLEN = 32;
 
 #if !defined(BB_FEATURE_INSMOD_NEW_KERNEL) && !defined(BB_FEATURE_INSMOD_OLD_KERNEL)
 #error "Must have ether BB_FEATURE_INSMOD_NEW_KERNEL or BB_FEATURE_INSMOD_OLD_KERNEL defined"

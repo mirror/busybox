@@ -30,8 +30,8 @@
 #include <ctype.h>
 #include <unistd.h>
 
-#define KILL	0
-#define KILLALL	1
+static const int KILL = 0;
+static const int KILLALL = 1;
 
 struct signal_name {
 	const char *name;

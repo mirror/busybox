@@ -35,8 +35,8 @@ _syscall1(int, swapoff, const char *, path);
 
 static int whichApp;
 
-#define SWAPON_APP   1
-#define SWAPOFF_APP  2
+static const int SWAPON_APP = 1;
+static const int SWAPOFF_APP = 2;
 
 
 static void swap_enable_disable(char *device)

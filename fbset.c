@@ -36,53 +36,55 @@
 #define DEFAULTFBDEV  "/dev/fb0"
 #define DEFAULTFBMODE "/etc/fb.modes"
 
-#define OPT_CHANGE    1
-#define OPT_INFO      (1 << 1)
-#define OPT_READMODE  (1 << 2)
+static const int OPT_CHANGE   = (1 << 0);
+static const int OPT_INFO     = (1 << 1);
+static const int OPT_READMODE = (1 << 2);
 
-#define CMD_HELP        0
-#define CMD_FB		1
-#define CMD_DB		2
-#define CMD_GEOMETRY	3
-#define CMD_TIMING	4
-#define CMD_ACCEL	5
-#define CMD_HSYNC	6
-#define CMD_VSYNC	7
-#define CMD_LACED	8
-#define CMD_DOUBLE	9
-/* #define CMD_XCOMPAT     10 */
-#define CMD_ALL         11
-#define CMD_INFO        12
-#define CMD_CHANGE      13
+enum {
+	CMD_HELP = 0,
+	CMD_FB = 1,
+	CMD_DB = 2,
+	CMD_GEOMETRY = 3,
+	CMD_TIMING = 4,
+	CMD_ACCEL = 5,
+	CMD_HSYNC = 6,
+	CMD_VSYNC = 7,
+	CMD_LACED = 8,
+	CMD_DOUBLE = 9,
+/* 	CMD_XCOMPAT =     10, */
+	CMD_ALL = 11,
+	CMD_INFO = 12,
+	CMD_CHANGE = 13,
 
 #ifdef BB_FEATURE_FBSET_FANCY
-#define CMD_XRES	100
-#define CMD_YRES	101
-#define CMD_VXRES	102
-#define CMD_VYRES	103
-#define CMD_DEPTH	104
-#define CMD_MATCH	105
-#define CMD_PIXCLOCK	106
-#define CMD_LEFT	107
-#define CMD_RIGHT	108
-#define CMD_UPPER	109
-#define CMD_LOWER	110
-#define CMD_HSLEN	111
-#define CMD_VSLEN	112
-#define CMD_CSYNC	113
-#define CMD_GSYNC	114
-#define CMD_EXTSYNC	115
-#define CMD_BCAST	116
-#define CMD_RGBA	117
-#define CMD_STEP	118
-#define CMD_MOVE	119
+	CMD_XRES = 100,
+	CMD_YRES = 101,
+	CMD_VXRES = 102,
+	CMD_VYRES = 103,
+	CMD_DEPTH = 104,
+	CMD_MATCH = 105,
+	CMD_PIXCLOCK = 106,
+	CMD_LEFT = 107,
+	CMD_RIGHT = 108,
+	CMD_UPPER = 109,
+	CMD_LOWER = 110,
+	CMD_HSLEN = 111,
+	CMD_VSLEN = 112,
+	CMD_CSYNC = 113,
+	CMD_GSYNC = 114,
+	CMD_EXTSYNC = 115,
+	CMD_BCAST = 116,
+	CMD_RGBA = 117,
+	CMD_STEP = 118,
+	CMD_MOVE = 119,
 #endif
+};
 
 static unsigned int g_options = 0;
 
 /* Stuff stolen from the kernel's fb.h */
-#define FBIOGET_VSCREENINFO     0x4600
-#define FBIOPUT_VSCREENINFO     0x4601
+static const int FBIOGET_VSCREENINFO = 0x4600;
+static const int FBIOPUT_VSCREENINFO = 0x4601;
 #define __u32			unsigned int
 struct fb_bitfield {
 	__u32 offset;			/* beginning of bitfield	*/
@@ -180,12 +182,12 @@ struct cmdoptions_t {
 
 #ifdef BB_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
-#define FB_VMODE_INTERLACED	1	/* interlaced	*/
-#define FB_VMODE_DOUBLE		2	/* double scan */
-#define FB_SYNC_HOR_HIGH_ACT	1	/* horizontal sync high active	*/
-#define FB_SYNC_VERT_HIGH_ACT	2	/* vertical sync high active	*/
-#define FB_SYNC_EXT		4	/* external sync		*/
-#define FB_SYNC_COMP_HIGH_ACT	8	/* composite sync high active   */
+static const int FB_VMODE_INTERLACED = 1;	/* interlaced	*/
+static const int FB_VMODE_DOUBLE = 2;	/* double scan */
+static const int FB_SYNC_HOR_HIGH_ACT = 1;	/* horizontal sync high active	*/
+static const int FB_SYNC_VERT_HIGH_ACT = 2;	/* vertical sync high active	*/
+static const int FB_SYNC_EXT = 4;	/* external sync		*/
+static const int FB_SYNC_COMP_HIGH_ACT = 8;	/* composite sync high active   */
 #endif
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)

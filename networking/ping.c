@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.31 2001/01/22 22:48:42 andersen Exp $
+ * $Id: ping.c,v 1.32 2001/01/23 22:30:04 markw Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -58,7 +58,7 @@
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
 typedef unsigned int socklen_t;
 
-#define	ICMP_MINLEN	8				/* abs minimum */
+static const int ICMP_MINLEN = 8;				/* abs minimum */
 
 struct icmp_ra_addr
 {
@@ -134,13 +134,13 @@ struct icmp
 };
 #endif
 
-#define DEFDATALEN      56
-#define	MAXIPLEN	60
-#define	MAXICMPLEN	76
-#define	MAXPACKET	65468
+static const int DEFDATALEN = 56;
+static const int MAXIPLEN = 60;
+static const int MAXICMPLEN = 76;
+static const int MAXPACKET = 65468;
 #define	MAX_DUP_CHK	(8 * 128)
-#define MAXWAIT         10
-#define PINGINTERVAL    1		/* second */
+static const int MAXWAIT = 10;
+static const int PINGINTERVAL = 1;		/* second */
 
 #define O_QUIET         (1 << 0)
 
@@ -262,7 +262,7 @@ extern int ping_main(int argc, char **argv)
 static char *hostname = NULL;
 static struct sockaddr_in pingaddr;
 static int pingsock = -1;
-static int datalen = DEFDATALEN;
+static int datalen; /* intentionally uninitialized to work around gcc bug */
 
 static long ntransmitted = 0, nreceived = 0, nrepeats = 0, pingcount = 0;
 static int myid = 0, options = 0;
@@ -507,6 +507,8 @@ static void ping(const char *host)
 extern int ping_main(int argc, char **argv)
 {
 	char *thisarg;
+
+	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
 	argc--;
 	argv++;

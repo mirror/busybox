@@ -56,7 +56,7 @@ struct vt_stat {
 	unsigned short v_signal;        /* signal to send */
 	unsigned short v_state;         /* vt bitmask */
 };
-#define VT_GETSTATE     0x5603  /* get global vt state info */
+static const int VT_GETSTATE = 0x5603;  /* get global vt state info */
 
 /* From <linux/serial.h> */
 struct serial_struct {
@@ -79,11 +79,11 @@ struct serial_struct {
 
 
 #ifndef RB_HALT_SYSTEM
-#define RB_HALT_SYSTEM  0xcdef0123
-#define RB_ENABLE_CAD   0x89abcdef
-#define RB_DISABLE_CAD  0
+static const int RB_HALT_SYSTEM = 0xcdef0123;
+static const int RB_ENABLE_CAD = 0x89abcdef;
+static const int RB_DISABLE_CAD = 0;
 #define RB_POWER_OFF    0x4321fedc
-#define RB_AUTOBOOT     0x01234567
+static const int RB_AUTOBOOT = 0x01234567;
 #if defined(__GLIBC__) || defined (__UCLIBC__)
 #include <sys/reboot.h>
   #define init_reboot(magic) reboot(magic)
@@ -131,8 +131,8 @@ static _syscall2(int, bdflush, int, func, int, data);
 #define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
 #endif
 
-#define LOG     0x1
-#define CONSOLE 0x2
+static const int LOG = 0x1;
+static const int CONSOLE = 0x2;
 
 /* Allowed init action types */
 typedef enum {

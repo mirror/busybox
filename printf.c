@@ -59,7 +59,7 @@
 
 
 #ifndef S_IFMT
-# define S_IFMT 0170000
+static const int S_IFMT = 0170000;
 #endif
 #if !defined(S_ISBLK) && defined(S_IFBLK)
 # define	S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)

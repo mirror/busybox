@@ -40,7 +40,7 @@
 #define bb_need_help
 #include "messages.c"
 
-#define TERMINAL_WIDTH  79      /* not 80 in case terminal has linefold bug */
+static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefold bug */
 
 
 

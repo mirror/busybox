@@ -104,24 +104,24 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 
 
-#define MINIX_ROOT_INO 1
-#define MINIX_LINK_MAX	250
-#define MINIX2_LINK_MAX	65530
+static const int MINIX_ROOT_INO = 1;
+static const int MINIX_LINK_MAX = 250;
+static const int MINIX2_LINK_MAX = 65530;
 
-#define MINIX_I_MAP_SLOTS	8
-#define MINIX_Z_MAP_SLOTS	64
-#define MINIX_SUPER_MAGIC	0x137F		/* original minix fs */
-#define MINIX_SUPER_MAGIC2	0x138F		/* minix fs, 30 char names */
-#define MINIX2_SUPER_MAGIC	0x2468		/* minix V2 fs */
-#define MINIX2_SUPER_MAGIC2	0x2478		/* minix V2 fs, 30 char names */
-#define MINIX_VALID_FS		0x0001		/* Clean fs. */
-#define MINIX_ERROR_FS		0x0002		/* fs has errors. */
+static const int MINIX_I_MAP_SLOTS = 8;
+static const int MINIX_Z_MAP_SLOTS = 64;
+static const int MINIX_SUPER_MAGIC = 0x137F;		/* original minix fs */
+static const int MINIX_SUPER_MAGIC2 = 0x138F;		/* minix fs, 30 char names */
+static const int MINIX2_SUPER_MAGIC = 0x2468;		/* minix V2 fs */
+static const int MINIX2_SUPER_MAGIC2 = 0x2478;		/* minix V2 fs, 30 char names */
+static const int MINIX_VALID_FS = 0x0001;		/* Clean fs. */
+static const int MINIX_ERROR_FS = 0x0002;		/* fs has errors. */
 
 #define MINIX_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix_inode)))
 #define MINIX2_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix2_inode)))
 
-#define MINIX_V1		0x0001		/* original minix fs */
-#define MINIX_V2		0x0002		/* minix V2 fs */
+static const int MINIX_V1 = 0x0001;		/* original minix fs */
+static const int MINIX_V2 = 0x0002;		/* minix V2 fs */
 
 #define INODE_VERSION(inode)	inode->i_sb->u.minix_sb.s_version
 
@@ -185,12 +185,6 @@ struct minix_dir_entry {
 
 #define MINIX_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix_inode)))
 
-#define MINIX_VALID_FS               0x0001          /* Clean fs. */
-#define MINIX_ERROR_FS               0x0002          /* fs has errors. */
-
-#define MINIX_SUPER_MAGIC    0x137F          /* original minix fs */
-#define MINIX_SUPER_MAGIC2   0x138F          /* minix fs, 30 char names */
-
 #ifndef BLKGETSIZE
 #define BLKGETSIZE _IO(0x12,96)    /* return device size */
 #endif
@@ -199,7 +193,7 @@ struct minix_dir_entry {
 #define volatile
 #endif
 
-#define ROOT_INO 1
+static const int ROOT_INO = 1;
 
 #define UPPER(size,n) ((size+((n)-1))/(n))
 #define INODE_SIZE (sizeof(struct minix_inode))
@@ -231,7 +225,7 @@ static struct termios termios;
 static int termios_set = 0;
 
 /* File-name data */
-#define MAX_DEPTH 32
+static const int MAX_DEPTH = 32;
 static int name_depth = 0;
 // static char name_list[MAX_DEPTH][BUFSIZ + 1];
 static char **name_list = NULL;
