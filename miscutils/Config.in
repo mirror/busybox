@@ -100,6 +100,14 @@ config CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	  and the '-b' option to get/set bus state.  This is dangerous
 	  stuff, so you should probably say N.
 
+config CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
+	bool "  get/set using_dma flag (DANGEROUS)"
+	default n
+	depends on CONFIG_HDPARM
+	help
+	  Enables the 'hdparm -d' option to get/set using_dma flag.
+	  This is dangerous stuff, so you should probably say N.
+
 config CONFIG_MAKEDEVS
 	bool "makedevs"
 	default n

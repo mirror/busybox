@@ -835,6 +835,12 @@
 #define USAGE_TRISTATE_HWIF(a)
 #endif
 
+#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
+#define USAGE_GETSET_DMA(a) a
+#else
+#define USAGE_GETSET_DMA(a)
+#endif
+
 #define hdparm_trivial_usage \
 	"[options] [device] .."
 #define hdparm_full_usage \
@@ -845,7 +851,7 @@
 	" -B   set Advanced Power Management setting (1-255)\n" \
 	" -c   get/set IDE 32-bit IO setting\n" \
 	" -C   check IDE power mode status\n" \
-	" -d   get/set using_dma flag\n" \
+	USAGE_GETSET_DMA(" -d   get/set using_dma flag\n") \
 	" -D   enable/disable drive defect-mgmt\n" \
 	" -f   flush buffer cache for device on exit\n" \
 	" -g   display drive geometry\n" \

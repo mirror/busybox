@@ -1820,6 +1820,7 @@ static void process_dev (char *devname)
 		if (ioctl(fd, HDIO_SET_UNMASKINTR, unmask))
 			bb_perror_msg(" HDIO_SET_UNMASKINTR failed");
 	}
+#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if (set_dma) {
 		no_scsi();
 		if (get_dma) {
@@ -1829,6 +1830,7 @@ static void process_dev (char *devname)
 		if (ioctl(fd, HDIO_SET_DMA, dma))
 			bb_perror_msg(" HDIO_SET_DMA failed");
 	}
+#endif /* CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA */
 	if (set_dma_q) {
 		no_scsi();
 		if (get_dma_q) {
@@ -2080,7 +2082,7 @@ static void process_dev (char *devname)
 		}
 	}
 
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_GET_DMA
+#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if ((verbose && !is_scsi_hd) || get_dma) {
 		no_scsi();
 		if (ioctl(fd, HDIO_GET_DMA, &parm))
@@ -2382,6 +2384,7 @@ int hdparm_main(int argc, char **argv)
 							unmask = *p++ - '0';
 						}
 						break;
+#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 					case 'd':
 						get_dma = noisy;
 						noisy = 1;
@@ -2392,6 +2395,7 @@ int hdparm_main(int argc, char **argv)
 							dma = *p++ - '0';
 						}
 						break;
+#endif /* CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA */
 					case 'n':
 						get_nowerr = noisy;
 						noisy = 1;
