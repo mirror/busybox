@@ -10,9 +10,13 @@
 #define adduser_full_usage \
 	"Adds a user to the system" \
 	"Options:\n" \
-	    "\t-h\t\thome directory\n" \
-	    "\t-s\t\tshell\n" \
-	    "\t-g\t\tGECOS string\n"
+	    "\t-h DIR\t\tAssign home directory DIR\n" \
+	    "\t-g GECOS\t\tAssign gecos field GECOS\n" \
+	    "\t-s SHELL\t\tAssign login shell SHELL\n" \
+	    "\t-G\t\tAdd the user to existing group GROUP\n" \
+	    "\t-S\t\tcreate a system user (ignored)\n" \
+	    "\t-D\t\tDo not assign a password (logins still possible via ssh)\n" \
+	    "\t-H\t\tDo not create the home directory\n"
 
 #define adjtimex_trivial_usage \
 	"[-q] [-o offset] [-f frequency] [-p timeconstant] [-t tick]"

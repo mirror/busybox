@@ -21,6 +21,9 @@
  *
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -29,6 +32,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -89,20 +93,22 @@ static int passwd_study(const char *filename, struct passwd *p)
 		}
 	}
 
-	/* EDR check for an already existing gid */
-	while (getgrgid(p->pw_uid) != NULL)
-		p->pw_uid++;
+	if (p->pw_gid == 0) {
+		/* EDR check for an already existing gid */
+		while (getgrgid(p->pw_uid) != NULL)
+			p->pw_uid++;
 
-	/* EDR also check for an existing group definition */
-	if (getgrnam(p->pw_name) != NULL)
-		return 3;
+		/* EDR also check for an existing group definition */
+		if (getgrnam(p->pw_name) != NULL)
+			return 3;
+
+		/* EDR create new gid always = uid */
+		p->pw_gid = p->pw_uid;
+	}
 
 	/* EDR bounds check */
 	if ((p->pw_uid > max) || (p->pw_uid < min))
 		return 2;
-
-	/* EDR create new gid always = uid */
-	p->pw_gid = p->pw_uid;
 
 	/* return 1; */
 	return 0;
@@ -127,7 +133,7 @@ static void passwd_wrapper(const char *login)
 }
 
 /* putpwent(3) remix */
-static int adduser(const char *filename, struct passwd *p)
+static int adduser(const char *filename, struct passwd *p, int makehome, int setpass)
 {
 	FILE *passwd;
 	int r;
@@ -135,6 +141,11 @@ static int adduser(const char *filename, struct passwd *p)
 	FILE *shadow;
 	struct spwd *sp;
 #endif
+	int new_group = 1;
+
+	/* if using a pre-existing group, don't create one */
+	if (p->pw_gid != 0)
+		new_group = 0;
 
 	/* make sure everything is kosher and setup uid && gid */
 	passwd = bb_wfopen(filename, "a");
@@ -181,29 +192,38 @@ static int adduser(const char *filename, struct passwd *p)
 	}
 #endif
 
-	/* add to group */
-	/* addgroup should be responsible for dealing w/ gshadow */
-	addgroup_wrapper(p->pw_name, p->pw_gid);
+	if (new_group) {
+		/* add to group */
+		/* addgroup should be responsible for dealing w/ gshadow */
+		addgroup_wrapper(p->pw_name, p->pw_gid);
+	}
 
 	/* Clear the umask for this process so it doesn't
 	 * * screw up the permissions on the mkdir and chown. */
 	umask(0);
 
-	/* mkdir */
-	if (mkdir(p->pw_dir, 0755)) {
-		bb_perror_msg("%s", p->pw_dir);
+	if (makehome) {
+		/* mkdir */
+		if (mkdir(p->pw_dir, 0755)) {
+			bb_perror_msg("%s", p->pw_dir);
+		}
+		/* Set the owner and group so it is owned by the new user. */
+		if (chown(p->pw_dir, p->pw_uid, p->pw_gid)) {
+			bb_perror_msg("%s", p->pw_dir);
+		}
+		/* Now fix up the permissions to 2755. Can't do it before now
+		 * since chown will clear the setgid bit */
+		if (chmod(p->pw_dir, 02755)) {
+			bb_perror_msg("%s", p->pw_dir);
+		}
 	}
-	/* Set the owner and group so it is owned by the new user. */
-	if (chown(p->pw_dir, p->pw_uid, p->pw_gid)) {
-		bb_perror_msg("%s", p->pw_dir);
+
+	if (setpass) {
+		/* interactively set passwd */
+		passwd_wrapper(p->pw_name);
 	}
-	/* Now fix up the permissions to 2755. Can't do it before now
-	 * since chown will clear the setgid bit */
-	if (chmod(p->pw_dir, 02755)) {
-		bb_perror_msg("%s", p->pw_dir);
-	}
-	/* interactively set passwd */
-	passwd_wrapper(p->pw_name);
+
+	return 0;
 }
 
 
@@ -219,6 +239,9 @@ void if_i_am_not_root(void)
 	}
 }
 
+#define SETPASS				1
+#define MAKEHOME			4
+
 /*
  * adduser will take a login_name as its first parameter.
  *
@@ -230,19 +253,29 @@ void if_i_am_not_root(void)
  * ________________________________________________________________________ */
 int adduser_main(int argc, char **argv)
 {
+	struct passwd pw;
 	const char *login;
 	const char *gecos = default_gecos;
 	const char *home = NULL;
 	const char *shell = default_shell;
-
-	struct passwd pw;
+ 	const char *usegroup = NULL;
+	int flags;
+	int setpass = 1;
+	int makehome = 1;
 
 	/* init */
 	if (argc < 2) {
 		bb_show_usage();
 	}
 	/* get args */
-	bb_getopt_ulflags(argc, argv, "h:g:s:", &home, &gecos, &shell);
+	flags = bb_getopt_ulflags(argc, argv, "h:g:s:G:DSH", &home, &gecos, &shell, &usegroup);
+
+	if (flags & SETPASS) {
+		setpass = 0;
+	}
+	if (flags & MAKEHOME) {
+		makehome = 0;
+	}
 
 	/* got root? */
 	if_i_am_not_root();
@@ -271,6 +304,17 @@ int adduser_main(int argc, char **argv)
 	pw.pw_dir = (char *)home;
 	pw.pw_shell = (char *)shell;
 
+	if (usegroup) {
+		/* Add user to a group that already exists */
+		struct group *g;
+
+		g = getgrnam(usegroup);
+		if (g == NULL)
+			bb_error_msg_and_die("group %s does not exist", usegroup);
+
+		pw.pw_gid = g->gr_gid;
+	}
+
 	/* grand finale */
-	return adduser(bb_path_passwd_file, &pw);
+	return adduser(bb_path_passwd_file, &pw, makehome, setpass);
 }
