@@ -197,8 +197,8 @@ void run_applet_by_name(const char *name, int argc, char **argv);
 extern void *xmalloc (size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
-extern char *bb_xstrdup (const char *s);
 #endif
+extern char *bb_xstrdup (const char *s);
 extern char *bb_xstrndup (const char *s, int n);
 extern char * safe_strncpy(char *dst, const char *src, size_t size);
 
