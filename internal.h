@@ -183,6 +183,9 @@ extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
+#if defined BB_INIT || defined BB_SYSLOGD
+extern int device_open(char *device, int mode)
+#endif
 
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device);

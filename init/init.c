@@ -115,25 +115,6 @@ static char termType[32] = "TERM=ansi";
 static char console[32] = _PATH_CONSOLE;
 
 
-/* try to open up the specified device */
-int device_open(char *device, int mode)
-{
-    int m, f, fd = -1;
-
-    m = mode | O_NONBLOCK;
-
-    /* Retry up to 5 times */
-    for (f = 0; f < 5; f++)
-	if ((fd = open(device, m, 0600)) >= 0)
-	    break;
-    if (fd < 0)
-	return fd;
-    /* Reset original flags. */
-    if (m != mode)
-	fcntl(fd, F_SETFL, mode);
-    return fd;
-}
-
 /* print a message to the specified device:
  * device may be bitwise-or'd from LOG | CONSOLE */
 void message(int device, char *fmt, ...)

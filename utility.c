@@ -1121,6 +1121,28 @@ extern long getNum (const char *cp)
 #endif /* BB_DD || BB_TAIL */
 
 
+#if defined BB_INIT || defined BB_SYSLOGD
+/* try to open up the specified device */
+extern int device_open(char *device, int mode)
+{
+    int m, f, fd = -1;
+
+    m = mode | O_NONBLOCK;
+
+    /* Retry up to 5 times */
+    for (f = 0; f < 5; f++)
+	if ((fd = open(device, m, 0600)) >= 0)
+	    break;
+    if (fd < 0)
+	return fd;
+    /* Reset original flags. */
+    if (m != mode)
+	fcntl(fd, F_SETFL, mode);
+    return fd;
+}
+#endif /* BB_INIT BB_SYSLOGD */
+
+
 #if defined BB_INIT || defined BB_HALT || defined BB_REBOOT 
 
 #if ! defined BB_FEATURE_USE_PROCFS
