@@ -72,12 +72,11 @@ config CONFIG_KLOGD
 config CONFIG_LOGGER
 	bool "logger"
 	default n
-	depends on CONFIG_SYSLOGD
 	help
-	  The logger utility allows you to send arbitrary text
-	  messages to the 'syslogd' utility so they can be
-	  logged.  This is generally used to help locate problems
-	  that occur within programs and scripts.
+	    The logger utility allows you to send arbitrary text
+	    messages to the system log (i.e. the 'syslogd' utility) so
+	    they can be logged.  This is generally used to help locate
+	    problems that occur within programs and scripts.
 
 endmenu
 
