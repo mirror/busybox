@@ -16,13 +16,14 @@ config CONFIG_AR
 	  The original files' contents, mode (permissions), timestamp, owner,
 	  and group are preserved in the archive, and can be restored on
 	  extraction.
+
 	  The stored filename is limited to 15 characters. (for more information
 	  see long filename support).
 	  ar has 60 bytes of overheads for every stored file.
 
 	  This implementation of ar can extract archives, it cannot create or
 	  modify them.
-	  On an x86 system, the ar applet adds about XXX bytes.
+	  On an x86 system, the ar applet adds about 1K.
 
 	  Unless you have a specific application which requires ar, you should
 	  probably say N here.
@@ -48,7 +49,7 @@ config CONFIG_BUNZIP2
 	  performance of the PPM family of statistical compressors.  
 	  
 	  The BusyBox bunzip2 applet is limited to de-compression only.
-	  On an x86 system, this applet adds about XXX bytes.
+	  On an x86 system, this applet adds about 11K.
 	  
 	  Unless you have a specific application which requires bunzip2, you
 	  should probably say N here.
