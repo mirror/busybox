@@ -22,19 +22,81 @@
  */
 
 #include "internal.h"
+#include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
+#include <errno.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <ctype.h>
+#include <assert.h>
+#include <getopt.h>
+#include <sys/utsname.h>
+
+
+
+struct module_info
+{
+	unsigned long addr;
+	unsigned long size;
+	unsigned long flags;
+	long usecount;
+};
+
+
+int query_module(const char *name, int which, void *buf, size_t bufsize,
+		 size_t *ret);
+
+/* Values for query_module's which.  */
+#define QM_MODULES	1
+#define QM_DEPS		2
+#define QM_REFS		3
+#define QM_SYMBOLS	4
+#define QM_INFO		5
+
 
 
 extern int lsmod_main(int argc, char **argv)
 {
-#if defined BB_FEATURE_USE_DEVPS_PATCH
-	char *filename = "/dev/modules";
-#else
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
-	char *filename = "/proc/modules";
-#endif
+	struct module_info info;
+	char *module_names, *mn, *deps, *dn;
+	size_t bufsize, nmod, count, i, j;
 
-	return(print_file_by_name(filename));
+	module_names = xmalloc(bufsize = 256);
+	deps = xmalloc(bufsize);
+	if (query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
+		fatalError("QM_MODULES: %s\n", strerror(errno));
+	}
+
+	printf("Module                  Size  Used by\n");
+	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
+		if (query_module(mn, QM_INFO, &info, sizeof(info), &count)) {
+			if (errno == ENOENT) {
+				/* The module was removed out from underneath us. */
+				continue;
+			}
+			/* else choke */
+			fatalError("module %s: QM_INFO: %s\n", mn, strerror(errno));
+		}
+		while (query_module(mn, QM_REFS, deps, bufsize, &count)) {
+			if (errno == ENOENT) {
+				/* The module was removed out from underneath us. */
+				continue;
+			}
+			if (errno != ENOSPC) {
+				fatalError("module %s: QM_REFS: %s", mn, strerror(errno));
+			}
+			deps = xrealloc(deps, bufsize = count);
+		}
+		printf("%-20s%8lu%4ld ", mn, info.size, info.usecount);
+		if (count) printf("[");
+		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
+			printf("%s%s", dn, (j==count-1)? "":" ");
+		}
+		if (count) printf("]");
+		printf("\n");
+	}
+
+
+	return( 0);
 }
