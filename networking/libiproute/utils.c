@@ -57,7 +57,7 @@ int get_unsigned(unsigned *val, char *arg, int base)
 	return 0;
 }
 
-int get_u32(__u32 *val, char *arg, int base)
+int get_u32(__u32 * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -71,7 +71,7 @@ int get_u32(__u32 *val, char *arg, int base)
 	return 0;
 }
 
-int get_u16(__u16 *val, char *arg, int base)
+int get_u16(__u16 * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -85,7 +85,7 @@ int get_u16(__u16 *val, char *arg, int base)
 	return 0;
 }
 
-int get_u8(__u8 *val, char *arg, int base)
+int get_u8(__u8 * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -99,7 +99,7 @@ int get_u8(__u8 *val, char *arg, int base)
 	return 0;
 }
 
-int get_s16(__s16 *val, char *arg, int base)
+int get_s16(__s16 * val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -113,7 +113,7 @@ int get_s16(__s16 *val, char *arg, int base)
 	return 0;
 }
 
-int get_s8(__s8 *val, char *arg, int base)
+int get_s8(__s8 * val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -127,17 +127,16 @@ int get_s8(__s8 *val, char *arg, int base)
 	return 0;
 }
 
-int get_addr_1(inet_prefix *addr, char *name, int family)
+int get_addr_1(inet_prefix * addr, char *name, int family)
 {
 	char *cp;
-	unsigned char *ap = (unsigned char*)addr->data;
+	unsigned char *ap = (unsigned char *) addr->data;
 	int i;
 
 	memset(addr, 0, sizeof(*addr));
 
 	if (strcmp(name, "default") == 0 ||
-	    strcmp(name, "all") == 0 ||
-	    strcmp(name, "any") == 0) {
+		strcmp(name, "all") == 0 || strcmp(name, "any") == 0) {
 		addr->family = family;
 		addr->bytelen = (family == AF_INET6 ? 16 : 4);
 		addr->bitlen = -1;
@@ -160,9 +159,9 @@ int get_addr_1(inet_prefix *addr, char *name, int family)
 		return -1;
 	addr->bytelen = 4;
 	addr->bitlen = -1;
-	for (cp=name, i=0; *cp; cp++) {
+	for (cp = name, i = 0; *cp; cp++) {
 		if (*cp <= '9' && *cp >= '0') {
-			ap[i] = 10*ap[i] + (*cp-'0');
+			ap[i] = 10 * ap[i] + (*cp - '0');
 			continue;
 		}
 		if (*cp == '.' && ++i <= 3)
@@ -172,7 +171,7 @@ int get_addr_1(inet_prefix *addr, char *name, int family)
 	return 0;
 }
 
-int get_prefix_1(inet_prefix *dst, char *arg, int family)
+int get_prefix_1(inet_prefix * dst, char *arg, int family)
 {
 	int err;
 	unsigned plen;
@@ -192,49 +191,57 @@ int get_prefix_1(inet_prefix *dst, char *arg, int family)
 		*slash = 0;
 	err = get_addr_1(dst, arg, family);
 	if (err == 0) {
-		switch(dst->family) {
-			case AF_INET6:
-				dst->bitlen = 128;
-				break;
-			default:
-			case AF_INET:
-				dst->bitlen = 32;
+		switch (dst->family) {
+		case AF_INET6:
+			dst->bitlen = 128;
+			break;
+		default:
+		case AF_INET:
+			dst->bitlen = 32;
 		}
 		if (slash) {
-			if (get_integer(&plen, slash+1, 0) || plen > dst->bitlen) {
+			if (get_integer(&plen, slash + 1, 0) || plen > dst->bitlen) {
 				err = -1;
 				goto done;
 			}
 			dst->bitlen = plen;
 		}
 	}
-done:
+  done:
 	if (slash)
 		*slash = '/';
 	return err;
 }
 
-int get_addr(inet_prefix *dst, char *arg, int family)
+int get_addr(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		fprintf(stderr, "Error: \"%s\" may be inet address, but it is not allowed in this context.\n", arg);
+		fprintf(stderr,
+				"Error: \"%s\" may be inet address, but it is not allowed in this context.\n",
+				arg);
 		exit(1);
 	}
 	if (get_addr_1(dst, arg, family)) {
-		fprintf(stderr, "Error: an inet address is expected rather than \"%s\".\n", arg);
+		fprintf(stderr,
+				"Error: an inet address is expected rather than \"%s\".\n",
+				arg);
 		exit(1);
 	}
 	return 0;
 }
 
-int get_prefix(inet_prefix *dst, char *arg, int family)
+int get_prefix(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		fprintf(stderr, "Error: \"%s\" may be inet prefix, but it is not allowed in this context.\n", arg);
+		fprintf(stderr,
+				"Error: \"%s\" may be inet prefix, but it is not allowed in this context.\n",
+				arg);
 		exit(1);
 	}
 	if (get_prefix_1(dst, arg, family)) {
-		fprintf(stderr, "Error: an inet prefix is expected rather than \"%s\".\n", arg);
+		fprintf(stderr,
+				"Error: an inet prefix is expected rather than \"%s\".\n",
+				arg);
 		exit(1);
 	}
 	return 0;
@@ -243,8 +250,11 @@ int get_prefix(inet_prefix *dst, char *arg, int family)
 __u32 get_addr32(char *name)
 {
 	inet_prefix addr;
+
 	if (get_addr_1(&addr, name, AF_INET)) {
-		fprintf(stderr, "Error: an IP address is expected rather than \"%s\"\n", name);
+		fprintf(stderr,
+				"Error: an IP address is expected rather than \"%s\"\n",
+				name);
 		exit(1);
 	}
 	return addr.data[0];
@@ -264,25 +274,29 @@ void invarg(char *msg, char *arg)
 
 void duparg(char *key, char *arg)
 {
-	fprintf(stderr, "Error: duplicate \"%s\": \"%s\" is the second value.\n", key, arg);
+	fprintf(stderr, "Error: duplicate \"%s\": \"%s\" is the second value.\n",
+			key, arg);
 	exit(-1);
 }
 
 void duparg2(char *key, char *arg)
 {
-	fprintf(stderr, "Error: either \"%s\" is duplicate, or \"%s\" is a garbage.\n", key, arg);
+	fprintf(stderr,
+			"Error: either \"%s\" is duplicate, or \"%s\" is a garbage.\n",
+			key, arg);
 	exit(-1);
 }
 
 int matches(char *cmd, char *pattern)
 {
 	int len = strlen(cmd);
+
 	if (len > strlen(pattern))
 		return -1;
 	return memcmp(pattern, cmd, len);
 }
 
-int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits)
+int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 {
 	__u32 *a1 = a->data;
 	__u32 *a2 = b->data;
@@ -319,6 +333,7 @@ int __get_hz(void)
 
 	if (fp) {
 		unsigned nom, denom;
+
 		if (fscanf(fp, "%*08x%*08x%08x%08x", &nom, &denom) == 2)
 			if (nom == 1000000)
 				hz = denom;
@@ -346,6 +361,7 @@ const char *format_host(int af, int len, void *addr, char *buf, int buflen)
 #ifdef RESOLVE_HOSTNAMES
 	if (resolve_hosts) {
 		struct hostent *h_ent;
+
 		if (len <= 0) {
 			switch (af) {
 			case AF_INET:
@@ -354,12 +370,11 @@ const char *format_host(int af, int len, void *addr, char *buf, int buflen)
 			case AF_INET6:
 				len = 16;
 				break;
-			default: ;
+			default:;
 			}
 		}
-		if (len > 0 &&
-		    (h_ent = gethostbyaddr(addr, len, af)) != NULL) {
-			snprintf(buf, buflen-1, "%s", h_ent->h_name);
+		if (len > 0 && (h_ent = gethostbyaddr(addr, len, af)) != NULL) {
+			snprintf(buf, buflen - 1, "%s", h_ent->h_name);
 			return buf;
 		}
 	}
