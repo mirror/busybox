@@ -1265,6 +1265,7 @@ void unpack_package(deb_file_t *deb_file)
 
 	FILE *out_stream;
 	char *info_prefix;
+	int return_value;
 
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
@@ -1281,6 +1282,16 @@ void unpack_package(deb_file_t *deb_file)
 	info_prefix = (char *) xmalloc(sizeof(package_name) + 20 + 4 + 1);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
 	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs), info_prefix, NULL);
+
+	/* Run the preinst prior to extracting */
+	return_value = run_package_script(package_name, "preinst");
+	if (return_value == -1) {
+	    error_msg_and_die("could not execute pre-installation script.");
+	}
+	if (return_value != 0) {
+		/* when preinst returns exit code != 0 then quit installation process */
+		error_msg_and_die("subprocess pre-installation script returned error.");
+	}	
 
 	/* Extract data.tar.gz to the root directory */
 	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_data_tar_gz | extract_all_to_fs), "/", NULL);
@@ -1307,7 +1318,7 @@ void configure_package(deb_file_t *deb_file)
 
 	printf("Setting up %s (%s)\n", package_name, package_version);
 
-	/* Run the preinst prior to extracting */
+	/* Run the postinst script */
 	return_value = run_package_script(package_name, "postinst");
 	if (return_value == -1) {
 		/* TODO: handle failure gracefully */
