@@ -19,17 +19,15 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-/* Copy CHUNKSIZE bytes (or untill EOF if chunksize == -1)
- * from SRC_FILE to DST_FILE. */
 extern void archive_copy_file(const archive_handle_t *archive_handle, const int dst_fd)
 {
-	size_t size;
-	char buffer[BUFSIZ];
+	char buffer[512];
 	off_t chunksize = archive_handle->file_header->size;
 
 	while (chunksize != 0) {
-		if (chunksize > BUFSIZ) {
-			size = BUFSIZ;
+		size_t size;
+		if (chunksize > 512) {
+			size = 512;
 		} else {
 			size = chunksize;
 		}
@@ -38,10 +36,7 @@ extern void archive_copy_file(const archive_handle_t *archive_handle, const int 
 		if (write(dst_fd, buffer, size) != size) {
 			error_msg_and_die ("Short write");
 		}
-
-		if (chunksize != -1) {
-			chunksize -= size;
-		}
+		chunksize -= size;
 	}
 
 	return;
