@@ -133,12 +133,10 @@ extern int get_kernel_revision(void)
 
 
 #if defined BB_FREE || defined BB_INIT || defined BB_UNAME || defined BB_UPTIME
-#include <sys/syscall.h>
 _syscall1(int, sysinfo, struct sysinfo *, info);
 #endif                                                 /* BB_INIT */
 
 #if defined BB_MOUNT || defined BB_UMOUNT
-#include <sys/syscall.h>
 
 #ifndef __NR_umount2
 #define __NR_umount2           52

@@ -23,7 +23,6 @@
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
-#include <sys/syscall.h>
 static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 #else							/* __alpha__ */
 #define klogctl syslog

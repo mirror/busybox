@@ -24,7 +24,6 @@
  */
 
 #include "internal.h"
-#include <sys/syscall.h>
 #include <sys/param.h>
 #include <sys/syslog.h>
 

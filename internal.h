@@ -35,6 +35,10 @@
 #include <sys/param.h>
 #include <mntent.h>
 #include <regex.h>
+/* for the _syscall() macros */
+#include <sys/syscall.h>
+#include <linux/unistd.h>
+
 
 /* Some useful definitions */
 #define FALSE   ((int) 1)

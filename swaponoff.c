@@ -28,7 +28,6 @@
 #include <mntent.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/syscall.h>
 
 _syscall2(int, swapon, const char *, path, int, flags);
 _syscall1(int, swapoff, const char *, path);

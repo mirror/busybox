@@ -110,7 +110,6 @@ struct serial_struct {
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
-#include <sys/syscall.h>		/* for _syscall() macro */
 static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
