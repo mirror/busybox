@@ -42,17 +42,16 @@ static const char more_usage[] = "more [FILE ...]\n"
 
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS
-
-#if #cpu(sparc)
-#      include <termio.h>
-#      define termios termio
-#      define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
-#      define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
-#else
-#      include <termios.h>
-#      define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
-#      define getTermSettings(fd,argp) tcgetattr(fd, argp);
-#endif
+#	if #cpu(sparc)
+#		include <termio.h>
+#		define termios termio
+#		define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
+#		define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
+#	else
+#		include <termios.h>
+#		define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#		define getTermSettings(fd,argp) tcgetattr(fd, argp);
+#	endif
 
 FILE *cin;
 
@@ -64,24 +63,11 @@ void gotsig(int sig)
 	fprintf(stdout, "\n");
 	exit(TRUE);
 }
-#endif
+#endif /* BB_FEATURE_USE_TERMIOS */
 
 
-
-#define TERMINAL_WIDTH	79		/* not 80 in case terminal has linefold bug */
-#define TERMINAL_HEIGHT	24
-
-
-#if defined BB_FEATURE_AUTOWIDTH
-#ifdef BB_FEATURE_USE_TERMIOS
-static int terminal_width = TERMINAL_WIDTH;
-#endif
-static int terminal_height = TERMINAL_HEIGHT;
-#else
-#define terminal_width	TERMINAL_WIDTH
-#define terminal_height	TERMINAL_HEIGHT
-#endif
-
+static int terminal_width = 79;	/* not 80 in case terminal has linefold bug */
+static int terminal_height = 24;
 
 
 extern int more_main(int argc, char **argv)
@@ -126,13 +112,13 @@ extern int more_main(int argc, char **argv)
 		new_settings.c_lflag &= ~ECHO;
 		setTermSettings(fileno(cin), &new_settings);
 
-#ifdef BB_FEATURE_AUTOWIDTH
+#	ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_row > 4)
 			terminal_height = win.ws_row - 2;
 		if (win.ws_col > 0)
 			terminal_width = win.ws_col - 1;
-#endif
+#	endif
 
 		(void) signal(SIGINT, gotsig);
 		(void) signal(SIGQUIT, gotsig);
@@ -209,7 +195,10 @@ extern int more_main(int argc, char **argv)
 				if (++lines == terminal_height)
 					please_display_more_prompt = 1;
 			}
-			/* If any key other than a return is hit, scroll by one page */
+			/*
+			 * If we just read a newline from the file being 'mored' and any
+			 * key other than a return is hit, scroll by one page
+			 */
 			putc(c, stdout);
 		}
 		fclose(file);
