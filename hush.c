@@ -1162,6 +1162,8 @@ static void checkjobs()
 				remove_bg_job(pi);
 			}
 		} else {
+			if(pi==NULL)
+				break;
 			/* child stopped */
 			pi->stopped_progs++;
 			pi->progs[prognum].is_stopped = 1;
