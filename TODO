@@ -53,7 +53,7 @@ Bugs that need fixing before the 0.44 release goes out the door:
 * tftp
 * ftp
 * group/commonize strings, remove dups (for i18n, l10n)
-
+* consider making a unified option parser (if it can be done modular, small, etc.) 
 
 -----------------------
 
