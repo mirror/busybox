@@ -60,8 +60,7 @@ int recursive_action(const char *fileName,
 
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
-		fprintf(stderr,
-				"status=%d followLinks=%d TRUE=%d\n",
+		error_msg("status=%d followLinks=%d TRUE=%d",
 				status, followLinks, TRUE);
 #endif
 		perror_msg("%s", fileName);
