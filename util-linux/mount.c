@@ -343,65 +343,44 @@ extern int mount_main(int argc, char **argv)
 	int all = FALSE;
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
-	int i;
 	int rc = EXIT_FAILURE;
 	int fstabmount = FALSE;	
+	int opt;
 
 	/* Parse options */
-	i = --argc;
-	argv++;
-	while (i > 0 && **argv) {
-		if (**argv == '-') {
-			char *opt = *argv;
-
-			while (i > 0 && *++opt)
-				switch (*opt) {
-				case 'o':
-					if (--i == 0) {
-						goto goodbye;
-					}
-					parse_mount_options(*(++argv), &flags, string_flags);
-					break;
-				case 'r':
-					flags |= MS_RDONLY;
-					break;
-				case 't':
-					if (--i == 0) {
-						goto goodbye;
-					}
-					filesystemType = *(++argv);
-					break;
-				case 'w':
-					flags &= ~MS_RDONLY;
-					break;
-				case 'a':
-					all = TRUE;
-					break;
-				case 'f':
-					fakeIt = TRUE;
-					break;
+	while ((opt = getopt(argc, argv, "o:rt:wafnv")) > 0) {
+		switch (opt) {
+		case 'o':
+			parse_mount_options(optarg, &flags, string_flags);
+			break;
+		case 'r':
+			flags |= MS_RDONLY;
+			break;
+		case 't':
+			filesystemType = optarg;
+			break;
+		case 'w':
+			flags &= ~MS_RDONLY;
+			break;
+		case 'a':
+			all = TRUE;
+			break;
+		case 'f':
+			fakeIt = TRUE;
+			break;
 #ifdef BB_FEATURE_MTAB_SUPPORT
-				case 'n':
-					useMtab = FALSE;
-					break;
+		case 'n':
+			useMtab = FALSE;
+			break;
 #endif
-				case 'v':
-					break; /* ignore -v */
-				case 'h':
-				case '-':
-					goto goodbye;
-				}
-		} else {
-			if (device == NULL)
-				device = *argv;
-			else if (directory == NULL)
-				directory = *argv;
-			else {
-				goto goodbye;
-			}
+		case 'v':
+			break; /* ignore -v */
 		}
-		i--;
-		argv++;
+	}
+
+	if (argv[optind] != NULL) {
+		device = argv[optind];
+		directory = argv[optind + 1];
 	}
 
 	if (device == NULL && !all)
@@ -469,7 +448,4 @@ singlemount:
 	}
 	
 	goto singlemount;
-	
-goodbye:
-	show_usage();
 }
