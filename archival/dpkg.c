@@ -993,7 +993,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 
 			package_num = search_package_hashtable(package_edge->name, package_edge->version, package_edge->operator);
 			if (package_hashtable[package_num] == NULL) {
-				error_msg_and_die("Dependency checking failed for package %s\nNOTE: This may be due to busybox dpkg's inability to handle the Provides field, you may avoid dependency checking using the -F option ", name_hashtable[package_edge->name]);
+				error_msg_and_die("Dependency checking failed for package %s\nNOTE: This may be due to busybox dpkg's inability to handle the Provides field, you may avoid dependency checking using the \"-F depends\" option ", name_hashtable[package_edge->name]);
 			}
 			status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
 
@@ -1209,7 +1209,7 @@ void remove_package(const unsigned int package_num)
 	while (remove_file_array(remove_files, exclude_files) == TRUE);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = xmalloc(11);
+	remove_files = xmalloc(sizeof(char *) * 11);
 	all_control_list(remove_files, package_name);
 
 	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
@@ -1253,7 +1253,7 @@ void purge_package(const unsigned int package_num)
 	while (remove_file_array(remove_files, exclude_files) == TRUE);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = xmalloc(11);
+	remove_files = xmalloc(sizeof(char *) * 11);
 	all_control_list(remove_files, package_name);
 	remove_file_array(remove_files, exclude_files);
 
@@ -1288,7 +1288,7 @@ void unpack_package(deb_file_t *deb_file)
 	}
 
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
-	info_prefix = (char *) xmalloc(sizeof(package_name) + 20 + 4 + 1);
+	info_prefix = (char *) xmalloc(sizeof(package_name) + 20 + 4 + 2);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
 	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs | extract_unconditional), info_prefix, NULL);
 
