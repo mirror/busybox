@@ -233,15 +233,12 @@ inetname(struct sockaddr_in *from)
 
 	if (first && !nflag) {
 		first = 0;
-		if (gethostname(domain, MAXHOSTNAMELEN) == 0 &&
-		    (cp = strchr(domain, '.')))
-			(void) strcpy(domain, cp + 1);
-		else
+		if (getdomainname(domain, MAXHOSTNAMELEN) != 0)
 			domain[0] = 0;
 	}
 	cp = 0;
 	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
-		if(INET_rresolve(name, sizeof(name), from, 0, 0xffffffff) >= 0) {
+		if(INET_rresolve(name, sizeof(name), from, 0x4000, 0xffffffff) >= 0) {
 			if ((cp = strchr(name, '.')) &&
 			    !strcmp(cp + 1, domain))
 				*cp = 0;
@@ -321,8 +318,7 @@ wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer)
  * Convert an ICMP "type" field to a printable string.
  */
 static inline const char *
-pr_type(t)
-	u_char t;
+pr_type(u_char t)
 {
 	static const char * const ttab[] = {
 	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
@@ -546,12 +542,12 @@ traceroute_main(argc, argv)
 	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&datalen,
 		       sizeof(datalen)) < 0)
 		perror_msg_and_die("SO_SNDBUF");
-#endif SO_SNDBUF
+#endif
 #ifdef IP_HDRINCL
 	if (setsockopt(sndsock, IPPROTO_IP, IP_HDRINCL, (char *)&on,
 		       sizeof(on)) < 0)
 		perror_msg_and_die("IP_HDRINCL");
-#endif IP_HDRINCL
+#endif
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
 		(void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
@@ -571,7 +567,7 @@ traceroute_main(argc, argv)
 #ifndef IP_HDRINCL
 		if (bind(sndsock, (struct sockaddr *)&from, sizeof(from)) < 0)
 			perror_msg_and_die("bind");
-#endif IP_HDRINCL
+#endif
 	}
 
 	fprintf(stderr, "traceroute to %s (%s)", hostname,
