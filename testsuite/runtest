@@ -32,7 +32,7 @@ run_applet_testcase ()
 	local testname=$(basename $testcase)
 
 	if grep -q "^# CONFIG_${uc_applet} is not set$" ../.config; then
-		show_result UNSUPPORTED $testname
+		show_result UNTESTED $testname
 		return 0
 	fi
 
@@ -40,7 +40,7 @@ run_applet_testcase ()
 		local feature=`sed -ne 's/.*UNSUPPORTED: //p' $testcase`
 
 		if grep -q "^# ${feature} is not set$" ../.config; then
-			show_result UNSUPPORTED $testname
+			show_result UNTESTED $testname
 			return 0
 		fi
 	fi
