@@ -916,6 +916,7 @@ static int expand_arguments(char *command)
 	expand_t expand_result;
 	char *src, *dst, *var;
 	int i=0, length, total_length=0, retval;
+	const char *out_of_space = "out of space during expansion"; 
 #endif
 
 	/* get rid of the terminating \n */
@@ -931,7 +932,7 @@ static int expand_arguments(char *command)
 	if (retval == WRDE_NOSPACE) {
 		/* Mem may have been allocated... */
 		wordfree (&expand_result);
-		error_msg("out of space during expansion");
+		error_msg(out_of_space);
 		return FALSE;
 	}
 	if (retval < 0) {
@@ -946,7 +947,7 @@ static int expand_arguments(char *command)
 	while (i < expand_result.we_wordc && total_length < BUFSIZ) {
 		length=strlen(expand_result.we_wordv[i])+1;
 		if (BUFSIZ-total_length-length <= 0) {
-			error_msg("out of space during expansion");
+			error_msg(out_of_space);
 			return FALSE;
 		}
 		strcat(command+total_length, expand_result.we_wordv[i++]);
@@ -956,139 +957,136 @@ static int expand_arguments(char *command)
 	wordfree (&expand_result);
 #else
 
-	/* Ok.  They don't have glibc and they don't have uClibc.  Chances are
-	 * about 100% they don't have wordexp(), so instead, the best we can do is
-	 * use glob, which is better then nothing, but certainly not perfect */
+	/* Ok.  They don't have a recent glibc and they don't have uClibc.  Chances
+	 * are about 100% they don't have wordexp(). So instead the best we can do
+	 * is use glob and then fixup environment variables and such ourselves.
+	 * This is better then nothing, but certainly not perfect */
 
-	/* It turns out that glob is very stupid.  We have to feed it
-	 * one word at a time since it can't cope with a full string. 
-	 * Here we convert command (char*) into cmd (char**, one word 
-	 * per string) */
+	/* It turns out that glob is very stupid.  We have to feed it one word at a
+	 * time since it can't cope with a full string.  Here we convert command
+	 * (char*) into cmd (char**, one word per string) */
 	{
         
 		int flags = GLOB_NOCHECK|GLOB_BRACE|GLOB_TILDE;
 		char * tmpcmd;
 		/* We need a clean copy, so strsep can mess up the copy while
-		 * we write stuff into the original in a minute */
+		 * we write stuff into the original (in a minute) */
 		char * cmd = strdup(command);
+		*command = '\0';
 		for (tmpcmd = cmd; (tmpcmd = strsep(&cmd, " \t")) != NULL;) {
 			if (*tmpcmd == '\0')
 				break;
 			retval = glob(tmpcmd, flags, NULL, &expand_result);
-			/* We can't haveGLOB_APPEND on the first glob call,  
-			 * so put it there now */
-			if (! (flags & GLOB_APPEND) ) 
-				flags |= GLOB_APPEND;
-
 			if (retval == GLOB_NOSPACE) {
 				/* Mem may have been allocated... */
 				globfree (&expand_result);
-				error_msg("out of space during expansion");
+				error_msg(out_of_space);
 				return FALSE;
-			}
-			if (retval != 0 && retval != GLOB_NOMATCH) {
-				/* Some other error.  */
+			} else if (retval != 0) {
+				/* Some other error.  GLOB_NOMATCH shouldn't
+				 * happen because of the GLOB_NOCHECK flag in 
+				 * the glob call. */
 				error_msg("syntax error");
 				return FALSE;
-			}
-
+			} else {
 			/* Convert from char** (one word per string) to a simple char*,
 			 * but don't overflow command which is BUFSIZ in length */
-			if ( expand_result.gl_pathc > 1) {
-				*command = '\0';
-				while (i < expand_result.gl_pathc && total_length < BUFSIZ) {
+				for (i=0; i < expand_result.gl_pathc; i++) {
 					length=strlen(expand_result.gl_pathv[i])+1;
 					if (BUFSIZ-total_length-length <= 0) {
-						error_msg("out of space during expansion");
+						error_msg(out_of_space);
 						return FALSE;
 					}
-					strcat(command+total_length, expand_result.gl_pathv[i++]);
+					strcat(command+total_length, expand_result.gl_pathv[i]);
 					strcat(command+total_length, " ");
 					total_length+=length;
 				}
+				globfree (&expand_result);
 			}
 		}
-
 		free(cmd);
-		globfree (&expand_result);
+		trim(command);
 	}
 	
 #endif	
-	
-	/* FIXME -- this routine (which is only used when folks
-	 * don't have a C library with wordexp) needs a bit of help
-	 * to handle things like 'echo $PATH$0' */
-	
+
 	/* Now do the shell variable substitutions which 
 	 * wordexp can't do for us, namely $? and $! */
 	src = command;
 	while((dst = strchr(src,'$')) != NULL){
-		/* Ok -- got a $ -- now clean up any trailing mess */
-		trim(dst);
-		if (!(var = getenv(dst + 1))) {
-			switch(*(dst+1)) {
-				case '?':
-					var = itoa(last_return_code);
-					break;
-				case '!':
-					if (last_bg_pid==-1)
-						*(var)='\0';
-					else
-						var = itoa(last_bg_pid);
-					break;
+		printf("dollar '%s'\n", dst);
+		var = NULL;
+		switch(*(dst+1)) {
+			case '?':
+				var = itoa(last_return_code);
+				break;
+			case '!':
+				if (last_bg_pid==-1)
+					*(var)='\0';
+				else
+					var = itoa(last_bg_pid);
+				break;
 				/* Everything else like $$, $#, $[0-9], etc should all be
 				 * expanded by wordexp(), so we can in theory skip that stuff
 				 * here, but just to be on the safe side (i.e. since uClibc
 				 * wordexp doesn't do this stuff yet), lets leave it in for
 				 * now. */
-				case '$':
-					var = itoa(getpid());
-					break;
-				case '#':
-					var = itoa(argc-1);
-					break;
-				case '0':case '1':case '2':case '3':case '4':
-				case '5':case '6':case '7':case '8':case '9':
-					{
-						int index=*(dst + 1)-48;
-						if (index >= argc) {
-							var='\0';
-						} else {
-							var = argv[index];
-						}
+			case '$':
+				var = itoa(getpid());
+				break;
+			case '#':
+				var = itoa(argc-1);
+				break;
+			case '0':case '1':case '2':case '3':case '4':
+			case '5':case '6':case '7':case '8':case '9':
+				{
+					int index=*(dst + 1)-48;
+					if (index >= argc) {
+						var='\0';
+					} else {
+						var = argv[index];
 					}
-					break;
+				}
+				break;
 
-			}
 		}
 		if (var) {
-			int subst_len = strlen(var);
-			char *next_dst;
-			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) == NULL) {
-				next_dst = dst;
-			}
-			src = (char*)xrealloc(src, strlen(src) - strlen(next_dst)+strlen(var)+1);
-			/* Move stuff to the end of the string to accommodate filling 
-			 * the created gap with the new stuff */
-			memmove(dst+subst_len, next_dst+1, subst_len); 
-			/* Now copy in the new stuff */
-			strncpy(dst, var, subst_len+1);
-			src = dst;
-			src++;
+			/* a single character construction was found, and 
+			 * already handled in the case statement */
+			src=dst+2;
 		} else {
-			/* Seems we got an un-expandable variable.  So delete it. */
-			char *next_dst;
-			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) == NULL) {
-				next_dst=dst+1+strlen(dst);
+			/* Looks like an environment variable */
+			char delim_hold;
+			src=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.");
+			if (src == NULL) {
+				src = dst+strlen(dst);
 			}
-			/* Move stuff to the end of the string to accommodate filling 
-			 * the created gap with the new stuff */
-			memmove(dst, next_dst,  next_dst-dst); 
+			delim_hold=*src;
+			*src='\0';  /* temporary */
+			var = getenv(dst + 1);
+			*src=delim_hold;
+		}
+		if (var == NULL) {
+			/* Seems we got an un-expandable variable.  So delete it. */
+			var = "";
+		}
+		{
+			int subst_len = strlen(var);
+			int trail_len = strlen(src);
+			if (dst+subst_len+trail_len >= command+BUFSIZ) {
+				error_msg(out_of_space);
+				return FALSE;
+			}
+			/* Move stuff to the end of the string to accommodate
+			 * filling the created gap with the new stuff */
+			memmove(dst+subst_len, src, trail_len);
+			*(dst+subst_len+trail_len)='\0';
+			/* Now copy in the new stuff */
+			memcpy(dst, var, subst_len);
+			src = dst+subst_len;
 		}
 	}
-
-
-
+	printf("expanded '%s'\n", command);
 
 #endif	
 	return TRUE;
