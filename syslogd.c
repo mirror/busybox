@@ -372,7 +372,7 @@ static const int IOV_COUNT = 2;
 
 static void quit_signal(int sig)
 {
-	logMessage(0, "System log daemon exiting.");
+	logMessage(LOG_SYSLOG | LOG_INFO, "System log daemon exiting.");
 	unlink(lfile);
 #ifdef BB_FEATURE_IPC_SYSLOG
 	ipcsyslog_cleanup();
@@ -525,7 +525,7 @@ static void doSyslogd (void)
         }
         #endif
 
-	logMessage (0, "syslogd started: " BB_BANNER);
+	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " BB_BANNER);
 
 	for (;;) {
 
