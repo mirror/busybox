@@ -68,7 +68,7 @@ enum {
 #include <signal.h>
 #include <sys/ioctl.h>
 
-#ifndef NAJOR
+#ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)
 #define MINOR(dev) ((dev)&0xff)
 #endif
