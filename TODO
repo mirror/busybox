@@ -16,41 +16,6 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------
 
-Bugs that need fixing:
-
- - 'ln -n' has been disabled for this release, till we can fix a memory
-    corruption bug.
- - fix 'cp' (or test suite script) so that it passes the last item in
-    the test suite.
- - ps dirent race bug (need to stat the file before attempting chdir)
- - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
-    /tmp/file in the current directory, rather then trying and failing to create
-    a symlink named "." in the current working directory).
- - Prune sfdisk, graft in std fdisk instead
-
-
-We will rework these to use libc regex functions instead (as per the mailing
-list discussion):
- - 'grep foo$ file' doesn't work
- - 'grep *foo file' segfaults
-
-
------------
-
-Linux 2.4.x kernels
-
-BusyBox 0.46 currently will not work with the Linux 2.4.x kernels.  
-I know of the following problems:
-
-1) BusyBox NFS support is broken with 2.4.x (needs to be adjusted for NFSv3 and
-    kernel header changes).
-
-As long as I have BB_FEATURE_NFSMOUNT turned off, everything compiles cleanly
-for me with linux2.4.0test2.  I use Debian potato (gcc 2.95.2, GNU libc 2.1.3).
-Of course, as noted above, compiling != working.
-
------------
-
 * Make insmod actually work
 * dnsdomainname
 * traceroute/netstat
@@ -91,32 +56,6 @@ to be present in an embedded system.
 
 Compile with debugging on, run 'nm --size-sort ./busybox'
 and then start with the biggest things and make them smaller...
-
------------------------
-
-busybox.defs.h is too big and hard to follow.
-
-Perhaps I need to add a better build system (like the Linux kernel?)
-
------------------------
-
-Feature request:
-
-/bin/busybox --install -s    which makes all links to commands that it
-  can support (an optionnal -s should be used for symbolic links instead
-  of hard links).
-
------------------------
-
-
-> Have you ever thought of doig network logging in busybox syslogd ? It
-> would quite make sense on embedded systems... :)
-
-So far I had not considered it.  Basically, you wish to have
-messages from the embedded box logged to a remote network
-syslog box, right?  I can see that this would be useful.
-I'll add this to the TODO list,
-
 
 -----------------------
 
