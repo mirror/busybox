@@ -57,13 +57,13 @@ void check_tainted(void)
 		fclose(f);
 	}
 	if (f && tainted) {
-		printf("    Tainted: %c%c%c",
+		printf("    Tainted: %c%c%c\n",
 				tainted & TAINT_PROPRIETORY_MODULE      ? 'P' : 'G',
 				tainted & TAINT_FORCED_MODULE           ? 'F' : ' ',
 				tainted & TAINT_UNSAFE_SMP              ? 'S' : ' ');
 	}
 	else {
-		printf("    Not tainted");
+		printf("    Not tainted\n");
 	}
 }
 
@@ -127,7 +127,6 @@ extern int lsmod_main(int argc, char **argv)
 	deps = xmalloc(depsize = 256);
 	printf("Module                  Size  Used by");
 	check_tainted();
-	printf("\n");
 
 	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
 		if (query_module(mn, QM_INFO, &info, sizeof(info), &count)) {
