@@ -807,7 +807,13 @@ Example:
 
 =item loadacm
 
-FIXME -- this command does not yet have proper documentation
+Usage: loadacm
+
+Loads an acm from standard input.
+
+Example:
+
+	$ loadacm < /etc/i18n/acmname
 
 -------------------------------
 
@@ -817,12 +823,21 @@ Usage: loadfont
 
 Loads a console font from standard input.
 
+Example:
+
+	$ loadfont < /etc/i18n/fontname
 
 -------------------------------
 
 =item loadkmap
 
-FIXME -- this command does not yet have proper documentation
+Usage: loadkmap
+
+Loads a binary keyboard translation table from standard input.
+
+Example:
+
+	$ loadkmap < /etc/i18n/lang-keymap
 
 -------------------------------
 
@@ -1297,7 +1312,14 @@ Usage: sh
 
 lash -- the BusyBox LAme SHell (command interpreter)
 
-FIXME -- this command does not yet have proper documentation
+This command does not yet have proper documentation.  
+
+Use lash just as you would use any other shell.  It properly handles pipes,
+redirects, job control, can be used as the shell for scripts (#!/bin/sh), and
+has a sufficient set of builtins to do what is needed.  It does not (yet)
+support Bourne Shell syntax.  If you need things like "if-then-else", "while",
+and such, use ash or bash.  If you just need a very simple and extremely small
+shell, this will do the job.
 
 -------------------------------
 
@@ -1781,4 +1803,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.16 2000/04/18 00:00:52 erik Exp $
+# $Id: busybox.pod,v 1.17 2000/04/19 03:59:10 erik Exp $

@@ -54,11 +54,11 @@ extern int loadfont_main(int argc, char **argv)
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
 		fprintf(stderr, "Error opening /dev/tty0: %s\n", strerror(errno));
-		return 1;
+		return( FALSE);
 	}
 	loadnewfont(fd);
 
-	return 0;
+	return( TRUE);
 }
 
 static void do_loadfont(int fd, char *inbuf, int unit, int fontsize)

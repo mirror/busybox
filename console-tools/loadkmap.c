@@ -29,11 +29,8 @@
 #include <sys/ioctl.h>
 
 
-static const char loadkmap_usage[] = "loadkmap\n"
-	"\n"
-
-	"\tLoad a binary keyboard translation table from standard input.\n"
-	"\n";
+static const char loadkmap_usage[] = "loadkmap\n\n"
+	"Loads a binary keyboard translation table from standard input.\n";
 
 
 int loadkmap_main(int argc, char **argv)
@@ -43,28 +40,32 @@ int loadkmap_main(int argc, char **argv)
 	int i, j, fd, readsz, pos, ibuffsz = NR_KEYS * sizeof(u_short);
 	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap", buff[7];
 
+	if (argc>=2 && *argv[1]=='-') {
+		usage(loadkmap_usage);
+	}
+
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
 		fprintf(stderr, "Error opening /dev/tty0: %s\n", strerror(errno));
-		return 1;
+		exit(FALSE);
 	}
 
 	read(0, buff, 7);
 	if (0 != strncmp(buff, magic, 7)) {
 		fprintf(stderr, "This is not a valid binary keymap.\n");
-		return 1;
+		exit(FALSE);
 	}
 
 	if (MAX_NR_KEYMAPS != read(0, flags, MAX_NR_KEYMAPS)) {
 		fprintf(stderr, "Error reading keymap flags: %s\n",
 				strerror(errno));
-		return 1;
+		exit(FALSE);
 	}
 
 	ibuff = (u_short *) malloc(ibuffsz);
 	if (!ibuff) {
 		fprintf(stderr, "Out of memory.\n");
-		return 1;
+		exit(FALSE);
 	}
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
@@ -75,7 +76,7 @@ int loadkmap_main(int argc, char **argv)
 					< 0) {
 					fprintf(stderr, "Error reading keymap: %s\n",
 							strerror(errno));
-					return 1;
+					exit(FALSE);
 				}
 				pos += readsz;
 			}
@@ -90,5 +91,5 @@ int loadkmap_main(int argc, char **argv)
 	/* Don't bother to close files.  Exit does that 
 	 * automagically, so we can save a few bytes */
 	/* close(fd); */
-	return 0;
+	exit(TRUE);
 }
