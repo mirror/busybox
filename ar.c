@@ -372,11 +372,11 @@ extern int ar_main(int argc, char **argv)
 				createPath(extractList->name, 0666);
 			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
 			lseek(srcFd, extractList->offset, SEEK_SET);
-        		copySubFile(srcFd, dstFd, (size_t) extractList->size);
+        		copy_file_chunk(srcFd, dstFd, (size_t) extractList->size);
 		}
 		if (funct & EXT_TO_STDOUT) {	
                    	lseek(srcFd, extractList->offset, SEEK_SET);
-                        copySubFile(srcFd, fileno(stdout), (size_t) extractList->size);
+                        copy_file_chunk(srcFd, fileno(stdout), (size_t) extractList->size);
 		}
 		if ( (funct & DISPLAY) || (funct & VERBOSE)) {
 			if (funct & VERBOSE)

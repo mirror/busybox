@@ -296,21 +296,21 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 
 #if defined (BB_AR) || defined BB_CP_MV
 /*
- * Copy readSize bytes between two file descriptors
+ * Copy chunksize bytes between two file descriptors
  */
-int copySubFile(int srcFd, int dstFd, size_t remaining)
+int copy_file_chunk(int srcfd, int dstfd, size_t chunksize)
 {
         size_t size;
-        char buffer[BUFSIZ];
+        char buffer[BUFSIZ]; /* BUFSIZ is declared in stdio.h */
 
-        while (remaining > 0) {
-                if (remaining > BUFSIZ)
+        while (chunksize > 0) {
+                if (chunksize > BUFSIZ)
                         size = BUFSIZ;
                 else
-                        size = remaining;
-                if (fullWrite(dstFd, buffer, fullRead(srcFd, buffer, size)) < size)
+                        size = chunksize;
+                if (fullWrite(dstfd, buffer, fullRead(srcfd, buffer, size)) < size)
                         return(FALSE);
-                remaining -= size;
+                chunksize -= size;
         }
         return (TRUE);
 }
@@ -423,7 +423,7 @@ copyFile(const char *srcName, const char *destName,
 			return FALSE;
 		}
 
-		if (copySubFile(rfd, wfd, srcStatBuf.st_size)==FALSE)
+		if (copy_file_chunk(rfd, wfd, srcStatBuf.st_size)==FALSE)
 			goto error_exit;	
 		
 		close(rfd);
