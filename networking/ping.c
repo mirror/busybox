@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.1 1999/12/07 23:14:59 andersen Exp $
+ * $Id: ping.c,v 1.2 1999/12/08 04:13:59 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -64,8 +64,8 @@
 
 static const char* ping_usage = "ping [OPTION]... host\n\n"
 "Options:\n"
-"\t-q\t\tquiet\n"
-"\t-c\t\tping count\n";
+"\t-q\t\tQuiet output.  Dipslays nothing except at start and when finished.\n"
+"\t-c COUNT\t\tSend only COUNT ECHO_RESPONSE packets.\n";
 
 static char *hostname = NULL;
 static struct sockaddr_in pingaddr;
