@@ -19,6 +19,8 @@
 	* Added usleep contributed by Nicolas Pitre <nico@cam.org>
 	* tar wouldn't create directory entries that don't end in '/',
 	    now it does (thanks to Avery Pennarun <apenwarr@worldvisions.ca>)
+	* tar has been completely rewritten, and tar creation and extraction
+	    is now much better behaved.
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
 	    -  When `tail' fails to open a file it now exits.
 	    - When `syslogd' is given the `-n' option it should still use 
