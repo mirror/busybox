@@ -40,9 +40,7 @@ static const char ln_usage[] =
 	"\t-s\tmake symbolic links instead of hard links\n"
 
 	"\t-f\tremove existing destination files\n"
-#if 0
 	"\t-n\tno dereference symlinks - treat like normal file\n"
-#endif
 #endif
 	;
 
