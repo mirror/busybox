@@ -52,6 +52,7 @@
 #define	LINELIM	2100
 #define	NPUSH	8	/* limit to input nesting */
 
+#undef NOFILE
 #define	NOFILE	20	/* Number of open files */
 #define	NUFILE	10	/* Number of user-accessible files */
 #define	FDBASE	10	/* First file usable by Shell */
@@ -213,7 +214,8 @@ static	char	*elinep;
 /*
  * other functions
  */
-static int (*inbuilt(char *s ))(void);
+static int(*inbuilt(char *s))(struct op *);
+
 
 static char *rexecve (char *c , char **v, char **envp );
 static char *space (int n );
@@ -394,7 +396,7 @@ struct ioarg {
 
 /* an input generator's state */
 struct	io {
-	int	(*iofn)();
+	int	(*iofn)(struct  ioarg *, struct io *);
 	struct	ioarg	*argp;
 	int	peekc;
 	char	prev;		/* previous character read by readc() */
@@ -429,7 +431,7 @@ static void freehere (int area );
 static void gethere (void);
 static void markhere (char *s, struct ioword *iop );
 static int herein (char *hname, int xdoll );
-static int run (struct ioarg *argp, int (*f)());
+static int run (struct ioarg *argp, int (*f)(struct ioarg *));
 
 /*
  * IO functions
@@ -446,7 +448,7 @@ static void closeall (void);
 /*
  * IO control
  */
-static void pushio (struct ioarg *argp, int (*fn)());
+static void pushio (struct ioarg *argp, int (*f)(struct ioarg *));
 static int remap (int fd );
 static int openpipe (int *pv );
 static void closepipe (int *pv );
@@ -496,8 +498,8 @@ static void echo(char **wp );
 static struct op **find1case (struct op *t, char *w );
 static struct op *findcase (struct op *t, char *w );
 static void brkset(struct brkcon *bc );
-static int dolabel(void);
-static int dohelp(void);
+static int dolabel(struct op *t );
+static int dohelp(struct op *t );
 static int dochdir(struct op *t );
 static int doshift(struct op *t );
 static int dologin(struct op *t );
@@ -509,7 +511,7 @@ static int doread(struct op *t );
 static int doeval(struct op *t );
 static int dotrap(struct op *t );
 static int getsig(char *s );
-static void setsig (int n, void (*f)());
+static void setsig (int n, sighandler_t f);
 static int getn(char *as );
 static int dobreak(struct op *t );
 static int docontinue(struct op *t );
@@ -517,11 +519,11 @@ static int brkcontin (char *cp, int val );
 static int doexit(struct op *t );
 static int doexport(struct op *t );
 static int doreadonly(struct op *t );
-static void rdexp (char **wp, void (*f)(), int key);
+static void rdexp (char **wp, void (*f)(struct var *), int key);
 static void badid(char *s );
 static int doset(struct op *t );
 static void varput (char *s, int out );
-static int dotimes(void);
+static int dotimes(struct op *t );
 static int expand (char *cp, struct wdblock **wbp, int f );
 static char *blank(int f );
 static int dollar(int quoted );
@@ -535,7 +537,7 @@ static void glob1 (char *base, char *lim );
 static void glob2 (char *i, char *j );
 static void glob3 (char *i, char *j, char *k );
 static void readhere (char **name, char *s, int ec );
-static void pushio(struct ioarg *argp, int (*fn)());
+static void pushio (struct ioarg *argp, int (*f)(struct ioarg *));
 static int xxchar(struct ioarg *ap );
 
 struct	here {
@@ -595,7 +597,7 @@ static struct res restab[] = {
 
 struct builtincmd {
 	const char *name;
-	int (*builtinfunc)();
+	int (*builtinfunc)(struct op *t);
 };
 static const struct	builtincmd	builtincmds[] = {
     {".",		dodot},
@@ -698,7 +700,7 @@ extern int msh_main(int argc, char **argv)
 	register char *s;
 	int cflag;
 	char *name, **ap;
-	int (*iof)();
+	int (*iof)(struct ioarg *);
 
 	initarea();
 	if ((ap = environ) != NULL) {
@@ -1074,8 +1076,7 @@ int n;
 }
 
 static void
-next(f)
-int f;
+next(int f)
 {
 	PUSHIO(afile, f, filechar);
 }
@@ -2478,7 +2479,7 @@ static int
 forkexec( register struct op *t, int *pin, int *pout, int act, char **wp, int *pforked)
 {
 	int i, rv;
-	int (*shcom)() = NULL;
+	int (*shcom)(struct op *) = NULL;
 	register int f;
 	char *cp = NULL;
 	struct ioword **iopp;
@@ -2899,9 +2900,7 @@ char *c, **v, **envp;
  * applied to stream `arg'.
  */
 static int
-run(argp, f)
-struct ioarg *argp;
-int (*f)();
+run(struct ioarg *argp, int (*f)(struct ioarg *))
 {
 	struct op *otree;
 	struct wdblock *swdlist;
@@ -2945,7 +2944,7 @@ int (*f)();
  * built-in commands: doX
  */
 
-static int dohelp()
+static int dohelp(struct op *t )
 {
 	int col;
 	const struct builtincmd *x;
@@ -2988,8 +2987,7 @@ static int dohelp()
 
 
 
-static int
-dolabel()
+static int dolabel(struct op *t )
 {
 	return(0);
 }
@@ -3226,7 +3224,7 @@ char *s;
 }
 
 static void
-setsig( register int n, void (*f)(int))
+setsig( register int n, sighandler_t f)
 {
 	if (n == 0)
 		return;
@@ -3327,11 +3325,7 @@ struct op *t;
 	return(0);
 }
 
-static void
-rdexp(wp, f, key)
-register char **wp;
-void (*f)();
-int key;
+static void rdexp (char **wp, void (*f)(struct var *), int key)
 {
 	if (*wp != NULL) {
 		for (; *wp != NULL; wp++) {
@@ -3421,7 +3415,7 @@ int out;
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
  */
-static int dotimes ()
+static int dotimes(struct op *t )
 {
 	struct tms buf;
 	long int clk_tck = sysconf(_SC_CLK_TCK);
@@ -3440,7 +3434,7 @@ static int dotimes ()
 }
 
 
-static int (*inbuilt(char *s))()
+static int(*inbuilt(char *s))(struct op *)
 {
 	const struct builtincmd *bp;
 
@@ -3448,7 +3442,7 @@ static int (*inbuilt(char *s))()
 		if (strcmp(bp->name, s) == 0)
 			return(bp->builtinfunc);
 
-	return((int(*)())NULL);
+	return(NULL);
 }
 
 /* -------- eval.c -------- */
@@ -3803,7 +3797,7 @@ int quoted;
 	if (i != 0) {
 		e.iop->argp->aword = ++cp;
 		close(pf[1]);
-		PUSHIO(afile, remap(pf[0]), quoted? qgravechar: gravechar);
+		PUSHIO(afile, remap(pf[0]), (int(*)(struct ioarg *))((quoted)? qgravechar: gravechar));
 		return(1);
 	}
 	*cp = 0;
@@ -4282,9 +4276,7 @@ char c;
 }
 
 static void
-pushio(argp, fn)
-struct ioarg *argp;
-int (*fn)();
+pushio(struct ioarg *argp, int (*fn)(struct ioarg *))
 {
 	if (++e.iop >= &iostack[NPUSH]) {
 		e.iop--;
@@ -4292,7 +4284,7 @@ int (*fn)();
 		gflg++;
 		return;
 	}
-	e.iop->iofn = fn;
+	e.iop->iofn = (int (*)(struct  ioarg *, struct io *))fn;
 
 	if (argp->afid != AFID_NOBUF)
 	  e.iop->argp = argp;
@@ -4315,7 +4307,7 @@ int (*fn)();
 	e.iop->nlcount = 0;
 	if (fn == filechar || fn == linechar)
 		e.iop->task = XIO;
-	else if (fn == gravechar || fn == qgravechar)
+	else if (fn == (int(*)(struct ioarg *))gravechar || fn == (int(*)(struct ioarg *))qgravechar)
 		e.iop->task = XGRAVE;
 	else
 		e.iop->task = XOTHER;
@@ -4719,7 +4711,7 @@ int ec;
 	if (newenv(setjmp(errpt = ev)) != 0)
 		unlink(tname);
 	else {
-		pushio(e.iop->argp, e.iop->iofn);
+		pushio(e.iop->argp, (int(*)(struct ioarg *))e.iop->iofn);
 		e.iobase = e.iop;
 		for (;;) {
 		    if (interactive && e.iop <= iostack) {
