@@ -308,8 +308,9 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	if (tbInfo->verboseFlag) {
 		FILE *vbFd = stdout;
 
-		if (tbInfo->verboseFlag == 2)	/* If the archive goes to stdout, verbose to stderr */
+		if (tbInfo->tarFd == fileno(stdout))	/* If the archive goes to stdout, verbose to stderr */
 			vbFd = stderr;
+
 		fprintf(vbFd, "%s\n", header.name);
 	}
 
@@ -445,7 +446,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	return (TRUE);
 }
 
-static inline int writeTarFile(const char *tarName, const int verboseFlag,
+static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 							   const llist_t *include, const llist_t *exclude, const int gzip)
 {
 #ifdef CONFIG_FEATURE_TAR_GZIP
@@ -466,26 +467,14 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 		bb_error_msg_and_die("Cowardly refusing to create an empty archive");
 	}
 
-	/* Open the tar file for writing.  */
-	if (tarName == NULL || (tarName[0] == '-' && tarName[1] == '\0')) {
-		tbInfo.tarFd = fileno(stdout);
-		tbInfo.verboseFlag = verboseFlag ? 2 : 0;
-	} else {
-		unlink(tarName);
-		tbInfo.tarFd = open(tarName, O_WRONLY | O_CREAT | O_EXCL, 0644);
-		tbInfo.verboseFlag = verboseFlag ? 1 : 0;
-	}
-
-	if (tbInfo.tarFd < 0) {
-		bb_perror_msg("%s: Cannot open", tarName);
-		freeHardLinkInfo(&tbInfo.hlInfoHead);
-		return (FALSE);
-	}
+	fchmod(tar_fd, 0644);
+	tbInfo.tarFd = tar_fd;
+	tbInfo.verboseFlag = verboseFlag;
 
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
-		bb_error_msg_and_die(bb_msg_io_error, tarName);
+		bb_perror_msg_and_die("Couldnt stat tar file");
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	if (gzip) {
@@ -713,6 +702,35 @@ int tar_main(int argc, char **argv)
 		tar_handle->filter = filter_accept_reject_list;
 	}
 
+	/* Open the tar file */
+	{
+		FILE *tar_stream;
+		int flags;
+
+#ifdef CONFIG_FEATURE_TAR_CREATE
+		if (ctx_flag == CTX_CREATE) {
+			tar_stream = stdout;
+			flags = O_WRONLY | O_CREAT | O_EXCL;
+			unlink(tar_filename);
+		} else
+#endif
+		{
+			tar_stream = stdin;
+			flags = O_RDONLY;
+		}
+
+		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
+			tar_handle->src_fd = fileno(tar_stream);
+			tar_handle->seek = seek_by_char;
+		} else {
+			tar_handle->src_fd = bb_xopen(tar_filename, flags);
+		}
+	}
+
+	if ((base_dir) && (chdir(base_dir))) {
+		bb_perror_msg_and_die("Couldnt chdir to %s", base_dir);
+	}
+
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
 	if (ctx_flag == CTX_CREATE) {
@@ -734,22 +752,11 @@ int tar_main(int argc, char **argv)
 				(tar_handle->action_header == header_verbose_list)) {
 			verboseFlag = TRUE;
 		}
-		writeTarFile(tar_filename, verboseFlag, tar_handle->accept,
+		writeTarFile(tar_handle->src_fd, verboseFlag, tar_handle->accept,
 			tar_handle->reject, gzipFlag);
 	} else 
 #endif /* CONFIG_FEATURE_TAR_CREATE */
 	{
-		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
-			tar_handle->src_fd = fileno(stdin);
-			tar_handle->seek = seek_by_char;
-		} else {
-			tar_handle->src_fd = bb_xopen(tar_filename, O_RDONLY);
-		}
-
-		if ((base_dir) && (chdir(base_dir))) {
-			bb_perror_msg_and_die("Couldnt chdir");
-		}
-
 		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
 
 		/* Ckeck that every file that should have been extracted was */
