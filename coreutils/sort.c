@@ -256,10 +256,18 @@ sort_main(int argc, char **argv)
 	    opt = argv[i][1];
 	    switch (opt) {
 		case 'g':
-		    compare = compare_numeric;
+		    /* what's the diff between -g && -n? */
+		    compare = compare_numeric;	    
 		    break;
 		case 'h':
 		    usage(sort_usage);
+		    break;
+		case 'n':
+		    /* what's the diff between -g && -n? */
+		    compare = compare_numeric;	    
+		    break;
+		case 'r':
+		    /* reverse */
 		    break;
 		default:
 		    fprintf(stderr, "sort: invalid option -- %c\n", opt);
@@ -270,7 +278,9 @@ sort_main(int argc, char **argv)
 	}
     }
 
-    /* go through remaining args (if any) */
+    /* this could be factored better */
+
+    /* work w/ stdin */
     if (i >= argc) {
 	while ( (l = line_newFromFile(stdin))) {
 	    list_insert(&list, l);
@@ -278,32 +288,25 @@ sort_main(int argc, char **argv)
 	list_sort(&list, compare);
 	list_writeToFile(&list, stdout);
 	list_release(&list);
+
+    /* work w/ what's left in argv[] */
     } else {
+	FILE	*src;
+
 	for ( ; i < argc; i++) {
+	    src = fopen(argv[i], "r");
+	    if (src == NULL) { break; }
+	    while ( (l = line_newFromFile(src))) {
+		list_insert(&list, l);
+	    }
+	    fclose(src);
 	}
+	list_sort(&list, compare);
+	list_writeToFile(&list, stdout);
+	list_release(&list);
     }
 
     exit(0);
 }
 
-/* $Id: sort.c,v 1.7 1999/12/23 00:02:49 beppu Exp $ */
-/* 
- * $Log: sort.c,v $
- * Revision 1.7  1999/12/23 00:02:49  beppu
- * 	implemented numeric sort (sort -g)
- *
- * Revision 1.6  1999/12/22 23:02:12  beppu
- * 	oops..  qsort(2) misunderstanding on my part.
- * 	it's ok, now.
- *
- * Revision 1.5  1999/12/22 22:27:01  beppu
- * playing w/ $Log: sort.c,v $
- * playing w/ Revision 1.7  1999/12/23 00:02:49  beppu
- * playing w/ 	implemented numeric sort (sort -g)
- * playing w/
- * playing w/ Revision 1.6  1999/12/22 23:02:12  beppu
- * playing w/ 	oops..  qsort(2) misunderstanding on my part.
- * playing w/ 	it's ok, now.
- * playing w/
- *
- */
+/* $Id: sort.c,v 1.8 1999/12/23 22:46:10 beppu Exp $ */

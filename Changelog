@@ -9,6 +9,7 @@
 	    with the 2.0.x Linux kernel.
 	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
 	    <konst@voshod.com>.
+	* Implemented sort. -beppu
 
 	-Erik Andersen
 
