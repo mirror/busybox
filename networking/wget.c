@@ -179,14 +179,17 @@ int wget_main(int argc, char **argv)
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
 	int noproxy = 0;            /* Use proxies if env vars are set  */
 
-#define LONG_HEADER	1
+#define LONG_HEADER    1
+#define LONG_PASSIVE   2
+
 	struct option long_options[] = {
-		{ "continue",		0, NULL, 'c' },
-		{ "quiet",		0, NULL, 'q' },
-		{ "output-document",	1, NULL, 'O' },
-		{ "header",		1, &which_long_opt, LONG_HEADER },
-		{ "proxy",		1, NULL, 'Y' },
-		{ 0,			0, 0, 0 }
+		{ "continue",        0, NULL, 'c' },
+		{ "quiet",           0, NULL, 'q' },
+		{ "output-document", 1, NULL, 'O' },
+		{ "header",	         1, &which_long_opt, LONG_HEADER },
+		{ "proxy",           1, NULL, 'Y' },
+		{ "passive-ftp",     0, &which_long_opt, LONG_PASSIVE },
+		{ 0,                 0, 0, 0 }
 	};
 	/*
 	 * Crack command line.
@@ -227,6 +230,9 @@ int wget_main(int argc, char **argv)
 					*(extra_headers_ptr + 1) = 0;
 					break;
 				}
+				case LONG_PASSIVE:
+					// ignore -- we always use passive mode
+					break;
 			}
 			break;
 		default:
@@ -818,7 +824,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.50 2002/07/03 11:51:44 andersen Exp $
+ *	$Id: wget.c,v 1.51 2002/07/12 00:04:46 sandman Exp $
  */
 
 
