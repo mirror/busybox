@@ -38,7 +38,6 @@ extern int update_passwd(const struct passwd *pw, char *crypt_pw)
 	char buffer[80];
 	char username[32];
 	char *pw_rest;
-	int has_shadow = 0;
 	int mask;
 	int continued;
 	FILE *fp;
@@ -46,12 +45,12 @@ extern int update_passwd(const struct passwd *pw, char *crypt_pw)
 	struct stat sb;
 	struct flock lock;
 
+#ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	if (access(bb_path_shadow_file, F_OK) == 0) {
-		has_shadow = 1;
-	}
-	if (has_shadow) {
 		snprintf(filename, sizeof filename, "%s", bb_path_shadow_file);
-	} else {
+	} else
+#endif
+	{
 		snprintf(filename, sizeof filename, "%s", bb_path_passwd_file);
 	}
 
