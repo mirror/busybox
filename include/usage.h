@@ -1972,8 +1972,19 @@
 #else
   #define USAGE_TAR_EXCLUDE(a)
 #endif
+#ifdef CONFIG_FEATURE_TAR_GZIP
+  #define USAGE_TAR_GZIP(a) a
+#else
+  #define USAGE_TAR_GZIP(a)
+#endif
+#ifdef CONFIG_FEATURE_TAR_BZIP2
+  #define USAGE_TAR_BZIP2(a) a
+#else
+  #define USAGE_TAR_BZIP2(a)
+#endif
+
 #define tar_trivial_usage \
-	"-[" USAGE_TAR_CREATE("c") "xtvO] " \
+	"-[" USAGE_TAR_CREATE("c") USAGE_TAR_GZIP("z") USAGE_TAR_BZIP2("j") "xtvO] " \
 	USAGE_TAR_EXCLUDE("[--exclude FILE] [-X FILE]") \
 	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
@@ -1982,6 +1993,9 @@
 	USAGE_TAR_CREATE("\tc\t\tcreate\n") \
 	"\tx\t\textract\n" \
 	"\tt\t\tlist\n" \
+	"\nArchive format selection:\n" \
+	USAGE_TAR_GZIP("\tz\t\tFilter the archive through gzip\n") \
+	USAGE_TAR_BZIP2("\tj\t\tFilter the archive through bzip2\n") \
 	"\nFile selection:\n" \
 	"\tf\t\tname of TARFILE or \"-\" for stdin\n" \
 	"\tO\t\textract to stdout\n" \
