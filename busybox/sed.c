@@ -490,8 +490,23 @@ static void load_cmd_file(char *filename)
 	}
 }
 
-static void print_subst_w_backrefs(const char *line, const char *replace, regmatch_t *regmatch, int matches)
+#define PIPE_MAGIC 0x7f
+#define PIPE_GROW 64  
+#define pipeputc(c) \
+{ if (pipeline[pipeline_idx] == PIPE_MAGIC) { \
+	pipeline = xrealloc(pipeline, pipeline_len+PIPE_GROW); \
+	memset(pipeline+pipeline_len, 0, PIPE_GROW); \
+	pipeline_len += PIPE_GROW; \
+	pipeline[pipeline_len-1] = PIPE_MAGIC; } \
+	pipeline[pipeline_idx++] = (c); }
+
+static void print_subst_w_backrefs(const char *line, const char *replace, 
+	regmatch_t *regmatch, char **pipeline_p, int *pipeline_idx_p, 
+	int *pipeline_len_p, int matches)
 {
+	char *pipeline = *pipeline_p;
+	int pipeline_idx = *pipeline_idx_p;
+	int pipeline_len = *pipeline_len_p;
 	int i;
 
 	/* go through the replacement string */
@@ -508,13 +523,13 @@ static void print_subst_w_backrefs(const char *line, const char *replace, regmat
 			/* print out the text held in regmatch[backref] */
 			if (backref <= matches && regmatch[backref].rm_so != -1)
 				for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo; j++)
-					fputc(line[j], stdout);
+					pipeputc(line[j]);
 		}
 
 		/* if we find a backslash escaped character, print the character */
 		else if (replace[i] == '\\') {
 			++i;
-			fputc(replace[i], stdout);
+			pipeputc(replace[i]);
 		}
 
 		/* if we find an unescaped '&' print out the whole matched text.
@@ -524,26 +539,40 @@ static void print_subst_w_backrefs(const char *line, const char *replace, regmat
 		else if (replace[i] == '&' && replace[i-1] != '\\') {
 			int j;
 			for (j = regmatch[0].rm_so; j < regmatch[0].rm_eo; j++)
-				fputc(line[j], stdout);
+				pipeputc(line[j]);
 		}
 		/* nothing special, just print this char of the replacement string to stdout */
 		else
-			fputc(replace[i], stdout);
+			pipeputc(replace[i]);
 	}
+	*pipeline_p = pipeline;
+	*pipeline_idx_p = pipeline_idx;
+	*pipeline_len_p = pipeline_len;
 }
 
-static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
+static int do_subst_command(const struct sed_cmd *sed_cmd, char **line)
 {
-	char *hackline = (char *)line;
+	char *hackline = *line;
+	char *pipeline = 0;
+	int pipeline_idx = 0;
+	int pipeline_len = 0;
 	int altered = 0;
 	regmatch_t *regmatch = NULL;
 
 	/* we only proceed if the substitution 'search' expression matches */
-	if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == REG_NOMATCH)
+	if (regexec(sed_cmd->sub_match, hackline, 0, NULL, 0) == REG_NOMATCH)
 		return 0;
 
 	/* whaddaya know, it matched. get the number of back references */
 	regmatch = xmalloc(sizeof(regmatch_t) * (sed_cmd->num_backrefs+1));
+
+	/* allocate more PIPE_GROW bytes
+	   if replaced string is larger than original */
+	pipeline_len = strlen(hackline)+PIPE_GROW;
+	pipeline = xmalloc(pipeline_len);
+	memset(pipeline, 0, pipeline_len);
+	/* buffer magic */
+	pipeline[pipeline_len-1] = PIPE_MAGIC;
 
 	/* and now, as long as we've got a line to try matching and if we can match
 	 * the search string, we make substitutions */
@@ -553,10 +582,11 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 
 		/* print everything before the match */
 		for (i = 0; i < regmatch[0].rm_so; i++)
-			fputc(hackline[i], stdout);
+			pipeputc(hackline[i]);
 
 		/* then print the substitution string */
-		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch,
+		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch, 
+				&pipeline, &pipeline_idx, &pipeline_len,
 				sed_cmd->num_backrefs);
 
 		/* advance past the match */
@@ -569,11 +599,14 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 			break;
 	}
 
-	puts(hackline);
+	for (; *hackline; hackline++) pipeputc(*hackline);
+	if (pipeline[pipeline_idx] == PIPE_MAGIC) pipeline[pipeline_idx] = 0;
 
 	/* cleanup */
 	free(regmatch);
 
+	free(*line);
+	*line = pipeline;
 	return altered;
 }
 
@@ -652,12 +685,14 @@ static void process_file(FILE *file)
 
 						/* we print the line once, unless we were told to be quiet */
 						if (!be_quiet)
-							altered |= do_subst_command(&sed_cmds[i], line);
+							altered |= do_subst_command(&sed_cmds[i], &line);
 
 						/* we also print the line if we were given the 'p' flag
 						 * (this is quite possibly the second printing) */
 						if (sed_cmds[i].sub_p)
-							altered |= do_subst_command(&sed_cmds[i], line);
+							altered |= do_subst_command(&sed_cmds[i], &line);
+						if (altered && (i+1 >= ncmds || sed_cmds[i+1].cmd != 's'))
+							puts(line);
 
 						break;
 
