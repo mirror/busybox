@@ -15,6 +15,7 @@ bool 'makedevs'	    CONFIG_MAKEDEVS
 bool 'mktemp'	    CONFIG_MKTEMP
 bool 'mt'	    CONFIG_MT
 bool 'readlink'	    CONFIG_READLINK
+bool 'strings'	    CONFIG_STRINGS
 bool 'time'	    CONFIG_TIME
 bool 'update'	    CONFIG_UPDATE
 bool 'watchdog'	    CONFIG_WATCHDOG

@@ -1681,6 +1681,15 @@
 	"-s <signal>\t\tsignal to send (default 15)\n"\
 	"-a <pathname>\t\tprogram to start (default <executable>)\n"
 
+#define strings_trivial_usage \
+    "[-afo] [-n length] [file ... ]"
+#define strings_full_usage \
+    "Display printable strings in a binary file." \
+    "\n\nOptions:" \
+    "\n\t-f\tPrecede each string with the name of the file where it was found." \
+    "\n\t-n N\tSpecifies that at least N characters forms a sequence (default 4)" \
+    "\n\t-o\tEach string is preceded by its decimal offset in the file."
+
 #define stty_trivial_usage \
 	"[-a|g] [-F DEVICE] [SETTING]..."
 #define stty_full_usage \
