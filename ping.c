@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.41 2001/05/16 15:40:48 kraai Exp $
+ * $Id: ping.c,v 1.42 2001/05/16 15:52:23 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -443,7 +443,7 @@ static void ping(const char *host)
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
 	pingaddr.sin_family = AF_INET;
-	h = gethostbyname(host);
+	h = xgethostbyname(host);
 	if (h->h_addrtype != AF_INET)
 		error_msg_and_die("unknown address type; only AF_INET is currently supported.");
 
