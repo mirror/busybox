@@ -18,6 +18,8 @@
 	* ls -l now bypasses libc6 nss when displaying user/group names.
 	    Now uses my_getpwuid and my_getgrgid.
 
+	 -Erik Andersen
+
 0.33
 	* Fixed a bug where init could hang instead of rebooting.
 	* Removed some debugging noise from init.c
