@@ -54,7 +54,9 @@ int chroot_main(int argc, char **argv)
 			prog = "/bin/sh";
 		execlp(prog, prog, NULL);
 #else
-		shell_main(argc, argv);
+		char shell[] = "/bin/sh";
+		char *shell_argv[2] = { shell, NULL };
+		shell_main(1, shell_argv);
 		return EXIT_SUCCESS;
 #endif
 	}
