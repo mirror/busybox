@@ -237,17 +237,17 @@ Example:
 
 -------------------------------
 
-=item clear
-
-Clears the screen.
-
--------------------------------
-
 =item chvt
 
 Usage: chvt N
 
 Changes the foreground virtual terminal to /dev/ttyN
+
+-------------------------------
+
+=item clear
+
+Clears the screen.
 
 -------------------------------
 
@@ -360,6 +360,14 @@ Example:
 	$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4
 	4+0 records in
 	4+0 records out
+
+-------------------------------
+
+=item deallocvt
+
+Usage: deallocvt N
+
+Deallocates unused virtual terminal /dev/ttyN
 
 -------------------------------
 
@@ -577,14 +585,6 @@ Frees all memory used by the specified ramdisk.
 Example:
 
 	$ freeramdisk /dev/ram2
-
--------------------------------
-
-=item deallocvt
-
-Usage: deallocvt N
-
-Deallocates unused virtual terminal /dev/ttyN
 
 -------------------------------
 
@@ -1187,25 +1187,6 @@ Example:
 
 -------------------------------
 
-=item nc
-
-Usage: nc [IP] [port]
-
-Netcat opens a pipe to IP:port
-
-Example:
-
-	$ nc foobar.somedomain.com 25
-	220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
-	help
-	214-Commands supported:
-	214-    HELO EHLO MAIL RCPT DATA AUTH
-	214     NOOP QUIT RSET HELP
-	quit
-	221 foobar closing connection
-
--------------------------------
-
 =item more
 
 Usage: more [file ...]
@@ -1274,6 +1255,25 @@ Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
 Example:
 
 	$ mv /tmp/foo /bin/bar
+
+-------------------------------
+
+=item nc
+
+Usage: nc [IP] [port]
+
+Netcat opens a pipe to IP:port
+
+Example:
+
+	$ nc foobar.somedomain.com 25
+	220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
+	help
+	214-Commands supported:
+	214-    HELO EHLO MAIL RCPT DATA AUTH
+	214     NOOP QUIT RSET HELP
+	quit
+	221 foobar closing connection
 
 -------------------------------
 
@@ -1476,23 +1476,6 @@ Example:
 
 -------------------------------
 
-=item sh
-
-Usage: sh
-
-lash -- the BusyBox LAme SHell (command interpreter)
-
-This command does not yet have proper documentation.  
-
-Use lash just as you would use any other shell.  It properly handles pipes,
-redirects, job control, can be used as the shell for scripts (#!/bin/sh), and
-has a sufficient set of builtins to do what is needed.  It does not (yet)
-support Bourne Shell syntax.  If you need things like "if-then-else", "while",
-and such, use ash or bash.  If you just need a very simple and extremely small
-shell, this will do the job.
-
--------------------------------
-
 =item sfdisk
 
 Usage: sfdisk [options] device ...
@@ -1536,6 +1519,23 @@ You can disable all consistency checking with:
 
 -------------------------------
 
+=item sh
+
+Usage: sh
+
+lash -- the BusyBox LAme SHell (command interpreter)
+
+This command does not yet have proper documentation.  
+
+Use lash just as you would use any other shell.  It properly handles pipes,
+redirects, job control, can be used as the shell for scripts (#!/bin/sh), and
+has a sufficient set of builtins to do what is needed.  It does not (yet)
+support Bourne Shell syntax.  If you need things like "if-then-else", "while",
+and such, use ash or bash.  If you just need a very simple and extremely small
+shell, this will do the job.
+
+-------------------------------
+
 =item sleep
 
 Usage: sleep N
@@ -1567,6 +1567,30 @@ Example:
 
 -------------------------------
 
+=item swapoff
+
+Usage: swapoff [OPTION] [device]
+
+Stop swapping virtual memory pages on the given device.
+
+Options:
+
+        -a      Stop swapping on all swap devices
+
+-------------------------------
+
+=item swapon
+
+Usage: swapon [OPTION] [device]
+
+Start swapping virtual memory pages on the given device.
+
+Options:
+
+        -a      Start swapping on all swap devices
+
+-------------------------------
+
 =item sync
 
 Usage: sync
@@ -1588,30 +1612,6 @@ Options:
 	-n		Run as a foreground process
 	-K		Do not start up the klogd process
 	-O FILE		Use an alternate log file (default=/var/log/messages)
-
--------------------------------
-
-=item swapon
-
-Usage: swapon [OPTION] [device]
-
-Start swapping virtual memory pages on the given device.
-
-Options:
-
-        -a      Start swapping on all swap devices
-
--------------------------------
-
-=item swapoff
-
-Usage: swapoff [OPTION] [device]
-
-Stop swapping virtual memory pages on the given device.
-
-Options:
-
-        -a      Stop swapping on all swap devices
 
 -------------------------------
 
@@ -1666,6 +1666,33 @@ Example:
 
 -------------------------------
 
+=item tee
+
+Usage: tee [OPTION]... [FILE]...
+
+Copy standard input to each FILE, and also to standard output.
+
+Options:
+
+        -a      append to the given FILEs, do not overwrite
+
+Example:
+
+	$ echo "Hello" | tee /tmp/foo
+	$ cat /tmp/foo
+	Hello
+
+-------------------------------
+
+=item telnet
+
+Usage: telnet host [port]
+
+Telnet is used to establish interactive communication with another
+computer over a network using the TELNET protocol.
+
+-------------------------------
+
 =item test, [
 
 Usage: test EXPRESSION
@@ -1688,33 +1715,6 @@ Example:
 	$ [ -d /junk ]
 	$ echo $?
 	1
-
--------------------------------
-
-=item telnet
-
-Usage: telnet host [port]
-
-Telnet is used to establish interactive communication with another
-computer over a network using the TELNET protocol.
-
--------------------------------
-
-=item tee
-
-Usage: tee [OPTION]... [FILE]...
-
-Copy standard input to each FILE, and also to standard output.
-
-Options:
-
-        -a      append to the given FILEs, do not overwrite
-
-Example:
-
-	$ echo "Hello" | tee /tmp/foo
-	$ cat /tmp/foo
-	Hello
 
 -------------------------------
 
@@ -1780,45 +1780,6 @@ Example:
 
 	$ tty
 	/dev/tty2
-
--------------------------------
-
-=item uuencode
-
-Usage: uuencode [OPTION] [INFILE] REMOTEFILE
-
-Uuencode a file.
-
-Options:
-
-	-m      use base64 encoding as of RFC1521
-
-Example:
-
-	$ uuencode busybox busybox
-	begin 755 busybox
-	M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&
-	.....
-	$ uudecode busybox busybox > busybox.uu
-	$
-
--------------------------------
-
-=item uudecode
-
-Usage: uudecode [OPTION] [FILE]
-
-Uudecode a uuencoded file
-
-Options:
-
-	-o FILE  direct output to FILE
-
-Example:
-
-	$ uudecode -o busybox busybox.uu
-	$ ls -l busybox
-	-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
 
 -------------------------------
 
@@ -1915,6 +1876,45 @@ Example:
 
 	$ usleep 1000000
 	[pauses for 1 second]
+
+-------------------------------
+
+=item uuencode
+
+Usage: uuencode [OPTION] [INFILE] REMOTEFILE
+
+Uuencode a file.
+
+Options:
+
+	-m      use base64 encoding as of RFC1521
+
+Example:
+
+	$ uuencode busybox busybox
+	begin 755 busybox
+	M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&
+	.....
+	$ uudecode busybox busybox > busybox.uu
+	$
+
+-------------------------------
+
+=item uudecode
+
+Usage: uudecode [OPTION] [FILE]
+
+Uudecode a uuencoded file
+
+Options:
+
+	-o FILE  direct output to FILE
+
+Example:
+
+	$ uudecode -o busybox busybox.uu
+	$ ls -l busybox
+	-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
 
 -------------------------------
 
@@ -2063,4 +2063,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.52 2000/06/26 12:14:30 andersen Exp $
+# $Id: busybox.pod,v 1.53 2000/07/04 20:07:13 andersen Exp $

@@ -231,531 +231,368 @@
 	</sect1>
 
 
-<para>
--------------------------------
 
+	<sect1 id="chgrp">
+	    <title>chgrp</title>
+
+	    <para>
+	    Usage: chgrp [OPTION]... GROUP FILE...
+	    </para>
+
+	    <para>
+	    Change the group membership of each FILE to GROUP.
+	    </para>
+
+	    <para>
+	    Options:
+	    </para>
+
+	    <para>
+	    <screen>
+		    -R      change files and directories recursively
+	    </screen>
+	    </para>
+
+	    <para>
+	    Example:
+	    </para>
+
+	    <para>
+	    <screen>
+		    $ ls -l /tmp/foo
+		    -r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
+		    $ chgrp root /tmp/foo
+		    $ ls -l /tmp/foo
+		    -r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo
+	    </screen>
+	    </para>
+	</sect1>
+
+
+
+	<sect1 id="chmod">
+	    <title>chmod</title>
+
+	    <para>
+	    Usage: chmod [<emphasis>-R</emphasis>] MODE[,MODE]... FILE...
+	    </para>
+
+	    <para>
+	    Changes file access permissions for the specified
+	    <literal>FILE(s)</literal> (or directories). Each MODE is defined by
+	    combining the letters for WHO has access to the file, an OPERATOR for
+	    selecting how the permissions should be changed, and a PERMISSION for
+	    <literal>FILE(s)</literal> (or directories).
+	    </para>
+
+	    <para>
+	    WHO may be chosen from
+	    </para>
+
+	    <para>
+	    <screen>
+		    u       User who owns the file
+		    g       Users in the file's Group
+		    o       Other users not in the file's group
+		    a       All users
+	    </screen>
+	    </para>
+
+	    <para>
+	    OPERATOR may be chosen from
+	    </para>
+
+	    <para>
+	    <screen>
+		    +       Add a permission
+		    -       Remove a permission
+		    =       Assign a permission
+	    </screen>
+	    </para>
+
+	    <para>
+	    PERMISSION may be chosen from
+	    </para>
+
+	    <para>
+	    <screen>
+		    r       Read
+		    w       Write
+		    x       Execute (or access for directories)
+		    s       Set user (or group) ID bit
+		    t       Sticky bit (for directories prevents removing files by non-owners)
+	    </screen>
+	    </para>
+
+	    <para>
+	    Alternately, permissions can be set numerically where the first three
+	    numbers are calculated by adding the octal values, such as
+	    </para>
+
+	    <para>
+	    <screen>
+		    4       Read
+		    2       Write
+		    1       Execute
+	    </screen>
+	    </para>
+
+	    <para>
+	    An optional fourth digit can also be used to specify
+	    </para>
+
+	    <para>
+	    <screen>
+		    4       Set user ID
+		    2       Set group ID
+		    1       Sticky bit
+	    </screen>
+	    </para>
+
+	    <para>
+	    Options:
+	    </para>
+
+	    <para>
+	    <screen>
+		    -R      Change files and directories recursively.
+	    </screen>
+	    </para>
+
+	    <para>
+	    Example:
+	    </para>
+
+	    <para>
+	    <screen>
+		    $ ls -l /tmp/foo
+		    -rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+		    $ chmod u+x /tmp/foo
+		    $ ls -l /tmp/foo
+		    -rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*
+		    $ chmod 444 /tmp/foo
+		    $ ls -l /tmp/foo
+		    -r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+	    </screen>
+	    </para>
+	</sect1>
+
+
+	
+	<sect1 id="chown">
+	    <title>chown</title>
+		<para>
+		Usage: chown [OPTION]... OWNER[&lt;.|:&gt;[GROUP] FILE...
+		</para>
+
+		<para>
+		Changes the owner and/or group of each FILE to OWNER and/or GROUP.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Changes files and directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
+			$ chown root /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 root     andersen        0 Apr 12 18:25 /tmp/foo
+			$ chown root.root /tmp/foo
+			ls -l /tmp/foo
+			-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+
+
+	<sect1 id="chroot">
+	    <title>chroot</title>
+		<para>
+		Usage: chroot NEWROOT [COMMAND...]
+		</para>
+
+		<para>
+		Run COMMAND with root directory set to NEWROOT.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /bin/ls
+			lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -&gt; /BusyBox
+			$ mount /dev/hdc1 /mnt -t minix
+			$ chroot /mnt
+			$ ls -l /bin/ls
+			-rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*
+		</screen>
+		</para>
+	</sect1>
+
+
+	<sect1 id="chvt">
+	    <title>chvt</title>
+		<para>
+		Usage: chvt N
+		</para>
+
+		<para>
+		Changes the foreground virtual terminal to /dev/ttyN
+		</para>
+	</sect1>
+
+
+
+
+	<sect1 id="clear">
+	    <title>clear</title>
+
+		<para>
+		Usage: clear
+		</para>
+
+		<para>
+		Clears the screen.
+		</para>
+	</sect1>
+
+
+	<sect1 id="cp">
+	    <title>cp</title>
+
+		<para>
+		Usage: cp [OPTION]... SOURCE DEST
+		</para>
+
+		<para>
+		<screen>
+		   or: cp [OPTION]... SOURCE... DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Copies SOURCE to DEST, or multiple <literal>SOURCE(s)</literal> to
+		DIRECTORY.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a      Same as -dpR
+			-d      Preserves links
+			-p      Preserves file attributes if possible
+			-R      Copies directories recursively
+		</screen>
+		</para>
+	</sect1>
+
+
+	<sect1 id="cut">
+	    <title>cut</title>
+
+		<para>
+		Usage: cut [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Prints selected fields from each input FILE to standard output.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+				-b LIST Output only bytes from LIST
+				-c LIST Output only characters from LIST
+				-d CHAR Use CHAR instead of tab as the field delimiter
+				-s      Only output Lines if the include DELIM
+				-f N    Print only these fields
+				-n      Ignored
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Hello world" | cut -f 1 -d ' '
+			Hello
+			$ echo "Hello world" | cut -f 2 -d ' '
+			world
+		</screen>
+		</para>
+	</sect1>
+
+
+
+	<sect1 id="date">
+	    <title>date</title>
+
+		<para>
+		Usage: date [OPTION]... [+FORMAT]
+		</para>
+
+		<para>
+		<screen>
+		  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]
+		</screen>
+		</para>
+
+		<para>
+		Displays the current time in the given FORMAT, or sets the system date.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Outputs RFC-822 compliant date string
+			-s      Sets time described by STRING
+			-u      Prints or sets Coordinated Universal Time
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ date
+			Wed Apr 12 18:52:41 MDT 2000
+		</screen>
+		</para>
+	</sect1>
+
+
+
+<!-- This is where I have stopped formatting stuff -->
 
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>chgrp
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: chgrp [OPTION]... GROUP FILE...
-
-
-</para>
-
-<para>
-Change the group membership of each FILE to GROUP.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -R      change files and directories recursively
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -l /tmp/foo
-        -r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
-        $ chgrp root /tmp/foo
-        $ ls -l /tmp/foo
-        -r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>chmod
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: chmod [<emphasis>-R</emphasis>] MODE[,MODE]... FILE...
-
-
-</para>
-
-<para>
-Changes file access permissions for the specified
-<literal>FILE(s)</literal> (or directories). Each MODE is defined by
-combining the letters for WHO has access to the file, an OPERATOR for
-selecting how the permissions should be changed, and a PERMISSION for
-<literal>FILE(s)</literal> (or directories).
-
-
-</para>
-
-<para>
-WHO may be chosen from
-
-
-</para>
-
-<para>
-<screen>
-        u       User who owns the file
-        g       Users in the file's Group
-        o       Other users not in the file's group
-        a       All users
-</screen>
-
-
-</para>
-
-<para>
-OPERATOR may be chosen from
-
-
-</para>
-
-<para>
-<screen>
-        +       Add a permission
-        -       Remove a permission
-        =       Assign a permission
-</screen>
-
-
-</para>
-
-<para>
-PERMISSION may be chosen from
-
-
-</para>
-
-<para>
-<screen>
-        r       Read
-        w       Write
-        x       Execute (or access for directories)
-        s       Set user (or group) ID bit
-        t       Sticky bit (for directories prevents removing files by non-owners)
-</screen>
-
-
-</para>
-
-<para>
-Alternately, permissions can be set numerically where the first three
-numbers are calculated by adding the octal values, such as
-
-
-</para>
-
-<para>
-<screen>
-        4       Read
-        2       Write
-        1       Execute
-</screen>
-
-
-</para>
-
-<para>
-An optional fourth digit can also be used to specify
-
-
-</para>
-
-<para>
-<screen>
-        4       Set user ID
-        2       Set group ID
-        1       Sticky bit
-</screen>
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -R      Change files and directories recursively.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -l /tmp/foo
-        -rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo
-        $ chmod u+x /tmp/foo
-        $ ls -l /tmp/foo
-        -rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*
-        $ chmod 444 /tmp/foo
-        $ ls -l /tmp/foo
-        -r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>chown
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: chown [OPTION]... OWNER[&lt;.|:&gt;[GROUP] FILE...
-
-
-</para>
-
-<para>
-Changes the owner and/or group of each FILE to OWNER and/or GROUP.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -R      Changes files and directories recursively
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -l /tmp/foo
-        -r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
-        $ chown root /tmp/foo
-        $ ls -l /tmp/foo
-        -r--r--r--    1 root     andersen        0 Apr 12 18:25 /tmp/foo
-        $ chown root.root /tmp/foo
-        ls -l /tmp/foo
-        -r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>chroot
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: chroot NEWROOT [COMMAND...]
-
-
-</para>
-
-<para>
-Run COMMAND with root directory set to NEWROOT.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -l /bin/ls
-        lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -&gt; /BusyBox
-        $ mount /dev/hdc1 /mnt -t minix
-        $ chroot /mnt
-        $ ls -l /bin/ls
-        -rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>clear
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Clears the screen.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>chvt
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: chvt N
-
-
-</para>
-
-<para>
-Changes the foreground virtual terminal to /dev/ttyN
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>cp
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: cp [OPTION]... SOURCE DEST
-
-
-</para>
-
-<para>
-<screen>
-   or: cp [OPTION]... SOURCE... DIRECTORY
-</screen>
-
-
-</para>
-
-<para>
-Copies SOURCE to DEST, or multiple <literal>SOURCE(s)</literal> to
-DIRECTORY.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Same as -dpR
-        -d      Preserves links
-        -p      Preserves file attributes if possible
-        -R      Copies directories recursively
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>cut
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: cut [OPTION]... [FILE]...
-
-
-</para>
-
-<para>
-Prints selected fields from each input FILE to standard output.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-                -b LIST Output only bytes from LIST
-                -c LIST Output only characters from LIST
-                -d CHAR Use CHAR instead of tab as the field delimiter
-                -s      Only output Lines if the include DELIM
-                -f N    Print only these fields
-                -n      Ignored
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo "Hello world" | cut -f 1 -d ' '
-        Hello
-        $ echo "Hello world" | cut -f 2 -d ' '
-        world
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>date
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: date [OPTION]... [+FORMAT]
-
-
-</para>
-
-<para>
-<screen>
-  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]
-</screen>
-
-
-</para>
-
-<para>
-Displays the current time in the given FORMAT, or sets the system date.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -R      Outputs RFC-822 compliant date string
-        -s      Sets time described by STRING
-        -u      Prints or sets Coordinated Universal Time
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ date
-        Wed Apr 12 18:52:41 MDT 2000
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
 
 </listitem></varlistentry>
 <varlistentry><term><emphasis>dc
@@ -868,6 +705,30 @@ Example:
 
 <para>
 -------------------------------
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>deallocvt
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: deallocvt N
+
+
+</para>
+
+<para>
+Deallocates unused virtual terminal /dev/ttyN
+
+
+</para>
+
+<para>
+-------------------------------
+
 
 
 </para>
@@ -1405,30 +1266,6 @@ Example:
 <screen>
         $ freeramdisk /dev/ram2
 </screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>deallocvt
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: deallocvt N
-
-
-</para>
-
-<para>
-Deallocates unused virtual terminal /dev/ttyN
 
 
 </para>
@@ -3064,51 +2901,6 @@ Example:
 </para>
 
 </listitem></varlistentry>
-<varlistentry><term><emphasis>nc
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: nc [IP] [port]
-
-
-</para>
-
-<para>
-Netcat opens a pipe to IP:port
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ nc foobar.somedomain.com 25
-        220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
-        help
-        214-Commands supported:
-        214-    HELO EHLO MAIL RCPT DATA AUTH
-        214     NOOP QUIT RSET HELP
-        quit
-        221 foobar closing connection
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>more
 
 </emphasis></term>
@@ -3283,6 +3075,51 @@ Example:
 <para>
 <screen>
         $ mv /tmp/foo /bin/bar
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>nc
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: nc [IP] [port]
+
+
+</para>
+
+<para>
+Netcat opens a pipe to IP:port
+
+
+</para>
+
+<para>
+Example:
+
+
+</para>
+
+<para>
+<screen>
+        $ nc foobar.somedomain.com 25
+        220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
+        help
+        214-Commands supported:
+        214-    HELO EHLO MAIL RCPT DATA AUTH
+        214     NOOP QUIT RSET HELP
+        quit
+        221 foobar closing connection
 </screen>
 
 
@@ -3860,47 +3697,6 @@ Example:
 </para>
 
 </listitem></varlistentry>
-<varlistentry><term><emphasis>sh
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sh
-
-
-</para>
-
-<para>
-lash -- the BusyBox LAme SHell (command interpreter)
-
-
-</para>
-
-<para>
-This command does not yet have proper documentation.  
-
-
-</para>
-
-<para>
-Use lash just as you would use any other shell. It properly handles pipes,
-redirects, job control, can be used as the shell for scripts (#!/bin/sh),
-and has a sufficient set of builtins to do what is needed. It does not
-(yet) support Bourne Shell syntax. If you need things like
-``if-then-else'', ``while'', and such, use ash or bash. If you just need a
-very simple and extremely small shell, this will do the job.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>sfdisk
 
 </emphasis></term>
@@ -3996,6 +3792,47 @@ You can disable all consistency checking with:
 </para>
 
 </listitem></varlistentry>
+<varlistentry><term><emphasis>sh
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: sh
+
+
+</para>
+
+<para>
+lash -- the BusyBox LAme SHell (command interpreter)
+
+
+</para>
+
+<para>
+This command does not yet have proper documentation.  
+
+
+</para>
+
+<para>
+Use lash just as you would use any other shell. It properly handles pipes,
+redirects, job control, can be used as the shell for scripts (#!/bin/sh),
+and has a sufficient set of builtins to do what is needed. It does not
+(yet) support Bourne Shell syntax. If you need things like
+``if-then-else'', ``while'', and such, use ash or bash. If you just need a
+very simple and extremely small shell, this will do the job.
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
 <varlistentry><term><emphasis>sleep
 
 </emphasis></term>
@@ -4079,6 +3916,82 @@ Example:
 </para>
 
 </listitem></varlistentry>
+<varlistentry><term><emphasis>swapoff
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: swapoff [OPTION] [device]
+
+
+</para>
+
+<para>
+Stop swapping virtual memory pages on the given device.
+
+
+</para>
+
+<para>
+Options:
+
+
+</para>
+
+<para>
+<screen>
+        -a      Stop swapping on all swap devices
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>swapon
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: swapon [OPTION] [device]
+
+
+</para>
+
+<para>
+Start swapping virtual memory pages on the given device.
+
+
+</para>
+
+<para>
+Options:
+
+
+</para>
+
+<para>
+<screen>
+        -a      Start swapping on all swap devices
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
 <varlistentry><term><emphasis>sync
 
 </emphasis></term>
@@ -4133,82 +4046,6 @@ Options:
         -n              Run as a foreground process
         -K              Do not start up the klogd process
         -O FILE         Use an alternate log file (default=/var/log/messages)
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>swapon
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: swapon [OPTION] [device]
-
-
-</para>
-
-<para>
-Start swapping virtual memory pages on the given device.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Start swapping on all swap devices
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>swapoff
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: swapoff [OPTION] [device]
-
-
-</para>
-
-<para>
-Stop swapping virtual memory pages on the given device.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Stop swapping on all swap devices
 </screen>
 
 
@@ -4364,81 +4201,6 @@ Example:
 </para>
 
 </listitem></varlistentry>
-<varlistentry><term><emphasis>test, [
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: test EXPRESSION or [ EXPRESSION ]
-
-
-</para>
-
-<para>
-Checks file types and compares values returning an exit code determined by
-the value of EXPRESSION.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ test 1 -eq 2
-        $ echo $?
-        1
-        $ test 1 -eq 1
-        $ echo $?
-        0
-        $ [ -d /etc ]
-        $ echo $?
-        0
-        $ [ -d /junk ]
-        $ echo $?
-        1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>telnet
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: telnet host [port]
-
-
-</para>
-
-<para>
-Telnet is used to establish interactive communication with another computer
-over a network using the TELNET protocol.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>tee
 
 </emphasis></term>
@@ -4481,6 +4243,81 @@ Example:
         $ echo "Hello" | tee /tmp/foo
         $ cat /tmp/foo
         Hello
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>telnet
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: telnet host [port]
+
+
+</para>
+
+<para>
+Telnet is used to establish interactive communication with another computer
+over a network using the TELNET protocol.
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>test, [
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: test EXPRESSION or [ EXPRESSION ]
+
+
+</para>
+
+<para>
+Checks file types and compares values returning an exit code determined by
+the value of EXPRESSION.
+
+
+</para>
+
+<para>
+Example:
+
+
+</para>
+
+<para>
+<screen>
+        $ test 1 -eq 2
+        $ echo $?
+        1
+        $ test 1 -eq 1
+        $ echo $?
+        0
+        $ [ -d /etc ]
+        $ echo $?
+        0
+        $ [ -d /junk ]
+        $ echo $?
+        1
 </screen>
 
 
@@ -4666,117 +4503,6 @@ Example:
 <screen>
         $ tty
         /dev/tty2
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uuencode
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uuencode [OPTION] [INFILE] REMOTEFILE
-
-
-</para>
-
-<para>
-Uuencode a file.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m      use base64 encoding as of RFC1521
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uuencode busybox busybox
-        begin 755 busybox
-        M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&amp;
-        .....
-        $ uudecode busybox busybox &gt; busybox.uu
-        $
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uudecode
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uudecode [OPTION] [FILE]
-
-
-</para>
-
-<para>
-Uudecode a uuencoded file
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -o FILE  direct output to FILE
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uudecode -o busybox busybox.uu
-        $ ls -l busybox
-        -rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
 </screen>
 
 
@@ -5045,6 +4771,117 @@ Example:
 <screen>
         $ usleep 1000000
         [pauses for 1 second]
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>uudecode
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: uudecode [OPTION] [FILE]
+
+
+</para>
+
+<para>
+Uudecode a uuencoded file
+
+
+</para>
+
+<para>
+Options:
+
+
+</para>
+
+<para>
+<screen>
+        -o FILE  direct output to FILE
+</screen>
+
+
+</para>
+
+<para>
+Example:
+
+
+</para>
+
+<para>
+<screen>
+        $ uudecode -o busybox busybox.uu
+        $ ls -l busybox
+        -rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
+</screen>
+
+
+</para>
+
+<para>
+-------------------------------
+
+
+</para>
+
+</listitem></varlistentry>
+<varlistentry><term><emphasis>uuencode
+
+</emphasis></term>
+<listitem><para></para>
+
+<para>
+Usage: uuencode [OPTION] [INFILE] REMOTEFILE
+
+
+</para>
+
+<para>
+Uuencode a file.
+
+
+</para>
+
+<para>
+Options:
+
+
+</para>
+
+<para>
+<screen>
+        -m      use base64 encoding as of RFC1521
+</screen>
+
+
+</para>
+
+<para>
+Example:
+
+
+</para>
+
+<para>
+<screen>
+        $ uuencode busybox busybox
+        begin 755 busybox
+        M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&amp;
+        .....
+        $ uudecode busybox busybox &gt; busybox.uu
+        $
 </screen>
 
 
