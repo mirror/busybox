@@ -648,7 +648,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 
 		/* Remove any clutter lying in our way */
-		unlink( header.name);
+		if (extractFlag == TRUE)	/* .. but only if we are extracting (as */
+			unlink( header.name);	/* opposed to listing) (rob@sysgo.de)   */
 
 		/* If we got here, we can be certain we have a legitimate 
 		 * header to work with.  So work with it.  */

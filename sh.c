@@ -131,8 +131,8 @@ static struct builtInCommand bltins_forking[] = {
 };
 
 static const char shell_usage[] =
-
-	"sh [FILE]...\n" 
+	"sh [FILE]...\n"
+	"   or: sh -c command [args]...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nlash: The BusyBox command interpreter (shell).\n\n"
 #endif
@@ -140,6 +140,7 @@ static const char shell_usage[] =
 
 static char cwd[1024];
 static char *prompt = "# ";
+static char *local_pending_command = NULL;
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 void win_changed(int sig)
@@ -225,8 +226,9 @@ static int shell_fg_bg(struct job *cmd, struct jobSet *jobList)
 
 	if (*cmd->progs[0].argv[0] == 'f') {
 		/* Make this job the foreground job */
-		if (tcsetpgrp(0, job->pgrp))
-			perror("tcsetpgrp");
+		/* suppress messages when run from /linuxrc mag@sysgo.de */
+		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
+			perror("tcsetpgrp"); 
 		jobList->fg = job;
 	}
 
@@ -411,6 +413,17 @@ static void checkJobs(struct jobSet *jobList)
 
 static int getCommand(FILE * source, char *command)
 {
+	if (source == NULL) {
+		if (local_pending_command) {
+			/* a command specified (-c option): return it & mark it done */
+			strcpy(command, local_pending_command);
+			free(local_pending_command);
+			local_pending_command = NULL;
+			return 0;
+		}
+		return 1;
+	}
+
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		int len;
@@ -842,7 +855,8 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 		jobList->fg = job;
 
 		/* move the new process group into the foreground */
-		if (tcsetpgrp(0, newJob.pgrp))
+		/* suppress messages when run from /linuxrc mag@sysgo.de */
+		if (tcsetpgrp(0, newJob.pgrp) && errno != ENOTTY)
 			perror("tcsetpgrp");
 	}
 
@@ -894,9 +908,13 @@ static int busy_loop(FILE * input)
 	char *nextCommand = NULL;
 	struct jobSet jobList = { NULL, NULL };
 	struct job newJob;
+	pid_t  parent_pgrp;
 	int i;
 	int status;
 	int inBg;
+
+	/* save current owner of TTY so we can restore it on exit */
+	parent_pgrp = tcgetpgrp(0);
 
 	command = (char *) calloc(BUFSIZ, sizeof(char));
 
@@ -939,10 +957,6 @@ static int busy_loop(FILE * input)
 
 					removeJob(&jobList, jobList.fg);
 					jobList.fg = NULL;
-
-					/* move the shell to the foreground */
-					if (tcsetpgrp(0, getpid()))
-						perror("tcsetpgrp");
 				}
 			} else {
 				/* the child was stopped */
@@ -958,12 +972,17 @@ static int busy_loop(FILE * input)
 
 			if (!jobList.fg) {
 				/* move the shell to the foreground */
-				if (tcsetpgrp(0, getpid()))
-					perror("tcsetpgrp");
+				/* suppress messages when run from /linuxrc mag@sysgo.de */
+				if (tcsetpgrp(0, getpid()) && errno != ENOTTY)
+					perror("tcsetpgrp"); 
 			}
 		}
 	}
 	free(command);
+
+	/* return controlling TTY back to parent process group before exiting */
+	if (tcsetpgrp(0, parent_pgrp))
+		perror("tcsetpgrp"); 
 
 	return 0;
 }
@@ -973,9 +992,6 @@ int shell_main(int argc, char **argv)
 {
 	FILE *input = stdin;
 
-	if (argc > 2) {
-		usage(shell_usage);
-	}
 	/* initialize the cwd */
 	getcwd(cwd, sizeof(cwd));
 
@@ -993,13 +1009,33 @@ int shell_main(int argc, char **argv)
 		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else {
-		if (*argv[1]=='-') {
-			usage("sh\n\nlash -- the BusyBox LAme SHell (command interpreter)\n");
+		if (argv[1][0]=='-' && argv[1][1]=='c') {
+			int i;
+			local_pending_command = (char *) calloc(BUFSIZ, sizeof(char));
+			if (local_pending_command == 0) {
+				fatalError("sh: out of memory\n");
+			}
+			for(i=2; i<argc; i++)
+			{
+				if (strlen(local_pending_command) + strlen(argv[i]) >= BUFSIZ) {
+				  fatalError("sh: commands for -c option too long\n");
+				}
+				strcat(local_pending_command, argv[i]);
+				if (i + 1 < argc)
+				  strcat(local_pending_command, " ");
+			}
+			input = NULL;
+			  
 		}
-		input = fopen(argv[1], "r");
-		if (!input) {
-			fatalError("sh: Couldn't open file '%s': %s\n", argv[1],
-					   strerror(errno));
+		else if (argv[1][0]=='-') {
+			usage(shell_usage);
+		}
+		else {
+			input = fopen(argv[1], "r");
+			if (!input) {
+				fatalError("sh: Couldn't open file '%s': %s\n", argv[1],
+						   strerror(errno));
+			}
 		}
 	}
 
