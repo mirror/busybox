@@ -61,7 +61,6 @@ extern char get_header_tar_bz2(archive_handle_t *archive_handle)
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
 
 	close(fd_pipe[0]);
-printf("finished\n");
 #if 0
 	if (kill(pid, SIGTERM) == -1) {
 		bb_error_msg_and_die("Couldnt kill gunzip process");
