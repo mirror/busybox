@@ -63,8 +63,9 @@ static void set_signal(int signo, void (*handler) (void))
 }
 #endif
 
-static int send_pack(int sock, struct in_addr *src_addr, struct in_addr *dst_addr,
-			  struct sockaddr_ll *ME, struct sockaddr_ll *HE)
+static int send_pack(int sock, struct in_addr *src_addr,
+					 struct in_addr *dst_addr, struct sockaddr_ll *ME,
+					 struct sockaddr_ll *HE)
 {
 	int err;
 	struct timeval now;
@@ -274,7 +275,7 @@ int arping_main(int argc, char **argv)
 
 	setuid(uid);
 
-	while ((ch = getopt(argc, argv, "h?bfDUAqc:w:s:I")) != EOF) {
+	while ((ch = getopt(argc, argv, "h?bfDUAqc:w:s:I:")) != EOF) {
 		switch (ch) {
 		case 'b':
 			broadcast_only = 1;
@@ -300,6 +301,13 @@ int arping_main(int argc, char **argv)
 			timeout = atoi(optarg);
 			break;
 		case 'I':
+			if (optarg == NULL)
+				show_usage();
+			if (xstrlen(optarg) > IF_NAMESIZE) {
+				error_msg("Interface name `%s' must be less than %d", optarg,
+						  IF_NAMESIZE);
+				exit(2);
+			}
 			device = optarg;
 			break;
 		case 'f':
@@ -322,10 +330,6 @@ int arping_main(int argc, char **argv)
 
 	target = *argv;
 
-	if (device == NULL) {
-		error_msg("-I <interface> is required!");
-		exit(1);
-	}
 
 	if (s < 0) {
 		error_msg("socket");
@@ -338,7 +342,7 @@ int arping_main(int argc, char **argv)
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, device, IFNAMSIZ - 1);
 		if (ioctl(s, SIOCGIFINDEX, &ifr) < 0) {
-			error_msg("unknown interface %s", device);
+			error_msg("Interface %s not found", device);
 			exit(2);
 		}
 		ifindex = ifr.ifr_ifindex;
@@ -348,11 +352,11 @@ int arping_main(int argc, char **argv)
 			exit(2);
 		}
 		if (!(ifr.ifr_flags & IFF_UP)) {
-			error_msg("Interface \"%s\" is down", device);
+			error_msg("Interface %s is down", device);
 			exit(2);
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
-			error_msg("Interface \"%s\" is not ARPable", device);
+			error_msg("Interface %s is not ARPable", device);
 			exit(dad ? 0 : 2);
 		}
 	}
@@ -388,7 +392,7 @@ int arping_main(int argc, char **argv)
 			if (setsockopt
 				(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device,
 				 strlen(device) + 1) == -1)
-				perror("WARNING: interface is ignored");
+				error_msg("WARNING: interface %s is ignored", device);
 		}
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin_family = AF_INET;
@@ -458,6 +462,7 @@ int arping_main(int argc, char **argv)
 
 	{
 		struct sigaction sa;
+
 		memset(&sa, 0, sizeof(sa));
 		sa.sa_flags = SA_RESTART;
 
