@@ -99,12 +99,28 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links
+all: busybox busybox.links doc
+
+doc: BusyBox.txt BusyBox.1 BusyBox.html
+
+BusyBox.txt: docs/busybox.pod
+	@echo
+	@echo BusyBox Documentation
+	@echo
+	pod2text docs/busybox.pod > BusyBox.txt
+
+BusyBox.1: docs/busybox.pod
+	pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > BusyBox.1
+
+BusyBox.html: docs/busybox.pod
+	pod2html docs/busybox.pod > BusyBox.html
+	- rm -f pod2html*
+
+clean:
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
-	( cd docs ; $(MAKE) )
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
@@ -119,6 +135,7 @@ clean:
 	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
 	- cd tests && $(MAKE) clean
+	- rm -f BusyBox.html BusyBox.1 BusyBox.txt pod2html*
 
 distclean: clean
 	- rm -f busybox
@@ -127,8 +144,7 @@ distclean: clean
 install: busybox busybox.links
 	./install.sh $(PREFIX)
 
-dist release: distclean
-	( cd docs ; $(MAKE) )
+dist release: distclean doc
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\

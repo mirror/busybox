@@ -181,9 +181,6 @@
 // Enable support for a real /etc/mtab file instead of /proc/mounts
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
-// Enable support for remounting filesystems
-#define BB_FEATURE_REMOUNT
-//
 // Enable support for mounting remote NFS volumes
 //#define BB_FEATURE_NFSMOUNT
 //
@@ -233,12 +230,6 @@
 #ifdef BB_KILLALL
 #ifndef BB_KILL
 #define BB_KILL
-#endif
-#endif
-//
-#ifdef BB_INIT
-#ifndef BB_FEATURE_REMOUNT
-#define BB_FEATURE_REMOUNT
 #endif
 #endif
 //
