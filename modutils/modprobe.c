@@ -275,9 +275,12 @@ static struct dep_t *build_dep ( void )
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
 
-	if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
-		if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
-			return first;
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	if (( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
+#endif
+		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
+			if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
+				return first;
 
 	continuation_line = 0;
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
