@@ -50,7 +50,6 @@
 #include <utime.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
 

@@ -96,7 +96,6 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <mntent.h>
-#include <sys/stat.h>
 #include <sys/param.h>
 
  

@@ -32,7 +32,7 @@ const struct BB_applet applets[] = {
 	{"chown", chmod_chown_chgrp_main, _BB_DIR_BIN, chown_usage},
 #endif
 #ifdef BB_CHROOT
-	{"chroot", chroot_main, _BB_DIR_SBIN, chroot_usage},
+	{"chroot", chroot_main, _BB_DIR_USR_SBIN, chroot_usage},
 #endif
 #ifdef BB_CLEAR
 	{"clear", clear_main, _BB_DIR_USR_BIN, clear_usage},
@@ -65,7 +65,7 @@ const struct BB_applet applets[] = {
 	{"dmesg", dmesg_main, _BB_DIR_BIN, dmesg_usage},
 #endif
 #ifdef BB_DU
-	{"du", du_main, _BB_DIR_BIN, du_usage},
+	{"du", du_main, _BB_DIR_USR_BIN, du_usage},
 #endif
 #ifdef BB_DUMPKMAP
 	{"dumpkmap", dumpkmap_main, _BB_DIR_BIN, dumpkmap_usage},
@@ -251,7 +251,7 @@ const struct BB_applet applets[] = {
 	{"sleep", sleep_main, _BB_DIR_BIN, sleep_usage},
 #endif
 #ifdef BB_SORT
-	{"sort", sort_main, _BB_DIR_BIN, sort_usage},
+	{"sort", sort_main, _BB_DIR_USR_BIN, sort_usage},
 #endif
 #ifdef BB_SYNC
 	{"sync", sync_main, _BB_DIR_BIN, sync_usage},
@@ -278,7 +278,7 @@ const struct BB_applet applets[] = {
 	{"test", test_main, _BB_DIR_USR_BIN, test_usage},
 #endif
 #ifdef BB_TEE
-	{"tee", tee_main, _BB_DIR_BIN, tee_usage},
+	{"tee", tee_main, _BB_DIR_USR_BIN, tee_usage},
 #endif
 #ifdef BB_TOUCH
 	{"touch", touch_main, _BB_DIR_USR_BIN, touch_usage},

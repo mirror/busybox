@@ -25,7 +25,6 @@
 #include "internal.h"
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <utime.h>
 #include <errno.h>

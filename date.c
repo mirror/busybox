@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdio.h>
+#include <getopt.h>
 
 
 /* This 'date' command supports only 2 time setting formats, 

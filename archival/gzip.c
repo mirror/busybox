@@ -1609,7 +1609,6 @@ ulg deflate()
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
-#include <sys/stat.h>
 #include <errno.h>
 
 		/* configuration */

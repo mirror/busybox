@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #define KILL	0

@@ -25,7 +25,6 @@
 #include "internal.h"
 #include <stdio.h>
 #include <mntent.h>
-#include <sys/stat.h>
 #include <sys/vfs.h>
 
 extern const char mtab_file[];	/* Defined in utility.c */

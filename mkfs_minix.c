@@ -72,7 +72,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <termios.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <mntent.h>

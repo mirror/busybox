@@ -94,7 +94,6 @@ static char *license_msg[] = {
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
-#include <sys/stat.h>
 #include <errno.h>
 
 /* #include "tailor.h" */

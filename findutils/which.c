@@ -23,7 +23,6 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/stat.h>
 #include <sys/param.h>
 
 extern int which_main(int argc, char **argv)

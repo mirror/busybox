@@ -23,7 +23,6 @@
 #include "internal.h"
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 
 extern int mkfifo_main(int argc, char **argv)

@@ -81,7 +81,7 @@ int dumpkmap_main(int argc, char **argv)
 					errorMsg("ioctl returned: %s, %s, %s, %xqq\n",strerror(errno),(char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
 					}
 				else {
-					write(1,&ke.kb_value,2);	
+					write(1,(void*)&ke.kb_value,2);	
 					}	
 				
 			}
