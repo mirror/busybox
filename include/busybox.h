@@ -147,6 +147,7 @@ int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
 char *chunkstrdup(const char *str);
 void freeChunks(void);
+ssize_t safe_read(int fd, void *buf, size_t count);
 int full_write(int fd, const char *buf, int len);
 int full_read(int fd, char *buf, int len);
 int recursive_action(const char *fileName, int recurse, int followLinks, int depthFirst,

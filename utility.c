@@ -536,7 +536,7 @@ const char *time_string(time_t timeVal)
 }
 #endif /* BB_TAR || BB_AR */
 
-#if defined BB_TAR || defined BB_CP_MV || defined BB_AR || defined BB_DD
+#if defined BB_AR || defined BB_CP_MV || defined BB_DD || defined BB_NC || defined BB_TAR
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -1790,6 +1790,19 @@ int applet_name_compare(const void *x, const void *y)
 
 	return strcmp(applet1->name, applet2->name);
 }
+
+#if defined BB_NC
+ssize_t safe_read(int fd, void *buf, size_t count)
+{
+	ssize_t n;
+
+	do {
+		n = read(fd, buf, count);
+	} while (n < 0 && errno == EINTR);
+
+	return n;
+}
+#endif
 
 /* END CODE */
 /*

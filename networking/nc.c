@@ -38,14 +38,10 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 
-#define BUFSIZE 100
-
 int nc_main(int argc, char **argv)
 {
 	int sfd;
-	int result;
-	int len;
-	char ch[BUFSIZE];
+	char buf[BUFSIZ];
 
 	struct sockaddr_in address;
 	struct hostent *hostinfo;
@@ -54,34 +50,26 @@ int nc_main(int argc, char **argv)
 
 	argc--;
 	argv++;
-	if (argc < 2 || **(argv + 1) == '-') {
+	if (argc < 2 || **argv == '-') {
 		usage(nc_usage);
 	}
 
-	sfd = socket(AF_INET, SOCK_STREAM, 0);
+	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		perror_msg_and_die("socket");
 
-	hostinfo = (struct hostent *) gethostbyname(*argv);
-
-	if (!hostinfo) {
+	if ((hostinfo = gethostbyname(*argv)) == NULL)
 		error_msg_and_die("cannot resolve %s\n", *argv);
-	}
 
 	address.sin_family = AF_INET;
 	address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
 	address.sin_port = htons(atoi(*(++argv)));
 
-	len = sizeof(address);
-
-	result = connect(sfd, (struct sockaddr *) &address, len);
-
-	if (result < 0) {
-		perror("nc: connect");
-		exit(2);
-	}
+	if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
+		perror_msg_and_die("connect");
 
 	FD_ZERO(&readfds);
 	FD_SET(sfd, &readfds);
-	FD_SET(fileno(stdin), &readfds);
+	FD_SET(STDIN_FILENO, &readfds);
 
 	while (1) {
 		int fd;
@@ -90,41 +78,26 @@ int nc_main(int argc, char **argv)
 
 		testfds = readfds;
 
-		result =
-			select(FD_SETSIZE, &testfds, (fd_set *) NULL, (fd_set *) NULL,
-				   (struct timeval *) 0);
-
-		if (result < 1) {
-			perror("nc: select");
-			exit(3);
-		}
+		if (select(FD_SETSIZE, &testfds, NULL, NULL, NULL) < 0)
+			perror_msg_and_die("select");
 
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
-				int trn = 0;
-				int rn;
-
-				ioctl(fd, FIONREAD, &nread);
+				if ((nread = safe_read(fd, buf, sizeof(buf))) < 0)
+					perror_msg_and_die("read");
 
 				if (fd == sfd) {
 					if (nread == 0)
 						exit(0);
-					ofd = fileno(stdout);
+					ofd = STDOUT_FILENO;
 				} else {
 					if (nread == 0)
 						shutdown(sfd, 1);
 					ofd = sfd;
 				}
 
-
-
-				do {
-					rn = (BUFSIZE < nread - trn) ? BUFSIZE : nread - trn;
-					trn += rn;
-					read(fd, ch, rn);
-					write(ofd, ch, rn);
-				}
-				while (trn < nread);
+				if (full_write(ofd, buf, nread) < 0)
+					perror_msg_and_die("write");
 			}
 		}
 	}
