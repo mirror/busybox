@@ -311,14 +311,47 @@ static unsigned long display_generic(void)
 	char buf[80];
 	float avg1, avg2, avg3;
 	unsigned long total, used, mfree, shared, buffers, cached;
+	unsigned int needs_conversion = 1;
 
 	/* read memory info */
 	fp = bb_xfopen("meminfo", "r");
-	fgets(buf, sizeof(buf), fp);	/* skip first line */
 
-	if (fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
-		   &total, &used, &mfree, &shared, &buffers, &cached) != 6) {
-		bb_error_msg_and_die("failed to read '%s'", "meminfo");
+	/*
+	 * Old kernels (such as 2.4.x) had a nice summary of memory info that
+	 * we could parse, however this is gone entirely in 2.6. Try parsing
+	 * the old way first, and if that fails, parse each field manually.
+	 *
+	 * First, we read in the first line. Old kernels will have bogus
+	 * strings we don't care about, whereas new kernels will start right
+	 * out with MemTotal:
+	 * 				-- PFM.
+	 */
+	if (fscanf(fp, "MemTotal: %lu %s\n", &total, buf) != 2) {
+		fgets(buf, sizeof(buf), fp);	/* skip first line */
+
+		fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
+		   &total, &used, &mfree, &shared, &buffers, &cached);
+	} else {
+		/* 
+		 * Revert to manual parsing, which incidentally already has the
+		 * sizes in kilobytes. This should be safe for both 2.4 and
+		 * 2.6.
+		 */
+		needs_conversion = 0;
+
+		fscanf(fp, "MemFree: %lu %s\n", &mfree, buf);
+
+		/* 
+		 * MemShared: is no longer present in 2.6. Report this as 0,
+		 * to maintain consistent behavior with normal procps.
+		 */
+		if (fscanf(fp, "MemShared: %lu %s\n", &shared, buf) != 2)
+			shared = 0;
+
+		fscanf(fp, "Buffers: %lu %s\n", &buffers, buf);
+		fscanf(fp, "Cached: %lu %s\n", &cached, buf);
+
+		used = total - mfree;
 	}
 	fclose(fp);
 	
@@ -329,13 +362,16 @@ static unsigned long display_generic(void)
 	}
 	fclose(fp);
 
-	/* convert to kilobytes */
-	used /= 1024;
-	mfree /= 1024;
-	shared /= 1024;
-	buffers /= 1024;
-	cached /= 1024;
-	
+	if (needs_conversion) {
+		/* convert to kilobytes */
+		used /= 1024;
+		mfree /= 1024;
+		shared /= 1024;
+		buffers /= 1024;
+		cached /= 1024;
+		total /= 1024;
+	}
+		
 	/* output memory info and load average */
 	/* clear screen & go to top */
 	printf("\e[H\e[J" "Mem: "
@@ -344,7 +380,7 @@ static unsigned long display_generic(void)
 	printf("Load average: %.2f, %.2f, %.2f    "
 			"(State: S=sleeping R=running, W=waiting)\n",
 	       avg1, avg2, avg3);
-	return total / 1024;
+	return total;
 }
 
 
