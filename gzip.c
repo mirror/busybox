@@ -1808,6 +1808,8 @@ int gzip_main(int argc, char **argv)
 			case '1': case '2': case '3': case '4': case '5':
 			case '6': case '7': case '8': case '9':
 				break;
+			case 'd':
+				exit(gunzip_main(argc, argv));
 			default:
 				usage(gzip_usage);
 			}
