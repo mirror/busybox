@@ -31,6 +31,7 @@
 #define BB_DU
 //#define BB_DUMPKMAP
 #define BB_ECHO
+//#define BB_ENV
 //#define BB_EXPR
 //#define BB_FBSET
 //#define BB_FDFLUSH
@@ -118,6 +119,7 @@
 //#define BB_UPDATE
 #define BB_UPTIME
 //#define BB_USLEEP
+//#define BB_VI
 //#define BB_WATCHDOG
 #define BB_WC
 #define BB_WGET
