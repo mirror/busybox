@@ -144,8 +144,8 @@ mv_tests: mv_clean mv
 	@echo; echo ------------------------------;
 	@echo There should be an error message about cannot mv a dir to a subdir of itself.
 	cd mv_tests;				\
-	 touch a b c;				\
 	 mkdir adir;				\
+	 touch -r . a b c adir;			\
 	 ls -lR . > ../mv_a_star_adir.gnu;	\
 	 ${GMV} * adir;				\
 	 ls -lR . >> ../mv_a_star_adir.gnu;
@@ -153,8 +153,9 @@ mv_tests: mv_clean mv
 	@echo
 	@echo There should be an error message about cannot mv a dir to a subdir of itself.
 	cd mv_tests;				\
-	 rm -rf adir;				\
+	 rm -rf a b c adir;			\
 	 mkdir adir;				\
+	 touch -r . a b c adir;			\
 	 ls -lR . > ../mv_a_star_adir.bb;	\
 	 ${BMV} * adir;			\
 	 ls -lR . >> ../mv_a_star_adir.bb;

@@ -14,10 +14,11 @@ clean:: cp_clean
 cp_clean:
 	- rm -rf cp_tests cp_*.{gnu,bb} cp
 
+# check_cp_dir_to_dir_wo_a removed from this list; see below
 cp_tests: cp_clean cp check_exists check_simple_cp check_cp_symlnk \
 	check_cp_symlink_w_a check_cp_files_to_dir check_cp_files_to_dir_w_d \
 	check_cp_files_to_dir_w_p check_cp_files_to_dir_w_p_and_d \
-	check_cp_dir_to_dir_wo_a check_cp_dir_to_dir_w_a \
+	check_cp_dir_to_dir_w_a \
 	check_cp_dir_to_dir_w_a_take_two
 
 check_exists:
@@ -247,6 +248,11 @@ check_cp_files_to_dir_w_p_and_d:
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
+# This test doesn't work any more; gnu cp now _does_ copy a directory
+# to a subdirectory of itself.  What's worse, that "feature" has no
+# (documented) way to be disabled with command line switches.
+# It's not obvious that busybox cp should mimic this behavior.
+# For now, this test is removed from the cp_tests list, above.
 check_cp_dir_to_dir_wo_a:
 	# Copy a directory to another directory, without the -a switch.
 	@echo; echo Copy a directory to another directory, without the -a switch.
