@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.18 2002/07/11 11:11:52 andersen Exp $
+ * $Id: ifconfig.c,v 1.19 2002/08/22 18:22:10 bug1 Exp $
  *
  */
 
@@ -34,9 +34,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>   // strcmp and friends
-#include <ctype.h>    // isdigit and friends
-#include <stddef.h>				/* offsetof */
+#include <string.h>		/* strcmp and friends */
+#include <ctype.h>		/* isdigit and friends */
+#include <stddef.h>		/* offsetof */
 #include <sys/ioctl.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -65,14 +65,14 @@
 #endif
 
 #ifndef IFF_DYNAMIC
-#define IFF_DYNAMIC     0x8000  /* dialup device with changing addresses */
+#define IFF_DYNAMIC     0x8000	/* dialup device with changing addresses */
 #endif
 
 #if CONFIG_FEATURE_IPV6
 struct in6_ifreq {
-	struct in6_addr	ifr6_addr;
-	uint32_t	ifr6_prefixlen;
-	int		ifr6_ifindex; 
+	struct in6_addr ifr6_addr;
+	uint32_t ifr6_prefixlen;
+	int ifr6_ifindex;
 };
 #endif
 
@@ -177,70 +177,70 @@ struct options {
 #define ifreq_offsetof(x)  offsetof(struct ifreq, x)
 
 static const struct arg1opt Arg1Opt[] = {
-	{"SIOCSIFMETRIC",  SIOCSIFMETRIC,  ifreq_offsetof(ifr_metric)},
-	{"SIOCSIFMTU",     SIOCSIFMTU,     ifreq_offsetof(ifr_mtu)},
-	{"SIOCSIFTXQLEN",  SIOCSIFTXQLEN,  ifreq_offsetof(ifr_qlen)},
+	{"SIOCSIFMETRIC", SIOCSIFMETRIC, ifreq_offsetof(ifr_metric)},
+	{"SIOCSIFMTU", SIOCSIFMTU, ifreq_offsetof(ifr_mtu)},
+	{"SIOCSIFTXQLEN", SIOCSIFTXQLEN, ifreq_offsetof(ifr_qlen)},
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
 	{"SIOCSIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask)},
 	{"SIOCSIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr)},
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
-	{"SIOCSIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr)},
+	{"SIOCSIFHWADDR", SIOCSIFHWADDR, ifreq_offsetof(ifr_hwaddr)},
 #endif
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
 #ifdef SIOCSKEEPALIVE
 	{"SIOCSKEEPALIVE", SIOCSKEEPALIVE, ifreq_offsetof(ifr_data)},
 #endif
 #ifdef SIOCSOUTFILL
-	{"SIOCSOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data)},
+	{"SIOCSOUTFILL", SIOCSOUTFILL, ifreq_offsetof(ifr_data)},
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start)},
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr)},
-	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
+	{"SIOCSIFMAP", SIOCSIFMAP, ifreq_offsetof(ifr_map.mem_start)},
+	{"SIOCSIFMAP", SIOCSIFMAP, ifreq_offsetof(ifr_map.base_addr)},
+	{"SIOCSIFMAP", SIOCSIFMAP, ifreq_offsetof(ifr_map.irq)},
 #endif
 	/* Last entry if for unmatched (possibly hostname) arg. */
 #if CONFIG_FEATURE_IPV6
-	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
-	{"SIOCDIFADDR",    SIOCDIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
+	{"SIOCSIFADDR", SIOCSIFADDR, ifreq_offsetof(ifr_addr)},	/* IPv6 version ignores the offset */
+	{"SIOCDIFADDR", SIOCDIFADDR, ifreq_offsetof(ifr_addr)},	/* IPv6 version ignores the offset */
 #endif
-	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)},
+	{"SIOCSIFADDR", SIOCSIFADDR, ifreq_offsetof(ifr_addr)},
 };
 
 static const struct options OptArray[] = {
-	{"metric",       N_ARG,         ARG_METRIC,      0},
-    {"mtu",          N_ARG,         ARG_MTU,         0},
-	{"txqueuelen",   N_ARG,         ARG_TXQUEUELEN,  0},
-	{"dstaddr",      N_ARG,         ARG_DSTADDR,     0},
-	{"netmask",      N_ARG,         ARG_NETMASK,     0},
-	{"broadcast",    N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST},
+	{"metric", N_ARG, ARG_METRIC, 0},
+	{"mtu", N_ARG, ARG_MTU, 0},
+	{"txqueuelen", N_ARG, ARG_TXQUEUELEN, 0},
+	{"dstaddr", N_ARG, ARG_DSTADDR, 0},
+	{"netmask", N_ARG, ARG_NETMASK, 0},
+	{"broadcast", N_ARG | M_CLR, ARG_BROADCAST, IFF_BROADCAST},
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
-	{"hw",           N_ARG,         ARG_HW,          0},
+	{"hw", N_ARG, ARG_HW, 0},
 #endif
-	{"pointopoint",  N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
+	{"pointopoint", N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
 #ifdef SIOCSKEEPALIVE
-	{"keepalive",    N_ARG,         ARG_KEEPALIVE,   0},
+	{"keepalive", N_ARG, ARG_KEEPALIVE, 0},
 #endif
 #ifdef SIOCSOUTFILL
-	{"outfill",      N_ARG,         ARG_OUTFILL,     0},
+	{"outfill", N_ARG, ARG_OUTFILL, 0},
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-	{"mem_start",    N_ARG,         ARG_MEM_START,   0},
-	{"io_addr",      N_ARG,         ARG_IO_ADDR,     0},
-	{"irq",          N_ARG,         ARG_IRQ,         0},
+	{"mem_start", N_ARG, ARG_MEM_START, 0},
+	{"io_addr", N_ARG, ARG_IO_ADDR, 0},
+	{"irq", N_ARG, ARG_IRQ, 0},
 #endif
 #if CONFIG_FEATURE_IPV6
-	{"add",          N_ARG,         ARG_ADD_DEL,     0},
-	{"del",          N_ARG,         ARG_ADD_DEL,     0},
+	{"add", N_ARG, ARG_ADD_DEL, 0},
+	{"del", N_ARG, ARG_ADD_DEL, 0},
 #endif
-	{"arp",          N_CLR | M_SET, 0,               IFF_NOARP},
-	{"trailers",     N_CLR | M_SET, 0,               IFF_NOTRAILERS},
-	{"promisc",      N_SET | M_CLR, 0,               IFF_PROMISC},
-	{"multicast",    N_SET | M_CLR, 0,               IFF_MULTICAST},
-	{"allmulti",     N_SET | M_CLR, 0,               IFF_ALLMULTI},
-	{"dynamic",      N_SET | M_CLR, 0,               IFF_DYNAMIC},
-	{"up",           N_SET        , 0,               (IFF_UP | IFF_RUNNING)},
-	{"down",         N_CLR        , 0,               IFF_UP},
-	{ NULL,          0,             ARG_HOSTNAME,    (IFF_UP | IFF_RUNNING)}
+	{"arp", N_CLR | M_SET, 0, IFF_NOARP},
+	{"trailers", N_CLR | M_SET, 0, IFF_NOTRAILERS},
+	{"promisc", N_SET | M_CLR, 0, IFF_PROMISC},
+	{"multicast", N_SET | M_CLR, 0, IFF_MULTICAST},
+	{"allmulti", N_SET | M_CLR, 0, IFF_ALLMULTI},
+	{"dynamic", N_SET | M_CLR, 0, IFF_DYNAMIC},
+	{"up", N_SET, 0, (IFF_UP | IFF_RUNNING)},
+	{"down", N_CLR, 0, IFF_UP},
+	{NULL, 0, ARG_HOSTNAME, (IFF_UP | IFF_RUNNING)}
 };
 
 /*
@@ -264,6 +264,7 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
+
 #if CONFIG_FEATURE_IPV6
 	struct sockaddr_in6 sai6;
 #endif
@@ -272,7 +273,7 @@ int ifconfig_main(int argc, char **argv)
 #endif
 	const struct arg1opt *a1op;
 	const struct options *op;
-	int sockfd;  /* socket fd we use to manipulate stuff with */
+	int sockfd;			/* socket fd we use to manipulate stuff with */
 	int goterr;
 	int selector;
 	char *p;
@@ -288,18 +289,19 @@ int ifconfig_main(int argc, char **argv)
 	--argc;
 
 #ifdef CONFIG_FEATURE_IFCONFIG_STATUS
-	if ((argc > 0) && (strcmp(*argv,"-a") == 0)) {
+	if ((argc > 0) && (strcmp(*argv, "-a") == 0)) {
 		interface_opt_a = 1;
 		--argc;
 		++argv;
 	}
 #endif
 
-	if(argc <= 1) {
+	if (argc <= 1) {
 #ifdef CONFIG_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argc ? *argv : NULL);
 #else
-		error_msg_and_die( "ifconfig was not compiled with interface status display support.");
+		error_msg_and_die
+			("ifconfig was not compiled with interface status display support.");
 #endif
 	}
 
@@ -315,14 +317,14 @@ int ifconfig_main(int argc, char **argv)
 	while (*++argv != (char *) NULL) {
 		p = *argv;
 		mask = N_MASK;
-		if (*p == '-') {		/* If the arg starts with '-'... */
-			++p;				/*    advance past it and */
-			mask = M_MASK;		/*    set the appropriate mask. */
+		if (*p == '-') {	/* If the arg starts with '-'... */
+			++p;		/*    advance past it and */
+			mask = M_MASK;	/*    set the appropriate mask. */
 		}
-		for (op = OptArray ; op->name ; op++) {	/* Find table entry. */
-			if (strcmp(p,op->name) == 0) { /* If name matches... */
-				if ((mask &= op->flags)) { /* set the mask and go. */
-				    goto FOUND_ARG;;
+		for (op = OptArray; op->name; op++) {	/* Find table entry. */
+			if (strcmp(p, op->name) == 0) {	/* If name matches... */
+				if ((mask &= op->flags)) {	/* set the mask and go. */
+					goto FOUND_ARG;;
 				}
 				/* If we get here, there was a valid arg with an */
 				/* invalid '-' prefix. */
@@ -330,13 +332,13 @@ int ifconfig_main(int argc, char **argv)
 				goto LOOP;
 			}
 		}
-		
+
 		/* We fell through, so treat as possible hostname. */
 		a1op = Arg1Opt + (sizeof(Arg1Opt) / sizeof(Arg1Opt[0])) - 1;
 		mask = op->arg_flags;
 		goto HOSTNAME;
 
-	FOUND_ARG:
+	  FOUND_ARG:
 		if (mask & ARG_MASK) {
 			mask = op->arg_flags;
 			a1op = Arg1Opt + (op - OptArray);
@@ -348,10 +350,10 @@ int ifconfig_main(int argc, char **argv)
 					show_usage();
 				} else {
 					--argv;
-					mask &= A_SET_AFTER; /* just for broadcast */
+					mask &= A_SET_AFTER;	/* just for broadcast */
 				}
-			} else {			/* got an arg so process it */
-			HOSTNAME:
+			} else {	/* got an arg so process it */
+			  HOSTNAME:
 				did_flags |= (mask & A_NETMASK);
 				if (mask & A_CAST_HOST_COPY) {
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
@@ -359,7 +361,7 @@ int ifconfig_main(int argc, char **argv)
 #endif
 #if CONFIG_FEATURE_IPV6
 						char *prefix;
-						int prefix_len=0;
+						int prefix_len = 0;
 #endif
 
 						safe_strncpy(host, *argv, (sizeof host));
@@ -381,21 +383,24 @@ int ifconfig_main(int argc, char **argv)
 							sai.sin_addr.s_addr = INADDR_ANY;
 #if CONFIG_FEATURE_IPV6
 						} else
-						if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
+							if (inet_pton(AF_INET6, host, &sai6.sin6_addr) >
+								0) {
 							int sockfd6;
 							struct in6_ifreq ifr6;
-							
-							memcpy((char *) &ifr6.ifr6_addr, (char *) &sai6.sin6_addr,
-							                              sizeof(struct in6_addr));
+
+							memcpy((char *) &ifr6.ifr6_addr,
+								   (char *) &sai6.sin6_addr,
+								   sizeof(struct in6_addr));
 
 							/* Create a channel to the NET kernel. */
-							if ((sockfd6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+							if ((sockfd6 =
+								 socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 								perror_msg_and_die("socket6");
 							}
 							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0) {
 								perror("SIOGIFINDEX");
 								++goterr;
-							continue;
+								continue;
 							}
 							ifr6.ifr6_ifindex = ifr.ifr_ifindex;
 							ifr6.ifr6_prefixlen = prefix_len;
@@ -412,7 +417,7 @@ int ifconfig_main(int argc, char **argv)
 						}
 						p = (char *) &sai;
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
-					} else { /* A_CAST_HOST_COPY_IN_ETHER */
+					} else {	/* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
 						if (strcmp("ether", *argv) || (*++argv == NULL)) {
 							show_usage();
@@ -426,11 +431,12 @@ int ifconfig_main(int argc, char **argv)
 						p = (char *) &sa;
 					}
 #endif
-					memcpy((((char *)(&ifr)) + a1op->ifr_offset),
+					memcpy((((char *) (&ifr)) + a1op->ifr_offset),
 						   p, sizeof(struct sockaddr));
 				} else {
-					unsigned int i = strtoul(*argv,NULL,0);
-					p = ((char *)(&ifr)) + a1op->ifr_offset;
+					unsigned int i = strtoul(*argv, NULL, 0);
+
+					p = ((char *) (&ifr)) + a1op->ifr_offset;
 #ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 					if (mask & A_MAP_TYPE) {
 						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0) {
@@ -448,17 +454,16 @@ int ifconfig_main(int argc, char **argv)
 #endif
 					if (mask & A_CAST_CHAR_PTR) {
 						*((caddr_t *) p) = (caddr_t) i;
-					} else { /* A_CAST_INT */
+					} else {	/* A_CAST_INT */
 						*((int *) p) = i;
 					}
 				}
-						
+
 				if (ioctl(sockfd, a1op->selector, &ifr) < 0) {
 					perror(a1op->name);
 					++goterr;
 					continue;
 				}
-
 #ifdef QUESTIONABLE_ALIAS_CASE
 				if (mask & A_COLON_CHK) {
 					/*
@@ -470,12 +475,13 @@ int ifconfig_main(int argc, char **argv)
 					 */
 					char *ptr;
 					short int found_colon = 0;
-					for (ptr = ifr.ifr_name; *ptr; ptr++ ) {
+
+					for (ptr = ifr.ifr_name; *ptr; ptr++) {
 						if (*ptr == ':') {
 							found_colon++;
 						}
 					}
-			
+
 					if (found_colon && *(ptr - 1) == '-') {
 						continue;
 					}
@@ -489,7 +495,7 @@ int ifconfig_main(int argc, char **argv)
 		}
 
 		if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
-			perror("SIOCGIFFLAGS"); 
+			perror("SIOCGIFFLAGS");
 			++goterr;
 		} else {
 			selector = op->selector;
@@ -499,31 +505,30 @@ int ifconfig_main(int argc, char **argv)
 				ifr.ifr_flags &= ~selector;
 			}
 			if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0) {
-				perror("SIOCSIFFLAGS"); 
+				perror("SIOCSIFFLAGS");
 				++goterr;
 			}
 		}
-	LOOP:
+	  LOOP:
 		continue;
-	} /* end of while-loop */
+	}					/* end of while-loop */
 
 	return goterr;
 }
 
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
 /* Input an Ethernet address and convert to binary. */
-static int
-in_ether(char *bufp, struct sockaddr *sap)
+static int in_ether(char *bufp, struct sockaddr *sap)
 {
 	unsigned char *ptr;
 	int i, j;
 	unsigned char val;
 	unsigned char c;
-	
+
 	sap->sa_family = ARPHRD_ETHER;
 	ptr = sap->sa_data;
-	
-	for (i = 0 ; i < ETH_ALEN ; i++) {
+
+	for (i = 0; i < ETH_ALEN; i++) {
 		val = 0;
 
 		/* We might get a semicolon here - not required. */
@@ -531,7 +536,7 @@ in_ether(char *bufp, struct sockaddr *sap)
 			bufp++;
 		}
 
-		for (j=0 ; j<2 ; j++) {
+		for (j = 0; j < 2; j++) {
 			c = *bufp;
 			if (c >= '0' && c <= '9') {
 				c -= '0';
@@ -551,6 +556,6 @@ in_ether(char *bufp, struct sockaddr *sap)
 		*ptr++ = val;
 	}
 
-	return (int) (*bufp);		/* Error if we don't end at end of string. */
+	return (int) (*bufp);	/* Error if we don't end at end of string. */
 }
 #endif
