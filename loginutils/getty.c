@@ -504,7 +504,8 @@ static void update_utmp(char *line)
 	 * entry in the utmp file.
 	 */
 	if (access(_PATH_UTMP, R_OK|W_OK) == -1) {
-		creat(_PATH_UTMP, 0664);
+		int fd = creat(_PATH_UTMP, 0664);
+		close(fd);
 	}
 	utmpname(_PATH_UTMP);
 	setutent();
@@ -535,7 +536,8 @@ static void update_utmp(char *line)
 
 	{
 		if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
-			creat(_PATH_WTMP, 0664);
+			int fd = creat(_PATH_WTMP, 0664);
+			close(fd);
 		}
 		updwtmp(_PATH_WTMP, &ut);
 	}
