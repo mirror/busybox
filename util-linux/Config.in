@@ -68,7 +68,6 @@ config CONFIG_FDFORMAT
 config CONFIG_FDISK
 	bool "fdisk"
 	default n
-	depends on CONFIG_LFS
 	help
 	  The fdisk utility is used to divide hard disks into one or more
 	  logical disks, which are generally called partitions.  This utility
