@@ -108,10 +108,10 @@
 	APPLET(cpio, cpio_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_CROND
-	APPLET(crond, crond_main, _BB_DIR_USR_SBIN)
+	APPLET(crond, crond_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_CRONTAB
-	APPLET(crontab, crontab_main, _BB_DIR_USR_BIN)
+	APPLET(crontab, crontab_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_CUT
 	APPLET(cut, cut_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
