@@ -37,29 +37,24 @@
 
 int strings_main(int argc, char **argv)
 {
-	extern char *optarg;
-	extern int optind;
-	int n=4, c, i, opt=0, a=0;
-	long    t, count;
+	int n=4, c, i, opt=0, a=0, status=EXIT_SUCCESS;
+	long t=0, count;
 	FILE *file;
-	char *string;
-	
-	while ((i = getopt(argc, argv, "an:of")) > 0)
+	char *string=NULL;
+
+	while ((i = getopt(argc, argv, "afon:")) > 0)
 		switch(i)
 		{
 			case 'a':
 				break;
 			case 'f':
-				opt++;
-				break;
-			case 'n':
-				n = atoi(optarg);
-				if(!(n/1))
-					show_usage();
+				opt+=1;
 				break;
 			case 'o':
-				opt++;
-				opt++;
+				opt+=2;
+				break;
+			case 'n':
+				n = bb_xgetlarg(optarg, 1, LONG_MAX, 10);
 				break;
 			default:
 				show_usage();
@@ -70,6 +65,10 @@ int strings_main(int argc, char **argv)
 
 	i=0;
 
+	string=xmalloc(n+1);
+	string[n]='\0';
+	n-=1;
+
 	if(!argc )
 	{
 		file = stdin;
@@ -78,50 +77,53 @@ int strings_main(int argc, char **argv)
 
 	for(a=0;a<argc;a++)
 	{
-		file=xfopen(argv[a],"r");
-
-		pipe:
-		
-		count=0;
-		string=xmalloc(n);
-		string[n]='\0';
-		n--;
-		while(1)
+		if((file=fopen(argv[a],"r")))
 		{
-			c=fgetc(file);
-			if(ISSTR(c))
+pipe:
+
+			count=0;
+			do
 			{
-				if(i==0)
-					t=count;
-				if(i<=n)
-					string[i]=c;
-				if(i==n)
+				c=fgetc(file);
+				if(ISSTR(c))
 				{
-					if(opt == 1 || opt == 3 )
-						printf("%s: ",(!argv[a])?"{stdin}":argv[a]);
-					if(opt >= 2 )
-						printf("%7lo ",t);
-					printf("%s",string);
+					if(i==0)
+						t=count;
+					if(i<=n)
+						string[i]=c;
+					if(i==n)
+					{
+						if(opt == 1 || opt == 3 )
+							printf("%s: ", (!argv[a])? "{stdin}" : argv[a]);
+						if(opt >= 2 )
+							printf("%7lo ", t);
+						printf("%s", string);
+					}
+					if(i>n)
+						putchar(c);
+					i++;
 				}
-				if(i>n)
-					putchar(c);
-				i++;
+				else
+				{
+					if(i>n)
+						puts("");
+					i=0;
+				}
+				count++;
 			}
-			else
-			{
-				if(i>n)
-					puts("");
-				i=0;
-			}
-			count++;
-			if(c==EOF)
-				break;
+			while(c!=EOF);
+
+			if(file!=stdin)
+				fclose(file);
 		}
-		if(file!=stdin)
-			fclose(file);
+		else
+		{
+			perror_msg("%s",argv[a]);
+			status=EXIT_FAILURE;
+		}
 	}
 	free(string);
-	exit(EXIT_SUCCESS);
+	exit(status);
 }
 
 /*
