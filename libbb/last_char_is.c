@@ -25,9 +25,12 @@
  * underrun the buffer if the string length is 0.  Also avoids a possible
  * space-hogging inline of strlen() per usage.
  */
-int last_char_is(const char *s, const int c)
+char * last_char_is(char *s, int c)
 {
-	int  l = strlen(s);
-	if (l==0) return 0;
-	return (s[l-1] == c);
+	char *sret  = s+strlen(s)-1;
+	if (sret>=s && *sret == c) { 
+		return sret;
+	} else {
+		return NULL;
+	}
 }
