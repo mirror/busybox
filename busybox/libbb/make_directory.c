@@ -49,16 +49,20 @@ int make_directory (char *path, long mode, int flags)
 		struct stat st;
 
 		if (stat (path, &st) < 0 && errno == ENOENT) {
-			char *parent = dirname (path);
-			mode_t mask = umask (0);
+			int status;
+			char *buf, *parent;
+			mode_t mask;
+
+			mask = umask (0);
 			umask (mask);
 
-			if (make_directory (parent, (0777 & ~mask) | 0300,
-						FILEUTILS_RECUR) < 0)
-				return -1;
-			free (parent);
+			buf = xstrdup (path);
+			parent = dirname (buf);
+			status = make_directory (parent, (0777 & ~mask) | 0300,
+					FILEUTILS_RECUR);
+			free (buf);
 
-			if (make_directory (path, mode, 0) < 0)
+			if (status < 0 || make_directory (path, mode, 0) < 0)
 				return -1;
 		}
 	}
