@@ -124,7 +124,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.60 2001/04/26 19:29:58 andersen Exp $"
+#ident "$Id: insmod.c,v 1.61 2001/05/14 17:07:32 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -330,7 +330,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.60 2001/04/26 19:29:58 andersen Exp $"
+#ident "$Id: insmod.c,v 1.61 2001/05/14 17:07:32 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -677,50 +677,35 @@ size_t nksyms;
 struct external_module *ext_modules;
 int n_ext_modules;
 int n_ext_modules_used;
-
-
 extern int delete_module(const char *);
 
+static char m_filename[FILENAME_MAX + 1];
+static char m_fullName[FILENAME_MAX + 1];
 
-/* This is kind of troublesome. See, we don't actually support
-   the m68k or the arm the same way we support i386 and (now)
-   sh. In doing my SH patch, I just assumed that whatever works
-   for i386 also works for m68k and arm since currently insmod.c
-   does nothing special for them. If this isn't true, the below
-   line is rather misleading IMHO, and someone should either
-   change it or add more proper architecture-dependent support
-   for these boys.
 
-   -- Bryan Rittmeyer <bryan@ixiacom.com>                    */
-
-static char m_filename[BUFSIZ + 1];
-static char m_fullName[BUFSIZ + 1];
 
 /*======================================================================*/
 
 
-static int findNamedModule(const char *fileName, struct stat *statbuf,
-						   void *userDate)
+static int check_module_name_match(const char *filename, struct stat *statbuf,
+						   void *userdata)
 {
-	char *fullName = (char *) userDate;
+	char *fullname = (char *) userdata;
 
-
-	if (fullName[0] == '\0')
+	if (fullname[0] == '\0')
 		return (FALSE);
 	else {
-		char *tmp = strrchr((char *) fileName, '/');
-
-		if (tmp == NULL)
-			tmp = (char *) fileName;
-		else
-			tmp++;
-		if (check_wildcard_match(tmp, fullName) == TRUE) {
+		char *tmp, *tmp1 = strdup(filename);
+		tmp = get_last_path_component(tmp1);
+		if (strcmp(tmp, fullname) == 0) {
+			free(tmp1);
 			/* Stop searching if we find a match */
-			safe_strncpy(m_filename, fileName, sizeof(m_filename));
-			return (FALSE);
+			safe_strncpy(m_filename, filename, sizeof(m_filename));
+			return (TRUE);
 		}
+		free(tmp1);
 	}
-	return (TRUE);
+	return (FALSE);
 }
 
 
@@ -3125,7 +3110,7 @@ extern int insmod_main( int argc, char **argv)
 	FILE *fp;
 	struct obj_file *f;
 	struct stat st;
-	char m_name[BUFSIZ + 1] = "\0";
+	char m_name[FILENAME_MAX + 1] = "\0";
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
 #ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
@@ -3152,7 +3137,7 @@ extern int insmod_main( int argc, char **argv)
 				flag_export = 0;
 				break;
 			case 'o':			/* name the output module */
-				strncpy(m_name, optarg, BUFSIZ);
+				strncpy(m_name, optarg, FILENAME_MAX);
 				break;
 			case 'L':			/* Stub warning */
 				/* This is needed for compatibility with modprobe.
@@ -3186,24 +3171,42 @@ extern int insmod_main( int argc, char **argv)
 	}
 	strcat(m_fullName, ".o");
 
-	/* Get a filedesc for the module */
+	/* Get a filedesc for the module.  Check we we have a complete path */
 	if (stat(argv[optind], &st) < 0 || !S_ISREG(st.st_mode) ||
 			(fp = fopen(argv[optind], "r")) == NULL) {
-		/* Hmpf.  Could not open it. Search through _PATH_MODULES to find a module named m_name */
-		if (recursive_action(_PATH_MODULES, TRUE, FALSE, FALSE,
-							findNamedModule, 0, m_fullName) == FALSE) 
+		struct utsname myuname;
+
+		/* Hmm.  Could not open it.  First search under /lib/modules/`uname -r`,
+		 * but do not error out yet if we fail to find it... */
+		if (uname(&myuname) == 0) {
+			char module_dir[FILENAME_MAX];
+			snprintf (module_dir, sizeof(module_dir), "%s/%s", 
+					_PATH_MODULES, myuname.release);
+			recursive_action(module_dir, TRUE, FALSE, FALSE, 
+					check_module_name_match, 0, m_fullName);
+		}
+
+		/* Check if we have found anything yet */
+		if (m_filename[0] == '\0' || ((fp = fopen(m_filename, "r")) == NULL)) 
 		{
-			if (m_filename[0] == '\0'
-				|| ((fp = fopen(m_filename, "r")) == NULL)) 
+			/* No module found under /lib/modules/`uname -r`, this
+			 * time cast the net a bit wider.  Search /lib/modules/ */
+			if (recursive_action(_PATH_MODULES, TRUE, FALSE, FALSE,
+						check_module_name_match, 0, m_fullName) == FALSE) 
 			{
-				error_msg("No module named '%s' found in '%s'", m_fullName, _PATH_MODULES);
-				return EXIT_FAILURE;
-			}
-		} else
-			error_msg_and_die("No module named '%s' found in '%s'", m_fullName, _PATH_MODULES);
-	} else
+				if (m_filename[0] == '\0'
+						|| ((fp = fopen(m_filename, "r")) == NULL)) 
+				{
+					error_msg("%s: no module by that name found", m_fullName);
+					return EXIT_FAILURE;
+				}
+			} else
+				error_msg_and_die("%s: no module by that name found", m_fullName);
+		}
+	} else 
 		safe_strncpy(m_filename, argv[optind], sizeof(m_filename));
 
+	printf("Using %s\n", m_filename);
 
 	if ((f = obj_load(fp)) == NULL)
 		perror_msg_and_die("Could not load the module");
