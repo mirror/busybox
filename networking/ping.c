@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.44 2001/07/12 20:26:31 andersen Exp $
+ * $Id: ping.c,v 1.45 2001/07/13 20:56:27 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -191,7 +191,7 @@ static void ping(const char *host)
 	int pingsock, c;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
-	pingsock = create_raw_socket();
+	pingsock = create_icmp_socket();
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
@@ -416,25 +416,12 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 
 static void ping(const char *host)
 {
-	struct protoent *proto;
 	struct hostent *h;
 	char buf[MAXHOSTNAMELEN];
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
 	int sockopt;
 
-	proto = getprotobyname("icmp");
-	/* if getprotobyname failed, just silently force 
-	 * proto->p_proto to have the correct value for "icmp" */
-	if ((pingsock = socket(AF_INET, SOCK_RAW,
-						   (proto ? proto->p_proto : 1))) < 0) {	/* 1 == ICMP */
-		if (errno == EPERM)
-			error_msg_and_die("permission denied. (are you root?)");
-		else
-			perror_msg_and_die(can_not_create_raw_socket);
-	}
-
-	/* drop root privs if running setuid */
-	setuid(getuid());
+	pingsock = create_icmp_socket();
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
