@@ -40,7 +40,9 @@ static const char ln_usage[] =
 	"\t-s\tmake symbolic links instead of hard links\n"
 
 	"\t-f\tremove existing destination files\n"
+#if 0
 	"\t-n\tno dereference symlinks - treat like normal file\n"
+#endif
 #endif
 	;
 
@@ -103,14 +105,18 @@ extern int ln_main(int argc, char **argv)
 	}
 
 	while (argc-- >= 2) {
+#if 0
 		char srcName[BUFSIZ + 1];
-		int nChars, status;
+		int nChars;
+#endif
+		int status;
 
 		if (strlen(*argv) > BUFSIZ) {
 			fprintf(stderr, name_too_long, "ln");
 			exit FALSE;
 		}
 
+#if 0
 		if (followLinks == FALSE) {
 			strcpy(srcName, *argv);
 		} else {
@@ -119,6 +125,7 @@ extern int ln_main(int argc, char **argv)
 			nChars = readlink(*argv, srcName, BUFSIZ);
 			srcName[nChars] = '\0';
 		}
+#endif
 
 		if (removeoldFlag == TRUE) {
 			status = (unlink(linkName) && errno != ENOENT);
