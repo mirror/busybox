@@ -69,7 +69,6 @@ int correct_password ( const struct passwd *pw )
 	unencrypted = bb_askpass ( 0, "Password: " );
 	if ( !unencrypted )
 	{
-		fputs ( "cannot open /dev/tty\n", stderr );
 		return 0;
 	}
 	encrypted = crypt ( unencrypted, correct );
