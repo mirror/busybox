@@ -257,11 +257,11 @@ extern char *cstring_lineFromFile(FILE *f);
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
  * increases target size and is often not needed embedded systems.  */
-extern uid_t my_getpwnam(char *name);
-extern gid_t my_getgrnam(char *name);
-extern void my_getpwuid(char *name, uid_t uid);
-extern void my_getgrgid(char *group, gid_t gid);
-extern gid_t my_getpwnamegid(char *name);
+extern unsigned long my_getpwnam(char *name);
+extern unsigned long my_getgrnam(char *name);
+extern void my_getpwuid(char *name, unsigned long uid);
+extern void my_getgrgid(char *group, unsigned long gid);
+extern unsigned long my_getpwnamegid(char *name);
 
 
 #if defined BB_INIT || defined BB_SYSLOGD

@@ -43,7 +43,7 @@ extern int id_main(int argc, char **argv)
 {
 	int no_user = 0, no_group = 0, print_real = 0;
 	char *cp, *user, *group;
-	gid_t gid;
+	unsigned long gid;
 	
 	cp = user = group = NULL;
 
@@ -82,10 +82,10 @@ extern int id_main(int argc, char **argv)
 		my_getgrgid(group, gid);
 	}
 
-	if (no_group) printf("%u\n", my_getpwnam(user));
-	else if (no_user) printf("%u\n", my_getgrnam(group));
+	if (no_group) printf("%lu\n", my_getpwnam(user));
+	else if (no_user) printf("%lu\n", my_getgrnam(group));
 	else
-		printf("uid=%u(%s) gid=%u(%s)\n",
+		printf("uid=%lu(%s) gid=%lu(%s)\n",
 			   my_getpwnam(user), user, my_getgrnam(group), group);
 	
 

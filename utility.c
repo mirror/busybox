@@ -797,12 +797,12 @@ extern int parse_mode(const char *s, mode_t * theMode)
  * This uses buf as storage to hold things.
  * 
  */
-uid_t my_getid(const char *filename, char *name, uid_t id, gid_t *gid)
+unsigned long my_getid(const char *filename, char *name, unsigned long id, unsigned long *gid)
 {
 	FILE *file;
 	char *rname, *start, *end, buf[128];
 	id_t rid;
-	gid_t rgid = 0;
+	unsigned long rgid = 0;
 
 	file = fopen(filename, "r");
 	if (file == NULL) {
@@ -830,13 +830,13 @@ uid_t my_getid(const char *filename, char *name, uid_t id, gid_t *gid)
 
 		/* uid in passwd, gid in group */
 		start = end + 1;
-		rid = (uid_t) strtol(start, &end, 10);
+		rid = (unsigned long) strtol(start, &end, 10);
 		if (end == start)
 			continue;
 
 		/* gid in passwd */
 		start = end + 1;
-		rgid = (gid_t) strtol(start, &end, 10);
+		rgid = (unsigned long) strtol(start, &end, 10);
 		
 		if (name) {
 			if (0 == strcmp(rname, name)) {
@@ -857,33 +857,33 @@ uid_t my_getid(const char *filename, char *name, uid_t id, gid_t *gid)
 }
 
 /* returns a uid given a username */
-uid_t my_getpwnam(char *name)
+unsigned long my_getpwnam(char *name)
 {
 	return my_getid("/etc/passwd", name, -1, NULL);
 }
 
 /* returns a gid given a group name */
-gid_t my_getgrnam(char *name)
+unsigned long my_getgrnam(char *name)
 {
 	return my_getid("/etc/group", name, -1, NULL);
 }
 
 /* gets a username given a uid */
-void my_getpwuid(char *name, uid_t uid)
+void my_getpwuid(char *name, unsigned long uid)
 {
 	my_getid("/etc/passwd", name, uid, NULL);
 }
 
 /* gets a groupname given a gid */
-void my_getgrgid(char *group, gid_t gid)
+void my_getgrgid(char *group, unsigned long gid)
 {
 	my_getid("/etc/group", group, gid, NULL);
 }
 
 /* gets a gid given a user name */
-gid_t my_getpwnamegid(char *name)
+unsigned long my_getpwnamegid(char *name)
 {
-	gid_t gid;
+	unsigned long gid;
 	my_getid("/etc/passwd", name, -1, &gid);
 	return gid;
 }

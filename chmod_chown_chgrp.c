@@ -32,8 +32,8 @@
 #include <pwd.h>
 
 
-static uid_t uid = -1;
-static gid_t gid = -1;
+static unsigned long uid = -1;
+static unsigned long gid = -1;
 static int whichApp;
 static char *invocationName = NULL;
 static char *theMode = NULL;
