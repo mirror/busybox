@@ -19,7 +19,7 @@
 
 #--------------------------------------------------------
 PROG      := busybox
-VERSION   := 1.00-pre5
+VERSION   := 1.00-pre6
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
 
@@ -35,7 +35,6 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # by asking the CC compiler what arch it compiles things for, so unless
 # your compiler is broken, you should not need to specify TARGET_ARCH
 CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
-#CROSS           =/usr/i386-linux-uclibc/bin/i386-uclibc-
 CC             = $(CROSS)gcc
 AR             = $(CROSS)ar
 AS             = $(CROSS)as
