@@ -43,7 +43,7 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 
 	check_trailer_gzip(archive_handle->src_fd);
 	
-	/* Can only do one tar.bz2 per archive */
+	/* Can only do one tar.gz per archive */
 	return(EXIT_FAILURE);
 }
 
