@@ -27,73 +27,62 @@
 #include "busybox.h"
 #include "unarchive.h"
 
+#define BUNZIP2_OPT_STDOUT	1
+#define BUNZIP2_OPT_FORCE	2
+
 int bunzip2_main(int argc, char **argv)
 {
-	const int bunzip_to_stdout = 1;
-	const int bunzip_force = 2;
-	int flags = 0;
-	int opt = 0;
+	char *compressed_name;
+	char *save_name;
+	unsigned long opt;
 	int status;
-
 	int src_fd;
 	int dst_fd;
-	char *save_name = NULL;
-	char *delete_name = NULL;
 
-	/* if called as bzcat */
-	if (strcmp(bb_applet_name, "bzcat") == 0)
-		flags |= bunzip_to_stdout;
+	opt = bb_getopt_ulflags(argc, argv, "cf");
 
-	while ((opt = getopt(argc, argv, "cfh")) != -1) {
-		switch (opt) {
-		case 'c':
-			flags |= bunzip_to_stdout;
-			break;
-		case 'f':
-			flags |= bunzip_force;
-			break;
-		case 'h':
-		default:
-			bb_show_usage(); /* exit's inside usage */
-		}
+	/* if called as bzcat force the stdout flag */
+	if (bb_applet_name[2] == 'c') {
+		opt |= BUNZIP2_OPT_STDOUT;
 	}
 
 	/* Set input filename and number */
-	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
-		flags |= bunzip_to_stdout;
-		src_fd = fileno(stdin);
-	} else {
+	compressed_name = argv[optind];
+	if ((compressed_name) && (compressed_name[0] != '-') && (compressed_name[1] != '\0')) {
 		/* Open input file */
-		src_fd = bb_xopen(argv[optind], O_RDONLY);
-
-		save_name = bb_xstrdup(argv[optind]);
-		if (strcmp(save_name + strlen(save_name) - 4, ".bz2") != 0)
-			bb_error_msg_and_die("Invalid extension");
-		save_name[strlen(save_name) - 4] = '\0';
+		src_fd = bb_xopen(compressed_name, O_RDONLY);
+	} else {
+		src_fd = fileno(stdin);
+		opt |= BUNZIP2_OPT_STDOUT;
 	}
 
 	/* Check that the input is sane.  */
-	if (isatty(src_fd) && (flags & bunzip_force) == 0) {
+	if (isatty(src_fd) && (opt & BUNZIP2_OPT_FORCE) == 0) {
 		bb_error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
 	}
 
-	if (flags & bunzip_to_stdout) {
+	if (opt & BUNZIP2_OPT_STDOUT) {
 		dst_fd = fileno(stdout);
 	} else {
+		int len = strlen(compressed_name) - 4;
+		if (strcmp(compressed_name + len, ".bz2") != 0) {
+			bb_error_msg_and_die("Invalid extension");
+		}
+		save_name = bb_xstrndup(compressed_name, len);
 		dst_fd = bb_xopen(save_name, O_WRONLY | O_CREAT);
 	}
 
 	status = uncompressStream(src_fd, dst_fd);
-	if(!(flags & bunzip_to_stdout)) {
+	if(!(opt & BUNZIP2_OPT_STDOUT)) {
+		char *delete_name;
 		if (status) {
 			delete_name = save_name;
 		} else {
-			delete_name = argv[optind];
+			delete_name = compressed_name;
 		}
-	}
-
-	if ((delete_name) && (unlink(delete_name) < 0)) {
-		bb_error_msg_and_die("Couldn't remove %s", delete_name);
+		if (unlink(delete_name) < 0) {
+			bb_error_msg_and_die("Couldn't remove %s", delete_name);
+		}
 	}
 
 	return status;
