@@ -1,6 +1,6 @@
 %define name	busybox
 %define epoch   0
-%define version	0.60.0
+%define version	0.61.pre
 %define release	%(date -I | sed -e 's/-/_/g')
 %define serial  1
 
