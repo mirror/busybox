@@ -24,10 +24,10 @@
 typedef unsigned short unicode;
 
 static long int ctoi(unsigned char *s, int *is_unicode);
-int old_screen_map_read_ascii(FILE * fp, unsigned char buf[]);
-int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode);
-unicode utf8_to_ucs2(char *buf);
-int screen_map_load(int fd, FILE * fp);
+static int old_screen_map_read_ascii(FILE * fp, unsigned char buf[]);
+static int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode);
+static unicode utf8_to_ucs2(char *buf);
+static int screen_map_load(int fd, FILE * fp);
 
 int loadacm_main(int argc, char **argv)
 {
@@ -51,7 +51,7 @@ int loadacm_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-int screen_map_load(int fd, FILE * fp)
+static int screen_map_load(int fd, FILE * fp)
 {
 	struct stat stbuf;
 	unicode wbuf[E_TABSZ];
@@ -141,7 +141,7 @@ int screen_map_load(int fd, FILE * fp)
  *
  * FIXME: ignores everything after second word
  */
-int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
+static int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
 {
 	char buffer[256];			/* line buffer reading file */
 	char *p, *q;				/* 1st + 2nd words in line */
@@ -213,7 +213,7 @@ int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
 }
 
 
-int old_screen_map_read_ascii(FILE * fp, unsigned char buf[])
+static int old_screen_map_read_ascii(FILE * fp, unsigned char buf[])
 {
 	char buffer[256];
 	int in, on;
@@ -255,7 +255,7 @@ int old_screen_map_read_ascii(FILE * fp, unsigned char buf[])
  *
  * CAVEAT: will report valid UTF mappings using only 1 byte as 8-bit ones.
  */
-long int ctoi(unsigned char *s, int *is_unicode)
+static long int ctoi(unsigned char *s, int *is_unicode)
 {
 	int i;
 	size_t ls;
@@ -302,42 +302,7 @@ long int ctoi(unsigned char *s, int *is_unicode)
 }
 
 
-void saveoldmap(int fd, char *omfil)
-{
-	FILE *fp;
-	char buf[E_TABSZ];
-
-#ifdef GIO_UNISCRNMAP
-	unicode xbuf[E_TABSZ];
-	int is_old_map = 0;
-
-	if (ioctl(fd, GIO_UNISCRNMAP, xbuf)) {
-		perror_msg("GIO_UNISCRNMAP ioctl error");
-#endif
-		if (ioctl(fd, GIO_SCRNMAP, buf))
-			perror_msg_and_die("GIO_SCRNMAP ioctl error");
-		else
-			is_old_map = 1;
-#ifdef GIO_UNISCRNMAP
-	}
-#endif
-
-	fp = xfopen(omfil, "w");
-#ifdef GIO_UNISCRNMAP
-	if (is_old_map) {
-#endif
-		if (fwrite(buf, E_TABSZ, 1, fp) != 1)
-			perror_msg_and_die("Error writing map to file");
-#ifdef GIO_UNISCRNMAP
-	} else if (fwrite(xbuf, sizeof(unicode) * E_TABSZ, 1, fp) != 1) {
-		perror_msg_and_die("Error writing map to file");
-	}
-#endif
-
-	fclose(fp);
-}
-
-unicode utf8_to_ucs2(char *buf)
+static unicode utf8_to_ucs2(char *buf)
 {
 	int utf_count = 0;
 	long utf_char = 0;

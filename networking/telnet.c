@@ -85,7 +85,7 @@ enum {
 typedef unsigned char byte;
 
 /* use globals to reduce size ??? */ /* test this hypothesis later */
-struct Globalvars {
+static struct Globalvars {
 	int		netfd; /* console fd:s are 0 and 1 (and 2) */
     /* same buffer used both for network and console read/write */
 	char *	buf; /* allocating so static size is smaller */
@@ -108,7 +108,7 @@ struct Globalvars {
 struct Globalvars * Gptr;
 #define G (*Gptr)
 #else
-struct Globalvars G;
+static struct Globalvars G;
 #endif
 
 static inline void iacflush()

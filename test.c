@@ -110,10 +110,10 @@ enum token_types {
 	PAREN
 };
 
-struct t_op {
+static const struct t_op {
 	const char *op_text;
 	short op_num, op_type;
-} const ops [] = {
+} ops [] = {
 	{"-r",	FILRD,	UNOP},
 	{"-w",	FILWR,	UNOP},
 	{"-x",	FILEX,	UNOP},

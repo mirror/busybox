@@ -21,6 +21,8 @@
  *
  */
 
+/* getopt not needed */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"

@@ -113,7 +113,7 @@ void *xcalloc(size_t size, size_t se)
 }
 
 #define error_msg(s, d)                   fprintf(stderr, s, d)
-#endif
+#endif /* TEST */
 
 
 struct history {

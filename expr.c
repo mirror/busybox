@@ -225,7 +225,7 @@ int name (l, r) VALUE *l; VALUE *r;		\
 }
 
 #define arithdivf(name, op)			\
-int name (l, r) VALUE *l; VALUE *r;		\
+static int name (l, r) VALUE *l; VALUE *r;		\
 {						\
   if (!toarith (l) || !toarith (r))		\
     error_msg_and_die ( "non-numeric argument");	\
