@@ -1905,6 +1905,20 @@
 	"$ tty\n" \
 	"/dev/tty2\n"
 
+#define udhcpc_trivial_usage \
+	"[-fqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n\[-p file] [-r IP] [-s script]"
+#define udhcpc_full_usage \
+	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
+	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
+	"\t-f,\t--foreground\tDo not fork after getting lease\n" \
+	"\t-i,\t--interface=INTERFACE\tInterface to use (default: eth0)\n" \
+	"\t-n,\t--now\tExit with failure if lease cannot be immediately negotiated.\n" \
+	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
+	"\t-q,\t--quit\tQuit after obtaining lease\n" \
+	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
+	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
+	"\t-v,\t--version\tDisplay version"
+
 #ifdef CONFIG_FEATURE_MOUNT_FORCE
   #define USAGE_MOUNT_FORCE(a) a
 #else

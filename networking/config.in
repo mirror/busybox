@@ -46,6 +46,7 @@ if [ "$CONFIG_TRACEROUTE" = "y" ]; then
     bool '  Enable verbose output'			CONFIG_FEATURE_TRACEROUTE_VERBOSE
     bool '  Enable SO_DEBUG option'	CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 fi
+bool 'udhcpc'       CONFIG_UDHCPC
 bool 'wget'	    CONFIG_WGET
 if [ "$CONFIG_WGET" = "y" ]; then
     bool '  Enable a nifty process meter (+2k)'	CONFIG_FEATURE_WGET_STATUSBAR

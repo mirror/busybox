@@ -479,6 +479,9 @@
 #ifdef CONFIG_TTY
 	APPLET(tty, tty_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_UDHCPC
+	APPLET(udhcpc, udhcpc_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_UMOUNT
 	APPLET(umount, umount_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
