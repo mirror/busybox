@@ -377,7 +377,7 @@ static char* install_dir[] = {
 typedef int (*__link_f)(const char *, const char *);
 
 /* create (sym)links for each applet */
-int install_links(const char *busybox, int use_symbolic_links)
+static int install_links(const char *busybox, int use_symbolic_links)
 {
     __link_f Link = link;
 
