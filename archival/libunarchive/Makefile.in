@@ -31,14 +31,7 @@ LIBUNARCHIVE-y:= \
 \
 	filter_accept_all.o \
 	filter_accept_list.o \
-	filter_accept_list_reassign.o \
 	filter_accept_reject_list.o \
-\
-	get_header_ar.o \
-	get_header_cpio.o \
-	get_header_tar.o \
-	get_header_tar_bz2.o \
-	get_header_tar_gz.o \
 \
 	header_skip.o \
 	header_list.o \
@@ -54,23 +47,33 @@ LIBUNARCHIVE-y:= \
 \
 	archive_copy_file.o \
 \
-	check_header_gzip.o \
 	data_align.o \
-	decompress_bunzip2.o \
 	find_list_entry.o \
-	init_handle.o \
-	uncompress.o \
-	unpack_ar_archive.o \
-	unzip.o
+	init_handle.o
 
-LIBUNARCHIVE-$(CONFIG_DPKG) += 
-LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += 
-LIBUNARCHIVE-$(CONFIG_AR) += 
-LIBUNARCHIVE-$(CONFIG_CPIO) += 
-LIBUNARCHIVE-$(CONFIG_GUNZIP) += 
-LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += 
-LIBUNARCHIVE-$(CONFIG_TAR) += 
-LIBUNARCHIVE-$(CONFIG_UNZIP) += 
+GUNZIP_FILES:= check_header_gzip.o unzip.o
+DPKG_FILES:= \
+	get_header_ar.o \
+	unpack_ar_archive.o \
+	get_header_tar.o \
+	filter_accept_list_reassign.o
+
+LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o unpack_ar_archive.o 
+LIBUNARCHIVE-$(CONFIG_BUNZIP2) += decompress_bunzip2.o
+LIBUNARCHIVE-$(CONFIG_CPIO) += get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_DPKG) += $(DPKG_FILES)
+LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += $(DPKG_FILES)
+LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_GZ) += $(GUNZIP_FILES) get_header_tar_gz.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_BZ2) += decompress_bunzip2.o get_header_tar_bz2.o
+LIBUNARCHIVE-$(CONFIG_GUNZIP) += $(GUNZIP_FILES)
+LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += uncompress.o
+LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o 
+LIBUNARCHIVE-$(CONFIG_RPM) += $(GUNZIP_FILES) get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_BZ2) += get_header_tar_bz2.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_GZIP) += $(GUNZIP_FILES) get_header_tar_gz.o
+LIBUNARCHIVE-$(CONFIG_UNCOMPRESS) += uncompress.o
+LIBUNARCHIVE-$(CONFIG_UNZIP) += $(GUNZIP_FILES)
 
 libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
 
