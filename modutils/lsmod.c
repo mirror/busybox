@@ -103,12 +103,6 @@ extern int lsmod_main(int argc, char **argv)
 			deps = xrealloc(deps, bufsize = count);
 		}
 		printf("%-20s%8lu%4ld ", mn, info.size, info.usecount);
-		if (count) printf("[");
-		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
-			printf("%s%s", dn, (j==count-1)? "":" ");
-		}
-		if (count) printf("] ");
-
 		if (info.flags & NEW_MOD_DELETED)
 			printf("(deleted)");
 		else if (info.flags & NEW_MOD_INITIALIZING)
@@ -121,6 +115,12 @@ extern int lsmod_main(int argc, char **argv)
 			if (!(info.flags & NEW_MOD_USED_ONCE))
 				printf("(unused)");
 		}
+		if (count) printf("[");
+		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
+			printf("%s%s", dn, (j==count-1)? "":" ");
+		}
+		if (count) printf("] ");
+
 		printf("\n");
 	}
 
