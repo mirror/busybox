@@ -174,4 +174,5 @@
 //#define BB_FEATURE_INIT_CHROOT
 #endif
 //
+//Make sure nothing is printed to the console on boot
 #define BB_FEATURE_EXTRA_QUIET
