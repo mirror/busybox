@@ -126,10 +126,8 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case 0:
 	case '0':
 		if (last_char_is(file_header->name, '/')) {
-			printf("directory\n");
 			file_header->mode |= S_IFDIR;
 		} else {
-			printf("regular file\n");
 			file_header->mode |= S_IFREG;
 		}
 		break;
