@@ -5141,12 +5141,10 @@ ifsfree(void)
 static void
 addfname(const char *name)
 {
-	char *p;
 	struct strlist *sp;
 
-	p = sstrdup(name);
 	sp = (struct strlist *)stalloc(sizeof *sp);
-	sp->text = p;
+	sp->text = sstrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
 }
@@ -12481,7 +12479,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.39 2001/12/21 11:22:26 andersen Exp $
+ * $Id: ash.c,v 1.40 2001/12/31 06:00:57 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
