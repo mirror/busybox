@@ -239,6 +239,9 @@
 // Enable support for mounting remote NFS volumes. 
 // You may need to mount with "-o nolock" if you are
 // not running a local portmapper daemon...
+//
+// If you are using uClibc, be sure that you've already compiled
+// uClibc with INCLUDE_RPC=true (contained in the Config file)
 //#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
