@@ -198,7 +198,8 @@
 	"\t-d\tPreserves links\n" \
 	"\t-p\tPreserves file attributes if possible\n" \
 	"\t-f\tforce (implied; ignored) - always set\n" \
-	"\t-R\tCopies directories recursively"
+	"\t-i\tinteractive, prompt before overwrite\n" \
+	"\t-R,-r\tCopies directories recursively"
 
 #define cpio_trivial_usage \
 	"-[dimtuv][F cpiofile]"
