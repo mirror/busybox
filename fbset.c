@@ -334,26 +334,6 @@ static void showmode(struct fb_var_screeninfo *v)
 	printf("endmode\n\n");
 }
 
-static void fbset_usage(void)
-{
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	int i;
-#endif
-
-#ifndef STANDALONE
-	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
-			BB_VER, BB_BT);
-#endif
-	fprintf(stderr, "Usage: fbset [options] [mode]\n");
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	fprintf(stderr, "\nShows and modifies frame buffer device settings\n\n");
-	fprintf(stderr, "The following options are recognized:\n");
-	for (i = 0; g_cmdoptions[i].name; i++)
-		fprintf(stderr, "\t%s\n", g_cmdoptions[i].name);
-#endif
-	exit(-1);
-}
-
 #ifdef STANDALONE
 int main(int argc, char **argv)
 #else
@@ -375,10 +355,10 @@ extern int fbset_main(int argc, char **argv)
 		for (i = 0; g_cmdoptions[i].name; i++) {
 			if (!strcmp(thisarg, g_cmdoptions[i].name)) {
 				if (argc - 1 < g_cmdoptions[i].param_count)
-					fbset_usage();
+					show_usage();
 				switch (g_cmdoptions[i].code) {
 				case CMD_HELP:
-					fbset_usage();
+					show_usage();
 				case CMD_FB:
 					fbdev = argv[1];
 					break;
@@ -423,7 +403,7 @@ extern int fbset_main(int argc, char **argv)
 				mode = *argv;
 				g_options |= OPT_READMODE;
 			} else {
-				fbset_usage();
+				show_usage();
 			}
 		}
 	}

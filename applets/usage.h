@@ -474,6 +474,18 @@ false_usage_index
 DO_COMMA
 #endif
 
+#if defined BB_FBSET
+#if defined USAGE_ENUM
+fbset_usage_index
+#elif defined USAGE_MESSAGES
+	"fbset [options] [mode]"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\n\nShows and modifies frame buffer device settings"
+#endif
+#endif
+DO_COMMA
+#endif
+
 #if defined BB_FDFLUSH
 #if defined USAGE_ENUM
 fdflush_usage_index
