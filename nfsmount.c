@@ -45,7 +45,8 @@
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
 #include <sys/socket.h>
-#include <sys/time.h>
+#include <time.h>
+//#include <sys/time.h>
 #include <sys/utsname.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
