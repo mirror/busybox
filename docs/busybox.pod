@@ -2142,62 +2142,123 @@ Erik Andersen <andersee@debian.org> <andersen@lineo.com>
 The following people have contributed code to BusyBox whether
 they know it or not.
 
-Erik Andersen <andersee@debian.org>
 
 =for html <br>
 
+Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+
+    Tons of new stuff, major rewrite of most of the
+    core apps, tons of new apps as noted in header files.
+
+=for html <br>
+
+Edward Betts <edward@debian.org>
+
+    expr, hostid, logname, tty, wc, whoami, yes
+ 
+=for html <br>
+
 John Beppu <beppu@lineo.com>
+
+    du, head, nslookup, sort, tee, uniq
 
 =for html <br>
 
 Brian Candler <B.Candler@pobox.com>
 
+    tiny-ls(ls)
+
 =for html <br>
 
 Randolph Chung <tausq@debian.org>
+
+    fbset, ping, hostname, and mkfifo
 
 =for html <br>
 
 Dave Cinege <dcinege@psychosis.com>	
 
+    more(v2), makedevs, dutmp, modularization, auto links file, 
+    various fixes, Linux Router Project maintenance
+
 =for html <br>
 
 Karl M. Hegbloom <karlheg@debian.org>
+
+    cp_mv.c, the test suite, various fixes to utility.c, &c.
+
+=for html <br>
+
+Daniel Jacobowitz <dan@debian.org>
+
+    mktemp.c
+
+=for html <br>
+
+Matt Kraai <kraai@alumni.carnegiemellon.edu>
+
+    documentation, bugfixes
 
 =for html <br>
 
 John Lombardo <john@deltanet.com>	
 
+    dirname, tr
+
 =for html <br>
 
 Glenn McGrath <bug1@netconnect.com.au>
 
+    ar.c
+
 =for html <br>
 
-Bruce Perens <bruce@perens.com>
+Bruce Perens <bruce@pixar.com>
+
+    Original author of BusyBox. His code is still in many apps.
+
+=for html <br>
+
+Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
+
+    wget - Contributed by permission of Covad Communications
 
 =for html <br>
 
 Pavel Roskin <proski@gnu.org>
 
+    Lots of bugs fixes and patches.
+
+=for html <br>
+
+Gyepi Sam <gyepi@praxis-sw.com>
+
+    Remote logging feature for syslogd
+
 =for html <br>
 
 Linus Torvalds <torvalds@transmeta.com>
+
+    mkswap, fsck.minix, mkfs.minix
 
 =for html <br>
 
 Mark Whitley <markw@lineo.com>
 
+    sed remix, bug fixes, style-guide, etc.
+
 =for html <br>
 
 Charles P. Wright <cpwright@villagenet.com>
+
+    gzip, mini-netcat(nc)
 
 =for html <br>
 
 Enrique Zanardi <ezanardi@ull.es>
 
-=for html <br>
+    tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
 =cut
 
-# $Id: busybox.pod,v 1.72 2000/09/23 06:12:34 andersen Exp $
+# $Id: busybox.pod,v 1.73 2000/09/24 02:41:44 andersen Exp $
