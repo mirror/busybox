@@ -925,9 +925,6 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	outcnt = 0;
 	bytes_out = 0L;
 
-	/* set the buffer size */
-	setvbuf(in_file, NULL, _IOFBF, 0x8000);
-
 	magic[0] = fgetc(in_file);
 	magic[1] = fgetc(in_file);
 
