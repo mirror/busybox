@@ -310,12 +310,8 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 				z = 1 << j;		/* table entries for j-bit table */
 
 				/* allocate and link in new table */
-				if ((q = (huft_t *) xmalloc((z + 1) * sizeof(huft_t))) == NULL) {
-					if (h) {
-						huft_free(u[0]);
-					}
-					return 3;	/* not enough memory */
-				}
+				q = (huft_t *) xmalloc((z + 1) * sizeof(huft_t));
+
 				hufts += z + 1;	/* track memory usage */
 				*t = q + 1;		/* link to list for huft_free() */
 				*(t = &(q->v.t)) = NULL;
@@ -858,6 +854,9 @@ static int inflate(void)
 	bk = 0;
 	bb = 0;
 
+	/* Create the crc table */
+	make_crc_table();
+
 	/* decompress until the last block */
 	do {
 		hufts = 0;
@@ -894,16 +893,10 @@ static int inflate(void)
  */
 extern int unzip(FILE *l_in_file, FILE *l_out_file)
 {
-	const int extra_field = 0x04;	/* bit 2 set: extra field present */
-	const int orig_name = 0x08;	/* bit 3 set: original file name present */
-	const int comment = 0x10;	/* bit 4 set: file comment present */
 	unsigned char buf[8];	/* extended local header */
 	unsigned char flags;	/* compression flags */
-	char magic[2];			/* magic header */
-	int method;
 	typedef void (*sig_type) (int);
-	int exit_code=0;	/* program exit code */
-	int i;
+	unsigned short i;
 
 	in_file = l_in_file;
 	out_file = l_out_file;
@@ -927,67 +920,49 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	outcnt = 0;
 	bytes_out = 0L;
 
-	magic[0] = fgetc(in_file);
-	magic[1] = fgetc(in_file);
-
 	/* Magic header for gzip files, 1F 8B = \037\213 */
-	if (memcmp(magic, "\037\213", 2) != 0) {
+	if ((fgetc(in_file) != 0x1F) || (fgetc(in_file) != 0x8b)) { 
 		error_msg("Invalid gzip magic");
 		return EXIT_FAILURE;
 	}
 
-	method = (int) fgetc(in_file);
-	if (method != 8) {
-		error_msg("unknown method %d -- get newer version of gzip", method);
-		exit_code = 1;
-		return -1;
+	/* Check the compression method */
+	if (fgetc(in_file) != 8) {
+		error_msg("Unknown compression method");
+		return(-1);
 	}
 
 	flags = (unsigned char) fgetc(in_file);
 
 	/* Ignore time stamp(4), extra flags(1), OS type(1) */
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++) {
 		fgetc(in_file);
+	}
 
-	if ((flags & extra_field) != 0) {
-		size_t extra;
-		extra = fgetc(in_file);
-		extra += fgetc(in_file) << 8;
+	if (flags & 0x04) {
+		/* bit 2 set: extra field present */
+		const unsigned short extra = fgetc(in_file) + (fgetc(in_file) << 8);
 
-		for (i = 0; i < extra; i++)
+		for (i = 0; i < extra; i++) {
 			fgetc(in_file);
+		}
 	}
 
 	/* Discard original name if any */
-	if ((flags & orig_name) != 0) {
+	if (flags & 0x08) {
+		/* bit 3 set: original file name present */
 		while (fgetc(in_file) != 0);	/* null */
 	}
 
 	/* Discard file comment if any */
-	if ((flags & comment) != 0) {
+	if (flags & 0x10) {
+		/* bit 4 set: file comment present */
 		while (fgetc(in_file) != 0);	/* null */
 	}
 
-	if (method < 0) {
-		printf("it failed\n");
-		return(exit_code);		/* error message already emitted */
-	}
-
-	make_crc_table();
-
 	/* Decompress */
-	if (method == 8) {
-
-		int res = inflate();
-
-		if (res == 3) {
-			error_msg(memory_exhausted);
-		} else if (res != 0) {
-			error_msg("invalid compressed data--format violated");
-		}
-
-	} else {
-		error_msg("internal error, invalid method");
+	if (inflate() != 0) {
+		error_msg("invalid compressed data--format violated");
 	}
 
 	/* Get the crc and original length
@@ -1023,6 +998,7 @@ extern void gz_close(int gunzip_pid)
 	if (waitpid(gunzip_pid, NULL, 0) == -1) {
 		printf("Couldnt wait ?");
 	}
-		free(window);
-		free(crc_table);
+
+	free(window);
+	free(crc_table);
 }
