@@ -35,6 +35,15 @@
 
 #include "busybox.h"
 
+/* Older versions of net/if.h do not appear to define IF_NAMESIZE. */
+#ifndef IF_NAMESIZE
+#  ifdef IFNAMSIZ
+#    define IF_NAMESIZE IFNAMSIZ
+#  else
+#    define IF_NAMESIZE 16
+#  endif
+#endif
+
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923	/* set interface name */
 
