@@ -361,8 +361,10 @@ static const int IOV_COUNT = 2;
 		v->iov_base = msg;
 		v->iov_len = strlen(msg);          
 
+writev_retry:
 		if ( -1 == writev(remotefd,iov, IOV_COUNT)){
-			error_msg_and_die("syslogd: cannot write to remote file handle on " 
+			if (errno == EINTR) goto writev_retry;
+			error_msg_and_die("syslogd: cannot write to remote file handle on"
 					"%s:%d",RemoteHost,RemotePort);
 		}
 	}
