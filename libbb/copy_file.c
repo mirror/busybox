@@ -153,7 +153,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				}
 			}
 
-			dst_fd = open(dest, O_WRONLY);
+			dst_fd = open(dest, O_WRONLY|O_TRUNC);
 			if (dst_fd == -1) {
 				if (!(flags & FILEUTILS_FORCE)) {
 					bb_perror_msg("unable to open `%s'", dest);
