@@ -7,7 +7,7 @@ menu "Bourne Shell"
 
 choice
 	prompt "Choose your default shell"
-	default "ash"
+	default "none"
 	help
 	  Please submit a patch to add help text for this item.
 
@@ -22,6 +22,9 @@ config CONFIG_FEATURE_SH_IS_LASH
 
 config CONFIG_FEATURE_SH_IS_MSH
 	bool "msh"
+
+config CONFIG_FEATURE_SH_IS_NONE
+	bool "none"
 
 endchoice
 
