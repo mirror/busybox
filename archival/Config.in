@@ -97,26 +97,6 @@ config CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 	  However it saves space as none of the extra dpkg-deb, ar or tar options are 
 	  needed, they are linked to internally.
 
-config CONFIG_FEATURE_DEB_TAR_GZ
-	bool "  gzip debian packages (normal)"
-	default y if CONFIG_DPKG || CONFIG_DPKG_DEB
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
-	help
-	  This is the default compression method inside the debian ar file.
-	  
-	  If you want compatibility with standard .deb's you should say yes here.
-
-config CONFIG_FEATURE_DEB_TAR_BZ2
-	bool "  bzip2 debian packages"
-	default n
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
-	help
-	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
-	  with bzip2 instead of gzip.
-	  
-	  You only want this if you are creating your own custom debian packages that
-	  use an internal control.tar.bz2 or data.tar.bz2.
-
 config CONFIG_GUNZIP
 	bool "gunzip"
 	default n
@@ -251,5 +231,28 @@ config CONFIG_FEATURE_UNARCHIVE_TAPE
 	depends on CONFIG_CPIO || CONFIG_TAR
 	help
 	  I don't think this is needed anymore.
+
+comment "Common options for dpkg and dpkg_deb"
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+
+config CONFIG_FEATURE_DEB_TAR_GZ
+	bool "  gzip debian packages (normal)"
+	default y if CONFIG_DPKG || CONFIG_DPKG_DEB
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	help
+	  This is the default compression method inside the debian ar file.
+	  
+	  If you want compatibility with standard .deb's you should say yes here.
+
+config CONFIG_FEATURE_DEB_TAR_BZ2
+	bool "  bzip2 debian packages"
+	default n
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	help
+	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
+	  with bzip2 instead of gzip.
+	  
+	  You only want this if you are creating your own custom debian packages that
+	  use an internal control.tar.bz2 or data.tar.bz2.
 
 endmenu
