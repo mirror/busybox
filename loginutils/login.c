@@ -34,14 +34,14 @@ extern char *pw_encrypt(const char *clear, const char *salt);
 
 
 // login defines
-#define DEFAULT_USER  "UNKNOWN"
-#define DEFAULT_PWD   "!"
-#define DEFAULT_SHELL "/bin/sh"
 #define TIMEOUT       60
 #define FAIL_DELAY    3
+#define EMPTY_USERNAME_COUNT    10
 #define MOTD_FILE     "/etc/motd"
 #define NOLOGIN_FILE  "/etc/nologin"
 #define SECURETTY_FILE "/etc/securetty"
+
+#define USERNAME_SIZE 32
 
 /* Stuff global to this file */
 struct utmp utent;
@@ -58,14 +58,13 @@ static inline int check_tty ( const char *tty )  { return 1; }
 #endif
 
 static int is_my_tty ( const char *tty );
-static const char *login_prompt ( void );
+static int login_prompt ( char *buf_name );
 static void motd ( void );
-static void set_env(int argc, char *const *argv);
 
 
 static void alarm_handler ( int sig )
 {
-	error_msg ( "\nLogin timed out after %d seconds.\n", TIMEOUT );
+	fprintf (stderr, "\nLogin timed out after %d seconds.\n", TIMEOUT );
 	exit ( EXIT_SUCCESS );
 }
 
@@ -75,6 +74,7 @@ extern int login_main(int argc, char **argv)
 	char tty[BUFSIZ];
 	char full_tty[200];
 	char fromhost[512];
+	char username[USERNAME_SIZE];
 	char *tmp;
 	int amroot;
 	int flag;
@@ -85,9 +85,9 @@ extern int login_main(int argc, char **argv)
 	int opt_preserve = 0;
 	int opt_fflag = 0;
 	char *opt_host = 0;
-	const char *username = 0;
 	int alarmstarted = 0;	
 
+	username[0]=0;
 	amroot = ( getuid ( ) == 0 );
 	signal ( SIGALRM, alarm_handler );
 	
@@ -99,7 +99,6 @@ extern int login_main(int argc, char **argv)
 	while (( flag = getopt(argc, argv, "f:h:p")) != EOF ) {
 		switch ( flag ) {
 		case 'p':
-			printf ( "PRESERVE\n" );
 			opt_preserve = 1;
 			break;
 		case 'f':
@@ -111,11 +110,9 @@ extern int login_main(int argc, char **argv)
 				show_usage ( );
 
 			if ( !amroot ) 		/* Auth bypass only if real UID is zero */
-				error_msg_and_die ( "login: -f permission denied\n" );
+				error_msg_and_die ( "-f permission denied" );
 			
-			printf ( "USERNAME: %s\n", optarg );
-			
-			username = optarg;
+			safe_strncpy(username, optarg, USERNAME_SIZE);
 			opt_fflag = 1;
 			break;
 		case 'h':
@@ -126,8 +123,8 @@ extern int login_main(int argc, char **argv)
 		}
 	}
 
-	if ( optind < argc )  // got a username
-		username = argv [optind++];
+	if (optind < argc)             // user from command line (getty)
+		safe_strncpy(username, argv[optind], USERNAME_SIZE);
 
 	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 )) 
 		return EXIT_FAILURE;		/* Must be a terminal */
@@ -151,13 +148,16 @@ extern int login_main(int argc, char **argv)
 	else
 		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s'", tty );
 	
+	setpgrp();
+
 	openlog ( "login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH );
 
 	while ( 1 ) {
 		failed = 0;
 
-		if ( !username || !username[0] ) 
-			username = login_prompt ( );
+		if ( !username[0] )
+			if(!login_prompt ( username ))
+				return EXIT_FAILURE;
 
 		if ( !alarmstarted && ( TIMEOUT > 0 )) {
 			alarm ( TIMEOUT );
@@ -165,9 +165,8 @@ extern int login_main(int argc, char **argv)
 		}
 
 		if (!( pw = getpwnam ( username ))) {
-			pw_copy. pw_name   = DEFAULT_USER;
-			pw_copy. pw_passwd = DEFAULT_PWD;
-			pw_copy. pw_shell  = DEFAULT_SHELL;
+			pw_copy.pw_name   = "UNKNOWN";
+			pw_copy.pw_passwd = "!";
 			opt_fflag = 0;
 			failed = 1;
 		} else 
@@ -183,7 +182,7 @@ extern int login_main(int argc, char **argv)
 			goto auth_ok;
 		}
 
-		if (( pw-> pw_uid == 0 ) && ( !check_tty ( tty )))
+		if (!failed && ( pw-> pw_uid == 0 ) && ( !check_tty ( tty )))
 			failed = 1;
 
 		/* Don't check the password if password entry is empty (!) */
@@ -194,7 +193,6 @@ extern int login_main(int argc, char **argv)
 		if ( correct_password ( pw ))
 			goto auth_ok;
 
-		syslog ( LOG_WARNING, "invalid password for `%s'%s\n", pw-> pw_name, fromhost);
 		failed = 1;
 		
 auth_ok:
@@ -213,8 +211,11 @@ auth_ok:
 		}
 
 		puts("Login incorrect");
-		if ( ++count == 3 )
+		username[0] = 0;
+		if ( ++count == 3 ) {
+			syslog ( LOG_WARNING, "invalid password for `%s'%s\n", pw->pw_name, fromhost);
 			return EXIT_FAILURE;
+	}
 	}
 		
 	alarm ( 0 );
@@ -251,11 +252,13 @@ auth_ok:
 
 
 
-static const char *login_prompt ( void )
+static int login_prompt ( char *buf_name )
 {
 	char buf [1024];
 	char *sp, *ep;
+	int i;
 
+	for(i=0; i<EMPTY_USERNAME_COUNT; i++) {
 	gethostname ( buf, sizeof( buf ));
 	printf ( "\nBusyBox on %s login: ", buf );
 	fflush ( stdout );
@@ -263,14 +266,18 @@ static const char *login_prompt ( void )
 	if ( !fgets ( buf, sizeof( buf ) - 1, stdin ))
 		return 0;
 		
-	if ( !strchr ( buf, '\n' ));
+		if ( !strchr ( buf, '\n' ))
 		return 0;
 	
 	for ( sp = buf; isspace ( *sp ); sp++ ) { }
 	for ( ep = sp; isgraph ( *ep ); ep++ ) { }
 
 	*ep = 0;		
-	return sp;
+		safe_strncpy(buf_name, sp, USERNAME_SIZE);
+		if(buf_name[0])
+			return 1;
+	}
+	return 0;
 }
 
 
