@@ -61,8 +61,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#undef __GLIBC__
-#undef __UCLIBC__
+//#undef __GLIBC__
+//#undef __UCLIBC__
 
 #if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
 #include <wordexp.h>
