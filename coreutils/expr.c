@@ -194,7 +194,7 @@ nextarg (char *str)
 /* The comparison operator handling functions.  */
 
 #define cmpf(name, rel)					\
-static int name (l, r) VALUE *l; VALUE *r;		\
+static int name (VALUE *l, VALUE *r)		\
 {							\
 	if (l->type == string || r->type == string) {		\
 		tostring (l);				\
@@ -217,7 +217,7 @@ static int name (l, r) VALUE *l; VALUE *r;		\
 
 #define arithf(name, op)			\
 static						\
-int name (l, r) VALUE *l; VALUE *r;		\
+int name (VALUE *l, VALUE *r)		\
 {						\
   if (!toarith (l) || !toarith (r))		\
     error_msg_and_die ("non-numeric argument");	\
@@ -225,7 +225,7 @@ int name (l, r) VALUE *l; VALUE *r;		\
 }
 
 #define arithdivf(name, op)			\
-static int name (l, r) VALUE *l; VALUE *r;		\
+static int name (VALUE *l, VALUE *r)		\
 {						\
   if (!toarith (l) || !toarith (r))		\
     error_msg_and_die ( "non-numeric argument");	\
@@ -414,7 +414,7 @@ static VALUE *eval5 (void)
 static VALUE *eval4 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (), val;
+	int (*fxn) (VALUE *, VALUE *), val;
 
 	l = eval5 ();
 	while (1) {
@@ -440,7 +440,7 @@ static VALUE *eval4 (void)
 static VALUE *eval3 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (), val;
+	int (*fxn) (VALUE *, VALUE *), val;
 
 	l = eval4 ();
 	while (1) {
@@ -464,7 +464,7 @@ static VALUE *eval3 (void)
 static VALUE *eval2 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (), val;
+	int (*fxn) (VALUE *, VALUE *), val;
 
 	l = eval3 ();
 	while (1) {

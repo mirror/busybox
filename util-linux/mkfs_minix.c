@@ -670,9 +670,7 @@ static void check_blocks(void)
 		printf("one bad block\n");
 }
 
-static void get_list_blocks(filename)
-char *filename;
-
+static void get_list_blocks(char *filename)
 {
 	FILE *listfile;
 	unsigned long blockno;

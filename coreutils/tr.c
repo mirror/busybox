@@ -44,7 +44,7 @@ static unsigned char *pvector;
 static char *pinvec, *poutvec;
 
 
-static void convert()
+static void convert(void)
 {
 	short read_chars = 0;
 	short c, coded;

@@ -349,7 +349,7 @@ static void setup_string_in_str(struct in_str *i, const char *s);
 /*  close_me manipulations: */
 static void mark_open(int fd);
 static void mark_closed(int fd);
-static void close_all();
+static void close_all(void);
 /*  "run" the final data structures: */
 static char *indenter(int i);
 static int free_pipe_list(struct pipe *head, int indent);
@@ -975,7 +975,7 @@ static void mark_closed(int fd)
 	free(tmp);
 }
 
-static void close_all()
+static void close_all(void)
 {
 	struct close_me *c;
 	for (c=close_me_head; c; c=c->next) {
@@ -2547,7 +2547,7 @@ static int parse_file_outer(FILE *f)
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
-static void setup_job_control()
+static void setup_job_control(void)
 {
 	static pid_t shell_pgrp;
 	/* Loop until we are in the foreground.  */
