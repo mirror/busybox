@@ -39,7 +39,7 @@ int is_directory(const char *fileName, const int followLinks, struct stat *statB
 	    ++didMalloc;
 	}
 
-	if (followLinks == TRUE)
+	if (followLinks)
 		status = stat(fileName, statBuf);
 	else
 		status = lstat(fileName, statBuf);

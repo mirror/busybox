@@ -278,7 +278,7 @@ static void handlenetinput(int len)
 				 break;
 			 case TS_SUB1: /* Subnegotiation */
 			 case TS_SUB2: /* Subnegotiation */
-				 if (subneg(c) == TRUE)
+				 if (subneg(c))
 					 G.telstate = TS_0;
 				 break;
 			 }

@@ -179,19 +179,19 @@ static int do_umount(const char *name)
 	status = umount(name);
 
 #if defined CONFIG_FEATURE_MOUNT_LOOP
-	if (freeLoop == TRUE && blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
+	if (freeLoop && blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
 		/* this was a loop device, delete it */
 		del_loop(blockDevice);
 #endif
 #if defined CONFIG_FEATURE_MOUNT_FORCE
-	if (status != 0 && doForce == TRUE) {
+	if (status != 0 && doForce) {
 		status = umount2(blockDevice, MNT_FORCE);
 		if (status != 0) {
 			error_msg_and_die("forced umount of %s failed!", blockDevice);
 		}
 	}
 #endif
-	if (status != 0 && doRemount == TRUE && errno == EBUSY) {
+	if (status != 0 && doRemount && errno == EBUSY) {
 		status = mount(blockDevice, name, NULL,
 					   MS_MGC_VAL | MS_REMOUNT | MS_RDONLY, NULL);
 		if (status == 0) {
@@ -202,7 +202,7 @@ static int do_umount(const char *name)
 	}
 	if (status == 0) {
 #if defined CONFIG_FEATURE_MTAB_SUPPORT
-		if (useMtab == TRUE)
+		if (useMtab)
 			erase_mtab(name);
 #endif
 		return (TRUE);
@@ -282,15 +282,15 @@ extern int umount_main(int argc, char **argv)
 	}
 
 	mtab_read();
-	if (umountAll == TRUE) {
-		if (umount_all() == TRUE)
+	if (umountAll) {
+		if (umount_all())
 			return EXIT_SUCCESS;
 		else
 			return EXIT_FAILURE;
 	}
 	if (realpath(*argv, path) == NULL)
 		perror_msg_and_die("%s", path);
-	if (do_umount(path) == TRUE)
+	if (do_umount(path))
 		return EXIT_SUCCESS;
 	perror_msg_and_die("%s", *argv);
 }

@@ -185,13 +185,13 @@ int find_main(int argc, char **argv)
 	}
 
 	if (firstopt == 1) {
-		if (recursive_action(".", TRUE, dereference, FALSE, fileAction,
-					fileAction, NULL) == FALSE)
+		if (! recursive_action(".", TRUE, dereference, FALSE, fileAction,
+					fileAction, NULL))
 			status = EXIT_FAILURE;
 	} else {
 		for (i = 1; i < firstopt; i++) {
-			if (recursive_action(argv[i], TRUE, dereference, FALSE, fileAction,
-						fileAction, NULL) == FALSE)
+			if (! recursive_action(argv[i], TRUE, dereference, FALSE, fileAction,
+						fileAction, NULL))
 				status = EXIT_FAILURE;
 		}
 	}

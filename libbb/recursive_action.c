@@ -53,7 +53,7 @@ int recursive_action(const char *fileName,
 	struct stat statbuf;
 	struct dirent *next;
 
-	if (followLinks == TRUE)
+	if (followLinks)
 		status = stat(fileName, &statbuf);
 	else
 		status = lstat(fileName, &statbuf);
@@ -68,14 +68,14 @@ int recursive_action(const char *fileName,
 		return FALSE;
 	}
 
-	if ((followLinks == FALSE) && (S_ISLNK(statbuf.st_mode))) {
+	if (! followLinks && (S_ISLNK(statbuf.st_mode))) {
 		if (fileAction == NULL)
 			return TRUE;
 		else
 			return fileAction(fileName, &statbuf, userData);
 	}
 
-	if (recurse == FALSE) {
+	if (! recurse) {
 		if (S_ISDIR(statbuf.st_mode)) {
 			if (dirAction != NULL)
 				return (dirAction(fileName, &statbuf, userData));
@@ -87,9 +87,9 @@ int recursive_action(const char *fileName,
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
 
-		if (dirAction != NULL && depthFirst == FALSE) {
+		if (dirAction != NULL && ! depthFirst) {
 			status = dirAction(fileName, &statbuf, userData);
-			if (status == FALSE) {
+			if (! status) {
 				perror_msg("%s", fileName);
 				return FALSE;
 			} else if (status == SKIP)
@@ -109,20 +109,20 @@ int recursive_action(const char *fileName,
 				continue;
 			}
 			nextFile = concat_path_file(fileName, next->d_name);
-			if (recursive_action(nextFile, TRUE, followLinks, depthFirst,
-						fileAction, dirAction, userData) == FALSE) {
+			if (! recursive_action(nextFile, TRUE, followLinks, depthFirst,
+						fileAction, dirAction, userData)) {
 				status = FALSE;
 			}
 			free(nextFile);
 		}
 		closedir(dir);
-		if (dirAction != NULL && depthFirst == TRUE) {
-			if (dirAction(fileName, &statbuf, userData) == FALSE) {
+		if (dirAction != NULL && depthFirst) {
+			if (! dirAction(fileName, &statbuf, userData)) {
 				perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}
-		if (status == FALSE)
+		if (! status)
 			return FALSE;
 	} else {
 		if (fileAction == NULL)

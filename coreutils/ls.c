@@ -193,7 +193,7 @@ static unsigned long ls_disp_hr = 0;
 static int my_stat(struct dnode *cur)
 {
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
-	if (follow_links == TRUE) {
+	if (follow_links) {
 		if (stat(cur->fullname, &cur->dstat)) {
 			perror_msg("%s", cur->fullname);
 			status = EXIT_FAILURE;

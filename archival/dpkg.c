@@ -858,7 +858,7 @@ void write_status_file(deb_file_t **deb_file)
 			}
 		}
 		/* If the package from the status file wasnt handle above, do it now*/
-		if (write_flag == FALSE) {
+		if (! write_flag) {
 			fprintf(new_status_file, "%s\n\n", control_buffer);
 		}
 
@@ -1206,7 +1206,7 @@ void remove_package(const unsigned int package_num)
 	exclude_files = create_list(conffile_name);
 
 	/* Some directories cant be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files) == TRUE);
+	while (remove_file_array(remove_files, exclude_files));
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = xmalloc(sizeof(char *) * 11);
@@ -1250,7 +1250,7 @@ void purge_package(const unsigned int package_num)
 	exclude_files[0] = NULL;
 
 	/* Some directories cant be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files) == TRUE);
+	while (remove_file_array(remove_files, exclude_files));
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = xmalloc(sizeof(char *) * 11);

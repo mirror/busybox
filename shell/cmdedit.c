@@ -769,7 +769,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 					goto cont;
 				str_found = add_quote_for_spec_chars(found);
 				if (type == FIND_FILE_ONLY ||
-					(type == FIND_EXE_ONLY && is_execute(&st) == TRUE))
+					(type == FIND_EXE_ONLY && is_execute(&st)))
 					strcat(str_found, " ");
 			}
 			/* Add it to the list */
@@ -980,7 +980,7 @@ static void input_tab(int *lastWasTab)
 		}
 		return;
 	}
-	if (*lastWasTab == FALSE) {
+	if (! *lastWasTab) {
 
 		char *tmp;
 		int len_found;

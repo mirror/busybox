@@ -77,7 +77,7 @@ int read_package_field(const char *package_buffer, char **field_name, char **fie
 				}
 				break;
 		}
-		if (exit_flag == TRUE) {
+		if (exit_flag) {
 			/* Check that the names are valid */
 			offset_value_end = offset;
 			name_length = offset_name_end - offset_name_start;

@@ -133,7 +133,7 @@ extern int kill_main(int argc, char **argv)
 			 * upon exit, so we can save a byte or two */
 			argv++;
 		}
-		if (all_found == FALSE)
+		if (! all_found)
 			return EXIT_FAILURE;
 	}
 #endif

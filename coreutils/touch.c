@@ -53,10 +53,10 @@ extern int touch_main(int argc, char **argv)
 	}
 
 	while (argc > 0) {
-		fd = open(*argv, (create == FALSE) ? O_RDWR : O_RDWR | O_CREAT,
+		fd = open(*argv, create ? O_RDWR | O_CREAT : O_RDWR,
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if (fd < 0) {
-			if (create == FALSE && errno == ENOENT) {
+			if (! create && errno == ENOENT) {
 				argc--;
 				argv++;
 				continue;

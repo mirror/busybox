@@ -127,7 +127,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	char *lofile = NULL;
 #endif
 
-	if (fakeIt == FALSE)
+	if (! fakeIt)
 	{
 #if defined CONFIG_FEATURE_MOUNT_LOOP
 		if (use_loop==TRUE) {
@@ -163,7 +163,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	if (status == 0 || fakeIt==TRUE) {
 
 #if defined CONFIG_FEATURE_MTAB_SUPPORT
-		if (useMtab == TRUE) {
+		if (useMtab) {
 			erase_mtab(specialfile);	// Clean any stale entries
 			write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
 		}
@@ -210,19 +210,19 @@ parse_mount_options(char *options, int *flags, char *strflags)
 			f++;
 		}
 #if defined CONFIG_FEATURE_MOUNT_LOOP
-		if (gotone == FALSE && !strcasecmp("loop", options)) {	/* loop device support */
+		if (! gotone && !strcasecmp("loop", options)) {	/* loop device support */
 			use_loop = TRUE;
 			gotone = TRUE;
 		}
 #endif
-		if (*strflags && strflags != '\0' && gotone == FALSE) {
+		if (*strflags && strflags != '\0' && ! gotone) {
 			char *temp = strflags;
 
 			temp += strlen(strflags);
 			*temp++ = ',';
 			*temp++ = '\0';
 		}
-		if (gotone == FALSE)
+		if (! gotone)
 			strcat(strflags, options);
 		if (comma) {
 			*comma = ',';
@@ -261,7 +261,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 				status = do_mount(blockDevice, directory, filesystemType,
 					flags | MS_MGC_VAL, string_flags,
 					useMtab, fakeIt, mtab_opts, mount_all);
-				if (status == TRUE)
+				if (status)
 					break;
 			}
 		}
@@ -286,7 +286,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 				status = do_mount(blockDevice, directory, filesystemType,
 								  flags | MS_MGC_VAL, string_flags,
 								  useMtab, fakeIt, mtab_opts, mount_all);
-				if (status == TRUE)
+				if (status)
 					break;
 			}
 		}
@@ -299,8 +299,8 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 				fakeIt, mtab_opts, mount_all);
 	}
 
-	if (status == FALSE) {
-		if (whineOnErrors == TRUE) {
+	if (! status) {
+		if (whineOnErrors) {
 			perror_msg("Mounting %s on %s failed", blockDevice, directory);
 		}
 		return (FALSE);
@@ -433,7 +433,7 @@ extern int mount_main(int argc, char **argv)
 	if (optind + 1 < argc)
 		directory = simplify_path(argv[optind + 1]);
 
-	if (all == TRUE || optind + 1 == argc) {
+	if (all || optind + 1 == argc) {
 		struct mntent *m = NULL;
 		FILE *f = setmntent("/etc/fstab", "r");
 		fstabmount = TRUE;
@@ -442,20 +442,20 @@ extern int mount_main(int argc, char **argv)
 			perror_msg_and_die( "\nCannot read /etc/fstab");
 
 		while ((m = getmntent(f)) != NULL) {
-			if (all == FALSE && optind + 1 == argc && (
+			if (! all && optind + 1 == argc && (
 				(strcmp(device, m->mnt_fsname) != 0) &&
 				(strcmp(device, m->mnt_dir) != 0) ) ) {
 				continue;
 			}
 			
-			if (all == TRUE && (				// If we're mounting 'all'
+			if (all && (							// If we're mounting 'all'
 				(strstr(m->mnt_opts, "noauto")) ||	// and the file system isn't noauto,
 				(strstr(m->mnt_type, "swap")) ||	// and isn't swap or nfs, then mount it
 				(strstr(m->mnt_type, "nfs")) ) ) {
 				continue;
 			}
 			
-			if (all == TRUE || flags == 0) {	// Allow single mount to override fstab flags
+			if (all || flags == 0) {	// Allow single mount to override fstab flags
 				flags = 0;
 				string_flags = string_flags_buf;
 				*string_flags = '\0';
@@ -483,13 +483,13 @@ singlemount:
 					string_flags, useMtab, fakeIt, extra_opts, TRUE, all))
 				rc = EXIT_FAILURE;
 				
-			if (all == FALSE)
+			if (! all)
 				break;
 		}
-		if (fstabmount == TRUE)
+		if (fstabmount)
 			endmntent(f);
 			
-		if (all == FALSE && fstabmount == TRUE && m == NULL)
+		if (! all && fstabmount && m == NULL)
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
 	
 		return rc;

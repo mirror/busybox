@@ -626,7 +626,7 @@ int BZ2_decompress(DState *s)
 	switch (switch_val) {
 		case BZ_X_MAGIC_1:
 			s->state = BZ_X_MAGIC_1;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -637,7 +637,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_MAGIC_2:
 			s->state = BZ_X_MAGIC_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -648,7 +648,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_MAGIC_3:
 			s->state = BZ_X_MAGIC_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -659,7 +659,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_MAGIC_4:
 			s->state = BZ_X_MAGIC_4;
-			if (get_bits(s, &s->blockSize100k, 8) == FALSE) {
+			if (! get_bits(s, &s->blockSize100k, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -687,7 +687,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_1:
 			s->state = BZ_X_BLKHDR_1;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -702,7 +702,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_2:
 			s->state = BZ_X_BLKHDR_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -713,7 +713,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_3:
 			s->state = BZ_X_BLKHDR_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -724,7 +724,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_4:
 			s->state = BZ_X_BLKHDR_4;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -735,7 +735,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_5:
 			s->state = BZ_X_BLKHDR_5;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -746,7 +746,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BLKHDR_6:
 			s->state = BZ_X_BLKHDR_6;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -763,7 +763,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BCRC_1:
 			s->state = BZ_X_BCRC_1;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -771,7 +771,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BCRC_2:
 			s->state = BZ_X_BCRC_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -779,7 +779,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BCRC_3:
 			s->state = BZ_X_BCRC_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -787,7 +787,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_BCRC_4:
 			s->state = BZ_X_BCRC_4;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -799,7 +799,7 @@ int BZ2_decompress(DState *s)
 				int tmp = s->blockRandomised;
 				const int ret = get_bits(s, &tmp, 1);
 				s->blockRandomised = tmp;
-				if (ret == FALSE) {
+				if (! ret) {
 					retVal = BZ_OK;
 					goto save_state_and_return;
 				}
@@ -809,7 +809,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_ORIGPTR_1:
 			s->state = BZ_X_ORIGPTR_1;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -817,7 +817,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_ORIGPTR_2:
 			s->state = BZ_X_ORIGPTR_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -825,7 +825,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_ORIGPTR_3:
 			s->state = BZ_X_ORIGPTR_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -844,7 +844,7 @@ int BZ2_decompress(DState *s)
 		case BZ_X_MAPPING_1:
 			for (i = 0; i < 16; i++) {
 				s->state = BZ_X_MAPPING_1;
-				if (get_bits(s, &uc, 1) == FALSE) {
+				if (! get_bits(s, &uc, 1)) {
 					retVal = BZ_OK;
 					goto save_state_and_return;
 				}
@@ -864,7 +864,7 @@ int BZ2_decompress(DState *s)
 					for (j = 0; j < 16; j++) {
 					case BZ_X_MAPPING_2:
 						s->state = BZ_X_MAPPING_2;
-						if (get_bits(s, &uc, 1) == FALSE) {
+						if (! get_bits(s, &uc, 1)) {
 							retVal = BZ_OK;
 							goto save_state_and_return;
 						}
@@ -891,7 +891,7 @@ int BZ2_decompress(DState *s)
 		/*--- Now the selectors ---*/
 		case BZ_X_SELECTOR_1:
 			s->state = BZ_X_SELECTOR_1;
-			if (get_bits(s, &nGroups, 3) == FALSE) {
+			if (! get_bits(s, &nGroups, 3)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -902,7 +902,7 @@ int BZ2_decompress(DState *s)
 
 		case BZ_X_SELECTOR_2:
 			s->state = BZ_X_SELECTOR_2;
-			if (get_bits(s, &nSelectors, 15) == FALSE) {
+			if (! get_bits(s, &nSelectors, 15)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -918,7 +918,7 @@ int BZ2_decompress(DState *s)
 				while (1) {
 					case BZ_X_SELECTOR_3:
 					s->state = BZ_X_SELECTOR_3;
-					if (get_bits(s, &uc, 1) == FALSE) {
+					if (! get_bits(s, &uc, 1)) {
 						retVal = BZ_OK;
 						goto save_state_and_return;
 					}
@@ -956,7 +956,7 @@ int BZ2_decompress(DState *s)
 			for (t = 0; t < nGroups; t++) {
 			case BZ_X_CODING_1:
 				s->state = BZ_X_CODING_1;
-				if (get_bits(s, &curr, 5) == FALSE) {
+				if (! get_bits(s, &curr, 5)) {
 					retVal = BZ_OK;
 					goto save_state_and_return;
 				}
@@ -969,7 +969,7 @@ int BZ2_decompress(DState *s)
 
 					case BZ_X_CODING_2:
 						s->state = BZ_X_CODING_2;
-						if (get_bits(s, &uc, 1) == FALSE) {
+						if (! get_bits(s, &uc, 1)) {
 							retVal = BZ_OK;
 							goto save_state_and_return;
 						}
@@ -979,7 +979,7 @@ int BZ2_decompress(DState *s)
 
 					case BZ_X_CODING_3:
 						s->state = BZ_X_CODING_3;
-						if (get_bits(s, &uc, 1) == FALSE) {
+						if (! get_bits(s, &uc, 1)) {
 							retVal = BZ_OK;
 							goto save_state_and_return;
 						}
@@ -1044,12 +1044,12 @@ int BZ2_decompress(DState *s)
 
 		nblock = 0;
 
-		if (get_mtf_val_init() == FALSE) {
+		if (! get_mtf_val_init()) {
 			goto save_state_and_return;
 		}
 		case BZ_X_MTF_1:
 			s->state = BZ_X_MTF_1;
-			if (get_bits(s, &zvec, zn) == FALSE) {
+			if (! get_bits(s, &zvec, zn)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1065,7 +1065,7 @@ int BZ2_decompress(DState *s)
 
 				case BZ_X_MTF_2:
 					s->state = BZ_X_MTF_2;
-					if (get_bits(s, &zj, 1) == FALSE) {
+					if (! get_bits(s, &zj, 1)) {
 						retVal = BZ_OK;
 						goto save_state_and_return;
 					}
@@ -1094,12 +1094,12 @@ int BZ2_decompress(DState *s)
 					}
 				}
 				N = N * 2;
-				if (get_mtf_val_init() == FALSE) {
+				if (! get_mtf_val_init()) {
 					goto save_state_and_return;
 				}
 				case BZ_X_MTF_3:
 					s->state = BZ_X_MTF_3;
-					if (get_bits(s, &zvec, zn) == FALSE) {
+					if (! get_bits(s, &zvec, zn)) {
 						retVal = BZ_OK;
 						goto save_state_and_return;
 					}
@@ -1115,7 +1115,7 @@ int BZ2_decompress(DState *s)
 
 						case BZ_X_MTF_4:
 							s->state = BZ_X_MTF_4;
-							if (get_bits(s, &zj, 1) == FALSE) {
+							if (! get_bits(s, &zj, 1)) {
 								retVal = BZ_OK;
 								goto save_state_and_return;
 							}
@@ -1223,12 +1223,12 @@ int BZ2_decompress(DState *s)
 			}
 			nblock++;
 
-			if (get_mtf_val_init() == FALSE) {
+			if (! get_mtf_val_init()) {
 				goto save_state_and_return;
 			}
 			case BZ_X_MTF_5:
 				s->state = BZ_X_MTF_5;
-				if (get_bits(s, &zvec, zn) == FALSE) {
+				if (! get_bits(s, &zvec, zn)) {
 					retVal = BZ_OK;
 					goto save_state_and_return;
 				}
@@ -1244,7 +1244,7 @@ int BZ2_decompress(DState *s)
 
 					case BZ_X_MTF_6:
 						s->state = BZ_X_MTF_6;
-						if (get_bits(s, &zj, 1) == FALSE) {
+						if (! get_bits(s, &zj, 1)) {
 							retVal = BZ_OK;
 							goto save_state_and_return;
 						}
@@ -1366,7 +1366,7 @@ int BZ2_decompress(DState *s)
 endhdr_2:
 		case BZ_X_ENDHDR_2:
 			s->state = BZ_X_ENDHDR_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1377,7 +1377,7 @@ endhdr_2:
 
 		case BZ_X_ENDHDR_3:
 			s->state = BZ_X_ENDHDR_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1388,7 +1388,7 @@ endhdr_2:
 
 		case BZ_X_ENDHDR_4:
 			s->state = BZ_X_ENDHDR_4;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1399,7 +1399,7 @@ endhdr_2:
 
 		case BZ_X_ENDHDR_5:
 			s->state = BZ_X_ENDHDR_5;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1410,7 +1410,7 @@ endhdr_2:
 
 		case BZ_X_ENDHDR_6:
 			s->state = BZ_X_ENDHDR_6;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1422,14 +1422,14 @@ endhdr_2:
 
 		case BZ_X_CCRC_1:
 			s->state = BZ_X_CCRC_1;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
 			s->storedCombinedCRC = (s->storedCombinedCRC << 8) | ((unsigned int)uc);
 		case BZ_X_CCRC_2:
 			s->state = BZ_X_CCRC_2;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1437,7 +1437,7 @@ endhdr_2:
 
 		case BZ_X_CCRC_3:
 			s->state = BZ_X_CCRC_3;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}
@@ -1445,7 +1445,7 @@ endhdr_2:
 
 		case BZ_X_CCRC_4:
 			s->state = BZ_X_CCRC_4;
-			if (get_bits(s, &uc, 8) == FALSE) {
+			if (! get_bits(s, &uc, 8)) {
 				retVal = BZ_OK;
 				goto save_state_and_return;
 			}

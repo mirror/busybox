@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.76 2001/12/14 16:08:17 kraai Exp $"
+#ident "$Id: insmod.c,v 1.77 2001/12/20 23:13:08 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.76 2001/12/14 16:08:17 kraai Exp $"
+#ident "$Id: insmod.c,v 1.77 2001/12/20 23:13:08 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3314,8 +3314,8 @@ extern int insmod_main( int argc, char **argv)
 				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
-			if (recursive_action(module_dir, TRUE, FALSE, FALSE,
-						check_module_name_match, 0, m_fullName) == FALSE) 
+			if (! recursive_action(module_dir, TRUE, FALSE, FALSE,
+						check_module_name_match, 0, m_fullName)) 
 			{
 				if (m_filename[0] == '\0'
 						|| ((fp = fopen(m_filename, "r")) == NULL)) 

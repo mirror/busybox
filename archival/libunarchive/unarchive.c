@@ -227,7 +227,7 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 			}
 		}
 
-		if (extract_flag == TRUE) {
+		if (extract_flag) {
 			buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
 		} else {
 			/* seek past the data entry */

@@ -276,7 +276,7 @@ static void message (char *fmt, ...)
 	fl.l_len    = 1;
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if ((circular_logging == TRUE) && (buf != NULL)){
+	if ((circular_logging) && (buf != NULL)){
 			char b[1024];
 			va_start (arguments, fmt);
 			vsprintf (b, fmt, arguments);
@@ -366,7 +366,7 @@ static const int IOV_COUNT = 2;
 					"%s:%d",RemoteHost,RemotePort);
 		}
 	}
-	if (local_logging == TRUE)
+	if (local_logging)
 #endif
 		/* now spew out the message to wherever it is supposed to go */
 		message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
@@ -519,13 +519,13 @@ static void doSyslogd (void)
 	FD_SET (sock_fd, &fds);
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if (circular_logging == TRUE ){
+	if (circular_logging ){
 	   ipcsyslog_init();
 	}
 #endif
 
         #ifdef CONFIG_FEATURE_REMOTE_LOG
-        if (doRemoteLog == TRUE){
+        if (doRemoteLog){
           init_RemoteLog();
         }
         #endif
@@ -616,7 +616,7 @@ extern int syslogd_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* If they have not specified remote logging, then log locally */
-	if (doRemoteLog == FALSE)
+	if (! doRemoteLog)
 		local_logging = TRUE;
 #endif
 
@@ -629,7 +629,7 @@ extern int syslogd_main(int argc, char **argv)
 
 	umask(0);
 
-	if (doFork == TRUE) {
+	if (doFork) {
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		if (daemon(0, 1) < 0)
 			perror_msg_and_die("daemon");

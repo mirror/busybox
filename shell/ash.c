@@ -8172,7 +8172,7 @@ umaskcmd(int argc, char **argv)
 			umask(mask);
 		} else {
 			mask = ~mask & 0777;
-			if (parse_mode(ap, &mask) == FALSE) {
+			if (! parse_mode(ap, &mask)) {
 				error("Illegal mode: %s", ap);
 			}
 			umask(~mask & 0777);
@@ -12481,7 +12481,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.37 2001/12/06 03:37:38 aaronl Exp $
+ * $Id: ash.c,v 1.38 2001/12/20 23:13:19 kraai Exp $
  */
 static int timescmd (int argc, char **argv)
 {

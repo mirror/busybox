@@ -547,7 +547,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			}
 		}
 
-		if (get_enter == TRUE) {
+		if (get_enter) {
 			/*
 			 * Save memory by not exec-ing anything large (like a shell)
 			 * before the user wants it. This is critical if swap is not
@@ -942,7 +942,7 @@ static void parse_inittab(void)
 			}
 			a++;
 		}
-		if (foundIt == TRUE)
+		if (foundIt)
 			continue;
 		else {
 			/* Choke on an unknown action */

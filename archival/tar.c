@@ -476,9 +476,9 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 
 	/* Read the directory/files and iterate over them one at a time */
 	while (*argv != NULL) {
-		if (recursive_action(*argv++, TRUE, FALSE, FALSE,
+		if (! recursive_action(*argv++, TRUE, FALSE, FALSE,
 					writeFileToTarball, writeFileToTarball, 
-					(void*) &tbInfo) == FALSE) {
+					(void*) &tbInfo)) {
 			errorFlag = TRUE;
 		}
 	}
@@ -494,7 +494,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 
 	/* Hang up the tools, close up shop, head home */
 	close(tarFd);
-	if (errorFlag == TRUE) {
+	if (errorFlag) {
 		error_msg("Error exit delayed from previous errors");
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return(FALSE);
@@ -556,7 +556,7 @@ char **list_and_not_list(char **include_list, char **exclude_list)
 			exclude_count++;
 		}
 
-		if (found == FALSE) {
+		if (! found) {
 			new_include_list = realloc(new_include_list, sizeof(char *) * (include_count + 2));
 			new_include_list[new_include_count] = include_list[include_count];
 			new_include_count++;

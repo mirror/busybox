@@ -171,7 +171,7 @@ extern int gunzip_main(int argc, char **argv)
 	fclose(out_file);
 	fclose(in_file);
 
-	if (delete_old_file == TRUE) {
+	if (delete_old_file) {
 		if (unlink(delete_file_name) < 0) {
 			error_msg_and_die("Couldnt remove %s", delete_file_name);
 		}

@@ -58,7 +58,7 @@ int chmod_main(int argc, char **argv)
 	if (argc > optind && argc > 2 && argv[optind]) {
 		/* Parse the specified mode */
 		mode_t mode;
-		if (parse_mode(argv[optind], &mode) == FALSE) {
+		if (! parse_mode(argv[optind], &mode)) {
 			error_msg_and_die( "unknown mode: %s", argv[optind]);
 		}
 	} else {
@@ -67,8 +67,8 @@ int chmod_main(int argc, char **argv)
 
 	/* Ok, ready to do the deed now */
 	for (i = optind + 1; i < argc; i++) {
-		if (recursive_action (argv[i], recursiveFlag, FALSE, FALSE, fileAction,
-					fileAction, argv[optind]) == FALSE) {
+		if (! recursive_action (argv[i], recursiveFlag, FALSE, FALSE, fileAction,
+					fileAction, argv[optind])) {
 			return EXIT_FAILURE;
 		}
 	}

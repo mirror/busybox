@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.19 2001/11/17 07:14:06 andersen Exp $";
+	"$Id: vi.c,v 1.20 2001/12/20 23:12:47 kraai Exp $";
 
 /*
  * To compile for standalone use:
@@ -1219,7 +1219,7 @@ key_cmd_mode:
 			break;
 		if (strncasecmp((char *) p, "quit", cnt) == 0 ||
 			strncasecmp((char *) p, "q!", cnt) == 0) {	// delete lines
-			if (file_modified == TRUE && p[1] != '!') {
+			if (file_modified && p[1] != '!') {
 				psbs("No write since last change (:quit! overrides)");
 			} else {
 				editing = 0;
@@ -1410,10 +1410,10 @@ key_cmd_mode:
 			indicate_error(c);
 			break;
 		}
-		if (file_modified == TRUE
+		if (file_modified
 #ifdef CONFIG_FEATURE_VI_READONLY
-			&& vi_readonly == FALSE
-			&& readonly == FALSE
+			&& ! vi_readonly
+			&& ! readonly
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			) {
 			cnt = file_write(cfn, text, end - 1);
@@ -1829,7 +1829,7 @@ static void colon(Byte * buf)
 		int sr;
 		sr= 0;
 		// don't edit, if the current file has been modified
-		if (file_modified == TRUE && useforce != TRUE) {
+		if (file_modified && ! useforce) {
 			psbs("No write since last change (:edit! overrides)");
 			goto vc1;
 		}
@@ -1908,7 +1908,7 @@ static void colon(Byte * buf)
 			" %dL, %dC", cfn,
 			(sr < 0 ? " [New file]" : ""),
 #ifdef CONFIG_FEATURE_VI_READONLY
-			((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
+			((vi_readonly || readonly) ? " [Read only]" : ""),
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			li, ch);
 	} else if (strncasecmp((char *) cmd, "file", i) == 0) {	// what File is this
@@ -1961,7 +1961,7 @@ static void colon(Byte * buf)
 		Hit_Return();
 	} else if ((strncasecmp((char *) cmd, "quit", i) == 0) ||	// Quit
 			   (strncasecmp((char *) cmd, "next", i) == 0)) {	// edit next file
-		if (useforce == TRUE) {
+		if (useforce) {
 			// force end of argv list
 			if (*cmd == 'q') {
 				optind = save_argc;
@@ -1970,7 +1970,7 @@ static void colon(Byte * buf)
 			goto vc1;
 		}
 		// don't exit if the file been modified
-		if (file_modified == TRUE) {
+		if (file_modified) {
 			psbs("No write since last change (:%s! overrides)",
 				 (*cmd == 'q' ? "quit" : "next"));
 			goto vc1;
@@ -2014,7 +2014,7 @@ static void colon(Byte * buf)
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			" %dL, %dC", fn,
 #ifdef CONFIG_FEATURE_VI_READONLY
-			((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
+			((vi_readonly || readonly) ? " [Read only]" : ""),
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			li, ch);
 		if (ch > 0) {
@@ -2024,7 +2024,7 @@ static void colon(Byte * buf)
 			file_modified = TRUE;
 		}
 	} else if (strncasecmp((char *) cmd, "rewind", i) == 0) {	// rewind cmd line args
-		if (file_modified == TRUE && useforce != TRUE) {
+		if (file_modified && ! useforce) {
 			psbs("No write since last change (:rewind! overrides)");
 		} else {
 			// reset the filenames to edit
@@ -2140,7 +2140,7 @@ static void colon(Byte * buf)
 			fn = args;
 		}
 #ifdef CONFIG_FEATURE_VI_READONLY
-		if ((vi_readonly == TRUE || readonly == TRUE) && useforce == FALSE) {
+		if ((vi_readonly || readonly) && ! useforce) {
 			psbs("\"%s\" File is read only", fn);
 			goto vc3;
 		}
@@ -2149,14 +2149,14 @@ static void colon(Byte * buf)
 		li = count_lines(q, r);
 		ch = r - q + 1;
 		// see if file exists- if not, its just a new file request
-		if (useforce == TRUE) {
+		if (useforce) {
 			// if "fn" is not write-able, chmod u+w
 			// sprintf(syscmd, "chmod u+w %s", fn);
 			// system(syscmd);
 			forced = TRUE;
 		}
 		l = file_write(fn, q, r);
-		if (useforce == TRUE && forced == TRUE) {
+		if (useforce && forced) {
 			// chmod u-w
 			// sprintf(syscmd, "chmod u-w %s", fn);
 			// system(syscmd);
@@ -3527,7 +3527,7 @@ static int file_insert(Byte * fn, Byte * p, int size)
 
 	// see if we can open the file
 #ifdef CONFIG_FEATURE_VI_READONLY
-	if (vi_readonly == TRUE) goto fi1;		// do not try write-mode
+	if (vi_readonly) goto fi1;		// do not try write-mode
 #endif
 	fd = open((char *) fn, O_RDWR);			// assume read & write
 	if (fd < 0) {
@@ -3623,7 +3623,7 @@ static void place_cursor(int row, int col, int opti)
 	//----- 1.  Try the standard terminal ESC sequence
 	sprintf((char *) cm1, CMrc, row + 1, col + 1);
 	cm= cm1;
-	if (opti == FALSE) goto pc0;
+	if (! opti) goto pc0;
 
 #ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	//----- find the minimum # of chars to move cursor -------------
@@ -3798,9 +3798,9 @@ static void edit_status(void)	// show file status on status line
 		"%s line %d of %d --%d%%--",
 		(cfn != 0 ? (char *) cfn : "No file"),
 #ifdef CONFIG_FEATURE_VI_READONLY
-		((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
+		((vi_readonly || readonly) ? " [Read only]" : ""),
 #endif							/* CONFIG_FEATURE_VI_READONLY */
-		(file_modified == TRUE ? " [modified]" : ""),
+		(file_modified ? " [modified]" : ""),
 		cur, tot, percent);
 }
 
@@ -3888,7 +3888,7 @@ static void refresh(int full_screen)
 		cs= 0;
 		ce= columns-1;
 		sp = &screen[li * columns];	// start of screen line
-		if (full_screen == TRUE) {
+		if (full_screen) {
 			// force re-draw of every single column from 0 - columns-1
 			goto re0;
 		}
@@ -3921,7 +3921,7 @@ static void refresh(int full_screen)
 		if (ce > columns-1) ce= columns-1;
 		if (cs > ce) {  cs= 0;  ce= columns-1;  }
 		// is there a change between vitual screen and buf
-		if (changed == TRUE) {
+		if (changed) {
 			//  copy changed part of buffer to virtual screen
 			memmove(sp+cs, buf+(cs+offset), ce-cs+1);
 

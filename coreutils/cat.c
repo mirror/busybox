@@ -37,7 +37,7 @@ extern int cat_main(int argc, char **argv)
 	while (--argc > 0) {
 		if(!(strcmp(*++argv, "-"))) {
 			print_file(stdin);
-		} else if (print_file_by_name(*argv) == FALSE) {
+		} else if (! print_file_by_name(*argv)) {
 			status = EXIT_FAILURE;
 		}
 	}

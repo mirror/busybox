@@ -1437,7 +1437,7 @@ static int busy_loop(FILE * input)
 				next_command = command;
 			}
 
-			if (expand_arguments(next_command) == FALSE) {
+			if (! expand_arguments(next_command)) {
 				free(command);
 				command = (char *) xcalloc(BUFSIZ, sizeof(char));
 				next_command = NULL;
