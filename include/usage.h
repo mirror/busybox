@@ -1585,7 +1585,7 @@
 
 #define msvc_trivial_usage \
 	"-[udorspchaitkx] service"
-#define msvc_full_usafe \
+#define msvc_full_usage \
 	"[option] service\n" \
 	"Where option is one of\n" \
 	"\t-u\tUp.  If the service is not running, start it.  If the service stops, restart it.\n" \
