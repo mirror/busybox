@@ -33,6 +33,8 @@
 
 #include "busybox.h"
 
+static int do_link;
+
 static int on_off(char *msg)
 {
 	error_msg("Error: argument of \"%s\" must be \"on\" or \"off\"", msg);
@@ -330,6 +332,13 @@ static int do_set(int argc, char **argv)
 	if (mask)
 		return do_chflags(dev, flags, mask);
 	return 0;
+}
+
+static int ipaddr_list_link(int argc, char **argv)
+{
+	preferred_family = AF_PACKET;
+	do_link = 1;
+	return ipaddr_list(argc, argv);
 }
 
 int do_iplink(int argc, char **argv)

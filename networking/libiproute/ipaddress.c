@@ -50,8 +50,6 @@ static struct
 	struct rtnl_handle *rth;
 } filter;
 
-static int do_link;
-
 void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 {
 	fprintf(fp, "<");
@@ -84,7 +82,7 @@ void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 	fprintf(fp, "> ");
 }
 
-void print_queuelen(char *name)
+static void print_queuelen(char *name)
 {
 	struct ifreq ifr;
 	int s;
@@ -106,7 +104,7 @@ void print_queuelen(char *name)
 		printf("qlen %d", ifr.ifr_qlen);
 }
 
-int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct ifinfomsg *ifi = NLMSG_DATA(n);
@@ -198,7 +196,7 @@ int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	return 0;
 }
 
-int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);
@@ -341,7 +339,7 @@ struct nlmsg_list
 	struct nlmsghdr	  h;
 };
 
-int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo, FILE *fp)
+static int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo, FILE *fp)
 {
 	for ( ;ainfo ;  ainfo = ainfo->next) {
 		struct nlmsghdr *n = &ainfo->h;
@@ -363,7 +361,7 @@ int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo, FILE *fp)
 }
 
 
-int store_nlmsg(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int store_nlmsg(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	struct nlmsg_list **linfo = (struct nlmsg_list**)arg;
 	struct nlmsg_list *h;
@@ -383,8 +381,15 @@ int store_nlmsg(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	return 0;
 }
 
-int ipaddr_list(int argc, char **argv)
+static void ipaddr_reset_filter(int _oneline)
 {
+	memset(&filter, 0, sizeof(filter));
+	filter.oneline = _oneline;
+}
+
+extern int ipaddr_list(int argc, char **argv)
+{
+	const char *option[] = { "to", "scope", "up", "label", "dev", 0 };
 	struct nlmsg_list *linfo = NULL;
 	struct nlmsg_list *ainfo = NULL;
 	struct nlmsg_list *l;
@@ -399,36 +404,47 @@ int ipaddr_list(int argc, char **argv)
 		filter.family = preferred_family;
 
 	while (argc > 0) {
-		if (strcmp(*argv, "to") == 0) {
-			NEXT_ARG();
-			get_prefix(&filter.pfx, *argv, filter.family);
-			if (filter.family == AF_UNSPEC)
-				filter.family = filter.pfx.family;
-		} else if (strcmp(*argv, "scope") == 0) {
-			int scope = 0;
-			NEXT_ARG();
-			filter.scopemask = -1;
-			if (rtnl_rtscope_a2n(&scope, *argv)) {
-				if (strcmp(*argv, "all") != 0)
-					invarg("invalid \"scope\"\n", *argv);
-				scope = RT_SCOPE_NOWHERE;
-				filter.scopemask = 0;
-			}
-			filter.scope = scope;
-		} else if (strcmp(*argv, "up") == 0) {
-			filter.up = 1;
-		} else if (strcmp(*argv, "label") == 0) {
-			NEXT_ARG();
-			filter.label = *argv;
-		} else {
-			if (strcmp(*argv, "dev") == 0) {
+		const unsigned short option_num = compare_string_array(option, *argv);
+		switch (option_num) {
+			case 0: /* to */
 				NEXT_ARG();
+				get_prefix(&filter.pfx, *argv, filter.family);
+				if (filter.family == AF_UNSPEC) {
+					filter.family = filter.pfx.family;
+				}
+				break;
+			case 1: /* scope */
+			{
+				int scope = 0;
+				NEXT_ARG();
+				filter.scopemask = -1;
+				if (rtnl_rtscope_a2n(&scope, *argv)) {
+					if (strcmp(*argv, "all") != 0) {
+						invarg("invalid \"scope\"\n", *argv);
+					}
+					scope = RT_SCOPE_NOWHERE;
+					filter.scopemask = 0;
+				}
+				filter.scope = scope;
+				break;
 			}
-			if (filter_dev)
-				duparg2("dev", *argv);
-			filter_dev = *argv;
+			case 2: /* up */
+				filter.up = 1;
+				break;
+			case 3: /* label */
+				NEXT_ARG();
+				filter.label = *argv;
+				break;
+			case 4: /* dev */
+				NEXT_ARG();
+			default:
+				if (filter_dev) {
+					duparg2("dev", *argv);
+				}
+				filter_dev = *argv;
 		}
-		argv++; argc--;
+		argv++;
+		argc--;
 	}
 
 	if (rtnl_open(&rth, 0) < 0)
@@ -533,20 +549,7 @@ int ipaddr_list(int argc, char **argv)
 	exit(0);
 }
 
-int ipaddr_list_link(int argc, char **argv)
-{
-	preferred_family = AF_PACKET;
-	do_link = 1;
-	return ipaddr_list(argc, argv);
-}
-
-void ipaddr_reset_filter(int _oneline)
-{
-	memset(&filter, 0, sizeof(filter));
-	filter.oneline = _oneline;
-}
-
-int default_scope(inet_prefix *lcl)
+static int default_scope(inet_prefix *lcl)
 {
 	if (lcl->family == AF_INET) {
 		if (lcl->bytelen >= 1 && *(__u8*)&lcl->data == 127)
@@ -555,8 +558,10 @@ int default_scope(inet_prefix *lcl)
 	return 0;
 }
 
-int ipaddr_modify(int cmd, int argc, char **argv)
+static int ipaddr_modify(int cmd, int argc, char **argv)
 {
+	const char *option[] = { "peer", "remote", "broadcast", "brd",
+		"anycast", "scope", "dev", "label", "local", 0 };
 	struct rtnl_handle rth;
 	struct {
 		struct nlmsghdr 	n;
@@ -581,73 +586,97 @@ int ipaddr_modify(int cmd, int argc, char **argv)
 	req.ifa.ifa_family = preferred_family;
 
 	while (argc > 0) {
-		if (strcmp(*argv, "peer") == 0 ||
-		    strcmp(*argv, "remote") == 0) {
-			NEXT_ARG();
-
-			if (peer_len)
-				duparg("peer", *argv);
-			get_prefix(&peer, *argv, req.ifa.ifa_family);
-			peer_len = peer.bytelen;
-			if (req.ifa.ifa_family == AF_UNSPEC)
-				req.ifa.ifa_family = peer.family;
-			addattr_l(&req.n, sizeof(req), IFA_ADDRESS, &peer.data, peer.bytelen);
-			req.ifa.ifa_prefixlen = peer.bitlen;
-		} else if (matches(*argv, "broadcast") == 0 ||
-			   strcmp(*argv, "brd") == 0) {
-			inet_prefix addr;
-			NEXT_ARG();
-			if (brd_len)
-				duparg("broadcast", *argv);
-			if (strcmp(*argv, "+") == 0)
-				brd_len = -1;
-			else if (strcmp(*argv, "-") == 0)
-				brd_len = -2;
-			else {
-				get_addr(&addr, *argv, req.ifa.ifa_family);
-				if (req.ifa.ifa_family == AF_UNSPEC)
-					req.ifa.ifa_family = addr.family;
-				addattr_l(&req.n, sizeof(req), IFA_BROADCAST, &addr.data, addr.bytelen);
-				brd_len = addr.bytelen;
-			}
-		} else if (strcmp(*argv, "anycast") == 0) {
-			inet_prefix addr;
-			NEXT_ARG();
-			if (any_len)
-				duparg("anycast", *argv);
-			get_addr(&addr, *argv, req.ifa.ifa_family);
-			if (req.ifa.ifa_family == AF_UNSPEC)
-				req.ifa.ifa_family = addr.family;
-			addattr_l(&req.n, sizeof(req), IFA_ANYCAST, &addr.data, addr.bytelen);
-			any_len = addr.bytelen;
-		} else if (strcmp(*argv, "scope") == 0) {
-			int scope = 0;
-			NEXT_ARG();
-			if (rtnl_rtscope_a2n(&scope, *argv))
-				invarg(*argv, "invalid scope value.");
-			req.ifa.ifa_scope = scope;
-			scoped = 1;
-		} else if (strcmp(*argv, "dev") == 0) {
-			NEXT_ARG();
-			d = *argv;
-		} else if (strcmp(*argv, "label") == 0) {
-			NEXT_ARG();
-			l = *argv;
-			addattr_l(&req.n, sizeof(req), IFA_LABEL, l, strlen(l)+1);
-		} else {
-			if (strcmp(*argv, "local") == 0) {
+		const unsigned short option_num = compare_string_array(option, *argv);
+		switch (option_num) {
+			case 0: /* peer */
+			case 1: /* remote */
 				NEXT_ARG();
+
+				if (peer_len) {
+					duparg("peer", *argv);
+				}
+				get_prefix(&peer, *argv, req.ifa.ifa_family);
+				peer_len = peer.bytelen;
+				if (req.ifa.ifa_family == AF_UNSPEC) {
+					req.ifa.ifa_family = peer.family;
+				}
+				addattr_l(&req.n, sizeof(req), IFA_ADDRESS, &peer.data, peer.bytelen);
+				req.ifa.ifa_prefixlen = peer.bitlen;
+				break;
+			case 2: /* broadcast */
+			case 3: /* brd */
+			{
+				inet_prefix addr;
+				NEXT_ARG();
+				if (brd_len) {
+					duparg("broadcast", *argv);
+				}
+				if (strcmp(*argv, "+") == 0) {
+					brd_len = -1;
+				}
+				else if (strcmp(*argv, "-") == 0) {
+					brd_len = -2;
+				} else {
+					get_addr(&addr, *argv, req.ifa.ifa_family);
+					if (req.ifa.ifa_family == AF_UNSPEC)
+						req.ifa.ifa_family = addr.family;
+					addattr_l(&req.n, sizeof(req), IFA_BROADCAST, &addr.data, addr.bytelen);
+					brd_len = addr.bytelen;
+				}
+				break;
 			}
-			if (local_len)
-				duparg2("local", *argv);
-			get_prefix(&lcl, *argv, req.ifa.ifa_family);
-			if (req.ifa.ifa_family == AF_UNSPEC)
-				req.ifa.ifa_family = lcl.family;
-			addattr_l(&req.n, sizeof(req), IFA_LOCAL, &lcl.data, lcl.bytelen);
-			local_len = lcl.bytelen;
+			case 4: /* anycast */
+			{
+				inet_prefix addr;
+				NEXT_ARG();
+				if (any_len) {
+					duparg("anycast", *argv);
+				}
+				get_addr(&addr, *argv, req.ifa.ifa_family);
+				if (req.ifa.ifa_family == AF_UNSPEC) {
+					req.ifa.ifa_family = addr.family;
+				}
+				addattr_l(&req.n, sizeof(req), IFA_ANYCAST, &addr.data, addr.bytelen);
+				any_len = addr.bytelen;
+				break;
+			}
+			case 5: /* scope */
+			{
+				int scope = 0;
+				NEXT_ARG();
+				if (rtnl_rtscope_a2n(&scope, *argv)) {
+					invarg(*argv, "invalid scope value.");
+				}
+				req.ifa.ifa_scope = scope;
+				scoped = 1;
+				break;
+			}
+			case 6: /* dev */
+				NEXT_ARG();
+				d = *argv;
+				break;
+			case 7: /* label */
+				NEXT_ARG();
+				l = *argv;
+				addattr_l(&req.n, sizeof(req), IFA_LABEL, l, strlen(l)+1);
+				break;
+			case 8:	/* local */
+				NEXT_ARG();
+			default:
+				if (local_len) {
+					duparg2("local", *argv);
+				}
+				get_prefix(&lcl, *argv, req.ifa.ifa_family);
+				if (req.ifa.ifa_family == AF_UNSPEC) {
+					req.ifa.ifa_family = lcl.family;
+				}
+				addattr_l(&req.n, sizeof(req), IFA_LOCAL, &lcl.data, lcl.bytelen);
+				local_len = lcl.bytelen;
 		}
-		argc--; argv++;
+		argc--;
+		argv++;
 	}
+
 	if (d == NULL) {
 		error_msg("Not enough information: \"dev\" argument is required.");
 		return -1;
@@ -701,17 +730,23 @@ int ipaddr_modify(int cmd, int argc, char **argv)
 	exit(0);
 }
 
-int do_ipaddr(int argc, char **argv)
+extern int do_ipaddr(int argc, char **argv)
 {
-	if (argc < 1)
-		return ipaddr_list(0, NULL);
-	if (matches(*argv, "add") == 0)
-		return ipaddr_modify(RTM_NEWADDR, argc-1, argv+1);
-	if (matches(*argv, "delete") == 0)
-		return ipaddr_modify(RTM_DELADDR, argc-1, argv+1);
-	if (matches(*argv, "list") == 0 || matches(*argv, "show") == 0
-	    || matches(*argv, "lst") == 0)
-		return ipaddr_list(argc-1, argv+1);
-	error_msg("Command \"%s\" is unknown, try \"ip address help\".", *argv);
-	exit(-1);
+	const char *commands[] = { "add", "delete", "list", "show", "lst", 0 };
+	unsigned short command_num = 2;
+
+	if (*argv) {
+		command_num = compare_string_array(commands, *argv);
+	}
+	switch (command_num) {
+		case 0: /* add */
+			return ipaddr_modify(RTM_NEWADDR, argc-1, argv+1);
+		case 1: /* delete */
+			return ipaddr_modify(RTM_DELADDR, argc-1, argv+1);
+		case 2: /* list */
+		case 3: /* show */
+		case 4: /* lst */
+			return ipaddr_list(argc-1, argv+1);
+	}
+	error_msg_and_die("Unknown command %s", *argv);
 }

@@ -2,14 +2,10 @@ extern int preferred_family;
 extern char * _SL_;
 
 extern void ip_parse_common_args(int *argcp, char ***argvp);
-extern int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
-extern int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int print_neigh(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int ipaddr_list(int argc, char **argv);
-extern int ipaddr_list_link(int argc, char **argv);
 extern int iproute_monitor(int argc, char **argv);
 extern void iplink_usage(void) __attribute__((noreturn));
-extern void ipaddr_reset_filter(int);
 extern void ipneigh_reset_filter(void);
 extern int do_ipaddr(int argc, char **argv);
 extern int do_iproute(int argc, char **argv);
