@@ -1,15 +1,160 @@
 =head1 NAME
 
-busybox - I am BusyBox of borg.  Unix will be assimilated.
+busybox - I am BusyBox of Borg.  Unix will be assimilated.
 
 =head1 SYNOPSIS
 
-busybox <command> [options...]
+ busybox <function> [arguments...]  # or
+
+ <function> [arguments...]	    # if symlinked
 
 =head1 DESCRIPTION
 
 BusyBox is a multi-call binary that combines many common Unix utilities into
-a single executable.  This is a size optimization.
+a single executable.  This is a size optimization.  Most people will create
+a symlink to busybox for each function name, and BusyBox will act like
+whatever you invoke it as.
+
+=head1 COMMANDS
+
+Currently defined functions:
+busybox, cat, chmod, chown, chgrp, chroot, clear, chvt, cp, date,
+dd, df, dmesg, du, fbset, find, free, deallocvt, fsck.minix, mkfs.minix,
+grep, head, hostname, init, linuxrc, kill, ln, ls, lsmod, mkdir,
+mknod, mkswap, more, mount, mv, ping, poweroff, ps, pwd, reboot,
+rm, rmdir, sed, sleep, sort, sync, syslogd, swapon, swapoff, tail,
+tar, tee, touch, true, false, uname, umount, uniq, update, zcat,
+gunzip, gzip
+
+Oh yes.  Unix will be mine.
+
+=over 4
+
+=item busybox
+
+=item cat
+
+=item chmod
+
+=item chown
+
+=item chgrp
+
+=item chroot
+
+=item clear
+
+=item chvt
+
+=item cp
+
+=item date
+
+=item dd
+
+=item df
+
+=item dmesg
+
+=item du
+
+=item fbset
+
+=item find
+
+=item free
+
+=item deallocvt
+
+=item fsck.minix
+
+=item mkfs.minix
+
+=item grep
+
+=item head
+
+=item hostname
+
+=item init
+
+=item linuxrc
+
+=item kill
+
+=item ln
+
+=item ls
+
+=item lsmod
+
+=item mkdir
+
+=item mknod
+
+=item mkswap
+
+=item more
+
+=item mount
+
+=item mv
+
+=item ping
+
+=item poweroff
+
+=item ps
+
+=item pwd
+
+=item reboot
+
+=item rm
+
+=item rmdir
+
+=item sed
+
+=item sleep
+
+=item sort
+
+=item sync
+
+=item syslogd
+
+=item swapon
+
+=item swapoff
+
+=item tail
+
+=item tar
+
+=item tee
+
+=item touch
+
+=item true
+
+=item false
+
+=item uname
+
+=item umount
+
+=item uniq
+
+=item update
+
+=item zcat
+
+=item gunzip
+
+=item gzip
+
+=back
 
 =head1 SEE ALSO
 
@@ -25,11 +170,19 @@ Erik Andersen <erik@lineo.com>
 
 =item Bruce Perens <perens@technocrat.net>
 
+The original author.
+
 =item Erik Andersen <erik@lineo.com>
+
+He's thrashed around in the code enough to be considered the maintainer.
 
 =item Randolph Chung <rchung@debian.org>
 
+ping, fbset, mkfifo, etc.
+
 =item John Beppu <beppu@lineo.com>
+
+sort, head, du, uniq, tee.
 
 =back
 
