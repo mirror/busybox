@@ -165,6 +165,12 @@ if !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
 	      Please submit a patch to add help text for this item.
 endif
 
+config CONFIG_FOLD
+	bool "fold"
+	default n
+	help
+	 Wrap text to fit a specific width.
+
 config CONFIG_HEAD
 	bool "head"
 	default n

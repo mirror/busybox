@@ -627,6 +627,16 @@
 	"$ find / -name /etc/passwd\n" \
 	"/etc/passwd\n"
 
+#define fold_trivial_usage \
+	"[bsw] [FILE]"
+#define fold_full_usage \
+	"Wrap input lines in each FILE (standard input by default), writing to\n" \
+	"standard output.\n\n" \
+	"Options:\n" \
+	"\t-b\tcount bytes rather than columns\n" \
+	"\t-s\tbreak at spaces\n" \
+	"\t-w\tuse WIDTH columns instead of 80\n"
+
 #define free_trivial_usage \
 	""
 #define free_full_usage \

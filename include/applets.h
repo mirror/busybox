@@ -202,6 +202,9 @@
 #ifdef CONFIG_FIND
 	APPLET(find, find_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_FOLD
+	APPLET(fold, fold_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_FREE
 	APPLET(free, free_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
