@@ -45,9 +45,8 @@ tee_main(int argc, char **argv)
 	files = (FILE **)xmalloc(sizeof(FILE *) * (argc - optind + 1));
 	files[nfiles++] = stdout;
 	while (optind < argc) {
-		if ((files[nfiles++] = fopen(argv[optind++], mode)) == NULL) {
+		if ((files[nfiles++] = wfopen(argv[optind++], mode)) == NULL) {
 			nfiles--;
-			perror_msg("%s", argv[optind-1]);
 			status = 1;
 		}
 	}
