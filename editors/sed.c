@@ -47,11 +47,11 @@
 */
 
 #include <stdio.h>
-#include <unistd.h> /* for getopt() */
+#include <unistd.h>		/* for getopt() */
 #include <regex.h>
-#include <string.h> /* for strdup() */
+#include <string.h>		/* for strdup() */
 #include <errno.h>
-#include <ctype.h> /* for isspace() */
+#include <ctype.h>		/* for isspace() */
 #include <stdlib.h>
 #include "busybox.h"
 
@@ -59,20 +59,21 @@
 #define SED_LABEL_LENGTH	8
 
 /* externs */
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
-extern int optind; /* in unistd.h */
-extern char *optarg; /* ditto */
+extern void xregcomp(regex_t * preg, const char *regex, int cflags);
+extern int optind;		/* in unistd.h */
+extern char *optarg;	/* ditto */
 
 /* options */
 static int be_quiet = 0;
-static const char bad_format_in_subst[] = "bad format in substitution expression";
+static const char bad_format_in_subst[] =
+	"bad format in substitution expression";
 
 typedef struct sed_cmd_s {
 	/* Order by alignment requirements */
 
 	/* address storage */
-	regex_t *beg_match; /* sed -e '/match/cmd' */
-	regex_t *end_match; /* sed -e '/match/,/end_match/cmd' */
+	regex_t *beg_match;	/* sed -e '/match/cmd' */
+	regex_t *end_match;	/* sed -e '/match/,/end_match/cmd' */
 
 	/* SUBSTITUTION COMMAND SPECIFIC FIELDS */
 
@@ -87,25 +88,25 @@ typedef struct sed_cmd_s {
 	char *filename;
 
 	/* address storage */
-	int beg_line; /* 'sed 1p'   0 == no begining line, apply commands to all lines */
-	int end_line; /* 'sed 1,3p' 0 == no end line, use only beginning. -1 == $ */
+	int beg_line;		/* 'sed 1p'   0 == no begining line, apply commands to all lines */
+	int end_line;		/* 'sed 1,3p' 0 == no end line, use only beginning. -1 == $ */
 	/* SUBSTITUTION COMMAND SPECIFIC FIELDS */
 
-	unsigned int num_backrefs:4; /* how many back references (\1..\9) */
-			/* Note:  GNU/POSIX sed does not save more than nine backrefs, so
-			 * we only use 4 bits to hold the number */
-	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
-	unsigned int sub_p:1; /* sed -e 's/foo/bar/p' (print substitution) */
+	unsigned int num_backrefs:4;	/* how many back references (\1..\9) */
+	/* Note:  GNU/POSIX sed does not save more than nine backrefs, so
+	 * we only use 4 bits to hold the number */
+	unsigned int sub_g:1;	/* sed -e 's/foo/bar/g' (global) */
+	unsigned int sub_p:1;	/* sed -e 's/foo/bar/p' (print substitution) */
 
 	/* TRANSLATE COMMAND */
 	char *translate;
 
 	/* GENERAL FIELDS */
 	/* the command */
-	char cmd; /* p,d,s (add more at your leisure :-) */
+	char cmd;			/* p,d,s (add more at your leisure :-) */
 
 	/* inversion flag */
-	int invert;         /* the '!' after the address */
+	int invert;			/* the '!' after the address */
 
 	/* Branch commands */
 	char label[SED_LABEL_LENGTH + 1];
@@ -122,7 +123,7 @@ static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
 static sed_cmd_t *block_cmd;
 
 static int in_block = 0;
-const char * const semicolon_whitespace = "; \n\r\t\v\0";
+const char *const semicolon_whitespace = "; \n\r\t\v\0";
 static regex_t *previous_regex_ptr = NULL;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
@@ -158,17 +159,18 @@ static void destroy_cmd_strs(void)
  * expression delimiter (typically a forward * slash ('/')) not preceeded by 
  * a backslash ('\').
  */
-static int index_of_next_unescaped_regexp_delim(const char delimiter, const char *str)
+static int index_of_next_unescaped_regexp_delim(const char delimiter,
+												const char *str)
 {
 	int bracket = -1;
 	int escaped = 0;
 	int idx = 0;
 	char ch;
 
-	for ( ; (ch = str[idx]); idx++) {
+	for (; (ch = str[idx]); idx++) {
 		if (bracket != -1) {
 			if (ch == ']' && !(bracket == idx - 1 ||
-					(bracket == idx - 2 && str[idx-1] == '^')))
+							   (bracket == idx - 2 && str[idx - 1] == '^')))
 				bracket = -1;
 		} else if (escaped)
 			escaped = 0;
@@ -214,26 +216,26 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	}
 	*replace = bb_xstrndup(cmdstr_ptr, idx);
 
-	return((cmdstr_ptr - cmdstr) + idx);
+	return ((cmdstr_ptr - cmdstr) + idx);
 }
 
 /*
  * returns the index in the string just past where the address ends.
  */
-static int get_address(char *my_str, int *linenum, regex_t **regex)
+static int get_address(char *my_str, int *linenum, regex_t ** regex)
 {
 	int idx = 0;
+
 	if (isdigit(my_str[idx])) {
 		char *endstr;
+
 		*linenum = strtol(my_str, &endstr, 10);
 		/* endstr shouldnt ever equal NULL */
 		idx = endstr - my_str;
-	}
-	else if (my_str[idx] == '$') {
+	} else if (my_str[idx] == '$') {
 		*linenum = -1;
 		idx++;
-	}
-	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
+	} else if (my_str[idx] == '/' || my_str[idx] == '\\') {
 		int idx_start = 1;
 		char delimiter;
 
@@ -248,10 +250,10 @@ static int get_address(char *my_str, int *linenum, regex_t **regex)
 			bb_error_msg_and_die("unterminated match expression");
 		}
 		my_str[idx] = '\0';
-	
-		*regex = (regex_t *)xmalloc(sizeof(regex_t));
-		xregcomp(*regex, my_str+idx_start, REG_NEWLINE);
-		idx++; /* so it points to the next character after the last '/' */
+
+		*regex = (regex_t *) xmalloc(sizeof(regex_t));
+		xregcomp(*regex, my_str + idx_start, REG_NEWLINE);
+		idx++;			/* so it points to the next character after the last '/' */
 	}
 	return idx;
 }
@@ -277,41 +279,42 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	/* Note: we compute this here rather than in the do_subst_command()
 	 * function to save processor time, at the expense of a little more memory
 	 * (4 bits) per sed_cmd */
-	
-	/* sed_cmd->num_backrefs = 0; */ /* XXX: not needed? --apparently not */ 
+
+	/* sed_cmd->num_backrefs = 0; *//* XXX: not needed? --apparently not */
 	for (j = 0; match[j]; j++) {
 		/* GNU/POSIX sed does not save more than nine backrefs */
-		if (match[j] == '\\' && match[j+1] == '(' && sed_cmd->num_backrefs <= 9)
+		if (match[j] == '\\' && match[j + 1] == '('
+			&& sed_cmd->num_backrefs <= 9)
 			sed_cmd->num_backrefs++;
 	}
 
 	/* process the flags */
 	while (substr[++idx]) {
 		switch (substr[idx]) {
-			case 'g':
-				sed_cmd->sub_g = 1;
-				break;
+		case 'g':
+			sed_cmd->sub_g = 1;
+			break;
 			/* Hmm, i dont see the I option mentioned in the standard */
-			case 'I':
-				cflags |= REG_ICASE;
-				break;
-			case 'p':
-				sed_cmd->sub_p = 1;
-				break;
-			default:
-				/* any whitespace or semicolon trailing after a s/// is ok */
-				if (strchr(semicolon_whitespace, substr[idx]))
-					goto out;
-				/* else */
-				bb_error_msg_and_die("bad option in substitution expression");
+		case 'I':
+			cflags |= REG_ICASE;
+			break;
+		case 'p':
+			sed_cmd->sub_p = 1;
+			break;
+		default:
+			/* any whitespace or semicolon trailing after a s/// is ok */
+			if (strchr(semicolon_whitespace, substr[idx]))
+				goto out;
+			/* else */
+			bb_error_msg_and_die("bad option in substitution expression");
 		}
 	}
 
-out:	
+  out:
 	/* compile the match string into a regex */
 	if (*match != '\0') {
 		/* If match is empty, we use last regex used at runtime */
-		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
+		sed_cmd->sub_match = (regex_t *) xmalloc(sizeof(regex_t));
 		xregcomp(sed_cmd->sub_match, match, cflags);
 	}
 	free(match);
@@ -349,10 +352,10 @@ static int parse_translate_cmd(sed_cmd_t * const sed_cmd, const char *cmdstr)
 		sed_cmd->translate[i * 2] = match[i];
 		sed_cmd->translate[(i * 2) + 1] = replace[i];
 	}
-	return(idx + 1);
+	return (idx + 1);
 }
 
-static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
+static int parse_edit_cmd(sed_cmd_t * sed_cmd, const char *editstr)
 {
 	int i, j;
 
@@ -383,9 +386,9 @@ static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 
 	/* store the edit line text */
 	sed_cmd->editline = xmalloc(strlen(&editstr[2]) + 2);
-	for (i = 2, j = 0; editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL;
-			i++, j++) {
-		if ((editstr[i] == '\\') && strchr("\n\r", editstr[i+1]) != NULL) {
+	for (i = 2, j = 0;
+		 editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL; i++, j++) {
+		if ((editstr[i] == '\\') && strchr("\n\r", editstr[i + 1]) != NULL) {
 			sed_cmd->editline[j] = '\n';
 			i++;
 		} else
@@ -393,7 +396,7 @@ static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 	}
 
 	/* figure out if we need to add a newline */
-	if (sed_cmd->editline[j-1] != '\n')
+	if (sed_cmd->editline[j - 1] != '\n')
 		sed_cmd->editline[j++] = '\n';
 
 	/* terminate string */
@@ -403,7 +406,7 @@ static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 }
 
 
-static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
+static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr)
 {
 	int idx = 0;
 	int filenamelen = 0;
@@ -427,9 +430,9 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
 	 */
 
 	/* the file command may be followed by whitespace; move past it. */
-	while (isspace(filecmdstr[++idx]))
-		{ ; }
-		
+	while (isspace(filecmdstr[++idx])) {;
+	}
+
 	/* the first non-whitespace we get is a filename. the filename ends when we
 	 * hit a normal sed command terminator or end of string */
 	filenamelen = strcspn(&filecmdstr[idx], semicolon_whitespace);
@@ -451,7 +454,8 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", sed_cmd->cmd)) {
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
-			bb_error_msg_and_die("only a beginning address can be specified for edit commands");
+			bb_error_msg_and_die
+				("only a beginning address can be specified for edit commands");
 		cmdstr += parse_edit_cmd(sed_cmd, cmdstr);
 	}
 	/* handle file cmds: (r)ead */
@@ -470,7 +474,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 			length = SED_LABEL_LENGTH;
 		}
 		strncpy(sed_cmd->label, cmdstr, length);
-        cmdstr += length;
+		cmdstr += length;
 	}
 	/* translation command */
 	else if (sed_cmd->cmd == 'y') {
@@ -484,10 +488,10 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	}
 
 	/* give back whatever's left over */
-	return(cmdstr);
+	return (cmdstr);
 }
 
-static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
+static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
 {
 	/* Skip over leading whitespace and semicolons */
 	cmdstr += strspn(cmdstr, semicolon_whitespace);
@@ -495,7 +499,7 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	/* if we ate the whole thing, that means there was just trailing
 	 * whitespace or a final / no-op semicolon. either way, get out */
 	if (*cmdstr == '\0') {
-		return(NULL);
+		return (NULL);
 	}
 
 	/* if this is a comment, jump past it and keep going */
@@ -504,14 +508,14 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 		if (cmdstr[1] == 'n') {
 			be_quiet++;
 		}
-		return(strpbrk(cmdstr, "\n\r"));
+		return (strpbrk(cmdstr, "\n\r"));
 	}
-	
+
 	/* Test for end of block */
 	if (*cmdstr == '}') {
 		in_block = 0;
 		cmdstr++;
-		return(cmdstr);
+		return (cmdstr);
 	}
 
 	/* parse the command
@@ -526,11 +530,12 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	/* second part (if present) will begin with a comma */
 	if (*cmdstr == ',') {
 		int idx;
+
 		cmdstr++;
 		idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
 		if (idx == 0) {
 			bb_error_msg_and_die("get_address: no address found in string\n"
-				"\t(you probably didn't check the string you passed me)");
+								 "\t(you probably didn't check the string you passed me)");
 		}
 		cmdstr += idx;
 	}
@@ -552,9 +557,8 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 		 * with <blank>s.
 		 */
 		if (isblank(cmdstr[idx]) {
-			bb_error_msg_and_die("blank follows '!'");
-		}
-#else 
+			bb_error_msg_and_die("blank follows '!'");}
+#else
 		/* skip whitespace before the command */
 		while (isspace(*cmdstr)) {
 			cmdstr++;
@@ -573,8 +577,8 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 		}
 		in_block = 1;
 		block_cmd = sed_cmd;
-		
-		return(cmdstr + 1);
+
+		return (cmdstr + 1);
 	}
 
 	sed_cmd->cmd = *cmdstr;
@@ -594,7 +598,7 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	sed_cmd_tail->linear = sed_cmd;
 	sed_cmd_tail = sed_cmd_tail->linear;
 
-	return(cmdstr);
+	return (cmdstr);
 }
 
 static void add_cmd_str(char *cmdstr)
@@ -603,7 +607,7 @@ static void add_cmd_str(char *cmdstr)
 	char *cmdstr_ptr = cmdstr;
 
 	/* HACK: convert "\n" to match tranlated '\n' string */
-	while((cmdstr_ptr = strstr(cmdstr_ptr, "\\n")) != NULL) {
+	while ((cmdstr_ptr = strstr(cmdstr_ptr, "\\n")) != NULL) {
 		cmdstr = xrealloc(cmdstr, strlen(cmdstr) + 2);
 		cmdstr_ptr = strstr(cmdstr, "\\n");
 		memmove(cmdstr_ptr + 1, cmdstr_ptr, strlen(cmdstr_ptr) + 1);
@@ -613,6 +617,7 @@ static void add_cmd_str(char *cmdstr)
 #endif
 	do {
 		sed_cmd_t *sed_cmd;
+
 		sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
 		cmdstr = add_cmd(sed_cmd, cmdstr);
 	} while (cmdstr && strlen(cmdstr));
@@ -652,13 +657,12 @@ struct pipeline {
 };
 
 #define PIPE_MAGIC 0x7f
-#define PIPE_GROW 64  
+#define PIPE_GROW 64
 
 void pipe_putc(struct pipeline *const pipeline, char c)
 {
 	if (pipeline->buf[pipeline->idx] == PIPE_MAGIC) {
-		pipeline->buf =
-			xrealloc(pipeline->buf, pipeline->len + PIPE_GROW);
+		pipeline->buf = xrealloc(pipeline->buf, pipeline->len + PIPE_GROW);
 		memset(pipeline->buf + pipeline->len, 0, PIPE_GROW);
 		pipeline->len += PIPE_GROW;
 		pipeline->buf[pipeline->len - 1] = PIPE_MAGIC;
@@ -669,33 +673,40 @@ void pipe_putc(struct pipeline *const pipeline, char c)
 #define pipeputc(c) 	pipe_putc(pipeline, c)
 
 #if 0
-{ if (pipeline[pipeline_idx] == PIPE_MAGIC) { \
-	pipeline = xrealloc(pipeline, pipeline_len+PIPE_GROW); \
-	memset(pipeline+pipeline_len, 0, PIPE_GROW); \
-	pipeline_len += PIPE_GROW; \
-	pipeline[pipeline_len-1] = PIPE_MAGIC; } \
-	pipeline[pipeline_idx++] = (c); }
+{
+	if (pipeline[pipeline_idx] == PIPE_MAGIC) {
+		pipeline = xrealloc(pipeline, pipeline_len + PIPE_GROW);
+		memset(pipeline + pipeline_len, 0, PIPE_GROW);
+		pipeline_len += PIPE_GROW;
+		pipeline[pipeline_len - 1] = PIPE_MAGIC;
+	}
+	pipeline[pipeline_idx++] = (c);
+}
 #endif
 
-static void print_subst_w_backrefs(const char *line, const char *replace, 
-	regmatch_t *regmatch, struct pipeline *const pipeline, int matches)
+static void print_subst_w_backrefs(const char *line, const char *replace,
+								   regmatch_t * regmatch,
+								   struct pipeline *const pipeline,
+								   int matches)
 {
 	int i;
 
 	/* go through the replacement string */
 	for (i = 0; replace[i]; i++) {
 		/* if we find a backreference (\1, \2, etc.) print the backref'ed * text */
-		if (replace[i] == '\\' && isdigit(replace[i+1])) {
+		if (replace[i] == '\\' && isdigit(replace[i + 1])) {
 			int j;
 			char tmpstr[2];
 			int backref;
-			++i; /* i now indexes the backref number, instead of the leading slash */
+
+			++i;		/* i now indexes the backref number, instead of the leading slash */
 			tmpstr[0] = replace[i];
 			tmpstr[1] = 0;
 			backref = atoi(tmpstr);
 			/* print out the text held in regmatch[backref] */
 			if (backref <= matches && regmatch[backref].rm_so != -1)
-				for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo; j++)
+				for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo;
+					 j++)
 					pipeputc(line[j]);
 		}
 
@@ -709,8 +720,9 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 		 * fortunately, regmatch[0] contains the indicies to the whole matched
 		 * expression (kinda seems like it was designed for just such a
 		 * purpose...) */
-		else if (replace[i] == '&' && replace[i-1] != '\\') {
+		else if (replace[i] == '&' && replace[i - 1] != '\\') {
 			int j;
+
 			for (j = regmatch[0].rm_so; j < regmatch[0].rm_eo; j++)
 				pipeputc(line[j]);
 		}
@@ -720,10 +732,10 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 	}
 }
 
-static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
+static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 {
 	char *hackline = *line;
-	struct pipeline thepipe = { NULL, 0 , 0};
+	struct pipeline thepipe = { NULL, 0, 0 };
 	struct pipeline *const pipeline = &thepipe;
 	int altered = 0;
 	int result;
@@ -743,19 +755,20 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 	}
 
 	/* whaddaya know, it matched. get the number of back references */
-	regmatch = xmalloc(sizeof(regmatch_t) * (sed_cmd->num_backrefs+1));
+	regmatch = xmalloc(sizeof(regmatch_t) * (sed_cmd->num_backrefs + 1));
 
 	/* allocate more PIPE_GROW bytes
 	   if replaced string is larger than original */
-	thepipe.len = strlen(hackline)+PIPE_GROW;
+	thepipe.len = strlen(hackline) + PIPE_GROW;
 	thepipe.buf = xcalloc(1, thepipe.len);
 	/* buffer magic */
-	thepipe.buf[thepipe.len-1] = PIPE_MAGIC;
+	thepipe.buf[thepipe.len - 1] = PIPE_MAGIC;
 
 	/* and now, as long as we've got a line to try matching and if we can match
 	 * the search string, we make substitutions */
 	while ((*hackline || !altered) && (regexec(current_regex, hackline,
-					sed_cmd->num_backrefs+1, regmatch, 0) != REG_NOMATCH) ) {
+											   sed_cmd->num_backrefs + 1,
+											   regmatch, 0) != REG_NOMATCH)) {
 		int i;
 
 		/* print everything before the match */
@@ -763,8 +776,8 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 			pipeputc(hackline[i]);
 
 		/* then print the substitution string */
-		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch, 
-				pipeline, sed_cmd->num_backrefs);
+		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch,
+							   pipeline, sed_cmd->num_backrefs);
 
 		/* advance past the match */
 		hackline += regmatch[0].rm_eo;
@@ -776,8 +789,10 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 			break;
 		}
 	}
-	for (; *hackline; hackline++) pipeputc(*hackline);
-	if (thepipe.buf[thepipe.idx] == PIPE_MAGIC) thepipe.buf[thepipe.idx] = 0;
+	for (; *hackline; hackline++)
+		pipeputc(*hackline);
+	if (thepipe.buf[thepipe.idx] == PIPE_MAGIC)
+		thepipe.buf[thepipe.idx] = 0;
 
 	/* cleanup */
 	free(regmatch);
@@ -790,21 +805,22 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 static sed_cmd_t *branch_to(const char *label)
 {
 	sed_cmd_t *sed_cmd;
-	for(sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
+
+	for (sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
 		if (strcmp(sed_cmd->label, label) == 0) {
 			break;
 		}
 	}
 
 	/* If no match returns last command */
-	return(sed_cmd);
+	return (sed_cmd);
 }
 
-static void process_file(FILE *file)
+static void process_file(FILE * file)
 {
 	char *pattern_space;	/* Posix requires it be able to hold at least 8192 bytes */
 	char *hold_space = NULL;	/* Posix requires it be able to hold at least 8192 bytes */
-	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
+	static int linenum = 0;	/* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
 	int force_print;
@@ -828,24 +844,32 @@ static void process_file(FILE *file)
 		force_print = 0;
 
 		/* for every line, go through all the commands */
-		for (sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
+		for (sed_cmd = sed_cmd_head.linear; sed_cmd;
+			 sed_cmd = sed_cmd->linear) {
 			int deleted = 0;
 
 			/*
 			 * entry point into sedding...
 			 */
 			int matched = (
-					/* no range necessary */
-					(sed_cmd->beg_line == 0 && sed_cmd->end_line == 0 &&
-					 sed_cmd->beg_match == NULL &&
-					 sed_cmd->end_match == NULL) ||
-					/* this line number is the first address we're looking for */
-					(sed_cmd->beg_line && (sed_cmd->beg_line == linenum)) ||
-					/* this line matches our first address regex */
-					(sed_cmd->beg_match && (regexec(sed_cmd->beg_match, pattern_space, 0, NULL, 0) == 0)) ||
-					/* we are currently within the beginning & ending address range */
-					still_in_range || ((sed_cmd->beg_line == -1) && (next_line == NULL))
-			   );
+							  /* no range necessary */
+							  (sed_cmd->beg_line == 0
+							   && sed_cmd->end_line == 0
+							   && sed_cmd->beg_match == NULL
+							   && sed_cmd->end_match == NULL) ||
+							  /* this line number is the first address we're looking for */
+							  (sed_cmd->beg_line
+							   && (sed_cmd->beg_line == linenum)) ||
+							  /* this line matches our first address regex */
+							  (sed_cmd->beg_match
+							   &&
+							   (regexec
+								(sed_cmd->beg_match, pattern_space, 0, NULL,
+								 0) == 0)) ||
+							  /* we are currently within the beginning & ending address range */
+							  still_in_range || ((sed_cmd->beg_line == -1)
+												 && (next_line == NULL))
+				);
 
 			if (sed_cmd->invert ^ matched) {
 				/* Update last used regex incase a blank substitute BRE is found */
@@ -857,172 +881,192 @@ static void process_file(FILE *file)
 				 * actual sedding
 				 */
 				switch (sed_cmd->cmd) {
-					case '=':
-						printf("%d\n", linenum);
-						break;
-					case 'P': {	/* Write the current pattern space upto the first newline */
-							char *tmp = strchr(pattern_space, '\n');
-							if (tmp) {
-								*tmp = '\0';
-							}
-						}
-					case 'p':	/* Write the current pattern space to output */
-						puts(pattern_space);
-						break;
-					case 'd':
-						altered++;
-						deleted = 1;
-						break;
+				case '=':
+					printf("%d\n", linenum);
+					break;
+				case 'P':{
+					/* Write the current pattern space upto the first newline */
+					char *tmp = strchr(pattern_space, '\n');
 
-					case 's':
+					if (tmp) {
+						*tmp = '\0';
+					}
+				}
+				case 'p':	/* Write the current pattern space to output */
+					puts(pattern_space);
+					break;
+				case 'd':
+					altered++;
+					deleted = 1;
+					break;
 
-						/*
-						 * Some special cases for 's' printing to make it compliant with
-						 * GNU sed printing behavior (aka "The -n | s///p Matrix"):
-						 *
-						 *    -n ONLY = never print anything regardless of any successful
-						 *    substitution
-						 *
-						 *    s///p ONLY = always print successful substitutions, even if
-						 *    the pattern_space is going to be printed anyway (pattern_space
-						 *    will be printed twice).
-						 *
-						 *    -n AND s///p = print ONLY a successful substitution ONE TIME;
-						 *    no other lines are printed - this is the reason why the 'p'
-						 *    flag exists in the first place.
-						 */
+				case 's':
 
-#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
-						/* HACK: escape newlines twice so regex can match them */
-						{
-							int offset = 0;
-							while(strchr(pattern_space + offset, '\n') != NULL) {
-								char *tmp;
-								pattern_space = xrealloc(pattern_space, strlen(pattern_space) + 2);
-								tmp = strchr(pattern_space + offset, '\n');
-								memmove(tmp + 1, tmp, strlen(tmp) + 1);
-								tmp[0] = '\\';
-								tmp[1] = 'n';
-								offset = tmp - pattern_space + 2;
-							}
-						}
-#endif
-						/* we print the pattern_space once, unless we were told to be quiet */
-						substituted = do_subst_command(sed_cmd, &pattern_space);
+					/*
+					 * Some special cases for 's' printing to make it compliant with
+					 * GNU sed printing behavior (aka "The -n | s///p Matrix"):
+					 *
+					 *    -n ONLY = never print anything regardless of any successful
+					 *    substitution
+					 *
+					 *    s///p ONLY = always print successful substitutions, even if
+					 *    the pattern_space is going to be printed anyway (pattern_space
+					 *    will be printed twice).
+					 *
+					 *    -n AND s///p = print ONLY a successful substitution ONE TIME;
+					 *    no other lines are printed - this is the reason why the 'p'
+					 *    flag exists in the first place.
+					 */
 
 #ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
-						/* undo HACK: escape newlines twice so regex can match them */
-						{
-							char *tmp = pattern_space;
+					/* HACK: escape newlines twice so regex can match them */
+				{
+					int offset = 0;
 
-							while((tmp = strstr(tmp, "\\n")) != NULL) {
-								memmove(tmp, tmp + 1, strlen(tmp + 1) + 1);
-								tmp[0] = '\n';
-							}
-						}
+					while (strchr(pattern_space + offset, '\n') != NULL) {
+						char *tmp;
+
+						pattern_space =
+							xrealloc(pattern_space,
+									 strlen(pattern_space) + 2);
+						tmp = strchr(pattern_space + offset, '\n');
+						memmove(tmp + 1, tmp, strlen(tmp) + 1);
+						tmp[0] = '\\';
+						tmp[1] = 'n';
+						offset = tmp - pattern_space + 2;
+					}
+				}
 #endif
-						altered |= substituted;
-						if (!be_quiet && altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
-							force_print = 1;
-						}
+					/* we print the pattern_space once, unless we were told to be quiet */
+					substituted = do_subst_command(sed_cmd, &pattern_space);
 
-						/* we also print the line if we were given the 'p' flag
-						 * (this is quite possibly the second printing) */
-						if ((sed_cmd->sub_p) && altered) {
-							puts(pattern_space);
+#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+					/* undo HACK: escape newlines twice so regex can match them */
+					{
+						char *tmp = pattern_space;
+
+						while ((tmp = strstr(tmp, "\\n")) != NULL) {
+							memmove(tmp, tmp + 1, strlen(tmp + 1) + 1);
+							tmp[0] = '\n';
 						}
-						break;
-					case 'a':
+					}
+#endif
+					altered |= substituted;
+					if (!be_quiet && altered && ((sed_cmd->linear == NULL)
+												 || (sed_cmd->linear->cmd !=
+													 's'))) {
+						force_print = 1;
+					}
+
+					/* we also print the line if we were given the 'p' flag
+					 * (this is quite possibly the second printing) */
+					if ((sed_cmd->sub_p) && altered) {
 						puts(pattern_space);
-						fputs(sed_cmd->editline, stdout);
-						altered++;
-						break;
+					}
+					break;
+				case 'a':
+					puts(pattern_space);
+					fputs(sed_cmd->editline, stdout);
+					altered++;
+					break;
 
-					case 'i':
-						fputs(sed_cmd->editline, stdout);
-						break;
+				case 'i':
+					fputs(sed_cmd->editline, stdout);
+					break;
 
-					case 'c':
-						/* single-address case */
-						if ((sed_cmd->end_match == NULL && sed_cmd->end_line == 0)
+				case 'c':
+					/* single-address case */
+					if ((sed_cmd->end_match == NULL && sed_cmd->end_line == 0)
 						/* multi-address case */
 						/* - matching text */
-						|| (sed_cmd->end_match && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
+						|| (sed_cmd->end_match
+							&&
+							(regexec
+							 (sed_cmd->end_match, pattern_space, 0, NULL,
+							  0) == 0))
 						/* - matching line numbers */
-						|| (sed_cmd->end_line > 0 && sed_cmd->end_line == linenum))
-						{
-							fputs(sed_cmd->editline, stdout);
-						}
-						altered++;
+						|| (sed_cmd->end_line > 0
+							&& sed_cmd->end_line == linenum)) {
+						fputs(sed_cmd->editline, stdout);
+					}
+					altered++;
 
-						break;
+					break;
 
-					case 'r': {
-							FILE *outfile;
-							puts(pattern_space);
-							outfile = fopen(sed_cmd->filename, "r");
-							if (outfile)
-								bb_xprint_and_close_file(outfile);
-								/* else if we couldn't open the output file,
-								 * no biggie, just don't print anything */
-								altered++;
-						}
-						break;
-					case 'q':	/* Branch to end of script and quit */
-						deleted = 1;
-						/* Exit the outer while loop */
-						free(next_line);
-						next_line = NULL;
-						break;
-					case 'n':	/* Read next line from input */
-						free(pattern_space);
-						pattern_space = next_line;
+				case 'r':{
+					FILE *outfile;
+
+					puts(pattern_space);
+					outfile = fopen(sed_cmd->filename, "r");
+					if (outfile)
+						bb_xprint_and_close_file(outfile);
+					/* else if we couldn't open the output file,
+					 * no biggie, just don't print anything */
+					altered++;
+				}
+					break;
+				case 'q':	/* Branch to end of script and quit */
+					deleted = 1;
+					/* Exit the outer while loop */
+					free(next_line);
+					next_line = NULL;
+					break;
+				case 'n':	/* Read next line from input */
+					free(pattern_space);
+					pattern_space = next_line;
+					next_line = bb_get_chomped_line_from_file(file);
+					linenum++;
+					break;
+				case 'N':	/* Append the next line to the current line */
+					if (next_line) {
+						pattern_space =
+							realloc(pattern_space,
+									strlen(pattern_space) +
+									strlen(next_line) + 2);
+						strcat(pattern_space, "\n");
+						strcat(pattern_space, next_line);
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
-						break;
-					case 'N':	/* Append the next line to the current line */
-						if (next_line) {
-							pattern_space = realloc(pattern_space, strlen(pattern_space) + strlen(next_line) + 2);
-							strcat(pattern_space, "\n");
-							strcat(pattern_space, next_line);
-							next_line = bb_get_chomped_line_from_file(file);
-							linenum++;
-						}
-						break;
-					case 'b':
+					}
+					break;
+				case 'b':
+					sed_cmd = branch_to(sed_cmd->label);
+					break;
+				case 't':
+					if (substituted) {
 						sed_cmd = branch_to(sed_cmd->label);
-						break;
-					case 't':
-						if (substituted) {
-							sed_cmd = branch_to(sed_cmd->label);
-						}
-						break;
-					case 'y': {
-							int i;
-							for (i = 0; pattern_space[i] != 0; i++) {
-								int j;
-								for (j = 0; sed_cmd->translate[j] ;j += 2) {
-									if (pattern_space[i] == sed_cmd->translate[j]) {
-										pattern_space[i] = sed_cmd->translate[j + 1];
-									}
-								}
+					}
+					break;
+				case 'y':{
+					int i;
+
+					for (i = 0; pattern_space[i] != 0; i++) {
+						int j;
+
+						for (j = 0; sed_cmd->translate[j]; j += 2) {
+							if (pattern_space[i] == sed_cmd->translate[j]) {
+								pattern_space[i] = sed_cmd->translate[j + 1];
 							}
 						}
-						break;
-					case 'g':	/* Replace pattern space with hold space */
-						free(pattern_space);
-						pattern_space = strdup(hold_space);
-						break;	
-					case 'h':	/* Replace hold space with pattern space */
-						free(hold_space);
-						hold_space = strdup(pattern_space);
-						break;	
-					case 'x': {	/* Swap hold and pattern space */
-							char *tmp;
-							tmp = pattern_space;
-							pattern_space = hold_space;
-							hold_space = tmp;
-						}
+					}
+				}
+					break;
+				case 'g':	/* Replace pattern space with hold space */
+					free(pattern_space);
+					pattern_space = strdup(hold_space);
+					break;
+				case 'h':	/* Replace hold space with pattern space */
+					free(hold_space);
+					hold_space = strdup(pattern_space);
+					break;
+				case 'x':{
+					/* Swap hold and pattern space */
+					char *tmp;
+
+					tmp = pattern_space;
+					pattern_space = hold_space;
+					hold_space = tmp;
+				}
 				}
 			}
 
@@ -1031,20 +1075,33 @@ static void process_file(FILE *file)
 			 */
 			if (matched) {
 				if (
-					/* this is a single-address command or... */
-					(sed_cmd->end_line == 0 && sed_cmd->end_match == NULL) || (
-						/* If only one address */
-
-						/* we were in the middle of our address range (this
-						 * isn't the first time through) and.. */
-						(still_in_range == 1) && (
-							/* this line number is the last address we're looking for or... */
-							(sed_cmd->end_line && (sed_cmd->end_line == linenum)) ||
-							/* this line matches our last address regex */
-							(sed_cmd->end_match && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
-						)
-					)
-				) {
+					   /* this is a single-address command or... */
+					   (sed_cmd->end_line == 0 && sed_cmd->end_match == NULL)
+					   || (
+							  /* If only one address */
+							  /* we were in the middle of our address range (this
+							   * isn't the first time through) and.. */
+							  (still_in_range == 1) && (
+														   /* this line number is the last address we're looking for or... */
+														   (sed_cmd->
+															end_line
+															&& (sed_cmd->
+																end_line ==
+																linenum))
+														   ||
+														   /* this line matches our last address regex */
+														   (sed_cmd->
+															end_match
+															&&
+															(regexec
+															 (sed_cmd->
+															  end_match,
+															  pattern_space,
+															  0, NULL,
+															  0) == 0))
+							  )
+					   )
+					) {
 					/* we're out of our address range */
 					still_in_range = 0;
 				}
@@ -1056,13 +1113,13 @@ static void process_file(FILE *file)
 			}
 
 			if (deleted)
-			        break;
+				break;
 		}
 
 		/* we will print the line unless we were told to be quiet or if the
 		 * line was altered (via a 'd'elete or 's'ubstitution), in which case
 		 * the altered line was already printed */
-		if ((!be_quiet && !altered) || force_print){
+		if ((!be_quiet && !altered) || force_print) {
 			puts(pattern_space);
 		}
 		free(pattern_space);
@@ -1083,20 +1140,21 @@ extern int sed_main(int argc, char **argv)
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "ne:f:")) > 0) {
 		switch (opt) {
-			case 'n':
-				be_quiet++;
-				break;
-			case 'e': {
-				char *str_cmd = strdup(optarg);
-				add_cmd_str(str_cmd);
-				free(str_cmd);
-				break;
-			}
-			case 'f': 
-				load_cmd_file(optarg);
-				break;
-			default:
-				bb_show_usage();
+		case 'n':
+			be_quiet++;
+			break;
+		case 'e':{
+			char *str_cmd = strdup(optarg);
+
+			add_cmd_str(str_cmd);
+			free(str_cmd);
+			break;
+		}
+		case 'f':
+			load_cmd_file(optarg);
+			break;
+		default:
+			bb_show_usage();
 		}
 	}
 
@@ -1107,6 +1165,7 @@ extern int sed_main(int argc, char **argv)
 			bb_show_usage();
 		else {
 			char *str_cmd = strdup(argv[optind]);
+
 			add_cmd_str(strdup(str_cmd));
 			free(str_cmd);
 			optind++;
@@ -1118,10 +1177,10 @@ extern int sed_main(int argc, char **argv)
 	 * Otherwise, we process all the files specified. */
 	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
 		process_file(stdin);
-	}
-	else {
+	} else {
 		int i;
 		FILE *file;
+
 		for (i = optind; i < argc; i++) {
 			file = bb_wfopen(argv[i], "r");
 			if (file) {
@@ -1131,6 +1190,6 @@ extern int sed_main(int argc, char **argv)
 				status = EXIT_FAILURE;
 		}
 	}
-	
+
 	return status;
 }
