@@ -460,7 +460,7 @@ static int dhcp_up(interface_defn *ifd, execfn *exec)
 static int dhcp_down(interface_defn *ifd, execfn *exec)
 {
 	if (execable("/sbin/dhclient")) {
-		if (!execute("cat /var/run/dhclient.%iface%.pid | xargs kill", ifd, exec)) {
+		if (!execute("kill -9 `cat /var/run/udhcpc.%iface%.pid`", ifd, exec)) {
 			return(0);
 		}
 	} else if (execable("/sbin/pump")) {
@@ -468,7 +468,7 @@ static int dhcp_down(interface_defn *ifd, execfn *exec)
 			return(0);
 		}
 	} else if (execable("/sbin/udhcpc")) {
-		if (!execute("cat /var/run/udhcpc.%iface%.pid | xargs kill", ifd, exec)) {
+		if (!execute("kill -9 `cat /var/run/udhcpc.%iface%.pid`", ifd, exec)) {
 			return(0);
 		}
 	} else if (execable("/sbin/dhcpcd")) {
