@@ -385,11 +385,14 @@ static int match1(regexp* re, char ch, int token, int ignoreCase)
 		if (re->program[1 + 32 * (token - M_CLASS(0)) + (ch >> 3)] & (1 << (ch & 7)))
 			return 0;
 	}
-	else if (ch == token
-		|| (ignoreCase==TRUE && isupper(ch) && tolower(ch) == token))
+//fprintf(stderr, "match1: ch='%c' token='%c': ", ch, token);
+	if (ch == token
+		|| (ignoreCase==TRUE && tolower(ch) == tolower(token)))
 	{
+//fprintf(stderr, "match\n");
 		return 0;
 	}
+//fprintf(stderr, "no match\n");
 	return 1;
 }
 
