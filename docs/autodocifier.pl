@@ -30,6 +30,7 @@ sub beautify {
 			s/^\s*//;
 			s/"//g;
 			s/%/%%/g;
+			s/\$/\\\$/g;
 			eval qq[ sprintf(qq#$_#) ]
 		} @line
 	);
@@ -43,7 +44,7 @@ sub pod_for_usage {
 
 	# make options bold
 	my $trivial = $usage->{trivial};
-	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
+	$trivial =~ s/(?<!\w)(-\w+)/B<$1>/sxg;
 	my @f0 = 
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
 		split("\n", $usage->{full});
@@ -59,16 +60,22 @@ sub pod_for_usage {
 			push(@f1, "") unless ($f0[$i+1] =~ /^\s*$/s);
 		}
 	}
-
 	my $full = join("\n", @f1);
+
+	# prepare example if one exists
+	my $example = (defined $usage->{example})
+		? "Example:\n\n$usage->{example}\n\n"
+		: "";
+
 	return
-		"-------------------------------\n".
-		"\n".
-		"=item $name".
-		"\n\n".
+		"=item I<$name>".
+		"\n\n"  .
 		"$name $trivial".
-		"\n\n".
-		$full.
+		"\n\n"  .
+		$full   .
+		"\n\n"  .
+		$example.
+		"-------------------------------".
 		"\n\n"
 	;
 }
@@ -121,7 +128,7 @@ if (defined $opt{help}) {
 # collect documenation into %docs
 
 foreach (@ARGV) {
-	open(USAGE, $_) || die("$0: $!");
+	open(USAGE, $_) || die("$0: $_: $!");
 	my $fh = *USAGE;
 	my ($applet, $type, @line);
 	while (<$fh>) {
@@ -209,4 +216,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.12 2001/02/24 14:44:25 beppu Exp $
+# $Id: autodocifier.pl,v 1.13 2001/02/26 02:50:11 beppu Exp $
