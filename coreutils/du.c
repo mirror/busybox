@@ -49,7 +49,7 @@ static Display *print;
 static void print_normal(long size, char *filename)
 {
 #ifdef BB_FEATURE_HUMAN_READABLE
-	printf("%s\t%s\n", format((size * KILOBYTE), du_disp_hr), filename);
+	printf("%s\t%s\n", format(size, du_disp_hr), filename);
 #else
 	printf("%ld\t%s\n", size, filename);
 #endif
@@ -185,7 +185,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.39 2001/03/06 23:14:43 andersen Exp $ */
+/* $Id: du.c,v 1.40 2001/03/07 03:53:40 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
