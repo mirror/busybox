@@ -160,8 +160,9 @@ int busybox_main(int argc, char **argv)
 
 	/* Flag that we've been here already */
 	been_there_done_that = 1;
-	
-	return (main(argc-1, argv+1));
+
+	/* Move the command line down a notch */
+	return (main(argc, argv+1));
 }
 
 /*
