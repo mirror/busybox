@@ -8,6 +8,9 @@
 		fork() for running klogd.
 	* nslookup types are now changed to u_int32_t (instead of uint32_t)
 	    changed per a patch from Pascal Bellard <pascal.bellard@ascend.com>
+	* Fixed "du" so it gives the same answers as GNU "du" (busybox du used to
+	    count hard-linked files more then once).  Many thanks to 
+	    Friedrich Vedder <fwv@myrtle.lahn.de> for the fix.
 
 	-Erik Andersen
 
@@ -75,8 +78,8 @@
 	* Fixed a bug where init could have reference already freed memory.
 	    Found and fixed by Taketoshi Sano <kgh12351@nifty.ne.jp>
 	* Several contributions from Friedrich Vedder <fwv@myrtle.lahn.de>
-	* Added (and documented) "-n" option for head - Cleanup for a number of
-	* usage messages -- also 
+	* Added (and documented) "-n" option for head
+	* Cleanup for a number of usage messages -- also 
 	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
 	* Cosmetic fix to busybox.c (Don't print a comma at the
 	    end of line if there are no more application names).
@@ -87,7 +90,7 @@
 	* Created a tiny tail implementation, removing -c, -q, -v, and making
 	    tail -f work only with a single file.  This reduced tail from 6k to
 	    2.4k.  The bigger/more featured tail can still be had by disabling
-	    BB_FEATURE_SIMPLE_TAIL in dusybox.defs.h
+	    BB_FEATURE_SIMPLE_TAIL in busybox.defs.h
 	* Ping now falls back to doing the right thing if /etc/protocols
 	    turns up missing.
 	* Fixed mount and umount.  Previously they could leak loop device 

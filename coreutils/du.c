@@ -36,18 +36,32 @@
 
 typedef void (Display) (long, char *);
 
-static const char du_usage[] =
+typedef struct inode_type {
+	struct inode_type *next;
+	ino_t ino;
+} INODETYPE;
 
+#define HASH_SIZE	311		/* Should be prime */
+#define hash_inode(i)	((i) % HASH_SIZE)
+
+static INODETYPE *inode_hash_list[HASH_SIZE];
+
+static const char du_usage[] =
 	"du [OPTION]... [FILE]...\n\n"
+	"Summarize disk space used for each FILE and/or directory.\n"
+	"Disk space is printed in units of 1024 bytes.\n\n"
+	"Options:\n"
+	"\t-l\tcount sizes many times if hard linked\n"
 	"\t-s\tdisplay only a total for each argument\n";
 
 static int du_depth = 0;
+static int count_hardlinks = 0;
 
 static Display *print;
 
 static void print_normal(long size, char *filename)
 {
-	fprintf(stdout, "%-7ld %s\n", size, filename);
+	fprintf(stdout, "%ld\t%s\n", size, filename);
 }
 
 static void print_summary(long size, char *filename)
@@ -57,6 +71,36 @@ static void print_summary(long size, char *filename)
 	}
 }
 
+/* Return 1 if inode is in inode hash list, else return 0 */
+static int is_in_list(const ino_t ino)
+{
+	INODETYPE *inode;
+
+	inode = inode_hash_list[hash_inode(ino)];
+	while (inode != NULL) {
+		if (inode->ino == ino)
+			return 1;
+		inode = inode->next;
+	}
+
+	return 0;
+}
+
+/* Add inode to inode hash list */
+static void add_inode(const ino_t ino)
+{
+	int i;
+	INODETYPE *inode;
+    
+	i = hash_inode(ino);
+	inode = malloc(sizeof(INODETYPE));
+	if (inode == NULL)
+		fatalError("du: Not enough memory.");
+
+	inode->ino = ino;
+	inode->next = inode_hash_list[i];
+	inode_hash_list[i] = inode;
+}
 
 /* tiny recursive du */
 static long du(char *filename)
@@ -72,7 +116,7 @@ static long du(char *filename)
 	du_depth++;
 	sum = (statbuf.st_blocks >> 1);
 
-	/* Don't add in stuff pointed to by links */
+	/* Don't add in stuff pointed to by symbolic links */
 	if (S_ISLNK(statbuf.st_mode)) {
 		return 0;
 	}
@@ -104,6 +148,12 @@ static long du(char *filename)
 		closedir(dir);
 		print(sum, filename);
 	}
+	else if (statbuf.st_nlink > 1 && !count_hardlinks) {
+		/* Add files with hard links only once */
+		if (is_in_list(statbuf.st_ino))
+			return 0;
+		add_inode(statbuf.st_ino);
+	}
 	du_depth--;
 	return sum;
 }
@@ -124,7 +174,11 @@ int du_main(int argc, char **argv)
 			case 's':
 				print = print_summary;
 				break;
+			case 'l':
+				count_hardlinks = 1;
+				break;
 			case 'h':
+			case '-':
 				usage(du_usage);
 				break;
 			default:
@@ -153,4 +207,4 @@ int du_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: du.c,v 1.13 2000/02/13 04:10:57 beppu Exp $ */
+/* $Id: du.c,v 1.14 2000/02/19 18:16:49 erik Exp $ */

@@ -53,15 +53,6 @@ Some known bugs, todo items, etc...
 -----------------------
 
 
-[andersen@slag busybox]$ ./busybox du /bin
-6213    /bin
-[andersen@slag busybox]$ du /bin
-2971    /bin
-[andersen@slag busybox]$ du --block-size=512 /bin
-5943    /bin
-
------------------------
-
 -rw-r--r-- 1000/1000      4398 2000-01-06 21:55 uniq.c
 -rw-r--r-- 1000/1000      1568 1999-10-20 18:08 update.c
 -rw-r----- 0/1000         1168 2000-01-29 21:03 update.o
@@ -89,13 +80,6 @@ function without this. Will you have the time to add this soon?
 
 -----------------------
 
-
-/bin/busybox --install -s    which makes all links to commands that it
-  can support (an optionnal -s should be used for symbolic links instead
-  of hard links).
-
------------------------
-
 cd /mnt
 mkdir BACKUP
 mv * BACKUP
@@ -104,4 +88,13 @@ Today, "mv" behaved as a cp -a and my disk becomed full. It does not
 work properly either when renaming a directory into something else
 (it produces a lot of disk activity when doing this).
 
+
+-----------------------
+
+
+Feature request:
+
+/bin/busybox --install -s    which makes all links to commands that it
+  can support (an optionnal -s should be used for symbolic links instead
+  of hard links).
 
