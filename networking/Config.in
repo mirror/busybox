@@ -83,16 +83,16 @@ config CONFIG_FEATURE_HTTPD_SETUID
 	help
 	  This option allows the server to run as a specific user
 	  rather than defaulting to the user that starts the server.
-	  Use of this option requires special privilegies to change to a
+	  Use of this option requires special privileges to change to a
 	  different user.
 endif
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	bool "  Support loading additional mime types at run-time"
+	bool "  Support loading additional MIME types at run-time"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  This option enables support for additional mime types at
+	  This option enables support for additional MIME types at
 	  run-time to be specified in the configuration file.
 
 config CONFIG_FEATURE_HTTPD_CGI
@@ -260,7 +260,7 @@ config CONFIG_FEATURE_IFUPDOWN_MAPPING
 	depends on CONFIG_IFUPDOWN
 	help
 	  This enables support for the "mapping" stanza, unless you have
-	  a weird network setup you dont need it.
+	  a weird network setup you don't need it.
 
 config CONFIG_INETD
 	bool "inetd"
@@ -410,12 +410,12 @@ config CONFIG_NAMEIF
 	bool "nameif"
 	default n
 	help
-	  nameif used to rename network interface by its MAC address.
+	  nameif is used to rename network interface by its MAC address.
 	  Renamed interfaces MUST be in the down state.
-	  It is possible to use file (default: /etc/mactab)
+	  It is possible to use a file (default: /etc/mactab)
 	  with list of new interface names and MACs.
 	  Maximum interface name length: IF_NAMESIZE = 16
-	  File fields are sepatated by space or tab.
+	  File fields are separated by space or tab.
 	  File format:
 	  # Comment
 	  new_interface_name	XX:XX:XX:XX:XX:XX
@@ -431,19 +431,19 @@ config CONFIG_NETSTAT
 	bool "netstat"
 	default n
 	help
-	  Netstat prints information about the Linux networking  subsystem.
+	  netstat prints information about the Linux networking subsystem.
 
 config CONFIG_NSLOOKUP
 	bool "nslookup"
 	default n
 	help
-	  Nslookup is a tool to query Internet name servers.
+	  nslookup is a tool to query Internet name servers.
 
 config CONFIG_PING
 	bool "ping"
 	default n
 	help
-	  Ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
+	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
 	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
 
 config CONFIG_FEATURE_FANCY_PING
@@ -495,24 +495,24 @@ config CONFIG_TELNETD
 	bool "telnetd"
 	default n
 	help
-	  A daemon for the TELNET protocol, allowing you to log on to the host
+	  A daemon for the TELNET protocol, allowing you to log onto the host
 	  running the daemon.  Please keep in mind that the TELNET protocol
 	  sends passwords in plain text.  If you can't afford the space for
-	  any SSH daemon and you trust your network, say 'y' here.
+	  any SSH daemon and you trust your network, you may say 'y' here.
 
 config CONFIG_FEATURE_TELNETD_INETD
 	bool "  Support call from inetd only"
 	default n
 	depends on CONFIG_TELNETD
 	help
-	  Selecting this will make telnetd only callable from inetd, removing the
-	  standalone support.
+	  Selecting this will make telnetd only callable from inetd,
+	  removing the standalone support.
 
 config CONFIG_TFTP
 	bool "tftp"
 	default n
 	help
-	  This enables the Tirvial File Transfer Protocol client program.  TFTP
+	  This enables the Trivial File Transfer Protocol client program.  TFTP
 	  is usually used for simple, small transfers such as a root image
 	  for a network-enabled bootloader.
 
@@ -522,7 +522,7 @@ config CONFIG_FEATURE_TFTP_GET
 	depends on CONFIG_TFTP
 	help
 	  Add support for the GET command within the TFTP client.  This allows
-	  a client to retreive a file from a TFTP server.
+	  a client to retrieve a file from a TFTP server.
 
 config CONFIG_FEATURE_TFTP_PUT
 	bool "  Enable \"put\" command"
@@ -572,7 +572,7 @@ config CONFIG_WGET
 	bool "wget"
 	default n
 	help
-	  Wget is a utility for non-interactive download of files from HTTP,
+	  wget is a utility for non-interactive download of files from HTTP,
 	  HTTPS, and FTP servers.
 
 config CONFIG_FEATURE_WGET_STATUSBAR

@@ -89,9 +89,8 @@ config CONFIG_MESG
 	bool "mesg"
 	default y
 	help
-	  Mesg  controls  the  access to your terminal by others.  It
-	  is typically used to allow or disallow other users to write
-	  to your  terminal
+	  Mesg controls access to your terminal by others.  It is typically
+	  used to allow or disallow other users to write to your terminal
 
 endmenu
 

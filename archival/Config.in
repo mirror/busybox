@@ -42,7 +42,7 @@ config CONFIG_BUNZIP2
 	bool "bunzip2"
 	default n
 	help
-	  bunzip2 is an compression utility using the Burrows-Wheeler block
+	  bunzip2 is a compression utility using the Burrows-Wheeler block
 	  sorting text compression algorithm, and Huffman coding.  Compression
 	  is generally considerably better than that achieved by more
 	  conventional LZ77/LZ78-based compressors, and approaches the
@@ -93,7 +93,7 @@ config CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 	default n
 	depends on CONFIG_DPKG_DEB
 	help
-	  This reduced dpkg-deb to the equivalent of "ar -p <deb> data.tar.gz | tar -zx".
+	  This reduces dpkg-deb to the equivalent of "ar -p <deb> data.tar.gz | tar -zx".
 	  However it saves space as none of the extra dpkg-deb, ar or tar options are 
 	  needed, they are linked to internally.
 
@@ -104,7 +104,7 @@ config CONFIG_FEATURE_DEB_TAR_GZ
 	help
 	  This is the default compression method inside the debian ar file.
 	  
-	  If you want compatability with standard .deb's you should say yes here.
+	  If you want compatibility with standard .deb's you should say yes here.
 
 config CONFIG_FEATURE_DEB_TAR_BZ2
 	bool "  bzip2 debian packages"
@@ -114,7 +114,7 @@ config CONFIG_FEATURE_DEB_TAR_BZ2
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
 	  with bzip2 instead of gzip.
 	  
-	  You only want this is your are creating your own custom debian packages that
+	  You only want this if you are creating your own custom debian packages that
 	  use an internal control.tar.bz2 or data.tar.bz2.
 
 config CONFIG_GUNZIP
@@ -130,7 +130,7 @@ config CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 	default n
 	depends on CONFIG_GUNZIP
 	help
-	  If you want gunzip to have the ability to decompress
+	  Enable if you want gunzip to have the ability to decompress
 	  archives created by the program compress (not much
 	  used anymore).
 
@@ -139,7 +139,7 @@ config CONFIG_GZIP
 	default n
 	help
 	  gzip is used to compress files.
-	  It's probably the most used UNIX compression program.
+	  It's probably the most widely used UNIX compression program.
 
 config CONFIG_RPM2CPIO
 	bool "rpm2cpio"
@@ -151,14 +151,14 @@ config CONFIG_RPM
 	bool "rpm"
 	default n
 	help
-	  Mini RPM applet - querys and extracts
+	  Mini RPM applet - queries and extracts
 
 config CONFIG_TAR
 	bool "tar"
 	default n
 	help
 	  tar is an archiving program. It's commonly used with gzip to
-	  create compressed archives. It's probably the most used
+	  create compressed archives. It's probably the most widely used
 	  UNIX archive program.
 
 config CONFIG_FEATURE_TAR_CREATE
@@ -198,8 +198,8 @@ config CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	default N
 	depends on CONFIG_TAR
 	help
-	  This option is required to unpack archives created with
-	  in the old GNU format, help to kill this old format by
+	  This option is required to unpack archives created in
+	  the old GNU format; help to kill this old format by
 	  repacking your ancient archives with the new format.
 
 config CONFIG_FEATURE_TAR_GNU_EXTENSIONS

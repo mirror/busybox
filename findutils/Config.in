@@ -39,7 +39,7 @@ config CONFIG_FEATURE_FIND_XDEV
 	default y
 	depends on CONFIG_FIND
 	help
-	  This option will restrict find to a single
+	  This option will allow find to restrict searches to a single
 	  filesystem.
 
 config CONFIG_FEATURE_FIND_NEWER
@@ -55,7 +55,7 @@ config CONFIG_FEATURE_FIND_INUM
 	default y
 	depends on CONFIG_FIND
 	help
-	  Support the 'fine -inum' option for searching by inode number.
+	  Support the 'find -inum' option for searching by inode number.
 
 config CONFIG_GREP
 	bool "grep"
@@ -77,7 +77,7 @@ config CONFIG_FEATURE_GREP_FGREP_ALIAS
 	default y
 	depends on CONFIG_GREP
 	help
-          fgrep sees the search pattern as a normal sting rather than
+          fgrep sees the search pattern as a normal string rather than
 	  regular expressions.
 	  grep -f is always builtin, this just creates the fgrep alias.
 

@@ -24,8 +24,8 @@ config CONFIG_FBSET
 	help
 	  fbset is used to show or change the settings of a Linux frame buffer
 	  device.  The frame buffer device provides a simple and unique
-	  interface to access a graphic display.  Enable this option if you wish
-	  to enable the 'fbset' utility.
+	  interface to access a graphics display.  Enable this option
+	  if you wish to enable the 'fbset' utility.
 
 
 config CONFIG_FEATURE_FBSET_FANCY
@@ -34,7 +34,7 @@ config CONFIG_FEATURE_FBSET_FANCY
 	depends on CONFIG_FBSET
 	help
 	  This option enables extended fbset options, allowing one to set the
-	  framebuffer size, color depth, etc.  interface to access a graphic
+	  framebuffer size, color depth, etc.  interface to access a graphics
 	  display.  Enable this option if you wish to enable extended fbset
 	  options.
 
@@ -51,19 +51,19 @@ config CONFIG_FDFLUSH
 	bool "fdflush"
 	default n
 	help
-	  Fdflush is only needed when changing media on slightly-broken
+	  fdflush is only needed when changing media on slightly-broken
 	  removable media drives.  It is used to make Linux believe that a
 	  hardware disk-change switch has been actuated, which causes Linux to
 	  forget anything it has cached from the previous media.  If you have
 	  such a slightly-broken drive, you will need to run fdflush every time
 	  you change a disk.  Most people have working hardware and can safely
-	  say leave this disabled.
+	  leave this disabled.
 
 config CONFIG_FDFORMAT
 	bool "fdformat"
 	default n
 	help
-	  Fdformat is used to low-level format a floppy disk.
+	  fdformat is used to low-level format a floppy disk.
 
 config CONFIG_FDISK
 	bool "fdisk"
@@ -76,12 +76,11 @@ config CONFIG_FDISK
 
 if !CONFIG_LFS
 config FDISK_SUPPORT_LARGE_DISKS
-	bool "  support over 4Gb disks"
+	bool "  support over 4GB disks"
 	default y
 	depends on CONFIG_FDISK
 	help
-	  Previous set detected unsupport large file, but you can support
-	  large disks after enable this option
+	  Enable this option to support large disks > 4GB.
 endif
 
 config CONFIG_FEATURE_FDISK_WRITABLE
@@ -152,7 +151,7 @@ config CONFIG_FSCK_MINIX
 	help
 	  The minix filesystem is a nice, small, compact, read-write filesystem
 	  with little overhead.  It is not a journaling filesystem however and
-	  can encounted corruption if it is not properly unmounted or if the
+	  can experience corruption if it is not properly unmounted or if the
 	  power goes off in the middle of a write.  This utility allows you to
 	  check for and attempt to repair any corruption that occurs to a minix
 	  filesystem.
@@ -200,9 +199,9 @@ config CONFIG_HWCLOCK
 	default n
 	help
 	  The hwclock utility is used to read and set the hardware clock
-	  on a system.  This is primarily used to set the correct time in
-	  the hardware close, so the hardware will keep the correct time 
-	  when Linux is _not_ running.
+	  on a system.  This is primarily used to set the current time on
+	  shutdown in the hardware clock, so the hardware will keep the
+	  correct time when Linux is _not_ running.
 
 config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 	bool "  Support long options (--hctosys,...)"
@@ -210,7 +209,7 @@ config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 	depends on CONFIG_HWCLOCK
 	help
 	  By default, the hwclock utility only uses short options.  If you
-	  are overly fond of the long options, such as --hctosys, --utc, etc)
+	  are overly fond of its long options, such as --hctosys, --utc, etc)
 	  then enable this option.
 
 config CONFIG_LOSETUP
@@ -230,15 +229,15 @@ config CONFIG_MKSWAP
 	  partition as if it were additional RAM, which can greatly increase
 	  the capability of low-memory machines.  This additional memory is
 	  much slower than real RAM, but can be very helpful at preventing your
-	  applications being killed by the Linux out of memory (OOM) killer.  Once
-	  you have created swap space using 'mkswap' you need to enable the swap
-	  space using the 'swapon' utility.
+	  applications being killed by the Linux out of memory (OOM) killer.
+	  Once you have created swap space using 'mkswap' you need to enable
+	  the swap space using the 'swapon' utility.
 
 config CONFIG_MORE
 	bool "more"
 	default n
 	help
-	  More is a simple utility which allows you to read text one screen
+	  more is a simple utility which allows you to read text one screen
 	  sized page at a time.  If you want to read text that is larger than
 	  the screen, and you are using anything faster than a 300 baud modem,
 	  you will probably find this utility very helpful.  If you don't have
@@ -251,7 +250,7 @@ config CONFIG_FEATURE_USE_TERMIOS
 	help
 	  This option allows utilities such as 'more' and 'top' to determine
 	  the size of the screen.  If you leave this disabled, your utilities
-	  that display things on the screen with be especially primitive and
+	  that display things on the screen will be especially primitive and
 	  will be unable to determine the current screen size, and will be
 	  unable to move the cursor.
 
@@ -268,7 +267,7 @@ config CONFIG_RDATE
 	bool "rdate"
 	default n
 	help
-	  The rdate utility allows you to syncronize the date and time of your 
+	  The rdate utility allows you to synchronize the date and time of your 
 	  system clock with the date and time of a remote networked system using
 	  the RFC868 protocol, which is built into the inetd daemon on most
 	  systems.
@@ -296,7 +295,7 @@ config CONFIG_MOUNT
 	  the 'mount' utility.
 
 config CONFIG_NFSMOUNT
-	bool "  Support mounting nfs file systems"
+	bool "  Support mounting NFS file systems"
 	default n
 	depends on CONFIG_MOUNT
 	help
@@ -330,8 +329,8 @@ config CONFIG_FEATURE_MOUNT_LOOP
 	  Enabling this feature allows mount to use the '-o' loop options,
 	  which lets you loop mount files.  Mount will automagically setup and
 	  free the necessary loop devices so you do not need to mess with the
-	  'losetup' utility unless you really want to.  This is really only useful
-	  if you plan to loop mount files.
+	  'losetup' utility unless you really want to.  This is really
+	  only useful if you plan to loop mount files.
 
 config CONFIG_FEATURE_MTAB_SUPPORT
 	bool "  Support for a real /etc/mtab (instead of /proc/mounts)"

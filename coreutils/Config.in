@@ -17,7 +17,7 @@ config CONFIG_CAL
 	bool "cal"
 	default n
 	help
-	  cal is used to display a montly calender.
+	  cal is used to display a monthly calender.
 
 config CONFIG_CAT
 	bool "cat"
@@ -30,7 +30,7 @@ config CONFIG_CHGRP
 	bool "chgrp"
 	default n
 	help
-	  chgrp is used to change the group owership of files.
+	  chgrp is used to change the group ownership of files.
 
 config CONFIG_CHMOD
 	bool "chmod"
@@ -42,7 +42,7 @@ config CONFIG_CHOWN
 	bool "chown"
 	default n
 	help
-	  chown is used too change the user and/or group ownership
+	  chown is used to change the user and/or group ownership
 	  of files.
 
 config CONFIG_CHROOT
@@ -114,14 +114,14 @@ config CONFIG_DIRNAME
 	bool "dirname"
 	default n
 	help
-	  dirname is used to strip a non directory suffix from
+	  dirname is used to strip a non-directory suffix from
 	  a file name.
 
 config CONFIG_DOS2UNIX
 	bool "dos2unix/unix2dos"
 	default n
 	help
-	  dos2unix is uses to convert a text file from DOS format to
+	  dos2unix is used to convert a text file from DOS format to
 	  UNIX format, and vice versa.
 
 config CONFIG_UNIX2DOS
@@ -161,7 +161,7 @@ config CONFIG_ENV
 	default n
 	help
 	  env is used to set an environment variable and run
-	  a command, without options it displays the current
+	  a command; without options it displays the current
 	  environment.
 
 config CONFIG_EXPR
@@ -353,7 +353,7 @@ config CONFIG_REALPATH
 	default n
 	help
 	  Return the canonicalized absolute pathname.
-	  This isnt provided by GNU shellutils, but where else does it belong.
+	  This isn't provided by GNU shellutils, but where else does it belong.
 
 config CONFIG_RM
 	bool "rm"
@@ -378,7 +378,7 @@ config CONFIG_FEATURE_SHA1SUM_CHECK
 	default n
 	depends on CONFIG_SHA1SUM
 	help
-	  Enabling the -c and -w options allow files to be checked
+	  Enabling the -c and -w options allows files to be checked
 	  against pre-calculated hash values.
 
 config CONFIG_SLEEP
@@ -469,7 +469,7 @@ if !CONFIG_ASH && !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
 	    help
 	      test is used to check file types and compare values,
 	      returning an appropriate exit code. The shells (ash
-	      and bash have test builtin).
+	      and bash) have test builtin.
 endif
 
 config CONFIG_TOUCH

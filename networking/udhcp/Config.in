@@ -22,7 +22,7 @@ config CONFIG_UDHCPC
 	  while striving to be fully functional and RFC compliant.
 
 	  The udhcp client negotiates a lease with the DHCP server and
-	  notifies a set of scripts when a leases is obtained or lost.
+	  notifies a set of scripts when a lease is obtained or lost.
 
 	  See http://udhcp.busybox.net for further details.
 

@@ -58,7 +58,7 @@ config CONFIG_TOP
 	  system.
 
 config FEATURE_CPU_USAGE_PERCENTAGE
-	bool "  Support show CPU usage percentage (add 2k bytes)"
+	bool "  Support showing CPU usage percentage (add 2k bytes)"
 	default y
 	depends on CONFIG_TOP
 	help

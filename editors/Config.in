@@ -24,7 +24,7 @@ config CONFIG_PATCH
 	bool "patch"
 	default n
 	help
-	  Apply a unified diff formated patch.
+	  Apply a unified diff formatted patch.
 
 config CONFIG_SED
 	bool "sed"

@@ -16,7 +16,7 @@ config CONFIG_SYSLOGD
 	  application that generated the message.  When used in
 	  conjunction with klogd, messages from the Linux kernel
 	  can also be recorded.  This is terribly useful,
-	  especially for finding what happened when somthing goes
+	  especially for finding what happened when something goes
 	  wrong.  And something almost always will go wrong if
 	  you wait long enough....
 
@@ -50,8 +50,8 @@ config CONFIG_FEATURE_IPC_SYSLOG
 	  When you enable this feature, the syslogd utility will
 	  use a circular buffer to record system log messages.
 	  When the buffer is filled it will continue to overwrite
-	  the oldest messaged.  This can be very useful for
-	  systems with little or no perminant storage, since
+	  the oldest messages.  This can be very useful for
+	  systems with little or no permanent storage, since
 	  otherwise system logs can eventually fill up your
 	  entire filesystem, which may cause your system to
 	  break badly.
@@ -71,7 +71,7 @@ config CONFIG_KLOGD
 	default n
 	depends on CONFIG_SYSLOGD
 	help
-	  klogd is a utility which which intercepts and logs all
+	  klogd is a utility which intercepts and logs all
 	  messages from the Linux kernel and sends the messages
 	  out to the 'syslogd' utility so they can be logged.  If
 	  you wish to record the messages produced by the kernel,

@@ -10,7 +10,7 @@ choice
 	default CONFIG_FEATURE_SH_IS_NONE
 	help
 	  Choose a shell. The ash shell is the most bash compatible
-	  and full featured.
+	  and full featured one.
 
 config CONFIG_FEATURE_SH_IS_ASH
 	select CONFIG_ASH
@@ -39,8 +39,8 @@ config CONFIG_ASH
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
 	  the most complete and most pedantically correct shell included with
-	  busybox.  This shell is actually a derivitive the Debian 'dash' shell
-	  (by Herbert Xu), which was created by porting the 'ash' shell
+	  busybox.  This shell is actually a derivative of the Debian 'dash'
+	  shell (by Herbert Xu), which was created by porting the 'ash' shell
 	  (written by Kenneth Almquist) from NetBSD.  
 
 comment "Ash Shell Options"
@@ -101,9 +101,10 @@ config CONFIG_HUSH
 	bool "hush"
 	default n
 	help
-	  hush is very small shell (just 18k) and it has fairly complete Bourne
-	  shell grammer.  It even handles all the normal flow control options
-	  such as if/then/elif/else/fi, for/in/do/done, while loops, etc.
+	  hush is a very small shell (just 18k) and it has fairly complete
+	  Bourne shell grammar.  It even handles all the normal flow control
+	  options such as if/then/elif/else/fi, for/in/do/done, while loops,
+	  etc.
 
 	  It does not handle case/esac, select, function, here documents ( <<
 	  word ), arithmetic expansion, aliases, brace expansion, tilde
@@ -117,7 +118,7 @@ config CONFIG_LASH
 	  lash is the very smallest shell (adds just 10k) and it is quite
 	  usable as a command prompt, but it is not suitable for any but the
 	  most trivial scripting (such as an initrd that calls insmod a few
-	  times) since it does not understand any Bourne shell grammer.  It
+	  times) since it does not understand any Bourne shell grammar.  It
 	  does handle pipes, redirects, and job control though.  Adding in
 	  command editing makes it a very nice lightweight command prompt.
 
@@ -129,7 +130,7 @@ config CONFIG_MSH
 	  The minix shell (adds just 30k) is quite complete and handles things
 	  like for/do/done, case/esac and all the things you expect a Bourne
 	  shell to do.  It is not always pedantically correct about Bourne
-	  shell grammer (try running the shell testscript "tests/sh.testcases"
+	  shell grammar (try running the shell testscript "tests/sh.testcases"
 	  on it and compare vs bash) but for most things it works quite well.
 	  It also uses only vfork, so it can be used on uClinux systems.
 
