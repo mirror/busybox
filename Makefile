@@ -215,9 +215,9 @@ clean:
 	- find . -name .depend -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
+	- $(MAKE) -C scripts/config clean
 
 distclean: clean
-	- $(MAKE) -C scripts/config clean
 	rm -f .config .config.old .config.cmd
 
 release: distclean #doc
