@@ -2,7 +2,7 @@
  * httpd implementation for busybox
  *
  * Copyright (C) 2002,2003 Glenn Engel <glenne@engel.org>
- * Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
+ * Copyright (C) 2003,2004 Vladimir Oleynik <dzo@simtreas.ru>
  *
  * simplify patch stolen from libbb without using strdup
  *
@@ -116,7 +116,7 @@
 #include "busybox.h"
 
 
-static const char httpdVersion[] = "busybox httpd/1.34 2-Oct-2003";
+static const char httpdVersion[] = "busybox httpd/1.35 6-Oct-2004";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
@@ -126,6 +126,8 @@ static const char home[] = "./";
 #else
 # define cont_l_fmt "%ld"
 #endif
+
+#define TIMEOUT 60
 
 // Note: busybox xfuncs are not used because we want the server to keep running
 //       if something bad happens due to a malformed user request.
@@ -218,6 +220,8 @@ typedef struct
   char *remoteuser;
 #endif
 
+  const char *query;
+
 #ifdef CONFIG_FEATURE_HTTPD_CGI
   char *referer;
 #endif
@@ -230,8 +234,11 @@ typedef struct
 #endif
   unsigned port;           /* server initial port and for
 			      set env REMOTE_PORT */
+  union HTTPD_FOUND {
+	const char *found_mime_type;
+	const char *found_moved_temporarily;
+  } httpd_found;
 
-  const char *found_mime_type;
   off_t ContentLength;          /* -1 - unknown */
   time_t last_mod;
 
@@ -253,6 +260,8 @@ typedef struct
 #define a_c_r 0
 #define a_c_w 1
 #endif
+  volatile int alarm_signaled;
+
 } HttpdConfig;
 
 static HttpdConfig *config;
@@ -284,11 +293,13 @@ static const char* const suffixTable [] = {
 typedef enum
 {
   HTTP_OK = 200,
+  HTTP_MOVED_TEMPORARILY = 302,
+  HTTP_BAD_REQUEST = 400,       /* malformed syntax */
   HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
   HTTP_NOT_FOUND = 404,
-  HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
-  HTTP_BAD_REQUEST = 400,       /* malformed syntax */
   HTTP_FORBIDDEN = 403,
+  HTTP_REQUEST_TIMEOUT = 408,
+  HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
   HTTP_INTERNAL_SERVER_ERROR = 500,
 #if 0 /* future use */
   HTTP_CONTINUE = 100,
@@ -299,7 +310,6 @@ typedef enum
   HTTP_NO_CONTENT = 204,
   HTTP_MULTIPLE_CHOICES = 300,
   HTTP_MOVED_PERMANENTLY = 301,
-  HTTP_MOVED_TEMPORARILY = 302,
   HTTP_NOT_MODIFIED = 304,
   HTTP_PAYMENT_REQUIRED = 402,
   HTTP_BAD_GATEWAY = 502,
@@ -317,6 +327,9 @@ typedef struct
 
 static const HttpEnumString httpResponseNames[] = {
   { HTTP_OK, "OK" },
+  { HTTP_MOVED_TEMPORARILY, "Found", "Directories must end with a slash." },
+  { HTTP_REQUEST_TIMEOUT, "Request Timeout",
+    "No request appeared within a reasonable time period." },
   { HTTP_NOT_IMPLEMENTED, "Not Implemented",
     "The requested method is not recognized by this server." },
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
@@ -334,7 +347,6 @@ static const HttpEnumString httpResponseNames[] = {
   { HTTP_NO_CONTENT, "No Content" },
   { HTTP_MULTIPLE_CHOICES, "Multiple Choices" },
   { HTTP_MOVED_PERMANENTLY, "Moved Permanently" },
-  { HTTP_MOVED_TEMPORARILY, "Moved Temporarily" },
   { HTTP_NOT_MODIFIED, "Not Modified" },
   { HTTP_BAD_GATEWAY, "Bad Gateway", "" },
   { HTTP_SERVICE_UNAVAILABLE, "Service Unavailable", "" },
@@ -943,6 +955,7 @@ static int sendHeaders(HttpResponseNum responseNum)
   char *buf = config->buf;
   const char *responseString = "";
   const char *infoString = 0;
+  const char *mime_type;
   unsigned int i;
   time_t timer = time(0);
   char timeStr[80];
@@ -956,16 +969,16 @@ static int sendHeaders(HttpResponseNum responseNum)
 			break;
 		}
   }
-  if (responseNum != HTTP_OK) {
-	config->found_mime_type = "text/html";  // error message is HTML
-  }
+  /* error message is HTML */
+  mime_type = responseNum == HTTP_OK ?
+		config->httpd_found.found_mime_type : "text/html";
 
   /* emit the current date */
   strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
   len = sprintf(buf,
 	"HTTP/1.0 %d %s\nContent-type: %s\r\n"
 	"Date: %s\r\nConnection: close\r\n",
-	  responseNum, responseString, config->found_mime_type, timeStr);
+	  responseNum, responseString, mime_type, timeStr);
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   if (responseNum == HTTP_UNAUTHORIZED) {
@@ -973,6 +986,13 @@ static int sendHeaders(HttpResponseNum responseNum)
 							    config->realm);
   }
 #endif
+  if(responseNum == HTTP_MOVED_TEMPORARILY) {
+	len += sprintf(buf+len, "Location: %s/%s%s\r\n",
+		config->httpd_found.found_moved_temporarily,
+		(config->query ? "?" : ""),
+		(config->query ? config->query : ""));
+  }
+
   if (config->ContentLength != -1) {    /* file */
     strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
     len += sprintf(buf+len, "Last-Modified: %s\r\n%s " cont_l_fmt "\r\n",
@@ -1035,7 +1055,6 @@ static int getLine(void)
  *
  * $Parameters:
  *      (const char *) url . . . . . . The requested URL (with leading /).
- *      (const char *urlArgs). . . . . Any URL arguments.
  *      (int bodyLen)  . . . . . . . . Length of the post body.
  *      (const char *cookie) . . . . . For set HTTP_COOKIE.
  *      (const char *content_type) . . For set CONTENT_TYPE.
@@ -1047,8 +1066,7 @@ static int getLine(void)
  *
  ****************************************************************************/
 static int sendCgi(const char *url,
-		   const char *request, const char *urlArgs,
-		   int bodyLen, const char *cookie,
+		   const char *request, int bodyLen, const char *cookie,
 		   const char *content_type)
 {
   int fromCgi[2];  /* pipe for reading data from CGI */
@@ -1118,10 +1136,10 @@ static int sendCgi(const char *url,
       addEnv("PATH", "INFO", script);   /* set /PATH_INFO or NULL */
       addEnv("PATH",           "",         getenv("PATH"));
       addEnv("REQUEST",        "METHOD",   request);
-      if(urlArgs) {
-	char *uri = alloca(strlen(purl) + 2 + strlen(urlArgs));
+      if(config->query) {
+	char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
 	if(uri)
-	    sprintf(uri, "%s?%s", purl, urlArgs);
+	    sprintf(uri, "%s?%s", purl, config->query);
 	addEnv("REQUEST",        "URI",   uri);
       } else {
 	addEnv("REQUEST",        "URI",   purl);
@@ -1130,7 +1148,7 @@ static int sendCgi(const char *url,
 	*script = '\0';         /* reduce /PATH_INFO */
       /* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
       addEnv("SCRIPT_NAME",    "",         purl);
-      addEnv("QUERY_STRING",   "",         urlArgs);
+      addEnv("QUERY_STRING",   "",         config->query);
       addEnv("SERVER",         "SOFTWARE", httpdVersion);
       addEnv("SERVER",         "PROTOCOL", "HTTP/1.0");
       addEnv("GATEWAY_INTERFACE", "",      "CGI/1.1");
@@ -1324,14 +1342,14 @@ static int sendFile(const char *url)
 			break;
 	}
   /* also, if not found, set default as "application/octet-stream";  */
-  config->found_mime_type = *(table+1);
+  config->httpd_found.found_mime_type = *(table+1);
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
   if (suffix) {
     Htaccess * cur;
 
     for (cur = config->mime_a; cur; cur = cur->next) {
 	if(strcmp(cur->before_colon, suffix) == 0) {
-		config->found_mime_type = cur->after_colon;
+		config->httpd_found.found_mime_type = cur->after_colon;
 		break;
 	}
     }
@@ -1341,7 +1359,7 @@ static int sendFile(const char *url)
 #ifdef DEBUG
     if (config->debugHttpd)
 	fprintf(stderr, "Sending file '%s' Content-type: %s\n",
-					url, config->found_mime_type);
+					url, config->httpd_found.found_mime_type);
 #endif
 
   f = open(url, O_RDONLY);
@@ -1485,6 +1503,20 @@ set_remoteuser_var:
 
 #endif  /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
 
+/****************************************************************************
+ *
+ > $Function: handleIncoming()
+ *
+ * $Description: Handle an incoming http request.
+ *
+ ****************************************************************************/
+
+static void
+handle_sigalrm( int sig )
+{
+    sendHeaders(HTTP_REQUEST_TIMEOUT);
+    config->alarm_signaled = sig;
+}
 
 /****************************************************************************
  *
@@ -1499,7 +1531,6 @@ static void handleIncoming(void)
   char *url;
   char *purl;
   int  blank = -1;
-  char *urlArgs;
   char *test;
   struct stat sb;
   int ip_allowed;
@@ -1514,14 +1545,21 @@ static void handleIncoming(void)
   struct timeval tv;
   int retval;
 #endif
+  struct sigaction sa;
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   int credentials = -1;  /* if not requred this is Ok */
 #endif
 
+  sa.sa_handler = handle_sigalrm;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0; /* no SA_RESTART */
+  sigaction(SIGALRM, &sa, NULL);
+
   do {
     int  count;
 
+    (void) alarm( TIMEOUT );
     if (getLine() <= 0)
 	break;  /* closed */
 
@@ -1561,9 +1599,11 @@ BAD_REQUEST:
     }
     strcpy(url, buf);
     /* extract url args if present */
-    urlArgs = strchr(url, '?');
-    if (urlArgs)
-      *urlArgs++ = 0;
+    test = strchr(url, '?');
+    if (test) {
+      *test++ = 0;
+      config->query = test;
+    }
 
     /* algorithm stolen from libbb bb_simplify_path(),
        but don`t strdup and reducing trailing slash and protect out root */
@@ -1594,16 +1634,15 @@ BAD_REQUEST:
     test = purl;        /* end ptr */
 
     /* If URL is directory, adding '/' */
+    /* If URL is directory, adding '/' */
     if(test[-1] != '/') {
 	    if ( is_directory(url + 1, 1, &sb) ) {
-		    *test++ = '/';
-		    *test = 0;
-		    purl = test;    /* end ptr */
+		    config->httpd_found.found_moved_temporarily = url;
 	    }
     }
 #ifdef DEBUG
     if (config->debugHttpd)
-	fprintf(stderr, "url='%s', args=%s\n", url, urlArgs);
+	fprintf(stderr, "url='%s', args=%s\n", url, config->query);
 #endif
 
     test = url;
@@ -1620,7 +1659,7 @@ BAD_REQUEST:
     }
 
     // read until blank line for HTTP version specified, else parse immediate
-    while (blank >= 0 && (count = getLine()) > 0) {
+    while (blank >= 0 && alarm(TIMEOUT) >= 0 && (count = getLine()) > 0) {
 
 #ifdef DEBUG
       if (config->debugHttpd) fprintf(stderr, "Header: '%s'\n", buf);
@@ -1665,6 +1704,9 @@ BAD_REQUEST:
 
     }   /* while extra header reading */
 
+    (void) alarm( 0 );
+    if(config->alarm_signaled)
+	break;
 
     if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 || ip_allowed == 0) {
 		/* protect listing [/path]/httpd_conf or IP deny */
@@ -1682,6 +1724,16 @@ FORBIDDEN:      /* protect listing /cgi-bin */
     }
 #endif
 
+    if(config->httpd_found.found_moved_temporarily) {
+	sendHeaders(HTTP_MOVED_TEMPORARILY);
+#ifdef DEBUG
+	/* clear unforked memory flag */
+	if(config->debugHttpd)
+		config->httpd_found.found_moved_temporarily = NULL;
+#endif
+	break;
+    }
+
     test = url + 1;      /* skip first '/' */
 
 #ifdef CONFIG_FEATURE_HTTPD_CGI
@@ -1692,7 +1744,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
     if (strncmp(test, "cgi-bin", 7) == 0) {
 		if(test[7] == '/' && test[8] == 0)
 			goto FORBIDDEN;     // protect listing cgi-bin/
-		sendCgi(url, prequest, urlArgs, length, cookie, content_type);
+		sendCgi(url, prequest, length, cookie, content_type);
     } else {
 	if (prequest != request_GET)
 		sendHeaders(HTTP_NOT_IMPLEMENTED);
