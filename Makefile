@@ -36,7 +36,7 @@ GCCMINVERSION=`$(CC) --version | sed -n "s/^\([0-9]\)\.\([0-9].*\)[\.].*/\2/p"`
 
 GCCSUPPORTSOPTSIZE=$(shell \
 if ( test $(GCCMAJVERSION) -eq 2 ) ; then \
-    if ( test $(GCCMINVERSION) -ge 95 ) ; then \
+    if ( test $(GCCMINVERSION) -ge 91 ) ; then \
 	echo "true"; \
     else \
 	echo "false"; \
