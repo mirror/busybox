@@ -19,8 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "busybox.h"
-#include "unarchive.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
@@ -30,6 +28,9 @@
 #include <string.h> /* For strncmp */
 #include <sys/mman.h> /* For mmap */
 #include <time.h> /* For ctime */
+
+#include "busybox.h"
+#include "unarchive.h"
 
 #define RPM_HEADER_MAGIC "\216\255\350"
 #define RPM_CHAR_TYPE		1
