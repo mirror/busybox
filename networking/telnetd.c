@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.5 2003/03/19 09:12:39 mjn3 Exp $
+/* $Id: telnetd.c,v 1.6 2003/04/25 12:32:37 andersen Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -363,6 +363,7 @@ telnetd_main(int argc, char **argv)
 #else /* CONFIG_EATURE_TELNETD_INETD */
 		"f:l:p:";
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
+	int maxlen, w, r;
 
 	for (;;) {
 		c = getopt( argc, argv, options);
@@ -505,7 +506,6 @@ telnetd_main(int argc, char **argv)
 		ts = sessions;
 		while (ts) { /* For all sessions...  */
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
-			int maxlen, w, r;
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 			struct tsession *next = ts->next; /* in case we free ts. */
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
