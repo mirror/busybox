@@ -501,12 +501,11 @@ static pid_t run(struct init_action *a)
 		signal(SIGTSTP, SIG_DFL);
 
 		/* Create a new session and make ourself the process
-		 * group leader for non-interactive jobs */
-		if ((a->action & (RESPAWN)) == 0)
-			setsid();
+		 * group leader */
+		setsid();
 
 		/* Open the new terminal device */
-		if ((device_open(a->terminal, O_RDWR | O_NOCTTY)) < 0) {
+		if ((device_open(a->terminal, O_RDWR)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
 				message(LOG | CONSOLE, "\rdevice '%s' does not exist.\n",
 						a->terminal);
@@ -516,21 +515,12 @@ static pid_t run(struct init_action *a)
 			_exit(1);
 		}
 
-		/* Non-interactive jobs should not get a controling tty */
-		if ((a->action & (RESPAWN)) == 0)
-			(void) ioctl(0, TIOCSCTTY, 0);
-
 		/* Make sure the terminal will act fairly normal for us */
 		set_term(0);
 		/* Setup stdout, stderr for the new process so
 		 * they point to the supplied terminal */
 		dup(0);
 		dup(0);
-
-		/* For interactive jobs, create a new session 
-		 * and become the process group leader */
-		if ((a->action & (RESPAWN)))
-			setsid();
 
 		/* If the init Action requires us to wait, then force the
 		 * supplied terminal to be the controlling tty. */
