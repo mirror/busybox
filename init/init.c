@@ -418,7 +418,6 @@ static void halt_signal(int sig)
 	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
     sync();
 #ifndef DEBUG_INIT
-    while (1) sleep(1);
     reboot(RB_HALT_SYSTEM);
     //reboot(RB_POWER_OFF);
 #endif
@@ -430,7 +429,6 @@ static void reboot_signal(int sig)
     shutdown_system();
     message(CONSOLE, "Please stand by while rebooting the system.\r\n");
     sync();
-    while (1) sleep(1);
 #ifndef DEBUG_INIT
     reboot(RB_AUTOBOOT);
 #endif

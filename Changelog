@@ -12,6 +12,8 @@
 	* kill now behaves itself properly, added 'kill -l' to list signals
 	* 'ls -l' was failing on long directories, since my_getid was leaking 
 	    one file descriptor per file.  Oops.
+	* Fixed rebooting from init.  I'd left some debugging code in
+	    which blocked reboots.
 
 	-Erik Andrsen
 
