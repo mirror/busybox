@@ -455,7 +455,7 @@ static void check_memory()
 
 	if (stat("/etc/fstab", &statBuf) == 0) {
 		/* Try to turn on swap */
-		system("/sbin/swapon swapon -a");
+		system("/sbin/swapon -a");
 		if (mem_total() < 3500)
 			goto goodnight;
 	} else
@@ -705,7 +705,7 @@ void parse_inittab(void)
 		/* No inittab file -- set up some default behavior */
 #endif
 		/* Swapoff on halt/reboot */
-		new_initAction(CTRLALTDEL, "/bin/umount -a -r > /dev/null 2>&1", console);
+		new_initAction(CTRLALTDEL, "/sbin/swapoff -a > /dev/null 2>&1", console);
 		/* Umount all filesystems on halt/reboot */
 		new_initAction(CTRLALTDEL, "/bin/umount -a -r > /dev/null 2>&1", console);
 		/* Askfirst shell on tty1 */
