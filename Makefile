@@ -60,6 +60,10 @@ USE_SYSTEM_PWD_GRP = true
 # Do not enable this for production builds...
 DODMALLOC = false
 
+# Another very useful malloc debugging library.
+# Do not enable this for production builds...
+DOEFENCE  = false
+
 # If you want large file summit support, turn this on.
 # This has no effect if you don't have a kernel with lfs
 # support, and a system with libc-2.1.3 or later.
@@ -131,6 +135,12 @@ ifeq ($(strip $(DODMALLOC)),true)
     LIBRARIES = -ldmalloc
     # Force debug=true, since this is useless when not debugging...
     DODEBUG = true
+else
+    ifeq ($(strip $(DOEFENCE)),true)
+	LIBRARIES = -lefence
+	# Force debug=true, since this is useless when not debugging...
+	DODEBUG = true
+    endif
 endif
 ifeq ($(strip $(DODEBUG)),true)
     CFLAGS  += $(WARNINGS) -g -D_GNU_SOURCE
