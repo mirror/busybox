@@ -32,7 +32,7 @@
 #define FLAG_CHECK	2
 #define FLAG_WARN	4
 
-/* This might be usefull elsewhere */
+/* This might be useful elsewhere */
 static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 									  unsigned char hash_length)
 {

@@ -9,24 +9,24 @@
  * Copyright (c) 2000  Edward Betts <edward@debian.org>.
  * Aug 2003  Vladimir Oleynik - reduced 464 bytes.
  *
- * this program is free software; you can redistribute it and/or modify
- * it under the terms of the gnu general public license as published by
- * the free software foundation; either version 2 of the license, or
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * this program is distributed in the hope that it will be useful,
- * but without any warranty; without even the implied warranty of
- * merchantability or fitness for a particular purpose. see the gnu
- * general public license for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- * you should have received a copy of the gnu general public license
- * along with this program; if not, write to the free software
- * foundation, inc., 59 temple place, suite 330, boston, ma 02111-1307 usa
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
 
 /* This program evaluates expressions.  Each token (operator, operand,
- * parenthesis) of the expression must be a seperate argument.  The
+ * parenthesis) of the expression must be a separate argument.  The
  * parser used is a reasonably general one, though any incarnation of
  * it is language-specific.  It is especially nice for expressions.
  *

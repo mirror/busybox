@@ -282,11 +282,11 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.116 2004/04/06 11:56:26 andersen Exp $"
+#ident "$Id: insmod.c,v 1.117 2004/04/14 17:51:22 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
-   to be dependant on a particular kernel version to compile insmod.  */
+   to be dependent on a particular kernel version to compile insmod.  */
 
 
 /*======================================================================*/
@@ -503,7 +503,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.116 2004/04/06 11:56:26 andersen Exp $"
+#ident "$Id: insmod.c,v 1.117 2004/04/14 17:51:22 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2597,8 +2597,8 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 						str = alloca(r - q + 1);
 						memcpy(str, q, r - q);
 
-						/* I don't know if it is usefull, as the previous case
-						   doesn't null terminate the string ??? */
+						/* I don't know if it is useful, as the previous case
+						   doesn't nul terminate the string ??? */
 						str[r - q] = '\0';
 
 						/* Keep next fields */

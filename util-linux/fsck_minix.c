@@ -7,7 +7,7 @@
  */
 
 /*
- * 09.11.91  -  made the first rudimetary functions
+ * 09.11.91  -  made the first rudimentary functions
  *
  * 10.11.91  -  updated, does checking, no repairs yet.
  *		Sent out to the mailing-list for testing.
@@ -53,7 +53,7 @@
  *             (Russell King).  He made them for ARM.  It would seem
  *	       that the ARM is powerful enough to do this in C whereas
  *             i386 and m64k must use assembly to get it fast >:-)
- *	       This should make minix fsck systemindependent.
+ *	       This should make minix fsck system-independent.
  *	       (janl@math.uio.no, Nicolai Langfeldt)
  *
  * 04.11.96  - Added minor fixes from Andreas Schwab to avoid compiler
@@ -73,7 +73,7 @@
  * unless you can be sure nobody is writing to it (and remember that the
  * kernel can write to it when it searches for files).
  *
- * Usuage: fsck [-larvsm] device
+ * Usage: fsck [-larvsm] device
  *	-l for a listing of all the filenames
  *	-a for automatic repairs (not implemented)
  *	-r for repairs (interactive) (not implemented)

@@ -1,10 +1,10 @@
 /*
- * Rexec program for system have fork() as vfork() with foregound option
+ * Rexec program for system have fork() as vfork() with foreground option
  *
  * Copyright (C) Vladimir N. Oleynik <dzo@simtreas.ru>
  * Copyright (C) 2003 Russ Dill <Russ.Dill@asu.edu>
  *
- * daemon() portion taken from uclibc:
+ * daemon() portion taken from uClibc:
  *
  * Copyright (c) 1991, 1993
  *      The Regents of the University of California.  All rights reserved.

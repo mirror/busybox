@@ -31,7 +31,7 @@
  *              major adjustments to option parsing, and some serious
  *              dieting all around.
  *
- * 1999-11-06	mtab suppport is back - andersee
+ * 1999-11-06	mtab support is back - andersee
  *
  * 2000-01-12   Ben Collins <bcollins@debian.org>, Borrowed utils-linux's
  *              mount to add loop support.

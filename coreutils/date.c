@@ -42,7 +42,7 @@
 /* Input parsing code is always bulky - used heavy duty libc stuff as
    much as possible, missed out a lot of bounds checking */
 
-/* Default input handling to save suprising some people */
+/* Default input handling to save surprising some people */
 
 static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 {

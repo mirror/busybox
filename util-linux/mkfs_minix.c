@@ -49,7 +49,7 @@
  *
  * Usage:  mkfs [-c | -l filename ] [-v] [-nXX] [-iXX] device [size-in-blocks]
  *
- *	-c for readablility checking (SLOW!)
+ *	-c for readability checking (SLOW!)
  *      -l for getting a list of bad blocks from a file.
  *	-n for namelength (currently the kernel only uses 14 or 30)
  *	-i for number of inodes
@@ -602,7 +602,7 @@ static inline void setup_tables(void)
 
 /*
  * Perform a test of a block; return the number of
- * blocks readable/writeable.
+ * blocks readable/writable.
  */
 static inline long do_check(char *buffer, int try, unsigned int current_block)
 {

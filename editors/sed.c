@@ -210,7 +210,7 @@ static char *copy_parsing_slashn(const char *string, int len)
 /*
  * index_of_next_unescaped_regexp_delim - walks left to right through a string
  * beginning at a specified index and returns the index of the next regular
- * expression delimiter (typically a forward * slash ('/')) not preceeded by
+ * expression delimiter (typically a forward * slash ('/')) not preceded by
  * a backslash ('\').
  */
 static int index_of_next_unescaped_regexp_delim(const char delimiter,

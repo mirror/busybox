@@ -1,6 +1,6 @@
 /* serverpacket.c
  *
- * Constuct and send DHCP server packets
+ * Construct and send DHCP server packets
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *

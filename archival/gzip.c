@@ -632,7 +632,7 @@ static void copy_block(char *buf, unsigned len, int header)
  *      However the F&G algorithm may be faster for some highly redundant
  *      files if the parameter max_chain_length (described below) is too large.
  *
- *  ACKNOWLEDGEMENTS
+ *  ACKNOWLEDGMENTS
  *
  *      The idea of lazy evaluation of matches is due to Jan-Mark Wams, and
  *      I found it in 'freeze' written by Leonid Broukhis.

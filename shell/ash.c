@@ -174,7 +174,7 @@ static const char not_found_msg[] = "%s: not found";
  * We enclose jmp_buf in a structure so that we can declare pointers to
  * jump locations.  The global variable handler contains the location to
  * jump to when an exception occurs, and the global variable exception
- * contains a code identifying the exeception.  To implement nested
+ * contains a code identifying the exception.  To implement nested
  * exception handlers, the user should save the value of handler on entry
  * to an inner scope, set handler to point to a jmploc structure for the
  * inner scope, and restore handler on exit from the scope.
@@ -2702,7 +2702,7 @@ static const struct builtincmd bltin = {
  */
 
 /*
- * The eval commmand.
+ * The eval command.
  */
 
 static int
@@ -7228,7 +7228,7 @@ forkshell(struct job *jp, union node *n, int mode)
  * the interactive program catches interrupts, the user doesn't want
  * these interrupts to also abort the loop.  The approach we take here
  * is to have the shell ignore interrupt signals while waiting for a
- * forground process to terminate, and then send itself an interrupt
+ * foreground process to terminate, and then send itself an interrupt
  * signal if the child process was terminated by an interrupt signal.
  * Unfortunately, some programs want to do a bit of cleanup and then
  * exit on interrupt; unless these processes terminate themselves by
@@ -11932,7 +11932,7 @@ static int vpcmp(const void *, const void *);
 static struct var **findvar(struct var **, const char *);
 
 /*
- * Initialize the varable symbol tables and import the environment
+ * Initialize the variable symbol tables and import the environment
  */
 
 
@@ -12539,7 +12539,7 @@ letcmd(int argc, char **argv)
 /*      $NetBSD: miscbltin.c,v 1.31 2002/11/24 22:35:41 christos Exp $  */
 
 /*
- * Miscelaneous builtins.
+ * Miscellaneous builtins.
  */
 
 #undef rflag
@@ -12911,14 +12911,14 @@ ulimitcmd(int argc, char **argv)
 
 /* This is my infix parser/evaluator. It is optimized for size, intended
  * as a replacement for yacc-based parsers. However, it may well be faster
- * than a comparable parser writen in yacc. The supported operators are
+ * than a comparable parser written in yacc. The supported operators are
  * listed in #defines below. Parens, order of operations, and error handling
- * are supported. This code is threadsafe. The exact expression format should
+ * are supported. This code is thread safe. The exact expression format should
  * be that which POSIX specifies for shells. */
 
 /* The code uses a simple two-stack algorithm. See
  * http://www.onthenet.com.au/~grahamis/int2008/week02/lect02.html
- * for a detailed explaination of the infix-to-postfix algorithm on which
+ * for a detailed explanation of the infix-to-postfix algorithm on which
  * this is based (this code differs in that it applies operators immediately
  * to the stack instead of adding them to a queue to end up with an
  * expression). */
@@ -12948,7 +12948,7 @@ ulimitcmd(int argc, char **argv)
  *    parens and then checking that all binary ops and right parens are
  *    preceded by a valid expression (NUM_TOKEN).
  *
- * Note: It may be desireable to replace Aaron's test for whitespace with
+ * Note: It may be desirable to replace Aaron's test for whitespace with
  * ctype's isspace() if it is used by another busybox applet or if additional
  * whitespace chars should be considered.  Look below the "#include"s for a
  * precompiler test.
@@ -12974,7 +12974,7 @@ ulimitcmd(int argc, char **argv)
  * - realize comma separated - expr, expr
  * - realise ++expr --expr expr++ expr--
  * - realise expr ? expr : expr (but, second expr calculate always)
- * - allow hexdecimal and octal numbers
+ * - allow hexadecimal and octal numbers
  * - was restored loses XOR operator
  * - remove one goto label, added three ;-)
  * - protect $((num num)) as true zero expr (Manuel`s error)
@@ -12989,7 +12989,7 @@ ulimitcmd(int argc, char **argv)
 typedef unsigned char operator;
 
 /* An operator's token id is a bit of a bitfield. The lower 5 bits are the
- * precedence, and 3 high bits are an ID unique accross operators of that
+ * precedence, and 3 high bits are an ID unique across operators of that
  * precedence. The ID portion is so that multiple operators can have the
  * same precedence, ensuring that the leftmost one is evaluated first.
  * Consider * and /. */
@@ -13098,7 +13098,7 @@ typedef struct ARITCH_VAR_NUM {
 	long contidional_second_val;
 	char contidional_second_val_initialized;
 	char *var;      /* if NULL then is regular number,
-			   else is varable name */
+			   else is variable name */
 } v_n_t;
 
 
@@ -13356,7 +13356,7 @@ extern long arith (const char *expr, int *perrcode)
 
     /* Stack of integers */
     /* The proof that there can be no more than strlen(startbuf)/2+1 integers
-     * in any given correct or incorrect expression is left as an excersize to
+     * in any given correct or incorrect expression is left as an exercise to
      * the reader. */
     v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
 	    *numstackptr = numstack;

@@ -65,7 +65,7 @@ static const char sep1752[] = {
 
 static int julian;
 
-/* leap year -- account for gregorian reformation in 1752 */
+/* leap year -- account for Gregorian reformation in 1752 */
 #define	leap_year(yr) \
 	((yr) <= 1752 ? !((yr) % 4) : \
 	(!((yr) % 4) && ((yr) % 100)) || !((yr) % 400))

@@ -28,7 +28,7 @@
 /*
  * Define GR_SCALE_DYNAMIC if you want grp to dynamically scale its read buffer
  * so that lines of any length can be used.  On very very small systems,
- * you may want to leave this undefined becasue it will make the grp functions
+ * you may want to leave this undefined because it will make the grp functions
  * somewhat larger (because of the inclusion of malloc and the code necessary).
  * On larger systems, you will want to define this, because grp will _not_
  * deal with long lines gracefully (they will be skipped).

@@ -59,7 +59,7 @@ static char lfile[MAXPATHLEN];
 static const char *logFilePath = __LOG_FILE;
 
 #ifdef CONFIG_FEATURE_ROTATE_LOGFILE
-/* max size of message file bevor being rotated */
+/* max size of message file before being rotated */
 static int logFileSize = 200 * 1024;
 
 /* number of rotated message files */

@@ -43,8 +43,8 @@ static int valid_name(const struct dirent *d)
 	return 1;
 }
 
-/* test mode = 1 is the same as offical run_parts
- * test_mode = 2 means to fail siliently on missing directories
+/* test mode = 1 is the same as official run_parts
+ * test_mode = 2 means to fail silently on missing directories
  */
 
 extern int run_parts(char **args, const unsigned char test_mode, char **env)

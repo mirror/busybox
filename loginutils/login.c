@@ -96,7 +96,7 @@ extern int login_main(int argc, char **argv)
 			break;
 		case 'f':
 			/*
-			 * username must be a seperate token
+			 * username must be a separate token
 			 * (-f root, *NOT* -froot). --marekm
 			 */
 			if ( optarg != argv[optind-1] )

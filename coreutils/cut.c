@@ -70,7 +70,7 @@ static int cmpfunc(const void *a, const void *b)
 /*
  * parse_lists() - parses a list and puts values into startpos and endpos.
  * valid list formats: N, N-, N-M, -M
- * more than one list can be seperated by commas
+ * more than one list can be separated by commas
  */
 static void parse_lists(char *lists)
 {
@@ -79,7 +79,7 @@ static void parse_lists(char *lists)
 	char *junk;
 	int s = 0, e = 0;
 
-	/* take apart the lists, one by one (they are seperated with commas */
+	/* take apart the lists, one by one (they are separated with commas */
 	while ((ltok = strsep(&lists, ",")) != NULL) {
 
 		/* it's actually legal to pass an empty list */

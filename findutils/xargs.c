@@ -5,7 +5,7 @@
  * (C) 2002,2003 by Vladimir Oleynik <dzo@simtreas.ru>
  *
  * Special thanks
- * - Mark Whitley and Glenn McGrath for stimul to rewrote :)
+ * - Mark Whitley and Glenn McGrath for stimulus to rewrite :)
  * - Mike Rendell <michael@cs.mun.ca>
  * and David MacKenzie <djm@gnu.ai.mit.edu>.
  *

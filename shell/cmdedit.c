@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Termios command line History and Editting.
+ * Termios command line History and Editing.
  *
  * Copyright (c) 1986-2003 may safely be consumed by a BSD or GPL license.
  * Written by:   Vladimir Oleynik <dzo@simtreas.ru>
@@ -259,7 +259,7 @@ static inline void beep(void)
 	putchar('\007');
 }
 
-/* Move back one charactor */
+/* Move back one character */
 /* special for slow terminal */
 static void input_backward(int num)
 {
@@ -429,7 +429,7 @@ static void parse_prompt(const char *prmt_ptr)
 #endif
 
 
-/* draw promt, editor line, and clear tail */
+/* draw prompt, editor line, and clear tail */
 static void redraw(int y, int back_cursor)
 {
 	if (y > 0)                              /* up to start y */
@@ -466,7 +466,7 @@ static void input_backspace(void)
 }
 
 
-/* Move forward one charactor */
+/* Move forward one character */
 static void input_forward(void)
 {
 	if (cursor < len)

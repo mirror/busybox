@@ -2,7 +2,7 @@
  *
  * Functions to assist in the writing and removing of pidfiles.
  *
- * Russ Dill <Russ.Dill@asu.edu> Soptember 2001
+ * Russ Dill <Russ.Dill@asu.edu> September 2001
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

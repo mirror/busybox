@@ -40,7 +40,7 @@
  *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
  *  bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
  * Note that url encoding for arguments is not the same as html encoding for
- * presenation.  -d decodes a url-encoded argument while -e encodes in html
+ * presentation.  -d decodes a url-encoded argument while -e encodes in html
  * for page display.
  *
  * httpd.conf has the following format:
@@ -55,7 +55,7 @@
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
  * .au:audio/basic   # additional mime type for audio.au files
  *
- * A/D may be as a/d or allow/deny - first char case unsensitive
+ * A/D may be as a/d or allow/deny - first char case insensitive
  * Deny IP rules take precedence over allow rules.
  *
  *
@@ -127,7 +127,7 @@ static const char home[] = "./";
 # define cont_l_fmt "%ld"
 #endif
 
-// Note: bussybox xfuncs are not used because we want the server to keep running
+// Note: busybox xfuncs are not used because we want the server to keep running
 //       if something bad happens due to a malformed user request.
 //       As a result, all memory allocation after daemonize
 //       is checked rigorously
@@ -260,7 +260,7 @@ static HttpdConfig *config;
 static const char request_GET[] = "GET";    /* size algorithic optimize */
 
 static const char* const suffixTable [] = {
-/* Warning: shorted equalent suffix in one line must be first */
+/* Warning: shorted equivalent suffix in one line must be first */
   ".htm.html", "text/html",
   ".jpg.jpeg", "image/jpeg",
   ".gif", "image/gif",
@@ -775,7 +775,7 @@ static char *decodeString(char *orig, int flag_plus_to_space)
  *
  > $Function: addEnv()
  *
- * $Description: Add an enviornment variable setting to the global list.
+ * $Description: Add an environment variable setting to the global list.
  *    A NAME=VALUE string is allocated, filled, and added to the list of
  *    environment settings passed to the cgi execution script.
  *
@@ -1380,7 +1380,7 @@ static int checkPermIP(void)
 	    return cur->allow_deny == 'A';   /* Allow/Deny */
     }
 
-    /* if uncofigured, return 1 - access from all */
+    /* if unconfigured, return 1 - access from all */
     return !config->flg_deny_all;
 }
 
@@ -1765,7 +1765,7 @@ static int miniHttpd(int server)
   while (1) {
     readfd = portfd;
 
-    /* Now wait INDEFINATELY on the set of sockets! */
+    /* Now wait INDEFINITELY on the set of sockets! */
     if (select(server + 1, &readfd, 0, 0, 0) > 0) {
       if (FD_ISSET(server, &readfd)) {
 	int on;
@@ -1990,7 +1990,7 @@ int httpd_main(int argc, char *argv[])
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   server = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
-  /* drop privilegies */
+  /* drop privileges */
   if(uid > 0)
 	setuid(uid);
 # endif

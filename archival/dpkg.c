@@ -1,6 +1,6 @@
 /*
  *  Mini dpkg implementation for busybox.
- *  This is not meant as a replacemnt for dpkg
+ *  This is not meant as a replacement for dpkg
  *
  *  Written By Glenn McGrath with the help of others
  *  Copyright (C) 2001 by Glenn McGrath
@@ -23,7 +23,7 @@
  */
 
 /*
- * Known difference between busybox dpkg and the official dpkg that i dont
+ * Known difference between busybox dpkg and the official dpkg that i don't
  * consider important, its worth keeping a note of differences anyway, just to
  * make it easier to maintain.
  *  - The first value for the Confflile: field isnt placed on a new line.
@@ -86,7 +86,7 @@ common_node_t *package_hashtable[PACKAGE_HASH_PRIME + 1];
 
 /* Currently it doesnt store packages that have state-status of not-installed
  * So it only really has to be the size of the maximum number of packages
- * likely to be installed at any one time, so there is a bit of leaway here */
+ * likely to be installed at any one time, so there is a bit of leeway here */
 #define STATUS_HASH_PRIME 8191
 typedef struct status_node_s {
 	unsigned int package:14;	/* has to fit PACKAGE_HASH_PRIME */
@@ -94,7 +94,7 @@ typedef struct status_node_s {
 } status_node_t;
 status_node_t *status_hashtable[STATUS_HASH_PRIME + 1];
 
-/* Even numbers are for 'extras', like ored dependecies or null */
+/* Even numbers are for 'extras', like ored dependencies or null */
 enum edge_type_e {
 	EDGE_NULL = 0,
 	EDGE_PRE_DEPENDS = 1,
@@ -148,7 +148,7 @@ void make_hash(const char *key, unsigned int *start, unsigned int *decrement, co
 	for(i = 1; i < len; i++) {
 		/* shifts the ascii based value and adds it to previous value
 		 * shift amount is mod 24 because long int is 32 bit and data
-		 * to be shifted is 8, dont want to shift data to where it has
+		 * to be shifted is 8, don't want to shift data to where it has
 		 * no effect*/
 		hash_num += ((key[i] + key[i-1]) << ((key[i] * i) % 24));
 	}
@@ -392,7 +392,7 @@ int search_package_hashtable(const unsigned int name, const unsigned int version
 /*
  * This function searches through the entire package_hashtable looking
  * for a package which provides "needle". It returns the index into
- * the package_hashtable for the provining package.
+ * the package_hashtable for the providing package.
  *
  * needle is the index into name_hashtable of the package we are
  * looking for.
@@ -489,7 +489,7 @@ void add_split_dependencies(common_node_t *parent_node, const char *whole_line, 
 				/* Skip leading ' ' or '(' */
 				version += strspn(field2, " ");
 				version += strspn(version, "(");
-				/* Calculate length of any operator charactors */
+				/* Calculate length of any operator characters */
 				offset_ch = strspn(version, "<=>");
 				/* Determine operator */
 				if (offset_ch > 0) {
@@ -636,7 +636,7 @@ unsigned int get_status(const unsigned int status_node, const int num)
 	for (i = 1; i < num; i++) {
 		/* skip past a word */
 		status_string += strcspn(status_string, " ");
-		/* skip past the seperating spaces */
+		/* skip past the separating spaces */
 		status_string += strspn(status_string, " ");
 	}
 	len = strcspn(status_string, " \n\0");
@@ -955,13 +955,13 @@ void write_status_file(deb_file_t **deb_file)
 	fclose(new_status_file);
 
 
-	/* Create a seperate backfile to dpkg */
+	/* Create a separate backfile to dpkg */
 	if (rename("/var/lib/dpkg/status", "/var/lib/dpkg/status.udeb.bak") == -1) {
 		struct stat stat_buf;
 		if (stat("/var/lib/dpkg/status", &stat_buf) == 0) {
 			bb_error_msg_and_die("Couldnt create backup status file");
 		}
-		/* Its ok if renaming the status file fails becasue status
+		/* Its ok if renaming the status file fails because status
 		 * file doesnt exist, maybe we are starting from scratch */
 		bb_error_msg("No status file found, creating new one");
 	}
@@ -971,10 +971,10 @@ void write_status_file(deb_file_t **deb_file)
 	}
 }
 
-/* This function returns TRUE if the given package can statisfy a
+/* This function returns TRUE if the given package can satisfy a
  * dependency of type depend_type.
  *
- * A pre-depends is statisfied only if a package is already installed,
+ * A pre-depends is satisfied only if a package is already installed,
  * which a regular depends can be satisfied by a package which we want
  * to install.
  */
@@ -1085,7 +1085,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
 		int status_num = 0;
 		int number_of_alternatives = 0;
-		const edge_t * root_of_alternatives;
+		const edge_t * root_of_alternatives = NULL;
 		const common_node_t *package_node = package_hashtable[i];
 
 		/* If the package node does not exist then this
@@ -1118,7 +1118,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
                         continue;
 #endif
 
-		/* This code is tested only for EDGE_DEPENDS, sine I
+		/* This code is tested only for EDGE_DEPENDS, since I
 		 * have no suitable pre-depends available. There is no
 		 * reason that it shouldn't work though :-)
 		 */
@@ -1211,7 +1211,7 @@ char **create_list(const char *filename)
 	char *line = NULL;
 	int count = 0;
 
-	/* dont use [xw]fopen here, handle error ourself */
+	/* don't use [xw]fopen here, handle error ourself */
 	list_stream = fopen(filename, "r");
 	if (list_stream == NULL) {
 		return(NULL);
@@ -1385,7 +1385,7 @@ void remove_package(const unsigned int package_num, int noisy)
 		bb_error_msg_and_die("script failed, prerm failure");
 	}
 
-	/* Create a list of files to remove, and a seperate list of those to keep */
+	/* Create a list of files to remove, and a separate list of those to keep */
 	sprintf(list_name, "/var/lib/dpkg/info/%s.list", package_name);
 	remove_files = create_list(list_name);
 
@@ -1480,7 +1480,7 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 	tar_handle = init_handle();
 	tar_handle->src_fd = ar_handle->src_fd;
 
-	/* We dont care about data.tar.* or debian-binary, just control.tar.* */
+	/* We don't care about data.tar.* or debian-binary, just control.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
 	ar_handle->accept = llist_add_to(NULL, "control.tar.gz");
 #endif
@@ -1502,7 +1502,7 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	tar_handle = init_handle();
 	tar_handle->src_fd = ar_handle->src_fd;
 
-	/* We dont care about control.tar.* or debian-binary, just data.tar.* */
+	/* We don't care about control.tar.* or debian-binary, just data.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
 	ar_handle->accept = llist_add_to(NULL, "data.tar.gz");
 #endif

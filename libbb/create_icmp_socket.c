@@ -2,8 +2,8 @@
 /*
  * Utility routines.
  *
- * create raw socket for icmp protocol test permision
- * and drop root privilegies if running setuid
+ * create raw socket for icmp protocol test permission
+ * and drop root privileges if running setuid
  *
  */
 

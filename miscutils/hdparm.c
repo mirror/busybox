@@ -222,7 +222,7 @@ static const char *ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 /* word 1: number of logical cylinders */
 #define LCYLS_MAX		0x3fff /* maximum allowable value */
 
-/* word 2: specific configureation
+/* word 2: specific configuration
  * (a) require SET FEATURES to spin-up
  * (b) require spin-up to fully reply to IDENTIFY DEVICE
  */

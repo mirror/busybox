@@ -31,8 +31,8 @@
  * sure that (flags & FILEUTILS_RECUR) is non-zero.  Newly created
  * intermediate directories will have at least u+wx perms.
  *
- * To set specific permisions on 'path', pass the appropriate 'mode'
- * val.  Otherwise, pass -1 to get default permisions.
+ * To set specific permissions on 'path', pass the appropriate 'mode'
+ * val.  Otherwise, pass -1 to get default permissions.
  */
 
 #include <errno.h>

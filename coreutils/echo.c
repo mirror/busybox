@@ -27,7 +27,7 @@
 
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
- * Because of behavioral differences, implemented configureable SUSv3
+ * Because of behavioral differences, implemented configurable SUSv3
  * or 'fancy' gnu-ish behaviors.  Also, reduced size and fixed bugs.
  * 1) In handling '\c' escape, the previous version only suppressed the
  *     trailing newline.  SUSv3 specifies _no_ output after '\c'.

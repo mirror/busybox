@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Connect to host at port using address resolusion from getaddrinfo
+ * Connect to host at port using address resolution from getaddrinfo
  *
  */
 

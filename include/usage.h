@@ -1009,7 +1009,7 @@
        "Options:\n" \
        "\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
        USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
-       USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privilegies port\n") \
+       USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
        USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
        USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
        "\t-e STRING\tHtml encode STRING\n" \

@@ -27,7 +27,7 @@
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Size reduction.  Removed floating point dependency.  Added error checking
- * on output.  Output stats on 0-sized filesystems if specificly listed on
+ * on output.  Output stats on 0-sized filesystems if specifically listed on
  * the command line.  Properly round *-blocks, Used, and Available quantities.
  */
 

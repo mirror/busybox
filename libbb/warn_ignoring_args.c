@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * warn_ingoring_args implementations for busybox
+ * warn_ignoring_args implementation for busybox
  *
  * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *

@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.35 2004/03/31 11:12:51 andersen Exp $";
+	"$Id: vi.c,v 1.36 2004/04/14 17:51:09 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -45,7 +45,7 @@ static const char vi_Version[] =
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
-//----  Feature --------------  Bytes to immplement
+//----  Feature --------------  Bytes to implement
 #ifdef STANDALONE
 #define vi_main			main
 #define CONFIG_FEATURE_VI_COLON	// 4288
@@ -641,7 +641,7 @@ static Byte *get_address(Byte *p, int *b, int *e)	// get two colon addrs, if pre
 	p = get_one_address(p, b);
 	while (isblnk(*p))
 		p++;
-	if (*p == ',') {			// is there a address seperator
+	if (*p == ',') {			// is there a address separator
 		p++;
 		while (isblnk(*p))
 			p++;
@@ -1452,7 +1452,7 @@ static Byte *new_screen(int ro, int co)
 	screen = (Byte *) xmalloc(screensize);
 	// initialize the new screen. assume this will be a empty file.
 	screen_erase();
-	//   non-existant text[] lines start with a tilde (~).
+	//   non-existent text[] lines start with a tilde (~).
 	for (li = 1; li < ro - 1; li++) {
 		screen[(li * co) + 0] = '~';
 	}
@@ -2528,7 +2528,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 
 //----- Terminal Drawing ---------------------------------------
 // The terminal is made up of 'rows' line of 'columns' columns.
-// classicly this would be 24 x 80.
+// classically this would be 24 x 80.
 //  screen coordinates
 //  0,0     ...     0,79
 //  1,0     ...     1,79
@@ -3222,7 +3222,7 @@ key_cmd_mode:
 	case 'f':			// f- forward to a user specified char
 		last_forward_char = get_one_char();	// get the search char
 		//
-		// dont seperate these two commands. 'f' depends on ';'
+		// dont separate these two commands. 'f' depends on ';'
 		//
 		//**** fall thru to ... 'i'
 	case ';':			// ;- look at rest of line for last forward char

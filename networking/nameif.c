@@ -1,7 +1,7 @@
 /*
  * nameif.c - Naming Interfaces based on MAC address for busybox.
  *
- * Writen 2000 by Andi Kleen.
+ * Written 2000 by Andi Kleen.
  * Busybox port 2002 by Nick Fedchik <nick@fedchik.org.ua>
  *			Glenn McGrath <bug1@optushome.com.au>
  *
@@ -47,7 +47,7 @@
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923	/* set interface name */
 
-/* Octets in one ethernet addr, from <linux/if_ether.h> */
+/* Octets in one Ethernet addr, from <linux/if_ether.h> */
 #define ETH_ALEN	6
 
 #ifndef ifr_newname

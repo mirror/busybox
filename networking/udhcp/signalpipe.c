@@ -1,8 +1,8 @@
 /* signalpipe.c
  *
- * Signal pipe infastructure. A reliable way of delivering signals.
+ * Signal pipe infrastructure. A reliable way of delivering signals.
  *
- * Russ Dill <Russ.Dill@asu.edu> Decemeber 2003
+ * Russ Dill <Russ.Dill@asu.edu> December 2003
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

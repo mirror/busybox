@@ -89,7 +89,7 @@ static char *cur_file;          /* the current file we are reading */
 static void print_line(const char *line, int linenum, char decoration)
 {
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
-	/* possibly print the little '--' seperator */
+	/* possibly print the little '--' separator */
 	if ((lines_before || lines_after) && last_line_printed &&
 			last_line_printed < linenum - 1) {
 		puts("--");

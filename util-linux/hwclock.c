@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-/* Copied from linux/rtc.h to eliminate the kernel dependancy */
+/* Copied from linux/rtc.h to eliminate the kernel dependency */
 struct linux_rtc_time {
 	int tm_sec;
 	int tm_min;

@@ -25,7 +25,7 @@
 
 /*
  * Return TRUE if a fileName is a directory.
- * Nonexistant files return FALSE.
+ * Nonexistent files return FALSE.
  */
 int is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
 {

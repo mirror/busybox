@@ -892,7 +892,7 @@ static int inflate_get_next_window(void)
 	/* Doesnt get here */
 }
 
-/* Initialise bytebuffer, be carefull not to overfill the buffer */
+/* Initialise bytebuffer, be careful not to overfill the buffer */
 extern void inflate_init(unsigned int bufsize)
 {
 	/* Set the bytebuffer size, default is same as gunzip_wsize */

@@ -310,7 +310,7 @@ static int ChangeUser(const char *user)
 	const char *err_msg;
 
 	/*
-	 * Obtain password entry and change privilages
+	 * Obtain password entry and change privileges
 	 */
 	pas = getpwnam(user);
 	if (pas == 0) {
@@ -1020,7 +1020,7 @@ static void EndJob(const char *user, CronLine * line)
 	ForkJob(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
 }
 #else
-/* crond whithout sendmail */
+/* crond without sendmail */
 
 static void RunJob(const char *user, CronLine * line)
 {

@@ -132,7 +132,7 @@ static void fill_options(char *dest, uint8_t *option, struct dhcp_option *type_p
 }
 
 
-/* put all the paramaters into an environment */
+/* put all the parameters into an environment */
 static char **fill_envp(struct dhcpMessage *packet)
 {
 	int num_options = 0;

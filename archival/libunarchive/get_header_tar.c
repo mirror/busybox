@@ -14,7 +14,7 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  *  FIXME:
- *    In privelidged mode if uname and gname map to a uid amd gid then use the
+ *    In privileged mode if uname and gname map to a uid and gid then use the
  *    mapped value instead of the uid/gid values in tar header
  *
  *  References:

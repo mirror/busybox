@@ -37,7 +37,7 @@
  *     <misiek@misiek.eu.org>)
  * Ported to Busybox - Alfred M. Szmidt <ams@trillian.itslinux.org>
  *  Removed --version/-V and --help/-h in
- *  Removed prase_error(), using bb_error_msg() from Busybox instead
+ *  Removed parse_error(), using bb_error_msg() from Busybox instead
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
  *
  */
@@ -99,7 +99,7 @@ const char *normalize(const char *arg)
                 return BUFFER;
         }
 
-        /* Each character in arg may take upto four characters in the result:
+        /* Each character in arg may take up to four characters in the result:
            For a quote we need a closing quote, a backslash, a quote and an
            opening quote! We need also the global opening and closing quote,
            and one extra character for '\0'. */
@@ -278,7 +278,7 @@ void set_shell(const char *new_shell)
 
 
 /* Exit codes:
- *   0) No errors, succesful operation.
+ *   0) No errors, successful operation.
  *   1) getopt(3) returned an error.
  *   2) A problem with parameter parsing for getopt(1).
  *   3) Internal error, out of memory

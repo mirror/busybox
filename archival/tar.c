@@ -2,11 +2,11 @@
 /*
  * Mini tar implementation for busybox
  *
- * Modifed to use common extraction code used by ar, cpio, dpkg-deb, dpkg
+ * Modified to use common extraction code used by ar, cpio, dpkg-deb, dpkg
  *  Glenn McGrath <bug1@optushome.com.au>
  *
  * Note, that as of BusyBox-0.43, tar has been completely rewritten from the
- * ground up.  It still has remnents of the old code lying about, but it is
+ * ground up.  It still has remnants of the old code lying about, but it is
  * very different now (i.e., cleaner, less global variables, etc.)
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
@@ -796,7 +796,7 @@ int tar_main(int argc, char **argv)
 	}
 
 	/* Setup an array of filenames to work with */
-	/* TODO: This is the same as in ar, seperate function ? */
+	/* TODO: This is the same as in ar, separate function ? */
 	while (optind < argc) {
 		char *filename_ptr = last_char_is(argv[optind], '/');
 		if (filename_ptr) {

@@ -339,7 +339,7 @@ ChangeUser(const char *user, short dochdir)
     struct passwd *pas;
 
     /*
-     * Obtain password entry and change privilages
+     * Obtain password entry and change privileges
      */
 
     if ((pas = getpwnam(user)) == 0) {

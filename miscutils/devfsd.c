@@ -1563,7 +1563,7 @@ static int expand_expression(char *output, unsigned int outsize,
                               void *info,
                               const char *devname,
                               const regmatch_t *ex, unsigned int numexp)
-/*  [SUMMARY] Expand enviroment variables and regular subexpressions in string.
+/*  [SUMMARY] Expand environment variables and regular subexpressions in string.
     <output> The output expanded expression is written here.
     <length> The size of the output buffer.
     <input> The input expression. This may equal <<output>>.

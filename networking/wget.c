@@ -816,7 +816,7 @@ progressmeter(int flag)
 #endif
 
 /* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
- * much of which was blatently stolen from openssh.  */
+ * much of which was blatantly stolen from openssh.  */
 
 /*-
  * Copyright (c) 1992, 1993
@@ -850,7 +850,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.73 2004/04/08 10:27:11 bug1 Exp $
+ *	$Id: wget.c,v 1.74 2004/04/14 17:51:24 andersen Exp $
  */
 
 

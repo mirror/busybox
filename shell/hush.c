@@ -2646,7 +2646,7 @@ void update_ifs_map(void)
 	mapset(ifs, 2);            /* also flow through if quoted */
 }
 
-/* most recursion does not come through here, the exeception is
+/* most recursion does not come through here, the exception is
  * from builtin_source() */
 int parse_stream_outer(struct in_str *inp, int flag)
 {

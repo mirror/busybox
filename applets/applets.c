@@ -475,7 +475,7 @@ static void parse_config_file(void)
 
 		/* Encountering configuration lines prior to seeing a
 		 * section header is treated as an error.  This is how
-		 * the old code worked, but it may not be desireable.
+		 * the old code worked, but it may not be desirable.
 		 * We may want to simply ignore such lines in case they
 		 * are used in some future version of busybox. */
 		if (!section) {

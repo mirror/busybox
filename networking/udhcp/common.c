@@ -4,7 +4,7 @@
  * simple helper functions.
  *
  * Russ Dill <Russ.Dill@asu.edu> 2001-2003
- * Rewrited by Vladimir Oleynik <dzo@simtreas.ru> (C) 2003
+ * Rewritten by Vladimir Oleynik <dzo@simtreas.ru> (C) 2003
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -30,7 +30,7 @@
  * is _not_ the same.  Erik apparently made this change almost 3 years
  * ago to avoid failing when no utmp was available.  However, the
  * correct course of action wrt SUSv3 for a failing getlogin() is
- * a dianostic message and an error return.
+ * a diagnostic message and an error return.
  */
 
 #include <stdio.h>

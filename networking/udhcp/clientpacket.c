@@ -82,7 +82,7 @@ static void init_packet(struct dhcpMessage *packet, char type)
 }
 
 
-/* Add a paramater request list for stubborn DHCP servers. Pull the data
+/* Add a parameter request list for stubborn DHCP servers. Pull the data
  * from the struct in options.c. Don't do bounds checking here because it
  * goes towards the head of the packet. */
 static void add_requests(struct dhcpMessage *packet)

@@ -27,7 +27,7 @@
  *
  * Original version majorly reworked for SUSv3 compliance, bug fixes, and
  * size optimizations.  Changes include:
- * 1) Now correctly distingusishes between errors and actual file differences.
+ * 1) Now correctly distinguishes between errors and actual file differences.
  * 2) Proper handling of '-' args.
  * 3) Actual error checking of i/o.
  * 4) Accept SUSv3 -l option.  Note that we use the slightly nicer gnu format

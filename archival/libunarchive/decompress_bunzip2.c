@@ -13,7 +13,7 @@
 /*
 	Size and speed optimizations by Manuel Novoa III  (mjn3@codepoet.org).
 
-	More efficient reading of huffman codes, a streamlined read_bunzip()
+	More efficient reading of Huffman codes, a streamlined read_bunzip()
 	function, and various other tweaks.  In (limited) tests, approximately
 	20% faster than bzcat on x86 and about 10% faster on arm.
 
@@ -49,10 +49,10 @@
 
 #include "libbb.h"
 
-/* Constants for huffman coding */
+/* Constants for Huffman coding */
 #define MAX_GROUPS			6
 #define GROUP_SIZE   		50		/* 64 would have been more efficient */
-#define MAX_HUFCODE_BITS 	20		/* Longest huffman code allowed */
+#define MAX_HUFCODE_BITS 	20		/* Longest Huffman code allowed */
 #define MAX_SYMBOLS 		258		/* 256 literals + RUNA + RUNB */
 #define SYMBOL_RUNA			0
 #define SYMBOL_RUNB			1
@@ -70,7 +70,7 @@
 /* Other housekeeping constants */
 #define IOBUF_SIZE			4096
 
-/* This is what we know about each huffman coding group */
+/* This is what we know about each Huffman coding group */
 struct group_data {
 	/* We have an extra slot at the end of limit[] for a sentinal value. */
 	int limit[MAX_HUFCODE_BITS+1],base[MAX_HUFCODE_BITS],permute[MAX_SYMBOLS];
@@ -92,7 +92,7 @@ typedef struct {
 	unsigned int *dbuf, dbufSize;
 	/* These things are a bit too big to go on the stack */
 	unsigned char selectors[32768];			/* nSelectors=15 bits */
-	struct group_data groups[MAX_GROUPS];	/* huffman coding tables */
+	struct group_data groups[MAX_GROUPS];	/* Huffman coding tables */
 	/* For I/O error handling */
 	jmp_buf jmpbuf;
 } bunzip_data;
@@ -172,10 +172,10 @@ static int get_next_block(bunzip_data *bd)
 				if(k&(1<<(15-j))) symToByte[symTotal++]=(16*i)+j;
 		}
 	}
-	/* How many different huffman coding groups does this block use? */
+	/* How many different Huffman coding groups does this block use? */
 	groupCount=get_bits(bd,3);
 	if (groupCount<2 || groupCount>MAX_GROUPS) return RETVAL_DATA_ERROR;
-	/* nSelectors: Every GROUP_SIZE many symbols we select a new huffman coding
+	/* nSelectors: Every GROUP_SIZE many symbols we select a new Huffman coding
 	   group.  Read in the group selector list, which is stored as MTF encoded
 	   bit runs.  (MTF=Move To Front, as each value is used it's moved to the
 	   start of the list.) */
@@ -189,13 +189,13 @@ static int get_next_block(bunzip_data *bd)
 		for(;j;j--) mtfSymbol[j] = mtfSymbol[j-1];
 		mtfSymbol[0]=selectors[i]=uc;
 	}
-	/* Read the huffman coding tables for each group, which code for symTotal
+	/* Read the Huffman coding tables for each group, which code for symTotal
 	   literal symbols, plus two run symbols (RUNA, RUNB) */
 	symCount=symTotal+2;
 	for (j=0; j<groupCount; j++) {
 		unsigned char length[MAX_SYMBOLS],temp[MAX_HUFCODE_BITS+1];
 		int	minLen,	maxLen, pp;
-		/* Read huffman code lengths for each symbol.  They're stored in
+		/* Read Huffman code lengths for each symbol.  They're stored in
 		   a way similar to mtf; record a starting value for the first symbol,
 		   and an offset from the previous value for everys symbol after that.
 		   (Subtracting 1 before the loop and then adding it back at the end is
@@ -228,12 +228,12 @@ static int get_next_block(bunzip_data *bd)
 		}
 		/* Calculate permute[], base[], and limit[] tables from length[].
 		 *
-		 * permute[] is the lookup table for converting huffman coded symbols
+		 * permute[] is the lookup table for converting Huffman coded symbols
 		 * into decoded symbols.  base[] is the amount to subtract from the
-		 * value of a huffman symbol of a given length when using permute[].
+		 * value of a Huffman symbol of a given length when using permute[].
 		 *
 		 * limit[] indicates the largest numerical value a symbol with a given
-		 * number of bits can have.  This is how the huffman codes can vary in
+		 * number of bits can have.  This is how the Huffman codes can vary in
 		 * length: each code with a value>limit[length] needs another bit.
 		 */
 		hufGroup=bd->groups+j;
@@ -275,7 +275,7 @@ static int get_next_block(bunzip_data *bd)
 		base[minLen]=0;
 	}
 	/* We've finished reading and digesting the block header.  Now read this
-	   block's huffman coded symbols from the file and undo the huffman coding
+	   block's Huffman coded symbols from the file and undo the Huffman coding
 	   and run length encoding, saving the result into dbuf[dbufCount++]=uc */
 
 	/* Initialize symbol occurrence counters and symbol Move To Front table */
@@ -286,7 +286,7 @@ static int get_next_block(bunzip_data *bd)
 	/* Loop through compressed symbols. */
 	runPos=dbufCount=symCount=selector=0;
 	for(;;) {
-		/* Determine which huffman coding group to use. */
+		/* Determine which Huffman coding group to use. */
 		if(!(symCount--)) {
 			symCount=GROUP_SIZE-1;
 			if(selector>=nSelectors) return RETVAL_DATA_ERROR;
@@ -294,7 +294,7 @@ static int get_next_block(bunzip_data *bd)
 			base=hufGroup->base-1;
 			limit=hufGroup->limit-1;
 		}
-		/* Read next huffman-coded symbol. */
+		/* Read next Huffman-coded symbol. */
 		/* Note: It is far cheaper to read maxLen bits and back up than it is
 		   to read minLen bits and then an additional bit at a time, testing
 		   as we go.  Because there is a trailing last block (with file CRC),
@@ -383,7 +383,7 @@ got_huff_bits:
 		byteCount[uc]++;
 		dbuf[dbufCount++] = (unsigned int)uc;
 	}
-	/* At this point, we've read all the huffman-coded symbols (and repeated
+	/* At this point, we've read all the Huffman-coded symbols (and repeated
        runs) for this block from the input stream, and decoded them into the
 	   intermediate buffer.  There are dbufCount many decoded bytes in dbuf[].
 	   Now undo the Burrows-Wheeler transform on dbuf.
@@ -439,7 +439,7 @@ static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 
 	/* We will always have pending decoded data to write into the output
 	   buffer unless this is the very first call (in which case we haven't
-	   huffman-decoded a block into the intermediate buffer yet). */
+	   Huffman-decoded a block into the intermediate buffer yet). */
 
 	if (bd->writeCopies) {
 		/* Inside the loop, writeCopies means extra copies (beyond 1) */
@@ -495,7 +495,7 @@ decode_next_byte:
 		}
 	}
 
-	/* Refill the intermediate buffer by huffman-decoding next block of input */
+	/* Refill the intermediate buffer by Huffman-decoding next block of input */
 	/* (previous is just a convenient unused temp variable here) */
 	previous=get_next_block(bd);
 	if(previous) {

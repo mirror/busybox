@@ -56,7 +56,7 @@
  *      server program                  full path name
  *      server program arguments        maximum of MAXARGS (20)
  *
- * RPC services unsuported
+ * RPC services unsupported
  *
  * Comment lines are indicated by a `#' in column 1.
  */
@@ -345,7 +345,7 @@ more:
 		sep->se_family = AF_UNIX;
 	} else {
 		if (strncmp(cp_ptr, "rpc/", 4) == 0) {
-			syslog(LOG_ERR, "%s: rpc services not suported",
+			syslog(LOG_ERR, "%s: rpc services not supported",
 			    sep->se_service);
 			goto more;
 		}

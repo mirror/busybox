@@ -113,7 +113,7 @@ uint16_t checksum(void *addr, int count)
 }
 
 
-/* Constuct a ip/udp header for a packet, and specify the source and dest hardware address */
+/* Construct a ip/udp header for a packet, and specify the source and dest hardware address */
 int raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
 		   uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
 {

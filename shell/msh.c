@@ -70,7 +70,7 @@
 #define	WAITCORE(s) (((s)&0200)!=0)
 
 /*
- * library and system defintions
+ * library and system definitions
  */
 typedef void xint;	/* base type of jmp_buf, for not broken compilers */
 

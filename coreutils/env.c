@@ -35,7 +35,7 @@
 
 /*
  * Modified by Vladimir Oleynik <andersen@codepoet.org> (C) 2003
- * - corretion "-" option usage
+ * - correct "-" option usage
  * - multiple "-u unsetenv" support
  * - GNU long option support
  * - save errno after exec failed before bb_perror_msg()

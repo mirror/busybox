@@ -784,7 +784,7 @@ static int istrue(var *v) {
 		return (v->string && *(v->string)) ? 1 : 0;
 }
 
-/* temporary varables allocator. Last allocated should be first freed */
+/* temporary variables allocator. Last allocated should be first freed */
 static var *nvalloc(int n) {
 
 	nvblock *pb = NULL;
@@ -1386,7 +1386,7 @@ static node *mk_splitter(char *s, tsplitter *spl) {
 }
 
 /* use node as a regular expression. Supplied with node ptr and regex_t
- * storage space. Return ptr to regex (if result points to preg, it shuold
+ * storage space. Return ptr to regex (if result points to preg, it should
  * be later regfree'd manually
  */
 static regex_t *as_regex(node *op, regex_t *preg) {

@@ -5,8 +5,8 @@
  * By Jordan Crouse <jordan@cosmicpenguin.net>
  *    Stephan Linz  <linz@li-pro.net>
  *
- * This is a complete reimplentation of the ipcalc program
- * from Redhat.  I didn't look at their source code, but there
+ * This is a complete reimplementation of the ipcalc program
+ * from Red Hat.  I didn't look at their source code, but there
  * is no denying that this is a loving reimplementation
  */
 

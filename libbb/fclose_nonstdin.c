@@ -20,7 +20,7 @@
  *
  */
 
-/* A number of standard utilites can accept multiple command line args
+/* A number of standard utilities can accept multiple command line args
  * of '-' for stdin, according to SUSv3.  So we encapsulate the check
  * here to save a little space.
  */

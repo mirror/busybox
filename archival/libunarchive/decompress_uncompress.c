@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-/* Defailt input buffer size */
+/* Default input buffer size */
 #define	IBUFSIZ	2048
 
 /* Default output buffer size */
