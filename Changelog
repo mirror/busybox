@@ -1,7 +1,81 @@
+0.31
+	* I added a changelog for version 0.30. 
+	* adjusted find internals to make it smaller, and removed 
+	    some redundancy.
+	* Fixed a segfault in ps when /etc/passwd or /etc/group 
+	    are absent.  Now will warn you and carry on.
+	* Added in optional _real_ regular expression support (to be
+	    the basis for a future sed utility).  When compiled in, 
+	    adds 3.9k.
+
+
 0.30
 	Major changes -- lots of stuff rewritten. Many thanks to Lineo for
 	paying me to make these updates. If you have any problems with busybox, 
-	or notice any bugs -- please let me know so I can fix it. 
+	or notice any bugs -- please let me know so I can fix it.  These 
+	changes include:
+
+	Core Changes:
+	    * busybox can now invoke apps in two ways: via symlinks to the
+		busybox binary, and as 'busybox [function] [arguments]...'
+	    * When invoked as busybox, the list of currently compiled in 
+		functions is printed out (no this is not bloat -- the list
+		has to be there anyway to map invocation name to function).
+	    * busybox no longer parses command lines for apps or displays their
+		usage info.  Each app gets to handle (or not handle) this for
+		itself.
+	    * Eliminated monadic, dyadic, descend, block_device, and 
+		postprocess.  It was cumbersome to have so many programs
+		cobbled together in this way.  Without them, the app is much
+		more granular.
+	    * All shared code now lives in utility.c, and is properly
+		ifdef'ed to be only included for those apps requiring it.
+	    * Eliminated struct FileInfo (the basis of monadic, dyadic, etc)
+		so now each app has the function prototype of (da-dum):
+		    extern int foo_main(int argc, char** argv);
+		which speeds integration of new apps.
+	    * Adjusted the Makefile to make it easier to 
+		{en|dis}able debugging.
+	    * Changed default compiler optimization to -Os 
+		(optimize for smaller binaries).
+
+	App Changes:
+	    * To cope with the new app function prototype and the removal of
+		monadic, dyadic, etc, the following apps were re-written:
+		    * cat - Works same as always.
+		    * chgrp, chmod, chown - rewrite.  Combined into a single 
+			source file.  Absorbed patches from Enrique Zanardi <ezanard@debian.org>
+			that removes the dependency on libc6 libnss* libraries.
+		    * cp - Can now do 'cp -a' can can copy devices,
+			pipes, symlinks, as well as recursive or non-recursive dir copies.
+		    * fdflush - adjusted to remove dependancy on struct FileInfo.
+		    * find - Now includes some basic regexp matching 
+			which will be the basic of a future mini-sed.
+		    * ln - Same functionality.
+		    * mkdir - Added -p flag to feature set.
+		    * mv - rewrite.
+		    * rm - Added -f flag to feature set.
+		    * rmdir - Same functionality.
+		    * swapon, swapoff - Combined into a single binary. No longer
+			uses /etc/swaps.  swap{on|off} -a uses /etc/fstab instead.
+		    * touch - Same functionality.
+	    * date - adjusted with a patch from Matthew Grant <grantma@anathoth.gen.nz>
+		to accomodate glibc timezone support.  I then ripped out GNU getopt.
+	    * mkswap -- new version merged from util-linux.  Can now make >128Meg swaps.
+	    * Replaced the old and star, unstar, and tarcat with the tar 
+		implementation from sash.   Now tar behaves as god intended
+		it to (i.e. tar -xvf <file> and tar -cf <file> <dir> work).
+	    * dd -- rewritten.  Can with with files, stdin, stdout.
+	    * Added the following new apps:
+		    * loadfont -- added from debian boot floppies 
+		    * chroot -- added based on a patch from Paolo Molaro <lupus@lettere.unipd.it> 
+		    * grep -- I just wrote it.  Only matches simple strings
+		    * ps -- I just wrote it.  Has _no_ options at all, but works.
+		    * fsck_minix, mkfs_minix -- added from util-linux, but I ripped out
+			internationalization and such to make them smaller.
+		    * sfdisk -- Added from util-linux (minus internationalization and such).
+	    * Probably some other changes that I forgot to document...
+
 	 -Erik Andersen
 	
 0.28	

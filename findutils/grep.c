@@ -22,6 +22,7 @@
  */
 
 #include "internal.h"
+#include "regexp.h"
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
@@ -30,44 +31,17 @@
 #include <time.h>
 #include <ctype.h>
 
-
 static const char grep_usage[] =
 "grep [-ihn]... PATTERN [FILE]...\n"
 "Search for PATTERN in each FILE or standard input.\n\n"
 "\t-h\tsuppress the prefixing filename on output\n"
 "\t-i\tignore case distinctions\n"
 "\t-n\tprint line number with output lines\n\n"
+#if defined BB_REGEXP
+"This version of grep matches full regexps.\n";
+#else
 "This version of grep matches strings (not full regexps).\n";
-
-
-/*
- * See if the specified needle is found in the specified haystack.
- */
-static int search (const char *haystack, const char *needle, int ignoreCase)
-{
-
-    if (ignoreCase == FALSE) {
-	haystack = strstr (haystack, needle);
-	if (haystack == NULL)
-	    return FALSE;
-	return TRUE;
-    } else {
-	int i;
-	char needle1[BUF_SIZE];
-	char haystack1[BUF_SIZE];
-
-	strncpy( haystack1, haystack, sizeof(haystack1));
-	strncpy( needle1, needle, sizeof(needle1));
-	for( i=0; i<sizeof(haystack1) && haystack1[i]; i++)
-	    haystack1[i]=tolower( haystack1[i]);
-	for( i=0; i<sizeof(needle1) && needle1[i]; i++)
-	    needle1[i]=tolower( needle1[i]);
-	haystack = strstr (haystack1, needle1);
-	if (haystack == NULL)
-	    return FALSE;
-	return TRUE;
-    }
-}
+#endif
 
 
 extern int grep_main (int argc, char **argv)
@@ -80,7 +54,7 @@ extern int grep_main (int argc, char **argv)
     int ignoreCase=FALSE;
     int tellLine=FALSE;
     long line;
-    char buf[BUF_SIZE];
+    char haystack[BUF_SIZE];
 
     ignoreCase = FALSE;
     tellLine = FALSE;
@@ -128,21 +102,21 @@ extern int grep_main (int argc, char **argv)
 
 	line = 0;
 
-	while (fgets (buf, sizeof (buf), fp)) {
+	while (fgets (haystack, sizeof (haystack), fp)) {
 	    line++;
-	    cp = &buf[strlen (buf) - 1];
+	    cp = &haystack[strlen (haystack) - 1];
 
 	    if (*cp != '\n')
 		fprintf (stderr, "%s: Line too long\n", name);
 
-	    if (search (buf, needle, ignoreCase)==TRUE) {
+	    if (find_match(haystack, needle, ignoreCase) == TRUE) {
 		if (tellName==TRUE)
 		    printf ("%s: ", name);
 
 		if (tellLine==TRUE)
 		    printf ("%ld: ", line);
 
-		fputs (buf, stdout);
+		fputs (haystack, stdout);
 	    }
 	}
 

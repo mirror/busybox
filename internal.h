@@ -130,7 +130,6 @@ int fullRead(int fd, char *buf, int len);
 int recursiveAction(const char *fileName, int recurse, int followLinks, int delayDirAction,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf),
 	  int (*dirAction) (const char *fileName, struct stat* statbuf));
-int match(const char* text, const char * pattern);
 const char* timeString(time_t timeVal);
 
 extern void createPath (const char *name, int mode);
@@ -166,8 +165,9 @@ static inline int clrbit(char * addr,unsigned int nr)
   return __res != 0;
 }
 
-#endif
+#endif /* inline bitops junk */
 
 
-#endif
+
+#endif /* _INTERNAL_H_ */
 

@@ -21,14 +21,15 @@
  *
  */
 
+#include "internal.h"
+#include "regexp.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
-#include "internal.h"
 
 
 static char* pattern=NULL;
-static char* directory=NULL;
+static char* directory=".";
 static int dereferenceFlag=FALSE;
 
 static const char find_usage[] = "find [path...] [expression]\n"
@@ -41,7 +42,7 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 {
     if (pattern==NULL)
 	fprintf(stdout, "%s\n", fileName);
-    else if (match(fileName, pattern) == TRUE)
+    else if (find_match(fileName, pattern, TRUE) == TRUE)
 	fprintf(stdout, "%s\n", fileName);
     return( TRUE);
 }
@@ -53,7 +54,7 @@ static int dirAction(const char *fileName, struct stat* statbuf)
     
     if (pattern==NULL)
 	fprintf(stdout, "%s\n", fileName);
-    else if (match(fileName, pattern) == TRUE)
+    else if (find_match(fileName, pattern, TRUE) == TRUE)
 	fprintf(stdout, "%s\n", fileName);
 
     dir = opendir( fileName);
@@ -71,22 +72,18 @@ static int dirAction(const char *fileName, struct stat* statbuf)
 
 int find_main(int argc, char **argv)
 {
-    if (argc <= 1) {
-	dirAction( ".", NULL); 
-    }
-
     /* peel off the "find" */
     argc--;
     argv++;
 
-    if (**argv != '-') {
+    if ( argc > 0 && **argv != '-') {
 	directory=*argv;
 	argc--;
 	argv++;
     }
 
     /* Parse any options */
-    while (**argv == '-') {
+    while (argc > 0 && **argv == '-') {
 	int stopit=FALSE;
 	while (*++(*argv) && stopit==FALSE) switch (**argv) {
 	    case 'f':
@@ -120,6 +117,10 @@ int find_main(int argc, char **argv)
 	    break;
     }
 
-    dirAction( directory, NULL); 
+    if (recursiveAction(directory, TRUE, FALSE, FALSE,
+			   fileAction, fileAction) == FALSE) {
+	exit( FALSE);
+    }
+
     exit(TRUE);
 }

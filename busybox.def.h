@@ -40,6 +40,7 @@
 //#define BB_PRINTF
 #define BB_PS
 #define BB_PWD
+#define BB_REGEXP
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
@@ -52,6 +53,8 @@
 //#define BB_TRUE_FALSE  // Supplied by ash
 #define BB_UMOUNT
 #define BB_UPDATE
-#define BB_UTILITY
 #define BB_ZCAT
 //#define BB_GZIP
+// Don't turn BB_UTILITY off.  It contains support code 
+// that compiles to 0 if everything else if turned off.
+#define BB_UTILITY
