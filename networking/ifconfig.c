@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.29 2004/03/15 08:28:48 andersen Exp $
+ * $Id: ifconfig.c,v 1.30 2004/03/31 11:30:08 andersen Exp $
  *
  */
 
@@ -37,6 +37,7 @@
 #include <string.h>		/* strcmp and friends */
 #include <ctype.h>		/* isdigit and friends */
 #include <stddef.h>		/* offsetof */
+#include <netdb.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -443,8 +444,13 @@ int ifconfig_main(int argc, char **argv)
 #endif
 						} else if (inet_aton(host, &sai.sin_addr) == 0) {
 							/* It's not a dotted quad. */
-							++goterr;
-							continue;
+							struct hostent *hp;
+							if ((hp = gethostbyname(host)) == (struct hostent *)NULL) {
+								++goterr;
+								continue;
+							}
+							memcpy((char *) &sai.sin_addr, (char *) hp->h_addr_list[0],
+							sizeof(struct in_addr));
 						}
 #ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 						if (mask & A_HOSTNAME) {
