@@ -62,11 +62,11 @@
  * The Deny/Allow IP logic:
  *
  *  - Default is to allow all.  No addresses are denied unless
- * 	   denied with a D: rule.
+ *         denied with a D: rule.
  *  - Order of Deny/Allow rules is significant
  *  - Deny rules take precedence over allow rules.
  *  - If a deny all rule (D:*) is used it acts as a catch-all for unmatched
- * 	 addresses.
+ *       addresses.
  *  - Specification of Allow all (A:*) is a no-op
  *
  * Example:
@@ -1244,19 +1244,29 @@ static int sendCgi(const char *url,
 		}
       } else if(bodyLen > 0 && post_readed_size == 0 && FD_ISSET(a_c_r, &readSet)) {
 		count = bodyLen > sizeof(wbuf) ? sizeof(wbuf) : bodyLen;
-		count = bb_full_read(a_c_r, wbuf, count);
+		count = safe_read(a_c_r, wbuf, count);
 		if(count > 0) {
 			post_readed_size += count;
 			bodyLen -= count;
       } else {
 			bodyLen = 0;    /* closed */
 		}
-      } else if(FD_ISSET(inFd, &readSet)) {
+      }
+      if(FD_ISSET(inFd, &readSet)) {
 	int s = a_c_w;
 	char *rbuf = config->buf;
 
+#ifndef PIPE_BUF
+# define PIPESIZE 4096          /* amount of buffering in a pipe */
+#else
+# define PIPESIZE PIPE_BUF
+#endif
+#if PIPESIZE >= MAX_MEMORY_BUFF
+# error "PIPESIZE >= MAX_MEMORY_BUFF"
+#endif
+
 	// There is something to read
-	count = bb_full_read(inFd, rbuf, MAX_MEMORY_BUFF-1);
+	count = safe_read(inFd, rbuf, PIPESIZE);
 	if (count == 0)
 		break;  /* closed */
 	if (count > 0) {
