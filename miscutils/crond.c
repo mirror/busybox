@@ -277,7 +277,7 @@ crond_main(int ac, char **av)
     }
     /* not reached */
 }
-
+}
 
 #if defined(FEATURE_DEBUG_OPT) || defined(CONFIG_FEATURE_CROND_CALL_SENDMAIL)
 /*
