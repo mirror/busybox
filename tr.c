@@ -98,21 +98,23 @@ static void convert()
 	/* NOTREACHED */
 }
 
-static void map(register unsigned char *string1, register unsigned char *string2)
+static void map(register unsigned char *string1, unsigned int string1_len,
+		register unsigned char *string2, unsigned int string2_len)
 {
 	unsigned char last = '0';
+	unsigned int i, j;
 
-	while (*string1) {
-		if (*string2 == '\0')
-			vector[*string1] = last;
+	for (j = 0, i = 0; i < string1_len; i++) {
+		if (string2_len <= j)
+			vector[string1[i]] = last;
 		else
-			vector[*string1] = last = *string2++;
-		string1++;
+			vector[string1[i]] = last = string2[j++];
 	}
 }
 
-static void expand(char *arg, register unsigned char *buffer)
+static unsigned int expand(char *arg, register unsigned char *buffer)
 {
+	unsigned char *buffer_start = buffer;
 	int i, ac;
 
 	while (*arg) {
@@ -134,29 +136,31 @@ static void expand(char *arg, register unsigned char *buffer)
 		} else
 			*buffer++ = *arg++;
 	}
+
+	return (buffer - buffer_start);
 }
 
-static void complement(unsigned char *buffer)
+static int complement(unsigned char *buffer, unsigned int buffer_len)
 {
-	register unsigned char *ptr;
-	register short i, index;
+	register short i, j, index;
 	unsigned char conv[ASCII + 2];
 
 	index = 0;
-	for (i = 1; i <= ASCII; i++) {
-		for (ptr = buffer; *ptr; ptr++)
-			if (*ptr == i)
+	for (i = 0; i <= ASCII; i++) {
+		for (j = 0; j < buffer_len; j++)
+			if (buffer[j] == i)
 				break;
-		if (*ptr == '\0')
+		if (j == buffer_len)
 			conv[index++] = i & ASCII;
 	}
-	conv[index] = '\0';
-	strcpy((char *) buffer, (char *) conv);
+	memcpy(buffer, conv, index);
+	return index;
 }
 
 extern int tr_main(int argc, char **argv)
 {
 	register unsigned char *ptr;
+	unsigned int output_length, input_length;
 	int index = 1;
 	short i;
 
@@ -184,19 +188,19 @@ extern int tr_main(int argc, char **argv)
 	}
 
 	if (argv[index] != NULL) {
-		expand(argv[index++], input);
+		input_length = expand(argv[index++], input);
 		if (com_fl)
-			complement(input);
+			input_length = complement(input, input_length);
 		if (argv[index] != NULL) {
 			if (*argv[index] == '\0')
 				fatalError("STRING2 cannot be empty\n");
-			expand(argv[index], output);
-			map(input, output);
+			output_length = expand(argv[index], output);
+			map(input, input_length, output, output_length);
 		}
-		for (ptr = input; *ptr; ptr++)
-			invec[*ptr] = TRUE;
-		for (ptr = output; *ptr; ptr++)
-			outvec[*ptr] = TRUE;
+		for (i = 0; i < input_length; i++)
+			invec[input[i]] = TRUE;
+		for (i = 0; i < output_length; i++)
+			outvec[output[i]] = TRUE;
 	}
 	convert();
 	return (0);
