@@ -1611,17 +1611,19 @@
 #endif
 
 #define tftp_trivial_usage \
-	"command SOURCE DEST"
+	"[OPTION]... HOST [PORT]"
 #define tftp_full_usage \
 	"Transfers a file from/to a tftp server using \"octet\" mode.\n\n" \
-	"Commands:\n" \
+	"Options:\n" \
+	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
         USAGE_TFTP_GET(	\
-        "\tget\tGet file from server SOURCE and store to local DEST.\n" \
+        "\t-g\tGet file.\n" \
         ) \
+	"\t-l FILE\tTransfer local FILE.\n" \
         USAGE_TFTP_PUT(	\
-	"\tput\tPut local file SOURCE to server DEST.\n" \
+	"\t-p\tPut file.\n" \
 	) \
-	"\nWhen naming a server, use the syntax \"server:file\"."
+	"\t-r FILE\tTransfer remote FILE.\n"
 
 #define touch_trivial_usage \
 	"[-c] FILE [FILE ...]"
