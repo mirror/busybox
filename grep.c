@@ -232,6 +232,8 @@ extern int grep_main(int argc, char **argv)
 				before_buf = (char **)calloc(lines_before, sizeof(char *));
 				break;
 #endif /* BB_FEATURE_GREP_CONTEXT */
+			default:
+				show_usage();
 		}
 	}
 
