@@ -28,6 +28,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
 
 typedef struct proc_s {
     char

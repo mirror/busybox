@@ -8,7 +8,12 @@
 	    was causing some confusing and unexpected behavior.
 	* Added klogd to syslogd, so now the log will contain both system and
 	    kernel messages.
-	    
+	* syslogd now creates the /dev/log socket to make sure it is there, and
+	    is actually a socket with the right permissions.
+	* I've taken a first step to making busybox not need the /proc filesystem.
+	    Most apps don't need it.  Those that _require_ it, will complain
+	    if you enable them when you disable BB_FEATURE_USE_PROCFS.
+	   
 	-Erik Andrsen
 
 0.37

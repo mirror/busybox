@@ -74,6 +74,8 @@
 // pretty/useful).
 //
 //
+// enable features that use the /proc filesystem
+#define BB_FEATURE_USE_PROCFS
 //Enable init being called as /linuxrc
 #define BB_FEATURE_LINUXRC
 // Use termios to manipulate the screen ('more' is prettier with this on)

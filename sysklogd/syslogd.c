@@ -57,13 +57,13 @@ static char LocalHostName[32];
 
 static const char syslogd_usage[] =
     "syslogd [OPTION]...\n\n"
-    "Linux system logging utility.\n\n"
+    "Linux system and kernel (provides klogd) logging utility.\n"
+    "Note that this version of syslogd/klogd ignores /etc/syslog.conf.\n\n"
     "Options:\n"
     "\t-m\tChange the mark timestamp interval. default=20min. 0=off\n"
     "\t-n\tDo not fork into the background (for when run by init)\n"
     "\t-O\tSpecify an alternate log file.  default=/var/log/messages\n";
 
-static int kmsg;
 
 /* try to open up the specified device */
 static int device_open(char *device, int mode)
@@ -253,10 +253,9 @@ static void doSyslogd(void)
 
 static void klogd_signal(int sig)
 {
-    //ksyslog(7, NULL, 0);
-    //ksyslog(0, 0, 0);
+    ksyslog(7, NULL, 0);
+    ksyslog(0, 0, 0);
     logMessage(LOG_SYSLOG|LOG_INFO, "Kernel log daemon exiting.");
-    close( kmsg);
     exit( TRUE);
 }
 
@@ -264,7 +263,6 @@ static void klogd_signal(int sig)
 static void doKlogd(void)
 {
     int priority=LOG_INFO;
-    struct stat sb;
     char log_buffer[4096];
     char *logp;
 
@@ -277,26 +275,10 @@ static void doKlogd(void)
 	    "BusyBox v" BB_VER " (" BB_BT ")");
 
     ksyslog(1, NULL, 0);
-    if ( ((stat(_PATH_KLOG, &sb) < 0) && (errno == ENOENT)) ||
-	    ( (kmsg = open(_PATH_KLOG, O_RDONLY)) < 0 ) ) {
-	char message[80];
-	snprintf(message, 79, "klogd: Cannot open %s, " \
-		"%d - %s.\n", _PATH_KLOG, errno, strerror(errno));
-	logMessage(LOG_SYSLOG|LOG_ERR, message);
-	klogd_signal(0);
-    }
+
     while (1) {
+	/* Use kernel syscalls */
 	memset(log_buffer, '\0', sizeof(log_buffer));
-	if ( read(kmsg, log_buffer, sizeof(log_buffer)-1) < 0 ) {
-	    char message[80];
-	    if ( errno == EINTR )
-		continue;
-	    snprintf(message, 79, "klogd: Cannot read proc file system: %d - %s.\n", 
-		    errno, strerror(errno));
-	    logMessage(LOG_SYSLOG|LOG_ERR, message);
-	    klogd_signal(0);
-	}
-#if 0
 	if ( ksyslog(2, log_buffer, sizeof(log_buffer)) < 0 ) {
 	    char message[80];
 	    if ( errno == EINTR )
@@ -306,7 +288,6 @@ static void doKlogd(void)
 	    logMessage(LOG_SYSLOG|LOG_ERR, message);
 	    exit(1);
 	}
-#endif
 	logp=log_buffer;
         if ( *log_buffer == '<' )
         {

@@ -36,12 +36,16 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#ifdef BB_MTAB
-const char mtab_file[] = "/etc/mtab";
-#else
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
+#  if defined BB_FEATURE_USE_PROCFS
 const char mtab_file[] = "/proc/mounts";
-#endif
+#  else
+#    if defined BB_MTAB
+const char mtab_file[] = "/etc/mtab";
+#    else
+#      error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or BB_FEATURE_USE_PROCFS
+#    endif
+#  endif
 #endif
 
 
@@ -56,6 +60,9 @@ extern void usage(const char *usage)
 
 #if defined (BB_INIT) || defined (BB_PS)
 
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *	if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }

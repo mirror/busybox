@@ -163,6 +163,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
     char buf[255];
 
+#if defined BB_FEATURE_USE_PROCFS
     if (strcmp(filesystemType, "auto") == 0) {
 	FILE *f = fopen ("/proc/filesystems", "r");
 
@@ -189,7 +190,9 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	    }
 	}
 	fclose (f);
-    } else {
+    } else
+#endif
+    {
 	status = do_mount (blockDevice, directory, filesystemType,
 			flags | MS_MGC_VAL, string_flags, useMtab, 
 			fakeIt, mtab_opts);

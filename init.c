@@ -45,6 +45,11 @@
 #include <sys/syslog.h>
 #endif
 
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
+
+
 #define VT_PRIMARY      "/dev/tty1"	/* Primary virtual console */
 #define VT_SECONDARY    "/dev/tty2"	/* Virtual console */
 #define VT_LOG          "/dev/tty3"	/* Virtual console */
