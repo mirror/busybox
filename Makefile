@@ -181,4 +181,9 @@ dist release: distclean doc
 				 -print		\
 		| xargs rm -f;			\
 						\
+	find busybox-$(VERSION)/ -type f	\
+				 -name .\#*	\
+				 -print		\
+		| xargs rm -f;			\
+						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
