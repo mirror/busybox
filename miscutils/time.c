@@ -313,7 +313,7 @@ static void summarize (FILE *fp, const char *fmt, char **command, resource_t *re
 			    fprintf (fp, "%ldh %ldm %02lds",
 				    resp->ru.ru_stime.tv_sec / 3600,
 				    (resp->ru.ru_stime.tv_sec % 3600) / 60,
-				    resp->ru.ru_stime.tv_usec % 60);
+				    resp->ru.ru_stime.tv_sec % 60);
 			else
 			    fprintf (fp, "%ldm %ld.%02lds",	/* -> m:s.  */
 				    resp->ru.ru_stime.tv_sec / 60,
@@ -330,7 +330,7 @@ static void summarize (FILE *fp, const char *fmt, char **command, resource_t *re
 			    fprintf (fp, "%ldh %ldm %02lds",
 				    resp->ru.ru_utime.tv_sec / 3600,
 				    (resp->ru.ru_utime.tv_sec % 3600) / 60,
-				    resp->ru.ru_utime.tv_usec % 60);
+				    resp->ru.ru_utime.tv_sec % 60);
 			else
 			    fprintf (fp, "%ldm %ld.%02lds",	/* -> m:s.  */
 				    resp->ru.ru_utime.tv_sec / 60,
