@@ -936,10 +936,10 @@ const char sed_usage[] =
 	"sed [-Vhnef] pattern [files...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n"
-	"-n\tsuppress automatic printing of pattern space\n"
+	"-n\t\tsuppress automatic printing of pattern space\n"
 	"-e script\tadd the script to the commands to be executed\n"
 	"-f scriptfile\tadd the contents of script-file to the commands to be executed\n"
-	"-h\tdisplay this help message\n"
+	"-h\t\tdisplay this help message\n"
 	"\n"
 	"If no -e or -f is given, the first non-option argument is taken as the\n"
 	"sed script to interpret. All remaining arguments are names of input\n"
