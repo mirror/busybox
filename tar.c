@@ -490,7 +490,7 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 		static int alreadyWarned=FALSE;
 
 		while (*(header->name) == '/')
-			++*(header->name);
+			header->name++;
 
 		if (alreadyWarned == FALSE) {
 			error_msg("Removing leading '/' from member names");
