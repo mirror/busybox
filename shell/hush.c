@@ -2010,7 +2010,10 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 		} else {
 			if (m==2) {  /* unquoted IFS */
 				done_word(dest, ctx);
-				if (ch=='\n') done_pipe(ctx,PIPE_SEQ);
+				/* If we aren't performing a substitution, treat a newline as a
+				 * command separator.  */
+				if (end_trigger != '\0' && ch=='\n')
+					done_pipe(ctx,PIPE_SEQ);
 			}
 			if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
 				debug_printf("leaving parse_stream\n");
