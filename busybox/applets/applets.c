@@ -45,13 +45,6 @@ extern void show_usage(void)
 	const char *format_string;
 	const char *usage_string = usage_messages;
 	int i;
-	/* From busybox.c */
-	extern int been_there_done_that;
-
-	if (strcmp(applet_using->name, "busybox")==0) {
-		been_there_done_that=1;
-		busybox_main(0, NULL);
-	}
 
 	for (i = applet_using - applets; i > 0; ) {
 		if (!*usage_string++) {
@@ -85,13 +78,23 @@ struct BB_applet *find_applet_by_name(const char *name)
 void run_applet_by_name(const char *name, int argc, char **argv)
 {
 	static int recurse_level = 0;
+	extern int been_there_done_that; /* From busybox.c */
 
 	recurse_level++;
 	/* Do a binary search to find the applet entry given the name. */
 	if ((applet_using = find_applet_by_name(name)) != NULL) {
 		applet_name = applet_using->name;
 		if (argv[1] && strcmp(argv[1], "--help") == 0) {
-			show_usage();
+			if (strcmp(applet_using->name, "busybox")==0) {
+				if(argv[2])
+				  applet_using = find_applet_by_name(argv[2]);
+				 else
+				  applet_using = NULL;
+			}
+			if(applet_using)
+				show_usage();
+			been_there_done_that=1;
+			busybox_main(0, NULL);
 		}
 		exit((*(applet_using->main)) (argc, argv));
 	}
@@ -99,7 +102,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	if (recurse_level == 1) {
 		run_applet_by_name("busybox", argc, argv);
 	}
-	recurse_level = 0;
+	recurse_level--;
 }
 
 
