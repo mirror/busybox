@@ -56,8 +56,8 @@ extern int which_main(int argc, char **argv)
 	while (argc-- > 0) { 
 		char *buf;
 		char *path_n;
-		argv++;
 		char found = 0;
+		argv++;
 
 		/*
 		 * Check if we were given the full path, first.
