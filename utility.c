@@ -1731,14 +1731,16 @@ char *get_last_path_component(char *path)
 	char *s=path+strlen(path)-1;
 
 	/* strip trailing slashes */
-	while (s && *s == '/') {
+	while (s != path && *s == '/') {
 		*s-- = '\0';
 	}
 
 	/* find last component */
 	s = strrchr(path, '/');
-	if (s==NULL) return path;
-	else return s+1;
+	if (s == NULL || s[1] == '\0')
+		return path;
+	else
+		return s+1;
 }
 #endif
 
