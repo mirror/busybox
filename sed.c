@@ -24,8 +24,9 @@
 	Supported features and commands in this version of sed:
 
 	 - comments ('#')
-	 - Address matching: num|/matchstr/[,num|/matchstr/|$]command
-	 - Commands: p, d, s/match/replace/[g]
+	 - address matching: num|/matchstr/[,num|/matchstr/|$]command
+	 - commands: (p)rint, (d)elete, (s)ubstitue (with g & I flags)
+	 - edit commands: (a)ppend, (i)nsert, (c)hange
 	 
 	 (Note: Specifying an address (range) to match is *optional*; commands
 	 default to the whole pattern space if no specific address match was
@@ -73,6 +74,9 @@ struct sed_cmd {
 	regex_t *sub_match; /* sed -e 's/sub_match/replace/' */
 	char *replace; /* sed -e 's/sub_match/replace/' XXX: who will hold the \1 \2 \3s? */
 	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
+
+	/* edit command (a,i,c) speicific field */
+	char *editline;
 };
 
 /* globals */
@@ -274,6 +278,59 @@ static void parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	free(match);
 }
 
+static void parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
+{
+	int idx = 0;
+	char *ptr; /* shorthand */
+
+	/*
+	 * the string that gets passed to this function should look like this:
+	 *
+	 *    need one of these 
+	 *    |
+	 *    |    this backslash (immediately following the edit command) is mandatory
+	 *    |    |
+	 *    [aic]\
+	 *    TEXT1\
+	 *    TEXT2\
+	 *    TEXTN
+	 *
+	 * as soon as we hit a TEXT line that has no trailing '\', we're done.
+	 * this means a command like:
+	 *
+	 * i\
+	 * INSERTME
+	 *
+	 * is a-ok.
+	 *
+	 */
+
+	if (editstr[1] != '\\' && (editstr[2] != '\n' || editstr[2] != '\r'))
+		fatalError("bad format in edit expression\n");
+
+	/* store the edit line text */
+	sed_cmd->editline = strdup(&editstr[3]);
+	ptr = sed_cmd->editline;
+
+	/* now we need to go through * and: s/\\[\r\n]$/\n/g on the edit line */
+	while (ptr[idx]) {
+		while (ptr[idx] != '\\' && (ptr[idx+1] != '\n' || ptr[idx+1] != '\r')) {
+			idx++;
+			if (!ptr[idx]) {
+				ptr[idx] = '\n';
+				ptr[idx+1] = 0;
+				return;
+			}
+		}
+		/* move the newline over the '\' before it (effectively eats the '\') */
+		memmove(&ptr[idx], &ptr[idx+1], strlen(&ptr[idx+1]));
+		ptr[strlen(ptr)-1] = 0;
+		/* substitue \r for \n if needed */
+		if (ptr[idx] == '\r')
+			ptr[idx] = '\n';
+	}
+}
+
 static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 {
 	int idx = 0;
@@ -295,13 +352,17 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
 		fatalError("missing command\n");
-	if (!strchr("pds", cmdstr[idx])) /* <-- XXX add new commands here */
+	if (!strchr("pdsaic", cmdstr[idx])) /* <-- XXX add new commands here */
 		fatalError("invalid command\n");
 	sed_cmd->cmd = cmdstr[idx];
 
 	/* special-case handling for (s)ubstitution */
 	if (sed_cmd->cmd == 's')
 		parse_subst_cmd(sed_cmd, &cmdstr[idx]);
+	
+	/* special-case handling for (a)ppend, (i)nsert, and (c)hange */
+	if (strchr("aic", cmdstr[idx]))
+		parse_edit_cmd(sed_cmd, &cmdstr[idx]);
 }
 
 static void add_cmd_str(const char *cmdstr)
@@ -327,13 +388,19 @@ static void load_cmd_file(char *filename)
 {
 	FILE *cmdfile;
 	char *line;
+	char *nextline;
 
 	cmdfile = fopen(filename, "r");
 	if (cmdfile == NULL)
 		fatalError(strerror(errno));
 
 	while ((line = get_line_from_file(cmdfile)) != NULL) {
-		line[strlen(line)-1] = 0; /* eat newline */
+		/* if a line ends with '\' it needs the next line appended to it */
+		while (line[strlen(line)-2] == '\\' &&
+				(nextline = get_line_from_file(cmdfile)) != NULL) {
+			line = realloc(line, strlen(line) + strlen(nextline) + 1);
+			strcat(line, nextline);
+		}
 		add_cmd_str(line);
 		free(line);
 	}
@@ -359,8 +426,7 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 				fputs(sed_cmd->replace, stdout);
 				/* then advance past the match */
 				ptr += regmatch.rm_eo;
-				/* and let the calling function know that something
-				 * has been changed */
+				/* and flag that something has changed */
 				altered++;
 
 				/* if we're not doing this globally... */
@@ -397,6 +463,21 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 
 		case 's':
 			altered = do_subst_command(sed_cmd, line);
+			break;
+
+		case 'a':
+			fputs(line, stdout);
+			fputs(sed_cmd->editline, stdout);
+			altered++;
+			break;
+
+		case 'i':
+			fputs(sed_cmd->editline, stdout);
+			break;
+
+		case 'c':
+			fputs(sed_cmd->editline, stdout);
+			altered++;
 			break;
 	}
 
@@ -483,7 +564,7 @@ extern int sed_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {
 		switch (opt) {
 			case 'V':
-				printf("Print Busybox version here\n");
+				printf("BusyBox v%s (%s)\n", BB_VER, BB_BT);
 				exit(0);
 				break;
 			case 'h':
