@@ -8,7 +8,7 @@
 	* init will now try to run /sbin/getty if it is present (for easy
 	    integration with the about-to-be-released tinylogin.)
 	* kill now behaves itself properly, added 'kill -l' to list signals
-	* Began to add tail, butit doesn't work yet.
+	* Began to add tail, but it doesn't work yet.
 	* my_getid was leaking file descriptors, causing 'ls -l' on long
 	    directories to fail
 
