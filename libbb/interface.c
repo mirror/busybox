@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.24 2004/08/12 16:52:00 andersen Exp $
+ * Version:     $Id: interface.c,v 1.25 2004/08/26 21:45:21 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -1016,7 +1016,7 @@ char *get_name(char *name, char *p)
 		/* first ':' not found - return empty */
 		name[0]='\0';
 	}
-	return p;
+	return p + 1;
 }
 
 /* If scanf supports size qualifiers for %n conversions, then we can
