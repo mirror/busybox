@@ -1381,7 +1381,7 @@ int length;
 			   (char *) window + start, length) != EQUAL) {
 		fprintf(stderr,
 				" start %d, match %d, length %d\n", start, match, length);
-		errorMsg("invalid match");
+		errorMsg("invalid match\n");
 	}
 	if (verbose > 1) {
 		fprintf(stderr, "\\[%d,%d]", start - match, length);
@@ -2911,7 +2911,7 @@ int eof;						/* true if this is the last block for a file */
 #endif
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
-			errorMsg("block vanished");
+			errorMsg("block vanished\n");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		compressed_len = stored_len << 3;
@@ -3094,7 +3094,7 @@ local void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		errorMsg("-l used on binary file");
+		errorMsg("-l used on binary file\n");
 	}
 }
 
@@ -3256,7 +3256,7 @@ char *env;						/* name of environment variable */
 
 	/* Copy the program name first */
 	if (oargc-- < 0)
-		errorMsg("argc<=0");
+		errorMsg("argc<=0\n");
 	*(nargv++) = *(oargv++);
 
 	/* Then copy the environment args */

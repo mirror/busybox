@@ -1120,11 +1120,11 @@ int in, out;					/* input and output file descriptors */
 		if (res == 3) {
 			errorMsg(memory_exhausted);
 		} else if (res != 0) {
-			errorMsg("invalid compressed data--format violated");
+			errorMsg("invalid compressed data--format violated\n");
 		}
 
 	} else {
-		errorMsg("internal error, invalid method");
+		errorMsg("internal error, invalid method\n");
 	}
 
 	/* Get the crc and original length */
@@ -1153,10 +1153,10 @@ int in, out;					/* input and output file descriptors */
 
 	/* Validate decompression */
 	if (orig_crc != updcrc(outbuf, 0)) {
-		errorMsg("invalid compressed data--crc error");
+		errorMsg("invalid compressed data--crc error\n");
 	}
 	if (orig_len != (ulg) bytes_out) {
-		errorMsg("invalid compressed data--length error");
+		errorMsg("invalid compressed data--length error\n");
 	}
 
 	/* Check if there are more entries in a pkzip file */

@@ -810,7 +810,7 @@ static int md5_check(const char *checkfile_name)
     free(line);
 
   if (ferror(checkfile_stream)) {
-    errorMsg("%s: read error", checkfile_name); /* */
+    errorMsg("%s: read error\n", checkfile_name); /* */
     return FALSE;
   }
 
@@ -991,12 +991,12 @@ int md5sum_main(int argc,
   }
 
   if (fclose (stdout) == EOF) {
-    errorMsg("write error");
+    errorMsg("write error\n");
     exit FALSE;
   }
 
   if (have_read_stdin && fclose (stdin) == EOF) {
-    errorMsg("standard input");
+    errorMsg("standard input\n");
     exit FALSE;
   }
 
