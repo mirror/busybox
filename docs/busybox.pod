@@ -1,0 +1,36 @@
+=head1 NAME
+
+busybox - I am BusyBox of borg.  Unix will be assimilated.
+
+=head1 SYNOPSIS
+
+busybox <command> [options...]
+
+=head1 DESCRIPTION
+
+BusyBox is a multi-call binary that combines many common Unix utilities into
+a single executable.  This is a size optimization.
+
+=head1 SEE ALSO
+
+textutils(1), shellutils(1), etc...
+
+=head1 MAINTAINER
+
+Erik Andersen <erik@lineo.com>
+
+=head1 AUTHORS
+
+=over 4
+
+=item Bruce Perens <perens@technocrat.net>
+
+=item Erik Andersen <erik@lineo.com>
+
+=item Randolph Chung <rchung@debian.org>
+
+=item John Beppu <beppu@lineo.com>
+
+=back
+
+=cut
