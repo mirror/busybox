@@ -49,6 +49,7 @@
 #include <utime.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
+#include <getopt.h>
 
 /* Tar file constants  */
 #ifndef MAJOR
@@ -136,6 +137,13 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 		int verboseFlag, int argc, char **argv, char** excludeList);
 #endif
 
+static struct option longopts[] =
+{
+#ifdef BB_FEATURE_TAR_EXCLUDE
+        {"exclude",required_argument,NULL,'e'},
+#endif
+		{NULL,0,NULL,0}
+};
 
 extern int tar_main(int argc, char **argv)
 {
@@ -155,7 +163,7 @@ extern int tar_main(int argc, char **argv)
 		usage(tar_usage);
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "cxtvOf:-:")) > 0) {
+	while ((opt = getopt_long(argc, argv, "cxtvOf:", longopts, NULL)) != EOF) {
 		switch (opt) {
 				case 'c':
 					if (extractFlag == TRUE || listFlag == TRUE)
@@ -186,28 +194,19 @@ extern int tar_main(int argc, char **argv)
 					if (!strcmp(tarName, "-") && createFlag == TRUE)
 						tostdoutFlag = TRUE;
 					break;
-				case '-':
 #if defined BB_FEATURE_TAR_EXCLUDE
-					if (strcmp(optarg, "exclude")==0) {
-						if (argv[optind]==NULL)
-							fatalError( "option `--exclude' requires an argument\n");
-						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
-						excludeList[excludeListSize] = argv[optind];
-						/* Remove leading "/"s */
-						if (*excludeList[excludeListSize] =='/') {
-							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
-						}
-						/* Tack a NULL onto the end of the list */
-						excludeList[excludeListSize] = NULL;
-						optind++;
-						break;
-					}
+				case 'e':
+					excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
+					excludeList[excludeListSize] = optarg;
+					/* Remove leading "/"s */
+					if (*excludeList[excludeListSize] =='/')
+						excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+					/* Tack a NULL onto the end of the list */
+					excludeList[++excludeListSize] = NULL;
+					break;
 #endif
-					fatalError( "Unknown tar flag '%s'\n" 
-							"Try `tar --help' for more information\n", optarg);
 				default:
-					fatalError( "Unknown tar flag '%c'\n" 
-							"Try `tar --help' for more information\n", **argv);
+					usage(tar_usage);
 		}
 	}
 
@@ -485,9 +484,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	int errorFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
-#if defined BB_FEATURE_TAR_EXCLUDE
 	char** tmpList;
-#endif
 
 	/* Open the tar file for reading.  */
 	if (!strcmp(tarName, "-"))
