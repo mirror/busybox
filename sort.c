@@ -115,9 +115,9 @@ compare_ascii(const void *a, const void *b)
     Line *x, *y;
 
     doh = (Line **) a;
-    x = (Line *) *doh;
+    x   = *doh;
     doh = (Line **) b;
-    y = (Line *) *doh;
+    y   = *doh;
 
     // fprintf(stdout, "> %p: %s< %p: %s", x, x->data, y, y->data);
     return strcmp(x->data, y->data);
@@ -127,7 +127,19 @@ compare_ascii(const void *a, const void *b)
 static int
 compare_numeric(const void *a, const void *b)
 {
-    return 0;
+    Line    **doh;
+    Line    *x, *y;
+    int	    xint, yint;
+
+    doh  = (Line **) a;
+    x    = *doh;
+    doh  = (Line **) b;
+    y    = *doh;
+
+    xint = strtoul(x->data, NULL, 10);
+    yint = strtoul(y->data, NULL, 10);
+
+    return (xint - yint);
 }
 
 
@@ -232,14 +244,20 @@ sort_main(int argc, char **argv)
     char    opt;
     List    list;
     Line    *l;
+    Compare *compare;
 
-    /* default behaviour */
+    /* init */
+    compare = compare_ascii;
+    list_init(&list);
 
     /* parse argv[] */
     for (i = 1; i < argc; i++) {
 	if (argv[i][0] == '-') {
 	    opt = argv[i][1];
 	    switch (opt) {
+		case 'g':
+		    compare = compare_numeric;
+		    break;
 		case 'h':
 		    usage(sort_usage);
 		    break;
@@ -252,15 +270,12 @@ sort_main(int argc, char **argv)
 	}
     }
 
-    /* initialize list */
-    list_init(&list);
-
     /* go through remaining args (if any) */
     if (i >= argc) {
 	while ( (l = line_newFromFile(stdin))) {
 	    list_insert(&list, l);
 	}
-	list_sort(&list, compare_ascii);
+	list_sort(&list, compare);
 	list_writeToFile(&list, stdout);
 	list_release(&list);
     } else {
@@ -271,15 +286,21 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.6 1999/12/22 23:02:12 beppu Exp $ */
+/* $Id: sort.c,v 1.7 1999/12/23 00:02:49 beppu Exp $ */
 /* 
  * $Log: sort.c,v $
+ * Revision 1.7  1999/12/23 00:02:49  beppu
+ * 	implemented numeric sort (sort -g)
+ *
  * Revision 1.6  1999/12/22 23:02:12  beppu
  * 	oops..  qsort(2) misunderstanding on my part.
  * 	it's ok, now.
  *
  * Revision 1.5  1999/12/22 22:27:01  beppu
  * playing w/ $Log: sort.c,v $
+ * playing w/ Revision 1.7  1999/12/23 00:02:49  beppu
+ * playing w/ 	implemented numeric sort (sort -g)
+ * playing w/
  * playing w/ Revision 1.6  1999/12/22 23:02:12  beppu
  * playing w/ 	oops..  qsort(2) misunderstanding on my part.
  * playing w/ 	it's ok, now.
