@@ -84,10 +84,9 @@ do_static: half_clean build-static install-static
 
 # Now for the .udeb stuff
 PACKAGE=busybox-udeb
-VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2 | sed -e s/[0-9]://g)
 ARCH=$(shell dpkg --print-architecture)
 FILENAME=$(PACKAGE)_$(VERSION)_$(ARCH).udeb
-PRIORITY=$(shell grep ^Priority: debian/control | cut -d ' ' -f 2)
 
 build-udeb: debian/build-stamp-busybox-udeb
 debian/build-stamp-busybox-udeb:
@@ -186,7 +185,7 @@ busybox-udeb: do_udeb
 	# Don't write your stupid guesses to debian/files.
 	dh_gencontrol        -p$@ -- -fdebian/files~
 	# Register file manually.
-	dpkg-distaddfile $(FILENAME) debian-installer $(PRIORITY)
+	dpkg-distaddfile $(FILENAME) debian-installer standard
 	dh_md5sums           -p$@
 	dh_builddeb          -p$@ --filename=$(FILENAME)
 
