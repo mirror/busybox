@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.9 2002/08/22 19:35:36 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.10 2002/09/17 06:36:02 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -1739,7 +1739,7 @@ static void print_bytes_scaled(unsigned long long ull, const char *end)
 		}
 	}
 
-	printf("X bytes:%Lu (%Lu.%lu %sb)%s", ull, int_part, frac_part, ext, end);
+	printf("X bytes:%Lu (%Lu.%lu %siB)%s", ull, int_part, frac_part, ext, end);
 }
 
 static void ife_print(struct interface *ptr)
