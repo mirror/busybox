@@ -1,3 +1,10 @@
+0.41
+	* Fixed a bug in both cp and mv preventing 'cp foo/README bar'
+	    type commands (file in a directory to another directory) 
+	    from working.
+
+	-Erik Andersen, 
+
 0.40
 	* New Apps: sort, uniq. -beppu
 	* New Apps: lsmod, rmmod -erik

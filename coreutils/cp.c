@@ -48,6 +48,7 @@ static int srcDirFlag = FALSE;
 static int fileAction(const char *fileName, struct stat* statbuf)
 {
     char newdestName[NAME_MAX];
+    char* newsrcName = NULL;
 
     strcpy(newdestName, destName);
     if ( srcDirFlag == TRUE ) {
@@ -62,7 +63,11 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 	if (newdestName[strlen(newdestName)-1] != '/' ) {
 	    strcat(newdestName, "/");
 	}
-	strcat(newdestName, srcName);
+	newsrcName = strrchr(srcName, '/');
+	if (newsrcName && *newsrcName != '\0')
+	    strcat(newdestName, newsrcName);
+	else
+	    strcat(newdestName, srcName);
     }
     
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
