@@ -21,6 +21,7 @@ if [ "$CONFIG_IFUPDOWN" = "y" ]; then
     bool '  Enable support for IPv4'	CONFIG_FEATURE_IFUPDOWN_IPV4
     bool '  Enable support for IPv6 (requires ip command)' CONFIG_FEATURE_IFUPDOWN_IPV6
     bool '  Enable support for IPX (requires ipx_interface command)' CONFIG_FEATURE_IFUPDOWN_IPX
+    bool '  Mapping support'	CONFIG_FEATURE_IFUPDOWN_MAPPING
 fi
 bool 'ip'	    CONFIG_IP
 if [ "$CONFIG_IP" = "y" ]; then

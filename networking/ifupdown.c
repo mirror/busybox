@@ -57,6 +57,7 @@ typedef struct address_family {
 	method *method;
 } address_family;
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 typedef struct mapping_defn {
 	struct mapping_defn *next;
 
@@ -70,6 +71,7 @@ typedef struct mapping_defn {
 	int n_mappings;
 	char **mapping;
 } mapping_defn;
+#endif
 
 typedef struct variable {
 	char *name;
@@ -96,7 +98,9 @@ typedef struct interfaces_file {
 	char **autointerfaces;
 
 	interface_defn *ifaces;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	mapping_defn *mappings;
+#endif
 } interfaces_file;
 
 #define MAX_OPT_DEPTH 10
@@ -108,17 +112,6 @@ typedef struct interfaces_file {
 static int no_act = 0;
 static int verbose = 0;
 static char **environ = NULL;
-
-static int execable(char *program)
-{
-	struct stat buf;
-	if (0 == stat(program, &buf)) {
-		if (S_ISREG(buf.st_mode) && (S_IXUSR & buf.st_mode)) {
-			return(1);
-		}
-	}
-	return(0);
-}
 
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
 {
@@ -434,6 +427,17 @@ static int static_down(interface_defn *ifd, execfn *exec)
 	return(1);
 }
 
+static int execable(char *program)
+{
+	struct stat buf;
+	if (0 == stat(program, &buf)) {
+		if (S_ISREG(buf.st_mode) && (S_IXUSR & buf.st_mode)) {
+			return(1);
+		}
+	}
+	return(0);
+}
+
 static int dhcp_up(interface_defn *ifd, execfn *exec)
 {
 	if (execable("/sbin/dhclient")) {
@@ -679,7 +683,9 @@ static interfaces_file *read_interfaces(char *filename)
 {
 	interface_defn *currif = NULL;
 	interfaces_file *defn;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	mapping_defn *currmap = NULL;
+#endif
 	FILE *f;
 	char firstword[80];
 	char *buf = NULL;
@@ -692,7 +698,9 @@ static interfaces_file *read_interfaces(char *filename)
 	defn = xmalloc(sizeof(interfaces_file));
 	defn->max_autointerfaces = defn->n_autointerfaces = 0;
 	defn->autointerfaces = NULL;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	defn->mappings = NULL;
+#endif
 	defn->ifaces = NULL;
 	f = fopen(filename, "r");
 	if (f == NULL) {
@@ -707,7 +715,7 @@ static interfaces_file *read_interfaces(char *filename)
 		}
 
 		if (strcmp(firstword, "mapping") == 0) {
-
+#if 0
 			currmap = xmalloc(sizeof(mapping_defn));
 			currmap->max_matches = 0;
 			currmap->n_matches = 0;
@@ -734,6 +742,7 @@ static interfaces_file *read_interfaces(char *filename)
 				currmap->next = NULL;
 			}
 			currently_processing = MAPPING;
+#endif
 		} else if (strcmp(firstword, "iface") == 0) {
 			{
 				char iface_name[80];
@@ -871,6 +880,7 @@ static interfaces_file *read_interfaces(char *filename)
 				currif->n_options++;
 				break;
 			case MAPPING:
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 				if (strcmp(firstword, "script") == 0) {
 					if (currmap->script != NULL) {
 						error_msg("%s:%d: duplicate script in mapping", filename, line);
@@ -889,6 +899,7 @@ static interfaces_file *read_interfaces(char *filename)
 					error_msg("%s:%d: misplaced option", filename, line);
 					return NULL;
 				}
+#endif
 				break;
 			case NONE:
 			default:
@@ -1063,6 +1074,7 @@ static int iface_down(interface_defn *iface)
 	return (1);
 }
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 static int popen2(FILE **in, FILE **out, char *command, ...)
 {
 	va_list ap;
@@ -1144,6 +1156,8 @@ static int run_mapping(char *physical, char *logical, int len, mapping_defn * ma
 
 	return 1;
 }
+#endif /* CONFIG_FEATURE_IFUPDOWN_MAPPING */
+
 
 static int lookfor_iface(char **ifaces, int n_ifaces, char *iface)
 {
@@ -1173,16 +1187,6 @@ static void add_to_state(char ***ifaces, int *n_ifaces, int *max_ifaces, char *n
 extern int ifupdown_main(int argc, char **argv)
 {
 	int (*cmds) (interface_defn *) = NULL;
-	struct option long_opts[] = {
-		{"help", no_argument, NULL, 'h'},
-		{"verbose", no_argument, NULL, 'v'},
-		{"all", no_argument, NULL, 'a'},
-		{"interfaces", required_argument, NULL, 'i'},
-		{"no-act", no_argument, NULL, 'n'},
-		{"no-mappings", no_argument, NULL, 1},
-		{"force", no_argument, NULL, 2},
-		{0, 0, 0, 0}
-	};
 	interfaces_file *defn;
 	FILE *state_fp = NULL;
 	char **target_iface = NULL;
@@ -1191,7 +1195,9 @@ extern int ifupdown_main(int argc, char **argv)
 	char *statefile = "/etc/network/ifstate";
 
 	int do_all = 0;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	int run_mappings = 1;
+#endif
 	int force = 0;
 	int n_target_ifaces = 0;
 	int n_state = 0;
@@ -1206,24 +1212,26 @@ extern int ifupdown_main(int argc, char **argv)
 		cmds = iface_down;
 	}
 
-	while ((i = getopt_long(argc, argv, "i:hvna", long_opts, NULL)) != EOF) {
+	while ((i = getopt(argc, argv, "i:hvnamf")) != -1) {
 		switch (i) {
-		case 'i':
+		case 'i':	/* interfaces */
 			interfaces = xstrdup(optarg);
 			break;
-		case 'v':
+		case 'v':	/* verbose */
 			verbose = 1;
 			break;
-		case 'a':
+		case 'a':	/* all */
 			do_all = 1;
 			break;
-		case 'n':
+		case 'n':	/* no-act */
 			no_act = 1;
 			break;
-		case 1:
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
+		case 'm':	/* no-mappings */
 			run_mappings = 0;
 			break;
-		case 2:
+#endif
+		case 'f':	/* force */
 			force = 1;
 			break;
 		default:
@@ -1346,7 +1354,7 @@ extern int ifupdown_main(int argc, char **argv)
 				liface[79] = 0;
 			}
 		}
-
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 		if ((cmds == iface_up) && run_mappings) {
 			mapping_defn *currmap;
 
@@ -1363,7 +1371,7 @@ extern int ifupdown_main(int argc, char **argv)
 				}
 			}
 		}
-
+#endif
 
 		for (currif = defn->ifaces; currif; currif = currif->next) {
 			if (strcmp(liface, currif->iface) == 0) {
