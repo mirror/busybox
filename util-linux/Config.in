@@ -298,7 +298,7 @@ config CONFIG_NFSMOUNT
 	default n
 	depends on CONFIG_MOUNT
 	help
-	  Please submit a patch to add help text for this item.
+	 Enable mounting of NFS file systems.
 
 config CONFIG_UMOUNT
 	bool "umount"
