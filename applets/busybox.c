@@ -351,7 +351,7 @@ const struct BB_applet applets[] = {
 #ifdef BB_TEST
 	{"[", test_main, _BB_DIR_USR_BIN},
 #endif
-	{0}
+	{0,NULL,0}
 };
 
 char *applet_name;
