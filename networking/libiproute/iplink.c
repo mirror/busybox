@@ -362,6 +362,6 @@ int do_iplink(int argc, char **argv)
 	} else
 		return ipaddr_list_link(0, NULL);
 
-	bb_error_msg("Command \"%s\" is unknown, try \"ip link help\".", *argv);
+	bb_error_msg("Command \"%s\" is unknown.", *argv);
 	exit(-1);
 }

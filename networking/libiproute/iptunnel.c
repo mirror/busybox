@@ -543,6 +543,6 @@ int do_iptunnel(int argc, char **argv)
 	} else
 		return do_show(0, NULL);
 
-	bb_error_msg("Command \"%s\" is unknown, try \"ip tunnel help\".", *argv);
+	bb_error_msg("Command \"%s\" is unknown.", *argv);
 	exit(-1);
 }
