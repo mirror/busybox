@@ -9,7 +9,7 @@
  * Copyright (C) 1999,2000,2001,2002 by Erik Andersen <andersee@debian.org>
  * and Ron Alder <alder@lineo.com>
  *
- * Modified by Miles Bader <miles@gnu.org> to support the NEC V850E.
+ * Miles Bader <miles@gnu.org> added NEC V850E support.
  *
  * Modified by Bryan Rittmeyer <bryan@ixiacom.com> to support SH4
  * and (theoretically) SH3. I have only tested SH4 in little endian mode.
@@ -140,7 +140,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.79 2002/04/01 09:34:25 miles Exp $"
+#ident "$Id: insmod.c,v 1.80 2002/04/01 14:25:51 miles Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -357,7 +357,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.79 2002/04/01 09:34:25 miles Exp $"
+#ident "$Id: insmod.c,v 1.80 2002/04/01 14:25:51 miles Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
