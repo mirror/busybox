@@ -115,7 +115,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
 
-	file_header->mode = strtol(tar.formated.mode, NULL, 8);
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
 	file_header->gid = strtol(tar.formated.gid, NULL, 8);
 	file_header->size = strtol(tar.formated.size, NULL, 8);
@@ -125,11 +124,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
-	/* Fix mode, used by the old format */
+	/* Set bits 0-11 of the files mode */
+	file_header->mode = 07777 & strtol(tar.formated.mode, NULL, 8);
+
+	/* Set bits 12-15 of the files mode */
 	switch (tar.formated.typeflag) {
 	/* busybox identifies hard links as being regular files with 0 size and a link name */
 	case '1':
-		file_header->mode &= (S_IFREG | 07777);
+		file_header->mode |= S_IFREG;
 		break;
 	case 'x':
 	case 'g':
