@@ -85,7 +85,6 @@ extern int rm_main(int argc, char **argv)
 {
 	int opt;
 	int status = EXIT_SUCCESS;
-	int stopIt=FALSE;
 	struct stat statbuf;
 	
 	
@@ -107,9 +106,6 @@ extern int rm_main(int argc, char **argv)
 #ifdef BB_FEATURE_RM_INTERACTIVE
 				interactiveFlag = TRUE;
 #endif
-				break;
-			case '-':
-				stopIt = TRUE;
 				break;
 			default:
 				show_usage();
