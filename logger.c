@@ -151,6 +151,7 @@ extern int logger_main(int argc, char **argv)
 	} else {
 		if (argc >= 1) {
 			int len = 1; /* for the '\0' */
+			message=xcalloc(1, 1);
 			for (; *argv != NULL; argv++) {
 				len += strlen(*argv);
 				len += 1;  /* for the space between the args */
