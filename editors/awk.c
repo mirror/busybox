@@ -1211,6 +1211,7 @@ static void chain_group(void) {
 
 	if (c & TC_GRPSTART) {
 		while(next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
+			if (t.tclass & TC_NEWLINE) continue;	
 			rollback_token();
 			chain_group();
 		}
