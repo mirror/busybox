@@ -484,7 +484,7 @@ read_response:
 		progressmeter(-1);
 #endif
 	do {
-		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, (chunked || !got_clen || (filesize > sizeof(buf)) ? sizeof(buf) : filesize), dfp)) > 0) {
+		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, ((chunked || got_clen) && (filesize < sizeof(buf)) ? filesize : sizeof(buf)), dfp)) > 0) {
 			if (safe_fwrite(buf, 1, n, output) != n) {
 				bb_perror_msg_and_die("write error");
 			}
@@ -819,7 +819,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.56 2003/08/28 22:03:19 bug1 Exp $
+ *	$Id: wget.c,v 1.57 2003/08/29 06:25:04 bug1 Exp $
  */
 
 
