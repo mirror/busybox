@@ -22,11 +22,14 @@
 #include <string.h>
 #include "libbb.h"
 
-/* Return a string on the heap containing the directory component of PATH.  */
+#if defined __UCLIBC__ || __GNU_LIBRARY___ < 5
 
-char *dirname(const char *path)
+/* Return a string containing the path name of the parent
+ * directory of PATH.  */
+
+char *dirname(char *path)
 {
-	const char *s;
+	char *s;
 
 	/* Go to the end of the string.  */
 	s = path + strlen(path) - 1;
@@ -43,7 +46,10 @@ char *dirname(const char *path)
 		s--;
 
 	if (s < path)
-		return xstrdup (".");
-	else
-		return xstrndup (path, s - path + 1);
+		return ".";
+
+	s[1] = '\0';
+	return path;
 }
+
+#endif
