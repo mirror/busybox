@@ -19,6 +19,13 @@
  * very minor changes required to also work with StrongArm and presumably
  * all ARM based systems.
  *
+ * Magnus Damm <damm@opensource.se> 22-May-2002.
+ *   The plt and got code are now using the same structs.
+ *   Added generic linked list code to fully support PowerPC.
+ *   Replaced the mess in arch_apply_relocation() with architecture blocks.
+ *   The arch_create_got() function got cleaned up with architecture blocks.
+ *   These blocks should be easy maintain and sync with obj_xxx.c in modutils.
+ *
  * Magnus Damm <damm@opensource.se> added PowerPC support 20-Feb-2001.
  *   PowerPC specific code stolen from modutils-2.3.16, 
  *   written by Paul Mackerras, Copyright 1996, 1997 Linux International.
@@ -80,36 +87,122 @@
 #define LOADBITS 1
 #endif
 
-#if defined(__powerpc__)
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 16
-#endif
 
 #if defined(__arm__)
 #define CONFIG_USE_PLT_ENTRIES
 #define CONFIG_PLT_ENTRY_SIZE 8
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 8
-#endif
+#define CONFIG_USE_SINGLE
 
-#if defined(__sh__)
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
+#define MATCH_MACHINE(x) (x == EM_ARM)
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+#define ELFCLASSM	ELFCLASS32
 #endif
 
 #if defined(__i386__)
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
+
+#ifndef EM_486
+#define MATCH_MACHINE(x) (x == EM_386)
+#else
+#define MATCH_MACHINE(x) (x == EM_386 || x == EM_486)
+#endif
+
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+#define ELFCLASSM	ELFCLASS32
+#endif
+
+#if defined(__mc68000__) 
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
+
+#define MATCH_MACHINE(x) (x == EM_68K)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
 #endif
 
 #if defined(__mips__)
-// neither used
+/* Account for ELF spec changes.  */
+#ifndef EM_MIPS_RS3_LE
+#ifdef EM_MIPS_RS4_BE
+#define EM_MIPS_RS3_LE	EM_MIPS_RS4_BE
+#else
+#define EM_MIPS_RS3_LE	10
+#endif
+#endif /* !EM_MIPS_RS3_LE */
+
+#define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+#define ELFCLASSM	ELFCLASS32
+#define ARCHDATAM       "__dbe_table"
+#endif
+
+#if defined(__powerpc__)
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 16
+#define CONFIG_USE_PLT_LIST
+#define CONFIG_LIST_ARCHTYPE ElfW(Addr) 
+#define CONFIG_USE_LIST
+
+#define MATCH_MACHINE(x) (x == EM_PPC)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#define ARCHDATAM       "__ftr_fixup"
+#endif
+
+#if defined(__sh__)
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
+
+#define MATCH_MACHINE(x) (x == EM_SH)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+
+/* the SH changes have only been tested on the SH4 in =little endian= mode */
+/* I'm not sure about big endian, so let's warn: */
+
+#if (defined(__SH4__) || defined(__SH3__)) && defined(__BIG_ENDIAN__)
+#error insmod.c may require changes for use on big endian SH4/SH3
+#endif
+
+/* it may or may not work on the SH1/SH2... So let's error on those
+   also */
+#if (defined(__sh__) && (!(defined(__SH3__) || defined(__SH4__))))
+#error insmod.c may require changes for non-SH3/SH4 use
+#endif
 #endif
 
 #if defined (__v850e__)
 #define CONFIG_USE_PLT_ENTRIES
 #define CONFIG_PLT_ENTRY_SIZE 8
+#define CONFIG_USE_SINGLE
+
+#ifndef EM_CYGNUS_V850	/* grumble */
+#define EM_CYGNUS_V850 	0x9080
 #endif
+
+#define MATCH_MACHINE(x) ((x) == EM_V850 || (x) == EM_CYGNUS_V850)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+
+#define SYMBOL_PREFIX	"_"
+#endif
+
+#ifndef SHT_RELM
+#error Sorry, but insmod.c does not yet support this architecture...
+#endif
+
 
 //----------------------------------------------------------------------------
 //--------modutils module.h, lines 45-242
@@ -140,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.82 2002/05/03 10:34:35 andersen Exp $"
+#ident "$Id: insmod.c,v 1.83 2002/05/24 06:50:15 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -282,7 +375,11 @@ struct new_module
 #endif
 };
 
+#ifdef ARCHDATAM
+#define ARCHDATA_SEC_NAME ARCHDATAM
+#else
 #define ARCHDATA_SEC_NAME "__archdata"
+#endif
 #define KALLSYMS_SEC_NAME "__kallsyms"
 
 
@@ -357,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.82 2002/05/03 10:34:35 andersen Exp $"
+#ident "$Id: insmod.c,v 1.83 2002/05/24 06:50:15 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -369,94 +466,6 @@ static const int MODUTILS_OBJ_H = 1;
 #define ELFDATAM	ELFDATA2LSB
 #elif __BYTE_ORDER == __BIG_ENDIAN
 #define ELFDATAM	ELFDATA2MSB
-#endif
-
-
-/* Machine-specific elf macros for i386 et al.  */
-
-/* the SH changes have only been tested on the SH4 in =little endian= mode */
-/* I'm not sure about big endian, so let's warn: */
-
-#if (defined(__SH4__) || defined(__SH3__)) && defined(__BIG_ENDIAN__)
-#error insmod.c may require changes for use on big endian SH4/SH3
-#endif
-
-/* it may or may not work on the SH1/SH2... So let's error on those
-   also */
-#if (defined(__sh__) && (!(defined(__SH3__) || defined(__SH4__))))
-#error insmod.c may require changes for non-SH3/SH4 use
-#endif
-
-#define ELFCLASSM	ELFCLASS32
-
-
-#if defined(__sh__)
-
-#define MATCH_MACHINE(x) (x == EM_SH)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-
-#elif defined(__arm__)
-
-#define MATCH_MACHINE(x) (x == EM_ARM)
-#define SHT_RELM	SHT_REL
-#define Elf32_RelM	Elf32_Rel
-
-#elif defined(__powerpc__)
-
-#define MATCH_MACHINE(x) (x == EM_PPC)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-
-#elif defined(__mips__)
-
-/* Account for ELF spec changes.  */
-#ifndef EM_MIPS_RS3_LE
-#ifdef EM_MIPS_RS4_BE
-#define EM_MIPS_RS3_LE	EM_MIPS_RS4_BE
-#else
-#define EM_MIPS_RS3_LE	10
-#endif
-#endif /* !EM_MIPS_RS3_LE */
-
-#define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
-#define SHT_RELM	SHT_REL
-#define Elf32_RelM	Elf32_Rel
-
-#elif defined(__i386__)
-
-/* presumably we can use these for anything but the SH and ARM*/
-/* this is the previous behavior, but it does result in
-   insmod.c being broken on anything except i386 */
-#ifndef EM_486
-#define MATCH_MACHINE(x)  (x == EM_386)
-#else
-#define MATCH_MACHINE(x)  (x == EM_386 || x == EM_486)
-#endif
-
-#define SHT_RELM	SHT_REL
-#define Elf32_RelM	Elf32_Rel
-
-#elif defined(__mc68000__) 
-
-#define MATCH_MACHINE(x)	(x == EM_68K)
-#define SHT_RELM			SHT_RELA
-#define Elf32_RelM			Elf32_Rela
-
-#elif defined (__v850e__)
-
-#ifndef EM_CYGNUS_V850	/* grumble */
-#define EM_CYGNUS_V850 		0x9080
-#endif
-
-#define MATCH_MACHINE(x)	((x) == EM_V850 || (x) == EM_CYGNUS_V850)
-#define SHT_RELM		SHT_RELA
-#define Elf32_RelM		Elf32_Rela
-
-#define SYMBOL_PREFIX	"_"
-
-#else
-#error Sorry, but insmod.c does not yet support this architecture...
 #endif
 
 #ifndef ElfW
@@ -619,7 +628,7 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 				      struct obj_symbol *sym,
 				      ElfW(RelM) *rel, ElfW(Addr) value);
 
-static int arch_create_got (struct obj_file *f);
+static void arch_create_got (struct obj_file *f);
 
 #ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int arch_init_module (struct obj_file *f, struct new_module *);
@@ -653,31 +662,27 @@ static int flag_export = 1;
 
 /*======================================================================*/
 
-/* previously, these were named i386_* but since we could be
-   compiling for the sh, I've renamed them to the more general
-   arch_* These structures are the same between the x86 and SH, 
-   and we can't support anything else right now anyway. In the
-   future maybe they should be #if defined'd */
+#if defined(CONFIG_USE_LIST)
 
-/* Done ;-) */
-
-
-
-#if defined(CONFIG_USE_PLT_ENTRIES)
-struct arch_plt_entry
+struct arch_list_entry
 {
-  int offset;
-  int allocated:1;
-  int inited:1;                /* has been set up */
+	struct arch_list_entry *next;
+	CONFIG_LIST_ARCHTYPE addend;
+	int offset;
+	int inited : 1;
 };
+
 #endif
 
-#if defined(CONFIG_USE_GOT_ENTRIES)
-struct arch_got_entry {
+#if defined(CONFIG_USE_SINGLE)
+
+struct arch_single_entry
+{
 	int offset;
-	unsigned offset_done:1;
-	unsigned reloc_done:1;
+	int inited : 1;
+	int allocated : 1;
 };
+
 #endif
 
 #if defined(__mips__)
@@ -705,10 +710,14 @@ struct arch_file {
 struct arch_symbol {
 	struct obj_symbol root;
 #if defined(CONFIG_USE_PLT_ENTRIES)
-	struct arch_plt_entry pltent;
+#if defined(CONFIG_USE_PLT_LIST)
+	struct arch_list_entry *pltent;
+#else
+	struct arch_single_entry pltent;
+#endif
 #endif
 #if defined(CONFIG_USE_GOT_ENTRIES)
-	struct arch_got_entry gotent;
+	struct arch_single_entry gotent;
 #endif
 };
 
@@ -766,15 +775,7 @@ static struct obj_file *arch_new_file(void)
 	struct arch_file *f;
 	f = xmalloc(sizeof(*f));
 
-#if defined(CONFIG_USE_PLT_ENTRIES)
-	f->plt = NULL;
-#endif
-#if defined(CONFIG_USE_GOT_ENTRIES)
-	f->got = NULL;
-#endif
-#if defined(__mips__)
-	f->mips_hi16_list = NULL;
-#endif
+	memset(f, 0, sizeof(*f));
 
 	return &f->root;
 }
@@ -789,12 +790,7 @@ static struct obj_symbol *arch_new_symbol(void)
 	struct arch_symbol *sym;
 	sym = xmalloc(sizeof(*sym));
 
-#if defined(CONFIG_USE_PLT_ENTRIES)
-	memset(&sym->pltent, 0, sizeof(sym->pltent));
-#endif
-#if defined(CONFIG_USE_GOT_ENTRIES)
-	memset(&sym->gotent, 0, sizeof(sym->gotent));
-#endif
+	memset(sym, 0, sizeof(*sym));
 
 	return &sym->root;
 }
@@ -807,100 +803,164 @@ arch_apply_relocation(struct obj_file *f,
 				      ElfW(RelM) *rel, ElfW(Addr) v)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
-#if !(defined(__mips__))
-	struct arch_symbol *isym = (struct arch_symbol *) sym;
-#endif
-
+	enum obj_reloc ret = obj_reloc_ok;
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
+#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
+	struct arch_symbol *isym = (struct arch_symbol *) sym;
+#endif
 #if defined(CONFIG_USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
 #endif
 #if defined(CONFIG_USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
-	struct arch_plt_entry *pe;
 	unsigned long *ip;
+#if defined(CONFIG_USE_PLT_LIST)
+	struct arch_list_entry *pe;
+#else
+	struct arch_single_entry *pe;
 #endif
-	enum obj_reloc ret = obj_reloc_ok;
+#endif
 
 	switch (ELF32_R_TYPE(rel->r_info)) {
 
-/* even though these constants seem to be the same for
-   the i386 and the sh, we "#if define" them for clarity
-   and in case that ever changes */
-#if defined(__sh__)
-	case R_SH_NONE:
-#elif defined(__arm__)
+
+#if defined(__arm__)
 	case R_ARM_NONE:
-#elif defined(__i386__)
-	case R_386_NONE:
-#elif defined(__mc68000__) 
-	case R_68K_NONE:
-#elif defined(__powerpc__)
-	case R_PPC_NONE:
-#elif defined(__mips__)
-	case R_MIPS_NONE:
-#elif defined (__v850e__)
-	case R_V850_NONE:
-#endif
 		break;
 
-#if defined (__v850e__)
-	case R_V850_32:
-		/* We write two shorts instead of a long because even
-		   32-bit insns only need half-word alignment, but
-		   32-bit data needs to be long-word aligned.  */
-		v += ((unsigned short *)loc)[0];
-		v += ((unsigned short *)loc)[1] << 16;
-		((unsigned short *)loc)[0] = v & 0xffff;
-		((unsigned short *)loc)[1] = (v >> 16) & 0xffff;
-		break;
-#else /* !__v850e__ */
-#if defined(__sh__)
-	case R_SH_DIR32:
-#elif defined(__arm__)
 	case R_ARM_ABS32:
-#elif defined(__i386__)
-	case R_386_32:	
-#elif defined(__mc68000__) 
-	case R_68K_32:
-#elif defined(__powerpc__)
-	case R_PPC_ADDR32:
-#elif defined(__mips__)
-	case R_MIPS_32:
-#endif
 		*loc += v;
 		break;
-#endif /* __v850e__ */
+		
+	case R_ARM_GOT32:
+		goto bb_use_got;
 
-#if defined(__mc68000__)
-    case R_68K_8:
-		if (v > 0xff)
-		ret = obj_reloc_overflow;
+	case R_ARM_GOTPC:
+		/* relative reloc, always to _GLOBAL_OFFSET_TABLE_ 
+		 * (which is .got) similar to branch, 
+		 * but is full 32 bits relative */
+
+		assert(got);
+		*loc += got - dot;
+		break;
+
+	case R_ARM_PC24:
+	case R_ARM_PLT32:
+		goto bb_use_plt;
+
+	case R_ARM_GOTOFF: /* address relative to the got */
+		assert(got);
+		*loc += v - got;
+		break;
+
+#elif defined(__i386__)
+
+	case R_386_NONE:
+		break;
+
+	case R_386_32:
+		*loc += v;
+		break;
+
+	case R_386_PLT32:
+	case R_386_PC32:
+		*loc += v - dot;
+		break;
+
+	case R_386_GLOB_DAT:
+	case R_386_JMP_SLOT:
+		*loc = v;
+		break;
+
+	case R_386_RELATIVE:
+		*loc += f->baseaddr;
+		break;
+
+	case R_386_GOTPC:
+		assert(got != 0);
+		*loc += got - dot;
+		break;
+
+	case R_386_GOT32:
+		goto bb_use_got;
+
+	case R_386_GOTOFF:
+		assert(got != 0);
+		*loc += v - got;
+		break;
+
+#elif defined(__mc68000__)
+
+	case R_68K_NONE:
+		break;
+
+	case R_68K_32:
+		*loc += v;
+		break;
+
+	case R_68K_8:
+		if (v > 0xff) {
+			ret = obj_reloc_overflow;
+		}
 		*(char *)loc = v;
 		break;
-    case R_68K_16:
-		if (v > 0xffff)
-		ret = obj_reloc_overflow;
+
+	case R_68K_16:
+		if (v > 0xffff) {
+			ret = obj_reloc_overflow;
+		}
 		*(short *)loc = v;
 		break;
-#endif /* __mc68000__   */
 
-#if defined(__powerpc__)
-	case R_PPC_ADDR16_HA:
-		*(unsigned short *)loc = (v + 0x8000) >> 16;
+	case R_68K_PC8:
+		v -= dot;
+		if ((Elf32_Sword)v > 0x7f || 
+		    (Elf32_Sword)v < -(Elf32_Sword)0x80) {
+			ret = obj_reloc_overflow;
+		}
+		*(char *)loc = v;
 		break;
 
-	case R_PPC_ADDR16_HI:
-		*(unsigned short *)loc = v >> 16;
+	case R_68K_PC16:
+		v -= dot;
+		if ((Elf32_Sword)v > 0x7fff || 
+		    (Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+			ret = obj_reloc_overflow;
+		}
+		*(short *)loc = v;
 		break;
 
-	case R_PPC_ADDR16_LO:
-		*(unsigned short *)loc = v;
+	case R_68K_PC32:
+		*(int *)loc = v - dot;
 		break;
-#endif
 
-#if defined(__mips__)
+	case R_68K_GLOB_DAT:
+	case R_68K_JMP_SLOT:
+		*loc = v;
+		break;
+
+	case R_68K_RELATIVE:
+		*(int *)loc += f->baseaddr;
+		break;
+
+	case R_68K_GOT32:
+		goto bb_use_got;
+
+	case R_68K_GOTOFF:
+		assert(got != 0);
+		*loc += v - got;
+		break;
+
+#elif defined(__mips__)
+
+	case R_MIPS_NONE:
+		break;
+
+	case R_MIPS_32:
+		*loc += v;
+		break;
+
 	case R_MIPS_26:
 		if (v % 4)
 			ret = obj_reloc_dangerous;
@@ -978,63 +1038,110 @@ arch_apply_relocation(struct obj_file *f,
 			*loc = insnlo;
 			break;
 		}
-#endif
 
-#if defined(__arm__)
-#elif defined(__sh__)
-        case R_SH_REL32:
-		*loc += v - dot;
-		break;
-#elif defined(__i386__)
-	case R_386_PLT32:
-	case R_386_PC32:
-		*loc += v - dot;
-		break;
-#elif defined(__mc68000__)
-    case R_68K_PC8:
-		v -= dot;
-		if ((Elf32_Sword)v > 0x7f || (Elf32_Sword)v < -(Elf32_Sword)0x80)
-		ret = obj_reloc_overflow;
-		*(char *)loc = v;
-    break;
-		case R_68K_PC16:
-		v -= dot;
-		if ((Elf32_Sword)v > 0x7fff || (Elf32_Sword)v < -(Elf32_Sword)0x8000)
-		ret = obj_reloc_overflow;
-		*(short *)loc = v;
-		break;
-    case R_68K_PC32:
-		*(int *)loc = v - dot;
-		break;
 #elif defined(__powerpc__)
+
+	case R_PPC_ADDR16_HA:
+		*(unsigned short *)loc = (v + 0x8000) >> 16;
+		break;
+
+	case R_PPC_ADDR16_HI:
+		*(unsigned short *)loc = v >> 16;
+		break;
+
+	case R_PPC_ADDR16_LO:
+		*(unsigned short *)loc = v;
+		break;
+
+	case R_PPC_REL24:
+		goto bb_use_plt;
+
 	case R_PPC_REL32:
 		*loc = v - dot;
 		break;
+
+	case R_PPC_ADDR32:
+		*loc = v;
+		break;
+
+#elif defined(__sh__)
+
+	case R_SH_NONE:
+		break;
+
+	case R_SH_DIR32:
+		*loc += v;
+		break;
+
+	case R_SH_REL32:
+		*loc += v - dot;
+		break;
+		
+	case R_SH_PLT32:
+		*loc = v - dot;
+		break;
+
+	case R_SH_GLOB_DAT:
+	case R_SH_JMP_SLOT:
+		*loc = v;
+		break;
+
+	case R_SH_RELATIVE:
+		*loc = f->baseaddr + rel->r_addend;
+		break;
+
+	case R_SH_GOTPC:
+		assert(got != 0);
+		*loc = got - dot + rel->r_addend;
+		break;
+
+	case R_SH_GOT32:
+		goto bb_use_got;
+
+	case R_SH_GOTOFF:
+		assert(got != 0);
+		*loc = v - got;
+		break;
+
 #endif
 
-#if defined(__sh__)
-        case R_SH_PLT32:
-                *loc = v - dot;
-                break;
-#elif defined(__i386__)
+	default:
+        printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
+		ret = obj_reloc_unhandled;
+		break;
+
+#if defined (__v850e__)
+	case R_V850_NONE:
+		break;
+
+	case R_V850_32:
+		/* We write two shorts instead of a long because even
+		   32-bit insns only need half-word alignment, but
+		   32-bit data needs to be long-word aligned.  */
+		v += ((unsigned short *)loc)[0];
+		v += ((unsigned short *)loc)[1] << 16;
+		((unsigned short *)loc)[0] = v & 0xffff;
+		((unsigned short *)loc)[1] = (v >> 16) & 0xffff;
+		break;
+
+	case R_V850_22_PCREL:
+		goto bb_use_plt;
 #endif
 
 #if defined(CONFIG_USE_PLT_ENTRIES)
 
-#if defined(__arm__)
-    case R_ARM_PC24:
-    case R_ARM_PLT32:
-#endif
-#if defined(__powerpc__)
-	case R_PPC_REL24:
-#endif
-#if defined (__v850e__)
-	case R_V850_22_PCREL:
-#endif
+	  bb_use_plt:
+
       /* find the plt entry and initialize it if necessary */
       assert(isym != NULL);
 
-      pe = (struct arch_plt_entry*) &isym->pltent;
+#if defined(CONFIG_USE_PLT_LIST)
+      for (pe = isym->pltent; pe != NULL && pe->addend != rel->r_addend;)
+	pe = pe->next;
+      assert(pe != NULL);
+#else
+      pe = &isym->pltent;
+#endif
 
       if (! pe->inited) {
 	  	ip = (unsigned long *) (ifile->plt->contents + pe->offset);
@@ -1065,19 +1172,19 @@ arch_apply_relocation(struct obj_file *f,
       v -= dot;
       /* if the target is too far away.... */
 #if defined (__arm__) || defined (__powerpc__)
-      if ((int)v < -0x02000000 || (int)v >= 0x02000000)
+      if ((int)v < -0x02000000 || (int)v >= 0x02000000) 
 #elif defined (__v850e__)
       if ((Elf32_Sword)v > 0x1fffff || (Elf32_Sword)v < (Elf32_Sword)-0x200000)
 #endif
-	      /* go via the plt */
-	      v = plt + pe->offset - dot;
+	    /* go via the plt */
+	    v = plt + pe->offset - dot;
 
 #if defined (__v850e__)
       if (v & 1)
 #else
       if (v & 3)
 #endif
-	      ret = obj_reloc_dangerous;
+	    ret = obj_reloc_dangerous;
 
       /* merge the offset into the instruction. */
 #if defined(__arm__)
@@ -1099,75 +1206,16 @@ arch_apply_relocation(struct obj_file *f,
       ((unsigned short *)loc)[1] =
 	      (v & 0xffff);                    /* offs low part */
 #endif
-
       break;
 #endif /* CONFIG_USE_PLT_ENTRIES */
 
-#if defined(__arm__)
-#elif defined(__sh__)
-        case R_SH_GLOB_DAT:
-        case R_SH_JMP_SLOT:
-               	*loc = v;
-                break;
-#elif defined(__i386__)
-	case R_386_GLOB_DAT:
-	case R_386_JMP_SLOT:
-		*loc = v;
-		break;
-#elif defined(__mc68000__)
-	case R_68K_GLOB_DAT:
-	case R_68K_JMP_SLOT:
-		*loc = v;
-		break;
-#endif
-
-#if defined(__arm__)
-#elif defined(__sh__)
-        case R_SH_RELATIVE:
-	        *loc += f->baseaddr + rel->r_addend;
-                break;
-#elif defined(__i386__)
-        case R_386_RELATIVE:
-		*loc += f->baseaddr;
-		break;
-#elif defined(__mc68000__)
-    case R_68K_RELATIVE:
-    	*(int *)loc += f->baseaddr;
-    	break;
-#endif
-
 #if defined(CONFIG_USE_GOT_ENTRIES)
+	  bb_use_got:
 
-#if !defined(__68k__)
-#if defined(__sh__)
-        case R_SH_GOTPC:
-#elif defined(__arm__)
-    case R_ARM_GOTPC:
-#elif defined(__i386__)
-	case R_386_GOTPC:
-#endif
-		assert(got != 0);
-#if defined(__sh__)
-		*loc += got - dot + rel->r_addend;;
-#elif defined(__i386__) || defined(__arm__) || defined(__m68k_)
-		*loc += got - dot;
-#endif
-		break;
-#endif // __68k__
-
-#if defined(__sh__)
-	case R_SH_GOT32:
-#elif defined(__arm__)
-	case R_ARM_GOT32:
-#elif defined(__i386__)
-	case R_386_GOT32:
-#elif defined(__mc68000__)
-	case R_68K_GOT32:
-#endif
 		assert(isym != NULL);
         /* needs an entry in the .got: set it, once */
-		if (!isym->gotent.reloc_done) {
-			isym->gotent.reloc_done = 1;
+		if (!isym->gotent.inited) {
+			isym->gotent.inited = 1;
 			*(ElfW(Addr) *) (ifile->got->contents + isym->gotent.offset) = v;
 		}
         /* make the reloc with_respect_to_.got */
@@ -1178,43 +1226,90 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 		break;
 
-    /* address relative to the got */
-#if !defined(__mc68000__)
-#if defined(__sh__)
-	case R_SH_GOTOFF:
-#elif defined(__arm__)
-	case R_ARM_GOTOFF:
-#elif defined(__i386__)
-	case R_386_GOTOFF:
-#elif defined(__mc68000__)
-	case R_68K_GOTOFF:
-#endif
-		assert(got != 0);
-		*loc += v - got;
-		break;
-#endif // __mc68000__
-
 #endif /* CONFIG_USE_GOT_ENTRIES */
-
-	default:
-        printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
-		ret = obj_reloc_unhandled;
-		break;
 	}
 
 	return ret;
 }
 
-static int arch_create_got(struct obj_file *f)
+
+#if defined(CONFIG_USE_LIST) 
+
+static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
+			  int offset, int size)
+{
+	struct arch_list_entry *pe;
+
+	for (pe = *list; pe != NULL; pe = pe->next) {
+		if (pe->addend == rel->r_addend) {
+			break;
+		}
+	}
+
+	if (pe == NULL) {
+		pe = xmalloc(sizeof(struct arch_list_entry));
+		pe->next = *list;
+		pe->addend = rel->r_addend;
+		pe->offset = offset;
+		pe->inited = 0;
+		*list = pe;
+		return size;
+	}
+	return 0;
+}
+
+#endif
+
+#if defined(CONFIG_USE_SINGLE) 
+
+static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
+			     int offset, int size)
+{
+	if (single->allocated == 0) {
+		single->allocated = 1;
+		single->offset = offset;
+		single->inited = 0;
+		return size;
+	}
+	return 0;
+}
+
+#endif
+
+#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
+
+static struct obj_section *arch_xsect_init(struct obj_file *f, char *name, 
+					   int offset, int size)
+{
+	struct obj_section *myrelsec = obj_find_section(f, name);
+
+	if (offset == 0) {
+		offset += size;
+	}
+
+	if (myrelsec) {
+		obj_extend_section(myrelsec, offset);
+	} else {
+		myrelsec = obj_create_alloced_section(f, name, 
+						      size, offset);
+		assert(myrelsec);
+	}
+
+	return myrelsec;
+}
+
+#endif
+
+static void arch_create_got(struct obj_file *f)
 {
 #if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
 	struct arch_file *ifile = (struct arch_file *) f;
 	int i;
 #if defined(CONFIG_USE_GOT_ENTRIES)
-	int got_offset = 0, gotneeded = 0;
+	int got_offset = 0, got_needed = 0, got_allocate;
 #endif
 #if defined(CONFIG_USE_PLT_ENTRIES)
-	int plt_offset = 0, pltneeded = 0;
+	int plt_offset = 0, plt_needed = 0, plt_allocate;
 #endif
     struct obj_section *relsec, *symsec, *strsec;
 	ElfW(RelM) *rel, *relend;
@@ -1238,54 +1333,69 @@ static int arch_create_got(struct obj_file *f)
 		for (; rel < relend; ++rel) {
 			extsym = &symtab[ELF32_R_SYM(rel->r_info)];
 
+#if defined(CONFIG_USE_GOT_ENTRIES)
+			got_allocate = 0;
+#endif
+#if defined(CONFIG_USE_PLT_ENTRIES)
+			plt_allocate = 0;
+#endif
+
 			switch (ELF32_R_TYPE(rel->r_info)) {
-#if defined(__arm__)
-			case R_ARM_GOT32:
-				break;
-#elif defined(__sh__)
-			case R_SH_GOT32:
-				break;
-#elif defined(__i386__)
-			case R_386_GOT32:
-				break;
-#elif defined(__mc68000__)
-			case R_68K_GOT32:
-				break;
-#endif
-
-#if defined(__powerpc__)
-			case R_PPC_REL24:
-				pltneeded = 1;
-				break;
-#endif
-
-#if defined (__v850e__)
-			case R_V850_22_PCREL:
-				pltneeded = 1;
-				break;
-#endif
-
 #if defined(__arm__)
 			case R_ARM_PC24:
 			case R_ARM_PLT32:
-				pltneeded = 1;
+				plt_allocate = 1;
 				break;
 
-			case R_ARM_GOTPC:
 			case R_ARM_GOTOFF:
-				gotneeded = 1;
-				if (got_offset == 0)
-					got_offset = 4;
-#elif defined(__sh__)
-			case R_SH_GOTPC:
-			case R_SH_GOTOFF:
-				gotneeded = 1;
+			case R_ARM_GOTPC:
+				got_needed = 1;
+				continue;
+
+			case R_ARM_GOT32:
+				got_allocate = 1;
+				break;
+
 #elif defined(__i386__)
 			case R_386_GOTPC:
 			case R_386_GOTOFF:
-				gotneeded = 1;
-#endif
+				got_needed = 1;
+				continue;
 
+			case R_386_GOT32:
+				got_allocate = 1;
+				break;
+
+#elif defined(__powerpc__)
+			case R_PPC_REL24:
+				plt_allocate = 1;
+				break;
+
+#elif defined(__mc68000__)
+			case R_68K_GOT32:
+				got_allocate = 1;
+				break;
+
+			case R_68K_GOTOFF:
+				got_needed = 1;
+				continue;
+
+#elif defined(__sh__)
+			case R_SH_GOT32:
+				got_allocate = 1; 
+				break;
+
+			case R_SH_GOTPC:
+			case R_SH_GOTOFF:
+				got_needed = 1;
+				continue;
+
+#elif defined (__v850e__)
+			case R_V850_22_PCREL:
+				plt_needed = 1;
+				break;
+
+#endif
 			default:
 				continue;
 			}
@@ -1297,49 +1407,46 @@ static int arch_create_got(struct obj_file *f)
 			}
 			intsym = (struct arch_symbol *) obj_find_symbol(f, name);
 #if defined(CONFIG_USE_GOT_ENTRIES)
-			if (!intsym->gotent.offset_done) {
-				intsym->gotent.offset_done = 1;
-				intsym->gotent.offset = got_offset;
-				got_offset += CONFIG_GOT_ENTRY_SIZE;
+			if (got_allocate) {
+				got_offset += arch_single_init(
+					rel, &intsym->gotent, 
+					got_offset, CONFIG_GOT_ENTRY_SIZE);
+
+				got_needed = 1;
 			}
 #endif
 #if defined(CONFIG_USE_PLT_ENTRIES)
-			if (pltneeded && intsym->pltent.allocated == 0) {
-				intsym->pltent.allocated = 1;
-				intsym->pltent.offset = plt_offset;
-				plt_offset += CONFIG_PLT_ENTRY_SIZE;
-				intsym->pltent.inited = 0;
-				pltneeded = 0;
+			if (plt_allocate) {
+#if defined(CONFIG_USE_PLT_LIST) 
+				plt_offset += arch_list_add(
+					rel, &intsym->pltent, 
+					plt_offset, CONFIG_PLT_ENTRY_SIZE);
+#else
+				plt_offset += arch_single_init(
+					rel, &intsym->pltent, 
+					plt_offset, CONFIG_PLT_ENTRY_SIZE);
+#endif
+				plt_needed = 1;
 			}
 #endif
 		}
 	}
 
 #if defined(CONFIG_USE_GOT_ENTRIES)
-	if (got_offset) {
-		struct obj_section* myrelsec = obj_find_section(f, ".got");
-
-		if (myrelsec) {
-			obj_extend_section(myrelsec, got_offset);
-		} else {
-			myrelsec = obj_create_alloced_section(f, ".got", 
-							    CONFIG_GOT_ENTRY_SIZE,
-							    got_offset);
-			assert(myrelsec);
-		}
-
-		ifile->got = myrelsec;
+	if (got_needed) {
+		ifile->got = arch_xsect_init(f, ".got", got_offset,
+					    CONFIG_GOT_ENTRY_SIZE);
 	}
 #endif
 
 #if defined(CONFIG_USE_PLT_ENTRIES)
-	if (plt_offset)
-		ifile->plt = obj_create_alloced_section(f, ".plt", 
-							CONFIG_PLT_ENTRY_SIZE, 
-							plt_offset);
+	if (plt_needed) {
+		ifile->plt = arch_xsect_init(f, ".plt", plt_offset,
+					    CONFIG_PLT_ENTRY_SIZE);
+	}
 #endif
-#endif
-	return 1;
+
+#endif /* defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES) */
 }
 
 #ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
