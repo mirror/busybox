@@ -109,6 +109,14 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 
+/* Alpha */
+#if defined(__alpha__)   
+#define MATCH_MACHINE(x) (x == EM_ALPHA)
+#define SHT_RELM       SHT_RELA
+#define Elf64_RelM     Elf64_Rela
+#define ELFCLASSM      ELFCLASS64
+#endif
+
 /* ARM support */
 #if defined(__arm__)
 #define MATCH_MACHINE(x) (x == EM_ARM)
@@ -132,6 +140,19 @@ extern int insmod_ng_main( int argc, char **argv);
 #define EM_CRIS 76
 #define R_CRIS_NONE 0
 #define R_CRIS_32   3
+#endif
+#endif
+
+/* PA-RISC / HP-PA */
+#if defined(__hppa__)
+#define MATCH_MACHINE(x) (x == EM_PARISC)
+#define SHT_RELM       SHT_RELA
+#if defined(__LP64__)
+#define Elf64_RelM     Elf64_Rela
+#define ELFCLASSM      ELFCLASS64
+#else
+#define Elf32_RelM     Elf32_Rela
+#define ELFCLASSM      ELFCLASS32
 #endif
 #endif
 
@@ -308,7 +329,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.125 2004/09/02 23:03:25 andersen Exp $"
+#ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -466,7 +487,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.125 2004/09/02 23:03:25 andersen Exp $"
+#ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
