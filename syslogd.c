@@ -346,7 +346,7 @@ static const int IOV_COUNT = 2;
 		struct iovec iov[IOV_COUNT];
 		struct iovec *v = iov;
 
-		bzero(&res, sizeof(res));
+		memset(&res, 0, sizeof(res));
 		snprintf(res, sizeof(res), "<%d>", pri);
 		v->iov_base = res ;
 		v->iov_len = strlen(res);          
@@ -442,7 +442,7 @@ static void init_RemoteLog (void){
   struct hostent *hostinfo;
   int len = sizeof(remoteaddr);
 
-  bzero(&remoteaddr, len);
+  memset(&remoteaddr, 0, len);
 
   remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 

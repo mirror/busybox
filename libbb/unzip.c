@@ -67,7 +67,7 @@ static char *license_msg[] = {
 #include <string.h>
 #include "libbb.h"
 
-FILE *in_file, *out_file;
+static FILE *in_file, *out_file;
 
 /* these are freed by gz_close */
 static unsigned char *window;
@@ -91,9 +91,9 @@ static const int N_MAX = 288;		/* maximum number of codes in any set */
 static long bytes_out;		/* number of output bytes */
 static unsigned long outcnt;	/* bytes in output buffer */
 
-unsigned hufts;		/* track memory usage */
-unsigned long bb;			/* bit buffer */
-unsigned bk;		/* bits in bit buffer */
+static unsigned hufts;		/* track memory usage */
+static unsigned long bb;			/* bit buffer */
+static unsigned bk;		/* bits in bit buffer */
 
 typedef struct huft_s {
 	unsigned char e;		/* number of extra bits or operation */
@@ -104,7 +104,7 @@ typedef struct huft_s {
 	} v;
 } huft_t;
 
-unsigned short mask_bits[] = {
+static const unsigned short mask_bits[] = {
 	0x0000,
 	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
@@ -154,7 +154,7 @@ static void make_crc_table()
  * Write the output window window[0..outcnt-1] and update crc and bytes_out.
  * (Used for the decompressed data only.)
  */
-void flush_window()
+static void flush_window(void)
 {
 	int n;
 
@@ -1021,10 +1021,6 @@ extern void gz_close(int gunzip_pid)
 	if (waitpid(gunzip_pid, NULL, 0) == -1) {
 		printf("Couldnt wait ?");
 	}
-	if (window) {
 		free(window);
-	}
-	if (crc_table) {
 		free(crc_table);
-	}
 }

@@ -131,40 +131,38 @@ static int nflag;                      /* print addresses numerically */
  * If the nflag has been supplied, give
  * numeric value, otherwise try for symbolic name.
  */
-static inline char *
-inetname(struct in_addr in)
+static inline void
+inetname(struct sockaddr_in *from)
 {
 	char *cp;
-	static char line[50];
 	struct hostent *hp;
 	static char domain[MAXHOSTNAMELEN + 1];
 	static int first = 1;
+	const char *ina;
 
 	if (first && !nflag) {
 		first = 0;
 		if (gethostname(domain, MAXHOSTNAMELEN) == 0 &&
-		    (cp = index(domain, '.')))
+		    (cp = strchr(domain, '.')))
 			(void) strcpy(domain, cp + 1);
 		else
 			domain[0] = 0;
 	}
 	cp = 0;
-	if (!nflag && in.s_addr != INADDR_ANY) {
-		hp = gethostbyaddr((char *)&in, sizeof (in), AF_INET);
+	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
+		hp = gethostbyaddr((char *)&(from->sin_addr), sizeof (from->sin_addr), AF_INET);
 		if (hp) {
-			if ((cp = index(hp->h_name, '.')) &&
+			if ((cp = strchr(hp->h_name, '.')) &&
 			    !strcmp(cp + 1, domain))
 				*cp = 0;
 			cp = (char *)hp->h_name;
 		}
 	}
-	if (cp)
-		(void) strcpy(line, cp);
-	else {
-		in.s_addr = ntohl(in.s_addr);
-		strcpy(line, inet_ntoa(in));
-	}
-	return (line);
+	ina = inet_ntoa(from->sin_addr);
+	if (nflag)
+		printf(" %s", ina);
+	else
+		printf(" %s (%s)", (cp ? cp : ina), ina);
 }
 
 static inline void
@@ -177,12 +175,7 @@ print(u_char *buf, int cc, struct sockaddr_in *from)
 	hlen = ip->ip_hl << 2;
 	cc -= hlen;
 
-	if (nflag)
-		printf(" %s", inet_ntoa(from->sin_addr));
-	else
-		printf(" %s (%s)", inetname(from->sin_addr),
-		       inet_ntoa(from->sin_addr));
-
+	inetname(from);
 #ifdef BB_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose)
 		printf (" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));

@@ -18,8 +18,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-char *vi_Version =
-	"$Id: vi.c,v 1.11 2001/07/02 18:06:14 andersen Exp $";
+static const char vi_Version[] =
+	"$Id: vi.c,v 1.12 2001/07/17 01:12:36 andersen Exp $";
 
 /*
  * To compile for standalone use:

@@ -1153,7 +1153,8 @@ enum {
  *
  */
  
-extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
+
+int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 {
 
 	int break_out = 0;
@@ -1231,10 +1232,15 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
 prepare_to_die:
+#if !defined(BB_FEATURE_ASH)
 				printf("exit");
 				goto_new_line();
 				/* cmdedit_reset_term() called in atexit */
 				exit(EXIT_SUCCESS);
+#else
+				break_out = -1; /* for control stoped jobs */
+				break;
+#endif
 			} else {
 				input_delete();
 			}
@@ -1455,8 +1461,10 @@ prepare_to_die:
 		num_ok_lines++;
 #endif
 	}
+	if(break_out>0) {
 	command[len++] = '\n';		/* set '\n' */
 	command[len] = 0;
+	}
 #if defined(BB_FEATURE_CLEAN_UP) && defined(BB_FEATURE_COMMAND_TAB_COMPLETION)
 	input_tab(0);				/* strong free */
 #endif
@@ -1464,6 +1472,7 @@ prepare_to_die:
 	free(cmdedit_prompt);
 #endif
 	cmdedit_reset_term();
+	return len;
 }
 
 

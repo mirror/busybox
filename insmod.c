@@ -130,7 +130,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.67 2001/06/28 21:36:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.68 2001/07/17 01:12:36 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -347,7 +347,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.67 2001/06/28 21:36:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.68 2001/07/17 01:12:36 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -537,78 +537,73 @@ struct obj_symbol_patch
 
 /* Generic object manipulation routines.  */
 
-unsigned long obj_elf_hash(const char *);
+static unsigned long obj_elf_hash(const char *);
 
-unsigned long obj_elf_hash_n(const char *, unsigned long len);
+static unsigned long obj_elf_hash_n(const char *, unsigned long len);
 
-struct obj_symbol *obj_add_symbol (struct obj_file *f, const char *name,
-				   unsigned long symidx, int info, int secidx,
-				   ElfW(Addr) value, unsigned long size);
-
-struct obj_symbol *obj_find_symbol (struct obj_file *f,
+static struct obj_symbol *obj_find_symbol (struct obj_file *f,
 					 const char *name);
 
-ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
+static ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
 				  struct obj_symbol *sym);
 
-void obj_set_symbol_compare(struct obj_file *f,
+static void obj_set_symbol_compare(struct obj_file *f,
 			    int (*cmp)(const char *, const char *),
 			    unsigned long (*hash)(const char *));
 
-struct obj_section *obj_find_section (struct obj_file *f,
+static struct obj_section *obj_find_section (struct obj_file *f,
 					   const char *name);
 
-void obj_insert_section_load_order (struct obj_file *f,
+static void obj_insert_section_load_order (struct obj_file *f,
 				    struct obj_section *sec);
 
-struct obj_section *obj_create_alloced_section (struct obj_file *f,
+static struct obj_section *obj_create_alloced_section (struct obj_file *f,
 						const char *name,
 						unsigned long align,
 						unsigned long size);
 
-struct obj_section *obj_create_alloced_section_first (struct obj_file *f,
+static struct obj_section *obj_create_alloced_section_first (struct obj_file *f,
 						      const char *name,
 						      unsigned long align,
 						      unsigned long size);
 
-void *obj_extend_section (struct obj_section *sec, unsigned long more);
+static void *obj_extend_section (struct obj_section *sec, unsigned long more);
 
-int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
+static int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     const char *string);
 
-int obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
+static int obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     struct obj_symbol *sym);
 
-int obj_check_undefineds(struct obj_file *f);
+static int obj_check_undefineds(struct obj_file *f);
 
-void obj_allocate_commons(struct obj_file *f);
+static void obj_allocate_commons(struct obj_file *f);
 
-unsigned long obj_load_size (struct obj_file *f);
+static unsigned long obj_load_size (struct obj_file *f);
 
-int obj_relocate (struct obj_file *f, ElfW(Addr) base);
+static int obj_relocate (struct obj_file *f, ElfW(Addr) base);
 
-struct obj_file *obj_load(FILE *f, int loadprogbits);
+static struct obj_file *obj_load(FILE *f, int loadprogbits);
 
-int obj_create_image (struct obj_file *f, char *image);
+static int obj_create_image (struct obj_file *f, char *image);
 
 /* Architecture specific manipulation routines.  */
 
-struct obj_file *arch_new_file (void);
+static struct obj_file *arch_new_file (void);
 
-struct obj_section *arch_new_section (void);
+static struct obj_section *arch_new_section (void);
 
-struct obj_symbol *arch_new_symbol (void);
+static struct obj_symbol *arch_new_symbol (void);
 
-enum obj_reloc arch_apply_relocation (struct obj_file *f,
+static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 				      struct obj_section *targsec,
 				      struct obj_section *symsec,
 				      struct obj_symbol *sym,
 				      ElfW(RelM) *rel, ElfW(Addr) value);
 
-int arch_create_got (struct obj_file *f);
+static int arch_create_got (struct obj_file *f);
 
-struct new_module;
-int arch_init_module (struct obj_file *f, struct new_module *);
+static int arch_init_module (struct obj_file *f, struct new_module *);
 
 #endif /* obj.h */
 //----------------------------------------------------------------------------
@@ -624,10 +619,10 @@ static const int STRVERSIONLEN = 32;
 
 /*======================================================================*/
 
-int flag_force_load = 0;
-int flag_autoclean = 0;
-int flag_verbose = 0;
-int flag_export = 1;
+static int flag_force_load = 0;
+static int flag_autoclean = 0;
+static int flag_verbose = 0;
+static int flag_export = 1;
 
 
 /*======================================================================*/
@@ -700,12 +695,12 @@ struct external_module {
 	struct new_module_symbol *syms;
 };
 
-struct new_module_symbol *ksyms;
-size_t nksyms;
+static struct new_module_symbol *ksyms;
+static size_t nksyms;
 
-struct external_module *ext_modules;
-int n_ext_modules;
-int n_ext_modules_used;
+static struct external_module *ext_modules;
+static int n_ext_modules;
+static int n_ext_modules_used;
 extern int delete_module(const char *);
 
 static char m_filename[FILENAME_MAX + 1];
@@ -740,7 +735,7 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 
 /*======================================================================*/
 
-struct obj_file *arch_new_file(void)
+static struct obj_file *arch_new_file(void)
 {
 	struct arch_file *f;
 	f = xmalloc(sizeof(*f));
@@ -758,12 +753,12 @@ struct obj_file *arch_new_file(void)
 	return &f->root;
 }
 
-struct obj_section *arch_new_section(void)
+static struct obj_section *arch_new_section(void)
 {
 	return xmalloc(sizeof(struct obj_section));
 }
 
-struct obj_symbol *arch_new_symbol(void)
+static struct obj_symbol *arch_new_symbol(void)
 {
 	struct arch_symbol *sym;
 	sym = xmalloc(sizeof(*sym));
@@ -778,7 +773,7 @@ struct obj_symbol *arch_new_symbol(void)
 	return &sym->root;
 }
 
-enum obj_reloc
+static enum obj_reloc
 arch_apply_relocation(struct obj_file *f,
 					  struct obj_section *targsec,
 					  struct obj_section *symsec,
@@ -1140,7 +1135,7 @@ arch_apply_relocation(struct obj_file *f,
 	return ret;
 }
 
-int arch_create_got(struct obj_file *f)
+static int arch_create_got(struct obj_file *f)
 {
 #if defined(BB_USE_GOT_ENTRIES) || defined(BB_USE_PLT_ENTRIES)
 	struct arch_file *ifile = (struct arch_file *) f;
@@ -1271,7 +1266,7 @@ int arch_create_got(struct obj_file *f)
 	return 1;
 }
 
-int arch_init_module(struct obj_file *f, struct new_module *mod)
+static int arch_init_module(struct obj_file *f, struct new_module *mod)
 {
 	return 1;
 }
@@ -1280,7 +1275,7 @@ int arch_init_module(struct obj_file *f, struct new_module *mod)
 /*======================================================================*/
 
 /* Standard ELF hash function.  */
-inline unsigned long obj_elf_hash_n(const char *name, unsigned long n)
+static inline unsigned long obj_elf_hash_n(const char *name, unsigned long n)
 {
 	unsigned long h = 0;
 	unsigned long g;
@@ -1298,7 +1293,7 @@ inline unsigned long obj_elf_hash_n(const char *name, unsigned long n)
 	return h;
 }
 
-unsigned long obj_elf_hash(const char *name)
+static unsigned long obj_elf_hash(const char *name)
 {
 	return obj_elf_hash_n(name, strlen(name));
 }
@@ -1309,25 +1304,15 @@ unsigned long obj_elf_hash(const char *name)
 static int get_kernel_version(char str[STRVERSIONLEN])
 {
 	struct utsname uts_info;
-	char *p, *q;
-	int a, b, c;
+	int kv;
 
 	if (uname(&uts_info) < 0)
 		return -1;
 	strncpy(str, uts_info.release, STRVERSIONLEN);
-	p = uts_info.release;
 
-	a = strtoul(p, &p, 10);
-	if (*p != '.')
+	kv = get_kernel_revision();
+	if(kv==0)
 		return -1;
-	b = strtoul(p + 1, &p, 10);
-	if (*p != '.')
-		return -1;
-	c = strtoul(p + 1, &q, 10);
-	if (p + 1 == q)
-		return -1;
-
-	return a << 16 | b << 8 | c;
 }
 
 /* String comparison for non-co-versioned kernel and module.  */
@@ -1355,7 +1340,7 @@ static unsigned long ncv_symbol_hash(const char *str)
 	return obj_elf_hash_n(str, len);
 }
 
-void
+static void
 obj_set_symbol_compare(struct obj_file *f,
 					   int (*cmp) (const char *, const char *),
 					   unsigned long (*hash) (const char *))
@@ -1383,8 +1368,8 @@ obj_set_symbol_compare(struct obj_file *f,
 
 #endif							/* BB_FEATURE_INSMOD_VERSION_CHECKING */
 
-
-struct obj_symbol *obj_add_symbol(struct obj_file *f, const char *name,
+static struct obj_symbol *
+obj_add_symbol(struct obj_file *f, const char *name,
 								  unsigned long symidx, int info,
 								  int secidx, ElfW(Addr) value,
 								  unsigned long size)
@@ -1478,7 +1463,8 @@ struct obj_symbol *obj_add_symbol(struct obj_file *f, const char *name,
 	return sym;
 }
 
-struct obj_symbol *obj_find_symbol(struct obj_file *f, const char *name)
+static struct obj_symbol *
+obj_find_symbol(struct obj_file *f, const char *name)
 {
 	struct obj_symbol *sym;
 	unsigned long hash = f->symbol_hash(name) % HASH_BUCKETS;
@@ -1490,7 +1476,7 @@ struct obj_symbol *obj_find_symbol(struct obj_file *f, const char *name)
 	return NULL;
 }
 
-ElfW(Addr)
+static ElfW(Addr)
 	obj_symbol_final_value(struct obj_file * f, struct obj_symbol * sym)
 {
 	if (sym) {
@@ -1504,7 +1490,7 @@ ElfW(Addr)
 	}
 }
 
-struct obj_section *obj_find_section(struct obj_file *f, const char *name)
+static struct obj_section *obj_find_section(struct obj_file *f, const char *name)
 {
 	int i, n = f->header.e_shnum;
 
@@ -1537,7 +1523,7 @@ static int obj_load_order_prio(struct obj_section *a)
 	return ac;
 }
 
-void
+static void
 obj_insert_section_load_order(struct obj_file *f, struct obj_section *sec)
 {
 	struct obj_section **p;
@@ -1549,7 +1535,7 @@ obj_insert_section_load_order(struct obj_file *f, struct obj_section *sec)
 	*p = sec;
 }
 
-struct obj_section *obj_create_alloced_section(struct obj_file *f,
+static struct obj_section *obj_create_alloced_section(struct obj_file *f,
 											   const char *name,
 											   unsigned long align,
 											   unsigned long size)
@@ -1575,7 +1561,7 @@ struct obj_section *obj_create_alloced_section(struct obj_file *f,
 	return sec;
 }
 
-struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
+static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 													 const char *name,
 													 unsigned long align,
 													 unsigned long size)
@@ -1604,7 +1590,7 @@ struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 	return sec;
 }
 
-void *obj_extend_section(struct obj_section *sec, unsigned long more)
+static void *obj_extend_section(struct obj_section *sec, unsigned long more)
 {
 	unsigned long oldsize = sec->header.sh_size;
 	if (more) { 
@@ -1612,7 +1598,6 @@ void *obj_extend_section(struct obj_section *sec, unsigned long more)
 	}
 	return sec->contents + oldsize;
 }
-
 
 
 /* Conditionally add the symbols from the given symbol set to the
@@ -2631,7 +2616,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 
 /*======================================================================*/
 
-int
+static int
 obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 const char *string)
 {
@@ -2660,7 +2645,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	return 1;
 }
 
-int
+static int
 obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 struct obj_symbol *sym)
 {
@@ -2676,7 +2661,7 @@ obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	return 1;
 }
 
-int obj_check_undefineds(struct obj_file *f)
+static int obj_check_undefineds(struct obj_file *f)
 {
 	unsigned long i;
 	int ret = 1;
@@ -2698,7 +2683,7 @@ int obj_check_undefineds(struct obj_file *f)
 	return ret;
 }
 
-void obj_allocate_commons(struct obj_file *f)
+static void obj_allocate_commons(struct obj_file *f)
 {
 	struct common_entry {
 		struct common_entry *next;
@@ -2807,7 +2792,7 @@ void obj_allocate_commons(struct obj_file *f)
 	}
 }
 
-unsigned long obj_load_size(struct obj_file *f)
+static unsigned long obj_load_size(struct obj_file *f)
 {
 	unsigned long dot = 0;
 	struct obj_section *sec;
@@ -2828,7 +2813,7 @@ unsigned long obj_load_size(struct obj_file *f)
 	return dot;
 }
 
-int obj_relocate(struct obj_file *f, ElfW(Addr) base)
+static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 {
 	int i, n = f->header.e_shnum;
 	int ret = 1;
@@ -2958,7 +2943,7 @@ int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 	return ret;
 }
 
-int obj_create_image(struct obj_file *f, char *image)
+static int obj_create_image(struct obj_file *f, char *image)
 {
 	struct obj_section *sec;
 	ElfW(Addr) base = f->baseaddr;
@@ -2980,7 +2965,7 @@ int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-struct obj_file *obj_load(FILE * fp, int loadprogbits)
+static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
@@ -3186,7 +3171,7 @@ struct obj_file *obj_load(FILE * fp, int loadprogbits)
  * kernel for the module
  */
 
-int obj_load_progbits(FILE * fp, struct obj_file* f)
+static int obj_load_progbits(FILE * fp, struct obj_file* f)
 {
 	char* imagebase = (char*) f->imagebase;
 	ElfW(Addr) base = f->baseaddr;

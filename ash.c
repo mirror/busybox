@@ -6204,8 +6204,7 @@ retry:
 	    if (!iflag)
 		    nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	    else {
-		    cmdedit_read_input((char*)cmdedit_prompt, buf);
-		    nr = strlen(buf);
+		    nr = cmdedit_read_input((char*)cmdedit_prompt, buf);
 	    }
 	}
 #else
@@ -9445,7 +9444,7 @@ static char *wordtext;                  /* text of last word returned by readtok
 
 static struct nodelist *backquotelist;
 static union node *redirnode;
-struct heredoc *heredoc;
+static struct heredoc *heredoc;
 static int quoteflag;                   /* set if (part of) last token was quoted */
 static int startlinno;                  /* line # where last token started */
 
@@ -12917,7 +12916,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.10 2001/07/12 20:26:31 andersen Exp $
+ * $Id: ash.c,v 1.11 2001/07/17 01:12:35 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
