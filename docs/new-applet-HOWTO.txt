@@ -70,40 +70,35 @@ you _write_ your applet) please read through the style guide in the docs
 directory and make your program compliant.
 
 
-Some Words on utility.c
------------------------
+Some Words on libbb
+-------------------
 
 As you are writing your applet, please be aware of the body of pre-existing
-useful functions in utility.c. Use these instead of reinventing the wheel.
-
-If you use functions from utility.c, you may need to add to the preprocessor
-conditionals in that file, to make sure the routines you need are included.
-So, since your mu implementation used safe_read(), append "|| defined BB_MU" to
-the #if instruction that precedes the safe_read() function in utility.c .
+useful functions in libbb. Use these instead of reinventing the wheel.
 
 Additionally, if you have any useful, general-purpose functions in your
 program that could be useful in another program, consider putting them in
-utility.c.
+libbb.
 
 
 Usage String(s)
 ---------------
 
-Next, add usage information for you applet to usage.c. This should look like
+Next, add usage information for you applet to usage.h. This should look like
 the following:
 
-	#if defined BB_MU
-	const char mu_usage[] =
-		"mu\n"
-	#ifndef BB_FEATURE_TRIVIAL_HELP
-		"\nReturns an indeterminate value.\n"
-	#endif
-		;
+	#define mu_trivial_usage \
+		"-[abcde] FILES"
+	#define mu_full_usage \
+		"Returns an indeterminate value.\n\n" \
+		"Options:\n" \
+		"\t-a\t\tfirst function\n" \
+		"\t-b\t\tsecond function\n" \
 
 If your program supports flags, the flags should be mentioned on the first
-line (mu -[bcRovma]) and a detailed description of each flag should go in the
-BB_FEATURE_TRIVIAL_HELP section, one flag per line. (Numerous examples of this
-currently exist in usage.c.)
+line (-[abcde]) and a detailed description of each flag should go in the
+mu_full_usage section, one flag per line. (Numerous examples of this
+currently exist in usage.h.)
 
 
 Header Files

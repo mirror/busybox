@@ -129,11 +129,16 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				}
 			} else {
 				error_msg("%s not created: newer or same age file exists", file_entry->name);
-				if (S_ISREG(file_entry->mode)) {
 					seek_sub_file(src_stream, file_entry->size);
-				}
 				return (NULL);
 			}
+		}
+		if (function & extract_create_leading_dirs) { /* Create leading directories with default umask */
+			char *parent = dirname(full_name);
+			if (make_directory (parent, -1, FILEUTILS_RECUR) != 0) {
+				error_msg("couldn't create leading directories");
+			}
+			free (parent);
 		}
 		switch(file_entry->mode & S_IFMT) {
 			case S_IFREG:
@@ -153,9 +158,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				}
 				break;
 			case S_IFDIR:
-				if ((function & extract_create_dirs) && (stat_res != 0)) {
-					/* Make sure the prefix component of full_name was create
-					 * in applet before getting here*/
+				if (stat_res != 0) {
 					if (mkdir(full_name, file_entry->mode) < 0) {
 						perror_msg("extract_archive: ");
 					}
@@ -239,9 +242,6 @@ char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 			}
 			if (!found) {
 				/* seek past the data entry */
-				if (!S_ISLNK(file_entry->mode) && file_entry->link_name && file_entry->size == 0) {
-					error_msg("You should extract %s as other files are hardlinked to it", file_entry->name);
-				}
 				seek_sub_file(src_stream, file_entry->size);
 				continue;
 			}
@@ -271,6 +271,7 @@ void *get_header_ar(FILE *src_stream)
 	static char *ar_long_names;
 
 	if (fread(ar.raw, 1, 60, src_stream) != 60) {
+		free (ar_long_names);
 		return(NULL);
 	}
 	archive_offset += 60;
@@ -308,7 +309,11 @@ void *get_header_ar(FILE *src_stream)
 			archive_offset += typed->size;
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
-			return(NULL);
+			return (get_header_ar(src_stream)); /* Return next header */
+		} else if (ar.formated.name[1] == ' ') {
+			/* This is the index of symbols in the file for compilers */
+			seek_sub_file(src_stream, typed->size);
+			return (get_header_ar(src_stream)); /* Return next header */
 		} else {
 			/* The number after the '/' indicates the offset in the ar data section
 			(saved in variable long_name) that conatains the real filename */
@@ -413,6 +418,7 @@ void *get_header_cpio(FILE *src_stream)
 					cpio_entry->link_name = (char *) xcalloc(1, cpio_entry->size + 1);
 					fread(cpio_entry->link_name, 1, cpio_entry->size, src_stream);
 					archive_offset += cpio_entry->size;
+					cpio_entry->size = 0; /* Stop possiable seeks in future */
 				}
 				if (nlink > 1 && !S_ISDIR(cpio_entry->mode)) {
 					if (cpio_entry->size == 0) { /* Put file on a linked list for later */

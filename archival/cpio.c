@@ -21,7 +21,6 @@
  * Limitations:
  *		Doesn't check CRC's
  *		Only supports new ASCII and CRC formats
- *		Doesnt support hard links
  *
  */
 #include <fcntl.h>
@@ -45,9 +44,9 @@ extern int cpio_main(int argc, char **argv)
 		case 'i': // extract
 			extract_function |= extract_all_to_fs;
 			break;
-		case 'd': // create directories
-			extract_function |= extract_create_dirs;
-			oldmask = umask(077); /* Make create_path act like GNU cpio */
+		case 'd': // create _leading_ directories
+			extract_function |= extract_create_leading_dirs;
+			oldmask = umask(077); /* Make make_directory act like GNU cpio */
 			break;
 		case 'm': // preserve modification time
 			extract_function |= extract_preserve_date;

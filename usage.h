@@ -134,11 +134,11 @@
 #define cpio_full_usage \
 	"Extract or list files from a cpio archive\n" \
 	"Main operation mode:\n" \
-	"\td\t\tmake directories (assumed)\n" \
+	"\td\t\tmake leading directories\n" \
 	"\ti\t\textract\n" \
-	"\tm\t\tpreserve time\n" \
+	"\tm\t\tpreserve mtime\n" \
 	"\tt\t\tlist\n" \
-	"\tu\t\tunconditional (assumed)\t" \
+	"\tu\t\tunconditional overwrite\t" \
 	"\tF\t\tinput from file\t"
 	
 #define cut_trivial_usage \
