@@ -586,7 +586,7 @@ const char loadkmap_usage[] =
 const char logger_usage[] =
 	"logger [OPTION]... [MESSAGE]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nWrite MESSAGE to the system log.  If MESSAGE is '-', log stdin.\n\n"
+	"\nWrite MESSAGE to the system log.  If MESSAGE is omitted, log stdin.\n\n"
 	"Options:\n"
 	"\t-s\tLog to stderr as well as the system log.\n"
 	"\t-t\tLog using the specified tag (defaults to user name).\n"
