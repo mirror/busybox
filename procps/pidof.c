@@ -3,7 +3,7 @@
  * pidof implementation for busybox
  *
  * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 
 extern int pidof_main(int argc, char **argv)
 {
-	int opt;
+	int opt, n = 0;
 
 
 	/* do normal option parsing */
@@ -66,7 +66,7 @@ extern int pidof_main(int argc, char **argv)
 		}
 
 		for(; pidList && *pidList!=0; pidList++) {
-			printf("%ld ", (long)*pidList);
+			printf("%s%ld", (n++ ? " " : ""), (long)*pidList);
 		}
 		/* Note that we don't bother to free the memory
 		 * allocated in find_pid_by_name().  It will be freed
