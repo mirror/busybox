@@ -142,25 +142,18 @@
 //
 // Turn this on to use Erik's very cool devps, and devmtab kernel drivers,
 // thereby eliminating the need for the /proc filesystem and thereby saving
-// lots and lots memory for more important things.  You can not use this and
-// USE_PROCFS at the same time...  NOTE:  If you enable this feature, you
-// _must_ have patched the kernel to include the devps patch that is included
-// in the busybox/kernel-patches directory.  You will also need to create some
-// device special files in /dev on your embedded system:
+// lots and lots memory for more important things.  NOTE:  If you enable this
+// feature, you _must_ have patched the kernel to include the devps patch that
+// is included in the busybox/kernel-patches directory.  You will also need to
+// create some device special files in /dev on your embedded system:
 //        mknod /dev/mtab c 10 22
 //        mknod /dev/ps c 10 21
 // I emailed Linus and this patch will not be going into the stock kernel.
 //#define BB_FEATURE_USE_DEVPS_PATCH
 //
-// enable features that use the /proc filesystem (apps that 
-// break without this will tell you on compile)...
-// You can't use this and BB_FEATURE_USE_DEVPS_PATCH 
-// at the same time...
-#define BB_FEATURE_USE_PROCFS
-//
 // This compiles out everything but the most 
 // trivial --help usage information (i.e. reduces binary size)
-//#define BB_FEATURE_TRIVIAL_HELP
+#define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
 #define BB_FEATURE_USE_TERMIOS
@@ -197,11 +190,6 @@
 //
 //Have init enable core dumping for child processes (for debugging only) 
 //#define BB_FEATURE_INIT_COREDUMPS
-//
-// Allow init to permenently chroot, and umount the old root fs
-// just like an initrd does.  Requires a kernel patch by Werner Almesberger. 
-// ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
-//#define BB_FEATURE_INIT_CHROOT
 //
 //Make sure nothing is printed to the console on boot
 //#define BB_FEATURE_EXTRA_QUIET

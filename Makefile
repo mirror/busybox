@@ -72,7 +72,7 @@ DOLFS = false
 # If you have a "pristine" source directory, point BB_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
 # <busybox@opensource.lineo.com> if you do or don't like it so far.
-BB_SRC_DIR = .
+BB_SRC_DIR =
 
 # If you are running a cross compiler, you may want to set this
 # to something more interesting, like "powerpc-linux-".
@@ -94,13 +94,20 @@ STRIPTOOL = $(CROSS)strip
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
-#--------------------------------------------------------
-
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
+OPTIMIZATION := $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
     then echo "-Os"; else echo "-O2" ; fi)
 
 WARNINGS = -Wall
+
+#
+#--------------------------------------------------------
+# If you're going to do a lot of builds with a non-vanilla configuration,
+# it makes sense to adjust parameters above, so you can type "make"
+# by itself, instead of following it by the same half-dozen overrides
+# every time.  The stuff below, on the other hand, is probably less
+# prone to casual user adjustment.
+# 
 
 ifeq ($(strip $(DOLFS)),true)
     # For large file summit support
@@ -142,22 +149,48 @@ ifndef $(PREFIX)
 endif
 
 # Additional complications due to support for pristine source dir.
-# Config.h in the build directory should take precedence over the
-# copy in BB_SRC_DIR, both during the compilation phase and the
+# Include files in the build directory should take precedence over
+# the copy in BB_SRC_DIR, both during the compilation phase and the
 # shell script that finds the list of object files.
-#
 # Work in progress by <ldoolitt@recycle.lbl.gov>.
-# If it gets in your way, set DISABLE_VPATH=yes
-ifeq ($(strip $(DISABLE_VPATH)),yes)
-    CONFIG_H = Config.h
-else
-    VPATH = .:$(BB_SRC_DIR)
-    CONFIG_LIST = $(addsuffix /Config.h,$(subst :, ,$(VPATH)))
-    CONFIG_H    = $(word 1,$(shell ls -f -1 $(CONFIG_LIST) 2>/dev/null))
-    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+#
+ifneq ($(strip $(BB_SRC_DIR)),)
+    VPATH = $(BB_SRC_DIR)
 endif
+#ifneq ($(strip $(VPATH)),)
+#    CFLAGS += -I- -I. $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+#endif
 
-OBJECTS   = $(shell $(BB_SRC_DIR)/busybox.sh $(CONFIG_H) $(BB_SRC_DIR)) busybox.o messages.o usage.o utility.o
+# We need to set APPLET_SOURCES to something like
+#   $(shell busybox.sh Config.h)
+# but in a manner that works with VPATH and BB_SRC_DIR.
+# Possible ways to approach this:
+#
+#   1. Explicitly search through .:$(VPATH) for busybox.sh and config.h,
+#      then $(shell $(BUSYBOX_SH) $(CONFIG_H) $(BB_SRC_DIR))
+#
+#   2. Explicity search through .:$(VPATH) for slist.mk,
+#      then $(shell $(MAKE) -f $(SLIST_MK) VPATH=$(VPATH) BB_SRC_DIR=$(BB_SRC_DIR))
+#
+#   3. Create slist.mk in this directory, with commands embedded in
+#      a $(shell ...) command, and $(MAKE) it immediately.
+#
+#   4. Use a real rule within this makefile to create a file that sets 
+#      APPLET_SOURCE_LIST, then include that file.  Has complications
+#      with the first trip through the makefile (before processing the
+#      include) trying to do too much, and a spurious warning the first
+#      time make is run.
+#
+# This is option 3:
+#
+#APPLET_SOURCES = $(shell \
+#   echo -e 'all: busybox.sh Config.h\n\t@ $$(SHELL) $$^ $$(BB_SRC_DIR)' >slist.mk; \
+#   make -f slist.mk VPATH=$(VPATH) BB_SRC_DIR=$(BB_SRC_DIR) \
+#)
+# And option 4:
+-include applet_source_list
+
+OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o utility.o
 CFLAGS    += $(CROSS_CFLAGS)
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
@@ -166,12 +199,18 @@ ifdef BB_INIT_SCRIPT
 endif
 
 ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
-    PWD_LIB   = pwd_grp/libpwd.a
-    LIBRARIES += $(PWD_LIB)
+    PWD_GRP	= pwd_grp
+    PWD_GRP_DIR = $(BB_SRC_DIR)$(PWD_GRP)
+    PWD_LIB     = libpwd.a
+    LIBRARIES  += $(PWD_LIB)
+    PWD_CSRC=__getpwent.c pwent.c getpwnam.c getpwuid.c putpwent.c getpw.c \
+	    fgetpwent.c __getgrent.c grent.c getgrnam.c getgrgid.c fgetgrent.c \
+	    initgroups.c setgroups.c
+    PWD_OBJS=$(patsubst %.c,$(PWD_GRP)/%.o, $(PWD_CSRC))
+    PWD_CFLAGS = -I$(PWD_GRP_DIR)
 else
     CFLAGS    += -DUSE_SYSTEM_PWD_GRP
 endif
-
 
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
@@ -179,7 +218,10 @@ CFLAGS += $(CFLAGS_EXTRA)
 
 .EXPORT_ALL_VARIABLES:
 
-all: busybox busybox.links doc
+all: applet_source_list busybox busybox.links doc
+
+applet_source_list: busybox.sh Config.h
+	(echo -n "APPLET_SOURCES := "; $(SHELL) $^ $(BB_SRC_DIR)) > $@
 
 doc: olddoc
 
@@ -191,12 +233,12 @@ docs/BusyBox.txt: docs/busybox.pod
 	@echo BusyBox Documentation
 	@echo
 	-mkdir -p docs
-	-pod2text $(BB_SRC_DIR)/docs/busybox.pod > docs/BusyBox.txt
+	-pod2text $< > $@
 
 docs/BusyBox.1: docs/busybox.pod
 	- mkdir -p docs
 	- pod2man --center=BusyBox --release="version $(VERSION)" \
-		$(BB_SRC_DIR)/docs/busybox.pod > docs/BusyBox.1
+		$< > $@
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 	-@ rm -f docs/BusyBox.html
@@ -204,7 +246,7 @@ docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 
 docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.lineo.com
-	-  pod2html --noindex $(BB_SRC_DIR)/docs/busybox.pod > \
+	-  pod2html --noindex $< > \
 	    docs/busybox.lineo.com/BusyBox.html
 	-@ rm -f pod2html*
 
@@ -236,55 +278,62 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
 
-
 busybox: $(PWD_LIB) $(OBJECTS) 
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
 
-$(PWD_LIB):
-	$(MAKE) -eC pwd_grp
-
-busybox.links: Config.h applets.h
-	- $(BB_SRC_DIR)/busybox.mkll $(CONFIG_H) $(BB_SRC_DIR)/applets.h >$@
+# Without VPATH, rule expands to "/bin/sh busybox.mkll Config.h applets.h"
+# but with VPATH, some or all of those file names are resolved to the
+# directories in which they live.
+busybox.links: busybox.mkll Config.h applets.h
+	- $(SHELL) $^ >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
+	$(CC) $(CFLAGS) -I- -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+
+$(PWD_OBJS): %.o: %.c pwd_lib_objdir Config.h busybox.h applets.h Makefile
+	$(CC) $(CFLAGS) $(PWD_CFLAGS) -c $< -o $*.o
+
+$(PWD_LIB): $(PWD_OBJS)
+	$(AR) $(ARFLAGS) $(PWD_LIB) $^
+
+pwd_lib_objdir:
+	mkdir -p $(PWD_GRP)
 
 usage.o: usage.h
 
 utility.o: loop.h
 
 loop.h: mk_loop_h.sh
-	@ sh $<
+	@ $(SHELL) $< > $@
 
 test tests:
 	cd tests && $(MAKE) all
 
 clean:
 	- cd tests && $(MAKE) clean
-	- cd pwd_grp && $(MAKE) clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
 	- rm -f multibuild.log Config.h.orig
-	- rm -rf docs/busybox _install
-	- rm -f busybox.links loop.h *~ *.o core
+	- rm -rf docs/busybox _install $(PWD_LIB) 
+	- rm -f busybox.links loop.h *~ slist.mk core applet_source_list
+	- find -name *.o | xargs rm -f;
 
 distclean: clean
 	- rm -f busybox
 	- cd tests && $(MAKE) distclean
 
-install: busybox busybox.links
-	$(BB_SRC_DIR)/install.sh $(PREFIX)
+install: install.sh busybox busybox.links
+	$(SHELL) $< $(PREFIX)
 
-install-hardlinks: busybox busybox.links
-	$(BB_SRC_DIR)/install.sh $(PREFIX) --hardlinks
+install-hardlinks: install.sh busybox busybox.links
+	$(SHELL) $< $(PREFIX) --hardlinks
 
 debug_pristine:
 	@ echo VPATH=\"$(VPATH)\"
-	@ echo CONFIG_LIST=\"$(CONFIG_LIST)\"
-	@ echo CONFIG_H=\"$(CONFIG_H)\"
 	@ echo OBJECTS=\"$(OBJECTS)\"
 
 dist release: distclean doc
