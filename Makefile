@@ -121,7 +121,7 @@ ifdef BB_INIT_SCRIPT
 endif
 
 
-all: loop.h busybox busybox.links doc
+all: busybox busybox.links doc
 
 doc: olddoc
 
@@ -179,7 +179,7 @@ busybox.links: busybox.def.h
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
 
-utility.o: 
+utility.o: loop.h
 
 loop.h:
 	@./mk_loop_h.sh
