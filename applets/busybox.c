@@ -409,33 +409,26 @@ static char *busybox_fullpath()
 }
 
 /* create (sym)links for each applet */
-static int install_links(const char *busybox, int use_symbolic_links)
+static void install_links(const char *busybox, int use_symbolic_links)
 {
 	__link_f Link = link;
 
 	char command[256];
 	int i;
-	int rc = 0;
+	int rc;
 
 	if (use_symbolic_links) Link = symlink;
 
 	for (i = 0; applets[i].name != NULL; i++) {
-		sprintf (
-			command, 
-			"%s/%s", 
-			install_dir[applets[i].location], 
-			applets[i].name
-		);
-#if 1
-		rc |= Link(busybox, command);
-#else
-		puts(command);
-#endif
+		sprintf ( command, "%s/%s", 
+				install_dir[applets[i].location], 
+				applets[i].name);
+		rc = Link(busybox, command);
+
 		if (rc) {
 			errorMsg("%s: %s\n", command, strerror(errno));
 		}
 	}
-	return rc;
 }
 
 #endif /* BB_FEATURE_INSTALLER */
