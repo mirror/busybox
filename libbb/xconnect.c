@@ -39,9 +39,9 @@ unsigned short bb_lookup_port(const char *port, unsigned short default_port)
 		if (errno != 0 || *endptr!='\0' || endptr==port || port_long < 0 || port_long > 65535) {
 			struct servent *tserv = getservbyname(port, "tcp");
 			if (tserv) {
-			port_nr = tserv->s_port;
-		}
-	} else {
+				port_nr = tserv->s_port;
+			}
+		} else {
 			port_nr = htons(port_long);
 		}
 		errno = old_errno;
