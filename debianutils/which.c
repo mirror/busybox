@@ -30,7 +30,9 @@ static int file_exists(char *file)
 {
 	struct stat filestat;
 
-	if (stat(file, &filestat) == 0 && filestat.st_mode & S_IXUSR)
+	if (stat(file, &filestat) == 0 &&
+			S_ISREG(filestat.st_mode) &&
+			filestat.st_mode & S_IXUSR)
 		return 1;
 	else
 		return 0;
