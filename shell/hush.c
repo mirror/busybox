@@ -2555,6 +2555,7 @@ static void setup_job_control()
 	signal(SIGCHLD, sigchld_handler);
 
 	/* Put ourselves in our own process group.  */
+	setsid();
 	shell_pgrp = getpid ();
 	setpgid (shell_pgrp, shell_pgrp);
 
