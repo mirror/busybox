@@ -61,6 +61,26 @@ config CONFIG_REBOOT
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_MINIT
+	bool "minit"
+	default n
+	help
+	  Minimal init, based on minit v0.9.1
+
+config CONFIG_PIDFILEHACK
+	bool "pidfilehack"
+	default y
+	depends on CONFIG_MINIT
+	help
+	  pidfilehack is used by minit to run servers.
+
+config CONFIG_MSVC
+	bool "msvc"
+	default y
+	depends on CONFIG_MINIT
+	help
+	  msvc is used to start and stop processes controlled by minit
+
 # Should start-stop-daemon be moved under debianutils?
 config CONFIG_START_STOP_DAEMON
 	bool "start-stop-daemon"
