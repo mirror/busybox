@@ -41,10 +41,7 @@
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
 
-/* Turn this on to debug init so it won't reboot when killed */
-//#define DEBUG_INIT
-
-#define CONSOLE         "/dev/console"	/* Logical system console */
+#define VT_CONSOLE      "/dev/console"	/* Logical system console */
 #define VT_PRIMARY      "/dev/tty1"	/* Primary virtual console */
 #define VT_SECONDARY    "/dev/tty2"	/* Virtual console */
 #define VT_LOG          "/dev/tty3"	/* Virtual console */
@@ -54,7 +51,9 @@
 #define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
-static char *console = CONSOLE;
+#define LOG             0x1
+#define CONSOLE         0x2
+static char *console = VT_CONSOLE;
 static char *second_console = VT_SECONDARY;
 static char *log = VT_LOG;
 
@@ -73,43 +72,75 @@ int device_open(char *device, int mode)
 	    break;
     if (fd < 0)
 	return fd;
-    /* Set original flags. */
+    /* Reset original flags. */
     if (m != mode)
 	fcntl(fd, F_SETFL, mode);
     return fd;
 }
 
-/* print a message to the specified device */
-void message(char *device, char *fmt, ...)
+/* print a message to the specified device:
+ * device may be bitwise-or'd from LOG | CONSOLE */
+void message(int device, char *fmt, ...)
 {
     int fd;
+    static int log_fd=-1;
     va_list arguments;
 
-    if ((fd = device_open(device, O_WRONLY|O_NOCTTY|O_NDELAY)) >= 0) {
+    /* Take full control of the log tty, and never close it.
+     * It's mine, all mine!  Muhahahaha! */
+    if (log_fd==-1) {
+	if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
+	    log_fd=-1;
+	    fprintf(stderr, "Bummer, can't write to log on %s!\r\n", log);
+	    fflush(stderr);
+	    return;
+	}
+    }
+
+    if ( (device & LOG) && (log_fd != -1) ) {
 	va_start(arguments, fmt);
-	vdprintf(fd, fmt, arguments);
-	va_end(arguments);
-	close(fd);
-    } else {
-	fprintf(stderr, "Bummer, can't print: ");
-	va_start(arguments, fmt);
-	vfprintf(stderr, fmt, arguments);
-	fflush(stderr);
+	vdprintf(log_fd, fmt, arguments);
 	va_end(arguments);
     }
+    if (device & CONSOLE) {
+	if ((fd = device_open(console, O_WRONLY|O_NOCTTY|O_NDELAY)) >= 0) {
+	    va_start(arguments, fmt);
+	    vdprintf(fd, fmt, arguments);
+	    va_end(arguments);
+	    close(fd);
+	} else {
+	    fprintf(stderr, "Bummer, can't print: ");
+	    va_start(arguments, fmt);
+	    vfprintf(stderr, fmt, arguments);
+	    fflush(stderr);
+	    va_end(arguments);
+	}
+    }
 }
+
 
 /* Set terminal settings to reasonable defaults */
 void set_term( int fd)
 {
     struct termios tty;
+#if 0
     static const char control_characters[] = {
 	'\003', '\034', '\177', '\025', '\004', '\0',
 	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
 	'\017', '\027', '\026', '\0'
 	};
+#endif
+    static const char control_characters[] = {
+	'\003', '\034', '\177', '\030', '\004', '\0',
+	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
+	'\017', '\027', '\026', '\0'
+	};
 
     tcgetattr(fd, &tty);
+
+    /* Make it be sane */
+    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
+    tty.c_cflag |= HUPCL|CLOCAL;
 
     /* input modes */
     tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
@@ -129,6 +160,44 @@ void set_term( int fd)
     tcsetattr(fd, TCSANOW, &tty);
 }
 
+/* Set terminal settings to reasonable defaults */
+void set_term_old( int fd)
+{
+    struct termios tty;
+
+    ioctl(fd, TCGETA, &tty);
+
+    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
+    tty.c_cflag |= HUPCL|CLOCAL;
+
+    tty.c_cc[VINTR]    = 3;
+    tty.c_cc[VQUIT]    = 28;
+    tty.c_cc[VERASE]   = 127;
+    //tty.c_cc[VKILL]    = 21;
+    tty.c_cc[VKILL]    = 24;
+    tty.c_cc[VEOF]     = 4;
+    tty.c_cc[VTIME]    = 0;
+    tty.c_cc[VMIN]     = 1;
+    tty.c_cc[VSWTC]    = 0;
+    tty.c_cc[VSTART]   = 17;
+    tty.c_cc[VSTOP]    = 19;
+    tty.c_cc[VSUSP]    = 26;
+    tty.c_cc[VEOL]     = 0;
+    tty.c_cc[VREPRINT] = 18;
+    tty.c_cc[VDISCARD] = 15;
+    tty.c_cc[VWERASE]  = 23;
+    tty.c_cc[VLNEXT]   = 22;
+    tty.c_cc[VEOL2]    = 0;
+    
+
+    tty.c_line  = 0;
+    tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
+    tty.c_oflag = OPOST|ONLCR;
+    tty.c_lflag = ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOPRT|ECHOKE|IEXTEN;
+
+    ioctl(fd, TCSETA, &tty);
+}
+
 /* How much memory does this machine have? */
 static int mem_total()
 {
@@ -138,7 +207,7 @@ static int mem_total()
     const char pattern[] = "MemTotal:";
 
     if ((f = fopen(p, "r")) < 0) {
-	message(log, "Error opening %s: %s\n", p, strerror( errno));
+	message(LOG, "Error opening %s: %s\n", p, strerror( errno));
 	return -1;
     }
     while (NULL != fgets(s, 79, f)) {
@@ -173,7 +242,7 @@ static void console_init()
 	}
 #endif
     } else {
-	console = CONSOLE;
+	console = VT_CONSOLE;
 	tried_devcons++;
     }
 
@@ -181,7 +250,7 @@ static void console_init()
 	/* Can't open selected console -- try /dev/console */
 	if (!tried_devcons) {
 	    tried_devcons++;
-	    console = CONSOLE;
+	    console = VT_CONSOLE;
 	    continue;
 	}
 	/* Can't open selected console -- try vt1 */
@@ -197,17 +266,17 @@ static void console_init()
 	console = "/dev/null";
     else
 	close(fd);
-    message(log, "console=%s\n", console );
+    message(LOG, "console=%s\n", console );
 }
 
 static int waitfor(int pid)
 {
     int status, wpid;
 
-    message(log, "Waiting for process %d.\n", pid);
+    message(LOG, "Waiting for process %d.\n", pid);
     while ((wpid = wait(&status)) != pid) {
 	if (wpid > 0)
-	    message(log, "pid %d exited, status=%x.\n", wpid, status);
+	    message(LOG, "pid %d exited, status=0x%x.\n", wpid, status);
     }
     return wpid;
 }
@@ -236,7 +305,7 @@ static pid_t run(const char * const* command,
 	signal(SIGTERM, SIG_DFL);
 
 	if ((fd = device_open(terminal, O_RDWR)) < 0) {
-	    message(log, "Bummer, can't open %s\r\n", terminal);
+	    message(LOG, "Bummer, can't open %s\r\n", terminal);
 	    exit(-1);
 	}
 	dup(fd);
@@ -254,20 +323,22 @@ static pid_t run(const char * const* command,
 	     * specifies.
 	     */
 	    char c;
+	    message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n", 
+		    *cmd, getpid(), terminal );
 	    write(1, press_enter, sizeof(press_enter) - 1);
 	    read(0, &c, 1);
 	}
 
 	/* Log the process name and args */
-	message(log, "Starting pid(%d): '", getpid());
-	while ( *cmd) message(log, "%s ", *cmd++);
-	message(log, "'\r\n");
+	message(LOG, "Starting pid %d, console %s: '", getpid(), terminal);
+	while ( *cmd) message(LOG, "%s ", *cmd++);
+	message(LOG, "'\r\n");
 	
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
 	execvp(*command, (char**)command+1);
 
-	message(log, "Bummer, could not run '%s'\n", command);
+	message(LOG, "Bummer, could not run '%s'\n", command);
 	exit(-1);
     }
     return pid;
@@ -280,8 +351,6 @@ static void check_memory()
     struct stat statbuf;
     const char* const swap_on_cmd[] = 
 	    { "/bin/swapon", "swapon", "-a", 0};
-    const char *no_memory =
-	    "Sorry, your computer does not have enough memory.\r\n";
 
     if (mem_total() > 3500)
 	return;
@@ -296,7 +365,7 @@ static void check_memory()
     return;
 
 goodnight:
-	message(console, "%s", no_memory);
+	message(CONSOLE, "Sorry, your computer does not have enough memory.\r\n");
 	while (1) sleep(1);
 }
 
@@ -305,41 +374,39 @@ static void shutdown_system(void)
     const char* const swap_off_cmd[] = { "swapoff", "swapoff", "-a", 0};
     const char* const umount_cmd[] = { "umount", "umount", "-a", "-n", 0};
 
-    message(console, "The system is going down NOW !!\r\n");
-    sync();
 #ifndef DEBUG_INIT
     /* Allow Ctrl-Alt-Del to reboot system. */
     reboot(RB_ENABLE_CAD);
 #endif
+    message(CONSOLE, "The system is going down NOW !!\r\n");
+    sync();
     /* Send signals to every process _except_ pid 1 */
-    message(console, "Sending SIGHUP to all processes.\r\n");
+    message(CONSOLE, "Sending SIGHUP to all processes.\r\n");
 #ifndef DEBUG_INIT
     kill(-1, SIGHUP);
 #endif
     sleep(2);
     sync();
-    message(console, "Sending SIGKILL to all processes.\r\n");
+    message(CONSOLE, "Sending SIGKILL to all processes.\r\n");
 #ifndef DEBUG_INIT
     kill(-1, SIGKILL);
 #endif
     sleep(1);
-    waitfor(run( swap_off_cmd, log, FALSE));
-    waitfor(run( umount_cmd, log, FALSE));
+    waitfor(run( swap_off_cmd, console, FALSE));
+    waitfor(run( umount_cmd, console, FALSE));
     sync();
-    if (get_kernel_revision() <= 2 * 65536 + 2 * 256 + 11) {
-	/* Removed  bdflush call, kupdate in kernels >2.2.11 */
-	bdflush(1, 0);
-	sync();
-    }
+    bdflush(1, 0);
 }
 
 static void halt_signal(int sig)
 {
     shutdown_system();
-    message(console,
+    message(CONSOLE,
 	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
+    sync();
 #ifndef DEBUG_INIT
-    reboot(RB_POWER_OFF);
+    reboot(RB_HALT_SYSTEM);
+    //reboot(RB_POWER_OFF);
 #endif
     exit(0);
 }
@@ -347,7 +414,8 @@ static void halt_signal(int sig)
 static void reboot_signal(int sig)
 {
     shutdown_system();
-    message(console, "Please stand by while rebooting the system.\r\n");
+    message(CONSOLE, "Please stand by while rebooting the system.\r\n");
+    sync();
 #ifndef DEBUG_INIT
     reboot(RB_AUTOBOOT);
 #endif
@@ -410,22 +478,17 @@ extern int init_main(int argc, char **argv)
    
     /* Hello world */
 #ifndef DEBUG_INIT
-    message(log, hello_msg_format, BB_VER, BB_BT);
-    message(console, hello_msg_format, BB_VER, BB_BT);
+    message(CONSOLE|LOG, hello_msg_format, BB_VER, BB_BT);
 #else
-    message(log, hello_msg_format, getpid(), BB_VER, BB_BT);
-    message(console, hello_msg_format, getpid(), BB_VER, BB_BT);
+    message(CONSOLE|LOG, hello_msg_format, getpid(), BB_VER, BB_BT);
 #endif
 
     
     /* Mount /proc */
-    if (mount ("proc", "/proc", "proc", 0, 0) == 0) {
-	message(log, "Mounting /proc: done.\n");
-	message(console, "Mounting /proc: done.\n");
-    } else {
-	message(log, "Mounting /proc: failed!\n");
-	message(console, "Mounting /proc: failed!\n");
-    }
+    if (mount ("proc", "/proc", "proc", 0, 0) == 0)
+	message(CONSOLE|LOG, "Mounting /proc: done.\n");
+    else
+	message(CONSOLE|LOG, "Mounting /proc: failed!\n");
 
     /* Make sure there is enough memory to do something useful. */
     check_memory();
@@ -453,12 +516,13 @@ extern int init_main(int argc, char **argv)
 	}
 	wpid = wait(&status);
 	if (wpid > 0 ) {
-	    message(log, "pid %d exited, status=%x.\n", wpid, status);
+	    message(LOG, "pid %d exited, status=%x.\n", wpid, status);
 	}
 	if (wpid == pid1) {
 	    pid1 = 0;
 	    if (run_rc == TRUE) {
-		/* Don't respawn init script if it exits. */
+		/* Don't respawn init script if it exits,
+		 * Start a shell instead. */
 		run_rc=FALSE;
 		wait_for_enter=TRUE;
 		tty0_commands=shell_commands;

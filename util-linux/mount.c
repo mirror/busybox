@@ -98,6 +98,7 @@ parse_mount_options ( char *options, unsigned long *flags, char *strflags)
 
 	while (f->name != 0) {
 	    if (strcasecmp (f->name, options) == 0) {
+
 		*flags &= f->and;
 		*flags |= f->or;
 		gotone=TRUE;
@@ -238,7 +239,7 @@ extern int mount_main (int argc, char **argv)
 		flags &= ~MS_RDONLY;
 		break;
 	    case 'a':
-		all = 1;
+		all = TRUE;
 		break;
 	    case 'v':
 	    case 'h':
@@ -261,7 +262,8 @@ extern int mount_main (int argc, char **argv)
 	argv++;
     }
 
-    if (all == 1) {
+    if (all == TRUE) {
+	long newFlags;
 	struct mntent *m;
 	FILE *f = setmntent ("/etc/fstab", "r");
 
@@ -270,14 +272,17 @@ extern int mount_main (int argc, char **argv)
 	    exit( FALSE); 
 	}
 	while ((m = getmntent (f)) != NULL) {
-	    // If the file system isn't noauto, and isn't mounted on /, mount 
-	    // it
-	    if ((!strstr (m->mnt_opts, "noauto"))
-		&& (m->mnt_dir[1] != '\0') && !((m->mnt_type[0] == 's')
-						&& (m->mnt_type[1] == 'w'))
-		&& !((m->mnt_type[0] == 'n') && (m->mnt_type[1] == 'f'))) {
-		mount_one (m->mnt_fsname, m->mnt_dir, m->mnt_type, flags,
-			   m->mnt_opts);
+	    // If the file system isn't noauto, and isn't mounted on /, 
+	    // and isn't swap or nfs, then mount it
+	    if ((!strstr (m->mnt_opts, "noauto")) &&
+		    (m->mnt_dir[1] != '\0') && 
+		    (!strstr (m->mnt_type, "swap")) && 
+		    (!strstr (m->mnt_type, "nfs"))) 
+	    {
+		newFlags = flags;
+		*string_flags = '\0';
+		parse_mount_options(m->mnt_opts, &newFlags, string_flags);
+		mount_one (m->mnt_fsname, m->mnt_dir, m->mnt_type, newFlags, string_flags);
 	    }
 	}
 	endmntent (f);
