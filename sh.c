@@ -1086,7 +1086,6 @@ static int expand_arguments(char *command)
 			src = dst+subst_len;
 		}
 	}
-	printf("expanded '%s'\n", command);
 
 #endif	
 	return TRUE;
