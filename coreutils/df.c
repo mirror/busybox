@@ -103,9 +103,6 @@ extern int df_main(int argc, char **argv)
 		}
 
 		while ((mountEntry = getmntent(mountTable))) {
-			if (strcmp(mountEntry->mnt_fsname, "none") == 0) {
-				continue;
-			}
 			df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
 		}
 		endmntent(mountTable);

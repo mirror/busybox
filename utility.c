@@ -1199,9 +1199,6 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
 		return 0;
 
 	while ((mountEntry = getmntent(mountTable)) != 0) {
-		if (strcmp(mountEntry->mnt_fsname, "none") == 0) {
-			continue;
-		}
 		if (strcmp(name, mountEntry->mnt_dir) == 0
 			|| strcmp(name, mountEntry->mnt_fsname) == 0)	/* String match. */
 			break;

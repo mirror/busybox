@@ -358,10 +358,6 @@ extern int mount_main(int argc, char **argv)
 			fatalError( "\nDEVMTAB_GET_MOUNTS: %s\n", strerror (errno));
 
 		for( i = 0 ; i < numfilesystems ; i++) {
-			/* klude around Linux 2.4.x stupidity */
-			if (strcmp(mntentlist[i].mnt_fsname, "none") == 0) {
-				continue;
-			}
 			fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
 					mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
 					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
@@ -384,10 +380,6 @@ extern int mount_main(int argc, char **argv)
 
 			while ((m = getmntent(mountTable)) != 0) {
 				char *blockDevice = m->mnt_fsname;
-				/* klude around Linux 2.4.x stupidity */
-				if (strcmp(blockDevice, "none") == 0) {
-					continue;
-				}
 				if (strcmp(blockDevice, "/dev/root") == 0) {
 					find_real_root_device_name( blockDevice);
 				}
