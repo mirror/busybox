@@ -354,7 +354,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 		for ( i = 0; i < argc; i++ ) 
 			l += ( xstrlen ( argv [i] ) + 1 );
 		
-		head-> m_module = realloc ( head-> m_module, l + 1 );
+		head-> m_module = xrealloc ( head-> m_module, l + 1 );
 		
 		for ( i = 0; i < argc; i++ ) {
 			strcat ( head-> m_module, " " );
@@ -440,7 +440,7 @@ extern int modprobe_main(int argc, char** argv)
 	
 	if (remove_opt) {
 		do {
-			mod_remove ( optind < argc ? argv [optind] : 0 );
+			mod_remove ( optind < argc ? xstrdup ( argv [optind] ) : 0 );
 		} while ( ++optind < argc );
 		
 		return EXIT_SUCCESS;
@@ -449,7 +449,7 @@ extern int modprobe_main(int argc, char** argv)
 	if (optind >= argc) 
 		error_msg_and_die ( "No module or pattern provided\n" );
 	
-	return mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1 ) ? \
+	return mod_insert ( xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 ) ? \
 	       EXIT_FAILURE : EXIT_SUCCESS;
 }
 
