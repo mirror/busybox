@@ -203,7 +203,7 @@ unsigned int shell_context;  /* Used in cmdedit.c to reset the
 
 /* Globals that are static to this file */
 static char *cwd;
-static char *local_pending_command;
+static char *local_pending_command = NULL;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
