@@ -71,9 +71,10 @@ uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
 
 =item basename
 
-Usage: basename [file ...]
+Usage: basename FILE [SUFFIX]
 
-Strips directory path and suffixes from FILE(s). 
+Strips directory path and suffixes from FILE.
+If specified, also removes any trailing SUFFIX.
 
 Example: 
 
@@ -81,6 +82,8 @@ Example:
 	foo
 	$ basename /usr/local/bin/
 	bin
+	$ basename /foo/bar.txt .txt
+	bar
 
 -------------------------------
 
@@ -1878,4 +1881,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.28 2000/05/05 19:49:33 erik Exp $
+# $Id: busybox.pod,v 1.29 2000/05/10 05:00:31 erik Exp $

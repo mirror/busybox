@@ -15,15 +15,17 @@
 		does force anyway
 	    * tail can now accept -<num> commands (e.g. -10) for better 
 		compatibility with the standard tail command
-	    * added a simple id implementation; doesn't support supp. groups yet
-	* logname used getlogin(3) which uses utmp under the hood.  Now it behaves. 
+	    * added a simple id implementation; doesn't support sup. groups yet
+	* logname used getlogin(3) which uses utmp.  Now it doesn't. 
 	* whoami used getpwuid(3) which uses libc NSS.  Now it behaves. 
-	* Due to the license change, I can now use minix code.  Minux tr replaces
-	    the BSD derived tr, saving 4k and eliminating bsearch(3) from the
-	    list of used Libc symbols.
+	* Due to the license change, I can now use minix code.  Minux tr 
+	    replaces the BSD derived tr, saving 4k and eliminating bsearch(3) 
+	    from the list of used Libc symbols.
 	* Add support for "noatime" and "nodiratime" mount flags to mount.
 	* Changed 'umount -f' to mean force, and actually use umount2.
 	* Changed 'umount -l' to mean "Do not free loop device".
+	* Fixed basename to support stripping of suffixes.  Patch thanks
+	    to xiong jianxin <jxiong@uiuc.edu>
 	* More doc updates
 
 	 -Erik

@@ -26,12 +26,14 @@
 
 extern int basename_main(int argc, char **argv)
 {
-	char* s, *s1;
+	int m, n;
+	char *s, *s1;
 
 	if ((argc < 2) || (**(argv + 1) == '-')) {
-		usage("basename [FILE ...]\n"
+		usage("basename FILE [SUFFIX]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nStrips directory path and suffixes from FILE(s).\n"
+				"\nStrips directory path and suffixes from FILE.\n"
+				"If specified, also removes any trailing SUFFIX.\n"
 #endif
 				);
 	}
@@ -40,10 +42,20 @@ extern int basename_main(int argc, char **argv)
 	s1=*argv+strlen(*argv)-1;
 	while (s1 && *s1 == '/') {
 		*s1 = '\0';
-		s1=*argv+strlen(*argv)-1;
+		s1--;
 	}
 	s = strrchr(*argv, '/');
-	printf("%s\n", (s)? s + 1 : *argv);
+	if (s==NULL) s=*argv;
+	else s++;
+
+	if (argc>2) {
+		argv++;
+		n = strlen(*argv);
+		m = strlen(s);
+		if (m>=n && strncmp(s+m-n, *argv, n)==0)
+			s[m-n] = '\0';
+	}
+	printf("%s\n", s);
 	exit(TRUE);
 }
 
