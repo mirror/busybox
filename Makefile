@@ -160,21 +160,20 @@ $(TOPDIR)include/config.h:
 	fi;
 
 $(TOPDIR).config:
-	cp $(TOPDIR)sysdeps/$(TARGET_OS)/defconfig $(TOPDIR).config
+	@if [ ! -f $(TOPDIR).config ] ; then \
+	    cp $(TOPDIR)sysdeps/$(TARGET_OS)/defconfig $(TOPDIR).config; \
+	fi;
+
+menuconfig: $(TOPDIR).config
 	mkdir -p $(TOPDIR)include/config
 	$(MAKE) -C scripts/lxdialog all
 	$(BB_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
 
-menuconfig:
-	mkdir -p $(TOPDIR)include/config
-	$(MAKE) -C scripts/lxdialog all
-	$(BB_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
-
-config:
+config: $(TOPDIR).config
 	mkdir -p $(TOPDIR)include/config
 	$(BB_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
 
-oldconfig:
+oldconfig: $(TOPDIR).config
 	mkdir -p $(TOPDIR)include/config
 	$(BB_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
 
