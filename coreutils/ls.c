@@ -145,6 +145,14 @@ static const int SPLIT_SUBDIR = 2;
 #ifdef CONFIG_FEATURE_LS_FILETYPES
 #define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
 #endif
+/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
+#ifdef CONFIG_FEATURE_LS_COLOR
+static int show_color = 0;
+#define COLOR(mode)   ("\000\043\043\043\042\000\043\043"\
+					   "\000\000\044\000\043\000\000\040" [TYPEINDEX(mode)])
+#define ATTR(mode)   ("\00\00\01\00\01\00\01\00"\
+					  "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
+#endif
 
 /*
  * a directory entry and its stat info are stored here
@@ -220,6 +228,31 @@ static void newline(void)
         column = 0;
     }
 }
+
+/*----------------------------------------------------------------------*/
+#ifdef CONFIG_FEATURE_LS_COLOR
+static char fgcolor(mode_t mode)
+{
+	/* Check wheter the file is existing (if so, color it red!) */
+	if ( errno == ENOENT ) {
+		errno = 0;
+	    return '\037';
+	}
+	if ( LIST_EXEC && S_ISREG( mode )
+	    && ( mode & ( S_IXUSR | S_IXGRP | S_IXOTH ) ) ) 
+		return COLOR(0xF000);	/* File is executable ... */
+	return COLOR(mode);
+}
+
+/*----------------------------------------------------------------------*/
+static char bgcolor(mode_t mode)
+{
+	if ( LIST_EXEC && S_ISREG( mode )
+	    && ( mode & ( S_IXUSR | S_IXGRP | S_IXOTH ) ) ) 
+		return ATTR(0xF000);	/* File is executable ... */
+	return ATTR(mode);
+}
+#endif
 
 /*----------------------------------------------------------------------*/
 #ifdef CONFIG_FEATURE_LS_FILETYPES
@@ -682,17 +715,40 @@ static int list_single(struct dnode *dn)
 				break;
 #endif
 			case LIST_FILENAME:
+#ifdef CONFIG_FEATURE_LS_COLOR
+				if (show_color && !lstat(dn->fullname, &info)) {
+				    printf( "\033[%d;%dm", bgcolor(info.st_mode), 
+								fgcolor(info.st_mode) );
+				}
+#endif
 				printf("%s", dn->name);
+#ifdef CONFIG_FEATURE_LS_COLOR
+				if (show_color) {
+					printf( "\033[0m" );
+				}
+#endif
 				column += strlen(dn->name);
 				break;
 			case LIST_SYMLINK:
 				if (S_ISLNK(dn->dstat.st_mode)) {
 					char *lpath = xreadlink(dn->fullname);
 					if (lpath) {
-						printf(" -> %s", lpath);
-#ifdef CONFIG_FEATURE_LS_FILETYPES
+						printf(" -> ");
+#if defined(BB_FEATURE_LS_FILETYPES) || defined(CONFIG_FEATURE_LS_COLOR)
 						if (!stat(dn->fullname, &info)) {
 							append = append_char(info.st_mode);
+						}
+#endif
+#ifdef CONFIG_FEATURE_LS_COLOR
+						if (show_color) {
+							printf( "\033[%d;%dm", bgcolor(info.st_mode), 
+									fgcolor(info.st_mode) );
+						}
+#endif
+						printf("%s", lpath);
+#ifdef CONFIG_FEATURE_LS_COLOR
+						if (show_color) {
+							printf( "\033[0m" );
 						}
 #endif
 						column += strlen(lpath) + 4;
@@ -746,6 +802,11 @@ extern int ls_main(int argc, char **argv)
 		terminal_width = win.ws_col - 1;
 #endif
 	nfiles=0;
+
+#ifdef CONFIG_FEATURE_LS_COLOR
+	if (isatty(fileno(stdout)))
+		show_color = 1;
+#endif
 
 	/* process options */
 	while ((opt = getopt(argc, argv, "1AaCdgilnsx"
