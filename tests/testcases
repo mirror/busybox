@@ -43,7 +43,13 @@ cat tester.sh
 
 # cut
 echo "1234" | cut -c1
+echo "1234" | cut -c 1
+echo "1234567890" | cut -c2-7
+echo "1234567890" | cut -c 2-7
 echo "f1	f2" | cut -f2
+echo "f1	f2" | cut -f 2
+echo "f1	f2	f3	f4	f5" | cut -f2-4
+echo "f1	f2	f3	f4	f5" | cut -f 2-4
 
 # date
 date
