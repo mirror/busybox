@@ -32,7 +32,7 @@
 #include "busybox.h"
 
 // if fn is NULL then input is stdin and output is stdout
-extern int convert(char *fn, int ConvType) {
+static int convert(char *fn, int ConvType) {
 	char c;
 	char *tempFn = NULL;
 	FILE *in = stdin, *out = stdout;

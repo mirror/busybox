@@ -247,6 +247,6 @@ extern int gz_open(FILE *compressed_file, int *pid);
 #define CT_AUTO	0
 #define CT_UNIX2DOS	1
 #define CT_DOS2UNIX	2
-extern int convert(char *fn, int ConvType);
+/* extern int convert(char *fn, int ConvType); */
 
 #endif /* __LIBBB_H__ */
