@@ -862,7 +862,7 @@
 		</para>
 
 		<para>
-		Returns an exit code of FALSE (1).
+		Return an exit code of FALSE (1).
 		</para>
 
 		<para>
@@ -1463,7 +1463,7 @@
 		</para>
 
 		<para>
-		Loads MODULE into the kernel.
+		Load MODULE into the kernel.
 		</para>
 
 		<para>
@@ -2352,1941 +2352,1300 @@
 		</para>
 	</sect1>
 
-<!-- This is where I have stopped formatting stuff -->
-<varlistentry><term><emphasis>ps
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: ps
-
-
-</para>
-
-<para>
-Report process status
-
-
-</para>
-
-<para>
-This version of ps accepts no options.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ps
-  PID  Uid      Gid State Command
-    1 root     root     S init
-    2 root     root     S [kflushd]
-    3 root     root     S [kupdate]
-    4 root     root     S [kpiod]
-    5 root     root     S [kswapd]
-  742 andersen andersen S [bash]
-  743 andersen andersen S -bash
-  745 root     root     S [getty]
- 2990 andersen andersen R ps
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>pwd
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Prints the full filename of the current working directory.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ pwd
-        /root
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>reboot
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Instructs the kernel to reboot the system.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>rm
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: rm [OPTION]... FILE...
-
-
-</para>
-
-<para>
-Remove (unlink) the <literal>FILE(s).</literal> You may use '--' to
-indicate that all following arguments are non-options.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -f              remove existing destinations, never prompt
-        -r or -R        remove the contents of directories recursively
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ rm -rf /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>rmdir
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: rmdir [OPTION]... DIRECTORY...
-
-
-</para>
-
-<para>
-Remove the <literal>DIRECTORY(ies),</literal> if they are empty.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        # rmdir /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>rmmod
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: rmmod [OPTION]... [MODULE]...
-
-
-</para>
-
-<para>
-Unloads the specified kernel modules from the kernel.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Try to remove all unused kernel modules.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ rmmod tulip
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sed
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sed [<emphasis>-n</emphasis>] <emphasis>-e</emphasis> script [file...]
-
-
-</para>
-
-<para>
-Allowed sed scripts come in the following form:
-
-
-</para>
-
-<para>
-<screen>
-        'ADDR [!] COMMAND'
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        where address ADDR can be:
-          NUMBER    Match specified line number
-          $         Match last line
-          /REGEXP/  Match specified regexp
-          (! inverts the meaning of the match)
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        and COMMAND can be:
-          s/regexp/replacement/[igp]
-                 which attempt to match regexp against the pattern space
-                 and if successful replaces the matched portion with replacement.
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-          aTEXT
-                 which appends TEXT after the pattern space
-</screen>
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -e      add the script to the commands to be executed
-        -n      suppress automatic printing of pattern space
-</screen>
-
-
-</para>
-
-<para>
-This version of sed matches full regular expressions.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'
-        bar
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>setkeycodes
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: setkeycodes SCANCODE KEYCODE ...
-
-
-</para>
-
-<para>
-Set entries into the kernel's scancode-to-keycode map, allowing unusual
-keyboards to generate usable keycodes.
-
-
-</para>
-
-<para>
-SCANCODE may be either xx or e0xx (hexadecimal), and KEYCODE is given in
-decimal
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        # setkeycodes e030 127
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sfdisk
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sfdisk [options] device ...
-
-
-</para>
-
-<para>
-device: something like /dev/hda or /dev/sda
-
-
-</para>
-
-<para>
-useful options:
-
-
-</para>
-
-<para>
-<screen>
-    -s [or --show-size]: list size of a partition
-    -c [or --id]:        print or change partition Id
-    -l [or --list]:      list partitions of each device
-    -d [or --dump]:      idem, but in a format suitable for later input
-    -i [or --increment]: number cylinders etc. from 1 instead of from 0
-    -uS, -uB, -uC, -uM:  accept/report in units of sectors/blocks/cylinders/MB
-    -T [or --list-types]:list the known partition types
-    -D [or --DOS]:       for DOS-compatibility: waste a little space
-    -R [or --re-read]:   make kernel reread partition table
-    -N# :                change only the partition with number #
-    -n :                 do not actually write to disk
-    -O file :            save the sectors that will be overwritten to file
-    -I file :            restore these sectors again
-    -v [or --version]:   print version
-    -? [or --help]:      print this message
-</screen>
-
-
-</para>
-
-<para>
-dangerous options:
-
-
-</para>
-
-<para>
-<screen>
-    -g [or --show-geometry]: print the kernel's idea of the geometry
-    -x [or --show-extended]: also list extended partitions on output
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-                             or expect descriptors for them on input
-    -L  [or --Linux]:      do not complain about things irrelevant for Linux
-    -q  [or --quiet]:      suppress warning messages
-    You can override the detected geometry using:
-    -C# [or --cylinders #]:set the number of cylinders to use
-    -H# [or --heads #]:    set the number of heads to use
-    -S# [or --sectors #]:  set the number of sectors to use
-</screen>
-
-
-</para>
-
-<para>
-You can disable all consistency checking with:
-
-
-</para>
-
-<para>
-<screen>
-    -f  [or --force]:      do what I say, even if it is stupid
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sh
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sh
-
-
-</para>
-
-<para>
-lash -- the BusyBox LAme SHell (command interpreter)
-
-
-</para>
-
-<para>
-This command does not yet have proper documentation.  
-
-
-</para>
-
-<para>
-Use lash just as you would use any other shell. It properly handles pipes,
-redirects, job control, can be used as the shell for scripts (#!/bin/sh),
-and has a sufficient set of builtins to do what is needed. It does not
-(yet) support Bourne Shell syntax. If you need things like
-``if-then-else'', ``while'', and such, use ash or bash. If you just need a
-very simple and extremely small shell, this will do the job.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sleep
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sleep N
-
-
-</para>
-
-<para>
-Pause for N seconds.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ sleep 2
-        [2 second delay results]
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sort
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sort [<emphasis>-n</emphasis>] [<emphasis>-r</emphasis>] [FILE]...
-
-
-</para>
-
-<para>
-Sorts lines of text in the specified files
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo -e "e\nf\nb\nd\nc\na" | sort
-        a
-        b
-        c
-        d
-        e
-        f
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>swapoff
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: swapoff [OPTION] [device]
-
-
-</para>
-
-<para>
-Stop swapping virtual memory pages on the given device.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Stop swapping on all swap devices
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>swapon
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: swapon [OPTION] [device]
-
-
-</para>
-
-<para>
-Start swapping virtual memory pages on the given device.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      Start swapping on all swap devices
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>sync
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: sync
-
-
-</para>
-
-<para>
-Write all buffered filesystem blocks to disk.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>syslogd
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: syslogd [OPTION]...
-
-
-</para>
-
-<para>
-Linux system and kernel (provides klogd) logging utility. Note that this
-version of syslogd/klogd ignores /etc/syslog.conf.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m NUM          Interval between MARK lines (default=20min, 0=off)
-        -n              Run as a foreground process
-        -K              Do not start up the klogd process
-        -O FILE         Use an alternate log file (default=/var/log/messages)
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>tail
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: tail [OPTION] [FILE]...
-
-
-</para>
-
-<para>
-Print last 10 lines of each FILE to standard output. With more than one
-FILE, precede each with a header giving the file name. With no FILE, or
-when FILE is -, read standard input.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -n NUM          Print last NUM lines instead of first 10
-        -f              Output data as the file grows.  This version
-                        of 'tail -f' supports only one file at a time.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ tail -n 1 /etc/resolv.conf
-        nameserver 10.0.0.1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>tar
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: tar -[cxtvO] [<emphasis>--exclude</emphasis> File] [<emphasis>-f</emphasis> tarFile] [FILE] ...
-
-
-</para>
-
-<para>
-Create, extract, or list files from a tar file. Note that this version of
-tar treats hard links as separate files.
-
-
-</para>
-
-<para>
-Main operation mode:
-
-
-</para>
-
-<para>
-<screen>
-        c               create
-        x               extract
-        t               list
-</screen>
-
-
-</para>
-
-<para>
-File selection:
-
-
-</para>
-
-<para>
-<screen>
-        f               name of tarfile or "-" for stdin
-        O               extract to stdout
-        --exclude       file to exclude
-</screen>
-
-
-</para>
-
-<para>
-Informative output:
-
-
-</para>
-
-<para>
-<screen>
-        v               verbosely list files processed
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ zcat /tmp/tarball.tar.gz | tar -xf -
-        $ tar -cf /tmp/tarball.tar /usr/local
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>tee
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: tee [OPTION]... [FILE]...
-
-
-</para>
-
-<para>
-Copy standard input to each FILE, and also to standard output.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      append to the given FILEs, do not overwrite
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo "Hello" | tee /tmp/foo
-        $ cat /tmp/foo
-        Hello
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>telnet
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: telnet host [port]
-
-
-</para>
-
-<para>
-Telnet is used to establish interactive communication with another computer
-over a network using the TELNET protocol.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>test, [
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: test EXPRESSION or [ EXPRESSION ]
-
-
-</para>
-
-<para>
-Checks file types and compares values returning an exit code determined by
-the value of EXPRESSION.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ test 1 -eq 2
-        $ echo $?
-        1
-        $ test 1 -eq 1
-        $ echo $?
-        0
-        $ [ -d /etc ]
-        $ echo $?
-        0
-        $ [ -d /junk ]
-        $ echo $?
-        1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>touch
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: touch [<emphasis>-c</emphasis>] file [file ...]
-
-
-</para>
-
-<para>
-Update the last-modified date on (or create) the selected file[s].
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ls -l /tmp/foo
-        /bin/ls: /tmp/foo: No such file or directory
-        $ touch /tmp/foo
-        $ ls -l /tmp/foo
-        -rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>tr
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: tr [-cds] STRING1 [STRING2]
-
-
-</para>
-
-<para>
-Translate, squeeze, and/or delete characters from standard input, writing
-to standard output.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c      take complement of STRING1
-        -d      delete input characters coded STRING1
-        -s      squeeze multiple output characters of STRING2 into one character
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo "gdkkn vnqkc" | tr [a-y] [b-z]
-        hello world
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>true
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Returns an exit code of TRUE (0)
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ true
-        $ echo $?
-        0
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>tty
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: tty
-
-
-</para>
-
-<para>
-Print the file name of the terminal connected to standard input.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -s      print nothing, only return an exit status
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ tty
-        /dev/tty2
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>umount
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: umount [flags] filesystem|directory
-
-
-</para>
-
-<para>
-Flags:
-
-
-</para>
-
-<para>
-<screen>
-                -a:     Unmount all file systems
-                -r:     Try to remount devices as read-only if mount is busy
-                -f:     Force filesystem umount (i.e. unreachable NFS server)
-                -l:     Do not free loop device (if a loop device has been used)
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ umount /dev/hdc1 
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uname
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uname [OPTION]...
-
-
-</para>
-
-<para>
-Print certain system information. With no OPTION, same as <emphasis>-s</emphasis>.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -a      print all information
-        -m      the machine (hardware) type
-        -n      print the machine's network node hostname
-        -r      print the operating system release
-        -s      print the operating system name
-        -p      print the host processor type
-        -v      print the operating system version
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uname -a
-        Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uniq
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uniq [OPTION]... [INPUT [OUTPUT]]
-
-
-</para>
-
-<para>
-Discard all but one of successive identical lines from INPUT (or standard
-input), writing to OUTPUT (or standard output).
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo -e "a\na\nb\nc\nc\na" | sort | uniq
-        a
-        b
-        c
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>update
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: update [options]
-
-
-</para>
-
-<para>
-Periodically flushes filesystem buffers.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -S      force use of sync(2) instead of flushing
-        -s SECS call sync this often (default 30)
-        -f SECS flush some buffers this often (default 5)
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uptime
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uptime
-
-
-</para>
-
-<para>
-Tells how long the system has been running since boot.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uptime
-          1:55pm  up  2:30, load average: 0.09, 0.04, 0.00
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>usleep
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: usleep N
-
-
-</para>
-
-<para>
-Pauses for N microseconds.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ usleep 1000000
-        [pauses for 1 second]
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uudecode
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uudecode [OPTION] [FILE]
-
-
-</para>
-
-<para>
-Uudecode a uuencoded file
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -o FILE  direct output to FILE
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uudecode -o busybox busybox.uu
-        $ ls -l busybox
-        -rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>uuencode
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: uuencode [OPTION] [INFILE] REMOTEFILE
-
-
-</para>
-
-<para>
-Uuencode a file.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m      use base64 encoding as of RFC1521
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ uuencode busybox busybox
-        begin 755 busybox
-        M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&amp;
-        .....
-        $ uudecode busybox busybox &gt; busybox.uu
-        $
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>wc
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: wc [OPTION]... [FILE]...
-
-
-</para>
-
-<para>
-Print line, word, and byte counts for each FILE, and a total line if more
-than one FILE is specified. With no FILE, read standard input.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c      print the byte counts
-        -l      print the newline counts
-        -L      print the length of the longest line
-        -w      print the word counts
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ wc /etc/passwd
-             31      46    1365 /etc/passwd
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>which
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: which [COMMAND ...]
-
-
-</para>
-
-<para>
-Locates a COMMAND.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ which login
-        /bin/login
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>whoami
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: whoami
-
-
-</para>
-
-<para>
-Prints the user name associated with the current effective user id.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ whoami
-        andersen
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>yes
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: yes [OPTION]... [STRING]...
-
-
-</para>
-
-<para>
-Repeatedly outputs a line with all specified <literal>STRING(s),</literal>
-or `y'.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>zcat
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-This is essentially an alias for invoking ``gunzip <emphasis>-c</emphasis>'', where it decompresses the file in question and send the output to
-stdout. 
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry></variablelist>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-6"><title>LIBC NSS
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-GNU Libc uses the Name Service Switch (NSS) to configure the behavior of
-the C library for the local environment, and to configure how it reads
-system data, such as passwords and group information. BusyBox has made it
-Policy that it will never use NSS, and will never use libc calls that
-make use of NSS. This allows you to run an embedded system without the need
-for installing an /etc/nsswitch.conf file and without /lib/libnss_*
-libraries installed.
-
-
-</para>
-
-<para>
-If you are using a system that is using a remote LDAP server for
-authentication via GNU libc NSS, and you want to use BusyBox, then you will
-need to adjust the BusyBox source. Chances are though, that if you have
-enough space to install of that stuff on your system, then you probably
-want the full GNU utilities.
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-7"><title>SEE ALSO
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-<literal>textutils(1),</literal> <literal>shellutils(1),</literal> etc...
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-8"><title>MAINTAINER
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-Erik Andersen &lt;andersee@debian.org&gt; &lt;andersen@lineo.com&gt;
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-9"><title>AUTHORS
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-The following people have contributed code to BusyBox whether they know it
-or not.
-
-
-</para>
-
-<para>
-Erik Andersen &lt;andersee@debian.org&gt;
-
-
-</para>
-
-<para>
-John Beppu &lt;beppu@lineo.com&gt;
-
-
-</para>
-
-<para>
-Brian Candler &lt;B.Candler@pobox.com&gt;
-
-
-</para>
-
-<para>
-Randolph Chung &lt;tausq@debian.org&gt;
-
-
-</para>
-
-<para>
-Dave Cinege &lt;dcinege@psychosis.com&gt;	
-
-
-</para>
-
-<para>
-Karl M. Hegbloom &lt;karlheg@debian.org&gt;
-
-
-</para>
-
-<para>
-John Lombardo &lt;john@deltanet.com&gt;	
-
-
-</para>
-
-<para>
-Glenn McGrath &lt;bug1@netconnect.com.au&gt;
-
-
-</para>
-
-<para>
-Bruce Perens &lt;bruce@perens.com&gt;
-
-
-</para>
-
-<para>
-Pavel Roskin &lt;proski@gnu.org&gt;
-
-
-</para>
-
-<para>
-Linus Torvalds &lt;torvalds@transmeta.com&gt;
-
-
-</para>
-
-<para>
-Charles P. Wright &lt;cpwright@villagenet.com&gt;
-
-
-</para>
-
-<para>
-Enrique Zanardi &lt;ezanardi@ull.es&gt;
-
-
-</para>
-
-</sect1>
-
-</chapter>
-
-
+	<sect1 id="ps">
+	    <title>ps</title>
+
+		<para>
+		Usage: ps
+		</para>
+
+		<para>
+		Report process status.  This version of ps accepts no
+		options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ps
+			  PID  Uid      Gid State Command
+			    1 root     root     S init
+			    2 root     root     S [kflushd]
+			    3 root     root     S [kupdate]
+			    4 root     root     S [kpiod]
+			    5 root     root     S [kswapd]
+			  742 andersen andersen S [bash]
+			  743 andersen andersen S -bash
+			  745 root     root     S [getty]
+			 2990 andersen andersen R ps
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="pwd">
+	    <title>pwd</title>
+
+		<para>
+		Usage: pwd
+		</para>
+
+		<para>
+		Print the full filename of the current working
+		directory.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ pwd
+			/root
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="reboot">
+	    <title>reboot</title>
+
+		<para>
+		Usage: reboot
+		</para>
+
+		<para>
+		Reboot the system.
+		</para>
+	</sect1>
+
+	<sect1 id="rm">
+	    <title>rm</title>
+
+		<para>
+		Usage: rm [OPTION]... FILE...
+		</para>
+
+		<para>
+		Remove (unlink) the FILE(s).  You may use '--' to
+		indicate that all following arguments are non-options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f		Remove existing destinations, never prompt
+			-r or -R	Remove the contents of directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rm -rf /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="rmdir">
+	    <title>rmdir</title>
+
+		<para>
+		Usage: rmdir DIRECTORY...
+		</para>
+
+		<para>
+		Remove DIRECTORY(s) if they are empty.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rmdir /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="rmmod">
+	    <title>rmmod</title>
+
+		<para>
+		Usage: rmmod [OPTION]... [MODULE]...
+		</para>
+
+		<para>
+		Unload MODULE(s) from the kernel.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Try to remove all unused kernel modules
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rmmod tulip
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sed">
+	    <title>sed</title>
+
+		<para>
+		Usage: sed [OPTION]... SCRIPT [FILE]...
+		</para>
+
+		<para>
+		Allowed sed scripts come in the following form:
+		</para>
+
+		<para>
+		<screen>
+		ADDR [!] COMMAND
+		</screen>
+		</para>
+
+		<para>
+		ADDR can be:
+		</para>
+
+		<para>
+		<screen>
+			NUMBER    Match specified line number
+			$         Match last line
+			/REGEXP/  Match specified regexp
+		</screen>
+		</para>
+
+		<para>
+		! inverts the meaning of the match
+		</para>
+
+		<para>
+		COMMAND can be:
+		</para>
+
+		<para>
+		<screen>
+			s/regexp/replacement/[igp]
+				which attempt to match regexp against the pattern space
+				and if successful replaces the matched portion with replacement.
+			aTEXT
+				which appends TEXT after the pattern space
+		</screen>
+		</para>
+
+		<para>
+		This version of sed matches full regular expressions.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-e	Add the script to the commands to be executed
+			-n	Suppress automatic printing of pattern space
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'
+			bar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="setkeycodes">
+	    <title>setkeycodes</title>
+
+		<para>
+		Usage: setkeycodes SCANCODE KEYCODE ...
+		</para>
+
+		<para>
+		Set entries into the kernel's scancode-to-keycode map,
+		allowing unusual keyboards to generate usable keycodes.
+		</para>
+
+		<para>
+		SCANCODE may be either xx or e0xx (hexadecimal), and
+		KEYCODE is given in decimal.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ setkeycodes e030 127
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sfdisk">
+	    <title>sfdisk</title>
+
+		<para>
+		Usage: sfdisk [OPTION]... DEVICE
+		</para>
+
+		<para>
+		Partition DEVICE.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	List size of a partition
+			-c	Print or change partition Id
+			-l	List partitions of each device
+			-d	Idem, but in a format suitable for later input
+			-i	Number cylinders etc. from 1 instead of from 0
+			-uS	Accept/report in units of sectors
+			-uB	Accept/report in units of blocks
+			-uC	Accept/report in units of cylinders
+			-uM	Accept/report in units of MB
+			-T	List the known partition types
+			-D	For DOS-compatibility: waste a little space
+			-R	Make kernel reread partition table
+			-N NUM	Change only the partition with number NUM
+			-n	Do not actually write to disk
+			-O FILE	Save the sectors that will be overwritten to FILE
+			-I FILE	Restore these sectors from FILE
+		</screen>
+		</para>
+
+		<para>
+		Dangerous options:
+		</para>
+
+		<para>
+		<screen>
+			-g	Print the kernel's idea of the geometry
+			-x	Also list extended partitions on output
+				or expect descriptors for them on input
+			-L	Do not complain about things irrelevant for Linux
+			-q	Suppress warning messages
+		</screen>
+		</para>
+
+		<para>
+		You can override the detected geometry using:
+		</para>
+
+		<para>
+		<screen>
+			-C NUM	Set the number of cylinders to use
+			-H NUM	Set the number of heads to use
+			-S NUM	Set the number of sectors to use
+		</screen>
+		</para>
+
+		<para>
+		You can disable all consistency checking with:
+		</para>
+
+		<para>
+		<screen>
+			-f	Do what I say, even if it is stupid
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sh">
+	    <title>sh</title>
+
+		<para>
+		Usage: sh
+		</para>
+
+		<para>
+		lash -- the BusyBox LAme SHell (command interpreter)
+		</para>
+
+		<para>
+		This command does not yet have proper documentation.  
+		</para>
+
+		<para>
+		Use lash just as you would use any other shell. It
+		properly handles pipes, redirects, job control, can be
+		used as the shell for scripts (#!/bin/sh), and has a
+		sufficient set of builtins to do what is needed. It does
+		not (yet) support Bourne Shell syntax. If you need
+		things like ``if-then-else'', ``while'', and such, use
+		ash or bash. If you just need a very simple and
+		extremely small shell, this will do the job.
+		</para>
+	</sect1>
+
+	<sect1 id="sleep">
+	    <title>sleep</title>
+
+		<para>
+		Usage: sleep N
+		</para>
+
+		<para>
+		Pause for N seconds.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ sleep 2
+			[2 second delay results]
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sort">
+	    <title>sort</title>
+
+		<para>
+		Usage: sort [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Sort lines of text in FILE(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n	Compare numerically
+			-r	Reverse after sorting
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo -e "e\nf\nb\nd\nc\na" | sort
+			a
+			b
+			c
+			d
+			e
+			f
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="swapoff">
+	    <title>swapoff</title>
+
+		<para>
+		Usage: swapoff [OPTION] [DEVICE]
+		</para>
+
+		<para>
+		Stop swapping virtual memory pages on DEVICE.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Stop swapping on all swap devices
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="swapon">
+	    <title>swapon</title>
+
+		<para>
+		Usage: swapon [OPTION] [DEVICE]
+		</para>
+
+		<para>
+		Start swapping virtual memory pages on the given device.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Start swapping on all swap devices
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sync">
+	    <title>sync</title>
+
+		<para>
+		Usage: sync
+		</para>
+
+		<para>
+		Write all buffered filesystem blocks to disk.
+		</para>
+	</sect1>
+
+	<sect1 id="syslogd">
+	    <title>syslogd</title>
+
+		<para>
+		Usage: syslogd [OPTION]...
+		</para>
+
+		<para>
+		Linux system and kernel (provides klogd) logging
+		utility. Note that this version of syslogd/klogd ignores
+		/etc/syslog.conf.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m NUM	Interval between MARK lines (default=20min, 0=off)
+			-n	Run as a foreground process
+			-K	Do not start up the klogd process
+			-O FILE	Use an alternate log file (default=/var/log/messages)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tail">
+	    <title>tail</title>
+
+		<para>
+		Usage: tail [OPTION] [FILE]...
+		</para>
+
+		<para>
+		Print last 10 lines of each FILE to standard output.
+		With more than one FILE, precede each with a header
+		giving the file name. With no FILE, or when FILE is -,
+		read stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n NUM	Print last NUM lines instead of last 10
+			-f	Output data as the file grows.  This version
+				of 'tail -f' supports only one file at a time.
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ tail -n 1 /etc/resolv.conf
+			nameserver 10.0.0.1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tar">
+	    <title>tar</title>
+
+		<para>
+		Usage: tar [MODE] [OPTION] [FILE]...
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		MODE may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			c	Create
+			x	Extract
+			t	List
+		</screen>
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			f FILE		Use FILE for tarfile (or stdin if '-')
+		        O		Extract to stdout
+        		--exclude FILE	Exclude FILE
+			v		List files processed
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ zcat /tmp/tarball.tar.gz | tar -xf -
+			$ tar -cf /tmp/tarball.tar /usr/local
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tee">
+	    <title>tee</title>
+
+		<para>
+		Usage: tee [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Copy stdin to FILE(s), and also to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Append to the given FILEs, do not overwrite
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Hello" | tee /tmp/foo
+			Hello
+			$ cat /tmp/foo
+			Hello
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="telnet">
+	    <title>telnet</title>
+
+		<para>
+		Usage: telnet HOST [PORT]
+		</para>
+
+		<para>
+		Establish interactive communication with another
+		computer over a network using the TELNET protocol.
+		</para>
+	</sect1>
+
+	<sect1 id="test">
+	    <title>test, [</title>
+
+		<para>
+		Usage: test EXPRESSION
+		</para>
+
+		<para>
+		<screen>
+		   or: [ EXPRESSION ]
+
+		<para>
+		Check file types and compare values returning an exit
+		code determined by the value of EXPRESSION.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ test 1 -eq 2
+			$ echo $?
+			1
+			$ test 1 -eq 1
+			$ echo $?
+			0
+			$ [ -d /etc ]
+			$ echo $?
+			0
+			$ [ -d /junk ]
+			$ echo $?
+			1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="touch">
+	    <title>touch</title>
+
+		<para>
+		Usage: touch [OPTION]... FILE...
+		</para>
+
+		<para>
+		Update the last-modified date on (or create) FILE(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Do not create files
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			/bin/ls: /tmp/foo: No such file or directory
+			$ touch /tmp/foo
+			$ ls -l /tmp/foo
+			-rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tr">
+	    <title>tr</title>
+
+		<para>
+		Usage: tr [OPTION]... STRING1 [STRING2]
+		</para>
+
+		<para>
+		Translate, squeeze, and/or delete characters from stdin,
+		writing to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Take complement of STRING1
+			-d	Delete input characters coded STRING1
+			-s	Squeeze multiple output characters of STRING2 into one character
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "gdkkn vnqkc" | tr [a-y] [b-z]
+			hello world
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="true">
+	    <title>true</title>
+
+		<para>
+		Usage: true
+		</para>
+
+		<para>
+		Return an exit code of TRUE (1).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ true
+			$ echo $?
+			0
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tty">
+	    <title>tty</title>
+
+		<para>
+		Usage: tty
+		</para>
+
+		<para>
+		Print the file name of the terminal connected to stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Print nothing, only return an exit status
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ tty
+			/dev/tty2
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="umount">
+	    <title>umount</title>
+
+		<para>
+		Usage: umount [OPTION]... DEVICE|DIRECTORY
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Unmount all file systems
+			-r	Try to remount devices as read-only if mount is busy
+			-f	Force filesystem umount (i.e. unreachable NFS server)
+			-l	Do not free loop device (if a loop device has been used)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ umount /dev/hdc1 
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uname">
+	    <title>uname</title>
+
+		<para>
+		Usage: uname [OPTION]...
+		</para>
+
+		<para>
+		Print certain system information. With no OPTION, same
+		as -s.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Print all information
+			-m	Print the machine (hardware) type
+			-n	Print the machine's network node hostname
+			-r	Print the operating system release
+			-s	Print the operating system name
+			-p	Print the host processor type
+			-v	Print the operating system version
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uname -a
+			Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uniq">
+	    <title>uniq</title>
+
+		<para>
+		Usage: uniq [INPUT [OUTPUT]]
+		</para>
+
+		<para>
+		Discard all but one of successive identical lines from
+		INPUT (or stdin), writing to OUTPUT (or stdout).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo -e "a\na\nb\nc\nc\na" | sort | uniq
+			a
+			b
+			c
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="update">
+	    <title>update</title>
+
+		<para>
+		Usage: update [OPTION]...
+		</para>
+
+		<para>
+		Periodically flush filesystem buffers.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-S	Force use of sync(2) instead of flushing
+			-s SECS	Call sync this often (default 30)
+			-f SECS	Flush some buffers this often (default 5)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uptime">
+	    <title>uptime</title>
+
+		<para>
+		Usage: uptime
+		</para>
+
+		<para>
+		Display how long the system has been running since boot.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uptime
+			  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="usleep">
+	    <title>usleep</title>
+
+		<para>
+		Usage: usleep N
+		</para>
+
+		<para>
+		Pause for N microseconds.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ usleep 1000000
+			[pauses for 1 second]
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uudecode">
+	    <title>uudecode</title>
+
+		<para>
+		Usage: uudecode [OPTION] [FILE]
+		</para>
+
+		<para>
+		Uudecode a uuencoded file.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-o FILE	Direct output to FILE
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uudecode -o busybox busybox.uu
+			$ ls -l busybox
+			-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uuencode">
+	    <title>uuencode</title>
+
+		<para>
+		Usage: uuencode [OPTION] [INFILE] OUTFILE
+		</para>
+
+		<para>
+		Uuencode a file.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Use base64 encoding as of RFC1521
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uuencode busybox busybox
+			begin 755 busybox
+			M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&amp;
+			.....
+			$ uudecode busybox busybox &gt; busybox.uu
+			$
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="wc">
+	    <title>wc</title>
+
+		<para>
+		Usage: wc [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Print line, word, and byte counts for each FILE, and a
+		total line if more than one FILE is specified. With no
+		FILE, read stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Print the byte counts
+			-l	Print the newline counts
+			-L	Print the length of the longest line
+			-w	Print the word counts
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ wc /etc/passwd
+			     31      46    1365 /etc/passwd
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="which">
+	    <title>which</title>
+
+		<para>
+		Usage: which [COMMAND]...
+		</para>
+
+		<para>
+		Locate COMMAND(s).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ which login
+			/bin/login
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="whoami">
+	    <title>whoami</title>
+
+		<para>
+		Usage: whoami
+		</para>
+
+		<para>
+		Print the user name associated with the current
+		effective user id.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ whoami
+			andersen
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="yes">
+	    <title>yes</title>
+
+		<para>
+		Usage: yes [STRING]...
+		</para>
+
+		<para>
+		Repeatedly output a line with all specified STRING(s),
+		or `y'.
+		</para>
+	</sect1>
+
+	<sect1 id="zcat">
+	    <title>zcat</title>
+
+		<para>
+		Usage: zcat [OPTION]... FILE
+		</para>
+
+		<para>
+		Uncompress FILE (or stdin if FILE is '-') to stdout.  
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-t	Test compressed file integrity
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+	</sect1>
+  </chapter>
+
+  <chapter id="LIBC-NSS">
+    <title>LIBC NSS</title>
+
+	<para>
+	GNU Libc uses the Name Service Switch (NSS) to configure the
+	behavior of the C library for the local environment, and to
+	configure how it reads system data, such as passwords and group
+	information. BusyBox has made it Policy that it will never use
+	NSS, and will never use libc calls that make use of NSS. This
+	allows you to run an embedded system without the need for
+	installing an /etc/nsswitch.conf file and without /lib/libnss_*
+	libraries installed.
+	</para>
+
+	<para>
+	If you are using a system that is using a remote LDAP server for
+	authentication via GNU libc NSS, and you want to use BusyBox,
+	then you will need to adjust the BusyBox source. Chances are
+	though, that if you have enough space to install of that stuff
+	on your system, then you probably want the full GNU utilities.
+	</para>
+  </chapter>
+
+  <chapter id="SEE-ALSO">
+    <title>SEE ALSO</title>
+
+	<para>
+	<literal>textutils(1),</literal>
+	<literal>shellutils(1),</literal>
+	etc...
+	</para>
+  </chapter>
+
+  <chapter id="MAINTAINER">
+    <title>MAINTAINER</title>
+
+	<para>
+	Erik Andersen &lt;andersee@debian.org&gt; &lt;andersen@lineo.com&gt;
+	</para>
+  </chapter>
+
+  <chapter id="AUTHORS">
+    <title>AUTHORS</title>
+
+	<para>
+	The following people have contributed code to BusyBox whether
+	they know it or not.
+	</para>
+
+	<para>
+	Erik Andersen &lt;andersee@debian.org&gt;
+	</para>
+
+	<para>
+	John Beppu &lt;beppu@lineo.com&gt;
+	</para>
+
+	<para>
+	Brian Candler &lt;B.Candler@pobox.com&gt;
+	</para>
+
+	<para>
+	Randolph Chung &lt;tausq@debian.org&gt;
+	</para>
+
+	<para>
+	Dave Cinege &lt;dcinege@psychosis.com&gt;	
+	</para>
+
+	<para>
+	Karl M. Hegbloom &lt;karlheg@debian.org&gt;
+	</para>
+
+	<para>
+	John Lombardo &lt;john@deltanet.com&gt;	
+	</para>
+
+	<para>
+	Glenn McGrath &lt;bug1@netconnect.com.au&gt;
+	</para>
+
+	<para>
+	Bruce Perens &lt;bruce@perens.com&gt;
+	</para>
+
+	<para>
+	Pavel Roskin &lt;proski@gnu.org&gt;
+	</para>
+
+	<para>
+	Linus Torvalds &lt;torvalds@transmeta.com&gt;
+	</para>
+
+	<para>
+	Charles P. Wright &lt;cpwright@villagenet.com&gt;
+	</para>
+
+	<para>
+	Enrique Zanardi &lt;ezanardi@ull.es&gt;
+	</para>
+  </chapter>
 </book>    <!-- End of the book -->
