@@ -58,4 +58,7 @@
 #ifdef L_name_longer_than_foo
 	const char * const name_longer_than_foo = "Names longer than %d chars not supported.";
 #endif
+#ifdef L_unknown
+	const char * const unknown = "(unknown)";
+#endif
 

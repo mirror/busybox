@@ -429,6 +429,8 @@ static int builtin_cd(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 	cwd = xgetcwd(cwd);
+	if (!cwd)
+		cwd = unknown;
 	return EXIT_SUCCESS;
 }
 
@@ -568,6 +570,8 @@ static int builtin_jobs(struct child_prog *child)
 static int builtin_pwd(struct child_prog *dummy)
 {
 	cwd = xgetcwd(cwd);
+	if (!cwd)
+		cwd = unknown;
 	puts(cwd);
 	return EXIT_SUCCESS;
 }
@@ -2307,6 +2311,8 @@ int shell_main(int argc, char **argv)
 	
 	/* initialize the cwd -- this is never freed...*/
 	cwd = xgetcwd(0);
+	if (!cwd)
+		cwd = unknown;
 #ifdef BB_FEATURE_COMMAND_EDITING
 	cmdedit_set_initial_prompt();
 #else

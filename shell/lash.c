@@ -297,7 +297,8 @@ static int builtin_cd(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 	cwd = xgetcwd(cwd);
-
+	if (!cwd)
+		cwd = unknown;
 	return EXIT_SUCCESS;
 }
 
@@ -412,6 +413,9 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
+	cwd = xgetcwd(cwd);
+	if (!cwd)
+		cwd = unknown;
 	printf( "%s\n", cwd);
 	return EXIT_SUCCESS;
 }
@@ -1827,7 +1831,6 @@ void free_memory(void)
 {
 	if (cwd) {
 		free(cwd);
-		cwd = NULL;
 	}
 	if (local_pending_command)
 		free(local_pending_command);
@@ -1919,6 +1922,8 @@ int shell_main(int argc_l, char **argv_l)
 
 	/* initialize the cwd -- this is never freed...*/
 	cwd = xgetcwd(0);
+	if (!cwd)
+		cwd = unknown;
 
 #ifdef BB_FEATURE_CLEAN_UP
 	atexit(free_memory);

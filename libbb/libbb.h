@@ -282,5 +282,6 @@ extern const char * const dash_dash_help;
 extern const char * const write_error;
 extern const char * const too_few_args;
 extern const char * const name_longer_than_foo;
+extern const char * const unknown;
 
 #endif /* __LIBBB_H__ */

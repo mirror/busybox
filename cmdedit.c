@@ -355,6 +355,10 @@ static void parse_prompt(const char *prmt_ptr)
 	char  c;
 	char *pbuf;
 
+	if (!pwd_buf) {
+		pwd_buf=unknown;
+	}
+
 	while (*prmt_ptr) {
 		pbuf    = buf;
 		pbuf[1] = 0;

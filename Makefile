@@ -259,7 +259,7 @@ endif
 LIBBB_MSRC=libbb/messages.c
 LIBBB_MESSAGES= full_version name_too_long omitting_directory not_a_directory \
 memory_exhausted invalid_date invalid_option io_error dash_dash_help \
-write_error too_few_args name_longer_than_foo
+write_error too_few_args name_longer_than_foo unknown
 LIBBB_MOBJ=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_MESSAGES))
 
 
