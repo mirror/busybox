@@ -1860,6 +1860,15 @@
 	"Options:\n" \
 	"\t-v\tDisplays verbose resource usage information."
 
+#define top_trivial_usage \
+	"[-d <seconds>]"
+#define top_full_usage \
+	"top provides an view of processor activity in real time.\n" \
+	"This utility reads the status for all processes in /proc each <seconds>\n" \
+	"and shows the status for however many processes will fit on the screen.\n" \
+	"This utility will not show processes that are started after program startup,\n" \
+	"but it will show the EXIT status for and PIDs that exit while it is running."
+
 #define touch_trivial_usage \
 	"[-c] FILE [FILE ...]"
 #define touch_full_usage \

@@ -473,6 +473,9 @@
 #ifdef CONFIG_TIME
 	APPLET(time, time_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_TOP
+	APPLET(top, top_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_TOUCH
 	APPLET(touch, touch_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
