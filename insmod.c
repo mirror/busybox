@@ -6,6 +6,13 @@
  * Written by Erik Andersen <andersen@lineo.com>
  * and Ron Alder <alder@lineo.com>
  *
+ * Modified by Bryan Rittmeyer <bryan@ixiacom.com> to support SH4
+ * and (theoretically) SH3. Note that there is still no true
+ * multiple architecture support. You just get SH3|SH4|i386, despite
+ * the mention of ARM and m68k--which may or may not work (but
+ * almost certainly do not, due to at least MATCH_MACHINE). I have
+ * only tested SH4 in little endian mode.
+ *
  * Based almost entirely on the Linux modutils-2.3.11 implementation.
  *   Copyright 1996, 1997 Linux International.
  *   New implementation contributed by Richard Henderson <rth@tamu.edu>
@@ -70,7 +77,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.23 2000/09/22 00:38:07 andersen Exp $"
+#ident "$Id: insmod.c,v 1.24 2000/09/24 03:44:29 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +283,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.23 2000/09/22 00:38:07 andersen Exp $"
+#ident "$Id: insmod.c,v 1.24 2000/09/24 03:44:29 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -286,14 +293,41 @@ int delete_module(const char *);
 
 /* Machine-specific elf macros for i386 et al.  */
 
+/* the SH changes have only been tested on the SH4 in =little endian= mode */
+/* I'm not sure about big endian, so let's warn: */
+
+#if (defined(__SH4__) || defined(__SH3__)) && defined(__BIG_ENDIAN__)
+#error insmod.c may require changes for use on big endian SH4/SH3
+#endif
+
+/* it may or may not work on the SH1/SH2... So let's error on those
+   also */
+#if (defined(__sh__) && (!(defined(__SH3__) || defined(__SH4__))))
+#error insmod.c may require changes for non-SH3/SH4 use
+#endif
+
 #define ELFCLASSM	ELFCLASS32
 #define ELFDATAM	ELFDATA2LSB
 
-#define MATCH_MACHINE(x)  (x == EM_386 || x == EM_486)
 
+
+#if defined(__sh__)
+
+#define MATCH_MACHINE(x) (x == EM_SH)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+
+#else
+
+/* presumably we can use these for anything but the SH */
+/* this is the previous behavior, but it does result in
+   insmod.c being broken on anything except i386 */
+
+#define MATCH_MACHINE(x)  (x == EM_386 || x == EM_486)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 
+#endif
 
 #ifndef ElfW
 # if ELFCLASSM == ELFCLASS32
@@ -486,22 +520,27 @@ int flag_export = 1;
 
 /*======================================================================*/
 
-struct i386_got_entry {
+/* previously, these were named i386_* but since we could be
+   compiling for the sh, I've renamed them to the more general
+   arch_* These structures are the same between the x86 and SH, 
+   and we can't support anything else right now anyway. In the
+   future maybe they should be #if defined'd */
+
+struct arch_got_entry {
 	int offset;
 	unsigned offset_done:1;
 	unsigned reloc_done:1;
 };
 
-struct i386_file {
+struct arch_file {
 	struct obj_file root;
 	struct obj_section *got;
 };
 
-struct i386_symbol {
+struct arch_symbol {
 	struct obj_symbol root;
-	struct i386_got_entry gotent;
+	struct arch_got_entry gotent;
 };
-
 
 
 struct external_module {
@@ -534,6 +573,17 @@ _syscall1(int, delete_module, const char *, name)
 #else
 extern int delete_module(const char *);
 #endif
+
+/* This is kind of troublesome. See, we don't actually support
+   the m68k or the arm the same way we support i386 and (now)
+   sh. In doing my SH patch, I just assumed that whatever works
+   for i386 also works for m68k and arm since currently insmod.c
+   does nothing special for them. If this isn't true, the below
+   line is rather misleading IMHO, and someone should either
+   change it or add more proper architecture-dependent support
+   for these boys.
+
+   -- Bryan Rittmeyer <bryan@ixiacom.com>                    */
 
 #if defined(__i386__) || defined(__m68k__) || defined(__arm__)
 /* Jump through hoops to fixup error return codes */
@@ -588,7 +638,7 @@ static int findNamedModule(const char *fileName, struct stat *statbuf,
 
 struct obj_file *arch_new_file(void)
 {
-	struct i386_file *f;
+	struct arch_file *f;
 	f = xmalloc(sizeof(*f));
 	f->got = NULL;
 	return &f->root;
@@ -601,20 +651,25 @@ struct obj_section *arch_new_section(void)
 
 struct obj_symbol *arch_new_symbol(void)
 {
-	struct i386_symbol *sym;
+	struct arch_symbol *sym;
 	sym = xmalloc(sizeof(*sym));
 	memset(&sym->gotent, 0, sizeof(sym->gotent));
 	return &sym->root;
 }
+
 enum obj_reloc
 arch_apply_relocation(struct obj_file *f,
 					  struct obj_section *targsec,
 					  struct obj_section *symsec,
 					  struct obj_symbol *sym,
+#if defined(__sh__)
+		                          Elf32_Rela * rel, Elf32_Addr v)
+#else
 					  Elf32_Rel * rel, Elf32_Addr v)
+#endif
 {
-	struct i386_file *ifile = (struct i386_file *) f;
-	struct i386_symbol *isym = (struct i386_symbol *) sym;
+	struct arch_file *ifile = (struct arch_file *) f;
+	struct arch_symbol *isym = (struct arch_symbol *) sym;
 
 	Elf32_Addr *loc = (Elf32_Addr *) (targsec->contents + rel->r_offset);
 	Elf32_Addr dot = targsec->header.sh_addr + rel->r_offset;
@@ -623,32 +678,86 @@ arch_apply_relocation(struct obj_file *f,
 	enum obj_reloc ret = obj_reloc_ok;
 
 	switch (ELF32_R_TYPE(rel->r_info)) {
+
+/* even though these constants seem to be the same for
+   the i386 and the sh, we "#if define" them for clarity
+   and in case that ever changes */
+#if defined(__sh__)
+	case R_SH_NONE:
+#else
 	case R_386_NONE:
+#endif
 		break;
 
+#if defined(__sh__)
+	case R_SH_DIR32:
+#else
 	case R_386_32:
+#endif
 		*loc += v;
 		break;
 
+#if defined(__sh__)
+        case R_SH_REL32:
+#else
 	case R_386_PLT32:
 	case R_386_PC32:
+#endif
 		*loc += v - dot;
 		break;
 
+#if defined(__sh__)
+        case R_SH_PLT32:
+                *loc = v - dot;
+                break;
+#endif
+
+
+#if defined(__sh__)
+        case R_SH_GLOB_DAT:
+        case R_SH_JMP_SLOT:
+               	*loc = v;
+                break;
+#else
 	case R_386_GLOB_DAT:
 	case R_386_JMP_SLOT:
 		*loc = v;
 		break;
+#endif
 
-	case R_386_RELATIVE:
+#if defined(__sh__)
+        case R_SH_RELATIVE:
+	        *loc += f->baseaddr + rel->r_addend;
+                break;
+#else
+        case R_386_RELATIVE:
 		*loc += f->baseaddr;
 		break;
+#endif
 
+#if defined(__sh__)
+        case R_SH_GOTPC:
+		assert(got != 0);
+		*loc += got - dot + rel->r_addend;;
+		break;
+#else
 	case R_386_GOTPC:
 		assert(got != 0);
 		*loc += got - dot;
 		break;
+#endif
 
+#if defined(__sh__)
+	case R_SH_GOT32:
+ 		assert(isym != NULL);
+ 		if (!isym->gotent.reloc_done) {
+ 			isym->gotent.reloc_done = 1;
+ 			*(Elf32_Addr *) (ifile->got->contents + isym->gotent.offset) =
+ 				v;
+ 		}
+		*loc += isym->gotent.offset + rel->r_addend;
+ 		break;
+#else
 	case R_386_GOT32:
 		assert(isym != NULL);
 		if (!isym->gotent.reloc_done) {
@@ -658,8 +767,13 @@ arch_apply_relocation(struct obj_file *f,
 		}
 		*loc += isym->gotent.offset;
 		break;
+#endif
 
+#if defined(__sh__)
+	case R_SH_GOTOFF:
+#else
 	case R_386_GOTOFF:
+#endif
 		assert(got != 0);
 		*loc += v - got;
 		break;
@@ -674,13 +788,17 @@ arch_apply_relocation(struct obj_file *f,
 
 int arch_create_got(struct obj_file *f)
 {
-	struct i386_file *ifile = (struct i386_file *) f;
+	struct arch_file *ifile = (struct arch_file *) f;
 	int i, n, offset = 0, gotneeded = 0;
 
 	n = ifile->root.header.e_shnum;
 	for (i = 0; i < n; ++i) {
 		struct obj_section *relsec, *symsec, *strsec;
+#if defined(__sh__)
+		Elf32_Rela *rel, *relend;
+#else
 		Elf32_Rel *rel, *relend;
+#endif
 		Elf32_Sym *symtab;
 		const char *strtab;
 
@@ -691,24 +809,39 @@ int arch_create_got(struct obj_file *f)
 		symsec = ifile->root.sections[relsec->header.sh_link];
 		strsec = ifile->root.sections[symsec->header.sh_link];
 
+
+#if defined(__sh__)
+		rel = (Elf32_Rela *) relsec->contents;
+		relend = rel + (relsec->header.sh_size / sizeof(Elf32_Rela));
+#else
 		rel = (Elf32_Rel *) relsec->contents;
 		relend = rel + (relsec->header.sh_size / sizeof(Elf32_Rel));
+#endif
 		symtab = (Elf32_Sym *) symsec->contents;
 		strtab = (const char *) strsec->contents;
 
 		for (; rel < relend; ++rel) {
 			Elf32_Sym *extsym;
-			struct i386_symbol *intsym;
+			struct arch_symbol *intsym;
 			const char *name;
 
 			switch (ELF32_R_TYPE(rel->r_info)) {
+#if defined(__sh__)
+			case R_SH_GOTPC:
+			case R_SH_GOTOFF:
+#else
 			case R_386_GOTPC:
 			case R_386_GOTOFF:
+#endif
 				gotneeded = 1;
 			default:
 				continue;
 
+#if defined(__sh__)
+			case R_SH_GOT32:
+#else
 			case R_386_GOT32:
+#endif
 				break;
 			}
 
@@ -718,7 +851,7 @@ int arch_create_got(struct obj_file *f)
 			else
 				name = f->sections[extsym->st_shndx]->name;
 			intsym =
-				(struct i386_symbol *) obj_find_symbol(&ifile->root, name);
+				(struct arch_symbol *) obj_find_symbol(&ifile->root, name);
 
 			if (!intsym->gotent.offset_done) {
 				intsym->gotent.offset_done = 1;
