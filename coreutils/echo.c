@@ -40,7 +40,7 @@ extern int
 echo_main(int argc, char** argv)
 {
 	register char **ap;
-	register char *p;
+	char *p;
 	register char c;
 	int nflag = 0;
 	int eflag = 0;
@@ -65,28 +65,10 @@ echo_main(int argc, char** argv)
 	while ((p = *ap++) != NULL) {
 		while ((c = *p++) != '\0') {
 			if (c == '\\' && eflag) {
-				switch (c = *p++) {
-				case 'a':  c = '\007'; break;
-				case 'b':  c = '\b';  break;
-				case 'c':  exit( 0);		/* exit */
-				case 'f':  c = '\f';  break;
-				case 'n':  c = '\n';  break;
-				case 'r':  c = '\r';  break;
-				case 't':  c = '\t';  break;
-				case 'v':  c = '\v';  break;
-				case '\\':  break;		/* c = '\\' */
-				case '0': case '1': case '2': case '3':
-				case '4': case '5': case '6': case '7':
-					c -= '0';
-					if (*p >= '0' && *p <= '7')
-						c = c * 8 + (*p++ - '0');
-					if (*p >= '0' && *p <= '7')
-					c = c * 8 + (*p++ - '0');
-					break;
-				default:
-					p--;
-					break;
-				}
+				if (*p == 'c')
+					exit(0);
+				else
+					c = process_escape_sequence(&p);
 			}
 			putchar(c);
 		}

@@ -1617,6 +1617,51 @@ extern char *get_line_from_file(FILE *file)
 	return linebuf;
 }
 
+#if defined BB_ECHO || defined BB_TR
+char process_escape_sequence(char **ptr)
+{
+	char c;
+
+	switch (c = *(*ptr)++) {
+	case 'a':
+		c = '\a';
+		break;
+	case 'b':
+		c = '\b';
+		break;
+	case 'f':
+		c = '\f';
+		break;
+	case 'n':
+		c = '\n';
+		break;
+	case 't':
+		c = '\t';
+		break;
+	case 'v':
+		c = '\v';
+		break;
+	case '\\':
+		c = '\\';
+		break;
+	case '0': case '1': case '2': case '3':
+	case '4': case '5': case '6': case '7':
+		c -= '0';
+		if ('0' <= **ptr && **ptr <= '7') {
+			c = c * 8 + (*(*ptr)++ - '0');
+			if ('0' <= **ptr && **ptr <= '7')
+				c = c * 8 + (*(*ptr)++ - '0');
+		}
+		break;
+	default:
+		(*ptr)--;
+		c = '\\';
+		break;
+	}
+	return c;
+}
+#endif
+
 /* END CODE */
 /*
 Local Variables:

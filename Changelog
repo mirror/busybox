@@ -24,6 +24,9 @@
 	    of thing.  Patch thanks to David Vrabel <dvrabel@arcom.co.uk>
 	* Fix to init.c from Stuart Menefy <Stuart.Menefy@st.com> so that
 	    it always sets the controlling terminal before running any programs
+	* Fix to tr so it recognizes standard escape sequences.  Merged common
+	    escape seq. code from tr and echo into utility.c.  Fix thanks to
+	    Matt Kraai <kraai@alumni.carnegiemellon.edu>.
 
 	 -Erik Andersen
 

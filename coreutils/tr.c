@@ -111,22 +111,14 @@ static void map(register unsigned char *string1, register unsigned char *string2
 	}
 }
 
-static void expand(register char *arg, register unsigned char *buffer)
+static void expand(char *arg, register unsigned char *buffer)
 {
 	int i, ac;
 
 	while (*arg) {
 		if (*arg == '\\') {
 			arg++;
-			i = ac = 0;
-			if (*arg >= '0' && *arg <= '7') {
-				do {
-					ac = (ac << 3) + *arg++ - '0';
-					i++;
-				} while (i < 4 && *arg >= '0' && *arg <= '7');
-				*buffer++ = ac;
-			} else if (*arg != '\0')
-				*buffer++ = *arg++;
+			*buffer++ = process_escape_sequence(&arg);
 		} else if (*arg == '[') {
 			arg++;
 			i = *arg++;
