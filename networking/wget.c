@@ -59,7 +59,7 @@ static int chunked = 0;			/* chunked transfer encoding */
 #ifdef BB_FEATURE_WGET_STATUSBAR
 static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
-static volatile unsigned long statbytes; /* Number of bytes transferred so far. */
+static volatile unsigned long statbytes = 0; /* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
 static const int STALLTIME = 5;
 #endif
@@ -390,18 +390,15 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		fgets(buf, sizeof(buf), dfp);
 		filesize = strtol(buf, (char **) NULL, 16);
 	}
-	do {
 #ifdef BB_FEATURE_WGET_STATUSBAR
-	statbytes=0;
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
 #endif
+	do {
 		while ((filesize > 0 || !got_clen) && (n = fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
 		fwrite(buf, 1, n, output);
 #ifdef BB_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
-		if (quiet_flag==FALSE)
-			progressmeter(1);
 #endif
 		if (got_clen)
 			filesize -= n;
@@ -417,17 +414,16 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	if (n == 0 && ferror(dfp))
 		perror_msg_and_die("network read error");
 	} while (chunked);
-
+#ifdef BB_FEATURE_WGET_STATUSBAR
+	if (quiet_flag==FALSE)
+		progressmeter(1);
+#endif
 	if (!proxy && target.is_ftp) {
 		fclose(dfp);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
 			error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
-#ifdef BB_FEATURE_WGET_STATUSBAR
-	if (quiet_flag==FALSE)
-		putc('\n', stderr);
-#endif
 	exit(EXIT_SUCCESS);
 }
 
@@ -609,7 +605,7 @@ progressmeter(int flag)
 {
 	static const char prefixes[] = " KMGTP";
 	static struct timeval lastupdate;
-	static off_t lastsize;
+	static off_t lastsize, totalsize;
 	struct timeval now, td, wait;
 	off_t cursize, abbrevsize;
 	double elapsed;
@@ -620,12 +616,13 @@ progressmeter(int flag)
 		(void) gettimeofday(&start, (struct timezone *) 0);
 		lastupdate = start;
 		lastsize = 0;
+		totalsize = filesize; /* as filesize changes.. */
 	}
 
 	(void) gettimeofday(&now, (struct timezone *) 0);
 	cursize = statbytes;
-	if (filesize != 0 && !chunked) {
-		ratio = 100.0 * cursize / filesize;
+	if (totalsize != 0 && !chunked) {
+		ratio = 100.0 * cursize / totalsize;
 		ratio = MAX(ratio, 0);
 		ratio = MIN(ratio, 100);
 	} else
@@ -665,14 +662,14 @@ progressmeter(int flag)
 	timersub(&now, &start, &td);
 	elapsed = td.tv_sec + (td.tv_usec / 1000000.0);
 
-	if (statbytes <= 0 || elapsed <= 0.0 || cursize > filesize) {
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-			 "   --:-- ETA");
-	} else if (wait.tv_sec >= STALLTIME) {
+	if (wait.tv_sec >= STALLTIME) {
 		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
 			 " - stalled -");
+	} else if (statbytes <= 0 || elapsed <= 0.0 || cursize > totalsize || chunked) {
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+			 "   --:-- ETA");
 	} else {
-		remaining = (int) (filesize / (statbytes / elapsed) - elapsed);
+		remaining = (int) (totalsize / (statbytes / elapsed) - elapsed);
 		i = remaining / 3600;
 		if (i)
 			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
@@ -696,6 +693,7 @@ progressmeter(int flag)
 	} else if (flag == 1) {
 		alarmtimer(0);
 		statbytes = 0;
+		putc('\n', stderr);
 	}
 }
 #endif
@@ -735,7 +733,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.35 2001/04/11 20:11:51 kraai Exp $
+ *	$Id: wget.c,v 1.36 2001/04/17 18:13:16 markw Exp $
  */
 
 

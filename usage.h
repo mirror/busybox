@@ -1719,7 +1719,7 @@
 	"     31      46    1365 /etc/passwd\n" 
 
 #define wget_trivial_usage \
-	"[-c] [-O file] url"
+	"[-c] [-q] [-O file] url"
 #define wget_full_usage \
 	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \
