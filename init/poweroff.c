@@ -29,8 +29,11 @@ extern int poweroff_main(int argc, char **argv)
 #ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
 	pid_t *pid = find_pid_by_name("init");
-	if (!pid || *pid<=0)
-		error_msg_and_die("no process killed");
+	if (!pid || *pid<=0) {
+		pid_t *pid = find_pid_by_name("linuxrc");
+		if (!pid || *pid<=0)
+			error_msg_and_die("no process killed");
+	}
 	return(kill(*pid, SIGUSR2));
 #else
 	return(kill(1, SIGUSR2));
