@@ -1334,10 +1334,10 @@
 	"Options:\n" \
 	"\t-a\tDefine which algorithm shall be used for the password.\n" \
 	"\t\t\t(Choices: des, md5" \
-	CONFIG_FEATURE_SHA1_PASSWORDS(", sha1") \
+	PASSWORD_ALG_TYPES(", sha1") \
 	")\n\t-d\tDelete the password for the specified user account.\n" \
 	"\t-l\tLocks (disables) the specified user account.\n" \
-	"\t-u\tUnlocks (re-enables) the specified user account.";
+	"\t-u\tUnlocks (re-enables) the specified user account."
 
 #define pidof_trivial_usage \
 	"process-name [process-name ...]"
