@@ -994,14 +994,17 @@ static void process_file(FILE * file)
 
 				case 'r':{
 					FILE *outfile;
-
 					outfile = fopen(sed_cmd->filename, "r");
 					if (outfile) {
+						char *line;
+						while ((line = bb_get_chomped_line_from_file(outfile)) != NULL) {
+							pattern_space = xrealloc(pattern_space, strlen(line) + strlen(pattern_space) + 2);
+							strcat(pattern_space, "\n");
+							strcat(pattern_space, line);
+						}
 						bb_xprint_and_close_file(outfile);
 					}
-					/* else if we couldn't open the output file,
-					 * no biggie, just don't print anything */
-					altered++;
+
 				}
 					break;
 				case 'q':	/* Branch to end of script and quit */
