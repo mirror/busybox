@@ -538,6 +538,7 @@ config CONFIG_WC
 config CONFIG_WHO
 	bool "who"
 	default n
+	select CONFIG_FEATURE_U_W_TMP
 	help
 	  who is used to show who is logged on.
 

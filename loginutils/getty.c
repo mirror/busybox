@@ -228,7 +228,7 @@ static void termio_final(struct options *op, struct termio *tp,
 
 				  struct chardata *cp);
 static int caps_lock(const char *s);
-static int bcode(const char *s);
+static int bcode(char *s);
 static void error(const char *fmt, ...) __attribute__ ((noreturn));
 
 #ifdef CONFIG_FEATURE_U_W_TMP
@@ -503,6 +503,9 @@ static void update_utmp(char *line)
 	 * utmp file can be opened for update, and if we are able to find our
 	 * entry in the utmp file.
 	 */
+	if (access(_PATH_UTMP, R_OK|W_OK) == -1) {
+		creat(_PATH_UTMP, O_RDWR);
+	}
 	utmpname(_PATH_UTMP);
 	setutent();
 	while ((utp = getutent())
@@ -531,6 +534,9 @@ static void update_utmp(char *line)
 	endutent();
 
 	{
+		if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
+			creat(_PATH_WTMP, O_RDWR);
+		}
 		updwtmp(_PATH_WTMP, &ut);
 	}
 }
@@ -953,7 +959,7 @@ static int caps_lock(const char *s)
 }
 
 /* bcode - convert speed string to speed code; return 0 on failure */
-static int bcode(const char *s)
+static int bcode(char *s)
 {
 	int r;
 	unsigned long value;

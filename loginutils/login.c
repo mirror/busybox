@@ -403,8 +403,6 @@ static void motd ( )
 #ifdef CONFIG_FEATURE_U_W_TMP
 // vv  Taken from tinylogin utmp.c  vv
 
-#define _WTMP_FILE "/var/log/wtmp"
-
 #define	NO_UTENT \
 	"No utmp entry.  You must exec \"login\" from the lowest level \"sh\""
 #define	NO_TTY \
@@ -480,6 +478,9 @@ static void setutmp(const char *name, const char *line)
 	setutent();
 	pututline(&utent);
 	endutent();
-	updwtmp(_WTMP_FILE, &utent);
+	if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
+		creat(_PATH_WTMP, O_RDWR);
+	}
+	updwtmp(_PATH_WTMP, &utent);
 }
 #endif /* CONFIG_FEATURE_U_W_TMP */
