@@ -1404,8 +1404,10 @@ extern int fsck_minix_main(int argc, char **argv)
 			die("need terminal for interactive repairs");
 	}
 	IN = open(device_name, repair ? O_RDWR : O_RDONLY);
-	if (IN < 0)
-		die("unable to open '%s'");
+	if (IN < 0){
+		fprintf(stderr,"unable to open device '%s'.\n",device_name);
+		leave(8);
+	}
 	for (count = 0; count < 3; count++)
 		sync();
 	read_superblock();
