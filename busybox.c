@@ -354,6 +354,7 @@ const struct BB_applet applets[] = {
 	{0}
 };
 
+const char *applet_name;
 
 #ifdef BB_FEATURE_INSTALLER
 /* 
@@ -436,7 +437,6 @@ int uninstall_links() ?
 int main(int argc, char **argv)
 {
 	char				*s;
-	char				*name;
 	const struct BB_applet	*a		= applets;
 
 #ifdef BB_FEATURE_INSTALLER	
@@ -469,12 +469,12 @@ int main(int argc, char **argv)
 	}
 #endif /* BB_FEATURE_INSTALLER */
 
-	for (s = name = argv[0]; *s != '\0';) {
+	for (s = applet_name = argv[0]; *s != '\0';) {
 		if (*s++ == '/')
-			name = s;
+			applet_name = s;
 	}
 
-	*argv = name;
+	*argv = applet_name;
 
 #ifdef BB_SH
 	/* Add in a special case hack -- whenever **argv == '-'
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
 #endif
 
 	while (a->name != 0) {
-		if (strcmp(name, a->name) == 0) {
+		if (strcmp(applet_name, a->name) == 0) {
 			exit(((*(a->main)) (argc, argv)));
 		}
 		a++;
