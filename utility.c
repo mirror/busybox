@@ -1507,7 +1507,7 @@ extern char *find_unused_loop_device(void)
 		sprintf(dev, "/dev/loop%d", i);
 		if (stat(dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
 			if ((fd = open(dev, O_RDONLY)) >= 0) {
-				if (ioctl(fd, LOOP_GET_STATUS, &loopinfo) == -1) {
+				if (ioctl(fd, LOOP_GET_STATUS, &loopinfo) != 0) {
 					if (errno == ENXIO) {	/* probably free */
 						close(fd);
 						return strdup(dev);
