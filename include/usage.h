@@ -989,6 +989,15 @@
 #define logread_full_usage \
         "Shows the messages from syslogd (using circular buffer)."
 
+#define losetup_trivial_usage \
+	"[OPTION]... LOOPDEVICE FILE\n" \
+	"or: losetup [OPTION]... -d LOOPDEVICE"
+#define losetup_full_usage \
+	"Associate LOOPDEVICE with FILE.\n\n" \
+	"Options:\n" \
+	"\t-d\t\tDisassociate LOOPDEVICE.\n" \
+	"\t-o OFFSET\tStart OFFSET bytes into FILE.\n"
+
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
   #define USAGE_LS_TIMESTAMPS(a) a
 #else

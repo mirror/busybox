@@ -23,6 +23,7 @@ if [ "$CONFIG_FSCK_MINIX" = "y" -o "$CONFIG_MKFS_MINIX" = "y" ]; then
 fi
 bool 'getopt'		    CONFIG_GETOPT
 bool 'hexdump'  	    CONFIG_HEXDUMP  
+bool 'losetup'              CONFIG_LOSETUP
 bool 'mkswap'		    CONFIG_MKSWAP
 bool 'more'		    CONFIG_MORE
 if [ "$CONFIG_MORE" = "y" ]; then

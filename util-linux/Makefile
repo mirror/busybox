@@ -31,6 +31,7 @@ obj-$(CONFIG_FREERAMDISK)	+= freeramdisk.o
 obj-$(CONFIG_FSCK_MINIX)	+= fsck_minix.o
 obj-$(CONFIG_GETOPT)		+= getopt.o
 obj-$(CONFIG_HEXDUMP)		+= hexdump.o
+obj-$(CONFIG_LOSETUP)		+= losetup.o
 obj-$(CONFIG_MKFS_MINIX)	+= mkfs_minix.o
 obj-$(CONFIG_MKSWAP)		+= mkswap.o
 obj-$(CONFIG_MORE)		+= more.o

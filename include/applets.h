@@ -269,6 +269,9 @@
 #ifdef CONFIG_LOGREAD
 	APPLET(logread, logread_main, _BB_DIR_SBIN)
 #endif
+#ifdef CONFIG_LOSETUP
+	APPLET(losetup, losetup_main, _BB_DIR_SBIN)
+#endif
 #ifdef CONFIG_LS
 	APPLET(ls, ls_main, _BB_DIR_BIN)
 #endif
