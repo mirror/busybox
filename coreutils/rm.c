@@ -101,12 +101,17 @@ extern int rm_main(int argc, char **argv)
 				break;
 			case 'f':
 				forceFlag = TRUE;
+#ifdef BB_FEATURE_RM_INTERACTIVE
+
+				interactiveFlag = FALSE;
+#endif
 				break;
 #ifdef BB_FEATURE_RM_INTERACTIVE
 			case 'i':
 				interactiveFlag = TRUE;
-#endif
+				forceFlag = FALSE;
 				break;
+#endif
 			default:
 				show_usage();
 		}
@@ -115,11 +120,6 @@ extern int rm_main(int argc, char **argv)
 	if (argc == optind && forceFlag == FALSE) {
 		show_usage();
 	}
-#ifdef BB_FEATURE_RM_INTERACTIVE
-	if (forceFlag == TRUE)
-		interactiveFlag = FALSE;
-#endif
-
 
 	while (optind < argc) {
 		srcName = argv[optind];
