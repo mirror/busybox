@@ -19,65 +19,65 @@ static void push(double a)
 	stack[pointer++] = a;
 }
 
-static double pop()
+static double pop(void)
 {
 	if (pointer == 0)
 		error_msg_and_die("stack underflow");
 	return stack[--pointer];
 }
 
-static void add()
+static void add(void)
 {
 	push(pop() + pop());
 }
 
-static void sub()
+static void sub(void)
 {
 	double subtrahend = pop();
 
 	push(pop() - subtrahend);
 }
 
-static void mul()
+static void mul(void)
 {
 	push(pop() * pop());
 }
 
-static void divide()
+static void divide(void)
 {
 	double divisor = pop();
 
 	push(pop() / divisor);
 }
 
-static void and()
+static void and(void)
 {
 	push((unsigned int) pop() & (unsigned int) pop());
 }
 
-static void or()
+static void or(void)
 {
 	push((unsigned int) pop() | (unsigned int) pop());
 }
 
-static void eor()
+static void eor(void)
 {
 	push((unsigned int) pop() ^ (unsigned int) pop());
 }
 
-static void not()
+static void not(void)
 {
 	push(~(unsigned int) pop());
 }
 
-static void print()
+static void print(void)
 {
 	printf("%g\n", pop());
 }
 
 struct op {
 	const char *name;
-	void (*function) ();
+	void (*function) (void);
 };
 
 static const struct op operators[] = {
