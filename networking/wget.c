@@ -582,9 +582,8 @@ void parse_url(char *url, struct host_info *h)
 	cp = strchr(pp, ':');
 	if (cp != NULL) {
 		*cp++ = '\0';
-		h->port = atoi(cp);
+		h->port = htons(atoi(cp));
 	}
-
 }
 
 
@@ -835,7 +834,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.63 2003/12/20 01:47:18 bug1 Exp $
+ *	$Id: wget.c,v 1.64 2003/12/27 00:21:47 bug1 Exp $
  */
 
 
