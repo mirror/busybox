@@ -525,7 +525,7 @@ const char *time_string(time_t timeVal)
 }
 #endif /* BB_TAR || BB_AR */
 
-#if defined BB_AR || defined BB_CP_MV || defined BB_DD || defined BB_NC || defined BB_TAR
+#if defined BB_DD || defined BB_NC || defined BB_TAIL || defined BB_TAR
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -1712,7 +1712,7 @@ FILE *wfopen(const char *path, const char *mode)
 
 #if defined BB_HOSTNAME || defined BB_LOADACM || defined BB_MORE \
  || defined BB_SED || defined BB_SH || defined BB_TAR || defined BB_UNIQ \
- || defined BB_WC || defined BB_CMP
+ || defined BB_WC || defined BB_CMP || defined BB_SORT
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
@@ -1757,7 +1757,7 @@ unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes)
 }
 #endif
 
-#if defined BB_DD || defined BB_NC
+#if defined BB_DD || defined BB_NC || defined BB_TAIL
 ssize_t safe_read(int fd, void *buf, size_t count)
 {
 	ssize_t n;
