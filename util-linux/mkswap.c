@@ -320,11 +320,7 @@ int mkswap_main(int argc, char **argv)
 	}
 
 	if (version == -1) {
-		if (PAGES <= V0_MAX_PAGES)
-			version = 0;
-		else if (get_kernel_revision() < MAKE_VERSION(2, 1, 117))
-			version = 0;
-		else if (pagesize < 2048)
+		if (get_kernel_revision() < MAKE_VERSION(2, 1, 117))
 			version = 0;
 		else
 			version = 1;
