@@ -39,9 +39,6 @@ const struct BB_applet applets[] = {
 	{"basename", basename_main, _BB_DIR_USR_BIN},
 #endif
 	{"busybox", busybox_main, _BB_DIR_BIN},
-#ifdef BB_BLOCK_DEVICE
-	{"block_device", block_device_main, _BB_DIR_SBIN},
-#endif
 #ifdef BB_CAT
 	{"cat", cat_main, _BB_DIR_BIN},
 #endif
