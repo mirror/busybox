@@ -1251,6 +1251,7 @@ int gzip_main(int argc, char **argv)
 		for (i = optind; i < argc; i++) {
 			char *path = NULL;
 
+			clear_bufs();
 			if (strcmp(argv[i], "-") == 0) {
 				time_stamp = 0;
 				ifile_size = -1L;
