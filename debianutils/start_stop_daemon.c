@@ -113,6 +113,7 @@ pid_is_exec(int pid, const char *exec)
 	sprintf(buf, "/proc/%d/cmdline", pid);
 	fp = fopen(buf, "r");
 	if (fp && fgets (buf, sizeof (buf), fp) ) {
+		fclose(fp);
 	    if (strncmp (buf, exec, strlen(exec)) == 0)
 		return 1;
 	}
