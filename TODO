@@ -9,7 +9,6 @@ around to it some time. If you have any good ideas, please let me know.
 
 * Allow tar to create archives with sockets, devices, and other special files
 * Add in a mini insmod, rmmod, lsmod
-* mkfifo
 * dnsdomainname
 * traceroute/nslookup/netstat
 * rdate
