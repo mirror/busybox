@@ -82,8 +82,8 @@ AR = $(CROSS)ar
 STRIPTOOL = $(CROSS)strip
 
 # To compile vs uClibc, just use the compiler wrapper built by uClibc...
-# Isn't that easy?  Right now, uClibc needs BB_FEATURE_NFSMOUNT disabled 
-# since uClibc's nfs support isn't ready yet.
+# This make things very easy?  Everything should compile and work as
+# expected these days...
 #CC = ../uClibc/extra/gcc-uClibc/gcc-uClibc-i386
 
 # To compile vs some other alternative libc, you may need to use/adjust
