@@ -187,6 +187,7 @@
 #define BB_FEATURE_MOUNT_FORCE
 //
 // Enable support for mounting remote NFS volumes
+// (This does not yet work with Linux 2.[34].x kernels)
 //#define BB_FEATURE_NFSMOUNT
 //
 // Enable support for creation of tar files.
