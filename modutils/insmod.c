@@ -219,6 +219,19 @@
 #define SYMBOL_PREFIX	"_"
 #endif
 
+#if defined(__cris__)
+#ifndef EM_CRIS
+#define EM_CRIS 76
+#define R_CRIS_NONE 0
+#define R_CRIS_32   3
+#endif
+
+#define MATCH_MACHINE(x) (x == EM_CRIS)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#endif
+
 #ifndef SHT_RELM
 #error Sorry, but insmod.c does not yet support this architecture...
 #endif
@@ -253,7 +266,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.105 2003/10/21 06:45:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.106 2003/12/04 15:02:57 mjn3 Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -474,7 +487,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.105 2003/10/21 06:45:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.106 2003/12/04 15:02:57 mjn3 Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1278,6 +1291,18 @@ arch_apply_relocation(struct obj_file *f,
 
 	case R_V850_22_PCREL:
 		goto bb_use_plt;
+#endif
+
+#if defined (__cris__)
+	case R_CRIS_NONE:
+		break;
+
+	case R_CRIS_32:
+		/* CRIS keeps the relocation value in the r_addend field and
+		 * should not use whats in *loc at all
+		 */
+		*loc = v;
+		break;
 #endif
 
 #if defined(CONFIG_USE_PLT_ENTRIES)
