@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.51 2002/05/18 09:16:04 timr Exp $
+ * $Id: ping.c,v 1.52 2002/06/06 11:47:00 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -147,7 +147,7 @@ static const int PINGINTERVAL = 1;		/* second */
 #define	CLR(bit)	(A(bit) &= (~B(bit)))
 #define	TST(bit)	(A(bit) & B(bit))
 
-static int ping(const char *host);
+static void ping(const char *host);
 
 /* common routines */
 static int in_cksum(unsigned short *buf, int sz)
@@ -414,7 +414,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 					icmppkt->icmp_type, icmp_type_name (icmppkt->icmp_type));
 }
 
-static int ping(const char *host)
+static void ping(const char *host)
 {
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
 	int sockopt;
@@ -468,7 +468,6 @@ static int ping(const char *host)
 			break;
 	}
 	pingstats(0);
-	return(nreceived > 0);
 }
 
 extern int ping_main(int argc, char **argv)
@@ -510,7 +509,8 @@ extern int ping_main(int argc, char **argv)
 		show_usage();
 
 	myid = getpid() & 0xFFFF;
-	return ping(*argv);
+	ping(*argv);
+	return EXIT_SUCCESS;
 }
 #endif /* ! CONFIG_FEATURE_FANCY_PING */
 
