@@ -102,8 +102,8 @@ extern int modprobe_main(int argc, char** argv)
 			quiet ? "-q" : "",
 			autoclean ? "-k" : "");
 	while (optind < argc) {
-		strcat(cmd, argv[optind]);
 		strcat(cmd, " ");
+		strcat(cmd, argv[optind]);
 		optind++;
 	}
 	if (do_syslog)
