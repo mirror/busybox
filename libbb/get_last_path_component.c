@@ -32,7 +32,13 @@
 
 char *get_last_path_component(char *path)
 {
-	char *s=path+strlen(path)-1;
+	char *s;
+	register char *ptr = path;
+	register char *prev = 0;
+
+	while (*ptr)
+		ptr++;
+	s = ptr - 1;
 
 	/* strip trailing slashes */
 	while (s != path && *s == '/') {
@@ -40,7 +46,14 @@ char *get_last_path_component(char *path)
 	}
 
 	/* find last component */
-	s = strrchr(path, '/');
+	ptr = path;
+	while (*ptr != '\0') {
+		if (*ptr == '/')
+			prev = ptr;
+		ptr++;
+	}
+	s = prev;
+
 	if (s == NULL || s[1] == '\0')
 		return path;
 	else
