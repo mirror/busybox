@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.19 2002/11/26 09:02:06 bug1 Exp $
+ * $Id: route.c,v 1.20 2002/12/11 03:57:12 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -28,7 +28,6 @@
 #include "inet_common.h"
 #include <net/route.h>
 #include <net/if.h>
-#include <linux/param.h>	/* HZ */
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -223,7 +222,7 @@ static int INET_setroute(int action, int options, char **args)
 #if HAVE_RTF_IRTT
 			rt.rt_flags |= RTF_IRTT;
 			rt.rt_irtt = atoi(*(args - 1));
-			rt.rt_irtt *= (HZ / 100);	/* FIXME */
+			rt.rt_irtt *= (sysconf(_SC_CLK_TCK) / 100);	/* FIXME */
 #if 0					/* FIXME: do we need to check anything of this? */
 			if (rt.rt_irtt < 1 || rt.rt_irtt > (120 * HZ)) {
 				error_msg(_("Invalid initial rtt."));
