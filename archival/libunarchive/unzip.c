@@ -64,6 +64,7 @@ static char *license_msg[] = {
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include "libbb.h"
 
 FILE *in_file, *out_file;

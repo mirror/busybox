@@ -19,6 +19,7 @@
  *
  */
 
+#include <string.h>
 #include "libbb.h"
 
 /* Find out if the last character of a string matches the one given Don't

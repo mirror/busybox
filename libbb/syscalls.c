@@ -30,7 +30,9 @@
 
 
 #include <sys/syscall.h>
+#ifndef __UCLIBC__
 #include <asm/unistd.h>
+#endif
 #include "libbb.h"
 
 #if defined(__ia64__)

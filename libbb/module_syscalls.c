@@ -28,7 +28,9 @@
    _syscall* defined.  */
 #define __LIBRARY__
 #include <sys/syscall.h>
+#ifndef __UCLIBC__
 #include <asm/unistd.h>
+#endif
 #include "libbb.h"
 
 
