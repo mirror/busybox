@@ -426,7 +426,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	}
 #ifdef BB_FEATURE_WGET_STATUSBAR
 	if (quiet_flag==FALSE)
-		printf("\n");
+		putc('\n', stderr);
 #endif
 	exit(EXIT_SUCCESS);
 }
@@ -735,7 +735,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.34 2001/04/11 20:07:27 kraai Exp $
+ *	$Id: wget.c,v 1.35 2001/04/11 20:11:51 kraai Exp $
  */
 
 
