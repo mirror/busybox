@@ -758,10 +758,26 @@ static void shutdown_system(void)
 static void exec_signal(int sig)
 {
 	struct init_action *a, *tmp;
+	sigset_t unblock_signals;
+	
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action & RESTART) {
 			shutdown_system();
+
+			/* unblock all signals, blocked in shutdown_system() */
+			sigemptyset(&unblock_signals);
+			sigaddset(&unblock_signals, SIGHUP);
+			sigaddset(&unblock_signals, SIGCHLD);
+			sigaddset(&unblock_signals, SIGUSR1);
+			sigaddset(&unblock_signals, SIGUSR2);
+			sigaddset(&unblock_signals, SIGINT);
+			sigaddset(&unblock_signals, SIGTERM);
+			sigaddset(&unblock_signals, SIGCONT);
+			sigaddset(&unblock_signals, SIGSTOP);
+			sigaddset(&unblock_signals, SIGTSTP);
+			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
+
 			message(CONSOLE|LOG, "\rTrying to re-exec %s\n", a->command);
 			execl(a->command, a->command, NULL);
 	
