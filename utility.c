@@ -1503,7 +1503,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 }
 #endif
 
-#if defined BB_FEATURE_NFSMOUNT || defined BB_LSMOD
+#if defined BB_FEATURE_NFSMOUNT || defined BB_SH
 # ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
@@ -1519,7 +1519,9 @@ extern char * xstrdup (const char *s) {
 	return t;
 }
 # endif
+#endif
 
+#if defined BB_FEATURE_NFSMOUNT
 extern char * xstrndup (const char *s, int n) {
 	char *t;
 
