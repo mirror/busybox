@@ -40,7 +40,7 @@
 //#define BB_PRINTF
 #define BB_PS
 #define BB_PWD
-#define BB_REGEXP
+//#define BB_REGEXP
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR

@@ -380,7 +380,7 @@ extern int block_mode;   /* block compress mode -C compatible with 2.0 */
 #  undef LZW
 #endif
 
-/* $Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $ */
+/* $Id: gzip.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 /* tailor.h -- target dependent definitions
  * Copyright (C) 1992-1993 Jean-loup Gailly.
  * This is free software; you can redistribute it and/or modify it under the
@@ -391,7 +391,7 @@ extern int block_mode;   /* block compress mode -C compatible with 2.0 */
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $ */
+/* $Id: gzip.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 
 #if defined(__MSDOS__) && !defined(MSDOS)
 #  define MSDOS
@@ -766,10 +766,6 @@ extern int block_mode;   /* block compress mode -C compatible with 2.0 */
 #  include <stdio.h>
 #endif
 
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
-
 /* ===========================================================================
  * Local data used by the "bit string" routines.
  */
@@ -974,10 +970,6 @@ void copy_block(buf, len, header)
  */
 
 #include <stdio.h>
-
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
 
 /* ===========================================================================
  * Configuration parameters
@@ -1591,10 +1583,6 @@ ulg deflate()
  * For the meaning of all compilation flags, see comments in Makefile.in.
  */
 
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
-
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -1923,10 +1911,6 @@ local void do_exit(int exitcode)
  */
 
 #include <ctype.h>
-
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
 
 /* ===========================================================================
  * Constants
@@ -2942,10 +2926,6 @@ local void set_file_type()
  * terms of the GNU General Public License, see the file COPYING.
  */
 
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
-
 #include <ctype.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -3140,10 +3120,6 @@ void display_ratio(num, den, file)
  * This is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, see the file COPYING.
  */
-
-#ifdef RCSID
-static char rcsid[] = "$Id: gzip.c,v 1.4 1999/10/19 20:03:34 andersen Exp $";
-#endif
 
 #include <ctype.h>
 #include <sys/types.h>

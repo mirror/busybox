@@ -58,10 +58,6 @@ static char  *license_msg[] = {
  * For the meaning of all compilation flags, see comments in Makefile.in.
  */
 
-#ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $";
-#endif
-
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -80,7 +76,7 @@ static char rcsid[] = "$Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $";
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $ */
+/* $Id: zcat.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 
 #define RECORD_IO 0
 
@@ -436,7 +432,7 @@ extern int unlzw  OF((int in, int out));
 #  undef LZW
 #endif
 
-/* $Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $ */
+/* $Id: zcat.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 
 /* #include "getopt.h" */
 
@@ -894,10 +890,6 @@ RETSIGTYPE abort_gzip()
    either deflated or stored.
  */
 
-#ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $";
-#endif
-
 /* #include "crypt.h" */
 
 /* crypt.h (dummy version) -- do not perform encryption
@@ -1019,10 +1011,6 @@ int unzip(in, out)
  * This is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, see the file COPYING.
  */
-
-#ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $";
-#endif
 
 #include <ctype.h>
 #include <errno.h>
@@ -1406,10 +1394,6 @@ const ulg crc_32_tab[] = {
       a repeat code (16, 17, or 18) to go across the boundary between
       the two sets of lengths.
  */
-
-#ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.4 1999/10/19 22:26:25 andersen Exp $";
-#endif
 
 #include <sys/types.h>
 
