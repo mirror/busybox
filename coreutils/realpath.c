@@ -21,24 +21,22 @@
 
 int realpath_main(int argc, char **argv)
 {
-	char *resolved_path;
-	int count;
+	RESERVE_CONFIG_BUFFER(resolved_path, PATH_MAX);
 
-	if (argc == 1) {
+	if (--argc == 0) {
 		show_usage();
 	}
 
-	resolved_path = malloc(PATH_MAX);
-
-	for (count = 1; count < argc; count++) {
-		resolved_path = realpath(argv[count], resolved_path);
-		if (resolved_path) {
+	do {
+		argv++;
+		if (realpath(*argv, resolved_path) != NULL) {
 			puts(resolved_path);
 		} else {
-			perror_msg("%s", argv[count]);
+			perror_msg("%s", *argv);
 		}
-	}
-	free(resolved_path);
+	} while (--argc);
+
+	RELEASE_CONFIG_BUFFER(resolved_path);
 
 	return(EXIT_SUCCESS);
 }
