@@ -53,7 +53,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	} tar;
 	long sum = 0;
 	long i;
-	char *tmp;
 
 	/* Align header */
 	data_align(archive_handle, 512);
@@ -117,7 +116,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
-#if defined CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY || defined CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
 # ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
@@ -176,7 +174,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
 # endif
 	}
-#endif
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(archive_handle->file_header);
