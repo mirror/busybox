@@ -107,9 +107,10 @@ initAction* initActionList = NULL;
 
 
 static char *console = _PATH_CONSOLE;
-static char *second_console = VT_SECONDARY;
+static char *secondConsole = VT_SECONDARY;
 static char *log = VT_LOG;
-static int kernel_version = 0;
+static int kernelVersion = 0;
+static char *termType = NULL;
 
 
 /* try to open up the specified device */
@@ -258,6 +259,12 @@ static void console_init()
     char *s;
 
     if ((s = getenv("CONSOLE")) != NULL) {
+	termType = s;
+    } else {
+	termType = "TERM=vt100";
+    }
+
+    if ((s = getenv("CONSOLE")) != NULL) {
 	console = s;
     }
 #if #cpu(sparc)
@@ -314,7 +321,7 @@ static void console_init()
 	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
 	    message(LOG|CONSOLE, "serial console detected.  Disabling virtual terminals.\r\n", console );
 	    log = NULL;
-	    second_console = NULL;
+	    secondConsole = NULL;
 	}
 	close(fd);
     }
@@ -330,9 +337,18 @@ static pid_t run(char* command,
     char* cmd[255];
     static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
+    static char * environment[] = {
+	"HOME=/",
+	"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+	"SHELL=/bin/sh",
+	0,
+	"USER=root",
+	0
+    };
+    environment[3]=termType;
+
 
     if ((pid = fork()) == 0) {
-	int fd;
 	pid_t shell_pgid = getpid ();
 
 	/* Clean up */
@@ -341,14 +357,14 @@ static pid_t run(char* command,
 	close(2);
 	setsid();
 
-	if ((fd=device_open(terminal, O_RDWR)) < 0) {
+	if (device_open(terminal, O_RDWR) < 0) {
 	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
 	    exit(1);
 	}
-	dup(fd);
-	dup(fd);
-	set_term(fd);
-	tcsetpgrp (fd, getpgrp());
+	dup(0);
+	dup(0);
+	tcsetpgrp (0, getpgrp());
+	set_term(0);
 
 	/* Reset signal handlers set for parent process */
 	signal(SIGUSR1, SIG_DFL);
@@ -389,7 +405,8 @@ static pid_t run(char* command,
 
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
-	execvp(cmd[0], cmd);
+	//execvp(cmd[0], cmd);
+	execve(cmd[0], cmd, environment);
 
 	/* We're still here?  Some error happened. */
 	message(LOG|CONSOLE, "Bummer, could not run '%s': %s\n", cmd[0],
@@ -464,7 +481,7 @@ static void shutdown_system(void)
     message(CONSOLE, "Unmounting filesystems.\r\n");
     waitfor("umount -a", console, FALSE);
     sync();
-    if (kernel_version > 0 && kernel_version <= 2 * 65536 + 2 * 256 + 11) {
+    if (kernelVersion > 0 && kernelVersion <= 2 * 65536 + 2 * 256 + 11) {
 	/* bdflush, kupdate not needed for kernels >2.2.11 */
 	bdflush(1, 0);
 	sync();
@@ -505,7 +522,7 @@ void new_initAction (initActionEnum action,
     /* If BusyBox detects that a serial console is in use, 
      * then entries containing non-empty id fields will _not_ be run.
      */
-    if (second_console == NULL && *cons != '\0') {
+    if (secondConsole == NULL && *cons != '\0') {
 	return;
     }
 
@@ -563,8 +580,8 @@ void parse_inittab(void)
 	/* Askfirst shell on tty1 */
 	new_initAction( ASKFIRST, SHELL, console );
 	/* Askfirst shell on tty2 */
-	if (second_console != NULL) 
-	    new_initAction( ASKFIRST, SHELL, second_console );
+	if (secondConsole != NULL) 
+	    new_initAction( ASKFIRST, SHELL, secondConsole );
 	/* sysinit */
 	new_initAction( SYSINIT, INIT_SCRIPT, console );
 
@@ -698,7 +715,7 @@ extern int init_main(int argc, char **argv)
     /* Mount /proc */
     if (mount ("proc", "/proc", "proc", 0, 0) == 0) {
 	message(LOG|CONSOLE, "Mounting /proc: done.\n");
-	kernel_version = get_kernel_revision();
+	kernelVersion = get_kernel_revision();
     } else
 	message(LOG|CONSOLE, "Mounting /proc: failed!\n");
 
@@ -710,8 +727,8 @@ extern int init_main(int argc, char **argv)
 		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) 
     {
 	/* Ask first then start a shell on tty2 */
-	if (second_console != NULL) 
-	    new_initAction( ASKFIRST, SHELL, second_console);
+	if (secondConsole != NULL) 
+	    new_initAction( ASKFIRST, SHELL, secondConsole);
 	/* Ask first then start a shell on tty1 */
 	new_initAction( ASKFIRST, SHELL, console);
     } else {
