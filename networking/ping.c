@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.47 2001/10/24 04:59:56 andersen Exp $
+ * $Id: ping.c,v 1.48 2002/02/01 16:54:00 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -175,13 +175,6 @@ static int in_cksum(unsigned short *buf, int sz)
 
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING
-static char *hostname = NULL;
-
-static void noresp(int ign)
-{
-	printf("No response from %s\n", hostname);
-	exit(0);
-}
 
 static void ping(const char *host)
 {
@@ -191,6 +184,12 @@ static void ping(const char *host)
 	int pingsock, c;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
+	void noresp(int ign)
+	{
+		printf("No response from %s\n", h->h_name);
+		exit(0);
+	}
+
 	pingsock = create_icmp_socket();
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
@@ -198,7 +197,6 @@ static void ping(const char *host)
 	pingaddr.sin_family = AF_INET;
 	h = xgethostbyname(host);
 	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
-	hostname = h->h_name;
 
 	pkt = (struct icmp *) packet;
 	memset(pkt, 0, sizeof(packet));
@@ -233,7 +231,7 @@ static void ping(const char *host)
 				break;
 		}
 	}
-	printf("%s is alive!\n", hostname);
+	printf("%s is alive!\n", h->h_name);
 	return;
 }
 
@@ -249,15 +247,16 @@ extern int ping_main(int argc, char **argv)
 
 #else /* ! CONFIG_FEATURE_FANCY_PING */
 /* full(er) version */
-static char *hostname = NULL;
 static struct sockaddr_in pingaddr;
 static int pingsock = -1;
 static int datalen; /* intentionally uninitialized to work around gcc bug */
 
-static long ntransmitted = 0, nreceived = 0, nrepeats = 0, pingcount = 0;
-static int myid = 0, options = 0;
-static unsigned long tmin = ULONG_MAX, tmax = 0, tsum = 0;
+static long ntransmitted, nreceived, nrepeats, pingcount;
+static int myid, options;
+static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
+
+struct hostent *hostent;
 
 static void sendping(int);
 static void pingstats(int);
@@ -271,7 +270,7 @@ static void pingstats(int junk)
 
 	signal(SIGINT, SIG_IGN);
 
-	printf("\n--- %s ping statistics ---\n", hostname);
+	printf("\n--- %s ping statistics ---\n", hostent->h_name);
 	printf("%ld packets transmitted, ", ntransmitted);
 	printf("%ld packets received, ", nreceived);
 	if (nrepeats)
@@ -416,8 +415,6 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 
 static void ping(const char *host)
 {
-	struct hostent *h;
-	char buf[MAXHOSTNAMELEN];
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
 	int sockopt;
 
@@ -426,13 +423,11 @@ static void ping(const char *host)
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
 	pingaddr.sin_family = AF_INET;
-	h = xgethostbyname(host);
-	if (h->h_addrtype != AF_INET)
+	hostent = xgethostbyname(host);
+	if (hostent->h_addrtype != AF_INET)
 		error_msg_and_die("unknown address type; only AF_INET is currently supported.");
 
-	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
-	strncpy(buf, h->h_name, sizeof(buf) - 1);
-	hostname = buf;
+	memcpy(&pingaddr.sin_addr, hostent->h_addr, sizeof(pingaddr.sin_addr));
 
 	/* enable broadcast pings */
 	sockopt = 1;
@@ -445,7 +440,7 @@ static void ping(const char *host)
 			   sizeof(sockopt));
 
 	printf("PING %s (%s): %d data bytes\n",
-		   hostname,
+	           hostent->h_name,
 		   inet_ntoa(*(struct in_addr *) &pingaddr.sin_addr.s_addr),
 		   datalen);
 
