@@ -30,96 +30,82 @@
 #include <dirent.h>
 #include <errno.h>
 
-static int symlinkFlag = FALSE;
-static int removeoldFlag = FALSE;
-static int followLinks = TRUE;
+#define LN_SYMLINK		1
+#define LN_FORCE			2
+#define LN_NODEREFERENCE	4
+
+/*
+ * linkDestName is where the link points to,
+ * linkSrcName is the name of the link to be created.
+ */
+static int fs_link(const char *link_DestName, const char *link_SrcName, const int flag)
+{
+	int status;
+	int srcIsDir;
+	char *srcName;
+
+	if (link_DestName==NULL)
+		return(FALSE);
+
+	srcName = (char *) malloc(strlen(link_SrcName)+strlen(link_DestName)+1);
+
+	if (link_SrcName==NULL)
+		strcpy(srcName, link_DestName);
+	else
+		strcpy(srcName, link_SrcName);
+
+	if (flag&LN_NODEREFERENCE)
+		srcIsDir = isDirectory(srcName, TRUE, NULL);
+	else
+		srcIsDir = isDirectory(srcName, FALSE, NULL);	
+	
+	if ((srcIsDir==TRUE)&&((flag&LN_NODEREFERENCE)==0)) {
+		strcat(srcName, "/");
+		strcat(srcName, link_DestName);
+	}
+	
+	if (flag&LN_FORCE)
+		unlink(srcName);
+		
+	if (flag&LN_SYMLINK)
+		status = symlink(link_DestName, srcName);
+	else
+		status = link(link_DestName, srcName);
+
+	if (status != 0) {
+		perror(srcName);
+		return(FALSE);
+	}
+	return(TRUE);
+}
 
 extern int ln_main(int argc, char **argv)
 {
-	char *linkName, *dirName=NULL;
-	int linkIntoDirFlag;
-	int stopIt = FALSE;
-
-	argc--;
-	argv++;
-
+	int flag = 0;
+	int opt;
+	
 	/* Parse any options */
-	while (argc > 0 && stopIt == FALSE) {
-		if (**argv == '-') {
-			while (*++(*argv))
-				switch (**argv) {
-					case 's':
-						symlinkFlag = TRUE;
-						break;
-					case 'f':
-						removeoldFlag = TRUE;
-						break;
-					case 'n':
-						followLinks = FALSE;
-						break;
-					case '-':
-						stopIt = TRUE;
-						break;
-					default:
-						usage(ln_usage);
-				}
-			argc--;
-			argv++;
+	while ((opt=getopt(argc, argv, "sfn")) != -1) {
+		switch(opt) {
+			case 's':
+				flag |= LN_SYMLINK;
+				break;
+			case 'f':
+				flag |= LN_FORCE;
+				break;
+			case 'n':
+				flag |= LN_NODEREFERENCE;
+				break;
+			default:
+				usage(ln_usage);
 		}
-		else
-			break;
 	}
-
-	if (argc < 2) {
-		usage(ln_usage);
+	while(optind<(argc-1)) {
+		if (fs_link(argv[optind], argv[argc-1], flag)==FALSE)
+			return(FALSE);
+		optind++;
 	}
-
-	linkName = argv[argc - 1];
-
-	linkIntoDirFlag = isDirectory(linkName, followLinks, NULL);
-	if ((argc >= 3) && linkIntoDirFlag == FALSE) {
-		errorMsg(not_a_directory, linkName);
-		exit FALSE;
-	}
-
-	if (linkIntoDirFlag == TRUE)
-		dirName = linkName;
-
-	while (argc-- >= 2) {
-		int status;
-
-		if (linkIntoDirFlag == TRUE) {
-			char *baseName = get_last_path_component(*argv);
-			linkName = (char *)xmalloc(strlen(dirName)+strlen(baseName)+2);
-			strcpy(linkName, dirName);
-			if(dirName[strlen(dirName)-1] != '/')
-				strcat(linkName, "/");
-			strcat(linkName,baseName);
-		}
-
-		if (removeoldFlag == TRUE) {
-			status = (unlink(linkName) && errno != ENOENT);
-			if (status != 0) {
-				perror(linkName);
-				exit FALSE;
-			}
-		}
-
-		if (symlinkFlag == TRUE)
-			status = symlink(*argv, linkName);
-		else
-			status = link(*argv, linkName);
-		if (status != 0) {
-			perror(linkName);
-			exit FALSE;
-		}
-
-		if (linkIntoDirFlag == TRUE)
-			free(linkName);
-
-		argv++;
-	}
-	return( TRUE);
+	return(TRUE);
 }
 
 /*
