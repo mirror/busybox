@@ -801,8 +801,10 @@ extern int msh_main(int argc, char **argv)
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
+#ifndef BB_FEATURE_SH_EXTRA_QUIET 
 			printf( "\n\n" BB_BANNER " Built-in shell (msh)\n");
 			printf( "Enter 'help' for a list of built-in commands.\n\n");
+#endif
 		}
 	}
 	signal(SIGQUIT, qflag);

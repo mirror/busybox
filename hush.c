@@ -2655,7 +2655,10 @@ int hush_main(int argc, char **argv)
 	debug_printf("\ninteractive=%d\n", interactive);
 	if (interactive) {
 		/* Looks like they want an interactive shell */
-		fprintf(stdout, "\nhush -- the humble shell v0.01 (testing)\n\n");
+#ifndef BB_FEATURE_SH_EXTRA_QUIET 
+		printf( "\n\n" BB_BANNER " hush - the humble shell v0.01 (testing)\n");
+		printf( "Enter 'help' for a list of built-in commands.\n\n");
+#endif
 		setup_job_control();
 	}
 	

@@ -3224,8 +3224,10 @@ setinteractive(int on)
 	is_interactive = on;
 	if (do_banner==0 && is_interactive) {
 		/* Looks like they want an interactive shell */
+#ifndef BB_FEATURE_SH_EXTRA_QUIET 
 		printf( "\n\n" BB_BANNER " Built-in shell (ash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
+#endif
 		do_banner=1;
 	}
 }
@@ -12728,7 +12730,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.27 2001/10/19 00:08:17 andersen Exp $
+ * $Id: ash.c,v 1.28 2001/10/19 00:22:22 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

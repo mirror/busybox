@@ -1611,8 +1611,10 @@ int lash_main(int argc_l, char **argv_l)
 	if (interactive==TRUE) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
+#ifndef BB_FEATURE_SH_EXTRA_QUIET 
 		printf( "\n\n" BB_BANNER " Built-in shell (lash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
+#endif
 	} else if (local_pending_command==NULL) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = xfopen(argv[optind], "r");

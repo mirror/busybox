@@ -302,6 +302,9 @@
 // Only relevant if a shell is enabled.
 //#define BB_FEATURE_SH_FANCY_PROMPT
 //
+//Make interactive shells not print busybox messages
+//#define BB_FEATURE_SH_EXTRA_QUIET
+//
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
 //
