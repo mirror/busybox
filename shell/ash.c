@@ -10877,6 +10877,7 @@ static void redirect(union node *redir, int flags)
 		INTOFF;
 		newfd = openredirect(n);
 		if ((flags & REDIR_PUSH) && sv->renamed[fd] == EMPTY) {
+			i = fd;
 			if (newfd == fd) {
 				try++;
 			} else if ((i = fcntl(fd, F_DUPFD, 10)) == -1) {
