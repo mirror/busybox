@@ -60,9 +60,9 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 
 	/* send arp request */
 	memset(&arp, 0, sizeof(arp));
-	memcpy(arp.ethhdr.h_dest, MAC_BCAST_ADDR, 6);	/* MAC DA */
-	memcpy(arp.ethhdr.h_source, mac, 6);		/* MAC SA */
-	arp.ethhdr.h_proto = htons(ETH_P_ARP);		/* protocol type (Ethernet) */
+	memcpy(arp.h_dest, MAC_BCAST_ADDR, 6);		/* MAC DA */
+	memcpy(arp.h_source, mac, 6);			/* MAC SA */
+	arp.h_proto = htons(ETH_P_ARP);			/* protocol type (Ethernet) */
 	arp.htype = htons(ARPHRD_ETHER);		/* hardware type */
 	arp.ptype = htons(ETH_P_IP);			/* protocol type (ARP message) */
 	arp.hlen = 6;					/* hardware address length */
