@@ -110,7 +110,7 @@ extern int gunzip_main(int argc, char **argv)
 	}
 
 	/* Set input filename and number */
-	if (argv[optind] == NULL) {
+	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		flags |= gunzip_to_stdout;
 		in_file = stdin;
 	} else {
