@@ -60,9 +60,6 @@ static char *license_msg[] = {
 };
 #endif
 
-//#include <sys/types.h>
-//#include <sys/wait.h>
-//#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -93,35 +90,40 @@ extern int gunzip_main(int argc, char **argv)
 
 	/* if called as zcat */
 	if (strcmp(applet_name, "zcat") == 0) {
-		if (argc != 2) {
+		if (argc > 2) {
 			show_usage();
 		}
-		optind = 1;
-		flags |= (gunzip_force | gunzip_to_stdout);
+		else if (argc == 2) {
+			/* a filename was specified */
+			flags |= (gunzip_to_stdout | gunzip_force);
+			optind = 1;
+		} else {
+			/* read from stdin, this gets caught below as argv[optind] will be NULL */
+			optind = argc;
+		}
 	} else {
 		/* workout flags as regular gunzip */
-		/* set default flags */
-		if (argc == 1) {
-			flags |= (gunzip_from_stdin | gunzip_to_stdout);
-		} else {
-			/* Parse any options */
-			while ((opt = getopt(argc, argv, "ctfh")) != -1) {
-				switch (opt) {
-				case 'c':
-					flags |= gunzip_to_stdout;
-					break;
-				case 'f':
-					flags |= gunzip_force;
-					break;
-				case 't':
-					flags |= gunzip_test;
-					break;
-				case 'h':
-				default:
-					show_usage(); /* exit's inside usage */
-				}
+		while ((opt = getopt(argc, argv, "ctfh")) != -1) {
+			switch (opt) {
+			case 'c':
+				flags |= gunzip_to_stdout;
+				break;
+			case 'f':
+				flags |= gunzip_force;
+				break;
+			case 't':
+				flags |= gunzip_test;
+				break;
+			case 'h':
+			default:
+				show_usage(); /* exit's inside usage */
 			}
 		}
+	}
+
+	/* no filename specified so it must be reading from stdin to stdout */
+	if (argv[optind] == NULL) {
+		flags |= (gunzip_from_stdin |gunzip_to_stdout |gunzip_force);
 	}
 
 	/* Set input filename and number */
