@@ -103,9 +103,7 @@ extern int df_main(int argc, char **argv)
 	}
 
 	while ((mountEntry = getmntent(mountTable))) {
-	    int status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
-	    if (status)
-		exit( status);
+	    df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
 	}
 	endmntent(mountTable);
     }
