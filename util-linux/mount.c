@@ -54,6 +54,12 @@
 #include <ctype.h>
 #include "busybox.h"
 
+#ifdef CONFIG_NFSMOUNT
+#if defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
+#error "You need to build uClibc with UCLIBC_HAS_RPC for busybox mount with NFS support to compile."
+#endif
+#endif
+
 enum {
 	MS_MGC_VAL = 0xc0ed0000,	/* Magic number indicatng "new" flags */
 	MS_RDONLY = 1,		/* Mount read-only */
