@@ -715,7 +715,10 @@ int recursive_action(const char *fileName,
 				return FALSE;
 			}
 			memset(nextFile, 0, sizeof(nextFile));
-			sprintf(nextFile, "%s/%s", fileName, next->d_name);
+			if (fileName[strlen(fileName)-1] == '/')
+				sprintf(nextFile, "%s%s", fileName, next->d_name);
+			else
+				sprintf(nextFile, "%s/%s", fileName, next->d_name);
 			status =
 				recursive_action(nextFile, TRUE, followLinks, depthFirst,
 								fileAction, dirAction, userData);
