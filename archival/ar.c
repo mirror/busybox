@@ -59,7 +59,7 @@ static void data_extract_regular_file(archive_handle_t *archive_handle)
 
 	file_header = archive_handle->file_header;
 	dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT);
-	archive_copy_file(archive_handle, dst_fd);	
+	bb_copyfd_eof(archive_handle->src_fd, dst_fd, file_header->size);	
 	close(dst_fd);
 
 	chmod(file_header->name, file_header->mode);

@@ -37,14 +37,11 @@ LIBUNARCHIVE-y:= \
 	header_list.o \
 	header_verbose_list.o \
 \
-	archive_xread.o \
 	archive_xread_all.o \
 	archive_xread_all_eof.o \
 \
 	seek_by_char.o \
 	seek_by_jump.o \
-\
-	archive_copy_file.o \
 \
 	data_align.o \
 	find_list_entry.o \

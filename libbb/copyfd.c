@@ -29,44 +29,55 @@
 #define BUFSIZ 4096
 #endif
 
-/* If chunksize is 0 copy until EOF */
-extern int bb_copyfd(int fd1, int fd2, const off_t chunksize)
+/* If size is 0 copy until EOF */
+extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize_t (*action)(int fd, const void *, size_t))
 {
-	ssize_t nread;
-	size_t size;
-	off_t remaining;
+	size_t read_total = 0;
 	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
 
-	remaining = size = BUFSIZ;
-	if (chunksize) {
-		remaining = chunksize;
-	}
+	while ((size == 0) || (read_total < size)) {
+		size_t read_try;
+		ssize_t read_actual;
 
-	do {
-		if (size > remaining) {
-			size = remaining;
+ 		if ((size == 0) || (size - read_total > BUFSIZ)) {
+			read_try = BUFSIZ;
+		} else {
+			read_try = size - read_total;
 		}
 
-		if ((nread = safe_read(fd1, buffer, size)) > 0) {
-			if (bb_full_write(fd2, buffer, nread) < 0) {
+		read_actual = safe_read(src_fd, buffer, read_try);
+		if (read_actual > 0) {
+			if (action && (action(dst_fd, buffer, (size_t) read_actual) != read_actual)) {
 				bb_perror_msg(bb_msg_write_error);	/* match Read error below */
 				break;
 			}
-			if (chunksize && ((remaining -= nread) == 0)) {
-				return 0;
-			}
-		} else if (!nread) {
-			if (chunksize) {
+		}
+		else if (read_actual == 0) {
+			if (size) {
 				bb_error_msg("Unable to read all data");
-				break;
 			}
-			return 0;
-		} else {				/* nread < 0 */
-			bb_perror_msg("Read error");	/* match bb_msg_write_error above */
+			break;
+		} else {
+			/* read_actual < 0 */
+			bb_perror_msg("Read error");
 			break;
 		}
 
-	} while (1);
+		read_total += read_actual;
+	}
 
-	return -1;
+	RELEASE_CONFIG_BUFFER(buffer);
+
+	return(read_total);
+}
+
+
+extern int bb_copyfd_size(int fd1, int fd2, const off_t size)
+{
+	return(bb_full_fd_action(fd1, fd2, size, bb_full_write));
+}
+
+extern int bb_copyfd_eof(int fd1, int fd2)
+{
+	return(bb_full_fd_action(fd1, fd2, 0, bb_full_write));
 }

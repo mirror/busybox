@@ -181,7 +181,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			}
 		}
 
-		if (bb_copyfd(fileno(sfp), fileno(dfp), 0) == -1)
+		if (bb_copyfd_eof(fileno(sfp), fileno(dfp)) == -1)
 			status = -1;
 
 		if (fclose(dfp) < 0) {

@@ -136,7 +136,8 @@ extern long *find_pid_by_name( const char* pidName);
 extern char *find_real_root_device_name(const char* name);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
-extern int   bb_copyfd(int fd1, int fd2, const off_t chunksize);
+extern int bb_copyfd_size(int fd1, int fd2, const off_t size);
+extern int bb_copyfd_eof(int fd1, int fd2);
 extern void  bb_xprint_and_close_file(FILE *file);
 extern int   bb_xprint_file_by_name(const char *filename);
 extern char  bb_process_escape_sequence(const char **ptr);
@@ -480,6 +481,6 @@ extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 #define HASH_SHA1	1
 #define HASH_MD5	2
 extern int hash_fd(int fd, const size_t size, const uint8_t hash_algo, uint8_t *hashval);
-
+extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize_t (*action)(int fd, const void *, size_t));
 
 #endif /* __LIBCONFIG_H__ */

@@ -26,19 +26,7 @@
  */
 extern void seek_by_char(const archive_handle_t *archive_handle, const unsigned int jump_size)
 {
-	unsigned int remaining = jump_size;
-	unsigned int read_amount;
-	RESERVE_CONFIG_BUFFER(buf, BUFSIZ);
-
-	while (remaining > 0) {
-		if (remaining > BUFSIZ) {
-			read_amount = BUFSIZ;
-		} else {
-			read_amount = remaining;
-		}
-		read_amount = archive_xread(archive_handle, buf, read_amount);
-		remaining -= read_amount;
+	if (jump_size) {
+		bb_full_fd_action(archive_handle->src_fd, -1, jump_size, NULL);
 	}
-
-	RELEASE_CONFIG_BUFFER(buf);
 }

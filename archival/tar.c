@@ -414,8 +414,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	if ((tbInfo->hlInfo == NULL)
 		&& (S_ISREG(statbuf->st_mode))) {
 		int inputFileFd;
-		char buffer[BUFSIZ];
-		ssize_t size = 0, readSize = 0;
+		ssize_t readSize = 0;
 
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
@@ -424,18 +423,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		}
 
 		/* write the file to the archive */
-		while ((size = bb_full_read(inputFileFd, buffer, sizeof(buffer))) > 0) {
-			if (bb_full_write(tbInfo->tarFd, buffer, size) != size) {
-				/* Output file seems to have a problem */
-				bb_error_msg(bb_msg_io_error, fileName);
-				return (FALSE);
-			}
-			readSize += size;
-		}
-		if (size == -1) {
-			bb_error_msg(bb_msg_io_error, fileName);
-			return (FALSE);
-		}
+		readSize = bb_copyfd_eof(inputFileFd, tbInfo->tarFd);
+
 		/* Pad the file up to the tar block size */
 		for (; (readSize % TAR_BLOCK_SIZE) != 0; readSize++) {
 			write(tbInfo->tarFd, "\0", 1);

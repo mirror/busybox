@@ -210,7 +210,7 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	/* Copy the file */
-	if (bb_copyfd(fd_data, fd_local, filesize) == -1) {
+	if (bb_copyfd_size(fd_data, fd_local, filesize) == -1) {
 		exit(EXIT_FAILURE);
 	}
 
@@ -272,7 +272,7 @@ static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	/* transfer the file  */
-	if (bb_copyfd(fd_local, fd_data, 0) == -1) {
+	if (bb_copyfd_eof(fd_local, fd_data) == -1) {
 		exit(EXIT_FAILURE);
 	}
 

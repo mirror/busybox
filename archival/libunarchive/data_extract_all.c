@@ -79,7 +79,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			case S_IFREG: {
 				/* Regular file */
 				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
-				archive_copy_file(archive_handle, dst_fd);
+				bb_copyfd_size(archive_handle->src_fd, dst_fd, file_header->size);
 				close(dst_fd);
 				break;
 				}

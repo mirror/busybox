@@ -54,7 +54,7 @@ extern int cat_main(int argc, char **argv)
 
 	do {
 		if ((f = bb_wfopen_input(*argv)) != NULL) {
-			int r = bb_copyfd(fileno(f), STDOUT_FILENO, 0);
+			int r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
 			bb_fclose_nonstdin(f);
 			if (r >= 0) {
 				continue;

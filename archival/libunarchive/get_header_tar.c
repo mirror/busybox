@@ -57,7 +57,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	/* Align header */
 	data_align(archive_handle, 512);
 
-	if (archive_xread(archive_handle, tar.raw, 512) != 512) {
+	if (bb_full_read(archive_handle->src_fd, tar.raw, 512) != 512) {
 		/* Assume end of file */
 		return(EXIT_FAILURE);
 	}
