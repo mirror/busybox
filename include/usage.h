@@ -79,12 +79,12 @@
 #define cut_full_usage \
 	"Prints selected fields from each input FILE to standard output.\n\n" \
 	"Options:\n" \
-	"\t-b LIST\tOutput only bytes from LIST\n" \
-	"\t-c LIST\tOutput only characters from LIST\n" \
-	"\t-d CHAR\tUse CHAR instead of tab as the field delimiter\n" \
-	"\t-s\tOutput only the lines containing delimiter\n" \
-	"\t-f N\tPrint only these fields\n" \
-	"\t-n\tIgnored"
+	"\t-b LIST\t\tOutput only bytes from LIST\n" \
+	"\t-c LIST\t\tOutput only characters from LIST\n" \
+	"\t-d CHAR\t\tUse CHAR instead of tab as the field delimiter\n" \
+	"\t-s\t\tOutput only the lines containing delimiter\n" \
+	"\t-f N\t\tPrint only these fields\n" \
+	"\t-n\t\tIgnored"
 
 #define date_trivial_usage \
 	"[OPTION]... [+FORMAT]\n"
@@ -105,15 +105,15 @@
 
 #define dd_trivial_usage \
 	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]\n" \
-	"[seek=N] [conv=notrunc|sync]"
+	"\t  [seek=N] [conv=notrunc|sync]"
 #define dd_full_usage \
 	"Copy a file, converting and formatting according to options\n\n" \
-	"\tif=FILE\tread from FILE instead of stdin\n" \
-	"\tof=FILE\twrite to FILE instead of stdout\n" \
-	"\tbs=N\tread and write N bytes at a time\n" \
-	"\tcount=N\tcopy only N input blocks\n" \
-	"\tskip=N\tskip N input blocks\n" \
-	"\tseek=N\tskip N output blocks\n" \
+	"\tif=FILE\t\tread from FILE instead of stdin\n" \
+	"\tof=FILE\t\twrite to FILE instead of stdout\n" \
+	"\tbs=N\t\tread and write N bytes at a time\n" \
+	"\tcount=N\t\tcopy only N input blocks\n" \
+	"\tskip=N\t\tskip N input blocks\n" \
+	"\tseek=N\t\tskip N output blocks\n" \
 	"\tconv=notrunc\tdon't truncate output file\n" \
 	"\tconv=sync\tpad blocks with zeros\n" \
 	"\n" \
@@ -223,27 +223,27 @@
 #define expr_full_usage \
 	"Prints the value of EXPRESSION to standard output.\n\n" \
 	"EXPRESSION may be:\n" \
-	"ARG1 |  ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
-	"ARG1 &  ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
-	"ARG1 <  ARG2	ARG1 is less than ARG2\n" \
-	"ARG1 <= ARG2	ARG1 is less than or equal to ARG2\n" \
-	"ARG1 =  ARG2	ARG1 is equal to ARG2\n" \
-	"ARG1 != ARG2	ARG1 is unequal to ARG2\n" \
-	"ARG1 >= ARG2	ARG1 is greater than or equal to ARG2\n" \
-	"ARG1 >  ARG2	ARG1 is greater than ARG2\n" \
-	"ARG1 +  ARG2	arithmetic sum of ARG1 and ARG2\n" \
-	"ARG1 -  ARG2	arithmetic difference of ARG1 and ARG2\n" \
-	"ARG1 *  ARG2	arithmetic product of ARG1 and ARG2\n" \
-	"ARG1 /  ARG2	arithmetic quotient of ARG1 divided by ARG2\n" \
-	"ARG1 %  ARG2	arithmetic remainder of ARG1 divided by ARG2\n" \
-	"STRING : REGEXP		anchored pattern match of REGEXP in STRING\n" \
-	"match STRING REGEXP		same as STRING : REGEXP\n" \
-	"substr STRING POS LENGTH	substring of STRING, POS counted from 1\n" \
-	"index STRING CHARS		index in STRING where any CHARS is found, or 0\n" \
-	"length STRING			length of STRING\n" \
-	"quote TOKEN			interpret TOKEN as a string, even if it is a \n" \
-	"				keyword like `match' or an operator like `/'\n" \
-	"( EXPRESSION )			value of EXPRESSION\n\n" \
+	"\tARG1 |  ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
+	"\tARG1 &  ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
+	"\tARG1 <  ARG2	ARG1 is less than ARG2\n" \
+	"\tARG1 <= ARG2	ARG1 is less than or equal to ARG2\n" \
+	"\tARG1 =  ARG2	ARG1 is equal to ARG2\n" \
+	"\tARG1 != ARG2	ARG1 is unequal to ARG2\n" \
+	"\tARG1 >= ARG2	ARG1 is greater than or equal to ARG2\n" \
+	"\tARG1 >  ARG2	ARG1 is greater than ARG2\n" \
+	"\tARG1 +  ARG2	arithmetic sum of ARG1 and ARG2\n" \
+	"\tARG1 -  ARG2	arithmetic difference of ARG1 and ARG2\n" \
+	"\tARG1 *  ARG2	arithmetic product of ARG1 and ARG2\n" \
+	"\tARG1 /  ARG2	arithmetic quotient of ARG1 divided by ARG2\n" \
+	"\tARG1 %  ARG2	arithmetic remainder of ARG1 divided by ARG2\n" \
+	"\tSTRING : REGEXP			anchored pattern match of REGEXP in STRING\n" \
+	"\tmatch STRING REGEXP		same as STRING : REGEXP\n" \
+	"\tsubstr STRING POS LENGTH	substring of STRING, POS counted from 1\n" \
+	"\tindex STRING CHARS		index in STRING where any CHARS is found, or 0\n" \
+	"\tlength STRING			length of STRING\n" \
+	"\tquote TOKEN			interpret TOKEN as a string, even if it is a \n" \
+	"\t				keyword like `match' or an operator like `/'\n" \
+	"\t( EXPRESSION )			value of EXPRESSION\n\n" \
 	"Beware that many operators need to be escaped or quoted for shells.\n" \
 	"Comparisons are arithmetic if both ARGs are numbers, else\n" \
 	"lexicographical.  Pattern matches return the string matched between \n" \
@@ -280,7 +280,7 @@
 	"[PATH...] [EXPRESSION]"
 #define find_full_usage \
 	"Search for files in a directory hierarchy.  The default PATH is\n" \
-	"the current directory; default EXPRESSION is '-print'\n\n" \
+	"the current directory; default EXPRESSION is '-print'\n" \
 	"\nEXPRESSION may consist of:\n" \
 	"\t-follow\t\tDereference symbolic links.\n" \
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN." \
@@ -636,7 +636,7 @@
 	"Options:\n" \
 	"\t-c\t\tCheck for read-ability.\n" \
 	"\t-v0\t\tMake version 0 swap [max 128 Megs].\n" \
-	"\t-v1\t\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n" \
+	"\t-v1\t\tMake version 1 swap [big!] (default for kernels >\n\t\t\t2.1.117).\n" \
 	"\tblock-count\tNumber of block to use (default is entire partition)."
 
 #define mktemp_trivial_usage \
@@ -667,7 +667,7 @@
 	"Flags:\n"  \
 	"\t-a:\t\tMount all filesystems in fstab.\n" \
 	USAGE_MTAB( \
-	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n" \
+	"\t-f:\t\t\"Fake\" Add entry to mount table but don't mount it.\n" \
 	"\t-n:\t\tDon't write a mount table entry.\n" \
 	) \
 	"\t-o option:\tOne of many filesystem options, listed below.\n" \
@@ -684,7 +684,7 @@
 	"\tloop:\t\tMounts a file via loop device.\n" \
 	) \
 	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n" \
-	"\tremount:\tRe-mount a currently-mounted filesystem, changing its flags.\n" \
+	"\tremount:\tRe-mount a mounted filesystem, changing its flags.\n" \
 	"\tro/rw:\t\tMount for read-only / read-write.\n" \
 	"\nThere are EVEN MORE flags that are specific to each filesystem.\n" \
 	"You'll have to see the written documentation for those."
@@ -1050,7 +1050,7 @@
 	"[OPTION]... [INPUT [OUTPUT]]"
 #define uniq_full_usage \
 	"Discard all but one of successive identical lines from INPUT\n" \
-	"(or standard input), writing to OUTPUT (or standard output).\n" \
+	"(or standard input), writing to OUTPUT (or standard output).\n\n" \
 	"Options:\n" \
 	"\t-c\tprefix lines by the number of occurrences\n" \
 	"\t-d\tonly print duplicate lines\n" \
