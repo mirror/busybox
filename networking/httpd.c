@@ -1499,6 +1499,9 @@ static void handleIncoming(void)
   char *test;
   struct stat sb;
   int ip_allowed;
+  fd_set s_fd ;
+  struct timeval tv ;
+  int retval;
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   int credentials = -1;  /* if not requred this is Ok */
@@ -1717,6 +1720,17 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 #endif
 # endif
   shutdown(a_c_w, SHUT_WR);
+
+  /* Properly wait for remote to closed */
+  FD_ZERO (&s_fd) ;
+  FD_SET (a_c_w, &s_fd) ;
+      
+  do {
+    tv.tv_sec = 2 ;
+    tv.tv_usec = 0 ;
+    retval = select (a_c_w + 1, &s_fd, NULL, NULL, &tv);
+  } while (retval > 0 && (read (a_c_w, buf, sizeof (config->buf)) > 0));
+
   shutdown(a_c_r, SHUT_RD);
   close(config->accepted_socket);
 #endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
