@@ -735,6 +735,11 @@ static void exec_signal(int sig)
 			sigaddset(&unblock_signals, SIGTSTP);
 			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
 
+			/* Close whatever files are open. */
+			close(0);
+			close(1);
+			close(2);
+
 			/* Open the new terminal device */
 			if ((device_open(a->terminal, O_RDWR)) < 0) {
 				if (stat(a->terminal, &sb) != 0) {
