@@ -60,7 +60,7 @@ static long du(char *filename)
 	int len;
 
 	if ((lstat(filename, &statbuf)) != 0) {
-		perror_msg_and_die("%s:", filename);
+		perror_msg_and_die("%s", filename);
 	}
 
 	du_depth++;
@@ -165,7 +165,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.31 2000/12/11 17:08:21 andersen Exp $ */
+/* $Id: du.c,v 1.32 2000/12/12 23:17:26 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
