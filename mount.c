@@ -273,6 +273,64 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	return (TRUE);
 }
 
+void show_mounts()
+{
+#if defined BB_FEATURE_USE_DEVPS_PATCH
+	int fd, i, numfilesystems;
+	char device[] = "/dev/mtab";
+	struct k_mntent *mntentlist;
+
+	/* open device */ 
+	fd = open(device, O_RDONLY);
+	if (fd < 0)
+		perror_msg_and_die("open failed for `%s'", device);
+
+	/* How many mounted filesystems?  We need to know to 
+	 * allocate enough space for later... */
+	numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
+	if (numfilesystems<0)
+		perror_msg_and_die( "\nDEVMTAB_COUNT_MOUNTS");
+	mntentlist = (struct k_mntent *) xcalloc ( numfilesystems, sizeof(struct k_mntent));
+		
+	/* Grab the list of mounted filesystems */
+	if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)
+		perror_msg_and_die( "\nDEVMTAB_GET_MOUNTS");
+
+	for( i = 0 ; i < numfilesystems ; i++) {
+		printf( "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
+				mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
+				mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
+				mntentlist[i].mnt_passno);
+	}
+#ifdef BB_FEATURE_CLEAN_UP
+	/* Don't bother to close files or free memory.  Exit 
+	 * does that automagically, so we can save a few bytes */
+	free( mntentlist);
+	close(fd);
+#endif
+	exit(EXIT_SUCCESS);
+#else
+	FILE *mountTable = setmntent(mtab_file, "r");
+
+	if (mountTable) {
+		struct mntent *m;
+
+		while ((m = getmntent(mountTable)) != 0) {
+			char *blockDevice = m->mnt_fsname;
+			if (strcmp(blockDevice, "/dev/root") == 0) {
+				find_real_root_device_name( blockDevice);
+			}
+			printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
+				   m->mnt_type, m->mnt_opts);
+		}
+		endmntent(mountTable);
+	} else {
+		perror_msg_and_die("%s", mtab_file);
+	}
+	exit(EXIT_SUCCESS);
+#endif
+}
+
 extern int mount_main(int argc, char **argv)
 {
 	char string_flags_buf[1024] = "";
@@ -288,65 +346,6 @@ extern int mount_main(int argc, char **argv)
 	int i;
 	int rc = EXIT_FAILURE;
 	int fstabmount = FALSE;	
-
-#if defined BB_FEATURE_USE_DEVPS_PATCH
-	if (argc == 1) {
-		int fd, i, numfilesystems;
-		char device[] = "/dev/mtab";
-		struct k_mntent *mntentlist;
-
-		/* open device */ 
-		fd = open(device, O_RDONLY);
-		if (fd < 0)
-			perror_msg_and_die("open failed for `%s'", device);
-
-		/* How many mounted filesystems?  We need to know to 
-		 * allocate enough space for later... */
-		numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
-		if (numfilesystems<0)
-			perror_msg_and_die( "\nDEVMTAB_COUNT_MOUNTS");
-		mntentlist = (struct k_mntent *) xcalloc ( numfilesystems, sizeof(struct k_mntent));
-		
-		/* Grab the list of mounted filesystems */
-		if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)
-			perror_msg_and_die( "\nDEVMTAB_GET_MOUNTS");
-
-		for( i = 0 ; i < numfilesystems ; i++) {
-			printf( "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
-					mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
-					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
-					mntentlist[i].mnt_passno);
-		}
-#ifdef BB_FEATURE_CLEAN_UP
-		/* Don't bother to close files or free memory.  Exit 
-		 * does that automagically, so we can save a few bytes */
-		free( mntentlist);
-		close(fd);
-#endif
-		return EXIT_SUCCESS;
-	}
-#else
-	if (argc == 1) {
-		FILE *mountTable = setmntent(mtab_file, "r");
-
-		if (mountTable) {
-			struct mntent *m;
-
-			while ((m = getmntent(mountTable)) != 0) {
-				char *blockDevice = m->mnt_fsname;
-				if (strcmp(blockDevice, "/dev/root") == 0) {
-					find_real_root_device_name( blockDevice);
-				}
-				printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
-					   m->mnt_type, m->mnt_opts);
-			}
-			endmntent(mountTable);
-		} else {
-			perror_msg_and_die("%s", mtab_file);
-		}
-		return EXIT_SUCCESS;
-	}
-#endif
 
 	/* Parse options */
 	i = --argc;
@@ -405,13 +404,13 @@ extern int mount_main(int argc, char **argv)
 		argv++;
 	}
 
+	if (device == NULL && !all)
+		show_mounts();
+
 	if (all == TRUE || directory == NULL) {
 		struct mntent *m;
 		FILE *f = setmntent("/etc/fstab", "r");
 		fstabmount = TRUE;
-
-		if (all == FALSE && device == NULL)
-			goto goodbye;
 
 		if (f == NULL)
 			perror_msg_and_die( "\nCannot read /etc/fstab");
