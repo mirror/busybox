@@ -141,8 +141,10 @@ extern int grep_main(int argc, char **argv)
 	if (argv[optind] == NULL)
 		usage(grep_usage);
 
-	/* compile the regular expression */
-	reflags = REG_NOSUB; /* we're not going to mess with sub-expressions */
+	/* compile the regular expression
+	 * we're not going to mess with sub-expressions, and we need to
+	 * treat newlines right. */
+	reflags = REG_NOSUB | REG_NEWLINE; 
 	if (ignore_case)
 		reflags |= REG_ICASE;
 	if ((ret = regcomp(&regex, argv[optind], reflags)) != 0) {
