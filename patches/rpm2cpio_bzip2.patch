@@ -1,0 +1,63 @@
+diff -ur busybox/archival/Config.in busybox/archival/Config.in
+--- busybox/archival/Config.in	Sun May 23 09:15:37 2004
++++ busybox/archival/Config.in	Sun May 23 09:15:58 2004
+@@ -127,6 +127,14 @@
+ 	help
+ 	  Converts an RPM file into a CPIO archive.
+ 
++config CONFIG_FEATURE_RPM2CPIO_BZIP2
++	bool "  Support bzip2 decompression"
++	default n
++	depends on CONFIG_RPM2CPIO
++	help
++	  If you enable this option you'll be able to extract
++	  rpms compressed with bzip2.
++
+ config CONFIG_RPM
+ 	bool "rpm"
+ 	default n
+diff -ur busybox/archival/libunarchive/Makefile.in busybox/archival/libunarchive/Makefile.in
+--- busybox/archival/libunarchive/Makefile.in	Sun May 23 09:15:04 2004
++++ busybox/archival/libunarchive/Makefile.in	Sun May 23 09:16:42 2004
+@@ -65,6 +65,7 @@
+ LIBUNARCHIVE-$(CONFIG_GUNZIP) += $(GUNZIP_FILES)
+ LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += decompress_uncompress.o
+ LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o
++LIBUNARCHIVE-$(CONFIG_FEATURE_RPM2CPIO_BZIP2) += decompress_bunzip2.o
+ LIBUNARCHIVE-$(CONFIG_RPM) += $(GUNZIP_FILES) get_header_cpio.o
+ LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
+ LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_BZIP2) += decompress_bunzip2.o get_header_tar_bz2.o
+diff -ur busybox/archival/rpm2cpio.c busybox/archival/rpm2cpio.c
+--- busybox/archival/rpm2cpio.c	Sun May 23 09:15:04 2004
++++ busybox/archival/rpm2cpio.c	Sun May 23 09:19:03 2004
+@@ -91,14 +91,26 @@
+ 	skip_header(rpm_fd);
+ 
+ 	bb_xread_all(rpm_fd, &magic, 2);
+-	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
+-		bb_error_msg_and_die("Invalid gzip magic");
++	if ((magic[0] == 0x1f) || (magic[1] == 0x8b)) {
++		check_header_gzip(rpm_fd);
++		if (inflate_gunzip(rpm_fd, fileno(stdout)) != 0)
++			bb_error_msg("Error inflating (gzip)");
+ 	}
+ 
+-	check_header_gzip(rpm_fd);
+-	if (inflate_gunzip(rpm_fd, STDOUT_FILENO) != 0) {
+-		bb_error_msg("Error inflating");
++	if ((magic[0] == 'B') && (magic[1] == 'Z')) {
++#ifdef CONFIG_FEATURE_RPM2CPIO_BZIP2
++		/* return to position before magic (eek..!) */
++		lseek(rpm_fd, -2, SEEK_CUR);
++		if(uncompressStream(rpm_fd, fileno(stdout)) != 0)
++			bb_error_msg("Error inflating (bzip2)");
++#else
++		bb_error_msg_and_die("bzip2 not supported");
++#endif
+ 	}
++
++	else
++		bb_error_msg_and_die("not gzip or bzip2 compressed");
++  
+ 
+ 	close(rpm_fd);
