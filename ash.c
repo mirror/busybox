@@ -6040,8 +6040,8 @@ static int histcmd(argc, argv)
 
 struct redirtab {
 	struct redirtab *next;
-	/* short renamed[10]; *//* Current ash support only 0-9 descriptors */
-	char renamed[10];
+	short renamed[10]; /* Current ash support only 0-9 descriptors */
+	/* char renamed[10]; */ /* char on arm (and others) can't be negative */
 };
 
 static struct redirtab *redirlist;
@@ -12916,7 +12916,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.12 2001/07/17 01:14:06 andersen Exp $
+ * $Id: ash.c,v 1.13 2001/07/26 05:58:40 russ Exp $
  */
 static int timescmd (int argc, char **argv)
 {
