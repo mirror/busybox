@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.77 2001/12/20 23:13:08 kraai Exp $"
+#ident "$Id: insmod.c,v 1.78 2001/12/29 04:15:13 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.77 2001/12/20 23:13:08 kraai Exp $"
+#ident "$Id: insmod.c,v 1.78 2001/12/29 04:15:13 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -582,8 +582,10 @@ static void *obj_extend_section (struct obj_section *sec, unsigned long more);
 static int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     const char *string);
 
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     struct obj_symbol *sym);
+#endif
 
 static int obj_check_undefineds(struct obj_file *f);
 
@@ -613,7 +615,9 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 
 static int arch_create_got (struct obj_file *f);
 
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int arch_init_module (struct obj_file *f, struct new_module *);
+#endif
 
 #endif /* obj.h */
 //----------------------------------------------------------------------------
@@ -1276,11 +1280,12 @@ static int arch_create_got(struct obj_file *f)
 	return 1;
 }
 
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int arch_init_module(struct obj_file *f, struct new_module *mod)
 {
 	return 1;
 }
-
+#endif
 
 /*======================================================================*/
 
@@ -2639,6 +2644,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	return 1;
 }
 
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 static int
 obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 struct obj_symbol *sym)
@@ -2654,6 +2660,7 @@ obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 
 	return 1;
 }
+#endif
 
 static int obj_check_undefineds(struct obj_file *f)
 {
