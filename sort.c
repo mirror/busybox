@@ -1,5 +1,5 @@
 /*
- * Mini find implementation for busybox
+ * Mini sort implementation for busybox
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
@@ -107,12 +107,23 @@ line_release(Line *self)
 
 /* Comparison */
 
+/* ascii order */
 static int
 compare_ascii(const void *a, const void *b)
 {
-    return 0;
+    Line **doh;
+    Line *x, *y;
+
+    doh = (Line **) a;
+    x = (Line *) *doh;
+    doh = (Line **) b;
+    y = (Line *) *doh;
+
+    // fprintf(stdout, "> %p: %s< %p: %s", x, x->data, y, y->data);
+    return strcmp(x->data, y->data);
 }
 
+/* numeric order */
 static int
 compare_numeric(const void *a, const void *b)
 {
@@ -173,7 +184,7 @@ list_sort(List *self, Compare *compare)
     }
 
     /* apply qsort */
-    qsort(self->sorted, sizeof(Line*), self->len, compare);
+    qsort(self->sorted, self->len, sizeof(Line*), compare);
     return self;
 }
 
@@ -260,10 +271,18 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.5 1999/12/22 22:27:01 beppu Exp $ */
+/* $Id: sort.c,v 1.6 1999/12/22 23:02:12 beppu Exp $ */
 /* 
  * $Log: sort.c,v $
+ * Revision 1.6  1999/12/22 23:02:12  beppu
+ * 	oops..  qsort(2) misunderstanding on my part.
+ * 	it's ok, now.
+ *
  * Revision 1.5  1999/12/22 22:27:01  beppu
- * playing w/ $Log$
+ * playing w/ $Log: sort.c,v $
+ * playing w/ Revision 1.6  1999/12/22 23:02:12  beppu
+ * playing w/ 	oops..  qsort(2) misunderstanding on my part.
+ * playing w/ 	it's ok, now.
+ * playing w/
  *
  */
