@@ -253,6 +253,9 @@ extern int grep_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 "A:B:C:"
 #endif
+#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
+"E"
+#endif
 )) > 0) {
 		switch (opt) {
 			case 'i':
@@ -285,6 +288,11 @@ extern int grep_main(int argc, char **argv)
 			case 'e':
 				add_regex(optarg);
 				break;
+#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
+			case 'E':
+				reflags |= REG_EXTENDED;
+				break;
+#endif
 			case 'f':
 				load_regexes_from_file(optarg);
 				break;
