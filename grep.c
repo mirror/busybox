@@ -46,8 +46,6 @@ static const char grep_usage[] =
 #endif
 	;
 
-static const int GROWBY = 80; /* how large we will grow strings by */
-
 /* options */
 static int ignore_case       = 0;
 static int print_filename    = 0;
@@ -61,35 +59,6 @@ static regex_t regex; /* storage space for compiled regular expression */
 static int nmatches = 0; /* keeps track of the number of matches */
 static char *cur_file = NULL; /* the current file we are reading */
 
-
-/* This returns a malloc'ed char * which must be stored and free'ed */
-/* XXX: This function should probably go in a 'common'/'util'/'misc' file
- * somewhere so it can be used by other folks. */
-static char *get_line_from_file(FILE *file)
-{
-	int ch;
-	int idx = 0;
-	char *linebuf = NULL;
-	int linebufsz = 0;
-
-	while (1) {
-		ch = fgetc(file);
-		if (ch == EOF)
-			break;
-		/* grow the line buffer as necessary */
-		if (idx > linebufsz-1)
-			linebuf = realloc(linebuf, linebufsz += GROWBY);
-		linebuf[idx++] = (char)ch;
-		if ((char)ch == '\n')
-			break;
-	}
-
-	if (idx == 0)
-		return NULL;
-
-	linebuf[idx] = 0;
-	return linebuf;
-}
 
 static void print_matched_line(char *line, int linenum)
 {

@@ -258,7 +258,7 @@ extern long getNum (const char *cp);
 extern pid_t* findPidByName( char* pidName);
 extern void *xmalloc (size_t size);
 extern int find_real_root_device_name(char* name);
-extern char *cstring_lineFromFile(FILE *f);
+extern char *get_line_from_file(FILE *file);
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which

@@ -1586,56 +1586,35 @@ extern int find_real_root_device_name(char* name)
 }
 #endif
 
-const unsigned int CSTRING_BUFFER_LENGTH = 1024;
-/* recursive parser that returns cstrings of arbitrary length
- * from a FILE* 
- */
-static char *
-cstring_alloc(FILE* f, int depth)
+static const int GROWBY = 80; /* how large we will grow strings by */
+
+/* get_line_from_file() - This function reads an entire line from a text file
+ * up to a newline. It returns a malloc'ed char * which must be stored and
+ * free'ed  by the caller. */
+extern char *get_line_from_file(FILE *file)
 {
-    char *cstring;
-    char buffer[CSTRING_BUFFER_LENGTH];
-    int	 target = CSTRING_BUFFER_LENGTH * depth;
-    int  c, i, len, size;
+	int ch;
+	int idx = 0;
+	char *linebuf = NULL;
+	int linebufsz = 0;
 
-    /* fill buffer */
-    i = 0;
-	while ((c = fgetc(f)) != EOF) {
-		buffer[i] = (char) c;
-		if (buffer[i++] == 0x0a) { break; }
-		if (i == CSTRING_BUFFER_LENGTH) { break; }
-    }
-    len = i;
+	while (1) {
+		ch = fgetc(file);
+		if (ch == EOF)
+			break;
+		/* grow the line buffer as necessary */
+		if (idx > linebufsz-1)
+			linebuf = realloc(linebuf, linebufsz += GROWBY);
+		linebuf[idx++] = (char)ch;
+		if ((char)ch == '\n')
+			break;
+	}
 
-    /* recurse or malloc? */
-    if (len == CSTRING_BUFFER_LENGTH) {
-		cstring = cstring_alloc(f, (depth + 1));
-    } else {
-		/* [special case] EOF */
-		if ((depth | len) == 0) { return NULL; }
+	if (idx == 0)
+		return NULL;
 
-		/* malloc */
-		size = target + len + 1;
-		cstring = malloc(size);
-		if (!cstring) { return NULL; }
-		cstring[size - 1] = 0;
-    }
-
-    /* copy buffer */
-    if (cstring) {
-		memcpy(&cstring[target], buffer, len);
-    }
-    return cstring;
-}
-
-/* 
- * wrapper around recursive cstring_alloc 
- * it's the caller's responsibility to free the cstring
- */ 
-char *
-cstring_lineFromFile(FILE *f)
-{
-    return cstring_alloc(f, 0);
+	linebuf[idx] = 0;
+	return linebuf;
 }
 
 /* END CODE */

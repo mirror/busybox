@@ -84,7 +84,7 @@ static Line *line_newFromFile(FILE * src)
 	Line *self;
 	char *cstring = NULL;
 
-	if ((cstring = cstring_lineFromFile(src))) {
+	if ((cstring = get_line_from_file(src))) {
 		self = line_alloc();
 		if (self == NULL) {
 			return NULL;
@@ -304,4 +304,4 @@ int sort_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: sort.c,v 1.17 2000/06/19 17:25:40 andersen Exp $ */
+/* $Id: sort.c,v 1.18 2000/06/28 22:15:26 markw Exp $ */

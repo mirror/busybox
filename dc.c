@@ -170,7 +170,7 @@ int dc_main(int argc, char **argv)
 		char *line   = NULL;
 		char *cursor = NULL;
 		char *token  = NULL;
-		while ((line = cstring_lineFromFile(stdin))) {
+		while ((line = get_line_from_file(stdin))) {
 			cursor = line;
 			len = number_of_tokens(line);
 			for (i = 0; i < len; i++) {
