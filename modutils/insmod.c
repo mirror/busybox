@@ -233,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.84 2002/06/06 14:24:57 andersen Exp $"
+#ident "$Id: insmod.c,v 1.85 2002/06/18 05:16:25 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.84 2002/06/06 14:24:57 andersen Exp $"
+#ident "$Id: insmod.c,v 1.85 2002/06/18 05:16:25 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -738,8 +738,8 @@ static int n_ext_modules;
 static int n_ext_modules_used;
 extern int delete_module(const char *);
 
-static char m_filename[FILENAME_MAX + 1];
-static char m_fullName[FILENAME_MAX + 1];
+static char m_filename[FILENAME_MAX];
+static char m_fullName[FILENAME_MAX];
 
 
 
@@ -2010,7 +2010,7 @@ old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 		return -1;
 
 	p = f->sections[sym->secidx]->contents + sym->value;
-	strncpy(str, p, STRVERSIONLEN);
+	safe_strncpy(str, p, STRVERSIONLEN);
 
 	a = strtoul(p, &p, 10);
 	if (*p != '.')
@@ -2505,7 +2505,7 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 	p = get_modinfo_value(f, "kernel_version");
 	if (p == NULL)
 		return -1;
-	strncpy(str, p, STRVERSIONLEN);
+	safe_strncpy(str, p, STRVERSIONLEN);
 
 	a = strtoul(p, &p, 10);
 	if (*p != '.')
@@ -3432,7 +3432,7 @@ extern int insmod_main( int argc, char **argv)
 	FILE *fp;
 	struct obj_file *f;
 	struct stat st;
-	char m_name[FILENAME_MAX + 1] = "\0";
+	char m_name[FILENAME_MAX] = "\0";
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
@@ -3490,6 +3490,9 @@ extern int insmod_main( int argc, char **argv)
 		len-=2;
 		tmp[len] = '\0';
 	}
+	/* Make sure there is space for the terminal NULL */
+	len += 1;
+
 	if (len >= sizeof(m_fullName)) {
 		len = sizeof(m_fullName);
 	}
