@@ -174,7 +174,8 @@ extern int gunzip_main(int argc, char **argv)
 #endif
 				if (magic2 == 0x8b) {
 					check_header_gzip(src_fd);
-					if (inflate(src_fd, dst_fd) != 0) {
+					status = inflate(src_fd, dst_fd);
+					if (status != 0) {
 						error_msg("Error inflating");
 					}
 					check_trailer_gzip(src_fd);
