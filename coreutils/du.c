@@ -56,7 +56,7 @@ static unsigned int disp_k;	/* bss inits to 0 */
 #endif
 
 static int max_print_depth = INT_MAX;
-static int count_hardlinks = INT_MAX;
+static int count_hardlinks = 1;
 
 static int status
 #if EXIT_SUCCESS == 0
@@ -234,7 +234,7 @@ int du_main(int argc, char **argv)
 	}
 	if((opt & (1 << 7))) {
 		/* -l opt */
-		count_hardlinks = 1;
+		count_hardlinks = INT_MAX;
 	}
 	print_final_total = opt & (1 << 8); /* -c opt */
 
