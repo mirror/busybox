@@ -388,8 +388,8 @@ static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	int result;
-	result = execute("ip link set %iface% up", ifd, exec);
-	result +=execute("ip addr add ::1 dev %iface% label %label%", ifd, exec);
+	result =execute("ip addr add ::1 dev %iface% label %label%", ifd, exec);
+	result += execute("ip link set %iface% up", ifd, exec);
 	return( result);
 #else
 	return( execute("ifconfig %iface% add ::1", ifd, exec));
@@ -409,8 +409,8 @@ static int static_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	result = execute("ip link set %iface% up", ifd, exec);
-	result += execute("ip addr add %address%/%netmask% dev %iface% label %label%", ifd, exec);
+	result = execute("ip addr add %address%/%netmask% dev %iface% label %label%", ifd, exec);
+	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec);
 #else
 	result = execute("ifconfig %iface% [[media %media%]] [[hw %hwaddress%]] [[mtu %mtu%]] up", ifd, exec);
@@ -435,8 +435,8 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 	result = execute("ip tunnel add %iface% mode sit remote "
 				"%endpoint% [[local %local%]] [[ttl %ttl%]]", ifd, exec);
-	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("ip addr add %address%/%netmask% dev %iface% label %label%", ifd, exec);
+	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec);
 	return( result);
 }
@@ -467,8 +467,8 @@ static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	int result;
-	result = execute("ip link set %iface% up", ifd, exec);
-	result += execute("ip addr add 127.0.0.1/8 dev %iface% label %label%", ifd, exec);
+	result = execute("ip addr add 127.0.0.1/8 dev %iface% label %label%", ifd, exec);
+	result += execute("ip link set %iface% up", ifd, exec);
 	return(result);
 #else
 	return( execute("ifconfig %iface% 127.0.0.1 up", ifd, exec));
@@ -491,9 +491,9 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	result = execute("ip link set %iface% up", ifd, exec);
-	result += execute("ip addr add %address%/%bnmask% [[broadcast %broadcast%]] "
+	result = execute("ip addr add %address%/%bnmask% [[broadcast %broadcast%]] "
 			"dev %iface% label %label%", ifd, exec);
+	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec);
 #else
 	result = execute("ifconfig %iface% %address% netmask %netmask% "
@@ -1116,38 +1116,57 @@ static int popen2(FILE **in, FILE **out, char *command, ...)
 	/* unreached */
 }
 
-static char * run_mapping(char *physical, char *logical, int len, struct mapping_defn_t * map)
+static char * run_mapping(char *physical, struct mapping_defn_t * map)
 {
 	FILE *in, *out;
 	int i, status;
 	pid_t pid;
 
-	char *new_logical = NULL;
+	char *logical = bb_xstrdup(physical);
 
+	/* Run the mapping script. */
 	pid = popen2(&in, &out, map->script, physical, NULL);
-	if (pid == 0) {
-		return 0;
-	}
+
+	/* popen2() returns 0 on failure. */
+	if (pid == 0)
+		return logical;
+
+	/* Write mappings to stdin of mapping script. */
 	for (i = 0; i < map->n_mappings; i++) {
 		fprintf(in, "%s\n", map->mapping[i]);
 	}
 	fclose(in);
 	waitpid(pid, &status, 0);
+
 	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-		new_logical = (char *)xmalloc(MAX_INTERFACE_LENGTH);
+		/* If the mapping script exited successfully, try to
+		 * grab a line of output and use that as the name of the
+		 * logical interface. */
+		char *new_logical = (char *)xmalloc(MAX_INTERFACE_LENGTH);
 
 		if (fgets(new_logical, MAX_INTERFACE_LENGTH, out)) {
+			/* If we are able to read a line of output from the script,
+			 * remove any trailing whitespace and use this value
+			 * as the name of the logical interface. */
 			char *pch = new_logical + bb_strlen(new_logical) - 1;
 
 			while (pch >= new_logical && isspace(*pch))
 				*(pch--) = '\0';
+
+			free(logical);
+			logical = new_logical;
+		} else {
+			/* If we are UNABLE to read a line of output, discard are
+			 * freshly allocated memory. */
+			free(new_logical);
 		}
 	}
+
 	fclose(out);
 
-	return new_logical ? new_logical : logical;
+	return logical;
 }
-#endif /* CONFIG_FEATURE_IFUPDOWN_IPV6 */
+#endif /* CONFIG_FEATURE_IFUPDOWN_MAPPING */
 
 static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
@@ -1335,7 +1354,7 @@ extern int ifupdown_main(int argc, char **argv)
 					if (verbose) {
 						printf("Running mapping script %s on %s\n", currmap->script, liface);
 					}
-					liface = run_mapping(iface, liface, sizeof(liface), currmap);
+					liface = run_mapping(iface, currmap);
 					break;
 				}
 			}
