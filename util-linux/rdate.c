@@ -48,10 +48,10 @@ static time_t askremotedate(const char *host)
 	h = xgethostbyname(host);         /* get the IP addr */
 
 	if ((tserv = getservbyname("time", "tcp")) == NULL)   /* find port # */
-		perror_msg_and_die("%s", "time");
+		perror_msg_and_die("time");
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)    /* get net connection */
-		perror_msg_and_die("%s", "socket");
+		perror_msg_and_die("socket");
 
 	memcpy(&s_in.sin_addr, h->h_addr, sizeof(s_in.sin_addr));
 	s_in.sin_port= tserv->s_port;
@@ -80,32 +80,24 @@ int rdate_main(int argc, char **argv)
 {
 	time_t remote_time;
 	int opt;
-	int setdate = 0;
-	int printdate= 0;
+	int setdate = 1;
+	int printdate = 1;
 
 	/* Interpret command line args */
-	/* do special-case option parsing */
-	if (argv[1] && (strcmp(argv[1], "--help") == 0))
-		show_usage();
-
-	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "Hsp")) > 0) {
+	while ((opt = getopt(argc, argv, "sp")) > 0) {
 		switch (opt) {
-			default:
-			case 'H':
-				show_usage();
-				break;
 			case 's':
-				setdate++;
+				printdate = 0;
+				setdate = 1;
 				break;
 			case 'p':
-				printdate++;
+				printdate = 1;
+				setdate = 0;
 				break;
+			default:
+				show_usage();
 		}
 	}
-
-	/* the default action is to set the date */
-	if (printdate==0 && setdate==0) setdate++;
 
 	if (optind == argc)
 		show_usage();
