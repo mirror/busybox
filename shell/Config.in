@@ -77,11 +77,11 @@ config CONFIG_ASH_MATH_SUPPORT_64
 	  large numbers.
 
 config CONFIG_ASH_GETOPTS
-	bool "  Enable getopt builtin to parse positional parameters"
+	bool "  Enable getopts builtin to parse positional parameters"
 	default n
 	depends on CONFIG_ASH
 	help
-	  Enable builtin getopt in the ash shell.
+	  Enable getopts builtin in the ash shell.
 
 config CONFIG_ASH_CMDCMD
 	bool "  Enable cmdcmd to override shell builtins"
