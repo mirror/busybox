@@ -698,7 +698,7 @@ echo "*** Check the top-level Makefile for additional configuration."
 if [ ! -f .hdepend -o "$CONFIG_MODVERSIONS" = "y" ] ; then
     echo "*** Next, you must run 'make dep'."
 else
-    echo "*** Next, you may run 'make bzImage', 'make bzdisk', or 'make install'."
+    echo "*** Next, you may run 'make', or 'make install'."
 fi
 echo
 
