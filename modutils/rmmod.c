@@ -34,6 +34,7 @@ _syscall1(int, delete_module, const char *, name)
 
 extern int rmmod_main(int argc, char **argv)
 {
+	int ret = TRUE;
 	if (argc <= 1) {
 		usage(rmmod_usage);
 	}
@@ -58,8 +59,9 @@ extern int rmmod_main(int argc, char **argv)
 	while (argc-- > 0) {
 		if (delete_module(*argv) < 0) {
 			perror(*argv);
+			ret=FALSE;
 		}
 		argv++;
 	}
-	return(TRUE);
+	return(ret);
 }
