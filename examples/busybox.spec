@@ -1,13 +1,21 @@
-Name: busybox
-Version: 0.52
-Release: 1
+%define name	busybox
+%define epoch   0
+%define version	0.52
+%define release	%(date -I | sed -e 's/-/_/g')
+%define serial  1
+
+Name:	 %{name}
+#Epoch:   %{epoch}
+Version: %{version}
+Release: %{release}
+Serial:	 %{serial}
+Copyright: GPL
 Group: System/Utilities
 Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.
-Copyright: GPL
+URL:	 http://busybox.lineo.com/
+Source:	 ftp://oss.lineo.com/busybox/%{name}-%{version}.tar.gz
+Buildroot: /var/tmp/%{name}-%{version}
 Packager : Erik Andersen <andersen@lineo.com>
-Conflicts: fileutils grep shellutils
-Buildroot: /tmp/%{Name}-%{Version}
-Source: %{Name}-%{Version}.tar.gz
 
 %Description
 BusyBox combines tiny versions of many common UNIX utilities into a single
@@ -19,7 +27,7 @@ their full featured GNU cousins; however, the options that are provided behave
 very much like their GNU counterparts.
 
 %Prep
-%setup -q -n %{Name}-%{Version}
+%setup -q -n %{name}-%{version}
 
 %Build
 make
