@@ -457,6 +457,7 @@ extern int mount_main(int argc, char **argv)
 			
 			if (all == TRUE || flags == 0) {	// Allow single mount to override fstab flags
 				flags = 0;
+				string_flags = string_flags_buf;
 				*string_flags = '\0';
 				parse_mount_options(m->mnt_opts, &flags, string_flags);
 			}
