@@ -71,4 +71,6 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		argc--;	argv++;
 	}
 	_SL_ = oneline ? "\\" : "\n" ;
+	*argcp = argc;
+	*argvp = argv;
 }
