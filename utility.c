@@ -1315,7 +1315,8 @@ extern pid_t* findPidByName( char* pidName)
 		if (isspace(*(p)))
 				*p='\0';
 
-		if ((strstr(info.command_line, pidName) != NULL)) {
+		if ((strstr(info.command_line, pidName) != NULL)
+				&& (strlen(pidName) == strlen(info.command_line))) {
 			pidList=realloc( pidList, sizeof(pid_t) * (j+2));
 			if (pidList==NULL)
 				fatalError("out of memory\n");
@@ -1362,7 +1363,7 @@ extern pid_t* findPidByName( char* pidName)
 		FILE *status;
 		char filename[256];
 		char buffer[256];
-		char* p, *q;
+		char* p;
 
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
@@ -1387,8 +1388,8 @@ extern pid_t* findPidByName( char* pidName)
 		}
 		p=buffer+6; /* Skip the "Name:\t" */
 
-		if (((q=strstr(p, pidName)) != NULL)
-				&& (strncmp(q, pidName, strlen(pidName)) != 0)) {
+		if ((strstr(p, pidName) != NULL)
+				&& (strlen(pidName) == strlen(p))) {
 			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
 			if (pidList==NULL)
 				fatalError("out of memory\n");
