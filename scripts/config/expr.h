@@ -174,7 +174,6 @@ void expr_extract_eq(enum expr_type type, struct expr **ep, struct expr **ep1, s
 struct expr *expr_trans_compare(struct expr *e, enum expr_type type, struct symbol *sym);
 
 void expr_fprint(struct expr *e, FILE *out);
-void print_expr(int mask, struct expr *e, int prevtoken);
 
 static inline int expr_is_yes(struct expr *e)
 {

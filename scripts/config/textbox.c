@@ -27,8 +27,8 @@ static void print_line (WINDOW * win, int row, int width);
 static char *get_line (void);
 static void print_position (WINDOW * win, int height, int width);
 
-static int hscroll = 0, fd, file_size, bytes_read;
-static int begin_reached = 1, end_reached = 0, page_length;
+static int hscroll, fd, file_size, bytes_read;
+static int begin_reached = 1, end_reached, page_length;
 static char *buf, *page;
 
 /*

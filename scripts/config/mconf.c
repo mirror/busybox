@@ -515,9 +515,9 @@ static void conf_choice(struct menu *menu)
 	struct menu *child;
 	struct symbol *active;
 
+	active = sym_get_choice_value(menu->sym);
 	while (1) {
 		current_menu = menu;
-		active = sym_get_choice_value(menu->sym);
 		cdone(); cinit();
 		for (child = menu->list; child; child = child->next) {
 			if (!menu_is_visible(child))
@@ -525,19 +525,28 @@ static void conf_choice(struct menu *menu)
 			cmake();
 			cprint_tag("%p", child);
 			cprint_name("%s", menu_get_prompt(child));
-			items[item_no - 1]->selected = (child->sym == active);
+			if (child->sym == sym_get_choice_value(menu->sym))
+				items[item_no - 1]->selected = 1; /* ON */
+			else if (child->sym == active)
+				items[item_no - 1]->selected = 2; /* SELECTED */
+			else
+				items[item_no - 1]->selected = 0; /* OFF */
 		}
 
 		switch (dialog_checklist(prompt ? prompt : "Main Menu",
 					radiolist_instructions, 15, 70, 6,
 					item_no, items, FLAG_RADIO)) {
 		case 0:
-			if (sscanf(first_sel_item(item_no, items)->tag, "%p", &menu) != 1)
+			if (sscanf(first_sel_item(item_no, items)->tag, "%p", &child) != 1)
 				break;
-			sym_set_tristate_value(menu->sym, yes);
+			sym_set_tristate_value(child->sym, yes);
 			return;
 		case 1:
-			show_help(menu);
+			if (sscanf(first_sel_item(item_no, items)->tag, "%p", &child) == 1) {
+				show_help(child);
+				active = child->sym;
+			} else
+				show_help(menu);
 			break;
 		case 255:
 			return;

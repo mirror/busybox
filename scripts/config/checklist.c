@@ -138,10 +138,12 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 
     /* Initializes status */
     for (i = 0; i < item_no; i++) {
-	status[i] = items[i]->selected;
-	if (!choice && status[i])
-            choice = i;
+	status[i] = (items[i]->selected == 1); /* ON */
+	if ((!choice && status[i]) || items[i]->selected == 2) /* SELECTED */
+            choice = i + 1;
     }
+    if (choice)
+	    choice--;
 
     max_choice = MIN (list_height, item_no);
 
@@ -303,6 +305,9 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 	case 'H':
 	case 'h':
 	case '?':
+	    for (i = 0; i < item_no; i++)
+		items[i]->selected = 0;
+	    items[scroll + choice]->selected = 1;
 	    delwin (dialog);
 	    free (status);
 	    return 1;
@@ -341,7 +346,11 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 		for (i = 0; i < item_no; i++) {
 			items[i]->selected = status[i];
 		}
-            }
+            } else {
+		    for (i = 0; i < item_no; i++)
+			    items[i]->selected = 0;
+		    items[scroll + choice]->selected = 1;
+	    }
 	    delwin (dialog);
 	    free (status);
 	    return button;
