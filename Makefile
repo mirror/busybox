@@ -23,6 +23,11 @@ VERSION   := 0.48pre
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
+# With a modern GNU make(1) (highly recommended, that's what all the
+# developers use), all of the following configuration values can be
+# overridden at the command line.  For example:
+#   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
@@ -49,10 +54,12 @@ DODMALLOC = false
 # larger than 2GB!
 DOLFS = false
 
+# If you have a "pristine" source directory, point BB_SRC_DIR to it.
+BB_SRC_DIR = .
 
 # If you are running a cross compiler, you may want to set this
-# to something more interesting...
-CROSS = #powerpc-linux-
+# to something more interesting, like "powerpc-linux-".
+CROSS =
 CC = $(CROSS)gcc
 STRIPTOOL = $(CROSS)strip
 
@@ -72,6 +79,8 @@ OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&
     then echo "-Os"; else echo "-O2" ; fi)
 
 WARNINGS = -Wall
+
+VPATH += :$(BB_SRC_DIR)
 
 ifeq ($(DOLFS),true)
     # For large file summit support
@@ -113,7 +122,7 @@ ifndef $(PREFIX)
     PREFIX = `pwd`/_install
 endif
 
-OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o usage.o utility.o
+OBJECTS   = $(shell cd $(BB_SRC_DIR); ./busybox.sh) busybox.o messages.o usage.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
@@ -177,18 +186,18 @@ busybox.links: Config.h
 	- ./busybox.mkll | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
-$(OBJECTS): %.o: Config.h busybox.h  %.c Makefile
+$(OBJECTS): %.o: %.c Config.h busybox.h Makefile
 
 utility.o: loop.h
 
 loop.h:
-	@./mk_loop_h.sh
+	@$(BB_SRC_DIR)/mk_loop_h.sh
 
 test tests:
 	cd tests && $(MAKE) all
 
 clean:
-	cd tests && $(MAKE) clean
+	- cd tests && $(MAKE) clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
