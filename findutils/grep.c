@@ -43,6 +43,33 @@ static const char grep_usage[] =
 "This version of grep matches strings (not full regexps).\n";
 #endif
 
+int tellName=TRUE;
+int ignoreCase=FALSE;
+int tellLine=FALSE;
+
+static do_grep(char* needle, char* haystack )
+{
+	line = 0;
+
+	while (fgets (haystack, sizeof (haystack), fp)) {
+	    line++;
+	    cp = &haystack[strlen (haystack) - 1];
+
+	    if (*cp != '\n')
+		fprintf (stderr, "%s: Line too long\n", name);
+
+	    if (find_match(haystack, needle, ignoreCase) == TRUE) {
+		if (tellName==TRUE)
+		    printf ("%s: ", name);
+
+		if (tellLine==TRUE)
+		    printf ("%ld: ", line);
+
+		fputs (haystack, stdout);
+	    }
+	}
+}
+
 
 extern int grep_main (int argc, char **argv)
 {
@@ -50,9 +77,6 @@ extern int grep_main (int argc, char **argv)
     char *needle;
     char *name;
     char *cp;
-    int tellName=TRUE;
-    int ignoreCase=FALSE;
-    int tellLine=FALSE;
     long line;
     char haystack[BUF_SIZE];
 
@@ -91,33 +115,22 @@ extern int grep_main (int argc, char **argv)
     needle = *argv++;
     argc--;
 
+
     while (argc-- > 0) {
+
+	if (argc==0) {
+	    file = stdin;
+	}
+	else
+	    file = fopen(*argv, "r");
+
+
 	name = *argv++;
 
 	fp = fopen (name, "r");
 	if (fp == NULL) {
 	    perror (name);
 	    continue;
-	}
-
-	line = 0;
-
-	while (fgets (haystack, sizeof (haystack), fp)) {
-	    line++;
-	    cp = &haystack[strlen (haystack) - 1];
-
-	    if (*cp != '\n')
-		fprintf (stderr, "%s: Line too long\n", name);
-
-	    if (find_match(haystack, needle, ignoreCase) == TRUE) {
-		if (tellName==TRUE)
-		    printf ("%s: ", name);
-
-		if (tellLine==TRUE)
-		    printf ("%ld: ", line);
-
-		fputs (haystack, stdout);
-	    }
 	}
 
 	if (ferror (fp))

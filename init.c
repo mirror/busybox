@@ -192,7 +192,7 @@ static void console_init()
     if ((s = getenv("CONSOLE")) != NULL) {
 	console = s;
     }
-#if defined (__sparc__)
+#if #cpu(sparc)
     /* sparc kernel supports console=tty[ab] parameter which is also 
      * passed to init, so catch it here */
     else if ((s = getenv("console")) != NULL) {

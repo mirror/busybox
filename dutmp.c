@@ -19,7 +19,7 @@ static const char dutmp_usage[] = "dutmp\n"
     "\tDump file or stdin utmp file format to stdout, pipe delimited.\n"
     "\tdutmp /var/run/utmp\n";
 
-static int dutmp_main (int argc, char **argv)
+extern int dutmp_main (int argc, char **argv)
 {
 
     FILE *f = stdin;

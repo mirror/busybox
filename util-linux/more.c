@@ -41,8 +41,7 @@ static const char more_usage[] = "[file ...]";
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_MORE_TERM
 
-
-#if defined (__sparc__)
+#if #cpu(sparc)
 #      define USE_OLD_TERMIO
 #      include <termio.h>
 #      include <sys/ioctl.h>
@@ -69,13 +68,13 @@ extern int more_main(int argc, char **argv)
     struct stat st;	
     FILE *file;
 
-    if ( strcmp(*argv,"--help")==0 || strcmp(*argv,"-h")==0 ) {
-	usage (more_usage);
-    }
     argc--;
     argv++;
 
-    while (argc >= 0) {
+    if ( argc > 0 && (strcmp(*argv,"--help")==0 || strcmp(*argv,"-h")==0) ) {
+	usage (more_usage);
+    }
+    do {
 	if (argc==0) {
 	    file = stdin;
 	}
@@ -103,6 +102,9 @@ extern int more_main(int argc, char **argv)
 	stty(fileno(cin), &new_settings);
 	
 	(void) signal(SIGINT, gotsig);
+	(void) signal(SIGQUIT, gotsig);
+	(void) signal(SIGTERM, gotsig);
+
 
 #endif
 	while ((c = getc(file)) != EOF) {
@@ -141,18 +143,17 @@ extern int more_main(int argc, char **argv)
 	    }
 	    if (input=='q')
 		goto end;
-	    if (input==' ' &&  c == '\n' )
+	    if (input=='\n' &&  c == '\n' )
 		next_page = 1;
-	    if ( c == '\n' && ++lines == 24 )
+	    if ( c == ' ' && ++lines == 24 )
 		next_page = 1;
 	    putc(c, stdout);
 	}
 	fclose(file);
 	fflush(stdout);
 
-	argc--;
 	argv++;
-    }
+    } while (--argc > 0);
 end:
 #ifdef BB_MORE_TERM
     gotsig(0);
