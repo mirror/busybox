@@ -401,23 +401,40 @@
 	"\t-n\tprint a name instead of a number (with for -ug)\n" \
 	"\t-r\tprints the real user ID instead of the effective ID (with -ug)"
 
-#ifdef SIOCSKEEPALIVE
+#ifdef BB_FEATURE_IFCONFIG_SLIP
   #define USAGE_SIOCSKEEPALIVE(a) a
 #else
   #define USAGE_SIOCSKEEPALIVE(a)
 #endif
+#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+  #define USAGE_IFCONFIG_MII(a) a
+#else
+  #define USAGE_IFCONFIG_MII(a)
+#endif
+#ifdef BB_FEATURE_IFCONFIG_HW
+  #define USAGE_IFCONFIG_HW(a) a
+#else
+  #define USAGE_IFCONFIG_HW(a)
+#endif
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+  #define USAGE_IFCONFIG_OPT_A(a) a
+#else
+  #define USAGE_IFCONFIG_OPT_A(a)
+#endif
+
 #define ifconfig_trivial_usage \
-	"[-a] [-i] [-v] <interface> [<address>]"
+	USAGE_IFCONFIG_OPT_A("[-a]") " <interface> [<address>]"
 #define ifconfig_full_usage \
 	"configure a network interface\n\n" \
 	"Options:\n" \
 	"\t[[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n" \
-	"\t[netmask <address>]  [dstaddr <address>]  [tunnel <adress>]\n" \
+	"\t[netmask <address>]  [dstaddr <address>]\n" \
 	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
-	"\t[hw ether <address>]  [metric <NN>]  [mtu <NN>]\n" \
+	"\t" USAGE_IFCONFIG_HW("[hw ether <address>]  ") \
+    "[metric <NN>]  [mtu <NN>]\n" \
 	"\t[[-]trailers]  [[-]arp]  [[-]allmulti]\n" \
-	"\t[multicast]  [[-]promisc]\n" \
-	"\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]  [media <type>]\n" \
+	"\t[multicast]  [[-]promisc]  [txqueuelen <NN>]  [[-]dynamic]\n" \
+	USAGE_IFCONFIG_MII("\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]\n") \
 	"\t[up|down] ..."
 
 #define init_trivial_usage \
