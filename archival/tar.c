@@ -163,7 +163,7 @@ extern int tar_unzip_init(int tarFd)
 
 	if (pipe(unzip_pipe)!=0)
 		error_msg_and_die("pipe error\n");
-			
+
 	if ( (child_pid = fork()) == -1)
 		error_msg_and_die("fork failure\n");
 
@@ -182,6 +182,13 @@ extern int tar_unzip_init(int tarFd)
 }
 #endif
 
+#if defined BB_FEATURE_TAR_EXCLUDE
+struct option longopts[] = {
+	{ "exclude", 1, NULL, 'e' },
+	{ NULL, 0, NULL, 0 }
+};
+#endif
+
 extern int tar_main(int argc, char **argv)
 {
 	char** excludeList=NULL;
@@ -189,7 +196,6 @@ extern int tar_main(int argc, char **argv)
 	const char *tarName="-";
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
-	char *excludeFileName ="-";
 	FILE *fileList;
 	char file[256];
 #endif
@@ -202,95 +208,84 @@ extern int tar_main(int argc, char **argv)
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
 	int status       = FALSE;
-	int firstOpt     = TRUE;
-	int stopIt;
+	int opt;
 
 	if (argc <= 1)
 		usage(tar_usage);
 
-	while (*(++argv) && (**argv == '-' || firstOpt == TRUE)) {
-		firstOpt=FALSE;
-		stopIt=FALSE;
-		while (stopIt==FALSE && **argv) {
-			switch (*((*argv)++)) {
-				case 'c':
-					if (extractFlag == TRUE || listFlag == TRUE)
-						goto flagError;
-					createFlag = TRUE;
-					break;
-				case 'x':
-					if (listFlag == TRUE || createFlag == TRUE)
-						goto flagError;
-					extractFlag = TRUE;
-					break;
-				case 't':
-					if (extractFlag == TRUE || createFlag == TRUE)
-						goto flagError;
-					listFlag = TRUE;
-					break;
+	if (argv[1][0] != '-') {
+		char *tmp = xmalloc(strlen(argv[1]) + 2);
+		tmp[0] = '-';
+		strcpy(tmp + 1, argv[1]);
+		argv[1] = tmp;
+	}
+
+	while (
+#ifndef BB_FEATURE_TAR_EXCLUDE
+			(opt = getopt(argc, argv, "cxtzvOf:"))
+#else
+			(opt = getopt_long(argc, argv, "cxtzvOf:X:", longopts, NULL))
+#endif
+			> 0) {
+		switch (opt) {
+			case 'c':
+				if (extractFlag == TRUE || listFlag == TRUE)
+					goto flagError;
+				createFlag = TRUE;
+				break;
+			case 'x':
+				if (listFlag == TRUE || createFlag == TRUE)
+					goto flagError;
+				extractFlag = TRUE;
+				break;
+			case 't':
+				if (extractFlag == TRUE || createFlag == TRUE)
+					goto flagError;
+				listFlag = TRUE;
+				break;
 #ifdef BB_FEATURE_TAR_GZIP
-				case 'z':
-					unzipFlag = TRUE;
-					break;
+			case 'z':
+				unzipFlag = TRUE;
+				break;
 #endif
-				case 'v':
-					verboseFlag = TRUE;
-					break;
-				case 'O':
-					tostdoutFlag = TRUE;
-					break;					
-				case 'f':
-					if (*tarName != '-')
-						error_msg_and_die( "Only one 'f' option allowed\n");
-					tarName = *(++argv);
-					if (tarName == NULL)
-						error_msg_and_die( "Option requires an argument: No file specified\n");
-					stopIt=TRUE;
-					break;
+			case 'v':
+				verboseFlag = TRUE;
+				break;
+			case 'O':
+				tostdoutFlag = TRUE;
+				break;
+			case 'f':
+				if (*tarName != '-')
+					error_msg_and_die( "Only one 'f' option allowed\n");
+				tarName = optarg;
+				break;
 #if defined BB_FEATURE_TAR_EXCLUDE
-				case 'e':
-					if (strcmp(*argv, "xclude")==0) {
-						excludeList=xrealloc( excludeList,
-								sizeof(char *) * (excludeListSize+2));
-						excludeList[excludeListSize] = *(++argv);
-						if (excludeList[excludeListSize] == NULL)
-							error_msg_and_die( "Option requires an argument: No file specified\n");
-						/* Tack a NULL onto the end of the list */
-						excludeList[++excludeListSize] = NULL;
-						stopIt=TRUE;
-						break;
-					}
-				case 'X':
-					if (*excludeFileName != '-')
-						error_msg_and_die("Only one 'X' option allowed\n");
-					excludeFileName = *(++argv);
-					if (excludeFileName == NULL)
-						error_msg_and_die("Option requires an argument: No file specified\n");
-					fileList = fopen (excludeFileName, "r");
-					if (! fileList)
-						error_msg_and_die("Exclude file: file not found\n");
-					while (fgets(file, sizeof(file), fileList) != NULL) {
-						excludeList = xrealloc(excludeList,
-								sizeof(char *) * (excludeListSize+2));
-						if (file[strlen(file)-1] == '\n')
-							file[strlen(file)-1] = '\0';
-						excludeList[excludeListSize] = xstrdup(file);
-						/* Tack a NULL onto the end of the list */
-						excludeList[++excludeListSize] = NULL;
-					}
-					fclose(fileList);
-					stopIt=TRUE;
-					break;
+			case 'e':
+				excludeList=xrealloc( excludeList,
+						sizeof(char *) * (excludeListSize+2));
+				excludeList[excludeListSize] = optarg;
+				/* Tack a NULL onto the end of the list */
+				excludeList[++excludeListSize] = NULL;
+			case 'X':
+				fileList = xfopen(optarg, "r");
+				while (fgets(file, sizeof(file), fileList) != NULL) {
+					excludeList = xrealloc(excludeList,
+							sizeof(char *) * (excludeListSize+2));
+					if (file[strlen(file)-1] == '\n')
+						file[strlen(file)-1] = '\0';
+					excludeList[excludeListSize] = xstrdup(file);
+					/* Tack a NULL onto the end of the list */
+					excludeList[++excludeListSize] = NULL;
+				}
+				fclose(fileList);
+				break;
 #endif
-				case '-':
-						break;
 				default:
 					usage(tar_usage);
-			}
 		}
 	}
 
-	/* 
+	/*
 	 * Do the correct type of action supplying the rest of the
 	 * command line arguments as the list of files to process.
 	 */
@@ -302,13 +297,13 @@ extern int tar_main(int argc, char **argv)
 		if (unzipFlag==TRUE)
 			error_msg_and_die("Creation of compressed not internally support by tar, pipe to busybox gunzip\n");
 #endif
-		status = writeTarFile(tarName, verboseFlag, argv, excludeList);
+		status = writeTarFile(tarName, verboseFlag, argv + optind, excludeList);
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
 		int tarFd;
-		if (*argv)
-			extractList = argv;
+		if (argv[optind])
+			extractList = argv + optind;
 		/* Open the tar file for reading.  */
 		if (!strcmp(tarName, "-"))
 			tarFd = fileno(stdin);
