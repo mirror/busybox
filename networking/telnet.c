@@ -533,7 +533,8 @@ static void telopt(byte c)
 								putiac_naws(c, win_width, win_height);
 								break;
 #endif
-		default:			to_notsup(c);	break;
+		default:				to_notsup(c);
+								break;
 	}
 }
 
