@@ -377,16 +377,13 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
 	return idx + filenamelen;
 }
 
-
+/*
+ *  Process the commands arguments
+ */
 static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
-	/* if it was a single-letter command that takes no arguments (such as 'p'
-	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("nNpPqd=", sed_cmd->cmd)) {
-		cmdstr++;
-	}
 	/* handle (s)ubstitution command */
-	else if (sed_cmd->cmd == 's') {
+	if (sed_cmd->cmd == 's') {
 		cmdstr += parse_subst_cmd(sed_cmd, cmdstr);
 	}
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
@@ -401,7 +398,10 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 			error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
-	else {
+	/* if it wasnt a single-letter command that takes no arguments
+	 * then it must be an invalid command.
+	 */
+	else if (strchr("nNpPqd=", sed_cmd->cmd) == 0) {
 		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
