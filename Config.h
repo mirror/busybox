@@ -378,6 +378,7 @@
 // Tell tftp what commands that should be supported.
 #define BB_FEATURE_TFTP_PUT
 #define BB_FEATURE_TFTP_GET
+//#define BB_FEATURE_TFTP_BLOCKSIZE
 //
 // features for vi
 #define BB_FEATURE_VI_COLON		// ":" colon commands, no "ex" mode

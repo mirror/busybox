@@ -1615,13 +1615,19 @@
 #else
   #define USAGE_TFTP_PUT(a)
 #endif
+#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+  #define USAGE_TFTP_BS(a) a
+#else
+  #define USAGE_TFTP_BS(a)
+#endif
 
 #define tftp_trivial_usage \
 	"[OPTION]... HOST [PORT]"
 #define tftp_full_usage \
 	"Transfers a file from/to a tftp server using \"octet\" mode.\n\n" \
 	"Options:\n" \
-	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
+	"\t-l FILE\tLocal FILE.\n" \
+	"\t-r FILE\tRemote FILE.\n" \
         USAGE_TFTP_GET(	\
         "\t-g\tGet file.\n" \
         ) \
@@ -1629,7 +1635,9 @@
         USAGE_TFTP_PUT(	\
 	"\t-p\tPut file.\n" \
 	) \
-	"\t-r FILE\tTransfer remote FILE.\n"
+	USAGE_TFTP_BS( \
+	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
+	)	
 
 #define touch_trivial_usage \
 	"[-c] FILE [FILE ...]"
