@@ -49,9 +49,9 @@
  *
  * httpd.conf has the following format:
  * 
- * A:172.20.         # Allow any address that begins with 172.20
- * A:10.10.          # Allow any address that begins with 10.10.
- * A:10.20           # Allow any address that previous set and 10.200-209.X.X
+ * A:172.20.         # Allow address from 172.20.0.0/16
+ * A:10.0.0.0/25     # Allow any address from 10.0.0.0-10.0.0.127
+ * A:10.0.0.0/255.255.255.128  # Allow any address that previous set
  * A:127.0.0.1       # Allow local loopback connections
  * D:*               # Deny from other IP connections
  * /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
@@ -75,9 +75,8 @@
  * 
  * Example:
  *   1. Allow only specified addresses
- *     A:172.20.         # Allow any address that begins with 172.20
+ *     A:172.20          # Allow any address that begins with 172.20.
  *     A:10.10.          # Allow any address that begins with 10.10.
- *     A:10.10           # Allow any address that previous set and 10.100-109.X.X
  *     A:127.0.0.1       # Allow local loopback connections
  *     D:*               # Deny from other IP connections
  * 
@@ -87,8 +86,7 @@
  *     A:*             # (optional line added for clarity)
  * 
  * If a sub directory contains a config file it is parsed and merged with
- * any existing settings as if it was appended to the original configuration
- * except that all previous IP config rules are discarded.
+ * any existing settings as if it was appended to the original configuration.
  *
  * subdir paths are relative to the containing subdir and thus cannot
  * affect the parent rules.
@@ -122,7 +120,7 @@
 #include "busybox.h"
 
 
-static const char httpdVersion[] = "busybox httpd/1.28 22-Jun-2003";
+static const char httpdVersion[] = "busybox httpd/1.30 7-Sep-2003";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
@@ -221,6 +219,13 @@ typedef struct HT_ACCESS {
 	char before_colon[1];         /* really bigger, must last */
 } Htaccess;
 
+typedef struct HT_ACCESS_IP {
+	unsigned int ip;
+	unsigned int mask;
+	int allow_deny;
+	struct HT_ACCESS_IP *next;
+} Htaccess_IP;
+
 typedef struct
 {
 #ifdef CONFIG_FEATURE_HTTPD_CGI
@@ -234,7 +239,10 @@ typedef struct
 #endif
   const char *configFile;
 
-  char rmt_ip[16];         /* for set env REMOTE_ADDR */
+  unsigned int rmt_ip;
+#if defined(CONFIG_FEATURE_HTTPD_CGI) || defined(DEBUG)
+  char rmt_ip_str[16];     /* for set env REMOTE_ADDR */
+#endif
   unsigned port;           /* server initial port and for
 			      set env REMOTE_PORT */
 
@@ -242,7 +250,7 @@ typedef struct
   off_t ContentLength;          /* -1 - unknown */
   time_t last_mod;
 
-  Htaccess *ip_a_d;             /* config allow/deny lines */
+  Htaccess_IP *ip_a_d;          /* config allow/deny lines */
   int flg_deny_all;
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   Htaccess *auth;               /* config user:password lines */
@@ -353,7 +361,83 @@ static const char RFC1123FMT[] = "%a, %d %b %Y %H:%M:%S GMT";
 static const char Content_length[] = "Content-length:";
 
 
+static int
+scan_ip (const char **ep, unsigned int *ip, unsigned char endc)
+{
+  const char *p = *ep;
+  int auto_mask = 8;
+  int j;
 
+  *ip = 0;
+  for (j = 0; j < 4; j++) {
+	unsigned int octet;
+
+	if ((*p < '0' || *p > '9') && (*p != '/' || j == 0) && *p != 0)
+	  return -auto_mask;
+	octet = 0;
+	while (*p >= '0' && *p <= '9') {
+	  octet *= 10;
+	  octet += *p - '0';
+	  if (octet > 255)
+		return -auto_mask;
+	  p++;
+	}
+	if (*p == '.')
+	  p++;
+	if (*p != '/' && *p != 0)
+	  auto_mask += 8;
+	*ip = ((*ip) << 8) | octet;
+  }
+  if (*p != 0) {
+	if (*p != endc)
+		return -auto_mask;
+	p++;
+	if(*p == 0)
+		return -auto_mask;
+  }
+  *ep = p;
+  return auto_mask;
+}
+
+static int
+scan_ip_mask (const char *ipm, unsigned int *ip, unsigned int *mask)
+{
+  int i;
+  unsigned int msk;
+
+  i = scan_ip(&ipm, ip, '/');
+  if(i < 0)
+	return i;
+  if(*ipm) {
+	const char *p = ipm;
+
+	i = 0;
+	while (*p) {
+		if (*p < '0' || *p > '9') {
+			if (*p == '.') {
+				i = scan_ip (&ipm, mask, 0);
+				return i != 32;
+			}
+			return -1;
+		}
+		i *= 10;
+		i += *p - '0';
+		p++;
+	}
+  }
+  if (i > 32 || i < 0)
+	  return -1;
+  msk = 0x80000000;
+  *mask = 0;
+  while (i > 0) {
+	*mask |= msk;
+	msk >>= 1;
+	i--;
+  }
+  return 0;
+}
+
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
 static void free_config_lines(Htaccess **pprev)
 {
     Htaccess *prev = *pprev;
@@ -366,6 +450,7 @@ static void free_config_lines(Htaccess **pprev)
     }
     *pprev = NULL;
 }
+#endif
 
 /* flag */
 #define FIRST_PARSE          0
@@ -411,18 +496,29 @@ static void parse_conf(const char *path, int flag)
     char *c, *p;
 
     /* free previous ip setup if present */
-    free_config_lines(&config->ip_a_d);
+    Htaccess_IP *pip = config->ip_a_d;
+
+    while( pip ) {
+	Htaccess_IP *cur_ipl = pip;
+
+	pip = cur_ipl->next;
+	free(cur_ipl);
+    }
+    config->ip_a_d = NULL;
+
     config->flg_deny_all = 0;
+
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
     /* retain previous auth and mime config only for subdir parse */
     if(flag != SUBDIR_PARSE) {
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	free_config_lines(&config->auth)
+	free_config_lines(&config->auth);
 #endif
-	;   /* appease compiler warnings if option is not set */
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	free_config_lines(&config->mime_a);
 #endif
     }
+#endif
 
     if(flag == SUBDIR_PARSE || cf == NULL) {
 	cf = alloca(strlen(path) + sizeof(httpd_conf) + 2);
@@ -477,7 +573,7 @@ static void parse_conf(const char *path, int flag)
 
 	if(*p0 == 'a')
 	    *p0 = 'A';
-	else if(*p0 != 'D'
+	else if(*p0 != 'D' && *p0 != 'A'
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	   && *p0 != '/'
 #endif
@@ -486,7 +582,35 @@ static void parse_conf(const char *path, int flag)
 #endif
 	  )
 	       continue;
+	if(*p0 == 'A' || *p0 == 'D') {
+		/* storing current config IP line */
+		pip = calloc(1, sizeof(Htaccess_IP));
+		if(pip) {
+		    if(scan_ip_mask (c, &(pip->ip), &(pip->mask))) {
+			/* syntax IP{/mask} error detected, protect all */
+			*p0 = 'D';
+			pip->mask = 0;
+		    }
+		    pip->allow_deny = *p0;
+		    if(*p0 == 'D') {
+			/* Deny:form_IP move top */
+			pip->next = config->ip_a_d;
+			config->ip_a_d = pip;
+		    } else {
+			/* add to bottom A:form_IP config line */
+			Htaccess_IP *prev_IP = config->ip_a_d;
 
+			if(prev_IP == NULL) {
+				config->ip_a_d = pip;
+			} else {
+				while(prev_IP->next)
+					prev_IP = prev_IP->next;
+				prev_IP->next = pip;
+			}
+		    }
+		}
+		continue;
+	}
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	if(*p0 == '/') {
 	    /* make full path from httpd root / curent_path / config_line_path */
@@ -526,8 +650,9 @@ static void parse_conf(const char *path, int flag)
 	    sprintf(p0, "%s:%s", p0, c);
 	}
 #endif
-	/* storing current config line */
 
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
+	/* storing current config line */
 	cur = calloc(1, sizeof(Htaccess) + strlen(p0));
 	if(cur) {
 	    cf = strcpy(cur->before_colon, p0);
@@ -538,24 +663,6 @@ static void parse_conf(const char *path, int flag)
 	    if(*cf == '/')
 		free(p0);
 #endif
-	    if(*cf == 'A' || *cf == 'D') {
-		if(*cf == 'D') {
-			/* Deny:form_IP move top */
-			cur->next = config->ip_a_d;
-			config->ip_a_d = cur;
-		} else {
-			/* add to bottom A:form_IP config line */
-			Htaccess *prev_IP = config->ip_a_d;
-
-			if(prev_IP == NULL) {
-				config->ip_a_d = cur;
-			} else {
-				while(prev_IP->next)
-					prev_IP = prev_IP->next;
-				prev_IP->next = cur;
-			}
-		}
-	    }
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	    else if(*cf == '.') {
 		/* config .mime line move top for overwrite previous */
@@ -594,6 +701,7 @@ static void parse_conf(const char *path, int flag)
 		    prev = cur;
 		}
 	    }
+#endif
 #endif
 	}
    }
@@ -1100,10 +1208,10 @@ static int sendCgi(const char *url,
       addEnv("SERVER",         "PROTOCOL", "HTTP/1.0");
       addEnv("GATEWAY_INTERFACE", "",      "CGI/1.1");
 #ifdef CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-      addEnv("REMOTE",         "ADDR",     config->rmt_ip);
+      addEnv("REMOTE",         "ADDR",     config->rmt_ip_str);
       addEnvPort("REMOTE");
 #else
-      addEnv("REMOTE_ADDR",     "",        config->rmt_ip);
+      addEnv("REMOTE_ADDR",     "",        config->rmt_ip_str);
 #endif
       if(bodyLen) {
 	char sbl[32];
@@ -1288,17 +1396,45 @@ static int sendFile(const char *url, char *buf)
   return 0;
 }
 
+static int checkPermIP(void)
+{
+    Htaccess_IP * cur;
+
+    /* This could stand some work */
+    for (cur = config->ip_a_d; cur; cur = cur->next) {
+#ifdef DEBUG
+	if (config->debugHttpd) {
+	    fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+	    fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
+		(unsigned char)(cur->ip >> 24),
+		(unsigned char)(cur->ip >> 16),
+		(unsigned char)(cur->ip >> 8),
+				cur->ip & 0xff,
+		(unsigned char)(cur->mask >> 24),
+		(unsigned char)(cur->mask >> 16),
+		(unsigned char)(cur->mask >> 8),
+				cur->mask & 0xff);
+	}
+#endif
+	if((config->rmt_ip & cur->mask) == cur->ip)
+	    return cur->allow_deny == 'A';   /* Allow/Deny */
+    }
+
+    /* if uncofigured, return 1 - access from all */
+    return !config->flg_deny_all;
+}
+
 /****************************************************************************
  *
  > $Function: checkPerm()
  *
- * $Description: Check the permission file for access.
+ * $Description: Check the permission file for access password protected.
  *
  *   If config file isn't present, everything is allowed.
  *   Entries are of the form you can see example from header source
  *
  * $Parameters:
- *      (const char *) path  . . . . The file path or NULL for ip addresses.
+ *      (const char *) path  . . . . The file path.
  *      (const char *) request . . . User information to validate.
  *
  * $Return: (int)  . . . . . . . . . 1 if request OK, 0 otherwise.
@@ -1312,25 +1448,19 @@ static int checkPerm(const char *path, const char *request)
     const char *p;
     const char *p0;
 
-    int ipaddr = path == NULL;
     const char *prev = NULL;
 
     /* This could stand some work */
-    for (cur = ipaddr ? config->ip_a_d : config->auth; cur; cur = cur->next) {
+    for (cur = config->auth; cur; cur = cur->next) {
 	p0 = cur->before_colon;
 	if(prev != NULL && strcmp(prev, p0) != 0)
 	    continue;       /* find next identical */
 	p = cur->after_colon;
 #ifdef DEBUG
 	if (config->debugHttpd)
-	    fprintf(stderr,"checkPerm: '%s' ? '%s'\n",
-				(ipaddr ? (*p ? p : "*") : p0), request);
+	    fprintf(stderr,"checkPerm: '%s' ? '%s'\n", p0, request);
 #endif
-	if(ipaddr) {
-	    if(strncmp(p, request, strlen(p)) != 0)
-		continue;
-	    return *p0 == 'A';   /* Allow/Deny */
-	} else {
+	{
 	    int l = strlen(p0);
 
 	    if(strncmp(p0, path, l) == 0 &&
@@ -1372,33 +1502,9 @@ static int checkPerm(const char *path, const char *request)
 	}
     }   /* for */
 
-    if(ipaddr)
-	return !config->flg_deny_all;
     return prev == NULL;
 }
 
-#else /* ifndef CONFIG_FEATURE_HTTPD_BASIC_AUTH */
-static int checkPermIP(const char *request)
-{
-    Htaccess * cur;
-    const char *p;
-
-    /* This could stand some work */
-    for (cur = config->ip_a_d; cur; cur = cur->next) {
-	p = cur->after_colon;
-#ifdef DEBUG
-	if (config->debugHttpd)
-	    fprintf(stderr, "checkPerm: '%s' ? '%s'\n",
-					(*p ? p : "*"), request);
-#endif
-	if(strncmp(p, request, strlen(p)) == 0)
-	    return *cur->before_colon == 'A';   /* Allow/Deny */
-    }
-
-    /* if uncofigured, return 1 - access from all */
-    return !config->flg_deny_all;
-}
-#define checkPerm(null, request) checkPermIP(request)
 #endif  /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
 
 
@@ -1518,14 +1624,14 @@ BAD_REQUEST:
 #endif
 
     test = url;
-    ip_allowed = checkPerm(NULL, config->rmt_ip);
+    ip_allowed = checkPermIP();
     while(ip_allowed && (test = strchr( test + 1, '/' )) != NULL) {
 	/* have path1/path2 */
 	*test = '\0';
 	if( is_directory(url + 1, 1, &sb) ) {
 		/* may be having subdir config */
 		parse_conf(url + 1, SUBDIR_PARSE);
-		ip_allowed = checkPerm(NULL, config->rmt_ip);
+		ip_allowed = checkPermIP();
 	}
 	*test = '/';
     }
@@ -1679,7 +1785,6 @@ static int miniHttpd(int server)
 	int on;
 	struct sockaddr_in fromAddr;
 
-	unsigned int addr;
 	socklen_t fromAddrLen = sizeof(fromAddr);
 	int s = accept(server,
 		       (struct sockaddr *)&fromAddr, &fromAddrLen);
@@ -1688,19 +1793,22 @@ static int miniHttpd(int server)
 	    continue;
 	}
 	config->accepted_socket = s;
-	addr = ntohl(fromAddr.sin_addr.s_addr);
-	sprintf(config->rmt_ip, "%u.%u.%u.%u",
-		(unsigned char)(addr >> 24),
-		(unsigned char)(addr >> 16),
-		(unsigned char)(addr >> 8),
-				addr & 0xff);
+	config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
+#if defined(CONFIG_FEATURE_HTTPD_CGI) || defined(DEBUG)
+	sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
+		(unsigned char)(config->rmt_ip >> 24),
+		(unsigned char)(config->rmt_ip >> 16),
+		(unsigned char)(config->rmt_ip >> 8),
+				config->rmt_ip & 0xff);
 	config->port = ntohs(fromAddr.sin_port);
 #ifdef DEBUG
 	if (config->debugHttpd) {
 	    bb_error_msg("connection from IP=%s, port %u\n",
-					config->rmt_ip, config->port);
+					config->rmt_ip_str, config->port);
 	}
 #endif
+#endif /* CONFIG_FEATURE_HTTPD_CGI */
+
 	/*  set the KEEPALIVE option to cull dead connections */
 	on = 1;
 	setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof (on));
@@ -1729,15 +1837,16 @@ static int miniHttpd(void)
 {
   struct sockaddr_in fromAddrLen;
   socklen_t sinlen = sizeof (struct sockaddr_in);
-  unsigned int addr;
 
   getpeername (0, (struct sockaddr *)&fromAddrLen, &sinlen);
-  addr = ntohl(fromAddrLen.sin_addr.s_addr);
-  sprintf(config->rmt_ip, "%u.%u.%u.%u",
-		(unsigned char)(addr >> 24),
-		(unsigned char)(addr >> 16),
-		(unsigned char)(addr >> 8),
-				addr & 0xff);
+  config->rmt_ip = ntohl(fromAddrLen.sin_addr.s_addr);
+#if defined(CONFIG_FEATURE_HTTPD_CGI) || defined(DEBUG)
+  sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
+		(unsigned char)(config->rmt_ip >> 24),
+		(unsigned char)(config->rmt_ip >> 16),
+		(unsigned char)(config->rmt_ip >> 8),
+				config->rmt_ip & 0xff);
+#endif
   config->port = ntohs(fromAddrLen.sin_port);
   handleIncoming();
   return 0;
@@ -1750,12 +1859,12 @@ static void sighup_handler(int sig)
 	/* set and reset */
 	struct sigaction sa;
 
+	parse_conf(default_path_httpd_conf,
+		    sig == SIGHUP ? SIGNALED_PARSE : FIRST_PARSE);
 	sa.sa_handler = sighup_handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGHUP, &sa, NULL);
-	parse_conf(default_path_httpd_conf,
-		    sig == SIGHUP ? SIGNALED_PARSE : FIRST_PARSE);
 }
 #endif
 
