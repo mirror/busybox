@@ -1,6 +1,5 @@
 0.49pre
 
-	* Glenn McGrath -- new 'dpkg-deb' command 
 	* Matt Kraai -- new sort.c
 	* Glenn McGrath -- new 'dpkg-deb' applet
 	* Glenn McGrath -- new ar code
@@ -17,24 +16,26 @@
 	* Matt Kraai -- logger remixed to use getopt, selection of stdin made 
 	    util-linux compatible
 	* Erik Andersen -- many more internal symbols classified static to 
-	    avoid namespace pollut
+	    avoid namespace pollution
 	* Matt Kraai -- nc listening support
 	* Erik Andersen -- made sed understand arbitrary regexp delimiters
-	* Larry Doolittle et al. -- internal shell cleanup and buglet fixing, 
-	    read and exec should work better now
 	* Matt Kraai et al. -- more tar improvements and bug fixes, now 
 	    handles regexp file exclusion
 	* Larry Doolittle -- new script (multibuild.pl) to automate build rule
 	    checking
-	* Matt Kraai -- update/cleanup of the docs on how to use init.
-	* Erik Andersen -- sh.c renamed all symbols per the style guide.  
-	    Better if-then-else-fi handling
+	* Matt Kraai -- update/cleanup of the docs on how to use init
+	* Erik Andersen -- renamed all sh.c symbols per the style guide, 
+	    better if-then-else-fi handling
 	* Erik Andersen -- cleaner division of labor between cmdedit.c and sh.c
+	* Larry Doolittle -- shell data structure cleanup, fixed buglets
+	    in read, exec, and piped builtins
 	* Erik Andersen -- md5sum was broken in 0.48.  Now fixed (and doesn't 
 	    use getline, shrinking static compiles (since nothing else used it).
+	* ?? -- squashed memory leak in shell prompt handling
 	* Mark Whitley -- Updates to style guide
 	* Mark Whitley -- Big cleanup in utility.c: style guide compliance,
 	    de-macro-ifying some variables and functions
+	* Matt Kraai -- new tail.c
 
 
 	 -Erik Andersen, <not released yet>
