@@ -35,11 +35,11 @@
 #include "internal.h"
 
 #define AR_BLOCK_SIZE 60
-#define AR_PRESERVE_DATE 1
-#define AR_VERBOSE       2
-#define AR_DISPLAY       4
-#define AR_EXT_TO_FILE   8
-#define AR_EXT_TO_STDOUT 16
+#define AR_PRESERVE_DATE 1	/* preserve original dates */
+#define AR_VERBOSE       2	/* be verbose */
+#define AR_DISPLAY       4	/* display contents */
+#define AR_EXT_TO_FILE   8	/* extract contents of archive */
+#define AR_EXT_TO_STDOUT 16	/* extract to stdout */
 
 #define BB_DECLARE_EXTERN
 #define bb_need_io_error
@@ -302,20 +302,20 @@ extern int ar_main(int argc, char **argv)
 		++opt_ptr;
 	while ((c = *opt_ptr++) != '\0') {
 		switch (c) {
-		case 'o':				/* preserver original dates */
-			funct = funct | 1;
+		case 'o':
+			funct = funct | AR_PRESERVE_DATE;
 			break;
-		case 'p':				/* extract to stdout */
-			funct = funct | 16;
+		case 'v':
+			funct = funct | AR_VERBOSE;
 			break;
-		case 't':				/* display contents */
-			funct = funct | 4;
+		case 't':
+			funct = funct | AR_DISPLAY;
 			break;
-		case 'x':				/* extract contents of archive */
-			funct = funct | 8;
+		case 'x':
+			funct = funct | AR_EXT_TO_FILE;
 			break;
-		case 'v':				/* be verbose */
-			funct = funct | 2;
+		case 'p':
+			funct = funct | AR_EXT_TO_STDOUT;
 			break;
 		default:
 			usage(ar_usage);
