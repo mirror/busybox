@@ -168,7 +168,7 @@ docs/BusyBox.1: docs/busybox.pod
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 	-@ rm -f docs/BusyBox.html
-	-@ ln -s docs/busybox.lineo.com/BusyBox.html docs/BusyBox.html
+	-@ ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
 docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.lineo.com
