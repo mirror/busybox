@@ -359,9 +359,10 @@ static int stacknleft = MINSIZE;
 
 #ifdef DEBUG
 #define TRACE(param)    trace param
+typedef union node unode;
 static void trace (const char *, ...);
 static void trargs (char **);
-static void showtree (union node *);
+static void showtree (unode *);
 static void trputc (int);
 static void trputs (const char *);
 static void opentrace (void);
@@ -1580,8 +1581,10 @@ static int typecmd (int, char **);
 static int getoptscmd (int, char **);
 #endif
 
-#ifndef CONFIG_TRUE_FALSE
+#ifndef CONFIG_TRUE
 static int true_main (int, char **);
+#endif
+#ifndef CONFIG_FALSE
 static int false_main (int, char **);
 #endif
 
@@ -3073,7 +3076,7 @@ returncmd(argc, argv)
 }
 
 
-#ifndef CONFIG_TRUE_FALSE
+#ifndef CONFIG_FALSE
 static int
 false_main(argc, argv)
 	int argc;
@@ -3081,8 +3084,9 @@ false_main(argc, argv)
 {
 	return 1;
 }
+#endif
 
-
+#ifndef CONFIG_TRUE
 static int
 true_main(argc, argv)
 	int argc;
@@ -7868,6 +7872,7 @@ dotcmd(argc, argv)
 	char **argv;
 {
 	struct strlist *sp;
+	volatile struct shparam saveparam;
 	exitstatus = 0;
 
 	for (sp = cmdenviron; sp ; sp = sp->next)
@@ -7879,10 +7884,24 @@ dotcmd(argc, argv)
 
 		setstackmark(&smark);
 		fullname = find_dot_file(argv[1]);
+
+		if (argc>2) {
+			saveparam = shellparam;
+			shellparam.malloc = 0;
+			shellparam.nparam = argc - 2;
+			shellparam.p = argv + 2;
+		};
+
 		setinputfile(fullname, 1);
 		commandname = fullname;
 		cmdloop(0);
 		popfile();
+
+		if (argc>2) {
+			freeparam(&shellparam);
+			shellparam = saveparam;
+		};
+
 		popstackmark(&smark);
 	}
 	return exitstatus;
@@ -11444,7 +11463,7 @@ static void trstring (char *);
 
 static void
 showtree(n)
-	union node *n;
+	unode *n;
 {
 	trputs("showtree called\n");
 	shtree(n, 1, NULL, stdout);
@@ -12631,7 +12650,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.32 2001/10/28 05:12:18 andersen Exp $
+ * $Id: ash.c,v 1.33 2001/10/31 10:40:37 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
