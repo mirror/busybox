@@ -42,13 +42,26 @@
 #include <sys/sysmacros.h>
 
 
+#ifdef BB_FEATURE_TAR_CREATE
+
 static const char tar_usage[] =
 "tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
-"Create, extract, or list files from a tar file\n\n"
+"Create, extract, or list files from a tar file.\n\n"
 "Options:\n"
 "\tc=create, x=extract, t=list contents, v=verbose,\n"
 "\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
 
+#else
+
+static const char tar_usage[] =
+"tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
+"Extract, or list files stored in a tar file.  This\n"
+"version of tar does not support creation of tar files.\n\n"
+"Options:\n"
+"\tx=extract, t=list contents, v=verbose,\n"
+"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
+
+#endif
 
 
 /*
@@ -95,7 +108,9 @@ typedef struct {
  */
 static int listFlag;
 static int extractFlag;
+#ifdef BB_FEATURE_TAR_CREATE
 static int createFlag;
+#endif
 static int verboseFlag;
 static int tostdoutFlag;
 
@@ -133,7 +148,10 @@ static long getOctal (const char *cp, int len);
 static void readHeader (const TarHeader * hp,
 			int fileCount, char **fileTable);
 
+static int wantFileName (const char *fileName,
+			 int fileCount, char **fileTable);
 
+#ifdef BB_FEATURE_TAR_CREATE
 /*
  * Local procedures to save files into a tar file.
  */
@@ -145,14 +163,13 @@ static void saveRegularFile (const char *fileName,
 static void saveDirectory (const char *fileName,
 			   const struct stat *statbuf);
 
-static int wantFileName (const char *fileName,
-			 int fileCount, char **fileTable);
-
 static void writeHeader (const char *fileName, const struct stat *statbuf);
 
 static void writeTarFile (int fileCount, char **fileTable);
 static void writeTarBlock (const char *buf, int len);
 static int putOctal (char *cp, int len, long value);
+
+#endif
 
 
 extern int tar_main (int argc, char **argv)
@@ -168,7 +185,9 @@ extern int tar_main (int argc, char **argv)
 
     errorFlag = FALSE;
     extractFlag = FALSE;
+#ifdef BB_FEATURE_TAR_CREATE
     createFlag = FALSE;
+#endif
     listFlag = FALSE;
     verboseFlag = FALSE;
     tostdoutFlag = FALSE;
@@ -204,10 +223,16 @@ extern int tar_main (int argc, char **argv)
 	    case 'x':
 		extractFlag = TRUE;
 		break;
-
+#ifdef BB_FEATURE_TAR_CREATE
 	    case 'c':
 		createFlag = TRUE;
 		break;
+#else
+	    case 'c':
+		fprintf (stderr, "This version of tar was not compiled with tar creation support.\n" );
+
+		exit (FALSE);
+#endif
 
 	    case 'v':
 		verboseFlag = TRUE;
@@ -234,7 +259,11 @@ extern int tar_main (int argc, char **argv)
     /* 
      * Validate the options.
      */
-    if (extractFlag + listFlag + createFlag != (TRUE+FALSE+FALSE)) {
+    if (extractFlag + listFlag 
+#ifdef BB_FEATURE_TAR_CREATE
+	    + createFlag 
+#endif 
+	    != (TRUE+FALSE+FALSE)) {
 	fprintf (stderr,
 		 "Exactly one of 'c', 'x' or 't' must be specified\n");
 
@@ -245,9 +274,11 @@ extern int tar_main (int argc, char **argv)
      * Do the correct type of action supplying the rest of the
      * command line arguments as the list of files to process.
      */
+#ifdef BB_FEATURE_TAR_CREATE
     if (createFlag==TRUE)
 	writeTarFile (argc, argv);
     else
+#endif 
 	readTarFile (argc, argv);
     if (errorFlag==TRUE)
 	fprintf (stderr, "\n");
@@ -678,6 +709,92 @@ static void readData (const char *cp, int count)
 
 
 /*
+ * See if the specified file name belongs to one of the specified list
+ * of path prefixes.  An empty list implies that all files are wanted.
+ * Returns TRUE if the file is selected.
+ */
+static int
+wantFileName (const char *fileName, int fileCount, char **fileTable)
+{
+    const char *pathName;
+    int fileLength;
+    int pathLength;
+
+    /* 
+     * If there are no files in the list, then the file is wanted.
+     */
+    if (fileCount == 0)
+	return TRUE;
+
+    fileLength = strlen (fileName);
+
+    /* 
+     * Check each of the test paths.
+     */
+    while (fileCount-- > 0) {
+	pathName = *fileTable++;
+
+	pathLength = strlen (pathName);
+
+	if (fileLength < pathLength)
+	    continue;
+
+	if (memcmp (fileName, pathName, pathLength) != 0)
+	    continue;
+
+	if ((fileLength == pathLength) || (fileName[pathLength] == '/')) {
+	    return TRUE;
+	}
+    }
+
+    return FALSE;
+}
+
+/*
+ * Read an octal value in a field of the specified width, with optional
+ * spaces on both sides of the number and with an optional null character
+ * at the end.  Returns -1 on an illegal format.
+ */
+static long getOctal (const char *cp, int len)
+{
+    long val;
+
+    while ((len > 0) && (*cp == ' ')) {
+	cp++;
+	len--;
+    }
+
+    if ((len == 0) || !isOctal (*cp))
+	return -1;
+
+    val = 0;
+
+    while ((len > 0) && isOctal (*cp)) {
+	val = val * 8 + *cp++ - '0';
+	len--;
+    }
+
+    while ((len > 0) && (*cp == ' ')) {
+	cp++;
+	len--;
+    }
+
+    if ((len > 0) && *cp)
+	return -1;
+
+    return val;
+}
+
+
+
+
+/* From here to the end of the file is the tar writing stuff.
+ * If you do not have BB_FEATURE_TAR_CREATE defined, this will
+ * not be built.
+ * */
+#ifdef BB_FEATURE_TAR_CREATE
+
+/*
  * Write a tar file containing the specified files.
  */
 static void writeTarFile (int fileCount, char **fileTable)
@@ -740,7 +857,6 @@ static void writeTarFile (int fileCount, char **fileTable)
     if ((tostdoutFlag == FALSE) && (tarFd >= 0) && (close (tarFd) < 0))
 	perror (tarName);
 }
-
 
 /*
  * Save one file into the tar file.
@@ -1107,42 +1223,6 @@ static void writeTarBlock (const char *buf, int len)
 
 
 /*
- * Read an octal value in a field of the specified width, with optional
- * spaces on both sides of the number and with an optional null character
- * at the end.  Returns -1 on an illegal format.
- */
-static long getOctal (const char *cp, int len)
-{
-    long val;
-
-    while ((len > 0) && (*cp == ' ')) {
-	cp++;
-	len--;
-    }
-
-    if ((len == 0) || !isOctal (*cp))
-	return -1;
-
-    val = 0;
-
-    while ((len > 0) && isOctal (*cp)) {
-	val = val * 8 + *cp++ - '0';
-	len--;
-    }
-
-    while ((len > 0) && (*cp == ' ')) {
-	cp++;
-	len--;
-    }
-
-    if ((len > 0) && *cp)
-	return -1;
-
-    return val;
-}
-
-
-/*
  * Put an octal string into the specified buffer.
  * The number is zero and space padded and possibly null padded.
  * Returns TRUE if successful.
@@ -1190,50 +1270,6 @@ static int putOctal (char *cp, int len, long value)
 
     return TRUE;
 }
-
-
-/*
- * See if the specified file name belongs to one of the specified list
- * of path prefixes.  An empty list implies that all files are wanted.
- * Returns TRUE if the file is selected.
- */
-static int
-wantFileName (const char *fileName, int fileCount, char **fileTable)
-{
-    const char *pathName;
-    int fileLength;
-    int pathLength;
-
-    /* 
-     * If there are no files in the list, then the file is wanted.
-     */
-    if (fileCount == 0)
-	return TRUE;
-
-    fileLength = strlen (fileName);
-
-    /* 
-     * Check each of the test paths.
-     */
-    while (fileCount-- > 0) {
-	pathName = *fileTable++;
-
-	pathLength = strlen (pathName);
-
-	if (fileLength < pathLength)
-	    continue;
-
-	if (memcmp (fileName, pathName, pathLength) != 0)
-	    continue;
-
-	if ((fileLength == pathLength) || (fileName[pathLength] == '/')) {
-	    return TRUE;
-	}
-    }
-
-    return FALSE;
-}
-
-
+#endif
 
 /* END CODE */

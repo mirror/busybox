@@ -1,3 +1,8 @@
+0.42
+	* Made tar creation support in busybox tar optional.
+
+	-Erik Andersen
+
 0.41
 	* New Apps: wc, hostid, logname, tty, whoami, yes -- all contributed 
 	    by Edward Betts <edward@debian.org>

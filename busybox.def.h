@@ -136,3 +136,6 @@
 // Enable support for loop devices in mount
 #define BB_FEATURE_MOUNT_LOOP
 //
+// Enable support for creation of tar files.
+//#define BB_FEATURE_TAR_CREATE
+//
