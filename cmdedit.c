@@ -147,7 +147,7 @@ static void cmdedit_reset_term(void)
 static void clean_up_and_die(int sig)
 {
 	cmdedit_reset_term();
-	fprintf(stdout, "\n");
+	printf("\n");
 	if (sig!=SIGINT)
 		exit(EXIT_SUCCESS);
 }

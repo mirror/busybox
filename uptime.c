@@ -51,19 +51,19 @@ extern int uptime_main(int argc, char **argv)
 
 	sysinfo(&info);
 
-	fprintf(stdout, " %2d:%02d%s  up ", 
+	printf(" %2d:%02d%s  up ", 
 			current_time->tm_hour%12 ? current_time->tm_hour%12 : 12, 
 			current_time->tm_min, current_time->tm_hour > 11 ? "pm" : "am");
 	updays = (int) info.uptime / (60*60*24);
 	if (updays)
-		fprintf(stdout, "%d day%s, ", updays, (updays != 1) ? "s" : "");
+		printf("%d day%s, ", updays, (updays != 1) ? "s" : "");
 	upminutes = (int) info.uptime / 60;
 	uphours = (upminutes / 60) % 24;
 	upminutes %= 60;
 	if(uphours)
-		fprintf(stdout, "%2d:%02d, ", uphours, upminutes);
+		printf("%2d:%02d, ", uphours, upminutes);
 	else
-		fprintf(stdout, "%d min, ", upminutes);
+		printf("%d min, ", upminutes);
 
 	printf("load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n", 
 			LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]), 

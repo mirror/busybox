@@ -126,7 +126,7 @@ int rdate_main(int argc, char **argv)
 			perror_msg_and_die("Could not set time of day");
 	}
 	if (printdate) {
-		fprintf(stdout, "%s", ctime(&time));
+		printf("%s", ctime(&time));
 	}
 
 	return EXIT_SUCCESS;

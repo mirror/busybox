@@ -76,7 +76,7 @@ int head_main(int argc, char **argv)
 		}
 		if (fp) {
 			if (need_headers) {
-				fprintf(stdout, "==> %s <==\n", argv[optind]);
+				printf("==> %s <==\n", argv[optind]);
 			}
 			head(len, fp);
 			if (errno) {
@@ -85,7 +85,7 @@ int head_main(int argc, char **argv)
 				errno = 0;
 			}
 			if (optind < argc - 1)
-				fprintf(stdout, "\n");
+				putchar('\n');
 			if (fp != stdin)
 				fclose(fp);
 		}

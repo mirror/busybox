@@ -202,7 +202,7 @@ static int my_stat(struct dnode *cur)
 static void newline(void)
 {
     if (column > 0) {
-        fprintf(stdout, "\n");
+        putchar('\n');
         column = 0;
     }
 }
@@ -229,7 +229,7 @@ static void nexttabstop( void )
 		n= nexttab - column;
 		if (n < 1) n= 1;
 		while (n--) {
-			fprintf(stdout, " ");
+			putchar(' ');
 			column++;
 		}
 	}
@@ -468,7 +468,7 @@ void showdirs(struct dnode **dn, int ndirs)
 
 	for (i=0; i<ndirs; i++) {
 		if (disp_opts & (DISP_DIRNAME | DISP_RECURSIVE)) {
-			fprintf(stdout, "\n%s:\n", dn[i]->fullname);
+			printf("\n%s:\n", dn[i]->fullname);
 		}
 		subdnp= list_dir(dn[i]->fullname);
 		nfiles= countfiles(subdnp);
@@ -579,53 +579,53 @@ int list_single(struct dnode *dn)
 	for (i=0; i<=31; i++) {
 		switch (list_fmt & (1<<i)) {
 			case LIST_INO:
-				fprintf(stdout, "%7ld ", dn->dstat.st_ino);
+				printf("%7ld ", dn->dstat.st_ino);
 				column += 8;
 				break;
 			case LIST_BLOCKS:
 #if _FILE_OFFSET_BITS == 64
-				fprintf(stdout, "%4lld ", dn->dstat.st_blocks>>1);
+				printf("%4lld ", dn->dstat.st_blocks>>1);
 #else
-				fprintf(stdout, "%4ld ", dn->dstat.st_blocks>>1);
+				printf("%4ld ", dn->dstat.st_blocks>>1);
 #endif
 				column += 5;
 				break;
 			case LIST_MODEBITS:
-				fprintf(stdout, "%10s", (char *)mode_string(dn->dstat.st_mode));
+				printf("%10s", (char *)mode_string(dn->dstat.st_mode));
 				column += 10;
 				break;
 			case LIST_NLINKS:
-				fprintf(stdout, "%4d ", dn->dstat.st_nlink);
+				printf("%4d ", dn->dstat.st_nlink);
 				column += 10;
 				break;
 			case LIST_ID_NAME:
 #ifdef BB_FEATURE_LS_USERNAME
 				my_getpwuid(scratch, dn->dstat.st_uid);
 				if (*scratch)
-					fprintf(stdout, "%-8.8s ", scratch);
+					printf("%-8.8s ", scratch);
 				else
-					fprintf(stdout, "%-8d ", dn->dstat.st_uid);
+					printf("%-8d ", dn->dstat.st_uid);
 				my_getgrgid(scratch, dn->dstat.st_gid);
 				if (*scratch)
-					fprintf(stdout, "%-8.8s", scratch);
+					printf("%-8.8s", scratch);
 				else
-					fprintf(stdout, "%-8d", dn->dstat.st_gid);
+					printf("%-8d", dn->dstat.st_gid);
 				column += 17;
 				break;
 #endif
 			case LIST_ID_NUMERIC:
-				fprintf(stdout, "%-8d %-8d", dn->dstat.st_uid, dn->dstat.st_gid);
+				printf("%-8d %-8d", dn->dstat.st_uid, dn->dstat.st_gid);
 				column += 17;
 				break;
 			case LIST_SIZE:
 			case LIST_DEV:
 				if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
-					fprintf(stdout, "%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
+					printf("%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
 #if _FILE_OFFSET_BITS == 64
-					fprintf(stdout, "%9lld ", dn->dstat.st_size);
+					printf("%9lld ", dn->dstat.st_size);
 #else
-					fprintf(stdout, "%9ld ", dn->dstat.st_size);
+					printf("%9ld ", dn->dstat.st_size);
 #endif
 				}
 				column += 10;
@@ -634,23 +634,23 @@ int list_single(struct dnode *dn)
 			case LIST_FULLTIME:
 			case LIST_DATE_TIME:
 				if (list_fmt & LIST_FULLTIME) {
-					fprintf(stdout, "%24.24s ", filetime);
+					printf("%24.24s ", filetime);
 					column += 25;
 					break;
 				}
 				age = time(NULL) - ttime;
-				fprintf(stdout, "%6.6s ", filetime+4);
+				printf("%6.6s ", filetime+4);
 				if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 					/* hh:mm if less than 6 months old */
-					fprintf(stdout, "%5.5s ", filetime+11);
+					printf("%5.5s ", filetime+11);
 				} else {
-					fprintf(stdout, " %4.4s ", filetime+20);
+					printf(" %4.4s ", filetime+20);
 				}
 				column += 13;
 				break;
 #endif
 			case LIST_FILENAME:
-				fprintf(stdout, "%s", dn->name);
+				printf("%s", dn->name);
 				column += strlen(dn->name);
 				break;
 			case LIST_SYMLINK:
@@ -658,7 +658,7 @@ int list_single(struct dnode *dn)
 					len= readlink(dn->fullname, scratch, (sizeof scratch)-1);
 					if (len > 0) {
 						scratch[len]= '\0';
-						fprintf(stdout, " -> %s", scratch);
+						printf(" -> %s", scratch);
 #ifdef BB_FEATURE_LS_FILETYPES
 						if (!stat(dn->fullname, &info)) {
 							append = append_char(info.st_mode);
@@ -671,7 +671,7 @@ int list_single(struct dnode *dn)
 #ifdef BB_FEATURE_LS_FILETYPES
 			case LIST_FILETYPE:
 				if (append != '\0') {
-					fprintf(stdout, "%1c", append);
+					printf("%1c", append);
 					column++;
 				}
 				break;

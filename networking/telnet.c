@@ -332,7 +332,7 @@ static void setConMode()
 	{
 		if (G.charmode == CHM_TRY) {
 			G.charmode = CHM_ON;
-			fprintf(stdout, "\r\nEntering character mode%s'^]'.\r\n", escapecharis);
+			printf("\r\nEntering character mode%s'^]'.\r\n", escapecharis);
 			rawmode();
 		}
 	}
@@ -340,7 +340,7 @@ static void setConMode()
 	{
 		if (G.charmode != CHM_OFF) {
 			G.charmode = CHM_OFF;
-			fprintf(stdout, "\r\nEntering line mode%s'^C'.\r\n", escapecharis);
+			printf("\r\nEntering line mode%s'^C'.\r\n", escapecharis);
 			cookmode();
 		}
 	}

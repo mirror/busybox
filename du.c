@@ -42,7 +42,7 @@ static Display *print;
 
 static void print_normal(long size, char *filename)
 {
-	fprintf(stdout, "%ld\t%s\n", size, filename);
+	printf("%ld\t%s\n", size, filename);
 }
 
 static void print_summary(long size, char *filename)
@@ -165,7 +165,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.32 2000/12/12 23:17:26 andersen Exp $ */
+/* $Id: du.c,v 1.33 2001/01/18 02:57:08 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -54,8 +54,8 @@ static struct termios initial_settings, new_settings;
 static void gotsig(int sig)
 {
 	setTermSettings(fileno(cin), &initial_settings);
-	fprintf(stdout, "\n");
-	exit(TRUE);
+	putchar('\n');
+	exit(EXIT_FAILURE);
 }
 #endif /* BB_FEATURE_USE_TERMIOS */
 
@@ -117,19 +117,19 @@ extern int more_main(int argc, char **argv)
 
 				please_display_more_prompt = 0;
 				lines = 0;
-				len = fprintf(stdout, "--More-- ");
+				len = printf("--More-- ");
 				if (file != stdin) {
 #if _FILE_OFFSET_BITS == 64
-					len += fprintf(stdout, "(%d%% of %lld bytes)",
+					len += printf("(%d%% of %lld bytes)",
 #else
-					len += fprintf(stdout, "(%d%% of %ld bytes)",
+					len += printf("(%d%% of %ld bytes)",
 #endif
 								   (int) (100 *
 										  ((double) ftell(file) /
 										   (double) st.st_size)),
 								   st.st_size);
 				}
-				len += fprintf(stdout, "%s",
+				len += printf("%s",
 #ifdef BB_FEATURE_USE_TERMIOS
 							   ""
 #else

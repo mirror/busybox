@@ -35,7 +35,7 @@ static int dereferenceFlag = FALSE;
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (pattern == NULL)
-		fprintf(stdout, "%s\n", fileName);
+		puts(fileName);
 	else {
 		char *tmp = strrchr(fileName, '/');
 
@@ -44,7 +44,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		else
 			tmp++;
 		if (check_wildcard_match(tmp, pattern) == TRUE)
-			fprintf(stdout, "%s\n", fileName);
+			puts(fileName);
 	}
 	return (TRUE);
 }
