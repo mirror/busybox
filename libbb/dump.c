@@ -607,17 +607,17 @@ static void display(void)
 							conv_u(pr, bp);
 							break;
 						case F_UINT:{
-							u_int ival;
-							u_short sval;
+							unsigned int ival;
+							unsigned short sval;
 
 							switch (pr->bcnt) {
 							case 1:
-								printf(pr->fmt, (u_int) * bp);
+								printf(pr->fmt, (unsigned int) * bp);
 								break;
 							case 2:
 								bcopy((char *) bp, (char *) &sval,
 									  sizeof(sval));
-								printf(pr->fmt, (u_int) sval);
+								printf(pr->fmt, (unsigned int) sval);
 								break;
 							case 4:
 								bcopy((char *) bp, (char *) &ival,
