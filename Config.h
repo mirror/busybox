@@ -224,6 +224,9 @@
 // (i.e. in case of an unreachable NFS system).
 #define BB_FEATURE_MOUNT_FORCE
 //
+// use -i (interactive) flag for rm
+//#define BB_FEATURE_RM_INTERACTIVE
+//
 // Enable support for creation of tar files.
 #define BB_FEATURE_TAR_CREATE
 //

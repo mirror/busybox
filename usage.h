@@ -821,12 +821,18 @@
 #define reset_full_usage \
 	"Resets the screen."
 
+#ifdef BB_FEATURE_RM_INTERACTIVE
+  #define USAGE_RM_INTERACTIVE(a) a
+#else
+  #define USAGE_RM_INTERACTIVE(a)
+#endif
 #define rm_trivial_usage \
 	"[OPTION]... FILE..."
 #define rm_full_usage \
 	"Remove (unlink) the FILE(s).  You may use '--' to\n" \
 	"indicate that all following arguments are non-options.\n\n" \
 	"Options:\n" \
+	USAGE_RM_INTERACTIVE("\t-i\t\talways prompt before removing each destinations\n") \
 	"\t-f\t\tremove existing destinations, never prompt\n" \
 	"\t-r or -R\tremove the contents of directories recursively"
 

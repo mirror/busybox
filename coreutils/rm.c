@@ -33,11 +33,21 @@
 
 static int recursiveFlag = FALSE;
 static int forceFlag = FALSE;
+#ifdef BB_FEATURE_RM_INTERACTIVE
+	static int interactiveFlag = FALSE;
+#endif
 static const char *srcName;
 
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
+#ifdef BB_FEATURE_RM_INTERACTIVE
+	if (interactiveFlag == TRUE) {
+		printf("rm: remove `%s'? ", fileName);
+		if (ask_confirmation() == 0)
+			return (TRUE);
+	}
+#endif
 	if (unlink(fileName) < 0) {
 		perror_msg("%s", fileName);
 		return (FALSE);
@@ -52,6 +62,13 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 		perror_msg("%s", fileName);
 		return (FALSE);
 	} 
+#ifdef BB_FEATURE_RM_INTERACTIVE
+	if (interactiveFlag == TRUE) {
+		printf("rm: remove directory `%s'? ", fileName);
+		if (ask_confirmation() == 0)
+			return (TRUE);
+	}
+#endif
 	if (rmdir(fileName) < 0) {
 		perror_msg("%s", fileName);
 		return (FALSE);
@@ -79,6 +96,14 @@ extern int rm_main(int argc, char **argv)
 						break;
 					case 'f':
 						forceFlag = TRUE;
+#ifdef BB_FEATURE_RM_INTERACTIVE
+						interactiveFlag = FALSE;
+#endif
+						break;
+					case 'i':
+#ifdef BB_FEATURE_RM_INTERACTIVE
+						interactiveFlag = TRUE;
+#endif
 						break;
 					case '-':
 						stopIt = TRUE;

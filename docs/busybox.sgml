@@ -2728,6 +2728,7 @@
 
 		<para>
 		<screen>
+			-i		Always prompt before removing each destinations
 			-f		Remove existing destinations, never prompt
 			-r or -R	Remove the contents of directories recursively
 		</screen>

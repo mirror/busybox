@@ -255,4 +255,8 @@ enum {
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
 #endif
 
+#if defined(BB_FEATURE_RM_INTERACTIVE) && defined(BB_RM)
+int ask_confirmation(void);
+#endif
+
 #endif /* _BB_INTERNAL_H_ */

@@ -1859,6 +1859,24 @@ void trim(char *s)
 }
 #endif
 
+#ifdef BB_FEATURE_RM_INTERACTIVE
+	#if defined (BB_CP_MV) || defined (BB_RM)
+int ask_confirmation()
+{
+	int c = '\0';
+	int ret = 0;
+
+	while (c != '\n') {
+		c = getchar();
+		if ( c != '\n' ) {
+			ret = ((c=='y')||(c=='Y')) ? 1 : 0;
+		}
+	}
+	return ret;
+}
+	#endif
+#endif
+
 /* END CODE */
 /*
 Local Variables:
