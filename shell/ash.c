@@ -3729,7 +3729,10 @@ repeat:
 		for (ap = argv; *ap; ap++)
 			;
 		ap = new = ckmalloc((ap - argv + 2) * sizeof(char *));
-		*ap++ = cmd = (char *)DEFAULT_SHELL;
+		ap[1] = cmd;
+		*ap = cmd = (char *)DEFAULT_SHELL;
+		ap += 2;
+		argv++;
 		while ((*ap++ = *argv++))
 			;
 		argv = new;
