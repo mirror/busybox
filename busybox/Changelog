@@ -27,6 +27,7 @@
 	* Vladimir Oleynik
 	    -- Add support for `busybox --help APPLET'
 	    -- Fixed route so it properly displays all route entries
+	    -- Fix for ash leading redirections (i.e. '2>/dev/null ls rubbish')
 	* Laurence Anderson
 	    -- Removed some traces of no-longer existant rpmunpack (which
 		has been obsoleted by the rpm2cpio applet).
