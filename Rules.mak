@@ -19,7 +19,7 @@
 
 #--------------------------------------------------------
 PROG      := busybox
-VERSION   := 1.00-pre1
+VERSION   := 1.00-pre2
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
 
