@@ -8,6 +8,21 @@
 #include <ctype.h>
 
 
+#define NSUBEXP  10
+typedef struct regexp {
+	char	*startp[NSUBEXP];
+	char	*endp[NSUBEXP];
+	int	minlen;		/* length of shortest possible match */
+	char	first;		/* first character, if known; else \0 */
+	char	bol;		/* boolean: must start at beginning of line? */
+	char	program[1];	/* Unwarranted chumminess with compiler. */
+} regexp;
+
+
+static regexp *regcomp(char* text);
+static int regexec(struct regexp* re, char* str, int bol, int ignoreCase);
+static void regsub(struct regexp* re, char* src, char* dst);
+
 #if ( defined BB_GREP || defined BB_SED)
 
 /* This also tries to find a needle in a haystack, but uses
@@ -467,7 +482,7 @@ static int match(regexp * re, char *str, char *prog, char *here,
 
 
 /* This function compiles a regexp. */
-extern regexp *regcomp(char *text)
+static regexp *regcomp(char *text)
 {
 	int needfirst;
 	unsigned size;
@@ -595,7 +610,7 @@ extern regexp *regcomp(char *text)
 /* str -- the string to search through */
 /* bol -- does str start at the beginning of a line? (boolean) */
 /* ignoreCase -- ignoreCase or not */
-extern int regexec(struct regexp *re, char *str, int bol, int ignoreCase)
+static int regexec(struct regexp *re, char *str, int bol, int ignoreCase)
 {
 	char *prog;					/* the entry point of re->program */
 	int len;					/* length of the string */
@@ -644,7 +659,7 @@ extern int regexec(struct regexp *re, char *str, int bol, int ignoreCase)
 
 #if defined BB_SED
 /* This performs substitutions after a regexp match has been found.  */
-extern void regsub(regexp * re, char *src, char *dst)
+static void regsub(regexp * re, char *src, char *dst)
 {
 	char *cpy;
 	char *end;
