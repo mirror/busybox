@@ -1,7 +1,7 @@
 0.52
 	
     Critical Bugfixes:
-	*
+	* Glenn McGrath -- Fix gunzip, zcat when reading from stdin
 	
     New Applet:
 	* Laurence Anderson -- rpm2cpio applet, obsoletes rpmunpack.
