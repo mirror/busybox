@@ -6471,7 +6471,7 @@ static void setjobctl(int enable)
 			initialpgrp = tcgetpgrp(2);
 			if (initialpgrp < 0) {
 #endif
-				out2str("sh: can't access tty; job cenabletrol turned off\n");
+				out2str("sh: can't access tty; job control turned off\n");
 				mflag = 0;
 				return;
 			}
@@ -6484,7 +6484,7 @@ static void setjobctl(int enable)
 		} while (0);
 #ifdef OLD_TTY_DRIVER
 		if (ioctl(2, TIOCGETD, (char *)&ldisc) < 0 || ldisc != NTTYDISC) {
-			out2str("sh: need new tty driver to run job cenabletrol; job cenabletrol turned off\n");
+			out2str("sh: need new tty driver to run job control; job control turned off\n");
 			mflag = 0;
 			return;
 		}
@@ -6498,7 +6498,7 @@ static void setjobctl(int enable)
 #else
 		tcsetpgrp(2, rootpid);
 #endif
-	} else { /* turning job cenabletrol off */
+	} else { /* turning job control off */
 		setpgid(0, initialpgrp);
 #ifdef OLD_TTY_DRIVER
 		ioctl(2, TIOCSPGRP, (char *)&initialpgrp);
@@ -12927,7 +12927,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.8 2001/07/10 06:09:16 andersen Exp $
+ * $Id: ash.c,v 1.9 2001/07/10 16:57:09 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
