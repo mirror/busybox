@@ -212,6 +212,8 @@ static void read_status(int num, status_t *s)
 		fp = fopen(status, "r");
 		if (!fp) {
 			strncpy(s->pid, "EXIT", sizeof(s->pid));
+			s->pid[sizeof(s->pid)-1] = '\0';
+			fclose(fp);
 			continue;
 		}
 
@@ -296,6 +298,7 @@ static status_t *read_info(int num, struct dirent **namelist)
 		sprintf(cmdline, "%s/cmdline", s->pid);
 		fp = fopen(cmdline, "r");
 		if (!fp) {
+			fclose(fp);
 			perror("fopen('cmdline')");
 			return NULL;
 		}
