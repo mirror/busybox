@@ -24,7 +24,7 @@ while (<C>) {
 		$trailer .= $_;
 	} else {
 		$in_trailer=1 if /End of Applications List/;
-		if (/^\/*#define BB_([A-Z_]*)/) {
+		if (/^\/*#define BB_([A-Z0-9_]*)/) {
 			push @apps, $1;
 		}
 	}
