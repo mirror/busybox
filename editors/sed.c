@@ -317,7 +317,7 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 
 	/* now we need to go through * and: s/\\[\r\n]$/\n/g on the edit line */
 	while (ptr[idx]) {
-		while (ptr[idx] != '\\' && (ptr[idx+1] != '\n' || ptr[idx+1] != '\r')) {
+		while (ptr[idx] != '\\' || (ptr[idx+1] != '\n' && ptr[idx+1] != '\r')) {
 			idx++;
 			if (!ptr[idx]) {
 				goto out;
@@ -343,7 +343,6 @@ out:
 	/* this accounts for the fact that A) we started at index 3, not at index
 	 * 0  and B) that we added an extra '\n' at the end (if you think the next
 	 * line should read 'idx += 4' remember, arrays are zero-based) */
-
 	idx += 3;
 
 	return idx;
