@@ -390,6 +390,7 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 	unsigned ml, md;	/* masks for bl and bd bits */
 	register unsigned long b;	/* bit buffer */
 	register unsigned k;	/* number of bits in bit buffer */
+	register int input_char;
 
 	/* make local copies of globals */
 	b = bb;				/* initialize bit buffer */
@@ -401,7 +402,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 	md = mask_bits[bd];
 	for (;;) {			/* do until end of block */
 		while (k < (unsigned) bl) {
-			b |= ((unsigned long) fgetc(in_file)) << k;
+ 			input_char = fgetc(in_file);
+ 			if (input_char == EOF) return 1;
+ 			b |= ((unsigned long)input_char) << k;
 			k += 8;
 		}
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
@@ -413,7 +416,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 				k -= t->b;
 				e -= 16;
 				while (k < e) {
-					b |= ((unsigned long) fgetc(in_file)) << k;
+					input_char = fgetc(in_file);
+					if (input_char == EOF) return 1;
+					b |= ((unsigned long)input_char) << k;
 					k += 8;
 				}
 			} while ((e =
@@ -435,7 +440,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 
 			/* get length of block to copy */
 			while (k < e) {
-				b |= ((unsigned long) fgetc(in_file)) << k;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b |= ((unsigned long)input_char) << k;
 				k += 8;
 			}
 			n = t->v.n + ((unsigned) b & mask_bits[e]);
@@ -444,7 +451,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 
 			/* decode distance of block to copy */
 			while (k < (unsigned) bd) {
-				b |= ((unsigned long) fgetc(in_file)) << k;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b |= ((unsigned long)input_char) << k;
 				k += 8;
 			}
 
@@ -456,7 +465,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 					k -= t->b;
 					e -= 16;
 					while (k < e) {
-						b |= ((unsigned long) fgetc(in_file)) << k;
+						input_char = fgetc(in_file);
+						if (input_char == EOF) return 1;
+						b |= ((unsigned long)input_char) << k;
 						k += 8;
 					}
 				} while ((e =
@@ -465,7 +476,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 			b >>= t->b;
 			k -= t->b;
 			while (k < e) {
-				b |= ((unsigned long) fgetc(in_file)) << k;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b |= ((unsigned long)input_char) << k;
 				k += 8;
 			}
 			d = w - t->v.n - ((unsigned) b & mask_bits[e]);
@@ -541,6 +554,7 @@ static int inflate_block(int *e)
 	unsigned t;			/* block type */
 	register unsigned long b;	/* bit buffer */
 	register unsigned k;	/* number of bits in bit buffer */
+	int input_char;
 
 	/* make local bit buffer */
 	b = bb;
@@ -548,7 +562,9 @@ static int inflate_block(int *e)
 
 	/* read in last block bit */
 	while (k < 1) {
-		b |= ((unsigned long) fgetc(in_file)) << k;
+		input_char = fgetc(in_file);
+		if (input_char == EOF) return 1;
+		b |= ((unsigned long)input_char) << k;
 		k += 8;
 	}
 	*e = (int) b & 1;
@@ -557,7 +573,9 @@ static int inflate_block(int *e)
 
 	/* read in block type */
 	while (k < 2) {
-		b |= ((unsigned long) fgetc(in_file)) << k;
+		input_char = fgetc(in_file);
+		if (input_char == EOF) return 1;
+		b |= ((unsigned long)input_char) << k;
 		k += 8;
 	}
 	t = (unsigned) b & 3;
@@ -589,14 +607,18 @@ static int inflate_block(int *e)
 
 		/* get the length and its complement */
 		while (k_stored < 16) {
-			b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+			input_char = fgetc(in_file);
+			if (input_char == EOF) return 1;
+			b_stored |= ((unsigned long)input_char) << k_stored;
 			k_stored += 8;
 		}
 		n = ((unsigned) b_stored & 0xffff);
 		b_stored >>= 16;
 		k_stored -= 16;
 		while (k_stored < 16) {
-			b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+			input_char = fgetc(in_file);
+			if (input_char == EOF) return 1;
+			b_stored |= ((unsigned long)input_char) << k_stored;
 			k_stored += 8;
 		}
 		if (n != (unsigned) ((~b_stored) & 0xffff)) {
@@ -608,7 +630,9 @@ static int inflate_block(int *e)
 		/* read and output the compressed data */
 		while (n--) {
 			while (k_stored < 8) {
-				b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b_stored |= ((unsigned long)input_char) << k_stored;
 				k_stored += 8;
 			}
 			window[w++] = (unsigned char) b_stored;
@@ -704,21 +728,27 @@ static int inflate_block(int *e)
 
 		/* read in table lengths */
 		while (k_dynamic < 5) {
-			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			input_char = fgetc(in_file);
+			if (input_char == EOF) return 1;
+			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 			k_dynamic += 8;
 		}
 		nl = 257 + ((unsigned) b_dynamic & 0x1f);	/* number of literal/length codes */
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
 		while (k_dynamic < 5) {
-			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			input_char = fgetc(in_file);
+			if (input_char == EOF) return 1;
+			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 			k_dynamic += 8;
 		}
 		nd = 1 + ((unsigned) b_dynamic & 0x1f);	/* number of distance codes */
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
 		while (k_dynamic < 4) {
-			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			input_char = fgetc(in_file);
+			if (input_char == EOF) return 1;
+			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 			k_dynamic += 8;
 		}
 		nb = 4 + ((unsigned) b_dynamic & 0xf);	/* number of bit length codes */
@@ -731,7 +761,9 @@ static int inflate_block(int *e)
 		/* read in bit-length-code lengths */
 		for (j = 0; j < nb; j++) {
 			while (k_dynamic < 3) {
-				b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 				k_dynamic += 8;
 			}
 			ll[border[j]] = (unsigned) b_dynamic & 7;
@@ -757,7 +789,9 @@ static int inflate_block(int *e)
 		i = l = 0;
 		while ((unsigned) i < n) {
 			while (k_dynamic < (unsigned) bl) {
-				b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+				input_char = fgetc(in_file);
+				if (input_char == EOF) return 1;
+				b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 				k_dynamic += 8;
 			}
 			j = (td = tl + ((unsigned) b_dynamic & m))->b;
@@ -768,8 +802,9 @@ static int inflate_block(int *e)
 				ll[i++] = l = j;	/* save last length in l */
 			} else if (j == 16) {	/* repeat last length 3 to 6 times */
 				while (k_dynamic < 2) {
-					b_dynamic |=
-						((unsigned long) fgetc(in_file)) << k_dynamic;
+					input_char = fgetc(in_file);
+					if (input_char == EOF) return 1;
+					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 					k_dynamic += 8;
 				}
 				j = 3 + ((unsigned) b_dynamic & 3);
@@ -783,8 +818,9 @@ static int inflate_block(int *e)
 				}
 			} else if (j == 17) {	/* 3 to 10 zero length codes */
 				while (k_dynamic < 3) {
-					b_dynamic |=
-						((unsigned long) fgetc(in_file)) << k_dynamic;
+					input_char = fgetc(in_file);
+					if (input_char == EOF) return 1;
+					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 					k_dynamic += 8;
 				}
 				j = 3 + ((unsigned) b_dynamic & 7);
@@ -799,8 +835,9 @@ static int inflate_block(int *e)
 				l = 0;
 			} else {	/* j == 18: 11 to 138 zero length codes */
 				while (k_dynamic < 7) {
-					b_dynamic |=
-						((unsigned long) fgetc(in_file)) << k_dynamic;
+					input_char = fgetc(in_file);
+					if (input_char == EOF) return 1;
+					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
 					k_dynamic += 8;
 				}
 				j = 11 + ((unsigned) b_dynamic & 0x7f);
@@ -953,7 +990,7 @@ extern int unzip(FILE * l_in_file, FILE * l_out_file)
 	}
 
 	/* Check the compression method */
-	if (fgetc(l_in_file) != 8) {
+	if (fgetc(l_in_file) != 8) /* also catches EOF */ {
 		error_msg("Unknown compression method");
 		return (-1);
 	}
@@ -969,7 +1006,7 @@ extern int unzip(FILE * l_in_file, FILE * l_out_file)
 		/* bit 2 set: extra field present */
 		const unsigned short extra =
 			fgetc(l_in_file) + (fgetc(l_in_file) << 8);
-
+		if (feof(in_file)) return 1;
 		for (i = 0; i < extra; i++) {
 			fgetc(l_in_file);
 		}
@@ -978,13 +1015,13 @@ extern int unzip(FILE * l_in_file, FILE * l_out_file)
 	/* Discard original name if any */
 	if (flags & 0x08) {
 		/* bit 3 set: original file name present */
-		while (fgetc(l_in_file) != 0);	/* null */
+		while (fgetc(l_in_file) != 0 && !feof(l_in_file));	/* null */
 	}
 
 	/* Discard file comment if any */
 	if (flags & 0x10) {
 		/* bit 4 set: file comment present */
-		while (fgetc(l_in_file) != 0);	/* null */
+		while (fgetc(l_in_file) != 0 && !feof(l_in_file));	/* null */
 	}
 
 	/* Decompress */
