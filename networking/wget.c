@@ -481,25 +481,30 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		progressmeter(-1);
 #endif
 	do {
-		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
-			if (safe_fwrite(buf, 1, n, output) != n)
+		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, (chunked || !got_clen || (filesize > sizeof(buf)) ? sizeof(buf) : filesize), dfp)) > 0) {
+			if (safe_fwrite(buf, 1, n, output) != n) {
 				bb_perror_msg_and_die("write error");
+			}
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
-		statbytes+=n;
+			statbytes+=n;
 #endif
-		if (got_clen)
-			filesize -= n;
-	}
+			if (got_clen) {
+				filesize -= n;
+			}
+		}
 
 		if (chunked) {
 			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
 			safe_fgets(buf, sizeof(buf), dfp);
 			filesize = strtol(buf, (char **) NULL, 16);
-			if (filesize==0) chunked = 0; /* all done! */
+			if (filesize==0) {
+				chunked = 0; /* all done! */
+			}
 		}
 
-	if (n == 0 && ferror(dfp))
-		bb_perror_msg_and_die("network read error");
+		if (n == 0 && ferror(dfp)) {
+			bb_perror_msg_and_die("network read error");
+		}
 	} while (chunked);
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	if (quiet_flag==FALSE)
@@ -811,7 +816,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.54 2003/07/22 08:56:51 andersen Exp $
+ *	$Id: wget.c,v 1.55 2003/08/28 21:55:22 bug1 Exp $
  */
 
 
@@ -823,6 +828,3 @@ c-basic-offset: 4
 tab-width: 4
 End:
 */
-
-
-
