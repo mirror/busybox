@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-menu "Module Utilities"
+menu "Linux Module Utilities"
 
 config CONFIG_INSMOD
 	bool "insmod"
