@@ -21,7 +21,16 @@ config CONFIG_RUN_PARTS
 	bool "run-parts"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  run-parts is an utility designed to run all the scripts in a directory.
+
+	  It is useful to set up a directory like cron.daily, where you need to
+	  execute all the scripts in that directory.
+
+	  This implementation of run-parts doesn't accept long options, and
+	  some features (like report mode) aren't implemented.
+
+	  Unless you know that run-parts is used in some of your scripts
+	  you can safely say N here.
 
 config CONFIG_WHICH
 	bool "which"

@@ -9,7 +9,17 @@ config CONFIG_AR
 	bool "ar"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  ar is an archival utility program used to create, modify, and
+	  extract contents from archives.  An archive is a single file holding
+	  a collection of other files in a structure that makes it possible to
+	  retrieve the original individual files (called archive members).
+	  The original files' contents, mode (permissions), timestamp, owner,
+	  and group are preserved in the archive, and can be restored on
+	  extraction.  
+	  On an x86 system, the ar applet adds about XXX bytes.
+
+	  Unless you have a specific application which requires ar, you should
+	  probably say N here.
 
 config CONFIG_FEATURE_AR_LONG_FILENAMES
 	bool "  Enable support for long filenames (not need for debs)"
@@ -22,7 +32,17 @@ config CONFIG_BUNZIP2
 	bool "bunzip2"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  bunzip2 is an compression utility using the Burrows-Wheeler block
+	  sorting text compression algorithm, and Huffman coding.  Compression
+	  is generally considerably better than that achieved by more
+	  conventional LZ77/LZ78-based compressors, and approaches the
+	  performance of the PPM family of statistical compressors.  
+	  
+	  The BusyBox bunzip2 applet is limited to de-compression only.  On an
+	  x86 system, this applet adds about XXX bytes.
+	  
+	  Unless you have a specific application which requires bunzip2, you
+	  should probably say N here.
 
 config CONFIG_CPIO
 	bool "cpio"

@@ -9,7 +9,14 @@ choice
 	prompt "Buffer allocation policy"
 	default "Allocate with Malloc"
 	help
-	  Please submit a patch to add help text for this item.
+	  There are 3 ways BusyBox can handle buffer allocations:
+	  - Use malloc. This costs code size for the call to xmalloc.
+	  - Put them on stack. For some very small machines with limited stack
+	    space, this can be deadly.  For most folks, this works just fine.
+	  - Put them in BSS. This works beautifully for computers with a real
+	    MMU (and OS support), but wastes runtime RAM for uCLinux. This
+	    behavior was the only one available for BusyBox versions 0.48 and
+	    earlier.
 
 config CONFIG_FEATURE_BUFFERS_USE_MALLOC
 	bool "Allocate with Malloc"
@@ -26,37 +33,52 @@ config CONFIG_FEATURE_VERBOSE_USAGE
 	bool "Show verbose applet usage messages"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  All BusyBox applets will show more verbose help messages when
+	  busybox is invoked with --help.  This will add lots of text to the
+	  busybox binary.  In the default configuration, this will add about
+	  13k, but it can add much more depending on your configuration.
 
 config CONFIG_FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable 'busybox --install [-s]' support.  This will allow you to use
+	  busybox at runtime to create hard links or symlinks for all the
+	  applets that are compiled into busybox.  This feature requires the
+	  /proc filesystem.
 
 config CONFIG_LOCALE_SUPPORT
 	bool "Enable locale support (system needs locale for this to work)"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable this if your system has locale support, and you would like
+	  busybox to support locale settings.
 
 config CONFIG_FEATURE_DEVFS
 	bool "Support for devfs"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable if you want BusyBox to work with devfs.
 
 config CONFIG_FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
 	default y if CONFIG_FEATURE_DEVFS
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable if you want BusyBox to use Unix98 PTY support. If enabled,
+	  busybox will use /dev/ptmx for the master side of the pseudoterminal
+	  and /dev/pts/<number> for the slave side.  Otherwise, BSD style
+	  /dev/ttyp<number> will be used. To use this option, you should have
+	  devpts or devfs mounted.
 
 config CONFIG_FEATURE_CLEAN_UP
 	bool "Clean up all memory before exiting (usually not needed)"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	As a size optimization, busybox by default does not cleanup memory
+	that is dynamically allocated or close files before exiting. This
+	saves space and is usually not needed since the OS will clean up for
+	us.  Don't enable this unless you have a really good reason to clean
+	things up manually.
 
 config CONFIG_FEATURE_SUID
 	bool "Support for SUID/SGID handling"
