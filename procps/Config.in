@@ -12,9 +12,6 @@ config CONFIG_FREE
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_KILL
-	default y
-
-config CONFIG_KILL
 	bool "kill"
 	default n
 	depends on CONFIG_KILL
