@@ -25,6 +25,11 @@
     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 */
+
+#warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
+#warning applet will be removed from BusyBox.  All maintainence efforts
+#warning should be done in the netkit-tiny source tree.
+
 #include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.30 2000/12/22 01:48:07 kraai Exp $
+ * $Id: ping.c,v 1.31 2001/01/22 22:48:42 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -30,6 +30,10 @@
  * 
  * Original copyright notice is retained at the end of this file.
  */
+
+#warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
+#warning applet will be removed from BusyBox.  All maintainence efforts
+#warning should be done in the netkit-tiny source tree.
 
 #include "busybox.h"
 #include <sys/param.h>
