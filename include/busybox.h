@@ -26,10 +26,6 @@
 
 #include "Config.h"
 
-#ifdef DMALLOC
-#include "dmalloc.h"
-#endif
-
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -37,12 +33,16 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/types.h>
 #include <mntent.h>
 #include <regex.h>
 /* for the _syscall() macros */
 #include <sys/syscall.h>
 #include <linux/unistd.h>
 
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 /* Some useful definitions */
 #define FALSE   ((int) 0)
@@ -183,7 +183,7 @@ extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 
-#ifndef DMALLOC 
+#ifndef DMALLOC
 extern void *xmalloc (size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
