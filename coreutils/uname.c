@@ -87,7 +87,7 @@ int uname_main(int argc, char **argv)
 	}
 
 #if defined(__sparc__) && defined(__linux__)
-	if ((fake_sparc != NULL)
+ 	if ((fake_sparc != NULL)
 		&& ((fake_sparc[0] == 'y')
 			|| (fake_sparc[0] == 'Y'))) {
 		strcpy(uname_info.name.machine, "sparc");
@@ -96,11 +96,16 @@ int uname_main(int argc, char **argv)
 
 	strcpy(uname_info.processor, "unknown");
 
-	for (opt=0,delta=utsname_offset ; toprint ; delta++, toprint >>= 1) {
+	delta=utsname_offset;
+	do {
 		if (toprint & 1) {
-			printf("%s%s", (opt++==0)? "": " ", ((char *)(&uname_info)) + *delta);
+			printf(((char *)(&uname_info)) + *delta);
+			if (toprint > 1) {
+				putchar(' ');
+			}
 		}
-	}
+		++delta;
+	} while (toprint >>= 1);
 	putchar('\n');
 
 	return EXIT_SUCCESS;
