@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <sys/utsname.h>
 #include <sys/syscall.h>
+#include <linux/unistd.h>
 
 //----------------------------------------------------------------------------
 //--------modutils module.h, lines 45-242
@@ -70,7 +71,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.8 2000/06/12 23:11:16 andersen Exp $"
+#ident "$Id: insmod.c,v 1.9 2000/06/19 19:53:30 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +277,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.8 2000/06/12 23:11:16 andersen Exp $"
+#ident "$Id: insmod.c,v 1.9 2000/06/19 19:53:30 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -529,6 +530,8 @@ _syscall2(int, new_sys_init_module, const char *, name,
 _syscall5(int, old_sys_init_module, const char *, name, char *, code,
 		  unsigned, codesize, struct old_mod_routines *, routines,
 		  struct old_symbol_table *, symtab)
+_syscall5(int, query_module, const char *, name, int, which,
+		void *, buf, size_t, bufsize, size_t*, ret);
 #ifndef BB_RMMOD
 _syscall1(int, delete_module, const char *, name)
 #else
@@ -2875,5 +2878,5 @@ extern int insmod_main( int argc, char **argv)
 
 out:
 	fclose(fp);
-	exit(exit_status);
+	return(exit_status);
 }
