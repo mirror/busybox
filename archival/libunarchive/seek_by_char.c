@@ -7,28 +7,19 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Library General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <sys/types.h>
-
-#include <errno.h>
-#include <unistd.h>
-
-#include "libbb.h"
 #include "unarchive.h"
 
-extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary)
+extern void seek_by_char(const archive_handle_t *archive_handle, const unsigned int amount)
 {
-	const unsigned short skip_amount = (boundary - (archive_handle->offset % boundary)) % boundary;
-
-	archive_handle->seek(archive_handle, skip_amount);
-
-	archive_handle->offset += skip_amount;
-
-	return;
+	unsigned int i;
+	for (i = 0; i < amount; i++) {
+		archive_xread_char(archive_handle);
+	}
 }

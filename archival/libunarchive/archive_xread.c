@@ -7,28 +7,27 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Library General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <sys/types.h>
-
-#include <errno.h>
-#include <unistd.h>
-
-#include "libbb.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "unarchive.h"
+#include "libbb.h"
 
-extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary)
+extern ssize_t archive_xread(const archive_handle_t *archive_handle, unsigned char *buf, const size_t count)
 {
-	const unsigned short skip_amount = (boundary - (archive_handle->offset % boundary)) % boundary;
+	ssize_t size;
 
-	archive_handle->seek(archive_handle, skip_amount);
+	size = archive_handle->read(archive_handle->src_fd, buf, count);
+	if (size == -1) {
+		perror_msg_and_die("Read error");
+	}
 
-	archive_handle->offset += skip_amount;
-
-	return;
+	return(size);
 }

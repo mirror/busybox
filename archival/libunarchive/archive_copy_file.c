@@ -7,26 +7,42 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <sys/types.h>
-#include <errno.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include "unarchive.h"
-#include "libbb.h"
 
-extern void seek_sub_file(const int src_fd, const unsigned int amount)
+#include "libbb.h"
+#include "unarchive.h"
+
+/* Copy CHUNKSIZE bytes (or untill EOF if chunksize == -1)
+ * from SRC_FILE to DST_FILE. */
+extern void archive_copy_file(const archive_handle_t *archive_handle, const int dst_fd)
 {
-	if ((lseek(src_fd, amount, SEEK_CUR) == -1) && (errno == ESPIPE)) {
-		unsigned int i;
-		for (i = 0; i < amount; i++) {
-			xread_char(src_fd);
+	size_t size;
+	char buffer[BUFSIZ];
+	off_t chunksize = archive_handle->file_header->size;
+
+	while (chunksize != 0) {
+		if (chunksize > BUFSIZ) {
+			size = BUFSIZ;
+		} else {
+			size = chunksize;
+		}
+		archive_xread_all(archive_handle, buffer, size);
+
+		if (write(dst_fd, buffer, size) != size) {
+			error_msg_and_die ("Short write");
+		}
+
+		if (chunksize != -1) {
+			chunksize -= size;
 		}
 	}
+
+	return;
 }

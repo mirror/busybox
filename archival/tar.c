@@ -627,7 +627,7 @@ int tar_main(int argc, char **argv)
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS;
 
-	while ((opt = getopt(argc, argv, "ctxT:X:C:f:Opvz")) != -1) {
+	while ((opt = getopt(argc, argv, "cjtxT:X:C:f:Opvz")) != -1) {
 		switch (opt) {
 			/* One and only one of these is required */
 #ifdef CONFIG_FEATURE_TAR_CREATE
@@ -684,9 +684,8 @@ int tar_main(int argc, char **argv)
 			break;
 #endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-			/* Not enabled yet */
 		case 'j':
-			archive_handle->archive_action = bunzip2;
+			tar_handle->read = read_bz2;
 			break;
 #endif
 		default:
@@ -703,14 +702,8 @@ int tar_main(int argc, char **argv)
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, seperate function ? */
 	while (optind < argc) {
-#if 0
-		char absolute_path[PATH_MAX];
-		realpath(argv[optind], absolute_path);
-		tar_handle->accept = add_to_list(tar_handle->accept, absolute_path);
-#endif
 		tar_handle->accept = add_to_list(tar_handle->accept, argv[optind]);
 		optind++;
-
 	}
 
 	if ((tar_handle->accept) || (tar_handle->reject)) {
@@ -744,13 +737,21 @@ int tar_main(int argc, char **argv)
 		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
 			tar_handle->src_fd = fileno(stdin);
 		} else {
+			tar_handle->seek = seek_by_jump;
 			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
 		}
 #ifdef CONFIG_FEATURE_TAR_GZIP
 		if (get_header_ptr == get_header_tar_gz) {
+			tar_handle->seek = seek_by_char;
 			get_header_tar_gz(tar_handle);
 		} else
-#endif /* CONFIG_FEATURE_TAR_CREATE */
+#endif /* CONFIG_FEATURE_TAR_GZIP */
+#ifdef CONFIG_FEATURE_TAR_BZIP2
+		if (tar_handle->read == read_bz2) {
+			BZ2_bzReadOpen(tar_handle->src_fd, NULL, 0);
+			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
+		} else
+#endif /* CONFIG_FEATURE_TAR_BZIP2 */
 
 			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
 

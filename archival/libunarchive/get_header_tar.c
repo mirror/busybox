@@ -50,9 +50,9 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	char *tmp;
 
 	/* Align header */
-	archive_handle->offset += data_align(archive_handle->src_fd, archive_handle->offset, 512);
+	data_align(archive_handle, 512);
 
-	if (xread_all_eof(archive_handle->src_fd, tar.raw, 512) == 0) {
+	if (archive_xread_all_eof(archive_handle, tar.raw, 512) == 0) {
 		/* End of file */
 		return(EXIT_FAILURE);
 	}
@@ -72,7 +72,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 #endif
 			error_msg_and_die("Invalid tar magic");
 	}
-
 	/* Do checksum on headers */
 	for (i =  0; i < 148 ; i++) {
 		sum += tar.raw[i];
@@ -138,7 +137,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 			char *longname;
 
 			longname = xmalloc(file_header->size + 1);
-			xread_all(archive_handle->src_fd, longname, file_header->size);
+			archive_xread_all(archive_handle, longname, file_header->size);
 			longname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 
@@ -150,7 +149,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 			char *linkname;
 
 			linkname = xmalloc(file_header->size + 1);
-			xread_all(archive_handle->src_fd, linkname, file_header->size);
+			archive_xread_all(archive_handle, linkname, file_header->size);
 			linkname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 

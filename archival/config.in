@@ -26,6 +26,7 @@ bool 'rpm2cpio'     CONFIG_RPM2CPIO
 bool 'tar'	    CONFIG_TAR
 if [ "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable archive creation'	CONFIG_FEATURE_TAR_CREATE
+    bool '  Enable -j option to handle .tar.bz2 files'	CONFIG_FEATURE_TAR_BZIP2
     bool '  Enable -X and --exclude options (exclude files)'	CONFIG_FEATURE_TAR_EXCLUDE
     bool '  Enable -z option'	CONFIG_FEATURE_TAR_GZIP
     bool '  Enable support for old tar header format'	CONFIG_FEATURE_TAR_OLD_FORMAT

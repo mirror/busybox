@@ -7,14 +7,8 @@
 #define ARCHIVE_EXTRACT_QUIET	8
 
 #include <sys/types.h>
-#include <stdio.h>
 
-typedef struct gunzip_s {
-	unsigned short buffer_count;
-	unsigned char *buffer;
-	unsigned int crc;
-	unsigned int count;
-} gunzip_t;
+#include <stdio.h>
 
 typedef struct file_headers_s {
 	char *name;
@@ -58,6 +52,12 @@ typedef struct archive_handle_s {
 	/* Count the number of bytes processed */
 	off_t offset;
 
+	/* Function that reads data: read or read_bz */
+	ssize_t (*read)(int fd, void *buf, size_t count);
+
+	/* Function that skips data: read_by_char or read_by_skip */
+	void (*seek)(const struct archive_handle_s *archive_handle, const unsigned int amount);
+
 	/* Temperary storage */
 	char *buffer;
 
@@ -90,11 +90,21 @@ extern char get_header_ar(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);
 extern char get_header_tar_gz(archive_handle_t *archive_handle);
 
-extern unsigned char uncompressStream(FILE *zStream, FILE *stream);
+extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount);
+extern void seek_by_char(const archive_handle_t *archive_handle, const unsigned int amount);
 
-extern void seek_sub_file(int src_fd, unsigned int amount);
-extern const unsigned short data_align(const int src_fd, const unsigned int offset, const unsigned short align_to);
+extern unsigned char archive_xread_char(const archive_handle_t *archive_handle);
+extern ssize_t archive_xread(const archive_handle_t *archive_handle, unsigned char *buf, const size_t count);
+extern void archive_xread_all(const archive_handle_t *archive_handle, void *buf, const size_t count);
+extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *buf, size_t count);
+
+extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary);
 extern const llist_t *add_to_list(const llist_t *old_head, const char *new_item);
-extern int copy_file_chunk_fd(int src_fd, int dst_fd, unsigned long long chunksize);
+extern void archive_copy_file(const archive_handle_t *archive_handle, const int dst_fd);
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
+
+extern ssize_t read_bz2(int fd, void *buf, size_t count);
+extern void BZ2_bzReadOpen(int fd, void *unused, int nUnused);
+extern unsigned char uncompressStream(int src_fd, int dst_fd);
+
 #endif

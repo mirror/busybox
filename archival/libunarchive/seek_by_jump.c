@@ -7,7 +7,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Library General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
@@ -15,20 +15,21 @@
  */
 
 #include <sys/types.h>
-
 #include <errno.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "libbb.h"
 #include "unarchive.h"
 
-extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary)
+extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount)
 {
-	const unsigned short skip_amount = (boundary - (archive_handle->offset % boundary)) % boundary;
-
-	archive_handle->seek(archive_handle, skip_amount);
-
-	archive_handle->offset += skip_amount;
-
-	return;
+	if (lseek(archive_handle->src_fd, (off_t) amount, SEEK_CUR) == (off_t) -1) {
+#if CONFIG_FEATURE_UNARCHIVE_TAPE
+		if (errno == ESPIPE) {
+			seek_by_char(archive_handle, amount);
+		} else
+#endif
+			perror_msg_and_die("Seek failure");
+	}
 }

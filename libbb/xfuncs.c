@@ -92,7 +92,7 @@ extern int xopen(const char *pathname, int flags)
 {
 	int ret;
 	
-	ret = open(pathname, flags);
+	ret = open(pathname, flags, 0777);
 	if (ret == -1) {
 		perror_msg_and_die("%s", pathname);
 	}
@@ -119,17 +119,6 @@ extern void xread_all(int fd, void *buf, size_t count)
 		error_msg_and_die("Short read");
 	}
 	return;
-}
-
-extern ssize_t xread_all_eof(int fd, void *buf, size_t count)
-{
-	ssize_t size;
-
-	size = xread(fd, buf, count);
-	if ((size != 0) && (size != count)) {
-		error_msg_and_die("Short read");
-	}
-	return(size);
 }
 
 extern unsigned char xread_char(int fd)

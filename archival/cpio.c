@@ -45,6 +45,7 @@ extern int cpio_main(int argc, char **argv)
 	/* Initialise */
 	archive_handle = init_handle();
 	archive_handle->src_fd = fileno(stdin);
+	archive_handle->seek = seek_by_char;
 	archive_handle->action_header = header_list;
 
 	while ((opt = getopt(argc, argv, "idmuvtF:")) != -1) {
@@ -69,6 +70,7 @@ extern int cpio_main(int argc, char **argv)
 			break;
 		case 'F':
 			archive_handle->src_fd = xopen(optarg, O_RDONLY);
+			archive_handle->seek = seek_by_jump;
 			break;
 		default:
 			show_usage();
@@ -117,9 +119,9 @@ extern int cpio_main(int argc, char **argv)
 	}
 
 		/* There can be padding before archive header */
-		archive_handle->offset += data_align(archive_handle->src_fd, archive_handle->offset, 4);
+		data_align(archive_handle, 4);
 
-		if (xread_all_eof(archive_handle->src_fd, cpio_header, 110) == 0) {
+		if (archive_xread_all_eof(archive_handle, cpio_header, 110) == 0) {
 			return(EXIT_FAILURE);
 		}
 		archive_handle->offset += 110;
@@ -145,12 +147,12 @@ extern int cpio_main(int argc, char **argv)
 			dummy, &major, &minor, &namesize, dummy);
 
 		file_header->name = (char *) xmalloc(namesize + 1);
-		xread(archive_handle->src_fd, file_header->name, namesize); /* Read in filename */
+		archive_xread_all(archive_handle, file_header->name, namesize); /* Read in filename */
 		file_header->name[namesize] = '\0';
 		archive_handle->offset += namesize;
 
 		/* Update offset amount and skip padding before file contents */
-		archive_handle->offset += data_align(archive_handle->src_fd, archive_handle->offset, 4);
+		data_align(archive_handle, 4);
 
 		if (strcmp(file_header->name, "TRAILER!!!") == 0) {
 			printf("%d blocks\n", (int) (archive_handle->offset % 512 ? (archive_handle->offset / 512) + 1 : archive_handle->offset / 512)); /* Always round up */
@@ -173,7 +175,7 @@ extern int cpio_main(int argc, char **argv)
 
 		if (S_ISLNK(file_header->mode)) {
 			file_header->link_name = (char *) xmalloc(file_header->size + 1);
-			xread(archive_handle->src_fd, file_header->link_name, file_header->size);
+			archive_xread_all(archive_handle, file_header->link_name, file_header->size);
 			file_header->link_name[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 			file_header->size = 0; /* Stop possible seeks in future */

@@ -41,15 +41,23 @@ LIBUNARCHIVE-y:= \
 	header_list.o \
 	header_verbose_list.o \
 \
+	archive_xread.o \
+	archive_xread_all.o \
+	archive_xread_all_eof.o \
+	archive_xread_char.o \
+\
+	seek_by_char.o \
+	seek_by_jump.o \
+\
+	archive_copy_file.o \
+\
 	add_to_list.o \
 	check_header_gzip.o \
 	check_trailer_gzip.o \
-	copy_file_chunk_fd.o \
 	data_align.o \
 	decompress_bunzip2.o \
 	find_list_entry.o \
 	init_handle.o \
-	seek_sub_file.o \
 	uncompress.o \
 	unpack_ar_archive.o \
 	unzip.o

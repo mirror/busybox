@@ -57,10 +57,8 @@
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
-#include <busybox.h>
 
-//#define TRUE 1
-//#define FALSE 0
+#include "busybox.h"
 
 #define MTFA_SIZE 4096
 #define MTFL_SIZE 16
@@ -142,9 +140,10 @@ typedef struct {
 
 } bz_stream;
 
+#define BZ_MAX_UNUSED 5000
 typedef struct {
 	bz_stream	strm;
-	FILE	*handle;
+	int			fd;
     unsigned char	initialisedOk;
 	char	buf[BZ_MAX_UNUSED];
 	int		lastErr;
@@ -237,18 +236,11 @@ typedef struct {
 	int	*save_gPerm;
 } DState;
 
-int BZ2_rNums[512];
-char inName[FILE_NAME_LEN];
-char outName[FILE_NAME_LEN];
-int srcMode;
-int opMode;
-unsigned char deleteOutputOnInterrupt;
-FILE *outputHandleJustInCase;
-int numFileNames;
-int numFilesProcessed;
-int exitValue;
+static int BZ2_rNums[512];
+static bzFile *bzf;
+static int bzerr = BZ_OK;
 
-const unsigned int BZ2_crc32Table[256] = {
+static const unsigned int BZ2_crc32Table[256] = {
 
    /*-- Ugly, innit? --*/
 
@@ -328,16 +320,6 @@ static void bz_rand_udp_mask(DState *s)
 		}
 	}
 	s->rNToGo--;
-}
-
-static unsigned char myfeof(FILE *f)
-{
-	int c = fgetc(f);
-	if (c == EOF) {
-		return(TRUE);
-	}
-	ungetc(c, f);
-	return(FALSE);
 }
 
 static void BZ2_hbCreateDecodeTables(int *limit, int *base, int *perm, unsigned char *length, int minLen, int maxLen, int alphaSize )
@@ -1292,43 +1274,8 @@ save_state_and_return:
 	return retVal;   
 }
 
-//int BZ2_bzDecompressInit(bz_stream* strm, int verbosity_level, int small)
-static inline int BZ2_bzDecompressInit(bz_stream* strm)
+static void BZ2_bzReadClose(void)
 {
-	DState* s;
-
-//	if (verbosity_level < 0 || verbosity_level > 4) {
-//		return BZ_PARAM_ERROR;
-//	}
-	s = xmalloc(sizeof(DState));
-	s->strm                  = strm;
-	strm->state              = s;
-	s->state                 = BZ_X_MAGIC_1;
-	s->bsLive                = 0;
-	s->bsBuff                = 0;
-	s->calculatedCombinedCRC = 0;
-	s->tt                    = NULL;
-	s->currBlockNo           = 0;
-
-	return BZ_OK;
-}
-
-static void bz_seterr(int eee, int *bzerror, bzFile **bzf)
-{
-	if (bzerror != NULL) {
-		*bzerror = eee;
-	}
-	if (*bzf != NULL) {
-		(*bzf)->lastErr = eee;
-	}
-}
-
-static void BZ2_bzReadClose(int *bzerror, void *b)
-{
-	bzFile* bzf = (bzFile*)b;
-
-	bz_seterr(BZ_OK, bzerror, &bzf);
-
 	if (bzf->initialisedOk) {
 		bz_stream *strm = &(bzf->strm);
 		DState *s;
@@ -1588,31 +1535,22 @@ int BZ2_bzDecompress(bz_stream *strm)
 	return(0);  /*NOTREACHED*/
 }
 
-static inline int BZ2_bzRead(int *bzerror, void *b, void *buf, int len)
+extern ssize_t read_bz2(int fd, void *buf, size_t count)
 {
 	int n, ret;
-	bzFile *bzf = (bzFile*)b;
 
-	bz_seterr(BZ_OK, bzerror, &bzf);
-
-	if (len == 0) {
-		bz_seterr(BZ_OK, bzerror, &bzf);
-		return 0;
+	bzerr = BZ_OK;
+	if (count == 0) {
+		return(0);
 	}
-
-	bzf->strm.avail_out = len;
+	bzf->strm.avail_out = count;
 	bzf->strm.next_out = buf;
 
 	while (1) {
-		if (ferror(bzf->handle)) {
-			bz_seterr(BZ_IO_ERROR, bzerror, &bzf);
-			return 0;
-		}
-		if ((bzf->strm.avail_in == 0) && !myfeof(bzf->handle)) {
-			n = fread(bzf->buf, sizeof(unsigned char), BZ_MAX_UNUSED, bzf->handle);
-			if (ferror(bzf->handle)) {
-				bz_seterr(BZ_IO_ERROR, bzerror, &bzf);
-				return 0;
+		if (bzf->strm.avail_in == 0) {
+			n = xread(bzf->fd, bzf->buf, BZ_MAX_UNUSED);
+			if (n == 0) {
+				break;
 			}
 			bzf->bufN = n;
 			bzf->strm.avail_in = bzf->bufN;
@@ -1622,48 +1560,43 @@ static inline int BZ2_bzRead(int *bzerror, void *b, void *buf, int len)
 		ret = BZ2_bzDecompress(&(bzf->strm));
 
 		if ((ret != BZ_OK) && (ret != BZ_STREAM_END)) {
-			bz_seterr(ret, bzerror, &bzf);
-			return 0;
-		}
-
-		if ((ret == BZ_OK) && myfeof(bzf->handle) &&
-			(bzf->strm.avail_in == 0) && (bzf->strm.avail_out > 0)) {
-			bz_seterr(BZ_UNEXPECTED_EOF, bzerror, &bzf);
-			return(0);
+			error_msg_and_die("Error decompressing");
 		}
 
 		if (ret == BZ_STREAM_END) {
-			bz_seterr(BZ_STREAM_END, bzerror, &bzf);
-			return(len - bzf->strm.avail_out);
+			bzerr = BZ_STREAM_END;
+			return(count - bzf->strm.avail_out);
 		}
 		if (bzf->strm.avail_out == 0) {
-			bz_seterr(BZ_OK, bzerror, &bzf);
-			return(len);
+			bzerr = BZ_OK;
+			return(count);
 		}
 	}
-	return(0); /*not reached*/
+	return(0);
 }
 
-static inline void *BZ2_bzReadOpen(int *bzerror, FILE *f, void *unused, int nUnused)
+extern void BZ2_bzReadOpen(int fd, void *unused, int nUnused)
 {
-	bzFile *bzf = xmalloc(sizeof(bzFile));
-	int ret;
+	DState *s;
 
-	bz_seterr(BZ_OK, bzerror, &bzf);
-
+	bzf = xmalloc(sizeof(bzFile));
 	bzf->initialisedOk = FALSE;
-	bzf->handle        = f;
-	bzf->bufN          = 0;
+	bzf->fd        = fd;
+	bzf->bufN      = 0;
 
-	ret = BZ2_bzDecompressInit(&(bzf->strm));
-	if (ret != BZ_OK) {
-		bz_seterr(ret, bzerror, &bzf);
-		free(bzf);
-		return NULL;
-	}
+	s = xmalloc(sizeof(DState));
+	s->strm = &bzf->strm;
+	s->state = BZ_X_MAGIC_1;
+	s->bsLive = 0;
+	s->bsBuff = 0;
+	s->calculatedCombinedCRC = 0;
+	s->tt = NULL;
+	s->currBlockNo = 0;
+	bzf->strm.state = s;
 
 	while (nUnused > 0) {
-		bzf->buf[bzf->bufN] = *((unsigned char *)(unused)); bzf->bufN++;
+		bzf->buf[bzf->bufN] = *((unsigned char *)(unused));
+		bzf->bufN++;
 		unused = ((void *)( 1 + ((unsigned char *)(unused))  ));
 		nUnused--;
 	}
@@ -1671,119 +1604,55 @@ static inline void *BZ2_bzReadOpen(int *bzerror, FILE *f, void *unused, int nUnu
 	bzf->strm.next_in  = bzf->buf;
 
 	bzf->initialisedOk = TRUE;
-	return bzf;   
+
+	return;
 }
 
-extern unsigned char uncompressStream(FILE *zStream, FILE *stream)
+extern unsigned char uncompressStream(int src_fd, int dst_fd)
 {
 	unsigned char unused[BZ_MAX_UNUSED];
 	unsigned char *unusedTmp;
 	unsigned char obuf[5000];
-	bzFile *bzf = NULL;
-	int bzerr_dummy;
-	int bzerr;
 	int nread;
 	int nUnused;
 	int streamNo;
-	int ret;
 	int i;
 
 	nUnused = 0;
 	streamNo = 0;
 
-	if (ferror(stream)) {
-		goto errhandler_io;
-	}
-	if (ferror(zStream)) {
-		goto errhandler_io;
-	}
-
 	while(1) {
-		bzf = BZ2_bzReadOpen(&bzerr, zStream, unused, nUnused);
-		if (bzf == NULL || bzerr != BZ_OK) {
-			goto errhandler;
-		}
+		BZ2_bzReadOpen(src_fd, unused, nUnused);
 		streamNo++;
 
 		while (bzerr == BZ_OK) {
-			nread = BZ2_bzRead(&bzerr, bzf, obuf, 5000);
+			nread = read_bz2(src_fd, obuf, 5000);
 			if (bzerr == BZ_DATA_ERROR_MAGIC) {
-				goto errhandler;
+				error_msg_and_die("invalid magic");
 			}
-			if ((bzerr == BZ_OK || bzerr == BZ_STREAM_END) && nread > 0) {
-				fwrite(obuf, sizeof(unsigned char), nread, stream);
+			if (((bzerr == BZ_OK) || (bzerr == BZ_STREAM_END)) && (nread > 0)) {
+				if (write(dst_fd, obuf, nread) != nread) {
+					BZ2_bzReadClose();
+					perror_msg_and_die("Couldnt write to file");
+				}
 			}
-			if (ferror(stream)) {
-				goto errhandler_io;
-			}
-		}
-		if (bzerr != BZ_STREAM_END) {
-			goto errhandler;
 		}
 		nUnused = bzf->strm.avail_in;
 		unusedTmp = bzf->strm.next_in;
-		bz_seterr(BZ_OK, &bzerr, &bzf);
+
 		for (i = 0; i < nUnused; i++) {
 			unused[i] = unusedTmp[i];
 		}
-		BZ2_bzReadClose(&bzerr, bzf);
-		if ((nUnused == 0) && myfeof(zStream)) {
+		BZ2_bzReadClose();
+		if (nUnused == 0) {
 			break;
 		}
 	}
 
-	if (ferror(zStream)) {
-		goto errhandler_io;
-	}
-	ret = fclose(zStream);
-	if (ret == EOF) {
-		goto errhandler_io;
-	}
-	if (ferror(stream)) {
-		goto errhandler_io;
-	}
-	ret = fflush(stream);
-	if (ret != 0) {
-		goto errhandler_io;
-	}
-	if (stream != stdout) {
-		ret = fclose(stream);
-		if (ret == EOF) {
-			goto errhandler_io;
-		}
+	close(src_fd);
+	if (dst_fd != fileno(stdout)) {
+		close(dst_fd);
 	}
 	return TRUE;
-
-errhandler:
-	BZ2_bzReadClose ( &bzerr_dummy, bzf );
-	switch (bzerr) {
-		case BZ_IO_ERROR:
-errhandler_io:
-			error_msg("\n%s: I/O or other error, bailing out.  "
-				"Possible reason follows.\n", applet_name);
-			perror(applet_name);
-			exit(1);
-		case BZ_DATA_ERROR:
-			error_msg("\n%s: Data integrity error when decompressing.\n", applet_name);
-			exit(2);
-		case BZ_UNEXPECTED_EOF:
-			error_msg("\n%s: Compressed file ends unexpectedly;\n\t"
-				"perhaps it is corrupted?  *Possible* reason follows.\n", applet_name);
-			perror(applet_name);
-			exit(2);
-		case BZ_DATA_ERROR_MAGIC:
-			if (zStream != stdin) {
-				fclose(zStream);
-			}
-			if (stream != stdout) {
-				fclose(stream);
-			}
-			if (streamNo == 1) {
-				return FALSE;
-			} else {
-				return TRUE;
-			}
-	}
-
-	return(TRUE); /*notreached*/
 }
+

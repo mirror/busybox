@@ -333,7 +333,6 @@ extern int obscure(const char *old, const char *newval, const struct passwd *pwd
 
 extern int xopen(const char *pathname, int flags);
 extern ssize_t xread(int fd, void *buf, size_t count);
-extern ssize_t xread_all_eof(int fd, void *buf, size_t count);
 extern void xread_all(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
 

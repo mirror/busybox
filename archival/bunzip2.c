@@ -17,9 +17,11 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "busybox.h"
@@ -33,8 +35,8 @@ int bunzip2_main(int argc, char **argv)
 	int opt = 0;
 	int status;
 
-	FILE *src_stream;
-	FILE *dst_stream;
+	int src_fd;
+	int dst_fd;
 	char *save_name = NULL;
 	char *delete_name = NULL;
 
@@ -59,10 +61,10 @@ int bunzip2_main(int argc, char **argv)
 	/* Set input filename and number */
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		flags |= bunzip_to_stdout;
-		src_stream = stdin;
+		src_fd = fileno(stdin);
 	} else {
 		/* Open input file */
-		src_stream = xfopen(argv[optind], "r");
+		src_fd = xopen(argv[optind], O_RDONLY);
 
 		save_name = xstrdup(argv[optind]);
 		if (strcmp(save_name + strlen(save_name) - 4, ".bz2") != 0)
@@ -71,29 +73,30 @@ int bunzip2_main(int argc, char **argv)
 	}
 
 	/* Check that the input is sane.  */
-	if (isatty(fileno(src_stream)) && (flags & bunzip_force) == 0)
+	if (isatty(src_fd) && (flags & bunzip_force) == 0) {
 		error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
-
-	if (flags & bunzip_to_stdout) {
-		dst_stream = stdout;
-	} else {
-		dst_stream = xfopen(save_name, "w");
 	}
 
-	if (uncompressStream(src_stream, dst_stream)) {
-		if (!(flags & bunzip_to_stdout))
+	if (flags & bunzip_to_stdout) {
+		dst_fd = fileno(stdout);
+	} else {
+		dst_fd = xopen(save_name, O_WRONLY | O_CREAT);
+	}
+
+	if (uncompressStream(src_fd, dst_fd)) {
+		if (!(flags & bunzip_to_stdout)) {
 			delete_name = argv[optind];
+		}
 		status = EXIT_SUCCESS;
 	} else {
-		if (!(flags & bunzip_to_stdout))
+		if (!(flags & bunzip_to_stdout)) {
 			delete_name = save_name;
+		}
 		status = EXIT_FAILURE;
 	}
 
-	if (delete_name) {
-		if (unlink(delete_name) < 0) {
-			error_msg_and_die("Couldn't remove %s", delete_name);
-		}
+	if ((delete_name) && (unlink(delete_name) < 0)) {
+		error_msg_and_die("Couldn't remove %s", delete_name);
 	}
 
 	return status;

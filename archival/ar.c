@@ -50,7 +50,7 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 	printf("%s %d/%d%7d %s %s\n", &mode[1], file_header->uid, file_header->gid, (int) file_header->size, &mtime[4], file_header->name);
 }
 
-#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
+#if !defined CONFIG_TAR && !defined CONFIG_DPKG_DEB && !defined CONFIG_CPIO
 /* This is simpler than data_extract_all */
 static void data_extract_regular_file(archive_handle_t *archive_handle)
 {
@@ -59,7 +59,7 @@ static void data_extract_regular_file(archive_handle_t *archive_handle)
 
 	file_header = archive_handle->file_header;
 	dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT);
-	copy_file_chunk_fd(archive_handle->src_fd, dst_fd, file_header->size);
+	archive_copy_file(archive_handle, dst_fd);	
 	close(dst_fd);
 
 	chmod(file_header->name, file_header->mode);
@@ -80,18 +80,10 @@ extern int ar_main(int argc, char **argv)
 	archive_handle_t *archive_handle;
 	int opt;
 
-#ifndef CONFIG_DPKG_DEB
+#if !defined CONFIG_DPKG_DEB && !defined CONFIG_DPKG
 	char magic[8];
 #endif
-#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
 	archive_handle = init_handle();
-#else
-	archive_handle = xcalloc(1, sizeof(archive_handle_t));
-	archive_handle->filter = filter_accept_all;
-	archive_handle->action_data = data_skip;
-	archive_handle->action_header = header_skip;
-	archive_handle->file_header =xmalloc(sizeof(file_header_t));
-#endif
 
 	while ((opt = getopt(argc, argv, "covtpxX")) != -1) {
 		switch (opt) {
@@ -104,7 +96,7 @@ extern int ar_main(int argc, char **argv)
 		case 'X':
 			archive_handle->action_header = header_verbose_list_ar;
 		case 'x':	/* extract */
-#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
+#if defined CONFIG_TAR || defined CONFIG_DPKG_DEB || defined CONFIG_CPIO
 			archive_handle->action_data = data_extract_all;
 #else
 			archive_handle->action_data = data_extract_regular_file;
@@ -136,10 +128,10 @@ extern int ar_main(int argc, char **argv)
 		optind++;
 	}
 
-#if defined CONFIG_DPKG_DEB
+#if defined CONFIG_DPKG_DEB || defined CONFIG_DPKG
 	unpack_ar_archive(archive_handle);
 #else
-	xread_all(archive_handle->src_fd, magic, 7);
+	archive_xread_all(archive_handle, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
 		error_msg_and_die("Invalid ar magic");
 	}

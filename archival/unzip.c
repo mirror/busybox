@@ -136,13 +136,14 @@ extern int unzip_main(int argc, char **argv)
 
 	if (*argv[optind] == '-') {
 		archive_handle->src_fd = fileno(stdin);
-		} else {
+		archive_handle->seek = seek_by_char;
+	} else {
 		archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
-		}
+	}
 
 	if ((base_dir) && (chdir(base_dir))) {
 		perror_msg_and_die("Couldnt chdir");
-		}
+	}
 
 	while (optind < argc) {
 		archive_handle->filter = filter_accept_list;
@@ -155,7 +156,7 @@ extern int unzip_main(int argc, char **argv)
 		int dst_fd;
 
 		/* TODO Endian issues */
-		xread_all(archive_handle->src_fd, &magic, 4);
+		archive_xread_all(archive_handle, &magic, 4);
 		archive_handle->offset += 4;
 
 		if (magic == ZIP_CDS_MAGIC) {
@@ -166,7 +167,7 @@ extern int unzip_main(int argc, char **argv)
 		}
 
 		/* Read the file header */
-		xread_all(archive_handle->src_fd, zip_header.raw, 26);
+		archive_xread_all(archive_handle, zip_header.raw, 26);
 		archive_handle->offset += 26;
 		archive_handle->file_header->mode = S_IFREG | 0777;
 
@@ -176,7 +177,7 @@ extern int unzip_main(int argc, char **argv)
 
 		/* Read filename */
 		archive_handle->file_header->name = xmalloc(zip_header.formated.filename_len + 1);
-		xread_all(archive_handle->src_fd, archive_handle->file_header->name, zip_header.formated.filename_len);
+		archive_xread_all(archive_handle, archive_handle->file_header->name, zip_header.formated.filename_len);
 		archive_handle->offset += zip_header.formated.filename_len;
 		archive_handle->file_header->name[zip_header.formated.filename_len] = '\0';
 
@@ -228,7 +229,7 @@ extern int unzip_main(int argc, char **argv)
 			/* skip over duplicate crc, compressed size and uncompressed size */
 			unsigned short i;
 			for (i = 0; i != 12; i++) {
-				xread_char(archive_handle->src_fd);
+				archive_xread_char(archive_handle);
 			}
 			archive_handle->offset += 12;
 		}
