@@ -189,17 +189,32 @@ _syscall1(int, sysinfo, struct sysinfo *, info);
 
 #if defined BB_MOUNT || defined BB_UMOUNT
 
-#ifndef __NR_umount2
-static const int __NR_umount2 = 52;
-#endif
-
 /* Include our own version of <sys/mount.h>, since libc5 doesn't
  * know about umount2 */
 extern _syscall1(int, umount, const char *, special_file);
-extern _syscall2(int, umount2, const char *, special_file, int, flags);
 extern _syscall5(int, mount, const char *, special_file, const char *, dir,
 		const char *, fstype, unsigned long int, rwflag, const void *, data);
+#ifndef __NR_umount2
+# warning This kernel does not support the umount2 syscall
+# warning The umount2 system call is being stubbed out...
+	int umount2(const char * special_file, int flags)
+	{
+		/* BusyBox was compiled against a kernel that did not support
+		 *  the umount2 system call.  To make this application work,
+		 *  you will need to recompile with a kernel supporting the
+		 *  umount2 system call.
+		 */
+		fprintf(stderr, "\n\nTo make this application work, you will need to recompile\n");
+		fprintf(stderr, "with a kernel supporting the umount2 system call. -Erik\n\n");
+		errno=ENOSYS;
+		return -1;
+	}
+# else
+   extern _syscall2(int, umount2, const char *, special_file, int, flags);
+# endif
 #endif
+
+
 
 #if defined BB_FEATURE_NEW_MODULE_INTERFACE && ( defined BB_INSMOD || defined BB_LSMOD )
 #ifndef __NR_query_module
