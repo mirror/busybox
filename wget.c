@@ -234,6 +234,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (strcmp(fname_out, "-") == 0) {
 		output = stdout;
+		quiet_flag = TRUE;
 	} else {
 		output = xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
@@ -777,7 +778,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.37 2001/05/09 19:15:46 kraai Exp $
+ *	$Id: wget.c,v 1.38 2001/05/13 00:55:54 andersen Exp $
  */
 
 
