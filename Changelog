@@ -1,3 +1,7 @@
+0.44
+        * added the -v option (inverted search) to grep,
+            updated docs/busybox.pod accordingly.  -beppu
+
 0.43
 	* Major update to the provided documentation.
 	* Busybox now includes a shell!  It currently costs 7.5 k (plus an

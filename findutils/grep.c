@@ -47,7 +47,8 @@ static const char grep_usage[] =
 	"\t-h\tsuppress the prefixing filename on output\n"
 	"\t-i\tignore case distinctions\n"
 	"\t-n\tprint line number with output lines\n"
-	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n\n"
+	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n"
+	"\t-v\tselect non-matching lines\n\n"
 #if defined BB_REGEXP
 	"This version of grep matches full regular expresions.\n";
 #else
@@ -57,11 +58,12 @@ static const char grep_usage[] =
 static int match = FALSE, beQuiet = FALSE;
 
 static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
-					int ignoreCase, int tellLine)
+					int ignoreCase, int tellLine, int invertSearch)
 {
 	char *cp;
 	long line = 0;
 	char haystack[BUF_SIZE];
+	int  truth = !invertSearch;
 
 	while (fgets(haystack, sizeof(haystack), fp)) {
 		line++;
@@ -70,7 +72,7 @@ static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
 		if (*cp != '\n')
 			fprintf(stderr, "%s: Line too long\n", fileName);
 
-		if (find_match(haystack, needle, ignoreCase) == TRUE) {
+		if (find_match(haystack, needle, ignoreCase) == truth) {
 			if (tellName == TRUE)
 				printf("%s:", fileName);
 
@@ -92,13 +94,10 @@ extern int grep_main(int argc, char **argv)
 	char *cp;
 	char *needle;
 	char *fileName;
-	int tellName = TRUE;
-	int ignoreCase = TRUE;
-	int tellLine = FALSE;
-
-
-	ignoreCase = FALSE;
-	tellLine = FALSE;
+	int tellName     = TRUE;
+	int ignoreCase   = FALSE;
+	int tellLine     = FALSE;
+	int invertSearch = FALSE;
 
 	argc--;
 	argv++;
@@ -128,6 +127,10 @@ extern int grep_main(int argc, char **argv)
 				beQuiet = TRUE;
 				break;
 
+			case 'v':
+				invertSearch = TRUE;
+				break;
+
 			default:
 				usage(grep_usage);
 			}
@@ -137,7 +140,7 @@ extern int grep_main(int argc, char **argv)
 	argc--;
 
 	if (argc == 0) {
-		do_grep(stdin, needle, "stdin", FALSE, ignoreCase, tellLine);
+		do_grep(stdin, needle, "stdin", FALSE, ignoreCase, tellLine, invertSearch);
 	} else {
 		/* Never print the filename for just one file */
 		if (argc == 1)
@@ -151,7 +154,7 @@ extern int grep_main(int argc, char **argv)
 				continue;
 			}
 
-			do_grep(fp, needle, fileName, tellName, ignoreCase, tellLine);
+			do_grep(fp, needle, fileName, tellName, ignoreCase, tellLine, invertSearch);
 
 			if (ferror(fp))
 				perror(fileName);

@@ -542,6 +542,7 @@ OPTIONS:
 	-i      ignore case distinctions
 	-n      print line number with output lines
 	-q      be quiet. Returns 0 if result was found, 1 otherwise
+    -v      select non-matching lines
 
 This version of grep matches full regular expresions.
 
@@ -1816,4 +1817,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.21 2000/04/21 21:53:58 erik Exp $
+# $Id: busybox.pod,v 1.22 2000/04/24 18:07:30 beppu Exp $
