@@ -416,6 +416,9 @@
 #ifdef CONFIG_READLINK
 	APPLET(readlink, readlink_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_REALPATH
+	APPLET(realpath, realpath_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_REBOOT
 	APPLET(reboot, reboot_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

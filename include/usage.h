@@ -1638,6 +1638,11 @@
 #define readlink_full_usage \
 	"Read a symbolic link."
 
+#define realpath_trivial_usage \
+	"pathname  ..."
+#define realpath_full_usage \
+	"return the canonicalized absolute pathnames of given arguments\n\n"
+	
 #define reboot_trivial_usage \
 	""
 #define reboot_full_usage \
