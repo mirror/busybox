@@ -1,66 +1,89 @@
-/* vi: set sw=4 ts=4: */
 /*
- * make_human_readable_str
+ * June 30, 2001                 Manuel Novoa III
  *
- * Copyright (C) 1999-2001 Erik Andersen <andersee@debian.org>
+ * All-integer version (hey, not everyone has floating point) of
+ * make_human_readable_str, modified from similar code I had written
+ * for busybox several months ago.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Notes:
+ *   1) I'm using an unsigned long long to hold the product size * block_size,
+ *      as df (which calls this routine) could request a representation of a
+ *      partition size in bytes > max of unsigned long.  If long longs aren't
+ *      available, it would be possible to do what's needed using polynomial
+ *      representations (say, powers of 1024) and manipulating coefficients.
+ *      The base ten "bytes" output could be handled similarly.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *   2) The output of "ls -sh" can be misaligned because this routine always
+ *      outputs a decimal point and a tenths digit when display_unit != 0.
+ *      Hence, it isn't uncommon for the returned string to have a length
+ *      of 5 or 6 instead of <= 4 (as assumed).
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *      It might be nice to add a flag to indicate no decimal digits in
+ *      that case.  This could be either an additional parameter, or a
+ *      special value of display_unit.  Such a flag would also be nice for du.
+ *
+ *      Some code to omit the decimal point and tenths digit is sketched out
+ *      and "#if 0"'d below.
  */
 
 #include <stdio.h>
 #include "libbb.h"
 
-
-
 const char *make_human_readable_str(unsigned long size, 
-		unsigned long block_size, unsigned long display_unit)
+									unsigned long block_size,
+									unsigned long display_unit)
 {
-	static char str[10] = "\0";
-	static const char strings[] = { 0, 'k', 'M', 'G', 'T', 0 };
+	/* The code will adjust for additional (appended) units. */
+	static const char zero_and_units[] = { '0', 0, 'k', 'M', 'G', 'T' };
+	static const char fmt[] = "%Lu";
+	static const char fmt_tenths[] = "%Lu.%d%c";
 
-	if(size == 0 || block_size == 0)
-		return("0");
+	static char str[21];		/* Sufficient for 64 bit unsigned integers. */
 	
-	if(display_unit) {
-		snprintf(str, 9, "%ld", (size/display_unit)*block_size);
-	} else {
-		/* Ok, looks like they want us to autoscale */
-		int i=0;
-		unsigned long divisor = 1;
-		long double result = size*block_size;
-		for(i=0; i <= 4; i++) {
-			divisor<<=10;
-			if (result <= divisor) {
-				divisor>>=10;
-				break;
-			}
-		}
-		result/=divisor;
-		if (result > 10)
-			snprintf(str, 9, "%.0Lf%c", result, strings[i]);
-		else
-			snprintf(str, 9, "%.1Lf%c", result, strings[i]);
-	}
-	return(str);
-}
+	unsigned long long val;
+	int frac;
+	const char *u;
+	const char *f;
 
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+	u = zero_and_units;
+	f = fmt;
+	frac = 0;
+
+	val = ((unsigned long long) size) * block_size;
+	if (val == 0) {
+		return u;
+	}
+
+	if (display_unit) {
+		val += display_unit/2;	/* Deal with rounding. */
+		val /= display_unit;	/* Don't combine with the line above!!! */
+	} else {
+		++u;
+		while ((val >= KILOBYTE)
+			   && (u < zero_and_units + sizeof(zero_and_units) - 1)) {
+			f = fmt_tenths;
+			++u;
+			frac = ((((int)(val % KILOBYTE)) * 10) + (KILOBYTE/2)) / KILOBYTE;
+			val /= KILOBYTE;
+		}
+		if (frac >= 10) {		/* We need to round up here. */
+			++val;
+			frac = 0;
+		}
+#if 0
+		/* Sample code to omit decimal point and tenths digit. */
+		if ( /* no_tenths */ 1 ) {
+			if ( frac >= 5 ) {
+				++val;
+			}
+			f = "%Lu%*c" /* fmt_no_tenths */ ;
+			frac = 1;
+		}
+#endif
+	}
+
+	/* If f==fmt then 'frac' and 'u' are ignored. */
+	snprintf(str, sizeof(str), f, val, frac, *u);
+
+	return str;
+}
