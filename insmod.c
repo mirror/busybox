@@ -69,6 +69,12 @@
 # define old_sys_init_module	init_module
 #endif
 
+#ifdef BB_FEATURE_INSMOD_LOADINKMEM
+#define LOADBITS 0	
+#else
+#define LOADBITS 1
+#endif
+
 #if defined(__powerpc__)
 #define BB_USE_PLT_ENTRIES
 #define BB_PLT_ENTRY_SIZE 16
@@ -124,7 +130,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.63 2001/05/14 20:03:04 andersen Exp $"
+#ident "$Id: insmod.c,v 1.64 2001/05/21 16:09:18 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -257,7 +263,18 @@ struct new_module
   unsigned tgt_long persist_end;
   unsigned tgt_long can_unload;
   unsigned tgt_long runsize;
+#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
+  const char *kallsyms_start;     /* All symbols for kernel debugging */
+  const char *kallsyms_end;
+  const char *archdata_start;     /* arch specific data for module */
+  const char *archdata_end;
+  const char *kernel_data;        /* Reserved for kernel internal use */
+#endif
 };
+
+#define ARCHDATA_SEC_NAME "__archdata"
+#define KALLSYMS_SEC_NAME "__kallsyms"
+
 
 struct new_module_info
 {
@@ -330,7 +347,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.63 2001/05/14 20:03:04 andersen Exp $"
+#ident "$Id: insmod.c,v 1.64 2001/05/21 16:09:18 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -354,6 +371,14 @@ static const int MODUTILS_OBJ_H = 1;
 #endif
 
 #define ELFCLASSM	ELFCLASS32
+
+#if (defined(__m68k__))					
+#define ELFDATAM	ELFDATA2MSB
+#else
+#define ELFDATAM	ELFDATA2LSB
+#endif
+
+
 
 #if defined(__sh__)
 
@@ -411,6 +436,12 @@ static const int MODUTILS_OBJ_H = 1;
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFDATAM	ELFDATA2LSB
+
+#elif defined(__m68k__) 
+
+#define MATCH_MACHINE(x)	(x == EM_68K)
+#define SHT_RELM			SHT_RELA
+#define Elf32_RelM			Elf32_Rela
 
 #else
 #error Sorry, but insmod.c does not yet support this architecture...
@@ -558,7 +589,7 @@ unsigned long obj_load_size (struct obj_file *f);
 
 int obj_relocate (struct obj_file *f, ElfW(Addr) base);
 
-struct obj_file *obj_load(FILE *f);
+struct obj_file *obj_load(FILE *f, int loadprogbits);
 
 int obj_create_image (struct obj_file *f, char *image);
 
@@ -784,6 +815,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_NONE:
 #elif defined(__i386__)
 	case R_386_NONE:
+#elif defined(__m68k__) 
+	case R_68K_NONE:
 #elif defined(__powerpc__)
 	case R_PPC_NONE:
 #elif defined(__mips__)
@@ -797,6 +830,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_ABS32:
 #elif defined(__i386__)
 	case R_386_32:	
+#elif defined(__m68k__) 
+	case R_68K_32:
 #elif defined(__powerpc__)
 	case R_PPC_ADDR32:
 #elif defined(__mips__)
@@ -804,6 +839,18 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 		*loc += v;
 		break;
+#if defined(__m68k__)
+    case R_68K_8:
+		if (v > 0xff)
+		ret = obj_reloc_overflow;
+		*(char *)loc = v;
+		break;
+    case R_68K_16:
+		if (v > 0xffff)
+		ret = obj_reloc_overflow;
+		*(short *)loc = v;
+		break;
+#endif /* __m68k__   */
 
 #if defined(__powerpc__)
 	case R_PPC_ADDR16_HA:
@@ -909,6 +956,22 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_PC32:
 		*loc += v - dot;
 		break;
+#elif defined(__m68k__)
+    case R_68K_PC8:
+		v -= dot;
+		if ((Elf32_Sword)v > 0x7f || (Elf32_Sword)v < -(Elf32_Sword)0x80)
+		ret = obj_reloc_overflow;
+		*(char *)loc = v;
+    break;
+		case R_68K_PC16:
+		v -= dot;
+		if ((Elf32_Sword)v > 0x7fff || (Elf32_Sword)v < -(Elf32_Sword)0x8000)
+		ret = obj_reloc_overflow;
+		*(short *)loc = v;
+		break;
+    case R_68K_PC32:
+		*(int *)loc = v - dot;
+		break;
 #elif defined(__powerpc__)
 	case R_PPC_REL32:
 		*loc = v - dot;
@@ -988,6 +1051,11 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_JMP_SLOT:
 		*loc = v;
 		break;
+#elif defined(__m68k__)
+	case R_68K_GLOB_DAT:
+	case R_68K_JMP_SLOT:
+		*loc = v;
+		break;
 #endif
 
 #if defined(__arm__)
@@ -999,10 +1067,15 @@ arch_apply_relocation(struct obj_file *f,
         case R_386_RELATIVE:
 		*loc += f->baseaddr;
 		break;
+#elif defined(__m68k__)
+    case R_68K_RELATIVE:
+    	*(int *)loc += f->baseaddr;
+    	break;
 #endif
 
 #if defined(BB_USE_GOT_ENTRIES)
 
+#if !defined(__68k__)
 #if defined(__sh__)
         case R_SH_GOTPC:
 #elif defined(__arm__)
@@ -1013,10 +1086,11 @@ arch_apply_relocation(struct obj_file *f,
 		assert(got != 0);
 #if defined(__sh__)
 		*loc += got - dot + rel->r_addend;;
-#elif defined(__i386__) || defined(__arm__)
+#elif defined(__i386__) || defined(__arm__) || defined(__m68k_)
 		*loc += got - dot;
 #endif
 		break;
+#endif // __68k__
 
 #if defined(__sh__)
 	case R_SH_GOT32:
@@ -1024,6 +1098,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_GOT32:
 #elif defined(__i386__)
 	case R_386_GOT32:
+#elif defined(__m68k__)
+	case R_68K_GOT32:
 #endif
 		assert(isym != NULL);
         /* needs an entry in the .got: set it, once */
@@ -1034,22 +1110,26 @@ arch_apply_relocation(struct obj_file *f,
         /* make the reloc with_respect_to_.got */
 #if defined(__sh__)
 		*loc += isym->gotent.offset + rel->r_addend;
-#elif defined(__i386__) || defined(__arm__)
+#elif defined(__i386__) || defined(__arm__) || defined(__m68k__)
 		*loc += isym->gotent.offset;
 #endif
 		break;
 
     /* address relative to the got */
+#if !defined(__m68k__)
 #if defined(__sh__)
 	case R_SH_GOTOFF:
 #elif defined(__arm__)
 	case R_ARM_GOTOFF:
 #elif defined(__i386__)
 	case R_386_GOTOFF:
+#elif defined(__m68k__)
+	case R_68K_GOTOFF:
 #endif
 		assert(got != 0);
 		*loc += v - got;
 		break;
+#endif // __m68k__
 
 #endif /* BB_USE_GOT_ENTRIES */
 
@@ -1104,6 +1184,9 @@ int arch_create_got(struct obj_file *f)
 				break;
 #elif defined(__i386__)
 			case R_386_GOT32:
+				break;
+#elif defined(__m68k__)
+			case R_68K_GOT32:
 				break;
 #endif
 
@@ -2504,6 +2587,16 @@ new_init_module(const char *m_name, struct obj_file *f,
 			module->runsize > sec->header.sh_addr - m_addr)
 				module->runsize = sec->header.sh_addr - m_addr;
 	}
+	sec = obj_find_section(f, ARCHDATA_SEC_NAME);
+	if (sec && sec->header.sh_size) {
+		module->archdata_start = (void*)sec->header.sh_addr;
+		module->archdata_end = module->archdata_start + sec->header.sh_size;
+	}
+	sec = obj_find_section(f, KALLSYMS_SEC_NAME);
+	if (sec && sec->header.sh_size) {
+		module->kallsyms_start = (void*)sec->header.sh_addr;
+		module->kallsyms_end = module->kallsyms_start + sec->header.sh_size;
+	}
 
 	if (!arch_init_module(f, module))
 		return 0;
@@ -2884,7 +2977,7 @@ int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-struct obj_file *obj_load(FILE * fp)
+struct obj_file *obj_load(FILE * fp, int loadprogbits)
 {
 	struct obj_file *f;
 	ElfW(Shdr) * section_headers;
@@ -2963,6 +3056,12 @@ struct obj_file *obj_load(FILE * fp)
 			break;
 
 		case SHT_PROGBITS:
+#if LOADBITS
+			if (!loadprogbits) {
+				sec->contents = NULL;
+				break;
+			}
+#endif			
 		case SHT_SYMTAB:
 		case SHT_STRTAB:
 		case SHT_RELM:
@@ -3077,6 +3176,39 @@ struct obj_file *obj_load(FILE * fp)
 
 	return f;
 }
+
+#ifdef BB_FEATURE_INSMOD_LOADINKMEM
+/*
+ * load the unloaded sections directly into the memory allocated by
+ * kernel for the module
+ */
+
+int obj_load_progbits(FILE * fp, struct obj_file* f)
+{
+	char* imagebase = (char*) f->imagebase;
+	ElfW(Addr) base = f->baseaddr;
+	struct obj_section* sec;
+	
+	for (sec = f->load_order; sec; sec = sec->load_next) {
+
+		/* section already loaded? */
+		if (sec->contents != NULL)
+			continue;
+		
+		if (sec->header.sh_size == 0)
+			continue;
+
+		sec->contents = imagebase + (sec->header.sh_addr - base);
+		fseek(fp, sec->header.sh_offset, SEEK_SET);
+		if (fread(sec->contents, sec->header.sh_size, 1, fp) != 1) {
+			errorMsg("error reading ELF section data: %s\n", strerror(errno));
+			return 0;
+		}
+
+	}
+	return 1;
+}
+#endif
 
 static void hide_special_symbols(struct obj_file *f)
 {
@@ -3219,7 +3351,7 @@ extern int insmod_main( int argc, char **argv)
 
 	printf("Using %s\n", m_filename);
 
-	if ((f = obj_load(fp)) == NULL)
+	if ((f = obj_load(fp, LOADBITS)) == NULL)
 		perror_msg_and_die("Could not load the module");
 
 	if (get_modinfo_value(f, "kernel_version") == NULL)
@@ -3343,6 +3475,19 @@ extern int insmod_main( int argc, char **argv)
 		perror_msg("create_module: %s", m_name);
 		goto out;
 	}
+
+#if  !LOADBITS
+	/*
+	 * the PROGBITS section was not loaded by the obj_load
+	 * now we can load them directly into the kernel memory
+	 */
+	//	f->imagebase = (char*) m_addr;
+	f->imagebase = (ElfW(Addr)) m_addr;
+	if (!obj_load_progbits(fp, f)) {
+		delete_module(m_name);
+		goto out;
+	}
+#endif	
 
 	if (!obj_relocate(f, m_addr)) {
 		delete_module(m_name);

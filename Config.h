@@ -295,6 +295,12 @@
 // Support module version checking
 //#define BB_FEATURE_INSMOD_VERSION_CHECKING
 //
+// Support for uClinux memory usage optimization, which will load the image
+// directly into the kernel memory.  This divides memory requrements by three.
+// If you are not running uClinux (i.e. your CPU has an MMU) leave this
+// disabled...
+//#define BB_FEATURE_INSMOD_LOADINKMEM
+//
 // Support for Minix filesystem, version 2
 //#define BB_FEATURE_MINIX2
 //
