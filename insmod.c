@@ -130,7 +130,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.66 2001/06/19 15:00:52 andersen Exp $"
+#ident "$Id: insmod.c,v 1.67 2001/06/28 21:36:06 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -347,7 +347,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.66 2001/06/19 15:00:52 andersen Exp $"
+#ident "$Id: insmod.c,v 1.67 2001/06/28 21:36:06 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1460,8 +1460,13 @@ struct obj_symbol *obj_add_symbol(struct obj_file *f, const char *name,
 	f->symtab[hash] = sym;
 	sym->ksymidx = -1;
 
-	if (ELFW(ST_BIND) (info) == STB_LOCAL)
-		f->local_symtab[symidx] = sym;
+	if (ELFW(ST_BIND)(info) == STB_LOCAL && symidx != -1) {
+		if (symidx >= f->local_symtab_size)
+			error_msg("local symbol %s with index %ld exceeds local_symtab_size %ld",
+					name, (long) symidx, (long) f->local_symtab_size);
+		else
+			f->local_symtab[symidx] = sym;
+	}
 
   found:
 	sym->name = name;
