@@ -69,8 +69,13 @@ sub pod_for_usage {
 
 	# prepare example if one exists
 	my $example = (defined $usage->{example})
-		? "Example:\n\n$usage->{example}\n\n"
+		? $usage->{example}
 		: "";
+        $example = 
+		"Example:\n\n" .
+		join ("\n", 
+		map  { "    $_" } 
+		split("\n", $example)) . "\n\n";
 
 	return
 		"=item I<$name>".
@@ -222,4 +227,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.15 2001/03/15 18:14:25 andersen Exp $
+# $Id: autodocifier.pl,v 1.16 2001/03/15 20:49:25 beppu Exp $
