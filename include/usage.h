@@ -1384,7 +1384,7 @@
 	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
 	USAGE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	USAGE_SELINUX("\t-k\tprint security context\n\t-K\tprint security context in long format\n", "")
+	USAGE_SELINUX("\t-k\tprint security context\n\t-K\tprint security context in long format\n", ""))
 
 #define lsmod_trivial_usage \
 	""
