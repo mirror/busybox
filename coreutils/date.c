@@ -222,8 +222,8 @@ int date_main(int argc, char **argv)
 	if (date_fmt == NULL) {
 		date_fmt = (rfc822
 					? (utc
-					   ? "%a, %_d %b %Y %H:%M:%S GMT"
-					   : "%a, %_d %b %Y %H:%M:%S %z")
+					   ? "%a, %e %b %Y %H:%M:%S GMT"
+					   : "%a, %e %b %Y %H:%M:%S %z")
 					: "%a %b %e %H:%M:%S %Z %Y");
 
 	} else if (*date_fmt == '\0') {
