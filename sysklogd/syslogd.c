@@ -7,9 +7,9 @@
  *
  * Copyright (C) 2000 by Karl M. Hegbloom <karlheg@debian.org>
  *
- * "circular buffer" Copyright (C) 2001 by Gennady Feldman <gfeldman@cachier.com>
+ * "circular buffer" Copyright (C) 2001 by Gennady Feldman <gfeldman@gena01.com>
  *
- * Maintainer: Gennady Feldman <gena01@cachier.com> as of Mar 12, 2001
+ * Maintainer: Gennady Feldman <gfeldman@gena01.com> as of Mar 12, 2001
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -44,7 +44,7 @@ Magnus Damm <damm@opensource.se>
 Larry Doolittle <ldoolitt@recycle.lbl.gov>
     pristine source directory compilation, lots of patches and fixes.
 
-Gennady Feldman <gfeldman@cachier.com>
+Gennady Feldman <gfeldman@gena01.com>
     Sysklogd (single threaded syslogd, IPC Circular buffer support,
     logread), various fixes.
 
