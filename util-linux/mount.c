@@ -239,18 +239,28 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	int status = 0;
 
 	if (strcmp(filesystemType, "auto") == 0) {
-		int i=0;
+		static const char *strings[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", 0 };
+		const char** nodevfss;
 		const int num_of_filesystems = sysfs(3, 0, 0);
 		char buf[255];
+		int i=0;
+
 		filesystemType=buf;
 
 		while(i < num_of_filesystems) {
 			sysfs(2, i++, filesystemType);
-			status = do_mount(blockDevice, directory, filesystemType,
+			for (nodevfss = strings; *nodevfss; nodevfss++) {
+				if (!strcmp(filesystemType, *nodevfss)) {
+					break;
+				}
+			}
+			if (!*nodevfss) {
+				status = do_mount(blockDevice, directory, filesystemType,
 					flags | MS_MGC_VAL, string_flags,
 					useMtab, fakeIt, mtab_opts);
-			if (status == TRUE)
-				break;
+				if (status == TRUE)
+					break;
+			}
 		}
 	} else {
 		status = do_mount(blockDevice, directory, filesystemType,
