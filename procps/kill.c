@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
+#include <string.h>
 #include <unistd.h>
 
 static const int KILL = 0;

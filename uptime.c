@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
+#include <stdlib.h>
 
 static const int FSHIFT = 16;              /* nr of bits of precision */
 #define FIXED_1         (1<<FSHIFT)     /* 1.0 as fixed-point */

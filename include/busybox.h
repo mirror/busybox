@@ -26,19 +26,10 @@
 
 #include "Config.h"
 
-#include <stdlib.h>
+#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
 #include <sys/stat.h>
-#include <sys/param.h>
 #include <sys/types.h>
-#include <mntent.h>
-#include <regex.h>
-/* for the _syscall() macros */
-#include <sys/syscall.h>
-#include <linux/unistd.h>
 
 #ifdef DMALLOC
 #include "dmalloc.h"
@@ -66,26 +57,6 @@ static inline int is_octal(ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 #ifndef MAX
 #define	MAX(a,b) (((a)>(b))?(a):(b))
-#endif
-
-
-/* I don't like nested includes, but the string and io functions are used
- * too often
- */
-#include <stdio.h>
-#if !defined(NO_STRING_H) || defined(STDC_HEADERS)
-#  include <string.h>
-#  if !defined(STDC_HEADERS) && !defined(NO_MEMORY_H) && !defined(__GNUC__)
-#    include <memory.h>
-#  endif
-#  define memzero(s, n)     memset ((void *)(s), 0, (n))
-#else
-#  include <strings.h>
-#  define strchr            index
-#  define strrchr           rindex
-#  define memcpy(d, s, n)   bcopy((s), (d), (n))
-#  define memcmp(s1, s2, n) bcmp((s1), (s2), (n))
-#  define memzero(s, n)     bzero((s), (n))
 #endif
 
 
@@ -179,7 +150,6 @@ extern void print_file(FILE *file);
 extern int print_file_by_name(char *filename);
 extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 

@@ -22,7 +22,9 @@
  */
 
 #include "busybox.h"
+#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 extern int which_main(int argc, char **argv)
 {

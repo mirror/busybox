@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <string.h>
 #include <sys/ioctl.h>
 
 #define DEFAULTFBDEV  "/dev/fb0"

@@ -31,6 +31,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
 #include <errno.h>
 
 #ifdef BB_FEATURE_HUMAN_READABLE
@@ -185,7 +187,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.34 2001/01/22 22:35:38 rjune Exp $ */
+/* $Id: du.c,v 1.35 2001/01/27 08:24:37 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -25,6 +25,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 extern int reset_main(int argc, char **argv)
 {

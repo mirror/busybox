@@ -18,9 +18,11 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 
 #if __GNU_LIBRARY__ < 5
-
+#include <sys/syscall.h>
+#include <linux/unistd.h>
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
 static inline _syscall3(int, klogctl, int, type, char *, b, int, len);

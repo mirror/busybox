@@ -26,6 +26,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
 int mknod_main(int argc, char **argv)
 {

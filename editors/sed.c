@@ -47,9 +47,11 @@
 #include <string.h> /* for strdup() */
 #include <errno.h>
 #include <ctype.h> /* for isspace() */
+#include <stdlib.h>
 #include "busybox.h"
 
 /* externs */
+extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 extern int optind; /* in unistd.h */
 extern char *optarg; /* ditto */
 

@@ -24,6 +24,8 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 extern int 
 echo_main(int argc, char** argv)

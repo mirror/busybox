@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 static const int is_cp = 0;
 static const int is_mv = 1;

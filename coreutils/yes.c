@@ -22,6 +22,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 extern int yes_main(int argc, char **argv)
 {

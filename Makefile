@@ -81,21 +81,16 @@ CROSS =
 CC = $(CROSS)gcc
 STRIPTOOL = $(CROSS)strip
 
-# To compile vs an alternative libc, you may need to use/adjust
-# the following lines to meet your needs.  This is how I make
-# busybox compile staticly with uClibc (needs BB_FEATURE_NFSMOUNT
-# disabled at the moment).  Note the _full_ path for LIBCDIR.
-# This is because make doesn't do ~ expansion...
-#LIBCDIR=/home/andersen/CVS/uClibc
+# To compile vs uClibc, just use the compiler wrapper built by uClibc...
+# Isn't that easy?  Right now, uClibc needs BB_FEATURE_NFSMOUNT disabled 
+# since uClibc's nfs support isn't ready yet.
+#CC = ../uClibc/extra/gcc-uClibc/gcc-uClibc-i386
+
+# To compile vs some other alternative libc, you may need to use/adjust
+# the following lines to meet your needs...
+#LIBCDIR=/usr/i486-linuxlibc1/
 #LDFLAGS+=-nostdlib
 #LIBRARIES = $(LIBCDIR)/libc.a -lgcc
-#CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
-#GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
-
-# This is how I compile with the uClibc shared lib...
-#LIBCDIR=/home/andersen/CVS/uClibc
-#LDFLAGS+=-nostdlib
-#LIBRARIES = -luClibc -lgcc $(LIBCDIR)/crt0.o
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 

@@ -32,11 +32,14 @@
 #include <sys/param.h>
 #include <sys/syslog.h>
 #include <unistd.h> /* for getopt() */
+#include <stdlib.h>
 
 
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
+#include <sys/syscall.h>
+#include <linux/unistd.h>
 static _syscall2(int, bdflush, int, func, int, data);
 #endif /* __GLIBC__ */
 

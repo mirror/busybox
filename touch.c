@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <utime.h>
 #include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 extern int touch_main(int argc, char **argv)
 {

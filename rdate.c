@@ -31,6 +31,8 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 
 static const int RFC_868_BIAS = 2208988800UL;

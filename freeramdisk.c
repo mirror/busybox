@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "busybox.h"
 
 

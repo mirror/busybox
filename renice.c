@@ -23,6 +23,7 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 

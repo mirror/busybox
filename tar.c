@@ -52,6 +52,9 @@
 #include <sys/sysmacros.h>
 #include <getopt.h>
 #include <fnmatch.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #ifdef BB_FEATURE_TAR_GZIP
 extern int unzip(int in, int out);

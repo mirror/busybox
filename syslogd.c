@@ -34,6 +34,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <time.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -41,7 +42,8 @@
 #include <sys/param.h>
 
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
-
+#include <sys/syscall.h>
+#include <linux/unistd.h>
 typedef unsigned int socklen_t;
 
 #ifndef __alpha__

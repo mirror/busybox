@@ -22,7 +22,7 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
+#include <stdlib.h>
 
 extern int cat_main(int argc, char **argv)
 {

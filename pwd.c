@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 extern int pwd_main(int argc, char **argv)
 {

@@ -23,6 +23,10 @@
  *
  */
 #include <fcntl.h>
+#include <string.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <unistd.h>
 #include "busybox.h"
 
 typedef struct ar_headers_s {

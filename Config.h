@@ -330,13 +330,9 @@
 #endif
 #endif
 //
-#if defined BB_FEATURE_LINUXRC || defined BB_LINUXRC
 #ifndef BB_INIT
-#define BB_INIT
-#endif
-#ifndef BB_LINUXRC
-#define BB_LINUXRC
-#endif
+#undef BB_LINUXRC
+#undef BB_FEATURE_LINUXRC
 #endif
 //
 #ifdef BB_GZIP

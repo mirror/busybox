@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <mntent.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 static const int MNT_FORCE = 1;

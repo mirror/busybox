@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -169,4 +170,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.18 2001/01/24 18:44:54 andersen Exp $ */
+/* $Id: nslookup.c,v 1.19 2001/01/27 08:24:37 andersen Exp $ */

@@ -23,6 +23,7 @@
  */
 
 #include "busybox.h"
+#include <stdlib.h>
 
 
 extern int true_main(int argc, char **argv)

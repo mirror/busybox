@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <stdlib.h>
 
 extern int mkfifo_main(int argc, char **argv)
 {

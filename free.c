@@ -24,6 +24,7 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 
 extern int free_main(int argc, char **argv)
 {

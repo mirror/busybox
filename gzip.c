@@ -45,6 +45,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #define memzero(s, n)     memset ((void *)(s), 0, (n))
 
 #ifndef RETSIGTYPE

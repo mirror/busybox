@@ -23,6 +23,7 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 static int total_lines, total_words, total_chars, max_length;
 static int print_lines, print_words, print_chars, print_length;

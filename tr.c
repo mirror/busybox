@@ -191,9 +191,9 @@ extern int tr_main(int argc, char **argv)
 			map(input, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
-			invec[input[i]] = TRUE;
+			invec[(int)input[i]] = TRUE;
 		for (i = 0; i < output_length; i++)
-			outvec[output[i]] = TRUE;
+			outvec[(int)output[i]] = TRUE;
 	}
 	convert();
 	return (0);

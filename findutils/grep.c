@@ -28,6 +28,8 @@
 #include <errno.h>
 #include "busybox.h"
 
+extern void xregcomp(regex_t *preg, const char *regex, int cflags);
+
 extern int optind; /* in unistd.h */
 extern int errno;  /* for use with strerror() */
 

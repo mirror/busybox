@@ -24,6 +24,10 @@
 #include "busybox.h"
 
 #include <sys/types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 
 static struct suffix_mult dd_suffixes[] = {

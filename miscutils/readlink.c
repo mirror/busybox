@@ -25,6 +25,7 @@
 #include "busybox.h"
 #include <errno.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 int readlink_main(int argc, char **argv)
 {

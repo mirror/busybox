@@ -25,6 +25,8 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 extern int mktemp_main(int argc, char **argv)
 {

@@ -28,7 +28,10 @@
 
 #include <stdio.h>
 #include <dirent.h>
+#include <string.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 static const int LN_SYMLINK = 1;
 static const int LN_FORCE = 2;

@@ -22,7 +22,8 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern int basename_main(int argc, char **argv)
 {

@@ -24,6 +24,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 
 /* From <linux/kd.h> */

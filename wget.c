@@ -33,6 +33,18 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+/* Stupid libc5 doesn't define this... */
+#ifndef timersub
+#define	timersub(a, b, result)						      \
+  do {									      \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;			      \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;			      \
+    if ((result)->tv_usec < 0) {					      \
+      --(result)->tv_sec;						      \
+      (result)->tv_usec += 1000000;					      \
+    }									      \
+  } while (0)
+#endif	
 
 void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path);
 FILE *open_socket(char *host, int port);
@@ -283,7 +295,7 @@ FILE *open_socket(char *host, int port)
 	int fd;
 	FILE *fp;
 
-	memzero(&sin, sizeof(sin));
+	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
 		error_msg_and_die("cannot resolve %s\n", host);
@@ -521,7 +533,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.22 2001/01/26 02:04:49 andersen Exp $
+ *	$Id: wget.c,v 1.23 2001/01/27 08:24:38 andersen Exp $
  */
 
 

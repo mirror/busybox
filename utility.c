@@ -50,10 +50,16 @@
 #include <utime.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
+
 #include "pwd_grp/pwd.h"
 #include "pwd_grp/grp.h"
+
+/* for the _syscall() macros */
+#include <sys/syscall.h>
+#include <linux/unistd.h>
 
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
  * list of available filesystems used for the -t auto option */ 
@@ -1123,6 +1129,7 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 
 
 #if defined BB_DF || defined BB_MTAB
+#include <mntent.h>
 /*
  * Given a block device, find the mount table entry if that block device
  * is mounted.
@@ -1645,6 +1652,7 @@ char *get_last_path_component(char *path)
 #endif
 
 #if defined BB_GREP || defined BB_SED
+#include <regex.h>
 void xregcomp(regex_t *preg, const char *regex, int cflags)
 {
 	int ret;

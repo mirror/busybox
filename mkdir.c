@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 static int parentFlag = FALSE;
 static mode_t mode = 0777;

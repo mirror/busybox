@@ -22,6 +22,8 @@
  */
 
 #include "busybox.h"
+#include <getopt.h>
+#include <stdlib.h>
 
 int compare_ascii(const void *x, const void *y)
 {

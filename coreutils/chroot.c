@@ -25,6 +25,7 @@
 #include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
 
 int chroot_main(int argc, char **argv)

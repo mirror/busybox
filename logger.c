@@ -27,6 +27,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
 
 #if !defined BB_SYSLOGD
 

@@ -24,6 +24,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 
 extern int clear_main(int argc, char **argv)

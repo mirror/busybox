@@ -23,8 +23,12 @@
 
 #include "busybox.h"
 
-#include <sys/types.h>
 #include <fcntl.h>
+#include <getopt.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 static struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },

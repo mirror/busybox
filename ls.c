@@ -59,6 +59,7 @@ static const int COLUMN_GAP = 2;			/* includes the file type char, if present */
 #include <time.h>
 #endif
 #include <string.h>
+#include <stdlib.h>
 
 #include <fcntl.h>
 #include <signal.h>

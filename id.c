@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <string.h>
 #include <sys/types.h>
 
 extern int id_main(int argc, char **argv)

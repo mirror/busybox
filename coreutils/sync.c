@@ -23,6 +23,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <unistd.h>
 
 extern int sync_main(int argc, char **argv)
 {

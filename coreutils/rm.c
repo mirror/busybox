@@ -28,6 +28,8 @@
 #include <utime.h>
 #include <dirent.h>
 #include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 static int recursiveFlag = FALSE;
 static int forceFlag = FALSE;

@@ -37,6 +37,7 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <limits.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
@@ -114,6 +115,8 @@ static const int RB_AUTOBOOT = 0x01234567;
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
+#include <sys/syscall.h>
+#include <linux/unistd.h>
 static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
