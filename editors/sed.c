@@ -792,25 +792,23 @@ static void process_file(FILE *file)
 						 *    flag exists in the first place.
 						 */
 
-						/* if the user specified that they didn't want anything printed (i.e., a -n
-						 * flag and no 'p' flag after the s///), then there's really no point doing
-						 * anything here. */
-						if (be_quiet && !sed_cmd->sub_p)
-							break;
-
 						/* we print the line once, unless we were told to be quiet */
-						if (!be_quiet)
+						if (!be_quiet) {
 							altered |= do_subst_command(sed_cmd, &line);
+							if (altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
+								puts(line);
+							}
+						}
 
 						/* we also print the line if we were given the 'p' flag
 						 * (this is quite possibly the second printing) */
-						if (sed_cmd->sub_p)
+						if (sed_cmd->sub_p) {
 							altered |= do_subst_command(sed_cmd, &line);
-						if (altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's')))
-							puts(line);
-
+							if (altered) {
+								puts(line);
+							}
+						}
 						break;
-
 					case 'a':
 						puts(line);
 						fputs(sed_cmd->editline, stdout);
