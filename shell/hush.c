@@ -244,7 +244,7 @@ static char map[256];
 static int fake_mode=0;
 static int interactive=0;
 static struct close_me *close_me_head = NULL;
-static char *cwd;
+static const char *cwd;
 static struct jobset *job_list;
 static unsigned int last_bg_pid=0;
 static char *PS1;
@@ -428,7 +428,7 @@ static int builtin_cd(struct child_prog *child)
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	cwd = xgetcwd(cwd);
+	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
 		cwd = unknown;
 	return EXIT_SUCCESS;
@@ -569,7 +569,7 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
-	cwd = xgetcwd(cwd);
+	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
 		cwd = unknown;
 	puts(cwd);

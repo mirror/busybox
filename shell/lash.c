@@ -216,7 +216,7 @@ unsigned int shell_context;  /* Used in cmdedit.c to reset the
 
 
 /* Globals that are static to this file */
-static char *cwd;
+static const char *cwd;
 static char *local_pending_command = NULL;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
@@ -296,7 +296,7 @@ static int builtin_cd(struct child_prog *child)
 		printf("cd: %s: %m\n", newdir);
 		return EXIT_FAILURE;
 	}
-	cwd = xgetcwd(cwd);
+	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
 		cwd = unknown;
 	return EXIT_SUCCESS;
@@ -413,7 +413,7 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
-	cwd = xgetcwd(cwd);
+	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
 		cwd = unknown;
 	printf( "%s\n", cwd);
