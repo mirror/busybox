@@ -663,7 +663,7 @@ static int setupRedirections(struct childProgram *prog)
 
 static int getCommand(FILE * source, char *command)
 {
-	char *user,buf[255],*s;
+	char user[9],buf[255],*s;
 	
 	if (source == NULL) {
 		if (local_pending_command) {
@@ -678,7 +678,6 @@ static int getCommand(FILE * source, char *command)
 
 	/* get User Name and setup prompt */
 	strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
-	user=xcalloc(sizeof(int), 9);
 	my_getpwuid(user, geteuid());
 	
 	/* get HostName */
@@ -723,9 +722,6 @@ static int getCommand(FILE * source, char *command)
 #endif
 	}
 
-	/* don't leak memory */
-	free(user);
-	
 	if (!fgets(command, BUFSIZ - 2, source)) {
 		if (source == stdin)
 			printf("\n");
