@@ -408,8 +408,8 @@ clean:
 	- find -name \*.o -exec rm -f {} \;
 
 distclean: clean
-	- rm -f busybox applet_source_list
 	- cd tests && $(MAKE) distclean
+	- rm -f busybox applet_source_list
 
 install: install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX)
