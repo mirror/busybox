@@ -45,8 +45,7 @@ the expected functionality and behave very much like their GNU counterparts.
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
-systems. To create a working system, just add /dev, a kernel.  You can even use 
-the busybox shell and the busybox vi editor.
+systems. To create a working system, just add /dev, /etc, and a kernel.
 <p>
 
 BusyBox is now maintained by 
@@ -81,6 +80,59 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 
 <ul>
+
+    <li> <b>2 August 2001 -- BusyBox 0.60.0 released</b>
+    <br>
+	     I am very pleased to announce the immediate availability of
+	     BusyBox 0.60.0.  I have personally tested this release with libc5, glibc,
+	     and <a href="http://cvs.uclinux.org/uClibc.html">uClibc</a> on
+	     x86, ARM, and powerpc using linux 2.2 and 2.4, and I know a number
+	     of people using it on everything from ia64 to m68k with great success.
+	     Everything seems to be working very nicely now, so getting a nice
+	     stable bug-free(tm) release out seems to be in order.   This releases fixes
+	     a memory leak in syslogd, a number of bugs in the ash and msh shells, and
+	     cleans up a number of things.
+	     
+	     <p>
+
+	     Those wanting an easy way to test the 0.60.0 release with uClibc can 
+	     use <a href="http://user-mode-linux.sourceforge.net/">User-Mode Linux</a>
+	     to give it a try by downloading and compiling 
+	     <a href="ftp://oss.lineo.com/buildroot.tar.gz">buildroot.tar.gz</a>.
+	     You don't have to be root or reboot your machine to run test this way.
+	     Preconfigured User-Mode Linux kernel source is also on oss.lineo.com. 
+	     <p>
+	     Another cool thing is the nifty <a href="ftp://oss.lineo.com/busybox/tutorial/index.html">
+	     BusyBox Tutorial</a> contributed by K Computing.  This requires 
+	     a ShockWave plugin (or standalone viewer), so you may want to grab the 
+	     the GPLed shockwave viewer from <a href="http://www.swift-tools.com/Flash/flash-0.4.10.tgz">here</a>
+	     to view the tutorial.
+	     <p>
+	     
+	     Finally, In case you didn't notice anything odd about the
+	     version number of this release, let me point out that this release
+	     is <em>not</em> 0.53, because I bumped the version number up a
+	     bit.  This reflects the fact that this release is intended to form
+	     a new stable BusyBox release series.  If you need to rely on a
+	     stable version of BusyBox, you should plan on using the stable
+	     0.60.x series.  If bugs show up then I will release 0.60.1, then
+	     0.60.2, etc...  This is also intended to deal with the fact that
+	     the BusyBox build system will be getting a major overhaul for the
+	     next release and I don't want that to break products that people
+	     are shipping.  To avoid that, the new build system will be
+	     released as part of a new BusyBox development series that will
+	     have some not-yet-decided-on odd version number.  Once things
+	     stabablize and the new build system is working for everyone, then
+	     I will release that as a new stable release series. 
+
+	     <p>
+	     The 
+	     <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> has all
+	     the details.  As usual BusyBox 0.60.0 can be downloaded from 
+	     <a href="ftp://oss.lineo.com/busybox">ftp://oss.lineo.com/busybox</a>.
+	     <p>Have Fun!
+	     <p>
+
 
     <li> <b>7 July 2001 -- BusyBox 0.52 released</b>
     <br>

@@ -1,4 +1,19 @@
-0.53
+0.60.0
+
+    Note: 
+
+	For this release I have bumped the version number to 0.60.0.  This
+	reflects the fact that this release is intended to form a new stable
+	BusyBox release series.  If you need to rely on a stable version of
+	BusyBox, you should plan on using the stable 0.60.x series.  If bugs
+	show up then I will release 0.60.1, then 0.60.2, etc...  This is also
+	intended to deal with the fact that the BusyBox build system will be
+	getting a major overhaul for the next release and I don't want that to
+	break products that people are shipping.  To avoid that, the new build
+	system will be released as part of a new BusyBox development series
+	that will have some not-yet-decided-on odd version number.  Once things
+	stabablize and the new build system is working for everyone, then I
+	will release that as a new stable release series. 
 
     Critical Bugfixes:
 	* Matt Kraai 
@@ -23,13 +38,13 @@
 
     Other Changes:
 	* Erik Andersen 
-	    -- various little things
 	    -- fixed busybox.spec so it should now work on redhat systems
 	    -- fixed dos2unix and unix2dos so they should work once again
 	    -- Adjustments to make busybox more uClinux friendly.  Busybox
 		should now work on uClinux systems without needing and source
 		code changes (applets that won't work on uClinux systems are 
 		now automagicaly disabled).
+	    -- various things (cleanups, libc compatibility work, etc, etc)
 	* Jim Gleason <jimg@lineo.com>
 	    -- Fixed for sed, where it failed to preserve whether or not the 
 		line was previously altered when running a subst command.

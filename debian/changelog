@@ -1,3 +1,9 @@
+busybox (1:0.60.0-1) unstable; urgency=low
+
+  * New version released.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Thu,  2 Aug 2001 12:12:37 -0600
+
 busybox (1:0.52-1.1) unstable; urgency=high
 
   * Non-maintainer upload
