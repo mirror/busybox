@@ -7441,6 +7441,8 @@ static short profile_buf[16384];
 extern int etext();
 #endif
 
+static int isloginsh = 0;
+
 static void read_profile (const char *);
 static void cmdloop (int);
 static void options (int);
@@ -7526,7 +7528,9 @@ ash_main(int argc, char **argv)
 	init();
 	setstackmark(&smark);
 	procargs(argc, argv);
-	if (argv[0] && argv[0][0] == '-') {
+	if (argv[0] && argv[0][0] == '-')
+		isloginsh = 1;
+	if (isloginsh) {
 		state = 1;
 		read_profile("/etc/profile");
 state1:
@@ -8828,7 +8832,6 @@ nodexstrdup(const char *s)
 static int getopts (char *, char *, char **, int *, int *);
 #endif
 
-
 /*
  * Process the shell command line arguments.
  */
@@ -8950,6 +8953,10 @@ options(int cmdline)
 				minus_o(*argptr, val);
 				if (*argptr)
 					argptr++;
+			} else if (cmdline && (c == '-')) { // long options
+				if ( strcmp ( p, "login" ) == 0 )
+					isloginsh = 1;
+				break;
 			} else {
 				setoption(c, val);
 			}
@@ -12435,7 +12442,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.49 2002/04/26 23:39:48 andersen Exp $
+ * $Id: ash.c,v 1.50 2002/05/14 23:22:06 sandman Exp $
  */
 static int timescmd (int argc, char **argv)
 {
