@@ -100,7 +100,7 @@ int recursive_action(const char *fileName,
 			return FALSE;
 		}
 		status = TRUE;
-		while (status && (next = readdir(dir)) != NULL) {
+		while ((next = readdir(dir)) != NULL) {
 			char *nextFile;
 
 			nextFile = concat_subpath_file(fileName, next->d_name);
