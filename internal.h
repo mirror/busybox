@@ -180,7 +180,7 @@ char *chunkstrdup(const char *str);
 void freeChunks(void);
 int fullWrite(int fd, const char *buf, int len);
 int fullRead(int fd, char *buf, int len);
-int recursiveAction(const char *fileName, BOOL followLinks,
+int recursiveAction(const char *fileName, BOOL recurse, BOOL followLinks,
 	  int (*fileAction) (const char *fileName),
 	  int (*dirAction) (const char *fileName));
 

@@ -37,4 +37,4 @@ distclean: clean
 
 force:
 
-$(OBJECTS):  busybox.def.h Makefile
+$(OBJECTS):  busybox.def.h internal.h Makefile

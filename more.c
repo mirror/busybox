@@ -25,12 +25,15 @@
 
 const char more_usage[] = "[file ...]";
 
-
+//#define ERASE_STUFF
 
 extern int more_main(int argc, char **argv)
 {
     int c, lines=0;
-    int next_page=0, rows = 24, cols=79;
+    int next_page=0, rows = 24;
+#ifdef ERASE_STUFF
+    int cols=79;
+#endif
     struct stat st;	
     FILE *file = stdin;
 
@@ -42,28 +45,30 @@ extern int more_main(int argc, char **argv)
     argv++;
 
     while (argc-- > 0) {
-	file = fopen(*argv, "r");
+	    file = fopen(*argv, "r");
 	if (file == NULL) {
-	    perror(*argv);
+	    perror("Can't open file");
 	    return(FALSE);
 	}
 	fstat(fileno(file), &st);
+	fprintf(stderr, "hi\n");
 
 	while ((c = getc(file)) != EOF) {
 	    if ( next_page ) {
 		int len=0;
 		next_page = 0;
 		lines=0;
-		len = fprintf(stdout, "--More-- (%d%% of %ld bytes)\n", 
+		len = fprintf(stdout, "--More-- (%d%% of %ld bytes)", 
 			(int) (100*( (double) ftell(file) / (double) st.st_size )),
 			st.st_size);
 		fflush(stdout);
 		getc( stdin);
-#if 0
+#ifdef ERASE_STUFF
+		/* Try to erase the "More" message */
 		while(len-- > 0)
 		    putc('\b', stdout);
 		while(len++ < cols)
-		    putc('8', stdout);
+		    putc(' ', stdout);
 		while(len-- > 0)
 		    putc('\b', stdout);
 		fflush(stdout);

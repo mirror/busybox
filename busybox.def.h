@@ -12,10 +12,10 @@
 #define BB_CLEAR
 //#define BB_CP
 #define BB_DATE
-//#define BB_DD
+#define BB_DD
 //#define BB_DESCEND
 //#define BB_DF
-//#define BB_DMESG
+#define BB_DMESG
 //#define BB_DUTMP
 //#define BB_DYADIC
 #define BB_FALSE
@@ -30,7 +30,7 @@
 //#define BB_LN
 //#define BB_LOADKMAP
 ////#define BB_LOSETUP
-//#define BB_LS
+#define BB_LS
 //#define BB_MAIN
 //#define BB_MAKEDEVS
 ////#define BB_MATH

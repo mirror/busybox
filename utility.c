@@ -473,13 +473,25 @@ fullRead(int fd, char * buf, int len)
  * by the fileAction and dirAction function pointers).
  */
 int
-recursiveAction( const char *fileName, BOOL followLinks,
+recursiveAction( const char *fileName, BOOL recurse, BOOL followLinks,
 	int (*fileAction)(const char* fileName), 
 	int (*dirAction)(const char* fileName))
 {
     int             status;
     struct stat     statbuf;
     struct dirent*  next;
+
+    if (!recurse && S_ISDIR(statbuf.st_mode)) {
+	if (dirAction==NULL)
+	    return(TRUE);
+	else
+	    return(dirAction(fileName));
+    } else {
+	if (fileAction==NULL)
+	    return(TRUE);
+	else
+	    return(fileAction(fileName));
+    }
 
     if (followLinks)
 	status = stat(fileName, &statbuf);
@@ -504,7 +516,7 @@ recursiveAction( const char *fileName, BOOL followLinks,
 		    continue;
 		}
 		sprintf(nextFile, "%s/%s", fileName, next->d_name);
-		status = recursiveAction(nextFile, followLinks, fileAction, dirAction);
+		status = recursiveAction(nextFile, TRUE, followLinks, fileAction, dirAction);
 		if (status < 0) {
 		    closedir(dir);
 		    return(FALSE);

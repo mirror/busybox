@@ -59,7 +59,7 @@ static const PARAM	params[] =
 static	long	getNum(const char * cp);
 
 extern int
-dd_main (struct FileInfo *unused, int argc, char **argv)
+dd_main (int argc, char **argv)
 {
 	const char *	str;
 	const PARAM *	par;

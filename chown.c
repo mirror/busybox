@@ -116,10 +116,7 @@ int chown_main(int argc, char **argv)
     }
     while (argc-- > 1) {
 	argv++;
-	if (recursiveFlag==TRUE) 
-	    recursiveAction( *argv, TRUE, fileAction, fileAction);
-	else
-	    fileAction( *argv);
+	recursiveAction( *argv, recursiveFlag, TRUE, fileAction, fileAction);
     }
     return(TRUE);
 }
