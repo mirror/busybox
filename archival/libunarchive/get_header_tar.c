@@ -20,6 +20,11 @@
 #include "unarchive.h"
 #include "libbb.h"
 
+#ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+static char *longname = NULL;
+static char *linkname = NULL;
+#endif
+
 extern char get_header_tar(archive_handle_t *archive_handle)
 {
 	file_header_t *file_header = archive_handle->file_header;
@@ -85,7 +90,16 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		return(EXIT_FAILURE);
 	}
 
-	/* convert to type'ed variables */
+#ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+	if (longname) {
+		file_header->name = longname;
+		longname = NULL;
+	}
+	else if (linkname) {
+		file_header->name = linkname;
+		linkname = NULL;
+	} else
+#endif
 	if (tar.formated.prefix[0] == 0) {
 		file_header->name = strdup(tar.formated.name);
 	} else {
@@ -134,28 +148,21 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 # endif
 # ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
 	case 'L': {
-			char *longname;
-
 			longname = xmalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, longname, file_header->size);
 			longname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 
-			get_header_tar(archive_handle);
-			file_header->name = longname;
-			break;
+			return(get_header_tar(archive_handle));
 		}
 	case 'K': {
-			char *linkname;
-
 			linkname = xmalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, linkname, file_header->size);
 			linkname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 
-			get_header_tar(archive_handle);
 			file_header->name = linkname;
-			break;
+			return(get_header_tar(archive_handle));
 		}
 # endif
 	}
