@@ -161,6 +161,7 @@ extern void *xcalloc(size_t nmemb, size_t size);
 extern char *xstrdup (const char *s);
 #endif
 extern char *xstrndup (const char *s, int n);
+extern char * safe_strncpy(char *dst, const char *src, size_t size);
 
 struct suffix_mult {
 	char *suffix;

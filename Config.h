@@ -47,6 +47,7 @@
 //#define BB_HOSTID
 //#define BB_HOSTNAME
 #define BB_ID
+//#define BB_IFCONFIG
 #define BB_INIT
 //#define BB_INSMOD
 #define BB_KILL
@@ -87,6 +88,7 @@
 #define BB_RM
 #define BB_RMDIR
 //#define BB_RMMOD
+//#define BB_ROUTE
 //#define BB_RPMUNPACK
 #define BB_SED
 //#define BB_SETKEYCODES

@@ -556,6 +556,26 @@ const char id_usage[] =
 	;
 #endif
 
+#if defined BB_IFCONFIG
+const char ifconfig_usage[] =
+	"ifconfig [-a] [-i] [-v] <interface> [<address>]"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\n\nconfigure a network interface\n\n"
+	"Options:\n"
+	"  [[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n"
+	"  [netmask <address>]  [dstaddr <address>]  [tunnel <adress>]\n"
+#ifdef SIOCSKEEPALIVE
+	"  [outfill <NN>] [keepalive <NN>]\n"
+#endif
+	"  [hw ether <address>]  [metric <NN>]  [mtu <NN>]\n"
+	"  [[-]trailers]  [[-]arp]  [[-]allmulti]\n"
+	"  [multicast]  [[-]promisc]\n"
+	"  [mem_start <NN>]  [io_addr <NN>]  [irq <NN>]  [media <type>]\n"
+	"  [up|down] ..."
+#endif
+	;
+#endif
+
 #if defined BB_INSMOD
 const char insmod_usage[] =
 	"insmod [OPTION]... MODULE [symbol=value]..."
@@ -1140,6 +1160,15 @@ const char rmmod_usage[] =
 	"\n\nUnloads the specified kernel modules from the kernel.\n\n"
 	"Options:\n" 
 	"\t-a\tTry to remove all unused kernel modules."
+#endif
+	;
+#endif
+
+#if defined BB_ROUTE
+const char route_usage[] =
+	"route [{add|del|flush}]"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\n\nEdit the kernel's routing tables"
 #endif
 	;
 #endif

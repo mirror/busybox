@@ -158,6 +158,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_ID
 	APPLET("id", id_main, _BB_DIR_USR_BIN, id_usage)
 #endif
+#ifdef BB_IFCONFIG
+	APPLET("ifconfig", ifconfig_main, _BB_DIR_SBIN, ifconfig_usage)
+#endif
 #ifdef BB_INIT
 	APPLET_NOUSAGE("init", init_main, _BB_DIR_SBIN)
 #endif
@@ -283,6 +286,9 @@ const struct BB_applet applets[] = {
 #endif
 #ifdef BB_RMMOD
 	APPLET("rmmod", rmmod_main, _BB_DIR_SBIN, rmmod_usage)
+#endif
+#ifdef BB_ROUTE
+	APPLET("route", route_main, _BB_DIR_USR_BIN, route_usage)
 #endif
 #ifdef BB_RPMUNPACK
 	APPLET("rpmunpack", rpmunpack_main, _BB_DIR_USR_BIN, rpmunpack_usage)
