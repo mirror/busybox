@@ -39,9 +39,9 @@ extern int ar_main(int argc, char **argv)
 	FILE *src_file = NULL, *dst_file = NULL;
 	int funct = 0, opt=0;
 
-	ar_headers_t *head, *extract_list=NULL;
+	ar_headers_t *head, *ar_extract_list=NULL;
 
-	extract_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+	ar_extract_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
 	head = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
 
 	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
@@ -87,9 +87,9 @@ extern int ar_main(int argc, char **argv)
 			if (strcmp(argv[optind], ar_entry->name) == 0) {
 				ar_headers_t *tmp;
 				tmp = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-				*tmp = *extract_list;
-				*extract_list = *ar_entry;
-				extract_list->next = tmp;
+				*tmp = *ar_extract_list;
+				*ar_extract_list = *ar_entry;
+				ar_extract_list->next = tmp;
 				break;					
 			}
 			ar_entry=ar_entry->next;
@@ -97,31 +97,31 @@ extern int ar_main(int argc, char **argv)
 	}
 
 	/* if individual files not found extract all files */	
-	if (extract_list->next==NULL) {
-		extract_list = head;
+	if (ar_extract_list->next==NULL) {
+		ar_extract_list = head;
 	}
 
 	/* find files to extract or display */	
-	while (extract_list->next != NULL) {
+	while (ar_extract_list->next != NULL) {
 		if (funct & extract_to_file) {
-			dst_file = wfopen(extract_list->name, "w");				
+			dst_file = wfopen(ar_extract_list->name, "w");				
 		}
 		else if (funct & extract_to_stdout) {
 			dst_file = stdout;
 		}
 		if ((funct & extract_to_file) || (funct & extract_to_stdout)) {
-			fseek(src_file, extract_list->offset, SEEK_SET);
-			copy_file_chunk(src_file, dst_file, (off_t) extract_list->size);			
+			fseek(src_file, ar_extract_list->offset, SEEK_SET);
+			copy_file_chunk(src_file, dst_file, ar_extract_list->size);			
 		}
 		if (funct & verbose) {
-			printf("%s %d/%d %8d %s ", mode_string(extract_list->mode), 
-				extract_list->uid, extract_list->gid,
-				(int) extract_list->size, time_string(extract_list->mtime));
+			printf("%s %d/%d %8d %s ", mode_string(ar_extract_list->mode), 
+				ar_extract_list->uid, ar_extract_list->gid,
+				(int) ar_extract_list->size, time_string(ar_extract_list->mtime));
 		}
 		if ((funct & display) || (funct & verbose)){
-			printf("%s\n", extract_list->name);
+			printf("%s\n", ar_extract_list->name);
 		}
-		extract_list=extract_list->next;
+		ar_extract_list = ar_extract_list->next;
 	}
 	return EXIT_SUCCESS;
 }
