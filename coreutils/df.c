@@ -105,7 +105,8 @@ extern int df_main(int argc, char **argv)
 
 	printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
 #ifdef BB_FEATURE_HUMAN_READABLE
-		   (KILOBYTE == disp_hr) ? "1k-blocks" : "     Size",
+			(KILOBYTE == disp_hr) ? "1k-blocks" :
+			(MEGABYTE == disp_hr) ? "1M-blocks" : "     Size",
 #else
 		   "1k-blocks",
 #endif
