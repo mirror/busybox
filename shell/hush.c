@@ -2473,7 +2473,7 @@ void update_ifs_map(void)
 	 * The map[] array only really needs two bits each, and on most machines
 	 * that would be faster because of the reduced L1 cache footprint.
 	 */
-	memset(map,0,256);        /* most characters flow through always */
+	memset(map,0,sizeof(map));        /* most characters flow through always */
 	mapset("\\$'\"`", 3);     /* never flow through */
 	mapset("<>;&|(){}#", 1);  /* flow through if quoted */
 	mapset(ifs, 2);           /* also flow through if quoted */
@@ -2540,10 +2540,6 @@ int shell_main(int argc, char **argv)
 	FILE *input;
 	struct jobset joblist_end = { NULL, NULL };
 	char **e = environ;
-
-	/* FIXME */
-	fprintf(stderr, "sizeof(map)=%d\n", sizeof(map));
-
 
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;
