@@ -1434,12 +1434,12 @@ int shell_main(int argc_l, char **argv_l)
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
 	if (interactive==TRUE || ( argv[optind]==NULL && input==stdin && isatty(fileno(stdin)) && isatty(fileno(stdout)))) {
-		fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
+		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else if (local_pending_command==NULL) {
-		fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
+		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = fopen(argv[optind], "r");
 		if (!input) {
 			fatalError("%s: %s\n", argv[optind], strerror(errno));
