@@ -97,9 +97,10 @@ typedef struct sed_cmd_s {
 	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
 	unsigned int sub_p:2; /* sed -e 's/foo/bar/p' (print substitution) */
 
-	/* GENERAL FIELDS */
-	char delimiter;	    /* The delimiter used to separate regexps */
+	/* TRANSLATE COMMAND */
+	char *translate;
 
+	/* GENERAL FIELDS */
 	/* the command */
 	char cmd; /* p,d,s (add more at your leisure :-) */
 
@@ -148,23 +149,23 @@ static void destroy_cmd_strs(void)
 }
 #endif
 
-
 /*
  * index_of_next_unescaped_regexp_delim - walks left to right through a string
  * beginning at a specified index and returns the index of the next regular
  * expression delimiter (typically a forward * slash ('/')) not preceeded by 
  * a backslash ('\').
  */
-static int index_of_next_unescaped_regexp_delim(const char delimiter, const char *str, int idx)
+static int index_of_next_unescaped_regexp_delim(const char delimiter, const char *str)
 {
 	int bracket = -1;
 	int escaped = 0;
+	int idx = 0;
 	char ch;
 
 	for ( ; (ch = str[idx]); idx++) {
 		if (bracket != -1) {
 			if (ch == ']' && !(bracket == idx - 1 ||
-									 (bracket == idx - 2 && str[idx-1] == '^')))
+					(bracket == idx - 2 && str[idx-1] == '^')))
 				bracket = -1;
 		} else if (escaped)
 			escaped = 0;
@@ -180,10 +181,43 @@ static int index_of_next_unescaped_regexp_delim(const char delimiter, const char
 	return -1;
 }
 
+static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
+{
+	const char *cmdstr_ptr = cmdstr;
+	char delimiter;
+	int idx = 0;
+
+	/* verify that the 's' is followed by something.  That something
+	 * (typically a 'slash') is now our regexp delimiter... */
+	if (*cmdstr == '\0')
+		bb_error_msg_and_die("bad format in substitution expression");
+	else
+		delimiter = *cmdstr_ptr;
+
+	cmdstr_ptr++;
+
+	/* save the match string */
+	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
+	if (idx == -1) {
+		bb_error_msg_and_die("bad format in substitution expression");
+	}
+	*match = bb_xstrndup(cmdstr_ptr, idx);
+
+	/* save the replacement string */
+	cmdstr_ptr += idx + 1;
+	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
+	if (idx == -1) {
+		bb_error_msg_and_die("bad format in substitution expression");
+	}
+	*replace = bb_xstrndup(cmdstr_ptr, idx);
+
+	return((cmdstr_ptr - cmdstr) + idx);
+}
+
 /*
  * returns the index in the string just past where the address ends.
  */
-static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **regex)
+static int get_address(char *my_str, int *linenum, regex_t **regex)
 {
 	int idx = 0;
 	if (isdigit(my_str[idx])) {
@@ -198,13 +232,15 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 	}
 	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
 		int idx_start = 1;
+		char delimiter;
 
-		*delimiter = '/';
+		delimiter = '/';
 		if (my_str[idx] == '\\') {
 			idx_start++;
-			*delimiter = my_str[++idx];
+			delimiter = my_str[++idx];
 		}
-		idx = index_of_next_unescaped_regexp_delim(*delimiter, my_str, ++idx);
+		idx++;
+		idx += index_of_next_unescaped_regexp_delim(delimiter, my_str + idx);
 		if (idx == -1) {
 			bb_error_msg_and_die("unterminated match expression");
 		}
@@ -218,7 +254,6 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 
 static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 {
-	int oldidx;
 	int cflags = 0;
 	char *match;
 	int idx = 0;
@@ -233,19 +268,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	 *    (all three of the '/' slashes are mandatory)
 	 */
 
-	/* verify that the 's' is followed by something.  That something
-	 * (typically a 'slash') is now our regexp delimiter... */
-	if (substr[idx] == '\0')
-		bb_error_msg_and_die("bad format in substitution expression");
-	else
-	    sed_cmd->delimiter=substr[idx];
-
-	/* save the match string */
-	oldidx = idx+1;
-	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
-	if (idx == -1)
-		bb_error_msg_and_die("bad format in substitution expression");
-	match = bb_xstrndup(substr + oldidx, idx - oldidx);
+	idx = parse_regex_delim(substr, &match, &sed_cmd->replace);
 
 	/* determine the number of back references in the match string */
 	/* Note: we compute this here rather than in the do_subst_command()
@@ -258,13 +281,6 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 		if (match[j] == '\\' && match[j+1] == '(' && sed_cmd->num_backrefs <= 9)
 			sed_cmd->num_backrefs++;
 	}
-
-	/* save the replacement string */
-	oldidx = idx+1;
-	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
-	if (idx == -1)
-		bb_error_msg_and_die("bad format in substitution expression");
-	sed_cmd->replace = bb_xstrndup(substr + oldidx, idx - oldidx);
 
 	/* process the flags */
 	while (substr[++idx]) {
@@ -295,6 +311,39 @@ out:
 	free(match);
 
 	return idx;
+}
+
+static void replace_slash_n(char *string)
+{
+	int i;
+	int remaining = strlen(string);
+
+	for (i = 0; string[i]; i++) {
+		if ((string[i] == '\\') && (string[i + 1] == 'n')) {
+			string[i] = '\n';
+			memmove(string + i + 1, string + i + 1, remaining - 1);
+		} else {
+			remaining--;
+		}
+	}
+}
+
+static int parse_translate_cmd(sed_cmd_t * const sed_cmd, const char *cmdstr)
+{
+	char *match;
+	char *replace;
+	int idx;
+	int i;
+
+	idx = parse_regex_delim(cmdstr, &match, &replace);
+	replace_slash_n(match);
+	replace_slash_n(replace);
+	sed_cmd->translate = xcalloc(1, (strlen(match) + 1) * 2);
+	for (i = 0; (match[i] != 0) && (replace[i] != 0); i++) {
+		sed_cmd->translate[i * 2] = match[i];
+		sed_cmd->translate[(i * 2) + 1] = replace[i];
+	}
+	return(idx);
 }
 
 static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
@@ -417,6 +466,10 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 		strncpy(sed_cmd->label, cmdstr, length);
         cmdstr += length;
 	}
+	/* translation command */
+	else if (sed_cmd->cmd == 'y') {
+		cmdstr += parse_translate_cmd(sed_cmd, cmdstr);
+	}
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
@@ -430,7 +483,6 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 
 static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 {
-
 	/* Skip over leading whitespace and semicolons */
 	cmdstr += strspn(cmdstr, semicolon_whitespace);
 
@@ -452,13 +504,13 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	 */
 
 	/* first part (if present) is an address: either a '$', a number or a /regex/ */
-	cmdstr += get_address(&(sed_cmd->delimiter), cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+	cmdstr += get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
 	if (*cmdstr == ',') {
 		int idx;
 		cmdstr++;
-		idx = get_address(&(sed_cmd->delimiter), cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
+		idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
 		if (idx == 0) {
 			bb_error_msg_and_die("get_address: no address found in string\n"
 				"\t(you probably didn't check the string you passed me)");
@@ -909,6 +961,18 @@ static void process_file(FILE *file)
 					case 't':
 						if (substituted) {
 							sed_cmd = branch_to(sed_cmd->label);
+						}
+						break;
+					case 'y': {
+							int i;
+							for (i = 0; line[i] != 0; i++) {
+								int j;
+								for (j = 0; sed_cmd->translate[j] ;j += 2) {
+									if (line[i] == sed_cmd->translate[j]) {
+										line[i] = sed_cmd->translate[j + 1];
+									}
+								}
+							}
 						}
 						break;
 //					case ':':
