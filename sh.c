@@ -807,14 +807,8 @@ static int get_command(FILE * source, char *command)
 		signal(SIGWINCH, SIG_DFL);
 		return 0;
 #else
-		i=strlen(cwd);
-		i--;
-		if (i>1){
-			while ((i>0) && (*(cwd+i)!='/') ) i--;
-			if (*(cwd+i)=='/') i++;
-		}
-		
-		fprintf(stdout, "[%s@%s %s]%s",user, buf, (cwd+i), prompt);
+		fprintf(stdout, "[%s@%s %s]%s",user, buf, 
+				get_last_path_component(cwd), prompt);
 		fflush(stdout);
 #endif
 	}
