@@ -185,7 +185,11 @@ static char console[32]    = _PATH_CONSOLE;
 
 static void delete_initAction(initAction * action);
 
-
+static void loop_forever()
+{
+	while (1)
+		sleep (1);
+}
 
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
@@ -611,8 +615,7 @@ static void check_memory()
   goodnight:
 	message(CONSOLE,
 			"Sorry, your computer does not have enough memory.\r\n");
-	while (1)
-		sleep(1);
+	loop_forever();
 }
 
 /* Run all commands to be run right before halt/reboot */
@@ -679,7 +682,8 @@ static void halt_signal(int sig)
 		init_reboot(RB_POWER_OFF);
 	else
 		init_reboot(RB_HALT_SYSTEM);
-	exit(0);
+
+	loop_forever();
 }
 
 static void reboot_signal(int sig)
@@ -692,7 +696,8 @@ static void reboot_signal(int sig)
 	sleep(2);
 
 	init_reboot(RB_AUTOBOOT);
-	exit(0);
+
+	loop_forever();
 }
 
 static void ctrlaltdel_signal(int sig)
@@ -720,8 +725,7 @@ static void new_initAction(initActionEnum action, char *process, char *cons)
 	newAction = calloc((size_t) (1), sizeof(initAction));
 	if (!newAction) {
 		message(LOG | CONSOLE, "Memory allocation failure\n");
-		while (1)
-			sleep(1);
+		loop_forever();
 	}
 	newAction->nextPtr = initActionList;
 	initActionList = newAction;
@@ -993,8 +997,7 @@ extern int init_main(int argc, char **argv)
 	if (initActionList == NULL) {
 		message(LOG | CONSOLE,
 				"No more tasks for init -- sleeping forever.\n");
-		while (1)
-			sleep(1);
+		loop_forever();
 	}
 
 	/* Now run the looping stuff for the rest of forever */
