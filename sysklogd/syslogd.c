@@ -24,6 +24,8 @@
  */
 
 #include "internal.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -31,18 +33,32 @@
 #include <paths.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <sys/klog.h>
+#include <time.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/param.h>
-#include <time.h>
-#include <unistd.h>
+#include <linux/unistd.h>
 
-#define ksyslog klogctl
-extern int ksyslog(int type, char *buf, int len);
+#ifndef socklen_t
+typedef unsigned int socklen_t;
+#endif
+
+#if __GNU_LIBRARY__ < 5
+
+#ifndef __alpha__
+# define __NR_klogctl __NR_syslog
+static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
+#else							/* __alpha__ */
+#define klogctl syslog
+#endif
+
+#else
+# include <sys/klog.h>
+#endif
+
 
 
 /* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
@@ -171,8 +187,7 @@ static void domark(int sig)
 }
 
 #define BUFSIZE 1023
-static void serveConnection (int conn) __attribute__ ((noreturn));
-static void serveConnection (int conn)
+static int serveConnection (int conn)
 {
 	char   buf[ BUFSIZE + 1 ];
 	int    n_read;
@@ -210,7 +225,7 @@ static void serveConnection (int conn)
 		/* Now log it */
 		logMessage (pri, line);
 	}
-	exit (0);
+	return (0);
 }
 
 static void doSyslogd (void) __attribute__ ((noreturn));
@@ -307,8 +322,8 @@ static void doSyslogd (void)
 
 static void klogd_signal(int sig)
 {
-	ksyslog(7, NULL, 0);
-	ksyslog(0, 0, 0);
+	klogctl(7, NULL, 0);
+	klogctl(0, 0, 0);
 	logMessage(0, "Kernel log daemon exiting.");
 	exit(TRUE);
 }
@@ -328,12 +343,12 @@ static void doKlogd (void)
 	logMessage(0, "klogd started: "
 			   "BusyBox v" BB_VER " (" BB_BT ")");
 
-	ksyslog(1, NULL, 0);
+	klogctl(1, NULL, 0);
 
 	while (1) {
 		/* Use kernel syscalls */
 		memset(log_buffer, '\0', sizeof(log_buffer));
-		if (ksyslog(2, log_buffer, sizeof(log_buffer)) < 0) {
+		if (klogctl(2, log_buffer, sizeof(log_buffer)) < 0) {
 			char message[80];
 
 			if (errno == EINTR)
@@ -464,7 +479,7 @@ extern int syslogd_main(int argc, char **argv)
 		doSyslogd();
 	}
 
-	exit(TRUE);
+	return(TRUE);
 }
 
 /*
