@@ -26,10 +26,10 @@ noconfig_targets := menuconfig config oldconfig randconfig \
 TOPDIR=./
 include Rules.mak
 
-DIRS:=applets archival archival/libunarchive console-tools debianutils \
-	editors fileutils findutils init miscutils modutils networking \
+DIRS:=applets archival archival/libunarchive coreutils console-tools \
+	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
-	shellutils sysklogd textutils util-linux libbb libpwdgrp
+	sysklogd util-linux libbb libpwdgrp
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 

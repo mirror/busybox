@@ -177,10 +177,10 @@ config PREFIX
 endmenu
 
 source archival/Config.in
+source coreutils/Config.in
 source console-tools/Config.in
 source debianutils/Config.in
 source editors/Config.in
-source fileutils/Config.in
 source findutils/Config.in
 source init/Config.in
 source loginutils/Config.in
@@ -189,9 +189,7 @@ source modutils/Config.in
 source networking/Config.in
 source procps/Config.in
 source shell/Config.in
-source shellutils/Config.in
 source sysklogd/Config.in
-source textutils/Config.in
 source util-linux/Config.in
 
 menu 'Debugging Options'

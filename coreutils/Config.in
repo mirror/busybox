@@ -1,0 +1,504 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Coreutils"
+
+config CONFIG_BASENAME
+	bool "basename"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CAL
+	bool "cal"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CAT
+	bool "cat"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CHGRP
+	bool "chgrp"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CHMOD
+	bool "chmod"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CHOWN
+	bool "chown"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CHROOT
+	bool "chroot"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CMP
+	bool "cmp"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CP
+	bool "cp"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CUT
+	bool "cut"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_WATCH
+	config CONFIG_DATE
+		default y
+	comment "date (forced enabled for use with watch)"
+endif
+
+if !CONFIG_WATCH
+    config CONFIG_DATE
+	    bool "date"
+	    default n
+	    help
+	      Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_FEATURE_DATE_ISOFMT
+	bool "  Enable ISO date format output (-I)"
+	default y
+	depends on CONFIG_DATE
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DD
+	bool "dd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DF
+	bool "df"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DIRNAME
+	bool "dirname"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DOS2UNIX
+	bool "dos2unix/unix2dos"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DU
+	bool "du"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ECHO
+	bool "echo"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ENV
+	bool "env"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_EXPR
+	bool "expr"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
+	config CONFIG_FALSE
+		default y
+	comment "false (forced enabled for use with shell)"
+endif
+
+if !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
+    config CONFIG_FALSE
+	    bool "false"
+	    default n
+	    help
+	      Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_HEAD
+	bool "head"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_HOSTID
+	bool "hostid"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ID
+	bool "id"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LENGTH
+	bool "length"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LN
+	bool "ln"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOGNAME
+	bool "logname"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LS
+	bool "ls"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_FILETYPES
+	bool "  Enable filetyping options (-p and -F)"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_FOLLOWLINKS
+	bool "  Enable symlinks dereferencing (-L)"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_RECURSIVE
+	bool "  Enable recursion (-R)"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_SORTFILES
+	bool "  Sort the file names"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_TIMESTAMPS
+	bool "  Show file timestamps"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_USERNAME
+	bool "  Show username/groupnames"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_LS_COLOR
+	bool "  Use color to identify file types"
+	default y
+	depends on CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MD5SUM
+	bool "md5sum"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MKDIR
+	bool "mkdir"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MKFIFO
+	bool "mkfifo"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MKNOD
+	bool "mknod"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MV
+	bool "mv"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_OD
+	bool "od"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_PRINTF
+	bool "printf"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_PWD
+	bool "pwd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_REALPATH
+	bool "realpath"
+	default n
+	help
+	  Return the canonicalized absolute pathname.
+	  This isnt provided by GNU shellutils, but where else does it belong.
+
+config CONFIG_RM
+	bool "rm"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_RMDIR
+	bool "rmdir"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SLEEP
+	bool "sleep"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SORT
+	bool "sort"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SORT_REVERSE
+	bool "  Enable reverse sort"
+	default y
+	depends on CONFIG_SORT
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SORT_UNIQUE
+	bool "  Enable unique sort"
+	default y
+	depends on CONFIG_SORT
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_STTY
+	bool "stty"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SYNC
+	bool "sync"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TAIL
+	bool "tail"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_TAIL
+	bool "  Enable extra tail options (-c, -q, -s, and -v)"
+	default y
+	depends on CONFIG_TAIL
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TEE
+	bool "tee"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_ASH || CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
+	config CONFIG_TEST
+		default y
+	comment "test (forced enabled for use with shell)"
+endif
+
+if !CONFIG_ASH && !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
+    config CONFIG_TEST
+	    bool "test"
+	    default n
+	    help
+	      Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_TOUCH
+	bool "touch"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TR
+	bool "tr"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
+	config CONFIG_TRUE
+		default y
+	comment "true (forced enabled for use with shell)"
+endif
+
+if !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
+    config CONFIG_TRUE
+	    bool "true"
+	    default n
+	    help
+	      Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_TTY
+	bool "tty"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UNAME
+	bool "uname"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UNIQ
+	bool "uniq"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_USLEEP
+	bool "usleep"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UUDECODE
+	bool "uudecode"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UUENCODE
+	bool "uuencode"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WATCH
+	bool "watch"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WC
+	bool "wc"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WHO
+	bool "who"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WHOAMI
+	bool "whoami"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_YES
+	bool "yes"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+
+comment "Common options for cp and mv"
+    depends on CONFIG_CP || CONFIG_MV
+
+config CONFIG_FEATURE_PRESERVE_HARDLINKS
+	bool "  Preserve hard links"
+	default n
+	depends on CONFIG_CP || CONFIG_MV
+	help
+	  Please submit a patch to add help text for this item.
+
+comment "Common options for ls and more"
+    depends on CONFIG_LS || CONFIG_MORE
+
+config CONFIG_FEATURE_AUTOWIDTH
+	bool "  Calculate terminal & column widths"
+	default n
+	depends on CONFIG_LS || CONFIG_MORE
+	help
+	  Please submit a patch to add help text for this item.
+
+
+comment "Common options for df, du, ls"
+    depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
+
+config CONFIG_FEATURE_HUMAN_READABLE
+	bool "  Support for human readable output (example 13k, 23M, 235G)"
+	default n
+	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
