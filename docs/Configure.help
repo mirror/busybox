@@ -60,6 +60,18 @@ CONFIG_BUNZIP2
 
 # FIXME -- document the rest of the BusyBox config options....
 
+Enable the run-parts applet
+CONFIG_RUN_PARTS
+  run-parts is an utility designed to run all the scripts in a directory.
+
+  It is useful to set up directory like cron.daily, where we have to
+  execute all the script contained.
+
+  This implementation of run-parts doesn't accept long options, and
+  some features (like report mode) aren't implemented.
+
+  Unless you know that run-parts is used in some of your scripts
+  you can safely say N here.
 
 # The following sets edit modes for GNU EMACS
 # Local Variables:
