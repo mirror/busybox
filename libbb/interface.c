@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.22 2004/04/14 17:57:11 andersen Exp $
+ * Version:     $Id: interface.c,v 1.23 2004/07/23 01:49:46 bug1 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -889,30 +889,25 @@ static int sockets_open(int family)
 }
 
 /* like strcmp(), but knows about numbers */
-static int nstrcmp(const char *astr, const char *b)
+static int nstrcmp(const char *a, const char *b)
 {
-	const char *a = astr;
+	const char *a_ptr = a;
+	const char *b_ptr = b;
 
 	while (*a == *b) {
-		if (*a == '\0')
+		if (*a == '\0') {
 			return 0;
+		}
+		if (!isdigit(*a) && isdigit(*(a+1))) {
+			a_ptr = a+1;
+			b_ptr = b+1;
+		}
 		a++;
 		b++;
 	}
-	if (isdigit(*a)) {
-		if (!isdigit(*b))
-			return -1;
-		while (a > astr) {
-			a--;
-			if (!isdigit(*a)) {
-				a++;
-				break;
-			}
-			if (!isdigit(*b))
-				return -1;
-			b--;
-		}
-		return atoi(a) > atoi(b) ? 1 : -1;
+
+	if (isdigit(*a) && isdigit(*b)) {
+		return atoi(a_ptr) > atoi(b_ptr) ? 1 : -1;
 	}
 	return *a - *b;
 }
