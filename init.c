@@ -314,8 +314,10 @@ static void console_init()
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			log = NULL;
 			secondConsole = NULL;
-			/* Force the TERM setting to vt102 for serial console */
-			snprintf(termType, sizeof(termType) - 1, "TERM=vt102");
+			/* Force the TERM setting to vt102 for serial console --
+			 * iff TERM is set to linux (the default) */
+			if (strcmp( termType, "TERM=linux" ) == 0)
+				snprintf(termType, sizeof(termType) - 1, "TERM=vt102");
 			message(LOG | CONSOLE,
 					"serial console detected.  Disabling virtual terminals.\r\n");
 		}
