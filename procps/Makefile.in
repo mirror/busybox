@@ -22,7 +22,7 @@ ifndef $(PROCPS_DIR)
 PROCPS_DIR:=$(TOPDIR)procps/
 endif
 
-PROCPS-:=
+PROCPS-y:=
 PROCPS-$(CONFIG_FREE)		+= free.o
 PROCPS-$(CONFIG_KILL)		+= kill.o
 PROCPS-$(CONFIG_PIDOF)		+= pidof.o
