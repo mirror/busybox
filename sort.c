@@ -33,7 +33,7 @@ static const char sort_usage[] = "sort [-n]"
 #ifdef BB_FEATURE_SORT_REVERSE
 " [-r]"
 #endif
-" [FILE]...\n\n";
+" [FILE]...\n\nSorts lines of text in the specified files\n";
 
 #ifdef BB_FEATURE_SORT_REVERSE
 #define APPLY_REVERSE(x) (reverse ? -(x) : (x))
@@ -320,4 +320,4 @@ int sort_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: sort.c,v 1.13 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: sort.c,v 1.14 2000/04/15 16:34:54 erik Exp $ */

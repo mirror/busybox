@@ -27,10 +27,10 @@
 #include <errno.h>
 
 static const char mkfifo_usage[] = "mkfifo [OPTIONS] name\n\n"
-	"Create the named fifo\n\n"
+	"Creates a named pipe (identical to 'mknod name p')\n\n"
 
 	"Options:\n"
-	"\t-m\tcreate the fifo with the specified mode; default = a=rw-umask\n";
+	"\t-m\tcreate the pipe using the specified mode (default a=rw)\n";
 
 extern int mkfifo_main(int argc, char **argv)
 {

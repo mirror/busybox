@@ -44,7 +44,7 @@ static char sccsid[] = "@(#)tr.c	8.2 (Berkeley) 5/4/95";
 #endif
 static const char rcsid[] =
 
-	"$Id: tr.c,v 1.2 2000/03/21 22:32:57 erik Exp $";
+	"$Id: tr.c,v 1.3 2000/04/15 16:34:54 erik Exp $";
 #endif							/* not lint */
 #endif							/* #if 0 */
 
@@ -138,12 +138,12 @@ int cflag;
 
 static void tr_usage()
 {
-	(void) fprintf(stderr, "%s\n%s\n%s\n%s\n",
-				   "usage: tr [-csu] string1 string2",
-				   "       tr [-cu] -d string1",
-				   "       tr [-cu] -s string1",
-				   "       tr [-cu] -ds string1 string2");
-	exit(1);
+	usage( "\ttr [-csu] string1 string2\n"
+		   "\ttr [-cu] -d string1\n"
+		   "\ttr [-cu] -s string1\n"
+		   "\ttr [-cu] -ds string1 string2\n\n"
+		   "Translate, squeeze, and/or delete characters from standard\n"
+		   "input, writing to standard output.\n");
 }
 
 

@@ -17,10 +17,18 @@
 #include <sys/stat.h>
 
 static const char makedevs_usage[] =
-	"makedevs 0.01 -- Create an entire range of device files\n\n"
-	"\tmakedevs /dev/ttyS c 4 64 0 63        (ttyS0-ttyS63)\n"
-
-	"\tmakedevs /dev/hda b 3 0 0 8 s         (hda,hda1-hda8)\n";
+	"makedevs NAME TYPE MAJOR MINOR FIRST LAST [s]\n\n"
+	"Creates a range of block or character special files\n\n"
+	"TYPEs include:\n"
+	"\tb:\tMake a block (buffered) device.\n"
+	"\tc or u:\tMake a character (un-buffered) device.\n"
+	"\tp:\tMake a named pipe. MAJOR and MINOR are ignored for named pipes.\n\n"
+	"FIRST specifies the number appended to NAME to create the first device.\n"
+	"LAST specifies the number of the last item that should be created.\n"
+	"If 's' is the last argument, the base device is created as well.\n\n"
+	"For example:\n"
+	"\tmakedevs /dev/ttyS c 4 66 2 63   ->  ttyS2-ttyS63\n"
+	"\tmakedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8\n";
 
 int makedevs_main(int argc, char **argv)
 {
@@ -37,6 +45,9 @@ int makedevs_main(int argc, char **argv)
 	dev_t dev = 0;
 	char devname[255];
 	char buf[255];
+
+	if (argc < 7 || *argv[1]=='-')
+		usage(makedevs_usage);
 
 	switch (type[0]) {
 	case 'c':

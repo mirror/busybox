@@ -56,11 +56,11 @@ int mnc_main(int argc, char **argv)
 
 	fd_set readfds, testfds;
 
-	if (argc <= 1 || **(argv + 1) == '-') {
-		usage(mnc_usage);
-	}
 	argc--;
 	argv++;
+	if (argc < 2 || **(argv + 1) == '-') {
+		usage(mnc_usage);
+	}
 
 	sfd = socket(AF_INET, SOCK_STREAM, 0);
 

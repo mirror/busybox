@@ -32,12 +32,12 @@
 #define BB_GREP
 #define BB_GUNZIP
 #define BB_GZIP
-//#define BB_HALT
+#define BB_HALT
 #define BB_HEAD
 #define BB_HOSTID
 #define BB_HOSTNAME
 #define BB_INIT
-// Don't bother turning BB_INSMOD on.  It doesn't work.
+// Don't bother turning BB_INSMOD on.  It doesn't work yet.
 //#define BB_INSMOD
 #define BB_KILL
 #define BB_KILLALL
@@ -65,11 +65,11 @@
 #define BB_MT
 #define BB_NSLOOKUP
 #define BB_PING
-//#define BB_POWEROFF
+#define BB_POWEROFF
 #define BB_PRINTF
 #define BB_PS
 #define BB_PWD
-//#define BB_REBOOT
+#define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
 #define BB_RMMOD
@@ -85,7 +85,7 @@
 #define BB_TAR
 #define BB_TEE
 #define BB_TEST
-// Don't turn BB_TELNET on.  It doesn't work.
+// Don't bother turning BB_TELNET on.  It doesn't work properly yet.
 //#define BB_TELNET
 #define BB_TOUCH
 #define BB_TR
@@ -115,6 +115,7 @@
 // the /proc filesystem and thereby saving lots and lots 
 // memory for more important things.
 // You can't use this and USE_PROCFS at the same time...
+// (BTW, I emailed Linus and this patch will not be going into the stock kernel)
 //#define BB_FEATURE_USE_DEVPS_PATCH
 //
 // enable features that use the /proc filesystem (apps that 

@@ -45,13 +45,13 @@ static const struct Applet applets[] = {
 	{"cat", cat_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP
+	{"chgrp", chmod_chown_chgrp_main, _BB_DIR_BIN},
+#endif
+#ifdef BB_CHMOD_CHOWN_CHGRP
 	{"chmod", chmod_chown_chgrp_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP
 	{"chown", chmod_chown_chgrp_main, _BB_DIR_BIN},
-#endif
-#ifdef BB_CHMOD_CHOWN_CHGRP
-	{"chgrp", chmod_chown_chgrp_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_CHROOT
 	{"chroot", chroot_main, _BB_DIR_SBIN},
@@ -64,9 +64,6 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_CP_MV
 	{"cp", cp_mv_main, _BB_DIR_BIN},
-#endif
-#ifdef BB_CP_MV
-	{"mv", cp_mv_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_DATE
 	{"date", date_main, _BB_DIR_BIN},
@@ -92,6 +89,9 @@ static const struct Applet applets[] = {
 #ifdef BB_ECHO
 	{"echo", echo_main, _BB_DIR_BIN},
 #endif
+#ifdef BB_TRUE_FALSE
+	{"false", false_main, _BB_DIR_BIN},
+#endif
 #ifdef BB_FBSET
 	{"fbset", fbset_main, _BB_DIR_USR_SBIN},
 #endif
@@ -113,11 +113,14 @@ static const struct Applet applets[] = {
 #ifdef BB_FSCK_MINIX
 	{"fsck.minix", fsck_minix_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MKFS_MINIX
-	{"mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN},
-#endif
 #ifdef BB_GREP
 	{"grep", grep_main, _BB_DIR_BIN},
+#endif
+#ifdef BB_GUNZIP
+	{"gunzip", gunzip_main, _BB_DIR_BIN},
+#endif
+#ifdef BB_GZIP
+	{"gzip", gzip_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_HALT
 	{"halt", halt_main, _BB_DIR_SBIN},
@@ -137,9 +140,6 @@ static const struct Applet applets[] = {
 #ifdef BB_INSMOD
 	{"insmod", insmod_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_FEATURE_LINUXRC		//
-	{"linuxrc", init_main, _BB_DIR_ROOT},
-#endif
 #ifdef BB_KILL
 	{"kill", kill_main, _BB_DIR_BIN},
 #endif
@@ -148,6 +148,9 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_LENGTH
 	{"length", length_main, _BB_DIR_USR_BIN},
+#endif
+#ifdef BB_FEATURE_LINUXRC		//
+	{"linuxrc", init_main, _BB_DIR_ROOT},
 #endif
 #ifdef BB_LN
 	{"ln", ln_main, _BB_DIR_BIN},
@@ -160,6 +163,12 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_LOADKMAP
 	{"loadkmap", loadkmap_main, _BB_DIR_SBIN},
+#endif
+#ifdef BB_LOGGER
+	{"logger", logger_main, _BB_DIR_USR_BIN},
+#endif
+#ifdef BB_LOGNAME
+	{"logname", logname_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_LS
 	{"ls", ls_main, _BB_DIR_BIN},
@@ -179,6 +188,9 @@ static const struct Applet applets[] = {
 #ifdef BB_MKFIFO
 	{"mkfifo", mkfifo_main, _BB_DIR_USR_BIN},
 #endif
+#ifdef BB_MKFS_MINIX
+	{"mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN},
+#endif
 #ifdef BB_MKNOD
 	{"mknod", mknod_main, _BB_DIR_BIN},
 #endif
@@ -196,6 +208,9 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_MT
 	{"mt", mt_main, _BB_DIR_BIN},
+#endif
+#ifdef BB_CP_MV
+	{"mv", cp_mv_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_NSLOOKUP
 	{"nslookup", nslookup_main, _BB_DIR_USR_BIN},
@@ -248,12 +263,6 @@ static const struct Applet applets[] = {
 #ifdef BB_SYSLOGD
 	{"syslogd", syslogd_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_LOGGER
-	{"logger", logger_main, _BB_DIR_USR_BIN},
-#endif
-#ifdef BB_LOGNAME
-	{"logname", logname_main, _BB_DIR_USR_BIN},
-#endif
 #ifdef BB_SWAPONOFF
 	{"swapon", swap_on_off_main, _BB_DIR_SBIN},
 #endif
@@ -270,9 +279,6 @@ static const struct Applet applets[] = {
 	{"telnet", telnet_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_TEST
-	{"[", test_main, _BB_DIR_USR_BIN},
-#endif
-#ifdef BB_TEST
 	{"test", test_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_TEE
@@ -287,9 +293,6 @@ static const struct Applet applets[] = {
 #ifdef BB_TRUE_FALSE
 	{"true", true_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_TRUE_FALSE
-	{"false", false_main, _BB_DIR_BIN},
-#endif
 #ifdef BB_TTY
 	{"tty", tty_main, _BB_DIR_USR_BIN},
 #endif
@@ -299,14 +302,14 @@ static const struct Applet applets[] = {
 #ifdef BB_UNAME
 	{"uname", uname_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_UPTIME
-	{"uptime", uptime_main, _BB_DIR_USR_BIN},
-#endif
 #ifdef BB_UNIQ
 	{"uniq", uniq_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN},
+#endif
+#ifdef BB_UPTIME
+	{"uptime", uptime_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_USLEEP
 	{"usleep", usleep_main, _BB_DIR_BIN},
@@ -323,11 +326,8 @@ static const struct Applet applets[] = {
 #ifdef BB_GUNZIP
 	{"zcat", gunzip_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_GUNZIP
-	{"gunzip", gunzip_main, _BB_DIR_BIN},
-#endif
-#ifdef BB_GZIP
-	{"gzip", gzip_main, _BB_DIR_BIN},
+#ifdef BB_TEST
+	{"[", test_main, _BB_DIR_USR_BIN},
 #endif
 	{0}
 };

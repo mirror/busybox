@@ -41,7 +41,7 @@
  |  + find out how the real nslookup gets the default name server
  */
 
-static const char nslookup_usage[] = "nslookup [HOST]\n\n";
+static const char nslookup_usage[] = "nslookup [HOST]\n\nQueries the nameserver for the IP address of the given HOST\n";
 
 
 /* I have to see how the real nslookup does this.
@@ -50,8 +50,8 @@ static const char nslookup_usage[] = "nslookup [HOST]\n\n";
  */
 static void server_fprint(FILE * dst)
 {
-	fprintf(dst, "Server:  %s\n", "something");
-	fprintf(dst, "Address:  %s\n\n", "something");
+	fprintf(dst, "Server:     %s\n", "default");
+	fprintf(dst, "Address:    %s\n\n", "default");
 }
 
 /* only works for IPv4 */
@@ -96,9 +96,9 @@ static int addr_list_fprint(char **h_addr_list, FILE * dst)
 {
 	int i, j;
 	char *addr_string = (h_addr_list[1])
-		? "Addresses" : "Address";
+		? "Addresses: " : "Address:   ";
 
-	fprintf(dst, "%s:  ", addr_string);
+	fprintf(dst, "%s ", addr_string);
 	for (i = 0, j = 0; h_addr_list[i]; i++, j++) {
 		addr_fprint(h_addr_list[i], dst);
 
@@ -132,7 +132,7 @@ static struct hostent *gethostbyaddr_wrapper(const char *address)
 static struct hostent *hostent_fprint(struct hostent *host, FILE * dst)
 {
 	if (host) {
-		fprintf(dst, "Name:    %s\n", host->h_name);
+		fprintf(dst, "Name:       %s\n", host->h_name);
 		addr_list_fprint(host->h_addr_list, dst);
 	} else {
 		fprintf(dst, "*** %s\n", hstrerror(h_errno));
@@ -159,7 +159,7 @@ int nslookup_main(int argc, char **argv)
 {
 	struct hostent *host;
 
-	if (argc < 2) {
+	if (argc < 2 || *argv[1]=='-') {
 		usage(nslookup_usage);
 	}
 
@@ -170,7 +170,7 @@ int nslookup_main(int argc, char **argv)
 		host = gethostbyname(argv[1]);
 	}
 	hostent_fprint(host, stdout);
-	return 0;
+	exit( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.6 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: nslookup.c,v 1.7 2000/04/15 16:34:54 erik Exp $ */

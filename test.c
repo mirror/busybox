@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * echo implementation for busybox
+ * test implementation for busybox
  *
  * Copyright (c) by a whole pile of folks: 
  *
@@ -184,6 +184,12 @@ test_main(int argc, char** argv)
 		if (strcmp(argv[--argc], "]"))
 			fatalError("missing ]");
 		argv[argc] = NULL;
+	}
+	if (strcmp(argv[1], "--help") == 0) {
+		usage("test EXPRESSION\n"
+			  "or   [ EXPRESSION ]\n\n"
+				"Checks file types and compares values returning an exit\n"
+				"code determined by the value of EXPRESSION.\n");
 	}
 
 	/* Implement special cases from POSIX.2, section 4.62.4 */

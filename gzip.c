@@ -41,7 +41,7 @@
 static const char gzip_usage[] =
 	"gzip [OPTION]... FILE\n\n"
 	"Compress FILE with maximum compression.\n"
-	"When FILE is -, reads standard input.  Implies -c.\n\n"
+	"When FILE is '-', reads standard input.  Implies -c.\n\n"
 
 	"Options:\n"
 	"\t-c\tWrite output to standard output instead of FILE.gz\n";

@@ -4,7 +4,8 @@
 #include <sys/mtio.h>
 #include <sys/fcntl.h>
 
-static const char mt_usage[] = "mt [-f device] opcode value\n";
+static const char mt_usage[] = "mt [-f device] opcode value\n\n"
+			"Control magnetic tape drive operation\n";
 
 struct mt_opcodes {
 	char *name;
@@ -56,6 +57,10 @@ extern int mt_main(int argc, char **argv)
 	const struct mt_opcodes *code = opcodes;
 	struct mtop op;
 	int fd;
+	
+	if ((argc != 2 && argc != 3) || **(argv + 1) == '-') {
+		usage(mt_usage);
+	}
 
 	if (strcmp(argv[1], "-f") == 0) {
 		if (argc < 4) {
@@ -74,7 +79,7 @@ extern int mt_main(int argc, char **argv)
 
 	if (code->name == 0) {
 		fprintf(stderr, "mt: unrecognized opcode %s.\n", argv[1]);
-		return (FALSE);
+		exit (FALSE);
 	}
 
 	op.mt_op = code->value;
@@ -85,13 +90,13 @@ extern int mt_main(int argc, char **argv)
 
 	if ((fd = open(file, O_RDONLY, 0)) < 0) {
 		perror(file);
-		return (FALSE);
+		exit (FALSE);
 	}
 
 	if (ioctl(fd, MTIOCTOP, &op) != 0) {
 		perror(file);
-		return (FALSE);
+		exit (FALSE);
 	}
 
-	return (TRUE);
+	exit (TRUE);
 }

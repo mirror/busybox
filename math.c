@@ -7,7 +7,10 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static const char math_usage[] = "math expression ...";
+static const char math_usage[] = "math expression ...\n\n"
+		"This is a Tiny RPN calculator that understands the\n"
+		"following operations: +, -, /, *, and, or, not, eor.\n"
+		"i.e. 'math 2 2 add' -> 4, and 'math 8 8 \\* 2 2 + /' -> 16\n";
 
 static double stack[100];
 static unsigned int pointer;
@@ -85,14 +88,14 @@ struct op {
 };
 
 static const struct op operators[] = {
-	{"add", add},
+	{"+", add},
+	{"-", sub},
+	{"*", mul},
+	{"/", divide},
 	{"and", and},
-	{"div", divide},
-	{"eor", eor},
-	{"mul", mul},
-	{"not", not},
 	{"or", or},
-	{"sub", sub},
+	{"not", not},
+	{"eor", eor},
 	{0, 0}
 };
 
@@ -127,11 +130,13 @@ static void stack_machine(const char *argument)
 
 int math_main(int argc, char **argv)
 {
+	if (argc < 1 || *argv[1]=='-')
+		usage(math_usage);
 	while (argc >= 2) {
 		stack_machine(argv[1]);
 		argv++;
 		argc--;
 	}
 	stack_machine(0);
-	return 0;
+	exit( TRUE);
 }
