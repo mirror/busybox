@@ -184,12 +184,14 @@ extern int more_main(int argc, char **argv)
 				/* Adjust the terminal height for any overlap, so that
 				 * no lines get lost off the top. */
 				if (len >= terminal_width) {
-					div_t result = div( len, terminal_width); 
-					if (result.quot) {
-						if (result.rem)
-							page_height-=result.quot;
+					int quot, rem;
+					quot = len / terminal_width;
+					rem  = len - (quot * terminal_width);
+					if (quot) {
+						if (rem)
+							page_height-=quot;
 						else
-							page_height-=(result.quot-1);
+							page_height-=(quot-1);
 					}
 				}
 				if (++lines >= page_height) {
