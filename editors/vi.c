@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.32 2004/02/04 11:19:44 andersen Exp $";
+	"$Id: vi.c,v 1.33 2004/02/06 10:36:08 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -1672,7 +1672,7 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
  		// if we are at the next word's first char
  		// step back one char
  		// but check the possibilities when it is true
- 		if (dot > text && ((isspace(dot[0]) && !isspace(dot[0]))
+		if (dot > text && ((isspace(dot[-1]) && !isspace(dot[0]))
  				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
  				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
   			dot--;		// move back off of next word
