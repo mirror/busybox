@@ -449,7 +449,7 @@ static int builtin_export(struct child_prog *child)
 #endif
 	if(strncmp(v, "LC_ALL=", 7)==0)
 		setlocale(LC_ALL, getenv("LC_ALL"));
-	if(strncmp(v, "LC_CTYPE=", 7)==0)
+	if(strncmp(v, "LC_CTYPE=", 9)==0)
 		setlocale(LC_CTYPE, getenv("LC_CTYPE"));
 
 	return (res);
