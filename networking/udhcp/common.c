@@ -102,6 +102,9 @@ static void exit_fun(void)
 
 void background(const char *pidfile)
 {
+#ifdef __uClinux__
+	LOG(LOG_ERR, "Cannot background in uclinux (yet)");	
+#else /* __uClinux__ */
 	int pid_fd = -1;
 
 	if (pidfile) {
@@ -131,6 +134,7 @@ void background(const char *pidfile)
 		lockf(pid_fd, F_UNLCK, 0);
 		close(pid_fd);
 	}
+#endif /* __uClinux__ */
 }
 
 /* Signal handler */

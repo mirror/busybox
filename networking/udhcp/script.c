@@ -225,7 +225,7 @@ void run_script(struct dhcpMessage *packet, const char *name)
 		return;
 
 	/* call script */
-	pid = fork();
+	pid = vfork();
 	if (pid) {
 		waitpid(pid, NULL, 0);
 		return;
@@ -235,7 +235,9 @@ void run_script(struct dhcpMessage *packet, const char *name)
 		/* close fd's? */
 		
 		/* exec script */
+#ifndef __uClinux__
 		DEBUG(LOG_INFO, "execle'ing %s", client_config.script);
+#endif /* __uClinux__ */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
 		LOG(LOG_ERR, "script %s failed: %m", client_config.script);
