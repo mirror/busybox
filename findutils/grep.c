@@ -48,6 +48,9 @@ static char *cur_file = NULL; /* the current file we are reading */
 
 static void print_matched_line(char *line, int linenum)
 {
+	if (print_count_only)
+		return;
+
 	if (print_filename)
 		printf("%s:", cur_file);
 	if (print_line_num)
@@ -75,16 +78,12 @@ static void grep_file(FILE *file)
 			}
 
 			nmatches++;
+			print_matched_line(line, linenum);
 
-			if (!print_count_only)
-				print_matched_line(line, linenum);
-
-		} else if (ret == REG_NOMATCH && invert_search) {
-
+		}
+		else if (ret == REG_NOMATCH && invert_search) {
 			nmatches++;
-			
-			if (!print_count_only)
-				print_matched_line(line, linenum);
+			print_matched_line(line, linenum);
 		}
 
 		free(line);
@@ -161,7 +160,8 @@ extern int grep_main(int argc, char **argv)
 	 * stdin. Otherwise, we grep through all the files specified. */
 	if (argv[optind+1] == NULL || (strcmp(argv[optind+1], "-") == 0)) {
 		grep_file(stdin);
-	} else {
+	}
+	else {
 		int i;
 		FILE *file;
 		for (i = optind + 1; i < argc; i++) {
@@ -170,7 +170,8 @@ extern int grep_main(int argc, char **argv)
 			if (file == NULL) {
 				if (!suppress_err_msgs)
 					errorMsg("%s: %s\n", cur_file, strerror(errno));
-			} else {
+			}
+			else {
 				grep_file(file);
 				fclose(file);
 			}
