@@ -562,18 +562,9 @@ static void doSyslogd (void)
 	} /* for main loop */
 }
 
-static void daemon_init (char **argv, char *dz, void fn (void))
-{
-	setsid();
-	chdir ("/");
-	strncpy(argv[0], dz, strlen(argv[0]));
-	fn();
-	exit(0);
-}
-
 extern int syslogd_main(int argc, char **argv)
 {
-	int opt, pid;
+	int opt;
 	int doFork = TRUE;
 
 	char *p;
@@ -635,15 +626,10 @@ extern int syslogd_main(int argc, char **argv)
 #endif
 
 	if (doFork == TRUE) {
-		pid = fork();
-		if (pid < 0)
-			exit(pid);
-		else if (pid == 0) {
-			daemon_init (argv, "syslogd", doSyslogd);
-		}
-	} else {
-		doSyslogd();
+		if (daemon(0, 1) < 0)
+			perror_msg_and_die("daemon");
 	}
+	doSyslogd();
 
 	return EXIT_SUCCESS;
 }

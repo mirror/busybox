@@ -124,18 +124,10 @@ static void doKlogd (void)
 	}
 }
 
-static void daemon_init (char **argv, char *dz, void fn (void))
-{
-	setsid(); /* start a new session? */
-	strncpy(argv[0], dz, strlen(argv[0]));
-	fn();
-	exit(0);
-}
-
 extern int klogd_main(int argc, char **argv)
 {
 	/* no options, no getopt */
-	int opt, pid;
+	int opt;
 	int doFork = TRUE;
 
 	/* do normal option parsing */
@@ -150,15 +142,10 @@ extern int klogd_main(int argc, char **argv)
 	}
 
 	if (doFork == TRUE) {
-		pid = fork();
-		if (pid < 0)
-			exit(pid);
-		else if (pid == 0) {
-			daemon_init (argv, "klogd", doKlogd);
-		}
-	} else {
-		doKlogd();
+		if (daemon(0, 1) < 0)
+			perror_msg_and_die("daemon");
 	}
+	doKlogd();
 	
 	return EXIT_SUCCESS;
 }
