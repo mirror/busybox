@@ -40,7 +40,7 @@ struct dep_t {
 	int     m_isalias  : 1;
 	int     m_reserved : 15;
 
-	int     m_depcnt   : 16;	
+	int     m_depcnt   : 16;
 	char ** m_deparr;
 
 	struct dep_t * m_next;
@@ -64,7 +64,7 @@ int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 	char *tag, *value;
 
 	while ( isspace ( *buffer ))
-		buffer++;			
+		buffer++;
 	tag = value = buffer;
 	while ( !isspace ( *value ))
 		value++;
@@ -80,7 +80,7 @@ int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 
 /* Jump through hoops to simulate how fgets() grabs just one line at a
  * time... Don't use any stdio since modprobe gets called from a kernel
- * thread and stdio junk can overflow the limited stack... 
+ * thread and stdio junk can overflow the limited stack...
  */
 static char *reads ( int fd, char *buffer, size_t len )
 {
@@ -95,7 +95,7 @@ static char *reads ( int fd, char *buffer, size_t len )
 		if ( p ) {
 			off_t offset;
 
-			offset = lseek ( fd, 0L, SEEK_CUR );               // Get the current file descriptor offset 
+			offset = lseek ( fd, 0L, SEEK_CUR );               // Get the current file descriptor offset
 			lseek ( fd, offset-n + (p-buffer) + 1, SEEK_SET ); // Set the file descriptor offset to right after the \n
 
 			p[1] = 0;
@@ -155,7 +155,7 @@ static struct dep_t *build_dep ( void )
 			continue;
 		}
 
-		if ( !continuation_line ) {		
+		if ( !continuation_line ) {
 			char *col = strchr ( buffer, ':' );
 
 			if ( col ) {
@@ -197,7 +197,7 @@ static struct dep_t *build_dep ( void )
 				current-> m_next    = 0;
 
 				//printf ( "%s:\n", mod );
-				p = col + 1;		
+				p = col + 1;
 			}
 			else
 				p = 0;
@@ -229,37 +229,38 @@ static struct dep_t *build_dep ( void )
 				else
 					next = end;
 
-			deps = strrchr ( p, '/' );
+				deps = strrchr ( p, '/' );
 
-			if ( !deps || ( deps < p )) {
-				deps = p;
+				if ( !deps || ( deps < p )) {
+					deps = p;
 
-				while ( isblank ( *deps ))
+					while ( isblank ( *deps ))
+						deps++;
+				}
+				else
 					deps++;
-			}
-			else
-				deps++;
 
 #if defined(CONFIG_FEATURE_2_6_MODULES)
 				if ((k_version > 4) && ( *(next-2) == '.' ) && *(next-1) == 'k'  &&
 						( *next == 'o' ))
-				ext = 3;
-			else
+					ext = 3;
+				else
 #endif
 					if (( *(next-1) == '.' ) && ( *next == 'o' ))
-					ext = 2;
+						ext = 2;
 
-			/* Cope with blank lines */
+				/* Cope with blank lines */
 				if ((next-deps-ext+1) <= 0)
-				continue;
+					continue;
 				dep = bb_xstrndup ( deps, next - deps - ext + 1 );
 
-			current-> m_depcnt++;
-			current-> m_deparr = (char **) xrealloc ( current-> m_deparr, sizeof ( char *) * current-> m_depcnt );
-			current-> m_deparr [current-> m_depcnt - 1] = dep;		
+				current-> m_depcnt++;
+				current-> m_deparr = (char **) xrealloc ( current-> m_deparr,
+						sizeof ( char *) * current-> m_depcnt );
+				current-> m_deparr [current-> m_depcnt - 1] = dep;
 
-			//printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] );
-			p = next + 2;
+				//printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] );
+				p = next + 2;
 			} while (next < end);
 		}
 
@@ -281,7 +282,7 @@ static struct dep_t *build_dep ( void )
 		int l;
 		char *p;
 
-		p = strchr ( buffer, '#' );	
+		p = strchr ( buffer, '#' );
 		if ( p )
 			*p = 0;
 
@@ -297,7 +298,7 @@ static struct dep_t *build_dep ( void )
 			continue;
 		}
 
-		if ( !continuation_line ) {		
+		if ( !continuation_line ) {
 			if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
 				char *alias, *mod;
 
@@ -323,17 +324,17 @@ static struct dep_t *build_dep ( void )
 						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
 						current-> m_deparr[0] = bb_xstrdup ( mod );
 					}
-					current-> m_next    = 0;					
+					current-> m_next    = 0;
 				}
-			}				
-			else if (( strncmp ( buffer, "options", 7 ) == 0 ) && isspace ( buffer [7] )) { 
+			}
+			else if (( strncmp ( buffer, "options", 7 ) == 0 ) && isspace ( buffer [7] )) {
 				char *mod, *opt;
 
 				if ( parse_tag_value ( buffer + 8, &mod, &opt )) {
 					struct dep_t *dt;
 
 					for ( dt = first; dt; dt = dt-> m_next ) {
-						if ( strcmp ( dt-> m_module, mod ) == 0 ) 
+						if ( strcmp ( dt-> m_module, mod ) == 0 )
 							break;
 					}
 					if ( dt ) {
@@ -387,10 +388,14 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		*lcmd = '\0';
 		if ( do_insert ) {
 			if (already_loaded (list->m_module) != 1)
-				snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module, list-> m_options ? list-> m_options : "" );
+				snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s",
+						do_syslog ? "-s" : "", autoclean ? "-k" : "",
+						quiet ? "-q" : "", list-> m_module, list-> m_options ?
+						list-> m_options : "" );
 		} else {
 			if (already_loaded (list->m_module) != 0)
-				snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s", do_syslog ? "-s" : "", list-> m_module );
+				snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s",
+						do_syslog ? "-s" : "", list-> m_module );
 		}
 
 		if ( verbose )
@@ -443,7 +448,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 					break;
 			}
 			if ( adt ) {
-				dt = adt;			
+				dt = adt;
 				mod = dt-> m_module;
 				if ( !opt )
 					opt = dt-> m_options;
@@ -452,7 +457,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 				return;
 		}
 		else
-			return;			
+			return;
 	}
 
 	// search for duplicates
@@ -471,16 +476,16 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 				*tail = find-> m_prev;
 
 			break; // there can be only one duplicate
-		}				
+		}
 	}
 
 	if ( !find ) { // did not find a duplicate
-		find = (struct mod_list_t *) xmalloc ( sizeof(struct mod_list_t));		
+		find = (struct mod_list_t *) xmalloc ( sizeof(struct mod_list_t));
 		find-> m_module = mod;
 		find-> m_options = opt;
 	}
 
-	// enqueue at tail	
+	// enqueue at tail
 	if ( *tail )
 		(*tail)-> m_next = find;
 	find-> m_prev   = *tail;
@@ -490,7 +495,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 		*head = find;
 	*tail = find;
 
-	if ( dt ) {	
+	if ( dt ) {
 		int i;
 
 		for ( i = 0; i < dt-> m_depcnt; i++ )
@@ -503,7 +508,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 static int mod_insert ( char *mod, int argc, char **argv )
 {
 	struct mod_list_t *tail = 0;
-	struct mod_list_t *head = 0; 	
+	struct mod_list_t *head = 0;
 	int rc;
 
 	// get dep list for module mod
@@ -511,11 +516,11 @@ static int mod_insert ( char *mod, int argc, char **argv )
 
 	if ( head && tail ) {
 		if ( argc ) {
-			int i;		
+			int i;
 			int l = 0;
 
 			// append module args
-			for ( i = 0; i < argc; i++ ) 
+			for ( i = 0; i < argc; i++ )
 				l += ( bb_strlen ( argv [i] ) + 1 );
 
 			head-> m_options = xrealloc ( head-> m_options, l + 1 );
@@ -539,7 +544,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 static int mod_remove ( char *mod )
 {
 	int rc;
-	static struct mod_list_t rm_a_dummy = { "-a", 0, 0 }; 
+	static struct mod_list_t rm_a_dummy = { "-a", 0, 0 };
 
 	struct mod_list_t *head = 0;
 	struct mod_list_t *tail = 0;
@@ -604,9 +609,9 @@ extern int modprobe_main(int argc, char** argv)
 		}
 	}
 
-	depend = build_dep ( );	
+	depend = build_dep ( );
 
-	if ( !depend ) 
+	if ( !depend )
 		bb_error_msg_and_die ( "could not parse modules.dep\n" );
 
 	if (remove_opt) {
@@ -623,10 +628,10 @@ extern int modprobe_main(int argc, char** argv)
 		return rc;
 	}
 
-	if (optind >= argc) 
+	if (optind >= argc)
 		bb_error_msg_and_die ( "No module or pattern provided\n" );
 
-	if ( mod_insert ( bb_xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 )) 
+	if ( mod_insert ( bb_xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 ))
 		bb_error_msg_and_die ( "failed to load module %s", argv [optind] );
 
 	return EXIT_SUCCESS;
