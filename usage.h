@@ -1631,7 +1631,6 @@
         USAGE_TFTP_GET(	\
         "\t-g\tGet file.\n" \
         ) \
-	"\t-l FILE\tTransfer local FILE.\n" \
         USAGE_TFTP_PUT(	\
 	"\t-p\tPut file.\n" \
 	) \
