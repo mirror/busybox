@@ -8,7 +8,8 @@ static const char gunzip_usage[] =
     "gunzip [OPTION]... FILE\n\n"
     "Uncompress FILE (or standard input if FILE is '-').\n\n"
     "Options:\n"
-    "\t-c\tWrite output to standard output\n";
+    "\t-c\tWrite output to standard output\n"
+    "\t-t\tTest compressed file integrity\n";
 
 /* gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
  * Copyright (C) 1992-1993 Jean-loup Gailly
@@ -653,7 +654,7 @@ DECLARE(uch, window, 2L*WSIZE);
 
 		/* local variables */
 
-int force = 0;        /* don't ask questions, compress links (-f) */
+int test_mode = 0;    /* check file integrity option */
 int foreground;       /* set if program run in foreground */
 int maxbits = BITS;   /* max bits per code for LZW */
 int method = DEFLATED;/* compression method */
@@ -714,6 +715,10 @@ int gunzip_main (int argc, char** argv)
 	    case 'c':
 		to_stdout = 1;
 		break;
+	    case 't':
+		test_mode = 1;
+		break;
+
 	    default:
 		usage(gunzip_usage);
 	    }
@@ -786,6 +791,9 @@ int gunzip_main (int argc, char** argv)
 	/* Actually do the compression/decompression. */
 	unzip(inFileNum, outFileNum);
 
+    } else if (test_mode) {
+	/* Actually do the compression/decompression. */
+	unzip(inFileNum, 2);
     } else {
 	char* pos;
 
@@ -857,17 +865,8 @@ local int get_method(in)
     uch flags;     /* compression flags */
     char magic[2]; /* magic header */
 
-    /* If --force and --stdout, zcat == cat, so do not complain about
-     * premature end of file: use try_byte instead of get_byte.
-     */
-    if (force) {
-	magic[0] = (char)try_byte();
-	magic[1] = (char)try_byte();
-	/* If try_byte returned EOF, magic[1] == 0xff */
-    } else {
-	magic[0] = (char)get_byte();
-	magic[1] = (char)get_byte();
-    }
+    magic[0] = (char)get_byte();
+    magic[1] = (char)get_byte();
     method = -1;                 /* unknown yet */
     part_nb++;                   /* number of parts in gzip file */
     header_bytes = 0;
@@ -1188,7 +1187,8 @@ void flush_outbuf()
 {
     if (outcnt == 0) return;
 
-    write_buf(ofd, (char *)outbuf, outcnt);
+    if (!test_mode)
+	write_buf(ofd, (char *)outbuf, outcnt);
     bytes_out += (ulg)outcnt;
     outcnt = 0;
 }
@@ -1202,8 +1202,8 @@ void flush_window()
     if (outcnt == 0) return;
     updcrc(window, outcnt);
 
-    write_buf(ofd, (char *)window, outcnt);
-
+    if (!test_mode)
+	write_buf(ofd, (char *)window, outcnt);
     bytes_out += (ulg)outcnt;
     outcnt = 0;
 }

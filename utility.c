@@ -379,7 +379,7 @@ int fullRead(int fd, char *buf, int len)
 #endif
 
 
-#if defined (BB_CHOWN) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS) || defined (BB_INSMOD)
+#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS) || defined (BB_INSMOD)
 /*
  * Walk down all the directories under the specified 
  * location, and do something (something specified
@@ -969,7 +969,7 @@ check_wildcard_match(const char* text, const char* pattern)
 
 
 
-#if defined BB_DF | defined BB_MTAB
+#if defined BB_DF || defined BB_MTAB
 /*
  * Given a block device, find the mount table entry if that block device
  * is mounted.
@@ -1008,7 +1008,6 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
     endmntent(mountTable);
     return mountEntry;
 }
-
 #endif
 
 
@@ -1108,6 +1107,17 @@ findInitPid()
 	}
     }
     return 0;
+}
+#endif
+
+#if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
+extern int vdprintf(int d, const char *format, va_list ap)
+{
+    char buf[BUF_SIZE];
+    int len;
+
+    len = vsprintf(buf, format, ap);
+    return write(d, buf, len);
 }
 #endif
 

@@ -102,6 +102,9 @@ static const struct Applet applets[] = {
 #ifdef BB_LN			//bin
     {"ln", ln_main},
 #endif
+#ifdef BB_LOADACM               //usr/bin
+    {"loadacm", loadacm_main},
+#endif    
 #ifdef BB_LOADFONT		//usr/bin
     {"loadfont", loadfont_main},
 #endif
@@ -232,9 +235,6 @@ static const struct Applet applets[] = {
 #ifdef BB_GZIP			//bin
     {"gzip", gzip_main},
 #endif
-#ifdef BB_LOADACM               //usr/bin
-    {"loadacm", loadacm_main},
-#endif    
     {0}
 };
 

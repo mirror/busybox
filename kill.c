@@ -183,7 +183,7 @@ extern int kill_main (int argc, char **argv)
 
 do_it_now:
 
-    while (argc >= 1) {
+    while (--argc >= 0) {
         int pid;
 	struct stat statbuf;
 	char pidpath[20]="/proc/";
@@ -198,6 +198,7 @@ do_it_now:
             fprintf(stderr, "kill: (%d) - No such pid\n", pid);
             exit( FALSE);
 	}
+	fprintf(stderr, "sig = %d\n", sig);
         if (kill (pid, sig) != 0) {
             perror (*argv);
             exit ( FALSE);

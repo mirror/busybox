@@ -46,7 +46,7 @@ static const char sed_usage[] =
     "\t  /REGEXP/  Match specified regexp\n"
     "\t  (! inverts the meaning of the match)\n\n"
     "\tand COMMAND can be:\n"
-    "\t  s/regexp/replacement/[gp]\n"
+    "\t  s/regexp/replacement/[igp]\n"
     "\t     which attempt to match regexp against the pattern space\n"
     "\t     and if successful replaces the matched portion with replacement.\n\n"
     "\t  aTEXT\n"

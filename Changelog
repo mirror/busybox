@@ -1,11 +1,11 @@
 0.40
 	* Added the -s option to du -beppu
 	* Fixed an embarrasing segfault in head	-beppu
-	* Fixed an bug in syslogd causing it to stop logging after 20 minutes. -erik
+	* Fixed an bug in syslogd causing it to stop after 20 minutes. -erik
 	* New Apps: lsmod, rmmod -erik
 	* New Apps: fbset contributed by Randolph Chung <tausq@debian.org>.
-	* Fixed the embarrasing failure of the -p opition in the logger app. -erik
-	* Re-worked the whole source tree a bit so it will compile under glibc 2.0.7 
+	* Fixed the embarrasing failure of 'logger -p'. -erik
+	* Re-worked the source tree a bit so it will compile under glibc 2.0.7 
 	    with the 2.0.x Linux kernel.
 	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
 	    <konst@voshod.com>.
@@ -13,15 +13,24 @@
 	* Fixed a bug where tar would set, and then clear SGID and SUID bits.
 	* Fixed a bug where tar would not set the user and group on device
 	    special files.
-	* cp and mv were quite broken when moving directories.  I have rewritten 
+	* cp and mv were very broken when moving directories.  I have rewritten 
 	    them so they should now work as expected.  
 	* New app: loadacm contributed by Peter Novodvorsky <petya@logic.ru>
-	    for loading application character maps for working with Unicode fonts.
+	    for loading application character maps for Unicode fonts.
 	* sed now supports addresses (numeric or regexp, with negation) and 
 	    has an append command, thanks to Marco Pantaleoni <panta@prosa.it>
 	* Fixed dmesg.  It wasn't parsing its options (-n or -s) properly.  
 	* Some cosmetic fixes to ls output formatting to make it behave more
 	    like GNU ls.
+	* Fixed a bug where tar would not restore the time to files.
+	* Fixed a major security problem with tar -- it changed ownership 
+	    of any file pointed to by a symlink to 777 (like say libc....)
+	    Ouch!!!
+	* Fixed a stupid segfault in kill.
+	* Several fixes from Friedrich Vedder <fwv@myrtle.lahn.de>:
+	    - Added gunzip -t, removed gunzip.c dead code,
+	    - fixed several typos
+	    - Glibc 2.0.7 and libc5 compile fixes
 	    
 
 	-Erik Andersen

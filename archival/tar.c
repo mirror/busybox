@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <time.h>
+#include <utime.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 
@@ -106,8 +107,12 @@ static int warnedRoot;
 static int eofFlag;
 static long dataCc;
 static int outFd;
-static char outName[TAR_NAME_SIZE];
+static const char *outName;
 
+static int mode;
+static int uid;
+static int gid;
+static time_t mtime;
 
 /*
  * Static data associated with the tar file.
@@ -364,8 +369,9 @@ static void readTarFile (int fileCount, char **fileTable)
      * message is required on errors.
      */
     if (tostdoutFlag == FALSE) {
-	if (outFd >= 0)
-	    (void) close (outFd);
+	if (outFd >= 0) {
+	    close (outFd);
+	}
     }
 }
 
@@ -378,29 +384,25 @@ static void readTarFile (int fileCount, char **fileTable)
 static void
 readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 {
-    int mode;
-    int uid;
-    int gid;
     int checkSum;
-    unsigned int major;
-    unsigned int minor;
-    long size;
-    time_t mtime;
-    const char *name;
     int cc;
     int hardLink;
     int softLink;
     int devFileFlag;
+    unsigned int major;
+    unsigned int minor;
+    long size;
+    struct utimbuf utb;
 
     /* 
      * If the block is completely empty, then this is the end of the
      * archive file.  If the name is null, then just skip this header.
      */
-    name = hp->name;
+    outName = hp->name;
 
-    if (*name == '\0') {
+    if (*outName == '\0') {
 	for (cc = TAR_BLOCK_SIZE; cc > 0; cc--) {
-	    if (*name++)
+	    if (*outName++)
 		return;
 	}
 
@@ -447,16 +449,16 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     /* 
      * Check for a directory.
      */
-    if (name[strlen (name) - 1] == '/')
+    if (outName[strlen (outName) - 1] == '/')
 	mode |= S_IFDIR;
 
     /* 
      * Check for absolute paths in the file.
      * If we find any, then warn the user and make them relative.
      */
-    if (*name == '/') {
-	while (*name == '/')
-	    name++;
+    if (*outName == '/') {
+	while (*outName == '/')
+	    outName++;
 
 	if (warnedRoot==FALSE) {
 	    fprintf (stderr,
@@ -470,7 +472,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * See if we want this file to be restored.
      * If not, then set up to skip it.
      */
-    if (wantFileName (name, fileCount, fileTable) == FALSE) {
+    if (wantFileName (outName, fileCount, fileTable) == FALSE) {
 	if ( !hardLink && !softLink && (S_ISREG (mode) || S_ISCHR (mode)
 		    || S_ISBLK (mode) || S_ISSOCK(mode) || S_ISFIFO(mode) ) ) {
 	    inHeader = (size == 0)? TRUE : FALSE;
@@ -494,7 +496,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	    else
 		printf ("%9ld %s ", size, timeString (mtime));
 	}
-	printf ("%s", name);
+	printf ("%s", outName);
 
 	if (hardLink)
 	    printf (" (link to \"%s\")", hp->linkName);
@@ -515,22 +517,35 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * We really want to extract the file.
      */
     if (verboseFlag==TRUE)
-	printf ("x %s\n", name);
+	printf ("x %s\n", outName);
 
     if (hardLink) {
-	if (link (hp->linkName, name) < 0)
-	    perror (name);
-	chown(name, uid, gid);
-	chmod(name, mode);
+	if (link (hp->linkName, outName) < 0)
+	    perror (outName);
+	/* Set the file time */
+	utb.actime = mtime;
+	utb.modtime = mtime;
+	utime (outName, &utb);
+	/* Set the file permissions */
+	chown(outName, uid, gid);
+	chmod(outName, mode);
 	return;
     }
 
     if (softLink) {
 #ifdef	S_ISLNK
-	if (symlink (hp->linkName, name) < 0)
-	    perror (name);
-	chown(name, uid, gid);
-	chmod(name, mode);
+	if (symlink (hp->linkName, outName) < 0)
+	    perror (outName);
+	/* Try to change ownership of the symlink.
+	 * If libs doesn't support that, don't bother.
+	 * Changing the pointed-to file is the Wrong Thing(tm).
+	 */
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+	lchown(outName, uid, gid);
+#endif
+
+	/* Do not change permissions or date on symlink,
+	 * since it changes the pointed to file instead.  duh. */
 #else
 	fprintf (stderr, "Cannot create symbolic links\n");
 #endif
@@ -545,10 +560,14 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * If the file is a directory, then just create the path.
      */
     if (S_ISDIR (mode)) {
-	createPath (name, mode);
-	chown(name, uid, gid);
-	chmod(name, mode);
-
+	createPath (outName, mode);
+	/* Set the file time */
+	utb.actime = mtime;
+	utb.modtime = mtime;
+	utime (outName, &utb);
+	/* Set the file permissions */
+	chown(outName, uid, gid);
+	chmod(outName, mode);
 	return;
     }
 
@@ -556,7 +575,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * There is a file to write.
      * First create the path to it if necessary with default permissions.
      */
-    createPath (name, 0777);
+    createPath (outName, 0777);
 
     inHeader = (size == 0)? TRUE : FALSE;
     dataCc = size;
@@ -569,21 +588,26 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     else {
 	if ( S_ISCHR(mode) || S_ISBLK(mode) || S_ISSOCK(mode) ) {
 	    devFileFlag = TRUE;
-	    outFd = mknod (name, mode, makedev(major, minor) );
+	    outFd = mknod (outName, mode, makedev(major, minor) );
 	}
 	else if (S_ISFIFO(mode) ) {
 	    devFileFlag = TRUE;
-	    outFd = mkfifo(name, mode);
+	    outFd = mkfifo(outName, mode);
 	} else {
-	    outFd = open (name, O_WRONLY | O_CREAT | O_TRUNC, mode);
+	    outFd = open (outName, O_WRONLY | O_CREAT | O_TRUNC, mode);
 	}
 	if (outFd < 0) {
-	    perror (name);
+	    perror (outName);
 	    skipFileFlag = TRUE;
 	    return;
 	}
-	chown(name, uid, gid);
-	chmod(name, mode);
+	/* Set the file time */
+	utb.actime = mtime;
+	utb.modtime = mtime;
+	utime (outName, &utb);
+	/* Set the file permissions */
+	chown(outName, uid, gid);
+	chmod(outName, mode);
     }
 
 
@@ -591,7 +615,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * If the file is empty, then that's all we need to do.
      */
     if (size == 0 && (tostdoutFlag == FALSE) && (devFileFlag == FALSE)) {
-	(void) close (outFd);
+	close (outFd);
 	outFd = -1;
     }
 }
@@ -625,7 +649,7 @@ static void readData (const char *cp, int count)
     if (fullWrite (outFd, cp, count) < 0) {
 	perror (outName);
 	if (tostdoutFlag == FALSE) {
-	    (void) close (outFd);
+	    close (outFd);
 	    outFd = -1;
 	}
 	skipFileFlag = TRUE;
@@ -633,12 +657,20 @@ static void readData (const char *cp, int count)
     }
 
     /* 
-     * If the write failed, close the file and disable further
-     * writes to this file.
+     * Check if we are done writing to the file now.
      */
     if (dataCc <= 0 && tostdoutFlag == FALSE) {
+	struct utimbuf utb;
 	if (close (outFd))
 	    perror (outName);
+
+	/* Set the file time */
+	utb.actime = mtime;
+	utb.modtime = mtime;
+	utime (outName, &utb);
+	/* Set the file permissions */
+	chown(outName, uid, gid);
+	chmod(outName, mode);
 
 	outFd = -1;
     }
@@ -720,7 +752,6 @@ static void writeTarFile (int fileCount, char **fileTable)
 static void saveFile (const char *fileName, int seeLinks)
 {
     int status;
-    int mode;
     struct stat statbuf;
 
     if (verboseFlag==TRUE)

@@ -169,6 +169,9 @@ extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
 
+#if (__GLIBC__ < 2) && defined BB_SYSLOGD
+extern int vdprintf(int d, const char *format, va_list ap);
+#endif
 
 #if defined BB_MTAB
 #define whine_if_fstab_is_missing() {} 

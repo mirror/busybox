@@ -36,7 +36,7 @@
 //#define BB_LOADACM
 //#define BB_LOADFONT
 //#define BB_LOADKMAP
-#define BB_LOGGER
+//#define BB_LOGGER
 #define BB_LS
 #define BB_LSMOD
 //#define BB_MAKEDEVS
@@ -68,7 +68,7 @@
 #define BB_SORT
 #define BB_SWAPONOFF
 #define BB_SYNC
-#define BB_SYSLOGD
+//#define BB_SYSLOGD
 #define BB_TAIL
 #define BB_TAR
 #define BB_TEE
@@ -90,8 +90,6 @@
 // pretty/useful).
 //
 //
-// enable a second console on TTY2 in init
-#define BB_FEATURE_INIT_SECOND_CONSOLE
 // enable features that use the /proc filesystem
 #define BB_FEATURE_USE_PROCFS
 //Enable init being called as /linuxrc

@@ -33,7 +33,7 @@ static const char cp_usage[] = "cp [OPTION]... SOURCE DEST\n"
     "\n"
     "\t-a\tsame as -dpR\n"
     "\t-d\tpreserve links\n"
-    "\t-p\tpreserve file attributes if possable\n"
+    "\t-p\tpreserve file attributes if possible\n"
     "\t-R\tcopy directories recursively\n";
 
 
