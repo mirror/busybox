@@ -18,10 +18,10 @@
 #define BB_FDFLUSH
 #define BB_FIND
 #define BB_GREP
-////#define BB_HALT
+#define BB_HALT
 #define BB_INIT
 #define BB_KILL
-////#define BB_LENGTH
+#define BB_LENGTH
 #define BB_LN
 //#define BB_LOADKMAP
 ////#define BB_LOSETUP
@@ -48,7 +48,7 @@
 #define BB_TOUCH
 #define BB_TRUE
 #define BB_UMOUNT
-//#define BB_UPDATE
+#define BB_UPDATE
 #define BB_UTILITY
 #define BB_ZCAT
 //#define BB_GZIP
