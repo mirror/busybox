@@ -63,6 +63,11 @@ extern char *optarg; /* ditto */
 /* options */
 static int be_quiet = 0;
 
+static const int SUB_G = 1 << 0;
+#ifdef BB_FEATURE_SED_PATTERN_SPACE
+static const int SUB_P = 1 << 1;
+#endif
+
 struct sed_cmd {
 
 	/* address storage */
@@ -80,7 +85,11 @@ struct sed_cmd {
 	unsigned int num_backrefs:4; /* how many back references (\1..\9) */
 			/* Note:  GNU/POSIX sed does not save more than nine backrefs, so
 			 * we only use 4 bits to hold the number */
-	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
+#ifndef BB_FEATURE_SED_PATTERN_SPACE
+	unsigned int sub_flags:1; /* sed -e 's/foo/bar/g' (global) */
+#else
+	unsigned int sub_flags:2; /* sed -e 's/foo/bar/gp' (global/pattern) */
+#endif
 
 	/* edit command (a,i,c) speicific field */
 	char *editline;
@@ -244,8 +253,8 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 
 	/*
 	 * the string that gets passed to this function should look like this:
-	 *    s/match/replace/gI
-	 *    ||     |        ||
+	 *    s/match/replace/gIp
+	 *    ||     |        |||
 	 *    mandatory       optional
 	 *
 	 *    (all three of the '/' slashes are mandatory)
@@ -285,11 +294,16 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	while (substr[++idx]) {
 		switch (substr[idx]) {
 			case 'g':
-				sed_cmd->sub_g = 1;
+				sed_cmd->sub_flags = SUB_G;
 				break;
 			case 'I':
 				cflags |= REG_ICASE;
 				break;
+#ifdef BB_FEATURE_SED_PATTERN_SPACE
+			case 'p':
+				sed_cmd->sub_flags = SUB_P;
+				break;
+#endif
 			default:
 				/* any whitespace or semicolon trailing after a s/// is ok */
 				if (strchr("; \t\v\n\r", substr[idx]))
@@ -535,10 +549,17 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 			/* if we can match the search string... */
 			if (regexec(sed_cmd->sub_match, ptr, sed_cmd->num_backrefs+1, regmatch, 0) == 0) {
 				/* print everything before the match, */
-				for (i = 0; i < regmatch[0].rm_so; i++)
+				for (i = 0; i < regmatch[0].rm_so; i++) {
+#ifdef BB_FEATURE_SED_PATTERN_SPACE
+					if(!be_quiet || (sed_cmd->sub_flags & SUB_P))
+#endif
 					fputc(ptr[i], stdout);
+				}
 
 				/* then print the substitution in its place */
+#ifdef BB_FEATURE_SED_PATTERN_SPACE
+				if(!be_quiet || (sed_cmd->sub_flags & SUB_P))
+#endif
 				print_subst_w_backrefs(ptr, sed_cmd->replace, regmatch);
 
 				/* then advance past the match */
@@ -548,7 +569,7 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 				altered++;
 
 				/* if we're not doing this globally... */
-				if (!sed_cmd->sub_g)
+				if (!sed_cmd->sub_flags & SUB_G)
 					break;
 			}
 			/* if we COULD NOT match the search string (meaning we've gone past
@@ -558,7 +579,11 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 		}
 
 		/* is there anything left to print? */
+#ifdef BB_FEATURE_SED_PATTERN_SPACE
+		if (*ptr && (!be_quiet || sed_cmds->sub_flags & SUB_P))
+#else
 		if (*ptr) 
+#endif
 			fputs(ptr, stdout);
 
 		/* cleanup */
@@ -656,9 +681,14 @@ static void process_file(FILE *file)
 
 		}
 
-		/* we will print the line unless we were told to be quiet or if the
-		 * line was altered (via a 'd'elete or 's'ubstitution) */
-		if (!be_quiet && !line_altered)
+		/* we will print the line unless we were told to be quiet or if
+ 		 * the line was altered (via a 'd'elete or 's'ubstitution) */
+#ifndef BB_FEATURE_SED_PATTERN_SPACE
+		if (!be_quiet &&!line_altered)
+#else
+		/*  we where specificly requested to print the output */
+		if ((!be_quiet || (sed_cmds[i].sub_flags & SUB_P)) && !line_altered)
+#endif
 			fputs(line, stdout);
 
 		free(line);
