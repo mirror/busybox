@@ -1,8 +1,37 @@
 0.49pre
 
 	* Glenn McGrath -- new 'dpkg-deb' command 
-	* me -- md5sum was broken.  Now fixed.
 	* Matt Kraai -- new sort.c
+	* Glenn McGrath -- new 'dpkg-deb' applet
+	* Glenn McGrath -- new ar code
+	* Erik Andersen -- disabled many less commonly used applets by default
+	* ?? -- more thrashing about to get clean perror_msg usage
+	* Matt Kraai -- new command line munging
+	* Larry Doolittle -- keep some locales from messing up busybox.sh
+	* Matt Kraai -- cleaned up dd and tail with new parse_number routine
+	* Mark Whitley -- remove debugging messages from deallocvt
+	* Matt Kraai and Mark Whitley -- new document "How to Add a New Applet 
+	    to BusyBox"
+	* David Douthitt -- fixed "grep -qv" bug
+	* Larry Doolittle -- fixed insmod bug with old kernels
+	* Matt Kraai -- logger remixed to use getopt, selection of stdin made 
+	    util-linux compatible
+	* Erik Andersen -- many more internal symbols classified static to 
+	    avoid namespace pollut
+	* Matt Kraai -- nc listening support
+	* Erik Andersen -- made sed understand arbitrary regexp delimiters
+	* Larry Doolittle et al. -- internal shell cleanup and buglet fixing, 
+	    read and exec should work better now
+	* Matt Kraai et al. -- more tar improvements and bug fixes, now 
+	    handles regexp file exclusion
+	* Larry Doolittle -- new script to automate build rule checking
+	* Matt Kraai -- update/cleanup of the docs on how to use init.
+	* Erik Andersen -- sh.c renamed all symbols per the style guide.  
+	    Better if-then-else-fi handling
+	* Erik Andersen -- cleaner division of labor between cmdedit.c and sh.c
+	* Erik Andersen -- md5sum was broken in 0.48.  Now fixed (and doesn't 
+	    use getline, shrinking static compiles (since nothing else used it).
+
 
 	 -Erik Andersen, <not released yet>
 
