@@ -71,6 +71,7 @@ static const char syslogd_usage[] =
 	"\t-O\tSpecify an alternate log file.  default=/var/log/messages\n";
 
 
+/* Note: There is also a function called "message()" in init.c */
 /* print a message to the log file */
 static void message(char *fmt, ...)
 {
