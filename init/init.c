@@ -46,6 +46,10 @@
 #ifdef CONFIG_SYSLOGD
 # include <sys/syslog.h>
 #endif
+#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
+#include <sys/reboot.h>
+#endif
+
 
 #if defined(__UCLIBC__) && !defined(__UCLIBC_HAS_MMU__)
 #define fork	vfork
@@ -79,13 +83,6 @@ struct serial_struct {
 	int reserved[4];
 };
 
-
-#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
-#include <sys/reboot.h>
-#define init_reboot(magic) reboot(magic)
-#else
-#define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
-#endif
 
 #ifndef _PATH_STDPATH
 #define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
@@ -663,6 +660,23 @@ static void run_actions(int action)
 }
 
 #ifndef DEBUG_INIT
+static void init_reboot(unsigned long magic)
+{
+	pid_t pid;
+	/* We have to fork here, since the kernel calls do_exit(0) in
+	 * linux/kernel/sys.c, which can cause the machint to panic when 
+	 * the init process is killed.... */
+	if ((pid = fork()) == 0) {
+#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
+		reboot(magic);
+#else
+		reboot(0xfee1dead, 672274793, magic);
+#endif
+		_exit(0);
+	}
+	waitpid (pid, NULL, 0);
+}
+
 static void shutdown_system(void)
 {
 	sigset_t block_signals;
