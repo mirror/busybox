@@ -56,10 +56,11 @@ enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 	REDIRECT_APPEND
 };
 
-#define REGULAR_JOB_CONTEXT		0x1
-#define IF_EXP_CONTEXT			0x2
-#define THEN_EXP_CONTEXT		0x4
-#define ELSE_EXP_CONTEXT		0x8
+static const unsigned int REGULAR_JOB_CONTEXT=0x1;
+static const unsigned int IF_EXP_CONTEXT=0x2;
+static const unsigned int THEN_EXP_CONTEXT=0x4;
+static const unsigned int ELSE_EXP_CONTEXT=0x8;
+
 
 enum jobContext { REGULAR_APP, IF_CONTEXT, THEN_CONTEXT
 };
@@ -589,8 +590,8 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		return;
 	} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
-				!strcmp(prog->argv[argc - 1],
-						prog->globResult.gl_pathv[i]))) {
+				strcmp(prog->argv[argc - 1],
+						prog->globResult.gl_pathv[i]) == 0)) {
 		/* we need to remove whatever \ quoting is still present */
 		src = dst = prog->argv[argc - 1];
 		while (*src) {
@@ -953,7 +954,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 		/* Check if the command matches any non-forking builtins */
 		for (x = bltins; x->cmd; x++) {
-			if (!strcmp(newJob->progs[i].argv[0], x->cmd)) {
+			if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0 ) {
 				return (x->function(newJob, jobList));
 			}
 		}
@@ -980,7 +981,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 			/* Check if the command matches any of the other builtins */
 			for (x = bltins_forking; x->cmd; x++) {
-				if (!strcmp(newJob->progs[i].argv[0], x->cmd)) {
+				if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0) {
 					exit (x->function(newJob, jobList));
 				}
 			}
