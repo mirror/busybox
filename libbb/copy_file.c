@@ -131,7 +131,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
-		FILE *sfp, *dfp;
+		FILE *sfp, *dfp=NULL;
 
 		if (dest_exists) {
 			if (flags & FILEUTILS_INTERACTIVE) {
