@@ -74,11 +74,7 @@ BB_SRC_DIR=
 # using the compatible RPMs (compat-*) at http://www.redhat.com !
 #LIBCDIR:=/usr/i386-glibc20-linux
 #
-# The following is used for libc5 (if you install altgcc and libc5-altdev
-# on a Debian system).  
-#LIBCDIR:=/usr/i486-linuxlibc1
-#
-# For other libraries, you are on your own...
+# For other libraries, you are on your own.  But these may (or may not) help...
 #LDFLAGS+=-nostdlib
 #LIBRARIES:=$(LIBCDIR)/lib/libc.a -lgcc
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
@@ -128,7 +124,7 @@ ifeq ($(strip $(TARGET_ARCH)),arm)
 	OPTIMIZATION+=-fstrict-aliasing
 endif
 ifeq ($(strip $(TARGET_ARCH)),i386)
-	OPTIMIZATION+=-march=i386
+	OPTIMIZATION+=$(call check_gcc,-march=i386,)
 	OPTIMIZATION+=$(call check_gcc,-mpreferred-stack-boundary=2,)
 	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
