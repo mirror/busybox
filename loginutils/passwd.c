@@ -245,8 +245,7 @@ extern int passwd_main(int argc, char **argv)
 			   myname);
 		printf("Password changed.\n");
 	} else {
-		syslog(LOG_WARNING,
-			   "an error occurred updating the password file");
+		syslog(LOG_WARNING, "an error occurred updating the password file");
 		error_msg_and_die("An error occurred updating the password file.\n");
 	}
 	return (0);
@@ -357,10 +356,9 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	} else {
 		orig[0] = '\0';
 	}
-	if (!
-		(cp =
-		 getpass ("Enter the new password (minimum of 5, maximum of 8 characters)\n""
-			 Please use a combination of upper and lower case letters and numbers.\nEnter new password: ")))
+	if (! (cp=getpass("Enter the new password (minimum of 5, maximum of 8 characters)\n"
+					  "Please use a combination of upper and lower case letters and numbers.\n"
+					  "Enter new password: ")))
 	{
 		bzero(orig, sizeof orig);
 		/* return -1; */
