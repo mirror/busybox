@@ -18,7 +18,6 @@
 #include "internal.h"
 #include <linux/unistd.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
 
 #if __GNU_LIBRARY__ < 5

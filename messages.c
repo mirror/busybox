@@ -27,26 +27,28 @@
  *  may make the binary slightly smaller.
  */
 
-// TO use, do something like this
+// To use this header file, include something like this:
 //
 //#define BB_DECLARE_EXTERN
 //#define bb_need_memory_exhausted
 //#include "messages.c"
 //
+//Then just use the string memory_exhausted when it is needed.
+//
+
+#include "internal.h"
 #ifndef _BB_MESSAGES_C
 #define _BB_MESSAGES_C
 
-#define _BB_DEF_MESSAGE_PROTO(symbol)			 extern const char *symbol;
-#define _BB_DEF_MESSAGE_INITIALIZE(symbol, string_const) const char *symbol = string_const;
-
 #ifdef BB_DECLARE_EXTERN
-#  define BB_DEF_MESSAGE(symbol, string_const) _BB_DEF_MESSAGE_PROTO(symbol)
+#  define BB_DEF_MESSAGE(symbol, string_const) extern const char *symbol;
 #else
-#  define BB_DEF_MESSAGE(symbol, string_const) _BB_DEF_MESSAGE_INITIALIZE(symbol, string_const)
+#  define BB_DEF_MESSAGE(symbol, string_const) const char *symbol = string_const;
 #endif
 
+
 #if defined bb_need_name_too_long || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
+	BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
 #endif
 #if defined bb_need_omitting_directory || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(omitting_directory, "%s: %s: omitting directory\n")
@@ -69,6 +71,13 @@ BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
 #if defined bb_need_help || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(dash_dash_help, "--help")
 #endif
+#if defined bb_need_write_error || ! defined BB_DECLARE_EXTERN
+	BB_DEF_MESSAGE(write_error, "Write Error\n")
+#endif
 
-#endif							/* _BB_MESSAGES_C */
+
+
+
+
+#endif /* _BB_MESSAGES_C */
 

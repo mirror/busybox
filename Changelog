@@ -5,8 +5,14 @@
 	* Added setkeycodes, for those that have wierd keyboard buttons.
 	* Added cut and tr from minix, since due to the license change, 
 	    we can now use minix code.  Minix tr saves 4k. 
-        * Added the -v option (inverted search) to grep,
-            updated docs/busybox.pod accordingly.  -beppu
+        * Added 'grep -v' option (inverted search) and updated 
+	    docs accordingly.  -beppu
+	* Wrote which
+	* BusyBox sh (lash) now supports being used as a standalone shell.  When
+	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
+	    be invoked as shell internals.  Best used when compiling staticly 
+	    (i.e. DOSTATIC=true)
+	* BusyBox sh (lash) internals now behave as expected wrt pipes and redirects. 
 	* Fixed ping warnings -- fix from Sascha Ziemann <szi@aibon.ping.de>
 	* Fixed update segfault
 	* Fixed mknod -- minor number was always 0
@@ -28,16 +34,12 @@
 	    to xiong jianxin <jxiong@uiuc.edu>
 	* cp -fa now works as expected for symlinks (it didn't before)
 	* zcat now works (wasn't working since option parsing was broken)
-	* Renamed "mnc" to the more correct "nc".
+	* Renamed "mnc" to the more correct "nc" (for netcat).
 	* Makefile intelligence updates
-	* BusyBox sh (lash) internals now behave wrt pipes and redirects. 
-	* BusyBox sh (lash) now supports being used as a standalone shell.  When
-	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
-	    be invoked as shell internals.
 	* More doc updates
 
 
-	 -Erik
+	 -Erik Andersen
 
 
 

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.8 2000/05/12 19:41:47 erik Exp $
+ * $Id: hostname.c,v 1.9 2000/05/19 05:35:18 erik Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -104,7 +104,6 @@ int hostname_main(int argc, char **argv)
 				opt_domain = 1;
 				break;
 			case 'F':
-				filename = optarg;
 				if (--argc == 0) {
 					usage(hostname_usage);
 				}

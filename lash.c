@@ -113,13 +113,18 @@ static int busy_loop(FILE * input);
 static struct builtInCommand bltins[] = {
 	{"bg", "Resume a job in the background", "bg [%%job]", shell_fg_bg},
 	{"cd", "Change working directory", "cd [dir]", shell_cd},
-	{"env", "Print all environment variables", "env", shell_env},
 	{"exit", "Exit from shell()", "exit", shell_exit},
 	{"fg", "Bring job into the foreground", "fg [%%job]", shell_fg_bg},
 	{"jobs", "Lists the active jobs", "jobs", shell_jobs},
-	{"pwd", "Print current directory", "pwd", shell_pwd},
 	{"export", "Set environment variable", "export [VAR=value]", shell_export},
 	{"unset", "Unset environment variable", "unset VAR", shell_unset},
+	{NULL, NULL, NULL, NULL}
+};
+
+/* Table of built-in functions */
+static struct builtInCommand bltins_forking[] = {
+	{"env", "Print all environment variables", "env", shell_env},
+	{"pwd", "Print current directory", "pwd", shell_pwd},
 	{".", "Source-in and run commands in a file", ". filename", shell_source},
 	{"help", "List shell built-in commands", "help", shell_help},
 	{NULL, NULL, NULL, NULL}
@@ -245,6 +250,9 @@ static int shell_help(struct job *cmd, struct jobSet *junk)
 	fprintf(stdout, "\nBuilt-in commands:\n");
 	fprintf(stdout, "-------------------\n");
 	for (x = bltins; x->cmd; x++) {
+		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
+	}
+	for (x = bltins_forking; x->cmd; x++) {
 		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
 	}
 	fprintf(stdout, "\n\n");
@@ -743,6 +751,13 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			nextout = 1;
 		}
 
+		/* Match any built-ins here */
+		for (x = bltins; x->cmd; x++) {
+			if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
+				return (x->function(&newJob, jobList));
+			}
+		}
+
 		if (!(newJob.progs[i].pid = fork())) {
 			signal(SIGTTOU, SIG_DFL);
 
@@ -760,7 +775,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			setupRedirections(newJob.progs + i);
 
 			/* Match any built-ins here */
-			for (x = bltins; x->cmd; x++) {
+			for (x = bltins_forking; x->cmd; x++) {
 				if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
 					exit (x->function(&newJob, jobList));
 				}

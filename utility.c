@@ -801,12 +801,13 @@ unsigned long my_getid(const char *filename, char *name, unsigned long id, unsig
 {
 	FILE *file;
 	char *rname, *start, *end, buf[128];
-	id_t rid;
+	unsigned long rid;
 	unsigned long rgid = 0;
 
 	file = fopen(filename, "r");
 	if (file == NULL) {
-		perror(filename);
+		/* Do not complain.  It is ok for /etc/password and
+		 * friends to be missing... */
 		return (-1);
 	}
 

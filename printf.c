@@ -51,7 +51,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <getopt.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>

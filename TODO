@@ -7,9 +7,10 @@ around to it some time. If you have any good ideas, please let me know.
     needed or wanted in busybox (or else I'd have to link to libcrypt).
 
 * Networking apps are probably going to be split out some time soon into a
-    separate package (named perhaps tiny-netkit?).  This currently includes 
-    hostid, hostname, mnc, and ping.
-
+    separate package (named perhaps netkit-tiny?).  This would remove the
+    following items from BusyBox: hostid, hostname, nc, nslookup, telnet, 
+    and ping.  nfs mounting and syslogd (when it supports network logging)
+    will remain in BusyBox.
 
  -Erik
 
@@ -20,17 +21,6 @@ Bugs that need fixing:
  - 'grep foo$ file' doesn't work
  - 'grep *foo file' segfaults
  - ps dirent race bug (need to stat the file before attempting chdir)
- - # ls -la
-     /etc/passwd: No such file or directory
-     /etc/group: No such file or directory
-     drwxrwxr-x    3     1000     1000      54 May 14 22:30 .
-     /etc/passwd: No such file or directory
-     /etc/group: No such file or directory
-     drwxrwxr-x    3     1000     1000      54 May 14 22:30 ..
-     /etc/passwd: No such file or directory
-     /etc/group: No such file or directory
-     drwxrwxr-x    2     1000     1000      74 May 14 22:33 bin
-     /
 
 -----------
 
@@ -68,23 +58,6 @@ Most wanted list:
 
 Policy violation.  getgroups uses libc nss, which is unlikely
 to be present in an embedded system.
-
-To be replaced with a non-getopt parser.
-
-    [andersen@slag busybox]$ grep -l getopt *.[ch]
-    dmesg.c
-    gunzip.c
-    hostname.c
-    mkfs_minix.c
-    printf.c
-    sfdisk.c
-
-    This includes the symbols: 
-    getopt_long
-    optarg
-    opterr
-    optind
-
 
 To be replaced with a busybox local glob routine:
 

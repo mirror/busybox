@@ -97,6 +97,7 @@
 #define BB_UPTIME
 #define BB_USLEEP
 #define BB_WC
+#define BB_WHICH
 #define BB_WHOAMI
 #define BB_UMOUNT
 #define BB_UNIQ
@@ -200,7 +201,7 @@
 #define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell
-//#define BB_FEATURE_SH_COMMAND_EDITING
+#define BB_FEATURE_SH_COMMAND_EDITING
 //
 //Allow the shell to invoke all the compiled in BusyBox commands as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell
@@ -261,3 +262,8 @@
 #define BB_NFSMOUNT
 #endif
 //
+#if defined BB_FEATURE_STANDALONE_SHELL
+#ifndef BB_FEATURE_USE_TERMIOS
+#define BB_FEATURE_USE_TERMIOS
+#endif
+#endif

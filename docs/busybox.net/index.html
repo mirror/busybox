@@ -1,0 +1,434 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"> 
+
+<HTML>
+<HEAD>
+<TITLE>BusyBox</TITLE>
+</HEAD>
+
+<body text="#000000" alink="#660000" link="#660000" bgcolor="#ffffff" vlink="#660000" background="images/background.png" >
+
+<basefont face="lucida, helvetica, arial" size="3">
+
+
+<CENTER>
+      <TABLE BORDER=0 CELLSPACING=1 CELLPADDING=2>
+	    <TR>
+		<td bgcolor="#000000">
+		  <FONT FACE="lucida, helvetica" COLOR="#ccccc0">
+		      <B>B&nbsp;u&nbsp;s&nbsp;y&nbsp;B&nbsp;o&nbsp;x</B>
+		  </FONT>
+		</TD>
+	    </TR>
+      </TABLE>
+      <a href="/"><IMG SRC="images/busybox2.jpg" alt="BusyBox" border="0" width="360" height="230"</a><BR>
+
+
+<!-- Begin Introduction section -->
+
+
+<TABLE WIDTH=95% CELLSPACING=1 CELLPADDING=4 BORDER=1>
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="intro"> <BIG><B>
+    The Swiss Army Knife of Embedded Linux
+    </font>
+    </A></B></BIG>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
+tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
+or emdedded system.  The utilities in BusyBox generally have fewer options then
+their full featured GNU cousins; however, the options that are included provide 
+the expected functionality and behave very much like their GNU counterparts.
+<p>
+BusyBox has been written with size-optimization and limited resources in mind.
+It is also extremely modular so you can easily include or exclude commands (or
+features) at compile time.  This makes it easy to customize your embedded
+systems.  To create a working system, just add a kernel, a shell (such as ash),
+and an editor (such as elvis-tiny or ae).
+<p>
+
+BusyBox is now maintained by 
+<a href="http://www.xmission.com/~andersen/erik/erik.html">
+Erik Andersen</a>, and its ongoing development is being sponsored by 
+<a href="http://www.lineo.com/">Lineo</a>. 
+<p>
+BusyBox is licensed under the 
+<a href="http://www.gnu.org/copyleft/gpl.html">GNU GENERAL PUBLIC LICENSE</a>
+
+
+<!-- Begin Download section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="download"><BIG><B>
+    Download
+    </A></B></BIG>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+<ul>
+    <li> Source for the latest release can always be downloaded from 
+	<a href="ftp://ftp.lineo.com/pub/busybox">ftp://ftp.lineo.com/pub/busybox</a>.
+</ul>
+
+
+<!-- Begin Latest News section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="news">
+    <BIG><B>
+    Latest News</A> 
+    </B></BIG>
+    </A>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+<ul>
+
+    <p> <li> <b>19 April 2000 -- syslogd bugfix</b>
+    <br>
+        Turns out that there was still a bug in busybox syslogd.
+	For example, with the following test app:
+<pre>
+	#include &lt;syslog.h&gt
+
+	int do_log(char* msg, int delay)
+	{
+	    openlog("testlog", LOG_PID, LOG_DAEMON);
+	    while(1) {
+	        syslog(LOG_ERR, "%s: testing one, two, three\n", msg);
+	        sleep(delay);
+	    }
+	    closelog();
+	    return(0);
+	};
+
+	int main(void)
+	{
+	    if (fork()==0)
+	        do_log("A", 2);
+	    do_log("B", 3);
+	}
+</pre>
+	it should be logging stuff from both "A" and "B".  As released in 0.43 only stuff
+	from "A" would have been logged.  This means that if init tries to log something
+	while say ppp has the syslog open, init would block (which is bad, bad, bad).
+	<p>
+	Karl M. Hegbloom has created a 
+	<a href="ftp://ftp.lineo.com/pub/busybox/busybox-0.43-syslog_patch">fix for the problem</a>.
+	Thanks Karl!
+
+
+    <p> <li> <b>18 April 2000 -- BusyBox 0.43 released (finally!)</b>
+    <br>
+        I have finally gotten everything into a state where I feel pretty
+	good about things.  This is definitely the most stable, solid release
+	so far.  A lot of bugs have been fixed, and the following new apps
+	have been added: sh, basename, dirname, killall, uptime, 
+	freeramdisk, tr, echo, test, and usleep.  Tar has been completely
+	rewritten from scratch.  Bss size has also been greatly reduced.
+	More details are available in the 
+	<a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a>.
+	Oh, and as a special bonus, I wrote some fairly comprehensive
+	<em>documentation</em>, complete with examples and full usage information.
+
+	<p>
+	Many thanks go out to the fine people that have helped by submitting patches
+	and bug reports; particularly instrumental in helping for this release were 
+	Karl Hegbloom, Pavel Roskin, Friedrich Vedder, Emanuele Caratti,
+	Bob Tinsley, Nicolas Pitre, Avery Pennarun, Arne Bernin, John Beppu, and Jim Gleason.
+	There were others so if I somehow forgot to mention you, I'm very sorry.
+	<p>
+
+	You can grab BusyBox 0.43 tarballs <a href="ftp://ftp.lineo.com/pub/busybox/">here</a>.
+
+    <p> <li> <b>9 April 2000 -- BusyBox 0.43 pre release</b>
+    <br>
+        Unfortunately, I have not yet finished all the things I want to
+        do for BusyBox 0.43, so I am posting this pre-release for people
+        to poke at.  This contains my complete rewrite of tar, which now weighs in at
+        5k (7k with all options turned on) and works for reading and writing
+        tarballs (which it does correctly for everything I have been able to throw
+        at it).  Tar also (optionally) supports the "--exclude" option (mainly because
+        the Linux Router Project folks asked for it).  This also has a pre-release
+        of the micro shell I have been writing.  This pre-release should be stable
+        enough for production use -- it just isn't a release since I have some structural
+        changes I still want to make.
+        <p>
+	The pre-release can be found <a href="ftp://ftp.lineo.com/pub/busybox/">here</a>.
+	Please let me know ASAP if you find <em>any</em> bugs.
+    
+    <p> <li> <b>28 March 2000 -- Andersen Baby Boy release</b>
+    <br>
+	I am pleased to announce that on Tuesday March 28th at 5:48pm, weighing in at 7
+	lbs. 12 oz, Micah Erik Andersen was born at LDS Hospital here in Salt Lake City.
+	He was born in the emergency room less then 5 minutes after we arrived -- and
+	it was such a relief that we even made it to the hospital at all.  Despite the
+	fact that I was driving at an amazingly unlawful speed and honking at everybody
+	and thinking decidely unkind thoughts about the people in our way, my wife
+	(inconsiderate of my feelings and complete lack of medical training) was lying
+	down in the back seat saying things like "I think I need to start pushing now"
+	(which she then proceeded to do despite my best encouraging statements to the
+	contrary).
+	<p>
+	Anyway, I'm glad to note that despite the much-faster-than-we-were-expecting
+	labor, both Shaunalei and our new baby boy are doing wonderfuly.
+	<p>
+	So now that I am done with my excuse for the slow release cycle...
+	Progress on the next release of BusyBox has been slow but steady.  I expect
+	to have a release sometime during the first week of April.  This release will
+	include a number of important changes, including the addition of a shell, a 
+	re-write of tar (to accomodate the Linux Router Project), and syslogd can now
+	accept multiple concurrent connections, fixing lots of unexpected blocking 
+	problems.
+
+
+    <p> <li> <b>11 February 2000 -- BusyBox 0.42 released</b>
+    <br>
+
+	     This is the most solid BusyBox release so far.  Many, many
+		bugs have been fixed.   See the 
+<a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a> for details.
+
+		Of particular interest, init will now cleanly unmount 
+		filesystems on reboot, cp and mv have been rewritten and 
+		behave much better, and mount and umount no longer leak 
+		loop devices.  Many thanks go out to Randolph Chung, 
+		Karl M. Hegbloom, Taketoshi Sano, and Pavel Roskin for 
+		their hard work on this release of BusyBox.  Please pound 
+		on it and let me know if you find any bugs.
+
+    <p> <li> <b>19 January 2000 -- BusyBox 0.41 released</b>
+    <br>
+
+	     This release includes bugfixes to cp, mv, logger, true, false,
+		mkdir, syslogd, and init.  New apps include wc, hostid, 
+		logname, tty, whoami, and yes.  New features include loop device
+		support in mount and umount, and better TERM handling by init.
+		The changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+
+    <p> <li> <b>7 January 2000 -- BusyBox 0.40 released</b>
+    <br>
+
+	     This release includes bugfixes to init (now includes inittab support),
+	     syslogd, head, logger, du, grep, cp, mv, sed, dmesg, ls, kill, gunzip, and mknod.
+	     New apps include sort, uniq, lsmod, rmmod, fbset, and loadacm.
+	     In particular, this release fixes an important bug in tar which 
+	     in some cases produced serious security problems.
+	     As always, the changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+
+    <p> <li> <b>11 December 1999 -- BusyBox Website</b>
+    <br>
+	     I have received permission from Bruce Perens (the original author of BusyBox)
+		to set up this site as the new primary website for BusyBox.  This website
+		will always contain pointers to the latest and greatest, and will also 
+		contain the latest documentation on how to use BusyBox, what it can do,
+		what arguments its apps support, etc.
+
+    <p> <li> <b>10 December 1999 -- BusyBox 0.39 released</b>
+    <br>
+	     This release includes fixes to init, reboot, halt, kill, and ls, and contains 
+	     the new apps ping, hostname, mkfifo, free, tail, du, tee, and head.  A full
+	     changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+    <p> <li> <b>5 December 1999 -- BusyBox 0.38 released</b>
+    <br>
+	     This release includes fixes to tar, cat, ls, dd, rm, umount, find, df, 
+		and make install, and includes new apps syslogd/klogd and logger. 
+</ul>
+
+
+<!-- Begin Docs section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="docs"><BIG><B>
+    Documentation
+    </A></B></BIG>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+Current documentation for BusyBox includes: 
+<ul>
+    <li> <a href="BusyBox.html">BusyBox.html</a>
+		This is a list of the all the available commands in BusyBox with complete 
+		usage information and examples of how to use each app.  I spent 
+		a <em>lot</em> of time updating these docs and trying to make them 
+		fairly comprehensive for the BusyBox 0.43 release.  If you find any 
+		errors (factual, grammatical, whatever) please let me know.
+
+    <li> More documentation will follow.
+</ul>
+
+
+<!-- Begin Links section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="related">
+    <BIG><B>
+    Related Software</A> 
+    </B></BIG>
+    </A>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+<ul> 
+
+    <li><a href="http://www.debian.org/Packages/unstable/shells/ash.html">ash</a>
+    is a very small Bourne shell. If you need a shell for your embedded systems, this is it.    
+    <p>
+                
+    <li><a href="http://www.debian.org/Packages/unstable/base/ae.html">ae</a>
+    is a tiny full-screen text editor with both modal (vi-like) and modeless 
+    (emacs-like) modes, determined by an ae.rc config file. It makes a nice editor 
+    if people that don't know "vi" will need to work on your embedded system.            
+    <p>
+
+    <li> <a href="http://www.debian.org/Packages/unstable/base/elvis-tiny.html">elvis-tiny</a>
+    is based on a 1991 Minix version of the elvis "vi" clone. It behaves as one would 
+    expect a minamalist vi to behave, and is very small.
+    <p>
+
+    <li> <a href="http://www.asty.org/nano/">nano</a>
+    A small GPLed pico clone that makes a nice editor for people that don't know "vi".
+    <p>
+
+    <li><a href="http://www.debian.org/Packages/unstable/net/iproute.html">iproute</a>
+    Much more flexible replacement for ifconfig, route, etc. It is quite small, and for 
+    most networking applications, it is all you need. It also provides support for extremely 
+    advanced networking and provides Quality of Service(QoS) support, but most people will 
+    just need to use the "ip" command and will not even need to install the rest.
+    <p>
+
+    <li><a href="http://www.debian.org/Packages/unstable/net/pump.html">Pump</a>
+    This is the DHCP/BOOTP client written by RedHat. When compiled properly, it 
+    gives you dhcp client support for about 35k.                
+    <p>
+
+    <li><a href="http://www.pcug.org.au/~dbell/">sash</a>
+    The Stand Alone SHell.  This is a small shell (not Bourne shell compatable) 
+    that is similar to busybox in that it provides a number of common utilities as built-ins.
+    <p>
+    
+    <li><a href="http://sourceware.cygnus.com/newlib/">NewLib</a>
+    This is a small C library intended for use on embedded systems.  If you are finding
+    GNU libc is a bit too big for your applications, try NewLib and it may help.
+    <p>
+                
+    <li><a href="http://linuxassembly.org/asmutils.html">asmutils</a>
+    asmutils is similar to BusyBox in that it provides a number of common application
+    for embedded systems that are very tiny.  In fact, they are a _lot_ smaller than the
+    equivalent apps in busybox -- but the price you pay for the size is reduced portability 
+    (x86 only) and interfaces that are tied directly to a perticular kernel (no libc involved).
+    <p>
+                
+    <li><a href="http://tinylogin.lineo.com/">TinyLogin</a>
+    is a nice embedded tool for handling authentication, changing passwords,
+    and similar tasks, and which nicely complements BusyBox.
+    <p>
+                
+</ul>
+
+<!-- Begin Projects section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="docs"><BIG><B>
+    Projects using BusyBox
+    </A></B></BIG>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+I know of the following projects that use BusyBox
+<ul>
+    <li> <a href="http://www.lineo.com/products/embedix.html">Lineo Embedix Linux</a>
+    <li> <a href="http://cvs.debian.org/boot-floppies/">Debian boot floppies project</a>
+    <li> <a href="http://www.linuxrouter.org/">Linux Router Project </a>
+    <li> <a href="http://linux-embedded.org/">LEM</a>
+    <li> <a href="http://www.toms.net/rb/">tomsrtbt</a>
+
+</ul>
+Do you use BusyBox?  I'd love to know about it and I'd be happy to link to you.
+
+
+
+<!-- Begin Links section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="links">
+    <BIG><B>
+    Important Links</A> 
+    </B></BIG>
+    </A>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+<ul> 
+
+    <li>  <A HREF="http://perens.com/FreeSoftware/">
+    Free Software from Bruce Perens</A><br>
+    The original idea for BusyBox, and all versions up to 0.26 were written 
+    by <A HREF="mailto:bruce@perens.com">Bruce Perens</a>.  This is his BusyBox website.
+    <p>
+
+    <li>  <A HREF="http://freshmeat.net/appindex/1999/04/11/923859921.html">
+    Freshmeat AppIndex record for BusyBox</A>
+    <p>
+
+    <li> <A HREF="http://www.lineo.com/">Lineo</A> is sponsoring BusyBox development.
+    <p>
+
+</ul>
+
+
+
+
+<!-- End of Table -->
+
+</TD></TR>
+</TABLE>
+</P>
+
+
+
+<!-- Footer -->
+<HR>
+<TABLE WIDTH="100%">
+    <TR>
+	<TD>
+	    <font size="-1" face="arial, helvetica, sans-serif">
+	    Mail all comments, insults, suggestions and bribes to 
+	    <a href="mailto:andersen@lineo.com">Erik Andersen</a><BR>
+	    The Busybox logo is copyright 1999,2000, Erik Andersen.
+	    </font>
+	</TD>
+
+	<TD>
+	    <a href="http://www.vim.org"><img border=0 width=88 height=32
+	    src="images/anim.written.in.vi.gif" 
+	    alt="This site created with the vi editor"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.gimp.org/"><img border=0 width=88 height=38
+	    src="images/gfx_by_gimp.gif" alt="Graphics by GIMP"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.linuxtoday.com"><img width=90 height=36
+	    src="images/ltbutton2.jpg" alt="Linux Today"></a>
+	</TD>
+
+	<TD>
+	    <p><a href="http://slashdot.org"><img width=90 height=36
+	    src="images/sdsmall.gif" alt="Slashdot"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://freshmeat.net"><img width=90 height=36
+	    src="images/fm.mini.jpg" alt="Freshmeat"></a>
+	</TD>
+
+    </TR>
+</TABLE>
+
+
+</BODY>
+</HTML>
+

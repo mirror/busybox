@@ -30,6 +30,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_write_error
+#include "messages.c"
+
+const char *tr_usage="tr [-cds] STRING1 [STRING2]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nTranslate, squeeze, and/or delete characters from\n"
+	"standard input, writing to standard output.\n\n"
+	"Options:\n"
+	"\t-c\ttake complement of STRING1\n"
+	"\t-d\tdelete input characters coded STRING1\n"
+	"\t-s\tsqueeze multiple output characters of STRING2 into one character\n"
+#endif
+;
 
 
 
@@ -60,7 +74,7 @@ static void convert()
 		if (in_index == read_chars) {
 			if ((read_chars = read(0, (char *) input, BUFSIZ)) <= 0) {
 				if (write(1, (char *) output, out_index) != out_index)
-					write(2, "Bad write\n", 10);
+					write(2, write_error, strlen(write_error));
 				exit(0);
 			}
 			in_index = 0;
@@ -74,7 +88,7 @@ static void convert()
 		output[out_index++] = last = coded;
 		if (out_index == BUFSIZ) {
 			if (write(1, (char *) output, out_index) != out_index) {
-				write(2, "Bad write\n", 10);
+				write(2, write_error, strlen(write_error));
 				exit(1);
 			}
 			out_index = 0;
@@ -167,16 +181,7 @@ extern int tr_main(int argc, char **argv)
 				sq_fl = TRUE;
 				break;
 			default:
-				usage("tr [-cds] STRING1 [STRING2]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-					  "\nTranslate, squeeze, and/or delete characters from\n"
-					  "standard input, writing to standard output.\n\n"
-					  "Options:\n"
-					  "\t-c\ttake complement of STRING1\n"
-					  "\t-d\tdelete input characters coded STRING1\n"
-					  "\t-s\tsqueeze multiple output characters of STRING2 into one character\n"
-#endif
-					  );
+				usage(tr_usage);
 			}
 		}
 		index++;

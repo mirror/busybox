@@ -329,8 +329,8 @@ extern void flush_window (void);
 extern void write_buf (int fd, void * buf, unsigned cnt);
 extern char *strlwr (char *s);
 extern char *add_envopt (int *argcp, char ***argvp, char *env);
-extern void read_error (void);
-extern void write_error (void);
+extern void read_error_msg (void);
+extern void write_error_msg (void);
 extern void display_ratio (long num, long den, FILE * file);
 
 	/* in inflate.c */
@@ -3138,7 +3138,7 @@ int in, out;					/* input and output file descriptors */
 		insize = read(in, (char *) inbuf, INBUFSIZ);
 	}
 	if ((int) insize == EOF && errno != 0) {
-		read_error();
+		read_error_msg();
 	}
 	bytes_in = bytes_out;
 	return OK;

@@ -35,9 +35,7 @@ const struct BB_applet applets[] = {
 #ifdef BB_BASENAME
 	{"basename", basename_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_BUSYBOX
 	{"busybox", busybox_main, _BB_DIR_BIN},
-#endif
 #ifdef BB_BLOCK_DEVICE
 	{"block_device", block_device_main, _BB_DIR_SBIN},
 #endif
@@ -329,6 +327,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_WC
 	{"wc", wc_main, _BB_DIR_USR_BIN},
 #endif
+#ifdef BB_WHICH
+	{"which", which_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_WHOAMI
 	{"whoami", whoami_main, _BB_DIR_USR_BIN},
 #endif
@@ -386,16 +387,14 @@ int busybox_main(int argc, char **argv)
 	if (been_there_done_that == 1 || argc < 1) {
 		const struct BB_applet *a = applets;
 
-		fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
-				BB_VER, BB_BT);
-		fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
-		fprintf(stderr, "   or: [function] [arguments]...\n\n");
-		fprintf(stderr,
+		fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n"
+				"Usage: busybox [function] [arguments]...\n"
+				"   or: [function] [arguments]...\n\n"
 				"\tBusyBox is a multi-call binary that combines many common Unix\n"
 				"\tutilities into a single executable.  Most people will create a\n"
 				"\tlink to busybox for each function they wish to use, and BusyBox\n"
-				"\twill act like whatever it was invoked as.\n");
-		fprintf(stderr, "\nCurrently defined functions:\n");
+				"\twill act like whatever it was invoked as.\n" 
+				"\nCurrently defined functions:\n", BB_VER, BB_BT);
 
 		while (a->name != 0) {
 			col +=
