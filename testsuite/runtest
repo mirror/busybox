@@ -53,10 +53,10 @@ run_applet_testcase ()
 
 	if . ../$testcase >/dev/null 2>&1; then
 		show_result ${X}PASS $testname
-		status=$!
+		status=$?
 	else
 		show_result ${X}FAIL $testname
-		status=$!
+		status=$?
 	fi
 
 	popd >/dev/null
