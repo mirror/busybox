@@ -891,6 +891,7 @@ static void get_user_input(struct in_str *i)
 	the_command[0]=fgetc(i->file);
 	the_command[1]='\0';
 #endif
+	fflush(stdout);
 	i->p = the_command;
 }
 
@@ -908,7 +909,9 @@ static int file_get(struct in_str *i)
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 		if (i->__promptme && interactive && i->file == stdin) {
-			get_user_input(i);
+			while(! i->p || (interactive && strlen(i->p)==0) ) {
+				get_user_input(i);
+			}
 			i->promptmode=2;
 			i->__promptme = 0;
 			if (i->p && *i->p) {
