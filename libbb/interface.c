@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.17 2003/07/22 08:56:46 andersen Exp $
+ * Version:     $Id: interface.c,v 1.18 2003/07/28 06:35:32 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -1134,7 +1134,7 @@ static int if_readlist_proc(char *target)
 
 	err = 0;
 	while (fgets(buf, sizeof buf, fh)) {
-		char *s, name[IFNAMSIZ];
+		char *s, name[128];
 
 		s = get_name(name, buf);
 		ife = add_interface(name);
