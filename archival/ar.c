@@ -51,6 +51,30 @@
 //#define bb_need_io_error
 //#include "messages.c"
 
+//#define BB_AR_EXPERIMENTAL_UNTAR
+
+#if defined BB_AR_EXPERIMENTAL_UNTAR
+typedef struct rawTarHeader {
+        char name[100];               /*   0-99 */
+        char mode[8];                 /* 100-107 */
+        char uid[8];                  /* 108-115 */
+        char gid[8];                  /* 116-123 */
+        char size[12];                /* 124-135 */
+        char mtime[12];               /* 136-147 */
+        char chksum[8];               /* 148-155 */
+        char typeflag;                /* 156-156 */
+        char linkname[100];           /* 157-256 */
+        char magic[6];                /* 257-262 */
+        char version[2];              /* 263-264 */
+        char uname[32];               /* 265-296 */
+        char gname[32];               /* 297-328 */
+        char devmajor[8];             /* 329-336 */
+        char devminor[8];             /* 337-344 */
+        char prefix[155];             /* 345-499 */
+        char padding[12];             /* 500-512 */
+} rawTarHeader_t;
+#endif
+
 typedef struct rawArHeader {    /* Byte Offset */
         char name[16];          /*  0-15 */
         char date[12];          /* 16-27 */
@@ -71,92 +95,136 @@ typedef struct headerL {
 	struct headerL *next;
 } headerL_t;
 
+#if defined BB_AR_EXPERIMENTAL_UNTAR
 /*
- * identify Ar header (magic) and set srcFd to first header entry 
+ * identify Tar header (magic field) and reset srcFd to entry position
+ */
+static int checkTarMagic(int srcFd)
+{
+        off_t headerStart;
+        char magic[6];
+
+        headerStart = lseek(srcFd, 0, SEEK_CUR);
+        lseek(srcFd, (off_t) 257, SEEK_CUR);
+        fullRead(srcFd, magic, 6);
+        lseek(srcFd, headerStart, SEEK_SET);
+        if (strncmp(magic, "ustar", 5)!=0)
+                return(FALSE);
+        return(TRUE);
+}
+
+
+static int readTarHeader(int srcFd, headerL_t *current)
+{
+     	rawTarHeader_t rawTarHeader;
+        unsigned char *temp = (unsigned char *) &rawTarHeader;
+        long sum = 0;
+        int i;
+	off_t initialOffset;
+
+        initialOffset = lseek(srcFd, 0, SEEK_CUR);
+        if (fullRead(srcFd, (char *) &rawTarHeader, 512) != 512) {
+                lseek(srcFd, initialOffset, SEEK_SET);
+                return(FALSE);
+        }
+        for (i =  0; i < 148 ; i++)
+        sum += temp[i];
+        sum += ' ' * 8;
+        for (i =  156; i < 512 ; i++)
+                sum += temp[i];
+        if (sum!= strtol(rawTarHeader.chksum, NULL, 8))
+		return(FALSE);
+  	sscanf(rawTarHeader.name, "%s", current->name);
+        current->size = strtol(rawTarHeader.size, NULL, 8);
+        current->uid = strtol(rawTarHeader.uid, NULL, 8);
+        current->gid = strtol(rawTarHeader.gid, NULL, 8);
+        current->mode = strtol(rawTarHeader.mode, NULL, 8);
+        current->mtime = strtol(rawTarHeader.mtime, NULL, 8);
+        current->offset = lseek(srcFd, 0 , SEEK_CUR);
+
+        current->next = (headerL_t *) xmalloc(sizeof(headerL_t));
+        current = current->next;
+     	return(TRUE);
+}
+#endif
+
+/*
+ * identify Ar header (magic) and reset srcFd to entry position
  */
 static int checkArMagic(int srcFd)
 {
+        off_t headerStart;
         char arMagic[8];
-        if (fullRead(srcFd, arMagic, 8) != 8)
+
+        headerStart = lseek(srcFd, 0, SEEK_CUR);
+        if (fullRead(srcFd, arMagic, 8) != 8) {
+                printf("fatal error/n");
                 return (FALSE);
-        
-	if (strncmp(arMagic,"!<arch>",7) != 0)
+        }
+        lseek(srcFd, headerStart, SEEK_SET);
+
+        if (strncmp(arMagic,"!<arch>",7) != 0)
                 return(FALSE);
-	return(TRUE);
-}
-
-/*
- * read, convert and check the raw ar header
- * srcFd should be pointing to the start of header prior to entry
- * srcFd will be pointing at the start of data after successful exit
- * if returns FALSE srcFd is reset to initial position
- */
-static int readRawArHeader(int srcFd, headerL_t *header)
-{
-	rawArHeader_t rawArHeader;
-	off_t	initialOffset;
-	size_t nameLength;
-	
-	initialOffset = lseek(srcFd, 0, SEEK_CUR);
-	if (fullRead(srcFd, (char *) &rawArHeader, 60) != 60) {
-		lseek(srcFd, initialOffset, SEEK_SET);
-		return(FALSE);
-	}
-	if ((rawArHeader.fmag[0]!='`') || (rawArHeader.fmag[1]!='\n')) {
-		lseek(srcFd, initialOffset, SEEK_SET);
-		return(FALSE);
-	}
-
-	strncpy(header->name, rawArHeader.name, 16);
-	nameLength=strcspn(header->name, " \\");
-	header->name[nameLength]='\0';
-	parse_mode(rawArHeader.mode, &header->mode);
-        header->mtime = atoi(rawArHeader.date);
-        header->uid = atoi(rawArHeader.uid);
-        header->gid = atoi(rawArHeader.gid);
-        header->size = (size_t) atoi(rawArHeader.size);
-        header->offset = initialOffset + (off_t) 60;
- 	return(TRUE); 
+        return(TRUE);
 }
 
 /*
  * get, check and correct the converted header
  */ 
-static int readArEntry(int srcFd, headerL_t *newEntry)
+static int readArEntry(int srcFd, headerL_t *entry)
 {
 	size_t nameLength;
+        rawArHeader_t rawArHeader;
+        off_t   initialOffset;
 
-	if(readRawArHeader(srcFd, newEntry)==FALSE)
-		return(FALSE);
-	
-	nameLength = strcspn(newEntry->name, "/");
+        initialOffset = lseek(srcFd, 0, SEEK_CUR);
+        if (fullRead(srcFd, (char *) &rawArHeader, 60) != 60) {
+                lseek(srcFd, initialOffset, SEEK_SET);
+                return(FALSE);
+        }
+        if ((rawArHeader.fmag[0]!='`') || (rawArHeader.fmag[1]!='\n')) {
+                lseek(srcFd, initialOffset, SEEK_SET);
+                return(FALSE);
+        }
+
+        strncpy(entry->name, rawArHeader.name, 16);
+        nameLength=strcspn(entry->name, " \\");
+        entry->name[nameLength]='\0';
+        parse_mode(rawArHeader.mode, &entry->mode);
+        entry->mtime = atoi(rawArHeader.date);
+        entry->uid = atoi(rawArHeader.uid);
+        entry->gid = atoi(rawArHeader.gid);
+        entry->size = (size_t) atoi(rawArHeader.size);
+        entry->offset = initialOffset + (off_t) 60;
+
+	nameLength = strcspn(entry->name, "/");
 	
 	/* handle GNU style short filenames, strip trailing '/' */
 	if (nameLength > 0)
-		newEntry->name[nameLength]='\0';
+		entry->name[nameLength]='\0';
 	
 	/* handle GNU style long filenames */ 
 	if (nameLength == 0) {
 		/* escape from recursive call */
-		if (newEntry->name[1]=='0') 
+		if (entry->name[1]=='0') 
 			return(TRUE);
 
 		/* the data section contains the real filename */
-		if (newEntry->name[1]=='/') {
+		if (entry->name[1]=='/') {
 			char tempName[MAX_NAME_LENGTH];
 
-			if (newEntry->size > MAX_NAME_LENGTH)
-				newEntry->size = MAX_NAME_LENGTH;
-			fullRead(srcFd, tempName, newEntry->size);
-			tempName[newEntry->size-3]='\0';
+			if (entry->size > MAX_NAME_LENGTH)
+				entry->size = MAX_NAME_LENGTH;
+			fullRead(srcFd, tempName, entry->size);
+			tempName[entry->size-3]='\0';
 			
 			/* read the second header for this entry */
 			/* be carefull, this is recursive */
-			if (readArEntry(srcFd, newEntry)==FALSE)
+			if (readArEntry(srcFd, entry)==FALSE)
 				return(FALSE);
 		
-			if ((newEntry->name[0]='/') && (newEntry->name[1]='0'))
-				strcpy(newEntry->name, tempName);
+			if ((entry->name[0]='/') && (entry->name[1]='0'))
+				strcpy(entry->name, tempName);
 			else {
 				errorMsg("Invalid long filename\n");
 				return(FALSE);
@@ -171,17 +239,54 @@ static int readArEntry(int srcFd, headerL_t *newEntry)
  */
 static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 {
+#if defined BB_AR_EXPERIMENTAL_UNTAR
+        int tar=FALSE;
+#endif
+	int ar=FALSE;
 	headerL_t *list;
-        list = (headerL_t *) malloc(sizeof(headerL_t));
+	off_t initialOffset;
 
-        if (checkArMagic(srcFd)==TRUE) {
-        	while(readArEntry(srcFd, list) == TRUE) {
+        list = (headerL_t *) malloc(sizeof(headerL_t));
+	initialOffset=lseek(srcFd, 0, SEEK_CUR);
+	if (checkArMagic(srcFd)==TRUE) 
+		ar=TRUE;
+
+#if defined BB_AR_EXPERIMENTAL_UNTAR
+	if (checkTarMagic(srcFd)==TRUE)
+		tar=TRUE;
+
+        if (tar==TRUE) {
+                while(readTarHeader(srcFd, list)==TRUE) {
+			off_t tarOffset;
+                        list->next = (headerL_t *) malloc(sizeof(headerL_t));
+                        *list->next = *head;
+                        *head = *list;
+
+                        /* recursive check for sub-archives */
+                        if ((funct & RECURSIVE) == RECURSIVE)
+                                head = getHeaders(srcFd, head, funct);
+                        tarOffset = (off_t) head->size/512;
+                        if ( head->size % 512 > 0)
+                                tarOffset++;
+                        tarOffset=tarOffset*512;
+                        lseek(srcFd, head->offset + tarOffset, SEEK_SET);
+                }
+        }
+#endif
+
+        if (ar==TRUE) {
+		lseek(srcFd, 8, SEEK_CUR); 
+        	while(1) {
+			if (readArEntry(srcFd, list) == FALSE) {
+				lseek(srcFd, ++initialOffset, SEEK_CUR); 
+				if (readArEntry(srcFd, list) == FALSE)
+					return(head);
+			}
 			list->next = (headerL_t *) malloc(sizeof(headerL_t));
         		*list->next = *head;
 			*head = *list;
-		
 			/* recursive check for sub-archives */
-			if ( funct & RECURSIVE ) 
+			if (funct & RECURSIVE)  
 		        	head = getHeaders(srcFd, head, funct);
 			lseek(srcFd, head->offset + head->size, SEEK_SET);
 		}
@@ -200,27 +305,6 @@ static headerL_t *findEntry(headerL_t *head, const char *filename)
 		head=head->next;
 	}
 	return(NULL);
-}
-
-/*
- * populate linked list with all ar file entries and offset 
- */
-static int displayEntry(headerL_t *head, int funct)
-{
-	if ( funct & VERBOSE ) {
-		printf("%s %d/%d %8d %s ", modeString(head->mode), head->uid, head->gid, head->size, timeString(head->mtime));
-	}
-	printf("%s\n", head->name);
-	head = head->next;
-	return(TRUE);
-}
-
-static int extractAr(int srcFd, int dstFd, headerL_t *file)
-{
-	lseek(srcFd, file->offset, SEEK_SET);
-	if (copySubFile(srcFd, dstFd, (size_t) file->size) == TRUE)
-		return(TRUE);	
-	return(FALSE);
 }
 
 extern int ar_main(int argc, char **argv)
@@ -270,7 +354,6 @@ extern int ar_main(int argc, char **argv)
 	extractList = (headerL_t *) malloc(sizeof(headerL_t));	
 
 	header = getHeaders(srcFd, header, funct);
-	
 	/* find files to extract or display */
 	if (optind<argc) {
 		/* only handle specified files */
@@ -283,20 +366,28 @@ extern int ar_main(int argc, char **argv)
 			optind++;
 		}	
 	}
-	else 
-		/* extract everything */
+	else  
 		extractList = header;
 	
-       while(extractList->next != NULL) {	
-		if ( funct & EXT_TO_FILE ) {
+        while(extractList->next != NULL) {	
+		if (funct & EXT_TO_FILE) {
+ 			if (isDirectory(extractList->name, TRUE, NULL)==FALSE)
+				createPath(extractList->name, 0666);
 			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
-			
-			extractAr(srcFd, dstFd, extractList);
+			lseek(srcFd, extractList->offset, SEEK_SET);
+        		copySubFile(srcFd, dstFd, (size_t) extractList->size);
 		}
-		if ( funct & EXT_TO_STDOUT )	
-			extractAr(srcFd, fileno(stdout), extractList);	
-		if ( (funct & DISPLAY) || (funct & VERBOSE))
-			displayEntry(extractList, funct);
+		if (funct & EXT_TO_STDOUT) {	
+                   	lseek(srcFd, extractList->offset, SEEK_SET);
+                        copySubFile(srcFd, fileno(stdout), (size_t) extractList->size);
+		}
+		if ( (funct & DISPLAY) || (funct & VERBOSE)) {
+			if (funct & VERBOSE)
+				printf("%s %d/%d %8d %s ", modeString(extractList->mode), 
+					extractList->uid, extractList->gid,
+					extractList->size, timeString(extractList->mtime));
+		        printf("%s\n", extractList->name);
+		}
 		extractList=extractList->next;
 	}
 	return (TRUE);
