@@ -39,24 +39,21 @@ enum print_e {
 static void print_counts(int lines, int words, int chars, int length,
 				  		 const char *name)
 {
-	char const *space = "";
-
 	if (print_type & print_lines) {
-		printf("%7d", lines);
-		space = " ";
+		printf("%7d ", lines);
 	}
 	if (print_type & print_words) {
-		printf("%s%7d", space, words);
-		space = " ";
+		printf("%7d ", words);
 	}
 	if (print_type & print_chars) {
-		printf("%s%7d", space, chars);
-		space = " ";
+		printf("%7d ", chars);
 	}
-	if (print_type & print_length)
-		printf("%s%7d", space, length);
-	if (*name)
-		printf(" %s", name);
+	if (print_type & print_length) {
+		printf("%7d ", length);
+	}
+	if (*name) {
+		printf("%s", name);
+	}
 	putchar('\n');
 }
 
@@ -142,7 +139,7 @@ int wc_main(int argc, char **argv)
 	}
 
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
-		wc_file(stdin, "");
+		wc_file(stdin, NULL);
 		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
