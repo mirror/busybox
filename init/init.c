@@ -56,7 +56,7 @@
 static char *console = VT_CONSOLE;
 static char *second_console = VT_SECONDARY;
 static char *log = VT_LOG;
-
+static int kernel_version = 0;
 
 
 /* try to open up the specified device */
@@ -350,9 +350,9 @@ static void shutdown_system(void)
     waitfor(run( swap_off_cmd, console, FALSE));
     waitfor(run( umount_cmd, console, FALSE));
     sync();
-    message(CONSOLE, "Skipping bdflush\r\n");
-    if (get_kernel_revision() <= 2 * 65536 + 2 * 256 + 11) {
+    if (kernel_version > 0 && kernel_version <= 2 * 65536 + 2 * 256 + 11) {
 	/* bdflush, kupdate not needed for kernels >2.2.11 */
+	message(CONSOLE, "Flushing buffers.\r\n");
 	bdflush(1, 0);
 	sync();
     }
@@ -445,9 +445,10 @@ extern int init_main(int argc, char **argv)
 
     
     /* Mount /proc */
-    if (mount ("proc", "/proc", "proc", 0, 0) == 0)
+    if (mount ("proc", "/proc", "proc", 0, 0) == 0) {
 	message(CONSOLE|LOG, "Mounting /proc: done.\n");
-    else
+	kernel_version = get_kernel_revision();
+    } else
 	message(CONSOLE|LOG, "Mounting /proc: failed!\n");
 
     /* Make sure there is enough memory to do something useful. */
