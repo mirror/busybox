@@ -1,0 +1,68 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+NETWORKING_AR:=networking.a
+ifndef $(NETWORKING_DIR)
+NETWORKING_DIR:=$(top_builddir)/networking/
+endif
+srcdir=$(top_srcdir)/networking
+NETWORKING-y:=
+NETWORKING-$(CONFIG_ARPING)	+= arping.o
+NETWORKING-$(CONFIG_FTPGET)	+= ftpgetput.o
+NETWORKING-$(CONFIG_FTPPUT)	+= ftpgetput.o
+NETWORKING-$(CONFIG_HOSTNAME)	+= hostname.o
+NETWORKING-$(CONFIG_HTTPD)	+= httpd.o
+NETWORKING-$(CONFIG_IFCONFIG)	+= ifconfig.o
+NETWORKING-$(CONFIG_IFUPDOWN)	+= ifupdown.o
+NETWORKING-$(CONFIG_INETD)      += inetd.o
+NETWORKING-$(CONFIG_IP)		+= ip.o
+NETWORKING-$(CONFIG_IPCALC)	+= ipcalc.o
+NETWORKING-$(CONFIG_IPADDR)	+= ipaddr.o
+NETWORKING-$(CONFIG_IPLINK)	+= iplink.o
+NETWORKING-$(CONFIG_IPROUTE)	+= iproute.o
+NETWORKING-$(CONFIG_IPTUNNEL)	+= iptunnel.o
+NETWORKING-$(CONFIG_NAMEIF)	+= nameif.o
+NETWORKING-$(CONFIG_NC)		+= nc.o
+NETWORKING-$(CONFIG_NETSTAT)	+= netstat.o
+NETWORKING-$(CONFIG_NSLOOKUP)	+= nslookup.o
+NETWORKING-$(CONFIG_PING)	+= ping.o
+NETWORKING-$(CONFIG_PING6)	+= ping6.o
+NETWORKING-$(CONFIG_ROUTE)	+= route.o
+NETWORKING-$(CONFIG_TELNET)	+= telnet.o
+NETWORKING-$(CONFIG_TELNETD)	+= telnetd.o
+NETWORKING-$(CONFIG_TFTP)	+= tftp.o
+NETWORKING-$(CONFIG_TRACEROUTE)	+= traceroute.o
+NETWORKING-$(CONFIG_VCONFIG)	+= vconfig.o
+NETWORKING-$(CONFIG_WGET)	+= wget.o
+
+libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
+
+needcrypt-y:=
+needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
+
+ifeq ($(needcrypt-y),y)
+  LIBRARIES += -lcrypt
+endif
+
+$(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
+	$(AR) -ro $@ $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
+
+$(NETWORKING_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

@@ -1,0 +1,102 @@
+#!/bin/sh
+
+[ -n "$srcdir" ] || srcdir=$(pwd)
+[ -n "$bindir" ] || bindir=$(dirname $(pwd))
+PATH=$bindir:$PATH
+
+run_applet_testcase ()
+{
+	local applet=$1
+	local testcase=$2
+
+	local status=0
+	local RES=
+
+	local uc_applet=$(echo $applet | tr a-z A-Z)
+	local testname=$(basename $testcase)
+
+	if grep -q "^# CONFIG_${uc_applet} is not set$" $bindir/.config; then
+		echo UNTESTED: $testname
+		return 0
+	fi
+
+	if grep -q "^# FEATURE: " $testcase; then
+		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
+
+		if grep -q "^# ${feature} is not set$" $bindir/.config; then
+			echo UNTESTED: $testname
+			return 0
+		fi
+	fi
+
+	rm -rf tmp
+	mkdir -p tmp
+	pushd tmp >/dev/null
+
+	d=$srcdir sh -x -e $testcase >.logfile.txt 2>&1
+
+	if [ $? != 0 ] ; then
+		echo FAIL: $testname
+		if [ "$verbose" = 1 ]; then
+			cat .logfile.txt
+			#exit 1;
+		fi;
+		status=$?
+	else
+		echo PASS: $testname
+		rm -f .logfile.txt
+		status=$?
+	fi
+
+	popd >/dev/null
+	rm -rf tmp
+
+	return $status
+}
+
+run_applet_tests ()
+{
+	local applet=$1
+
+	local status=0
+
+	for testcase in $srcdir/$applet/*; do
+		if [ "$testcase" = "$srcdir/$applet/CVS" ]; then
+			continue
+		fi
+
+		if run_applet_testcase $applet $testcase; then
+			:
+		else
+			status=1
+		fi
+	done
+
+	return $status
+}
+
+
+status=0
+
+if [ x"$1" = x"-v" ]; then
+	verbose=1
+	shift
+fi
+
+if [ $# -ne 0 ]; then
+	applets="$@"
+else
+	applets=$(ls $srcdir)
+fi
+
+for applet in $applets; do
+	if [ "$applet" != CVS -a -d "$srcdir/$applet" ]; then
+		if run_applet_tests $applet; then
+			:
+		else
+			status=1
+		fi
+	fi
+done
+
+exit $status

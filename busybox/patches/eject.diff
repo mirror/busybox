@@ -1,0 +1,164 @@
+Index: AUTHORS
+===================================================================
+RCS file: /var/cvs/busybox/AUTHORS,v
+retrieving revision 1.40
+diff -u -r1.40 AUTHORS
+--- a/AUTHORS	9 Oct 2003 21:19:21 -0000	1.40
++++ b/AUTHORS	5 Mar 2004 07:23:17 -0000
+@@ -8,6 +8,9 @@
+
+ -----------
+
++Peter Willis <psyphreak@phreaker.net>
++    eject
++
+ Emanuele Aina <emanuele.aina@tiscali.it>
+ 	run-parts
+
+Index: coreutils/Config.in
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/Config.in,v
+retrieving revision 1.23
+diff -u -r1.23 Config.in
+--- a/coreutils/Config.in	5 Mar 2004 06:47:25 -0000	1.23
++++ b/coreutils/Config.in	5 Mar 2004 07:23:18 -0000
+@@ -164,6 +164,13 @@
+ 	  a command; without options it displays the current
+ 	  environment.
+
++config CONFIG_EJECT
++	bool "eject"
++	default n
++	help
++	  ejects a cdrom drive.
++	  defaults to /dev/cdrom
++
+ config CONFIG_EXPR
+ 	bool "expr"
+ 	default n
+Index: coreutils/Makefile.in
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/Makefile.in,v
+retrieving revision 1.8
+diff -u -r1.8 Makefile.in
+--- a/coreutils/Makefile.in	27 Jan 2004 09:22:20 -0000	1.8
++++ b/coreutils/Makefile.in	5 Mar 2004 07:23:18 -0000
+@@ -41,6 +41,7 @@
+ COREUTILS-$(CONFIG_DU)      	+= du.o
+ COREUTILS-$(CONFIG_ECHO)    	+= echo.o
+ COREUTILS-$(CONFIG_ENV)     	+= env.o
++COREUTILS-$(CONFIG_EJECT)    	+= eject.o
+ COREUTILS-$(CONFIG_EXPR)    	+= expr.o
+ COREUTILS-$(CONFIG_FALSE)   	+= false.o
+ COREUTILS-$(CONFIG_FOLD)    	+= fold.o
+Index: coreutils/eject.c
+===================================================================
+RCS file: coreutils/eject.c
+diff -N coreutils/eject.c
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ b/coreutils/eject.c	5 Mar 2004 07:23:21 -0000
+@@ -0,0 +1,66 @@
++/*
++ * eject implementation for busybox
++ *
++ * Copyright (C) 2004  Peter Willis <psyphreak@phreaker.net>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ *
++ */
++
++/*
++ * This is a simple hack of eject based on something Erik posted in #uclibc.
++ * Most of the dirty work blatantly ripped off from cat.c =)
++ */
++
++#include <stdio.h>
++#include <string.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include "busybox.h"
++#include <linux/cdrom.h> // needs to be after busybox.h or compile problems arise
++
++#define DEFAULT_CDROM "/dev/cdrom"
++
++extern int eject_main(int argc, char **argv)
++{
++	int fd;
++	int flag = CDROMEJECT;
++	int i = 1;
++	char *device = NULL;
++
++	/*
++	 * i'm too lazy to learn bb_getopt_ulflags and this is obscenely large
++	 * for just some argument parsing so mjn3 can clean it up later.
++	 * sorry, but PlumpOS 7.0-pre2 needs this asap :-/
++	 */
++	while (++i <= argc) {
++		if ( (! strncmp(argv[i-1],"-t",2)) || (! strncmp(argv[i-1],"--trayclose",11)) ) {
++			flag = CDROMCLOSETRAY;
++		} else {
++			device = argv[i-1];
++		}
++	}
++	if ( (fd = open(device == NULL ? DEFAULT_CDROM : device, O_RDONLY | O_NONBLOCK) ) < 0 ) {
++		perror("eject: Can't open device");
++		return(EXIT_FAILURE);
++	}
++	if (ioctl(fd, flag)) {
++		perror("eject: Can't eject cdrom");
++		return(EXIT_FAILURE);
++	}
++	return EXIT_SUCCESS;
++}
+Index: include/applets.h
+===================================================================
+RCS file: /var/cvs/busybox/include/applets.h,v
+retrieving revision 1.111
+diff -u -r1.111 applets.h
+--- a/include/applets.h	27 Jan 2004 09:22:20 -0000	1.111
++++ b/include/applets.h	5 Mar 2004 07:23:21 -0000
+@@ -178,6 +178,9 @@
+ #if defined(CONFIG_FEATURE_GREP_EGREP_ALIAS)
+ 	APPLET_NOUSAGE("egrep", grep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+ #endif
++#ifdef CONFIG_EJECT
++	APPLET(eject, eject_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
++#endif
+ #ifdef CONFIG_ENV
+ 	APPLET(env, env_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+ #endif
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.191
+diff -u -r1.191 usage.h
+--- a/include/usage.h	25 Feb 2004 10:35:55 -0000	1.191
++++ b/include/usage.h	5 Mar 2004 07:23:29 -0000
+@@ -537,6 +537,13 @@
+ 	"\t-, -i\tstart with an empty environment\n" \
+ 	"\t-u\tremove variable from the environment\n"
+
++#define eject_trivial_usage \
++	"[-t] [FILE]"
++#define eject_full_usage \
++	"Ejects the specified FILE or /dev/cdrom if FILE is unspecified.\n\n" \
++	"Options:\n" \
++	"\t-t, --trayclose \tclose tray\n"
++
+ #define expr_trivial_usage \
+ 	"EXPRESSION"
+ #define expr_full_usage \

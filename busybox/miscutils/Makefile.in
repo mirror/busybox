@@ -1,0 +1,55 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+MISCUTILS_AR:=miscutils.a
+ifndef $(MISCUTILS_DIR)
+MISCUTILS_DIR:=$(top_builddir)/miscutils/
+endif
+srcdir=$(top_srcdir)/miscutils
+
+MISCUTILS-y:=
+MISCUTILS-$(CONFIG_ADJTIMEX)		+= adjtimex.o
+MISCUTILS-$(CONFIG_CROND)               += crond.o
+MISCUTILS-$(CONFIG_CRONTAB)             += crontab.o
+MISCUTILS-$(CONFIG_DC)			+= dc.o
+MISCUTILS-$(CONFIG_DEVFSD)		+= devfsd.o
+MISCUTILS-$(CONFIG_HDPARM)		+= hdparm.o
+MISCUTILS-$(CONFIG_LAST)		+= last.o
+MISCUTILS-$(CONFIG_MAKEDEVS)		+= makedevs.o
+MISCUTILS-$(CONFIG_MT)			+= mt.o
+MISCUTILS-$(CONFIG_RX)			+= rx.o
+MISCUTILS-$(CONFIG_STRINGS)		+= strings.o
+MISCUTILS-$(CONFIG_TIME)		+= time.o
+MISCUTILS-$(CONFIG_WATCHDOG)		+= watchdog.o
+
+libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)
+
+needlibm-y:=
+needlibm-$(CONFIG_DC) := y
+
+ifeq ($(needlibm-y),y)
+  LIBRARIES += -lm
+endif
+
+$(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
+	$(AR) -ro $@ $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
+
+$(MISCUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

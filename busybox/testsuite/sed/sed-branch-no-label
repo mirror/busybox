@@ -1,0 +1,1 @@
+test "$(echo foo | busybox sed 'b;p')" = foo

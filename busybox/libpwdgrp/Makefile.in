@@ -1,0 +1,53 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+LIBPWDGRP_AR:=libpwdgrp.a
+ifndef $(LIBPWDGRP_DIR)
+LIBPWDGRP_DIR:=$(top_builddir)/libpwdgrp/
+endif
+srcdir=$(top_srcdir)/libpwdgrp
+
+
+LIBPWDGRP_MSRC0:=$(srcdir)/pwd_grp.c
+LIBPWDGRP_MOBJ0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r.o fgetgrent_r.o \
+	fgetpwent.o fgetgrent.o getpwnam_r.o getgrnam_r.o getpwuid_r.o \
+	getgrgid_r.o getpwuid.o getgrgid.o getpwnam.o getgrnam.o getpw.o \
+	getpwent_r.o getgrent_r.o getpwent.o getgrent.o \
+	initgroups.o putpwent.o putgrent.o
+LIBPWDGRP_MOBJS0=$(patsubst %,$(LIBPWDGRP_DIR)%, $(LIBPWDGRP_MOBJ0-y))
+
+LIBPWDGRP_MSRC1:=$(srcdir)/pwd_grp.c
+LIBPWDGRP_MOBJ1-$(CONFIG_USE_BB_PWD_GRP):= __parsepwent.o __parsegrent.o \
+	__pgsreader.o fgetspent_r.o fgetspent.o sgetspent_r.o getspnam_r.o \
+	getspnam.o getspent_r.o getspent.o sgetspent.o \
+	putspent.o __parsespent.o # getspuid_r.o getspuid.o
+LIBPWDGRP_MOBJS1=$(patsubst %,$(LIBPWDGRP_DIR)%, $(LIBPWDGRP_MOBJ1-y))
+
+libraries-y+=$(LIBPWDGRP_DIR)$(LIBPWDGRP_AR)
+
+$(LIBPWDGRP_DIR)$(LIBPWDGRP_AR): $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
+	$(AR) -ro $@ $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
+
+$(LIBPWDGRP_MOBJS0): $(LIBPWDGRP_MSRC0)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBPWDGRP_MOBJS1): $(LIBPWDGRP_MSRC1)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+

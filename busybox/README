@@ -1,0 +1,127 @@
+Please see the LICENSE file for details on copying and usage.
+
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in GNU coreutils, util-linux, etc. The utilities in BusyBox
+generally have fewer options than their full-featured GNU cousins; however, the
+options that are included provide the expected functionality and behave very
+much like their GNU counterparts.
+
+BusyBox has been written with size-optimization and limited resources in mind.
+It is also extremely modular so you can easily include or exclude commands (or
+features) at compile time. This makes it easy to customize your embedded
+systems. To create a working system, just add /dev, /etc, and a Linux kernel.
+BusyBox provides a fairly complete POSIX environment for any small or embedded
+system.
+
+BusyBox is extremely configurable.  This allows you to include only the
+components you need, thereby reducing binary size. Run 'make config' or
+'make menuconfig' to select the functionality that you wish to enable.
+
+After the build is complete, a busybox.links file is generated.  This is
+used by 'make install' to create symlinks to the BusyBox binary for all
+compiled in functions.  By default, 'make install' will place the symlink
+forest into `pwd`/_install unless you have defined the PREFIX environment
+variable (i.e., 'make PREFIX=/tmp/foo install')
+
+If you wish to install hard links, rather than symlinks, you can use
+'make PREFIX=/tmp/foo install-hardlinks' instead.
+
+----------------
+
+Supported architectures:
+
+   BusyBox in general will build on any architecture supported by gcc.
+   Kernel module loading for 2.2 and 2.4 Linux kernels is currently
+   limited to ARM, CRIS, H8/300, x86, ia64, x86_64, m68k, MIPS, PowerPC,
+   S390, SH3/4/5, Sparc, v850e, and x86_64 for 2.4.x kernels.  For 2.6.x
+   kernels, kernel module loading support should work on all architectures.
+
+
+Supported C Libraries:
+
+   uClibc and glibc are supported.  People have been looking at newlib and
+   dietlibc, but they are currently considered unsupported, untested, or
+   worse.  Linux-libc5 is no longer supported -- you should probably use uClibc
+   instead if you want a small C library.
+
+Supported kernels:
+
+   Full functionality requires Linux 2.2.x or better.  A large fraction of the
+   code should run on just about anything.  While the current code is fairly
+   Linux specific, it should be fairly easy to port the majority of the code
+   to support, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you
+   are into that sort of thing).
+
+----------------
+
+Getting help:
+
+When you find you need help, you can check out the BusyBox mailing list
+archives at http://busybox.net/lists/busybox/ or even join
+the mailing list if you are interested.
+
+----------------
+
+Bugs:
+
+If you find bugs, please submit a detailed bug report to the BusyBox mailing
+list at busybox@mail.busybox.net.  A well-written bug report should include a
+transcript of a shell session that demonstrates the bad behavior and enables
+anyone else to duplicate the bug on their own machine. The following is such
+an example:
+
+    To: busybox@mail.busybox.net
+    From: diligent@testing.linux.org
+    Subject: /bin/date doesn't work
+
+    Package: BusyBox
+    Version: 1.00
+
+    When I execute BusyBox 'date' it produces unexpected results.
+    With GNU date I get the following output:
+
+	$ date
+	Fri Oct  8 14:19:41 MDT 2004
+
+    But when I use BusyBox date I get this instead:
+
+	$ date
+	illegal instruction
+
+    I am using Debian unstable, kernel version 2.4.25-vrs2 on a Netwinder,
+    and the latest uClibc from CVS.  Thanks for the wonderful program!
+
+	-Diligent
+
+Note the careful description and use of examples showing not only what BusyBox
+does, but also a counter example showing what an equivalent GNU app does.  Bug
+reports lacking such detail may never be fixed...  Thanks for understanding.
+
+----------------
+
+Downloads:
+
+Source for the latest released version, as well as daily snapshots, can always
+be downloaded from
+    http://busybox.net/downloads/
+
+----------------
+
+CVS:
+
+BusyBox now has its own publicly browsable CVS tree at:
+    http://busybox.net/cgi-bin/cvsweb/busybox/
+
+Anonymous CVS access is available.  For instructions, check out:
+    http://busybox.net/cvs_anon.html
+
+For those that are actively contributing there is even CVS write access:
+    http://busybox.net/cvs_write.html
+
+----------------
+
+Please feed suggestions, bug reports, insults, and bribes back to:
+	Erik Andersen
+	<andersen@codepoet.org>
+

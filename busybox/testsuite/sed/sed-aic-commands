@@ -1,0 +1,134 @@
+cat - >input <<EOF
+2i\\
+before 2
+5c\\
+Change 5
+10a\\
+After 10
+22i\\
+before 22\\
+Continued
+25c\\
+Change 25\\
+Continued
+20a\\
+After 20\\
+Continued
+  	  32i\\
+before 32\\
+Continued 1\\
+Continued 2\\
+Continued 3
+  	  35c\\
+Change 35\\
+Continued 1\\
+Continued 2\\
+Continued 3
+	30a\\
+After 30\\
+Continued 1\\
+Continued 2\\
+Continued 3
+EOF
+busybox sed -f input >output <<EOF
+     1	y
+     2	y
+     3	y
+     4	y
+     5	y
+     6	y
+     7	y
+     8	y
+     9	y
+    10	y
+    11	y
+    12	y
+    13	y
+    14	y
+    15	y
+    16	y
+    17	y
+    18	y
+    19	y
+    20	y
+    21	y
+    22	y
+    23	y
+    24	y
+    25	y
+    26	y
+    27	y
+    28	y
+    29	y
+    30	y
+    31	y
+    32	y
+    33	y
+    34	y
+    35	y
+    36	y
+    37	y
+    38	y
+    39	y
+    40	y
+EOF
+cmp -s output - <<EOF
+     1	y
+before 2
+     2	y
+     3	y
+     4	y
+Change 5
+     6	y
+     7	y
+     8	y
+     9	y
+    10	y
+After 10
+    11	y
+    12	y
+    13	y
+    14	y
+    15	y
+    16	y
+    17	y
+    18	y
+    19	y
+    20	y
+After 20
+Continued
+    21	y
+before 22
+Continued
+    22	y
+    23	y
+    24	y
+Change 25
+Continued
+    26	y
+    27	y
+    28	y
+    29	y
+    30	y
+After 30
+Continued 1
+Continued 2
+Continued 3
+    31	y
+before 32
+Continued 1
+Continued 2
+Continued 3
+    32	y
+    33	y
+    34	y
+Change 35
+Continued 1
+Continued 2
+Continued 3
+    36	y
+    37	y
+    38	y
+    39	y
+    40	y
+EOF

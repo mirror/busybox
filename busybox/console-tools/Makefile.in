@@ -1,0 +1,44 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+CONSOLETOOLS_AR:=console-tools.a
+ifndef $(CONSOLETOOLS_DIR)
+CONSOLETOOLS_DIR:=$(top_builddir)/console-tools/
+endif
+srcdir=$(top_srcdir)/console-tools
+
+CONSOLETOOLS_DIR-y:=
+CONSOLETOOLS_DIR-$(CONFIG_CHVT)		+= chvt.o
+CONSOLETOOLS_DIR-$(CONFIG_CLEAR)	+= clear.o
+CONSOLETOOLS_DIR-$(CONFIG_DEALLOCVT)	+= deallocvt.o
+CONSOLETOOLS_DIR-$(CONFIG_DUMPKMAP)	+= dumpkmap.o
+CONSOLETOOLS_DIR-$(CONFIG_LOADFONT)	+= loadfont.o
+CONSOLETOOLS_DIR-$(CONFIG_LOADKMAP)	+= loadkmap.o
+CONSOLETOOLS_DIR-$(CONFIG_OPENVT)	+= openvt.o
+CONSOLETOOLS_DIR-$(CONFIG_RESET)	+= reset.o
+CONSOLETOOLS_DIR-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
+
+libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
+
+$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
+	$(AR) -ro $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
+
+$(CONSOLETOOLS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

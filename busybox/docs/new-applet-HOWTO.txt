@@ -1,0 +1,163 @@
+How to Add a New Applet to BusyBox
+==================================
+
+This document details the steps you must take to add a new applet to BusyBox.
+
+Credits:
+Matt Kraai - initial writeup
+Mark Whitley - the remix
+Thomas Lundquist - Added stuff for the new directory layout.
+
+Initial Write
+-------------
+
+First, write your applet.  Be sure to include copyright information at the
+top, such as who you stole the code from and so forth. Also include the
+mini-GPL boilerplate. Be sure to name the main function <applet>_main instead
+of main.  And be sure to put it in <applet>.c. Usage do not have to be taken care of by your applet.
+
+For a new applet mu, here is the code that would go in mu.c:
+
+----begin example code------
+
+/* vi: set sw=4 ts=4: */
+/*
+ * Mini mu implementation for busybox
+ *
+ *
+ * Copyright (C) [YEAR] by [YOUR NAME] <YOUR EMAIL>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307 USA
+ *
+ */
+
+#include "busybox.h"
+
+int mu_main(int argc, char **argv)
+{
+	int fd;
+	char mu;
+
+	if ((fd = open("/dev/random", O_RDONLY)) < 0)
+		perror_msg_and_die("/dev/random");
+
+	if ((n = safe_read(fd, &mu, 1)) < 1)
+		perror_msg_and_die("/dev/random");
+
+	return mu;
+}
+
+----end example code------
+
+
+Coding Style
+------------
+
+Before you submit your applet for inclusion in BusyBox, (or better yet, before
+you _write_ your applet) please read through the style guide in the docs
+directory and make your program compliant.
+
+
+Some Words on libbb
+-------------------
+
+As you are writing your applet, please be aware of the body of pre-existing
+useful functions in libbb. Use these instead of reinventing the wheel.
+
+Additionally, if you have any useful, general-purpose functions in your
+program that could be useful in another program, consider putting them in
+libbb.
+
+
+Placement / Directory
+---------------------
+
+Find the appropriate directory for your new applet.
+
+Make sure you find the appropriate places in the files, the applets are
+sorted alphabetically.
+
+Add the applet to Makefile.in in the chosen applet directory:
+
+obj-$(CONFIG_MU)               += mu.o
+
+Add the applet to Config.in in the chosen applet directory:
+
+config CONFIG_MU
+	bool "MU"
+	default n
+	help
+	  Returns an indeterminate value.
+
+
+Usage String(s)
+---------------
+
+Next, add usage information for you applet to include/usage.h.
+This should look like the following:
+
+	#define mu_trivial_usage \
+		"-[abcde] FILES"
+	#define mu_full_usage \
+		"Returns an indeterminate value.\n\n" \
+		"Options:\n" \
+		"\t-a\t\tfirst function\n" \
+		"\t-b\t\tsecond function\n" \
+
+If your program supports flags, the flags should be mentioned on the first
+line (-[abcde]) and a detailed description of each flag should go in the
+mu_full_usage section, one flag per line. (Numerous examples of this
+currently exist in usage.h.)
+
+
+Header Files
+------------
+
+Next, add an entry to include/applets.h.  Be *sure* to keep the list
+in alphabetical order, or else it will break the binary-search lookup
+algorithm in busybox.c and the Gods of BusyBox smite you. Yea, verily:
+
+	/* all programs above here are alphabetically "less than" 'mu' */
+	#ifdef CONFIG_MU
+		APPLET("mu", mu_main, _BB_DIR_USR_BIN, mu_usage)
+	#endif
+	/* all programs below here are alphabetically "greater than" 'mu' */
+
+
+Finally, add a define for your applet to include/config.h
+
+	#undef CONFIG_MU
+
+
+Documentation
+-------------
+
+If you're feeling especially nice, you should also document your applet in the
+docs directory (but nobody ever does that).
+
+Adding some text to docs/Configure.help is a nice start.
+
+
+The Grand Announcement
+----------------------
+
+Then create a diff -urN of the files you added (<appletdir/><applet>.c,
+include/usage.c, include/applets.h, include/config.h, <appletdir>/Makefile.in, <appletdir>/config.in)
+and send it to the mailing list:
+busybox@busybox.net.
+
+Sending patches as attachments is preferred, but not required.
+

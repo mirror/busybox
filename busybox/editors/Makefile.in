@@ -1,0 +1,48 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+EDITOR_AR:=editors.a
+ifndef $(EDITOR_DIR)
+EDITOR_DIR:=$(top_builddir)/editors/
+endif
+srcdir=$(top_srcdir)/editors
+
+EDITOR-y:=
+EDITOR-$(CONFIG_AWK)	   += awk.o
+EDITOR-$(CONFIG_PATCH)	   += patch.o
+EDITOR-$(CONFIG_SED)       += sed.o
+EDITOR-$(CONFIG_VI)        += vi.o
+EDITOR_SRC:= $(EDITOR-y)
+EDITOR_OBJ:= $(patsubst %.c,$(EDITOR_DIR)%.o, $(EDITOR_SRC))
+
+libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+
+needlibm-y:=
+needlibm-$(CONFIG_FEATURE_AWK_MATH) := y
+
+ifeq ($(needlibm-y),y)
+  LIBRARIES += -lm
+endif
+
+$(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
+	$(AR) -ro $@ $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
+
+$(EDITOR_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

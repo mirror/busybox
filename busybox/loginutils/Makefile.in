@@ -1,0 +1,57 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+LOGINUTILS_AR:=loginutils.a
+ifndef LOGINUTILS_DIR
+LOGINUTILS_DIR:=$(top_builddir)/loginutils/
+endif
+srcdir=$(top_srcdir)/loginutils
+
+LOGINUTILS-y:=
+LOGINUTILS-$(CONFIG_ADDGROUP)	+= addgroup.o
+LOGINUTILS-$(CONFIG_ADDUSER)	+= adduser.o
+LOGINUTILS-$(CONFIG_GETTY)	+= getty.o
+LOGINUTILS-$(CONFIG_LOGIN)	+= login.o
+LOGINUTILS-$(CONFIG_PASSWD)	+= passwd.o
+LOGINUTILS-$(CONFIG_SU)		+= su.o
+LOGINUTILS-$(CONFIG_SULOGIN)	+= sulogin.o
+LOGINUTILS-$(CONFIG_VLOCK)	+= vlock.o
+LOGINUTILS-$(CONFIG_DELUSER)	+= deluser.o
+LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
+
+libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
+
+needcrypt-y:=
+needcrypt-$(CONFIG_LOGIN)	:= y
+needcrypt-$(CONFIG_PASSWD)	:= y
+needcrypt-$(CONFIG_SU)		:= y
+needcrypt-$(CONFIG_SULOGIN)	:= y
+needcrypt-$(CONFIG_VLOCK)	:= y
+
+
+ifeq ($(needcrypt-y),y)
+  LIBRARIES += -lcrypt
+endif
+
+$(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
+	$(AR) -ro $@ $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
+
+$(LOGINUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

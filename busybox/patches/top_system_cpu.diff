@@ -1,0 +1,51 @@
+diff -purN busybox.ori/include/libbb.h busybox/include/libbb.h
+--- busybox.ori/include/libbb.h	2004-03-21 14:39:35.000000000 +0100
++++ busybox-1.0/include/libbb.h	2004-03-21 14:45:35.000000000 +0100
+@@ -447,6 +447,7 @@ typedef struct {
+ 	int ppid;
+ #ifdef FEATURE_CPU_USAGE_PERCENTAGE
+ 	unsigned pcpu;
++	unsigned pscpu;
+ 	unsigned long stime, utime;
+ #endif
+ 	char *cmd;
+diff -purN busybox.ori/procps/top.c busybox/procps/top.c
+--- busybox.ori/procps/top.c	2004-03-21 14:40:09.000000000 +0100
++++ busybox-1.0/procps/top.c	2004-03-21 17:27:52.961951448 +0100
+@@ -289,6 +289,15 @@ static void do_stats(void)
+ 	    i = 999;
+ 	cur->pcpu = i;
+ 
++	/*
++	 * Calculate percent of system time from cpu time
++	 */
++	if (systime != 0) {
++    	    cur->pscpu = 100 * total_time / systime;
++	} else {
++	    cur->pscpu = 0;
++	}
++
+     }
+ 
+     /*
+@@ -393,7 +402,7 @@ static void display_status(int count, in
+ 	
+ #ifdef FEATURE_CPU_USAGE_PERCENTAGE
+ 	/* what info of the processes is shown */
+-	printf("\n\e[7m  PID USER     STATUS   RSS  PPID %%CPU %%MEM COMMAND\e[0m\n");
++	printf("\n\e[7m  PID USER     STATUS   RSS  PPID %%CPU %%SCPU %%MEM COMMAND\e[0m\n");
+ #else
+ 	printf("\n\e[7m  PID USER     STATUS   RSS  PPID %%MEM COMMAND\e[0m\n");
+ #endif
+@@ -410,9 +419,9 @@ static void display_status(int count, in
+ 		else
+ 			sprintf(rss_str_buf, "%7ld", s->rss);
+ #ifdef FEATURE_CPU_USAGE_PERCENTAGE
+-		printf("%5d %-8s %s  %s %5d %2d.%d %2u.%u ",
++		printf("%5d %-8s %s  %s %5d %2d.%d %2d.%d %2u.%u ",
+ 			s->pid, s->user, s->state, rss_str_buf, s->ppid,
+-			s->pcpu/10, s->pcpu%10, pmem/10, pmem%10);
++			s->pcpu/10, s->pcpu%10,s->pscpu/10, s->pscpu%10, pmem/10, pmem%10);
+ #else
+ 		printf("%5d %-8s %s  %s %5d %2u.%u ",
+ 			s->pid, s->user, s->state, rss_str_buf, s->ppid,

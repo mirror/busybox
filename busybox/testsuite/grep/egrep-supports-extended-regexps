@@ -1,0 +1,2 @@
+# FEATURE: CONFIG_FEATURE_GREP_EGREP_ALIAS
+echo foo | busybox egrep fo+

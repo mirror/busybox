@@ -1,0 +1,333 @@
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.191
+diff -u -r1.191 usage.h
+--- a/include/usage.h	25 Feb 2004 10:35:55 -0000	1.191
++++ b/include/usage.h	5 Mar 2004 13:20:11 -0000
+@@ -2606,7 +2606,8 @@
+ 	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
+ 	"\t-q,\t--quit\tQuit after obtaining lease\n" \
+ 	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
+-	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
++	"\t-s,\t--script=file\tRun file at dhcp events (default: " \
++	CONFIG_UDHCPC_SCRIPT_PATH ")\n" \
+ 	"\t-v,\t--version\tDisplay version"
+
+ #define udhcpd_trivial_usage \
+Index: networking/udhcp/AUTHORS
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/AUTHORS,v
+retrieving revision 1.3
+diff -u -r1.3 AUTHORS
+--- a/networking/udhcp/AUTHORS	18 Dec 2003 22:25:38 -0000	1.3
++++ b/networking/udhcp/AUTHORS	5 Mar 2004 13:20:11 -0000
+@@ -10,5 +10,5 @@
+ Moreton Bay	(http://www.moretonbay.com/)
+ Vladimir Oleynik <dzo@simtrea.ru> Size optimizations
+
+-
++Tony J. White <tjw@tjw.org> additional busybox build options
+
+Index: networking/udhcp/Config.in
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/Config.in,v
+retrieving revision 1.5
+diff -u -r1.5 Config.in
+--- a/networking/udhcp/Config.in	22 Oct 2003 09:58:38 -0000	1.5
++++ b/networking/udhcp/Config.in	5 Mar 2004 13:20:11 -0000
+@@ -58,5 +58,62 @@
+
+ 	  See http://udhcp.busybox.net for further details.
+
++menu "udhcpd Configuration Options"
++	depends on CONFIG_UDHCPD
++
++config CONFIG_UDHCPD_CONF_PATH
++	string "Path to default udhcpd.conf"
++	default "/etc/udhcpd.conf"
++	depends on CONFIG_UDHCPD
++	help
++	  The full path to udhcpd's default configuration file.
++	  (default is: /etc/udhcpd.conf)
++
++config CONFIG_UDHCPD_LEASE_PATH
++	string "Path to default udhcpd.leases"
++	default "/var/lib/misc/udhcpd.leases"
++	depends on CONFIG_UDHCPD
++	help
++	  The full path to udhcpd's default leases file.
++	  (default is: /var/lib/misc/udhcpd.leases)
++
++config CONFIG_UDHCPD_PID_PATH
++	string "Path to default udhcpd PID file"
++	default "/var/run/udhcpd.pid"
++	depends on CONFIG_UDHCPD
++	help
++	  The full path to udhcpd's default pid file.
++	  (default is: /var/run/udhcpd.pid)
++
++endmenu
++
++menu "udhcpc Configuration Options"
++	depends on CONFIG_UDHCPC
++
++config CONFIG_UDHCPC_SCRIPT_PATH
++	string "Path to default udhcpc event script"
++	depends on CONFIG_UDHCPC
++	help
++	  The full path to udhcpc's default event script file.
++	  (default is: /usr/share/udhcpc/default.script OR
++	  /share/udhcpc/default.script if CONFIG_INSTALL_NO_USR is set)
++	
++	  When udhcpc is started it executes this script to take care
++	  of system tasks after it completes DHCP communication.  Such
++	  tasks include putting network interfaces up or down, setting
++	  DNS info, adding routing information, etc.
++
++if CONFIG_INSTALL_NO_USR
++config CONFIG_UDHCPC_SCRIPT_PATH
++	default "/share/udhcpc/default.script"
++endif
++
++if !CONFIG_INSTALL_NO_USR
++config CONFIG_UDHCPC_SCRIPT_PATH
++	default "/usr/share/udhcpc/default.script"
++endif
++
++endmenu
++
+ endmenu
+
+Index: networking/udhcp/README
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/README,v
+retrieving revision 1.3
+diff -u -r1.3 README
+--- a/networking/udhcp/README	18 Dec 2003 22:25:38 -0000	1.3
++++ b/networking/udhcp/README	5 Mar 2004 13:20:11 -0000
+@@ -9,27 +9,42 @@
+ compile time options
+ -------------------
+
+-The Makefile contains three of the compile time options:
++The following options can be adjusted when configuring busybox:
+
+-	UDHCP_DEBUG: If UDHCP_DEBUG is defined, udhcpd will output extra
+-	debugging output, compile with -g, and not fork to the background when
+-	run.
+-	UDHCP_SYSLOG: If UDHCP_SYSLOG is defined, udhcpd will log all its
+-	messages syslog, otherwise, it will attempt to log them to stdout.
+-
+-	COMBINED_BINARY: If COMBINED_BINARY is define, one binary, udhcpd,
+-	is created. If called as udhcpd, the dhcp server will be started.
+-	If called as udhcpc, the dhcp client will be started.
+-
+-dhcpd.h contains the other three compile time options:
+-
+-	LEASE_TIME: The default lease time if not specified in the config
+-	file.
++	CONFIG_FEATURE_UDHCP_DEBUG:
++	  If this is defined, udhcpd will output extra debugging output,
++	  compile with -g, and not fork to the background when run.
+
+-	LEASES_FILE: The default file for storing leases.
+-
+-	DHCPD_CONFIG_FILE: The defualt config file to use.
++	CONFIG_FEATURE_UDHCP_SYSLOG:
++	  If this is defined, udhcpd will log all its messages syslog,
++	  otherwise, it will attempt to log them to stdout.
++
++	CONFIG_UDHCPD_CONF_PATH:
++	  The full path to udhcpd's default configuration file.
++
++	CONFIG_UDHCPD_LEASE_PATH:
++	  The full path to udhcpd's default leases file.
++
++	CONFIG_UDHCPD_PID_PATH:
++	  The full path to udhcpd's default pid file.
++
++	CONFIG_UDHCPC_SCRIPT_PATH:
++	  The full path to udhcpc's default event script file.
++	  (default is: /usr/share/udhcpc/default.script)
++
++	  When udhcpc is started it executes this script to take care
++	  of system tasks after it completes DHCP communication.  Such
++	  tasks include putting network interfaces up or down, setting
++	  DNS info, adding routing information, etc.
++
++
++dhcpd.h contains the another compile time option:
+
++	LEASE_TIME:
++	  The default lease time if not specified in the config file.
++	  This option can also be changed at runtime with the 'lease'
++	  configuration option.
++
+ options.c contains a set of dhcp options for the client:
+
+ 	name[10]: The name of the option as it will appear in scripts
+Index: networking/udhcp/README.udhcpc
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/README.udhcpc,v
+retrieving revision 1.3
+diff -u -r1.3 README.udhcpc
+--- a/networking/udhcp/README.udhcpc	11 Dec 2002 21:12:44 -0000	1.3
++++ b/networking/udhcp/README.udhcpc	5 Mar 2004 13:20:11 -0000
+@@ -23,7 +23,8 @@
+ -q, --quit                      Quit after obtaining lease
+ -r, --request=IP                IP address to request (default: none)
+ -s, --script=file               Run file at dhcp events (default:
+-                                /usr/share/udhcpc/default.script)
++                                /usr/share/udhcpc/default.script or
++				CONFIG_UDHCPC_SCRIPT_PATH at build time)
+ -v, --version                   Display version
+
+
+Index: networking/udhcp/README.udhcpd
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/README.udhcpd,v
+retrieving revision 1.1
+diff -u -r1.1 README.udhcpd
+--- a/networking/udhcp/README.udhcpd	31 Oct 2002 19:21:27 -0000	1.1
++++ b/networking/udhcp/README.udhcpd	5 Mar 2004 13:20:11 -0000
+@@ -50,10 +50,14 @@
+
+ compile time options
+ -------------------
++
++During busybox configuration, you can change the default paths for
++udhcpd.conf, udhcpd.leases, and udhcpd.pid files.  See README for
++more details.
+
+-dhcpd.h contains the other two compile time options:
++dhcpd.h contains the compile time option:
+
+ 	LEASE_TIME: The default lease time if not specified in the config
+ 	file.
++
+
+-	DHCPD_CONFIG_FILE: The defualt config file to use.
+Index: networking/udhcp/dhcpc.h
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/dhcpc.h,v
+retrieving revision 1.4
+diff -u -r1.4 dhcpc.h
+--- a/networking/udhcp/dhcpc.h	30 Jan 2004 23:45:12 -0000	1.4
++++ b/networking/udhcp/dhcpc.h	5 Mar 2004 13:20:11 -0000
+@@ -2,7 +2,11 @@
+ #ifndef _DHCPC_H
+ #define _DHCPC_H
+
+-#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
++#ifdef CONFIG_UDHCPC_SCRIPT_PATH
++ #define DEFAULT_SCRIPT  CONFIG_UDHCPC_SCRIPT_PATH
++#else
++ #define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
++#endif
+
+ /* allow libbb_udhcp.h to redefine DEFAULT_SCRIPT */
+ #include "libbb_udhcp.h"
+Index: networking/udhcp/dhcpd.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/dhcpd.c,v
+retrieving revision 1.5
+diff -u -r1.5 dhcpd.c
+--- a/networking/udhcp/dhcpd.c	30 Jan 2004 23:45:12 -0000	1.5
++++ b/networking/udhcp/dhcpd.c	5 Mar 2004 13:20:11 -0000
+@@ -70,6 +70,13 @@
+ 	struct dhcpOfferedAddr *lease;
+ 	int max_sock;
+ 	unsigned long num_ips;
++	int daemonize = 1;
++
++	while (strcmp(argv[1],"-f")==0 || strcmp(argv[1],"--foreground")==0) {
++		daemonize = 0;
++		argv++;
++		argc--;
++	}
+
+ 	memset(&server_config, 0, sizeof(struct server_config_t));
+ 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
+@@ -99,9 +106,8 @@
+ 			   &server_config.server, server_config.arp) < 0)
+ 		return 1;
+
+-#ifndef UDHCP_DEBUG
+-	background(server_config.pidfile); /* hold lock during fork. */
+-#endif
++	if(daemonize)
++		background(server_config.pidfile); /* hold lock during fork. */
+
+ 	/* Setup the signal pipe */
+ 	udhcp_sp_setup();
+Index: networking/udhcp/dhcpd.h
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/dhcpd.h,v
+retrieving revision 1.5
+diff -u -r1.5 dhcpd.h
+--- a/networking/udhcp/dhcpd.h	30 Jan 2004 23:45:12 -0000	1.5
++++ b/networking/udhcp/dhcpd.h	5 Mar 2004 13:20:12 -0000
+@@ -15,11 +15,25 @@
+
+ /* the period of time the client is allowed to use that address */
+ #define LEASE_TIME              (60*60*24*10) /* 10 days of seconds */
+-#define LEASES_FILE		"/var/lib/misc/udhcpd.leases"
++
++#ifdef CONFIG_UDHCPD_LEASE_PATH
++ #define LEASES_FILE            CONFIG_UDHCPD_LEASE_PATH
++#else
++ #define LEASES_FILE		"/var/lib/misc/udhcpd.leases"
++#endif
+
+ /* where to find the DHCP server configuration file */
+-#define DHCPD_CONF_FILE         "/etc/udhcpd.conf"
++#ifdef CONFIG_UDHCPD_CONF_PATH
++ #define DHCPD_CONF_FILE         CONFIG_UDHCPD_CONF_PATH
++#else
++ #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"
++#endif
+
++#ifdef CONFIG_UDHCPD_PID_PATH
++ #define DHCPD_PID_FILE         CONFIG_UDHCPD_PID_PATH
++#else
++ #define DHCPD_PID_FILE         "/var/run/udhcpd.pid"
++#endif
+ /*****************************************************************/
+ /* Do not modify below here unless you know what you are doing!! */
+ /*****************************************************************/
+Index: networking/udhcp/files.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/files.c,v
+retrieving revision 1.13
+diff -u -r1.13 files.c
+--- a/networking/udhcp/files.c	30 Jan 2004 23:45:12 -0000	1.13
++++ b/networking/udhcp/files.c	5 Mar 2004 13:20:13 -0000
+@@ -166,7 +166,7 @@
+ 	{"offer_time",	read_u32, &(server_config.offer_time),	"60"},
+ 	{"min_lease",	read_u32, &(server_config.min_lease),	"60"},
+ 	{"lease_file",	read_str, &(server_config.lease_file),	LEASES_FILE},
+-	{"pidfile",	read_str, &(server_config.pidfile),	"/var/run/udhcpd.pid"},
++	{"pidfile",	read_str, &(server_config.pidfile),	DHCPD_PID_FILE},
+ 	{"notify_file", read_str, &(server_config.notify_file),	""},
+ 	{"siaddr",	read_ip,  &(server_config.siaddr),	"0.0.0.0"},
+ 	{"sname",	read_str, &(server_config.sname),	""},
+Index: networking/udhcp/libbb_udhcp.h
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/libbb_udhcp.h,v
+retrieving revision 1.5
+diff -u -r1.5 libbb_udhcp.h
+--- a/networking/udhcp/libbb_udhcp.h	18 Dec 2003 22:25:38 -0000	1.5
++++ b/networking/udhcp/libbb_udhcp.h	5 Mar 2004 13:20:13 -0000
+@@ -3,11 +3,6 @@
+ /* bit of a hack, do this no matter what the order of the includes.
+  * (for busybox) */
+
+-#ifdef CONFIG_INSTALL_NO_USR
+-#undef DEFUALT_SCRIPT
+-#define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
+-#endif
+-
+ #ifndef _LIBBB_UDHCP_H
+ #define _LIBBB_UDHCP_H
+

@@ -1,0 +1,196 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_GNU_CPU ?= $(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
+DEB_HOST_GNU_SYSTEM ?= $(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
+
+VERSION = $(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	CONFIG_DEBUG = true
+endif
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+endif
+
+PACKAGE_PREFIX = busybox-cvs
+
+ARCH_FLOPPY_UDEB = $(shell sh debian/control-extract Architecture $(PACKAGE_PREFIX)-floppy-udeb)
+
+PACKAGES_DEB = $(PACKAGE_PREFIX) $(PACKAGE_PREFIX)-static
+PACKAGES_UDEB = $(PACKAGE_PREFIX)-udeb
+ifneq ($(filter $(DEB_HOST_ARCH),$(ARCH_FLOPPY_UDEB)),)
+PACKAGES_UDEB += $(PACKAGE_PREFIX)-floppy-udeb
+endif
+PACKAGES = $(PACKAGES_DEB) $(PACKAGES_UDEB)
+
+DEBHELPER_PACKAGES_DEB = $(patsubst %,-p%,$(PACKAGES_DEB))
+DEBHELPER_PACKAGES_UDEB = $(patsubst %,-p%,$(PACKAGES_UDEB))
+
+CONFIG = $(firstword $(wildcard ./debian/config-$(1)-$(DEB_HOST_GNU_SYSTEM)-$(DEB_HOST_GNU_CPU) ./debian/config-$(1)-$(DEB_HOST_GNU_SYSTEM) ./debian/config-$(1)))
+CONFIG_DEB = $(call CONFIG,deb)
+CONFIG_STATIC = $(call CONFIG,static)
+CONFIG_UDEB = $(call CONFIG,udeb)
+CONFIG_FLOPPY_UDEB = $(call CONFIG,floppy-udeb)
+
+configure: configure-stamp
+configure-stamp:
+	sh ./configure
+
+	touch $@
+
+build-arch: build-arch-deb-all build-arch-udeb-all
+build-arch-deb-all: build-arch-deb build-arch-static build-arch-doc
+build-arch-udeb-all: build-arch-udeb build-arch-floppy-udeb
+
+build-arch-deb: build-arch-deb-stamp
+build-arch-deb-stamp: configure-stamp
+	$(MAKE) clean
+
+	cp $(CONFIG_DEB) .config
+
+	$(MAKE) dep
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
+
+	install -d install-$(PACKAGE_PREFIX)/bin
+	install busybox install-$(PACKAGE_PREFIX)/bin/busybox
+
+	touch $@
+
+build-arch-static: build-arch-static-stamp
+build-arch-static-stamp: configure-stamp
+	$(MAKE) clean
+
+	cp $(CONFIG_STATIC) .config
+
+	$(MAKE) dep
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
+
+	install -d install-$(PACKAGE_PREFIX)-static/bin
+	install busybox install-$(PACKAGE_PREFIX)-static/bin/busybox
+
+	touch $@
+
+build-arch-udeb: build-arch-udeb-stamp
+build-arch-udeb-stamp: configure-stamp
+	$(MAKE) clean
+
+	cp $(CONFIG_UDEB) .config
+
+	$(MAKE) dep
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
+
+	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-udeb install
+	# Remove init link, but init support is still compiled in to be
+	# used.
+	rm -f $(CURDIR)/install-$(PACKAGE_PREFIX)-udeb/sbin/init
+
+	touch $@
+
+build-arch-floppy-udeb: build-arch-floppy-udeb-stamp
+build-arch-floppy-udeb-stamp: configure-stamp
+ifneq ($(filter $(DEB_HOST_ARCH),$(ARCH_FLOPPY_UDEB)),)
+	$(MAKE) clean
+
+	cp $(CONFIG_FLOPPY_UDEB) .config
+
+	$(MAKE) dep
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
+
+	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-floppy-udeb install
+endif
+
+	touch $@
+
+build-arch-doc: build-arch-doc-stamp
+build-arch-doc-stamp: configure-stamp
+	$(MAKE) docs/BusyBox.1
+
+	cp docs/BusyBox.1 busybox.1
+
+	touch $@
+
+build: build-arch
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-*-stamp configure-stamp debian/files~
+
+	-$(MAKE) distclean
+	-rm -rf busybox-deb busybox-static install* busybox.1
+
+	dh_clean
+
+install-deb: build-arch-deb-all
+	dh_testdir
+	dh_testroot
+	dh_clean -k $(DEBHELPER_PACKAGES_DEB)
+	dh_installdirs $(DEBHELPER_PACKAGES_DEB)
+
+	for i in $(PACKAGES_DEB); do \
+	( \
+		cd install-$$i; \
+		find -type d -exec install -d $(CURDIR)/debian/$$i/{} \;; \
+		find \( -type f -o -type l \) -exec cp -a {} $(CURDIR)/debian/$$i/{} \;; \
+	); \
+	done
+
+	install -m644 debian/$(PACKAGE_PREFIX)-static.override \
+		debian/$(PACKAGE_PREFIX)-static/usr/share/lintian/overrides/$(PACKAGE_PREFIX)-static
+
+install-udeb: build-arch-udeb-all
+	dh_testdir
+	dh_testroot
+	dh_clean -k $(DEBHELPER_PACKAGES_UDEB)
+	dh_installdirs $(DEBHELPER_PACKAGES_UDEB)
+
+	for i in $(PACKAGES_UDEB); do \
+	( \
+		cd install-$$i; \
+		find -type d -exec install -d $(CURDIR)/debian/$$i/{} \;; \
+		find \( -type f -o -type l \) -exec cp -a {} $(CURDIR)/debian/$$i/{} \;; \
+	); \
+	done
+
+binary-arch: binary-arch-deb binary-arch-udeb
+
+# Build architecture-dependent files here.
+binary-arch-deb: build-arch-deb-all install-deb
+	dh_testdir
+	dh_testroot
+	dh_installdocs $(DEBHELPER_PACKAGES_DEB)
+	dh_installman $(DEBHELPER_PACKAGES_DEB)
+	dh_installchangelogs Changelog $(DEBHELPER_PACKAGES_DEB)
+	dh_strip $(DEBHELPER_PACKAGES_DEB)
+	dh_link $(DEBHELPER_PACKAGES_DEB)
+	dh_compress $(DEBHELPER_PACKAGES_DEB)
+	dh_fixperms $(DEBHELPER_PACKAGES_DEB)
+	dh_installdeb $(DEBHELPER_PACKAGES_DEB)
+	dh_shlibdeps $(DEBHELPER_PACKAGES_DEB)
+	dh_gencontrol $(DEBHELPER_PACKAGES_DEB)
+	dh_md5sums $(DEBHELPER_PACKAGES_DEB)
+	dh_builddeb $(DEBHELPER_PACKAGES_DEB)
+
+# Build architecture-dependent files here.
+binary-arch-udeb: build-arch-udeb-all install-udeb
+	dh_testdir
+	dh_testroot
+	dh_strip $(DEBHELPER_PACKAGES_UDEB)
+	dh_link $(DEBHELPER_PACKAGES_UDEB)
+	dh_compress $(DEBHELPER_PACKAGES_UDEB)
+	dh_fixperms $(DEBHELPER_PACKAGES_UDEB)
+	dh_installdeb $(DEBHELPER_PACKAGES_UDEB)
+	dh_shlibdeps $(DEBHELPER_PACKAGES_UDEB)
+	dh_gencontrol $(DEBHELPER_PACKAGES_DEB)
+
+	$(foreach PACKAGE, $(PACKAGES_UDEB), \
+	dh_gencontrol -p$(PACKAGE) -- -fdebian/files~; \
+	dpkg-distaddfile $(PACKAGE)_$(VERSION)_$(DEB_HOST_ARCH).udeb debian-installer extra; \
+	dh_builddeb -p$(PACKAGE) --filename=$(PACKAGE)_$(VERSION)_$(DEB_HOST_ARCH).udeb; \
+	)
+
+binary: binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

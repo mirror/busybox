@@ -1,0 +1,126 @@
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.191
+diff -u -r1.191 usage.h
+--- a/include/usage.h	25 Feb 2004 10:35:55 -0000	1.191
++++ b/include/usage.h	5 Mar 2004 14:32:45 -0000
+@@ -2606,6 +2606,7 @@
+ 	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
+ 	"\t-q,\t--quit\tQuit after obtaining lease\n" \
+ 	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
++	"\t-R,\t--require=NAME\tAdd NAME to request\n" \
+ 	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
+ 	"\t-v,\t--version\tDisplay version"
+
+Index: networking/udhcp/README.udhcpc
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/README.udhcpc,v
+retrieving revision 1.3
+diff -u -r1.3 README.udhcpc
+--- a/networking/udhcp/README.udhcpc	11 Dec 2002 21:12:44 -0000	1.3
++++ b/networking/udhcp/README.udhcpc	5 Mar 2004 14:32:46 -0000
+@@ -22,6 +22,7 @@
+ -p, --pidfile=file              Store process ID of daemon in file
+ -q, --quit                      Quit after obtaining lease
+ -r, --request=IP                IP address to request (default: none)
++-R, --require=NAME              Add NAME to request
+ -s, --script=file               Run file at dhcp events (default:
+                                 /usr/share/udhcpc/default.script)
+ -v, --version                   Display version
+@@ -101,6 +102,8 @@
+
+ additional options are easily added in options.c.
+
++By default, only a few basic items are requested. To request additional
++items use the -R option. Example: "-R rootpath"
+
+ note on udhcpc's random seed
+ ---------------------------
+Index: networking/udhcp/dhcpc.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/dhcpc.c,v
+retrieving revision 1.16
+diff -u -r1.16 dhcpc.c
+--- a/networking/udhcp/dhcpc.c	30 Jan 2004 23:45:12 -0000	1.16
++++ b/networking/udhcp/dhcpc.c	5 Mar 2004 14:32:46 -0000
+@@ -88,6 +88,7 @@
+ "  -p, --pidfile=file              Store process ID of daemon in file\n"
+ "  -q, --quit                      Quit after obtaining lease\n"
+ "  -r, --request=IP                IP address to request (default: none)\n"
++"  -R, --require=NAME              Add NAME to the request\n"
+ "  -s, --script=file               Run file at dhcp events (default:\n"
+ "                                  " DEFAULT_SCRIPT ")\n"
+ "  -v, --version                   Display version\n"
+@@ -203,6 +204,7 @@
+ 		{"pidfile",	required_argument,	0, 'p'},
+ 		{"quit",	no_argument,		0, 'q'},
+ 		{"request",	required_argument,	0, 'r'},
++		{"require",	required_argument,      0, 'R'},
+ 		{"script",	required_argument,	0, 's'},
+ 		{"version",	no_argument,		0, 'v'},
+ 		{0, 0, 0, 0}
+@@ -211,7 +213,7 @@
+ 	/* get options */
+ 	while (1) {
+ 		int option_index = 0;
+-		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:s:v", arg_options, &option_index);
++		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:R:s:v", arg_options, &option_index);
+ 		if (c == -1) break;
+
+ 		switch (c) {
+@@ -254,6 +256,11 @@
+ 		case 'r':
+ 			requested_ip = inet_addr(optarg);
+ 			break;
++		case 'R':
++			if (require_option(optarg)) {
++				fprintf(stderr,"WARNING: %s unknown/not-supported (Ignored)\n", optarg );
++			}
++			break;
+ 		case 's':
+ 			client_config.script = optarg;
+ 			break;
+Index: networking/udhcp/options.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/options.c,v
+retrieving revision 1.7
+diff -u -r1.7 options.c
+--- a/networking/udhcp/options.c	30 Jan 2004 23:45:12 -0000	1.7
++++ b/networking/udhcp/options.c	5 Mar 2004 14:32:46 -0000
+@@ -57,7 +57,19 @@
+ 	[OPTION_S32] =		4
+ };
+
+-
++/* find and mark requested item as required */
++int require_option(char *name)
++{
++	int i;
++	for (i = 0; dhcp_options[i].code; i++) {
++		if (strcmp(name, dhcp_options[i].name) == 0 ){
++			dhcp_options[i].flags |= OPTION_REQ;
++			return 0;
++		}
++	}
++	return 1;
++}
++
+ /* get an option with bounds checking (warning, not aligned). */
+ uint8_t *get_option(struct dhcpMessage *packet, int code)
+ {
+Index: networking/udhcp/options.h
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/options.h,v
+retrieving revision 1.5
+diff -u -r1.5 options.h
+--- a/networking/udhcp/options.h	30 Jan 2004 23:45:12 -0000	1.5
++++ b/networking/udhcp/options.h	5 Mar 2004 14:32:46 -0000
+@@ -30,6 +30,7 @@
+ extern struct dhcp_option dhcp_options[];
+ extern int option_lengths[];
+
++int require_option(char *name);
+ uint8_t *get_option(struct dhcpMessage *packet, int code);
+ int end_option(uint8_t *optionptr);
+ int add_option_string(uint8_t *optionptr, uint8_t *string);

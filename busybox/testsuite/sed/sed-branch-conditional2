@@ -1,0 +1,11 @@
+#XFAIL
+busybox sed 's/a/b/;:loop;t loop'>output <<EOF
+a
+b
+c
+EOF
+cmp -s output - <<EOF
+b
+b
+c
+EOF

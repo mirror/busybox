@@ -1,0 +1,324 @@
+<!--#include file="header.html" -->
+
+
+<h3>Frequently Asked Questions</h3>
+
+This is a collection of some of the more frequently asked questions
+about BusyBox.  Some of the questions even have answers. If you
+have additions to this FAQ document, we would love to add them,
+
+<ol>
+<li><a href="#kernel">Which Linux kernel versions are supported?</a>
+<li><a href="#arch">Which architectures does BusyBox run on?</a>
+<li><a href="#libc">Which C libraries are supported?</a>
+<li><a href="#commercial">Can I include BusyBox as part of the software on my device?</a>
+<li><a href="#bugs">I think I found a bug in BusyBox!  What should I do?!</a>
+<li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control
+	turned off" errors?  Why doesn't Control-C work within my shell?</a>
+<li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
+	you don't answer all my questions on the mailing list instantly?  I demand
+	that you help me with all of my problems <em>Right Now</em>!</a>
+<li><a href="#getting_started">How can I get started using BusyBox?</a>
+<li><a href="#helpme">I need help with BusyBox!  What should I do?</a>
+<li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to
+	be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide
+	support contracts?</a>
+<li><a href="#support">I think you guys are great and I want to help support your work!</a>
+
+
+</ol>
+
+
+<hr />
+<p>
+<h2><a name="kernel">Which Linux kernel versions are supported?</a></h2>
+<p>
+
+
+    Full functionality requires Linux 2.2.x or better.  A large fraction of the
+    code should run on just about anything.  While the current code is fairly
+    Linux specific, it should be fairly easy to port the majority of the code
+    to support, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you
+    are into that sort of thing).
+
+
+<hr />
+<p>
+<h2><a name="arch">Which architectures does BusyBox run on?</a></h2>
+<p>
+
+
+    BusyBox in general will build on any architecture supported by gcc.
+    Kernel module loading for 2.2 and 2.4 Linux kernels is currently
+    limited to ARM, CRIS, H8/300, x86, ia64, x86_64, m68k, MIPS, PowerPC,
+    S390, SH3/4/5, Sparc, v850e, and x86_64 for 2.4.x kernels.
+
+    With 2.6.x kernels, module loading support should work on all architectures.
+
+
+<hr />
+<p>
+<h2><a name="libc">Which C libraries are supported?</a></h2>
+<p>
+
+
+    uClibc and glibc are supported.  People have been looking at newlib and
+    dietlibc, but they are currently considered unsupported, untested, or
+    worse.  Linux-libc5 is no longer supported.  If you require a small C
+    library, you should probably use uClibc.
+
+
+<hr />
+<p>
+<h2><a name="commercial">Can I include BusyBox as part of the software on my device?</h2>
+
+    Yes.  As long as you <a href="http://busybox.net/license.html">fully comply
+    with the generous terms of the GPL BusyBox license</a> you can ship BusyBox
+    as part of the software on your device.
+
+    <a href="#support">Please consider sharing some of the money you make.</a>
+
+
+<hr />
+<p>
+<h2><a name="bugs">I think I found a bug in BusyBox!  What should I do?</h2>
+<p>
+
+    If you find a problem with BusyBox, please submit a detailed bug report to
+    the BusyBox mailing list at <a href="mailto:busybox@mail.busybox.net">
+    busybox@mail.busybox.net</a>.  Please do not send private email to Erik
+    (the maintainer of BusyBox) asking for private help unless you are planning
+    on paying for consulting services.  When we answer questions on the BusyBox
+    mailing list, it helps everyone, while private answers help only you...
+
+    <p>
+
+    If you find bugs, please submit a detailed bug report to the BusyBox mailing
+    list at busybox@mail.busybox.net.  A well-written bug report should include a
+    transcript of a shell session that demonstrates the bad behavior and enables
+    anyone else to duplicate the bug on their own machine. The following is such
+    an example:
+
+<pre>
+	To: busybox@mail.busybox.net
+	From: diligent@testing.linux.org
+	Subject: /bin/date doesn't work
+
+	Package: BusyBox
+	Version: 1.00
+
+	When I execute BusyBox 'date' it produces unexpected results.
+	With GNU date I get the following output:
+
+		$ date
+		Fri Oct  8 14:19:41 MDT 2004
+
+	But when I use BusyBox date I get this instead:
+
+		$ date
+		illegal instruction
+
+	I am using Debian unstable, kernel version 2.4.27 on a x86 system,
+	and the latest uClibc from CVS.  Thanks for the wonderful program!
+
+	  -Diligent
+</pre>
+
+    Note the careful description and use of examples showing not only what BusyBox
+    does, but also a counter example showing what an equivalent GNU app does.  Bug
+    reports lacking proper detail may never be fixed...  Thanks for understanding.
+
+<hr />
+<p>
+<h2><a name="job_control">Why do I keep getting "sh: can't access tty; job control
+	turned off" errors?  Why doesn't Control-C work within my shell?</a></h2>
+<p>
+
+    Job control will be turned off since your shell can not obtain a controlling
+    terminal.  This typically happens when you run your shell on /dev/console.
+    The kernel will not provide a controlling terminal on the /dev/console
+    device.  Your should run your shell on a normal tty such as tty1 or ttyS0
+    and everything will work perfectly.  If you <em>REALLY</em> want your shell
+    to run on /dev/console, then you can hack your kernel (if you are into that
+    sortof thing) by changing drivers/char/tty_io.c to change the lines where
+    it sets "noctty = 1;" to instead set it to "0".  I recommend you instead
+    run your shell on a real console...
+
+
+<hr />
+<p>
+<h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
+<p>
+
+    An easy method to build your own basic BusyBox based system, is to
+    follow these simple steps:
+    <ul>
+	<li> Point your web browser <a href="/cgi-bin/cvsweb/buildroot/">here</a>
+	<li> Click on "Download tarball"
+	<li> Unpack the tarball on your Linux system somewhere
+	<li> run 'make' and configure things to taste.
+	<li> run 'unset CC'.   Some Linux systems (i.e. Gentoo) set 'CC'
+	    in the system environment which messes up cross compiles.
+	<li> run 'make'
+	<li> go have lunch, drink a pop, call a friend, play a video game, etc
+		till it finishes downloading software and compiling things.
+	<li> You should now have a shiny new BusyBox based system.
+    </ul>
+
+
+<hr />
+<p>
+<h2><a name="demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
+	you don't answer all my questions on the mailing list instantly?  I demand
+	that you help me with all of my problems <em>Right Now</em>!</a></h2>
+<p>
+
+    You have not paid us a single cent and yet you still have the product of
+    many years of our work.  We are not your slaves!  We work on BusyBox
+    because we find it useful and interesting.  If you go off flaming us, we
+    will ignore you.
+
+
+<hr />
+<p>
+<h2><a name="helpme">I need help with BusyBox!  What should I do?</a></h2>
+<p>
+
+    If you find that you need help with BusyBox, you can ask for help on the
+    BusyBox mailing list at busybox@mail.busybox.net.  In addition to the BusyBox
+    mailing list, Erik (andersee), Manuel (mjn3) and others are known to hang out
+    on the uClibc IRC channel: #uclibc on irc.freenode.net.
+
+    <p>
+
+    <b>Please do not send private email to Erik, Manuel, or the other BusyBox
+    contributors asking for private help unless you are planning on paying for
+    consulting services.</b>
+
+    <p>
+
+    When we answer questions on the BusyBox mailing list, it helps everyone
+    since people with similar problems in the future will be able to get help
+    by searching the mailing list archives.  Private help is reserved as a paid
+    service.  If you need to use private communication, or if you are serious
+    about getting timely assistance with BusyBox, you should seriously consider
+    paying for consulting services.
+
+    <p>
+
+
+
+<hr />
+<p>
+<h2><a name="contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox
+	developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?
+	Are you willing to provide support contracts?</a></h2>
+<p>
+
+    Sure!  Now you have our attention!  What you should do is contact <a
+	href="mailto:andersen@codepoet.org">Erik Andersen</a> of <a
+	href="http://codepoet-consulting.com/">CodePoet Consulting</a> to bid
+    on your project.  If Erik is too busy to personally add your feature, there
+    are many other active BusyBox contributors who will almost certainly be able
+    to help you out.  Erik can contact them privatly, and may even let you to
+    post your request for services on the mailing list.
+
+
+<hr />
+<p>
+<h2><a name="support">I think you guys are great and I want to help support your work!</a></h2>
+<p>
+
+    Wow, that would be great!  Erik personally pays for all the bandwidth, and
+    all servers used for busybox.net out of his own pocket.  If you would like
+    to make a donation to help support BusyBox, and/or request features, you
+    can click here:
+
+    <!-- Begin PayPal Logo -->
+    <center>
+    <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+	<input type="hidden" name="cmd" value="_xclick">
+	<input type="hidden" name="business" value="andersen@codepoet.org">
+	<input type="hidden" name="item_name" value="Support BusyBox">
+	<input type="hidden" name="image_url" value="http://codepoet-consulting.com/images/codepoet.png">
+	<input type="hidden" name="no_shipping" value="1">
+	<input type="image" src="images/donate.png" name="submit" alt="Make donation using PayPal">
+    </form>
+    </center>
+    <!-- End PayPal Logo -->
+
+    If you prefer to contact Erik directly to make a donation, donate hardware,
+    request support, etc, you can contact
+    <a href="http://codepoet-consulting.com/">CodePoet Consulting</a> here.
+    CodePoet Consulting can accept both Visa and MasterCard for those that do not
+    trust PayPal...
+
+<hr />
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<!--#include file="footer.html" -->
+

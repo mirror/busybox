@@ -1,0 +1,252 @@
+This patch adds support of ibs= and obs= to dd.
+----
+Hideki IWAMOTO  h-iwamoto@kit.hi-ho.ne.jp
+
+
+--- a/include/usage.h	29 Mar 2004 08:20:08 -0000	1.198
++++ b/include/usage.h	4 Apr 2004 07:15:21 -0000
+@@ -309,13 +309,15 @@
+ 	"64\n"
+ 
+ #define dd_trivial_usage \
+-	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]\n" \
+-	"\t  [seek=N] [conv=notrunc|noerror|sync]"
++	"[if=FILE] [of=FILE] [ibs=N] [obs=N] [bs=N] [count=N]\n" \
++	"\t  [skip=N] [seek=N] [conv=notrunc|noerror|sync]"
+ #define dd_full_usage \
+ 	"Copy a file, converting and formatting according to options\n\n" \
+ 	"\tif=FILE\t\tread from FILE instead of stdin\n" \
+ 	"\tof=FILE\t\twrite to FILE instead of stdout\n" \
+-	"\tbs=N\t\tread and write N bytes at a time\n" \
++	"\tibs=N\t\tread N bytes at a time\n" \
++	"\tobs=N\t\twrite N bytes at a time\n" \
++	"\tbs=N\t\tforce ibs=N and obs=N\n" \
+ 	"\tcount=N\t\tcopy only N input blocks\n" \
+ 	"\tskip=N\t\tskip N input blocks\n" \
+ 	"\tseek=N\t\tskip N output blocks\n" \
+@@ -323,6 +325,8 @@
+ 	"\tconv=noerror\tcontinue after read errors\n" \
+ 	"\tconv=sync\tpad blocks with zeros\n" \
+ 	"\n" \
++	"If the bs= expr operand is not specified, the input is processed and collected\n" \
++	"into full-sized output blocks until the end of the input is reached.\n" \
+ 	"Numbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),\n" \
+ 	"MD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)."
+ #define dd_example_usage \
+--- a/coreutils/dd.c	30 Jan 2004 22:24:32 -0000	1.55
++++ b/coreutils/dd.c	4 Apr 2004 07:15:21 -0000
+@@ -30,6 +30,10 @@
+ #include <fcntl.h>
+ #include "busybox.h"
+ 
++#define C_NOERROR	0x0001
++#define C_TRUNC		0x0002
++#define C_SYNC		0x0004
++#define C_TWOBUFS	0x0008
+ 
+ static const struct suffix_mult dd_suffixes[] = {
+ 	{ "c", 1 },
+@@ -51,13 +55,13 @@
+ 	size_t in_full = 0;
+ 	size_t in_part = 0;
+ 	size_t count = -1;
+-	size_t bs = 512;
++	size_t ibs = 512;
++	size_t obs = 512;
++	size_t oc = 0;
+ 	ssize_t n;
+ 	off_t seek = 0;
+ 	off_t skip = 0;
+-	int sync_flag = FALSE;
+-	int noerror = FALSE;
+-	int trunc_flag = TRUE;
++	unsigned int dd_flags = C_TWOBUFS | C_TRUNC;
+ 	int oflag;
+ 	int ifd;
+ 	int ofd;
+@@ -65,11 +69,18 @@
+ 	const char *infile = NULL;
+ 	const char *outfile = NULL;
+ 	char *buf;
++	char *ibuf;
++	char *obuf;
+ 
+ 	for (i = 1; i < argc; i++) {
+-		if (strncmp("bs=", argv[i], 3) == 0)
+-			bs = bb_xparse_number(argv[i]+3, dd_suffixes);
+-		else if (strncmp("count=", argv[i], 6) == 0)
++		if (strncmp("ibs=", argv[i], 4) == 0)
++			ibs = bb_xparse_number(argv[i]+4, dd_suffixes);
++		else if (strncmp("obs=", argv[i], 4) == 0)
++			obs = bb_xparse_number(argv[i]+4, dd_suffixes);
++		else if (strncmp("bs=", argv[i], 3) == 0) {
++			ibs = obs = bb_xparse_number(argv[i]+3, dd_suffixes);
++			dd_flags &= ~C_TWOBUFS;
++		} else if (strncmp("count=", argv[i], 6) == 0)
+ 			count = bb_xparse_number(argv[i]+6, dd_suffixes);
+ 		else if (strncmp("seek=", argv[i], 5) == 0)
+ 			seek = bb_xparse_number(argv[i]+5, dd_suffixes);
+@@ -83,13 +94,13 @@
+ 			buf = argv[i]+5;
+ 			while (1) {
+ 				if (strncmp("notrunc", buf, 7) == 0) {
+-					trunc_flag = FALSE;
++					dd_flags &= ~C_TRUNC;
+ 					buf += 7;
+ 				} else if (strncmp("sync", buf, 4) == 0) {
+-					sync_flag = TRUE;
++					dd_flags |= C_SYNC;
+ 					buf += 4;
+ 				} else if (strncmp("noerror", buf, 7) == 0) {
+-					noerror = TRUE;
++					dd_flags |= C_NOERROR;
+ 					buf += 7;
+ 				} else {
+ 					bb_error_msg_and_die("invalid conversion `%s'", argv[i]+5);
+@@ -103,7 +114,12 @@
+ 			bb_show_usage();
+ 	}
+ 
+-	buf = xmalloc(bs);
++	ibuf = xmalloc(ibs);
++
++	if (dd_flags & C_TWOBUFS)
++		obuf = xmalloc(obs);
++	else
++		obuf = ibuf;
+ 
+ 	if (infile != NULL) {
+ 		ifd = bb_xopen(infile, O_RDONLY);
+@@ -115,7 +131,7 @@
+ 	if (outfile != NULL) {
+ 		oflag = O_WRONLY | O_CREAT;
+ 
+-		if (!seek && trunc_flag) {
++		if (!seek && (dd_flags & C_TRUNC)) {
+ 			oflag |= O_TRUNC;
+ 		}
+ 
+@@ -123,8 +139,8 @@
+ 			bb_perror_msg_and_die("%s", outfile);
+ 		}
+ 
+-		if (seek && trunc_flag) {
+-			if (ftruncate(ofd, seek * bs) < 0) {
++		if (seek && (dd_flags & C_TRUNC)) {
++			if (ftruncate(ofd, seek * obs) < 0) {
+ 				struct stat st;
+ 
+ 				if (fstat (ofd, &st) < 0 || S_ISREG (st.st_mode) ||
+@@ -139,52 +155,88 @@
+ 	}
+ 
+ 	if (skip) {
+-		if (lseek(ifd, skip * bs, SEEK_CUR) < 0) {
+-			bb_perror_msg_and_die("%s", infile);
++		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
++			while (skip-- > 0) {
++				n = safe_read(ifd, ibuf, ibs);
++				if (n < 0)
++					bb_perror_msg_and_die("%s", infile);
++				if (n == 0)
++					break;
++			}
+ 		}
+ 	}
+ 
+ 	if (seek) {
+-		if (lseek(ofd, seek * bs, SEEK_CUR) < 0) {
++		if (lseek(ofd, seek * obs, SEEK_CUR) < 0) {
+ 			bb_perror_msg_and_die("%s", outfile);
+ 		}
+ 	}
+ 
+ 	while (in_full + in_part != count) {
+-		if (noerror) {
++		if (dd_flags & C_NOERROR) {
+ 			/* Pre-zero the buffer when doing the noerror thing */
+-			memset(buf, '\0', bs);
++			memset(ibuf, '\0', ibs);
++		}
++
++		n = safe_read(ifd, ibuf, ibs);
++		if (n == 0) {
++			break;
+ 		}
+-		n = safe_read(ifd, buf, bs);
+ 		if (n < 0) {
+-			if (noerror) {
+-				n = bs;
++			if (dd_flags & C_NOERROR) {
++				n = ibs;
+ 				bb_perror_msg("%s", infile);
+ 			} else {
+ 				bb_perror_msg_and_die("%s", infile);
+ 			}
+ 		}
+-		if (n == 0) {
+-			break;
+-		}
+-		if (n == bs) {
++		if (n == ibs) {
+ 			in_full++;
+ 		} else {
+ 			in_part++;
++			if (dd_flags & C_SYNC) {
++				memset(ibuf + n, '\0', ibs - n);
++				n = ibs;
++			}
+ 		}
+-		if (sync_flag) {
+-			memset(buf + n, '\0', bs - n);
+-			n = bs;
++
++		if (dd_flags & C_TWOBUFS) {
++			size_t d;
++			char *tmp = ibuf;
++
++			while (n) {
++				d = obs - oc;
++				if (d > n)
++					d = n;
++				memcpy(obuf + oc, tmp, d);
++				n -= d;
++				tmp += d;
++				oc += d;
++				if (oc == obs) {
++					if (bb_full_write(ofd, obuf, obs) < 0) {
++						bb_perror_msg_and_die("%s", outfile);
++					}
++					out_full++;
++					oc = 0;
++				}
++			}
++		} else {
++			if (bb_full_write(ofd, ibuf, n) < 0) {
++				bb_perror_msg_and_die("%s", outfile);
++			}
++			if (n == ibs) {
++				out_full++;
++			} else {
++				out_part++;
++			}
+ 		}
+-		n = bb_full_write(ofd, buf, n);
+-		if (n < 0) {
++	}
++
++	if (oc) {
++		if (bb_full_write(ofd, obuf, oc) < 0) {
+ 			bb_perror_msg_and_die("%s", outfile);
+ 		}
+-		if (n == bs) {
+-			out_full++;
+-		} else {
+-			out_part++;
+-		}
++		out_part++;
+ 	}
+ 
+ 	if (close (ifd) < 0) {
+
+

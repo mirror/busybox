@@ -1,0 +1,98 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+COREUTILS_AR:=coreutils.a
+ifndef $(COREUTILS_DIR)
+COREUTILS_DIR:=$(top_builddir)/coreutils/
+endif
+srcdir=$(top_srcdir)/coreutils
+
+COREUTILS-y:=
+COREUTILS-$(CONFIG_BASENAME)	+= basename.o
+COREUTILS-$(CONFIG_CAL)     	+= cal.o
+COREUTILS-$(CONFIG_CAT)     	+= cat.o
+COREUTILS-$(CONFIG_CHGRP)   	+= chgrp.o
+COREUTILS-$(CONFIG_CHMOD)   	+= chmod.o
+COREUTILS-$(CONFIG_CHOWN)   	+= chown.o
+COREUTILS-$(CONFIG_CHROOT)  	+= chroot.o
+COREUTILS-$(CONFIG_CMP)     	+= cmp.o
+COREUTILS-$(CONFIG_CP)      	+= cp.o
+COREUTILS-$(CONFIG_CUT)     	+= cut.o
+COREUTILS-$(CONFIG_DATE)    	+= date.o
+COREUTILS-$(CONFIG_DD)      	+= dd.o
+COREUTILS-$(CONFIG_DF)      	+= df.o
+COREUTILS-$(CONFIG_DIRNAME) 	+= dirname.o
+COREUTILS-$(CONFIG_DOS2UNIX)	+= dos2unix.o
+COREUTILS-$(CONFIG_DU)      	+= du.o
+COREUTILS-$(CONFIG_ECHO)    	+= echo.o
+COREUTILS-$(CONFIG_ENV)     	+= env.o
+COREUTILS-$(CONFIG_EXPR)    	+= expr.o
+COREUTILS-$(CONFIG_FALSE)   	+= false.o
+COREUTILS-$(CONFIG_FOLD)    	+= fold.o
+COREUTILS-$(CONFIG_HEAD)    	+= head.o
+COREUTILS-$(CONFIG_HOSTID)  	+= hostid.o
+COREUTILS-$(CONFIG_ID)      	+= id.o
+COREUTILS-$(CONFIG_INSTALL) 	+= install.o
+COREUTILS-$(CONFIG_LENGTH)  	+= length.o
+COREUTILS-$(CONFIG_LN)      	+= ln.o
+COREUTILS-$(CONFIG_LOGNAME) 	+= logname.o
+COREUTILS-$(CONFIG_LS)      	+= ls.o
+COREUTILS-$(CONFIG_MD5SUM)  	+= md5_sha1_sum.o
+COREUTILS-$(CONFIG_MKDIR)   	+= mkdir.o
+COREUTILS-$(CONFIG_MKFIFO)  	+= mkfifo.o
+COREUTILS-$(CONFIG_MKNOD)   	+= mknod.o
+COREUTILS-$(CONFIG_MV)      	+= mv.o
+COREUTILS-$(CONFIG_OD)      	+= od.o
+COREUTILS-$(CONFIG_PRINTF)  	+= printf.o
+COREUTILS-$(CONFIG_PWD)     	+= pwd.o
+COREUTILS-$(CONFIG_REALPATH)	+= realpath.o
+COREUTILS-$(CONFIG_RM)      	+= rm.o
+COREUTILS-$(CONFIG_RMDIR)   	+= rmdir.o
+COREUTILS-$(CONFIG_SEQ)     	+= seq.o
+COREUTILS-$(CONFIG_SHA1SUM) 	+= md5_sha1_sum.o
+COREUTILS-$(CONFIG_SLEEP)   	+= sleep.o
+COREUTILS-$(CONFIG_SORT)    	+= sort.o
+COREUTILS-$(CONFIG_STTY)    	+= stty.o
+COREUTILS-$(CONFIG_SYNC)    	+= sync.o
+COREUTILS-$(CONFIG_TAIL)    	+= tail.o
+COREUTILS-$(CONFIG_TEE)     	+= tee.o
+COREUTILS-$(CONFIG_TEST)    	+= test.o
+COREUTILS-$(CONFIG_TOUCH)   	+= touch.o
+COREUTILS-$(CONFIG_TR)      	+= tr.o
+COREUTILS-$(CONFIG_TRUE)    	+= true.o
+COREUTILS-$(CONFIG_TTY)     	+= tty.o
+COREUTILS-$(CONFIG_UNAME)   	+= uname.o
+COREUTILS-$(CONFIG_UNIQ)    	+= uniq.o
+COREUTILS-$(CONFIG_USLEEP)  	+= usleep.o
+COREUTILS-$(CONFIG_UUDECODE)	+= uudecode.o
+COREUTILS-$(CONFIG_UUENCODE)	+= uuencode.o
+COREUTILS-$(CONFIG_WATCH)   	+= watch.o
+COREUTILS-$(CONFIG_WC)      	+= wc.o
+COREUTILS-$(CONFIG_WHO)     	+= who.o
+COREUTILS-$(CONFIG_WHOAMI)  	+= whoami.o
+COREUTILS-$(CONFIG_YES)     	+= yes.o
+
+libraries-y+=$(COREUTILS_DIR)$(COREUTILS_AR)
+
+$(COREUTILS_DIR)$(COREUTILS_AR): $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
+	$(AR) -ro $@ $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
+
+$(COREUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

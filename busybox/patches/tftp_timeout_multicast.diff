@@ -1,0 +1,1053 @@
+Index: AUTHORS
+===================================================================
+RCS file: /var/cvs/busybox/AUTHORS,v
+retrieving revision 1.40
+diff -u -r1.40 AUTHORS
+--- a/AUTHORS	9 Oct 2003 21:19:21 -0000	1.40
++++ b/AUTHORS	5 Mar 2004 15:45:47 -0000
+@@ -92,6 +92,9 @@
+     Original author of BusyBox in 1995, 1996. Some of his code can
+     still be found hiding here and there...
+
++John Powers <jpp@ti.com>
++    Added multicast option (rfc2090) and timeout option (rfc2349) to tftp.
++
+ Tim Riker <Tim@Rikers.org>
+     bug fixes, member of fan club
+
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.191
+diff -u -r1.191 usage.h
+--- a/include/usage.h	25 Feb 2004 10:35:55 -0000	1.191
++++ b/include/usage.h	5 Mar 2004 15:45:59 -0000
+@@ -2492,6 +2492,21 @@
+ #else
+   #define USAGE_TFTP_BS(a)
+ #endif
++#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
++  #define USAGE_TFTP_TIMEOUT(a) a
++#else
++  #define USAGE_TFTP_TIMEOUT(a)
++#endif
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++  #define USAGE_TFTP_MULTICAST(a) a
++#else
++  #define USAGE_TFTP_MULTICAST(a)
++#endif
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++  #define USAGE_TFTP_DEBUG(a) a
++#else
++  #define USAGE_TFTP_DEBUG(a)
++#endif
+
+ #define tftp_trivial_usage \
+ 	"[OPTION]... HOST [PORT]"
+@@ -2508,6 +2523,16 @@
+ 	) \
+ 	USAGE_TFTP_BS( \
+ 	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
++	) \
++	USAGE_TFTP_TIMEOUT( \
++	"\t-T SEC\tClient timeout SEC seconds (default: 5).\n" \
++	"\t-t SEC\tServer timeout SEC seconds\n" \
++	) \
++	USAGE_TFTP_MULTICAST( \
++	"\t-m\tMulticast get file.\n" \
++	) \
++	USAGE_TFTP_DEBUG( \
++	"\t-D\tPrint debug messages.\n" \
+ 	)
+ #define time_trivial_usage \
+ 	"[OPTION]... COMMAND [ARGS...]"
+Index: networking/Config.in
+===================================================================
+RCS file: /var/cvs/busybox/networking/Config.in,v
+retrieving revision 1.27
+diff -u -r1.27 Config.in
+--- a/networking/Config.in	22 Feb 2004 12:25:47 -0000	1.27
++++ b/networking/Config.in	5 Mar 2004 15:45:59 -0000
+@@ -522,6 +522,13 @@
+ 	  Add support for the GET command within the TFTP client.  This allows
+ 	  a client to retrieve a file from a TFTP server.
+
++config CONFIG_FEATURE_TFTP_MULTICAST
++	bool "  Enable \"multicast\" option"
++	default n
++	depends on CONFIG_FEATURE_TFTP_GET
++	help
++	  Allow the client to receive multicast file transfers.
++
+ config CONFIG_FEATURE_TFTP_PUT
+ 	bool "  Enable \"put\" command"
+ 	default y
+@@ -531,12 +538,19 @@
+ 	  a client to transfer a file to a TFTP server.
+
+ config CONFIG_FEATURE_TFTP_BLOCKSIZE
+-	bool "  Enable \"blocksize\" command"
++	bool "  Enable \"blksize\" option"
+ 	default n
+ 	depends on CONFIG_TFTP
+ 	help
+ 	  Allow the client to specify the desired block size for transfers.
+
++config CONFIG_FEATURE_TFTP_TIMEOUT
++	bool "  Enable \"timeout\" option"
++	default n
++	depends on CONFIG_TFTP
++	help
++	  Allow the client to negotiate timeout option with server.
++
+ config CONFIG_FEATURE_TFTP_DEBUG
+ 	bool "  Enable debug"
+ 	default n
+Index: networking/tftp.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/tftp.c,v
+retrieving revision 1.25
+diff -u -r1.25 tftp.c
+--- a/networking/tftp.c	5 Mar 2004 13:04:39 -0000	1.25
++++ b/networking/tftp.c	5 Mar 2004 15:46:00 -0000
+@@ -1,11 +1,26 @@
++/* vi: set sw=4 ts=4: */
+ /* ------------------------------------------------------------------------- */
+ /* tftp.c                                                                    */
++/* Copyright (c) 2003, 2004 Texas Instruments                                */
++/*                                                                           */
++/* This package is free software;  you can redistribute it and/or            */
++/* modify it under the terms of the license found in the file                */
++/* named COPYING that should have accompanied this file.                     */
++/*                                                                           */
++/* THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR             */
++/* IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED            */
++/* WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.       */
+ /*                                                                           */
+ /* A simple tftp client for busybox.                                         */
+ /* Tries to follow RFC1350.                                                  */
+ /* Only "octet" mode supported.                                              */
+ /* Optional blocksize negotiation (RFC2347 + RFC2348)                        */
+ /*                                                                           */
++/* New features added at Texas Instruments, October 2003                     */
++/* Author: John Powers                                                       */
++/* Multicast option: rfc2090                                                 */
++/* Timeout option: rfc2349                                                   */
++/*                                                                           */
+ /* Copyright (C) 2001 Magnus Damm <damm@opensource.se>                       */
+ /*                                                                           */
+ /* Parts of the code based on:                                               */
+@@ -46,8 +61,20 @@
+
+ #include "busybox.h"
+
++#if defined(CONFIG_FEATURE_TFTP_BLOCKSIZE) || defined(CONFIG_FEATURE_TFTP_MULTICAST) || defined(CONFIG_FEATURE_TFTP_TIMEOUT)
++  #define TFTP_OPTIONS
++#endif
++
+ //#define CONFIG_FEATURE_TFTP_DEBUG
+
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++	static void printtime(void);
++	#define dprintf(fmt...) if (debug) {printtime(); printf(fmt);}
++	int debug = 0;
++#else
++	#define dprintf(fmt...)
++#endif
++
+ #define TFTP_BLOCKSIZE_DEFAULT 512 /* according to RFC 1350, don't change */
+ #define TFTP_TIMEOUT 5             /* seconds */
+
+@@ -68,12 +95,24 @@
+ 	"Illegal TFTP operation",
+ 	"Unknown transfer ID",
+ 	"File already exists",
+-	"No such user"
++	"No such user",
++#ifdef TFTP_OPTIONS
++	"Unsupported option",
++#endif
+ };
+
+ const int tftp_cmd_get = 1;
+ const int tftp_cmd_put = 2;
+
++
++struct tftp_option {
++	int multicast;
++	int blksize;
++	int client_timeout;
++	int server_timeout;
++};
++
++
+ #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
+
+ static int tftp_blocksize_check(int blocksize, int bufsize)
+@@ -93,16 +132,158 @@
+ 	return blocksize;
+ }
+
++#endif
++
++#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
++
++static int
++tftp_timeout_check(int timeout)
++{
++	/* Check if timeout seconds is valid:
++	 * RFC2349 says between 1 and 255.
++	 */
++
++	if (timeout < 1 || timeout > 255) {
++		bb_error_msg("bad timeout value");
++		return 0;
++	}
++	return timeout;
++}
++
++#endif
++
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++static int
++tftp_multicast_check(const char *opt, char **phost, unsigned short *pport, int *pactive)
++{
++	/* Option string contains comma delimited addr,port,active.
++	 * addr = multicast IP address
++	 * port = port number
++	 * active = 1 if active client
++	 *          0 if passive client
++	 *
++	 * Addr and port will be empty fields when the server notifies a
++	 * passive client that it is now the active client.
++	 *
++	 * The host address string must be freed by the caller. Neither host
++	 * nor port will be set/changed if the input fields are empty.
++	 *
++	 * If any tokenization errors occur in the opt string, the host
++	 * address string is automatically freed.
++	 *
++	 * Return 0 if any tokenization error, 1 if all parameters are good.
++	 */
++
++	char *token = NULL;
++	char *parse_buf = NULL;
++	char *tokenv = NULL;
++	char *host = NULL;
++	int port;
++	int active;
++
++	parse_buf = bb_xstrdup(opt);
++
++	dprintf("multicast option=%s\n", opt);
++
++	/* IP address */
++	if ((token = strtok_r(parse_buf, ",", &tokenv)) == NULL) {
++		dprintf("tftp_multicast_check: cannot parse IP address from %s\n", parse_buf);
++		free(parse_buf);
++		return 0;
++	}
++	if (strlen(token) > 0)
++		*phost = host = bb_xstrdup(token);
++
++	/* Port */
++	if ((token = strtok_r(NULL, ",", &tokenv)) == NULL) {
++		dprintf("tftp_multicast_check: cannot parse port number from %s\n", tokenv);
++		goto token_error;
++	}
++	if (strlen(token) > 0) {
++		port = atoi(token);
++		if (port < 0 || port > 0xFFFF) {
++			dprintf("tftp_multicast_check: bad port number (%d)\n", port);
++			goto token_error;
++		}
++		*pport = htons(port);
++	}
++
++	/* Active/passive */
++	if ((token = strtok_r(NULL, ",", &tokenv)) == NULL) {
++		dprintf("tftp_multicast_check: cannot parse active/passive from %s\n", tokenv);
++		goto token_error;
++	}
++	active = atoi(token);
++	if (active != 0 && active != 1) {
++		dprintf("tftp_multicast_check: bad active/passive flag (%d)\n", active);
++		goto token_error;
++	}
++	*pactive = active;
++
++	free(parse_buf);
++	return 1;
++
++token_error:
++	free(parse_buf);
++	if (host != NULL)
++		free(host);
++	*phost = NULL;
++	return 0;
++
++}
++
++#define VECTOR_QUANTUM_WIDTH 8
++#define VECTOR_QUANTUM_ALL_ONES ((1<<VECTOR_QUANTUM_WIDTH)-1)
++
++static void inline
++bit_set(int bit, unsigned char *vector)
++{
++	int offset = bit / VECTOR_QUANTUM_WIDTH;
++	int mask = 1 << (bit % VECTOR_QUANTUM_WIDTH);
++	vector[offset] |= mask;
++}
++
++static int inline
++bit_isset(int bit, const unsigned char *vector)
++{
++	int offset = bit / VECTOR_QUANTUM_WIDTH;
++	int mask = 1 << (bit % VECTOR_QUANTUM_WIDTH);
++	return vector[offset] & mask ? 1 : 0;
++}
++
++static int inline
++bit_lmz(const unsigned char *vector)
++{
++	/* Return number of left-most zero in bit vector */
++	const unsigned char *vp = vector;
++	int i;
++	unsigned char velem;
++
++	while (*vp == VECTOR_QUANTUM_ALL_ONES)
++		vp++;
++	velem = *vp;
++	for (i = 0; i < VECTOR_QUANTUM_WIDTH; i++) {
++		if ((velem & (1 << i)) == 0)
++			break;
++	}
++	dprintf("bit_lmz: block=%d\n", (vp - vector)*VECTOR_QUANTUM_WIDTH + i);
++	return (vp - vector)*VECTOR_QUANTUM_WIDTH + i;
++}
++
++#endif
++
++
++
++#ifdef TFTP_OPTIONS
++
+ static char *tftp_option_get(char *buf, int len, char *option)
+ {
+-        int opt_val = 0;
++	int opt_val = 0;
+ 	int opt_found = 0;
+ 	int k;
+-
+-	while (len > 0) {
+
++	while (len > 0) {
+ 	        /* Make sure the options are terminated correctly */
+-
+ 	        for (k = 0; k < len; k++) {
+ 		        if (buf[k] == '\0') {
+ 			        break;
+@@ -117,9 +298,8 @@
+ 			if (strcasecmp(buf, option) == 0) {
+ 			        opt_found = 1;
+ 			}
+-		}
+-		else {
+-		        if (opt_found) {
++		} else {
++			if (opt_found) {
+ 				return buf;
+ 			}
+ 		}
+@@ -138,7 +318,8 @@
+ #endif
+
+ static inline int tftp(const int cmd, const struct hostent *host,
+-	const char *remotefile, int localfd, const unsigned short port, int tftp_bufsize)
++	const char *remotefile, int localfd, const unsigned short port,
++	struct tftp_option *option)
+ {
+ 	const int cmd_get = cmd & tftp_cmd_get;
+ 	const int cmd_put = cmd & tftp_cmd_put;
+@@ -155,18 +336,29 @@
+ 	int len;
+ 	int opcode = 0;
+ 	int finished = 0;
+-	int timeout = bb_tftp_num_retries;
++	int retry = bb_tftp_num_retries;
+ 	unsigned short block_nr = 1;
+
+-#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
+-	int want_option_ack = 0;
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++	struct hostent *mchost;
++	struct sockaddr_in mcsa;
++	char *mchostname;
++	unsigned short mcport;
++	unsigned char *mcblockmap = NULL;
++	int master_client = 1;
++	int mcfd = -1;
++	int mcmaxblock = 0x10000;
++	int ack_oack = 0;
++#else
++	#define master_client 1
++    #define ack_oack 0
+ #endif
+
+ 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
+ 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
+-	char *buf=xmalloc(tftp_bufsize + 4);
++	char *buf=xmalloc(option->blksize + 4);
+
+-	tftp_bufsize += 4;
++	int tftp_bufsize = option->blksize + 4;
+
+ 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+ 		bb_perror_msg("socket");
+@@ -183,15 +375,21 @@
+ 	memcpy(&sa.sin_addr, (struct in_addr *) host->h_addr,
+ 		   sizeof(sa.sin_addr));
+
+-	/* build opcode */
+-
+-	if (cmd_get) {
+-		opcode = TFTP_RRQ;
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++	if (option->multicast) {
++		const int bmsize = 0x10000 / VECTOR_QUANTUM_WIDTH;
++		if ((mcfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
++			bb_perror_msg("multicast socket");
++			return EXIT_FAILURE;
++		}
++		mcblockmap = xmalloc(bmsize+1);
++		memset(mcblockmap, 0, bmsize+1);
+ 	}
++#endif
+
+-	if (cmd_put) {
+-		opcode = TFTP_WRQ;
+-	}
++	/* build opcode */
++
++	opcode = cmd_get ? TFTP_RRQ : TFTP_WRQ;
+
+ 	while (1) {
+
+@@ -203,7 +401,7 @@
+
+ 		cp += 2;
+
+-		/* add filename and mode */
++		/* First packet of file transfer includes file name, mode, and options */
+
+ 		if ((cmd_get && (opcode == TFTP_RRQ)) ||
+ 			(cmd_put && (opcode == TFTP_WRQ))) {
+@@ -223,7 +421,7 @@
+ 			}
+
+ 			if (too_long || ((&buf[tftp_bufsize - 1] - cp) < 6)) {
+-				bb_error_msg("too long remote-filename");
++				bb_error_msg("too long: remote filename");
+ 				break;
+ 			}
+
+@@ -238,8 +436,8 @@
+
+ 			if (len != TFTP_BLOCKSIZE_DEFAULT) {
+
+-			        if ((&buf[tftp_bufsize - 1] - cp) < 15) {
+-				        bb_error_msg("too long remote-filename");
++				if ((&buf[tftp_bufsize - 1] - cp) < 15) {
++					bb_error_msg("buffer too small for blksize option");
+ 					break;
+ 				}
+
+@@ -249,16 +447,65 @@
+ 				cp += 8;
+
+ 				cp += snprintf(cp, 6, "%d", len) + 1;
++			}
++#endif
++
++
++
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++
++			if (option->multicast) {
++				if ((&buf[tftp_bufsize - 1] - cp) < 12) {
++					bb_error_msg("buffer too small for multicast option");
++					break;
++				}
++
++				/* add "multicast" option */
+
+-				want_option_ack = 1;
++				memcpy(cp, "multicast\0", 11);
++				cp += 11;
++
++				option->multicast = 0;	/* turn back on when server accepts option */
++				ack_oack = 1;	/* acknowledge OACK */
+ 			}
++
+ #endif
++
++#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
++
++			if (option->server_timeout != TFTP_TIMEOUT) {
++				if ((&buf[tftp_bufsize - 1] - cp) < 12) {
++					bb_error_msg("buffer too small for timeout option");
++					break;
++				}
++
++				/* add "timeout" option */
++
++				memcpy(cp, "timeout", 8);
++				cp += 8;
++
++				cp += snprintf(cp, 4, "%d", option->server_timeout) + 1;
++			}
++#endif
++
+ 		}
+
+ 		/* add ack and data */
+
+-		if ((cmd_get && (opcode == TFTP_ACK)) ||
+-			(cmd_put && (opcode == TFTP_DATA))) {
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++		else if (option->multicast && opcode == TFTP_ACK) {
++			if (master_client || ack_oack) {
++				int blocknum = bit_lmz(mcblockmap);
++				*((unsigned short *) cp) = htons(blocknum);
++				cp += 2;
++				if (blocknum >= mcmaxblock)
++					finished = 1;
++				dprintf("ack block %d/%d %s\n", blocknum, mcmaxblock, finished? "finished": "");
++			}
++		}
++#endif
++		else if ((cmd_get && opcode == TFTP_ACK) ||
++			(cmd_put && opcode == TFTP_DATA)) {
+
+ 			*((unsigned short *) cp) = htons(block_nr);
+
+@@ -275,7 +522,7 @@
+ 				}
+
+ 				if (len != (tftp_bufsize - 4)) {
+-					finished++;
++					finished = 1;
+ 				}
+
+ 				cp += len;
+@@ -283,82 +530,119 @@
+ 		}
+
+
+-		/* send packet */
++		/* send packet and receive reply */
+
+
+-		timeout = bb_tftp_num_retries;  /* re-initialize */
++		retry = bb_tftp_num_retries;  /* re-initialize */
+ 		do {
+-
++			int selectrc;
+ 			len = cp - buf;
+
+-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+-			fprintf(stderr, "sending %u bytes\n", len);
+-			for (cp = buf; cp < &buf[len]; cp++)
+-				fprintf(stderr, "%02x ", (unsigned char)*cp);
+-			fprintf(stderr, "\n");
+-#endif
+-			if (sendto(socketfd, buf, len, 0,
+-					(struct sockaddr *) &sa, sizeof(sa)) < 0) {
+-				bb_perror_msg("send");
+-				len = -1;
+-				break;
+-			}
+-
++			/* send packet */
++			if ((len > 2) && (! option->multicast || master_client || ack_oack)) {
+
+-			if (finished && (opcode == TFTP_ACK)) {
+-				break;
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++				dprintf("sending %u bytes\n", len);
++				for (cp = buf; cp < &buf[len]; cp++)
++					if (debug)
++						printf("%02x ", *(unsigned char *)cp);
++				if (debug)
++					printf("\n");
++#endif
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++				ack_oack = 0;
++#endif
++				if (sendto(socketfd, buf, len, 0, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
++					bb_perror_msg("send");
++					len = -1;
++					break;
++				}
++				if (finished && opcode == TFTP_ACK) {
++					break;
++				}
+ 			}
+
+-			/* receive packet */
++			/* receive reply packet */
+
+ 			memset(&from, 0, sizeof(from));
+ 			fromlen = sizeof(from);
+
+-			tv.tv_sec = TFTP_TIMEOUT;
++			tv.tv_sec = option->client_timeout;
+ 			tv.tv_usec = 0;
+
+ 			FD_ZERO(&rfds);
+ 			FD_SET(socketfd, &rfds);
++			dprintf("set to receive from socketfd (%d)\n", socketfd);
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++			if (option->multicast) {
++				FD_SET(mcfd, &rfds);
++				dprintf("set to receive from mcfd (%d)\n", mcfd);
++			}
++#endif
+
+-			switch (select(FD_SETSIZE, &rfds, NULL, NULL, &tv)) {
+-			case 1:
+-				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
+-						(struct sockaddr *) &from, &fromlen);
+-
+-				if (len < 0) {
+-					bb_perror_msg("recvfrom");
+-					break;
++			dprintf("select\n");
++			selectrc = select(FD_SETSIZE, &rfds, NULL, NULL, &tv);
++			if (selectrc > 0) {
++				/* A packet was received */
++				if (FD_ISSET(socketfd, &rfds)) { /* Unicast packet */
++					dprintf("from socketfd\n");
++					len = recvfrom(socketfd, buf, tftp_bufsize, 0, (struct sockaddr *) &from, &fromlen);
++
++					if (len < 0) {
++						bb_perror_msg("recvfrom");
++					} else {
++						if (sa.sin_port == port) {
++							sa.sin_port = from.sin_port;
++						}
++						if (sa.sin_port == from.sin_port) {
++							retry = 0;
++						} else {
++							/* bad packet */
++							/* discard the packet - treat as timeout */
++							retry = bb_tftp_num_retries;
++							bb_error_msg("timeout");
++						}
++					}
+ 				}
+
+-				timeout = 0;
+-
+-				if (sa.sin_port == port) {
+-					sa.sin_port = from.sin_port;
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++				else if (option->multicast && FD_ISSET(mcfd, &rfds)) { /* Multicast packet */
++					dprintf("from mcfd\n");
++					len = recvfrom(mcfd, buf, tftp_bufsize, 0, (struct sockaddr *) &from, &fromlen);
++					if (len < 0) {
++						bb_perror_msg("multicast recvfrom");
++					} else {
++						if (mcsa.sin_port == mcport) {
++							mcsa.sin_port = from.sin_port;
++						}
++						if (mcsa.sin_port == from.sin_port) {
++							retry = 0;
++						} else {
++							retry = bb_tftp_num_retries;
++							bb_error_msg("multicast timeout");
++						}
++					}
+ 				}
+-				if (sa.sin_port == from.sin_port) {
+-					break;
+-				}
+-
+-				/* fall-through for bad packets! */
+-				/* discard the packet - treat as timeout */
+-				timeout = bb_tftp_num_retries;
++#endif
+
+-			case 0:
++			} else if (selectrc == 0) {
++				/* Time out */
++				dprintf("timeout\n");
+ 				bb_error_msg("timeout");
+
+-				timeout--;
+-				if (timeout == 0) {
++				retry--;
++				if (retry == 0) {
+ 					len = -1;
+ 					bb_error_msg("last timeout");
+ 				}
+-				break;
+-
+-			default:
++			} else {
++				/* Error condition */
++				dprintf("error\n");
+ 				bb_perror_msg("select");
+ 				len = -1;
+ 			}
+
+-		} while (timeout && (len >= 0));
++		} while (retry && len >= 0);
+
+ 		if ((finished) || (len < 0)) {
+ 			break;
+@@ -370,9 +654,8 @@
+ 		opcode = ntohs(*((unsigned short *) buf));
+ 		tmp = ntohs(*((unsigned short *) &buf[2]));
+
+-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+-		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, tmp);
+-#endif
++		dprintf("received %d bytes: %04x %04x\n", len, opcode, tmp);
++		dprintf("master_client=%d\n", master_client);
+
+ 		if (opcode == TFTP_ERROR) {
+ 			char *msg = NULL;
+@@ -393,55 +676,116 @@
+ 			break;
+ 		}
+
+-#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
+-		if (want_option_ack) {
++#ifdef TFTP_OPTIONS
+
+-			 want_option_ack = 0;
++		if (opcode == TFTP_OACK) {
+
+-		         if (opcode == TFTP_OACK) {
++			/* server seems to support options */
+
+-			         /* server seems to support options */
++			char *res;
++
++			block_nr = 0;		/* acknowledge option packet with block number 0 */
++			opcode = cmd_put ? TFTP_DATA : TFTP_ACK;
+
+-			         char *res;
+
+-				 res = tftp_option_get(&buf[2], len-2,
+-						       "blksize");
++#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
++			res = tftp_option_get(&buf[2], len-2, "blksize");
+
+-				 if (res) {
+-				         int blksize = atoi(res);
+-			
+-					 if (tftp_blocksize_check(blksize,
+-							   tftp_bufsize - 4)) {
++			if (res) {
++				int blksize = atoi(res);
+
+-					         if (cmd_put) {
+-				                         opcode = TFTP_DATA;
+-						 }
+-						 else {
+-				                         opcode = TFTP_ACK;
+-						 }
+-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+-						 fprintf(stderr, "using blksize %u\n", blksize);
++				if (tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
++					dprintf("using blksize %d\n", blksize);
++					tftp_bufsize = blksize + 4;
++					free(buf);
++					buf = xmalloc(tftp_bufsize);
++				} else {
++					bb_error_msg("bad blksize %d", blksize);
++					break;
++				}
++			}
+ #endif
+-					         tftp_bufsize = blksize + 4;
+-						 block_nr = 0;
+-						 continue;
+-					 }
+-				 }
+-				 /* FIXME:
+-				  * we should send ERROR 8 */
+-				 bb_error_msg("bad server option");
+-				 break;
+-			 }
+
+-			 bb_error_msg("warning: blksize not supported by server"
+-				   " - reverting to 512");
+
+-			 tftp_bufsize = TFTP_BLOCKSIZE_DEFAULT + 4;
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++			res = tftp_option_get(&buf[2], len-2, "multicast");
++
++			if (res) {
++				ack_oack = 1;
++				if (tftp_multicast_check(res, &mchostname, &mcport, &master_client)) {
++					struct ip_mreq mreq;
++					struct in_addr mcaddr;
++
++					dprintf("using multicast\n");
++
++					mchost = xgethostbyname(mchostname);
++					if (mchost) {
++						memcpy(&mcaddr, mchost->h_addr, mchost->h_length);
++						if (! IN_MULTICAST(ntohl(mcaddr.s_addr))) {
++							bb_error_msg("bad multicast address: %s", mchostname);
++							break;
++						}
++					} else {
++						bb_error_msg("bad multicast address: %s", mchostname);
++						break;
++					}
++
++					memset(&mcsa, 0, sizeof(mcsa));
++					mcsa.sin_family = AF_INET;
++					mcsa.sin_addr.s_addr = htonl(INADDR_ANY);
++					mcsa.sin_port = mcport;
++
++					bind(mcfd, (struct sockaddr *)&mcsa, sizeof(mcsa));
++
++					mreq.imr_multiaddr.s_addr = mcaddr.s_addr;
++					mreq.imr_interface.s_addr = htonl(INADDR_ANY);
++
++					if (setsockopt(mcfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
++					{
++						bb_error_msg("setsockopt");
++						break;
++					}
++
++					option->multicast = 1;
++				} else {
++					bb_error_msg("bad multicast option value: %s", res);
++					break;
++				}
++			}
++#endif
++
+ 		}
++		else
+ #endif
+
+ 		if (cmd_get && (opcode == TFTP_DATA)) {
+
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++			if (option->multicast) {
++				int bn = tmp - 1;
++				/* Do I need this block? */
++				if (! bit_isset(bn, mcblockmap)) {
++					lseek(localfd, bn*(tftp_bufsize-4), SEEK_SET);
++					len = write(localfd, &buf[4], len-4);
++					if (len < 0) {
++						bb_perror_msg("write");
++						break;
++					}
++					bit_set(bn, mcblockmap);
++					if (len != (tftp_bufsize-4)) {
++						mcmaxblock = tmp;
++						dprintf("mcmaxblock=%d, (len(%d) != tftp_bufsize-4(%d))\n", mcmaxblock, len, tftp_bufsize-4);
++					}
++					opcode = TFTP_ACK;
++				}
++				/* Do not acknowledge block if I already have a copy of the block. A situation can arise when the server
++				 * and client timeout nearly simultaneously. The server retransmits the block at the same time the client
++				 * re-requests the block. From then on out, each block is transmitted twice--not a good use of bandwidth.
++				 */
++			}
++			else
++#endif
++
+ 			if (tmp == block_nr) {
+ 			
+ 				len = write(localfd, &buf[4], len - 4);
+@@ -452,15 +796,14 @@
+ 				}
+
+ 				if (len != (tftp_bufsize - 4)) {
+-					finished++;
++					finished = 1;
+ 				}
+
+ 				opcode = TFTP_ACK;
+-				continue;
+ 			}
+ 		}
+
+-		if (cmd_put && (opcode == TFTP_ACK)) {
++		else if (cmd_put && opcode == TFTP_ACK) {
+
+ 			if (tmp == (unsigned short)(block_nr - 1)) {
+ 				if (finished) {
+@@ -468,15 +811,19 @@
+ 				}
+
+ 				opcode = TFTP_DATA;
+-				continue;
+ 			}
+ 		}
+ 	}
+
+ #ifdef CONFIG_FEATURE_CLEAN_UP
+ 	close(socketfd);
++	free(buf);
++
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++	if (mcblockmap != NULL)
++		free(mcblockmap);
++#endif
+
+-        free(buf);
+ #endif
+
+ 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
+@@ -487,13 +834,18 @@
+ 	struct hostent *host = NULL;
+ 	char *localfile = NULL;
+ 	char *remotefile = NULL;
+-	int port;
++	unsigned short port;
+ 	int cmd = 0;
+ 	int fd = -1;
+ 	int flags = 0;
+ 	int opt;
+ 	int result;
+-	int blocksize = TFTP_BLOCKSIZE_DEFAULT;
++	struct tftp_option option = {
++		.multicast		= 0,
++		.blksize		= TFTP_BLOCKSIZE_DEFAULT,
++		.client_timeout	= TFTP_TIMEOUT,
++		.server_timeout	= TFTP_TIMEOUT,
++	};
+
+ 	/* figure out what to pass to getopt */
+
+@@ -515,13 +867,45 @@
+ #define PUT
+ #endif
+
+-	while ((opt = getopt(argc, argv, BS GET PUT "l:r:")) != -1) {
++#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
++#define TO "T:t:"
++#else
++#define TO
++#endif
++
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++#define MC "m"
++#else
++#define MC
++#endif
++
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++#define DB "D"
++#else
++#define DB
++#endif
++
++	while ((opt = getopt(argc, argv, BS GET PUT TO MC DB "l:r:")) != -1) {
+ 		switch (opt) {
+ #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
+ 		case 'b':
+-			blocksize = atoi(optarg);
+-			if (!tftp_blocksize_check(blocksize, 0)) {
+-                                return EXIT_FAILURE;
++			option.blksize = atoi(optarg);
++			if (!tftp_blocksize_check(option.blksize, 0)) {
++				return EXIT_FAILURE;
++			}
++			break;
++#endif
++#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
++		case 'T':
++			option.client_timeout = atoi(optarg);
++			if (!tftp_timeout_check(option.client_timeout)) {
++				return EXIT_FAILURE;
++			}
++			break;
++		case 't':
++			option.server_timeout = atoi(optarg);
++			if (!tftp_timeout_check(option.server_timeout)) {
++				return EXIT_FAILURE;
+ 			}
+ 			break;
+ #endif
+@@ -537,18 +921,34 @@
+ 			flags = O_RDONLY;
+ 			break;
+ #endif
++#ifdef CONFIG_FEATURE_TFTP_MULTICAST
++		case 'm':
++			option.multicast = 1;	/* receive multicast file */
++			break;
++#endif
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++		case 'D':
++			debug = 1;
++			break;
++#endif
+ 		case 'l':
+ 			localfile = bb_xstrdup(optarg);
+ 			break;
+ 		case 'r':
+ 			remotefile = bb_xstrdup(optarg);
+ 			break;
++		default:
++			bb_show_usage();
+ 		}
+ 	}
+
+ 	if ((cmd == 0) || (optind == argc)) {
+ 		bb_show_usage();
+ 	}
++	if (cmd == tftp_cmd_put && option.multicast) {
++		fprintf(stderr, "Multicast (-m) invalid option with put (-p) command\n");
++		exit(EXIT_FAILURE);
++	}
+ 	if(localfile && strcmp(localfile, "-") == 0) {
+ 	    fd = fileno((cmd==tftp_cmd_get)? stdout : stdin);
+ 	}
+@@ -566,14 +966,12 @@
+ 	host = xgethostbyname(argv[optind]);
+ 	port = bb_lookup_port(argv[optind + 1], "udp", 69);
+
+-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+-	fprintf(stderr, "using server \"%s\", remotefile \"%s\", "
++	dprintf("using server \"%s\", remotefile \"%s\", "
+ 		"localfile \"%s\".\n",
+ 		inet_ntoa(*((struct in_addr *) host->h_addr)),
+ 		remotefile, localfile);
+-#endif
+
+-	result = tftp(cmd, host, remotefile, fd, port, blocksize);
++	result = tftp(cmd, host, remotefile, fd, port, &option);
+
+ #ifdef CONFIG_FEATURE_CLEAN_UP
+ 	if (!(fd == STDOUT_FILENO || fd == STDIN_FILENO)) {
+@@ -582,3 +980,18 @@
+ #endif
+ 	return(result);
+ }
++
++
++#ifdef CONFIG_FEATURE_TFTP_DEBUG
++
++#include <sys/time.h>
++
++static void
++printtime(void)
++{
++	struct timeval tv;
++	gettimeofday(&tv, NULL);
++	printf("%11lu.%06lu ", tv.tv_sec, tv.tv_usec);
++}
++
++#endif

@@ -1,0 +1,48 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+ARCHIVAL_AR:=archival.a
+ifndef $(ARCHIVAL_DIR)
+ARCHIVAL_DIR:=$(top_builddir)/archival/
+endif
+srcdir=$(top_srcdir)/archival
+
+ARCHIVAL-y:=
+ARCHIVAL-$(CONFIG_APT_GET)	+=
+ARCHIVAL-$(CONFIG_AR)		+= ar.o
+ARCHIVAL-$(CONFIG_BUNZIP2)	+= bunzip2.o
+ARCHIVAL-$(CONFIG_CPIO)		+= cpio.o
+ARCHIVAL-$(CONFIG_DPKG)		+= dpkg.o
+ARCHIVAL-$(CONFIG_DPKG_DEB)	+= dpkg_deb.o
+ARCHIVAL-$(CONFIG_GUNZIP)	+= gunzip.o
+ARCHIVAL-$(CONFIG_GZIP)		+= gzip.o
+ARCHIVAL-$(CONFIG_RPM2CPIO)	+= rpm2cpio.o
+ARCHIVAL-$(CONFIG_RPM)		+= rpm.o
+ARCHIVAL-$(CONFIG_TAR)		+= tar.o
+ARCHIVAL-$(CONFIG_UNCOMPRESS)	+= uncompress.o
+ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
+
+libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
+
+$(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+	$(AR) -ro $@ $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+
+$(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

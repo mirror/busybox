@@ -1,0 +1,33 @@
+Index: ./networking/udhcp/dhcpd.c
+===================================================================
+RCS file: /var/cvs/busybox/networking/udhcp/dhcpd.c,v
+retrieving revision 1.5
+diff -u -r1.5 dhcpd.c
+--- a/./networking/udhcp/dhcpd.c	30 Jan 2004 23:45:12 -0000	1.5
++++ b/./networking/udhcp/dhcpd.c	5 Mar 2004 13:09:05 -0000
+@@ -70,6 +70,13 @@
+ 	struct dhcpOfferedAddr *lease;
+ 	int max_sock;
+ 	unsigned long num_ips;
++	int daemonize = 1;
++
++	while (strcmp(argv[1],"-f")==0 || strcmp(argv[1],"--foreground")==0) {
++		daemonize = 0;
++		argv++;
++		argc--;
++	}
+
+ 	memset(&server_config, 0, sizeof(struct server_config_t));
+ 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
+@@ -99,9 +106,8 @@
+ 			   &server_config.server, server_config.arp) < 0)
+ 		return 1;
+
+-#ifndef UDHCP_DEBUG
+-	background(server_config.pidfile); /* hold lock during fork. */
+-#endif
++	if(daemonize)
++		background(server_config.pidfile); /* hold lock during fork. */
+
+ 	/* Setup the signal pipe */
+ 	udhcp_sp_setup();

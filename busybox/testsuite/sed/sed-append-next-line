@@ -1,0 +1,19 @@
+# This will fail if CONFIG_FEATURE_SED_GNU_COMPATABILITY is defined
+busybox sed 'N;p'>output <<EOF
+a
+b
+c
+EOF
+
+set +e
+cmp -s output - <<EOF
+a
+b
+a
+b
+c
+EOF
+if [ $? != 0 ] ; then
+	exit 0;
+fi
+exit 1;

@@ -1,0 +1,4 @@
+[ -n "$d" ] || d=..
+sort "$d/README" > logfile.gnu
+busybox sort "$d/README" > logfile.bb
+cmp logfile.gnu logfile.bb

@@ -1,0 +1,18 @@
+This testsuite is quite obviously a work in progress.  As such,
+there are a number of good extensions.  If you are looking for
+something to do, feel free to tackle one or more of the following:
+
+Buildroot support
+	Erik has put together a handy package for constructing and
+	testing busybox called buildroot.  Integrating this into
+	the testsuite would allow for greater test coverage (e.g.,
+	init, mount, and other privileged applications).
+
+libbb unit testing
+	Being able to test the functions of libbb individually may
+	help to prevent regressions.
+
+Standardization
+	This testsuite is totally bastardized.  It would be better
+	to use an existing test framework, such as dejagnu, greg,
+	or a XUnit clone (shunit?).

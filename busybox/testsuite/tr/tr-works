@@ -1,0 +1,9 @@
+echo "cbaab" | tr abc zyx > logfile.gnu
+echo "TESTING A B C" | tr [A-Z] [a-z] >> logfile.gnu
+echo abc[] | tr a[b AXB >> logfile.gnu
+
+echo "cbaab" | busybox tr abc zyx > logfile.bb
+echo "TESTING A B C" | busybox tr [A-Z] [a-z] >> logfile.bb
+echo abc[] | busybox tr a[b AXB >> logfile.bb
+
+cmp logfile.gnu logfile.bb

@@ -1,0 +1,1 @@
+test x"$(echo foo | busybox -n sed -e s/foo/bar/ -e s/foo/baz/)" = x

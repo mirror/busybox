@@ -1,0 +1,57 @@
+<!--#include file="header.html" -->
+
+
+<h3>Anonymous CVS</h3>
+
+We allow anonymous (read-only) CVS access to everyone.  The first command you
+need to run for anonymous CVS access is:
+<pre>
+cvs -d:pserver:anonymous@busybox.net:/var/cvs login</pre>
+<p>
+CVS will prompt you for a password. Just press the Enter key (there is no
+password for anonymous access).  This step only needs to be done once, the first
+time you attempt to access CVS.
+<p>
+Once the login is complete, you can then check the list of available
+CVS modules by running the following command (all on one line):
+<pre>
+cvs -z3 -d:pserver:anonymous@busybox.net:/var/cvs co -c </pre>
+
+<p>
+If you wish, you can then check out a local copy of any of the
+available modules.  The following is an example of how to grab
+a copy of busybox and tinylogin:
+<pre>
+    cvs -z3 -d:pserver:anonymous@busybox.net:/var/cvs co -P busybox tinylogin</pre>
+This will create a directory called <b>busybox</b> and a directory called
+<b>tinylogin</b> in the current directory.  These directories contain the
+latest and greatest source code for busybox and tinylogin.
+
+<p>
+If you are not already familiar with using CVS, I recommend you visit
+this quick <a href="/cvs_howto.html">Introduction to CVS</a>.
+
+<p>
+I usually create a ~/.cvsrc file with the following things in it, and I
+recommend you should use the same:
+<pre>
+    -z3
+    update -dP
+    rdiff -u
+    diff -ubBwpN
+    checkout -P</pre>
+
+<p>
+Once you've checked out a copy of the source tree, you can update your
+source tree at any time so it is in sync with the latest and greatest by
+running the command:
+<pre>
+cvs update</pre>
+
+Because you've only been granted anonymous access to the tree, you won't be
+able to commit any changes. Changes can be submitted for inclusion by posting
+them to the appropriate mailing list.  For those that are actively contributing
+<a href="cvs_write.html">CVS write access</a> can be made available.
+
+<!--#include file="footer.html" -->
+

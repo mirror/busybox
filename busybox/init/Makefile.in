@@ -1,0 +1,62 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+INIT_AR:=init.a
+ifndef $(INIT_DIR)
+INIT_DIR:=$(top_builddir)/init/
+endif
+srcdir=$(top_srcdir)/init
+
+INIT-y:=
+INIT-$(CONFIG_HALT)			+= halt.o
+INIT-$(CONFIG_INIT)			+= init.o
+INIT-$(CONFIG_MESG)			+= mesg.o
+INIT-$(CONFIG_POWEROFF)			+= poweroff.o
+INIT-$(CONFIG_REBOOT)			+= reboot.o
+
+ifeq ($(CONFIG_HALT), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_INIT), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_POWEROFF), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_REBOOT), y)
+CONFIG_INIT_SHARED=y
+else
+CONFIG_INIT_SHARED=n
+endif
+endif
+endif
+endif
+
+ifeq ($(CONFIG_INIT_SHARED), y)
+INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
+endif
+
+libraries-y+=$(INIT_DIR)$(INIT_AR)
+
+$(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+	$(AR) -ro $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+
+$(INIT_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

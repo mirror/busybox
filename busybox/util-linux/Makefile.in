@@ -1,0 +1,66 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+UTILLINUX_AR:=util-linux.a
+ifndef $(UTILLINUX_DIR)
+UTILLINUX_DIR:=$(top_builddir)/util-linux/
+endif
+srcdir=$(top_srcdir)/util-linux
+
+UTILLINUX-:=
+UTILLINUX-$(CONFIG_DMESG)		+=dmesg.o
+UTILLINUX-$(CONFIG_FBSET)		+=fbset.o
+UTILLINUX-$(CONFIG_FDFLUSH)		+=fdflush.o
+UTILLINUX-$(CONFIG_FDFORMAT)		+=fdformat.o
+UTILLINUX-$(CONFIG_FDISK)		+=fdisk.o
+UTILLINUX-$(CONFIG_FREERAMDISK)		+=freeramdisk.o
+UTILLINUX-$(CONFIG_FSCK_MINIX)		+=fsck_minix.o
+UTILLINUX-$(CONFIG_GETOPT)		+=getopt.o
+UTILLINUX-$(CONFIG_HEXDUMP)		+=hexdump.o
+UTILLINUX-$(CONFIG_HWCLOCK)		+=hwclock.o
+UTILLINUX-$(CONFIG_LOSETUP)		+=losetup.o
+UTILLINUX-$(CONFIG_MKFS_MINIX)		+=mkfs_minix.o
+UTILLINUX-$(CONFIG_MKSWAP)		+=mkswap.o
+UTILLINUX-$(CONFIG_MORE)		+=more.o
+UTILLINUX-$(CONFIG_MOUNT)		+=mount.o
+UTILLINUX-$(CONFIG_NFSMOUNT)		+=nfsmount.o
+UTILLINUX-$(CONFIG_PIVOT_ROOT)		+=pivot_root.o
+UTILLINUX-$(CONFIG_RDATE)		+=rdate.o
+UTILLINUX-$(CONFIG_SWAPONOFF)		+=swaponoff.o
+UTILLINUX-$(CONFIG_UMOUNT)		+=umount.o
+
+libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
+
+$(UTILLINUX_DIR)$(UTILLINUX_AR): $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
+	$(AR) -ro $@ $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
+
+$(UTILLINUX_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+
+ifneq ($(strip $(CONFIG_LFS)),y)
+ifeq ($(strip $(FDISK_SUPPORT_LARGE_DISKS)),y)
+
+$(UTILLINUX_DIR)fdisk.o: $(srcdir)/fdisk.c
+	$(CC) $(CFLAGS) \
+		-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 \
+		$(EXTRA_CFLAGS) -c -o $@ $<
+
+endif
+endif
+

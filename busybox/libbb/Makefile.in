@@ -1,0 +1,107 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+LIBBB_AR:=libbb.a
+ifndef $(LIBBB_DIR)
+LIBBB_DIR:=$(top_builddir)/libbb/
+endif
+srcdir=$(top_srcdir)/libbb
+
+LIBBB_SRC:= \
+	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
+	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
+	correct_password.c create_icmp_socket.c create_icmp6_socket.c \
+	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
+	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
+	full_write.c get_last_path_component.c get_line_from_file.c get_ug_id.c \
+	get_terminal_width_height.c hash_fd.c herror_msg.c herror_msg_and_die.c \
+	human_readable.c inet_common.c inode_hash.c interface.c isdirectory.c \
+	kernel_version.c last_char_is.c llist_add_to.c login.c loop.c \
+	make_directory.c mode_string.c module_syscalls.c mtab.c mtab_file.c \
+	my_getgrgid.c my_getgrnam.c my_getpwnam.c my_getug.c\
+	my_getpwuid.c obscure.c parse_mode.c parse_number.c perror_msg.c \
+	perror_msg_and_die.c print_file.c get_console.c \
+	process_escape_sequence.c procps.c pwd2spwd.c pw_encrypt.c qmodule.c \
+	read_package_field.c recursive_action.c remove_file.c \
+	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_write.c \
+	safe_strncpy.c setup_environment.c simplify_path.c syscalls.c \
+	trim.c u_signal_names.c vdprintf.c verror_msg.c \
+	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c \
+	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c xgetlarg.c \
+	get_terminal_width_height.c fclose_nonstdin.c fflush_stdout_and_exit.c \
+	getopt_ulflags.c default_error_retval.c wfopen_input.c speed_table.c \
+	perror_nomsg_and_die.c perror_nomsg.c skip_whitespace.c bb_askpass.c \
+	warn_ignoring_args.c concat_subpath_file.c vfork_daemon_rexec.c
+
+LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
+
+LIBBB_MSRC0:=$(srcdir)/messages.c
+LIBBB_MOBJ0:=full_version.o \
+	memory_exhausted.o invalid_date.o io_error.o \
+	write_error.o name_longer_than_foo.o unknown.o \
+	can_not_create_raw_socket.o perm_denied_are_you_root.o \
+	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o \
+	securetty_file.o motd_file.o \
+	msg_standard_input.o msg_standard_output.o shell_file.o
+
+LIBBB_MSRC1:=$(srcdir)/xfuncs.c
+LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
+	xfopen.o xopen.o xread.o xread_all.o xread_char.o \
+	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
+
+LIBBB_MSRC2:=$(srcdir)/printf.c
+LIBBB_MOBJ2:=bb_vfprintf.o bb_vprintf.o bb_fprintf.o bb_printf.o
+
+LIBBB_MSRC3:=$(srcdir)/xgetularg.c
+LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
+	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
+
+LIBBB_MSRC4:=$(srcdir)/safe_strtol.c
+LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
+
+LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
+LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
+LIBBB_MOBJS2=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ2))
+LIBBB_MOBJS3=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ3))
+LIBBB_MOBJS4=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ4))
+
+libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
+
+$(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
+	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
+	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
+		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
+
+$(LIBBB_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+
+$(LIBBB_MOBJS0): $(LIBBB_MSRC0)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS1): $(LIBBB_MSRC1)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS2): $(LIBBB_MSRC2)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS3): $(LIBBB_MSRC3)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS4): $(LIBBB_MSRC4)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+

@@ -1,0 +1,4 @@
+saved_umask=$(umask)
+umask 0
+busybox uuencode foo </dev/null | head -n 1 | grep -q 666
+umask $saved_umask

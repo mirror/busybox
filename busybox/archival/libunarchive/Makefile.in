@@ -1,0 +1,84 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+LIBUNARCHIVE_AR:=libunarchive.a
+ifndef $(LIBUNARCHIVE_DIR)
+LIBUNARCHIVE_DIR:=$(top_builddir)/archival/libunarchive/
+endif
+srcdir=$(top_srcdir)/archvial/libunarchive
+
+LIBUNARCHIVE-y:= \
+\
+	data_skip.o \
+	data_extract_all.o \
+	data_extract_to_stdout.o \
+	data_extract_to_buffer.o \
+\
+	filter_accept_all.o \
+	filter_accept_list.o \
+	filter_accept_reject_list.o \
+\
+	header_skip.o \
+	header_list.o \
+	header_verbose_list.o \
+\
+	archive_xread_all.o \
+	archive_xread_all_eof.o \
+\
+	seek_by_char.o \
+	seek_by_jump.o \
+\
+	data_align.o \
+	find_list_entry.o \
+	open_transformer.o \
+	init_handle.o
+
+GUNZIP_FILES:= check_header_gzip.o decompress_unzip.o
+DPKG_FILES:= \
+	get_header_ar.o \
+	unpack_ar_archive.o \
+	get_header_tar.o \
+	filter_accept_list_reassign.o
+
+LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o unpack_ar_archive.o
+LIBUNARCHIVE-$(CONFIG_BUNZIP2) += decompress_bunzip2.o
+LIBUNARCHIVE-$(CONFIG_CPIO) += get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_DPKG) += $(DPKG_FILES)
+LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += $(DPKG_FILES)
+LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_GZ) += $(GUNZIP_FILES) get_header_tar_gz.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_BZ2) += decompress_bunzip2.o get_header_tar_bz2.o
+LIBUNARCHIVE-$(CONFIG_GUNZIP) += $(GUNZIP_FILES)
+LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += decompress_uncompress.o
+LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_RPM) += $(GUNZIP_FILES) get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_BZIP2) += decompress_bunzip2.o get_header_tar_bz2.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_GZIP) += $(GUNZIP_FILES) get_header_tar_gz.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_COMPRESS) += decompress_uncompress.o
+LIBUNARCHIVE-$(CONFIG_UNCOMPRESS) += decompress_uncompress.o
+LIBUNARCHIVE-$(CONFIG_UNZIP) += $(GUNZIP_FILES)
+
+libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
+
+$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
+	$(AR) -ro $@ $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
+
+$(LIBUNARCHIVA_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

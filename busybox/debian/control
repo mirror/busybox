@@ -1,0 +1,88 @@
+Source: busybox-cvs
+Priority: optional
+Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Erik Andersen <andersee@debian.org>, Bastian Blank <waldi@debian.org>, Tollef Fog Heen <tfheen@debian.org>, Glenn McGrath <bug1@debian.org>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.0
+
+Package: busybox-cvs
+Architecture: any
+Depends: ${shlibs:Depends}
+Conflicts: busybox-cvs-static, busybox, busybox-static
+Replaces: busybox-cvs-static, busybox, busybox-static
+Section: utils
+Description: Tiny utilities for small and embedded systems
+ BusyBox combines tiny versions of many common UNIX utilities into a single
+ small executable. It provides minimalist replacements for the most common
+ utilities you would usually find on your desktop system (i.e., ls, cp, mv,
+ mount, tar, etc.).  The utilities in BusyBox generally have fewer options than
+ their full-featured GNU cousins; however, the options that are included
+ provide the expected functionality and behave very much like their GNU
+ counterparts.
+ .
+ This package installs the BusyBox binary but does not install symlinks
+ for any of the supported utilities.  You can use /bin/busybox --install
+ to install BusyBox to the current directory (you do not want to do this
+ in / on your Debian system!).
+
+Package: busybox-cvs-static
+Architecture: any
+Depends: ${shlibs:Depends}
+Conflicts: busybox-cvs, busybox-static, busybox
+Replaces: busybox-cvs, busybox-static, busybox
+Section: shells
+Description: Standalone rescue shell with tons of builtin utilities
+ BusyBox combines tiny versions of many common UNIX utilities into a single
+ small executable. It provides minimalist replacements for the most common
+ utilities you would usually find on your desktop system (i.e., ls, cp, mv,
+ mount, tar, etc.).  The utilities in BusyBox generally have fewer options than
+ their full-featured GNU cousins; however, the options that are included
+ provide the expected functionality and behave very much like their GNU
+ counterparts.
+ .
+ BusyBox-static provides you with a statically linked simple stand alone shell
+ that provides all the utilities available in BusyBox.  This package is
+ intended to be used as a rescue shell, in the event that you screw up your
+ system.  Invoke "busybox sh" and you have a standalone shell ready to save
+ your system from certain destruction.  Invoke "busybox", and it will list the
+ available builtin commands.
+
+Package: busybox-cvs-udeb
+Architecture: any
+Depends: ${shlibs:Depends}
+Section: debian-installer
+Conflicts: busybox-udeb
+Enhances: busybox-cvs-floppy-udeb
+Priority: extra
+Description: Tiny utilities for the debian-installer
+ BusyBox combines tiny versions of many common UNIX utilities into a single
+ small executable. It provides minimalist replacements for the most common
+ utilities you would usually find on your desktop system (i.e., ls, cp, mv,
+ mount, tar, etc.).  The utilities in BusyBox generally have fewer options than
+ their full-featured GNU cousins; however, the options that are included
+ provide the expected functionality and behave very much like their GNU
+ counterparts.
+ .
+ busybox-udeb is used by the debian-installer, so unless you are working
+ on the debian-installer, this package is not for you.  Installing this
+ on your Debian system is a very, very bad idea.  You have been warned.
+
+Package: busybox-cvs-floppy-udeb
+Architecture: i386
+Depends: ${shlibs:Depends}
+Section: debian-installer
+Conflicts: busybox-udeb
+Priority: extra
+Description: Tiny utilities for the debian-installer floppy images
+ BusyBox combines tiny versions of many common UNIX utilities into a single
+ small executable. It provides minimalist replacements for the most common
+ utilities you would usually find on your desktop system (i.e., ls, cp, mv,
+ mount, tar, etc.).  The utilities in BusyBox generally have fewer options than
+ their full-featured GNU cousins; however, the options that are included
+ provide the expected functionality and behave very much like their GNU
+ counterparts.
+ .
+ busybox-udeb is used by the debian-installer, so unless you are working
+ on the debian-installer, this package is not for you.  Installing this
+ on your Debian system is a very, very bad idea.  You have been warned.
+

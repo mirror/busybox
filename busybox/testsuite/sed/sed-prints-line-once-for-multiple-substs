@@ -1,0 +1,4 @@
+busybox sed -e s/1/2/g -e s/3/4/g >output <<EOF
+1
+EOF
+echo 2 | cmp -s output -

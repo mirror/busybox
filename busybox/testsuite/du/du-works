@@ -1,0 +1,4 @@
+[ -n "$d" ] || d=..
+du "$d" > logfile.gnu
+busybox du "$d" > logfile.bb
+cmp logfile.gnu logfile.bb

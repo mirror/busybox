@@ -1,0 +1,2 @@
+echo foo | busybox sed -e /foo/d -e s/foo/bar/ >foo
+cmp foo /dev/null

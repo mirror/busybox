@@ -1,0 +1,15 @@
+busybox sed 's/a/1/;t one;p;: one;p'>output <<EOF
+a
+b
+c
+EOF
+cmp -s output - <<EOF
+1
+1
+b
+b
+b
+c
+c
+c
+EOF

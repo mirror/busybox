@@ -1,0 +1,4 @@
+[ -n "$d" ] || d=..
+tail -n 2 "$d/README" > logfile.gnu
+busybox tail -n 2 "$d/README" > logfile.bb
+cmp logfile.gnu logfile.bb

@@ -1,0 +1,10 @@
+# FEATURE: CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+busybox sed -n 'N;/a\nb/p'>output <<EOF
+a
+b
+c
+EOF
+cmp -s output - <<EOF
+a
+b
+EOF
