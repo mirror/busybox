@@ -936,11 +936,11 @@ Example /etc/inittab file:
 
 	# Example of how to put a getty on a serial line (for a terminal)
 	#
-	#ttyS0::respawn:/sbin/getty -L ttyS0 9600 vt100
-	#ttyS1::respawn:/sbin/getty -L ttyS1 9600 vt100
+	#::respawn:/sbin/getty -L ttyS0 9600 vt100
+	#::respawn:/sbin/getty -L ttyS1 9600 vt100
 	#
 	# Example how to put a getty on a modem line.
-	#ttyS2::respawn:/sbin/getty -x0 -s 57600 ttyS2
+	#::respawn:/sbin/getty 57600 ttyS2
 
 	# Stuff to do before rebooting
 	::ctrlaltdel:/bin/umount -a -r
@@ -2261,4 +2261,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.73 2000/09/24 02:41:44 andersen Exp $
+# $Id: busybox.pod,v 1.74 2000/09/26 22:20:06 andersen Exp $
