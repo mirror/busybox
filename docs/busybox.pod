@@ -32,6 +32,11 @@ BusyBox has been written with size-optimization in mind.  It is very easy to
 include or exclude the commands (or features) you want installed.  BusyBox
 tries to make itself useful to small systems with limited resources.
 
+=head1 COMMON OPTIONS
+
+Most BusyBox commands support the B<--help> option to provide a
+terse runtime description of their behavior. 
+
 =head1 COMMANDS
 
 Currently defined functions include:
@@ -45,11 +50,6 @@ mnc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps, pwd, reboot,
 rm, rmdir, rmmod, sed, sh, sfdisk, sleep, sort, sync, syslogd, swapon, swapoff,
 tail, tar, test, tee, touch, tr, true, tty, umount, uname, uniq, update,
 uptime, usleep, wc, whoami, yes, zcat, [
-
-=head1 COMMON OPTIONS
-
-Most BusyBox commands support the B<--help> option to provide a
-terse runtime description of their behavior. 
 
 =over 4
 
@@ -1803,4 +1803,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.17 2000/04/19 03:59:10 erik Exp $
+# $Id: busybox.pod,v 1.18 2000/04/19 05:12:02 erik Exp $
