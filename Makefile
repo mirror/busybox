@@ -271,6 +271,7 @@ CFLAGS += $(CFLAGS_EXTRA)
 all: applet_source_list busybox busybox.links doc
 
 applet_source_list: busybox.sh Config.h
+	if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 	(echo -n "APPLET_SOURCES := "; $(SHELL) $^ $(BB_SRC_DIR)) > $@
 
 doc: olddoc
