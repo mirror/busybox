@@ -68,6 +68,13 @@ typedef struct sed_cmd_s {
 	regex_t *beg_match;	/* sed -e '/match/cmd' */
 	regex_t *end_match;	/* sed -e '/match/,/end_match/cmd' */
 
+	int beg_line;		/* 'sed 1p'   0 == no begining line, apply commands to all lines */
+	int end_line;		/* 'sed 1,3p' 0 == no end line, use only beginning. -1 == $ */
+
+	/* inversion flag */
+	int invert;			/* the '!' after the address */
+//	int block_cmd;	/* This command is part of a group that has a command address */
+
 	/* SUBSTITUTION COMMAND SPECIFIC FIELDS */
 
 	/* sed -e 's/sub_match/replace/' */
@@ -80,9 +87,6 @@ typedef struct sed_cmd_s {
 	/* FILE COMMAND (r) SPECIFIC FIELDS */
 	char *filename;
 
-	/* address storage */
-	int beg_line;		/* 'sed 1p'   0 == no begining line, apply commands to all lines */
-	int end_line;		/* 'sed 1,3p' 0 == no end line, use only beginning. -1 == $ */
 	/* SUBSTITUTION COMMAND SPECIFIC FIELDS */
 
 	unsigned int num_backrefs:4;	/* how many back references (\1..\9) */
@@ -97,9 +101,6 @@ typedef struct sed_cmd_s {
 	/* GENERAL FIELDS */
 	/* the command */
 	char cmd;			/* p,d,s (add more at your leisure :-) */
-
-	/* inversion flag */
-	int invert;			/* the '!' after the address */
 
 	/* Branch commands */
 	char *label;
@@ -124,9 +125,7 @@ static const char bad_format_in_subst[] =
 /* linked list of sed commands */
 static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
-static sed_cmd_t *block_cmd;
 
-static int in_block = 0;
 const char *const semicolon_whitespace = "; \n\r\t\v\0";
 static regex_t *previous_regex_ptr = NULL;
 
@@ -484,7 +483,7 @@ static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
-	else if (strchr("dghnNpPqx=", sed_cmd->cmd) == 0) {
+	else if (strchr("dghnNpPqx={}", sed_cmd->cmd) == 0) {
 		bb_error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
@@ -510,13 +509,6 @@ static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
 			be_quiet++;
 		}
 		return (strpbrk(cmdstr, "\n\r"));
-	}
-
-	/* Test for end of block */
-	if (*cmdstr == '}') {
-		in_block = 0;
-		cmdstr++;
-		return (cmdstr);
 	}
 
 	/* parse the command
@@ -571,27 +563,8 @@ static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
 	if (*cmdstr == '\0')
 		bb_error_msg_and_die("missing command");
 
-	/* This is the start of a block of commands */
-	if (*cmdstr == '{') {
-		if (in_block != 0) {
-			bb_error_msg_and_die("cant handle sub-blocks");
-		}
-		in_block = 1;
-		block_cmd = sed_cmd;
-
-		return (cmdstr + 1);
-	}
-
 	sed_cmd->cmd = *cmdstr;
 	cmdstr++;
-
-	if (in_block == 1) {
-		sed_cmd->beg_match = block_cmd->beg_match;
-		sed_cmd->end_match = block_cmd->end_match;
-		sed_cmd->beg_line = block_cmd->beg_line;
-		sed_cmd->end_line = block_cmd->end_line;
-		sed_cmd->invert = block_cmd->invert;
-	}
 
 	cmdstr = parse_cmd_str(sed_cmd, cmdstr);
 
@@ -828,12 +801,14 @@ static void process_file(FILE * file)
 	if (pattern_space == NULL) {
 		return;
 	}
-
+ 
 	/* go through every line in the file */
 	do {
 		char *next_line;
 		sed_cmd_t *sed_cmd;
 		int substituted = 0;
+		/* This enables whole blocks of commands to be mask'ed out if the lead address doesnt match */
+		int block_mask = 1;
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
 		next_line = bb_get_chomped_line_from_file(file);
@@ -855,7 +830,7 @@ static void process_file(FILE * file)
 					&& sed_cmd->beg_match == NULL
 					&& sed_cmd->end_match == NULL) ||
 				/* this line number is the first address we're looking for */
-				(sed_cmd->beg_line && (sed_cmd->beg_line == linenum)) ||
+				(sed_cmd->beg_line > 0 && (sed_cmd->beg_line == linenum)) ||
 				/* this line matches our first address regex */
 				(sed_cmd->beg_match
 					&& (regexec(sed_cmd->beg_match, pattern_space, 0, NULL,
@@ -865,7 +840,12 @@ static void process_file(FILE * file)
 					&& (next_line == NULL))
 				);
 
-			if (sed_cmd->invert ^ matched) {
+			if (sed_cmd->cmd == '{') {
+				block_mask = block_mask & matched;
+			}
+//			matched &= block_mask;
+
+			if (sed_cmd->invert ^ (matched & block_mask)) {
 				/* Update last used regex incase a blank substitute BRE is found */
 				if (sed_cmd->beg_match) {
 					previous_regex_ptr = sed_cmd->beg_match;
@@ -1060,11 +1040,10 @@ static void process_file(FILE * file)
 					break;
 				case 'x':{
 					/* Swap hold and pattern space */
-					char *tmp;
-
-					tmp = pattern_space;
+					char *tmp = pattern_space;
 					pattern_space = hold_space;
 					hold_space = tmp;
+					break;
 				}
 				}
 			}
@@ -1081,7 +1060,7 @@ static void process_file(FILE * file)
 					 * isn't the first time through) and.. */
 					|| ((still_in_range == 1)
 						/* this line number is the last address we're looking for or... */
-						&& ((sed_cmd->end_line
+						&& ((sed_cmd->end_line > 0
 								&& (sed_cmd->end_line == linenum))
 							/* this line matches our last address regex */
 							|| (sed_cmd->end_match
@@ -1093,6 +1072,10 @@ static void process_file(FILE * file)
 					/* didn't hit the exit? then we're still in the middle of an address range */
 					still_in_range = 1;
 				}
+			}
+
+			if (sed_cmd->cmd == '}') {
+				block_mask = 1;
 			}
 
 			if (deleted)
