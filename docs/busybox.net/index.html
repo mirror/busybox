@@ -60,39 +60,6 @@ BusyBox is licensed under the
 <p>
 
 
-<h3> Busybox Boot-Floppy Image </h3>
-
-<p> Because you asked for it, we have made available a <a href=
-"ftp://opensource.lineo.com/busybox/busybox.floppy.img"> Busybox boot floppy
-image</a>. Here's how you use it:
-
-<ol>
-
-	<li> <a href= "ftp://opensource.lineo.com/busybox/busybox.floppy.img">
-	Download the image</a>
-
-	<li> dd it onto a floppy like so: <tt> dd if=busybox.floppy.img
-	of=/dev/fd0 ; sync </tt>
-
-	<li> Pop it in a machine and boot up.
-
-</ol>
-
-<p> If you want to look at the contents of the initrd image, do this:
-
-<pre>
-
-	mount ./busybox.floppy.img /mnt -o loop -t msdos        
-	cp /mnt/initrd.gz /tmp                          
-	umount /mnt           
-	gunzip /tmp/initrd.gz
-	mount /tmp/initrd /mnt -o loop -t minix
-
-</pre>
-
-<p> Enjoy.
-
-
 <h3> Screenshot </h3>
 
 <p> Because everybody loves screenshots, a screenshot of BusyBox 
@@ -115,6 +82,35 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 
 <ul>
+
+    <li> <b>Busybox Boot-Floppy Image</b>
+
+    <p>Because you asked for it, we have made available a <a href=
+    "ftp://opensource.lineo.com/busybox/busybox.floppy.img"> Busybox boot floppy
+    image</a>. Here's how you use it:
+
+    <ol>
+
+	    <li> <a href= "ftp://opensource.lineo.com/busybox/busybox.floppy.img">
+	    Download the image</a>
+
+	    <li> dd it onto a floppy like so: <tt> dd if=busybox.floppy.img
+	    of=/dev/fd0 ; sync </tt>
+
+	    <li> Pop it in a machine and boot up.
+
+    </ol>
+
+    <p> If you want to look at the contents of the initrd image, do this:
+
+    <pre>
+	    mount ./busybox.floppy.img /mnt -o loop -t msdos        
+	    cp /mnt/initrd.gz /tmp                          
+	    umount /mnt           
+	    gunzip /tmp/initrd.gz
+	    mount /tmp/initrd /mnt -o loop -t minix
+    </pre>
+
 
     <li> <b>15 March 2001 -- BusyBox 0.50 released</b>
     <br>
