@@ -2074,7 +2074,7 @@
 	    "\t\t\tcommands to be executed\n" \
 	"\t-i\t\tedit files in-place\n" \
 	"\t-n\t\tsuppress automatic printing of pattern space\n" \
-	"\t-r\t\tuse extended regular expression syntax\n"
+	"\t-r\t\tuse extended regular expression syntax\n" \
 	"\n" \
 	"If no -e or -f is given, the first non-option argument is taken as the sed\n"\
 	"script to interpret. All remaining arguments are names of input files; if no\n"\
