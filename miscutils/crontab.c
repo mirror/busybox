@@ -37,7 +37,7 @@
 #define CRONUPDATE      "cron.update"
 #endif
 #ifndef PATH_VI
-#define PATH_VI         "/usr/bin/vi"   /* location of vi       */
+#define PATH_VI         "/bin/vi"   /* location of vi       */
 #endif
 
 #include "busybox.h"
