@@ -362,6 +362,9 @@
 // Enable a if you system have setuped locale
 //#define BB_LOCALE_SUPPORT
 //
+// Support for TELNET to pass TERM type to remote host.  Adds 384 bytes.
+#define BB_FEATURE_TELNET_TTYPE
+//
 // End of Features List
 //
 //

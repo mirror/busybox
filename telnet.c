@@ -27,6 +27,8 @@
  * initial revision
  * Modified 2000/06/13 for inclusion into BusyBox by Erik Andersen
  * <andersen@lineo.com> 
+ * Modified 2001/05/07 to add ability to pass TTYPE to remote host by Jim McQuillan
+ * <jam@ltsp.org>
  *
  */
 
@@ -135,6 +137,10 @@ static int local_bind(int port);
 
 /* Some globals */
 static int one = 1;
+
+#ifdef BB_FEATURE_TELNET_TTYPE
+static char *ttype;
+#endif
 
 static void doexit(int ev)
 {
@@ -321,6 +327,27 @@ static void putiac1(byte c)
 }
 #endif
 
+#ifdef BB_FEATURE_TELNET_TTYPE
+static void putiac_subopt(byte c, char *str)
+{
+	int	len = strlen(str) + 6;   // ( 2 + 1 + 1 + strlen + 2 )
+
+	if (G.iaclen + len > IACBUFSIZE)
+		iacflush();
+
+	putiac(IAC);
+	putiac(SB);
+	putiac(c);
+	putiac(0);
+
+	while(*str)
+		putiac(*str++);
+
+	putiac(IAC);
+	putiac(SE);
+}
+#endif
+
 /* void putiacstring (subneg strings) */
 
 /* ******************************* */
@@ -427,12 +454,29 @@ static inline void to_sga()
 	return;
 }
 
+#ifdef BB_FEATURE_TELNET_TTYPE
+static inline void to_ttype()
+{
+	/* Tell server we will (or won't) do TTYPE */
+
+	if(ttype)
+		putiac2(WILL, TELOPT_TTYPE);
+	else
+		putiac2(WONT, TELOPT_TTYPE);
+
+	return;
+}
+#endif
+
 static void telopt(byte c)
 {
 	switch (c)
 	{
 	case TELOPT_ECHO:		to_echo(c);		break;
 	case TELOPT_SGA:		to_sga(c);		break;
+#ifdef BB_FEATURE_TELNET_TTYPE
+	case TELOPT_TTYPE:		to_ttype(c);	break;
+#endif
 	default:				to_notsup(c);	break;
 	}
 }
@@ -440,7 +484,7 @@ static void telopt(byte c)
 
 /* ******************************* */
 
-/* subnegotiation -- ignore all */
+/* subnegotiation -- ignore all (except TTYPE) */
 
 static int subneg(byte c)
 {
@@ -449,6 +493,11 @@ static int subneg(byte c)
 	case TS_SUB1:
 		if (c == IAC)
 			G.telstate = TS_SUB2;
+#ifdef BB_FEATURE_TELNET_TTYPE
+		else
+		if (c == TELOPT_TTYPE)
+			putiac_subopt(TELOPT_TTYPE,ttype);
+#endif
 		break;
 	case TS_SUB2:
 		if (c == SE)
@@ -488,6 +537,9 @@ extern int telnet_main(int argc, char** argv)
 	int maxfd;
 #endif	
 
+#ifdef BB_FEATURE_TELNET_TTYPE
+    ttype = getenv("TERM");
+#endif
 
 	memset(&G, 0, sizeof G);
 
