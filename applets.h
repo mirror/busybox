@@ -21,14 +21,14 @@
   #define APPLET_ODDNAME(a,b,c,d) extern int b(int argc, char **argv);
   extern const char usage_messages[];
 #elif defined(MAKE_USAGE)
-  #ifdef BB_FEATURE_TRIVIAL_HELP
-    #define APPLET(a,b,c) a##_trivial_usage "\0"
-    #define APPLET_NOUSAGE(a,b,c) "\0"
-    #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\0"
-  #else
+  #ifdef BB_FEATURE_VERBOSE_USAGE
     #define APPLET(a,b,c) a##_trivial_usage "\n\n" a##_full_usage "\0"
     #define APPLET_NOUSAGE(a,b,c) "\0"
     #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\n\n" d##_full_usage "\0"
+  #else
+    #define APPLET(a,b,c) a##_trivial_usage "\0"
+    #define APPLET_NOUSAGE(a,b,c) "\0"
+    #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\0"
   #endif
 #elif defined(MAKE_LINKS)
 #  define APPLET(a,b,c) LINK c a

@@ -153,9 +153,8 @@
 // I emailed Linus and this patch will not be going into the stock kernel.
 //#define BB_FEATURE_USE_DEVPS_PATCH
 //
-// This compiles out everything but the most 
-// trivial --help usage information (i.e. reduces binary size)
-#define BB_FEATURE_TRIVIAL_HELP
+// show verbose usage messages
+//#define BB_FEATURE_VERBOSE_USAGE
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
 //#define BB_FEATURE_USE_TERMIOS
