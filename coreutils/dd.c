@@ -172,8 +172,8 @@ int dd_main(int argc, char **argv)
 	if (close (ofd) < 0)
 		perror_msg_and_die("%s", outfile);
 
-	error_msg("%ld+%ld records in", (long)in_full, (long)in_part);
-	error_msg("%ld+%ld records out", (long)out_full, (long)out_part);
+	fprintf(stderr, "%ld+%ld records in", (long)in_full, (long)in_part);
+	fprintf(stderr, "%ld+%ld records out", (long)out_full, (long)out_part);
 
 	return EXIT_SUCCESS;
 }
