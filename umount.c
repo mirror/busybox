@@ -59,9 +59,13 @@ static int doRemount = FALSE;
 extern const char mtab_file[];	/* Defined in utility.c */
 
 
+
 /* These functions are here because the getmntent functions do not appear
  * to be re-entrant, which leads to all sorts of problems when we try to
  * use them recursively - randolph
+ *
+ * TODO: Perhaps switch to using Glibc's getmntent_r
+ *        -Erik
  */
 void mtab_read(void)
 {

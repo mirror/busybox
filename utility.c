@@ -1193,7 +1193,7 @@ extern pid_t findInitPid()
 	for (init_pid = 1; init_pid < 65536; init_pid++) {
 		FILE *status;
 
-		sprintf(filename, "/proc/%d/status", init_pid);
+		sprintf(filename, "/proc/%d/cmdline", init_pid);
 		status = fopen(filename, "r");
 		if (!status) {
 			continue;
@@ -1201,7 +1201,7 @@ extern pid_t findInitPid()
 		fgets(buffer, 256, status);
 		fclose(status);
 
-		if ((strstr(buffer, "init\n") != NULL)) {
+		if ((strstr(buffer, "init") != NULL)) {
 			return init_pid;
 		}
 	}

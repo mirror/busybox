@@ -11,12 +11,13 @@
 	* Fixed "du" so it gives the same answers as GNU "du" (busybox du used 
 	    to count hard-linked files more then once).  Many thanks to 
 	    Friedrich Vedder <fwv@myrtle.lahn.de> for the fix.
-	* Removed /proc dependancies for init and free (while maintaining exactly
-	    the same functionality).  /proc takes up 90k of kernel space, so it is
-	    nice to avoid using it at all costs.
-	* init no longer tries to mount /proc (unless there is less the 1 meg free).  
-	    Use of /proc (or not) is policy that should be set up in /etc/fstab (or
-	    in hardcoded scripts), not in init.
+	* Removed /proc dependancies for init and free (while maintaining 
+	    exactly the same functionality).  /proc takes up 90k of kernel 
+	    space, so it is nice to avoid using it at all costs.
+	* init no longer tries to mount /proc (unless there is less the 1 meg 
+	    free).  Use of /proc (or not) is policy that should be set up in 
+	    /etc/fstab (or in hardcoded scripts), not in init.
+	* Fixed rebooting when init runs as an initrd.
 
 	-Erik Andersen
 
