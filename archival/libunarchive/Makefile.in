@@ -1,0 +1,38 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+LIBUNARCHIVE_AR:=libunarchive.a
+ifndef $(LIBUNARCHIVE_DIR)
+LIBUNARCHIVE_DIR:=$(TOPDIR)archival/libunarchive/
+endif
+
+LIBUNARCHIVE-y:=unarchive.o seek_sub_file.o
+LIBUNARCHIVE-$(CONFIG_DPKG) += deb_extract.o get_header_ar.o get_header_tar.o
+LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += deb_extract.o get_header_ar.o get_header_tar.o
+LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o
+LIBUNARCHIVE-$(CONFIG_CPIO) += get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += get_header_cpio.o
+LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
+LIBUNARCHIVE-$(CONFIG_UNZIP) += get_header_zip.o
+
+libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
+
+$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
+	$(AR) -ro $@ $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
+

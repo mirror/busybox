@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,30 +17,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR   :=..
-L_TARGET := miscutils.a
-EXTRA_CFLAGS = -DBB_VER='"$(VERSION)"' -DBB_BT='"$(BUILDTIME)"'
-
-obj-y           :=
-obj-n           :=
-obj-            :=
-
-
-obj-$(CONFIG_ADJTIMEX)		+= adjtimex.o
-obj-$(CONFIG_DC)		+= dc.o
-obj-$(CONFIG_DUTMP)		+= dutmp.o
-obj-$(CONFIG_MAKEDEVS)		+= makedevs.o
-obj-$(CONFIG_MKTEMP)		+= mktemp.o
-obj-$(CONFIG_MT)		+= mt.o
-obj-$(CONFIG_READLINK)		+= readlink.o
-obj-$(CONFIG_TIME)		+= time.o
-obj-$(CONFIG_UPDATE)		+= update.o
-obj-$(CONFIG_WATCHDOG)		+= watchdog.o
-
-
-# Hand off to toplevel Rules.mak
-include $(TOPDIR)/Rules.mak
+TOPDIR:= ../
+MISCUTILS_DIR:=./
+include $(TOPDIR).config
+include $(TOPDIR)Rules.mak
+include Makefile.in
+all: $(libraries-y)
+-include $(TOPDIR).depend
 
 clean:
-	rm -f $(L_TARGET) *.o core
+	rm -f *.o *.a $(AR_TARGET)
 

@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,34 +17,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR   :=..
-L_TARGET := util-linux.a
-
-obj-y           :=
-obj-n           :=
-obj-            :=
-
-obj-$(CONFIG_DMESG)		+= dmesg.o
-obj-$(CONFIG_FBSET)		+= fbset.o
-obj-$(CONFIG_FDFLUSH)		+= fdflush.o
-obj-$(CONFIG_FREERAMDISK)	+= freeramdisk.o
-obj-$(CONFIG_FSCK_MINIX)	+= fsck_minix.o
-obj-$(CONFIG_GETOPT)		+= getopt.o
-obj-$(CONFIG_HEXDUMP)		+= hexdump.o
-obj-$(CONFIG_LOSETUP)		+= losetup.o
-obj-$(CONFIG_MKFS_MINIX)	+= mkfs_minix.o
-obj-$(CONFIG_MKSWAP)		+= mkswap.o
-obj-$(CONFIG_MORE)		+= more.o
-obj-$(CONFIG_MOUNT)		+= mount.o
-obj-$(CONFIG_NFSMOUNT)		+= nfsmount.o
-obj-$(CONFIG_PIVOT_ROOT)	+= pivot_root.o
-obj-$(CONFIG_RDATE)		+= rdate.o
-obj-$(CONFIG_SWAPONOFF)		+= swaponoff.o
-obj-$(CONFIG_UMOUNT)		+= umount.o
-
-# Hand off to toplevel Rules.mak
-include $(TOPDIR)/Rules.mak
+TOPDIR:= ../
+UTILLINUX_DIR:=./
+include $(TOPDIR).config
+include $(TOPDIR)Rules.mak
+include Makefile.in
+all: $(libraries-y)
+-include $(TOPDIR).depend
 
 clean:
-	rm -f $(L_TARGET) *.o core
+	rm -f *.o *.a $(AR_TARGET)
 

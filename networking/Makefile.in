@@ -17,14 +17,26 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
-CONSOLETOOLS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-include Makefile.in
-all: $(libraries-y)
--include $(TOPDIR).depend
+NETWORKING_AR:=networking.a
+ifndef $(NETWORKING_DIR)
+NETWORKING_DIR:=$(TOPDIR)networking/
+endif
 
-clean:
-	rm -f *.o *.a $(AR_TARGET)
+NETWORKING-y:=
+NETWORKING-$(CONFIG_HOSTNAME)		+= hostname.o
+NETWORKING-$(CONFIG_IFCONFIG)		+= ifconfig.o
+NETWORKING-$(CONFIG_NC)			+= nc.o
+NETWORKING-$(CONFIG_NETSTAT)		+= netstat.o
+NETWORKING-$(CONFIG_NSLOOKUP)		+= nslookup.o
+NETWORKING-$(CONFIG_PING)		+= ping.o
+NETWORKING-$(CONFIG_ROUTE)		+= route.o
+NETWORKING-$(CONFIG_TELNET)		+= telnet.o
+NETWORKING-$(CONFIG_TFTP)		+= tftp.o
+NETWORKING-$(CONFIG_TRACEROUTE)		+= traceroute.o
+NETWORKING-$(CONFIG_WGET)		+= wget.o
+
+libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
+
+$(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
+	$(AR) -ro $@ $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
 

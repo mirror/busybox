@@ -17,14 +17,19 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
-CONSOLETOOLS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-include Makefile.in
-all: $(libraries-y)
--include $(TOPDIR).depend
+MODUTILS_AR:=modutils.a
+ifndef $(MODUTILS_DIR)
+MODUTILS_DIR:=$(TOPDIR)modutils/
+endif
 
-clean:
-	rm -f *.o *.a $(AR_TARGET)
+MODUTILS-y:=
+MODUTILS-$(CONFIG_INSMOD)		+= insmod.o
+MODUTILS-$(CONFIG_LSMOD)		+= lsmod.o
+MODUTILS-$(CONFIG_MODPROBE)		+= modprobe.o
+MODUTILS-$(CONFIG_RMMOD)		+= rmmod.o
+
+libraries-y+=$(MODUTILS_DIR)$(MODUTILS_AR)
+
+$(MODUTILS_DIR)$(MODUTILS_AR): $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
+	$(AR) -ro $@ $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
 

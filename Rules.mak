@@ -1,195 +1,208 @@
+# Rules.make for busybox
 #
-# This file contains rules which are shared between multiple Makefiles.
+# Copyright (C) 2002 Erik Andersen <andersee@debian.org>
 #
-
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
-# False targets.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
 #
-.PHONY: dummy
-
-#
-# Special variables which should not be exported
-#
-unexport EXTRA_AFLAGS
-unexport EXTRA_CFLAGS
-unexport EXTRA_LDFLAGS
-unexport EXTRA_ARFLAGS
-unexport SUBDIRS
-unexport SUB_DIRS
-unexport ALL_SUB_DIRS
-unexport O_TARGET
-
-unexport obj-y
-unexport obj-n
-unexport obj-
-unexport export-objs
-unexport subdir-y
-unexport subdir-n
-unexport subdir-
-
-#
-# Get things started.
-#
-first_rule: sub_dirs
-	$(MAKE) all_targets
-
-SUB_DIRS	:= $(subdir-y)
-ALL_SUB_DIRS	:= $(sort $(subdir-y) $(subdir-n) $(subdir-))
-
-
-#
-# Common rules
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-%.s: %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(CFLAGS_$@) -S $< -o $@
+PROG      := busybox
+VERSION   := 0.61.pre
+BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
+HOSTCC    := gcc
+HOSTCFLAGS:= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
-%.i: %.c
-	$(CPP) $(CFLAGS) $(EXTRA_CFLAGS) $(CFLAGS_$@) $< > $@
+
+# What OS are you compiling busybox for?  This allows you to include
+# OS specific things, syscall overrides, etc.
+TARGET_OS:=linux
+
+# With a modern GNU make(1) (highly recommended, that's what all the
+# developers use), all of the following configuration values can be
+# overridden at the command line.  For example:
+#   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+
+# If you want to add some simple compiler switches (like -march=i686),
+# especially from the command line, use this instead of CFLAGS directly.
+# For optimization overrides, it's better still to set OPTIMIZATION.
+CFLAGS_EXTRA:=
+ 
+# If you want a static binary, turn this on.
+DOSTATIC:=false
+
+# Set the following to `true' to make a debuggable build.
+# Leave this set to `false' for production use.
+DODEBUG:=false
+
+# This enables compiling with dmalloc ( http://dmalloc.com/ )
+# which is an excellent public domain mem leak and malloc problem
+# detector.  To enable dmalloc, before running busybox you will
+# want to first set up your environment.
+# eg: `export DMALLOC_OPTIONS=debug=0x34f47d83,inter=100,log=logfile`
+# The debug= value is generated using the following command
+# dmalloc -p log-stats -p log-non-free -p log-bad-space -p log-elapsed-time \
+#      -p check-fence -p check-heap -p check-lists -p check-blank \
+#      -p check-funcs -p realloc-copy -p allow-free-null
+# Do not enable this for production builds...
+DODMALLOC:=false
+
+# Electric-fence is another very useful malloc debugging library.
+# Do not enable this for production builds...
+DOEFENCE:=false
+
+# If you want large file summit support, turn this on.
+# This has no effect if you don't have a kernel with lfs
+# support, and a system with libc-2.1.3 or later.
+# Some of the programs that can benefit from lfs support
+# are dd, gzip, mount, tar, and mkfs_minix.
+# LFS allows you to use the above programs for files
+# larger than 2GB!
+DOLFS:=false
+
+# If you have a "pristine" source directory, point BB_SRC_DIR to it.
+# Experimental and incomplete; tell the mailing list
+# <busybox@busybox.net> if you do or don't like it so far.
+BB_SRC_DIR:=
+
+# If you are running a cross compiler, you may want to set CROSS
+# to something more interesting, like "arm-linux-".
+CROSS:=
+CC             := $(CROSS)gcc
+AR             := $(CROSS)ar
+AS             := $(CROSS)as
+LD             := $(CROSS)ld
+NM             := $(CROSS)nm
+STRIP          := $(CROSS)strip
+CPP            := $(CC) -E
+MAKEFILES      := $(TOPDIR).config
+export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
+
+
+# To compile vs uClibc, just use the compiler wrapper built by uClibc...
+# Everything should compile and work as expected these days...
+#CC:=/usr/i386-linux-uclibc/usr/bin/i386-uclibc-gcc
+
+# To compile vs some other alternative libc, you may need to use/adjust
+# the following lines to meet your needs...
+#
+# If you are using Red Hat 6.x with the compatible RPMs (for developing under
+# Red Hat 5.x and glibc 2.0) uncomment the following.  Be sure to read about
+# using the compatible RPMs (compat-*) at http://www.redhat.com !
+#LIBCDIR:=/usr/i386-glibc20-linux
+#
+# The following is used for libc5 (if you install altgcc and libc5-altdev
+# on a Debian system).  
+#LIBCDIR:=/usr/i486-linuxlibc1
+#
+# For other libraries, you are on your own...
+#LDFLAGS+=-nostdlib
+#LIBRARIES:=$(LIBCDIR)/lib/libc.a -lgcc
+#CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
+#GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
+
+# use '-Os' optimization if available, else use -O2
+OPTIMIZATION:=${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
+	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
+GCC_STACK_BOUNDRY:=${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc /dev/null \
+	>/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; else echo "" ; fi}
+OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer $(GCC_STACK_BOUNDRY) #-fstrict-aliasing -march=i386 -mcpu=i386 -malign-functions=0 -malign-jumps=0
+WARNINGS:=-Wall -Wstrict-prototypes -Wshadow
+CFLAGS:=-I$(TOPDIR)include
+ARFLAGS:=-r
+
+#
+#--------------------------------------------------------
+# If you're going to do a lot of builds with a non-vanilla configuration,
+# it makes sense to adjust parameters above, so you can type "make"
+# by itself, instead of following it by the same half-dozen overrides
+# every time.  The stuff below, on the other hand, is probably less
+# prone to casual user adjustment.
+# 
+
+ifeq ($(strip $(DOLFS)),true)
+    # For large file summit support
+    CFLAGS+=-D_FILE_OFFSET_BITS=64 -D__USE_FILE_OFFSET64
+endif
+ifeq ($(strip $(DODMALLOC)),true)
+    # For testing mem leaks with dmalloc
+    CFLAGS+=-DDMALLOC
+    LIBRARIES:=-ldmalloc
+    # Force debug=true, since this is useless when not debugging...
+    DODEBUG:=true
+else
+    ifeq ($(strip $(DOEFENCE)),true)
+	LIBRARIES:=-lefence
+	# Force debug=true, since this is useless when not debugging...
+	DODEBUG:=true
+    endif
+endif
+ifeq ($(strip $(DODEBUG)),true)
+    CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
+    LDFLAGS +=-Wl,-warn-common
+    STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
+else
+    CFLAGS  += $(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE
+    LDFLAGS += -s -Wl,-warn-common
+    STRIPCMD:=$(STRIP) --remove-section=.note --remove-section=.comment
+endif
+ifeq ($(strip $(DOSTATIC)),true)
+    LDFLAGS += --static
+endif
+
+ifndef $(PREFIX)
+    PREFIX:=`pwd`/_install
+endif
+
+# Additional complications due to support for pristine source dir.
+# Include files in the build directory should take precedence over
+# the copy in BB_SRC_DIR, both during the compilation phase and the
+# shell script that finds the list of object files.
+# Work in progress by <ldoolitt@recycle.lbl.gov>.
+#
+ifneq ($(strip $(BB_SRC_DIR)),)
+    VPATH:=$(BB_SRC_DIR)
+endif
+
+CFLAGS    += -DBB_VER='"$(VERSION)"'
+CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
+OBJECTS:=$(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
+CFLAGS    += $(CROSS_CFLAGS)
+ifdef BB_INIT_SCRIPT
+    CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
+endif
+
+# Put user-supplied flags at the end, where they
+# have a chance of winning.
+CFLAGS += $(CFLAGS_EXTRA)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(CFLAGS_$@) -c -o $@ $<
-	@ ( \
-	    echo 'ifeq ($(strip $(subst $(comma),:,$(CFLAGS) $(EXTRA_CFLAGS) $(CFLAGS_$@))),$$(strip $$(subst $$(comma),:,$$(CFLAGS) $$(EXTRA_CFLAGS) $$(CFLAGS_$@))))' ; \
-	    echo 'FILES_FLAGS_UP_TO_DATE += $@' ; \
-	    echo 'endif' \
-	) > $(dir $@)/.$(notdir $@).flags
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
-%.o: %.s
-	$(AS) $(AFLAGS) $(EXTRA_CFLAGS) -o $@ $<
-
-# Old makefiles define their own rules for compiling .S files,
-# but these standard rules are available for any Makefile that
-# wants to use them.  Our plan is to incrementally convert all
-# the Makefiles to these standard rules.  -- rmk, mec
-ifdef USE_STANDARD_AS_RULE
-
-%.s: %.S
-	$(CPP) $(AFLAGS) $(EXTRA_AFLAGS) $(AFLAGS_$@) $< > $@
-
-%.o: %.S
-	$(CC) $(AFLAGS) $(EXTRA_AFLAGS) $(AFLAGS_$@) -c -o $@ $<
-
-endif
-
-%.lst: %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(CFLAGS_$@) -g -c -o $*.o $<
-	$(TOPDIR)/scripts/makelst $* $(TOPDIR) $(OBJDUMP)
-#
-#
-#
-all_targets: $(O_TARGET) $(L_TARGET)
-
-#
-# Rule to compile a set of .o files into one .o file
-#
-ifdef O_TARGET
-$(O_TARGET): $(obj-y)
-	rm -f $@
-    ifneq "$(strip $(obj-y))" ""
-	$(LD) $(EXTRA_LDFLAGS) -r -o $@ $(filter $(obj-y), $^)
-    else
-	$(AR) rcs $@
-    endif
-	@ ( \
-	    echo 'ifeq ($(strip $(subst $(comma),:,$(EXTRA_LDFLAGS) $(obj-y))),$$(strip $$(subst $$(comma),:,$$(EXTRA_LDFLAGS) $$(obj-y))))' ; \
-	    echo 'FILES_FLAGS_UP_TO_DATE += $@' ; \
-	    echo 'endif' \
-	) > $(dir $@)/.$(notdir $@).flags
-endif # O_TARGET
-
-#
-# Rule to compile a set of .o files into one .a file
-#
-ifdef L_TARGET
-$(L_TARGET): $(obj-y)
-	rm -f $@
-	$(AR) $(EXTRA_ARFLAGS) rcs $@ $(obj-y)
-	@ ( \
-	    echo 'ifeq ($(strip $(subst $(comma),:,$(EXTRA_ARFLAGS) $(obj-y))),$$(strip $$(subst $$(comma),:,$$(EXTRA_ARFLAGS) $$(obj-y))))' ; \
-	    echo 'FILES_FLAGS_UP_TO_DATE += $@' ; \
-	    echo 'endif' \
-	) > $(dir $@)/.$(notdir $@).flags
-endif
-
-
-#
-# This make dependencies quickly
-#
+ifdef _FASTDEP_ALL_SUB_DIRS
 fastdep: dummy
-	$(TOPDIR)/scripts/mkdep $(CFLAGS) $(EXTRA_CFLAGS) -- $(wildcard *.[chS]) > .depend
+	$(TOPDIR)scripts/mkdep $(CFLAGS) $(EXTRA_CFLAGS_nostdinc) -- $(wildcard *.[chS]) > .depend
 ifdef ALL_SUB_DIRS
 	$(MAKE) $(patsubst %,_sfdep_%,$(ALL_SUB_DIRS)) _FASTDEP_ALL_SUB_DIRS="$(ALL_SUB_DIRS)"
 endif
 
-ifdef _FASTDEP_ALL_SUB_DIRS
 $(patsubst %,_sfdep_%,$(_FASTDEP_ALL_SUB_DIRS)):
 	$(MAKE) -C $(patsubst _sfdep_%,%,$@) fastdep
 endif
 
-	
-#
-# A rule to make subdirectories
-#
-subdir-list = $(sort $(patsubst %,_subdir_%,$(SUB_DIRS)))
-sub_dirs: dummy $(subdir-list)
+.PHONY: dummy
 
-ifdef SUB_DIRS
-$(subdir-list) : dummy
-	$(MAKE) -C $(patsubst _subdir_%,%,$@)
-endif
 
-#
-# A rule to do nothing
-#
-dummy:
 
-#
-# This is useful for testing
-#
-script:
-	$(SCRIPT)
+.EXPORT_ALL_VARIABLES:
 
-#
-# include dependency files if they exist
-#
-ifneq ($(wildcard .depend),)
-include .depend
-endif
-
-ifneq ($(wildcard $(TOPDIR)/.hdepend),)
-include $(TOPDIR)/.hdepend
-endif
-
-#
-# Find files whose flags have changed and force recompilation.
-# For safety, this works in the converse direction:
-#   every file is forced, except those whose flags are positively up-to-date.
-#
-FILES_FLAGS_UP_TO_DATE :=
-
-# For use in expunging commas from flags, which mung our checking.
-comma = ,
-
-FILES_FLAGS_EXIST := $(wildcard .*.flags)
-ifneq ($(FILES_FLAGS_EXIST),)
-include $(FILES_FLAGS_EXIST)
-endif
-
-FILES_FLAGS_CHANGED := $(strip \
-    $(filter-out $(FILES_FLAGS_UP_TO_DATE), \
-	$(O_TARGET) $(L_TARGET) $(active-objs) \
-	))
-
-# A kludge: .S files don't get flag dependencies (yet),
-#   because that will involve changing a lot of Makefiles.  Also
-#   suppress object files explicitly listed in $(IGNORE_FLAGS_OBJS).
-#   This allows handling of assembly files that get translated into
-#   multiple object files (see arch/ia64/lib/idiv.S, for example).
-FILES_FLAGS_CHANGED := $(strip \
-    $(filter-out $(patsubst %.S, %.o, $(wildcard *.S) $(IGNORE_FLAGS_OBJS)), \
-    $(FILES_FLAGS_CHANGED)))
-
-ifneq ($(FILES_FLAGS_CHANGED),)
-$(FILES_FLAGS_CHANGED): dummy
-endif

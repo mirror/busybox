@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,24 +17,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR   :=..
-L_TARGET := shell.a
-EXTRA_CFLAGS = -DBB_VER='"$(VERSION)"' -DBB_BT='"$(BUILDTIME)"'
-
-obj-y           :=
-obj-n           :=
-obj-            :=
-
-obj-$(CONFIG_ASH)		+= ash.o
-obj-$(CONFIG_HUSH)		+= hush.o
-obj-$(CONFIG_LASH)		+= lash.o
-obj-$(CONFIG_MSH)		+= msh.o
-obj-$(CONFIG_FEATURE_COMMAND_EDITING)		+= cmdedit.o
-
-
-# Hand off to toplevel Rules.mak
-include $(TOPDIR)/Rules.mak
+TOPDIR:= ../
+SHELL_DIR:=./
+include $(TOPDIR).config
+include $(TOPDIR)Rules.mak
+include Makefile.in
+all: $(libraries-y)
+-include $(TOPDIR).depend
 
 clean:
-	rm -f $(L_TARGET) *.o core
+	rm -f *.o *.a $(AR_TARGET)
 

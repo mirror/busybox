@@ -17,14 +17,19 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
-CONSOLETOOLS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-include Makefile.in
-all: $(libraries-y)
--include $(TOPDIR).depend
+SYSKLOGD_AR:=sysklogd.a
+ifndef $(SYSKLOGD_DIR)
+SYSKLOGD_DIR:=$(TOPDIR)sysklogd/
+endif
 
-clean:
-	rm -f *.o *.a $(AR_TARGET)
+SYSKLOGD-:=
+SYSKLOGD-$(CONFIG_KLOGD)		+= klogd.o
+SYSKLOGD-$(CONFIG_LOGGER)		+= logger.o
+SYSKLOGD-$(CONFIG_LOGREAD)		+= logread.o
+SYSKLOGD-$(CONFIG_SYSLOGD)		+= syslogd.o
+
+libraries-y+=$(SYSKLOGD_DIR)$(SYSKLOGD_AR)
+
+$(SYSKLOGD_DIR)$(SYSKLOGD_AR): $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
+	$(AR) -ro $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
 

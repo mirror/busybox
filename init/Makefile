@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,24 +17,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR   :=..
-L_TARGET := init.a
-
-obj-y           :=
-obj-n           :=
-obj-            :=
-
-obj-$(CONFIG_HALT)		+= halt.o
-obj-$(CONFIG_INIT)		+= init.o
-obj-$(CONFIG_POWEROFF)		+= poweroff.o
-obj-$(CONFIG_REBOOT)		+= reboot.o
-obj-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
-obj-$(CONFIG_RUN_PARTS)		+= run_parts.o
-
-
-# Hand off to toplevel Rules.mak
-include $(TOPDIR)/Rules.mak
+TOPDIR:= ../
+INIT_DIR:=./
+include $(TOPDIR).config
+include $(TOPDIR)Rules.mak
+include Makefile.in
+all: $(libraries-y)
+-include $(TOPDIR).depend
 
 clean:
-	rm -f $(L_TARGET) *.o core
+	rm -f *.o *.a $(AR_TARGET)
 

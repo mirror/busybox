@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,14 +17,19 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
-CONSOLETOOLS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-include Makefile.in
-all: $(libraries-y)
--include $(TOPDIR).depend
+EDITOR_AR:=editors.a
+ifndef $(EDITOR_DIR)
+EDITOR_DIR:=$(TOPDIR)editors/
+endif
 
-clean:
-	rm -f *.o *.a $(AR_TARGET)
+EDITOR-y:=
+EDITOR-$(CONFIG_SED)       += sed.o
+EDITOR-$(CONFIG_VI)        += vi.o
+EDITOR_SRC:= $(EDITOR-y)
+EDITOR_OBJ:= $(patsubst %.c,$(EDITOR_DIR)%.o, $(EDITOR_SRC))
+
+libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+
+$(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
+	$(AR) -ro $@ $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
 

@@ -17,14 +17,24 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
-CONSOLETOOLS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-include Makefile.in
-all: $(libraries-y)
--include $(TOPDIR).depend
+CONSOLETOOLS_AR:=console-tools.a
+ifndef $(CONSOLETOOLS_DIR)
+CONSOLETOOLS_DIR:=$(TOPDIR)console-tools/
+endif
 
-clean:
-	rm -f *.o *.a $(AR_TARGET)
+CONSOLETOOLS_DIR-y:=
+CONSOLETOOLS_DIR-$(CONFIG_CHVT)		+= chvt.o
+CONSOLETOOLS_DIR-$(CONFIG_CLEAR)	+= clear.o
+CONSOLETOOLS_DIR-$(CONFIG_DEALLOCVT)	+= deallocvt.o
+CONSOLETOOLS_DIR-$(CONFIG_DUMPKMAP)	+= dumpkmap.o
+CONSOLETOOLS_DIR-$(CONFIG_LOADACM)	+= loadacm.o
+CONSOLETOOLS_DIR-$(CONFIG_LOADFONT)	+= loadfont.o
+CONSOLETOOLS_DIR-$(CONFIG_LOADKMAP)	+= loadkmap.o
+CONSOLETOOLS_DIR-$(CONFIG_RESET)	+= reset.o
+CONSOLETOOLS_DIR-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
+
+libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
+
+$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
+	$(AR) -ro $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
 

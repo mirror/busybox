@@ -1,0 +1,63 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+
+
+LIBBB_AR:=libbb.a
+ifndef $(LIBBB_DIR)
+LIBBB_DIR:=$(TOPDIR)libbb/
+endif
+
+LIBBB_SRC:= \
+	ask_confirmation.c chomp.c concat_path_file.c copy_file.c \
+	copy_file_chunk.c dump.c libc5.c device_open.c error_msg.c \
+	error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
+	find_root_device.c full_read.c full_write.c get_console.c \
+	get_last_path_component.c get_line_from_file.c gz_open.c human_readable.c \
+	isdirectory.c kernel_version.c loop.c mode_string.c module_syscalls.c mtab.c \
+	mtab_file.c my_getgrnam.c my_getgrgid.c my_getpwnam.c my_getpwnamegid.c \
+	my_getpwuid.c parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
+	print_file.c process_escape_sequence.c read_package_field.c recursive_action.c \
+	safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
+	trim.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
+	xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
+	copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
+	dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c \
+	simplify_path.c inet_common.c inode_hash.c
+LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
+
+LIBBB_MSRC:=$(LIBBB_DIR)messages.c
+LIBBB_MOBJ:=full_version.o name_too_long.o omitting_directory.o not_a_directory.o \
+	memory_exhausted.o invalid_date.o invalid_option.o io_error.o dash_dash_help.o \
+	write_error.o too_few_args.o name_longer_than_foo.o unknown.o can_not_create_raw_socket.o
+LIBBB_MOBJS=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ))
+
+libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
+
+$(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS) 
+	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS)
+
+$(LIBBB_MOBJS): $(LIBBB_MSRC)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_DIR)loop.o: $(LIBBB_DIR)loop.h
+
+$(LIBBB_DIR)loop.h: $(LIBBB_DIR)mk_loop_h.sh
+	@ $(SHELL) $< > $@
+
+
