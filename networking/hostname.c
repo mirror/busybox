@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.33 2002/10/18 22:13:23 andersen Exp $
+ * $Id: hostname.c,v 1.34 2002/11/10 22:07:48 bug1 Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -104,7 +104,7 @@ int hostname_main(int argc, char **argv)
 			if (p != NULL) {
 				*p = 0;
 			}
-			puts(buf);
+			puts(hp->h_name);
 		} else if (type == 'd') {
 			if (p) puts(p + 1);
 		} else if (type == 'i') {
