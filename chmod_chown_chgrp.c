@@ -122,8 +122,6 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			gid = strtoul(groupName, &p, 10);	/* maybe it's already numeric */
 			if (groupName == p)
 				gid = my_getgrnam(groupName);
-			if (gid == -1)
-				goto bad_group;
 		} else {
 			groupName = strchr(*argv, '.');
 			if (groupName == NULL)
@@ -133,8 +131,6 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 				gid = strtoul(groupName, &p, 10);
 				if (groupName == p)
 					gid = my_getgrnam(groupName);
-				if (gid == -1)
-					goto bad_group;
 			} else
 				gid = -1;
 		}
@@ -145,9 +141,6 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			uid = strtoul(*argv, &p, 10);	/* if numeric ... */
 			if (*argv == p)
 				uid = my_getpwnam(*argv);
-			if (uid == -1) {
-				error_msg_and_die( "unknown user name: %s", *argv);
-			}
 		}
 	}
 
@@ -162,8 +155,6 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	}
 	return EXIT_SUCCESS;
 
-  bad_group:
-	error_msg_and_die( "unknown group name: %s", groupName);
 }
 
 /*

@@ -175,11 +175,11 @@ extern unsigned long parse_number(const char *numstr,
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
  * increases target size and is often not needed embedded systems.  */
-extern long my_getpwnam(char *name);
-extern long my_getgrnam(char *name);
+extern long my_getpwnam(const char *name);
+extern long my_getgrnam(const char *name);
 extern void my_getpwuid(char *name, long uid);
 extern void my_getgrgid(char *group, long gid);
-extern long my_getpwnamegid(char *name);
+extern long my_getpwnamegid(const char *name);
 
 extern int device_open(char *device, int mode);
 

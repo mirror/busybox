@@ -877,29 +877,32 @@ extern int parse_mode(const char *s, mode_t * theMode)
 #if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS \
  || defined BB_TAR || defined BB_ID || defined BB_LOGGER \
  || defined BB_LOGNAME || defined BB_WHOAMI || defined BB_SH
+
+#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_ID
 /* returns a uid given a username */
-long my_getpwnam(char *name)
+long my_getpwnam(const char *name)
 {
 	struct passwd *myuser;
 
 	myuser  = getpwnam(name);
 	if (myuser==NULL)
-		return(-1);
+		error_msg_and_die("unknown user name: %s", name);
 
 	return myuser->pw_uid;
 }
 
 /* returns a gid given a group name */
-long my_getgrnam(char *name)
+long my_getgrnam(const char *name)
 {
 	struct group *mygroup;
 
 	mygroup  = getgrnam(name);
 	if (mygroup==NULL)
-		return(-1);
+		error_msg_and_die("unknown group name: %s", name);
 
 	return (mygroup->gr_gid);
 }
+#endif
 
 /* gets a username given a uid */
 void my_getpwuid(char *name, long uid)
@@ -927,18 +930,18 @@ void my_getgrgid(char *group, long gid)
 
 #if defined BB_ID
 /* gets a gid given a user name */
-long my_getpwnamegid(char *name)
+long my_getpwnamegid(const char *name)
 {
 	struct group *mygroup;
 	struct passwd *myuser;
 
 	myuser=getpwnam(name);
 	if (myuser==NULL)
-		error_msg_and_die( "unknown user name: %s", name);
+		error_msg_and_die("unknown user name: %s", name);
 
 	mygroup  = getgrgid(myuser->pw_gid);
 	if (mygroup==NULL)
-		error_msg_and_die( "unknown gid %ld", (long)myuser->pw_gid);
+		error_msg_and_die("unknown gid %ld", (long)myuser->pw_gid);
 
 	return mygroup->gr_gid;
 }
