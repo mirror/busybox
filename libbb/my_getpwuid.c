@@ -22,15 +22,15 @@
  /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
-  * if bufsize is > 0 char *user can not be set to NULL.
-  *                   On success username is written on static allocated buffer name 
+  * if bufsize is > 0 char *name can not be set to NULL.
+  *                   On success username is written on the static allocated buffer name 
   *                   (and a pointer to it is returned).
-  *                   On failure uid as string is written to static allocated buffer name
+  *                   On failure uid as string is written to the static allocated buffer name
   *                   and NULL is returned.
-  * if bufsize is = 0 char *user can be set to NULL.
+  * if bufsize is = 0 char *name can be set to NULL.
   *                   On success username is returned. 
   *                   On failure NULL is returned.
-  * if bufsize is < 0 char *user can be set to NULL
+  * if bufsize is < 0 char *name can be set to NULL
   *                   On success username is returned.
   *                   On failure an error message is printed and the program exits.   
   */

@@ -21,17 +21,17 @@
 
  /* 
   *
-  * if bufsize is > 0 char *idname can not be set to NULL.
-  *                   On success idname is written on static allocated buffer 
+  * if bufsize is > 0 char *buffer can not be set to NULL.
+  *                   If idname is not NULL it is written on the static allocated buffer 
   *                   (and a pointer to it is returned).
-  *                   On failure uid or gid as string is written to static allocated buffer
+  *                   if idname is NULL, id as string is written to the static allocated buffer
   *                   and NULL is returned.
-  * if bufsize is = 0 char *idname can be set to NULL.
-  *                   On success idname is returned. 
-  *                   On failure NULL is returned.
-  * if bufsize is < 0 char *idname can be set to NULL.
-  *                   On success idname is returned.
-  *                   On failure an error message is printed and the program exits.   
+  * if bufsize is = 0 char *buffer can be set to NULL.
+  *                   If idname exists a pointer to it is returned,
+  *                   else NULL is returned.
+  * if bufsize is < 0 char *buffer can be set to NULL.
+  *                   If idname exists a pointer to it is returned,
+  *                   else an error message is printed and the program exits.   
   */
   
 #include <stdio.h>
