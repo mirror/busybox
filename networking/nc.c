@@ -44,7 +44,7 @@
 
 int nc_main(int argc, char **argv)
 {
-	int do_listen = 0, lport = 0, delay = 0, tmpfd, opt, sfd;
+	int do_listen = 0, lport = 0, delay = 0, tmpfd, opt, sfd, x;
 	char buf[BUFSIZ];
 #ifdef GAPING_SECURITY_HOLE
 	char * pr00gie = NULL;                  
@@ -89,7 +89,9 @@ int nc_main(int argc, char **argv)
 
 	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		perror_msg_and_die("socket");
-
+	x = 1;
+	if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
+		perror_msg_and_die ("reuseaddr failed");
 	address.sin_family = AF_INET;
 
 	if (lport != 0) {
