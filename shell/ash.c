@@ -1445,12 +1445,13 @@ static void changepath(const char *);
 static void defun(char *, union node *);
 static void unsetfunc(const char *);
 
-#ifdef CONFIG_ASH_MATH_SUPPORT
 #ifdef CONFIG_ASH_MATH_SUPPORT_64
 typedef int64_t arith_t;
 #else
 typedef long arith_t;
 #endif
+
+#ifdef CONFIG_ASH_MATH_SUPPORT
 static arith_t dash_arith(const char *);
 static arith_t arith(const char *expr, int *perrcode);
 #endif
