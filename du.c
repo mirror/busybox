@@ -136,11 +136,11 @@ du_main(int argc, char **argv)
 	int sum;
 	for ( ; i < argc; i++) {
 	    sum = du(argv[i]);
-	    if (sum) { print_normal(sum, argv[i]); }
+	    if ((sum) && (isDirectory(argv[i]))) { print_normal(sum, argv[i]); }
 	}
     }
 
     exit(0);
 }
 
-/* $Id: du.c,v 1.6 1999/12/15 18:52:17 beppu Exp $ */
+/* $Id: du.c,v 1.7 1999/12/16 21:16:47 beppu Exp $ */
