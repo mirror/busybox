@@ -1,3 +1,26 @@
+/*
+ * Busybox main header file
+ *
+ * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
+ * Permission has been granted to redistribute this code under the GPL.
+ *
+ */
 #ifndef	_INTERNAL_H_
 #define	_INTERNAL_H_
 
@@ -13,8 +36,8 @@
 typedef int     BOOL;
 #define STDIN	0
 #define STDOUT	1
-#define FALSE   ((BOOL) 0)
-#define TRUE    ((BOOL) 1)
+#define FALSE   ((BOOL) 1)
+#define TRUE    ((BOOL) 0)
 
 #define PATH_LEN        1024
 #define BUF_SIZE        8192
@@ -129,60 +152,36 @@ parse_mode(
 
 extern int		parse_user_name(const char* string, struct FileInfo * i);
 
-extern const char	block_device_usage[];
-extern const char	chgrp_usage[];
-extern const char	chmod_usage[];
-extern const char	chown_usage[];
-extern const char	chroot_usage[];
-extern const char	clear_usage[];
-extern const char	cp_usage[];
-extern const char	date_usage[];
-extern const char	dd_usage[];
-extern const char	df_usage[];
-extern const char	dmesg_usage[];
-extern const char	dutmp_usage[];
-extern const char	false_usage[];
-extern const char	fdflush_usage[];
-extern const char	find_usage[];
-extern const char	grep_usage[];
-extern const char	halt_usage[];
-extern const char	init_usage[];
-extern const char	kill_usage[];
-extern const char	length_usage[];
-extern const char	ln_usage[];
-extern const char	loadkmap_usage[];
-extern const char	losetup_usage[];
-extern const char	ls_usage[];
-extern const char	math_usage[];
-extern const char	makedevs_usage[];
-extern const char	mkdir_usage[];
-extern const char	mknod_usage[];
-extern const char	mkswap_usage[];
-extern const char	mnc_usage[];
-extern const char	more_usage[];
-extern const char	mount_usage[];
-extern const char	mt_usage[];
-extern const char	mv_usage[];
-extern const char	printf_usage[];
-extern const char	pwd_usage[];
-extern const char	reboot_usage[];
-extern const char	rm_usage[];
-extern const char	rmdir_usage[];
-extern const char	scan_partitions_usage[];
-extern const char	sleep_usage[];
-extern const char	tar_usage[];
-extern const char	swapoff_usage[];
-extern const char	swapon_usage[];
-extern const char	sync_usage[];
-extern const char	touch_usage[];
-extern const char	tput_usage[];
-extern const char	true_usage[];
-extern const char	tryopen_usage[];
-extern const char	umount_usage[];
-extern const char	update_usage[];
-extern const char	zcat_usage[];
-extern const char	gzip_usage[];
 
+/*
+ * A chunk of data.
+ * Chunks contain data which is allocated as needed, but which is
+ * not freed until all of the data needs freeing, such as at
+ * the beginning of the next command.
+ */
+typedef struct chunk CHUNK;
+#define CHUNK_INIT_SIZE 4
+
+struct chunk {
+    CHUNK *next;
+    char data[CHUNK_INIT_SIZE];	/* actually of varying length */
+};
+
+const char *modeString(int mode);
+const char *timeString(time_t timeVal);
+BOOL isDirectory(const char *name);
+BOOL isDevice(const char *name);
+BOOL copyFile(const char *srcName, const char *destName, BOOL setModes);
+const char *buildName(const char *dirName, const char *fileName);
+BOOL makeString(int argc, const char **argv, char *buf, int bufLen);
+char *getChunk(int size);
+char *chunkstrdup(const char *str);
+void freeChunks(void);
+int fullWrite(int fd, const char *buf, int len);
+int fullRead(int fd, char *buf, int len);
+int recursiveAction(const char *fileName, BOOL followLinks,
+	  int (*fileAction) (const char *fileName),
+	  int (*dirAction) (const char *fileName));
 
 
 #endif

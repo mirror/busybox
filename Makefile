@@ -14,7 +14,7 @@ CFLAGS=-Wall -O2 -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
 # For debugging only
 #CFLAGS=-Wall -g -D_GNU_SOURCE
 LIBRARIES=-lc
-OBJECTS=$(shell ./busybox.obj) utility.o
+OBJECTS=$(shell ./busybox.sh) utility.o
 
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
@@ -36,3 +36,5 @@ distclean: clean
 	- rm -f busybox
 
 force:
+
+$(OBJECTS):  busybox.def.h Makefile
