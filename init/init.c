@@ -124,7 +124,8 @@ static const int RB_AUTOBOOT = 0x01234567;
 #define VT_LOG       "/dev/tty5"     /* Virtual console */
 #define SERIAL_CON0  "/dev/ttyS0"    /* Primary serial console */
 #define SERIAL_CON1  "/dev/ttyS1"    /* Serial console */
-#define SHELL        "-/bin/sh"	     /* Default shell */
+#define SHELL        "/bin/sh"	     /* Default shell */
+#define LOGIN_SHELL  "-" SHELL	     /* Default login shell */
 #define INITTAB      "/etc/inittab"  /* inittab file location */
 #ifndef INIT_SCRIPT
 #define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
@@ -435,7 +436,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		termType,
 		"HOME=/",
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
-		"SHELL=/bin/sh",
+		"SHELL=" SHELL,
 		"USER=root",
 		NULL
 	};
@@ -782,16 +783,16 @@ static void parse_inittab(void)
 		/* Umount all filesystems on halt/reboot */
 		new_initAction(SHUTDOWN, "/bin/umount -a -r", console);
 		/* Askfirst shell on tty1 */
-		new_initAction(ASKFIRST, SHELL, console);
+		new_initAction(ASKFIRST, LOGIN_SHELL, console);
 		/* Askfirst shell on tty2 */
 		if (secondConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, secondConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, secondConsole);
 		/* Askfirst shell on tty3 */
 		if (thirdConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, thirdConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, thirdConsole);
 		/* Askfirst shell on tty4 */
 		if (fourthConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, fourthConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, fourthConsole);
 		/* sysinit */
 		new_initAction(SYSINIT, INIT_SCRIPT, console);
 
@@ -944,13 +945,13 @@ extern int init_main(int argc, char **argv)
 					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
 		/* Ask first then start a shell on tty2-4 */
 		if (secondConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, secondConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, secondConsole);
 		if (thirdConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, thirdConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, thirdConsole);
 		if (fourthConsole != NULL)
-			new_initAction(ASKFIRST, SHELL, fourthConsole);
+			new_initAction(ASKFIRST, LOGIN_SHELL, fourthConsole);
 		/* Start a shell on tty1 */
-		new_initAction(RESPAWN, SHELL, console);
+		new_initAction(RESPAWN, LOGIN_SHELL, console);
 	} else {
 		/* Not in single user mode -- see what inittab says */
 
