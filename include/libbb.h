@@ -318,5 +318,49 @@ extern const char * const can_not_create_raw_socket;
 /* The following devices are the same on devfs and non-devfs systems.  */
 #define CURRENT_TTY "/dev/tty"
 #define CONSOLE_DEV "/dev/console"
+typedef struct deb_file_s {
+	char *filename;
+	char *control_file;
+	unsigned short node:14;
+} deb_file_t;
+
+typedef struct node_s {
+	/* This are always used by dpkg */
+	unsigned short name:14;
+	unsigned short epoch:4;
+	unsigned short version:12;
+	unsigned short revision:8;
+	unsigned short essential:1;
+	unsigned short state_want:3;
+	unsigned short state_flag:2;
+	unsigned short state_status:3;
+	unsigned short pool_flag:2;
+	unsigned short source:11;
+	unsigned short filename:11;
+	unsigned short num_of_edges:7;
+	unsigned short *edge;
+#ifdef BB_FEATURE_DPKG_LIST_SHORT_DESCRIPTIONS
+	char *description_short;	/* This is used by dpkg -l */
+#endif
+} node_t;
+
+/* All these are in deb_functs.c */
+extern void deb_initialise_hashtables(short type);
+extern void write_status_file(deb_file_t **deb_file);
+extern void configure_package(deb_file_t *deb_file);
+extern void unpack_package(deb_file_t *deb_file);
+extern void remove_package(const unsigned int node_num);
+extern void index_status_file(const char *filename);
+extern void find_deps(const char *package_name);
+extern void purge_package(const unsigned int node_num);
+extern node_t *parse_package_metadata(char *control_buffer);
+extern unsigned short search_node_ht(node_t *search_node, unsigned short operator);
+extern void add_node(node_t *node, unsigned short node_num);
+extern node_t *initialise_node(const char *package_name);
+extern char *get_name_ht(unsigned short name_num);
+extern void free_hashtables(void);
+extern node_t *get_node_ht(unsigned short node_num);
+extern char *version_revision(unsigned short version_num, unsigned short revision_num);
+extern void free_node(node_t *node);
 
 #endif /* __LIBCONFIG_H__ */

@@ -6,6 +6,7 @@
 mainmenu_option next_comment
 comment 'Networking Utilities'
 
+bool 'apt_get'      CONFIG_APT_GET
 bool 'hostname'	    CONFIG_HOSTNAME
 bool 'ifconfig'	    CONFIG_IFCONFIG
 bool 'nc'	    CONFIG_NC
