@@ -14,12 +14,12 @@
 #define BB_DF
 #define BB_DMESG
 //#define BB_DUTMP
-#define BB_FDFLUSH
+//#define BB_FDFLUSH
 #define BB_FIND
-#define BB_FSCK_MINIX
-#define BB_MKFS_MINIX
+//#define BB_FSCK_MINIX
+//#define BB_MKFS_MINIX
 #define BB_GREP
-#define BB_HALT
+//#define BB_HALT
 #define BB_INIT
 #define BB_KILL
 //#define BB_LENGTH
@@ -35,7 +35,7 @@
 //#define BB_MNC
 #define BB_MORE
 #define BB_MOUNT
-#define BB_MT
+//#define BB_MT
 #define BB_MV
 //#define BB_PRINTF
 #define BB_PS
@@ -43,7 +43,7 @@
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
-#define BB_SFDISK
+//#define BB_SFDISK
 #define BB_SLEEP
 #define BB_SWAPONOFF
 #define BB_SYNC

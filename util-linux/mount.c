@@ -1,7 +1,7 @@
 /*
  * Mini mount implementation for busybox
  *
- * Copyright (C) 1999 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,12 @@
  *		will try mounting stuff with all fses when passed -t auto
  *
  * 1999-04-17	Dave Cinege...Rewrote -t auto. Fixed ro mtab.
- * 1999-10-07	Erik Andersen.  Rewrote of a lot of code. Removed mtab 
- *              usage, major adjustments, and some serious dieting all around.
+ *
+ * 1999-10-07	Erik Andersen <andersen@lineo.com>, <andersee@debian.org>.
+ *              Rewrote of a lot of code. Removed mtab usage (I plan on
+ *              putting it back as a compile-time option some time), 
+ *              major adjustments to option parsing, and some serious 
+ *              dieting all around.
 */
 
 #include "internal.h"

@@ -1,7 +1,11 @@
 /*
  * Mini more implementation for busybox
  *
- * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * Copyright (C) 1999 by Lineo, inc.
+ * Blended by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * based on the original more implementation and code from the Debian 
+ * boot-floppies team.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

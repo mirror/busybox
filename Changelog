@@ -1,3 +1,9 @@
+0.30
+	Major changes -- lots of stuff rewritten. Many thanks to Lineo for
+	paying me to make these updates. If you have any problems with busybox, 
+	or notice any bugs -- please let me know so I can fix it. 
+	 -Erik Andersen
+	
 0.28	
 	mini-netcat (mnc) rewritten.
 	

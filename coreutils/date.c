@@ -1,7 +1,7 @@
 /*
  * Mini date implementation for busybox
  *
- * Copyright (C) 1999 by Erik Andersen <andersee@debian.org>
+ * by Matthew Grant <grantma@anathoth.gen.nz>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

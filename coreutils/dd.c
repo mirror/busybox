@@ -1,13 +1,32 @@
 /*
+ * Mini dd implementation for busybox
+ *
+ * Copyright (C) 1999 by Lineo, inc.
+ * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * based in part on code taken from sash. 
+ *
  * Copyright (c) 1999 by David I. Bell
  * Permission is granted to use, distribute, or modify this source,
  * provided that this copyright notice remains intact.
  *
- * The "dd" command, originally taken from sash.
- *
  * Permission to distribute this code under the GPL has been granted.
- * Mostly rewritten and bugs fixed for busybox by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
+
 
 #include "internal.h"
 #include <stdio.h>
@@ -15,16 +34,15 @@
 #include <errno.h>
 
 static const char dd_usage[] =
-    "Copy a file, converting and formatting according to options\n\
-\n\
-usage: [if=name] [of=name] [bs=n] [count=n]\n\
-\tif=FILE\tread from FILE instead of stdin\n\
-\tof=FILE\twrite to FILE instead of stout\n\
-\tbs=n\tread and write N BYTES at a time\n\
-\tcount=n\tcopy only n input blocks\n\
-\tskip=n\tskip n input blocks\n\
-\n\
-BYTES may be suffixed: by k for x1024, b for x512, and w for x2.\n";
+"dd [if=name] [of=name] [bs=n] [count=n]\n"
+"Copy a file, converting and formatting according to options\n\n"
+"\tif=FILE\tread from FILE instead of stdin\n"
+"\tof=FILE\twrite to FILE instead of stout\n"
+"\tbs=n\tread and write N BYTES at a time\n"
+"\tcount=n\tcopy only n input blocks\n"
+//"\tskip=n\tskip n input blocks\n"
+"\n"
+"BYTES may be suffixed: by k for x1024, b for x512, and w for x2.\n";
 
 
 
@@ -118,6 +136,7 @@ extern int dd_main (int argc, char **argv)
 		goto usage;
 	    }
 	}
+#if 0
 	else if (strncmp(*argv, "skip", 4) == 0) {
 	    skipBlocks = atoi( *argv); 
 	    if (skipBlocks <= 0) {
@@ -126,8 +145,8 @@ extern int dd_main (int argc, char **argv)
 	    }
 
 	}
+#endif
 	else {
-	    fprintf (stderr, "Got here. argv=%s\n", *argv);
 	    goto usage;
 	}
 	argc--;

@@ -1,8 +1,8 @@
-
 /*
  * Mini fdflush implementation for busybox
  *
- * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

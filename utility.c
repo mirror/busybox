@@ -1,7 +1,9 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) tons of folks.  Tracking down who wrote what
+ * isn't something I'm going to worry about...  If you wrote something
+ * here, please feel free to acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +88,7 @@ int isDirectory(const char *name)
  * and modes.  Returns TRUE if successful, or FALSE on a failure with an
  * error message output.  (Failure is not indicted if the attributes cannot
  * be set.)
+ *  -Erik Andersen
  */
 int
 copyFile( const char *srcName, const char *destName, 
