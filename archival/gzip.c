@@ -7,9 +7,9 @@
 #include "internal.h"
 #ifdef BB_GZIP
 
-#ifndef BB_ZCAT
-#error you need zcat to have gzip support!
-#endif
+//#ifndef BB_ZCAT
+//#error you need zcat to have gzip support!
+//#endif
 
 static const char gzip_usage[] =
     "gzip [OPTION]... [FILE]...\n\n"
@@ -276,7 +276,7 @@ extern int save_orig_name; /* set if original name must be saved */
 #define WARN(msg) {if (!quiet) fprintf msg ; \
 		   if (exit_code == OK) exit_code = WARNING;}
 
-local void do_exit(int exitcode);
+local void do_exit(int exitcode) __attribute__ ((noreturn));
 
 	/* in zip.c: */
 extern int zip        OF((int in, int out));
@@ -1762,9 +1762,6 @@ unsigned outcnt;           /* bytes in output buffer */
 
 /* local functions */
 
-local void treat_stdin  OF((void));
-static int (*work) OF((int infile, int outfile)) = zip; /* function to call */
-
 #define strequ(s1, s2) (strcmp((s1),(s2)) == 0)
 
 /* ======================================================================== */
@@ -1773,6 +1770,9 @@ static int (*work) OF((int infile, int outfile)) = zip; /* function to call */
 //    char **argv;
 int gzip_main(int argc, char ** argv)
 {
+
+    int inFileNum;
+    int outFileNum;
 
     /* Parse any options */
     while (--argc > 0 && **(++argv) == '-') {
@@ -1817,32 +1817,67 @@ int gzip_main(int argc, char ** argv)
     ALLOC(ush, tab_prefix1, 1L<<(BITS-1));
 #endif
 
-    /* And get to work */
-    treat_stdin();
+    if (tostdout==1) {
+	/* And get to work */
+	SET_BINARY_MODE(fileno(stdout));
+	strcpy(ifname, "stdin");
+	strcpy(ofname, "stdout");
+	inFileNum=fileno(stdin);
+	outFileNum=fileno(stdout);
+
+	/* Get the time stamp on the input file. */
+	time_stamp = 0; /* time unknown by default */
+
+	ifile_size = -1L; /* convention for unknown size */
+
+	clear_bufs(); /* clear input and output buffers */
+	part_nb = 0;
+
+	/* Actually do the compression/decompression. */
+	zip(inFileNum, outFileNum);
+
+    } else {
+	int result;
+	struct stat statBuf;
+
+	/* And get to work */
+	if (*argv=='\0')
+	    usage(gzip_usage);
+	strncpy(ifname, *argv, MAX_PATH_LEN);
+	strncpy(ofname, *argv, MAX_PATH_LEN-4);
+	strcat(ofname, ".gz");
+
+	inFileNum=open( ifname, O_RDONLY);
+	if (inFileNum < 0) {
+	    perror(ifname);
+	    do_exit(WARNING);
+	}
+	result = stat(ifname, &statBuf);
+	if (result < 0) {
+	    perror(ifname);
+	    do_exit(WARNING);
+	}
+
+	outFileNum=open( ofname, O_RDONLY);
+	if (outFileNum < 0) {
+	    perror(ofname);
+	    do_exit(WARNING);
+	}
+	SET_BINARY_MODE(outFileNum);
+
+	/* Get the time stamp on the input file. */
+	time_stamp = statBuf.st_ctime; /* time unknown by default */
+
+	ifile_size = statBuf.st_size; /* convention for unknown size */
+
+	clear_bufs(); /* clear input and output buffers */
+	part_nb = 0;
+
+	/* Actually do the compression/decompression. */
+	zip(inFileNum, outFileNum);
+    }
+
     do_exit(exit_code);
-    return exit_code; /* just to avoid lint warning */
-}
-
-/* ========================================================================
- * Compress or decompress stdin
- */
-local void treat_stdin()
-{
-    SET_BINARY_MODE(fileno(stdout));
-    strcpy(ifname, "stdin");
-    strcpy(ofname, "stdout");
-
-    /* Get the time stamp on the input file. */
-    time_stamp = 0; /* time unknown by default */
-
-    ifile_size = -1L; /* convention for unknown size */
-
-    clear_bufs(); /* clear input and output buffers */
-    part_nb = 0;
-
-    /* Actually do the compression/decompression. Loop over zipped members.
-     */
-    if ((*work)(fileno(stdin), fileno(stdout)) != OK) return;
 }
 
 /* ========================================================================
