@@ -1214,7 +1214,7 @@ static char *nodesavestr(char *);
 
 
 
-static void evalstring(char *, int);
+static void evalstring(char *);
 union node;     /* BLETCH for ansi C */
 static void evaltree(union node *, int);
 static void evalbackcmd(union node *, struct backcmd *);
@@ -2704,7 +2704,7 @@ evalcmd(int argc, char **argv)
 			STPUTC('\0', concat);
 			p = grabstackstr(concat);
 		}
-		evalstring(p, EV_TESTED);
+		evalstring(p);
 	}
 	return exitstatus;
 }
@@ -2715,7 +2715,7 @@ evalcmd(int argc, char **argv)
  */
 
 static void
-evalstring(char *s, int flag)
+evalstring(char *s)
 {
 	union node *n;
 	struct stackmark smark;
@@ -2724,7 +2724,7 @@ evalstring(char *s, int flag)
 	setinputstring(s);
 
 	while ((n = parsecmd(0)) != NEOF) {
-		evaltree(n, flag);
+		evaltree(n, 0);
 		popstackmark(&smark);
 		if (evalskip)
 			break;
@@ -4496,10 +4496,9 @@ static char *exptilde(char *, char *, int);
 static void expbackq(union node *, int, int);
 static const char *subevalvar(char *, char *, int, int, int, int, int);
 static char *evalvar(char *, int);
-static int varisset(char *, int);
 static void strtodest(const char *, int, int);
 static void memtodest(const char *p, size_t len, int syntax, int quotes);
-static void varvalue(char *, int, int);
+static ssize_t varvalue(char *, int, int);
 static void recordregion(int, int, int);
 static void removerecordregions(int);
 static void ifsbreakup(char *, struct arglist *);
@@ -5112,9 +5111,8 @@ evalvar(char *p, int flag)
 	char *var;
 	int patloc;
 	int c;
-	int set;
 	int startloc;
-	size_t varlen;
+	ssize_t varlen;
 	int easy;
 	int quotes;
 	int quoted;
@@ -5125,48 +5123,22 @@ evalvar(char *p, int flag)
 	quoted = varflags & VSQUOTE;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
-	varlen = 0;
 	startloc = expdest - (char *)stackblock();
 	p = strchr(p, '=') + 1;
 
-	if (!is_name(*var)) {
-		set = varisset(var, varflags & VSNUL);
-		set--;
-		if (subtype == VSPLUS)
-			goto vsplus;
-		if (++set) {
-			varvalue(var, quoted, flag);
-			if (subtype == VSLENGTH) {
-				varlen =
-					expdest - (char *)stackblock() -
-					startloc;
-				STADJUST(-varlen, expdest);
-				goto vslen;
-			}
-		}
-	} else {
-		const char *val;
 again:
-		/* jump here after setting a variable with ${var=text} */
-		val = lookupvar(var);
-		set = !val || ((varflags & VSNUL) && !*val);
-		if (subtype == VSPLUS)
-			goto vsplus;
-		if (--set) {
-			varlen = strlen(val);
-			if (subtype == VSLENGTH)
-				goto vslen;
-			memtodest(
-				val, varlen, quoted ? DQSYNTAX : BASESYNTAX,
-				quotes
-			);
-		}
-	}
+	varlen = varvalue(var, varflags, flag);
+	if (varflags & VSNUL)
+		varlen--;
 
+	if (subtype == VSPLUS) {
+		varlen = -1 - varlen;
+		goto vsplus;
+	}
 
 	if (subtype == VSMINUS) {
 vsplus:
-		if (!set) {
+		if (varlen < 0) {
 			argstr(
 				p, flag | EXP_TILDE |
 					(quoted ?  EXP_QWORD : EXP_WORD)
@@ -5179,7 +5151,7 @@ vsplus:
 	}
 
 	if (subtype == VSASSIGN || subtype == VSQUESTION) {
-		if (!set) {
+		if (varlen < 0) {
 			if (subevalvar(p, var, 0, subtype, startloc,
 				       varflags, 0)) {
 				varflags &= ~VSNUL;
@@ -5197,12 +5169,11 @@ vsplus:
 		goto end;
 	}
 
-	if (!set && uflag)
+	if (varlen < 0 && uflag)
 		varunset(p, var, 0, 0);
 
 	if (subtype == VSLENGTH) {
-vslen:
-		cvtnum(varlen);
+		cvtnum(varlen > 0 ? varlen : 0);
 		goto record;
 	}
 
@@ -5226,7 +5197,7 @@ record:
 	}
 #endif
 
-	if (set) {
+	if (varlen >= 0) {
 		/*
 		 * Terminate the string and start recording the pattern
 		 * right after it
@@ -5252,7 +5223,7 @@ end:
 			if ((c = *p++) == CTLESC)
 				p++;
 			else if (c == CTLBACKQ || c == (CTLBACKQ|CTLQUOTE)) {
-				if (set)
+				if (varlen >= 0)
 					argbackq = argbackq->next;
 			} else if (c == CTLVAR) {
 				if ((*p++ & VSTYPE) != VSNORMAL)
@@ -5264,47 +5235,6 @@ end:
 		}
 	}
 	return p;
-}
-
-
-
-/*
- * Test whether a specialized variable is set.
- */
-
-static int
-varisset(char *name, int nulok)
-{
-	if (*name == '!')
-		return backgndpid != 0;
-	else if (*name == '@' || *name == '*') {
-		if (*shellparam.p == NULL)
-			return 0;
-
-		if (nulok) {
-			char **av;
-
-			for (av = shellparam.p; *av; av++)
-				if (**av != '\0')
-					return 1;
-			return 0;
-		}
-	} else if (is_digit(*name)) {
-		char *ap;
-		int num = atoi(name);
-
-		if (num > shellparam.nparam)
-			return 0;
-
-		if (num == 0)
-			ap = arg0;
-		else
-			ap = shellparam.p[num - 1];
-
-		if (nulok && (ap == NULL || *ap == '\0'))
-			return 0;
-	}
-	return 1;
 }
 
 
@@ -5342,18 +5272,23 @@ strtodest(const char *p, int syntax, int quotes)
  * Add the value of a specialized variable to the stack string.
  */
 
-static void
-varvalue(char *name, int quoted, int flags)
+static ssize_t
+varvalue(char *name, int varflags, int flags)
 {
 	int num;
 	char *p;
 	int i;
-	int sep;
+	int sep = 0;
 	int sepq = 0;
+	ssize_t len = 0;
 	char **ap;
 	int syntax;
-	int allow_split = flags & EXP_FULL;
+	int quoted = varflags & VSQUOTE;
+	int subtype = varflags & VSTYPE;
 	int quotes = flags & (EXP_FULL | EXP_CASE);
+
+	if (quoted && (flags & EXP_FULL))
+		sep = 1 << CHAR_BIT;
 
 	syntax = quoted ? DQSYNTAX : BASESYNTAX;
 	switch (*name) {
@@ -5368,48 +5303,86 @@ varvalue(char *name, int quoted, int flags)
 		goto numvar;
 	case '!':
 		num = backgndpid;
+		if (num == 0)
+			return -1;
 numvar:
-		cvtnum(num);
+		len = cvtnum(num);
 		break;
 	case '-':
-		for (i = 0 ; i < NOPTS ; i++) {
-			if (optlist[i])
-				STPUTC(optletters(i), expdest);
+		p = makestrspace(NOPTS, expdest);
+		for (i = NOPTS - 1; i >= 0; i--) {
+			if (optlist[i]) {
+				USTPUTC(optletters(i), p);
+				len++;
+			}
 		}
+		expdest = p;
 		break;
 	case '@':
-		if (allow_split && quoted) {
-			sep = 1 << CHAR_BIT;
+		if (sep)
 			goto param;
-		}
 		/* fall through */
 	case '*':
 		sep = ifsset() ? ifsval()[0] : ' ';
-		if (quotes) {
-			sepq = (SIT(sep, syntax) == CCTL) || (SIT(sep, syntax) == CBACK);
-		}
+		if (quotes && (SIT(sep, syntax) == CCTL || SIT(sep, syntax) == CBACK))
+			sepq = 1;
 param:
-		for (ap = shellparam.p ; (p = *ap++) != NULL ; ) {
-			strtodest(p, syntax, quotes);
-			if (*ap && sep) {
-				p = expdest;
+		if (!(ap = shellparam.p))
+			return -1;
+		while ((p = *ap++)) {
+			size_t partlen;
+
+			partlen = strlen(p);
+
+			len += partlen;
+			if (len > partlen && sep) {
+				char *q;
+
+				len++;
+				if (subtype == VSPLUS || subtype == VSLENGTH) {
+					continue;
+				}
+				q = expdest;
 				if (sepq)
-					STPUTC(CTLESC, p);
-				STPUTC(sep, p);
-				expdest = p;
+					STPUTC(CTLESC, q);
+				STPUTC(sep, q);
+				expdest = q;
 			}
+
+			if (!(subtype == VSPLUS || subtype == VSLENGTH))
+				memtodest(p, partlen, syntax, quotes);
 		}
-		break;
+		return len;
 	case '0':
-		strtodest(arg0, syntax, quotes);
-		break;
-	default:
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
 		num = atoi(name);
-		if (num > 0 && num <= shellparam.nparam) {
-			strtodest(shellparam.p[num - 1], syntax, quotes);
-		}
-		break;
+		if (num < 0 || num > shellparam.nparam)
+			return -1;
+		p = num ? shellparam.p[num - 1] : arg0;
+		goto value;
+	default:
+		p = lookupvar(name);
+value:
+		if (!p)
+			return -1;
+
+		len = strlen(p);
+		if (!(subtype == VSPLUS || subtype == VSLENGTH))
+			memtodest(p, len, syntax, quotes);
+		return len;
 	}
+
+	if (subtype == VSPLUS || subtype == VSLENGTH)
+		STADJUST(-len, expdest);
+	return len;
 }
 
 
@@ -7946,7 +7919,7 @@ state2:
 state3:
 	state = 4;
 	if (minusc)
-		evalstring(minusc, 0);
+		evalstring(minusc);
 
 	if (sflag || minusc == NULL) {
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
@@ -7988,8 +7961,8 @@ cmdloop(int top)
 	int numeof = 0;
 
 	TRACE(("cmdloop(%d) called\n", top));
-	setstackmark(&smark);
 	for (;;) {
+		setstackmark(&smark);
 		if (pendingsigs)
 			dotrap();
 #if JOBS
@@ -8020,13 +7993,11 @@ cmdloop(int top)
 			evaltree(n, 0);
 		}
 		popstackmark(&smark);
-		setstackmark(&smark);
-		if (evalskip == SKIPFILE) {
+		if (evalskip) {
 			evalskip = 0;
 			break;
 		}
 	}
-	popstackmark(&smark);
 }
 
 
@@ -11778,7 +11749,7 @@ dotrap(void)
 		p = trap[p - q + 1];
 		if (!p)
 			continue;
-		evalstring(p, 0);
+		evalstring(p);
 		exitstatus = savestatus;
 	}
 }
@@ -11870,7 +11841,7 @@ exitshell(void)
 	handler = &loc;
 	if ((p = trap[0]) != NULL && *p != '\0') {
 		trap[0] = NULL;
-		evalstring(p, 0);
+		evalstring(p);
 	}
 	flushall();
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
@@ -12497,7 +12468,7 @@ letcmd(int argc, char **argv)
 #undef rflag
 
 #ifdef __GLIBC__
-#if !defined(__GLIBC__) || __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
 typedef enum __rlimit_resource rlim_t;
 #endif
 #endif
@@ -12694,34 +12665,52 @@ static const struct limits limits[] = {
 	{ "locked memory(kbytes)",      RLIMIT_MEMLOCK, 1024, 'l' },
 #endif
 #ifdef RLIMIT_NPROC
-	{ "process(processes)",         RLIMIT_NPROC,      1, 'p' },
+	{ "process",                    RLIMIT_NPROC,      1, 'p' },
 #endif
 #ifdef RLIMIT_NOFILE
-	{ "nofiles(descriptors)",       RLIMIT_NOFILE,     1, 'n' },
+	{ "nofiles",                    RLIMIT_NOFILE,     1, 'n' },
 #endif
-#ifdef RLIMIT_VMEM
-	{ "vmemory(kbytes)",            RLIMIT_VMEM,    1024, 'v' },
+#ifdef RLIMIT_AS
+	{ "vmemory(kbytes)",            RLIMIT_AS,      1024, 'v' },
 #endif
-#ifdef RLIMIT_SWAP
-	{ "swap(kbytes)",               RLIMIT_SWAP,    1024, 'w' },
+#ifdef RLIMIT_LOCKS
+	{ "locks",                      RLIMIT_LOCKS,      1, 'w' },
 #endif
 	{ (char *) 0,                   0,                 0,  '\0' }
 };
+
+enum limtype { SOFT = 0x1, HARD = 0x2 };
+
+static void printlim(enum limtype how, const struct rlimit *limit,
+			const struct limits *l)
+{
+	rlim_t val;
+
+	val = limit->rlim_max;
+	if (how & SOFT)
+		val = limit->rlim_cur;
+
+	if (val == RLIM_INFINITY)
+		out1fmt("unlimited\n");
+	else {
+		val /= l->factor;
+		out1fmt("%lld\n", (long long) val);
+	}
+}
 
 int
 ulimitcmd(int argc, char **argv)
 {
 	int     c;
 	rlim_t val = 0;
-	enum { SOFT = 0x1, HARD = 0x2 }
-			how = SOFT | HARD;
+	enum limtype how = SOFT | HARD;
 	const struct limits     *l;
 	int             set, all = 0;
 	int             optc, what;
 	struct rlimit   limit;
 
 	what = 'f';
-	while ((optc = nextopt("HSatfdsmcnpl")) != '\0')
+	while ((optc = nextopt("HSatfdsmcnplvw")) != '\0')
 		switch (optc) {
 		case 'H':
 			how = HARD;
@@ -12736,10 +12725,8 @@ ulimitcmd(int argc, char **argv)
 			what = optc;
 		}
 
-	for (l = limits; l->name && l->option != what; l++)
+	for (l = limits; l->option != what; l++)
 		;
-	if (!l->name)
-		error("internal error (%c)", what);
 
 	set = *argptr ? 1 : 0;
 	if (set) {
@@ -12766,19 +12753,8 @@ ulimitcmd(int argc, char **argv)
 	if (all) {
 		for (l = limits; l->name; l++) {
 			getrlimit(l->cmd, &limit);
-			if (how & SOFT)
-				val = limit.rlim_cur;
-			else if (how & HARD)
-				val = limit.rlim_max;
-
 			out1fmt("%-20s ", l->name);
-			if (val == RLIM_INFINITY)
-				out1fmt("unlimited\n");
-			else
-			{
-				val /= l->factor;
-				out1fmt("%lld\n", (long long) val);
-			}
+			printlim(how, &limit, l);
 		}
 		return 0;
 	}
@@ -12792,18 +12768,7 @@ ulimitcmd(int argc, char **argv)
 		if (setrlimit(l->cmd, &limit) < 0)
 			error("error setting limit (%m)");
 	} else {
-		if (how & SOFT)
-			val = limit.rlim_cur;
-		else if (how & HARD)
-			val = limit.rlim_max;
-
-		if (val == RLIM_INFINITY)
-			out1fmt("unlimited\n");
-		else
-		{
-			val /= l->factor;
-			out1fmt("%lld\n", (long long) val);
-		}
+		printlim(how, &limit, l);
 	}
 	return 0;
 }
