@@ -1160,7 +1160,7 @@ extern int sed_main(int argc, char **argv)
 		else {
 			char *str_cmd = strdup(argv[optind]);
 
-			add_cmd_str(strd_cmd);
+			add_cmd_str(str_cmd);
 			free(str_cmd);
 			optind++;
 		}
