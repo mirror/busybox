@@ -567,7 +567,7 @@ Example:
 Usage: gzip [OPTION]... FILE
 
 Compress FILE with maximum compression.
-When FILE is '-', reads standard input.  Implies -c.
+When FILE is '-', reads standard input.  Implies B<-c>.
 
 Options:
 
@@ -761,11 +761,12 @@ Example:
 
 =item killall
 
-Usage: killall [-signal] process-name [process-name ...]
+Usage: killall [B<-signal>] process-name [process-name ...]
 
 Send a signal (default is SIGTERM) to the specified process(es).
 
 Options:
+
         -l      List all signal names and numbers.
 
 Example:
@@ -959,6 +960,7 @@ Usage: mkfifo [OPTIONS] name
 Creates a named pipe (identical to 'mknod name p')
 
 Options:
+
         -m      create the pipe using the specified mode (default a=rw)
 
 -------------------------------
@@ -986,6 +988,7 @@ Usage: mknod [OPTIONS] NAME TYPE MAJOR MINOR
 Create a special file (block, character, or pipe).
 
 Options:
+
         -m      create the special file using the specified mode (default a=rw)
 
 TYPEs include:
@@ -1084,7 +1087,7 @@ Example:
 
 =item mt
 
-Usage: mt [-f device] opcode value
+Usage: mt [B<-f> device] opcode value
 
 Control magnetic tape drive operation
 
@@ -1251,7 +1254,7 @@ Example:
 
 =item sed
 
-Usage: sed [-n] -e script [file...]
+Usage: sed [B<-n>] B<-e> script [file...]
 
 Allowed sed scripts come in the following form:
 
@@ -1349,7 +1352,7 @@ Example:
 
 =item sort
 
-Usage: sort [-n] [-r] [FILE]...
+Usage: sort [B<-n>] [B<-r>] [FILE]...
 
 Sorts lines of text in the specified files
 
@@ -1436,7 +1439,7 @@ Example:
 
 =item tar
 
-Usage: tar -[cxtvO] [--exclude File] [-f tarFile] [FILE] ...
+Usage: tar -[cxtvO] [B<--exclude> File] [B<-f> tarFile] [FILE] ...
 
 Create, extract, or list files from a tar file.  Note that
 this version of tar treats hard links as separate files.
@@ -1509,7 +1512,7 @@ Example:
 
 =item touch
 
-Usage: touch [-c] file [file ...]
+Usage: touch [B<-c>] file [file ...]
 
 Update the last-modified date on (or create) the selected file[s].
 
@@ -1525,10 +1528,12 @@ Example:
 
 =item tr
 
-Usage:  tr [-csu] string1 string2
-        tr [-cu] -d string1
-        tr [-cu] -s string1
-        tr [-cu] -ds string1 string2
+Usage:  
+
+  tr [-csu] string1 string2
+  tr [-cu] -d string1
+  tr [-cu] -s string1
+  tr [-cu] -ds string1 string2
 
 Translate, squeeze, and/or delete characters from standard
 input, writing to standard output.
@@ -1675,4 +1680,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.10 2000/04/15 16:34:54 erik Exp $
+# $Id: busybox.pod,v 1.11 2000/04/16 10:22:28 beppu Exp $
