@@ -1,8 +1,11 @@
 /*
- * $Id: hostname.c,v 1.1 1999/12/07 23:14:59 andersen Exp $
+ * $Id: hostname.c,v 1.2 1999/12/08 04:13:44 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
+ *
+ * adjusted by Erik Andersen <andersee@debian.org> to remove
+ * use of long options and GNU getopt.  Improved the usage info.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,27 +24,21 @@
 
 #include "internal.h"
 #include <errno.h>
-#include <getopt.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <stdio.h>
 
-static const char* hostname_usage = "hostname [OPTION] {hostname | -F file}\n\n"
+static const char* hostname_usage = 
+"hostname [OPTION] {hostname | -F file}\n\n"
+"Get or set the hostname or DNS domain name. If a hostname is given\n"
+"(or a file with the -F parameter), the host name will be set.\n\n"
 "Options:\n"
-"\t-s, --short\t\tshort\n"
-"\t-i, --ip-address\t\taddresses for the hostname\n"
-"\t-d, --domain\t\tDNS domain name\n"
-"If a hostname is given, or a file is given with the -F parameter, the host\n"
-"name will be set\n";
+"\t-s\t\tShort\n"
+"\t-i\t\tAddresses for the hostname\n"
+"\t-d\t\tDNS domain name\n"
+"\t-F file\tUse FILE to specify the hostname\n";
 
-static char short_opts[] = "sidF:";
-static const struct option long_opts[] = {
-    { "short", no_argument, NULL, 's' },
-    { "ip-address", no_argument, NULL, 'i' },
-    { "domain", no_argument, NULL, 'd' },
-    { NULL, 0, NULL, 0 }
-};
 
 void do_sethostname(char *s, int isfile)
 {
@@ -75,11 +72,9 @@ void do_sethostname(char *s, int isfile)
 
 int hostname_main(int argc, char **argv)
 {
-    int c;
     int opt_short = 0;
     int opt_domain = 0;
     int opt_ip = 0;
-    int opt_file = 0;
     struct hostent *h;
     char *filename = NULL;
     char buf[255];
@@ -87,19 +82,36 @@ int hostname_main(int argc, char **argv)
     
     if (argc < 1) usage(hostname_usage);
 
-    while ((c = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
-        switch (c) {
-          case 's': opt_short = 1; break;
-	  case 'i': opt_ip = 1; break;
-	  case 'd': opt_domain = 1; break;
-          case 'F': opt_file = 1; filename = optarg; break;
-	  default: usage(hostname_usage);		    
-        }
+    while (--argc > 0 && **(++argv) == '-') {
+	while (*(++(*argv))) {
+	    switch (**argv) {
+	    case 's':
+		opt_short = 1;
+		break;
+	    case 'i':
+		opt_ip = 1;
+		break;
+	    case 'd':
+		opt_domain = 1;
+		break;
+	    case 'F':
+		filename = optarg;
+		if (--argc == 0) {
+		    usage(hostname_usage);
+		}
+		filename = *(++argv);
+		break;
+	    default:
+		usage(hostname_usage);
+	    }
+	    if (filename!=NULL)
+		break;
+	}
     }
 
-    if (optind < argc) {
-	do_sethostname(argv[optind], 0);
-    } else if (opt_file) {
+    if (argc >= 1) {
+	do_sethostname(*argv, 0);
+    } else if (filename!=NULL) {
         do_sethostname(filename, 1);
     } else {
 	gethostname(buf, 255);
@@ -121,6 +133,6 @@ int hostname_main(int argc, char **argv)
 	  printf("%s\n", buf);
         }
     }
-    return 0;
+    exit( 0);
 }
 	  
