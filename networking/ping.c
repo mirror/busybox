@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.52 2002/06/06 11:47:00 andersen Exp $
+ * $Id: ping.c,v 1.53 2003/01/12 06:08:33 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -179,7 +179,7 @@ static char *hostname = NULL;
 static void noresp(int ign)
 {
 	printf("No response from %s\n", hostname);
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 static void ping(const char *host)

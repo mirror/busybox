@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.2 2002/11/26 03:03:41 bug1 Exp $
+ * $Id: ping6.c,v 1.3 2003/01/12 06:08:33 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -77,6 +77,11 @@ static void ping(const char *host);
 
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING6
+void noresp(int ign)
+{
+	printf("No response from %s\n", h->h_name);
+	exit(EXIT_FAILURE);
+}
 
 static void ping(const char *host)
 {
@@ -86,12 +91,6 @@ static void ping(const char *host)
 	int pingsock, c;
 	int sockopt;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
-
-	void noresp(int ign)
-	{
-		printf("No response from %s\n", h->h_name);
-		exit(0);
-	}
 
 	pingsock = create_icmp6_socket();
 
