@@ -1,3 +1,5 @@
+# pod2man --center=Lineo --release="version 0.43" busybox.pod > busybox.1
+
 =head1 NAME
 
 busybox - I am BusyBox of Borg.  Unix will be assimilated.
