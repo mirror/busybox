@@ -46,7 +46,7 @@ static int df(char *device, const char *mountPoint)
 	if (s.f_blocks > 0) {
 		blocks_used = s.f_blocks - s.f_bfree;
 		if(0 == blocks_used)
-			blocs_percent_used = 0;
+			blocks_percent_used = 0;
 		else
 			blocks_percent_used = (long)
 			  (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
