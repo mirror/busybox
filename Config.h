@@ -165,7 +165,7 @@
 // enable ls -p and -F
 #define BB_FEATURE_LS_FILETYPES
 //
-// sort the file names (still a bit buggy)
+// sort the file names
 #define BB_FEATURE_LS_SORTFILES
 //
 // enable ls -R
@@ -210,7 +210,8 @@
 // Enable support for a real /etc/mtab file instead of /proc/mounts
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
-// Enable support for mounting remote NFS volumes
+// Enable support for mounting remote NFS volumes. 
+// You may no -o nolock if no local portmapper is running.
 #define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
