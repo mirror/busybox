@@ -904,6 +904,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	int method;
 	typedef void (*sig_type) (int);
 	int exit_code=0;	/* program exit code */
+	int i;
 
 	in_file = l_in_file;
 	out_file = l_out_file;
@@ -949,10 +950,16 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	flags = (unsigned char) fgetc(in_file);
 
 	/* Ignore time stamp(4), extra flags(1), OS type(1) */
-	fseek(in_file, 6, SEEK_CUR);
+	for (i = 0; i < 6; i++)
+		fgetc(in_file);
 
 	if ((flags & extra_field) != 0) {
-		fseek(in_file, (size_t) fgetc(in_file) + ((size_t)fgetc(in_file) << 8), SEEK_CUR);
+		size_t extra;
+		extra = fgetc(in_file);
+		extra += fgetc(in_file) << 8;
+
+		for (i = 0; i < extra; i++)
+			fgetc(in_file);
 	}
 
 	/* Discard original name if any */
