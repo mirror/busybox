@@ -133,17 +133,9 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
-static int writeTarFile(const char* tarName, int verboseFlag, int argc,
-		char **argv, char** excludeList);
+static int writeTarFile(const char* tarName, int tostdoutFlag, 
+		int verboseFlag, int argc, char **argv, char** excludeList);
 #endif
-
-static struct option longopts[] =
-{
-#ifdef BB_FEATURE_TAR_EXCLUDE
-        {"exclude",required_argument,NULL,'e'},
-#endif
-		{NULL,0,NULL,0}
-};
 
 extern int tar_main(int argc, char **argv)
 {
@@ -157,14 +149,17 @@ extern int tar_main(int argc, char **argv)
 	int createFlag   = FALSE;
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
-	int opt;
+	int stopIt;
+																		   
 
 	if (argc <= 1)
 		usage(tar_usage);
 
 	/* do normal option parsing */
-	while ((opt = getopt_long(argc, argv, "cxtvOf:", longopts, NULL)) != EOF) {
-		switch (opt) {
+	while (--argc > 0 && strspn(*(++argv), "-cxt") >0 ) {
+		stopIt=FALSE;
+		while (stopIt==FALSE && *argv && **argv) {
+			switch (**argv) {
 				case 'c':
 					if (extractFlag == TRUE || listFlag == TRUE)
 						goto flagError;
@@ -185,25 +180,44 @@ extern int tar_main(int argc, char **argv)
 					break;
 				case 'O':
 					tostdoutFlag = TRUE;
+					tarName = "-";
 					break;					
 				case 'f':
+					if (--argc == 0) {
+						fatalError( "Option requires an argument: No file specified\n");
+					}
 					if (*tarName != '-')
 						fatalError( "Only one 'f' option allowed\n");
-					tarName = optarg;
+					tarName = *(++argv);
+					if (tarName == NULL)
+						fatalError( "Option requires an argument: No file specified\n");
+					if (!strcmp(tarName, "-") && createFlag == TRUE)
+						tostdoutFlag = TRUE;
+					stopIt=TRUE;
 					break;
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
-					excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
-					excludeList[excludeListSize] = optarg;
-					/* Remove leading "/"s */
-					if (*excludeList[excludeListSize] =='/')
-						excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
-					/* Tack a NULL onto the end of the list */
-					excludeList[++excludeListSize] = NULL;
-					break;
+					if (strcmp(*argv, "-exclude")==0) {
+						if (--argc == 0) {
+							fatalError( "Option requires an argument: No file specified\n");
+						}
+						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
+						excludeList[excludeListSize] = *(++argv);
+						/* Remove leading "/"s */
+						if (*excludeList[excludeListSize] =='/')
+							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+						/* Tack a NULL onto the end of the list */
+						excludeList[++excludeListSize] = NULL;
+						stopIt=TRUE;
+						break;
+					}
 #endif
+				case '-':
+						break;
 				default:
 					usage(tar_usage);
+			}
+			++(*argv);
 		}
 	}
 
@@ -215,7 +229,7 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, verboseFlag, argc-optind, &argv[optind], excludeList));
+		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv, excludeList));
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
@@ -919,8 +933,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	return( TRUE);
 }
 
-static int writeTarFile(const char* tarName, int verboseFlag, int argc,
-		char **argv, char** excludeList)
+static int writeTarFile(const char* tarName, int tostdoutFlag, 
+		int verboseFlag, int argc, char **argv, char** excludeList)
 {
 	int tarFd=-1;
 	int errorFlag=FALSE;
@@ -933,7 +947,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, int argc,
 		fatalError("Cowardly refusing to create an empty archive\n");
 
 	/* Open the tar file for writing.  */
-	if (strcmp(tarName, "-") == 0)
+	if (tostdoutFlag == TRUE)
 		tbInfo.tarFd = fileno(stdout);
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
