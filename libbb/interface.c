@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.21 2004/03/15 08:28:42 andersen Exp $
+ * Version:     $Id: interface.c,v 1.22 2004/04/14 17:57:11 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -1707,7 +1707,6 @@ static int hw_null_address(struct hwtype *hw, void *ap)
 	return 1;
 }
 
-#warning devel code
 static const char TRext[] = "\0\0\0Ki\0Mi\0Gi\0Ti";
 
 static void print_bytes_scaled(unsigned long long ull, const char *end)
