@@ -37,11 +37,12 @@
 
 extern int kill_main(int argc, char **argv)
 {
-	int whichApp, signo = SIGTERM, quiet = 0;
+	int whichApp, signo = SIGTERM;
 	const char *name;
 	int errors = 0;
 
 #ifdef CONFIG_KILLALL
+	int quiet=0;
 	/* Figure out what we are trying to do here */
 	whichApp = (strcmp(bb_applet_name, "killall") == 0)? KILLALL : KILL;
 #else
@@ -86,6 +87,7 @@ extern int kill_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
+#ifdef CONFIG_KILLALL	
 	/* The -q quiet option */
 	if(argv[1][1]=='q' && argv[1][2]=='\0'){
 		quiet++;
@@ -95,6 +97,7 @@ extern int kill_main(int argc, char **argv)
 			goto do_it_now;
 		}
 	}
+#endif
 
 	if(!u_signal_names(argv[1]+1, &signo, 0))
 		bb_error_msg_and_die( "bad signal name '%s'", argv[1]+1);
