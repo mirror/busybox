@@ -140,7 +140,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.81 2002/04/12 00:28:59 andersen Exp $"
+#ident "$Id: insmod.c,v 1.82 2002/05/03 10:34:35 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -357,7 +357,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.81 2002/04/12 00:28:59 andersen Exp $"
+#ident "$Id: insmod.c,v 1.82 2002/05/03 10:34:35 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3336,13 +3336,19 @@ extern int insmod_main( int argc, char **argv)
 #endif
 
 	/* Parse any options */
-	while ((opt = getopt(argc, argv, "fkvxLo:")) > 0) {
+	while ((opt = getopt(argc, argv, "fksvxLo:")) > 0) {
 		switch (opt) {
 			case 'f':			/* force loading */
 				flag_force_load = 1;
 				break;
 			case 'k':			/* module loaded by kerneld, auto-cleanable */
 				flag_autoclean = 1;
+				break;
+			case 's':			/* log to syslog */
+				/* log to syslog -- not supported              */
+				/* but kernel needs this for request_module(), */
+				/* as this calls: modprobe -k -s -- <module>   */
+				/* so silently ignore this flag                */
 				break;
 			case 'v':			/* verbose output */
 				flag_verbose = 1;
