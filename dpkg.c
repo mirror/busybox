@@ -1141,6 +1141,8 @@ void remove_package(const unsigned int package_num)
 	char conffile_name[package_name_length + 30];
 	int return_value;
 
+	printf("Removing %s ...\n", package_name);
+
 	/* run prerm script */
 	return_value = run_package_script(package_name, "prem");
 	if (return_value == -1) {
@@ -1364,7 +1366,7 @@ extern int dpkg_main(int argc, char **argv)
 				search_name_hashtable(argv[optind]),
 				search_name_hashtable("ANY"), VER_ANY);
 			if (package_hashtable[deb_file[deb_count]->package] == NULL) {
-				error_msg_and_die("unknown package, %s\n", argv[optind]);
+				error_msg_and_die("Package %s is uninstalled or unknown\n", argv[optind]);
 			}
 			state_status = get_status(search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]), 3);
 
