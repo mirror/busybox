@@ -213,7 +213,7 @@ Clears the screen.
 Usage: chvt N
 
 Change foreground virtual terminal to /dev/ttyN
- 
+
 -------------------------------
 
 =item cp
@@ -489,7 +489,7 @@ Example:
 Usage: deallocvt N
 
 Deallocates unused virtual terminal /dev/ttyN
- 
+
 -------------------------------
 
 =item fsck.minix
@@ -523,7 +523,7 @@ OPTIONS:
 	-i              Specify the number of inodes for the filesystem
 	-l FILENAME     Read the bad blocks list from FILENAME
 	-v              Make a Minix version 2 filesystem
- 
+
 -------------------------------
 
 =item grep
@@ -698,7 +698,7 @@ Options:
 	-A	do not list implied . and ..
 	-C	list entries by columns
 	-F	append indicator (one of */=@|) to entries
- 
+
 -------------------------------
 
 =item lsmod
@@ -773,7 +773,7 @@ Options:
 	-v0             Make version 0 swap [max 128 Megs].
 	-v1             Make version 1 swap [big!] (default for kernels > 2.1.117).
 	block-count     Number of block to use (default is entire partition).
- 
+
 -------------------------------
 
 =item mnc
@@ -789,7 +789,7 @@ More is a filter for paging through text one screenful at a time.
 Example:
 
 	$ dmesg | more
- 
+
 -------------------------------
 
 =item mount
@@ -825,7 +825,7 @@ Example:
 	devpts on /dev/pts type devpts (rw)
 	$ mount /dev/fd0 /mnt -t msdos -o ro
 	$ mount /tmp/diskimage /opt -t ext2 -o loop
-  
+
 -------------------------------
 
 =item mt
@@ -843,7 +843,7 @@ Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
 Example:
 
 	$ mv /tmp/foo /bin/bar
- 
+
 -------------------------------
 
 =item nslookup
@@ -1024,6 +1024,10 @@ Dave Cinege <dcinege@psychosis.com>
 
 =for html <br>
 
+Karl M. Hegbloom <karlheg@debian.org>
+
+=for html <br>
+
 Bruce Perens <bruce@perens.com>
 
 =for html <br>
@@ -1040,9 +1044,6 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =for html <br>
 
-Karl M. Hegbloom <karlheg@debian.org>
-
-=for html <br>
-
 =cut
 
+# $Id: busybox.pod,v 1.9 2000/04/13 23:44:04 beppu Exp $
