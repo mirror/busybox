@@ -89,19 +89,21 @@ struct builtInCommand {
 	int (*function) (struct job *, struct jobSet * jobList);	/* function ptr */
 };
 
-/* Some function prototypes */
-static int shell_cd(struct job *cmd, struct jobSet *junk);
-static int shell_env(struct job *dummy, struct jobSet *junk);
-static int shell_exit(struct job *cmd, struct jobSet *junk);
-static int shell_fg_bg(struct job *cmd, struct jobSet *jobList);
-static int shell_help(struct job *cmd, struct jobSet *junk);
-static int shell_jobs(struct job *dummy, struct jobSet *jobList);
-static int shell_pwd(struct job *dummy, struct jobSet *junk);
-static int shell_export(struct job *cmd, struct jobSet *junk);
-static int shell_source(struct job *cmd, struct jobSet *jobList);
-static int shell_unset(struct job *cmd, struct jobSet *junk);
-static int shell_read(struct job *cmd, struct jobSet *junk);
+/* function prototypes for builtins */
+static int builtin_cd(struct job *cmd, struct jobSet *junk);
+static int builtin_env(struct job *dummy, struct jobSet *junk);
+static int builtin_exit(struct job *cmd, struct jobSet *junk);
+static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList);
+static int builtin_help(struct job *cmd, struct jobSet *junk);
+static int builtin_jobs(struct job *dummy, struct jobSet *jobList);
+static int builtin_pwd(struct job *dummy, struct jobSet *junk);
+static int builtin_export(struct job *cmd, struct jobSet *junk);
+static int builtin_source(struct job *cmd, struct jobSet *jobList);
+static int builtin_unset(struct job *cmd, struct jobSet *junk);
+static int builtin_read(struct job *cmd, struct jobSet *junk);
 
+
+/* function prototypes for shell stuff */
 static void checkJobs(struct jobSet *jobList);
 static int getCommand(FILE * source, char *command);
 static int parseCommand(char **commandPtr, struct job *job, int *isBg);
@@ -112,23 +114,23 @@ static int busy_loop(FILE * input);
 
 /* Table of built-in functions */
 static struct builtInCommand bltins[] = {
-	{"bg", "Resume a job in the background", "bg [%%job]", shell_fg_bg},
-	{"cd", "Change working directory", "cd [dir]", shell_cd},
-	{"exit", "Exit from shell()", "exit", shell_exit},
-	{"fg", "Bring job into the foreground", "fg [%%job]", shell_fg_bg},
-	{"jobs", "Lists the active jobs", "jobs", shell_jobs},
-	{"export", "Set environment variable", "export [VAR=value]", shell_export},
-	{"unset", "Unset environment variable", "unset VAR", shell_unset},
-	{"read", "Input environment variable", "read [VAR]", shell_read},
+	{"bg", "Resume a job in the background", "bg [%%job]", builtin_fg_bg},
+	{"cd", "Change working directory", "cd [dir]", builtin_cd},
+	{"exit", "Exit from shell()", "exit", builtin_exit},
+	{"fg", "Bring job into the foreground", "fg [%%job]", builtin_fg_bg},
+	{"jobs", "Lists the active jobs", "jobs", builtin_jobs},
+	{"export", "Set environment variable", "export [VAR=value]", builtin_export},
+	{"unset", "Unset environment variable", "unset VAR", builtin_unset},
+	{"read", "Input environment variable", "read [VAR]", builtin_read},
 	{NULL, NULL, NULL, NULL}
 };
 
 /* Table of built-in functions */
 static struct builtInCommand bltins_forking[] = {
-	{"env", "Print all environment variables", "env", shell_env},
-	{"pwd", "Print current directory", "pwd", shell_pwd},
-	{".", "Source-in and run commands in a file", ". filename", shell_source},
-	{"help", "List shell built-in commands", "help", shell_help},
+	{"env", "Print all environment variables", "env", builtin_env},
+	{"pwd", "Print current directory", "pwd", builtin_pwd},
+	{".", "Source-in and run commands in a file", ". filename", builtin_source},
+	{"help", "List shell built-in commands", "help", builtin_help},
 	{NULL, NULL, NULL, NULL}
 };
 
@@ -157,7 +159,7 @@ void win_changed(int sig)
 
 
 /* built-in 'cd <path>' handler */
-static int shell_cd(struct job *cmd, struct jobSet *junk)
+static int builtin_cd(struct job *cmd, struct jobSet *junk)
 {
 	char *newdir;
 
@@ -175,7 +177,7 @@ static int shell_cd(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'env' handler */
-static int shell_env(struct job *dummy, struct jobSet *junk)
+static int builtin_env(struct job *dummy, struct jobSet *junk)
 {
 	char **e;
 
@@ -186,7 +188,7 @@ static int shell_env(struct job *dummy, struct jobSet *junk)
 }
 
 /* built-in 'exit' handler */
-static int shell_exit(struct job *cmd, struct jobSet *junk)
+static int builtin_exit(struct job *cmd, struct jobSet *junk)
 {
 	if (!cmd->progs[0].argv[1] == 1)
 		exit TRUE;
@@ -195,7 +197,7 @@ static int shell_exit(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'fg' and 'bg' handler */
-static int shell_fg_bg(struct job *cmd, struct jobSet *jobList)
+static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 {
 	int i, jobNum;
 	struct job *job=NULL;
@@ -246,7 +248,7 @@ static int shell_fg_bg(struct job *cmd, struct jobSet *jobList)
 }
 
 /* built-in 'help' handler */
-static int shell_help(struct job *cmd, struct jobSet *junk)
+static int builtin_help(struct job *cmd, struct jobSet *junk)
 {
 	struct builtInCommand *x;
 
@@ -263,7 +265,7 @@ static int shell_help(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'jobs' handler */
-static int shell_jobs(struct job *dummy, struct jobSet *jobList)
+static int builtin_jobs(struct job *dummy, struct jobSet *jobList)
 {
 	struct job *job;
 	char *statusString;
@@ -281,7 +283,7 @@ static int shell_jobs(struct job *dummy, struct jobSet *jobList)
 
 
 /* built-in 'pwd' handler */
-static int shell_pwd(struct job *dummy, struct jobSet *junk)
+static int builtin_pwd(struct job *dummy, struct jobSet *junk)
 {
 	getcwd(cwd, sizeof(cwd));
 	fprintf(stdout, "%s\n", cwd);
@@ -289,12 +291,12 @@ static int shell_pwd(struct job *dummy, struct jobSet *junk)
 }
 
 /* built-in 'export VAR=value' handler */
-static int shell_export(struct job *cmd, struct jobSet *junk)
+static int builtin_export(struct job *cmd, struct jobSet *junk)
 {
 	int res;
 
 	if (!cmd->progs[0].argv[1] == 1) {
-		return (shell_env(cmd, junk));
+		return (builtin_env(cmd, junk));
 	}
 	res = putenv(cmd->progs[0].argv[1]);
 	if (res)
@@ -303,7 +305,7 @@ static int shell_export(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'read VAR' handler */
-static int shell_read(struct job *cmd, struct jobSet *junk)
+static int builtin_read(struct job *cmd, struct jobSet *junk)
 {
 	int res = 0, len, newlen;
 	char *s;
@@ -337,7 +339,7 @@ static int shell_read(struct job *cmd, struct jobSet *junk)
 }
 
 /* Built-in '.' handler (read-in and execute commands from file) */
-static int shell_source(struct job *cmd, struct jobSet *junk)
+static int builtin_source(struct job *cmd, struct jobSet *junk)
 {
 	FILE *input;
 	int status;
@@ -358,7 +360,7 @@ static int shell_source(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'unset VAR' handler */
-static int shell_unset(struct job *cmd, struct jobSet *junk)
+static int builtin_unset(struct job *cmd, struct jobSet *junk)
 {
 	if (!cmd->progs[0].argv[1] == 1) {
 		fprintf(stdout, "unset: parameter required.\n");
@@ -803,7 +805,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			nextout = 1;
 		}
 
-		/* Match any built-ins here */
+		/* Check if the command matches any non-forking builtins */
 		for (x = bltins; x->cmd; x++) {
 			if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
 				return (x->function(&newJob, jobList));
@@ -826,14 +828,16 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			/* explicit redirections override pipes */
 			setupRedirections(newJob.progs + i);
 
-			/* Match any built-ins here */
+			/* Check if the command matches any of the other builtins */
 			for (x = bltins_forking; x->cmd; x++) {
 				if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
 					exit (x->function(&newJob, jobList));
 				}
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-			/* Handle busybox internals here */
+			/* Check if the command matches any busybox internal commands here */
+			/* TODO: Add matching when paths are appended (i.e. 'cat' currently
+			 * works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
 				if (strcmp(newJob.progs[i].argv[0], a->name) == 0) {
 					int argc;
@@ -1050,7 +1054,7 @@ int shell_main(int argc, char **argv)
 #endif
 
 	//if (argv[0] && argv[0][0] == '-') {
-	//      shell_source("/etc/profile");
+	//      builtin_source("/etc/profile");
 	//}
 
 	if (argc < 2) {
