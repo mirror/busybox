@@ -20,6 +20,12 @@
  *   I've only tested the code on mpc8xx platforms in big-endian mode.
  *   Did some cleanup and added BB_USE_xxx_ENTRIES...
  *
+ * Quinn Jensen <jensenq@lineo.com> added MIPS support 23-Feb-2001.
+ *   based on modutils-2.4.2
+ *   MIPS specific support for Elf loading and relocation.
+ *   Copyright 1996, 1997 Linux International.
+ *   Contributed by Ralf Baechle <ralf@gnu.ai.mit.edu>
+ *
  * Based almost entirely on the Linux modutils-2.3.11 implementation.
  *   Copyright 1996, 1997 Linux International.
  *   New implementation contributed by Richard Henderson <rth@tamu.edu>
@@ -80,6 +86,10 @@
 #define BB_GOT_ENTRY_SIZE 4
 #endif
 
+#if defined(__mips__)
+// neither used
+#endif
+
 //----------------------------------------------------------------------------
 //--------modutils module.h, lines 45-242
 //----------------------------------------------------------------------------
@@ -109,7 +119,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.49 2001/02/20 20:47:08 andersen Exp $"
+#ident "$Id: insmod.c,v 1.50 2001/02/24 20:01:53 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -315,7 +325,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.49 2001/02/20 20:47:08 andersen Exp $"
+#ident "$Id: insmod.c,v 1.50 2001/02/24 20:01:53 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -360,6 +370,18 @@ static const int MODUTILS_OBJ_H = 1;
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFDATAM        ELFDATA2MSB
+
+#elif defined(__mips__)
+
+#define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+#ifdef __MIPSEB__
+#define ELFDATAM        ELFDATA2MSB
+#endif
+#ifdef __MIPSEL__
+#define ELFDATAM        ELFDATA2LSB
+#endif
 
 #elif defined(__i386__)
 
@@ -594,6 +616,15 @@ struct arch_got_entry {
 };
 #endif
 
+#if defined(__mips__)
+struct mips_hi16
+{
+  struct mips_hi16 *next;
+  Elf32_Addr *addr;
+  Elf32_Addr value;
+};
+#endif
+
 struct arch_file {
 	struct obj_file root;
 #if defined(BB_USE_PLT_ENTRIES)
@@ -601,6 +632,9 @@ struct arch_file {
 #endif
 #if defined(BB_USE_GOT_ENTRIES)
 	struct obj_section *got;
+#endif
+#if defined(__mips__)
+	struct mips_hi16 *mips_hi16_list;
 #endif
 };
 
@@ -724,6 +758,9 @@ struct obj_file *arch_new_file(void)
 #if defined(BB_USE_GOT_ENTRIES)
 	f->got = NULL;
 #endif
+#if defined(__mips__)
+	f->mips_hi16_list = NULL;
+#endif
 
 	return &f->root;
 }
@@ -783,6 +820,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_NONE:
 #elif defined(__powerpc__)
 	case R_PPC_NONE:
+#elif defined(__mips__)
+	case R_MIPS_NONE:
 #endif
 		break;
 
@@ -794,6 +833,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_32:	
 #elif defined(__powerpc__)
 	case R_PPC_ADDR32:
+#elif defined(__mips__)
+	case R_MIPS_32:
 #endif
 		*loc += v;
 		break;
@@ -810,6 +851,86 @@ arch_apply_relocation(struct obj_file *f,
 	case R_PPC_ADDR16_LO:
 		*(unsigned short *)loc = v;
 		break;
+#endif
+
+#if defined(__mips__)
+	case R_MIPS_26:
+		if (v % 4)
+			ret = obj_reloc_dangerous;
+		if ((v & 0xf0000000) != ((dot + 4) & 0xf0000000))
+			ret = obj_reloc_overflow;
+		*loc =
+		    (*loc & ~0x03ffffff) | ((*loc + (v >> 2)) &
+					    0x03ffffff);
+		break;
+
+	case R_MIPS_HI16:
+		{
+			struct mips_hi16 *n;
+
+			/* We cannot relocate this one now because we don't know the value
+			   of the carry we need to add.  Save the information, and let LO16
+			   do the actual relocation.  */
+			n = (struct mips_hi16 *) xmalloc(sizeof *n);
+			n->addr = loc;
+			n->value = v;
+			n->next = ifile->mips_hi16_list;
+			ifile->mips_hi16_list = n;
+	       		break;
+		}
+
+	case R_MIPS_LO16:
+		{
+			unsigned long insnlo = *loc;
+			Elf32_Addr val, vallo;
+
+			/* Sign extend the addend we extract from the lo insn.  */
+			vallo = ((insnlo & 0xffff) ^ 0x8000) - 0x8000;
+
+			if (ifile->mips_hi16_list != NULL) {
+				struct mips_hi16 *l;
+
+				l = ifile->mips_hi16_list;
+				while (l != NULL) {
+					struct mips_hi16 *next;
+					unsigned long insn;
+
+					/* The value for the HI16 had best be the same. */
+					assert(v == l->value);
+
+					/* Do the HI16 relocation.  Note that we actually don't
+					   need to know anything about the LO16 itself, except where
+					   to find the low 16 bits of the addend needed by the LO16.  */
+					insn = *l->addr;
+					val =
+					    ((insn & 0xffff) << 16) +
+					    vallo;
+					val += v;
+
+					/* Account for the sign extension that will happen in the
+					   low bits.  */
+					val =
+					    ((val >> 16) +
+					     ((val & 0x8000) !=
+					      0)) & 0xffff;
+
+					insn = (insn & ~0xffff) | val;
+					*l->addr = insn;
+
+					next = l->next;
+					free(l);
+					l = next;
+				}
+
+				ifile->mips_hi16_list = NULL;
+			}
+
+			/* Ok, we're done with the HI16 relocs.  Now deal with the LO16.  */
+			val = v + vallo;
+			insnlo = (insnlo & ~0xffff) | (val & 0xffff);
+			*loc = insnlo;
+			break;
+		}
 #endif
 
 #if defined(__arm__)
@@ -977,6 +1098,7 @@ arch_apply_relocation(struct obj_file *f,
 
 int arch_create_got(struct obj_file *f)
 {
+#if defined(BB_USE_GOT_ENTRIES) || defined(BB_USE_PLT_ENTRIES)
 	struct arch_file *ifile = (struct arch_file *) f;
 	int i;
 #if defined(BB_USE_GOT_ENTRIES)
@@ -1097,6 +1219,7 @@ int arch_create_got(struct obj_file *f)
 		ifile->plt = obj_create_alloced_section(f, ".plt", 
 							BB_PLT_ENTRY_SIZE, 
 							plt_offset);
+#endif
 #endif
 	return 1;
 }
@@ -2772,7 +2895,7 @@ int obj_create_image(struct obj_file *f, char *image)
 	for (sec = f->load_order; sec; sec = sec->load_next) {
 		char *secimg;
 
-		if (sec->header.sh_size == 0)
+		if (sec->contents == 0 || sec->header.sh_size == 0)
 			continue;
 
 		secimg = image + (sec->header.sh_addr - base);
@@ -2857,7 +2980,7 @@ struct obj_file *obj_load(FILE * fp)
 		sec->header = section_headers[i];
 		sec->idx = i;
 
-		switch (sec->header.sh_type) {
+		if(sec->header.sh_size) switch (sec->header.sh_type) {
 		case SHT_NULL:
 		case SHT_NOTE:
 		case SHT_NOBITS:
