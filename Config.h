@@ -284,6 +284,8 @@
 // Support for Minix filesystem, version 2
 //#define BB_FEATURE_MINIX2
 //
+// Enable ifconfig status reporting output -- this feature adds 12k.
+//#define BB_FEATURE_IFCONFIG_STATUS
 //
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
@@ -392,6 +394,14 @@
 #define BB_FEATURE_USE_TERMIOS
 #endif
 #endif
+//
+#if defined BB_IFCONFIG
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+#define BB_INTERFACE
+#endif
+#else
+#undef BB_INTERFACE
+#endif	
 //
 #if defined BB_FEATURE_AUTOWIDTH
 #ifndef BB_FEATURE_USE_TERMIOS
