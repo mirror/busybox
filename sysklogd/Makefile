@@ -19,6 +19,7 @@
 
 TOPDIR   :=..
 L_TARGET := sysklogd.a
+EXTRA_CFLAGS = -DBB_VER='"$(VERSION)"' -DBB_BT='"$(BUILDTIME)"'
 
 obj-y           :=
 obj-n           :=

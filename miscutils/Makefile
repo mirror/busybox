@@ -19,6 +19,7 @@
 
 TOPDIR   :=..
 L_TARGET := miscutils.a
+EXTRA_CFLAGS = -DBB_VER='"$(VERSION)"' -DBB_BT='"$(BUILDTIME)"'
 
 obj-y           :=
 obj-n           :=
