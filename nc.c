@@ -58,12 +58,12 @@ int nc_main(int argc, char **argv)
 				lport = atoi(optarg);
 				break;
 			default:
-				usage(nc_usage);
+				show_usage();
 		}
 	}
 
 	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
-		usage(nc_usage);
+		show_usage();
 
 	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		perror_msg_and_die("socket");

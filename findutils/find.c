@@ -178,7 +178,7 @@ int find_main(int argc, char **argv)
 				mtime_days = -mtime_days;
 #endif
 		} else
-			usage(find_usage);
+			show_usage();
 	}
 
 	if (firstopt == 1) {

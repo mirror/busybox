@@ -505,5 +505,5 @@ singlemount:
 	goto singlemount;
 	
 goodbye:
-	usage(mount_usage);
+	show_usage();
 }

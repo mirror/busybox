@@ -34,7 +34,7 @@ int loadacm_main(int argc, char **argv)
 	int fd;
 
 	if (argc>=2 && *argv[1]=='-') {
-		usage(loadacm_usage);
+		show_usage();
 	}
 
 	fd = open("/dev/tty", O_RDWR);

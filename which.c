@@ -33,7 +33,7 @@ extern int which_main(int argc, char **argv)
 	int i, count=1, found, status = EXIT_SUCCESS;
 
 	if (argc <= 1 || **(argv + 1) == '-')
-		usage(which_usage);
+		show_usage();
 	argc--;
 
 	path_list = getenv("PATH");

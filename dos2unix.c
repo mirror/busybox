@@ -31,7 +31,7 @@ int dos2unix_main( int argc, char **argv ) {
 	if (argc > 1) {
 	        c = *argv[1];
 		if (c == '-') {
-                usage(dos2unix_usage);
+                show_usage();
 		} 
 	}
 	c = getchar();

@@ -30,7 +30,7 @@ extern int dirname_main(int argc, char **argv)
 	char* s;
 
 	if ((argc < 2) || (**(argv + 1) == '-'))
-		usage(dirname_usage);
+		show_usage();
 	argv++;
 
 	s=*argv+strlen(*argv)-1;

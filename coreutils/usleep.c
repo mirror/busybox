@@ -28,7 +28,7 @@
 extern int usleep_main(int argc, char **argv)
 {
 	if ((argc < 2) || (**(argv + 1) == '-')) {
-		usage(usleep_usage);
+		show_usage();
 	}
 
 	usleep(atoi(*(++argv)));	/* return void */

@@ -498,7 +498,7 @@ extern int telnet_main(int argc, char** argv)
 
 	cfmakeraw(&G.termios_raw);
 	
-	if (argc < 2)	usage(telnet_usage);
+	if (argc < 2)	show_usage();
 	port = (argc > 2)? getport(argv[2]): 23;
 	
 	G.buf = xmalloc(DATABUFSIZE);

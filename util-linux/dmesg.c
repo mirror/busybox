@@ -53,21 +53,21 @@ int dmesg_main(int argc, char **argv)
 		case 'n':
 			cmd = 8;
 			if (optarg == NULL)
-				usage(dmesg_usage);
+				show_usage();
 			level = atoi(optarg);
 			break;
 		case 's':
 			if (optarg == NULL)
-				usage(dmesg_usage);
+				show_usage();
 			bufsize = atoi(optarg);
 			break;
 		default:
-			usage(dmesg_usage);
+			show_usage();
 		}
 	}			
 
 	if (optind < argc) {
-		goto end;
+		show_usage();
 	}
 
 	if (cmd == 8) {
@@ -97,7 +97,4 @@ int dmesg_main(int argc, char **argv)
 	if (lastc != '\n')
 		putchar('\n');
 	return EXIT_SUCCESS;
-  end:
-	usage(dmesg_usage);
-	return EXIT_FAILURE;
 }

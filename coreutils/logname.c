@@ -30,7 +30,7 @@ extern int logname_main(int argc, char **argv)
 	char user[9];
 
 	if (argc > 1)
-		usage(logname_usage);
+		show_usage();
 
 	my_getpwuid(user, geteuid());
 	if (*user) {

@@ -673,7 +673,7 @@ extern int sed_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "hne:f:")) > 0) {
 		switch (opt) {
 			case 'h':
-				usage(sed_usage);
+				show_usage();
 				break;
 			case 'n':
 				be_quiet++;
@@ -691,7 +691,7 @@ extern int sed_main(int argc, char **argv)
 	 * argv[optind] should be the pattern. no pattern, no worky */
 	if (ncmds == 0) {
 		if (argv[optind] == NULL)
-			usage(sed_usage);
+			show_usage();
 		else {
 			add_cmd_str(argv[optind]);
 			optind++;

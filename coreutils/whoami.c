@@ -31,7 +31,7 @@ extern int whoami_main(int argc, char **argv)
 	uid_t uid = geteuid();
 
 	if (argc > 1)
-		usage(whoami_usage);
+		show_usage();
 
 	my_getpwuid(user, uid);
 	if (*user) {

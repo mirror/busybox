@@ -519,7 +519,7 @@ extern int syslogd_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				usage(syslogd_usage);
+				show_usage();
 		}
 	}
 

@@ -38,7 +38,7 @@ tee_main(int argc, char **argv)
 			mode = "a";
 			break;
 		default:
-			usage(tee_usage);
+			show_usage();
 		}
 	}
 

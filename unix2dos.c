@@ -30,7 +30,7 @@ int unix2dos_main( int argc, char **argv ) {
 	if (argc > 1) {
 	        c = *argv[1];
 		if (c == '-') {
-                usage(unix2dos_usage);
+                show_usage();
 		} 
 	}
 	c = getchar();

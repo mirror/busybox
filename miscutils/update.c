@@ -64,7 +64,7 @@ extern int update_main(int argc, char **argv)
 				flush_duration = atoi(optarg);
 				break;
 			default:
-				usage(update_usage);
+				show_usage();
 		}
 	}
 

@@ -937,9 +937,7 @@ extern int init_main(int argc, char **argv)
 #endif
 	                  )
 	{
-			usage("init\n\nInit is the parent of all processes.\n\n"
-				  "This version of init is designed to be run only "
-				  "by the kernel.");
+			show_usage();
 	}
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */

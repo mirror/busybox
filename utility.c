@@ -40,6 +40,7 @@
 #define bb_need_full_version
 #define BB_DECLARE_EXTERN
 #include "messages.c"
+#include "usage.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -76,11 +77,22 @@ const char mtab_file[] = "/proc/mounts";
 #  endif
 #endif
 
-extern void usage(const char *usage)
+static struct BB_applet *applet_using;
+
+extern void show_usage(void)
 {
-	fprintf(stderr, "%s\n\nUsage: %s\n\n", full_version, usage);
+	static const char no_help[] = "No help available.\n";
+
+	const char *usage_string = no_help;
+
+	if (applet_using->usage_index >= 0) {
+			usage_string = usage_messages[applet_using->usage_index];
+	}
+	fprintf(stderr, "%s\n\nUsage: %s %s\n", full_version,
+			applet_using->name, usage_string);
 	exit(EXIT_FAILURE);
 }
+
 
 static void verror_msg(const char *s, va_list p)
 {
@@ -1700,6 +1712,17 @@ struct BB_applet *find_applet_by_name(const char *name)
 {
 	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
 			applet_name_compare);
+}
+
+void run_applet_by_name(const char *name, int argc, char **argv)
+{
+	/* Do a binary search to find the applet entry given the name. */
+	if ((applet_using = find_applet_by_name(name)) != NULL) {
+		applet_name = applet_using->name;
+		if (argv[1] && strcmp(argv[1], "--help") == 0)
+			show_usage();
+		exit((*(applet_using->main)) (argc, argv));
+	}
 }
 
 #if defined BB_DD || defined BB_TAIL

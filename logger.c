@@ -122,7 +122,7 @@ extern int logger_main(int argc, char **argv)
 				strncpy(name, optarg, sizeof(name));
 				break;
 			default:
-				usage(logger_usage);
+				show_usage();
 		}
 	}
 

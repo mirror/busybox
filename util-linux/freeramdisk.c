@@ -40,7 +40,7 @@ freeramdisk_main(int argc, char **argv)
 	int   f;
 
 	if (argc != 2 || *argv[1] == '-') {
-		usage(freeramdisk_usage);
+		show_usage();
 	}
 
 	if ((f = open(argv[1], O_RDWR)) == -1) {

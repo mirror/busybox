@@ -31,7 +31,7 @@ extern int basename_main(int argc, char **argv)
 	char *s;
 
 	if ((argc < 2) || (**(argv + 1) == '-')) {
-		usage(basename_usage);
+		show_usage();
 	}
 
 	argv++;

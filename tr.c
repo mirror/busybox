@@ -170,7 +170,7 @@ extern int tr_main(int argc, char **argv)
 				sq_fl = TRUE;
 				break;
 			default:
-				usage(tr_usage);
+				show_usage();
 			}
 		}
 		index++;

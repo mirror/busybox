@@ -928,5 +928,5 @@ extern int ls_main(int argc, char **argv)
 	return(status);
 
   print_usage_message:
-	usage(ls_usage);
+	show_usage();
 }

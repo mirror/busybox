@@ -101,7 +101,7 @@ extern int ln_main(int argc, char **argv)
 				flag |= LN_NODEREFERENCE;
 				break;
 			default:
-				usage(ln_usage);
+				show_usage();
 		}
 	}
 	while(optind<(argc-1)) {

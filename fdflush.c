@@ -35,7 +35,7 @@ extern int fdflush_main(int argc, char **argv)
 	int fd;
 
 	if (argc <= 1 || **(++argv) == '-')
-		usage(fdflush_usage);
+		show_usage();
 
 	if ((fd = open(*argv, 0)) < 0)
 		perror_msg_and_die("%s", *argv);

@@ -143,7 +143,7 @@ extern int df_main(int argc, char **argv)
 	return status;
 
 print_df_usage:
-    usage(df_usage);
+    show_usage();
     return(FALSE);
 }
 

@@ -255,13 +255,6 @@ static inline int bit(char * a,unsigned int i)
 #define mark_zone(x) (setbit(zone_map,(x)-FIRSTZONE+1))
 #define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1))
 
-static void show_usage() __attribute__ ((noreturn)); 
-
-static void show_usage()
-{
-	usage(mkfs_minix_usage);
-}
-
 /*
  * Check to make certain that our new filesystem won't be created on
  * an already mounted partition.  Code adapted from mke2fs, Copyright

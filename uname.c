@@ -106,7 +106,7 @@ int uname_main(int argc, char **argv)
 						   PRINT_MACHINE);
 				break;
 			default:
-				usage(uname_usage);
+				show_usage();
 			}
 		}
 	}

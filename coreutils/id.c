@@ -53,11 +53,11 @@ extern int id_main(int argc, char **argv)
 				name_not_number++;
 				break;
 			default:
-				usage(id_usage);
+				show_usage();
 		}
 	}
 
-	if (no_user && no_group) usage(id_usage);
+	if (no_user && no_group) show_usage();
 
 	if (argv[optind] == NULL) {
 		if (print_real) {

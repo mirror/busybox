@@ -81,17 +81,13 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	int recursiveFlag = FALSE;
 	char *groupName=NULL;
 	char *p=NULL;
-	const char *appUsage;
 
 	whichApp = (applet_name[2]=='o')?           /* chown */
 		CHOWN_APP : (applet_name[2]=='m')?      /* chmod */
 		CHMOD_APP : CHGRP_APP;
 
-	appUsage = (whichApp == CHOWN_APP)? 
-			chown_usage : (whichApp == CHMOD_APP) ? chmod_usage : chgrp_usage;
-
 	if (argc < 2)
-		usage(appUsage);
+		show_usage();
 	argv++;
 
 	/* Parse options */

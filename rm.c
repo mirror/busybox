@@ -84,7 +84,7 @@ extern int rm_main(int argc, char **argv)
 						stopIt = TRUE;
 						break;
 					default:
-						usage(rm_usage);
+						show_usage();
 				}
 			argc--;
 			argv++;
@@ -94,7 +94,7 @@ extern int rm_main(int argc, char **argv)
 	}
 
 	if (argc < 1 && forceFlag == FALSE) {
-		usage(rm_usage);
+		show_usage();
 	}
 
 	while (argc-- > 0) {

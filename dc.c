@@ -169,7 +169,7 @@ int dc_main(int argc, char **argv)
 		}
 	} else {
 		if (*argv[1]=='-')
-			usage(dc_usage);
+			show_usage();
 		while (argc >= 2) {
 			stack_machine(argv[1]);
 			argv++;

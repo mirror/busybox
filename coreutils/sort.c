@@ -56,7 +56,7 @@ int sort_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				usage(sort_usage);
+				show_usage();
 		}
 	}
 

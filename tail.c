@@ -103,7 +103,7 @@ int tail_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				usage(tail_usage);
+				show_usage();
 		}
 	}
 

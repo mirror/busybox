@@ -37,7 +37,7 @@ extern int mkfifo_main(int argc, char **argv)
 	/* Parse any options */
 	while (argc > 1) {
 		if (**argv != '-')
-			usage(mkfifo_usage);
+			show_usage();
 		thisarg = *argv;
 		thisarg++;
 		switch (*thisarg) {
@@ -47,13 +47,13 @@ extern int mkfifo_main(int argc, char **argv)
 			parse_mode(*argv, &mode);
 			break;
 		default:
-			usage(mkfifo_usage);
+			show_usage();
 		}
 		argc--;
 		argv++;
 	}
 	if (argc < 1 || *argv[0] == '-')
-		usage(mkfifo_usage);
+		show_usage();
 	if (mkfifo(*argv, mode) < 0)
 		perror_msg_and_die("mkfifo");
 	return EXIT_SUCCESS;

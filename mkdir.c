@@ -48,7 +48,7 @@ extern int mkdir_main(int argc, char **argv)
 			switch (**argv) {
 			case 'm':
 				if (--argc == 0)
-					usage(mkdir_usage);
+					show_usage();
 				/* Find the specified modes */
 				mode = 0;
 				if (parse_mode(*(++argv), &mode) == FALSE) {
@@ -63,7 +63,7 @@ extern int mkdir_main(int argc, char **argv)
 				parentFlag = TRUE;
 				break;
 			default:
-				usage(mkdir_usage);
+				show_usage();
 			}
 		}
 		argc--;
@@ -71,7 +71,7 @@ extern int mkdir_main(int argc, char **argv)
 	}
 
 	if (argc < 1) {
-		usage(mkdir_usage);
+		show_usage();
 	}
 
 	while (argc > 0) {

@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.2 2001/02/14 19:26:39 andersen Exp $
+ * $Id: route.c,v 1.3 2001/02/14 21:23:06 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  */
@@ -115,7 +115,7 @@ INET_setroute(int action, int options, char **args)
 		args++;
 	}
 	if (*args == NULL)
-		usage(route_usage);
+		show_usage();
 
 	safe_strncpy(target, *args++, (sizeof target));
 
@@ -152,7 +152,7 @@ INET_setroute(int action, int options, char **args)
 			
 			args++;
 			if (!*args || !isdigit(**args))
-				usage(route_usage);
+				show_usage();
 			metric = atoi(*args);
 #if HAVE_NEW_ADDRT
 			rt.rt_metric = metric + 1;
@@ -168,7 +168,7 @@ INET_setroute(int action, int options, char **args)
 			
 			args++;
 			if (!*args || mask_in_addr(rt))
-				usage(route_usage);
+				show_usage();
 			safe_strncpy(netmask, *args, (sizeof netmask));
 			if ((isnet = INET_resolve(netmask, &mask)) < 0) {
 				fprintf(stderr, "cant resolve netmask %s\n", netmask);
@@ -182,9 +182,9 @@ INET_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "gw") || !strcmp(*args, "gateway")) {
 			args++;
 			if (!*args)
-				usage(route_usage);
+				show_usage();
 			if (rt.rt_flags & RTF_GATEWAY)
-				usage(route_usage);
+				show_usage();
 			safe_strncpy(gateway, *args, (sizeof gateway));
 			if ((isnet = INET_resolve(gateway, &rt.rt_gateway)) < 0) {
 				fprintf(stderr, "cant resolve gw %s\n", gateway);
@@ -205,7 +205,7 @@ INET_setroute(int action, int options, char **args)
 			args++;
 			rt.rt_flags |= RTF_MSS;
 			if (!*args)
-				usage(route_usage);
+				show_usage();
 			rt.rt_mss = atoi(*args);
 			args++;
 			if (rt.rt_mss < 64 || rt.rt_mss > 32768) {
@@ -218,7 +218,7 @@ INET_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "window")) {
 			args++;
 			if (!*args)
-				usage(route_usage);
+				show_usage();
 			rt.rt_flags |= RTF_WINDOW;
 			rt.rt_window = atoi(*args);
 			args++;
@@ -232,7 +232,7 @@ INET_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "irtt")) {
 			args++;
 			if (!*args)
-				usage(route_usage);
+				show_usage();
 			args++;
 #if HAVE_RTF_IRTT
 			rt.rt_flags |= RTF_IRTT;
@@ -277,7 +277,7 @@ INET_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "device") || !strcmp(*args, "dev")) {
 			args++;
 			if (rt.rt_dev || *args == NULL)
-				usage(route_usage);
+				show_usage();
 			rt.rt_dev = *args++;
 			continue;
 		}
@@ -285,9 +285,9 @@ INET_setroute(int action, int options, char **args)
 		if (!rt.rt_dev) {
 			rt.rt_dev = *args++;
 			if (*args)
-				usage(route_usage);	/* must be last to catch typos */
+				show_usage();	/* must be last to catch typos */
 		} else
-			usage(route_usage);
+			show_usage();
 	}
 
 #if HAVE_RTF_REJECT
@@ -420,7 +420,7 @@ int route_main(int argc, char **argv)
 		else if (!strcmp(*argv, "flush"))
 			what = RTACTION_FLUSH;
 		else
-			usage(route_usage);
+			show_usage();
 	}
 
 	INET_setroute(what, 0, ++argv);

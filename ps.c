@@ -207,7 +207,7 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 	if (argc > 1 && **(argv + 1) == '-') 
-		usage(ps_usage);
+		show_usage();
 
 	/* open device */ 
 	fd = open(device, O_RDONLY);

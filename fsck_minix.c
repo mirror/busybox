@@ -283,11 +283,6 @@ static void leave(int status)
 	exit(status);
 }
 
-static void show_usage(void)
-{
-	usage(fsck_minix_usage);
-}
-
 static void die(const char *str)
 {
 	error_msg("%s", str);

@@ -124,22 +124,19 @@ const struct signal_name signames[] = {
 extern int kill_main(int argc, char **argv)
 {
 	int whichApp, sig = SIGTERM;
-	const char *appUsage;
 
 #ifdef BB_KILLALL
 	/* Figure out what we are trying to do here */
 	whichApp = (strcmp(applet_name, "killall") == 0)? KILLALL : KILL; 
-	appUsage = (whichApp == KILLALL)?  killall_usage : kill_usage;
 #else
 	whichApp = KILL;
-	appUsage = kill_usage;
 #endif
 
 	argc--;
 	argv++;
 	/* Parse any options */
 	if (argc < 1)
-		usage(appUsage);
+		show_usage();
 
 	while (argc > 0 && **argv == '-') {
 		while (*++(*argv)) {
@@ -163,7 +160,7 @@ extern int kill_main(int argc, char **argv)
 				}
 				break;
 			case '-':
-				usage(appUsage);
+				show_usage();
 			default:
 				{
 					if (isdigit(**argv)) {

@@ -107,5 +107,5 @@ extern int swap_on_off_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 
   usage_and_exit:
-	usage((whichApp == SWAPON_APP) ? swapon_usage : swapoff_usage);
+	show_usage();
 }

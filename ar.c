@@ -163,13 +163,13 @@ extern int ar_main(int argc, char **argv)
 			funct |= extract_to_file;
 			break;
 		default:
-			usage(ar_usage);
+			show_usage();
 		}
 	}
  
 	/* check the src filename was specified */
 	if (optind == argc)
-		usage(ar_usage);
+		show_usage();
 	
 	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
 		error_msg_and_die("Cannot read %s", argv[optind]);

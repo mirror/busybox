@@ -64,7 +64,7 @@ int rpmunpack_main(int argc, char **argv)
 
   /* Check for command line parameters */
 	if (argc>=2 && *argv[1]=='-') {
-           usage(rpmunpack_usage);
+           show_usage();
 	}
 
   /* Open input file */

@@ -39,7 +39,7 @@ extern int rmmod_main(int argc, char **argv)
 {
 	int ret = EXIT_SUCCESS;
 	if (argc <= 1) {
-		usage(rmmod_usage);
+		show_usage();
 	}
 
 	/* Parse any options */
@@ -52,7 +52,7 @@ extern int rmmod_main(int argc, char **argv)
 					perror_msg_and_die("rmmod");
 				return EXIT_SUCCESS;
 			default:
-				usage(rmmod_usage);
+				show_usage();
 			}
 		}
 	}

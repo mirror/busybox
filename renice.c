@@ -32,7 +32,7 @@ extern int renice_main(int argc, char **argv)
 {
 	int prio, status = EXIT_SUCCESS;
 	
-	if (argc < 3)	usage(renice_usage);
+	if (argc < 3)	show_usage();
 		
 	prio = atoi(*++argv);
 	if (prio > 20)		prio = 20;

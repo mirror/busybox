@@ -157,7 +157,7 @@ int nslookup_main(int argc, char **argv)
 	struct hostent *host;
 
 	if (argc < 2 || *argv[1]=='-') {
-		usage(nslookup_usage);
+		show_usage();
 	}
 
 	server_print();
@@ -170,4 +170,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.20 2001/01/27 09:33:38 andersen Exp $ */
+/* $Id: nslookup.c,v 1.21 2001/02/14 21:23:06 andersen Exp $ */

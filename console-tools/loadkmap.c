@@ -51,7 +51,7 @@ int loadkmap_main(int argc, char **argv)
 	char flags[MAX_NR_KEYMAPS], buff[7];
 
 	if (argc != 1)
-		usage(loadkmap_usage);
+		show_usage();
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0)

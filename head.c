@@ -57,7 +57,7 @@ int head_main(int argc, char **argv)
 				break;
 			/* fallthrough */
 		default:
-			usage(head_usage);
+			show_usage();
 		}
 	}
 

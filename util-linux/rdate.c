@@ -95,14 +95,14 @@ int rdate_main(int argc, char **argv)
 	/* Interpret command line args */
 	/* do special-case option parsing */
 	if (argv[1] && (strcmp(argv[1], "--help") == 0))
-		usage(rdate_usage);
+		show_usage();
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "Hsp")) > 0) {
 		switch (opt) {
 			default:
 			case 'H':
-				usage(rdate_usage);
+				show_usage();
 				break;
 			case 's':
 				setdate++;
@@ -117,7 +117,7 @@ int rdate_main(int argc, char **argv)
 	if (printdate==0 && setdate==0) setdate++;
 
 	if (optind == argc) {
-		usage(rdate_usage);
+		show_usage();
 	}
 
 	if ((time= askremotedate(argv[optind])) == (time_t)-1) {

@@ -167,7 +167,7 @@ int uuencode_main (int argc,
       break;
 
      default:
-      usage(uuencode_usage);
+      show_usage();
     }
   }
 
@@ -188,7 +188,7 @@ int uuencode_main (int argc,
 
    case 0:
    default:
-    usage(uuencode_usage);
+    show_usage();
   }
 
   printf("begin%s %o %s\n", trans_ptr == uu_std ? "" : "-base64",

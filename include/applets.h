@@ -10,403 +10,417 @@
  * file result in the listing remaining in ascii order. You have been warned.
  */
 
+#undef APPLET
+#undef APPLET_ODDNAME
+#undef APPLET_NOUSAGE
+
 #if defined(PROTOTYPES)
-#define APPLET(a,b,c,d) \
-	extern int b(int argc, char **argv); \
-	extern const char d[];
+#define APPLET(a,b,c) \
+	extern int b(int argc, char **argv);
+#define APPLET_ODDNAME(a,b,c,d,e) APPLET(a,b,c)
 #define APPLET_NOUSAGE(a,b,c) \
 	extern int b(int argc, char **argv);
 #elif defined(MAKE_LINKS)
-#define APPLET(a,b,c,d) LINK c a
-#define APPLET_NOUSAGE(a,b,c) LINK c a
+#define APPLET(a,b,c) LINK c #a
+#define APPLET_ODDNAME(a,b,c,d,e) LINK c a
+#define APPLET_NOUSAGE(a,b,c) LINK c #a
+#elif defined(APPLET_ENUM)
+#define APPLET(a,b,c) a##_applet_number,
+#define APPLET_ODDNAME(a,b,c,d,e) e##_applet_number,
+#define APPLET_NOUSAGE(a,b,c) a##applet_number,
 #else
+#define USAGE_ENUM
+#include "usage.h"
 const struct BB_applet applets[] = {
-#define APPLET(a,b,c,d) {a,b,c,d},
-#define APPLET_NOUSAGE(a,b,c) {a,b,c,NULL},
+#define APPLET(a,b,c) {#a,b,c,a##_usage_index},
+#define APPLET_ODDNAME(a,b,c,d,e) {a,b,c,d},
+#define APPLET_NOUSAGE(a,b,c) {#a,b,c,-1},
+#define zcat_usage_index gunzip_usage_index
+#define sh_usage_index shell_usage_index
 #endif
 
 #ifdef BB_TEST
-	APPLET("[", test_main, _BB_DIR_USR_BIN, test_usage)
+	APPLET_ODDNAME("[", test_main, _BB_DIR_USR_BIN, test_usage_index, open_bracket)
 #endif
 #ifdef BB_AR
-	APPLET("ar", ar_main, _BB_DIR_USR_BIN, ar_usage)
+	APPLET(ar, ar_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_BASENAME
-	APPLET("basename", basename_main, _BB_DIR_USR_BIN, basename_usage)
+	APPLET(basename, basename_main, _BB_DIR_USR_BIN)
 #endif
-	APPLET_NOUSAGE("busybox", busybox_main, _BB_DIR_BIN)
+	APPLET_NOUSAGE(busybox, busybox_main, _BB_DIR_BIN)
 #ifdef BB_CAT
-	APPLET("cat", cat_main, _BB_DIR_BIN, cat_usage)
+	APPLET(cat, cat_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET("chgrp", chmod_chown_chgrp_main, _BB_DIR_BIN, chgrp_usage)
+	APPLET(chgrp, chmod_chown_chgrp_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET("chmod", chmod_chown_chgrp_main, _BB_DIR_BIN, chmod_usage)
+	APPLET(chmod, chmod_chown_chgrp_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET("chown", chmod_chown_chgrp_main, _BB_DIR_BIN, chown_usage)
+	APPLET(chown, chmod_chown_chgrp_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CHROOT
-	APPLET("chroot", chroot_main, _BB_DIR_USR_SBIN, chroot_usage)
+	APPLET(chroot, chroot_main, _BB_DIR_USR_SBIN)
 #endif
 #ifdef BB_CHVT
-	APPLET("chvt", chvt_main, _BB_DIR_USR_BIN, chvt_usage)
+	APPLET(chvt, chvt_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_CLEAR
-	APPLET("clear", clear_main, _BB_DIR_USR_BIN, clear_usage)
+	APPLET(clear, clear_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_CMP
-	APPLET("cmp", cmp_main, _BB_DIR_USR_BIN, cmp_usage)
+	APPLET(cmp, cmp_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_CP_MV
-	APPLET("cp", cp_mv_main, _BB_DIR_BIN, cp_usage)
+	APPLET(cp, cp_mv_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CUT
-	APPLET("cut", cut_main, _BB_DIR_USR_BIN, cut_usage)
+	APPLET(cut, cut_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DATE
-	APPLET("date", date_main, _BB_DIR_BIN, date_usage)
+	APPLET(date, date_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DC
-	APPLET("dc", dc_main, _BB_DIR_USR_BIN, dc_usage)
+	APPLET(dc, dc_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DD
-	APPLET("dd", dd_main, _BB_DIR_BIN, dd_usage)
+	APPLET(dd, dd_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DEALLOCVT
-	APPLET("deallocvt", deallocvt_main, _BB_DIR_USR_BIN, deallocvt_usage)
+	APPLET(deallocvt, deallocvt_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DF
-	APPLET("df", df_main, _BB_DIR_BIN, df_usage)
+	APPLET(df, df_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DIRNAME
-	APPLET("dirname", dirname_main, _BB_DIR_USR_BIN, dirname_usage)
+	APPLET(dirname, dirname_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DMESG
-	APPLET("dmesg", dmesg_main, _BB_DIR_BIN, dmesg_usage)
+	APPLET(dmesg, dmesg_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DOS2UNIX
-	APPLET("dos2unix", dos2unix_main, _BB_DIR_USR_BIN, dos2unix_usage)
+	APPLET(dos2unix, dos2unix_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DPKG
-	APPLET("dpkg", dpkg_main, _BB_DIR_USR_BIN, dpkg_usage)
+	APPLET(dpkg, dpkg_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DPKG_DEB
-	APPLET("dpkg-deb", dpkg_deb_main, _BB_DIR_USR_BIN, dpkg_deb_usage)
+	APPLET_ODDNAME("dpkg-deb", dpkg_deb_main, _BB_DIR_USR_BIN, dpkg_deb_usage_index, dpkg_deb)
 #endif
 #ifdef BB_DU
-	APPLET("du", du_main, _BB_DIR_USR_BIN, du_usage)
+	APPLET(du, du_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DUMPKMAP
-	APPLET("dumpkmap", dumpkmap_main, _BB_DIR_BIN, dumpkmap_usage)
+	APPLET(dumpkmap, dumpkmap_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DUTMP
-	APPLET("dutmp", dutmp_main, _BB_DIR_USR_SBIN, dutmp_usage)
+	APPLET(dutmp, dutmp_main, _BB_DIR_USR_SBIN)
 #endif
 #ifdef BB_ECHO
-	APPLET("echo", echo_main, _BB_DIR_BIN, echo_usage)
+	APPLET(echo, echo_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_EXPR
-	APPLET("expr", expr_main, _BB_DIR_USR_BIN, expr_usage)
+	APPLET(expr, expr_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TRUE_FALSE
-	APPLET("false", false_main, _BB_DIR_BIN, false_usage)
+	APPLET(false, false_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_FBSET
-	APPLET_NOUSAGE("fbset", fbset_main, _BB_DIR_USR_SBIN)
+	APPLET_NOUSAGE(fbset, fbset_main, _BB_DIR_USR_SBIN)
 #endif
 #ifdef BB_FDFLUSH
-	APPLET("fdflush", fdflush_main, _BB_DIR_BIN, fdflush_usage)
+	APPLET(fdflush, fdflush_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_FIND
-	APPLET("find", find_main, _BB_DIR_USR_BIN, find_usage)
+	APPLET(find, find_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_FREE
-	APPLET("free", free_main, _BB_DIR_USR_BIN, free_usage)
+	APPLET(free, free_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_FREERAMDISK
-	APPLET("freeramdisk", freeramdisk_main, _BB_DIR_SBIN, freeramdisk_usage)
+	APPLET(freeramdisk, freeramdisk_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_FSCK_MINIX
-	APPLET("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix_usage)
+	APPLET_ODDNAME("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix_usage_index, fsck_minix)
 #endif
 #ifdef BB_GETOPT
-	APPLET("getopt", getopt_main, _BB_DIR_BIN, getopt_usage)
+	APPLET(getopt, getopt_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_GREP
-	APPLET("grep", grep_main, _BB_DIR_BIN, grep_usage)
+	APPLET(grep, grep_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_GUNZIP
-	APPLET("gunzip", gunzip_main, _BB_DIR_BIN, gunzip_usage)
+	APPLET(gunzip, gunzip_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_GZIP
-	APPLET("gzip", gzip_main, _BB_DIR_BIN, gzip_usage)
+	APPLET(gzip, gzip_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_HALT
-	APPLET("halt", halt_main, _BB_DIR_SBIN, halt_usage)
+	APPLET(halt, halt_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_HEAD
-	APPLET("head", head_main, _BB_DIR_USR_BIN, head_usage)
+	APPLET(head, head_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_HOSTID
-	APPLET("hostid", hostid_main, _BB_DIR_USR_BIN, hostid_usage)
+	APPLET(hostid, hostid_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_HOSTNAME
-	APPLET("hostname", hostname_main, _BB_DIR_BIN, hostname_usage)
+	APPLET(hostname, hostname_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_ID
-	APPLET("id", id_main, _BB_DIR_USR_BIN, id_usage)
+	APPLET(id, id_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_IFCONFIG
-	APPLET("ifconfig", ifconfig_main, _BB_DIR_SBIN, ifconfig_usage)
+	APPLET(ifconfig, ifconfig_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_INIT
-	APPLET_NOUSAGE("init", init_main, _BB_DIR_SBIN)
+	APPLET(init, init_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_INSMOD
-	APPLET("insmod", insmod_main, _BB_DIR_SBIN, insmod_usage)
+	APPLET(insmod, insmod_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_KILL
-	APPLET("kill", kill_main, _BB_DIR_BIN, kill_usage)
+	APPLET(kill, kill_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_KILLALL
-	APPLET("killall", kill_main, _BB_DIR_USR_BIN, killall_usage)
+	APPLET(killall, kill_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LENGTH
-	APPLET("length", length_main, _BB_DIR_USR_BIN, length_usage)
+	APPLET(length, length_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LINUXRC
-	APPLET_NOUSAGE("linuxrc", init_main, _BB_DIR_ROOT)
+	APPLET_NOUSAGE(linuxrc, init_main, _BB_DIR_ROOT)
 #endif
 #ifdef BB_LN
-	APPLET("ln", ln_main, _BB_DIR_BIN, ln_usage)
+	APPLET(ln, ln_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_LOADACM
-	APPLET("loadacm", loadacm_main, _BB_DIR_USR_BIN, loadacm_usage)
+	APPLET(loadacm, loadacm_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LOADFONT
-	APPLET("loadfont", loadfont_main, _BB_DIR_USR_BIN, loadfont_usage)
+	APPLET(loadfont, loadfont_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LOADKMAP
-	APPLET("loadkmap", loadkmap_main, _BB_DIR_SBIN, loadkmap_usage)
+	APPLET(loadkmap, loadkmap_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_LOGGER
-	APPLET("logger", logger_main, _BB_DIR_USR_BIN, logger_usage)
+	APPLET(logger, logger_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LOGNAME
-	APPLET("logname", logname_main, _BB_DIR_USR_BIN, logname_usage)
+	APPLET(logname, logname_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LS
-	APPLET("ls", ls_main, _BB_DIR_BIN, ls_usage)
+	APPLET(ls, ls_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_LSMOD
-	APPLET("lsmod", lsmod_main, _BB_DIR_SBIN, lsmod_usage)
+	APPLET(lsmod, lsmod_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_MAKEDEVS
-	APPLET("makedevs", makedevs_main, _BB_DIR_SBIN, makedevs_usage)
+	APPLET(makedevs, makedevs_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_MD5SUM
-	APPLET("md5sum", md5sum_main, _BB_DIR_USR_BIN, md5sum_usage)
+	APPLET(md5sum, md5sum_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_MKDIR
-	APPLET("mkdir", mkdir_main, _BB_DIR_BIN, mkdir_usage)
+	APPLET(mkdir, mkdir_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MKFIFO
-	APPLET("mkfifo", mkfifo_main, _BB_DIR_USR_BIN, mkfifo_usage)
+	APPLET(mkfifo, mkfifo_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_MKFS_MINIX
-	APPLET("mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN, mkfs_minix_usage)
+	APPLET_ODDNAME("mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN, mkfs_minix_usage_index, mkfs_minix)
 #endif
 #ifdef BB_MKNOD
-	APPLET("mknod", mknod_main, _BB_DIR_BIN, mknod_usage)
+	APPLET(mknod, mknod_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MKSWAP
-	APPLET("mkswap", mkswap_main, _BB_DIR_SBIN, mkswap_usage)
+	APPLET(mkswap, mkswap_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_MKTEMP
-	APPLET("mktemp", mktemp_main, _BB_DIR_BIN, mktemp_usage)
+	APPLET(mktemp, mktemp_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MORE
-	APPLET("more", more_main, _BB_DIR_BIN, more_usage)
+	APPLET(more, more_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MOUNT
-	APPLET("mount", mount_main, _BB_DIR_BIN, mount_usage)
+	APPLET(mount, mount_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MT
-	APPLET("mt", mt_main, _BB_DIR_BIN, mt_usage)
+	APPLET(mt, mt_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CP_MV
-	APPLET("mv", cp_mv_main, _BB_DIR_BIN, mv_usage)
+	APPLET(mv, cp_mv_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_NC
-	APPLET("nc", nc_main, _BB_DIR_USR_BIN, nc_usage)
+	APPLET(nc, nc_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_NSLOOKUP
-	APPLET("nslookup", nslookup_main, _BB_DIR_USR_BIN, nslookup_usage)
+	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_PING
-	APPLET("ping", ping_main, _BB_DIR_BIN, ping_usage)
+	APPLET(ping, ping_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_PIVOT_ROOT
-	APPLET("pivot_root", pivot_root_main, _BB_DIR_SBIN, pivot_root_usage)
+ 	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_POWEROFF
-	APPLET("poweroff", poweroff_main, _BB_DIR_SBIN, poweroff_usage)
+	APPLET(poweroff, poweroff_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_PRINTF
-	APPLET("printf", printf_main, _BB_DIR_USR_BIN, printf_usage)
+	APPLET(printf, printf_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_PS
-	APPLET("ps", ps_main, _BB_DIR_BIN, ps_usage)
+	APPLET(ps, ps_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_PWD
-	APPLET("pwd", pwd_main, _BB_DIR_BIN, pwd_usage)
+	APPLET(pwd, pwd_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_RDATE
-	APPLET("rdate", rdate_main, _BB_DIR_USR_BIN, rdate_usage)
+	APPLET(rdate, rdate_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_READLINK
-	APPLET("readlink", readlink_main, _BB_DIR_USR_BIN, readlink_usage)
+	APPLET(readlink, readlink_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_REBOOT
-	APPLET("reboot", reboot_main, _BB_DIR_SBIN, reboot_usage)
+	APPLET(reboot, reboot_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_RENICE
-	APPLET("renice", renice_main, _BB_DIR_USR_BIN, renice_usage)
+	APPLET(renice, renice_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_RESET
-	APPLET("reset", reset_main, _BB_DIR_USR_BIN, reset_usage)
+	APPLET(reset, reset_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_RM
-	APPLET("rm", rm_main, _BB_DIR_BIN, rm_usage)
+	APPLET(rm, rm_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_RMDIR
-	APPLET("rmdir", rmdir_main, _BB_DIR_BIN, rmdir_usage)
+	APPLET(rmdir, rmdir_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_RMMOD
-	APPLET("rmmod", rmmod_main, _BB_DIR_SBIN, rmmod_usage)
+	APPLET(rmmod, rmmod_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_ROUTE
-	APPLET("route", route_main, _BB_DIR_USR_BIN, route_usage)
+ 	APPLET(route, route_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_RPMUNPACK
-	APPLET("rpmunpack", rpmunpack_main, _BB_DIR_USR_BIN, rpmunpack_usage)
+	APPLET(rpmunpack, rpmunpack_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_SED
-	APPLET("sed", sed_main, _BB_DIR_BIN, sed_usage)
+	APPLET(sed, sed_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SETKEYCODES
-	APPLET("setkeycodes", setkeycodes_main, _BB_DIR_USR_BIN, setkeycodes_usage)
+	APPLET(setkeycodes, setkeycodes_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_SH
-	APPLET("sh", shell_main, _BB_DIR_BIN, shell_usage)
+	APPLET(sh, shell_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SLEEP
-	APPLET("sleep", sleep_main, _BB_DIR_BIN, sleep_usage)
+	APPLET(sleep, sleep_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SORT
-	APPLET("sort", sort_main, _BB_DIR_USR_BIN, sort_usage)
+	APPLET(sort, sort_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_STTY
-	APPLET("stty", stty_main, _BB_DIR_BIN, stty_usage)
+	APPLET(stty, stty_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SWAPONOFF
-	APPLET("swapoff", swap_on_off_main, _BB_DIR_SBIN, swapoff_usage)
+	APPLET(swapoff, swap_on_off_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_SWAPONOFF
-	APPLET("swapon", swap_on_off_main, _BB_DIR_SBIN, swapon_usage)
+	APPLET(swapon, swap_on_off_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_SYNC
-	APPLET("sync", sync_main, _BB_DIR_BIN, sync_usage)
+	APPLET(sync, sync_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SYSLOGD
-	APPLET("syslogd", syslogd_main, _BB_DIR_SBIN, syslogd_usage)
+	APPLET(syslogd, syslogd_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_TAIL
-	APPLET("tail", tail_main, _BB_DIR_USR_BIN, tail_usage)
+	APPLET(tail, tail_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TAR
-	APPLET("tar", tar_main, _BB_DIR_BIN, tar_usage)
+	APPLET(tar, tar_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_TEE
-	APPLET("tee", tee_main, _BB_DIR_USR_BIN, tee_usage)
+	APPLET(tee, tee_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TELNET
-	APPLET("telnet", telnet_main, _BB_DIR_USR_BIN, telnet_usage)
+	APPLET(telnet, telnet_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TEST
-	APPLET("test", test_main, _BB_DIR_USR_BIN, test_usage)
+	APPLET(test, test_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TOUCH
-	APPLET("touch", touch_main, _BB_DIR_BIN, touch_usage)
+	APPLET(touch, touch_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_TR
-	APPLET("tr", tr_main, _BB_DIR_USR_BIN, tr_usage)
+	APPLET(tr, tr_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_TRUE_FALSE
-	APPLET("true", true_main, _BB_DIR_BIN, true_usage)
+	APPLET(true, true_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_TTY
-	APPLET("tty", tty_main, _BB_DIR_USR_BIN, tty_usage)
+	APPLET(tty, tty_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UMOUNT
-	APPLET("umount", umount_main, _BB_DIR_BIN, umount_usage)
+	APPLET(umount, umount_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_UNAME
-	APPLET("uname", uname_main, _BB_DIR_BIN, uname_usage)
+	APPLET(uname, uname_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_UNIQ
-	APPLET("uniq", uniq_main, _BB_DIR_USR_BIN, uniq_usage)
+	APPLET(uniq, uniq_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UNIX2DOS
-	APPLET("unix2dos", unix2dos_main, _BB_DIR_USR_BIN, unix2dos_usage)
+	APPLET(unix2dos, unix2dos_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UPDATE
-	APPLET("update", update_main, _BB_DIR_SBIN, update_usage)
+	APPLET(update, update_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_UPTIME
-	APPLET("uptime", uptime_main, _BB_DIR_USR_BIN, uptime_usage)
+	APPLET(uptime, uptime_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_USLEEP
-	APPLET("usleep", usleep_main, _BB_DIR_BIN, usleep_usage)
+	APPLET(usleep, usleep_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_UUDECODE
-	APPLET("uudecode", uudecode_main, _BB_DIR_USR_BIN, uudecode_usage)
+	APPLET(uudecode, uudecode_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UUENCODE
-	APPLET("uuencode", uuencode_main, _BB_DIR_USR_BIN, uuencode_usage)
+	APPLET(uuencode, uuencode_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_WATCHDOG
-	APPLET("watchdog", watchdog_main, _BB_DIR_SBIN, watchdog_usage)
+	APPLET(watchdog, watchdog_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_WC
-	APPLET("wc", wc_main, _BB_DIR_USR_BIN, wc_usage)
+	APPLET(wc, wc_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_WGET
-	APPLET("wget", wget_main, _BB_DIR_USR_BIN, wget_usage)
+	APPLET(wget, wget_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_WHICH
-	APPLET("which", which_main, _BB_DIR_USR_BIN, which_usage)
+	APPLET(which, which_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_WHOAMI
-	APPLET("whoami", whoami_main, _BB_DIR_USR_BIN, whoami_usage)
+	APPLET(whoami, whoami_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_XARGS
-	APPLET("xargs", xargs_main, _BB_DIR_USR_BIN, xargs_usage)
+	APPLET(xargs, xargs_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_YES
-	APPLET("yes", yes_main, _BB_DIR_USR_BIN, yes_usage)
+	APPLET(yes, yes_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_GUNZIP
-	APPLET("zcat", gunzip_main, _BB_DIR_BIN, gunzip_usage)
+	APPLET(zcat, gunzip_main, _BB_DIR_BIN)
 #endif
 
-#if !defined(PROTOTYPES) && !defined(MAKE_LINKS)
-	{ 0,NULL,0,NULL}
+#if !defined(PROTOTYPES) && !defined(MAKE_LINKS) && !defined(APPLET_ENUM)
+	{ 0,NULL,0,-1}
 };
 
-/* The -1 arises because of the {0,NULL,0,NULL} entry above. */
+/* The -1 arises because of the {0,NULL,0,-1} entry above. */
 size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 
 #endif

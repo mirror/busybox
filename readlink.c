@@ -33,7 +33,7 @@ int readlink_main(int argc, char **argv)
 	int bufsize = 128, size = 128;
 
 	if (argc != 2)
-		usage(readlink_usage);
+		show_usage();
 
 	while (bufsize < size + 1) {
 		bufsize *= 2;

@@ -143,7 +143,7 @@ int printf_main(int argc, char **argv)
 
 	exit_status = 0;
 	if (argc <= 1 || **(argv + 1) == '-') {
-		usage(printf_usage);
+		show_usage();
 	}
 
 	format = argv[1];

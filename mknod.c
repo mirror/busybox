@@ -53,13 +53,13 @@ int mknod_main(int argc, char **argv)
 			umask(0);
 			break;
 		default:
-			usage(mknod_usage);
+			show_usage();
 		}
 		argc--;
 		argv++;
 	}
 	if (argc != 4 && argc != 2) {
-		usage(mknod_usage);
+		show_usage();
 	}
 	switch (argv[1][0]) {
 	case 'c':
@@ -72,11 +72,11 @@ int mknod_main(int argc, char **argv)
 	case 'p':
 		mode = S_IFIFO;
 		if (argc!=2) {
-			usage(mknod_usage);
+			show_usage();
 		}
 		break;
 	default:
-		usage(mknod_usage);
+		show_usage();
 	}
 
 	if (mode == S_IFCHR || mode == S_IFBLK) {

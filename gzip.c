@@ -1812,7 +1812,7 @@ int gzip_main(int argc, char **argv)
 			case 'd':
 				exit(gunzip_main(argc, argv));
 			default:
-				usage(gzip_usage);
+				show_usage();
 			}
 		}
 	}
@@ -1865,7 +1865,7 @@ int gzip_main(int argc, char **argv)
 	} else {
 		/* Open up the input file */
 		if (argc <= 0)
-			usage(gzip_usage);
+			show_usage();
 		strncpy(ifname, *argv, MAX_PATH_LEN);
 
 		/* Open input file */

@@ -235,7 +235,7 @@ static int umount_all(int useMtab)
 extern int umount_main(int argc, char **argv)
 {
 	if (argc < 2) {
-		usage(umount_usage);
+		show_usage();
 	}
 #ifdef BB_FEATURE_CLEAN_UP
 	atexit(mtab_free);
@@ -269,7 +269,7 @@ extern int umount_main(int argc, char **argv)
 			case 'v':
 				break; /* ignore -v */
 			default:
-				usage(umount_usage);
+				show_usage();
 			}
 	}
 

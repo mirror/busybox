@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.36 2001/01/31 19:00:21 kraai Exp $
+ * $Id: ping.c,v 1.37 2001/02/14 21:23:06 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -251,7 +251,7 @@ extern int ping_main(int argc, char **argv)
 	argc--;
 	argv++;
 	if (argc < 1)
-		usage(ping_usage);
+		show_usage();
 	ping(*argv);
 	return EXIT_SUCCESS;
 }
@@ -522,24 +522,24 @@ extern int ping_main(int argc, char **argv)
 			break;
 		case 'c':
 			if (--argc <= 0)
-			        usage(ping_usage);
+			        show_usage();
 			argv++;
 			pingcount = atoi(*argv);
 			break;
 		case 's':
 			if (--argc <= 0)
-			        usage(ping_usage);
+			        show_usage();
 			argv++;
 			datalen = atoi(*argv);
 			break;
 		default:
-			usage(ping_usage);
+			show_usage();
 		}
 		argc--;
 		argv++;
 	}
 	if (argc < 1)
-		usage(ping_usage);
+		show_usage();
 
 	myid = getpid() & 0xFFFF;
 	ping(*argv);

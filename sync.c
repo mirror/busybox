@@ -28,6 +28,6 @@
 extern int sync_main(int argc, char **argv)
 {
 	if (argc > 1 && **(argv + 1) == '-')
-		usage(sync_usage);
+		show_usage();
 	return(sync());
 }

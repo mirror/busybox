@@ -372,7 +372,7 @@ int getopt_main(int argc, char *argv[])
                         quote=0;
                         break;
                 default:
-                        usage(getopt_usage);
+                        show_usage();
                 }
 
         if (!optstr) {

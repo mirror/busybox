@@ -84,7 +84,7 @@ int dd_main(int argc, char **argv)
 					buf++;
 			}
 		} else
-			usage(dd_usage);
+			show_usage();
 	}
 
 	buf = xmalloc(bs);

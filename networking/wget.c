@@ -105,12 +105,12 @@ int wget_main(int argc, char **argv)
 			fname_out = (strcmp(optarg, "-") == 0 ? (char *)1 : optarg);
 			break;
 		default:
-			usage(wget_usage);
+			show_usage();
 		}
 	}
 
 	if (argc - optind != 1)
-			usage(wget_usage);
+			show_usage();
 
 	/*
 	 * Use the proxy if necessary.
@@ -533,7 +533,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.26 2001/02/01 16:49:30 kraai Exp $
+ *	$Id: wget.c,v 1.27 2001/02/14 21:23:06 andersen Exp $
  */
 
 

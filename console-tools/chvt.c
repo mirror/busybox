@@ -20,7 +20,7 @@ int chvt_main(int argc, char **argv)
 	int fd, num;
 
 	if ((argc != 2) || (**(argv + 1) == '-'))
-		usage (chvt_usage);
+		show_usage();
 	fd = get_console_fd("/dev/console");
 	num = atoi(argv[1]);
 	if (ioctl(fd, VT_ACTIVATE, num))

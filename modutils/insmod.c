@@ -81,7 +81,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.45 2001/01/31 19:00:21 kraai Exp $"
+#ident "$Id: insmod.c,v 1.46 2001/02/14 21:23:06 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -287,7 +287,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.45 2001/01/31 19:00:21 kraai Exp $"
+#ident "$Id: insmod.c,v 1.46 2001/02/14 21:23:06 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2916,12 +2916,12 @@ extern int insmod_main( int argc, char **argv)
 				 * loading the same module 50 times concurrently. */
 				break;
 			default:
-				usage(insmod_usage);
+				show_usage();
 		}
 	}
 	
 	if (argv[optind] == NULL) {
-		usage(insmod_usage);
+		show_usage();
 	}
 
 	/* Grab the module name */

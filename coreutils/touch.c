@@ -44,13 +44,13 @@ extern int touch_main(int argc, char **argv)
 				create = FALSE;
 				break;
 			default:
-				usage(touch_usage);
+				show_usage();
 			}
 		}
 	}
 
 	if (argc < 1) {
-		usage(touch_usage);
+		show_usage();
 	}
 
 	while (argc > 0) {

@@ -48,11 +48,6 @@ static const int is_cp = 0;
 static const int is_mv = 1;
 static int         dz_i;		/* index into cp_mv_usage */
 
-static const char *cp_mv_usage[] =	/* .rodata */
-{
-	cp_usage,
-	mv_usage
-};
 
 static int recursiveFlag;
 static int followLinks;
@@ -184,7 +179,7 @@ extern int cp_mv_main(int argc, char **argv)
 	else
 		dz_i = is_mv;
 	if (argc < 3)
-		usage(cp_mv_usage[dz_i]);
+		show_usage();
 
 	if (dz_i == is_cp) {
 		recursiveFlag = preserveFlag = forceFlag = FALSE;
@@ -209,11 +204,11 @@ extern int cp_mv_main(int argc, char **argv)
 					forceFlag = TRUE;
 					break;
 				default:
-					usage(cp_mv_usage[is_cp]);
+					show_usage();
 				}
 		}
 		if ((argc - optind) < 2) {
-			usage(cp_mv_usage[dz_i]);
+			show_usage();
 		}
 	} else {					/* (dz_i == is_mv) */
 		/* Initialize optind to 1, since in libc5 optind

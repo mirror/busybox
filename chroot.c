@@ -33,7 +33,7 @@ int chroot_main(int argc, char **argv)
 	char *prog;
 
 	if ((argc < 2) || (**(argv + 1) == '-')) {
-		usage(chroot_usage);
+		show_usage();
 	}
 	argc--;
 	argv++;

@@ -57,12 +57,12 @@ extern int mt_main(int argc, char **argv)
 	int fd;
 	
 	if (argc < 2) {
-		usage(mt_usage);
+		show_usage();
 	}
 
 	if (strcmp(argv[1], "-f") == 0) {
 		if (argc < 4) {
-			usage(mt_usage);
+			show_usage();
 		}
 		file = argv[2];
 		argv += 2;

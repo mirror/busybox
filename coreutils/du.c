@@ -163,7 +163,7 @@ int du_main(int argc, char **argv)
 			case 'k': break;
 #endif
 			default:
-					usage(du_usage);
+					show_usage();
 			}
 	}
 
@@ -187,7 +187,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.36 2001/01/27 09:33:38 andersen Exp $ */
+/* $Id: du.c,v 1.37 2001/02/14 21:23:05 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

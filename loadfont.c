@@ -44,7 +44,7 @@ extern int loadfont_main(int argc, char **argv)
 	int fd;
 
 	if (argc != 1)
-		usage(loadfont_usage);
+		show_usage();
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0)

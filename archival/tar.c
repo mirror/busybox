@@ -214,7 +214,7 @@ extern int tar_main(int argc, char **argv)
 	int opt;
 
 	if (argc <= 1)
-		usage(tar_usage);
+		show_usage();
 
 	if (argv[1][0] != '-') {
 		char *tmp = xmalloc(strlen(argv[1]) + 2);
@@ -283,7 +283,7 @@ extern int tar_main(int argc, char **argv)
 				break;
 #endif
 				default:
-					usage(tar_usage);
+					show_usage();
 		}
 	}
 

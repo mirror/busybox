@@ -850,7 +850,7 @@ int md5sum_main(int argc,
       break;
 
      default:
-      usage(md5sum_usage);
+      show_usage();
     }
   }
 

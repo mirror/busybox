@@ -32,7 +32,7 @@ int makedevs_main(int argc, char **argv)
 	char buf[255];
 
 	if (argc < 7 || *argv[1]=='-')
-		usage(makedevs_usage);
+		show_usage();
 
 	switch (type[0]) {
 	case 'c':
@@ -45,7 +45,7 @@ int makedevs_main(int argc, char **argv)
 		mode = S_IFIFO;
 		break;
 	default:
-		usage(makedevs_usage);
+		show_usage();
 	}
 	mode |= 0660;
 

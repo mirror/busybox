@@ -48,7 +48,7 @@ int dumpkmap_main(int argc, char **argv)
 	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap";
 
 	if (argc>=2 && *argv[1]=='-') {
-		usage(dumpkmap_usage);
+		show_usage();
 	}
 
 	fd = open("/dev/tty0", O_RDWR);

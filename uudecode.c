@@ -292,7 +292,7 @@ int uudecode_main (int argc,
       break;
 
      default:
-      usage(uudecode_usage);
+      show_usage();
     }
   }
 

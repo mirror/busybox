@@ -126,7 +126,7 @@ int wc_main(int argc, char **argv)
 				print_words = 1;
 				break;
 			default:
-				usage(wc_usage);
+				show_usage();
 			}
 	}
 

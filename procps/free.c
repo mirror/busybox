@@ -46,7 +46,7 @@ extern int free_main(int argc, char **argv)
 	info.bufferram/=info.mem_unit;
 
 	if (argc > 1 && **(argv + 1) == '-')
-		usage(free_usage);
+		show_usage();
 
 	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free", 
 			"shared", "buffers");

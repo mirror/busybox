@@ -151,7 +151,7 @@ int date_main(int argc, char **argv)
 			case 's':
 				set_time = 1;
 				if ((date_str != NULL) || ((date_str = optarg) == NULL)) {
-					usage(date_usage);
+					show_usage();
 				}
 				break;
 			case 'u':
@@ -162,10 +162,10 @@ int date_main(int argc, char **argv)
 			case 'd':
 				use_arg = 1;
 				if ((date_str != NULL) || ((date_str = optarg) == NULL))
-					usage(date_usage);
+					show_usage();
 				break;
 			default:
-				usage(date_usage);
+				show_usage();
 		}
 	}
 
@@ -178,7 +178,7 @@ int date_main(int argc, char **argv)
 #if 0
 	else {
 		error_msg("date_str='%s'  date_fmt='%s'\n", date_str, date_fmt);
-		usage(date_usage);
+		show_usage();
 	}
 #endif
 

@@ -43,7 +43,7 @@ setkeycodes_main(int argc, char** argv)
     struct kbkeycode a;
 
     if (argc % 2 != 1 || argc < 2) {
-      usage(setkeycodes_usage);
+      show_usage();
 	}
 	 
 	fd = get_console_fd("/dev/console");

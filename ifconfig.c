@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.1 2001/02/14 08:11:27 andersen Exp $
+ * $Id: ifconfig.c,v 1.2 2001/02/14 21:23:06 andersen Exp $
  *
  */
 
@@ -183,7 +183,7 @@ int ifconfig_main(int argc, char **argv)
 	char host[128];
 
 	if(argc < 2) {
-		usage(ifconfig_usage);
+		show_usage();
 	}
 
 	/* Create a channel to the NET kernel. */
@@ -269,7 +269,7 @@ int ifconfig_main(int argc, char **argv)
 
 		if (!strcmp(*spp, "metric")) {
 			if (*++spp == NULL)
-				usage(ifconfig_usage);
+				show_usage();
 			ifr.ifr_metric = atoi(*spp);
 			if (ioctl(sockfd, SIOCSIFMETRIC, &ifr) < 0) {
 				fprintf(stderr, "SIOCSIFMETRIC: %s\n", strerror(errno));
@@ -280,7 +280,7 @@ int ifconfig_main(int argc, char **argv)
 		}
 		if (!strcmp(*spp, "mtu")) {
 			if (*++spp == NULL)
-				usage(ifconfig_usage);
+				show_usage();
 			ifr.ifr_mtu = atoi(*spp);
 			if (ioctl(sockfd, SIOCSIFMTU, &ifr) < 0) {
 				fprintf(stderr, "SIOCSIFMTU: %s\n", strerror(errno));
@@ -292,7 +292,7 @@ int ifconfig_main(int argc, char **argv)
 #ifdef SIOCSKEEPALIVE
 		if (!strcmp(*spp, "keepalive")) {
 			if (*++spp == NULL)
-				usage(ifconfig_usage);
+				show_usage();
 			ifr.ifr_data = (caddr_t) atoi(*spp);
 			if (ioctl(sockfd, SIOCSKEEPALIVE, &ifr) < 0) {
 				fprintf(stderr, "SIOCSKEEPALIVE: %s\n", strerror(errno));
@@ -306,7 +306,7 @@ int ifconfig_main(int argc, char **argv)
 #ifdef SIOCSOUTFILL
 		if (!strcmp(*spp, "outfill")) {
 			if (*++spp == NULL)
-				usage(ifconfig_usage);
+				show_usage();
 			ifr.ifr_data = (caddr_t) atoi(*spp);
 			if (ioctl(sockfd, SIOCSOUTFILL, &ifr) < 0) {
 				fprintf(stderr, "SIOCSOUTFILL: %s\n", strerror(errno));
@@ -344,7 +344,7 @@ int ifconfig_main(int argc, char **argv)
 		}
 		if (!strcmp(*spp, "dstaddr")) {
 			if (*++spp == NULL)
-				usage(ifconfig_usage);
+				show_usage();
 			safe_strncpy(host, *spp, (sizeof host));
 			if (INET_resolve(host, &sa) < 0) {
 				goterr++;
@@ -363,7 +363,7 @@ int ifconfig_main(int argc, char **argv)
 		}
 		if (!strcmp(*spp, "netmask")) {
 			if (*++spp == NULL || didnetmask)
-				usage(ifconfig_usage);
+				show_usage();
 			safe_strncpy(host, *spp, (sizeof host));
 			if (INET_resolve(host, &sa) < 0) {
 				goterr++;
@@ -409,7 +409,7 @@ int ifconfig_main(int argc, char **argv)
 
 		if (!strcmp(*spp, "hw")) {
 			if (*++spp == NULL || strcmp("ether", *spp)) {
-				usage(ifconfig_usage);
+				show_usage();
 			}
 				
 			if (*++spp == NULL) {
@@ -438,7 +438,7 @@ int ifconfig_main(int argc, char **argv)
 		safe_strncpy(host, *spp, (sizeof host));
 
 		if (INET_resolve(host, &sa) < 0) {
-			usage(ifconfig_usage);
+			show_usage();
 		}
 		memcpy((char *) &ifr.ifr_addr,
 		       (char *) &sa, sizeof(struct sockaddr));

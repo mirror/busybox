@@ -72,7 +72,7 @@ struct BB_applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
 	enum	Location	location;
-	const	char*	usage;
+	int	usage_index;
 };
 /* From busybox.c */
 extern const struct BB_applet applets[];
@@ -87,9 +87,15 @@ extern const struct BB_applet applets[];
 #include "applets.h"
 #undef PROTOTYPES
 
+#define APPLET_ENUM
+enum APPLET_INDEX_NUMBERS {
+#include "applets.h"
+};
+#undef APPLET_ENUM
+
 extern const char *applet_name;
 
-extern void usage(const char *usage) __attribute__ ((noreturn));
+extern void show_usage(void) __attribute__ ((noreturn));
 extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -153,6 +159,7 @@ extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 extern void chomp(char *s);
 extern struct BB_applet *find_applet_by_name(const char *name);
+void run_applet_by_name(const char *name, int argc, char **argv);
 
 #ifndef DMALLOC
 extern void *xmalloc (size_t size);

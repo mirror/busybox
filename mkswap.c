@@ -287,7 +287,7 @@ int mkswap_main(int argc, char **argv)
 
 				PAGES = strtol(argv[0], &tmp, 0) / blocks_per_page;
 				if (*tmp)
-					usage(mkswap_usage);
+					show_usage();
 			} else
 				device_name = argv[0];
 		} else {
@@ -302,13 +302,13 @@ int mkswap_main(int argc, char **argv)
 				version = atoi(argv[0] + 2);
 				break;
 			default:
-				usage(mkswap_usage);
+				show_usage();
 			}
 		}
 	}
 	if (!device_name) {
 		error_msg("error: Nowhere to set up swap on?");
-		usage(mkswap_usage);
+		show_usage();
 	}
 	sz = get_size(device_name);
 	if (!PAGES) {
@@ -331,12 +331,12 @@ int mkswap_main(int argc, char **argv)
 	}
 	if (version != 0 && version != 1) {
 		error_msg("error: unknown version %d", version);
-		usage(mkswap_usage);
+		show_usage();
 	}
 	if (PAGES < 10) {
 		error_msg("error: swap area needs to be at least %ldkB",
 				(long) (10 * pagesize / 1024));
-		usage(mkswap_usage);
+		show_usage();
 	}
 #if 0
 	maxpages = ((version == 0) ? V0_MAX_PAGES : V1_MAX_PAGES);

@@ -141,14 +141,12 @@ extern int dpkg_deb_main(int argc, char **argv)
 				break;
 */
 			default:
-				usage(dpkg_deb_usage);
-				return EXIT_FAILURE;
+				show_usage();
 		}
 	}
 
 	if (((optind + 1 ) > argc) || (optflag == 0))  {
-		usage(dpkg_deb_usage);
-		return(EXIT_FAILURE);
+		show_usage();
 	}
 	if ((optflag & dpkg_deb_control) || (optflag & dpkg_deb_extract) || (optflag & dpkg_deb_verbose_extract)) {
 		if ( (optind + 1) == argc ) {

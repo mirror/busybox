@@ -237,7 +237,7 @@ extern int grep_main(int argc, char **argv)
 
 	/* argv[optind] should be the regex pattern; no pattern, no worky */
 	if (argv[optind] == NULL)
-		usage(grep_usage);
+		show_usage();
 
 	/* sanity check */
 	if (print_count_only || be_quiet) {

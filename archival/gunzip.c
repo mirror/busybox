@@ -1250,7 +1250,7 @@ int gunzip_main(int argc, char **argv)
 				force = 1;
 				break;
 			default:
-				usage(gunzip_usage);
+				show_usage();
 			}
 		}
 	}
@@ -1275,7 +1275,7 @@ int gunzip_main(int argc, char **argv)
 	} else {
 		/* Open up the input file */
 		if (argc <= 0)
-			usage(gunzip_usage);
+			show_usage();
 		if (strlen(*argv) > MAX_PATH_LEN) {
 			error_msg(name_too_long);
 			exit(WARNING);

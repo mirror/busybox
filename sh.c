@@ -1370,7 +1370,6 @@ static int pseudo_exec(struct child_prog *child)
 {
 	struct built_in_command *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-	struct BB_applet *applet;
 	char *name;
 #endif
 
@@ -1415,14 +1414,12 @@ static int pseudo_exec(struct child_prog *child)
 	name = get_last_path_component(name);
 #endif
 
-	/* Do a binary search to find the applet entry given the name. */
-	if ((applet = find_applet_by_name(name)) != NULL) {
-		int argc_l;
-		char** argv=child->argv;
-		for(argc_l=0;*argv!=NULL; argv++, argc_l++);
-		applet_name=applet->name;
-		optind = 1;
-		exit((*(applet->main)) (argc_l, child->argv));
+	{
+	    char** argv=child->argv;
+	    int argc_l;
+	    for(argc_l=0;*argv!=NULL; argv++, argc_l++);
+	    optind = 1;
+	    run_applet_by_name(name, argc_l, child->argv);
 	}
 #endif
 
@@ -1750,7 +1747,7 @@ int shell_main(int argc_l, char **argv_l)
 				interactive = TRUE;
 				break;
 			default:
-				usage(shell_usage);
+				show_usage();
 		}
 	}
 	/* A shell is interactive if the `-i' flag was given, or if all of

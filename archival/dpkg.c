@@ -840,7 +840,7 @@ extern int dpkg_main(int argc, char **argv)
 		case 'c':
 			return dpkg_configure(packages, status);
 		default :
-			usage(dpkg_usage);
+			show_usage();
 			return EXIT_FAILURE;
 	}
 }
