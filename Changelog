@@ -59,6 +59,7 @@
 	    with traditional implementations -- Pavel Roskin.
 	* "mount" now reports errors from nfsmount() and assumes NFS mount
 	    if ':' is present in the device name - Pavel Roskin
+	* Fixed exit status for killall - Pavel Roskin
 	* More doc updates
 
 

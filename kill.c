@@ -228,14 +228,17 @@ extern int kill_main(int argc, char **argv)
 	} 
 #ifdef BB_KILLALL
 	else {
+		int all_found = TRUE;
 		pid_t myPid=getpid();
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
 			pid_t* pidList;
 
 			pidList = findPidByName( *argv);
-			if (!pidList)
+			if (!pidList) {
+				all_found = FALSE;
 				errorMsg( "%s: no process killed\n", *argv);
+			}
 
 			for(; pidList && *pidList!=0; pidList++) {
 				if (*pidList==myPid)
@@ -248,6 +251,7 @@ extern int kill_main(int argc, char **argv)
 			 * upon exit, so we can save a byte or two */
 			argv++;
 		}
+		exit (all_found);
 	}
 #endif
 
