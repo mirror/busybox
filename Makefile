@@ -237,16 +237,16 @@ LIBBB	  = libbb
 LIBBB_LIB = libbb.a
 LIBBB_CSRC= ask_confirmation.c check_wildcard_match.c chomp.c \
 concat_path_file.c copy_file.c copy_file_chunk.c create_path.c daemon.c \
-deb_extract.c device_open.c error_msg.c error_msg_and_die.c \
-find_mount_point.c find_pid_by_name.c find_root_device.c full_read.c \
-full_write.c get_ar_headers.c get_console.c get_last_path_component.c \
-get_line_from_file.c gz_open.c human_readable.c inode_hash.c \
-isdirectory.c kernel_version.c loop.c mode_string.c module_syscalls.c mtab.c \
-mtab_file.c my_getgrnam.c my_getgrgid.c my_getpwnam.c my_getpwnamegid.c \
-my_getpwuid.c parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
-print_file.c process_escape_sequence.c recursive_action.c safe_read.c \
-safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c trim.c unzip.c \
-vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c xgetcwd.c xregcomp.c
+deb_extract.c device_open.c error_msg.c error_msg_and_die.c find_mount_point.c \
+find_pid_by_name.c find_root_device.c full_read.c full_write.c \
+get_ar_headers.c get_console.c get_last_path_component.c get_line_from_file.c \
+gz_open.c human_readable.c inode_hash.c isdirectory.c kernel_version.c loop.c \
+mode_string.c module_syscalls.c mtab.c mtab_file.c my_getgrnam.c my_getgrgid.c \
+my_getpwnam.c my_getpwnamegid.c my_getpwuid.c parse_mode.c parse_number.c \
+perror_msg.c perror_msg_and_die.c print_file.c process_escape_sequence.c \
+recursive_action.c safe_read.c safe_strncpy.c seek_ared_file.c syscalls.c \
+syslog_msg_with_name.c time_string.c trim.c untar.c unzip.c vdprintf.c \
+verror_msg.c vperror_msg.c wfopen.c xfuncs.c xgetcwd.c xregcomp.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB)

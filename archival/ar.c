@@ -36,12 +36,13 @@ extern int ar_main(int argc, char **argv)
 	const int extract_to_file = 8;	/* extract contents of archive */
 	const int extract_to_stdout = 16;	/* extract to stdout */
 
+	FILE *src_file = NULL, *dst_file = NULL;
 	int funct = 0, opt=0;
-	int srcFd=0, dstFd=0;
 
-	ar_headers_t head, *extract_list=NULL;
+	ar_headers_t *head, *extract_list=NULL;
 
-	extract_list = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+	extract_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+	head = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
 
 	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
 		switch (opt) {
@@ -66,21 +67,22 @@ extern int ar_main(int argc, char **argv)
 	}
  
 	/* check the src filename was specified */
-	if (optind == argc)
+	if (optind == argc) {
 		show_usage();
-	
-	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
+	}
+
+	if ( (src_file = wfopen(argv[optind], "r")) < 0) {
 		error_msg_and_die("Cannot read %s", argv[optind]);
+	}
 
 	optind++;	
-	head = get_ar_headers(srcFd);
-
+	head = get_ar_headers(src_file);
 	/* find files to extract or display */
 	/* search through argv and build extract list */
-	for (;optind<argc; optind++) {
+	for (;optind < argc; optind++) {
 		ar_headers_t *ar_entry;
-		ar_entry = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-		ar_entry = &head;
+		ar_entry = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+		ar_entry = head;
 		while (ar_entry->next != NULL) {
 			if (strcmp(argv[optind], ar_entry->name) == 0) {
 				ar_headers_t *tmp;
@@ -96,20 +98,20 @@ extern int ar_main(int argc, char **argv)
 
 	/* if individual files not found extract all files */	
 	if (extract_list->next==NULL) {
-		extract_list = &head;
+		extract_list = head;
 	}
-	
+
 	/* find files to extract or display */	
 	while (extract_list->next != NULL) {
 		if (funct & extract_to_file) {
-			dstFd = open(extract_list->name, O_WRONLY | O_CREAT, extract_list->mode);				
+			dst_file = wfopen(extract_list->name, "w");				
 		}
 		else if (funct & extract_to_stdout) {
-			dstFd = fileno(stdout);
+			dst_file = stdout;
 		}
 		if ((funct & extract_to_file) || (funct & extract_to_stdout)) {
-			lseek(srcFd, extract_list->offset, SEEK_SET);
-			copy_file_chunk(srcFd, dstFd, (off_t) extract_list->size);			
+			fseek(src_file, extract_list->offset, SEEK_SET);
+			copy_file_chunk(src_file, dst_file, (off_t) extract_list->size);			
 		}
 		if (funct & verbose) {
 			printf("%s %d/%d %8d %s ", mode_string(extract_list->mode), 

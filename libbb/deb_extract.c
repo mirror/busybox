@@ -29,94 +29,53 @@
 #include <signal.h>
 #include "libbb.h"
 
-/* From gunzip.c */
-extern int gz_open(FILE *compressed_file, int *pid);
-extern void gz_close(int gunzip_pid);
+const int dpkg_deb_contents = 1;
+const int dpkg_deb_control = 2;
+const int dpkg_deb_info = 4;
+const int dpkg_deb_extract = 8;
+const int dpkg_deb_verbose_extract = 16;
+const int dpkg_deb_list = 32;
 
-extern int tar_unzip_init(int tarFd);
-extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
-	int tostdoutFlag, int verboseFlag, char** extractList, char** excludeList);
-
-extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename)
+extern int deb_extract(const char *package_filename, const int function, char *target_dir)
 {
-	const int dpkg_deb_contents = 1;
-	const int dpkg_deb_control = 2;
-//	const int dpkg_deb_info = 4;
-	const int dpkg_deb_extract = 8;
-	const int dpkg_deb_verbose_extract = 16;
-	const int dpkg_deb_list = 32;
 
-	char **extract_list = NULL;
-	ar_headers_t *ar_headers = NULL;
-	char ar_filename[15];
-	int extract_flag = FALSE;
-	int list_flag = FALSE;
-	int verbose_flag = FALSE;
-	int extract_to_stdout = FALSE;
-	int srcFd = 0;
-	int status;
-	pid_t pid;
-	FILE *comp_file = NULL;
+	FILE *deb_file, *uncompressed_file;
+	ar_headers_t *headers = NULL;
+	char *ared_file;
+	int gunzip_pid;
 
-	if (dpkg_deb_contents == (dpkg_deb_contents & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		verbose_flag = TRUE;
-		list_flag = TRUE;
-	}
-	if (dpkg_deb_list == (dpkg_deb_list & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		list_flag = TRUE;
-	}
-	if (dpkg_deb_control == (dpkg_deb_control & optflags)) {
-		strcpy(ar_filename, "control.tar.gz");	
-		extract_flag = TRUE;
-	}
-	if (dpkg_deb_extract == (dpkg_deb_extract & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		extract_flag = TRUE;
-	}
-	if (dpkg_deb_verbose_extract == (dpkg_deb_verbose_extract & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		extract_flag = TRUE;
-		list_flag = TRUE;
+	if ((function == dpkg_deb_info) || (function == dpkg_deb_control)) {
+		ared_file = xstrdup("control.tar.gz");
+	} else {
+		ared_file = xstrdup("data.tar.gz");
 	}
 
-	ar_headers = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));	
-	srcFd = open(deb_filename, O_RDONLY);
+	/* open the debian package to be worked on */
+	deb_file = wfopen(package_filename, "r");
+
+	headers = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));	
 	
-	*ar_headers = get_ar_headers(srcFd);
-	if (ar_headers->next == NULL) {
-		error_msg_and_die("Couldnt find %s in %s", ar_filename, deb_filename);
+	/* get a linked list of all ar entries */
+	if ((headers = get_ar_headers(deb_file)) == NULL) {
+		error_msg("Couldnt get ar headers\n");
+		return(EXIT_FAILURE);
 	}
 
-	while (ar_headers->next != NULL) {
-		if (strcmp(ar_headers->name, ar_filename) == 0) {
-			break;
-		}
-		ar_headers = ar_headers->next;
+	/* seek to the start of the .tar.gz file within the ar file*/
+	if (seek_ared_file(deb_file, headers, ared_file) == EXIT_FAILURE) {
+		error_msg("Couldnt seek to ar file");
 	}
-	lseek(srcFd, ar_headers->offset, SEEK_SET);
-	/* Uncompress the file */
-	comp_file = fdopen(srcFd, "r");
-	if ((srcFd = gz_open(comp_file, &pid)) == EXIT_FAILURE) {
-	    error_msg_and_die("Couldnt unzip file");
-	}
-	if ( dir_name != NULL) { 
-		if (is_directory(dir_name, TRUE, NULL)==FALSE) {
-			mkdir(dir_name, 0755);
-		}
-		if (chdir(dir_name)==-1) {
-			error_msg_and_die("Cannot change to dir %s", dir_name);
-		}
-	}
-	status = readTarFile(srcFd, extract_flag, list_flag, 
-		extract_to_stdout, verbose_flag, NULL, extract_list);
+
+	/* open a stream of decompressed data */
+	uncompressed_file = fdopen(gz_open(deb_file, &gunzip_pid), "r");
+
+	/* get a list of all tar headers inside the .gz file */
+	untar(uncompressed_file, dpkg_deb_extract, target_dir);
 
 	/* we are deliberately terminating the child so we can safely ignore this */
 	signal(SIGTERM, SIG_IGN);
-	gz_close(pid);
-	close(srcFd);
-	fclose(comp_file);
-
-	return status;
+	gz_close(gunzip_pid);
+	fclose(deb_file);
+	fclose(uncompressed_file);
+	return(EXIT_SUCCESS);
 }

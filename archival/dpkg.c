@@ -565,8 +565,8 @@ static int dpkg_dounpack(package_t *pkg)
 	int r = 0, i;
 	int status = TRUE;
 	char *cwd = xgetcwd(0);
-	char *src_file = NULL;
-	char *dst_file = NULL;
+	char *src_filename = NULL;
+	char *dst_filename = NULL;
 //	char *lst_file = NULL;
 	char *adminscripts[] = { "prerm", "postrm", "preinst", "postinst",
 			"conffiles", "md5sums", "shlibs", "templates" };
@@ -576,37 +576,37 @@ static int dpkg_dounpack(package_t *pkg)
 	if(cwd==NULL)
 		exit(EXIT_FAILURE);
 	chdir("/");
-	deb_extract(dpkg_deb_extract, "/", pkg->file);
+	deb_extract(pkg->file, dpkg_deb_extract, "/");
 
 	/* Installs the package scripts into the info directory */
 	for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
 		struct stat src_stat_buf;
-		int src_fd = 0, dst_fd = 0;
+		FILE *src_file = NULL, *dst_file = NULL;
 
 		/* The full path of the current location of the admin file */
-		src_file = xrealloc(src_file, strlen(dpkgcidir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		sprintf(src_file, "%s%s/%s", dpkgcidir, pkg->package, adminscripts[i]);
+		src_filename = xrealloc(src_filename, strlen(dpkgcidir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
+		sprintf(src_filename, "%s%s/%s", dpkgcidir, pkg->package, adminscripts[i]);
 
 		/* the full path of where we want the file to be copied to */
-		dst_file = xrealloc(dst_file, strlen(infodir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		sprintf(dst_file, "%s%s.%s", infodir, pkg->package, adminscripts[i]);
+		dst_filename = xrealloc(dst_filename, strlen(infodir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
+		sprintf(dst_filename, "%s%s.%s", infodir, pkg->package, adminscripts[i]);
 
 		/*
 		 * copy admin file to permanent home
 		 * NOTE: Maybe merge this behaviour into libb/copy_file.c
 		 */
-		if (lstat(src_file, &src_stat_buf) == 0) {
-			if ((src_fd = open(src_file, O_RDONLY)) != -1) {
-			 	if ((dst_fd = open(dst_file, O_WRONLY | O_CREAT, 0644)) == -1) {
+		if (lstat(src_filename, &src_stat_buf) == 0) {
+			if ((src_file = wfopen(src_filename, "r")) != NULL) {
+			 	if ((dst_file = wfopen(dst_filename, "w")) == NULL) {
 					status = FALSE;
-					perror_msg("Opening %s", dst_file);
+					perror_msg("Opening %s", dst_filename);
 				}
-				copy_file_chunk(src_fd, dst_fd, src_stat_buf.st_size);
-				close(src_fd);
-				close(dst_fd);
+				copy_file_chunk(src_file, dst_file, src_stat_buf.st_size);
+				fclose(src_file);
+				fclose(dst_file);
 			} else {
 				status = FALSE;
-				error_msg("couldnt open [%s]\n", src_file);
+				error_msg("couldnt open [%s]\n", src_filename);
 			}
 		}
 	}
@@ -671,7 +671,7 @@ static int dpkg_unpackcontrol(package_t *pkg)
 	strcat(tmp_name, pkg->package);
 
 	/* extract control.tar.gz to the full extraction path */
-	deb_extract(dpkg_deb_control, tmp_name, pkg->file);
+	deb_extract(pkg->file, dpkg_deb_control, tmp_name);
 
 	/* parse the extracted control file */
 	strcat(tmp_name, "/control");

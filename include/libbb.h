@@ -93,9 +93,9 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
-int copy_file(const char *srcName, const char *destName,
-		 int setModes, int followLinks, int forceFlag);
-int copy_file_chunk(int srcFd, int dstFd, off_t remaining);
+int copy_file(const char *src_name, const char *dst_name,
+		 int set_modes, int follow_links, int force_flag, int quiet_flag);
+int copy_file_chunk(FILE *src_file, FILE *dst_file, off_t chunksize);
 char *buildName(const char *dirName, const char *fileName);
 int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
@@ -225,10 +225,12 @@ typedef struct ar_headers_s {
 	off_t offset;
 	struct ar_headers_s *next;
 } ar_headers_t;
-extern ar_headers_t get_ar_headers(int srcFd);
-extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename);
-
+extern ar_headers_t *get_ar_headers(FILE *in_file);
+extern int seek_ared_file(FILE *in_file, ar_headers_t *headers, const char *tar_gz_file);
+extern int deb_extract(const char *package_filename, const int function, char *target_dir);
+extern int untar(FILE *src_tar_file, int untar_function, char *base_path);
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
 extern int gz_open(FILE *compressed_file, int *pid);
+
 #endif /* __LIBBB_H__ */

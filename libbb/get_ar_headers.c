@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern ar_headers_t get_ar_headers(int srcFd)
+extern ar_headers_t *get_ar_headers(FILE *in_file)
 {
 	typedef struct raw_ar_header_s {	/* Byte Offset */
 		char name[16];	/*  0-15 */
@@ -44,31 +44,33 @@ extern ar_headers_t get_ar_headers(int srcFd)
 
 	raw_ar_header_t raw_ar_header;
 
-	ar_headers_t *head, *entry;
+	ar_headers_t *ar_list, *ar_tmp, *ar_entry;
 	char ar_magic[8];
 	char *long_name=NULL;
 	
-	head = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-	entry = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-	
 	/* check ar magic */
-	if (full_read(srcFd, ar_magic, 8) != 8) {
-		error_msg_and_die("cannot read magic");
+	if (fread(ar_magic, 1, 8, in_file) != 8) {
+		error_msg("cannot read magic");
+		return(NULL);
 	}
 
 	if (strncmp(ar_magic,"!<arch>",7) != 0) {
-		error_msg_and_die("invalid magic");
+		error_msg("invalid magic");
+		return(NULL);
 	}
+	
+	ar_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
 
-	while (full_read(srcFd, (char *) &raw_ar_header, 60)==60) {
+	while (fread((char *) &raw_ar_header, 1, 60, in_file) == 60) {
+		ar_entry = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
 		/* check the end of header markers are valid */
-		if ((raw_ar_header.fmag[0]!='`') || (raw_ar_header.fmag[1]!='\n')) {
+		if ((raw_ar_header.fmag[0] != '`') || (raw_ar_header.fmag[1] != '\n')) {
 			char newline;
-			if (raw_ar_header.fmag[1]!='`') {
+			if (raw_ar_header.fmag[1] != '`') {
 				break;
 			}
 			/* some version of ar, have an extra '\n' after each entry */
-			read(srcFd, &newline, 1);
+			fread(&newline, 1, 1, in_file);
 			if (newline!='\n') {
 				break;
 			}
@@ -77,42 +79,46 @@ extern ar_headers_t get_ar_headers(int srcFd)
 			/* dont worry about adding the last '\n', we dont need it now */
 		}
 		
-		entry->size = (off_t) atoi(raw_ar_header.size);
+		ar_entry->size = (size_t) atoi(raw_ar_header.size);
 		/* long filenames have '/' as the first character */
 		if (raw_ar_header.name[0] == '/') {
 			if (raw_ar_header.name[1] == '/') {
 				/* multiple long filenames are stored as data in one entry */
-				long_name = (char *) xrealloc(long_name, entry->size);
-				full_read(srcFd, long_name, entry->size);
+				long_name = (char *) xrealloc(long_name, ar_entry->size);
+				fread(long_name, 1, ar_entry->size, in_file);
 				continue;
 			}
 			else {
 				/* The number after the '/' indicates the offset in the ar data section
 					(saved in variable long_name) that conatains the real filename */
 				const int long_name_offset = (int) atoi((char *) &raw_ar_header.name[1]);
-				entry->name = xmalloc(strlen(&long_name[long_name_offset]));
-				strcpy(entry->name, &long_name[long_name_offset]);
+				ar_entry->name = xmalloc(strlen(&long_name[long_name_offset]));
+				strcpy(ar_entry->name, &long_name[long_name_offset]);
 			}
 		}
 		else {
 			/* short filenames */
-			entry->name = xmalloc(16);
-			strncpy(entry->name, raw_ar_header.name, 16);
+			ar_entry->name = xmalloc(16);
+			ar_entry->name = strncpy(ar_entry->name, raw_ar_header.name, 16);
 		}
-		entry->name[strcspn(entry->name, " /")]='\0';
+		ar_entry->name[strcspn(ar_entry->name, " /")]='\0';
 
 		/* convert the rest of the now valid char header to its typed struct */	
-		parse_mode(raw_ar_header.mode, &entry->mode);
-		entry->mtime = atoi(raw_ar_header.date);
-		entry->uid = atoi(raw_ar_header.uid);
-		entry->gid = atoi(raw_ar_header.gid);
-		entry->offset = lseek(srcFd, 0, SEEK_CUR);
+		parse_mode(raw_ar_header.mode, &ar_entry->mode);
+		ar_entry->mtime = atoi(raw_ar_header.date);
+		ar_entry->uid = atoi(raw_ar_header.uid);
+		ar_entry->gid = atoi(raw_ar_header.gid);
+		ar_entry->offset = ftell(in_file);
+		ar_entry->next = NULL;
 
-		/* add this entries header to our combined list */
-		entry->next = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-		*entry->next = *head;
-		*head = *entry;
-		lseek(srcFd, (off_t) entry->size, SEEK_CUR);
+		fseek(in_file, (off_t) ar_entry->size, SEEK_CUR);
+
+		ar_tmp = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+		*ar_tmp = *ar_list;
+		*ar_list = *ar_entry;
+		free(ar_entry);
+		ar_list->next = ar_tmp;
 	}
-	return(*head);
+
+	return(ar_list);
 }

@@ -147,7 +147,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 			add_to_ino_dev_hashtable(statbuf, destName);
 		}
 	}
-	return copy_file(fileName, destName, preserveFlag, followLinks, forceFlag);
+	return copy_file(fileName, destName, preserveFlag, followLinks, forceFlag, FALSE);
 }
 
 static int

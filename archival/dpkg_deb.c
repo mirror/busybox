@@ -68,7 +68,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 			strcpy(target_dir, argv[optind + 1]);
 		}
 	}
-	deb_extract(optflag, target_dir, argv[optind]);
+	deb_extract(argv[optind], optflag, target_dir);
 /*	else if (optflag & dpkg_deb_info) {
 		extract_flag = TRUE;
 		extract_to_stdout = TRUE;
