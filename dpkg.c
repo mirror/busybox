@@ -42,35 +42,43 @@
 #define UDPKG_QUIET	"UDPKG_QUIET"
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
-#define STATUS_WANTSTART		(0)
-#define STATUS_WANTUNKNOWN		(1 << 0)
-#define STATUS_WANTINSTALL		(1 << 1)
-#define STATUS_WANTHOLD			(1 << 2)
-#define STATUS_WANTDEINSTALL		(1 << 3)
-#define STATUS_WANTPURGE		(1 << 4)
-#define STATUS_WANTMASK			~(STATUS_WANTUNKNOWN | STATUS_WANTINSTALL | STATUS_WANTHOLD | STATUS_WANTDEINSTALL | STATUS_WANTPURGE)
+//static const int status_wantstart	= 0;
+//static const int status_wantunknown	= (1 << 0);
+static const int status_wantinstall	= (1 << 1);
+//static const int status_wanthold	= (1 << 2);
+//static const int status_wantdeinstall	= (1 << 3);
+//static const int status_wantpurge	= (1 << 4);
+static const int status_wantmask	= 31;
 
-#define STATUS_FLAGSTART		(5)
-#define STATUS_FLAGOK			(1 << 5)
-#define STATUS_FLAGREINSTREQ		(1 << 6)
-#define STATUS_FLAGHOLD			(1 << 7)
-#define STATUS_FLAGHOLDREINSTREQ	(1 << 8)
-#define STATUS_FLAGMASK			~(STATUS_FLAGOK | STATUS_FLAGREINSTREQ | STATUS_FLAGHOLD | STATUS_FLAGHOLDREINSTREQ)
+//static const int status_flagstart	= 5;
+static const int status_flagok	= (1 << 5);	/* 32 */
+//static const int status_flagreinstreq	= (1 << 6); 
+//static const int status_flaghold	= (1 << 7);
+//static const int status_flagholdreinstreq	= (1 << 8);
+static const int status_flagmask	= 480;
 
-#define STATUS_STATUSSTART		(9)
-#define STATUS_STATUSNOTINSTALLED	(1 << 9)
-#define STATUS_STATUSUNPACKED		(1 << 10)
-#define STATUS_STATUSHALFCONFIGURED	(1 << 11)
-#define STATUS_STATUSINSTALLED		(1 << 12)
-#define STATUS_STATUSHALFINSTALLED	(1 << 13)
-#define STATUS_STATUSCONFIGFILES	(1 << 14)
-#define STATUS_STATUSPOSTINSTFAILED	(1 << 15)
-#define STATUS_STATUSREMOVALFAILED	(1 << 16)
-#define STATUS_STATUSMASK		~(STATUS_STATUSNOTINSTALLED | STATUS_STATUSUNPACKED | STATUS_STATUSHALFCONFIGURED | STATUS_STATUSCONFIGFILES | STATUS_STATUSPOSTINSTFAILED | STATUS_STATUSREMOVALFAILED | STATUS_STATUSHALFINSTALLED)
+//static const int status_statusstart	= 9;
+//static const int status_statusnoninstalled	= (1 << 9); /* 512 */
+static const int status_statusunpacked	= (1 << 10);
+static const int status_statushalfconfigured	= (1 << 11); 
+static const int status_statusinstalled	= (1 << 12);
+static const int status_statushalfinstalled	= (1 << 13);
+//static const int status_statusconfigfiles	= (1 << 14);
+//static const int status_statuspostinstfailed	= (1 << 15);
+//static const int status_statusremovalfailed	= (1 << 16);
+static const int status_statusmask =  130560; /* i assume status_statusinstalled is supposed to be included */
 
-#define COLOR_WHITE			0
-#define COLOR_GRAY			1
-#define COLOR_BLACK			2
+static const char *statuswords[][10] = {
+	{ (char *) 0, "unknown", "install", "hold", "deinstall", "purge", 0 },
+	{ (char *) 5, "ok", "reinstreq", "hold", "hold-reinstreq", 0 },
+	{ (char *) 9, "not-installed", "unpacked", "half-configured",
+		"installed", "half-installed", "config-files",
+		"post-inst-failed", "removal-failed", 0 }
+};
+
+const int color_white	= 0;
+const int color_grey	= 1;
+const int color_black	= 2;
 
 /* data structures */
 struct package_t {
@@ -147,11 +155,11 @@ static void depends_sort_visit(struct package_t **ordered,
 	unsigned short i;
 
 	/* mark node as processing */
-	pkg->color = COLOR_GRAY;
+	pkg->color = color_grey;
 
 	/* visit each not-yet-visited node */
 	for (i = 0; i < pkg->requiredcount; i++)
-		if (pkg->requiredfor[i]->color == COLOR_WHITE)
+		if (pkg->requiredfor[i]->color == color_white)
 			depends_sort_visit(ordered, pkgs, pkg->requiredfor[i]);
 
 #if 0
@@ -166,7 +174,7 @@ static void depends_sort_visit(struct package_t **ordered,
 	*ordered = pkg;
 
 	/* mark node as done */
-	pkg->color = COLOR_BLACK;
+	pkg->color = color_black;
 }
 
 static struct package_t *depends_sort(struct package_t *pkgs)
@@ -177,10 +185,10 @@ static struct package_t *depends_sort(struct package_t *pkgs)
 	struct package_t *pkg;
 
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
-		pkg->color = COLOR_WHITE;
+		pkg->color = color_white;
 
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
-		if (pkg->color == COLOR_WHITE)
+		if (pkg->color == color_white)
 			depends_sort_visit(&ordered, pkgs, pkg);
 
 	/* Leaks the old list... return the new one... */
@@ -217,8 +225,8 @@ struct package_t *depends_resolve(struct package_t *pkgs, void *status)
 			dependpkg.package = dependsvec[i];
 			if ((found = tfind(&dependpkg, &status, package_compare)) == 0 ||
 			    ((chk = *(struct package_t **)found) &&
-			     (chk->status & (STATUS_FLAGOK | STATUS_STATUSINSTALLED)) != 
-			      (STATUS_FLAGOK | STATUS_STATUSINSTALLED)))
+			     (chk->status & (status_flagok | status_statusinstalled)) != 
+			      (status_flagok | status_statusinstalled)))
 			{
 				/* if it fails, we look through the list of packages we are going to 
 				 * install */
@@ -267,17 +275,6 @@ struct package_t *depends_resolve(struct package_t *pkgs, void *status)
  *    replacing any pre-existing entries. when a merge happens, status info 
  *    read using the status_read function is written back to the status file
  */
-
-static const char *statuswords[][10] = {
-	{ (char *)STATUS_WANTSTART, "unknown", "install", "hold", 
-		"deinstall", "purge", 0 },
-	{ (char *)STATUS_FLAGSTART, "ok", "reinstreq", "hold", 
-		"hold-reinstreq", 0 },
-	{ (char *)STATUS_STATUSSTART, "not-installed", "unpacked", "half-configured",
-		"installed", "half-installed",
-		"config-files", "post-inst-failed", 
-		"removal-failed", 0 }
-};
 
 int package_compare(const void *p1, const void *p2)
 {
@@ -596,7 +593,7 @@ static int dpkg_doconfigure(struct package_t *pkg)
 	char postinst[1024];
 	char buf[1024];
 	DPRINTF("Configuring %s\n", pkg->package);
-	pkg->status &= STATUS_STATUSMASK;
+	pkg->status &= status_statusmask;
 	snprintf(postinst, sizeof(postinst), "%s%s.postinst", INFODIR, pkg->package);
 	if (is_file(postinst))
 	{
@@ -604,12 +601,12 @@ static int dpkg_doconfigure(struct package_t *pkg)
 		if ((r = do_system(buf)) != 0)
 		{
 			fprintf(stderr, "postinst exited with status %d\n", r);
-			pkg->status |= STATUS_STATUSHALFCONFIGURED;
+			pkg->status |= status_statushalfconfigured;
 			return 1;
 		}
 	}
 
-	pkg->status |= STATUS_STATUSINSTALLED;
+	pkg->status |= status_statusinstalled;
 	
 	return 0;
 }
@@ -690,15 +687,15 @@ static int dpkg_dounpack(struct package_t *pkg)
 				fclose(outfp);
 			}
 		}
-		pkg->status &= STATUS_WANTMASK;
-		pkg->status |= STATUS_WANTINSTALL;
-		pkg->status &= STATUS_FLAGMASK;
-		pkg->status |= STATUS_FLAGOK;
-		pkg->status &= STATUS_STATUSMASK;
+		pkg->status &= status_wantmask;
+		pkg->status |= status_wantinstall;
+		pkg->status &= status_flagmask;
+		pkg->status |= status_flagok;
+		pkg->status &= status_statusmask;
 		if (r == 0)
-			pkg->status |= STATUS_STATUSUNPACKED;
+			pkg->status |= status_statusunpacked;
 		else
-			pkg->status |= STATUS_STATUSHALFINSTALLED;
+			pkg->status |= status_statushalfinstalled;
 	}
 	chdir(cwd);
 	return r;
@@ -824,14 +821,14 @@ static int dpkg_install(struct package_t *pkgs)
 	/* Stage 3: install */
 	for (p = ordered; p != 0; p = p->next)
 	{
-		p->status &= STATUS_WANTMASK;
-		p->status |= STATUS_WANTINSTALL;
+		p->status &= status_wantmask;
+		p->status |= status_wantinstall;
 
 		/* for now the flag is always set to ok... this is probably
 		 * not what we want
 		 */
-		p->status &= STATUS_FLAGMASK;
-		p->status |= STATUS_FLAGOK;
+		p->status &= status_flagmask;
+		p->status |= status_flagok;
 
 		if (dpkg_doinstall(p) != 0)
 		{
