@@ -1193,6 +1193,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 					char** argv=newJob->progs[i].argv;
 					for(argc_l=0;*argv!=NULL; argv++, argc_l++);
 					applet_name=a->name;
+					optind = 1;
 					exit((*(a->main)) (argc_l, newJob->progs[i].argv));
 				}
 				a++;
@@ -1393,26 +1394,15 @@ int shell_main(int argc_l, char **argv_l)
 	//      builtin_source("/etc/profile");
 	//}
 
-	while ((opt = getopt(argc, argv, "cx")) > 0) {
+	while ((opt = getopt(argc_l, argv_l, "cx")) > 0) {
 		switch (opt) {
 			case 'c':
 				input = NULL;
-				local_pending_command = (char *) calloc(BUFSIZ, sizeof(char));
-				if (local_pending_command == 0) {
-					fatalError("sh: out of memory\n");
-				}
-				for(; optind<argc; optind++)
-				{
-					if (strlen(local_pending_command) + strlen(argv[optind]) >= BUFSIZ) {
-						local_pending_command = realloc(local_pending_command, 
-								strlen(local_pending_command) + strlen(argv[optind]));
-						if (local_pending_command==NULL) 
-							fatalError("command too long\n");
-					}
-					strcat(local_pending_command, argv[optind]);
-					if ( (optind + 1) < argc)
-						strcat(local_pending_command, " ");
-				}
+				if (local_pending_command != 0)
+					fatalError("multiple -c arguments\n");
+				local_pending_command = xstrdup(argv[optind]);
+				optind++;
+				argv = argv+optind;
 				break;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 			case 'x':
