@@ -1,4 +1,4 @@
-//#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "libbb.h"
 
@@ -12,7 +12,6 @@ extern char *read_package_field(const char *package_buffer)
 	int buffer_length = 0;
 
 	buffer_length = strlen(package_buffer);
-	field = xcalloc(1, buffer_length + 1);
 
 	while ((field = strchr(&package_buffer[field_length], '\n')) != NULL) {
 		field_length = buffer_length - strlen(field);
