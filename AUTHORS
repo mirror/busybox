@@ -8,6 +8,9 @@ incorect, _please_ let me know.
 
 -----------
 
+Emanuele Aina <emanuele.aina@tiscali.it>
+	run-parts
+
 Erik Andersen <andersen@codepoet.org>, <andersee@debian.org>
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
@@ -28,6 +31,9 @@ Dave Cinege <dcinege@psychosis.com>
     more(v2), makedevs, dutmp, modularization, auto links file, 
     various fixes, Linux Router Project maintenance
 
+Jordan Crouse <jordan@cosmicpenguin.net>
+	ipcalc
+
 Magnus Damm <damm@opensource.se>
     tftp client
     insmod powerpc support
@@ -47,6 +53,9 @@ Daniel Jacobowitz <dan@debian.org>
 
 Matt Kraai <kraai@alumni.cmu.edu>
     documentation, bugfixes, test suite
+
+Stephan Linz <linz@li-pro.net>
+	ipcalc, Red Hat equivalence
 
 John Lombardo <john@deltanet.com>	
     dirname, tr
@@ -89,7 +98,3 @@ Charles P. Wright <cpwright@villagenet.com>
 
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
-
-Emanuele Aina <emanuele.aina@tiscali.it>
-	run-parts
-

@@ -30,6 +30,10 @@ if [ "$CONFIG_IP" = "y" ]; then
     bool '  route'		CONFIG_FEATURE_IP_ROUTE
     bool '  tunnel'		CONFIG_FEATURE_IP_TUNNEL
 fi
+bool 'ipcalc'	    CONFIG_IPCALC
+if [ "$CONFIG_IPCALC" = "y" ]; then
+    bool '  Fancy IPCALC, more options, adds 300 bytes'	CONFIG_FEATURE_IPCALC_FANCY
+fi
 bool 'nc'	    CONFIG_NC
 bool 'netstat'	    CONFIG_NETSTAT
 bool 'nslookup'	    CONFIG_NSLOOKUP
