@@ -208,13 +208,13 @@ check: busybox
 
 clean:
 	- $(MAKE) -C tests clean
-	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
-	    docs/busybox.net/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.pod docs/busybox.net/busybox.html \
-	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
-	- rm -f busybox busybox.links libbb/loop.h .config.old .hdepend
-	- rm -f .*config.log
+	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
+	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
+	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \
+	    .config.old .hdepend busybox
+	- rm -rf _install
 	- find . -name .\*.flags -exec rm -f {} \;   
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
