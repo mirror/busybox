@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"> 
+
+<HTML>
+<HEAD>
+<title>BusyBox Anonymous CVS Instructions</title>
+</HEAD>
+
+<body text="#000000" alink="#660000" link="#660000" bgcolor="#dee2de" vlink="#660000">
+
+<basefont face="lucida, helvetica, arial" size="3">
+
+
+<CENTER>
+      <TABLE BORDER=0 CELLSPACING=1 CELLPADDING=2>
+	    <TR>
+		<td bgcolor="#000000">
+		  <FONT FACE="lucida, helvetica" COLOR="#ccccc0">
+		      <B>B&nbsp;u&nbsp;s&nbsp;y&nbsp;B&nbsp;o&nbsp;x</B>
+		  </FONT>
+		</TD>
+	    </TR>
+      </TABLE>
+      <a href="/"><IMG SRC="images/busybox2.jpg" alt="BusyBox" border="0" width="360" height="230"></a><BR>
+
+
+
+</head>
+
+
+<H3>Accessing the Busybox CVS Repository</H3>
+
+<h2>Anonymous CVS.</h2>
+<p>
+We allow anonymous (read-only) CVS access to everyone.  The first command you
+need to run for anonymous CVS access is:
+<pre>
+cvs -d:pserver:anonymous@busybox.net:/var/cvs login</pre>
+<p>
+CVS will prompt you for a password. Enter the password <b>anonymous</b>
+and press the Enter key.  This step only needs to be done once, the first
+time you attempt to access CVS.
+<p>
+Once the login is complete, you can then check which modules
+are available for checkout by running the following command (all on one line):
+<pre>
+cvs -z3 -d:pserver:anonymous@busybox.net:/var/cvs co -c </pre>
+
+<p>
+You can then check out any of the available modules.  The following is 
+an example of how to grab a copy of busybox and tinylogin:
+<pre>
+    cvs -z3 -d:pserver:anonymous@busybox.net:/var/cvs co -P busybox tinylogin</pre>
+This will create a directory called <b>busybox</b> and a directory called
+<b>tinylogin</b> in the current directory.  These directories contain the
+latest and greatest source code for busybox and tinylogin.
+
+<p> 
+Once you've checked out a copy of the source tree, you can update your
+source tree at any time so it is in sync with the latest and greatest by
+running the command:
+<pre>
+cvs -z3 update -d -P</pre>
+
+Because you've only been granted anonymous access to the tree, you won't be
+able to commit any changes. Changes can be submitted for inclusion by posting
+them to the appropriate <a href="http://busybox.net/mailman/listinfo">mailing list</a>.
+
+
+<!-- End of Table -->
+
+</TD></TR>
+</TABLE>
+
+
+
+<!-- Footer -->
+<HR>
+<TABLE WIDTH="100%">
+    <TR>
+	<TD>
+	    <font size="-1" face="arial, helvetica, sans-serif">
+	    Mail all comments, insults, suggestions and bribes to 
+	    <a href="mailto:andersen@codepoet.org">Erik Andersen</a><BR>
+	    The Busybox logo is copyright 1999,2000,2001, Erik Andersen.
+	    </font>
+	</TD>
+
+	<TD>
+	    <a href="http://www.vim.org"><img border=0 width=90 height=36
+	    src="images/written.in.vi.png" 
+	    alt="This site created with the vi editor"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.gimp.org/"><img border=0 width=90 height=36
+	    src="images/gfx_by_gimp.png" alt="Graphics by GIMP"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.linuxtoday.com"><img width=90 height=36
+	    src="images/ltbutton2.png" alt="Linux Today"></a>
+	</TD>
+
+	<TD>
+	    <p><a href="http://slashdot.org"><img width=90 height=36
+	    src="images/sdsmall.png" alt="Slashdot"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://freshmeat.net"><img width=90 height=36
+	    src="images/fm.mini.png" alt="Freshmeat"></a>
+	</TD>
+
+    </TR>
+</TABLE>
+
+
+</CENTER>
+</BODY>
+</HTML>
+
+
