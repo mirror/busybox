@@ -251,7 +251,7 @@ static int pipe_lines(int fd, long int n_lines)
    If `forever' is nonzero, keep reading from the end of the file
    until killed.  Return the number of bytes read from the file.  */
 
-static long dump_remainder(const char *filename,, int fd)
+static long dump_remainder(int fd)
 {
 	char buffer[BUFSIZ];
 	int bytes_read;
