@@ -238,8 +238,8 @@ void if_i_am_not_root(void)
 	}
 }
 
-#define SETPASS				1
-#define MAKEHOME			4
+#define SETPASS				(1 << 4)
+#define MAKEHOME			(1 << 6)
 
 /*
  * adduser will take a login_name as its first parameter.
