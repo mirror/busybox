@@ -3,7 +3,7 @@
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
- * Written by John Beppu <beppu@line.com>
+ * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,10 @@
 #include <stdio.h>
 
 const char head_usage[] =
-"Usage: head [OPTION]... [FILE]...\n"
+"Usage: head [FILE]...\n\n"
 "Print first 10 lines of each FILE to standard output.\n"
-"With more than one FILE, precede each with a header giving the file name.\n"
-"With no FILE, or when FILE is -, read standard input.\n\n"
-"  -h	display this help and exit\n";
+"With more than one FILE, precede each with a header giving the\n"
+"file name. With no FILE, or when FILE is -, read standard input.\n";
 
 int
 head(int len, FILE *src)
@@ -66,6 +65,7 @@ head_main(int argc, char **argv)
 	if (argv[i][0] == '-') {
 	    opt = argv[i][1];
 	    switch (opt) {
+		case '-':
 		case 'h':
 		    usage(head_usage);
 		default:
@@ -103,4 +103,4 @@ head_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: head.c,v 1.1 1999/12/10 07:42:50 beppu Exp $ */
+/* $Id: head.c,v 1.2 1999/12/10 08:29:20 andersen Exp $ */
