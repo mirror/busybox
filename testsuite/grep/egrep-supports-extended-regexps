@@ -1,0 +1,1 @@
+test x`echo foo | busybox egrep fo+` = xfoo
