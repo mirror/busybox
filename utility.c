@@ -156,7 +156,9 @@ extern int get_kernel_revision(void)
 		perror("cannot get system information");
 		return (0);
 	}
-	sscanf(name.version, "%d.%d.%d", &major, &minor, &patch);
+	major = atoi(strtok(name.release, "."));
+	minor = atoi(strtok(NULL, "."));
+	patch = atoi(strtok(NULL, "."));
 	return major * 65536 + minor * 256 + patch;
 }
 #endif                                                 /* BB_INIT */

@@ -63,20 +63,6 @@ static int version = -1;
 
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 
-static int linux_version_code(void)
-{
-	struct utsname my_utsname;
-	int p, q, r;
-
-	if (uname(&my_utsname) == 0) {
-		p = atoi(strtok(my_utsname.release, "."));
-		q = atoi(strtok(NULL, "."));
-		r = atoi(strtok(NULL, "."));
-		return MAKE_VERSION(p, q, r);
-	}
-	return 0;
-}
-
 /*
  * The definition of the union swap_header uses the constant PAGE_SIZE.
  * Unfortunately, on some architectures this depends on the hardware model,
@@ -345,7 +331,7 @@ int mkswap_main(int argc, char **argv)
 	if (version == -1) {
 		if (PAGES <= V0_MAX_PAGES)
 			version = 0;
-		else if (linux_version_code() < MAKE_VERSION(2, 1, 117))
+		else if (get_kernel_revision() < MAKE_VERSION(2, 1, 117))
 			version = 0;
 		else if (pagesize < 2048)
 			version = 0;
@@ -366,7 +352,7 @@ int mkswap_main(int argc, char **argv)
 #else
 	if (!version)
 		maxpages = V0_MAX_PAGES;
-	else if (linux_version_code() >= MAKE_VERSION(2, 2, 1))
+	else if (get_kernel_revision() >= MAKE_VERSION(2, 2, 1))
 		maxpages = V1_MAX_PAGES;
 	else {
 		maxpages = V1_OLD_MAX_PAGES;

@@ -160,20 +160,6 @@ static char *nfs_strerror(int stat);
 #define EX_BG			256       /* retry in background (internal only) */
 
 
-static int
-linux_version_code(void) {
-	struct utsname my_utsname;
-	int p, q, r;
-
-	if (uname(&my_utsname) == 0) {
-		p = atoi(strtok(my_utsname.release, "."));
-		q = atoi(strtok(NULL, "."));
-		r = atoi(strtok(NULL, "."));
-		return MAKE_VERSION(p,q,r);
-	}
-	return 0;
-}
-
 /*
  * nfs_mount_version according to the sources seen at compile time.
  */
@@ -197,7 +183,7 @@ find_kernel_nfs_mount_version(void) {
 	if (kernel_version)
 		return;
 
-	kernel_version = linux_version_code();
+	kernel_version = get_kernel_revision();
 
 	if (kernel_version) {
 	     if (kernel_version < MAKE_VERSION(2,1,32))
@@ -796,7 +782,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	  * to avoid problems with multihomed hosts.
 	  * --Swen
 	  */
-	if (linux_version_code() <= 66314
+	if (get_kernel_revision() <= 66314
 	    && connect(fsock, (struct sockaddr *) &server_addr,
 		       sizeof (server_addr)) < 0) {
 		perror(_("nfs connect"));

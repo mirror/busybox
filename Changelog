@@ -1,3 +1,11 @@
+0.48
+
+	* Fixed uname problem causing the kernel version to be
+	    mis-detected (causing problems with poweroff, init,
+	    and other things).
+
+	 -Erik Andersen
+
 0.47
 
 	* A bug in syslogd was fixed that allowed it to potentially fork-bomb
