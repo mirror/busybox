@@ -497,6 +497,7 @@ static struct op **find1case (struct op *t, char *w );
 static struct op *findcase (struct op *t, char *w );
 static void brkset(struct brkcon *bc );
 static int dolabel(void);
+static int dohelp(void);
 static int dochdir(struct op *t );
 static int doshift(struct op *t );
 static int dologin(struct op *t );
@@ -592,30 +593,31 @@ static struct res restab[] = {
 };
 
 
-struct	builtin {
-	char *command;
-	int	 (*fn)();
+struct builtincmd {
+	const char *name;
+	int (*builtinfunc)();
 };
-static struct	builtin	builtin[] = {
+static const struct	builtincmd	builtincmds[] = {
+    {".",		dodot},
     {":",		dolabel},
-    {"cd",		dochdir},
-    {"shift",	doshift},
-    {"exec",	doexec},
-    {"wait",	dowait},
-    {"read",	doread},
-    {"eval",	doeval},
-    {"trap",	dotrap},
     {"break",	dobreak},
+    {"cd",		dochdir},
     {"continue",docontinue},
+    {"eval",	doeval},
+    {"exec",	doexec},
     {"exit",	doexit},
     {"export",	doexport},
-    {"readonly",doreadonly},
-    {"set",		doset},
-    {".",		dodot},
-    {"umask",	doumask},
+    {"help",	dohelp},
     {"login",	dologin},
     {"newgrp",	dologin},
+    {"read",	doread},
+    {"readonly",doreadonly},
+    {"set",		doset},
+    {"shift",	doshift},
     {"times",	dotimes},
+    {"trap",	dotrap},
+    {"umask",	doumask},
+    {"wait",	dowait},
     {0,0}
 };
 
@@ -731,14 +733,18 @@ extern int shell_main(int argc, char **argv)
 		setval(ifs, " \t\n");
 
 	prompt = lookup("PS1");
+#ifdef BB_FEATURE_SH_FANCY_PROMPT
 	if (prompt->value == null)
+#endif
 		setval(prompt, "$ ");
 	if (geteuid() == 0) {
 		setval(prompt, "# ");
 		prompt->status &= ~EXPORT;
 	}
 	cprompt = lookup("PS2");
+#ifdef BB_FEATURE_SH_FANCY_PROMPT
 	if (cprompt->value == null)
+#endif
 		setval(cprompt, "> ");
 
 	iof = filechar;
@@ -794,8 +800,11 @@ extern int shell_main(int argc, char **argv)
 	setdash();
 	if (e.iop < iostack) {
 		PUSHIO(afile, 0, iof);
-		if (isatty(0) && isatty(1) && !cflag)
+		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
+			printf( "\n\n" BB_BANNER " Built-in shell (msh)\n");
+			printf( "Enter 'help' for a list of built-in commands.\n\n");
+		}
 	}
 	signal(SIGQUIT, qflag);
 	if (name && name[0] == '-') {
@@ -2314,14 +2323,14 @@ int act;
 	switch(t->type) {
 	case TPAREN:
 	case TCOM:
-	    {
-		int child;
-		rv = forkexec(t, pin, pout, act, wp, &child);
-		if (child) {
-			exstat = rv;
-			leave();
+		{
+			int child;
+			rv = forkexec(t, pin, pout, act, wp, &child);
+			if (child) {
+				exstat = rv;
+				leave();
+			}
 		}
-	    }
 		break;
 
 	case TPIPE:
@@ -2828,6 +2837,21 @@ char *c, **v, **envp;
 	register char *sp, *tp;
 	int eacces = 0, asis = 0;
 
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+	char *name = c;
+#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+	name = get_last_path_component(name);
+#endif
+	optind = 1;
+	if (find_applet_by_name(name)) {
+		/* We have to exec here since we vforked.  Running 
+		 * run_applet_by_name() won't work and bad things
+		 * will happen. */
+		execve("/proc/self/exe", v, envp);
+		execve("busybox", v, envp);
+	}
+#endif
+
 	sp = any('/', c)? "": path->value;
 	asis = *sp == '\0';
 	while (asis || *sp != '\0') {
@@ -2842,6 +2866,8 @@ char *c, **v, **envp;
 			*tp++ = '/';
 		for (i = 0; (*tp++ = c[i++]) != '\0';)
 			;
+
+		fprintf(stderr, "calling exec\n");
 		execve(e.linep, v, envp);
 		switch (errno) {
 		case ENOEXEC:
@@ -2916,6 +2942,49 @@ int (*f)();
 /*
  * built-in commands: doX
  */
+
+static int dohelp()
+{
+	int col;
+	const struct builtincmd *x;
+
+	printf("\nBuilt-in commands:\n");
+	printf("-------------------\n");
+
+	for (col=0, x = builtincmds; x->builtinfunc != NULL; x++) {
+		if (!x->name)
+			continue;
+		col += printf("%s%s", ((col == 0) ? "\t" : " "), x->name);
+		if (col > 60) {
+			printf("\n");
+			col = 0;
+		}
+	}
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+	{
+		int i;
+		const struct BB_applet *applet;
+		extern const struct BB_applet applets[];
+		extern const size_t NUM_APPLETS;
+
+		for (i=0, applet = applets; i < NUM_APPLETS; applet++, i++) {
+			if (!applet->name)
+				continue;
+		
+			col += printf("%s%s", ((col == 0) ? "\t" : " "), 
+					applet->name);
+			if (col > 60) {
+				printf("\n");
+				col = 0;
+			}
+		}
+	}
+#endif
+	printf("\n\n");
+	return EXIT_SUCCESS;
+}
+
+
 
 static int
 dolabel()
@@ -3341,7 +3410,6 @@ int out;
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: msh.c,v 1.1 2001/06/29 04:57:14 andersen Exp $
  */
 static int dotimes ()
 {
@@ -3362,14 +3430,14 @@ static int dotimes ()
 }
 
 
-static int (*inbuilt(s))()
-register char *s;
+static int (*inbuilt(char *s))()
 {
-	register struct builtin *bp;
+	const struct builtincmd *bp;
 
-	for (bp = builtin; bp->command != NULL; bp++)
-		if (strcmp(bp->command, s) == 0)
-			return(bp->fn);
+	for (bp = builtincmds; bp->name != NULL; bp++)
+		if (strcmp(bp->name, s) == 0)
+			return(bp->builtinfunc);
+
 	return((int(*)())NULL);
 }
 

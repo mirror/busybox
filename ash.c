@@ -1603,6 +1603,7 @@ static int exitcmd (int, char **);
 static int exportcmd (int, char **);
 static int histcmd (int, char **);
 static int hashcmd (int, char **);
+static int helpcmd (int, char **);
 static int jobscmd (int, char **);
 static int localcmd (int, char **);
 #ifndef BB_PWD
@@ -1704,6 +1705,7 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_REGULAR   "getopts", getoptscmd },
 #endif
 	{ BUILTIN_NOSPEC    "hash", hashcmd },
+	{ BUILTIN_NOSPEC    "help", helpcmd },
 	{ BUILTIN_REGULAR   "jobs", jobscmd },
 #ifdef JOBS
 	{ BUILTIN_REGULAR   "kill", killcmd },
@@ -3274,6 +3276,7 @@ static void
 setinteractive(int on)
 {
 	static int is_interactive;
+	static int do_banner=0;
 
 	if (on == is_interactive)
 		return;
@@ -3282,6 +3285,12 @@ setinteractive(int on)
 	setsignal(SIGTERM);
 	chkmail(1);
 	is_interactive = on;
+	if (do_banner==0 && is_interactive) {
+		/* Looks like they want an interactive shell */
+		printf( "\n\n" BB_BANNER " Built-in shell (ash)\n");
+		printf( "Enter 'help' for a list of built-in commands.\n\n");
+		do_banner=1;
+	}
 }
 
 static void
@@ -3798,6 +3807,51 @@ printentry(cmdp, verbose)
 #endif
 	}
 	out1fmt(snlfmt, cmdp->rehash ? "*" : nullstr);
+}
+
+
+
+/*** List the available builtins ***/
+
+
+static int helpcmd(int argc, char** argv)
+{
+	int col, i;
+	const struct builtincmd *x;
+
+	printf("\nBuilt-in commands:\n");
+	printf("-------------------\n");
+	for (col=0, i=0, x = builtincmds; i < NUMBUILTINS; x++, i++) {
+		if (!x->name || ! (x->name+1))
+			continue;
+		col += printf("%s%s", ((col == 0) ? "\t" : " "), 
+				(x->name+1));
+		if (col > 60) {
+			printf("\n");
+			col = 0;
+		}
+	}
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+	{
+		const struct BB_applet *applet;
+		extern const struct BB_applet applets[];
+		extern const size_t NUM_APPLETS;
+
+		for (i=0, applet = applets; i < NUM_APPLETS; applet++, i++) {
+			if (!applet->name)
+				continue;
+		
+			col += printf("%s%s", ((col == 0) ? "\t" : " "), 
+					applet->name);
+			if (col > 60) {
+				printf("\n");
+				col = 0;
+			}
+		}
+	}
+#endif
+	printf("\n\n");
+	return EXIT_SUCCESS;
 }
 
 
@@ -7754,6 +7808,11 @@ shell_main(argc, argv)
 	BLTINCMD = find_builtin("builtin");
 	EXECCMD = find_builtin("exec");
 	EVALCMD = find_builtin("eval");
+
+#ifndef BB_FEATURE_SH_FANCY_PROMPT
+	unsetenv("PS1");
+	unsetenv("PS2");
+#endif
 
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof profile_buf, 50);
@@ -13088,7 +13147,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.6 2001/07/06 04:26:23 andersen Exp $
+ * $Id: ash.c,v 1.7 2001/07/07 00:05:55 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

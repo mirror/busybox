@@ -20,6 +20,15 @@
 
 #include "busybox.h"
 
+/* This is to make testing things a bit simpler (to avoid
+ * a full recompile) till we get the new build system in place */
+#if 0
+#undef BB_FEATURE_LASH
+#undef BB_FEATURE_HUSH
+#undef BB_FEATURE_MSH
+#define BB_FEATURE_ASH
+#endif
+
 #if defined BB_FEATURE_ASH
 #include "ash.c"
 #elif defined BB_FEATURE_MSH
