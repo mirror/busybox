@@ -6,5 +6,9 @@
  */
 extern char filter_accept_all(const llist_t *accept_list, const llist_t *reject_list, const char *key)
 {
-	return(EXIT_SUCCESS);
+	if (key) {
+		return(EXIT_SUCCESS);
+	} else {
+		return(EXIT_FAILURE);
+	}
 }

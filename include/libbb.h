@@ -226,6 +226,7 @@ extern long arith (const char *startbuf, int *errcode);
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 char *fgets_str(FILE *file, const char *terminating_string);
 
+extern int uncompress(int fd_in, int fd_out);
 extern int inflate(int in, int out);
 
 extern struct hostent *xgethostbyname(const char *name);

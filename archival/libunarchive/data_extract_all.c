@@ -18,7 +18,6 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 	if (archive_handle->flags & ARCHIVE_CREATE_LEADING_DIRS) {
 		char *dir = dirname(strdup(file_header->name));
 		make_directory (dir, 0777, FILEUTILS_RECUR);
-		free(dir);
 	}
 
 	/* Create the file */

@@ -28,8 +28,9 @@
  * [... History snipped ...]
  *
  */
-#include	<stdio.h>
-
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define	IBUFSIZ	2048	/* Defailt input buffer size							*/
 #define	OBUFSIZ	2048	/* Default output buffer size							*/
@@ -95,9 +96,6 @@ unsigned short	codetab[HSIZE];
 #define	clear_tab_prefixof()	memset(codetab, 0, 256);
 
 
-extern int uncompress ( FILE *, FILE * );
-
-
 /*
  * Decompress stdin to stdout.  This routine adapts to the codes in the
  * file building the "string" table on-the-fly; requiring no table to
@@ -105,7 +103,7 @@ extern int uncompress ( FILE *, FILE * );
  * with those of the compress() routine.  See the definitions above.
  */
 
-int uncompress ( FILE * fdin, FILE * fdout )
+extern int uncompress(int fd_in, int fd_out)
 {
     char_type 		*stackp;
     code_int		 code;
@@ -125,7 +123,7 @@ int uncompress ( FILE * fdin, FILE * fdout )
 
 	insize = 0;
 
-	inbuf [0] = fgetc(fdin);
+	inbuf [0] = xread_char(fd_in);
 
 	maxbits = inbuf[0] & BIT_MASK;
 	block_mode = inbuf[0] & BLOCK_MODE;
@@ -173,11 +171,7 @@ resetbuf:	;
 
 		if (insize < (int) sizeof(inbuf)-IBUFSIZ)
 		{
-			rsize = fread(inbuf+insize, 1,IBUFSIZ,fdin);
-			
-			if ( !rsize && ferror(fdin))
-				return -1;
-
+			xread_all(fd_in, inbuf+insize, IBUFSIZ);
 			insize += rsize;
 		}
 
@@ -275,8 +269,7 @@ resetbuf:	;
 
 						if (outpos >= OBUFSIZ)
 						{
-							fwrite(outbuf, 1,outpos,fdout);
-
+							write(fd_out, outbuf, outpos);
 							outpos = 0;
 						}
 						stackp+= i;
@@ -303,8 +296,9 @@ resetbuf:	;
     }
 	while (rsize > 0);
 
-	if (outpos > 0)
-		fwrite(outbuf, outpos,1, fdout);
+	if (outpos > 0) {
+		write(fd_out, outbuf, outpos);
+	}
 
 	return 0;
 }

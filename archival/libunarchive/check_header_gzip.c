@@ -5,9 +5,8 @@
 extern void check_header_gzip(int src_fd)
 {
 	union {
-		unsigned char raw[10];
+		unsigned char raw[8];
 		struct {
-			unsigned char magic[2];
 			unsigned char method;
 			unsigned char flags;
 			unsigned int mtime;
@@ -16,13 +15,7 @@ extern void check_header_gzip(int src_fd)
 		} formated;
 	} header;
 
-	xread_all(src_fd, header.raw, 10);
-
-   /* Magic header for gzip files, 1F 8B = \037\213 */
-	if ((header.formated.magic[0] != 0x1F)
-		|| (header.formated.magic[1] != 0x8b)) {
-		error_msg_and_die("Invalid gzip magic");
-	}
+	xread_all(src_fd, header.raw, 8);
 
    /* Check the compression method */
 	if (header.formated.method != 8) {

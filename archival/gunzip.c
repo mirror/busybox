@@ -163,11 +163,25 @@ extern int gunzip_main(int argc, char **argv)
 		}
 
 		/* do the decompression, and cleanup */
-		check_header_gzip(src_fd);
-		if (inflate(src_fd, dst_fd) != 0) {
-			error_msg("Error inflating");
+		if (xread_char(src_fd) == 0x1f) {
+			unsigned char magic2;
+			
+			magic2 = xread_char(src_fd);
+#ifdef CONFIG_FEATURE_UNCOMPRESS
+			if (magic2 == 0x9d) {
+				return(uncompress(src_fd, dst_fd));
+			} else 
+#endif
+				if (magic2 == 0x8b) {
+					check_header_gzip(src_fd);
+					if (inflate(src_fd, dst_fd) != 0) {
+						error_msg("Error inflating");
+					}
+					check_trailer_gzip(src_fd);
+				} else {
+					error_msg_and_die("Invalid magic\n");
+				}
 		}
-		check_trailer_gzip(src_fd);
 
 		if ((status != EXIT_SUCCESS) && (new_path)) {
 			/* Unzip failed, remove new path instead of old path */

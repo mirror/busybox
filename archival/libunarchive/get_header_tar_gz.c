@@ -27,11 +27,17 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 {
 	int fd_pipe[2];
 	int pid;
+	unsigned char magic[2];
+	
+	xread_all(archive_handle->src_fd, &magic, 2);
+	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
+		error_msg_and_die("Invalid gzip magic");
+	}
 
 	check_header_gzip(archive_handle->src_fd);
 
 	if (pipe(fd_pipe) != 0) {
-		error_msg_and_die("Can't create pipe\n");
+		error_msg_and_die("Can't create pipe");
 	}
 
 	pid = fork();
@@ -54,6 +60,7 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 
 	archive_handle->src_fd = fd_pipe[0];
 
+	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
 
 	if (kill(pid, SIGTERM) == -1) {

@@ -70,6 +70,7 @@ extern int rpm2cpio_main(int argc, char **argv)
 {
 	struct rpm_lead lead;
 	int rpm_fd;
+	unsigned char magic[2];
 
 	if (argc == 1) {
 		rpm_fd = fileno(stdin);
@@ -88,6 +89,11 @@ extern int rpm2cpio_main(int argc, char **argv)
 
 	/* Skip the main header */
 	skip_header(rpm_fd);
+	
+	xread_all(rpm_fd, &magic, 2);
+	if ((magic[0] != 0x1f) || (magic[1] != 0x8b))
+		error_msg_and_die("Invalid gzip magic");
+	}
 
 	check_header_gzip(rpm_fd);
 	if (inflate(rpm_fd, fileno(stdout)) != 0) {
