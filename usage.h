@@ -1154,9 +1154,10 @@
 	"221 foobar closing connection\n" 
 
 #define nslookup_trivial_usage \
-	"[HOST]"
+	"[HOST] [SERVER]"
 #define nslookup_full_usage \
-	"Queries the nameserver for the IP address of the given HOST"
+	"Queries the nameserver for the IP address of the given HOST\n" \
+	"optionally using a specified DNS server"
 #define nslookup_example_usage \
 	"$ nslookup localhost\n" \
 	"Server:     default\n" \
@@ -1469,10 +1470,10 @@
 #define tar_trivial_usage \
 	"-[" USAGE_TAR_CREATE("c") "xtvO] " \
 	USAGE_TAR_EXCLUDE("[--exclude FILE] [-X FILE]") \
-	"[-f TARFILE] [FILE(s)] ..."
+	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \
-	"Main operation mode:\n" \
+	"Options:\n" \
 	USAGE_TAR_CREATE("\tc\t\tcreate\n") \
 	"\tx\t\textract\n" \
 	"\tt\t\tlist\n" \
@@ -1483,7 +1484,7 @@
 	"\texclude\t\tfile to exclude\n" \
 	 "\tX\t\tfile with names to exclude\n" \
 	) \
-	"\nInformative output:\n" \
+	"\tC\t\tchange to directory DIR before operation\n" \
 	"\tv\t\tverbosely list files processed"
 #define tar_example_usage \
 	"$ zcat /tmp/tarball.tar.gz | tar -xf -\n" \

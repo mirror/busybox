@@ -151,6 +151,7 @@ extern int tar_main(int argc, char **argv)
 	char** excludeList=NULL;
 	char** extractList=NULL;
 	const char *tarName="-";
+	const char *cwd=NULL;
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
 	FILE *fileList;
@@ -181,9 +182,9 @@ extern int tar_main(int argc, char **argv)
 
 	while (
 #ifndef BB_FEATURE_TAR_EXCLUDE
-			(opt = getopt(argc, argv, "cxtzvOf:p"))
+			(opt = getopt(argc, argv, "cxtzvOf:pC:"))
 #else
-			(opt = getopt_long(argc, argv, "cxtzvOf:X:p", longopts, NULL))
+			(opt = getopt_long(argc, argv, "cxtzvOf:X:pC:", longopts, NULL))
 #endif
 			> 0) {
 		switch (opt) {
@@ -240,6 +241,13 @@ extern int tar_main(int argc, char **argv)
 #endif
 			case 'p':
 				break;
+			case 'C':
+				cwd = xgetcwd((char *)cwd);
+				if (chdir(optarg)) {
+					printf("cd: %s: %s\n", optarg, strerror(errno));
+					return EXIT_FAILURE;
+				}
+				break;
 			default:
 					show_usage();
 		}
@@ -292,6 +300,8 @@ extern int tar_main(int argc, char **argv)
 #endif			
 	}
 
+	if (cwd)
+		chdir(cwd);
 	if (status == TRUE)
 		return EXIT_SUCCESS;
 	else
