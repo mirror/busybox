@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.14 2001/11/10 11:22:43 andersen Exp $
+ * $Id: route.c,v 1.15 2002/05/14 23:03:23 sandman Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -342,14 +342,14 @@ INET_setroute(int action, int options, char **args)
 #define RTF_REJECT      0x0200          /* Reject route                 */
 #endif
 
-static void displayroutes(int noresolve)
+void displayroutes(int noresolve, int netstatfmt)
 {
 	char buff[256];
 	int  nl = 0 ;
 	struct in_addr dest;
 	struct in_addr gw;
 	struct in_addr mask;
-	int flgs, ref, use, metric;
+	int flgs, ref, use, metric, mtu, win, ir;
 	char flags[64];
 	unsigned long int d,g,m;
 
@@ -369,14 +369,17 @@ static void displayroutes(int noresolve)
 			while(buff[ifl]!=' ' && buff[ifl]!='\t' && buff[ifl]!='\0')
 				ifl++;
 			buff[ifl]=0;    /* interface */
-			if(sscanf(buff+ifl+1, "%lx%lx%X%d%d%d%lx",
-			   &d, &g, &flgs, &ref, &use, &metric, &m)!=7) {
+			if(sscanf(buff+ifl+1, "%lx%lx%X%d%d%d%lx%d%d%d",
+			   &d, &g, &flgs, &ref, &use, &metric, &m, &mtu, &win, &ir )!=10) {
 				error_msg_and_die( "Unsuported kernel route format\n");
 			}
-			if(nl==1)
-			printf("Kernel IP routing table\n"
-				"Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
-
+			if(nl==1) {
+				printf("Kernel IP routing table\n");
+				if ( netstatfmt ) 
+					printf("Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface\n");
+				else				
+					printf("Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+			}
 			ifl = 0;        /* parse flags */
  			if(flgs&RTF_UP) {
  				if(flgs&RTF_REJECT)
@@ -405,10 +408,18 @@ static void displayroutes(int noresolve)
 				numeric = noresolve | 0x4000; /* host instead of net */
 				s_addr.sin_addr = gw;
 				INET_rresolve(sgw, sizeof(sgw), &s_addr, numeric, m);
- 				printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
- 					sdest, sgw,
- 					inet_ntoa(mask),
- 					flags, metric, ref, use, buff);
+				if ( netstatfmt ) {
+ 					printf("%-16s%-16s%-16s%-6s%5d %-5d %6d %s\n",
+ 						sdest, sgw,
+ 						inet_ntoa(mask),
+ 						flags, mtu, win, ir, buff);
+ 				}
+ 				else {
+ 					printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
+ 						sdest, sgw,
+ 						inet_ntoa(mask),
+	 					flags, metric, ref, use, buff);
+ 				}
 			}
  		}
 		nl++;
@@ -417,25 +428,40 @@ static void displayroutes(int noresolve)
 
 int route_main(int argc, char **argv)
 {
+	int opt;
 	int what = 0;
 
-	argc--;
-	argv++;
-
-	if (*argv == NULL || (*(argv+1)==NULL && strcmp(*argv, "-n")==0)) {
-		displayroutes(*argv != NULL);
+	if ( !argv [1] || ( argv [1][0] == '-' )) {
+		/* check options */
+		int noresolve = 0;
+		int extended = 0;
+	
+		while ((opt = getopt(argc, argv, "ne")) > 0) {
+			switch (opt) {
+				case 'n':
+					noresolve = 1;
+					break;
+				case 'e':
+					extended = 1;
+					break;
+				default:
+					show_usage ( );
+			}
+		}
+	
+		displayroutes ( noresolve, extended );
 		return EXIT_SUCCESS;
 	} else {
 		/* check verb */
-		if (strcmp(*argv, "add")==0)
+		if (strcmp( argv [1], "add")==0)
 			what = RTACTION_ADD;
-		else if (strcmp(*argv, "del")==0 || strcmp(*argv, "delete")==0)
+		else if (strcmp( argv [1], "del")==0 || strcmp( argv [1], "delete")==0)
 			what = RTACTION_DEL;
-		else if (strcmp(*argv, "flush")==0)
+		else if (strcmp( argv [1], "flush")==0)
 			what = RTACTION_FLUSH;
 		else
 			show_usage();
 	}
 
-	return INET_setroute(what, 0, ++argv);
+	return INET_setroute(what, 0, argv+2 );	
 }

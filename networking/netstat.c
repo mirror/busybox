@@ -33,6 +33,10 @@
 #include "inet_common.h"
 #include "busybox.h"
 
+#ifdef CONFIG_ROUTE
+extern void displayroutes(int noresolve, int netstatfmt);
+#endif
+
 #define NETSTAT_CONNECTED	0x01
 #define NETSTAT_LISTENING	0x02
 #define NETSTAT_NUMERIC		0x04
@@ -462,7 +466,8 @@ int netstat_main(int argc, char **argv)
 {
 	int opt;
 	int new_flags=0;
-	while ((opt = getopt(argc, argv, "lantuwx")) != -1)
+	int showroute = 0, extended = 0; 
+	while ((opt = getopt(argc, argv, "laenrtuwx")) != -1)
 		switch (opt) {
 		case 'l':
 			flags &= ~NETSTAT_CONNECTED;
@@ -473,6 +478,12 @@ int netstat_main(int argc, char **argv)
 			break;
 		case 'n':
 			flags |= NETSTAT_NUMERIC;
+			break;
+		case 'r':
+			showroute = 1;
+			break;
+		case 'e':
+			extended = 1;
 			break;
 		case 't':
 			new_flags |= NETSTAT_TCP;
@@ -489,6 +500,16 @@ int netstat_main(int argc, char **argv)
 		default:
 			show_usage();
 		}
+	if ( showroute ) {
+#ifdef CONFIG_ROUTE	
+		displayroutes ( flags & NETSTAT_NUMERIC, !extended );
+		return 0; 
+#else
+		printf( "-r (display routing table) is not compiled in.\n" );
+		return 1;
+#endif
+	}	
+		
 	if (new_flags) {
 		flags &= ~(NETSTAT_TCP|NETSTAT_UDP|NETSTAT_RAW|NETSTAT_UNIX);
 		flags |= new_flags;
