@@ -252,6 +252,10 @@
 // compiled into the binary.  (needs /proc filesystem)
 // #define BB_FEATURE_INSTALLER
 //
+// Clean up all memory before exiting -- usually not needed
+// as the OS can clean up...
+//#define BB_FEATURE_CLEAN_UP
+//
 // End of Features List
 //
 //
