@@ -25,36 +25,28 @@
 #include "libbb.h"
 
 
-extern size_t copyfd(int fd1, int fd2)
+extern int copyfd(int fd1, int fd2)
 {
-	char buf[32768], *writebuf;
-	int status = TRUE;
-	size_t totalread = 0, bytesread, byteswritten;
+	char buf[8192];
+	ssize_t nread, nwrote;
 
-	while(status) {
-		bytesread = read(fd1, &buf, sizeof(buf));
-		if(bytesread == -1) {
-			error_msg("read: %s", strerror(errno));
-			status = FALSE;
+	while (1) {
+		nread = safe_read(fd1, buf, sizeof(buf));
+		if (nread == 0)
 			break;
+		if (nread == -1) {
+			perror_msg("read");
+			return -1;
 		}
-		byteswritten = 0;
-		writebuf = buf;
-		while(bytesread) {
-			byteswritten = write( fd2, &writebuf, bytesread );
-			if(byteswritten == -1) {
-				error_msg("write: %s", strerror(errno));
-				status = FALSE;
-				break;
-			}
-			bytesread -= byteswritten;
-			writebuf += byteswritten;
+
+		nwrote = full_write(fd2, buf, nread);
+		if (nwrote == -1) {
+			perror_msg("write");
+			return -1;
 		}
 	}
-	if ( status == TRUE )
-		return totalread;
-	else
-		return -1;
+
+	return 0;
 }
 
 /* END CODE */

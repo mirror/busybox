@@ -133,7 +133,7 @@ extern pid_t* find_pid_by_name( char* pidName);
 extern char *find_real_root_device_name(const char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);
-extern size_t copyfd(int fd1, int fd2);
+extern int copyfd(int fd1, int fd2);
 extern int print_file_by_name(char *filename);
 extern char process_escape_sequence(const char **ptr);
 extern char *get_last_path_component(char *path);
