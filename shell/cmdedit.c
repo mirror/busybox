@@ -55,7 +55,6 @@
 #define BB_FEATURE_COMMAND_TAB_COMPLETION
 #define BB_FEATURE_COMMAND_USERNAME_COMPLETION
 #define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-#undef BB_FEATURE_SH_SIMPLE_PROMPT
 #define BB_FEATURE_CLEAN_UP
 
 #define D(x)  x
@@ -268,15 +267,15 @@ static void cmdedit_reset_term(void)
 static void cmdedit_set_out_char(int next_char)
 {
 
-	int c = command_ps[cursor];
+	int c = (int)((unsigned char) command_ps[cursor]);
 
 	if (c == 0)
 		c = ' ';				/* destroy end char? */
 #ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
 	if (!isprint(c)) {			/* Inverse put non-printable characters */
-		if (((unsigned char) c) >= 128)
+		if (c >= 128)
 			c -= 128;
-		if (((unsigned char) c) < ' ')
+		if (c < ' ')
 			c += '@';
 		if (c == 127)
 			c = '?';
@@ -498,12 +497,8 @@ static void parse_prompt(const char *prmt_ptr)
 		if (flg_not_length == ']')
 			sub_len++;
 	}
-#if 0
-	cmdedit_prmt_len = prmt_len - sub_len;
-	cmdedit_prompt = prmt_ptr;
-#endif	
 	cmdedit_prompt = prmt_mem_ptr;
-	cmdedit_prmt_len = strlen(cmdedit_prompt);
+	cmdedit_prmt_len = prmt_len - sub_len;
 	put_prompt();
 }
 #endif
@@ -1223,7 +1218,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 
 	int break_out = 0;
 	int lastWasTab = FALSE;
-	char c = 0;
+	unsigned char c = 0;
 	struct history *hp = his_end;
 
 	/* prepare before init handlers */
@@ -1250,10 +1245,10 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	setTermSettings(inputFd, (void *) &new_settings);
 	handlers_sets |= SET_RESET_TERM;
 
-	/* Print out the command prompt */
-	parse_prompt(prompt);
 	/* Now initialize things */
 	cmdedit_init();
+	/* Print out the command prompt */
+	parse_prompt(prompt);
 
 	while (1) {
 
@@ -1545,6 +1540,10 @@ extern void cmdedit_terminate(void)
 
 #ifdef TEST
 
+#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#include <locale.h>
+#endif
+
 unsigned int shell_context;
 
 int main(int argc, char **argv)
@@ -1559,6 +1558,9 @@ int main(int argc, char **argv)
 		"% ";
 #endif
 
+#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+	setlocale(LC_ALL, "");
+#endif
 	shell_context = 1;
 	do {
 		int l;
