@@ -437,8 +437,9 @@ static int serveConnection(char *tmpbuf, int n_read)
 				while (isdigit(*(++p))) {
 					pri = 10 * pri + (*p - '0');
 				}
-				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)){
+				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
 					pri = (LOG_USER | LOG_NOTICE);
+				}
 			} else if (c == '\n') {
 				*q++ = ' ';
 			} else if (iscntrl(c) && (c < 0177)) {
