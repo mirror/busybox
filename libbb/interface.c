@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.10 2002/09/17 06:36:02 andersen Exp $
+ * Version:     $Id: interface.c,v 1.11 2002/11/26 09:02:04 bug1 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -44,7 +44,6 @@
  * 
  */
 #define HAVE_AFINET 1
-#undef HAVE_AFINET6
 #undef HAVE_AFIPX
 #undef HAVE_AFATALK
 #undef HAVE_AFNETROM
@@ -52,8 +51,10 @@
 #undef HAVE_AFECONET
 #undef HAVE_AFASH
 
-#if CONFIG_FEATURE_IPV6
-#define HAVE_AFINET6 1
+#ifdef CONFIG_FEATURE_IPV6
+# define HAVE_AFINET6 1
+#else
+# undef HAVE_AFINET6
 #endif
 
 /* 

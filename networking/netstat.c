@@ -627,19 +627,19 @@ int netstat_main(int argc, char **argv)
 	}
 	if (inet && flags&NETSTAT_TCP)
 		do_info(_PATH_PROCNET_TCP,"AF INET (tcp)",tcp_do_one);
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	if (inet6 && flags&NETSTAT_TCP)
 		do_info(_PATH_PROCNET_TCP6,"AF INET6 (tcp)",tcp_do_one);
 #endif
 	if (inet && flags&NETSTAT_UDP)
 		do_info(_PATH_PROCNET_UDP,"AF INET (udp)",udp_do_one);
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	if (inet6 && flags&NETSTAT_UDP)
 		do_info(_PATH_PROCNET_UDP6,"AF INET6 (udp)",udp_do_one);
 #endif
 	if (inet && flags&NETSTAT_RAW)
 		do_info(_PATH_PROCNET_RAW,"AF INET (raw)",raw_do_one);
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	if (inet6 && flags&NETSTAT_RAW)
 		do_info(_PATH_PROCNET_RAW6,"AF INET6 (raw)",raw_do_one);
 #endif

@@ -17,7 +17,7 @@
 
 int xconnect(const char *host, const char *port)
 {
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	struct addrinfo hints;
 	struct addrinfo *res;
 	struct addrinfo *addr_info;

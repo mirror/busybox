@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.19 2002/08/22 18:22:10 bug1 Exp $
+ * $Id: ifconfig.c,v 1.20 2002/11/26 09:02:05 bug1 Exp $
  *
  */
 
@@ -46,7 +46,7 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_IFCONFIG_SLIP
-#include <linux/if_slip.h>
+# include <linux/if_slip.h>
 #endif
 
 /* I don't know if this is needed for busybox or not.  Anyone? */
@@ -55,20 +55,20 @@
 
 /* Defines for glibc2.0 users. */
 #ifndef SIOCSIFTXQLEN
-#define SIOCSIFTXQLEN      0x8943
-#define SIOCGIFTXQLEN      0x8942
+# define SIOCSIFTXQLEN      0x8943
+# define SIOCGIFTXQLEN      0x8942
 #endif
 
 /* ifr_qlen is ifru_ivalue, but it isn't present in 2.0 kernel headers */
 #ifndef ifr_qlen
-#define ifr_qlen        ifr_ifru.ifru_mtu
+# define ifr_qlen        ifr_ifru.ifru_mtu
 #endif
 
 #ifndef IFF_DYNAMIC
-#define IFF_DYNAMIC     0x8000	/* dialup device with changing addresses */
+# define IFF_DYNAMIC     0x8000	/* dialup device with changing addresses */
 #endif
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 struct in6_ifreq {
 	struct in6_addr ifr6_addr;
 	uint32_t ifr6_prefixlen;
@@ -199,7 +199,7 @@ static const struct arg1opt Arg1Opt[] = {
 	{"SIOCSIFMAP", SIOCSIFMAP, ifreq_offsetof(ifr_map.irq)},
 #endif
 	/* Last entry if for unmatched (possibly hostname) arg. */
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	{"SIOCSIFADDR", SIOCSIFADDR, ifreq_offsetof(ifr_addr)},	/* IPv6 version ignores the offset */
 	{"SIOCDIFADDR", SIOCDIFADDR, ifreq_offsetof(ifr_addr)},	/* IPv6 version ignores the offset */
 #endif
@@ -228,7 +228,7 @@ static const struct options OptArray[] = {
 	{"io_addr", N_ARG, ARG_IO_ADDR, 0},
 	{"irq", N_ARG, ARG_IRQ, 0},
 #endif
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	{"add", N_ARG, ARG_ADD_DEL, 0},
 	{"del", N_ARG, ARG_ADD_DEL, 0},
 #endif
@@ -265,7 +265,7 @@ int ifconfig_main(int argc, char **argv)
 	struct ifreq ifr;
 	struct sockaddr_in sai;
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	struct sockaddr_in6 sai6;
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
@@ -359,13 +359,13 @@ int ifconfig_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
 					if (mask & A_CAST_RESOLVE) {
 #endif
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 						char *prefix;
 						int prefix_len = 0;
 #endif
 
 						safe_strncpy(host, *argv, (sizeof host));
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 						if ((prefix = strchr(host, '/'))) {
 							prefix_len = atol(prefix + 1);
 							if ((prefix_len < 0) || (prefix_len > 128)) {
@@ -381,7 +381,7 @@ int ifconfig_main(int argc, char **argv)
 						if (!strcmp(host, bb_INET_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 						} else
 							if (inet_pton(AF_INET6, host, &sai6.sin6_addr) >
 								0) {

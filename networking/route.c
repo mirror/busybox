@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.18 2002/08/22 18:24:43 bug1 Exp $
+ * $Id: route.c,v 1.19 2002/11/26 09:02:06 bug1 Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -331,7 +331,7 @@ static int INET_setroute(int action, int options, char **args)
 	return EXIT_SUCCESS;
 }
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 static int INET6_setroute(int action, int options, char **args)
 {
 	struct in6_rtmsg rt;
@@ -560,7 +560,7 @@ void displayroutes(int noresolve, int netstatfmt)
 	}
 }
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 static void INET6_displayroutes(int noresolve)
 {
 	char buff[256];
@@ -651,7 +651,7 @@ int route_main(int argc, char **argv)
 	int opt;
 	int what = 0;
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	int af = AF_INET;
 #endif
 
@@ -669,7 +669,7 @@ int route_main(int argc, char **argv)
 				extended = 1;
 				break;
 			case 'A':
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 				if (strcmp(optarg, "inet6") == 0)
 					af = AF_INET6;
 				break;
@@ -679,7 +679,7 @@ int route_main(int argc, char **argv)
 			}
 		}
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 		if (af == AF_INET6)
 			INET6_displayroutes(*argv != NULL);
 		else
@@ -699,7 +699,7 @@ int route_main(int argc, char **argv)
 			show_usage();
 	}
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	if (af == AF_INET6)
 		return INET6_setroute(what, 0, argv + 2);
 #endif
