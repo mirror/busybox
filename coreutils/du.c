@@ -37,19 +37,18 @@
 static unsigned long disp_hr = KILOBYTE;
 #endif
 
-typedef void (Display) (long, char *);
-
 static int du_depth = 0;
 static int count_hardlinks = 0;
 static int one_file_system = 0;
-static dev_t dir_dev = 0;
+static dev_t dir_dev;
 
-static Display *print;
+static void (*print) (long, char *);
 
 static void print_normal(long size, char *filename)
 {
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	printf("%s\t%s\n", make_human_readable_str(size<<10, 1, disp_hr), filename);
+	printf("%s\t%s\n", make_human_readable_str(size << 10, 1, disp_hr),
+		   filename);
 #else
 	printf("%ld\t%s\n", size, filename);
 #endif
@@ -114,15 +113,13 @@ static long du(char *filename)
 		}
 		closedir(dir);
 		print(sum, filename);
-	}
-	else if (statbuf.st_nlink > 1 && !count_hardlinks) {
+	} else if (statbuf.st_nlink > 1 && !count_hardlinks) {
 		/* Add files with hard links only once */
 		if (is_in_ino_dev_hashtable(&statbuf, NULL)) {
 			sum = 0L;
 			if (du_depth == 1)
 				print(sum, filename);
-		}
-		else {
+		} else {
 			add_to_ino_dev_hashtable(&statbuf, NULL);
 		}
 	}
@@ -142,27 +139,32 @@ int du_main(int argc, char **argv)
 	/* parse argv[] */
 	while ((c = getopt(argc, argv, "slx"
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-"hm"
+					   "hm"
 #endif
-"k")) != EOF) {
-			switch (c) {
-			case 's':
-					print = print_summary;
-					break;
-			case 'l':
-					count_hardlinks = 1;
-					break;
-			case 'x':
-					one_file_system = 1;
-					break;
+					   "k")) != EOF) {
+		switch (c) {
+		case 's':
+			print = print_summary;
+			break;
+		case 'l':
+			count_hardlinks = 1;
+			break;
+		case 'x':
+			one_file_system = 1;
+			break;
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-			case 'h': disp_hr = 0;        break;
-			case 'm': disp_hr = MEGABYTE; break;
+		case 'h':
+			disp_hr = 0;
+			break;
+		case 'm':
+			disp_hr = MEGABYTE;
+			break;
 #endif
-			case 'k': break;
-			default:
-					show_usage();
-			}
+		case 'k':
+			break;
+		default:
+			show_usage();
+		}
 	}
 
 	/* go through remaining args (if any) */
@@ -172,9 +174,9 @@ int du_main(int argc, char **argv)
 	} else {
 		long sum;
 
-		for (i=optind; i < argc; i++) {
+		for (i = optind; i < argc; i++) {
 			sum = du(argv[i]);
-			if(is_directory(argv[i], FALSE, NULL)==FALSE) {
+			if (is_directory(argv[i], FALSE, NULL) == FALSE) {
 				print_normal(sum, argv[i]);
 			}
 			reset_ino_dev_hashtable();
@@ -184,7 +186,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.53 2002/04/06 23:16:44 andersen Exp $ */
+/* $Id: du.c,v 1.54 2002/08/23 03:25:22 bug1 Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
