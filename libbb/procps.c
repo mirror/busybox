@@ -16,7 +16,7 @@
 
 #include "libbb.h"
 
-#ifndef
+#ifndef PAGE_MASK
 #define PAGE_MASK		(~((getpagesize())-1))
 #endif
 
