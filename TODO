@@ -56,3 +56,8 @@ and then start with the biggest things and make them smaller...
 xargs could use a -l option
 
 ------------------------------------------------------------------
+
+libbb/unzip.c and archival/gzip.c have common constant static arrays and
+code for initializing the CRC array. Both use CRC-32 and could use
+common code for CRC calculation. Within archival/gzip.c, the CRC
+array should be malloc-ed as it is in libbb/unzip.c .
