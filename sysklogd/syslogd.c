@@ -86,7 +86,7 @@ static char *RemoteHost;
 static int RemotePort = 514;
 /* To remote log or not to remote log, that is the question. */
 static int doRemoteLog = FALSE;
-static int local_logging = TRUE;
+static int local_logging = FALSE;
 #endif
 
 /* Note: There is also a function called "message()" in init.c */
@@ -531,8 +531,8 @@ extern int syslogd_main(int argc, char **argv)
                           doRemoteLog = TRUE;
                           stopDoingThat = TRUE;
                           break;
-			case 'N':
-				local_logging = FALSE;
+			case 'L':
+				local_logging = TRUE;
 				break;
 #endif
 			default:
