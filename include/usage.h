@@ -1318,6 +1318,11 @@
 	"          [ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
 	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]\n"
 
+#define insmod_ng_trivial_usage \
+	"MODULE [symbol=value]..."
+#define insmod_ng_full_usage \
+	"Loads the specified kernel modules into the kernel."
+
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"
 #define kill_full_usage \
@@ -1717,7 +1722,7 @@
 	"\nAvailable Opcodes:\n\n" \
 	"bsf bsfm bsr bss datacompression drvbuffer eof eom erase\n" \
 	"fsf fsfm fsr fss load lock mkpart nop offline ras1 ras2\n" \
-	"ras3 reset retension rew rewoffline seek setblk setdensity\n" \
+	"ras3 reset retension rewind rewoffline seek setblk setdensity\n" \
 	"setpart tell unload unlock weof wset"
 
 #define mv_trivial_usage \
@@ -1930,6 +1935,12 @@
 	"$ pwd\n" \
 	"/root\n"
 
+#define raid_start_trivial_usage \
+	"MD_DEVICE DISK_DEVICE"
+#define raid_start_full_usage \
+	"Start MD_DEVICE, taking superblock from DISK_DEVICE.\n" \
+	"Example: raid_start /dev/md0 /dev/sdb"
+	
 #define rdate_trivial_usage \
 	"[-sp] HOST"
 #define rdate_full_usage \
