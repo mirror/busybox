@@ -46,7 +46,7 @@
 #include <sys/mount.h>
 #include <ctype.h>
 #include <fstab.h>
-#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h>
 #endif
 
@@ -255,7 +255,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		fclose(f);
 	} else
 #endif
-#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 	if (strcmp(filesystemType, "auto") == 0) {
 		int fd, i, numfilesystems;
 		char device[] = "/dev/mtab";
@@ -325,7 +325,7 @@ extern int mount_main(int argc, char **argv)
 	/* Only compiled in if BB_MTAB is not defined */
 	whine_if_fstab_is_missing();
 
-#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 	if (argc == 1) {
 		int fd, i, numfilesystems;
 		char device[] = "/dev/mtab";

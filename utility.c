@@ -58,7 +58,7 @@
 
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
  * list of available filesystems used for the -t auto option */ 
-#if defined BB_FEATURE_USE_PROCFS && defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_PROCFS && defined BB_FEATURE_USE_DEVPS_PATCH
 //#error Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again.
 #error "Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again."
 #endif
@@ -71,10 +71,10 @@ const char mtab_file[] = "/proc/mounts";
 #    if defined BB_MTAB
 const char mtab_file[] = "/etc/mtab";
 #    else
-#      if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#      if defined BB_FEATURE_USE_DEVPS_PATCH
 const char mtab_file[] = "/dev/mtab";
 #    else
-#        error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or ( BB_FEATURE_USE_PROCFS | BB_FEATURE_USE_DEVPS_N_DEVMTAB)
+#        error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or ( BB_FEATURE_USE_PROCFS | BB_FEATURE_USE_DEVPS_PATCH)
 #    endif
 #  endif
 #  endif
@@ -1249,11 +1249,11 @@ extern int device_open(char *device, int mode)
 
 #if defined BB_KILLALL || defined BB_FEATURE_LINUXRC && ( defined BB_HALT || defined BB_REBOOT || defined BB_POWEROFF )
 
-#ifdef BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#ifdef BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devps.h>
 #endif
 
-#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 /* findPidByName()
  *  
  *  This finds the pid of the specified process,
@@ -1314,7 +1314,7 @@ extern pid_t findPidByName( char* pidName)
 
 	return thePid;
 }
-#else		/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+#else		/* BB_FEATURE_USE_DEVPS_PATCH */
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
 #endif
@@ -1362,7 +1362,7 @@ extern pid_t findPidByName( char* pidName)
 	}
 	return 0;
 }
-#endif							/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+#endif							/* BB_FEATURE_USE_DEVPS_PATCH */
 #endif							/* BB_INIT || BB_HALT || BB_REBOOT || BB_KILLALL || BB_POWEROFF */
 
 #if defined BB_GUNZIP \

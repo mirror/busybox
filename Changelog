@@ -1,9 +1,11 @@
 0.43
 	* Busybox can now work perfectly when /proc is disabled, thereby 
-	    saving a bunch of memory (kernel /proc support is not thin).
-	    This is done by making use of some nice kernel patches I 
-	    wrote up to support the features that busybox requires and
-	    that /proc usually provides.
+	    saving a bunch of memory (kernel /proc support is not thin).  This
+	    is done by making use of some nice kernel patches I wrote up to
+	    support the features that busybox requires and that /proc usually
+	    provides.  To enable this, turn on BB_FEATURE_USE_DEVPS_PATCH and
+	    patch your kernel with the devps patch in the kernel-patches/
+	    directory. 
 	* Wrote basename, killall, and uptime.
 	* Added freeramdisk, which will free up all memory associated
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>

@@ -27,7 +27,7 @@
 
 extern int lsmod_main(int argc, char **argv)
 {
-#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 	char *cmd[] = { "cat", "/dev/modules", "\0" };
 #else
 #if ! defined BB_FEATURE_USE_PROCFS

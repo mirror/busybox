@@ -114,7 +114,7 @@
 // the /proc filesystem and thereby saving lots and lots 
 // memory for more important things.
 // You can't use this and USE_PROCFS at the same time...
-//#define BB_FEATURE_USE_DEVPS_N_DEVMTAB
+//#define BB_FEATURE_USE_DEVPS_PATCH
 //
 //
 // enable features that use the /proc filesystem (apps that 

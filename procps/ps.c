@@ -38,7 +38,7 @@
 #include <sys/ioctl.h>
 
 
-#if ! defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#if ! defined BB_FEATURE_USE_DEVPS_PATCH
 
 /* The following is the first ps implementation --
  * the one using the /proc virtual filesystem.
@@ -184,7 +184,7 @@ extern int ps_main(int argc, char **argv)
 }
 
 
-#else /* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+#else /* BB_FEATURE_USE_DEVPS_PATCH */
 
 
 /* The following is the second ps implementation --
@@ -284,5 +284,5 @@ extern int ps_main(int argc, char **argv)
 	exit (0);
 }
 
-#endif /* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+#endif /* BB_FEATURE_USE_DEVPS_PATCH */
 
