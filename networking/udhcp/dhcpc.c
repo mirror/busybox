@@ -118,14 +118,14 @@ static void perform_renew(void)
 {
 	LOG(LOG_INFO, "Performing a DHCP renew");
 	switch (state) {
-	case RENEWING:
-		run_script(NULL, "deconfig");
 	case BOUND:
-	case REBINDING:
 		change_mode(LISTEN_KERNEL);
+	case RENEWING:
+	case REBINDING:
 		state = RENEW_REQUESTED;
 		break;
-	case RENEW_REQUESTED:
+	case RENEW_REQUESTED: /* impatient are we? fine, square 1 */
+		run_script(NULL, "deconfig");
 	case REQUESTING:
 	case RELEASED:
 		change_mode(LISTEN_RAW);
@@ -387,6 +387,7 @@ int main(int argc, char *argv[])
 					packet_num++;
 				} else {
 					/* timed out, go back to init state */
+					if (state == RENEW_REQUESTED) run_script(NULL, "deconfig");
 					state = INIT_SELECTING;
 					timeout = now;
 					packet_num = 0;

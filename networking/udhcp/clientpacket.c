@@ -35,6 +35,10 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 
 #include "dhcpd.h"
@@ -49,7 +53,17 @@ unsigned long random_xid(void)
 {
 	static int initialized;
 	if (!initialized) {
-		srand(time(0));
+		int fd;
+		unsigned long seed;
+
+		fd = open("/dev/urandom", 0);
+		if (fd < 0 || read(fd, &seed, sizeof(seed)) < 0) {
+			LOG(LOG_WARNING, "Could not load seed from /dev/urandom: %s",
+				strerror(errno));
+			seed = time(0);
+		}
+		if (fd >= 0) close(fd);
+		srand(seed);
 		initialized++;
 	}
 	return rand();

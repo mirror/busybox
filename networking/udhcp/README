@@ -5,155 +5,6 @@ The udhcp server/client package is primarily geared towards embedded
 systems. It does however, strive to be fully functional, and RFC
 compliant.
 
-udhcp server (udhcpd)
---------------------
-
-The only command line argument to udhcpd is an optional specifed
-config file. If no config file is specified, udhcpd uses the default
-config file, /etc/udhcpd.conf. Ex:
-
-udhcpd /etc/udhcpd.eth1.conf
-
-The udhcp server employs a number of simple config files:
-
-udhcpd.leases
-------------
-
-The udhcpd.leases behavior is designed for an embedded system. The
-file is written either every auto_time seconds, or when a SIGUSR1
-is received (the auto_time timer restarts if a SIGUSR1 is received). 
-If you send a SIGTERM to udhcpd directly after a SIGUSR1, udhcpd will
-finish writing the leases file and wait for the aftermentioned script
-to be executed and finish before quiting, so you do not need to sleep
-between sending signals. When the file is written, a script can be
-optionally called to commit the file to flash. Lease times are stored
-in the file by time remaining in lease (for systems without clock
-that works when there is no power), or by the absolute time that it
-expires in seconds from epoch. In the remainig format, expired leases
-are stored as zero. The file is of the format:
-
-16 byte MAC
-4 byte ip address
-u32 expire time
-16 byte MAC
-4 byte ip address
-u32 expire time
-.
-etc.
-
-example: hexdump udhcpd.leases
-
-0000000 1000 c95a 27d9 0000 0000 0000 0000 0000
-0000010 a8c0 150a 0d00 2d29 5000 23fc 8566 0000
-0000020 0000 0000 0000 0000 a8c0 140a 0d00 4e29
-0000030
-
-
-udhcpd.conf
-----------
-
-The format is fairly simple, there is a sample file with all the
-available options and comments describing them in samples/udhcpd.conf
-
-
-udhcp client (udhcpc)
---------------------
-
-The udhcp client negotiates a lease with the DHCP server and notifies
-a set of scripts when a leases is obtained or lost. The command line
-options for the udhcp client are:
-
--c, --clientid=CLIENTID         Client identifier
--H, --hostname=HOSTNAME         Client hostname
--h,				Alias for -H
--f, --foreground                Do not fork after getting lease
--b, --background                Fork to background if lease cannot be
-                                immediately negotiated.
--i, --interface=INTERFACE       Interface to use (default: eth0)
--n, --now                       Exit with failure if lease cannot be
-                                immediately negotiated.
--p, --pidfile=file              Store process ID of daemon in file
--q, --quit                      Quit after obtaining lease
--r, --request=IP                IP address to request (default: none)
--s, --script=file               Run file at dhcp events (default:
-                                /usr/share/udhcpc/default.script)
--v, --version                   Display version
-
-If the requested IP address cannot be obtained, the client accepts the
-address that the server offers.
-
-When an event occurs, udhcpc calls the action script. The script by
-default is /usr/share/udhcpc/default.script but this can be changed via 
-the command line arguments. The three possible arguments to the script 
-are:
-
-	deconfig: This argument is used when udhcpc starts, and
-	when a leases is lost. The script should put the interface in an
-	up, but deconfigured state, ie: ifconfig $interface 0.0.0.0.
-	
-	bound: This argument is used when udhcpc moves from an
-	unbound, to a bound state. All of the paramaters are set in
-	enviromental variables, The script should configure the interface,
-	and set any other relavent parameters (default gateway, dns server, 
-	etc).
-	
-	renew: This argument is used when a DHCP lease is renewed. All of
-	the paramaters are set in enviromental variables. This argument is
-	used when the interface is already configured, so the IP address,
-	will not change, however, the other DHCP paramaters, such as the
-	default gateway, subnet mask, and dns server may change.
-
-	nak: This argument is used with udhcpc receives a NAK message.
-	The script with the deconfig argument will be called directly
-	afterwards, so no changes to the network interface are neccessary.
-	This hook is provided for purely informational purposes (the
-	message option may contain a reason for the NAK).
-
-The paramaters for enviromental variables are as follows:
-
-	$HOME		- The set $HOME env or "/"
-	$PATH		- the set $PATH env or "/bin:/usr/bin:/sbin:/usr/sbin"
-	$1		- What action the script should perform
-	interface	- The interface this was obtained on
-	ip		- The obtained IP
-	siaddr		- The bootp next server option
-	sname		- The bootp server name option
-	boot_file	- The bootp boot file option
-	subnet		- The assigend subnet mask
-	timezone	- Offset in seconds from UTC
-	router		- A list of routers
-	timesvr		- A list of time servers
-	namesvr		- A list of IEN 116 name servers
-	dns		- A list of DNS server
-	logsvr		- A list of MIT-LCS UDP log servers
-	cookiesvr	- A list of RFC 865 cookie servers
-	lprsvr		- A list of LPR servers
-	hostname	- The assigned hostname
-	bootsize	- The length in 512 octect blocks of the bootfile
-	domain		- The domain name of the network
-	swapsvr		- The IP address of the client's swap server
-	rootpath	- The path name of the client's root disk
-	ipttl		- The TTL to use for this network
-	mtu		- The MTU to use for this network
-	broadcast	- The broadcast address for this network
-	ntpsrv		- A list of NTP servers
-	wins		- A list of WINS servers
-	lease		- The lease time, in seconds
-	dhcptype	- DHCP message type (safely ignored)
-	serverid	- The IP of the server
-	message		- Reason for a DHCPNAK
-	tftp		- The TFTP server name
-	bootfile	- The bootfile name
-
-additional options are easily added in options.c.
-	
-udhcpc also responds to SIGUSR1 and SIGUSR2. SIGUSR1 will force a renew state,
-and SIGUSR2 will force a release of the current lease, and cause udhcpc to
-go into an inactive state (until it is killed, or receives a SIGUSR1). You do
-not need to sleep between sending signals, as signals received are processed
-sequencially in the order they are received.
-
-
 
 compile time options
 -------------------
@@ -185,6 +36,7 @@ options.c contains a set of dhcp options for the client:
 
 	code: The DHCP code for this option
 
+
 busybox drop-in
 --------------
 udhcp is now a drop-in component for busybox (http://busybox.net).
@@ -195,3 +47,4 @@ cp *.[ch] README AUTHORS COPYING ChangeLog TODO \
 
 The only two files udhcp does not provide are config.in and
 Makefile.in, so these may need to be updated from time to time.
+
