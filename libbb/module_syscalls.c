@@ -28,7 +28,8 @@
    _syscall* defined.  */
 #define __LIBRARY__
 #include <sys/syscall.h>
-#ifndef __UCLIBC__
+#if __GNU_LIBRARY__ < 5
+/* This is needed for libc5 */
 #include <asm/unistd.h>
 #endif
 #include "libbb.h"
