@@ -278,6 +278,7 @@ typedef struct {
  * available?  Where is it documented? */
 struct in_str {
 	const char *p;
+	char peek_buf[2];
 	int __promptme;
 	int promptmode;
 	FILE *file;
@@ -932,12 +933,11 @@ static int file_peek(struct in_str *i)
 	if (i->p && *i->p) {
 		return *i->p;
 	} else {
-		static char buffer[2];
-		buffer[0] = fgetc(i->file);
-		buffer[1] = '\0';
-		i->p = buffer;
+		i->peek_buf[0] = fgetc(i->file);
+		i->peek_buf[1] = '\0';
+		i->p = i->peek_buf;
 		debug_printf("b_peek: got a %d\n", *i->p);
-		return *i->p; 
+		return *i->p;
 	}
 }
 
@@ -1513,8 +1513,8 @@ static int run_list_real(struct pipe *pi)
 					perror_msg("tcsetpgrp-4");
 			} else {
 				rcode = pipe_wait(pi);
-				debug_printf("pipe_wait returned %d\n",rcode);
 			}
+			debug_printf("pipe_wait returned %d\n",rcode);
 		}
 		last_return_code=rcode;
 		if ( rmode == RES_IF || rmode == RES_ELIF )
@@ -2347,7 +2347,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 					done_pipe(ctx,PIPE_SEQ);
 			}
 			if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
-				debug_printf("leaving parse_stream\n");
+				debug_printf("leaving parse_stream (triggered)\n");
 				return 0;
 			}
 #if 0
@@ -2471,6 +2471,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	 * that is, we were really supposed to get end_trigger, and never got
 	 * one before the EOF.  Can't use the standard "syntax error" return code,
 	 * so that parse_stream_outer can distinguish the EOF and exit smoothly. */
+	debug_printf("leaving parse_stream (EOF)\n");
 	if (end_trigger != '\0') return -1;
 	return 0;
 }
