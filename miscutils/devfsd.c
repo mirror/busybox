@@ -246,7 +246,7 @@ static char get_old_ide_name (unsigned , unsigned);
 static char *write_old_sd_name (char *, unsigned, unsigned, char *);
 
 /* busybox functions */
-#ifdef CONFIG_DEVFSD_VERBOSE
+#if defined(CONFIG_DEVFSD_VERBOSE) || defined(CONFIG_DEBUG)
 static void msg_logger(int die, int pri, const char * fmt, ... );
 #endif
 static void do_ioctl(int die, int fd, int request, unsigned long event_mask_flag);
@@ -303,7 +303,7 @@ const char * const bb_msg_small_buffer		= "buffer too small\n";
 const char * const bb_msg_variable_not_found = "variable: %s not found\n";
 #endif
 
-#ifdef CONFIG_DEVFSD_VERBOSE
+#if defined(CONFIG_DEVFSD_VERBOSE) || defined(CONFIG_DEBUG)
 static void msg_logger(int die, int pri, const char * fmt, ... )
 {
 	va_list ap;
