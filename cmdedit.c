@@ -136,19 +136,20 @@ static void win_changed(int nsig)
 	struct winsize win = { 0, 0, 0, 0 };
 	static __sighandler_t previous_SIGWINCH_handler; /* for reset */
 
-	   /*   emulate      || signal call */
+	   /* emulate signal call if not called as a sig handler */
 	if(nsig == -SIGWINCH || nsig == SIGWINCH) {
 		ioctl(0, TIOCGWINSZ, &win);
 		if (win.ws_col > 0) {
 			cmdedit_setwidth( win.ws_col, nsig == SIGWINCH );
-			}
+		}
 	}
-		/* Unix not all standart in recall signal */
+	
+	/* Unix not all standart in recall signal */
 
-	if(nsig == -SIGWINCH)                   /* save previous handler */
+	if(nsig == -SIGWINCH)                  /* save previous handler */
 		previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
 	else if(nsig == SIGWINCH)              /* signaled called handler */
-		signal(SIGWINCH, win_changed);  /* set for next call */
+		signal(SIGWINCH, win_changed);     /* set for next call */
 	else                                   /* set previous handler */
 		signal(SIGWINCH, previous_SIGWINCH_handler);   /* reset */
 }
@@ -321,7 +322,7 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 extern void cmdedit_init(void)
 {
 	if((handlers_sets & SET_WCHG_HANDLERS)==0) {
-	/* emulate usage handler to set handler and call yours work */
+		/* pretend we received a signal in order to set term size and sig handling */
 		win_changed(-SIGWINCH);
 		handlers_sets |= SET_WCHG_HANDLERS;
 	}
@@ -350,10 +351,10 @@ static char** username_tab_completion(char *ud, int *num_matches)
     char                 *temp;
     int                   nm = 0;
 
-    bb_setpwent ();
+    setpwent ();
     userlen = strlen (ud + 1);
 
-    while ((entry = bb_getpwent ()) != NULL) {
+    while ((entry = getpwent ()) != NULL) {
 	/* Null usernames should result in all users as possible completions. */
 	if (!userlen || !strncmp (ud + 1, entry->pw_name, userlen)) {
 
@@ -365,7 +366,7 @@ static char** username_tab_completion(char *ud, int *num_matches)
 	}
     }
 
-    bb_endpwent ();
+    endpwent ();
     (*num_matches) = nm;
 	return (matches);
 }
