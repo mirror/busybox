@@ -655,7 +655,7 @@ static int list_single(struct dnode *dn)
 #endif	
 					{
 #if _FILE_OFFSET_BITS == 64
-						printf("%9lld ", dn->dstat.st_size);
+						printf("%9lld ", (long long)dn->dstat.st_size);
 #else
 						printf("%9ld ", dn->dstat.st_size);
 #endif

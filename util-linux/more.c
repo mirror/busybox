@@ -124,13 +124,13 @@ extern int more_main(int argc, char **argv)
 				if (file != stdin) {
 #if _FILE_OFFSET_BITS == 64
 					len += printf("(%d%% of %lld bytes)",
+						   (int) (100 * ((double) ftell(file) /
+						   (double) st.st_size)), (long long)st.st_size);
 #else
 					len += printf("(%d%% of %ld bytes)",
+						   (int) (100 * ((double) ftell(file) /
+						   (double) st.st_size)), (long)st.st_size);
 #endif
-								   (int) (100 *
-										  ((double) ftell(file) /
-										   (double) st.st_size)),
-								   st.st_size);
 				}
 				len += printf("%s",
 #ifdef BB_FEATURE_USE_TERMIOS
