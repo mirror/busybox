@@ -155,32 +155,28 @@ typedef unsigned short ush;
 typedef unsigned long ulg;
 typedef int file_t;				/* Do not use stdio */
 
-uch *inbuf;
-uch *outbuf;
-ush *d_buf;
-uch *window;
-ush *tab_prefix0;
-ush *tab_prefix1;
+static uch *inbuf;
+static uch *outbuf;
+static ush *d_buf;
+static uch *window;
+static ush *tab_prefix0;
+static ush *tab_prefix1;
 
 /* local variables */
-int test_mode = 0;	/* check file integrity option */
-int foreground;		/* set if program run in foreground */
-int maxbits = BITS;	/* max bits per code for LZW */
-int method = DEFLATED;	/* compression method */
-int exit_code = OK;	/* program exit code */
-int last_member;	/* set for .zip and .Z files */
-int part_nb;		/* number of parts in .gz file */
-long ifile_size;	/* input file size, -1 for devices (debug only) */
-long bytes_in;		/* number of input bytes */
-long bytes_out;		/* number of output bytes */
-long total_in = 0;	/* input bytes for all files */
-long total_out = 0;	/* output bytes for all files */
-struct stat istat;	/* status for input file */
-int ifd;		/* input file descriptor */
-int ofd;		/* output file descriptor */
-unsigned insize;	/* valid bytes in inbuf */
-unsigned inptr;		/* index of next byte to be processed in inbuf */
-unsigned outcnt;	/* bytes in output buffer */
+static int test_mode = 0;	/* check file integrity option */
+static int foreground;		/* set if program run in foreground */
+static int method = DEFLATED;	/* compression method */
+static int exit_code = OK;	/* program exit code */
+static int last_member;	/* set for .zip and .Z files */
+static int part_nb;		/* number of parts in .gz file */
+static long ifile_size;	/* input file size, -1 for devices (debug only) */
+static long bytes_in;		/* number of input bytes */
+static long bytes_out;		/* number of output bytes */
+static int ifd;		/* input file descriptor */
+static int ofd;		/* output file descriptor */
+static unsigned insize;	/* valid bytes in inbuf */
+static unsigned inptr;		/* index of next byte to be processed in inbuf */
+static unsigned outcnt;	/* bytes in output buffer */
 
 unsigned hufts;		/* track memory usage */
 ulg bb;			/* bit buffer */

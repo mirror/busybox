@@ -49,7 +49,7 @@
 
 FILE *cin;
 
-struct termios initial_settings, new_settings;
+static struct termios initial_settings, new_settings;
 
 void gotsig(int sig)
 {

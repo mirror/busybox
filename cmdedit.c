@@ -69,7 +69,7 @@ static struct history *his_end = NULL;	/* Last element in command line list */
 #endif
 
 /* Current termio and the previous termio before starting sh */
-struct termios initial_settings, new_settings;
+static struct termios initial_settings, new_settings;
 
 
 #ifndef	_POSIX_VDISABLE

@@ -1754,34 +1754,23 @@ DECLARE(ush, tab_prefix1, 1L << (BITS - 1));
 
 		/* local variables */
 
-int ascii = 0;					/* convert end-of-lines to local OS conventions */
-int decompress = 0;				/* decompress (-d) */
-int no_name = -1;				/* don't save or restore the original file name */
-int no_time = -1;				/* don't save or restore the original file time */
-int foreground;					/* set if program run in foreground */
-char *progname;					/* program name */
+static int foreground;					/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
 static int exit_code = OK;		/* program exit code */
-int save_orig_name;				/* set if original name must be saved */
-int last_member;				/* set for .zip and .Z files */
-int part_nb;					/* number of parts in .gz file */
-long time_stamp;				/* original time stamp (modification time) */
-long ifile_size;				/* input file size, -1 for devices (debug only) */
-char *env;						/* contents of GZIP env variable */
-char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
-int z_len;						/* strlen(z_suffix) */
+static int part_nb;					/* number of parts in .gz file */
+static long time_stamp;				/* original time stamp (modification time) */
+static long ifile_size;				/* input file size, -1 for devices (debug only) */
+static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
+static int z_len;						/* strlen(z_suffix) */
 
-long bytes_in;					/* number of input bytes */
-long bytes_out;					/* number of output bytes */
-char ifname[MAX_PATH_LEN];		/* input file name */
-char ofname[MAX_PATH_LEN];		/* output file name */
-int remove_ofname = 0;			/* remove output file on error */
-struct stat istat;				/* status for input file */
-int ifd;						/* input file descriptor */
-int ofd;						/* output file descriptor */
-unsigned insize;				/* valid bytes in inbuf */
-unsigned inptr;					/* index of next byte to be processed in inbuf */
-unsigned outcnt;				/* bytes in output buffer */
+static long bytes_in;					/* number of input bytes */
+static long bytes_out;					/* number of output bytes */
+static char ifname[MAX_PATH_LEN];		/* input file name */
+static char ofname[MAX_PATH_LEN];		/* output file name */
+static int ifd;						/* input file descriptor */
+static int ofd;						/* output file descriptor */
+static unsigned insize;				/* valid bytes in inbuf */
+static unsigned outcnt;				/* bytes in output buffer */
 
 /* local functions */
 
