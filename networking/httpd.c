@@ -127,6 +127,13 @@ static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
 
+#ifdef CONFIG_LFS
+# define cont_l_fmt "%lld"
+#else
+# define cont_l_fmt "%ld"
+#endif
+
+
 // Note: bussybox xfuncs are not used because we want the server to keep running
 //       if something bad happens due to a malformed user request.
 //       As a result, all memory allocation after daemonize
@@ -932,7 +939,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 #endif
   if (config->ContentLength != -1) {    /* file */
     strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
-    len += sprintf(buf+len, "Last-Modified: %s\r\n%s %ld\r\n",
+    len += sprintf(buf+len, "Last-Modified: %s\r\n%s " cont_l_fmt "\r\n",
 			      timeStr, Content_length, config->ContentLength);
   }
   strcat(buf, "\r\n");
