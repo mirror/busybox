@@ -1899,7 +1899,7 @@ int gzip_main(int argc, char **argv)
 	int force = 0;
 	int opt;
 
-	while ((opt = getopt(argc, argv, "cf123456789d")) != -1) {
+	while ((opt = getopt(argc, argv, "cf123456789dq")) != -1) {
 		switch (opt) {
 		case 'c':
 			tostdout = 1;
@@ -1910,6 +1910,8 @@ int gzip_main(int argc, char **argv)
 		/* Ignore 1-9 (compression level) options */
 		case '1': case '2': case '3': case '4': case '5':
 		case '6': case '7': case '8': case '9':
+			break;
+		case 'q':
 			break;
 #ifdef BB_GUNZIP
 		case 'd':

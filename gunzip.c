@@ -87,7 +87,7 @@ extern int gunzip_main(int argc, char **argv)
 	if (strcmp(applet_name, "zcat") == 0)
 		flags |= gunzip_to_stdout;
 
-	while ((opt = getopt(argc, argv, "ctfhd")) != -1) {
+	while ((opt = getopt(argc, argv, "ctfhdq")) != -1) {
 		switch (opt) {
 		case 'c':
 			flags |= gunzip_to_stdout;
@@ -100,6 +100,8 @@ extern int gunzip_main(int argc, char **argv)
 			break;
 		case 'd': /* Used to convert gzip to gunzip. */
 			break;
+		case 'q':
+			error_msg("-q option not supported, ignored");
 		case 'h':
 		default:
 			show_usage(); /* exit's inside usage */
