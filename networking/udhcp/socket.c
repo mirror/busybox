@@ -141,6 +141,8 @@ int raw_socket(int ifindex)
 		DEBUG(LOG_ERR, "socket call failed: %m");
 		return -1;
 	}
+
+	while (fd >= 0 && fd < 3) fd = dup(fd); /* don't let daemon close fds on us */
 	
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);
