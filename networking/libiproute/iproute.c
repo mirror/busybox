@@ -72,6 +72,8 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	int len = n->nlmsg_len;
 	struct rtattr * tb[RTA_MAX+1];
 	char abuf[256];
+	inet_prefix dst;
+	inet_prefix src;
 	int host_len = -1;
 	SPRINT_BUF(b1);
 	
@@ -143,6 +145,18 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
+
+	if (filter.rdst.family && inet_addr_match(&dst, &filter.rdst, filter.rdst.bitlen))
+		return 0;
+	if (filter.mdst.family && filter.mdst.bitlen >= 0 &&
+	    inet_addr_match(&dst, &filter.mdst, r->rtm_dst_len))
+		return 0;
+
+	if (filter.rsrc.family && inet_addr_match(&src, &filter.rsrc, filter.rsrc.bitlen))
+		return 0;
+	if (filter.msrc.family && filter.msrc.bitlen >= 0 &&
+	    inet_addr_match(&src, &filter.msrc, r->rtm_src_len))
+		return 0;
 
 	if (filter.flushb &&
 	    r->rtm_family == AF_INET6 &&
