@@ -5,7 +5,7 @@
  *
  * Bjorn Wesen, Axis Communications AB
  *
- * Author of the original route: 
+ * Author of the original route:
  *              Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              (derived from FvK's 'route.c     1.70    01/04/94')
  *
@@ -59,7 +59,7 @@ static int
 INET_resolve(char *name, struct sockaddr *sa)
 {
 	struct sockaddr_in *s_in = (struct sockaddr_in *)sa;
-	
+
 	s_in->sin_family = AF_INET;
 	s_in->sin_port = 0;
 
@@ -130,15 +130,15 @@ INET_setroute(int action, int options, char **args)
 		case 1:
 			isnet = 1;
 			break;
-			
+
 		case 2:
 			isnet = 0;
 			break;
-			
+
 		default:
 			break;
 	}
-	
+
 	/* Fill in the other fields. */
 	rt.rt_flags = (RTF_UP | RTF_HOST);
 	if (isnet)
@@ -147,7 +147,7 @@ INET_setroute(int action, int options, char **args)
 	while (*args) {
 		if (strcmp(*args, "metric")==0) {
 			int metric;
-			
+
 			args++;
 			if (!*args || !isdigit(**args))
 				show_usage();
@@ -163,7 +163,7 @@ INET_setroute(int action, int options, char **args)
 
 		if (strcmp(*args, "netmask")==0) {
 			struct sockaddr mask;
-			
+
 			args++;
 			if (!*args || mask_in_addr(rt))
 				show_usage();
@@ -235,8 +235,8 @@ INET_setroute(int action, int options, char **args)
 #if HAVE_RTF_IRTT
 			rt.rt_flags |= RTF_IRTT;
 			rt.rt_irtt = atoi(*(args - 1));
-			rt.rt_irtt *= (HZ / 100);	/* FIXME */
-#if 0				/* FIXME: do we need to check anything of this? */
+			rt.rt_irtt *= (HZ / 100);       /* FIXME */
+#if 0                           /* FIXME: do we need to check anything of this? */
 			if (rt.rt_irtt < 1 || rt.rt_irtt > (120 * HZ)) {
 				error_msg(_("Invalid initial rtt."));
 				return E_OPTERR;
@@ -283,7 +283,7 @@ INET_setroute(int action, int options, char **args)
 		if (!rt.rt_dev) {
 			rt.rt_dev = *args++;
 			if (*args)
-				show_usage();	/* must be last to catch typos */
+				show_usage();   /* must be last to catch typos */
 		} else {
 			show_usage();
 		}
@@ -337,7 +337,7 @@ INET_setroute(int action, int options, char **args)
 			return E_SOCK;
 		}
 	}
-	
+
 	/* Close the socket. */
 	(void) close(skfd);
 	return EXIT_SUCCESS;
@@ -368,7 +368,7 @@ static void displayroutes(void)
 	struct in_addr gw;
 	struct in_addr mask;
 	int flgs, ref, use, metric;
-	char flags[4];
+	char flags[64];
 	unsigned long int d,g,m;
 
 	char sdest[16], sgw[16];
@@ -382,44 +382,46 @@ static void displayroutes(void)
 			while(buff[ifl]!=' ' && buff[ifl]!='\t' && buff[ifl]!='\0')
 				ifl++;
 			buff[ifl]=0;    /* interface */
-			if(sscanf(buff+ifl+1, "%lx%lx%d%d%d%d%lx",
+			if(sscanf(buff+ifl+1, "%lx%lx%X%d%d%d%lx",
 			   &d, &g, &flgs, &ref, &use, &metric, &m)!=7) {
 				error_msg_and_die( "Unsuported kernel route format\n");
 			}
 			if(nl==1)
-			    printf("Kernel IP routing table\n"
-				    "Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+			printf("Kernel IP routing table\n"
+				"Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
 
 			ifl = 0;        /* parse flags */
-			if(flgs&RTF_UP)
-				flags[ifl++]='U';
-			if(flgs&RTF_GATEWAY)
-				flags[ifl++]='G';
-			if(flgs&RTF_HOST)
-				flags[ifl++]='H';
-			if(flgs&RTF_REINSTATE)
-				flags[ifl++]='R';
-			if(flgs&RTF_DYNAMIC)
-				flags[ifl++]='D';
-			if(flgs&RTF_MODIFIED)
-				flags[ifl++]='H';
-			if(flgs&RTF_REJECT)
-				flags[ifl++]='!';
-			flags[ifl]=0;
-			dest.s_addr = d;
-			gw.s_addr   = g;
-			mask.s_addr = m;
-			strcpy(sdest,  (dest.s_addr==0 ? "default" :
-					inet_ntoa(dest)));
-			strcpy(sgw,    (gw.s_addr==0   ? "*"       :
-					inet_ntoa(gw)));
-			printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
-				sdest, sgw,
-				inet_ntoa(mask),
-				flags, metric, ref, use, buff);
-		}
-	nl++;
-	}
+ 			if(flgs&RTF_UP) {
+ 				if(flgs&RTF_REJECT)
+ 					flags[ifl++]='!';
+ 				else
+ 					flags[ifl++]='U';
+ 				if(flgs&RTF_GATEWAY)
+ 					flags[ifl++]='G';
+ 				if(flgs&RTF_HOST)
+ 					flags[ifl++]='H';
+ 				if(flgs&RTF_REINSTATE)
+ 					flags[ifl++]='R';
+ 				if(flgs&RTF_DYNAMIC)
+ 					flags[ifl++]='D';
+ 				if(flgs&RTF_MODIFIED)
+ 					flags[ifl++]='M';
+ 				flags[ifl]=0;
+ 				dest.s_addr = d;
+ 				gw.s_addr   = g;
+ 				mask.s_addr = m;
+ 				strcpy(sdest,  (dest.s_addr==0 ? "default" :
+  					inet_ntoa(dest)));
+ 				strcpy(sgw,    (gw.s_addr==0   ? "*"       :
+  					inet_ntoa(gw)));
+ 				printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
+ 					sdest, sgw,
+ 					inet_ntoa(mask),
+ 					flags, metric, ref, use, buff);
+			}
+ 		}
+		nl++;
+  	}
 }
 
 int route_main(int argc, char **argv)

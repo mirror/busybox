@@ -26,7 +26,7 @@
 	    -- Fix mount's noauto option to not automount as "usbdevfs"
 	* Vladimir Oleynik
 	    -- Add support for `busybox --help APPLET'
-	    -- Fixed route so it properly displays _all_ route entries
+	    -- Fixed route so it properly displays all route entries
 	* Laurence Anderson
 	    -- Removed some traces of no-longer existant rpmunpack (which
 		has been obsoleted by the rpm2cpio applet).
