@@ -7294,7 +7294,7 @@ cmdputs(const char *s)
 	cmdnextc = q;
 }
 
-//#define CMDTXT_TABLE
+#define CMDTXT_TABLE
 #ifdef CMDTXT_TABLE
 /*
  * To collect a lot of redundant code in cmdtxt() case statements, we
@@ -8710,8 +8710,8 @@ static void sizenodelist (const struct nodelist *);
 static struct nodelist *copynodelist (const struct nodelist *);
 static char *nodesavestr (const char *);
 
-//#define CALCSIZE_TABLE
-//#define COPYNODE_TABLE
+#define CALCSIZE_TABLE
+#define COPYNODE_TABLE
 #if defined(CALCSIZE_TABLE) || defined(COPYNODE_TABLE)
 /*
  * To collect a lot of redundant code in case statements for copynode()
@@ -10337,6 +10337,86 @@ out:
  *  have parseword (readtoken1?) handle both words and redirection.]
  */
 
+#define NEW_xxreadtoken
+#ifdef NEW_xxreadtoken
+
+static const char xxreadtoken_chars[] = "\n()&|;"; /* singles must be first! */
+static const char xxreadtoken_tokens[] = {
+	TNL, TLP, TRP,				/* only single occurrence allowed */
+	TBACKGND, TPIPE, TSEMI,		/* if single occurrence */
+	TEOF,						/* corresponds to trailing nul */
+	TAND, TOR, TENDCASE,		/* if double occurrence */
+};
+
+#define xxreadtoken_doubles \
+	(sizeof(xxreadtoken_tokens) - sizeof(xxreadtoken_chars))
+#define xxreadtoken_singles \
+	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
+
+static int
+xxreadtoken() {
+	int c;
+
+	if (tokpushback) {
+		tokpushback = 0;
+		return lasttoken;
+	}
+	if (needprompt) {
+		setprompt(2);
+		needprompt = 0;
+	}
+	startlinno = plinno;
+	for (;;) {      /* until token or start of word found */
+		c = pgetc_macro();
+
+		if ((c!=' ') && (c!='\t')
+#ifdef ASH_ALIAS
+			&& (c!=PEOA)
+#endif
+			) {
+			if (c=='#') {
+				while ((c = pgetc()) != '\n' && c != PEOF);
+				pungetc();
+			} else if (c=='\\') {
+				if (pgetc() != '\n') {
+					pungetc();
+					goto READTOKEN1;
+				}
+				startlinno = ++plinno;
+				setprompt(doprompt ? 2 : 0);
+			} else {
+				const char *p
+					= xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
+
+				if (c!=PEOF) {
+					if (c=='\n') {
+						plinno++;
+						needprompt = doprompt;
+					}
+
+					p = strchr(xxreadtoken_chars, c);
+					if (p == NULL) {
+					READTOKEN1:
+						return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
+					}
+			
+					if (p-xxreadtoken_chars >= xxreadtoken_singles) {
+						if (pgetc() == *p) { /* double occurrence? */
+							p += xxreadtoken_doubles + 1;
+						} else {
+							pungetc();
+						}
+					}
+				}
+
+				return lasttoken = xxreadtoken_tokens[p-xxreadtoken_chars];
+			}
+		}
+	}
+}
+
+
+#else
 #define RETURN(token)   return lasttoken = token
 
 static int
@@ -10408,7 +10488,7 @@ breakloop:
 	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
-
+#endif
 
 
 /*
@@ -12681,7 +12761,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.24 2001/09/06 18:00:41 andersen Exp $
+ * $Id: ash.c,v 1.25 2001/09/11 01:14:02 mjn3 Exp $
  */
 static int timescmd (int argc, char **argv)
 {
