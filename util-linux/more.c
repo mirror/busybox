@@ -35,9 +35,9 @@
 #include <sys/ioctl.h>
 #include "busybox.h"
 
-static FILE *cin;
 
 #ifdef CONFIG_FEATURE_USE_TERMIOS
+static int cin_fileno;
 #include <termios.h>
 #define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
 #define getTermSettings(fd,argp) tcgetattr(fd, argp);
@@ -46,7 +46,7 @@ static struct termios initial_settings, new_settings;
 
 static void set_tty_to_initial_mode(void)
 {
-	setTermSettings(fileno(cin), &initial_settings);
+	setTermSettings(cin_fileno, &initial_settings);
 }
 
 static void gotsig(int sig)
@@ -57,18 +57,19 @@ static void gotsig(int sig)
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 
-static int terminal_width = 79;	/* not 80 in case terminal has linefold bug */
-static int terminal_height = 24;
-
-
 extern int more_main(int argc, char **argv)
 {
 	int c, lines, input = 0;
-	int please_display_more_prompt = -1;
+	int please_display_more_prompt = 0;
 	struct stat st;
 	FILE *file;
-	FILE *in_file = stdin;
+	FILE *cin;
 	int len, page_height;
+	int terminal_width;
+	int terminal_height;
+#ifndef CONFIG_FEATURE_USE_TERMIOS
+	int cin_fileno;
+#endif
 
 	argc--;
 	argv++;
@@ -79,21 +80,23 @@ extern int more_main(int argc, char **argv)
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
 			cin = bb_xfopen(CONSOLE_DEV, "r");
-		in_file = cin;
-		please_display_more_prompt = 0;
+		cin_fileno = fileno(cin);
+		please_display_more_prompt = 2;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
-		getTermSettings(fileno(cin), &initial_settings);
+		getTermSettings(cin_fileno, &initial_settings);
 		new_settings = initial_settings;
 		new_settings.c_lflag &= ~ICANON;
 		new_settings.c_lflag &= ~ECHO;
 		new_settings.c_cc[VMIN] = 1;
 		new_settings.c_cc[VTIME] = 0;
-		setTermSettings(fileno(cin), &new_settings);
+		setTermSettings(cin_fileno, &new_settings);
 		atexit(set_tty_to_initial_mode);
 		(void) signal(SIGINT, gotsig);
 		(void) signal(SIGQUIT, gotsig);
 		(void) signal(SIGTERM, gotsig);
 #endif
+	} else {
+		cin = stdin;
 	}
 
 	do {
@@ -107,10 +110,9 @@ extern int more_main(int argc, char **argv)
 		st.st_size = 0;
 		fstat(fileno(file), &st);
 
-		if(please_display_more_prompt>0)
-			please_display_more_prompt = 0;
+		please_display_more_prompt &= ~1;
 
-		get_terminal_width_height(fileno(in_file), &terminal_width, &terminal_height);
+		get_terminal_width_height(cin_fileno, &terminal_width, &terminal_height);
 		if (terminal_height > 4)
 			terminal_height -= 2;
 		if (terminal_width > 0)
@@ -121,7 +123,7 @@ extern int more_main(int argc, char **argv)
 		page_height = terminal_height;
 		while ((c = getc(file)) != EOF) {
 
-			if (please_display_more_prompt>0) {
+			if ((please_display_more_prompt & 3) == 3) {
 				len = printf("--More-- ");
 				if (file != stdin && st.st_size > 0) {
 #if _FILE_OFFSET_BITS == 64
@@ -150,11 +152,10 @@ extern int more_main(int argc, char **argv)
 				while (--len >= 0)
 					putc(' ', stdout);
 				putc('\r', stdout);
-				fflush(stdout);
 				len=0;
 				lines = 0;
 				page_height = terminal_height;
-				please_display_more_prompt = 0;
+				please_display_more_prompt &= ~1;
 
 				if (input == 'q')
 					goto end;
@@ -174,8 +175,7 @@ extern int more_main(int argc, char **argv)
 				/* increment by just one line if we are at
 				 * the end of this line */
 				if (input == '\n')
-					if(please_display_more_prompt==0)
-					please_display_more_prompt = 1;
+					please_display_more_prompt |= 1;
 				/* Adjust the terminal height for any overlap, so that
 				 * no lines get lost off the top. */
 				if (len >= terminal_width) {
@@ -190,8 +190,7 @@ extern int more_main(int argc, char **argv)
 					}
 				}
 				if (++lines >= page_height) {
-					if(please_display_more_prompt==0)
-					please_display_more_prompt = 1;
+					please_display_more_prompt |= 1;
 				}
 				len=0;
 			}
