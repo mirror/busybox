@@ -797,6 +797,6 @@ goodbye:
 	}
 	mark_good_blocks();
 	write_tables();
-	exit( 0);
+	return( 0);
 
 }

@@ -297,4 +297,13 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 #endif
 
 
+#ifndef setbit
+/* Bit map related macros -- libc5 doens't provide these... sigh.  */
+#define NBBY            CHAR_BIT
+#define setbit(a,i)     ((a)[(i)/NBBY] |= 1<<((i)%NBBY))
+#define clrbit(a,i)     ((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
+#define isset(a,i)      ((a)[(i)/NBBY] & (1<<((i)%NBBY)))
+#define isclr(a,i)      (((a)[(i)/NBBY] & (1<<((i)%NBBY))) == 0)
+#endif
+
 #endif /* _BB_INTERNAL_H_ */

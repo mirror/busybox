@@ -24,12 +24,12 @@
 
 #include "internal.h"
 #include <stdio.h>
-//#include <sys/mount.h>
 #include <mntent.h>
 #include <errno.h>
 #include <linux/unistd.h>
 
 
+//#include <sys/mount.h>
 /* Include our own version of sys/mount.h, since libc5 doesn't
  * know about umount2 */
 static _syscall1(int, umount, const char *, special_file);

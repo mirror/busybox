@@ -55,7 +55,7 @@
 #define BB_LSMOD
 #define BB_MAKEDEVS
 #define BB_MATH
-#define BB_MD5SUM
+//#define BB_MD5SUM
 #define BB_MKDIR
 #define BB_MKFIFO
 #define BB_MKFS_MINIX
@@ -89,7 +89,7 @@
 #define BB_TAR
 #define BB_TEE
 #define BB_TEST
-//#define BB_TELNET
+#define BB_TELNET
 #define BB_TOUCH
 #define BB_TR
 #define BB_TRUE_FALSE
