@@ -248,7 +248,7 @@ struct udp_dhcp_packet {
 	struct dhcpMessage data;
 };
 
-struct dhcp_option options[] = {
+static const struct dhcp_option options[] = {
 	/* name[10]	flags					code */
 	{"subnet",	OPTION_IP | OPTION_REQ,			0x01},
 	{"timezone",	OPTION_S32,				0x02},
@@ -280,7 +280,7 @@ struct dhcp_option options[] = {
 };
 
 /* Lengths of the different option types */
-int option_lengths[] = {
+static const int option_lengths[] = {
 	[OPTION_IP] =		4,
 	[OPTION_IP_PAIR] =	8,
 	[OPTION_BOOLEAN] =	1,
@@ -293,7 +293,7 @@ int option_lengths[] = {
 };
 
 /* get a rough idea of how long an option will be (rounding up...) */
-static int max_option_length[] = {
+static const unsigned char max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
 	[OPTION_STRING] =	1,
@@ -305,26 +305,8 @@ static int max_option_length[] = {
 	[OPTION_S32] =		sizeof("-2147483684 "),
 };
 
-static void print_usage(void)
-{
-	printf(
-"Usage: udhcpcd [OPTIONS]\n\n"
-"  -c, --clientid=CLIENTID         Client identifier\n"
-"  -H, --hostname=HOSTNAME         Client hostname\n"
-"  -f, --foreground                Do not fork after getting lease\n"
-"  -i, --interface=INTERFACE       Interface to use (default: eth0)\n"
-"  -n, --now                       Exit with failure if lease cannot be\n"
-"                                  immediately negotiated.\n"
-"  -p, --pidfile=file              Store process ID of daemon in file\n"
-"  -q, --quit                      Quit after obtaining lease\n"
-"  -r, --request=IP                IP address to request (default: none)\n"
-"  -s, --script=file               Run file at dhcp events (default:\n"
-"                                  " DEFAULT_SCRIPT ")\n"
-"  -v, --version                   Display version\n"
-	);
-}
 /* return the position of the 'end' option (no bounds checking) */
-int end_option(unsigned char *optionptr) 
+static int end_option(unsigned char *optionptr) 
 {
 	int i = 0;
 	
@@ -337,7 +319,7 @@ int end_option(unsigned char *optionptr)
 
 /* add an option string to the options (an option string contains an option code,
  * length, then data) */
-int add_option_string(unsigned char *optionptr, unsigned char *string)
+static int add_option_string(unsigned char *optionptr, unsigned char *string)
 {
 	int end = end_option(optionptr);
 	
@@ -353,7 +335,7 @@ int add_option_string(unsigned char *optionptr, unsigned char *string)
 }
 
 /* add a one to four byte option to a packet */
-int add_simple_option(unsigned char *optionptr, unsigned char code, u_int32_t data)
+static int add_simple_option(unsigned char *optionptr, unsigned char code, u_int32_t data)
 {
 	char length = 0;
 	int i;
@@ -411,7 +393,7 @@ void init_header(struct dhcpMessage *packet, char type)
 	add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
 }
 #endif
-u_int16_t checksum(void *addr, int count)
+static u_int16_t checksum(void *addr, int count)
 {
 	/* Compute Internet Checksum for "count" bytes
 	 *         beginning at location "addr".
@@ -437,7 +419,7 @@ u_int16_t checksum(void *addr, int count)
 }
 
 /* Constuct a ip/udp header for a packet, and specify the source and dest hardware address */
-int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
+static int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
 		   u_int32_t dest_ip, int dest_port, unsigned char *dest_arp, int ifindex)
 {
 	int l_fd;
@@ -489,7 +471,7 @@ int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port
 }
 
 /* Let the kernel do all the work for packet generation */
-int kernel_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
+static int kernel_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
 		   u_int32_t dest_ip, int dest_port)
 {
 	int n = 1;
@@ -576,7 +558,7 @@ static void add_requests(struct dhcpMessage *packet)
 }
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
-int send_discover(unsigned long xid, unsigned long requested)
+static int send_discover(unsigned long xid, unsigned long requested)
 {
 	struct dhcpMessage packet;
 
@@ -592,7 +574,7 @@ int send_discover(unsigned long xid, unsigned long requested)
 }
 
 /* Broadcasts a DHCP request message */
-int send_selecting(unsigned long xid, unsigned long server, unsigned long requested)
+static int send_selecting(unsigned long xid, unsigned long server, unsigned long requested)
 {
 	struct dhcpMessage packet;
 	struct in_addr addr;
@@ -612,7 +594,7 @@ int send_selecting(unsigned long xid, unsigned long server, unsigned long reques
 
 
 /* Unicasts or broadcasts a DHCP renew message */
-int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
+static int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
 {
 	struct dhcpMessage packet;
 	int ret = 0;
@@ -631,7 +613,7 @@ int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
 }	
 
 /* Create a random xid */
-unsigned long random_xid(void)
+static unsigned long random_xid(void)
 {
 	static int initialized;
 	if (!initialized) {
@@ -691,7 +673,7 @@ static void renew_requested(int sig)
 }
 
 /* get an option with bounds checking (warning, not aligned). */
-unsigned char *get_option(struct dhcpMessage *packet, int code)
+static unsigned char *get_option(struct dhcpMessage *packet, int code)
 {
 	int i, length;
 	unsigned char *optionptr;
@@ -757,7 +739,7 @@ static int sprintip(char *dest, char *pre, unsigned char *ip) {
 
 
 /* Fill dest with the text of option 'option'. */
-static void fill_options(char *dest, unsigned char *option, struct dhcp_option *type_p)
+static void fill_options(char *dest, unsigned char *option, const struct dhcp_option *type_p)
 {
 	int type, optlen;
 	u_int16_t val_u16;
@@ -891,7 +873,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 }
 
 /* Call a script with a par file and env vars */
-void run_script(struct dhcpMessage *packet, const char *name)
+static void run_script(struct dhcpMessage *packet, const char *name)
 {
 	int pid;
 	char **envp;
@@ -946,7 +928,7 @@ static void release_requested(int sig)
 }
 
 
-int pidfile_acquire(char *pidfile)
+static int pidfile_acquire(char *pidfile)
 {
 	int pid_fd;
 	if (pidfile == NULL) return -1;
@@ -963,7 +945,7 @@ int pidfile_acquire(char *pidfile)
 }
 
 
-void pidfile_write_release(int pid_fd)
+static void pidfile_write_release(int pid_fd)
 {
 	FILE *out;
 
@@ -977,16 +959,11 @@ void pidfile_write_release(int pid_fd)
 	close(pid_fd);
 }
 
-
-void pidfile_delete(char *pidfile)
-{
-	if (pidfile) unlink(pidfile);
-}
-
 /* Exit and cleanup */
 static void exit_client(int retval)
 {
-	pidfile_delete(client_config.pidfile);
+	unlink(client_config.pidfile);
+	if (client_config.pidfile) unlink(client_config.pidfile);
 	CLOSE_LOG();
 	exit(retval);
 }
@@ -1001,23 +978,7 @@ static void terminate(int sig)
 }
 
 
-static void background(void)
-{
-	int pid_fd;
-	if (client_config.quit_after_lease) {
-		exit_client(0);
-	} else if (!client_config.foreground) {
-		pid_fd = pidfile_acquire(client_config.pidfile); /* hold lock during fork. */
-		if (daemon(0, 0) == -1) {
-			perror("fork");
-			exit_client(1);
-		}
-		client_config.foreground = 1; /* Do not fork again. */
-		pidfile_write_release(pid_fd);
-	}
-}
-
-int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char *arp)
+static int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char *arp)
 {
 	int l_fd;
 	struct ifreq ifr;
@@ -1063,7 +1024,7 @@ int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char
 }
 
 
-int listen_socket(unsigned int ip, int port, char *inf)
+static int listen_socket(unsigned int ip, int port, char *inf)
 {
 	struct ifreq interface;
 	int l_fd;
@@ -1105,7 +1066,7 @@ int listen_socket(unsigned int ip, int port, char *inf)
 }
 
 
-int raw_socket(int ifindex)
+static int raw_socket(int ifindex)
 {
 	int l_fd;
 	struct sockaddr_ll sock;
@@ -1130,7 +1091,7 @@ int raw_socket(int ifindex)
 }
 
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
-int get_packet(struct dhcpMessage *packet, int l_fd)
+static int get_packet(struct dhcpMessage *packet, int l_fd)
 {
 	int bytes;
 	int i;
@@ -1168,7 +1129,7 @@ int get_packet(struct dhcpMessage *packet, int l_fd)
 	return bytes;
 }
 
-int get_raw_packet(struct dhcpMessage *payload, int l_fd)
+static int get_raw_packet(struct dhcpMessage *payload, int l_fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
@@ -1298,7 +1259,21 @@ int udhcpc_main(int argc, char *argv[])
 			strncpy(client_config.hostname + 2, optarg, len);
 			break;
 		case 'h':
-			print_usage();
+			puts(
+"Usage: udhcpcd [OPTIONS]\n\n"
+"  -c, --clientid=CLIENTID         Client identifier\n"
+"  -H, --hostname=HOSTNAME         Client hostname\n"
+"  -f, --foreground                Do not fork after getting lease\n"
+"  -i, --interface=INTERFACE       Interface to use (default: eth0)\n"
+"  -n, --now                       Exit with failure if lease cannot be\n"
+"                                  immediately negotiated.\n"
+"  -p, --pidfile=file              Store process ID of daemon in file\n"
+"  -q, --quit                      Quit after obtaining lease\n"
+"  -r, --request=IP                IP address to request (default: none)\n"
+"  -s, --script=file               Run file at dhcp events (default:\n"
+"                                  " DEFAULT_SCRIPT ")\n"
+"  -v, --version                   Display version"
+	);
 			return 0;
 		case 'i':
 			client_config.interface =  optarg;
@@ -1538,7 +1513,20 @@ int udhcpc_main(int argc, char *argv[])
 
 					state = BOUND;
 					change_mode(LISTEN_NONE);
-					background();
+					{
+						int pid_fd2;
+						if (client_config.quit_after_lease) {
+							exit_client(0);
+						} else if (!client_config.foreground) {
+							pid_fd2 = pidfile_acquire(client_config.pidfile); /* hold lock during fork. */
+							if (daemon(0, 0) == -1) {
+								perror("fork");
+								exit_client(1);
+							}
+							client_config.foreground = 1; /* Do not fork again. */
+							pidfile_write_release(pid_fd2);
+						}
+					}
 				}
 				else if (*message == DHCPNAK) {
 					/* return to init state */
