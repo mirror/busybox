@@ -24,27 +24,27 @@ LIBBB_DIR:=$(TOPDIR)libbb/
 endif
 
 LIBBB_SRC:= \
-	ask_confirmation.c chomp.c compare_string_array.c concat_path_file.c \
-	copy_file.c copy_file_chunk.c dump.c libc5.c device_open.c error_msg.c \
-	error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
-	find_root_device.c full_read.c full_write.c get_console.c \
-	get_last_path_component.c get_line_from_file.c  \
-	human_readable.c isdirectory.c kernel_version.c loop.c \
-	mode_string.c module_syscalls.c mtab.c mtab_file.c my_getgrnam.c \
-	my_getgrgid.c my_getpwnam.c my_getpwnamegid.c my_getpwuid.c \
-	parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
-	print_file.c process_escape_sequence.c read_package_field.c \
-	recursive_action.c run_parts.c safe_read.c safe_strncpy.c \
-	syscalls.c syslog_msg_with_name.c time_string.c trim.c \
-	vdprintf.c verror_msg.c vperror_msg.c wfopen.c xgetcwd.c xreadlink.c \
-	xregcomp.c interface.c remove_file.c last_char_is.c copyfd.c \
-	vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
-	dirname.c make_directory.c create_icmp_socket.c u_signal_names.c \
-	arith.c simplify_path.c inet_common.c inode_hash.c obscure.c \
-	pwd2spwd.c xfuncs.c correct_password.c change_identity.c \
-	setup_environment.c run_shell.c pw_encrypt.c restricted_shell.c \
-	xgethostbyname2.c create_icmp6_socket.c xconnect.c bb_asprintf.c \
-	procps.c
+	arith.c bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
+	compare_string_array.c concat_path_file.c copy_file.c \
+	copy_file_chunk.c copyfd.c correct_password.c create_icmp_socket.c \
+	create_icmp6_socket.c device_open.c dirname.c dump.c error_msg.c \
+	error_msg_and_die.c find_mount_point.c find_pid_by_name.c \
+	find_root_device.c fgets_str.c full_read.c full_write.c get_console.c \
+	get_last_path_component.c get_line_from_file.c herror_msg.c \
+	herror_msg_and_die.c human_readable.c inet_common.c inode_hash.c \
+	interface.c isdirectory.c kernel_version.c last_char_is.c libc5.c \
+	loop.c make_directory.c mode_string.c \
+	module_syscalls.c mtab.c mtab_file.c my_getgrgid.c my_getgrnam.c \
+	my_getpwnam.c my_getpwnamegid.c my_getpwuid.c obscure.c parse_mode.c \
+	parse_number.c perror_msg.c perror_msg_and_die.c print_file.c \
+	process_escape_sequence.c procps.c pwd2spwd.c pw_encrypt.c \
+	read_package_field.c recursive_action.c remove_file.c \
+	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_strncpy.c \
+	setup_environment.c simplify_path.c syscalls.c syslog_msg_with_name.c \
+	time_string.c trim.c u_signal_names.c vdprintf.c verror_msg.c \
+	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c xfuncs.c \
+	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c 
+	
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 
