@@ -1638,9 +1638,7 @@ static int bgcmd (int, char **);
 static int fgcmd (int, char **);
 static int killcmd (int, char **);
 #endif
-#ifdef ASH_BBAPPS_AS_BUILTINS
 static int bltincmd (int, char **);
-#endif
 static int cdcmd (int, char **);
 static int breakcmd (int, char **);
 #ifdef ASH_CMDCMD
@@ -1727,9 +1725,7 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_REGULAR   "bg", bgcmd },
 #endif
 	{ BUILTIN_SPECIAL   "break", breakcmd },
-#ifdef ASH_BBAPPS_AS_BUILTINS
-	{ BUILTIN_SPECIAL   "builtin", bltincmd },
-#endif
+	{ BUILTIN_SPECIAL   "builtin", bltincmd },	/* Do not disable this builtin ever or bad things happen */
 	{ BUILTIN_REGULAR   "cd", cdcmd },
 #ifdef ASH_BBAPPS_AS_BUILTINS
 	{ BUILTIN_NOSPEC    "chdir", cdcmd },
@@ -13532,7 +13528,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.4 2001/07/02 17:27:21 andersen Exp $
+ * $Id: ash.c,v 1.5 2001/07/05 05:24:12 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
