@@ -67,12 +67,13 @@ STRIPTOOL = $(CROSS)strip
 
 # To compile vs an alternative libc, you may need to use/adjust
 # the following lines to meet your needs.  This is how I make
-# busybox compile with uC-Libc...
-#LIBCDIR=/home/andersen/CVS/uC-libc
-#GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
-#CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
+# busybox compile with uC-Libc (needs BB_GETOPT and BB_FEATURE_NFSMOUNT
+# disabled at the moment).
+#LIBCDIR=/home/andersen/CVS/uClibc
 #LDFLAGS+=-nostdlib
 #LIBRARIES = $(LIBCDIR)/libc.a -lgcc
+#CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
+#GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 #--------------------------------------------------------
 
@@ -134,7 +135,7 @@ else
     VPATH = .:$(BB_SRC_DIR)
     CONFIG_LIST = $(addsuffix /Config.h,$(subst :, ,$(VPATH)))
     CONFIG_H    = $(word 1,$(shell ls -f -1 $(CONFIG_LIST) 2>/dev/null))
-    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH))) $(CROSS_CFLAGS)
 endif
 
 OBJECTS   = $(shell $(BB_SRC_DIR)/busybox.sh $(CONFIG_H) $(BB_SRC_DIR)) busybox.o messages.o usage.o utility.o
