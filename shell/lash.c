@@ -1049,13 +1049,12 @@ static int expand_arguments(char *command)
 			/* Convert from char** (one word per string) to a simple char*,
 			 * but don't overflow command which is BUFSIZ in length */
 				for (i=0; i < expand_result.gl_pathc; i++) {
-					length=strlen(expand_result.gl_pathv[i])+1;
+					length=strlen(expand_result.gl_pathv[i]);
 					if (BUFSIZ-total_length-length <= 0) {
 						error_msg(out_of_space);
 						return FALSE;
 					}
 					strcat(command+total_length, expand_result.gl_pathv[i]);
-					strcat(command+total_length, " ");
 					total_length+=length;
 				}
 				globfree (&expand_result);
