@@ -933,8 +933,10 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				}
 
 				/* in shell, "\'" should yield \' */
-				if (*src != quote)
+				if (*src != quote) {
 					*buf++ = '\\';
+					*buf++ = '\\';
+				}
 			} else if (*src == '*' || *src == '?' || *src == '[' ||
 					   *src == ']') *buf++ = '\\';
 			*buf++ = *src;
