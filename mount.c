@@ -128,7 +128,8 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 #if defined BB_FEATURE_MOUNT_LOOP
 		if (use_loop==TRUE) {
 			int loro = flags & MS_RDONLY;
-			char *lofile = specialfile;
+			
+			lofile = specialfile;
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
