@@ -19,6 +19,9 @@ if [ "$CONFIG_PS" = "y" ] ; then
 fi
 bool 'renice'	    CONFIG_RENICE
 bool 'top'	    CONFIG_TOP
+if [ "$CONFIG_TOP" = "y" ] ; then
+    bool '  Support show CPU usage percentage (add 2k bytes)'        FEATURE_CPU_USAGE_PERCENTAGE
+fi
 bool 'uptime'	    CONFIG_UPTIME
 endmenu
 
