@@ -333,17 +333,20 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 	}
 
 out:
-	ptr[idx] = '\n';
-	ptr[idx+1] = 0;
-
 	/* this accounts for discrepancies between the modified string and the
 	 * original string passed in to this function */
 	idx += slashes_eaten;
 
-	/* this accounts for the fact that A) we started at index 3, not at index
-	 * 0  and B) that we added an extra '\n' at the end (if you think the next
-	 * line should read 'idx += 4' remember, arrays are zero-based) */
-	idx += 3;
+	/* figure out if we need to add a newline */
+	if (ptr[idx-1] != '\n') {
+		ptr[idx] = '\n';
+		idx++;
+	}
+
+	/* terminate string */
+	ptr[idx]= 0;
+	/* adjust for opening 2 chars [aic]\ */
+	idx += 2;
 
 	return idx;
 }
