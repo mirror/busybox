@@ -8,10 +8,9 @@
 # to "make".  Files in the build tree, in particular Config.h,
 # will override those in the pristine source tree.
 #
+# If you use a ? in your path name, you lose, see sed command below.
 
-
-# if you use a ? in your path name, you lose.
-DIR=`basedir ${0%%/pristine_setup}`
+DIR=${0%%/pristine_setup.sh}
 if [ ! -d $DIR ]; then
   echo "unexpected problem: $DIR is not a directory.  Aborting pristine setup"
   exit
@@ -20,17 +19,17 @@ fi
 echo " "
 
 if [ -e ./Config.h ]; then
-  echo "./Config.h already exists: not overwriting"
-else
-    cp $DIR/Config.h Config.h
+    echo "./Config.h already exists: not overwriting"
+    exit
 fi
 
 if [ -e ./Makefile ]; then
     echo "./Makefile already exists: not overwriting"
-else
-    sed -e "s?BB_SRC_DIR =?BB_SRC_DIR = $DIR?" <$DIR/Makefile >Makefile || exit
 fi
 
+sed -e "s?BB_SRC_DIR =.*?BB_SRC_DIR = $DIR?" <$DIR/Makefile >Makefile || exit
+cp $DIR/Config.h Config.h || exit
+#mkdir -p pwd_grp
 
 echo " "
 echo "You may now type 'make' to build busybox in this directory"
