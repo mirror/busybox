@@ -2316,6 +2316,7 @@ cdcmd(int argc, char **argv)
 		dest = bltinlookup(homestr);
 	else if (dest[0] == '-' && dest[1] == '\0') {
 		dest = bltinlookup("OLDPWD");
+		if ( !dest ) goto out;
 		flags |= CD_PRINT;
 		goto step7;
 	}
