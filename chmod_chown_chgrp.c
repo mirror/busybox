@@ -55,7 +55,7 @@ static int fileAction(const char *fileName, struct stat* statbuf)
     switch (whichApp) {
 	case CHGRP_APP:
 	case CHOWN_APP:
-	    if (chown(fileName, (whichApp==CHOWN_APP)? uid : statbuf->st_uid, 
+	    if (lchown(fileName, (whichApp==CHOWN_APP)? uid : statbuf->st_uid, 
 			(gid==-1)? statbuf->st_gid : gid) == 0) {
 		return( TRUE);
 	    }
