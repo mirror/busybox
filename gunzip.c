@@ -569,19 +569,20 @@ local int get_method (int in);
 int gunzip_main(int argc, char **argv)
 {
 	int file_count;				/* number of files to precess */
-	int to_stdout = 0;
+	int tostdout = 0;
 	int fromstdin = 0;
 	int result;
 	int inFileNum;
 	int outFileNum;
 	int delInputFile = 0;
+	int force = 0;
 	struct stat statBuf;
 	char *delFileName;
 	char ifname[MAX_PATH_LEN + 1];	/* input file name */
 	char ofname[MAX_PATH_LEN + 1];	/* output file name */
 
 	if (strcmp(applet_name, "zcat") == 0) {
-		to_stdout = 1;
+		tostdout = 1;
 		if (argc == 1) {
 			fromstdin = 1;
 		}
@@ -590,23 +591,32 @@ int gunzip_main(int argc, char **argv)
 	/* Parse any options */
 	while (--argc > 0 && **(++argv) == '-') {
 		if (*((*argv) + 1) == '\0') {
-			fromstdin = 1;
-			to_stdout = 1;
+			tostdout = 1;
 		}
 		while (*(++(*argv))) {
 			switch (**argv) {
 			case 'c':
-				to_stdout = 1;
+				tostdout = 1;
 				break;
 			case 't':
 				test_mode = 1;
 				break;
-
+			case 'f':
+				force = 1;
+				break;
 			default:
 				usage(gunzip_usage);
 			}
 		}
 	}
+	if (argc <= 0)
+		fromstdin = 1;
+
+	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
+		fatalError( "data not read from terminal. Use -f to force it.\n");
+	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
+		fatalError( "data not written to terminal. Use -f to force it.\n");
+
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -644,7 +654,7 @@ int gunzip_main(int argc, char **argv)
 		ifile_size = -1L;		/* convention for unknown size */
 	} else {
 		/* Open up the input file */
-		if (*argv == '\0')
+		if (argc <= 0)
 			usage(gunzip_usage);
 		if (strlen(*argv) > MAX_PATH_LEN) {
 			errorMsg(name_too_long);
@@ -667,7 +677,7 @@ int gunzip_main(int argc, char **argv)
 		ifile_size = statBuf.st_size;
 	}
 
-	if (to_stdout == 1) {
+	if (tostdout == 1) {
 		/* And get to work */
 		strcpy(ofname, "stdout");
 		outFileNum = fileno(stdout);
@@ -741,7 +751,7 @@ int gunzip_main(int argc, char **argv)
 
 /* ========================================================================
  * Check the magic number of the input file and update ofname if an
- * original name was given and to_stdout is not set.
+ * original name was given and tostdout is not set.
  * Return the compression method, -1 for error, -2 for warning.
  * Set inptr to the offset of the next byte to be processed.
  * Updates time_stamp if there is one and --no-time is not used.

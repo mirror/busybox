@@ -1801,6 +1801,7 @@ int gzip_main(int argc, char **argv)
 	char *delFileName;
 	int tostdout = 0;
 	int fromstdin = 0;
+	int force = 0;
 
 	if (argc == 1)
 		usage(gzip_usage);
@@ -1808,7 +1809,6 @@ int gzip_main(int argc, char **argv)
 	/* Parse any options */
 	while (--argc > 0 && **(++argv) == '-') {
 		if (*((*argv) + 1) == '\0') {
-			fromstdin = 1;
 			tostdout = 1;
 		}
 		while (*(++(*argv))) {
@@ -1816,11 +1816,25 @@ int gzip_main(int argc, char **argv)
 			case 'c':
 				tostdout = 1;
 				break;
+			case 'f':
+				force = 1;
+				break;
+			/* Ignore 1-9 (compression level) options */
+			case '1': case '2': case '3': case '4': case '5':
+			case '6': case '7': case '8': case '9':
+				break;
 			default:
 				usage(gzip_usage);
 			}
 		}
 	}
+	if (argc <= 0)
+		fromstdin = 1;
+
+	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
+		fatalError( "data not read from terminal. Use -f to force it.\n");
+	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
+		fatalError( "data not written to terminal. Use -f to force it.\n");
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -1860,7 +1874,7 @@ int gzip_main(int argc, char **argv)
 		ifile_size = -1L;		/* convention for unknown size */
 	} else {
 		/* Open up the input file */
-		if (*argv == '\0')
+		if (argc <= 0)
 			usage(gzip_usage);
 		strncpy(ifname, *argv, MAX_PATH_LEN);
 
