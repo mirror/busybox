@@ -1,0 +1,175 @@
+busybox (1:0.60.0-1) unstable; urgency=low
+
+  * New version released.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Thu,  2 Aug 2001 12:12:37 -0600
+
+busybox (1:0.52-1.1) unstable; urgency=high
+
+  * Non-maintainer upload
+  * Fixed wget -P handling (closes: #106223).
+
+ -- Matt Kraai <kraai@debian.org>  Wed, 25 Jul 2001 11:01:38 -0600
+
+busybox (1:0.52-1) unstable; urgency=high
+
+  * New version released.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Sat,  7 Jul 2001 01:23:45 -0600
+
+busybox (1:0.51-10) unstable; urgency=high
+
+  * Fix a compile problem with gcc 3.0 on hppa (closes: #102045)
+
+ -- Erik Andersen <andersee@debian.org>  Sat, 23 Jun 2001 23:55:57 -0600
+
+busybox (1:0.51-9) unstable; urgency=high
+
+  * tar was creating leading directories with 0777 permissions as
+    as reult of faulty umask handling.  This fixes it, repairing
+    a grave security problem in the woody the boot floppies.
+    (closes: #101169)
+
+ -- Erik Andersen <andersee@debian.org>  Wed, 20 Jun 2001 16:17:38 -0600
+
+busybox (1:0.51-8) unstable; urgency=high
+
+  * Fix cp from /proc, where size=0 (closes: #100369)
+  * Add some padding to struct sysinfo for m68k.
+  * Apparently some bugs failed to be closed when master choked
+    (closes: #99627, #99637, #98571)
+  * Disable the busybox shell for the .deb, since it is not needed
+    for the boot floppies.
+
+ -- Erik Andersen <andersee@debian.org>  Mon, 11 Jun 2001 13:26:07 -0600
+
+busybox (1:0.51-7) unstable; urgency=high
+
+  * Fix tar permission setting for existing directories (closes: #99627)
+  * Do not remove the .cvsignore files on 'make release' (closes: #99637)
+
+ -- Erik Andersen <andersee@debian.org>  Mon,  4 Jun 2001 10:55:19 -0600
+
+busybox (1:0.51-6) testing unstable; urgency=high
+
+  * Update the version in testing so DHCP in the woody boot-floppies will work.
+  * Enable expr for the boot-floppies (closes: #98433)
+  * It builds on arm just fine now (closes: #97510)
+
+ -- Erik Andersen <andersee@debian.org>  Wed, 23 May 2001 14:50:13 -0600
+
+busybox (1:0.51-5) unstable; urgency=low
+
+  * Backport a sed fix from 0.52pre
+  * Backport chroot fix from 0.52pre
+
+ -- Erik Andersen <andersee@debian.org>  Wed, 16 May 2001 23:50:33 -0600
+
+busybox (1:0.51-4) unstable; urgency=low
+
+  * Backport from 0.52pre an endianness bugfix for md5sum
+  * Backport some updates to grep and sed
+  * Fix 'wget -O -' so it sets the quiet flag
+
+ -- Erik Andersen <andersee@debian.org>  Mon, 14 May 2001 14:17:36 -0600
+
+busybox (1:0.51-3) unstable; urgency=low
+
+  * This is the "I am an idiot" release.
+  * Make cp and mv work again (closes: #97290) 
+  * Fix the version number.
+
+ -- Erik Andersen <andersee@debian.org>  Sat, 12 May 2001 17:35:58 -0600
+
+busybox (0.51-2) unstable; urgency=low
+
+  * Backport several release critical fixes into the 0.51 codebase
+    so the boot-floppies will work again.
+  * Fix a link ordering problem. (closes: #93362)
+  * Fixed gunzip (closes: #94331)
+  * Fixed cp permission setting (closes: #94580)
+
+ -- Erik Andersen <andersee@debian.org>  Sat, 12 May 2001 11:22:35 -0600
+
+busybox (0.51-1) unstable; urgency=low
+
+  * Fixes several critical bugs (see the busybox changelog
+    for complete details)
+  * Force USE_SYSTEM_PWD_GRP=false, so busybox bypasses
+    the glibc NSS libraries. (closes: #93362)
+  * Fixed a bug in sed's address range handling (closes: #91758) 
+  * Removed irrelevant cruft from the bottem of debian/changelog
+
+ -- Erik Andersen <andersee@debian.org>  Tue, 10 Apr 2001 14:07:29 -0600
+
+busybox (0.50-2) unstable; urgency=low
+  
+  * Enabled freeramdisk and pivot_root in the udeb (closes: #91336)
+  * Disabled lash (the busybox shell) in the udeb (closes: #91337)
+  * fixed a bug in syslog, a problem with rebooting when booted as
+    an initrd, and a few other minor problems.
+
+ -- Erik Andersen <andersee@debian.org>  Sun, 25 Mar 2001 20:59:44 -0700
+
+
+busybox (0.50-2) unstable; urgency=low
+  
+  * Enabled freeramdisk and pivot_root in the udeb (closes: #91336)
+  * Disabled lash (the busybox shell) in the udeb (closes: #91337)
+  * fixed a bug in syslog, a problem with rebooting when booted as
+    an initrd, and a few other minor problems.
+
+ -- Erik Andersen <andersee@debian.org>  Sun, 25 Mar 2001 20:59:44 -0700
+
+busybox (0.50-1) unstable; urgency=low
+
+  * Tons on improvements all around -- See changelog for details.
+  * Fix malformed Build-Depends (closes: #86930)
+  * grep has worked for some time now (closes: #81084)
+  * init compiles with DEBUG_INIT enabled (closes: #85794)
+  * md5sum no longer displays filename when reading stdin (closes: #81283)
+  * lsmod, rmmod, and insmod are no longer enabled (closes: #85642)
+  * busybox and buxybox-static now conflict/replace each other (closes: #80421)
+
+ -- Erik Andersen <andersee@debian.org>  Thu, 15 Mar 2001 14:45:00 -0700
+
+busybox (0.49-1) unstable; urgency=low
+
+  * Lots more source updates and bug fixes.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Sat, 27 Jan 2001 01:45:53 -0700
+
+busybox (0.48-1) unstable; urgency=low
+
+  * Lots more source updates and bug fixes.  See changelog for details.
+  * Now includes .udeb support for the debian-installer.  The .udeb 
+    probably needs some more work, but this should be a good start.
+
+ -- Erik Andersen <andersee@debian.org>  Wed, 13 Dec 2000 08:36:07 -0700
+
+busybox (0.47-1) unstable; urgency=low
+
+  * New version released.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Mon, 25 Sep 2000 23:00:56 -0600
+
+busybox (0.46-1) unstable; urgency=low
+
+  * New version released.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Tue, 11 Jul 2000 12:15:44 -0600
+
+busybox (0.45-1) unstable; urgency=low
+
+  * First attempt at packaging BusyBox as a .deb.  This has been in 
+    in the Debian boot-floppies CVS tree forever.  Hopefully, having it as a
+    standalone app will make life easier for me, the debian-installer team, and
+    everyone else as well...
+  * I have created a busybox-static that can be used as a rescue shell when you 
+    hose your system.  Just invoke "busybox sh" to fir up the shell.  This has
+    every app provided by busybox staically linked in.  There have been several
+    times in the past that I would have loved to have this sitting on my system
+    (i.e. when libc gets screwed up.)
+
+ -- Erik Andersen <andersee@debian.org>  Tue, 27 Jun 2000 12:26:41 -0600
+

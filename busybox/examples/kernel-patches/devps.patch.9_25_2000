@@ -1,0 +1,1478 @@
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/Config.in linux/drivers/char/Config.in
+--- linux-2.2.18-9.virgin/drivers/char/Config.in	Mon Sep 18 15:02:30 2000
++++ linux/drivers/char/Config.in	Mon Sep 25 16:33:16 2000
+@@ -56,6 +56,8 @@
+    dep_tristate 'Microgate SyncLink card support' CONFIG_SYNCLINK m
+    dep_tristate 'HDLC line discipline support' CONFIG_N_HDLC m
+ fi
++tristate 'Devps support' CONFIG_DEVPS
++tristate 'Devmounts support' CONFIG_DEVMTAB
+ bool 'Unix98 PTY support' CONFIG_UNIX98_PTYS
+ if [ "$CONFIG_UNIX98_PTYS" = "y" ]; then
+ 	int 'Maximum number of Unix98 PTYs in use (0-2048)' CONFIG_UNIX98_PTY_COUNT 256
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/Makefile linux/drivers/char/Makefile
+--- linux-2.2.18-9.virgin/drivers/char/Makefile	Mon Sep 18 15:02:30 2000
++++ linux/drivers/char/Makefile	Mon Sep 25 18:01:12 2000
+@@ -697,6 +697,22 @@
+ M_OBJS          += $(sort $(filter     $(module-list), $(obj-m)))
+ 
+ 
++ifeq ($(CONFIG_DEVPS),y)
++O_OBJS += devps.o
++else
++  ifeq ($(CONFIG_DEVPS),m)
++  M_OBJS += devps.o
++  endif
++endif
++
++ifeq ($(CONFIG_DEVMTAB),y)
++O_OBJS += devmtab.o
++else
++  ifeq ($(CONFIG_DEVMTAB),m)
++  M_OBJS += devmtab.o
++  endif
++endif
++
+ include $(TOPDIR)/Rules.make
+ 
+ fastdep:
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/devmtab.c linux/drivers/char/devmtab.c
+--- linux-2.2.18-9.virgin/drivers/char/devmtab.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/devmtab.c	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,295 @@
++/* vi: set sw=8 ts=8: */
++/*
++ * linux/drivers/char/devmtab.c
++ * 
++ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ *
++ * May be copied or modified under the terms of the GNU General Public License.
++ * See linux/COPYING for more information.
++ *
++ * This driver implements an interface whereby programs such as mount(8),
++ * umount(8), and df(1) may obtain all the process information they need to do
++ * their jobs without needing to use /proc.  This driver another step in my
++ * evil plan to completely dismantle /proc.  Muhahahaha!
++ *
++ * Suggestions are welcome. Patches that work are more welcome though. ;-)
++ *
++ *
++ * When using this driver, running:
++ * 	mknod /dev/mtab c 10 22
++ * could be considered helpful.
++ *
++ * ----------------------------------
++ * 1.00  Mar 07, 2000 -- Initial version.
++ *
++ *************************************************************************/
++
++#define DEVMTAB_VERSION "1.00"
++
++#include <linux/config.h>
++#include <linux/module.h>
++#include <linux/types.h>
++#include <linux/sched.h>
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/pagemap.h>
++#include <linux/malloc.h>
++#include <linux/miscdevice.h>
++#include <linux/devmtab.h>
++#include <linux/wrapper.h>
++#include <asm/pgtable.h>
++#include <asm/uaccess.h>
++
++
++/* Some variables used by this device */
++static struct wait_queue *devmtab_waitq = NULL;
++static int devmtab_already_opened = 0;
++static char *mtabfile = NULL;
++static int mtab_ptr;
++static int mtab_size;
++
++
++
++/****************************************************************************
++ * Handle opening and closing of the device
++ */
++
++static long long
++devmtab_lseek (struct file *file, long long offset, int orig)
++{
++	return -ESPIPE;
++}
++
++static ssize_t
++devmtab_read (struct file *file, char *buf, size_t count, loff_t * ppos)
++{
++	int n = mtab_size - mtab_ptr;
++
++	if (mtab_size == 0) {
++		/* Make some space */
++		if (!(mtabfile = (char *) get_free_page (GFP_KERNEL)))
++			return -ENOMEM;
++		/* Grab the mtab */
++		get_filesystem_info (mtabfile);
++		mtab_ptr = 0;
++		mtab_size = strlen (mtabfile);
++		n = mtab_size - mtab_ptr;
++	}
++
++	if (n > count)
++		n = count;
++	if (n <= 0)
++		return 0;
++
++	if (copy_to_user (buf, mtabfile, n))
++		return -EFAULT;
++	mtab_ptr += n;
++	return n;
++}
++
++static int devmtab_open (struct inode *ip, struct file *fp)
++{
++	/* Only let one process use us at any time -- putting other
++	 * processes to sleep.  Those opening us O_NONBLOCK will
++	 * get an EAGAIN error */
++	if ((fp->f_flags & O_NONBLOCK) && devmtab_already_opened) 
++		return -EAGAIN;
++
++	MOD_INC_USE_COUNT;
++
++	while (devmtab_already_opened) {
++		int i, got_signal=0;
++
++		/* Go to sleep until we get woken up 
++		 * by devmtab_close or we receive a signal */
++		module_interruptible_sleep_on(&devmtab_waitq);
++
++		for(i=0; i<_NSIG_WORDS && !got_signal; i++)
++			got_signal = current->signal.sig[i] & ~current->blocked.sig[i];
++
++		/* If we got a signal, decrement the use count
++		 * and return to user space */
++		if (got_signal) {
++			MOD_DEC_USE_COUNT;
++			return -EINTR;
++	        }
++	}
++
++	/* Since we got here, then devmtab_already_opened must equal 0 */
++	devmtab_already_opened=1;
++	mtab_ptr = 0;
++	mtab_size = 0;
++
++	return 0;
++}
++
++static int devmtab_release (struct inode *ip, struct file *fp)
++{
++	/* Clean up */
++	if (mtabfile != NULL) {
++		free_page ((unsigned long) mtabfile);
++		mtabfile = NULL;
++	}
++
++	/* Zero out the reference counter */
++	devmtab_already_opened=0;
++
++	/* Wake up anybody that is waiting to access this device */
++	module_wake_up(&devmtab_waitq);
++
++	MOD_DEC_USE_COUNT;
++
++	return 0;
++}
++
++static int
++devmtab_ioctl (struct inode *ip, struct file *fp,
++	       unsigned int cmd, unsigned long arg)
++{
++	switch (cmd) {
++	case DEVMTAB_COUNT_FILESYSTEMS:{
++			return(count_kfstypes());
++		}
++
++	case DEVMTAB_GET_FILESYSTEMS:{
++			int stat, count;
++			struct k_fstype* fstypelist;
++
++			/* How many are there? */
++			count = count_kfstypes();
++
++			/* Make some space */
++			fstypelist = (struct k_fstype *)kmalloc(sizeof(struct k_fstype) * count, GFP_KERNEL);
++			if (!fstypelist)
++				return -ENOMEM;
++			memset(fstypelist, 0, sizeof(struct k_fstype) * count);
++
++			/* Grab the mtab entries */
++			get_kfstype_list(count, fstypelist);
++
++			/* Make sure there is enough room */
++			stat = verify_area (VERIFY_WRITE, (struct k_fstype *) arg,
++					    sizeof(struct k_fstype) * count);
++			if (stat) {
++				printk (KERN_INFO
++					"devmtab: Insufficient space was provided.\n");
++				return stat;
++			}
++
++			/* Send it to user space */
++			copy_to_user_ret ((struct k_fstype *) arg, fstypelist,
++					  sizeof(struct k_fstype) * count, 
++					  -EFAULT);
++
++			/* Clean up */
++			kfree( fstypelist);
++			return 0;
++		}
++
++	case DEVMTAB_COUNT_MOUNTS:{
++			return(count_mounted_filesystems());
++		}
++
++	case DEVMTAB_GET_MOUNTS:{
++			int stat, count;
++			struct k_mntent* mntentlist;
++
++			/* How many are there? */
++			count = count_mounted_filesystems();
++
++			/* Make some space */
++			mntentlist = (struct k_mntent *)kmalloc(sizeof(struct k_mntent) * count, GFP_KERNEL);
++			if (!mntentlist)
++				return -ENOMEM;
++			memset(mntentlist, 0, sizeof(struct k_mntent) * count);
++
++			/* Grab the mtab entries */
++			get_mtab_entries (count, mntentlist);
++
++			/* Make sure there is enough room */
++			stat = verify_area (VERIFY_WRITE, (void*) arg,
++					    sizeof(struct k_mntent) * count);
++			if (stat) {
++				printk (KERN_INFO
++					"devmtab: Insufficient space was provided.\n");
++				return stat;
++			}
++
++			/* Send it to user space */
++			copy_to_user_ret ((struct k_mntent *) arg, mntentlist,
++					  sizeof(struct k_mntent) * count, 
++					  -EFAULT);
++
++			/* Clean up */
++			kfree( mntentlist);
++			return 0;
++		}
++
++	default:
++		return -EINVAL;
++
++	}
++	return 0;
++}
++
++
++
++/****************************************************************************
++ * Set up the file operations devmtab will support
++ */
++static struct file_operations devmtab_fops = {
++	devmtab_lseek,
++	devmtab_read,
++	NULL,			/* No write */
++	NULL,			/* No readdir */
++	NULL,			/* No poll */
++	devmtab_ioctl,
++	NULL,			/* No mmap */
++	devmtab_open,
++	NULL,			/* flush */
++	devmtab_release,
++	NULL,			/* fsync */
++	NULL,			/* fasync */
++	NULL,			/* check_media_change */
++	NULL			/* revalidate */
++};
++
++static struct miscdevice devmtab_misc_dev = {
++	DEVMTAB_MINOR,
++	"devmtab",
++	&devmtab_fops
++};
++
++/* The real driver initialization function */
++extern int devmtab_init (void)
++{
++	printk (KERN_INFO "devmtab: driver %s loaded\n", DEVMTAB_VERSION);
++
++	if (misc_register (&devmtab_misc_dev)) {
++		printk ("devmtab: can't register misc device %d\n",
++			DEVMTAB_MINOR);
++		return -EIO;
++	}
++
++	return 0;
++}
++
++#ifdef MODULE
++
++MODULE_AUTHOR ("Erik Andersen <andersee@debian.org>");
++MODULE_DESCRIPTION
++	("devmtab driver -- exports filesystem and mount information to user space");
++
++/* Stub driver initialization function */
++int init_module (void)
++{
++	return (devmtab_init ());
++}
++
++void cleanup_module (void)
++{
++	printk (KERN_INFO "devmtab: driver unloaded\n");
++	misc_deregister (&devmtab_misc_dev);
++}
++
++#endif	/* MODULE */
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/devps.c linux/drivers/char/devps.c
+--- linux-2.2.18-9.virgin/drivers/char/devps.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/devps.c	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,518 @@
++/* vi: set sw=8 ts=8: */
++/*
++ * linux/drivers/char/devps.c
++ * 
++ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ *
++ * May be copied or modified under the terms of the GNU General Public License.
++ * See linux/COPYING for more information.
++ *
++ * This driver implements an interface whereby programs such as ps(1), top(1),
++ * killall(1) and the like may obtain all the process information they need to
++ * do their jobs.  Now you may ask, "Why not use /proc?  BSD uses /proc.".
++ * Thanks for asking.  /proc is designed as a virtual filesystem.  As such it
++ * presents all of its information in a nice, human readable format.  But not
++ * human readable enough that mere mortals can actually look at the /proc
++ * information and know what is happening on their computer (which is why we
++ * have nice programs like ps(1) to help us out.  Additionally, for ps (using
++ * /proc) to do its job, it has to do something like:
++ *
++ *	dir = opendir("/proc");
++ *	while ((entry = readdir(dir)) != NULL) { 
++ *		if (!isdigit(*entry->d_name))
++ *			continue;
++ *		open_lots_of files();
++ *		parse_lots_of_strings();
++ *		close_lots_of_files();
++ *		print_stuff();
++ *	}
++ *
++ *
++ * This is bad, because:
++ *
++ * 1) opening and closing lots of files is slow,
++ *
++ * 2) parsing lots of strings is slow,
++ *
++ * 3) every one of those strings had to be carefully printed out and formatted
++ * by the kernel, which is slow,
++ *
++ * 4) using a virtual filesystem is not the traditional UN*X solution to
++ * getting information from the kernel out to userspace (ioctls and syscalls
++ * are the established way to do this), and worst of all
++ *
++ * 5) having a virtual filesystem around has been so inviting that everyone has
++ * put their own weird little files into it, causing /proc to become a
++ * cluttered rubbish heap of 64 flavors of strange that takes a ridiculous
++ * amount of memory.  
++ *
++ * This driver is the first step in my evil plan to completely 
++ * dismantle /proc.  Muhahahaha!
++ *
++ * Suggestions are welcome. Patches that work are more welcome though. ;-)
++ *
++ * When using this driver, running:
++ * 	mknod /dev/ps c 10 21
++ * could be considered helpful.
++ *
++ * ----------------------------------
++ * 1.00  Mar 07, 2000 -- Initial version.
++ *
++ *
++ * TODO
++ * ----------------------------------
++ *
++ *  * Right now none of the vm or fd info is being returned to user space. 
++ *  * There is probably other stuff that should be exported to user space.
++ *
++ *
++ *************************************************************************/
++
++#define DEVPS_VERSION "1.00"
++
++#include <linux/config.h>
++#include <linux/module.h>
++#include <linux/types.h>
++#include <linux/sched.h>
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/pagemap.h>
++#include <linux/malloc.h>
++#include <linux/miscdevice.h>
++#include <linux/devps.h>
++#include <linux/wrapper.h>
++#include <asm/pgtable.h>
++#include <asm/uaccess.h>
++
++/* Some variables used by this device */
++static struct wait_queue *devps_waitq = NULL;
++static int devps_already_opened = 0;
++
++/****************************************************************************
++ * Handle opening and closing of the device
++ */
++
++static int devps_open (struct inode *ip, struct file *fp)
++{
++	/* Only let one process use us at any time -- putting other
++	 * processes to sleep.  Those opening us O_NONBLOCK will
++	 * get an EAGAIN error */
++	if ((fp->f_flags & O_NONBLOCK) && devps_already_opened) 
++		return -EAGAIN;
++
++	MOD_INC_USE_COUNT;
++
++	while (devps_already_opened) {
++		int i, got_signal=0;
++
++		/* Go to sleep until we get woken up 
++		 * by devps_close or we receive a signal */
++		module_interruptible_sleep_on(&devps_waitq);
++
++		for(i=0; i<_NSIG_WORDS && !got_signal; i++)
++			got_signal = current->signal.sig[i] & ~current->blocked.sig[i];
++
++		/* If we got a signal, decrement the use count
++		 * and return to user space */
++		if (got_signal) {
++			MOD_DEC_USE_COUNT;
++			return -EINTR;
++	        }
++	}
++
++	/* Since we got here, then device_already_opened must equal 0 */
++	devps_already_opened=1;
++	return 0;
++}
++
++static int devps_release (struct inode *ip, struct file *fp)
++{
++	/* Zero out the reference counter */
++	devps_already_opened=0;
++
++	/* Wake up anybody that is waiting to access this device */
++	module_wake_up(&devps_waitq);
++
++	MOD_DEC_USE_COUNT;
++	return 0;
++}
++
++
++/*
++ * This pretty-prints the pathname of a dentry,
++ * clarifying sockets etc.
++ */
++static int
++get_name_from_dentry (struct dentry *dentry, char *buffer, int buflen)
++{
++	struct inode *inode;
++	char *tmp = (char *) __get_free_page (GFP_KERNEL), *path, *pattern;
++	int len;
++
++	if (tmp == NULL)
++		return -ENOMEM;
++
++	/* Check for special dentries.. */
++	pattern = NULL;
++	inode = dentry->d_inode;
++	if (inode && dentry->d_parent == dentry) {
++		if (S_ISSOCK (inode->i_mode))
++			pattern = "socket:[%lu]";
++		if (S_ISFIFO (inode->i_mode))
++			pattern = "pipe:[%lu]";
++	}
++
++	if (pattern) {
++		len = sprintf (tmp, pattern, inode->i_ino);
++		path = tmp;
++	} else {
++		path = d_path (dentry, tmp, PAGE_SIZE);
++		len = tmp + PAGE_SIZE - 1 - path;
++	}
++
++	if (len < buflen)
++		buflen = len;
++	dput (dentry);
++	strncpy (buffer, path, buflen);
++	free_page ((unsigned long) tmp);
++	return buflen;
++}
++
++static unsigned long get_phys_addr (struct task_struct *p,
++				    unsigned long ptr)
++{
++	pgd_t *page_dir;
++	pmd_t *page_middle;
++	pte_t pte;
++
++	if (!p || !p->mm || ptr >= TASK_SIZE)
++		return 0;
++	/* Check for NULL pgd .. shouldn't happen! */
++	if (!p->mm->pgd) {
++		printk ("get_phys_addr: pid %d has NULL pgd!\n", p->pid);
++		return 0;
++	}
++
++	page_dir = pgd_offset (p->mm, ptr);
++	if (pgd_none (*page_dir))
++		return 0;
++	if (pgd_bad (*page_dir)) {
++		printk ("bad page directory entry %08lx\n",
++			pgd_val (*page_dir));
++		pgd_clear (page_dir);
++		return 0;
++	}
++	page_middle = pmd_offset (page_dir, ptr);
++	if (pmd_none (*page_middle))
++		return 0;
++	if (pmd_bad (*page_middle)) {
++		printk ("bad page middle entry %08lx\n",
++			pmd_val (*page_middle));
++		pmd_clear (page_middle);
++		return 0;
++	}
++	pte = *pte_offset (page_middle, ptr);
++	if (!pte_present (pte))
++		return 0;
++	return pte_page (pte) + (ptr & ~PAGE_MASK);
++}
++
++static int get_array (struct task_struct *p, unsigned long start,
++		      unsigned long end, char *buffer)
++{
++	unsigned long addr;
++	int size = 0, result = 0;
++	char c;
++
++	if (start >= end)
++		return result;
++	for (;;) {
++		addr = get_phys_addr (p, start);
++		if (!addr)
++			return result;
++		do {
++			c = *(char *) addr;
++			if (!c)
++				result = size;
++			if (size < PAGE_SIZE)
++				buffer[size++] = c;
++			else
++				return result;
++			addr++;
++			start++;
++			if (!c && start >= end)
++				return result;
++		} while (addr & ~PAGE_MASK);
++	}
++	return result;
++}
++
++static int
++devps_ioctl (struct inode *ip, struct file *fp,
++	     unsigned int cmd, unsigned long arg)
++{
++	switch (cmd) {
++
++	/* Count up the total number of processes, 
++	 * and then return that total */
++	case DEVPS_GET_NUM_PIDS:{
++			struct task_struct *p;
++			pid_t num_pids = 0;
++
++			read_lock (&tasklist_lock);
++			for_each_task (p) {
++				if (!p->pid)
++					continue;
++				num_pids++;
++			}
++			read_unlock (&tasklist_lock);
++
++			copy_to_user_ret ((pid_t *) arg, &num_pids,
++					  sizeof (num_pids), -EFAULT);
++			return 0;
++		}
++
++	/* Returns an array containing all current pids, where
++	   pidlist[0]=number of PIDs in the array. pidlist[0] also
++	   specifies the size of the array for the kernel to
++	   fill... */
++	case DEVPS_GET_PID_LIST:{
++			struct task_struct *p;
++			pid_t *pid_array = NULL;
++			pid_t num_pids;
++			int stat;
++
++			/* Grab the first element to see how many * entries
++			   they want us to fill */
++			stat = verify_area (VERIFY_READ, (char *) arg,
++					     sizeof (pid_t));
++			if (stat) {
++				printk (KERN_INFO
++					"devps: can't tell how many "
++					"to pid's to write.\n");
++				return stat;
++			}
++
++			copy_from_user (&num_pids, (void *) arg,
++					sizeof (num_pids));
++
++			/* Now make sure we can write the specified amount
++			   of stuff into the array.  If we can't we might 
++			   as well quit now and save ourselves the bother. */
++			stat = verify_area (VERIFY_WRITE, (char *) arg,
++					     sizeof (pid_t) * num_pids);
++			if (stat) {
++				printk (KERN_INFO
++					"devps: Insufficient space was "
++					"provided to write %d pid's.\n",
++					num_pids);
++				return stat;
++			}
++
++			/* Allocate some memory to hold this stuff in before
++			   * we copy it out to user-space */
++			pid_array = (pid_t *) kmalloc (num_pids *
++						   sizeof (pid_t),
++						   GFP_KERNEL);
++			if (pid_array == NULL)
++				return -ENOMEM;
++
++			/* Now march through the PID list */
++			pid_array[0] = 0;
++			read_lock (&tasklist_lock);
++			for_each_task (p) {
++				if (!p->pid)
++					continue;
++				(pid_array[0])++;
++				if (pid_array[0] >= (num_pids - 1))
++					continue;
++				pid_array[pid_array[0]] = p->pid;
++			}
++			read_unlock (&tasklist_lock);
++
++			/* Copy out to the user the number we actually filled 
++			 */
++			copy_to_user_ret ((void *) arg, pid_array,
++					  sizeof (pid_t) * pid_array[0],
++					  -EFAULT);
++			kfree (pid_array);
++
++			return 0;
++		}
++
++	/* Find the details on a particular pid, and fill out a
++	   struct with all the gory details. */
++	case DEVPS_GET_PID_INFO:{
++			struct task_struct *p;
++			struct pid_info mypidinfo;
++			unsigned int state;
++			/* 'R' running    */
++			/* 'S' sleeping   */
++			/* 'D' disk sleep */
++			/* 'Z' zombie     */
++			/* 'T' stopped    */
++			/* 'W' paging     */
++			const char *state_string = "RSDZTW";
++
++			copy_from_user_ret (&mypidinfo,
++					    (struct pid_info *) arg,
++					    sizeof (mypidinfo), -EFAULT);
++
++			read_lock (&tasklist_lock);
++			p = find_task_by_pid (mypidinfo.pid);
++			read_unlock (&tasklist_lock);
++
++			/* Now copy all this crap so we can tell user space 
++			   all about it.  ick.  */
++			memset (mypidinfo.name, 0,
++				sizeof (mypidinfo.name));
++			strcpy (mypidinfo.name, p->comm);
++			mypidinfo.flags = p->flags;
++			mypidinfo.pgrp = p->pgrp;
++			mypidinfo.tms_cutime = p->times.tms_cutime;
++			mypidinfo.tms_cstime = p->times.tms_cstime;
++			mypidinfo.tms_utime = p->times.tms_utime;
++			mypidinfo.tms_stime = p->times.tms_stime;
++			mypidinfo.min_flt = p->min_flt;
++			mypidinfo.cmin_flt = p->cmin_flt;
++			mypidinfo.maj_flt = p->maj_flt;
++			mypidinfo.cmaj_flt = p->cmaj_flt;
++			mypidinfo.session = p->session;
++			mypidinfo.pid = p->pid;
++			mypidinfo.ppid = p->p_pptr->pid;
++			mypidinfo.tty =
++				p->tty ? kdev_t_to_nr (p->tty->device) : 0;
++			mypidinfo.start_time = p->start_time;
++			mypidinfo.uid = p->uid;
++			mypidinfo.euid = p->euid;
++			mypidinfo.suid = p->suid;
++			mypidinfo.fsuid = p->fsuid;
++			mypidinfo.gid = p->gid;
++			mypidinfo.egid = p->egid;
++			mypidinfo.sgid = p->sgid;
++			mypidinfo.fsgid = p->fsgid;
++			mypidinfo.priority = 20 - (p->counter * 10 + 
++					DEF_PRIORITY / 2) / DEF_PRIORITY;
++			mypidinfo.nice = 20 - (mypidinfo.priority * 20 +
++				      DEF_PRIORITY / 2) / DEF_PRIORITY;
++			state = p-> state & (TASK_RUNNING | TASK_INTERRUPTIBLE
++					 | TASK_UNINTERRUPTIBLE |
++					 TASK_ZOMBIE | TASK_STOPPED |
++					 TASK_SWAPPING);
++			while (state) {
++				state_string++;
++				state >>= 1;
++			}
++			mypidinfo.state = *state_string;
++			mypidinfo.processor = p->processor;
++			mypidinfo.nswap = p->nswap;
++			mypidinfo.cnswap = p->cnswap;
++			if (p && p->mm) {
++				char *page = NULL;
++
++				/* Look for some elbow room */
++				if (!(page = (char*)get_free_page (GFP_KERNEL)))
++					return -ENOMEM;
++				/* Grab the command line */
++				get_array (p, p->mm->arg_start,
++					   p->mm->arg_end, page);
++				memcpy( mypidinfo.command_line, page, sizeof( mypidinfo.command_line));
++				mypidinfo.command_line[sizeof( mypidinfo.command_line)-1]='\0';
++
++				/* Grab the environment */
++				memset (page, 0, PAGE_SIZE);
++				get_array (p, p->mm->env_start,
++					   p->mm->env_end, page);
++				memcpy( mypidinfo.environment, page, sizeof( mypidinfo.environment));
++				mypidinfo.command_line[sizeof( mypidinfo.environment)-1]='\0';
++				free_page ((unsigned long) page);
++			}
++			memset (mypidinfo.cwd, 0, sizeof (mypidinfo.cwd));
++			get_name_from_dentry (dget (p->fs->pwd), mypidinfo.cwd,
++					      sizeof (mypidinfo.cwd));
++			memset (mypidinfo.root, 0, sizeof (mypidinfo.root));
++			get_name_from_dentry (dget (p->fs->root),
++					      mypidinfo.root,
++					      sizeof (mypidinfo.root));
++
++			copy_to_user_ret ((struct pid_info *) arg,
++					  &mypidinfo, sizeof (mypidinfo),
++					  -EFAULT);
++
++			return 0;
++		}
++
++	/* Return the PID of the current process */
++	case DEVPS_GET_CURRENT_PID:{
++			return current->pid;
++		}
++
++	default:
++		return -EINVAL;
++
++	}
++	return 0;
++}
++
++
++
++/****************************************************************************
++ * Set up the file operations devps will support
++ */
++static struct file_operations devps_fops = {
++	NULL,			/* No lseek */
++	NULL,			/* No read */
++	NULL,			/* No write */
++	NULL,			/* No readdir */
++	NULL,			/* No poll */
++	devps_ioctl,
++	NULL,			/* No mmap */
++	devps_open,
++	NULL,			/* flush */
++	devps_release,
++	NULL,			/* fsync */
++	NULL,			/* fasync */
++	NULL,			/* check_media_change */
++	NULL			/* revalidate */
++};
++
++static struct miscdevice devps_misc_dev = {
++	DEVPS_MINOR,
++	"devps",
++	&devps_fops
++};
++
++/* The real driver initialization function */
++extern int devps_init (void)
++{
++	printk (KERN_INFO "devps driver %s loaded\n", DEVPS_VERSION);
++
++	if (misc_register (&devps_misc_dev)) {
++		printk ("devps: unable to get misc device %d\n",
++			DEVPS_MINOR);
++		return -EIO;
++	}
++
++	return 0;
++}
++
++#ifdef MODULE
++
++MODULE_AUTHOR ("Erik Andersen <andersee@debian.org>");
++MODULE_DESCRIPTION
++	("devps driver -- exports kernel process information to user space");
++
++
++/* Stub driver initialization function */
++int init_module (void)
++{
++	return (devps_init ());
++}
++
++void cleanup_module (void)
++{
++	printk (KERN_INFO "devps driver unloaded\n");
++	misc_deregister (&devps_misc_dev);
++}
++
++#endif				/* endif MODULE */
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/makedevps.sh linux/drivers/char/makedevps.sh
+--- linux-2.2.18-9.virgin/drivers/char/makedevps.sh	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/makedevps.sh	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,5 @@
++#!/bin/sh -x
++
++gcc -Wall -g -I /usr/src/linux/include ps-devps.c -o ps-devps
++gcc -Wall -g -I /usr/src/linux/include mounts.c -o mounts
++
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/misc.c linux/drivers/char/misc.c
+--- linux-2.2.18-9.virgin/drivers/char/misc.c	Mon Sep 18 15:02:31 2000
++++ linux/drivers/char/misc.c	Mon Sep 25 17:00:57 2000
+@@ -85,6 +85,8 @@
+ extern int pmu_device_init(void);
+ extern int tosh_init(void);
+ extern int rng_init(void);
++extern int devps_init(void);
++extern int devmtab_init(void);
+ 
+ static int misc_read_proc(char *buf, char **start, off_t offset,
+ 			  int len, int *eof, void *private)
+@@ -268,6 +270,12 @@
+ #endif
+ #ifdef CONFIG_PMAC_PBOOK
+ 	pmu_device_init();
++#endif
++#ifdef CONFIG_DEVPS
++	devps_init();
++#endif
++#ifdef CONFIG_DEVMTAB
++	devmtab_init();
+ #endif
+ #ifdef CONFIG_SGI_NEWPORT_GFX
+ 	gfx_register ();
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/mounts.c linux/drivers/char/mounts.c
+--- linux-2.2.18-9.virgin/drivers/char/mounts.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/mounts.c	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,116 @@
++/* vi: set sw=4 ts=4: */
++/*
++ * devmtab tester
++ *
++ *
++ * Copyright (C) 2000 by Erik Andersen <andersee@debian.org>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ *
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <string.h>
++#include <unistd.h>
++#include <time.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <sys/types.h>
++#include <linux/devmtab.h>
++
++
++int main (int argc, char **argv)
++{
++	char device[80] = "/dev/mtab";
++	int fd;           /* file descriptor for devmtab device */
++	int i, numfilesystems;
++	struct k_fstype *fslist;
++	struct k_mntent *mntentlist;
++
++	if (argc > 1 && **(argv + 1) == '-') {
++		fprintf(stderr, "Usage: mounts\n\nReport mounted stuff\n\nThis version of mounts accepts no options.\n\n");
++		exit(1);
++	}
++
++	/* open device */ 
++	if ((fd = open(device, O_RDONLY)) < 0) {
++		fprintf (stderr, "open failed for `%s': %s\n",
++			 device, strerror (errno));
++		exit (1);
++	}
++
++	/* How many filesystems?  We need to know to allocate 
++	 * enough space for later... */
++	numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
++	if (numfilesystems<0) {
++		fprintf (stderr, "\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", 
++			strerror (errno));
++		exit (1);
++	} 
++	fslist = (struct k_fstype *) calloc ( numfilesystems, sizeof(struct k_fstype));
++
++	/* Grab the list of available filesystems */
++	if (ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist)<0) {
++		fprintf (stderr, "\nDEVMTAB_GET_FILESYSTEMS: %s\n", 
++			strerror (errno));
++		exit (1);
++	} 
++	fprintf( stdout, "\nEquivalent of /proc/filesystems:\n");
++	for( i = 0 ; i < numfilesystems ; i++) {
++		fprintf( stdout, "%s%s\n", fslist[i].mnt_type, 
++				(fslist[i].mnt_nodev)? " nodev" : "");
++	}
++
++
++	/* How many mounted filesystems?  We need to know to 
++	 * allocate enough space for later... */
++	numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
++	if (numfilesystems<0) {
++		fprintf (stderr, "\nDEVMTAB_COUNT_MOUNTS: %s\n", 
++			strerror (errno));
++		exit (1);
++	} 
++	mntentlist = (struct k_mntent *) calloc ( numfilesystems, sizeof(struct k_mntent));
++	
++	/* Grab the list of mounted filesystems */
++	if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0) {
++		fprintf (stderr, "\nDEVMTAB_GET_MOUNTS: %s\n", 
++			strerror (errno));
++		exit (1);
++	} 
++
++	fprintf( stdout, "\nEquivalent of /proc/mounts:\n");
++	for( i = 0 ; i < numfilesystems ; i++) {
++		fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
++				mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
++				mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
++				mntentlist[i].mnt_passno);
++	}
++
++
++	/* clean up */
++	free( fslist);
++	free( mntentlist);
++	if (close (fd) != 0) {
++		fprintf (stderr, "close failed for `%s': %s\n",
++			 device, strerror (errno));
++		exit (1);
++	}
++ 
++	exit (0);
++}
++
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/drivers/char/ps-devps.c linux/drivers/char/ps-devps.c
+--- linux-2.2.18-9.virgin/drivers/char/ps-devps.c	Wed Dec 31 17:00:00 1969
++++ linux/drivers/char/ps-devps.c	Mon Sep 25 17:32:19 2000
+@@ -0,0 +1,148 @@
++/* vi: set sw=4 ts=4: */
++/*
++ * Mini ps implementation for use with the Linux devps driver
++ *
++ *
++ * Copyright (C) 2000 by Erik Andersen <andersee@debian.org>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ *
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <string.h>
++#include <unistd.h>
++#include <time.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <linux/devps.h>
++#include <pwd.h>
++#include <grp.h>
++#include <sys/types.h>
++
++
++#define MAX_COLUMN	79
++
++int
++main (int argc, char **argv)
++{
++	char device[80] = "/dev/ps";
++	int i, j, len;
++	int fd;           /* file descriptor for devps device */
++	int status;       /* return status for system calls */
++	pid_t num_pids;
++	pid_t* pid_array = NULL;
++	struct pid_info info;
++	struct passwd *pwd;
++	struct group *grp;
++	char uidName[10] = "";
++	char groupName[10] = "";
++
++	if (argc > 1 && **(argv + 1) == '-') {
++		fprintf(stderr, "Usage: ps-devps\n\nReport process status\n\nThis version of ps accepts no options.\n\n");
++		exit(1);
++	}
++
++	/* open device */ 
++	//fd = open(device, O_RDWR);
++	fd = open(device, O_RDONLY);
++	if (fd < 0) {
++		fprintf (stderr, "open failed for `%s': %s\n",
++			 device, strerror (errno));
++		goto error;
++	}
++
++	/* Find out how many processes there are */
++	status = ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids);
++	if (status<0) {
++		fprintf (stderr, "\nDEVPS_GET_PID_LIST: %s\n", 
++			strerror (errno));
++		goto error;
++	} 
++	
++	/* Allocate some memory -- grab a few extras just in case 
++	 * some new processes start up while we wait. The kernel will
++	 * just ignore any extras if we give it too many, and will trunc.
++	 * the list if we give it too few.  */
++	pid_array = (pid_t*) calloc( num_pids+10, sizeof(pid_t));
++	pid_array[0] = num_pids+10;
++
++	/* Now grab the pid list */
++	status = ioctl (fd, DEVPS_GET_PID_LIST, pid_array);
++	if (status<0) {
++		fprintf (stderr, "\nDEVPS_GET_PID_LIST: %s\n", 
++			strerror (errno));
++		goto error;
++	} 
++
++	/* Print up a ps listing */
++	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
++			"State", "Command");
++
++	for (i=1; i<pid_array[0] ; i++) {
++	    info.pid = pid_array[i];
++	    status = ioctl (fd, DEVPS_GET_PID_INFO, &info);
++	    if (status<0) {
++		    fprintf (stderr, "\nDEVPS_GET_PID_INFO: %s\n", 
++			    strerror (errno));
++		    goto error;
++	    } 
++		/* Make some adjustments as needed */
++		pwd = getpwuid(info.euid);
++		if (pwd == NULL)
++			sprintf(uidName, "%lu", info.euid);
++		else
++			sprintf(uidName, "%s", pwd->pw_name);
++		grp = getgrgid(info.egid);
++		if (grp == NULL)
++			sprintf(groupName, "%lu", info.egid);
++		else
++			sprintf(groupName, "%s", grp->gr_name);
++
++		len = fprintf(stdout, "%5d %-8s %-8s %c ", info.pid, uidName, groupName, info.state);
++
++		if (strlen(info.command_line) > 1) {
++			for( j=0; j<(sizeof(info.command_line)-1) && j < (MAX_COLUMN-len); j++) {
++				if (*(info.command_line+j) == '\0' && *(info.command_line+j+1) != '\0') {
++					*(info.command_line+j) = ' ';
++				}
++			}
++			*(info.command_line+j) = '\0';
++			fprintf(stdout, "%s\n", info.command_line);
++		} else {
++			fprintf(stdout, "[%s]\n", info.name);
++		}
++	}
++
++	/* Free memory */
++	free( pid_array);
++
++	/* close device */
++	status = close (fd);
++	if (status != 0) {
++		fprintf (stderr, "close failed for `%s': %s\n",
++			 device, strerror (errno));
++		goto error;
++	}
++ 
++	exit (0);
++error:
++	fflush(stdout);
++	fflush(stderr);
++	exit (1);
++}
++
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/fs/Makefile linux/fs/Makefile
+--- linux-2.2.18-9.virgin/fs/Makefile	Wed Aug 25 18:29:49 1999
++++ linux/fs/Makefile	Mon Sep 25 16:33:16 2000
+@@ -11,9 +11,10 @@
+ L_OBJS    = $(join $(SUB_DIRS),$(SUB_DIRS:%=/%.o))
+ O_TARGET := fs.o
+ O_OBJS    = open.o read_write.o devices.o file_table.o buffer.o \
+-		super.o  block_dev.o stat.o exec.o pipe.o namei.o fcntl.o \
++		block_dev.o stat.o exec.o pipe.o namei.o fcntl.o \
+ 		ioctl.o readdir.o select.o fifo.o locks.o filesystems.o \
+ 		dcache.o inode.o attr.o bad_inode.o file.o $(BINFMTS) 
++OX_OBJS = super.o
+ 
+ MOD_LIST_NAME := FS_MODULES
+ ALL_SUB_DIRS = coda minix ext2 fat msdos vfat proc isofs nfs umsdos ntfs \
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/fs/super.c linux/fs/super.c
+--- linux-2.2.18-9.virgin/fs/super.c	Mon Sep 18 15:02:34 2000
++++ linux/fs/super.c	Mon Sep 25 17:00:57 2000
+@@ -18,6 +18,7 @@
+  */
+ 
+ #include <linux/config.h>
++#include <linux/module.h>
+ #include <linux/malloc.h>
+ #include <linux/locks.h>
+ #include <linux/smp_lock.h>
+@@ -25,6 +26,7 @@
+ #include <linux/init.h>
+ #include <linux/quotaops.h>
+ #include <linux/acct.h>
++#include <linux/devmtab.h>
+ 
+ #include <asm/uaccess.h>
+ 
+@@ -311,7 +313,57 @@
+ 	{ 0, NULL }
+ };
+ 
+-int get_filesystem_info( char *buf )
++
++extern int count_mounted_filesystems()
++{
++	struct vfsmount *tmp = vfsmntlist;
++	int count = 0;
++
++	while (tmp)
++	{
++		tmp = tmp->mnt_next;
++		count++;
++	}
++
++	return count;
++}
++EXPORT_SYMBOL(count_mounted_filesystems);
++
++
++extern void get_mtab_entries( int count, struct k_mntent* mntentlist)
++{
++	struct vfsmount *tmp = vfsmntlist;
++	struct proc_fs_info *fs_infop;
++	int i = 0, len;
++
++	while (tmp && i < count)
++	{
++		strncpy(mntentlist[i].mnt_fsname, tmp->mnt_devname, 
++				sizeof(mntentlist[i].mnt_fsname));
++		strncpy(mntentlist[i].mnt_dir, tmp->mnt_dirname, 
++				sizeof(mntentlist[i].mnt_dir));
++		strncpy(mntentlist[i].mnt_type, tmp->mnt_sb->s_type->name,
++				sizeof(mntentlist[i].mnt_type));
++		len = 0;
++		len+=sprintf(mntentlist[i].mnt_opts, "%s", 
++				tmp->mnt_flags & MS_RDONLY ? "ro" : "rw");
++		for (fs_infop = fs_info; fs_infop->flag; fs_infop++) {
++		  if (tmp->mnt_flags & fs_infop->flag) {
++		    strncpy(mntentlist[i].mnt_opts+len, fs_infop->str, 
++				    sizeof(mntentlist[i].mnt_opts)-len);
++		    len += strlen(fs_infop->str);
++		  }
++		}
++
++		/* TODO -- add in NFS stuff */ 
++
++		tmp = tmp->mnt_next;
++		i++;
++	}
++}
++EXPORT_SYMBOL(get_mtab_entries);
++
++extern int get_filesystem_info( char *buf )
+ {
+ 	struct vfsmount *tmp = vfsmntlist;
+ 	struct proc_fs_info *fs_infop;
+@@ -383,8 +435,37 @@
+ 
+ 	return len;
+ }
++EXPORT_SYMBOL(get_filesystem_info);
++
++extern int count_kfstypes()
++{
++	struct file_system_type * tmp = file_systems;
++	int count = 0;
++
++	while (tmp) {
++		count++;
++		tmp = tmp->next;
++	}
++
++	return count;
++}
++EXPORT_SYMBOL(count_kfstypes);
++
++extern void get_kfstype_list(int count, struct k_fstype* fstypelist)
++{
++	int i = 0;
++	struct file_system_type * tmp = file_systems;
++
++	while (tmp && i < count) {
++		strncpy(fstypelist[i].mnt_type, tmp->name, sizeof(fstypelist[i].mnt_type));
++		fstypelist[i].mnt_nodev = (tmp->fs_flags & FS_REQUIRES_DEV)? 0 : 1;
++		tmp = tmp->next;
++		i++;
++	}
++}
++EXPORT_SYMBOL(get_kfstype_list);
+ 
+-int get_filesystem_list(char * buf)
++extern int get_filesystem_list(char * buf)
+ {
+ 	int len = 0;
+ 	struct file_system_type * tmp;
+@@ -398,6 +479,7 @@
+ 	}
+ 	return len;
+ }
++EXPORT_SYMBOL(get_filesystem_list);
+ 
+ struct file_system_type *get_fs_type(const char *name)
+ {
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/devmtab.h linux/include/linux/devmtab.h
+--- linux-2.2.18-9.virgin/include/linux/devmtab.h	Wed Dec 31 17:00:00 1969
++++ linux/include/linux/devmtab.h	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,55 @@
++/* vi: set sw=8 ts=8: */
++/*
++ * -- <linux/devmtab.h>
++ *  
++ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * 
++ * May be copied or modified under the terms of the GNU General Public License.
++ * See linux/COPYING for more information.
++ *
++ * This driver implements an interface whereby programs such as mount(8),
++ * umount(8), and df(1) may obtain all the process information they need to do
++ * their jobs without needing to use /proc.
++ *
++ */
++ 
++#ifndef	_LINUX_DEVMTAB_H
++#define	_LINUX_DEVMTAB_H
++
++
++/*******************************************************
++ * The list of all ioctl(2) commands suported by devmtab.
++ * For the devmtab ioctls, I have commandeered some of the
++ * higher bits of byte 0xeb.
++ *******************************************************/
++#define DEVMTAB_COUNT_FILESYSTEMS  0xebaa /* Get a list of all fs */ 
++#define DEVMTAB_GET_FILESYSTEMS    0xebab /* Get a list of all fs */ 
++#define DEVMTAB_COUNT_MOUNTS       0xebac /* Returns number of mounted filesystems */
++#define DEVMTAB_GET_MOUNTS         0xebad /* Get a list of a mounted fs */
++#define DEVMTAB_SET_ROOTFS_DEVNAME 0xebae /* Replace /dev/root with real name */
++
++/*******************************************************
++ * devmtab ioctl(2) structures
++ *******************************************************/
++
++/* An array of these is returned by the DEVMTAB_GET_FILESYSTEMS ioctl.
++ */
++struct k_fstype {
++	char    mnt_type[255];   /* filesystem type: ext2, nfs, etc. */
++	int     mnt_nodev;       /* Is this a device-less filesystem? */
++};
++
++/* An array of these is returned by the DEVMTAB_GET_MOUNTS ioctl.
++ * This struct should be the same as what libc returns via the
++ * getmntent(3) function (excat this comes from the kernel, not
++ * from whatever noise is in /etc/mtab at the moment... */
++struct k_mntent {
++	char    mnt_fsname[255];    /* name of mounted file system */
++	char    mnt_dir[255];       /* path of file system mount point */
++	char    mnt_type[255];      /* filesystem type: ext2, nfs, etc. */
++	char    mnt_opts[255];      /* Comma-separated list of mount options */
++	int     mnt_freq;       /* dump frequency in days */
++	int     mnt_passno;     /* pass number for parallel fsck */
++};
++
++#endif  /* _LINUX_DEVMTAB_H */
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/devps.h linux/include/linux/devps.h
+--- linux-2.2.18-9.virgin/include/linux/devps.h	Wed Dec 31 17:00:00 1969
++++ linux/include/linux/devps.h	Mon Sep 25 17:00:57 2000
+@@ -0,0 +1,78 @@
++/*
++ * -- <linux/devps.h>
++ *  
++ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * 
++ * May be copied or modified under the terms of the GNU General Public License.
++ * See linux/COPYING for more information.
++ *
++ * This driver implements an interface whereby programs such as ps(1), top(1),
++ * killall(1) and the like may obtain all the process information they need to
++ * do their jobs.
++ *
++ */
++ 
++#ifndef	_LINUX_DEVPS_H
++#define	_LINUX_DEVPS_H
++
++
++/*******************************************************
++ * The list of all ioctl(2) commands suported by devps.
++ * For the devps ioctls, I have commandeered some of the
++ * higher bits of byte 0xeb.
++ *******************************************************/
++#define DEVPS_GET_NUM_PIDS	0xeba1 /* Get a list of all PIDs */ 
++#define DEVPS_GET_PID_LIST	0xeba2 /* Get a list of all PIDs */ 
++#define DEVPS_GET_PID_INFO	0xeba3 /* Get info about a specific PID */
++#define DEVPS_GET_CURRENT_PID	0xeba4 /* Get the current PID */
++
++/*******************************************************
++ * devps ioctl(2) structures
++ *******************************************************/
++
++
++struct pid_info
++{
++	char  name[16];
++	long flags;
++	pid_t pgrp;
++	clock_t tms_cutime;
++	clock_t tms_cstime;
++	clock_t tms_utime;
++	clock_t tms_stime;
++	unsigned long min_flt;
++	unsigned long cmin_flt;
++	unsigned long maj_flt;
++	unsigned long cmaj_flt;
++	pid_t session;
++	pid_t pid;
++	pid_t ppid;
++	int tty;
++	unsigned long start_time;
++	unsigned long uid,euid,suid,fsuid;
++	unsigned long gid,egid,sgid,fsgid;
++	long priority, nice;
++	char state;
++	int processor;
++	unsigned long nswap, cnswap;
++	char command_line[256];
++	char environment[256];
++	char root[256];
++	char cwd[256];
++#if 0
++	/* TODO: Add in this (and probably more) stuff */
++
++	int resident;
++	int size;
++	int share;
++	unsigned long vsize;
++	char exe[MAX_PATH];
++	unsigned long vm_total, vm_locked, vm_rss, vm_data, vm_stack, vm_exec, vm_lib;
++	unsigned long start_code, end_code, start_data, eip, esp;
++	unsigned long signal, blocked;
++#endif
++
++
++};
++
++#endif  /* _LINUX_DEVPS_H */
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/fs.h linux/include/linux/fs.h
+--- linux-2.2.18-9.virgin/include/linux/fs.h	Mon Sep 18 15:08:47 2000
++++ linux/include/linux/fs.h	Mon Sep 25 17:37:50 2000
+@@ -573,6 +573,16 @@
+ 	struct semaphore s_vfs_rename_sem;	/* Kludge */
+ };
+ 
++/* fs/super.c */
++#include <linux/devmtab.h>
++
++extern int count_kfstypes( void);
++extern void get_kfstype_list( int count, struct k_fstype* fstypelist); 
++extern int count_mounted_filesystems( void);
++extern int get_filesystem_info(char *buf);
++extern int get_filesystem_list(char *buf);
++extern void get_mtab_entries( int count, struct k_mntent* mntentlist);
++
+ /*
+  * VFS helper functions..
+  */
+diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-9.virgin/include/linux/miscdevice.h linux/include/linux/miscdevice.h
+--- linux-2.2.18-9.virgin/include/linux/miscdevice.h	Mon Aug  9 13:04:41 1999
++++ linux/include/linux/miscdevice.h	Mon Sep 25 16:33:17 2000
+@@ -11,6 +11,8 @@
+ #define APOLLO_MOUSE_MINOR 7
+ #define PC110PAD_MINOR 9
+ #define MAC_MOUSE_MINOR 10
++#define DEVPS_MINOR		21
++#define DEVMTAB_MINOR		22
+ #define WATCHDOG_MINOR		130	/* Watchdog timer     */
+ #define TEMP_MINOR		131	/* Temperature Sensor */
+ #define RTC_MINOR 135

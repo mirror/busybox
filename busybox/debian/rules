@@ -1,0 +1,193 @@
+#!/usr/bin/make -f
+
+# This is a bit unusual, in that I have to completely recompile everything
+# for each package I build (obviously static and dynamic builds require
+# things to be recompiled...)
+
+# This is the debhelper compatability version to use.
+#export DH_COMPAT=1
+
+bbbd=debian/busybox_builddir
+bb=debian/tmp
+bbsbd=debian/busybox_static_builddir
+bbs=debian/busybox-static
+bbubd=debian/busybox_udeb_builddir
+bbu=debian/busybox-udeb
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f debian/build-stamp-busybox debian/build-stamp-busybox-static debian/build-stamp-busybox-udeb
+	-$(MAKE) clean
+	-rm -rf $(bb) $(bbbd) $(bbs) $(bbsbd) $(bbubd) $(bbu)
+	dh_clean
+
+build: debian/build-stamp-busybox
+debian/build-stamp-busybox:
+	dh_testdir
+	mkdir -p $(bbbd)
+	cp Makefile $(bbbd)
+	cp debian/Config.h-deb $(bbbd)/Config.h
+	-(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" applet_source_list)
+	(cd $(bbbd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	touch debian/build-stamp-busybox
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	# Do not run 'make install', since we do not want all the symlinks. 
+	# This just installes the busybox binary...
+	#(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bb)" install)
+	mkdir -p $(bb)/bin/
+	cp $(bbbd)/busybox $(bb)/bin/busybox
+	mkdir -p $(bb)/usr/share/doc/busybox/busybox.lineo.com
+	cp $(bbbd)/docs/busybox.lineo.com/BusyBox.html $(bb)/usr/share/doc/busybox/busybox.lineo.com/
+	mkdir -p $(bb)/usr/share/man/man1
+	cp $(bbbd)/docs/BusyBox.1 $(bb)/usr/share/man/man1/busybox.1
+
+# Now for the statically linked stuff
+build-static: debian/build-stamp-busybox-static
+debian/build-stamp-busybox-static:
+	dh_testdir
+	mkdir -p $(bbsbd)
+	cp Makefile $(bbsbd)
+	cp debian/Config.h-static $(bbsbd)/Config.h
+	(cd $(bbsbd); $(MAKE) DOSTATIC=true USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	touch debian/build-stamp-busybox-static
+
+install-static: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	# Do not run 'make install', since we do not want all the symlinks. 
+	# This just installes the busybox binary...
+	#(cd $(bbsbd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bbs)" install)
+	mkdir -p $(bbs)/bin/
+	cp $(bbsbd)/busybox $(bbs)/bin/busybox
+	mkdir -p $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com
+	cp $(bbsbd)/docs/busybox.lineo.com/BusyBox.html $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/
+	mkdir -p $(bbs)/usr/share/man/man1/
+	cp $(bbsbd)/docs/BusyBox.1 $(bbs)/usr/share/man/man1/busybox.1
+
+half_clean:
+	dh_testdir
+	dh_testroot
+	rm -rf $(bbs) debian/build-stamp-busybox-static
+	-$(MAKE) clean
+
+do_static: half_clean build-static install-static
+
+
+
+# Now for the .udeb stuff
+PACKAGE=busybox-udeb
+VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2 | sed -e s/[0-9]://g)
+ARCH=$(shell dpkg --print-architecture)
+FILENAME=$(PACKAGE)_$(VERSION)_$(ARCH).udeb
+
+build-udeb: debian/build-stamp-busybox-udeb
+debian/build-stamp-busybox-udeb:
+	dh_testdir
+	mkdir -p $(bbubd)
+	cp Makefile $(bbubd)
+	cp debian/Config.h-udeb $(bbubd)/Config.h
+	(cd $(bbubd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	touch debian/build-stamp-busybox-udeb
+
+install-udeb: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	(cd $(bbubd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bbu)" install)
+	mkdir -p $(bbu)/usr/share/man/man1/
+	cp $(bbubd)/docs/BusyBox.1 $(bbu)/usr/share/man/man1/busybox.1
+
+three_quarter_clean:
+	dh_testdir
+	dh_testroot
+	rm -rf $(bbu) debian/build-stamp-busybox-udeb
+	-$(MAKE) clean
+
+do_udeb: three_quarter_clean build-udeb install-udeb
+
+
+
+# Build architecture-independent files here.
+binary-indep:
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: busybox busybox-static busybox-udeb
+
+busybox: install
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	dh_installdocs       -p$@  $(bbbd)/docs/BusyBox.txt \
+		$(bbbd)/docs/BusyBox.html docs/style-guide.txt \
+		docs/busybox.lineo.com AUTHORS README TODO
+	rm -rf `find $(bb) -name CVS`
+	rm -f `find $(bb) -name .cvsignore`
+	dh_installchangelogs -p$@ Changelog
+	dh_undocumented      -p$@
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	dh_gencontrol        -p$@
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@
+
+
+busybox-static: do_static
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	dh_installdocs       -p$@  $(bbsbd)/docs/BusyBox.txt \
+		$(bbsbd)/docs/BusyBox.html docs/style-guide.txt \
+		docs/busybox.lineo.com AUTHORS README TODO
+	rm -rf `find $(bbs) -name CVS`
+	rm -f `find $(bbs) -name .cvsignore`
+	dh_installchangelogs -p$@ Changelog
+	dh_undocumented      -p$@
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	dh_gencontrol        -p$@
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@
+
+
+# Note that this builds a .udeb, which is not policy compliant or anything.
+#
+busybox-udeb: do_udeb
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	#Make _very_ sure there are no docs lurking about.
+	rm -rf $(bbu)/usr/share/man
+	#dh_gencontrol        -p$@
+	# Don't write your stupid guesses to debian/files.
+	dh_gencontrol        -p$@ -- -fdebian/files~
+	# Register file manually.
+	dpkg-distaddfile $(FILENAME) debian-installer standard
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@ --filename=$(FILENAME)
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

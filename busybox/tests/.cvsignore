@@ -1,0 +1,16 @@
+cp
+cp_*.bb
+cp_*.gnu
+cp_tests
+date
+df
+du
+ln
+ln_*.bb
+ln_*.gnu
+ln_tests
+mv
+mv_*.bb
+mv_*.gnu
+mv_tests
+syslog_test

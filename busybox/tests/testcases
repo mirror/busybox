@@ -1,0 +1,406 @@
+# testcases
+#
+# This file should be filled with test cases to test applets that:
+#
+#  - can somehow produce output (we can't test sync or sleep)
+#  - have a GNU (or other) counterpart
+#  - are not interactive (don't require a ^C or anything)
+#  - don't require extensive setup or cleanup (a litte setup is fine)
+#  - don't have huge and possibly damaging effects (fsck, swapoff)
+#
+# If possible, a test case should be made that tests each option the applet
+# supports. When a new option is added, a new test case should be written for
+# it. When somebody reports a bug with a testcase, that testcase should be
+# added here as well.
+#
+# Some other guidelines to follow:
+#
+#  - please try to keep applets alphabetized, it will make life easier
+#  - use the file tester.sh or testcases when you need to do a non-destructive
+#    test on a file (i.e., cat, md5sum)
+#  - try to make the applet you're testing the first thing on the line (this
+#    not always possible)
+#  - (???) if you have to create a temporary file, call it TMPFILE
+#  - pipe symbols that represent real pipes need a space in front of them
+#     (so the test script can find them and add the "../busybox" after it).
+#  - pipe symbols that are not used for pipes need to be shell-escaped,
+#     with a double \.  See the expr test cases.
+
+
+# ar
+
+# basename
+basename `pwd`
+
+# cat
+cat tester.sh
+echo hello there | cat tester.sh -
+
+# chmod
+# chown
+# chgrp
+# chroot
+# chvt - can't be tested here
+# clear - can't be tested here
+# cmp
+# cp
+
+# cut
+echo "1234" | cut -c1
+echo "1234" | cut -c 1
+echo "1234567890" | cut -c2-7
+echo "1234567890" | cut -c 2-7
+echo "f1	f2" | cut -f2
+echo "f1	f2" | cut -f 2
+echo "f1	f2	f3	f4	f5" | cut -f2-4
+echo "f1	f2	f3	f4	f5" | cut -f 2-4
+
+# date
+date
+date -R
+date -u
+date +%d/%m/%y
+
+# dc - needs an input file
+
+# dd
+# BUG: record count line goes to stdout instead of stderr
+dd if=/dev/urandom of=O bs=1k count=1 ; ls -l O ; rm O
+
+# deallocvt
+
+# df
+# XXX: minor formatting differences
+df
+df .
+df -k
+df -h
+df -m
+
+# dirname
+dirname `pwd`
+
+# dmesg (XXX: change the silly cmd business in the source)
+dmesg
+dmesg -n 8
+dmesg -s 512
+# I really don't want to do this next one
+#dmesg -c
+
+# dos2unix - needs an input file
+# dpkg
+# dpkg_deb
+
+# du
+# BUG: rounding behavior differs from GNU du
+du
+du -s
+du -l
+du -k
+du -h
+du -m
+
+# dumpkmap - no counterprt?
+# dutmp - no counterprt?
+
+# echo
+echo "foo bar baz"
+echo -n "no newline"
+
+
+# expr
+expr 1 \\| 1
+expr 1 \\| 0
+expr 0 \\| 1
+expr 0 \\| 0
+
+expr 1 \\& 1
+expr 1 \\& 0
+expr 0 \\& 1
+expr 0 \\& 0
+
+expr 0 \\< 1
+expr 1 \\< 0
+
+expr 1 \\> 0
+expr 0 \\> 1
+
+expr 0 \\<= 1
+expr 1 \\<= 0
+expr 1 \\<= 1
+
+expr 1 \\>= 0
+expr 0 \\>= 1
+expr 1 \\>= 1
+
+expr 1 + 2
+expr 2 - 1
+expr 2 \\* 3
+expr 12 / 2
+expr 12 % 5
+
+# somebody else can do all the string stuff
+
+
+# fbset - can't be tested here
+# fdflush
+# find
+find .
+
+# free
+# XXX: minor formatting differences
+free
+
+# freeramdisk
+# fsck.minix - won't test
+# getopt
+
+# grep
+grep -l strdup ../*.c
+grep -c strdup ../*.c
+grep -lc strdup ../*.c
+grep -cv strdup ../*.c
+grep -i null ../grep.c
+grep -e strdup -e regcomp -e atexit ../grep.c
+
+# gunzip
+
+# gzip
+# XXX: compressed output differs from gzip-1.2.4, but decompresses fine
+echo testing 1 2 3 >tmpfile1; gzip tmpfile1; echo tmpfile*; md5sum tmpfile1.gz; rm tmpfile1.gz
+echo testing 1 2 3 | gzip >tmpfile1.gz; md5sum tmpfile1.gz; rm tmpfile1.gz
+
+
+# halt - won't test, dangerous
+
+# head
+head tester.sh
+head -n 2 tester.sh
+
+# hostid
+hostid
+
+# hostname
+# XXX: minor formatting differences
+hostname
+hostname -s
+hostname -i
+hostname -d
+# not going to do this next one
+#hostname -F
+
+# id
+# BUG: Busybox id doesn't print supplemental groups
+id
+id -u
+id -g
+id -ur
+id -un
+
+
+# ifconfig
+# requires BB_FEATURE_IFCONFIG_STATUS
+ifconfig
+#ifconfig -a
+#ifconfig eth0
+#ifconfig lo
+
+# init - won't test
+# insmod - won't test
+
+# kill
+#kill -l
+# not going to do any more
+
+# length
+# ln - see ln_tests.mk
+# loadacm
+# loadfont
+# loadkmap
+# logger
+# logname
+
+# ls
+# XXX: minor formatting differences
+ls ../e*
+ls -l ../e*
+ls -s ../e*
+ls -h ../e*
+ls -1 ../e*
+
+# lsmod
+lsmod
+
+# makedevs
+
+# md5sum
+md5sum tester.sh
+
+# mkdir
+mkdir D ; ls -ld D ; rmdir D
+
+# mkfifo
+#
+# we will test making one. actually testing pushing data through it requires
+# more interaction than we can manage here.
+# (these lines turn up an existing ls bug)
+mkfifo F ; ls -l F ; rm F
+mkfifo -m 0600 F ; ls -l F ; rm F
+
+# mkfs.minix - won't test
+# mknod
+# mkswap - won't test
+# mktemp
+# more - can't test: interactive
+
+# mount
+# BUG: proc line starts with /proc instead of proc
+mount
+# not going to test mount with any args, can't be done safely or sanely
+
+# mt
+# mv - see mv_tests.mk
+# nc
+# nfsmount
+# nslookup
+# ping
+ping -c 3 yahoo.com
+# pivot_root
+# poweroff - won't test
+# printf
+# ps - there's lotsa differences between busybox ps and any other ps
+
+# pwd
+pwd
+
+# rdate - won't test
+
+# readlink
+ln -sf tester.sh L ; readlink L ; rm -f L
+
+# reboot - won't test
+# renice - won't test
+# reset - can't test: no output
+
+# rm
+touch F ; rm F
+
+# rmdir
+# rmmod - won't test: dangerous
+
+# route
+# XXX: doesn't DNS resolve
+route
+
+# rpm2cpio
+
+# rpmunpack
+
+# sed - we can do some one-liners here, some testing is a little
+# difficult to do in just this space (like a,i,c cmds).
+
+# test ^$ matching
+echo foo | sed -ne '/^$/p'
+echo -e "foo\\n\\nbar" | sed -ne '/^$/p'
+
+sed -e '/test$/d' testcases
+sed -e '/^echo/d' testcases
+sed -e '/test/s/dangerous/PELIGROSO/' testcases
+sed -ne '1,/getopt/p' ../pwd.c
+sed -e '/getopt/r ../pwd.c' ../sed.c
+
+
+# setkeycodes
+
+# sh - note that we cannot test the shell interactively here
+sh -c "echo a b c"
+sh -c ">"
+sh -c "a"
+sh sh.testcases
+
+
+# sleep - can't test: produces no output
+
+# sort
+sort tester.sh
+sort -n tester.sh
+sort -r tester.sh
+
+# stty
+# swapon - won't test: dangerous
+# swapoff - won't test: dangerous
+# sync - can't test: no output
+# syslogd - won't test: too involved
+
+# tail
+tail tester.sh
+tail -n 2  tester.sh
+
+# tar
+
+# tee
+echo "please tee me!" | tee A B C ; cat A B C
+echo "please tee me!" | tee A B C ; echo "tee me too!" | tee -a A B C ; cat A B C ; rm A B C
+
+# telnet - can't test: interactive
+
+# test
+# tftp
+
+# touch
+touch tmpfile1; ls tmpfile1; rm -f tmpfile1
+touch -c tmpfile1; ls tmpfile1; rm -f tmpfile1
+
+# tr
+# BUG: Busybox tr range handling minix style [a-z] instead of GNU # style a-z
+echo "cbaab" | tr abc zyx
+echo "TESTING A B C" | tr [A-Z] [a-z]
+# not GNU compatible
+echo fdhrnzvfu bffvsentr | tr [a-z] [n-z][a-m]
+echo abc[] | tr a[b AXB
+echo testing | tr -d aeiou
+
+# true
+true ; echo $?
+
+# false
+false ; echo $?
+
+# tty
+# umount
+# uname
+# uniq
+# unix2dos
+# update
+
+# uptime
+# BUG: doesn't print number of users
+uptime
+
+# usleep
+# uudecode
+# uuencode
+# watchdog
+
+# wc
+wc tester.sh
+wc -c tester.sh
+wc -w tester.sh
+wc -l tester.sh
+wc -L tester.sh
+
+# wget
+
+# which
+which ls
+
+# whoami
+whoami
+
+# xargs
+# XXX: Busygox xargs divides filenames with '\n' instead of ' '
+ls -1 ../e* | xargs
+ls -1 ../e* | xargs md5sum
+
+# yes - can't test: interactive (needs ^C)
+
