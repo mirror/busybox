@@ -67,6 +67,7 @@
 #include "busybox.h"
 
 #ifdef BB_FEATURE_NEW_MODULE_INTERFACE
+# undef BB_FEATURE_OLD_MODULE_INTERFACE
 # define new_sys_init_module	init_module
 #else
 # define old_sys_init_module	init_module
@@ -133,7 +134,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.72 2001/08/22 05:26:08 andersen Exp $"
+#ident "$Id: insmod.c,v 1.73 2001/08/22 05:41:57 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +351,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.72 2001/08/22 05:26:08 andersen Exp $"
+#ident "$Id: insmod.c,v 1.73 2001/08/22 05:41:57 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
