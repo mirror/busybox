@@ -42,11 +42,12 @@ extern int tar_unzip_init(int tarFd);
 extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
 	int tostdoutFlag, int verboseFlag, char** extractList, char** excludeList);
 
-const int dpkg_deb_contents = 1;
-const int dpkg_deb_control = 2;
+static const int dpkg_deb_contents = 1;
+static const int dpkg_deb_control = 2;
 //	const int dpkg_deb_info = 4;
-const int dpkg_deb_extract = 8;
-const int dpkg_deb_verbose_extract = 16;
+static const int dpkg_deb_extract = 8;
+static const int dpkg_deb_verbose_extract = 16;
+static const int dpkg_deb_list = 32;
 
 extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename)
 {
@@ -63,6 +64,10 @@ extern int deb_extract(int optflags, const char *dir_name, const char *deb_filen
 	if (dpkg_deb_contents == (dpkg_deb_contents & optflags)) {
 		strcpy(ar_filename, "data.tar.gz");
 		verbose_flag = TRUE;
+		list_flag = TRUE;
+	}
+	if (dpkg_deb_list == (dpkg_deb_list & optflags)) {
+		strcpy(ar_filename, "data.tar.gz");
 		list_flag = TRUE;
 	}
 	if (dpkg_deb_control == (dpkg_deb_control & optflags)) {
@@ -114,7 +119,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	int opt = 0;
 	int optflag = 0;	
 	
-	while ((opt = getopt(argc, argv, "cexX")) != -1) {
+	while ((opt = getopt(argc, argv, "cexXl")) != -1) {
 		switch (opt) {
 			case 'c':
 				optflag |= dpkg_deb_contents;
@@ -127,6 +132,9 @@ extern int dpkg_deb_main(int argc, char **argv)
 				break;
 			case 'x':
 				optflag |= dpkg_deb_extract;
+				break;
+			case 'l':
+				optflag |= dpkg_deb_list;
 				break;
 /*			case 'I':
 				optflag |= dpkg_deb_info;
