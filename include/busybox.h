@@ -101,6 +101,10 @@ extern const struct BB_applet applets[];
 /* Pull in the utility routines from libbb */
 #include "libbb.h"
 
+/* Try to pull in PATH_MAX */
+#include <limits.h>
+/* for PATH_MAX on systems that don't have it in limits.h */
+#include <sys/param.h> 
 #ifndef PATH_MAX 
 #define  PATH_MAX         256
 #endif
