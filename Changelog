@@ -2,6 +2,10 @@
 	* Made tar creation support in busybox tar optional.
 	* Made grep and grep -h do the right thing wrt printing
 	    the file name (it failed to print files names in many cases).
+	* Fix a namespace aliasing problem wereby if du was built in, the 
+	    symlink for both du and dutmp would be installed, or then rm was 
+	    built in, the symlinks for both rm and rmmod would be installed.
+
 
 	-Erik Andersen
 
