@@ -151,6 +151,7 @@ extern char *get_last_path_component(char *path);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 extern void chomp(char *s);
+extern void trim(char *s);
 extern struct BB_applet *find_applet_by_name(const char *name);
 void run_applet_by_name(const char *name, int argc, char **argv);
 

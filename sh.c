@@ -54,15 +54,24 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <wordexp.h>
 #include <signal.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
+#include <wordexp.h>
+#define expand_t	wordexp_t
+#undef BB_FEATURE_SH_BACKTICKS
+#else
+#include <glob.h>
+#define expand_t	glob_t
+#endif	
 #include "busybox.h"
 #include "cmdedit.h"
+
 
 static const int MAX_LINE = 256;	/* size of input buffer for cwd data */
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
@@ -901,7 +910,7 @@ static char* itoa(register int i)
 static int expand_arguments(char *command)
 {
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-	wordexp_t wrdexp;
+	expand_t expand_result;
 	char *src, *dst, *var;
 	int i=0, length, total_length=0, retval;
 #endif
@@ -911,14 +920,14 @@ static int expand_arguments(char *command)
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 
+
+#if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
 	/* This first part uses wordexp() which is a wonderful C lib 
 	 * function which expands nearly everything.  */ 
-	
-	retval = wordexp (command, &wrdexp, 0);
-	
+	retval = wordexp (command, &expand_result, 0);
 	if (retval == WRDE_NOSPACE) {
 		/* Mem may have been allocated... */
-		wordfree (&wrdexp);
+		wordfree (&expand_result);
 		error_msg("out of space during expansion");
 		return FALSE;
 	}
@@ -931,23 +940,88 @@ static int expand_arguments(char *command)
 	/* Convert from char** (one word per string) to a simple char*,
 	 * but don't overflow command which is BUFSIZ in length */
 	*command = '\0';
-	while (i < wrdexp.we_wordc && total_length < BUFSIZ) {
-		length=strlen(wrdexp.we_wordv[i])+1;
+	while (i < expand_result.we_wordc && total_length < BUFSIZ) {
+		length=strlen(expand_result.we_wordv[i])+1;
 		if (BUFSIZ-total_length-length <= 0) {
 			error_msg("out of space during expansion");
 			return FALSE;
 		}
-		strcat(command+total_length, wrdexp.we_wordv[i++]);
+		strcat(command+total_length, expand_result.we_wordv[i++]);
 		strcat(command+total_length, " ");
 		total_length+=length;
 	}
-	wordfree (&wrdexp);
+	wordfree (&expand_result);
+#else
+
+	/* Ok.  They don't have glibc and they don't have uClibc.  Chances are
+	 * about 100% they don't have wordexp(), so instead, the best we can do is
+	 * use glob, which is better then nothing, but certainly not perfect */
+
+	/* It turns out that glob is very stupid.  We have to feed it
+	 * one word at a time since it can't cope with a full string. 
+	 * Here we convert command (char*) into cmd (char**, one word 
+	 * per string) */
+	{
+        
+		int flags = GLOB_NOCHECK|GLOB_BRACE|GLOB_TILDE;
+		char * tmpcmd;
+		/* We need a clean copy, so strsep can mess up the copy while
+		 * we write stuff into the original in a minute */
+		char * cmd = strdup(command);
+		for (tmpcmd = cmd; (tmpcmd = strsep(&cmd, " \t")) != NULL;) {
+			if (*tmpcmd == '\0')
+				break;
+			retval = glob(tmpcmd, flags, NULL, &expand_result);
+			/* We can't haveGLOB_APPEND on the first glob call,  
+			 * so put it there now */
+			if (! (flags & GLOB_APPEND) ) 
+				flags |= GLOB_APPEND;
+
+			if (retval == GLOB_NOSPACE) {
+				/* Mem may have been allocated... */
+				globfree (&expand_result);
+				error_msg("out of space during expansion");
+				return FALSE;
+			}
+			if (retval == GLOB_ABORTED || retval == GLOB_NOSYS) {
+				/* Some other error.  */
+				error_msg("syntax error");
+				return FALSE;
+			}
+
+			/* Convert from char** (one word per string) to a simple char*,
+			 * but don't overflow command which is BUFSIZ in length */
+			*command = '\0';
+			if ( expand_result.gl_pathc > 1) {
+				while (i < expand_result.gl_pathc && total_length < BUFSIZ) {
+					length=strlen(expand_result.gl_pathv[i])+1;
+					if (BUFSIZ-total_length-length <= 0) {
+						error_msg("out of space during expansion");
+						return FALSE;
+					}
+					strcat(command+total_length, expand_result.gl_pathv[i++]);
+					strcat(command+total_length, " ");
+					total_length+=length;
+				}
+			}
+		}
+
+		free(cmd);
+		globfree (&expand_result);
+	}
 	
+#endif	
+	
+	/* FIXME -- this routine (which is only used when folks
+	 * don't have a C library with wordexp) needs a bit of help
+	 * to handle things like 'echo $PATH$0' */
 	
 	/* Now do the shell variable substitutions which 
 	 * wordexp can't do for us, namely $? and $! */
 	src = command;
 	while((dst = strchr(src,'$')) != NULL){
+		/* Ok -- got a $ -- now clean up any trailing mess */
+		trim(dst);
 		if (!(var = getenv(dst + 1))) {
 			switch(*(dst+1)) {
 				case '?':
@@ -995,7 +1069,7 @@ static int expand_arguments(char *command)
 			 * the created gap with the new stuff */
 			memmove(dst+subst_len, next_dst+1, subst_len); 
 			/* Now copy in the new stuff */
-			strncpy(dst, var, subst_len);
+			strncpy(dst, var, subst_len+1);
 			src = dst;
 			src++;
 		} else {

@@ -1828,6 +1828,19 @@ void chomp(char *s)
 }
 #endif
 
+#if defined(BB_SH)
+void trim(char *s)
+{
+	/* trim leading whitespace */
+	memmove(s, &s[strspn(s, " \n\r\t\v")], strlen(s));
+
+	/* trim trailing whitespace */
+	while (*s && (!isspace (*s)))
+		s++;
+	*s='\0';
+}
+#endif
+
 /* END CODE */
 /*
 Local Variables:
