@@ -21,7 +21,7 @@
 	* Implemented tee.  -beppu
 	* Implemented head. -beppu
 
-	-Erik Andrsen, Dec 10, 1999
+	-Erik Andersen, Dec 10, 1999
 
 0.38
 	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
@@ -40,7 +40,7 @@
 	    will complain if you enable them when you disable 
 	    BB_FEATURE_USE_PROCFS.
 	   
-	-Erik Andrsen, Dec 5, 1999
+	-Erik Andersen, Dec 5, 1999
 
 0.37
 	* Wrote a micro syslogd, and a logger util (to log things to the syslog
@@ -62,7 +62,7 @@
 	* Also added a TODO.
 
 
-	-Erik Andrsen, Nov 25, 1999
+	-Erik Andersen, Nov 25, 1999
 
 0.36
 	* fixed dd so it properly defaults to stdin and stdout when no 
