@@ -319,7 +319,7 @@ clean:
 	- rm -f multibuild.log Config.h.orig
 	- rm -rf docs/busybox _install $(PWD_LIB) 
 	- rm -f busybox.links loop.h *~ slist.mk core applet_source_list
-	- find -name *.o | xargs rm -f;
+	- find -name \*.o -exec rm -f {} \;
 
 distclean: clean
 	- rm -f busybox
@@ -343,17 +343,17 @@ dist release: distclean doc
 	find busybox-$(VERSION)/ -type d	\
 				 -name CVS	\
 				 -print		\
-		| xargs rm -rf;			\
+		-exec rm -rf {} \;              \
 						\
 	find busybox-$(VERSION)/ -type f	\
 				 -name .cvsignore \
 				 -print		\
-		| xargs rm -f;			\
+		-exec rm -f {}  \;              \
 						\
 	find busybox-$(VERSION)/ -type f	\
 				 -name .\#*	\
 				 -print		\
-		| xargs rm -f;			\
+		-exec rm -f {} \;               \
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
 
