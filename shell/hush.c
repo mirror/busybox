@@ -428,7 +428,7 @@ static int builtin_cd(struct child_prog *child)
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	getcwd(cwd, sizeof(char)*MAX_LINE);
+	cwd = xgetcwd(cwd);
 	return EXIT_SUCCESS;
 }
 
@@ -567,7 +567,7 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
-	getcwd(cwd, MAX_LINE);
+	cwd = xgetcwd(cwd);
 	puts(cwd);
 	return EXIT_SUCCESS;
 }
