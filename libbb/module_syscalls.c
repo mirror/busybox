@@ -51,8 +51,8 @@ _syscall5(int, init_module, void *, first, void *, second, void *, third,
 #warning -> The query_module system call is being stubbed out...
 int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret)
 {
-	fprintf(stderr, "\n\nTo make this application work, you will need to recompile\n");
-	fprintf(stderr, "with a kernel supporting the query_module system call. -Erik\n\n");
+	error_msg("\n\nTo make this application work, you will need to recompile\n"
+		"with a kernel supporting the query_module system call. -Erik\n");
 	errno=ENOSYS;
 	return -1;
 }
