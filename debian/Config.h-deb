@@ -15,7 +15,7 @@
 #define BB_CHVT
 #define BB_CLEAR
 //#define BB_CMP
-#define BB_CP_MV
+#define BB_CP
 #define BB_CUT
 #define BB_DATE
 //#define BB_DC
@@ -75,6 +75,7 @@
 #define BB_MORE
 #define BB_MOUNT
 //#define BB_MT
+#define BB_MV
 //#define BB_NSLOOKUP
 #define BB_PING
 //#define BB_PIVOT_ROOT

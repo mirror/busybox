@@ -18,7 +18,7 @@
 #define BB_CHROOT
 //#define BB_CHVT	/* not needed */
 #define BB_CLEAR
-#define BB_CP_MV
+#define BB_CP
 #define BB_CUT
 #define BB_DATE
 #define BB_DC
@@ -72,6 +72,7 @@
 #define BB_MORE
 //#define BB_MOUNT	/* different implementation */
 #define BB_MT
+#define BB_MV
 #define BB_NSLOOKUP
 //#define BB_PING	/* doesnt compile, Hurd uses BSD style ip.h */
 //#define BB_POWEROFF	/* different implementation i assume */
