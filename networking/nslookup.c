@@ -5,7 +5,7 @@
  * Copyright (C) 1999,2000 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
  *
- * Correct default name server display and explicit name server option 
+ * Correct default name server display and explicit name server option
  * added by Ben Zeckel <bzeckel@hmc.edu> June 2001
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <stdint.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -46,9 +47,9 @@
 /* only works for IPv4 */
 static int addr_fprint(char *addr)
 {
-	u_int8_t split[4];
-	u_int32_t ip;
-	u_int32_t *x = (u_int32_t *) addr;
+	uint8_t split[4];
+	uint32_t ip;
+	uint32_t *x = (uint32_t *) addr;
 
 	ip = ntohl(*x);
 	split[0] = (ip & 0xff000000) >> 24;
@@ -102,12 +103,12 @@ static struct hostent *hostent_fprint(struct hostent *host, const char *server_h
 }
 
 /* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
- * into a u_int32_t
+ * into a uint32_t
  */
-static u_int32_t str_to_addr(const char *addr)
+static uint32_t str_to_addr(const char *addr)
 {
-	u_int32_t split[4];
-	u_int32_t ip;
+	uint32_t split[4];
+	uint32_t ip;
 
 	sscanf(addr, "%d.%d.%d.%d",
 		   &split[0], &split[1], &split[2], &split[3]);
@@ -144,12 +145,12 @@ static inline void set_default_dns(char *server)
 {
 	struct in_addr server_in_addr;
 
-	if(inet_aton(server,&server_in_addr))      
+	if(inet_aton(server,&server_in_addr))
 	{
 		_res.nscount = 1;
 		_res.nsaddr_list[0].sin_addr = server_in_addr;
 	}
-}    
+}
 
 /* naive function to check whether char *s is an ip address */
 static int is_ip_address(const char *s)
@@ -173,18 +174,18 @@ int nslookup_main(int argc, char **argv)
 	* initialize DNS structure _res used in printing the default
 	* name server and in the explicit name server option feature.
 	*/
-	
+
 	res_init();
 
 	/*
-	* We allow 1 or 2 arguments. 
-	* The first is the name to be looked up and the second is an 
-	* optional DNS server with which to do the lookup. 
+	* We allow 1 or 2 arguments.
+	* The first is the name to be looked up and the second is an
+	* optional DNS server with which to do the lookup.
 	* More than 3 arguments is an error to follow the pattern of the
 	* standard nslookup
 	*/
 
-	if (argc < 2 || *argv[1]=='-' || argc > 3) 
+	if (argc < 2 || *argv[1]=='-' || argc > 3)
 		bb_show_usage();
 	else if(argc == 3) 
 		set_default_dns(argv[2]);
@@ -199,4 +200,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.30 2003/03/19 09:12:38 mjn3 Exp $ */
+/* $Id: nslookup.c,v 1.31 2004/01/30 22:40:05 andersen Exp $ */

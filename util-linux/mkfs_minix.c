@@ -70,6 +70,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
@@ -102,13 +103,13 @@
  * Note the 8-bit gid and atime and ctime.
  */
 struct minix_inode {
-	u_int16_t i_mode;
-	u_int16_t i_uid;
-	u_int32_t i_size;
-	u_int32_t i_time;
-	u_int8_t  i_gid;
-	u_int8_t  i_nlinks;
-	u_int16_t i_zone[9];
+	uint16_t i_mode;
+	uint16_t i_uid;
+	uint32_t i_size;
+	uint32_t i_time;
+	uint8_t  i_gid;
+	uint8_t  i_nlinks;
+	uint16_t i_zone[9];
 };
 
 /*
@@ -118,35 +119,35 @@ struct minix_inode {
  * now 16-bit. The inode is now 64 bytes instead of 32.
  */
 struct minix2_inode {
-	u_int16_t i_mode;
-	u_int16_t i_nlinks;
-	u_int16_t i_uid;
-	u_int16_t i_gid;
-	u_int32_t i_size;
-	u_int32_t i_atime;
-	u_int32_t i_mtime;
-	u_int32_t i_ctime;
-	u_int32_t i_zone[10];
+	uint16_t i_mode;
+	uint16_t i_nlinks;
+	uint16_t i_uid;
+	uint16_t i_gid;
+	uint32_t i_size;
+	uint32_t i_atime;
+	uint32_t i_mtime;
+	uint32_t i_ctime;
+	uint32_t i_zone[10];
 };
 
 /*
  * minix super-block data on disk
  */
 struct minix_super_block {
-	u_int16_t s_ninodes;
-	u_int16_t s_nzones;
-	u_int16_t s_imap_blocks;
-	u_int16_t s_zmap_blocks;
-	u_int16_t s_firstdatazone;
-	u_int16_t s_log_zone_size;
-	u_int32_t s_max_size;
-	u_int16_t s_magic;
-	u_int16_t s_state;
-	u_int32_t s_zones;
+	uint16_t s_ninodes;
+	uint16_t s_nzones;
+	uint16_t s_imap_blocks;
+	uint16_t s_zmap_blocks;
+	uint16_t s_firstdatazone;
+	uint16_t s_log_zone_size;
+	uint32_t s_max_size;
+	uint16_t s_magic;
+	uint16_t s_state;
+	uint32_t s_zones;
 };
 
 struct minix_dir_entry {
-	u_int16_t inode;
+	uint16_t inode;
 	char name[0];
 };
 
