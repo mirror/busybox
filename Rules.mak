@@ -101,7 +101,7 @@ TARGET_ARCH=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		)
 endif
 
-# Pull in the user's uClibc configuration
+# Pull in the user's busybox configuration
 ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
 -include $(TOPDIR).config
 endif
