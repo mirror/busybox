@@ -1024,6 +1024,10 @@ extern void gz_close(int gunzip_pid)
 	if (waitpid(gunzip_pid, NULL, 0) == -1) {
 		printf("Couldnt wait ?");
 	}
-	free(window);
-	free(crc_table);
+	if (window) {
+		free(window);
+	}
+	if (crc_table) {
+		free(crc_table);
+	}
 }
