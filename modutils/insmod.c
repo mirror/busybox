@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.69 2001/07/25 16:58:58 andersen Exp $"
+#ident "$Id: insmod.c,v 1.70 2001/07/31 22:51:49 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.69 2001/07/25 16:58:58 andersen Exp $"
+#ident "$Id: insmod.c,v 1.70 2001/07/31 22:51:49 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -550,9 +550,11 @@ static struct obj_symbol *obj_find_symbol (struct obj_file *f,
 static ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
 				  struct obj_symbol *sym);
 
+#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
 static void obj_set_symbol_compare(struct obj_file *f,
 			    int (*cmp)(const char *, const char *),
 			    unsigned long (*hash)(const char *));
+#endif
 
 static struct obj_section *obj_find_section (struct obj_file *f,
 					   const char *name);
