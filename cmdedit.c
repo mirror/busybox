@@ -143,6 +143,12 @@ void input_backspace(char* command, int outputFd, int *cursor, int *len)
 {
 	int j = 0;
 
+/* Debug crap */
+//fprintf(stderr, "\nerik: len=%d, cursor=%d, strlen(command)='%d'\n", *len, *cursor, strlen(command));
+//xwrite(outputFd, command, *len);
+//*cursor = *len;
+
+
 	if (*cursor > 0) {
 		xwrite(outputFd, "\b \b", 3);
 		--*cursor;
@@ -534,7 +540,10 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 					  rewrite_line:
 						/* erase old command from command line */
 						len = strlen(command)-strlen(hp->s);
-						while (len>0)
+
+						while (len>cursor)
+							input_delete(command, outputFd, cursor, &len);
+						while (cursor>0)
 							input_backspace(command, outputFd, &cursor, &len);
 						input_home(outputFd, &cursor);
 						
