@@ -25,7 +25,11 @@ endif
 APPLET_SRC:=applets.c busybox.c usage.c
 APPLET_OBJ:= $(patsubst %.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 
+
+
 libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
+
+$(APPLET_OBJ): $(TOPDIR).config
 
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
 	$(AR) -ro $@ $(APPLET_OBJ)
