@@ -174,16 +174,9 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 		filesize = atol(buf + 4);
 	}
 
-	/* only make a local file if we know that one exists on the remote server */
-	if (do_continue) {
-		fd_local = xopen(local_file, O_APPEND | O_WRONLY);
-	} else {
-		fd_local = xopen(local_file, O_CREAT | O_TRUNC | O_WRONLY);
-	}
-
 	if (do_continue) {
 		struct stat sbuf;
-		if (fstat(fd_local, &sbuf) < 0) {
+		if (lstat(local_file, &sbuf) < 0) {
 			perror_msg_and_die("fstat()");
 		}
 		if (sbuf.st_size > 0) {
@@ -204,6 +197,13 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 
 	if (ftpcmd("RETR ", server_path, control_stream, buf) > 150) {
 		error_msg_and_die("RETR error: %s", buf + 4);
+	}
+
+	/* only make a local file if we know that one exists on the remote server */
+	if (do_continue) {
+		fd_local = xopen(local_file, O_APPEND | O_WRONLY);
+	} else {
+		fd_local = xopen(local_file, O_CREAT | O_TRUNC | O_WRONLY);
 	}
 
 	/* Copy the file */
