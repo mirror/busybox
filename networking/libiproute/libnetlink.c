@@ -24,6 +24,7 @@
 #include <sys/uio.h>
 
 #include "libnetlink.h"
+#include "libbb.h"
 
 void rtnl_close(struct rtnl_handle *rth)
 {
@@ -38,7 +39,7 @@ int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions)
 
 	rth->fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (rth->fd < 0) {
-		perror("Cannot open netlink socket");
+		perror_msg("Cannot open netlink socket");
 		return -1;
 	}
 
@@ -47,20 +48,20 @@ int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions)
 	rth->local.nl_groups = subscriptions;
 
 	if (bind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local)) < 0) {
-		perror("Cannot bind netlink socket");
+		perror_msg("Cannot bind netlink socket");
 		return -1;
 	}
 	addr_len = sizeof(rth->local);
 	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0) {
-		perror("Cannot getsockname");
+		perror_msg("Cannot getsockname");
 		return -1;
 	}
 	if (addr_len != sizeof(rth->local)) {
-		fprintf(stderr, "Wrong address length %d\n", addr_len);
+		error_msg("Wrong address length %d", addr_len);
 		return -1;
 	}
 	if (rth->local.nl_family != AF_NETLINK) {
-		fprintf(stderr, "Wrong address family %d\n", rth->local.nl_family);
+		error_msg("Wrong address family %d", rth->local.nl_family);
 		return -1;
 	}
 	rth->seq = time(NULL);
@@ -148,16 +149,15 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("OVERRUN");
+			perror_msg("OVERRUN");
 			continue;
 		}
 		if (status == 0) {
-			fprintf(stderr, "EOF on netlink\n");
+			error_msg("EOF on netlink");
 			return -1;
 		}
 		if (msg.msg_namelen != sizeof(nladdr)) {
-			fprintf(stderr, "sender address length == %d\n", msg.msg_namelen);
-			exit(1);
+			error_msg_and_die("sender address length == %d", msg.msg_namelen);
 		}
 
 		h = (struct nlmsghdr*)buf;
@@ -168,38 +168,40 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 			    h->nlmsg_seq != rth->dump) {
 				if (junk) {
 					err = junk(&nladdr, h, arg2);
-					if (err < 0)
+					if (err < 0) {
 						return err;
+					}
 				}
 				goto skip_it;
 			}
 
-			if (h->nlmsg_type == NLMSG_DONE)
+			if (h->nlmsg_type == NLMSG_DONE) {
 				return 0;
+			}
 			if (h->nlmsg_type == NLMSG_ERROR) {
-				struct nlmsgerr *err = (struct nlmsgerr*)NLMSG_DATA(h);
+				struct nlmsgerr *l_err = (struct nlmsgerr*)NLMSG_DATA(h);
 				if (h->nlmsg_len < NLMSG_LENGTH(sizeof(struct nlmsgerr))) {
-					fprintf(stderr, "ERROR truncated\n");
+					error_msg("ERROR truncated");
 				} else {
-					errno = -err->error;
-					perror("RTNETLINK answers");
+					errno = -l_err->error;
+					perror_msg("RTNETLINK answers");
 				}
 				return -1;
 			}
 			err = filter(&nladdr, h, arg1);
-			if (err < 0)
+			if (err < 0) {
 				return err;
+			}
 
 skip_it:
 			h = NLMSG_NEXT(h, status);
 		}
 		if (msg.msg_flags & MSG_TRUNC) {
-			fprintf(stderr, "Message truncated\n");
+			error_msg("Message truncated");
 			continue;
 		}
 		if (status) {
-			fprintf(stderr, "!!!Remnant of size %d\n", status);
-			exit(1);
+			error_msg_and_die("!!!Remnant of size %d", status);
 		}
 	}
 }
@@ -228,13 +230,13 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 	nladdr.nl_groups = groups;
 
 	n->nlmsg_seq = seq = ++rtnl->seq;
-	if (answer == NULL)
+	if (answer == NULL) {
 		n->nlmsg_flags |= NLM_F_ACK;
-
+	}
 	status = sendmsg(rtnl->fd, &msg, 0);
 
 	if (status < 0) {
-		perror("Cannot talk to rtnetlink");
+		perror_msg("Cannot talk to rtnetlink");
 		return -1;
 	}
 
@@ -245,39 +247,39 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 		status = recvmsg(rtnl->fd, &msg, 0);
 
 		if (status < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR) {
 				continue;
-			perror("OVERRUN");
+			}
+			perror_msg("OVERRUN");
 			continue;
 		}
 		if (status == 0) {
-			fprintf(stderr, "EOF on netlink\n");
+			error_msg("EOF on netlink");
 			return -1;
 		}
 		if (msg.msg_namelen != sizeof(nladdr)) {
-			fprintf(stderr, "sender address length == %d\n", msg.msg_namelen);
-			exit(1);
+			error_msg_and_die("sender address length == %d", msg.msg_namelen);
 		}
 		for (h = (struct nlmsghdr*)buf; status >= sizeof(*h); ) {
-			int err;
+			int l_err;
 			int len = h->nlmsg_len;
 			int l = len - sizeof(*h);
 
 			if (l<0 || len>status) {
 				if (msg.msg_flags & MSG_TRUNC) {
-					fprintf(stderr, "Truncated message\n");
+					error_msg("Truncated message");
 					return -1;
 				}
-				fprintf(stderr, "!!!malformed message: len=%d\n", len);
-				exit(1);
+				error_msg_and_die("!!!malformed message: len=%d", len);
 			}
 
 			if (h->nlmsg_pid != rtnl->local.nl_pid ||
 			    h->nlmsg_seq != seq) {
 				if (junk) {
-					err = junk(&nladdr, h, jarg);
-					if (err < 0)
-						return err;
+					l_err = junk(&nladdr, h, jarg);
+					if (l_err < 0) {
+						return l_err;
+					}
 				}
 				continue;
 			}
@@ -285,15 +287,16 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 			if (h->nlmsg_type == NLMSG_ERROR) {
 				struct nlmsgerr *err = (struct nlmsgerr*)NLMSG_DATA(h);
 				if (l < sizeof(struct nlmsgerr)) {
-					fprintf(stderr, "ERROR truncated\n");
+					error_msg("ERROR truncated");
 				} else {
 					errno = -err->error;
 					if (errno == 0) {
-						if (answer)
+						if (answer) {
 							memcpy(answer, h, h->nlmsg_len);
+						}
 						return 0;
 					}
-					perror("RTNETLINK answers");
+					perror_msg("RTNETLINK answers");
 				}
 				return -1;
 			}
@@ -302,18 +305,17 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 				return 0;
 			}
 
-			fprintf(stderr, "Unexpected reply!!!\n");
+			error_msg("Unexpected reply!!!");
 
 			status -= NLMSG_ALIGN(len);
 			h = (struct nlmsghdr*)((char*)h + NLMSG_ALIGN(len));
 		}
 		if (msg.msg_flags & MSG_TRUNC) {
-			fprintf(stderr, "Message truncated\n");
+			error_msg("Message truncated");
 			continue;
 		}
 		if (status) {
-			fprintf(stderr, "!!!Remnant of size %d\n", status);
-			exit(1);
+			error_msg_and_die("!!!Remnant of size %d", status);
 		}
 	}
 }
@@ -349,16 +351,15 @@ int rtnl_listen(struct rtnl_handle *rtnl,
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("OVERRUN");
+			perror_msg("OVERRUN");
 			continue;
 		}
 		if (status == 0) {
-			fprintf(stderr, "EOF on netlink\n");
+			error_msg("EOF on netlink");
 			return -1;
 		}
 		if (msg.msg_namelen != sizeof(nladdr)) {
-			fprintf(stderr, "Sender address length == %d\n", msg.msg_namelen);
-			exit(1);
+			error_msg_and_die("Sender address length == %d", msg.msg_namelen);
 		}
 		for (h = (struct nlmsghdr*)buf; status >= sizeof(*h); ) {
 			int err;
@@ -367,27 +368,26 @@ int rtnl_listen(struct rtnl_handle *rtnl,
 
 			if (l<0 || len>status) {
 				if (msg.msg_flags & MSG_TRUNC) {
-					fprintf(stderr, "Truncated message\n");
+					error_msg("Truncated message");
 					return -1;
 				}
-				fprintf(stderr, "!!!malformed message: len=%d\n", len);
-				exit(1);
+				error_msg_and_die("!!!malformed message: len=%d", len);
 			}
 
 			err = handler(&nladdr, h, jarg);
-			if (err < 0)
+			if (err < 0) {
 				return err;
+			}
 
 			status -= NLMSG_ALIGN(len);
 			h = (struct nlmsghdr*)((char*)h + NLMSG_ALIGN(len));
 		}
 		if (msg.msg_flags & MSG_TRUNC) {
-			fprintf(stderr, "Message truncated\n");
+			error_msg("Message truncated");
 			continue;
 		}
 		if (status) {
-			fprintf(stderr, "!!!Remnant of size %d\n", status);
-			exit(1);
+			error_msg_and_die("!!!Remnant of size %d", status);
 		}
 	}
 }
@@ -415,7 +415,7 @@ int rtnl_from_file(FILE *rtnl,
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("rtnl_from_file: fread");
+			perror_msg("rtnl_from_file: fread");
 			return -1;
 		}
 		if (status == 0)
@@ -426,7 +426,7 @@ int rtnl_from_file(FILE *rtnl,
 		l = len - sizeof(*h);
 
 		if (l<0 || len>sizeof(buf)) {
-			fprintf(stderr, "!!!malformed message: len=%d @%lu\n",
+			error_msg("!!!malformed message: len=%d @%lu",
 				len, ftell(rtnl));
 			return -1;
 		}
@@ -434,11 +434,11 @@ int rtnl_from_file(FILE *rtnl,
 		status = fread(NLMSG_DATA(h), 1, NLMSG_ALIGN(l), rtnl);
 
 		if (status < 0) {
-			perror("rtnl_from_file: fread");
+			perror_msg("rtnl_from_file: fread");
 			return -1;
 		}
 		if (status < l) {
-			fprintf(stderr, "rtnl-from_file: truncated message\n");
+			error_msg("rtnl-from_file: truncated message");
 			return -1;
 		}
 
@@ -482,8 +482,9 @@ int rta_addattr32(struct rtattr *rta, int maxlen, int type, __u32 data)
 	int len = RTA_LENGTH(4);
 	struct rtattr *subrta;
 
-	if (RTA_ALIGN(rta->rta_len) + len > maxlen)
+	if (RTA_ALIGN(rta->rta_len) + len > maxlen) {
 		return -1;
+	}
 	subrta = (struct rtattr*)(((char*)rta) + RTA_ALIGN(rta->rta_len));
 	subrta->rta_type = type;
 	subrta->rta_len = len;
@@ -497,8 +498,9 @@ int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen
 	struct rtattr *subrta;
 	int len = RTA_LENGTH(alen);
 
-	if (RTA_ALIGN(rta->rta_len) + len > maxlen)
+	if (RTA_ALIGN(rta->rta_len) + len > maxlen) {
 		return -1;
+	}
 	subrta = (struct rtattr*)(((char*)rta) + RTA_ALIGN(rta->rta_len));
 	subrta->rta_type = type;
 	subrta->rta_len = len;
@@ -511,11 +513,13 @@ int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, int alen
 int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
 {
 	while (RTA_OK(rta, len)) {
-		if (rta->rta_type <= max)
+		if (rta->rta_type <= max) {
 			tb[rta->rta_type] = rta;
+		}
 		rta = RTA_NEXT(rta,len);
 	}
-	if (len)
-		fprintf(stderr, "!!!Deficit %d, rta_len=%d\n", len, rta->rta_len);
+	if (len) {
+		error_msg("!!!Deficit %d, rta_len=%d", len, rta->rta_len);
+	}
 	return 0;
 }
