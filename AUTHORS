@@ -46,7 +46,7 @@ Daniel Jacobowitz <dan@debian.org>
     mktemp.c
 
 Matt Kraai <kraai@alumni.carnegiemellon.edu>
-    documentation, bugfixes
+    documentation, bugfixes, test suite
 
 John Lombardo <john@deltanet.com>	
     dirname, tr
