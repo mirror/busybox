@@ -60,6 +60,7 @@
 //#define BB_MT
 //#define BB_MTAB
 #define BB_MV
+#define BB_NSLOOKUP
 #define BB_PING
 #define BB_POWEROFF
 //#define BB_PRINTF

@@ -106,6 +106,7 @@ extern int more_main(int argc, char** argv);
 extern int mount_main(int argc, char** argv);
 extern int mt_main(int argc, char** argv);
 extern int mv_main(int argc, char** argv);
+extern int nslookup_main(int argc, char** argv);
 extern int ping_main(int argc, char **argv);
 extern int poweroff_main(int argc, char **argv);
 extern int printf_main(int argc, char** argv);

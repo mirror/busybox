@@ -173,6 +173,9 @@ static const struct Applet applets[] = {
 #ifdef BB_MV			//bin
     {"mv", mv_main},
 #endif
+#ifdef BB_NSLOOKUP		//bin
+    {"nslookup", nslookup_main},
+#endif
 #ifdef BB_PING                  //bin
     {"ping", ping_main},
 #endif
