@@ -22,6 +22,12 @@
 #include <unistd.h>
 #include "libbb.h"
 
+/*
+ * stdout can be redircted to FILE *output
+ * If const char *file_prefix isnt NULL is prepended to all the extracted filenames.
+ * The purpose of const char *argument depends on the value of const int untar_function
+ */
+
 extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 	const char *argument, const char *file_prefix)
 {
@@ -55,7 +61,6 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 
 	while (fread((char *) &raw_tar_header, 1, 512, src_tar_file) == 512) {
 		long sum = 0;
-		char *dir = NULL;
 		
 		if (ferror(src_tar_file) || feof(src_tar_file)) {
 			perror_msg("untar: ");
@@ -122,19 +127,14 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 			fprintf(output, "%s\n", raw_tar_header.name);
 		}
 
-		/* extract files */
-		if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
-			dir = concat_path_file(argument, raw_tar_header.name);
-			create_path(dir, 0777);
-		}
-
 		switch (raw_tar_header.typeflag ) {
 			case '0':
-			case '\0':
+			case '\0': {
 				/* If the name ends in a '/' then assume it is
 				 * supposed to be a directory, and fall through
 				 */
-				if (raw_tar_header.name[strlen(raw_tar_header.name)-1] != '/') {
+				int name_length = strlen(raw_tar_header.name);
+				if (raw_tar_header.name[name_length - 1] != '/') {
 					switch (untar_function) {
 						case (extract_extract):
 						case (extract_verbose_extract):
@@ -143,25 +143,17 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 								char *full_name;
 
 								if (file_prefix != NULL) {
-									char *file_name = NULL, *file_extension = NULL;
-
-									file_extension = xmalloc(strlen(raw_tar_header.name) + 1);
-									file_extension = strrchr(raw_tar_header.name, '/');
-									file_extension++;
-									file_name = xmalloc(strlen(file_prefix) + strlen(file_extension) + 2);
-									strcpy(file_name, file_prefix);
-									strcat(file_name, ".");
-									strcat(file_name, file_extension);
-
-									full_name = concat_path_file(xstrndup(dir, strlen(dir) - strlen(strrchr(dir, '/'))), file_name);
+									full_name = xmalloc(strlen(argument) + strlen(file_prefix) + name_length + 3);
+									sprintf(full_name, "%s/%s.%s", argument, file_prefix, strrchr(raw_tar_header.name, '/') + 1);
 								} else {
-									full_name = xstrdup(dir);
+									full_name = concat_path_file(argument, raw_tar_header.name);
 								}
 								dst_file = wfopen(full_name, "w");
 								copy_file_chunk(src_tar_file, dst_file, (unsigned long long) size);
 								uncompressed_count += size;
 								fclose(dst_file);
 								chmod(full_name, mode);
+								free(full_name);
 							}
 							break;
 						case (extract_info):
@@ -178,19 +170,24 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 					}
 					break;
 				}
+			}
 			case '5':
 				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
-					if (create_path(dir, mode) != TRUE) {
-						free(dir);
+					int ret;
+					char *dir;
+					dir = concat_path_file(argument, raw_tar_header.name);
+					ret = create_path(dir, mode);
+					free(dir);
+					if (ret == FALSE) {
 						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
 						return NULL;
 					}
+					chmod(dir, mode);
 				}
 				break;
 			case '1':
 				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
 					if (link(raw_tar_header.linkname, raw_tar_header.name) < 0) {
-						free(dir);
 						perror_msg("%s: Cannot create hard link to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
 						return NULL;
 					}
@@ -199,7 +196,6 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 			case '2':
 				if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
 					if (symlink(raw_tar_header.linkname, raw_tar_header.name) < 0) {
-						free(dir);
 						perror_msg("%s: Cannot create symlink to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
 						return NULL;
 					}
@@ -213,10 +209,8 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 //				break;
 			default:
 				error_msg("Unknown file type '%c' in tar file", raw_tar_header.typeflag);
-				free(dir);
 				return NULL;
 		}
-
 		/*
 		 * Seek to start of next block, cant use fseek as unzip() does support it
 		 */
@@ -226,8 +220,6 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 			}
 			uncompressed_count++;
 		}
-
-//		free(dir);
 	}
 	return NULL;
 }
