@@ -76,6 +76,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 
 int chmod_chown_chgrp_main(int argc, char **argv)
 {
+	int stopIt = FALSE;
 	int recursiveFlag = FALSE;
 	char *groupName=NULL;
 	char *p=NULL;
@@ -94,26 +95,28 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
 	/* Parse options */
 	while (--argc >= 0 && *argv && (**argv == '-')) {
-		while (*++(*argv)) {
+		while (stopIt==FALSE && *++(*argv)) {
 			switch (**argv) {
 				case 'R':
 					recursiveFlag = TRUE;
 					break;
 				default:
-					errorMsg(invalid_option, **argv);
-					usage(appUsage);
+					theMode=*argv-1;
+					stopIt = TRUE;
 			}
 		}
+		if (stopIt==TRUE)
+			break;
 		argv++;
 	}
 
 	if (argc == 0 || *argv == NULL) {
 		errorMsg(too_few_args);
-		usage(appUsage);
 	}
 
 	if (whichApp == CHMOD_APP) {
-		theMode = *argv;
+		if (theMode==NULL)
+			theMode = *argv;
 	} else {
 
 		/* Find the selected group */
@@ -152,7 +155,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	}
 
 	/* Ok, ready to do the deed now */
-	if (argc <= 1) {
+	if (argc < 1) {
 		fatalError(too_few_args);
 	}
 	while (argc-- > 1) {
