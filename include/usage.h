@@ -2610,7 +2610,7 @@
 	"\t-v\tprint the operating system version"
 #define uname_example_usage \
 	"$ uname -a\n" \
-	"Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown\n"
+	"Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
 
 #define uncompress_trivial_usage \
 	"[-c] [-f] [ name ... ]"
