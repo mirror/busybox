@@ -101,11 +101,9 @@ static FILE *ftp_login(ftp_host_info_t *server)
 {
 	FILE *control_stream;
 	char buf[512];
-	int control_fd;
 
 	/* Connect to the command socket */
-	control_fd = xconnect(server->s_in);
-	control_stream = fdopen(control_fd, "r+");
+	control_stream = fdopen(xconnect(server->s_in), "r+");
 	if (control_stream == NULL) {
 		bb_perror_msg_and_die("Couldnt open control stream");
 	}
@@ -136,16 +134,11 @@ static FILE *ftp_login(ftp_host_info_t *server)
 static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream, 
 		const char *local_path, char *server_path)
 {
-	char *filename;
-	char *local_file;
 	char buf[512];
 	off_t filesize = 0;
 	int fd_data;
-	int fd_local;
+	int fd_local = -1;
 	off_t beg_range = 0;
-
-	filename = bb_get_last_path_component(server_path);
-	local_file = concat_path_file(local_path, filename);
 
 	/* Connect to the data socket */
 	if (ftpcmd("PASV", NULL, control_stream, buf) != 227) {
@@ -157,9 +150,14 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 		filesize = atol(buf + 4);
 	}
 
+	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
+		fd_local = fileno(stdout);
+		do_continue = 0;
+	}
+
 	if (do_continue) {
 		struct stat sbuf;
-		if (lstat(local_file, &sbuf) < 0) {
+		if (lstat(local_path, &sbuf) < 0) {
 			bb_perror_msg_and_die("fstat()");
 		}
 		if (sbuf.st_size > 0) {
@@ -183,10 +181,12 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	/* only make a local file if we know that one exists on the remote server */
-	if (do_continue) {
-		fd_local = bb_xopen(local_file, O_APPEND | O_WRONLY);
-	} else {
-		fd_local = bb_xopen(local_file, O_CREAT | O_TRUNC | O_WRONLY);
+	if (fd_local == -1) {
+		if (do_continue) {
+			fd_local = bb_xopen(local_path, O_APPEND | O_WRONLY);
+		} else {
+			fd_local = bb_xopen(local_path, O_CREAT | O_TRUNC | O_WRONLY);
+		}
 	}
 
 	/* Copy the file */
@@ -226,21 +226,24 @@ static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	/* get the local file */
-	fd_local = bb_xopen(local_path, O_RDONLY);
-	fstat(fd_local, &sbuf);
+	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
+		fd_local = fileno(stdin);
+	} else {
+		fd_local = bb_xopen(local_path, O_RDONLY);
+		fstat(fd_local, &sbuf);
 
-	sprintf(buf, "ALLO %lu", (unsigned long)sbuf.st_size);
-	response = ftpcmd(buf, NULL, control_stream, buf);
-	switch (response) {
-	case 200:
-	case 202:
-		break;
-	default:
-		close(fd_local);
-		bb_error_msg_and_die("ALLO error: %s", buf + 4);
-		break;
+		sprintf(buf, "ALLO %lu", (unsigned long)sbuf.st_size);
+		response = ftpcmd(buf, NULL, control_stream, buf);
+		switch (response) {
+		case 200:
+		case 202:
+			break;
+		default:
+			close(fd_local);
+			bb_error_msg_and_die("ALLO error: %s", buf + 4);
+			break;
+		}
 	}
-
 	response = ftpcmd("STOR ", local_path, control_stream, buf);
 	switch (response) {
 	case 125:
@@ -328,18 +331,17 @@ int ftpgetput_main(int argc, char **argv)
 	 */
 	bb_applet_long_options = ftpgetput_long_options;
 	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
+
+	/* Process the non-option command line arguments */
+	if (argc - optind != 3) {
+		bb_show_usage();
+	}
+
 	if (opt & FTPGETPUT_OPT_CONTINUE) {
 		do_continue = 1;
 	}
 	if (opt & FTPGETPUT_OPT_VERBOSE) {
 		verbose_flag = 1;
-	}
-
-	/*
-	 * Process the non-option command line arguments
-	 */
-	if (argc - optind != 3) {
-		bb_show_usage();
 	}
 
 	/* We want to do exactly _one_ DNS lookup, since some
