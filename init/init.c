@@ -654,7 +654,7 @@ static void shutdown_system(void)
 	kill(-1, SIGKILL);
 	sleep(1);
 
-	/* run everything to be run at "ctrlaltdel" */
+	/* run everything to be run at "shutdown" */
 	run_actions(SHUTDOWN);
 
 	sync();
