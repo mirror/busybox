@@ -55,9 +55,13 @@
  * #define __FEOF(stream)		((stream)->modeflags & __FLAG_EOF)
  * #define __FERROR(stream)	((stream)->modeflags & __FLAG_ERROR)
  */
-#define SET_FERROR_UNLOCKED(S)    ((S)->modeflags |= __FLAG_ERROR)
+#  if defined(__MASK_READING)
+#   define SET_FERROR_UNLOCKED(S)    ((S)->__modeflags |= __FLAG_ERROR)
+#  else
+#   define SET_FERROR_UNLOCKED(S)    ((S)->modeflags |= __FLAG_ERROR)
+#  endif
 
-#elif defined(__MODE_ERR)
+# elif defined(__MODE_ERR)
 /* Using either the original stdio implementation (from dev86) or
  * my original stdio rewrite.  Macros were:
  * #define ferror(fp)	(((fp)->mode&__MODE_ERR) != 0)
@@ -66,9 +70,9 @@
  */
 #define SET_FERROR_UNLOCKED(S)    ((S)->mode |= __MODE_ERR)
 
-#else
+# else
 #error unknown uClibc stdio implemenation!
-#endif
+# endif
 
 #elif defined(__GLIBC__)
 
