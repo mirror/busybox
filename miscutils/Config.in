@@ -37,7 +37,9 @@ config CONFIG_DUTMP
 	bool "dutmp"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  'dutmp' is a utility used by the Linux Router Project (as far as I
+	  know nobody else uses it).  It dumps the contents of the utmp file in
+	  a format that can be parsed by shell scripts.
 
 config CONFIG_HDPARM
 	bool "hdparm"
@@ -93,7 +95,10 @@ config CONFIG_MAKEDEVS
 	bool "makedevs"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  'makedevs' is a utility used and created by the Linux Router Project.
+	  It creates a large number of device special files (/dev devices)
+	  rather quickly, and can be considerably faster then running mknod a
+	  zillion times.
 
 config CONFIG_MT
 	bool "mt"
@@ -118,17 +123,16 @@ config CONFIG_TIME
 	  When the command finishes, time writes a message to standard output
 	  giving timing statistics about this program run.
 
-config CONFIG_UPDATE
-	bool "update"
-	default n
-	help
-	  Please submit a patch to add help text for this item.
-
 config CONFIG_WATCHDOG
 	bool "watchdog"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  The watchdog utility is used with hardware or softwate watchdog
+	  device drivers.  It opens the specified watchdog device special file
+	  and periodically writes a magic character to the device.  If the
+	  watchdog applet ever fails to write the magic character within a
+	  certain amount of time, the watchdog device assumes that means the 
+	  system has hung, and it will therefore cause the hardware to reboot.
 
 endmenu
 
