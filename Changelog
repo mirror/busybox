@@ -1,7 +1,7 @@
 0.47
 
 	* A bug in syslogd was fixed that allowed it to potentially fork-bomb
-	    your system.
+	    your system.  Anyone using 0.46 syslogd should upgrade.
 	* Renamed busybox.defs.h to the more sensible "Config.h"
 	* Improved portability between different libcs.
 	* Many apps ported to use getopt()
@@ -37,7 +37,7 @@
 	* Tons of other bugfixes.
 
 
-	 -Erik Andersen
+	 -Erik Andersen, 25 September 2000
 
 
 0.46
@@ -100,7 +100,7 @@
 	    Matt Kraai as well.
 
 
-	 -Erik Andersen
+	 -Erik Andersen, 11 July 2000
 
 
 0.45
