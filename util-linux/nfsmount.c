@@ -183,7 +183,8 @@ static int nfs_mount_version;
  *	nfs_mount_version: version this source and running kernel can handle
  */
 static void
-find_kernel_nfs_mount_version(void) {
+find_kernel_nfs_mount_version(void)
+{
 	static int kernel_version = 0;
 
 	if (kernel_version)
@@ -193,15 +194,17 @@ find_kernel_nfs_mount_version(void) {
 
 	kernel_version = get_kernel_revision();
 	if (kernel_version) {
-	     if (kernel_version < MAKE_VERSION(2,1,32))
-		  nfs_mount_version = 1;
-	     else if (kernel_version < MAKE_VERSION(2,3,99))
-		  nfs_mount_version = 3;
-	     else
-		  nfs_mount_version = 4; /* since 2.3.99pre4 */
+		if (kernel_version < MAKE_VERSION(2,1,32))
+			nfs_mount_version = 1;
+		else if (kernel_version < MAKE_VERSION(2,2,18) ||
+				(kernel_version >=   MAKE_VERSION(2,3,0) &&
+				 kernel_version < MAKE_VERSION(2,3,99)))
+			nfs_mount_version = 3;
+		else
+			nfs_mount_version = 4; /* since 2.3.99pre4 */
 	}
 	if (nfs_mount_version > NFS_MOUNT_VERSION)
-	     nfs_mount_version = NFS_MOUNT_VERSION;
+		nfs_mount_version = NFS_MOUNT_VERSION;
 }
 
 static struct pmap *
