@@ -274,7 +274,7 @@ extern int tar_main(int argc, char **argv)
 		/* unzip tarFd in a seperate process */
 		if (unzipFlag == TRUE) {
 			comp_file = fdopen(tarFd, "r");
-			if ((tarFd = gz_open(comp_file, &pid)) == EXIT_FAILURE) {
+			if ((tarFd = fileno(gz_open(comp_file, &pid))) == EXIT_FAILURE) {
 				error_msg_and_die("Couldnt unzip file");
 			}
 		}
