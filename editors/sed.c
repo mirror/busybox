@@ -223,7 +223,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression");
-	match = strdup_substr(substr, oldidx, idx);
+	match = xstrndup(substr + oldidx, idx - oldidx);
 
 	/* determine the number of back references in the match string */
 	/* Note: we compute this here rather than in the do_subst_command()
@@ -242,7 +242,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression");
-	sed_cmd->replace = strdup_substr(substr, oldidx, idx);
+	sed_cmd->replace = xstrndup(substr + oldidx, idx - oldidx);
 
 	/* process the flags */
 	while (substr[++idx]) {

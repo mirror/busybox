@@ -45,5 +45,5 @@ char *dirname(const char *path)
 	if (s < path)
 		return xstrdup (".");
 	else
-		return strdup_substr (path, 0, s - path + 1);
+		return xstrndup (path, s - path + 1);
 }
