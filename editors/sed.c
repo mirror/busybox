@@ -6,6 +6,7 @@
  * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  * Copyright (C) 2002  Matt Kraai
  * Copyright (C) 2003 by Glenn McGrath <bug1@optushome.com.au>
+ * Copyright (C) 2003,2004 by Rob Landley <rob@landley.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -410,9 +411,13 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
 			bb_error_msg_and_die
 				("only a beginning address can be specified for edit commands");
-		if (*cmdstr != '\n') /* should not happen */
-		  bb_error_msg_and_die("A/I/C backslash not followed by NL?");
-		cmdstr++; /* skip over the NL following the backslash */
+		for(;;) {
+			if(*cmdstr=='\n' || *cmdstr=='\\') {
+				cmdstr++;
+				break;
+			} else if(isspace(*cmdstr)) cmdstr++;
+			else break;
+		}
 		sed_cmd->string = bb_xstrdup(cmdstr);
 		parse_escapes(sed_cmd->string,sed_cmd->string,strlen(cmdstr),0,0);
 		cmdstr += strlen(cmdstr);
