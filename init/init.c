@@ -232,6 +232,8 @@ static void message(int device, char *fmt, ...)
 			log_fd = -2;
 			fprintf(stderr, "Bummer, can't write to log on %s!\n", log);
 			device = CONSOLE;
+		} else {
+			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
 		}
 	}
 	if ((device & LOG) && (log_fd >= 0)) {
