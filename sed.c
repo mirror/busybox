@@ -181,7 +181,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, rege
 			error_msg_and_die("unterminated match expression");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
-		xregcomp(*regex, my_str+1, 0);
+		xregcomp(*regex, my_str+1, REG_NEWLINE);
 		idx++; /* so it points to the next character after the last '/' */
 	}
 	else {
