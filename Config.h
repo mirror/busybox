@@ -157,7 +157,7 @@
 #define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
-#define BB_FEATURE_USE_TERMIOS
+//#define BB_FEATURE_USE_TERMIOS
 //
 // calculate terminal & column widths (for more and ls)
 #define BB_FEATURE_AUTOWIDTH
@@ -355,9 +355,6 @@
 #if defined BB_SH
 	#if defined BB_FEATURE_COMMAND_EDITING 
 		#define BB_CMDEDIT
-		#ifndef BB_FEATURE_USE_TERMIOS
-			#define BB_FEATURE_USE_TERMIOS
-		#endif
 	#else
 		#undef BB_FEATURE_COMMAND_EDITING
 		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
@@ -365,7 +362,6 @@
 		#define BB_FEATURE_SH_SIMPLE_PROMPT
 	#endif
 #else
-	#undef BB_FEATURE_COMMAND_EDITING
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 	#undef BB_FEATURE_SH_STANDALONE_SHELL
 	#undef BB_FEATURE_SH_SIMPLE_PROMPT
