@@ -109,6 +109,13 @@ between it and the opening control block statement. Examples:
 		while (!done){
 		do{
 
+	And for heaven's sake, don't do this:
+
+		while (!done)
+		  {
+		do
+		  {
+
 	Do this instead:
 
 		while (!done) {
@@ -175,6 +182,7 @@ block. Example:
 
 
 
+
 Variable and Function Names
 ---------------------------
 
@@ -183,16 +191,32 @@ used to separate words (e.g., "variable_name" and "numchars" are both
 acceptable). Using underscores makes variable and function names more readable
 because it looks like whitespace; using lower-case is easy on the eyes.
 
+	Frowned upon:
+
+		hitList
+		TotalChars
+		szFileName (blech)
+
+	Preferred:
+
+		hit_list
+		total_chars
+		file_name
+
+The exception to this rule are enums, macros, and constant variables which
+should all be in upper-case, with words optionally seperatedy by underscores
+(i.e. FIFOTYPE, ISBLKDEV()). 
+
 Note: The Busybox codebase is very much a mixture of code gathered from a
 variety of sources. This explains why the current codebase contains such a
 hodge-podge of different naming styles (Java, Pascal, K&R, just-plain-weird,
 etc.). The K&R guideline explained above should therefore be used on new files
 that are added to the repository. Furthermore, the maintainer of an existing
-file that uses alternate naming conventions should -- at his own convenience --
-convert those names over to K&R style; converting variable names is a very low
-priority task. Perhaps in the future we will include some magical Perl script
-that can go through and convert files -- left as an exercise to the reader for
-now.
+file that uses alternate naming conventions should -- at his own convenience
+-- convert those names over to K&R style; converting variable names is a very
+low priority task. Perhaps in the future we will include some magical Perl
+script that can go through and convert variable names, left as an exercise for
+the reader for now.
 
 
 
@@ -388,26 +412,26 @@ line. Example:
 	Don't do this:
 
 		if (foo)
-			stmt;
-		else
-			stmt;
+			stmt1;
+		stmt2
+		stmt3;
 
 	Do this instead:
 
 		if (foo) {
-			stmt;
-		} else {
-			stmt;
+			stmt1;
 		}
+		stmt2
+		stmt3;
 
 The "bracketless" approach is error prone because someday you might add a line
 like this:
 
 		if (foo)
-			stmt;
+			stmt1;
 			new_line();
-		else
-			stmt;
+		stmt2
+		stmt3;
 
 And the resulting behavior of your program would totally bewilder you. (Don't
 laugh, it happens to us all.) Remember folks, this is C, not Python.
@@ -438,3 +462,40 @@ support ancient, antediluvian compilers. To our good fortune, we have access
 to more modern compilers and the old declaration syntax is neither necessary
 nor desired.
 
+
+Emphasizing Logical Blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Organization and readability are improved by putting extra newlines around
+blocks of code that perform a single task. These are typically blocks that
+begin with a C keyword, but not always.
+
+Furthermore, you should put a single comment (not necessarily one line, just
+one comment) before the block, rather than commenting each and every line.
+There is an optimal ammount of commenting that a program can have; you can
+comment too much as well as too little.
+
+A picture is really worth a thousand words here, so here is an example that
+illustrates emphasizing logical blocks:
+
+	while (line = get_line_from_file(fp)) {
+
+		/* eat the newline, if any */
+		if (line[strlen(line)-1] == '\n') {
+			line[strlen(line)-1] = '\0';
+		}
+
+		/* ignore blank lines */
+		if (strlen(file_to_act_on) == 0) {
+			continue;
+		}
+
+		/* if the search string is in this line, print it,
+		 * unless we were told to be quiet */
+		if (strstr(line, search) && !be_quiet) {
+			puts(line);
+		}
+
+		/* clean up */
+		free(line);
+	}
