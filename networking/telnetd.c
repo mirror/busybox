@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.12 2004/06/22 10:07:17 andersen Exp $
+/* $Id: telnetd.c,v 1.13 2004/09/14 17:24:58 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -49,11 +49,10 @@
 
 #define BUFSIZE 4000
 
-static const char *loginpath
 #ifdef CONFIG_LOGIN
- = "/bin/login";
+static const char *loginpath = "/bin/login";
 #else
-;
+static const char *loginpath;
 #endif
 static const char *issuefile = "/etc/issue.net";
 
@@ -401,10 +400,10 @@ telnetd_main(int argc, char **argv)
 		if (c == EOF) break;
 		switch (c) {
 			case 'f':
-				issuefile = strdup (optarg);
+				issuefile = optarg;
 				break;
 			case 'l':
-				loginpath = strdup (optarg);
+				loginpath = optarg;
 				break;
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 			case 'p':

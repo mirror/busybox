@@ -485,8 +485,8 @@ static inline int tftp(const int cmd, const struct hostent *host,
 int tftp_main(int argc, char **argv)
 {
 	struct hostent *host = NULL;
-	char *localfile = NULL;
-	char *remotefile = NULL;
+	const char *localfile = NULL;
+	const char *remotefile = NULL;
 	int port;
 	int cmd = 0;
 	int fd = -1;
@@ -538,10 +538,10 @@ int tftp_main(int argc, char **argv)
 			break;
 #endif
 		case 'l':
-			localfile = bb_xstrdup(optarg);
+			localfile = optarg;
 			break;
 		case 'r':
-			remotefile = bb_xstrdup(optarg);
+			remotefile = optarg;
 			break;
 		}
 	}

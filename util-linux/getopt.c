@@ -305,8 +305,8 @@ static const char *shortopts="+ao:l:n:qQs:Tu";
 
 int getopt_main(int argc, char *argv[])
 {
-        char *optstr=NULL;
-        char *name=NULL;
+        const char *optstr = NULL;
+        const char *name = NULL;
         int opt;
         int compatible=0;
 
@@ -340,14 +340,14 @@ int getopt_main(int argc, char *argv[])
                         break;
                 case 'o':
                        free(optstr);
-                       optstr=bb_xstrdup(optarg);
+                       optstr = optarg;
                         break;
                 case 'l':
                         add_long_options(optarg);
                         break;
                 case 'n':
                        free(name);
-                       name=bb_xstrdup(optarg);
+                       name = optarg;
                         break;
                 case 'q':
                         quiet_errors=1;

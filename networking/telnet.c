@@ -132,7 +132,7 @@ static char *ttype;
 #endif
 
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-static char *autologin;
+static const char *autologin;
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
@@ -663,7 +663,7 @@ extern int telnet_main(int argc, char** argv)
 	while ((opt = getopt(argc, argv, "al:")) != EOF) {
 		switch (opt) {
 			case 'l':
-				autologin = bb_xstrdup(optarg);
+				autologin = optarg;
 				break;
 			case 'a':
 				autologin = getenv("USER");

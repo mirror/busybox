@@ -699,7 +699,7 @@ static const llist_t *find_list_string(const llist_t *list, const char *string)
 	return(NULL);
 }
 
-static struct interfaces_file_t *read_interfaces(char *filename)
+static struct interfaces_file_t *read_interfaces(const char *filename)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	struct mapping_defn_t *currmap = NULL;
@@ -1192,7 +1192,7 @@ extern int ifupdown_main(int argc, char **argv)
 	FILE *state_fp = NULL;
 	llist_t *state_list = NULL;
 	llist_t *target_list = NULL;
-	char *interfaces = "/etc/network/interfaces";
+	const char *interfaces = "/etc/network/interfaces";
 	const char *statefile = "/var/run/ifstate";
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
@@ -1219,7 +1219,7 @@ extern int ifupdown_main(int argc, char **argv)
 		{
 			switch (i) {
 				case 'i':	/* interfaces */
-					interfaces = bb_xstrdup(optarg);
+					interfaces = optarg;
 					break;
 				case 'v':	/* verbose */
 					verbose = 1;
