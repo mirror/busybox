@@ -5,17 +5,18 @@ small executable. It provides minimalist replacements for most of the utilities
 you usually find in GNU coreutils, util-linux, etc. The utilities in BusyBox
 generally have fewer options than their full-featured GNU cousins; however, the
 options that are included provide the expected functionality and behave very
-much like their GNU counterparts. BusyBox provides a fairly complete POSIX
-environment for any small or embedded system.
+much like their GNU counterparts.
 
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
 systems. To create a working system, just add /dev, /etc, and a Linux kernel.
+BusyBox provides a fairly complete POSIX environment for any small or embedded
+system.
 
 BusyBox is extremely configurable.  This allows you to include only the
 components you need, thereby reducing binary size. Run 'make config' or
-'make menuconfig' for select the functionality that you wish to enable.
+'make menuconfig' to select the functionality that you wish to enable.
 
 After the build is complete, a busybox.links file is generated.  This is
 used by 'make install' to create symlinks to the BusyBox binary for all
