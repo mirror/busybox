@@ -14,6 +14,7 @@
 
 	-Erik Andrsen
 
+
 0.38
 	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
 	    file existed.
