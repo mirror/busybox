@@ -285,116 +285,110 @@ syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
 	_exit(1);
 }
 
-static char *skip(char **cpp)
-{
-	char *cp = *cpp;
-	char *start;
-
-	if ((cpp == NULL) || (*cpp == NULL) || (**cpp == 0)) {
-		return (NULL);
-	}
-
-again:
-	while (*cp == ' ' || *cp == '\t')
-		cp++;
-	if (*cp == '\0') {
-		int c;
-
-		c = getc(fconfig);
-		(void) ungetc(c, fconfig);
-		if (c == ' ' || c == '\t')
-			cp = bb_get_chomped_line_from_file(fconfig);
-			if (cp != NULL)
-				goto again;
-		*cpp = NULL;
-		return NULL;
-	}
-	start = cp;
-	while (*cp && *cp != ' ' && *cp != '\t')
-		cp++;
-	if (*cp != '\0')
-		*cp++ = '\0';
-	*cpp = cp;
-	return (start);
-}
-
-static char *newstr(char *cp)
-{
-	cp = strdup(cp ? cp : "");
-	if (cp)
-		return(cp);
-
-	syslog_err_and_discard_dg(SOCK_STREAM, "strdup: %m");
-}
-
-
 static struct servtab *getconfigent(void)
 {
 	static struct servtab serv;
 	struct servtab *sep = &serv;
 	int argc;
 	char *cp = NULL;
-	char *arg;
-more:
-	do {
-		if (feof(fconfig)) {
-			return ((struct servtab *)0);
-		}
-		free(cp);
-		cp = bb_get_chomped_line_from_file(fconfig);
-	} while ((cp == NULL) || (*cp == '#'));
+	char *cp_ptr;
+	char *cp_ptr_ptr = NULL;
 
-	memset((char *)sep, 0, sizeof *sep);
-	sep->se_service = newstr(skip(&cp));
-	arg = skip(&cp);
-	if (arg == NULL) {
+more:
+	free(cp);
+	cp = bb_get_chomped_line_from_file(fconfig);
+	if (feof(fconfig)) {
+		free(cp);
+		return (NULL);
+	}
+	if ((cp == NULL) || (*cp == '#')) {
 		goto more;
 	}
+	printf("line is %s\n", cp);
 
-	if (strcmp(arg, "stream") == 0)
+	cp_ptr = strtok_r(cp, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* Error */
+		goto more;
+	}
+	sep->se_service = bb_xstrdup(cp_ptr);
+
+	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* Error */
+		goto more;
+	}
+	if (strcmp(cp_ptr, "stream") == 0)
 		sep->se_socktype = SOCK_STREAM;
-	else if (strcmp(arg, "dgram") == 0)
+	else if (strcmp(cp_ptr, "dgram") == 0)
 		sep->se_socktype = SOCK_DGRAM;
-	else if (strcmp(arg, "rdm") == 0)
+	else if (strcmp(cp_ptr, "rdm") == 0)
 		sep->se_socktype = SOCK_RDM;
-	else if (strcmp(arg, "seqpacket") == 0)
+	else if (strcmp(cp_ptr, "seqpacket") == 0)
 		sep->se_socktype = SOCK_SEQPACKET;
-	else if (strcmp(arg, "raw") == 0)
+	else if (strcmp(cp_ptr, "raw") == 0)
 		sep->se_socktype = SOCK_RAW;
 	else
 		sep->se_socktype = -1;
 
-	sep->se_proto = newstr(skip(&cp));
-	if (strcmp(sep->se_proto, "unix") == 0) {
+	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* error */
+		goto more;
+	}
+	if (strcmp(cp_ptr, "unix") == 0) {
 		sep->se_family = AF_UNIX;
 	} else {
-		sep->se_family = AF_INET;
-		if (strncmp(sep->se_proto, "rpc/", 4) == 0) {
+		if (strncmp(cp_ptr, "rpc/", 4) == 0) {
 			syslog(LOG_ERR, "%s: rpc services not suported",
 			    sep->se_service);
 			goto more;
 		}
+		sep->se_family = AF_INET;
 	}
-	arg = skip(&cp);
-	if (arg == NULL) {
+	sep->se_proto = bb_xstrdup(cp_ptr);
+
+	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* error */
 		goto more;
 	}
 	{
-		char    *s = strchr(arg, '.');
+		char *s = strchr(cp_ptr, '.');
 		if (s) {
 			*s++ = '\0';
 			sep->se_max = atoi(s);
 		} else
 			sep->se_max = TOOMANY;
 	}
-	sep->se_wait = strcmp(arg, "wait") == 0;
-	sep->se_user = newstr(skip(&cp));
-	sep->se_group = strchr(sep->se_user, '.');
-	if (sep->se_group) {
-		*sep->se_group++ = '\0';
+	sep->se_wait = strcmp(cp_ptr, "wait") == 0;
+
+	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* error */
+		goto more;
 	}
-	sep->se_server = newstr(skip(&cp));
-	if (strcmp(sep->se_server, "internal") == 0) {
+	{
+		char *cp_ptr2 = strchr(cp_ptr, '.');
+		if (cp_ptr2) {
+			*cp_ptr2++ = '\0';
+			sep->se_group = bb_xstrdup(cp_ptr2);
+		}
+	}
+	sep->se_user = bb_xstrdup(cp_ptr);
+
+	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
+	if (cp_ptr == NULL) {
+		printf("error\n");
+		/* error */
+		goto more;
+	}
+	if (strcmp(cp_ptr, "internal") == 0) {
 #ifdef INETD_FEATURE_ENABLED
 		const struct biltin *bi;
 
@@ -405,16 +399,14 @@ more:
 			}
 		}
 		if (bi->bi_service == 0) {
-			syslog(LOG_ERR, "internal service %s unknown",
-				sep->se_service);
+			syslog(LOG_ERR, "internal service %s unknown", sep->se_service);
 			goto more;
 		}
 		sep->se_bi = bi;
 		sep->se_wait = bi->bi_wait;
 #else
-		syslog(LOG_ERR, "internal service %s unknown",
-				sep->se_service);
-			goto more;
+		syslog(LOG_ERR, "internal service %s unknown", cp_ptr);
+		goto more;
 #endif
 	}
 #ifdef INETD_FEATURE_ENABLED
@@ -422,16 +414,19 @@ more:
 		sep->se_bi = NULL;
 	}
 #endif
+	sep->se_server = bb_xstrdup(cp_ptr);
+
 	argc = 0;
-	for (arg = skip(&cp); cp && arg; arg = skip(&cp)) {
+	while ((cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr)) != NULL) {
 		if (argc < MAXARGV) {
-			sep->se_argv[argc++] = newstr(arg);
+			sep->se_argv[argc++] = cp_ptr;
 		}
 	}
 	while (argc <= MAXARGV) {
 		sep->se_argv[argc++] = NULL;
 	}
 
+	free(cp);
 	return (sep);
 }
 
