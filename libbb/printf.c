@@ -125,7 +125,7 @@
 #error Your stdio library is currently not supported.  Please see the commented source.
 #endif
 
-#ifdef L_vfprintf
+#ifdef L_bb_vfprintf
 extern int bb_vfprintf(FILE * __restrict stream,
 					   const char * __restrict format,
 					   va_list arg)
@@ -140,14 +140,14 @@ extern int bb_vfprintf(FILE * __restrict stream,
 }
 #endif
 
-#ifdef L_vprintf
+#ifdef L_bb_vprintf
 extern int bb_vprintf(const char * __restrict format, va_list arg)
 {
 	return bb_vfprintf(stdout, format, arg);
 }
 #endif
 
-#ifdef L_fprintf
+#ifdef L_bb_fprintf
 extern int bb_fprintf(FILE * __restrict stream,
 					  const char * __restrict format, ...)
 {
@@ -162,7 +162,7 @@ extern int bb_fprintf(FILE * __restrict stream,
 }
 #endif
 
-#ifdef L_printf
+#ifdef L_bb_printf
 extern int bb_printf(const char * __restrict format, ...)
 {
 	va_list arg;

@@ -67,7 +67,7 @@ LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
 	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
 
 LIBBB_MSRC2:=$(LIBBB_DIR)printf.c
-LIBBB_MOBJ2:=vfprintf.o vprintf.o fprintf.o printf.o
+LIBBB_MOBJ2:=bb_vfprintf.o bb_vprintf.o bb_fprintf.o bb_printf.o
 
 LIBBB_MSRC3:=$(LIBBB_DIR)xgetularg.c
 LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
