@@ -71,7 +71,7 @@ int chgrp_main(int argc, char **argv)
 	}
 
 	/* Ok, ready to do the deed now */
-	while (optind++ < argc-1) {
+	while (++optind < argc) {
 		if (recursive_action (argv[optind], recursiveFlag, FALSE, FALSE, 
 					fileAction, fileAction, NULL) == FALSE) {
 			return EXIT_FAILURE;
