@@ -543,16 +543,16 @@ static struct dnode **list_dir(char *path)
 	}
 	while ((entry = readdir(dir)) != NULL) {
 		/* are we going to list the file- it may be . or .. or a hidden file */
-		if ((strcmp(entry->d_name, ".")==0) && !(disp_opts & DISP_DOT)) continue;
-		if ((strcmp(entry->d_name, "..")==0) && !(disp_opts & DISP_DOT)) continue;
-		if ((entry->d_name[0] ==  '.') && !(disp_opts & DISP_HIDDEN)) continue;
+		if ((strcmp(entry->d_name, ".")==0) && !(disp_opts & DISP_DOT))
+			continue;
+		if ((strcmp(entry->d_name, "..")==0) && !(disp_opts & DISP_DOT))
+			continue;
+		if ((entry->d_name[0] ==  '.') && !(disp_opts & DISP_HIDDEN))
+			continue;
 		cur= (struct dnode *)xmalloc(sizeof(struct dnode));
-		cur->fullname = xmalloc(strlen(path)+1+strlen(entry->d_name)+1);
-		strcpy(cur->fullname, path);
-		if (cur->fullname[strlen(cur->fullname)-1] != '/')
-			strcat(cur->fullname, "/");
-		cur->name= cur->fullname + strlen(cur->fullname);
-		strcat(cur->fullname, entry->d_name);
+		cur->fullname = concat_path_file(path, entry->d_name);
+		cur->name = cur->fullname +
+				(strlen(cur->fullname) - strlen(entry->d_name));
 		if (my_stat(cur))
 			continue;
 		cur->next= dn;
