@@ -147,7 +147,7 @@ docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 
 
 # New docs based on DOCBOOK SGML
-newdoc: docs/busybox.txt docs/busybox.pdf docs/busybox/busybox.html
+newdoc: docs/busybox.txt docs/busybox.pdf docs/busybox/busyboxdocumentation.html
 
 docs/busybox.txt: docs/busybox.sgml
 	@echo
@@ -164,7 +164,7 @@ docs/busybox.ps: docs/busybox.sgml
 docs/busybox.pdf: docs/busybox.ps
 	(cd docs; ps2pdf busybox.ps)
 
-docs/busybox/busybox.html: docs/busybox.sgml
+docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
 
