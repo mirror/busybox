@@ -218,7 +218,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 	}
 	if ((function & extract_list) || (function & extract_verbose_list)){
 		/* fputs doesnt add a trailing \n, so use fprintf */
-		fprintf(out_stream, "%s\n", file_entry->name);
+		fprintf(out_stream, "%s\n", full_name);
 	}
 
 	free(full_name);
