@@ -32,6 +32,9 @@ void *__libc_stack_end;
 
 const struct BB_applet applets[] = {
 
+#ifdef BB_AR
+	{"ar", ar_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_BASENAME
 	{"basename", basename_main, _BB_DIR_USR_BIN},
 #endif

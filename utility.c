@@ -1583,12 +1583,12 @@ cstring_alloc(FILE* f, int depth)
     char *cstring;
     char buffer[CSTRING_BUFFER_LENGTH];
     int	 target = CSTRING_BUFFER_LENGTH * depth;
-    int  i, len;
-    int  size;
+    int  c, i, len, size;
 
     /* fill buffer */
     i = 0;
-    while ((buffer[i] = fgetc(f)) != EOF) {
+	while ((c = fgetc(f)) != EOF) {
+		buffer[i] = (char) c;
 		if (buffer[i++] == 0x0a) { break; }
 		if (i == CSTRING_BUFFER_LENGTH) { break; }
     }

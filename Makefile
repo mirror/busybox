@@ -102,10 +102,9 @@ docs/BusyBox.1: docs/busybox.pod
 
 docs/BusyBox.html: docs/busybox.pod
 	pod2html docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
-	ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
+	- rm -f docs/BusyBox.html
+	- ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 	- rm -f pod2html*
-
-clean:
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)

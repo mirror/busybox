@@ -7,6 +7,7 @@
 //
 //
 // BusyBox Applications
+#define BB_AR
 #define BB_BASENAME
 #define BB_CAT
 #define BB_CHMOD_CHOWN_CHGRP

@@ -40,6 +40,8 @@ Bugs that need fixing:
     /tmp/file in the current directory, rather then trying and failing to create
     a symlink named "." in the current working directory).
   - implement 'ls -R'.
+  - "cp -a sourcedir/*" (note: no dest) - produces an odd error message about
+    the last file in the dir, rather than saying "missing destination file".
 
 
 -----------

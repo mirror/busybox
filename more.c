@@ -74,9 +74,9 @@ void gotsig(int sig)
 
 #if defined BB_FEATURE_AUTOWIDTH
 #ifdef BB_FEATURE_USE_TERMIOS
-static int terminal_width = 0;
+static int terminal_width = TERMINAL_WIDTH;
 #endif
-static int terminal_height = 0;
+static int terminal_height = TERMINAL_HEIGHT;
 #else
 #define terminal_width	TERMINAL_WIDTH
 #define terminal_height	TERMINAL_HEIGHT

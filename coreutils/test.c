@@ -185,7 +185,7 @@ test_main(int argc, char** argv)
 
 	if (strcmp(argv[0], "[") == 0) {
 		if (strcmp(argv[--argc], "]"))
-			fatalError("missing ]");
+			fatalError("missing ]\n");
 		argv[argc] = NULL;
 	}
 	if (strcmp(argv[1], dash_dash_help) == 0) {
@@ -244,9 +244,9 @@ syntax(op, msg)
 	char	*msg;
 {
 	if (op && *op)
-		fatalError("%s: %s", op, msg);
+		fatalError("%s: %s\n", op, msg);
 	else
-		fatalError("%s", msg);
+		fatalError("%s\n", msg);
 }
 
 static int
@@ -481,13 +481,13 @@ getn(s)
 	r = strtol(s, &p, 10);
 
 	if (errno != 0)
-	  fatalError("%s: out of range", s);
+	  fatalError("%s: out of range\n", s);
 
 	while (isspace(*p))
 	  p++;
 	
 	if (*p)
-	  fatalError("%s: bad number", s);
+	  fatalError("%s: bad number\n", s);
 
 	return (int) r;
 }
@@ -567,7 +567,7 @@ initialize_group_array ()
 {
 	ngroups = getgroups(0, NULL);
 	if ((group_array = realloc(group_array, ngroups * sizeof(gid_t))) == NULL)
-		fatalError("Out of space");
+		fatalError("Out of space\n");
 
 	getgroups(ngroups, group_array);
 }

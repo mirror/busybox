@@ -40,6 +40,9 @@
 #define bb_need_help
 #include "messages.c"
 
+#define TERMINAL_WIDTH  79      /* not 80 in case terminal has linefold bug */
+
+
 
 #if ! defined BB_FEATURE_USE_DEVPS_PATCH
 
@@ -124,9 +127,9 @@ extern int ps_main(int argc, char **argv)
 	int len, i, c;
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0 };
-	int terminal_width = 0;
+	int terminal_width = TERMINAL_WIDTH;
 #else
-#define terminal_width  79
+#define terminal_width  TERMINAL_WIDTH
 #endif
 
 
@@ -142,7 +145,7 @@ extern int ps_main(int argc, char **argv)
 
 	dir = opendir("/proc");
 	if (!dir)
-		fatalError("Can't open /proc");
+		fatalError("Can't open /proc\n");
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
@@ -214,9 +217,9 @@ extern int ps_main(int argc, char **argv)
 	char groupName[10] = "";
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0 };
-	int terminal_width = 0;
+	int terminal_width = TERMINAL_WIDTH;
 #else
-#define terminal_width  79
+#define terminal_width  TERMINAL_WIDTH
 #endif
 
 	if (argc > 1 && **(argv + 1) == '-') 

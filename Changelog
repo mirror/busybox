@@ -39,6 +39,13 @@
 	* Changed the way init parses /etc/inittab entries to avoid problems
 	    with commands that contain colons in them.  Fix thanks to 
 	    Pavel Roskin <pavel_roskin@geocities.com>
+	* Fixed a warning in utility.c due to char being unsigned on Linux/PPC, 
+	    Fix thanks to Pavel Roskin <pavel_roskin@geocities.com>
+	* Made "killall" complain (not error and exit) about processes that it 
+	    cannot find by name. Fix thanks to Pavel Roskin <pavel_roskin@geocities.com> 
+	* Fixed more and ps to have sensible terminal width defaults, thanks 
+	    to Pavel Roskin.
+	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
 	* More doc updates
 
 

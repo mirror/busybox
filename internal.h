@@ -98,6 +98,7 @@ struct BB_applet {
 /* From busybox.c */
 extern const struct BB_applet applets[];
 
+extern int ar_main(int argc, char **argv);
 extern int basename_main(int argc, char **argv);
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);

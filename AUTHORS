@@ -32,7 +32,10 @@ Daniel Jacobowitz <dan@debian.org>
     mktemp.c
 
 John Lombardo <john@deltanet.com>	
-	dirname, tr
+    dirname, tr
+
+Glenn McGrath <bug1@netconnect.com.au>
+    ar.c
 
 Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.

@@ -234,6 +234,9 @@ extern int kill_main(int argc, char **argv)
 			pid_t* pidList;
 
 			pidList = findPidByName( *argv);
+			if (!pidList)
+				errorMsg( "%s: no process killed\n", *argv);
+
 			for(; pidList && *pidList!=0; pidList++) {
 				if (*pidList==myPid)
 					continue;

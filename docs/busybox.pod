@@ -55,8 +55,8 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd, df,
-dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
+ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd,
+df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
 logger, logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod,
@@ -68,6 +68,22 @@ uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
 -------------------------------
 
 =over 4
+
+=item ar
+
+Usage: ar [optxvV] archive [filenames]
+
+Extract or list files from an ar archive.
+
+Options:
+
+	o               preserve original dates
+	p               extract to stdout
+	t               list
+	x               extract
+	v               verbosely list files processed
+
+-------------------------------
 
 =item basename
 
@@ -1904,6 +1920,10 @@ John Lombardo <john@deltanet.com>
 
 =for html <br>
 
+Glenn McGrath <bug1@netconnect.com.au>
+
+=for html <br>
+
 Bruce Perens <bruce@perens.com>
 
 =for html <br>
@@ -1926,4 +1946,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.32 2000/06/02 03:30:50 andersen Exp $
+# $Id: busybox.pod,v 1.33 2000/06/02 03:21:37 andersen Exp $

@@ -31,7 +31,7 @@ extern int pwd_main(int argc, char **argv)
 	char buf[BUFSIZ + 1];
 
 	if (getcwd(buf, sizeof(buf)) == NULL)
-		fatalError("pwd: %s", strerror(errno));
+		fatalError("pwd: %s\n", strerror(errno));
 
 	printf("%s\n", buf);
 	exit(TRUE);

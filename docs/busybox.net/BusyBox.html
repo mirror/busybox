@@ -100,8 +100,8 @@ Most BusyBox commands support the <STRONG>--help</STRONG> option to provide a te
 Currently defined functions include:
 
 <P>
-basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd,
-df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
+ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date,
+dd, df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
 logger, logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix,
@@ -115,6 +115,26 @@ yes, zcat, [
 -------------------------------
 
 <DL>
+<DT><STRONG><A NAME="item_ar">ar</A></STRONG><DD>
+<P>
+Usage: ar [optxvV] archive [filenames]
+
+<P>
+Extract or list files from an ar archive.
+
+<P>
+Options:
+
+<P>
+<PRE>        o               preserve original dates
+        p               extract to stdout
+        t               list
+        x               extract
+        v               verbosely list files processed
+</PRE>
+<P>
+-------------------------------
+
 <DT><STRONG><A NAME="item_basename">basename</A></STRONG><DD>
 <P>
 Usage: basename FILE [SUFFIX]
@@ -2429,6 +2449,12 @@ HREF="mailto:karlheg@debian.org">karlheg@debian.org</A>&gt;
 <P>
 John Lombardo &lt;<A
 HREF="mailto:john@deltanet.com">john@deltanet.com</A>&gt;	
+
+<br>
+
+<P>
+Glenn McGrath &lt;<A
+HREF="mailto:bug1@netconnect.com.au">bug1@netconnect.com.au</A>&gt;
 
 <br>
 
