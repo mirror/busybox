@@ -259,7 +259,7 @@ extern int create_icmp_socket(void);
 
 char *dirname (const char *path);
 
-int make_directory (char *path, mode_t mode, int flags);
+int make_directory (char *path, long mode, int flags);
 
 const char *u_signal_names(const char *str_sig, int *signo, int startnum);
 

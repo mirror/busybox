@@ -33,7 +33,7 @@
  * Also create parent directories as necessary if flags contains
  * FILEUTILS_RECUR.  */
 
-int make_directory (char *path, mode_t mode, int flags)
+int make_directory (char *path, long mode, int flags)
 {
 	if (!(flags & FILEUTILS_RECUR)) {
 		if (mkdir (path, 0777) < 0) {
