@@ -261,7 +261,7 @@ void reset_ino_dev_hashtable(void)
 
 #endif /* BB_CP_MV || BB_DU */
 
-#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN) || defined (BB_AR)
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
@@ -722,7 +722,7 @@ int recursive_action(const char *fileName,
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_AR)
+#if defined (BB_TAR) || defined (BB_MKDIR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
