@@ -185,7 +185,7 @@ int wget_main(int argc, char **argv)
 	int got_clen = 0;			/* got content-length: from server	*/
 	FILE *output;				/* socket to web server				*/
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
-	int noproxy = 0;            /* Use proxies if env vars are set  */
+	int use_proxy = 1;          /* Use proxies if env vars are set  */
 	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
 
 	/*
@@ -200,11 +200,9 @@ int wget_main(int argc, char **argv)
 	if (opt & WGET_OPT_QUIET) {
 		quiet_flag = TRUE;
 	}
-	if (strcmp(proxy_flag, "on") == 0) {
+	if (strcmp(proxy_flag, "off") == 0) {
 		/* Use the proxy if necessary. */
-		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
-		if (proxy)
-			parse_url(bb_xstrdup(proxy), &server);
+		use_proxy = 0;
 	}
 	if (opt & WGET_OPT_HEADER) {
 		while (headers_llist) {
@@ -230,10 +228,13 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Use the proxy if necessary.
 	 */
-	if (!noproxy) {
+	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
-		if (proxy)
+		if (proxy && *proxy) {
 			parse_url(bb_xstrdup(proxy), &server);
+		} else {
+			use_proxy = 0;
+		}
 	}
 	
 	/* Guess an output filename */
@@ -293,7 +294,7 @@ int wget_main(int argc, char **argv)
 				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
 	}
 
-	if (proxy || !target.is_ftp) {
+	if (use_proxy || !target.is_ftp) {
 		/*
 		 *  HTTP session
 		 */
@@ -312,7 +313,7 @@ int wget_main(int argc, char **argv)
 			/*
 			 * Send HTTP request.
 			 */
-			if (proxy) {
+			if (use_proxy) {
 				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
 #ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
 				if (strchr (target.host, ':'))
@@ -332,7 +333,7 @@ int wget_main(int argc, char **argv)
 				fprintf(sfp, "Authorization: Basic %s\r\n",
 					base64enc(target.user, buf, sizeof(buf)));
 			}
-			if (proxy && server.user) {
+			if (use_proxy && server.user) {
 				fprintf(sfp, "Proxy-Authorization: Basic %s\r\n",
 					base64enc(server.user, buf, sizeof(buf)));
 			}
@@ -400,7 +401,7 @@ read_response:
 						target.path = bb_xstrdup(s+1);
 					else {
 						parse_url(bb_xstrdup(s), &target);
-						if (!proxy) {
+						if (use_proxy == 0) {
 							server.host = target.host;
 							server.port = target.port;
 						}
@@ -525,7 +526,7 @@ read_response:
 	if (quiet_flag==FALSE)
 		progressmeter(1);
 #endif
-	if (!proxy && target.is_ftp) {
+	if ((use_proxy == 0) && target.is_ftp) {
 		fclose(dfp);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
 			bb_error_msg_and_die("ftp error: %s", buf+4);
@@ -551,7 +552,7 @@ void parse_url(char *url, struct host_info *h)
 		bb_error_msg_and_die("not an http or ftp url: %s", url);
 
 	sp = strchr(h->host, '/');
-	if (sp != NULL) {
+	if (sp) {
 		*sp++ = '\0';
 		h->path = sp;
 	} else
@@ -837,7 +838,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.68 2004/01/31 08:08:57 bug1 Exp $
+ *	$Id: wget.c,v 1.69 2004/02/22 00:27:34 bug1 Exp $
  */
 
 
