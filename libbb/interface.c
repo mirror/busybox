@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.5 2001/10/24 04:59:38 andersen Exp $
+ * Version:     $Id: interface.c,v 1.6 2001/10/27 03:28:19 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -2100,7 +2100,7 @@ static void ife_print(struct interface *ptr)
 	    printf(_("Interrupt:%d "), ptr->map.irq);
 	if (ptr->map.base_addr >= 0x100)	/* Only print devices using it for 
 						   I/O maps */
-	    printf(_("Base address:0x%x "), ptr->map.base_addr);
+	    printf(_("Base address:0x%lx "), (unsigned long)ptr->map.base_addr);
 	if (ptr->map.mem_start) {
 	    printf(_("Memory:%lx-%lx "), ptr->map.mem_start, ptr->map.mem_end);
 	}
