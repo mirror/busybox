@@ -32,13 +32,10 @@
 
 #define _PATH_LOGIN     "/bin/login"
 
-#ifdef linux
+ /* If USE_SYSLOG is undefined all diagnostics go directly to /dev/console. */
+#ifdef CONFIG_SYSLOGD
 #include <sys/param.h>
 #define USE_SYSLOG
-#endif
-
- /* If USE_SYSLOG is undefined all diagnostics go directly to /dev/console. */
-#ifdef	USE_SYSLOG
 #include <syslog.h>
 #endif
 
