@@ -562,7 +562,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	} else if (execable("/sbin/pump")) {
 		result = execute("pump -i %iface% -k", ifd, exec);
 	} else if (execable("/sbin/dhclient")) {
-		execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+		execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec);
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
@@ -1375,7 +1375,7 @@ extern int ifupdown_main(int argc, char **argv)
 
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
 				if (cmds(currif) == -1) {
-					bb_error_msg("Don't seem to be have all the variables for %s/%s.",
+					bb_error_msg("Don't seem to have all the variables for %s/%s.",
 							liface, currif->address_family->name);
 				}
 
