@@ -376,6 +376,31 @@ static char* install_dir[] = {
 /* abstract link() */
 typedef int (*__link_f)(const char *, const char *);
 
+/* 
+ * Where in the filesystem is this busybox?
+ * [return]
+ *		malloc'd string w/ full pathname of busybox's location
+ *		NULL on failure
+ */
+static char *busybox_fullpath()
+{
+	pid_t	pid;
+	char	path[256];
+	char	proc[256];
+	int		len;
+
+	pid = getpid();
+	sprintf(proc, "/proc/%d/exe", pid);
+	len = readlink(proc, path, 256);
+	if (len != -1) {
+		path[len] = 0;
+	} else {
+		fprintf(stderr, "busybox : %s : %s\n", proc, strerror(errno));
+		return NULL;
+	}
+	return strdup(path);
+}
+
 /* create (sym)links for each applet */
 static int install_links(const char *busybox, int use_symbolic_links)
 {
@@ -394,14 +419,13 @@ static int install_links(const char *busybox, int use_symbolic_links)
 			install_dir[applets[i].location], 
 			applets[i].name
 		);
-#if 0
+#if 1
         rc |= Link(busybox, command);
 #else
         puts(command);
 #endif
 		if (rc) {
 			fprintf(stderr,"busybox : %s : %s\n", command, strerror(errno));
-			break;
 		}
     }
 	return rc;
@@ -427,6 +451,8 @@ int main(int argc, char **argv)
 	 */
 	if (argc > 1 && (strcmp(argv[1], "--install") == 0)) {
 		int use_symbolic_links = 0;
+		int rc = 0;
+		char *busybox;
 
 		/* to use symlinks, or not to use symlinks... */
 		if (argc > 2) {
@@ -434,13 +460,16 @@ int main(int argc, char **argv)
 				use_symbolic_links = 1; 
 			}
 		}
-		/* 
-		 * FIXME : 
-		 * I need a clever unix trick that'll tell
-		 * me where to find the currently running
-		 * busybox binary
-		 */
-		return install_links("/bin/busybox", use_symbolic_links);
+
+		/* link */
+		busybox = busybox_fullpath();
+		if (busybox) {
+			install_links(busybox, use_symbolic_links);
+			free(busybox);
+		} else {
+			rc = 1;
+		}
+		return rc;
 	}
 #endif /* BB_FEATURE_INSTALLER */
 

@@ -232,8 +232,8 @@
 //
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
-// compiled into the binary.
-#define BB_FEATURE_INSTALLER
+// compiled into the binary.  (needs /proc filesystem)
+// #define BB_FEATURE_INSTALLER
 //
 // End of Features List
 //
