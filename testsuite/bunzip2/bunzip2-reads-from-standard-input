@@ -1,2 +1,2 @@
-echo foo | bzip2 -c | busybox bunzip2 -c > output
+echo foo | bzip2 | busybox bunzip2 > output
 echo foo | cmp - output
