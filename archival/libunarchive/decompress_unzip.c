@@ -88,8 +88,8 @@ static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 
 /* This is used to sanify any unused bits from the bitbuffer 
  * so they arent skipped when reading trailers (trailing headers) */
-unsigned char gunzip_in_buffer_count;
-unsigned char *gunzip_in_buffer;
+//unsigned char gunzip_in_buffer_count;
+//unsigned char *gunzip_in_buffer;
 
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
@@ -142,13 +142,30 @@ static const unsigned char border[] = {
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
 };
 
+#define BYTEBUFFER_MAX 0x8000
+unsigned char *bytebuffer = NULL;
+unsigned int bytebuffer_offset = 0;
+unsigned int bytebuffer_size = 0;
+
+static void fill_bytebuffer()
+{
+	if (bytebuffer_offset >= bytebuffer_size) {
+		/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
+		 * to the front of the bytebuffer, leave 4 bytes free at end of tail
+		 * so we can easily top up buffer in check_trailer_gzip() */
+		bytebuffer_size = 4 + xread(gunzip_src_fd, &bytebuffer[4], BYTEBUFFER_MAX - 8);
+		bytebuffer_offset = 4;
+	}
+}
+
 static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current, const unsigned int required)
 {
 	while (*current < required) {
-		bitbuffer |= ((unsigned int) xread_char(gunzip_src_fd)) << *current;
+		fill_bytebuffer();
+		bitbuffer |= ((unsigned int) bytebuffer[bytebuffer_offset]) << *current;
+		bytebuffer_offset++;
 		*current += 8;
 	}
-
 	return(bitbuffer);
 }
 
@@ -857,7 +874,10 @@ static int inflate_get_next_window(void)
 		int ret;
 	
 		if (needAnotherBlock) {
-			if(e) { calculate_gunzip_crc(); return 0; } // Last block
+			if(e) {
+				calculate_gunzip_crc();
+				return 0;
+			} // Last block
 			method = inflate_block(&e);
 			needAnotherBlock = 0;
 		}
@@ -875,6 +895,7 @@ static int inflate_get_next_window(void)
 			return 1; // More data left
 		} else needAnotherBlock = 1; // End of that block
 	}
+	/* Doesnt get here */
 }
 
 /*
@@ -923,7 +944,8 @@ extern void GZ_gzReadOpen(int fd, void *unused, int nUnused)
 	gunzip_bytes_out = 0;
 	gunzip_src_fd = fd;
 
-	gunzip_in_buffer = malloc(8);
+	/* Input buffer */
+	bytebuffer = xmalloc(BYTEBUFFER_MAX);
 
 	/* initialize gunzip_window, bit buffer */
 	gunzip_bk = 0;
@@ -940,12 +962,11 @@ extern void GZ_gzReadClose(void)
 	free(gunzip_crc_table);
 
 	/* Store unused bytes in a global buffer so calling applets can access it */
-	gunzip_in_buffer_count = 0;
 	if (gunzip_bk >= 8) {
 		/* Undo too much lookahead. The next read will be byte aligned
 		 * so we can discard unused bits in the last meaningful byte. */
-		gunzip_in_buffer[gunzip_in_buffer_count] = gunzip_bb & 0xff;
-		gunzip_in_buffer_count++;
+		bytebuffer_offset--;
+		bytebuffer[bytebuffer_offset] = gunzip_bb & 0xff;
 		gunzip_bb >>= 8;
 		gunzip_bk -= 8;
 	}

@@ -32,31 +32,38 @@
 
 extern unsigned int gunzip_crc;
 extern unsigned int gunzip_bytes_out;
-extern unsigned char *gunzip_in_buffer;
-extern unsigned char gunzip_in_buffer_count;
+extern unsigned char *bytebuffer;
+extern unsigned short bytebuffer_offset;
+extern unsigned short bytebuffer_size;
+//extern unsigned char *gunzip_in_buffer;
+//extern unsigned char gunzip_in_buffer_count;
 
 extern void check_trailer_gzip(int src_fd)
 {
-
 	unsigned int stored_crc = 0;
 	unsigned char count;
 
 	/* top up the input buffer with the rest of the trailer */
-	xread_all(src_fd, &gunzip_in_buffer[gunzip_in_buffer_count], 8 - gunzip_in_buffer_count);
+	count = bytebuffer_size - bytebuffer_offset;
+	if (count < 8) {
+		xread_all(src_fd, &bytebuffer[bytebuffer_size], 8 - count);
+		bytebuffer_size += 8 - count;
+	}
 	for (count = 0; count != 4; count++) {
-		stored_crc |= (gunzip_in_buffer[count] << (count * 8));
+		stored_crc |= (bytebuffer[bytebuffer_offset] << (count * 8));
+		bytebuffer_offset++;
 	}
 
 	/* Validate decompression - crc */
 	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
-		error_msg_and_die("invalid compressed data--crc error");
+		error_msg_and_die("crc error");
 	}
 
 	/* Validate decompression - size */
-	if (gunzip_bytes_out != 
-		(gunzip_in_buffer[4] | (gunzip_in_buffer[5] << 8) |
-		(gunzip_in_buffer[6] << 16) | (gunzip_in_buffer[7] << 24))) {
-		error_msg_and_die("invalid compressed data--length error");
+	if (gunzip_bytes_out !=
+		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
+		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
+		error_msg_and_die("Incorrect length, but crc is correct");
 	}
 
 }
