@@ -146,8 +146,7 @@ extern int grep_main(int argc, char **argv)
 	reflags = REG_NOSUB | REG_NEWLINE; 
 	if (ignore_case)
 		reflags |= REG_ICASE;
-	if (bb_regcomp(&regex, argv[optind], reflags) != 0)
-		exit(1);
+	xregcomp(&regex, argv[optind], reflags);
 
 	/* argv[(optind+1)..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames */

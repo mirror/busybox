@@ -97,6 +97,7 @@ static const char sed_usage[] =
 #endif
 	;
 
+#if 0
 static void destroy_cmd_strs()
 {
 	if (sed_cmds == NULL)
@@ -125,6 +126,7 @@ static void destroy_cmd_strs()
 	free(sed_cmds);
 	sed_cmds = NULL;
 }
+#endif
 
 /*
  * trim_str - trims leading and trailing space from a string
@@ -199,10 +201,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 			fatalError("unterminated match expression\n");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
-		if (bb_regcomp(*regex, my_str+1, REG_NEWLINE) != 0) {
-			free(my_str);
-			exit(1);
-		}
+		xregcomp(*regex, my_str+1, REG_NEWLINE);
 	}
 	else {
 		fprintf(stderr, "sed.c:get_address: no address found in string\n");
@@ -291,10 +290,7 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 			
 		/* compile the regex */
 		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
-		if (bb_regcomp(sed_cmd->sub_match, match, cflags) != 0) {
-			free(match);
-			exit(1);
-		}
+		xregcomp(sed_cmd->sub_match, match, cflags);
 		free(match);
 	}
 }
@@ -460,11 +456,13 @@ extern int sed_main(int argc, char **argv)
 	if (argv[1] && (strcmp(argv[1], "--help") == 0))
 		usage(sed_usage);
 
+#if 0
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1) {
 		perror("sed");
 		exit(1);
 	}
+#endif
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {

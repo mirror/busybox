@@ -1722,18 +1722,15 @@ char *get_last_path_component(char *path)
 #endif
 
 #if defined BB_GREP || defined BB_SED
-int bb_regcomp(regex_t *preg, const char *regex, int cflags)
+void xregcomp(regex_t *preg, const char *regex, int cflags)
 {
 	int ret;
 	if ((ret = regcomp(preg, regex, cflags)) != 0) {
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
-		errorMsg("bb_regcomp: %s\n", errmsg);
-		free(errmsg);
-		regfree(preg);
+		fatalError("bb_regcomp: %s\n", errmsg);
 	}
-	return ret;
 }
 #endif
 
