@@ -193,7 +193,6 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 	return(NULL); /* Maybe we should say if failed */
 }
 
-#if defined BB_AR || defined BB_CPIO || defined BB_UNTAR
 char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names)
 {
@@ -224,7 +223,6 @@ char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 	}
 	return(buffer);
 }
-#endif
 
 #if defined BB_AR || defined BB_DPKG_DEB || defined BB_DPKG
 void *get_header_ar(FILE *src_stream)
