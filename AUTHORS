@@ -55,7 +55,7 @@ Glenn McGrath <bug1@optushome.com.au>
     ar, dpkg, dpkg-deb
 
 Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit; ports: ash, crond, stty, traceroute, telnetd, top;
+    cmdedit; xargs(current); ports: ash, crond, stty, traceroute, telnetd, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 
@@ -81,7 +81,8 @@ Linus Torvalds <torvalds@transmeta.com>
     mkswap, fsck.minix, mkfs.minix
 
 Mark Whitley <markw@lineo.com> <markw@codepoet.org>
-    grep, sed, cut, xargs, style-guide, new-applet-HOWTO, bug fixes, etc.
+    grep, sed, cut, xargs(previous),
+    style-guide, new-applet-HOWTO, bug fixes, etc.
 
 Charles P. Wright <cpwright@villagenet.com>
     gzip, mini-netcat(nc)

@@ -2243,9 +2243,13 @@
 	"Prints the user name associated with the current effective user id."
 
 #define xargs_trivial_usage \
-	"[COMMAND] [ARGS...]"
+	"[COMMAND] [-prt] [ARGS...]"
 #define xargs_full_usage \
-	"Executes COMMAND on every item given by standard input."
+	"Executes COMMAND on every item given by standard input.\n\n" \
+	"Options:\n" \
+	"\t-p\tPrompt the user about whether to run each command\n" \
+	"\t-r\tDo not run command for empty readed lines\n" \
+	"\t-t\tPrint the command line on stderr before executing it."
 #define xargs_example_usage \
 	"$ ls | xargs gzip\n" \
 	"$ find . -name '*.c' -print | xargs rm\n" 

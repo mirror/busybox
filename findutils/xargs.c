@@ -1,9 +1,10 @@
 /*
  * Mini xargs implementation for busybox
+ * Only "-prt" options are supported in this version of xargs.
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
- * Remixed by Mark Whitley <markw@codepoet.org>
+ * (C) 2002 by Vladimir Oleynik <dzo@simtreas.ru>
+ *
+ * Special thanks Mark Whitley for stimul to rewrote :)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,84 +24,105 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "busybox.h"
+
+
+/*
+   This function have special algorithm.
+   Don`t use fork and include to main!
+*/
+static void xargs_exec(char * const * args)
+{
+	int p;
+	int common[4];  /* shared vfork stack */
+
+	common[0] = 0;
+	if ((p = vfork()) >= 0) {
+		if (p == 0) {
+			/* vfork -- child */
+			execvp(args[0], args);
+			common[0] = errno; /* set error to shared stack */
+			_exit(1);
+		} else {
+			/* vfork -- parent */
+			wait(NULL);
+			if(common[0]) {
+				errno = common[0];
+				perror_msg_and_die("%s", args[0]);
+			}
+		}
+	} else {
+		perror_msg_and_die("vfork");
+	}
+}
 
 int xargs_main(int argc, char **argv)
 {
-	char *cmd_to_be_executed;
 	char *file_to_act_on;
-	int i;
-	int len;
+	char **args;
+	int  i, a;
+	char flg_vi       = 0;    /* verbose |& interactive */
+	char flg_no_empty = 0;
 
-	/*
-	 * No options are supported in this version of xargs; no getopt.
-	 *
-	 * Re: The missing -t flag: Most programs that produce output also print
-	 * the filename, so xargs doesn't really need to do it again. Supporting
-	 * the -t flag =greatly= bloats up the size of this app and the memory it
-	 * uses because you have to buffer all the input file strings in memory. If
-	 * you really want to see the filenames that xargs will act on, just run it
-	 * once with no args and xargs will echo the filename. Simple.
-	 */
-
-	argv++;
-	len = argc;     /* arg = count for ' ' + trailing '\0' */
-	/* Store the command to be executed (taken from the command line) */
-	if (argc == 1) {
-		/* default behavior is to echo all the filenames */
-		argv[0] = "/bin/echo";
-		len++;  /* space for trailing '\0' */
-	} else {
-		argc--;
+	while ((a = getopt(argc, argv, "prt")) > 0) {
+		switch(a) {
+			case 'p':
+				flg_vi |= 3;
+				break;
+			case 't':
+				flg_vi |= 1;
+				break;
+			case 'r':
+				flg_no_empty = 1;
+				break;
+			default:
+				show_usage();
 		}
-	/* concatenate all the arguments passed to xargs together */
-	for (i = 0; i < argc; i++)
-		len += strlen(argv[i]);
-	cmd_to_be_executed = xmalloc (len);
-	for (i = len = 0; i < argc; i++) {
-		len = sprintf(cmd_to_be_executed + len, "%s ", argv[i]);
 	}
+
+	a = argc - optind;
+	argv += optind;
+	if(a==0) {
+		/* default behavior is to echo all the filenames */
+		*argv = "/bin/echo";
+		a++;
+	}
+	/* allocating pointers for execvp: a*arg, arg from stdin, NULL */
+	args = xcalloc(a + 3, sizeof(char *));
+
+	/* Store the command to be executed (taken from the command line) */
+	for (i = 0; i < a; i++)
+		args[i] = *argv++;
 
 	/* Now, read in one line at a time from stdin, and store this 
 	 * line to be used later as an argument to the command */
-	while ((file_to_act_on = get_line_from_file(stdin)) !=NULL) {
-
-		FILE *cmd_output;
-		char *output_line;
-		char *execstr;
-
+	while ((file_to_act_on = get_line_from_file(stdin)) != NULL) {
 		/* eat the newline off the filename. */
 		chomp(file_to_act_on);
-
-		/* eat blank lines */
-		if (file_to_act_on[0] == 0)
-			continue;
-
-		/* assemble the command and execute it */
-		bb_asprintf(&execstr, "%s%s", cmd_to_be_executed, file_to_act_on);
-		
-		cmd_output = popen(execstr, "r");
-		if (cmd_output == NULL)
-			perror_msg_and_die("popen");
-
-		/* harvest the output */
-		while ((output_line = get_line_from_file(cmd_output)) != NULL) {
-			fputs(output_line, stdout);
-			free(output_line);
+		if(file_to_act_on[0] != 0 || flg_no_empty == 0) {
+			args[a] = file_to_act_on[0] ? file_to_act_on : NULL;
+			if(flg_vi) {
+				for(i=0; args[i]; i++) {
+					if(i)
+						fputc(' ', stderr);
+					fputs(args[i], stderr);
+				}
+				fprintf(stderr, "%s", ((flg_vi & 2) ? " ?..." : "\n"));
+			}
+			if((flg_vi & 2) == 0 || ask_confirmation() != 0 ) {
+				xargs_exec(args);
+			}
 		}
-
 		/* clean up */
-		pclose(cmd_output);
-		free(execstr);
 		free(file_to_act_on);
 	}
-
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	free(cmd_to_be_executed);
+	free(args);
 #endif
-
 	return 0;
 }
-
-/* vi: set sw=4 ts=4: */
