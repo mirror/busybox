@@ -824,12 +824,15 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 
 	/* WARNING/NOTICE: I break Hard Links */
 	if (S_ISLNK(statbuf->st_mode)) {
+		int link_size=0;
 		char buffer[BUFSIZ];
 		header.typeflag  = SYMTYPE;
-		if ( readlink(fileName, buffer, sizeof(buffer) - 1) < 0) {
+		link_size = readlink(fileName, buffer, sizeof(buffer) - 1);
+		if ( link_size < 0) {
 			errorMsg("Error reading symlink '%s': %s\n", header.name, strerror(errno));
 			return ( FALSE);
 		}
+		buffer[link_size] = '\0';
 		strncpy(header.linkname, buffer, sizeof(header.linkname)); 
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag  = DIRTYPE;
