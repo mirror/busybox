@@ -114,24 +114,26 @@ static void
 crondlog(const char *ctl, ...)
 {
     va_list va;
+    const char *fmt;
     int level = (int)(ctl[0] & 0xf);
     int type = level == 20 ?
 		    LOG_ERR : ((ctl[0] & 0100) ? LOG_WARNING : LOG_NOTICE);
 
 
     va_start(va, ctl);
+    fmt = ctl+1;
     if (level >= LogLevel) {
 
 #ifdef FEATURE_DEBUG_OPT
-	if (DebugOpt) vfprintf(stderr, ctl, va);
+	if (DebugOpt) vfprintf(stderr, fmt, va);
 	else
 #endif
-	    if (LogFile == 0) vsyslog(type, ctl, va);
+	    if (LogFile == 0) vsyslog(type, fmt, va);
 	    else {
 		 int  logfd;
 
 		 if ((logfd = open(LogFile, O_WRONLY|O_CREAT|O_APPEND, 600)) >= 0) {
-		    vdprintf(logfd, ctl, va);
+		    vdprintf(logfd, fmt, va);
 		    close(logfd);
 #ifdef FEATURE_DEBUG_OPT
 		 } else {

@@ -6682,18 +6682,24 @@ sprint_status(char *s, int status, int sigonly)
 	int st;
 
 	col = 0;
-	st = WEXITSTATUS(status);
 	if (!WIFEXITED(status)) {
-		st = WTERMSIG(status);
 #if JOBS
 		if (WIFSTOPPED(status))
 			st = WSTOPSIG(status);
+		else
 #endif
+			st = WTERMSIG(status);
 		if (sigonly) {
-			if (st == SIGINT || st == SIGPIPE)
+			if(st == SIGPIPE) {
+				col = fmtstr(s, 16, "Broken pipe");
 				goto out;
+			}
+			if (st == SIGINT)
+				goto out;
+#if JOBS
 			if (WIFSTOPPED(status))
 				goto out;
+#endif
 		}
 		st &= 0x7f;
 		col = fmtstr(s, 32, u_signal_names(NULL, &st, 0));
@@ -6701,6 +6707,7 @@ sprint_status(char *s, int status, int sigonly)
 			col += fmtstr(s + col, 16, " (core dumped)");
 		}
 	} else if (!sigonly) {
+		st = WEXITSTATUS(status);
 		if (st)
 			col = fmtstr(s, 16, "Done(%d)", st);
 		else
@@ -9036,18 +9043,19 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	char c = '?';
 	int done = 0;
 	int err = 0;
-	char s[10];
-	char **optnext = optfirst + *param_optind - 1;
+	char s[12];
+	char **optnext;
 
-	if (*param_optind <= 1 || *optoff < 0 || !(*(optnext - 1)) ||
-	    strlen(*(optnext - 1)) < *optoff)
+	if(*param_optind < 1)
+		return 1;
+	optnext = optfirst + *param_optind - 1;
+
+	if (*param_optind <= 1 || *optoff < 0 || strlen(optnext[-1]) < *optoff)
 		p = NULL;
 	else
-		p = *(optnext - 1) + *optoff;
+		p = optnext[-1] + *optoff;
 	if (p == NULL || *p == '\0') {
 		/* Current word is done, advance */
-		if (optnext == NULL)
-			return 1;
 		p = *optnext;
 		if (p == NULL || *p != '-' || *++p == '\0') {
 atend:
