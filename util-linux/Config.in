@@ -74,6 +74,16 @@ config CONFIG_FDISK
 	  can be used to list and edit the set of partitions or BSD style 
 	  'disk slices' that are defined on a hard drive.
 
+if !CONFIG_LFS
+config FDISK_SUPPORT_LARGE_DISKS
+	bool "  support over 4Gb disks"
+	default y
+	depends on CONFIG_FDISK
+	help
+	  Previous set detected unsupport large file, but you can support
+	  large disks after enable this option
+endif
+
 config CONFIG_FEATURE_FDISK_WRITABLE
 	bool "  Write support" 
 	default y
