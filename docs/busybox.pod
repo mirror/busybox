@@ -18,7 +18,7 @@ you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
 tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
 or embedded system.  The utilities in BusyBox generally have fewer options than
 their full-featured GNU cousins; however, the options that are included provide
-the expected functionality and behave very much like their GNU counterparts.  
+the expected functionality and behave very much like their GNU counterparts. 
 
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
@@ -37,7 +37,7 @@ For example, entering
 	./ls
 
 will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
-into BusyBox).  
+into BusyBox). 
 
 You can also invoke BusyBox by issuing the command as an argument on the
 command line.  For example, entering
@@ -93,7 +93,7 @@ Usage: basename FILE [SUFFIX]
 Strips directory path and suffixes from FILE.
 If specified, also removes any trailing SUFFIX.
 
-Example: 
+Example:
 
 	$ basename /usr/local/bin/foo
 	foo
@@ -158,7 +158,7 @@ OPERATOR may be chosen from
 	+	Add a permission
 	-	Remove a permission
 	=	Assign a permission
- 
+
 PERMISSION may be chosen from
 
 	r	Read
@@ -183,7 +183,7 @@ An optional fourth digit can also be used to specify
 Options:
 
 	-R	Change files and directories recursively.
- 
+
 Example:
 
 	$ ls -l /tmp/foo
@@ -225,7 +225,7 @@ Example:
 Usage: chroot NEWROOT [COMMAND...]
 
 Run COMMAND with root directory set to NEWROOT.
- 
+
 Example:
 
 	$ ls -l /bin/ls
@@ -353,7 +353,7 @@ Copy a file, converting and formatting according to options
 	seek=n  skip n output blocks
 
 Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)
- 
+
 Example:
 
 	$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4
@@ -398,7 +398,7 @@ Example:
 =item dmesg
 
 Usage: dmesg [B<-c>] [B<-n> level] [B<-s> bufsize]
- 
+
 Print or controls the kernel ring buffer.
 
 -------------------------------
@@ -428,7 +428,7 @@ Example:
 	12      ./docs/CVS
 	104     ./docs
 	2417    .
-	 
+
 -------------------------------
 
 =item dutmp
@@ -448,7 +448,7 @@ Example:
 	6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0
 	6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0
 	7|336|pts/0|vt00andersen|andersen|:0.0|0|0|0|955637763|0|0
-	 
+
 -------------------------------
 
 =item echo
@@ -473,7 +473,7 @@ Example:
 	cool
 	$ echo "Erik\nis\ncool"
 	Erik\nis\ncool
-	 
+
 -------------------------------
 
 =item false
@@ -914,12 +914,12 @@ Example:
 Usage: ln [OPTION] TARGET... LINK_NAME|DIRECTORY
 
 Create a link named LINK_NAME or DIRECTORY to the specified TARGET
- 
+
 Options:
 
 	-s	make symbolic links instead of hard links
 	-f	remove existing destination files
- 
+
 Example:
 
     $ ln -s BusyBox /tmp/ls
@@ -1201,7 +1201,7 @@ Example:
 	214     NOOP QUIT RSET HELP
 	quit
 	221 foobar closing connection
- 
+
 -------------------------------
 
 =item more
@@ -2048,4 +2048,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.48 2000/06/21 21:04:01 andersen Exp $
+# $Id: busybox.pod,v 1.49 2000/06/21 21:38:00 proski Exp $
