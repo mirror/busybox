@@ -315,6 +315,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 	return ( TRUE);
 }
 
+# if defined CONFIG_FEATURE_TAR_EXCLUDE
 static int exclude_file(char **excluded_files, const char *file)
 {
 	int i;
@@ -341,6 +342,7 @@ static int exclude_file(char **excluded_files, const char *file)
 
 	return 0;
 }
+#endif
 
 static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* userData)
 {
