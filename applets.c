@@ -49,6 +49,13 @@ extern void show_usage(void)
 	const char *format_string;
 	const char *usage_string = usage_messages;
 	int i;
+	/* From busybox.c */
+	extern int been_there_done_that;
+
+	if (strcmp(applet_using->name, "busybox")==0) {
+		been_there_done_that=1;
+		busybox_main(0, NULL);
+	}
 
 	for (i = applet_using - applets; i > 0; ) {
 		if (!*usage_string++) {

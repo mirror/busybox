@@ -10,7 +10,7 @@
 #define BB_DECLARE_EXTERN
 #include "messages.c"
 
-static int been_there_done_that = 0;
+int been_there_done_that = 0; /* Also used in applets.c */
 const char *applet_name;
 
 #ifdef BB_FEATURE_INSTALLER
