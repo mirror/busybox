@@ -45,6 +45,8 @@
 	* Fixed a bug where "sed 's/foo/bar/g'" (i.e. a script w/o a "-e")
 	* ps now supports BB_FEATURE_AUTOWIDTH, and can adjust its width
 	    to match the terminal (defaults to width=79 when this is off).
+	* Fixed mount'ing loop devices when the filesystem type was not 
+	    specified.  It used to revert to non-loop after the first try.
 
 
 	-Erik Andersen

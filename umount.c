@@ -41,6 +41,9 @@ static const char umount_usage[] =
 #ifdef BB_FEATURE_REMOUNT
 	"\t-r:\tTry to remount devices as read-only if mount is busy\n"
 #endif
+#if defined BB_FEATURE_MOUNT_LOOP
+	"\t-f:\tDo not free loop device (if a loop device has been used)\n"
+#endif
 ;
 
 struct _mtab_entry_t {
@@ -53,9 +56,14 @@ static struct _mtab_entry_t *mtab_cache = NULL;
 
 
 
+#if defined BB_FEATURE_MOUNT_LOOP
+static int freeLoop = TRUE;
+#endif
 static int useMtab = TRUE;
 static int umountAll = FALSE;
+#if defined BB_FEATURE_REMOUNT
 static int doRemount = FALSE;
+#endif
 extern const char mtab_file[];	/* Defined in utility.c */
 
 
@@ -167,7 +175,7 @@ static int do_umount(const char *name, int useMtab)
 	status = umount(name);
 
 #if defined BB_FEATURE_MOUNT_LOOP
-	if (blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
+	if (freeLoop == TRUE && blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
 		/* this was a loop device, delete it */
 		del_loop(blockDevice);
 #endif
@@ -236,6 +244,11 @@ extern int umount_main(int argc, char **argv)
 			case 'a':
 				umountAll = TRUE;
 				break;
+#if defined BB_FEATURE_MOUNT_LOOP
+			case 'f':
+				freeLoop = FALSE;
+				break;
+#endif
 #ifdef BB_MTAB
 			case 'n':
 				useMtab = FALSE;

@@ -142,7 +142,6 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 				fprintf(stderr, "WARNING: loop device is read-only\n");
 				flags &= ~MS_RDONLY;
 			}
-			use_loop = FALSE;
 		}
 #endif
 		status =
@@ -415,10 +414,10 @@ extern int mount_main(int argc, char **argv)
 				case 'a':
 					all = TRUE;
 					break;
-#ifdef BB_MTAB
 				case 'f':
 					fakeIt = TRUE;
 					break;
+#ifdef BB_MTAB
 				case 'n':
 					useMtab = FALSE;
 					break;
