@@ -61,8 +61,7 @@
 #define VT_LOG          "/dev/tty3"	  /* Virtual console */
 #define SERIAL_CON0     "/dev/ttyS0"      /* Primary serial console */
 #define SERIAL_CON1     "/dev/ttyS1"      /* Serial console */
-#define SHELL           "/bin/sh"	  /* Default shell */
-#define REBOOT          "/sbin/reboot"	  /* Default ctrl-alt-del command */
+#define SHELL           "-sh"		  /* Default shell */
 #define INITTAB         "/etc/inittab"	  /* inittab file location */
 #define INIT_SCRIPT	"/etc/init.d/rcS" /* Default sysinit script. */
 
@@ -72,7 +71,6 @@
 /* Allowed init action types */
 typedef enum {
     SYSINIT=1,
-    CTRLALTDEL,
     RESPAWN,
     ASKFIRST,
     WAIT,
@@ -87,7 +85,6 @@ typedef struct initActionType{
 
 static const struct initActionType actions[] = {
     {"sysinit",     SYSINIT},
-    {"ctrlaltdel",  CTRLALTDEL},
     {"respawn",     RESPAWN},
     {"askfirst",    ASKFIRST},
     {"wait",        WAIT},
@@ -326,14 +323,17 @@ static int waitfor(int pid)
 {
     int status, wpid;
 
-    message(LOG, "Waiting for process %d.\n", pid);
-    while ((wpid = wait(&status)) != pid) {
-	if (wpid > 0)
+    while (1) {
+	wpid = wait(&status);
+	if (wpid > 0 ) {
 	    message(LOG, "pid %d exited, status=0x%x.\n", wpid, status);
+	    break;
+	}
+	if (wpid == pid )
+	    break;
     }
     return wpid;
 }
-
 
 static pid_t run(char* command, 
 	char *terminal, int get_enter)
@@ -346,12 +346,25 @@ static pid_t run(char* command,
 	"\nPlease press Enter to activate this console. ";
 
     if ((pid = fork()) == 0) {
-	int fd;
+	pid_t shell_pgid = getpid ();
+
 	/* Clean up */
 	close(0);
 	close(1);
 	close(2);
 	setsid();
+
+	if (device_open(terminal, O_RDWR) < 0) {
+	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
+	    exit(1);
+	}
+	dup(0);
+	dup(0);
+	/* Grab control of the terminal.  */
+	if (tcsetpgrp (0, getpgrp()) < 0) {
+	    message(LOG|CONSOLE, "tcsetpgrp error: %s\r\n", strerror(errno));
+	}
+	set_term(0);
 
 	/* Reset signal handlers set for parent process */
 	signal(SIGUSR1, SIG_DFL);
@@ -359,14 +372,6 @@ static pid_t run(char* command,
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
 
-	if ((fd = device_open(terminal, O_RDWR)) < 0) {
-	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
-	    exit(-1);
-	}
-	dup(fd);
-	dup(fd);
-	tcsetpgrp(0, getpgrp());
-	set_term(0);
 
 	if (get_enter==TRUE) {
 	    /*
@@ -379,7 +384,7 @@ static pid_t run(char* command,
 	     */
 	    char c;
 	    message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n", 
-		    command, getpid(), terminal );
+		    command, shell_pgid, terminal );
 	    write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 	    read(fileno(stdin), &c, 1);
 	}
@@ -396,7 +401,7 @@ static pid_t run(char* command,
 
 	/* Log the process name and args */
 	message(LOG, "Starting pid %d, console %s: '%s'\r\n", 
-		getpid(), terminal, cmd[0]);
+		shell_pgid, terminal, cmd[0]);
 
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
@@ -488,16 +493,6 @@ static void reboot_signal(int sig)
     exit(0);
 }
 
-static void ctrl_alt_del_signal(int sig)
-{
-    initAction* a;
-    /* Run whatever we are supposed to run */
-    for( a=initActionList ; a; a=a->nextPtr) {
-	if (a->action == CTRLALTDEL) {
-	    waitfor(run(a->process, console, FALSE));
-	}
-    }
-}
 #endif
 
 void new_initAction (const struct initActionType *a, 
@@ -547,8 +542,6 @@ void parse_inittab(void)
 	/* Askfirst shell on tty2 */
 	if (second_console != NULL) 
 	    new_initAction( &(actions[3]), SHELL, second_console );
-	/* Control-alt-del */
-	new_initAction( &(actions[1]), REBOOT, console );
 	/* sysinit */
 	new_initAction( &(actions[0]), INIT_SCRIPT, console );
 
@@ -614,8 +607,6 @@ extern int init_main(int argc, char **argv)
     initAction *a;
     pid_t wpid;
     int status;
-    int single = FALSE;
-
 
 #ifndef DEBUG_INIT
     /* Expect to be PID 1 iff we are run as init (not linuxrc) */
@@ -624,10 +615,13 @@ extern int init_main(int argc, char **argv)
 		"This version of init is designed to be run only by the kernel\n");
     }
 
+    /* from the controlling terminal */
+    setsid();
+
     /* Set up sig handlers  -- be sure to clear all of these in run() */
     signal(SIGUSR1, halt_signal);
     signal(SIGUSR2, reboot_signal);
-    signal(SIGINT, ctrl_alt_del_signal);
+    signal(SIGINT, reboot_signal);
     signal(SIGTERM, reboot_signal);
 
     /* Turn off rebooting via CTL-ALT-DEL -- we get a 
@@ -643,7 +637,6 @@ extern int init_main(int argc, char **argv)
     close(1);
     close(2);
     set_term(0);
-    setsid();
 
     /* Make sure PATH is set to something sane */
     putenv(_PATH_STDPATH);
@@ -673,8 +666,8 @@ extern int init_main(int argc, char **argv)
 
     /* Check if we are supposed to be in single user mode */
     if ( argc > 1 && (!strcmp(argv[1], "single") || 
-		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
-	single = TRUE;
+		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) 
+    {
 	/* Ask first then start a shell on tty2 */
 	if (second_console != NULL) 
 	    new_initAction( &(actions[3]), SHELL, second_console);
@@ -687,7 +680,7 @@ extern int init_main(int argc, char **argv)
 
     /* Now run everything that needs to be run */
 
-    /* First run sysinit */
+    /* First run the sysinit command */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == SYSINIT) {
 	    waitfor(run(a->process, console, FALSE));
@@ -712,8 +705,8 @@ extern int init_main(int argc, char **argv)
 	}
     }
 
-    /* Now run the looping stuff */
-    for (;;) {
+    /* Now run the looping stuff for the rest of forever */
+    while (1) {
 	for( a=initActionList ; a; a=a->nextPtr) {
 	    /* Only run stuff with pid==0.  If they have
 	     * a pid, that means they are still running */
@@ -725,26 +718,26 @@ extern int init_main(int argc, char **argv)
 			break;
 		    case ASKFIRST:
 			/* run the askfirst stuff */
-			a->pid = waitfor(run(a->process, console, TRUE));
+			a->pid = run(a->process, console, TRUE);
 			break;
-		    /* silence the compiler's whining */
+		    /* silence the compiler's incessant whining */
 		    default:
 			break;
 		}
 	    }
 	}
-
+	/* Wait for a child process to exit */
 	wpid = wait(&status);
-	/* Find out who died and clean up their corpse */
 	if (wpid > 0 ) {
-	    message(LOG, "pid %d exited, status=%x.\n", wpid, status);
+	    /* Find out who died and clean up their corpse */
 	    for( a=initActionList ; a; a=a->nextPtr) {
 		if (a->pid==wpid) {
 		    a->pid=0;
+		    message(LOG, "Process '%s' (pid %d) exited.  Scheduling it for restart.\n", 
+			    a->process, wpid);
 		}
 	    }
 	}
-
 	sleep(1);
     }
 }

@@ -72,9 +72,6 @@ extern int df_main(int argc, char **argv)
     printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
 	   "1k-blocks", "Used", "Available", "Use%", "Mounted on");
 
-    /* Only compiled in if BB_MTAB is not defined */
-    whine_if_fstab_is_missing();
-
     if (argc > 1) {
 	struct mntent *mountEntry;
 	int status;

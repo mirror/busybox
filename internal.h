@@ -173,12 +173,6 @@ extern pid_t findInitPid();
 extern int vdprintf(int d, const char *format, va_list ap);
 #endif
 
-#if defined BB_MTAB
-#define whine_if_fstab_is_missing() {} 
-#else
-extern void whine_if_fstab_is_missing();
-#endif
-
 #if defined BB_NFSMOUNT
 int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	char **extra_opts, char **mount_opts, int running_bg);

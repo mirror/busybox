@@ -1012,16 +1012,6 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
 
 
 
-#if !defined BB_MTAB && (defined BB_MOUNT || defined BB_DF )
-extern void whine_if_fstab_is_missing()
-{
-    struct stat statBuf;
-    if (stat("/etc/fstab", &statBuf) < 0) 
-	fprintf(stderr, "/etc/fstab file missing -- install one to name /dev/root.\n\n");
-}
-#endif
-
-
 #if defined BB_DD || defined BB_TAIL
 /*
  * Read a number with a possible multiplier.

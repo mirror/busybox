@@ -115,6 +115,18 @@ do_mount(char* specialfile, char* dir, char* filesystemtype,
 #endif
 
 
+#if defined BB_MTAB
+#define whine_if_fstab_is_missing() {} 
+#else
+extern void whine_if_fstab_is_missing()
+{
+    struct stat statBuf;
+    if (stat("/etc/fstab", &statBuf) < 0) 
+	fprintf(stderr, "/etc/fstab file missing -- install one to name /dev/root.\n\n");
+}
+#endif
+
+
 /* Seperate standard mount options from the nonstandard string options */
 static void
 parse_mount_options ( char *options, unsigned long *flags, char *strflags)
