@@ -2166,6 +2166,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	 * to the KISS philosophy of this program. */
 	mark_closed(fileno(p));
 	retcode=pclose(p);
+	free_pipe_list(inner.list_head,0);
 	debug_printf("pclosed, retcode=%d\n",retcode);
 	/* XXX this process fails to trim a single trailing newline */
 	return retcode;
