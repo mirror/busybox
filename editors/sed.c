@@ -212,7 +212,8 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 
 static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 {
-	int oldidx, cflags = REG_NEWLINE;
+	int oldidx;
+	int cflags = 0;
 	char *match;
 	int idx = 0;
 	int j;
