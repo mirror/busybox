@@ -101,12 +101,12 @@ all: busybox busybox.links docs
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
+	
+docs: docs/busybox.pod
+	$(MAKE) -C docs clean all
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
-
-docs:	docs/busybox.pod
-	$(MAKE) -C docs clean all 
 
 regexp.o nfsmount.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c

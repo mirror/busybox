@@ -86,11 +86,11 @@ Example:
 Usage: chgrp [OPTION]... GROUP FILE...
 
 Change the group membership of each FILE to GROUP.
- 
+
 Options:
 
 	-R	change files and directories recursively
- 
+
 Example:
 
 	$ ls -l /tmp/foo
@@ -1532,10 +1532,7 @@ Example:
 
 =item tr
 
-Usage:  tr [-csu] string1 string2
-        tr [-cu] -d string1
-        tr [-cu] -s string1
-        tr [-cu] -ds string1 string2
+Usage:  tr [B<-cdsu>] string1 [string2]
 
 Translate, squeeze, and/or delete characters from standard
 input, writing to standard output.
@@ -1596,7 +1593,7 @@ Example:
 
 Usage: uname [OPTION]...
 
-Print certain system information.  With no OPTION, same as -s.
+Print certain system information.  With no OPTION, same as B<-s>.
 
 Options:
 
@@ -1715,7 +1712,7 @@ Repeatedly outputs a line with all specified STRING(s), or `y'.
 
 =item zcat
 
-This is essentially an alias for invoking "gunzip -c", where 
+This is essentially an alias for invoking "gunzip B<-c>", where 
 it decompresses the file inquestion and send the output to stdout. 
 
 -------------------------------
@@ -1781,4 +1778,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.13 2000/04/17 16:16:10 erik Exp $
+# $Id: busybox.pod,v 1.14 2000/04/17 16:44:46 erik Exp $
