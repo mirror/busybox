@@ -545,7 +545,7 @@ static void display(void)
 /*                      PRINT; */
 						switch (pr->flags) {
 						case F_ADDRESS:
-							printf(pr->fmt, address);
+							printf(pr->fmt, (unsigned int) address);
 							break;
 						case F_BPAD:
 							printf(pr->fmt, "");
