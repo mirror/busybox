@@ -130,7 +130,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.65 2001/05/24 14:16:28 andersen Exp $"
+#ident "$Id: insmod.c,v 1.66 2001/06/19 15:00:52 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -347,7 +347,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.65 2001/05/24 14:16:28 andersen Exp $"
+#ident "$Id: insmod.c,v 1.66 2001/06/19 15:00:52 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -372,7 +372,7 @@ static const int MODUTILS_OBJ_H = 1;
 
 #define ELFCLASSM	ELFCLASS32
 
-#if (defined(__m68k__))					
+#if (defined(__mc68000__))					
 #define ELFDATAM	ELFDATA2MSB
 #endif
 
@@ -435,7 +435,7 @@ static const int MODUTILS_OBJ_H = 1;
 #define Elf32_RelM	Elf32_Rel
 #define ELFDATAM	ELFDATA2LSB
 
-#elif defined(__m68k__) 
+#elif defined(__mc68000__) 
 
 #define MATCH_MACHINE(x)	(x == EM_68K)
 #define SHT_RELM			SHT_RELA
@@ -813,7 +813,7 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_NONE:
 #elif defined(__i386__)
 	case R_386_NONE:
-#elif defined(__m68k__) 
+#elif defined(__mc68000__) 
 	case R_68K_NONE:
 #elif defined(__powerpc__)
 	case R_PPC_NONE:
@@ -828,7 +828,7 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_ABS32:
 #elif defined(__i386__)
 	case R_386_32:	
-#elif defined(__m68k__) 
+#elif defined(__mc68000__) 
 	case R_68K_32:
 #elif defined(__powerpc__)
 	case R_PPC_ADDR32:
@@ -837,7 +837,7 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 		*loc += v;
 		break;
-#if defined(__m68k__)
+#if defined(__mc68000__)
     case R_68K_8:
 		if (v > 0xff)
 		ret = obj_reloc_overflow;
@@ -848,7 +848,7 @@ arch_apply_relocation(struct obj_file *f,
 		ret = obj_reloc_overflow;
 		*(short *)loc = v;
 		break;
-#endif /* __m68k__   */
+#endif /* __mc68000__   */
 
 #if defined(__powerpc__)
 	case R_PPC_ADDR16_HA:
@@ -954,7 +954,7 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_PC32:
 		*loc += v - dot;
 		break;
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
     case R_68K_PC8:
 		v -= dot;
 		if ((Elf32_Sword)v > 0x7f || (Elf32_Sword)v < -(Elf32_Sword)0x80)
@@ -1049,7 +1049,7 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_JMP_SLOT:
 		*loc = v;
 		break;
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
 	case R_68K_GLOB_DAT:
 	case R_68K_JMP_SLOT:
 		*loc = v;
@@ -1065,7 +1065,7 @@ arch_apply_relocation(struct obj_file *f,
         case R_386_RELATIVE:
 		*loc += f->baseaddr;
 		break;
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
     case R_68K_RELATIVE:
     	*(int *)loc += f->baseaddr;
     	break;
@@ -1096,7 +1096,7 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_GOT32:
 #elif defined(__i386__)
 	case R_386_GOT32:
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
 	case R_68K_GOT32:
 #endif
 		assert(isym != NULL);
@@ -1108,26 +1108,26 @@ arch_apply_relocation(struct obj_file *f,
         /* make the reloc with_respect_to_.got */
 #if defined(__sh__)
 		*loc += isym->gotent.offset + rel->r_addend;
-#elif defined(__i386__) || defined(__arm__) || defined(__m68k__)
+#elif defined(__i386__) || defined(__arm__) || defined(__mc68000__)
 		*loc += isym->gotent.offset;
 #endif
 		break;
 
     /* address relative to the got */
-#if !defined(__m68k__)
+#if !defined(__mc68000__)
 #if defined(__sh__)
 	case R_SH_GOTOFF:
 #elif defined(__arm__)
 	case R_ARM_GOTOFF:
 #elif defined(__i386__)
 	case R_386_GOTOFF:
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
 	case R_68K_GOTOFF:
 #endif
 		assert(got != 0);
 		*loc += v - got;
 		break;
-#endif // __m68k__
+#endif // __mc68000__
 
 #endif /* BB_USE_GOT_ENTRIES */
 
@@ -1183,7 +1183,7 @@ int arch_create_got(struct obj_file *f)
 #elif defined(__i386__)
 			case R_386_GOT32:
 				break;
-#elif defined(__m68k__)
+#elif defined(__mc68000__)
 			case R_68K_GOT32:
 				break;
 #endif
