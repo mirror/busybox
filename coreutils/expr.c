@@ -157,15 +157,17 @@ static void tostring (VALUE *v)
 static int toarith (VALUE *v)
 {
 	if(v->type == string) {
-	int i;
+		int i;
+		char *e;
 
-			/* Don't interpret the empty string as an integer.  */
-			if (v->u.s == 0)
-				return 0;
-			i = atoi(v->u.s);
-			free (v->u.s);
-			v->u.i = i;
-			v->type = integer;
+		/* Don't interpret the empty string as an integer.  */
+		/* Currently does not worry about overflow or int/long differences. */
+		i = (int) strtol(v->u.s, &e, 10);
+		if ((v->u.s == e) || *e)
+			return 0;
+		free (v->u.s);
+		v->u.i = i;
+		v->type = integer;
 	}
 	return 1;
 }
