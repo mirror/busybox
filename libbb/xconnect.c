@@ -11,69 +11,57 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <errno.h>
 #include <netdb.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "libbb.h"
 
-int xconnect(const char *host, const char *port)
+int bb_getport(char *port)
 {
-#ifdef CONFIG_FEATURE_IPV6
-	struct addrinfo hints;
-	struct addrinfo *res;
-	struct addrinfo *addr_info;
-	int error;
-	int s;
-
-	memset(&hints, 0, sizeof(hints));
-	/* set-up hints structure */
-	hints.ai_family = PF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	error = getaddrinfo(host, port, &hints, &res);
-	if (error||!res)
-		bb_perror_msg_and_die(gai_strerror(error));
-	addr_info=res;
-	while (res) {
-		s=socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-		if (s<0)
-		{
-			error=s;
-			res=res->ai_next;
-			continue;
-		}
-		/* try to connect() to res->ai_addr */
-		error = connect(s, res->ai_addr, res->ai_addrlen);
-		if (error >= 0)
-			break;
-		close(s);
-		res=res->ai_next;
-	}
-	freeaddrinfo(addr_info);
-	if (error < 0)
-	{
-		bb_perror_msg_and_die("Unable to connect to remote host (%s)", host);
-	}
-	return s;
-#else
-	struct sockaddr_in s_addr;
-	int s = socket(AF_INET, SOCK_STREAM, 0);
+	int port_nr;
+	char *endptr;
 	struct servent *tserv;
-	int port_nr=htons(atoi(port));
-	struct hostent * he;
 
-	if (port_nr==0 && (tserv = getservbyname(port, "tcp")) != NULL)
-		port_nr = tserv->s_port;
-
-	memset(&s_addr, 0, sizeof(struct sockaddr_in));
-	s_addr.sin_family = AF_INET;
-	s_addr.sin_port = port_nr;
-
-	he = xgethostbyname(host);
-	memcpy(&s_addr.sin_addr, he->h_addr, sizeof s_addr.sin_addr);
-
-	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
+	if (!port) {
+		return -1;
+	}
+	port_nr=strtol(port, &endptr, 10);
+	if (errno != 0 || *endptr!='\0' || endptr==port || port_nr < 1 || port_nr > 65536) 
 	{
-		bb_perror_msg_and_die("Unable to connect to remote host (%s)", host);
+		if (port_nr==0 && (tserv = getservbyname(port, "tcp")) != NULL) {
+			port_nr = tserv->s_port;
+		} else {
+			return -1;
+		}
+	} else {
+		port_nr = htons(port_nr);
+	}
+	return port_nr;
+}
+
+void bb_lookup_host(struct sockaddr_in *s_in, char *host, char *port)
+{
+	struct hostent *he;
+
+	memset(s_in, 0, sizeof(struct sockaddr_in));
+	s_in->sin_family = AF_INET;
+	he = xgethostbyname(host);
+	memcpy(&(s_in->sin_addr), he->h_addr_list[0], he->h_length);
+
+	if (port) {
+		s_in->sin_port=bb_getport(port);
+	}
+}
+
+int xconnect(struct sockaddr_in *s_addr)
+{
+	int s = socket(AF_INET, SOCK_STREAM, 0);
+	if (connect(s, (struct sockaddr_in *)s_addr, sizeof(struct sockaddr_in)) < 0)
+	{
+		bb_perror_msg_and_die("Unable to connect to remote host (%s)", 
+				inet_ntoa(s_addr->sin_addr));
 	}
 	return s;
-#endif
 }

@@ -40,7 +40,7 @@ struct host_info {
 };
 
 static void parse_url(char *url, struct host_info *h);
-static FILE *open_socket(char *host, int port);
+static FILE *open_socket(struct sockaddr_in *s_in, int port);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
@@ -155,6 +155,7 @@ int wget_main(int argc, char **argv)
 	int extra_headers_left = sizeof(extra_headers);
 	int which_long_opt = 0, option_index = -1;
 	struct host_info server, target;
+	struct sockaddr_in s_in;
 
 	FILE *sfp = NULL;			/* socket to web/ftp server			*/
 	FILE *dfp = NULL;			/* socket to ftp server (data)		*/
@@ -290,6 +291,15 @@ int wget_main(int argc, char **argv)
 			do_continue = 0;
 	}
 
+	/* We want to do exactly _one_ DNS lookup, since some
+	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
+	 * and we want to connect to only one IP... */
+	bb_lookup_host(&s_in, server.host, NULL);
+	if (quiet_flag==FALSE) {
+		fprintf(stdout, "Connecting to %s[%s]:%d\n",
+				server.host, inet_ntoa(s_in.sin_addr), server.port);
+	}
+
 	if (proxy || !target.is_ftp) {
 		/*
 		 *  HTTP session
@@ -304,7 +314,7 @@ int wget_main(int argc, char **argv)
 			 * Open socket to http server
 			 */
 			if (sfp) fclose(sfp);
-			sfp = open_socket(server.host, server.port);
+			sfp = open_socket(&s_in, server.port);
 			
 			/*
 			 * Send HTTP request.
@@ -416,7 +426,7 @@ read_response:
 		if (! target.user)
 			target.user = bb_xstrdup("anonymous:busybox@");
 
-		sfp = open_socket(server.host, server.port);
+		sfp = open_socket(&s_in, server.port);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
 			close_delete_and_die("%s", buf+4);
 
@@ -459,7 +469,7 @@ read_response:
 		port = atoi(s+1);
 		s = strrchr(buf, ',');
 		port += atoi(s+1) * 256;
-		dfp = open_socket(server.host, port);
+		dfp = open_socket(&s_in, port);
 
 		if (do_continue) {
 			sprintf(buf, "REST %ld", beg_range);
@@ -584,14 +594,16 @@ void parse_url(char *url, struct host_info *h)
 }
 
 
-FILE *open_socket(char *host, int port)
+FILE *open_socket(struct sockaddr_in *s_in, int port)
 {
 	int fd;
 	FILE *fp;
-	char port_str[10];
 
-	snprintf(port_str, sizeof(port_str), "%d", port);
-	fd=xconnect(host, port_str);
+	if (port>0 && port < 65536) {
+		s_in->sin_port=htons(port);
+	}
+
+	fd=xconnect(s_in);
 
 	/*
 	 * Get the server onto a stdio stream.
@@ -838,7 +850,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.60 2003/09/15 08:33:37 andersen Exp $
+ *	$Id: wget.c,v 1.61 2003/10/31 09:31:43 andersen Exp $
  */
 
 

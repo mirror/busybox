@@ -573,6 +573,7 @@ extern int telnet_main(int argc, char** argv)
 	char *host;
 	char *port;
 	int len;
+	struct sockaddr_in s_in;
 #ifdef USE_POLL
 	struct pollfd ufds[2];
 #else	
@@ -601,7 +602,8 @@ extern int telnet_main(int argc, char** argv)
 	
 	host = argv[1];
 	
-	G.netfd = xconnect(host, port);
+	bb_lookup_host(&s_in, host, port);
+	G.netfd = xconnect(&s_in);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
 

@@ -109,9 +109,9 @@ extern int is_directory(const char *name, int followLinks, struct stat *statBuf)
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 extern ssize_t safe_read(int fd, void *buf, size_t count);
-extern ssize_t safe_write(int fd, void *buf, size_t count);
-extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
 extern ssize_t bb_full_read(int fd, void *buf, size_t len);
+extern ssize_t safe_write(int fd, const void *buf, size_t count);
+extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
 extern int recursive_action(const char *fileName, int recurse,
 	  int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
@@ -294,7 +294,9 @@ extern struct hostent *xgethostbyname(const char *name);
 extern struct hostent *xgethostbyname2(const char *name, int af);
 extern int create_icmp_socket(void);
 extern int create_icmp6_socket(void);
-extern int xconnect(const char *host, const char *port);
+extern int xconnect(struct sockaddr_in *s_addr);
+extern int bb_getport(char *port);
+extern void bb_lookup_host(struct sockaddr_in *s_in, char *host, char *port);
 
 //#warning wrap this?
 char *dirname (char *path);
