@@ -18,6 +18,7 @@ around to it some time. If you have any good ideas, please let me know.
 
 Bugs that need fixing:
 
+ - mkfs.minix rev 1.7 completely broke the parser.  Fix it.
  - 'grep foo$ file' doesn't work
  - 'grep *foo file' segfaults
  - ps dirent race bug (need to stat the file before attempting chdir)
