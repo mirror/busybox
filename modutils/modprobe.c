@@ -531,7 +531,7 @@ extern int modprobe_main(int argc, char** argv)
 	
 	if (remove_opt) {
 		do {
-			mod_remove ( optind < argc ? xstrdup ( argv [optind] ) : 0 );
+			mod_remove ( optind < argc ? xstrdup ( argv [optind] ) : NULL );
 		} while ( ++optind < argc );
 		
 		return EXIT_SUCCESS;
