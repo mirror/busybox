@@ -410,7 +410,9 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
 			bb_error_msg_and_die
 				("only a beginning address can be specified for edit commands");
-		while(isspace(*cmdstr)) cmdstr++;
+		if (*cmdstr != '\n') /* should not happen */
+		  bb_error_msg_and_die("A/I/C backslash not followed by NL?");
+		cmdstr++; /* skip over the NL following the backslash */
 		sed_cmd->string = bb_xstrdup(cmdstr);
 		parse_escapes(sed_cmd->string,sed_cmd->string,strlen(cmdstr),0,0);
 		cmdstr += strlen(cmdstr);
