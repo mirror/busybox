@@ -37,7 +37,6 @@
 #include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
-#include <limits.h>
 
 #define ksyslog klogctl
 extern int ksyslog(int type, char *buf, int len);
@@ -76,7 +75,7 @@ static const char syslogd_usage[] =
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
 static void message(char *fmt, ...)
-		   __attribute__ ((format (printf, 1, 2)));
+	__attribute__ ((format (printf, 1, 2)));
 static void message(char *fmt, ...)
 {
 	int fd;
@@ -169,7 +168,6 @@ static void doSyslogd (void)
 	int sock_fd;
 	fd_set readfds;
 	char lfile[PATH_MAX];
-	int t = readlink(_PATH_LOG, lfile, sizeof(lfile) - 1); /* Resolve symlinks */
 
 	/* Set up sig handlers */
 	signal (SIGINT,  quit_signal);
@@ -179,10 +177,15 @@ static void doSyslogd (void)
 	signal (SIGALRM, domark);
 	alarm (MarkInterval);
 
-	if (t == -1)
-		strncpy(lfile, _PATH_LOG, sizeof(lfile));
-	else
-		lfile[t] = '\0';
+	/* create the syslog file so realpath() can work 
+	 * (the ugle close(open()) stuff is just a cheap
+	 * touch command that avoids using system (system
+	 * is always a bad thing to use) */
+	close(open("touch " _PATH_LOG, O_RDWR | O_CREAT, 0644));
+	if (realpath(_PATH_LOG, lfile) == NULL) {
+		perror("Could not resolv path to " _PATH_LOG);
+		exit (FALSE);
+	}
 
 	unlink (lfile);
 
@@ -243,6 +246,7 @@ static void doSyslogd (void)
 					n_read = read (fd, buf, BUFSIZE);
 
 					if (n_read < 0) {
+						// FIXME .. fd isn't set 
 						perror ("read error");
 						goto close_fd;
 					}
