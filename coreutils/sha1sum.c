@@ -29,10 +29,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <endian.h>
 #include "busybox.h"
 
-#ifdef WORDS_BIGENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 # define SWAP(n) (n)
 #else
 # define SWAP(n) \
