@@ -28,6 +28,12 @@ if false; then tr 'A-Z' 'a-z'; else echo bar4; fi <foo
 if true || false; then echo foo; else echo bar5; fi
 if true && false; then echo bar6; else echo foo; fi
 
+# make sure we can duplicate file descriptors properly
+echo replacement >foo 2>&1
+cat foo
+cat doesnt_exist >foo 2>&1
+tr 'a-z' 'A-Z' <foo
+
 # fairly simple example of hush expanding variables too early
 unset TMP
 rm -f fish
