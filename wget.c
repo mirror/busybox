@@ -40,7 +40,7 @@ void progressmeter(int flag);
 
 /* Globals (can be accessed from signal handlers */
 static off_t filesize = 0;		/* content-length of the file */
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
 volatile unsigned long statbytes; /* Number of bytes transferred so far. */
@@ -113,18 +113,18 @@ int wget_main(int argc, char **argv)
 	/* Guess an output filename */
 	if (!fname_out) {
 		fname_out = 
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 			curfile = 
 #endif
 			get_last_path_component(uri_path);
 		if (fname_out==NULL || strlen(fname_out)<1) {
 			fname_out = 
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 				curfile = 
 #endif
 				"index.html";
 		}
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 	} else {
 		curfile=argv[optind];
 #endif
@@ -217,14 +217,14 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Retrieve HTTP body.
 	 */
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 	statbytes=0;
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
 #endif
 	while (filesize > 0 && (n = fread(buf, 1, sizeof(buf), sfp)) > 0) {
 		fwrite(buf, 1, n, output);
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
 		if (quiet_flag==FALSE)
 			progressmeter(1);
@@ -341,7 +341,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 	return hdrval;
 }
 
-#ifdef BB_FEATURE_STATUSBAR
+#ifdef BB_FEATURE_WGET_STATUSBAR
 /* Stuff below is from BSD rcp util.c, as added to openshh. 
  * Original copyright notice is retained at the end of this file.
  * 
@@ -476,7 +476,7 @@ progressmeter(int flag)
 }
 #endif
 
-/* Original copyright notice which applies to the BB_FEATURE_STATUSBAR stuff,
+/* Original copyright notice which applies to the BB_FEATURE_WGET_STATUSBAR stuff,
  * much of which was blatently stolen from openssh.  */
  
 /*-
@@ -511,7 +511,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.15 2001/01/03 16:15:15 kraai Exp $
+ *	$Id: wget.c,v 1.16 2001/01/20 20:07:00 andersen Exp $
  */
 
 

@@ -283,7 +283,7 @@
 // #define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
-#define BB_FEATURE_STATUSBAR
+#define BB_FEATURE_WGET_STATUSBAR
 //
 // Clean up all memory before exiting -- usually not needed
 // as the OS can clean up...  Don't enable this unless you
