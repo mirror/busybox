@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.75 2001/11/12 16:57:26 kraai Exp $"
+#ident "$Id: insmod.c,v 1.76 2001/12/14 16:08:17 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.75 2001/11/12 16:57:26 kraai Exp $"
+#ident "$Id: insmod.c,v 1.76 2001/12/14 16:08:17 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -393,7 +393,12 @@ static const int MODUTILS_OBJ_H = 1;
 #define MATCH_MACHINE(x) (x == EM_ARM)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
+#ifdef __ARMEB__
+#define ELFDATAM	ELFDATA2MSB
+#endif
+#ifdef __ARMEL__
 #define ELFDATAM	ELFDATA2LSB
+#endif
 
 #elif defined(__powerpc__)
 
