@@ -344,6 +344,8 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 				sed_cmd->which_match=(unsigned short)strtol(substr+idx,&pos,10);
 				idx=pos-substr;
 			}
+			/* Skip spaces */
+			if(isspace(substr[idx])) continue;
 			continue;
 		}
 		switch (substr[idx]) {
@@ -365,10 +367,6 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 			/* Ignore case (gnu exension) */
 			case 'I':
 				cflags |= REG_ICASE;
-				break;
-			/* Skip spaces */
-			case ' ':
-			case '\t':
 				break;
 			case ';':
 			case '}':
@@ -1043,6 +1041,24 @@ discard_line:
 	}
 }
 
+/* It is possible to have a command line argument with embedded
+   newlines.  This counts as multiple command lines. */
+
+static void add_cmd_block(char *cmdstr)
+{
+	int go=1;
+	char *temp=bb_xstrdup(cmdstr),*temp2=temp;
+
+	while(go) {
+		int len=strcspn(temp2,"\n");
+		if(!temp2[len]) go=0;
+		else temp2[len]=0;
+		add_cmd(temp2);
+		temp2+=len+1;
+	}
+	free(temp);
+}
+
 extern int sed_main(int argc, char **argv)
 {
 	int opt, status = EXIT_SUCCESS;
@@ -1060,23 +1076,8 @@ extern int sed_main(int argc, char **argv)
 			be_quiet++;
 			break;
 		case 'e':
-		{
-			int go=1;
-			char *temp=bb_xstrdup(optarg),*temp2=temp;
-
-			/* It is possible to have a command line argument with embedded
-			   newlines.  This counts as a multi-line argument. */
-
-			while(go) {
-				int len=strcspn(temp2,"\n");
-				if(!temp2[len]) go=0;
-				else temp2[len]=0;
-				add_cmd(temp2);
-				temp2+=len+1;
-			}
-			free(temp);
+			add_cmd_block(optarg);
 			break;
-		}
 		case 'f':
 		{
 			FILE *cmdfile;
@@ -1097,8 +1098,6 @@ extern int sed_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	}
-	/* Flush any unfinished commands. */
-	add_cmd("");
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
@@ -1106,8 +1105,10 @@ extern int sed_main(int argc, char **argv)
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else
-			add_cmd(argv[optind++]);
+			add_cmd_block(argv[optind++]);
 	}
+	/* Flush any unfinished commands. */
+	add_cmd("");
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
