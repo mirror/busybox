@@ -29,7 +29,11 @@ extern int basename_main(int argc, char **argv)
 	char* s, *s1;
 
 	if ((argc < 2) || (**(argv + 1) == '-')) {
-		usage("basename [file ...]\n");
+		usage("basename [FILE ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nStrips directory path and suffixes from FILE(s).\n"
+#endif
+				);
 	}
 	argv++;
 

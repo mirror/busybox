@@ -45,7 +45,11 @@ extern int cat_main(int argc, char **argv)
 	}
 
 	if (**(argv + 1) == '-') {
-		usage("cat [file ...]\n");
+		usage("cat [FILE ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nConcatenates FILE(s) and prints them to the standard output.\n"
+#endif
+				);
 	}
 	argc--;
 

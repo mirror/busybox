@@ -608,7 +608,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				len1=snprintf(buf, sizeof(buf), "%ld,%-ld ", 
 						header.devmajor, header.devminor);
 			} else {
-				len1=snprintf(buf, sizeof(buf), "%d ", header.size);
+				len1=snprintf(buf, sizeof(buf), "%lu ", (long)header.size);
 			}
 			/* Jump through some hoops to make the columns match up */
 			for(;(len+len1)<31;len++)

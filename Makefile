@@ -95,17 +95,19 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links
+all: busybox busybox.links docs
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
-	$(MAKE) -C docs
 	
+docs:
+	$(MAKE) -C docs
+
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
-regexp.o nfsmount.o: %.o: %.h
+regexp.o nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
 
 test tests:

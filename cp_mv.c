@@ -49,16 +49,21 @@ static const char *dz;			/* dollar zero, .bss */
 static const char *cp_mv_usage[] =	/* .rodata */
 {
 	"cp [OPTION]... SOURCE DEST\n"
-		"   or: cp [OPTION]... SOURCE... DIRECTORY\n\n"
-		"Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n"
+		"   or: cp [OPTION]... SOURCE... DIRECTORY\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+		"\nCopies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n"
 		"\n"
-		"\t-a\tsame as -dpR\n"
-		"\t-d\tpreserve links\n"
-		"\t-p\tpreserve file attributes if possible\n"
-		"\t-R\tcopy directories recursively\n",
+		"\t-a\tSame as -dpR\n"
+		"\t-d\tPreserves links\n"
+		"\t-p\tPreserves file attributes if possible\n"
+		"\t-R\tCopies directories recursively\n"
+#endif
+		,
 	"mv SOURCE DEST\n"
-		"   or: mv SOURCE... DIRECTORY\n\n"
-		"Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n"
+		"   or: mv SOURCE... DIRECTORY\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+		"\nRename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n"
+#endif
 };
 
 static int recursiveFlag;

@@ -130,8 +130,9 @@
 // normal strings.
 #define BB_FEATURE_FULL_REGULAR_EXPRESSIONS
 //
-// Use only simple command help
-#define BB_FEATURE_TRIVIAL_HELP
+// This compiles out everything but the most 
+// trivial --help usage information (i.e. reduces binary size)
+//#define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
 #define BB_FEATURE_USE_TERMIOS

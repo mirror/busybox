@@ -39,7 +39,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <termio.h>
+#include <sys/ioctl.h>
 #include <ctype.h>
 #include <signal.h>
 
@@ -53,7 +53,26 @@
 
 static struct history *his_front = NULL;	/* First element in command line list */
 static struct history *his_end = NULL;	/* Last element in command line list */
-static struct termio old_term, new_term;	/* Current termio and the previous termio before starting ash */
+
+/* ED: sparc termios is broken: revert back to old termio handling. */
+#ifdef BB_FEATURE_USE_TERMIOS
+
+#if #cpu(sparc)
+#      include <termio.h>
+#      define termios termio
+#      define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
+#      define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
+#else
+#      include <termios.h>
+#      define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#      define getTermSettings(fd,argp) tcgetattr(fd, argp);
+#endif
+
+/* Current termio and the previous termio before starting sh */
+struct termios initial_settings, new_settings;
+#endif
+
+
 
 static int cmdedit_termw = 80;  /* actual terminal width */
 static int cmdedit_scroll = 27; /* width of EOL scrolling region */
@@ -84,14 +103,15 @@ void cmdedit_reset_term(void)
 {
 	if (reset_term)
 		/* sparc and other have broken termios support: use old termio handling. */
-		ioctl(fileno(stdin), TCSETA, (void *) &old_term);
+		setTermSettings(fileno(stdin), (void*) &initial_settings);
 }
 
 void clean_up_and_die(int sig)
 {
 	cmdedit_reset_term();
 	fprintf(stdout, "\n");
-	exit(TRUE);
+	if (sig!=SIGINT)
+		exit(TRUE);
 }
 
 /* Go to HOME position */
@@ -233,7 +253,7 @@ char** exe_n_cwd_tab_completion(char* command, int *num_matches)
 	return (matches);
 }
 
-void input_tab(char* command, int outputFd, int *cursor, int *len)
+void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len)
 {
 	/* Do TAB completion */
 	static int num_matches=0;
@@ -379,19 +399,17 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 	memset(command, 0, sizeof(command));
 	if (!reset_term) {
-		/* sparc and other have broken termios support: use old termio handling. */
-		ioctl(inputFd, TCGETA, (void *) &old_term);
-		memcpy(&new_term, &old_term, sizeof(struct termio));
-
-		new_term.c_cc[VMIN] = 1;
-		new_term.c_cc[VTIME] = 0;
-		new_term.c_lflag &= ~ICANON;	/* unbuffered input */
-		new_term.c_lflag &= ~ECHO;
+		
+		getTermSettings(inputFd, (void*) &initial_settings);
+		memcpy(&new_settings, &initial_settings, sizeof(struct termios));
+		new_settings.c_cc[VMIN] = 1;
+		new_settings.c_cc[VTIME] = 0;
+		new_settings.c_cc[VINTR] = _POSIX_VDISABLE; /* Turn off CTRL-C, so we can trap it */
+		new_settings.c_lflag &= ~ICANON;	/* unbuffered input */
+		new_settings.c_lflag &= ~(ECHO|ECHOCTL|ECHONL); /* Turn off echoing */
 		reset_term = 1;
-		ioctl(inputFd, TCSETA, (void *) &new_term);
-	} else {
-		ioctl(inputFd, TCSETA, (void *) &new_term);
 	}
+	setTermSettings(inputFd, (void*) &new_settings);
 
 	memset(command, 0, BUFSIZ);
 
@@ -399,6 +417,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 		if ((ret = read(inputFd, &c, 1)) < 1)
 			return;
+		//fprintf(stderr, "got a '%c' (%d)\n", c, c);
 
 		switch (c) {
 		case '\n':
@@ -414,6 +433,21 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 		case 2:
 			/* Control-b -- Move back one character */
 			input_backward(outputFd, &cursor);
+			break;
+		case 3:
+			/* Control-c -- leave the current line, 
+			 * and start over on the next line */ 
+
+			/* Go to the next line */
+			xwrite(outputFd, "\n", 1);
+
+			/* Rewrite the prompt */
+			xwrite(outputFd, prompt, strlen(prompt));
+
+			/* Reset the command string */
+			memset(command, 0, sizeof(command));
+			len = cursor = 0;
+
 			break;
 		case 4:
 			/* Control-d -- Delete one character, or exit 
@@ -435,12 +469,12 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			break;
 		case '\b':
 		case DEL:
-			/* control-h and DEL */
+			/* Control-h and DEL */
 			input_backspace(command, outputFd, &cursor, &len);
 			break;
 		case '\t':
 #ifdef BB_FEATURE_SH_TAB_COMPLETION
-			input_tab(command, outputFd, &cursor, &len);
+			input_tab(command, prompt, outputFd, &cursor, &len);
 #endif
 			break;
 		case 14:
@@ -591,8 +625,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 	}
 
 	nr = len + 1;
-	/* sparc and other have broken termios support: use old termio handling. */
-	ioctl(inputFd, TCSETA, (void *) &old_term);
+	setTermSettings(inputFd, (void *) &initial_settings);
 	reset_term = 0;
 
 
@@ -644,6 +677,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 extern void cmdedit_init(void)
 {
 	atexit(cmdedit_reset_term);
+	signal(SIGKILL, clean_up_and_die);
 	signal(SIGINT, clean_up_and_die);
 	signal(SIGQUIT, clean_up_and_die);
 	signal(SIGTERM, clean_up_and_die);

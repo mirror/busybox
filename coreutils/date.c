@@ -40,12 +40,14 @@
    mail commands */
 
 static const char date_usage[] = "date [OPTION]... [+FORMAT]\n"
-	"  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n\n"
-	"Display the current time in the given FORMAT, or set the system date.\n"
-	"\nOptions:\n\t-R\t\toutput RFC-822 compliant date string\n"
-	"\t-s\t\tset time described by STRING\n"
-
-	"\t-u\t\tprint or set Coordinated Universal Time\n";
+	"  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nDisplays the current time in the given FORMAT, or sets the system date.\n"
+	"\nOptions:\n\t-R\tOutputs RFC-822 compliant date string\n"
+	"\t-s\tSets time described by STRING\n"
+	"\t-u\tPrints or sets Coordinated Universal Time\n"
+#endif
+	;
 
 
 /* Input parsing code is always bulky - used heavy duty libc stuff as

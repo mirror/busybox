@@ -171,7 +171,8 @@ static void doSyslogd (void) __attribute__ ((noreturn));
 static void doSyslogd (void)
 {
 	struct sockaddr_un sunx;
-	size_t addrLength;
+	socklen_t addrLength;
+
 
 	int sock_fd;
 	fd_set fds;

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.12 2000/04/13 18:49:43 erik Exp $
+ * $Id: ping.c,v 1.13 2000/04/21 01:26:49 erik Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -248,7 +248,7 @@ static void sendping(int ign)
 		if (i < 0)
 			perror("ping");
 		fprintf(stderr, "ping wrote %d chars; %d expected\n", i,
-				sizeof(packet));
+				(int)sizeof(packet));
 		exit(1);
 	}
 
@@ -393,7 +393,7 @@ static void ping(char *host)
 	/* listen for replies */
 	while (1) {
 		struct sockaddr_in from;
-		size_t fromlen = sizeof(from);
+		socklen_t fromlen = (socklen_t) sizeof(from);
 		int c;
 
 		if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,

@@ -947,6 +947,7 @@ int shell_main(int argc, char **argv)
 	getcwd(cwd, sizeof(cwd));
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
+	cmdedit_init();
 	signal(SIGWINCH, win_changed);
 	win_changed(0);
 #endif

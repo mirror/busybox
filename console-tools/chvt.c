@@ -19,8 +19,11 @@ int chvt_main(int argc, char **argv)
 	int fd, num;
 
 	if ((argc != 2) || (**(argv + 1) == '-')) {
-		usage
-			("chvt N\n\nChange foreground virtual terminal to /dev/ttyN\n");
+		usage ("chvt N\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nChanges the foreground virtual terminal to /dev/ttyN\n"
+#endif
+				);
 	}
 	fd = get_console_fd("/dev/console");
 	num = atoi(argv[1]);

@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/syscall.h>
+#define __LIBRARY__
+#include <asm/unistd.h>
+/* #include <sys/syscall.h> */
 
 
 
