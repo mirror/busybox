@@ -132,7 +132,7 @@ void finish(void)
 void catcher(void)
 {
 	struct timeval tv;
-	struct timeval start;
+	static struct timeval start;
 
 	gettimeofday(&tv, NULL);
 
