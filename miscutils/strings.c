@@ -54,7 +54,7 @@ int strings_main(int argc, char **argv)
 				opt+=2;
 				break;
 			case 'n':
-				n = bb_xgetlarg(optarg, 10, 1, LONG_MAX);
+				n = bb_xgetlarg(optarg, 10, 1, INT_MAX);
 				break;
 			default:
 				bb_show_usage();
