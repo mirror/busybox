@@ -37,20 +37,18 @@ static unsigned long get_netmask(unsigned long ipaddr)
 #define BROADCAST 0x02
 #define NETWORK   0x04
 #define HOSTNAME  0x08
-#define SILENT    0x80
+#define SILENT    0x10
 
 int ipcalc_main(int argc, char **argv)
 {
-	unsigned char mode = 0;
+	unsigned long mode;
 
 	unsigned long netmask = 0;
-	unsigned long broadcast = 0;
-	unsigned long network = 0;
-	unsigned long ipaddr = 0;
+	unsigned long broadcast;
+	unsigned long network;
+	unsigned long ipaddr;
 
-	int opt = 0;
-
-	struct option long_options[] = {
+	static const struct option long_options[] = {
 		{"netmask", no_argument, NULL, 'n'},
 		{"broadcast", no_argument, NULL, 'b'},
 		{"network", no_argument, NULL, 'w'},
@@ -61,31 +59,13 @@ int ipcalc_main(int argc, char **argv)
 		{NULL, 0, NULL, 0}
 	};
 
-
-	while ((opt = getopt_long(argc, argv,
+	bb_applet_long_options = long_options;
+	mode = bb_getopt_ulflags(argc, argv,
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
-							  "nbwhs",
+							  "nbwhs");
 #else
-							  "nbw",
+							  "nbw");
 #endif
-							  long_options, NULL)) != EOF) {
-		if (opt == 'n')
-			mode |= NETMASK;
-		else if (opt == 'b')
-			mode |= BROADCAST;
-		else if (opt == 'w')
-			mode |= NETWORK;
-#ifdef CONFIG_FEATURE_IPCALC_FANCY
-		else if (opt == 'h')
-			mode |= HOSTNAME;
-		else if (opt == 's')
-			mode |= SILENT;
-#endif
-		else {
-			bb_show_usage();
-		}
-	}
-
 	if (mode & (BROADCAST | NETWORK)) {
 		if (argc - optind > 2) {
 			bb_show_usage();
@@ -99,7 +79,7 @@ int ipcalc_main(int argc, char **argv)
 	ipaddr = inet_addr(argv[optind]);
 
 	if (ipaddr == INADDR_NONE) {
-		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s\n", argv[optind]),
+		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s", argv[optind]),
 				   exit(EXIT_FAILURE));
 	}
 
@@ -109,7 +89,7 @@ int ipcalc_main(int argc, char **argv)
 	}
 
 	if (ipaddr == INADDR_NONE) {
-		IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s\n", argv[optind + 1]),
+		IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s", argv[optind + 1]),
 				   exit(EXIT_FAILURE));
 	}
 
@@ -138,9 +118,8 @@ int ipcalc_main(int argc, char **argv)
 
 		hostinfo = gethostbyaddr((char *) &ipaddr, sizeof(ipaddr), AF_INET);
 		if (!hostinfo) {
-			IPCALC_MSG(bb_error_msg("cannot find hostname for %s", argv[optind]);
-					   herror(NULL);
-					   putc('\n', stderr);,);
+			IPCALC_MSG(bb_herror_msg_and_die(
+				"cannot find hostname for %s", argv[optind]),);
 			exit(EXIT_FAILURE);
 		}
 		for (x = 0; hostinfo->h_name[x]; x++) {
