@@ -1284,20 +1284,20 @@
 	"SCOPE-ID := [ host | link | global | NUMBER ]\n"
 
 #ifndef CONFIG_FEATURE_IPCALC_FANCY
-# define ipcalc_trivial_usage \
+#define ipcalc_trivial_usage \
 	"[--broadcast] [--netmask] [--network] ipaddr <netmask>"
 
-# define ipcalc_full_usage \
+#define ipcalc_full_usage \
 	"Calculate IP network settings from a IP address\n\n" \
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
 	"\t-n\t--netmask\tDisplay default netmask for IP.\n" \
 	"\t-w\t--network\tDisplay calculated network address." 
 #else
-# define ipcalc_trivial_usage \
+#define ipcalc_trivial_usage \
 	"[OPTION]... ipaddr <netmask>"
 
-# define ipcalc_full_usage \
+#define ipcalc_full_usage \
 	"Calculate IP network settings from a IP address\n\n" \
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
