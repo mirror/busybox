@@ -278,7 +278,7 @@ extern int umount_main(int argc, char **argv)
 		else
 			return EXIT_FAILURE;
 	}
-	if (do_umount(*argv, useMtab) == 0)
+	if (do_umount(*argv, useMtab) == TRUE)
 		return EXIT_SUCCESS;
 	perror("umount");
 	return EXIT_FAILURE;

@@ -493,8 +493,9 @@ singlemount:
 				}
 			}
 #endif
-			rc = mount_one(device, directory, filesystemType, flags,
-				string_flags, useMtab, fakeIt, extra_opts, TRUE);
+			if (!mount_one(device, directory, filesystemType, flags,
+					string_flags, useMtab, fakeIt, extra_opts, TRUE))
+				rc = EXIT_FAILURE;
 				
 			if (all == FALSE)
 				break;

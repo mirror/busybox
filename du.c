@@ -125,6 +125,7 @@ static long du(char *filename)
 
 int du_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
 	int i;
 	int c;
 
@@ -147,12 +148,14 @@ int du_main(int argc, char **argv)
 
 	/* go through remaining args (if any) */
 	if (optind >= argc) {
-		du(".");
+		if (du(".") == 0)
+			status = EXIT_FAILURE;
 	} else {
 		long sum;
 
 		for (i=optind; i < argc; i++) {
-			sum = du(argv[i]);
+			if (du(argv[i]) == 0)
+				status = EXIT_FAILURE;
 			if (sum && isDirectory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
 			}
@@ -160,10 +163,10 @@ int du_main(int argc, char **argv)
 		}
 	}
 
-	return EXIT_SUCCESS;
+	return status;
 }
 
-/* $Id: du.c,v 1.26 2000/12/01 02:55:13 kraai Exp $ */
+/* $Id: du.c,v 1.27 2000/12/06 15:55:23 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
