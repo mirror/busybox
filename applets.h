@@ -200,7 +200,7 @@
 #ifdef BB_LENGTH
 	APPLET(length, length_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef BB_LINUXRC
+#ifdef BB_FEATURE_LINUXRC
 	APPLET_NOUSAGE("linuxrc", init_main, _BB_DIR_ROOT)
 #endif
 #ifdef BB_LN

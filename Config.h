@@ -378,7 +378,6 @@
 #endif
 //
 #ifndef BB_INIT
-	#undef BB_LINUXRC
 	#undef BB_FEATURE_LINUXRC
 #endif
 //
