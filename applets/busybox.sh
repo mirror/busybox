@@ -3,7 +3,7 @@
 RAW=` \
     gcc -E -dM ${1:-Config.h} | \
     sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/\1.c/gp;' \
-    | tr '[:upper:]' '[:lower:]' | sort
+    | tr A-Z a-z | sort
 `
 test "${RAW}" != "" ||  exit
 cd ${2:-.}
