@@ -1243,6 +1243,20 @@ const char sort_usage[] =
 	;
 #endif
 
+#if defined BB_STTY
+const char stty_usage[] =
+	"stty [-a|g] [-F device] [SETTING]..."
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\n\nWithout arguments, prints baud rate, line discipline,"
+	"\nand deviations from stty sane."
+	"\n -F device  open and use the specified device instead of stdin"
+	"\n -a         print all current settings in human-readable form. Or"
+	"\n -g         print in a stty-readable form"
+	"\n [SETTING]  see in documentation"
+#endif
+	;
+#endif
+
 #if defined BB_SWAPONOFF
 const char swapoff_usage[] =
 	"swapoff [OPTION] [device]"

@@ -1,5 +1,10 @@
 0.50
 	* Evin Robertson -- new pivot_root applet 
+	* Bjorn Wesen -- new ifconfig and route applet (taken from 
+	    work done be Axis Communications).
+	* Vladimir N. Oleynik -- new stty applet 
+
+	<lots of other things -- fixme>
 
 
 	 -Erik Andersen, not yet released

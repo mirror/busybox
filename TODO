@@ -26,12 +26,16 @@ around to it some time. If you have any good ideas, please let me know.
 Possible apps to include some time:
 
 * hwclock
-* stty
 * group/commonize strings, remove dups (for i18n, l10n)
+
+-----------
+
+Write a fixup_globals function to do just that right before calling
+non-forking applets.  Or, just always fork...
 
 -----------------------
 
-Running the following:
+Run the following:
 
     rm -f busybox && make LDFLAGS+=-nostdlib 2>&1 | \
 	sed -ne 's/.*undefined reference to `\(.*\)..*/\1/gp' | sort | uniq

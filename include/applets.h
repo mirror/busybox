@@ -308,6 +308,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_SORT
 	APPLET("sort", sort_main, _BB_DIR_USR_BIN, sort_usage)
 #endif
+#ifdef BB_STTY
+	APPLET("stty", stty_main, _BB_DIR_BIN, stty_usage)
+#endif
 #ifdef BB_SWAPONOFF
 	APPLET("swapoff", swap_on_off_main, _BB_DIR_SBIN, swapoff_usage)
 #endif
