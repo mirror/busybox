@@ -1,3 +1,56 @@
+0.60.1
+
+    Stable Release
+
+
+    New Applets & New Features:
+	none.  :)
+
+    Known Problems (to be fixed in 0.60.2)
+	* msh can segfault on constructs such as
+		for i in `ls *.c` ; do echo $i ; done
+	  due to a memory allocation problem.  This only seems to cause
+	  problems when the backtick expands to be several k in size.
+
+
+    Bugfixes:
+	* Matt Kraai
+	    -- Fixed msh to support underscores in variable names.
+	    -- Fixed a sed problem with unsatisfied backrefs (the problem was
+		noted by Martin Bene).
+	    -- Removed BB_SH define entirely.  Now one simply picks the shell
+		or shells they want as BB_<foo> in Config.h
+	    -- Fixed head to use ferror(3) to check for errors, not errno.
+	* Shu-Hao Chang <shuhao_chang@trend.com.tw>
+	    -- Fixed sed handling of multiple -e commands
+	* Magick <magick@linux-fan.com>
+	    -- Fixed an init bug with AskFirst and /dev/null
+	* Jaspreet Singh <jsingh@somanetworks.com>
+	    -- Fixed both a segfault and cosmetic bug in route
+	* Erik Andersen
+	    -- Made the insmod options BB_FEATURE_NEW_MODULE_INTERFACE and 
+		BB_FEATURE_OLD_MODULE_INTERFACE mutually exclusive
+	    -- xgetcwd.c now includes sys/param.h to ensure PATH_MAX is defined
+	    -- Fixed a potential segfault with lash + BB_FEATURE_CLEAN_UP
+	    -- Removed uint64_t from dos2unix, avoiding C lib compat. problems.
+	* Glenn McGrath
+	    -- Rewrite of tftp (commands match atftp, accepts -b, can use 
+		non-standard ports, and is smaller).
+	    -- Fixed unarchive exclude list handling
+	* Manuel Novoa III
+	    -- rewrite of simplify_path so it behaves itself (fixing some
+		problems with mount and other applets).
+	    -- Fixed ifconfig 'broadcast +' handling and disabled it by default
+	* Matthias ? <matthias@corelatus.com>
+	    -- Fixed syslogd to log all messages from a single connection, not
+		just the first.
+	 
+	 
+	 -Erik Andersen, 23 August 2001
+
+
+
+
 0.60.0
 
     Note: 
