@@ -72,6 +72,7 @@ Matt Kraai <kraai@alumni.cmu.edu>
 Rob Landley <rob@landley.net>
     sed (major rewrite in 2003, and I now maintain the thing).
     bunzip2 (complete from-scratch rewrite, then mjn3 optimized the result.)
+    sort (more or less from scratch rewrite in 2004, I now maintain it).
     I've patched lots of other applets, but don't maintain 'em.
 
 Stephan Linz <linz@li-pro.net>
