@@ -39,6 +39,8 @@
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
 /* libc5 doesn't define socklen_t */
 typedef unsigned int socklen_t;
+/* libc5 doesn't implement BSD 4.4 daemon() */
+extern int daemon (int nochdir, int noclose);
 #endif	
 
 /* Some useful definitions */
