@@ -51,6 +51,7 @@ int chmod_main(int argc, char **argv)
 		switch (opt) {
 			case 'R':
 				recursiveFlag = TRUE;
+				break;
 			default:
 				show_usage();
 		}
