@@ -408,7 +408,7 @@ static void domark(int sig)
 	}
 }
 
-/* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
+/* This must be a #define, since when CONFIG_DEBUG and BUFFERS_GO_IN_BSS are
  * enabled, we otherwise get a "storage size isn't constant error. */
 static int serveConnection(char *tmpbuf, int n_read)
 {

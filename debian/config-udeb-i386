@@ -20,8 +20,8 @@ CONFIG_FEATURE_DEVPTS=y
 #
 # Build Options
 #
-# DOSTATIC is not set
-DOLFS=y
+# CONFIG_STATIC is not set
+CONFIG_LFS=y
 # USING_CROSS_COMPILER is not set
 EXTRA_CFLAGS_OPTIONS=""
 
@@ -410,4 +410,4 @@ CONFIG_FEATURE_MOUNT_FORCE=y
 #
 # Debugging Options
 #
-# DODEBUG is not set
+# CONFIG_DEBUG is not set

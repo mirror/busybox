@@ -31,7 +31,7 @@
 #include <sys/types.h>
 #include "busybox.h"
 
-/* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
+/* This must be a #define, since when CONFIG_DEBUG and BUFFERS_GO_IN_BSS are
  * enabled, we otherwise get a "storage size isn't constant error. */
 #define ASCII 0377
 

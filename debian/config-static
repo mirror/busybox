@@ -20,8 +20,8 @@ CONFIG_FEATURE_DEVPTS=y
 #
 # Build Options
 #
-DOSTATIC=y
-DOLFS=y
+CONFIG_STATIC=y
+CONFIG_LFS=y
 # USING_CROSS_COMPILER is not set
 EXTRA_CFLAGS_OPTIONS=""
 
@@ -486,4 +486,4 @@ CONFIG_FEATURE_MTAB_FILENAME="/etc/mtab"
 #
 # Debugging Options
 #
-# DODEBUG is not set
+# CONFIG_DEBUG is not set

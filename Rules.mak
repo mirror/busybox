@@ -140,20 +140,20 @@ OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer
 # prone to casual user adjustment.
 # 
 
-ifeq ($(strip $(DOLFS)),y)
+ifeq ($(strip $(CONFIG_LFS)),y)
     # For large file summit support
     CFLAGS+=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 endif
-ifeq ($(strip $(DODMALLOC)),y)
+ifeq ($(strip $(CONFIG_DMALLOC)),y)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC
     LIBRARIES:=-ldmalloc
 else
-    ifeq ($(strip $(DOEFENCE)),y)
+    ifeq ($(strip $(CONFIG_EFENCE)),y)
 	LIBRARIES:=-lefence
     endif
 endif
-ifeq ($(strip $(DODEBUG)),y)
+ifeq ($(strip $(CONFIG_DEBUG)),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS +=-Wl,-warn-common
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
@@ -162,7 +162,7 @@ else
     LDFLAGS += -s -Wl,-warn-common
     STRIPCMD:=$(STRIP) --remove-section=.note --remove-section=.comment
 endif
-ifeq ($(strip $(DOSTATIC)),y)
+ifeq ($(strip $(CONFIG_STATIC)),y)
     LDFLAGS += --static
 endif
 

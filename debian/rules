@@ -11,7 +11,7 @@ DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 VERSION = $(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-	DODEBUG = true
+	CONFIG_DEBUG = true
 endif
 ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 endif
@@ -39,7 +39,7 @@ else
 endif
 
 	$(MAKE) dep
-	$(MAKE) DODEBUG=$(DODEBUG)
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
 
 	install -d install-$(PACKAGE_PREFIX)/bin
 	install busybox install-$(PACKAGE_PREFIX)/bin/busybox
@@ -57,7 +57,7 @@ else
 endif
 
 	$(MAKE) dep
-	$(MAKE) DODEBUG=$(DODEBUG)
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
 
 	install -d install-$(PACKAGE_PREFIX)-static/bin
 	install busybox install-$(PACKAGE_PREFIX)-static/bin/busybox
@@ -75,7 +75,7 @@ else
 endif
 
 	$(MAKE) dep
-	$(MAKE) DODEBUG=$(DODEBUG)
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
 
 	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-udeb install
 
@@ -89,7 +89,7 @@ ifneq ($(wildcard ./debian/config-net-udeb-$(DEB_HOST_ARCH)),)
 	cp ./debian/config-net-udeb-$(DEB_HOST_ARCH) .config
 
 	$(MAKE) dep
-	$(MAKE) DODEBUG=$(DODEBUG)
+	$(MAKE) CONFIG_DEBUG=$(CONFIG_DEBUG)
 
 	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-net-udeb install
 endif

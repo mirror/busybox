@@ -90,21 +90,39 @@ config CONFIG_FEATURE_SUID
 	bool "Support for SUID/SGID handling"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Support SUID and SGID binaries.
 
 config CONFIG_FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
 	default y if CONFIG_FEATURE_SUID
 	depends on CONFIG_FEATURE_SUID
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow the SUID / SGID state of an applet to be determinded runtime by
+	  checking /etc/busybox.conf.  The format of this file is as follows:
+
+	  <applet> = [Ssx-][Ssx-][x-] (<username>|<uid>).(<groupname>|<gid>)
+	  
+	  An example might help:
+
+	  [SUID]
+	  su = ssx root.0 # applet su can be run by anyone and runs with euid=0/egid=0
+	  su = ssx        # exactly the same
+
+	  mount = sx- root.disk # applet mount can be run by root and members of group disk
+	                        # and runs with euid=0
+
+	  cp = --- # disable applet cp for everyone
+
+	  Robert 'sandman' Griebl has more information here:
+	  <url: http://www.softforge.de/bb/suid.html >.
 
 config CONFIG_FEATURE_SUID_CONFIG_QUIET
 	bool "Suppress warning message if /etc/busybox.conf is not readable"
 	default n
 	depends on CONFIG_FEATURE_SUID_CONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  /etc/busybox.conf should be readable by the user needing the SUID, check
+	  this option to avoid users to be notified about missing permissions.
 
 config CONFIG_SELINUX
 	bool "Support NSA Security Enhanced Linux"
@@ -117,14 +135,21 @@ endmenu
 
 menu 'Build Options'
 
-config DOSTATIC
+config CONFIG_STATIC
 	bool "Build BusyBox as a static binary (no shared libs)"
 	default n
 	help
 	  If you want to build a static BusyBox binary, which does not 
 	  use or require any shared libraries, then enable this option.  
+	  This can make BusyBox be considerably larger, so you should
+	  leave this option false unless you have a good reason (i.e.
+	  your target platform does not support shared libraries, or
+	  you are building an initrd which doesn't need anything but
+	  BusyBox, etc).
 
-config DOLFS
+	  Most people will leave this set to 'N'.
+
+config CONFIG_LFS
 	bool "Build with Large File Support (for accessing files > 2 GB)" 
 	default n
 	help
@@ -201,21 +226,7 @@ source util-linux/Config.in
 
 menu 'Debugging Options'
 
-config DOSTATIC
-	bool "Build BusyBox as a static binary (no shared libs)"
-	default n
-	help
-	  If you want to build a static BusyBox binary, which does not 
-	  use or require any shared libraries, then enable this option.  
-	  This will make BusyBox be considerable larger, so you should
-	  leave this option false unless you have a good reason (i.e.
-	  your target platform does not support shared libraries, or
-	  you are building an initrd which doesn't need anything but
-	  BusyBox, etc).
-
-	  Most people will leave this set to 'N'.
-
-config DODEBUG
+config CONFIG_DEBUG
 	bool "Build BusyBox with Debugging symbols"
 	default n
 	help
@@ -227,10 +238,10 @@ config DODEBUG
 
 	  Otherwise, answer N.
 
-config DODMALLOC
+config CONFIG_DMALLOC
 	bool "Build BusyBox with dmalloc support"
 	default n
-	depends on DODEBUG && !DOEFENCE
+	depends on CONFIG_DEBUG && !CONFIG_EFENCE
 	help
 	  This enables compiling with dmalloc ( http://dmalloc.com/ )
 	  which is an excellent public domain mem leak and malloc problem
@@ -245,10 +256,10 @@ config DODMALLOC
 	  This will make BusyBox be considerable larger and run slower, so 
 	  you should leave this option disabled for production use.
 
-config DOEFENCE
+config CONFIG_EFENCE
 	bool "Build BusyBox with Electric-fence support"
 	default n
-	depends on DODEBUG && !DODMALLOC
+	depends on CONFIG_DEBUG && !CONFIG_DMALLOC
 	help
 	  This enables compiling with Electric-fence support.  Electric
 	  fence is another very useful malloc debugging library which used
