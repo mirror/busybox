@@ -37,7 +37,6 @@ if [ "$CONFIG_MOUNT" = "y" ]; then
     bool '  Support mounting nfs file systems'		    	CONFIG_NFSMOUNT
     bool '  Use devmtab instead of /proc (needs a patched kernel)'	CONFIG_FEATURE_USE_DEVPS_PATCH
 fi
-fi	
 bool 'umount'		    CONFIG_UMOUNT
 if [ "$CONFIG_UMOUNT" = "y" ]; then
     bool '  Support forced filesystem unmounting'		CONFIG_FEATURE_MOUNT_FORCE
