@@ -1302,10 +1302,9 @@ static const int NUM_SPEEDS = (sizeof(speeds) / sizeof(struct speed_map));
 static speed_t string_to_baud(const char *arg)
 {
 	int i;
-	static const struct suffix_mult stty_zerosuff = { NULL, 0 };
 
 	for (i = 0; i < NUM_SPEEDS; ++i)
-		if (parse_number(arg, &stty_zerosuff) == speeds[i].value)
+		if (parse_number(arg, 0) == speeds[i].value)
 			return speeds[i].speed;
 	return (speed_t) - 1;
 }

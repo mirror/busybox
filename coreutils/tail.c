@@ -37,12 +37,6 @@ static const struct suffix_mult tail_suffixes[] = {
 	{ NULL, 0 }
 };
 
-#ifndef BB_FEATURE_SIMPLE_TAIL
-static const struct suffix_mult null_suffixes[] = {
-	{ NULL, 0 }
-};
-#endif
-
 static const int BYTES = 0;
 static const int LINES = 1;
 
@@ -96,7 +90,7 @@ int tail_main(int argc, char **argv)
 				hide_headers = 1;
 				break;
 			case 's':
-				sleep_period = parse_number(optarg, null_suffixes);
+				sleep_period = parse_number(optarg, 0);
 				break;
 			case 'v':
 				show_headers = 1;
