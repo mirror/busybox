@@ -137,6 +137,10 @@ extern pid_t* find_pid_by_name( char* pidName)
 		char buffer[READ_BUF_SIZE];
 		char name[READ_BUF_SIZE];
 
+		/* Must skip ".." since that is outside /proc */
+		if (strcmp(next->d_name, "..") == 0)
+			continue;
+
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
 			continue;
@@ -161,6 +165,11 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	if (pidList)
 		pidList[i]=0;
+	else {
+		/* If we found nothing, guess PID 1 and call it good */
+		pidList=xrealloc( pidList, sizeof(pid_t));
+		pidList[0]=1;
+	}
 	return pidList;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */
