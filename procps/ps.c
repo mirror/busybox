@@ -177,6 +177,7 @@ extern int ps_main(int argc, char **argv)
 				c = ' ';
 			putc(c, stdout);
 		}
+		fclose(file);
 		if (i == 0)
 			fprintf(stdout, "[%s]", p.cmd);
 		fprintf(stdout, "\n");
