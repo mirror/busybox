@@ -127,6 +127,7 @@
 
 #define SPLIT_DIR		0
 #define SPLIT_FILE		1
+#define SPLIT_SUBDIR	2
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
@@ -236,17 +237,34 @@ static void nexttabstop( void )
 }
 
 /*----------------------------------------------------------------------*/
+static int is_subdir(struct dnode *dn)
+{
+	return (S_ISDIR(dn->dstat.st_mode) && strcmp(dn->name, ".") != 0 &&
+			strcmp(dn->name, "..") != 0);
+}
+
 int countdirs(struct dnode **dn, int nfiles)
 {
 	int i, dirs;
 
-	/* count how many dirs and regular files there are */
 	if (dn==NULL || nfiles < 1) return(0);
 	dirs= 0;
 	for (i=0; i<nfiles; i++) {
 		if (S_ISDIR(dn[i]->dstat.st_mode)) dirs++;
 	}
 	return(dirs);
+}
+
+int countsubdirs(struct dnode **dn, int nfiles)
+{
+	int i, subdirs;
+
+	if (dn == NULL || nfiles < 1) return 0;
+	subdirs = 0;
+	for (i = 0; i < nfiles; i++)
+		if (is_subdir(dn[i]))
+			subdirs++;
+	return subdirs;
 }
 
 int countfiles(struct dnode **dnp)
@@ -296,9 +314,13 @@ struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 	if (dn==NULL || nfiles < 1) return(NULL);
 
 	/* count how many dirs and regular files there are */
-	dncnt= countdirs(dn, nfiles); /* assume we are looking for dirs */
-	if (which != SPLIT_DIR)
-		dncnt= nfiles - dncnt;  /* looking for files */
+	if (which == SPLIT_SUBDIR)
+		dncnt = countsubdirs(dn, nfiles);
+	else {
+		dncnt= countdirs(dn, nfiles); /* assume we are looking for dirs */
+		if (which == SPLIT_FILE)
+			dncnt= nfiles - dncnt;  /* looking for files */
+	}
 
 	/* allocate a file array and a dir array */
 	dnp= dnalloc(dncnt);
@@ -309,6 +331,10 @@ struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 			if (S_ISDIR(dn[i]->dstat.st_mode)) {
 				dnp[d++]= dn[i];
 			}  /* else skip the file */
+		} else if (which == SPLIT_SUBDIR) {
+			if (is_subdir(dn[i])) {
+				dnp[d++]= dn[i];
+			}  /* else skip the file or dir */
 		} else {
 			if (!(S_ISDIR(dn[i]->dstat.st_mode))) {
 				dnp[d++]= dn[i];
@@ -455,8 +481,8 @@ void showdirs(struct dnode **dn, int ndirs)
 #ifdef BB_FEATURE_LS_RECURSIVE
 			if (disp_opts & DISP_RECURSIVE) {
 				/* recursive- list the sub-dirs */
-				dnd= splitdnarray(subdnp, nfiles, SPLIT_DIR);
-				dndirs= countdirs(subdnp, nfiles);
+				dnd= splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
+				dndirs= countsubdirs(subdnp, nfiles);
 				if (dndirs > 0) {
 #ifdef BB_FEATURE_LS_SORTFILES
 					shellsort(dnd, dndirs);
