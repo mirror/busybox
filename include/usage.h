@@ -417,7 +417,6 @@
 #define dumpleases_trivial_usage \
 	"[-r|-a] [-f LEASEFILE]"
 #define dumpleases_full_usage \
-	"Usage: dumpleases -f <file> -[r|a]\n" \
 	"\t-f,\t--file=FILENAME\tLeases file to load\n" \
 	"\t-r,\t--remaining\tInterepret lease times as time remaing\n" \
 	"\t-a,\t--absolute\tInterepret lease times as expire time\n"
@@ -2125,7 +2124,6 @@
 #define udhcpc_trivial_usage \
 	"[-fbnqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
-	"\tUsage: udhcpc [OPTIONS]\n" \
 	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
 	"\t-h,\t                   \tAlias for -H\n" \
@@ -2143,7 +2141,7 @@
 	"[configfile]\n" \
 
 #define udhcpd_full_usage \
-	"\tUsage: udhcpd [configfile]\n"
+	""
 
 #ifdef CONFIG_FEATURE_MOUNT_FORCE
   #define USAGE_MOUNT_FORCE(a) a
