@@ -56,36 +56,6 @@ Supported kernels:
 
 ----------------
 
-Shells:
-
-lash is the very smallest shell (adds just 10k) and it is quite usable as 
-a command prompt, but it is not suitable for any but the most trivial
-scripting (such as an initrd that calls insmod a few times) since it does
-not understand Bourne shell grammer.  It does handle pipes, redirects, and
-job control though.  Adding in command editing makes it a very nice
-lightweight command prompt.
-
-hush is also quite small (just 18k) and it has very complete Bourne shell
-grammer.  It handles if/then/else/fi just fine, but doesn't handle loops
-like for/do/done or case/esac and such.  It also currently has a problem
-with job control.  Using hush is not yet recommended.
-
-msh: The minix shell (adds just 30k) is quite complete and handles things
-like for/do/done, case/esac and all the things you expect a Bourne shell to
-do.  It is not always pedantically correct about Bourne shell grammer (try
-running the shell testscript "tests/sh.testcases" on it and compare vs bash)
-but for most things it works quite well.  It also uses only vfork, so it can
-be used on uClinux systems.  This was only recently added, so there is still
-room to shrink it further...
-
-ash: This adds about 60k in the default configuration and is the most
-complete and most pedantically correct shell included with busybox.  This
-shell was also recently added, and several people (mainly Vladimir and Erik)
-have been working on it.  There are a number of configurable things at the
-top of ash.c as well, so check those out if you want to tweak things.
-
-----------------
-
 Getting help:
 
 When you find you need help, you can check out the BusyBox mailing list
