@@ -1,138 +1,4 @@
 /*
- * Mini ls implementation for busybox
- *
- * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- */
-
-// I started writing a newer small one, but it isn't done yet....
-//  -Erik
-#if fooBar
-
-#include <stdio.h>
-#include <unistd.h>
-#include <dirent.h>
-#include "internal.h"
-
-
-static const char ls_usage[] = "ls [OPTION]... [FILE]...\n"
-"List information about the FILEs (the current directory by default).\n";
-
-int oneFlag=FALSE;
-int allFlag=FALSE;
-int directoryFlag=FALSE;
-int longFlag=FALSE;
-int typeFlag=FALSE;
-int dereferenceFlag=FALSE;
-int recursiveFlag=FALSE;
-
-static int fileAction(const char *fileName)
-{
-    if ( allFlag==FALSE && ((strcmp(fileName, "..") == 0) 
-		|| (strcmp(fileName, ".") == 0)) ) {
-	return( TRUE);
-    }
-    //struct stat statBuf;
-    //if (stat(fileName, &statBuf) > 0) {
-	fprintf(stdout, "%s\n", fileName);
-	return( TRUE);
-    //}
-    //else {
-//	perror(fileName);
-//	return( FALSE);
-//    }
-}
-
-static int dirAction(const char *fileName)
-{
-    DIR *dir;
-    struct dirent *entry;
-    
-    fprintf(stdout, "%s\n", fileName);
-
-    dir = opendir( fileName);
-    if (!dir) {
-	perror("Can't open directory");
-	exit(FALSE);
-    }
-    while ((entry = readdir(dir)) != NULL) {
-	recursiveAction( entry->d_name, recursiveFlag, dereferenceFlag, FALSE, fileAction, dirAction);
-    }
-    return( TRUE);
-}
-
-int ls_main(int argc, char **argv)
-{
-    if (argc <= 1) {
-	char buf[NAME_MAX];
-	getcwd( buf, NAME_MAX);
-	dirAction( buf); 
-    }
-
-    /* peel of the "ls" */
-    argc--;
-    argv++;
-
-    /* Parse any options */
-    while (**argv == '-') {
-	while (*++(*argv)) switch (**argv) {
-	    case '1':
-		oneFlag = TRUE;
-		break;
-	    case 'a':
-		allFlag = TRUE;
-		break;
-	    case 'd':
-		directoryFlag = TRUE;
-		break;
-	    case 'l':
-		longFlag = TRUE;
-		break;
-	    case 'F':
-		typeFlag = TRUE;
-		break;
-	    case 'L':
-		dereferenceFlag = TRUE;
-		break;
-	    case 'R':
-		recursiveFlag = TRUE;
-		break;
-	    default:
-		usage (ls_usage);
-	}
-	argc--;
-	argv++;
-    }
-    
-    /* Ok, ready to do the deed now */
-    fprintf(stderr, "B\n");
-    while (argc-- > 1) {
-	fprintf(stderr, "C\n");
-	recursiveAction( *argv, recursiveFlag, dereferenceFlag, fileAction, dirAction);
-    }
-    exit(TRUE);
-}
-
-
-
-#else
-
-
-/*
  * tiny-ls.c version 0.1.0: A minimalist 'ls'
  * Copyright (C) 1996 Brian Candler <B.Candler@pobox.com>
  * 
@@ -571,7 +437,7 @@ listerr:
 	return 1;
 }
 
-const char	ls_usage[] = "ls [-1a"
+static const char ls_usage[] = "ls [-1a"
 #ifdef FEATURE_TIMESTAMPS
 	"c"
 #endif
@@ -672,4 +538,3 @@ print_usage_message:
 	exit( FALSE);
 }
 
-#endif

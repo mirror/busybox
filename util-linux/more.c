@@ -27,22 +27,33 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <fcntl.h>
 #include <signal.h>
 
 
 static const char more_usage[] = "[file ...]";
 
 
+/* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_MORE_TERM
-    #include <termios.h>
-    #include <signal.h>
-    #include <sys/ioctl.h>
+
+
+#if defined (__sparc__)
+#      define USE_OLD_TERMIO
+#      include <termio.h>
+#      include <sys/ioctl.h>
+#      define termios termio
+#      define stty(fd,argp) ioctl(fd,TCSETAF,argp)
+#else
+#      include <termios.h>
+#      define stty(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#endif
 
     FILE *cin;
     struct termios initial_settings, new_settings;
 
     void gotsig(int sig) { 
-	    tcsetattr(fileno(cin), TCSANOW, &initial_settings);
+	    stty(fileno(cin), &initial_settings);
 	    exit( TRUE);
     }
 #endif
@@ -50,13 +61,9 @@ static const char more_usage[] = "[file ...]";
 extern int more_main(int argc, char **argv)
 {
     int c, lines=0, input=0;
-    int next_page=0, rows = 24;
-#ifdef BB_MORE_TERM
-    int cols=79;
-    struct winsize win;
-#endif
+    int next_page=0;
     struct stat st;	
-    FILE *file = stdin;
+    FILE *file;
 
     if ( strcmp(*argv,"--help")==0 || strcmp(*argv,"-h")==0 ) {
 	usage (more_usage);
@@ -64,29 +71,34 @@ extern int more_main(int argc, char **argv)
     argc--;
     argv++;
 
-    while (argc-- > 0) {
+    while (argc >= 0) {
+	if (argc==0) {
+	    file = stdin;
+	}
+	else
 	    file = fopen(*argv, "r");
+
 	if (file == NULL) {
 	    perror("Can't open file");
 	    exit(FALSE);
 	}
 	fstat(fileno(file), &st);
-	fprintf(stderr, "hi\n");
 
 #ifdef BB_MORE_TERM
 	cin = fopen("/dev/tty", "r");
+	if (!cin)
+	    cin = fopen("/dev/console", "r");
+#ifdef USE_OLD_TERMIO
+	ioctl(fileno(cin),TCGETA,&initial_settings);
+#else
 	tcgetattr(fileno(cin),&initial_settings);
+#endif
 	new_settings = initial_settings;
 	new_settings.c_lflag &= ~ICANON;
 	new_settings.c_lflag &= ~ECHO;
-	tcsetattr(fileno(cin), TCSANOW, &new_settings);
+	stty(fileno(cin), &new_settings);
 	
 	(void) signal(SIGINT, gotsig);
-
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
-	if (win.ws_row > 4)	rows = win.ws_row - 2;
-	if (win.ws_col > 0)	cols = win.ws_col - 1;
-
 
 #endif
 	while ((c = getc(file)) != EOF) {
@@ -94,9 +106,13 @@ extern int more_main(int argc, char **argv)
 		int len=0;
 		next_page = 0;
 		lines=0;
-		len = fprintf(stdout, "--More-- (%d%% of %ld bytes)%s", 
+		len = fprintf(stdout, "--More-- ");
+		if (file != stdin) {
+		    len += fprintf(stdout, "(%d%% of %ld bytes)", 
 			(int) (100*( (double) ftell(file) / (double) st.st_size )),
-			st.st_size,
+			st.st_size);
+		}
+		len += fprintf(stdout, "%s",
 #ifdef BB_MORE_TERM
 			""
 #else
@@ -105,13 +121,13 @@ extern int more_main(int argc, char **argv)
 			);
 
 		fflush(stdout);
-		input = getc( stdin);
+		input = getc( cin);
 
 #ifdef BB_MORE_TERM
 		/* Erase the "More" message */
 		while(len-- > 0)
 		    putc('\b', stdout);
-		while(len++ < cols)
+		while(len++ < 79)
 		    putc(' ', stdout);
 		while(len-- > 0)
 		    putc('\b', stdout);
@@ -123,7 +139,7 @@ extern int more_main(int argc, char **argv)
 		goto end;
 	    if (input==' ' &&  c == '\n' )
 		next_page = 1;
-	    if ( c == '\n' && ++lines == (rows + 1) )
+	    if ( c == '\n' && ++lines == 24 )
 		next_page = 1;
 	    putc(c, stdout);
 	}
