@@ -93,6 +93,7 @@ extern int mount_main(int argc, char** argv);
 extern int mt_main(int argc, char** argv);
 extern int mv_main(int argc, char** argv);
 extern int printf_main(int argc, char** argv);
+extern int ps_main(int argc, char** argv);
 extern int pwd_main(int argc, char** argv);
 extern int reboot_main(int argc, char** argv);
 extern int rmdir_main(int argc, char **argv);

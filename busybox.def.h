@@ -38,6 +38,7 @@
 #define BB_MT
 #define BB_MV
 //#define BB_PRINTF
+#define BB_PS
 #define BB_PWD
 #define BB_REBOOT
 #define BB_RM

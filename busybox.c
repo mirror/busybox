@@ -117,6 +117,9 @@ static const struct Applet applets[] = {
 #ifdef BB_PRINTF		//usr/bin
     {"printf", printf_main},
 #endif
+#ifdef BB_PS			//bin
+    {"ps", ps_main},
+#endif
 #ifdef BB_PWD			//bin
     {"pwd", pwd_main},
 #endif

@@ -79,7 +79,7 @@ extern int more_main(int argc, char **argv)
 	    file = fopen(*argv, "r");
 
 	if (file == NULL) {
-	    perror("Can't open file");
+	    perror(*argv);
 	    exit(FALSE);
 	}
 	fstat(fileno(file), &st);
