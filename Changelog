@@ -10,13 +10,20 @@
 	    Fix thanks to Marc Nijdam <marc_nijdam@hp.com>
 	* Fixed segfault with 'cut -f 1 -d:' and added 'cut -s' suport.
 	    Fix thanks to Arne Bernin <arne@matrix.loopback.org>
-	* Added support for "sh -c command args...", thanks to 
-	    Marius Groeger <mgroeger@sysgo.de>
+	* Several fixes from Marius Groeger <mag@sysgo.de>
+	    - Added support for "sh -c command args..."
+	    - Fixed globbing, i.e. 'echo * *' and 'echo "******"' now work.
+	    - Added shell environment variable substitution 
+	    - Added the "read" shell builtin.
+	* Fixed cursor editing in cmdedit.c. The following keyboard sequence 
+	    used to create an infinite loop: ls, cursor up, left, down.
 	* Added support for being a login shell, so things like
 	    '-su' or '-sh' (stuff where argv[0][0]=='-') will now always 
 	    invoke the shell.  Now you can use BusyBox as a login shell.
 	* ls.c now ignores '-g', since some ftp clients like that sort 
 	    of thing.  Patch thanks to David Vrabel <dvrabel@arcom.co.uk>
+	* Fix to init.c from Stuart Menefy <Stuart.Menefy@st.com> so that
+	    it always sets the controlling terminal before running any programs
 
 	 -Erik Andersen
 
@@ -45,7 +52,7 @@
 	* Replaced the telnet implementation with one written by 
 	    Tomi Ollila <too@iki.fi> It works great and costs 3k.
 	* BusyBox sh (lash) now supports being used as a standalone shell.  When
-	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
+	    BB_FEATURE_SH_STANDALONE_SHELL is defined, all the busybox commands may
 	    be invoked as shell internals.  Best used when compiling staticly 
 	    (i.e. DOSTATIC=true)
 	* BusyBox sh (lash) internals now behave as expected wrt pipes 

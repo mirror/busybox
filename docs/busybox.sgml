@@ -1,326 +1,235 @@
-<!DOCTYPE book PUBLIC "-//Davenport//DTD DocBook V2.4.1//EN" "/opt/texmf/gmat/sgml/Davenport/dtds/2.4.1/docbook.dtd">
-<!-- -->
-<!-- $Id: busybox.sgml,v 1.1 2000/06/26 13:31:53 markw Exp $ -->
-<!-- -->
-<!-- $Log: busybox.sgml,v $
-<!-- Revision 1.1  2000/06/26 13:31:53  markw
-<!-- Just converted busybox.pod to busybox.sgml using the Pod::DocBook Perl module.
-<!-- The resulting file needs some massaging and once it gets presentable, I'll
-<!-- edit the Makefile to use the SGML file as the "authoritative" file; the plan
-<!-- here is to generate other file formats from the SGML.
-<!-- -->
-<!-- -->
-<!-- General reminders: -->
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [...]>
+<book id="BusyBoxDocumentation">
+ <bookinfo>
+  <title>BusyBox - The Swiss Army Knife of Embedded Linux</title>
+  
+  <legalnotice>
+   <para>
+     This documentation is free software; you can redistribute
+     it and/or modify it under the terms of the GNU General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later
+     version.
+   </para>
+      
+   <para>
+     This program is distributed in the hope that it will be
+     useful, but WITHOUT ANY WARRANTY; without even the implied
+     warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+     See the GNU General Public License for more details.
+   </para>
+      
+   <para>
+     You should have received a copy of the GNU General Public
+     License along with this program; if not, write to the Free
+     Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+     MA 02111-1307 USA
+   </para>
+      
+   <para>
+     For more details see the file COPYING in the source
+     distribution of Linux.
+   </para>
+  </legalnotice>
+ </bookinfo>
+
+<toc></toc>
+  <chapter id="Introduction">
+     <title>Introduction</title>
+
+	<para>
+	BusyBox combines tiny versions of many common UNIX utilities into a single
+	small executable. It provides minimalist replacements for most of the
+	utilities you usually find in fileutils, shellutils, findutils, textutils,
+	grep, gzip, tar, etc. BusyBox provides a fairly complete POSIX environment
+	for any small or embedded system. The utilities in BusyBox generally have
+	fewer options than their full-featured GNU cousins; however, the options
+	that are included provide the expected functionality and behave very much
+	like their GNU counterparts. 
+	</para>
+
+	<para>
+	BusyBox has been written with size-optimization and limited resources in
+	mind. It is also extremely modular so you can easily include or exclude
+	commands (or features) at compile time. This makes it easy to customize
+	your embedded systems. To create a working system, just add a kernel, a
+	shell (such as ash), and an editor (such as elvis-tiny or ae).
+	</para>
+  </chapter>
+
+
+  <chapter id="Syntax">
+     <title>How to use BusyBox</title>
+	<sect1 id="How to use BusyBox">
+	    <title>Syntax</title
+
+	    <para>
+	    <screen>
+	     BusyBox &lt;function&gt; [arguments...]  # or
+	    </screen>
+	    </para>
+
+	    <para>
+	    <screen>
+	     &lt;function&gt; [arguments...]          # if symlinked
+	    </screen>
+	    </para>
+	</sect1>
+
+
+	<sect1 id="Invoking BusyBox">
+	    <para>
+	    When you create a link to BusyBox for the function you wish to use, when
+	    BusyBox is called using that link it will behave as if the command itself
+	    has been invoked.
+	    </para>
+
+	    <para>
+	    For example, entering
+	    </para>
+
+	    <para>
+	    <screen>
+		    ln -s ./BusyBox ls
+		    ./ls
+	    </screen>
+	    </para>
+
+	    <para>
+	    will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
+	    into BusyBox). 
+	    </para>
+
+	    <para>
+	    You can also invoke BusyBox by issuing the command as an argument on the
+	    command line. For example, entering
+	    </para>
+
+	    <para>
+	    <screen>
+		    ./BusyBox ls
+	    </screen>
+	    </para>
+
+	    <para>
+	    will also cause BusyBox to behave as 'ls'. 
+	    </para>
+
+	</sect1>
+
+	<sect1 id="Common options">
+	    <para>
+	    Most BusyBox commands support the <emphasis>--help</emphasis> option to provide 
+	    a terse runtime description of their behavior. 
+	    </para>
+	</sect1>
+  </chapter>
+
+  <chapter id="Commands">
+     <title>BusyBox Commands</title>
+	<sect1 id="Available BusyBox Commands">
+	    <title>Available BusyBox Commands</title>
+		<para>
+		Currently defined functions include:
+		</para>
+
+		<para>
+		ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
+		dc, dd, deallocvt, df, dirname, dmesg, du, dutmp, echo, false, fbset,
+		fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
+		head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
+		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
+		mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+		nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
+		setkeycodes, sfdisk, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
+		tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
+		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
+		</para>
+	</sect1>
+
+
+	<sect1 id="ar">
+	    <title>ar</title>
+
+		<para>
+		Usage: ar [optxvV] archive [filenames]
+		</para>
+
+		<para>
+		Extract or list files from an ar archive.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			o               preserve original dates
+			p               extract to stdout
+			t               list
+			x               extract
+			v               verbosely list files processed
+		</screen>
+		</para>
+	</sect1>
+
+
+
+
+	<sect1 id="basename">
+	    <title>basename</title>
+		<para>
+		Usage: basename FILE [SUFFIX]
+		</para>
+
+		<para>
+		Strips directory path and suffixes from FILE. If specified, also removes
+		any trailing SUFFIX.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ basename /usr/local/bin/foo
+			foo
+			$ basename /usr/local/bin/
+			bin
+			$ basename /foo/bar.txt .txt
+			bar
+		</screen>
+		</para>
+	</sect1>
+
+
+	<sect1 id="cat">
+	    <title>cat</title>
+
+		<para>
+		Usage: cat [FILE ...]
+		</para>
+
+		<para>
+		Concatenates <literal>FILE(s)</literal> and prints them to the standard
+		output.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ cat /proc/uptime
+			110716.72 17.67
+		</screen>
+		</para>
+
+	</sect1>
 
-<book>
-
-<chapter id="pod2docbook-ch-1"><title>BusyBox - The Swiss Army Knife of Embedded Linux
-
-</title>
-<chapter id="pod2docbook-ch-1"><title>NAME
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-BusyBox - The Swiss Army Knife of Embedded Linux
-
-
-</para>
-
-<sect1 id="pod2docbook-ch-1-sect-1"><title>SYNTAX
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-<screen>
- BusyBox &lt;function&gt; [arguments...]  # or
-</screen>
-
-
-</para>
-
-<para>
-<screen>
- &lt;function&gt; [arguments...]          # if symlinked
-</screen>
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-2"><title>DESCRIPTION
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-BusyBox combines tiny versions of many common UNIX utilities into a single
-small executable. It provides minimalist replacements for most of the
-utilities you usually find in fileutils, shellutils, findutils, textutils,
-grep, gzip, tar, etc. BusyBox provides a fairly complete POSIX environment
-for any small or embedded system. The utilities in BusyBox generally have
-fewer options than their full-featured GNU cousins; however, the options
-that are included provide the expected functionality and behave very much
-like their GNU counterparts. 
-
-
-</para>
-
-<para>
-BusyBox has been written with size-optimization and limited resources in
-mind. It is also extremely modular so you can easily include or exclude
-commands (or features) at compile time. This makes it easy to customize
-your embedded systems. To create a working system, just add a kernel, a
-shell (such as ash), and an editor (such as elvis-tiny or ae).
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-3"><title>USAGE
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-When you create a link to BusyBox for the function you wish to use, when
-BusyBox is called using that link it will behave as if the command itself
-has been invoked.
-
-
-</para>
-
-<para>
-For example, entering
-
-
-</para>
-
-<para>
-<screen>
-        ln -s ./BusyBox ls
-        ./ls
-</screen>
-
-
-</para>
-
-<para>
-will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
-into BusyBox). 
-
-
-</para>
-
-<para>
-You can also invoke BusyBox by issuing the command as an argument on the
-command line. For example, entering
-
-
-</para>
-
-<para>
-<screen>
-        ./BusyBox ls
-</screen>
-
-
-</para>
-
-<para>
-will also cause BusyBox to behave as 'ls'. 
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-4"><title>COMMON OPTIONS
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-Most BusyBox commands support the <emphasis>--help</emphasis> option to provide a terse runtime description of their behavior. 
-
-
-</para>
-
-</sect1>
-
-<sect1 id="pod2docbook-ch-1-sect-5"><title>COMMANDS
-
-</title>
-<!-- Bogus hack to ensure that each sect has a paragraph in it -->
-<para>
-</para>
-
-
-<para>
-Currently defined functions include:
-
-
-</para>
-
-<para>
-ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
-dc, dd, deallocvt, df, dirname, dmesg, du, dutmp, echo, false, fbset,
-fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
-head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
-loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
-mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
-setkeycodes, sfdisk, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
-tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
-uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-<variableList>
-<varlistentry><term><emphasis>ar
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: ar [optxvV] archive [filenames]
-
-
-</para>
-
-<para>
-Extract or list files from an ar archive.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        o               preserve original dates
-        p               extract to stdout
-        t               list
-        x               extract
-        v               verbosely list files processed
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>basename
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: basename FILE [SUFFIX]
-
-
-</para>
-
-<para>
-Strips directory path and suffixes from FILE. If specified, also removes
-any trailing SUFFIX.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ basename /usr/local/bin/foo
-        foo
-        $ basename /usr/local/bin/
-        bin
-        $ basename /foo/bar.txt .txt
-        bar
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>cat  
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: cat [FILE ...]
-
-
-</para>
-
-<para>
-Concatenates <literal>FILE(s)</literal> and prints them to the standard
-output.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ cat /proc/uptime
-        110716.72 17.67
-</screen>
-
-
-</para>
 
 <para>
 -------------------------------

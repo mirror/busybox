@@ -87,24 +87,52 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links doc
+all: busybox busybox.links olddoc #doc
 
-doc: docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
-docs/BusyBox.txt: docs/busybox.pod
+# New docs based on DOCBOOK SGML
+doc: docs/BusyBox.txt docs/BusyBox.html docs/BusyBox.pdf
+
+docs/BusyBox.txt: docs/busybox.sgml
 	@echo
 	@echo BusyBox Documentation
 	@echo
-	- pod2text docs/busybox.pod > docs/BusyBox.txt
+	(cd docs; sgmltools -b txt busybox.sgml)
 
-docs/BusyBox.1: docs/busybox.pod
-	- pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > docs/BusyBox.1
+docs/BusyBox.dvi: docs/busybox.sgml
+	(cd docs; sgmltools -b dvi busybox.sgml)
+
+docs/BusyBox.ps: docs/BusyBox.dvi
+	(cd docs; sgmltools -b ps busybox.sgml)
+
+docs/BusyBox.pdf: docs/BusyBox.ps
+	(cd docs; ps2pdf busybox.ps)
+
+docs/busybox.lineo.com/BusyBox.html: docs/busybox.sgml
+	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/BusyBox.html
 	- ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
-docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
+
+# Old Docs...
+olddoc: olddoc/BusyBox.txt olddoc/BusyBox.1 olddoc/BusyBox.html
+
+olddoc/BusyBox.txt: docs/busybox.pod
+	@echo
+	@echo BusyBox Documentation
+	@echo
+	- pod2text docs/busybox.pod > docs/BusyBox.txt
+
+olddoc/BusyBox.1: docs/busybox.pod
+	- pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > docs/BusyBox.1
+
+olddoc/BusyBox.html: olddoc/busybox.lineo.com/BusyBox.html
+	- rm -f docs/BusyBox.html
+	- ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
+
+olddoc/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 	- pod2html docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
 	- rm -f pod2html*
 
@@ -125,8 +153,9 @@ clean:
 	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
 	- cd tests && $(MAKE) clean
-	- rm -f docs/BusyBox.html docs/busybox.lineo.com/BusyBox.html \
-		docs/BusyBox.1 docs/BusyBox.txt pod2html*
+	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
+	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
+	- rm -rf docs/busybox
 
 distclean: clean
 	- rm -f busybox
