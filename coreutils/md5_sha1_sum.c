@@ -143,16 +143,18 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 			hash_value = hash_file(filename_ptr, hash_algo);
 
 			if (hash_value && (strcmp(hash_value, line) == 0)) {
-				printf("%s: OK\n", filename_ptr);
+				if (!(flags & FLAG_SILENT))
+					printf("%s: OK\n", filename_ptr);
 			} else {
-				printf("%s: FAILED\n", filename_ptr);
+				if (!(flags & FLAG_SILENT))
+					printf("%s: FAILED\n", filename_ptr);
 				count_failed++;
 			}
 			/* possible free(NULL) */
 			free(hash_value);
 			free(line);
 		}
-		if (count_failed) {
+		if (count_failed && !(flags & FLAG_SILENT)) {
 			bb_error_msg("WARNING: %d of %d computed checksums did NOT match",
 						 count_failed, count_total);
 		}
@@ -178,10 +180,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 			if (hash_value == NULL) {
 				return_value++;
 			} else {
-#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-				if (!flags & FLAG_SILENT)
-#endif
-					printf("%s  %s\n", hash_value, file_ptr);
+				printf("%s  %s\n", hash_value, file_ptr);
 				free(hash_value);
 			}
 		}
