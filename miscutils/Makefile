@@ -30,11 +30,11 @@ obj-$(CONFIG_ADJTIMEX)		+= adjtimex.o
 obj-$(CONFIG_DC)		+= dc.o
 obj-$(CONFIG_DUTMP)		+= dutmp.o
 obj-$(CONFIG_MAKEDEVS)		+= makedevs.o
-obj-$(CONFIG_mktemp)		+= mktemp.o
-obj-$(CONFIG_mt)		+= mt.o
-obj-$(CONFIG_readlink)		+= readlink.o
-obj-$(CONFIG_update)		+= update.o
-obj-$(CONFIG_watchdog)		+= watchdog.o
+obj-$(CONFIG_MKTEMP)		+= mktemp.o
+obj-$(CONFIG_MT)		+= mt.o
+obj-$(CONFIG_READLINK)		+= readlink.o
+obj-$(CONFIG_UPDATE)		+= update.o
+obj-$(CONFIG_WATCHDOG)		+= watchdog.o
 
 
 # Hand off to toplevel Rules.mak
