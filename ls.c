@@ -433,7 +433,7 @@ void showdirs(struct dnode **dn, int ndirs)
 {
 	int i, nfiles;
 	struct dnode **subdnp;
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef BB_FEATURE_LS_RECURSIVE
 	int dndirs;
 	struct dnode **dnd;
 #endif
@@ -529,8 +529,10 @@ int list_single(struct dnode *dn)
 	char *filetime;
 	time_t ttime, age;
 #endif
-#ifdef BB_FEATURE_LS_FILETYPES
+#if defined (BB_FEATURE_LS_FILETYPES) || defined (BB_FEATURE_LS_USERNAME)
 	struct stat info;
+#endif
+#ifdef BB_FEATURE_LS_FILETYPES
 	char append;
 #endif
 
