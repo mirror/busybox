@@ -662,6 +662,9 @@ int tar_main(int argc, char **argv)
 	if(opt & 0x80000000UL)
 		bb_show_usage();
 	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
+	if (ctx_flag == 0) {
+		bb_show_usage();
+	}
 	if(ctx_flag & CTX_TEST) {
 		if ((tar_handle->action_header == header_list) || 
 			(tar_handle->action_header == header_verbose_list)) {
