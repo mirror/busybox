@@ -284,6 +284,8 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 				}
 			}
 			fclose(f);
+		} else {
+			read_proc = 1;
 		}
 
 		if (read_proc && !status) {
@@ -314,8 +316,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 			fclose(f);
 		}
 	} else {
-		status =
-			do_mount(blockDevice, directory, filesystemType,
+		status = do_mount(blockDevice, directory, filesystemType,
 					 flags | MS_MGC_VAL, string_flags, useMtab, fakeIt,
 					 mtab_opts, mount_all);
 	}
