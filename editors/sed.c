@@ -915,8 +915,7 @@ static void process_file(FILE * file)
 						}
 					}
 #endif
-					altered = substituted;
-					if (!be_quiet && altered && ((sed_cmd->next == NULL)
+					if (!be_quiet && substituted && ((sed_cmd->next == NULL)
 							|| (sed_cmd->next->cmd != 's'))) {
 						force_print = 1;
 					}
@@ -1105,7 +1104,7 @@ static void process_file(FILE * file)
 		/* we will print the line unless we were told to be quiet or if the
 		 * line was altered (via a 'd'elete or 's'ubstitution), in which case
 		 * the altered line was already printed */
-		if ((!be_quiet && !altered) || force_print) {
+		if ((!be_quiet && !altered && !substituted) || force_print) {
 			puts(pattern_space);
 		}
 		free(pattern_space);
