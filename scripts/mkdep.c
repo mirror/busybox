@@ -45,8 +45,7 @@
 
 
 
-char __depname[512] = "\n\t@touch ";
-#define depname (__depname+9)
+char depname[512];
 int hasdep;
 
 struct path_struct {
@@ -75,9 +74,14 @@ do_depname(void)
 {
 	if (!hasdep) {
 		hasdep = 1;
-		printf("%s:", depname);
-		if (g_filename)
+		if (g_filename) {
+			/* Source file (*.[cS]) */
+			printf("%s:", depname);
 			printf(" %s", g_filename);
+		} else {
+			/* header file (*.h) */
+			printf("dep_%s +=", depname);
+		}
 	}
 }
 
@@ -203,7 +207,7 @@ void handle_include(int start, const char * name, int len)
 		path->buffer[path->len+len] = '\0';
 		if (access(path->buffer, F_OK) == 0) {
 			do_depname();
-			printf(" \\\n   %s", path->buffer);
+			printf(" \\\n %s $(dep_%s)", path->buffer, path->buffer);
 			return;
 		}
 	}
@@ -268,7 +272,7 @@ void use_config(const char * name, int len)
 
 	for (i = 0; i < len; i++) {
 	    char c = name[i];
-	    if (isupper(c)) c = tolower(c);
+	    if (isupper((int)c)) c = tolower((int)c);
 	    if (c == '_')   c = '/';
 	    pc[i] = c;
 	}
@@ -496,7 +500,7 @@ pound_define_undef_CONFIG_word:
 
 /* \<CONFIG_(\w*) */
 cee:
-	if (next >= map+2 && (isalnum(next[-2]) || next[-2] == '_'))
+	if (next >= map+2 && (isalnum((int)next[-2]) || next[-2] == '_'))
 		goto start;
 	GETNEXT NOTCASE('O', __start);
 	GETNEXT NOTCASE('N', __start);
@@ -520,7 +524,7 @@ cee_CONFIG_word:
 /*
  * Generate dependencies for one file.
  */
-void do_depend(const char * filename, const char * command)
+void do_depend(const char * filename)
 {
 	int mapsize;
 	int pagesizem1 = getpagesize()-1;
@@ -559,9 +563,7 @@ void do_depend(const char * filename, const char * command)
 	clear_config();
 	state_machine(map, map+st.st_size);
 	if (hasdep) {
-		puts(command);
-		if (*command)
-			define_precious(filename);
+		puts("");
 	}
 
 	munmap(map, mapsize);
@@ -607,7 +609,6 @@ int main(int argc, char **argv)
 
 	while (--argc > 0) {
 		const char * filename = *++argv;
-		const char * command  = __depname;
 		g_filename = 0;
 		len = strlen(filename);
 		memcpy(depname, filename, len+1);
@@ -615,10 +616,9 @@ int main(int argc, char **argv)
 			if (filename[len-1] == 'c' || filename[len-1] == 'S') {
 			    depname[len-1] = 'o';
 			    g_filename = filename;
-			    command = "";
 			}
 		}
-		do_depend(filename, command);
+		do_depend(filename);
 	}
 	if (len_precious) {
 		*(str_precious+len_precious) = '\0';
