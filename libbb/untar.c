@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
+extern int untar(FILE *src_tar_file, const int untar_function, const char *argument)
 {
 	typedef struct raw_tar_header {
         char name[100];               /*   0-99 */
@@ -101,37 +101,18 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 		if (size % 512 != 0) {
 			next_header_offset += (512 - size % 512);
 		}
-		/*
-		 * seek to start of control file, return length
-		 *
-		if (dpkg_untar_function & dpkg_untar_seek_control) {
-			if ((raw_tar_header.typeflag == '0') || (raw_tar_header.typeflag == '\0')) {
-				char *tar_filename;
 
-				tar_filename = strrchr(raw_tar_header.name, '/');
-				if (tar_filename == NULL) {
-					tar_filename = strdup(raw_tar_header.name);
-				} else {
-					tar_filename++;
-				}
-
-				if (strcmp(tar_filename, "control") == 0) {
-					return(size);
-				}
-			}
-
-		}
-*/
 		if (untar_function & (extract_contents | extract_verbose_extract)) {
 			printf("%s\n", raw_tar_header.name);
 		}
 
 		/* extract files */
-		if (base_path != NULL) {
-			dir = xmalloc(strlen(raw_tar_header.name) + strlen(base_path) + 2);
-			sprintf(dir, "%s/%s", base_path, raw_tar_header.name);
+		if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
+			dir = xmalloc(strlen(raw_tar_header.name) + strlen(argument) + 2);
+			sprintf(dir, "%s/%s", argument, raw_tar_header.name);
 			create_path(dir, 0777);
 		}
+
 		switch (raw_tar_header.typeflag ) {
 			case '0':
 			case '\0':
@@ -145,14 +126,28 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 						uncompressed_count += size;
 						fclose(dst_file);
 					}
-					while (uncompressed_count < next_header_offset) {
-						if (fgetc(src_tar_file) == EOF) {
-							perror_msg("untar");
-							break;
+					else if (untar_function & extract_info) {
+						if (strstr(raw_tar_header.name, argument) != NULL) {
+							copy_file_chunk(src_tar_file, stdout, (unsigned long long) size);
+							uncompressed_count += size;
 						}
-						uncompressed_count++;
 					}
-					uncompressed_count += size;
+					else if (untar_function & extract_field) {
+						if (strstr(raw_tar_header.name, "./control") != NULL) {
+							char *line;
+							while ((line = get_line_from_file(src_tar_file)) != NULL) {
+								uncompressed_count += strlen(line);
+								if (argument == NULL) {
+									printf("%s",line);
+								}
+								else if (strncmp(line, argument, strlen(argument)) == 0) {
+									char *file_ptr;
+									file_ptr = strstr(line, ": ");
+									printf("%s", file_ptr + 2);
+								}
+ 							}
+						}
+					}
 					break;
 				}
 			case '5':
@@ -193,6 +188,17 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				free(dir);
 				return(EXIT_FAILURE);
 		}
+
+		/*
+		 * Seek to start of next block, cant use fseek as unzip() does support it
+		 */
+		while (uncompressed_count < next_header_offset) {
+			if (fgetc(src_tar_file) == EOF) {
+				break;
+			}
+			uncompressed_count++;
+		}
+
 //		free(dir);
 	}
 	return(EXIT_SUCCESS);

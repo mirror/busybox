@@ -235,10 +235,11 @@ typedef enum extract_function_e {
 	extract_extract = 8,
 	extract_verbose_extract = 16,
 	extract_list = 32,
-	extract_fsys_tarfile = 64
+	extract_fsys_tarfile = 64,
+	extract_field = 128
 } extract_function_t;
 extern int deb_extract(const char *package_filename, int function, char *target_dir);
-extern int untar(FILE *src_tar_file, int untar_function, char *base_path);
+extern int untar(FILE *src_tar_file, const int untar_function, const char *argument);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);

@@ -20,17 +20,20 @@
 
 extern int dpkg_deb_main(int argc, char **argv)
 {
-	char *target_dir;
+	char *argument = NULL;
 	int opt = 0;
 	int optflag = 0;	
 	
-	while ((opt = getopt(argc, argv, "cetXxl")) != -1) {
+	while ((opt = getopt(argc, argv, "ceftXxI")) != -1) {
 		switch (opt) {
 			case 'c':
 				optflag |= extract_contents;
 				break;
 			case 'e':
 				optflag |= extract_control;
+				break;
+			case 'f':
+				optflag |= extract_field;
 				break;
 			case 't':
 				optflag |= extract_fsys_tarfile;
@@ -41,13 +44,9 @@ extern int dpkg_deb_main(int argc, char **argv)
 			case 'x':
 				optflag |= extract_extract;
 				break;
-			case 'l':
-				optflag |= extract_list;
-				break;
-/*			case 'I':
+			case 'I':
 				optflag |= extract_info;
 				break;
-*/
 			default:
 				show_usage();
 		}
@@ -61,26 +60,33 @@ extern int dpkg_deb_main(int argc, char **argv)
 		case (extract_control):
 		case (extract_extract):
 		case (extract_verbose_extract):
+			/* argument is a dir name */
 			if ( (optind + 1) == argc ) {
-				target_dir = (char *) xmalloc(7);
-				strcpy(target_dir, "DEBIAN");
+				argument = xstrdup("DEBIAN");
 			} else {
-				target_dir = (char *) xmalloc(strlen(argv[optind + 1]) + 1);
-				strcpy(target_dir, argv[optind + 1]);
+				argument = xstrdup(argv[optind + 1]);
 			}
 			break;
+		case (extract_field):
+			/* argument is a control field name */
+			if ((optind + 1) != argc) {
+				argument = xstrdup(argv[optind + 1]);				
+			}
+			break;
+		case (extract_info):
+			/* argument is a control field name */
+			if ((optind + 1) != argc) {
+				argument = xstrdup(argv[optind + 1]);
+				break;
+			} else {
+				error_msg("-I currently requires a filename to be specifies");
+				return(EXIT_FAILURE);
+			}
+			/* argument is a filename */
 		default:
-			target_dir = NULL;
 	}
 
-	deb_extract(argv[optind], optflag, target_dir);
-/*	else if (optflag & dpkg_deb_info) {
-		extract_flag = TRUE;
-		extract_to_stdout = TRUE;
-		strcpy(ar_filename, "control.tar.gz");
-		extract_list = argv+optind+1;
-		printf("list one is [%s]\n",extract_list[0]);
-	}
-*/
+	deb_extract(argv[optind], optflag, argument);
+
 	return(EXIT_SUCCESS);
 }

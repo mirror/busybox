@@ -30,7 +30,11 @@
 #include <signal.h>
 #include "libbb.h"
 
-extern int deb_extract(const char *package_filename, int function, char *target_dir)
+/*
+ * The contents of argument depend on the value of function.
+ * It is either a dir name or a control file or field name(see dpkg_deb.c)
+ */
+extern int deb_extract(const char *package_filename, int function, char *argument)
 {
 
 	FILE *deb_file, *uncompressed_file;
@@ -41,6 +45,7 @@ extern int deb_extract(const char *package_filename, int function, char *target_
 	switch (function) {
 		case (extract_info):
 		case (extract_control):
+		case (extract_field):
 			ared_file = xstrdup("control.tar.gz");
 			break;
 		default:
@@ -70,7 +75,7 @@ extern int deb_extract(const char *package_filename, int function, char *target_
 	if (function & extract_fsys_tarfile) {
 		copy_file_chunk(uncompressed_file, stdout, -1);
 	} else {
-		untar(uncompressed_file, function, target_dir);
+		untar(uncompressed_file, function, argument);
 	}
 	/* we are deliberately terminating the child so we can safely ignore this */
 	gz_close(gunzip_pid);
