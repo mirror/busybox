@@ -200,13 +200,14 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		umask(saved_umask);
 	} else if (S_ISLNK(source_stat.st_mode)) {
+		int size;
 		char buf[BUFSIZ + 1];
 
-		if (readlink(source, buf, BUFSIZ) < 0) {
+		if ((size = readlink(source, buf, BUFSIZ)) < 0) {
 			perror_msg("cannot read `%s'", source);
 			return -1;
 		}
-		buf[BUFSIZ] = '\0';
+		buf[size] = '\0';
 
 		if (symlink(buf, dest) < 0) {
 			perror_msg("cannot create symlink `%s'", dest);
