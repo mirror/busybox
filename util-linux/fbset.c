@@ -61,28 +61,29 @@
 /* #define CMD_XCOMPAT     10 */
 #define CMD_ALL         11
 #define CMD_INFO        12
+#define CMD_CHANGE      13
 
 #ifdef BB_FEATURE_FBSET_FANCY
-#define CMD_XRES	13
-#define CMD_YRES	14
-#define CMD_VXRES	15
-#define CMD_VYRES	16
-#define CMD_DEPTH	17
-#define CMD_MATCH	18
-#define CMD_PIXCLOCK	19
-#define CMD_LEFT	20
-#define CMD_RIGHT	21
-#define CMD_UPPER	22
-#define CMD_LOWER	23
-#define CMD_HSLEN	24
-#define CMD_VSLEN	25
-#define CMD_CSYNC	26
-#define CMD_GSYNC	27
-#define CMD_EXTSYNC	28
-#define CMD_BCAST	29
-#define CMD_RGBA	30
-#define CMD_STEP	31
-#define CMD_MOVE	32
+#define CMD_XRES	100
+#define CMD_YRES	101
+#define CMD_VXRES	102
+#define CMD_VYRES	103
+#define CMD_DEPTH	104
+#define CMD_MATCH	105
+#define CMD_PIXCLOCK	106
+#define CMD_LEFT	107
+#define CMD_RIGHT	108
+#define CMD_UPPER	109
+#define CMD_LOWER	110
+#define CMD_HSLEN	111
+#define CMD_VSLEN	112
+#define CMD_CSYNC	113
+#define CMD_GSYNC	114
+#define CMD_EXTSYNC	115
+#define CMD_BCAST	116
+#define CMD_RGBA	117
+#define CMD_STEP	118
+#define CMD_MOVE	119
 #endif
 
 static unsigned int g_options = 0;
@@ -106,6 +107,7 @@ struct cmdoptions_t {
 	"-laced", 1, CMD_LACED}, {
 	"-double", 1, CMD_DOUBLE}, {
 	"-help", 0, CMD_HELP}, {
+	"-n", 0, CMD_CHANGE}, {
 #ifdef BB_FEATURE_FBSET_FANCY
 	"-help", 0, CMD_HELP}, {
 	"-all", 0, CMD_ALL}, {
@@ -286,6 +288,9 @@ extern int fbset_main(int argc, char **argv)
 					varset.hsync_len = strtoul(argv[6], 0, 0);
 					varset.vsync_len = strtoul(argv[7], 0, 0);
 					break;
+                case CMD_CHANGE:
+                    g_options |= OPT_CHANGE;
+                    break;
 #ifdef BB_FEATURE_FBSET_FANCY
 				case CMD_XRES:
 					varset.xres = strtoul(argv[1], 0, 0);
