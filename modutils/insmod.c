@@ -159,6 +159,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #define MATCH_MACHINE(x) (x == EM_68K)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
 #endif
 
 #if defined(__mips__)
@@ -281,7 +282,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.114 2004/03/19 12:16:18 andersen Exp $"
+#ident "$Id: insmod.c,v 1.115 2004/03/19 12:17:04 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -502,7 +503,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.114 2004/03/19 12:16:18 andersen Exp $"
+#ident "$Id: insmod.c,v 1.115 2004/03/19 12:17:04 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
