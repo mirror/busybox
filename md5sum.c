@@ -770,12 +770,10 @@ static int md5_file(const char *filename,
     have_read_stdin = 1;
     fp = stdin;
   } else {
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
-      perror_msg("%s", filename);
+    fp = wfopen(filename, "r");
+    if (fp == NULL)
       return FALSE;
     }
-  }
 
   if (md5_stream(fp, md5_result)) {
     perror_msg("%s", filename);
@@ -807,12 +805,10 @@ static int md5_check(const char *checkfile_name)
     have_read_stdin = 1;
     checkfile_stream = stdin;
   } else {
-    checkfile_stream = fopen(checkfile_name, "r");
-    if (checkfile_stream == NULL) {
-      perror_msg("%s", checkfile_name);
+    checkfile_stream = wfopen(checkfile_name, "r");
+    if (checkfile_stream == NULL)
       return FALSE;
     }
-  }
 
   line_number = 0;
 

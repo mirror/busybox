@@ -247,7 +247,7 @@ safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
 trim.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
 xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
 copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
-dirname.c make_directory.c
+dirname.c make_directory.c create_icmp_socket.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB)
 ifneq ($(strip $(BB_SRC_DIR)),)
@@ -257,7 +257,7 @@ endif
 LIBBB_MSRC=libbb/messages.c
 LIBBB_MESSAGES= full_version name_too_long omitting_directory not_a_directory \
 memory_exhausted invalid_date invalid_option io_error dash_dash_help \
-write_error too_few_args name_longer_than_foo unknown
+write_error too_few_args name_longer_than_foo unknown can_not_create_raw_socket
 LIBBB_MOBJ=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_MESSAGES))
 
 LIBBB_ARCSRC=libbb/unarchive.c
@@ -365,7 +365,7 @@ $(LIBBB_MOBJ): $(LIBBB_MSRC)
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
-$(LIBBB_AROBJS): $(LIBBB_ARCSRC) Makefile
+$(LIBBB_AROBJS): $(LIBBB_ARCSRC)
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 

@@ -74,7 +74,7 @@ Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
 Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit, stty-port, locale, various fixes 
+    cmdedit; ports: ash, stty, traceroute; locale, various fixes
     and irreconcilable critic of everything not perfect.
 
 Tim Riker <Tim@Rikers.org>

@@ -682,8 +682,7 @@ static void * brkaddr;
 
 
 #ifdef BB_FEATURE_COMMAND_EDITING
-char * current_prompt;
-unsigned int shell_context;
+static char * current_prompt;
 #endif
 
 
@@ -4449,9 +4448,7 @@ register struct ioarg *ap;
 	  if ((i = ap->afid != bp->id) || bp->bufp == bp->ebufp) {
 	    if (i)
 	      lseek(ap->afile, ap->afpos, 0);
-	    do {
-	      i = read(ap->afile, bp->buf, sizeof(bp->buf));
-	    } while (i < 0 && errno == EINTR);
+	    i = safe_read(ap->afile, bp->buf, sizeof(bp->buf));
 	    if (i <= 0) {
 	      closef(ap->afile);
 	      return 0;
@@ -4470,7 +4467,6 @@ register struct ioarg *ap;
 
 	    while (size == 0 || position >= size) {
 		cmdedit_read_input(current_prompt, mycommand);
-		cmdedit_terminate();
 		size = strlen(mycommand);
 		position = 0;
 	    }
@@ -4480,9 +4476,7 @@ register struct ioarg *ap;
 	} else 
 #endif
 	{
-		do {
-			i = read(ap->afile, &c, sizeof(c));
-		} while (i < 0 && errno == EINTR);
+		i = safe_read(ap->afile, &c, sizeof(c));
 		return(i == sizeof(c)? c&0177: (closef(ap->afile), 0));
 	}
 }

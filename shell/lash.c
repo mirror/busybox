@@ -170,9 +170,7 @@ static struct built_in_command bltins_forking[] = {
 };
 
 
-/* Variables we export */
-unsigned int shell_context;  /* Used in cmdedit.c to reset the
-								context when someone hits ^C */
+static int shell_context;  /* Type prompt trigger (PS1 or PS2) */
 
 
 /* Globals that are static to this file */
@@ -716,7 +714,6 @@ static int get_command(FILE * source, char *command)
 		** child processes (rob@sysgo.de)
 		*/
 		cmdedit_read_input(prompt_str, command);
-		cmdedit_terminate();
 		return 0;
 #else
 		fputs(prompt_str, stdout);
@@ -1557,7 +1554,6 @@ int shell_main(int argc_l, char **argv_l)
 
 	/* These variables need re-initializing when recursing */
 	last_jobid = 0;
-	shell_context = 0;
 	local_pending_command = NULL;
 	close_me_head = NULL;
 	job_list.head = NULL;

@@ -26,7 +26,7 @@
  * package.
  *
  * Modified by Erik Andersen <andersee@debian.org> and
- * Vladimir Oleynik <vodz@usa.net> to be used in busybox
+ * Vladimir Oleynik <dzo@simtreas.ru> to be used in busybox
  *
  *
  * Original copyright notice is retained at the end of this file.
@@ -4995,7 +4995,7 @@ err1:
 		if (--in.nleft < 0) {
 			if (in.fd < 0)
 				break;
-			while ((i = read(in.fd, buf, sizeof buf)) < 0 && errno == EINTR);
+			i = safe_read(in.fd, buf, sizeof buf);
 			TRACE(("expbackq: read returns %d\n", i));
 			if (i <= 0)
 				break;
@@ -6091,10 +6091,8 @@ init(void) {
  * interactive shell and control is returned to the main command loop.
  */
 
-#ifdef ASH_ALIAS
 /* 1 == check for aliases, 2 == also check for assignments */
-static int checkalias;
-#endif
+static int checkalias;  /* also used in no alias mode for check assignments */
 
 static void
 reset(void) {
@@ -6117,9 +6115,7 @@ reset(void) {
       {
 	      tokpushback = 0;
 	      checkkwd = 0;
-#ifdef ASH_ALIAS
 	      checkalias = 0;
-#endif
       }
 
       /* from redir.c: */
@@ -6137,7 +6133,6 @@ reset(void) {
  */
 
 #ifdef BB_FEATURE_COMMAND_EDITING
-unsigned int shell_context;
 static const char * cmdedit_prompt;
 static inline void putprompt(const char *s) {
     cmdedit_prompt = s;
@@ -6206,23 +6201,18 @@ preadfd(void)
 retry:
 #ifdef BB_FEATURE_COMMAND_EDITING
 	{
-	    if (parsefile->fd)
-		nr = read(parsefile->fd, buf, BUFSIZ - 1);
+	    if (!iflag)
+		    nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	    else {
-		do {
 		    cmdedit_read_input((char*)cmdedit_prompt, buf);
 		    nr = strlen(buf);
-		} while (nr <=0 || shell_context);
-		cmdedit_terminate();
 	    }
 	}
 #else
-	nr = read(parsefile->fd, buf, BUFSIZ - 1);
+	nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 #endif
 
 	if (nr < 0) {
-		if (errno == EINTR)
-			goto retry;
 		if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
 			int flags = fcntl(0, F_GETFL, 0);
 			if (flags >= 0 && flags & O_NONBLOCK) {
@@ -9872,9 +9862,7 @@ simplecmd() {
 	redir = NULL;
 	rpp = &redir;
 
-#ifdef ASH_ALIAS
 	checkalias = 2;
-#endif
 	for (;;) {
 		switch (readtoken()) {
 		case TWORD:
@@ -10036,9 +10024,10 @@ peektoken() {
 static int
 readtoken() {
 	int t;
+
 #ifdef ASH_ALIAS
-	int savecheckkwd = checkkwd;
 	int savecheckalias = checkalias;
+	int savecheckkwd = checkkwd;
 	struct alias *ap;
 #endif
 
@@ -10083,13 +10072,14 @@ top:
 		}
 	}
 
-#ifdef ASH_ALIAS
+
 	if (t != TWORD) {
 		if (t != TREDIR) {
 			checkalias = 0;
 		}
 	} else if (checkalias == 2 && isassignment(wordtext)) {
 		lasttoken = t = TASSIGN;
+#ifdef ASH_ALIAS
 	} else if (checkalias) {
 		if (!quoteflag && (ap = lookupalias(wordtext, 1)) != NULL) {
 			if (*ap->val) {
@@ -10099,8 +10089,8 @@ top:
 			goto top;
 		}
 		checkalias = 0;
-	}
 #endif
+	}
 out:
 #ifdef DEBUG
 	if (!alreadyseen)
@@ -12927,7 +12917,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.9 2001/07/10 16:57:09 andersen Exp $
+ * $Id: ash.c,v 1.10 2001/07/12 20:26:31 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

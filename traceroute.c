@@ -5,6 +5,7 @@
  * This code is derived from software contributed to Berkeley by
  * Van Jacobson.
  *
+ * Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -61,6 +62,10 @@
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
+#undef BB_FEATURE_TRACEROUTE_VERBOSE
+//#define BB_FEATURE_TRACEROUTE_VERBOSE
+#undef BB_FEATURE_TRACEROUTE_SO_DEBUG   /* not in documentation man */
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -100,13 +105,6 @@ struct opacket {
 
 #include "busybox.h"
 
-static int wait_for_reply (int, struct sockaddr_in *, int);
-static void send_probe (int, int);
-static double deltaT (struct timeval *, struct timeval *);
-static int packet_ok (u_char *, int, struct sockaddr_in *, int);
-static void print (u_char *, int, struct sockaddr_in *);
-static char *inetname (struct in_addr);
-
 static u_char  packet[512];            /* last inbound (icmp) packet */
 static struct opacket  *outpacket;     /* last output (udp) packet */
 
@@ -122,9 +120,228 @@ static int max_ttl = 30;
 static u_short ident;
 static u_short port = 32768+666;       /* start udp dest port # for probe packets */
 
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
 static int verbose;
+#endif
 static int waittime = 5;               /* time to wait for response (in seconds) */
 static int nflag;                      /* print addresses numerically */
+
+/*
+ * Construct an Internet address representation.
+ * If the nflag has been supplied, give
+ * numeric value, otherwise try for symbolic name.
+ */
+static inline char *
+inetname(struct in_addr in)
+{
+	char *cp;
+	static char line[50];
+	struct hostent *hp;
+	static char domain[MAXHOSTNAMELEN + 1];
+	static int first = 1;
+
+	if (first && !nflag) {
+		first = 0;
+		if (gethostname(domain, MAXHOSTNAMELEN) == 0 &&
+		    (cp = index(domain, '.')))
+			(void) strcpy(domain, cp + 1);
+		else
+			domain[0] = 0;
+	}
+	cp = 0;
+	if (!nflag && in.s_addr != INADDR_ANY) {
+		hp = gethostbyaddr((char *)&in, sizeof (in), AF_INET);
+		if (hp) {
+			if ((cp = index(hp->h_name, '.')) &&
+			    !strcmp(cp + 1, domain))
+				*cp = 0;
+			cp = (char *)hp->h_name;
+		}
+	}
+	if (cp)
+		(void) strcpy(line, cp);
+	else {
+		in.s_addr = ntohl(in.s_addr);
+		strcpy(line, inet_ntoa(in));
+	}
+	return (line);
+}
+
+static inline void
+print(u_char *buf, int cc, struct sockaddr_in *from)
+{
+	struct ip *ip;
+	int hlen;
+
+	ip = (struct ip *) buf;
+	hlen = ip->ip_hl << 2;
+	cc -= hlen;
+
+	if (nflag)
+		printf(" %s", inet_ntoa(from->sin_addr));
+	else
+		printf(" %s (%s)", inetname(from->sin_addr),
+		       inet_ntoa(from->sin_addr));
+
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+	if (verbose)
+		printf (" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));
+#endif
+}
+
+static inline double
+deltaT(struct timeval *t1p, struct timeval *t2p)
+{
+	double dt;
+
+	dt = (double)(t2p->tv_sec - t1p->tv_sec) * 1000.0 +
+	     (double)(t2p->tv_usec - t1p->tv_usec) / 1000.0;
+	return (dt);
+}
+
+static inline int
+wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer)
+{
+	fd_set fds;
+	static struct timeval wait;
+	int cc = 0;
+	int fromlen = sizeof (*from);
+
+	FD_ZERO(&fds);
+	FD_SET(sock, &fds);
+	if (reset_timer) {
+		/*
+		 * traceroute could hang if someone else has a ping
+		 * running and our ICMP reply gets dropped but we don't
+		 * realize it because we keep waking up to handle those
+		 * other ICMP packets that keep coming in.  To fix this,
+		 * "reset_timer" will only be true if the last packet that
+		 * came in was for us or if this is the first time we're
+		 * waiting for a reply since sending out a probe.  Note
+		 * that this takes advantage of the select() feature on
+		 * Linux where the remaining timeout is written to the
+		 * struct timeval area.
+		 */
+		wait.tv_sec = waittime;
+		wait.tv_usec = 0;
+	}
+
+	if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0)
+		cc=recvfrom(s, (char *)packet, sizeof(packet), 0,
+			    (struct sockaddr *)from, &fromlen);
+
+	return(cc);
+}
+
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+/*
+ * Convert an ICMP "type" field to a printable string.
+ */
+static inline const char *
+pr_type(t)
+	u_char t;
+{
+	static const char * const ttab[] = {
+	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
+	"Source Quench", "Redirect",    "ICMP 6",       "ICMP 7",
+	"Echo",         "ICMP 9",       "ICMP 10",      "Time Exceeded",
+	"Param Problem", "Timestamp",   "Timestamp Reply", "Info Request",
+	"Info Reply"
+	};
+
+	if(t > 16)
+		return("OUT-OF-RANGE");
+
+	return(ttab[t]);
+}
+#endif
+
+static inline int
+packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
+{
+	struct icmp *icp;
+	u_char type, code;
+	int hlen;
+	struct ip *ip;
+
+	ip = (struct ip *) buf;
+	hlen = ip->ip_hl << 2;
+	if (cc < hlen + ICMP_MINLEN) {
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+		if (verbose)
+			printf("packet too short (%d bytes) from %s\n", cc,
+				inet_ntoa(from->sin_addr));
+#endif
+		return (0);
+	}
+	cc -= hlen;
+	icp = (struct icmp *)(buf + hlen);
+	type = icp->icmp_type; code = icp->icmp_code;
+	if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) ||
+	    type == ICMP_UNREACH) {
+		struct ip *hip;
+		struct udphdr *up;
+
+		hip = &icp->icmp_ip;
+		hlen = hip->ip_hl << 2;
+		up = (struct udphdr *)((u_char *)hip + hlen);
+		if (hlen + 12 <= cc && hip->ip_p == IPPROTO_UDP &&
+		    up->source == htons(ident) &&
+		    up->dest == htons(port+seq))
+			return (type == ICMP_TIMXCEED? -1 : code+1);
+	}
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+	if (verbose) {
+		int i;
+		u_long *lp = (u_long *)&icp->icmp_ip;
+
+		printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
+			cc, inet_ntoa(from->sin_addr), inet_ntoa(ip->ip_dst),
+			type, pr_type(type), icp->icmp_code);
+		for (i = 4; i < cc ; i += sizeof(long))
+			printf("%2d: x%8.8lx\n", i, *lp++);
+	}
+#endif
+	return(0);
+}
+
+static void             /* not inline */
+send_probe(int seq, int ttl)
+{
+	struct opacket *op = outpacket;
+	struct ip *ip = &op->ip;
+	struct udphdr *up = &op->udp;
+	int i;
+	struct timezone tz;
+
+	ip->ip_off = 0;
+	ip->ip_hl = sizeof(*ip) >> 2;
+	ip->ip_p = IPPROTO_UDP;
+	ip->ip_len = datalen;
+	ip->ip_ttl = ttl;
+	ip->ip_v = IPVERSION;
+	ip->ip_id = htons(ident+seq);
+
+	up->source = htons(ident);
+	up->dest = htons(port+seq);
+	up->len = htons((u_short)(datalen - sizeof(struct ip)));
+	up->check = 0;
+
+	op->seq = seq;
+	op->ttl = ttl;
+	(void) gettimeofday(&op->tv, &tz);
+
+	i = sendto(sndsock, (char *)outpacket, datalen, 0, &whereto,
+		   sizeof(struct sockaddr));
+	if (i < 0 || i != datalen)  {
+		if (i<0)
+			perror("sendto");
+		printf("traceroute: wrote %s %d chars, ret=%d\n", hostname,
+			datalen, i);
+		(void) fflush(stdout);
+	}
+}
+
 
 int
 #ifndef BB_TRACEROUTE
@@ -138,7 +355,6 @@ traceroute_main(argc, argv)
 	extern char *optarg;
 	extern int optind;
 	struct hostent *hp;
-	struct protoent *pe;
 	struct sockaddr_in from, *to;
 	int ch, i, on, probe, seq, tos, ttl;
 
@@ -152,7 +368,9 @@ traceroute_main(argc, argv)
 	while ((ch = getopt(argc, argv, "dm:np:q:rs:t:w:v")) != EOF)
 		switch(ch) {
 		case 'd':
+#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
 			options |= SO_DEBUG;
+#endif
 			break;
 		case 'm':
 			max_ttl = atoi(optarg);
@@ -188,7 +406,9 @@ traceroute_main(argc, argv)
 				error_msg_and_die("tos must be 0 to 255.");
 			break;
 		case 'v':
+#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
 			verbose++;
+#endif
 			break;
 		case 'w':
 			waittime = atoi(optarg);
@@ -206,21 +426,11 @@ traceroute_main(argc, argv)
 
 	setlinebuf (stdout);
 
-	(void) bzero((char *)&whereto, sizeof(struct sockaddr));
-	to->sin_family = AF_INET;
-	to->sin_addr.s_addr = inet_addr(*argv);
-	if (to->sin_addr.s_addr != -1)
-		hostname = *argv;
-	else {
-		hp = gethostbyname(*argv);
-		if (hp) {
+	memset(&whereto, 0, sizeof(struct sockaddr));
+	hp = xgethostbyname(*argv);
 			to->sin_family = hp->h_addrtype;
-			bcopy(hp->h_addr, (caddr_t)&to->sin_addr, hp->h_length);
+	memcpy(&to->sin_addr, hp->h_addr, hp->h_length);
 			hostname = (char *)hp->h_name;
-		} else {
-			error_msg_and_die("unknown host %s", *argv);
-		}
-	}
 	if (*++argv)
 		datalen = atoi(*argv);
 	if (datalen < 0 || datalen >= MAXPACKET - sizeof(struct opacket))
@@ -228,7 +438,7 @@ traceroute_main(argc, argv)
 		    MAXPACKET - sizeof(struct opacket));
 	datalen += sizeof(struct opacket);
 	outpacket = (struct opacket *)xmalloc((unsigned)datalen);
-	(void) bzero((char *)outpacket, datalen);
+	memset(outpacket, 0, datalen);
 	outpacket->ip.ip_dst = to->sin_addr;
 	outpacket->ip.ip_tos = tos;
 	outpacket->ip.ip_v = IPVERSION;
@@ -236,19 +446,19 @@ traceroute_main(argc, argv)
 
 	ident = (getpid() & 0xffff) | 0x8000;
 
-	if ((pe = getprotobyname("icmp")) == NULL)
-		error_msg_and_die("icmp: unknown protocol");
-	if ((s = socket(AF_INET, SOCK_RAW, pe->p_proto)) < 0)
-		perror_msg_and_die("icmp socket");
+	if ((sndsock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0)
+		perror_msg_and_die(can_not_create_raw_socket);
+
+	s = create_icmp_socket();
+
+#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
 		(void) setsockopt(s, SOL_SOCKET, SO_DEBUG,
 				  (char *)&on, sizeof(on));
+#endif
 	if (options & SO_DONTROUTE)
 		(void) setsockopt(s, SOL_SOCKET, SO_DONTROUTE,
 				  (char *)&on, sizeof(on));
-
-	if ((sndsock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0)
-		perror_msg_and_die("raw socket");
 #ifdef SO_SNDBUF
 	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&datalen,
 		       sizeof(datalen)) < 0)
@@ -259,15 +469,17 @@ traceroute_main(argc, argv)
 		       sizeof(on)) < 0)
 		perror_msg_and_die("IP_HDRINCL");
 #endif IP_HDRINCL
+#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
 		(void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
 				  (char *)&on, sizeof(on));
+#endif
 	if (options & SO_DONTROUTE)
 		(void) setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
 				  (char *)&on, sizeof(on));
 
 	if (source) {
-		(void) bzero((char *)&from, sizeof(struct sockaddr));
+		memset(&from, 0, sizeof(struct sockaddr));
 		from.sin_family = AF_INET;
 		from.sin_addr.s_addr = inet_addr(source);
 		if (from.sin_addr.s_addr == -1)
@@ -284,7 +496,6 @@ traceroute_main(argc, argv)
 	if (source)
 		fprintf(stderr, " from %s", source);
 	fprintf(stderr, ", %d hops max, %d byte packets\n", max_ttl, datalen);
-	(void) fflush(stderr);
 
 	for (ttl = 1; ttl <= max_ttl; ++ttl) {
 		u_long lastaddr = 0;
@@ -312,11 +523,9 @@ traceroute_main(argc, argv)
 					printf("  %g ms", deltaT(&t1, &t2));
 					switch(i - 1) {
 					case ICMP_UNREACH_PORT:
-#ifndef ARCHAIC
 						ip = (struct ip *)packet;
 						if (ip->ip_ttl <= 1)
 							printf(" !");
-#endif ARCHAIC
 						++got_there;
 						break;
 					case ICMP_UNREACH_NET:
@@ -354,240 +563,4 @@ traceroute_main(argc, argv)
 	}
 
 	return 0;
-}
-
-static int
-wait_for_reply(sock, from, reset_timer)
-	int sock;
-	struct sockaddr_in *from;
-	int reset_timer;
-{
-	fd_set fds;
-	static struct timeval wait;
-	int cc = 0;
-	int fromlen = sizeof (*from);
-
-	FD_ZERO(&fds);
-	FD_SET(sock, &fds);
-	if (reset_timer) {
-		/*
-		 * traceroute could hang if someone else has a ping
-		 * running and our ICMP reply gets dropped but we don't
-		 * realize it because we keep waking up to handle those
-		 * other ICMP packets that keep coming in.  To fix this,
-		 * "reset_timer" will only be true if the last packet that
-		 * came in was for us or if this is the first time we're
-		 * waiting for a reply since sending out a probe.  Note
-		 * that this takes advantage of the select() feature on
-		 * Linux where the remaining timeout is written to the
-		 * struct timeval area.
-		 */
-		wait.tv_sec = waittime;
-		wait.tv_usec = 0;
-	}
-
-	if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0)
-		cc=recvfrom(s, (char *)packet, sizeof(packet), 0,
-			    (struct sockaddr *)from, &fromlen);
-
-	return(cc);
-}
-
-
-static void
-send_probe(seq, ttl)
-	int seq, ttl;
-{
-	struct opacket *op = outpacket;
-	struct ip *ip = &op->ip;
-	struct udphdr *up = &op->udp;
-	int i;
-	struct timezone tz;
-
-	ip->ip_off = 0;
-	ip->ip_hl = sizeof(*ip) >> 2;
-	ip->ip_p = IPPROTO_UDP;
-	ip->ip_len = datalen;
-	ip->ip_ttl = ttl;
-	ip->ip_v = IPVERSION;
-	ip->ip_id = htons(ident+seq);
-
-	up->source = htons(ident);
-	up->dest = htons(port+seq);
-	up->len = htons((u_short)(datalen - sizeof(struct ip)));
-	up->check = 0;
-
-	op->seq = seq;
-	op->ttl = ttl;
-	(void) gettimeofday(&op->tv, &tz);
-
-	i = sendto(sndsock, (char *)outpacket, datalen, 0, &whereto,
-		   sizeof(struct sockaddr));
-	if (i < 0 || i != datalen)  {
-		if (i<0)
-			perror("sendto");
-		printf("traceroute: wrote %s %d chars, ret=%d\n", hostname,
-			datalen, i);
-		(void) fflush(stdout);
-	}
-}
-
-
-static double
-deltaT(t1p, t2p)
-	struct timeval *t1p, *t2p;
-{
-	register double dt;
-
-	dt = (double)(t2p->tv_sec - t1p->tv_sec) * 1000.0 +
-	     (double)(t2p->tv_usec - t1p->tv_usec) / 1000.0;
-	return (dt);
-}
-
-
-/*
- * Convert an ICMP "type" field to a printable string.
- */
-static const char *
-pr_type(t)
-	u_char t;
-{
-	static const char * const ttab[] = {
-	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
-	"Source Quench", "Redirect",    "ICMP 6",       "ICMP 7",
-	"Echo",         "ICMP 9",       "ICMP 10",      "Time Exceeded",
-	"Param Problem", "Timestamp",   "Timestamp Reply", "Info Request",
-	"Info Reply"
-	};
-
-	if(t > 16)
-		return("OUT-OF-RANGE");
-
-	return(ttab[t]);
-}
-
-
-static int
-packet_ok(buf, cc, from, seq)
-	u_char *buf;
-	int cc;
-	struct sockaddr_in *from;
-	int seq;
-{
-	register struct icmp *icp;
-	u_char type, code;
-	int hlen;
-#ifndef ARCHAIC
-	struct ip *ip;
-
-	ip = (struct ip *) buf;
-	hlen = ip->ip_hl << 2;
-	if (cc < hlen + ICMP_MINLEN) {
-		if (verbose)
-			printf("packet too short (%d bytes) from %s\n", cc,
-				inet_ntoa(from->sin_addr));
-		return (0);
-	}
-	cc -= hlen;
-	icp = (struct icmp *)(buf + hlen);
-#else
-	icp = (struct icmp *)buf;
-#endif ARCHAIC
-	type = icp->icmp_type; code = icp->icmp_code;
-	if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) ||
-	    type == ICMP_UNREACH) {
-		struct ip *hip;
-		struct udphdr *up;
-
-		hip = &icp->icmp_ip;
-		hlen = hip->ip_hl << 2;
-		up = (struct udphdr *)((u_char *)hip + hlen);
-		if (hlen + 12 <= cc && hip->ip_p == IPPROTO_UDP &&
-		    up->source == htons(ident) &&
-		    up->dest == htons(port+seq))
-			return (type == ICMP_TIMXCEED? -1 : code+1);
-	}
-#ifndef ARCHAIC
-	if (verbose) {
-		int i;
-		u_long *lp = (u_long *)&icp->icmp_ip;
-
-		printf("\n%d bytes from %s to %s", cc,
-			inet_ntoa(from->sin_addr), inet_ntoa(ip->ip_dst));
-		printf(": icmp type %d (%s) code %d\n", type, pr_type(type),
-		       icp->icmp_code);
-		for (i = 4; i < cc ; i += sizeof(long))
-			printf("%2d: x%8.8lx\n", i, *lp++);
-	}
-#endif ARCHAIC
-	return(0);
-}
-
-
-static void
-print(buf, cc, from)
-	u_char *buf;
-	int cc;
-	struct sockaddr_in *from;
-{
-	struct ip *ip;
-	int hlen;
-
-	ip = (struct ip *) buf;
-	hlen = ip->ip_hl << 2;
-	cc -= hlen;
-
-	if (nflag)
-		printf(" %s", inet_ntoa(from->sin_addr));
-	else
-		printf(" %s (%s)", inetname(from->sin_addr),
-		       inet_ntoa(from->sin_addr));
-
-	if (verbose)
-		printf (" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));
-}
-
-
-/*
- * Construct an Internet address representation.
- * If the nflag has been supplied, give
- * numeric value, otherwise try for symbolic name.
- */
-static char *
-inetname(in)
-	struct in_addr in;
-{
-	register char *cp;
-	static char line[50];
-	struct hostent *hp;
-	static char domain[MAXHOSTNAMELEN + 1];
-	static int first = 1;
-
-	if (first && !nflag) {
-		first = 0;
-		if (gethostname(domain, MAXHOSTNAMELEN) == 0 &&
-		    (cp = index(domain, '.')))
-			(void) strcpy(domain, cp + 1);
-		else
-			domain[0] = 0;
-	}
-	cp = 0;
-	if (!nflag && in.s_addr != INADDR_ANY) {
-		hp = gethostbyaddr((char *)&in, sizeof (in), AF_INET);
-		if (hp) {
-			if ((cp = index(hp->h_name, '.')) &&
-			    !strcmp(cp + 1, domain))
-				*cp = 0;
-			cp = (char *)hp->h_name;
-		}
-	}
-	if (cp)
-		(void) strcpy(line, cp);
-	else {
-		in.s_addr = ntohl(in.s_addr);
-#define C(x)    ((x) & 0xff)
-		sprintf(line, "%u.%u.%u.%u", C(in.s_addr >> 24),
-			C(in.s_addr >> 16), C(in.s_addr >> 8), C(in.s_addr));
-	}
-	return (line);
 }

@@ -4,10 +4,11 @@
 	* None yet
 
     New Applets:
-	* None yet
+	* Vladimir Oleynik -- traceroute
 
     Other Changes:
-	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax.
+	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax,
+	     many ash corrections, and others optimizations, and cleanups.
 	
 
 	 -Not Yet Released

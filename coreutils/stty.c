@@ -24,7 +24,7 @@
 
    David MacKenzie <djm@gnu.ai.mit.edu>
 
-   Special for busybox ported by Vladimir Oleynik <vodz@usa.net> 2001
+   Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
 
    */
 

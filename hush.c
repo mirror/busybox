@@ -237,10 +237,6 @@ unsigned int global_argc;
 unsigned int last_return_code;
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
  
-/* Variables we export */
-unsigned int shell_context;  /* Used in cmdedit.c to reset the
-                              * context when someone hits ^C */
-
 /* "globals" within this file */
 static char *ifs;
 static char map[256];
@@ -883,7 +879,6 @@ static void get_user_input(struct in_str *i)
 	 ** child processes (rob@sysgo.de)
 	 */
 	cmdedit_read_input(prompt_str, the_command);
-	cmdedit_terminate();
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
@@ -1411,6 +1406,7 @@ static int run_pipe_real(struct pipe *pi)
 			/* Set the handling for job control signals back to the default.  */
 			signal(SIGINT, SIG_DFL);
 			signal(SIGQUIT, SIG_DFL);
+			signal(SIGTERM, SIG_DFL);
 			signal(SIGTSTP, SIG_DFL);
 			signal(SIGTTIN, SIG_DFL);
 			signal(SIGTTOU, SIG_DFL);
@@ -2551,6 +2547,7 @@ static void setup_job_control()
 	/* Ignore interactive and job-control signals.  */
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
+	signal(SIGTERM, SIG_IGN);
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);

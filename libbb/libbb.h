@@ -252,6 +252,7 @@ extern void gz_close(int gunzip_pid);
 extern FILE *gz_open(FILE *compressed_file, int *pid);
 
 extern struct hostent *xgethostbyname(const char *name);
+extern int create_icmp_socket(void);
 
 char *dirname (const char *path);
 
@@ -284,5 +285,6 @@ extern const char * const write_error;
 extern const char * const too_few_args;
 extern const char * const name_longer_than_foo;
 extern const char * const unknown;
+extern const char * const can_not_create_raw_socket;
 
 #endif /* __LIBBB_H__ */

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.43 2001/05/21 20:30:51 andersen Exp $
+ * $Id: ping.c,v 1.44 2001/07/12 20:26:31 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -191,11 +191,7 @@ static void ping(const char *host)
 	int pingsock, c;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
-	if ((pingsock = socket(AF_INET, SOCK_RAW, 1)) < 0)	/* 1 == ICMP */
-		perror_msg_and_die("creating a raw socket");
-
-	/* drop root privs if running setuid */
-	setuid(getuid());
+	pingsock = create_raw_socket();
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
@@ -434,7 +430,7 @@ static void ping(const char *host)
 		if (errno == EPERM)
 			error_msg_and_die("permission denied. (are you root?)");
 		else
-			perror_msg_and_die("creating a raw socket");
+			perror_msg_and_die(can_not_create_raw_socket);
 	}
 
 	/* drop root privs if running setuid */

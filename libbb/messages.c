@@ -62,3 +62,6 @@
 	const char * const unknown = "(unknown)";
 #endif
 
+#ifdef L_can_not_create_raw_socket
+	const char * const can_not_create_raw_socket = "can`t create raw socket";
+#endif
