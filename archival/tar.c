@@ -599,9 +599,7 @@ static const llist_t *append_file_list_to_list(const char *filename, const llist
 
 int tar_main(int argc, char **argv)
 {
-#ifdef CONFIG_FEATURE_TAR_GZIP
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;
-#endif
 	archive_handle_t *tar_handle;
 	int opt;
 	char *base_dir = NULL;
