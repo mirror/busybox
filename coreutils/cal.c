@@ -372,7 +372,7 @@ void trim_trailing_spaces(char *s)
 
 	for (p = s; *p; ++p)
 		continue;
-	while (p > s && isspace(*--p))
+	while (p > s && (--p, isspace(*p)))
 		continue;
 	if (p > s)
 		++p;
