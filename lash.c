@@ -145,6 +145,7 @@ static struct builtInCommand bltins[] = {
 	{"export", "Set environment variable", builtin_export},
 	{"unset", "Unset environment variable", builtin_unset},
 	{"read", "Input environment variable", builtin_read},
+	{".", "Source-in and run commands in a file", builtin_source},
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 	{"if", NULL, builtin_if},
 	{"then", NULL, builtin_then},
@@ -159,7 +160,6 @@ static struct builtInCommand bltins[] = {
 static struct builtInCommand bltins_forking[] = {
 	{"env", "Print all environment variables", builtin_env},
 	{"pwd", "Print current directory", builtin_pwd},
-	{".", "Source-in and run commands in a file", builtin_source},
 	{"help", "List shell built-in commands", builtin_help},
 	{NULL, NULL, NULL}
 };
@@ -500,6 +500,7 @@ static int builtin_source(struct job *cmd, struct jobSet *junk)
 
 	/* Now run the file */
 	status = busy_loop(input);
+	fclose(input);
 	return (status);
 }
 
