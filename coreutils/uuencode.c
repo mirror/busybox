@@ -56,7 +56,7 @@ static char tbl_std[64] = {
  * buffer of at least 1+BASE64_LENGTH(length) bytes.
  * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
  */
-static void base64_encode (const char *s, const char *store, const int length, const char *tbl)
+static void uuencode (const char *s, const char *store, const int length, const char *tbl)
 {
 	int i;
 	unsigned char *p = (unsigned char *)store;
@@ -82,7 +82,7 @@ static void base64_encode (const char *s, const char *store, const int length, c
 
 int uuencode_main(int argc, char **argv)
 {
-	const int src_buf_size = 600;	// This *MUST* be a multiple of 3
+	const int src_buf_size = 60;	// This *MUST* be a multiple of 3
 	const int dst_buf_size = 4 * ((src_buf_size + 2) / 3);
 	RESERVE_BB_BUFFER(src_buf, src_buf_size + 1);
 	RESERVE_BB_BUFFER(dst_buf, dst_buf_size + 1);
@@ -93,7 +93,7 @@ int uuencode_main(int argc, char **argv)
 	mode_t mode;
 	int opt;
 	int column = 0;
-	int write_size;
+	int write_size = 0;
 	int remaining;
 	int buffer_offset = 0;
 
@@ -127,7 +127,7 @@ int uuencode_main(int argc, char **argv)
 
 	while ((size = fread(src_buf, 1, src_buf_size, src_stream)) > 0) {
 		/* Encode the buffer we just read in */
-		base64_encode(src_buf, dst_buf, size, tbl);
+		uuencode(src_buf, dst_buf, size, tbl);
 
 		/* Write the buffer to stdout, wrapping at 60 chars.
 		 * This looks overly complex, but it gets tricky as
@@ -140,19 +140,20 @@ int uuencode_main(int argc, char **argv)
 		/* Initialise values for the new buffer */
 		remaining = 4 * ((size + 2) / 3);
 		buffer_offset = 0;
-		if (remaining > (60 - column)) {
-			write_size = 60 - column;
-		}
-		else if (remaining < 60) {
-			write_size = remaining;
-		} else {
-			write_size = 60;
-		}
 
 		/* Write the buffer to stdout, wrapping at 60 chars
 		 * starting from the column the last buffer ran out
 		 */
 		do {
+			if (remaining > (60 - column)) {
+				write_size = 60 - column;
+			}
+			else if (remaining < 60) {
+				write_size = remaining;
+			} else {
+				write_size = 60;
+			}
+
 			/* Setup a new row if required */
 			if (column == 0) {
 				putchar('\n');
@@ -170,15 +171,6 @@ int uuencode_main(int argc, char **argv)
 			column += write_size;
 			if (column % 60 == 0) {
 				column = 0;
-			}
-
-			/* working next amount to write */
-			write_size = (60 - column) % 60;
-			if (write_size < remaining) {
-				write_size = remaining;
-			}
-			if (write_size == 0) {
-				write_size = 60;
 			}
 		} while (remaining > 0);
 	}
