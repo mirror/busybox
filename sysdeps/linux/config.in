@@ -14,6 +14,7 @@ source init/config.in
 source miscutils/config.in
 source modutils/config.in
 source networking/config.in
+source pwd_grp/config.in
 source procps/config.in
 source shell/config.in
 source shellutils/config.in
