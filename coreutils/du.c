@@ -26,11 +26,13 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdio.h>
-/*
+#if 0
 #include <unistd.h>
 #include <sys/stat.h>
-*/
+#endif
 
+static const char du_usage[] =
+"Usage: du [OPTION]... [FILE]...\n";
 
 typedef void (Display)(size_t, char *);
 
@@ -42,7 +44,7 @@ print(size_t size, char *filename)
 
 /* tiny recursive du */
 static size_t
-size(char *filename)
+du(char *filename)
 {
     struct stat statbuf;
     size_t	sum;
@@ -65,7 +67,7 @@ size(char *filename)
 	    { continue; }
 
 	    sprintf(newfile, "%s/%s", filename, name);
-	    sum += size(newfile);
+	    sum += du(newfile);
 	}
 	closedir(dir);
 	print(sum, filename);
@@ -76,8 +78,38 @@ size(char *filename)
 int 
 du_main(int argc, char **argv)
 {
-    /* I'll fill main() in shortly */
-    size(".");
+    int i;
+    char opt;
+
+    /* parse argv[] */
+    for (i = 1; i < argc; i++) {
+	if (argv[i][0] == '-') {
+	    opt = argv[i][1];
+	    switch (opt) {
+		case 's':
+		    break;
+		case 'h':
+		    usage(du_usage);
+		    break;
+		default:
+		    fprintf(stderr, "du: invalid option -- %c\n", opt);
+		    usage(du_usage);
+	    }
+	} else {
+	    break;
+	}
+    }
+
+    /* go through remaining args (if any) */
+    if (i >= argc) {
+	du(".");
+    } else {
+	for ( ; i < argc; i++) {
+	    printf("%-7d %s\n", du(argv[i]) >> 1, argv[i]);
+	}
+    }
+
     exit(0);
 }
 
+/* $Id: du.c,v 1.2 1999/12/10 06:15:27 beppu Exp $ */
