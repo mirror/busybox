@@ -12,8 +12,7 @@ h=`sort busybox.links | uniq`
 for i in $h ; do
 	echo "  $1$i -> /bin/busybox"
 	mkdir -p $1/`echo $i | sed -e 's/\/[^\/]*$//' `
-	rm -f $1$i
-	ln -s /bin/busybox $1$i
+	ln -fs /bin/busybox $1$i
 done
 rm -f $1/bin/busybox
 install -m 755 busybox $1/bin/busybox

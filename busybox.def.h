@@ -74,6 +74,8 @@
 // pretty/useful).
 //
 //
+// enable a second console on VT2 in init
+#define BB_FEATURE_INIT_SECOND_CONSOLE
 // enable features that use the /proc filesystem
 #define BB_FEATURE_USE_PROCFS
 //Enable init being called as /linuxrc

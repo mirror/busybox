@@ -1,7 +1,7 @@
 0.38
 	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
 	    file existed.
-	* df will not exit on error, but will try to stat all mounted filesystems.
+	* df will not exit on error, but will stat all mounted filesystems.
 	* Fixed tar so uid/gid/permissions on extracted tarballs will be correct.
 	* Fixed find -name so it properly uses shell wildcard patterns 
 	    (i.e. `*', `?', and `[]') instead of regular expressions, which
@@ -10,11 +10,12 @@
 	    kernel messages.
 	* syslogd now creates the /dev/log socket to make sure it is there, and
 	    is actually a socket with the right permissions.
-	* I've taken a first step to making busybox not need the /proc filesystem.
-	    Most apps don't need it.  Those that _require_ it, will complain
-	    if you enable them when you disable BB_FEATURE_USE_PROCFS.
+	* I've taken a first step to making busybox not need the /proc 
+	    filesystem.  Most apps don't need it.  Those that _require_ it, 
+	    will complain if you enable them when you disable 
+	    BB_FEATURE_USE_PROCFS.
 	   
-	-Erik Andrsen
+	-Erik Andrsen, Dec 5, 1999
 
 0.37
 	* Wrote a micro syslogd, and a logger util (to log things to the syslog

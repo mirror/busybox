@@ -107,6 +107,12 @@ umount_all(int useMtab)
 extern int
 umount_main(int argc, char** argv)
 {
+    int i=0;
+    char **foo=argv;
+    while(*foo) {
+	fprintf(stderr, "argv[%d]='%s'\n", i++, *foo);
+	foo++;
+    }
 
     if (argc < 2) {
 	usage( umount_usage); 

@@ -73,7 +73,7 @@ else
 endif
 
 ifndef $(PREFIX)
-    PREFIX=`pwd`/busybox_install
+    PREFIX=`pwd`/_install
 endif
 
 LIBRARIES=
@@ -95,7 +95,7 @@ busybox.links:
 
 clean:
 	- rm -f $(PROG) busybox.links *~ *.o core 
-	- rm -rf busybox_install
+	- rm -rf _install
 
 distclean: clean
 	- rm -f $(PROG)
