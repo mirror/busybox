@@ -35,10 +35,9 @@
 static const int KILL = 0;
 static const int KILLALL = 1;
 
-
 extern int kill_main(int argc, char **argv)
 {
-	int whichApp, sig = SIGTERM, quiet;
+	int whichApp, signo = SIGTERM, quiet = 0;
 	const char *name;
 	int errors = 0;
 
@@ -49,57 +48,58 @@ extern int kill_main(int argc, char **argv)
 	whichApp = KILL;
 #endif
 
-	quiet=0;
-	argc--;
-	argv++;
 	/* Parse any options */
-	if (argc < 1)
+	if (argc < 2)
 		bb_show_usage();
 
-	while (argc > 0 && **argv == '-') {
-		while (*++(*argv)) {
-			switch (**argv) {
-#ifdef CONFIG_KILLALL
-				case 'q':
-					quiet++;
-					break;
-#endif
-				case 'l':
-					if(argc>1) {
-						for(argv++; *argv; argv++) {
-							name = u_signal_names(*argv, &sig, -1);
-							if(name!=NULL)
-								printf("%s\n", name);
-						}
-					} else {
-						int col = 0;
-						for(sig=1; sig < NSIG; sig++) {
-							name = u_signal_names(0, &sig, 1);
-							if(name==NULL)  /* unnamed */
-								continue;
-							col += printf("%2d) %-16s", sig, name);
-							if (col > 60) {
-								printf("\n");
-								col = 0;
-							}
-						}
-						printf("\n");
-					}
-					return EXIT_SUCCESS;
-				case '-':
-					bb_show_usage();
-				default:
-					name = u_signal_names(*argv, &sig, 0);
-					if(name==NULL)
-						bb_error_msg_and_die( "bad signal name: %s", *argv);
-					argc--;
-					argv++;
-					goto do_it_now;
+	if(argv[1][0] != '-'){
+		argv++;
+		argc--;
+		goto do_it_now;
+	}
+
+	/* The -l option, which prints out signal names. */
+	if(argv[1][1]=='l' && argv[1][2]=='\0'){
+		if(argc==2) {
+			/* Print the whole signal list */
+			int col = 0;
+			for(signo=1; signo < NSIG; signo++) {
+				name = u_signal_names(0, &signo, 1);
+				if(name==NULL)  /* unnamed */
+					continue;
+				col += printf("%2d) %-16s", signo, name);
+				if (col > 60) {
+					printf("\n");
+					col = 0;
+				}
 			}
-			argc--;
-			argv++;
+			printf("\n");
+
+		} else {
+			for(argv++; *argv; argv++) {
+				name = u_signal_names(*argv, &signo, -1);
+				if(name!=NULL)
+					printf("%s\n", name);
+			}
+		}
+		/* If they specified -l, were all done */
+		return EXIT_SUCCESS;
+	}
+
+	/* The -q quiet option */
+	if(argv[1][1]=='q' && argv[1][2]=='\0'){
+		quiet++;
+		argv++;
+		argc--;
+		if(argv[1][0] != '-'){
+			goto do_it_now;
 		}
 	}
+
+	if(!u_signal_names(argv[1]+1, &signo, 0))
+		bb_error_msg_and_die( "bad signal name '%s'", argv[1]+1);
+	argv+=2;
+	argc-=2;
 
 do_it_now:
 
@@ -109,9 +109,9 @@ do_it_now:
 			int pid;
 
 			if (!isdigit(**argv))
-				bb_perror_msg_and_die( "Bad PID");
+				bb_error_msg_and_die( "Bad PID '%s'", *argv);
 			pid = strtol(*argv, NULL, 0);
-			if (kill(pid, sig) != 0) {
+			if (kill(pid, signo) != 0) {
 				bb_perror_msg( "Could not kill pid '%d'", pid);
 				errors++;
 			}
@@ -127,22 +127,22 @@ do_it_now:
 			long* pidList;
 
 			pidList = find_pid_by_name(*argv);
-			if (*pidList <= 0) {
+			if (!pidList || *pidList<=0) {
 				errors++;
 				if (quiet==0)
 					bb_error_msg( "%s: no process killed", *argv);
-				} else {
-					long *pl;
+			} else {
+				long *pl;
 
-					for(pl = pidList; *pl !=0 ; pl++) {
-						if (*pl==myPid)
-							continue;
-						if (kill(*pl, sig) != 0) {
-							errors++;
-							if (quiet==0)
-								bb_perror_msg( "Could not kill pid '%ld'", *pl);
-						}
+				for(pl = pidList; *pl !=0 ; pl++) {
+					if (*pl==myPid)
+						continue;
+					if (kill(*pl, signo) != 0) {
+						errors++;
+						if (quiet==0)
+							bb_perror_msg( "Could not kill pid '%ld'", *pl);
 					}
+				}
 			}
 			free(pidList);
 			argv++;
