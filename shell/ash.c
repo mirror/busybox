@@ -5995,13 +5995,10 @@ static void setjobctl(int enable)
 				mflag = 0;
 				return;
 			}
-			if (initialpgrp == -1)
-				initialpgrp = getpgrp();
-			else if (initialpgrp != getpgrp()) {
-				killpg(initialpgrp, SIGTTIN);
-				continue;
-			}
-		} while (0);
+			if (initialpgrp == getpgrp())
+				break;
+			killpg(0, SIGTTIN);
+		} while (1);
 		setsignal(SIGTSTP);
 		setsignal(SIGTTOU);
 		setsignal(SIGTTIN);
