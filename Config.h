@@ -390,7 +390,7 @@
 //
 #ifdef BB_DPKG
 	#ifndef BB_DPKG_DEB
-		#define BB_DPKG_DEB
+		#define BB_TAR
 	#endif
 #endif
 //
