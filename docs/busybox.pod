@@ -1948,7 +1948,7 @@ Converts a text file from unix format to dos format.
 
 =item unrpm
 
-Usage: unrpm < package.rpm | gzip -d | cpio -idmuv
+Usage: unrpm < package.rpm | gzip B<-d> | cpio -idmuv
 
 Extracts an rpm archive.
 
@@ -2182,4 +2182,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.69 2000/09/20 19:22:26 andersen Exp $
+# $Id: busybox.pod,v 1.70 2000/09/21 02:06:35 andersen Exp $
