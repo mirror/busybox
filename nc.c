@@ -69,7 +69,7 @@ int nc_main(int argc, char **argv)
 	hostinfo = (struct hostent *) gethostbyname(*argv);
 
 	if (!hostinfo) {
-		exit(1);
+		fatalError("nc: cannot resolve %s\n", *argv);
 	}
 
 	address.sin_family = AF_INET;
@@ -81,6 +81,7 @@ int nc_main(int argc, char **argv)
 	result = connect(sfd, (struct sockaddr *) &address, len);
 
 	if (result < 0) {
+		perror("nc: connect");
 		exit(2);
 	}
 
@@ -100,6 +101,7 @@ int nc_main(int argc, char **argv)
 				   (struct timeval *) 0);
 
 		if (result < 1) {
+			perror("nc: select");
 			exit(3);
 		}
 
