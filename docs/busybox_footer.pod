@@ -158,7 +158,9 @@ John Lombardo <john@deltanet.com>
 
 Glenn McGrath <bug1@iinet.net.au>
 
-    ar, dpkg, dpkg-deb
+    Common unarchving code and unarchiving applets, ifupdown, ftpgetput,
+    nameif, sed, patch, fold, install, uudecode.
+    Various bugfixes, review and apply numerous patches.
 
 =for html <br>
 
@@ -252,5 +254,5 @@ Tito Ragusa <farmatito@tiscali.it>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.17 2004/04/25 05:11:14 bug1 Exp $
+# $Id: busybox_footer.pod,v 1.18 2004/04/25 06:05:14 bug1 Exp $
 
