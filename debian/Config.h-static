@@ -306,7 +306,7 @@
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
 // Only relevant if BB_SH is enabled. Off by default.
-//#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Uncomment this option for a fancy shell prompt that includes the
 // current username and hostname.  On systems that don't have usernames
