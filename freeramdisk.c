@@ -37,16 +37,15 @@
 extern int
 freeramdisk_main(int argc, char **argv)
 {
-	int   f;
+	FILE *f;
 
 	if (argc != 2 || *argv[1] == '-') {
 		show_usage();
 	}
 
-	if ((f = open(argv[1], O_RDWR)) == -1) {
-		perror_msg_and_die("cannot open %s", argv[1]);
-	}
-	if (ioctl(f, BLKFLSBUF) < 0) {
+	f = xfopen(argv[1], "r+");
+	
+	if (ioctl(fileno(f), BLKFLSBUF) < 0) {
 		perror_msg_and_die("failed ioctl on %s", argv[1]);
 	}
 	/* Don't bother closing.  Exit does
