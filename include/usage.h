@@ -2262,6 +2262,7 @@
 #define which_example_usage \
 	"$ which login\n" \
 	"/bin/login\n"
+
 #define who_trivial_usage \
         " "
 #define who_full_usage \

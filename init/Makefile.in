@@ -29,7 +29,6 @@ INIT-$(CONFIG_MESG)			+= mesg.o
 INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
 INIT-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
-INIT-$(CONFIG_RUN_PARTS)		+= run_parts.o
 
 libraries-y+=$(INIT_DIR)$(INIT_AR)
 

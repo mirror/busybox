@@ -1,0 +1,15 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'Debian Utilities'
+
+bool 'mktemp'	    CONFIG_MKTEMP
+bool 'readlink'	    CONFIG_READLINK
+bool 'run-parts'    CONFIG_RUN_PARTS
+bool 'which'	    CONFIG_WHICH
+
+endmenu
+

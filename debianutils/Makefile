@@ -17,18 +17,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-FINDUTILS_AR:=findutils.a
-ifndef $(FINDUTILS_DIR)
-FINDUTILS_DIR:=$(TOPDIR)findutils/
-endif
+TOPDIR:= ../
+DEBIANUTILS_DIR:=./
+include $(TOPDIR).config
+include $(TOPDIR)Rules.mak
+include Makefile.in
+all: $(libraries-y)
+-include $(TOPDIR).depend
 
-FINDUTILS-y:=
-FINDUTILS-$(CONFIG_FIND)	+= find.o
-FINDUTILS-$(CONFIG_GREP)	+= grep.o
-FINDUTILS-$(CONFIG_XARGS)	+= xargs.o
-
-libraries-y+=$(FINDUTILS_DIR)$(FINDUTILS_AR)
-
-$(FINDUTILS_DIR)$(FINDUTILS_AR): $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
-	$(AR) -ro $@ $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
+clean:
+	rm -f *.o *.a $(AR_TARGET)
 

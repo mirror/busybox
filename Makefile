@@ -20,7 +20,7 @@
 TOPDIR:= $(shell /bin/pwd)/
 include $(TOPDIR).config
 include $(TOPDIR)Rules.mak
-SUBDIRS:=applets archival archival/libunarchive console-tools \
+SUBDIRS:=applets archival archival/libunarchive console-tools debianutils \
 	editors fileutils findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
 	shellutils sysklogd textutils util-linux libbb libpwdgrp

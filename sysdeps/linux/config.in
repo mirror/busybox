@@ -31,18 +31,19 @@ endmenu
 
 source archival/config.in
 source console-tools/config.in
+source debianutils/config.in
 source editors/config.in
+source fileutils/config.in
 source findutils/config.in
 source init/config.in
+source loginutils/config.in
 source miscutils/config.in
 source modutils/config.in
 source networking/config.in
-source loginutils/config.in
 source procps/config.in
 source shell/config.in
 source shellutils/config.in
 source sysklogd/config.in
 source textutils/config.in
 source util-linux/config.in
-source fileutils/config.in
 

@@ -18,7 +18,6 @@ if [ "$CONFIG_GREP" = "y" ] ; then
     bool '  Support extended regular expressions (egrep & grep -E)'		CONFIG_FEATURE_GREP_EGREP_ALIAS
     bool '  Enable before and after context flags (-A, -B and -C)' 	CONFIG_FEATURE_GREP_CONTEXT
 fi
-bool 'which'	    CONFIG_WHICH
 bool 'xargs'	    CONFIG_XARGS
 endmenu
 
