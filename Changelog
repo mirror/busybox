@@ -1,6 +1,8 @@
 0.42
 	* Made tar creation support in busybox tar optional.
-	You no longer _have_ to put a "-" in front of tar options.
+	* You no longer _have_ to put a "-" in front of tar options.
+	* Tar could inadvertently change permissions and ownership on
+	    certain directories pointed to by symlinks.
 	* Made grep and grep -h do the right thing wrt printing
 	    the file name (it failed to print files names in many cases).
 	* Fix a namespace aliasing problem wereby if du was built in, the 

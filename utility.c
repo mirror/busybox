@@ -495,11 +495,12 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
  * while all previous ones get default protections.  Errors are not reported
  * here, as failures to restore files can be reported later.
  */
-extern void createPath (const char *name, int mode)
+extern int createPath (const char *name, int mode)
 {
     char *cp;
     char *cpOld;
     char buf[NAME_MAX];
+    int retVal=0;
 
     strcpy( buf, name);
     cp = strchr (buf, '/');
@@ -507,9 +508,17 @@ extern void createPath (const char *name, int mode)
 	cpOld = cp;
 	cp = strchr (cp + 1, '/');
 	*cpOld = '\0';
-	mkdir (buf, cp ? 0777 : mode);
+	retVal = mkdir (buf, cp ? 0777 : mode);
 	*cpOld = '/';
     }
+    /* Return the result from the final directory, as that
+     * is the one that counts */
+    if( retVal!=0) {
+	if ( errno!=EEXIST) {
+	    return( FALSE);
+	}
+    }
+    return( TRUE);
 }
 #endif
 

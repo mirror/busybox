@@ -156,7 +156,7 @@ int recursiveAction(const char *fileName, int recurse, int followLinks, int dept
 	  int (*dirAction) (const char *fileName, struct stat* statbuf));
 const char* timeString(time_t timeVal);
 
-extern void createPath (const char *name, int mode);
+extern int createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 extern void usage(const char *usage) __attribute__ ((noreturn));
 

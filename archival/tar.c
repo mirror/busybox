@@ -542,8 +542,10 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	printf ("x %s\n", outName);
 
     if (hardLink) {
-	if (link (hp->linkName, outName) < 0)
+	if (link (hp->linkName, outName) < 0) {
 	    perror (outName);
+	    return;
+	}
 	/* Set the file time */
 	utb.actime = mtime;
 	utb.modtime = mtime;
@@ -556,8 +558,10 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 
     if (softLink) {
 #ifdef	S_ISLNK
-	if (symlink (hp->linkName, outName) < 0)
+	if (symlink (hp->linkName, outName) < 0) {
 	    perror (outName);
+	    return;
+	}
 	/* Try to change ownership of the symlink.
 	 * If libs doesn't support that, don't bother.
 	 * Changing the pointed-to file is the Wrong Thing(tm).
@@ -582,15 +586,16 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * If the file is a directory, then just create the path.
      */
     if (S_ISDIR (mode)) {
-	createPath (outName, mode);
-	/* Set the file time */
-	utb.actime = mtime;
-	utb.modtime = mtime;
-	utime (outName, &utb);
-	/* Set the file permissions */
-	chown(outName, uid, gid);
-	chmod(outName, mode);
-	return;
+	if (createPath (outName, mode)==TRUE) { 
+	    /* Set the file time */
+	    utb.actime = mtime;
+	    utb.modtime = mtime;
+	    utime (outName, &utb);
+	    /* Set the file permissions */
+	    chown(outName, uid, gid);
+	    chmod(outName, mode);
+	    return;
+	}
     }
 
     /* 
