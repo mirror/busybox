@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include "busybox.h"
 
 extern int watch_main(int argc, char **argv)
