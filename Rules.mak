@@ -192,17 +192,6 @@ CFLAGS += $(CFLAGS_EXTRA)
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
-ifdef _FASTDEP_ALL_SUB_DIRS
-fastdep: dummy
-	$(TOPDIR)scripts/mkdep $(CFLAGS) $(EXTRA_CFLAGS_nostdinc) -- $(wildcard *.[chS]) > .depend
-ifdef ALL_SUB_DIRS
-	$(MAKE) $(patsubst %,_sfdep_%,$(ALL_SUB_DIRS)) _FASTDEP_ALL_SUB_DIRS="$(ALL_SUB_DIRS)"
-endif
-
-$(patsubst %,_sfdep_%,$(_FASTDEP_ALL_SUB_DIRS)):
-	$(MAKE) -C $(patsubst _sfdep_%,%,$@) fastdep
-endif
-
 .PHONY: dummy
 
 

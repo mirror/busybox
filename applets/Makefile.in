@@ -22,7 +22,7 @@ ifndef $(APPLETS_DIR)
 APPLETS_DIR:=$(TOPDIR)applets/
 endif
 
-APPLET_SRC:=applets.c busybox.c usage.c
+APPLET_SRC:=applets.c busybox.c
 APPLET_OBJ:= $(patsubst %.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 
 

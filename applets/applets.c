@@ -32,10 +32,21 @@
 #include <assert.h>
 #include "busybox.h"
 
+const char usage_messages[] =
+
+#define MAKE_USAGE
+#include "usage.h"
+
+#include "applets.h"
+
+;
+
+#undef MAKE_USAGE
 #undef APPLET
 #undef APPLET_NOUSAGE
 #undef PROTOTYPES
 #include "applets.h"
+
 
 static struct BB_applet *applet_using;
 
