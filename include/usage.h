@@ -324,7 +324,7 @@
 	"4+0 records out\n"
 
 #define deallocvt_trivial_usage \
-	"N"
+	"[N]"
 #define deallocvt_full_usage \
 	 "Deallocate unused virtual terminal /dev/ttyN"
 
@@ -437,6 +437,11 @@
 	"\t-X\tVerbose extract"
 #define dpkg_deb_example_usage \
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
+
+#define dpkg_divert_trivial_usage \
+	"blah"
+#define dpkg_divert_full_usage \
+	"blah blah"
 
 #ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 #define USAGE_DU_DEFALT_BLOCKSIZE_1k(a) a

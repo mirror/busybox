@@ -34,33 +34,23 @@ static const int VT_DISALLOCATE = 0x5608;  /* free memory associated to vt */
 
 int deallocvt_main(int argc, char *argv[])
 {
-	int fd, num = 0;
+	/* num = 0 deallocate all unused consoles */
+	int num = 0;
 
-	if (argc > 2) {
-		bb_show_usage();
-	}
-
-	fd = get_console_fd();
-	
-	/*  num=0  deallocate all unused consoles */
-	if (argc == 1) {
-		goto disallocate_all;
-	}
-
-	num = bb_xgetlarg(argv[1], 10, 0, INT_MAX);
-	switch (num) {
-		case 0:
-			bb_error_msg("0: illegal VT number");
-			break;
+	switch(argc)
+	{
+		case 2:
+			if((num = bb_xgetlarg(argv[1], 10, 0, INT_MAX)) == 0)
+				bb_error_msg_and_die("0: illegal VT number");
+		/* Falltrough */
 		case 1:
-			bb_error_msg("VT 1 cannot be deallocated");
 			break;
 		default:
-disallocate_all:
-			if (ioctl(fd, VT_DISALLOCATE, num)) {
-				bb_perror_msg_and_die("VT_DISALLOCATE");
-			}
-			return EXIT_SUCCESS;
+			bb_show_usage();
 	}
-	return EXIT_FAILURE;
+
+	if (ioctl( get_console_fd(), VT_DISALLOCATE, num )) {
+		bb_perror_msg_and_die("VT_DISALLOCATE");
+	}
+	return EXIT_SUCCESS;
 }
