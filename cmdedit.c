@@ -54,10 +54,6 @@
 #include <sys/stat.h>
 #endif
 
-#ifdef BB_FEATURE_USERNAME_COMPLETION
-#include <pwd.h>
-#endif
-
 static const int MAX_HISTORY = 15;		/* Maximum length of the linked list for the command line history */
 
 enum {
@@ -354,10 +350,10 @@ static char** username_tab_completion(char *ud, int *num_matches)
     char                 *temp;
     int                   nm = 0;
 
-    setpwent ();
+    bb_setpwent ();
     userlen = strlen (ud + 1);
 
-    while ((entry = getpwent ()) != NULL) {
+    while ((entry = bb_getpwent ()) != NULL) {
 	/* Null usernames should result in all users as possible completions. */
 	if (!userlen || !strncmp (ud + 1, entry->pw_name, userlen)) {
 
@@ -369,7 +365,7 @@ static char** username_tab_completion(char *ud, int *num_matches)
 	}
     }
 
-    endpwent ();
+    bb_endpwent ();
     (*num_matches) = nm;
 	return (matches);
 }

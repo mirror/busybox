@@ -22,7 +22,6 @@
 
 #include "busybox.h"
 #include <stdio.h>
-#include <pwd.h>
 
 extern int whoami_main(int argc, char **argv)
 {

@@ -23,8 +23,6 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <unistd.h>
-#include <pwd.h>
-#include <grp.h>
 #include <getopt.h>
 #include <sys/types.h>
 

@@ -29,8 +29,6 @@
 #include "messages.c"
 
 #include <stdio.h>
-#include <grp.h>
-#include <pwd.h>
 
 
 static long uid = -1;

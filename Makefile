@@ -42,6 +42,17 @@ DOSTATIC = false
 # Do not enable this for production builds...
 DODEBUG = false
 
+# Setting this to `true' will cause busybox to directly use the system's
+# password and group functions.  Assuming you use GNU libc, when this is
+# `true', you will need to install the /etc/nsswitch.conf configuration file
+# and the required libnss_* libraries. This generally makes your embedded
+# system quite a bit larger... If you leave this off, busybox will directly
+# use the /etc/password, /etc/group files (and your system will be smaller, and
+# I will get fewer emails asking about how glibc NSS works).  Enabling this adds
+# just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs),
+# Most people will want to leave this set to false.
+USE_SYSTEM_PWD_GRP = false
+
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
 # which is an excellent public domain mem leak and malloc problem
 # detector.  To enable dmalloc, before running busybox you will
@@ -158,9 +169,19 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
+ifneq ($(USE_SYSTEM_PWD_GRP),true)
+    PWD_LIB   = pwd_grp/libpwd.a
+    LIBRARIES += $(PWD_LIB)
+else
+    CFLAGS    += -DUSE_SYSTEM_PWD_GRP
+endif
+
+
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
 CFLAGS += $(CFLAGS_EXTRA)
+
+.EXPORT_ALL_VARIABLES:
 
 all: busybox busybox.links doc
 
@@ -220,15 +241,19 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 
 
 
-busybox: $(OBJECTS) 
+busybox: $(PWD_LIB) $(OBJECTS) 
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
+
+$(PWD_LIB):
+	$(MAKE) -eC pwd_grp
 
 busybox.links: Config.h applets.h
 	- $(BB_SRC_DIR)/busybox.mkll $(CONFIG_H) $(BB_SRC_DIR)/applets.h >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
+	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 utility.o: loop.h
 
@@ -240,6 +265,7 @@ test tests:
 
 clean:
 	- cd tests && $(MAKE) clean
+	- cd pwd_grp && $(MAKE) clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \

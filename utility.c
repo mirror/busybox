@@ -52,6 +52,8 @@
 #include <ctype.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
+#include "pwd_grp/pwd.h"
+#include "pwd_grp/grp.h"
 
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
  * list of available filesystems used for the -t auto option */ 
@@ -856,117 +858,72 @@ extern int parse_mode(const char *s, mode_t * theMode)
 #if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS \
  || defined BB_TAR || defined BB_ID || defined BB_LOGGER \
  || defined BB_LOGNAME || defined BB_WHOAMI || defined BB_SH
-
-/* This parses entries in /etc/passwd and /etc/group.  This is desirable
- * for BusyBox, since we want to avoid using the glibc NSS stuff, which
- * increases target size and is often not needed or wanted for embedded
- * systems.
- *
- * /etc/passwd entries look like this: 
- *		root:x:0:0:root:/root:/bin/bash
- * and /etc/group entries look like this: 
- *		root:x:0:
- *
- * This uses buf as storage to hold things.
- * 
- */
-unsigned long my_getid(const char *filename, char *name, long id, long *gid)
-{
-	FILE *file;
-	char *rname, *start, *end, buf[128];
-	long rid;
-	long rgid = 0;
-
-	file = fopen(filename, "r");
-	if (file == NULL) {
-		/* Do not complain.  It is ok for /etc/passwd and
-		 * friends to be missing... */
-		return (-1);
-	}
-
-	while (fgets(buf, 128, file) != NULL) {
-		if (buf[0] == '#')
-			continue;
-
-		/* username/group name */
-		start = buf;
-		end = strchr(start, ':');
-		if (end == NULL)
-			continue;
-		*end = '\0';
-		rname = start;
-
-		/* password */
-		start = end + 1;
-		end = strchr(start, ':');
-		if (end == NULL)
-			continue;
-
-		/* uid in passwd, gid in group */
-		start = end + 1;
-		rid = (unsigned long) strtol(start, &end, 10);
-		if (end == start)
-			continue;
-
-		/* gid in passwd */
-		start = end + 1;
-		rgid = (unsigned long) strtol(start, &end, 10);
-		
-		if (name) {
-			if (0 == strcmp(rname, name)) {
-			    if (gid) *gid = rgid;
-				fclose(file);
-				return (rid);
-			}
-		}
-		if (id != -1 && id == rid) {
-			strncpy(name, rname, 8);
-			name[8]='\0';
-			if (gid) *gid = rgid;
-			fclose(file);
-			return (TRUE);
-		}
-	}
-	fclose(file);
-	return (-1);
-}
-
 /* returns a uid given a username */
 long my_getpwnam(char *name)
 {
-	return my_getid("/etc/passwd", name, -1, NULL);
+	struct passwd *myuser;
+
+	myuser  = getpwnam(name);
+	if (myuser==NULL)
+		error_msg_and_die( "unknown username: %s\n", name);
+
+	return myuser->pw_uid;
 }
 
 /* returns a gid given a group name */
 long my_getgrnam(char *name)
 {
-	return my_getid("/etc/group", name, -1, NULL);
+	struct group *mygroup;
+
+	mygroup  = getgrnam(name);
+	if (mygroup==NULL)
+		error_msg_and_die( "unknown group: %s\n", name);
+
+	return (mygroup->gr_gid);
 }
 
 /* gets a username given a uid */
 void my_getpwuid(char *name, long uid)
 {
-	name[0] = '\0';
-	my_getid("/etc/passwd", name, uid, NULL);
+	struct passwd *myuser;
+
+	myuser  = getpwuid(uid);
+	if (myuser==NULL)
+		error_msg_and_die( "unknown uid %ld\n", (long)uid);
+
+	strcpy(name, myuser->pw_name);
 }
 
 /* gets a groupname given a gid */
 void my_getgrgid(char *group, long gid)
 {
-	group[0] = '\0';
-	my_getid("/etc/group", group, gid, NULL);
+	struct group *mygroup;
+
+	mygroup  = getgrgid(gid);
+	if (mygroup==NULL)
+		error_msg_and_die( "unknown gid %ld\n", (long)gid);
+
+	strcpy(group, mygroup->gr_name);
 }
 
 #if defined BB_ID
 /* gets a gid given a user name */
 long my_getpwnamegid(char *name)
 {
-	long gid;
-	my_getid("/etc/passwd", name, -1, &gid);
-	return gid;
-}
-#endif
+	struct group *mygroup;
+	struct passwd *myuser;
 
+	myuser=getpwnam(name);
+	if (myuser==NULL)
+		error_msg_and_die( "unknown user name: %s\n", name);
+
+	mygroup  = getgrgid(myuser->pw_gid);
+	if (mygroup==NULL)
+		error_msg_and_die( "unknown gid %ld\n", (long)myuser->pw_gid);
+
+	return mygroup->gr_gid;
+}
+#endif /* BB_ID */
 #endif
  /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR \
  || BB_ID || BB_LOGGER || BB_LOGNAME || BB_WHOAMI */

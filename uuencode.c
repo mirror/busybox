@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <getopt.h>
-#include <pwd.h>
 
 #define	RW (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 
