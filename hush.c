@@ -43,6 +43,7 @@
  *      Brace Expansion
  *      Tilde Expansion
  *      fancy forms of Parameter Expansion
+ *      aliases
  *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
  *      reserved words: case, esac, select, function
@@ -54,15 +55,14 @@
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
  *      finish implementing reserved words: for, while, until, do, done
+ *      finish implementing local variable assignment
  *      change { and } from special chars to reserved words
  *      builtins: break, continue, eval, return, set, trap, ulimit
  *      test magic exec
  *      handle children going into background
  *      clean up recognition of null pipes
- *      have builtin_exec set flag to avoid restore_redirects
  *      check setting of global_argc and global_argv
  *      control-C handling, probably with longjmp
- *      VAR=value prefix for simple commands
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
  *      explain why we use signal instead of sigaction
@@ -70,6 +70,7 @@
  *      continuation lines, both explicit and implicit - done?
  *      memory leak finding and plugging - done?
  *      more testing, especially quoting rules and redirection
+ *      document how quoting rules not precisely followed for variable assignments
  *      maybe change map[] to use 2-bit entries
  *      (eventually) remove all the printf's
  *
@@ -359,6 +360,9 @@ static int run_pipe_real(struct pipe *pi);
 static int globhack(const char *src, int flags, glob_t *pglob);
 static int glob_needed(const char *s);
 static int xglob(o_string *dest, int flags, glob_t *pglob);
+/*   variable assignment: */
+static int set_local_var(const char *s);
+static int is_assignment(const char *s);
 /*   data structure manipulation: */
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
 static void initialize_context(struct p_context *ctx);
@@ -1001,9 +1005,20 @@ static int pipe_wait(struct pipe *pi)
 /* very simple version for testing */
 static void pseudo_exec(struct child_prog *child)
 {
-	int rcode;
+	int i, rcode;
 	struct built_in_command *x;
 	if (child->argv) {
+		for (i=0; is_assignment(child->argv[i]); i++) {
+			putenv(strdup(child->argv[i]));
+		}
+		child->argv+=i;  /* XXX this hack isn't so horrible, since we are about
+		                        to exit, and therefore don't need to keep data
+		                        structures consistent for free() use. */
+		/* If a variable is assigned in a forest, and nobody listens,
+		 * was it ever really set?
+		 */
+		if (child->argv[0] == NULL) exit(EXIT_SUCCESS);
+
 		/*
 		 * Check if the command matches any of the builtins.
 		 * Depending on context, this might be redundant.  But it's
@@ -1253,11 +1268,19 @@ static int run_pipe_real(struct pipe *pi)
 			restore_redirects(squirrel);
 			return rcode;
 		}
+		for (i=0; is_assignment(child->argv[i]); i++) { /* nothing */ }
+		if (i!=0 && child->argv[i]==NULL) {
+			/* assignments, but no command: set the local environment */
+			for (i=0; child->argv[i]!=NULL; i++) {
+				set_local_var(child->argv[i]);
+			}
+			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
+		}
 		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[0], x->cmd) == 0 ) {
+			if (strcmp(child->argv[i], x->cmd) == 0 ) {
 				int squirrel[] = {-1, -1, -1};
 				int rcode;
-				if (x->function == builtin_exec && child->argv[1]==NULL) {
+				if (x->function == builtin_exec && child->argv[i+1]==NULL) {
 					debug_printf("magic exec\n");
 					setup_redirects(child,NULL);
 					return EXIT_SUCCESS;
@@ -1268,7 +1291,12 @@ static int run_pipe_real(struct pipe *pi)
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
+				for (i=0; is_assignment(child->argv[i]); i++) {
+					putenv(strdup(child->argv[i]));
+				}
+				child->argv+=i;  /* XXX horrible hack */
 				rcode = x->function(child);
+				child->argv-=i;  /* XXX restore hack so free() can work right */
 				restore_redirects(squirrel);
 				return rcode;
 			}
@@ -1579,6 +1607,22 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	}
 	/* globprint(glob_target); */
 	return gr;
+}
+
+
+static int set_local_var(const char *s)
+{
+	/* when you write this, also need to update lookup_param() */
+	printf("assignment %s not handled: write me!\n",s);
+	return 0;
+}
+
+static int is_assignment(const char *s)
+{
+	if (s==NULL || !isalpha(*s)) return 0;
+	++s;
+	while(isalnum(*s) || *s=='_') ++s;
+	return *s=='=';
 }
 
 /* the src parameter allows us to peek forward to a possible &n syntax
