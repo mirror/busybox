@@ -84,16 +84,21 @@ extern void usage(const char *usage)
 	exit(EXIT_FAILURE);
 }
 
+static void verrorMsg(const char *s, va_list p)
+{
+	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
+	vfprintf(stderr, s, p);
+	fflush(stderr);
+}
+
 extern void errorMsg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	vfprintf(stderr, s, p);
+	verrorMsg(s, p);
 	va_end(p);
-	fflush(stderr);
 }
 
 extern void fatalError(const char *s, ...)
@@ -101,12 +106,21 @@ extern void fatalError(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
+	verrorMsg(s, p);
+	va_end(p);
+	exit(EXIT_FAILURE);
+}
+
+static void vperrorMsg(const char *s, va_list p)
+{
 	fflush(stdout);
 	fprintf(stderr, "%s: ", applet_name);
-	vfprintf(stderr, s, p);
-	va_end(p);
+	if (s && *s) {
+		vfprintf(stderr, s, p);
+		fputs(": ", stderr);
+	}
+	fprintf(stderr, "%s\n", strerror(errno));
 	fflush(stderr);
-	exit(EXIT_FAILURE);
 }
 
 extern void perrorMsg(const char *s, ...)
@@ -114,15 +128,8 @@ extern void perrorMsg(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	if (s && *s) {
-		vfprintf(stderr, s, p);
-		fputs(": ", stderr);
-	}
-	fprintf(stderr, "%s\n", strerror(errno));
+	vperrorMsg(s, p);
 	va_end(p);
-	fflush(stderr);
 }
 
 extern void fatalPerror(const char *s, ...)
@@ -130,15 +137,8 @@ extern void fatalPerror(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	if (s && *s) {
-		vfprintf(stderr, s, p);
-		fputs(": ", stderr);
-	}
-	fprintf(stderr, "%s\n", strerror(errno));
+	vperrorMsg(s, p);
 	va_end(p);
-	fflush(stderr);
 	exit(EXIT_FAILURE);
 }
 
