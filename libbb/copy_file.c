@@ -65,9 +65,25 @@ int copy_file(const char *source, const char *dest, int flags)
 		DIR *dp;
 		struct dirent *d;
 		mode_t saved_umask = 0;
+		char *dstparent;
+		struct stat dstparent_stat;
 
 		if (!(flags & FILEUTILS_RECUR)) {
 			bb_error_msg("%s: omitting directory", source);
+			return -1;
+		}
+
+		dstparent = dirname(bb_xstrdup(dest));
+		if (lstat(dstparent, &dstparent_stat) < 0) {
+			bb_perror_msg("unable to stat `%s'", dstparent);
+			free(dstparent);
+			return -1;
+		}
+		free(dstparent);
+
+		if (source_stat.st_dev == dstparent_stat.st_dev &&
+			source_stat.st_ino == dstparent_stat.st_ino) {
+			bb_error_msg("cannot copy a directory, `%s', into itself, `%s'", source, dest);
 			return -1;
 		}
 
