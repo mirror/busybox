@@ -41,11 +41,9 @@ extern int dutmp_main(int argc, char **argv)
 		}
 	}
 
-/* Kludge around the fact that the binary format for utmp has changed, and the
- * fact the stupid libc doesn't have a reliable #define to announce that libc5
- * is being used.  sigh.
- */
-#if ! defined __GLIBC__ || defined __UCLIBC__
+/* Kludge around the fact that the binary format for utmp has changed. */
+#if __GNU_LIBRARY__ < 5
+	/* Linux libc5 */
 	while (read(file, (void*)&ut, sizeof(struct utmp))) {
 		printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
 				ut.ut_type, ut.ut_pid, ut.ut_line,
@@ -54,6 +52,7 @@ extern int dutmp_main(int argc, char **argv)
 				(long)ut.ut_addr);
 	}
 #else
+	/* Glibc, uClibc, etc */
 	while (read(file, (void*)&ut, sizeof(struct utmp))) {
 		printf("%d|%d|%s|%s|%s|%s|%d|%d|%ld|%ld|%ld|%x\n",
 		ut.ut_type, ut.ut_pid, ut.ut_line,

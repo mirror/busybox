@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.5 2001/03/15 15:37:48 mjn3 Exp $
+ * Version:     $Id: interface.c,v 1.6 2001/04/09 23:52:18 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -115,7 +115,7 @@ struct in6_ifreq {
 #endif				/* HAVE_AFINET6 */
 
 #if HAVE_AFIPX
-#if (__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1)
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 #include <netipx/ipx.h>
 #else
 #include "ipx.h"

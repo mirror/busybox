@@ -33,11 +33,11 @@
 #include <unistd.h> /* for getopt() */
 #include <stdlib.h>
 
-#if defined(__GLIBC__)
-#include <sys/kdaemon.h>
+#if __GNU_LIBRARY__ > 5
+	#include <sys/kdaemon.h>
 #else
-extern int bdflush (int func, long int data);
-#endif							/* __GLIBC__ */
+	extern int bdflush (int func, long int data);
+#endif
 
 #include "busybox.h"
 

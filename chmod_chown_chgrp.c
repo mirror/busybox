@@ -49,6 +49,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	switch (whichApp) {
 	case CHGRP_APP:
 	case CHOWN_APP:
+	/* Don't use lchown for libc5 or glibc older then 2.1.x */
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 		if (lchown
 			(fileName, (whichApp == CHOWN_APP) ? uid : statbuf->st_uid,

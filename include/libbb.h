@@ -34,9 +34,8 @@
 #endif
 
 #include <features.h>
-/* Stupid libc doesn't have a reliable way for use to know 
- * that libc5 is being used.   Assume this is good enough */ 
-#if ! defined __GLIBC__ && ! defined __UCLIBC__
+
+#if __GNU_LIBRARY__ < 5
 /* libc5 doesn't define socklen_t */
 typedef unsigned int socklen_t;
 /* libc5 doesn't implement BSD 4.4 daemon() */

@@ -85,12 +85,12 @@ static const int RB_ENABLE_CAD = 0x89abcdef;
 static const int RB_DISABLE_CAD = 0;
 #define RB_POWER_OFF    0x4321fedc
 static const int RB_AUTOBOOT = 0x01234567;
-#if defined(__GLIBC__) || defined (__UCLIBC__)
-#include <sys/reboot.h>
+
+#if __GNU_LIBRARY__ > 5
+  #include <sys/reboot.h>
   #define init_reboot(magic) reboot(magic)
 #else
   #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
-#endif
 #endif
 
 #ifndef _PATH_STDPATH
@@ -112,11 +112,11 @@ static const int RB_AUTOBOOT = 0x01234567;
 
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
-#if defined(__GLIBC__)
-#include <sys/kdaemon.h>
+#if __GNU_LIBRARY__ > 5
+	#include <sys/kdaemon.h>
 #else
-extern int bdflush (int func, long int data);
-#endif							/* __GLIBC__ */
+	extern int bdflush (int func, long int data);
+#endif
 
 
 #define VT_PRIMARY   "/dev/tty1"     /* Primary virtual console */

@@ -32,9 +32,7 @@
 #include <unistd.h>
 
 
-/* Stupid libc doesn't have a reliable way for use to know 
- * that libc5 is being used.   Assume this is good enough */ 
-#if ! defined __GLIBC__ && ! defined __UCLIBC__
+#if __GNU_LIBRARY__ < 5
 
 int daemon( int nochdir, int noclose )
 {
