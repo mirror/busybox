@@ -1462,8 +1462,11 @@ static int busy_loop(FILE * input)
 			while (!job_list.fg->progs[i].pid ||
 				   job_list.fg->progs[i].is_stopped == 1) i++;
 
-			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED)<0)
-				perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
+			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED)<0) {
+				if (errno != ECHILD) {
+					perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
+				}
+			}
 
 			if (WIFEXITED(status) || WIFSIGNALED(status)) {
 				/* the child exited */
@@ -1500,7 +1503,7 @@ static int busy_loop(FILE * input)
 	free(command);
 
 	/* return controlling TTY back to parent process group before exiting */
-	if (tcsetpgrp(shell_terminal, parent_pgrp))
+	if (tcsetpgrp(shell_terminal, parent_pgrp) && errno != ENOTTY)
 		perror_msg("tcsetpgrp");
 
 	/* return exit status if called with "-c" */
