@@ -88,7 +88,6 @@ struct serial_struct {
 #include <sys/reboot.h>
   #define init_reboot(magic) reboot(magic)
 #else
-  extern int reboot __P ((int __howto));
   #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
 #endif
 #endif

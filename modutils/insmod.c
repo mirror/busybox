@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.31 2000/12/07 19:56:48 markw Exp $"
+#ident "$Id: insmod.c,v 1.32 2000/12/13 16:41:29 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.31 2000/12/07 19:56:48 markw Exp $"
+#ident "$Id: insmod.c,v 1.32 2000/12/13 16:41:29 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -859,7 +859,7 @@ arch_apply_relocation(struct obj_file *f,
 		break;
 
 	default:
-        printf("Warning: unhandled reloc %d\n",ELF32_R_TYPE(rel->r_info));
+        printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
 		ret = obj_reloc_unhandled;
 		break;
 	}
