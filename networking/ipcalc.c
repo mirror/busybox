@@ -62,7 +62,7 @@ static int get_prefix(unsigned long netmask)
 #define NETWORK   0x04
 #define NETPREFIX 0x08
 #define HOSTNAME  0x10
-#define SILENT    0x80
+#define SILENT    0x20
 
 int ipcalc_main(int argc, char **argv)
 {
