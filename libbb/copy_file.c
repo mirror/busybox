@@ -36,7 +36,7 @@ int copy_file(const char *source, const char *dest, int flags)
 {
 	struct stat source_stat;
 	struct stat dest_stat;
-	int dest_exists = 1;
+	int dest_exists = 0;
 	int status = 0;
 
 	if ((!(flags & FILEUTILS_DEREFERENCE) &&
@@ -52,13 +52,13 @@ int copy_file(const char *source, const char *dest, int flags)
 			perror_msg("unable to stat `%s'", dest);
 			return -1;
 		}
-		dest_exists = 0;
-	}
-
-	if (dest_exists && source_stat.st_dev == dest_stat.st_dev &&
+	} else {
+		if (source_stat.st_dev == dest_stat.st_dev &&
 			source_stat.st_ino == dest_stat.st_ino) {
 		error_msg("`%s' and `%s' are the same file", source, dest);
 		return -1;
+	}
+		dest_exists = 1;
 	}
 
 	if (S_ISDIR(source_stat.st_mode)) {
@@ -116,13 +116,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			free(new_source);
 			free(new_dest);
 		}
-
-		/* ??? What if an error occurs in readdir?  */
-
-		if (closedir(dp) < 0) {
-			perror_msg("unable to close directory `%s'", source);
-			status = -1;
-		}
+		/* closedir have only EBADF error, but "dp" not changes */
+		closedir(dp);
 
 		if (!dest_exists &&
 				chmod(dest, source_stat.st_mode & ~saved_umask) < 0) {
@@ -145,8 +140,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 #endif
 
-		if ((sfp = fopen(source, "r")) == NULL) {
-			perror_msg("unable to open `%s'", source);
+		if ((sfp = wfopen(source, "r")) == NULL) {
 			return -1;
 		}
 
@@ -201,81 +195,34 @@ int copy_file(const char *source, const char *dest, int flags)
 			perror_msg("unable to close `%s'", source);
 			status = -1;
 		}
-	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
-			S_ISSOCK(source_stat.st_mode)) {
-
-		if (dest_exists) {
-			if (flags & FILEUTILS_INTERACTIVE) {
-				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
-				if (!ask_confirmation())
-					return 0;
 			}
+	else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
+	    S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode) ||
+	    S_ISLNK(source_stat.st_mode)) {
 
-			if (!(flags & FILEUTILS_FORCE)) {
+		if (dest_exists &&
+		       ((flags & FILEUTILS_FORCE) == 0 || unlink(dest) < 0)) {
 				perror_msg("unable to remove `%s'", dest);
 				return -1;
-			}
 
-			if (unlink(dest) < 0) {
-				perror_msg("unable to remove `%s'", dest);
-				return -1;
 			}
-
-			dest_exists = 0;
+	} else {
+		error_msg("internal error: unrecognized file type");
+		return -1;
 		}
-
+	if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
+	    S_ISSOCK(source_stat.st_mode)) {
 		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
 			perror_msg("unable to create `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISFIFO(source_stat.st_mode)) {
-
-		if (dest_exists) {
-			if (flags & FILEUTILS_INTERACTIVE) {
-				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
-				if (!ask_confirmation())
-					return 0;
-			}
-
-			if (!(flags & FILEUTILS_FORCE)) {
-				perror_msg("unable to remove `%s'", dest);
-				return -1;
-			}
-
-			if (unlink(dest) < 0) {
-				perror_msg("unable to remove `%s'", dest);
-				return -1;
-			}
-
-			dest_exists = 0;
-		}
-
 		if (mkfifo(dest, source_stat.st_mode) < 0) {
 			perror_msg("cannot create fifo `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISLNK(source_stat.st_mode)) {
 		char *lpath;
-
-		if (dest_exists) {
-			if (flags & FILEUTILS_INTERACTIVE) {
-				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
-				if (!ask_confirmation())
-					return 0;
-			}
-
-			if (!(flags & FILEUTILS_FORCE)) {
-				perror_msg("unable to remove `%s'", dest);
-				return -1;
-			}
-
-			if (unlink(dest) < 0) {
-				perror_msg("unable to remove `%s'", dest);
-				return -1;
-			}
-
-			dest_exists = 0;
-		}
 
 		lpath = xreadlink(source);
 		if (symlink(lpath, dest) < 0) {
@@ -295,9 +242,6 @@ int copy_file(const char *source, const char *dest, int flags)
 #endif
 
 		return 0;
-	} else {
-		error_msg("internal error: unrecognized file type");
-		return -1;
 	}
 
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
