@@ -386,6 +386,9 @@
 #ifdef BB_SORT
 	APPLET(sort, sort_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_START_STOP_DAEMON
+    APPLET_ODDNAME("start-stop-daemon", start_stop_daemon_main, _BB_DIR_SBIN, start_stop_daemon)
+#endif
 #ifdef BB_STTY
 	APPLET(stty, stty_main, _BB_DIR_BIN)
 #endif

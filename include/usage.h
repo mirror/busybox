@@ -1458,6 +1458,20 @@
 	"e\n" \
 	"f\n"
 
+#define start_stop_daemon_trivial_usage \
+	"[OPTIONS]"
+#define start_stop_daemon_full_usage \
+	"Program to start and stop services.\n"\
+	"Options:\n" \
+	"-S\t\t\tstart\n"\
+	"-K\t\t\tstop\n"\
+	"-x <executable>\t\tprogram to start/check if it is running\n"\
+	"-p <pid-file>\t\tpid file to check\n"\
+	"-u <username>|<uid>\tstop this user's processes\n"\
+	"-n <process-name>\tstop processes with this name\n"\
+	"-s <signal>\t\tsignal to send (default 15)\n"\
+	"-a <pathname>\t\tprogram to start (default <executable>)\n"
+
 #define stty_trivial_usage \
 	"[-a|g] [-F DEVICE] [SETTING]..."
 #define stty_full_usage \

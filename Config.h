@@ -114,6 +114,7 @@
 #define BB_SLEEP
 #define BB_SORT
 //#define BB_STTY
+//#define BB_START_STOP_DAEMON
 #define BB_SWAPONOFF
 #define BB_SYNC
 #define BB_SYSLOGD
