@@ -113,7 +113,7 @@ OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
 	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
 GCC_STACK_BOUNDRY := ${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc /dev/null \
 	>/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; else echo "" ; fi}
-OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer $(GCC_STACK_BOUNDRY)
+OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer $(GCC_STACK_BOUNDRY) #-fstrict-aliasing -march=i386 -mcpu=i386 -malign-functions=0 -malign-jumps=0
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS = -I$(TOPDIR)/include
 ARFLAGS = -r
@@ -147,7 +147,7 @@ endif
 ifeq ($(strip $(DODEBUG)),true)
     CFLAGS  += $(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS += -Wl,-warn-common
-    STRIPCMD    =
+    STRIPCMD = /bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS  += $(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE
     LDFLAGS += -s -Wl,-warn-common
