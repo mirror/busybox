@@ -1,3 +1,10 @@
+busybox-cvs (0.60.99.cvs20030105-1) unstable; urgency=low
+
+  * Fix ip command build failure on ia64 (Closes: #172580
+  * Dont build with BSD partition table support in fdisk, fails on m68k 
+
+ -- Glenn McGrath <bug1@home>  Sun,  5 Jan 2003 12:48:05 +1100
+
 busybox-cvs (0.60.99.cvs20030104-2) unstable; urgency=low
 
   * floppy-retriever needs the cut command in the udeb 
