@@ -678,8 +678,7 @@ static int dpkg_unpackcontrol(package_t *pkg)
 
 	/* clean the temp directory (dpkgcidir) be recreating it */
 	remove_dir(dpkgcidir);
-	if (mkdir(dpkgcidir, S_IRWXU) != 0) {
-		perror("mkdir");
+	if (create_path(dpkgcidir, S_IRWXU) == FALSE) {
 		return EXIT_FAILURE;
 	}
 
@@ -864,8 +863,8 @@ extern int dpkg_main(int argc, char **argv)
 		optind++;
 	}
 
-	create_path(dpkgcidir, 0755);
-	create_path(infodir, 0755);
+	create_path(dpkgcidir, S_IRWXU);
+	create_path(infodir, S_IRWXU);
 
 	status = status_read();
 
