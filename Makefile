@@ -224,7 +224,6 @@ else
 endif
     
 LIBBB	  = libbb
-LIBBB_DIR = $(BB_SRC_DIR:=/)$(LIBBB)
 LIBBB_LIB = libbb.a
 LIBBB_CSRC= ask_confirmation.c check_wildcard_match.c chomp.c copy_file.c \
 copy_file_chunk.c create_path.c device_open.c error_msg.c \
@@ -238,7 +237,11 @@ syslog_msg_with_name.c time_string.c trim.c vdprintf.c wfopen.c xfuncs.c \
 xregcomp.c error_msg_and_die.c perror_msg.c perror_msg_and_die.c \
 verror_msg.c vperror_msg.c mtab.c mtab_file.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
-LIBBB_CFLAGS = -I$(LIBBB_DIR)
+LIBBB_CFLAGS = -I$(LIBBB)
+ifneq ($(strip $(BB_SRC_DIR)),)
+    LIBBB_CFLAGS += -I$(BB_SRC_DIR)/$(LIBBB)
+endif
+
 
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
