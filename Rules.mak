@@ -111,15 +111,45 @@ export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
-# use '-Os' optimization if available, else use -O2
-OPTIMIZATION:=${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
-	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
-GCC_STACK_BOUNDRY:=${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc /dev/null \
-	>/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; else echo "" ; fi}
-OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer $(GCC_STACK_BOUNDRY) #-fstrict-aliasing -march=i386 -mcpu=i386 -malign-functions=0 -malign-jumps=0
 WARNINGS:=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS:=-I$(TOPDIR)include
 ARFLAGS:=-r
+
+TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+		-e 's/i.86/i386/' \
+		-e 's/sparc.*/sparc/' \
+		-e 's/arm.*/arm/g' \
+		-e 's/m68k.*/m68k/' \
+		-e 's/ppc/powerpc/g' \
+		-e 's/v850.*/v850/g' \
+		-e 's/sh[234]/sh/' \
+		-e 's/mips.*/mips/' \
+		}
+
+#--------------------------------------------------------
+# Arch specific compiler optimization stuff should go here.
+# Unless you want to override the defaults, do not set anything
+# for OPTIMIZATION...
+
+# use '-Os' optimization if available, else use -O2
+OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
+	then echo "-Os"; else echo "-O2" ; fi}
+
+# Some nice architecture specific optimizations
+ifeq ($(strip $(TARGET_ARCH)),arm)
+	OPTIMIZATION+=-fstrict-aliasing
+endif
+ifeq ($(strip $(TARGET_ARCH)),i386)
+	OPTIMIZATION+=-march=i386
+	OPTIMIZATION+=${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc \
+		/dev/null >/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; fi}
+	OPTIMIZATION+=${shell if $(CC) -falign-functions=1 -falign-jumps=0 -falign-loops=0 \
+		-S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo \
+		"-falign-functions=1 -falign-jumps=0 -falign-loops=0"; else \
+		if $(CC) -malign-functions=0 -malign-jumps=0 -S -o /dev/null -xc \
+		/dev/null >/dev/null 2>&1; then echo "-malign-functions=0 -malign-jumps=0"; fi; fi}
+endif
+OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 
 #
 #--------------------------------------------------------
