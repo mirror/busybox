@@ -56,6 +56,10 @@ Gennady Feldman <gfeldman@gena01.com>
     Sysklogd (single threaded syslogd, IPC Circular buffer support,
     logread), various fixes.
 
+Robert Griebl <sandman@handhelds.org>
+    modprobe, hwclock, suid/sgid handling, tinylogin integration
+    many bugfixes and enhancements
+
 Karl M. Hegbloom <karlheg@debian.org>
     cp_mv.c, the test suite, various fixes to utility.c, &c.
 
