@@ -1050,9 +1050,13 @@ static int expand_arguments(char *command)
 			 * but don't overflow command which is BUFSIZ in length */
 				for (i=0; i < expand_result.gl_pathc; i++) {
 					length=strlen(expand_result.gl_pathv[i]);
-					if (BUFSIZ-total_length-length <= 0) {
+					if (total_length+length+1 >= BUFSIZ) {
 						error_msg(out_of_space);
 						return FALSE;
+					}
+					if (i>0) {
+						strcat(command+total_length, " ");
+						total_length+=1;
 					}
 					strcat(command+total_length, expand_result.gl_pathv[i]);
 					total_length+=length;
