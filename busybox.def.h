@@ -59,6 +59,7 @@
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
+#define BB_RMMOD
 //#define BB_SFDISK
 #define BB_SED
 #define BB_SLEEP

@@ -168,6 +168,9 @@ static const struct Applet applets[] = {
 #ifdef BB_RMDIR			//bin
     {"rmdir", rmdir_main},
 #endif
+#ifdef BB_RMMOD			//sbin
+    {"rmmod", rmmod_main},
+#endif
 #ifdef BB_SFDISK		//sbin
     {"fdisk", sfdisk_main},
     {"sfdisk", sfdisk_main},
