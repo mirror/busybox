@@ -112,6 +112,7 @@
 //#define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
+//#define BB_UNIX2DOS
 //#define BB_UUENCODE
 //#define BB_UUDECODE
 #define BB_UMOUNT
@@ -416,8 +417,4 @@
 	#if defined BB_FEATURE_IPC_SYSLOG
 		#define BB_LOGREAD
 	#endif
-#endif
-//
-#if defined BB_DOS2UNIX 
-	#define BB_UNIX2DOS
 #endif
