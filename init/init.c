@@ -627,8 +627,8 @@ static pid_t run(struct init_action *a)
 			messageND(LOG,
 					  "Waiting for enter to start '%s' (pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
-			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 			fflush(stdout);
+			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 			getc(stdin);
 		}
 
