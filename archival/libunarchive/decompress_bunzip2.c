@@ -1274,7 +1274,7 @@ save_state_and_return:
 	return retVal;   
 }
 
-static void BZ2_bzReadClose(void)
+extern void BZ2_bzReadClose(void)
 {
 	if (bzf->initialisedOk) {
 		bz_stream *strm = &(bzf->strm);

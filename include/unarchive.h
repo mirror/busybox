@@ -91,6 +91,7 @@ extern void check_trailer_gzip(int src_fd);
 
 extern char get_header_ar(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);
+extern char get_header_tar_bz2(archive_handle_t *archive_handle);
 extern char get_header_tar_gz(archive_handle_t *archive_handle);
 
 extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount);
@@ -108,6 +109,7 @@ extern const llist_t *find_list_entry(const llist_t *list, const char *filename)
 
 extern ssize_t read_bz2(int fd, void *buf, size_t count);
 extern void BZ2_bzReadOpen(int fd, void *unused, int nUnused);
+extern void BZ2_bzReadClose(void);
 extern unsigned char uncompressStream(int src_fd, int dst_fd);
 
 #endif

@@ -36,6 +36,7 @@ LIBUNARCHIVE-y:= \
 \
 	get_header_ar.o \
 	get_header_tar.o \
+	get_header_tar_bz2.o \
 	get_header_tar_gz.o \
 \
 	header_skip.o \

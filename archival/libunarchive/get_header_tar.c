@@ -52,8 +52,8 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	/* Align header */
 	data_align(archive_handle, 512);
 
-	if (archive_xread_all_eof(archive_handle, tar.raw, 512) == 0) {
-		/* End of file */
+	if (archive_xread(archive_handle, tar.raw, 512) != 512) {
+		/* Assume end of file */
 		return(EXIT_FAILURE);
 	}
 	archive_handle->offset += 512;

@@ -748,8 +748,7 @@ int tar_main(int argc, char **argv)
 #endif /* CONFIG_FEATURE_TAR_GZIP */
 #ifdef CONFIG_FEATURE_TAR_BZIP2
 		if (tar_handle->read == read_bz2) {
-			BZ2_bzReadOpen(tar_handle->src_fd, NULL, 0);
-			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
+			get_header_tar_bz2(tar_handle);
 		} else
 #endif /* CONFIG_FEATURE_TAR_BZIP2 */
 
