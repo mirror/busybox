@@ -118,6 +118,9 @@ extern int gunzip_main(int argc, char **argv)
 		/* Open input file */
 		in_file = xfopen(if_name, "r");
 
+		/* set the buffer size */
+		setvbuf(in_file, NULL, _IOFBF, 0x8000);
+
 		/* Get the time stamp on the input file. */
 		if (stat(if_name, &stat_buf) < 0) {
 			error_msg_and_die("Couldn't stat file %s", if_name);

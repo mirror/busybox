@@ -284,6 +284,10 @@ extern int tar_main(int argc, char **argv)
 		/* unzip tarFd in a seperate process */
 		if (unzipFlag == TRUE) {
 			comp_file = fdopen(tarFd, "r");
+
+			/* set the buffer size */
+			setvbuf(comp_file, NULL, _IOFBF, 0x8000);
+
 			if ((tarFd = fileno(gz_open(comp_file, &pid))) == EXIT_FAILURE) {
 				error_msg_and_die("Couldnt unzip file");
 			}

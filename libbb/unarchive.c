@@ -568,6 +568,9 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 	/* open the debian package to be worked on */
 	deb_stream = wfopen(package_filename, "r");
 
+	/* set the buffer size */
+	setvbuf(deb_stream, NULL, _IOFBF, 0x8000);
+
 	/* check ar magic */
 	fread(ar_magic, 1, 8, deb_stream);
 	if (strncmp(ar_magic,"!<arch>",7) != 0) {
