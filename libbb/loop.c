@@ -33,6 +33,8 @@
 #include <asm/posix_types.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#define __bb_kernel_dev_t   __kernel_old_dev_t
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 #define __bb_kernel_dev_t   __kernel_dev_t
 #else
 #define __bb_kernel_dev_t   unsigned short
