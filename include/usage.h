@@ -2094,6 +2094,16 @@
 	"$ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
 	"bar\n"
 
+#define seq_trivial_usage \
+	"[first [increment]] last"
+#define seq_full_usage \
+	"Print numbers from FIRST to LAST, in steps of INCREMENT.\n" \
+	"FIRST, INCREMENT default to 1\n" \
+	"Arguments:\n" \
+	"\tLAST\n" \
+	"\tFIRST\tLAST\n" \
+	"\tFIRST\tINCREMENT\tLAST\n"
+
 #define setkeycodes_trivial_usage \
 	"SCANCODE KEYCODE ..."
 #define setkeycodes_full_usage \

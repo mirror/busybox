@@ -367,6 +367,12 @@ config CONFIG_RMDIR
 	help
 	  rmdir is used to remove empty directories.
 
+config CONFIG_SEQ
+	bool "seq"
+	default n
+	help
+	  print a sequence of numbers
+
 config CONFIG_SHA1SUM
 	bool "sha1sum"
 	default n

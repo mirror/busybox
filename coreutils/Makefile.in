@@ -63,6 +63,7 @@ COREUTILS-$(CONFIG_PWD)     	+= pwd.o
 COREUTILS-$(CONFIG_REALPATH)	+= realpath.o
 COREUTILS-$(CONFIG_RM)      	+= rm.o
 COREUTILS-$(CONFIG_RMDIR)   	+= rmdir.o
+COREUTILS-$(CONFIG_SEQ)     	+= seq.o
 COREUTILS-$(CONFIG_SHA1SUM) 	+= md5_sha1_sum.o
 COREUTILS-$(CONFIG_SLEEP)   	+= sleep.o
 COREUTILS-$(CONFIG_SORT)    	+= sort.o
