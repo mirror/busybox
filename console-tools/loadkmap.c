@@ -51,7 +51,6 @@ int loadkmap_main(int argc, char **argv)
 	}
 
 	read(0, buff, 7);
-	printf("buff='%s'\n", buff);
 	if (0 != strncmp(buff, magic, 7)) {
 		fprintf(stderr, "This is not a valid binary keymap.\n");
 		exit(FALSE);
