@@ -114,7 +114,6 @@ static int my_query_module(const char *name, int which, void **buf,
 
 	return my_ret;
 }
-#endif
 
 extern int lsmod_main(int argc, char **argv)
 {
