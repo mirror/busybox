@@ -660,13 +660,11 @@ extern int mkfs_minix_main(int argc, char **argv)
 #endif
 	
 	/* Parse options */
-printf("erik: argc='%d'  argv='%s'\n", argc, *argv);
 	argv++;
 	while (--argc >= 0 && *argv && **argv) {
 		if (**argv == '-') {
 			stopIt=FALSE;
 			while (i > 0 && *++(*argv) && stopIt==FALSE) {
-printf("erik: argc='%d'  argv='%s'\n", argc, *argv);
 				switch (**argv) {
 					case 'c':
 						check = 1;
@@ -685,7 +683,6 @@ printf("erik: argc='%d'  argv='%s'\n", argc, *argv);
 							req_nr_inodes = strtoul(cp, &tmp, 0);
 							if (*tmp)
 								show_usage();
-printf("erik: nr_inodes=%ld\n", req_nr_inodes);
 							stopIt=TRUE;
 							break;
 						}
@@ -694,7 +691,6 @@ printf("erik: nr_inodes=%ld\n", req_nr_inodes);
 							goto goodbye;
 						}
 						listfile = *(++argv);
-printf("erik: listfile='%s'\n", listfile);
 						break;
 					case 'n':
 						{
@@ -709,8 +705,6 @@ printf("erik: listfile='%s'\n", listfile);
 								cp = *(++argv);
 							}
 							i = strtoul(cp, &tmp, 0);
-							//printf("cp='%s'   i='%d'\n", cp, i);
-printf("erik: namelen=%d\n", i);
 							if (*tmp)
 								show_usage();
 							if (i == 14)
@@ -741,7 +735,6 @@ goodbye:
 				}
 			}
 		} else {
-printf("else:  argc='%d'  argv='%s'\n", argc, *argv);
 			if (device_name == NULL)
 				device_name = *argv;
 			else if (BLOCKS == 0)
