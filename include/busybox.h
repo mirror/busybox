@@ -233,7 +233,7 @@ extern int sysinfo (struct sysinfo* info);
 #endif
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-const char *format(unsigned long val, unsigned long hr);
+const char *make_human_readable_str(unsigned long val, unsigned long hr);
 #endif
 #define KILOBYTE 1024
 #define MEGABYTE (KILOBYTE*1024)

@@ -1798,7 +1798,7 @@ ssize_t safe_read(int fd, void *buf, size_t count)
 #endif
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-const char *format(unsigned long val, unsigned long hr)
+const char *make_human_readable_str(unsigned long val, unsigned long hr)
 {
 	int i=0;
 	static char str[10] = "\0";

@@ -31,10 +31,10 @@
 
 extern const char mtab_file[];	/* Defined in utility.c */
 #ifdef BB_FEATURE_HUMAN_READABLE
-static unsigned long disp_hr = KILOBYTE; 
+static unsigned long df_disp_hr = KILOBYTE; 
 #endif
 
-static int df(char *device, const char *mountPoint)
+static int do_df(char *device, const char *mount_point)
 {
 	struct statfs s;
 	long blocks_used;
@@ -43,8 +43,8 @@ static int df(char *device, const char *mountPoint)
 	long base;
 #endif	
 
-	if (statfs(mountPoint, &s) != 0) {
-		perror_msg("%s", mountPoint);
+	if (statfs(mount_point, &s) != 0) {
+		perror_msg("%s", mount_point);
 		return FALSE;
 	}
 
@@ -61,8 +61,8 @@ static int df(char *device, const char *mountPoint)
 			 * or leaves device alone if it can't find it */
 			find_real_root_device_name( device);
 		}
-		#ifdef BB_FEATURE_HUMAN_READABLE
-		switch (disp_hr) {
+#ifdef BB_FEATURE_HUMAN_READABLE
+		switch (df_disp_hr) {
 			case MEGABYTE:
 				base = KILOBYTE;
 				break;
@@ -73,19 +73,19 @@ static int df(char *device, const char *mountPoint)
 				base = 0;
 		}
 		printf("%-20s %9s ", device,
-			   format(s.f_blocks * (s.f_bsize/KILOBYTE), base));
+			   make_human_readable_str(s.f_blocks * (s.f_bsize/KILOBYTE), base));
 		printf("%9s ",
-			   format((s.f_blocks - s.f_bfree) * (s.f_bsize/KILOBYTE), base));
+			   make_human_readable_str((s.f_blocks - s.f_bfree) * (s.f_bsize/KILOBYTE), base));
 		printf("%9s %3ld%% %s\n",
-			   format(s.f_bavail * (s.f_bsize/KILOBYTE), base),
-			   blocks_percent_used, mountPoint);
+			   make_human_readable_str(s.f_bavail * (s.f_bsize/KILOBYTE), base),
+			   blocks_percent_used, mount_point);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 				device,
 				(long) (s.f_blocks * (s.f_bsize / KILOBYTE)),
 				(long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / KILOBYTE)),
 				(long) (s.f_bavail * (s.f_bsize / KILOBYTE)),
-				blocks_percent_used, mountPoint);
+				blocks_percent_used, mount_point);
 #endif
 	}
 
@@ -97,60 +97,61 @@ extern int df_main(int argc, char **argv)
 	int status = EXIT_SUCCESS;
 	int opt = 0;
 	int i = 0;
+	char disp_units_hdr[80] = "1k-blocks"; /* default display is kilobytes */
 
-	while ((opt = getopt(argc, argv, 
+	while ((opt = getopt(argc, argv, "k"
 #ifdef BB_FEATURE_HUMAN_READABLE
 	"hm"
 #endif
-	"k"
 )) > 0)
 	{
 		switch (opt) {
 #ifdef BB_FEATURE_HUMAN_READABLE
-			case 'h': disp_hr = 0;         break;
-			case 'm': disp_hr = MEGABYTE;  break;
+			case 'h':
+				df_disp_hr = 0;
+				strcpy(disp_units_hdr, "     Size");
+				break;
+			case 'm':
+				df_disp_hr = MEGABYTE;
+				strcpy(disp_units_hdr, "1M-blocks");
+				break;
 #endif
-			case 'k': break;
+			case 'k':
+				/* default display is kilobytes */
+				break;
 			default:
 					  show_usage();
 		}
 	}
 
-	printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
-#ifdef BB_FEATURE_HUMAN_READABLE
-			(KILOBYTE == disp_hr) ? "1k-blocks" :
-			(MEGABYTE == disp_hr) ? "1M-blocks" : "     Size",
-#else
-		   "1k-blocks",
-#endif
+	printf("%-20s %-14s %s %s %s %s\n", "Filesystem", disp_units_hdr,
 	       "Used", "Available", "Use%", "Mounted on");
 
-
 	if(optind < argc) {
-		struct mntent *mountEntry;
+		struct mntent *mount_entry;
 		for(i = optind; i < argc; i++)
 		{
-			if ((mountEntry = find_mount_point(argv[i], mtab_file)) == 0) {
+			if ((mount_entry = find_mount_point(argv[i], mtab_file)) == 0) {
 				error_msg("%s: can't find mount point.", argv[i]);
 				status = EXIT_FAILURE;
-			} else if (!df(mountEntry->mnt_fsname, mountEntry->mnt_dir))
+			} else if (!do_df(mount_entry->mnt_fsname, mount_entry->mnt_dir))
 				status = EXIT_FAILURE;
 		}
 	} else {
-		FILE *mountTable;
-		struct mntent *mountEntry;
+		FILE *mount_table;
+		struct mntent *mount_entry;
 
-		mountTable = setmntent(mtab_file, "r");
-		if (mountTable == 0) {
+		mount_table = setmntent(mtab_file, "r");
+		if (mount_table == 0) {
 			perror_msg("%s", mtab_file);
 			return EXIT_FAILURE;
 		}
 
-		while ((mountEntry = getmntent(mountTable))) {
-			if (!df(mountEntry->mnt_fsname, mountEntry->mnt_dir))
+		while ((mount_entry = getmntent(mount_table))) {
+			if (!do_df(mount_entry->mnt_fsname, mount_entry->mnt_dir))
 				status = EXIT_FAILURE;
 		}
-		endmntent(mountTable);
+		endmntent(mount_table);
 	}
 
 	return status;

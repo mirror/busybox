@@ -610,7 +610,8 @@ int list_single(struct dnode *dn)
 				break;
 			case LIST_BLOCKS:
 #ifdef BB_FEATURE_HUMAN_READABLE
-				fprintf(stdout, "%5s ", format(dn->dstat.st_blocks>>1, (ls_disp_hr==TRUE)? 0: 1));
+				fprintf(stdout, "%5s ", make_human_readable_str(dn->dstat.st_blocks>>1,
+							(ls_disp_hr==TRUE)? 0: 1));
 #else
 #if _FILE_OFFSET_BITS == 64
 				printf("%4lld ", dn->dstat.st_blocks>>1);
@@ -647,7 +648,8 @@ int list_single(struct dnode *dn)
 					printf("%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
 #ifdef BB_FEATURE_HUMAN_READABLE
-					fprintf(stdout, "%9s ", format(dn->dstat.st_size, (ls_disp_hr==TRUE)? 0: 1));
+					fprintf(stdout, "%9s ", make_human_readable_str(dn->dstat.st_size,
+								(ls_disp_hr==TRUE)? 0: 1));
 #else
 #if _FILE_OFFSET_BITS == 64
 					printf("%9lld ", dn->dstat.st_size>>1);

@@ -60,7 +60,7 @@ static void print_normal(long size, char *filename)
 		default:
 			base = 0;
 	}
-printf("%s\t%s\n", format(size, base), filename);
+	printf("%s\t%s\n", make_human_readable_str(size, base), filename);
 #else
 	printf("%ld\t%s\n", size, filename);
 #endif
@@ -69,7 +69,7 @@ printf("%s\t%s\n", format(size, base), filename);
 static void print_summary(long size, char *filename)
 {
 	if (du_depth == 1) {
-printf("summary\n");
+		printf("summary\n");
 		print_normal(size, filename);
 	}
 }
@@ -196,7 +196,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.41 2001/03/07 06:04:08 andersen Exp $ */
+/* $Id: du.c,v 1.42 2001/03/07 17:42:07 markw Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
