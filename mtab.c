@@ -5,11 +5,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <mntent.h>
-#include <sys/mount.h>
 #include "busybox.h"
 
 extern const char mtab_file[];	/* Defined in utility.c */
-
+static const int MS_RDONLY = 1;	/* Mount read-only.  */
 
 void erase_mtab(const char *name)
 {
