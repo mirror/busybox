@@ -7,7 +7,10 @@
     New Applets:
 	* Erik Andersen -- Merged several applets from tinylogin,
 	    namely adduser, addgroup, deluser, delgroup, getty.
-
+	* Robert Griebl <sandman@handhelds.org>
+	    -- reimplemented tinylogin applets: su, login
+	    -- added hwclock
+	    -- added uncompress
 
     Other Changes:
 
@@ -35,7 +38,32 @@
 	* Tim Riker <Tim@Rikers.org>
 	    -- fix and shrink uuencode
 	    -- allow tty* in inittab if exist, serial console is not the issue
+	* Robert Griebl <sandman@handhelds.org>
+	    -- added suid/sgid handling with 3 modes to busybox:
+	       1) completly disabled
+	       2) tinylogin like
+	       3) runtime configureable via /etc/busybox.conf
 
+	    -- modprobe: complete rewrite, supports modules.dep, parses 
+	                 modules.conf for alias and options and can be called 
+	                 from the kernel.
+	    -- tar: support for -z when creating archives
+	    -- wget: support for -Y|--proxy=on/off and --passive-ftp
+	    -- vi: support for ":x" 
+	    -- date: support for -I (ISO format)
+	    -- find: support for -xdev
+	    -- mount: support for -t in list mode, parsing of /etc/filesystems
+	    -- ash: support for --login (bash like)
+	    -- route: support for -e
+	    -- netstat: support for -e and -r
+	    -- head/tail: support for old style -[0-9] options
+	    -- sed: support for ! and \CregexpC
+	    -- pidof: support for -s
+	    -- nslookup: support for user specified name server
+	    
+	    -- logger: fixed logging of '<' characters
+	    -- ash: fixed crash when run in a rxvt window
+	    
 	 -Erik Andersen, --not yet released--
 
 
