@@ -630,8 +630,11 @@ static char *next_word(char **buf)
 		return(NULL);
 	}
 	*buf = word + length;
-	**buf = '\0';
-	(*buf)++;
+	/*DBU:[dave@cray.com] if we are already at EOL dont't increment beyond it */
+	if (**buf) {
+		**buf = '\0';
+		(*buf)++;
+	}
 
 	return word;
 }
