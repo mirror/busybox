@@ -188,11 +188,9 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		} while (isdigit(my_str[idx]));
 		my_str[idx] = 0;
 		*line = atoi(my_str);
-		*regex = NULL;
 	}
 	else if (my_str[idx] == '$') {
 		*line = -1;
-		*regex = NULL;
 		idx++;
 	}
 	else if (my_str[idx] == '/') {
@@ -202,6 +200,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		xregcomp(*regex, my_str+1, REG_NEWLINE);
+		idx++; /* so it points to the next character after the last '/' */
 	}
 	else {
 		fprintf(stderr, "sed.c:get_address: no address found in string\n");
