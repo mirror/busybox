@@ -34,7 +34,8 @@ DOSTATIC = false
 # To compile vs an alternative libc, you may need to use/adjust
 # the following lines to meet your needs.  This is how I did it...
 #CFLAGS+=-nostdinc -I/home/andersen/CVS/uC-libc/include -I/usr/include/linux
-#LDFLAGS+=-nostdlib -L/home/andersen/CVS/libc.a
+#LDFLAGS+=-nostdlib
+#LIBRARIES = /home/andersen/CVS/uC-libc/libc.a
 
 
 CC = gcc
@@ -51,12 +52,12 @@ endif
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS += -Wall -g -D_GNU_SOURCE
-    LDFLAGS = 
+    CFLAGS += -Wall -g -fno-builtin -D_GNU_SOURCE
+    LDFLAGS += 
     STRIP   =
 else
     CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
-    LDFLAGS  = -s
+    LDFLAGS  += -s
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 
     ifeq ($(DOSTATIC),true)
@@ -79,7 +80,6 @@ ifndef $(PREFIX)
 endif
 
 
-LIBRARIES =
 OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
