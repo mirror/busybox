@@ -12,6 +12,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <linux/version.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -95,6 +96,7 @@ static int do_chflags(char *dev, __u32 flags, __u32 mask)
 
 static int do_changename(char *dev, char *newdev)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 4, 0)
 	struct ifreq ifr;
 	int fd;
 	int err;
@@ -112,6 +114,8 @@ static int do_changename(char *dev, char *newdev)
 	}
 	close(fd);
 	return err;
+#endif
+	return 0;
 }
 
 static int set_qlen(char *dev, int qlen)

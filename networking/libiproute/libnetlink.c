@@ -18,6 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <sys/uio.h>
+
 #include "libnetlink.h"
 #include "libbb.h"
 

@@ -51,10 +51,18 @@ __PF(ATALK,atalk)
 __PF(AARP,aarp)      
 __PF(IPX,ipx)       
 __PF(IPV6,ipv6)      
+#ifdef ETH_P_PPP_DISC
 __PF(PPP_DISC,ppp_disc)      
+#endif
+#ifdef ETH_P_PPP_SES
 __PF(PPP_SES,ppp_ses)      
+#endif
+#ifdef ETH_P_ATMMPOA
 __PF(ATMMPOA,atmmpoa)      
+#endif
+#ifdef ETH_P_ATMFATE
 __PF(ATMFATE,atmfate)      
+#endif
 
 __PF(802_3,802_3)     
 __PF(AX25,ax25)      
@@ -70,7 +78,9 @@ __PF(TR_802_2,tr_802_2)
 __PF(MOBITEX,mobitex)   
 __PF(CONTROL,control)   
 __PF(IRDA,irda)      
+#ifdef ETH_P_ECONET
 __PF(ECONET,econet)      
+#endif
 
 { 0x8100, "802.1Q" },
 { ETH_P_IP, "ipv4" },

@@ -34,7 +34,9 @@ __PF(IEEE802,tr)
 __PF(ARCNET,arcnet)
 __PF(APPLETLK,atalk)
 __PF(DLCI,dlci)
+#ifdef ARPHRD_ATM
 __PF(ATM,atm)
+#endif
 __PF(METRICOM,metricom)
 #ifdef ARPHRD_IEEE1394
 __PF(IEEE1394,ieee1394)
@@ -48,12 +50,16 @@ __PF(RSRVD,rsrvd)
 __PF(ADAPT,adapt)
 __PF(ROSE,rose)
 __PF(X25,x25)
+#ifdef ARPHRD_HWX25
 __PF(HWX25,hwx25)
+#endif
 __PF(PPP,ppp)
 __PF(HDLC,hdlc)
 __PF(LAPB,lapb)
+#ifdef ARPHRD_DDCMP
 __PF(DDCMP,ddcmp)
 __PF(RAWHDLC,rawhdlc)
+#endif
 
 __PF(TUNNEL,ipip)
 __PF(TUNNEL6,tunnel6)
