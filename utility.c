@@ -663,17 +663,18 @@ int recursive_action(const char *fileName,
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
 
-		dir = opendir(fileName);
-		if (!dir) {
-			perror_msg("%s", fileName);
-			return FALSE;
-		}
 		if (dirAction != NULL && depthFirst == FALSE) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
 				perror_msg("%s", fileName);
 				return FALSE;
-			}
+			} else if (status == SKIP)
+				return TRUE;
+		}
+		dir = opendir(fileName);
+		if (!dir) {
+			perror_msg("%s", fileName);
+			return FALSE;
 		}
 		while ((next = readdir(dir)) != NULL) {
 			char nextFile[BUFSIZ + 1];

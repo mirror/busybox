@@ -252,8 +252,8 @@ extern int tar_main(int argc, char **argv)
 						if (excludeList[excludeListSize] == NULL)
 							error_msg_and_die( "Option requires an argument: No file specified\n");
 						/* Remove leading "/"s */
-						if (*excludeList[excludeListSize] =='/')
-							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+						while (*excludeList[excludeListSize] =='/')
+							excludeList[excludeListSize]++;
 						/* Tack a NULL onto the end of the list */
 						excludeList[++excludeListSize] = NULL;
 						stopIt=TRUE;
@@ -940,43 +940,12 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 {
 	long chksum=0;
 	struct TarHeader header;
-#if defined BB_FEATURE_TAR_EXCLUDE
-	char** tmpList;
-#endif
 	const unsigned char *cp = (const unsigned char *) &header;
 	ssize_t size = sizeof(struct TarHeader);
 		
 	memset( &header, 0, size);
 
-	if (*fileName=='/') {
-		static int alreadyWarned=FALSE;
-		if (alreadyWarned==FALSE) {
-			error_msg("Removing leading '/' from member names\n");
-			alreadyWarned=TRUE;
-		}
-		strncpy(header.name, fileName+1, sizeof(header.name)); 
-	}
-	else {
-		strncpy(header.name, fileName, sizeof(header.name)); 
-	}
-
-#if defined BB_FEATURE_TAR_EXCLUDE
-	/* Check for excluded files....  */
-	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
-		/* Do some extra hoop jumping for when directory names
-		 * end in '/' but the entry in tmpList doesn't */
-		if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
-					header.name[strlen(header.name)-1]=='/'
-					&& strncmp( *tmpList, header.name, 
-						MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
-			/* Set the mode to something that is not a regular file, thereby
-			 * faking out writeTarFile into thinking that nothing further need
-			 * be done for this file.  Yes, I know this is ugly, but it works. */
-			statbuf->st_mode = 0;
-			return( TRUE);
-		}
-	}
-#endif
+	strncpy(header.name, fileName, sizeof(header.name)); 
 
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
@@ -1065,6 +1034,9 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* userData)
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
+#if defined BB_FEATURE_TAR_EXCLUDE
+	char** tmpList;
+#endif
 
 	/*
 	** Check to see if we are dealing with a hard link.
@@ -1097,10 +1069,36 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 		return( TRUE);
 	}
 
+	while (fileName[0] == '/') {
+		static int alreadyWarned=FALSE;
+		if (alreadyWarned==FALSE) {
+			error_msg("Removing leading '/' from member names\n");
+			alreadyWarned=TRUE;
+		}
+		fileName++;
+	}
+
 	if (strlen(fileName) >= NAME_SIZE) {
 		error_msg(name_longer_than_foo, NAME_SIZE);
 		return ( TRUE);
 	}
+
+	if (fileName[0] == '\0')
+		return TRUE;
+
+#if defined BB_FEATURE_TAR_EXCLUDE
+	/* Check for excluded files....  */
+	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
+		/* Do some extra hoop jumping for when directory names
+		 * end in '/' but the entry in tmpList doesn't */
+		if (strncmp( *tmpList, fileName, strlen(*tmpList))==0 || (
+					fileName[strlen(fileName)-1]=='/'
+					&& strncmp( *tmpList, fileName, 
+						MIN(strlen(fileName)-1, strlen(*tmpList)))==0)) {
+			return SKIP;
+		}
+	}
+#endif
 
 	if (writeTarHeader(tbInfo, fileName, statbuf)==FALSE) {
 		return( FALSE);

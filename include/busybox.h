@@ -47,6 +47,7 @@
 /* Some useful definitions */
 #define FALSE   ((int) 0)
 #define TRUE    ((int) 1)
+#define SKIP	((int) 2)
 
 /* for mtab.c */
 #define MTAB_GETMOUNTPT '1'
