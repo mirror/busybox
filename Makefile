@@ -249,6 +249,8 @@ busybox.links: Config.h applets.h
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
 
+usage.o: usage.h
+
 utility.o: loop.h
 
 loop.h: mk_loop_h.sh
