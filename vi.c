@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.6 2001/05/07 17:37:43 andersen Exp $";
+	"$Id: vi.c,v 1.7 2001/05/07 22:57:47 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -1760,9 +1760,10 @@ static void colon(Byte * buf)
 	while (isblnk(*buf))
 		buf++;
 	strcpy((char *) args, (char *) buf);
-	if (last_char_is((char *)cmd, '!')) {
+	buf1 = last_char_is((char *)cmd, '!');
+	if (buf1) {
 		useforce = TRUE;
-		cmd[strlen((char *) cmd) - 1] = '\0';	// get rid of !
+		*buf1 = '\0';   // get rid of !
 	}
 	if (b >= 0) {
 		// if there is only one addr, then the addr
@@ -3919,9 +3920,11 @@ static void refresh(int full_screen)
 		}
 	}
 
-	place_cursor(crow, ccol, (crow == last_row) ? TRUE : FALSE);
 #ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+	place_cursor(crow, ccol, (crow == last_row) ? TRUE : FALSE);
 	last_row = crow;
+#else
+	place_cursor(crow, ccol, FALSE);
 #endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
 	
 	if (offset != old_offset)
