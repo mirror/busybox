@@ -35,7 +35,7 @@
 #include <sys/ioctl.h>
 #include "busybox.h"
 
-#define DEFAULTFBDEV  "/dev/fb0"
+#define DEFAULTFBDEV  FB_0
 #define DEFAULTFBMODE "/etc/fb.modes"
 
 static const int OPT_CHANGE   = (1 << 0);

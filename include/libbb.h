@@ -376,6 +376,7 @@ extern int bb_default_error_retval;
 #endif
 # define VC_FORMAT "/dev/vc/%d"
 # define LOOP_FORMAT "/dev/loop/%d"
+# define FB_0 "/dev/fb/0"
 #else
 # define CURRENT_VC "/dev/tty0"
 # define VC_1 "/dev/tty1"
@@ -394,6 +395,7 @@ extern int bb_default_error_retval;
 #endif
 # define VC_FORMAT "/dev/tty%d"
 # define LOOP_FORMAT "/dev/loop%d"
+# define FB_0 "/dev/fb0"
 #endif
 
 //#warning put these in .o files
