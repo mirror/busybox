@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "busybox.h"
 #include "pwd_.h"
@@ -25,8 +26,8 @@ static int stop = 0;
 static int fork_before_exec = 0;
 static int signal_nr = 15;
 static int user_id = -1;
-static const char *userspec = NULL;
-static const char *cmdname = NULL;
+static char *userspec = NULL;
+static char *cmdname = NULL;
 static char *execname = NULL;
 static char *startas = NULL;
 
@@ -47,62 +48,6 @@ push(int pid)
 	p->pid = pid;
 	found = p;
 }
-
-
-static void
-parse_options(int argc, char * const *argv)
-{
-	
-	int c;
-
-	for (;;) {
-	    c = getopt (argc, argv, "a:n:s:u:x:KSb");
-		if (c == EOF)
-			break;
-		switch (c) {
-		case 'K':
-			stop = 1;
-			break;
-		case 'S':
-			start = 1;
-			break;
-		case 'a':
-			startas = optarg;
-			break;
-		case 'n':
-			cmdname = optarg;
-			break;
-		case 's':
-			if (sscanf(optarg, "%d", &signal_nr) != 1)
-				bb_error_msg_and_die ("-s takes a numeric argument");
-			break;
-		case 'u':
-			userspec = optarg;
-			break;
-		case 'x':
-			execname = optarg;
-			break;
-		case 'b':
-			fork_before_exec = 1;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
-
-	if (start == stop)
-		bb_error_msg_and_die ("need one of -S or -K");
-
-	if (!execname && !userspec)
-		bb_error_msg_and_die ("need at least one of -x or -u");
-
-	if (!startas)
-		startas = execname;
-
-	if (start && !startas)
-		bb_error_msg_and_die ("-S needs -x or -a");
-}
-
 
 static int
 pid_is_exec(int pid, const char *exec)
@@ -238,10 +183,47 @@ do_stop(void)
 }
 
 
+static const struct option ssd_long_options[] = {
+	{ "stop",		0,		NULL,		'K' },
+	{ "start",		0,		NULL,		'S' },
+	{ "background",	0,		NULL,		'b' },
+	{ "startas",	1,		NULL,		'a' },
+	{ "name",		1,		NULL,		'n' },
+	{ "signal",		1,		NULL,		's' },
+	{ "user",		1,		NULL,		'u' },
+	{ "exec",		1,		NULL,		'x' },
+	{ 0,			0,		0,			0 }
+};
+
 int
 start_stop_daemon_main(int argc, char **argv)
 {
-	parse_options(argc, argv);
+	int flags;
+	char *signame;
+	bb_applet_long_options = ssd_long_options;
+
+	flags = bb_getopt_ulflags(argc, argv, "KSba:n:s:u:x:", 
+			&startas, &cmdname, &signame, &userspec, &execname);
+
+	/* Be sneaky and avoid branching */
+	stop = (flags & 1);
+	start = (flags & 2);
+	fork_before_exec = (flags & 4);
+
+	signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
+
+	if (start == stop)
+		bb_error_msg_and_die ("need exactly one of -S or -K");
+
+	if (!execname && !userspec)
+		bb_error_msg_and_die ("need at least one of -x or -u");
+
+	if (!startas)
+		startas = execname;
+
+	if (start && !startas)
+		bb_error_msg_and_die ("-S needs -x or -a");
+
 	argc -= optind;
 	argv += optind;
 
