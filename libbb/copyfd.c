@@ -34,7 +34,7 @@
 
 
 /* If size is 0 copy until EOF */
-extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize_t (*action)(int fd, const void *, size_t))
+static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size)
 {
 	size_t read_total = 0;
 	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
@@ -50,8 +50,8 @@ extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize
 		}
 
 		read_actual = safe_read(src_fd, buffer, read_try);
-		if (read_actual > 0) {
-			if (action && (action(dst_fd, buffer, (size_t) read_actual) != read_actual)) {
+		if ((read_actual > 0) && (dst_fd >= 0)) {
+			if (bb_full_write(dst_fd, buffer, (size_t) read_actual) != read_actual) {
 				bb_perror_msg(bb_msg_write_error);	/* match Read error below */
 				break;
 			}
@@ -79,12 +79,12 @@ extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size)
 {
 	if (size) {
-		return(bb_full_fd_action(fd1, fd2, size, bb_full_write));
+		return(bb_full_fd_action(fd1, fd2, size));
 	}
 	return(0);
 }
 
 extern int bb_copyfd_eof(int fd1, int fd2)
 {
-	return(bb_full_fd_action(fd1, fd2, 0, bb_full_write));
+	return(bb_full_fd_action(fd1, fd2, 0));
 }

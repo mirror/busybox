@@ -27,6 +27,6 @@
 extern void seek_by_char(const archive_handle_t *archive_handle, const unsigned int jump_size)
 {
 	if (jump_size) {
-		bb_full_fd_action(archive_handle->src_fd, -1, jump_size, NULL);
+		bb_copyfd_size(archive_handle->src_fd, -1, jump_size);
 	}
 }
