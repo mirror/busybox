@@ -22,8 +22,8 @@ include $(TOPDIR).config
 include $(TOPDIR)Rules.mak
 SUBDIRS:=applets archival archival/libunarchive console-tools \
 	editors fileutils findutils init miscutils modutils networking \
-	procps pwd_grp pwd_grp/libpwd_grp shell shellutils sysklogd \
-	textutils util-linux libbb
+	procps loginutils shell shellutils sysklogd \
+	textutils util-linux libbb libpwdgrp
 
 all:    do-it-all
 

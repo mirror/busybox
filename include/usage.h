@@ -978,6 +978,15 @@
 #define logger_example_usage \
 	"$ logger "hello"\n" 
 
+#define login_trivial_usage \
+	"[OPTION]... [username] [ENV=VAR ...]"
+#define login_full_usage \
+	"Begin a new session on the system\n\n" \
+	"Options:\n" \
+	"\t-f\tDo not authenticate (user already authenticated)\n" \
+	"\t-h\tName of the remote host for this login.\n" \
+	"\t-p\tPreserve environment."
+
 #define logname_trivial_usage \
 	""
 #define logname_full_usage \
@@ -1569,6 +1578,13 @@
 	"\n\t-a\t\tprint all current settings in human-readable form" \
 	"\n\t-g\t\tprint in stty-readable form" \
 	"\n\t[SETTING]\tsee manpage"
+
+#define su_trivial_usage \
+	"[OPTION]... [-] [username]"
+#define su_full_usage \
+	"Change user id or become root.\n" \
+	"Options:\n" \
+	"\t-p\tPreserve environment"
 
 #define swapoff_trivial_usage \
 	"[OPTION] [DEVICE]"
