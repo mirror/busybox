@@ -190,6 +190,7 @@ static const char * const environment[] = {
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
 static int waitfor(const struct init_action *a);
+static void halt_signal(int sig);
 
 
 static void loop_forever(void)
@@ -723,6 +724,8 @@ static void exec_signal(int sig)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action & RESTART) {
+			struct stat sb;
+
 			shutdown_system();
 
 			/* unblock all signals, blocked in shutdown_system() */
