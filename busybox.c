@@ -111,7 +111,7 @@ static const struct Applet applets[] = {
     {"mt", mt_main},
 #endif
 #ifdef BB_MV			//bin
-    {"mv", dyadic_main},
+    {"mv", mv_main},
 #endif
 #ifdef BB_PRINTF		//usr/bin
     {"printf", printf_main},
@@ -144,7 +144,7 @@ static const struct Applet applets[] = {
     {"sync", sync_main},
 #endif
 #ifdef BB_TOUCH			//usr/bin
-    {"touch", monadic_main},
+    {"touch", touch_main},
 #endif
 #ifdef BB_TRUE			//bin
     {"true", true_main},
@@ -208,8 +208,8 @@ int busybox_main(int argc, char **argv)
 	const struct Applet *a = applets;
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n",
 		BB_VER, BB_BT);
-	fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
-	fprintf(stderr, "or\nUsage: [function] [arguments]...\n");
+	fprintf(stderr, "\nUsage:\t[function] [arguments]...\n");
+	fprintf(stderr, "\tbusybox [function] [arguments]...\n");
 	fprintf(stderr,
 		"\n\tMost people will create a symlink to busybox for each\n"
 		"\tfunction name, and busybox will act like whatever you invoke it as.\n");

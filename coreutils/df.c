@@ -3,6 +3,7 @@
 #include <mntent.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
+#include <fstab.h>
 
 const char	df_usage[] = "df [filesystem ...]\n"
 "\n"
@@ -10,7 +11,7 @@ const char	df_usage[] = "df [filesystem ...]\n"
 
 
 static int
-df(const char * device, const char * mountPoint)
+df(char* device, const char * mountPoint)
 {
 	struct statfs	s;
 	long		blocks_used;
@@ -25,6 +26,8 @@ df(const char * device, const char * mountPoint)
 		blocks_used = s.f_blocks - s.f_bfree;
 		blocks_percent_used = (long)
 		 (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
+		if ( strcmp(device, "/dev/root")==0)
+		    device=(getfsfile ("/"))->fs_spec;
 
 		printf(
 		       "%-20s %9ld %9ld %9ld %3ld%% %s\n",
@@ -75,7 +78,7 @@ df_main(int argc, char * * argv)
 		}
 
 		while ( (mountEntry = getmntent (mountTable))) {
-			int status=df(mountEntry->mnt_fsname ,mountEntry->mnt_dir);
+			int status=df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
 			if (status)
 				return status;
 		}
@@ -129,3 +132,5 @@ findMountPoint(const char* name, const char* table)
 	endmntent(mountTable);
 	return mountEntry;
 }
+
+

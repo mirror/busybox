@@ -30,7 +30,6 @@
 //#define BB_LOADKMAP
 ////#define BB_LOSETUP
 #define BB_LS
-//#define BB_MAIN
 //#define BB_MAKEDEVS
 ////#define BB_MATH
 //#define BB_MKDIR
@@ -39,9 +38,9 @@
 //#define BB_MNC
 //#define BB_MONADIC
 #define BB_MORE
-//#define BB_MOUNT
+#define BB_MOUNT
 ////#define BB_MT
-//#define BB_MV
+#define BB_MV
 //#define BB_POSTPROCESS
 //#define BB_PRINTF
 //#define BB_PWD
@@ -53,10 +52,10 @@
 //#define BB_SWAPON
 //#define BB_SYNC
 #define BB_TAR
-//#define BB_TOUCH
+#define BB_TOUCH
 #define BB_TRUE
 //#define BB_UMOUNT
 //#define BB_UPDATE
-//#define BB_UTILITY
+#define BB_UTILITY
 #define BB_ZCAT
 #define BB_GZIP

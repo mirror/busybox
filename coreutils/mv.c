@@ -1,38 +1,84 @@
+/*
+ * Mini mv implementation for busybox
+ *
+ * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
 #include "internal.h"
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <utime.h>
 #include <errno.h>
 
-const char	mv_usage[] = "mv source-file destination-file\n"
-"\t\tmv source-file [source-file ...] destination-directory\n"
-"\n"
-"\tMove the source files to the destination.\n"
-"\n";
+const char mv_usage[] = "source-file [source-file ...] destination-file\n"
+    "\n" "\tMove the source files to the destination.\n" "\n";
 
-extern int
-mv_fn(const struct FileInfo * i)
+
+
+extern int mv_main (int argc, char **argv)
 {
-	struct stat		destination_stat;
-	char			d[1024];
-	struct FileInfo	n;
+    const char *srcName;
+    const char *destName;
+    const char *lastArg;
+    BOOL dirFlag;
 
-	if ( stat(i->destination, &destination_stat) == 0 ) {
-		if ( i->stat.st_ino == destination_stat.st_ino
-		 &&  i->stat.st_dev == destination_stat.st_dev )
-			return 0;	/* Move file to itself. */
+    if (argc < 3) {
+	fprintf (stderr, "Usage: %s %s", *argv, mv_usage);
+	return (FALSE);
+    }
+    lastArg = argv[argc - 1];
+
+    dirFlag = isDirectory (lastArg);
+
+    if ((argc > 3) && !dirFlag) {
+	fprintf (stderr, "%s: not a directory\n", lastArg);
+
+	return (FALSE);
+    }
+
+    while (argc-- > 2) {
+	srcName = *(++argv);
+
+	if (access (srcName, 0) < 0) {
+	    perror (srcName);
+	    continue;
 	}
-	if ( (destination_stat.st_mode & S_IFMT) == S_IFDIR ) {
-		n = *i;
-		n.destination = join_paths(d, i->destination, basename(i->source));
-		i = &n;
+
+	destName = lastArg;
+
+	if (dirFlag)
+	    destName = buildName (destName, srcName);
+
+	if (rename (srcName, destName) >= 0)
+	    continue;
+
+	if (errno != EXDEV) {
+	    perror (destName);
+	    continue;
 	}
-	if ( rename(i->source, i->destination) == 0 )
-		return 0;
-	else if ( errno == EXDEV && is_a_directory(i->source) ) {
-		fprintf(stderr
-		,"%s: Can't move directory across filesystems.\n"
-		,i->source);
-		return 1;
-	}
-	else
-		return cp_fn(i);
+
+	if (!copyFile (srcName, destName, TRUE))
+	    continue;
+
+	if (unlink (srcName) < 0)
+	    perror (srcName);
+    }
+    return (TRUE);
 }

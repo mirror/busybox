@@ -23,7 +23,7 @@ BINDIR=$(prefix)
 
 LDFLAGS= -s
 LIBRARIES=-lc
-OBJECTS=$(shell ./busybox.sh) utility.o
+OBJECTS=$(shell ./busybox.sh)
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
 
