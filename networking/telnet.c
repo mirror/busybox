@@ -31,7 +31,7 @@
  */
 
 #warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
-#warning applet will be removed from BusyBox.  All maintainence efforts
+#warning applet will be removed from BusyBox.  All maintenance efforts
 #warning should be done in the netkit-tiny source tree.
 
 

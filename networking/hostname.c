@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.18 2001/01/22 22:48:42 andersen Exp $
+ * $Id: hostname.c,v 1.19 2001/01/24 17:37:07 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -24,7 +24,7 @@
  */
 
 #warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
-#warning applet will be removed from BusyBox.  All maintainence efforts
+#warning applet will be removed from BusyBox.  All maintenance efforts
 #warning should be done in the netkit-tiny source tree.
 
 #include "busybox.h"
