@@ -29,8 +29,6 @@
 #include <sys/syslog.h>
 #include "libbb.h"
 
-extern const char *applet_name;
-
 void syslog_msg_with_name(const char *name, int facility, int pri, const char *msg)
 {
  	openlog(name, 0, facility);

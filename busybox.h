@@ -66,8 +66,6 @@ extern const struct BB_applet applets[];
 #include "applets.h"
 #undef PROTOTYPES
 
-extern const char *applet_name;
-
 #ifdef BB_FEATURE_BUFFERS_GO_ON_STACK
 #define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char buffer[len]

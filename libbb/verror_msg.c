@@ -31,8 +31,6 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern const char *applet_name;
-
 extern void verror_msg(const char *s, va_list p)
 {
 	fflush(stdout);

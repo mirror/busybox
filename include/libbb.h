@@ -262,4 +262,6 @@ enum {
 	CP_INTERACTIVE = 16
 };
 
+extern const char *applet_name;
+
 #endif /* __LIBBB_H__ */

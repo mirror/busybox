@@ -126,7 +126,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		if (dest_exists) {
 			if (flags & CP_INTERACTIVE) {
-				fprintf(stderr, "cp: overwrite `%s'? ", dest);
+				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
 				if (!ask_confirmation())
 					return 0;
 			}
