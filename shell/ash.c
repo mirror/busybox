@@ -11940,7 +11940,7 @@ initvar() {
 	 * PS1 depends on uid
 	 */
 	if ((vps1.flags & VEXPORT) == 0) {
-		vpp = hashvar("PS1=");
+		vpp = hashvar("PS1=$");
 		vps1.next = *vpp;
 		*vpp = &vps1;
 		vps1.text = xstrdup(geteuid() ? "PS1=$ " : "PS1=# ");
@@ -12470,7 +12470,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.43 2001/12/31 06:12:48 aaronl Exp $
+ * $Id: ash.c,v 1.44 2001/12/31 06:13:38 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
