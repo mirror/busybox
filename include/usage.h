@@ -2067,6 +2067,13 @@
 	"\t-a ARG\tPass ARG as an argument for every program invoked.\n" \
 	"\t-u MASK\tSet the umask to MASK before executing every program."
 
+#define rx_trivial_usage \
+	"FILE"
+#define rx_full_usage \
+	"Receive a file using the xmodem protocol."
+#define rx_example_usage \
+	"$ rx /tmp/foo\n"
+
 #define sed_trivial_usage \
 	"[-nef] pattern [files...]"
 #define sed_full_usage \

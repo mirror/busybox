@@ -502,6 +502,9 @@
 #ifdef CONFIG_RUN_PARTS
 	APPLET_ODDNAME("run-parts", run_parts_main, _BB_DIR_BIN, _BB_SUID_NEVER, run_parts)
 #endif	
+#ifdef CONFIG_RX
+	APPLET(rx, rx_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_SED
 	APPLET(sed, sed_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

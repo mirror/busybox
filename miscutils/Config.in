@@ -156,6 +156,12 @@ config CONFIG_MT
 	  to advance or rewind a tape past a specified number of archive
 	  files on the tape.
 
+config CONFIG_RX
+        bool "rx"
+	default n
+	help
+ 	  Receive files using the Xmodem protocol.
+
 config CONFIG_STRINGS
 	bool "strings"
 	default n
