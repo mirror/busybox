@@ -83,8 +83,8 @@ John Lombardo <john@deltanet.com>
 
 Glenn McGrath <bug1@iinet.net.au>
     Common unarchving code and unarchiving applets, ifupdown, ftpgetput,
-    nameif, sed, patch, fold, install, uudecode. 
-    Various bugfixes, review and apply numerous patches. 
+    nameif, sed, patch, fold, install, uudecode.
+    Various bugfixes, review and apply numerous patches.
 
 Manuel Novoa III <mjn3@codepoet.org>
     cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,
