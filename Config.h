@@ -199,11 +199,10 @@
 #define BB_FEATURE_KLOGD
 //
 // enable syslogd -R remotehost
-//
 #define BB_FEATURE_REMOTE_LOG
-// enable syslogd -C
-#define BB_FEATURE_IPC_SYSLOG
 //
+// enable syslogd -C
+//#define BB_FEATURE_IPC_SYSLOG
 //
 //Simple tail implementation (2.34k vs 3k for the full one).
 //Both provide 'tail -f', but this cuts out -c, -q, -s, and -v. 
