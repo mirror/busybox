@@ -65,13 +65,22 @@
 // that compiles to 0 if everything else if turned off.
 #define BB_UTILITY
 //
-//This is where feature definitions go.
+//
+//
+// This is where feature definitions go.  Generally speaking,
+// turning this stuff off makes things a bit smaller (and less 
+// pretty/useful).
+//
+//
+//Enable init being called as /linuxrc
 #define BB_FEATURE_LINUXRC
-/* Turning this off makes things a bit smaller (and less pretty) */
+// Use termios to manipulate the screen (more is much pretties with this on)
 #define BB_FEATURE_USE_TERMIOS
-/* Turning this off makes things a bit smaller (and less pretty) */
+// calculate terminal & column widths
 #define BB_FEATURE_AUTOWIDTH
-
-
-
-
+// show username/groupnames (bypasses libc6 NSS)
+#define BB_FEATURE_LS_USERNAME	
+// show file timestamps
+#define BB_FEATURE_LS_TIMESTAMPS
+// enable ls -p and -F
+#define BB_FEATURE_LS_FILETYPES	

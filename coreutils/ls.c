@@ -40,11 +40,6 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#define FEATURE_USERNAME	/* show username/groupnames (bypasses libc6 NSS) */
-#define FEATURE_TIMESTAMPS	/* show file timestamps */
-#define FEATURE_AUTOWIDTH	/* calculate terminal & column widths */
-#define FEATURE_FILETYPECHAR	/* enable -p and -F */
-
 #define TERMINAL_WIDTH	80	/* use 79 if your terminal has linefold bug */
 #define	COLUMN_WIDTH	14	/* default if AUTOWIDTH not defined */
 #define COLUMN_GAP	2	/* includes the file type char, if present */
@@ -64,13 +59,13 @@
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 #include <time.h>
 #endif
 
 #define TYPEINDEX(mode)	(((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)	("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 #define APPCHAR(mode)	("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
 #endif
 
@@ -103,14 +98,14 @@ static unsigned char	display_fmt = FMT_AUTO;
 static unsigned short	opts = 0;
 static unsigned short	column = 0;
 
-#ifdef FEATURE_AUTOWIDTH
+#ifdef BB_FEATURE_AUTOWIDTH
 static unsigned short terminal_width = 0, column_width = 0;
 #else
 #define terminal_width	TERMINAL_WIDTH
 #define column_width	COLUMN_WIDTH
 #endif
 
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 static unsigned char time_fmt = TIME_MOD;
 #endif
 
@@ -163,7 +158,7 @@ static void tab(short col)
 	#undef nspaces
 }
 
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 static char append_char(mode_t mode)
 {
 	if (!(opts & DISP_FTYPE))
@@ -185,7 +180,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 {
 	char scratch[PATH_MAX];
 	short len = strlen(name);
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 	char append = append_char(info->st_mode);
 #endif
 	
@@ -196,7 +191,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		column=10;
 		writenum((long)info->st_nlink,(short)5);
 		fputs(" ", stdout);
-#ifdef FEATURE_USERNAME
+#ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
 			scratch[8]='\0';
 			my_getpwuid( scratch, info->st_uid);
@@ -208,7 +203,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 #endif
 		writenum((long)info->st_uid,(short)0);
 		tab(16);
-#ifdef FEATURE_USERNAME
+#ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
 			scratch[8]='\0';
 			my_getgrgid( scratch, info->st_gid);
@@ -228,7 +223,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		else
 			writenum((long)info->st_size,(short)8);
 		fputs(" ", stdout);
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 		{
 			time_t cal;
 			char *string;
@@ -264,7 +259,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 			wr(" -> ", 4);
 			len = readlink(fullname, scratch, sizeof scratch);
 			if (len > 0) fwrite(scratch, 1, len, stdout);
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 			/* show type of destination */
 			if (opts & DISP_FTYPE) {
 				if (!stat(fullname, info)) {
@@ -275,7 +270,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 			}
 #endif
 		}
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 		else if (append)
 			wr(&append, 1);
 #endif
@@ -289,7 +284,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 			newline();
 		else {
 			if (nexttab + column_width > terminal_width
-#ifndef FEATURE_AUTOWIDTH
+#ifndef BB_FEATURE_AUTOWIDTH
 			|| nexttab + len >= terminal_width
 #endif
 			)
@@ -298,7 +293,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 				tab(nexttab);
 		}
 		/* work out where next column starts */
-#ifdef FEATURE_AUTOWIDTH
+#ifdef BB_FEATURE_AUTOWIDTH
 		/* we know the calculated width is big enough */
 		nexttab = column + column_width + COLUMN_GAP;
 #else
@@ -311,7 +306,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		/* now write the data */
 		wr(name, len);
 		column = column + len;
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 		if (append)
 			wr(&append, 1), column++;
 #endif
@@ -352,7 +347,7 @@ static int list_item(const char *name)
 	
 	dir = opendir(name);
 	if (!dir) goto listerr;
-#ifdef FEATURE_AUTOWIDTH
+#ifdef BB_FEATURE_AUTOWIDTH
 	column_width = 0;
 	while ((entry = readdir(dir)) != NULL) {
 		short w = strlen(entry->d_name);
@@ -403,22 +398,22 @@ listerr:
 }
 
 static const char ls_usage[] = "ls [-1a"
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 	"c"
 #endif
 	"d"
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 	"e"
 #endif
 	"ln"
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 	"p"
 #endif
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 	"u"
 #endif
 	"xAC"
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 	"F"
 #endif
 #ifdef FEATURE_RECURSIVE
@@ -451,7 +446,7 @@ ls_main(int argc, char * * argv)
 			case '1':	display_fmt = FMT_SINGLE; break;
 			case 'x':	display_fmt = FMT_ROWS; break;
 			case 'C':	display_fmt = FMT_COLUMNS; break;
-#ifdef FEATURE_FILETYPECHAR
+#ifdef BB_FEATURE_LS_FILETYPES
 			case 'p':	opts |= DISP_FTYPE; break;
 			case 'F':	opts |= DISP_FTYPE|DISP_EXEC; break;
 #endif
@@ -462,7 +457,7 @@ ls_main(int argc, char * * argv)
 #ifdef FEATURE_RECURSIVE
 			case 'R':	opts |= DIR_RECURSE; break;
 #endif
-#ifdef FEATURE_TIMESTAMPS
+#ifdef BB_FEATURE_LS_TIMESTAMPS
 			case 'u':	time_fmt = TIME_ACCESS; break;
 			case 'c':	time_fmt = TIME_CHANGE; break;
 			case 'e':	opts |= DISP_FULLTIME; break;
@@ -478,7 +473,7 @@ ls_main(int argc, char * * argv)
 		display_fmt = isatty(fileno(stdout)) ? FMT_COLUMNS : FMT_SINGLE;
 	if (argi < argc - 1)
 		opts |= DISP_DIRNAME; /* 2 or more items? label directories */
-#ifdef FEATURE_AUTOWIDTH
+#ifdef BB_FEATURE_AUTOWIDTH
 	/* could add a -w option and/or TIOCGWINSZ call */
 	if (terminal_width < 1) terminal_width = TERMINAL_WIDTH;
 	
