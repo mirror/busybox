@@ -1552,20 +1552,23 @@
 	"$ makedevs /dev/hda b 3 0 0 8 s\n" \
 	"[creates hda,hda1-hda8]\n" 
 
+#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
+#define USAGE_MD5_SHA1_SUM_CHECK(a) a
+#else
+#define USAGE_MD5_SHA1_SUM_CHECK(a)
+#endif
+
 #define md5sum_trivial_usage \
-	"[OPTION] [FILE]...\n" \
-	"or: md5sum [OPTION] -c [FILE]"
+	"[OPTION] [FILEs...]" \
+	USAGE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
 #define md5sum_full_usage \
-	"Print or check MD5 checksums.\n\n" \
+	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums.\n\n" \
 	"Options:\n" \
 	"With no FILE, or when FILE is -, read standard input.\n\n" \
-	"\t-b\tread files in binary mode\n" \
-	"\t-c\tcheck MD5 sums against given list\n" \
-	"\t-t\tread files in text mode (default)\n" \
-	"\t-g\tread a string\n" \
+	USAGE_MD5_SHA1_SUM_CHECK("\t-c\tcheck MD5 sums against given list\n") \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
-	"\t-w\twarn about improperly formated MD5 checksum lines"
+	USAGE_MD5_SHA1_SUM_CHECK("\t-w\twarn about improperly formated MD5 checksum lines")
 #define md5sum_example_usage \
 	"$ md5sum < busybox\n" \
 	"6fd11e98b98a58f64ff3398d7b324003\n" \
@@ -2106,9 +2109,16 @@
 	"Shows listing of the last users that logged into the system"
 
 #define sha1sum_trivial_usage \
-	"[OPTION] [FILE]"
+	"[OPTION] [FILEs...]" \
+	USAGE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
 #define sha1sum_full_usage \
-	"[OPTION] [FILE]"
+	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums.\n\n" \
+	"Options:\n" \
+	"With no FILE, or when FILE is -, read standard input.\n\n" \
+	USAGE_MD5_SHA1_SUM_CHECK("\t-c\tcheck SHA1 sums against given list\n") \
+	USAGE_MD5_SHA1_SUM_CHECK("\nThe following two options are useful only when verifying checksums:\n") \
+	"\t-s\tdon't output anything, status code shows success\n" \
+	USAGE_MD5_SHA1_SUM_CHECK("\t-w\twarn about improperly formated SHA1 checksum lines")
 
 #ifdef CONFIG_FEATURE_FANCY_SLEEP
   #define USAGE_FANCY_SLEEP(a) a
