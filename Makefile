@@ -101,19 +101,19 @@ endif
 
 all: busybox busybox.links doc
 
-doc: BusyBox.txt BusyBox.1 BusyBox.html
+doc: docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
-BusyBox.txt: docs/busybox.pod
+docs/BusyBox.txt: docs/busybox.pod
 	@echo
 	@echo BusyBox Documentation
 	@echo
-	pod2text docs/busybox.pod > BusyBox.txt
+	pod2text docs/busybox.pod > docs/BusyBox.txt
 
-BusyBox.1: docs/busybox.pod
-	pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > BusyBox.1
+docs/BusyBox.1: docs/busybox.pod
+	pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > docs/BusyBox.1
 
-BusyBox.html: docs/busybox.pod
-	pod2html docs/busybox.pod > BusyBox.html
+docs/BusyBox.html: docs/busybox.pod
+	pod2html docs/busybox.pod > docs/BusyBox.html
 	- rm -f pod2html*
 
 clean:
