@@ -253,13 +253,23 @@
 	"$ echo "Hello world" | cut -f 2 -d ' '\n" \
 	"world\n"
 
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+#define USAGE_DATE_ISOFMT(a) a
+#else
+#define USAGE_DATE_ISOFMT(a)
+#endif
+
 #define date_trivial_usage \
 	"[OPTION]... [+FORMAT]"
 #define date_full_usage \
 	"Displays the current time in the given FORMAT, or sets the system date.\n" \
 	"\nOptions:\n" \
 	"\t-R\t\tOutputs RFC-822 compliant date string\n" \
-	"\t-d STRING\tdisplay time described by STRING, not `now'\n" \
+	"\t-d STRING\tDisplays time described by STRING, not `now'\n" \
+	USAGE_DATE_ISOFMT("\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string.\n" \
+	"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
+	"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
+	"\t\t\ttime to the indicated precision.\n") \
 	"\t-s\t\tSets time described by STRING\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"
 #define date_example_usage \
