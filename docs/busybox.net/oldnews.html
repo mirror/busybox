@@ -1,0 +1,286 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"> 
+
+<HTML>
+<HEAD>
+<TITLE>BusyBox</TITLE>
+</HEAD>
+
+<body text="#000000" alink="#660000" link="#660000" bgcolor="#dee2de" vlink="#660000">
+
+<basefont face="lucida, helvetica, arial" size="3">
+
+
+<CENTER>
+      <TABLE BORDER=0 CELLSPACING=1 CELLPADDING=2>
+	    <TR>
+		<td bgcolor="#000000">
+		  <FONT FACE="lucida, helvetica" COLOR="#ccccc0">
+		      <B>B&nbsp;u&nbsp;s&nbsp;y&nbsp;B&nbsp;o&nbsp;x</B>
+		  </FONT>
+		</TD>
+	    </TR>
+      </TABLE>
+      <a href="/"><IMG SRC="images/busybox2.jpg" alt="BusyBox" border="0" width="360" height="230"</a><BR>
+
+
+<TABLE WIDTH=95% CELLSPACING=1 CELLPADDING=4 BORDER=1>
+
+<!-- Begin Older News section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="news">
+    <BIG><B>
+    Older BusyBox News</A> 
+    </B></BIG>
+    </A>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+<ul>
+
+    <p> <li> <b>Take me back to the <a href="http://busybox.lineo.com/">BusyBox</a> web site.</b>
+    <hr>
+
+    <p> <li> <b>19 April 2000 -- syslogd bugfix</b>
+    <br>
+        Turns out that there was still a bug in busybox syslogd.
+	For example, with the following test app:
+<pre>
+	#include &lt;syslog.h&gt;
+
+	int do_log(char* msg, int delay)
+	{
+	    openlog("testlog", LOG_PID, LOG_DAEMON);
+	    while(1) {
+	        syslog(LOG_ERR, "%s: testing one, two, three\n", msg);
+	        sleep(delay);
+	    }
+	    closelog();
+	    return(0);
+	};
+
+	int main(void)
+	{
+	    if (fork()==0)
+	        do_log("A", 2);
+	    do_log("B", 3);
+	}
+</pre>
+	it should be logging stuff from both "A" and "B".  As released in 0.43 only stuff
+	from "A" would have been logged.  This means that if init tries to log something
+	while say ppp has the syslog open, init would block (which is bad, bad, bad).
+	<p>
+	Karl M. Hegbloom has created a 
+	<a href="ftp://ftp.lineo.com/pub/busybox/busybox-0.43-syslog_patch">fix for the problem</a>.
+	Thanks Karl!
+
+
+    <p> <li> <b>18 April 2000 -- BusyBox 0.43 released (finally!)</b>
+    <br>
+        I have finally gotten everything into a state where I feel pretty
+	good about things.  This is definitely the most stable, solid release
+	so far.  A lot of bugs have been fixed, and the following new apps
+	have been added: sh, basename, dirname, killall, uptime, 
+	freeramdisk, tr, echo, test, and usleep.  Tar has been completely
+	rewritten from scratch.  Bss size has also been greatly reduced.
+	More details are available in the 
+	<a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a>.
+	Oh, and as a special bonus, I wrote some fairly comprehensive
+	<em>documentation</em>, complete with examples and full usage information.
+
+	<p>
+	Many thanks go out to the fine people that have helped by submitting patches
+	and bug reports; particularly instrumental in helping for this release were 
+	Karl Hegbloom, Pavel Roskin, Friedrich Vedder, Emanuele Caratti,
+	Bob Tinsley, Nicolas Pitre, Avery Pennarun, Arne Bernin, John Beppu, and Jim Gleason.
+	There were others so if I somehow forgot to mention you, I'm very sorry.
+	<p>
+
+	You can grab BusyBox 0.43 tarballs <a href="ftp://ftp.lineo.com/pub/busybox/">here</a>.
+
+    <p> <li> <b>9 April 2000 -- BusyBox 0.43 pre release</b>
+    <br>
+        Unfortunately, I have not yet finished all the things I want to
+        do for BusyBox 0.43, so I am posting this pre-release for people
+        to poke at.  This contains my complete rewrite of tar, which now weighs in at
+        5k (7k with all options turned on) and works for reading and writing
+        tarballs (which it does correctly for everything I have been able to throw
+        at it).  Tar also (optionally) supports the "--exclude" option (mainly because
+        the Linux Router Project folks asked for it).  This also has a pre-release
+        of the micro shell I have been writing.  This pre-release should be stable
+        enough for production use -- it just isn't a release since I have some structural
+        changes I still want to make.
+        <p>
+	The pre-release can be found <a href="ftp://ftp.lineo.com/pub/busybox/">here</a>.
+	Please let me know ASAP if you find <em>any</em> bugs.
+    
+    <p> <li> <b>28 March 2000 -- Andersen Baby Boy release</b>
+    <br>
+	I am pleased to announce that on Tuesday March 28th at 5:48pm, weighing in at 7
+	lbs. 12 oz, Micah Erik Andersen was born at LDS Hospital here in Salt Lake City.
+	He was born in the emergency room less then 5 minutes after we arrived -- and
+	it was such a relief that we even made it to the hospital at all.  Despite the
+	fact that I was driving at an amazingly unlawful speed and honking at everybody
+	and thinking decidedly unkind thoughts about the people in our way, my wife
+	(inconsiderate of my feelings and complete lack of medical training) was lying
+	down in the back seat saying things like "I think I need to start pushing now"
+	(which she then proceeded to do despite my best encouraging statements to the
+	contrary).
+	<p>
+	Anyway, I'm glad to note that despite the much-faster-than-we-were-expecting
+	labor, both Shaunalei and our new baby boy are doing wonderfully.
+	<p>
+	So now that I am done with my excuse for the slow release cycle...
+	Progress on the next release of BusyBox has been slow but steady.  I expect
+	to have a release sometime during the first week of April.  This release will
+	include a number of important changes, including the addition of a shell, a 
+	re-write of tar (to accommodate the Linux Router Project), and syslogd can now
+	accept multiple concurrent connections, fixing lots of unexpected blocking 
+	problems.
+
+
+    <p> <li> <b>11 February 2000 -- BusyBox 0.42 released</b>
+    <br>
+
+	     This is the most solid BusyBox release so far.  Many, many
+		bugs have been fixed.   See the 
+<a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a> for details.
+
+		Of particular interest, init will now cleanly unmount 
+		filesystems on reboot, cp and mv have been rewritten and 
+		behave much better, and mount and umount no longer leak 
+		loop devices.  Many thanks go out to Randolph Chung, 
+		Karl M. Hegbloom, Taketoshi Sano, and Pavel Roskin for 
+		their hard work on this release of BusyBox.  Please pound 
+		on it and let me know if you find any bugs.
+
+    <p> <li> <b>19 January 2000 -- BusyBox 0.41 released</b>
+    <br>
+
+	     This release includes bugfixes to cp, mv, logger, true, false,
+		mkdir, syslogd, and init.  New apps include wc, hostid, 
+		logname, tty, whoami, and yes.  New features include loop device
+		support in mount and umount, and better TERM handling by init.
+		The changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+
+    <p> <li> <b>7 January 2000 -- BusyBox 0.40 released</b>
+    <br>
+
+	     This release includes bugfixes to init (now includes inittab support),
+	     syslogd, head, logger, du, grep, cp, mv, sed, dmesg, ls, kill, gunzip, and mknod.
+	     New apps include sort, uniq, lsmod, rmmod, fbset, and loadacm.
+	     In particular, this release fixes an important bug in tar which 
+	     in some cases produced serious security problems.
+	     As always, the changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+
+    <p> <li> <b>11 December 1999 -- BusyBox Website</b>
+    <br>
+	     I have received permission from Bruce Perens (the original author of BusyBox)
+		to set up this site as the new primary website for BusyBox.  This website
+		will always contain pointers to the latest and greatest, and will also 
+		contain the latest documentation on how to use BusyBox, what it can do,
+		what arguments its apps support, etc.
+
+    <p> <li> <b>10 December 1999 -- BusyBox 0.39 released</b>
+    <br>
+	     This release includes fixes to init, reboot, halt, kill, and ls, and contains 
+	     the new apps ping, hostname, mkfifo, free, tail, du, tee, and head.  A full
+	     changelog can be found <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">here</a>.
+    <p> <li> <b>5 December 1999 -- BusyBox 0.38 released</b>
+    <br>
+	     This release includes fixes to tar, cat, ls, dd, rm, umount, find, df, 
+		and make install, and includes new apps syslogd/klogd and logger. 
+</ul>
+
+
+<!-- Begin Links section -->
+
+<TR><TD BGCOLOR="#ccccc0" ALIGN=center>
+    <A NAME="links">
+    <BIG><B>
+    Important Links</A> 
+    </B></BIG>
+    </A>
+</TD></TR>
+<TR><TD BGCOLOR="#eeeee0">
+
+<ul> 
+
+    <li> <a href="http://busybox.lineo.com/">Take me back to http://busybox.lineo.com/</a>.
+    <p>
+
+    <li>  <A HREF="http://perens.com/FreeSoftware/">
+    Free Software from Bruce Perens</A><br>
+    The original idea for BusyBox, and all versions up to 0.26 were written 
+    by <A HREF="mailto:bruce@perens.com">Bruce Perens</a>.  This is his BusyBox website.
+    <p>
+
+    <li>  <A HREF="http://freshmeat.net/appindex/1999/04/11/923859921.html">
+    Freshmeat AppIndex record for BusyBox</A>
+    <p>
+
+    <li> <a href="http://opensource.lineo.com/software.html">Other cool embedded software</a>.
+    <p>
+
+    <li> <a href="http://opensource.lineo.com/">opensource.lineo.com</a>.
+    <p>
+
+    <li> <A HREF="http://www.lineo.com/">Lineo</A> is sponsoring BusyBox development.
+    <p>
+
+</ul>
+
+
+<!-- End of Table -->
+
+</TD></TR>
+</TABLE>
+</P>
+
+
+
+<!-- Footer -->
+<HR>
+<TABLE WIDTH="100%">
+    <TR>
+	<TD>
+	    <font size="-1" face="arial, helvetica, sans-serif">
+	    Mail all comments, insults, suggestions and bribes to 
+	    <a href="mailto:andersen@lineo.com">Erik Andersen</a><BR>
+	    The Busybox logo is copyright 1999,2000, Erik Andersen.
+	    </font>
+	</TD>
+
+	<TD>
+	    <a href="http://www.vim.org"><img border=0 width=88 height=32
+	    src="images/anim.written.in.vi.gif" 
+	    alt="This site created with the vi editor"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.gimp.org/"><img border=0 width=88 height=38
+	    src="images/gfx_by_gimp.gif" alt="Graphics by GIMP"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://www.linuxtoday.com"><img width=90 height=36
+	    src="images/ltbutton2.jpg" alt="Linux Today"></a>
+	</TD>
+
+	<TD>
+	    <p><a href="http://slashdot.org"><img width=90 height=36
+	    src="images/sdsmall.gif" alt="Slashdot"></a>
+	</TD>
+
+	<TD>
+	    <a href="http://freshmeat.net"><img width=90 height=36
+	    src="images/fm.mini.jpg" alt="Freshmeat"></a>
+	</TD>
+
+    </TR>
+</TABLE>
+
+
+</BODY>
+</HTML>
+
