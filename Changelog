@@ -10,7 +10,8 @@
 	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax,
 	     many ash corrections, and others optimizations, and cleanups.
 	* Matt Kraai -- Added BB_FEATURE_DEVFS to enable devfs device names.
-	
+	* Glenn McGrath -- dpkg rewrite, the provided functionality should 
+	     be compatable with the official dpkg, but needs more testing.
 
 	 -Not Yet Released
 
