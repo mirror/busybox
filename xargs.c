@@ -1,4 +1,5 @@
-/* xargs for busybox */
+/* xargs for busybox  -- using GNU xargs till we can get something
+ * better.  minix xargs is a bit smaller... */
 
 /* xargs -- build and execute command lines from standard input
    Copyright (C) 1990, 91, 92, 93, 94 Free Software Foundation, Inc.
