@@ -12,6 +12,8 @@
 	    Glenn McGrath <bug1@netconnect.com.au>
 	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
 	* Added setkeycodes, for those that have wierd keyboard buttons.
+	* Added md5sum, uuencode and uudecode -- thanks to Alfred M. Szmidt 
+	    <ams@trillian.itslinux.org> for contributing these.
         * Added 'grep -v' option (inverted search) and updated 
 	    docs accordingly.  -beppu
 	* Wrote which

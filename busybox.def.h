@@ -55,6 +55,7 @@
 #define BB_LSMOD
 #define BB_MAKEDEVS
 #define BB_MATH
+#define BB_MD5SUM
 #define BB_MKDIR
 #define BB_MKFIFO
 #define BB_MKFS_MINIX
@@ -99,6 +100,8 @@
 #define BB_WC
 #define BB_WHICH
 #define BB_WHOAMI
+#define BB_UUENCODE
+#define BB_UUDECODE
 #define BB_UMOUNT
 #define BB_UNIQ
 #define BB_UNAME

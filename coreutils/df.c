@@ -51,7 +51,6 @@ static int df(char *device, const char *mountPoint)
 		blocks_used = s.f_blocks - s.f_bfree;
 		blocks_percent_used = (long)
 			(blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
-		/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
 		if (strcmp(device, "/dev/root") == 0) {
 			/* Adjusts device to be the real root device,
 			 * or leaves device alone if it can't find it */

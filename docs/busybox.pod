@@ -59,11 +59,12 @@ ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd,
 df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
-logger, logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod,
-mkswap, mktemp, nc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps,
-pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep, sort, sync,
-syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true, tty, umount,
-uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
+logger, logname, ls, lsmod, makedevs, math, md5sum, mkdir, mkfifo, mkfs.minix,
+mknod, mkswap, mktemp, nc, more, mount, mt, mv, nslookup, ping, poweroff,
+printf, ps, pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep,
+sort, sync, syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true,
+tty, umount, uname, uniq, update, uptime, usleep, uudecode, uuencode, wc,
+whoami, yes, zcat, [
 
 -------------------------------
 
@@ -1034,6 +1035,35 @@ Example:
 
 -------------------------------
 
+=item md5sum
+
+Usage: md5sum [OPTION] [file ...]
+
+Print or check MD5 checksums.
+
+Options:
+
+	-b       read files in binary mode
+	-c       check MD5 sums against given list
+	-t       read files in text mode (default)
+	-g       read a string
+
+The following two options are useful only when verifying checksums:
+
+	-s       don't output anything, status code shows success
+	-w       warn about improperly formated MD5 checksum lines
+
+Example:
+
+	$ md5sum busybox
+	6fd11e98b98a58f64ff3398d7b324003  busybox
+	$ md5sum -c -
+	6fd11e98b98a58f64ff3398d7b324003  busybox
+	busybox: OK
+	^D
+
+-------------------------------
+
 =item mkdir
 
 Usage: mkdir [OPTION] DIRECTORY...
@@ -1724,6 +1754,45 @@ Example:
 
 -------------------------------
 
+=item uuencode
+
+Usage: uuencode [OPTION] [INFILE] REMOTEFILE
+
+Uuencode a file.
+
+Options:
+
+	-m      use base64 encoding as of RFC1521
+
+Example:
+
+	$ uuencode busybox busybox
+	begin 755 busybox
+	M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&
+	.....
+	$ uudecode busybox busybox > busybox.uu
+	$
+
+-------------------------------
+
+=item uudecode
+
+Usage: uudecode [OPTION] [FILE]
+
+Uudecode a uuencoded file
+
+Options:
+
+	-o FILE  direct output to FILE
+
+Example:
+
+	$ uudecode -o busybox busybox.uu
+	$ ls -l busybox
+	-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
+
+-------------------------------
+
 =item umount
 
 Usage: umount [flags] filesystem|directory
@@ -1952,4 +2021,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.40 2000/06/12 23:04:55 beppu Exp $
+# $Id: busybox.pod,v 1.41 2000/06/13 06:54:53 andersen Exp $

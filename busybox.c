@@ -189,6 +189,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_MATH
 	{"math", math_main, _BB_DIR_USR_BIN},
 #endif
+#ifdef BB_MD5SUM
+	{"md5sum", md5sum_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_MKDIR
 	{"mkdir", mkdir_main, _BB_DIR_BIN},
 #endif
@@ -323,6 +326,12 @@ const struct BB_applet applets[] = {
 #endif
 #ifdef BB_UPTIME
 	{"uptime", uptime_main, _BB_DIR_USR_BIN},
+#endif
+#ifdef BB_UUENCODE
+	{"uuencode", uuencode_main, _BB_DIR_USR_BIN},
+#endif
+#ifdef BB_UUDECODE
+	{"uudecode", uudecode_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_USLEEP
 	{"usleep", usleep_main, _BB_DIR_BIN},

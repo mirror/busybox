@@ -119,7 +119,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
 	/* Parse options */
 	while (--argc >= 0 && *argv && (**argv == '-')) {
-		while (*++(*argv))
+		while (*++(*argv)) {
 			switch (**argv) {
 				case 'R':
 					recursiveFlag = TRUE;
@@ -128,6 +128,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 					fprintf(stderr, invalid_option, invocationName, **argv);
 					usage(appUsage);
 			}
+		}
 		argv++;
 	}
 
