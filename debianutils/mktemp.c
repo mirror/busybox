@@ -31,10 +31,33 @@
 
 extern int mktemp_main(int argc, char **argv)
 {
-	if (argc != 2 && (argc != 3 || strcmp(argv[1], "-q")))
+	unsigned char dir_flag = 0;
+	int opt;
+
+	while ((opt = getopt(argc, argv, "qd")) != -1) {
+		if (opt == 'd') {
+			dir_flag = 1;
+		}
+		else if (opt != 'q') {
+			bb_show_usage();
+		} 
+	}
+
+	if (optind + 1 != argc) {
 		bb_show_usage();
-	if(mkstemp(argv[argc-1]) < 0)
-		return EXIT_FAILURE;
+	}
+
+	if (dir_flag) {
+		if (mkdtemp(argv[argc-1]) == NULL) {
+			return EXIT_FAILURE;
+		}
+	} else {
+		if (mkstemp(argv[argc-1]) < 0) {
+			return EXIT_FAILURE;
+		}
+	}
+
 	(void) puts(argv[argc-1]);
+
 	return EXIT_SUCCESS;
 }
