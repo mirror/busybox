@@ -310,7 +310,12 @@ int wget_main(int argc, char **argv)
 			 * Send HTTP request.
 			 */
 			if (proxy) {
-				fprintf(sfp, "GET %stp://%s:%d/%s HTTP/1.1\r\n",
+				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
+#ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
+				if (strchr (target.host, ':'))
+					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
+#endif
+				fprintf(sfp, format,
 					target.is_ftp ? "f" : "ht", target.host,
 					target.port, target.path);
 			} else {
@@ -525,7 +530,7 @@ read_response:
 
 void parse_url(char *url, struct host_info *h)
 {
-	char *cp, *sp, *up;
+	char *cp, *sp, *up, *pp;
 
 	if (strncmp(url, "http://", 7) == 0) {
 		h->port = 80;
@@ -553,7 +558,24 @@ void parse_url(char *url, struct host_info *h)
 	} else
 		h->user = NULL;
 
-	cp = strchr(h->host, ':');
+	pp = h->host;
+
+#ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
+	if (h->host[0] == '[') {
+		char *ep;
+
+		ep = h->host + 1;
+		while (*ep == ':' || isdigit (*ep))
+			ep++;
+		if (*ep == ']') {
+			h->host++;
+			*ep = '\0';
+			pp = ep + 1;
+		}
+	}
+#endif
+
+	cp = strchr(pp, ':');
 	if (cp != NULL) {
 		*cp++ = '\0';
 		h->port = atoi(cp);
@@ -819,7 +841,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.57 2003/08/29 06:25:04 bug1 Exp $
+ *	$Id: wget.c,v 1.58 2003/09/10 23:52:15 bug1 Exp $
  */
 
 

@@ -589,6 +589,13 @@ config CONFIG_FEATURE_WGET_AUTHENTICATION
 	help
 	  Support authenticated HTTP transfers.
 
+config CONFIG_FEATURE_WGET_IP6_LITERAL
+	bool "  Enable IPv6 literal addresses"
+	default y
+	depends on CONFIG_WGET
+	help
+	  Support IPv6 address literal notation in URLs.
+
 source networking/udhcp/Config.in
 
 endmenu
