@@ -5,6 +5,11 @@
  * This version of the Minix shell was adapted for use in busybox
  * by Erik Andersen <andersee@debian.org>
  *
+ * - backtick expansion did not work properly
+ *   Jonas Holmberg <jonas.holmberg@axis.com>
+ *   Robert Schwebel <r.schwebel@pengutronix.de>
+ *   Erik Andersen <andersee@debian.org>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -222,7 +227,7 @@ static char *space (int n );
 static char *strsave (char *s, int a );
 static char *evalstr (char *cp, int f );
 static char *putn (int n );
-static char *itoa (unsigned u, int n );
+static char *itoa (int n );
 static char *unquote (char *as );
 static struct var *lookup (char *n );
 static int rlookup (char *n );
@@ -664,7 +669,6 @@ static int	heedint =1;
 static struct env e ={line, iostack, iostack-1, (xint *)NULL, FDBASE, (struct env *)NULL};
 static void (*qflag)(int) = SIG_IGN;
 static char	shellname[] = "/bin/sh";
-static char	search[] = ":/bin:/usr/bin";
 static	int	startl;
 static	int	peeksym;
 static	int	nlseen;
@@ -686,7 +690,6 @@ static void * brkaddr;
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
 static char * current_prompt;
 #endif
-
 
 /* -------- sh.c -------- */
 /*
@@ -722,11 +725,15 @@ extern int msh_main(int argc, char **argv)
 		setval(homedir, "/");
 	export(homedir);
 
-	setval(lookup("$"), itoa(getpid(), 5));
+	setval(lookup("$"), putn(getpid()));
 
 	path = lookup("PATH");
-	if (path->value == null)
-		setval(path, search);
+	if (path->value == null) {
+		if (geteuid() == 0)
+			setval(path, "/sbin:/bin:/usr/sbin:/usr/bin");
+		else
+			setval(path, "/bin:/usr/bin");
+	}
 	export(path);
 
 	ifs = lookup("IFS");
@@ -858,7 +865,7 @@ setdash()
 
 	cp = m;
 	for (c='a'; c<='z'; c++)
-		if (flag[c])
+		if (flag[(int)c])
 			*cp++ = c;
 	*cp = 0;
 	setval(lookup("-"), m);
@@ -1047,32 +1054,16 @@ static char *
 putn(n)
 register int n;
 {
-	return(itoa(n, -1));
+	return(itoa(n));
 }
 
 static char *
-itoa(u, n)
-register unsigned u;
-int n;
+itoa(n)
+register int n;
 {
-	register char *cp;
 	static char s[20];
-	int m;
-
-	m = 0;
-	if (n < 0 && (int) u < 0) {
-		m++;
-		u = -u;
-	}
-	cp = s+sizeof(s);
-	*--cp = 0;
-	do {
-		*--cp = u%10 + '0';
-		u /= 10;
-	} while (--n > 0 || u);
-	if (m)
-		*--cp = '-';
-	return(cp);
+	snprintf(s, sizeof(s), "%u", n);
+	return(s);
 }
 
 static void
@@ -2326,6 +2317,9 @@ int act;
 
 	switch(t->type) {
 	case TPAREN:
+		rv = execute(t->left, pin, pout, 0);
+		break;
+			
 	case TCOM:
 		{
 			int child;
@@ -2877,12 +2871,12 @@ char *c, **v, **envp;
 			*v = e.linep;
 			tp = *--v;
 			*v = e.linep;
-			execve("/bin/sh", v, envp);
+			execve(shellname, v, envp);
 			*v = tp;
 			return("no Shell");
 
 		case ENOMEM:
-			return("program too big");
+			return((char*)memory_exhausted);
 
 		case E2BIG:
 			return("argument list too long");
@@ -3643,7 +3637,7 @@ loop:
  */
 static int
 subgetc(ec, quoted)
-register int ec;
+register char ec;
 int quoted;
 {
 	register char c;
@@ -3770,58 +3764,153 @@ int quoted;
 /*
  * Run the command in `...` and read its output.
  */
+
 static int
 grave(quoted)
 int quoted;
 {
-	register int i;
 	char *cp;
+	register int i;
+	int j;
 	int pf[2];
+	static char child_cmd[LINELIM];
+	char *src;
+	char *dest;
+	int count;
+	int ignore;
+	int ignore_once;
+	char *argument_list[4];
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
 	(void) &cp;
 #endif
+	
 	for (cp = e.iop->argp->aword; *cp != '`'; cp++)
 		if (*cp == 0) {
 			err("no closing `");
 			return(0);
 		}
+
+	/* string copy with dollar expansion */
+	src = e.iop->argp->aword;
+	dest = child_cmd;
+	count = 0;
+	ignore = 0;
+	ignore_once = 0;
+	while ((*src != '`') && (count < LINELIM)) {
+		if (*src == '\'')
+			ignore = !ignore;
+		if (*src == '\\')
+			ignore_once = 1;
+		if (*src == '$' && !ignore && !ignore_once) {
+			struct var *vp;
+			char var_name[LINELIM];
+			char alt_value[LINELIM];
+			int var_index = 0;
+			int alt_index = 0;
+			char operator = 0;
+			int braces = 0;
+			char *value;
+
+			src++;
+			if (*src == '{') {
+				braces = 1;
+				src++;
+			}
+
+			var_name[var_index++] = *src++;
+			while (isalnum(*src))
+				var_name[var_index++] = *src++;
+			var_name[var_index] = 0;
+
+			if (braces) {
+				switch (*src) {
+				case '}':
+					break;
+				case '-':
+				case '=':
+				case '+':
+				case '?':
+					operator = *src;
+					break;
+				default:
+					err("unclosed ${\n");
+					return(0);
+				}
+				if (operator) {	
+					src++;
+					while (*src && (*src != '}')) {
+						alt_value[alt_index++] = *src++;
+					}
+					alt_value[alt_index] = 0;
+					if (*src != '}') {
+						err("unclosed ${\n");
+						return(0);
+					}
+				}
+				src++;
+			}
+
+			vp = lookup(var_name);
+			if (vp->value != null)
+				value = (operator == '+')? alt_value : vp->value;
+			else if (operator == '?') {
+				err(alt_value);
+				return(0);
+			} else if (alt_index && (operator != '+')) {
+				value = alt_value;
+				if (operator == '=')
+					setval(vp, value);
+			} else
+				continue;
+
+			while (*value && (count < LINELIM)) {
+				*dest++ = *value++;
+				count++;
+			}
+		} else {
+			*dest++ = *src++;
+			count++;
+			ignore_once = 0;
+		}
+	}
+	*dest = '\0';
+	
 	if (openpipe(pf) < 0)
 		return(0);
-	if ((i = vfork()) == -1) {
+	while ((i = vfork()) == -1 && errno == EAGAIN)
+		;
+	if (i < 0) {
 		closepipe(pf);
-		err("try again");
+		err((char*)memory_exhausted);
 		return(0);
 	}
 	if (i != 0) {
+		waitpid(i, NULL, 0);
 		e.iop->argp->aword = ++cp;
 		close(pf[1]);
 		PUSHIO(afile, remap(pf[0]), (int(*)(struct ioarg *))((quoted)? qgravechar: gravechar));
 		return(1);
 	}
-	*cp = 0;
 	/* allow trapped signals */
-	for (i=0; i<=_NSIG; i++)
-		if (ourtrap[i] && signal(i, SIG_IGN) != SIG_IGN)
-			signal(i, SIG_DFL);
+	/* XXX - Maybe this signal stuff should go as well? */
+	for (j=0; j<=_NSIG; j++)
+		if (ourtrap[j] && signal(j, SIG_IGN) != SIG_IGN)
+			signal(j, SIG_DFL);
+	
 	dup2(pf[1], 1);
 	closepipe(pf);
-	flag['e'] = 0;
-	flag['v'] = 0;
-	flag['n'] = 0;
-	cp = strsave(e.iop->argp->aword, 0);
-	areanum = 1;
-	freehere(areanum);
-	freearea(areanum);	/* free old space */
-	e.oenv = NULL;
-	e.iop = (e.iobase = iostack) - 1;
-	unquote(cp);
-	interactive = 0;
-	PUSHIO(aword, cp, nlchar);
-	onecommand();
-	exit(1);
+
+	argument_list[0] = shellname;
+	argument_list[1] = "-c";
+	argument_list[2] = child_cmd;
+	argument_list[3] = 0;
+
+	prs(rexecve(argument_list[0], argument_list, makenv()));
+	_exit(1);
 }
+
 
 static char *
 unquote(as)
@@ -4194,7 +4283,7 @@ static int my_getc( int ec)
 		return(c);
 	}
 	c = readc();
- 	if (ec != '\'' && e.iop->task != XGRAVE) {
+	if ((ec != '\'') && (ec != '`') && (e.iop->task != XGRAVE)) {
 		if(c == '\\') {
 			c = readc();
 			if (c == '\n' && ec != '\"')
@@ -4457,7 +4546,7 @@ register struct ioarg *ap;
 	}
 
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
-	if (interactive) {
+	if (interactive && isatty(ap->afile)) {
 	    static char mycommand[BUFSIZ];
 	    static int position = 0, size = 0;
 
@@ -4568,7 +4657,7 @@ static void
 prn(u)
 unsigned u;
 {
-	prs(itoa(u, 0));
+	prs(itoa(u));
 }
 
 static void
