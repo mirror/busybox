@@ -161,7 +161,7 @@ extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
 
 extern const char *bb_opt_complementaly;
 extern const struct option *bb_applet_long_options;
-extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts);
+extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...);
 //#warning rename?
 extern FILE *bb_wfopen_input(const char *filename);
 

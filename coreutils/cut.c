@@ -1,3 +1,4 @@
+/* vi: set sw=8 ts=8: */
 /*
  * cut.c - minimalist version of cut
  *
@@ -300,12 +301,12 @@ extern int cut_main(int argc, char **argv)
 	if(part == 0)
 		bb_error_msg_and_die("you must specify a list of bytes, characters, or fields");
 	if(opt & 0x80000000UL)
-					bb_error_msg_and_die("only one type of list may be specified");
+		bb_error_msg_and_die("only one type of list may be specified");
 	parse_lists(sopt);
 	if((opt & (OPT_DELIM_FLGS))) {
 		if (strlen(sdopt) > 1) {
-					bb_error_msg_and_die("the delimiter must be a single character");
-				}
+			bb_error_msg_and_die("the delimiter must be a single character");
+		}
 		delim = sdopt[0];
 	}
 	supress_non_delimited_lines = opt & OPT_SUPRESS_FLGS;
