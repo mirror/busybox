@@ -4,12 +4,15 @@
 	* Fixed mkdir -m option so that it works.
 	* kill segfaulted w/o any arguments.  Now it doesn't do that.
 	* kill wasn't properly accepting signal names.  It does now.
-	* Added new apps chvt and deallocvt
-	* Major adjustment of init.c.  Code is now readable IMHO,
-	    and much more solid.
+	* Added new apps chvt and deallocvt (I should probably add open)
+	* Major rewrite of init.c.  Code is now readable by mere mortals IMHO.
 	* Wrote sed -- weighs only 1.8k (5.8k with full regular expressions!).
 	* Fixed a stupid seg-fault in sync
-	* Fixed mount -- mount -a always mounted rw despite /etc/fstab ro entries.
+	* Fixed mount -- mount -a failed to parse and apply mount options
+	* Added BB_MTAB, allowing (at the cost of ~1.5k and the need for a rw /etc)
+	    folks to use a real /etc/mtab file instead of a symlink to /proc/mounts.
+	    mount, and umount will add/remove entries and df will now use /etc/mtab 
+	    if BB_MTAB is defined. 
 
 	 -Erik Andersen
 

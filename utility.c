@@ -36,6 +36,15 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#ifdef BB_MTAB
+const char mtab_file[] = "/etc/mtab";
+#else
+#if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
+const char mtab_file[] = "/proc/mounts";
+#endif
+#endif
+
+
 /* volatile so gcc knows this is the enod of the line */
 volatile void usage(const char *usage)
 {

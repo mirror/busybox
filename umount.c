@@ -29,24 +29,54 @@
 #include <errno.h>
 
 static const char umount_usage[] = 
-"Usage: umount filesystem\n"
-"   or: umount directory\n"
-"   or: umount -a"
-"to unmount all mounted file systems.\n";
+"Usage: umount [flags] filesystem|directory\n"
+"Optional Flags:\n"
+"\t-a:\tUnmount all file systems"
+#ifdef BB_MTAB
+" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries\n"
+#else
+"\n"
+#endif
+;
+
+
+static int useMtab = TRUE;
+static int umountAll = FALSE;
+extern const char mtab_file[]; /* Defined in utility.c */
+
+#if ! defined BB_MTAB
+#define do_umount( blockDevice, useMtab) umount( blockDevice)
+#else
+static int 
+do_umount(const char* name, int useMtab)
+{
+    int status = umount(name);
+
+    if ( status == 0 ) {
+	if ( useMtab==TRUE )
+	    erase_mtab(name);
+	return 0;
+    }
+    else 
+	return( status);
+}
+#endif
 
 static int
-umount_all()
+umount_all(int useMtab)
 {
 	int status;
 	struct mntent *m;
         FILE *mountTable;
 
-        if ((mountTable = setmntent ("/proc/mounts", "r"))) {
+        if ((mountTable = setmntent (mtab_file, "r"))) {
             while ((m = getmntent (mountTable)) != 0) {
                 char *blockDevice = m->mnt_fsname;
+#if ! defined BB_MTAB
                 if (strcmp (blockDevice, "/dev/root") == 0)
                     blockDevice = (getfsfile ("/"))->fs_spec;
-		status=umount (m->mnt_dir);
+#endif
+		status=do_umount (m->mnt_dir, useMtab);
 		if (status!=0) {
 		    /* Don't bother retrying the umount on busy devices */
 		    if (errno==EBUSY) {
@@ -56,7 +86,7 @@ umount_all()
 		    printf ("Trying to umount %s failed: %s\n", 
 			    m->mnt_dir, strerror(errno)); 
 		    printf ("Instead trying to umount %s\n", blockDevice); 
-		    status=umount (blockDevice);
+		    status=do_umount (blockDevice, useMtab);
 		    if (status!=0) {
 			printf ("Couldn't umount %s on %s (type %s): %s\n", 
 				blockDevice, m->mnt_dir, m->mnt_type, strerror(errno));
@@ -69,27 +99,35 @@ umount_all()
 }
 
 extern int
-umount_main(int argc, char * * argv)
+umount_main(int argc, char** argv)
 {
 
     if (argc < 2) {
 	usage( umount_usage); 
     }
-    argc--;
-    argv++;
 
     /* Parse any options */
-    while (**argv == '-') {
+    while (argc-- > 0 && **(++argv) == '-') {
 	while (*++(*argv)) switch (**argv) {
 	    case 'a':
-		exit ( umount_all() );
+		umountAll = TRUE;
 		break;
+#ifdef BB_MTAB
+	    case 'n':
+		useMtab = FALSE;
+		break;
+#endif
 	    default:
 		usage( umount_usage);
 	}
     }
-    if ( umount(*argv) == 0 )
-	     exit (TRUE);
+
+
+    if(umountAll) {
+	exit(umount_all(useMtab));
+    }
+    if ( do_umount(*argv,useMtab) == 0 )
+	exit (TRUE);
     else {
 	perror("umount");
 	exit( FALSE);

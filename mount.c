@@ -41,11 +41,17 @@
 #include <ctype.h>
 #include <fstab.h>
 
+extern const char mtab_file[]; /* Defined in utility.c */
+
 static const char mount_usage[] = "Usage:\tmount [flags]\n"
     "\tmount [flags] device directory [-o options,more-options]\n"
     "\n"
     "Flags:\n"
     "\t-a:\tMount all file systems in fstab.\n"
+#ifdef BB_MTAB
+    "\t-f:\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
+    "\t-n:\tDon't write a mount table entry.\n"
+#endif
     "\t-o option:\tOne of many filesystem options, listed below.\n"
     "\t-r:\tMount the filesystem read-only.\n"
     "\t-t filesystem-type:\tSpecify the filesystem type.\n"
@@ -61,6 +67,7 @@ static const char mount_usage[] = "Usage:\tmount [flags]\n"
     "\t"
     "There are EVEN MORE flags that are specific to each filesystem.\n"
     "You'll have to see the written documentation for those.\n";
+
 
 struct mount_options {
     const char *name;
@@ -83,6 +90,29 @@ static const struct mount_options mount_options[] = {
     {"sync", ~0, MS_SYNCHRONOUS},
     {0, 0, 0}
 };
+
+#if ! defined BB_MTAB
+#define do_mount(specialfile, dir, filesystemtype, flags, string_flags, useMtab, fakeIt) \
+	mount(specialfile, dir, filesystemtype, flags, string_flags)
+#else
+static int
+do_mount(char* specialfile, char* dir, char* filesystemtype, 
+	long flags, void* string_flags, int useMtab, int fakeIt)
+{
+    int status=0;
+
+    if (fakeIt==FALSE)
+	status=mount(specialfile, dir, filesystemtype, flags, string_flags);
+
+    if ( status == 0 ) {
+	if ( useMtab==TRUE )
+	    write_mtab(specialfile, dir, filesystemtype, flags, string_flags);
+	return 0;
+    }
+    else 
+	return( status);
+}
+#endif
 
 
 /* Seperate standard mount options from the nonstandard string options */
@@ -126,9 +156,8 @@ parse_mount_options ( char *options, unsigned long *flags, char *strflags)
 }
 
 int
-mount_one (
-	   char *blockDevice, char *directory, char *filesystemType,
-	   unsigned long flags, char *string_flags)
+mount_one(char *blockDevice, char *directory, char *filesystemType,
+	   unsigned long flags, char *string_flags, int useMtab, int fakeIt)
 {
     int status = 0;
 
@@ -152,16 +181,16 @@ mount_one (
 		filesystemType = buf;
 		filesystemType++;	// hop past tab
 
-		status = mount (blockDevice, directory, filesystemType,
-				flags | MS_MGC_VAL, string_flags);
+		status = do_mount (blockDevice, directory, filesystemType,
+				flags | MS_MGC_VAL, string_flags, useMtab, fakeIt);
 		if (status == 0)
 		    break;
 	    }
 	}
 	fclose (f);
     } else {
-	status = mount (blockDevice, directory, filesystemType,
-			flags | MS_MGC_VAL, string_flags);
+	status = do_mount (blockDevice, directory, filesystemType,
+			flags | MS_MGC_VAL, string_flags, useMtab, fakeIt);
     }
 
     if (status) {
@@ -180,15 +209,17 @@ extern int mount_main (int argc, char **argv)
     char *device = NULL;
     char *directory = NULL;
     struct stat statBuf;
-    int all = 0;
+    int all = FALSE;
+    int fakeIt = FALSE;
+    int useMtab = TRUE;
     int i;
 
     if (stat("/etc/fstab", &statBuf) < 0) 
 	fprintf(stderr, "/etc/fstab file missing -- Please install one.\n\n");
 
     if (argc == 1) {
-	FILE *mountTable;
-	if ((mountTable = setmntent ("/proc/mounts", "r"))) {
+	FILE *mountTable = setmntent (mtab_file, "r");
+	if (mountTable) {
 	    struct mntent *m;
 	    while ((m = getmntent (mountTable)) != 0) {
 		struct fstab* fstabItem;
@@ -203,6 +234,8 @@ extern int mount_main (int argc, char **argv)
 			m->mnt_type, m->mnt_opts);
 	    }
 	    endmntent (mountTable);
+	} else {
+	    perror(mtab_file);
 	}
 	exit( TRUE);
     }
@@ -241,6 +274,14 @@ extern int mount_main (int argc, char **argv)
 	    case 'a':
 		all = TRUE;
 		break;
+#ifdef BB_MTAB
+	    case 'f':
+		fakeIt = TRUE;
+		break;
+	    case 'n':
+		useMtab = FALSE;
+		break;
+#endif
 	    case 'v':
 	    case 'h':
 	    case '-':
@@ -263,7 +304,6 @@ extern int mount_main (int argc, char **argv)
     }
 
     if (all == TRUE) {
-	long newFlags;
 	struct mntent *m;
 	FILE *f = setmntent ("/etc/fstab", "r");
 
@@ -279,17 +319,18 @@ extern int mount_main (int argc, char **argv)
 		    (!strstr (m->mnt_type, "swap")) && 
 		    (!strstr (m->mnt_type, "nfs"))) 
 	    {
-		newFlags = flags;
+		flags = 0;
 		*string_flags = '\0';
-		parse_mount_options(m->mnt_opts, &newFlags, string_flags);
-		mount_one (m->mnt_fsname, m->mnt_dir, m->mnt_type, newFlags, string_flags);
+		parse_mount_options(m->mnt_opts, &flags, string_flags);
+		mount_one (m->mnt_fsname, m->mnt_dir, m->mnt_type, 
+			flags, string_flags, useMtab, fakeIt);
 	    }
 	}
 	endmntent (f);
     } else {
 	if (device && directory) {
 	    exit (mount_one (device, directory, filesystemType, 
-			flags, string_flags));
+			flags, string_flags, useMtab, fakeIt));
 	} else {
 	    fprintf (stderr, "%s\n", mount_usage);
 	    exit( FALSE);

@@ -47,7 +47,6 @@
 #define isWildCard(ch)  (((ch) == '*') || ((ch) == '?') || ((ch) == '['))
 
 
-
 struct Applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
@@ -146,6 +145,10 @@ extern void my_getpwuid(char* name, uid_t uid);
 extern void my_getgrgid(char* group, gid_t gid);
 extern int get_kernel_revision();
 extern int get_console_fd(char* tty_name);
+
+extern void write_mtab(char* blockDevice, char* directory, 
+	char* filesystemType, long flags, char* string_flags);
+extern void erase_mtab(const char * name);
 
 
 #if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)

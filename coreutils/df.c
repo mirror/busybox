@@ -31,6 +31,7 @@
 static const char df_usage[] = "df [filesystem ...]\n"
     "\n" "\tPrint the filesystem space used and space available.\n";
 
+extern const char mtab_file[]; /* Defined in utility.c */
 
 static int df(char *device, const char *mountPoint)
 {
@@ -113,7 +114,7 @@ extern int df_main(int argc, char **argv)
 	int status;
 
 	while (argc > 1) {
-	    if ((mountEntry = findMountPoint(argv[1], "/proc/mounts")) ==
+	    if ((mountEntry = findMountPoint(argv[1], mtab_file)) ==
 		0) {
 		fprintf(stderr, "%s: can't find mount point.\n", argv[1]);
 		return 1;
@@ -129,9 +130,9 @@ extern int df_main(int argc, char **argv)
 	FILE *mountTable;
 	struct mntent *mountEntry;
 
-	mountTable = setmntent("/proc/mounts", "r");
+	mountTable = setmntent(mtab_file, "r");
 	if (mountTable == 0) {
-	    perror("/proc/mounts");
+	    perror(mtab_file);
 	    exit(FALSE);
 	}
 
