@@ -28,25 +28,23 @@ static const char *userspec = NULL;
 static const char *cmdname = NULL;
 static char *execname = NULL;
 static char *startas = NULL;
-static const char *progname = "";
 
-struct pid_list {
+typedef struct pid_list {
 	struct pid_list *next;
 	int pid;
-};
+} pid_list;
 
-static struct pid_list *found = NULL;
-static struct pid_list *killed = NULL;
+static pid_list *found = NULL;
 
-static void
-push(struct pid_list **list, int pid)
+static inline void
+push(int pid)
 {
-	struct pid_list *p;
+	pid_list *p;
 
 	p = xmalloc(sizeof(*p));
-	p->next = *list;
+	p->next = found;
 	p->pid = pid;
-	*list = p;
+	found = p;
 }
 
 
@@ -85,7 +83,6 @@ parse_options(int argc, char * const *argv)
 			break;
 		default:
 			show_usage();
-			exit(1);
 		}
 	}
 
@@ -169,7 +166,7 @@ check(int pid)
 	if (cmdname && !pid_is_cmd(pid, cmdname)) {
 		return;
 	}
-	push(&found, pid);
+	push(pid);
 }
 
 
@@ -202,7 +199,8 @@ static void
 do_stop(void)
 {
 	char what[1024];
-	struct pid_list *p;
+	pid_list *p;
+	int killed = 0;
 
 	if (cmdname)
 		strcpy(what, cmdname);
@@ -215,19 +213,21 @@ do_stop(void)
 
 	if (!found) {
 		printf("no %s found; none killed.\n", what);
-		exit(0);
+		return;
 	}
 	for (p = found; p; p = p->next) {
-		if (kill(p->pid, signal_nr) == 0)
-			push(&killed, p->pid);
-		else
-			printf("%s: warning: failed to kill %d: %s\n",
-			       progname, p->pid, strerror(errno));
+		if (kill(p->pid, signal_nr) == 0) {
+			p->pid = -p->pid;
+			killed++;
+		} else {
+			perror_msg("warning: failed to kill %d:", p->pid);
+		}
 	}
 	if (killed) {
 		printf("stopped %s (pid", what);
-		for (p = killed; p; p = p->next)
-			printf(" %d", p->pid);
+		for (p = found; p; p = p->next)
+			if(p->pid < 0)
+				printf(" %d", -p->pid);
 		printf(").\n");
 	}
 }
@@ -236,33 +236,23 @@ do_stop(void)
 int
 start_stop_daemon_main(int argc, char **argv)
 {
-	progname = argv[0];
-
 	parse_options(argc, argv);
 	argc -= optind;
 	argv += optind;
 
-	if (userspec && sscanf(userspec, "%d", &user_id) != 1) {
-		struct passwd *pw;
-
-		pw = getpwnam(userspec);
-		if (!pw)
-			error_msg_and_die ("user `%s' not found\n", userspec);
-
-		user_id = pw->pw_uid;
-	}
+	if (userspec && sscanf(userspec, "%d", &user_id) != 1)
+		user_id = my_getpwnam(userspec);
 
 	do_procfs();
 
 	if (stop) {
 		do_stop();
-		exit(0);
+		return EXIT_SUCCESS;
 	}
 
 	if (found) {
-		printf("%s already running.\n", execname);
-		printf("%d\n",found->pid);
-		exit(0);
+		printf("%s already running.\n%d\n", execname ,found->pid);
+		return EXIT_SUCCESS;
 	}
 	*--argv = startas;
 	execv(startas, argv);
