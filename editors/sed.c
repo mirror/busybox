@@ -670,11 +670,8 @@ extern int sed_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "hne:f:")) > 0) {
+	while ((opt = getopt(argc, argv, "ne:f:")) > 0) {
 		switch (opt) {
-			case 'h':
-				show_usage();
-				break;
 			case 'n':
 				be_quiet++;
 				break;
@@ -684,6 +681,8 @@ extern int sed_main(int argc, char **argv)
 			case 'f': 
 				load_cmd_file(optarg);
 				break;
+			default:
+				show_usage();
 		}
 	}
 

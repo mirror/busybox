@@ -85,7 +85,7 @@ extern int df_main(int argc, char **argv)
 	int opt = 0;
 	int i = 0;
 
-	while ((opt = getopt(argc, argv, "?"
+	while ((opt = getopt(argc, argv, 
 #ifdef BB_FEATURE_HUMAN_READABLE
 	"hm"
 #endif
@@ -100,7 +100,8 @@ extern int df_main(int argc, char **argv)
 #else
 			case 'k': break;
 #endif
-			case '?': goto print_df_usage; break;
+			default:
+					  show_usage();
 		}
 	}
 
@@ -141,10 +142,6 @@ extern int df_main(int argc, char **argv)
 	}
 
 	return status;
-
-print_df_usage:
-    show_usage();
-    return(FALSE);
 }
 
 /*
