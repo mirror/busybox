@@ -1,5 +1,5 @@
 /*
- * Mini sort implementation for busybox
+ * Mini uniq implementation for busybox
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
@@ -141,6 +141,7 @@ uniq_main(int argc, char **argv)
 	if (argv[i][0] == '-') {
 	    opt = argv[i][1];
 	    switch (opt) {
+		case '-':
 		case 'h':
 		    usage(uniq_usage);
 		default:
@@ -154,4 +155,4 @@ uniq_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: uniq.c,v 1.1 2000/01/06 00:48:21 beppu Exp $ */
+/* $Id: uniq.c,v 1.2 2000/01/06 01:14:56 erik Exp $ */
