@@ -55,7 +55,7 @@ extern int mt_main(int argc, char **argv)
 	const char *file = "/dev/tape";
 	const struct mt_opcodes *code = opcodes;
 	struct mtop op;
-	int fd;
+	int fd, mode;
 	
 	if (argc < 2) {
 		show_usage();
@@ -87,7 +87,20 @@ extern int mt_main(int argc, char **argv)
 	else
 		op.mt_count = 1;		/* One, not zero, right? */
 
-	if ((fd = open(file, O_RDONLY, 0)) < 0)
+	switch (code->value) {
+		case MTWEOF:
+		case MTERASE:
+		case MTWSM:
+		case MTSETDRVBUFFER:
+			mode = O_WRONLY;
+			break;
+
+		default:
+			mode = O_RDONLY;
+			break;
+	}
+
+	if ((fd = open(file, mode, 0)) < 0)
 		perror_msg_and_die("%s", file);
 
 	if (ioctl(fd, MTIOCTOP, &op) != 0)
