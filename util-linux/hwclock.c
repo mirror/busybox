@@ -30,9 +30,14 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <time.h>
-#include <linux/rtc.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
+
+
+/* Copied from linux/rtc.h to eliminate the kernel dependancy */
+#define RTC_SET_TIME	_IOW('p', 0x0a, struct tm) /* Set RTC time    */
+#define RTC_RD_TIME	_IOR('p', 0x09, struct tm) /* Read RTC time   */
+
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 # ifndef _GNU_SOURCE
