@@ -28,8 +28,9 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 	int fd_pipe[2];
 	int pid;
 	unsigned char magic[2];
-	
+
 	/* Cant lseek over pipe's */
+	archive_handle->read = read;
 	archive_handle->seek = seek_by_char;
 
 	archive_xread_all(archive_handle, &magic, 2);

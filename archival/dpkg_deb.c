@@ -29,13 +29,6 @@ extern int dpkg_deb_main(int argc, char **argv)
 #ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 	const llist_t *control_tar_llist = NULL;
 #endif
-#ifndef CONFIG_AR
-	char magic[7];
-#endif
-	
-	/* a .deb file is an ar archive that contain three files,
-	 * data.tar.gz, control.tar.gz and debian
-	 */
 	
 	/* Setup the tar archive handle */
 	tar_archive = init_handle();
@@ -104,17 +97,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	mkdir(argv[optind], 0777);
 	chdir(argv[optind]);
 
-#ifdef CONFIG_AR
 	unpack_ar_archive(ar_archive);
-#else
-	xread_all(ar_archive->src_fd, magic, 7);
-	if (strncmp(magic, "!<arch>", 7) != 0) {
-		error_msg_and_die("Invalid ar magic");
-	}
-	ar_archive->offset += 7;
-
-	while (get_header_ar(ar_archive) == EXIT_SUCCESS);
-#endif
 
 	/* Cleanup */
 	close (ar_archive->src_fd);

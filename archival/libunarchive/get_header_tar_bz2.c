@@ -27,6 +27,9 @@ extern char get_header_tar_bz2(archive_handle_t *archive_handle)
 {
 	BZ2_bzReadOpen(archive_handle->src_fd, NULL, 0);
 
+	archive_handle->read = read_bz2;
+	archive_handle->seek = seek_by_char;
+
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
 

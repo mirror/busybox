@@ -685,7 +685,7 @@ int tar_main(int argc, char **argv)
 #endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
 		case 'j':
-			tar_handle->read = read_bz2;
+			get_header_ptr = get_header_tar_bz2;
 			break;
 #endif
 		default:
@@ -738,21 +738,9 @@ int tar_main(int argc, char **argv)
 			tar_handle->src_fd = fileno(stdin);
 			tar_handle->seek = seek_by_char;
 		} else {
-			tar_handle->seek = seek_by_jump;
 			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
 		}
-#ifdef CONFIG_FEATURE_TAR_GZIP
-		if (get_header_ptr == get_header_tar_gz) {
-			get_header_tar_gz(tar_handle);
-		} else
-#endif /* CONFIG_FEATURE_TAR_GZIP */
-#ifdef CONFIG_FEATURE_TAR_BZIP2
-		if (tar_handle->read == read_bz2) {
-			get_header_tar_bz2(tar_handle);
-		} else
-#endif /* CONFIG_FEATURE_TAR_BZIP2 */
-
-			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
+		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
 
 		/* Ckeck that every file that should have been extracted was */
 		while (tar_handle->accept) {
