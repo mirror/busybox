@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 
+#define BINARY_KEYMAP_MAGIC "bkeymap"
+
 /* From <linux/kd.h> */
 struct kbentry {
 	unsigned char kb_table;
@@ -43,29 +45,21 @@ int loadkmap_main(int argc, char **argv)
 	struct kbentry ke;
 	u_short *ibuff;
 	int i, j, fd, readsz, pos, ibuffsz = NR_KEYS * sizeof(u_short);
-	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap", buff[7];
+	char flags[MAX_NR_KEYMAPS], buff[7];
 
-	if (argc>=2 && *argv[1]=='-') {
+	if (argc != 1)
 		usage(loadkmap_usage);
-	}
 
 	fd = open("/dev/tty0", O_RDWR);
-	if (fd < 0) {
-		errorMsg("Error opening /dev/tty0: %s\n", strerror(errno));
-		exit(FALSE);
-	}
+	if (fd < 0)
+		fatalPerror("Error opening /dev/tty0");
 
 	read(0, buff, 7);
-	if (0 != strncmp(buff, magic, 7)) {
-		errorMsg("This is not a valid binary keymap.\n");
-		exit(FALSE);
-	}
+	if (0 != strncmp(buff, BINARY_KEYMAP_MAGIC, 7))
+		fatalError("This is not a valid binary keymap.\n");
 
-	if (MAX_NR_KEYMAPS != read(0, flags, MAX_NR_KEYMAPS)) {
-		errorMsg("Error reading keymap flags: %s\n",
-				strerror(errno));
-		exit(FALSE);
-	}
+	if (MAX_NR_KEYMAPS != read(0, flags, MAX_NR_KEYMAPS))
+		fatalPerror("Error reading keymap flags");
 
 	ibuff = (u_short *) xmalloc(ibuffsz);
 
@@ -73,12 +67,8 @@ int loadkmap_main(int argc, char **argv)
 		if (flags[i] == 1) {
 			pos = 0;
 			while (pos < ibuffsz) {
-				if ((readsz = read(0, (char *) ibuff + pos, ibuffsz - pos))
-					< 0) {
-					errorMsg("Error reading keymap: %s\n",
-							strerror(errno));
-					exit(FALSE);
-				}
+				if ((readsz = read(0, (char *) ibuff + pos, ibuffsz - pos)) < 0)
+					fatalPerror("Error reading keymap");
 				pos += readsz;
 			}
 			for (j = 0; j < NR_KEYS; j++) {
@@ -92,5 +82,5 @@ int loadkmap_main(int argc, char **argv)
 	/* Don't bother to close files.  Exit does that 
 	 * automagically, so we can save a few bytes */
 	/* close(fd); */
-	return(TRUE);
+	return EXIT_SUCCESS;
 }
