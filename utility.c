@@ -645,11 +645,14 @@ my_getid(const char *filename, char *name, uid_t id)
 			continue;
 
 		if (name) {
-		    if (0 == strcmp(rname, name))
+		    if (0 == strcmp(rname, name)) {
+			fclose( file);
 			return( rid);
+		    }
                 }
 		if ( id != -1 && id == rid ) {
 		    strncpy(name, rname, 8);
+		    fclose( file);
 		    return( TRUE);
 		}
 	}
