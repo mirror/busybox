@@ -615,9 +615,9 @@ static void check_memory(void)
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 	if (stat("/etc/fstab", &statBuf) == 0) {
 		/* swapon -a requires /proc typically */
-		waitfor("mount proc /proc -t proc", console, FALSE);
+		waitfor("/bin/mount -t proc /proc", console, FALSE);
 		/* Try to turn on swap */
-		waitfor("swapon -a", console, FALSE);
+		waitfor("/sbin/swapon -a", console, FALSE);
 		if (check_free_memory() < 1000)
 			goto goodnight;
 	} else
