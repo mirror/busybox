@@ -1,8 +1,6 @@
 /*
  * Calendar implementation for busybox
  *
- * Copyright (C) 2003 by Manuel Novoa III   (mjn3@codepoet.org)
- *
  * See original copyright at the end of this file
  *
  * This program is free software; you can redistribute it and/or modify
