@@ -100,21 +100,21 @@ extern int lsmod_main(int argc, char **argv)
 		for (j = 0, dn = deps; j < count; dn += strlen(dn) + 1, j++) {
 			printf("%s%s", dn, (j==count-1)? "":" ");
 		}
-		if (count) printf("]");
-		printf("\n");
+		if (count) printf("] ");
 
 		if (info.flags & NEW_MOD_DELETED)
-			printf(" (deleted)");
+			printf("(deleted)");
 		else if (info.flags & NEW_MOD_INITIALIZING)
-			printf(" (initializing)");
+			printf("(initializing)");
 		else if (!(info.flags & NEW_MOD_RUNNING))
-			printf(" (uninitialized)");
+			printf("(uninitialized)");
 		else {
 			if (info.flags & NEW_MOD_AUTOCLEAN)
-				printf(" (autoclean)");
+				printf("(autoclean)");
 			if (!(info.flags & NEW_MOD_USED_ONCE))
-				printf(" (unused)");
+				printf("(unused)");
 		}
+		printf("\n");
 	}
 
 
