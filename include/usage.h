@@ -612,11 +612,11 @@
 #define fdisk_full_usage \
 	"Change partition table\n" \
 	"Options:\n" \
-	"-l  List partition table(s)\n" \
-	"-u  Give Start and End in sector (instead of cylinder) units\n" \
-	"-s PARTITION  Give partition size(s) in blocks\n" \
-	"-b 2048: (for certain MO disks) use 2048-byte sectors\n" \
-	"-v  Give fdisk version"
+	"\t-l  List partition table(s)\n" \
+	"\t-u  Give Start and End in sector (instead of cylinder) units\n" \
+	"\t-s PARTITION  Give partition size(s) in blocks\n" \
+	"\t-b 2048: (for certain MO disks) use 2048-byte sectors\n" \
+	"\t-v  Give fdisk version"
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
   #define USAGE_FIND_TYPE(a) a
@@ -668,7 +668,7 @@
 	"/etc/passwd\n"
 
 #define fold_trivial_usage \
-	"[bsw] [FILE]"
+	"[-bsw] [FILE]"
 #define fold_full_usage \
 	"Wrap input lines in each FILE (standard input by default), writing to\n" \
 	"standard output.\n\n" \
@@ -766,7 +766,7 @@
 #define getty_trivial_usage \
 	"[OPTIONS]... baud_rate,... line [termtype]"
 #define getty_full_usage \
-	"\nOpens a tty, prompts for a login name, then invokes /bin/login\n\n" \
+	"Opens a tty, prompts for a login name, then invokes /bin/login\n\n" \
 	"Options:\n" \
 	"\t-h\t\tEnable hardware (RTS/CTS) flow control.\n" \
 	"\t-i\t\tDo not display /etc/issue before running login.\n" \
@@ -1005,13 +1005,13 @@
 	USAGE_HTTPD_AUTH_MD5(" [-m pass]") \
 	" [-d/-e <string>]"
 #define httpd_full_usage \
-       "Listens for incoming http server requests.\n"\
+       "Listens for incoming http server requests.\n\n"\
        "Options:\n" \
-       "\t-c FILE\tSpecifies configuration file. (default httpd.conf)\n" \
+       "\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
        USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
        USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privilegies port\n") \
        USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
-       USAGE_HTTPD_AUTH_MD5("\t-m PASS\tCrypt PASS with md5 algorithm\n") \
+       USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
        "\t-e STRING\tHtml encode STRING\n" \
        "\t-d STRING\tURL decode STRING"
 
@@ -1092,7 +1092,7 @@
 #define ifup_trivial_usage \
 	"<-ahinv> <ifaces...>"
 #define ifup_full_usage \
-	"Usage: ifup <options> <ifaces...>\n\n" \
+	"ifup <options> <ifaces...>\n\n" \
 	"Options:\n" \
 	"\t-h\tthis help\n" \
 	"\t-a\tde/configure all interfaces automatically\n" \
@@ -1106,7 +1106,7 @@
 #define ifdown_trivial_usage \
 	"<-ahinv> <ifaces...>"
 #define ifdown_full_usage \
-	"Usage: ifdown <options> <ifaces...>\n\n" \
+	"ifdown <options> <ifaces...>\n\n" \
 	"Options:\n" \
 	"\t-h\tthis help\n" \
 	"\t-a\tde/configure all interfaces automatically\n" \
@@ -1120,10 +1120,10 @@
 #define inetd_trivial_usage \
 	"[-q len] [conf]"
 #define inetd_full_usage \
-	"Usage: [-q len] [conf]\n\n" \
+	"Listens for network connections and launches programs\n\n" \
 	"Option:\n" \
 	"\t-q\tSets the size of the socket listen queue to\n" \
-	"the specified value. Default is 128."
+	"\t\tthe specified value. Default is 128."
 
 #define init_trivial_usage \
 	""
@@ -1270,13 +1270,13 @@
 	"\t-k\tMake module autoclean-able.\n" \
 	"\t-v\tverbose output\n"  \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
-	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout") \
+	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout\n") \
 	"\t-x\tdo not export externs"
 
 #define install_trivial_usage \
-	"[cgmops] [sources] <dest|directory>"
+	"[-cgmops] [sources] <dest|directory>"
 #define install_full_usage \
-	"copy files and set attributes\n\n" \
+	"Copies files and set attributes\n\n" \
 	"Options:\n" \
 	"\t-c\tcopy the file, default\n" \
 	"\t-g\tset group ownership\n" \
@@ -1293,7 +1293,8 @@
 	"OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }"
 
 #define ipaddr_trivial_usage \
-	"{ {add|del} IFADDR dev STRING | {show|flush} [ dev STRING ] [ to PREFIX ] }"
+	"{ {add|del} IFADDR dev STRING | {show|flush}\n" \
+	"\t\t[ dev STRING ] [ to PREFIX ] }"
 #define ipaddr_full_usage \
 	"ipaddr {add|del} IFADDR dev STRING\n" \
 	"ipaddr {show|flush} [ dev STRING ] [ scope SCOPE-ID ]\n" \
@@ -1336,7 +1337,8 @@
 	"iplink show [ DEVICE ]"
 
 #define iproute_trivial_usage \
-	"{ list | flush | { add | del | change | append | replace | monitor } ROUTE }"
+	"{ list | flush | { add | del | change | append |\n" \
+	"\t\treplace | monitor } ROUTE }"
 #define iproute_full_usage \
 	"iproute { list | flush } SELECTOR\n" \
 	"iproute get ADDRESS [ from ADDRESS iif STRING ]\n" \
@@ -1346,8 +1348,9 @@
 	"ROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]"
 
 #define iptunnel_trivial_usage \
-	"{ add | change | del | show } [ NAME ] [ mode { ipip | gre | sit } ]\n" \
-	"\t[ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
+	"{ add | change | del | show } [ NAME ]\n" \
+	"\t\t[ mode { ipip | gre | sit } ]\n" \
+	"\t\t[ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
 #define iptunnel_full_usage \
 	"iptunnel { add | change | del | show } [ NAME ]\n" \
 	"          [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
@@ -1455,7 +1458,7 @@
 #define logread_trivial_usage \
 	"[OPTION]..."
 #define logread_full_usage \
-        "Shows the messages from syslogd (using circular buffer).\n\n"
+        "Shows the messages from syslogd (using circular buffer).\n\n" \
 	"Options:\n" \
 	"\t-f\t\toutput data as the log grows"
 
@@ -1551,9 +1554,9 @@
 	"\tmakedevs /dev/ttyS c 4 66 2 63   ->  ttyS2-ttyS63\n" \
 	"\tmakedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8"
 #define makedevs_example_usage \
-	"$ makedevs /dev/ttyS c 4 66 2 63\n" \
+	"# makedevs /dev/ttyS c 4 66 2 63\n" \
 	"[creates ttyS2-ttyS63]\n" \
-	"$ makedevs /dev/hda b 3 0 0 8 s\n" \
+	"# makedevs /dev/hda b 3 0 0 8 s\n" \
 	"[creates hda,hda1-hda8]\n"
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
@@ -1585,16 +1588,16 @@
 	"^D\n"
 
 #define mesg_trivial_usage \
-	"mesg [y|n]"
+	"[y|n]"
 #define mesg_full_usage \
-	"mesg [Y|N], controls write access to your terminal\n" \
+	"mesg controls write access to your terminal\n" \
 	"\ty\tAllow write access to your terminal.\n" \
 	"\tn\tDisallow write access to your terminal.\n"
 
 #define minit_trivial_usage \
 	"[-spPrRC]"
 #define minit_full_usage \
-	"[-spPrRC]"
+	"A small replacement for SysV init"
 
 #define mkdir_trivial_usage \
 	"[OPTION] DIRECTORY..."
@@ -1798,15 +1801,17 @@
 #define netstat_trivial_usage \
 	"[-laenrtuwx]"
 #define netstat_full_usage \
-	"-l display listening server sockets\n" \
-	"-a display all sockets (default: connected)\n" \
-	"-e display other/more information\n" \
-	"-n don't resolve names\n" \
-	"-r display routing table\n" \
-	"-t tcp sockets\n" \
-	"-u udp sockets\n" \
-	"-w raw sockets\n" \
-	"-x unix sockets"
+	"Netstat displays Linux networking information.\n\n" \
+	"Options:\n" \
+	"\t-l display listening server sockets\n" \
+	"\t-a display all sockets (default: connected)\n" \
+	"\t-e display other/more information\n" \
+	"\t-n don't resolve names\n" \
+	"\t-r display routing table\n" \
+	"\t-t tcp sockets\n" \
+	"\t-u udp sockets\n" \
+	"\t-w raw sockets\n" \
+	"\t-x unix sockets"
 
 #define nslookup_trivial_usage \
 	"[HOST] [SERVER]"
@@ -1984,7 +1989,7 @@
 #define readlink_trivial_usage \
 	""
 #define readlink_full_usage \
-	"Read a symbolic link."
+	"Displays the value of a symbolic link."
 
 #define realpath_trivial_usage \
 	"pathname  ..."
@@ -2075,7 +2080,7 @@
 #define run_parts_full_usage \
 	"Run a bunch of scripts in a directory.\n\n" \
 	"Options:\n" \
-	"\t-t\t\tTest only what file will be executed, without execute them.\n"	\
+	"\t-t\tPrints what would be run, but does not actually run anything.\n"	\
 	"\t-a ARG\tPass ARG as an argument for every program invoked.\n" \
 	"\t-u MASK\tSet the umask to MASK before executing every program."
 
@@ -2202,16 +2207,16 @@
 	"f\n"
 
 #define start_stop_daemon_trivial_usage \
-	"[OPTIONS] [-S|--start|-K|--stop] ... [-- arguments...]\n"
+	"[OPTIONS] [--start|--stop] ... [-- arguments...]\n"
 #define start_stop_daemon_full_usage \
 	"Program to start and stop services."\
 	"\n\nOptions:"\
 	"\n\t-S|--start\t\t\tstart"\
 	"\n\t-K|--stop\t\t\tstop"\
-	"\n\t-a|--startas <pathname>\t\tstart the process specified by pathname"\
+	"\n\t-a|--startas <pathname>\t\tstarts process specified by pathname"\
 	"\n\t-b|--background\t\t\tforce process into background"\
 	"\n\t-u|--user <username>|<uid>\tstop this user's processes"\
-	"\n\t-x|--exec <executable>\t\tprogram to start/check if it is running"\
+	"\n\t-x|--exec <executable>\t\tprogram to either start or check"\
 	"\n\t-n|--name <process-name>\tstop processes with this name"\
 	"\n\t-p|--pidfile <pid-file>\t\tsave or load pid using a pid-file"\
 	"\n\t-q|--quiet\t\t\tbe quiet" \
