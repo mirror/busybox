@@ -164,7 +164,7 @@ extern int uncompress(int fd_in, int fd_out)
 		}
 
 		if (insize < (int) sizeof(inbuf) - IBUFSIZ) {
-			rsize = read(fd_in, inbuf + insize, IBUFSIZ);
+			rsize = safe_read(fd_in, inbuf + insize, IBUFSIZ);
 			insize += rsize;
 		}
 
