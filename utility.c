@@ -1361,8 +1361,9 @@ extern void *xcalloc(size_t nmemb, size_t size)
 }
 #endif
 
-#if defined BB_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET || \
-	defined BB_DPKG_DEB || defined BB_TAR
+#if defined BB_NFSMOUNT || defined BB_LS || defined BB_SH || \
+	defined BB_WGET || defined BB_DPKG_DEB || defined BB_TAR || \
+	defined BB_LN
 # ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
@@ -1731,7 +1732,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	}
 }
 
-#if defined BB_DD || defined BB_TAIL
+#if defined BB_DD || defined BB_TAIL || defined BB_STTY
 unsigned long parse_number(const char *numstr,
 		const struct suffix_mult *suffixes)
 {
