@@ -513,25 +513,30 @@ void append_file_to_list(char *filename, char ***name_list, int *num_of_entries)
 		if (line_ptr) {
 			*line_ptr = '\0';
 		}
-		*name_list = realloc(*name_list, sizeof(char *) * (*num_of_entries + 1));
+		*name_list = realloc(*name_list, sizeof(char *) * (*num_of_entries + 2));
 		(*name_list)[*num_of_entries] = xstrdup(line);
 		(*num_of_entries)++;
 		free(line);
 	}
 	fclose(src_stream);
+	(*name_list)[*num_of_entries] = NULL;
 }
 
 #ifdef BB_FEATURE_TAR_EXCLUDE
-char **merge_list(char **include_list, char **exclude_list)
+/*
+ * Create a list of names that are in the include list AND NOT in the exclude lists
+ */
+char **list_and_not_list(char **include_list, char **exclude_list)
 {
 	char **new_include_list = NULL;
 	int new_include_count = 0;
 	int include_count = 0;
 	int exclude_count;
 
-	if (include_list == NULL)
-		return exclude_list;
-
+	if (include_list == NULL) {
+		return(NULL);
+	}
+	
 	while (include_list[include_count] != NULL) {
 		int found = FALSE;
 		exclude_count = 0;
@@ -547,12 +552,12 @@ char **merge_list(char **include_list, char **exclude_list)
 			new_include_list = realloc(new_include_list, sizeof(char *) * (include_count + 2));
 			new_include_list[new_include_count] = include_list[include_count];
 			new_include_count++;
-			new_include_list[new_include_count] = NULL;
 		} else {
 			free(include_list[include_count]);
 		}
 		include_count++;
 	}
+	new_include_list[new_include_count] = NULL;
 	return(new_include_list);
 }
 #endif
@@ -572,12 +577,13 @@ int tar_main(int argc, char **argv)
 
 #ifdef BB_FEATURE_TAR_EXCLUDE
 	char **exclude_list = NULL;
-	int exclude_count = 0;
+	int exclude_list_count = 0;
 #endif
 
 	FILE *src_stream = NULL;
 	FILE *uncompressed_stream = NULL;
 	char **include_list = NULL;
+	char **the_real_list = NULL;
 	char *src_filename = NULL;
 	char *dst_prefix = NULL;
 	char *file_list_name = NULL;
@@ -585,7 +591,7 @@ int tar_main(int argc, char **argv)
 	unsigned short untar_funct = 0;
 	unsigned short untar_funct_required = 0;
 	unsigned short extract_function = 0;
-	int include_count = 0;
+	int include_list_count = 0;
 	int gunzip_pid;
 	int gz_fd = 0;
 
@@ -621,13 +627,13 @@ int tar_main(int argc, char **argv)
 		/* Exclude or Include files listed in <filename>*/
 #ifdef BB_FEATURE_TAR_EXCLUDE
 		case 'X':
-			append_file_to_list(optarg, &exclude_list, &exclude_count);
-			exclude_list[exclude_count] = NULL;	
+			append_file_to_list(optarg, &exclude_list, &exclude_list_count);
+			exclude_list[exclude_list_count] = NULL;	
 			break;
 #endif
 		case 'T':
 			// by default a list is an include list
-			append_file_to_list(optarg, &include_list, &include_count);
+			append_file_to_list(optarg, &include_list, &include_list_count);
 			break;
 
 		case 'C':	// Change to dir <optarg>
@@ -677,23 +683,29 @@ int tar_main(int argc, char **argv)
 
 	/* Setup an array of filenames to work with */
 	while (optind < argc) {
-		include_list = realloc(include_list, sizeof(char *) * (include_count + 2));
-		include_list[include_count] = xstrdup(argv[optind]);
-		include_count++;
+		include_list = realloc(include_list, sizeof(char *) * (include_list_count + 2));
+		include_list[include_list_count] = xstrdup(argv[optind]);
+		include_list_count++;
 		optind++;
-		include_list[include_count] = NULL;
+		include_list[include_list_count] = NULL;
 	}
 
+	/* By default the include list is the list we act on */
+	the_real_list = include_list;
+
 #ifdef BB_FEATURE_TAR_EXCLUDE
-	/* Remove excluded files from the include list */
 	if (exclude_list != NULL) {
-		/* If both an exclude and include file list were present then
-		 * it's an exclude from include list only, if not it's really an
-		 * exclude list (and a poor choice of variable names) */
 		if (include_list == NULL) {
+			/* the_real_list is an exclude list */
 			extract_function |= extract_exclude_list;
+			the_real_list = exclude_list;
+		} else {
+			/* Both an exclude and include file list was present,
+			 * its an exclude from include list only.
+			 * Remove excluded files from the include list
+			 */
+			the_real_list = list_and_not_list(include_list, exclude_list);
 		}
-		include_list = merge_list(include_list, exclude_list);
 	}
 #endif
 
@@ -717,7 +729,7 @@ int tar_main(int argc, char **argv)
 			uncompressed_stream = src_stream;
 		
 		/* extract or list archive */
-		unarchive(uncompressed_stream, stdout, &get_header_tar, extract_function, dst_prefix, include_list);
+		unarchive(uncompressed_stream, stdout, &get_header_tar, extract_function, dst_prefix, the_real_list);
 		fclose(uncompressed_stream);
 	}
 #ifdef BB_FEATURE_TAR_CREATE
@@ -733,7 +745,7 @@ int tar_main(int argc, char **argv)
 		if (extract_function & extract_verbose_list) {
 			verboseFlag = TRUE;
 		}
-		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], include_list);
+		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], the_real_list);
 	}
 #endif // BB_FEATURE_TAR_CREATE
 
