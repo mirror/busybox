@@ -91,7 +91,7 @@ extern int rpm2cpio_main(int argc, char **argv)
 	skip_header(rpm_fd);
 	
 	xread_all(rpm_fd, &magic, 2);
-	if ((magic[0] != 0x1f) || (magic[1] != 0x8b))
+	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		error_msg_and_die("Invalid gzip magic");
 	}
 
