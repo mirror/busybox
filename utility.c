@@ -1620,7 +1620,7 @@ extern char *get_line_from_file(FILE *file)
 	return linebuf;
 }
 
-#if defined BB_CAT || defined BB_LSMOD
+#if defined BB_CAT
 extern void print_file(FILE *file)
 {
 	int c;
