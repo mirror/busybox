@@ -36,7 +36,7 @@ static const int KDGKBTYPE = 0x4B33;  /* get keyboard type */
 static const int KB_84 = 0x01;
 static const int KB_101 = 0x02;    /* this is what we always answer */
 
-int is_a_console(int fd)
+static int is_a_console(int fd)
 {
 	char arg;
 
@@ -82,17 +82,14 @@ static int open_a_console(char *fnam)
  * if tty_name is non-NULL, try this one instead.
  */
 
-int get_console_fd(char *tty_name)
+int get_console_fd(void)
 {
 	int fd;
 
-	if (tty_name) {
-		if (-1 == (fd = open_a_console(tty_name)))
+	if (-1 == (fd = open_a_console("/dev/console")))
 			return -1;
 		else
 			return fd;
-	}
-
 	fd = open_a_console(CURRENT_TTY);
 	if (fd >= 0)
 		return fd;

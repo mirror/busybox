@@ -123,7 +123,7 @@ extern int parse_mode( const char* s, mode_t* theMode);
 
 extern int get_kernel_revision(void);
 
-extern int get_console_fd(char* tty_name);
+extern int get_console_fd(void);
 extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);

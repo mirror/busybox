@@ -23,11 +23,11 @@
 #elif defined(MAKE_USAGE)
   #ifdef CONFIG_FEATURE_VERBOSE_USAGE
     #define APPLET(a,b,c,d) a##_trivial_usage "\n\n" a##_full_usage "\0"
-    #define APPLET_NOUSAGE(a,b,c,d) "\0"
+    #define APPLET_NOUSAGE(a,b,c,d) "\b\0"
     #define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\n\n" e##_full_usage "\0"
   #else
     #define APPLET(a,b,c,d) a##_trivial_usage "\0"
-    #define APPLET_NOUSAGE(a,b,c,d) "\0"
+    #define APPLET_NOUSAGE(a,b,c,d) "\b\0"
     #define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\0"
   #endif
 #elif defined(MAKE_LINKS)

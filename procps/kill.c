@@ -40,6 +40,7 @@ extern int kill_main(int argc, char **argv)
 {
 	int whichApp, sig = SIGTERM, quiet;
 	const char *name;
+	int errors = 0;
 
 #ifdef CONFIG_KILLALL
 	/* Figure out what we are trying to do here */
@@ -111,37 +112,33 @@ do_it_now:
 				perror_msg_and_die( "Bad PID");
 			pid = strtol(*argv, NULL, 0);
 			if (kill(pid, sig) != 0) {
-				perror_msg_and_die( "Could not kill pid '%d'", pid);
+				perror_msg( "Could not kill pid '%d'", pid);
+				errors++;
 			}
 			argv++;
 		}
+
 	} 
 #ifdef CONFIG_KILLALL
 	else {
-		int all_found = TRUE;
 		pid_t myPid=getpid();
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
 			long* pidList;
 
-			pidList = find_pid_by_name( *argv);
+			pidList = find_pid_by_name(*argv);
 			if (!pidList || *pidList<=0) {
-				all_found = FALSE;
-				if (quiet) {
-					exit(EXIT_FAILURE);
+				errors++;
+				if (quiet==0)
+					error_msg( "%s: no process killed", *argv);
 				} else {
-					error_msg_and_die( "%s: no process killed", *argv);
-				}
-			}
-
-			for(; pidList && *pidList!=0; pidList++) {
+			    for(; *pidList!=0; pidList++) {
 				if (*pidList==myPid)
 					continue;
 				if (kill(*pidList, sig) != 0) {
-					if (quiet) {
-						exit(EXIT_FAILURE);
-					} else {
-						perror_msg_and_die( "Could not kill pid '%d'", *pidList);
+					errors++;
+					if (quiet==0)
+						perror_msg( "Could not kill pid '%d'", *pidList);
 					}
 				}
 			}
@@ -150,10 +147,7 @@ do_it_now:
 			 * upon exit, so we can save a byte or two */
 			argv++;
 		}
-		if (! all_found)
-			return EXIT_FAILURE;
 	}
 #endif
-
-	return EXIT_SUCCESS;
+	return errors;
 }

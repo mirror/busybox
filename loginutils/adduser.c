@@ -110,18 +110,20 @@ static int passwd_study(const char *filename, struct passwd *p)
 
 static void addgroup_wrapper(const char *login, gid_t gid)
 {
-	char *cmd = xmalloc(strlen(login)+32);
+	char *cmd;
 
-	sprintf(cmd, "addgroup -g %d %s", gid, login);
+	bb_asprintf(&cmd, "addgroup -g %d %s", gid, login);
 	system(cmd);
 	free(cmd);
 }
+
+static void passwd_wrapper(const char *login) __attribute__ ((noreturn));
 
 static void passwd_wrapper(const char *login)
 {
 	static const char prog[] = "passwd";
 	execlp(prog, prog, login, NULL);
-	error_msg_and_die("Failed to execute 'passwd', you must set the password for '%s' manually", login);
+	error_msg_and_die("Failed to execute '%s', you must set the password for '%s' manually", prog, login);
 }
 
 /* putpwent(3) remix */
@@ -137,7 +139,6 @@ static int adduser(const char *filename, struct passwd *p)
 	/* make sure everything is kosher and setup uid && gid */
 	passwd = wfopen(filename, "a");
 	if (passwd == NULL) {
-		/* return -1; */
 		return 1;
 	}
 	fseek(passwd, 0, SEEK_END);
@@ -153,13 +154,11 @@ static int adduser(const char *filename, struct passwd *p)
 			error_msg("group name %s already in use", p->pw_name);
 		else
 			error_msg("generic error.");
-		/* return -1; */
 		return 1;
 	}
 
 	/* add to passwd */
 	if (putpwent(p, passwd) == -1) {
-		/* return -1; */
 		return 1;
 	}
 	fclose(passwd);
@@ -169,7 +168,6 @@ static int adduser(const char *filename, struct passwd *p)
 	if (shadow_enabled) {
 		shadow = wfopen(shadow_file, "a");
 		if (shadow == NULL) {
-			/* return -1; */
 			return 1;
 		}
 		fseek(shadow, 0, SEEK_END);
@@ -206,8 +204,6 @@ static int adduser(const char *filename, struct passwd *p)
 	}
 	/* interactively set passwd */
 	passwd_wrapper(p->pw_name);
-
-	return 0;
 }
 
 
@@ -293,4 +289,4 @@ int adduser_main(int argc, char **argv)
 	return adduser(passwd_file, &pw);
 }
 
-/* $Id: adduser.c,v 1.3 2002/07/16 23:50:05 sandman Exp $ */
+/* $Id: adduser.c,v 1.4 2002/09/16 06:22:24 andersen Exp $ */

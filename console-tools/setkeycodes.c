@@ -46,7 +46,7 @@ setkeycodes_main(int argc, char** argv)
       show_usage();
 	}
 	 
-	fd = get_console_fd("/dev/console");
+	fd = get_console_fd();
 
     while (argc > 2) {
 	a.keycode = atoi(argv[2]);

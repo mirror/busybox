@@ -1369,7 +1369,7 @@
 #define passwd_trivial_usage \
 	"[OPTION] [name]"
 #define passwd_full_usage \
-	"CChange a user password. If no name is specified,\n" \
+	"Change a user password. If no name is specified,\n" \
 	"changes the password for the current user.\n" \
 	"Options:\n" \
 	"\t-a\tDefine which algorithm shall be used for the password.\n" \

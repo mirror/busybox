@@ -90,7 +90,7 @@ extern void show_usage(void)
 		}
 	}
 	format_string = "%s\n\nUsage: %s %s\n\n";
-	if(*usage_string == 0)
+	if(*usage_string == '\b')
 		format_string = "%s\n\nNo help available.\n\n";
 	fprintf(stderr, format_string,
 			full_version, applet_using->name, usage_string);

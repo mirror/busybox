@@ -21,7 +21,7 @@ int deallocvt_main(int argc, char *argv[])
 	if (argc > 2)
 		show_usage();
 
-	fd = get_console_fd("/dev/console");
+	fd = get_console_fd();
 
 	if (argc == 1) {
 		/* deallocate all unused consoles */

@@ -24,7 +24,7 @@ int chvt_main(int argc, char **argv)
 
 	if ((argc != 2) || (**(argv + 1) == '-'))
 		show_usage();
-	fd = get_console_fd("/dev/console");
+	fd = get_console_fd();
 	num = atoi(argv[1]);
 	if (ioctl(fd, VT_ACTIVATE, num))
 		perror_msg_and_die("VT_ACTIVATE");
