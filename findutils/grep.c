@@ -40,45 +40,46 @@ static const char grep_usage[] =
 #if defined BB_REGEXP
 "This version of grep matches full regexps.\n";
 #else
-"This version of grep matches strings (not full regexps).\n";
+"This version of grep matches strings (not regexps).\n";
 #endif
 
-int tellName=TRUE;
-int ignoreCase=FALSE;
-int tellLine=FALSE;
 
-static do_grep(char* needle, char* haystack )
+static void do_grep(FILE *fp, char* needle, char *fileName, int tellName, int ignoreCase, int tellLine)
 {
-	line = 0;
+    char *cp;
+    long line = 0;
+    char haystack[BUF_SIZE];
 
-	while (fgets (haystack, sizeof (haystack), fp)) {
-	    line++;
-	    cp = &haystack[strlen (haystack) - 1];
+    while (fgets (haystack, sizeof (haystack), fp)) {
+	line++;
+	cp = &haystack[strlen (haystack) - 1];
 
-	    if (*cp != '\n')
-		fprintf (stderr, "%s: Line too long\n", name);
+	if (*cp != '\n')
+	    fprintf (stderr, "%s: Line too long\n", fileName);
 
-	    if (find_match(haystack, needle, ignoreCase) == TRUE) {
-		if (tellName==TRUE)
-		    printf ("%s: ", name);
+	if (find_match(haystack, needle, ignoreCase) == TRUE) {
+	    if (tellName==TRUE)
+		printf ("%s:", fileName);
 
-		if (tellLine==TRUE)
-		    printf ("%ld: ", line);
+	    if (tellLine==TRUE)
+		printf ("%ld:", line);
 
-		fputs (haystack, stdout);
-	    }
+	    fputs (haystack, stdout);
 	}
+    }
 }
 
 
 extern int grep_main (int argc, char **argv)
 {
     FILE *fp;
-    char *needle;
-    char *name;
     char *cp;
-    long line;
-    char haystack[BUF_SIZE];
+    char *needle;
+    char *fileName;
+    int tellName=FALSE;
+    int ignoreCase=FALSE;
+    int tellLine=FALSE;
+
 
     ignoreCase = FALSE;
     tellLine = FALSE;
@@ -100,7 +101,7 @@ extern int grep_main (int argc, char **argv)
 		break;
 
 	    case 'h':
-		tellName = FALSE;
+		tellName = TRUE;
 		break;
 
 	    case 'n':
@@ -115,28 +116,24 @@ extern int grep_main (int argc, char **argv)
     needle = *argv++;
     argc--;
 
+    if (argc==0) {
+	do_grep( stdin, needle, "stdin", FALSE, ignoreCase, tellLine);
+    } else {
+	while (argc-- > 0) {
+	    fileName = *argv++;
 
-    while (argc-- > 0) {
+	    fp = fopen (fileName, "r");
+	    if (fp == NULL) {
+		perror (fileName);
+		continue;
+	    }
 
-	if (argc==0) {
-	    file = stdin;
+	    do_grep( fp, needle, fileName, tellName, ignoreCase, tellLine);
+
+	    if (ferror (fp))
+		perror (fileName);
+	    fclose (fp);
 	}
-	else
-	    file = fopen(*argv, "r");
-
-
-	name = *argv++;
-
-	fp = fopen (name, "r");
-	if (fp == NULL) {
-	    perror (name);
-	    continue;
-	}
-
-	if (ferror (fp))
-	    perror (name);
-
-	fclose (fp);
     }
     exit( TRUE);
 }

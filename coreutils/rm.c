@@ -84,7 +84,7 @@ extern int rm_main(int argc, char **argv)
 
     while (argc-- > 0) {
 	srcName = *(argv++);
-	if (recursiveAction( srcName, recursiveFlag, TRUE, TRUE, 
+	if (recursiveAction( srcName, recursiveFlag, FALSE, TRUE, 
 			       fileAction, dirAction) == FALSE) {
 	    exit( FALSE);
 	}

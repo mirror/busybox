@@ -40,7 +40,7 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-//#define FEATURE_USERNAME	/* show username/groupnames (libc6 uses NSS) */
+#define FEATURE_USERNAME	/* show username/groupnames (bypasses libc6 NSS) */
 #define FEATURE_TIMESTAMPS	/* show file timestamps */
 #define FEATURE_AUTOWIDTH	/* calculate terminal & column widths */
 #define FEATURE_FILETYPECHAR	/* enable -p and -F */
@@ -64,10 +64,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
-#ifdef FEATURE_USERNAME
-#include <pwd.h>
-#include <grp.h>
-#endif
 #ifdef FEATURE_TIMESTAMPS
 #include <time.h>
 #endif
@@ -82,27 +78,6 @@
 #define MAJOR(dev) (((dev)>>8)&0xff)
 #define MINOR(dev) ((dev)&0xff)
 #endif
-
-#define MODE1  "rwxrwxrwx"
-#define MODE0  "---------"
-#define SMODE1 "..s..s..t"
-#define SMODE0 "..S..S..T"
-
-/* The 9 mode bits to test */
-
-static const mode_t MBIT[] = {
-  S_IRUSR, S_IWUSR, S_IXUSR,
-  S_IRGRP, S_IWGRP, S_IXGRP,
-  S_IROTH, S_IWOTH, S_IXOTH
-};
-
-/* The special bits. If set, display SMODE0/1 instead of MODE0/1 */
-
-static const mode_t SBIT[] = {
-  0, 0, S_ISUID,
-  0, 0, S_ISGID,
-  0, 0, S_ISVTX
-};
 
 #define FMT_AUTO	0
 #define FMT_LONG	1	/* one record per line, extended info */
@@ -216,45 +191,35 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 	
 	if (display_fmt == FMT_LONG) {
 		mode_t mode = info->st_mode; 
-		int i;
-		
-		scratch[0] = TYPECHAR(mode);
-		for (i=0; i<9; i++)
-			if (mode & SBIT[i])
-				scratch[i+1] = (mode & MBIT[i])
-						? SMODE1[i]
-						: SMODE0[i];
-			else
-				scratch[i+1] = (mode & MBIT[i])
-						? MODE1[i]
-						: MODE0[i];
 		newline();
-		wr(scratch, 10);
+		wr(modeString(mode), 10);
 		column=10;
-		writenum((long)info->st_nlink,(short)4);
+		writenum((long)info->st_nlink,(short)5);
 		fputs(" ", stdout);
 #ifdef FEATURE_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			struct passwd *pw = getpwuid(info->st_uid);
-			if (pw)
-				fputs(pw->pw_name, stdout);
+			scratch[8]='\0';
+			my_getpwuid( scratch, info->st_uid);
+			if (*scratch)
+				fputs(scratch, stdout);
 			else
 				writenum((long)info->st_uid,(short)0);
 		} else
 #endif
 		writenum((long)info->st_uid,(short)0);
-		tab(24);
+		tab(16);
 #ifdef FEATURE_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			struct group *gr = getgrgid(info->st_gid);
-			if (gr)
-				fputs(gr->gr_name, stdout);
+			scratch[8]='\0';
+			my_getgrgid( scratch, info->st_gid);
+			if (*scratch)
+				fputs(scratch, stdout);
 			else
 				writenum((long)info->st_gid,(short)0);
 		} else
 #endif
 		writenum((long)info->st_gid,(short)0);
-		tab(33);
+		tab(17);
 		if (S_ISBLK(mode) || S_ISCHR(mode)) {
 			writenum((long)MAJOR(info->st_rdev),(short)3);
 			fputs(", ", stdout);

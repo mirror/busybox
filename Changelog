@@ -5,6 +5,17 @@
 	    better job of finding the real consol device rather than using
 	    /dev/console which doesn't support job control. Patch also
 	    thanks to Eric Delaunay.
+	* more started to read from stdin after the last file was finished, and 
+	    options were not parsed correctly (fix thanks to Eric Delaunay).
+	* rm wouldn't remove a symlink unless the symlink was valid.  This was
+	    a side effect of the busybox 0.32 recursiveAction() fix.  Things 
+	    should now work correctly.
+	* grep wouldn't grep stdin.  Now it does.
+	* sed wouldn't sed stdin.  Now it does.
+	* sed was appending a \n to the end of lines with replacements.
+	    Now it doesn't do that.
+	* ls -l now bypasses libc6 nss when displaying user/group names.
+	    Now uses my_getpwuid and my_getgrgid.
 
 0.33
 	* Fixed a bug where init could hang instead of rebooting.

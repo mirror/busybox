@@ -25,7 +25,9 @@
 
 
 /* Turning this off makes things a bit smaller (and less pretty) */
-#define BB_MORE_TERM
+#define BB_FEATURE_USE_TERMIOS
+/* Turning this off makes things a bit smaller (and less pretty) */
+#define BB_FEATURE_AUTOWIDTH
 
 
 
@@ -33,18 +35,16 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
-
+#include <sys/ioctl.h>
 
 static const char more_usage[] = "[file ...]";
 
-
 /* ED: sparc termios is broken: revert back to old termio handling. */
-#ifdef BB_MORE_TERM
+#ifdef BB_FEATURE_USE_TERMIOS
 
 #if #cpu(sparc)
 #      define USE_OLD_TERMIO
 #      include <termio.h>
-#      include <sys/ioctl.h>
 #      define termios termio
 #      define stty(fd,argp) ioctl(fd,TCSETAF,argp)
 #else
@@ -57,9 +57,25 @@ static const char more_usage[] = "[file ...]";
 
     void gotsig(int sig) { 
 	    stty(fileno(cin), &initial_settings);
+	    fprintf(stdout, "\n");
 	    exit( TRUE);
     }
 #endif
+
+
+
+#define TERMINAL_WIDTH	79	/* not 80 in case terminal has linefold bug */
+#define TERMINAL_HEIGHT	24
+
+
+#if defined BB_FEATURE_AUTOWIDTH && ! defined USE_OLD_TERMIO
+static int terminal_width = 0, terminal_height = 0;
+#else
+#define terminal_width	TERMINAL_WIDTH
+#define terminal_height	TERMINAL_HEIGHT
+#endif
+
+
 
 extern int more_main(int argc, char **argv)
 {
@@ -67,6 +83,9 @@ extern int more_main(int argc, char **argv)
     int next_page=0;
     struct stat st;	
     FILE *file;
+#ifdef BB_FEATURE_AUTOWIDTH
+    struct winsize win;
+#endif
 
     argc--;
     argv++;
@@ -87,7 +106,7 @@ extern int more_main(int argc, char **argv)
 	}
 	fstat(fileno(file), &st);
 
-#ifdef BB_MORE_TERM
+#ifdef BB_FEATURE_USE_TERMIOS
 	cin = fopen("/dev/tty", "r");
 	if (!cin)
 	    cin = fopen("/dev/console", "r");
@@ -100,11 +119,18 @@ extern int more_main(int argc, char **argv)
 	new_settings.c_lflag &= ~ICANON;
 	new_settings.c_lflag &= ~ECHO;
 	stty(fileno(cin), &new_settings);
-	
+
+#ifdef BB_FEATURE_AUTOWIDTH	
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
+	if (win.ws_row > 4) 
+	    terminal_height = win.ws_row - 2;
+	if (win.ws_col > 0) 
+	    terminal_width = win.ws_col - 1;
+#endif
+
 	(void) signal(SIGINT, gotsig);
 	(void) signal(SIGQUIT, gotsig);
 	(void) signal(SIGTERM, gotsig);
-
 
 #endif
 	while ((c = getc(file)) != EOF) {
@@ -119,7 +145,7 @@ extern int more_main(int argc, char **argv)
 			st.st_size);
 		}
 		len += fprintf(stdout, "%s",
-#ifdef BB_MORE_TERM
+#ifdef BB_FEATURE_USE_TERMIOS
 			""
 #else
 			"\n"
@@ -129,24 +155,31 @@ extern int more_main(int argc, char **argv)
 		fflush(stdout);
 		input = getc( cin);
 
-#ifdef BB_MORE_TERM
+#ifdef BB_FEATURE_USE_TERMIOS
 		/* Erase the "More" message */
-		while(len-- > 0)
+		while(--len >= 0)
 		    putc('\b', stdout);
-		while(len++ < 79)
+		while(++len <= terminal_width)
 		    putc(' ', stdout);
-		while(len-- > 0)
+		while(--len >= 0)
 		    putc('\b', stdout);
 		fflush(stdout);
 #endif
 
 	    }
-	    if (input=='q')
-		goto end;
-	    if (input=='\n' &&  c == '\n' )
-		next_page = 1;
-	    if ( c == ' ' && ++lines == 24 )
-		next_page = 1;
+	    if (c == '\n' ) {
+		switch(input) {
+		    case 'q':
+			goto end;
+		    case '\n':
+			/* increment by just one line if we are at 
+			 * the end of this line*/
+			next_page = 1;
+			break;
+		}
+		if ( ++lines == terminal_height )
+		    next_page = 1;
+	    }
 	    putc(c, stdout);
 	}
 	fclose(file);
@@ -155,7 +188,7 @@ extern int more_main(int argc, char **argv)
 	argv++;
     } while (--argc > 0);
 end:
-#ifdef BB_MORE_TERM
+#ifdef BB_FEATURE_USE_TERMIOS
     gotsig(0);
 #endif	
     exit(TRUE);

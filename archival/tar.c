@@ -35,6 +35,16 @@
 #include <signal.h>
 #include <time.h>
 
+/* Note that tar.c expects TRUE and FALSE to be defined
+ * exactly the opposite of how they are used everywhere else.
+ * Some time this should be integrated a bit better, but this
+ * does the job for now.
+ */
+#undef FALSE
+#undef TRUE
+#define FALSE ((int) 0)
+#define TRUE  ((int) 1)
+
 
 static const char tar_usage[] =
     "tar -[cxtvOf] [tarFileName] [FILE] ...\n"
@@ -169,10 +179,9 @@ extern int tar_main (int argc, char **argv)
     /* 
      * Parse the options.
      */
-    options = *argv++;
-    argc--;
-
     if (**argv == '-') {
+	options = (*argv++) + 1;
+	argc--;
 	for (; *options; options++) {
 	    switch (*options) {
 	    case 'f':

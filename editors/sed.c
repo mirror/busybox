@@ -45,9 +45,23 @@ static const char sed_usage[] =
 #else
 "This version of sed matches strings (not full regexps).\n";
 #endif
+    
 
+static void do_sed(FILE *fp, char *needle, char *newNeedle, int ignoreCase, int printFlag, int quietFlag)
+{
+    int foundOne=FALSE;
+    char haystack[1024];
 
-
+    while (fgets (haystack, 1023, fp)) {
+	foundOne = replace_match(haystack, needle, newNeedle, ignoreCase);
+	if (foundOne==TRUE && printFlag==TRUE) {
+	    fprintf(stdout, haystack);
+	}
+	if (quietFlag==FALSE) {
+	    fprintf(stdout, haystack);
+	}
+    }
+}
 
 extern int sed_main (int argc, char **argv)
 {
@@ -56,11 +70,9 @@ extern int sed_main (int argc, char **argv)
     char *name;
     char *cp;
     int ignoreCase=FALSE;
-    int foundOne=FALSE;
     int printFlag=FALSE;
     int quietFlag=FALSE;
     int stopNow;
-    char *haystack;
 
     argc--;
     argv++;
@@ -73,24 +85,23 @@ extern int sed_main (int argc, char **argv)
 	cp = *argv++;
 	stopNow=FALSE;
 
-	while (*++cp && stopNow==FALSE)
+	while (*++cp && stopNow==FALSE) {
 	    switch (*cp) {
 	    case 'n':
 		quietFlag = TRUE;
 		break;
 	    case 'e':
 		if (*(cp+1)==0 && --argc < 0) {
-		    fprintf(stderr, "A\n");
 		    usage( sed_usage);
 		}
-		cp = *argv++;
+		if ( *++cp != 's')
+		    cp = *argv++;
 		while( *cp ) {
 		    if (*cp == 's' && strlen(cp) > 3 && *(cp+1) == '/') {
 			char* pos=needle=cp+2;
 			for(;;) {
 			    pos = strchr(pos, '/');
 			    if (pos==NULL) {
-				fprintf(stderr, "B\n");
 				usage( sed_usage);
 			    }
 			    if (*(pos-1) == '\\') {
@@ -104,7 +115,6 @@ extern int sed_main (int argc, char **argv)
 			for(;;) {
 			    pos = strchr(pos, '/');
 			    if (pos==NULL) {
-				fprintf(stderr, "C\n");
 				usage( sed_usage);
 			    }
 			    if (*(pos-1) == '\\') {
@@ -116,7 +126,6 @@ extern int sed_main (int argc, char **argv)
 			*pos=0;
 			if (pos+2 != 0) {
 			    while (*++pos) {
-				fprintf(stderr, "pos='%s'\n", pos);
 				switch (*pos) {
 				    case 'i':
 					ignoreCase=TRUE;
@@ -134,42 +143,35 @@ extern int sed_main (int argc, char **argv)
 		    }
 		    cp++;
 		}
-		fprintf(stderr, "replace '%s' with '%s'\n", needle, newNeedle);
+		//fprintf(stderr, "replace '%s' with '%s'\n", needle, newNeedle);
 		stopNow=TRUE;
 		break;
 
 	    default:
-		fprintf(stderr, "D\n");
 		usage(sed_usage);
 	    }
+	}
     }
 
-    while (argc-- > 0) {
-	name = *argv++;
+    if (argc==0) {
+	do_sed( stdin, needle, newNeedle, ignoreCase, printFlag, quietFlag);
+    } else {
+	while (argc-- > 0) {
+	    name = *argv++;
 
-	fp = fopen (name, "r");
-	if (fp == NULL) {
-	    perror (name);
-	    continue;
+	    fp = fopen (name, "r");
+	    if (fp == NULL) {
+		perror (name);
+		continue;
+	    }
+
+	    do_sed( fp, needle, newNeedle, ignoreCase, printFlag, quietFlag);
+
+	    if (ferror (fp))
+		perror (name);
+
+	    fclose (fp);
 	}
-
-	haystack = (char*)malloc( 1024);
-	while (fgets (haystack, 1023, fp)) {
-
-	    foundOne = replace_match(haystack, needle, newNeedle, ignoreCase);
-	    if (foundOne==TRUE && printFlag==TRUE)
-		    fputs (haystack, stdout);
-	    if (quietFlag==FALSE)
-		fputs (haystack, stdout);
-	    /* Avoid any mem leaks */
-	    free(haystack);
-	    haystack = (char*)malloc( BUF_SIZE);
-	}
-
-	if (ferror (fp))
-	    perror (name);
-
-	fclose (fp);
     }
     exit( TRUE);
 }

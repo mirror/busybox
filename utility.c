@@ -415,8 +415,12 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	return (FALSE);
     }
 
-    if ( (followLinks == FALSE) && (S_ISLNK(statbuf.st_mode)) )
-	return (TRUE);
+    if ( (followLinks == FALSE) && (S_ISLNK(statbuf.st_mode)) ) {
+	if (fileAction == NULL)
+	    return (TRUE);
+	else
+	    return (fileAction(fileName, &statbuf));
+    }
 
     if (recurse == FALSE) {
 	if (S_ISDIR(statbuf.st_mode)) {

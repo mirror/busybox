@@ -54,7 +54,7 @@
 #define BB_SYNC
 #define BB_TAR
 #define BB_TOUCH
-//#define BB_TRUE_FALSE  // Supplied by ash
+//#define BB_TRUE_FALSE
 #define BB_UMOUNT
 #define BB_UPDATE
 #define BB_UNAME

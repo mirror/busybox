@@ -50,7 +50,6 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
 	} while (regexec(re, s, FALSE, ignoreCase) == TRUE);
 	 /* copy stuff from after the match */
 	while ( (*d++ = *s++) ) {}
-	d[-1] = '\n';
 	d[0] = '\0';
 	strcpy(haystack, buf);
     }
