@@ -26,7 +26,7 @@
 #include <fstab.h>
 #include <errno.h>
 
-const char umount_usage[] = 
+static const char umount_usage[] = 
 "Usage: umount filesystem\n"
 "   or: umount directory\n"
 "   or: umount -a"

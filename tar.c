@@ -12,23 +12,21 @@
 
 
 #include "internal.h"
-
-#ifdef BB_TAR
-
-const char tar_usage[] =
-    "Create, extract, or list files from a TAR file\n\n"
-    "usage: tar -[cxtvOf] [tarFileName] [FILE] ...\n"
-    "\tc=create, x=extract, t=list contents, v=verbose,\n"
-    "\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
-
-
-
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <time.h>
+
+
+static const char tar_usage[] =
+    "Create, extract, or list files from a TAR file\n\n"
+    "usage: tar -[cxtvOf] [tarFileName] [FILE] ...\n"
+    "\tc=create, x=extract, t=list contents, v=verbose,\n"
+    "\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
+
+
 
 /*
  * Tar file constants.
@@ -1151,5 +1149,4 @@ wantFileName (const char *fileName, int fileCount, char **fileTable)
 
 
 
-#endif
 /* END CODE */

@@ -34,7 +34,7 @@
    an RFC 822 complient date output for shell scripting
    mail commands */
 
-const char	date_usage[] = "date [OPTION]... [+FORMAT]\n"
+static const char	date_usage[] = "date [OPTION]... [+FORMAT]\n"
 "  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
 "Display the current time in the given FORMAT, or set the system date.\n"
 "\nOptions:\n\t-R\t\toutput RFC-822 compliant date string\n"

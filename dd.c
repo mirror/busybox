@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-const char dd_usage[] =
+static const char dd_usage[] =
     "Copy a file, converting and formatting according to options\n\
 \n\
 usage: [if=name] [of=name] [bs=n] [count=n]\n\

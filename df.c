@@ -5,7 +5,7 @@
 #include <sys/vfs.h>
 #include <fstab.h>
 
-const char	df_usage[] = "df [filesystem ...]\n"
+static const char	df_usage[] = "df [filesystem ...]\n"
 "\n"
 "\tPrint the filesystem space used and space available.\n";
 

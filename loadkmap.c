@@ -7,7 +7,7 @@
 #include <sys/ioctl.h>
 
 
-const char			loadkmap_usage[] = "loadkmap\n"
+static const char loadkmap_usage[] = "loadkmap\n"
 "\n"
 "\tLoad a binary keyboard translation table from standard input.\n"
 "\n";
@@ -48,7 +48,7 @@ loadkmap_main(int argc, char * * argv)
 	if (flags[i]==1){
 	    pos=0;
 	    while (pos < ibuffsz) {
-		if ( (readsz = read(0,ibuff+pos,ibuffsz-pos)) < 0 ) {
+		if ( (readsz = read(0,(char *)ibuff+pos,ibuffsz-pos)) < 0 ) {
 		    fprintf(stderr, "Error reading keymap: %s\n", 
 			strerror(errno));
 		    return 1;

@@ -25,7 +25,7 @@
 #include <utime.h>
 #include <dirent.h>
 
-const char cp_usage[] = "cp [OPTION]... SOURCE DEST\n"
+static const char cp_usage[] = "cp [OPTION]... SOURCE DEST\n"
     "   or: cp [OPTION]... SOURCE... DIRECTORY\n"
     "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n"
     "\n"

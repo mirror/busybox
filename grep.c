@@ -29,7 +29,7 @@
 #include <ctype.h>
 
 
-const char grep_usage[] =
+static const char grep_usage[] =
 "grep [-ihn]... PATTERN [FILE]...\n"
 "Search for PATTERN in each FILE or standard input.\n\n"
 "\t-h\tsuppress the prefixing filename on output\n"

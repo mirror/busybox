@@ -4,7 +4,7 @@
 
 #include "internal.h"
 
-const char	zcat_usage[] = "zcat\n"
+static const char	zcat_usage[] = "zcat\n"
 "\n"
 "\tuncompress gzipped data from stdin to stdout\n";
 
@@ -59,7 +59,7 @@ static char  *license_msg[] = {
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $";
 #endif
 
 #include <ctype.h>
@@ -80,7 +80,7 @@ static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $ */
+/* $Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $ */
 
 #define RECORD_IO 0
 
@@ -436,7 +436,7 @@ extern int unlzw  OF((int in, int out));
 #  undef LZW
 #endif
 
-/* $Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $ */
+/* $Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $ */
 
 /* #include "getopt.h" */
 
@@ -895,7 +895,7 @@ RETSIGTYPE abort_gzip()
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $";
 #endif
 
 /* #include "crypt.h" */
@@ -1021,7 +1021,7 @@ int unzip(in, out)
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $";
 #endif
 
 #include <ctype.h>
@@ -1408,7 +1408,7 @@ ulg crc_32_tab[] = {
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.3 1999/10/19 20:03:34 andersen Exp $";
 #endif
 
 #include <sys/types.h>

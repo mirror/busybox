@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-const char mknod_usage[] = "mknod file b|c|u|p major minor\n"
+static const char mknod_usage[] = "mknod file b|c|u|p major minor\n"
 "\tMake special files.\n"
 "\n"
 "\tb:\tMake a block (buffered) device.\n"

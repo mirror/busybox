@@ -32,7 +32,7 @@ static void print_file( FILE *file)
     fflush(stdout);
 }
 
-extern int cat_more_main(int argc, char **argv)
+extern int cat_main(int argc, char **argv)
 {
     FILE *file;
 

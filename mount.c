@@ -37,7 +37,7 @@
 #include <ctype.h>
 #include <fstab.h>
 
-const char mount_usage[] = "Usage:\tmount [flags]\n"
+static const char mount_usage[] = "Usage:\tmount [flags]\n"
     "\tmount [flags] device directory [-o options,more-options]\n"
     "\n"
     "Flags:\n"

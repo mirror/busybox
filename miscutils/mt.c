@@ -3,7 +3,7 @@
 #include <sys/mtio.h>
 #include <sys/fcntl.h>
 
-const char	mt_usage[] = "mt [-f device] opcode value\n";
+static const char	mt_usage[] = "mt [-f device] opcode value\n";
 
 struct mt_opcodes {
 	char *	name;

@@ -75,7 +75,7 @@ do_loadfont(int fd, char *inbuf, int unit, int fontsize) {
 	for (i = 0; i < fontsize; i++)
 	    memcpy(buf+(32*i), inbuf+(unit*i), unit);
 
-#if defined( PIO_FONTX ) && !defined( sparc )
+#if defined( PIO_FONTX ) && !defined( __sparc__ )
 	{
 	    struct consolefontdesc cfd;
 
@@ -196,7 +196,7 @@ loadnewfont(int fd) {
 		exit(1);
 	    }
 	    fontsize = ((psfhdr.mode & PSF_MODE512) ? 512 : 256);
-#if !defined( PIO_FONTX ) || defined( sparc )
+#if !defined( PIO_FONTX ) || defined( __sparc__ )
 	    if (fontsize != 256) {
 		fprintf(stderr, "Only fontsize 256 supported\n");
 		exit(1);

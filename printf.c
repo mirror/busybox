@@ -136,7 +136,7 @@ static void verify __P ((char *s, char *end));
 /* The value to return to the calling program.  */
 static int exit_status;
 
-const char	printf_usage[] = "printf format [argument...]\n";
+static const char	printf_usage[] = "printf format [argument...]\n";
 
 int
 printf_main(int argc, char** argv)

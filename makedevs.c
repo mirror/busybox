@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-const char makedevs_usage[] = 
+static const char makedevs_usage[] = 
 "makedevs 0.01 -- Create an entire range of device files\n\n"
 "\tmakedevs /dev/ttyS c 4 64 0 63        (ttyS0-ttyS63)\n"
 "\tmakedevs /dev/hda b 3 0 0 8 s         (hda,hda1-hda8)\n";
@@ -45,8 +45,7 @@ char buf[255];
 		case 'f':
 			mode = S_IFIFO; break;
 		default:
-			fprintf(stderr, "Usage: %s\n", makedevs_usage);
-			return 2;
+			usage( makedevs_usage);
 	}       
 	mode |= 0660; 
 

@@ -132,7 +132,6 @@ int ls_main(int argc, char **argv)
 #else
 
 
-#include "internal.h"
 /*
  * tiny-ls.c version 0.1.0: A minimalist 'ls'
  * Copyright (C) 1996 Brian Candler <B.Candler@pobox.com>
@@ -175,7 +174,7 @@ int ls_main(int argc, char **argv)
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#define FEATURE_USERNAME	/* show username/groupnames (libc6 uses NSS) */
+//#define FEATURE_USERNAME	/* show username/groupnames (libc6 uses NSS) */
 #define FEATURE_TIMESTAMPS	/* show file timestamps */
 #define FEATURE_AUTOWIDTH	/* calculate terminal & column widths */
 #define FEATURE_FILETYPECHAR	/* enable -p and -F */
@@ -187,8 +186,8 @@ int ls_main(int argc, char **argv)
 
 /************************************************************************/
 
-
-#if 1 /* FIXME libc 6 */
+#include "internal.h"
+#if !defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 # include <linux/types.h> 
 #else
 # include <sys/types.h> 
@@ -225,7 +224,7 @@ int ls_main(int argc, char **argv)
 
 /* The 9 mode bits to test */
 
-static const umode_t MBIT[] = {
+static const mode_t MBIT[] = {
   S_IRUSR, S_IWUSR, S_IXUSR,
   S_IRGRP, S_IWGRP, S_IXGRP,
   S_IROTH, S_IWOTH, S_IXOTH
@@ -233,7 +232,7 @@ static const umode_t MBIT[] = {
 
 /* The special bits. If set, display SMODE0/1 instead of MODE0/1 */
 
-static const umode_t SBIT[] = {
+static const mode_t SBIT[] = {
   0, 0, S_ISUID,
   0, 0, S_ISGID,
   0, 0, S_ISVTX
@@ -278,7 +277,7 @@ static unsigned char time_fmt = TIME_MOD;
 
 static void writenum(long val, short minwidth)
 {
-	char	scratch[20];
+	char	scratch[128];
 
 	char *p = scratch + sizeof(scratch);
 	short len = 0;
@@ -324,7 +323,7 @@ static void tab(short col)
 }
 
 #ifdef FEATURE_FILETYPECHAR
-static char append_char(umode_t mode)
+static char append_char(mode_t mode)
 {
 	if (!(opts & DISP_FTYPE))
 		return '\0';
@@ -343,14 +342,14 @@ static char append_char(umode_t mode)
 
 static void list_single(const char *name, struct stat *info)
 {
-	char scratch[20];
+	char scratch[PATH_MAX];
 	short len = strlen(name);
 #ifdef FEATURE_FILETYPECHAR
 	char append = append_char(info->st_mode);
 #endif
 	
 	if (display_fmt == FMT_LONG) {
-		umode_t mode = info->st_mode; 
+		mode_t mode = info->st_mode; 
 		int i;
 		
 		scratch[0] = TYPECHAR(mode);

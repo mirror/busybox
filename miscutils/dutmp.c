@@ -14,12 +14,12 @@
 #include <stdio.h>
 #include <utmp.h>
 
-const char dutmp_usage[] = "dutmp\n"
+static const char dutmp_usage[] = "dutmp\n"
     "\n"
     "\tDump file or stdin utmp file format to stdout, pipe delimited.\n"
     "\tdutmp /var/run/utmp\n";
 
-extern int dutmp_fn (int argc, char **argv)
+static int dutmp_main (int argc, char **argv)
 {
 
     FILE *f = stdin;

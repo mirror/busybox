@@ -300,7 +300,7 @@ configure_terminals( int serial_cons, int single_user_mode )
 	}
 	if (!first_terminal)
 		first_terminal = console;
-#if #cpu (sparc)
+#if defined (__sparc__)
 	if (serial_cons > 0 && !strncmp(term_ptr,"TERM=linux",10))
 	    term_ptr = "TERM=vt100";
 #endif

@@ -40,6 +40,7 @@
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
+#define BB_SFDISK
 #define BB_SLEEP
 #define BB_SWAPONOFF
 #define BB_SYNC

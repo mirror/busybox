@@ -21,20 +21,20 @@ const struct signal_name signames[] = {
 #ifndef __alpha__
     {"IOT", SIGIOT},
 #endif
-#if defined(sparc) || defined(__alpha__)
+#if defined(__sparc__) || defined(__alpha__)
     {"EMT", SIGEMT},
 #else
     {"BUS", SIGBUS},
 #endif
     {"FPE", SIGFPE},
     {"KILL", SIGKILL},
-#if defined(sparc) || defined(__alpha__)
+#if defined(__sparc__) || defined(__alpha__)
     {"BUS", SIGBUS},
 #else
     {"USR1", SIGUSR1},
 #endif
     {"SEGV", SIGSEGV},
-#if defined(sparc) || defined(__alpha__)
+#if defined(__sparc__) || defined(__alpha__)
     {"SYS", SIGSYS},
 #else
     {"USR2", SIGUSR2},
@@ -42,7 +42,7 @@ const struct signal_name signames[] = {
     {"PIPE", SIGPIPE},
     {"ALRM", SIGALRM},
     {"TERM", SIGTERM},
-#if defined(sparc) || defined(__alpha__)
+#if defined(__sparc__) || defined(__alpha__)
     {"URG", SIGURG},
     {"STOP", SIGSTOP},
     {"TSTP", SIGTSTP},

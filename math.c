@@ -6,7 +6,7 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-const char			math_usage[] = "math expression ...";
+static const char math_usage[] = "math expression ...";
 
 static double		stack[100];
 static unsigned int	pointer;

@@ -14,7 +14,7 @@ static const struct Applet applets[] = {
     {"block_device", block_device_main},
 #endif
 #ifdef BB_CAT			//bin
-    {"cat", cat_more_main},
+    {"cat", cat_main},
 #endif
 #ifdef BB_CHMOD_CHOWN_CHGRP	//bin
     {"chmod", chmod_chown_chgrp_main},
@@ -43,7 +43,7 @@ static const struct Applet applets[] = {
     {"dmesg", dmesg_main},
 #endif
 #ifdef BB_DUTMP			//usr/sbin
-    {"dutmp", cat_more_main},
+    {"dutmp", dutmp_main},
 #endif
 #ifdef BB_FDFLUSH		//bin
     {"fdflush", fdflush_main},
@@ -122,6 +122,10 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_RMDIR			//bin
     {"rmdir", rmdir_main},
+#endif
+#ifdef BB_SFDISK		//sbin
+    {"fdisk", sfdisk_main},
+    {"sfdisk", sfdisk_main},
 #endif
 #ifdef BB_SLEEP			//bin
     {"sleep", sleep_main},

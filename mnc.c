@@ -39,7 +39,7 @@
 
 #define BUFSIZE 100
 
-const char mnc_usage[] = 
+static const char mnc_usage[] = 
 "mini-netcat 0.0.3 -- Open pipe to IP:port\n"
 "\tmnc [IP] [port]\n";
 

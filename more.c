@@ -30,7 +30,7 @@
 #include <signal.h>
 
 
-const char more_usage[] = "[file ...]";
+static const char more_usage[] = "[file ...]";
 
 
 #ifdef BB_MORE_TERM
