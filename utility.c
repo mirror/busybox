@@ -33,34 +33,190 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#if 0
 
-extern char *join_paths(char *buffer, const char *a, const char *b)
+
+#if defined (BB_CP) || defined (BB_MV)
+/*
+ * Return TRUE if a fileName is a directory.
+ * Nonexistant files return FALSE.
+ */
+int isDirectory(const char *name)
 {
-    int length = 0;
+    struct stat statBuf;
 
-    if (a && *a) {
-	length = strlen(a);
-	memcpy(buffer, a, length);
-    }
-    if (b && *b) {
-	if (length > 0 && buffer[length - 1] != '/')
-	    buffer[length++] = '/';
-	if (*b == '/')
-	    b++;
-	strcpy(&buffer[length], b);
-    }
-    return buffer;
+    if (stat(name, &statBuf) < 0)
+	return FALSE;
+
+    return S_ISDIR(statBuf.st_mode);
 }
 
+
+/*
+ * Copy one file to another, while possibly preserving its modes, times,
+ * and modes.  Returns TRUE if successful, or FALSE on a failure with an
+ * error message output.  (Failure is not indicted if the attributes cannot
+ * be set.)
+ */
+int
+copyFile(
+	 const char *srcName,
+	 const char *destName, int setModes, int followLinks)
+{
+    int rfd;
+    int wfd;
+    int rcc;
+    int result;
+    char buf[BUF_SIZE];
+    struct stat srcStatBuf;
+    struct stat dstStatBuf;
+    struct utimbuf times;
+
+    if (followLinks == FALSE)
+	result = stat(srcName, &srcStatBuf);
+    else 
+	result = lstat(srcName, &srcStatBuf);
+
+    if (result < 0) {
+	perror(srcName);
+	return FALSE;
+    }
+
+    if (followLinks == FALSE)
+	result = stat(destName, &dstStatBuf);
+    else 
+	result = lstat(destName, &dstStatBuf);
+    if (result < 0) {
+	dstStatBuf.st_ino = -1;
+	dstStatBuf.st_dev = -1;
+    }
+
+    if ((srcStatBuf.st_dev == dstStatBuf.st_dev) &&
+	(srcStatBuf.st_ino == dstStatBuf.st_ino)) {
+	fprintf(stderr, "Copying file \"%s\" to itself\n", srcName);
+	return FALSE;
+    }
+
+    if (S_ISDIR(srcStatBuf.st_mode)) {
+	//fprintf(stderr, "copying directory %s to %s\n", srcName, destName);
+	/* Make sure the directory is writable */
+	if (mkdir(destName, 0777777 ^ umask(0))) {
+	    perror(destName);
+	    return (FALSE);
+	}
+    } else if (S_ISLNK(srcStatBuf.st_mode)) {
+	char *link_val;
+	int link_size;
+
+	//fprintf(stderr, "copying link %s to %s\n", srcName, destName);
+	link_val = (char *) alloca(PATH_MAX + 2);
+	link_size = readlink(srcName, link_val, PATH_MAX + 1);
+	if (link_size < 0) {
+	    perror(srcName);
+	    return (FALSE);
+	}
+	link_val[link_size] = '\0';
+	if (symlink(link_val, destName)) {
+	    perror(destName);
+	    return (FALSE);
+	}
+    } else if (S_ISFIFO(srcStatBuf.st_mode)) {
+	//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
+	if (mkfifo(destName, 644)) {
+	    perror(destName);
+	    return (FALSE);
+	}
+    } else if (S_ISBLK(srcStatBuf.st_mode) || S_ISCHR(srcStatBuf.st_mode) 
+	    || S_ISSOCK (srcStatBuf.st_mode)) {
+	//fprintf(stderr, "copying soc, blk, or chr %s to %s\n", srcName, destName);
+	if (mknod(destName, srcStatBuf.st_mode, srcStatBuf.st_rdev)) {
+	    perror(destName);
+	    return (FALSE);
+	}
+    } else if (S_ISREG(srcStatBuf.st_mode)) {
+	//fprintf(stderr, "copying regular file %s to %s\n", srcName, destName);
+	rfd = open(srcName, O_RDONLY);
+	if (rfd < 0) {
+	    perror(srcName);
+	    return FALSE;
+	}
+
+	wfd = creat(destName, srcStatBuf.st_mode);
+	if (wfd < 0) {
+	    perror(destName);
+	    close(rfd);
+	    return FALSE;
+	}
+
+	while ((rcc = read(rfd, buf, sizeof(buf))) > 0) {
+	    if (fullWrite(wfd, buf, rcc) < 0)
+		goto error_exit;
+	}
+	if (rcc < 0) {
+	    goto error_exit;
+	}
+
+	close(rfd);
+	if (close(wfd) < 0) {
+	    return FALSE;
+	}
+    }
+
+    if (setModes == TRUE) {
+	//fprintf(stderr, "Setting permissions for %s\n", destName);
+	chmod(destName, srcStatBuf.st_mode);
+	if (followLinks == TRUE)
+	    chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	else
+	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+
+	times.actime = srcStatBuf.st_atime;
+	times.modtime = srcStatBuf.st_mtime;
+
+	utime(destName, &times);
+    }
+
+    return TRUE;
+
+
+  error_exit:
+    //fprintf(stderr, "choking on %s\n", destName);
+    perror(destName);
+    close(rfd);
+    close(wfd);
+
+    return FALSE;
+}
 #endif
 
 
+#ifdef BB_MV
+/*
+ * Build a path name from the specified directory name and file name.
+ * If the directory name is NULL, then the original fileName is returned.
+ * The built path is in a static area, and is overwritten for each call.
+ */
+char *buildName(const char *dirName, const char *fileName)
+{
+    const char *cp;
+    static char buf[PATH_LEN];
 
+    if ((dirName == NULL) || (*dirName == '\0')) {
+	strcpy(buf, fileName);
+	return buf;
+    }
 
+    cp = strrchr(fileName, '/');
 
+    if (cp)
+	fileName = cp + 1;
 
-static CHUNK *chunkList;
+    strcpy(buf, dirName);
+    strcat(buf, "/");
+
+    return buf;
+}
+#endif
+
 
 
 /*
@@ -129,282 +285,7 @@ const char *modeString(int mode)
 }
 
 
-/*
- * Return TRUE if a fileName is a directory.
- * Nonexistant files return FALSE.
- */
-int isDirectory(const char *name)
-{
-    struct stat statBuf;
-
-    if (stat(name, &statBuf) < 0)
-	return FALSE;
-
-    return S_ISDIR(statBuf.st_mode);
-}
-
-
-/*
- * Return TRUE if a filename is a block or character device.
- * Nonexistant files return FALSE.
- */
-int isDevice(const char *name)
-{
-    struct stat statBuf;
-
-    if (stat(name, &statBuf) < 0)
-	return FALSE;
-
-    return S_ISBLK(statBuf.st_mode) || S_ISCHR(statBuf.st_mode);
-}
-
-
-/*
- * Copy one file to another, while possibly preserving its modes, times,
- * and modes.  Returns TRUE if successful, or FALSE on a failure with an
- * error message output.  (Failure is not indicted if the attributes cannot
- * be set.)
- */
-int
-copyFile(
-	 const char *srcName,
-	 const char *destName, int setModes, int followLinks)
-{
-    int rfd;
-    int wfd;
-    int rcc;
-    char buf[BUF_SIZE];
-    struct stat statBuf1;
-    struct stat statBuf2;
-    struct utimbuf times;
-
-    if (stat(srcName, &statBuf1) < 0) {
-	perror(srcName);
-	return FALSE;
-    }
-
-    if (stat(destName, &statBuf2) < 0) {
-	statBuf2.st_ino = -1;
-	statBuf2.st_dev = -1;
-    }
-
-    if ((statBuf1.st_dev == statBuf2.st_dev) &&
-	(statBuf1.st_ino == statBuf2.st_ino)) {
-	fprintf(stderr, "Copying file \"%s\" to itself\n", srcName);
-	return FALSE;
-    }
-
-    if (S_ISDIR(statBuf1.st_mode)) {
-	/* Make sure the directory is writable */
-	if (mkdir(destName, 0777777 ^ umask(0))) {
-	    perror(destName);
-	    return (FALSE);
-	}
-    } else if (S_ISFIFO(statBuf1.st_mode)) {
-	if (mkfifo(destName, 644)) {
-	    perror(destName);
-	    return (FALSE);
-	}
-    } else if (S_ISBLK(statBuf1.st_mode) || S_ISCHR(statBuf1.st_mode)) {
-	if (mknod(destName, 644, statBuf1.st_rdev)) {
-	    perror(destName);
-	    return (FALSE);
-	}
-    } else if (S_ISLNK(statBuf1.st_mode)) {
-	char *link_val;
-	int link_size;
-
-	link_val = (char *) alloca(PATH_MAX + 2);
-	link_size = readlink(srcName, link_val, PATH_MAX + 1);
-	if (link_size < 0) {
-	    perror(srcName);
-	    return (FALSE);
-	}
-	link_val[link_size] = '\0';
-	if (symlink(link_val, destName)) {
-	    perror(srcName);
-	    return (FALSE);
-	}
-    } else {
-	rfd = open(srcName, O_RDONLY);
-	if (rfd < 0) {
-	    perror(srcName);
-	    return FALSE;
-	}
-
-	wfd = creat(destName, statBuf1.st_mode);
-	if (wfd < 0) {
-	    perror(destName);
-	    close(rfd);
-	    return FALSE;
-	}
-
-	while ((rcc = read(rfd, buf, sizeof(buf))) > 0) {
-	    if (fullWrite(wfd, buf, rcc) < 0)
-		goto error_exit;
-	}
-	if (rcc < 0) {
-	    perror(srcName);
-	    goto error_exit;
-	}
-
-	close(rfd);
-
-	if (close(wfd) < 0) {
-	    perror(destName);
-	    return FALSE;
-	}
-    }
-
-    if (setModes == TRUE) {
-	chmod(destName, statBuf1.st_mode);
-	if (followLinks == TRUE)
-	    chown(destName, statBuf1.st_uid, statBuf1.st_gid);
-	else
-	    lchown(destName, statBuf1.st_uid, statBuf1.st_gid);
-
-	times.actime = statBuf1.st_atime;
-	times.modtime = statBuf1.st_mtime;
-
-	utime(destName, &times);
-    }
-
-    return TRUE;
-
-
-  error_exit:
-    close(rfd);
-    close(wfd);
-
-    return FALSE;
-}
-
-
-/*
- * Build a path name from the specified directory name and file name.
- * If the directory name is NULL, then the original fileName is returned.
- * The built path is in a static area, and is overwritten for each call.
- */
-char *buildName(const char *dirName, const char *fileName)
-{
-    const char *cp;
-    static char buf[PATH_LEN];
-
-    if ((dirName == NULL) || (*dirName == '\0')) {
-	strcpy(buf, fileName);
-	return buf;
-    }
-
-    cp = strrchr(fileName, '/');
-
-    if (cp)
-	fileName = cp + 1;
-
-    strcpy(buf, dirName);
-    strcat(buf, "/");
-
-    return buf;
-}
-
-
-
-/*
- * Make a NULL-terminated string out of an argc, argv pair.
- * Returns TRUE if successful, or FALSE if the string is too long,
- * with an error message given.  This does not handle spaces within
- * arguments correctly.
- */
-int makeString( int argc, const char **argv, char *buf, int bufLen)
-{
-    int len;
-
-    while (argc-- > 0) {
-	len = strlen(*argv);
-
-	if (len >= bufLen) {
-	    fprintf(stderr, "Argument string too long\n");
-
-	    return FALSE;
-	}
-
-	strcpy(buf, *argv++);
-
-	buf += len;
-	bufLen -= len;
-
-	if (argc)
-	    *buf++ = ' ';
-
-	bufLen--;
-    }
-
-    *buf = '\0';
-
-    return TRUE;
-}
-
-
-/*
- * Allocate a chunk of memory (like malloc).
- * The difference, though, is that the memory allocated is put on a
- * list of chunks which can be freed all at one time.  You CAN NOT free
- * an individual chunk.
- */
-char *getChunk(int size)
-{
-    CHUNK *chunk;
-
-    if (size < CHUNK_INIT_SIZE)
-	size = CHUNK_INIT_SIZE;
-
-    chunk = (CHUNK *) malloc(size + sizeof(CHUNK) - CHUNK_INIT_SIZE);
-
-    if (chunk == NULL)
-	return NULL;
-
-    chunk->next = chunkList;
-    chunkList = chunk;
-
-    return chunk->data;
-}
-
-
-/*
- * Duplicate a string value using the chunk allocator.
- * The returned string cannot be individually freed, but can only be freed
- * with other strings when freeChunks is called.  Returns NULL on failure.
- */
-char *chunkstrdup(const char *str)
-{
-    int len;
-    char *newStr;
-
-    len = strlen(str) + 1;
-    newStr = getChunk(len);
-
-    if (newStr)
-	memcpy(newStr, str, len);
-
-    return newStr;
-}
-
-
-/*
- * Free all chunks of memory that had been allocated since the last
- * call to this routine.
- */
-void freeChunks(void)
-{
-    CHUNK *chunk;
-
-    while (chunkList) {
-	chunk = chunkList;
-	chunkList = chunk->next;
-	free((char *) chunk);
-    }
-}
-
-
+#ifdef BB_TAR
 /*
  * Get the time string to be used for a file.
  * This is down to the minute for new files, but only the date for old files.
@@ -577,8 +458,10 @@ int fullRead(int fd, char *buf, int len)
 
     return total;
 }
+#endif
 
 
+#if defined (BB_CHOWN) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS)
 /*
  * Walk down all the directories under the specified 
  * location, and do something (something specified
@@ -618,7 +501,6 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 
     if (S_ISDIR(statbuf.st_mode)) {
 	DIR *dir;
-	fprintf(stderr, "Dir: %s\n", fileName);
 	dir = opendir(fileName);
 	if (!dir) {
 	    perror(fileName);
@@ -627,7 +509,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	if (dirAction != NULL) {
 	    status = dirAction(fileName);
 	    if (status == FALSE) {
-		perror("cp");
+		perror(fileName);
 		return (FALSE);
 	    }
 	}
@@ -652,7 +534,6 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	    return (FALSE);
 	}
     } else {
-	fprintf(stderr, "File: %s\n", fileName);
 	if (fileAction == NULL)
 	    return (TRUE);
 	else
@@ -661,6 +542,6 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
     return (TRUE);
 }
 
-
+#endif
 
 /* END CODE */

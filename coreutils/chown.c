@@ -48,9 +48,9 @@ static int fileAction(const char *fileName)
 		   ((chownApp==TRUE)? uid: statBuf.st_uid), 
 		   gid) < 0)) { 
 	perror(fileName);
-	return( TRUE);
+	return( FALSE);
     }
-    return( FALSE);
+    return( TRUE);
 }
 
 int chown_main(int argc, char **argv)

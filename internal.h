@@ -49,49 +49,11 @@
 
 
 
-struct FileInfo {
-	unsigned int	complainInPostProcess:1;
-	unsigned int	changeUserID:1;
-	unsigned int	changeGroupID:1;
-	unsigned int	changeMode:1;
-	unsigned int	create:1;
-	unsigned int	force:1;
-	unsigned int	recursive:1;
-	unsigned int	processDirectoriesAfterTheirContents;
-	unsigned int	makeParentDirectories:1;
-	unsigned int	didOperation:1;
-	unsigned int	isSymbolicLink:1;
-	unsigned int	makeSymbolicLink:1;
-	unsigned int	dyadic:1;
-	const char*	source;
-	const char*	destination;
-	int				directoryLength;
-	uid_t			userID;
-	gid_t			groupID;
-	mode_t			andWithMode;
-	mode_t			orWithMode;
-	struct stat		stat;
-	const struct Applet *
-					applet;
-};
-
 struct Applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
 };
 
-extern void	name_and_error(const char*);
-extern int	is_a_directory(const char*);
-extern char*	join_paths(char *, const char *, const char *);
-
-extern int	descend(
-		 struct FileInfo *o
-		,int 		(*function)(const struct FileInfo * i));
-
-extern struct mntent *
-		findMountPoint(const char*, const char *);
-
-extern void usage(const char*);
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_more_main(int argc, char** argv);
@@ -146,29 +108,6 @@ extern int update_main(int argc, char** argv);
 extern int zcat_main(int argc, char** argv);
 extern int gzip_main(int argc, char** argv);
 
-extern int
-parse_mode(
- const char*	s
-,mode_t *		or
-,mode_t *		and
-,int *			group_execute);
-
-extern int		parse_user_name(const char* string, struct FileInfo * i);
-
-
-/*
- * A chunk of data.
- * Chunks contain data which is allocated as needed, but which is
- * not freed until all of the data needs freeing, such as at
- * the beginning of the next command.
- */
-typedef struct chunk CHUNK;
-#define CHUNK_INIT_SIZE 4
-
-struct chunk {
-    CHUNK *next;
-    char data[CHUNK_INIT_SIZE];	/* actually of varying length */
-};
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);

@@ -199,12 +199,7 @@ int busybox_main(int argc, char **argv)
     argc--;
     argv++;
 
-    /* If we've already been here once, exit now */
-    if (been_there_done_that == 1)
-	return -1;
-    been_there_done_that = 1;
-
-    if (argc < 1) {
+    if (been_there_done_that == 1 || argc < 1) {
 	const struct Applet *a = applets;
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n",
 		BB_VER, BB_BT);
@@ -224,6 +219,9 @@ int busybox_main(int argc, char **argv)
 	}
 	fprintf(stderr, "\n\n");
 	exit(-1);
-    } else
+    } else {
+	/* If we've already been here once, exit now */
+	been_there_done_that = 1;
 	return (main(argc, argv));
+    }
 }

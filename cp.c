@@ -47,41 +47,7 @@ static int fileAction(const char *fileName)
     char newdestName[NAME_MAX];
     strcpy(newdestName, destName);
     strcat(newdestName, fileName+(strlen(srcName)));
-    fprintf(stderr, "A: copying %s to %s\n", fileName, newdestName);
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
-}
-
-static int dirAction(const char *fileName)
-{
-    char newdestName[NAME_MAX];
-    struct stat statBuf;
-    struct  utimbuf times;
-
-    strcpy(newdestName, destName);
-    strcat(newdestName, fileName+(strlen(srcName)));
-    if (stat(newdestName, &statBuf)) {
-	if (mkdir( newdestName, 0777777 ^ umask (0))) {
-	    perror(newdestName);
-	    return( FALSE);
-	}
-    }
-    else if (!S_ISDIR (statBuf.st_mode)) {
-	fprintf(stderr, "`%s' exists but is not a directory", newdestName);
-	return( FALSE);
-    }
-    if (preserveFlag==TRUE) {
-	/* Try to preserve premissions, but don't whine on failure */
-	if (stat(newdestName, &statBuf)) {
-	    perror(newdestName);
-	    return( FALSE);
-	}
-	chmod(newdestName, statBuf.st_mode);
-	chown(newdestName, statBuf.st_uid, statBuf.st_gid);
-	times.actime = statBuf.st_atime;
-	times.modtime = statBuf.st_mtime;
-	utime(newdestName, &times);
-    }
-    return TRUE;
 }
 
 extern int cp_main(int argc, char **argv)

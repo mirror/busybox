@@ -13,11 +13,9 @@
 #define BB_CP
 #define BB_DATE
 #define BB_DD
-//#define BB_DESCEND
 #define BB_DF
 #define BB_DMESG
 #define BB_DUTMP
-//#define BB_DYADIC
 #define BB_FALSE
 //#define BB_FDFLUSH
 #define BB_FIND
@@ -36,7 +34,6 @@
 //#define BB_MKNOD
 ////#define BB_MKSWAP
 #define BB_MNC
-//#define BB_MONADIC
 #define BB_MORE
 #define BB_MOUNT
 ////#define BB_MT
