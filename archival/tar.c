@@ -615,6 +615,14 @@ int tar_main(int argc, char **argv)
 	unsigned char tar_create = FALSE;
 #endif
 
+	/* Prepend '-' to the first argument if required */
+	if (argv[1][0] != '-') {
+		char *tmp = xmalloc(strlen(argv[1]) + 2);
+		tmp[0] = '-';
+		strcpy(tmp + 1, argv[1]);
+		argv[1] = tmp;
+	}
+
 	if (argc < 2) {
 		show_usage();
 	}
