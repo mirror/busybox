@@ -159,6 +159,9 @@ static unsigned int sort_order=	SORT_FORWARD;
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 static unsigned int time_fmt=	TIME_MOD;
 #endif
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+static unsigned int follow_links=FALSE;
+#endif
 
 static unsigned short column = 0;
 #ifdef BB_FEATURE_AUTOWIDTH
@@ -474,6 +477,16 @@ struct dnode **list_dir(char *path)
 		cur= (struct dnode *)xmalloc(sizeof(struct dnode));
 		cur->fullname= xstrdup(fullname);
 		cur->name= cur->fullname + (int)(fnend - fullname) ;
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+		if (follow_links == TRUE) {
+			if (stat(fullname, &cur->dstat)) {
+				errorMsg("%s: %s\n", fullname, strerror(errno));
+				free(cur->fullname);
+				free(cur);
+				continue;
+			}
+		} else
+#endif
 		if (lstat(fullname, &cur->dstat)) {   /* get file stat info into node */
 			errorMsg("%s: %s\n", fullname, strerror(errno));
 			free(cur->fullname);
@@ -682,6 +695,9 @@ extern int ls_main(int argc, char **argv)
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 "cetu"
 #endif
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+"L"
+#endif
 	)) > 0) {
 		switch (opt) {
 			case '1': style_fmt = STYLE_SINGLE; break;
@@ -713,6 +729,9 @@ extern int ls_main(int argc, char **argv)
 			case 'c': time_fmt = TIME_CHANGE; sort_opts= SORT_CTIME; break;
 			case 't': sort_opts= SORT_MTIME; break;
 			case 'u': time_fmt = TIME_ACCESS; sort_opts= SORT_ATIME; break;
+#endif
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+			case 'L': follow_links= TRUE; break;
 #endif
 #ifdef BB_FEATURE_AUTOWIDTH
 			case 'T': tabstops= atoi(optarg); break;

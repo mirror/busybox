@@ -169,6 +169,9 @@
 // enable ls -R
 #define BB_FEATURE_LS_RECURSIVE
 //
+// enable ls -L
+#define BB_FEATURE_LS_FOLLOWLINKS
+//
 // Change ping implementation -- simplified, featureless, but really small.
 //#define BB_FEATURE_SIMPLE_PING
 //
