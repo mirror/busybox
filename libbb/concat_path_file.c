@@ -11,16 +11,12 @@
 extern char *concat_path_file(const char *path, const char *filename)
 {
 	char *outbuf;
-	int  l;
-	int  flg_slash = 1;
-
-	l = strlen(path);
-	if (l>0 && path[l-1] == '/')
-		flg_slash--;
-	l += strlen(filename);
-	if (l>0 && filename[0] == '/')
-		flg_slash--;
-	outbuf = xmalloc(l+1+flg_slash);
-	sprintf(outbuf, (flg_slash ? "%s/%s" : "%s%s"), path, filename);
+	const char *lc;
+	
+	lc = last_char_is((char*)path, '/');
+	if (filename[0] == '/')
+		filename++;
+	outbuf = xmalloc(strlen(path)+strlen(filename)+1+(lc==NULL));
+	sprintf(outbuf, (lc==NULL ? "%s/%s" : "%s%s"), path, filename);
 	return outbuf;
 }
