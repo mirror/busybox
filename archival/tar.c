@@ -47,6 +47,9 @@
 #include <fnmatch.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/socket.h>
 #include "unarchive.h"
 #include "busybox.h"
 
@@ -305,9 +308,10 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 		write(tbInfo->tarFd, "\0", 1);
 	}
 	/* Now do the verbose thing (or not) */
-	if (tbInfo->verboseFlag==TRUE) {
+	
+	if (tbInfo->verboseFlag) {
 		FILE *vbFd = stdout;
-		if (tbInfo->tarFd == fileno(stdout))	// If the archive goes to stdout, verbose to stderr
+		if (tbInfo->verboseFlag == 2)	// If the archive goes to stdout, verbose to stderr
 			vbFd = stderr;
 		fprintf(vbFd, "%s\n", header.name);
 	}
@@ -445,13 +449,17 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 }
 
 static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
-		char** excludeList)
+		char** excludeList, int gzip)
 {
-	int tarFd=-1;
+#ifdef CONFIG_FEATURE_TAR_GZIP
+	int gzipDataPipe [2] = { -1, -1 };
+	int gzipStatusPipe [2] = { -1, -1 };
+	pid_t gzipPid = 0;
+#endif
+	
 	int errorFlag=FALSE;
 	ssize_t size;
 	struct TarBallInfo tbInfo;
-	tbInfo.verboseFlag = verboseFlag;
 	tbInfo.hlInfoHead = NULL;
 
 	/* Make sure there is at least one file to tar up.  */
@@ -459,21 +467,78 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		error_msg_and_die("Cowardly refusing to create an empty archive");
 
 	/* Open the tar file for writing.  */
-	if (tarName == NULL)
+	if (tarName == NULL) {
 		tbInfo.tarFd = fileno(stdout);
-	else
+		tbInfo.verboseFlag = verboseFlag ? 2 : 0;
+	}
+	else {
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		tbInfo.verboseFlag = verboseFlag ? 1 : 0;
+	}
+	
 	if (tbInfo.tarFd < 0) {
 		perror_msg( "Error opening '%s'", tarName);
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return ( FALSE);
 	}
-	tbInfo.excludeList=excludeList;
+
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		error_msg_and_die(io_error, tarName, strerror(errno)); 
 
+#ifdef CONFIG_FEATURE_TAR_GZIP
+	if ( gzip ) {
+		if ( socketpair ( AF_UNIX, SOCK_STREAM, 0, gzipDataPipe ) < 0 || pipe ( gzipStatusPipe ) < 0 )
+			perror_msg_and_die ( "Failed to create gzip pipe" );
+	
+		signal ( SIGPIPE, SIG_IGN ); // we only want EPIPE on errors
+	
+		gzipPid = fork ( );
+		
+		if ( gzipPid == 0 ) {
+			dup2 ( gzipDataPipe [0], 0 );
+			close ( gzipDataPipe [1] );
+
+			if ( tbInfo. tarFd != 1 );
+				dup2 ( tbInfo. tarFd, 1 );
+			
+			close ( gzipStatusPipe [0] );			
+			fcntl( gzipStatusPipe [1], F_SETFD, FD_CLOEXEC ); // close on exec shows sucess			
+
+			execl ( "/bin/gzip", "gzip", "-f", 0 );
+					
+			write ( gzipStatusPipe [1], "", 1 );
+			close ( gzipStatusPipe [1] );
+			
+			exit ( -1 );
+		}
+		else if ( gzipPid > 0 ) {
+			close ( gzipDataPipe [0] );
+			close ( gzipStatusPipe [1] );
+			
+			while ( 1 ) {
+				char buf;
+			
+			    int n = read ( gzipStatusPipe [0], &buf, 1 );
+			    if ( n == 1 )
+					error_msg_and_die ( "Could not exec gzip process" );  	// socket was not closed => error
+			    else if (( n < 0 ) && ( errno==EAGAIN || errno==EINTR )) 
+				    continue;   // try it again
+			    break;
+			}
+			close ( gzipStatusPipe [0] );
+			
+			tbInfo. tarFd = gzipDataPipe [1];
+		}
+		else {
+			perror_msg_and_die ( "Failed to fork gzip process" );
+		}
+	}
+#endif
+		
+	tbInfo.excludeList=excludeList;
+	
 	/* Read the directory/files and iterate over them one at a time */
 	while (*argv != NULL) {
 		if (! recursive_action(*argv++, TRUE, FALSE, FALSE,
@@ -493,14 +558,20 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	 * so is considered a waste of space */
 
 	/* Hang up the tools, close up shop, head home */
-	close(tarFd);
-	if (errorFlag) {
+	close(tbInfo.tarFd);
+	if (errorFlag) 
 		error_msg("Error exit delayed from previous errors");
-		freeHardLinkInfo(&tbInfo.hlInfoHead);
-		return(FALSE);
-	}
+		
 	freeHardLinkInfo(&tbInfo.hlInfoHead);
-	return( TRUE);
+
+#ifdef CONFIG_FEATURE_TAR_GZIP	
+	if ( gzip && gzipPid ) {
+		if ( waitpid ( gzipPid, NULL, 0 ) == -1 ) 
+			printf ( "Couldnt wait ?" );
+	}
+#endif
+	
+	return !errorFlag;
 }
 #endif //tar_create
 
@@ -653,10 +724,7 @@ int tar_main(int argc, char **argv)
 		case 'p':
 			break;
 		case 'v':
-			if (extract_function & extract_list) {
-				extract_function |= extract_verbose_list;
-			}
-			extract_function |= extract_list;
+			extract_function |= extract_verbose_list;
 			break;
 #ifdef CONFIG_FEATURE_TAR_GZIP
 		case 'z':
@@ -711,22 +779,23 @@ int tar_main(int argc, char **argv)
 	/* create an archive */
 	else if (untar_funct & untar_create) {
 		int verboseFlag = FALSE;
+		int gzipFlag = FALSE;
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
-		if (untar_funct & untar_unzip) {
-			error_msg_and_die("Creation of compressed tarfile not internally support by tar, pipe to busybox gunzip");
-		}
+		if (untar_funct & untar_unzip)
+			gzipFlag = TRUE;
+
 #endif // CONFIG_FEATURE_TAR_GZIP
-		if (extract_function & extract_verbose_list) {
+		if (extract_function & extract_verbose_list) 
 			verboseFlag = TRUE;
-		}
-		writeTarFile(src_filename, verboseFlag, include_list, exclude_list);
+			
+		writeTarFile(src_filename, verboseFlag, include_list, exclude_list, gzipFlag);
 	}
 #endif // CONFIG_FEATURE_TAR_CREATE
 
 	/* Cleanups */
 #ifdef CONFIG_FEATURE_TAR_GZIP
-	if (untar_funct & untar_unzip) {
+	if ( !( untar_funct & untar_create ) && ( untar_funct & untar_unzip )) {
 		fclose(src_stream);
 		close(gz_fd);
 		gz_close(gunzip_pid);

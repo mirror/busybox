@@ -18,7 +18,7 @@ bool 'tar'	    CONFIG_TAR
 if [ "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable archive creation'	CONFIG_FEATURE_TAR_CREATE
     bool '  Enable -X and --exclude options (exclude files)'	CONFIG_FEATURE_TAR_EXCLUDE
-    bool '  Enable -z option (currently only for extracting)'	CONFIG_FEATURE_TAR_GZIP
+    bool '  Enable -z option'									CONFIG_FEATURE_TAR_GZIP
 fi
 if [ "$CONFIG_CPIO" = "y" -o "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable tape drive support' CONFIG_FEATURE_UNARCHIVE_TAPE
