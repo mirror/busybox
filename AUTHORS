@@ -18,6 +18,9 @@ Erik Andersen <andersen@codepoet.org>, <andersen@codepoet.org>
 Laurence Anderson <l.d.anderson@warwick.ac.uk>
     rpm2cpio, unzip, get_header_cpio, read_gz interface, rpm
 
+Jeff Angielski <jeff@theptrgroup.com>
+    ftpput, ftpget
+
 Edward Betts <edward@debian.org>
     expr, hostid, logname, tty, wc, whoami, yes
  
