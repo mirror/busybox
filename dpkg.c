@@ -1262,7 +1262,7 @@ void unpack_package(deb_file_t *deb_file)
 {
 	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const unsigned int status_num = search_status_hashtable(package_name);
-	const unsigned int status_package_num = status_hashtable[status_num]->status;
+	const unsigned int status_package_num = status_hashtable[status_num]->package;
 
 	FILE *out_stream;
 	char *info_prefix;
@@ -1413,13 +1413,14 @@ extern int dpkg_main(int argc, char **argv)
 
 				/* Try and find a currently installed version of this package */
 				status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
+				/* If no previous entry was found initialise a new entry */
 				if ((status_hashtable[status_num] == NULL) ||
 					(status_hashtable[status_num]->status == 0)) {
 					/* reinstreq isnt changed to "ok" until the package control info
 					 * is written to the status file*/
 					status_node->status = search_name_hashtable("install reinstreq not-installed");
+					status_hashtable[status_num] = status_node;
 				}
-				status_hashtable[status_num] = status_node;
 			}
 		}
 		else if (dpkg_opt & dpkg_opt_package_name) {
