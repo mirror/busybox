@@ -24,8 +24,7 @@
 #include <stdlib.h>
 #include <unistd.h> /* getopt */
 #include <string.h>
-#include <ctype.h>
-#include <errno.h>
+#include <limits.h>
 #include "busybox.h"
 
 
@@ -34,65 +33,228 @@ extern int optind;
 extern char *optarg;
 
 
-/* globals in this file only */
+/* option vars */
 static char part = 0; /* (b)yte, (c)har, (f)ields */
-static int startpos = 1;
-static int endpos = -1;
-static char delim = '\t'; /* delimiter, default is tab */
 static unsigned int supress_non_delimited_lines = 0;
+static char delim = '\t'; /* delimiter, default is tab */
+
+struct cut_list {
+	int startpos;
+	int endpos;
+};
+
+static const int BOL = 0;
+static const int EOL = INT_MAX;
+static const int NON_RANGE = -1;
+
+static struct cut_list *cut_lists = NULL; /* growable array holding a series of lists */
+static unsigned int nlists = 0; /* number of elements in above list */
+
+
+static int cmpfunc(const void *a, const void *b)
+{
+	struct cut_list *la = (struct cut_list *)a;
+	struct cut_list *lb = (struct cut_list *)b;
+
+	if (la->startpos > lb->startpos)
+		return 1;
+	if (la->startpos < lb->startpos)
+		return -1;
+	return 0;
+}
 
 
 /*
- * decompose_list() - parses a list and puts values into startpos and endpos.
+ * parse_lists() - parses a list and puts values into startpos and endpos.
  * valid list formats: N, N-, N-M, -M 
+ * more than one list can be seperated by commas
  */
-static void decompose_list(const char *list)
+static void parse_lists(char *lists)
 {
-	unsigned int nminus = 0;
-	char *ptr;
+	char *ltok = NULL;
+	char *ntok = NULL;
+	char *junk;
+	int s = 0, e = 0;
 
-	/* the list must contain only digits and no more than one minus sign */
-	for (ptr = (char *)list; *ptr; ptr++) {
-		if (!isdigit(*ptr) && *ptr != '-') {
-			error_msg_and_die("invalid byte or field list");
-		}
-		if (*ptr == '-') {
-			nminus++;
-			if (nminus > 1) {
+	/* take apart the lists, one by one (they are seperated with commas */
+	while ((ltok = strsep(&lists, ",")) != NULL) {
+
+		/* it's actually legal to pass an empty list */
+		if (strlen(ltok) == 0)
+			continue;
+
+		/* get the start pos */
+		ntok = strsep(&ltok, "-");
+		if (ntok == NULL) {
+			fprintf(stderr, "Help ntok is null for starting position! What do I do?\n");
+		} else if (strlen(ntok) == 0) {
+			s = BOL;
+		} else {
+			s = strtoul(ntok, &junk, 10);
+			if(*junk != '\0' || s < 0)
 				error_msg_and_die("invalid byte or field list");
+			
+			/* account for the fact that arrays are zero based, while the user
+			 * expects the first char on the line to be char # 1 */
+			if (s != 0)
+				s--;
+		}
+
+		/* get the end pos */
+		ntok = strsep(&ltok, "-");
+		if (ntok == NULL) {
+			e = NON_RANGE;
+		} else if (strlen(ntok) == 0) {
+			e = EOL;
+		} else {
+			e = strtoul(ntok, &junk, 10);
+			if(*junk != '\0' || e < 0)
+				error_msg_and_die("invalid byte or field list");
+			/* if the user specified and end position of 0, that means "til the
+			 * end of the line */
+			if (e == 0)
+				e = INT_MAX;
+			e--; /* again, arrays are zero based, lines are 1 based */
+			if (e == s)
+				e = NON_RANGE;
+		}
+
+		/* if there's something left to tokenize, the user past an invalid list */
+		if (ltok)
+			error_msg_and_die("invalid byte or field list");
+		
+		/* add the new list */
+		cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
+		cut_lists[nlists-1].startpos = s;
+		cut_lists[nlists-1].endpos = e;
+	}
+
+	/* make sure we got some cut positions out of all that */
+	if (nlists == 0)
+		error_msg_and_die("missing list of positions");
+
+	/* now that the lists are parsed, we need to sort them to make life easier
+	 * on us when it comes time to print the chars / fields / lines */
+	qsort(cut_lists, nlists, sizeof(struct cut_list), cmpfunc);
+
+}
+
+
+static void cut_line_by_chars(const char *line)
+{
+	int c, l;
+	/* set up a list so we can keep track of what's been printed */
+	char *printed = xcalloc(strlen(line), sizeof(char));
+
+	/* print the chars specified in each cut list */
+	for (c = 0; c < nlists; c++) {
+		l = cut_lists[c].startpos;
+		while (l < strlen(line)) {
+			if (!printed[l]) {
+				putchar(line[l]);
+				printed[l] = 'X';
 			}
+			l++;
+			if (cut_lists[c].endpos == NON_RANGE || l > cut_lists[c].endpos)
+				break;
+		}
+	}
+	putchar('\n'); /* cuz we were handed a chomped line */
+	free(printed);
+}
+
+
+static void cut_line_by_fields(char *line)
+{
+	int c, f;
+	int ndelim = -1; /* zero-based / one-based problem */
+	int nfields_printed = 0;
+	char *field = NULL;
+	char d[2] = { delim, 0 };
+	char *printed;
+
+	/* test the easy case first: does this line contain any delimiters? */
+	if (strchr(line, delim) == NULL) {
+		if (!supress_non_delimited_lines)
+			puts(line);
+		return;
+	}
+
+	/* set up a list so we can keep track of what's been printed */
+	printed = xcalloc(strlen(line), sizeof(char));
+
+	/* process each list on this line, for as long as we've got a line to process */
+	for (c = 0; c < nlists && line; c++) {
+		f = cut_lists[c].startpos;
+		do {
+
+			/* find the field we're looking for */
+			while (line && ndelim < f) {
+				field = strsep(&line, d);
+				ndelim++;
+			}
+
+			/* we found it, and it hasn't been printed yet */
+			if (field && ndelim == f && !printed[ndelim]) {
+				/* if this isn't our first time through, we need to print the
+				 * delimiter after the last field that was printed */
+				if (nfields_printed > 0)
+					putchar(delim);
+				fputs(field, stdout);
+				printed[ndelim] = 'X';
+				nfields_printed++;
+			}
+
+			f++;
+
+			/* keep going as long as we have a line to work with, this is a
+			 * list, and we're not at the end of that list */
+		} while (line && cut_lists[c].endpos != NON_RANGE && f <= cut_lists[c].endpos);
+	}
+
+	/* if we printed anything at all, we need to finish it with a newline cuz
+	 * we were handed a chomped line */
+	putchar('\n');
+
+	free(printed);
+}
+
+
+static void cut_file_by_lines(const char *line, unsigned int linenum)
+{
+	static int c = 0;
+	static int l = -1;
+	
+	/* I can't initialize this above cuz the "initializer isn't
+	 * constant" *sigh* */
+	if (l == -1)
+		l = cut_lists[c].startpos;
+
+	/* get out if we have no more lists to process or if the lines are lower
+	 * than what we're interested in */
+	if (c >= nlists || linenum < l)
+		return;
+
+	/* if the line we're looking for is lower than the one we were passed, it
+	 * means we displayed it already, so move on */
+	while (l < linenum) {
+		l++;
+		/* move on to the next list if we're at the end of this one */
+		if (cut_lists[c].endpos == NON_RANGE || l > cut_lists[c].endpos) {
+			c++;
+			/* get out if there's no more lists to process */
+			if (c >= nlists)
+				return;
+			l = cut_lists[c].startpos;
+			/* get out if the current line is lower than the one we just became
+			 * interested in */
+			if (linenum < l)
+				return;
 		}
 	}
 
-	/* handle single value 'N' case */
-	if (nminus == 0) {
-		startpos = strtol(list, &ptr, 10);
-		if (startpos == 0) {
-			error_msg_and_die("missing list of fields");
-		}
-		endpos = startpos;
-	}
-	/* handle multi-value cases */
-	else if (nminus == 1) {
-		/* handle 'N-' case */
-		if (last_char_is((char *)list,'-')) {
-			startpos = strtol(list, &ptr, 10);
-		}
-		/* handle '-M' case */
-		else if (list[0] == '-') {
-			endpos = strtol(&list[1], NULL, 10);
-		}
-		/* handle 'N-M' case */
-		else {
-			startpos = strtol(list, &ptr, 10);
-			endpos = strtol(ptr+1, &ptr, 10);
-		}
-
-		/* a sanity check */
-		if (startpos == 0) {
-			startpos = 1;
-		}
-	}
+	/* If we made it here, it means we've found the line we're looking for, so print it */
+	puts(line);
 }
 
 
@@ -101,71 +263,30 @@ static void decompose_list(const char *list)
  */
 static void cut_file(FILE *file)
 {
-	char *line;
-	unsigned int cr_hits = 0;
+	char *line = NULL;
+	unsigned int linenum = 0; /* keep these zero-based to be consistent */
 
 	/* go through every line in the file */
-	for (line = NULL; (line = get_line_from_file(file)) != NULL; free(line)) {
-		/* cut based on chars/bytes */
-		if (part == 'c' || part == 'b') {
-			chomp(line);
-			if (0 < endpos && endpos < strlen(line))
-				line[endpos] = '\0';
-			puts(line + startpos - 1);
-		} 
+	while ((line = get_line_from_file(file)) != NULL) {
+		chomp(line);
+
+		/* cut based on chars/bytes XXX: only works when sizeof(char) == byte */
+		if (part == 'c' || part == 'b')
+			cut_line_by_chars(line);
+
 		/* cut based on fields */
 		else if (part == 'f') {
-			char *ptr;
-			char *start = line;
-			unsigned int delims_hit = 0;
-
-			if (delim == '\n') {
-				cr_hits++;
-				if (cr_hits >= startpos && cr_hits <= endpos) {
-					while (*start && *start != '\n') {
-						fputc(*start, stdout);
-						start++;
-					}
-					fputc('\n', stdout);
-				}
-			}
-			else {
-				for (ptr = line; (ptr = strchr(ptr, delim)) != NULL; ptr++) {
-					delims_hit++;
-					if (delims_hit == (startpos - 1)) {
-						start = ptr+1;
-					}
-					if (delims_hit == endpos) {
-						break;
-					}
-				}
-			
-				/* we didn't hit any delimeters */
-				if (delims_hit == 0 && !supress_non_delimited_lines) {
-					fputs(line, stdout);
-				}
-				/* we =did= hit some delimiters */
-				else if (delims_hit > 0) {
-					/* we have a fixed end point */
-					if (ptr) {
-						while (start < ptr) {
-							fputc(*start, stdout);
-							start++;
-						}
-						fputc('\n', stdout);
-					}
-					/* or we're just going til the end of the line */
-					else {
-						while (*start) {
-							fputc(*start, stdout);
-							start++;
-						}
-					}
-				}
-			}
+			if (delim == '\n')
+				cut_file_by_lines(line, linenum);
+			else
+				cut_line_by_fields(line);
 		}
+
+		linenum++;
+		free(line);
 	}
 }
+
 
 extern int cut_main(int argc, char **argv)
 {
@@ -181,7 +302,7 @@ extern int cut_main(int argc, char **argv)
 					error_msg_and_die("only one type of list may be specified");
 				}
 				part = (char)opt;
-				decompose_list(optarg);
+				parse_lists(optarg);
 				break;
 			case 'd':
 				if (strlen(optarg) > 1) {
@@ -202,14 +323,15 @@ extern int cut_main(int argc, char **argv)
 		error_msg_and_die("you must specify a list of bytes, characters, or fields");
 	}
 
-	if (supress_non_delimited_lines && part != 'f') {
-		error_msg_and_die("suppressing non-delimited lines makes sense"
-				" only when operating on fields");
-
-	}
-
-	if (delim != '\t' && part != 'f') {
-		error_msg_and_die("a delimiter may be specified only when operating on fields");
+	/*  non-field (char or byte) cutting has some special handling */
+	if (part != 'f') {
+		if (supress_non_delimited_lines) {
+			error_msg_and_die("suppressing non-delimited lines makes sense"
+					" only when operating on fields");
+		}
+		if (delim != '\t' && part != 'f') {
+			error_msg_and_die("a delimiter may be specified only when operating on fields");
+		}
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
