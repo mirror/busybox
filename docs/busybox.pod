@@ -29,133 +29,554 @@ rm, rmdir, sed, sleep, sort, sync, syslogd, swapon, swapoff, tail,
 tar, tee, touch, true, false, uname, umount, uniq, update, zcat,
 gunzip, gzip
 
-Oh yes.  Unix will be mine.
-
 =over 4
-
-=item busybox
 
 =item cat
 
+Usage: cat [file ...]
+ 
+
 =item chmod
+
+Usage: chmod [-R] MODE[,MODE]... FILE...
+
+Each MODE is one or more of the letters ugoa, one of the symbols +-= and
+one or more of the letters rwxst.
+  
+Options:
+
+ -R	change files and directories recursively.
+ 
 
 =item chown
 
+Usage: chown [OPTION]...  OWNER[.[GROUP] FILE...
+
+Change the owner and/or group of each FILE to OWNER and/or GROUP.
+ 
+Options:
+
+ -R	change files and directories recursively
+ 
+
 =item chgrp
+
+Usage: chgrp [OPTION]... GROUP FILE...
+
+Change the group membership of each FILE to GROUP.
+ 
+Options:
+
+ -R	change files and directories recursively
+ 
 
 =item chroot
 
+Usage: chroot NEWROOT [COMMAND...]
+
+Run COMMAND with root directory set to NEWROOT.
+ 
+
 =item clear
+
+
 
 =item chvt
 
+Usage: chvt N
+
+Change foreground virtual terminal to /dev/ttyN
+ 
+
 =item cp
+
+Usage: cp [OPTION]... SOURCE DEST
+
+or: cp [OPTION]... SOURCE... DIRECTORY
+
+Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
+
+ -a	same as -dpR
+ -d	preserve links
+ -p	preserve file attributes if possible
+ -R	copy directories recursively
+ 
 
 =item date
 
+
+
 =item dd
+
+Usage: dd [if=name] [of=name] [bs=n] [count=n]
+
+Copy a file, converting and formatting according to options
+
+ if=FILE	read from FILE instead of stdin
+ of=FILE	write to FILE instead of stout
+ bs=n		read and write N BYTES at a time
+ count=n	copy only n input blocks
+ BYTES may be suffixed by w (x2), k (x1024), b (x512), or m (x1024^2).
+ 
 
 =item df
 
+Usage: df
+
 =item dmesg
+
+Usage: dmesg [-c] [-n level] [-s bufsize]
+ 
 
 =item du
 
+Usage: Usage: du [OPTION]... [FILE]...
+
+  -s	display only a total for each argument
+ 
+
 =item fbset
+
+Usage: fbset [options] [mode]
+
+Options:
+
+ -h
+ -fb
+ -db
+ -a
+ -i
+ -g
+ -t
+ -accel
+ -hsync
+ -vsync
+ -laced
+ -double
+
 
 =item find
 
+Usage: find [PATH...] [EXPRESSION]
+
+Search for files in a directory hierarchy.  The default PATH is
+the current directory; default EXPRESSION is '-print'
+
+EXPRESSION may consist of:
+
+ -follow
+ Dereference symbolic links.
+ -name PATTERN
+ File name (with leading directories removed) matches PATTERN.
+ -print
+ print the full file name followed by a newline to stdout.
+ This version of find matches full regular expresions.
+
 =item free
+
+Usage: free
 
 =item deallocvt
 
+Usage: deallocvt N
+
+Deallocate unused virtual terminal /dev/ttyN
+ 
+
 =item fsck.minix
+
+Usage: fsck.minix [-larvsmf] /dev/name
+
+Performs a consistency check for MINIX filesystems.
+
+Options:
+
+ -l	Lists all filenames
+ -r	Perform interactive repairs
+ -a	Perform automatic repairs
+ -v	verbose
+ -s	Outputs super-block information
+ -m	Activates MINIX-like "mode not cleared" warnings
+ -f	Force file system check.
+ 
 
 =item mkfs.minix
 
+Usage: mkfs.minix [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]
+
+Make a MINIX filesystem.
+
+Options:
+
+ -c		Check the device for bad blocks
+ -n [14|30]	Specify the maximum length of filenames
+ -i		Specify the number of inodes for the filesystem
+ -l FILENAME	Read the bad blocks list from FILENAME
+ -v		Make a Minix version 2 filesystem
+ 
+
 =item grep
+
+
 
 =item head
 
+Usage: Usage: head [FILE]...
+
+Print first 10 lines of each FILE to standard output.
+With more than one FILE, precede each with a header giving the
+file name. With no FILE, or when FILE is -, read standard input.
+ 
+
 =item hostname
 
-=item init
+Usage: hostname [OPTION] {hostname | -F file}
 
-=item linuxrc
+Get or set the hostname or DNS domain name. If a hostname is given
+(or a file with the -F parameter), the host name will be set.
+ 
+Options:
+
+ -s		Short
+ -i		Addresses for the hostname
+ -d		DNS domain name
+ -F FILE		Use the contents of FILE to specify the hostname
+ 
 
 =item kill
 
+
+
 =item ln
+
+Usage: ln [OPTION] TARGET... LINK_NAME|DIRECTORY
+Create a link named LINK_NAME or DIRECTORY to the specified TARGET
+ 
+Options:
+
+ -s	make symbolic links instead of hard links
+ -f	remove existing destination files
+ 
 
 =item ls
 
+Usage: ls [-1acdelnpuxACF] [filenames...]
+ 
+
 =item lsmod
+
+
 
 =item mkdir
 
+Usage: Usage: mkdir [OPTION] DIRECTORY...
+Create the DIRECTORY(ies), if they do not already exist
+ 
+Options:
+
+ -m	set permission mode (as in chmod), not rwxrwxrwx - umask
+ -p	no error if existing, make parent directories as needed
+ 
+
 =item mknod
+
+Usage: mknod NAME TYPE MAJOR MINOR
+Make block or character special files.
+
+TYPEs include:
+
+ b:	Make a block (buffered) device.
+ c or u:	Make a character (un-buffered) device.
+ p:	Make a named pipe. Major and minor are ignored for named pipes.
+ 
 
 =item mkswap
 
+Usage: mkswap [-c] [-v0|-v1] device [block-count]
+Prepare a disk partition to be used as a swap partition.
+ 
+Options:
+
+ -c		Check for read-ability.
+ -v0		Make version 0 swap [max 128 Megs].
+ -v1		Make version 1 swap [big!] (default for kernels > 2.1.117).
+ block-count	Number of block to use (default is entire partition).
+ 
+
 =item more
+
+Usage: more [file ...]
+ 
 
 =item mount
 
+Usage: 	mount [flags]
+
+mount [flags] device directory [-o options,more-options]
+
+ Flags:
+ -a:	Mount all file systems in fstab.
+ -o option:	One of many filesystem options, listed below.
+ -r:	Mount the filesystem read-only.
+ -t filesystem-type:	Specify the filesystem type.
+ -w:	Mount for reading and writing (default).
+ Options for use with the "-o" flag:
+ async / sync:	Writes are asynchronous / synchronous.
+ dev / nodev:	Allow use of special device files / disallow them.
+ exec / noexec:	Allow use of executable files / disallow them.
+ loop: Mounts a file via loop device.
+ suid / nosuid:	Allow set-user-id-root programs / disallow them.
+ remount: Re-mount a currently-mounted filesystem, changing its flags.
+ ro / rw: Mount for read-only / read-write.
+
+There are EVEN MORE flags that are specific to each filesystem.
+You'll have to see the written documentation for those.
+ 
+
 =item mv
+
+Usage: mv SOURCE DEST
+
+or: mv SOURCE... DIRECTORY
+
+Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
+ 
 
 =item ping
 
+
+
 =item poweroff
+
+
 
 =item ps
 
+Usage: ps
+
+Report process status.
+This version of ps accepts no options.
+ 
+
 =item pwd
+
+
 
 =item reboot
 
+
+
 =item rm
+
+Usage: rm [OPTION]... FILE...
+Remove (unlink) the FILE(s).
+ 
+Options:
+
+ -f		remove existing destinations, never prompt
+ -r or -R	remove the contents of directories recursively
+ 
 
 =item rmdir
 
+Usage: rmdir [OPTION]... DIRECTORY...
+Remove the DIRECTORY(ies), if they are empty.
+ 
+
 =item sed
+
+Usage: sed [-n] -e script [file...]
+Allowed sed scripts come in the following form:
+
+ 'ADDR [!] COMMAND'
+  where address ADDR can be:
+ NUMBER    Match specified line number
+ $         Match last line
+ /REGEXP/  Match specified regexp
+ (! inverts the meaning of the match)
+  and COMMAND can be:
+ s/regexp/replacement/[igp]
+ which attempt to match regexp against the pattern space
+ and if successful replaces the matched portion with replacement.
+  aTEXT
+ which appends TEXT after the pattern space
+
+Options:
+
+-e	add the script to the commands to be executed
+-n	suppress automatic printing of pattern space
+
+This version of sed matches full regular expresions.
+ 
 
 =item sleep
 
+Usage: sleep N
+
+Pause for N seconds.
+ 
+
 =item sort
+
+Usage: Usage: sort [OPTION]... [FILE]...
+  
 
 =item sync
 
+Usage: sync
+
+Write all buffered filesystem blocks to disk.
+ 
+
 =item syslogd
+
+Usage: syslogd [OPTION]...
+
+Linux system and kernel (provides klogd) logging utility.
+Note that this version of syslogd/klogd ignores /etc/syslog.conf.
+ 
+Options:
+
+ -m	Change the mark timestamp interval. default=20min. 0=off
+ -n	Do not fork into the background (for when run by init)
+ -K	Do not start up the klogd process (by default syslogd spawns klogd).
+ -O	Specify an alternate log file.  default=/var/log/messages
+ 
 
 =item swapon
 
+Usage: swapon device
+
+Start swapping virtual memory pages on the given device.
+ 
+
 =item swapoff
+
+Usage: swapoff device
+
+Stop swapping virtual memory pages on the given device.
+ 
 
 =item tail
 
+Usage: tail [OPTION]... [FILE]...
+
+Print last 10 lines of each FILE to standard output.
+With more than one FILE, precede each with a header giving the file name.
+With no FILE, or when FILE is -, read standard input.
+
+ -c=N[kbm]       output the last N bytes
+ -f              output appended data as the file grows
+ -n=N            output the last N lines, instead of last 10
+ -q              never output headers giving file names
+ -v              always output headers giving file names
+ --help          display this help and exit
+
+If the first character of N (bytes or lines) is a `+', output begins with 
+the Nth item from the start of each file, otherwise, print the last N items
+in the file.  N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).
+  
+
 =item tar
+
+
 
 =item tee
 
+Usage: tee [OPTION]... [FILE]...
+Copy standard input to each FILE, and also to standard output.
+ 
+Options:
+
+ -a	append to the given FILEs, do not overwrite
+ 
+
 =item touch
+
+Usage: touch [-c] file [file ...]
+ Update the last-modified date on the given file[s].
+ 
 
 =item true
 
+
+
 =item false
+
+
 
 =item uname
 
+Usage: uname [OPTION]...
+ Print certain system information.  With no OPTION, same as -s.
+ 
+Options:
+
+ -a	print all information
+ -m	the machine (hardware) type
+ -n	print the machine's network node hostname
+ -r	print the operating system release
+ -s	print the operating system name
+ -p	print the host processor type
+ -v	print the operating system version
+ 
+
 =item umount
+
+Usage: Usage: umount [flags] filesystem|directory
+ Flags:
+ -a:	Unmount all file systems
+ 
 
 =item uniq
 
-=item update
+Usage: Usage: uniq [OPTION]... [INPUT [OUTPUT]]
+
+Discard all but one of successive identical lines from INPUT (or
+standard input), writing to OUTPUT (or standard output).
+
+ -h	display this help and exit
+
+A field is a run of whitespace, then non-whitespace characters.
+Fields are skipped before chars.
+ 
 
 =item zcat
 
+Usage: gunzip [OPTION]... FILE
+
+Uncompress FILE (or standard input if FILE is '-').
+ 
+Options:
+
+ -c	Write output to standard output
+ -t	Test compressed file integrity
+ 
+
 =item gunzip
 
+Usage: gunzip [OPTION]... FILE
+
+Uncompress FILE (or standard input if FILE is '-').
+ 
+Options:
+
+ -c	Write output to standard output
+ -t	Test compressed file integrity
+ 
+
 =item gzip
+
+Usage: gzip [OPTION]... FILE
+
+Compress FILE with maximum compression.
+When FILE is -, reads standard input.  Implies -c.
+ 
+Options:
+
+ -c	Write output to standard output instead of FILE.gz
+ 
+
 
 =back
 
