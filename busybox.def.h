@@ -240,6 +240,9 @@
 // Support module version checking
 //#define BB_FEATURE_INSMOD_VERSION_CHECKING
 //
+// Support for Minix filesystem, version 2
+//#define BB_FEATURE_MINIX2
+//
 //
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
