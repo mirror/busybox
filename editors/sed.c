@@ -650,12 +650,12 @@ static void process_file(FILE *file)
 
 						/* we print the line once, unless we were told to be quiet */
 						if (!be_quiet)
-							altered = do_subst_command(&sed_cmds[i], line);
+							altered |= do_subst_command(&sed_cmds[i], line);
 
 						/* we also print the line if we were given the 'p' flag
 						 * (this is quite possibly the second printing) */
 						if (sed_cmds[i].sub_p)
-							altered = do_subst_command(&sed_cmds[i], line);
+							altered |= do_subst_command(&sed_cmds[i], line);
 
 						break;
 
