@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_memory_exhausted
@@ -72,7 +73,7 @@ typedef unsigned long ulg;
 /* methods 4 to 7 reserved */
 #define DEFLATED    8
 #define MAX_METHODS 9
-extern int method;				/* compression method */
+static int method;				/* compression method */
 
 /* To save memory for 16 bit systems, some arrays are overlaid between
  * the various modules:
@@ -143,7 +144,7 @@ EXTERN(ush, tab_prefix1);		/* prefix for odd  codes */
 #endif
 
 extern unsigned insize;			/* valid bytes in inbuf */
-extern unsigned inptr;			/* index of next byte to be processed in inbuf */
+static unsigned inptr;			/* index of next byte to be processed in inbuf */
 extern unsigned outcnt;			/* bytes in output buffer */
 
 extern long bytes_in;			/* number of input bytes */
@@ -308,16 +309,16 @@ extern int (*read_buf) (char *buf, unsigned size);
 
 	/* in util.c: */
 extern int copy (int in, int out);
-extern ulg updcrc (uch * s, unsigned n);
-extern void clear_bufs (void);
+//extern ulg updcrc (uch * s, unsigned n);
+//extern void clear_bufs (void);
 extern int fill_inbuf (int eof_ok);
 extern void flush_outbuf (void);
 extern void flush_window (void);
-extern void write_buf (int fd, void * buf, unsigned cnt);
+//extern void write_buf (int fd, void * buf, unsigned cnt);
 extern char *strlwr (char *s);
 extern char *add_envopt (int *argcp, char ***argvp, char *env);
-extern void read_error_msg (void);
-extern void write_error_msg (void);
+//extern void read_error_msg (void);
+//extern void write_error_msg (void);
 extern void display_ratio (long num, long den, FILE * file);
 
 	/* in inflate.c */
@@ -704,6 +705,120 @@ extern void _expand_args(int *argc, char ***argv);
 #ifndef put_char
 #  define put_char(c) put_byte(c)
 #endif
+
+int crc_table_empty = 1;
+
+/* ========================================================================
+ * Signal and error handler.
+ */
+void abort_gzip()
+{
+	exit(ERROR);
+}
+
+/* ===========================================================================
+ * Clear input and output buffers
+ */
+static void clear_bufs(void)
+{
+	outcnt = 0;
+	insize = inptr = 0;
+	bytes_in = bytes_out = 0L;
+}
+
+static void write_error_msg()
+{
+	fprintf(stderr, "\n");
+	perror("");
+	abort_gzip();
+}
+
+/* ===========================================================================
+ * Does the same as write(), but also handles partial pipe writes and checks
+ * for error return.
+ */
+static void write_buf(fd, buf, cnt)
+int fd;
+void * buf;
+unsigned cnt;
+{
+	unsigned n;
+
+	while ((n = write(fd, buf, cnt)) != cnt) {
+		if (n == (unsigned) (-1)) {
+			write_error_msg();
+		}
+		cnt -= n;
+		buf = (void *) ((char *) buf + n);
+	}
+}
+
+/* ========================================================================
+ * Error handlers.
+ */
+static void read_error_msg()
+{
+	fprintf(stderr, "\n");
+	if (errno != 0) {
+		perror("");
+	} else {
+		fprintf(stderr, "unexpected end of file\n");
+	}
+	abort_gzip();
+}
+
+/* ===========================================================================
+ * Run a set of bytes through the crc shift register.  If s is a NULL
+ * pointer, then initialize the crc shift register contents instead.
+ * Return the current crc in either case.
+ */
+static ulg updcrc(s, n)
+uch *s;					/* pointer to bytes to pump through */
+unsigned n;				/* number of bytes in s[] */
+{
+	static ulg crc = (ulg) 0xffffffffL;	/* shift register contents */
+	register ulg c;				/* temporary variable */
+	static unsigned long crc_32_tab[256];
+	if (crc_table_empty) {
+		unsigned long csr;      /* crc shift register */
+		unsigned long e;      /* polynomial exclusive-or pattern */
+		int i;                /* counter for all possible eight bit values */
+		int k;                /* byte being shifted into crc apparatus */
+
+		/* terms of polynomial defining this crc (except x^32): */
+		static int p[] = {0,1,2,4,5,7,8,10,11,12,16,22,23,26};
+
+		/* Make exclusive-or pattern from polynomial (0xedb88320) */
+		e = 0;
+		for (i = 0; i < sizeof(p)/sizeof(int); i++)
+			e |= 1L << (31 - p[i]);
+
+		/* Compute and print table of CRC's, five per line */
+		crc_32_tab[0] = 0x00000000L;
+		for (i = 1; i < 256; i++) {
+			csr = i;
+ 		   /* The idea to initialize the register with the byte instead of
+		     * zero was stolen from Haruhiko Okumura's ar002
+		     */
+			for (k = 8; k; k--)
+				csr = csr & 1 ? (csr >> 1) ^ e : csr >> 1;
+			crc_32_tab[i]=csr;
+		}
+	}
+
+	if (s == NULL) {
+		c = 0xffffffffL;
+	} else {
+		c = crc;
+		if (n)
+			do {
+				c = crc_32_tab[((int) c ^ (*s++)) & 0xff] ^ (c >> 8);
+			} while (--n);
+	}
+	crc = c;
+	return c ^ 0xffffffffL;		/* (instead of ~c for 64-bit machines) */
+}
+
 /* bits.c -- output variable-length bit strings
  * Copyright (C) 1992-1993 Jean-loup Gailly
  * This is free software; you can redistribute it and/or modify it under the
