@@ -532,7 +532,7 @@ static void showfiles(struct dnode **dn, int nfiles)
 }
 
 /*----------------------------------------------------------------------*/
-static void showdirs(struct dnode **dn, int ndirs)
+static void showdirs(struct dnode **dn, int ndirs, int first)
 {
 	int i, nfiles;
 	struct dnode **subdnp;
@@ -547,7 +547,10 @@ static void showdirs(struct dnode **dn, int ndirs)
 
 	for (i = 0; i < ndirs; i++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
-			printf("\n%s:\n", dn[i]->fullname);
+			if (!first)
+				printf("\n");
+			first = 0;
+			printf("%s:\n", dn[i]->fullname);
 		}
 		subdnp = list_dir(dn[i]->fullname);
 		nfiles = countfiles(subdnp);
@@ -566,7 +569,7 @@ static void showdirs(struct dnode **dn, int ndirs)
 #ifdef CONFIG_FEATURE_LS_SORTFILES
 					shellsort(dnd, dndirs);
 #endif
-					showdirs(dnd, dndirs);
+					showdirs(dnd, dndirs, 0);
 					free(dnd);	/* free the array of dnode pointers to the dirs */
 				}
 			}
@@ -1129,7 +1132,7 @@ extern int ls_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_LS_SORTFILES
 			shellsort(dnd, dndirs);
 #endif
-			showdirs(dnd, dndirs);
+			showdirs(dnd, dndirs, dnfiles == 0);
 		}
 	}
 	return (status);
