@@ -319,22 +319,6 @@ static void console_init()
     message(LOG, "console=%s\n", console );
 }
 
-static int waitfor(int pid)
-{
-    int status, wpid;
-
-    while (1) {
-	wpid = wait(&status);
-	if (wpid > 0 ) {
-	    message(LOG, "pid %d exited, status=0x%x.\n", wpid, status);
-	    break;
-	}
-	if (wpid == pid )
-	    break;
-    }
-    return wpid;
-}
-
 static pid_t run(char* command, 
 	char *terminal, int get_enter)
 {
@@ -415,18 +399,37 @@ static pid_t run(char* command,
     return pid;
 }
 
+static int waitfor(char* command, 
+	char *terminal, int get_enter)
+{
+    int status, wpid;
+    int pid = run( command, terminal, get_enter);
+
+    while (1) {
+	wpid = wait(&status);
+	if (wpid > 0 ) {
+	    message(LOG, "Process '%s' (pid %d) exited.\n", 
+			    command, wpid);
+	    break;
+	}
+	if (wpid == pid )
+	    break;
+    }
+    return wpid;
+}
+
 /* Make sure there is enough memory to do something useful. *
  * Calls swapon if needed so be sure /proc is mounted. */
 static void check_memory()
 {
-    struct stat statbuf;
+    struct stat statBuf;
 
     if (mem_total() > 3500)
 	return;
 
-    if (stat("/etc/fstab", &statbuf) == 0) {
+    if (stat("/etc/fstab", &statBuf) == 0) {
 	/* Try to turn on swap */
-	waitfor(run("/bin/swapon swapon -a", log, FALSE));
+	waitfor("/bin/swapon swapon -a", log, FALSE);
 	if (mem_total() < 3500)
 	    goto goodnight;
     } else
@@ -457,13 +460,12 @@ static void shutdown_system(void)
     sleep(1);
 
     message(CONSOLE, "Disabling swap.\r\n");
-    waitfor(run( "swapoff -a", console, FALSE));
+    waitfor( "swapoff -a", console, FALSE);
     message(CONSOLE, "Unmounting filesystems.\r\n");
-    waitfor(run( "umount -a", console, FALSE));
+    waitfor("umount -a", console, FALSE);
     sync();
     if (kernel_version > 0 && kernel_version <= 2 * 65536 + 2 * 256 + 11) {
 	/* bdflush, kupdate not needed for kernels >2.2.11 */
-	message(CONSOLE, "Flushing buffers.\r\n");
 	bdflush(1, 0);
 	sync();
     }
@@ -503,23 +505,26 @@ void new_initAction (const struct initActionType *a,
     /* If BusyBox detects that a serial console is in use, 
      * then entries containing non-empty id fields will _not_ be run.
      */
-    if (second_console != NULL && *cons != '\0')
+    if (second_console == NULL && *cons != '\0') {
 	return;
+    }
 
     newAction = calloc ((size_t)(1), sizeof(initAction));
     if (!newAction) {
-	fprintf(stderr, "Memory allocation failure\n");
+	message(LOG|CONSOLE,"Memory allocation failure\n");
 	while (1) sleep(1);
     }
     newAction->nextPtr = initActionList;
     initActionList = newAction;
     strncpy( newAction->process, process, 255);
     newAction->action = a->action;
-    if (*cons != '\0')
+    if (*cons != '\0') {
 	strncpy(newAction->console, cons, 255);
-    else
+    } else
 	strncpy(newAction->console, console, 255);
     newAction->pid = 0;
+    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
+	    newAction->process, newAction->action, newAction->console);
 }
 
 void delete_initAction (initAction *action)
@@ -545,7 +550,7 @@ void parse_inittab(void)
 {
 #ifdef BB_FEATURE_USE_INITTAB
     FILE* file;
-    char buf[256], buf1[256];
+    char buf[256], lineAsRead[256], tmpConsole[256];
     char *p, *q, *r, *s;
     const struct initActionType *a = actions;
     int foundIt;
@@ -578,7 +583,8 @@ void parse_inittab(void)
 	    *q='\0';
 
 	/* Keep a copy around for posterity's sake (and error msgs) */
-	strcpy(buf1, buf);
+	strcpy(lineAsRead, buf);
+message(LOG|CONSOLE, "read='%s'\n", lineAsRead);
 
 	/* Grab the ID field */
 	s=p;
@@ -592,7 +598,7 @@ void parse_inittab(void)
 	 * of the string */
 	q = strrchr( p, ':');
 	if ( q == NULL || *(q+1) == '\0' ) {
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
+	    message(LOG|CONSOLE,"Bad inittab entry: %s\n", lineAsRead);
 	    continue;
 	} else {
 	    *q='\0';
@@ -602,7 +608,7 @@ void parse_inittab(void)
 	/* Now peal off the action field */
 	r = strrchr( p, ':');
 	if ( r == NULL || *(r+1) == '\0') {
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
+	    message(LOG|CONSOLE,"Bad inittab entry: %s\n", lineAsRead);
 	    continue;
 	} else {
 	    ++r;
@@ -612,6 +618,16 @@ void parse_inittab(void)
 	a = actions;
 	while (a->name != 0) {
 	    if (strcmp(a->name, r) == 0) {
+		if (*s != '\0') {
+		    struct stat statBuf;
+		    strcpy(tmpConsole, "/dev/");
+		    strncat(tmpConsole, s, 200);
+		    if (stat(tmpConsole, &statBuf) != 0) {
+			message(LOG|CONSOLE, "device '%s' does not exist.  Did you read the directions?\n", tmpConsole);
+			break;
+		    }
+		    s = tmpConsole;
+		}
 		new_initAction( a, q, s);
 		foundIt=TRUE;
 	    }
@@ -621,7 +637,7 @@ void parse_inittab(void)
 	    continue;
 	else {
 	    /* Choke on an unknown action */
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
+	    message(LOG|CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
 	}
     }
     return;
@@ -670,11 +686,11 @@ extern int init_main(int argc, char **argv)
    
     /* Hello world */
 #ifndef DEBUG_INIT
-    message(CONSOLE|LOG, 
+    message(LOG|CONSOLE, 
 	    "init started:  BusyBox v%s (%s) multi-call binary\r\n", 
 	    BB_VER, BB_BT);
 #else
-    message(CONSOLE|LOG, 
+    message(LOG|CONSOLE, 
 	    "init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n", 
 	    getpid(), BB_VER, BB_BT);
 #endif
@@ -682,10 +698,10 @@ extern int init_main(int argc, char **argv)
     
     /* Mount /proc */
     if (mount ("proc", "/proc", "proc", 0, 0) == 0) {
-	message(CONSOLE|LOG, "Mounting /proc: done.\n");
+	message(LOG|CONSOLE, "Mounting /proc: done.\n");
 	kernel_version = get_kernel_revision();
     } else
-	message(CONSOLE|LOG, "Mounting /proc: failed!\n");
+	message(LOG|CONSOLE, "Mounting /proc: failed!\n");
 
     /* Make sure there is enough memory to do something useful. */
     check_memory();
@@ -711,10 +727,11 @@ extern int init_main(int argc, char **argv)
 
     /* Now run everything that needs to be run */
 
+    message(LOG|CONSOLE, "Running SYSINIT\n");
     /* First run the sysinit command */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == SYSINIT) {
-	    waitfor(run(a->process, console, FALSE));
+	    waitfor(a->process, console, FALSE);
 	    /* Now remove the "sysinit" entry from the list */
 	    delete_initAction( a);
 	}
@@ -722,7 +739,7 @@ extern int init_main(int argc, char **argv)
     /* Next run anything that wants to block */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == WAIT) {
-	    waitfor(run(a->process, console, FALSE));
+	    waitfor(a->process, console, FALSE);
 	    /* Now remove the "wait" entry from the list */
 	    delete_initAction( a);
 	}
@@ -735,9 +752,15 @@ extern int init_main(int argc, char **argv)
 	    delete_initAction( a);
 	}
     }
+    /* If there is nothing else to do, stop */
+    if (initActionList == NULL) {
+	message(LOG|CONSOLE, "No more tasks for init -- sleeping forever.\n");
+	while (1) sleep(1);
+    }
 
     /* Now run the looping stuff for the rest of forever */
     while (1) {
+	message(LOG|CONSOLE, "Looping\n");
 	for( a=initActionList ; a; a=a->nextPtr) {
 	    /* Only run stuff with pid==0.  If they have
 	     * a pid, that means they are still running */
