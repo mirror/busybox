@@ -1797,43 +1797,23 @@ ssize_t safe_read(int fd, void *buf, size_t count)
 #ifdef BB_FEATURE_HUMAN_READABLE
 const char *format(unsigned long val, unsigned long hr)
 {
-	static const char strings[] = { '0', 0, 'k', 0, 'M', 0, 'G', 0 };
-	static const char fmt[] = "%lu";
-	static const char fmt_u[] = "%lu.%lu%s";
+	int i=0;
+	static char str[10] = "\0";
+	static const char strings[] = { 'k', 'M', 'G', 'T', 0 };
+	unsigned long divisor = 1;
 
-	static char str[10];
-
-	unsigned long frac __attribute__ ((unused));	/* 'may be uninitialized' warning is ok */
-	const char *u;
-	const char *f;
-
-#if 1
-	if(val == 0) {				/* This may be omitted to reduce size */
-		return strings;			/* at the cost of speed. */
+	if(val == 0)
+		return("0");
+	if(hr)
+		snprintf(str, 9, "%ld", val/hr);
+	else {
+		while(val >= divisor && i <= 4) {
+			divisor=divisor<<10, i++;
+		} 
+		divisor=divisor>>10, i--;
+		snprintf(str, 9, "%.1Lf%c", (long double)(val)/divisor, strings[i]);
 	}
-#endif
-
-	u = strings;
-	f = fmt;
-	if (hr) {
-		val /= hr;
-	} else {
-		while ((val >= KILOBYTE) && (*u != 'G')) {
-			f = fmt_u;
-			u += 2;
-			frac = (((val % KILOBYTE) * 10) + (KILOBYTE/2)) / KILOBYTE;
-			val /= KILOBYTE;
-			if (frac >= 10) {	/* We need to round up here. */
-				++val;
-				frac = 0;
-			}
-		}
-	}
-
-	/* If f==fmt then 'frac' and 'u' are ignored and need not be set. */
-	snprintf(str, sizeof(str), f, val, frac, u);
-
-	return str;
+	return(str);
 }
 #endif
 
