@@ -104,7 +104,7 @@
 //#define BB_TEE
 //#define BB_TEST
 //#define BB_TELNET
-#define BB_TFTP
+//#define BB_TFTP
 #define BB_TOUCH
 //#define BB_TR
 #define BB_TRUE_FALSE
