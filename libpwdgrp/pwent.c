@@ -18,14 +18,13 @@
  *
  */
 
-#include "busybox.h" 
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
 #include "pwd_.h"
 #include <fcntl.h>
 
+#include "busybox.h"
 /*
  * setpwent(), endpwent(), and getpwent() are included in the same object
  * file, since one cannot be used without the other two, so it makes sense to

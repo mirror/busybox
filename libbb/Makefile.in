@@ -24,8 +24,8 @@ LIBBB_DIR:=$(TOPDIR)libbb/
 endif
 
 LIBBB_SRC:= \
-	ask_confirmation.c chomp.c compare_string_array.c concat_path_file.c \
-	copy_file.c copy_file_chunk.c dump.c libc5.c device_open.c error_msg.c \
+	ask_confirmation.c chomp.c concat_path_file.c copy_file.c \
+	copy_file_chunk.c dump.c libc5.c device_open.c error_msg.c \
 	error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
 	find_root_device.c full_read.c full_write.c get_console.c \
 	get_last_path_component.c get_line_from_file.c  \

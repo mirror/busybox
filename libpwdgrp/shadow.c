@@ -33,12 +33,12 @@
  *		  lckpwdf  ulckpwdf 
  */
 
-#include "busybox.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "busybox.h"
 #include "shadow_.h"
 
 static FILE *shadow;

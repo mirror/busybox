@@ -21,11 +21,12 @@
  *
  */
 
-#include "busybox.h"
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#include "busybox.h"
 
 #if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__) 
   #include <sys/reboot.h>
@@ -33,6 +34,7 @@
 #else
   #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
 #endif
+
 #ifndef RB_ENABLE_CAD
 static const int RB_ENABLE_CAD = 0x89abcdef;
 static const int RB_AUTOBOOT = 0x01234567;
