@@ -1593,9 +1593,6 @@ __lookupalias(const char *name) {
 #define ARITH_BNOT 281
 
 static void expari (int);
-/* From arith.y */
-static long ash_arith(const char *p);
-static int expcmd (int , char **);
 #endif
 
 static char *trap[NSIG];                /* trap handler commands */
@@ -1647,7 +1644,7 @@ static int waitcmd (int, char **);
 static int ulimitcmd (int, char **);
 static int timescmd (int, char **);
 #ifdef ASH_MATH_SUPPORT
-static int expcmd (int, char **);
+static int letcmd (int, char **);
 #endif
 static int typecmd (int, char **);
 #ifdef ASH_GETOPTS
@@ -1706,9 +1703,6 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_SPECIAL   "eval", evalcmd },
 	{ BUILTIN_SPECIAL   "exec", execcmd },
 	{ BUILTIN_SPECIAL   "exit", exitcmd },
-#ifdef ASH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC    "exp", expcmd },
-#endif
 	{ BUILTIN_SPEC_ASSG "export", exportcmd },
 	{ BUILTIN_REGULAR   "false", false_main },
 	{ BUILTIN_REGULAR   "fc", histcmd },
@@ -1725,7 +1719,7 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_REGULAR   "kill", killcmd },
 #endif
 #ifdef ASH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC    "let", expcmd },
+	{ BUILTIN_REGULAR    "let", letcmd },
 #endif
 	{ BUILTIN_ASSIGN    "local", localcmd },
 #ifndef BB_PWD
@@ -4883,7 +4877,9 @@ expari(int flag)
 	removerecordregions(begoff);
 	if (quotes)
 		rmescapes(p+2);
-	result = ash_arith(p+2);
+	result = arith(p+2);
+	if (result < 0)
+	    error("arith: syntax error: \"%s\"\n", p+2);
 	snprintf(p, 12, "%d", result);
 
 	while (*p++)
@@ -12878,7 +12874,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.14 2001/07/30 21:41:37 andersen Exp $
+ * $Id: ash.c,v 1.15 2001/07/31 21:38:23 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
@@ -12900,45 +12896,29 @@ static int timescmd (int argc, char **argv)
 
 
 #ifdef ASH_MATH_SUPPORT
-/* The exp(1) builtin.  */
-int expcmd(int argc, char **argv)
+/* The let builtin.  */
+int letcmd(int argc, char **argv)
 {
-	const char *p;
-	char *concat;
-	char **ap;
-	long i;
-
-	if (argc > 1) {
-		p = argv[1];
-		if (argc > 2) {
-			/* concatenate arguments */
-			STARTSTACKSTR(concat);
-			ap = argv + 2;
-			for (;;) {
-				while (*p)
-					STPUTC(*p++, concat);
-				if ((p = *ap++) == NULL)
-					break;
-				STPUTC(' ', concat);
-			}
-			STPUTC('\0', concat);
-			p = grabstackstr(concat);
+	long result=0;
+	if (argc == 2) {
+		char *tmp, *expression, p[13];
+		expression = strchr(argv[1], '=');
+		if (!expression) {
+			out2fmt("sh: let: syntax error: \"%s\"\n", argv[1]);
+			return 0;
 		}
-	} else
-		p = "";
-
-	i = ash_arith(p);
-
-	printf("%ld\n", i);
-	return (! i);
-}
-	
-static long ash_arith(const char *p)
-{
-	long i = arith(p);
-	if (i <0)
-	    error("arith: syntax error: \"%s\"\n", p);
-	return i;
+		*expression = '\0';
+		tmp = ++expression;
+		result = arith(tmp);
+		if (result < 0) {
+			out2fmt("sh: let: syntax error: \"%s=%s\"\n", argv[1], expression);
+			return 0;
+		}
+		snprintf(p, 12, "%ld", result);
+		setvar(argv[1], savestr(p), 0);
+	} else if (argc >= 3)
+		synerror("invalid operand");
+	return !result;
 }
 #endif
 
