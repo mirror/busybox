@@ -56,9 +56,11 @@ extern int touch_main(int argc, char **argv)
 		fd = open(*argv, (create == FALSE) ? O_RDWR : O_RDWR | O_CREAT,
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if (fd < 0) {
-			if (create == FALSE && errno == ENOENT)
-				return EXIT_SUCCESS;
-			else {
+			if (create == FALSE && errno == ENOENT) {
+				argc--;
+				argv++;
+				continue;
+			} else {
 				perror_msg_and_die("%s", *argv);
 			}
 		}
