@@ -1,15 +1,9 @@
 Source: busybox-cvs
 Priority: optional
-Maintainer: Erik Andersen <andersee@debian.org>
-Build-Depends: debhelper (>= 2.1.18), dpkg-dev (>= 1.7.0)
-Build-Depends-Indep: sgmltools-lite, w3m
-Standards-Version: 3.2.1.0
-
-Package: busybox-cvs-doc
-Architecture: all
-Section: doc
-Description: Documentation for busybox
- Documentation in various formats on busybox commands and their options.
+Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Erik Andersen <andersee@debian.org>, Bastian Blank <waldi@debian.org>, Tollef Fog Heen <tfheen@debian.org>
+Build-Depends: debhelper (>= 2.1.18)
+Standards-Version: 3.5.7.0
 
 Package: busybox-cvs
 Architecture: any
@@ -17,7 +11,7 @@ Depends: ${shlibs:Depends}
 Conflicts: busybox-cvs-static, busybox, busybox-static
 Replaces: busybox-cvs-static, busybox, busybox-static
 Section: utils
-Description: Tiny utilities for small and embedded systems. 
+Description: Tiny utilities for small and embedded systems
  BusyBox combines tiny versions of many common UNIX utilities into a single
  small executable. It provides minimalist replacements for the most common
  utilities you would usually find on your desktop system (i.e., ls, cp, mv,
@@ -37,7 +31,7 @@ Depends: ${shlibs:Depends}
 Conflicts: busybox-cvs, busybox-static, busybox
 Replaces: busybox-cvs, busybox-static, busybox
 Section: shells
-Description: Standalone rescue shell with tons of builtin utilities. 
+Description: Standalone rescue shell with tons of builtin utilities
  BusyBox combines tiny versions of many common UNIX utilities into a single
  small executable. It provides minimalist replacements for the most common
  utilities you would usually find on your desktop system (i.e., ls, cp, mv,

@@ -26,7 +26,7 @@ build-arch-stamp:
 	$(MAKE) clean
 	cp ./debian/config-static .config
 	$(MAKE) dep
-	$(MAKE) DOSTATIC=true DODEBUG=$(DODEBUG)
+	$(MAKE) DODEBUG=$(DODEBUG)
 	install busybox busybox-static
 
 	$(MAKE) clean
@@ -34,23 +34,19 @@ build-arch-stamp:
 	$(MAKE) dep
 	$(MAKE) DODEBUG=$(DODEBUG)
 
+	$(MAKE) docs/BusyBox.1
+
 	touch build-arch-stamp
 
-build-indep: build-indep-stamp
-build-indep-stamp:
-	$(MAKE) newdoc
-
-	touch build-indep-stamp
-
-build: build-arch build-indep
+build: build-arch
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-arch-stamp build-indep-stamp
+	rm -f build-arch-stamp build-indep-stamp debian/files~
 
 	$(MAKE) distclean
-	-rm -f busybox-deb busybox-static
+	-rm -f busybox-deb busybox-static .config busybox.1
 
 	dh_clean
 
@@ -63,34 +59,10 @@ install: build-arch
 	install busybox-deb $(CURDIR)/debian/busybox-cvs/bin/busybox
 	install busybox-static $(CURDIR)/debian/busybox-cvs-static/bin/busybox
 	$(MAKE) PREFIX=$(CURDIR)/debian/busybox-cvs-udeb install
+	cp docs/BusyBox.1 busybox.1
 
-# Build architecture-independent files here.
-# Pass -i to all debhelper commands in this target to reduce clutter.
-binary-indep: build
-	dh_testdir -i
-	dh_testroot -i
-#	dh_installdebconf -i
-	dh_installdocs -i
-#	dh_installexamples -i
-#	dh_installmenu -i
-#	dh_installlogrotate -i
-#	dh_installemacsen -i
-#	dh_installpam -i
-#	dh_installmime -i
-#	dh_installinit -i
-#	dh_installcron -i
-#	dh_installman -i
-#	dh_installinfo -i
-#	dh_undocumented -i
-	dh_installchangelogs Changelog -i
-	dh_link -i
-	dh_compress -i
-	dh_fixperms -i
-	dh_installdeb -i
-#	dh_perl -i
-	dh_gencontrol -i
-	dh_md5sums -i
-	dh_builddeb -i
+	install -m644 debian/busybox-cvs-static.override \
+		debian/busybox-cvs-static/usr/share/lintian/overrides/busybox-cvs-static
 
 # Build architecture-dependent files here.
 binary-arch: build-arch install
@@ -106,7 +78,7 @@ binary-arch: build-arch install
 #	dh_installmime -a
 #	dh_installinit -a
 #	dh_installcron -a
-#	dh_installman -a
+	dh_installman -a -Nbusybox-cvs-udeb
 #	dh_installinfo -a
 #	dh_undocumented -a
 	dh_installchangelogs Changelog -a -Nbusybox-cvs-udeb
@@ -118,11 +90,13 @@ binary-arch: build-arch install
 	dh_installdeb -a
 #	dh_perl -a
 	dh_shlibdeps -a
-	dh_gencontrol -a
+	dh_gencontrol -a -Nbusybox-cvs-udeb
 	dh_md5sums -a -Nbusybox-cvs-udeb
 	dh_builddeb -a -Nbusybox-cvs-udeb
-	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer optional
+
+	dh_gencontrol -pbusybox-cvs-udeb -- -fdebian/files~
+	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer standard
 	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb
 
-binary: binary-indep binary-arch
+binary: binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
