@@ -1271,7 +1271,7 @@
 	"Remove (unlink) the FILE(s).  You may use '--' to\n" \
 	"indicate that all following arguments are non-options.\n\n" \
 	"Options:\n" \
-	"\t-i\t\talways prompt before removing each destinations\n" \
+	"\t-i\t\talways prompt before removing each destination" \
 	"\t-f\t\tremove existing destinations, never prompt\n" \
 	"\t-r or -R\tremove the contents of directories recursively"
 #define rm_example_usage \
@@ -1389,7 +1389,7 @@
 	"\n\t-F DEVICE\topen device instead of stdin" \
 	"\n\t-a\t\tprint all current settings in human-readable form" \
 	"\n\t-g\t\tprint in stty-readable form" \
-	"\n\t[SETTING]\tsee documentation"
+	"\n\t[SETTING]\tsee manpage"
 
 #define swapoff_trivial_usage \
 	"[OPTION] [DEVICE]"
@@ -1695,7 +1695,7 @@
 #define uuencode_full_usage \
 	"Uuencode a file.\n\n" \
 	"Options:\n" \
-	"\t-m\tuse base64 encoding as of RFC1521"
+	"\t-m\tuse base64 encoding per RFC1521"
 #define uuencode_example_usage \
 	"$ uuencode busybox busybox\n" \
 	"begin 755 busybox\n" \
