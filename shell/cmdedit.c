@@ -1207,7 +1207,7 @@ enum {
 /*
  * This function is used to grab a character buffer
  * from the input file descriptor and allows you to
- * a string with full command editing (sortof like
+ * a string with full command editing (sort of like
  * a mini readline).
  *
  * The following standard commands are not implemented:
