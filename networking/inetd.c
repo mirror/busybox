@@ -830,160 +830,164 @@ extern int inetd_main(int argc, char *argv[])
 	}
 
 	for (;;) {
-	    int n, ctrl;
-	    fd_set readable;
+		fd_set readable;
+		int	ctrl;
+		int n;
 
-	    if (nsock == 0) {
-		sigprocmask(SIG_BLOCK, &blockmask, NULL);
-		while (nsock == 0)
-		    sigsuspend(&emptymask);
-		sigprocmask(SIG_SETMASK, &emptymask, NULL);
-	    }
-	    readable = allsock;
-	    if ((n = select(maxsock + 1, &readable, (fd_set *)0,
-		(fd_set *)0, (struct timeval *)0)) <= 0) {
-		    if (n < 0 && errno != EINTR)
-			syslog(LOG_WARNING, "select: %m");
-		    sleep(1);
-		    continue;
-	    }
-	    for (sep = servtab; n && sep; sep = sep->se_next)
-	    if (sep->se_fd != -1 && FD_ISSET(sep->se_fd, &readable)) {
-		n--;
-		if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
-			/* Fixed AGC */
-			fcntl(sep->se_fd, F_SETFL, O_NDELAY);
-			/* --------- */
-			ctrl = accept(sep->se_fd, NULL, NULL);
-			fcntl(sep->se_fd, F_SETFL, 0);
-			if (ctrl < 0) {
-				if (errno == EINTR || errno == EWOULDBLOCK)
-					continue;
-				syslog(LOG_WARNING, "accept (for %s): %m",
-					sep->se_service);
-				continue;
+		if (nsock == 0) {
+			sigprocmask(SIG_BLOCK, &blockmask, NULL);
+			while (nsock == 0) {
+				sigsuspend(&emptymask);
 			}
-		} else
-			ctrl = sep->se_fd;
-		sigprocmask(SIG_BLOCK, &blockmask, NULL);
-		pid = 0;
-#ifdef INETD_FEATURE_ENABLED
-		if (sep->se_bi == 0 || sep->se_bi->bi_fork)
-#endif
-		{
-			if (sep->se_count++ == 0)
-			    (void)gettimeofday(&sep->se_time, (struct timezone *)0);
-			else if (sep->se_count >= sep->se_max) {
-				struct timeval now;
-
-				(void)gettimeofday(&now, (struct timezone *)0);
-				if (now.tv_sec - sep->se_time.tv_sec >
-				    CNT_INTVL) {
-					sep->se_time = now;
-					sep->se_count = 1;
-				} else {
-					syslog(LOG_ERR,
-			"%s/%s server failing (looping), service terminated",
-					    sep->se_service, sep->se_proto);
-					FD_CLR(sep->se_fd, &allsock);
-					(void) close(sep->se_fd);
-					sep->se_fd = -1;
-					sep->se_count = 0;
-					nsock--;
-					sigprocmask(SIG_SETMASK, &emptymask,
-						    NULL);
-					if (!timingout) {
-						timingout = 1;
-						alarm(RETRYTIME);
+			sigprocmask(SIG_SETMASK, &emptymask, NULL);
+		}
+		readable = allsock;
+		n = select(maxsock + 1, &readable, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
+		if (n <= 0) {
+			if (n < 0 && errno != EINTR) {
+				syslog(LOG_WARNING, "select: %m");
+			}
+			sleep(1);
+			continue;
+	    }
+		for (sep = servtab; n && sep; sep = sep->se_next) {
+			if (sep->se_fd != -1 && FD_ISSET(sep->se_fd, &readable)) {
+				n--;
+				if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
+					/* Fixed AGC */
+					fcntl(sep->se_fd, F_SETFL, O_NDELAY);
+					/* --------- */
+					ctrl = accept(sep->se_fd, NULL, NULL);
+					fcntl(sep->se_fd, F_SETFL, 0);
+					if (ctrl < 0) {
+						if (errno == EINTR || errno == EWOULDBLOCK) {
+							continue;
+						}
+						syslog(LOG_WARNING, "accept (for %s): %m",
+						sep->se_service);
+						continue;
 					}
-					continue;
+				} else {
+					ctrl = sep->se_fd;
 				}
-			}
-			pid = fork();
-			if (pid < 0) {
-				syslog(LOG_ERR, "fork: %m");
-				if (sep->se_socktype == SOCK_STREAM)
-					close(ctrl);
-				sigprocmask(SIG_SETMASK, &emptymask, NULL);
-				sleep(1);
-				continue;
-			}
-			if (pid && sep->se_wait) {
-				sep->se_wait = pid;
-				FD_CLR(sep->se_fd, &allsock);
-				nsock--;
-			}
-		}
-		sigprocmask(SIG_SETMASK, &emptymask, NULL);
-		if (pid == 0) {
+				sigprocmask(SIG_BLOCK, &blockmask, NULL);
+				pid = 0;
 #ifdef INETD_FEATURE_ENABLED
-			if (sep->se_bi)
-				(*sep->se_bi->bi_fn)(ctrl, sep);
-			else
+				if (sep->se_bi == 0 || sep->se_bi->bi_fork)
 #endif
-			{
-				struct passwd *pwd = getpwnam(sep->se_user);
-				if (pwd == NULL) {
-					syslog_err_and_discard_dg(
-						sep->se_socktype,
-						"getpwnam: %s: No such user",
-						sep->se_user);
+				{
+					if (sep->se_count++ == 0) {
+						gettimeofday(&sep->se_time, (struct timezone *)0);
+					}
+					else if (sep->se_count >= sep->se_max) {
+						struct timeval now;
+
+						gettimeofday(&now, (struct timezone *)0);
+						if (now.tv_sec - sep->se_time.tv_sec > CNT_INTVL) {
+							sep->se_time = now;
+							sep->se_count = 1;
+						} else {
+							syslog(LOG_ERR,
+								"%s/%s server failing (looping), service terminated",
+								sep->se_service, sep->se_proto);
+							FD_CLR(sep->se_fd, &allsock);
+							close(sep->se_fd);
+							sep->se_fd = -1;
+							sep->se_count = 0;
+							nsock--;
+							sigprocmask(SIG_SETMASK, &emptymask, NULL);
+							if (!timingout) {
+								timingout = 1;
+								alarm(RETRYTIME);
+							}
+							continue;
+						}
+					}
+					pid = fork();
+					if (pid < 0) {
+						syslog(LOG_ERR, "fork: %m");
+						if (sep->se_socktype == SOCK_STREAM) {
+							close(ctrl);
+						}
+						sigprocmask(SIG_SETMASK, &emptymask, NULL);
+						sleep(1);
+						continue;
+					}
+					if (pid && sep->se_wait) {
+						sep->se_wait = pid;
+						FD_CLR(sep->se_fd, &allsock);
+						nsock--;
+					}
 				}
-				if (sep->se_group &&
-				    (grp = getgrnam(sep->se_group)) == NULL) {
-					syslog_err_and_discard_dg(
-						sep->se_socktype,
-						"getgrnam: %s: No such group",
-						sep->se_group);
-				}
-				/*
-				 * Ok. There are four cases here:
-				 *   1. nonroot user, no group specified
-				 *   2. nonroot user, some group specified
-				 *   3. root user, no group specified
-				 *   4. root user, some group specified
-				 * In cases 2 and 4 we setgid to the specified
-				 * group. In cases 1 and 2 we run initgroups
-				 * to run with the groups of the given user.
-				 * In case 4 we do setgroups to run with the
-				 * given group. In case 3 we do nothing.
-				 */
-				if (pwd->pw_uid) {
-					if (sep->se_group)
-						pwd->pw_gid = grp->gr_gid;
-					setgid((gid_t)pwd->pw_gid);
-					initgroups(pwd->pw_name, pwd->pw_gid);
-					setuid((uid_t)pwd->pw_uid);
-				} else if (sep->se_group) {
-					setgid((gid_t)grp->gr_gid);
-					setgroups(1, &grp->gr_gid);
-				}
-				dup2(ctrl, 0);
-				close(ctrl);
-				dup2(0, 1);
-				dup2(0, 2);
+				sigprocmask(SIG_SETMASK, &emptymask, NULL);
+				if (pid == 0) {
+#ifdef INETD_FEATURE_ENABLED
+					if (sep->se_bi) {
+						(*sep->se_bi->bi_fn)(ctrl, sep);
+					} else
+#endif
+					{
+						struct passwd *pwd = getpwnam(sep->se_user);
+						if (pwd == NULL) {
+							syslog_err_and_discard_dg(
+								sep->se_socktype,
+								"getpwnam: %s: No such user",
+								sep->se_user);
+						}
+						if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
+							syslog_err_and_discard_dg(sep->se_socktype,
+								"getgrnam: %s: No such group", sep->se_group);
+						}
+						/*
+						 * Ok. There are four cases here:
+						 *   1. nonroot user, no group specified
+						 *   2. nonroot user, some group specified
+						 *   3. root user, no group specified
+						 *   4. root user, some group specified
+						 * In cases 2 and 4 we setgid to the specified
+						 * group. In cases 1 and 2 we run initgroups
+						 * to run with the groups of the given user.
+						 * In case 4 we do setgroups to run with the
+						 * given group. In case 3 we do nothing.
+						 */
+						if (pwd->pw_uid) {
+							if (sep->se_group) {
+								pwd->pw_gid = grp->gr_gid;
+							}
+							setgid((gid_t)pwd->pw_gid);
+							initgroups(pwd->pw_name, pwd->pw_gid);
+							setuid((uid_t)pwd->pw_uid);
+						} else if (sep->se_group) {
+							setgid((gid_t)grp->gr_gid);
+							setgroups(1, &grp->gr_gid);
+						}
+						dup2(ctrl, 0);
+						close(ctrl);
+						dup2(0, 1);
+						dup2(0, 2);
 #ifdef RLIMIT_NOFILE
-				if (rlim_ofile.rlim_cur != rlim_ofile_cur) {
-					if (setrlimit(RLIMIT_NOFILE,
-							&rlim_ofile) < 0)
-						syslog(LOG_ERR,"setrlimit: %m");
-				}
+						if (rlim_ofile.rlim_cur != rlim_ofile_cur) {
+							if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0) {
+								syslog(LOG_ERR,"setrlimit: %m");
+							}
+						}
 #endif
-				for (ctrl = rlim_ofile_cur-1; --ctrl > 2; )
-					(void)close(ctrl);
+						for (ctrl = rlim_ofile_cur-1; --ctrl > 2; ) {
+							(void)close(ctrl);
+						}
+						memset(&sa, 0, sizeof(sa));
+						sa.sa_handler = SIG_DFL;
+						sigaction(SIGPIPE, &sa, NULL);
 
-				memset(&sa, 0, sizeof(sa));
-				sa.sa_handler = SIG_DFL;
-				sigaction(SIGPIPE, &sa, NULL);
-
-				execv(sep->se_server, sep->se_argv);
-				syslog_err_and_discard_dg(sep->se_socktype,
-					"execv %s: %m", sep->se_server);
+						execv(sep->se_server, sep->se_argv);
+						syslog_err_and_discard_dg(sep->se_socktype, "execv %s: %m", sep->se_server);
+					}
+				}
+				if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
+					close(ctrl);
+				}
 			}
 		}
-		if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-			close(ctrl);
-	    }
 	}
 }
 
