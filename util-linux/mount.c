@@ -45,7 +45,6 @@
 #include <mntent.h>
 #include <sys/mount.h>
 #include <ctype.h>
-#include <fstab.h>
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h>
 #endif
@@ -321,9 +320,6 @@ extern int mount_main(int argc, char **argv)
 	int useMtab = TRUE;
 	int i;
 
-	/* Only compiled in if BB_MTAB is not defined */
-	whine_if_fstab_is_missing();
-
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 	if (argc == 1) {
 		int fd, i, numfilesystems;
@@ -364,14 +360,9 @@ extern int mount_main(int argc, char **argv)
 			struct mntent *m;
 
 			while ((m = getmntent(mountTable)) != 0) {
-				struct fstab *fstabItem;
 				char *blockDevice = m->mnt_fsname;
-
-				/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
 				if (strcmp(blockDevice, "/dev/root") == 0) {
-					fstabItem = getfsfile("/");
-					if (fstabItem != NULL)
-						blockDevice = fstabItem->fs_spec;
+					find_real_root_device_name( blockDevice);
 				}
 				printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
 					   m->mnt_type, m->mnt_opts);
@@ -445,7 +436,7 @@ extern int mount_main(int argc, char **argv)
 		FILE *f = setmntent("/etc/fstab", "r");
 
 		if (f == NULL)
-			fatalError( "\nCannot ream /etc/fstab: %s\n", strerror (errno));
+			fatalError( "\nCannot read /etc/fstab: %s\n", strerror (errno));
 
 		while ((m = getmntent(f)) != NULL) {
 			// If the file system isn't noauto, 

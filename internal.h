@@ -216,6 +216,8 @@ extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findPidByName( char* pidName);
 extern void *xmalloc (size_t size);
+extern int find_real_root_device_name(char* name);
+
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 #include <stdio.h>
 extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd, char command[BUFSIZ]);

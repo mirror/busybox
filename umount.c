@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <sys/mount.h>
 #include <mntent.h>
-#include <fstab.h>
 #include <errno.h>
 
 
@@ -110,11 +109,10 @@ char *mtab_getinfo(const char *match, const char which)
 			} else {
 #if !defined BB_MTAB
 				if (strcmp(cur->device, "/dev/root") == 0) {
-					struct fstab *fstabItem;
-
-					fstabItem = getfsfile("/");
-					if (fstabItem != NULL)
-						return fstabItem->fs_spec;
+					/* Adjusts device to be the real root device,
+					 * or leaves device alone if it can't find it */
+					find_real_root_device_name( cur->device);
+					return ( cur->device);
 				}
 #endif
 				return cur->device;

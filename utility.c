@@ -1469,25 +1469,29 @@ extern char *find_unused_loop_device(void)
 }
 #endif							/* BB_FEATURE_MOUNT_LOOP */
 
-#if defined BB_MOUNT
-char* find_real_root_device_name(void)
+#if defined BB_MOUNT || defined BB_DF
+extern int find_real_root_device_name(char* name)
 {
-	int gotIt=0;
 	DIR *dir;
 	struct dirent *entry;
 	struct stat statBuf, rootStat;
 	char fileName[BUFSIZ];
 
-	if (stat("/", &rootStat) != 0)
-		fatalError("Wierd.  I could not stat '/'\n");
+	if (stat("/", &rootStat) != 0) {
+		errorMsg("could not stat '/'\n");
+		return( FALSE);
+	}
 
-	if (!(dir = opendir("/dev"));
-		fatalError("Wierd.  I could not open '/dev'\n");
+	dir = opendir("/dev");
+	if (!dir) {
+		errorMsg("could not open '/dev'\n");
+		return( FALSE);
+	}
 
 	while((entry = readdir(dir)) != NULL) {
+
 		/* Must skip ".." since that is "/", and so we 
 		 * would get a false positive on ".."  */
-
 		if (strcmp(entry->d_name, "..") == 0)
 			continue;
 
@@ -1495,12 +1499,17 @@ char* find_real_root_device_name(void)
 
 		if (stat(fileName, &statBuf) != 0)
 			continue;
+		/* Some char devices have the same dev_t as block
+		 * devices, so make sure this is a block device */
+		if (! S_ISBLK(statBuf.st_mode))
+			continue;
 		if (statBuf.st_rdev == rootStat.st_rdev) {
-			return (strdup(fileName));
+			strcpy(name, fileName); 
+			return ( TRUE);
 		}
 	}
 
-	return( NULL);
+	return( FALSE);
 }
 #endif
 

@@ -27,7 +27,6 @@
 #include <mntent.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
-#include <fstab.h>
 
 static const char df_usage[] = "df [filesystem ...]\n"
 
@@ -40,7 +39,6 @@ static int df(char *device, const char *mountPoint)
 	struct statfs s;
 	long blocks_used;
 	long blocks_percent_used;
-	struct fstab *fstabItem;
 
 	if (statfs(mountPoint, &s) != 0) {
 		perror(mountPoint);
@@ -53,9 +51,9 @@ static int df(char *device, const char *mountPoint)
 			(blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
 		/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
 		if (strcmp(device, "/dev/root") == 0) {
-			fstabItem = getfsfile("/");
-			if (fstabItem != NULL)
-				device = fstabItem->fs_spec;
+			/* Adjusts device to be the real root device,
+			 * or leaves device alone if it can't find it */
+			find_real_root_device_name( device);
 		}
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 			   device,
