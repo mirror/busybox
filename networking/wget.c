@@ -62,14 +62,17 @@ int wget_main(int argc, char **argv)
 	long beg_range = 0L;		/*   range at which continue begins	*/
 	int got_clen = 0;			/* got content-length: from server	*/
 	FILE *output;					/* socket to web server				*/
-
+	int quiet_flag = FALSE;
 	/*
 	 * Crack command line.
 	 */
-	while ((n = getopt(argc, argv, "cO:")) != EOF) {
+	while ((n = getopt(argc, argv, "cqO:")) != EOF) {
 		switch (n) {
 		case 'c':
 			++do_continue;
+			break;
+		case 'q':
+			quiet_flag = TRUE;
 			break;
 		case 'O':
 			/* can't set fname_out to NULL if outputting to stdout, because
@@ -196,13 +199,15 @@ int wget_main(int argc, char **argv)
 	 */
 #ifdef BB_FEATURE_STATUSBAR
 	statbytes=0;
-	progressmeter(-1);
+	if (quiet_flag==FALSE)
+		progressmeter(-1);
 #endif
 	while (filesize > 0 && (n = fread(buf, 1, sizeof(buf), sfp)) > 0) {
 		fwrite(buf, 1, n, output);
 #ifdef BB_FEATURE_STATUSBAR
 		statbytes+=n;
-		progressmeter(1);
+		if (quiet_flag==FALSE)
+			progressmeter(1);
 #endif
 		if (got_clen)
 			filesize -= n;
@@ -486,7 +491,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.11 2000/12/07 22:42:11 andersen Exp $
+ *	$Id: wget.c,v 1.12 2000/12/09 08:12:06 bug1 Exp $
  */
 
 
