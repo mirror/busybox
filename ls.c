@@ -345,7 +345,7 @@ static int list_item(const char *name)
 	struct stat info;
 	DIR *dir;
 	struct dirent *entry;
-	char fullname[MAXNAMLEN + 1], *fnend;
+	char fullname[BUFSIZ + 1], *fnend;
 
 	if (lstat(name, &info))
 		goto listerr;
