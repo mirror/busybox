@@ -1362,10 +1362,10 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	return;	
 }
 
-static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *accept)
+static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *myaccept)
 {
 	ar_handle->sub_archive->action_data = data_extract_to_buffer;
-	ar_handle->sub_archive->accept = accept;
+	ar_handle->sub_archive->accept = myaccept;
 
 	unpack_ar_archive(ar_handle);
 	close(ar_handle->src_fd);
