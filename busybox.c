@@ -51,6 +51,12 @@ static const struct Applet applets[] = {
 #ifdef BB_FIND			//usr/bin
     {"find", find_main},
 #endif
+#ifdef BB_FSCK_MINIX		//sbin
+    {"fsck.minix", fsck_minix_main},
+#endif
+#ifdef BB_MKFS_MINIX		//sbin
+    {"mkfs.minix", mkfs_minix_main},
+#endif
 #ifdef BB_GREP			//bin
     {"grep", grep_main},
 #endif
