@@ -69,12 +69,12 @@ static const char syslogd_usage[] =
 	"\nLinux system and kernel (provides klogd) logging utility.\n"
 	"Note that this version of syslogd/klogd ignores /etc/syslog.conf.\n\n"
 	"Options:\n"
-	"\t-m\tChange the mark timestamp interval. default=20min. 0=off\n"
-	"\t-n\tDo not fork into the background (for when run by init)\n"
+	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n"
+	"\t-n\t\tRun as a foreground process\n"
 #ifdef BB_KLOGD
-	"\t-K\tDo not start up the klogd process (by default syslogd spawns klogd).\n"
+	"\t-K\t\tDo not start up the klogd process\n"
 #endif
-	"\t-O\tSpecify an alternate log file.  default=/var/log/messages\n"
+	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n"
 #endif
 	;
 
@@ -170,6 +170,49 @@ static void domark(int sig)
 	}
 }
 
+#define BUFSIZE 1023
+static void serveConnection (int conn) __attribute__ ((noreturn));
+static void serveConnection (int conn)
+{
+	char   buf[ BUFSIZE + 1 ];
+	int    n_read;
+
+	while ((n_read = read (conn, buf, BUFSIZE )) > 0) {
+
+		int           pri = (LOG_USER | LOG_NOTICE);
+		char          line[ BUFSIZE + 1 ];
+		unsigned char c;
+
+		char *p = buf, *q = line;
+
+		buf[ n_read - 1 ] = '\0';
+
+		while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
+			if (c == '<') {
+			/* Parse the magic priority number. */
+				pri = 0;
+				while (isdigit (*(++p))) {
+					pri = 10 * pri + (*p - '0');
+				}
+				if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
+					pri = (LOG_USER | LOG_NOTICE);
+			} else if (c == '\n') {
+				*q++ = ' ';
+			} else if (iscntrl (c) && (c < 0177)) {
+				*q++ = '^';
+				*q++ = c ^ 0100;
+			} else {
+				*q++ = c;
+			}
+			p++;
+		}
+		*q = '\0';
+		/* Now log it */
+		logMessage (pri, line);
+	}
+	exit (0);
+}
+
 static void doSyslogd (void) __attribute__ ((noreturn));
 static void doSyslogd (void)
 {
@@ -251,47 +294,8 @@ static void doSyslogd (void)
 						continue;
 					}
 
-					if (pid > 0) {
-
-#						define BUFSIZE 1023
-						char   buf[ BUFSIZE + 1 ];
-						int    n_read;
-
-						while ((n_read = read (conn, buf, BUFSIZE )) > 0) {
-
-							int           pri = (LOG_USER | LOG_NOTICE);
-							char          line[ BUFSIZE + 1 ];
-							unsigned char c;
-
-							char *p = buf, *q = line;
-
-							buf[ n_read - 1 ] = '\0';
-
-							while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
-								if (c == '<') {
-								/* Parse the magic priority number. */
-									pri = 0;
-									while (isdigit (*(++p))) {
-										pri = 10 * pri + (*p - '0');
-									}
-									if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
-										pri = (LOG_USER | LOG_NOTICE);
-								} else if (c == '\n') {
-									*q++ = ' ';
-								} else if (iscntrl (c) && (c < 0177)) {
-									*q++ = '^';
-									*q++ = c ^ 0100;
-								} else {
-									*q++ = c;
-								}
-								p++;
-							}
-							*q = '\0';
-							/* Now log it */
-							logMessage (pri, line);
-						}
-						exit (0);
-					}
+					if (pid == 0)
+						serveConnection (conn);
 					close (conn);
 				}
 			}
@@ -427,6 +431,9 @@ extern int syslogd_main(int argc, char **argv)
 			}
 		}
 	}
+
+	if (argc > 0)
+		usage(syslogd_usage);
 
 	/* Store away localhost's name before the fork */
 	gethostname(LocalHostName, sizeof(LocalHostName));

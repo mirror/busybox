@@ -65,6 +65,8 @@
 	* Implemented 'ls -R' (enabled by enabling BB_FEATURE_LS_RECURSIVE)
 	* Implemented "ping -s", fixed error messages and argument parsing -
 	    Pavel Roskin
+	* Syslogd will not go to background if "-n" is given. Better help
+	    and argument checking -- Pavel Roskin
 	* More doc updates
 
 

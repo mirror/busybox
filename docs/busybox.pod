@@ -1530,11 +1530,10 @@ Linux system and kernel (provides klogd) logging utility.
 Note that this version of syslogd/klogd ignores /etc/syslog.conf.
 
 Options:
-
-        -m      Change the mark timestamp interval. default=20min. 0=off
-        -n      Do not fork into the background (for when run by init)
-        -K      Do not start up the klogd process (by default syslogd spawns klogd).
-        -O      Specify an alternate log file.  default=/var/log/messages
+	-m NUM		Interval between MARK lines (default=20min, 0=off)
+	-n		Run as a foreground process
+	-K		Do not start up the klogd process
+	-O FILE		Use an alternate log file (default=/var/log/messages)
 
 -------------------------------
 
@@ -1949,4 +1948,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.37 2000/06/07 20:38:15 proski Exp $
+# $Id: busybox.pod,v 1.38 2000/06/07 21:08:25 proski Exp $
