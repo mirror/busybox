@@ -312,7 +312,7 @@ int copy_file_chunk(int srcfd, int dstfd, size_t chunksize)
 #endif
 
 
-#if defined (BB_CP_MV)
+#if defined (BB_CP_MV) || defined BB_DPKG
 /*
  * Copy one file to another, while possibly preserving its modes, times, and
  * modes.  Returns TRUE if successful, or FALSE on a failure with an error
