@@ -994,8 +994,8 @@ static int expand_arguments(char *command)
 
 			/* Convert from char** (one word per string) to a simple char*,
 			 * but don't overflow command which is BUFSIZ in length */
-			*command = '\0';
 			if ( expand_result.gl_pathc > 1) {
+				*command = '\0';
 				while (i < expand_result.gl_pathc && total_length < BUFSIZ) {
 					length=strlen(expand_result.gl_pathv[i])+1;
 					if (BUFSIZ-total_length-length <= 0) {
@@ -1078,11 +1078,12 @@ static int expand_arguments(char *command)
 		} else {
 			/* Seems we got an un-expandable variable.  So delete it. */
 			char *next_dst;
-			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) != NULL) {
-				/* Move stuff to the end of the string to accommodate filling 
-				 * the created gap with the new stuff */
-				memmove(dst, next_dst,  next_dst-dst); 
+			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) == NULL) {
+				next_dst=dst+1+strlen(dst);
 			}
+			/* Move stuff to the end of the string to accommodate filling 
+			 * the created gap with the new stuff */
+			memmove(dst, next_dst,  next_dst-dst); 
 		}
 	}
 
