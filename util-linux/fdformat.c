@@ -52,107 +52,104 @@ struct format_descr {
 #define FDGETPRM _IOR(2, 0x04, struct floppy_struct)
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */
 
-
-
-static void format_disk(int ctrl, char *name, struct floppy_struct *param)
+static void print_and_flush(const char * __restrict format, ...)
 {
-    struct format_descr descr;
-    int track;
+	va_list arg;
 
-    printf("Formatting ... ");
-    fflush(stdout);
-    if (ioctl(ctrl,FDFMTBEG,NULL) < 0) {
-	bb_perror_msg_and_die("FDFMTBEG");
-    }
-    for (track = 0; track < param->track; track++) 
-    {
-	descr.track = track;
-	descr.head = 0;
-	if (ioctl(ctrl,FDFMTTRK,(long) &descr) < 0) {
-	    bb_perror_msg_and_die("FDFMTTRK");
-	}
-
-	printf("%3d\b\b\b",track);
-	fflush(stdout);
-	if (param->head == 2) {
-	    descr.head = 1;
-	    if (ioctl(ctrl,FDFMTTRK,(long) &descr) < 0) {
-		bb_perror_msg_and_die("FDFMTTRK");
-	    }
-	}
-    }
-    if (ioctl(ctrl,FDFMTEND,NULL) < 0) {
-	bb_perror_msg_and_die("FDFMTEND");
-    }
-    printf("done\n");
+	va_start(arg, format);
+	bb_vfprintf(stdout, format, arg);
+	va_end(arg);
+	bb_xfflush_stdout();
 }
 
-static void verify_disk(char *name, struct floppy_struct *param)
+static void bb_xioctl(int fd, int request, void *argp, const char *string)
 {
-    unsigned char *data;
-    int fd,cyl_size,cyl,count,read_bytes;
-
-    cyl_size = param->sect*param->head*512;
-    data = xmalloc(cyl_size);
-    printf("Verifying ... ");
-    fflush(stdout);
-    fd = bb_xopen(name,O_RDONLY);
-    for (cyl = 0; cyl < param->track; cyl++) 
-    {
-	printf("%3d\b\b\b",cyl);
-	fflush(stdout);
-	read_bytes = safe_read(fd,data,cyl_size);
-	if(read_bytes != cyl_size) {
-	    if(read_bytes < 0) {
-		bb_perror_msg("Read: ");
-	    }
-	    bb_error_msg_and_die("Problem reading cylinder %d, "
-		    "expected %d, read %d", cyl, cyl_size, read_bytes);
+	if (ioctl (fd, request, argp) < 0) {
+		bb_perror_msg_and_die(string);
 	}
-	for (count = 0; count < cyl_size; count++)
-	    if (data[count] != FD_FILL_BYTE) {
-		printf("bad data in cyl %d\nContinuing ... ",cyl);
-		fflush(stdout);
-		break;
-	    }
-    }
-    printf("done\n");
-    close(fd);
 }
 
 int fdformat_main(int argc,char **argv)
 {
-    int ctrl;
-    int verify;
-    struct stat st;
-    struct floppy_struct param;
+	int fd, n, cyl, read_bytes, verify;
+	unsigned char *data;
+	struct stat st;
+	struct floppy_struct param;
+	struct format_descr descr;
 
-    if (argc < 2) {
-	bb_show_usage();
-    }
-    verify = !bb_getopt_ulflags(argc, argv, "n");
-    argv += optind;
+	if (argc < 2) {
+		bb_show_usage();
+	}
+	verify = !bb_getopt_ulflags(argc, argv, "n");
+	argv += optind;
 
-    if (stat(*argv,&st) < 0 || access(*argv,W_OK) < 0) {
-	bb_perror_msg_and_die(*argv);
-    }
-    if (!S_ISBLK(st.st_mode)) {
-	bb_error_msg_and_die("%s: not a block device",*argv);
-	/* do not test major - perhaps this was an USB floppy */
-    }
+	/* R_OK is needed for verifying */
+	if (stat(*argv,&st) < 0 || access(*argv,W_OK | R_OK ) < 0) {
+		bb_perror_msg_and_die(*argv);
+	}
+	if (!S_ISBLK(st.st_mode)) {
+		bb_error_msg_and_die("%s: not a block device",*argv);
+		/* do not test major - perhaps this was an USB floppy */
+	}
 
-    ctrl = bb_xopen(*argv,O_WRONLY);
-    if (ioctl(ctrl,FDGETPRM,(long) &param) < 0) { 
-	bb_perror_msg_and_die("Could not determine current format type");
-    }
-    printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
-	    (param.head == 2) ? "Double" : "Single",
-	    param.track, param.sect,param.size >> 1);
-    format_disk(ctrl, *argv, &param);
-    close(ctrl);
 
-    if (verify) {
-	verify_disk(*argv, &param);
-    }
-    return EXIT_SUCCESS;
+	/* O_RDWR for formatting and verifying */
+	fd = bb_xopen(*argv,O_RDWR );
+
+	bb_xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
+
+	print_and_flush("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
+		(param.head == 2) ? "Double" : "Single",
+		param.track, param.sect, param.size >> 1);
+
+	/* FORMAT */
+	print_and_flush("Formatting ... ", NULL);
+	bb_xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
+
+	/* n == track */
+	for (n = 0; n < param.track; n++) {
+		descr.track = n;
+		for(descr.head=0, print_and_flush("%3d\b\b\b", n) ; descr.head < param.head; descr.head++){
+			bb_xioctl(fd,FDFMTTRK, &descr,"FDFMTTRK");
+		}
+	}
+	bb_xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
+	print_and_flush("done\n", NULL);
+
+	/* VERIFY */
+	if(verify) {
+		/* n == cyl_size */
+		n = param.sect*param.head*512;
+
+		data = xmalloc(n);
+		print_and_flush("Verifying ... ", NULL);
+		for (cyl = 0; cyl < param.track; cyl++) {
+			print_and_flush("%3d\b\b\b", cyl);
+			if((read_bytes = safe_read(fd,data,n))!= n ) {
+				if(read_bytes < 0) {
+					bb_perror_msg("Read: ");
+	    		}
+				bb_error_msg_and_die("Problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
+			}
+			/* Check backwards so we don't need a counter */
+			while(--read_bytes>=0) {
+				if( data[read_bytes] != FD_FILL_BYTE) {
+					 print_and_flush("bad data in cyl %d\nContinuing ... ",cyl);
+				}
+			}
+		}
+		/* There is no point in freeing blocks at the end of a program, because
+		all of the program's space is given back to the system when the process
+		terminates.*/
+#ifdef CONFIG_FEATURE_CLEAN_UP
+		free(data);
+#endif
+		print_and_flush("done\n", NULL);
+	}
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	close(fd);
+#endif
+	/* Don't bother closing.  Exit does
+	 * that, so we can save a few bytes */
+	return EXIT_SUCCESS;
 }
