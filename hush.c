@@ -251,7 +251,7 @@ static const char *cwd;
 static struct pipe *job_list;
 static unsigned int last_bg_pid;
 static unsigned int last_jobid;
-static unsigned int ctty;
+static unsigned int shell_terminal;
 static char *PS1;
 static char *PS2;
 struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
@@ -570,11 +570,9 @@ static int builtin_fg_bg(struct child_prog *child)
 
 	if (*child->argv[0] == 'f') {
 		/* Make this job the foreground job */
-		signal(SIGTTOU, SIG_IGN);
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(ctty, pi->pgrp) && errno != ENOTTY)
+		if (tcsetpgrp(shell_terminal, pi->pgrp) && errno != ENOTTY)
 			perror_msg("tcsetpgrp-1"); 
-		signal(SIGTTOU, SIG_DFL);
 	}
 
 	/* Restart the processes in the job */
@@ -1263,7 +1261,7 @@ static int checkjobs(struct pipe* fg_pipe)
 		perror_msg("waitpid");
 
 	/* move the shell to the foreground */
-	if (interactive && tcsetpgrp(ctty, getpgid(0)))
+	if (interactive && tcsetpgrp(shell_terminal, getpgid(0)))
 		perror_msg("tcsetpgrp-2");
 	return -1;
 }
@@ -1271,24 +1269,24 @@ static int checkjobs(struct pipe* fg_pipe)
 /* Figure out our controlling tty, checking in order stderr,
  * stdin, and stdout.  If check_pgrp is set, also check that
  * we belong to the foreground process group associated with
- * that tty.  The value of ctty is needed in order to call
- * tcsetpgrp(ctty, ...); */
+ * that tty.  The value of shell_terminal is needed in order to call
+ * tcsetpgrp(shell_terminal, ...); */
 void controlling_tty(int check_pgrp)
 {
 	pid_t curpgrp;
 
-	if ((curpgrp = tcgetpgrp(ctty = 2)) < 0
-			&& (curpgrp = tcgetpgrp(ctty = 0)) < 0
-			&& (curpgrp = tcgetpgrp(ctty = 1)) < 0)
-		goto ctty_error;
+	if ((curpgrp = tcgetpgrp(shell_terminal = 2)) < 0
+			&& (curpgrp = tcgetpgrp(shell_terminal = 0)) < 0
+			&& (curpgrp = tcgetpgrp(shell_terminal = 1)) < 0)
+		goto shell_terminal_error;
 
 	if (check_pgrp && curpgrp != getpgid(0))
-		goto ctty_error;
+		goto shell_terminal_error;
 
 	return;
 
-ctty_error:
-		ctty = -1;
+shell_terminal_error:
+		shell_terminal = -1;
 		return;
 }
 
@@ -1402,7 +1400,13 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* XXX test for failed fork()? */
 		if (!(child->pid = fork())) {
+			/* Set the handling for job control signals back to the default.  */
+			signal(SIGINT, SIG_DFL);
+			signal(SIGQUIT, SIG_DFL);
+			signal(SIGTSTP, SIG_DFL);
+			signal(SIGTTIN, SIG_DFL);
 			signal(SIGTTOU, SIG_DFL);
+			signal(SIGCHLD, SIG_DFL);
 			
 			close_all();
 
@@ -1429,9 +1433,7 @@ static int run_pipe_real(struct pipe *pi)
 					pi->pgrp = getpid();
 				}
 				if (setpgid(0, pi->pgrp) == 0) {
-					signal(SIGTTOU, SIG_IGN);
 					tcsetpgrp(2, pi->pgrp);
-					signal(SIGTTOU, SIG_DFL);
 				}
 			}
 
@@ -1489,11 +1491,11 @@ static int run_list_real(struct pipe *pi)
 		} else {
 			if (interactive) {
 				/* move the new process group into the foreground */
-				if (tcsetpgrp(ctty, pi->pgrp) && errno != ENOTTY)
+				if (tcsetpgrp(shell_terminal, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-3");
 				rcode = checkjobs(pi);
 				/* move the shell to the foreground */
-				if (tcsetpgrp(ctty, getpgid(0)) && errno != ENOTTY)
+				if (tcsetpgrp(shell_terminal, getpgid(0)) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-4");
 			} else {
 				rcode = checkjobs(pi);
@@ -2534,21 +2536,33 @@ static void sigchld_handler(int sig)
 	signal(SIGCHLD, sigchld_handler);
 }
 
+/* Make sure we have a controlling tty.  If we get started under a job
+ * aware app (like bash for example), make sure we are now in charge so
+ * we don't fight over who gets the foreground */
 static void setup_job_control()
 {
-	/* If we get started under a job aware app (like bash 
-	 * for example), make sure we are now in charge so we 
-	 * don't fight over who gets the foreground */
-	/* don't pay any attention to this signal; it just confuses 
-	   things and isn't really meant for shells anyway */
-	setpgrp();
-	controlling_tty(0);
-	signal(SIGTTOU, SIG_IGN);
-	setpgid(0, getpid());
-	tcsetpgrp(ctty, getpid());
-	signal(SIGCHLD, sigchld_handler);
-}
+	static pid_t shell_pgrp;
+	/* Loop until we are in the foreground.  */
+	while (tcgetpgrp (shell_terminal) != (shell_pgrp = getpgrp ()))
+		kill (- shell_pgrp, SIGTTIN);
 
+	/* Ignore interactive and job-control signals.  */
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGCHLD, sigchld_handler);
+
+	/* Put ourselves in our own process group.  */
+	shell_pgrp = getpid ();
+	if (setpgid (shell_pgrp, shell_pgrp) < 0) {
+		perror_msg_and_die("Couldn't put the shell in its own process group");
+	}
+
+	/* Grab control of the terminal.  */
+	tcsetpgrp(shell_terminal, shell_pgrp);
+}
 
 int shell_main(int argc, char **argv)
 {
