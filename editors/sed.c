@@ -865,6 +865,7 @@ static void process_file(FILE * file)
 				case 'd':
 					altered++;
 					deleted = 1;
+					force_print = 0;
 					break;
 
 				case 's':
@@ -1031,16 +1032,29 @@ static void process_file(FILE * file)
 					break;
 				case 'g':	/* Replace pattern space with hold space */
 					free(pattern_space);
-					pattern_space = strdup(hold_space);
+					if (hold_space) {
+						pattern_space = strdup(hold_space);
+					}
 					break;
 				case 'G': {	/* Append newline and hold space to pattern space */
-					int pattern_space_size = 0;
+					int pattern_space_size = 2;
+					int hold_space_size = 0;
+
 					if (pattern_space) {
-						pattern_space_size = strlen(pattern_space);
+						pattern_space_size += strlen(pattern_space);
 					}
-					pattern_space = xrealloc(pattern_space, pattern_space_size + strlen(hold_space) + 2);
-					strcat(pattern_space, "\n");
-					strcat(pattern_space, hold_space); 
+					if (hold_space) {
+						hold_space_size = strlen(hold_space);
+					}
+					pattern_space = xrealloc(pattern_space, pattern_space_size + hold_space_size);
+					if (pattern_space_size == 2) {
+						strcat(pattern_space, "\n");
+					} else {
+						strcpy(pattern_space, "\n");
+					}
+					if (hold_space) {
+						strcat(pattern_space, hold_space);
+					}
 					break;
 				}
 				case 'h':	/* Replace hold space with pattern space */
