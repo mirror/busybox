@@ -79,7 +79,7 @@ int initgroups(__const char *user, gid_t gid)
 	int grp_fd;
 
 
-	if ((grp_fd = open("/etc/group", O_RDONLY)) < 0)
+	if ((grp_fd = open(bb_path_group_file, O_RDONLY)) < 0)
 		return -1;
 
 	num_groups = 0;

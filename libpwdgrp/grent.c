@@ -36,7 +36,7 @@ void setgrent(void)
 {
 	if (grp_fd != -1)
 		close(grp_fd);
-	grp_fd = open("/etc/group", O_RDONLY);
+	grp_fd = open(bb_path_group_file, O_RDONLY);
 }
 
 void endgrent(void)

@@ -40,7 +40,7 @@ void setpwent(void)
 	if (pw_fd != -1)
 		close(pw_fd);
 
-	pw_fd = open("/etc/passwd", O_RDONLY);
+	pw_fd = open(bb_path_passwd_file, O_RDONLY);
 }
 
 void endpwent(void)

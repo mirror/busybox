@@ -37,7 +37,7 @@ struct passwd *getpwnam(const char *name)
 		return NULL;
 	}
 
-	if ((passwd_fd = open("/etc/passwd", O_RDONLY)) < 0)
+	if ((passwd_fd = open(bb_path_passwd_file, O_RDONLY)) < 0)
 		return NULL;
 
 	while ((passwd = __getpwent(passwd_fd)) != NULL)
