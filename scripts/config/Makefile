@@ -14,6 +14,12 @@ else
 ifeq (/usr/include/ncurses/curses.h, $(wildcard /usr/include/ncurses/curses.h))
 	HOSTNCURSES += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
 else
+ifeq (/usr/local/include/ncurses/ncurses.h, $(wildcard /usr/local/include/ncurses/ncurses.h))
+	HOSTCFLAGS += -I/usr/local/include/ncurses -DCURSES_LOC="<ncurses.h>"
+else
+ifeq (/usr/local/include/ncurses/curses.h, $(wildcard /usr/local/include/ncurses/curses.h))
+	HOSTCFLAGS += -I/usr/local/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
+else
 ifeq (/usr/include/ncurses.h, $(wildcard /usr/include/ncurses.h))
 	HOSTNCURSES += -DCURSES_LOC="<ncurses.h>"
 else
@@ -21,7 +27,8 @@ else
 endif
 endif
 endif
-
+endif
+endif
 
 CONF_SRC  =conf.c
 MCONF_SRC =mconf.c checklist.c menubox.c textbox.c yesno.c inputbox.c util.c msgbox.c
