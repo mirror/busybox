@@ -43,6 +43,7 @@
 #define DISPLAY       4	/* display contents */
 #define EXT_TO_FILE   8	/* extract contents of archive */
 #define EXT_TO_STDOUT 16	/* extract to stdout */
+#define RECURSIVE     32  	 
 
 #define MAX_NAME_LENGTH 100
 
@@ -168,34 +169,26 @@ static int readArEntry(int srcFd, headerL_t *newEntry)
 /*
  * return the headerL_t struct for the specified filename
  */
-static headerL_t *getHeaders(int srcFd, headerL_t *head)
+static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 {
-	int arEntry=FALSE;
 	headerL_t *list;
         list = (headerL_t *) malloc(sizeof(headerL_t));
 
-        if (checkArMagic(srcFd)==TRUE)
-		arEntry=TRUE;
-	else
-		errorMsg("isnt an ar archive\n");
-
-	if (arEntry==TRUE) { 
+        if (checkArMagic(srcFd)==TRUE) {
+		printf("found ar header ");
         	while(readArEntry(srcFd, list) == TRUE) {
 			list->next = (headerL_t *) malloc(sizeof(headerL_t));
         		*list->next = *head;
 			*head = *list;
-
+		
 			/* recursive check for sub-archives */
-			lseek(srcFd, list->size, SEEK_CUR);
-/*			printf("checking for sub headers\n");
-		        if ((subList = getHeaders(srcFd, list->next)) != NULL) {
-				printf("found a sub archive !\n");
-			}
-			else	
-				printf("didnt find a sub header\n"); */
+			if ((funct & RECURSIVE) == RECURSIVE) 
+		        	head = getHeaders(srcFd, head, funct);
+			lseek(srcFd, head->offset + head->size, SEEK_SET);
 		}
 	}
-
+	else 
+		printf("not an ar header\n");
         return(head);
 }
 
@@ -239,7 +232,7 @@ extern int ar_main(int argc, char **argv)
 	int srcFd=0, dstFd=0;
  	headerL_t *header, *entry, *extractList;
 
-	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
+	while ((opt = getopt(argc, argv, "ovtpxR")) != -1) {
 		switch (opt) {
 		case 'o':
 			funct = funct | PRESERVE_DATE;
@@ -255,6 +248,9 @@ extern int ar_main(int argc, char **argv)
 			break;
 		case 'p':
 			funct = funct | EXT_TO_STDOUT;
+			break;
+		case 'R':
+			funct = funct | RECURSIVE;
 			break;
 		default:
 			usage(ar_usage);
@@ -276,7 +272,7 @@ extern int ar_main(int argc, char **argv)
 	header = (headerL_t *) malloc(sizeof(headerL_t));
 	extractList = (headerL_t *) malloc(sizeof(headerL_t));	
 
-	header = getHeaders(srcFd, header);
+	header = getHeaders(srcFd, header, funct);
 	
 	/* find files to extract or display */
 	if (optind<argc) {
