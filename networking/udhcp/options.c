@@ -59,10 +59,10 @@ int option_lengths[] = {
 
 
 /* get an option with bounds checking (warning, not aligned). */
-unsigned char *get_option(struct dhcpMessage *packet, int code)
+uint8_t *get_option(struct dhcpMessage *packet, int code)
 {
 	int i, length;
-	unsigned char *optionptr;
+	uint8_t *optionptr;
 	int over = 0, done = 0, curr = OPTION_FIELD;
 	
 	optionptr = packet->options;
@@ -114,7 +114,7 @@ unsigned char *get_option(struct dhcpMessage *packet, int code)
 
 
 /* return the position of the 'end' option (no bounds checking) */
-int end_option(unsigned char *optionptr) 
+int end_option(uint8_t *optionptr) 
 {
 	int i = 0;
 	
@@ -128,7 +128,7 @@ int end_option(unsigned char *optionptr)
 
 /* add an option string to the options (an option string contains an option code,
  * length, then data) */
-int add_option_string(unsigned char *optionptr, unsigned char *string)
+int add_option_string(uint8_t *optionptr, uint8_t *string)
 {
 	int end = end_option(optionptr);
 	
@@ -145,17 +145,17 @@ int add_option_string(unsigned char *optionptr, unsigned char *string)
 
 
 /* add a one to four byte option to a packet */
-int add_simple_option(unsigned char *optionptr, unsigned char code, u_int32_t data)
+int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 {
 	char length = 0;
 	int i;
-	unsigned char option[2 + 4];
-	unsigned char *u8;
-	u_int16_t *u16;
-	u_int32_t *u32;
-	u_int32_t aligned;
-	u8 = (unsigned char *) &aligned;
-	u16 = (u_int16_t *) &aligned;
+	uint8_t option[2 + 4];
+	uint8_t *u8;
+	uint16_t *u16;
+	uint32_t *u32;
+	uint32_t aligned;
+	u8 = (uint8_t *) &aligned;
+	u16 = (uint16_t *) &aligned;
 	u32 = &aligned;
 
 	for (i = 0; dhcp_options[i].code; i++)

@@ -179,7 +179,7 @@ int udhcpc_main(int argc, char *argv[])
 int main(int argc, char *argv[])
 #endif
 {
-	unsigned char *temp, *message;
+	uint8_t *temp, *message;
 	unsigned long t1 = 0, t2 = 0, xid = 0;
 	unsigned long start = 0, lease;
 	fd_set rfds;

@@ -52,7 +52,7 @@ static int read_str(const char *line, void *arg)
 
 static int read_u32(const char *line, void *arg)
 {
-	u_int32_t *dest = arg;
+	uint32_t *dest = arg;
 	char *endptr;
 	*dest = strtoul(line, &endptr, 0);
 	return endptr[0] == '\0';
@@ -83,8 +83,8 @@ static int read_opt(const char *const_line, void *arg)
 	int retval = 0, length;
 	char buffer[8];
 	char *line;
-	u_int16_t *result_u16 = (u_int16_t *) buffer;
-	u_int32_t *result_u32 = (u_int32_t *) buffer;
+	uint16_t *result_u16 = (uint16_t *) buffer;
+	uint32_t *result_u32 = (uint32_t *) buffer;
 
 	/* Cheat, the only const line we'll actually get is "" */
 	line = (char *) const_line;

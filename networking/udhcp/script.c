@@ -55,7 +55,7 @@ static inline int upper_length(int length, int opt_index)
 }
 
 
-static int sprintip(char *dest, char *pre, unsigned char *ip)
+static int sprintip(char *dest, char *pre, uint8_t *ip)
 {
 	return sprintf(dest, "%s%d.%d.%d.%d", pre, ip[0], ip[1], ip[2], ip[3]);
 }
@@ -74,12 +74,12 @@ static int mton(struct in_addr *mask)
 
 
 /* Fill dest with the text of option 'option'. */
-static void fill_options(char *dest, unsigned char *option, struct dhcp_option *type_p)
+static void fill_options(char *dest, uint8_t *option, struct dhcp_option *type_p)
 {
 	int type, optlen;
-	u_int16_t val_u16;
+	uint16_t val_u16;
 	int16_t val_s16;
-	u_int32_t val_u32;
+	uint32_t val_u32;
 	int32_t val_s32;
 	int len = option[OPT_LEN - 2];
 
@@ -138,7 +138,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	int num_options = 0;
 	int i, j;
 	char **envp;
-	unsigned char *temp;
+	uint8_t *temp;
 	struct in_addr subnet;
 	char over = 0;
 
@@ -168,7 +168,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	if (packet == NULL) return envp;
 
 	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
-	sprintip(envp[j++], "ip=", (unsigned char *) &packet->yiaddr);
+	sprintip(envp[j++], "ip=", (uint8_t *) &packet->yiaddr);
 
 
 	for (i = 0; dhcp_options[i].code; i++) {
@@ -186,7 +186,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	}
 	if (packet->siaddr) {
 		envp[j] = xmalloc(sizeof("siaddr=255.255.255.255"));
-		sprintip(envp[j++], "siaddr=", (unsigned char *) &packet->siaddr);
+		sprintip(envp[j++], "siaddr=", (uint8_t *) &packet->siaddr);
 	}
 	if (!(over & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */

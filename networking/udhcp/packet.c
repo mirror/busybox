@@ -69,7 +69,7 @@ int get_packet(struct dhcpMessage *packet, int fd)
 	
 	if (packet->op == BOOTREQUEST && (vendor = get_option(packet, DHCP_VENDOR))) {
 		for (i = 0; broken_vendors[i][0]; i++) {
-			if (vendor[OPT_LEN - 2] == (unsigned char) strlen(broken_vendors[i]) &&
+			if (vendor[OPT_LEN - 2] == (uint8_t) strlen(broken_vendors[i]) &&
 			    !strncmp(vendor, broken_vendors[i], vendor[OPT_LEN - 2])) {
 			    	DEBUG(LOG_INFO, "broken client (%s), forcing broadcast",
 			    		broken_vendors[i]);
@@ -83,13 +83,13 @@ int get_packet(struct dhcpMessage *packet, int fd)
 }
 
 
-u_int16_t checksum(void *addr, int count)
+uint16_t checksum(void *addr, int count)
 {
 	/* Compute Internet Checksum for "count" bytes
 	 *         beginning at location "addr".
 	 */
 	register int32_t sum = 0;
-	u_int16_t *source = (u_int16_t *) addr;
+	uint16_t *source = (uint16_t *) addr;
 
 	while (count > 1)  {
 		/*  This is the inner loop */
@@ -101,8 +101,8 @@ u_int16_t checksum(void *addr, int count)
 	if (count > 0) {
 		/* Make sure that the left-over byte is added correctly both
 		 * with little and big endian hosts */
-		u_int16_t tmp = 0;
-		*(unsigned char *) (&tmp) = * (unsigned char *) source;
+		uint16_t tmp = 0;
+		*(uint8_t *) (&tmp) = * (uint8_t *) source;
 		sum += tmp;
 	}
 	/*  Fold 32-bit sum to 16 bits */
@@ -114,8 +114,8 @@ u_int16_t checksum(void *addr, int count)
 
 
 /* Constuct a ip/udp header for a packet, and specify the source and dest hardware address */
-int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
-		   u_int32_t dest_ip, int dest_port, unsigned char *dest_arp, int ifindex)
+int raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
+		   uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
 {
 	int fd;
 	int result;
@@ -167,8 +167,8 @@ int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port
 
 
 /* Let the kernel do all the work for packet generation */
-int kernel_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port,
-		   u_int32_t dest_ip, int dest_port)
+int kernel_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
+		   uint32_t dest_ip, int dest_port)
 {
 	int n = 1;
 	int fd, result;

@@ -62,9 +62,9 @@ int main(int argc, char *argv[])
 	int server_socket = -1;
 	int bytes, retval;
 	struct dhcpMessage packet;
-	unsigned char *state;
-	unsigned char *server_id, *requested;
-	u_int32_t server_id_align, requested_align;
+	uint8_t *state;
+	uint8_t *server_id, *requested;
+	uint32_t server_id_align, requested_align;
 	unsigned long timeout_end;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease;

@@ -12,19 +12,19 @@
 
 struct arpMsg {
 	struct ethhdr ethhdr;	 		/* Ethernet header */
-	u_short htype;				/* hardware type (must be ARPHRD_ETHER) */
-	u_short ptype;				/* protocol type (must be ETH_P_IP) */
-	u_char  hlen;				/* hardware address length (must be 6) */
-	u_char  plen;				/* protocol address length (must be 4) */
-	u_short operation;			/* ARP opcode */
-	u_char  sHaddr[6];			/* sender's hardware address */
-	u_char  sInaddr[4];			/* sender's IP address */
-	u_char  tHaddr[6];			/* target's hardware address */
-	u_char  tInaddr[4];			/* target's IP address */
-	u_char  pad[18];			/* pad for min. Ethernet payload (60 bytes) */
+	uint16_t htype;				/* hardware type (must be ARPHRD_ETHER) */
+	uint16_t ptype;				/* protocol type (must be ETH_P_IP) */
+	uint8_t  hlen;				/* hardware address length (must be 6) */
+	uint8_t  plen;				/* protocol address length (must be 4) */
+	uint16_t operation;			/* ARP opcode */
+	uint8_t  sHaddr[6];			/* sender's hardware address */
+	uint8_t  sInaddr[4];			/* sender's IP address */
+	uint8_t  tHaddr[6];			/* target's hardware address */
+	uint8_t  tInaddr[4];			/* target's IP address */
+	uint8_t  pad[18];			/* pad for min. Ethernet payload (60 bytes) */
 };
 
 /* function prototypes */
-int arpping(u_int32_t yiaddr, u_int32_t ip, unsigned char *arp, char *interface);
+int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *arp, char *interface);
 
 #endif

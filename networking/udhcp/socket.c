@@ -44,7 +44,7 @@
 #include "socket.h"
 #include "common.h"
 
-int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char *arp)
+int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 {
 	int fd;
 	struct ifreq ifr;
@@ -90,7 +90,7 @@ int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char
 }
 
 
-int listen_socket(unsigned int ip, int port, char *inf)
+int listen_socket(uint32_t ip, int port, char *inf)
 {
 	struct ifreq interface;
 	int fd;

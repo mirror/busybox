@@ -43,8 +43,8 @@ static int send_packet_to_relay(struct dhcpMessage *payload)
 /* send a packet to a specific arp address and ip address by creating our own ip packet */
 static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcast)
 {
-	unsigned char *chaddr;
-	u_int32_t ciaddr;
+	uint8_t *chaddr;
+	uint32_t ciaddr;
 	
 	if (force_broadcast) {
 		DEBUG(LOG_INFO, "broadcasting packet to client (NAK)");
@@ -108,8 +108,8 @@ int sendOffer(struct dhcpMessage *oldpacket)
 {
 	struct dhcpMessage packet;
 	struct dhcpOfferedAddr *lease = NULL;
-	u_int32_t req_align, lease_time_align = server_config.lease;
-	unsigned char *req, *lease_time;
+	uint32_t req_align, lease_time_align = server_config.lease;
+	uint8_t *req, *lease_time;
 	struct option_set *curr;
 	struct in_addr addr;
 
@@ -196,12 +196,12 @@ int sendNAK(struct dhcpMessage *oldpacket)
 }
 
 
-int sendACK(struct dhcpMessage *oldpacket, u_int32_t yiaddr)
+int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 {
 	struct dhcpMessage packet;
 	struct option_set *curr;
-	unsigned char *lease_time;
-	u_int32_t lease_time_align = server_config.lease;
+	uint8_t *lease_time;
+	uint32_t lease_time_align = server_config.lease;
 	struct in_addr addr;
 
 	init_packet(&packet, oldpacket, DHCPACK);

@@ -89,24 +89,24 @@
 #define SNAME_FIELD		2
 
 /* miscellaneous defines */
-#define MAC_BCAST_ADDR		(unsigned char *) "\xff\xff\xff\xff\xff\xff"
+#define MAC_BCAST_ADDR		(uint8_t *) "\xff\xff\xff\xff\xff\xff"
 #define OPT_CODE 0
 #define OPT_LEN 1
 #define OPT_DATA 2
 
 struct option_set {
-	unsigned char *data;
+	uint8_t *data;
 	struct option_set *next;
 };
 
 struct server_config_t {
-	u_int32_t server;		/* Our IP, in network order */
-	u_int32_t start;		/* Start address of leases, network order */
-	u_int32_t end;			/* End of leases, network order */
+	uint32_t server;		/* Our IP, in network order */
+	uint32_t start;		/* Start address of leases, network order */
+	uint32_t end;			/* End of leases, network order */
 	struct option_set *options;	/* List of DHCP options loaded from the config file */
 	char *interface;		/* The name of the interface to use */
 	int ifindex;			/* Index number of the interface to use */
-	unsigned char arp[6];		/* Our arp address */
+	uint8_t arp[6];		/* Our arp address */
 	unsigned long lease;		/* lease time in seconds (host order) */
 	unsigned long max_leases; 	/* maximum number of leases (including reserved address) */
 	char remaining; 		/* should the lease file be interpreted as lease time remaining, or
@@ -121,7 +121,7 @@ struct server_config_t {
 	char *lease_file;
 	char *pidfile;
 	char *notify_file;		/* What to run whenever leases are written */
-	u_int32_t siaddr;		/* next server bootp option */
+	uint32_t siaddr;		/* next server bootp option */
 	char *sname;			/* bootp server name */
 	char *boot_file;		/* bootp boot file option */
 };	

@@ -78,7 +78,7 @@ static void init_packet(struct dhcpMessage *packet, char type)
 	memcpy(packet->chaddr, client_config.arp, 6);
 	add_option_string(packet->options, client_config.clientid);
 	if (client_config.hostname) add_option_string(packet->options, client_config.hostname);
-	add_option_string(packet->options, (unsigned char *) &vendor_id);
+	add_option_string(packet->options, (uint8_t *) &vendor_id);
 }
 
 
@@ -179,8 +179,8 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
-	u_int32_t source, dest;
-	u_int16_t check;
+	uint32_t source, dest;
+	uint16_t check;
 
 	memset(&packet, 0, sizeof(struct udp_dhcp_packet));
 	bytes = read(fd, &packet, sizeof(struct udp_dhcp_packet));
@@ -207,7 +207,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION ||
 	    packet.ip.ihl != sizeof(packet.ip) >> 2 || packet.udp.dest != htons(CLIENT_PORT) ||
 	    bytes > (int) sizeof(struct udp_dhcp_packet) ||
-	    ntohs(packet.udp.len) != (short) (bytes - sizeof(packet.ip))) {
+	    ntohs(packet.udp.len) != (uint16_t) (bytes - sizeof(packet.ip))) {
 	    	DEBUG(LOG_INFO, "unrelated/bogus packet");
 	    	return -2;
 	}
