@@ -188,10 +188,15 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 }
 
 
+static void paste_str(char **s1, const char *s2)
+{
+	*s1 = xrealloc(*s1, strlen(*s1)+strlen(s2)+1);
+	strcat(*s1, s2);
+}
 
 /* Seperate standard mount options from the nonstandard string options */
 static void
-parse_mount_options(char *options, int *flags, char *strflags)
+parse_mount_options(char *options, int *flags, char **strflags)
 {
 	while (options) {
 		int gotone = FALSE;
@@ -212,20 +217,16 @@ parse_mount_options(char *options, int *flags, char *strflags)
 			f++;
 		}
 #if defined CONFIG_FEATURE_MOUNT_LOOP
-		if (! gotone && !strcasecmp("loop", options)) {	/* loop device support */
+		if (!strcasecmp("loop", options)) { /* loop device support */
 			use_loop = TRUE;
 			gotone = TRUE;
 		}
 #endif
-		if (*strflags && strflags != '\0' && ! gotone) {
-			char *temp = strflags;
-
-			temp += strlen(strflags);
-			*temp++ = ',';
-			*temp++ = '\0';
+		if (! gotone) {
+			if (**strflags) /* have previous parsed options */
+				paste_str(strflags, ",");
+			paste_str(strflags, options);
 		}
-		if (! gotone)
-			strcat(strflags, options);
 		if (comma) {
 			*comma = ',';
 			options = ++comma;
@@ -310,7 +311,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	return (TRUE);
 }
 
-void show_mounts(void)
+static void show_mounts(void)
 {
 #if defined CONFIG_FEATURE_USE_DEVPS_PATCH
 	int fd, i, numfilesystems;
@@ -375,25 +376,25 @@ void show_mounts(void)
 extern int mount_main(int argc, char **argv)
 {
 	struct stat statbuf;
-	char string_flags_buf[1024] = "";
-	char *string_flags = string_flags_buf;
-	char *extra_opts = string_flags_buf;
+	char *string_flags = xstrdup("");
+	char *extra_opts;
 	int flags = 0;
 	char *filesystemType = "auto";
 	char *device = xmalloc(PATH_MAX);
 	char *directory = xmalloc(PATH_MAX);
+	struct mntent *m = NULL;
 	int all = FALSE;
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
 	int rc = EXIT_FAILURE;
-	int fstabmount = FALSE;	
+	FILE *f = 0;
 	int opt;
 
 	/* Parse options */
 	while ((opt = getopt(argc, argv, "o:rt:wafnv")) > 0) {
 		switch (opt) {
 		case 'o':
-			parse_mount_options(optarg, &flags, string_flags);
+			parse_mount_options(optarg, &flags, &string_flags);
 			break;
 		case 'r':
 			flags |= MS_RDONLY;
@@ -437,9 +438,7 @@ extern int mount_main(int argc, char **argv)
 		directory = simplify_path(argv[optind + 1]);
 
 	if (all || optind + 1 == argc) {
-		struct mntent *m = NULL;
-		FILE *f = setmntent("/etc/fstab", "r");
-		fstabmount = TRUE;
+		f = setmntent("/etc/fstab", "r");
 
 		if (f == NULL)
 			perror_msg_and_die( "\nCannot read /etc/fstab");
@@ -460,16 +459,15 @@ extern int mount_main(int argc, char **argv)
 			
 			if (all || flags == 0) {	// Allow single mount to override fstab flags
 				flags = 0;
-				string_flags = string_flags_buf;
-				*string_flags = '\0';
-				parse_mount_options(m->mnt_opts, &flags, string_flags);
+				string_flags[0] = 0;
+				parse_mount_options(m->mnt_opts, &flags, &string_flags);
 			}
 			
 			strcpy(device, m->mnt_fsname);
 			strcpy(directory, m->mnt_dir);
 			filesystemType = xstrdup(m->mnt_type);
 singlemount:			
-			string_flags = xstrdup(string_flags);
+			extra_opts = string_flags;
 			rc = EXIT_SUCCESS;
 #ifdef CONFIG_NFSMOUNT
 			if (strchr(device, ':') != NULL) {
@@ -488,10 +486,10 @@ singlemount:
 			if (! all)
 				break;
 		}
-		if (fstabmount)
+		if (f)
 			endmntent(f);
 			
-		if (! all && fstabmount && m == NULL)
+		if (! all && f && m == NULL)
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
 	
 		return rc;
