@@ -565,7 +565,7 @@ void parse_url(char *url, struct host_info *h)
 		char *ep;
 
 		ep = h->host + 1;
-		while (*ep == ':' || isdigit (*ep))
+		while (*ep == ':' || isxdigit (*ep))
 			ep++;
 		if (*ep == ']') {
 			h->host++;
@@ -841,7 +841,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.58 2003/09/10 23:52:15 bug1 Exp $
+ *	$Id: wget.c,v 1.59 2003/09/11 08:25:11 andersen Exp $
  */
 
 
