@@ -100,6 +100,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_FSCK_MINIX
 	{"fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix_usage},
 #endif
+#ifdef BB_GETOPT
+	{"getopt", getopt_main, _BB_DIR_BIN},
+#endif
 #ifdef BB_GREP
 	{"grep", grep_main, _BB_DIR_BIN, grep_usage},
 #endif

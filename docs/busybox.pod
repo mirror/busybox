@@ -57,7 +57,7 @@ Currently defined functions include:
 
 ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
 dc, dd, deallocvt, df, dirname, dmesg, du, dumpkmap, dutmp, echo, false, fbset,
-fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
+fdflush, find, free, freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt,
 head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
@@ -611,6 +611,48 @@ Options:
 	-s      Outputs super-block information
 	-m      Activates MINIX-like "mode not cleared" warnings
 	-f      Force file system check.
+
+-------------------------------
+
+=item getopt
+
+Usage: getopt [OPTIONS]...
+
+Parse command options
+
+Options:
+
+       -a, --alternative            Allow long options starting with single -\n"
+       -l, --longoptions=longopts   Long options to be recognized\n"
+       -n, --name=progname          The name under which errors are reported\n"
+       -o, --options=optstring      Short options to be recognized\n"
+       -q, --quiet                  Disable error reporting by getopt(3)\n"
+       -Q, --quiet-output           No normal output\n"
+       -s, --shell=shell            Set shell quoting conventions\n"
+       -T, --test                   Test for getopt(1) version\n"
+       -u, --unqote                 Do not quote the output\n"
+
+Example:
+        $ cat getopt.test
+        #!/bin/sh
+        GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
+                -n 'example.busybox' -- "$@"`
+        if [ $? != 0 ] ; then  exit 1 ; fi
+        eval set -- "$GETOPT"
+        while true ; do
+          case $1 in
+            -a|--a-long) echo "Option a" ; shift ;;
+            -b|--b-long) echo "Option b, argument \`$2'" ; shift 2 ;;
+            -c|--c-long)
+              case "$2" in
+                "") echo "Option c, no argument"; shift 2 ;;
+                *)  echo "Option c, argument \`$2'" ; shift 2 ;;
+              esac ;;
+            --) shift ; break ;;
+            *) echo "Internal error!" ; exit 1 ;;
+          esac
+        done
+
 
 -------------------------------
 
@@ -2052,4 +2094,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.61 2000/08/21 21:18:52 andersen Exp $
+# $Id: busybox.pod,v 1.62 2000/08/21 22:02:34 andersen Exp $

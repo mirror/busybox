@@ -1063,6 +1063,61 @@
 		</screen>
 		</para>
 	</sect1>
+	
+	<sect1 id="getopt">
+	    <title>getopt</title>
+
+		<para>
+		Usage: getopt [OPTIONS]...
+		</para>
+
+		<para>
+		Parse command options
+		</para>
+
+		<para>
+		<screen>
+		   -a, --alternative            Allow long options starting with single -\n"
+		   -l, --longoptions=longopts   Long options to be recognized\n"
+		   -n, --name=progname          The name under which errors are reported\n"
+		   -o, --options=optstring      Short options to be recognized\n"
+		   -q, --quiet                  Disable error reporting by getopt(3)\n"
+		   -Q, --quiet-output           No normal output\n"
+		   -s, --shell=shell            Set shell quoting conventions\n"
+		   -T, --test                   Test for getopt(1) version\n"
+		   -u, --unqote                 Do not quote the output\n"
+		</screen>
+		</para>
+
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ cat getopt.test
+			#!/bin/sh
+			GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
+				-n 'example.busybox' -- "$@"`
+			if [ $? != 0 ] ; then  exit 1 ; fi
+			eval set -- "$GETOPT"
+			while true ; do
+			  case $1 in
+			    -a|--a-long) echo "Option a" ; shift ;;
+			    -b|--b-long) echo "Option b, argument \`$2'" ; shift 2 ;;
+			    -c|--c-long)
+			      case "$2" in
+				"") echo "Option c, no argument"; shift 2 ;;
+				*)  echo "Option c, argument \`$2'" ; shift 2 ;;
+			      esac ;;
+			    --) shift ; break ;;
+			    *) echo "Internal error!" ; exit 1 ;;
+			  esac
+			done
+		</screen>
+		</para>
+	</sect1>
 
 	<sect1 id="grep">
 	    <title>grep</title>
