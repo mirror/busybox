@@ -694,7 +694,9 @@ int tar_main(int argc, char **argv)
 		}
 	}
 
-	if (*argv[optind] == '-') {
+	/* Check if we are reading from stdin */
+	if ((argv[optind]) && (*argv[optind] == '-')) {
+		/* Default is to read from stdin, so just skip to next arg */
 		optind++;
 	}
 
