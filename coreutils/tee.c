@@ -3,7 +3,7 @@
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
- * Written by John Beppu <beppu@line.com>
+ * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -144,4 +144,4 @@ tee_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: tee.c,v 1.1 1999/12/10 05:27:16 beppu Exp $ */
+/* $Id: tee.c,v 1.2 1999/12/10 06:45:42 andersen Exp $ */

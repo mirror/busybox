@@ -3,7 +3,7 @@
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
- * Written by John Beppu <beppu@line.com>
+ * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -112,4 +112,4 @@ du_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: du.c,v 1.2 1999/12/10 06:15:27 beppu Exp $ */
+/* $Id: du.c,v 1.3 1999/12/10 06:45:42 andersen Exp $ */
