@@ -1545,7 +1545,7 @@ static void setup_job_control()
 	tcsetpgrp(shell_terminal, shell_pgrp);
 }
 
-int shell_main(int argc_l, char **argv_l)
+int lash_main(int argc_l, char **argv_l)
 {
 	int opt, interactive=FALSE;
 	FILE *input = stdin;

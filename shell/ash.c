@@ -7638,7 +7638,7 @@ static void procargs (int, char **);
  */
 
 int
-shell_main(argc, argv)
+ash_main(argc, argv)
 	int argc;
 	char **argv;
 {
@@ -12874,7 +12874,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.15 2001/07/31 21:38:23 andersen Exp $
+ * $Id: ash.c,v 1.16 2001/08/01 17:21:33 kraai Exp $
  */
 static int timescmd (int argc, char **argv)
 {

@@ -52,6 +52,9 @@
 #ifdef BB_AR
 	APPLET(ar, ar_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_ASH
+	APPLET_NOUSAGE("ash", ash_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_BASENAME
 	APPLET(basename, basename_main, _BB_DIR_USR_BIN)
 #endif
@@ -185,6 +188,9 @@
 #ifdef BB_HOSTNAME
 	APPLET(hostname, hostname_main, _BB_DIR_BIN)
 #endif
+#ifdef BB_HUSH
+	APPLET_NOUSAGE("hush", hush_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_ID
 	APPLET(id, id_main, _BB_DIR_USR_BIN)
 #endif
@@ -205,6 +211,9 @@
 #endif
 #ifdef BB_KLOGD
 	APPLET(klogd, klogd_main, _BB_DIR_SBIN)
+#endif
+#ifdef BB_LASH
+	APPLET(lash, lash_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_LENGTH
 	APPLET(length, length_main, _BB_DIR_USR_BIN)
@@ -271,6 +280,9 @@
 #endif
 #ifdef BB_MOUNT
 	APPLET(mount, mount_main, _BB_DIR_BIN)
+#endif
+#ifdef BB_MSH
+	APPLET_NOUSAGE("msh", msh_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_MT
 	APPLET(mt, mt_main, _BB_DIR_BIN)
@@ -344,8 +356,14 @@
 #ifdef BB_SETKEYCODES
 	APPLET(setkeycodes, setkeycodes_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef BB_SH
-	APPLET(sh, shell_main, _BB_DIR_BIN)
+#ifdef BB_FEATURE_SH_IS_ASH
+	APPLET_NOUSAGE("sh", ash_main, _BB_DIR_BIN)
+#elif defined(BB_FEATURE_SH_IS_HUSH)
+	APPLET_NOUSAGE("sh", hush_main, _BB_DIR_BIN)
+#elif defined(BB_FEATURE_SH_IS_LASH)
+	APPLET_NOUSAGE("sh", lash_main, _BB_DIR_BIN)
+#elif defined(BB_FEATURE_SH_IS_MSH)
+	APPLET_NOUSAGE("sh", msh_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SLEEP
 	APPLET(sleep, sleep_main, _BB_DIR_BIN)

@@ -143,7 +143,7 @@ static int newfile(char *s);
 static char *findeq(char *cp);
 static char *cclass(char *p, int sub);
 static void initarea(void);
-extern int shell_main(int argc, char **argv);
+extern int msh_main(int argc, char **argv);
 
 
 struct	brkcon {
@@ -692,7 +692,7 @@ static char * current_prompt;
  */
 
 
-extern int shell_main(int argc, char **argv)
+extern int msh_main(int argc, char **argv)
 {
 	register int f;
 	register char *s;

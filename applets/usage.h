@@ -1365,12 +1365,12 @@
 #define setkeycodes_example_usage \
 	"$ setkeycodes e030 127\n"
 
-#define sh_trivial_usage \
+#define lash_trivial_usage \
 	"[FILE]...\n" \
 	"or: sh -c command [args]..."
-#define sh_full_usage \
+#define lash_full_usage \
 	"lash: The BusyBox LAme SHell (command interpreter)"
-#define sh_notes_usage \
+#define lash_notes_usage \
 "This command does not yet have proper documentation.\n" \
 "\n" \
 "Use lash just as you would use any other shell.  It properly handles pipes,\n" \

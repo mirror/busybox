@@ -9,6 +9,7 @@
 // BusyBox Applications
 //#define BB_ADJTIMEX
 //#define BB_AR
+//#define BB_ASH
 #define BB_BASENAME
 #define BB_CAT
 #define BB_CHGRP
@@ -51,6 +52,7 @@
 #define BB_HEAD
 //#define BB_HOSTID
 //#define BB_HOSTNAME
+//#define BB_HUSH
 #define BB_ID
 //#define BB_IFCONFIG
 #define BB_INIT
@@ -58,6 +60,7 @@
 #define BB_KILL
 #define BB_KILLALL
 #define BB_KLOGD
+//#define BB_LASH
 //#define BB_LENGTH
 #define BB_LN
 //#define BB_LOADACM
@@ -78,6 +81,7 @@
 #define BB_MODPROBE
 #define BB_MORE
 #define BB_MOUNT
+#define BB_MSH
 //#define BB_MT
 #define BB_MV
 //#define BB_NC
@@ -101,7 +105,6 @@
 //#define BB_RPM2CPIO
 #define BB_SED
 //#define BB_SETKEYCODES
-#define BB_SH
 #define BB_SLEEP
 #define BB_SORT
 //#define BB_STTY
@@ -146,40 +149,12 @@
 // pretty/useful).
 //
 //
-// If you enabled BB_SH above, you may select one of the following shells.  
-// You can only select ONE of the following shells.  Sorry.
-//
-// lash is the very smallest shell (adds just 10k) and it is quite usable as 
-// a command prompt, but it is not suitable for any but the most trivial
-// scripting (such as an initrd that calls insmod a few times) since it does
-// not understand Bourne shell grammer.  It does handle pipes, redirects, and
-// job control though.  Adding in command editing makes it very nice
-// lightweight command prompt.
-//#define BB_FEATURE_LASH
-//
-// hush is also quite small (just 18k) and it has very complete Bourne shell
-// grammer.  It handles if/then/else/fi just fine, but doesn't handle loops
-// like for/do/done or case/esac and such.  It also currently has a problem
-// with job control.
-//#define BB_FEATURE_HUSH
-//
-// msh: The minix shell (adds just 30k) is quite complete and handles things
-// like for/do/done, case/esac and all the things you expect a Bourne shell to
-// do.  It is not always pedantically correct about Bourne shell grammer (try
-// running the shell testscript "tests/sh.testcases" on it and compare vs bash)
-// but for most things it works quite well.  It also uses only vfork, so it can
-// be used on uClinux systems.  This was only recently added, so there is still
-// room to shrink it further...
-#define BB_FEATURE_MSH
-//
-// ash: This adds about 60k in the default configuration and is the most
-// complete and most pedantically correct shell included with busybox.  This
-// shell was also recently added, and several people (mainly Vladimir and Erik)
-// have been working on it.  There are a number of configurable things at the
-// top of ash.c as well, so check those out if you want to tweak things.  The
-// Posix math support is currently disabled (that bit of code was horrible) but
-// will be restored for the next BusyBox release.
-//#define BB_FEATURE_ASH
+// If you enabled one or more of the shells, you may select which one
+// should be run when sh is invoked:
+//#define BB_FEATURE_SH_IS_ASH
+//#define BB_FEATURE_SH_IS_HUSH
+//#define BB_FEATURE_SH_IS_LASH
+#define BB_FEATURE_SH_IS_MSH
 //
 // BusyBox will, by default, malloc space for its buffers.  This costs code
 // size for the call to xmalloc.  You can use the following feature to have
@@ -286,11 +261,11 @@
 #define BB_FEATURE_SORT_UNIQUE
 //
 // Enable command line editing in the shell.  
-// Only relevant if BB_SH is enabled. On by default.
+// Only relevant if a shell is enabled. On by default.
 #define BB_FEATURE_COMMAND_EDITING
 //
 // Enable tab completion in the shell.  This is now working quite nicely.
-// This feature adds a bit over 4k. Only relevant if BB_SH is enabled.
+// This feature adds a bit over 4k. Only relevant if a shell is enabled.
 #define BB_FEATURE_COMMAND_TAB_COMPLETION
 //
 // Attempts to match usernames in a ~-prefixed path
@@ -299,7 +274,7 @@
 //Allow the shell to invoke all the compiled in BusyBox applets as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell,
 //among other things. Off by default.
-// Only relevant if BB_SH is enabled.
+// Only relevant if a shell is enabled.
 //#define BB_FEATURE_SH_STANDALONE_SHELL
 //
 //When this is enabled, busybox shell applets can be called using full path
@@ -308,13 +283,13 @@
 //will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
-// Only relevant if BB_SH is enabled. Off by default.
+// Only relevant if a shell is enabled. Off by default.
 //#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Uncomment this option for a fancy shell prompt that includes the
 // current username and hostname.  On systems that don't have usernames
 // or hostnames, this can look hideous.
-// Only relevant if BB_SH is enabled.
+// Only relevant if a shell is enabled.
 //#define BB_FEATURE_SH_FANCY_PROMPT
 //
 //Turn on extra fbset options
@@ -435,8 +410,8 @@
 	#undef BB_KLOGD			/* Uses daemon() */
 	#undef BB_UPDATE		/* Uses daemon() */
 #endif
-#if defined BB_SH
-	#if defined BB_FEATURE_COMMAND_EDITING 
+#if defined BB_ASH || defined BB_HUSH || defined BB_LASH || defined BB_MSH
+	#if defined BB_FEATURE_COMMAND_EDITING
 		#define BB_CMDEDIT
 	#else
 		#undef BB_FEATURE_COMMAND_EDITING
@@ -493,4 +468,18 @@
 	#if defined BB_FEATURE_IPC_SYSLOG
 		#define BB_LOGREAD
 	#endif
+#endif
+//
+#if defined BB_ASH && defined BB_FEATURE_SH_IS_ASH
+# define BB_SH
+# define shell_main ash_main
+#elif defined BB_HUSH && defined BB_FEATURE_SH_IS_HUSH
+# define BB_SH
+# define shell_main hush_main
+#elif defined BB_LASH && defined BB_FEATURE_SH_IS_LASH
+# define BB_SH
+# define shell_main lash_main
+#elif defined BB_MSH && defined BB_FEATURE_SH_IS_MSH
+# define BB_SH
+# define shell_main msh_main
 #endif

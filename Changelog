@@ -42,6 +42,7 @@
 	    -- Reworked rdate option handling (is now smaller).
 	    -- Size reduction in ping
 	    -- Always write dd counts to stderr
+	    -- Allow multiple shells to be enabled
 	* Aaron Lehmann 
 	    -- slimmed down md5sum 
 	    -- contributed a nice new (hand written, not lex/yacc) Posix math 

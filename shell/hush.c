@@ -112,7 +112,7 @@
 #else
 #define applet_name "hush"
 #include "standalone.h"
-#define shell_main main
+#define hush_main main
 #undef BB_FEATURE_SH_FANCY_PROMPT
 #endif
 
@@ -2562,7 +2562,7 @@ static void setup_job_control()
 	tcsetpgrp(shell_terminal, shell_pgrp);
 }
 
-int shell_main(int argc, char **argv)
+int hush_main(int argc, char **argv)
 {
 	int opt;
 	FILE *input;
@@ -2572,8 +2572,8 @@ int shell_main(int argc, char **argv)
 	global_argc = argc;
 	global_argv = argv;
 	
-	/* (re?) initialize globals.  Sometimes shell_main() ends up calling
-	 * shell_main(), therefore we cannot rely on the BSS to zero out this 
+	/* (re?) initialize globals.  Sometimes hush_main() ends up calling
+	 * hush_main(), therefore we cannot rely on the BSS to zero out this 
 	 * stuff.  Reset these to 0 every time. */
 	ifs = NULL;
 	/* map[] is taken care of with call to update_ifs_map() */
