@@ -104,7 +104,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 
 	typed->name[strcspn(typed->name, " /")] = '\0';
 
-	if (archive_handle->filter(archive_handle->accept, archive_handle->reject, typed->name) == EXIT_SUCCESS) {
+	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(typed);
 		if (archive_handle->sub_archive) {
 			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS);

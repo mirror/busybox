@@ -116,7 +116,7 @@ extern int cpio_main(int argc, char **argv)
 				tmp = tmp->next;
 			}
 			pending_hardlinks = 0; /* No more pending hardlinks, read next file entry */
-	}
+		}
 
 		/* There can be padding before archive header */
 		data_align(archive_handle, 4);
@@ -138,7 +138,7 @@ extern int cpio_main(int argc, char **argv)
 		
 		if ((cpio_header[5] != '1') && (cpio_header[5] != '2')) {
 			error_msg_and_die("Unsupported cpio format, use newc or crc");
-	}
+		}
 
 		sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
 			dummy, &inode, (unsigned int*)&file_header->mode, 
@@ -206,7 +206,7 @@ extern int cpio_main(int argc, char **argv)
 		file_header->device = (major << 8) | minor;
 
 		extract_flag = FALSE;
-		if (archive_handle->filter(archive_handle->accept, archive_handle->reject, file_header->name) == EXIT_SUCCESS) {
+		if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 			struct stat statbuf;
 
 			extract_flag = TRUE;

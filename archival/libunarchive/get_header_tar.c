@@ -160,7 +160,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 # endif
 	}
 #endif
-	if (archive_handle->filter(archive_handle->accept, archive_handle->reject, archive_handle->file_header->name) == EXIT_SUCCESS) {
+	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(archive_handle->file_header);
 		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
 		archive_handle->action_data(archive_handle);
