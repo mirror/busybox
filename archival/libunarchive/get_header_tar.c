@@ -60,11 +60,18 @@ file_header_t *get_header_tar(FILE *tar_stream)
 	}
 	archive_offset += 512;
 
-	/* Check header has valid magic, unfortunately some tar files
-	 * have empty (0'ed) tar entries at the end, which will
-	 * cause this to fail, so fail silently for now
+	/* Check header has valid magic, "ustar" is for the proper tar
+	 * 0's are for the old tar format
 	 */
 	if (strncmp(tar.formated.magic, "ustar", 5) != 0) {
+#ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
+		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
+#endif
+			return(NULL);
+	}
+
+	/* If there is no filename its an empty header, skip it */
+	if (xstrlen(tar.formated.name) == 0) {
 		return(NULL);
 	}
 
@@ -85,7 +92,32 @@ file_header_t *get_header_tar(FILE *tar_stream)
 	tar_entry = xcalloc(1, sizeof(file_header_t));
 	tar_entry->name = xstrdup(tar.formated.name);
 
-	parse_mode(tar.formated.mode, &tar_entry->mode);
+	tar_entry->mode = strtol(tar.formated.mode, NULL, 8);
+#ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
+	switch (tar.formated.typeflag) {
+		case 0:
+			tar_entry->mode |= S_IFREG;
+			break;
+		case 1:
+			error_msg("internal hard link not handled\n");
+			break;
+		case 2:
+			tar_entry->mode |= S_IFLNK;
+			break;
+		case 3:
+			tar_entry->mode |= S_IFCHR;
+			break;
+		case 4:
+			tar_entry->mode |= S_IFBLK;
+			break;
+		case 5:
+			tar_entry->mode |= S_IFDIR;
+			break;
+		case 6:
+			tar_entry->mode |= S_IFIFO;
+			break;
+	}
+#endif
 	tar_entry->uid   = strtol(tar.formated.uid, NULL, 8);
 	tar_entry->gid   = strtol(tar.formated.gid, NULL, 8);
 	tar_entry->size  = strtol(tar.formated.size, NULL, 8);
