@@ -136,16 +136,14 @@ int wc_main(int argc, char **argv)
 	} else if (argc == 1) {
 		file = fopen(*argv, "r");
 		if (file == NULL) {
-			perror(*argv);
-			exit(FALSE);
+			fatalError(*argv);
 		}
 		wc_file(file, *argv);
 	} else {
 		while (argc-- > 0) {
 			file = fopen(*argv, "r");
 			if (file == NULL) {
-				perror(*argv);
-				exit(FALSE);
+				fatalError(*argv);
 			}
 			wc_file(file, *argv);
 			argv++;
