@@ -26,13 +26,6 @@
 #include <ctype.h>
 #include <getopt.h>
 
-/* It turns out that libc5 doesn't have this in its headers
- * even though it is actually in the lib.  Force it to work */
-#if ! defined __GLIBC__ && ! defined __UCLIBC__
-#define getline __getline
-extern _IO_ssize_t getline __P ((char **, size_t *, FILE *));
-#endif
-
 //----------------------------------------------------------------------------
 //--------md5.c
 //----------------------------------------------------------------------------
@@ -680,8 +673,7 @@ static int md5_check(const char *checkfile_name)
   int n_open_or_read_failures = 0;
   unsigned char md5buffer[16];
   size_t line_number;
-  char *line;
-  size_t line_chars_allocated;
+  char line[BUFSIZ];
 
   if (STREQ(checkfile_name, "-")) {
     have_read_stdin = 1;
@@ -695,8 +687,6 @@ static int md5_check(const char *checkfile_name)
   }
 
   line_number = 0;
-  line = 0;
-  line_chars_allocated = 0;
 
   do {
     char *filename;
@@ -706,7 +696,8 @@ static int md5_check(const char *checkfile_name)
 
     ++line_number;
 
-    line_length = getline(&line, &line_chars_allocated, checkfile_stream);
+    fgets(line, BUFSIZ-1, checkfile_stream);
+    line_length = strlen(line);
 
     if (line_length <= 0)
       break;

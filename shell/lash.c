@@ -137,6 +137,8 @@ static int builtin_if(struct child_prog *cmd);
 static int builtin_then(struct child_prog *cmd);
 static int builtin_else(struct child_prog *cmd);
 static int builtin_fi(struct child_prog *cmd);
+/* function prototypes for shell stuff */
+static int run_command_predicate(char *cmd);
 #endif
 
 
@@ -146,7 +148,6 @@ static int get_command(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
 static int pseudo_exec(struct child_prog *cmd) __attribute__ ((noreturn));
-static int run_command_predicate(char *cmd);
 static int busy_loop(FILE * input);
 
 
@@ -580,6 +581,7 @@ static int builtin_unset(struct child_prog *child)
 	return EXIT_SUCCESS;
 }
 
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 /* currently used by if/then/else.
  * Needlessly (?) forks and reparses the command line.
  * But pseudo_exec on the pre-parsed args doesn't have the
@@ -596,6 +598,7 @@ static int run_command_predicate(char *cmd)
 	local_pending_command[n]='\0';
 	return( busy_loop(NULL));
 }
+#endif
 
 /* free up all memory from a job */
 static void free_job(struct job *cmd)
