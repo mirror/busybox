@@ -332,6 +332,21 @@ extern const char * const bb_path_group_file;
 extern const char * const bb_path_securetty_file;
 extern const char * const bb_path_motd_file;
 
+/*
+ * You can change LIBBB_DEFAULT_LOGIN_SHELL, but don`t use,
+ * use bb_default_login_shell and next defines,
+ * if you LIBBB_DEFAULT_LOGIN_SHELL change,
+ * don`t lose change increment constant!
+ */
+#define LIBBB_DEFAULT_LOGIN_SHELL      "-/bin/sh"
+
+extern const char * const bb_default_login_shell;
+/* "/bin/sh" */
+#define DEFAULT_SHELL     (bb_default_login_shell+1)
+/* "sh" */
+#define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
+
+
 extern const char bb_path_mtab_file[];
 
 extern int bb_default_error_retval;

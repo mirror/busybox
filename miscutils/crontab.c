@@ -320,7 +320,7 @@ EditFile(const char *user, const char *file)
 	    ptr = PATH_VI;
 
 	snprintf(visual, sizeof(visual), "%s %s", ptr, file);
-	execl("/bin/sh", "/bin/sh", "-c", visual, NULL);
+	execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", visual, NULL);
 	perror("exec");
 	exit(0);
     }
@@ -360,7 +360,7 @@ ChangeUser(const char *user, short dochdir)
     }
     setenv("USER", pas->pw_name, 1);
     setenv("HOME", pas->pw_dir, 1);
-    setenv("SHELL", "/bin/sh", 1);
+    setenv("SHELL", DEFAULT_SHELL, 1);
 
     /*
      * Change running state to the user in question

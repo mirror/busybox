@@ -1009,7 +1009,7 @@ static int doit(char *str)
 			case -1:		/* failure */
 				return 0;
 			case 0:		/* child */
-				execle("/bin/sh", "/bin/sh", "-c", str, NULL, environ);
+				execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, environ);
 				exit(127);
 		}
 		waitpid(child, &status, 0);

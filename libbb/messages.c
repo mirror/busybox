@@ -90,3 +90,7 @@ const char * const bb_path_securetty_file = SECURETTY_FILE;
 const char * const bb_path_motd_file = MOTD_FILE;
 #endif
 
+#ifdef L_shell_file
+const char * const bb_default_login_shell = LIBBB_DEFAULT_LOGIN_SHELL;
+#endif
+

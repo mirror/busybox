@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.6 2003/04/25 12:32:37 andersen Exp $
+/* $Id: telnetd.c,v 1.7 2003/09/02 02:36:16 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -52,7 +52,7 @@ static const char *loginpath =
 #ifdef CONFIG_LOGIN
 "/bin/login";
 #else
-"/bin/sh";
+DEFAULT_SHELL;
 #endif
 static const char *issuefile = "/etc/issue.net";
 

@@ -21,7 +21,6 @@
 
 
 /* The shell to run if none is given in the user's passwd entry.  */
-#define DEFAULT_SHELL "/bin/sh"
 #define DEFAULT_USER  "root"
 
 //#define SYSLOG_SUCCESS

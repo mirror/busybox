@@ -53,7 +53,6 @@ typedef struct {
 static const char default_passwd[] = "x";
 static const char default_gecos[] = "Linux User,,,";
 static const char default_home_prefix[] = "/home";
-static const char default_shell[] = "/bin/sh";
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 /* shadow in use? */
@@ -257,7 +256,7 @@ int adduser_main(int argc, char **argv)
 	const char *login;
 	const char *gecos = default_gecos;
 	const char *home = NULL;
-	const char *shell = default_shell;
+	const char *shell = DEFAULT_SHELL;
  	const char *usegroup = NULL;
 	int flags;
 	int setpass = 1;

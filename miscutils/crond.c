@@ -54,9 +54,6 @@
 #define MAXLINES        256             /* max lines in non-root crontabs */
 #endif
 
-static const char def_sh[] = "/bin/sh";
-
-
 typedef struct CronFile {
     struct CronFile *cf_Next;
     struct CronLine *cf_LineBase;
@@ -313,7 +310,7 @@ ChangeUser(const char *user)
     }
     setenv("USER", pas->pw_name, 1);
     setenv("HOME", pas->pw_dir, 1);
-    setenv("SHELL", def_sh, 1);
+    setenv("SHELL", DEFAULT_SHELL, 1);
 
     /*
      * Change running state to the user in question
@@ -997,7 +994,7 @@ RunJob(const char *user, CronLine *line)
 			user, mailFile);
     }
 
-    ForkJob(user, line, mailFd, def_sh, "-c", line->cl_Shell, mailFile);
+    ForkJob(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_Shell, mailFile);
 }
 
 /*
@@ -1081,12 +1078,12 @@ RunJob(const char *user, CronLine *line)
 
 #ifdef FEATURE_DEBUG_OPT
 	if (DebugOpt)
-	    crondlog("\005Child Running %s\n", def_sh);
+	    crondlog("\005Child Running %s\n", DEFAULT_SHELL);
 #endif
 
-	execl(def_sh, def_sh, "-c", line->cl_Shell, NULL);
+	execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_Shell, NULL);
 	crondlog("\024unable to exec, user %s cmd %s -c %s\n", user,
-	    def_sh, line->cl_Shell);
+	    DEFAULT_SHELL, line->cl_Shell);
 	exit(0);
     } else if (pid < 0) {
 	/*

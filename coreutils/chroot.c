@@ -43,7 +43,7 @@ int chroot_main(int argc, char **argv)
 	if (argc == 2) {
 		argv -= 2;
 		if (!(*argv = getenv("SHELL"))) {
-			*argv = (char *) "/bin/sh";
+			*argv = (char *) DEFAULT_SHELL;
 		}
 		argv[1] = (char *) "-i";
 	}

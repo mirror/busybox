@@ -104,8 +104,6 @@ struct serial_struct {
 
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
-#define SHELL        "/bin/sh"	/* Default shell */
-#define LOGIN_SHELL  "-" SHELL	/* Default login shell */
 #define INITTAB      "/etc/inittab"	/* inittab file location */
 #ifndef INIT_SCRIPT
 #define INIT_SCRIPT  "/etc/init.d/rcS"	/* Default sysinit script. */
@@ -180,7 +178,7 @@ static const int RB_AUTOBOOT = 0x01234567;
 static const char * const environment[] = {
 	"HOME=/",
 	"PATH=" _PATH_STDPATH,
-	"SHELL=" SHELL,
+	"SHELL=/bin/sh",
 	"USER=root",
 	NULL
 };
@@ -526,7 +524,7 @@ static pid_t run(const struct init_action *a)
 
 		/* See if any special /bin/sh requiring characters are present */
 		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
-			cmd[0] = SHELL;
+			cmd[0] = (char *)DEFAULT_SHELL;
 			cmd[1] = "-c";
 			cmd[2] = strcat(strcpy(buf, "exec "), a->command);
 			cmd[3] = NULL;
@@ -840,7 +838,7 @@ static void child_handler(int sig)
 
 #endif							/* ! DEBUG_INIT */
 
-static void new_init_action(int action, char *command, const char *cons)
+static void new_init_action(int action, const char *command, const char *cons)
 {
 	struct init_action *new_action, *a;
 
@@ -960,10 +958,10 @@ static void parse_inittab(void)
 		/* Prepare to restart init when a HUP is received */
 		new_init_action(RESTART, "/sbin/init", "");
 		/* Askfirst shell on tty1-4 */
-		new_init_action(ASKFIRST, LOGIN_SHELL, "");
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_2);
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_3);
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_4);
+		new_init_action(ASKFIRST, bb_default_login_shell, "");
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_2);
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_3);
+		new_init_action(ASKFIRST, bb_default_login_shell, VC_4);
 		/* sysinit */
 		new_init_action(SYSINIT, INIT_SCRIPT, "");
 
@@ -1116,7 +1114,7 @@ extern int init_main(int argc, char **argv)
 	if (argc > 1 && (!strcmp(argv[1], "single") ||
 					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
 		/* Start a shell on console */
-		new_init_action(RESPAWN, LOGIN_SHELL, "");
+		new_init_action(RESPAWN, bb_default_login_shell, "");
 	} else {
 		/* Not in single user mode -- see what inittab says */
 

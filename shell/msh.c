@@ -668,7 +668,6 @@ static char	*null	= "";
 static int	heedint =1;
 static struct env e ={line, iostack, iostack-1, (xint *)NULL, FDBASE, (struct env *)NULL};
 static void (*qflag)(int) = SIG_IGN;
-static char	shellname[] = "/bin/sh";
 static	int	startl;
 static	int	peeksym;
 static	int	nlseen;
@@ -717,7 +716,7 @@ extern int msh_main(int argc, char **argv)
 
 	shell = lookup("SHELL");
 	if (shell->value == null)
-		setval(shell, shellname);
+		setval(shell, DEFAULT_SHELL);
 	export(shell);
 
 	homedir = lookup("HOME");
@@ -2871,7 +2870,7 @@ char *c, **v, **envp;
 			*v = e.linep;
 			tp = *--v;
 			*v = e.linep;
-			execve(shellname, v, envp);
+			execve(DEFAULT_SHELL, v, envp);
 			*v = tp;
 			return("no Shell");
 
@@ -3902,7 +3901,7 @@ int quoted;
 	dup2(pf[1], 1);
 	closepipe(pf);
 
-	argument_list[0] = shellname;
+	argument_list[0] = (char *)DEFAULT_SHELL;
 	argument_list[1] = "-c";
 	argument_list[2] = child_cmd;
 	argument_list[3] = 0;

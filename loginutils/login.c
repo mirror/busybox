@@ -65,7 +65,7 @@ extern int login_main(int argc, char **argv)
 	char full_tty[200];
 	char fromhost[512];
 	char username[USERNAME_SIZE];
-	char *tmp;
+	const char *tmp;
 	int amroot;
 	int flag;
 	int failed;
@@ -267,15 +267,17 @@ auth_ok:
 	chmod ( full_tty, 0600 );
 
 	change_identity ( pw );
-	setup_environment ( pw-> pw_shell, 1, !opt_preserve, pw );
+	tmp = pw-> pw_shell;
+	if(!tmp || !*tmp)
+		tmp = DEFAULT_SHELL;
+	setup_environment ( tmp, 1, !opt_preserve, pw );
 
 	motd ( );
 	signal ( SIGALRM, SIG_DFL );	/* default alarm signal */
 
 	if ( pw-> pw_uid == 0 ) 
 		syslog ( LOG_INFO, "root login %s\n", fromhost );
-	
-	run_shell ( pw-> pw_shell, 1, 0, 0
+	run_shell ( tmp, 1, 0, 0
 #ifdef CONFIG_SELINUX
 	, sid
 #endif

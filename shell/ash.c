@@ -3729,7 +3729,7 @@ repeat:
 		for (ap = argv; *ap; ap++)
 			;
 		ap = new = ckmalloc((ap - argv + 2) * sizeof(char *));
-		*ap++ = cmd = "/bin/sh";
+		*ap++ = cmd = (char *)DEFAULT_SHELL;
 		while ((*ap++ = *argv++))
 			;
 		argv = new;
