@@ -1,17 +1,39 @@
 0.53pre
 
     Critical Bugfixes:
-	* Matt Kraai -- Fixed wget output file opening.
+	* Matt Kraai -- Fixed wget output file opening (wget failed in 0.52).
+	* Matt Kraai -- Fixed a memory leak in syslogd (found by Adam Slattery).
 
     New Applets:
 	* Vladimir Oleynik -- traceroute
+	* David McCullough <davidm@lineo.com> -- modprobe
 
     Other Changes:
-	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax,
-	     many ash corrections, and others optimizations, and cleanups.
-	* Matt Kraai -- Added BB_FEATURE_DEVFS to enable devfs device names.
-	* Glenn McGrath -- dpkg rewrite, the provided functionality should 
-	     be compatable with the official dpkg, but needs more testing.
+	* Vladimir Oleynik 
+	    -- Fixed tr to support 'tr a-z A-Z' syntax,
+	    -- Many ash corrections, optimizations, and cleanups.
+	    -- optimizations for traceroute and md5sum
+	    -- cmdedit updates and API change
+	    -- Namespace cleanup (i.e. adding 'static' private function calls)
+	    -- added "stopped jobs" warning to ash on exit
+	* Glenn McGrath 
+	    -- dpkg rewrite.  Should now be compatable with the real dpkg, 
+		but needs more testing.
+	    -- Updates to archiving tools (gunzip/gzip/cpio/ar/etc) 
+	* Erik Andersen -- fixed busybox.spec so it should now work on
+	    properly on redhat systems
+	* Matt Kraai 
+	    -- Made tar read 20 512byte blocks at a time (like GNU tar)
+	    -- Allow msh.c assignments with the export and readonly commands.
+	    -- Added BB_FEATURE_DEVFS to enable devfs device names.
+	    -- Fixed ping compile problem, size reduction
+	* Aaron Lehmann -- slimmed down md5sum 
+	* David McCullough and Erik Andersen -- make busybox more uClinux
+	    friendly.  Busybox _should_ now work on uClinux systems without
+	    needing and source code changes (applets that won't work on
+	    uClinux systems are now automagicaly disabled).
+	* Felix von Leitner <leitner@convergence.de> -- patches to make busybox 
+	    work with dietlibc.
 
 	 -Not Yet Released
 
