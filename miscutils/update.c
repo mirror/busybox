@@ -33,14 +33,12 @@
 #include <unistd.h> /* for getopt() */
 #include <stdlib.h>
 
-
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
-#include <sys/syscall.h>
-#include <linux/unistd.h>
-static _syscall2(int, bdflush, int, func, int, data);
-#endif /* __GLIBC__ */
+extern int bdflush (int func, long int data);
+#endif							/* __GLIBC__ */
+
 #include "busybox.h"
 
 static unsigned int sync_duration = 30;

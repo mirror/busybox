@@ -151,8 +151,8 @@ int dd_main(int argc, char **argv)
 			out_part++;
 	}
 
-	fprintf(statusfp, "%d+%d records in\n", in_full, in_part);
-	fprintf(statusfp, "%d+%d records out\n", out_full, out_part);
+	fprintf(statusfp, "%ld+%ld records in\n", (long)in_full, (long)in_part);
+	fprintf(statusfp, "%ld+%ld records out\n", (long)out_full, (long)out_part);
 
 	return EXIT_SUCCESS;
 }

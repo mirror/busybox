@@ -119,7 +119,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.53 2001/03/22 19:01:16 andersen Exp $"
+#ident "$Id: insmod.c,v 1.54 2001/04/05 03:14:39 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -325,7 +325,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.53 2001/03/22 19:01:16 andersen Exp $"
+#ident "$Id: insmod.c,v 1.54 2001/04/05 03:14:39 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1210,18 +1210,18 @@ int arch_create_got(struct obj_file *f)
 
 #if defined(BB_USE_GOT_ENTRIES)
 	if (got_offset) {
-		struct obj_section* relsec = obj_find_section(f, ".got");
+		struct obj_section* myrelsec = obj_find_section(f, ".got");
 
-		if (relsec) {
-			obj_extend_section(relsec, got_offset);
+		if (myrelsec) {
+			obj_extend_section(myrelsec, got_offset);
 		} else {
-			relsec = obj_create_alloced_section(f, ".got", 
+			myrelsec = obj_create_alloced_section(f, ".got", 
 							    BB_GOT_ENTRY_SIZE,
 							    got_offset);
-			assert(relsec);
+			assert(myrelsec);
 		}
 
-		ifile->got = relsec;
+		ifile->got = myrelsec;
 	}
 #endif
 
@@ -1748,19 +1748,19 @@ old_process_module_arguments(struct obj_file *f, int argc, char **argv)
 			while (*q++ == ',');
 		} else {
 			char *contents = f->sections[sym->secidx]->contents;
-			char *loc = contents + sym->value;
+			char *myloc = contents + sym->value;
 			char *r;			/* To search for commas */
 
 			/* Break the string with comas */
 			while ((r = strchr(q, ',')) != (char *) NULL) {
 				*r++ = '\0';
-				obj_string_patch(f, sym->secidx, loc - contents, q);
-				loc += sizeof(char *);
+				obj_string_patch(f, sym->secidx, myloc - contents, q);
+				myloc += sizeof(char *);
 				q = r;
 			}
 
 			/* last part */
-			obj_string_patch(f, sym->secidx, loc - contents, q);
+			obj_string_patch(f, sym->secidx, myloc - contents, q);
 		}
 
 		argc--, argv++;

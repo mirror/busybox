@@ -26,15 +26,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <sys/syscall.h>
-#include <linux/unistd.h>
 #include "busybox.h"
-#define __LIBRARY__
 
+extern int delete_module(const char * name);
 
-
-/* And the system call of the day is...  */
-_syscall1(int, delete_module, const char *, name)
 
 extern int rmmod_main(int argc, char **argv)
 {

@@ -29,13 +29,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mount.h>
-#include <sys/syscall.h>
-#include <linux/unistd.h>
+
+#if __GNU_LIBRARY__ < 5
+/* libc5 doesn't have sys/swap.h, define these here. */ 
+extern int swapon (__const char *__path, int __flags);
+extern int swapoff (__const char *__path);
+#else
+#include <sys/swap.h>
+#endif
+
 #include "busybox.h"
-
-static _syscall2(int, swapon, const char *, path, int, flags);
-static _syscall1(int, swapoff, const char *, path);
-
 
 static int whichApp;
 

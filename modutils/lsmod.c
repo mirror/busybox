@@ -52,8 +52,7 @@ struct module_info
 };
 
 
-int query_module(const char *name, int which, void *buf, size_t bufsize,
-		 size_t *ret);
+int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
 
 /* Values for query_module's which.  */
 static const int QM_MODULES = 1;

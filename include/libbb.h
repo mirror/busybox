@@ -211,5 +211,6 @@ enum {
 };
 
 int ask_confirmation(void);
+int klogctl(int type, char * b, int len);
 
 #endif /* __LIBBB_H__ */

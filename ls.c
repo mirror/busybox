@@ -626,7 +626,7 @@ static int list_single(struct dnode *dn)
 				column += 10;
 				break;
 			case LIST_NLINKS:
-				printf("%4d ", dn->dstat.st_nlink);
+				printf("%4ld ", (long)dn->dstat.st_nlink);
 				column += 10;
 				break;
 			case LIST_ID_NAME:

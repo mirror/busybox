@@ -84,11 +84,7 @@ extern int mount (__const char *__special_file, __const char *__dir,
 extern int umount (__const char *__special_file);
 extern int umount2 (__const char *__special_file, int __flags);
 
-#include <sys/syscall.h>
-#include <linux/unistd.h>
-static int sysfs( int option, unsigned int fs_index, char * buf);
-_syscall3(int, sysfs, int, option, unsigned int, fs_index, char *, buf);
-
+extern int sysfs( int option, unsigned int fs_index, char * buf);
 
 extern const char mtab_file[];	/* Defined in utility.c */
 

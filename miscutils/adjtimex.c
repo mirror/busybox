@@ -44,7 +44,14 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#if __GNU_LIBRARY__ < 5
 #include <sys/timex.h>
+extern int adjtimex(struct timex *buf);
+#else
+#include <sys/timex.h>
+#endif
+
 #ifdef BB_VER
 #include "busybox.h"
 #endif
@@ -163,7 +170,7 @@ int main(int argc, char ** argv)
 			"    return value: %d (%s)\n",
 		txc.constant,
 		txc.precision, txc.tolerance, txc.tick,
-		txc.time.tv_sec, txc.time.tv_usec, ret, descript);
+		(long)txc.time.tv_sec, (long)txc.time.tv_usec, ret, descript);
 	}
 	return (ret<0);
 }

@@ -12,14 +12,6 @@
 #include "busybox.h"
 
 
-/* Stupid libc doesn't have a reliable way for use to know 
- * that libc5 is being used.   Assume this is good enough */ 
-#if !defined __GLIBC__ && !defined __UCLIBC__
-#error It looks like you are using libc5, which does not support
-#error tfind().  tfind() is used by busybox dpkg.
-#error Please disable BB_DPKG.  Sorry.
-#endif	
-
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
 /* Should we do full dependency checking? */
@@ -591,6 +583,7 @@ static int dpkg_dounpack(package_t *pkg)
 	char *adminscripts[] = { "/prerm", "/postrm", "/preinst", "/postinst",
 			"/conffiles", "/md5sums", "/shlibs", "/templates" };
 	char buf[1024], buf2[1024];
+	FILE *myfile = stdout;
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
@@ -622,9 +615,9 @@ static int dpkg_dounpack(package_t *pkg)
 		strcpy(lst_file, infodir);
 		strcat(lst_file, pkg->package);
 		strcat(lst_file, ".list");
-		outfp = freopen(lst_file, "w", stdout);
+		outfp = freopen(lst_file, "w", myfile);
 		deb_extract(dpkg_deb_list, NULL, pkg->file);
-		stdout = freopen(NULL, "w", outfp);
+		myfile = freopen(NULL, "w", outfp);
 
 		printf("done\n");
 		getchar();

@@ -115,9 +115,7 @@ static const int RB_AUTOBOOT = 0x01234567;
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
-#include <sys/syscall.h>
-#include <linux/unistd.h>
-static _syscall2(int, bdflush, int, func, int, data);
+extern int bdflush (int func, long int data);
 #endif							/* __GLIBC__ */
 
 
