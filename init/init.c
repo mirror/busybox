@@ -879,7 +879,8 @@ extern int init_main(int argc, char **argv)
 	
 	/* Fix up argv[0] to be certain we claim to be init */
 	strncpy(argv[0], "init", strlen(argv[0])+1);
-	strncpy(argv[1], "\0", strlen(argv[1])+1);
+	if (argc > 1)
+		strncpy(argv[1], "\0", strlen(argv[1])+1);
 
 	/* Now run everything that needs to be run */
 
