@@ -32,7 +32,7 @@ TARGET_OS := linux
 # With a modern GNU make(1) (highly recommended, that's what all the
 # developers use), all of the following configuration values can be
 # overridden at the command line.  For example:
-#   make CROSS=powerpc-linux- CONFIG_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+#   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
 
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
@@ -67,10 +67,10 @@ DOEFENCE  = false
 # larger than 2GB!
 DOLFS = false
 
-# If you have a "pristine" source directory, point CONFIG_SRC_DIR to it.
+# If you have a "pristine" source directory, point BB_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
 # <busybox@busybox.net> if you do or don't like it so far.
-CONFIG_SRC_DIR =
+BB_SRC_DIR =
 
 # If you are running a cross compiler, you may want to set CROSS
 # to something more interesting, like "arm-linux-".
@@ -163,18 +163,18 @@ endif
 
 # Additional complications due to support for pristine source dir.
 # Include files in the build directory should take precedence over
-# the copy in CONFIG_SRC_DIR, both during the compilation phase and the
+# the copy in BB_SRC_DIR, both during the compilation phase and the
 # shell script that finds the list of object files.
 # Work in progress by <ldoolitt@recycle.lbl.gov>.
 #
-ifneq ($(strip $(CONFIG_SRC_DIR)),)
-    VPATH = $(CONFIG_SRC_DIR)
+ifneq ($(strip $(BB_SRC_DIR)),)
+    VPATH = $(BB_SRC_DIR)
 endif
 
 OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
-ifdef CONFIG_INIT_SCRIPT
-    CFLAGS += -DINIT_SCRIPT='"$(CONFIG_INIT_SCRIPT)"'
+ifdef BB_INIT_SCRIPT
+    CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
 # Put user-supplied flags at the end, where they
@@ -213,7 +213,7 @@ $(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
 	$(MAKE) CFLAGS="$(CFLAGS)" -C $(patsubst _dir_%, %, $@)
 
 busybox: config.h dep-files bbsubdirs
-	$(CC) $(LDFLAGS) -o $@ applets/busybox.o $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
+	$(CC) $(LDFLAGS) -o $@ applets/busybox.o $(shell find $(SUBDIRS) -name \*.a) $(LIBRARIES)
 	$(STRIPCMD) $(PROG)
 
 busybox.links: applets/busybox.mkll
@@ -309,7 +309,7 @@ dep-files: scripts/mkdep
 depend dep: config.h dep-files
 	@ echo -e "\n\nNow run 'make' to build BusyBox\n\n"
 
-CONFIG_SHELL := ${shell if [ -x "$$BASH" ]; then echo $$BASH; \
+BB_SHELL := ${shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	else if [ -x /bin/bash ]; then echo /bin/bash; \
 	else echo sh; fi ; fi}
 
@@ -325,15 +325,15 @@ config.h:
 menuconfig:
 	mkdir -p $(TOPDIR)/include/config
 	$(MAKE) -C scripts/lxdialog all
-	$(CONFIG_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
+	$(BB_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
 
 config:
 	mkdir -p $(TOPDIR)/include/config
-	$(CONFIG_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
+	$(BB_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
 
 oldconfig:
 	mkdir -p $(TOPDIR)/include/config
-	$(CONFIG_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
+	$(BB_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
 
 
 ifdef CONFIGURATION
@@ -373,7 +373,7 @@ clean:
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.net/busybox.html \
 	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
-	- rm -f busybox.links libbb/loop.h .config.old .hdepend
+	- rm -f busybox busybox.links libbb/loop.h .config.old .hdepend
 	- rm -f scripts/split-include scripts/mkdep .*config.log
 	- rm -rf include/config include/config.h
 	- find -name .\*.flags -o -name .depend -exec rm -f {} \;
