@@ -1599,13 +1599,14 @@ extern int find_real_root_device_name(char* name)
 }
 #endif
 
-static const int GROWBY = 80; /* how large we will grow strings by */
 
 /* get_line_from_file() - This function reads an entire line from a text file
  * up to a newline. It returns a malloc'ed char * which must be stored and
  * free'ed  by the caller. */
 extern char *get_line_from_file(FILE *file)
 {
+	static const int GROWBY = 80; /* how large we will grow strings by */
+
 	int ch;
 	int idx = 0;
 	char *linebuf = NULL;
