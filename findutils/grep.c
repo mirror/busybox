@@ -246,6 +246,7 @@ extern int grep_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
 	if (strcmp (basename (argv[0]), "egrep") == 0)
 		reflags |= REG_ICASE;
+		reflags |= REG_EXTENDED;
 #endif
 
 	/* do normal option parsing */
