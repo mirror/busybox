@@ -344,8 +344,8 @@
 	"Erik\n" \
 	"is\n" \
 	"cool\n" \
-	"$ echo "Erik\nis\ncool"\n" \
-	"Erik\nis\ncool\n"
+	"$ echo "Erik\\nis\\ncool"\n" \
+	"Erik\\nis\\ncool\n"
 
 #define env_trivial_usage \
 	"[-iu] [-] [name=value]... [command]"
