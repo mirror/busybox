@@ -53,9 +53,8 @@ extern int uptime_main(int argc, char **argv)
 
 	sysinfo(&info);
 
-	printf(" %2d:%02d%s  up ",
-			current_time->tm_hour%12 ? current_time->tm_hour%12 : 12,
-			current_time->tm_min, current_time->tm_hour > 11 ? "pm" : "am");
+	printf(" %02d:%02d:%02d up ",
+			current_time->tm_hour, current_time->tm_min, current_time->tm_sec);
 	updays = (int) info.uptime / (60*60*24);
 	if (updays)
 		printf("%d day%s, ", updays, (updays != 1) ? "s" : "");
