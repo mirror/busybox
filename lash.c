@@ -52,6 +52,7 @@
 #define MAX_LINE	256	/* size of input buffer for `read' builtin */
 #define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
+extern size_t NUM_APPLETS;
 
 
 enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,

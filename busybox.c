@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+
+#undef APPLET
+#undef APPLET_NOUSAGE
+#undef PROTOTYPES
 #include "applets.h"
 
 #define bb_need_full_version
