@@ -204,14 +204,14 @@ crontab_main(int ac, char **av)
 	    int n;
 
 	    snprintf(path, sizeof(path), "%s.new", pas->pw_name);
-	    if ((fd = open(path, O_CREAT|O_TRUNC|O_EXCL|O_APPEND|O_WRONLY, 0600)) >= 0) {
+	    if ((fd = open(path, O_CREAT|O_TRUNC|O_APPEND|O_WRONLY, 0600)) >= 0) {
 		while ((n = read(repFd, buf, sizeof(buf))) > 0) {
 		    write(fd, buf, n);
 		}
 		close(fd);
 		rename(path, pas->pw_name);
 	    } else {
-		error_msg("unable to create %s/%s", CDir, buf);
+		error_msg("unable to create %s/%s", CDir, path);
 	    }
 	    close(repFd);
 	}

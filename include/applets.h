@@ -111,7 +111,7 @@
 	APPLET(crond, crond_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_CRONTAB
-	APPLET(crontab, crontab_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+	APPLET(crontab, crontab_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
 #endif
 #ifdef CONFIG_CUT
 	APPLET(cut, cut_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
