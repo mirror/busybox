@@ -11,18 +11,15 @@ config CONFIG_FREE
 	help
 	  Please submit a patch to add help text for this item.
 
-if CONFIG_KILLALL
-	config CONFIG_KILL
-		default y
-	comment "kill (forced enabled for killall)"
-endif
-if !CONFIG_KILLALL
-	config CONFIG_KILL
-		bool "kill"
-		default n
-		help
-		  Please submit a patch to add help text for this item.
-endif
+config CONFIG_KILL
+	default y
+
+config CONFIG_KILL
+	bool "kill"
+	default n
+	depends on CONFIG_KILL
+	help
+	  Please submit a patch to add help text for this item.
 
 config CONFIG_KILLALL
 	bool "killall"
