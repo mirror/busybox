@@ -219,6 +219,9 @@ char *unarchive(FILE *src_stream, file_header_t *(*get_headers)(FILE *),
 	int i;
 	char *buffer = NULL;
 
+	if (extract_names == NULL) {
+		return(NULL);
+	}
 	archive_offset = 0;
 	while ((file_entry = get_headers(src_stream)) != NULL) {
 		found = FALSE;
@@ -259,7 +262,6 @@ file_header_t *get_header_ar(FILE *src_stream)
 	static char *ar_long_names;
 
 	if (fread(ar.raw, 1, 60, src_stream) != 60) {
-		free (ar_long_names);
 		return(NULL);
 	}
 	archive_offset += 60;
@@ -535,10 +537,14 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 	char **file_list;
 	int gunzip_pid;
 
-	file_list = malloc(sizeof(char *));
-	file_list[0] = xstrdup(filename);
-	file_list[1] = NULL;
-
+	if (filename == NULL) {
+		file_list = NULL;
+	} else {
+		file_list = xmalloc(sizeof(char *) * 3);
+		file_list[0] = xstrdup(filename);
+		file_list[1] = NULL;
+	}
+	
 	if (extract_function & extract_control_tar_gz) {
 		ared_file = xstrdup("control.tar.gz");
 	}
