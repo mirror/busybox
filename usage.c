@@ -1012,6 +1012,16 @@ const char ping_usage[] =
 #endif
 #endif
 
+#if defined BB_PIVOT_ROOT
+const char pivot_root_usage[] =
+	"pivot_root new_root put_old"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\n\nMove the current root file system to put_old and make new_root\n"
+	"the new root file system."
+#endif
+	;
+#endif
+
 #if defined BB_POWEROFF
 const char poweroff_usage[] =
 	"poweroff"

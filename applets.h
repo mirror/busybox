@@ -245,6 +245,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_PING
 	APPLET("ping", ping_main, _BB_DIR_BIN, ping_usage)
 #endif
+#ifdef BB_PIVOT_ROOT
+	APPLET("pivot_root", pivot_root_main, _BB_DIR_SBIN, pivot_root_usage)
+#endif
 #ifdef BB_POWEROFF
 	APPLET("poweroff", poweroff_main, _BB_DIR_SBIN, poweroff_usage)
 #endif

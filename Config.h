@@ -74,6 +74,7 @@
 //#define BB_MT
 //#define BB_NSLOOKUP
 //#define BB_PING
+//#define BB_PIVOT_ROOT
 #define BB_POWEROFF
 //#define BB_PRINTF
 #define BB_PS
