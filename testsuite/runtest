@@ -36,8 +36,8 @@ run_applet_testcase ()
 		return 0
 	fi
 
-	if grep -q "^# UNSUPPORTED: " $testcase; then
-		local feature=`sed -ne 's/.*UNSUPPORTED: //p' $testcase`
+	if grep -q "^# FEATURE: " $testcase; then
+		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
 
 		if grep -q "^# ${feature} is not set$" ../.config; then
 			show_result UNTESTED $testname

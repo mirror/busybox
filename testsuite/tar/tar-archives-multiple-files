@@ -1,4 +1,4 @@
-# UNSUPPORTED: CONFIG_FEATURE_TAR_CREATE
+# FEATURE: CONFIG_FEATURE_TAR_CREATE
 touch foo bar
 busybox tar cf foo.tar foo bar
 rm foo bar

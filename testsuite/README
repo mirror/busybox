@@ -6,10 +6,11 @@ cases for particular applets, specify them as parameters to runtest.
 The test cases for an applet reside in the subdirectory of the applet name.  The
 name of the test case should be the assertion that is tested.  The test case
 should be a shell fragment that returns successfully if the test case passes,
-and unsuccessfully otherwise.  If the test case is known to fail, it should be
-marked as such by including the string "XFAIL" in a comment.  If a certain
-feature must be enabled for it to pass, it should indicate that by including the
-string "UNSUPPORTED: " followed by the feature name in a comment.
+and unsuccessfully otherwise.
+
+If the test case relies on a certain feature, it should include the string
+"FEATURE: " followed by the name of the feature in a comment.  If it is always
+expected to fail, it should include the string "XFAIL" in a comment.
 
 For the entire testsuite, the copyright is as follows:
 
