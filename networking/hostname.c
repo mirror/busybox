@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.31 2001/10/24 04:59:56 andersen Exp $
+ * $Id: hostname.c,v 1.32 2001/10/31 09:59:57 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -30,7 +30,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "busybox.h"
+
+extern char *optarg; /* in unistd.h */
+extern int  optind, opterr, optopt; /* in unistd.h */
 
 static void do_sethostname(char *s, int isfile)
 {
@@ -48,81 +52,79 @@ static void do_sethostname(char *s, int isfile)
 		}
 	} else {
 		f = xfopen(s, "r");
-		fgets(buf, 255, f);
+		while (fgets(buf, 255, f) != NULL) {
+			if (buf[0] =='#') {
+				continue;
+			}
+			chomp(buf);
+			do_sethostname(buf, 0);
+		}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 		fclose(f);
 #endif
-		chomp(buf);
-		do_sethostname(buf, 0);
 	}
 }
 
 int hostname_main(int argc, char **argv)
 {
-	int opt_short = 0;
-	int opt_domain = 0;
-	int opt_ip = 0;
-	struct hostent *h;
+	int opt;
+	int type = 0;
+	struct hostent *hp;
 	char *filename = NULL;
 	char buf[255];
-	char *s = NULL;
+	char *p = NULL;
 
 	if (argc < 1)
 		show_usage();
 
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*(++(*argv))) {
-			switch (**argv) {
-			case 's':
-				opt_short = 1;
-				break;
-			case 'i':
-				opt_ip = 1;
-				break;
-			case 'd':
-				opt_domain = 1;
-				break;
-			case 'F':
-				if (--argc == 0) {
-					show_usage();
-				}
-				filename = *(++argv);
-				break;
-			case '-':
-				if (strcmp(++(*argv), "file") || --argc ==0 ) {
-					show_usage();
-				}
-				filename = *(++argv);
-				break;
-			default:
-				show_usage();
-			}
-			if (filename != NULL)
-				break;
+        while ((opt = getopt(argc, argv, "dfisF:")) > 0) {
+                switch (opt) {
+		case 'd':
+		case 'f':
+		case 'i':
+		case 's':
+			type = opt;
+			break;
+		case 'F':
+			filename = optarg;
+			break;
+		default:
+			show_usage();
 		}
 	}
 
-	if (argc >= 1) {
-		do_sethostname(*argv, 0);
-	} else if (filename != NULL) {
-		do_sethostname(filename, 1);
-	} else {
+	/* Output in desired format */
+	if (type != 0) {
 		gethostname(buf, 255);
-		if (opt_short) {
-			s = strchr(buf, '.');
-			if (!s)
-				s = buf;
-			*s = 0;
+		hp = xgethostbyname(buf);
+		p = strchr(hp->h_name, '.');
+		if (type == 'f') {
+			puts(hp->h_name);
+		} else if (type == 's') {
+			if (p != NULL) {
+				*p = 0;
+			}
 			puts(buf);
-		} else if (opt_domain) {
-			s = strchr(buf, '.');
-			puts(s ? s + 1 : "");
-		} else if (opt_ip) {
-			h = xgethostbyname(buf);
-			puts(inet_ntoa(*(struct in_addr *) (h->h_addr)));
-		} else {
-			puts(buf);
+		} else if (type == 'd') {
+			puts(p ? p + 1 : "");
+		} else if (type == 'i') {
+			while (hp->h_addr_list[0]) {
+				printf("%s ", inet_ntoa(*(struct in_addr *) (*hp->h_addr_list++)));
+			}
+			printf("\n");
 		}
+	}
+	/* Set the hostname */
+	else if (filename != NULL) {
+		do_sethostname(filename, 1);
+	} else if (optind < argc) {
+		do_sethostname(argv[optind], 0);
+	}
+	/* Or if all else fails,
+	 * just print the current hostname */
+	 else {
+		gethostname(buf, 255);
+		puts(buf);
 	}
 	return(0);
 }
