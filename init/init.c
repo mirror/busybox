@@ -886,7 +886,7 @@ extern int init_main(int argc, char **argv)
 	setsid();
 
 	/* Make sure PATH is set to something sane */
-	putenv(_PATH_STDPATH);
+	putenv("PATH="_PATH_STDPATH);
 
 	/* Hello world */
 #ifndef DEBUG_INIT
