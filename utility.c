@@ -200,7 +200,8 @@ extern _syscall5(int, mount, const char *, special_file, const char *, dir,
 		const char *, fstype, unsigned long int, rwflag, const void *, data);
 #endif
 
-#if defined BB_INSMOD || defined BB_LSMOD
+#if defined BB_FEATURE_NEW_MODULE_INTERFACE && 
+		(defined BB_INSMOD || defined BB_LSMOD)
 #ifndef __NR_query_module
 static const int __NR_query_module = 167;
 #endif
