@@ -79,6 +79,7 @@
 /* These are here to work with glibc -- Don't change these... */
 #undef FNMATCH_BROKEN
 #undef GLOB_BROKEN
+#define IFS_BROKEN
 
 #include <assert.h>
 #include <ctype.h>
@@ -9537,6 +9538,14 @@ command() {
 	n1 = NULL;
 	rpp = &redir;
 
+	/* Check for redirection which may precede command */
+	while (readtoken() == TREDIR) {
+		*rpp = n2 = redirnode;
+		rpp = &n2->nfile.next;
+		parsefname();
+	}
+	tokpushback++;
+
 	switch (readtoken()) {
 	case TIF:
 		n1 = (union node *)stalloc(sizeof (struct nif));
@@ -9749,14 +9758,6 @@ simplecmd() {
 	vpp = &vars;
 	redir = NULL;
 	rpp = &redir;
-
-	/* Check for redirection which may precede command */
-	while (readtoken() == TREDIR) {
-		*rpp = n2 = redirnode;
-		rpp = &n2->nfile.next;
-		parsefname();
-	}
-	tokpushback++;
 
 	checkalias = 2;
 	for (;;) {
@@ -12792,7 +12793,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.17.2.2 2001/09/06 17:39:23 andersen Exp $
+ * $Id: ash.c,v 1.17.2.3 2001/09/06 17:59:36 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
