@@ -931,6 +931,7 @@ unsigned long my_getid(const char *filename, char *name, long id, long *gid)
 			}
 		}
 		if (id != -1 && id == rid) {
+			memset(name, 0, 9*sizeof(char));
 			strncpy(name, rname, 8);
 			if (gid) *gid = rgid;
 			fclose(file);
