@@ -95,8 +95,6 @@ int copy_file(const char *source, const char *dest, int flags)
 			umask(saved_umask);
 		}
 
-		add_to_ino_dev_hashtable(&dest_stat, source);
-
 		/* Recursively copy files in SOURCE.  */
 		if ((dp = opendir(source)) == NULL) {
 			bb_perror_msg("unable to open directory `%s'", source);
@@ -110,10 +108,6 @@ int copy_file(const char *source, const char *dest, int flags)
 			new_source = concat_subpath_file(source, d->d_name);
 			if(new_source == NULL)
 				continue;
-			if (is_in_ino_dev_hashtable(&dest_stat, &new_source)) {
-				bb_error_msg("cannot copy a directory, `%s', into itself, `%s'", new_source, dest);
-				continue;
-			}
 			new_dest = concat_path_file(dest, d->d_name);
 			if (copy_file(new_source, new_dest, flags) < 0)
 				status = -1;
