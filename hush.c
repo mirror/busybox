@@ -1326,19 +1326,18 @@ static int run_pipe_real(struct pipe *pi)
 	 * Builtins within pipes have to fork anyway, and are handled in
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
-	if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
-		child = & (pi->progs[0]);
-		if (child->group && ! child->subshell) {
-			int squirrel[] = {-1, -1, -1};
-			int rcode;
-			debug_printf("non-subshell grouping\n");
-			setup_redirects(child, squirrel);
-			/* XXX could we merge code with following builtin case,
-			 * by creating a pseudo builtin that calls run_list_real? */
-			rcode = run_list_real(child->group);
-			restore_redirects(squirrel);
-			return rcode;
-		}
+	if (pi->num_progs == 1) child = & (pi->progs[0]);
+	if (pi->num_progs == 1 && child->group && child->subshell == 0) {
+		int squirrel[] = {-1, -1, -1};
+		int rcode;
+		debug_printf("non-subshell grouping\n");
+		setup_redirects(child, squirrel);
+		/* XXX could we merge code with following builtin case,
+		 * by creating a pseudo builtin that calls run_list_real? */
+		rcode = run_list_real(child->group);
+		restore_redirects(squirrel);
+		return rcode;
+	} else if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
 		for (i=0; is_assignment(child->argv[i]); i++) { /* nothing */ }
 		if (i!=0 && child->argv[i]==NULL) {
 			/* assignments, but no command: set the local environment */
@@ -1352,7 +1351,8 @@ static int run_pipe_real(struct pipe *pi)
 				 * variable. */
 				int export_me=0;
 				char *name, *value;
-				name = strdup(child->argv[i]);
+				name = xstrdup(child->argv[i]);
+				debug_printf("Local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
 					*value=0;
@@ -1478,6 +1478,7 @@ static int run_list_real(struct pipe *pi)
 		if (rmode == RES_ELIF && !if_code) continue;
 		if (pi->num_progs == 0) continue;
 		rcode = run_pipe_real(pi);
+		debug_printf("run_pipe_real returned %d\n",rcode);
 		if (rcode!=-1) {
 			/* We only ran a builtin: rcode was set by the return value
 			 * of run_pipe_real(), and we don't need to wait for anything. */
@@ -1943,6 +1944,7 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 				debug_printf("pop stack\n");
 				old = ctx->stack;
 				old->child->group = ctx->list_head;
+				old->child->subshell = 0;
 				*ctx = *old;   /* physical copy */
 				free(old);
 			}
