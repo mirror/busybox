@@ -3,7 +3,7 @@
  * Mini dd implementation for busybox
  *
  *
- * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
+ * Copyright (C) 2000,2001  Matt Kraai
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -146,6 +146,12 @@ int dd_main(int argc, char **argv)
 		else
 			out_part++;
 	}
+
+	if (close (ifd) < 0)
+		perror_msg_and_die("%s", infile);
+
+	if (close (ofd) < 0)
+		perror_msg_and_die("%s", outfile);
 
 	fprintf(stderr, "%ld+%ld records in\n", (long)in_full, (long)in_part);
 	fprintf(stderr, "%ld+%ld records out\n", (long)out_full, (long)out_part);
