@@ -478,7 +478,6 @@ static int status_merge(void *status, package_t *pkgs)
 	char *line = NULL;
 	package_t *pkg = 0, *statpkg = 0;
 	package_t locpkg;
-	int r = 0;
 
 	if ((fout = wfopen(new_statusfile, "w")) == NULL) {
 		return 0;
@@ -486,7 +485,10 @@ static int status_merge(void *status, package_t *pkgs)
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Updating database...)\n");
 	}
-	if ((fin = wfopen(statusfile, "r")) != NULL) {
+	/*
+	 * Dont use wfopen here, handle errors ourself
+	 */
+	if ((fin = fopen(statusfile, "r")) != NULL) {
 		while (((line = get_line_from_file(fin)) != NULL) && !feof(fin)) { 
 			line[strlen(line) - 1] = '\0'; /* trim newline */
 			/* If we see a package header, find out if it's a package
@@ -495,14 +497,14 @@ static int status_merge(void *status, package_t *pkgs)
 			 *
 			 * we also look at packages in the status cache and update
 			 * their status fields
-		 	 */
+	 		 */
 			if (strstr(line, "Package: ") == line) {
 				for (pkg = pkgs; pkg != 0 && strcmp(line + 9,
 						pkg->package) != 0; pkg = pkg->next) ;
 
 				locpkg.package = line + 9;
 				statpkg = tfind(&locpkg, &status, package_compare);
-			
+	
 				/* note: statpkg should be non-zero, unless the status
 				 * file was changed while we are processing (no locking
 				 * is currently done...
@@ -521,6 +523,7 @@ static int status_merge(void *status, package_t *pkgs)
 			fputs(line, fout);
 			fputc('\n', fout);
 		}
+		fclose(fin);
 	}
 	free(line);
 
@@ -538,16 +541,24 @@ static int status_merge(void *status, package_t *pkgs)
 			fprintf(fout, "Description: %s\n", pkg->description);
 		fputc('\n', fout);
 	}
-	
-	fclose(fin);
 	fclose(fout);
 
-	r = rename(statusfile, bak_statusfile);
-	if (r == 0) {
-		r = rename(new_statusfile, statusfile);
+	/*
+	 * Its ok if renaming statusfile fails becasue it doesnt exist
+	 */
+	if (rename(statusfile, bak_statusfile) == -1) {
+		struct stat stat_buf;	
+		error_msg("Couldnt create backup status file");
+		if (stat(statusfile, &stat_buf) == 0) {
+			return(EXIT_FAILURE);
+		}
 	}
 
-	return 0;
+	if (rename(new_statusfile, statusfile) == -1) {
+		error_msg("Couldnt create status file");
+		return(EXIT_FAILURE);
+	}
+	return(EXIT_SUCCESS);
 }
 
 static int is_file(const char *fn)
