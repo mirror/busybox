@@ -1003,6 +1003,7 @@
 	USAGE_HTTPD_SETUID(" [-u user]") \
 	USAGE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
 	USAGE_HTTPD_AUTH_MD5(" [-m pass]") \
+	" [-h home]" \
 	" [-d/-e <string>]"
 #define httpd_full_usage \
        "Listens for incoming http server requests.\n\n"\
@@ -1012,6 +1013,7 @@
        USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
        USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
        USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
+       "\t-h HOME  \tSpecifies http HOME directory (default ./)\n" \
        "\t-e STRING\tHtml encode STRING\n" \
        "\t-d STRING\tURL decode STRING"
 
