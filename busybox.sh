@@ -9,7 +9,7 @@ RAW=` \
     | tr A-Z a-z | sort
 `
 test "${RAW}" != "" ||  exit
-if [ -d ${$BB_SRC_DIR:-.} ]; then cd $BB_SRC_DIR; fi
+if [ -d "$BB_SRC_DIR" ]; then cd $BB_SRC_DIR; fi
 # By running $RAW through "ls", we avoid listing
 # source files that don't exist.
 ls $RAW 2>/dev/null | tr '\n' ' '
