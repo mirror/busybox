@@ -15,7 +15,7 @@
 	    an included shell script called unrpm as a front end to it.  There's
 	    also a shell script called undeb included for debian packages.  
 	* Matt Kraai -- fix an infinite loop with ls -aR
-	* Larry Doolittle -- Shaves off about 100 bytes and 200 bytes heap 
+	* Larry Doolittle -- Shaved off about 100 bytes and 200 bytes heap 
 	    from date.c.  Also document the "-d" option in the usage message.
 	* Gennady Feldman -- fixed dd to use blocksize when reading/writing, 
 	    (it was reading the whole thing and then writing it out).  Also 
@@ -33,8 +33,7 @@
 	    GNU-date compatible
 	* me -- Progress meter (optional) in wget
 	* Doolittle/me -- programs invoked by full path name take
-	    precedence over applets unless
-	    BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+	    precedence over applets unless BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
 	* Gaute B Strokkenes <gs234@cam.ac.uk> -- applets found using a
 	    binary search instead of linear search.  Much faster!
 	* new applets: cmp readlink
