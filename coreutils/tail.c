@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-static struct suffix_mult tail_suffixes[] = {
+static const struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1048576 },
@@ -38,7 +38,7 @@ static struct suffix_mult tail_suffixes[] = {
 };
 
 #ifndef BB_FEATURE_SIMPLE_TAIL
-static struct suffix_mult null_suffixes[] = {
+static const struct suffix_mult null_suffixes[] = {
 	{ NULL, 0 }
 };
 #endif

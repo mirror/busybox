@@ -30,7 +30,7 @@
 #include <string.h>
 #include <fcntl.h>
 
-static struct suffix_mult dd_suffixes[] = {
+static const struct suffix_mult dd_suffixes[] = {
 	{ "c", 1 },
 	{ "w", 2 },
 	{ "b", 512 },

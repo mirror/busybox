@@ -167,7 +167,8 @@ struct suffix_mult {
 	int mult;
 };
 
-extern unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes);
+extern unsigned long parse_number(const char *numstr,
+		const struct suffix_mult *suffixes);
 
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable

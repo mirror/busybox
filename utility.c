@@ -1696,9 +1696,10 @@ struct BB_applet *find_applet_by_name(const char *name)
 }
 
 #if defined BB_DD || defined BB_TAIL
-unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes)
+unsigned long parse_number(const char *numstr,
+		const struct suffix_mult *suffixes)
 {
-	struct suffix_mult *sm;
+	const struct suffix_mult *sm;
 	unsigned long int ret;
 	int len;
 	char *end;
