@@ -357,8 +357,8 @@ static void mark_closed(int fd);
 static void close_all();
 /*  "run" the final data structures: */
 static char *indenter(int i);
-static int run_list_test(struct pipe *head, int indent);
-static int run_pipe_test(struct pipe *pi, int indent);
+static int free_pipe_list(struct pipe *head, int indent);
+static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int pipe_wait(struct pipe *pi);
@@ -395,7 +395,6 @@ static int parse_file_outer(FILE *f);
 static void checkjobs();
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
-static void free_pipe(struct pipe *pi);
 /*     local variable support */
 static char *get_local_var(const char *var);
 static void  unset_local_var(const char *name);
@@ -1138,7 +1137,7 @@ static void pseudo_exec(struct child_prog *child)
 		debug_printf("runtime nesting to group\n");
 		interactive=0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
-		/* OK to leak memory by not calling run_list_test,
+		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
 		_exit(rcode);
 	} else {
@@ -1203,29 +1202,9 @@ static void remove_bg_job(struct pipe *pi)
 		prev_pipe->next = pi->next;
 	}
 
-	free_pipe(pi);
+	free_pipe(pi, 0);
 	free(pi);
 }
-
-/* free up all memory from a pipe */
-static void free_pipe(struct pipe *pi)
-{
-	int i;
-
-	for (i = 0; i < pi->num_progs; i++) {
-		free(pi->progs[i].argv);
-		if (pi->progs[i].redirects)
-			free(pi->progs[i].redirects);
-	}
-	if (pi->progs)
-		free(pi->progs);
-	if (pi->text)
-		free(pi->text);
-	if (pi->cmdbuf)
-		free(pi->cmdbuf);
-	memset(pi, 0, sizeof(struct pipe));
-}
-
 
 /* Checks to see if any background processes have exited -- if they 
    have, figure out why and see if a job has completed */
@@ -1535,7 +1514,7 @@ static char *indenter(int i)
 }
 
 /* return code is the exit status of the pipe */
-static int run_pipe_test(struct pipe *pi, int indent)
+static int free_pipe(struct pipe *pi, int indent)
 {
 	char **p;
 	struct child_prog *child;
@@ -1554,7 +1533,7 @@ static int run_pipe_test(struct pipe *pi, int indent)
 			child->argv=NULL;
 		} else if (child->group) {
 			final_printf("%s   begin group (subshell:%d)\n",ind, child->subshell);
-			ret_code = run_list_test(child->group,indent+3);
+			ret_code = free_pipe_list(child->group,indent+3);
 			final_printf("%s   end group\n",ind);
 		} else {
 			final_printf("%s   (nil)\n",ind);
@@ -1577,15 +1556,14 @@ static int run_pipe_test(struct pipe *pi, int indent)
 	return ret_code;
 }
 
-static int run_list_test(struct pipe *head, int indent)
+static int free_pipe_list(struct pipe *head, int indent)
 {
 	int rcode=0;   /* if list has no members */
 	struct pipe *pi, *next;
 	char *ind = indenter(indent);
 	for (pi=head; pi; pi=next) {
-		if (pi->num_progs == 0) break;
 		final_printf("%s pipe reserved mode %d\n", ind, pi->r_mode);
-		rcode = run_pipe_test(pi, indent);
+		rcode = free_pipe(pi, indent);
 		final_printf("%s pipe followup code %d\n", ind, pi->followup);
 		next=pi->next;
 		pi->next=NULL;
@@ -1601,10 +1579,10 @@ static int run_list(struct pipe *pi)
 	if (fake_mode==0) {
 		rcode = run_list_real(pi);
 	} 
-	/* run_list_test has the side effect of clearing memory
+	/* free_pipe_list has the side effect of clearing memory
 	 * In the long run that function can be merged with run_list_real,
 	 * but doing that now would hobble the debugging effort. */
-	run_list_test(pi,0);
+	free_pipe_list(pi,0);
 	return rcode;
 }
 
@@ -2142,7 +2120,7 @@ FILE *generate_stream_from_list(struct pipe *head)
 	pf = fdopen(channel[0],"r");
 	debug_printf("pipe on FILE *%p\n",pf);
 #else
-	run_list_test(head,0);
+	free_pipe_list(head,0);
 	pf=popen("echo surrogate response","r");
 	debug_printf("started fake pipe on FILE *%p\n",pf);
 #endif
