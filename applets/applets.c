@@ -80,7 +80,6 @@ static struct BB_suid_config *suid_config;
 
 extern void show_usage(void)
 {
-	const char *format_string;
 	const char *usage_string = usage_messages;
 	int i;
 
@@ -89,11 +88,12 @@ extern void show_usage(void)
 			--i;
 		}
 	}
-	format_string = "%s\n\nUsage: %s %s\n\n";
-	if(*usage_string == '\b')
-		format_string = "%s\n\nNo help available.\n\n";
-	fprintf(stderr, format_string,
-			full_version, applet_using->name, usage_string);
+
+	if(*usage_string == '\b') {
+		fprintf(stderr, "%s\n\nNo help available.\n\n", full_version);
+	} else {
+		fprintf(stderr, "%s\n\nUsage: %s %s\n\n", full_version, applet_using->name, usage_string);
+	}
 	exit(EXIT_FAILURE);
 }
 
