@@ -388,12 +388,6 @@
 	#undef BB_FEATURE_LINUXRC
 #endif
 //
-#ifdef BB_GZIP
-	#ifndef BB_GUNZIP
-		#define BB_GUNZIP
-	#endif
-#endif
-//
 #ifdef BB_DPKG
 	#ifndef BB_DPKG_DEB
 		#define BB_DPKG_DEB

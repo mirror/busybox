@@ -1918,8 +1918,10 @@ int gzip_main(int argc, char **argv)
 			case '1': case '2': case '3': case '4': case '5':
 			case '6': case '7': case '8': case '9':
 				break;
+#ifdef BB_GUNZIP
 			case 'd':
 				exit(gunzip_main(argc, argv));
+#endif
 			default:
 				show_usage();
 			}
