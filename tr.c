@@ -142,7 +142,7 @@ extern int tr_main(int argc, char **argv)
 {
 	register unsigned char *ptr;
 	int output_length=0, input_length;
-	int index = 1;
+	int idx = 1;
 	int i;
 	RESERVE_BB_BUFFER(output, BUFSIZ);
 	RESERVE_BB_BUFFER(input,  BUFSIZ);
@@ -157,8 +157,8 @@ extern int tr_main(int argc, char **argv)
 	pinvec  = invec;
 	poutvec = outvec;
 
-	if (argc > 1 && argv[index][0] == '-') {
-		for (ptr = (unsigned char *) &argv[index][1]; *ptr; ptr++) {
+	if (argc > 1 && argv[idx][0] == '-') {
+		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
 			switch (*ptr) {
 			case 'c':
 				com_fl = TRUE;
@@ -173,21 +173,21 @@ extern int tr_main(int argc, char **argv)
 				show_usage();
 			}
 		}
-		index++;
+		idx++;
 	}
 	for (i = 0; i <= ASCII; i++) {
 		vector[i] = i;
 		invec[i] = outvec[i] = FALSE;
 	}
 
-	if (argv[index] != NULL) {
-		input_length = expand(argv[index++], input);
+	if (argv[idx] != NULL) {
+		input_length = expand(argv[idx++], input);
 		if (com_fl)
 			input_length = complement(input, input_length);
-		if (argv[index] != NULL) {
-			if (*argv[index] == '\0')
+		if (argv[idx] != NULL) {
+			if (*argv[idx] == '\0')
 				error_msg_and_die("STRING2 cannot be empty");
-			output_length = expand(argv[index], output);
+			output_length = expand(argv[idx], output);
 			map(input, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)

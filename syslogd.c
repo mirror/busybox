@@ -55,7 +55,7 @@
 #define __LOG_FILE "/var/log/messages"
 
 /* Path to the unix socket */
-char lfile[BUFSIZ] = "";
+static char lfile[BUFSIZ] = "";
 
 static char *logFilePath = __LOG_FILE;
 
@@ -390,18 +390,18 @@ static void domark(int sig)
 static const int BUFSIZE = 1023;
 static int serveConnection (int conn)
 {
-	RESERVE_BB_BUFFER(buf, BUFSIZE + 1);
+	RESERVE_BB_BUFFER(tmpbuf, BUFSIZE + 1);
 	int    n_read;
 
-	while ((n_read = read (conn, buf, BUFSIZE )) > 0) {
+	while ((n_read = read (conn, tmpbuf, BUFSIZE )) > 0) {
 
 		int           pri = (LOG_USER | LOG_NOTICE);
 		char          line[ BUFSIZE + 1 ];
 		unsigned char c;
 
-		char *p = buf, *q = line;
+		char *p = tmpbuf, *q = line;
 
-		buf[ n_read - 1 ] = '\0';
+		tmpbuf[ n_read - 1 ] = '\0';
 
 		while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
 			if (c == '<') {
