@@ -83,7 +83,7 @@ extern int lsmod_main(int argc, char **argv)
 	module_names = xmalloc(bufsize = 256);
 	deps = xmalloc(bufsize);
 	if (query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
-		error_msg_and_die("QM_MODULES: %s\n", strerror(errno));
+		perror_msg_and_die("QM_MODULES");
 	}
 
 	printf("Module                  Size  Used by\n");
@@ -94,7 +94,7 @@ extern int lsmod_main(int argc, char **argv)
 				continue;
 			}
 			/* else choke */
-			error_msg_and_die("module %s: QM_INFO: %s\n", mn, strerror(errno));
+			perror_msg_and_die("module %s: QM_INFO", mn);
 		}
 		while (query_module(mn, QM_REFS, deps, bufsize, &count)) {
 			if (errno == ENOENT) {
@@ -102,7 +102,7 @@ extern int lsmod_main(int argc, char **argv)
 				continue;
 			}
 			if (errno != ENOSPC) {
-				error_msg_and_die("module %s: QM_REFS: %s", mn, strerror(errno));
+				error_msg_and_die("module %s: QM_REFS", mn);
 			}
 			deps = xrealloc(deps, bufsize = count);
 		}
@@ -153,7 +153,7 @@ extern int lsmod_main(int argc, char **argv)
 		close(fd);
 		return 0;
 	}
-	error_msg_and_die("/proc/modules: %s\n", strerror(errno));
+	perror_msg_and_die("/proc/modules");
 	return 1;
 }
 

@@ -188,7 +188,7 @@ extern int cut_main(int argc, char **argv)
 			case 'f':
 				/* make sure they didn't ask for two types of lists */
 				if (part != 0) {
-					error_msg_and_die("only one type of list may be specified");
+					error_msg_and_die("only one type of list may be specified\n");
 				}
 				part = (char)opt;
 				decompose_list(optarg);
@@ -213,8 +213,9 @@ extern int cut_main(int argc, char **argv)
 	}
 
 	if (supress_non_delimited_lines && part != 'f') {
-		error_msg_and_die("suppressing non-delimited lines makes sense
-	only when operating on fields\n");
+		error_msg_and_die("suppressing non-delimited lines makes sense"
+				" only when operating on fields\n");
+
 	}
 
 	if (delim != '\t' && part != 'f') {

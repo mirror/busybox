@@ -159,7 +159,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (do_continue) {
 		if (fstat(fileno(output), &sbuf) < 0)
-			error_msg_and_die("fstat()");
+			perror_msg_and_die("fstat()");
 		if (sbuf.st_size > 0)
 			beg_range = sbuf.st_size;
 		else
@@ -514,7 +514,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.13 2000/12/09 16:55:35 andersen Exp $
+ *	$Id: wget.c,v 1.14 2000/12/18 03:08:29 kraai Exp $
  */
 
 

@@ -1470,7 +1470,7 @@ extern char * xstrndup (const char *s, int n) {
 	char *t;
 
 	if (s == NULL)
-		error_msg_and_die("xstrndup bug");
+		error_msg_and_die("xstrndup bug\n");
 
 	t = xmalloc(n+1);
 	strncpy(t,s,n);
