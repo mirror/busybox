@@ -25,10 +25,18 @@
  *
  */
 
-
-//#define BB_FEATURE_SH_BACKTICKS
-//#define BB_FEATURE_SH_IF_EXPRESSIONS
+//
+//This works pretty well now, and is not on by default.
 #define BB_FEATURE_SH_ENVIRONMENT
+//
+//Backtick support has some problems, use at your own risk!
+//#define BB_FEATURE_SH_BACKTICKS
+//
+//If, then, else, etc. support is really, really broken.  Don't even
+//bother to mess with this yet, since you will not be happy with it.
+//#define BB_FEATURE_SH_IF_EXPRESSIONS
+//
+//For debugging/development on the shell only...
 //#define DEBUG_SHELL
 
 
