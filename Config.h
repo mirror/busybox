@@ -144,6 +144,11 @@
 // them put on the stack.  For some very small machines with limited stack
 // space, this can be deadly.  For most folks, this works just fine...
 //#define BB_FEATURE_BUFFERS_GO_ON_STACK
+// The third alternative for buffer allocation is to use BSS.  This works
+// beautifully for computers with a real MMU (and OS support), but wastes
+// runtime RAM for uCLinux.  This behavior was the only one available for
+// BusyBox versions 0.48 and earlier.
+//#define BB_FEATURE_BUFFERS_GO_IN_BSS
 //
 // Turn this on to use Erik's very cool devps, and devmtab kernel drivers,
 // thereby eliminating the need for the /proc filesystem and thereby saving

@@ -72,8 +72,13 @@ extern const char *applet_name;
 #define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char buffer[len]
 #else
+#ifdef BB_FEATURE_BUFFERS_GO_IN_BSS
+#define RESERVE_BB_BUFFER(buffer,len)  static          char buffer[len]
+#define RESERVE_BB_UBUFFER(buffer,len) static unsigned char buffer[len]
+#else
 #define RESERVE_BB_BUFFER(buffer,len)           char *buffer=xmalloc(len)
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
+#endif
 #endif
 
 
