@@ -222,12 +222,15 @@ extern int kill_main(int argc, char **argv)
 	} 
 #ifdef BB_KILLALL
 	else {
+		pid_t myPid=getpid();
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
 			pid_t* pidList;
 
 			pidList = findPidByName( *argv);
-			for(; pidList && pidList!=0; pidList++) {
+			for(; pidList && *pidList!=0; pidList++) {
+				if (*pidList==myPid)
+					continue;
 				if (kill(*pidList, sig) != 0) 
 					fatalError( "Could not kill pid '%d': %s\n", *pidList, strerror(errno));
 			}

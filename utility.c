@@ -1291,11 +1291,20 @@ extern pid_t* findPidByName( char* pidName)
 
 	/* Now search for a match */
 	for (i=1; i<pid_array[0] ; i++) {
+		char* p;
 		struct pid_info info;
 
 	    info.pid = pid_array[i];
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
 			fatalError( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+
+		/* Make sure we only match on the process name */
+		p=info.command_line+1;
+		while ((*p != 0) && !isspace(*(p)) && (*(p-1) != '\\')) { 
+			(p)++;
+		}
+		if (isspace(*(p)))
+				*p='\0';
 
 		if ((strstr(info.command_line, pidName) != NULL)) {
 			pidList=realloc( pidList, sizeof(pid_t) * (j+2));
@@ -1304,7 +1313,8 @@ extern pid_t* findPidByName( char* pidName)
 			pidList[j++]=info.pid;
 		}
 	}
-	pidList[j]=0;
+	if (pidList)
+		pidList[j]=0;
 
 	/* Free memory */
 	free( pid_array);
@@ -1343,7 +1353,7 @@ extern pid_t* findPidByName( char* pidName)
 		FILE *status;
 		char filename[256];
 		char buffer[256];
-		char* p;
+		char* p, *q;
 
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
@@ -1358,15 +1368,25 @@ extern pid_t* findPidByName( char* pidName)
 		fgets(buffer, 256, status);
 		fclose(status);
 
-		if (((p=strstr(buffer, pidName)) != NULL)
-				&& (strncmp(p, pidName, strlen(pidName)) != 0)) {
+		/* Make sure we only match on the process name */
+		p=buffer+5; /* Skip the name */
+		while ((p)++) {
+			if (*p==0 || *p=='\n') {
+				*p='\0';
+				break;
+			}
+		}
+		p=buffer+6; /* Skip the "Name:\t" */
+
+		if (((q=strstr(q, pidName)) != NULL)
+				&& (strncmp(q, pidName, strlen(pidName)) != 0)) {
 			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
 			if (pidList==NULL)
 				fatalError("out of memory\n");
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
-	if (pidList!=NULL)
+	if (pidList)
 		pidList[i]=0;
 	return pidList;
 }
