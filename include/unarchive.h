@@ -28,7 +28,7 @@ typedef struct llist_s {
 
 typedef struct archive_handle_s {
 	/* define if the header and data compenent should processed */
-	char (*filter)(const struct archive_handle_s *);
+	char (*filter)(struct archive_handle_s *);
 	const llist_t *accept;
 	const llist_t *reject;
 	const llist_t *passed;	/* List of files that have successfully been worked on */
@@ -41,6 +41,8 @@ typedef struct archive_handle_s {
 
 	/* process the data componenet, e.g. extract to filesystem */
 	void (*action_data)(struct archive_handle_s *);
+	
+	/* How to process any sub archive, e.g. get_header_tar_gz */
 	char (*action_data_subarchive)(struct archive_handle_s *);
 
 	/* Contains the handle to a sub archive */
@@ -68,9 +70,10 @@ typedef struct archive_handle_s {
 
 extern archive_handle_t *init_handle(void);
 
-extern char filter_accept_all(const archive_handle_t *archive_handle);
-extern char filter_accept_list(const archive_handle_t *archive_handle);
-extern char filter_accept_reject_list(const archive_handle_t *archive_handle);
+extern char filter_accept_all(archive_handle_t *archive_handle);
+extern char filter_accept_list(archive_handle_t *archive_handle);
+extern char filter_accept_list_reassign(archive_handle_t *archive_handle);
+extern char filter_accept_reject_list(archive_handle_t *archive_handle);
 
 extern void unpack_ar_archive(archive_handle_t *ar_archive);
 

@@ -31,6 +31,7 @@ LIBUNARCHIVE-y:= \
 \
 	filter_accept_all.o \
 	filter_accept_list.o \
+	filter_accept_list_reassign.o \
 	filter_accept_reject_list.o \
 \
 	get_header_ar.o \

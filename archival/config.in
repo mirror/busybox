@@ -15,7 +15,12 @@ bool 'cpio'	    CONFIG_CPIO
 bool 'dpkg'	    CONFIG_DPKG
 bool 'dpkg_deb'	    CONFIG_DPKG_DEB
 if [ "$CONFIG_DPKG_DEB" = "y" ] ; then
-    bool '  -x support only'	CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+    bool '  extract only (-x)'	CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+fi
+if [ "$CONFIG_DPKG" = "y" ] || [ "$CONFIG_DPKG_DEB" = "y" ] ; then
+    comment 'Common dpkg/dpkg-deb options'
+    bool '  gzip debian packages (normal)'      CONFIG_FEATURE_DEB_TAR_GZ
+    bool '  bzip2 debian packages'              CONFIG_FEATURE_DEB_TAR_BZ2
 fi
 bool 'gunzip'	    CONFIG_GUNZIP
 if [ "$CONFIG_GUNZIP" = "y" ]; then

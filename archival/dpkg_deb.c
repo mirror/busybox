@@ -24,10 +24,10 @@
 extern int dpkg_deb_main(int argc, char **argv)
 {
 	archive_handle_t *ar_archive;
-	archive_handle_t *tar_gz_archive;
+	archive_handle_t *tar_archive;
 	int opt = 0;
 #ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
-	const llist_t *control_tar_gz_llist = add_to_list(NULL, "control.tar.gz");
+	const llist_t *control_tar_llist = NULL;
 #endif
 #ifndef CONFIG_AR
 	char magic[7];
@@ -38,14 +38,26 @@ extern int dpkg_deb_main(int argc, char **argv)
 	 */
 	
 	/* Setup the tar archive handle */
-	tar_gz_archive = init_handle();
+	tar_archive = init_handle();
 
 	/* Setup an ar archive handle that refers to the gzip sub archive */	
 	ar_archive = init_handle();
-	ar_archive->action_data_subarchive = get_header_tar_gz;
-	ar_archive->sub_archive = tar_gz_archive;
-	ar_archive->filter = filter_accept_list;
+	ar_archive->sub_archive = tar_archive;
+	ar_archive->filter = filter_accept_list_reassign;
+
+#ifdef CONFIG_FEATURE_DEB_TAR_GZ
 	ar_archive->accept = add_to_list(NULL, "data.tar.gz");
+# ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+	control_tar_llist = add_to_list(NULL, "control.tar.gz");
+# endif
+#endif
+
+#ifdef CONFIG_FEATURE_DEB_TAR_BZ2
+	ar_archive->accept = add_to_list(ar_archive->accept, "data.tar.bz2");
+# ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+	control_tar_llist = add_to_list(control_tar_llist, "control.tar.bz2");
+# endif
+#endif
 
 #ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 	while ((opt = getopt(argc, argv, "cefXx")) != -1) {
@@ -55,26 +67,26 @@ extern int dpkg_deb_main(int argc, char **argv)
 		switch (opt) {
 #ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 			case 'c':
-				tar_gz_archive->action_header = header_verbose_list;
+				tar_archive->action_header = header_verbose_list;
 				break;
 			case 'e':
-				ar_archive->accept = control_tar_gz_llist;
-				tar_gz_archive->action_data = data_extract_all;
+				ar_archive->accept = control_tar_llist;
+				tar_archive->action_data = data_extract_all;
 				break;
 			case 'f':
 				/* Print the entire control file
 				 * it should accept a second argument which specifies a 
 				 * specific field to print */
-				ar_archive->accept = control_tar_gz_llist;
-				tar_gz_archive->accept = add_to_list(NULL, "./control");;
-				tar_gz_archive->filter = filter_accept_list;
-				tar_gz_archive->action_data = data_extract_to_stdout;
+				ar_archive->accept = control_tar_llist;
+				tar_archive->accept = add_to_list(NULL, "./control");;
+				tar_archive->filter = filter_accept_list;
+				tar_archive->action_data = data_extract_to_stdout;
 				break;
 			case 'X':
-				tar_gz_archive->action_header = header_list;
+				tar_archive->action_header = header_list;
 #endif
 			case 'x':
-				tar_gz_archive->action_data = data_extract_all;
+				tar_archive->action_data = data_extract_all;
 				break;
 			default:
 				show_usage();
@@ -85,7 +97,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 		show_usage();
 	}
 
-	tar_gz_archive->src_fd = ar_archive->src_fd = xopen(argv[optind++], O_RDONLY);
+	tar_archive->src_fd = ar_archive->src_fd = xopen(argv[optind++], O_RDONLY);
 
 	/* Workout where to extract the files */
 	/* 2nd argument is a dir name */

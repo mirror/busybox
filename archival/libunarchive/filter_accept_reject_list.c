@@ -24,7 +24,7 @@
 /*
  * Accept names that are in the accept list and not in the reject list
  */
-extern char filter_accept_reject_list(const archive_handle_t *archive_handle)
+extern char filter_accept_reject_list(archive_handle_t *archive_handle)
 {
 	const char *key = archive_handle->file_header->name;
 	const llist_t *accept_entry = find_list_entry(archive_handle->accept, key);
