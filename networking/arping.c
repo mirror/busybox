@@ -28,26 +28,26 @@
 
 #define APPLET_NAME "arping"
 
-struct in_addr src;
-struct in_addr dst;
-struct sockaddr_ll me;
-struct sockaddr_ll he;
-struct timeval last;
-int dad;
-int unsolicited;
-int advert;
-int quiet;
-int quit_on_reply = 0;
-int count = -1;
-int timeout;
-int unicasting;
-int s;
-int broadcast_only;
-int sent;
-int brd_sent;
-int received;
-int brd_recv;
-int req_recv;
+static struct in_addr src;
+static struct in_addr dst;
+static struct sockaddr_ll me;
+static struct sockaddr_ll he;
+static struct timeval last;
+static int dad;
+static int unsolicited;
+static int advert;
+static int quiet;
+static int quit_on_reply = 0;
+static int count = -1;
+static int timeout;
+static int unicasting;
+static int s;
+static int broadcast_only;
+static int sent;
+static int brd_sent;
+static int received;
+static int brd_recv;
+static int req_recv;
 
 #define MS_TDIFF(tv1,tv2) ( ((tv1).tv_sec-(tv2).tv_sec)*1000 + \
 			   ((tv1).tv_usec-(tv2).tv_usec)/1000 )
