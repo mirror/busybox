@@ -288,7 +288,7 @@
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
 // compiled into the binary.  (needs /proc filesystem)
-// #define BB_FEATURE_INSTALLER
+#define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
 #define BB_FEATURE_WGET_STATUSBAR
