@@ -21,7 +21,7 @@ embedded system.
 %setup -q -n %{Name}-%{Version}
 
 %Build
-BB_INIT_RC_EXIT_CMD=\"/bin/sh\" make
+BB_INIT_RC_EXIT_CMD=\"/bin/sh\" BB_INIT_SCRIPT=\"/etc/rc.d/init.d/rcS\" make
 
 %Install
 rm -rf $RPM_BUILD_ROOT

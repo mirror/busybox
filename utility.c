@@ -378,7 +378,7 @@ int fullRead(int fd, char *buf, int len)
 #endif
 
 
-#if defined (BB_CHOWN) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS)
+#if defined (BB_CHOWN) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS) || defined (BB_INSMOD)
 /*
  * Walk down all the directories under the specified 
  * location, and do something (something specified

@@ -28,7 +28,7 @@
 #define BB_HEAD
 #define BB_HOSTNAME
 #define BB_INIT
-#define BB_INSMOD
+//#define BB_INSMOD
 #define BB_KILL
 #define BB_KLOGD
 //#define BB_LENGTH
@@ -60,7 +60,7 @@
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
-#define BB_RMMOD
+//#define BB_RMMOD
 //#define BB_SFDISK
 #define BB_SED
 #define BB_SLEEP

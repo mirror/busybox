@@ -84,6 +84,10 @@ ifdef BB_INIT_RC_EXIT_CMD
     CFLAGS += -DBB_INIT_CMD_IF_RC_SCRIPT_EXITS=${BB_INIT_RC_EXIT_CMD}
 endif
 
+ifdef BB_INIT_SCRIPT
+    CFLAGS += -DBB_INIT_SCRIPT=${BB_INIT_SCRIPT}
+endif
+
 all: busybox busybox.links
 
 busybox: $(OBJECTS)

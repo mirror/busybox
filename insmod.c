@@ -29,6 +29,16 @@
 #include <sys/syscall.h>
 #include <linux/module.h>
 
+#define _PATH_MODULES	"/lib/modules"
+
+#warning "Danger Will Robinson, Danger!!!"
+#warning " "
+#warning "insmod is still under construction.  Don't use it."
+#warning " "
+#warning "	You have been warned!"
+#warning " "
+
+
 /* Some firendly syscalls to cheer everyone's day...  */
 _syscall2(int, init_module, const char *, name,
 	const struct module *, info)
@@ -57,6 +67,8 @@ _syscall2(unsigned long, create_module, const char *, name, size_t, size)
 #endif
 
 
+static char m_filename[PATH_MAX] = "\0";
+static char m_fullName[PATH_MAX] ="\0";
 static const char insmod_usage[] =
     "insmod [OPTION]... MODULE [symbol=value]...\n\n"
     "Loads the specified kernel modules into the kernel.\n\n"
@@ -65,14 +77,32 @@ static const char insmod_usage[] =
     "\t-k\tMake module autoclean-able.\n";
 
 
+static int findNamedModule(const char *fileName, struct stat* statbuf)
+{
+    if (m_fullName[0]=='\0')
+	return( FALSE);
+    else {
+	char* tmp = strrchr( fileName, '/');
+	if (tmp == NULL)
+	    tmp = (char*)fileName;
+	else
+	    tmp++;
+	if (check_wildcard_match(tmp, m_fullName) == TRUE) {
+	    /* Stop searching if we find a match */
+	    memcpy(m_filename, fileName, strlen(fileName));
+	    return( FALSE);
+	}
+    }
+    return( TRUE);
+}
+
 
 extern int insmod_main(int argc, char **argv)
 {
     int len;
-    char m_name[PATH_MAX];
-    char* tmp;
-
-
+    char *tmp;
+    char m_name[PATH_MAX] ="\0";
+    FILE *fp;
 
     if (argc<=1) {
 	usage( insmod_usage);
@@ -105,9 +135,72 @@ extern int insmod_main(int argc, char **argv)
     if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o')
 	len -= 2;
     memcpy(m_name, tmp, len);
+    strcpy(m_fullName, m_name);
+    strcat(m_fullName, ".o");
 
+    /* Get a filedesc for the module */
+    if ((fp = fopen(*argv, "r")) == NULL) {
+	/* Hmpf.  Could not open it. Search through _PATH_MODULES to find a module named m_name */
+	if (recursiveAction(_PATH_MODULES, TRUE, FALSE, FALSE,
+		    findNamedModule, findNamedModule) == FALSE) {
+	    if ( m_filename[0] == '\0' ||  ((fp = fopen(m_filename, "r")) == NULL)) {
+		    perror("No module by that name found in " _PATH_MODULES "\n");
+		    exit( FALSE);
+	    }
+	}
+    } else
+	memcpy(m_filename, *argv, strlen(*argv));
+
+
+    fprintf(stderr, "m_filename='%s'\n", m_filename);
     fprintf(stderr, "m_name='%s'\n", m_name);
 
+
+    /* TODO: do something roughtly like this... */
+#if 0
+
+    if ((f = obj_load(fp)) == NULL) {
+	perror("Could not load the module\n");
+	exit( FALSE);
+    }
     
+    /* Let the module know about the kernel symbols.  */
+    add_kernel_symbols(f);
+
+    if (!create_this_module(f, m_name)) {
+	perror("Could not create the module\n");
+	exit( FALSE);
+    }
+
+    if (!obj_check_undefineds(f, quiet)) {
+	perror("Undefined symbols in the module\n");
+	exit( FALSE);
+    }
+    obj_allocate_commons(f);
+
+    /* Perse the module's arguments */
+    while (argc-- >0 && *(argv++) != '\0') {
+	if (!process_module_arguments(f, argc - optind, argv + optind)) {
+	    perror("Undefined symbols in the module\n");
+	    exit( FALSE);
+	}
+    }
+
+    /* Find current size of the module */
+    m_size = obj_load_size(f);
+
+
+    errno = 0;
+    m_addr = create_module(m_name, m_size);
+    switch (errno) {
+	/* yada yada */
+	default:
+	    perror("create_module: %m");
+
+    }
+
+#endif
+
+    fclose( fp);
     exit( TRUE);
 }
