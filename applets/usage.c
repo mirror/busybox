@@ -250,6 +250,44 @@ const char echo_usage[] =
 	;
 #endif
 
+#if defined BB_EXPR
+const char expr_usage[] =
+	"expr EXPRESSION\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrints the value of EXPRESSION to standard output.\n\n"
+       "EXPRESSION may be:\n"
+       "ARG1 |  ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n"
+       "ARG1 &  ARG2	ARG1 if neither argument is null or 0, otherwise 0\n"
+       "ARG1 <  ARG2	ARG1 is less than ARG2\n"
+       "ARG1 <= ARG2	ARG1 is less than or equal to ARG2\n"
+       "ARG1 =  ARG2	ARG1 is equal to ARG2\n"
+       "ARG1 != ARG2	ARG1 is unequal to ARG2\n"
+       "ARG1 >= ARG2	ARG1 is greater than or equal to ARG2\n"
+       "ARG1 >  ARG2	ARG1 is greater than ARG2\n"
+       "ARG1 +  ARG2	arithmetic sum of ARG1 and ARG2\n"
+       "ARG1 -  ARG2	arithmetic difference of ARG1 and ARG2\n"
+       "ARG1 *  ARG2	arithmetic product of ARG1 and ARG2\n"
+       "ARG1 /  ARG2	arithmetic quotient of ARG1 divided by ARG2\n"
+       "ARG1 %  ARG2	arithmetic remainder of ARG1 divided by ARG2\n"
+       "STRING : REGEXP		    anchored pattern match of REGEXP in STRING\n"
+       "match STRING REGEXP	    same as STRING : REGEXP\n"
+       "substr STRING POS LENGTH    substring of STRING, POS counted from 1\n"
+       "index STRING CHARS	    index in STRING where any CHARS is found, or 0\n"
+       "length STRING		    length of STRING\n"
+       "quote TOKEN		    interpret TOKEN as a string, even if it is a \n"
+       "				keyword like `match' or an operator like `/'\n"
+       "( EXPRESSION )		    value of EXPRESSION\n\n"
+       "Beware that many operators need to be escaped or quoted for shells.\n"
+       "Comparisons are arithmetic if both ARGs are numbers, else\n"
+       "lexicographical.  Pattern matches return the string matched between \n"
+       "\\( and \\) or null; if \\( and \\) are not used, they return the number \n"
+       "of characters matched or 0.\n"
+
+#endif
+	;
+#endif
+
+
 #if defined BB_TRUE_FALSE
 const char false_usage[] =
 	"false\n"

@@ -12,6 +12,9 @@ Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
 
+Edward Betts <edward@debian.org>
+    expr, hostid, logname, tty, wc, whoami, yes
+ 
 John Beppu <beppu@lineo.com>
     du, head, nslookup, sort, tee, uniq
 

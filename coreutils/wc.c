@@ -2,7 +2,7 @@
 /*
  * Mini wc implementation for busybox
  *
- * by Edward Betts <edward@debian.org>
+ * Copyright (C) 2000  Edward Betts <edward@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

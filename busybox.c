@@ -76,6 +76,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_ECHO
 	{"echo", echo_main, _BB_DIR_BIN, echo_usage},
 #endif
+#ifdef BB_EXPR
+	{"expr", expr_main, _BB_DIR_USR_BIN, expr_usage},
+#endif
 #ifdef BB_TRUE_FALSE
 	{"false", false_main, _BB_DIR_BIN, false_usage},
 #endif

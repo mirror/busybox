@@ -5,6 +5,6 @@
 ls -1 ` \
     gcc -E -dM busybox.def.h | \
     sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/\1.c/gp;' \
-    | tr [:upper:] [:lower:] | sort
+    | tr '[:upper:]' '[:lower:]' | sort
 ` 2>/dev/null | sed -e 's/\.c$/\.o/g'
 

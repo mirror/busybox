@@ -22,7 +22,6 @@ around to it some time. If you have any good ideas, please let me know.
 * rdate
 * hwclock
 * stty
-* expr
 * wget (or whatever I call it)
 * tftp
 * ftp
