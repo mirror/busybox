@@ -501,7 +501,19 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 }
 #endif //tar_create
 
-void append_file_to_list(char *filename, char ***name_list, int *num_of_entries)
+void append_file_to_list(const char *new_name, char ***list, int *list_count)
+{
+	*list = realloc(*list, sizeof(char *) * (*list_count + 2));
+	if (last_char_is(new_name, '/')) {
+		(*list)[*list_count] = concat_path_file(new_name, "*");
+	} else {
+		(*list)[*list_count] = xstrdup(new_name);
+	}
+	(*list_count)++;
+	(*list)[*list_count] = NULL;
+}
+
+void append_file_list_to_list(char *filename, char ***name_list, int *num_of_entries)
 {
 	FILE *src_stream;
 	char *line;
@@ -513,13 +525,10 @@ void append_file_to_list(char *filename, char ***name_list, int *num_of_entries)
 		if (line_ptr) {
 			*line_ptr = '\0';
 		}
-		*name_list = realloc(*name_list, sizeof(char *) * (*num_of_entries + 2));
-		(*name_list)[*num_of_entries] = xstrdup(line);
-		(*num_of_entries)++;
+		append_file_to_list(line, name_list, num_of_entries);
 		free(line);
 	}
 	fclose(src_stream);
-	(*name_list)[*num_of_entries] = NULL;
 }
 
 #ifdef BB_FEATURE_TAR_EXCLUDE
@@ -627,13 +636,12 @@ int tar_main(int argc, char **argv)
 		/* Exclude or Include files listed in <filename>*/
 #ifdef BB_FEATURE_TAR_EXCLUDE
 		case 'X':
-			append_file_to_list(optarg, &exclude_list, &exclude_list_count);
-			exclude_list[exclude_list_count] = NULL;	
+			append_file_list_to_list(optarg, &exclude_list, &exclude_list_count);
 			break;
 #endif
 		case 'T':
 			// by default a list is an include list
-			append_file_to_list(optarg, &include_list, &include_list_count);
+			append_file_list_to_list(optarg, &include_list, &include_list_count);
 			break;
 
 		case 'C':	// Change to dir <optarg>
@@ -683,11 +691,8 @@ int tar_main(int argc, char **argv)
 
 	/* Setup an array of filenames to work with */
 	while (optind < argc) {
-		include_list = realloc(include_list, sizeof(char *) * (include_list_count + 2));
-		include_list[include_list_count] = xstrdup(argv[optind]);
-		include_list_count++;
+		append_file_to_list(argv[optind], &include_list, &include_list_count);
 		optind++;
-		include_list[include_list_count] = NULL;
 	}
 
 	/* By default the include list is the list we act on */
