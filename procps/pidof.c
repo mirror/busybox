@@ -36,25 +36,19 @@
 extern int pidof_main(int argc, char **argv)
 {
 	int opt, n = 0;
-
+	int single_flag = 0;
+	int fail = 1;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "ne:f:")) > 0) {
+	while ((opt = getopt(argc, argv, "s")) > 0) {
 		switch (opt) {
-#if 0
-			case 'g':
+			case 's':
+				single_flag = 1;
 				break;
-			case 'e':
-				break;
-#endif
 			default:
 				show_usage();
 		}
 	}
-
-	/* if we didn't get a process name, then we need to choke and die here */
-	if (argv[optind] == NULL)
-		show_usage();
 
 	/* Looks like everything is set to go. */
 	while(optind < argc) {
@@ -67,6 +61,9 @@ extern int pidof_main(int argc, char **argv)
 
 		for(; pidList && *pidList!=0; pidList++) {
 			printf("%s%ld", (n++ ? " " : ""), (long)*pidList);
+			fail = 0;
+			if (single_flag)
+				break;
 		}
 		/* Note that we don't bother to free the memory
 		 * allocated in find_pid_by_name().  It will be freed
@@ -75,5 +72,5 @@ extern int pidof_main(int argc, char **argv)
 	}
 	printf("\n");
 
-	return EXIT_SUCCESS;
+	return fail ? EXIT_FAILURE : EXIT_SUCCESS;
 }
