@@ -628,6 +628,7 @@ static pid_t run(struct init_action *a)
 					  "Waiting for enter to start '%s' (pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
 			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
+			fflush(stdout);
 			getc(stdin);
 		}
 
@@ -682,8 +683,7 @@ static void run_actions(int action)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action == action) {
-			if (a->
-				action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 				waitfor(a);
 				delete_init_action(a);
 			} else if (a->action & ONCE) {
