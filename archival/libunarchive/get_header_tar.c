@@ -65,7 +65,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 
 	/* If there is no filename its an empty header */
 	if (tar.formated.name[0] == 0) {
-		return(EXIT_FAILURE);
+		return(EXIT_SUCCESS);
 	}
 
 	/* Check header has valid magic, "ustar" is for the proper tar
