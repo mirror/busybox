@@ -106,6 +106,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 		pidList=xrealloc( pidList, sizeof(pid_t));
 		pidList[0]=1;
 	} else {
+		pidList=xrealloc( pidList, sizeof(pid_t));
 		pidList[0]=-1;
 	}
 
@@ -181,6 +182,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 		pidList=xrealloc( pidList, sizeof(pid_t));
 		pidList[0]=1;
 	} else {
+		pidList=xrealloc( pidList, sizeof(pid_t));
 		pidList[0]=-1;
 	}
 	return pidList;
