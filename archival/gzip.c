@@ -51,12 +51,6 @@
 #include <time.h>
 #include "busybox.h"
 
-#define memzero(s, n)     memset ((void *)(s), 0, (n))
-
-#ifndef RETSIGTYPE
-#  define RETSIGTYPE void
-#endif
-
 typedef unsigned char uch;
 typedef unsigned short ush;
 typedef unsigned long ulg;
@@ -214,9 +208,6 @@ typedef int file_t;		/* Do not use stdio */
 static int zip(int in, int out);
 static int file_read(char *buf, unsigned size);
 
-	/* from gzip.c */
-static RETSIGTYPE abort_gzip(void);
-
 		/* from deflate.c */
 static void lm_init(ush * flags);
 static ulg deflate(void);
@@ -335,7 +326,7 @@ static void put_short(ush w)
 /* ========================================================================
  * Signal and error handler.
  */
-static void abort_gzip()
+static void abort_gzip(int ignored)
 {
 	exit(ERROR);
 }
@@ -350,13 +341,6 @@ static void clear_bufs(void)
 	bytes_in = 0L;
 }
 
-static void write_bb_error_msg(void)
-{
-	fputc('\n', stderr);
-	bb_perror_nomsg();
-	abort_gzip();
-}
-
 /* ===========================================================================
  * Does the same as write(), but also handles partial pipe writes and checks
  * for error return.
@@ -366,9 +350,7 @@ static void write_buf(int fd, void *buf, unsigned cnt)
 	unsigned n;
 
 	while ((n = write(fd, buf, cnt)) != cnt) {
-		if (n == (unsigned) (-1)) {
-			write_bb_error_msg();
-		}
+		if (n == (unsigned) (-1)) bb_error_msg_and_die("can't write");
 		cnt -= n;
 		buf = (void *) ((char *) buf + n);
 	}
@@ -846,7 +828,7 @@ static void lm_init(ush * flags)
 	register unsigned j;
 
 	/* Initialize the hash table. */
-	memzero((char *) head, HASH_SIZE * sizeof(*head));
+	memset(head, 0, HASH_SIZE * sizeof(*head));
 	/* prev will be initialized on the fly */
 
 	*flags |= SLOW;
@@ -1188,8 +1170,6 @@ static ulg deflate()
 
 typedef struct dirent dir_type;
 
-typedef RETSIGTYPE(*sig_type) (int);
-
 /* ======================================================================== */
 int gzip_main(int argc, char **argv)
 {
@@ -1235,16 +1215,16 @@ int gzip_main(int argc, char **argv)
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
-		(void) signal(SIGINT, (sig_type) abort_gzip);
+		(void) signal(SIGINT, abort_gzip);
 	}
 #ifdef SIGTERM
 	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGTERM, (sig_type) abort_gzip);
+		(void) signal(SIGTERM, abort_gzip);
 	}
 #endif
 #ifdef SIGHUP
 	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGHUP, (sig_type) abort_gzip);
+		(void) signal(SIGHUP, abort_gzip);
 	}
 #endif
 
