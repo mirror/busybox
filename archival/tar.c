@@ -684,7 +684,6 @@ int tar_main(int argc, char **argv)
 		append_file_to_list(argv[optind], &include_list, &include_list_count);
 		optind++;
 	}
-
 	if (extract_function & (extract_list | extract_all_to_fs)) {
 		if (dst_prefix == NULL) {
 			dst_prefix = xstrdup("./");
@@ -721,7 +720,7 @@ int tar_main(int argc, char **argv)
 		if (extract_function & extract_verbose_list) {
 			verboseFlag = TRUE;
 		}
-		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], include_list);
+		writeTarFile(src_filename, verboseFlag, include_list, exclude_list);
 	}
 #endif // CONFIG_FEATURE_TAR_CREATE
 
