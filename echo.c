@@ -28,47 +28,86 @@
 extern int 
 echo_main(int argc, char** argv)
 {
-	register char **ap;
-	char *p;
-	int c;
 	int nflag = 0;
 	int eflag = 0;
 
+	/* Skip argv[0]. */
+	argc--;
+	argv++;
 
-	while ((c = getopt(argc, argv, "neE")) != EOF) {
-		switch (c) {
-		case 'n': 
-			nflag = 1;
-			break;
-		case 'e':
-			eflag = 1;
-			break;
-		case 'E':
-			eflag = 0;
-			break;
-		default: 
-			usage(echo_usage);
+	while (argc > 0 && *argv[0] == '-')
+	{
+		register char *temp;
+		register int index;
+
+		/*
+		 * If it appears that we are handling options, then make sure
+		 * that all of the options specified are actually valid.
+		 * Otherwise, the string should just be echoed.
+		 */
+		temp = argv[0] + 1;
+
+		for (index = 0; temp[index]; index++)
+		{
+			if (strrchr("neE", temp[index]) == 0)
+				goto just_echo;
 		}
+
+		if (!*temp)
+			goto just_echo;
+
+		/*
+		 * All of the options in temp are valid options to echo.
+		 * Handle them.
+		 */
+		while (*temp)
+		{
+			if (*temp == 'n')
+				nflag = 1;
+			else if (*temp == 'e')
+				eflag = 1;
+			else if (*temp == 'E')
+				eflag = 0;
+			else
+				goto just_echo;
+
+			temp++;
+		}
+		argc--;
+		argv++;
 	}
 
-	ap = &argv[optind];
-	while ((p = *ap++) != NULL) {
-		while ((c = *p++) != '\0') {
-			if (c == '\\' && eflag) {
-				if (*p == 'c')
-					exit(0);
-				else
-					c = process_escape_sequence(&p);
+just_echo:
+	while (argc > 0) {
+		char *arg = argv[0];
+		register int c;
+
+		while ((c = *arg++)) {
+
+			/* Check for escape sequence. */
+			if (c == '\\' && eflag && *arg) {
+				if (*arg == 'c') {
+					/* '\c' means cancel newline. */
+					nflag = 1;
+					arg++;
+					continue;
+				} else {
+					c = process_escape_sequence(&arg);
+				}
 			}
+
 			putchar(c);
 		}
-		if (*ap)
+		argc--;
+		argv++;
+		if (argc > 0)
 			putchar(' ');
 	}
-	if (! nflag)
+	if (!nflag)
 		putchar('\n');
 	fflush(stdout);
-	return( 0);
+
+	return 0;
 }
 
 /*-
@@ -90,6 +129,7 @@ echo_main(int argc, char** argv)
  * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
  *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
  *
+ *	California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -108,5 +148,3 @@ echo_main(int argc, char** argv)
  *
  *	@(#)echo.c	8.1 (Berkeley) 5/31/93
  */
-
-
