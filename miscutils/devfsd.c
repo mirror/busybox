@@ -837,10 +837,11 @@ static void service_name (const struct devfsd_notify_struct *info)
 	/*  Discard lookups on "/dev/log" and "/dev/initctl"  */
 	if(   info->type == DEVFSD_NOTIFY_LOOKUP &&
 		((info->devname[0]=='l' && info->devname[1]=='o' &&
-		  info->devname[2]=='g' && !info->devname[3]) &&
+		  info->devname[2]=='g' && !info->devname[3]) ||
 		( info->devname[0]=='i' && info->devname[1]=='n' &&
-		  info->devname[2]=='i' && info->devname[3]=='c' &&
-		  info->devname[4]=='t' && info->devname[5]=='l' && !info->devname[6])))
+		  info->devname[2]=='i' && info->devname[3]=='t' &&
+		  info->devname[4]=='c' && info->devname[5]=='t' &&
+		  info->devname[6]=='l' && !info->devname[7])))
 			return;
 	for (entry = first_config; entry != NULL; entry = entry->next)
 	{
