@@ -81,6 +81,8 @@ config CONFIG_LSMOD
 	  lsmod is used to display a list of loaded modules.
 
 config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
+	bool
+	default y
 	depends on CONFIG_FEATURE_2_4_MODULES && !CONFIG_FEATURE_2_6_MODULES
 
 config CONFIG_MODPROBE
