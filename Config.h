@@ -417,6 +417,19 @@
 // Nothing beyond this point should ever be touched by 
 // mere mortals so leave this stuff alone.
 //
+#include <features.h>
+#if defined __UCLIBC__ && ! defined __UCLIBC_HAS_MMU__
+	#undef BB_RPM2CPIO		/* Uses gz_open(), which uses fork() */
+	#undef BB_DPKG_DEB		/* Uses gz_open(), which uses fork() */
+	#undef BB_FEATURE_ASH	/* Uses fork() */
+	#undef BB_FEATURE_HUSH	/* Uses fork() */
+	#undef BB_FEATURE_LASH	/* Uses fork() */
+	#undef BB_INIT			/* Uses fork() */
+	#undef BB_FEATURE_TAR_GZIP	/* Uses fork() */
+	#undef BB_SYSLOGD		/* Uses daemon() */
+	#undef BB_KLOGD			/* Uses daemon() */
+	#undef BB_UPDATE		/* Uses daemon() */
+#endif
 #if defined BB_SH
 	#if defined BB_FEATURE_COMMAND_EDITING 
 		#define BB_CMDEDIT

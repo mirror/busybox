@@ -65,46 +65,44 @@ extern int update_main(int argc, char **argv)
 				show_usage();
 		}
 	}
+	
+	if (daemon(0, 1) < 0)
+		perror_msg_and_die("daemon");
 
-	pid = fork();
-	if (pid < 0)
-		return EXIT_FAILURE;
-	else if (pid == 0) {
-		/* Become a proper daemon */
-		setsid();
-		chdir("/");
+	/* Become a proper daemon */
+	setsid();
+	chdir("/");
 #ifdef OPEN_MAX
-		for (pid = 0; pid < OPEN_MAX; pid++) close(pid);
+	for (pid = 0; pid < OPEN_MAX; pid++) close(pid);
 #else
-		/* glibc 2.1.92 requires using sysconf(_SC_OPEN_MAX) */
-		for (pid = 0; pid < sysconf(_SC_OPEN_MAX); pid++) close(pid);
+	/* glibc 2.1.92 requires using sysconf(_SC_OPEN_MAX) */
+	for (pid = 0; pid < sysconf(_SC_OPEN_MAX); pid++) close(pid);
 #endif
 
-		/*
-		 * This is no longer necessary since 1.3.5x, but it will harmlessly
-		 * exit if that is the case.
-		 */
+	/* This is no longer necessary since 1.3.5x, but it will harmlessly
+	 * exit if that is the case.
+	 */
 
-		/* set the program name that will show up in a 'ps' listing */
-		argv[0] = "bdflush (update)";
-		argv[1] = NULL;
-		argv[2] = NULL;
-		for (;;) {
-			if (use_sync) {
-				sleep(sync_duration);
-				sync();
-			} else {
-				sleep(flush_duration);
-				if (bdflush(1, 0) < 0) {
-					openlog("update", LOG_CONS, LOG_DAEMON);
-					syslog(LOG_INFO,
-						   "This kernel does not need update(8). Exiting.");
-					closelog();
-					return EXIT_SUCCESS;
-				}
+	/* set the program name that will show up in a 'ps' listing */
+	argv[0] = "bdflush (update)";
+	argv[1] = NULL;
+	argv[2] = NULL;
+	for (;;) {
+		if (use_sync) {
+			sleep(sync_duration);
+			sync();
+		} else {
+			sleep(flush_duration);
+			if (bdflush(1, 0) < 0) {
+				openlog("update", LOG_CONS, LOG_DAEMON);
+				syslog(LOG_INFO,
+						"This kernel does not need update(8). Exiting.");
+				closelog();
+				return EXIT_SUCCESS;
 			}
 		}
 	}
+
 	return EXIT_SUCCESS;
 }
 

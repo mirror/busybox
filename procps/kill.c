@@ -147,9 +147,8 @@ extern int kill_main(int argc, char **argv)
 					const struct signal_name *s = signames;
 
 					while (s->name != 0) {
-						col +=
-							fprintf(stderr, "%2d) %-8s", s->number,
-									(s++)->name);
+						col += fprintf(stderr, "%2d) %-8s", s->number, s->name);
+						s++;
 						if (col > 60) {
 							fprintf(stderr, "\n");
 							col = 0;

@@ -15,7 +15,7 @@ extern FILE *gz_open(FILE *compressed_file, int *pid)
 		return(NULL);
 	}
 	if ((*pid = fork()) == -1) {
-		error_msg("fork failured");
+		error_msg("fork failed");
 		return(NULL);
 	}
 	if (*pid==0) {
@@ -29,7 +29,7 @@ extern FILE *gz_open(FILE *compressed_file, int *pid)
 	}
 	close(unzip_pipe[1]);
 	if (unzip_pipe[0] == -1) {
-		error_msg("Couldnt initialise gzip stream");
+		error_msg("gzip stream init failed");
 	}
 	return(fdopen(unzip_pipe[0], "r"));
 }

@@ -303,6 +303,7 @@ static struct dnode **dnalloc(int num)
 	return(p);
 }
 
+#ifdef BB_FEATURE_LS_RECURSIVE
 static void dfree(struct dnode **dnp)
 {
 	struct dnode *cur, *next;
@@ -318,6 +319,7 @@ static void dfree(struct dnode **dnp)
 	}
 	free(dnp);	/* free the array holding the dnode pointers */
 }
+#endif
 
 static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 {

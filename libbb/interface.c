@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.3 2001/06/01 21:47:15 andersen Exp $
+ * Version:     $Id: interface.c,v 1.4 2001/07/19 22:28:02 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -78,7 +78,9 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#if 0
 #include <arpa/nameser.h>
+#endif
 #include "libbb.h"
 
 #define _(x) x
@@ -455,9 +457,11 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 #ifdef DEBUG
 	fprintf (stderr, "getnetbyaddr (%08lx)\n", host_ad);
 #endif
+#if 0
 	np = getnetbyaddr(host_ad, AF_INET);
 	if (np != NULL)
 	    safe_strncpy(name, np->n_name, len);
+#endif
     }
     if ((ent == NULL) && (np == NULL))
 	safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
@@ -1068,7 +1072,6 @@ static int if_readconf(void)
     struct ifconf ifc;
     struct ifreq *ifr;
     int n, err = -1;
-    /* XXX Should this re-use the global skfd? */
     int skfd2;
 
     /* SIOCGIFCONF currently seems to only work properly on AF_INET sockets

@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.12 2001/07/17 01:12:36 andersen Exp $";
+	"$Id: vi.c,v 1.13 2001/07/19 22:28:01 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -3554,7 +3554,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 	}
 	charcnt = 0;
 	// FIXIT- use the correct umask()
-	fd = open((char *) fn, (O_RDWR | O_CREAT | O_TRUNC), 0664);
+	fd = open((char *) fn, (O_WRONLY | O_CREAT | O_TRUNC), 0664);
 	if (fd < 0)
 		return (-1);
 	cnt = last - first + 1;

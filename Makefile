@@ -396,7 +396,7 @@ clean:
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
-	- rm -f multibuild.log Config.h.orig
+	- rm -f multibuild.log Config.h.orig *.gdb *.elf
 	- rm -rf docs/busybox _install libpwd.a libbb.a pod2htm*
 	- rm -f busybox.links libbb/loop.h *~ slist.mk core applet_source_list
 	- find -name \*.o -exec rm -f {} \;

@@ -127,14 +127,20 @@ extern int logger_main(int argc, char **argv)
 		}
 	}
 
+	openlog(name, option, (pri | LOG_FACMASK));
 	if (optind == argc) {
-		/* read from stdin */
-		i = 0;
-		while ((c = getc(stdin)) != EOF && i < sizeof(buf)) {
-			buf[i++] = c;
-		}
-		buf[i++] = '\0';
-		message = buf;
+		do {
+			/* read from stdin */
+			i = 0;
+			while ((c = getc(stdin)) != EOF && c != '\n' && 
+					i < (sizeof(buf)-1)) {
+				buf[i++] = c;
+			}
+			if (i > 0) {
+				buf[i++] = '\0';
+				syslog(pri, "%s", buf);
+			}
+		} while (c != EOF);
 	} else {
 		len = 1; /* for the '\0' */
 		message=xcalloc(1, 1);
@@ -146,12 +152,10 @@ extern int logger_main(int argc, char **argv)
 			strcat(message, " ");
 		}
 		message[strlen(message)-1] = '\0';
+		syslog(pri, "%s", message);
 	}
 
-	/*openlog(name, option, (pri | LOG_FACMASK));
-	syslog(pri, "%s", message);
-	closelog();*/
-	syslog_msg_with_name(name,(pri | LOG_FACMASK),pri,message);
+	closelog();
 	return EXIT_SUCCESS;
 }
 
