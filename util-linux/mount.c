@@ -334,7 +334,9 @@ static void show_mounts(char *onlytype)
 		while ((m = getmntent(mountTable)) != 0) {
 			char *blockDevice = m->mnt_fsname;
 
-			if (strcmp(blockDevice, "/dev/root") == 0) {
+			if (strcmp(blockDevice, "rootfs") == 0) {
+				continue;
+			} else if (strcmp(blockDevice, "/dev/root") == 0) {
 				blockDevice = find_real_root_device_name(blockDevice);
 			}
 			if (!onlytype || (strcmp(m->mnt_type, onlytype) == 0)) {

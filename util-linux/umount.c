@@ -111,7 +111,9 @@ static char *mtab_getinfo(const char *match, const char which)
 				return cur->mountpt;
 			} else {
 #if !defined CONFIG_FEATURE_MTAB_SUPPORT
-				if (strcmp(cur->device, "/dev/root") == 0) {
+				if (strcmp(cur->device, "rootfs") == 0) {
+					continue;
+				} else if (strcmp(cur->device, "/dev/root") == 0) {
 					/* Adjusts device to be the real root device,
 					 * or leaves device alone if it can't find it */
 					cur->device = find_real_root_device_name(cur->device);
