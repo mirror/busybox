@@ -426,6 +426,7 @@ static int builtin_export(struct child_prog *child)
 		for (e = environ; *e; e++) {
 			printf( "%s\n", *e);
 		}
+		return 0;
 	}
 	res = putenv(v);
 	if (res)
