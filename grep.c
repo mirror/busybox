@@ -21,6 +21,14 @@
  *
  */
 
+/*
+	18-Dec-1999	Konstantin Boldyshev <konst@voshod.com>
+
+	+ -q option (be quiet) 
+	+ exit code depending on grep result (TRUE or FALSE)
+	  (useful for scripts)
+*/
+
 #include "internal.h"
 #include "regexp.h"
 #include <stdio.h>
@@ -37,13 +45,15 @@ static const char grep_usage[] =
 "OPTIONS:\n"
 "\t-h\tsuppress the prefixing filename on output\n"
 "\t-i\tignore case distinctions\n"
-"\t-n\tprint line number with output lines\n\n"
+"\t-n\tprint line number with output lines\n"
+"\t-q\tbe quiet\n\n"
 #if defined BB_REGEXP
 "This version of grep matches full regular expresions.\n";
 #else
 "This version of grep matches strings (not regular expresions).\n";
 #endif
 
+static int match = FALSE, beQuiet = FALSE;
 
 static void do_grep(FILE *fp, char* needle, char *fileName, int tellName, int ignoreCase, int tellLine)
 {
@@ -65,7 +75,10 @@ static void do_grep(FILE *fp, char* needle, char *fileName, int tellName, int ig
 	    if (tellLine==TRUE)
 		printf ("%ld:", line);
 
-	    fputs (haystack, stdout);
+	    if (beQuiet==FALSE)
+		fputs (haystack, stdout);
+
+	    match = TRUE;
 	}
     }
 }
@@ -109,6 +122,10 @@ extern int grep_main (int argc, char **argv)
 		tellLine = TRUE;
 		break;
 
+	    case 'q':
+		beQuiet = TRUE;
+		break;
+
 	    default:
 		usage(grep_usage);
 	    }
@@ -136,7 +153,7 @@ extern int grep_main (int argc, char **argv)
 	    fclose (fp);
 	}
     }
-    exit( TRUE);
+    exit(match);
 }
 
 

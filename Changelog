@@ -7,6 +7,8 @@
 	* Fixed the embarrasing failure of the -p opition in the logger app. -erik
 	* Re-worked the whole source tree a bit so it will compile under glibc 2.0.7 
 	    with the 2.0.x Linux kernel.
+	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
+	    <konst@voshod.com>.
 
 	-Erik Andersen
 
