@@ -57,7 +57,10 @@ config CONFIG_FEATURE_INSMOD_LOADINKMEM
 	default n
 	depends on CONFIG_INSMOD
 	help
-	  Please submit a patch to add help text for this item.
+	  This is a special uClinux only memory optimization that lets insmod
+	  load the specified kernel module directly into kernel space, reducing
+	  memory usage by preventing the need for two copies of the module
+	  being loaded into memory.
 
 config CONFIG_FEATURE_INSMOD_LOAD_MAP
 	bool "  Enable load map (-m) option" 
