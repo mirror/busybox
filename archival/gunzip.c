@@ -169,6 +169,7 @@ extern int gunzip_main(int argc, char **argv)
 			magic2 = xread_char(src_fd);
 #ifdef CONFIG_FEATURE_UNCOMPRESS
 			if (magic2 == 0x9d) {
+				printf("uncompress\n");
 				return(uncompress(src_fd, dst_fd));
 			} else 
 #endif
@@ -182,6 +183,8 @@ extern int gunzip_main(int argc, char **argv)
 				} else {
 					error_msg_and_die("Invalid magic\n");
 				}
+		} else {
+			error_msg_and_die("Invalid magic\n");
 		}
 
 		if ((status != EXIT_SUCCESS) && (new_path)) {
