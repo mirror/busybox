@@ -97,6 +97,7 @@
 #include <termios.h>
 #include <mntent.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include <linux/fs.h>
 #include <linux/minix_fs.h>

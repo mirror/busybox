@@ -185,7 +185,7 @@ extern int tar_main(int argc, char **argv)
 		usage(tar_usage);
 
 	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
+	while (--argc > 0 && strspn(*(++argv), "-cxt") >0 ) {
 		stopIt=FALSE;
 		while (stopIt==FALSE && *(++(*argv))) {
 			switch (**argv) {
@@ -265,7 +265,8 @@ extern int tar_main(int argc, char **argv)
 #else
 		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv, excludeList));
 #endif
-	} else {
+	}
+	if (listFlag == TRUE || extractFlag == TRUE) {
 		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, excludeList));
 	}
 

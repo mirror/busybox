@@ -74,6 +74,7 @@
 #include <termios.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/param.h>
 #include <mntent.h>
 
 #include <linux/fs.h>
@@ -81,10 +82,6 @@
 
 #ifdef MINIX2_SUPER_MAGIC2
 #define HAVE_MINIX2 1
-#endif
-
-#ifndef __GNUC__
-#error "needs gcc for the bitop-__asm__'s"
 #endif
 
 #ifndef __linux__

@@ -22,6 +22,11 @@ Bugs that need fixing:
  - 'grep *foo file' segfaults
  - ps dirent race bug (need to stat the file before attempting chdir)
 
+
+/busybox tar tvf
+Segmentation fault (core dumped)
+
+
 -----------
 
 * Make insmod actually work

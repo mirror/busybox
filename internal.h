@@ -284,18 +284,6 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 	char **extra_opts, char **mount_opts, int running_bg);
 #endif
 
-#if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)
-/* Bit map related macros.  */
-#ifndef setbit
-#define CHAR_BITS      8 /* Number of bits in a `char'.  */
-#define setbit(a,i)     ((a)[(i)/CHAR_BITS] |= 1<<((i)%CHAR_BITS))
-#define clrbit(a,i)     ((a)[(i)/CHAR_BITS] &= ~(1<<((i)%CHAR_BITS)))
-#define isset(a,i)      ((a)[(i)/CHAR_BITS] & (1<<((i)%CHAR_BITS)))
-#define isclr(a,i)      (((a)[(i)/CHAR_BITS] & (1<<((i)%CHAR_BITS))) == 0)
-#endif
-#endif
-
-
 #ifndef RB_POWER_OFF
 /* Stop system and switch power off if possable.  */
 #define RB_POWER_OFF   0x4321fedc
