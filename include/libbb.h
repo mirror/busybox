@@ -48,6 +48,10 @@
 # include "sha1.h"
 #endif
 
+/* Compatability with ANSI C */
+#ifndef inline
+# define inline
+#endif
 
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
