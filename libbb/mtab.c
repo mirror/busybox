@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <mntent.h>
-#include "busybox.h"
+#include "libbb.h"
 
 extern const char mtab_file[];	/* Defined in utility.c */
 static const int MS_RDONLY = 1;	/* Mount read-only.  */

@@ -26,7 +26,7 @@
  */
 
 #include <stdio.h>
-#include "busybox.h"
+#include "libbb.h"
 
 
 /* Busybox mount uses either /proc/mounts or /dev/mtab to 

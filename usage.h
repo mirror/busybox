@@ -1067,7 +1067,7 @@
 #else
   #define USAGE_MOUNT_LOOP(a)
 #endif
-#ifdef BB_MTAB
+#ifdef BB_FEATURE_MTAB_SUPPORT
   #define USAGE_MTAB(a) a
 #else
   #define USAGE_MTAB(a)

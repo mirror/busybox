@@ -210,7 +210,7 @@
 #define BB_FEATURE_MOUNT_LOOP
 //
 // Enable support for a real /etc/mtab file instead of /proc/mounts
-//#define BB_FEATURE_MOUNT_MTAB_SUPPORT
+//#define BB_FEATURE_MTAB_SUPPORT
 //
 // Enable support for mounting remote NFS volumes. 
 // You may need to mount with "-o nolock" if you are
@@ -344,14 +344,6 @@
 //---------------------------------------------------
 // Nothing beyond this point should ever be touched by 
 // mere mortals so leave this stuff alone.
-//
-#if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
-	#ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
-		#define BB_MTAB
-	#endif
-#else
-	#undef BB_MTAB
-#endif	
 //
 #if defined BB_SH
 	#if defined BB_FEATURE_COMMAND_EDITING 

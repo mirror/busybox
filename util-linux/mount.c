@@ -160,7 +160,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	/* If the mount was sucessful, do anything needed, then return TRUE */
 	if (status == 0 || fakeIt==TRUE) {
 
-#if defined BB_MTAB
+#if defined BB_FEATURE_MTAB_SUPPORT
 		if (useMtab == TRUE) {
 			erase_mtab(specialfile);	// Clean any stale entries
 			write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
@@ -385,7 +385,7 @@ extern int mount_main(int argc, char **argv)
 				case 'f':
 					fakeIt = TRUE;
 					break;
-#ifdef BB_MTAB
+#ifdef BB_FEATURE_MTAB_SUPPORT
 				case 'n':
 					useMtab = FALSE;
 					break;

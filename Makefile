@@ -202,7 +202,7 @@ endif
 # And option 4:
 -include applet_source_list
 
-OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o applets.o mtab_file.o
+OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
@@ -236,7 +236,7 @@ my_getgrgid.c my_getpwnamegid.c my_getpwuid.c my_getgrnam.c my_getpwnam.c \
 recursive_action.c safe_read.c safe_strncpy.c syscalls.c \
 syslog_msg_with_name.c time_string.c trim.c vdprintf.c wfopen.c xfuncs.c \
 xregcomp.c error_msg_and_die.c perror_msg.c perror_msg_and_die.c \
-verror_msg.c vperror_msg.c 
+verror_msg.c vperror_msg.c mtab.c mtab_file.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB_DIR)
 

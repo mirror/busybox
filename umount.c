@@ -57,7 +57,7 @@ static int doForce = FALSE;
 #if defined BB_FEATURE_MOUNT_LOOP
 static int freeLoop = TRUE;
 #endif
-#if defined BB_MTAB
+#if defined BB_FEATURE_MTAB_SUPPORT
 static int useMtab = TRUE;
 #endif
 static int umountAll = FALSE;
@@ -106,7 +106,7 @@ char *mtab_getinfo(const char *match, const char which)
 			if (which == MTAB_GETMOUNTPT) {
 				return cur->mountpt;
 			} else {
-#if !defined BB_MTAB
+#if !defined BB_FEATURE_MTAB_SUPPORT
 				if (strcmp(cur->device, "/dev/root") == 0) {
 					/* Adjusts device to be the real root device,
 					 * or leaves device alone if it can't find it */
@@ -197,7 +197,7 @@ static int do_umount(const char *name)
 		}
 	}
 	if (status == 0) {
-#if defined BB_MTAB
+#if defined BB_FEATURE_MTAB_SUPPORT
 		if (useMtab == TRUE)
 			erase_mtab(name);
 #endif
@@ -255,7 +255,7 @@ extern int umount_main(int argc, char **argv)
 				freeLoop = FALSE;
 				break;
 #endif
-#ifdef BB_MTAB
+#ifdef BB_FEATURE_MTAB_SUPPORT
 			case 'n':
 				useMtab = FALSE;
 				break;
