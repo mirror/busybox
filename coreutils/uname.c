@@ -42,9 +42,9 @@
 
 
 static const char uname_usage[] =
-	"uname [OPTION]...\n\n"
+	"uname [OPTION]...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"Print certain system information.  With no OPTION, same as -s.\n\n"
+	"\nPrint certain system information.  With no OPTION, same as -s.\n\n"
 	"Options:\n"
 	"\t-a\tprint all information\n"
 	"\t-m\tthe machine (hardware) type\n"

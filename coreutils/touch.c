@@ -33,10 +33,11 @@
 
 static const char touch_usage[] = "touch [-c] file [file ...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nUpdate the last-modified date on the given file[s].\n"
+	"\nUpdate the last-modified date on the given file[s].\n\n"
+	"Options:\n"
+	"\t-c\tDo not create any files\n"
 #endif
 	;
-
 
 
 extern int touch_main(int argc, char **argv)
@@ -44,15 +45,9 @@ extern int touch_main(int argc, char **argv)
 	int fd;
 	int create = TRUE;
 
-	if (argc < 2) {
-		usage(touch_usage);
-	}
-	argc--;
-	argv++;
-
 	/* Parse options */
-	while (**argv == '-') {
-		while (*++(*argv))
+	while (--argc > 0 && **(++argv) == '-') {
+		while (*(++(*argv))) {
 			switch (**argv) {
 			case 'c':
 				create = FALSE;
@@ -61,23 +56,30 @@ extern int touch_main(int argc, char **argv)
 				usage(touch_usage);
 				exit(FALSE);
 			}
+		}
+	}
+
+	if (argc < 1) {
+		usage(touch_usage);
+	}
+
+	while (argc > 0) {
+		fd = open(*argv, (create == FALSE) ? O_RDWR : O_RDWR | O_CREAT,
+				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if (fd < 0) {
+			if (create == FALSE && errno == ENOENT)
+				exit(TRUE);
+			else {
+				fatalError("touch: %s", strerror(errno));
+			}
+		}
+		close(fd);
+		if (utime(*argv, NULL)) {
+			fatalError("touch: %s", strerror(errno));
+		}
 		argc--;
 		argv++;
 	}
 
-	fd = open(*argv, (create == FALSE) ? O_RDWR : O_RDWR | O_CREAT, 0644);
-	if (fd < 0) {
-		if (create == FALSE && errno == ENOENT)
-			exit(TRUE);
-		else {
-			perror("touch");
-			exit(FALSE);
-		}
-	}
-	close(fd);
-	if (utime(*argv, NULL)) {
-		perror("touch");
-		exit(FALSE);
-	} else
-		exit(TRUE);
+	exit(TRUE);
 }
