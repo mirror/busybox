@@ -143,11 +143,15 @@ int wc_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
-			file = wfopen(argv[optind], "r");
-			if (file != NULL)
+			if (print_type == print_chars) {
+				struct stat statbuf;
+				stat(argv[optind], &statbuf);
+				print_counts(0, 0, statbuf.st_size, 0, argv[optind]);
+				total_chars += statbuf.st_size;
+			} else {
+				file = xfopen(argv[optind], "r");
 				wc_file(file, argv[optind]);
-			else
-				status = EXIT_FAILURE;
+			}
 			num_files_counted++;
 			optind++;
 		}
