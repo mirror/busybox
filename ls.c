@@ -175,6 +175,29 @@ static unsigned short tabstops = 8;
 
 static int status = EXIT_SUCCESS;
 
+static int my_stat(struct dnode *cur)
+{
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+	if (follow_links == TRUE) {
+		if (stat(cur->fullname, &cur->dstat)) {
+			errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+			status = EXIT_FAILURE;
+			free(cur->fullname);
+			free(cur);
+			return -1;
+		}
+	} else
+#endif
+	if (lstat(cur->fullname, &cur->dstat)) {
+		errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+		status = EXIT_FAILURE;
+		free(cur->fullname);
+		free(cur);
+		return -1;
+	}
+	return 0;
+}
+
 static void newline(void)
 {
     if (column > 0) {
@@ -476,24 +499,8 @@ struct dnode **list_dir(char *path)
 			strcat(cur->fullname, "/");
 		cur->name= cur->fullname + strlen(cur->fullname);
 		strcat(cur->fullname, entry->d_name);
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
-		if (follow_links == TRUE) {
-			if (stat(cur->fullname, &cur->dstat)) {
-				errorMsg("%s: %s\n", cur->fullname, strerror(errno));
-				status = EXIT_FAILURE;
-				free(cur->fullname);
-				free(cur);
-				continue;
-			}
-		} else
-#endif
-		if (lstat(cur->fullname, &cur->dstat)) {   /* get file stat info into node */
-			errorMsg("%s: %s\n", cur->fullname, strerror(errno));
-			status = EXIT_FAILURE;
-			free(cur->fullname);
-			free(cur);
+		if (my_stat(cur))
 			continue;
-		}
 		cur->next= dn;
 		dn= cur;
 		nfiles++;
@@ -792,24 +799,8 @@ extern int ls_main(int argc, char **argv)
 		cur= (struct dnode *)xmalloc(sizeof(struct dnode));
 		cur->fullname= xstrdup(av[oi]);
 		cur->name= cur->fullname;
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
-		if (follow_links == TRUE) {
-			if (stat(av[oi], &cur->dstat)) {
-				errorMsg("%s: %s\n", av[oi], strerror(errno));
-				status = EXIT_FAILURE;
-				free(cur->fullname);
-				free(cur);
-				continue;
-			}
-		} else
-#endif
-		if (lstat(av[oi], &cur->dstat)) {  /* get file info into node */
-			errorMsg("%s: %s\n", av[oi], strerror(errno));
-			status = EXIT_FAILURE;
-			free(cur->fullname);
-			free(cur);
+		if (my_stat(cur))
 			continue;
-		}
 		cur->next= dn;
 		dn= cur;
 		nfiles++;
