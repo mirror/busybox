@@ -42,20 +42,29 @@ static char print_type = 0;
 static void print_counts(const unsigned int lines, const unsigned int words,
 	const unsigned int chars, const unsigned int length, const char *name)
 {
+	int output = 0;
+
 	if (print_type & print_lines) {
-		printf("%7d ", lines);
+		printf("%7d", lines);
+		output++;
 	}
 	if (print_type & print_words) {
-		printf("%7d ", words);
+		if (output++)
+			putchar(' ');
+		printf("%7d", words);
 	}
 	if (print_type & print_chars) {
-		printf("%7d ", chars);
+		if (output++)
+			putchar(' ');
+		printf("%7d", chars);
 	}
 	if (print_type & print_length) {
-		printf("%7d ", length);
+		if (output++)
+			putchar(' ');
+		printf("%7d", length);
 	}
 	if (*name) {
-		printf("%s", name);
+		printf(" %s", name);
 	}
 	putchar('\n');
 }
