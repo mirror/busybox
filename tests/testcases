@@ -21,6 +21,10 @@
 #  - try to make the applet you're testing the first thing on the line (this
 #    not always possible)
 #  - (???) if you have to create a temporary file, call it TMPFILE
+#  - pipe symbols that represent real pipes need a space in front of them
+#     (so the test script can find them and add the "../busybox" after it).
+#  - pipe symbols that are not used for pipes need to be shell-escaped,
+#     with a double \.  See the expr test cases.
 
 
 # ar
@@ -60,11 +64,13 @@ date +%d/%m/%y
 # dc - needs an input file
 
 # dd
+# BUG: record count line goes to stdout instead of stderr
 dd if=/dev/urandom of=O bs=1k count=1 ; ls -l O ; rm O
 
 # deallocvt
 
 # df
+# XXX: minor formatting differences
 df
 df .
 df -k
@@ -86,6 +92,7 @@ dmesg -s 512
 # dpkg_deb
 
 # du
+# BUG: rounding behavior differs from GNU du
 du
 du -s
 du -l
@@ -141,6 +148,7 @@ expr 12 % 5
 find .
 
 # free
+# XXX: minor formatting differences
 free
 
 # freeramdisk
@@ -158,9 +166,12 @@ grep -e strdup -e regcomp -e atexit ../grep.c
 # gunzip
 
 # gzip
+# XXX: compressed output differs from gzip-1.2.4, but decompresses fine
 echo testing 1 2 3 >tmpfile1; gzip tmpfile1; echo tmpfile*; md5sum tmpfile1.gz; rm tmpfile1.gz
 echo testing 1 2 3 | gzip >tmpfile1.gz; md5sum tmpfile1.gz; rm tmpfile1.gz
-# halt
+
+
+# halt - won't test, dangerous
 
 # head
 head tester.sh
@@ -170,6 +181,7 @@ head -n 2 tester.sh
 hostid
 
 # hostname
+# XXX: minor formatting differences
 hostname
 hostname -s
 hostname -i
@@ -178,6 +190,7 @@ hostname -d
 #hostname -F
 
 # id
+# BUG: Busybox id doesn't print supplemental groups
 id
 id -u
 id -g
@@ -208,6 +221,7 @@ ifconfig
 # logname
 
 # ls
+# XXX: minor formatting differences
 ls ../e*
 ls -l ../e*
 ls -s ../e*
@@ -240,8 +254,9 @@ mkfifo -m 0600 F ; ls -l F ; rm F
 # more - can't test: interactive
 
 # mount
+# BUG: proc line starts with /proc instead of proc
 mount
-# not going to test any more
+# not going to test mount with any args, can't be done safely or sanely
 
 # mt
 # mv - see mv_tests.mk
@@ -274,6 +289,7 @@ touch F ; rm F
 # rmmod - won't test: dangerous
 
 # route
+# XXX: doesn't DNS resolve
 route
 
 # rpmunpack
@@ -326,6 +342,7 @@ touch tmpfile1; ls tmpfile1; rm -f tmpfile1
 touch -c tmpfile1; ls tmpfile1; rm -f tmpfile1
 
 # tr
+# BUG: Busybox tr range handling minix style [a-z] instead of GNU # style a-z
 echo "cbaab" | tr abc zyx
 echo "TESTING A B C" | tr [A-Z] [a-z]
 # not GNU compatible
@@ -347,6 +364,7 @@ false ; echo $?
 # update
 
 # uptime
+# BUG: doesn't print number of users
 uptime
 
 # usleep
@@ -370,6 +388,7 @@ which ls
 whoami
 
 # xargs
+# XXX: Busygox xargs divides filenames with '\n' instead of ' '
 ls -1 ../e* | xargs
 ls -1 ../e* | xargs md5sum
 

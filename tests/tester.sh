@@ -124,8 +124,8 @@ do
 				# line=${line//;/; $BUSYBOX }
 				# line=${line//|/| $BUSYBOX }
 				# assume $BUSYBOX has no commas
-				line=`echo $line | sed -e 's,;,; '$BUSYBOX, \
-				                       -e 's,|,| '$BUSYBOX,`
+				line=`echo "$line" | sed -e 's,;,; '$BUSYBOX, \
+				                       -e 's, |, | '$BUSYBOX,`
 
 				# execute line using busybox programs
 				[ $DEBUG -ge 2 ] && echo "testing: $line" | tee -a $LOGFILE
