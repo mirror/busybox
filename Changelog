@@ -12,6 +12,9 @@
 	    Fix thanks to Arne Bernin <arne@matrix.loopback.org>
 	* Added support for "sh -c command args...", thanks to 
 	    Marius Groeger <mgroeger@sysgo.de>
+	* Added support for being a login shell, so things like
+	    '-su' or '-sh' (stuff where argv[0][0]=='-') will now always 
+	    invoke the shell.  Now you can use BusyBox as a login shell.
 
 	 -Erik Andersen
 

@@ -479,6 +479,13 @@ int main(int argc, char **argv)
 
 	*argv = name;
 
+#ifdef BB_SH
+	/* Add in a special case hack -- whenever **argv == '-'
+	 * (i.e. '-su' or '-sh') always invoke the shell */
+	if (**argv == '-')
+		exit(((*(shell_main)) (argc, argv)));
+#endif
+
 	while (a->name != 0) {
 		if (strcmp(name, a->name) == 0) {
 			exit(((*(a->main)) (argc, argv)));
