@@ -37,8 +37,6 @@ extern int copy_file_chunk(FILE *src_file, FILE *dst_file, off_t chunksize)
 	off_t size, amount_written;
 	char buffer[BUFSIZ]; /* BUFSIZ is declared in stdio.h */
 	
-	clearerr(src_file);
-	clearerr(dst_file);
 	while (chunksize > 0) {
 		if (chunksize > BUFSIZ) {
 			size = BUFSIZ;
