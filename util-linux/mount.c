@@ -347,7 +347,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	return (TRUE);
 }
 
-static void show_mounts(void)
+static void show_mounts(char *onlytype)
 {
 #if defined CONFIG_FEATURE_USE_DEVPS_PATCH
 	int fd, i, numfilesystems;
@@ -371,10 +371,12 @@ static void show_mounts(void)
 		perror_msg_and_die( "\nDEVMTAB_GET_MOUNTS");
 
 	for( i = 0 ; i < numfilesystems ; i++) {
-		printf( "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
-				mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
-				mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
-				mntentlist[i].mnt_passno);
+		if ( !onlytype || ( strcmp ( mntentlist[i].mnt_type, onlytype ) == 0 )) {
+			printf( "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
+					mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
+					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
+					mntentlist[i].mnt_passno);
+		}
 	}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* Don't bother to close files or free memory.  Exit 
@@ -394,8 +396,10 @@ static void show_mounts(void)
 			if (strcmp(blockDevice, "/dev/root") == 0) {
 				blockDevice = find_real_root_device_name(blockDevice);
 			}
-			printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
-				   m->mnt_type, m->mnt_opts);
+			if ( !onlytype || ( strcmp ( m-> mnt_type, onlytype ) == 0 )) {
+				printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
+					   m->mnt_type, m->mnt_opts);
+			}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 			if(blockDevice != m->mnt_fsname)
 				free(blockDevice);
@@ -416,6 +420,7 @@ extern int mount_main(int argc, char **argv)
 	char *extra_opts;
 	int flags = 0;
 	char *filesystemType = "auto";
+	int got_filesystemType = 0;
 	char *device = xmalloc(PATH_MAX);
 	char *directory = xmalloc(PATH_MAX);
 	struct mntent *m = NULL;
@@ -437,6 +442,7 @@ extern int mount_main(int argc, char **argv)
 			break;
 		case 't':
 			filesystemType = optarg;
+			got_filesystemType = 1;
 			break;
 		case 'w':
 			flags &= ~MS_RDONLY;
@@ -458,7 +464,7 @@ extern int mount_main(int argc, char **argv)
 	}
 
 	if (!all && optind == argc)
-		show_mounts();
+		show_mounts(got_filesystemType ? filesystemType : 0);
 
 	if (optind < argc) {
 		/* if device is a filename get its real path */
