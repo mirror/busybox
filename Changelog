@@ -4,6 +4,8 @@
 	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
 	* Fix for ping warnings from Sascha Ziemann <szi@aibon.ping.de>
 	* More doc updates
+	* Fixed update segfault
+	* Fixed mknod -- minor number was always 0
 
 
 0.43

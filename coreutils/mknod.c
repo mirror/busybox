@@ -58,6 +58,7 @@ int mknod_main(int argc, char **argv)
 			argc--;
 			argv++;
 			parse_mode(*argv, &perm);
+			umask(0);
 			break;
 		default:
 			usage(mknod_usage);
@@ -87,7 +88,7 @@ int mknod_main(int argc, char **argv)
 	}
 
 	if (mode == S_IFCHR || mode == S_IFBLK) {
-		dev = (atoi(argv[2]) << 8) | atoi(argv[1]);
+		dev = (atoi(argv[2]) << 8) | atoi(argv[3]);
 	}
 
 	mode |= perm;

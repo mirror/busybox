@@ -52,7 +52,7 @@ extern int update_main(int argc, char **argv)
 
 	argc--;
 	argv++;
-	while (**argv == '-') {
+	while (argc>0 && **argv == '-') {
 		while (*++(*argv)) {
 			switch (**argv) {
 			case 'S':
