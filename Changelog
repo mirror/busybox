@@ -61,7 +61,8 @@
 	* Simplified freeramdisk and added argument checking -- Pavel Roskin. 
 	* Fixed segfault caused by "touch -c"
 	* Fixed segfault caused by "rm -f"
-	* Fixed segfault caused by "ln -s -s" and similar abuses.
+	* Fixed segfault caused by "ln -s -s" and similar abuses. Further fixes
+	    and "--" support from Pavel Roskin.
 	* Fixed segfault caused by "cp -a -a" and similar abuses.
 	* Implemented "rm -- <foo>". Implementation fixed by Pavel Roskin.
 	* "which" rewritten to use stat(). Fixes to improve its compatability

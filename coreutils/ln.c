@@ -51,16 +51,14 @@ extern int ln_main(int argc, char **argv)
 {
 	char *linkName;
 	int linkIntoDirFlag;
+	int stopIt = FALSE;
 
-	if (argc < 3) {
-		usage(ln_usage);
-	}
 	argc--;
 	argv++;
 
 	/* Parse any options */
-	while (--argc >= 0 && *argv && **argv) {
-		while (**argv == '-') {
+	while (argc > 0 && stopIt == FALSE) {
+		if (**argv == '-') {
 			while (*++(*argv))
 				switch (**argv) {
 					case 's':
@@ -72,15 +70,21 @@ extern int ln_main(int argc, char **argv)
 					case 'n':
 						followLinks = FALSE;
 						break;
+					case '-':
+						stopIt = TRUE;
+						break;
 					default:
 						usage(ln_usage);
 				}
+			argc--;
+			argv++;
 		}
-		argv++;
+		else
+			break;
 	}
 
-	if (argc < 1) {
-		fatalError("ln: missing file argument\n");
+	if (argc < 2) {
+		usage(ln_usage);
 	}
 
 	linkName = argv[argc - 1];
