@@ -1101,7 +1101,7 @@ Example:
 
 Usage: logger [OPTION]... [MESSAGE]
 
-Write MESSAGE to the system log.  If MESSAGE is '-', log stdin.
+Write MESSAGE to the system log.  If MESSAGE is omitted, log stdin.
 
 Options:
 
@@ -2294,4 +2294,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.84 2000/12/18 20:36:02 andersen Exp $
+# $Id: busybox.pod,v 1.85 2001/01/02 22:54:12 kraai Exp $

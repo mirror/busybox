@@ -1872,7 +1872,7 @@
 		</para>
 
 		<para>
-		Write MESSAGE to the system log.  If MESSAGE is '-', log
+		Write MESSAGE to the system log.  If MESSAGE is omitted, log
 		stdin.
 		</para>
 
