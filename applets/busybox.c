@@ -74,13 +74,10 @@ int main(int argc, char **argv)
 			applet_name = s;
 	}
 
-#ifdef BB_SH
-	/* Add in a special case hack -- whenever **argv == '-'
-	 * (i.e., '-su' or '-sh') always invoke the shell */
+	/* Add in a special case hack for a leading hyphen */
 	if (**argv == '-' && *(*argv+1)!= '-') {
-		applet_name = "sh";
+		applet_name = (*argv+1);
 	}
-#endif
 
 #ifdef BB_LOCALE_SUPPORT 
 #ifdef BB_INIT
