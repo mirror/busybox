@@ -246,7 +246,8 @@ extern int tar_main(int argc, char **argv)
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
 					if (strcmp(*argv, "xclude")==0) {
-						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
+						excludeList=xrealloc( excludeList,
+								sizeof(char *) * (excludeListSize+2));
 						excludeList[excludeListSize] = *(++argv);
 						if (excludeList[excludeListSize] == NULL)
 							error_msg_and_die( "Option requires an argument: No file specified\n");
@@ -258,30 +259,30 @@ extern int tar_main(int argc, char **argv)
 						stopIt=TRUE;
 						break;
 					}
-                                case 'X':
-                                       if (*excludeFileName != '-')
-                                               error_msg_and_die("Only one 'X' option allowed\n");
-                                       excludeFileName = *(++argv);
-                                       if  (excludeFileName == NULL)
-                                               error_msg_and_die("Option requires an argument: No file specified\n");
-                                       fileList = fopen (excludeFileName, "rt");
-                                       if (! fileList)
-                                               error_msg_and_die("Exclude file: file not found\n");
-                                       while (!feof(fileList)) {
-                                               fscanf(fileList, "%s", file);
-                                               excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
-                                               excludeList[excludeListSize] = malloc(sizeof(char) * (strlen(file)+1));
-                                               strcpy(excludeList[excludeListSize],file);
-                                               /* Remove leading "/"s */
-                                               if (*excludeList[excludeListSize] == '/')
-                                                       excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
-                                               /* Tack a NULL onto the end of the list */
-                                                       excludeList[++excludeListSize] = NULL;
-                                       }
- 
-                                       fclose(fileList);
-                                       stopIt=TRUE;
-                                       break;
+				case 'X':
+					if (*excludeFileName != '-')
+						error_msg_and_die("Only one 'X' option allowed\n");
+					excludeFileName = *(++argv);
+					if (excludeFileName == NULL)
+						error_msg_and_die("Option requires an argument: No file specified\n");
+					fileList = fopen (excludeFileName, "r");
+					if (! fileList)
+						error_msg_and_die("Exclude file: file not found\n");
+					while (fgets(file, sizeof(file), fileList) != NULL) {
+						excludeList = xrealloc(excludeList,
+								sizeof(char *) * (excludeListSize+2));
+						if (file[strlen(file)-1] == '\n')
+							file[strlen(file)-1] = '\0';
+						excludeList[excludeListSize] = xstrdup(file);
+						/* Remove leading "/"s */
+						while (*excludeList[excludeListSize] == '/')
+							excludeList[excludeListSize]++;
+						/* Tack a NULL onto the end of the list */
+						excludeList[++excludeListSize] = NULL;
+					}
+					fclose(fileList);
+					stopIt=TRUE;
+					break;
 #endif
 				case '-':
 						break;
