@@ -153,6 +153,7 @@ static int run_command_predicate(char *cmd);
 /* function prototypes for shell stuff */
 static void mark_open(int fd);
 static void mark_closed(int fd);
+static void close_all(void);
 static void checkjobs(struct jobset *job_list);
 static int get_command(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
