@@ -68,10 +68,11 @@ static int sprintip(char *dest, char *pre, unsigned char *ip)
 static int mton(struct in_addr *mask)
 {
 	int i;
-	/* note: mask will always be in network byte order, so
-	 * there are no endian issues */
-	for (i = 31; i >= 0 && !((mask->s_addr >> i) & 1); i--);
-	return i + 1;
+	unsigned long bits = ntohl(mask->s_addr);
+	/* too bad one can't check the carry bit, etc in c bit
+	 * shifting */
+	for (i = 0; i < 32 && !((bits >> i) & 1); i++);
+	return 32 - i;
 }
 
 

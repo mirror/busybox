@@ -67,9 +67,9 @@ int arpping(u_int32_t yiaddr, u_int32_t ip, unsigned char *mac, char *interface)
 	arp.hlen = 6;					/* hardware address length */
 	arp.plen = 4;					/* protocol address length */
 	arp.operation = htons(ARPOP_REQUEST);		/* ARP op code */
-	*((u_int *) arp.sInaddr) = ip;			/* source IP address */
+	memcpy(arp.sInaddr, &ip, sizeof(ip));		/* source IP address */
 	memcpy(arp.sHaddr, mac, 6);			/* source hardware address */
-	*((u_int *) arp.tInaddr) = yiaddr;		/* target IP address */
+	memcpy(arp.tInaddr, &yiaddr, sizeof(yiaddr));	/* target IP address */
 	
 	memset(&addr, 0, sizeof(addr));
 	strcpy(addr.sa_data, interface);
