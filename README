@@ -67,12 +67,12 @@ the mailing list if you are interested.
 Bugs:
 
 If you find bugs, please submit a detailed bug report to the busybox mailing
-list at busybox@busybox.net.  A well-written bug report should include a
+list at busybox@mail.busybox.net.  A well-written bug report should include a
 transcript of a shell session that demonstrates the bad behavior and enables
 anyone else to duplicate the bug on their own machine. The following is such 
 an example:
 
-    To: busybox@busybox.net
+    To: busybox@mail.busybox.net
     From: diligent@testing.linux.org
     Subject: /bin/date doesn't work
 
