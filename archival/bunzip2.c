@@ -2323,10 +2323,12 @@ int bunzip2_main(int argc, char **argv)
 	const int bunzip_force = 2;
 	int flags = 0;
 	int opt = 0;
+	int status;
 
 	FILE *src_stream;
 	FILE *dst_stream;
 	char *save_name = NULL;
+	char *delete_name = NULL;
 
 	/* if called as bzcat */
 	if (strcmp(applet_name, "bzcat") == 0)
@@ -2369,7 +2371,22 @@ int bunzip2_main(int argc, char **argv)
 	} else {
 		dst_stream = xfopen(save_name, "w");
 	}
-	uncompressStream(src_stream, dst_stream);
 
-	return(TRUE);
+	if (uncompressStream(src_stream, dst_stream)) {
+		if (save_name != NULL)
+			delete_name = argv[optind];
+		status = EXIT_SUCCESS;
+	} else {
+		if (save_name != NULL)
+			delete_name = save_name;
+		status = EXIT_FAILURE;
+	}
+
+	if (delete_name) {
+		if (unlink(delete_name) < 0) {
+			error_msg_and_die("Couldn't remove %s", delete_name);
+		}
+	}
+
+	return status;
 }
