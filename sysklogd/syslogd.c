@@ -106,8 +106,7 @@ static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };	// set SMwdn
 
 static int shmid = -1;	// ipc shared memory id
 static int s_semid = -1;	// ipc semaphore id
-int data_size = 16000;	// data size
-int shm_size = 16000 + sizeof(*buf);	// our buffer size
+static int data_size = 16000;	// default data size
 static int circular_logging = FALSE;
 
 /*
@@ -149,7 +148,7 @@ void ipcsyslog_cleanup(void)
 void ipcsyslog_init(void)
 {
 	if (buf == NULL) {
-		if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1) {
+		if ((shmid = shmget(KEY_ID, data_size, IPC_CREAT | 1023)) == -1) {
 			bb_perror_msg_and_die("shmget");
 		}
 
@@ -157,7 +156,7 @@ void ipcsyslog_init(void)
 			bb_perror_msg_and_die("shmat");
 		}
 
-		buf->size = data_size;
+		buf->size = data_size - sizeof(*buf);
 		buf->head = buf->tail = 0;
 
 		// we'll trust the OS to set initial semval to 0 (let's hope)
@@ -579,7 +578,7 @@ extern int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "m:nO:R:LC")) > 0) {
+	while ((opt = getopt(argc, argv, "m:nO:R:LC::")) > 0) {
 		switch (opt) {
 		case 'm':
 			MarkInterval = atoi(optarg) * 60;
@@ -605,6 +604,12 @@ extern int syslogd_main(int argc, char **argv)
 #endif
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
 		case 'C':
+			if (optarg) {
+				int buf_size = atoi(optarg);
+				if (buf_size >= 4) {
+					data_size = buf_size;
+				}
+			}
 			circular_logging = TRUE;
 			break;
 #endif
