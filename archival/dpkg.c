@@ -1042,11 +1042,10 @@ char **create_list(const char *filename)
 			*last_char = '\0';
 		}
 		file_list[count] = xstrdup(line);
-		free(line);
 		count++;
-		length = 0;
 	}
 	fclose(list_stream);
+	free(line);
 
 	if (count == 0) {
 		return(NULL);
