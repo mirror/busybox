@@ -144,8 +144,11 @@ int main(int argc, char **argv)
 	search_applet.name = applet_name;
 	applet = bsearch(&search_applet, applets, NUM_APPLETS,
 			sizeof(struct BB_applet), applet_name_compare);
-	if (applet != NULL)
+	if (applet != NULL) {
+		if (applet->usage && argv[1] && strcmp(argv[1], "--help") == 0)
+			usage(applet->usage); 
 		exit((*(applet->main)) (argc, argv));
+	}
 
 	return(busybox_main(argc, argv));
 }
