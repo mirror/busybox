@@ -367,7 +367,7 @@ $(LIBBB_MOBJ): $(LIBBB_MSRC)
 
 $(LIBBB_AROBJS): $(LIBBB_ARCSRC)
 	- mkdir -p $(LIBBB)
-	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) $(LIBRARIES) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
+	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
 libpwd.a: $(PWD_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
