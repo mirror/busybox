@@ -842,6 +842,8 @@ extern int msh_main(int argc, char **argv)
 #endif
 		}
 		onecommand();
+		/* Ensure that getenv("PATH") stays current */
+		setenv("PATH", path->value, 1);
 	}
 }
 
