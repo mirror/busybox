@@ -6690,10 +6690,6 @@ sprint_status(char *s, int status, int sigonly)
 #endif
 			st = WTERMSIG(status);
 		if (sigonly) {
-			if(st == SIGPIPE) {
-				col = fmtstr(s, 16, "Broken pipe");
-				goto out;
-			}
 			if (st == SIGINT)
 				goto out;
 #if JOBS
@@ -6702,7 +6698,7 @@ sprint_status(char *s, int status, int sigonly)
 #endif
 		}
 		st &= 0x7f;
-		col = fmtstr(s, 32, u_signal_names(NULL, &st, 0));
+		col = fmtstr(s, 32, strsignal(st));
 		if (WCOREDUMP(status)) {
 			col += fmtstr(s + col, 16, " (core dumped)");
 		}
