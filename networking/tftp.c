@@ -286,6 +286,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 		/* send packet */
 
 
+		timeout = bb_tftp_num_retries;  /* re-initialize */
 		do {
 
 			len = cp - buf;
