@@ -26,25 +26,14 @@ df(const char * device, const char * mountPoint)
 		blocks_percent_used = (long)
 		 (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
 
-/*
 		printf(
-		 "%-20s %7ld %7ld  %7ld  %5ld%%   %s\n"
-		,device
-		,s.f_blocks
-		,s.f_blocks - s.f_bfree
-		,s.f_bavail
-		,blocks_percent_used
-		,mountPoint);
-*/
-
-		printf(
-		       "%-20s %7.0f %7.0f  %7.0f  %5ld%%   %s\n"
-		       ,device
-		       ,s.f_blocks * (s.f_bsize / 1024.0)
-		       ,(s.f_blocks - s.f_bfree)  * (s.f_bsize / 1024.0)
-		       ,s.f_bavail * (s.f_bsize / 1024.0)
-		       ,blocks_percent_used
-		       ,mountPoint);
+		       "%-20s %9ld %9ld %9ld %3ld%% %s\n",
+		       device,
+		       (long)(s.f_blocks * (s.f_bsize / 1024.0)),
+		       (long)((s.f_blocks - s.f_bfree)  * (s.f_bsize / 1024.0)),
+		       (long)(s.f_bavail * (s.f_bsize / 1024.0)),
+		       blocks_percent_used,
+		       mountPoint);
 
 	}
 
@@ -54,13 +43,12 @@ df(const char * device, const char * mountPoint)
 extern int
 df_main(int argc, char * * argv)
 {
-	static const char header[] =
-	 "Filesystem         1024-blocks  Used Available Capacity Mounted on\n";
-	printf(header);
+	printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
+		"1k-blocks", "Used", "Available", "Use%", "Mounted on");
 
 	if ( argc > 1 ) {
-		struct mntent *	mountEntry;
-		int				status;
+		struct mntent*	mountEntry;
+		int		status;
 
 		while ( argc > 1 ) {
 			if ( (mountEntry = findMountPoint(argv[1], "/proc/mounts")) == 0 )
@@ -80,16 +68,15 @@ df_main(int argc, char * * argv)
 		FILE *		mountTable;
 		struct mntent *	mountEntry;
 
-		if ( (mountTable = setmntent("/proc/mounts", "r")) == 0) {
+		mountTable = setmntent("/proc/mounts", "r");
+		if ( mountTable == 0) {
 			perror("/proc/mounts");
-			return 1;
+			exit( FALSE);
 		}
 
-		while ( (mountEntry = getmntent(mountTable)) != 0 ) {
-			int status = df(
-			 mountEntry->mnt_fsname
-			,mountEntry->mnt_dir);
-			if ( status != 0 )
+		while ( (mountEntry = getmntent (mountTable))) {
+			int status=df(mountEntry->mnt_fsname ,mountEntry->mnt_dir);
+			if (status)
 				return status;
 		}
 		endmntent(mountTable);
@@ -109,7 +96,7 @@ df_main(int argc, char * * argv)
  * filesystem.
  */
 extern struct mntent *
-findMountPoint(const char * name, const char * table)
+findMountPoint(const char* name, const char* table)
 {
 	struct stat	s;
 	dev_t			mountDevice;
