@@ -150,9 +150,7 @@ int main(int argc, char **argv)
 
 int busybox_main(int argc, char **argv)
 {
-	int col = 0;
-	int ps_index;
-	char *index, *index2;
+	int col = 0, len, i;
 
 	argc--;
 
@@ -185,25 +183,16 @@ int busybox_main(int argc, char **argv)
 	/* Flag that we've been here already */
 	been_there_done_that = 1;
 	
-	/* We do not want the word "busybox" to show up in ps, so we move
-	 * everything in argv around to fake ps into showing what we want it to
-	 * show.  Since we are only shrinking the string, we don't need to move 
-	 * __environ or any of that tedious stuff... */
-	ps_index = 0;
-	index=*argv;
-	index2=argv[argc];
-	index2+=strlen(argv[argc]);
-	while(ps_index < argc) { 
-		argv[ps_index]=index;
-		memmove(index, argv[ps_index+1], strlen(argv[ps_index+1])+1);
-		index+=(strlen(index));
-		*index='\0';
-		index++;
-		ps_index++;
-	}
-	while(index<=index2)
-		*index++='\0';
-	argv[ps_index]=NULL;
+	/* Move the command line down a notch */
+	len = argv[argc] + strlen(argv[argc]) - argv[1];
+	memmove(argv[0], argv[1], len);
+	memset(argv[0] + len, 0, argv[1] - argv[0]);
+
+	/* Fix up the argv pointers */
+	len = argv[1] - argv[0];
+	memmove(argv, argv+1, sizeof(char *) * (argc + 1));
+	for (i = 0; i < argc; i++)
+		argv[i] -= len;
 
 	return (main(argc, argv));
 }
