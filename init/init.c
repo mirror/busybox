@@ -278,7 +278,8 @@ static void set_term(int fd)
 
 	/* Make it be sane */
 	tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-	tty.c_cflag |= HUPCL|CLOCAL;
+	tty.c_cflag |= CREAD|HUPCL|CLOCAL;
+
 
 	/* input modes */
 	tty.c_iflag = ICRNL | IXON | IXOFF;
