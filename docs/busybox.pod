@@ -70,7 +70,25 @@ uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
 
 =over 4
 
-=item I<ar>
+=item B<adjtimex>
+
+adjtimex [B<-q>] [B<-o> offset] [B<-f> frequency] [B<-p> timeconstant] [B<-t> tick]
+
+Reads and optionally sets system timebase parameters.
+See adjtimex(2).
+
+Options:
+
+	-q		quiet mode - do not print
+	-o offset	time offset, microseconds
+	-f frequency	frequency adjust, integer kernel units (65536 is 1ppm)
+			(positive values make the system clock run fast)
+	-t tick		microseconds per tick, usually 10000
+	-p timeconstant
+
+-------------------------------
+
+=item B<ar>
 
 ar -[ovR]{ptx} archive filenames
 
@@ -87,7 +105,7 @@ Options:
 
 -------------------------------
 
-=item I<basename>
+=item B<basename>
 
 basename FILE [SUFFIX]
 
@@ -105,7 +123,7 @@ Example:
 
 -------------------------------
 
-=item I<cat>
+=item B<cat>
 
 cat [FILE]...
 
@@ -118,7 +136,7 @@ Example:
 
 -------------------------------
 
-=item I<chgrp>
+=item B<chgrp>
 
 chgrp [OPTION]... GROUP FILE...
 
@@ -138,7 +156,7 @@ Example:
 
 -------------------------------
 
-=item I<chmod>
+=item B<chmod>
 
 chmod [B<-R>] MODE[,MODE]... FILE...
 
@@ -162,9 +180,9 @@ Example:
 
 -------------------------------
 
-=item I<chown>
+=item B<chown>
 
-chown [OPTION]...  OWNER[<.|:>[GROUP] FILE...
+chown [OPTION]...  OWNER[<.|:>[GROUP]] FILE...
 
 Change the owner and/or group of each FILE to OWNER and/or GROUP.
 
@@ -185,7 +203,7 @@ Example:
 
 -------------------------------
 
-=item I<chroot>
+=item B<chroot>
 
 chroot NEWROOT [COMMAND...]
 
@@ -202,7 +220,7 @@ Example:
 
 -------------------------------
 
-=item I<chvt>
+=item B<chvt>
 
 chvt N
 
@@ -210,7 +228,7 @@ Changes the foreground virtual terminal to /dev/ttyN
 
 -------------------------------
 
-=item I<clear>
+=item B<clear>
 
 clear 
 
@@ -218,7 +236,7 @@ Clear screen.
 
 -------------------------------
 
-=item I<cmp>
+=item B<cmp>
 
 cmp FILE1 [FILE2]
 
@@ -226,7 +244,7 @@ Compare files.
 
 -------------------------------
 
-=item I<cp>
+=item B<cp>
 
 cp [OPTION]... SOURCE DEST
 
@@ -240,7 +258,7 @@ Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
 
 -------------------------------
 
-=item I<cut>
+=item B<cut>
 
 cut [OPTION]... [FILE]...
 
@@ -264,7 +282,7 @@ Example:
 
 -------------------------------
 
-=item I<date>
+=item B<date>
 
 date [OPTION]... [+FORMAT]
 
@@ -284,7 +302,7 @@ Example:
 
 -------------------------------
 
-=item I<dc>
+=item B<dc>
 
 dc expression ...
 
@@ -307,7 +325,7 @@ Example:
 
 -------------------------------
 
-=item I<dd>
+=item B<dd>
 
 dd [if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]
 	  [seek=N] [conv=notrunc|sync]
@@ -334,7 +352,7 @@ Example:
 
 -------------------------------
 
-=item I<deallocvt>
+=item B<deallocvt>
 
 deallocvt N
 
@@ -342,7 +360,7 @@ Deallocate unused virtual terminal /dev/ttyN
 
 -------------------------------
 
-=item I<df>
+=item B<df>
 
 df [B<-hmk>] [filesystem ...]
 
@@ -366,7 +384,7 @@ Example:
 
 -------------------------------
 
-=item I<dirname>
+=item B<dirname>
 
 dirname [FILENAME ...]
 
@@ -381,7 +399,7 @@ Example:
 
 -------------------------------
 
-=item I<dmesg>
+=item B<dmesg>
 
 dmesg [B<-c>] [B<-n> LEVEL] [B<-s> SIZE]
 
@@ -395,7 +413,7 @@ Options:
 
 -------------------------------
 
-=item I<dos2unix>
+=item B<dos2unix>
 
 dos2unix [option] [file]
 
@@ -413,7 +431,7 @@ Options:
 
 -------------------------------
 
-=item I<dpkg>
+=item B<dpkg>
 
 dpkg [B<-i>|B<-r>|-B<-unpack>|-B<-configure>] my.deb
 
@@ -421,7 +439,7 @@ WORK IN PROGRESS, only usefull for debian-installer
 
 -------------------------------
 
-=item I<dpkg_deb>
+=item B<dpkg_deb>
 
 dpkg_deb [B<-cexX>] file directory
 
@@ -441,7 +459,7 @@ Example:
 
 -------------------------------
 
-=item I<du>
+=item B<du>
 
 du [B<-lshmk>] [FILE]...
 
@@ -472,7 +490,7 @@ Example:
 
 -------------------------------
 
-=item I<dumpkmap>
+=item B<dumpkmap>
 
 dumpkmap > keymap
 
@@ -484,7 +502,7 @@ Example:
 
 -------------------------------
 
-=item I<dutmp>
+=item B<dutmp>
 
 dutmp [FILE]
 
@@ -504,7 +522,7 @@ Example:
 
 -------------------------------
 
-=item I<echo>
+=item B<echo>
 
 echo [B<-neE>] [ARG ...]
 
@@ -535,7 +553,21 @@ Example:
 
 -------------------------------
 
-=item I<expr>
+=item B<env>
+
+env [-] [B<-iu>] [name=value ...] [command]
+
+Prints the current environment or runs a program after setting
+up the specified environment.
+
+Options:
+
+	-, -i	start with an empty environment
+	-u	remove variable from the environment
+
+-------------------------------
+
+=item B<expr>
 
 expr EXPRESSION
 
@@ -575,7 +607,7 @@ of characters matched or 0.
 
 -------------------------------
 
-=item I<false>
+=item B<false>
 
 false 
 
@@ -589,7 +621,7 @@ Example:
 
 -------------------------------
 
-=item I<fbset>
+=item B<fbset>
 
 fbset [options] [mode]
 
@@ -607,7 +639,7 @@ Example:
 
 -------------------------------
 
-=item I<fdflush>
+=item B<fdflush>
 
 fdflush DEVICE
 
@@ -615,7 +647,7 @@ Forces floppy disk drive to detect disk change
 
 -------------------------------
 
-=item I<find>
+=item B<find>
 
 find [PATH...] [EXPRESSION]
 
@@ -625,7 +657,8 @@ the current directory; default EXPRESSION is 'B<-print>'
 EXPRESSION may consist of:
 
 	-follow		Dereference symbolic links.
-	-name PATTERN	File name (leading directories removed) matches PATTERN.
+	-name PATTERN	File name (leading directories removed) matches PATTERN.	-print		Print (default and assumed).
+
 	-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)
 	-perm PERMS	Permissions match any of (+NNN); all of (-NNN);
 			or exactly (NNN)
@@ -639,7 +672,7 @@ Example:
 
 -------------------------------
 
-=item I<free>
+=item B<free>
 
 free 
 
@@ -656,7 +689,7 @@ Example:
 
 -------------------------------
 
-=item I<freeramdisk>
+=item B<freeramdisk>
 
 freeramdisk DEVICE
 
@@ -668,7 +701,7 @@ Example:
 
 -------------------------------
 
-=item I<fsck_minix>
+=item B<fsck_minix>
 
 fsck_minix [B<-larvsmf>] /dev/name
 
@@ -686,7 +719,7 @@ Options:
 
 -------------------------------
 
-=item I<getopt>
+=item B<getopt>
 
 getopt [OPTIONS]...
 
@@ -725,7 +758,7 @@ Example:
 
 -------------------------------
 
-=item I<grep>
+=item B<grep>
 
 grep [B<-ihHnqvs>] pattern [files...]
 
@@ -750,7 +783,7 @@ Example:
 
 -------------------------------
 
-=item I<gunzip>
+=item B<gunzip>
 
 gunzip [OPTION]... FILE
 
@@ -771,7 +804,7 @@ Example:
 
 -------------------------------
 
-=item I<gzip>
+=item B<gzip>
 
 gzip [OPTION]... FILE
 
@@ -793,7 +826,7 @@ Example:
 
 -------------------------------
 
-=item I<halt>
+=item B<halt>
 
 halt 
 
@@ -801,7 +834,7 @@ Halt the system.
 
 -------------------------------
 
-=item I<head>
+=item B<head>
 
 head [OPTION] [FILE]...
 
@@ -821,7 +854,7 @@ Example:
 
 -------------------------------
 
-=item I<hostid>
+=item B<hostid>
 
 hostid 
 
@@ -829,7 +862,7 @@ Print out a unique 32-bit identifier for the machine.
 
 -------------------------------
 
-=item I<hostname>
+=item B<hostname>
 
 hostname [OPTION] {hostname | B<-F> file}
 
@@ -850,7 +883,7 @@ Example:
 
 -------------------------------
 
-=item I<id>
+=item B<id>
 
 id [OPTIONS]... [USERNAME]
 
@@ -870,7 +903,7 @@ Example:
 
 -------------------------------
 
-=item I<ifconfig>
+=item B<ifconfig>
 
 ifconfig [B<-a>] <interface> [<address>]
 
@@ -889,7 +922,7 @@ Options:
 
 -------------------------------
 
-=item I<init>
+=item B<init>
 
 init 
 
@@ -906,15 +939,10 @@ it has the following default behavior:
 
 	::sysinit:/etc/init.d/rcS
 	::askfirst:/bin/sh
-	::ctrlaltdel:/sbin/reboot
-	::shutdown:/sbin/swapoff -a
-	::shutdown:/bin/umount -a -r
 
 if it detects that /dev/console is _not_ a serial console, it will also run:
 
 	tty2::askfirst:/bin/sh
-	tty3::askfirst:/bin/sh
-	tty4::askfirst:/bin/sh
 
 If you choose to use an /etc/inittab file, the inittab entry format is as follows:
 
@@ -940,7 +968,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 	<action>: 
 
 		Valid actions include: sysinit, respawn, askfirst, wait, 
-		once, ctrlaltdel, and shutdown.
+		once, and ctrlaltdel.
 
 		The available actions can be classified into two groups: actions
 		that are run only once, and actions that are re-run when the specified
@@ -954,12 +982,9 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 			'wait' actions, like  'sysinit' actions, cause init to wait until
 			the specified task completes.  'once' actions are asyncronous,
 			therefore, init does not wait for them to complete.  'ctrlaltdel'
-			actions are run when the system detects that someone on the system
-            console has pressed the CTRL-ALT-DEL key combination.  Typically one
-            wants to run 'reboot' at this point to cause the system to reboot.
-			Finally the 'shutdown' action specifies the actions to taken when
-            init is told to reboot.  Unmounting filesystems and disabling swap
-            is a very good here.
+			actions are run immediately before init causes the system to reboot
+			(unmounting filesystems with a 'ctrlaltdel' action is a very good
+			idea).
 
 		Run repeatedly actions:
 
@@ -984,22 +1009,23 @@ Example /etc/inittab file:
 
 	::sysinit:/etc/init.d/rcS
 	
-	::askfirst:-/bin/sh
-	tty2::askfirst:-/bin/sh
+		::askfirst:-/bin/sh
+		tty2::askfirst:-/bin/sh
 	tty3::askfirst:-/bin/sh
 	tty4::askfirst:-/bin/sh
 	
 	tty4::respawn:/sbin/getty 38400 tty5
 	tty5::respawn:/sbin/getty 38400 tty6
 	
-	::ctrlaltdel:/sbin/reboot
-	::shutdown:/bin/umount -a -r
-	::shutdown:/sbin/swapoff -a
+	
+		
+		::ctrlaltdel:/bin/umount -a -r
+	::ctrlaltdel:/sbin/swapoff -a
 
 
 -------------------------------
 
-=item I<insmod>
+=item B<insmod>
 
 insmod [OPTION]... MODULE [symbol=value]...
 
@@ -1015,7 +1041,7 @@ Options:
 
 -------------------------------
 
-=item I<kill>
+=item B<kill>
 
 kill [B<-signal>] process-id [process-id ...]
 
@@ -1038,7 +1064,7 @@ Example:
 
 -------------------------------
 
-=item I<killall>
+=item B<killall>
 
 killall [B<-signal>] process-name [process-name ...]
 
@@ -1055,7 +1081,7 @@ Example:
 
 -------------------------------
 
-=item I<klogd>
+=item B<klogd>
 
 klogd B<-n>
 
@@ -1066,7 +1092,7 @@ Options:
 
 -------------------------------
 
-=item I<length>
+=item B<length>
 
 length STRING
 
@@ -1079,7 +1105,7 @@ Example:
 
 -------------------------------
 
-=item I<ln>
+=item B<ln>
 
 ln [OPTION] TARGET... LINK_NAME|DIRECTORY
 
@@ -1102,7 +1128,7 @@ Example:
 
 -------------------------------
 
-=item I<loadacm>
+=item B<loadacm>
 
 loadacm < mapfile
 
@@ -1115,7 +1141,7 @@ Example:
 
 -------------------------------
 
-=item I<loadfont>
+=item B<loadfont>
 
 loadfont < font
 
@@ -1128,7 +1154,7 @@ Example:
 
 -------------------------------
 
-=item I<loadkmap>
+=item B<loadkmap>
 
 loadkmap < keymap
 
@@ -1141,7 +1167,7 @@ Example:
 
 -------------------------------
 
-=item I<logger>
+=item B<logger>
 
 logger [OPTION]... [MESSAGE]
 
@@ -1161,7 +1187,7 @@ Example:
 
 -------------------------------
 
-=item I<logname>
+=item B<logname>
 
 logname 
 
@@ -1175,7 +1201,7 @@ Example:
 
 -------------------------------
 
-=item I<logread>
+=item B<logread>
 
 logread 
 
@@ -1183,7 +1209,7 @@ Shows the messages from syslogd (using circular buffer).
 
 -------------------------------
 
-=item I<ls>
+=item B<ls>
 
 ls [B<-1AacCdeFilnpLRrSsTtuvwxXhk>] [filenames...]
 
@@ -1220,7 +1246,7 @@ Options:
 
 -------------------------------
 
-=item I<lsmod>
+=item B<lsmod>
 
 lsmod 
 
@@ -1228,7 +1254,7 @@ List the currently loaded kernel modules.
 
 -------------------------------
 
-=item I<makedevs>
+=item B<makedevs>
 
 makedevs NAME TYPE MAJOR MINOR FIRST LAST [s]
 
@@ -1259,7 +1285,7 @@ Example:
 
 -------------------------------
 
-=item I<md5sum>
+=item B<md5sum>
 
 md5sum [OPTION] [FILE]...
 or: md5sum [OPTION] B<-c> [FILE]
@@ -1292,7 +1318,7 @@ Example:
 
 -------------------------------
 
-=item I<mkdir>
+=item B<mkdir>
 
 mkdir [OPTION] DIRECTORY...
 
@@ -1315,7 +1341,7 @@ Example:
 
 -------------------------------
 
-=item I<mkfifo>
+=item B<mkfifo>
 
 mkfifo [OPTIONS] name
 
@@ -1327,7 +1353,7 @@ Options:
 
 -------------------------------
 
-=item I<mkfs_minix>
+=item B<mkfs_minix>
 
 mkfs_minix [B<-c> | B<-l> filename] [B<-nXX>] [B<-iXX>] /dev/name [blocks]
 
@@ -1343,7 +1369,7 @@ Options:
 
 -------------------------------
 
-=item I<mknod>
+=item B<mknod>
 
 mknod [OPTIONS] NAME TYPE MAJOR MINOR
 
@@ -1367,7 +1393,7 @@ Example:
 
 -------------------------------
 
-=item I<mkswap>
+=item B<mkswap>
 
 mkswap [B<-c>] [B<-v0>|B<-v1>] device [block-count]
 
@@ -1383,7 +1409,7 @@ Options:
 
 -------------------------------
 
-=item I<mktemp>
+=item B<mktemp>
 
 mktemp [B<-q>] TEMPLATE
 
@@ -1400,7 +1426,7 @@ Example:
 
 -------------------------------
 
-=item I<more>
+=item B<more>
 
 more [FILE ...]
 
@@ -1413,7 +1439,7 @@ Example:
 
 -------------------------------
 
-=item I<mount>
+=item B<mount>
 
 mount [flags] device directory [B<-o> options,more-options]
 
@@ -1455,7 +1481,7 @@ Example:
 
 -------------------------------
 
-=item I<mt>
+=item B<mt>
 
 mt [B<-f> device] opcode value
 
@@ -1470,7 +1496,7 @@ setpart tell unload unlock weof wset
 
 -------------------------------
 
-=item I<mv>
+=item B<mv>
 
 mv SOURCE DEST
 or: mv SOURCE... DIRECTORY
@@ -1484,7 +1510,7 @@ Example:
 
 -------------------------------
 
-=item I<nc>
+=item B<nc>
 
 nc [IP] [port] 
 
@@ -1503,7 +1529,7 @@ Example:
 
 -------------------------------
 
-=item I<nslookup>
+=item B<nslookup>
 
 nslookup [HOST]
 
@@ -1521,7 +1547,7 @@ Example:
 
 -------------------------------
 
-=item I<ping>
+=item B<ping>
 
 ping [OPTION]... host
 
@@ -1547,7 +1573,7 @@ Example:
 
 -------------------------------
 
-=item I<pivot_root>
+=item B<pivot_root>
 
 pivot_root new_root put_old
 
@@ -1556,7 +1582,7 @@ the new root file system.
 
 -------------------------------
 
-=item I<poweroff>
+=item B<poweroff>
 
 poweroff 
 
@@ -1564,7 +1590,7 @@ Halt the system and request that the kernel shut off the power.
 
 -------------------------------
 
-=item I<printf>
+=item B<printf>
 
 printf FORMAT [ARGUMENT...]
 
@@ -1580,7 +1606,7 @@ Example:
 
 -------------------------------
 
-=item I<ps>
+=item B<ps>
 
 ps 
 
@@ -1604,7 +1630,7 @@ Example:
 
 -------------------------------
 
-=item I<pwd>
+=item B<pwd>
 
 pwd 
 
@@ -1617,7 +1643,7 @@ Example:
 
 -------------------------------
 
-=item I<rdate>
+=item B<rdate>
 
 rdate [OPTION] HOST
 
@@ -1630,7 +1656,7 @@ Options:
 
 -------------------------------
 
-=item I<readlink>
+=item B<readlink>
 
 readlink 
 
@@ -1638,7 +1664,7 @@ Read a symbolic link.
 
 -------------------------------
 
-=item I<reboot>
+=item B<reboot>
 
 reboot 
 
@@ -1646,7 +1672,7 @@ Reboot the system.
 
 -------------------------------
 
-=item I<renice>
+=item B<renice>
 
 renice priority pid [pid ...]
 
@@ -1656,7 +1682,7 @@ from 20 (the process runs only when nothing else is running) to 0
 
 -------------------------------
 
-=item I<reset>
+=item B<reset>
 
 reset 
 
@@ -1664,7 +1690,7 @@ Resets the screen.
 
 -------------------------------
 
-=item I<rm>
+=item B<rm>
 
 rm [OPTION]... FILE...
 
@@ -1683,7 +1709,7 @@ Example:
 
 -------------------------------
 
-=item I<rmdir>
+=item B<rmdir>
 
 rmdir [OPTION]... DIRECTORY...
 
@@ -1695,7 +1721,7 @@ Example:
 
 -------------------------------
 
-=item I<rmmod>
+=item B<rmmod>
 
 rmmod [OPTION]... [MODULE]...
 
@@ -1711,7 +1737,7 @@ Example:
 
 -------------------------------
 
-=item I<route>
+=item B<route>
 
 route [{add|del|flush}]
 
@@ -1719,7 +1745,7 @@ Edit the kernel's routing tables
 
 -------------------------------
 
-=item I<rpmunpack>
+=item B<rpmunpack>
 
 rpmunpack < package.rpm | gunzip | cpio B<-idmuv>
 
@@ -1727,7 +1753,7 @@ Extracts an rpm archive.
 
 -------------------------------
 
-=item I<sed>
+=item B<sed>
 
 sed [B<-Vhnef>] pattern [files...]
 
@@ -1749,7 +1775,7 @@ Example:
 
 -------------------------------
 
-=item I<setkeycodes>
+=item B<setkeycodes>
 
 setkeycodes SCANCODE KEYCODE ...
 
@@ -1765,7 +1791,7 @@ Example:
 
 -------------------------------
 
-=item I<sh>
+=item B<sh>
 
 sh [FILE]...
 or: sh B<-c> command [args]...
@@ -1783,7 +1809,7 @@ this will do the job.
 
 -------------------------------
 
-=item I<sleep>
+=item B<sleep>
 
 sleep N
 
@@ -1796,7 +1822,7 @@ Example:
 
 -------------------------------
 
-=item I<sort>
+=item B<sort>
 
 sort [B<-n>] [B<-r>] [FILE]...
 
@@ -1819,7 +1845,7 @@ Example:
 
 -------------------------------
 
-=item I<stty>
+=item B<stty>
 
 stty [B<-a>|g] [B<-F> device] [SETTING]...
 
@@ -1835,7 +1861,7 @@ Options:
 
 -------------------------------
 
-=item I<swapoff>
+=item B<swapoff>
 
 swapoff [OPTION] [device]
 
@@ -1847,7 +1873,7 @@ Options:
 
 -------------------------------
 
-=item I<swapon>
+=item B<swapon>
 
 swapon [OPTION] [device]
 
@@ -1859,7 +1885,7 @@ Options:
 
 -------------------------------
 
-=item I<sync>
+=item B<sync>
 
 sync 
 
@@ -1867,7 +1893,7 @@ Write all buffered filesystem blocks to disk.
 
 -------------------------------
 
-=item I<syslogd>
+=item B<syslogd>
 
 syslogd [OPTION]...
 
@@ -1889,7 +1915,7 @@ Example:
 
 -------------------------------
 
-=item I<tail>
+=item B<tail>
 
 tail [OPTION]... [FILE]...
 
@@ -1917,7 +1943,7 @@ Example:
 
 -------------------------------
 
-=item I<tar>
+=item B<tar>
 
 tar -[cxtvO] [-B<-exclude> File] [B<-X> File][B<-f> tarFile] [FILE(s)] ...
 
@@ -1947,7 +1973,7 @@ Example:
 
 -------------------------------
 
-=item I<tee>
+=item B<tee>
 
 tee [OPTION]... [FILE]...
 
@@ -1965,7 +1991,7 @@ Example:
 
 -------------------------------
 
-=item I<telnet>
+=item B<telnet>
 
 telnet host [port]
 
@@ -1974,7 +2000,7 @@ computer over a network using the TELNET protocol.
 
 -------------------------------
 
-=item I<test>
+=item B<test>
 
 test EXPRESSION
   or   [ EXPRESSION ]
@@ -1999,7 +2025,7 @@ Example:
 
 -------------------------------
 
-=item I<tftp>
+=item B<tftp>
 
 tftp command SOURCE DEST
 
@@ -2014,7 +2040,7 @@ When nameing a server, use the syntax server:file.
 
 -------------------------------
 
-=item I<touch>
+=item B<touch>
 
 touch [B<-c>] file [file ...]
 
@@ -2035,7 +2061,7 @@ Example:
 
 -------------------------------
 
-=item I<tr>
+=item B<tr>
 
 tr [B<-cds>] STRING1 [STRING2]
 
@@ -2056,7 +2082,7 @@ Example:
 
 -------------------------------
 
-=item I<true>
+=item B<true>
 
 true 
 
@@ -2070,7 +2096,7 @@ Example:
 
 -------------------------------
 
-=item I<tty>
+=item B<tty>
 
 tty 
 
@@ -2087,7 +2113,7 @@ Example:
 
 -------------------------------
 
-=item I<umount>
+=item B<umount>
 
 umount [flags] filesystem|directory
 
@@ -2107,7 +2133,7 @@ Example:
 
 -------------------------------
 
-=item I<uname>
+=item B<uname>
 
 uname [OPTION]...
 
@@ -2130,7 +2156,7 @@ Example:
 
 -------------------------------
 
-=item I<uniq>
+=item B<uniq>
 
 uniq [OPTION]... [INPUT [OUTPUT]]
 
@@ -2157,7 +2183,7 @@ Example:
 
 -------------------------------
 
-=item I<unix2dos>
+=item B<unix2dos>
 
 unix2dos [option] [file]
 
@@ -2165,7 +2191,7 @@ See 'dos2unix -B<-help>' for help!
 
 -------------------------------
 
-=item I<update>
+=item B<update>
 
 update [options]
 
@@ -2179,7 +2205,7 @@ Options:
 
 -------------------------------
 
-=item I<uptime>
+=item B<uptime>
 
 uptime 
 
@@ -2193,7 +2219,7 @@ Example:
 
 -------------------------------
 
-=item I<usleep>
+=item B<usleep>
 
 usleep N 
 
@@ -2206,7 +2232,7 @@ Example:
 
 -------------------------------
 
-=item I<uudecode>
+=item B<uudecode>
 
 uudecode [FILE]...
 
@@ -2214,14 +2240,18 @@ Uudecode a file that is uuencoded.
 
 Options:
 
-	-o FILE	direct output to FILE$ uudecode -o busybox busybox.uu
-$ ls B<-l> busybox
-B<-rwxr>-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
- 
+	-o FILE	direct output to FILE 
+
+Example:
+
+	$ uudecode -o busybox busybox.uu
+	$ ls -l busybox
+	-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
+	 
 
 -------------------------------
 
-=item I<uuencode>
+=item B<uuencode>
 
 uuencode [OPTION] [INFILE] REMOTEFILE
 
@@ -2241,7 +2271,7 @@ Example:
 
 -------------------------------
 
-=item I<watchdog>
+=item B<watchdog>
 
 watchdog DEV
 
@@ -2249,7 +2279,7 @@ Periodically write to watchdog device DEV
 
 -------------------------------
 
-=item I<wc>
+=item B<wc>
 
 wc [OPTION]... [FILE]...
 
@@ -2271,7 +2301,7 @@ Example:
 
 -------------------------------
 
-=item I<wget>
+=item B<wget>
 
 wget [B<-c>] [B<-O> file] url
 
@@ -2284,7 +2314,7 @@ Options:
 
 -------------------------------
 
-=item I<which>
+=item B<which>
 
 which [COMMAND ...]
 
@@ -2297,7 +2327,7 @@ Example:
 
 -------------------------------
 
-=item I<whoami>
+=item B<whoami>
 
 whoami 
 
@@ -2305,7 +2335,7 @@ Prints the user name associated with the current effective user id.
 
 -------------------------------
 
-=item I<xargs>
+=item B<xargs>
 
 xargs [COMMAND] [ARGS...]
 
@@ -2319,7 +2349,7 @@ Example:
 
 -------------------------------
 
-=item I<yes>
+=item B<yes>
 
 yes [OPTION]... [STRING]...
 
@@ -2327,15 +2357,13 @@ Repeatedly outputs a line with all specified STRING(s), or 'y'.
 
 -------------------------------
 
-=item I<zcat>
+=item B<zcat>
 
 zcat FILE
 
 Uncompress to stdout.
 
 -------------------------------
-
-=back
 
 =head1 LIBC NSS
 
@@ -2483,4 +2511,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.93 2001/04/03 18:01:51 andersen Exp $
+# $Id: busybox.pod,v 1.94 2001/04/05 19:41:23 beppu Exp $
