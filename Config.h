@@ -262,10 +262,9 @@
 // Only relevant if BB_SH is enabled.
 #define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
-// Enable tab completion in the shell (not yet 
-// working very well -- so don't turn this on)
-// Only relevant if BB_SH is enabled.
-#define BB_FEATURE_SH_TAB_COMPLETION
+// Enable tab completion in the shell.  This is now working quite nicely.
+// This feature adds a bit over 4k. Only relevant if BB_SH is enabled.
+//#define BB_FEATURE_SH_TAB_COMPLETION
 //
 // Enable a simpler shell prompt of the form "path #"
 // instead of the default "[username@hostname path]#"
@@ -277,7 +276,7 @@
 #define BB_FEATURE_SH_SIMPLE_PROMPT
 //
 // Attempts to match usernames in a ~-prefixed path
-//#define BB_FEATURE_USERNAME_COMPLETION
+//#define BB_FEATURE_SH_USERNAME_COMPLETION
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY

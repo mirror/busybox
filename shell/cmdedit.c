@@ -41,12 +41,8 @@
 
 #else
 
-#define BB_FEATURE_SH_COMMAND_EDITING
-#define BB_FEATURE_SH_TAB_COMPLETION
-#define BB_FEATURE_USERNAME_COMPLETION
-#define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-#define BB_FEATURE_BASH_STYLE_PROMT
-#define BB_FEATURE_CLEAN_UP
+//#define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+//#define BB_FEATURE_BASH_STYLE_PROMT
 
 #define TRUE  1
 #define FALSE 0
@@ -57,10 +53,10 @@
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 
 #ifndef BB_FEATURE_SH_TAB_COMPLETION
-#undef  BB_FEATURE_USERNAME_COMPLETION
+#undef  BB_FEATURE_SH_USERNAME_COMPLETION
 #endif
 
-#if defined(BB_FEATURE_USERNAME_COMPLETION) || defined(BB_FEATURE_BASH_STYLE_PROMT)
+#if defined(BB_FEATURE_SH_USERNAME_COMPLETION) || defined(BB_FEATURE_BASH_STYLE_PROMT)
 #define BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 #endif
 
@@ -626,7 +622,7 @@ static int is_execute(const struct stat *st)
 	return FALSE;
 }
 
-#ifdef BB_FEATURE_USERNAME_COMPLETION
+#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
 
 static char **username_tab_completion(char *ud, int *num_matches)
 {
@@ -688,7 +684,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 		return (matches);
 	}
 }
-#endif							/* BB_FEATURE_USERNAME_COMPLETION */
+#endif							/* BB_FEATURE_SH_USERNAME_COMPLETION */
 
 enum {
 	FIND_EXE_ONLY = 0,
@@ -785,7 +781,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 		strcpy(dirbuf, command);
 		/* set dir only */
 		dirbuf[(pfind - command) + 1] = 0;
-#ifdef BB_FEATURE_USERNAME_COMPLETION
+#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')	/* ~/... or ~user/... */
 			username_tab_completion(dirbuf, 0);
 #endif
@@ -1066,7 +1062,7 @@ static void input_tab(int *lastWasTab)
 		/* Free up any memory already allocated */
 		input_tab(0);
 
-#ifdef BB_FEATURE_USERNAME_COMPLETION
+#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word,
 		 * then try completing this word as a username. */
 
