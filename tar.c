@@ -530,13 +530,15 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		/* Skip funky extra GNU headers that precede long files */
 		if ( (header.type == GNULONGNAME) || (header.type == GNULONGLINK) ) {
 			skipNextHeaderFlag=TRUE;
-			tarExtractRegularFile(&header, FALSE, FALSE);
+			if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+				errorFlag = TRUE;
 			continue;
 		}
 		if ( skipNextHeaderFlag == TRUE ) { 
 			skipNextHeaderFlag=FALSE;
 			errorMsg(name_longer_than_foo, NAME_SIZE); 
-			tarExtractRegularFile(&header, FALSE, FALSE);
+			if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+				errorFlag = TRUE;
 			continue;
 		}
 
@@ -555,7 +557,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 					 * the extractFlag set to FALSE, so the junk in the tarball
 					 * is properly skipped over */
 					if ( header.type==REGTYPE || header.type==REGTYPE0 ) {
-							tarExtractRegularFile(&header, FALSE, FALSE);
+						if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+							errorFlag = TRUE;
 					}
 					skipFlag=TRUE;
 					break;
@@ -583,7 +586,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			/* There are not the droids you're looking for, move along */
 			if (skipFlag == TRUE) {
 				if ( header.type==REGTYPE || header.type==REGTYPE0 )
-						tarExtractRegularFile(&header, FALSE, FALSE);
+					if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+						errorFlag = TRUE;
 				continue;
 			}
 		}
