@@ -208,6 +208,8 @@ void run_script(struct dhcpMessage *packet, const char *name)
 	if (client_config.script == NULL)
 		return;
 
+	DEBUG(LOG_INFO, "vforking and execle'ing %s", client_config.script);
+
 	/* call script */
 	pid = vfork();
 	if (pid) {
@@ -219,9 +221,6 @@ void run_script(struct dhcpMessage *packet, const char *name)
 		/* close fd's? */
 		
 		/* exec script */
-#ifndef __uClinux__
-		DEBUG(LOG_INFO, "execle'ing %s", client_config.script);
-#endif /* __uClinux__ */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
 		LOG(LOG_ERR, "script %s failed: %m", client_config.script);
