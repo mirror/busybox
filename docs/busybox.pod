@@ -55,16 +55,16 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dc,
-dd, df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
-freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
-hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
-logger, logname, ls, lsmod, makedevs, md5sum, mkdir, mkfifo, mkfs.minix,
-mknod, mkswap, mktemp, nc, more, mount, mt, mv, nslookup, ping, poweroff,
-printf, ps, pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep,
-sort, sync, syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true,
-tty, umount, uname, uniq, update, uptime, usleep, uudecode, uuencode, wc,
-whoami, yes, zcat, [
+ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
+dc, dd, deallocvt, df, dirname, dmesg, du, dutmp, echo, false, fbset,
+fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
+head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
+loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
+mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
+setkeycodes, sfdisk, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
+tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
+uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
 
 -------------------------------
 
@@ -2024,4 +2024,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.45 2000/06/21 20:17:29 proski Exp $
+# $Id: busybox.pod,v 1.46 2000/06/21 20:25:07 proski Exp $
