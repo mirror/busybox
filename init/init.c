@@ -333,7 +333,7 @@ static unsigned int check_free_memory(void)
 		s--;
 	}
 	result = (info.totalram >> s) + (info.totalswap >> s);
-	if ((unsigned long long) (result * u) > UINT_MAX) {
+	if (((unsigned long long)result * (unsigned long long)u) > UINT_MAX) {
 		return(UINT_MAX);
 	} else {
 		return(result * u);
