@@ -55,6 +55,9 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+/* the spec says label must be at least 8 chars, behavious is unspecified if more than 8 chars */
+#define SED_LABEL_LENGTH	8
+
 /* externs */
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 extern int optind; /* in unistd.h */
@@ -102,6 +105,9 @@ typedef struct sed_cmd_s {
 
 	/* inversion flag */
 	int invert;         /* the '!' after the address */
+
+	/* Branch commands */
+	char label[SED_LABEL_LENGTH + 1];
 
 	/* next command in list (sequential list of specified commands) */
 	struct sed_cmd_s *linear;
@@ -399,6 +405,18 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 			bb_error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
+	/* handle branch commands */
+	else if (strchr(":b", sed_cmd->cmd)) {
+		int length;
+
+		cmdstr += strspn(cmdstr, " ");
+		length = strcspn(cmdstr, "; ");
+		if (length > SED_LABEL_LENGTH) {
+			length = SED_LABEL_LENGTH;
+		}
+		strncpy(sed_cmd->label, cmdstr, length);
+        cmdstr += length;
+	}
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
@@ -677,6 +695,18 @@ static int do_subst_command(const sed_cmd_t *sed_cmd, char **line)
 	return altered;
 }
 
+static sed_cmd_t *branch_to(const char *label)
+{
+	sed_cmd_t *sed_cmd;
+	for(sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
+		if (strcmp(sed_cmd->label, label) == 0) {
+			break;
+		}
+	}
+
+	/* If no match returns last command */
+	return(sed_cmd);
+}
 
 static void process_file(FILE *file)
 {
@@ -832,6 +862,12 @@ static void process_file(FILE *file)
 						strcat(line, next_line);
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
+						break;
+					case 'b':
+						sed_cmd = branch_to(sed_cmd->label);
+						break;
+//					case ':':
+//						break;
 				}
 			}
 
