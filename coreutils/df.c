@@ -17,7 +17,7 @@ df(const char * device, const char * mountPoint)
 	long		blocks_percent_used;
 
 	if ( statfs(mountPoint, &s) != 0 ) {
-		name_and_error(mountPoint);
+		perror(mountPoint);
 		return 1;
 	}
 	
@@ -52,7 +52,7 @@ df(const char * device, const char * mountPoint)
 }
 
 extern int
-df_main(struct FileInfo * i, int argc, char * * argv)
+df_main(int argc, char * * argv)
 {
 	static const char header[] =
 	 "Filesystem         1024-blocks  Used Available Capacity Mounted on\n";
@@ -63,11 +63,9 @@ df_main(struct FileInfo * i, int argc, char * * argv)
 		int				status;
 
 		while ( argc > 1 ) {
-			if ( (mountEntry = findMountPoint(argv[1], "/etc/mtab")) == 0
-			 && (mountEntry = findMountPoint(argv[1], "/proc/mounts")) == 0 )
+			if ( (mountEntry = findMountPoint(argv[1], "/proc/mounts")) == 0 )
 			{
-				fprintf(stderr, "%s: can't find mount point.\n"
-				,argv[1]);
+				fprintf(stderr, "%s: can't find mount point.\n" ,argv[1]);
 				return 1;
 			}
 			status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
@@ -82,10 +80,8 @@ df_main(struct FileInfo * i, int argc, char * * argv)
 		FILE *		mountTable;
 		struct mntent *	mountEntry;
 
-		if ( (mountTable = setmntent("/etc/mtab", "r")) == 0
-		 && (mountTable = setmntent("/proc/mounts", "r")) == 0
-		) {
-			name_and_error("/etc/mtab");
+		if ( (mountTable = setmntent("/proc/mounts", "r")) == 0) {
+			perror("/proc/mounts");
 			return 1;
 		}
 
@@ -100,4 +96,49 @@ df_main(struct FileInfo * i, int argc, char * * argv)
 	}
 	
 	return 0;
+}
+
+
+
+
+/*
+ * Given a block device, find the mount table entry if that block device
+ * is mounted.
+ *
+ * Given any other file (or directory), find the mount table entry for its
+ * filesystem.
+ */
+extern struct mntent *
+findMountPoint(const char * name, const char * table)
+{
+	struct stat	s;
+	dev_t			mountDevice;
+	FILE *			mountTable;
+	struct mntent *	mountEntry;
+
+	if ( stat(name, &s) != 0 )
+		return 0;
+
+	if ( (s.st_mode & S_IFMT) == S_IFBLK )
+		mountDevice = s.st_rdev;
+	else
+		mountDevice = s.st_dev;
+
+	
+	if ( (mountTable = setmntent(table, "r")) == 0 )
+		return 0;
+
+	while ( (mountEntry = getmntent(mountTable)) != 0 ) {
+		if ( strcmp(name, mountEntry->mnt_dir) == 0
+		 || strcmp(name, mountEntry->mnt_fsname) == 0 )	/* String match. */
+			break;
+		if ( stat(mountEntry->mnt_fsname, &s) == 0
+		 && s.st_rdev == mountDevice )	/* Match the device. */
+				break;
+		if ( stat(mountEntry->mnt_dir, &s) == 0
+		 && s.st_dev == mountDevice )	/* Match the directory's mount point. */
+			break;
+	}
+	endmntent(mountTable);
+	return mountEntry;
 }

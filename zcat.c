@@ -59,7 +59,7 @@ static char  *license_msg[] = {
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
 #endif
 
 #include <ctype.h>
@@ -80,7 +80,7 @@ static char rcsid[] = "$Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $";
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $ */
+/* $Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $ */
 
 #define RECORD_IO 0
 
@@ -436,7 +436,7 @@ extern int unlzw  OF((int in, int out));
 #  undef LZW
 #endif
 
-/* $Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $ */
+/* $Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $ */
 
 /* #include "getopt.h" */
 
@@ -698,7 +698,7 @@ int (*work) OF((int infile, int outfile)) = unzip; /* function to call */
 #define strequ(s1, s2) (strcmp((s1),(s2)) == 0)
 
 /* ======================================================================== */
-int zcat_main (struct FileInfo * i, int argc, char * * argv)
+int zcat_main (int argc, char * * argv)
 {
     int file_count;     /* number of files to precess */
 
@@ -895,7 +895,7 @@ RETSIGTYPE abort_gzip()
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
 #endif
 
 /* #include "crypt.h" */
@@ -1021,7 +1021,7 @@ int unzip(in, out)
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
 #endif
 
 #include <ctype.h>
@@ -1408,7 +1408,7 @@ ulg crc_32_tab[] = {
  */
 
 #ifdef RCSID
-static char rcsid[] = "$Id: zcat.c,v 1.1 1999/10/05 16:24:56 andersen Exp $";
+static char rcsid[] = "$Id: zcat.c,v 1.2 1999/10/06 20:25:32 andersen Exp $";
 #endif
 
 #include <sys/types.h>

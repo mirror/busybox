@@ -1,30 +1,38 @@
 
 VERSION=0.29alpha1
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
+DODEBUG=true
 
 #This will choke on a non-debian system
 ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 
 
-STRIP= strip --remove-section=.note --remove-section=.comment busybox
-LDFLAGS= -s
-
 # -D_GNU_SOURCE is needed because environ is used in init.c
-CFLAGS=-Wall -O2 -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
-# For debugging only
-#CFLAGS=-Wall -g -D_GNU_SOURCE
+ifeq ($(DODEBUG),true)
+    CFLAGS=-Wall -g -D_GNU_SOURCE
+    STRIP=
+else
+    CFLAGS=-Wall -O2 -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    STRIP= strip --remove-section=.note --remove-section=.comment busybox
+endif
+
+ifndef $(prefix)
+    prefix=`pwd`
+endif
+BINDIR=$(prefix)
+
+LDFLAGS= -s
 LIBRARIES=-lc
 OBJECTS=$(shell ./busybox.sh) utility.o
-
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
 
-#all: busybox links
-all: busybox
+all: busybox links
+#all: busybox
 
 busybox: $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o busybox $(OBJECTS) $(LIBRARIES)
-	#$(STRIP)
+	$(STRIP)
 
 links:
 	- ./busybox.mkll | sort >busybox.links
@@ -38,3 +46,7 @@ distclean: clean
 force:
 
 $(OBJECTS):  busybox.def.h internal.h Makefile
+
+install:    busybox
+	install.sh $(BINDIR)
+

@@ -36,7 +36,7 @@ static	BOOL	search
 
 
 extern int 
-grep_main(struct FileInfo * unused, int argc, char ** argv)
+grep_main(int argc, char ** argv)
 {
 	FILE *		fp;
 	const char *	word;

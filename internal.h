@@ -183,6 +183,8 @@ int fullRead(int fd, char *buf, int len);
 int recursiveAction(const char *fileName, BOOL recurse, BOOL followLinks,
 	  int (*fileAction) (const char *fileName),
 	  int (*dirAction) (const char *fileName));
+BOOL match(const char* text, const char * pattern);
+const char* timeString(time_t timeVal);
 
 
 #endif

@@ -195,6 +195,7 @@ int main(int argc, char **argv)
 
 int busybox_main(int argc, char **argv)
 {
+    int col=0;
     argc--;
     argv++;
 
@@ -208,18 +209,19 @@ int busybox_main(int argc, char **argv)
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n",
 		BB_VER, BB_BT);
 	fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
+	fprintf(stderr, "or\nUsage: [function] [arguments]...\n");
 	fprintf(stderr,
 		"\n\tMost people will create a symlink to busybox for each\n"
 		"\tfunction name, and busybox will act like whatever you invoke it as.\n");
 	fprintf(stderr, "\nCurrently defined functions:\n");
 
-	if (a->name != 0) {
-	    fprintf(stderr, "%s", a->name);
-	    a++;
-	}
 	while (a->name != 0) {
-	    fprintf(stderr, ", %s", a->name);
+	    col+=fprintf(stderr, "%s%s", ((col==0)? "\t":", "), a->name);
 	    a++;
+	    if (col>60) {
+		fprintf(stderr, ",\n");
+		col=0;
+	    }
 	}
 	fprintf(stderr, "\n\n");
 	exit(-1);

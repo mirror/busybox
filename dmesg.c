@@ -28,7 +28,7 @@ static inline _syscall3(int,klog,int,type,char *,b,int,len)
 const char			dmesg_usage[] = "dmesg";
 
 int
-dmesg_main(struct FileInfo * info, int argc, char * * argv)
+dmesg_main(int argc, char * * argv)
 {
 
    char buf[4096];
@@ -50,7 +50,7 @@ dmesg_main(struct FileInfo * info, int argc, char * * argv)
 	 break;
       case '?':
       default:
-	 usage(dmesg_usage);
+	 fprintf(stderr, "%s\n", dmesg_usage);
 	 exit(1);
       }
    }
@@ -58,7 +58,7 @@ dmesg_main(struct FileInfo * info, int argc, char * * argv)
    argv += optind;
    
    if (argc > 1) {
-      usage(dmesg_usage);
+     fprintf(stderr, "%s\n", dmesg_usage);
       exit(1);
    }
 

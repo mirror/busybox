@@ -406,6 +406,131 @@ freeChunks(void)
 
 
 /*
+ * Get the time string to be used for a file.
+ * This is down to the minute for new files, but only the date for old files.
+ * The string is returned from a static buffer, and so is overwritten for
+ * each call.
+ */
+const char *
+timeString(time_t timeVal)
+{
+	time_t		now;
+	char *		str;
+	static	char	buf[26];
+
+	time(&now);
+
+	str = ctime(&timeVal);
+
+	strcpy(buf, &str[4]);
+	buf[12] = '\0';
+
+	if ((timeVal > now) || (timeVal < now - 365*24*60*60L))
+	{
+		strcpy(&buf[7], &str[20]);
+		buf[11] = '\0';
+	}
+
+	return buf;
+}
+
+
+/*
+ * Routine to see if a text string is matched by a wildcard pattern.
+ * Returns TRUE if the text is matched, or FALSE if it is not matched
+ * or if the pattern is invalid.
+ *  *		matches zero or more characters
+ *  ?		matches a single character
+ *  [abc]	matches 'a', 'b' or 'c'
+ *  \c		quotes character c
+ *  Adapted from code written by Ingo Wilken.
+ */
+BOOL
+match(const char * text, const char * pattern)
+{
+	const char *	retryPat;
+	const char *	retryText;
+	int		ch;
+	BOOL		found;
+
+	retryPat = NULL;
+	retryText = NULL;
+
+	while (*text || *pattern)
+	{
+		ch = *pattern++;
+
+		switch (ch)
+		{
+			case '*':  
+				retryPat = pattern;
+				retryText = text;
+				break;
+
+			case '[':  
+				found = FALSE;
+
+				while ((ch = *pattern++) != ']')
+				{
+					if (ch == '\\')
+						ch = *pattern++;
+
+					if (ch == '\0')
+						return FALSE;
+
+					if (*text == ch)
+						found = TRUE;
+				}
+
+				if (!found)
+				{
+					pattern = retryPat;
+					text = ++retryText;
+				}
+
+				/* fall into next case */
+
+			case '?':  
+				if (*text++ == '\0')
+					return FALSE;
+
+				break;
+
+			case '\\':  
+				ch = *pattern++;
+
+				if (ch == '\0')
+					return FALSE;
+
+				/* fall into next case */
+
+			default:        
+				if (*text == ch)
+				{
+					if (*text)
+						text++;
+					break;
+				}
+
+				if (*text)
+				{
+					pattern = retryPat;
+					text = ++retryText;
+					break;
+				}
+
+				return FALSE;
+		}
+
+		if (pattern == NULL)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+
+/*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
  * Returns the amount written, or -1 on an error.
@@ -543,3 +668,14 @@ recursiveAction( const char *fileName, BOOL recurse, BOOL followLinks,
 
 
 /* END CODE */
+
+
+
+
+
+
+
+
+
+
+
