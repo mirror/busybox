@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
 
