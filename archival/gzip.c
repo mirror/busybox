@@ -1312,8 +1312,8 @@ int gzip_main(int argc, char **argv)
 					outFileNum = STDOUT_FILENO;
 			}
 
-			if (path == NULL && force == 0) {
-				perror_msg("compressed data not written to a terminal. Use -f to force compression.");
+			if (path == NULL && isatty(outFileNum) && force == 0) {
+				error_msg("compressed data not written to a terminal. Use -f to force compression.");
 				free(path);
 				continue;
 			}
