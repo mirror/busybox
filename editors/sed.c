@@ -43,11 +43,11 @@
 	Unsupported features:
 
 	 - GNU extensions
-	 - and lots, lots more.
+	 - and more.
 
 	Bugs:
 	
-	 - Cant subst globally using ^ or $ in regex, eg. "aah" | sed 's/^a/b/g'
+	 - lots
 
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
@@ -299,7 +299,9 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	while (substr[++idx]) {
 		switch (substr[idx]) {
 		case 'g':
-			sed_cmd->sub_g = 1;
+			if (match[0] != '^') {
+				sed_cmd->sub_g = 1;
+			}
 			break;
 			/* Hmm, i dont see the I option mentioned in the standard */
 		case 'I':
