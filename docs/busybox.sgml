@@ -137,8 +137,8 @@
 
 		<para>
 		ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear,
-		cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, du,
-		dumpkmap, dutmp, echo, false, fbset, fdflush, find, free,
+		cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, dpkg-deb,
+		du, dumpkmap, dutmp, echo, false, fbset, fdflush, find, free,
 		freeramdisk, fsck.minix, grep, gunzip, gzip, halt, head,
 		hostid, hostname, id, init, insmod, kill, killall, length, ln,
 		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
@@ -756,6 +756,44 @@
 		Converts a text file from dos format to unix format.
 		</para>
 
+	</sect1>
+
+	<sect1 id="dpkg-deb">
+	    <title>dpkg-deb</title>
+
+		<para>
+		Usage: dpkg-deb [OPTION] archive [directory] 
+		</para>
+
+		<para>
+		Debian package archive (.deb) manipulation tool	
+		</para>
+
+		<para>
+		Options:
+		</para>
+		
+		<para>
+		<screen>
+			-c	List the contents of the filesystem tree archive portion of the package 
+			-e	Extracts the control information files from a package archive into the specified directory.
+				If  no  directory  is specified then a subdirectory DEBIAN in the current directory is used.
+			-x	Silently extracts the filesystem tree from a package archive into the specified directory.
+			-X	Extracts the filesystem tree from a package archive into the specified directory, listing the files as it goes.	
+			If required the specified directory (but not its parents) will be created.
+		</screen>
+		<para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			dpkg-deb -e ./busybox_0.48-1_i386.deb
+			dpkg-deb -x ./busybox_0.48-1_i386.deb ./unpack_dir
+		</screen>
+		</para>
 	</sect1>
 
 	<sect1 id="du">

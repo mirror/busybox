@@ -56,16 +56,16 @@ terse runtime description of their behavior.
 Currently defined functions include:
 
 ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date, dc,
-dd, deallocvt, df, dirname, dmesg, dos2unix, du, dumpkmap, dutmp, echo, false,
-fbset, fdflush, find, free, freeramdisk, fsck.minix, getopt, grep, gunzip,
-gzip, halt, head, hostid, hostname, id, init, insmod, kill, killall, length,
-ln, loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
-mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc, nslookup,
-ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm, rmdir,
-rmmod, sed, setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
-tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, unix2dos,
-unrpm, update, uptime, usleep, uudecode, uuencode, wc, which, whoami, xargs,
-yes, zcat, [
+dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg-deb, du, dumpkmap, dutmp,
+echo, false, fbset, fdflush, find, free, freeramdisk, fsck.minix, getopt, grep,
+gunzip, gzip, halt, head, hostid, hostname, id, init, insmod, kill, killall,
+length, ln, loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs,
+mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+nslookup, ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm,
+rmdir, rmmod, sed, setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd,
+tail, tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, 
+unix2dos, unrpm, update, uptime, usleep, uudecode, uuencode, wc, which, whoami,
+xargs, yes, zcat, [
 
 -------------------------------
 
@@ -418,6 +418,32 @@ Print or controls the kernel ring buffer.
 Usage: dos2unix < dosfile > unixfile
 
 Converts a text file from dos format to unix format.
+
+-------------------------------
+
+=item dpkg-deb
+
+Usage: dpkg-deb [-cexX] archive-file [directory]
+
+Debian package archive (.deb) manipulation tool
+
+Options:
+
+	-c	Lists the contents of the filesystem tree archive
+		portion  of  the  package archive.
+
+	-e	Extracts the control information files from a package
+		archive into the specified directory.
+	
+	-x	Silently extracts the filesystem tree from a package
+		archive into the specified directory.
+	
+	-X	Extracts the filesystem tree from a package archive
+		into the specified directory, list files as it goes.
+
+Example:
+
+	dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp
 
 -------------------------------
 
@@ -2294,4 +2320,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.85 2001/01/02 22:54:12 kraai Exp $
+# $Id: busybox.pod,v 1.86 2001/01/03 01:06:30 bug1 Exp $
