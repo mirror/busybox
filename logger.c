@@ -120,6 +120,7 @@ extern int logger_main(int argc, char **argv)
     int fd, pri = LOG_USER|LOG_NOTICE;
     int fromStdinFlag=FALSE;
     int toStdErrFlag=FALSE;
+    int stopLookingAtMeLikeThat=FALSE;
     char *message, buf[1024], buf1[1024];
     time_t  now;
     size_t addrLength;
@@ -129,7 +130,8 @@ extern int logger_main(int argc, char **argv)
 	if (*((*argv)+1) == '\0') {
 	    fromStdinFlag=TRUE;
 	}
-	while (*(++(*argv))) {
+	stopLookingAtMeLikeThat=FALSE;
+	while (*(++(*argv)) && stopLookingAtMeLikeThat==FALSE) {
 	    switch (**argv) {
 	    case 's':
 		toStdErrFlag = TRUE;
@@ -139,10 +141,7 @@ extern int logger_main(int argc, char **argv)
 		    usage(logger_usage);
 		}
 		pri = pencode(*(++argv));
-		if (--argc == 0) {
-		    usage(logger_usage);
-		}
-		++argv;
+		stopLookingAtMeLikeThat=TRUE;
 		break;
 	    default:
 		usage(logger_usage);

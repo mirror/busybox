@@ -15,6 +15,7 @@
 #define BB_DMESG
 //#define BB_DUTMP
 #define BB_DU
+#define BB_FBSET
 //#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FREE

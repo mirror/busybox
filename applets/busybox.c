@@ -51,6 +51,9 @@ static const struct Applet applets[] = {
 #ifdef BB_DUTMP			//usr/sbin
     {"dutmp", dutmp_main},
 #endif
+#ifdef BB_FBSET                 //usr/sbin
+    {"fbset", fbset_main},
+#endif
 #ifdef BB_FDFLUSH		//bin
     {"fdflush", fdflush_main},
 #endif

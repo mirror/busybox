@@ -164,7 +164,6 @@ static void domark(int sig)
 {
     if (MarkInterval > 0) {
 	logMessage(LOG_SYSLOG|LOG_INFO, "-- MARK --");
-	signal(SIGALRM, domark);
 	alarm(MarkInterval);
     }
 }

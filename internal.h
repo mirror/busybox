@@ -68,6 +68,7 @@ extern int dmesg_main(int argc, char** argv);
 extern int du_main(int argc, char** argv);
 extern int dutmp_main(int argc, char** argv);
 extern int false_main(int argc, char** argv);
+extern int fbset_main(int argc, char** argv);
 extern int fdisk_main(int argc, char** argv);
 extern int fdflush_main(int argc, char **argv);
 extern int fsck_minix_main(int argc, char **argv);
