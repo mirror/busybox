@@ -111,8 +111,10 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		}
 	}
 
-	chown(file_header->name, file_header->uid, file_header->gid);
-	chmod(file_header->name, file_header->mode);
+	lchown(file_header->name, file_header->uid, file_header->gid);
+	if ((file_header->mode & S_IFMT) != S_IFLNK) {
+		chmod(file_header->name, file_header->mode);
+	}
 
 	if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
 		struct utimbuf t;
