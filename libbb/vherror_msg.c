@@ -35,11 +35,10 @@ extern int h_errno;
 
 extern void vherror_msg(const char *s, va_list p)
 {
-	int err = h_errno;
 	if(s == 0)
 		s = "";
 	verror_msg(s, p);
 	if (*s)
-		s = ": ";
-	fprintf(stderr, "%s%s\n", s, hstrerror(err));
+		fputs(": ", stderr);
+	herror("");
 }
