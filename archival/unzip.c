@@ -20,7 +20,10 @@
  *
  */
 
-/* For reference to format see http://www.pkware.com/support/appnote.html */
+/* For reference see
+ * http://www.pkware.com/products/enterprise/white_papers/appnote.txt
+ * http://www.info-zip.org/pub/infozip/doc/appnote-iz-latest.zip
+ */
 
 /* TODO Endian issues, exclude, should we accept input from stdin ? */
 
