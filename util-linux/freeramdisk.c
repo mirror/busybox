@@ -37,20 +37,25 @@
 extern int
 freeramdisk_main(int argc, char **argv)
 {
+	int result;
 	FILE *f;
 
-	if (argc != 2 || *argv[1] == '-') {
+	if (argc != 2) {
 		show_usage();
 	}
 
 	f = xfopen(argv[1], "r+");
 	
-	if (ioctl(fileno(f), BLKFLSBUF) < 0) {
+	result = ioctl(fileno(f), BLKFLSBUF);
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	fclose(f);
+#endif
+	if (result < 0) {
 		perror_msg_and_die("failed ioctl on %s", argv[1]);
 	}
+
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
-	/* close(f); */
 	return EXIT_SUCCESS;
 }
 

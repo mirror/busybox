@@ -32,16 +32,23 @@
 
 extern int fdflush_main(int argc, char **argv)
 {
-	int fd;
+	int fd, result;
 
 	if (argc <= 1)
 		show_usage();
 	if ((fd = open(*(++argv), 0)) < 0)
 		goto die_the_death;
 
-	if (ioctl(fd, FDFLUSH, 0))
+	result = ioctl(fd, FDFLUSH, 0);
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	close(fd);
+#endif
+	if (result) {
 		goto die_the_death;
+	}
 
+	/* Don't bother closing.  Exit does
+	 * that, so we can save a few bytes */
 	return EXIT_SUCCESS;
 
 die_the_death:
