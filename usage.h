@@ -1190,6 +1190,14 @@
 	"Name:       debian\n" \
 	"Address:    127.0.0.1\n" 
 
+#define pidof_trivial_usage \
+	"process-name [process-name ...]"
+#define pidof_full_usage \
+	"Lists the PIDs of all processes with names that match the names on the command line"
+#define pidof_example_usage \
+	"$ pidof init\n" \
+	"1\n"
+
 #ifndef BB_FEATURE_FANCY_PING
 #define ping_trivial_usage "host"
 #define ping_full_usage    "Send ICMP ECHO_REQUEST packets to network hosts"

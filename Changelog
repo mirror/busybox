@@ -13,6 +13,7 @@
     New Applets:
 	* David McCullough <davidm@lineo.com> -- modprobe
 	* Vladimir Oleynik -- traceroute
+	* Erik Andersen -- pidof
 
     New Scripts:
 	* David Schleef, Erik Andersen, Stuart Hughes -- depmod.pl

@@ -284,6 +284,9 @@
 #ifdef BB_NSLOOKUP
 	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_PIDOF
+	APPLET(pidof, pidof_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_PING
 	APPLET(ping, ping_main, _BB_DIR_BIN)
 #endif
