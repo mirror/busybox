@@ -23,14 +23,12 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/param.h>
 
 extern int which_main(int argc, char **argv)
 {
-	char *path_list, *test, *tmp, *path_parsed;
-	char buf[PATH_MAX];
+	char *path_list, *path_n;
 	struct stat filestat;
-	int count = 0;
+	int i, count=0;
 
 	if (argc <= 1 || **(argv + 1) == '-')
 		usage(which_usage);
@@ -40,45 +38,28 @@ extern int which_main(int argc, char **argv)
 	if (!path_list)
 		path_list = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin";
 
-	path_parsed = xmalloc (strlen(path_list) + 1);
-	strcpy (path_parsed, path_list);
-
 	/* Replace colons with zeros in path_parsed and count them */
-	count = 1;
-	test = path_parsed;
-	while (1) {
-		tmp = strchr(test, ':');
-		if (tmp == NULL)
-			break;
-		*tmp = 0;
-		test = tmp + 1;
-		count++;
-	}
-
+	for(i=strlen(path_list); i > 0; i--) 
+		if (path_list[i]==':') {
+			path_list[i]=0;
+			count++;
+		}
 
 	while(argc-- > 0) { 
-		int i;
-		int found = FALSE;
-		test = path_parsed;
+		path_n = path_list;
 		argv++;
 		for (i = 0; i < count; i++) {
-			strcpy (buf, test);
+			char buf[strlen(path_n)+1+strlen(*argv)];
+			strcpy (buf, path_n);
 			strcat (buf, "/");
 			strcat (buf, *argv);
 			if (stat (buf, &filestat) == 0
 			    && filestat.st_mode & S_IXUSR)
 			{
-				found = TRUE;
+				printf ("%s\n", buf);
 				break;
 			}
-			test += (strlen(test) + 1);
-		}
-		if (found == TRUE)
-			printf ("%s\n", buf);
-		else
-		{
-			printf ("which: no %s in (%s)\n", *argv, path_list);
-			exit (FALSE);
+			path_n += (strlen(path_n) + 1);
 		}
 	}
 	return(TRUE);
