@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.3 2001/03/10 02:00:54 mjn3 Exp $
+ * Version:     $Id: interface.c,v 1.4 2001/03/12 09:57:59 mjn3 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -25,6 +25,17 @@
  * stolen from net-tools-1.59 and stripped down for busybox by 
  *			Erik Andersen <andersee@debian.org>
  */
+
+/*
+ * Heavily modified by Manuel Novoa III       Mar 12, 2001
+ *
+ * Pruned unused code using KEEP_UNUSED define.
+ * Added print_bytes_scaled function to reduce code size.
+ * Added some (potentially) missing defines.
+ * Improved display support for -a and for a named interface.
+ */
+
+/* #define KEEP_UNUSED */
 
 #include "busybox.h"
 
@@ -75,7 +86,7 @@
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
 #define KRELEASE(maj,min,patch) ((maj) * 10000 + (min)*1000 + (patch))
 
-int procnetdev_vsn = 1;
+static int procnetdev_vsn = 1;
 
 
 /* Ugh.  But libc5 doesn't provide POSIX types.  */
@@ -120,10 +131,29 @@ struct in6_ifreq {
 #include "util.h"
 #endif
 
+/* Defines for glibc2.0 users. */
+#ifndef SIOCSIFTXQLEN
+#define SIOCSIFTXQLEN      0x8943
+#define SIOCGIFTXQLEN      0x8942
+#endif
+
+/* ifr_qlen is ifru_ivalue, but it isn't present in 2.0 kernel headers */
+#ifndef ifr_qlen
+#define ifr_qlen        ifr_ifru.ifru_mtu
+#endif
+
+#ifndef HAVE_TXQUEUELEN
+#define HAVE_TXQUEUELEN 1
+#endif
+
+#ifndef IFF_DYNAMIC
+#define IFF_DYNAMIC     0x8000  /* dialup device with changing addresses */
+#endif
+
 /* This structure defines protocol families and their handlers. */
 struct aftype {
-    char *name;
-    char *title;
+    const char *name;
+    const char *title;
     int af;
     int alen;
     char *(*print) (unsigned char *);
@@ -140,20 +170,23 @@ struct aftype {
     char *flag_file;
 };
 
-extern struct aftype *aftypes[];
-int flag_unx;
-int flag_ipx;
-int flag_ax25;
-int flag_ddp;
-int flag_netrom;
-int flag_inet;
-int flag_inet6;
-int flag_econet;
-int flag_x25 = 0;
-int flag_ash;
+static struct aftype *aftypes[];
+
+#ifdef KEEP_UNUSED
+
+static int flag_unx;
+static int flag_ipx;
+static int flag_ax25;
+static int flag_ddp;
+static int flag_netrom;
+static int flag_inet;
+static int flag_inet6;
+static int flag_econet;
+static int flag_x25 = 0;
+static int flag_ash;
 
 
-struct aftrans_t {
+static struct aftrans_t {
     char *alias;
     char *name;
     int *flag;
@@ -206,7 +239,8 @@ struct aftrans_t {
     }
 };
 
-char afname[256] = "";
+static char afname[256] = "";
+#endif /* KEEP_UNUSED */
 
 #if HAVE_AFUNIX
 
@@ -228,9 +262,9 @@ static char *UNIX_sprint(struct sockaddr *sap, int numeric)
 }
 
 
-struct aftype unix_aftype =
+static struct aftype unix_aftype =
 {
-    "unix", NULL, /*"UNIX Domain", */ AF_UNIX, 0,
+    "unix", "UNIX Domain", AF_UNIX, 0,
     UNIX_print, UNIX_sprint, NULL, NULL,
     NULL, NULL, NULL,
     -1,
@@ -240,7 +274,9 @@ struct aftype unix_aftype =
 
 #if HAVE_AFINET
 
+#if 0
 extern int h_errno;             /* some netdb.h versions don't export this */
+#endif
 
 /* cache */
 struct addr {
@@ -252,6 +288,7 @@ struct addr {
 
 static struct addr *INET_nn = NULL;	/* addr-to-name cache           */
 
+#ifdef KEEP_UNUSED
 static int INET_resolve(char *name, struct sockaddr_in *sin, int hostfirst)
 {
     struct hostent *hp;
@@ -310,7 +347,7 @@ static int INET_resolve(char *name, struct sockaddr_in *sin, int hostfirst)
 
     return 0;
 }
-
+#endif /* KEEP_UNUSED */
 
 /* numeric: & 0x8000: default instead of *, 
  *	    & 0x4000: host instead of net, 
@@ -399,19 +436,18 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin,
     return (0);
 }
 
-
+#ifdef KEEP_UNUSED
 static void INET_reserror(char *text)
 {
     herror(text);
 }
-
 
 /* Display an Internet socket address. */
 static char *INET_print(unsigned char *ptr)
 {
     return (inet_ntoa((*(struct in_addr *) ptr)));
 }
-
+#endif /* KEEP_UNUSED */
 
 /* Display an Internet socket address. */
 static char *INET_sprint(struct sockaddr *sap, int numeric)
@@ -428,7 +464,8 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
     return (buff);
 }
 
-char *INET_sprintmask(struct sockaddr *sap, int numeric, 
+#ifdef KEEP_UNUSED
+static char *INET_sprintmask(struct sockaddr *sap, int numeric, 
 		      unsigned int netmask)
 {
     static char buff[128];
@@ -440,7 +477,6 @@ char *INET_sprintmask(struct sockaddr *sap, int numeric,
 	return (NULL);
     return (buff);
 }
-
 
 static int INET_getsock(char *bufp, struct sockaddr *sap)
 {
@@ -516,14 +552,15 @@ static int INET_getnetmask(char *adr, struct sockaddr *m, char *name)
     mask->sin_addr.s_addr = htonl(~(0xffffffffU >> prefix));
     return 1;
 }
+#endif /* KEEP_UNUSED */
 
-
-struct aftype inet_aftype =
+static struct aftype inet_aftype =
 {
-    "inet", NULL, /*"DARPA Internet", */ AF_INET, sizeof(unsigned long),
-    INET_print, INET_sprint, INET_input, INET_reserror,
+    "inet", "DARPA Internet", AF_INET, sizeof(unsigned long),
+    NULL /* UNUSED INET_print */, INET_sprint,
+	NULL /* UNUSED INET_input */, NULL /* UNUSED INET_reserror */,
     NULL /*INET_rprint */ , NULL /*INET_rinput */ ,
-    INET_getnetmask,
+    NULL /* UNUSED INET_getnetmask */,
     -1,
     NULL
 };
@@ -555,16 +592,14 @@ static char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
     return (UNSPEC_print(sap->sa_data));
 }
 
-struct aftype unspec_aftype =
+static struct aftype unspec_aftype =
 {
-    "unspec", NULL, /*"UNSPEC", */ AF_UNSPEC, 0,
+    "unspec", "UNSPEC", AF_UNSPEC, 0,
     UNSPEC_print, UNSPEC_sprint, NULL, NULL,
     NULL,
 };
 
-static short sVafinit = 0;
-
-struct aftype *aftypes[] =
+static struct aftype *aftypes[] =
 {
 #if HAVE_AFUNIX
     &unix_aftype,
@@ -603,7 +638,10 @@ struct aftype *aftypes[] =
     NULL
 };
 
-void afinit()
+#ifdef KEEP_UNUSED
+static short sVafinit = 0;
+
+static void afinit()
 {
     unspec_aftype.title = _("UNSPEC");
 #if HAVE_AFUNIX
@@ -642,7 +680,7 @@ void afinit()
     sVafinit = 1;
 }
 
-int aftrans_opt(const char *arg)
+static int aftrans_opt(const char *arg)
 {
     struct aftrans_t *paft;
     char *tmp1, *tmp2;
@@ -685,7 +723,7 @@ int aftrans_opt(const char *arg)
 }
 
 /* set the default AF list from the program name or a constant value    */
-void aftrans_def(char *tool, char *argv0, char *dflt)
+static void aftrans_def(char *tool, char *argv0, char *dflt)
 {
     char *tmp;
     char *buf;
@@ -721,14 +759,15 @@ void aftrans_def(char *tool, char *argv0, char *dflt)
     free(buf);
 }
 
-
 /* Check our protocol family table for this family. */
-struct aftype *get_aftype(const char *name)
+static struct aftype *get_aftype(const char *name)
 {
     struct aftype **afp;
 
+#ifdef KEEP_UNUSED
     if (!sVafinit)
 	afinit();
+#endif /* KEEP_UNUSED */
 
     afp = aftypes;
     while (*afp != NULL) {
@@ -740,15 +779,17 @@ struct aftype *get_aftype(const char *name)
 	fprintf(stderr, _("Please don't supply more than one address family.\n"));
     return (NULL);
 }
-
+#endif /* KEEP_UNUSED */
 
 /* Check our protocol family table for this family. */
-struct aftype *get_afntype(int af)
+static struct aftype *get_afntype(int af)
 {
     struct aftype **afp;
 
+#ifdef KEEP_UNUSED
     if (!sVafinit)
 	afinit();
+#endif /* KEEP_UNUSED */
 
     afp = aftypes;
     while (*afp != NULL) {
@@ -760,12 +801,14 @@ struct aftype *get_afntype(int af)
 }
 
 /* Check our protocol family table for this family and return its socket */
-int get_socket_for_af(int af)
+static int get_socket_for_af(int af)
 {
     struct aftype **afp;
 
+#ifdef KEEP_UNUSED
     if (!sVafinit)
 	afinit();
+#endif /* KEEP_UNUSED */
 
     afp = aftypes;
     while (*afp != NULL) {
@@ -776,14 +819,17 @@ int get_socket_for_af(int af)
     return -1;
 }
 
+#ifdef KEEP_UNUSED
 /* type: 0=all, 1=getroute */
-void print_aflist(int type) {
+static void print_aflist(int type) {
     int count = 0;
     char * txt;
     struct aftype **afp;
 
+#ifdef KEEP_UNUSED
     if (!sVafinit)
 	afinit();
+#endif /* KEEP_UNUSED */
 
     afp = aftypes;
     while (*afp != NULL) {
@@ -792,12 +838,13 @@ void print_aflist(int type) {
 	}
 	if ((count % 3) == 0) fprintf(stderr,count?"\n    ":"    "); 
         txt = (*afp)->name; if (!txt) txt = "..";
-	fprintf(stderr,"%s (%s) ",txt,(*afp)->title);
+	fprintf(stderr,"%s (%s) ",txt,_((*afp)->title));
 	count++;
 	afp++;
     }
     fprintf(stderr,"\n");
 }
+#endif /* KEEP_UNUSED */
 
 struct user_net_device_stats {
     unsigned long long rx_packets;	/* total packets received       */
@@ -863,16 +910,20 @@ struct interface {
 };
 
 
-int opt_a = 0;			/* show all interfaces          */
-int opt_i = 0;			/* show the statistics          */
-int opt_v = 0;			/* debugging output flag        */
+int interface_opt_a = 0;		/* show all interfaces          */
 
-int addr_family = 0;		/* currently selected AF        */
+#ifdef KEEP_UNUSED
+static int opt_i = 0;			/* show the statistics          */
+static int opt_v = 0;			/* debugging output flag        */
+
+static int addr_family = 0;		/* currently selected AF        */
+#endif /* KEEP_UNUSED */
+
 static struct interface *int_list, *int_last;
-int skfd = -1;			/* generic raw socket desc.     */
+static int skfd = -1;			/* generic raw socket desc.     */
 
 
-int sockets_open(int family)
+static int sockets_open(int family)
 {
     struct aftype **aft;
     int sfd = -1;
@@ -919,7 +970,7 @@ int sockets_open(int family)
 }
 
 /* like strcmp(), but knows about numbers */
-int nstrcmp(const char *astr, const char *b)
+static int nstrcmp(const char *astr, const char *b)
 {
     const char *a = astr;
 
@@ -1053,7 +1104,7 @@ static int get_dev_fields(char *bp, struct interface *ife)
     switch (procnetdev_vsn) {
     case 3:
 	sscanf(bp,
-	"%llu %llu %lu %lu %lu %lu %lu %lu %llu %llu %lu %lu %lu %lu %lu %lu",
+	"%Lu %Lu %lu %lu %lu %lu %lu %lu %Lu %Lu %lu %lu %lu %lu %lu %lu",
 	       &ife->stats.rx_bytes,
 	       &ife->stats.rx_packets,
 	       &ife->stats.rx_errors,
@@ -1073,7 +1124,7 @@ static int get_dev_fields(char *bp, struct interface *ife)
 	       &ife->stats.tx_compressed);
 	break;
     case 2:
-	sscanf(bp, "%llu %llu %lu %lu %lu %lu %llu %llu %lu %lu %lu %lu %lu",
+	sscanf(bp, "%Lu %Lu %lu %lu %lu %lu %Lu %Lu %lu %lu %lu %lu %lu",
 	       &ife->stats.rx_bytes,
 	       &ife->stats.rx_packets,
 	       &ife->stats.rx_errors,
@@ -1091,7 +1142,7 @@ static int get_dev_fields(char *bp, struct interface *ife)
 	ife->stats.rx_multicast = 0;
 	break;
     case 1:
-	sscanf(bp, "%llu %lu %lu %lu %lu %llu %lu %lu %lu %lu %lu",
+	sscanf(bp, "%Lu %lu %lu %lu %lu %Lu %lu %lu %lu %lu %lu",
 	       &ife->stats.rx_packets,
 	       &ife->stats.rx_errors,
 	       &ife->stats.rx_dropped,
@@ -1112,7 +1163,7 @@ static int get_dev_fields(char *bp, struct interface *ife)
     return 0;
 }
 
-static int procnetdev_version(char *buf)
+static inline int procnetdev_version(char *buf)
 {
     if (strstr(buf, "compressed"))
 	return 3;
@@ -1192,7 +1243,7 @@ static int if_readlist_proc(char *target)
     return err;
 }
 
-int if_readlist(void) 
+static int if_readlist(void) 
 { 
     int err = if_readlist_proc(NULL); 
     if (!err)
@@ -1200,7 +1251,7 @@ int if_readlist(void)
     return err;
 } 
 
-int for_all_interfaces(int (*doit) (struct interface *, void *), void *cookie)
+static int for_all_interfaces(int (*doit) (struct interface *, void *), void *cookie)
 {
     struct interface *ife;
 
@@ -1226,7 +1277,7 @@ static int ipx_getaddr(int sock, int ft, struct ifreq *ifr)
 
 
 /* Fetch the interface configuration from the kernel. */
-int if_fetch(struct interface *ife)
+static int if_fetch(struct interface *ife)
 {
     struct ifreq ifr;
     int fd;
@@ -1386,7 +1437,7 @@ int if_fetch(struct interface *ife)
 }
 
 
-int do_if_fetch(struct interface *ife)
+static int do_if_fetch(struct interface *ife)
 { 
     if (if_fetch(ife) < 0) {
 	char *errmsg; 
@@ -1405,8 +1456,8 @@ int do_if_fetch(struct interface *ife)
 
 /* This structure defines hardware protocols and their handlers. */
 struct hwtype {
-    char *name;
-    char *title;
+    const char *name;
+    const char *title;
     int type;
     int alen;
     char *(*print) (unsigned char *);
@@ -1430,15 +1481,15 @@ static char *pr_unspec(unsigned char *ptr)
     return (buff);
 }
 
-struct hwtype unspec_hwtype =
+static struct hwtype unspec_hwtype =
 {
-    "unspec", NULL, /*"UNSPEC", */ -1, 0,
+    "unspec", "UNSPEC", -1, 0,
     pr_unspec, NULL, NULL
 };
 
-struct hwtype loop_hwtype =
+static struct hwtype loop_hwtype =
 {
-    "loop", NULL, /*"Local Loopback", */ ARPHRD_LOOPBACK, 0,
+    "loop", "Local Loopback", ARPHRD_LOOPBACK, 0,
     NULL, NULL, NULL
 };
 
@@ -1446,7 +1497,7 @@ struct hwtype loop_hwtype =
 #include <net/if_arp.h>
 #include <linux/if_ether.h>
 
-extern struct hwtype ether_hwtype;
+static struct hwtype ether_hwtype;
 
 /* Display an Ethernet address in readable format. */
 static char *pr_ether(unsigned char *ptr)
@@ -1460,7 +1511,7 @@ static char *pr_ether(unsigned char *ptr)
     return (buff);
 }
 
-
+#ifdef KEEP_UNUSED
 /* Input an Ethernet address and convert to binary. */
 static int in_ether(char *bufp, struct sockaddr *sap)
 {
@@ -1539,12 +1590,13 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 
     return (0);
 }
+#endif /* KEEP_UNUSED */
 
 
-struct hwtype ether_hwtype =
+static struct hwtype ether_hwtype =
 {
-    "ether", NULL, /*"10Mbps Ethernet", */ ARPHRD_ETHER, ETH_ALEN,
-    pr_ether, in_ether, NULL
+    "ether", "Ethernet", ARPHRD_ETHER, ETH_ALEN,
+    pr_ether, NULL /* UNUSED in_ether */, NULL
 };
 
 
@@ -1555,18 +1607,19 @@ struct hwtype ether_hwtype =
 
 #include <net/if_arp.h>
 
+#ifdef KEEP_UNUSED
 /* Start the PPP encapsulation on the file descriptor. */
 static int do_ppp(int fd)
 {
     fprintf(stderr, _("You cannot start PPP with this program.\n"));
     return -1;
 }
+#endif /* KEEP_UNUSED */
 
-
-struct hwtype ppp_hwtype =
+static struct hwtype ppp_hwtype =
 {
-    "ppp", NULL, /*"Point-Point Protocol", */ ARPHRD_PPP, 0,
-    NULL, NULL, do_ppp, 0
+    "ppp", "Point-Point Protocol", ARPHRD_PPP, 0,
+    NULL, NULL, NULL /* UNUSED do_ppp */, 0
 };
 
 
@@ -1647,9 +1700,10 @@ static struct hwtype *hwtypes[] =
     NULL
 };
 
+#ifdef KEEP_UNUSED
 static short sVhwinit = 0;
 
-void hwinit()
+static void hwinit()
 {
     loop_hwtype.title = _("Local Loopback");
     unspec_hwtype.title = _("UNSPEC");
@@ -1718,9 +1772,10 @@ void hwinit()
 #endif
     sVhwinit = 1;
 }
+#endif /* KEEP_UNUSED */
 
 #ifdef IFF_PORTSEL
-const char *if_port_text[][4] =
+static const char *if_port_text[][4] =
 {
     /* Keep in step with <linux/netdevice.h> */
     {"unknown", NULL, NULL, NULL},
@@ -1735,12 +1790,14 @@ const char *if_port_text[][4] =
 #endif
 
 /* Check our hardware type table for this type. */
-struct hwtype *get_hwntype(int type)
+static struct hwtype *get_hwntype(int type)
 {
     struct hwtype **hwp;
 
+#ifdef KEEP_UNUSED
     if (!sVhwinit)
 	hwinit();
+#endif /* KEEP_UNUSED */
 
     hwp = hwtypes;
     while (*hwp != NULL) {
@@ -1752,7 +1809,7 @@ struct hwtype *get_hwntype(int type)
 }
 
 /* return 1 if address is all zeros */
-int hw_null_address(struct hwtype *hw, void *ap)
+static int hw_null_address(struct hwtype *hw, void *ap)
 {
     unsigned int i;
     unsigned char *address = (unsigned char *)ap;
@@ -1762,15 +1819,35 @@ int hw_null_address(struct hwtype *hw, void *ap)
     return 1;
 }
 
-void ife_print(struct interface *ptr)
+static const char TRext[] = "\0\0k\0M";
+
+static void print_bytes_scaled(unsigned long long ull, const char *end)
+{
+	unsigned long long int_part;
+	unsigned long frac_part;
+	const char *ext;
+	int i;
+
+	frac_part = 0;
+	ext = TRext;
+	int_part = ull;
+	for (i=0 ; i<2 ; i++) {
+		if (int_part >= 1024) {
+			frac_part = ((int_part % 1024) * 10) / 1024;
+			int_part /= 1024;
+			ext += 2;			/* Kb, Mb */
+		}
+	}
+
+	printf("X bytes:%Lu (%Lu.%lu %sb)%s", ull, int_part, frac_part, ext, end);
+}
+
+static void ife_print(struct interface *ptr)
 {
     struct aftype *ap;
     struct hwtype *hw;
     int hf;
     int can_compress = 0;
-    unsigned long long rx, tx, short_rx, short_tx;
-    char Rext[5]="b";
-    char Text[5]="b";
 
 #if HAVE_AFIPX
     static struct aftype *ipxtype = NULL;
@@ -1803,7 +1880,7 @@ void ife_print(struct interface *ptr)
     if (hw == NULL)
 	hw = get_hwntype(-1);
 
-    printf(_("%-9.9s Link encap:%s  "), ptr->name, hw->title);
+    printf(_("%-9.9s Link encap:%s  "), ptr->name, _(hw->title));
     /* For some hardware types (eg Ash, ATM) we don't print the 
        hardware address if it's null.  */
     if (hw->print != NULL && (! (hw_null_address(hw, ptr->hwaddr) &&
@@ -1965,24 +2042,14 @@ void ife_print(struct interface *ptr)
 	 */
 	printf("          ");
 
-	printf(_("RX packets:%llu errors:%lu dropped:%lu overruns:%lu frame:%lu\n"),
+	printf(_("RX packets:%Lu errors:%lu dropped:%lu overruns:%lu frame:%lu\n"),
 	       ptr->stats.rx_packets, ptr->stats.rx_errors,
 	       ptr->stats.rx_dropped, ptr->stats.rx_fifo_errors,
 	       ptr->stats.rx_frame_errors);
 	if (can_compress)
 	    printf(_("             compressed:%lu\n"), ptr->stats.rx_compressed);
-
-	rx = ptr->stats.rx_bytes;  
-	tx = ptr->stats.tx_bytes;
-	short_rx = rx * 10;  
-	short_tx = tx * 10;
-	if (rx > 1048576) { short_rx /= 1048576;  strcpy(Rext, "Mb"); }
-	else if (rx > 1024) { short_rx /= 1024;  strcpy(Rext, "Kb"); }
-	if (tx > 1048576) { short_tx /= 1048576;  strcpy(Text, "Mb"); }
-	else if (tx > 1024) { short_tx /= 1024;  strcpy(Text, "Kb"); }
-
 	printf("          ");
-	printf(_("TX packets:%llu errors:%lu dropped:%lu overruns:%lu carrier:%lu\n"),
+	printf(_("TX packets:%Lu errors:%lu dropped:%lu overruns:%lu carrier:%lu\n"),
 	       ptr->stats.tx_packets, ptr->stats.tx_errors,
 	       ptr->stats.tx_dropped, ptr->stats.tx_fifo_errors,
 	       ptr->stats.tx_carrier_errors);
@@ -1991,12 +2058,10 @@ void ife_print(struct interface *ptr)
 	    printf(_("compressed:%lu "), ptr->stats.tx_compressed);
 	if (ptr->tx_queue_len != -1)
 	    printf(_("txqueuelen:%d "), ptr->tx_queue_len);
-	printf("\n          ");
-	printf(_("RX bytes:%llu (%lu.%lu %s)  TX bytes:%llu (%lu.%lu %s)\n"),
-	       rx, (unsigned long)(short_rx / 10), 
-	       (unsigned long)(short_rx % 10), Rext, 
-	       tx, (unsigned long)(short_tx / 10), 
-	       (unsigned long)(short_tx % 10), Text);
+	printf("\n          R");
+	print_bytes_scaled(ptr->stats.rx_bytes, "  T");
+	print_bytes_scaled(ptr->stats.rx_bytes, "\n");
+
     }
 
     if ((ptr->map.irq || ptr->map.mem_start || ptr->map.dma ||
@@ -2018,7 +2083,7 @@ void ife_print(struct interface *ptr)
 }
 
 
-int do_if_print(struct interface *ife, void *cookie)
+static int do_if_print(struct interface *ife, void *cookie)
 {
     int *opt_a = (int *) cookie;
     int res; 
@@ -2031,7 +2096,7 @@ int do_if_print(struct interface *ife, void *cookie)
     return res;
 }
 
-struct interface *lookup_interface(char *name)
+static struct interface *lookup_interface(char *name)
 {
     struct interface *ife = NULL;
 
@@ -2047,7 +2112,7 @@ static int if_print(char *ifname)
     int res;
 
     if (!ifname) {
-	res = for_all_interfaces(do_if_print, &opt_a);
+	res = for_all_interfaces(do_if_print, &interface_opt_a);
     } else {
 	struct interface *ife;
 
@@ -2059,11 +2124,9 @@ static int if_print(char *ifname)
     return res; 
 }
 
-int display_interfaces(int opt_all)
+int display_interfaces(char *ifname)
 {
     int status;
-
-	opt_a = opt_all;
 
     /* Create a channel to the NET kernel. */
     if ((skfd = sockets_open(0)) < 0) {
@@ -2071,8 +2134,7 @@ int display_interfaces(int opt_all)
     }
 
     /* Do we have to show the current setup? */
-    status = if_print((char *) NULL);
+    status = if_print(ifname);
     close(skfd);
     exit(status < 0);
 }
-

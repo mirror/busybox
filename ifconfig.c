@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.7 2001/03/10 02:00:54 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.8 2001/03/12 09:57:59 mjn3 Exp $
  *
  */
 
@@ -26,7 +26,7 @@
  * converting to a table-driven approach.  Added several (optional)
  * args missing from initial port.
  *
- * Still missing:  media.
+ * Still missing:  media, tunnel.
  */
 
 #include <stdio.h>
@@ -234,7 +234,8 @@ static int in_ether(char *bufp, struct sockaddr *sap);
 #endif
 
 #ifdef BB_FEATURE_IFCONFIG_STATUS
-extern int display_interfaces(int display_all);
+extern int interface_opt_a;
+extern int display_interfaces(char *ifname);
 #endif
 
 /*
@@ -261,23 +262,25 @@ int ifconfig_main(int argc, char **argv)
 	goterr = 0;
 	did_flags = 0;
 
-	if(argc < 2) {
+	/* skip argv[0] */
+	++argv;
+	--argc;
+
 #ifdef BB_FEATURE_IFCONFIG_STATUS
-		return(display_interfaces(0));
+	if ((argc > 0) && (strcmp(*argv,"-a") == 0)) {
+		interface_opt_a = 1;
+		--argc;
+		++argv;
+	}
+#endif
+
+	if(argc <= 1) {
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+		return display_interfaces(argc ? *argv : NULL);
 #else
 		show_usage();
 #endif
 	}
-
-	/* skip argv[0] */
-	argc--;
-	argv++;
-
-#ifdef BB_FEATURE_IFCONFIG_STATUS
-	if ((argc == 1) && (strcmp(*argv, "-a") == 0)) {
-		return(display_interfaces(1));
-	}
-#endif
 
 	/* Create a channel to the NET kernel. */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
