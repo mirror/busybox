@@ -2,8 +2,8 @@
 // This file defines the feature set to be compiled into busybox.
 // When you turn things off here, they won't be compiled in at all.
 //
-//// This file is parsed by sed. You MUST use single line comments.
-//   i.e.  //#define BB_BLAH
+//// This file is parsed by sed.  You MUST use single line comments.
+//   i.e.,  //#define BB_BLAH
 //
 //
 // BusyBox Applications
@@ -229,7 +229,7 @@
 #define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
-// (i.e. in case of an unreachable NFS system).
+// (i.e., in case of an unreachable NFS system).
 #define BB_FEATURE_MOUNT_FORCE
 //
 // Enable support for creation of tar files.
@@ -296,7 +296,7 @@
 //
 // Support for uClinux memory usage optimization, which will load the image
 // directly into the kernel memory.  This divides memory requrements by three.
-// If you are not running uClinux (i.e. your CPU has an MMU) leave this
+// If you are not running uClinux (i.e., your CPU has an MMU) leave this
 // disabled...
 //#define BB_FEATURE_INSMOD_LOADINKMEM
 //

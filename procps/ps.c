@@ -94,7 +94,7 @@ static void parse_proc_status(char *S, proc_t * P)
 	else
 		error_msg("Internal error!");
 
-	/* For busybox, ignoring effective, saved, etc */
+	/* For busybox, ignoring effective, saved, etc. */
 	tmp = strstr(S, "Uid:");
 	if (tmp)
 		sscanf(tmp, "Uid:\t%d", &P->ruid);

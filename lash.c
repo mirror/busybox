@@ -1076,9 +1076,9 @@ static int expand_arguments(char *command)
 				else
 					var = itoa(last_bg_pid);
 				break;
-				/* Everything else like $$, $#, $[0-9], etc should all be
+				/* Everything else like $$, $#, $[0-9], etc. should all be
 				 * expanded by wordexp(), so we can in theory skip that stuff
-				 * here, but just to be on the safe side (i.e. since uClibc
+				 * here, but just to be on the safe side (i.e., since uClibc
 				 * wordexp doesn't do this stuff yet), lets leave it in for
 				 * now. */
 			case '$':

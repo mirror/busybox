@@ -45,7 +45,7 @@ Archives can be found here:
 
 	http://opensource.lineo.com/lists/busybox/
 
-If you have a serious interest in Busybox, i.e. you are using it day-to-day or
+If you have a serious interest in Busybox, i.e., you are using it day-to-day or
 as part of an embedded project, it would be a good idea to join the mailing
 list.
 
@@ -294,7 +294,7 @@ are some guidelines on how to test your changes.
    behavior / output is identical between the two.
 
  - Try several different permutations and combinations of the features you're
-   adding (i.e. different combinations of command-line switches) and make sure
+   adding (i.e., different combinations of command-line switches) and make sure
    they all work; make sure one feature does not interfere with another.
 
  - Make sure you test compiling against the source both with the feature
@@ -456,7 +456,7 @@ mailing list if:
 
  - Your changes are broad and touch many different files
  - You are adding a feature
- - Your changes are speculative or experimental (i.e. trying a new algorithm)
+ - Your changes are speculative or experimental (i.e., trying a new algorithm)
  - You are not the maintainer and your changes make the maintainer cringe
 
 The more of the above are true, the better it is to post a patch to the

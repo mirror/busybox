@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
 #ifdef BB_SH
 	/* Add in a special case hack -- whenever **argv == '-'
-	 * (i.e. '-su' or '-sh') always invoke the shell */
+	 * (i.e., '-su' or '-sh') always invoke the shell */
 	if (**argv == '-' && *(*argv+1)!= '-') {
 		applet_name = "sh";
 	}

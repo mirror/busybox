@@ -165,7 +165,7 @@
 #define dc_full_usage \
 	"This is a Tiny RPN calculator that understands the\n" \
 	"following operations: +, -, /, *, and, or, not, eor.\n" \
-	"i.e. 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16"
+	"i.e., 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16"
 #define dc_example_usage \
 	"$ dc 2 2 +\n" \
 	"4\n" \
@@ -221,7 +221,7 @@
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
 	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
-	"\n\t-k\tprint sizes in kilobytes(compatability)")
+	"\n\t-k\tprint sizes in kilobytes(compatibility)")
 #define df_example_usage \
 	"$ df\n" \
 	"Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
@@ -275,7 +275,7 @@
 	"\t-f\tDisplay control field name starting with [argument]\n" \
 	"\t-I\tDisplay the control filenamed [argument]\n" \
 	"\t-t\tExtract filesystem tree to stdout in tar format\n" \
-	"\t-x\tExctract packages filesystem tree to directory\n" \
+	"\t-x\tExtract packages filesystem tree to directory\n" \
 	"\t-X\tVerbose extract"
 #define dpkg_deb_example_usage \
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
@@ -292,7 +292,7 @@
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
 	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
-	"\n\t-k\tprint sizes in kilobytes(compatability)")
+	"\n\t-k\tprint sizes in kilobytes(compatibility)")
 #define du_example_usage \
 	"$ du\n" \
 	"16      ./CVS\n" \
@@ -317,7 +317,7 @@
 	"[FILE]"
 #define dutmp_full_usage \
 	"Dump utmp file format (pipe delimited) from FILE\n" \
-	"or stdin to stdout.  (i.e. 'dutmp /var/run/utmp')"
+	"or stdin to stdout.  (i.e., 'dutmp /var/run/utmp')"
 #define dutmp_example_usage \
 	"$ dutmp /var/run/utmp\n" \
 	"8|7||si|||0|0|0|955637625|760097|0\n" \
@@ -334,7 +334,7 @@
 	"Prints the specified ARGs to stdout\n\n" \
 	"Options:\n" \
 	"\t-n\tsuppress trailing newline\n" \
-	"\t-e\tinterpret backslash-escaped characters (i.e. \\t=tab etc)\n" \
+	"\t-e\tinterpret backslash-escaped characters (i.e., \\t=tab)\n" \
 	"\t-E\tdisable interpretation of backslash-escaped characters"
 #define echo_example_usage \
 	"$ echo "Erik is cool"\n" \
@@ -713,7 +713,7 @@
 "			sysinit actions are completed before continuing.  Following the\n" \
 "			completion of all sysinit actions, all 'wait' actions are run.\n" \
 "			'wait' actions, like  'sysinit' actions, cause init to wait until\n" \
-"			the specified task completes.  'once' actions are asyncronous,\n" \
+"			the specified task completes.  'once' actions are asynchronous,\n" \
 "			therefore, init does not wait for them to complete.  'ctrlaltdel'\n" \
 "			actions are run when the system detects that someone on the system\n" \
 "                       console has pressed the CTRL-ALT-DEL key combination.  Typically one\n" \
@@ -949,7 +949,7 @@
 	USAGE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
-	"\t-k\tprint sizes in kilobytes(compatability)") 
+	"\t-k\tprint sizes in kilobytes(compatibility)") 
 
 #define lsmod_trivial_usage \
 	""
@@ -1061,7 +1061,7 @@
 	"[-q] TEMPLATE"
 #define mktemp_full_usage \
 	"Creates a temporary file with its name based on TEMPLATE.\n" \
-	"TEMPLATE is any name with six `Xs' (i.e. /tmp/temp.XXXXXX)."
+	"TEMPLATE is any name with six `Xs' (i.e., /tmp/temp.XXXXXX)."
 #define mktemp_example_usage \
 	"$ mktemp /tmp/temp.XXXXXX\n" \
 	"/tmp/temp.mWiLjM\n" \
@@ -1608,7 +1608,7 @@
 	"\nFlags:\n" "\t-a\tUnmount all file systems" \
 	USAGE_MTAB(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
 	"\n\t-r\tTry to remount devices as read-only if mount is busy" \
-	USAGE_MOUNT_FORCE("\n\t-f\tForce umount (i.e. unreachable NFS server)") \
+	USAGE_MOUNT_FORCE("\n\t-f\tForce umount (i.e., unreachable NFS server)") \
 	USAGE_MOUNT_LOOP("\n\t-l\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
 	"$ umount /dev/hdc1 \n"

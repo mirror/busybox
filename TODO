@@ -42,7 +42,7 @@ Run the following:
     rm -f busybox && make LDFLAGS+=-nostdlib 2>&1 | \
 	sed -ne 's/.*undefined reference to `\(.*\)..*/\1/gp' | sort | uniq
 
-reveals the list of all external (i.e. libc) things that BusyBox depends on.
+reveals the list of all external (i.e., libc) things that BusyBox depends on.
 It would be a very nice thing to reduce this list to an absolute minimum, to
 reduce the footprint of busybox, especially when staticly linking with
 libraries such as uClibc.

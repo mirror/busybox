@@ -31,7 +31,7 @@
 
 
 /* This function parses the sort of string you might pass
- * to chmod (i.e.  [ugoa]{+|-|=}[rwxst] ) and returns the
+ * to chmod (i.e., [ugoa]{+|-|=}[rwxst] ) and returns the
  * correct mode described by the string. */
 extern int parse_mode(const char *s, mode_t * theMode)
 {

@@ -7,7 +7,7 @@
 // When you turn things off here, they won't be compiled in at all.
 //
 //// This file is parsed by sed. You MUST use single line comments.
-//   i.e.  //#define BB_BLAH
+//   i.e.,  //#define BB_BLAH
 //
 //
 // BusyBox Applications
@@ -208,7 +208,7 @@
 //#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
-// (i.e. in case of an unreachable NFS system).
+// (i.e., in case of an unreachable NFS system).
 #define BB_FEATURE_MOUNT_FORCE
 //
 // Enable support for creation of tar files.

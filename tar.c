@@ -4,7 +4,7 @@
  *
  * Note, that as of BusyBox-0.43, tar has been completely rewritten from the
  * ground up.  It still has remnents of the old code lying about, but it is
- * very different now (i.e. cleaner, less global variables, etc)
+ * very different now (i.e., cleaner, less global variables, etc.)
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
@@ -121,7 +121,7 @@ struct TarInfo
 	gid_t            gid;            /* Numeric GID */
 	size_t           size;           /* Size of file */
 	time_t           mtime;          /* Last-modified time */
-	enum TarFileType type;           /* Regular, directory, link, etc */
+	enum TarFileType type;           /* Regular, directory, link, etc. */
 	char *           linkname;       /* Name for symbolic and hard links */
 	long             devmajor;       /* Major number for special device */
 	long             devminor;       /* Minor number for special device */
@@ -303,7 +303,7 @@ static void
 fixUpPermissions(TarInfo *header)
 {
 	struct utimbuf t;
-	/* Now set permissions etc for the new file */
+	/* Now set permissions etc. for the new file */
 	chown(header->name, header->uid, header->gid);
 	chmod(header->name, header->mode);
 	/* Reset the time */
@@ -418,7 +418,7 @@ tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( FALSE);
 	}
 
-	/* Now set permissions etc for the new directory */
+	/* Now set permissions etc. for the new directory */
 	fixUpPermissions(header);
 	return( TRUE);
 }
@@ -471,7 +471,7 @@ tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 		}
 	}
 
-	/* Now set permissions etc for the new directory */
+	/* Now set permissions etc. for the new directory */
 	fixUpPermissions(header);
 	return( TRUE);
 }
@@ -952,7 +952,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 		return ( FALSE);
 	}
 
-	/* Calculate and store the checksum (i.e. the sum of all of the bytes of
+	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
 	 * the header).  The checksum field must be filled with blanks for the
 	 * calculation.  The checksum field is formatted differently from the
 	 * other fields: it has [6] digits, a null, then a space -- rather than

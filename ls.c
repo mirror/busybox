@@ -21,7 +21,7 @@
 /*
  * To achieve a small memory footprint, this version of 'ls' doesn't do any
  * file sorting, and only has the most essential command line switches
- * (i.e. the ones I couldn't live without :-) All features which involve
+ * (i.e., the ones I couldn't live without :-) All features which involve
  * linking in substantial chunks of libc can be disabled.
  *
  * Although I don't really want to add new features to this program to

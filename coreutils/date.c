@@ -199,7 +199,7 @@ int date_main(int argc, char **argv)
 			date_conv_time(&tm_time, date_str);
 		}
 
-		/* Correct any day of week and day of year etc fields */
+		/* Correct any day of week and day of year etc. fields */
 		tm = mktime(&tm_time);
 		if (tm < 0)
 			error_msg_and_die(invalid_date, date_str); 

@@ -17,7 +17,7 @@
 #
 #  - please try to keep applets alphabetized, it will make life easier
 #  - use the file tester.sh or testcases when you need to do a non-destructive
-#    test on a file (i.e. cat, md5sum)
+#    test on a file (i.e., cat, md5sum)
 #  - try to make the applet you're testing the first thing on the line (this
 #    not always possible)
 #  - (???) if you have to create a temporary file, call it TMPFILE

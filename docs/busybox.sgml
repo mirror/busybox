@@ -805,7 +805,7 @@
 
 		<para>
 		Summarize the disk space used for each FILE or current
-		directory.  Disk space printed in units of 1k (i.e.
+		directory.  Disk space printed in units of 1k (i.e.,
 		1024 bytes).
 		</para>
 
@@ -2285,7 +2285,7 @@
 
 		<para>
 		Creates a temporary file with its name based on
-		TEMPLATE.  TEMPLATE is any name with six `Xs' (i.e.
+		TEMPLATE.  TEMPLATE is any name with six `Xs' (i.e.,
 		/tmp/temp.XXXXXX).
 		</para>
 
@@ -3407,7 +3407,7 @@
 		<screen>
 			-a	Unmount all file systems
 			-r	Try to remount devices as read-only if mount is busy
-			-f	Force filesystem umount (i.e. unreachable NFS server)
+			-f	Force filesystem umount (i.e., unreachable NFS server)
 			-l	Do not free loop device (if a loop device has been used)
 		</screen>
 		</para>

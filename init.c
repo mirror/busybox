@@ -752,7 +752,7 @@ static void delete_initAction(initAction * action)
 
 /* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
- * actions(i.e runs INIT_SCRIPT and then starts a pair 
+ * actions(i.e., runs INIT_SCRIPT and then starts a pair 
  * of "askfirst" shells).  If BB_FEATURE_USE_INITTAB 
  * _is_ defined, but /etc/inittab is missing, this 
  * results in the same set of default behaviors.
@@ -952,7 +952,7 @@ extern int init_main(int argc, char **argv)
 
 		/* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
 		 * then parse_inittab() simply adds in some default
-		 * actions(i.e runs INIT_SCRIPT and then starts a pair 
+		 * actions(i.e., runs INIT_SCRIPT and then starts a pair 
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
