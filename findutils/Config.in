@@ -16,28 +16,31 @@ config CONFIG_FEATURE_FIND_MTIME
 	default y
 	depends on CONFIG_FIND
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow searching based on the modification time of
+	  files.
 
 config CONFIG_FEATURE_FIND_PERM
 	bool "  Enable permissions matching (-perm) option"
 	default y
 	depends on CONFIG_FIND
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable searching based on file permissions.
 
 config CONFIG_FEATURE_FIND_TYPE
 	bool "  Enable filetype matching (-type) option"
 	default y
 	depends on CONFIG_FIND
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable searching based on file type (file,
+	  directory, socket, device, etc.).
 
 config CONFIG_FEATURE_FIND_XDEV
 	bool "  Enable stay in filesystem (-xdev) option"
 	default y
 	depends on CONFIG_FIND
 	help
-	  Please submit a patch to add help text for this item.
+	  This option will restrict find to a single
+	  filesystem.
 
 config CONFIG_FEATURE_FIND_NEWER
 	bool "  Enable -newer option for comparing file mtimes"
@@ -65,7 +68,9 @@ config CONFIG_FEATURE_GREP_EGREP_ALIAS
 	default y
 	depends on CONFIG_GREP
 	help
-	  Please submit a patch to add help text for this item.
+	  Enabled support for extended regular expressions.  Extended
+	  regular expressions allow for alternation (foo|bar), grouping,
+	  and various repetition operators.
 
 config CONFIG_FEATURE_GREP_FGREP_ALIAS
 	bool "  Alias fgrep to grep -f"
@@ -81,7 +86,8 @@ config CONFIG_FEATURE_GREP_CONTEXT
 	default y
 	depends on CONFIG_GREP
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable match context in results.  This will display a number
+	  of lines preceding and/or trailing matches.
 
 config CONFIG_XARGS
 	bool "xargs"
