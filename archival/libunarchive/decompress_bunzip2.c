@@ -47,6 +47,8 @@
 #include <unistd.h>
 #include <limits.h>
 
+#include "libbb.h"
+
 /* Constants for huffman coding */
 #define MAX_GROUPS			6
 #define GROUP_SIZE   		50		/* 64 would have been more efficient */
@@ -520,7 +522,7 @@ extern int start_bunzip(bunzip_data **bdp, int in_fd, char *inbuf, int len)
 	i=sizeof(bunzip_data);
 	if(in_fd!=-1) i+=IOBUF_SIZE;
 	/* Allocate bunzip_data.  Most fields initialize to zero. */
-	if(!(bd=*bdp=malloc(i))) return RETVAL_OUT_OF_MEMORY;
+	bd=*bdp=xmalloc(i);
 	memset(bd,0,sizeof(bunzip_data));
 	/* Setup input buffer */
 	if(-1==(bd->in_fd=in_fd)) {
@@ -546,8 +548,7 @@ extern int start_bunzip(bunzip_data **bdp, int in_fd, char *inbuf, int len)
 	   uncompressed data.  Allocate intermediate buffer for block. */
 	bd->dbufSize=100000*(i-BZh0);
 
-	if(!(bd->dbuf=malloc(bd->dbufSize * sizeof(int))))
-		return RETVAL_OUT_OF_MEMORY;
+	bd->dbuf=xmalloc(bd->dbufSize * sizeof(int));
 	return RETVAL_OK;
 }
 
@@ -559,7 +560,7 @@ extern int uncompressStream(int src_fd, int dst_fd)
 	bunzip_data *bd;
 	int i;
 
-	if(!(outbuf=malloc(IOBUF_SIZE))) return RETVAL_OUT_OF_MEMORY;
+	outbuf=xmalloc(IOBUF_SIZE);
 	if(!(i=start_bunzip(&bd,src_fd,0,0))) {
 		for(;;) {
 			if((i=read_bunzip(bd,outbuf,IOBUF_SIZE)) <= 0) break;
@@ -570,10 +571,22 @@ extern int uncompressStream(int src_fd, int dst_fd)
 		}
 	}
 	/* Check CRC and release memory */
-	if(i==RETVAL_LAST_BLOCK && bd->headerCRC==bd->totalCRC) i=RETVAL_OK;
+	if(i==RETVAL_LAST_BLOCK) {
+		if (bd->headerCRC!=bd->totalCRC) {
+			bb_error_msg("Data integrity error when decompressing.");
+		} else {
+			i=RETVAL_OK;
+		}
+	}
+	else if (i==RETVAL_UNEXPECTED_OUTPUT_EOF) {
+		bb_error_msg("Compressed file ends unexpectedly");
+	} else {
+		bb_error_msg("Decompression failed");
+	}
 	if(bd->dbuf) free(bd->dbuf);
 	free(bd);
 	free(outbuf);
+
 	return i;
 }
 
