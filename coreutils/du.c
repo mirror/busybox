@@ -67,7 +67,6 @@ static void print_normal(long size, char *filename)
 static void print_summary(long size, char *filename)
 {
 	if (du_depth == 1) {
-		printf("summary\n");
 		print_normal(size, filename);
 	}
 }
@@ -189,7 +188,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.45 2001/04/25 05:39:18 andersen Exp $ */
+/* $Id: du.c,v 1.46 2001/05/03 04:45:40 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
