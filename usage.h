@@ -91,7 +91,7 @@
 #define date_full_usage \
 	"Displays the current time in the given FORMAT, or sets the system date.\n" \
 	"\nOptions:\n" \
-	\t-R\t\tOutputs RFC-822 compliant date string\n" \
+	"\t-R\t\tOutputs RFC-822 compliant date string\n" \
 	"\t-d STRING\tdisplay time described by STRING, not `now'\n" \
 	"\t-s\t\tSets time described by STRING\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"

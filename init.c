@@ -93,8 +93,9 @@ static const int RB_AUTOBOOT = 0x01234567;
 #endif
 #endif
 
-#undef _PATH_STDPATH
+#ifndef _PATH_STDPATH
 #define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
+#endif
 
 
 #if defined BB_FEATURE_INIT_COREDUMPS
@@ -133,7 +134,8 @@ static _syscall2(int, bdflush, int, func, int, data);
 #define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
 #endif
 
-static const int MAXENV = 16;	/* Number of env. vars */
+#define MAXENV	16		/* Number of env. vars */
+//static const int MAXENV = 16;	/* Number of env. vars */
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
 
