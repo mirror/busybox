@@ -1573,7 +1573,7 @@ extern int find_real_root_device_name(char* name)
 }
 #endif
 
-const unsigned int CSTRING_BUFFER_LENGTH = 128;
+const unsigned int CSTRING_BUFFER_LENGTH = 1024;
 /* recursive parser that returns cstrings of arbitrary length
  * from a FILE* 
  */

@@ -65,15 +65,12 @@ static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
 {
 	char *cp;
 	long line = 0;
-	char haystack[BUF_SIZE];
+	char *haystack;
 	int  truth = !invertSearch;
 
-	while (fgets(haystack, sizeof(haystack), fp)) {
+	while ((haystack = cstring_lineFromFile(fp))) {
 		line++;
 		cp = &haystack[strlen(haystack) - 1];
-
-		if (*cp != '\n')
-			fprintf(stderr, "%s: Line too long\n", fileName);
 
 		if (find_match(haystack, needle, ignoreCase) == truth) {
 			if (tellName == TRUE)
@@ -87,6 +84,7 @@ static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
 
 			match = TRUE;
 		}
+		free(haystack);
 	}
 }
 
