@@ -432,6 +432,10 @@
 	#undef BB_FEATURE_SH_FANCY_PROMPT
 #endif
 //
+#if (defined BB_ASH || defined BB_HUSH || defined BB_MSH) && ! defined BB_TEST
+	#define BB_TEST
+#endif
+//
 #ifdef BB_KILLALL
 	#ifndef BB_KILL
 		#define BB_KILL
