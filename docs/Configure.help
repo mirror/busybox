@@ -1,0 +1,70 @@
+# BusyBox configuration option Help File
+#
+# Format of this file: description<nl>variable<nl>help text<nl><nl>.
+# The help texts may contain empty lines, but every non-empty line must
+# be indented two positions.  Order of the help texts does not matter,
+# however, no variable should be documented twice: if it is, only the
+# first occurrence will be used. We try to keep the help texts of related
+# variables close together. Lines starting with `#' are ignored. To be
+# nice to menuconfig, limit your line length to 70 characters. 
+#
+# Comments of the form "# Choice:" followed by a menu name are used
+# internally by the maintainers' consistency-checking tools.
+#
+# If you add a help text to this file, please try to be as gentle as
+# possible. Don't use unexplained acronyms and generally write for the
+# hypothetical ignorant but intelligent user who has just bought a PC,
+# removed Windows, installed Linux and is now compiling up BusyBox
+# for the first time. Tell them what to do if they're unsure. 
+#
+# Mention all the relevant READMEs and HOWTOs in the help text.
+# Make them file URLs relative to the top level of the source tree so
+# that help browsers can turn them into hotlinks.  All URLs ahould be
+# surrounded by <>.
+#
+# Repetitions are fine since the help texts are not meant to be read
+# in sequence.  It is good style to include URLs pointing to more
+# detailed technical information, pictures of the hardware, etc.
+#
+# The most important thing to include in a help entry is *motivation*.
+# Explain why someone configuring BusyBox might want to select your
+# option.
+#
+
+Enable the ar applet
+CONFIG_AR
+  ar is an archival utility program used to creates, modify, and
+  extract contents from archives.  An archive is a single file holding
+  a collection of other files in a structure that makes it possible to
+  retrieve the original individual files (called archive members).  The
+  original files' contents, mode (permissions), timestamp, owner, and
+  group are preserved in the archive, and can be restored on
+  extraction.  On an x86 system, the ar applet adds about XXX bytes.
+
+  Unless you have a specific application which requires ar, you should
+  probably say N here.
+
+Enable the bunzip2 applet
+CONFIG_BUNZIP2
+  bunzip2 is an compression utility using the Burrows-Wheeler block
+  sorting text compression algorithm, and Huffman coding.  Compression
+  is generally considerably better than that achieved by more
+  conventional LZ77/LZ78-based compressors, and approaches the
+  performance of the PPM family of statistical compressors.  
+  
+  The BusyBox bunzip2 applet is limited to de-compression only.  On an
+  x86 system, this applet adds about XXX bytes.
+  
+  Unless you have a specific application which requires bunzip2, you
+  should probably say N here.
+
+# FIXME -- document the rest of the BusyBox config options....
+
+
+# The following sets edit modes for GNU EMACS
+# Local Variables:
+# case-fold-search:nil
+# fill-prefix:"  "
+# adaptive-fill:nil
+# fill-column:70
+# End:
