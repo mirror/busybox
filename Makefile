@@ -216,7 +216,7 @@ clean:
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
-	    docs/busybox.pdf docs/busybox.net/busybox.html \
+	    docs/busybox.pdf docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
 	- rm -f busybox busybox.links libbb/loop.h .config.old .hdepend
 	- rm -f scripts/split-include scripts/mkdep .*config.log
