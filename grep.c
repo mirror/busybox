@@ -179,7 +179,10 @@ static void grep_file(FILE *file)
 	if (print_match_counts) {
 		if (print_filename)
 			printf("%s:", cur_file);
-		printf("%d\n", nmatches);
+		if (print_files_with_matches && nmatches > 0)
+			printf("1\n");
+		else
+		    printf("%d\n", nmatches);
 	}
 
 	/* grep -l: print just the filename, but only if we grepped the line in the file  */
