@@ -61,9 +61,9 @@ STRIPTOOL = $(CROSS)strip
 # busybox compile with uC-Libc...
 #LIBCDIR=/home/andersen/CVS/uC-libc
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
-#CFLAGS+=-nostdinc -fno-builtin -I$(LIBCDIR)/include -I$(GCCINCDIR)
+#CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #LDFLAGS+=-nostdlib
-#LIBRARIES = $(LIBCDIR)/libc.a
+#LIBRARIES = $(LIBCDIR)/libc.a -lgcc
 
 #--------------------------------------------------------
 
