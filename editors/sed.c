@@ -622,9 +622,10 @@ static void process_file(FILE *file)
 			if (sed_cmds[i].beg_match && sed_cmds[i].end_match) {
 				if (still_in_range || regexec(sed_cmds[i].beg_match, line, 0, NULL, 0) == 0) {
 					line_altered += do_sed_command(&sed_cmds[i], line);
-					still_in_range = 1; 
-					if (regexec(sed_cmds[i].end_match, line, 0, NULL, 0) == 0)
+					if (still_in_range && regexec(sed_cmds[i].end_match, line, 0, NULL, 0) == 0)
 						still_in_range = 0;
+					else
+						still_in_range = 1;
 				}
 			}
 
