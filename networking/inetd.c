@@ -159,7 +159,7 @@
 # define INETD_FEATURE_ENABLED
 #endif
 
-static struct  servtab {
+typedef struct servtab_s {
 	char    *se_service;            /* name of service */
 	int     se_socktype;            /* type of socket to use */
 	int     se_family;              /* address family */
@@ -183,8 +183,10 @@ static struct  servtab {
 	int     se_max;                 /* max # of instances of this service */
 	int     se_count;               /* number started since se_time */
 	struct  timeval se_time;        /* start of se_count */
-	struct  servtab *se_next;
-} *servtab;
+	struct  servtab_s *se_next;
+} servtab_t;
+
+static servtab_t *servtab;
 
 #ifdef INETD_FEATURE_ENABLED
 struct biltin {
@@ -192,33 +194,33 @@ struct biltin {
 	int bi_socktype;                /* type of socket supported */
 	short bi_fork;          /* 1 if should fork before call */
 	short bi_wait;          /* 1 if should wait for child */
-	void (*bi_fn)(int, struct servtab *); /* fn which performs it */
+	void (*bi_fn)(int, servtab_t *); /* fn which performs it */
 };
 
     /* Echo received data */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
-static void echo_stream(int, struct servtab *);
-static void echo_dg(int, struct servtab *);
+static void echo_stream(int, servtab_t *);
+static void echo_dg(int, servtab_t *);
 #endif
     /* Internet /dev/null */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
-static void discard_stream(int, struct servtab *);
-static void discard_dg(int, struct servtab *);
+static void discard_stream(int, servtab_t *);
+static void discard_dg(int, servtab_t *);
 #endif
 	/* Return 32 bit time since 1900 */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
-static void machtime_stream(int, struct servtab *);
-static void machtime_dg(int, struct servtab *);
+static void machtime_stream(int, servtab_t *);
+static void machtime_dg(int, servtab_t *);
 #endif
 	/* Return human-readable time */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
-static void daytime_stream(int, struct servtab *);
-static void daytime_dg(int, struct servtab *);
+static void daytime_stream(int, servtab_t *);
+static void daytime_dg(int, servtab_t *);
 #endif
 	/* Familiar character generator */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
-static void chargen_stream(int, struct servtab *);
-static void chargen_dg(int, struct servtab *);
+static void chargen_stream(int, servtab_t *);
+static void chargen_dg(int, servtab_t *);
 #endif
 
 static const struct biltin biltins[] = {
@@ -285,10 +287,10 @@ syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
 	_exit(1);
 }
 
-static struct servtab *getconfigent(void)
+static servtab_t *getconfigent(void)
 {
-	static struct servtab serv;
-	struct servtab *sep = &serv;
+	static servtab_t serv;
+	servtab_t *sep = &serv;
 	int argc;
 	char *cp = NULL;
 	char *cp_ptr;
@@ -423,7 +425,7 @@ more:
 	return (sep);
 }
 
-static void freeconfig(struct servtab *cp)
+static void freeconfig(servtab_t *cp)
 {
 	int i;
 
@@ -461,7 +463,7 @@ static void setproctitle(char *a, int s)
 #endif  /* INETD_FEATURE_ENABLED */
 
 
-static void setup(struct servtab *sep)
+static void setup(servtab_t *sep)
 {
 	int on = 1;
 
@@ -529,7 +531,7 @@ static void setup(struct servtab *sep)
 
 static void config(int signum)
 {
-	struct servtab *sep, *cp, **sepp;
+	servtab_t *sep, *cp, **sepp;
 	sigset_t oldmask;
 	unsigned n;
 
@@ -587,7 +589,7 @@ static void config(int signum)
 			// into the middle of a single line buffer for the config file.
 			//freeconfig(cp);	// BUG?
 		} else {
-			sep = (struct servtab *)xmalloc(sizeof (*sep));
+			sep = (servtab_t *)xmalloc(sizeof (*sep));
 			*sep = *cp;
 			sep->se_fd = -1;
 			sigprocmask(SIG_BLOCK, &blockmask, &oldmask);
@@ -671,7 +673,7 @@ static void reapchild(int signum)
 {
 	int status;
 	int pid;
-	struct servtab *sep;
+	servtab_t *sep;
 
 	(void)signum;
 	for (;;) {
@@ -697,7 +699,7 @@ static void reapchild(int signum)
 
 static void retry(int signum)
 {
-	struct servtab *sep;
+	servtab_t *sep;
 
 	(void)signum;
 	timingout = 0;
@@ -715,7 +717,7 @@ static void retry(int signum)
 
 static void goaway(int signum)
 {
-	struct servtab *sep;
+	servtab_t *sep;
 
 	(void)signum;
 	for (sep = servtab; sep; sep = sep->se_next)
@@ -729,7 +731,7 @@ static void goaway(int signum)
 
 extern int inetd_main(int argc, char *argv[])
 {
-	struct servtab *sep;
+	servtab_t *sep;
 	struct group *grp = NULL;
 	struct sigaction sa;
 	int pid;
@@ -999,7 +1001,7 @@ extern int inetd_main(int argc, char *argv[])
 
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
 /* Echo service -- echo data back */
-static void echo_stream(int s, struct servtab *sep)
+static void echo_stream(int s, servtab_t *sep)
 {
 	char buffer[BUFSIZE];
 	int i;
@@ -1012,7 +1014,7 @@ static void echo_stream(int s, struct servtab *sep)
 }
 
 /* Echo service -- echo data back */
-static void echo_dg(int s, struct servtab *sep)
+static void echo_dg(int s, servtab_t *sep)
 {
 	char buffer[BUFSIZE];
 	int i;
@@ -1031,7 +1033,7 @@ static void echo_dg(int s, struct servtab *sep)
 
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
 /* Discard service -- ignore data */
-static void discard_stream(int s, struct servtab *sep)
+static void discard_stream(int s, servtab_t *sep)
 {
 	char buffer[BUFSIZE];
 
@@ -1043,7 +1045,7 @@ static void discard_stream(int s, struct servtab *sep)
 }
 
 /* Discard service -- ignore data */
-static void discard_dg(int s, struct servtab *sep)
+static void discard_dg(int s, servtab_t *sep)
 {
 	char buffer[BUFSIZE];
 	(void)sep;
@@ -1070,7 +1072,7 @@ static void initring(void)
 }
 
 /* Character generator */
-static void chargen_stream(int s, struct servtab *sep)
+static void chargen_stream(int s, servtab_t *sep)
 {
 	char *rs;
 	int len;
@@ -1101,7 +1103,7 @@ static void chargen_stream(int s, struct servtab *sep)
 }
 
 /* Character generator */
-static void chargen_dg(int s, struct servtab *sep)
+static void chargen_dg(int s, servtab_t *sep)
 {
 	struct sockaddr sa;
 	static char *rs;
@@ -1154,7 +1156,7 @@ static long machtime(void)
 	return (htonl((long)tv.tv_sec + 2208988800UL));
 }
 
-static void machtime_stream(int s, struct servtab *sep)
+static void machtime_stream(int s, servtab_t *sep)
 {
 	long result;
 	(void)sep;
@@ -1163,7 +1165,7 @@ static void machtime_stream(int s, struct servtab *sep)
 	write(s, (char *) &result, sizeof(result));
 }
 
-static void machtime_dg(int s, struct servtab *sep)
+static void machtime_dg(int s, servtab_t *sep)
 {
 	long result;
 	struct sockaddr sa;
@@ -1188,7 +1190,7 @@ static int human_readable_time_sprintf(char *buffer)
 	return sprintf(buffer, "%.24s\r\n", ctime(&clocc));
 }
 
-static void daytime_stream(int s, struct servtab *sep)
+static void daytime_stream(int s, servtab_t *sep)
 {
 	char buffer[256];
 	size_t st = human_readable_time_sprintf(buffer);
@@ -1199,7 +1201,7 @@ static void daytime_stream(int s, struct servtab *sep)
 }
 
 /* Return human-readable time of day */
-static void daytime_dg(int s, struct servtab *sep)
+static void daytime_dg(int s, servtab_t *sep)
 {
 	char buffer[256];
 	struct sockaddr sa;
