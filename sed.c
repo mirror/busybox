@@ -162,7 +162,7 @@ static char *trim_str(const char *str)
  * index_of_unescaped_slash - walks left to right through a string beginning
  * at a specified index and returns the index of the next unescaped slash.
  */
-static int index_of_next_unescaped_slash(int idx, const char *str)
+static int index_of_next_unescaped_slash(const char *str, int idx)
 {
 	do {
 		idx++;
@@ -196,7 +196,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		idx++;
 	}
 	else if (my_str[idx] == '/') {
-		idx = index_of_next_unescaped_slash(idx, my_str);
+		idx = index_of_next_unescaped_slash(my_str, idx);
 		if (idx == -1)
 			fatalError("unterminated match expression\n");
 		my_str[idx] = '\0';
@@ -220,6 +220,59 @@ static char *strdup_substr(const char *str, int start, int end)
 	memcpy(newstr, str+start, size-1);
 	newstr[size-1] = '\0';
 	return newstr;
+}
+
+static void parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
+{
+	int oldidx, cflags = REG_NEWLINE;
+	char *match;
+	int idx = 0;
+
+	/*
+	 * the string that gets passed to this function should look like this:
+	 *    s/match/replace/gI
+	 *    ||     |        ||
+	 *    mandatory       optional
+	 *
+	 *    (all three of the '/' slashes are mandatory)
+	 */
+
+	/* verify that the 's' is followed by a 'slash' */
+	if (substr[++idx] != '/')
+		fatalError("bad format in substitution expression\n");
+
+	/* save the match string */
+	oldidx = idx+1;
+	idx = index_of_next_unescaped_slash(substr, idx);
+	if (idx == -1)
+		fatalError("bad format in substitution expression\n");
+	match = strdup_substr(substr, oldidx, idx);
+
+	/* save the replacement string */
+	oldidx = idx+1;
+	idx = index_of_next_unescaped_slash(substr, idx);
+	if (idx == -1)
+		fatalError("bad format in substitution expression\n");
+	sed_cmd->replace = strdup_substr(substr, oldidx, idx);
+
+	/* process the flags */
+	while (substr[++idx]) {
+		switch (substr[idx]) {
+		case 'g':
+			sed_cmd->sub_g = 1;
+			break;
+		case 'I':
+			cflags |= REG_ICASE;
+			break;
+		default:
+			fatalError("bad option in substitution expression\n");
+		}
+	}
+		
+	/* compile the regex */
+	sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
+	xregcomp(sed_cmd->sub_match, match, cflags);
+	free(match);
 }
 
 static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
@@ -246,53 +299,10 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	if (!strchr("pds", cmdstr[idx])) /* <-- XXX add new commands here */
 		fatalError("invalid command\n");
 	sed_cmd->cmd = cmdstr[idx];
-	/* special-case handling for 's' */
-	if (sed_cmd->cmd == 's') {
-		int oldidx, cflags = REG_NEWLINE;
-		char *match;
-		/* format for substitution is:
-		 *    s/match/replace/gI
-		 *    |               ||
-		 *    mandatory       optional
-		 */
 
-		/* verify that we have an 's' followed by a 'slash' */
-		if (cmdstr[++idx] != '/')
-			fatalError("bad format in substitution expression\n");
-
-		/* save the match string */
-		oldidx = idx+1;
-		idx = index_of_next_unescaped_slash(idx, cmdstr);
-		if (idx == -1)
-			fatalError("bad format in substitution expression\n");
-		match = strdup_substr(cmdstr, oldidx, idx);
-
-		/* save the replacement string */
-		oldidx = idx+1;
-		idx = index_of_next_unescaped_slash(idx, cmdstr);
-		if (idx == -1)
-			fatalError("bad format in substitution expression\n");
-		sed_cmd->replace = strdup_substr(cmdstr, oldidx, idx);
-
-		/* process the flags */
-		while (cmdstr[++idx]) {
-			switch (cmdstr[idx]) {
-			case 'g':
-				sed_cmd->sub_g = 1;
-				break;
-			case 'I':
-				cflags |= REG_ICASE;
-				break;
-			default:
-				fatalError("bad option in substitution expression\n");
-			}
-		}
-			
-		/* compile the regex */
-		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
-		xregcomp(sed_cmd->sub_match, match, cflags);
-		free(match);
-	}
+	/* special-case handling for (s)ubstitution */
+	if (sed_cmd->cmd == 's')
+		parse_subst_cmd(sed_cmd, &cmdstr[idx]);
 }
 
 static void add_cmd_str(const char *cmdstr)
