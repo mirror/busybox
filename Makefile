@@ -50,7 +50,7 @@ DODEBUG = false
 # I will get fewer emails asking about how glibc NSS works).  Enabling this adds
 # just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs),
 # Most people will want to leave this set to false.
-USE_SYSTEM_PWD_GRP = false
+USE_SYSTEM_PWD_GRP = true
 
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
 # which is an excellent public domain mem leak and malloc problem
