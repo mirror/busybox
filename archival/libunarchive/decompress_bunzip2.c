@@ -134,6 +134,8 @@ static unsigned int get_bits(bunzip_data *bd, char bits_wanted)
 
 static int get_next_block(bunzip_data *bd)
 {
+	/* Note: Ignore the warning about hufGroup, base and limit being used uninitialized.
+	 * They will be initialized on the fist pass of the loop. */
 	struct group_data *hufGroup;
 	int dbufCount,nextSym,dbufSize,groupCount,*base,*limit,selector,
 		i,j,k,t,runPos,symCount,symTotal,nSelectors,byteCount[256];

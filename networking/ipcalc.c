@@ -68,10 +68,10 @@ int ipcalc_main(int argc, char **argv)
 {
 	unsigned long mode;
 
-	unsigned long netmask;
-	unsigned long broadcast;
-	unsigned long network;
-	unsigned long ipaddr;
+	in_addr_t netmask;
+	in_addr_t broadcast;
+	in_addr_t network;
+	in_addr_t ipaddr;
 	struct in_addr a;
 
 #ifdef CONFIG_FEATURE_IPCALC_FANCY

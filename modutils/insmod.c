@@ -300,7 +300,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.123 2004/08/19 19:17:30 andersen Exp $"
+#ident "$Id: insmod.c,v 1.124 2004/08/28 00:43:06 andersen Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -458,7 +458,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.123 2004/08/19 19:17:30 andersen Exp $"
+#ident "$Id: insmod.c,v 1.124 2004/08/28 00:43:06 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1973,7 +1973,7 @@ add_symbols_from( struct obj_file *f,
 		if (strncmp((char *)s->name, "GPLONLY_", 8) == 0) {
 #ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
 			if (gpl)
-				((char *)s->name) += 8;
+				s->name += 8;
 			else
 #endif
 				continue;

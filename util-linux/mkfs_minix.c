@@ -194,7 +194,7 @@ struct minix_dir_entry {
 
 static char *device_name = NULL;
 static int DEV = -1;
-static long BLOCKS = 0;
+static uint32_t BLOCKS = 0;
 static int check = 0;
 static int badblocks = 0;
 static int namelen = 30;		/* default (changed to 30, per Linus's
@@ -216,17 +216,17 @@ static char super_block_buffer[BLOCK_SIZE];
 static char boot_block_buffer[512];
 
 #define Super (*(struct minix_super_block *)super_block_buffer)
-#define INODES ((unsigned long)Super.s_ninodes)
+#define INODES (Super.s_ninodes)
 #ifdef CONFIG_FEATURE_MINIX2
-#define ZONES ((unsigned long)(version2 ? Super.s_zones : Super.s_nzones))
+#define ZONES (version2 ? Super.s_zones : Super.s_nzones)
 #else
-#define ZONES ((unsigned long)(Super.s_nzones))
+#define ZONES (Super.s_nzones)
 #endif
-#define IMAPS ((unsigned long)Super.s_imap_blocks)
-#define ZMAPS ((unsigned long)Super.s_zmap_blocks)
-#define FIRSTZONE ((unsigned long)Super.s_firstdatazone)
-#define ZONESIZE ((unsigned long)Super.s_log_zone_size)
-#define MAXSIZE ((unsigned long)Super.s_max_size)
+#define IMAPS (Super.s_imap_blocks)
+#define ZMAPS (Super.s_zmap_blocks)
+#define FIRSTZONE (Super.s_firstdatazone)
+#define ZONESIZE (Super.s_log_zone_size)
+#define MAXSIZE (Super.s_max_size)
 #define MAGIC (Super.s_magic)
 #define NORM_FIRSTZONE (2+IMAPS+ZMAPS+INODE_BLOCKS)
 
@@ -544,7 +544,13 @@ static inline void setup_tables(void)
 	MAGIC = magic;
 	ZONESIZE = 0;
 	MAXSIZE = version2 ? 0x7fffffff : (7 + 512 + 512 * 512) * 1024;
-	ZONES = BLOCKS;
+#ifdef CONFIG_FEATURE_MINIX2
+	if (version2) {
+		Super.s_zones =  BLOCKS;
+	} else
+#endif
+		Super.s_nzones = BLOCKS;
+
 /* some magic nrs: 1 inode / 3 blocks */
 	if (req_nr_inodes == 0)
 		inodes = BLOCKS / 3;
@@ -593,11 +599,11 @@ static inline void setup_tables(void)
 		unmark_inode(i);
 	inode_buffer = xmalloc(INODE_BUFFER_SIZE);
 	memset(inode_buffer, 0, INODE_BUFFER_SIZE);
-	printf("%ld inodes\n", INODES);
-	printf("%ld blocks\n", ZONES);
-	printf("Firstdatazone=%ld (%ld)\n", FIRSTZONE, NORM_FIRSTZONE);
+	printf("%ld inodes\n", (long)INODES);
+	printf("%ld blocks\n", (long)ZONES);
+	printf("Firstdatazone=%ld (%ld)\n", (long)FIRSTZONE, (long)NORM_FIRSTZONE);
 	printf("Zonesize=%d\n", BLOCK_SIZE << ZONESIZE);
-	printf("Maxsize=%ld\n\n", MAXSIZE);
+	printf("Maxsize=%ld\n\n", (long)MAXSIZE);
 }
 
 /*

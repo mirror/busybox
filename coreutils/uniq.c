@@ -36,7 +36,7 @@ static const char uniq_opts[] = "f:s:cdu\0\7\3\5\1\2\4";
 int uniq_main(int argc, char **argv)
 {
 	FILE *in, *out;
-	/* Note: Ignore the warning about dups and e0 possibly being uninitialized.
+	/* Note: Ignore the warning about dups and e0 being used uninitialized.
 	 * They will be initialized on the fist pass of the loop (since s0 is NULL). */
 	unsigned long dups, skip_fields, skip_chars, i;
 	const char *s0, *e0, *s1, *e1, *input_filename;
