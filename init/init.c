@@ -151,7 +151,7 @@ static const struct initActionType actions[] = {
 	{"wait", WAIT},
 	{"once", ONCE},
 	{"ctrlaltdel", CTRLALTDEL},
-	{0}
+	{0, 0}
 };
 
 /* Set up a linked list of initActions, to be read from inittab */
