@@ -343,7 +343,7 @@ extern int grep_main(int argc, char **argv)
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else {
-			pattern_head = llist_add_to(pattern_head, argv[optind]);
+			pattern_head = llist_add_to(pattern_head, strdup(argv[optind]));
 			optind++;
 		}
 	}
