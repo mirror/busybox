@@ -132,23 +132,33 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
  * ________________________________________________________________________ */
 int addgroup_main(int argc, char **argv)
 {
+	int opt;
 	char *group;
 	char *user;
 	gid_t gid = 0;
 
-	if (argc < 2) {
-		show_usage();
+	/* get remaining args */
+	while ((opt = getopt (argc, argv, "g:")) != -1) {
+		switch (opt) {
+			case 'g':
+				gid = strtol(optarg, NULL, 10);
+				break;
+			default:
+				show_usage();
+				break;
+		}
 	}
 
-	if (strncmp(argv[1], "-g", 2) == 0) {
-		gid = strtol(argv[2], NULL, 10);
-		group = argv[2];
+	if (optind < argc) {
+		group = argv[optind];
+		optind++;
 	} else {
 		show_usage();
 	}
-
-	if (argc == 4) {
-		user = argv[3];
+	
+	if (optind < argc) {
+		user = argv[optind];
+		optind++;
 	} else {
 		user = "";
 	}
@@ -162,4 +172,4 @@ int addgroup_main(int argc, char **argv)
 	return addgroup(group_file, group, gid, user);
 }
 
-/* $Id: addgroup.c,v 1.8 2002/12/13 22:02:12 timr Exp $ */
+/* $Id: addgroup.c,v 1.9 2003/01/09 18:53:53 andersen Exp $ */
