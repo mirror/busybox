@@ -1,88 +1,183 @@
 #!/usr/bin/perl -w
-#
-# autodocufier.pl - extracts usage messages from busybox usage.c and
-# pretty-prints them to stdout.
 
 use strict;
+use Getopt::Long;
 
-my $line;
-my $applet;
-my $count;
-my $full_usage;
+# collect lines continued with a '\' into an array 
+sub continuation {
+	my $fh = shift;
+	my @line;
 
-open(USAGE, 'usage.h') or die "usage.h: $!";
+	while (<$fh>) {
+		my $s = $_;
+		$s =~ s/\\\s*$//;
+		$s =~ s/#.*$//;
+		push @line, $s;
+		last unless (/\\\s*$/);
+	}
+	return @line;
+}
 
-while (defined($line = <USAGE>)) {
-	$count=0;
-	if ($line =~ /^#define (\w+)_trivial_usage/) {
-		# grab the applet name
-		$applet = $1;
-		print "\n$applet:\n";
-
-		while (defined($line = <USAGE>)) {
-			if ( $count==0 ) {
-			    $count++;
-			    print "\t$applet ";
-			} else { print "\t"; }
-			$full_usage = $applet . "_full_usage";
-			last if ( $line =~ /$full_usage/ );
-			# Skip preprocessor stuff
-			next if $line =~ /^\s*#/;
-			# Strip the continuation char
-			$line =~ s/\\$//;
-			# strip quotes off
-			$line =~ s/^\s*"//;
-			$line =~ s/"\s*$//;
-			# substitute escape sequences
-			# (there's probably a better way to do this...)
-			$line =~ s/\\t/	/g;
-			$line =~ s/\\n//g;
-			# fix up preprocessor macros
-			$line =~ s/USAGE_\w+\([\s]*?(".*?").*?\)/$1/sg;
-			# Strip any empty quotes out
-			$line =~ s/"[\s]*"//sg;
-			# strip line end quotes, again
-			$line =~ s/^\s*"//;
-			$line =~ s/"\s*$//;
-
-			# Finally, print it
-			print "$line\n";
+# regex && eval away unwanted strings from documentation
+sub beautify {
+	my $text = shift;
+	$text =~ s/USAGE_\w+\([\s]*?(".*?").*?\)/$1/sg;
+	$text =~ s/"[\s]*"//sg;
+	my @line = split("\n", $text);
+	$text = join('',
+		map { eval }
+		map { qq[ sprintf(qq#$_#) ] }
+		map { 
+			s/^\s*//;
+			s/"//g;
+			s/% /%% /g;
+			$_
 		}
-		printf("\n");
-		while (defined($line = <USAGE>)) {
-			if ( $count==0 ) {
-			    $count++;
-			    print "\t$applet ";
-			} else { print "\t"; }
-			# we're done if we hit a line lacking a '\' at the end
-			#last if ! $line !~ /\\$/;
-			if ( $line !~ /\\$/ ) {
-			    #print "Got one at $line\n";
-			    last;
-			}
-			# Skip preprocessor stuff
-			next if $line =~ /^\s*#/;
-			# Strip the continuation char
-			$line =~ s/\\$//;
-			# strip quotes off
-			$line =~ s/^\s*"//;
-			$line =~ s/"\s*$//;
-			# substitute escape sequences
-			# (there's probably a better way to do this...)
-			$line =~ s/\\t/	/g;
-			$line =~ s/\\n//g;
-			# Automagically #define all preprocessor lines
-			#$line =~ s/USAGE_\w+\([\s]*?(".*?")\s,\s".*"\s\)/$1/sg;
-			$line =~ s/USAGE_\w+\(\s*?(".*").*\)/$1/sg;
-			# Strip any empty quotes out
-			$line =~ s/"[\s]*"//sg;
-			# strip line end quotes, again
-			$line =~ s/^\s*"//;
-			$line =~ s/"\s*$//;
+		@line
+	);
+	return $text;
+}
 
-			# Finally, print it
-			print "$line\n";
+# generate POD for an applet
+sub pod_for_usage {
+	my $name  = shift;
+	my $usage = shift;
+
+	my $trivial = $usage->{trivial};
+	$trivial !~ /^\s/ && $trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
+
+	my @full = 
+		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
+		split("\n", $usage->{full});
+
+	return
+		"-------------------------------\n".
+		"\n".
+		"=item $name".
+		"\n\n".
+		"$name $trivial".
+		"\n\n".
+		join("\n", @full).
+		"\n\n"
+	;
+}
+
+# generate SGML for an applet
+sub sgml_for_usage {
+	my $name  = shift;
+	my $usage = shift;
+	return
+	"FIXME";
+}
+
+# the keys are applet names, and the values will contain
+# hashrefs of the form:
+# {
+#     trivial => "...",
+#     full    => "...",
+# }
+my %docs;
+
+# get command-line options
+my %opt;
+
+GetOptions(
+	\%opt,
+	"help|h",
+	"sgml|s",
+	"pod|p",
+	"verbose|v",
+);
+
+if (defined $opt{help}) {
+	print
+		"$0 [OPTION]... [FILE]...\n",
+		"\t--help\n",
+		"\t--sgml\n",
+		"\t--pod\n",
+		"\t--verbose\n",
+	;
+	exit 1;
+}
+
+#
+# collect documenation into %docs
+foreach (@ARGV) {
+	open(USAGE, $_) || die("$0: $!");
+	my $fh = *USAGE;
+	my ($applet, $type, @line);
+	while (<$fh>) {
+
+		if (/^#define (\w+)_(\w+)_usage/) {
+			$applet = $1;
+			$type   = $2;
+			@line   = continuation($fh);
+			my $doc = $docs{$applet} ||= { };
+
+			my $text      = join("\n", @line);
+			$doc->{$type} = beautify($text);
 		}
-		printf("\n\n");
+
 	}
 }
+
+#use Data::Dumper;
+#print Data::Dumper->Dump([\%docs], [qw(docs)]);
+
+foreach my $name (sort keys %docs) {
+	print pod_for_usage($name, $docs{$name});
+}
+
+exit 0;
+
+__END__
+
+=head1 NAME
+
+autodocifier.pl - generate docs for busybox based on usage.h
+
+=head1 SYNOPSIS
+
+autodocifier.pl usage.h > something
+
+=head1 DESCRIPTION
+
+The purpose of this script is to automagically generate documentation
+for busybox using its usage.h as the original source for content.
+Currently, the same content has to be duplicated in 3 places in
+slightly different formats -- F<usage.h>, F<docs/busybox.pod>, and
+F<docs/busybox.sgml>.  Duplicating the same content in these 3 places
+is tedious, so Perl has come to the rescue.
+
+This script was based on an original work by 
+Erik Andersen (andersen@lineo.com).
+
+=head1 OPTIONS
+
+these control my behaviour
+
+=over 8
+
+=item --help
+
+This displays the help message.
+
+=back
+
+=head1 FILES
+
+files that I manipulate
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001 John BEPPU.  All rights reserved.  This program is
+free software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 AUTHOR
+
+John BEPPU <beppu@lineo.com>
+
+=cut
+
+# $Id: autodocifier.pl,v 1.2 2001/02/23 02:33:28 beppu Exp $
