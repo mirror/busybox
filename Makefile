@@ -200,7 +200,7 @@ endif
 # And option 4:
 -include applet_source_list
 
-OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o utility.o
+OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o applets.o mtab_file.o
 CFLAGS    += $(CROSS_CFLAGS)
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
@@ -220,6 +220,21 @@ ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
 else
     CFLAGS    += -DUSE_SYSTEM_PWD_GRP
 endif
+    
+LIBBB	  = libbb
+LIBBB_DIR = $(BB_SRC_DIR:=/)$(LIBBB)
+LIBBB_LIB = libbb.a
+LIBBB_CSRC= ask_confirmation.c check_wildcard_match.c chomp.c copy_file.c \
+copy_file_chunk.c create_path.c device_open.c error_msg.c \
+find_mount_point.c find_pid_by_name.c find_root_device.c full_read.c \
+full_write.c get_console.c get_last_path_component.c get_line_from_file.c \
+human_readable.c inode_hash.c isdirectory.c kernel_version.c loop.c \
+mode_string.c parse_mode.c parse_number.c print_file.c process_escape_sequence.c \
+pwd_grp_wrappers.c recursive_action.c safe_read.c safe_strncpy.c syscalls.c \
+syslog_msg_with_name.c time_string.c trim.c vdprintf.c wfopen.c xfuncs.c \
+xregcomp.c 
+LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
+LIBBB_CFLAGS = -I$(LIBBB_DIR)
 
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
@@ -288,8 +303,8 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
 
-busybox: $(PWD_LIB) $(OBJECTS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBRARIES) $(PWD_LIB)
+busybox: $(PWD_LIB) $(LIBBB_LIB) $(OBJECTS) 
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBRARIES) $(PWD_LIB) $(LIBBB_LIB)
 	$(STRIP)
 
 # Without VPATH, rule expands to "/bin/sh busybox.mkll Config.h applets.h"
@@ -307,14 +322,21 @@ $(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
 	- mkdir -p $(PWD_GRP)
 	$(CC) $(CFLAGS) $(PWD_CFLAGS) -c $< -o $*.o
 
+$(LIBBB_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
+	- mkdir -p $(LIBBB)
+	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -c $< -o $*.o
+
 libpwd.a: $(PWD_OBJS)
+	$(AR) $(ARFLAGS) $@ $^
+
+libbb.a: $(LIBBB_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
 usage.o: usage.h
 
-utility.o: loop.h
+libbb/loop.o: libbb/loop.h
 
-loop.h: mk_loop_h.sh
+libbb/loop.h: mk_loop_h.sh
 	@ $(SHELL) $< > $@
 
 test tests:
@@ -330,8 +352,8 @@ clean:
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
 	- rm -f multibuild.log Config.h.orig
-	- rm -rf docs/busybox _install libpwd.a
-	- rm -f busybox.links loop.h *~ slist.mk core applet_source_list
+	- rm -rf docs/busybox _install libpwd.a libbb.a
+	- rm -f busybox.links libbb/loop.h *~ slist.mk core applet_source_list
 	- find -name \*.o -exec rm -f {} \;
 
 distclean: clean
