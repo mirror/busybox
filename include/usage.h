@@ -445,11 +445,6 @@
 #define dpkg_deb_example_usage \
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
-#define dpkg_divert_trivial_usage \
-	"blah"
-#define dpkg_divert_full_usage \
-	"blah blah"
-
 #ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 #define USAGE_DU_DEFALT_BLOCKSIZE_1k(a) a
 #define USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k(a)
@@ -1358,11 +1353,6 @@
 	"          [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
 	"          [ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
 	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]\n"
-
-#define insmod_ng_trivial_usage \
-	"MODULE [symbol=value]..."
-#define insmod_ng_full_usage \
-	"Loads the specified kernel modules into the kernel."
 
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"

@@ -103,8 +103,6 @@ Currently defined functions include:
 	uptime, usleep, uudecode, uuencode, vconfig, vi, vlock, watch,
 	watchdog, wc, wget, which, who, whoami, xargs, yes, zcat, [
 
-=over 4
-
 =head1 LIBC NSS
 
 GNU Libc (glibc) uses the Name Service Switch (NSS) to configure the behavior
@@ -127,4 +125,7 @@ that you install at least some of the glibc NSS stuff (in particular,
 Shameless Plug: As an alternative one could use a C library such as uClibc.  In
 addition to making your system significantly smaller, uClibc does not need or
 use any NSS support files or libraries.
+
+=over 4
+
 
