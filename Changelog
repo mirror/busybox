@@ -1,3 +1,24 @@
+0.61.pre
+
+    Development Version
+
+
+
+    New Applets:
+	* Erik Andersen -- Merged several applets from tinylogin,
+	    namely adduser, addgroup, deluser, delgroup, getty.
+
+
+    Other Changes:
+
+	* Rodney Brown  <RDBrown@mira.net> 
+	    -- Optimized gzip.c, shrinking it be ~1.5k
+
+	 -Erik Andersen, --not yet released--
+
+
+
+
 0.60.0
 
     Note: 

@@ -110,8 +110,7 @@ static int method;				/* compression method */
 #ifdef DYN_ALLOC
 #  define DECLARE(type, array, size)  static type * array
 #  define ALLOC(type, array, size) { \
-      array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) error_msg(memory_exhausted); \
+      array = (type*)xcalloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -181,16 +180,17 @@ typedef int file_t;				/* Do not use stdio */
     outbuf[outcnt++] = (uch) ((w) & 0xff); \
     outbuf[outcnt++] = (uch) ((ush)(w) >> 8); \
   } else { \
-    put_byte((uch)((w) & 0xff)); \
-    put_byte((uch)((ush)(w) >> 8)); \
+	put_short_when_full(w); \
   } \
 }
 
 /* Output a 32 bit value to the bit stream, lsb first */
+#if 0
 #define put_long(n) { \
     put_short((n) & 0xffff); \
     put_short(((ulg)(n)) >> 16); \
 }
+#endif
 
 #define seekable()    0			/* force sequential output */
 #define translate_eol 0			/* no option -a yet */
@@ -220,7 +220,6 @@ typedef int file_t;				/* Do not use stdio */
 #endif
 
 
-
 	/* from zip.c: */
 static int zip (int in, int out);
 static int file_read (char *buf, unsigned size);
@@ -247,6 +246,9 @@ static int (*read_buf) (char *buf, unsigned size);
 
 	/* from util.c: */
 static void flush_outbuf (void);
+
+static void put_short_when_full (ush);
+
 
 /* lzw.h -- define the lzw functions.
  * Copyright (C) 1992-1993 Jean-loup Gailly.
@@ -388,18 +390,11 @@ static ulg updcrc(uch *s, unsigned n)
 	static unsigned long crc_32_tab[256];
 	if (crc_table_empty) {
 		unsigned long csr;      /* crc shift register */
-		unsigned long e=0;      /* polynomial exclusive-or pattern */
+		const unsigned long e = 0xedb88320L;	/* polynomial exclusive-or pattern */
 		int i;                /* counter for all possible eight bit values */
 		int k;                /* byte being shifted into crc apparatus */
 
-		/* terms of polynomial defining this crc (except x^32): */
-		static const int p[] = {0,1,2,4,5,7,8,10,11,12,16,22,23,26};
-
-		/* Make exclusive-or pattern from polynomial (0xedb88320) */
-		for (i = 0; i < sizeof(p)/sizeof(int); i++)
-			e |= 1L << (31 - p[i]);
-
-		/* Compute and print table of CRC's, five per line */
+		/* Compute table of CRC's. */
 		crc_32_tab[0] = 0x00000000L;
 		for (i = 1; i < 256; i++) {
 			csr = i;
@@ -1206,7 +1201,6 @@ typedef struct dirent dir_type;
 
 typedef RETSIGTYPE(*sig_type) (int);
 
-
 /* ======================================================================== */
 // int main (argc, argv)
 //    int argc;
@@ -1291,11 +1285,9 @@ int gzip_main(int argc, char **argv)
 
 		/* Open input file */
 		inFileNum = open(ifname, O_RDONLY);
-		if (inFileNum < 0)
+		if (inFileNum < 0 || stat(ifname, &statBuf) < 0)
 			perror_msg_and_die("%s", ifname);
 		/* Get the time stamp on the input file. */
-		if (stat(ifname, &statBuf) < 0)
-			perror_msg_and_die("%s", ifname);
 		time_stamp = statBuf.st_ctime;
 		ifile_size = statBuf.st_size;
 	}
@@ -1433,16 +1425,20 @@ int gzip_main(int argc, char **argv)
 #define BL_CODES  19
 /* number of codes used to transfer the bit lengths */
 
+typedef uch extra_bits_t;
 
-static const int extra_lbits[LENGTH_CODES]	/* extra bits for each length code */
+/* extra bits for each length code */
+static const extra_bits_t extra_lbits[LENGTH_CODES]    
 	= { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
 		4, 4, 5, 5, 5, 5, 0 };
 
-static const int extra_dbits[D_CODES]	/* extra bits for each distance code */
+/* extra bits for each distance code */
+static const extra_bits_t extra_dbits[D_CODES]    
 	= { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
 		10, 10, 11, 11, 12, 12, 13, 13 };
 
-static const int extra_blbits[BL_CODES]	/* extra bits for each bit length code */
+/* extra bits for each bit length code */
+static const extra_bits_t extra_blbits[BL_CODES]  
 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
 
 #define STORED_BLOCK 0
@@ -1537,7 +1533,7 @@ static ct_data bl_tree[2 * BL_CODES + 1];
 typedef struct tree_desc {
 	ct_data *dyn_tree;		/* the dynamic tree */
 	ct_data *static_tree;	/* corresponding static tree or NULL */
-	const int *extra_bits;		/* extra bits for each code or NULL */
+	const extra_bits_t *extra_bits; /* extra bits for each code or NULL */
 	int extra_base;				/* base index for extra_bits */
 	int elems;					/* max number of elements in the tree */
 	int max_length;				/* max bit length for the codes */
@@ -1834,7 +1830,7 @@ static void pqdownheap(ct_data *tree, int k)
 static void gen_bitlen(tree_desc *desc)
 {
 	ct_data *tree = desc->dyn_tree;
-	const int *extra = desc->extra_bits;
+	const extra_bits_t *extra = desc->extra_bits;
 	int base = desc->extra_base;
 	int max_code = desc->max_code;
 	int max_length = desc->max_length;
@@ -2466,6 +2462,28 @@ static void set_file_type()
 static ulg crc;					/* crc on uncompressed file data */
 static long header_bytes;				/* number of bytes in gzip header */
 
+static void put_short_when_full(ush w)
+{
+	put_byte((uch)((w) & 0xff));
+	put_byte((uch)((ush)(w) >> 8));
+}
+
+static void put_short_function(ush n)
+{
+	put_short(n);
+}
+
+static void put_long(ulg n)
+{
+	put_short_function((n) & 0xffff);
+	put_short_function(((ulg)(n)) >> 16);
+}
+
+/* put_header_byte is used for the compressed output
+ * - for the initial 4 bytes that can't overflow the buffer.
+ */
+#define put_header_byte(c) {outbuf[outcnt++]=(uch)(c);}
+
 /* ===========================================================================
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
@@ -2485,11 +2503,11 @@ static int zip(int in, int out)
 
 
 	method = DEFLATED;
-	put_byte(GZIP_MAGIC[0]);	/* magic header */
-	put_byte(GZIP_MAGIC[1]);
-	put_byte(DEFLATED);			/* compression method */
+	put_header_byte(GZIP_MAGIC[0]);     /* magic header */
+	put_header_byte(GZIP_MAGIC[1]);
+	put_header_byte(DEFLATED);    /* compression method */
 
-	put_byte(my_flags);			/* general flags */
+	put_header_byte(my_flags);    /* general flags */
 	put_long(time_stamp);
 
 	/* Write deflated file to zip file */
