@@ -855,6 +855,18 @@ const char pwd_usage[] =
 	;
 #endif
 
+#if defined BB_RDATE
+const char rdate_usage[] =
+	"rdate [OPTION] HOST\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nGet and possibly set the system date and time from a remote HOST.\n"
+	"Options:\n"
+	"\t-s\tSet the system date and time (default).\n"
+	"\t-p\tPrint the date and time.\n"
+#endif
+	;
+#endif
+
 #if defined BB_REBOOT
 const char reboot_usage[] =
 	"reboot\n"

@@ -61,7 +61,7 @@ fdflush, find, free, freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt,
 head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-nslookup, ping, poweroff, printf, ps, pwd, reboot, renice, reset, rm, rmdir, rmmod, sed,
+nslookup, ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm, rmdir, rmmod, sed,
 setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
 tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
 uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
@@ -1422,6 +1422,19 @@ Example:
 
 -------------------------------
 
+=item rdate
+
+Usage: rdate [OPTION] HOST
+
+Get and possibly set the system date and time from a remote HOST.
+
+Options:
+
+	-s      Set the system date and time (default).
+	-p      Print the date and time.
+
+-------------------------------
+
 =item reboot
 
 Instructs the kernel to reboot the system.
@@ -2094,4 +2107,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.62 2000/08/21 22:02:34 andersen Exp $
+# $Id: busybox.pod,v 1.63 2000/08/21 22:46:33 andersen Exp $

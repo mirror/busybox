@@ -12,6 +12,8 @@
 	* Add optional ls file sorting, thanks to a patch from 
 	    Sterling Huxley <sterling@europa.com>
 	* lsmod now uses the query_module syscall, rather then /proc
+	* Added 'rdate' command from Sterling Huxley <sterling@europa.com>
+	* Added 'getopt' command from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
 
 
 	 -Erik Andersen

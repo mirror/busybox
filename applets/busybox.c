@@ -226,6 +226,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_PWD
 	{"pwd", pwd_main, _BB_DIR_BIN, pwd_usage},
 #endif
+#ifdef BB_RDATE
+	{"rdate", rdate_main, _BB_DIR_USR_BIN, rdate_usage},
+#endif
 #ifdef BB_REBOOT
 	{"reboot", reboot_main, _BB_DIR_SBIN, reboot_usage},
 #endif
