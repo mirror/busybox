@@ -28,7 +28,7 @@
 #include "busybox.h"
 
 /* Conversion table.  for base 64 */
-static char tbl_base64[64] = {
+static char tbl_base64[65] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -36,10 +36,11 @@ static char tbl_base64[64] = {
 	'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
 	'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 	'w', 'x', 'y', 'z', '0', '1', '2', '3',
-	'4', '5', '6', '7', '8', '9', '+', '/'
+	'4', '5', '6', '7', '8', '9', '+', '/',
+	'=' /* termination character */
 };
 
-static char tbl_std[64] = {
+static char tbl_std[65] = {
 	'`', '!', '"', '#', '$', '%', '&', '\'',
 	'(', ')', '*', '+', ',', '-', '.', '/',
 	'0', '1', '2', '3', '4', '5', '6', '7',
@@ -47,7 +48,8 @@ static char tbl_std[64] = {
 	'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
 	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
 	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
+	'X', 'Y', 'Z', '[', '\\', ']', '^', '_',
+	'\`' /* termination character */
 };
 
 /*
@@ -71,10 +73,10 @@ static void uuencode (const char *s, const char *store, const int length, const 
 	}
 	/* Pad the result if necessary...  */
 	if (i == length + 1) {
-		*(p - 1) = '=';
+		*(p - 1) = tbl[64];
 	}
 	else if (i == length + 2) {
-		*(p - 1) = *(p - 2) = '=';
+		*(p - 1) = *(p - 2) = tbl[64];
 	}
 	/* ...and zero-terminate it.  */
 	*p = '\0';
@@ -82,8 +84,9 @@ static void uuencode (const char *s, const char *store, const int length, const 
 
 int uuencode_main(int argc, char **argv)
 {
-	const int src_buf_size = 60;	// This *MUST* be a multiple of 3
+	const int src_buf_size = 45;// This *MUST* be a multiple of 3
 	const int dst_buf_size = 4 * ((src_buf_size + 2) / 3);
+	int write_size = dst_buf_size;
 	RESERVE_CONFIG_BUFFER(src_buf, src_buf_size + 1);
 	RESERVE_CONFIG_BUFFER(dst_buf, dst_buf_size + 1);
 	struct stat stat_buf;
@@ -92,10 +95,6 @@ int uuencode_main(int argc, char **argv)
 	size_t size;
 	mode_t mode;
 	int opt;
-	int column = 0;
-	int write_size = 0;
-	int remaining;
-	int buffer_offset = 0;
 
 	while ((opt = getopt(argc, argv, "m")) != -1) {
 		switch (opt) {
@@ -126,53 +125,22 @@ int uuencode_main(int argc, char **argv)
 	printf("begin%s %o %s", tbl == tbl_std ? "" : "-base64", mode, argv[argc - 1]);
 
 	while ((size = fread(src_buf, 1, src_buf_size, src_stream)) > 0) {
+		if (size != src_buf_size) {
+			/* write_size is always 60 until the last line */
+			write_size=(4 * ((size + 2) / 3));
+			/* pad with 0s so we can just encode extra bits */
+			memset(&src_buf[size], 0, src_buf_size - size);
+		}
 		/* Encode the buffer we just read in */
 		uuencode(src_buf, dst_buf, size, tbl);
 
-		/* Write the buffer to stdout, wrapping at 60 chars.
-		 * This looks overly complex, but it gets tricky as
-		 * the line has to continue to wrap correctly if we
-		 * have to refill the buffer
-		 *
-		 * Improvments most welcome
-		 */
-
-		/* Initialise values for the new buffer */
-		remaining = 4 * ((size + 2) / 3);
-		buffer_offset = 0;
-
-		/* Write the buffer to stdout, wrapping at 60 chars
-		 * starting from the column the last buffer ran out
-		 */
-		do {
-			if (remaining > (60 - column)) {
-				write_size = 60 - column;
-			}
-			else if (remaining < 60) {
-				write_size = remaining;
-			} else {
-				write_size = 60;
-			}
-
-			/* Setup a new row if required */
-			if (column == 0) {
-				putchar('\n');
-				if (tbl == tbl_std) {
-					putchar('M');
-				}
-			}
-			/* Write to the 60th column */
-			if (fwrite(&dst_buf[buffer_offset], 1, write_size, stdout) != write_size) {
-				perror("Couldnt finish writing");
-			}
-			/* Update variables based on last write */
-			buffer_offset += write_size;
-			remaining -= write_size;
-			column += write_size;
-			if (column % 60 == 0) {
-				column = 0;
-			}
-		} while (remaining > 0);
+		putchar('\n');
+		if (tbl == tbl_std) {
+			putchar(tbl[size]);
+		}
+		if (fwrite(dst_buf, 1, write_size, stdout) != write_size) {
+			perror("Couldnt finish writing");
+		}
 	}
 	printf(tbl == tbl_std ? "\n`\nend\n" : "\n====\n");
 

@@ -32,6 +32,8 @@
 		applets, fix print nslookup server name if compile without
 		uClibc, fix route crashe 'route add', fix warnings compile
 		networking and pwd_grp applets
+	* Tim Riker <Tim@Rikers.org>
+		-- fix and shrink uuencode
 
 	 -Erik Andersen, --not yet released--
 
