@@ -45,7 +45,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
 		/* End Of File */
 		return(EXIT_FAILURE);
-		}
+	}
 
 	/* Some ar entries have a trailing '\n' after the previous data entry */
 	if (ar.raw[0] == '\n') {
@@ -55,7 +55,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 		archive_handle->offset++;
 	}
 	archive_handle->offset += 60;
-		
+
 	/* align the headers based on the header magic */
 	if ((ar.formated.magic[0] != '`') || (ar.formated.magic[1] != '\n')) {
 		bb_error_msg_and_die("Invalid ar header");
@@ -115,7 +115,9 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 		data_skip(archive_handle);			
 	}
 
-	archive_handle->offset += typed->size + 1;
+	archive_handle->offset += typed->size;
+	/* Set the file pointer to the correct spot, we may have been reading a compressed file */
+	lseek(archive_handle->src_fd, archive_handle->offset, SEEK_SET);
 
 	return(EXIT_SUCCESS);
 }
