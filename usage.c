@@ -1176,7 +1176,7 @@ const char syslogd_usage[] =
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n"
 #ifdef BB_FEATURE_REMOTE_LOG
 	"\t-R HOST[:PORT]\t\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n"
-	"\t-L\t\tLog locally as well as network logging (defaut is network only)\n"
+	"\t-L\t\tLog locally as well as network logging (default is network only)\n"
 #endif
 #endif
 	;

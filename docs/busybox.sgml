@@ -3023,7 +3023,7 @@
 			-K	Do not start up the klogd process
 			-O FILE	Use an alternate log file (default=/var/log/messages)
 			-R HOST[:PORT] Log remotely to IP or hostname on PORT (default PORT=514/UDP)
-			-L      Log locally as well as network logging (defaut is network only)
+			-L      Log locally as well as network logging (default is network only)
 		</screen>
 		</para>
 

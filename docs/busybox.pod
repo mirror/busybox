@@ -1731,7 +1731,7 @@ Options:
 	-K		Do not start up the klogd process
 	-O FILE	Use an alternate log file (default=/var/log/messages)
 	-R HOST[:PORT]  Log remotely to IP or hostname on PORT (default PORT=514/UDP)
-	-L      Log locally as well as network logging (defaut is network only)
+	-L      Log locally as well as network logging (default is network only)
 
 Example:
 
@@ -2292,4 +2292,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.81 2000/12/11 16:24:16 andersen Exp $
+# $Id: busybox.pod,v 1.82 2000/12/11 19:39:25 andersen Exp $

@@ -491,7 +491,7 @@
 	* Major init re-work.  init now supports inittab (slightly different
 	    but similar to sysvinit), allowing me to get all the policy out of
 	    init and into the conf file.  It works just fine without inittab
-	    being present, but if you dont like the defautl behavior you can
+	    being present, but if you dont like the default behavior you can
 	    now do something about it.  Init is much cleaner as a result.
 	* Fixed an bug in syslogd causing it to stop after 20 minutes. -erik
 	* Fixed an embarrasing segfault in head	-beppu Fixed the embarrasing
