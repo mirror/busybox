@@ -10,7 +10,8 @@ message_header:
 	@echo
 	(cd ..; tests/busybox.REGRESS.sh)
 
-clean::
+clean:
+	rm -f *.o
 
 distclean: clean
 
