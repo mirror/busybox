@@ -2066,14 +2066,15 @@
 	"$ rx /tmp/foo\n"
 
 #define sed_trivial_usage \
-	"[-nef] pattern [files...]"
+	"[-efinr] pattern [files...]"
 #define sed_full_usage \
 	"Options:\n" \
-	"\t-n\t\tsuppress automatic printing of pattern space\n" \
 	"\t-e script\tadd the script to the commands to be executed\n" \
 	"\t-f scriptfile\tadd script-file contents to the\n" \
 	    "\t\t\tcommands to be executed\n" \
-	"\t-i\t\tEdit files in-place\n" \
+	"\t-i\t\tedit files in-place\n" \
+	"\t-n\t\tsuppress automatic printing of pattern space\n" \
+	"\t-r\t\tuse extended regular expression syntax\n"
 	"\n" \
 	"If no -e or -f is given, the first non-option argument is taken as the sed\n"\
 	"script to interpret. All remaining arguments are names of input files; if no\n"\
