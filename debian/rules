@@ -17,6 +17,7 @@ busybox-deb:
 	dh_testroot
 	$(MAKE) clean
 	cp ./debian/config-deb .config
+	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
 	$(MAKE)
 	install -D busybox ./debian/busybox/bin/busybox
@@ -36,6 +37,7 @@ busybox-udeb:
 	dh_testroot
 	$(MAKE) clean
 	cp ./debian/config-udeb .config
+	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
 	$(MAKE)
 	install -D busybox ./debian/busybox-udeb/bin/busybox
@@ -55,6 +57,7 @@ busybox-static:
 	dh_testroot
 	$(MAKE) clean
 	cp ./debian/config-static .config
+	cp ./debian/Rules.mak.static Rules.mak
 	$(MAKE) dep
 	$(MAKE)
 	install -D busybox ./debian/busybox-static/bin/busybox
