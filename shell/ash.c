@@ -8125,21 +8125,40 @@ find_dot_file(char *name)
 	/* NOTREACHED */
 }
 
-int
-dotcmd(int argc, char **argv)
+static int dotcmd(int argc, char **argv)
 {
+	struct strlist *sp;
+	volatile struct shparam saveparam;
+
 	exitstatus = 0;
 
-	if (argc >= 2) {                /* That's what SVR2 does */
+	for (sp = cmdenviron; sp; sp = sp->next)
+		setvareq(bb_xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
+
+	if (argc >= 2) {	/* That's what SVR2 does */
 		char *fullname;
 		struct stackmark smark;
 
 		setstackmark(&smark);
 		fullname = find_dot_file(argv[1]);
+
+		if (argc > 2) {
+			saveparam = shellparam;
+			shellparam.malloc = 0;
+			shellparam.nparam = argc - 2;
+			shellparam.p = argv + 2;
+		};
+
 		setinputfile(fullname, 1);
 		commandname = fullname;
 		cmdloop(0);
 		popfile();
+
+		if (argc > 2) {
+			freeparam(&shellparam);
+			shellparam = saveparam;
+		};
+
 		popstackmark(&smark);
 	}
 	return exitstatus;
