@@ -1638,7 +1638,7 @@
 #define uudecode_full_usage \
 	"Uudecode a file that is uuencoded.\n\n" \
 	"Options:\n" \
-	"\t-o FILE\tdirect output to FILE" \
+	"\t-o FILE\tdirect output to FILE" 
 #define uudecode_example_usage \
 	"$ uudecode -o busybox busybox.uu\n" \
 	"$ ls -l busybox\n" \
