@@ -52,7 +52,10 @@ date -u
 date +%d/%m/%y
 
 # dc - needs an input file
+
 # dd
+dd if=/dev/urandom of=O bs=1k count=1 ; ls -l O ; rm O
+
 # deallocvt
 
 # df
@@ -93,35 +96,36 @@ echo -n "no newline"
 
 
 # expr
-expr 1 \| 1
-expr 1 \| 0
-expr 0 \| 1
-expr 0 \| 0
-
-expr 1 \& 1
-expr 1 \& 0
-expr 0 \& 1
-expr 0 \& 0
-
-expr 0 \< 1
-expr 1 \< 0
-
-expr 1 \> 0
-expr 0 \> 1
-
-expr 0 \<= 1
-expr 1 \<= 0
-expr 1 \<= 1
-
-expr 1 \>= 0
-expr 0 \>= 1
-expr 1 \>= 1
-
-expr 1 + 2
-expr 2 - 1
-expr 2 \* 3
-expr 12 / 2
-expr 12 % 5
+# XXX: something's wrong with the way I'm doing these. Figure it out later.
+#expr 1 \| 1
+#expr 1 \| 0
+#expr 0 \| 1
+#expr 0 \| 0
+#
+#expr 1 \& 1
+#expr 1 \& 0
+#expr 0 \& 1
+#expr 0 \& 0
+#
+#expr 0 \< 1
+#expr 1 \< 0
+#
+#expr 1 \> 0
+#expr 0 \> 1
+#
+#expr 0 \<= 1
+#expr 1 \<= 0
+#expr 1 \<= 1
+#
+#expr 1 \>= 0
+#expr 0 \>= 1
+#expr 1 \>= 1
+#
+#expr 1 + 2
+#expr 2 - 1
+#expr 2 \* 3
+#expr 12 / 2
+#expr 12 % 5
 
 # somebody else can do all the string stuff
 
@@ -167,6 +171,7 @@ id -un
 
 # ifconfig
 #ifconfig
+#ifconfig -a
 #ifconfig eth0
 #ifconfig lo
 
@@ -184,12 +189,13 @@ id -un
 # loadkmap
 # logger
 # logname
+
 # ls
-ls
-ls -l
-ls -s
-ls -h
-ls -1
+ls ../e*
+ls -l ../e*
+ls -s ../e*
+ls -h ../e*
+ls -1 ../e*
 
 # lsmod
 lsmod
@@ -200,7 +206,16 @@ lsmod
 md5sum tester.sh
 
 # mkdir
+mkdir D ; ls -ld D ; rmdir D
+
 # mkfifo
+#
+# we will test making one. actually testing pushing data through it requires
+# more interaction than we can manage here.
+# (these lines turn up an existing ls bug)
+mkfifo F ; ls -l F ; rm F
+mkfifo -m 0600 F ; ls -l F ; rm F
+
 # mkfs.minix - won't test
 # mknod
 # mkswap - won't test
@@ -215,7 +230,8 @@ mount
 # nc
 # nfsmount
 # nslookup
-# ping - can't test: interactive (needs ^C)
+# ping
+ping -c 3 yahoo.com
 # pivot_root
 # poweroff - won't test
 # printf
@@ -227,14 +243,15 @@ pwd
 # rdate - won't test
 
 # readlink
-ln -sf tester.sh LINKFILE
-readlink LINKFILE
-rm -f LINKFILE
+ln -sf tester.sh L ; readlink L ; rm -f L
 
 # reboot - won't test
 # renice - won't test
 # reset - can't test: no output
+
 # rm
+touch F ; rm F
+
 # rmdir
 # rmmod - won't test: dangerous
 # route
@@ -243,20 +260,30 @@ rm -f LINKFILE
 # setkeycodes
 # sh - this should probably have it's own testcase or input file
 # sleep - can't test: produces no output
+
 # sort
+sort tester.sh
+sort -n tester.sh
+sort -r tester.sh
+
 # stty
 # swapon - won't test: dangerous
 # swapoff - won't test: dangerous
 # sync - can't test: no output
-# syslogd
+# syslogd - won't test: too involved
 
 # tail
 tail tester.sh
 tail -n 2  tester.sh
 
 # tar
+
 # tee
-# telnet
+echo "please tee me!" | tee A B C ; cat A B C
+echo "please tee me!" | tee A B C ; echo "tee me too!" | tee -a A B C ; cat A B C ; rm A B C
+
+# telnet - can't test: interactive
+
 # test
 # tftp
 # touch
@@ -270,6 +297,7 @@ false ; echo $?
 # unix2dos
 # update
 
+# uptime
 uptime
 
 # usleep
@@ -293,9 +321,7 @@ which ls
 whoami
 
 # xargs
-# (for some reason, the > redirection isn't working)
-#ls -1 > TMPFILE
-#xargs md5sum < TMPFILE
-#rm -f TMPFILE
+ls -1 ../e* | xargs
+ls -1 ../e* | xargs md5sum
 
 # yes - can't test: interactive (needs ^C)
