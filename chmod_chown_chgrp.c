@@ -27,8 +27,8 @@
 #include "internal.h"
 
 
-static uid_t uid=-1;
-static gid_t gid=-1;
+static uid_t uid = -1;
+static gid_t gid = -1;
 static int whichApp;
 static char* invocationName=NULL;
 static char* theMode=NULL;
@@ -92,7 +92,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
     if (argc < 2) 
 	usage( appUsage);
-    invocationName=*argv;
+    invocationName = *argv;
     argc--;
     argv++;
 
@@ -111,7 +111,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     }
     
     if ( whichApp == CHMOD_APP ) {
-	theMode=*argv;
+	theMode = *argv;
     } else {
 
 	/* Find the selected group */

@@ -70,7 +70,7 @@ int find_main(int argc, char **argv)
     argv++;
 
     if ( argc > 0 && **argv != '-') {
-	directory=*argv;
+	directory = *argv;
 	argc--;
 	argv++;
     }
@@ -89,8 +89,8 @@ int find_main(int argc, char **argv)
 	    case 'n':
 		if (strcmp(*argv, "name")==0) {
 		    if (argc-- > 1) {
-			pattern=*(++argv);
-			stopit=-TRUE;
+			pattern = *(++argv);
+			stopit=TRUE;
 		    } else {
 			usage (find_usage);
 		    }

@@ -161,7 +161,7 @@ extern int logger_main(int argc, char **argv)
 	message=buf;
     } else {
 	if (argc>=1) {
-		message=*argv;
+		message = *argv;
 	} else {
 	    fprintf(stderr, "No message\n");
 	    exit( FALSE);

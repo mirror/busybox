@@ -154,7 +154,7 @@ void message(int device, char *fmt, ...)
     }
 
 #else
-    static int log_fd=-1;
+    static int log_fd = -1;
 
     /* Take full control of the log tty, and never close it.
      * It's mine, all mine!  Muhahahaha! */
@@ -166,7 +166,7 @@ void message(int device, char *fmt, ...)
 	device = CONSOLE;
     }
     else if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
-	    log_fd=-1;
+	    log_fd = -1;
 	    fprintf(stderr, "Bummer, can't write to log on %s!\r\n", log);
 	    fflush(stderr);
 	    return;

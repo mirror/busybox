@@ -354,9 +354,9 @@ extern int mount_main (int argc, char **argv)
 	    }
 	} else {
 	    if (device == NULL)
-		device=*argv;
+		device = *argv;
 	    else if (directory == NULL)
-		directory=*argv;
+		directory = *argv;
 	    else {
 		goto goodbye;
 	    }

@@ -204,10 +204,10 @@ date_main(int argc, char * * argv)
 	    }
 	} else {
 	    if ( (date_fmt == NULL) && (strcmp(*argv, "+")==0) )
-		date_fmt=*argv;
+		date_fmt = *argv;
 	    else if (date_str == NULL) {
 		set_time = 1;
-		date_str=*argv;
+		date_str = *argv;
 	    } else { 
 		usage ( date_usage);
 	    }
