@@ -580,6 +580,7 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 
 extern void cmdedit_init(void)
 {
+	cmdedit_prmt_len = 0;
 	if ((handlers_sets & SET_WCHG_HANDLERS) == 0) {
 		/* emulate usage handler to set handler and call yours work */
 		win_changed(-SIGWINCH);
