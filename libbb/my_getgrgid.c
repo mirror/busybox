@@ -27,16 +27,16 @@
 
 
 /* gets a groupname given a gid */
-char * my_getgrgid(char *group, long gid)
+char * my_getgrgid(char *group, long gid, int bufsize)
 {
 	struct group *mygroup;
 
 	mygroup  = getgrgid(gid);
 	if (mygroup==NULL) {
-		sprintf(group, "%ld", gid);
+		snprintf(group, bufsize, "%ld", gid);
 		return NULL;
 	} else {
-		return strcpy(group, mygroup->gr_name);
+		return safe_strncpy(group, mygroup->gr_name, bufsize);
 	}
 }
 

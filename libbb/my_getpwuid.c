@@ -28,16 +28,16 @@
 
 
 /* gets a username given a uid */
-char * my_getpwuid(char *name, long uid)
+char * my_getpwuid(char *name, long uid, int bufsize)
 {
 	struct passwd *myuser;
 
 	myuser  = getpwuid(uid);
 	if (myuser==NULL) {
-		sprintf(name, "%ld", (long)uid);
+		snprintf(name, bufsize, "%ld", (long)uid);
 		return NULL;
 	} else {
-		return strcpy(name, myuser->pw_name);
+		return safe_strncpy(name, myuser->pw_name, bufsize);
 	}
 }
 

@@ -36,7 +36,7 @@ extern int whoami_main(int argc, char **argv)
 		bb_show_usage();
 
 	uid = geteuid();
-	if (my_getpwuid(user, uid)) {
+	if (my_getpwuid(user, uid, sizeof(user))) {
 		puts(user);
 		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}

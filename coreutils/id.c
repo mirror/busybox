@@ -40,7 +40,7 @@
 
 extern int id_main(int argc, char **argv)
 {
-	char user[9], group[9];
+	char user[32], group[32];
 	long pwnam, grnam;
 	int uid, gid;
 	int flags;
@@ -64,12 +64,12 @@ extern int id_main(int argc, char **argv)
 			uid = geteuid();
 			gid = getegid();
 		}
-		my_getpwuid(user, uid);
+		my_getpwuid(user, uid, sizeof(user));
 	} else {
 		safe_strncpy(user, argv[optind], sizeof(user));
 	    gid = my_getpwnamegid(user);
 	}
-	my_getgrgid(group, gid);
+	my_getgrgid(group, gid, sizeof(group));
 
 	pwnam=my_getpwnam(user);
 	grnam=my_getgrnam(group);
