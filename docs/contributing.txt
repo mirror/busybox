@@ -202,6 +202,9 @@ These are dirty jobs, but somebody's gotta do 'em.
    getopt. If a .c file processes no options, it should have a line that
    reads: /* no options, no getopt */ somewhere in the file.
 
+ - Replace any "naked" calls to malloc, calloc, realloc, str[n]dup, fopen with
+   the x* equivalents found in utility.c.
+
  - Security audits:
    http://www.securityfocus.com/frames/?content=/forums/secprog/secure-programming.html
 
