@@ -137,7 +137,7 @@ const struct BB_applet applets[] = {
 	{"halt", halt_main, _BB_DIR_SBIN},
 #endif
 #ifdef BB_HEAD
-	{"head", head_main, _BB_DIR_BIN},
+	{"head", head_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_HOSTID
 	{"hostid", hostid_main, _BB_DIR_USR_BIN},
