@@ -900,13 +900,37 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 		Valid actions include: sysinit, respawn, askfirst, wait, 
 		once, and ctrlaltdel.
 
-		askfirst acts just like respawn, but before running the specified
-		process it displays the line "Please press Enter to activate this
-		console." and then waits for the user to press enter before starting
-		the specified process.
 
-		Unrecognized actions (like initdefault) will cause init to emit
-		an error message, and then go along with its business.
+		The available actions can be classified into two groups: actions
+		that are run only once, and actions that are re-run when the specified
+		process exits.
+
+		Run only-once actions:
+
+			'sysinit' is the first item run on boot.  init waits until all
+			sysinit actions are completed before continuing.  Following the
+			completion of all sysinit actions, all 'wait' actions are run.
+			'wait' actions, like  'sysinit' actions, cause init to wait until
+			the specified task completes.  'once' actions are asyncronous,
+			therefore, init does not wait for them to complete.  'ctrlaltdel'
+			actions are run immediately before init causes the system to reboot
+			(unmounting filesystems with a 'ctrlaltdel' action is a very good
+			idea).
+
+		Run repeatedly actions:
+
+			'respawn' actions are run after the 'once' actions.  When a process
+			started with a 'respawn' action exits, init automatically restarts
+			it.  Unlike sysvinit, BusyBox init does not stop processes from
+			respawning out of control.  The 'askfirst' actions acts just like
+			respawn, except that before running the specified process it
+			displays the line "Please press Enter to activate this console."
+			and then waits for the user to press enter before starting the
+			specified process.  
+
+		Unrecognized actions (like initdefault) will cause init to emit an
+		error message, and then go along with its business.  All actions are
+		run in the reverse order from how they appear in /etc/inittab.
 
 	<process>: 
 
@@ -2262,4 +2286,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.78 2000/12/08 19:52:01 andersen Exp $
+# $Id: busybox.pod,v 1.79 2000/12/08 20:38:00 andersen Exp $
