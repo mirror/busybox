@@ -6306,9 +6306,7 @@ fgcmd(int argc, char **argv)
 	tcsetpgrp(2, pgrp);
 #endif
 	restartjob(jp);
-	INTOFF;
 	status = waitforjob(jp);
-	INTON;
 	return status;
 }
 
@@ -12481,7 +12479,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.41 2001/12/31 06:03:12 aaronl Exp $
+ * $Id: ash.c,v 1.42 2001/12/31 06:07:57 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
