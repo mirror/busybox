@@ -443,12 +443,7 @@ static void showfiles(struct dnode **dn, int nfiles)
 		if (column_width < len) 
 			column_width= len;
 	}
-	if (column_width >= 6)
-		ncols = (int)(terminal_width / (column_width + COLUMN_GAP));
-	else {
-		ncols = 1;
-		column_width = COLUMN_WIDTH;
-	}
+	ncols = (int)(terminal_width / (column_width + COLUMN_GAP));
 #else
 	ncols= TERMINAL_WIDTH;
 #endif
