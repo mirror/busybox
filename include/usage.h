@@ -1872,14 +1872,14 @@
 	"-i -q[ildc]p package.rpm"
 #define rpm_full_usage \
 	"Manipulates RPM packages" \
-	"Options:" \
-	"\t-i Install package" \
-	"\t-q Query package" \
-	"\t\t-p Query uninstalled package" \
-	"\t\t-i Show information" \
-	"\t\t-l List contents" \
-	"\t\t-d List documents" \
-	"\t\t-c List config files"
+	"\n\nOptions:" \
+	"\n\t-i Install package" \
+	"\n\t-q Query package" \
+	"\n\t-p Query uninstalled package" \
+	"\n\t-i Show information" \
+	"\n\t-l List contents" \
+	"\n\t-d List documents" \
+	"\n\t-c List config files"
 
 #define rpm2cpio_trivial_usage \
 	"package.rpm"
