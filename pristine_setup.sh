@@ -34,6 +34,11 @@ sed -e "s?BB_SRC_DIR =.*?BB_SRC_DIR = $DIR?" <$DIR/Makefile >Makefile || exit
 cp $DIR/Config.h Config.h || exit
 #mkdir -p pwd_grp
 
+if [ ! -r $DIR/sh.c ]; then
+    echo "Warning: no shell selected.  You must make the symlink (sh.c to either"
+    echo "lash.c or hush.c) in $DIR, not here."
+fi
+
 echo " "
 echo "You may now type 'make' to build busybox in this directory"
 echo "($PWD) using the pristine sources in $DIR"
