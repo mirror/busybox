@@ -40,7 +40,7 @@ static const int RFC_868_BIAS = 2208988800UL;
 
 static void socket_timeout()
 {
-	bb_error_msg_and_die("timeout connecting to time server\n");
+	bb_error_msg_and_die("timeout connecting to time server");
 }
 
 static time_t askremotedate(const char *host)
