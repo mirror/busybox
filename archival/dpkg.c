@@ -161,6 +161,7 @@ int search_name_hashtable(const char *key)
 {
 	unsigned int probe_address = 0;
 	unsigned int probe_decrement = 0;
+//	char *temp;
 
 	make_hash(key, &probe_address, &probe_decrement, NAME_HASH_PRIME);
 	while(name_hashtable[probe_address] != NULL) {
@@ -174,7 +175,6 @@ int search_name_hashtable(const char *key)
 		}
 	}
 	name_hashtable[probe_address] = xstrdup(key);
-
 	return(probe_address);
 }
 
@@ -212,6 +212,7 @@ int version_compare_part(const char *version1, const char *version2)
 	int tmp_int;
 	int ver_num1;
 	int ver_num2;
+	int ret;
 
 	if (version1 == NULL) {
 		version1 = xstrdup("");
@@ -234,7 +235,8 @@ int version_compare_part(const char *version1, const char *version2)
 		free(name1_char);
 		free(name2_char);
 		if (tmp_int != 0) {
-			return(tmp_int);
+			ret = tmp_int;
+			goto cleanup_version_compare_part;
 		}
 
 		/* Compare digits */
@@ -249,13 +251,17 @@ int version_compare_part(const char *version1, const char *version2)
 		free(name1_char);
 		free(name2_char);
 		if (ver_num1 < ver_num2) {
-			return(-1);
+			ret = -1;
+			goto cleanup_version_compare_part;
 		}
 		else if (ver_num1 > ver_num2) {
-			return(1);
+			ret = 1;
+			goto cleanup_version_compare_part;
 		}
 	}
-	return(0);
+	ret = 0;
+cleanup_version_compare_part:
+	return(ret);
 }
 
 /* if ver1 < ver2 return -1,
@@ -499,54 +505,61 @@ unsigned int fill_package_struct(char *control_buffer)
 {
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
 
-	char *field_name = xmalloc(sizeof(char *));
-	char *field_value = xmalloc(sizeof(char *));
+	char **field_name = xmalloc(sizeof(char *));
+	char **field_value = xmalloc(sizeof(char *));
 	int field_start = 0;
 	int num = -1;
 	int buffer_length = strlen(control_buffer);
 
 	new_node->version = search_name_hashtable("unknown");
 	while (field_start < buffer_length) {
-		field_start += read_package_field(&control_buffer[field_start], &field_name, &field_value);
+		field_start += read_package_field(&control_buffer[field_start], field_name, field_value);
 
-		if (field_name == NULL) {
+		if (*field_name == NULL) {
 			goto fill_package_struct_cleanup; // Oh no, the dreaded goto statement !!
 		}
 
-		if (strcmp(field_name, "Package") == 0) {
-			new_node->name = search_name_hashtable(field_value);
+		if (strcmp(*field_name, "Package") == 0) {
+			new_node->name = search_name_hashtable(*field_value);
 		}
-		else if (strcmp(field_name, "Version") == 0) {
-			new_node->version = search_name_hashtable(field_value);
+		else if (strcmp(*field_name, "Version") == 0) {
+			new_node->version = search_name_hashtable(*field_value);
 		}
-		else if (strcmp(field_name, "Pre-Depends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_PRE_DEPENDS);
+		else if (strcmp(*field_name, "Pre-Depends") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_PRE_DEPENDS);
 		}
-		else if (strcmp(field_name, "Depends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_DEPENDS);
+		else if (strcmp(*field_name, "Depends") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_DEPENDS);
 		}
-		else if (strcmp(field_name, "Replaces") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_REPLACES);
+		else if (strcmp(*field_name, "Replaces") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_REPLACES);
 		}
-		else if (strcmp(field_name, "Provides") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_PROVIDES);
+		else if (strcmp(*field_name, "Provides") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_PROVIDES);
 		}
-		else if (strcmp(field_name, "Conflicts") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_CONFLICTS);
+		else if (strcmp(*field_name, "Conflicts") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_CONFLICTS);
 		}
-		else if (strcmp(field_name, "Suggests") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_SUGGESTS);
+		else if (strcmp(*field_name, "Suggests") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_SUGGESTS);
 		}
-		else if (strcmp(field_name, "Recommends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_RECOMMENDS);
+		else if (strcmp(*field_name, "Recommends") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_RECOMMENDS);
 		}
-		else if (strcmp(field_name, "Enhances") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_ENHANCES);
+		else if (strcmp(*field_name, "Enhances") == 0) {
+			add_split_dependencies(new_node, *field_value, EDGE_ENHANCES);
 		}
 fill_package_struct_cleanup:
-		free(field_name);
-		free(field_value);
+		if (*field_name) {
+			free(*field_name);
+		}
+		if (*field_value) {
+			free(*field_value);
+		}
 	}
+	free(field_name);
+	free(field_value);
+
 	if (new_node->version == search_name_hashtable("unknown")) {
 		free_package(new_node);
 		return(-1);
@@ -615,6 +628,7 @@ void set_status(const unsigned int status_node_num, const char *new_value, const
 	new_status = (char *) xmalloc(want_len + flag_len + status_len + 3);
 	sprintf(new_status, "%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
 	status_hashtable[status_node_num]->status = search_name_hashtable(new_status);
+	free(new_status);
 	return;
 }
 
@@ -819,7 +833,6 @@ void write_status_file(deb_file_t **deb_file)
 				}
 				else if	(strcmp("config-files", name_hashtable[state_status]) == 0) {
 					/* only change the status line */
-//					buffer_length = strlen(control_buffer);
 					while (1) {
 						char *field_name;
 						char *field_value;
@@ -1003,6 +1016,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		}
 		i++;
 	}
+	free(conflicts);
 	return(TRUE);
 }
 
@@ -1091,8 +1105,10 @@ int run_package_script(const char *package_name, const char *script_type)
 
 	/* If the file doesnt exist is isnt a fatal */
 	if (lstat(script_path, &path_stat) < 0) {
+		free(script_path);
 		return(EXIT_SUCCESS);
 	} else {
+		free(script_path);
 		return(system(script_path));
 	}
 }
@@ -1236,6 +1252,8 @@ void unpack_package(deb_file_t *deb_file)
 	/* change status */
 	set_status(status_num, "install", 1);
 	set_status(status_num, "unpacked", 3);
+
+	free(info_prefix);
 }
 
 void configure_package(deb_file_t *deb_file)
@@ -1398,6 +1416,13 @@ extern int dpkg_main(int argc, char **argv)
 	}
 
 	write_status_file(deb_file);
+
+	for (i = 0; i < deb_count; i++) {
+		free(deb_file[i]->control_file);
+		free(deb_file[i]->filename);
+		free(deb_file[i]);
+	}
+	free(deb_file);
 
 	for (i = 0; i < NAME_HASH_PRIME; i++) {
 		if (name_hashtable[i] != NULL) {
