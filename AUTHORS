@@ -46,6 +46,9 @@ Glenn McGrath <bug1@netconnect.com.au>
 Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.
 
+Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
+    wget - Contributed by permission of Covad Communications
+
 Pavel Roskin <proski@gnu.org>
     Lots of bugs fixes and patches.
 

@@ -13,6 +13,8 @@
 	    Sterling Huxley <sterling@europa.com>
 	* lsmod now uses the query_module syscall, rather then /proc
 	* Added 'rdate' command from Sterling Huxley <sterling@europa.com>
+	* Added 'wget' command, contributed by Chip Rosenthal <chip@unicom.com>, 
+		<crosenth@covad.com> and Covad Communications
 	* Added 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
 	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
 	    wouldn't work (since it thought -r was an option).  Doh!

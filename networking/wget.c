@@ -50,7 +50,7 @@ int wget_main(int argc, char **argv)
 			++do_continue;
 			break;
 		case 'O':
-			fname_out = optarg;
+			fname_out = (strcmp(optarg, "-") == 0 ? NULL : optarg);
 			break;
 		default:
 			usage(wget_usage);
@@ -74,12 +74,8 @@ int wget_main(int argc, char **argv)
 	 * Open the output stream.
 	 */
 	if (fname_out != NULL) {
-		/* Check if the file is supposed to go to stdout */
-		if (!strcmp(fname_out, "-") == 0) {
-			/* Nope -- so open the output file */
-			if (freopen(fname_out, (do_continue ? "a" : "w"), stdout) == NULL)
-				fatalError("wget: freopen(%s): %s\n", fname_out, strerror(errno));
-		}
+		if (freopen(fname_out, (do_continue ? "a" : "w"), stdout) == NULL)
+			fatalError("wget: freopen(%s): %s\n", fname_out, strerror(errno));
 	}
 
 	/*
@@ -248,7 +244,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 		return hdrval;
 	}
 
-	/* Rat!  The buffer isn't big enough to hold the entire header value. */
+	/* Rats!  The buffer isn't big enough to hold the entire header value. */
 	while (c = getc(fp), c != EOF && c != '\n')
 		;
 	*istrunc = 1;
