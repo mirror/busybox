@@ -336,7 +336,7 @@ int arping_main(int argc, char **argv)
 		exit(socket_errno);
 	}
 
-	if (1) {
+	{
 		struct ifreq ifr;
 
 		memset(&ifr, 0, sizeof(ifr));
@@ -361,7 +361,7 @@ int arping_main(int argc, char **argv)
 		}
 	}
 
-	if (inet_aton(target, &dst) != 1) {
+	if (!inet_aton(target, &dst)) {
 		struct hostent *hp;
 
 		hp = gethostbyname2(target, AF_INET);
@@ -372,7 +372,7 @@ int arping_main(int argc, char **argv)
 		memcpy(&dst, hp->h_addr, 4);
 	}
 
-	if (source && inet_aton(source, &src) != 1) {
+	if (source && !inet_aton(source, &src)) {
 		error_msg("invalid source address %s", source);
 		exit(2);
 	}
@@ -436,7 +436,7 @@ int arping_main(int argc, char **argv)
 		exit(2);
 	}
 
-	if (1) {
+	{
 		int alen = sizeof(me);
 
 		if (getsockname(s, (struct sockaddr *) &me, &alen) == -1) {
@@ -451,9 +451,11 @@ int arping_main(int argc, char **argv)
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
-	if (!quiet)
-		printf("ARPING to %s from %s via %s\n", inet_ntoa(dst),
-			   inet_ntoa(src), device ? device : "unknown");
+	if (!quiet) {
+		printf("ARPING to %s", inet_ntoa(dst));
+		printf(" from %s via %s\n", inet_ntoa(src),
+			   device ? device : "unknown");
+	}
 
 	if (!src.s_addr && !dad) {
 		error_msg("no src address in the non-DAD mode");
