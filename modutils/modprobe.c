@@ -540,8 +540,10 @@ extern int modprobe_main(int argc, char** argv)
 	if (optind >= argc) 
 		error_msg_and_die ( "No module or pattern provided\n" );
 	
-	return mod_insert ( xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 ) ? \
-	       EXIT_FAILURE : EXIT_SUCCESS;
+	if ( mod_insert ( xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 )) 
+		error_msg_and_die ( "failed to load module %s", argv [optind] );
+	
+	return EXIT_SUCCESS;
 }
 
 
