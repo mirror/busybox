@@ -161,7 +161,6 @@ CONFIG_FEATURE_HUMAN_READABLE=y
 # CONFIG_CLEAR is not set
 # CONFIG_DEALLOCVT is not set
 # CONFIG_DUMPKMAP is not set
-# CONFIG_LOADACM is not set
 # CONFIG_LOADFONT is not set
 # CONFIG_LOADKMAP is not set
 # CONFIG_OPENVT is not set

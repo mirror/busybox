@@ -331,9 +331,6 @@
 #ifdef CONFIG_LN
 	APPLET(ln, ln_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_LOADACM
-	APPLET(loadacm, loadacm_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
-#endif
 #ifdef CONFIG_LOADFONT
 	APPLET(loadfont, loadfont_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

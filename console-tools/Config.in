@@ -31,12 +31,6 @@ config CONFIG_DUMPKMAP
 	  This program dumps the kernel's keyboard translation table to
 	  stdout, in binary format. You can then use loadkmap to load it.
 
-config CONFIG_LOADACM
-	bool "loadacm"
-	default n
-	help
-	  This program loads an acm from standard input.
-
 config CONFIG_LOADFONT
 	bool "loadfont"
 	default n
