@@ -406,7 +406,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
 	/* handle branch commands */
-	else if (strchr(":b", sed_cmd->cmd)) {
+	else if (strchr(":bt", sed_cmd->cmd)) {
 		int length;
 
 		cmdstr += strspn(cmdstr, " ");
@@ -724,6 +724,7 @@ static void process_file(FILE *file)
 	do {
 		char *next_line;
 		sed_cmd_t *sed_cmd;
+		int substituted = 0;
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
 		next_line = bb_get_chomped_line_from_file(file);
@@ -793,20 +794,16 @@ static void process_file(FILE *file)
 						 */
 
 						/* we print the line once, unless we were told to be quiet */
-						if (!be_quiet) {
-							altered |= do_subst_command(sed_cmd, &line);
-							if (altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
-								puts(line);
-							}
+						substituted = do_subst_command(sed_cmd, &line);
+						altered |= substituted;
+						if (!be_quiet && altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
+							puts(line);
 						}
 
 						/* we also print the line if we were given the 'p' flag
 						 * (this is quite possibly the second printing) */
-						if (sed_cmd->sub_p) {
-							altered |= do_subst_command(sed_cmd, &line);
-							if (altered) {
-								puts(line);
-							}
+						if ((sed_cmd->sub_p) && altered) {
+							puts(line);
 						}
 						break;
 					case 'a':
@@ -866,6 +863,11 @@ static void process_file(FILE *file)
 						break;
 					case 'b':
 						sed_cmd = branch_to(sed_cmd->label);
+						break;
+					case 't':
+						if (substituted) {
+							sed_cmd = branch_to(sed_cmd->label);
+						}
 						break;
 //					case ':':
 //						break;
