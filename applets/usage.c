@@ -375,6 +375,24 @@ const char fsck_minix_usage[] =
 	;
 #endif
 
+#if defined BB_GETOPT
+const char getopt_usage[] =
+"getopt [OPTIONS]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+"Parse command options\n"
+"  -a, --alternative            Allow long options starting with single -\n"
+"  -l, --longoptions=longopts   Long options to be recognized\n"
+"  -n, --name=progname          The name under which errors are reported\n"
+"  -o, --options=optstring      Short options to be recognized\n"
+"  -q, --quiet                  Disable error reporting by getopt(3)\n"
+"  -Q, --quiet-output           No normal output\n"
+"  -s, --shell=shell            Set shell quoting conventions\n"
+"  -T, --test                   Test for getopt(1) version\n"
+"  -u, --unqote                 Do not quote the output\n"
+#endif
+;
+#endif
+
 #if defined BB_GREP
 const char grep_usage[] =
 	"grep [-ihHnqvs] pattern [files...]\n"
@@ -1472,3 +1490,4 @@ const char yes_usage[] =
 #endif
 	;
 #endif
+

@@ -257,6 +257,7 @@ extern const char find_usage[];
 extern const char free_usage[];
 extern const char freeramdisk_usage[];
 extern const char fsck_minix_usage[];
+extern const char getopt_usage[];
 extern const char grep_usage[];
 extern const char gunzip_usage[];
 extern const char gzip_usage[];

@@ -110,7 +110,7 @@ const struct BB_applet applets[] = {
 	{"fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix_usage},
 #endif
 #ifdef BB_GETOPT
-	{"getopt", getopt_main, _BB_DIR_BIN},
+	{"getopt", getopt_main, _BB_DIR_BIN, getopt_usage},
 #endif
 #ifdef BB_GREP
 	{"grep", grep_main, _BB_DIR_BIN, grep_usage},
@@ -245,7 +245,7 @@ const struct BB_applet applets[] = {
 	{"reboot", reboot_main, _BB_DIR_SBIN, reboot_usage},
 #endif
 #ifdef BB_RENICE
-	{"renice", renice_main, _BB_DIR_USR_BIN},
+	{"renice", renice_main, _BB_DIR_USR_BIN, renice_usage},
 #endif
 #ifdef BB_RESET
 	{"reset", reset_main, _BB_DIR_USR_BIN, reset_usage},
