@@ -84,13 +84,22 @@ struct BB_applet *find_applet_by_name(const char *name)
 
 void run_applet_by_name(const char *name, int argc, char **argv)
 {
+	static int recurse_level = 0;
+
+	recurse_level++;
 	/* Do a binary search to find the applet entry given the name. */
 	if ((applet_using = find_applet_by_name(name)) != NULL) {
 		applet_name = applet_using->name;
-		if (argv[1] && strcmp(argv[1], "--help") == 0)
+		if (argv[1] && strcmp(argv[1], "--help") == 0) {
 			show_usage();
+		}
 		exit((*(applet_using->main)) (argc, argv));
 	}
+	/* Just in case they have renamed busybox - Check argv[1] */
+	if (recurse_level == 1) {
+		run_applet_by_name("busybox", argc, argv);
+	}
+	recurse_level = 0;
 }
 
 
