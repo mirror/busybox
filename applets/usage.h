@@ -438,7 +438,7 @@
 	"[-signal] process-id [process-id ...]"
 #define kill_full_usage \
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"\
-	"Options:\n" \ 
+	"Options:\n" \
 	"\t-l\tList all signal names and numbers."
 
 #define killall_trivial_usage \
