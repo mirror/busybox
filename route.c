@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.4 2001/02/15 23:00:48 markw Exp $
+ * $Id: route.c,v 1.5 2001/02/15 23:31:40 markw Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * busybox style adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -379,9 +379,11 @@ void displayroutes(void)
 			dest.s_addr = d;
 			gw.s_addr   = g;
 			mask.s_addr = m;
-			if(nl==1)
-				printf("Kernel IP routing table\n\
-Destination\tGateway\t\tGenmask\t\tFlags Metric Ref    Use Iface\n");
+			if(nl==1) {
+                printf("Kernel IP routing table\n"
+"Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+			}
+
 
 			ifl = 0;        /* parse flags */
 			if(flgs&1)
