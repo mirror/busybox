@@ -57,8 +57,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <pwd.h>
-#include <grp.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -68,20 +66,59 @@
 #include <sys/un.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <linux/major.h>
-#include <linux/devfs_fs.h>
-#include <linux/kdev_t.h>
 #include <syslog.h>
 #include <signal.h>
 #include <regex.h>
 #include <errno.h>
+#include <sys/sysmacros.h>
 
-#ifndef IDE6_MAJOR        /*  In case we're building with an ancient kernel  */
-#  define IDE6_MAJOR      88
-#  define IDE7_MAJOR      89
-#  define IDE8_MAJOR      90
-#  define IDE9_MAJOR      91
-#endif
+
+/* Various defines taken from linux/major.h */
+#define IDE0_MAJOR	3
+#define IDE1_MAJOR	22
+#define IDE2_MAJOR	33
+#define IDE3_MAJOR	34
+#define IDE4_MAJOR	56
+#define IDE5_MAJOR	57
+#define IDE6_MAJOR	88
+#define IDE7_MAJOR	89
+#define IDE8_MAJOR	90
+#define IDE9_MAJOR	91
+
+
+/* Various defines taken from linux/devfs_fs.h */
+#define DEVFSD_PROTOCOL_REVISION_KERNEL  5
+#define	DEVFSD_IOCTL_BASE	'd'
+/*  These are the various ioctls  */
+#define DEVFSDIOC_GET_PROTO_REV         _IOR(DEVFSD_IOCTL_BASE, 0, int)
+#define DEVFSDIOC_SET_EVENT_MASK        _IOW(DEVFSD_IOCTL_BASE, 2, int)
+#define DEVFSDIOC_RELEASE_EVENT_QUEUE   _IOW(DEVFSD_IOCTL_BASE, 3, int)
+#define DEVFSDIOC_SET_DEBUG_MASK        _IOW(DEVFSD_IOCTL_BASE, 4, int)
+#define DEVFSD_NOTIFY_REGISTERED    0
+#define DEVFSD_NOTIFY_UNREGISTERED  1
+#define DEVFSD_NOTIFY_ASYNC_OPEN    2
+#define DEVFSD_NOTIFY_CLOSE         3
+#define DEVFSD_NOTIFY_LOOKUP        4
+#define DEVFSD_NOTIFY_CHANGE        5
+#define DEVFSD_NOTIFY_CREATE        6
+#define DEVFSD_NOTIFY_DELETE        7
+#define DEVFS_PATHLEN               1024  /*  Never change this otherwise the
+					      binary interface will change   */
+struct devfsd_notify_struct
+{   /*  Use native C types to ensure same types in kernel and user space     */
+    unsigned int type;           /*  DEVFSD_NOTIFY_* value                   */
+    unsigned int mode;           /*  Mode of the inode or device entry       */
+    unsigned int major;          /*  Major number of device entry            */
+    unsigned int minor;          /*  Minor number of device entry            */
+    unsigned int uid;            /*  Uid of process, inode or device entry   */
+    unsigned int gid;            /*  Gid of process, inode or device entry   */
+    unsigned int overrun_count;  /*  Number of lost events                   */
+    unsigned int namelen;        /*  Number of characters not including '\0' */
+    /*  The device name MUST come last                                       */
+    char devname[DEVFS_PATHLEN]; /*  This will be '\0' terminated            */
+};
+
+
 
 /* These are now in Config.in */
 /* define this if you want to have more output on stderr and syslog at the same time */
@@ -1340,8 +1377,8 @@ static void do_scan_and_service (const char *dir_name)
 		memset (&info, 0, sizeof info);
 		info.type = DEVFSD_NOTIFY_REGISTERED;
 		info.mode = statbuf.st_mode;
-		info.major = MAJOR (statbuf.st_rdev);
-		info.minor = MINOR (statbuf.st_rdev);
+		info.major = major (statbuf.st_rdev);
+		info.minor = minor (statbuf.st_rdev);
 		info.uid = statbuf.st_uid;
 		info.gid = statbuf.st_gid;
 		snprintf (info.devname, sizeof (info.devname), "%s", path + strlen (mount_point) + 1);
