@@ -62,9 +62,12 @@
 #define SERIAL_CON1     "/dev/ttyS1"    /* Serial console */
 #define GETTY           "/sbin/getty"	/* Default location of getty */
 #define SHELL           "/bin/sh"	/* Default shell */
+#define INITTAB          "/etc/inittab"	/* inittab file location */
 #ifndef BB_INIT_SCRIPT
 #define BB_INIT_SCRIPT	"/etc/init.d/rcS"	/* Initscript. */
 #endif
+
+#if 1
 
 #define LOG             0x1
 #define CONSOLE         0x2
@@ -609,3 +612,75 @@ extern int init_main(int argc, char **argv)
 	sleep(1);
     }
 }
+
+#else
+
+
+void parse_inittab(void) 
+{
+    FILE* file;
+    char buf[256];
+    char action[256]="";
+    char process[256]="";
+    char *p, *q;
+
+
+    if ((file = fopen(INITTAB, "r")) < 0) {
+	/* No inittab file -- set up some default behavior */
+
+	/* FIXME */
+	return;
+    }
+
+    while ( fgets(buf, 255, file) != NULL) {
+	for(p = buf; *p == ' ' || *p == '\t'; p++);
+	if (*p == '#' || *p == '\n') continue;
+
+	/* Trim the trailing \n */
+	q = strrchr( p, '\n');
+	if (q != NULL)
+	    *q='\0';
+
+	/* Skip past the ID field and the runlevel 
+	 * field (both are ignored) */
+	p = strchr( p, ':');
+
+	/* Now peal off the process field from the end
+	 * of the string */
+	q = strrchr( p, ':');
+	if ( q == NULL || q+1 == NULL)
+	    goto choke;
+	*q='\0';
+	strcpy( process, ++q);
+	fprintf(stderr, "process=%s\n", process);
+
+	
+	/* Now peal off the action field */
+	q = strrchr( p, ':');
+	if ( q == NULL || q+1 == NULL)
+	    goto choke;
+	strcpy( action, ++q);
+	fprintf(stderr, "action=%s\n", action);
+
+
+	/* Ok, now do the right thing */
+
+    }
+    return;
+
+choke:
+    //message(CONSOLE, "Bad entry:");
+    fprintf(stderr, "Bad inittab entry: %s", buf);
+    while (1) sleep(1);
+    
+}
+
+
+extern int init_main(int argc, char **argv)
+{
+    parse_inittab();
+    exit( TRUE);
+}
+
+
+#endif
