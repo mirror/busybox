@@ -76,7 +76,6 @@ extern void unpack_ar_archive(archive_handle_t *ar_archive);
 
 extern void data_skip(archive_handle_t *archive_handle);
 extern void data_extract_all(archive_handle_t *archive_handle);
-extern void data_extract_all_prefix(archive_handle_t *archive_handle);
 extern void data_extract_to_stdout(archive_handle_t *archive_handle);
 extern void data_extract_to_buffer(archive_handle_t *archive_handle);
 

@@ -26,7 +26,6 @@ LIBUNARCHIVE-y:= \
 \
 	data_skip.o \
 	data_extract_all.o \
-	data_extract_all_prefix.o \
 	data_extract_to_stdout.o \
 	data_extract_to_buffer.o \
 \

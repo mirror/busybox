@@ -1341,7 +1341,21 @@ static archive_handle_t *deb_extract(const char *filename, const char *ar_name,
 	return(ar_archive->sub_archive);
 }
 
-void unpack_package(deb_file_t *deb_file)
+static void data_extract_all_prefix(archive_handle_t *archive_handle)
+{
+	char *name_ptr = archive_handle->file_header->name;
+
+	name_ptr += strspn(name_ptr, "./");
+	if (name_ptr[0] != '\0') {
+		archive_handle->file_header->name = xmalloc(strlen(archive_handle->buffer) + 2 + strlen(name_ptr));
+		strcpy(archive_handle->file_header->name, archive_handle->buffer);
+		strcat(archive_handle->file_header->name, name_ptr);
+		data_extract_all(archive_handle);
+	}
+	return;
+}
+
+static void unpack_package(deb_file_t *deb_file)
 {
 	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const unsigned int status_num = search_status_hashtable(package_name);
