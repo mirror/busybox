@@ -125,7 +125,8 @@ typedef struct TarInfo TarInfo;
 
 /* Local procedures to restore files from a tar file.  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag, char** excludeList);
+		int tostdoutFlag, int verboseFlag, char** extractList,
+		char** excludeList);
 
 
 
@@ -190,7 +191,7 @@ extern int tar_main(int argc, char **argv)
 					if (strcmp(optarg, "exclude")==0) {
 						if (argv[optind]==NULL)
 							fatalError( "option `--exclude' requires an argument\n");
-						excludeList=realloc( excludeList, sizeof(char**) * (excludeListSize+2));
+						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
 						excludeList[excludeListSize] = argv[optind];
 						/* Remove leading "/"s */
 						if (*excludeList[excludeListSize] =='/') {
@@ -222,7 +223,7 @@ extern int tar_main(int argc, char **argv)
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
-		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, excludeList));
+		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, &argv[optind], excludeList));
 	}
 
   flagError:
@@ -477,7 +478,8 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
  * If the list is empty than all files are extracted or listed.
  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag, char** excludeList)
+		int tostdoutFlag, int verboseFlag, char** extractList,
+		char** excludeList)
 {
 	int status, tarFd=-1;
 	int errorFlag=FALSE;
@@ -544,6 +546,27 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				continue;
 		}
 #endif
+		if (*extractList != NULL) {
+			int skipFlag = TRUE;
+			for (tmpList = extractList; *tmpList != NULL; tmpList++) {
+				if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
+							header.name[strlen(header.name)-1]=='/'
+							&& strncmp( *tmpList, header.name, 
+								MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
+					/* If it is a regular file, pretend to extract it with
+					 * the extractFlag set to FALSE, so the junk in the tarball
+					 * is properly skipped over */
+					skipFlag = FALSE;
+					break;
+				}
+			}
+			/* There are not the droids you're looking for, move along */
+			if (skipFlag == TRUE) {
+				if ( header.type==REGTYPE || header.type==REGTYPE0 )
+						tarExtractRegularFile(&header, FALSE, FALSE);
+				continue;
+			}
+		}
 		/* Special treatment if the list (-t) flag is on */
 		if (verboseFlag == TRUE && extractFlag == FALSE) {
 			int len, len1;
