@@ -267,7 +267,6 @@ static void stunalloc(pointer);
 static void ungrabstackstr(char *, char *);
 static char *growstackstr(void);
 static char *makestrspace(size_t newlen);
-static char *sstrdup(const char *);
 
 /*
  * Parse trees for commands are allocated in lifo order, so we use a stack
@@ -309,7 +308,6 @@ static int stacknleft = MINSIZE;
 #define STTOPC(p)       p[-1]
 #define STADJUST(amount, p)     (p += (amount), sstrnleft -= (amount))
 #define grabstackstr(p) stalloc(stackblocksize() - sstrnleft)
-
 
 
 #ifdef DEBUG
@@ -676,37 +674,22 @@ static void out2c(int c)
 #define  ARISYNTAX   3	/* in arithmetic */
 
 static const char S_I_T[][4] = {
-										/*  0 */ {CSPCL, CIGN, CIGN, CIGN},
-										/* PEOA */
-											/*  1 */ {CSPCL, CWORD, CWORD, CWORD},
-											/* ' ' */
-									/*  2 */ {CNL, CNL, CNL, CNL},
-									/* \n */
-											/*  3 */ {CWORD, CCTL, CCTL, CWORD},
-											/* !*-/:=?[]~ */
-													/*  4 */ {CDQUOTE, CENDQUOTE, CWORD, CDQUOTE},
-													/* '"' */
-										/*  5 */ {CVAR, CVAR, CWORD, CVAR},
-										/* $ */
-													/*  6 */ {CSQUOTE, CWORD, CENDQUOTE, CSQUOTE},
-													/* "'" */
-											/*  7 */ {CSPCL, CWORD, CWORD, CLP},
-											/* ( */
-											/*  8 */ {CSPCL, CWORD, CWORD, CRP},
-											/* ) */
-											/*  9 */ {CBACK, CBACK, CCTL, CBACK},
-											/* \ */
-													/* 10 */ {CBQUOTE, CBQUOTE, CWORD, CBQUOTE},
-													/* ` */
-													/* 11 */ {CENDVAR, CENDVAR, CWORD, CENDVAR},
-													/* } */
+	{CSPCL, CIGN, CIGN, CIGN},	/* 0, PEOA */
+	{CSPCL, CWORD, CWORD, CWORD},	/* 1, ' ' */
+	{CNL, CNL, CNL, CNL},	/* 2, \n */
+	{CWORD, CCTL, CCTL, CWORD},	/* 3, !*-/:=?[]~ */
+	{CDQUOTE, CENDQUOTE, CWORD, CDQUOTE},	/* 4, '"' */
+	{CVAR, CVAR, CWORD, CVAR},	/* 5, $ */
+	{CSQUOTE, CWORD, CENDQUOTE, CSQUOTE},	/* 6, "'" */
+	{CSPCL, CWORD, CWORD, CLP},	/* 7, ( */
+	{CSPCL, CWORD, CWORD, CRP},	/* 8, ) */
+	{CBACK, CBACK, CCTL, CBACK},	/* 9, \ */
+	{CBQUOTE, CBQUOTE, CWORD, CBQUOTE},	/* 10, ` */
+	{CENDVAR, CENDVAR, CWORD, CENDVAR},	/* 11, } */
 #ifndef USE_SIT_FUNCTION
-														/* 12 */ {CENDFILE, CENDFILE, CENDFILE, CENDFILE},
-														/* PEOF */
-											/* 13 */ {CWORD, CWORD, CWORD, CWORD},
-											/* 0-9A-Za-z */
-										/* 14 */ {CCTL, CCTL, CCTL, CCTL}
-										/* CTLESC ... */
+	{CENDFILE, CENDFILE, CENDFILE, CENDFILE},	/* 12, PEOF */
+	{CWORD, CWORD, CWORD, CWORD},	/* 13, 0-9A-Za-z */
+	{CCTL, CCTL, CCTL, CCTL}	/* 14, CTLESC ... */
 #endif
 };
 
@@ -766,16 +749,16 @@ static const char syntax_index_table[258] = {
 	/*   0  -130 PEOF */ CENDFILE_CENDFILE_CENDFILE_CENDFILE,
 	/*   1  -129 PEOA */ CSPCL_CIGN_CIGN_CIGN,
 	/*   2  -128 0xff */ CWORD_CWORD_CWORD_CWORD,
-												/*   3  -127      */ CCTL_CCTL_CCTL_CCTL,
-												/* CTLQUOTEMARK */
+	/*   3  -127      */ CCTL_CCTL_CCTL_CCTL,
+	/* CTLQUOTEMARK */
 	/*   4  -126      */ CCTL_CCTL_CCTL_CCTL,
 	/*   5  -125      */ CCTL_CCTL_CCTL_CCTL,
 	/*   6  -124      */ CCTL_CCTL_CCTL_CCTL,
 	/*   7  -123      */ CCTL_CCTL_CCTL_CCTL,
 	/*   8  -122      */ CCTL_CCTL_CCTL_CCTL,
 	/*   9  -121      */ CCTL_CCTL_CCTL_CCTL,
-												/*  10  -120      */ CCTL_CCTL_CCTL_CCTL,
-												/* CTLESC */
+	/*  10  -120      */ CCTL_CCTL_CCTL_CCTL,
+	/* CTLESC */
 	/*  11  -119      */ CWORD_CWORD_CWORD_CWORD,
 	/*  12  -118      */ CWORD_CWORD_CWORD_CWORD,
 	/*  13  -117      */ CWORD_CWORD_CWORD_CWORD,
@@ -1107,14 +1090,8 @@ static void onsig(int);
 static void dotrap(void);
 static int decode_signal(const char *, int);
 
-static void shprocvar(void);
-static void deletefuncs(void);
 static void setparam(char **);
 static void freeparam(volatile struct shparam *);
-
-static void find_command(const char *, struct cmdentry *, int, const char *);
-
-static inline void hashcd(void);
 
 /* reasons for skipping commands (see comment on breakcmd routine) */
 #define SKIPBREAK       1
@@ -1583,7 +1560,7 @@ static void setpwd(const char *, int);
 struct builtincmd {
 	const char *name;
 	int (*const builtinfunc) (int, char **);
-	/* unsigned flags; */
+	//unsigned flags;
 };
 
 
@@ -1660,7 +1637,7 @@ static struct builtincmd *EXECCMD;
 static struct builtincmd *EVALCMD;
 
 /* states */
-#define CONFIG_ASH_JOB_CONTROLTOPPED 1	/* all procs are stopped */
+#define JOBSTOPPED 1	/* all procs are stopped */
 #define JOBDONE 2		/* all procs are completed */
 
 /*
@@ -1708,7 +1685,6 @@ static int initialpgrp;	/* pgrp of shell on invocation */
 static int curjob;		/* current job */
 static int jobctl;
 #endif
-static int intreceived;
 
 static struct job *makejob(const union node *, int);
 static int forkshell(struct job *, const union node *, int);
@@ -1769,6 +1745,28 @@ static int cdcmd(int argc, char **argv)
 
 
 /*
+ * Update curdir (the name of the current directory) in response to a
+ * cd command.  We also call hashcd to let the routines in exec.c know
+ * that the current directory has changed.
+ */
+
+static void hashcd(void);
+
+static inline void updatepwd(const char *dir)
+{
+	hashcd();			/* update command hash table */
+
+	/*
+	 * If our argument is NULL, we don't know the current directory
+	 */
+	if (dir == NULL || curdir == nullstr) {
+		setpwd(0, 1);
+	} else {
+		setpwd(dir, 1);
+	}
+}
+
+/*
  * Actually do the chdir.  In an interactive shell, print the
  * directory name if "print" is nonzero.
  */
@@ -1781,18 +1779,7 @@ static int docd(char *dest, int print)
 		INTON;
 		return -1;
 	}
-	hashcd();
-	/*
-	 * Update curdir (the name of the current directory) in response to a
-	 * cd command.  We also call hashcd to let the routines in exec.c know
-	 * that the current directory has changed.
-	 */
-	/* If dest is NULL, we don't know the current directory */
-	if (dest == NULL || curdir == nullstr)
-		setpwd(0, 1);
-	else
-		setpwd(dest, 1);
-
+	updatepwd(dest);
 	INTON;
 	if (print && iflag)
 		puts(curdir);
@@ -1863,6 +1850,7 @@ struct jmploc {
 #define EXERROR 1		/* a generic error */
 #define EXSHELLPROC 2	/* execute a shell procedure */
 #define EXEXEC 3		/* command execution failed */
+#define EXREDIR 4		/* redirection error */
 
 static struct jmploc *handler;
 static int exception;
@@ -1911,12 +1899,11 @@ static void onint(void)
 	intpending = 0;
 	sigemptyset(&mysigset);
 	sigprocmask(SIG_SETMASK, &mysigset, NULL);
-	if (rootshell && iflag)
-		exraise(EXINT);
-	else {
+	if (!(rootshell && iflag)) {
 		signal(SIGINT, SIG_DFL);
 		raise(SIGINT);
 	}
+	exraise(EXINT);
 	/* NOTREACHED */
 }
 
@@ -2101,6 +2088,7 @@ static int oexitstatus;	/* saved exit status */
 
 static void evalsubshell(const union node *, int);
 static void expredir(union node *);
+static void prehash(union node *);
 static void eprintlist(struct strlist *);
 
 static union node *parsecmd(int);
@@ -2218,6 +2206,7 @@ static inline void evalloop(const union node *n, int flags)
 
 	loopnest++;
 	status = 0;
+	flags &= EV_TESTED;
 	for (;;) {
 		evaltree(n->nbinary.ch1, EV_TESTED);
 		if (evalskip) {
@@ -2236,7 +2225,7 @@ static inline void evalloop(const union node *n, int flags)
 			if (exitstatus == 0)
 				break;
 		}
-		evaltree(n->nbinary.ch2, flags & EV_TESTED);
+		evaltree(n->nbinary.ch2, flags);
 		status = exitstatus;
 		if (evalskip)
 			goto skipping;
@@ -2264,9 +2253,10 @@ static void evalfor(const union node *n, int flags)
 
 	exitstatus = 0;
 	loopnest++;
+	flags &= EV_TESTED;
 	for (sp = arglist.list; sp; sp = sp->next) {
 		setvar(n->nfor.var, sp->text, 0);
-		evaltree(n->nfor.body, flags & EV_TESTED);
+		evaltree(n->nfor.body, flags);
 		if (evalskip) {
 			if (evalskip == SKIPCONT && --skipcount <= 0) {
 				evalskip = 0;
@@ -2314,7 +2304,7 @@ static inline void evalcase(const union node *n, int flags)
  * of all the rest.)
  */
 
-static inline void evalpipe(union node *n)
+static inline void evalpipe(union node *n, int flags)
 {
 	struct job *jp;
 	struct nodelist *lp;
@@ -2326,24 +2316,12 @@ static inline void evalpipe(union node *n)
 	pipelen = 0;
 	for (lp = n->npipe.cmdlist; lp; lp = lp->next)
 		pipelen++;
+	flags |= EV_EXIT;
 	INTOFF;
 	jp = makejob(n, pipelen);
 	prevfd = -1;
 	for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
-		/*
-		 * Search for a command.  This is called before we fork so that the
-		 * location of the command will be available in the parent as well as
-		 * the child.  The check for "goodname" is an overly conservative
-		 * check that the name will not be subject to expansion.
-		 */
-
-		struct cmdentry entry;
-		union node *lpn = lp->n;
-
-		if (lpn->type == NCMD && lpn->ncmd.args
-			&& goodname(lpn->ncmd.args->narg.text))
-			find_command(lpn->ncmd.args->narg.text, &entry, 0, pathval());
-
+		prehash(lp->n);
 		pip[1] = -1;
 		if (lp->next) {
 			if (pipe(pip) < 0) {
@@ -2353,39 +2331,32 @@ static inline void evalpipe(union node *n)
 		}
 		if (forkshell(jp, lp->n, n->npipe.backgnd) == 0) {
 			INTON;
-			if (prevfd > 0) {
-				close(0);
-				dup_as_newfd(prevfd, 0);
-				close(prevfd);
-				if (pip[0] == 0) {
-					pip[0] = -1;
-				}
-			}
 			if (pip[1] >= 0) {
-				if (pip[0] >= 0) {
-					close(pip[0]);
-				}
-				if (pip[1] != 1) {
-					close(1);
-					dup_as_newfd(pip[1], 1);
-					close(pip[1]);
-				}
+				close(pip[0]);
 			}
-			evaltree(lp->n, EV_EXIT);
+			if (prevfd > 0) {
+				dup2(prevfd, 0);
+				close(prevfd);
+			}
+			if (pip[1] > 1) {
+				dup2(pip[1], 1);
+				close(pip[1]);
+			}
+			evaltree(lp->n, flags);
 		}
 		if (prevfd >= 0)
 			close(prevfd);
 		prevfd = pip[0];
 		close(pip[1]);
 	}
-	INTON;
 	if (n->npipe.backgnd == 0) {
-		INTOFF;
 		exitstatus = waitforjob(jp);
 		TRACE(("evalpipe:  job done exit status %d\n", exitstatus));
-		INTON;
 	}
+	INTON;
 }
+
+static void find_command(const char *, struct cmdentry *, int, const char *);
 
 static int isassignment(const char *word)
 {
@@ -2418,7 +2389,7 @@ static void evalcommand(union node *cmd, int flags)
 	volatile int e;
 	char *lastarg;
 	const char *path;
-	const struct builtincmd *firstbltin;
+	int spclbltin;
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 
@@ -2428,6 +2399,7 @@ static void evalcommand(union node *cmd, int flags)
 	(void) &argc;
 	(void) &lastarg;
 	(void) &flags;
+	(void) &spclbltin;
 #endif
 
 	/* First expand the arguments. */
@@ -2442,22 +2414,8 @@ static void evalcommand(union node *cmd, int flags)
 	for (argp = cmd->ncmd.assign; argp; argp = argp->narg.next) {
 		expandarg(argp, &varlist, EXP_VARTILDE);
 	}
-	for (argp = cmd->ncmd.args; argp && !arglist.list; argp = argp->narg.next) {
+	for (argp = cmd->ncmd.args; argp; argp = argp->narg.next) {
 		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
-	}
-	if (argp) {
-		struct builtincmd *bcmd;
-		int pseudovarflag;
-
-		bcmd = find_builtin(arglist.list->text);
-		pseudovarflag = bcmd && IS_BUILTIN_ASSIGN(bcmd);
-		for (; argp; argp = argp->narg.next) {
-			if (pseudovarflag && isassignment(argp->narg.text)) {
-				expandarg(argp, &arglist, EXP_VARTILDE);
-				continue;
-			}
-			expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
-		}
 	}
 	*arglist.lastp = NULL;
 	*varlist.lastp = NULL;
@@ -2488,7 +2446,8 @@ static void evalcommand(union node *cmd, int flags)
 	/* Now locate the command. */
 	if (argc == 0) {
 		cmdentry.cmdtype = CMDBUILTIN;
-		firstbltin = cmdentry.u.cmd = BLTINCMD;
+		cmdentry.u.cmd = BLTINCMD;
+		spclbltin = 1;
 	} else {
 		const char *oldpath;
 		int findflag = DO_ERR;
@@ -2505,7 +2464,7 @@ static void evalcommand(union node *cmd, int flags)
 			}
 		oldpath = path;
 		oldfindflag = findflag;
-		firstbltin = 0;
+		spclbltin = -1;
 		for (;;) {
 			find_command(argv[0], &cmdentry, findflag, path);
 			if (cmdentry.cmdtype == CMDUNKNOWN) {	/* command not found */
@@ -2516,8 +2475,8 @@ static void evalcommand(union node *cmd, int flags)
 			if (cmdentry.cmdtype != CMDBUILTIN) {
 				break;
 			}
-			if (!firstbltin) {
-				firstbltin = cmdentry.u.cmd;
+			if (spclbltin < 0) {
+				spclbltin = !!(IS_BUILTIN_SPECIAL(cmdentry.u.cmd)) * 2;
 			}
 			if (cmdentry.u.cmd == BLTINCMD) {
 				for (;;) {
@@ -2567,13 +2526,17 @@ static void evalcommand(union node *cmd, int flags)
 
 	/* Fork off a child process if necessary. */
 	if (cmd->ncmd.backgnd
-		|| (cmdentry.cmdtype == CMDNORMAL && (flags & EV_EXIT) == 0)
+		|| (cmdentry.cmdtype == CMDNORMAL && (!(flags & EV_EXIT) || trap[0]))
 		) {
+		INTOFF;
 		jp = makejob(cmd, 1);
 		mode = cmd->ncmd.backgnd;
 		if (forkshell(jp, cmd, mode) != 0)
 			goto parent;	/* at end of routine */
+		FORCEINTON;
 		flags |= EV_EXIT;
+	} else {
+		flags &= ~EV_EXIT;
 	}
 
 	/* This is the child process if a fork occurred. */
@@ -2584,7 +2547,6 @@ static void evalcommand(union node *cmd, int flags)
 		trargs(argv);
 #endif
 		exitstatus = oexitstatus;
-		redirect(cmd->ncmd.redirect, REDIR_PUSH);
 		saveparam = shellparam;
 		shellparam.malloc = 0;
 		shellparam.nparam = argc - 1;
@@ -2594,15 +2556,14 @@ static void evalcommand(union node *cmd, int flags)
 		localvars = NULL;
 		INTON;
 		if (setjmp(jmploc.loc)) {
-			if (exception == EXSHELLPROC) {
-				freeparam((volatile struct shparam *)
-						  &saveparam);
-			} else {
-				saveparam.optind = shellparam.optind;
-				saveparam.optoff = shellparam.optoff;
-				freeparam(&shellparam);
-				shellparam = saveparam;
+			if (exception == EXREDIR) {
+				exitstatus = 2;
+				goto funcdone;
 			}
+			saveparam.optind = shellparam.optind;
+			saveparam.optoff = shellparam.optoff;
+			freeparam(&shellparam);
+			shellparam = saveparam;
 			poplocalvars();
 			localvars = savelocalvars;
 			handler = savehandler;
@@ -2610,11 +2571,12 @@ static void evalcommand(union node *cmd, int flags)
 		}
 		savehandler = handler;
 		handler = &jmploc;
-		for (sp = varlist.list; sp; sp = sp->next)
-			mklocal(sp->text);
+		redirect(cmd->ncmd.redirect, REDIR_PUSH);
+		listsetvar(varlist.list);
 		funcnest++;
 		evaltree(cmdentry.u.func, flags & EV_TESTED);
 		funcnest--;
+	  funcdone:
 		INTOFF;
 		poplocalvars();
 		localvars = savelocalvars;
@@ -2629,17 +2591,16 @@ static void evalcommand(union node *cmd, int flags)
 			evalskip = 0;
 			skipcount = 0;
 		}
-		if (flags & EV_EXIT)
-			exitshell(exitstatus);
 	} else if (cmdentry.cmdtype == CMDBUILTIN) {
+		int redir;
+
 #ifdef DEBUG
 		trputs("builtin command:  ");
 		trargs(argv);
 #endif
-		mode = (cmdentry.u.cmd == EXECCMD) ? 0 : REDIR_PUSH;
-		redirect(cmd->ncmd.redirect, mode);
+		redir = (cmdentry.u.cmd == EXECCMD) ? 0 : REDIR_PUSH;
 		savecmdname = commandname;
-		if (IS_BUILTIN_SPECIAL(firstbltin)) {
+		if (spclbltin) {
 			listsetvar(varlist.list);
 		} else {
 			cmdenviron = varlist.list;
@@ -2652,6 +2613,7 @@ static void evalcommand(union node *cmd, int flags)
 		}
 		savehandler = handler;
 		handler = &jmploc;
+		redirect(cmd->ncmd.redirect, redir);
 		commandname = argv[0];
 		argptr = argv + 1;
 		optptr = NULL;	/* initialize nextopt */
@@ -2659,18 +2621,13 @@ static void evalcommand(union node *cmd, int flags)
 		flushall();
 	  cmddone:
 		cmdenviron = NULL;
-		if (e != EXSHELLPROC) {
-			commandname = savecmdname;
-			if (flags & EV_EXIT)
-				exitshell(exitstatus);
-		}
+		commandname = savecmdname;
 		handler = savehandler;
 		if (e != -1) {
-			if ((e != EXERROR && e != EXEXEC)
-				|| cmdentry.u.cmd == BLTINCMD
-				|| cmdentry.u.cmd == DOTCMD
-				|| cmdentry.u.cmd == EVALCMD || cmdentry.u.cmd == EXECCMD)
-				exraise(e);
+			if (e == EXINT || spclbltin & 2) {
+				if (e == EXREDIR)
+					exraise(e);
+			}
 			FORCEINTON;
 		}
 		if (cmdentry.u.cmd != EXECCMD)
@@ -2687,14 +2644,15 @@ static void evalcommand(union node *cmd, int flags)
 		envp = environment();
 		shellexec(argv, envp, path, cmdentry.u.index);
 	}
+	if (flags & EV_EXIT)
+		exitshell(exitstatus);
 	goto out;
 
   parent:				/* parent process gets here (if we forked) */
 	if (mode == 0) {	/* argument to fork */
-		INTOFF;
 		exitstatus = waitforjob(jp);
-		INTON;
 	}
+	INTON;
 
   out:
 	if (lastarg)
@@ -2790,7 +2748,7 @@ static void evaltree(union node *n, int flags)
 		break;
 
 	case NPIPE:
-		evalpipe(n);
+		evalpipe(n, flags);
 		checkexit = 1;
 		break;
 	case NCMD:
@@ -2818,22 +2776,27 @@ static void evaltree(union node *n, int flags)
 
 static void evalsubshell(const union node *n, int flags)
 {
-	struct job *jp;
+	struct job *jp = 0;
 	int backgnd = (n->type == NBACKGND);
 
 	expredir(n->nredir.redirect);
+	if (!backgnd && flags & EV_EXIT && !trap[0])
+		goto nofork;
+	INTOFF;
 	jp = makejob(n, 1);
 	if (forkshell(jp, n, backgnd) == 0) {
+		INTON;
+		flags |= EV_EXIT;
 		if (backgnd)
 			flags &= ~EV_TESTED;
+	  nofork:
 		redirect(n->nredir.redirect, 0);
-		evaltree(n->nredir.n, flags | EV_EXIT);	/* never returns */
+		evaltree(n->nredir.n, flags);	/* never returns */
 	}
 	if (!backgnd) {
-		INTOFF;
 		exitstatus = waitforjob(jp);
-		INTON;
 	}
+	INTON;
 }
 
 /*
@@ -2922,6 +2885,22 @@ static void evalbackcmd(union node *n, struct backcmd *result)
 /*
  * Execute a simple command.
  */
+
+/*
+ * Search for a command.  This is called before we fork so that the
+ * location of the command will be available in the parent as well as
+ * the child.  The check for "goodname" is an overly conservative
+ * check that the name will not be subject to expansion.
+ */
+
+static void prehash(union node *n)
+{
+	struct cmdentry entry;
+
+	if (n->type == NCMD && n->ncmd.args)
+		if (goodname(n->ncmd.args->narg.text))
+			find_command(n->ncmd.args->narg.text, &entry, 0, pathval());
+}
 
 
 /*
@@ -3132,65 +3111,6 @@ static void clear_traps(void)
 }
 
 
-static void initshellproc(void)
-{
-
-#ifdef CONFIG_ASH_ALIAS
-	/* from alias.c: */
-	{
-		rmaliases();
-	}
-#endif
-	/* from eval.c: */
-	{
-		exitstatus = 0;
-	}
-
-	/* from exec.c: */
-	{
-		deletefuncs();
-	}
-
-	/* from jobs.c: */
-	{
-		backgndpid = -1;
-#ifdef CONFIG_ASH_JOB_CONTROL
-		jobctl = 0;
-#endif
-	}
-
-	/* from options.c: */
-	{
-		int i;
-
-		for (i = 0; i < NOPTS; i++)
-			optent_val(i) = 0;
-		optschanged();
-
-	}
-
-	/* from redir.c: */
-	{
-		clearredir();
-	}
-
-	/* from trap.c: */
-	{
-		char *sm;
-
-		clear_traps();
-		for (sm = sigmode; sm < sigmode + NSIG - 1; sm++) {
-			if (*sm == S_IGN)
-				*sm = S_HARD_IGN;
-		}
-	}
-
-	/* from var.c: */
-	{
-		shprocvar();
-	}
-}
-
 static int preadbuffer(void);
 static void pushfile(void);
 
@@ -3326,7 +3246,7 @@ static void setinputfile(const char *fname, int push)
 
 static void tryexec(char *cmd, char **argv, char **envp)
 {
-	int e;
+	int repeated = 0;
 
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = cmd;
@@ -3344,17 +3264,21 @@ static void tryexec(char *cmd, char **argv, char **envp)
 		optind = 1;
 	run_applet_by_name(name, argc_l, argv);
 #endif
+  repeat:
 	execve(cmd, argv, envp);
-	e = errno;
-	if (e == ENOEXEC) {
-		INTOFF;
-		initshellproc();
-		setinputfile(cmd, 0);
-		commandname = arg0 = xstrdup(argv[0]);
-		setparam(argv + 1);
-		exraise(EXSHELLPROC);
+	if (repeated++) {
+		free(argv);
+	} else if (errno == ENOEXEC) {
+		char **ap;
+		char **new;
+
+		for (ap = argv; *ap; ap++);
+		ap = new = xmalloc((ap - argv + 2) * sizeof(char *));
+		*ap++ = cmd = "/bin/sh";
+		while ((*ap++ = *argv++));
+		argv = new;
+		goto repeat;
 	}
-	errno = e;
 }
 
 static char *commandtext(const union node *);
@@ -3429,7 +3353,6 @@ static const char *const *findkwd(const char *s)
 
 
 /*** Command hashing code ***/
-
 
 static int hashcmd(int argc, char **argv)
 {
@@ -3766,17 +3689,12 @@ find_command(const char *name, struct cmdentry *entry, int act,
  * Search the table of builtin commands.
  */
 
-static int bstrcmp(const void *name, const void *b)
-{
-	return strcmp((const char *) name, (*(const char *const *) b) + 1);
-}
-
 static struct builtincmd *find_builtin(const char *name)
 {
 	struct builtincmd *bp;
 
 	bp = bsearch(name, builtincmds, NUMBUILTINS, sizeof(struct builtincmd),
-				 bstrcmp);
+				 pstrcmp);
 	return bp;
 }
 
@@ -3786,7 +3704,7 @@ static struct builtincmd *find_builtin(const char *name)
  * are executed they will be rehashed.
  */
 
-static inline void hashcd(void)
+static void hashcd(void)
 {
 	struct tblentry **pp;
 	struct tblentry *cmdp;
@@ -3853,34 +3771,6 @@ static void clearcmdentry(int firstchange)
 
 
 /*
- * Delete all functions.
- */
-
-static void deletefuncs(void)
-{
-	struct tblentry **tblp;
-	struct tblentry **pp;
-	struct tblentry *cmdp;
-
-	INTOFF;
-	for (tblp = cmdtable; tblp < &cmdtable[CMDTABLESIZE]; tblp++) {
-		pp = tblp;
-		while ((cmdp = *pp) != NULL) {
-			if (cmdp->cmdtype == CMDFUNCTION) {
-				*pp = cmdp->next;
-				free(cmdp->param.func);
-				free(cmdp);
-			} else {
-				pp = &cmdp->next;
-			}
-		}
-	}
-	INTON;
-}
-
-
-
-/*
  * Locate a command in the command hash table.  If "add" is nonzero,
  * add the command to the table if it is not already present.  The
  * variable "lastcmdentry" is set to point to the address of the link
@@ -3926,7 +3816,7 @@ static struct tblentry *cmdlookup(const char *name, int add)
  * Delete the command entry returned on the last lookup.
  */
 
-static void delete_cmd_entry()
+static void delete_cmd_entry(void)
 {
 	struct tblentry *cmdp;
 
@@ -4117,7 +4007,7 @@ static void expbackq(union node *, int, int);
 static int subevalvar(char *, char *, int, int, int, int, int);
 static int varisset(char *, int);
 static void strtodest(const char *, int, int);
-static inline void varvalue(char *, int, int);
+static void varvalue(char *, int, int);
 static void recordregion(int, int, int);
 static void removerecordregions(int);
 static void ifsbreakup(char *, struct arglist *);
@@ -4127,7 +4017,7 @@ static void expandmeta(struct strlist *, int);
 #if defined(__GLIBC__) && __GLIBC__ >= 2 && !defined(FNMATCH_BROKEN)
 #define preglob(p) _rmescapes((p), RMESCAPE_ALLOC | RMESCAPE_GLOB)
 #if !defined(GLOB_BROKEN)
-static inline void addglob(const glob_t *);
+static void addglob(const glob_t *);
 #endif
 #endif
 #if !(defined(__GLIBC__) && __GLIBC__ >= 2 && !defined(FNMATCH_BROKEN) && !defined(GLOB_BROKEN))
@@ -4431,7 +4321,6 @@ static void argstr(char *p, int flag)
 			STPUTC(c, expdest);
 		}
 	}
-	return;
 }
 
 static char *exptilde(char *p, int flag)
@@ -4573,7 +4462,6 @@ static void expari(int flag)
 			error("syntax error: \"%s\"\n", p + 2);
 	}
 	snprintf(p, 12, "%d", result);
-
 	while (*p++);
 
 	if (quoted == 0)
@@ -4857,7 +4745,7 @@ static void strtodest(const char *p, int syntax, int quotes)
  * Add the value of a specialized variable to the stack string.
  */
 
-static inline void varvalue(char *name, int quoted, int flags)
+static void varvalue(char *name, int quoted, int flags)
 {
 	int num;
 	char *p;
@@ -5059,9 +4947,10 @@ static void ifsfree(void)
 static void addfname(const char *name)
 {
 	struct strlist *sp;
+	size_t len = strlen(name) + 1;
 
 	sp = (struct strlist *) stalloc(sizeof *sp);
-	sp->text = sstrdup(name);
+	sp->text = memcpy(stalloc(len), name, len);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
 }
@@ -5113,7 +5002,7 @@ static void expandmeta(struct strlist *str, int flag)
  * Add the result of glob(3) to the list.
  */
 
-static inline void addglob(const glob_t * pglob)
+static void addglob(const glob_t * pglob)
 {
 	char **p = pglob->gl_pathv;
 
@@ -5704,8 +5593,7 @@ static void reset(void)
 
 	/* from input.c: */
 	{
-		if (exception != EXSHELLPROC)
-			parselleft = parsenleft = 0;	/* clear input buffer */
+		parselleft = parsenleft = 0;	/* clear input buffer */
 		popallfiles();
 	}
 
@@ -6014,7 +5902,6 @@ static void restartjob(struct job *);
 static void freejob(struct job *);
 static struct job *getjob(const char *);
 static int dowait(int, struct job *);
-static void waitonint(int);
 
 
 /*
@@ -6045,20 +5932,12 @@ static void dupredirect(const union node *, int, int fd1dup);
 
 static void setjobctl(int enable)
 {
-#ifdef OLD_TTY_DRIVER
-	int ldisc;
-#endif
-
 	if (enable == jobctl || rootshell == 0)
 		return;
 	if (enable) {
 		do {			/* while we are in the background */
-#ifdef OLD_TTY_DRIVER
-			if (ioctl(2, TIOCGPGRP, (char *) &initialpgrp) < 0) {
-#else
 			initialpgrp = tcgetpgrp(2);
 			if (initialpgrp < 0) {
-#endif
 				out2str("sh: can't access tty; job control turned off\n");
 				mflag = 0;
 				return;
@@ -6070,30 +5949,14 @@ static void setjobctl(int enable)
 				continue;
 			}
 		} while (0);
-#ifdef OLD_TTY_DRIVER
-		if (ioctl(2, TIOCGETD, (char *) &ldisc) < 0 || ldisc != NTTYDISC) {
-			out2str
-				("sh: need new tty driver to run job control; job control turned off\n");
-			mflag = 0;
-			return;
-		}
-#endif
 		setsignal(SIGTSTP);
 		setsignal(SIGTTOU);
 		setsignal(SIGTTIN);
 		setpgid(0, rootpid);
-#ifdef OLD_TTY_DRIVER
-		ioctl(2, TIOCSPGRP, (char *) &rootpid);
-#else
 		tcsetpgrp(2, rootpid);
-#endif
 	} else {			/* turning job control off */
 		setpgid(0, initialpgrp);
-#ifdef OLD_TTY_DRIVER
-		ioctl(2, TIOCSPGRP, (char *) &initialpgrp);
-#else
 		tcsetpgrp(2, initialpgrp);
-#endif
 		setsignal(SIGTSTP);
 		setsignal(SIGTTOU);
 		setsignal(SIGTTIN);
@@ -6196,11 +6059,7 @@ static int fgcmd(int argc, char **argv)
 	if (jp->jobctl == 0)
 		error("job not created under job control");
 	pgrp = jp->ps[0].pid;
-#ifdef OLD_TTY_DRIVER
 	ioctl(2, TIOCSPGRP, (char *) &pgrp);
-#else
-	tcsetpgrp(2, pgrp);
-#endif
 	restartjob(jp);
 	status = waitforjob(jp);
 	return status;
@@ -6566,13 +6425,8 @@ static int forkshell(struct job *jp, const union node *n, int mode)
 			setpgid(0, pgrp);
 			if (mode == FORK_FG) {
 				/*** this causes superfluous TIOCSPGRPS ***/
-#ifdef OLD_TTY_DRIVER
-				if (ioctl(2, TIOCSPGRP, (char *) &pgrp) < 0)
-					error("TIOCSPGRP failed, errno=%d", errno);
-#else
 				if (tcsetpgrp(2, pgrp) < 0)
 					error("tcsetpgrp failed, errno=%d", errno);
-#endif
 			}
 			setsignal(SIGTSTP);
 			setsignal(SIGTTOU);
@@ -6651,43 +6505,18 @@ static int waitforjob(struct job *jp)
 #endif
 	int status;
 	int st;
-	struct sigaction act, oact;
 
 	INTOFF;
-	intreceived = 0;
-#ifdef CONFIG_ASH_JOB_CONTROL
-	if (!jobctl) {
-#else
-	if (!iflag) {
-#endif
-		sigaction(SIGINT, 0, &act);
-		act.sa_handler = waitonint;
-		sigaction(SIGINT, &act, &oact);
-	}
 	TRACE(("waitforjob(%%%d) called\n", jp - jobtab + 1));
 	while (jp->state == 0) {
 		dowait(1, jp);
 	}
 #ifdef CONFIG_ASH_JOB_CONTROL
-	if (!jobctl) {
-#else
-	if (!iflag) {
-#endif
-		sigaction(SIGINT, &oact, 0);
-		if (intreceived)
-			kill(getpid(), SIGINT);
-	}
-#ifdef CONFIG_ASH_JOB_CONTROL
 	if (jp->jobctl) {
-#ifdef OLD_TTY_DRIVER
-		if (ioctl(2, TIOCSPGRP, (char *) &mypgrp) < 0)
-			error("TIOCSPGRP failed, errno=%d\n", errno);
-#else
 		if (tcsetpgrp(2, mypgrp) < 0)
 			error("tcsetpgrp failed, errno=%d\n", errno);
-#endif
 	}
-	if (jp->state == CONFIG_ASH_JOB_CONTROLTOPPED)
+	if (jp->state == JOBSTOPPED)
 		curjob = jp - jobtab + 1;
 #endif
 	status = jp->ps[jp->nprocs - 1].status;
@@ -6804,7 +6633,7 @@ static int dowait(int block, struct job *job)
 					done = 0;
 			}
 			if (stopped) {	/* stopped or done */
-				int state = done ? JOBDONE : CONFIG_ASH_JOB_CONTROLTOPPED;
+				int state = done ? JOBDONE : JOBSTOPPED;
 
 				if (jp->state != state) {
 					TRACE(("Job %d: changing state from %d to %d\n",
@@ -6873,7 +6702,7 @@ static int stoppedjobs(void)
 	for (jobno = 1, jp = jobtab; jobno <= njobs; jobno++, jp++) {
 		if (jp->used == 0)
 			continue;
-		if (jp->state == CONFIG_ASH_JOB_CONTROLTOPPED) {
+		if (jp->state == JOBSTOPPED) {
 			out2str("You have stopped jobs.\n");
 			job_warning = 2;
 			return (1);
@@ -7301,11 +7130,6 @@ static char *commandtext(const union node *n)
 }
 
 
-static void waitonint(int sig)
-{
-	intreceived = 1;
-}
-
 #ifdef CONFIG_ASH_MAIL
 
 /*
@@ -7493,7 +7317,7 @@ int ash_main(int argc, char **argv)
 			SIGPIPE
 		};
 
-#define SIGSSIZE ((sizeof(sigs)/sizeof(sigs[0])) - 1)	/* trailing nul */
+#define SIGSSIZE ((sizeof(sigs)/sizeof(sigs[0])))
 		int i;
 
 		for (i = 0; i < SIGSSIZE; i++)
@@ -8343,25 +8167,13 @@ static char *single_quote(const char *s)
 }
 
 /*
- * Like strdup but works with the ash stack.
- */
-
-static char *sstrdup(const char *p)
-{
-	size_t len = strlen(p) + 1;
-
-	return memcpy(stalloc(len), p, len);
-}
-
-
-/*
  * Routine for dealing with parsed shell commands.
  */
 
 
 static void sizenodelist(const struct nodelist *);
 static struct nodelist *copynodelist(const struct nodelist *);
-static char *nodexstrdup(const char *);
+static char *nodesavestr(const char *);
 
 #define CALCSIZE_TABLE
 #define COPYNODE_TABLE
@@ -8502,7 +8314,7 @@ static union node *copynode(const union node *n)
 		if (!(*p & NODE_MBRMASK)) {	/* standard node */
 			*((union node **) nn) = copynode(*((const union node **) no));
 		} else if ((*p & NODE_MBRMASK) == NODE_CHARPTR) {	/* string */
-			*((const char **) nn) = nodexstrdup(*((const char **) no));
+			*((const char **) nn) = nodesavestr(*((const char **) no));
 		} else if (*p & NODE_NODELIST) {	/* nodelist */
 			*((struct nodelist **) nn)
 				= copynodelist(*((const struct nodelist **) no));
@@ -8552,7 +8364,7 @@ static union node *copynode(const union node *n)
 		new->nif.test = copynode(n->nif.test);
 		break;
 	case NFOR:
-		new->nfor.var = nodexstrdup(n->nfor.var);
+		new->nfor.var = nodesavestr(n->nfor.var);
 		new->nfor.body = copynode(n->nfor.body);
 		new->nfor.args = copynode(n->nfor.args);
 		break;
@@ -8568,7 +8380,7 @@ static union node *copynode(const union node *n)
 	case NDEFUN:
 	case NARG:
 		new->narg.backquote = copynodelist(n->narg.backquote);
-		new->narg.text = nodexstrdup(n->narg.text);
+		new->narg.text = nodesavestr(n->narg.text);
 		new->narg.next = copynode(n->narg.next);
 		break;
 	case NTO:
@@ -8731,7 +8543,7 @@ static struct nodelist *copynodelist(const struct nodelist *lp)
 }
 
 
-static char *nodexstrdup(const char *s)
+static char *nodesavestr(const char *s)
 {
 	const char *p = s;
 	char *q = funcstring;
@@ -8866,7 +8678,7 @@ static void options(int cmdline)
 				minus_o(*argptr, val);
 				if (*argptr)
 					argptr++;
-			} else if (cmdline && (c == '-')) {	/* long options */
+			} else if (cmdline && (c == '-')) {	// long options
 				if (strcmp(p, "login") == 0)
 					isloginsh = 1;
 				break;
@@ -11013,12 +10825,14 @@ static void redirect(union node *redir, int flags)
 {
 	union node *n;
 	struct redirtab *sv = NULL;
-	int i = EMPTY;
+	int i;
 	int fd;
 	int newfd;
 	int try;
 	int fd1dup = flags & REDIR_BACKQ;;	/* stdout `cmd` redir to pipe */
 
+	TRACE(("redirect(%s) called\n",
+		   flags & REDIR_PUSH ? "REDIR_PUSH" : "NO_REDIR_PUSH"));
 	if (flags & REDIR_PUSH) {
 		sv = xmalloc(sizeof(struct redirtab));
 		for (i = 0; i < 10; i++)
@@ -11167,6 +10981,7 @@ static int dup_as_newfd(int from, int to)
 /*
  * Debugging stuff.
  */
+
 static void shtree(union node *, int, char *, FILE *);
 static void shcmd(union node *, FILE *);
 static void sharg(union node *, FILE *);
@@ -11174,13 +10989,13 @@ static void indent(int, char *, FILE *);
 static void trstring(char *);
 
 
-static void showtree(n)
-	unode *n;
+#if 0
+static void showtree(node * n)
 {
 	trputs("showtree called\n");
 	shtree(n, 1, NULL, stdout);
 }
-
+#endif
 
 static void shtree(union node *n, int ind, char *pfx, FILE * fp)
 {
@@ -11229,7 +11044,6 @@ static void shtree(union node *n, int ind, char *pfx, FILE * fp)
 		break;
 	}
 }
-
 
 
 static void shcmd(union node *cmd, FILE * fp)
@@ -11305,6 +11119,7 @@ static void shcmd(union node *cmd, FILE * fp)
 		first = 0;
 	}
 }
+
 
 static void sharg(union node *arg, FILE * fp)
 {
@@ -11400,7 +11215,6 @@ static void indent(int amount, char *pfx, FILE * fp)
 		putc('\t', fp);
 	}
 }
-
 
 FILE *tracefile;
 
@@ -11610,10 +11424,6 @@ static int trapcmd(int argc, char **argv)
 }
 
 
-
-
-
-
 /*
  * Set the signal handler for the specified signal.  The routine figures
  * out what it should be set to.
@@ -11819,7 +11629,7 @@ static void initvar()
 	 * PS1 depends on uid
 	 */
 	if ((vps1.flags & VEXPORT) == 0) {
-		vpp = hashvar("PS1=$");
+		vpp = hashvar("PS1=$ ");
 		vps1.next = *vpp;
 		*vpp = &vps1;
 		vps1.text = xstrdup(geteuid()? "PS1=$ " : "PS1=# ");
@@ -12010,39 +11820,6 @@ static char **environment()
 	*ep = NULL;
 	return env;
 }
-
-
-/*
- * Called when a shell procedure is invoked to clear out nonexported
- * variables.  It is also necessary to reallocate variables of with
- * VSTACK set since these are currently allocated on the stack.
- */
-
-static void shprocvar(void)
-{
-	struct var **vpp;
-	struct var *vp, **prev;
-
-	for (vpp = vartab; vpp < vartab + VTABSIZE; vpp++) {
-		for (prev = vpp; (vp = *prev) != NULL;) {
-			if ((vp->flags & VEXPORT) == 0) {
-				*prev = vp->next;
-				if ((vp->flags & VTEXTFIXED) == 0)
-					free(vp->text);
-				if ((vp->flags & VSTRFIXED) == 0)
-					free(vp);
-			} else {
-				if (vp->flags & VSTACK) {
-					vp->text = xstrdup(vp->text);
-					vp->flags &= ~VSTACK;
-				}
-				prev = &vp->next;
-			}
-		}
-	}
-	initvar();
-}
-
 
 
 /*
@@ -12335,7 +12112,6 @@ static struct var **findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.57 2002/08/22 18:30:15 bug1 Exp $
  */
 static int timescmd(int argc, char **argv)
 {
