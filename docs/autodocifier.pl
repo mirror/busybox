@@ -77,7 +77,7 @@ sub pod_for_usage {
 		: "";
 
 	return
-		"=item I<$name>".
+		"=item B<$name>".
 		"\n\n"  .
 		"$name $trivial".
 		"\n\n"  .
@@ -192,21 +192,70 @@ This script was based on a script by Erik Andersen (andersen@lineo.com).
 
 =over 4
 
-=item --help
+=item B<--help>
 
 This displays the help message.
 
-=item --pod
+=item B<--pod>
 
 Generate POD (this is the default)
 
-=item --sgml
+=item B<--sgml>
 
 Generate SGML
 
-=item --verbose
+=item B<--verbose>
 
 Be verbose (not implemented)
+
+=back
+
+=head1 FORMAT
+
+The following is an example of some data this script might parse.
+
+    #define length_trivial_usage \
+            "STRING"
+    #define length_full_usage \
+            "Prints out the length of the specified STRING."
+    #define length_example_usage \
+            "$ length "Hello"\n" \
+            "5\n"
+
+Each entry is a cpp macro that defines a string.  The macros are
+named systematically in the form:
+
+    $name_$type_usage
+
+$name is the name of the applet.  $type can be "trivial", "full", "notes",
+or "example".  Every documentation macro must end with "_usage".
+
+The definition of the types is as follows:
+
+=over 4
+
+=item B<trivial>
+
+This should be a brief, one-line description of parameters that
+the command expects.  This will be displayed when B<-h> is issued to
+a command.  I<REQUIRED>
+
+=item B<full>
+
+This should contain descriptions of each option.  This will also
+be displayed along with the trivial help if BB_FEATURE_TRIVIAL_HELP
+is disabled.  I<REQUIRED>
+
+=item B<notes>
+
+This is documentation that is intended to go in the POD or SGML, but
+not be output when a B<-h> is given to a command.  To see an example
+of notes being used, see init_notes_usage.  I<OPTIONAL>
+
+=item B<example>
+
+This should be an example of how the command is acutally used.
+I<OPTIONAL>
 
 =back
 
@@ -226,4 +275,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.17 2001/03/15 21:08:01 beppu Exp $
+# $Id: autodocifier.pl,v 1.18 2001/04/05 19:35:17 beppu Exp $
