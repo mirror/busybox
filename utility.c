@@ -1679,7 +1679,7 @@ FILE *wfopen(const char *path, const char *mode)
 
 #if defined BB_HOSTNAME || defined BB_LOADACM || defined BB_MORE \
  || defined BB_SED || defined BB_SH || defined BB_TAR || defined BB_UNIQ \
- || defined BB_WC || defined BB_CMP || defined BB_SORT
+ || defined BB_WC || defined BB_CMP || defined BB_SORT || defined BB_WGET
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
