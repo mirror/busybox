@@ -8,7 +8,7 @@
  * versions of 'who', 'last', etc. IP Addr is output in hex, 
  * little endian on x86.
  * 
- * Modified to support all sort of libcs by 
+ * Modified to support all sorts of libcs by 
  * Erik Andersen <andersen@lineo.com>
  */
 
@@ -39,6 +39,11 @@ extern int dutmp_main(int argc, char **argv)
 		}
 	}
 
+/* Kludge around the fact that the binary format for utmp has changed, and the
+ * fact the stupid libc doesn't have a reliable #define to announce that libc5
+ * is being used.  sigh.
+ */
+#if ! defined __GLIBC__
 	while (read(file, (void*)&ut, sizeof(struct utmp))) {
 		printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
 				ut.ut_type, ut.ut_pid, ut.ut_line,
@@ -46,6 +51,16 @@ extern int dutmp_main(int argc, char **argv)
 				ctime(&(ut.ut_time)), 
 				(long)ut.ut_addr);
 	}
-
+#else
+	while (read(file, (void*)&ut, sizeof(struct utmp))) {
+		printf("%d|%d|%s|%s|%s|%s|%d|%d|%ld|%ld|%ld|%x\n",
+		ut.ut_type, ut.ut_pid, ut.ut_line,
+		ut.ut_id, ut.ut_user,	ut.ut_host,
+		ut.ut_exit.e_termination, ut.ut_exit.e_exit,
+		ut.ut_session,
+		ut.ut_tv.tv_sec, ut.ut_tv.tv_usec,
+		ut.ut_addr);
+	}
+#endif
 	return(TRUE);
 }
