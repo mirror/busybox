@@ -500,6 +500,12 @@ static void print_subst_w_backrefs(const char *line, const char *replace, regmat
 				fputc(line[j], stdout);
 		}
 
+		/* if we find a backslash escaped character, print the character */
+		else if (replace[i] == '\\') {
+			++i;
+			fputc(replace[i], stdout);
+		}
+
 		/* if we find an unescaped '&' print out the whole matched text.
 		 * fortunately, regmatch[0] contains the indicies to the whole matched
 		 * expression (kinda seems like it was designed for just such a
