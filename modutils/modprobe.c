@@ -67,15 +67,17 @@ int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 		buffer++;
 	tag = value = buffer;
 	while ( !isspace ( *value ))
-		value++;
+		if (!*value) return 0;
+		else value++;
 	*value++ = 0;
 	while ( isspace ( *value ))
 		value++;
+	if (!*value) return 0;
 
 	*ptag = tag;
 	*pvalue = value;
 
-	return bb_strlen( tag ) && bb_strlen( value );
+	return 1;
 }
 
 /* Jump through hoops to simulate how fgets() grabs just one line at a
