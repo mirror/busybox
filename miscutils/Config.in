@@ -38,8 +38,10 @@ config CONFIG_DUTMP
 	default n
 	help
 	  'dutmp' is a utility used by the Linux Router Project (as far as I
-	  know nobody else uses it).  It dumps the contents of the utmp file in
-	  a format that can be parsed by shell scripts.
+	  know nobody else uses it).  It dumps the contents of the utmp file to
+	  STDOUT with each field seperated by a colon.  IP addresses are are
+	  given in hex in native byte order.  It is intended that this format
+	  can then be parsed by shell scripts.
 
 config CONFIG_HDPARM
 	bool "hdparm"
@@ -131,8 +133,8 @@ config CONFIG_WATCHDOG
 	  device drivers.  It opens the specified watchdog device special file
 	  and periodically writes a magic character to the device.  If the
 	  watchdog applet ever fails to write the magic character within a
-	  certain amount of time, the watchdog device assumes that means the 
-	  system has hung, and it will therefore cause the hardware to reboot.
+	  certain amount of time, the watchdog device assumes the system has
+	  hung, and will cause the hardware to reboot.
 
 endmenu
 
