@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.7 2001/05/07 22:57:47 andersen Exp $";
+	"$Id: vi.c,v 1.8 2001/05/13 00:48:09 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -2076,8 +2076,10 @@ static void colon(Byte * buf)
 		c = orig_buf[1];	// what is the delimiter
 		F = orig_buf + 2;	// start of "find"
 		R = (Byte *) strchr((char *) F, c);	// middle delimiter
+		if (!R) goto colon_s_fail;
 		*R++ = '\0';	// terminate "find"
 		buf1 = (Byte *) strchr((char *) R, c);
+		if (!buf1) goto colon_s_fail;
 		*buf1++ = '\0';	// terminate "replace"
 		if (*buf1 == 'g') {	// :s/foo/bar/g
 			buf1++;
@@ -2168,6 +2170,12 @@ static void colon(Byte * buf)
   vc1:
 	dot = bound_dot(dot);	// make sure "dot" is valid
 	return;
+#ifdef BB_FEATURE_VI_SEARCH
+colon_s_fail:
+	psb(":s expression missing delimiters");
+	return;
+#endif
+
 }
 
 static void Hit_Return(void)
