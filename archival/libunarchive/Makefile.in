@@ -40,7 +40,6 @@ LIBUNARCHIVE-y:= \
 	archive_xread.o \
 	archive_xread_all.o \
 	archive_xread_all_eof.o \
-	archive_xread_char.o \
 \
 	seek_by_char.o \
 	seek_by_jump.o \

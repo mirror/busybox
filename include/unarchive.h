@@ -90,7 +90,6 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle);
 extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount);
 extern void seek_by_char(const archive_handle_t *archive_handle, const unsigned int amount);
 
-extern unsigned char archive_xread_char(const archive_handle_t *archive_handle);
 extern ssize_t archive_xread(const archive_handle_t *archive_handle, unsigned char *buf, const size_t count);
 extern void archive_xread_all(const archive_handle_t *archive_handle, void *buf, const size_t count);
 extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *buf, size_t count);
