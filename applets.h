@@ -356,13 +356,13 @@
 #ifdef BB_SETKEYCODES
 	APPLET(setkeycodes, setkeycodes_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef BB_FEATURE_SH_IS_ASH
+#if defined(BB_FEATURE_SH_IS_ASH) && defined(BB_ASH)
 	APPLET_NOUSAGE("sh", ash_main, _BB_DIR_BIN)
-#elif defined(BB_FEATURE_SH_IS_HUSH)
+#elif defined(BB_FEATURE_SH_IS_HUSH) && defined(BB_HUSH)
 	APPLET_NOUSAGE("sh", hush_main, _BB_DIR_BIN)
-#elif defined(BB_FEATURE_SH_IS_LASH)
+#elif defined(BB_FEATURE_SH_IS_LASH) && defined(BB_LASH)
 	APPLET_NOUSAGE("sh", lash_main, _BB_DIR_BIN)
-#elif defined(BB_FEATURE_SH_IS_MSH)
+#elif defined(BB_FEATURE_SH_IS_MSH) && defined(BB_MSH)
 	APPLET_NOUSAGE("sh", msh_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_SLEEP
