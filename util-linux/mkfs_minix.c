@@ -254,7 +254,7 @@ static inline int bit(char * a,unsigned int i)
  * an already mounted partition.  Code adapted from mke2fs, Copyright
  * (C) 1994 Theodore Ts'o.  Also licensed under GPL.
  */
-static void check_mount(void)
+extern inline void check_mount(void)
 {
 	FILE *f;
 	struct mntent *mnt;
@@ -282,7 +282,7 @@ static long valid_offset(int fd, int offset)
 	return 1;
 }
 
-static int count_blocks(int fd)
+extern inline int count_blocks(int fd)
 {
 	int high, low;
 
@@ -301,7 +301,7 @@ static int count_blocks(int fd)
 	return (low + 1);
 }
 
-static int get_size(const char *file)
+extern inline int get_size(const char *file)
 {
 	int fd;
 	long size;
@@ -318,7 +318,7 @@ static int get_size(const char *file)
 	return size;
 }
 
-static void write_tables(void)
+extern inline void write_tables(void)
 {
 	/* Mark the super block valid. */
 	Super.s_state |= MINIX_VALID_FS;
@@ -368,7 +368,7 @@ static int get_free_block(void)
 	return blk;
 }
 
-static void mark_good_blocks(void)
+extern inline void mark_good_blocks(void)
 {
 	int blk;
 
@@ -386,7 +386,7 @@ static int next(int zone)
 	return 0;
 }
 
-static void make_bad_inode(void)
+extern inline void make_bad_inode(void)
 {
 	struct minix_inode *inode = &Inode[MINIX_BAD_INO];
 	int i, j, zone;
@@ -437,7 +437,7 @@ static void make_bad_inode(void)
 }
 
 #ifdef CONFIG_FEATURE_MINIX2
-static void make_bad_inode2(void)
+extern inline void make_bad_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_BAD_INO];
 	int i, j, zone;
@@ -487,7 +487,7 @@ static void make_bad_inode2(void)
 }
 #endif
 
-static void make_root_inode(void)
+extern inline void make_root_inode(void)
 {
 	struct minix_inode *inode = &Inode[MINIX_ROOT_INO];
 
@@ -510,7 +510,7 @@ static void make_root_inode(void)
 }
 
 #ifdef CONFIG_FEATURE_MINIX2
-static void make_root_inode2(void)
+extern inline void make_root_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_ROOT_INO];
 
@@ -533,7 +533,7 @@ static void make_root_inode2(void)
 }
 #endif
 
-static void setup_tables(void)
+extern inline void setup_tables(void)
 {
 	int i;
 	unsigned long inodes;
@@ -603,7 +603,7 @@ static void setup_tables(void)
  * Perform a test of a block; return the number of
  * blocks readable/writeable.
  */
-static long do_check(char *buffer, int try, unsigned int current_block)
+extern inline long do_check(char *buffer, int try, unsigned int current_block)
 {
 	long got;
 
