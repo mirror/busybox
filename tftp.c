@@ -110,7 +110,7 @@ static inline int tftp(int cmd, struct hostent *host,
 
 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror_msg("socket");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	len = sizeof(sa);
@@ -157,7 +157,7 @@ static inline int tftp(int cmd, struct hostent *host,
 			}
 
 			if ((*cp != '\0') || (&buf[BUFSIZE - 1] - cp) < 7) {
-				error_msg("too long server-filename.\n");
+				error_msg("too long server-filename");
 				break;
 			}
 
@@ -212,7 +212,7 @@ static inline int tftp(int cmd, struct hostent *host,
 
 			if (sendto(socketfd, buf, len, 0,
 					   (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-				perror_msg("send()");
+				perror_msg("send");
 				len = -1;
 				break;
 			}
@@ -256,7 +256,7 @@ static inline int tftp(int cmd, struct hostent *host,
 				/* discard the packet - treat as timeout */
 
 			case 0:
-				error_msg("timeout.\n");
+				error_msg("timeout");
 
 				if (!timeout) {
 					timeout = BB_TFTP_NO_RETRIES;
@@ -266,7 +266,7 @@ static inline int tftp(int cmd, struct hostent *host,
 
 				if (!timeout) {
 					len = -1;
-					error_msg("last timeout!\n");
+					error_msg("last timeout");
 				}
 				break;
 
@@ -333,7 +333,7 @@ static inline int tftp(int cmd, struct hostent *host,
 			}
 
 			if (msg) {
-				error_msg("server says: %s.\n", msg);
+				error_msg("server says: %s", msg);
 			}
 
 			break;
@@ -342,11 +342,7 @@ static inline int tftp(int cmd, struct hostent *host,
 
 	close(socketfd);
 
-	if (finished) {
-		return 0;
-	}
-
-	return 1;
+	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int tftp_main(int argc, char **argv)
@@ -402,7 +398,7 @@ int tftp_main(int argc, char **argv)
 		free(s);
 	}
 	if (bad) {
-		perror_msg_and_die("bad \"server:file\" combination");
+		error_msg_and_die("bad \"server:file\" combination");
 	}
 
 	if (BB_TFTP_DEBUG) {
