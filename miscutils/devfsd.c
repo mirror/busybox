@@ -830,6 +830,9 @@ static void action_execute (const struct devfsd_notify_struct *info,
 	char largv[MAX_ARGS + 1][STRING_LENGTH];
 
 #ifdef CONFIG_DEVFSD_DEBUG
+	int i;
+	char buff[1024];
+
 	msg_logger( NO_DIE, LOG_INFO, "action_execute()\n");
 #endif
 
@@ -847,9 +850,6 @@ static void action_execute (const struct devfsd_notify_struct *info,
 	argv[count] = NULL;
 
 #ifdef CONFIG_DEVFSD_DEBUG
-	int i;
-	char buff[1024];
-
 	buff[0]='\0';
 	for(i=0;argv[i]!=NULL;i++) /* argv[i] < MAX_ARGS + 1 */
 	{
