@@ -155,23 +155,13 @@ static int     rlim_ofile_cur = OPEN_MAX;
 static struct rlimit   rlim_ofile;
 #endif
 
-#define INETD_UNSUPPORT_BILTIN 1
-
 /* Check unsupporting builtin */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
-#undef INETD_UNSUPPORT_BILTIN
-#endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
-#undef INETD_UNSUPPORT_BILTIN
-#endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
-#undef INETD_UNSUPPORT_BILTIN
-#endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
-#undef INETD_UNSUPPORT_BILTIN
-#endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
-#undef INETD_UNSUPPORT_BILTIN
+#if defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+# define INETD_FEATURE_ENABLED
 #endif
 
 static struct  servtab {
@@ -183,7 +173,7 @@ static struct  servtab {
 	short   se_checked;             /* looked at during merge */
 	char    *se_user;               /* user name to run as */
 	char    *se_group;              /* group name to run as */
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 	const struct  biltin *se_bi;    /* if built-in, description */
 #endif
 	char    *se_server;             /* server program */
@@ -240,7 +230,8 @@ static void chargen_stream(int, struct servtab *);
 static void chargen_dg(int, struct servtab *);
 #endif
 
-#ifndef INETD_UNSUPPORT_BILTIN
+
+#ifdef INETD_FEATURE_ENABLED
 struct biltin {
 	const char *bi_service;         /* internally provided service name */
 	int bi_socktype;                /* type of socket supported */
@@ -277,7 +268,7 @@ static const struct biltin biltins[] = {
 #endif
 	{ NULL, 0, 0, 0, NULL }
 };
-#endif  /* INETD_UNSUPPORT_BILTIN */
+#endif  /* INETD_FEATURE_ENABLED */
 
 #define NUMINT  (sizeof(intab) / sizeof(struct inent))
 static const char *CONFIG = _PATH_INETDCONF;
@@ -423,7 +414,7 @@ more:
 	}
 	sep->se_server = newstr(skip(&cp));
 	if (strcmp(sep->se_server, "internal") == 0) {
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 		const struct biltin *bi;
 
 		for (bi = biltins; bi->bi_service; bi++)
@@ -443,8 +434,8 @@ more:
 			goto more;
 #endif
 	} else
-#ifndef INETD_UNSUPPORT_BILTIN
-		sep->se_bi = NULL
+#ifdef INETD_FEATURE_ENABLED
+	sep->se_bi = NULL
 #endif
 		;
 	argc = 0;
@@ -471,7 +462,7 @@ freeconfig(struct servtab *cp)
 		free(cp->se_argv[i]);
 }
 
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 static char **Argv;
 static char *LastArg;
 
@@ -494,7 +485,7 @@ setproctitle(char *a, int s)
 	while (cp < LastArg)
 		*cp++ = ' ';
 }
-#endif  /* INETD_UNSUPPORT_BILTIN */
+#endif  /* INETD_FEATURE_ENABLED */
 
 static struct servtab *
 enter(struct servtab *cp)
@@ -622,7 +613,7 @@ config(int signum)
 			 * wait.
 			 */
 			if (
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 			    cp->se_bi == 0 &&
 #endif
 			    (sep->se_wait == 1 || cp->se_wait == 0))
@@ -796,17 +787,17 @@ inetd_main(int argc, char *argv[])
 	char *sq;
 	gid_t gid;
 
-#ifdef INETD_UNSUPPORT_BILTIN
-# define dofork 1
-#else
+#ifdef INETD_FEATURE_ENABLED
 	int dofork;
 	extern char **environ;
+#else
+# define dofork 1
 #endif
 
 	gid = getgid();
 	setgroups(1, &gid);
 
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 	Argv = argv;
 	if (environ == 0 || *environ == 0)
 		environ = argv;
@@ -929,7 +920,7 @@ inetd_main(int argc, char *argv[])
 			ctrl = sep->se_fd;
 		sigprocmask(SIG_BLOCK, &blockmask, NULL);
 		pid = 0;
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 		dofork = (sep->se_bi == 0 || sep->se_bi->bi_fork);
 #endif
 		if (dofork) {
@@ -979,7 +970,7 @@ inetd_main(int argc, char *argv[])
 		}
 		sigprocmask(SIG_SETMASK, &emptymask, NULL);
 		if (pid == 0) {
-#ifndef INETD_UNSUPPORT_BILTIN
+#ifdef INETD_FEATURE_ENABLED
 			if (sep->se_bi)
 				(*sep->se_bi->bi_fn)(ctrl, sep);
 			else
