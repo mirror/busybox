@@ -21,10 +21,6 @@
  *
  */
 
-#warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
-#warning applet will be removed from BusyBox.  All maintenance efforts
-#warning should be done in the netkit-tiny source tree.
-
 #include "busybox.h"
 #include <ctype.h>
 #include <errno.h>
@@ -173,4 +169,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.17 2001/01/24 17:37:07 andersen Exp $ */
+/* $Id: nslookup.c,v 1.18 2001/01/24 18:44:54 andersen Exp $ */

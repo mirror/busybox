@@ -14,10 +14,6 @@
  *
  */
 
-#warning This applet has moved to netkit-tiny.  After BusyBox 0.49, this
-#warning applet will be removed from BusyBox.  All maintenance efforts
-#warning should be done in the netkit-tiny source tree.
-
 #include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -515,7 +511,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.19 2001/01/24 17:37:07 andersen Exp $
+ *	$Id: wget.c,v 1.20 2001/01/24 18:44:54 andersen Exp $
  */
 
 
