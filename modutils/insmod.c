@@ -253,7 +253,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.104 2003/10/20 05:40:40 andersen Exp $"
+#ident "$Id: insmod.c,v 1.105 2003/10/21 06:45:29 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -474,7 +474,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.104 2003/10/20 05:40:40 andersen Exp $"
+#ident "$Id: insmod.c,v 1.105 2003/10/21 06:45:29 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -954,6 +954,9 @@ arch_apply_relocation(struct obj_file *f,
         *(unsigned int *) loc += isym->gotent.offset;
       break;
 
+#ifndef R_390_GOTOFF32
+#define R_390_GOTOFF32 R_390_GOTOFF 
+#endif
     case R_390_GOTOFF32:
       assert(got != 0);
       *loc += v - got;
