@@ -69,17 +69,20 @@ static char LocalHostName[64];
 #include <netinet/in.h>
 /* udp socket for logging to remote host */
 static int remotefd = -1;
+
 /* where do we log? */
 static char *RemoteHost;
+
 /* what port to log to? */
 static int RemotePort = 514;
+
 /* To remote log or not to remote log, that is the question. */
 static int doRemoteLog = FALSE;
 static int local_logging = FALSE;
 #endif
 
 
-#define MAXLINE         1024            /* maximum line length */
+#define MAXLINE         1024	/* maximum line length */
 
 
 /* circular buffer variables/structures */
@@ -95,23 +98,23 @@ static int local_logging = FALSE;
 #include <sys/shm.h>
 
 /* our shared key */
-static const long KEY_ID = 0x414e4547; /*"GENA"*/
+static const long KEY_ID = 0x414e4547;	/*"GENA" */
 
 // Semaphore operation structures
 static struct shbuf_ds {
-	int size;               // size of data written
-	int head;               // start of message list
-	int tail;               // end of message list
-	char data[1];           // data/messages
-} *buf = NULL;                  // shared memory pointer
+	int size;			// size of data written
+	int head;			// start of message list
+	int tail;			// end of message list
+	char data[1];		// data/messages
+} *buf = NULL;			// shared memory pointer
 
-static struct sembuf SMwup[1] = {{1, -1, IPC_NOWAIT}}; // set SMwup
-static struct sembuf SMwdn[3] = {{0, 0}, {1, 0}, {1, +1}}; // set SMwdn
+static struct sembuf SMwup[1] = { {1, -1, IPC_NOWAIT} };	// set SMwup
+static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };	// set SMwdn
 
-static int      shmid = -1;     // ipc shared memory id
-static int      s_semid = -1;   // ipc semaphore id
-int     data_size = 16000; // data size
-int     shm_size = 16000 + sizeof(*buf); // our buffer size
+static int shmid = -1;	// ipc shared memory id
+static int s_semid = -1;	// ipc semaphore id
+int data_size = 16000;	// data size
+int shm_size = 16000 + sizeof(*buf);	// our buffer size
 static int circular_logging = FALSE;
 
 /*
@@ -119,8 +122,9 @@ static int circular_logging = FALSE;
  */
 static inline void sem_up(int semid)
 {
-	if ( semop(semid, SMwup, 1) == -1 )
+	if (semop(semid, SMwup, 1) == -1) {
 		perror_msg_and_die("semop[SMwup]");
+	}
 }
 
 /*
@@ -128,51 +132,60 @@ static inline void sem_up(int semid)
  */
 static inline void sem_down(int semid)
 {
-	if ( semop(semid, SMwdn, 3) == -1 )
+	if (semop(semid, SMwdn, 3) == -1) {
 		perror_msg_and_die("semop[SMwdn]");
+	}
 }
 
 
-void ipcsyslog_cleanup(void){
+void ipcsyslog_cleanup(void)
+{
 	printf("Exiting Syslogd!\n");
-	if (shmid != -1)
+	if (shmid != -1) {
 		shmdt(buf);
+	}
 
-	if (shmid != -1)
+	if (shmid != -1) {
 		shmctl(shmid, IPC_RMID, NULL);
-	if (s_semid != -1)
+	}
+	if (s_semid != -1) {
 		semctl(s_semid, 0, IPC_RMID, 0);
+	}
 }
 
-void ipcsyslog_init(void){
-	if (buf == NULL){
-	    if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1)
+void ipcsyslog_init(void)
+{
+	if (buf == NULL) {
+		if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1) {
 			perror_msg_and_die("shmget");
+		}
 
-
-	    if ((buf = shmat(shmid, NULL, 0)) == NULL)
+		if ((buf = shmat(shmid, NULL, 0)) == NULL) {
 			perror_msg_and_die("shmat");
+		}
 
+		buf->size = data_size;
+		buf->head = buf->tail = 0;
 
-	    buf->size=data_size;
-	    buf->head=buf->tail=0;
-
-	    // we'll trust the OS to set initial semval to 0 (let's hope)
-	    if ((s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023)) == -1){
-		if (errno == EEXIST){
-		   if ((s_semid = semget(KEY_ID, 2, 0)) == -1)
-		    perror_msg_and_die("semget");
-		}else
-			perror_msg_and_die("semget");
-	    }
-	}else{
+		// we'll trust the OS to set initial semval to 0 (let's hope)
+		if ((s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023)) == -1) {
+			if (errno == EEXIST) {
+				if ((s_semid = semget(KEY_ID, 2, 0)) == -1) {
+					perror_msg_and_die("semget");
+				}
+			} else {
+				perror_msg_and_die("semget");
+			}
+		}
+	} else {
 		printf("Buffer already allocated just grab the semaphore?");
 	}
 }
 
 /* write message to buffer */
-void circ_message(const char *msg){
-	int l=strlen(msg)+1; /* count the whole message w/ '\0' included */
+void circ_message(const char *msg)
+{
+	int l = strlen(msg) + 1;	/* count the whole message w/ '\0' included */
 
 	sem_down(s_semid);
 
@@ -199,126 +212,133 @@ void circ_message(const char *msg){
 	 * Note: This algorithm uses Linux IPC mechanism w/ shared memory and semaphores to provide
 	 *       a threasafe way of handling shared memory operations.
 	 */
-	if ( (buf->tail + l) < buf->size ){
+	if ((buf->tail + l) < buf->size) {
 		/* before we append the message we need to check the HEAD so that we won't
 		   overwrite any of the message that we still need and adjust HEAD to point
 		   to the next message! */
-		if ( buf->tail < buf->head){
-			if ( (buf->tail + l) >= buf->head ){
-			  /* we need to move the HEAD to point to the next message
-			   * Theoretically we have enough room to add the whole message to the
-			   * buffer, because of the first outer IF statement, so we don't have
-			   * to worry about overflows here!
-			   */
-			   int k= buf->tail + l - buf->head; /* we need to know how many bytes
-								we are overwriting to make
-								enough room */
-			   char *c=memchr(buf->data+buf->head + k,'\0',buf->size - (buf->head + k));
-			   if (c != NULL) {/* do a sanity check just in case! */
-				buf->head = c - buf->data + 1; /* we need to convert pointer to
-								  offset + skip the '\0' since
-								  we need to point to the beginning
-								  of the next message */
-				/* Note: HEAD is only used to "retrieve" messages, it's not used
-					when writing messages into our buffer */
-			   }else{ /* show an error message to know we messed up? */
-				printf("Weird! Can't find the terminator token??? \n");
-				buf->head=0;
-			   }
+		if (buf->tail < buf->head) {
+			if ((buf->tail + l) >= buf->head) {
+				/* we need to move the HEAD to point to the next message
+				 * Theoretically we have enough room to add the whole message to the
+				 * buffer, because of the first outer IF statement, so we don't have
+				 * to worry about overflows here!
+				 */
+				int k = buf->tail + l - buf->head;	/* we need to know how many bytes
+													   we are overwriting to make
+													   enough room */
+				char *c =
+					memchr(buf->data + buf->head + k, '\0',
+						   buf->size - (buf->head + k));
+				if (c != NULL) {	/* do a sanity check just in case! */
+					buf->head = c - buf->data + 1;	/* we need to convert pointer to
+													   offset + skip the '\0' since
+													   we need to point to the beginning
+													   of the next message */
+					/* Note: HEAD is only used to "retrieve" messages, it's not used
+					   when writing messages into our buffer */
+				} else {	/* show an error message to know we messed up? */
+					printf("Weird! Can't find the terminator token??? \n");
+					buf->head = 0;
+				}
 			}
-		} /* in other cases no overflows have been done yet, so we don't care! */
+		}
 
+		/* in other cases no overflows have been done yet, so we don't care! */
 		/* we should be ok to append the message now */
-		strncpy(buf->data + buf->tail,msg,l); /* append our message */
-		buf->tail+=l; /* count full message w/ '\0' terminating char */
-	}else{
+		strncpy(buf->data + buf->tail, msg, l);	/* append our message */
+		buf->tail += l;	/* count full message w/ '\0' terminating char */
+	} else {
 		/* we need to break up the message and "circle" it around */
 		char *c;
-		int k=buf->tail + l - buf->size; /* count # of bytes we don't fit */
+		int k = buf->tail + l - buf->size;	/* count # of bytes we don't fit */
 
 		/* We need to move HEAD! This is always the case since we are going
 		 * to "circle" the message.
 		 */
-		c=memchr(buf->data + k ,'\0', buf->size - k);
+		c = memchr(buf->data + k, '\0', buf->size - k);
 
-		if (c != NULL) /* if we don't have '\0'??? weird!!! */{
-			/* move head pointer*/
-			buf->head=c-buf->data+1;
+		if (c != NULL) {	/* if we don't have '\0'??? weird!!! */
+			/* move head pointer */
+			buf->head = c - buf->data + 1;
 
 			/* now write the first part of the message */
 			strncpy(buf->data + buf->tail, msg, l - k - 1);
 
 			/* ALWAYS terminate end of buffer w/ '\0' */
-			buf->data[buf->size-1]='\0';
+			buf->data[buf->size - 1] = '\0';
 
 			/* now write out the rest of the string to the beginning of the buffer */
-			strcpy(buf->data, &msg[l-k-1]);
+			strcpy(buf->data, &msg[l - k - 1]);
 
 			/* we need to place the TAIL at the end of the message */
 			buf->tail = k + 1;
-		}else{
-			printf("Weird! Can't find the terminator token from the beginning??? \n");
-			buf->head = buf->tail = 0; /* reset buffer, since it's probably corrupted */
+		} else {
+			printf
+				("Weird! Can't find the terminator token from the beginning??? \n");
+			buf->head = buf->tail = 0;	/* reset buffer, since it's probably corrupted */
 		}
 
 	}
 	sem_up(s_semid);
 }
-#endif  /* CONFIG_FEATURE_IPC_SYSLOG */
+#endif							/* CONFIG_FEATURE_IPC_SYSLOG */
 
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
-static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-static void message (char *fmt, ...)
+static void message(char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+static void message(char *fmt, ...)
 {
 	int fd;
 	struct flock fl;
 	va_list arguments;
 
 	fl.l_whence = SEEK_SET;
-	fl.l_start  = 0;
-	fl.l_len    = 1;
+	fl.l_start = 0;
+	fl.l_len = 1;
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if ((circular_logging == TRUE) && (buf != NULL)){
-			char b[1024];
-			va_start (arguments, fmt);
-			vsnprintf (b, sizeof(b)-1, fmt, arguments);
-			va_end (arguments);
-			circ_message(b);
+	if ((circular_logging == TRUE) && (buf != NULL)) {
+		char b[1024];
 
-	}else
+		va_start(arguments, fmt);
+		vsnprintf(b, sizeof(b) - 1, fmt, arguments);
+		va_end(arguments);
+		circ_message(b);
+
+	} else
 #endif
-	if ((fd = device_open (logFilePath,
-						   O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
-						   O_NONBLOCK)) >= 0) {
+	if ((fd =
+			 device_open(logFilePath,
+							 O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
+							 O_NONBLOCK)) >= 0) {
 		fl.l_type = F_WRLCK;
-		fcntl (fd, F_SETLKW, &fl);
-		va_start (arguments, fmt);
-		vdprintf (fd, fmt, arguments);
-		va_end (arguments);
+		fcntl(fd, F_SETLKW, &fl);
+		va_start(arguments, fmt);
+		vdprintf(fd, fmt, arguments);
+		va_end(arguments);
 		fl.l_type = F_UNLCK;
-		fcntl (fd, F_SETLKW, &fl);
-		close (fd);
+		fcntl(fd, F_SETLKW, &fl);
+		close(fd);
 	} else {
 		/* Always send console messages to /dev/console so people will see them. */
-		if ((fd = device_open (_PATH_CONSOLE,
-							   O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
-			va_start (arguments, fmt);
-			vdprintf (fd, fmt, arguments);
-			va_end (arguments);
-			close (fd);
+		if ((fd =
+			 device_open(_PATH_CONSOLE,
+						 O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
+			va_start(arguments, fmt);
+			vdprintf(fd, fmt, arguments);
+			va_end(arguments);
+			close(fd);
 		} else {
-			fprintf (stderr, "Bummer, can't print: ");
-			va_start (arguments, fmt);
-			vfprintf (stderr, fmt, arguments);
-			fflush (stderr);
-			va_end (arguments);
+			fprintf(stderr, "Bummer, can't print: ");
+			va_start(arguments, fmt);
+			vfprintf(stderr, fmt, arguments);
+			fflush(stderr);
+			va_end(arguments);
 		}
 	}
 }
 
-static void logMessage (int pri, char *msg)
+static void logMessage(int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
@@ -327,17 +347,18 @@ static void logMessage (int pri, char *msg)
 
 	if (pri != 0) {
 		for (c_fac = facilitynames;
-				c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
+			 c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
 		for (c_pri = prioritynames;
-				c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
-		if (c_fac->c_name == NULL || c_pri->c_name == NULL)
+			 c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
+		if (c_fac->c_name == NULL || c_pri->c_name == NULL) {
 			snprintf(res, sizeof(res), "<%d>", pri);
-		else
+		} else {
 			snprintf(res, sizeof(res), "%s.%s", c_fac->c_name, c_pri->c_name);
+		}
 	}
 
 	if (strlen(msg) < 16 || msg[3] != ' ' || msg[6] != ' ' ||
-			msg[9] != ':' || msg[12] != ':' || msg[15] != ' ') {
+		msg[9] != ':' || msg[12] != ':' || msg[15] != ' ') {
 		time(&now);
 		timestamp = ctime(&now) + 4;
 		timestamp[15] = '\0';
@@ -351,32 +372,32 @@ static void logMessage (int pri, char *msg)
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
-	if ( -1 != remotefd){
-static const int IOV_COUNT = 2;
+	if (-1 != remotefd) {
+		static const int IOV_COUNT = 2;
 		struct iovec iov[IOV_COUNT];
 		struct iovec *v = iov;
 
 		memset(&res, 0, sizeof(res));
 		snprintf(res, sizeof(res), "<%d>", pri);
-		v->iov_base = res ;
+		v->iov_base = res;
 		v->iov_len = strlen(res);
 		v++;
 
 		v->iov_base = msg;
 		v->iov_len = strlen(msg);
-writev_retry:
-		if ( -1 == writev(remotefd,iov, IOV_COUNT)){
-			if (errno == EINTR) goto writev_retry;
-			error_msg_and_die("cannot write to remote file handle on"
-					"%s:%d",RemoteHost,RemotePort);
+	  writev_retry:
+		if (-1 == writev(remotefd, iov, IOV_COUNT)) {
+			if (errno == EINTR) {
+				goto writev_retry;
+			}
+			error_msg_and_die("cannot write to remote file handle on %s:%d",
+							  RemoteHost, RemotePort);
 		}
 	}
 	if (local_logging == TRUE)
 #endif
 		/* now spew out the message to wherever it is supposed to go */
 		message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
-
-
 }
 
 static void quit_signal(int sig)
@@ -400,31 +421,31 @@ static void domark(int sig)
 
 /* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
  * enabled, we otherwise get a "storage size isn't constant error. */
-static int serveConnection (char* tmpbuf, int n_read)
+static int serveConnection(char *tmpbuf, int n_read)
 {
 	char *p = tmpbuf;
 
 	while (p < tmpbuf + n_read) {
 
-		int           pri = (LOG_USER | LOG_NOTICE);
-		char          line[ MAXLINE + 1 ];
+		int pri = (LOG_USER | LOG_NOTICE);
+		char line[MAXLINE + 1];
 		unsigned char c;
 
 		char *q = line;
 
-		while ( (c = *p) && q < &line[ sizeof (line) - 1 ]) {
+		while ((c = *p) && q < &line[sizeof(line) - 1]) {
 			if (c == '<') {
-			/* Parse the magic priority number. */
+				/* Parse the magic priority number. */
 				pri = 0;
-				while (isdigit (*(++p))) {
+				while (isdigit(*(++p))) {
 					pri = 10 * pri + (*p - '0');
 				}
-				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)){
+				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
 					pri = (LOG_USER | LOG_NOTICE);
 				}
 			} else if (c == '\n') {
 				*q++ = ' ';
-			} else if (iscntrl (c) && (c < 0177)) {
+			} else if (iscntrl(c) && (c < 0177)) {
 				*q++ = '^';
 				*q++ = c ^ 0100;
 			} else {
@@ -435,47 +456,47 @@ static int serveConnection (char* tmpbuf, int n_read)
 		*q = '\0';
 		p++;
 		/* Now log it */
-		logMessage (pri, line);
+		logMessage(pri, line);
 	}
 	return n_read;
 }
 
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-static void init_RemoteLog (void)
+static void init_RemoteLog(void)
 {
 
-  struct sockaddr_in remoteaddr;
-  struct hostent *hostinfo;
-  int len = sizeof(remoteaddr);
+	struct sockaddr_in remoteaddr;
+	struct hostent *hostinfo;
+	int len = sizeof(remoteaddr);
 
-  memset(&remoteaddr, 0, len);
+	memset(&remoteaddr, 0, len);
 
-  remotefd = socket(AF_INET, SOCK_DGRAM, 0);
+	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
-  if (remotefd < 0) {
-    error_msg_and_die("cannot create socket");
-  }
+	if (remotefd < 0) {
+		error_msg_and_die("cannot create socket");
+	}
 
-  hostinfo = xgethostbyname(RemoteHost);
+	hostinfo = xgethostbyname(RemoteHost);
 
-  remoteaddr.sin_family = AF_INET;
-  remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-  remoteaddr.sin_port = htons(RemotePort);
+	remoteaddr.sin_family = AF_INET;
+	remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
+	remoteaddr.sin_port = htons(RemotePort);
 
-  /*
-     Since we are using UDP sockets, connect just sets the default host and port
-     for future operations
-  */
-  if ( 0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))){
-    error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost, RemotePort);
-  }
+	/* Since we are using UDP sockets, connect just sets the default host and port
+	 * for future operations
+	 */
+	if (0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))) {
+		error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost,
+						  RemotePort);
+	}
 
 }
 #endif
 
-static void doSyslogd (void) __attribute__ ((noreturn));
-static void doSyslogd (void)
+static void doSyslogd(void) __attribute__ ((noreturn));
+static void doSyslogd(void)
 {
 	struct sockaddr_un sunx;
 	socklen_t addrLength;
@@ -484,80 +505,85 @@ static void doSyslogd (void)
 	fd_set fds;
 
 	/* Set up signal handlers. */
-	signal (SIGINT,  quit_signal);
-	signal (SIGTERM, quit_signal);
-	signal (SIGQUIT, quit_signal);
-	signal (SIGHUP,  SIG_IGN);
-	signal (SIGCHLD,  SIG_IGN);
+	signal(SIGINT, quit_signal);
+	signal(SIGTERM, quit_signal);
+	signal(SIGQUIT, quit_signal);
+	signal(SIGHUP, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
 #ifdef SIGCLD
-	signal (SIGCLD,  SIG_IGN);
+	signal(SIGCLD, SIG_IGN);
 #endif
-	signal (SIGALRM, domark);
-	alarm (MarkInterval);
+	signal(SIGALRM, domark);
+	alarm(MarkInterval);
 
 	/* Create the syslog file so realpath() can work. */
-	if (realpath (_PATH_LOG, lfile) != NULL)
-		unlink (lfile);
+	if (realpath(_PATH_LOG, lfile) != NULL) {
+		unlink(lfile);
+	}
 
-	memset (&sunx, 0, sizeof (sunx));
+	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
-	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
-	if ((sock_fd = socket (AF_UNIX, SOCK_DGRAM, 0)) < 0)
-		perror_msg_and_die ("Couldn't get file descriptor for socket " _PATH_LOG);
+	strncpy(sunx.sun_path, lfile, sizeof(sunx.sun_path));
+	if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
+		perror_msg_and_die("Couldn't get file descriptor for socket "
+						   _PATH_LOG);
+	}
 
-	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
-	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0)
-		perror_msg_and_die ("Could not connect to socket " _PATH_LOG);
+	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
+	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
+		perror_msg_and_die("Could not connect to socket " _PATH_LOG);
+	}
 
-	if (chmod (lfile, 0666) < 0)
-		perror_msg_and_die ("Could not set permission on " _PATH_LOG);
-
-
+	if (chmod(lfile, 0666) < 0) {
+		perror_msg_and_die("Could not set permission on " _PATH_LOG);
+	}
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if (circular_logging == TRUE ){
-	   ipcsyslog_init();
+	if (circular_logging == TRUE) {
+		ipcsyslog_init();
 	}
 #endif
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-	if (doRemoteLog == TRUE){
-	  init_RemoteLog();
+	if (doRemoteLog == TRUE) {
+		init_RemoteLog();
 	}
 #endif
 
-	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " BB_BANNER);
+	logMessage(LOG_SYSLOG | LOG_INFO, "syslogd started: " BB_BANNER);
 
 	for (;;) {
 
-		FD_ZERO (&fds);
-		FD_SET (sock_fd, &fds);
+		FD_ZERO(&fds);
+		FD_SET(sock_fd, &fds);
 
-		if (select (sock_fd+1, &fds, NULL, NULL, NULL) < 0) {
+		if (select(sock_fd + 1, &fds, NULL, NULL, NULL) < 0) {
 			if (errno == EINTR) {
 				/* alarm may have happened. */
 				continue;
 			}
-			perror_msg_and_die ("select error");
+			perror_msg_and_die("select error");
 		}
 
-		if (FD_ISSET (sock_fd, &fds)) {
-		       int   i;
-		       RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZ + 1);
+		if (FD_ISSET(sock_fd, &fds)) {
+			int i;
 
-		       memset(tmpbuf, '\0', BUFSIZ+1);
-		       if ( (i = recv(sock_fd, tmpbuf, BUFSIZ, 0)) > 0) {
-			       serveConnection(tmpbuf, i);
-		       } else {
-			       perror_msg_and_die ("UNIX socket error");
-		       }
-		       RELEASE_CONFIG_BUFFER (tmpbuf);
-		}/* FD_ISSET() */
-	} /* for main loop */
+			RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZ + 1);
+
+			memset(tmpbuf, '\0', BUFSIZ + 1);
+			if ((i = recv(sock_fd, tmpbuf, BUFSIZ, 0)) > 0) {
+				serveConnection(tmpbuf, i);
+			} else {
+				perror_msg_and_die("UNIX socket error");
+			}
+			RELEASE_CONFIG_BUFFER(tmpbuf);
+		}				/* FD_ISSET() */
+	}					/* for main loop */
 }
 
 extern int syslogd_main(int argc, char **argv)
 {
 	int opt;
+
 #if ! defined(__uClinux__)
 	int doFork = TRUE;
 #endif
@@ -567,37 +593,37 @@ extern int syslogd_main(int argc, char **argv)
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "m:nO:R:LC")) > 0) {
 		switch (opt) {
-			case 'm':
-				MarkInterval = atoi(optarg) * 60;
-				break;
+		case 'm':
+			MarkInterval = atoi(optarg) * 60;
+			break;
 #if ! defined(__uClinux__)
-			case 'n':
-				doFork = FALSE;
-				break;
+		case 'n':
+			doFork = FALSE;
+			break;
 #endif
-			case 'O':
-				logFilePath = xstrdup(optarg);
-				break;
+		case 'O':
+			logFilePath = xstrdup(optarg);
+			break;
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-			case 'R':
-				RemoteHost = xstrdup(optarg);
-				if ( (p = strchr(RemoteHost, ':'))){
-					RemotePort = atoi(p+1);
-					*p = '\0';
-				}
-				doRemoteLog = TRUE;
-				break;
-			case 'L':
-				local_logging = TRUE;
-				break;
+		case 'R':
+			RemoteHost = xstrdup(optarg);
+			if ((p = strchr(RemoteHost, ':'))) {
+				RemotePort = atoi(p + 1);
+				*p = '\0';
+			}
+			doRemoteLog = TRUE;
+			break;
+		case 'L':
+			local_logging = TRUE;
+			break;
 #endif
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-			case 'C':
-				circular_logging = TRUE;
-				break;
+		case 'C':
+			circular_logging = TRUE;
+			break;
 #endif
-			default:
-				show_usage();
+		default:
+			show_usage();
 		}
 	}
 
@@ -617,9 +643,8 @@ extern int syslogd_main(int argc, char **argv)
 	umask(0);
 
 #if ! defined(__uClinux__)
-	if (doFork == TRUE) {
-		if (daemon(0, 1) < 0)
-			perror_msg_and_die("daemon");
+	if ((doFork == TRUE) && (daemon(0, 1) < 0)) {
+		perror_msg_and_die("daemon");
 	}
 #endif
 	doSyslogd();
