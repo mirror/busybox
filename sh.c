@@ -1014,7 +1014,6 @@ static int expand_arguments(char *command)
 	 * wordexp can't do for us, namely $? and $! */
 	src = command;
 	while((dst = strchr(src,'$')) != NULL){
-		printf("dollar '%s'\n", dst);
 		var = NULL;
 		switch(*(dst+1)) {
 			case '?':
@@ -1057,14 +1056,25 @@ static int expand_arguments(char *command)
 		} else {
 			/* Looks like an environment variable */
 			char delim_hold;
-			src=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.");
+			int num_skip_chars=1;
+			int dstlen = strlen(dst);
+			/* Is this a ${foo} type variable? */
+			if (dstlen >=2 && *(dst+1) == '{') {
+				src=strchr(dst+1, '}');
+				num_skip_chars=2;
+			} else {
+				src=strpbrk(dst+1, " \t~`!$^&*()=|\\[];\"'<>?./");
+			}
 			if (src == NULL) {
-				src = dst+strlen(dst);
+				src = dst+dstlen;
 			}
 			delim_hold=*src;
 			*src='\0';  /* temporary */
-			var = getenv(dst + 1);
+			var = getenv(dst + num_skip_chars);
 			*src=delim_hold;
+			if (num_skip_chars==2) {
+				src++;
+			}
 		}
 		if (var == NULL) {
 			/* Seems we got an un-expandable variable.  So delete it. */
