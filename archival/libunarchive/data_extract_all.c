@@ -66,8 +66,9 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		}
 	}
 
-	/* Handle hard links seperately */
-	if (!S_ISLNK(file_header->mode) && (file_header->link_name) && (file_header->size == 0)) {
+	/* Handle hard links seperately 
+	 * We identified hard links as regular files of size 0 with a symlink */
+	if (S_ISREG(file_header->mode) && (file_header->link_name) && (file_header->size == 0)) {
 		/* hard link */
 		res = link(file_header->link_name, file_header->name);
 		if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {

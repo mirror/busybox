@@ -151,10 +151,9 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFIFO;
 		break;
 # endif
-	/* hard links are detected as entries with 0 size, a link name, 
-	 * and not being a symlink, hence we have nothing to do here */
+	/* hard links are detected as regular files with 0 size and a link name */
 	case '1':
-		file_header->mode |= ~S_IFLNK;
+		file_header->mode &= (S_IFREG | 07777);
 		break;
 # ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
