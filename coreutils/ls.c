@@ -716,6 +716,7 @@ static int list_single(struct dnode *dn)
 #endif
 			case LIST_FILENAME:
 #ifdef CONFIG_FEATURE_LS_COLOR
+				errno = 0;
 				if (show_color && !lstat(dn->fullname, &info)) {
 				    printf( "\033[%d;%dm", bgcolor(info.st_mode), 
 								fgcolor(info.st_mode) );
@@ -741,6 +742,7 @@ static int list_single(struct dnode *dn)
 #endif
 #ifdef CONFIG_FEATURE_LS_COLOR
 						if (show_color) {
+							errno = 0;
 							printf( "\033[%d;%dm", bgcolor(info.st_mode), 
 									fgcolor(info.st_mode) );
 						}
