@@ -1,18 +1,7 @@
-/* NOTE:
- *
- * Apparently, all "Steven J. Merrifield" did was grab the util-linux cal applet,
- * spend maybe 5 minutes integrating it into busybox, slapped a copyright on it,
- * and submitted it.  I certainly saw no evidence of any attempt at size reduction.
- * Not only do I consider his copyright below meaningless, I also consider his
- * actions shameful.
- *
- * Manuel Novoa III   (mjn3@codepoet.org)
- */
-
 /*
  * Calendar implementation for busybox
  *
- * Copyright (C) 2001 by Steven J. Merrifield <steve@labyrinth.net.au>
+ * Copyright (C) 2003 by Manuel Novoa III   (mjn3@codepoet.org)
  *
  * See original copyright at the end of this file
  *
