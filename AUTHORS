@@ -22,16 +22,16 @@ Jeff Angielski <jeff@theptrgroup.com>
     ftpput, ftpget
 
 Edward Betts <edward@debian.org>
-    expr, hostid, logname, tty, wc, whoami, yes
+    expr, hostid, logname, whoami
  
 John Beppu <beppu@codepoet.org>
-    du, head, nslookup, sort, tee, uniq
+    du, nslookup, sort
 
 Brian Candler <B.Candler@pobox.com>
     tiny-ls(ls)
 
 Randolph Chung <tausq@debian.org>
-    fbset, ping, hostname, and mkfifo
+    fbset, ping, hostname
 
 Dave Cinege <dcinege@psychosis.com>	
     more(v2), makedevs, dutmp, modularization, auto links file, 
@@ -67,10 +67,20 @@ Stephan Linz <linz@li-pro.net>
 	ipcalc, Red Hat equivalence
 
 John Lombardo <john@deltanet.com>	
-    dirname, tr
+    tr
 
 Glenn McGrath <bug1@optushome.com.au>
     ar, dpkg, dpkg-deb
+
+Manuel Novoa III <mjn3@codepoet.org>
+    cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,
+    mesg, vconfig, make_directory, parse_mode, dirname, mode_string,
+    get_last_path_component, simplify_path, and a number trivial libbb routines
+
+    also bug fixes, partial rewrites, and size optimizations in
+    ash, basename, cal, cmp, cp, df, du, echo, env, ln, logname, md5sum, mkdir,
+    mv, realpath, rm, sort, tail, touch, uname, watch, arith, human_readable,
+    interface, dutmp, ifconfig
 
 Vladimir Oleynik <dzo@simtreas.ru>
     cmdedit; xargs(current), httpd(current);
