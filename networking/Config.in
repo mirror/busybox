@@ -257,7 +257,7 @@ endif
 if ! (CONFIG_IP && CONFIG_IPADDR)
 	config CONFIG_FEATURE_IP_ADDRESS
 		bool "  address"
-		default n
+		default y
 		depends on CONFIG_IP
 		help
 		  Please submit a patch to add help text for this item.
@@ -299,7 +299,7 @@ endif
 if !(CONFIG_IP && CONFIG_IPTUNNEL)
 	config CONFIG_FEATURE_IP_TUNNEL
 		bool "  tunnel"
-		default y
+		default n
 		depends on CONFIG_IP
 		help
 		  Please submit a patch to add help text for this item.

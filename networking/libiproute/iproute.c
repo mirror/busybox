@@ -19,6 +19,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "rt_names.h"
 #include "utils.h"
@@ -33,6 +35,8 @@
 static struct
 {
 	int tb;
+	int flushed;
+	char *flushb;
 	int flushp;
 	int flushe;
 	struct rtnl_handle *rth;
@@ -51,6 +55,16 @@ static struct
 	inet_prefix msrc;
 } filter;
 
+static int flush_update(void)
+{
+	if (rtnl_send(filter.rth, filter.flushb, filter.flushp) < 0) {
+		perror("Failed to send flush request\n");
+		return -1;
+	}
+	filter.flushp = 0;
+	return 0;
+}
+
 static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
@@ -67,6 +81,8 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 			n->nlmsg_len, n->nlmsg_type, n->nlmsg_flags);
 		return 0;
 	}
+	if (filter.flushb && n->nlmsg_type != RTM_NEWROUTE)
+		return 0;
 	len -= NLMSG_LENGTH(sizeof(*r));
 	if (len < 0) {
 		error_msg("wrong nlmsg len %d", len);
@@ -127,6 +143,30 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
+
+	if (filter.flushb &&
+	    r->rtm_family == AF_INET6 &&
+	    r->rtm_dst_len == 0 &&
+	    r->rtm_type == RTN_UNREACHABLE &&
+	    tb[RTA_PRIORITY] &&
+	    *(int*)RTA_DATA(tb[RTA_PRIORITY]) == -1)
+		return 0;
+
+	if (filter.flushb) {
+		struct nlmsghdr *fn;
+		if (NLMSG_ALIGN(filter.flushp) + n->nlmsg_len > filter.flushe) {
+			if (flush_update())
+				return -1;
+		}
+		fn = (struct nlmsghdr*)(filter.flushb + NLMSG_ALIGN(filter.flushp));
+		memcpy(fn, n, n->nlmsg_len);
+		fn->nlmsg_type = RTM_DELROUTE;
+		fn->nlmsg_flags = NLM_F_REQUEST;
+		fn->nlmsg_seq = ++filter.rth->seq;
+		filter.flushp = (((char*)fn) + n->nlmsg_len) - filter.flushb;
+		filter.flushed++;
+		return 0;
+	}
 
 	if (n->nlmsg_type == RTM_DELROUTE) {
 		fprintf(fp, "Deleted ");
@@ -393,6 +433,29 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 	return sendto(rth->fd, (void*)&req, sizeof(req), 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
+static int iproute_flush_cache(void)
+{
+#define ROUTE_FLUSH_PATH "/proc/sys/net/ipv4/route/flush"
+
+	int len;
+	int flush_fd = open (ROUTE_FLUSH_PATH, O_WRONLY);
+	char *buffer = "-1";
+
+	if (flush_fd < 0) {
+		fprintf (stderr, "Cannot open \"%s\"\n", ROUTE_FLUSH_PATH);
+		return -1;
+	}
+
+	len = strlen (buffer);
+
+	if ((write (flush_fd, (void *)buffer, len)) < len) {
+		fprintf (stderr, "Cannot flush routing cache\n");
+		return -1;
+	}
+	close(flush_fd);
+	return 0;
+}
+
 static void iproute_reset_filter(void)
 {
 	memset(&filter, 0, sizeof(filter));
@@ -400,7 +463,7 @@ static void iproute_reset_filter(void)
 	filter.msrc.bitlen = -1;
 }
 
-static int iproute_list(int argc, char **argv)
+static int iproute_list_or_flush(int argc, char **argv, int flush)
 {
 	int do_ipv6 = preferred_family;
 	struct rtnl_handle rth;
@@ -409,6 +472,11 @@ static int iproute_list(int argc, char **argv)
 
 	iproute_reset_filter();
 	filter.tb = RT_TABLE_MAIN;
+
+	if (flush && argc <= 0) {
+		fprintf(stderr, "\"ip route flush\" requires arguments.\n");
+		return -1;
+	}
 
 	while (argc > 0) {
 		if (matches(*argv, "protocol") == 0) {
@@ -493,6 +561,46 @@ static int iproute_list(int argc, char **argv)
 			}
 			filter.oif = idx;
 			filter.oifmask = -1;
+		}
+	}
+
+	if (flush) {
+		int round = 0;
+		char flushb[4096-512];
+
+		if (filter.tb == -1) {
+			if (do_ipv6 != AF_INET6)
+				iproute_flush_cache();
+			if (do_ipv6 == AF_INET)
+				return 0;
+		}
+
+		filter.flushb = flushb;
+		filter.flushp = 0;
+		filter.flushe = sizeof(flushb);
+		filter.rth = &rth;
+
+		for (;;) {
+			if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
+				perror("Cannot send dump request");
+				return -1;
+			}
+			filter.flushed = 0;
+			if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
+				error_msg("Flush terminated\n");
+				return -1;
+			}
+			if (filter.flushed == 0) {
+				if (round == 0) {
+					if (filter.tb != -1 || do_ipv6 == AF_INET6)
+						fprintf(stderr, "Nothing to flush.\n");
+				}
+				fflush(stdout);
+				return 0;
+			}
+			round++;
+			if (flush_update() < 0)
+				exit(1);
 		}
 	}
 
@@ -686,7 +794,7 @@ static int iproute_get(int argc, char **argv)
 int do_iproute(int argc, char **argv)
 {
 	const char *ip_route_commands[] = { "add", "append", "change", "chg",
-		"delete", "get", "list", "show", "prepend", "replace", "test", 0 };
+		"delete", "get", "list", "show", "prepend", "replace", "test", "flush", 0 };
 	unsigned short command_num = 6;
 	unsigned int flags = 0;
 	int cmd = RTM_NEWROUTE;
@@ -712,13 +820,15 @@ int do_iproute(int argc, char **argv)
 			return iproute_get(argc-1, argv+1);
 		case 6: /* list */
 		case 7: /* show */
-			return iproute_list(argc-1, argv+1);
+			return iproute_list_or_flush(argc-1, argv+1, 0);
 		case 8: /* prepend */
 			flags = NLM_F_CREATE;
 		case 9: /* replace */
 			flags = NLM_F_CREATE|NLM_F_REPLACE;
 		case 10: /* test */
 			flags = NLM_F_EXCL;
+		case 11: /* flush */
+			return iproute_list_or_flush(argc-1, argv+1, 1);
 		default:
 			error_msg_and_die("Unknown command %s", *argv);
 	}

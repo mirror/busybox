@@ -2084,6 +2084,14 @@
 	"Telnet is used to establish interactive communication with another\n"\
 	"computer over a network using the TELNET protocol."
 
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+#define telnetd_trivial_usage \
+	"(inetd mode) [OPTION]"
+#define telnetd_full_usage \
+	"Telnetd uses incoming TELNET connections via inetd.\n"\
+	"Options:\n" \
+	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)"
+#else
 #define telnetd_trivial_usage \
 	"[OPTION]"
 #define telnetd_full_usage \
@@ -2091,6 +2099,7 @@
 	"Options:\n" \
 	"\t-p PORT\tlisten for connections on PORT (default 23)\n"\
 	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)"
+#endif
 
 #define test_trivial_usage \
 	"EXPRESSION\n  or   [ EXPRESSION ]"

@@ -59,7 +59,11 @@ static int signal_pipe[2];
 #define LISTEN_RAW 2
 static int listen_mode;
 
+#ifdef CONFIG_INSTALL_NO_USR
+#define DEFAULT_SCRIPT	"/share/udhcpc/default.script"
+#else
 #define DEFAULT_SCRIPT	"/usr/share/udhcpc/default.script"
+#endif
 
 struct client_config_t client_config = {
 	/* Default options. */
