@@ -51,9 +51,10 @@
 	* Matt Kraai -- logger now logs all arguments, not just the first
 	* Gennady Feldman -- syslogd no longer logs to localhost if compiled
 	    for remote logging...
+	* various artists -- Other good stuff that I forgot to document.
 
 
-	 -Erik Andersen
+	 -Erik Andersen, 13 December 2000
 
 0.47
 
