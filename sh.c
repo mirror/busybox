@@ -1023,7 +1023,8 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 					/* Make some space to hold just the backticked command */
 					charptr1 = charptr2 = xmalloc(1+ptr-src);
-					snprintf(charptr1, 1+ptr-src, src);
+					memcpy(charptr1, src, ptr-src);
+					charptr1[ptr-src] = '\0';
 					newJob = xmalloc(sizeof(struct job));
 					/* Now parse and run the backticked command */
 					if (!parseCommand(&charptr1, newJob, &njobList, inBg) 
