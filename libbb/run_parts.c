@@ -75,9 +75,9 @@ extern int run_parts(char **args, const unsigned char test_mode)
 			perror_msg_and_die("failed to stat component %s", filename);
 		}
 		if (S_ISREG(st.st_mode) && !access(filename, X_OK)) {
-			if (test_mode)
-				printf("run-parts would run %s\n", filename);
-			else {
+			if (test_mode) {
+				puts("%s", filename);
+			} else {
 				/* exec_errno is common vfork variable */
 				volatile int exec_errno = 0;
 				int result;
