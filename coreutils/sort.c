@@ -3,8 +3,7 @@
  * Mini sort implementation for busybox
  *
  *
- * Copyright (C) 1999,2000 by Lineo, inc.
- * Written by John Beppu <beppu@lineo.com>
+ * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,267 +22,66 @@
  */
 
 #include "busybox.h"
-#include <sys/types.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <errno.h>
 
-#ifdef BB_FEATURE_SORT_REVERSE
-#define APPLY_REVERSE(x) (reverse ? -(x) : (x))
-static int reverse = 0;
-#else
-#define APPLY_REVERSE(x) (x)
-#endif
-
-/* typedefs _______________________________________________________________ */
-
-/* line node */
-typedef struct Line {
-	char *data;					/* line data */
-	struct Line *next;			/* pointer to next line node */
-} Line;
-
-/* singly-linked list of lines */
-typedef struct {
-	int len;					/* number of Lines */
-	Line **sorted;				/* array fed to qsort */
-	Line *head;					/* head of List */
-	Line *current;				/* current Line */
-} List;
-
-/* comparison function */
-typedef int (Compare) (const void *, const void *);
-
-
-/* methods ________________________________________________________________ */
-
-static const int max = 1024;
-
-/* mallocate Line */
-static Line *line_alloc()
+int compare_ascii(const void *x, const void *y)
 {
-	Line *self;
-	self = xmalloc(1 * sizeof(Line));
-	return self;
+	return strcmp(*(char **)x, *(char **)y);
 }
 
-/* Construct Line from FILE* */
-static Line *line_newFromFile(FILE * src)
+int compare_numeric(const void *x, const void *y)
 {
-	Line *self;
-	char *cstring = NULL;
-
-	if ((cstring = get_line_from_file(src))) {
-		self = line_alloc();
-		self->data = cstring;
-		self->next = NULL;
-		return self;
-	}
-	return NULL;
+	return atoi(*(char **)x) - atoi(*(char **)y);
 }
-
-/* Line destructor */
-static Line *line_release(Line * self)
-{
-	if (self->data) {
-		free(self->data);
-		free(self);
-	}
-	return self;
-}
-
-
-/* Comparison */
-
-/* ascii order */
-static int compare_ascii(const void *a, const void *b)
-{
-	Line **val;
-	Line *x, *y;
-
-	val = (Line **) a;
-	x = *val;
-	val = (Line **) b;
-	y = *val;
-
-	// fprintf(stdout, "> %p: %s< %p: %s", x, x->data, y, y->data);
-	return APPLY_REVERSE(strcmp(x->data, y->data));
-}
-
-/* numeric order */
-static int compare_numeric(const void *a, const void *b)
-{
-	Line **val;
-	Line *x, *y;
-	int xint, yint;
-
-	val = (Line **) a;
-	x = *val;
-	val = (Line **) b;
-	y = *val;
-
-	xint = strtoul(x->data, NULL, 10);
-	yint = strtoul(y->data, NULL, 10);
-
-	return APPLY_REVERSE(xint - yint);
-}
-
-
-/* List */
-
-/* */
-static List *list_init(List * self)
-{
-	self->len = 0;
-	self->sorted = NULL;
-	self->head = NULL;
-	self->current = NULL;
-	return self;
-}
-
-/* for simplicity, the List gains ownership of the line */
-static List *list_insert(List * self, Line * line)
-{
-	if (line == NULL) {
-		return NULL;
-	}
-
-	/* first insertion */
-	if (self->head == NULL) {
-		self->head = line;
-		self->current = line;
-
-	/* all subsequent insertions */
-	} else {
-		self->current->next = line;
-		self->current = line;
-	}
-	self->len++;
-	return self;
-}
-
-/* order the list according to compare() */
-static List *list_sort(List * self, Compare * compare)
-{
-	int i;
-	Line *line;
-
-	/* mallocate array of Line*s */
-	self->sorted = (Line **) xmalloc(self->len * sizeof(Line *));
-
-	/* fill array w/ List's contents */
-	i = 0;
-	line = self->head;
-	while (line) {
-		self->sorted[i++] = line;
-		line = line->next;
-	}
-
-	/* apply qsort */
-	qsort(self->sorted, self->len, sizeof(Line *), compare);
-	return self;
-}
-
-/* precondition:  list must be sorted */
-static List *list_writeToFile(List * self, FILE * dst)
-{
-	int i;
-	Line **line = self->sorted;
-
-	if (self->sorted == NULL) {
-		return NULL;
-	}
-	for (i = 0; i < self->len; i++) {
-		fprintf(dst, "%s", line[i]->data);
-	}
-	return self;
-}
-
-/* deallocate */
-static void list_release(List * self)
-{
-	Line *i;
-	Line *die;
-
-	i = self->head;
-	while (i) {
-		die = i;
-		i = die->next;
-		line_release(die);
-	}
-}
-
-
 
 int sort_main(int argc, char **argv)
 {
-	int i;
-	char opt;
-	List list;
-	Line *l;
-	Compare *compare;
+	FILE *fp;
+	char *line, **lines = NULL;
+	int i, opt, nlines = 0;
+	int (*compare)(const void *, const void *) = compare_ascii;
+#ifdef BB_FEATURE_SORT_REVERSE
+	int reverse = FALSE;
+#endif
 
-	/* init */
-	compare = compare_ascii;
-	list_init(&list);
-
-	/* parse argv[] */
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			opt = argv[i][1];
-			switch (opt) {
-			case 'h':
-				usage(sort_usage);
-				break;
+	while ((opt = getopt(argc, argv, "nr")) != -1) {
+		switch (opt) {
 			case 'n':
-				/* numeric comparison */
 				compare = compare_numeric;
 				break;
 #ifdef BB_FEATURE_SORT_REVERSE
 			case 'r':
-				/* reverse */
-				reverse = 1;
+				reverse = TRUE;
 				break;
 #endif
 			default:
-				error_msg("invalid option -- %c\n", opt);
 				usage(sort_usage);
-			}
-		} else {
-			break;
 		}
 	}
 
-	if (i >= argc) {
+	/* read the input */
+	for (i = optind; i == optind || i < argc; i++) {
+		if (argv[i] == NULL)
+			fp = stdin;
+		else
+			fp = xfopen(argv[i], "r");
 
-        /* work w/ stdin */
-		while ((l = line_newFromFile(stdin))) {
-			list_insert(&list, l);
+		while ((line = get_line_from_file(fp)) != NULL) {
+			lines = xrealloc(lines, sizeof(char *) * (nlines + 1));
+			lines[nlines++] = line;
 		}
-
-	} else {
-
-		/* work w/ what's left in argv[] */
-		FILE *src;
-
-		for (; i < argc; i++) {
-			src = fopen(argv[i], "r");
-			if (src == NULL) {
-				break;
-			}
-			while ((l = line_newFromFile(src))) {
-				list_insert(&list, l);
-			}
-			fclose(src);
-		}
-
 	}
-    list_sort(&list, compare);
-    list_writeToFile(&list, stdout);
-    list_release(&list);
 
-	return(0);
+	/* sort it */
+	qsort(lines, nlines, sizeof(char *), compare);
+
+	/* print it */
+#ifdef BB_FEATURE_SORT_REVERSE
+	if (reverse)
+		for (i = nlines - 1; 0 <= i; i--)
+			fputs(lines[i], stdout);
+	else
+#endif
+	for (i = 0; i < nlines; i++)
+		fputs(lines[i], stdout);
+	return EXIT_SUCCESS;
 }
-
-/* $Id: sort.c,v 1.24 2000/12/07 19:56:48 markw Exp $ */
