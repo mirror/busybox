@@ -19,8 +19,10 @@
 
 extern void data_extract_to_buffer(archive_handle_t *archive_handle)
 {
-	archive_handle->buffer = xmalloc(archive_handle->file_header->size + 1);
-	
-	archive_xread_all(archive_handle, archive_handle->buffer, archive_handle->file_header->size);
+	const unsigned int size = archive_handle->file_header->size;
 
+	archive_handle->buffer = xmalloc(size + 1);
+
+	archive_xread_all(archive_handle, archive_handle->buffer, size);
+	archive_handle->buffer[size] = '\0';
 }
