@@ -55,13 +55,13 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, date, dd, df,
+basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd, df,
 dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
-hostname, init, kill, killall, length, ln, loadacm, loadfont, loadkmap, logger,
-logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod, mkswap,
-mktemp, mnc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps, pwd,
-reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep, sort, sync,
+hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
+logger, logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod,
+mkswap, mktemp, nc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps,
+pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep, sort, sync,
 syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true, tty, umount,
 uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
 
@@ -248,6 +248,30 @@ Options:
         -d      Preserves links
         -p      Preserves file attributes if possable
         -R      Copies directories recursively
+
+-------------------------------
+
+=item cut
+
+Usage: cut [OPTION]... [FILE]...
+
+Prints selected fields from each input FILE to standard output.
+
+Options:
+
+        -b LIST Output only bytes from LIST
+        -c LIST Output only characters from LIST
+        -d DELIM        Use DELIM instead of tab as the field delimiter
+        -f N    Print only these fields
+        -n      Ignored
+
+Example:
+
+	$ echo "Hello world" | cut -f 1 -d ' '
+	Hello
+	$ echo "Hello world" | cut -f 2 -d ' '
+	world
+
 
 -------------------------------
 
@@ -665,6 +689,23 @@ Example:
 
 -------------------------------
 
+=item id
+
+Print information for USERNAME or the current user
+
+Options:
+
+        -g      prints only the group ID
+        -u      prints only the user ID
+        -r      prints the real user ID instead of the effective ID (with -ug)
+
+Example:
+
+	$ id
+	uid=1000(andersen) gid=1000(andersen)
+
+-------------------------------
+
 =item init
 
 Usage: init
@@ -1076,15 +1117,15 @@ Example:
 
 -------------------------------
 
-=item mnc
+=item nc
 
-Usage: mnc [IP] [port]
+Usage: nc [IP] [port]
 
-mini-netcat opens a pipe to IP:port
+Netcat opens a pipe to IP:port
 
 Example:
 
-	$ mnc foobar.somedomain.com 25
+	$ nc foobar.somedomain.com 25
 	220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
 	help
 	214-Commands supported:
@@ -1881,4 +1922,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.30 2000/05/12 19:41:47 erik Exp $
+# $Id: busybox.pod,v 1.31 2000/05/13 05:36:13 erik Exp $

@@ -1,11 +1,13 @@
 0.44
-        * added the -v option (inverted search) to grep,
-            updated docs/busybox.pod accordingly.  -beppu
+	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
+	    help messages (i.e --help).  Saves 17k over a full compile.
 	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
 	* Added setkeycodes, for those that have wierd keyboard buttons.
 	* Added cut and tr from minix, since due to the license change, 
 	    we can now use minix code.  Minix tr saves 4k. 
-	* Fix for ping warnings from Sascha Ziemann <szi@aibon.ping.de>
+        * Added the -v option (inverted search) to grep,
+            updated docs/busybox.pod accordingly.  -beppu
+	* Fixed ping warnings -- fix from Sascha Ziemann <szi@aibon.ping.de>
 	* Fixed update segfault
 	* Fixed mknod -- minor number was always 0
 	* Fixed tar option parsing.  In an attempt to accomodate the whiners
@@ -13,8 +15,7 @@
 	    I broke creation of tarballs.  I reverted the change (so tar needs
 	    the "-" for all options).
 	* Several contributions from Randolph Chung <tausq@debian.org>.
-	    * cp/mv now accepts (and ignores) the -f flag, since it always
-		does force anyway
+	    * cp/mv now accepts the -f flag
 	    * tail can now accept -<num> commands (e.g. -10) for better 
 		compatibility with the standard tail command
 	    * added a simple id implementation; doesn't support sup. groups yet
@@ -25,12 +26,11 @@
 	* Changed 'umount -l' to mean "Do not free loop device".
 	* Fixed basename to support stripping of suffixes.  Patch thanks
 	    to xiong jianxin <jxiong@uiuc.edu>
-	* More doc updates
 	* cp -fa now works as expected for symlinks (it didn't before)
 	* zcat now works (wasn't working since option parsing was broken)
 	* Renamed "mnc" to the more correct "nc".
-	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
-	    help messages (i.e --help).  Saves 17k over a full compile.
+	* Makefile intelligence updates
+	* More doc updates
 
 
 	 -Erik
