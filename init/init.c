@@ -181,6 +181,7 @@ static char *log           = VC_5;
 static int  kernelVersion  = 0;
 static char termType[32]   = "TERM=linux";
 static char console[32]    = _PATH_CONSOLE;
+sig_atomic_t got_cont = 0;
 
 static void delete_initAction(initAction * action);
 
@@ -473,6 +474,9 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		signal(SIGINT, SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
 		signal(SIGHUP, SIG_DFL);
+		signal(SIGCONT, SIG_DFL);
+		signal(SIGSTOP, SIG_DFL);
+		signal(SIGTSTP, SIG_DFL);
 
 		if ((fd = device_open(terminal, O_RDWR)) < 0) {
 			if (stat(terminal, &sb) != 0) {
@@ -652,6 +656,9 @@ static void shutdown_system(void)
 	sigaddset(&block_signals, SIGUSR2);
 	sigaddset(&block_signals, SIGINT);
 	sigaddset(&block_signals, SIGTERM);
+	sigaddset(&block_signals, SIGCONT);
+	sigaddset(&block_signals, SIGSTOP);
+	sigaddset(&block_signals, SIGTSTP);
 	sigprocmask(SIG_BLOCK, &block_signals, NULL);
 
 	/* Allow Ctrl-Alt-Del to reboot system. */
@@ -724,6 +731,27 @@ static void reboot_signal(int sig)
 static void ctrlaltdel_signal(int sig)
 {
 	run_actions(CTRLALTDEL);
+}
+
+/*
+ *	The SIGSTOP & SIGTSTP handler
+ */
+static void stop_handler(int sig)
+{
+	int	saved_errno = errno;
+
+	got_cont = 0;
+	while(!got_cont) pause();
+	got_cont = 0;
+	errno = saved_errno;
+}
+
+/*
+ *  The SIGCONT handler
+ */ 
+static void cont_handler(int sig)
+{
+	got_cont = 1;
 }
 
 #endif							/* ! DEBUG_INIT */
@@ -925,6 +953,9 @@ extern int init_main(int argc, char **argv)
 	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, ctrlaltdel_signal);
 	signal(SIGTERM, reboot_signal);
+	signal(SIGCONT, cont_handler);
+	signal(SIGSTOP, stop_handler);
+	signal(SIGTSTP, stop_handler);
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
 	 * SIGINT on CAD so we can shut things down gracefully... */
