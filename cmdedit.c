@@ -1167,25 +1167,21 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	len = 0;
 	command_ps = command;
 
-	if (new_settings.c_cc[VERASE] == 0) {     /* first call */
-
-		getTermSettings(0, (void *) &initial_settings);
-		memcpy(&new_settings, &initial_settings, sizeof(struct termios));
-		new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
-		/* Turn off echoing and CTRL-C, so we can trap it */
-		new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
+	getTermSettings(0, (void *) &initial_settings);
+	memcpy(&new_settings, &initial_settings, sizeof(struct termios));
+	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
+	/* Turn off echoing and CTRL-C, so we can trap it */
+	new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
 #ifndef linux
-		/* Hmm, in linux c_cc[] not parsed if set ~ICANON */
-		new_settings.c_cc[VMIN] = 1;
-		new_settings.c_cc[VTIME] = 0;
-		/* Turn off CTRL-C, so we can trap it */
+	/* Hmm, in linux c_cc[] not parsed if set ~ICANON */
+	new_settings.c_cc[VMIN] = 1;
+	new_settings.c_cc[VTIME] = 0;
+	/* Turn off CTRL-C, so we can trap it */
 #       ifndef _POSIX_VDISABLE
 #               define _POSIX_VDISABLE '\0'
 #       endif
-		new_settings.c_cc[VINTR] = _POSIX_VDISABLE;	
+	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;	
 #endif
-	}
-
 	command[0] = 0;
 
 	setTermSettings(0, (void *) &new_settings);

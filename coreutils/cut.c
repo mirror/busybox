@@ -344,10 +344,8 @@ extern int cut_main(int argc, char **argv)
 		int i;
 		FILE *file;
 		for (i = optind; i < argc; i++) {
-			file = fopen(argv[i], "r");
-			if (file == NULL) {
-				perror_msg("%s", argv[i]);
-			} else {
+			file = wfopen(argv[i], "r");
+			if(file) {
 				cut_file(file);
 				fclose(file);
 			}

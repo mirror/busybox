@@ -17,7 +17,7 @@ extern char *concat_path_file(const char *path, const char *filename)
 	if (!path)
 	    path="";
 	lc = last_char_is(path, '/');
-	if (filename[0] == '/')
+	while (*filename == '/')
 		filename++;
 	outbuf = xmalloc(strlen(path)+strlen(filename)+1+(lc==NULL));
 	sprintf(outbuf, "%s%s%s", path, (lc==NULL)? "/" : "", filename);

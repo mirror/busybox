@@ -119,20 +119,26 @@ static short arith_apply(operator op, long *numstack, long **numstackptr)
 		NUMPTR[-1] = (NUMPTR[-1] <= *NUMPTR);
 	else if (op == TOK_MUL)
 		NUMPTR[-1] *= *NUMPTR;
-	else if (op == TOK_DIV)
+	else if (op == TOK_DIV) {
+		if(*NUMPTR==0)
+			return -2;
 		NUMPTR[-1] /= *NUMPTR;
-	else if (op == TOK_REM)
+		}
+	else if (op == TOK_REM) {
+		if(*NUMPTR==0)
+			return -2;
 		NUMPTR[-1] %= *NUMPTR;
+		}
 	else if (op == TOK_ADD)
 		NUMPTR[-1] += *NUMPTR;
 	else if (op == TOK_SUB)
 		NUMPTR[-1] -= *NUMPTR;
 	}
 	return 0;
-err: return(1);
+err: return(-1);
 }
 
-extern long arith (const char *startbuf)
+extern long arith (const char *startbuf, int *errcode)
 {
 	register char arithval;
 	const char *expr = startbuf;
@@ -142,8 +148,9 @@ extern long arith (const char *startbuf)
 	unsigned char prec;
 
 	long *numstack, *numstackptr;
-
 	operator *stack = alloca(datasizes * sizeof(operator)), *stackptr = stack;
+
+	*errcode = 0;
 	numstack = alloca((datasizes/2+1)*sizeof(long)), numstackptr = numstack;
 
 	while ((arithval = *expr)) {
@@ -163,7 +170,8 @@ extern long arith (const char *startbuf)
 				op = *--stackptr;
 				if (op == TOK_LPAREN)
 					goto prologue;
-				if(ARITH_APPLY(op)) goto err;
+				*errcode = ARITH_APPLY(op);
+				if(*errcode) return *errcode;
 			}
 			goto err; /* Mismatched parens */
 		} if (arithval == '|') {
@@ -231,17 +239,22 @@ extern long arith (const char *startbuf)
 
 		prec = PREC(op);
 		if (prec != UNARYPREC)
-			while (stackptr != stack && PREC(stackptr[-1]) >= prec)
-				if(ARITH_APPLY(*--stackptr)) goto err;
+			while (stackptr != stack && PREC(stackptr[-1]) >= prec) {
+				*errcode = ARITH_APPLY(*--stackptr);
+				if(*errcode) return *errcode;
+			}
 		*stackptr++ = op;
 		lasttok = op;
 prologue: ++expr;
 	} /* yay */
 
-	while (stackptr != stack)
-		if(ARITH_APPLY(*--stackptr)) goto err;
+	while (stackptr != stack) {
+		*errcode = ARITH_APPLY(*--stackptr);
+		if(*errcode) return *errcode;
+	}
 	if (numstackptr != numstack+1) {
 err: 
+	    *errcode = -1;
 	    return -1;
 	 /* NOTREACHED */
 	}

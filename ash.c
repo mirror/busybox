@@ -52,6 +52,7 @@
 
 /* If you need ash to act as a full Posix shell, with full math
  * support, enable this.   This adds a bit over 2k an x86 system. */
+//#undef ASH_MATH_SUPPORT
 #define ASH_MATH_SUPPORT
 
 /* Getopts is used by shell procedures to parse positional parameters.
@@ -78,8 +79,6 @@
 /* These are here to work with glibc -- Don't change these... */
 #undef FNMATCH_BROKEN
 #undef GLOB_BROKEN
-#undef _GNU_SOURCE
-#undef __USE_GNU
 
 #include <assert.h>
 #include <ctype.h>
@@ -4839,6 +4838,7 @@ static void
 expari(int flag)
 {
 	char *p, *start;
+	int errcode;
 	int result;
 	int begoff;
 	int quotes = flag & (EXP_FULL | EXP_CASE);
@@ -4877,9 +4877,13 @@ expari(int flag)
 	removerecordregions(begoff);
 	if (quotes)
 		rmescapes(p+2);
-	result = arith(p+2);
-	if (result < 0)
-	    error("arith: syntax error: \"%s\"\n", p+2);
+	result = arith(p+2, &errcode);
+	if (errcode < 0) {
+		if(errcode == -2)
+			error("divide by zero");
+		else
+			error("syntax error: \"%s\"\n", p+2);
+	}
 	snprintf(p, 12, "%d", result);
 
 	while (*p++)
@@ -5429,9 +5433,9 @@ expandmeta(str, flag)
 			goto nometa;
 		p = preglob(str->text);
 		INTOFF;
-		switch (glob(p, GLOB_NOMAGIC, 0, &pglob)) {
+		switch (glob(p, 0, 0, &pglob)) {
 		case 0:
-			if (!(pglob.gl_flags & GLOB_MAGCHAR))
+			if(pglob.gl_pathv[1]==0 && !strcmp(p, pglob.gl_pathv[0]))
 				goto nometa2;
 			addglob(&pglob);
 			globfree(&pglob);
@@ -6006,7 +6010,7 @@ static int histcmd(argc, argv)
 struct redirtab {
 	struct redirtab *next;
 	short renamed[10]; /* Current ash support only 0-9 descriptors */
-	/* char renamed[10]; */ /* char on arm (and others) can't be negative */
+	/* char on arm (and others) can't be negative */
 };
 
 static struct redirtab *redirlist;
@@ -6166,7 +6170,7 @@ preadfd(void)
 retry:
 #ifdef BB_FEATURE_COMMAND_EDITING
 	{
-	    if (parsefile->fd)
+	    if (!iflag || parsefile->fd)
 		    nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	    else {
 		    nr = cmdedit_read_input((char*)cmdedit_prompt, buf);
@@ -6468,80 +6472,6 @@ static void setjobctl(int enable)
 #endif
 
 
-/* A translation list so we can be polite to our users. */
-static char *signal_names[NSIG + 2] = {
-    "EXIT",
-    "SIGHUP",
-    "SIGINT",
-    "SIGQUIT",
-    "SIGILL",
-    "SIGTRAP",
-    "SIGABRT",
-    "SIGBUS",
-    "SIGFPE",
-    "SIGKILL",
-    "SIGUSR1",
-    "SIGSEGV",
-    "SIGUSR2",
-    "SIGPIPE",
-    "SIGALRM",
-    "SIGTERM",
-    "SIGJUNK(16)",
-    "SIGCHLD",
-    "SIGCONT",
-    "SIGSTOP",
-    "SIGTSTP",
-    "SIGTTIN",
-    "SIGTTOU",
-    "SIGURG",
-    "SIGXCPU",
-    "SIGXFSZ",
-    "SIGVTALRM",
-    "SIGPROF",
-    "SIGWINCH",
-    "SIGIO",
-    "SIGPWR",
-    "SIGSYS",
-#ifdef SIGRTMIN
-    "SIGRTMIN",
-    "SIGRTMIN+1",
-    "SIGRTMIN+2",
-    "SIGRTMIN+3",
-    "SIGRTMIN+4",
-    "SIGRTMIN+5",
-    "SIGRTMIN+6",
-    "SIGRTMIN+7",
-    "SIGRTMIN+8",
-    "SIGRTMIN+9",
-    "SIGRTMIN+10",
-    "SIGRTMIN+11",
-    "SIGRTMIN+12",
-    "SIGRTMIN+13",
-    "SIGRTMIN+14",
-    "SIGRTMIN+15",
-    "SIGRTMAX-15",
-    "SIGRTMAX-14",
-    "SIGRTMAX-13",
-    "SIGRTMAX-12",
-    "SIGRTMAX-11",
-    "SIGRTMAX-10",
-    "SIGRTMAX-9",
-    "SIGRTMAX-8",
-    "SIGRTMAX-7",
-    "SIGRTMAX-6",
-    "SIGRTMAX-5",
-    "SIGRTMAX-4",
-    "SIGRTMAX-3",
-    "SIGRTMAX-2",
-    "SIGRTMAX-1",
-    "SIGRTMAX",
-#endif
-    "DEBUG",
-    (char *)0x0,
-};
-
-
-
 #ifdef JOBS
 static int
 killcmd(argc, argv)
@@ -6599,18 +6529,20 @@ usage:
 	}
 
 	if (list) {
+		const char *name;
+
 		if (!*argptr) {
 			out1str("0\n");
 			for (i = 1; i < NSIG; i++) {
-				printf(snlfmt, signal_names[i] + 3);
+				name = u_signal_names(0, &i, 1);
+				if(name)
+					printf(snlfmt, name);
 			}
 			return 0;
 		}
-		signo = atoi(*argptr);
-		if (signo > 128)
-			signo -= 128;
-		if (0 < signo && signo < NSIG)
-				printf(snlfmt, signal_names[signo] + 3);
+		name = u_signal_names(*argptr, &signo, -1);
+		if (name)
+			printf(snlfmt, name);
 		else
 			error("invalid signal number or exit status: %s",
 			      *argptr);
@@ -8834,12 +8766,6 @@ copynodelist(const struct nodelist *lp)
 static char *
 nodesavestr(const char *s)
 {
-#ifdef _GNU_SOURCE
-	char   *rtn = funcstring;
-
-	funcstring = stpcpy(funcstring, s) + 1;
-	return rtn;
-#else
 	const char *p = s;
 	char *q = funcstring;
 	char   *rtn = funcstring;
@@ -8848,7 +8774,6 @@ nodesavestr(const char *s)
 		continue;
 	funcstring = q;
 	return rtn;
-#endif
 }
 
 #ifdef ASH_GETOPTS
@@ -12052,11 +11977,15 @@ trapcmd(argc, argv)
 		for (signo = 0 ; signo < NSIG ; signo++) {
 			if (trap[signo] != NULL) {
 				char *p;
+				const char *sn;
 
 				p = single_quote(trap[signo]);
-				printf("trap -- %s %s\n", p,
-					signal_names[signo] + (signo ? 3 : 0)
-				);
+				sn = sys_siglist[signo];
+				if(sn==NULL)
+					sn = u_signal_names(0, &signo, 0);
+				if(sn==NULL)
+					sn = "???";
+				printf("trap -- %s %s\n", p, sn);
 				stunalloc(p);
 			}
 		}
@@ -12273,30 +12202,11 @@ l2:   _exit(status);
 static int decode_signal(const char *string, int minsig)
 {
 	int signo;
+	const char *name = u_signal_names(string, &signo, minsig);
 
-	if (is_number(string, &signo)) {
-		if (signo >= NSIG) {
-			return -1;
-		}
-		return signo;
-	}
-
-	signo = minsig;
-	if (!signo) {
-		goto zero;
-	}
-	for (; signo < NSIG; signo++) {
-		if (!strcasecmp(string, &(signal_names[signo])[3])) {
-			return signo;
-		}
-zero:
-		if (!strcasecmp(string, signal_names[signo])) {
-			return signo;
-		}
-	}
-
-	return -1;
+	return name ? signo : -1;
 }
+
 static struct var **hashvar (const char *);
 static void showvars (const char *, int, int);
 static struct var **findvar (struct var **, const char *);
@@ -12616,6 +12526,7 @@ found:;
 	return 0;
 }
 
+
 /*
  * The "local" command.
  */
@@ -12874,7 +12785,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.16 2001/08/01 17:21:33 kraai Exp $
+ * $Id: ash.c,v 1.17 2001/08/02 05:02:45 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
@@ -12894,24 +12805,32 @@ static int timescmd (int argc, char **argv)
 	return 0;
 }
 
-
 #ifdef ASH_MATH_SUPPORT
 /* The let builtin.  */
 int letcmd(int argc, char **argv)
 {
+	int errcode;
 	long result=0;
 	if (argc == 2) {
 		char *tmp, *expression, p[13];
 		expression = strchr(argv[1], '=');
 		if (!expression) {
+			/* Cannot use 'error()' here, or the return code
+			 * will be incorrect */
 			out2fmt("sh: let: syntax error: \"%s\"\n", argv[1]);
 			return 0;
 		}
 		*expression = '\0';
 		tmp = ++expression;
-		result = arith(tmp);
-		if (result < 0) {
-			out2fmt("sh: let: syntax error: \"%s=%s\"\n", argv[1], expression);
+		result = arith(tmp, &errcode);
+		if (errcode < 0) {
+			/* Cannot use 'error()' here, or the return code
+			 * will be incorrect */
+			out2fmt("sh: let: ");
+			if(errcode == -2)
+				out2fmt("divide by zero");
+			else
+				out2fmt("syntax error: \"%s=%s\"\n", argv[1], expression);
 			return 0;
 		}
 		snprintf(p, 12, "%ld", result);

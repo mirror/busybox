@@ -201,9 +201,8 @@ static int decode (const char *inname,
                    const char *forced_outname)
 {
   struct passwd *pw;
-  register int n;
   register char *p;
-  int mode, n1;
+  int mode;
   char buf[2 * BUFSIZ];
   char *outname;
   int do_base64 = 0;
@@ -249,12 +248,7 @@ static int decode (const char *inname,
         error_msg("%s: No user `%s'", inname, buf + 1);
         return FALSE;
       }
-      n = strlen (pw->pw_dir);
-      n1 = strlen (p);
-      outname = (char *) xmalloc ((size_t) (n + n1 + 2));
-      memcpy (outname + n + 1, p, (size_t) (n1 + 1));
-      memcpy (outname, pw->pw_dir, (size_t) n);
-      outname[n] = '/';
+      outname = concat_path_file(pw->pw_dir, p);
       dofre = TRUE;
     }
   }

@@ -212,7 +212,7 @@ char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-extern long arith (const char *startbuf);
+extern long arith (const char *startbuf, int *errcode);
 
 typedef struct file_headers_s {
 	char *name;
@@ -260,6 +260,8 @@ extern int create_icmp_socket(void);
 char *dirname (const char *path);
 
 int make_directory (char *path, mode_t mode, int flags);
+
+const char *u_signal_names(const char *str_sig, int *signo, int startnum);
 
 #define CT_AUTO	0
 #define CT_UNIX2DOS	1

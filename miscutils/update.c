@@ -69,9 +69,6 @@ extern int update_main(int argc, char **argv)
 	if (daemon(0, 1) < 0)
 		perror_msg_and_die("daemon");
 
-	/* Become a proper daemon */
-	setsid();
-	chdir("/");
 #ifdef OPEN_MAX
 	for (pid = 0; pid < OPEN_MAX; pid++) close(pid);
 #else
