@@ -51,8 +51,8 @@ static void klogd_signal(int sig)
 	exit(EXIT_SUCCESS);
 }
 
-static void doKlogd(const char console_log_level) __attribute__ ((noreturn));
-static void doKlogd(const char console_log_level)
+static void doKlogd(const int console_log_level) __attribute__ ((noreturn));
+static void doKlogd(const int console_log_level)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
@@ -71,7 +71,7 @@ static void doKlogd(const char console_log_level)
 	klogctl(1, NULL, 0);
 
 	/* Set level of kernel console messaging.. */
-	if (console_log_level)
+	if (console_log_level != -1)
 		klogctl(8, NULL, console_log_level);
 
 	syslog(LOG_NOTICE, "klogd started: " BB_BANNER);
@@ -83,7 +83,7 @@ static void doKlogd(const char console_log_level)
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
-			syslog(LOG_ERR, "klogd: Error return from sys_sycall: %d - %s.\n", errno, strerror(errno));
+			syslog(LOG_ERR, "klogd: Error return from sys_sycall: %d - %m.\n", errno);
 			exit(EXIT_FAILURE);
 		}
 
@@ -118,7 +118,7 @@ extern int klogd_main(int argc, char **argv)
 	/* no options, no getopt */
 	int opt;
 	int doFork = TRUE;
-	unsigned char console_log_level = 7;
+	unsigned char console_log_level = -1;
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "c:n")) > 0) {
