@@ -71,6 +71,7 @@ extern int more_main(int argc, char **argv)
 	int please_display_more_prompt = 0;
 	struct stat st;
 	FILE *file;
+	int len;
 
 #if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
 	struct winsize win = { 0, 0, 0, 0 };
@@ -112,12 +113,12 @@ extern int more_main(int argc, char **argv)
 		(void) signal(SIGTERM, gotsig);
 
 #endif
+		len = 0;
 		while ((c = getc(file)) != EOF) {
-			if (please_display_more_prompt) {
-				int len = 0;
 
-				please_display_more_prompt = 0;
+			if (please_display_more_prompt) {
 				lines = 0;
+				please_display_more_prompt = 0;
 				len = printf("--More-- ");
 				if (file != stdin) {
 #if _FILE_OFFSET_BITS == 64
@@ -160,7 +161,7 @@ extern int more_main(int argc, char **argv)
 					putc('\b', stdout);
 				fflush(stdout);
 #endif
-
+				len=0;
 			}
 
 			/* 
@@ -183,14 +184,24 @@ extern int more_main(int argc, char **argv)
 					please_display_more_prompt = 1;
 					break;
 				}
-				if (++lines == terminal_height)
+				/* Adjust the terminal height for any overlap, so that
+				 * no lines get lost off the top. */
+				if (len) {
+					div_t result = div( len, terminal_width); 
+					if (result.quot)
+						terminal_height-=(result.quot-1);
+				}
+				if (++lines == terminal_height) {
 					please_display_more_prompt = 1;
+				}
+				len=0;
 			}
 			/*
 			 * If we just read a newline from the file being 'mored' and any
 			 * key other than a return is hit, scroll by one page
 			 */
 			putc(c, stdout);
+			len++;
 		}
 		fclose(file);
 		fflush(stdout);
