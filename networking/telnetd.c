@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.9 2003/12/19 11:30:13 andersen Exp $
+/* $Id: telnetd.c,v 1.10 2004/02/22 09:45:57 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -140,19 +141,35 @@ remove_iacs(struct tsession *ts, int *pnum_totty) {
 				ptr++;
 		}
 		else {
-			if ((ptr+2) < end) {
-			/* the entire IAC is contained in the buffer
-			we were asked to process. */
-#ifdef DEBUG
-				fprintf(stderr, "Ignoring IAC %s,%s\n",
-				    *ptr, TELCMD(*(ptr+1)), TELOPT(*(ptr+2)));
-#endif
-				ptr += 3;
-			} else {
+			/*
+			 * TELOPT_NAWS support!
+			 */
+			if ((ptr+2) >= end) {
 				/* only the beginning of the IAC is in the
 				buffer we were asked to process, we can't
 				process this char. */
 				break;
+			}
+
+			/*
+			 * IAC -> SB -> TELOPT_NAWS -> 4-byte -> IAC -> SE
+			 */
+			else if (ptr[1] == SB && ptr[2] == TELOPT_NAWS) {
+				struct winsize ws;
+				if ((ptr+8) >= end)
+					break; 	/* incomplete, can't process */
+				ws.ws_col = (ptr[3] << 8) | ptr[4];
+				ws.ws_row = (ptr[5] << 8) | ptr[6];
+				(void) ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
+				ptr += 9;
+			}
+			else {
+				/* skip 3-byte IAC non-SB cmd */
+#ifdef DEBUG
+				fprintf(stderr, "Ignoring IAC %s,%s\n",
+					TELCMD(*(ptr+1)), TELOPT(*(ptr+2)));
+#endif
+				ptr += 3;
 			}
 		}
 	}
@@ -268,6 +285,7 @@ make_new_session(int sockfd)
 	 */
 
 	send_iac(ts, DO, TELOPT_ECHO);
+	send_iac(ts, DO, TELOPT_NAWS);
 	send_iac(ts, DO, TELOPT_LFLOW);
 	send_iac(ts, WILL, TELOPT_ECHO);
 	send_iac(ts, WILL, TELOPT_SGA);
