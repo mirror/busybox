@@ -34,22 +34,16 @@ endif
 endif
 
 UDHCP-y:=
-UDHCP-$(CONFIG_UDHCP_SHARED)	+= options.o socket.o packet.o pidfile.o
-UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.o clientpacket.o script.o
-UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.o arpping.o files.o leases.o serverpacket.o
-UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.o
+UDHCP-$(CONFIG_UDHCP_SHARED)	+= options.c socket.c packet.c pidfile.c
+UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c script.c
+UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c serverpacket.c
+UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
+UDHCP_OBJS=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 
 libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
 
-$(UDHCP_DIR)$(UDHCP_AR): $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
-	$(AR) -ro $@ $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
+$(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
+	$(AR) -ro $@ $(UDHCP_OBJS)
 
-$(UDHCP_DIR)dhcpc.o: $(UDHCP_DIR)dhcpc.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
-
-$(UDHCP_DIR)dhcpd.o: $(UDHCP_DIR)dhcpd.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
-
-$(UDHCP_DIR)dumpleases.o: $(UDHCP_DIR)dumpleases.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
-
+$(UDHCP_OBJS): $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DIN_BUSYBOX -c $< -o $@
