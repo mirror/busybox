@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 
 #include "utils.h"
@@ -316,7 +317,7 @@ int __get_hz(void)
 	}
 	if (hz)
 		return hz;
-	return HZ;
+	return sysconf(_SC_CLK_TCK);
 }
 
 const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen)
