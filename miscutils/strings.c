@@ -105,7 +105,7 @@ pipe:
 				else
 				{
 					if(i>n)
-						puts("");
+						putchar('\n');
 					i=0;
 				}
 				count++;
