@@ -483,11 +483,14 @@ extern int mount_main(int argc, char **argv)
 	} else {
 		if (device && directory) {
 #ifdef BB_NFSMOUNT
+			if (strchr(device, ':') != NULL)
+				filesystemType = "nfs";
 			if (strcmp(filesystemType, "nfs") == 0) {
-				if (nfsmount
-					(device, directory, &flags, &extra_opts, &string_flags,
-					 1) != 0)
-					exit(FALSE);
+				int ret;
+				ret = nfsmount (device, directory, &flags,
+						&extra_opts, &string_flags, 1);
+				if (ret != 0)
+					fatalError("nfsmount failed: %s\n", strerror(errno));
 			}
 #endif
 			exit(mount_one(device, directory, filesystemType,

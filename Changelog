@@ -57,6 +57,8 @@
 	* Implemented "rm -- <foo>"
 	* "which" rewritten to use stat(). Fixes to improve its compatability
 	    with traditional implementations -- Pavel Roskin.
+	* "mount" now reports errors from nfsmount() and assumes NFS mount
+	    if ':' is present in the device name - Pavel Roskin
 	* More doc updates
 
 
