@@ -28,7 +28,7 @@ extern int which_main(int argc, char **argv)
 {
 	char *path_list, *path_n;
 	struct stat filestat;
-	int i, count=1;
+	int i, count=1, found, status = EXIT_SUCCESS;
 
 	if (argc <= 1 || **(argv + 1) == '-')
 		usage(which_usage);
@@ -48,6 +48,7 @@ extern int which_main(int argc, char **argv)
 	while(argc-- > 0) { 
 		path_n = path_list;
 		argv++;
+		found = 0;
 		for (i = 0; i < count; i++) {
 			char buf[strlen(path_n)+1+strlen(*argv)];
 			strcpy (buf, path_n);
@@ -57,12 +58,15 @@ extern int which_main(int argc, char **argv)
 			    && filestat.st_mode & S_IXUSR)
 			{
 				printf ("%s\n", buf);
+				found = 1;
 				break;
 			}
 			path_n += (strlen(path_n) + 1);
 		}
+		if (!found)
+			status = EXIT_FAILURE;
 	}
-	return(TRUE);
+	return status;
 }
 
 /*
