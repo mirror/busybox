@@ -71,7 +71,6 @@ typedef unsigned long ulg;
 #define STORED      0
 /* methods 4 to 7 reserved */
 #define DEFLATED    8
-static int method;		/* compression method */
 
 /* To save memory for 16 bit systems, some arrays are overlaid between
  * the various modules:
