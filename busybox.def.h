@@ -253,7 +253,8 @@
 // #define BB_FEATURE_INSTALLER
 //
 // Clean up all memory before exiting -- usually not needed
-// as the OS can clean up...
+// as the OS can clean up...  Don't enable this unless you
+// have a really good reason for cleaning things up manually.
 //#define BB_FEATURE_CLEAN_UP
 //
 // End of Features List
