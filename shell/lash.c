@@ -65,9 +65,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#undef BB_FEATURE_SH_WORDEXP
+//#define BB_FEATURE_SH_WORDEXP
 
-#if BB_FEATURE_SH_WORDEXP
+#ifdef BB_FEATURE_SH_WORDEXP
 #include <wordexp.h>
 #define expand_t	wordexp_t
 #undef BB_FEATURE_SH_BACKTICKS
@@ -881,9 +881,6 @@ static int get_command(FILE * source, char *command)
 		return 1;
 	}
 
-	/* remove trailing newline */
-	chomp(command);
-
 	return 0;
 }
 
@@ -962,8 +959,8 @@ static int expand_arguments(char *command)
 	while( command && command[index]) {
 		if (command[index] == '\\') {
 			char *tmp = command+index+1;
-			command[index+1] = process_escape_sequence(  &tmp );
-			memmove(command+index, command+index+1, strlen(command+index));
+			command[index] = process_escape_sequence(  &tmp );
+			memmove(command+index + 1, tmp, strlen(tmp)+1);
 		}
 		index++;
 	}
@@ -971,7 +968,7 @@ static int expand_arguments(char *command)
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 
 
-#if BB_FEATURE_SH_WORDEXP
+#ifdef BB_FEATURE_SH_WORDEXP
 	/* This first part uses wordexp() which is a wonderful C lib 
 	 * function which expands nearly everything.  */ 
 	retval = wordexp (command, &expand_result, WRDE_SHOWERR);
@@ -1116,25 +1113,24 @@ static int expand_arguments(char *command)
 		} else {
 			/* Looks like an environment variable */
 			char delim_hold;
-			int num_skip_chars=1;
+			int num_skip_chars=0;
 			int dstlen = strlen(dst);
 			/* Is this a ${foo} type variable? */
 			if (dstlen >=2 && *(dst+1) == '{') {
 				src=strchr(dst+1, '}');
-				num_skip_chars=2;
+				num_skip_chars=1;
 			} else {
-				src=strpbrk(dst+1, " \t~`!$^&*()=|\\[];\"'<>?./");
+				src=dst+1;
+				while(isalnum(*src) || *src=='_') src++;
 			}
 			if (src == NULL) {
 				src = dst+dstlen;
 			}
 			delim_hold=*src;
 			*src='\0';  /* temporary */
-			var = getenv(dst + num_skip_chars);
+			var = getenv(dst + 1 + num_skip_chars);
 			*src=delim_hold;
-			if (num_skip_chars==2) {
-				src++;
-			}
+			src += num_skip_chars;
 		}
 		if (var == NULL) {
 			/* Seems we got an un-expandable variable.  So delete it. */
@@ -1149,8 +1145,7 @@ static int expand_arguments(char *command)
 			}
 			/* Move stuff to the end of the string to accommodate
 			 * filling the created gap with the new stuff */
-			memmove(dst+subst_len, src, trail_len);
-			*(dst+subst_len+trail_len)='\0';
+			memmove(dst+subst_len, src, trail_len+1);
 			/* Now copy in the new stuff */
 			memcpy(dst, var, subst_len);
 			src = dst+subst_len;
@@ -1475,7 +1470,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					break;
 #else
 					error_msg("character expected after \\");
-					free(command);
 					free_job(job);
 					return 1;
 #endif
