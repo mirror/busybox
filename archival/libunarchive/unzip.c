@@ -155,12 +155,6 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 	return(bitbuffer);
 }
 
-static void abort_gzip(void)
-{
-	error_msg("gzip aborted\n");
-	exit(-1);
-}
-
 static void make_gunzip_crc_table(void)
 {
 	const unsigned int poly = 0xedb88320;	/* polynomial exclusive-or pattern */
@@ -438,24 +432,37 @@ static void flush_gunzip_window(void)
  * tl, td: literal/length and distance decoder tables
  * bl, bd: number of bits decoded by tl[] and td[]
  */
-static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const unsigned int bd)
+static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_bl, const unsigned int my_bd, int setup)
 {
-	unsigned int e;	/* table entry flag/number of extra bits */
-	unsigned int n, d;	/* length and index for copy */
-	unsigned int w;	/* current gunzip_window position */
-	huft_t *t;			/* pointer to table entry */
-	unsigned int ml, md;	/* masks for bl and bd bits */
-	unsigned int b;	/* bit buffer */
-	unsigned int k;			/* number of bits in bit buffer */
+	static unsigned int e;	/* table entry flag/number of extra bits */
+	static unsigned int n, d;	/* length and index for copy */
+	static unsigned int w;	/* current gunzip_window position */
+	static huft_t *t;			/* pointer to table entry */
+	static unsigned int ml, md;	/* masks for bl and bd bits */
+	static unsigned int b;	/* bit buffer */
+	static unsigned int k;			/* number of bits in bit buffer */
+	static huft_t *tl, *td;
+	static unsigned int bl, bd;
+	static int resumeCopy = 0;
 
-	/* make local copies of globals */
-	b = gunzip_bb;				/* initialize bit buffer */
-	k = gunzip_bk;
-	w = gunzip_outbuf_count;			/* initialize gunzip_window position */
+	if (setup) { // 1st time we are called, copy in variables
+		tl = my_tl;
+		td = my_td;
+		bl = my_bl;
+		bd = my_bd;
+		/* make local copies of globals */
+		b = gunzip_bb;				/* initialize bit buffer */
+		k = gunzip_bk;
+		w = gunzip_outbuf_count;			/* initialize gunzip_window position */
 
-	/* inflate the coded data */
-	ml = mask_bits[bl];	/* precompute masks for speed */
-	md = mask_bits[bd];
+		/* inflate the coded data */
+		ml = mask_bits[bl];	/* precompute masks for speed */
+		md = mask_bits[bd];
+		return 0; // Don't actually do anything the first time
+	}
+	
+	if (resumeCopy) goto do_copy;
+	
 	while (1) {			/* do until end of block */
 		b = fill_bitbuffer(b, &k, bl);
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
@@ -475,8 +482,9 @@ static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const 
 			gunzip_window[w++] = (unsigned char) t->v.n;
 			if (w == gunzip_wsize) {
 				gunzip_outbuf_count = (w);
-				flush_gunzip_window();
+				//flush_gunzip_window();
 				w = 0;
+				return -1;
 			}
 		} else {		/* it's an EOB or a length */
 
@@ -512,7 +520,7 @@ static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const 
 			k -= e;
 
 			/* do the copy */
-			do {
+do_copy:		do {
 				n -= (e =
 					  (e =
 					   gunzip_wsize - ((d &= gunzip_wsize - 1) > w ? d : w)) > n ? n : e);
@@ -530,11 +538,14 @@ static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const 
 				}
 				if (w == gunzip_wsize) {
 					gunzip_outbuf_count = (w);
-					flush_gunzip_window();
+					if (n) resumeCopy = 1;
+					else resumeCopy = 0;
+					//flush_gunzip_window();
 					w = 0;
+					return -1;
 				}
-
 			} while (n);
+			resumeCopy = 0;
 		}
 	}
 
@@ -543,8 +554,47 @@ static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const 
 	gunzip_bb = b;				/* restore global bit buffer */
 	gunzip_bk = k;
 
+	/* normally just after call to inflate_codes, but save code by putting it here */
+	/* free the decoding tables, return */
+	huft_free(tl);
+	huft_free(td);
+	
 	/* done */
 	return 0;
+}
+
+int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
+{
+	static int n, b_stored, k_stored, w;
+	if (setup) {
+		n = my_n;
+		b_stored = my_b_stored;
+		k_stored = my_k_stored;
+		w = gunzip_outbuf_count;		/* initialize gunzip_window position */
+		return 0; // Don't do anything first time
+	}
+	
+	/* read and output the compressed data */
+	while (n--) {
+		b_stored = fill_bitbuffer(b_stored, &k_stored, 8);
+		gunzip_window[w++] = (unsigned char) b_stored;
+		if (w == (unsigned int) gunzip_wsize) {
+			gunzip_outbuf_count = (w);
+			//flush_gunzip_window();
+			w = 0;
+			b_stored >>= 8;
+			k_stored -= 8;
+			return -1; // Means more stuff 2do
+		}
+		b_stored >>= 8;
+		k_stored -= 8;
+	}
+
+	/* restore the globals from the locals */
+	gunzip_outbuf_count = w;		/* restore global gunzip_window pointer */
+	gunzip_bb = b_stored;	/* restore global bit buffer */
+	gunzip_bk = k_stored;
+	return 0; // Finished
 }
 
 /*
@@ -553,6 +603,7 @@ static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const 
  *
  * GLOBAL VARIABLES: bb, kk,
  */
+ // Return values: -1 = inflate_stored, -2 = inflate_codes
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
@@ -585,14 +636,12 @@ static int inflate_block(int *e)
 	case 0:			/* Inflate stored */
 	{
 		unsigned int n;	/* number of bytes in block */
-		unsigned int w;	/* current gunzip_window position */
 		unsigned int b_stored;	/* bit buffer */
 		unsigned int k_stored;	/* number of bits in bit buffer */
 
 		/* make local copies of globals */
 		b_stored = gunzip_bb;	/* initialize bit buffer */
 		k_stored = gunzip_bk;
-		w = gunzip_outbuf_count;		/* initialize gunzip_window position */
 
 		/* go to byte boundary */
 		n = k_stored & 7;
@@ -612,24 +661,8 @@ static int inflate_block(int *e)
 		b_stored >>= 16;
 		k_stored -= 16;
 
-		/* read and output the compressed data */
-		while (n--) {
-			b_stored = fill_bitbuffer(b_stored, &k_stored, 8);
-			gunzip_window[w++] = (unsigned char) b_stored;
-			if (w == (unsigned int) gunzip_wsize) {
-				gunzip_outbuf_count = (w);
-				flush_gunzip_window();
-				w = 0;
-			}
-			b_stored >>= 8;
-			k_stored -= 8;
-		}
-
-		/* restore the globals from the locals */
-		gunzip_outbuf_count = w;		/* restore global gunzip_window pointer */
-		gunzip_bb = b_stored;	/* restore global bit buffer */
-		gunzip_bk = k_stored;
-		return 0;
+		inflate_stored(n, b_stored, k_stored, 1); // Setup inflate_stored
+		return -1;
 	}
 	case 1:			/* Inflate fixed 
 						   * decompress an inflated type 1 (fixed Huffman codes) block.  We should
@@ -673,14 +706,11 @@ static int inflate_block(int *e)
 		}
 
 		/* decompress until an end-of-block code */
-		if (inflate_codes(tl, td, bl, bd)) {
-			return 1;
-		}
-
-		/* free the decoding tables, return */
-		huft_free(tl);
-		huft_free(td);
-		return 0;
+		inflate_codes(tl, td, bl, bd, 1); // Setup inflate_codes
+		
+		/* huft_free code moved into inflate_codes */
+		
+		return -2;
 	}
 	case 2:			/* Inflate dynamic */
 	{
@@ -828,14 +858,11 @@ static int inflate_block(int *e)
 		}
 
 		/* decompress until an end-of-block code */
-		if (inflate_codes(tl, td, bl, bd)) {
-			return 1;
-		}
+		inflate_codes(tl, td, bl, bd, 1); // Setup inflate_codes
 
-		/* free the decoding tables, return */
-		huft_free(tl);
-		huft_free(td);
-		return 0;
+		/* huft_free code moved into inflate_codes */
+		
+		return -2;
 	}
 	default:
 		/* bad block type */
@@ -862,7 +889,11 @@ extern ssize_t read_gz(int fd, void *buf, size_t count)
 		if (e) return 0; // No more data here!
 		gunzip_hufts = 0;
 		r = inflate_block(&e);
-		if (r != 0) {
+		if (r == -1) { // Call inflate_stored while returning -1
+			while(inflate_stored(0,0,0,0) == -1) flush_gunzip_window();
+		} else if (r == -2) { // Call inflate_codes while returning -1
+			while(inflate_codes(0,0,0,0,0) == -1) flush_gunzip_window();
+		} else {
 			error_msg_and_die("inflate error %d", r);
 			return -1;
 		}
@@ -894,15 +925,6 @@ extern void GZ_gzReadOpen(int fd, void *unused, int nUnused)
 	gunzip_src_fd = fd;
 
 	gunzip_in_buffer = malloc(8);
-
-	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGINT, (sig_type) abort_gzip);
-	}
-#ifdef SIGHUP
-	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGHUP, (sig_type) abort_gzip);
-	}
-#endif
 
 	/* initialize gunzip_window, bit buffer */
 	gunzip_bk = 0;
