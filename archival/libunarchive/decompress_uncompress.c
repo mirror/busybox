@@ -171,7 +171,7 @@ resetbuf:	;
 
 		if (insize < (int) sizeof(inbuf)-IBUFSIZ)
 		{
-			xread_all(fd_in, inbuf+insize, IBUFSIZ);
+			rsize = read(fd_in, inbuf+insize, IBUFSIZ);
 			insize += rsize;
 		}
 
