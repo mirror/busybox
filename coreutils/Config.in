@@ -113,6 +113,11 @@ config CONFIG_DOS2UNIX
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_UNIX2DOS
+	bool
+	default y
+	depends on CONFIG_DOS2UNIX
+
 config CONFIG_DU
 	bool "du (default blocksize of 512 bytes)"
 	default n
