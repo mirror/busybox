@@ -1259,17 +1259,15 @@ extern int device_open(char *device, int mode)
  *  This finds the pid of the specified process,
  *  by using the /dev/ps device driver.
  *
- *  [return]
- *  0	    failure
- *  pid	    when the pid is found.
+ *  Returns a list of all matching PIDs
  */
-extern pid_t findPidByName( char* pidName)
+extern pid_t* findPidByName( char* pidName)
 {
-	int fd, i;
+	int fd, i, j;
 	char device[] = "/dev/ps";
-	pid_t thePid = 0;
 	pid_t num_pids;
 	pid_t* pid_array = NULL;
+	pid_t* pidList=NULL;
 
 	/* open device */ 
 	fd = open(device, O_RDONLY);
@@ -1300,10 +1298,13 @@ extern pid_t findPidByName( char* pidName)
 			fatalError( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
 
 		if ((strstr(info.command_line, pidName) != NULL)) {
-			thePid = info.pid;
-			break;
+			pidList=realloc( pidList, sizeof(pid_t) * (j+2));
+			if (pidList==NULL)
+				fatalError("out of memory\n");
+			pidList[j++]=info.pid;
 		}
 	}
+	pidList[j]=0;
 
 	/* Free memory */
 	free( pid_array);
@@ -1312,7 +1313,7 @@ extern pid_t findPidByName( char* pidName)
 	if (close (fd) != 0) 
 		fatalError( "close failed for `%s': %s\n",device, strerror (errno));
 
-	return thePid;
+	return pidList;
 }
 #else		/* BB_FEATURE_USE_DEVPS_PATCH */
 #if ! defined BB_FEATURE_USE_PROCFS
@@ -1325,14 +1326,14 @@ extern pid_t findPidByName( char* pidName)
  *  Currently, it's implemented by rummaging through 
  *  the proc filesystem.
  *
- *  [return]
- *  0	    failure
- *  pid	    when the pid is found.
+ *  Returns a list of all matching PIDs
  */
-extern pid_t findPidByName( char* pidName)
+extern pid_t* findPidByName( char* pidName)
 {
 	DIR *dir;
 	struct dirent *next;
+	pid_t* pidList=NULL;
+	int i=0;
 
 	dir = opendir("/proc");
 	if (!dir)
@@ -1347,7 +1348,7 @@ extern pid_t findPidByName( char* pidName)
 		if (!isdigit(*next->d_name))
 			continue;
 
-		/* Now open the command line file */
+		/* Now open the status file */
 		sprintf(filename, "/proc/%s/status", next->d_name);
 		status = fopen(filename, "r");
 		if (!status) {
@@ -1357,10 +1358,14 @@ extern pid_t findPidByName( char* pidName)
 		fclose(status);
 
 		if ((strstr(buffer, pidName) != NULL)) {
-			return strtol(next->d_name, NULL, 0);
+			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
+			if (pidList==NULL)
+				fatalError("out of memory\n");
+			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
-	return 0;
+	pidList[i]=0;
+	return pidList;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */
 #endif							/* BB_KILLALL || ( BB_FEATURE_LINUXRC && ( BB_HALT || BB_REBOOT || BB_POWEROFF )) */
@@ -1371,7 +1376,7 @@ extern void *xmalloc(size_t size)
 	void *cp = malloc(size);
 
 	if (cp == NULL)
-		fatalError("out of memory");
+		fatalError("out of memory\n");
 	return cp;
 }
 

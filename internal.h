@@ -216,7 +216,7 @@ extern char *mtab_next(void **iter);
 extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
-extern pid_t findPidByName( char* pidName);
+extern pid_t* findPidByName( char* pidName);
 extern void *xmalloc (size_t size);
 extern int find_real_root_device_name(char* name);
 

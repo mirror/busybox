@@ -3097,7 +3097,7 @@ local void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		errorMsg("-l used on binary file", "");
+		errorMsg("-l used on binary file");
 	}
 }
 

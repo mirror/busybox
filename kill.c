@@ -224,12 +224,18 @@ extern int kill_main(int argc, char **argv)
 	else {
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
-			int pid;
+			pid_t* pidList;
 
-			while((pid = findPidByName( *argv))) {
-				if (kill(pid, sig) != 0) 
-					fatalError( "Could not kill pid '%d': %s\n", pid, strerror(errno));
+			pidList = findPidByName( *argv);
+			for(; pidList && pidList!=0; pidList++) {
+				if (kill(*pidList, sig) != 0) 
+					fatalError( "Could not kill pid '%d': %s\n", *pidList, strerror(errno));
+				else
+					errorMsg( "killed pid '%d'\n", *pidList);
 			}
+			/* Note that we don't bother to free the memory
+			 * allocated in findPidByName().  It will be freed
+			 * upon exit, so we can save a byte or two */
 			argv++;
 		}
 	}
