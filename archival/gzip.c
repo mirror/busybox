@@ -354,8 +354,8 @@ static void clear_bufs(void)
 
 static void write_error_msg(void)
 {
-	fprintf(stderr, "\n");
-	perror("");
+	fputc('\n', stderr);
+	perror_msg("");
 	abort_gzip();
 }
 
@@ -977,12 +977,11 @@ static void check_match(IPos start, IPos match, int length)
 	/* check that the match is indeed a match */
 	if (memcmp((char *) window + match,
 			   (char *) window + start, length) != EQUAL) {
-		fprintf(stderr,
-				" start %d, match %d, length %d\n", start, match, length);
+		error_msg(" start %d, match %d, length %d", start, match, length);
 		error_msg("invalid match");
 	}
 	if (verbose > 1) {
-		fprintf(stderr, "\\[%d,%d]", start - match, length);
+		error_msg("\\[%d,%d]", start - match, length);
 		do {
 			putc(window[start++], stderr);
 		} while (--length != 0);
@@ -1656,7 +1655,7 @@ static void set_file_type(void);
 
 #else							/* DEBUG */
 #  define send_code(c, tree) \
-     { if (verbose>1) fprintf(stderr,"\ncd %3d ",(c)); \
+     { if (verbose>1) error_msg("\ncd %3d ",(c)); \
        send_bits(tree[c].Code, tree[c].Len); }
 #endif
 
@@ -2036,7 +2035,7 @@ static void build_tree(tree_desc * desc)
 		tree[n].Dad = tree[m].Dad = (ush) node;
 #ifdef DUMP_BL_TREE
 		if (tree == bl_tree) {
-			fprintf(stderr, "\nnode %d(%d), sons %d(%d) %d(%d)",
+			error_msg("\nnode %d(%d), sons %d(%d) %d(%d)",
 					node, tree[node].Freq, n, tree[n].Freq, m, tree[m].Freq);
 		}
 #endif
