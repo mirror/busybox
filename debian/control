@@ -2,8 +2,8 @@ Source: busybox-cvs
 Priority: optional
 Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
 Uploaders: Erik Andersen <andersee@debian.org>, Bastian Blank <waldi@debian.org>, Tollef Fog Heen <tfheen@debian.org>, Glenn McGrath <bug1@debian.org>
-Build-Depends: debhelper (>= 2.1.18)
-Standards-Version: 3.5.7.0
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.0
 
 Package: busybox-cvs
 Architecture: any
@@ -52,6 +52,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Section: debian-installer
 Conflicts: busybox-udeb
+Enhances: busybox-cvs-net-udeb
 Priority: extra
 Description: Tiny utilities for the debian-installer
  BusyBox combines tiny versions of many common UNIX utilities into a single

@@ -1,9 +1,122 @@
+busybox-cvs (0.60.99.cvs20030819-2) unstable; urgency=low
+
+  * Fix configure permisions
+  * Set source Section to embedded 
+
+ -- Glenn McGrath <bug1@debian.org>  Mon, 25 Aug 2003 06:33:19 +0000
+
+busybox-cvs (0.60.99.cvs20030819-1) unstable; urgency=low
+
+  * new cvs version
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 19 Aug 2003 13:18:54 +0200
+
+busybox-cvs (0.60.99.cvs20030426-10) unstable; urgency=low
+
+  * archival/libunarchive/*
+    - add hardlink support (pending)
+  * debian/config-*udeb*
+    - add support for oldgnu tar format
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 10 Jun 2003 12:06:41 +0200
+
+busybox-cvs (0.60.99.cvs20030426-9) unstable; urgency=low
+
+  * modutils/depmod.c
+    - fix base_dir for modules.dep 
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 07 Jun 2003 14:52:54 +0200
+
+busybox-cvs (0.60.99.cvs20030426-8) unstable; urgency=low
+
+  * util-linux/fdisk.c
+    - fix syscalls. (pending)
+  * libpwd/*
+    - don't build setgroups.o
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 03 Jun 2003 11:26:28 +0200
+
+busybox-cvs (0.60.99.cvs20030426-7) unstable; urgency=low
+
+  * libbb/*syscallc.c
+    - fix syscalls. (upstream) (closes: #194631)
+  * modutils/*
+    - update complete objects code from upstream. (pending)
+  * debian/config-*udeb*
+    - update to busybox-applets.txt:1.14
+
+ -- Bastian Blank <waldi@debian.org>  Thu, 29 May 2003 16:17:14 +0200
+
+busybox-cvs (0.60.99.cvs20030426-6) unstable; urgency=low
+
+  * modutils/Makefile.in
+    - don't build anything if deactivated
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 24 May 2003 18:57:14 +0200
+
+busybox-cvs (0.60.99.cvs20030426-5) unstable; urgency=low
+
+  * debian/config-*udeb*
+    - revert changes (closes: #192717, #192753)
+    - readd initrd support (workaround)
+    - make init quiet
+  * archival/tar.c
+    - fix usage of tar -O (upstream) (closes: #193788)
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 24 May 2003 13:25:36 +0200
+
+busybox-cvs (0.60.99.cvs20030426-4) unstable; urgency=low
+
+  * debian/config-*udeb*
+    - update to busybox-applets.txt:1.12
+  * debian/rules
+    - use system instead of arch to determine which config file to use
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 09 May 2003 11:21:13 +0200
+
+busybox-cvs (0.60.99.cvs20030426-3) unstable; urgency=low
+
+  * debian/config-udeb*
+    - update to busybox-applets.txt:1.11
+
+ -- Bastian Blank <waldi@debian.org>  Wed, 07 May 2003 10:37:40 +0200
+
+busybox-cvs (0.60.99.cvs20030426-2) unstable; urgency=low
+
+  * modutils/*
+    - modprobe failes gracefully if the module is already loaded. (pending)
+    - implement depmod. (pending)
+  * debian/config*
+    - update
+
+ -- Bastian Blank <waldi@debian.org>  Wed, 30 Apr 2003 14:12:36 +0200
+
+busybox-cvs (0.60.99.cvs20030426-1) unstable; urgency=low
+
+  * new cvs version
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 26 Apr 2003 18:33:17 +0200
+
+busybox-cvs (0.60.99.cvs20030420-4) unstable; urgency=low
+
+  * network/libiproute/iproute.c
+    - fix usage of ip route flush (upstream)
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 25 Apr 2003 16:48:43 +0200
+
+busybox-cvs (0.60.99.cvs20030420-3) unstable; urgency=low
+
+  * debian/config-*udeb*
+    - update to busybox-applets.txt:1.10
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 25 Apr 2003 14:03:23 +0200
+
 busybox-cvs (0.60.99.cvs20030420-2) unstable; urgency=low
 
-  * archival/tar.c
+  * archival/tar.c, archival/libunarchive/data_extract_all.c
     - unlink files first (upstream patch)
 
- -- Bastian Blank <waldi@debian.org>  Mon, 21 Apr 2003 12:06:57 +0200
+ -- Bastian Blank <waldi@debian.org>  Mon, 21 Apr 2003 12:42:06 +0200
 
 busybox-cvs (0.60.99.cvs20030420-1) unstable; urgency=low
 

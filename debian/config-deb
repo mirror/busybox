@@ -16,6 +16,7 @@ CONFIG_FEATURE_INSTALLER=y
 # CONFIG_FEATURE_DEVPTS is not set
 # CONFIG_FEATURE_CLEAN_UP is not set
 # CONFIG_FEATURE_SUID is not set
+# CONFIG_SELINUX is not set
 
 #
 # Build Options
@@ -80,6 +81,7 @@ CONFIG_FEATURE_FANCY_ECHO=y
 # CONFIG_ENV is not set
 CONFIG_EXPR=y
 CONFIG_FALSE=y
+# CONFIG_FOLD is not set
 CONFIG_HEAD=y
 # CONFIG_FEATURE_FANCY_HEAD is not set
 # CONFIG_HOSTID is not set
@@ -107,6 +109,7 @@ CONFIG_PWD=y
 CONFIG_RM=y
 CONFIG_RMDIR=y
 # CONFIG_SHA1SUM is not set
+# CONFIG_FEATURE_SHA1SUM_CHECK is not set
 CONFIG_SLEEP=y
 # CONFIG_FEATURE_FANCY_SLEEP is not set
 CONFIG_SORT=y
@@ -168,12 +171,14 @@ CONFIG_RESET=y
 # CONFIG_MKTEMP is not set
 # CONFIG_READLINK is not set
 # CONFIG_RUN_PARTS is not set
+# CONFIG_START_STOP_DAEMON is not set
 CONFIG_WHICH=y
 
 #
 # Editors
 #
 # CONFIG_AWK is not set
+# CONFIG_PATCH is not set
 CONFIG_SED=y
 # CONFIG_FEATURE_SED_EMBEDED_NEWLINE is not set
 # CONFIG_VI is not set
@@ -190,6 +195,7 @@ CONFIG_FEATURE_FIND_NEWER=y
 CONFIG_FEATURE_FIND_INUM=y
 CONFIG_GREP=y
 # CONFIG_FEATURE_GREP_EGREP_ALIAS is not set
+CONFIG_FEATURE_GREP_FGREP_ALIAS=y
 # CONFIG_FEATURE_GREP_CONTEXT is not set
 # CONFIG_XARGS is not set
 
@@ -204,7 +210,6 @@ CONFIG_FEATURE_INITRD=y
 CONFIG_HALT=y
 CONFIG_POWEROFF=y
 CONFIG_REBOOT=y
-# CONFIG_START_STOP_DAEMON is not set
 # CONFIG_MESG is not set
 
 #
@@ -229,17 +234,18 @@ CONFIG_REBOOT=y
 # CONFIG_CROND is not set
 # CONFIG_CRONTAB is not set
 # CONFIG_DC is not set
-# CONFIG_DUTMP is not set
+# CONFIG_LAST is not set
+# CONFIG_HDPARM is not set
 # CONFIG_MAKEDEVS is not set
 # CONFIG_MT is not set
 # CONFIG_STRINGS is not set
 # CONFIG_TIME is not set
-# CONFIG_UPDATE is not set
 # CONFIG_WATCHDOG is not set
 
 #
 # Linux Module Utilities
 #
+# CONFIG_DEPMOD is not set
 # CONFIG_INSMOD is not set
 # CONFIG_LSMOD is not set
 # CONFIG_MODPROBE is not set
@@ -330,6 +336,7 @@ CONFIG_LOGGER=y
 CONFIG_DMESG=y
 # CONFIG_FBSET is not set
 # CONFIG_FDFLUSH is not set
+# CONFIG_FDFORMAT is not set
 # CONFIG_FDISK is not set
 # CONFIG_FREERAMDISK is not set
 # CONFIG_FSCK_MINIX is not set
@@ -341,10 +348,6 @@ CONFIG_LOSETUP=y
 CONFIG_MKSWAP=y
 CONFIG_MORE=y
 CONFIG_FEATURE_USE_TERMIOS=y
-
-#
-# Common options for ls and more
-#
 # CONFIG_PIVOT_ROOT is not set
 # CONFIG_RDATE is not set
 CONFIG_SWAPONOFF=y
