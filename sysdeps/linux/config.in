@@ -6,16 +6,15 @@ mainmenu_name "BusyBox Configuration"
 
 mainmenu_option next_comment
 comment 'BusyBox general settings'
-bool 'Show verbose applet usage messages (increases size)'		CONFIG_FEATURE_VERBOSE_USAGE
-bool 'Support --install [-s] to install applet links at runtime' 	CONFIG_FEATURE_INSTALLER
-bool 'Enable locale support (system needs locale for this to work)'		CONFIG_LOCALE_SUPPORT
-bool 'Support for devfs'							CONFIG_FEATURE_DEVFS
-bool 'Clean up all memory before exiting (usually not needed)'		CONFIG_FEATURE_CLEAN_UP
 choice 'Buffer allocation policy' \
     "use_malloc	CONFIG_FEATURE_BUFFERS_USE_MALLOC \
 	 on_stack	CONFIG_FEATURE_BUFFERS_GO_ON_STACK \
 	 in_bss		CONFIG_FEATURE_BUFFERS_GO_IN_BSS" use_malloc
-
+bool 'Show verbose applet usage messages'				CONFIG_FEATURE_VERBOSE_USAGE
+bool 'Support --install [-s] to install applet links at runtime' 	CONFIG_FEATURE_INSTALLER
+bool 'Enable locale support (system needs locale for this to work)'	CONFIG_LOCALE_SUPPORT
+bool 'Support for devfs'						CONFIG_FEATURE_DEVFS
+bool 'Clean up all memory before exiting (usually not needed)'		CONFIG_FEATURE_CLEAN_UP
 endmenu
 
 source archival/config.in

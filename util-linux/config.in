@@ -28,10 +28,13 @@ bool 'more'		    CONFIG_MORE
 if [ "$CONFIG_MORE" = "y" ]; then
     bool '  Use termios to manipulate the screen'		CONFIG_FEATURE_USE_TERMIOS
 fi 
-if [ "$CONFIG_LS" = "y" -o "$CONFIG_MORE" = "y"]; then
+if [ "$CONFIG_LS" = "y" -o "$CONFIG_MORE" = "y" ]; then
     comment '  Common options for ls and more'
     bool    '   Calculate terminal & column widths'	CONFIG_FEATURE_AUTOWIDTH
 fi
+bool 'pivot_root'	    CONFIG_PIVOT_ROOT
+bool 'rdate'		    CONFIG_RDATE
+bool 'swaponoff'	    CONFIG_SWAPONOFF
 bool 'mount'		    CONFIG_MOUNT
 if [ "$CONFIG_MOUNT" = "y" ]; then
     bool '  Support mounting nfs file systems'		    	CONFIG_NFSMOUNT
@@ -46,9 +49,6 @@ if [ "$CONFIG_MOUNT" = "y" -o "$CONFIG_UMOUNT" = "y" ]; then
     bool '  Support for loop devices'				CONFIG_FEATURE_MOUNT_LOOP
     bool '  Support for a real /etc/mtab (instead of /proc/mounts)'	CONFIG_FEATURE_MTAB_SUPPORT
 fi
-bool 'pivot_root'	    CONFIG_PIVOT_ROOT
-bool 'rdate'		    CONFIG_RDATE
-bool 'swaponoff'	    CONFIG_SWAPONOFF
 
 endmenu
 

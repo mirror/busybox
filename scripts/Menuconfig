@@ -1161,12 +1161,14 @@ set_geometry () {
 set_geometry `stty size 2>/dev/null`
 
 menu_instructions="\
+Enabling options will increase the size of busybox.  \
 Arrow keys navigate the menu.  \
 Pressing <Enter> selects submenus --->.  \
 Highlighted letters are hotkeys.  \
 Pressing <Y> includes, and <N> excludes.  \
 Press <Esc><Esc> to exit, <?> for Help.  \
-Legend: [*] built-in  [ ] excluded  "
+Legend: [*] built-in  [ ] excluded"
+
 
 radiolist_instructions="\
 Use the arrow keys to navigate this window or \
