@@ -43,7 +43,7 @@ config CONFIG_HTTPD
 	  Serve web pages via an HTTP server.
 
 config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-	bool "  Support call from inetd only"
+	bool "  Support using httpd only from inetd"
 	default n
 	depends on CONFIG_HTTPD
 	help
@@ -51,7 +51,7 @@ config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 	  but requires inetd server daemon.
 
 config CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	bool "  Enable Basic Authentication"
+	bool "  Enable Basic http Authentication"
 	default y
 	depends on CONFIG_HTTPD
 	help
@@ -59,16 +59,17 @@ config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	  authentication on a per url basis.
 
 config CONFIG_FEATURE_HTTPD_AUTH_MD5
-	bool "  Enable support MD5 crypted password for httpd.conf"
+	bool "  Support MD5 crypted passwords for http Authentication"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	help
-	  Please help my - send patch for set this help message
+	  Enables basic per url authentication from /etc/httpd.conf 
+	  using md5 passwords.
 
 
 if !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	bool "  Enable support reload global config file after hup signaled"
+	bool "  Support reloading the global config file using hup signal"
 	default n
 	depends on CONFIG_HTTPD
 	help
@@ -87,7 +88,7 @@ config CONFIG_FEATURE_HTTPD_SETUID
 endif
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	bool "  Enable support load from config file mime types"
+	bool "  Support loading additional mime types at run-time"
 	default n
 	depends on CONFIG_HTTPD
 	help
@@ -95,7 +96,7 @@ config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	  run-time to be specified in the configuration file.
 
 config CONFIG_FEATURE_HTTPD_CGI
-	bool "  Enable support Common Gateway Interface"
+	bool "  Support Common Gateway Interface (CGI)"
 	default y
 	depends on CONFIG_HTTPD
 	help
@@ -103,7 +104,7 @@ config CONFIG_FEATURE_HTTPD_CGI
   	  when specific urls are requested.
 
 config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	bool "  Enable support set eviroment REMOTE_PORT variable for CGI"
+	bool "  Support the REMOTE_PORT environment variable for CGI"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
