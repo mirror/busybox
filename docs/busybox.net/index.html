@@ -59,10 +59,45 @@ BusyBox is licensed under the
 <a href="http://www.gnu.org/copyleft/gpl.html">GNU GENERAL PUBLIC LICENSE</a>
 <p>
 
+
+<h3> Busybox Boot-Floppy Image </h3>
+
+<p> Because you asked for it, we have made available a <a href=
+"ftp://opensource.lineo.com/busybox/busybox.floppy.img"> Busybox boot floppy
+image</a>. Here's how you use it:
+
+<ol>
+
+	<li> <a href= "ftp://opensource.lineo.com/busybox/busybox.floppy.img">
+	Download the image</a>
+
+	<li> dd it onto a floppy like so: <tt> dd if=busybox.floppy.img
+	of=/dev/fd0 ; sync </tt>
+
+	<li> Pop it in a machine and boot up.
+
+</ol>
+
+<p> If you want to look at the contents of the initrd image, do this:
+
+<pre>
+
+	mount ./busybox.floppy.img /mnt -o loop -t msdos        
+	cp /mnt/initrd.gz /tmp                          
+	umount /mnt           
+	gunzip /tmp/initrd.gz
+	mount /tmp/initrd /mnt -o loop -t minix
+
+</pre>
+
+<p> Enjoy.
+
+
 <h3> Screenshot </h3>
 
 <p> Because everybody loves screenshots, a screenshot of BusyBox 
 is now available <a href="screenshot.html"> right here</a>
+
 
 <H3>Mailing List Information</h3>
 BusyBox now has a <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a>!
@@ -284,7 +319,13 @@ listed in the order I happen to add them to the web page:
     <li> <a href="http://mkcdrec.ota.be/">mkCDrec - make CD-ROM recovery</a>
     <li> <a href="http://recycle.lbl.gov/~ldoolitt/bse/">Linux on nanoEngine</a>
     <li> <a href="http://www.zelow.no/floppyfw/"> Floppyfw</a>
-    <li> <a href="http://midori.transmeta.com/"> Midori Linux</a>
+
+    <li> <a href="http://midori.transmeta.com/"> Midori Linux</a> - <a href=
+	"http://www.wired.com/news/technology/0,1282,42399,00.html"> Article on
+	Midori Linux</a> on <a href= "http://www.wired.com"> Wired</a>. Quote from
+	Erik at the top of <a href=
+	"http://www.wired.com/news/technology/0,1282,42399-2,00.html"> this
+	page</a>
 
 </ul>
 
