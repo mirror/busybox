@@ -368,7 +368,7 @@ config CONFIG_SHA1SUM
 	  Compute and check SHA1 message digest
 
 config CONFIG_FEATURE_SHA1SUM_CHECK
-	bool "  Enale -c and -w options"
+	bool "  Enable -c and -w options"
 	default n
 	help
 	  Enabling the -c and -w options allow files to be checked
