@@ -8,11 +8,6 @@ Buildroot support
 	the testsuite would allow for greater test coverage (e.g.,
 	init, mount, and other privileged applications).
 
-BB_FEATURE support
-	BusyBox contains a number of features which are controlled
-	by compile-time defines.  A method to run tests based on
-	these features would be great.
-
 libbb unit testing
 	Being able to test the functions of libbb individually may
 	help to prevent regressions.
