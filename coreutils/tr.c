@@ -187,10 +187,12 @@ extern int tr_main(int argc, char **argv)
 		expand(argv[index++], input);
 		if (com_fl)
 			complement(input);
-		if (argv[index] != NULL)
+		if (argv[index] != NULL) {
+			if (*argv[index] == '\0')
+				fatalError("tr: STRING2 cannot be empty\n");
 			expand(argv[index], output);
-		if (argv[index] != NULL)
 			map(input, output);
+		}
 		for (ptr = input; *ptr; ptr++)
 			invec[*ptr] = TRUE;
 		for (ptr = output; *ptr; ptr++)
