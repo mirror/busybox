@@ -309,7 +309,10 @@ static void parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 		fatalError("bad format in edit expression\n");
 
 	/* store the edit line text */
-	sed_cmd->editline = strdup(&editstr[3]);
+	/* make editline big enough to accomodate the extra '\n' we will tack on
+	 * to the end */
+	sed_cmd->editline = xmalloc(strlen(&editstr[3]) + 2);
+	strcpy(sed_cmd->editline, &editstr[3]);
 	ptr = sed_cmd->editline;
 
 	/* now we need to go through * and: s/\\[\r\n]$/\n/g on the edit line */
