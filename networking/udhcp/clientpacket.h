@@ -1,6 +1,8 @@
 #ifndef _CLIENTPACKET_H
 #define _CLIENTPACKET_H
 
+#include "packet.h"
+
 unsigned long random_xid(void);
 int send_discover(unsigned long xid, unsigned long requested);
 int send_selecting(unsigned long xid, unsigned long server, unsigned long requested);

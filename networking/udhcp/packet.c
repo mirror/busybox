@@ -14,6 +14,7 @@
 #endif
 #include <errno.h>
 
+#include "packet.h"
 #include "dhcpd.h"
 #include "options.h"
 #include "common.h"

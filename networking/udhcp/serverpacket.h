@@ -1,6 +1,7 @@
 #ifndef _SERVERPACKET_H
 #define _SERVERPACKET_H
 
+#include "packet.h"
 
 int sendOffer(struct dhcpMessage *oldpacket);
 int sendNAK(struct dhcpMessage *oldpacket);

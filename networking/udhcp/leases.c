@@ -12,6 +12,7 @@
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
+#include "leases.h"
 #include "arpping.h"
 #include "common.h"
 

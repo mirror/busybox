@@ -25,6 +25,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "serverpacket.h"
 #include "dhcpd.h"
 #include "options.h"
 #include "common.h"

@@ -39,6 +39,7 @@
 
 
 #include "dhcpd.h"
+#include "clientpacket.h"
 #include "options.h"
 #include "dhcpc.h"
 #include "common.h"

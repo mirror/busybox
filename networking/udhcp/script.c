@@ -32,7 +32,7 @@
 #include "options.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
-#include "options.h"
+#include "script.h"
 #include "common.h"
 
 /* get a rough idea of how long an option will be (rounding up...) */
