@@ -306,10 +306,10 @@ static struct dep_t *build_dep ( void )
 					// fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
 
 					if ( !current ) {
-						first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+						first = current = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
 					}
 					else {
-						current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+						current-> m_next = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
 						current = current-> m_next;
 					}
 					current-> m_module  = bb_xstrdup ( alias );
