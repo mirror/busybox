@@ -88,9 +88,9 @@ STRIPTOOL = $(CROSS)strip
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
-#LIBCDIR=/usr/i486-linuxlibc1/
+#LIBCDIR=/usr/i486-linuxlibc1
 #LDFLAGS+=-nostdlib
-#LIBRARIES = $(LIBCDIR)/libc.a -lgcc
+#LIBRARIES = $(LIBCDIR)/lib/libc.a -lgcc
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
@@ -291,7 +291,7 @@ busybox.links: busybox.mkll Config.h applets.h
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
-	$(CC) $(CFLAGS) -I- -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+	$(CC) -I- $(CFLAGS) -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
 
 $(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
 	- mkdir -p $(PWD_GRP)
