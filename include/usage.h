@@ -245,7 +245,12 @@
 #define dc_full_usage \
 	"This is a Tiny RPN calculator that understands the\n" \
 	"following operations: +, -, /, *, and, or, not, eor.\n" \
-	"i.e., 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16"
+	"i.e., 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16" \
+	"p - Prints the value on the top of the stack, without altering the stack.\n" \
+	"f - Prints the entire contents of the stack without altering anything.\n" \
+	"o - Pops the value off the top of the stack and uses it to set the output radix.\n" \
+	"    Only 10 and 16 are supported.\n"
+
 #define dc_example_usage \
 	"$ dc 2 2 +\n" \
 	"4\n" \

@@ -11,6 +11,7 @@
 
 static double stack[100];
 static unsigned int pointer;
+static unsigned char base;
 
 static void push(double a)
 {
@@ -70,9 +71,38 @@ static void not(void)
 	push(~(unsigned int) pop());
 }
 
+static void set_output_base(void)
+{
+	base=(unsigned char)pop();	
+	if ((base != 10) && (base != 16)) {
+		fprintf(stderr, "Error: base = %d is not supported.\n", base);
+		base=10;
+	}
+}
+
+static void print_base(double print)
+{
+	if (base == 16) 
+		printf("%x\n", (unsigned int)print);
+	else
+	printf("%g\n", print);
+}
+
+static void print_stack_no_pop(void)
+{
+	unsigned int i=pointer;
+	while (i)
+		print_base(stack[--i]);
+}
+
+static void print_no_pop(void)
+{
+	print_base(stack[pointer-1]);
+}
+
 static void print(void)
 {
-	printf("%g\n", pop());
+	print_base(pop());
 }
 
 struct op {
@@ -93,6 +123,9 @@ static const struct op operators[] = {
 	{"or",  or},
 	{"not", not},
 	{"eor", eor},
+	{"p", print_no_pop},
+	{"f", print_stack_no_pop},
+	{"o", set_output_base},
 	{0,     0}
 };
 
