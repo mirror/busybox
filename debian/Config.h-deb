@@ -25,6 +25,7 @@
 #define BB_DIRNAME
 #define BB_DMESG
 #define BB_DOS2UNIX
+#define BB_DPKG_DEB
 #define BB_DUTMP
 #define BB_DU
 #define BB_DUMPKMAP
@@ -46,7 +47,7 @@
 #define BB_HOSTNAME
 #define BB_ID
 #define BB_INIT
-#define BB_INSMOD
+//#define BB_INSMOD
 #define BB_KILL
 #define BB_KILLALL
 #define BB_LENGTH
@@ -279,10 +280,10 @@
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
 // compiled into the binary.  (needs /proc filesystem)
-// #define BB_FEATURE_INSTALLER
+#define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
-//#define BB_FEATURE_STATUSBAR
+#define BB_FEATURE_STATUSBAR
 //
 // Clean up all memory before exiting -- usually not needed
 // as the OS can clean up...  Don't enable this unless you
@@ -324,6 +325,18 @@
 #ifdef BB_GZIP
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
+#endif
+#endif
+//
+#ifdef BB_DPKG_DEB
+#ifndef BB_AR
+#define BB_AR
+#endif
+#ifndef BB_TAR
+#define BB_TAR
+#endif 
+#ifndef BB_FEATURE_TAR_GZIP
+#define BB_FEATURE_TAR_GZIP
 #endif
 #endif
 //

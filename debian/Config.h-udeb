@@ -25,11 +25,12 @@
 #define BB_DIRNAME
 #define BB_DMESG
 //#define BB_DOS2UNIX
+#define BB_DPKG_DEB
 //#define BB_DUTMP
 #define BB_DU
 //#define BB_DUMPKMAP
 #define BB_ECHO
-//#define BB_EXPR
+#define BB_EXPR
 #define BB_FBSET
 //#define BB_FDFLUSH
 #define BB_FIND
@@ -70,8 +71,8 @@
 #define BB_MORE
 #define BB_MOUNT
 //#define BB_MT
-#define BB_NSLOOKUP
-#define BB_PING
+//#define BB_NSLOOKUP
+//#define BB_PING
 #define BB_POWEROFF
 //#define BB_PRINTF
 #define BB_PS
@@ -105,7 +106,7 @@
 #define BB_UPTIME
 //#define BB_USLEEP
 //#define BB_WC
-#define BB_WGET
+//#define BB_WGET
 #define BB_WHICH
 #define BB_WHOAMI
 //#define BB_UUENCODE
@@ -211,7 +212,8 @@
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
 // Enable support for mounting remote NFS volumes. 
-// You may no -o nolock if no local portmapper is running.
+// You may need to mount with "-o nolock" if you are
+// not running a local portmapper daemon...
 #define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
@@ -221,27 +223,30 @@
 // Enable support for creation of tar files.
 //#define BB_FEATURE_TAR_CREATE
 //
-// Enable support for "--exclude" for excluding files
+// Enable support for "--exclude" and "-X" for excluding files
 //#define BB_FEATURE_TAR_EXCLUDE
 //
+// Enable support for tar -z option (currently only works for inflating)
+#define BB_FEATURE_TAR_GZIP 
+//
 //// Enable reverse sort
-//#define BB_FEATURE_SORT_REVERSE
+#define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell
-//#define BB_FEATURE_SH_COMMAND_EDITING
+#define BB_FEATURE_SH_COMMAND_EDITING
 //
-//Allow the shell to invoke all the compiled in BusyBox commands as if they
-//were shell builtins.  Nice for staticly linking an emergency rescue shell
-//among other thing.
+//Allow the shell to invoke all the compiled in BusyBox applets as if they
+//were shell builtins.  Nice for staticly linking an emergency rescue shell,
+//among other things.
 //#define BB_FEATURE_SH_STANDALONE_SHELL
 //
-//When this is enabled, busybox shell builtins can be called using full path
-//names.  This causes builtins (i.e. every single busybox command) to override
+//When this is enabled, busybox shell applets can be called using full path
+//names.  This causes applets (i.e., most busybox commands) to override
 //real commands on the filesystem.  For example, if you run run /bin/cat, it
 //will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
-//#define BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+//BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)
@@ -271,10 +276,11 @@
 // Support for Minix filesystem, version 2
 //#define BB_FEATURE_MINIX2
 //
+//
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
 // compiled into the binary.  (needs /proc filesystem)
-//#define BB_FEATURE_INSTALLER
+// #define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
 #define BB_FEATURE_STATUSBAR
@@ -319,6 +325,26 @@
 #ifdef BB_GZIP
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
+#endif
+#endif
+//
+#ifdef BB_DPKG_DEB
+#ifndef BB_AR
+#define BB_AR
+#endif
+#ifndef BB_TAR
+#define BB_TAR
+#endif 
+#ifndef BB_FEATURE_TAR_GZIP
+#define BB_FEATURE_TAR_GZIP
+#endif
+#endif
+//
+#ifdef BB_TAR
+#ifdef BB_FEATURE_TAR_GZIP
+#ifndef BB_GUNZIP
+#define BB_GUNZIP
+#endif
 #endif
 #endif
 //
