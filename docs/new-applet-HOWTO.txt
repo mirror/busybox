@@ -61,14 +61,29 @@ int mu_main(int argc, char **argv)
 
 ----end example code------
 
+
+Coding Style
+------------
+
+Before you submit your applet for inclusion in BusyBox, (or better yet, before
+you _write_ your applet) please read through the style guide in the docs
+directory and make your program compliant.
+
+
+Some Words on utility.c
+-----------------------
+
 As you are writing your applet, please be aware of the body of pre-existing
 useful functions in utility.c. Use these instead of reinventing the wheel.
+
+If you use functions from utility.c, you may need to add to the preprocessor
+conditionals in that file, to make sure the routines you need are included.
+So, since your mu implementation used safe_read(), append "|| define BB_MU" to
+the #if instruction that precedes the safe_read() function in utility.c .
+
 Additionally, if you have any useful, general-purpose functions in your
 program that could be useful in another program, consider putting them in
 utility.c.
-
-Furthermore, please read through the style guide in the docs directory and
-make your program compliant.
 
 
 Usage String(s)
