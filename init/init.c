@@ -69,20 +69,25 @@ static const int VT_GETSTATE = 0x5603;	/* get global vt state info */
 
 /* From <linux/serial.h> */
 struct serial_struct {
-	int type;
-	int line;
-	int port;
-	int irq;
-	int flags;
-	int xmit_fifo_size;
-	int custom_divisor;
-	int baud_base;
-	unsigned short close_delay;
-	char reserved_char[2];
-	int hub6;
-	unsigned short closing_wait;	/* time to wait before closing */
-	unsigned short closing_wait2;	/* no longer used... */
-	int reserved[4];
+	int	type;
+	int	line;
+	unsigned int	port;
+	int	irq;
+	int	flags;
+	int	xmit_fifo_size;
+	int	custom_divisor;
+	int	baud_base;
+	unsigned short	close_delay;
+	char	io_type;
+	char	reserved_char[1];
+	int	hub6;
+	unsigned short	closing_wait; /* time to wait before closing */
+	unsigned short	closing_wait2; /* no longer used... */
+	unsigned char	*iomem_base;
+	unsigned short	iomem_reg_shift;
+	unsigned int	port_high;
+	unsigned long	iomap_base;	/* cookie passed into ioremap */
+	int	reserved[1];
 };
 
 
