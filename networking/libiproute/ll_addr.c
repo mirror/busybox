@@ -26,7 +26,7 @@
 #include <linux/sockios.h>
 
 #include "utils.h"
-
+#include "libbb.h"
 
 const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen)
 {
@@ -57,11 +57,12 @@ int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 	if (strchr(arg, '.')) {
 		inet_prefix pfx;
 		if (get_addr_1(&pfx, arg, AF_INET)) {
-			fprintf(stderr, "\"%s\" is invalid lladdr.\n", arg);
+			error_msg("\"%s\" is invalid lladdr.", arg);
 			return -1;
 		}
-		if (len < 4)
+		if (len < 4) {
 			return -1;
+		}
 		memcpy(lladdr, pfx.data, 4);
 		return 4;
 	} else {
@@ -75,16 +76,17 @@ int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 				cp++;
 			}
 			if (sscanf(arg, "%x", &temp) != 1) {
-				fprintf(stderr, "\"%s\" is invalid lladdr.\n", arg);
+				error_msg("\"%s\" is invalid lladdr.", arg);
 				return -1;
 			}
 			if (temp < 0 || temp > 255) {
-				fprintf(stderr, "\"%s\" is invalid lladdr.\n", arg);
+				error_msg("\"%s\" is invalid lladdr.", arg);
 				return -1;
 			}
 			lladdr[i] = temp;
-			if (!cp)
+			if (!cp) {
 				break;
+			}
 			arg = cp;
 		}
 		return i+1;
