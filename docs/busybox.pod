@@ -237,6 +237,8 @@ Usage: cp [OPTION]... SOURCE DEST
 
 Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
 
+Options:
+
         -a      Same as -dpR
         -d      Preserves links
         -p      Preserves file attributes if possable
@@ -253,6 +255,7 @@ Usage: date [OPTION]... [+FORMAT]
 Displays the current time in the given FORMAT, or sets the system date.
 
 Options:
+
         -R      Outputs RFC-822 compliant date string
         -s      Sets time described by STRING
         -u      Prints or sets Coordinated Universal Time
@@ -1052,7 +1055,7 @@ Options:
 
 =item mktemp
 
-Usage: mktemp [-q] TEMPLATE
+Usage: mktemp [B<-q>] TEMPLATE
 
 Creates a temporary file with its name based on TEMPLATE.
 TEMPLATE is any name with six `Xs' (i.e. /tmp/temp.XXXXXX).
@@ -1854,4 +1857,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.25 2000/05/01 22:34:24 erik Exp $
+# $Id: busybox.pod,v 1.26 2000/05/02 05:32:07 erik Exp $
