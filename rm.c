@@ -45,6 +45,11 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 
 static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 {
+	if (recursiveFlag == FALSE) {
+		errno = EISDIR;
+		perror(fileName);
+		return (FALSE);
+	} 
 	if (rmdir(fileName) < 0) {
 		perror(fileName);
 		return (FALSE);
