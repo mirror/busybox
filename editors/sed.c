@@ -1010,17 +1010,15 @@ static void process_file(FILE * file)
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
 					} else {
-						/* Jump to end of script and exist */
+						/* Jump to end of script and exit */
 						deleted = 1;
-						free(next_line);
 						next_line = NULL;
 					}
 					break;
 				case 'N':	/* Append the next line to the current line */
 					if (next_line == NULL) {
-						/* Jump to end of script and exist */
+						/* Jump to end of script and exit */
 						deleted = 1;
-						free(next_line);
 #ifdef CONFIG_FEATURE_SED_GNU_COMPATABILITY
 						/* GNU sed will add the newline character 
 						 * The GNU sed info page labels this as a bug that wont be fixed 
