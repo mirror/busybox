@@ -50,6 +50,7 @@ extern int run_parts(char **args, const unsigned char test_mode)
 	struct dirent **namelist = 0;
 	struct stat st;
 	char *filename;
+	char *arg0 = args[0];
 	int entries;
 	int i;
 	int exitstatus = 0;
@@ -60,15 +61,15 @@ extern int run_parts(char **args, const unsigned char test_mode)
 	(void) &exitstatus;
 #endif
 	/* scandir() isn't POSIX, but it makes things easy. */
-	entries = scandir(args[0], &namelist, valid_name, alphasort);
+	entries = scandir(arg0, &namelist, valid_name, alphasort);
 
 	if (entries == -1) {
-		perror_msg_and_die("failed to open directory %s", args[0]);
+		perror_msg_and_die("failed to open directory %s", arg0);
 	}
 
 	for (i = 0; i < entries; i++) {
 
-		filename = concat_path_file(args[0], namelist[i]->d_name);
+		filename = concat_path_file(arg0, namelist[i]->d_name);
 
 		if (stat(filename, &st) < 0) {
 			perror_msg_and_die("failed to stat component %s", filename);
