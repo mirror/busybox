@@ -432,7 +432,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 }
 
 static inline int writeTarFile(const int tar_fd, const int verboseFlag,
-							   const llist_t *include, const llist_t *exclude, const int gzip)
+	const unsigned long dereferenceFlag, const llist_t *include,
+	const llist_t *exclude, const int gzip)
 {
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	int gzipDataPipe[2] = { -1, -1 };
@@ -516,7 +517,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	/* Read the directory/files and iterate over them one at a time */
 	while (include) {
-		if (!recursive_action(include->data, TRUE, FALSE, FALSE,
+		if (!recursive_action(include->data, TRUE, dereferenceFlag, FALSE,
 							  writeFileToTarball, writeFileToTarball,
 							  (void *) &tbInfo)) {
 			errorFlag = TRUE;
@@ -605,8 +606,9 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 # define CTX_CREATE	(1 << 8)
-# define TAR_OPT_STR_CREATE	"c"
-# define TAR_OPT_FLAG_CREATE	1
+# define TAR_OPT_DEREFERNCE (1 << 9)
+# define TAR_OPT_STR_CREATE	"ch"
+# define TAR_OPT_FLAG_CREATE	2
 #else
 //# define CTX_CREATE	0
 # define TAR_OPT_STR_CREATE	""
@@ -667,6 +669,7 @@ static const struct option tar_long_options[] = {
 	{ "keep-old",		0,	NULL,	'k' },
 # ifdef CONFIG_FEATURE_TAR_CREATE
 	{ "create",			0,	NULL,	'c' },
+	{ "dereference",	0,	NULL,	'h' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_BZIP2
 	{ "bzip2",			0,	NULL,	'j' },
@@ -861,7 +864,7 @@ int tar_main(int argc, char **argv)
 				(tar_handle->action_header == header_verbose_list)) {
 			verboseFlag = TRUE;
 		}
-		writeTarFile(tar_handle->src_fd, verboseFlag, tar_handle->accept,
+		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERNCE, tar_handle->accept,
 			tar_handle->reject, gzipFlag);
 	} else 
 #endif /* CONFIG_FEATURE_TAR_CREATE */
