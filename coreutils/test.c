@@ -110,47 +110,49 @@ enum token_types {
 static const struct t_op {
 	const char *op_text;
 	short op_num, op_type;
-} ops [] = {
-	{"-r",	FILRD,	UNOP},
-	{"-w",	FILWR,	UNOP},
-	{"-x",	FILEX,	UNOP},
-	{"-e",	FILEXIST,UNOP},
-	{"-f",	FILREG,	UNOP},
-	{"-d",	FILDIR,	UNOP},
-	{"-c",	FILCDEV,UNOP},
-	{"-b",	FILBDEV,UNOP},
-	{"-p",	FILFIFO,UNOP},
-	{"-u",	FILSUID,UNOP},
-	{"-g",	FILSGID,UNOP},
-	{"-k",	FILSTCK,UNOP},
-	{"-s",	FILGZ,	UNOP},
-	{"-t",	FILTT,	UNOP},
-	{"-z",	STREZ,	UNOP},
-	{"-n",	STRNZ,	UNOP},
-	{"-h",	FILSYM,	UNOP},		/* for backwards compat */
-	{"-O",	FILUID,	UNOP},
-	{"-G",	FILGID,	UNOP},
-	{"-L",	FILSYM,	UNOP},
-	{"-S",	FILSOCK,UNOP},
-	{"=",	STREQ,	BINOP},
-	{"!=",	STRNE,	BINOP},
-	{"<",	STRLT,	BINOP},
-	{">",	STRGT,	BINOP},
-	{"-eq",	INTEQ,	BINOP},
-	{"-ne",	INTNE,	BINOP},
-	{"-ge",	INTGE,	BINOP},
-	{"-gt",	INTGT,	BINOP},
-	{"-le",	INTLE,	BINOP},
-	{"-lt",	INTLT,	BINOP},
-	{"-nt",	FILNT,	BINOP},
-	{"-ot",	FILOT,	BINOP},
-	{"-ef",	FILEQ,	BINOP},
-	{"!",	UNOT,	BUNOP},
-	{"-a",	BAND,	BBINOP},
-	{"-o",	BOR,	BBINOP},
-	{"(",	LPAREN,	PAREN},
-	{")",	RPAREN,	PAREN},
-	{0,	0,	0}
+} ops[] = {
+	{
+	"-r", FILRD, UNOP}, {
+	"-w", FILWR, UNOP}, {
+	"-x", FILEX, UNOP}, {
+	"-e", FILEXIST, UNOP}, {
+	"-f", FILREG, UNOP}, {
+	"-d", FILDIR, UNOP}, {
+	"-c", FILCDEV, UNOP}, {
+	"-b", FILBDEV, UNOP}, {
+	"-p", FILFIFO, UNOP}, {
+	"-u", FILSUID, UNOP}, {
+	"-g", FILSGID, UNOP}, {
+	"-k", FILSTCK, UNOP}, {
+	"-s", FILGZ, UNOP}, {
+	"-t", FILTT, UNOP}, {
+	"-z", STREZ, UNOP}, {
+	"-n", STRNZ, UNOP}, {
+	"-h", FILSYM, UNOP},	/* for backwards compat */
+	{
+	"-O", FILUID, UNOP}, {
+	"-G", FILGID, UNOP}, {
+	"-L", FILSYM, UNOP}, {
+	"-S", FILSOCK, UNOP}, {
+	"=", STREQ, BINOP}, {
+	"!=", STRNE, BINOP}, {
+	"<", STRLT, BINOP}, {
+	">", STRGT, BINOP}, {
+	"-eq", INTEQ, BINOP}, {
+	"-ne", INTNE, BINOP}, {
+	"-ge", INTGE, BINOP}, {
+	"-gt", INTGT, BINOP}, {
+	"-le", INTLE, BINOP}, {
+	"-lt", INTLT, BINOP}, {
+	"-nt", FILNT, BINOP}, {
+	"-ot", FILOT, BINOP}, {
+	"-ef", FILEQ, BINOP}, {
+	"!", UNOT, BUNOP}, {
+	"-a", BAND, BBINOP}, {
+	"-o", BOR, BBINOP}, {
+	"(", LPAREN, PAREN}, {
+	")", RPAREN, PAREN}, {
+	0, 0, 0}
 };
 
 static char **t_wp;
@@ -158,7 +160,7 @@ static struct t_op const *t_wp_op;
 static gid_t *group_array = NULL;
 static int ngroups;
 
-static enum token t_lex(char* s);
+static enum token t_lex(char *s);
 static int oexpr(enum token n);
 static int aexpr(enum token n);
 static int nexpr(enum token n);
@@ -174,10 +176,9 @@ static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
 
-extern int
-test_main(int argc, char** argv)
+extern int test_main(int argc, char **argv)
 {
-	int	res;
+	int res;
 
 	if (strcmp(applet_name, "[") == 0) {
 		if (strcmp(argv[--argc], "]"))
@@ -187,29 +188,27 @@ test_main(int argc, char** argv)
 	/* Implement special cases from POSIX.2, section 4.62.4 */
 	switch (argc) {
 	case 1:
-		exit( 1);
+		exit(1);
 	case 2:
-		exit (*argv[1] == '\0');
+		exit(*argv[1] == '\0');
 	case 3:
 		if (argv[1][0] == '!' && argv[1][1] == '\0') {
-			exit (!(*argv[2] == '\0'));
+			exit(!(*argv[2] == '\0'));
 		}
 		break;
 	case 4:
 		if (argv[1][0] != '!' || argv[1][1] != '\0') {
-			if (t_lex(argv[2]), 
-			    t_wp_op && t_wp_op->op_type == BINOP) {
+			if (t_lex(argv[2]), t_wp_op && t_wp_op->op_type == BINOP) {
 				t_wp = &argv[1];
-				exit (binop() == 0);
+				exit(binop() == 0);
 			}
 		}
 		break;
 	case 5:
 		if (argv[1][0] == '!' && argv[1][1] == '\0') {
-			if (t_lex(argv[3]), 
-			    t_wp_op && t_wp_op->op_type == BINOP) {
+			if (t_lex(argv[3]), t_wp_op && t_wp_op->op_type == BINOP) {
 				t_wp = &argv[2];
-				exit (!(binop() == 0));
+				exit(!(binop() == 0));
 			}
 		}
 		break;
@@ -221,36 +220,31 @@ test_main(int argc, char** argv)
 	if (*t_wp != NULL && *++t_wp != NULL)
 		syntax(*t_wp, "unknown operand");
 
-	return( res);
+	return (res);
 }
 
-static void
-syntax(op, msg)
-	const char	*op;
-	const char	*msg;
+static void syntax(const char *op, const char *msg)
 {
-	if (op && *op)
+	if (op && *op) {
 		error_msg_and_die("%s: %s", op, msg);
-	else
+	} else {
 		error_msg_and_die("%s", msg);
+	}
 }
 
-static int
-oexpr(n)
-	enum token n;
+static int oexpr(enum token n)
 {
 	int res;
 
 	res = aexpr(n);
-	if (t_lex(*++t_wp) == BOR)
+	if (t_lex(*++t_wp) == BOR) {
 		return oexpr(t_lex(*++t_wp)) || res;
+	}
 	t_wp--;
 	return res;
 }
 
-static int
-aexpr(n)
-	enum token n;
+static int aexpr(enum token n)
 {
 	int res;
 
@@ -261,23 +255,20 @@ aexpr(n)
 	return res;
 }
 
-static int
-nexpr(n)
-	enum token n;			/* token */
+static int nexpr(enum token n)
 {
 	if (n == UNOT)
 		return !nexpr(t_lex(*++t_wp));
 	return primary(n);
 }
 
-static int
-primary(n)
-	enum token n;
+static int primary(enum token n)
 {
 	int res;
 
-	if (n == EOI)
+	if (n == EOI) {
 		syntax(NULL, "argument expected");
+	}
 	if (n == LPAREN) {
 		res = oexpr(t_lex(*++t_wp));
 		if (t_lex(*++t_wp) != RPAREN)
@@ -302,13 +293,12 @@ primary(n)
 
 	if (t_lex(t_wp[1]), t_wp_op && t_wp_op->op_type == BINOP) {
 		return binop();
-	}	  
+	}
 
 	return strlen(*t_wp) > 0;
 }
 
-static int
-binop()
+static int binop()
 {
 	const char *opnd1, *opnd2;
 	struct t_op const *op;
@@ -317,9 +307,9 @@ binop()
 	(void) t_lex(*++t_wp);
 	op = t_wp_op;
 
-	if ((opnd2 = *++t_wp) == (char *)0)
+	if ((opnd2 = *++t_wp) == (char *) 0)
 		syntax(op->op_text, "argument expected");
-		
+
 	switch (op->op_num) {
 	case STREQ:
 		return strcmp(opnd1, opnd2) == 0;
@@ -342,20 +332,17 @@ binop()
 	case INTLT:
 		return getn(opnd1) < getn(opnd2);
 	case FILNT:
-		return newerf (opnd1, opnd2);
+		return newerf(opnd1, opnd2);
 	case FILOT:
-		return olderf (opnd1, opnd2);
+		return olderf(opnd1, opnd2);
 	case FILEQ:
-		return equalf (opnd1, opnd2);
+		return equalf(opnd1, opnd2);
 	}
 	/* NOTREACHED */
 	return 1;
 }
 
-static int
-filstat(nm, mode)
-	char *nm;
-	enum token mode;
+static int filstat(char *nm, enum token mode)
 {
 	struct stat s;
 	unsigned int i;
@@ -370,7 +357,7 @@ filstat(nm, mode)
 		return 0;
 	}
 
-	if (stat(nm, &s) != 0) 
+	if (stat(nm, &s) != 0)
 		return 0;
 
 	switch (mode) {
@@ -427,21 +414,19 @@ filstat(nm, mode)
 		return 1;
 	}
 
-filetype:
+  filetype:
 	return ((s.st_mode & S_IFMT) == i);
 
-filebit:
+  filebit:
 	return ((s.st_mode & i) != 0);
 }
 
-static enum token
-t_lex(s)
-	char *s;
+static enum token t_lex(char *s)
 {
 	struct t_op const *op = ops;
 
 	if (s == 0) {
-		t_wp_op = (struct t_op *)0;
+		t_wp_op = (struct t_op *) 0;
 		return EOI;
 	}
 	while (op->op_text) {
@@ -451,14 +436,12 @@ t_lex(s)
 		}
 		op++;
 	}
-	t_wp_op = (struct t_op *)0;
+	t_wp_op = (struct t_op *) 0;
 	return OPERAND;
 }
 
 /* atoi with error detection */
-static int
-getn(s)
-	const char *s;
+static int getn(const char *s)
 {
 	char *p;
 	long r;
@@ -467,69 +450,57 @@ getn(s)
 	r = strtol(s, &p, 10);
 
 	if (errno != 0)
-	  error_msg_and_die("%s: out of range", s);
+		error_msg_and_die("%s: out of range", s);
 
 	while (isspace(*p))
-	  p++;
-	
+		p++;
+
 	if (*p)
-	  error_msg_and_die("%s: bad number", s);
+		error_msg_and_die("%s: bad number", s);
 
 	return (int) r;
 }
 
-static int
-newerf (f1, f2)
-const char *f1, *f2;
+static int newerf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
 
-	return (stat (f1, &b1) == 0 &&
-		stat (f2, &b2) == 0 &&
-		b1.st_mtime > b2.st_mtime);
+	return (stat(f1, &b1) == 0 &&
+			stat(f2, &b2) == 0 && b1.st_mtime > b2.st_mtime);
 }
 
-static int
-olderf (f1, f2)
-const char *f1, *f2;
+static int olderf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
 
-	return (stat (f1, &b1) == 0 &&
-		stat (f2, &b2) == 0 &&
-		b1.st_mtime < b2.st_mtime);
+	return (stat(f1, &b1) == 0 &&
+			stat(f2, &b2) == 0 && b1.st_mtime < b2.st_mtime);
 }
 
-static int
-equalf (f1, f2)
-const char *f1, *f2;
+static int equalf(const char *f1, const char *f2)
 {
 	struct stat b1, b2;
 
-	return (stat (f1, &b1) == 0 &&
-		stat (f2, &b2) == 0 &&
-		b1.st_dev == b2.st_dev &&
-		b1.st_ino == b2.st_ino);
+	return (stat(f1, &b1) == 0 &&
+			stat(f2, &b2) == 0 &&
+			b1.st_dev == b2.st_dev && b1.st_ino == b2.st_ino);
 }
 
 /* Do the same thing access(2) does, but use the effective uid and gid,
    and don't make the mistake of telling root that any file is
    executable. */
-static int
-test_eaccess (path, mode)
-char *path;
-int mode;
+static int test_eaccess(char *path, int mode)
 {
 	struct stat st;
 	unsigned int euid = geteuid();
 
-	if (stat (path, &st) < 0)
+	if (stat(path, &st) < 0)
 		return (-1);
 
 	if (euid == 0) {
 		/* Root can read or write any file. */
 		if (mode != X_OK)
-		return (0);
+			return (0);
 
 		/* Root can execute any file that has any one of the execute
 		   bits set. */
@@ -537,9 +508,9 @@ int mode;
 			return (0);
 	}
 
-	if (st.st_uid == euid)		/* owner */
+	if (st.st_uid == euid)	/* owner */
 		mode <<= 6;
-	else if (is_a_group_member (st.st_gid))
+	else if (is_a_group_member(st.st_gid))
 		mode <<= 3;
 
 	if (st.st_mode & mode)
@@ -548,8 +519,7 @@ int mode;
 	return (-1);
 }
 
-static void
-initialize_group_array ()
+static void initialize_group_array()
 {
 	ngroups = getgroups(0, NULL);
 	group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
@@ -557,9 +527,7 @@ initialize_group_array ()
 }
 
 /* Return non-zero if GID is one that we have in our groups list. */
-static int
-is_a_group_member (gid)
-gid_t gid;
+static int is_a_group_member(gid_t gid)
 {
 	register int i;
 
@@ -568,7 +536,7 @@ gid_t gid;
 		return (1);
 
 	if (ngroups == 0)
-		initialize_group_array ();
+		initialize_group_array();
 
 	/* Search through the list looking for GID. */
 	for (i = 0; i < ngroups; i++)
