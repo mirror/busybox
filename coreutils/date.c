@@ -118,8 +118,9 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 #define DATE_OPT_SET    	0x02
 #define DATE_OPT_UTC    	0x04
 #define DATE_OPT_DATE   	0x08
+#define DATE_OPT_REFERENCE	0x10
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
-# define DATE_OPT_TIMESPEC	0x10
+# define DATE_OPT_TIMESPEC	0x20
 #endif
 
 int date_main(int argc, char **argv)
@@ -133,6 +134,7 @@ int date_main(int argc, char **argv)
 	time_t tm;
 	unsigned long opt;
 	struct tm tm_time;
+	char *filename = NULL;
 
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	int ifmt = 0;
@@ -143,8 +145,8 @@ int date_main(int argc, char **argv)
 # define GETOPT_ISOFMT
 #endif
 	bb_opt_complementaly = "d~ds:s~ds";
-	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:" GETOPT_ISOFMT,
-					&date_str, &date_str
+	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:r:" GETOPT_ISOFMT,
+					&date_str, &date_str, &filename
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 					, &isofmt_arg
 #endif
@@ -194,7 +196,12 @@ int date_main(int argc, char **argv)
 	/* Now we have parsed all the information except the date format
 	   which depends on whether the clock is being set or read */
 
-	time(&tm);
+	if(filename) {
+		struct stat statbuf;
+		if(stat(filename,&statbuf))
+			bb_perror_msg_and_die("File '%s' not found.\n",filename);
+		tm=statbuf.st_mtime;
+	} else time(&tm);
 	memcpy(&tm_time, localtime(&tm), sizeof(tm_time));
 	/* Zero out fields - take her back to midnight! */
 	if (date_str != NULL) {
