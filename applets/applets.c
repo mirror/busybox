@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "busybox.h"
 
 #undef APPLET
@@ -53,9 +54,7 @@ static void check_suid (struct BB_applet *app);
 #include "pwd_.h"
 #include "grp_.h"
 
-static int parse_config_file (void);
-
-static int config_ok;
+static void parse_config_file (void);
 
 #define CONFIG_FILE "/etc/busybox.conf"
 
@@ -127,7 +126,7 @@ run_applet_by_name (const char *name, int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
   if (recurse_level == 0)
-	config_ok = parse_config_file ();
+	parse_config_file ();
 #endif
 
   recurse_level++;
@@ -193,7 +192,7 @@ check_suid (struct BB_applet *applet)
   uid_t rgid = getgid ();
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
-  if (config_ok) {
+  if (suid_config) {
 	struct BB_suid_config *sct;
 
 	for (sct = suid_config; sct; sct = sct->m_next) {
@@ -253,191 +252,237 @@ check_suid (struct BB_applet *applet)
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 
+/* This should probably be a libbb routine.  In that case,
+ * I'd probably rename it to something like bb_trimmed_slice.
+ */
+static char *get_trimmed_slice(char *s, char *e)
+{
+	/* First, consider the value at e to be nul and back up until we
+	 * reach a non-space char.  Set the char after that (possibly at
+	 * the original e) to nul. */
+	while (e-- > s) {
+		if (!isspace(*e)) {
+			break;
+		}
+	}
+	e[1] = 0;
+
+	/* Next, advance past all leading space and return a ptr to the
+	 * first non-space char; possibly the terminating nul. */
+	return (char *) bb_skip_whitespace(s);
+}
+
 
 #define parse_error(x)  { err=x; goto pe_label; }
 
+/* Don't depend on the tools to combine strings. */
+static const char config_file[] = CONFIG_FILE;
 
-int
-parse_config_file (void)
+/* There are 4 chars + 1 nul for each of user/group/other. */
+static const char mode_chars[] = "Ssx-\0Ssx-\0Ttx-";
+
+/* We don't supply a value for the nul, so an index adjustment is
+ * necessary below.  Also, we use unsigned short here to save some
+ * space even though these are really mode_t values. */
+static const unsigned short mode_mask[] = {
+	/*  SST         sst                 xxx   --- */
+	S_ISUID,    S_ISUID|S_IXUSR,    S_IXUSR,    0,	/* user */
+	S_ISGID,    S_ISGID|S_IXGRP,    S_IXGRP,    0,	/* group */
+	0,          S_IXOTH,            S_IXOTH,    0	/* other */
+};
+
+static void parse_config_file(void)
 {
-  struct stat st;
-  char *err = 0;
-  FILE *f = 0;
-  int lc = 0;
+	struct BB_suid_config *sct_head;
+	struct BB_suid_config *sct;
+	struct BB_applet *applet;
+	FILE *f;
+	char *err;
+	char *s;
+	char *e;
+	int i, lc, section;
+	char buffer[256];
+	struct stat st;
 
-  suid_config = 0;
+	assert(!suid_config);		/* Should be set to NULL by bss init. */
 
-  /* is there a config file ? */
-  if (stat (CONFIG_FILE, &st) == 0) {
-	/* is it owned by root with no write perm. for group and others ? */
-	if (S_ISREG (st.st_mode) && (st.st_uid == 0)
-		&& (!(st.st_mode & (S_IWGRP | S_IWOTH)))) {
-	  /* that's ok .. then try to open it */
-	  f = fopen (CONFIG_FILE, "r");
-
-	  if (f) {
-		char buffer[256];
-		int section = 0;
-
-		while (fgets (buffer, sizeof (buffer) - 1, f)) {
-		  char c = buffer[0];
-		  char *p;
-
-		  lc++;
-
-		  p = strchr (buffer, '#');
-		  if (p)
-			*p = 0;
-		  p = buffer + bb_strlen (buffer);
-		  while ((p > buffer) && isspace (*--p))
-			*p = 0;
-
-		  if (p == buffer)
-			continue;
-
-		  if (c == '[') {
-			p = strchr (buffer, ']');
-
-			if (!p || (p == (buffer + 1)))  /* no matching ] or empty [] */
-			  parse_error ("malformed section header");
-
-			*p = 0;
-
-			if (strcasecmp (buffer + 1, "SUID") == 0)
-			  section = 1;
-			else
-			  section = -1;         /* unknown section - just skip */
-		  } else if (section) {
-			switch (section) {
-			case 1:{                        /* SUID */
-				int l;
-				struct BB_applet *applet;
-
-				p = strchr (buffer, '=');       /* <key>[::space::]*=[::space::]*<value> */
-
-				if (!p || (p == (buffer + 1)))  /* no = or key is empty */
-				  parse_error ("malformed keyword");
-
-				l = p - buffer;
-				while (isspace (buffer[--l])) {
-					/* skip whitespace */
-				}
-
-				buffer[l + 1] = 0;
-
-				if ((applet = find_applet_by_name (buffer))) {
-				  struct BB_suid_config *sct =
-					xmalloc (sizeof (struct BB_suid_config));
-
-				  sct->m_applet = applet;
-				  sct->m_next = suid_config;
-				  suid_config = sct;
-
-				  while (isspace (*++p)) {
-					/* skip whitespace */
-				  }
-
-				  sct->m_mode = 0;
-
-				  switch (*p++) {
-				  case 'S':
-					sct->m_mode |= S_ISUID;
-					break;
-				  case 's':
-					sct->m_mode |= S_ISUID;
-					/* no break */
-				  case 'x':
-					sct->m_mode |= S_IXUSR;
-					break;
-				  case '-':
-					break;
-				  default:
-					parse_error ("invalid user mode");
-				  }
-
-				  switch (*p++) {
-				  case 's':
-					sct->m_mode |= S_ISGID;
-					/* no break */
-				  case 'x':
-					sct->m_mode |= S_IXGRP;
-					break;
-				  case 'S':
-					break;
-				  case '-':
-					break;
-				  default:
-					parse_error ("invalid group mode");
-				  }
-
-				  switch (*p) {
-				  case 't':
-				  case 'x':
-					sct->m_mode |= S_IXOTH;
-					break;
-				  case 'T':
-				  case '-':
-					break;
-				  default:
-					parse_error ("invalid other mode");
-				  }
-
-				  while (isspace (*++p)) {
-					/* skip whitespace */
-				  }
-
-				  if (isdigit (*p)) {
-					sct->m_uid = strtol (p, &p, 10);
-					if (*p++ != '.')
-					  parse_error ("parsing <uid>.<gid>");
-				  } else {
-					struct passwd *pwd;
-					char *p2 = strchr (p, '.');
-
-					if (!p2)
-					  parse_error ("parsing <uid>.<gid>");
-
-					*p2 = 0;
-					pwd = getpwnam (p);
-
-					if (!pwd)
-					  parse_error ("invalid user name");
-
-					sct->m_uid = pwd->pw_uid;
-					p = p2 + 1;
-				  }
-				  if (isdigit (*p))
-					sct->m_gid = strtol (p, &p, 10);
-				  else {
-					struct group *grp = getgrnam (p);
-
-					if (!grp)
-					  parse_error ("invalid group name");
-
-					sct->m_gid = grp->gr_gid;
-				  }
-				}
-				break;
-			  }
-			default:                        /* unknown - skip */
-			  break;
-			}
-		  } else
-			parse_error ("keyword not within section");
-		}
-		fclose (f);
-		return 1;
-	  }
+	if ((stat(config_file, &st) != 0)			/* No config file? */
+		|| !S_ISREG(st.st_mode)					/* Not a regular file? */
+		|| (st.st_uid != 0)						/* Not owned by root? */
+		|| (st.st_mode & (S_IWGRP | S_IWOTH))	/* Writable by non-root? */
+		|| !(f = fopen(config_file, "r"))		/* Can not open? */
+		) {
+		return;
 	}
-  }
-  return 0;     /* no config file or not readable (not an error) */
 
-pe_label:
-  fprintf (stderr, "Parse error in %s, line %d: %s\n", CONFIG_FILE, lc, err);
+	sct_head = NULL;
+	section = lc = 0;
 
-  if (f)
-	fclose (f);
-  return 0;
+	do {
+		s = buffer;
+
+		if (!fgets(s, sizeof(buffer), f)) { /* Are we done? */
+			if (ferror(f)) {   /* Make sure it wasn't a read error. */
+				parse_error("reading");
+			}
+			fclose(f);
+			suid_config = sct_head;	/* Success, so set the pointer. */
+			return;
+		}
+
+		lc++;					/* Got a (partial) line. */
+
+		/* If a line is too long for our buffer, we consider it an error.
+		 * The following test does mistreat one corner case though.
+		 * If the final line of the file does not end with a newline and
+		 * yet exactly fills the buffer, it will be treated as too long
+		 * even though there isn't really a problem.  But it isn't really
+		 * worth adding code to deal with such an unlikely situation, and
+		 * we do err on the side of caution.  Besides, the line would be
+		 * too long if it did end with a newline. */
+		if (!strchr(s, '\n') && !feof(f)) {
+			parse_error("line too long");
+		}
+
+		/* Trim leading and trailing whitespace, ignoring comments, and
+		 * check if the resulting string is empty. */
+		if (!*(s = get_trimmed_slice(s, strchrnul(s, '#')))) {
+			continue;
+		}
+
+		/* Check for a section header. */
+
+		if (*s == '[') {
+			/* Unlike the old code, we ignore leading and trailing
+			 * whitespace for the section name.  We also require that
+			 * there are no stray characters after the closing bracket. */
+			if (!(e = strchr(s, ']'))	/* Missing right bracket? */
+				|| e[1]					/* Trailing characters? */
+				|| !*(s = get_trimmed_slice(s+1, e)) /* Missing name? */
+				) {
+				parse_error("section header");
+			}
+			/* Right now we only have one section so just check it.
+			 * If more sections are added in the future, please don't
+			 * resort to cascading ifs with multiple strcasecmp calls.
+			 * That kind of bloated code is all too common.  A loop
+			 * and a string table would be a better choice unless the
+			 * number of sections is very small. */
+			if (strcasecmp(s, "SUID") == 0) {
+				section = 1;
+				continue;
+			}
+			section = -1;	/* Unknown section so set to skip. */
+			continue;
+		}
+
+		/* Process sections. */
+
+		if (section == 1) {		/* SUID */
+			/* Since we trimmed leading and trailing space above, we're
+			 * now looking for strings of the form
+			 *    <key>[::space::]*=[::space::]*<value>
+			 * where both key and value could contain inner whitespace. */
+
+			/* First get the key (an applet name in our case). */
+			if (!!(e = strchr(s, '='))) {
+				s = get_trimmed_slice(s, e);
+			}
+			if (!e || !*s) {	/* Missing '=' or empty key. */
+				parse_error("keyword");
+			}
+
+			/* Ok, we have an applet name.  Process the rhs if this
+			 * applet is currently built in and ignore it otherwise.
+			 * Note: This can hide config file bugs which only pop
+			 * up when the busybox configuration is changed. */
+			if ((applet = find_applet_by_name(s))) {
+				/* Note: We currently don't check for duplicates!
+				 * The last config line for each applet will be the
+				 * one used since we insert at the head of the list.
+				 * I suppose this could be considered a feature. */
+				sct = xmalloc(sizeof(struct BB_suid_config));
+				sct->m_applet = applet;
+				sct->m_mode = 0;
+				sct->m_next = sct_head;
+				sct_head = sct;
+
+				/* Get the specified mode. */
+
+				e = (char *) bb_skip_whitespace(e+1);
+
+				for (i=0 ; i < 3 ; i++) {
+					const char *q;
+					if (!*(q = strchrnul(mode_chars + 5*i, *e++))) {
+						parse_error("mode");
+					}
+					/* Adjust by -i to account for nul. */
+					sct->m_mode |= mode_mask[(q - mode_chars) - i];
+				}
+
+				/* Now get the the user/group info. */
+		 
+				s = (char *) bb_skip_whitespace(e);
+
+				/* Note: We require whitespace between the mode and the
+				 * user/group info. */
+				if ((s == e) || !(e = strchr(s, '.'))) {
+					parse_error("<uid>.<gid>");
+				}
+				*e++ = 0;
+
+				/* We can't use get_ug_id here since it would exit()
+				 * if a uid or gid was not found.  Oh well... */
+				{
+					char *e2;
+
+					sct->m_uid = strtoul(s, &e2, 10);
+					if (*e2 || (s == e2)) {
+						struct passwd *pwd;
+						if (!(pwd = getpwnam(s))) {
+							parse_error("user");
+						}
+						sct->m_uid = pwd->pw_uid;
+					}
+
+					sct->m_gid = strtoul(e, &e2, 10);
+					if (*e2 || (e == e2)) {
+						struct group *grp;
+						if (!(grp = getgrnam(e))) {
+							parse_error("group");
+						}
+						sct->m_gid = grp->gr_gid;
+					}
+				}
+			}
+			continue;
+		}
+
+		/* Unknown sections are ignored. */
+
+		/* Encountering configuration lines prior to seeing a
+		 * section header is treated as an error.  This is how
+		 * the old code worked, but it may not be desireable.
+		 * We may want to simply ignore such lines in case they
+		 * are used in some future version of busybox. */
+		if (!section) {
+			parse_error("keyword outside section");
+		}
+
+	} while (1);
+
+ pe_label:
+	fprintf(stderr, "Parse error in %s, line %d: %s\n",
+			config_file, lc, err);
+
+	fclose(f);
+	/* Release any allocated memory before returning. */
+	while (sct_head) {
+		sct = sct_head->m_next;
+		free(sct_head);
+		sct_head = sct;
+	}
+	return;
 }
 
 #endif
@@ -446,9 +491,9 @@ pe_label:
 
 /* END CODE */
 /*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
+  Local Variables:
+  c-file-style: "linux"
+  c-basic-offset: 4
+  tab-width: 4
 End:
 */
