@@ -15,6 +15,8 @@
 	* Optional support contributed by Ben Collins <bcollins@debian.org> 
 	    for the kernel init chroot patch by Werner Almesberger, which 
 	    allows init to chroot to a new device, and umount the old one.
+	* Fixed bug that wouldn't let one chown a symlink -- it would
+	  always dereference before.  -beppu
 
 
 	-Erik Andersen
