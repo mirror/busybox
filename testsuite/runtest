@@ -26,6 +26,7 @@ run_applet_testcase ()
 
 	local status=0
 	local X=
+	local RES=
 
 	local uc_applet=$(echo $applet | tr a-z A-Z)
 	local testname=$(basename $testcase)
@@ -48,14 +49,22 @@ run_applet_testcase ()
 		X=X
 	fi
 
-	mkdir tmp
+	rm -rf tmp
+	mkdir -p tmp
 	pushd tmp >/dev/null
 
-	if . ../$testcase >/dev/null 2>&1; then
-		show_result ${X}PASS $testname
+	sh -x -e ../$testcase >.logfile.txt 2>&1
+
+	if [ $? != 0 ] ; then
+		show_result ${X}FAIL $testname
+		if [ "$verbose" == 1 ]; then
+			cat .logfile.txt
+			exit 1;
+		fi;
 		status=$?
 	else
-		show_result ${X}FAIL $testname
+		show_result ${X}PASS $testname
+		rm -f .logfile.txt
 		status=$?
 	fi
 
