@@ -811,7 +811,7 @@
 		</para>
 
 		<para>
-		Prints out a binary keyboard translation table to standard input.
+		Prints out a binary keyboard translation table to standard output.
 		</para>
 
 		<para>

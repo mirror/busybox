@@ -453,7 +453,7 @@ Example:
 
 Usage: dumpkmap
 
-Prints out a binary keyboard translation table to standard input.
+Prints out a binary keyboard translation table to standard output.
 
 Example:
 
@@ -2261,4 +2261,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.76 2000/11/14 21:28:09 andersen Exp $
+# $Id: busybox.pod,v 1.77 2000/11/17 17:23:16 andersen Exp $
