@@ -1,5 +1,7 @@
 0.47pre
 
+	* A bug in syslogd was fixed that allowed it to potentially fork-bomb
+	    your system.
 	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
 	* added 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
 	* 'make install' now creates relative symlinks, and added a new
