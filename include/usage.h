@@ -2207,6 +2207,7 @@
 #define strings_full_usage \
 	"Display printable strings in a binary file." \
 	"\n\nOptions:" \
+	"\n\t-a\tScan the whole files (this is the default)."\
 	"\n\t-f\tPrecede each string with the name of the file where it was found." \
 	"\n\t-n N\tSpecifies that at least N characters forms a sequence (default 4)" \
 	"\n\t-o\tEach string is preceded by its decimal offset in the file."
