@@ -1222,8 +1222,7 @@ const char tar_usage[] =
 #endif
 	"[-f tarFile] [FILE(s)] ...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreate, extract, or list files from a tar file.  Note that\n"
-	"this version of tar treats hard links as separate files.\n\n"
+	"\nCreate, extract, or list files from a tar file.\n\n"
 	"Main operation mode:\n"
 #ifdef BB_FEATURE_TAR_CREATE
 	"\tc\t\tcreate\n"

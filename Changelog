@@ -43,6 +43,8 @@
 	* Larry Doolittle -- \r handled now in echo and tr
 	* Matt Kraai -- rewrite of uniq
 	* Mark Whitley -- remix of xargs
+	* Jim Gleason <jimg@lineo.com> -- fixed tar so it no longer breaks 
+	    hard links.
 
 
 	 -Erik Andersen

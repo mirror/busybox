@@ -769,6 +769,21 @@ endgame:
 
 #ifdef BB_FEATURE_TAR_CREATE
 
+/*
+** writeTarFile(),  writeFileToTarball(), and writeTarHeader() are
+** the only functions that deal with the HardLinkInfo structure.
+** Even these functions use the xxxHardLinkInfo() functions.
+*/
+typedef struct HardLinkInfo HardLinkInfo;
+struct HardLinkInfo
+{
+	HardLinkInfo *next;           /* Next entry in list */
+	dev_t dev;                    /* Device number */
+	ino_t ino;                    /* Inode number */
+	short linkCount;              /* (Hard) Link Count */
+	char name[1];                 /* Start of filename (must be last) */
+};
+
 /* Some info to be carried along when creating a new tarball */
 struct TarBallInfo
 {
@@ -781,9 +796,61 @@ struct TarBallInfo
 									 to include the tarball into itself */
 	int verboseFlag;              /* Whether to print extra stuff or not */
 	char** excludeList;           /* List of files to not include */
+	HardLinkInfo *hlInfoHead;     /* Hard Link Tracking Information */
+	HardLinkInfo *hlInfo;         /* Hard Link Info for the current file */
 };
 typedef struct TarBallInfo TarBallInfo;
 
+
+/* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
+static void
+addHardLinkInfo (HardLinkInfo **hlInfoHeadPtr, dev_t dev, ino_t ino,
+		short linkCount, const char *name)
+{
+	/* Note: hlInfoHeadPtr can never be NULL! */
+	HardLinkInfo *hlInfo;
+
+	hlInfo = (HardLinkInfo *)xmalloc(sizeof(HardLinkInfo)+strlen(name)+1);
+	if (hlInfo) {
+		hlInfo->next = *hlInfoHeadPtr;
+		*hlInfoHeadPtr = hlInfo;
+		hlInfo->dev = dev;
+		hlInfo->ino = ino;
+		hlInfo->linkCount = linkCount;
+		strcpy(hlInfo->name, name);
+	}
+	return;
+}
+
+static void
+freeHardLinkInfo (HardLinkInfo **hlInfoHeadPtr)
+{
+	HardLinkInfo *hlInfo = NULL;
+	HardLinkInfo *hlInfoNext = NULL;
+
+	if (hlInfoHeadPtr) {
+		hlInfo = *hlInfoHeadPtr;
+		while (hlInfo) {
+			hlInfoNext = hlInfo->next;
+			free(hlInfo);
+			hlInfo = hlInfoNext;
+		}
+		*hlInfoHeadPtr = NULL;
+	}
+	return;
+}
+
+/* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
+static HardLinkInfo *
+findHardLinkInfo (HardLinkInfo *hlInfo, dev_t dev, ino_t ino)
+{
+	while(hlInfo) {
+		if ((ino == hlInfo->ino) && (dev == hlInfo->dev))
+			break;
+		hlInfo = hlInfo->next;
+	}
+	return(hlInfo);
+}
 
 /* Put an octal string into the specified buffer.
  * The number is zero and space padded and possibly null padded.
@@ -879,8 +946,11 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	if (! *header.uname)
 		strcpy(header.uname, "root");
 
-	/* WARNING/NOTICE: I break Hard Links */
-	if (S_ISLNK(statbuf->st_mode)) {
+	if (tbInfo->hlInfo) {
+		/* This is a hard link */
+		header.typeflag = LNKTYPE;
+		strncpy(header.linkname, tbInfo->hlInfo->name, sizeof(header.linkname));
+	} else if (S_ISLNK(statbuf->st_mode)) {
 		int link_size=0;
 		char buffer[BUFSIZ];
 		header.typeflag  = SYMTYPE;
@@ -948,6 +1018,22 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
 
+	/*
+	** Check to see if we are dealing with a hard link.
+	** If so -
+	** Treat the first occurance of a given dev/inode as a file while
+	** treating any additional occurances as hard links.  This is done
+	** by adding the file information to the HardLinkInfo linked list.
+	*/
+	tbInfo->hlInfo = NULL;
+	if (statbuf->st_nlink > 1) {
+		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf->st_dev, 
+				statbuf->st_ino);
+		if (tbInfo->hlInfo == NULL)
+			addHardLinkInfo (&tbInfo->hlInfoHead, statbuf->st_dev,
+					statbuf->st_ino, statbuf->st_nlink, fileName);
+	}
+
 	/* It is against the rules to archive a socket */
 	if (S_ISSOCK(statbuf->st_mode)) {
 		errorMsg("%s: socket ignored\n", fileName);
@@ -973,7 +1059,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	} 
 
 	/* Now, if the file is a regular file, copy it out to the tarball */
-	if (S_ISREG(statbuf->st_mode)) {
+	if ((tbInfo->hlInfo == NULL)
+	&&  (S_ISREG(statbuf->st_mode))) {
 		int  inputFileFd;
 		char buffer[BUFSIZ];
 		ssize_t size=0, readSize=0;
@@ -1015,6 +1102,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	ssize_t size;
 	struct TarBallInfo tbInfo;
 	tbInfo.verboseFlag = verboseFlag;
+	tbInfo.hlInfoHead = NULL;
 
 	/* Make sure there is at least one file to tar up.  */
 	if (*argv == NULL)
@@ -1027,6 +1115,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (tbInfo.tarFd < 0) {
 		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
+		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return ( FALSE);
 	}
 	tbInfo.excludeList=excludeList;
@@ -1061,8 +1150,10 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	close(tarFd);
 	if (errorFlag == TRUE) {
 		errorMsg("Error exit delayed from previous errors\n");
+		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return(FALSE);
 	}
+	freeHardLinkInfo(&tbInfo.hlInfoHead);
 	return( TRUE);
 }
 
