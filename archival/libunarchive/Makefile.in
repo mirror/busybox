@@ -47,10 +47,12 @@ LIBUNARCHIVE-y:= \
 	check_trailer_gzip.o \
 	copy_file_chunk_fd.o \
 	data_align.o \
+	find_list_entry.o \
 	init_handle.o \
 	seek_sub_file.o \
+	uncompress.o \
 	unpack_ar_archive.o \
-	find_list_entry.o
+	unzip.o
 
 LIBUNARCHIVE-$(CONFIG_DPKG) += 
 LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += 
