@@ -191,7 +191,7 @@ static int check_utc(void)
 extern int hwclock_main ( int argc, char **argv )
 {
 	unsigned long opt;
-	int utc = 0;
+	int utc;
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 static const struct option hwclock_long_options[] = {
@@ -205,23 +205,18 @@ static const struct option hwclock_long_options[] = {
 	bb_applet_long_options = hwclock_long_options;
 #endif
 
-	bb_opt_complementaly = "r~ws:w~rs:s~wr";
+	bb_opt_complementaly = "r~ws:w~rs:s~wr:l~u:u~l";
 	opt = bb_getopt_ulflags(argc, argv, "lursw");
 	/* Check only one mode was given */
 	if(opt & 0x80000000UL) {
 		bb_show_usage();
 	}
 
-	/* If -u or -l wasnt give check if we are using utc */
-	if (opt & HWCLOCK_OPT_UTC) {
-		utc = 1;
-	}
-	else if (opt & HWCLOCK_OPT_LOCALTIME) {
-		utc = 0;
-	}
-	else {
+	/* If -u or -l wasn't given check if we are using utc */
+	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME)) 
+		utc = opt & HWCLOCK_OPT_UTC;
+	else
 		utc = check_utc();
-	}
 	
 	if (opt & HWCLOCK_OPT_HCTOSYS) {
 		return to_sys_clock ( utc );
