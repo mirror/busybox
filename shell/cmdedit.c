@@ -42,12 +42,6 @@
 #include <signal.h>
 #include <limits.h>
 
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
-
-
 #ifndef TEST
 
 #include "busybox.h"
@@ -66,6 +60,11 @@
 #define D(x)  x
 
 #endif							/* TEST */
+
+#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 
