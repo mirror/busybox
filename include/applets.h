@@ -341,7 +341,7 @@
 	APPLET(logger, logger_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_LOGIN
-	APPLET(login, login_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+	APPLET(login, login_main, _BB_DIR_BIN, _BB_SUID_ALWAYS)
 #endif
 #ifdef CONFIG_LOGNAME
 	APPLET(logname, logname_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
