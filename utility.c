@@ -777,7 +777,7 @@ int get_console_fd(char* tty_name)
 #endif
 
 
-#if !defined BB_REGEXP && (defined BB_GREP || defined BB_FIND )  
+#if !defined BB_REGEXP && (defined BB_GREP || defined BB_FIND || defined BB_SED)  
 
 /* Do a case insensitive strstr() */
 char* stristr(char *haystack, const char *needle)
@@ -817,7 +817,7 @@ extern int find_match(char *haystack, char *needle, int ignoreCase)
 /* This performs substitutions after a string match has been found.  */
 extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
 {
-    int foundOne;
+    int foundOne=0;
     char *where, *slider, *slider1, *oldhayStack;
 
     if (ignoreCase == FALSE)
@@ -847,7 +847,7 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
     }
     free( oldhayStack);
 
-    if (foundOne)
+    if (foundOne > 0)
 	return TRUE;
     else
 	return FALSE;

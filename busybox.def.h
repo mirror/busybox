@@ -15,12 +15,12 @@
 #define BB_DMESG
 //#define BB_DUTMP
 //#define BB_FDFLUSH
-#define BB_FIND
+//#define BB_FIND
 //#define BB_FSCK_MINIX
 //#define BB_MKFS_MINIX
 #define BB_CHVT
 #define BB_DEALLOCVT
-#define BB_GREP
+//#define BB_GREP
 //#define BB_HALT
 #define BB_INIT
 #define BB_KILL
@@ -42,7 +42,7 @@
 //#define BB_PRINTF
 #define BB_PS
 #define BB_PWD
-//#define BB_REGEXP
+#define BB_REGEXP
 #define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR

@@ -57,7 +57,8 @@ extern int sed_main (int argc, char **argv)
     char *cp;
     int ignoreCase=FALSE;
     int foundOne=FALSE;
-    int noprintFlag=FALSE;
+    int printFlag=FALSE;
+    int quietFlag=FALSE;
     int stopNow;
     char *haystack;
 
@@ -75,7 +76,7 @@ extern int sed_main (int argc, char **argv)
 	while (*++cp && stopNow==FALSE)
 	    switch (*cp) {
 	    case 'n':
-		noprintFlag = TRUE;
+		quietFlag = TRUE;
 		break;
 	    case 'e':
 		if (*(cp+1)==0 && --argc < 0) {
@@ -113,6 +114,23 @@ extern int sed_main (int argc, char **argv)
 			    break;
 			}
 			*pos=0;
+			if (pos+2 != 0) {
+			    while (*++pos) {
+				fprintf(stderr, "pos='%s'\n", pos);
+				switch (*pos) {
+				    case 'i':
+					ignoreCase=TRUE;
+					break;
+				    case 'p':
+					printFlag=TRUE;
+					break;
+				    case 'g':
+					break;
+				    default:
+					usage( sed_usage);
+				}
+			    }
+			}
 		    }
 		    cp++;
 		}
@@ -135,13 +153,13 @@ extern int sed_main (int argc, char **argv)
 	    continue;
 	}
 
-	haystack = (char*)malloc( BUF_SIZE);
-	while (fgets (haystack, BUF_SIZE-1, fp)) {
+	haystack = (char*)malloc( 1024);
+	while (fgets (haystack, 1023, fp)) {
 
 	    foundOne = replace_match(haystack, needle, newNeedle, ignoreCase);
-	    if (noprintFlag==TRUE && foundOne==TRUE)
-		fputs (haystack, stdout);
-	    else
+	    if (foundOne==TRUE && printFlag==TRUE)
+		    fputs (haystack, stdout);
+	    if (quietFlag==FALSE)
 		fputs (haystack, stdout);
 	    /* Avoid any mem leaks */
 	    free(haystack);

@@ -7,7 +7,7 @@
 #include <ctype.h>
 
 
-#if ( defined BB_GREP || defined BB_FIND )
+#if ( defined BB_GREP || defined BB_FIND  || defined BB_SED)
 
 /* This also tries to find a needle in a haystack, but uses
  * real regular expressions....  The fake regular expression
@@ -25,27 +25,39 @@ extern int find_match(char *haystack, char *needle, int ignoreCase)
     return( status);
 }
 
+#if defined BB_SED
 /* This performs substitutions after a regexp match has been found.  
  * The new string is returned.  It is malloc'ed, and do must be freed. */
-extern char* replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
+extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
 {
     int status;
-    char* newHaystack;
     struct regexp*  re;
-    newHaystack = (char *)malloc((unsigned)(strlen(haystack) -
-		strlen(needle) + strlen(newNeedle));
+    char *s, buf[BUF_SIZE], *d = buf;
+
     re = regcomp( needle);
     status = regexec(re, haystack, FALSE, ignoreCase);
+    if (status==TRUE) {
+	s=haystack;
 
-    return( newHaystack)
-}
-
-
-extern void regsub(regexp* re, char* src, char* dst)
-
+	do {
+	    /* copy stuff from before the match */
+	    while (s < re->startp[0])
+		*d++ = *s++;
+	    /* substitute for the matched part */
+	    regsub(re, newNeedle, d);
+	    s = re->endp[0];
+	    d += strlen(d);
+	} while (regexec(re, s, FALSE, ignoreCase) == TRUE);
+	 /* copy stuff from after the match */
+	while ( (*d++ = *s++) ) {}
+	d[-1] = '\n';
+	d[0] = '\0';
+	strcpy(haystack, buf);
+    }
     free( re);
     return( status);
 }
+#endif
 
 
 /* code swiped from elvis-tiny 1.4 (a clone of vi) and adjusted to 
@@ -695,7 +707,7 @@ extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase)
 
 
 
-
+#if defined BB_SED
 /* This performs substitutions after a regexp match has been found.  */
 extern void regsub(regexp* re, char* src, char* dst)
 {
@@ -841,7 +853,7 @@ extern void regsub(regexp* re, char* src, char* dst)
 	if (previous1)
 		strcpy(previous1, start);
 }
-
+#endif
 
 #endif /* BB_REGEXP */
 

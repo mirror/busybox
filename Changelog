@@ -7,6 +7,7 @@
 	* Added new apps chvt and deallocvt
 	* Major adjustment of init.c.  Code is now readable IMHO,
 	    and much more solid.
+	* Wrote sed -- weighs in at 1.8k (or 5.8k with full regular expressions!).
 
 	 -Erik Andersen
 

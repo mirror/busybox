@@ -41,6 +41,9 @@
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
 
+/* Turn this on to debug init so it won't reboot when killed */
+#define DEBUG_INIT
+
 #define CONSOLE         "/dev/console"	/* Logical system console */
 #define VT_PRIMARY      "/dev/tty0"	/* Virtual console master */
 #define VT_SECONDARY    "/dev/tty1"	/* Virtual console master */
@@ -61,7 +64,7 @@ int device_open(char *device, int mode)
 {
     int m, f, fd = -1;
 
-    mode = m | O_NONBLOCK;
+    m = mode | O_NONBLOCK;
 
     /* Retry up to 5 times */
     for (f = 0; f < 5; f++)
@@ -99,25 +102,28 @@ void message(char *device, char *fmt, ...)
 void set_term( int fd)
 {
     struct termios tty;
+    static const char control_characters[] = {
+	'\003', '\034', '\177', '\025', '\004', '\0',
+	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
+	'\017', '\027', '\026', '\0'
+	};
 
     tcgetattr(fd, &tty);
-    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-    tty.c_cflag |= HUPCL|CLOCAL;
 
-    tty.c_cc[VINTR] = 3;
-    tty.c_cc[VQUIT] = 28;
-    tty.c_cc[VERASE] = 127;
-    tty.c_cc[VKILL] = 24;
-    tty.c_cc[VEOF] = 4;
-    tty.c_cc[VTIME] = 0;
-    tty.c_cc[VMIN] = 1;
-    tty.c_cc[VSTART] = 17;
-    tty.c_cc[VSTOP] = 19;
-    tty.c_cc[VSUSP] = 26;
+    /* input modes */
+    tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
 
-    tty.c_iflag = IGNPAR|ICRNL|IXON|IXANY;
+    /* use lineo dicipline 0 */
+    tty.c_line = 0;
+
+    /* output modes */
     tty.c_oflag = OPOST|ONLCR;
-    tty.c_lflag = ISIG|ICANON|ECHO|ECHOCTL|ECHOPRT|ECHOKE;
+
+    /* local modes */
+    tty.c_lflag = ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOPRT|ECHOKE|IEXTEN;
+
+    /* control chars */
+    memcpy(tty.c_cc, control_characters, sizeof(control_characters));
 
     tcsetattr(fd, TCSANOW, &tty);
 }
@@ -151,7 +157,7 @@ static void set_free_pages()
 	fclose(f);
 	f = fopen("/proc/sys/vm/freepages", "w");
 	fprintf(f, "30\t40\t50\n");
-	printf("\nIncreased /proc/sys/vm/freepages values to 30/40/50\n");
+	message(log, "\nIncreased /proc/sys/vm/freepages values to 30/40/50\n");
     }
     fclose(f);
 }
@@ -165,7 +171,6 @@ static void console_init()
     int tried_vtmaster = 0;
     char *s;
 
-    fprintf(stderr, "entering console_init()\n");
     if ((s = getenv("CONSOLE")) != NULL)
 	console = s;
     else {
@@ -175,6 +180,7 @@ static void console_init()
 
     if ( stat(CONSOLE, &statbuf) && S_ISLNK(statbuf.st_mode)) {
 	fprintf(stderr, "Yikes! /dev/console does not exist or is a symlink.\n");
+	message(log, "Yikes! /dev/console does not exist or is a symlink.\n");
     }
     while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
 	if (!tried_devcons) {
@@ -193,7 +199,7 @@ static void console_init()
 	console = "/dev/null";
     else
 	close(fd);
-    fprintf(stderr, "console=%s\n", console);
+    message(log, "console=%s\n", console);
 }
 
 static int waitfor(int pid)
@@ -212,7 +218,7 @@ static int waitfor(int pid)
 static pid_t run(const char * const* command, 
 	char *terminal, int get_enter)
 {
-    int i;
+    int i, f;
     pid_t pid;
     static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
@@ -224,9 +230,9 @@ static pid_t run(const char * const* command,
 	close(2);
 	setsid();
 
-	open(terminal, O_RDWR);
-	dup(0);
-	dup(0);
+	f=open(terminal, O_RDWR);
+	dup(f);
+	dup(f);
 	tcsetpgrp(0, getpgrp());
 	set_term(0);
 
@@ -240,7 +246,7 @@ static pid_t run(const char * const* command,
 	     * specifies.
 	     */
 	    char c;
-	    write(0, press_enter, sizeof(press_enter) - 1);
+	    write(1, press_enter, sizeof(press_enter) - 1);
 	    read(0, &c, 1);
 	}
 
@@ -269,7 +275,7 @@ static pid_t run(const char * const* command,
     return pid;
 }
 
-
+#ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
     const char* const swap_off_cmd[] = { "/bin/swapoff", "-a", 0};
@@ -314,6 +320,7 @@ static void reboot_signal(int sig)
     reboot(RB_AUTOBOOT);
     exit(0);
 }
+#endif
 
 extern int init_main(int argc, char **argv)
 {
@@ -326,11 +333,17 @@ extern int init_main(int argc, char **argv)
     const char* const shell_commands[] = { SHELL, " -", 0};
     const char* const* tty0_commands = init_commands;
     const char* const* tty1_commands = shell_commands;
+#ifndef DEBUG_INIT
+    char *hello_msg_format =
+	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
+#else
     char *hello_msg_format =
 	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
+#endif
     const char *no_memory =
 	"Sorry, your computer does not have enough memory.\r\n";
 
+#ifndef DEBUG_INIT
     /* Set up sig handlers */
     signal(SIGUSR1, halt_signal);
     signal(SIGSEGV, halt_signal);
@@ -344,7 +357,7 @@ extern int init_main(int argc, char **argv)
     /* Turn off rebooting via CTL-ALT-DEL -- we get a 
      * SIGINT on CAD so we can shut things down gracefully... */
     reboot(RB_DISABLE_CAD);
-    
+#endif 
     /* Figure out where the default console should be */
     console_init();
 
@@ -352,7 +365,7 @@ extern int init_main(int argc, char **argv)
     close(0);
     close(1);
     close(2);
-    //set_term(0);
+    set_term(0);
     setsid();
 
     /* Make sure PATH is set to something sane */
@@ -360,17 +373,22 @@ extern int init_main(int argc, char **argv)
 	putenv(PATH_DEFAULT);
 
     /* Hello world */
+#ifndef DEBUG_INIT
     message(log, hello_msg_format, BB_VER, BB_BT);
-    fprintf(stderr, hello_msg_format, BB_VER, BB_BT);
+    message(console, hello_msg_format, BB_VER, BB_BT);
+#else
+    message(log, hello_msg_format, getpid(), BB_VER, BB_BT);
+    message(console, hello_msg_format, getpid(), BB_VER, BB_BT);
+#endif
 
     
     /* Mount /proc */
     if (mount("/proc", "/proc", "proc", 0, 0) == 0) {
-	fprintf(stderr, "Mounting /proc: done.\n");
 	message(log, "Mounting /proc: done.\n");
+	message(console, "Mounting /proc: done.\n");
     } else {
-	fprintf(stderr, "Mounting /proc: failed!\n");
 	message(log, "Mounting /proc: failed!\n");
+	message(console, "Mounting /proc: failed!\n");
     }
 
     /* Make sure there is enough memory to do something useful */
@@ -379,7 +397,7 @@ extern int init_main(int argc, char **argv)
 	int retval;
 	retval = stat("/etc/fstab", &statbuf);
 	if (retval) {
-	    fprintf(stderr, "%s", no_memory);
+	    message(console, "%s", no_memory);
 	    while (1) {
 		sleep(1);
 	    }
@@ -387,7 +405,7 @@ extern int init_main(int argc, char **argv)
 	    /* Try to turn on swap */
 	    waitfor(run(swap_on_cmd, console, 0));
 	    if (mem_total() < 2000) {
-		fprintf(stderr, "%s", no_memory);
+		message(console, "%s", no_memory);
 		while (1) {
 		    sleep(1);
 		}
