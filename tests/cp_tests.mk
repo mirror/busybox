@@ -16,7 +16,7 @@ cp_clean:
 
 cp_tests: cp_clean cp check_exists check_simple_cp check_cp_symlnk \
 	check_cp_symlink_w_a check_cp_files_to_dir check_cp_files_to_dir_w_d \
-	check_cp_files_to_dir_w_p check_cp_files_to_dir_w_p_and_d \ 
+	check_cp_files_to_dir_w_p check_cp_files_to_dir_w_p_and_d \
 	check_cp_dir_to_dir_wo_a check_cp_dir_to_dir_w_a \
 	check_cp_dir_to_dir_w_a_take_two
 
