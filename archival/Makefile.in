@@ -23,6 +23,7 @@ ARCHIVAL_DIR:=$(TOPDIR)archival/
 endif
 
 ARCHIVAL-y:=
+ARCHIVAL-$(CONFIG_APT_GET)	+=
 ARCHIVAL-$(CONFIG_AR)		+= ar.o
 ARCHIVAL-$(CONFIG_BUNZIP2)	+= bunzip2.o
 ARCHIVAL-$(CONFIG_CPIO)		+= cpio.o
@@ -32,6 +33,7 @@ ARCHIVAL-$(CONFIG_GUNZIP)	+= gunzip.o
 ARCHIVAL-$(CONFIG_GZIP)		+= gzip.o
 ARCHIVAL-$(CONFIG_RPM2CPIO)	+= rpm2cpio.o
 ARCHIVAL-$(CONFIG_TAR)		+= tar.o
+ARCHIVAL-$(CONFIG_UNCOMPRESS)	+= uncompress.o
 ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
 
 libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)

@@ -143,7 +143,7 @@ extern int gunzip_main(int argc, char **argv)
 			new_path = xstrdup(old_path);
 
 			extension = strrchr(new_path, '.');
-#ifdef CONFIG_FEATURE_UNCOMPRESS
+#ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 			if (extension && (strcmp(extension, ".Z") == 0)) {
 				*extension = '\0';
 			} else
@@ -172,7 +172,7 @@ extern int gunzip_main(int argc, char **argv)
 			unsigned char magic2;
 			
 			magic2 = xread_char(src_fd);
-#ifdef CONFIG_FEATURE_UNCOMPRESS
+#ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 			if (magic2 == 0x9d) {
 				status = uncompress(src_fd, dst_fd);
 			} else 

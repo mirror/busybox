@@ -515,10 +515,8 @@
 #ifdef CONFIG_UNAME
 	APPLET(uname, uname_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_GUNZIP	
-# ifdef CONFIG_FEATURE_UNCOMPRESS
-	APPLET_ODDNAME("uncompress", gunzip_main, _BB_DIR_BIN, _BB_SUID_NEVER, gunzip)
-# endif
+#ifdef CONFIG_UNCOMPRESS
+	APPLET(uncompress, uncompress_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UNIQ
 	APPLET(uniq, uniq_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)

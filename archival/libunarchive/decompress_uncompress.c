@@ -1,7 +1,7 @@
 #include "config.h"
 #include "libbb.h"
 
-#ifdef CONFIG_FEATURE_UNCOMPRESS
+#ifdef CONFIG_UNCOMPRESS || defined CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 
 /* uncompress for busybox -- (c) 2002 Robert Griebl
  *

@@ -2032,6 +2032,14 @@
 	"$ uname -a\n" \
 	"Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown\n" 
 
+#define uncompress_trivial_usage \
+	"[-c] [-f] [ name ... ]"
+#define uncompress_full_usage \
+	"Uncompress .Z file[s]\n" \
+	"Options:\n" \
+	"\t-c\textract to stdout\n" \
+	"\t-f\tforce overwrite an existing file\n"
+	
 #define uniq_trivial_usage \
 	"[OPTION]... [INPUT [OUTPUT]]"
 #define uniq_full_usage \

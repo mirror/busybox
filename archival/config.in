@@ -18,6 +18,9 @@ if [ "$CONFIG_DPKG_DEB" = "y" ] ; then
     bool '  -x support only'	CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 fi
 bool 'gunzip'	    CONFIG_GUNZIP
+if [ "$CONFIG_GUNZIP" = "y" ]; then
+    bool '  Uncompress support'		CONFIG_FEATURE_GUNZIP_UNCOMPRESS
+fi
 bool 'gzip'	    CONFIG_GZIP
 bool 'rpm2cpio'     CONFIG_RPM2CPIO
 bool 'tar'	    CONFIG_TAR
@@ -31,5 +34,6 @@ fi
 if [ "$CONFIG_CPIO" = "y" -o "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable tape drive support' CONFIG_FEATURE_UNARCHIVE_TAPE
 fi
+bool 'uncompress'   CONFIG_UNCOMPRESS
 bool 'unzip'	    CONFIG_UNZIP
 endmenu
