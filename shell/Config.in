@@ -80,7 +80,9 @@ config CONFIG_ASH_CMDCMD
 	default n
 	depends on CONFIG_ASH
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable support for the ash 'command' builtin, which allows
+	  you to run the specified command with the specified arguments,
+	  even when there is an ash builtin command with the same name.
 
 config CONFIG_ASH_MAIL
 	bool "  Check for new mail on interactive shells"
