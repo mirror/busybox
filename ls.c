@@ -49,11 +49,7 @@
 /************************************************************************/
 
 #include "internal.h"
-//#if !defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-//# include <linux/types.h>
-//#else
 # include <sys/types.h>
-//#endif
 #include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>

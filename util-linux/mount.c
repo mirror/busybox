@@ -45,7 +45,7 @@
 #include <mntent.h>
 #include <ctype.h>
 #if defined BB_FEATURE_USE_DEVPS_PATCH
-#include <linux/devmtab.h>
+#include <linux/devmtab.h> /* For Erik's nifty devmtab device driver */
 #endif
 
 

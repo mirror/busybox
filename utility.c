@@ -53,7 +53,7 @@
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
-#include <linux/loop.h>
+#include <linux/loop.h> /* Pull in loop device support */
 #endif
 
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
@@ -1302,7 +1302,7 @@ extern int device_open(char *device, int mode)
 
 #if defined BB_KILLALL || ( defined BB_FEATURE_LINUXRC && ( defined BB_HALT || defined BB_REBOOT || defined BB_POWEROFF ))
 #ifdef BB_FEATURE_USE_DEVPS_PATCH
-#include <linux/devps.h>
+#include <linux/devps.h> /* For Erik's nifty devps device driver */
 #endif
 
 #if defined BB_FEATURE_USE_DEVPS_PATCH

@@ -203,7 +203,7 @@ extern int ps_main(int argc, char **argv)
  * this one uses the nifty new devps kernel device.
  */
 
-#include <linux/devps.h>
+#include <linux/devps.h> /* For Erik's nifty devps device driver */
 
 
 extern int ps_main(int argc, char **argv)
