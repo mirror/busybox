@@ -595,7 +595,7 @@ static int readTarFile(int tarFd, int extractFlag, int listFlag,
 			}
 		}
 		if ( *(header.name) == '\0' )
-				goto endgame;
+			continue;
 		header.tarFd = tarFd;
 
 		/* Skip funky extra GNU headers that precede long files */
