@@ -1,82 +1,98 @@
-/*
- * Copyright 1988 - 1994, Julianne Frances Haugh <jockgrrl@austin.rr.com>
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of Julianne F. Haugh nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY JULIE HAUGH AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL JULIE HAUGH OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
+/* Copyright (C) 1996, 1997, 1998, 1999 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
 
-#ifndef	_H_SHADOW
-#define	_H_SHADOW
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
 
-#ifdef USE_SYSTEM_SHADOW
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+/* Declaration of types and functions for shadow password suite.  */
+
+#if !defined CONFIG_USE_BB_SHADOW
 #include <shadow.h>
 #else
 
-/*
- * This information is not derived from AT&T licensed sources.  Posted
- * to the USENET 11/88, and updated 11/90 with information from SVR4.
- *
- *	$Id: shadow_.h,v 1.1 2002/06/23 04:24:20 andersen Exp $
- */
+#ifndef _SHADOW_H
+#define _SHADOW_H	1
 
-typedef long sptime;
+#include <stdio.h>
 
-/*
- * Shadow password security file structure.
- */
+/* Paths to the user database files.  */
+#ifndef _PATH_SHADOW
+#define	_PATH_SHADOW	"/etc/shadow"
+#endif
+#define	SHADOW _PATH_SHADOW
 
-struct spwd {
-	char *sp_namp;				/* login name */
-	char *sp_pwdp;				/* encrypted password */
-	sptime sp_lstchg;			/* date of last change */
-	sptime sp_min;				/* minimum number of days between changes */
-	sptime sp_max;				/* maximum number of days between changes */
-	sptime sp_warn;				/* number of days of warning before password
-								   expires */
-	sptime sp_inact;			/* number of days after password expires
-								   until the account becomes unusable. */
-	sptime sp_expire;			/* days since 1/1/70 until account expires */
-	unsigned long sp_flag;		/* reserved for future use */
+
+/* Structure of the password file.  */
+struct spwd
+{
+    char *sp_namp;		/* Login name.  */
+    char *sp_pwdp;		/* Encrypted password.  */
+    long int sp_lstchg;		/* Date of last change.  */
+    long int sp_min;		/* Minimum number of days between changes.  */
+    long int sp_max;		/* Maximum number of days between changes.  */
+    long int sp_warn;		/* Number of days to warn user to change
+				   the password.  */
+    long int sp_inact;		/* Number of days the account may be
+				   inactive.  */
+    long int sp_expire;		/* Number of days since 1970-01-01 until
+				   account expires.  */
+    unsigned long int sp_flag;	/* Reserved.  */
 };
 
-/*
- * Shadow password security file functions.
- */
 
-#include <stdio.h>				/* for FILE */
+/* Open database for reading.  */
+extern void setspent (void);
 
-extern struct spwd *getspent(void);
-extern struct spwd *sgetspent(const char *);
-extern struct spwd *fgetspent(FILE *);
-extern void setspent(void);
-extern void endspent(void);
-extern int putspent(const struct spwd *, FILE *);
-extern struct spwd *getspnam(const char *name);
-extern struct spwd *pwd_to_spwd(const struct passwd *pw);
+/* Close database.  */
+extern void endspent (void);
 
-#endif							/* USE_LOCAL_SHADOW */
+/* Get next entry from database, perhaps after opening the file.  */
+extern struct spwd *getspent (void);
 
-#endif							/* _H_SHADOW */
+/* Get shadow entry matching NAME.  */
+extern struct spwd *getspnam (__const char *__name);
+
+/* Read shadow entry from STRING.  */
+extern struct spwd *sgetspent (__const char *__string);
+
+/* Read next shadow entry from STREAM.  */
+extern struct spwd *fgetspent (FILE *__stream);
+
+/* Write line containing shadow password entry to stream.  */
+extern int putspent (__const struct spwd *__p, FILE *__stream);
+
+/* Reentrant versions of some of the functions above.  */
+extern int getspent_r (struct spwd *__result_buf, char *__buffer,
+		       size_t __buflen, struct spwd **__result);
+
+extern int getspnam_r (__const char *__name, struct spwd *__result_buf,
+		       char *__buffer, size_t __buflen,
+		       struct spwd **__result)__THROW;
+
+extern int sgetspent_r (__const char *__string, struct spwd *__result_buf,
+			char *__buffer, size_t __buflen,
+			struct spwd **__result);
+
+extern int fgetspent_r (FILE *__stream, struct spwd *__result_buf,
+			char *__buffer, size_t __buflen,
+			struct spwd **__result);
+/* Protect password file against multi writers.  */
+extern int lckpwdf (void);
+
+/* Unlock password file.  */
+extern int ulckpwdf (void);
+
+#endif /* shadow.h */
+#endif
