@@ -2670,8 +2670,12 @@ extern int awk_main(int argc, char **argv) {
 	for (envp=environ; *envp; envp++) {
 		s = bb_xstrdup(*envp);
 		s1 = strchr(s, '=');
+		if (!s1) {
+			goto keep_going;
+		}
 		*(s1++) = '\0';
 		setvar_u(findvar(iamarray(V[ENVIRON]), s), s1);
+keep_going:
 		free(s);
 	}
 
