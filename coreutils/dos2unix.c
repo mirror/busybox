@@ -64,7 +64,9 @@ static int convert(char *fn, int ConvType)
 		c = strlen(tempFn);
 		tempFn[c] = '.';
 		while(1) {
-		    if (c >=BUFSIZ-2)
+		    /* tempFn is BUFSIZ so the last addressable spot it BUFSIZ-1.
+		     * The loop increments by 2. So this must check for BUFSIZ-3. */
+		    if (c >=BUFSIZ-3)
 			bb_error_msg_and_die("unique name not found");
 		    /* Get some semi random stuff to try and make a
 		     * random filename based (and in the same dir as)
