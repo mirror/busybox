@@ -39,11 +39,11 @@ extern int reboot_main(int argc, char **argv)
 
 #ifndef CONFIG_INIT
 #ifndef RB_AUTOBOOT
-#define RB_AUTOBOOT				0x01234567
+#define RB_AUTOBOOT		0x01234567
 #endif
 	return(bb_shutdown_system(RB_AUTOBOOT));
 #else
-	return kill_init(SIGUSR2);
+	return kill_init(SIGTERM);
 #endif
 }
 
