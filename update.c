@@ -35,10 +35,12 @@ _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
 static char update_usage[] =
-	"update [options]\n"
-	"  -S\tforce use of sync(2) instead of flushing\n"
-	"  -s SECS\tcall sync this often (default 30)\n"
-	"  -f SECS\tflush some buffers this often (default 5)\n";
+	"update [options]\n\n"
+	"Periodically flushes filesystem buffers.\n\n"
+	"Options:\n"
+	"\t-S\tforce use of sync(2) instead of flushing\n"
+	"\t-s SECS\tcall sync this often (default 30)\n"
+	"\t-f SECS\tflush some buffers this often (default 5)\n";
 
 static unsigned int sync_duration = 30;
 static unsigned int flush_duration = 5;
@@ -48,6 +50,8 @@ extern int update_main(int argc, char **argv)
 {
 	int pid;
 
+	argc--;
+	argv++;
 	while (**argv == '-') {
 		while (*++(*argv)) {
 			switch (**argv) {
@@ -62,6 +66,8 @@ extern int update_main(int argc, char **argv)
 				if (--argc < 1) usage(update_usage);
 				flush_duration = atoi(*(++argv));
 				break;
+			default:
+				usage(update_usage);
 			}
 		}
 		argc--;
@@ -100,7 +106,7 @@ extern int update_main(int argc, char **argv)
 			}
 		}
 	}
-	return TRUE;
+	exit( TRUE);
 }
 
 /*

@@ -1,4 +1,5 @@
 0.43
+	* Major update to the provided documentation.
 	* Busybox now includes a shell!  It currently costs 7.5 k (plus an
 	    additional 2.5 k if you compile in command line editing).  Handles
 	    job control, has the usual set of builtins, and does everything

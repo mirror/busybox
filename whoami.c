@@ -25,9 +25,7 @@
 #include <pwd.h>
 
 static const char whoami_usage[] = "whoami\n\n"
-	"Print the user name associated with the current effective user id.\n"
-
-	"Same as id -un.\n";
+	"Prints the user name associated with the current effective user id.\n";
 
 extern int whoami_main(int argc, char **argv)
 {

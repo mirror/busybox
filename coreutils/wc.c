@@ -25,7 +25,8 @@
 
 static const char wc_usage[] = "wc [OPTION]... [FILE]...\n\n"
 	"Print line, word, and byte counts for each FILE, and a total line if\n"
-	"more than one FILE is specified.  With no FILE, read standard input.\n"
+	"more than one FILE is specified.  With no FILE, read standard input.\n\n"
+	"Options:\n"
 	"\t-c\tprint the byte counts\n"
 	"\t-l\tprint the newline counts\n"
 

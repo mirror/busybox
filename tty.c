@@ -25,8 +25,8 @@
 #include <sys/types.h>
 
 static const char tty_usage[] = "tty\n\n"
-	"Print the file name of the terminal connected to standard input.\n"
-
+	"Print the file name of the terminal connected to standard input.\n\n"
+	"Options:\n"
 	"\t-s\tprint nothing, only return an exit status\n";
 
 extern int tty_main(int argc, char **argv)

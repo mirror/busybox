@@ -28,15 +28,9 @@
 #include <errno.h>
 
 static const char uniq_usage[] =
-	"uniq [OPTION]... [INPUT [OUTPUT]]\n"
-	"Discard all but one of successive identical lines from INPUT (or\n"
-	"standard input), writing to OUTPUT (or standard output).\n"
-	"\n"
-	"\t-h\tdisplay this help and exit\n"
-
-	"\n"
-	"A field is a run of whitespace, then non-whitespace characters.\n"
-	"Fields are skipped before chars.\n";
+	"uniq [OPTION]... [INPUT [OUTPUT]]\n\n"
+	"Discard all but one of successive identical lines from INPUT\n"
+	"(or standard input), writing to OUTPUT (or standard output).\n";
 
 /* max chars in line */
 #define UNIQ_MAX 4096
@@ -190,4 +184,4 @@ int uniq_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: uniq.c,v 1.8 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: uniq.c,v 1.9 2000/04/17 16:16:10 erik Exp $ */

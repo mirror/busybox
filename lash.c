@@ -961,9 +961,12 @@ int shell_main(int argc, char **argv)
 		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else {
+		if (*argv[1]=='-') {
+			usage("sh\n\nlash -- the BusyBox LAme SHell (command interpreter)\n");
+		}
 		input = fopen(argv[1], "r");
 		if (!input) {
-			fatalError("A: Couldn't open file '%s': %s\n", argv[1],
+			fatalError("sh: Couldn't open file '%s': %s\n", argv[1],
 					   strerror(errno));
 		}
 	}

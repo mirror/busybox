@@ -1290,6 +1290,10 @@ Example:
 
 =item sh
 
+Usage: sh
+
+lash -- the BusyBox LAme SHell (command interpreter)
+
 FIXME
 
 -------------------------------
@@ -1528,12 +1532,10 @@ Example:
 
 =item tr
 
-Usage:  
-
-  tr [-csu] string1 string2
-  tr [-cu] -d string1
-  tr [-cu] -s string1
-  tr [-cu] -ds string1 string2
+Usage:  tr [-csu] string1 string2
+        tr [-cu] -d string1
+        tr [-cu] -s string1
+        tr [-cu] -ds string1 string2
 
 Translate, squeeze, and/or delete characters from standard
 input, writing to standard output.
@@ -1559,67 +1561,162 @@ Example:
 
 =item tty
 
-FIXME
+Usage: tty
+
+Print the file name of the terminal connected to standard input.
+
+Options:
+
+        -s      print nothing, only return an exit status
+
+Example:
+
+	$ tty
+	/dev/tty2
 
 -------------------------------
 
 =item umount
 
-FIXME
+Usage: umount [flags] filesystem|directory
+
+Flags:
+
+        -a:     Unmount all file systems
+        -r:     Try to remount devices as read-only if mount is busy
+        -f:     Do not free loop device (if a loop device has been used)
+
+Example:
+
+	$ umount /dev/hdc1 
 
 -------------------------------
 
 =item uname
 
-FIXME
+Usage: uname [OPTION]...
+
+Print certain system information.  With no OPTION, same as -s.
+
+Options:
+
+        -a      print all information
+        -m      the machine (hardware) type
+        -n      print the machine's network node hostname
+        -r      print the operating system release
+        -s      print the operating system name
+        -p      print the host processor type
+        -v      print the operating system version
+
+Example:
+
+	$ uname -a
+	Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
 
 -------------------------------
 
 =item uniq
 
-FIXME
+Usage: uniq [OPTION]... [INPUT [OUTPUT]]
+
+Discard all but one of successive identical lines from INPUT
+(or standard input), writing to OUTPUT (or standard output).
+
+Example:
+
+	$ echo -e "a\na\nb\nc\nc\na" | sort | uniq
+	a
+	b
+	c
 
 -------------------------------
 
 =item update
 
-FIXME
+Usage: update [options]
+
+Periodically flushes filesystem buffers.
+
+Options:
+
+        -S      force use of sync(2) instead of flushing
+        -s SECS call sync this often (default 30)
+        -f SECS flush some buffers this often (default 5)
 
 -------------------------------
 
 =item uptime
 
-FIXME
+Usage: uptime
+
+Tells how long the system has been running since boot.
+
+Example:
+
+	$ uptime
+	  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00
 
 -------------------------------
 
 =item usleep
 
-FIXME
+Usage: usleep N
+
+Pauses for N microseconds.
+
+Example:
+
+	$ usleep 1000000
+	[pauses for 1 second]
 
 -------------------------------
 
 =item wc
 
-FIXME
+Usage: wc [OPTION]... [FILE]...
+
+Print line, word, and byte counts for each FILE, and a total line if
+more than one FILE is specified.  With no FILE, read standard input.
+
+Options:
+
+        -c      print the byte counts
+        -l      print the newline counts
+        -L      print the length of the longest line
+        -w      print the word counts
+
+Example:
+
+	$ wc /etc/passwd
+	     31      46    1365 /etc/passwd
 
 -------------------------------
 
 =item whoami
 
-FIXME
+Usage: whoami
+
+Prints the user name associated with the current effective user id.
+
+Example:
+
+	$ whoami
+	andersen
 
 -------------------------------
 
 =item yes
 
-FIXME
+Usage: yes [OPTION]... [STRING]...
+
+Repeatedly outputs a line with all specified STRING(s), or `y'.
 
 -------------------------------
 
 =item zcat
 
-FIXME
+This is essentially an alias for invoking "gunzip -c", where 
+it decompresses the file inquestion and send the output to stdout. 
 
 -------------------------------
 
@@ -1684,4 +1781,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.12 2000/04/17 05:13:59 beppu Exp $
+# $Id: busybox.pod,v 1.13 2000/04/17 16:16:10 erik Exp $
