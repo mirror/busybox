@@ -595,7 +595,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 #endif
 
 
-static const char tar_options[]="ctxjT:X:C:f:Opvz";
+static const char tar_options[]="ctxjT:X:C:f:Opvzk";
 
 #define CTX_CREATE	1
 #define CTX_TEST	2
@@ -609,6 +609,7 @@ static const char tar_options[]="ctxjT:X:C:f:Opvz";
 #define TAR_OPT_P        512
 #define TAR_OPT_VERBOSE  1024
 #define TAR_OPT_GZIP     2048
+#define TAR_OPT_KEEP_OLD	4096
 
 int tar_main(int argc, char **argv)
 {
@@ -633,7 +634,7 @@ int tar_main(int argc, char **argv)
 
 	/* Initialise default values */
 	tar_handle = init_handle();
-	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE;
+	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
 	bb_opt_complementaly = "c~tx:t~cx:x~ct:X*";
 	opt = bb_getopt_ulflags(argc, argv, tar_options,
@@ -647,29 +648,32 @@ int tar_main(int argc, char **argv)
 		bb_show_usage();
 	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
 	if(ctx_flag & CTX_TEST) {
-			if ((tar_handle->action_header == header_list) || 
-				(tar_handle->action_header == header_verbose_list)) {
-				tar_handle->action_header = header_verbose_list;
-			} else {
-				tar_handle->action_header = header_list;
-			}
+		if ((tar_handle->action_header == header_list) || 
+			(tar_handle->action_header == header_verbose_list)) {
+			tar_handle->action_header = header_verbose_list;
+		} else {
+			tar_handle->action_header = header_list;
+		}
 	}
 	if(ctx_flag & CTX_EXTRACT) {
 		if (tar_handle->action_data != data_extract_to_stdout)
-				tar_handle->action_data = data_extract_all;
-			}
+			tar_handle->action_data = data_extract_all;
+		}
 	if(opt & TAR_OPT_2STDOUT) {
 		/* To stdout */
-			tar_handle->action_data = data_extract_to_stdout;
+		tar_handle->action_data = data_extract_to_stdout;
 	}
 	if(opt & TAR_OPT_VERBOSE) {
-			if ((tar_handle->action_header == header_list) || 
-				(tar_handle->action_header == header_verbose_list)) 
-			{
-				tar_handle->action_header = header_verbose_list;
-			} else {
-				tar_handle->action_header = header_list;
-			}
+		if ((tar_handle->action_header == header_list) || 
+			(tar_handle->action_header == header_verbose_list)) 
+		{
+		tar_handle->action_header = header_verbose_list;
+		} else {
+			tar_handle->action_header = header_list;
+		}
+	}
+	if (opt & TAR_OPT_KEEP_OLD) {
+		tar_handle->flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
 	}
 
 	if(opt & TAR_OPT_GZIP) {
@@ -681,7 +685,7 @@ int tar_main(int argc, char **argv)
 	}
 	if(opt & TAR_OPT_BZIP2) {
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-			get_header_ptr = get_header_tar_bz2;
+		get_header_ptr = get_header_tar_bz2;
 #else
 		bb_show_usage();
 #endif
