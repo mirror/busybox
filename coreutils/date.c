@@ -47,6 +47,7 @@
 static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 {
 	int nr;
+	char *cp;
 
 	nr = sscanf(t_string, "%2d%2d%2d%2d%d", &(tm_time->tm_mon),
 				&(tm_time->tm_mday), &(tm_time->tm_hour), &(tm_time->tm_min),
@@ -54,6 +55,14 @@ static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 
 	if (nr < 4 || nr > 5) {
 		bb_error_msg_and_die(bb_msg_invalid_date, t_string);
+	}
+
+	cp = strchr(t_string, '.');
+	if (cp) {
+		nr = sscanf(cp + 1, "%2d", &(tm_time->tm_sec));
+		if (nr != 1) {
+			bb_error_msg_and_die(bb_msg_invalid_date, t_string);
+		}
 	}
 
 	/* correct for century  - minor Y2K problem here? */
