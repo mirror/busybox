@@ -392,10 +392,11 @@ int parse_config_file ( void )
 						parse_error ( "keyword not within section" );
 				}				
 				fclose ( f );
+				return 1;
 			}
 		}
 	}
-	return 1;
+	return 0; // no config file or not readable (not an error)
 	
 pe_label:	
 	fprintf ( stderr, "Parse error in %s, line %d: %s\n", CONFIG_FILE, lc, err );
