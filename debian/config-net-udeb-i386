@@ -16,6 +16,7 @@ CONFIG_FEATURE_DEVFS=y
 CONFIG_FEATURE_DEVPTS=y
 # CONFIG_FEATURE_CLEAN_UP is not set
 # CONFIG_FEATURE_SUID is not set
+# CONFIG_SELINUX is not set
 
 #
 # Build Options
@@ -80,9 +81,11 @@ CONFIG_FEATURE_FANCY_ECHO=y
 # CONFIG_ENV is not set
 # CONFIG_EXPR is not set
 CONFIG_FALSE=y
+# CONFIG_FOLD is not set
 # CONFIG_HEAD is not set
 # CONFIG_HOSTID is not set
 # CONFIG_ID is not set
+# CONFIG_INSTALL is not set
 # CONFIG_LENGTH is not set
 CONFIG_LN=y
 # CONFIG_LOGNAME is not set
@@ -145,14 +148,17 @@ CONFIG_WC=y
 # CONFIG_MKTEMP is not set
 # CONFIG_READLINK is not set
 # CONFIG_RUN_PARTS is not set
+# CONFIG_START_STOP_DAEMON is not set
 # CONFIG_WHICH is not set
 
 #
 # Editors
 #
 # CONFIG_AWK is not set
+# CONFIG_PATCH is not set
 CONFIG_SED=y
 # CONFIG_FEATURE_SED_EMBEDED_NEWLINE is not set
+CONFIG_FEATURE_SED_GNU_COMPATABILITY=y
 # CONFIG_VI is not set
 
 #
@@ -161,6 +167,7 @@ CONFIG_SED=y
 # CONFIG_FIND is not set
 CONFIG_GREP=y
 # CONFIG_FEATURE_GREP_EGREP_ALIAS is not set
+# CONFIG_FEATURE_GREP_FGREP_ALIAS is not set
 # CONFIG_FEATURE_GREP_CONTEXT is not set
 # CONFIG_XARGS is not set
 
@@ -175,7 +182,6 @@ CONFIG_FEATURE_USE_INITTAB=y
 # CONFIG_HALT is not set
 # CONFIG_POWEROFF is not set
 CONFIG_REBOOT=y
-# CONFIG_START_STOP_DAEMON is not set
 # CONFIG_MESG is not set
 
 #
@@ -200,17 +206,19 @@ CONFIG_USE_BB_PWD_GRP=y
 # CONFIG_CROND is not set
 # CONFIG_CRONTAB is not set
 # CONFIG_DC is not set
-# CONFIG_DUTMP is not set
+# CONFIG_LAST is not set
+# CONFIG_HDPARM is not set
 # CONFIG_MAKEDEVS is not set
 # CONFIG_MT is not set
 # CONFIG_STRINGS is not set
 # CONFIG_TIME is not set
-# CONFIG_UPDATE is not set
 # CONFIG_WATCHDOG is not set
 
 #
 # Linux Module Utilities
 #
+CONFIG_MODUTILS_OBJ=y
+# CONFIG_DEPMOD is not set
 CONFIG_INSMOD=y
 # CONFIG_FEATURE_OLD_MODULE_INTERFACE is not set
 CONFIG_FEATURE_NEW_MODULE_INTERFACE=y
@@ -268,6 +276,7 @@ CONFIG_ROUTE=y
 CONFIG_WGET=y
 # CONFIG_FEATURE_WGET_STATUSBAR is not set
 CONFIG_FEATURE_WGET_AUTHENTICATION=y
+# CONFIG_FEATURE_WGET_IP6_LITERAL is not set
 
 #
 # udhcp Server/Client
@@ -299,10 +308,6 @@ CONFIG_FEATURE_SH_IS_ASH=y
 CONFIG_ASH=y
 
 #
-# ash (forced enabled as default shell)
-#
-
-#
 # Ash Shell Options
 #
 # CONFIG_ASH_JOB_CONTROL is not set
@@ -325,7 +330,6 @@ CONFIG_FEATURE_COMMAND_EDITING=y
 # CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION is not set
 CONFIG_FEATURE_COMMAND_HISTORY=15
 # CONFIG_FEATURE_SH_STANDALONE_SHELL is not set
-# CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN is not set
 # CONFIG_FEATURE_SH_FANCY_PROMPT is not set
 # CONFIG_FEATURE_SH_EXTRA_QUIET is not set
 
@@ -344,6 +348,7 @@ CONFIG_LOGGER=y
 # CONFIG_DMESG is not set
 # CONFIG_FBSET is not set
 # CONFIG_FDFLUSH is not set
+# CONFIG_FDFORMAT is not set
 # CONFIG_FDISK is not set
 # CONFIG_FREERAMDISK is not set
 # CONFIG_FSCK_MINIX is not set

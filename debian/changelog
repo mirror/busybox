@@ -1,3 +1,10 @@
+busybox-cvs (0.60.99.cvs20030819-3) unstable; urgency=low
+
+  * shell/ash.c
+    - fix signal handling (upstream)
+
+ -- Bastian Blank <waldi@debian.org>  Mon, 15 Sep 2003 18:12:09 +0200
+
 busybox-cvs (0.60.99.cvs20030819-2) unstable; urgency=low
 
   * Fix configure permisions
@@ -399,4 +406,3 @@ busybox (0.45-1) unstable; urgency=low
     (i.e. when libc gets screwed up.)
 
  -- Erik Andersen <andersee@debian.org>  Tue, 27 Jun 2000 12:26:41 -0600
-
