@@ -1216,7 +1216,24 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 			/* Check if the command matches any busybox internal commands here */
 			while (a->name != 0) {
-				if (strcmp(get_last_path_component(newJob->progs[i].argv[0]), a->name) == 0) {
+#ifdef BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+				if (strcmp(get_last_path_component(newJob->progs[i].argv[0]),
+							a->name) == 0) 
+#else
+					/* Check if the command matches any busybox internal
+					 * commands ("applets") here.  Following discussions from
+					 * November 2000 on busybox@opensource.lineo.com, don't use
+					 * get_last_path_component().  This way explicit (with
+					 * slashes) filenames will never be interpreted as an
+					 * applet, just like with builtins.  This way the user can
+					 * override an applet with an explicit filename reference.
+					 * The only downside to this change is that an explicit
+					 * /bin/foo invocation fill fork and exec /bin/foo, even if
+					 * /bin/foo is a symlink to busybox.
+					*/
+				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) 
+#endif
+				{
 					int argc_l;
 					char** argv=newJob->progs[i].argv;
 					for(argc_l=0;*argv!=NULL; argv++, argc_l++);
