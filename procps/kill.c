@@ -140,7 +140,7 @@ do_it_now:
 						if (kill(*pl, sig) != 0) {
 							errors++;
 							if (quiet==0)
-								perror_msg( "Could not kill pid '%d'", *pl);
+								perror_msg( "Could not kill pid '%ld'", *pl);
 						}
 					}
 			}

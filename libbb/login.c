@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- * $Id: login.c,v 1.1 2003/01/21 20:59:34 bug1 Exp $
+ * $Id: login.c,v 1.2 2003/02/09 22:40:33 bug1 Exp $
  */
 
 #include <stdio.h>
@@ -37,7 +37,6 @@ void print_login_issue(const char *issue_file, const char *tty)
 	FILE *fd;
 	int c;
 	char buf[256];
-	char *ret;
 	time_t t;
 	struct utsname uts;
 
