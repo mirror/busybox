@@ -1098,18 +1098,19 @@ int run_package_script(const char *package_name, const char *script_type)
 {
 	struct stat path_stat;
 	char *script_path;
+	int result;
 
 	script_path = xmalloc(strlen(package_name) + strlen(script_type) + 21);
 	sprintf(script_path, "/var/lib/dpkg/info/%s.%s", package_name, script_type);
 
 	/* If the file doesnt exist is isnt a fatal */
 	if (lstat(script_path, &path_stat) < 0) {
-		free(script_path);
-		return(EXIT_SUCCESS);
+		result = EXIT_SUCCESS;
 	} else {
-		free(script_path);
-		return(system(script_path));
+		result = system(script_path);
 	}
+	free(script_path);
+	return(result);
 }
 
 void all_control_list(char **remove_files, const char *package_name)
@@ -1298,7 +1299,7 @@ void unpack_package(deb_file_t *deb_file)
 	/* Create the list file */
 	strcat(info_prefix, "list");
 	out_stream = xfopen(info_prefix, "w");			
-	deb_extract(deb_file->filename, out_stream, (extract_quiet | extract_data_tar_gz | extract_list), NULL, NULL);
+	deb_extract(deb_file->filename, out_stream, (extract_quiet | extract_data_tar_gz | extract_list), "/", NULL);
 	fclose(out_stream);
 
 	/* change status */
