@@ -123,22 +123,16 @@ static void abort_gzip(void)
 
 static void make_crc_table(void)
 {
-	unsigned long table_entry;      /* crc shift register */
-	unsigned long poly = 0;      /* polynomial exclusive-or pattern */
-	int i;                /* counter for all possible eight bit values */
-	int k;                /* byte being shifted into crc apparatus */
-
-	/* terms of polynomial defining this crc (except x^32): */
-	static int p[] = {0,1,2,4,5,7,8,10,11,12,16,22,23,26};
+	const unsigned long poly = 0xedb88320;      /* polynomial exclusive-or pattern */
+	unsigned short i;                /* counter for all possible eight bit values */
 
 	crc_table = (unsigned long *) malloc(256 * sizeof(unsigned long));
 
-	/* Make exclusive-or pattern from polynomial (0xedb88320) */
-	for (i = 0; i < sizeof(p)/sizeof(int); i++)
-		poly |= 1L << (31 - p[i]);
-
 	/* Compute and print table of CRC's, five per line */
 	for (i = 0; i < 256; i++) {
+		unsigned long table_entry;      /* crc shift register */
+		char k;	/* byte being shifted into crc apparatus */
+
 		table_entry = i;
 	   /* The idea to initialize the register with the byte instead of
 	     * zero was stolen from Haruhiko Okumura's ar002
