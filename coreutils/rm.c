@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "busybox.h"
 
 static int recursiveFlag = FALSE;
@@ -82,52 +83,48 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int rm_main(int argc, char **argv)
 {
+	int opt;
 	int status = EXIT_SUCCESS;
 	int stopIt=FALSE;
 	struct stat statbuf;
-
-	argc--;
-	argv++;
-
-	/* Parse any options */
-	while (argc > 0 && stopIt == FALSE) {
-		if (**argv == '-') {
-			while (*++(*argv))
-				switch (**argv) {
-					case 'R':
-					case 'r':
-						recursiveFlag = TRUE;
-						break;
-					case 'f':
-						forceFlag = TRUE;
+	
+	
+	/* do normal option parsing */
+	while ((opt = getopt(argc, argv, "Rrf-"
 #ifdef BB_FEATURE_RM_INTERACTIVE
-						interactiveFlag = FALSE;
+"i"
 #endif
-						break;
-					case 'i':
+)) > 0) {
+		switch (opt) {
+			case 'R':
+			case 'r':
+				recursiveFlag = TRUE;
+				break;
+			case 'f':
+				forceFlag = TRUE;
 #ifdef BB_FEATURE_RM_INTERACTIVE
-						interactiveFlag = TRUE;
+				interactiveFlag = FALSE;
 #endif
-						break;
-					case '-':
-						stopIt = TRUE;
-						break;
-					default:
-						show_usage();
-				}
-			argc--;
-			argv++;
+				break;
+			case 'i':
+#ifdef BB_FEATURE_RM_INTERACTIVE
+				interactiveFlag = TRUE;
+#endif
+				break;
+			case '-':
+				stopIt = TRUE;
+				break;
+			default:
+				show_usage();
 		}
-		else
-			break;
 	}
-
-	if (argc < 1 && forceFlag == FALSE) {
+	
+	if ((argc-optind) < 1 && forceFlag == FALSE) {
 		show_usage();
 	}
 
-	while (argc-- > 0) {
-		srcName = *(argv++);
+	while (optind < argc) {
+		srcName = argv[optind];
 		if (forceFlag == TRUE && lstat(srcName, &statbuf) != 0
 			&& errno == ENOENT) {
 			/* do not reports errors for non-existent files if -f, just skip them */
@@ -137,6 +134,7 @@ extern int rm_main(int argc, char **argv)
 				status = EXIT_FAILURE;
 			}
 		}
+		optind++;
 	}
 	return status;
 }
