@@ -1602,11 +1602,16 @@ Example:
 -------------------------------
 
 =item tr
+Usage: tr [-cds] STRING1 [STRING2]
 
-Usage:  tr [B<-cdsu>] string1 [string2]
+Translate, squeeze, and/or delete characters from
+standard input, writing to standard output.
 
-Translate, squeeze, and/or delete characters from standard
-input, writing to standard output.
+Options:
+
+	-c      take complement of STRING1
+	-d      delete input characters coded STRING1
+	-s      squeeze multiple output characters of STRING2 into one character
 
 Example:
 
@@ -1849,4 +1854,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.24 2000/04/28 00:18:56 erik Exp $
+# $Id: busybox.pod,v 1.25 2000/05/01 22:34:24 erik Exp $
