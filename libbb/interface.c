@@ -1374,7 +1374,7 @@ static struct hwtype loop_hwtype = {
 #if HAVE_HWETHER
 #include <net/if_arp.h>
 
-#if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
+#if (__GLIBC__ >=2 && __GLIBC_MINOR >= 1) || defined(_NEWLIB_VERSION)
 #include <net/ethernet.h>
 #else
 #include <linux/if_ether.h>
