@@ -73,7 +73,7 @@ static FILE *in_file, *out_file;
 static unsigned char *window;
 static unsigned long *crc_table;
 
-static unsigned long crc = 0xffffffffL;	/* shift register contents */
+static unsigned long crc; /* shift register contents */
 
 /* Return codes from gzip */
 static const int ERROR = 1;
@@ -126,6 +126,8 @@ static void make_crc_table(void)
 	const unsigned long poly = 0xedb88320;      /* polynomial exclusive-or pattern */
 	unsigned short i;                /* counter for all possible eight bit values */
 
+	/* initial shift register value */
+	crc = 0xffffffffL;	
 	crc_table = (unsigned long *) malloc(256 * sizeof(unsigned long));
 
 	/* Compute and print table of CRC's, five per line */
