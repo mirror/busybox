@@ -130,7 +130,7 @@ int fdformat_main(int argc,char **argv)
     if (argc < 2) {
 	bb_show_usage();
     }
-    verify != bb_getopt_ulflags(argc, argv, "n");
+    verify = !bb_getopt_ulflags(argc, argv, "n");
     argv += optind;
 
     if (stat(*argv,&st) < 0 || access(*argv,W_OK) < 0) {
