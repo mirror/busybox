@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.36 2001/01/23 22:30:04 markw Exp $"
+#ident "$Id: insmod.c,v 1.37 2001/01/24 19:07:09 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.36 2001/01/23 22:30:04 markw Exp $"
+#ident "$Id: insmod.c,v 1.37 2001/01/24 19:07:09 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2872,6 +2872,7 @@ static void hide_special_symbols(struct obj_file *f)
 
 extern int insmod_main( int argc, char **argv)
 {
+	int opt;
 	int k_crcs;
 	int k_new_syscalls;
 	int len;
@@ -2891,15 +2892,9 @@ extern int insmod_main( int argc, char **argv)
 	int m_crcs;
 #endif
 
-
-	if (argc <= 1) {
-		usage(insmod_usage);
-	}
-
 	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*(++(*argv))) {
-			switch (**argv) {
+	while ((opt = getopt(argc, argv, "fkvxL")) > 0) {
+		switch (opt) {
 			case 'f':			/* force loading */
 				flag_force_load = 1;
 				break;
@@ -2912,20 +2907,26 @@ extern int insmod_main( int argc, char **argv)
 			case 'x':			/* do not export externs */
 				flag_export = 0;
 				break;
+			case 'L':			/* Stub warning */
+				/* This is needed for compatibility with modprobe.
+				 * In theory, this does locking, but we don't do
+				 * that.  So be careful and plan your life around not
+				 * loading the same module 50 times concurrently. */
+				break;
 			default:
 				usage(insmod_usage);
-			}
 		}
 	}
-
-	if (argc <= 0) {
+	
+	if (argv[optind] == NULL) {
 		usage(insmod_usage);
 	}
+
 	/* Grab the module name */
-	if ((tmp = strrchr(*argv, '/')) != NULL) {
+	if ((tmp = strrchr(argv[optind], '/')) != NULL) {
 		tmp++;
 	} else {
-		tmp = *argv;
+		tmp = argv[optind];
 	}
 	len = strlen(tmp);
 
@@ -2936,7 +2937,7 @@ extern int insmod_main( int argc, char **argv)
 	strcat(m_fullName, ".o");
 
 	/* Get a filedesc for the module */
-	if ((fp = fopen(*argv, "r")) == NULL) {
+	if ((fp = fopen(argv[optind], "r")) == NULL) {
 		/* Hmpf.  Could not open it. Search through _PATH_MODULES to find a module named m_name */
 		if (recursive_action(_PATH_MODULES, TRUE, FALSE, FALSE,
 							findNamedModule, 0, m_fullName) == FALSE) 
@@ -2950,7 +2951,7 @@ extern int insmod_main( int argc, char **argv)
 		} else
 			error_msg_and_die("No module named '%s' found in '%s'\n", m_fullName, _PATH_MODULES);
 	} else
-		memcpy(m_filename, *argv, strlen(*argv));
+		memcpy(m_filename, argv[optind], strlen(argv[optind]));
 
 
 	if ((f = obj_load(fp)) == NULL)
