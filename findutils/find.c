@@ -42,31 +42,8 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 {
     if (pattern==NULL)
 	fprintf(stdout, "%s\n", fileName);
-    else if (find_match(fileName, pattern, TRUE) == TRUE)
+    else if (find_match((char*)fileName, pattern, TRUE) == TRUE)
 	fprintf(stdout, "%s\n", fileName);
-    return( TRUE);
-}
-
-static int dirAction(const char *fileName, struct stat* statbuf)
-{
-    DIR *dir;
-    struct dirent *entry;
-    
-    if (pattern==NULL)
-	fprintf(stdout, "%s\n", fileName);
-    else if (find_match(fileName, pattern, TRUE) == TRUE)
-	fprintf(stdout, "%s\n", fileName);
-
-    dir = opendir( fileName);
-    if (!dir) {
-	perror("Can't open directory");
-	exit(FALSE);
-    }
-    while ((entry = readdir(dir)) != NULL) {
-	char dirName[NAME_MAX];
-	sprintf(dirName, "%s/%s", fileName, entry->d_name);
-	recursiveAction( dirName, TRUE, dereferenceFlag, FALSE, fileAction, dirAction);
-    }
     return( TRUE);
 }
 

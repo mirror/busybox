@@ -1,5 +1,5 @@
 /*
- * Mini grep implementation for busybox
+ * Mini sed implementation for busybox
  *
  *
  * Copyright (C) 1999 by Lineo, inc.
@@ -31,25 +31,34 @@
 #include <time.h>
 #include <ctype.h>
 
-static const char grep_usage[] =
-"grep [-ihn]... PATTERN [FILE]...\n"
-"Search for PATTERN in each FILE or standard input.\n\n"
-"\t-h\tsuppress the prefixing filename on output\n"
-"\t-i\tignore case distinctions\n"
-"\t-n\tprint line number with output lines\n\n"
+static const char sed_usage[] = 
+"sed [-n] [-e script] [file...]\n"
+"Allowed scripts come in two forms:\n"
+"'/regexp/[gp]'\n"
+"\tattempt to match regexp against the pattern space\n"
+"'s/regexp/replacement/[gp]'\n"
+"\tattempt to match regexp against the pattern space\n"
+"\tand if successful replaces the matched portion with replacement."
+"Options:\n"
+"-e\tadd the script to the commands to be executed\n"
+"-n\tsuppress automatic printing of pattern space\n\n"
 #if defined BB_REGEXP
-"This version of grep matches full regexps.\n";
+"This version of sed matches full regexps.\n";
 #else
-"This version of grep matches strings (not full regexps).\n";
+"This version of sed matches strings (not full regexps).\n";
 #endif
 
 
-extern int grep_main (int argc, char **argv)
+static int replaceFlag = FALSE;
+static int noprintFlag = FALSE;
+
+
+extern int sed_main (int argc, char **argv)
 {
     FILE *fp;
-    char *needle;
-    char *name;
-    char *cp;
+    const char *needle;
+    const char *name;
+    const char *cp;
     int tellName=TRUE;
     int ignoreCase=FALSE;
     int tellLine=FALSE;
@@ -71,16 +80,23 @@ extern int grep_main (int argc, char **argv)
 
 	while (*++cp)
 	    switch (*cp) {
-	    case 'i':
-		ignoreCase = TRUE;
-		break;
-
-	    case 'h':
-		tellName = FALSE;
-		break;
-
 	    case 'n':
-		tellLine = TRUE;
+		noprintFlag = TRUE;
+		break;
+	    case 'e':
+		if (*(*argv)+1 != '\'' && **argv != '\"') {
+		    if (--argc == 0)
+			usage( mkdir_usage);
+		    ++argv;
+		    if (*(*argv)+1 != '\'' && **argv != '\"') {
+			usage( mkdir_usage);
+		}
+		/* Find the specified modes */
+		mode = 0;
+		if ( parse_mode(*(++argv), &mode) == FALSE ) {
+		    fprintf(stderr, "Unknown mode: %s\n", *argv);
+		    exit( FALSE);
+		}
 		break;
 
 	    default:

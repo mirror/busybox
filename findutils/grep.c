@@ -47,9 +47,9 @@ static const char grep_usage[] =
 extern int grep_main (int argc, char **argv)
 {
     FILE *fp;
-    const char *needle;
-    const char *name;
-    const char *cp;
+    char *needle;
+    char *name;
+    char *cp;
     int tellName=TRUE;
     int ignoreCase=FALSE;
     int tellLine=FALSE;
