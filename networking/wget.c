@@ -167,8 +167,7 @@ int wget_main(int argc, char **argv)
 	 * Open the output file stream.
 	 */
 	if (fname_out != (char *)1) {
-		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) == NULL)
-			perror_msg_and_die("fopen(%s)", fname_out);
+		output = xfopen( fname_out, (do_continue ? "a" : "w") );
 	} else {
 		output = stdout;
 	}
@@ -533,7 +532,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.23 2001/01/27 08:24:38 andersen Exp $
+ *	$Id: wget.c,v 1.24 2001/01/31 17:49:47 andersen Exp $
  */
 
 
