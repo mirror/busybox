@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.9 2001/03/15 20:48:45 andersen Exp $
+ * $Id: ifconfig.c,v 1.10 2001/03/26 16:26:16 mjn3 Exp $
  *
  */
 
@@ -472,9 +472,9 @@ in_ether(char *bufp, struct sockaddr *sap)
 			if (c >= '0' && c <= '9') {
 				c -= '0';
 			} else if (c >= 'a' && c <= 'f') {
-				c -= ('a' + 10);
+				c -= ('a' - 10);
 			} else if (c >= 'A' && c <= 'F') {
-				c -= ('A' + 10);
+				c -= ('A' - 10);
 			} else if (j && (c == ':' || c == 0)) {
 				break;
 			} else {
