@@ -88,7 +88,8 @@ Glenn McGrath <bug1@iinet.net.au>
 
 Manuel Novoa III <mjn3@codepoet.org>
     cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,
-    mesg, vconfig, make_directory, parse_mode, dirname, mode_string,
+    mesg, vconfig, nice, renice,
+    make_directory, parse_mode, dirname, mode_string,
     get_last_path_component, simplify_path, and a number trivial libbb routines
 
     also bug fixes, partial rewrites, and size optimizations in

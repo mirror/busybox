@@ -329,6 +329,12 @@ config CONFIG_MV
 	help
 	  mv is used to move or rename files or directories.
 
+config CONFIG_NICE
+	bool "nice"
+	default n
+	help
+	  nice runs a program with modified scheduling priority.
+
 config CONFIG_OD
 	bool "od"
 	default n

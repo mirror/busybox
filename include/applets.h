@@ -412,6 +412,9 @@
 #ifdef CONFIG_NETSTAT
 	APPLET(netstat, netstat_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_NICE
+	APPLET(nice, nice_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_NSLOOKUP
 	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

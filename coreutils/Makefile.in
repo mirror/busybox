@@ -58,6 +58,7 @@ COREUTILS-$(CONFIG_MKDIR)   	+= mkdir.o
 COREUTILS-$(CONFIG_MKFIFO)  	+= mkfifo.o
 COREUTILS-$(CONFIG_MKNOD)   	+= mknod.o
 COREUTILS-$(CONFIG_MV)      	+= mv.o
+COREUTILS-$(CONFIG_NICE)      	+= nice.o
 COREUTILS-$(CONFIG_OD)      	+= od.o
 COREUTILS-$(CONFIG_PRINTF)  	+= printf.o
 COREUTILS-$(CONFIG_PWD)     	+= pwd.o

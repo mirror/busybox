@@ -1813,6 +1813,13 @@
 	"\t-w raw sockets\n" \
 	"\t-x unix sockets"
 
+#define nice_trivial_usage \
+	"[-n ADJUST] [COMMAND [ARG] ...]"
+#define nice_full_usage \
+	"Nice runs a program with modified scheduling priority.\n\n" \
+	"Options:\n" \
+	"\t-n ADJUST\tAdjust the scheduling priority by ADJUST.\n" \
+
 #define nslookup_trivial_usage \
 	"[HOST] [SERVER]"
 #define nslookup_full_usage \
@@ -2011,11 +2018,14 @@
 	"\t-d\t\tdelay interval for rebooting."
 
 #define renice_trivial_usage \
-	"priority pid [pid ...]"
+	"{{-n INCREMENT} | PRIORITY} [[ -p | -g | -u ] ID ...]"
 #define renice_full_usage \
-	"Changes priority of running processes. Allowed priorities range\n" \
-	"from 20 (the process runs only when nothing else is running) to 0\n" \
-	"(default priority) to -20 (almost nothing else ever gets to run)."
+	"Changes priority of running processes.\n\n" \
+	"Options:\n" \
+	"\t-n\tadjusts current nice value (smaller is faster)\n" \
+	"\t-p\tprocess id(s) (default)\n" \
+	"\t-g\tprocess group id(s)\n" \
+	"\t-u\tprocess user name(s) and/or id(s)"
 
 #define reset_trivial_usage \
 	""
