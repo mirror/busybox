@@ -156,7 +156,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	int opcode = 0;
 	int finished = 0;
 	int timeout = bb_tftp_num_retries;
-	int block_nr = 1;
+	unsigned short block_nr = 1;
 
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 	int want_option_ack = 0;
@@ -462,7 +462,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 		if (cmd_put && (opcode == TFTP_ACK)) {
 
-			if (tmp == (block_nr - 1)) {
+			if (tmp == (unsigned short)(block_nr - 1)) {
 				if (finished) {
 					break;
 				}
