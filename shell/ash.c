@@ -6754,7 +6754,7 @@ waitforjob(struct job *jp)
 	if (!iflag) {
 #endif
 		sigaction(SIGINT, &oact, 0);
-		if (intreceived && trap[SIGINT]) kill(getpid(), SIGINT);
+		if (intreceived) kill(getpid(), SIGINT);
 	}
 #ifdef CONFIG_ASH_JOB_CONTROL
 	if (jp->jobctl) {
@@ -12433,7 +12433,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.47 2002/04/13 05:37:10 timr Exp $
+ * $Id: ash.c,v 1.48 2002/04/24 23:12:10 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
