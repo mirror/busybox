@@ -687,7 +687,7 @@ static void halt_signal(int sig)
 	message(CONSOLE|LOG,
 #if #cpu(s390)
 			/* Seems the s390 console is Wierd(tm). */
-			"The system is halted. You may reboot now.\n",
+			"The system is halted. You may reboot now.\n"
 #else
 			/* secondConsole is NULL for a serial console */
 			"The system is halted. Press %s or turn off power\n",
