@@ -18,6 +18,7 @@
 	* Matt Kraai
 	    -- Fix sed s/[/]// handling (closes: #1208).
 	    -- Fix `-/bin/sh' invocation (closes: #1209).
+	    -- Fix ash exec (noted by Arne Bernin).
 
 
 	 -Erik Andersen, --not yet released--

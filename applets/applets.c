@@ -99,7 +99,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	if (recurse_level == 1) {
 		run_applet_by_name("busybox", argc, argv);
 	}
-	recurse_level = 0;
+	recurse_level--;
 }
 
 
