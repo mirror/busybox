@@ -3,7 +3,7 @@
  * simplify_path implementation for busybox
  *
  *
- * Copyright (C) 2001  Vladimir N. Oleynik <dzo@simtreas.ru>
+ * Copyright (C) 2001  Manuel Novoa III  <mjn3@opensource.lineo.com>
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,53 +26,42 @@
 
 #include "libbb.h"
 
-static inline char *strcpy_overlap(char *dst, const char *src)
-{
-	char *ptr = dst;
-
-	do *dst++ = *src; while (*src++);
-	return ptr;
-}
-
 char *simplify_path(const char *path)
 {
-	char *s, *start, *next;
+	char *s, *start, *p;
 
 	if (path[0] == '/')
-	       start = xstrdup(path);
+		start = xstrdup(path);
 	else {
-	       s = xgetcwd(NULL);
-	       start = concat_path_file(s, path);
-	       free(s);
+		s = xgetcwd(NULL);
+		start = concat_path_file(s, path);
+		free(s);
 	}
-	s = start;
-	/* remove . and .. */
-	while(*s) {
-		if(*s++ == '/' && (*s == '/' || *s == 0)) {
-			/* remove duplicate and trailing slashes */
-			s = strcpy_overlap(s-1, s);
-		}
-		else if(*(s-1) == '.' && *(s-2)=='/') {
-			if(*s == '/' || *s == 0) {
-				/* remove . */
-				s = strcpy_overlap(s-1, s); /* maybe set // */
-				s--;
-			} else if(*s == '.') {
-				next = s+1;     /* set after ".." */
-				if(*next == '/' || *next == 0) {  /* "../" */
-					if((s-=2) > start)
-						/* skip previous dir */
-						do s--; while(*s != '/');
-					/* remove previous dir */
-					strcpy_overlap(s, next);
-				}
+	p = s = start;
 
+	do {
+		if (*p == '/') {
+			if (*s == '/') {	/* skip duplicate (or initial) slash */
+				continue;
+			} else if (*s == '.') {
+				if (s[1] == '/' || s[1] == 0) {	/* remove extra '.' */
+					continue;
+				} else if ((s[1] == '.') && (s[2] == '/' || s[2] == 0)) {
+					++s;
+					if (p > start) {
+						while (*--p != '/');	/* omit previous dir */
+					}
+					continue;
+				}
 			}
 		}
+		*++p = *s;
+	} while (*++s);
+
+	if ((p == start) || (*p != '/')) {	/* not a trailing slash */
+		++p;					/* so keep last character */
 	}
-	if(start[0]==0) {
-		start[0]='/';
-		start[1]=0;
-	}
+	*p = 0;
+
 	return start;
 }
