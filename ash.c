@@ -6201,7 +6201,7 @@ preadfd(void)
 retry:
 #ifdef BB_FEATURE_COMMAND_EDITING
 	{
-	    if (!iflag)
+	    if (parsefile->fd)
 		    nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	    else {
 		    nr = cmdedit_read_input((char*)cmdedit_prompt, buf);
@@ -12916,7 +12916,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.11 2001/07/17 01:12:35 andersen Exp $
+ * $Id: ash.c,v 1.12 2001/07/17 01:14:06 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
