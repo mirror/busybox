@@ -51,9 +51,9 @@ int dumpkmap_main(int argc, char **argv)
 		show_usage();
 	}
 
-	fd = open("/dev/tty0", O_RDWR);
+	fd = open(CURRENT_VC, O_RDWR);
 	if (fd < 0) {
-		perror_msg("Error opening /dev/tty0");
+		perror_msg("Error opening " CURRENT_VC);
 		return EXIT_FAILURE;
 	}
 

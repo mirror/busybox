@@ -53,9 +53,9 @@ int loadkmap_main(int argc, char **argv)
 	if (argc != 1)
 		show_usage();
 
-	fd = open("/dev/tty0", O_RDWR);
+	fd = open(CURRENT_VC, O_RDWR);
 	if (fd < 0)
-		perror_msg_and_die("Error opening /dev/tty0");
+		perror_msg_and_die("Error opening " CURRENT_VC);
 
 	read(0, buff, 7);
 	if (0 != strncmp(buff, BINARY_KEYMAP_MAGIC, 7))

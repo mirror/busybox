@@ -98,15 +98,15 @@ int get_console_fd(char *tty_name)
 			return fd;
 	}
 
-	fd = open_a_console("/dev/tty");
+	fd = open_a_console(CURRENT_TTY);
 	if (fd >= 0)
 		return fd;
 
-	fd = open_a_console("/dev/tty0");
+	fd = open_a_console(CURRENT_VC);
 	if (fd >= 0)
 		return fd;
 
-	fd = open_a_console("/dev/console");
+	fd = open_a_console(CONSOLE_DEV);
 	if (fd >= 0)
 		return fd;
 
@@ -114,7 +114,7 @@ int get_console_fd(char *tty_name)
 		if (is_a_console(fd))
 			return fd;
 
-	error_msg("Couldnt get a file descriptor referring to the console");
+	error_msg("Couldn't get a file descriptor referring to the console");
 	return -1;					/* total failure */
 }
 

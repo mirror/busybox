@@ -117,13 +117,6 @@ static const int RB_AUTOBOOT = 0x01234567;
 #endif
 
 
-#define VT_PRIMARY   "/dev/tty1"     /* Primary virtual console */
-#define VT_SECONDARY "/dev/tty2"     /* Virtual console */
-#define VT_THIRD     "/dev/tty3"     /* Virtual console */
-#define VT_FOURTH    "/dev/tty4"     /* Virtual console */
-#define VT_LOG       "/dev/tty5"     /* Virtual console */
-#define SERIAL_CON0  "/dev/ttyS0"    /* Primary serial console */
-#define SERIAL_CON1  "/dev/ttyS1"    /* Serial console */
 #define SHELL        "/bin/sh"	     /* Default shell */
 #define LOGIN_SHELL  "-" SHELL	     /* Default login shell */
 #define INITTAB      "/etc/inittab"  /* inittab file location */
@@ -176,10 +169,10 @@ struct initActionTag {
 static initAction *initActionList = NULL;
 
 
-static char *secondConsole = VT_SECONDARY;
-static char *thirdConsole  = VT_THIRD;
-static char *fourthConsole = VT_FOURTH;
-static char *log           = VT_LOG;
+static char *secondConsole = VC_2;
+static char *thirdConsole  = VC_3;
+static char *fourthConsole = VC_4;
+static char *log           = VC_5;
 static int  kernelVersion  = 0;
 static char termType[32]   = "TERM=linux";
 static char console[32]    = _PATH_CONSOLE;
@@ -341,20 +334,19 @@ static void console_init()
 	else if ((s = getenv("console")) != NULL) {
 		/* remap tty[ab] to /dev/ttyS[01] */
 		if (strcmp(s, "ttya") == 0)
-			safe_strncpy(console, SERIAL_CON0, sizeof(console));
+			safe_strncpy(console, SC_0, sizeof(console));
 		else if (strcmp(s, "ttyb") == 0)
-			safe_strncpy(console, SERIAL_CON1, sizeof(console));
+			safe_strncpy(console, SC_1, sizeof(console));
 	}
 #endif
 	else {
 		/* 2.2 kernels: identify the real console backend and try to use it */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			/* this is a serial console */
-			snprintf(console, sizeof(console) - 1, "/dev/ttyS%d", sr.line);
+			snprintf(console, sizeof(console) - 1, SC_FORMAT, sr.line);
 		} else if (ioctl(0, VT_GETSTATE, &vt) == 0) {
 			/* this is linux virtual tty */
-			snprintf(console, sizeof(console) - 1, "/dev/tty%d",
-					 vt.v_active);
+			snprintf(console, sizeof(console) - 1, VC_FORMAT, vt.v_active);
 		} else {
 			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
 			tried_devcons++;
@@ -371,7 +363,7 @@ static void console_init()
 		/* Can't open selected console -- try vt1 */
 		if (!tried_vtprimary) {
 			tried_vtprimary++;
-			safe_strncpy(console, VT_PRIMARY, sizeof(console));
+			safe_strncpy(console, VC_1, sizeof(console));
 			continue;
 		}
 		break;

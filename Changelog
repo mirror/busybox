@@ -9,6 +9,7 @@
     Other Changes:
 	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax,
 	     many ash corrections, and others optimizations, and cleanups.
+	* Matt Kraai -- Added BB_FEATURE_DEVFS to enable devfs device names.
 	
 
 	 -Not Yet Released

@@ -407,6 +407,9 @@
 // Support for TELNET to pass TERM type to remote host.  Adds 384 bytes.
 #define BB_FEATURE_TELNET_TTYPE
 //
+// Support for devfs.
+//#define BB_FEATURE_DEVFS
+//
 // End of Features List
 //
 //

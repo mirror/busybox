@@ -288,4 +288,32 @@ extern const char * const name_longer_than_foo;
 extern const char * const unknown;
 extern const char * const can_not_create_raw_socket;
 
+#ifdef BB_FEATURE_DEVFS
+# define CURRENT_VC "/dev/vc/0"
+# define VC_1 "/dev/vc/1"
+# define VC_2 "/dev/vc/2"
+# define VC_3 "/dev/vc/3"
+# define VC_4 "/dev/vc/4"
+# define VC_5 "/dev/vc/5"
+# define SC_0 "/dev/tts/0"
+# define SC_1 "/dev/tts/1"
+# define VC_FORMAT "/dev/vc/%d"
+# define SC_FORMAT "/dev/tts/%d"
+#else
+# define CURRENT_VC "/dev/tty0"
+# define VC_1 "/dev/tty1"
+# define VC_2 "/dev/tty2"
+# define VC_3 "/dev/tty3"
+# define VC_4 "/dev/tty4"
+# define VC_5 "/dev/tty5"
+# define SC_0 "/dev/ttyS0"
+# define SC_1 "/dev/ttyS1"
+# define VC_FORMAT "/dev/tty%d"
+# define SC_FORMAT "/dev/ttyS%d"
+#endif
+
+/* The following devices are the same on devfs and non-devfs systems.  */
+#define CURRENT_TTY "/dev/tty"
+#define CONSOLE_DEV "/dev/console"
+
 #endif /* __LIBBB_H__ */

@@ -79,9 +79,9 @@ extern int more_main(int argc, char **argv)
 
 	/* not use inputing from terminal if usage: more > outfile */
 	if(isatty(fileno(stdout))) {
-		cin = fopen("/dev/tty", "r");
+		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
-			cin = xfopen("/dev/console", "r");
+			cin = xfopen(CONSOLE_DEV, "r");
 		please_display_more_prompt = 0;
 #ifdef BB_FEATURE_USE_TERMIOS
 		getTermSettings(fileno(cin), &initial_settings);

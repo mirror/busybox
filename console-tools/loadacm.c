@@ -37,9 +37,9 @@ int loadacm_main(int argc, char **argv)
 		show_usage();
 	}
 
-	fd = open("/dev/tty", O_RDWR);
+	fd = open(CURRENT_VC, O_RDWR);
 	if (fd < 0) {
-		perror_msg_and_die("Error opening /dev/tty1");
+		perror_msg_and_die("Error opening " CURRENT_VC);
 	}
 
 	if (screen_map_load(fd, stdin)) {
