@@ -275,20 +275,9 @@
 // Nothing beyond this point should ever be touched by 
 // mere mortals so leave this stuff alone.
 //
-#if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
-	#ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
-		#define BB_MTAB
-	#endif
-#else
-	#undef BB_MTAB
-#endif	
-//
 #if defined BB_SH
 	#if defined BB_FEATURE_COMMAND_EDITING 
 		#define BB_CMDEDIT
-		#ifndef BB_FEATURE_USE_TERMIOS
-			#define BB_FEATURE_USE_TERMIOS
-		#endif
 	#else
 		#undef BB_FEATURE_COMMAND_EDITING
 		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
@@ -296,7 +285,6 @@
 		#define BB_FEATURE_SH_SIMPLE_PROMPT
 	#endif
 #else
-	#undef BB_FEATURE_COMMAND_EDITING
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 	#undef BB_FEATURE_SH_STANDALONE_SHELL
 	#undef BB_FEATURE_SH_SIMPLE_PROMPT
@@ -310,38 +298,6 @@
 //
 #ifndef BB_INIT
 	#undef BB_FEATURE_LINUXRC
-#endif
-//
-#ifdef BB_GZIP
-	#ifndef BB_GUNZIP
-		#define BB_GUNZIP
-	#endif
-#endif
-//
-#ifdef BB_DPKG
-	#ifndef BB_DPKG_DEB
-		#define BB_DPKG_DEB
-	#endif
-#endif
-//
-#ifdef BB_DPKG_DEB
-	#ifndef BB_AR
-		#define BB_AR
-	#endif
-	#ifndef BB_TAR
-		#define BB_TAR
-	#endif 
-	#ifndef BB_FEATURE_TAR_GZIP
-		#define BB_FEATURE_TAR_GZIP
-	#endif
-#endif
-//
-#ifdef BB_TAR
-	#ifdef BB_FEATURE_TAR_GZIP
-		#ifndef BB_GUNZIP
-			#define BB_GUNZIP
-		#endif
-	#endif
 #endif
 //
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
@@ -365,8 +321,3 @@
 		#define BB_LOGREAD
 	#endif
 #endif
-//
-#if defined BB_DOS2UNIX 
-	#define BB_UNIX2DOS
-#endif
-
