@@ -184,129 +184,129 @@ extern int sed_main(int argc, char **argv)
 	}
 
 	while (argc > 1) {
-	    if (**argv == '-') {
-		    argc--;
-  		    cp = *argv++;
-		    stopNow = FALSE;
+		if (**argv != '-')
+			usage(sed_usage);
+		argc--;
+		cp = *argv++;
+		stopNow = FALSE;
 
-		    while (*++cp && stopNow == FALSE) {
-			    switch (*cp) {
-			    case 'n':
-				    quietFlag = TRUE;
-				    break;
-    			case 'e':
-    				if (*(cp + 1) == 0 && --argc < 0) {
-    					usage(sed_usage);
-    				}
-    				if (*++cp != 's')
-    					cp = *argv++;
-    
-    				/* Read address if present */
-    				SKIPSPACES(cp);
-    				if (*cp == '$') {
-    					addr_line = LAST_LINE;
-    					cp++;
-    				} else {
-    					if (isdigit(*cp)) {	/* LINE ADDRESS   */
-    						line_s = cp;
-    						while (isdigit(*cp))
-    							cp++;
-    						if (cp > line_s) {
-    							/* numeric line */
-    							saved = *cp;
-    							*cp = '\0';
-    							addr_line = atoi(line_s);
-    							*cp = saved;
-    						}
-    					} else if (*cp == '/') {	/* PATTERN ADDRESS */
-    						pos = addr_pattern = cp + 1;
-    						pos = strchr(pos, '/');
-    						if (!pos)
-    							usage(sed_usage);
-    						*pos = '\0';
-    						cp = pos + 1;
-    					}
-    				}
-    
-    				SKIPSPACES(cp);
-    				if (*cp == '!') {
-    					negated++;
-    					cp++;
-    				}
-    
-    				/* Read command */
-    
-    				SKIPSPACES(cp);
-    				switch (*cp) {
-    				case 's':		/* REPLACE */
-    					if (strlen(cp) <= 3 || *(cp + 1) != '/')
-    						break;
-    					sed_f = f_replace;
-    
-    					pos = needle = cp + 2;
-    
-    					for (;;) {
-    						pos = strchr(pos, '/');
-    						if (pos == NULL) {
-    							usage(sed_usage);
-    						}
-    						if (*(pos - 1) == '\\') {
-    							pos++;
-    							continue;
-    						}
-    						break;
-    					}
-    					*pos = 0;
-    					newNeedle = ++pos;
-    					for (;;) {
-    						pos = strchr(pos, '/');
-    						if (pos == NULL) {
-    							usage(sed_usage);
-    						}
-    						if (*(pos - 1) == '\\') {
-    							pos++;
-    							continue;
-    						}
-    						break;
-    					}
-    					*pos = 0;
-    					if (pos + 2 != 0) {
-    						while (*++pos) {
-    							switch (*pos) {
-    							case 'i':
-    								ignoreCase = TRUE;
-    								break;
-    							case 'p':
-    								printFlag = TRUE;
-    								break;
-    							case 'g':
-    								break;
-    							default:
-    								usage(sed_usage);
-    							}
-    						}
-    					}
-    					cp = pos;
-    					/* fprintf(stderr, "replace '%s' with '%s'\n", needle, newNeedle); */
-    					break;
-    
-    				case 'a':		/* APPEND */
-    					if (strlen(cp) < 2)
-    						break;
-    					sed_f = f_append;
-    					appendline = ++cp;
-    					/* fprintf(stderr, "append '%s'\n", appendline); */
-    					break;
-    				}
-    
-    				stopNow = TRUE;
-    				break;
-    
-    			default:
-    				usage(sed_usage);
-    			}
-    		}
-    	}
+		while (*++cp && stopNow == FALSE) {
+			switch (*cp) {
+			case 'n':
+				quietFlag = TRUE;
+				break;
+			case 'e':
+				if (*(cp + 1) == 0 && --argc < 0) {
+					usage(sed_usage);
+				}
+				if (*++cp != 's')
+					cp = *argv++;
+
+				/* Read address if present */
+				SKIPSPACES(cp);
+				if (*cp == '$') {
+					addr_line = LAST_LINE;
+					cp++;
+				} else {
+					if (isdigit(*cp)) {	/* LINE ADDRESS   */
+						line_s = cp;
+						while (isdigit(*cp))
+							cp++;
+						if (cp > line_s) {
+							/* numeric line */
+							saved = *cp;
+							*cp = '\0';
+							addr_line = atoi(line_s);
+							*cp = saved;
+						}
+					} else if (*cp == '/') {	/* PATTERN ADDRESS */
+						pos = addr_pattern = cp + 1;
+						pos = strchr(pos, '/');
+						if (!pos)
+							usage(sed_usage);
+						*pos = '\0';
+						cp = pos + 1;
+					}
+				}
+
+				SKIPSPACES(cp);
+				if (*cp == '!') {
+					negated++;
+					cp++;
+				}
+
+				/* Read command */
+
+				SKIPSPACES(cp);
+				switch (*cp) {
+				case 's':		/* REPLACE */
+					if (strlen(cp) <= 3 || *(cp + 1) != '/')
+						break;
+					sed_f = f_replace;
+
+					pos = needle = cp + 2;
+
+					for (;;) {
+						pos = strchr(pos, '/');
+						if (pos == NULL) {
+							usage(sed_usage);
+						}
+						if (*(pos - 1) == '\\') {
+							pos++;
+							continue;
+						}
+						break;
+					}
+					*pos = 0;
+					newNeedle = ++pos;
+					for (;;) {
+						pos = strchr(pos, '/');
+						if (pos == NULL) {
+							usage(sed_usage);
+						}
+						if (*(pos - 1) == '\\') {
+							pos++;
+							continue;
+						}
+						break;
+					}
+					*pos = 0;
+					if (pos + 2 != 0) {
+						while (*++pos) {
+							switch (*pos) {
+							case 'i':
+								ignoreCase = TRUE;
+								break;
+							case 'p':
+								printFlag = TRUE;
+								break;
+							case 'g':
+								break;
+							default:
+								usage(sed_usage);
+							}
+						}
+					}
+					cp = pos;
+					/* fprintf(stderr, "replace '%s' with '%s'\n", needle, newNeedle); */
+					break;
+
+				case 'a':		/* APPEND */
+					if (strlen(cp) < 2)
+						break;
+					sed_f = f_append;
+					appendline = ++cp;
+					/* fprintf(stderr, "append '%s'\n", appendline); */
+					break;
+				}
+
+				stopNow = TRUE;
+				break;
+
+			default:
+				usage(sed_usage);
+			}
+		}
     }
 
 	if (argc == 0) {

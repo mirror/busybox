@@ -35,6 +35,8 @@
 	    - Fixes to the makefile for handling "strip"
 	* An initial telnet implementation was added by 
 	    Randolph Chung <tausq@debian.org>.
+	* Fixed a bug where "sed 's/foo/bar/g'" would go into an 
+	    infinite loop.
 
 
 	-Erik Andersen
