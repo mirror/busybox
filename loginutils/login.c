@@ -253,20 +253,18 @@ static int login_prompt ( char *buf_name )
 	int i;
 
 	for(i=0; i<EMPTY_USERNAME_COUNT; i++) {
-	gethostname ( buf, sizeof( buf ));
-	printf ( "\n%s login: ", buf );
-	fflush ( stdout );
+		print_login_prompt();
 
-	if ( !fgets ( buf, sizeof( buf ) - 1, stdin ))
-		return 0;
-		
+		if ( !fgets ( buf, sizeof( buf ) - 1, stdin ))
+			return 0;
+
 		if ( !strchr ( buf, '\n' ))
-		return 0;
-	
-	for ( sp = buf; isspace ( *sp ); sp++ ) { }
-	for ( ep = sp; isgraph ( *ep ); ep++ ) { }
+			return 0;
 
-	*ep = 0;		
+		for ( sp = buf; isspace ( *sp ); sp++ ) { }
+		for ( ep = sp; isgraph ( *ep ); ep++ ) { }
+
+		*ep = 0;		
 		safe_strncpy(buf_name, sp, USERNAME_SIZE);
 		if(buf_name[0])
 			return 1;

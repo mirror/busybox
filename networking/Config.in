@@ -315,6 +315,13 @@ config CONFIG_TELNETD
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_TELNETD_INETD
+	bool "  Use inetd"
+	default n
+	depends on CONFIG_TELNETD
+	help
+	  Please submit a patch to add help text for this item.
+
 config CONFIG_TFTP
 	bool "tftp"
 	default n

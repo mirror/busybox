@@ -277,7 +277,6 @@ extern const char * const gshadow_file;
 extern const char * const group_file;
 extern const char * const securetty_file;
 extern const char * const motd_file;
-extern const char * const issue_file;
 extern const char * const _path_login;
 
 #ifdef CONFIG_FEATURE_DEVFS
@@ -364,5 +363,8 @@ typedef struct llist_s {
 	struct llist_s *link;
 } llist_t;
 extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
+
+void print_login_issue(const char *issue_file, const char *tty);
+void print_login_prompt(void);
 
 #endif /* __LIBCONFIG_H__ */

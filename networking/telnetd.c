@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.2 2002/11/10 22:26:19 bug1 Exp $
+/* $Id: telnetd.c,v 1.3 2003/01/21 20:55:56 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -48,7 +48,13 @@
 
 #define BUFSIZE 4000
 
-static const char *loginpath = "/bin/sh";
+static const char *loginpath = 
+#ifdef CONFIG_LOGIN
+"/bin/login";
+#else
+"/bin/sh";
+#endif
+static const char *issuefile = "/etc/issue.net";
 
 /* shell name and arguments */
 
@@ -57,8 +63,12 @@ static const char *argv_init[] = {NULL, NULL};
 /* structure that describes a session */
 
 struct tsession {
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+	int sockfd_read, sockfd_write, ptyfd;
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 	struct tsession *next;
 	int sockfd, ptyfd;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 	int shell_pid;
 	/* two circular buffers */
 	char *buf1, *buf2;
@@ -204,7 +214,11 @@ send_iac(struct tsession *ts, unsigned char command, int option)
 
 
 static struct tsession *
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+make_new_session(void)
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 make_new_session(int sockfd)
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 {
 	struct termios termbuf;
 	int pty, pid;
@@ -214,7 +228,12 @@ make_new_session(int sockfd)
 	ts->buf1 = (char *)(&ts[1]);
 	ts->buf2 = ts->buf1 + BUFSIZE;
 
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+	ts->sockfd_read = 0;
+	ts->sockfd_write = 1;
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 	ts->sockfd = sockfd;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 	ts->rdidx1 = ts->wridx1 = ts->size1 = 0;
 	ts->rdidx2 = ts->wridx2 = ts->size2 = 0;
@@ -278,6 +297,8 @@ make_new_session(int sockfd)
 		/*termbuf.c_lflag &= ~ICANON;*/
 		tcsetattr(0, TCSANOW, &termbuf);
 
+		print_login_issue(issuefile, NULL);
+
 		/* exec shell, with correct argv and env */
 		execv(loginpath, (char *const *)argv_init);
 
@@ -291,6 +312,7 @@ make_new_session(int sockfd)
 	return ts;
 }
 
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 static void
 free_session(struct tsession *ts)
 {
@@ -319,30 +341,44 @@ free_session(struct tsession *ts)
 
 	free(ts);
 }
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 int
 telnetd_main(int argc, char **argv)
 {
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 	struct sockaddr_in sa;
 	int master_fd;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 	fd_set rdfdset, wrfdset;
 	int selret;
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 	int on = 1;
 	int portnbr = 23;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 	int c;
-
-	/* check if user supplied a port number */
+	static const char options[] =
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+		"f:l:";
+#else /* CONFIG_EATURE_TELNETD_INETD */
+		"f:l:p:";
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 	for (;;) {
-		c = getopt( argc, argv, "p:l:");
+		c = getopt( argc, argv, options);
 		if (c == EOF) break;
 		switch (c) {
-			case 'p':
-				portnbr = atoi(optarg);
+			case 'f':
+				issuefile = strdup (optarg);
 				break;
 			case 'l':
 				loginpath = strdup (optarg);
 				break;
+#ifndef CONFIG_FEATURE_TELNETD_INETD
+			case 'p':
+				portnbr = atoi(optarg);
+				break;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 			default:
 				show_usage();
 		}
@@ -353,6 +389,12 @@ telnetd_main(int argc, char **argv)
 	}
 
 	argv_init[0] = loginpath;
+
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+	sessions = make_new_session();
+
+	maxfd = 1;
+#else /* CONFIG_EATURE_TELNETD_INETD */
 	sessions = 0;
 
 	/* Grab a TCP socket.  */
@@ -382,6 +424,7 @@ telnetd_main(int argc, char **argv)
 
 
 	maxfd = master_fd;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 	do {
 		struct tsession *ts;
@@ -393,10 +436,14 @@ telnetd_main(int argc, char **argv)
 		 * ptys if there is room in their respective session buffers.
 		 */
 
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 		FD_SET(master_fd, &rdfdset);
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 		ts = sessions;
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 		while (ts) {
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 			/* buf1 is used from socket to pty
 			 * buf2 is used from pty to socket
 			 */
@@ -404,22 +451,33 @@ telnetd_main(int argc, char **argv)
 				FD_SET(ts->ptyfd, &wrfdset);  /* can write to pty */
 			}
 			if (ts->size1 < BUFSIZE) {
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+				FD_SET(ts->sockfd_read, &rdfdset); /* can read from socket */
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 				FD_SET(ts->sockfd, &rdfdset); /* can read from socket */
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 			}
 			if (ts->size2 > 0) {
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+				FD_SET(ts->sockfd_write, &wrfdset); /* can write to socket */
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 				FD_SET(ts->sockfd, &wrfdset); /* can write to socket */
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 			}
 			if (ts->size2 < BUFSIZE) {
 				FD_SET(ts->ptyfd, &rdfdset);  /* can read from pty */
 			}
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 			ts = ts->next;
 		}
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 		selret = select(maxfd + 1, &rdfdset, &wrfdset, 0, 0);
 
 		if (!selret)
 			break;
 
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 		/* First check for and accept new sessions.  */
 		if (FD_ISSET(master_fd, &rdfdset)) {
 			int fd, salen;
@@ -447,9 +505,12 @@ telnetd_main(int argc, char **argv)
 
 		ts = sessions;
 		while (ts) { /* For all sessions...  */
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 			int maxlen, w, r;
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 			struct tsession *next = ts->next; /* in case we free ts. */
-
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
+			
 			if (ts->size1 && FD_ISSET(ts->ptyfd, &wrfdset)) {
 				int num_totty;
 				char *ptr;
@@ -459,9 +520,13 @@ telnetd_main(int argc, char **argv)
 
 				w = write(ts->ptyfd, ptr, num_totty);
 				if (w < 0) {
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+					exit(0);
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 					free_session(ts);
 					ts = next;
 					continue;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				}
 				ts->wridx1 += w;
 				ts->size1 -= w;
@@ -469,31 +534,51 @@ telnetd_main(int argc, char **argv)
 					ts->wridx1 = 0;
 			}
 
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+			if (ts->size2 && FD_ISSET(ts->sockfd_write, &wrfdset)) {
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 			if (ts->size2 && FD_ISSET(ts->sockfd, &wrfdset)) {
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				/* Write to socket from buffer 2.  */
 				maxlen = MIN(BUFSIZE - ts->wridx2, ts->size2);
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+				w = write(ts->sockfd_write, ts->buf2 + ts->wridx2, maxlen);
+				if (w < 0)
+					exit(0);
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 				w = write(ts->sockfd, ts->buf2 + ts->wridx2, maxlen);
 				if (w < 0) {
 					free_session(ts);
 					ts = next;
 					continue;
 				}
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				ts->wridx2 += w;
 				ts->size2 -= w;
 				if (ts->wridx2 == BUFSIZE)
 					ts->wridx2 = 0;
 			}
 
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+			if (ts->size1 < BUFSIZE && FD_ISSET(ts->sockfd_read, &rdfdset)) {
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 			if (ts->size1 < BUFSIZE && FD_ISSET(ts->sockfd, &rdfdset)) {
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				/* Read from socket to buffer 1. */
 				maxlen = MIN(BUFSIZE - ts->rdidx1,
 						BUFSIZE - ts->size1);
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+				r = read(ts->sockfd_read, ts->buf1 + ts->rdidx1, maxlen);
+				if (!r || (r < 0 && errno != EINTR))
+					exit(0);
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 				r = read(ts->sockfd, ts->buf1 + ts->rdidx1, maxlen);
 				if (!r || (r < 0 && errno != EINTR)) {
 					free_session(ts);
 					ts = next;
 					continue;
 				}
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				if(!*(ts->buf1 + ts->rdidx1 + r - 1)) {
 					r--;
 					if(!r)
@@ -511,9 +596,13 @@ telnetd_main(int argc, char **argv)
 						BUFSIZE - ts->size2);
 				r = read(ts->ptyfd, ts->buf2 + ts->rdidx2, maxlen);
 				if (!r || (r < 0 && errno != EINTR)) {
+#ifdef CONFIG_FEATURE_TELNETD_INETD
+					exit(0);
+#else /* CONFIG_FEATURE_TELNETD_INETD */
 					free_session(ts);
 					ts = next;
 					continue;
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 				}
 				ts->rdidx2 += r;
 				ts->size2 += r;
@@ -529,8 +618,10 @@ telnetd_main(int argc, char **argv)
 				ts->rdidx2 = 0;
 				ts->wridx2 = 0;
 			}
+#ifndef CONFIG_FEATURE_TELNETD_INETD
 			ts = next;
 		}
+#endif /* CONFIG_FEATURE_TELNETD_INETD */
 
 	} while (1);
 

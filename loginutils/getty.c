@@ -73,8 +73,6 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #include <time.h>
 #endif
 
-#define LOGIN " login: "		/* login prompt */
-
 /* Some shorthands for control characters. */
 
 #define CTL(x)		(x ^ 0100)	/* Assumes ASCII dialect */
@@ -752,142 +750,10 @@ static void auto_baud(struct termio *tp)
 /* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
 static void do_prompt(struct options *op, struct termio *tp)
 {
-#ifdef	ISSUE
-	FILE *fd;
-	int oflag;
-	int c;
-	struct utsname uts;
-
-	(void) uname(&uts);
-#endif
-
-	(void) write(1, "\r\n", 2);	/* start a new line */
 #ifdef	ISSUE					/* optional: show /etc/issue */
-	if ((op->flags & F_ISSUE) && (fd = fopen(op->issue, "r"))) {
-		oflag = tp->c_oflag;	/* save current setting */
-		tp->c_oflag |= (ONLCR | OPOST);	/* map NL in output to CR-NL */
-		(void) ioctl(0, TCSETAW, tp);
-
-
-		while ((c = getc(fd)) != EOF) {
-			if (c == '\\') {
-				c = getc(fd);
-
-				switch (c) {
-				case 's':
-					(void) printf("%s", uts.sysname);
-					break;
-
-				case 'n':
-					(void) printf("%s", uts.nodename);
-					break;
-
-				case 'r':
-					(void) printf("%s", uts.release);
-					break;
-
-				case 'v':
-					(void) printf("%s", uts.version);
-					break;
-
-				case 'm':
-					(void) printf("%s", uts.machine);
-					break;
-
-				case 'o':
-				{
-					char domainname[256];
-
-					getdomainname(domainname, sizeof(domainname));
-					domainname[sizeof(domainname) - 1] = '\0';
-					printf("%s", domainname);
-				}
-					break;
-
-				case 'd':
-				case 't':
-				{
-					char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
-						"Fri", "Sat"
-					};
-					char *month[] = { "Jan", "Feb", "Mar", "Apr", "May",
-						"Jun", "Jul", "Aug", "Sep", "Oct",
-						"Nov", "Dec"
-					};
-					time_t now;
-					struct tm *tm;
-
-					(void) time(&now);
-					tm = localtime(&now);
-
-					if (c == 'd')
-						(void) printf("%s %s %d  %d",
-									  weekday[tm->tm_wday],
-									  month[tm->tm_mon], tm->tm_mday,
-									  tm->tm_year <
-									  70 ? tm->tm_year +
-									  2000 : tm->tm_year + 1900);
-					else
-						(void) printf("%02d:%02d:%02d", tm->tm_hour,
-									  tm->tm_min, tm->tm_sec);
-
-					break;
-				}
-
-				case 'l':
-					(void) printf("%s", op->tty);
-					break;
-
-				case 'b':
-				{
-					int i;
-
-					for (i = 0; speedtab[i].speed; i++) {
-						if (speedtab[i].code == (tp->c_cflag & CBAUD)) {
-							printf("%ld", speedtab[i].speed);
-							break;
-						}
-					}
-					break;
-				}
-				case 'u':
-				case 'U':
-				{
-					int users = 0;
-					struct utmp *ut;
-
-					setutent();
-					while ((ut = getutent()))
-						if (ut->ut_type == USER_PROCESS)
-							users++;
-					endutent();
-					printf("%d ", users);
-					if (c == 'U')
-						printf((users == 1) ? "user" : "users");
-					break;
-				}
-				default:
-					(void) putchar(c);
-				}
-			} else
-				(void) putchar(c);
-		}
-		fflush(stdout);
-
-		tp->c_oflag = oflag;	/* restore settings */
-		(void) ioctl(0, TCSETAW, tp);	/* wait till output is gone */
-		(void) fclose(fd);
-	}
+	print_login_issue(op->issue, op->tty);
 #endif
-#ifdef __linux__
-	{
-		char hn[MAXHOSTNAMELEN + 1];
-
-		(void) gethostname(hn, MAXHOSTNAMELEN);
-		write(1, hn, strlen(hn));
-	}
-#endif
-	(void) write(1, LOGIN, sizeof(LOGIN) - 1);	/* always show login prompt */
+	print_login_prompt();
 }
 
 /* next_speed - select next baud rate */
