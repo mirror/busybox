@@ -828,9 +828,11 @@
 	"-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-	""
+	"[-d<delay>"
 #define halt_full_usage \
-	"Halt the system."
+	"Halt the system.\n" \
+	"Options:\n" \
+	"\t-d\t\tdelay interval for halting.\n"
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 #define USAGE_HDPARM_IDENT(a) a
