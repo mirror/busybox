@@ -125,6 +125,9 @@ TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/sh[234]/sh/' \
 		-e 's/mips.*/mips/' \
 		}
+# A nifty macro to make testing gcc features easier
+check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
+	then echo "$(1)"; else echo "$(2)"; fi)
 
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
@@ -132,8 +135,8 @@ TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 # for OPTIMIZATION...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
-	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
+OPTIMIZATION:=
+OPTIMIZATION+=${call check_gcc,-Os,-O2}
 
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
@@ -141,13 +144,9 @@ ifeq ($(strip $(TARGET_ARCH)),arm)
 endif
 ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=-march=i386
-	OPTIMIZATION+=${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc \
-		/dev/null >/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; fi}
-	OPTIMIZATION+=${shell if $(CC) -falign-functions=1 -falign-jumps=0 -falign-loops=0 \
-		-S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo \
-		"-falign-functions=1 -falign-jumps=0 -falign-loops=0"; else \
-		if $(CC) -malign-functions=0 -malign-jumps=0 -S -o /dev/null -xc \
-		/dev/null >/dev/null 2>&1; then echo "-malign-functions=0 -malign-jumps=0"; fi; fi}
+	OPTIMIZATION+=$(call check_gcc,-mpreferred-stack-boundary=2,)
+	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
+		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
 endif
 OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 
