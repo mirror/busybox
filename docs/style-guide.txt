@@ -107,23 +107,26 @@ between it and the opening control block statement. Examples:
 	Don't do this either:
 
 		while (!done){
+
 		do{
 
 	And for heaven's sake, don't do this:
 
 		while (!done)
 		  {
+
 		do
 		  {
 
 	Do this instead:
 
 		while (!done) {
+
 		do {
 
 
-Paren Spacing
-~~~~~~~~~~~~~
+Spacing around Parentheses
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Put a space between C keywords and left parens, but not between
 function names and the left paren that starts it's parameter list (whether it
@@ -144,6 +147,19 @@ is being declared or called). Examples:
 		static int my_func(int foo, char bar)
 		...
 		baz = my_func(1, 2);
+
+Also, don't put a space between the left paren and the first term, nor between
+the last arg and the right paren.
+
+	Don't do this:
+
+		if ( x < 1 )
+		strcmp( thisstr, thatstr )
+
+	Do this instead:
+
+		if (x < 1)
+		strcmp(thisstr, thatstr)
 
 
 Cuddled Elses
@@ -583,3 +599,23 @@ illustrates emphasizing logical blocks:
 		/* clean up */
 		free(line);
 	}
+
+
+Testing Guidelines
+~~~~~~~~~~~~~~~~~~
+
+It's considered good form to test your new feature before you submit a patch
+to the mailing list, and especially before you commit a change to CVS. Here
+are some guildlines on testing your changes.
+
+ - Always test busybox grep against GNU grep and make sure the behavior /
+   output is identical between the two.
+
+ - Try several different permutations and combinations of the features you're
+   adding and make sure they all work. (Make sure one feature does not
+   interfere with another, etc.)
+
+ - Make sure you test compiling against the source both with the feature
+   turned on and turned off in Config.h and make sure busybox compiles cleanly
+   both ways.
+
