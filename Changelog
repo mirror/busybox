@@ -1,5 +1,9 @@
 0.46
 
+	* Better portability.  Now should compile cleanly with libc5, 
+	    GNU libc 2.0 and 2.1, and various Linux kernels including 
+	    2.0.x, 2.2.x, and to 2.4.0-test*. (patch for 2.4.x kernels
+	    to make /proc/mounts behave included in the kernel-patches dir). 
 	* Fixed a _horrible_ bug where 'tar -tvf' could unlink
 	    local files that matched tarball contents!!!  Fix thanks 
 	    to Marius Groeger <mgroeger@sysgo.de>
