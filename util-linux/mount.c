@@ -425,7 +425,8 @@ extern int mount_main(int argc, char **argv)
 	if (optind < argc) {
 		/* if device is a filename get its real path */
 		if (stat(argv[optind], &statbuf) == 0) {
-			device = simplify_path(argv[optind]);
+			char *tmp = simplify_path(argv[optind]);
+			safe_strncpy(device, tmp, PATH_MAX);
 		} else {
 			safe_strncpy(device, argv[optind], PATH_MAX);
 		}
