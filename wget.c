@@ -325,7 +325,7 @@ int wget_main(int argc, char **argv)
 			if (do_continue)
 				fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
 			if(extra_headers_left < sizeof(extra_headers))
-				fprintf(sfp,extra_headers);
+				fputs(extra_headers,sfp);
 			fprintf(sfp,"Connection: close\r\n\r\n");
 
 			/*
@@ -813,7 +813,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.39 2001/05/15 17:51:37 andersen Exp $
+ *	$Id: wget.c,v 1.40 2001/05/15 20:11:49 andersen Exp $
  */
 
 
