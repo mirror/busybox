@@ -97,7 +97,6 @@
 //#define BB_RMMOD
 //#define BB_ROUTE
 //#define BB_RPM2CPIO
-//#define BB_RPMUNPACK
 #define BB_SED
 //#define BB_SETKEYCODES
 #define BB_SH
