@@ -661,7 +661,7 @@ static void init_reboot(unsigned long magic)
 {
 	pid_t pid;
 	/* We have to fork here, since the kernel calls do_exit(0) in
-	 * linux/kernel/sys.c, which can cause the machint to panic when 
+	 * linux/kernel/sys.c, which can cause the machine to panic when 
 	 * the init process is killed.... */
 	if ((pid = fork()) == 0) {
 #if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
@@ -737,6 +737,22 @@ static void exec_signal(int sig)
 			sigaddset(&unblock_signals, SIGSTOP);
 			sigaddset(&unblock_signals, SIGTSTP);
 			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
+
+			/* Open the new terminal device */
+			if ((device_open(a->terminal, O_RDWR)) < 0) {
+				if (stat(a->terminal, &sb) != 0) {
+					message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
+				} else {
+					message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
+				}
+				halt_signal(SIGUSR1);
+			}
+
+			/* Make sure the terminal will act fairly normal for us */
+			set_term(0);
+			/* Setup stdout, stderr on the supplied terminal */
+			dup(0);
+			dup(0);
 
 			messageD(CONSOLE | LOG, "Trying to re-exec %s", a->command);
 			execl(a->command, a->command, NULL);
