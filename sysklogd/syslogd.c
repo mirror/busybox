@@ -79,13 +79,14 @@ static char LocalHostName[32];
 #ifdef BB_FEATURE_REMOTE_LOG
 #include <netinet/in.h>
 /* udp socket for logging to remote host */
-static int  remotefd = -1;
+static int remotefd = -1;
 /* where do we log? */
 static char *RemoteHost;
 /* what port to log to? */
-static int  RemotePort = 514;
+static int RemotePort = 514;
 /* To remote log or not to remote log, that is the question. */
-static int  doRemoteLog = FALSE;
+static int doRemoteLog = FALSE;
+static int local_logging = TRUE;
 #endif
 
 /* Note: There is also a function called "message()" in init.c */
@@ -139,9 +140,9 @@ static void logMessage (int pri, char *msg)
 
 	if (pri != 0) {
 		for (c_fac = facilitynames;
-			 c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
+				c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
 		for (c_pri = prioritynames;
-			 c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
+				c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
 		if (*c_fac->c_name == '\0' || *c_pri->c_name == '\0')
 			snprintf(res, sizeof(res), "<%d>", pri);
 		else
@@ -149,7 +150,7 @@ static void logMessage (int pri, char *msg)
 	}
 
 	if (strlen(msg) < 16 || msg[3] != ' ' || msg[6] != ' ' ||
-		msg[9] != ':' || msg[12] != ':' || msg[15] != ' ') {
+			msg[9] != ':' || msg[12] != ':' || msg[15] != ' ') {
 		time(&now);
 		timestamp = ctime(&now) + 4;
 		timestamp[15] = '\0';
@@ -163,28 +164,29 @@ static void logMessage (int pri, char *msg)
 
 #ifdef BB_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
-        if ( -1 != remotefd){
+	if ( -1 != remotefd){
 #define IOV_COUNT 2
-          struct iovec iov[IOV_COUNT];
-          struct iovec *v = iov;
+		struct iovec iov[IOV_COUNT];
+		struct iovec *v = iov;
 
-          bzero(&res, sizeof(res));
-          snprintf(res, sizeof(res), "<%d>", pri);
-          v->iov_base = res ;
-          v->iov_len = strlen(res);          
-          v++;
-		
-          v->iov_base = msg;
-          v->iov_len = strlen(msg);          
+		bzero(&res, sizeof(res));
+		snprintf(res, sizeof(res), "<%d>", pri);
+		v->iov_base = res ;
+		v->iov_len = strlen(res);          
+		v++;
 
-          if ( -1 == writev(remotefd,iov, IOV_COUNT)){
-            error_msg_and_die("syslogd: cannot write to remote file handle on" 
-                       "%s:%d\n",RemoteHost,RemotePort);
-          }
-        } else
+		v->iov_base = msg;
+		v->iov_len = strlen(msg);          
+
+		if ( -1 == writev(remotefd,iov, IOV_COUNT)){
+			error_msg_and_die("syslogd: cannot write to remote file handle on" 
+					"%s:%d\n",RemoteHost,RemotePort);
+		}
+	}
+	if (local_logging == TRUE)
 #endif
-	/* now spew out the message to wherever it is supposed to go */
-	message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+		/* now spew out the message to wherever it is supposed to go */
+		message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
 
 
 }
@@ -529,6 +531,9 @@ extern int syslogd_main(int argc, char **argv)
                           doRemoteLog = TRUE;
                           stopDoingThat = TRUE;
                           break;
+			case 'N':
+				local_logging = FALSE;
+				break;
 #endif
 			default:
 				usage(syslogd_usage);

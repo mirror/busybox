@@ -2991,6 +2991,7 @@
 			-K	Do not start up the klogd process
 			-O FILE	Use an alternate log file (default=/var/log/messages)
 			-R HOST[:PORT] Log messages to HOST on PORT (default=514) over UDP.
+			-N      Do not log anything locally -- network logging only
 		</screen>
 		</para>
 

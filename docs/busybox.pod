@@ -1702,11 +1702,12 @@ Note that this version of syslogd/klogd ignores /etc/syslog.conf.
 
 Options:
 
-	-m NUM		Interval between MARK lines (default=20min, 0=off)
+	-m NUM	Interval between MARK lines (default=20min, 0=off)
 	-n		Run as a foreground process
 	-K		Do not start up the klogd process
-	-O FILE		Use an alternate log file (default=/var/log/messages)
+	-O FILE	Use an alternate log file (default=/var/log/messages)
 	-R HOST[:PORT]  Log messages to HOST on PORT (default=514) over UDP.
+	-N      Do not log anything locally -- network logging only
 
 Example:
 
@@ -2261,4 +2262,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.77 2000/11/17 17:23:16 andersen Exp $
+# $Id: busybox.pod,v 1.78 2000/12/08 19:52:01 andersen Exp $
