@@ -633,6 +633,7 @@ Options:
        -u, --unqote                 Do not quote the output\n"
 
 Example:
+
         $ cat getopt.test
         #!/bin/sh
         GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
@@ -2107,4 +2108,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.63 2000/08/21 22:46:33 andersen Exp $
+# $Id: busybox.pod,v 1.64 2000/08/21 23:29:45 andersen Exp $
