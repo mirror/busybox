@@ -25,9 +25,6 @@
 
 extern int hostid_main(int argc, char **argv)
 {
-	if (argc > 1 && strcmp(argv[1], "--help") == 0)
-		usage(hostid_usage);
-
 	printf("%lx\n", gethostid());
 	return(TRUE);
 }

@@ -211,9 +211,6 @@ int cut_main(int argc, char **argv)
 	int i = 1;
 	int numberFilenames = 0;
 
-	if (argc == 1 || strcmp(argv[1], dash_dash_help)==0)
-		usage(cut_usage);
-
 	while (i < argc) {
 		if (argv[i][0] == '-') {
 			switch (argv[i++][1]) {

@@ -36,8 +36,5 @@ extern int lsmod_main(int argc, char **argv)
 	char *filename = "/proc/modules";
 #endif
 
-	if (argc > 1 && strcmp(argv[1], "--help") == 0)
-		usage(lsmod_usage);
-
 	return(print_file_by_name(filename));
 }

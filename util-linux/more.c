@@ -78,10 +78,6 @@ extern int more_main(int argc, char **argv)
 	argc--;
 	argv++;
 
-	if (argc > 0
-		&& (strcmp(*argv, dash_dash_help) == 0 || strcmp(*argv, "-h") == 0)) {
-		usage(more_usage);
-	}
 	do {
 		if (argc == 0) {
 			file = stdin;

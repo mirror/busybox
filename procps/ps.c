@@ -133,9 +133,6 @@ extern int ps_main(int argc, char **argv)
 
 
 
-	if (argc > 1 && strcmp(argv[1], dash_dash_help) == 0)
-		usage(ps_usage);
-
 	dir = opendir("/proc");
 	if (!dir)
 		fatalError("Can't open /proc\n");

@@ -188,9 +188,6 @@ test_main(int argc, char** argv)
 			fatalError("missing ]\n");
 		argv[argc] = NULL;
 	}
-	if (strcmp(argv[1], dash_dash_help) == 0)
-		usage(test_usage);
-
 	/* Implement special cases from POSIX.2, section 4.62.4 */
 	switch (argc) {
 	case 1:

@@ -30,9 +30,6 @@ extern int pwd_main(int argc, char **argv)
 {
 	char buf[BUFSIZ + 1];
 
-	if (argc > 1 && strcmp(argv[1], "--help") == 0)
-		usage(pwd_usage);
-
 	if (getcwd(buf, sizeof(buf)) == NULL)
 		fatalError("%s\n", strerror(errno));
 

@@ -663,10 +663,6 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt;
 
-	/* do special-case option parsing */
-	if (argv[1] && (strcmp(argv[1], "--help") == 0))
-		usage(sed_usage);
-
 #if 0
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1) {

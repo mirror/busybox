@@ -103,6 +103,7 @@ struct BB_applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
 	enum	Location	location;
+	const	char*	usage;
 };
 /* From busybox.c */
 extern const struct BB_applet applets[];

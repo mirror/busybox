@@ -105,10 +105,6 @@ extern int grep_main(int argc, char **argv)
 	int opt;
 	int reflags;
 
-	/* do special-case option parsing */
-	if (argv[1] && (strcmp(argv[1], "--help") == 0))
-		usage(grep_usage);
-
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "iHhnqvsc")) > 0) {
 		switch (opt) {
