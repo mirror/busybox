@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.9 2000/01/29 06:29:32 erik Exp $
+ * $Id: ping.c,v 1.10 2000/02/07 05:29:42 erik Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -175,7 +175,8 @@ extern int ping_main(int argc, char **argv)
 static const char* ping_usage = "ping [OPTION]... host\n\n"
 "Send ICMP ECHO_REQUEST packets to network hosts.\n\n"
 "Options:\n"
-"\t-q\t\tQuiet mode, only displays output at start and when finished.\n"
+"\t-q\t\tQuiet mode, only displays output at start"
+"\t\t\tand when finished.\n"
 "\t-c COUNT\tSend only COUNT pings.\n";
 
 static char *hostname = NULL;

@@ -50,8 +50,9 @@ static const struct Applet applets[] = {
 #ifdef BB_CHVT			//usr/bin
     {"chvt", chvt_main},
 #endif
-#ifdef BB_CP			//bin
-    {"cp", cp_main},
+#ifdef BB_CP_MV			//bin
+    {"cp", cp_mv_main},
+    {"mv", cp_mv_main},
 #endif
 #ifdef BB_DATE			//bin
     {"date", date_main},
@@ -170,10 +171,7 @@ static const struct Applet applets[] = {
 #ifdef BB_MT			//bin
     {"mt", mt_main},
 #endif
-#ifdef BB_MV			//bin
-    {"mv", mv_main},
-#endif
-#ifdef BB_NSLOOKUP		//bin
+#ifdef BB_NSLOOKUP		//usr/bin
     {"nslookup", nslookup_main},
 #endif
 #ifdef BB_PING                  //bin

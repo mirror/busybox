@@ -77,7 +77,7 @@ static int device_open(char *device, int mode)
 
     /* Retry up to 5 times */
     for (f = 0; f < 5; f++)
-	if ((fd = open(device, m)) >= 0)
+	if ((fd = open(device, m, 0600)) >= 0)
 	    break;
     if (fd < 0)
 	return fd;
@@ -177,9 +177,6 @@ static void doSyslogd(void)
     char *q, *p = buf;
     int readSize;
 
-    /* Remove any preexisting socket/file */
-    unlink(_PATH_LOG);
-
     /* Set up sig handlers */
     signal(SIGINT,  quit_signal);
     signal(SIGTERM, quit_signal);
@@ -188,8 +185,9 @@ static void doSyslogd(void)
     signal(SIGALRM, domark);
     alarm(MarkInterval);
 
+    /* Remove any preexisting socket/file */
+    unlink(_PATH_LOG);
 
-    unlink( _PATH_LOG);
     memset(&sunx, 0, sizeof(sunx));
     sunx.sun_family = AF_UNIX;	/* Unix domain socket */
     strncpy(sunx.sun_path, _PATH_LOG, sizeof(sunx.sun_path));
@@ -200,12 +198,17 @@ static void doSyslogd(void)
 
     addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
     if ( (bind(fd, (struct sockaddr *) &sunx, addrLength)) ||
-	    (fchmod(fd, 0666) < 0) || (listen(fd, 5)) ) 
+	    (listen(fd, 5)) ) 
     {
 	perror("Could not connect to socket " _PATH_LOG);
 	exit( FALSE);
     }
     
+    umask(0);
+    if (chmod(_PATH_LOG, 0666) < 0) {
+        perror("Could not set permission on " _PATH_LOG);
+        exit (FALSE);
+    }
     
     logMessage(LOG_SYSLOG|LOG_INFO, "syslogd started: "
 	    "BusyBox v" BB_VER " (" BB_BT ")");

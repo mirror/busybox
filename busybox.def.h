@@ -95,11 +95,6 @@
 //
 //
 //
-// Don't turn BB_UTILITY off.  It contains support code 
-// that compiles to 0 if everything else if turned off.
-#define BB_UTILITY
-//
-//
 //
 // This is where feature definitions go.  Generally speaking,
 // turning this stuff off makes things a bit smaller (and less 
@@ -132,7 +127,7 @@
 #define BB_FEATURE_USE_INITTAB
 //
 //Enable init being called as /linuxrc
-#define BB_FEATURE_LINUXRC
+//#define BB_FEATURE_LINUXRC
 //
 //
 //Simple tail implementation (2k vs 6k for the full one).  Still
@@ -142,11 +137,20 @@
 // Enable support for loop devices in mount
 #define BB_FEATURE_MOUNT_LOOP
 //
+// Enable support for a real /etc/mtab file instead of /proc/mounts
+#ifdef BB_MOUNT
+//#define BB_MTAB
+#endif
+//
+//
+// Enable support for remounting filesystems
+#define BB_FEATURE_REMOUNT
+//
 // Enable support for creation of tar files.
 //#define BB_FEATURE_TAR_CREATE
 //
 // Allow init to permenently chroot, and umount the old root fs
-// just like an initrd does.  Requires a kernel patch by Werner Almesberger.
+// just like an initrd does.  Requires a kernel patch by Werner Almesberger. 
 // ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
 #ifdef BB_MOUNT
 #define BB_FEATURE_INIT_CHROOT

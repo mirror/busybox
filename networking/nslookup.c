@@ -185,4 +185,4 @@ nslookup_main(int argc, char **argv)
     return 0;
 }
 
-/* $Id: nslookup.c,v 1.2 2000/01/30 09:47:16 beppu Exp $ */
+/* $Id: nslookup.c,v 1.3 2000/02/07 05:29:42 erik Exp $ */

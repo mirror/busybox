@@ -1,3 +1,4 @@
+
 /*
  * Busybox main internal header file
  *
@@ -20,8 +21,8 @@
  * Permission has been granted to redistribute this code under the GPL.
  *
  */
-#ifndef	_INTERNAL_H_
-#define	_INTERNAL_H_
+#ifndef	_BB_INTERNAL_H_
+#define	_BB_INTERNAL_H_    1
 
 #include "busybox.def.h"
 
@@ -37,7 +38,10 @@
 #define FALSE   ((int) 1)
 #define TRUE    ((int) 0)
 
-#define PATH_LEN        1024
+/* for mtab.c */
+#define MTAB_GETMOUNTPT '1'
+#define MTAB_GETDEVICE  '2'
+
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
@@ -55,7 +59,7 @@ struct Applet {
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_main(int argc, char** argv);
-extern int cp_main(int argc, char** argv);
+extern int cp_mv_main(int argc, char** argv);
 extern int chmod_chown_chgrp_main(int argc, char** argv);
 extern int chroot_main(int argc, char** argv);
 extern int chvt_main(int argc, char** argv);
@@ -105,8 +109,7 @@ extern int mnc_main(int argc, char** argv);
 extern int more_main(int argc, char** argv);
 extern int mount_main(int argc, char** argv);
 extern int mt_main(int argc, char** argv);
-extern int mv_main(int argc, char** argv);
-extern int nslookup_main(int argc, char** argv);
+extern int nslookup_main(int argc, char **argv);
 extern int ping_main(int argc, char **argv);
 extern int poweroff_main(int argc, char **argv);
 extern int printf_main(int argc, char** argv);
@@ -142,7 +145,7 @@ extern int yes_main(int argc, char** argv);
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);
-int isDirectory(const char *name);
+int isDirectory(const char *name, const int followLinks);
 int isDevice(const char *name);
 int copyFile(const char *srcName, const char *destName, int setModes,
 	        int followLinks);
@@ -172,6 +175,11 @@ extern struct mntent *findMountPoint(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
+extern void mtab_read(void);
+extern void mtab_free(void);
+extern char *mtab_first(void **iter);
+extern char *mtab_next(void **iter);
+extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
@@ -226,5 +234,4 @@ static inline int clrbit(char * addr,unsigned int nr)
 #endif
 
 
-#endif /* _INTERNAL_H_ */
-
+#endif /* _BB_INTERNAL_H_ */

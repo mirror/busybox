@@ -96,6 +96,7 @@
 #include <termios.h>
 #include <mntent.h>
 #include <sys/stat.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
@@ -143,7 +144,7 @@ static int termios_set = 0;
 /* File-name data */
 #define MAX_DEPTH 50
 static int name_depth = 0;
-static char name_list[MAX_DEPTH][NAME_MAX+1];
+static char name_list[MAX_DEPTH][PATH_MAX + 1];
 
 static char * inode_buffer = NULL;
 #define Inode (((struct minix_inode *) inode_buffer)-1)

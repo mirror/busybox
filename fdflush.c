@@ -31,7 +31,7 @@ extern int fdflush_main(int argc, char **argv)
 {
     int	value;
     int	fd;
-    if ( **(argv+1) == '-' ) {
+    if ( argc <= 1 || **(argv++) == '-' ) {
 	usage( "fdflush device\n");
     }
 

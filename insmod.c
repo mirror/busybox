@@ -67,8 +67,8 @@ _syscall2(unsigned long, create_module, const char *, name, size_t, size)
 #endif
 
 
-static char m_filename[PATH_MAX] = "\0";
-static char m_fullName[PATH_MAX] ="\0";
+static char m_filename[PATH_MAX + 1] = "\0";
+static char m_fullName[PATH_MAX + 1] = "\0";
 static const char insmod_usage[] =
     "insmod [OPTION]... MODULE [symbol=value]...\n\n"
     "Loads the specified kernel modules into the kernel.\n\n"
@@ -101,7 +101,7 @@ extern int insmod_main(int argc, char **argv)
 {
     int len;
     char *tmp;
-    char m_name[PATH_MAX] ="\0";
+    char m_name[PATH_MAX + 1] ="\0";
     FILE *fp;
 
     if (argc<=1) {

@@ -20,6 +20,10 @@
 */
 
 #include "internal.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_invalid_date
+#define bb_need_memory_exhausted
+#include "messages.c"
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -59,7 +63,7 @@ date_conv_time(struct tm *tm_time, const char *t_string) {
 	     &(tm_time->tm_year));
 
   if(nr < 4 || nr > 5) {
-    fprintf(stderr, "date: invalid date `%s'\n", t_string);
+    fprintf(stderr, invalid_date, "date", t_string);
     exit( FALSE);
   }
 
@@ -152,7 +156,7 @@ date_conv_ftime(struct tm *tm_time, const char *t_string) {
 
   }
 
-  fprintf(stderr, "date: invalid date `%s'\n", t_string);
+  fprintf(stderr, invalid_date, "date", t_string);
 
   exit( FALSE);
 
@@ -190,7 +194,7 @@ date_main(int argc, char * * argv)
 	    case 'u':
 		utc = 1;
 		if (putenv ("TZ=UTC0") != 0) {
-		    fprintf(stderr,"date: memory exhausted\n");
+		    fprintf(stderr, memory_exhausted, "date");
 		    exit( FALSE);
 		}
 		/* Look ma, no break.  Don't fix it either. */
@@ -204,10 +208,10 @@ date_main(int argc, char * * argv)
 	    }
 	} else {
 	    if ( (date_fmt == NULL) && (strcmp(*argv, "+")==0) )
-		date_fmt = *argv;
+		date_fmt=*argv;
 	    else if (date_str == NULL) {
 		set_time = 1;
-		date_str = *argv;
+		date_str=*argv;
 	    } else { 
 		usage ( date_usage);
 	    }
@@ -241,7 +245,7 @@ date_main(int argc, char * * argv)
     /* Correct any day of week and day of year etc fields */
     tm = mktime(&tm_time);
     if (tm < 0 ) {
-      fprintf(stderr, "date: invalid date `%s'\n", date_str);
+      fprintf(stderr, invalid_date, "date", date_str);
       exit( FALSE);
     }
 
@@ -284,4 +288,3 @@ date_main(int argc, char * * argv)
   exit( TRUE);
 
 }
-

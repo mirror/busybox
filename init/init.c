@@ -40,6 +40,7 @@
 #include <sys/reboot.h>
 #include <sys/kdaemon.h>
 #include <sys/sysmacros.h>
+#include <asm/types.h>
 #include <linux/serial.h>	/* for serial_struct */
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
@@ -123,7 +124,7 @@ int device_open(char *device, int mode)
 
     /* Retry up to 5 times */
     for (f = 0; f < 5; f++)
-	if ((fd = open(device, m)) >= 0)
+	if ((fd = open(device, m, 0600)) >= 0)
 	    break;
     if (fd < 0)
 	return fd;
@@ -470,19 +471,19 @@ static void shutdown_system(void)
     sync();
 
     /* Send signals to every process _except_ pid 1 */
-    message(CONSOLE, "Sending SIGHUP to all processes.\r\n");
-    kill(-1, SIGHUP);
-    sleep(2);
+    message(CONSOLE, "Sending SIGTERM to all processes.\r\n");
+    kill(-1, SIGTERM);
+    sleep(5);
     sync();
 
     message(CONSOLE, "Sending SIGKILL to all processes.\r\n");
     kill(-1, SIGKILL);
-    sleep(1);
+    sleep(5);
 
     message(CONSOLE, "Disabling swap.\r\n");
-    waitfor( "swapoff -a", console, FALSE);
+	waitfor( "swapoff -a", console, FALSE);
     message(CONSOLE, "Unmounting filesystems.\r\n");
-    waitfor("umount -a", console, FALSE);
+	waitfor("umount -a -r", console, FALSE);
     sync();
     if (kernelVersion > 0 && kernelVersion <= 2 * 65536 + 2 * 256 + 11) {
 	/* bdflush, kupdate not needed for kernels >2.2.11 */
@@ -500,7 +501,7 @@ static void halt_signal(int sig)
     sync();
 
     /* allow time for last message to reach serial console */
-    sleep(2);
+    sleep(5);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
     if (sig == SIGUSR2)

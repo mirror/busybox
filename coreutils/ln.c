@@ -22,26 +22,32 @@
  */
 
 #include "internal.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_name_too_long
+#define bb_need_not_a_directory
+#include "messages.c"
+
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
-
-static const char ln_usage[] = "ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n\n"
-"Create a link named LINK_NAME or DIRECTORY to the specified TARGET\n\n"
-"Options:\n"
-"\t-s\tmake symbolic links instead of hard links\n"
-"\t-f\tremove existing destination files\n";
-
+static const char ln_usage[] =
+    "ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n\n"
+    "Create a link named LINK_NAME or DIRECTORY to the specified TARGET\n\n"
+    "Options:\n"
+    "\t-s\tmake symbolic links instead of hard links\n"
+    "\t-f\tremove existing destination files\n"
+    "\t-n\tno dereference symlinks - treat like normal file\n";
 
 static int symlinkFlag = FALSE;
 static int removeoldFlag = FALSE;
-
+static int followLinks = TRUE;
 
 extern int ln_main(int argc, char **argv)
 {
-    int status;
-    static char* linkName;
+    char *linkName;
+    int linkIntoDirFlag;
 
     if (argc < 3) {
 	usage (ln_usage);
@@ -59,6 +65,9 @@ extern int ln_main(int argc, char **argv)
 	    case 'f':
 		removeoldFlag = TRUE;
 		break;
+	    case 'n':
+		followLinks = FALSE;
+		break;
 	    default:
 		usage (ln_usage);
 	    }
@@ -66,30 +75,54 @@ extern int ln_main(int argc, char **argv)
 	argv++;
     }
 
-
     linkName = argv[argc - 1];
 
-    if ((argc > 3) && !(isDirectory(linkName))) {
-	fprintf(stderr, "%s: not a directory\n", linkName);
-	exit (FALSE);
+    if (strlen(linkName) > PATH_MAX) {
+	fprintf(stderr, name_too_long, "ln");
+	exit FALSE;
+    }
+
+    linkIntoDirFlag = isDirectory(linkName, TRUE);
+
+    if ((argc > 3) && !linkIntoDirFlag) {
+	fprintf(stderr, not_a_directory, "ln", linkName);
+	exit FALSE;
     }
 
     while (argc-- >= 2) {
-	if (removeoldFlag==TRUE ) {
+	char srcName[PATH_MAX + 1];
+	int nChars, status;
+
+	if (strlen(*argv) > PATH_MAX) {
+	    fprintf(stderr, name_too_long, "ln");
+	    exit FALSE;
+	}
+
+	if (followLinks == FALSE) {
+	    strcpy(srcName, *argv);
+	} else {
+	    /* Warning!  This can silently truncate if > PATH_MAX, but
+	    I don't think that there can be one > PATH_MAX anyway. */
+	    nChars = readlink(*argv, srcName, PATH_MAX);
+	    srcName[nChars] = '\0';
+	}
+
+	if (removeoldFlag == TRUE) {
 	    status = ( unlink(linkName) && errno != ENOENT );
-	    if ( status != 0 ) {
+	    if (status != 0) {
 		perror(linkName);
-		exit( FALSE);
+		exit FALSE;
 	    }
 	}
-	if ( symlinkFlag==TRUE)
-		status = symlink(*argv, linkName);
+
+	if (symlinkFlag == TRUE)
+	    status = symlink(*argv, linkName);
 	else
-		status = link(*argv, linkName);
-	if ( status != 0 ) {
+	    status = link(*argv, linkName);
+	if (status != 0) {
 	    perror(linkName);
-	    exit( FALSE);
+	    exit FALSE;
 	}
     }
-    exit( TRUE);
+    exit TRUE;
 }

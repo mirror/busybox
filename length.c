@@ -6,7 +6,7 @@
 extern int
 length_main(int argc, char * * argv)
 {
-    if ( **(argv+1) == '-' ) {
+    if ( argc != 2 || **(argv+1) == '-' ) {
 	usage("length string\n");
     }
     printf("%d\n", strlen(argv[1]));

@@ -40,6 +40,7 @@
 #include <utime.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
 
 #ifdef BB_FEATURE_TAR_CREATE
@@ -1041,7 +1042,7 @@ static void saveDirectory (const char *dirName, const struct stat *statbuf)
     DIR *dir;
     struct dirent *entry;
     int needSlash;
-    char fullName[NAME_MAX];
+    char fullName[PATH_MAX + 1];
 
     /* 
      * Construct the directory name as used in the tar file by appending

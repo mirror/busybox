@@ -1,5 +1,5 @@
 #!/bin/sh
-#Make busybox links list file
+# Make busybox links list file.
 
 DF="busybox.def.h"
 MF="busybox.c"

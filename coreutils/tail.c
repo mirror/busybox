@@ -33,7 +33,7 @@
     and generally busyboxed, Erik Andersen <andersen@lineo.com>
 
    Removed superfluous options and associated code ("-c", "-n", "-q").
-   Removed "tail -f" suport for multiple files.
+   Removed "tail -f" support for multiple files.
    Both changes by Friedrich Vedder <fwv@myrtle.lahn.de>.
 
  */

@@ -309,4 +309,4 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.9 2000/01/23 18:19:02 erik Exp $ */
+/* $Id: sort.c,v 1.10 2000/02/07 05:29:42 erik Exp $ */

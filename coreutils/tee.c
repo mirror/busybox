@@ -123,4 +123,4 @@ tee_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: tee.c,v 1.4 1999/12/10 08:25:07 andersen Exp $ */
+/* $Id: tee.c,v 1.5 2000/02/07 05:29:42 erik Exp $ */

@@ -26,3 +26,44 @@ around to it some time. If you have any good ideas, please let me know.
 * tr
 * expr (maybe?)  (ash builtin?)
 
+
+
+
+Some known bugs, todo items, etc...
+
+-----------------------
+
+
+[andersen@slag busybox]$ ./busybox du /bin
+6213    /bin
+[andersen@slag busybox]$ du /bin
+2971    /bin
+[andersen@slag busybox]$ du --block-size=512 /bin
+5943    /bin
+
+-----------------------
+
+-rw-r--r-- 1000/1000      4398 2000-01-06 21:55 uniq.c
+-rw-r--r-- 1000/1000      1568 1999-10-20 18:08 update.c
+-rw-r----- 0/1000         1168 2000-01-29 21:03 update.o
+-rw-r--r-- 1000/1000     22820 2000-01-05 11:36 utility.c
+-rw-r----- 0/1000         7372 2000-01-29 21:03 utility.o
+tar: Skipping to next file header
+tar: Skipping to next file header
+tar: Archive - EOF not on block boundary
+tar: Error is not recoverable: exiting now
+
+
+#1 You are storing by id instead of name like normal tar. Did you realize this?
+(or am I missing some compile option? )ctar did not do this, and I don't think
+it's a good idea for LRP.
+
+#2
+ctar did not produce the EOF error like your tar does. I believe you need to
+pad the end of the archive with at least 2 tarsized (512byte) blocks. (I
+think???)
+
+#3
+There is no exclude file(s) option to tar. LRP's packaging system can not
+function without this. Will you have the time to add this soon?
+

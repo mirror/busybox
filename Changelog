@@ -1,4 +1,41 @@
 0.42
+
+        * Fairly massive restructuring of umount.c to deal with remounting 
+	  busy devices read-only. Adds a -r option to control that; it is 
+	  optionally compiled in with BB_FEATURE_REMOUNT
+        * Added a bunch of functions to mtab.c to interact with the
+          {get,set,end}mntent interface; as it turns out, those functions do
+	  not appear to be re-entrant, and that causes a lot of problems with
+	  the way umount was originally written.
+        * Makes init send TERM and KILL (instead of HUP and KILL) on reboot
+	  to be more consistent with sysvinit
+        * Changes to init.c to use the new -r option to umount. Also increased
+	  the sleep time between the time the TERM and KILL signals are sent
+
+        - Randolph Chung
+
+
+	* cp.c, mv.c: removed, replaced by cp_mv.c which has been
+	    extensively rewritten from the original cp.c.
+	* Also added a warning message to the `mv' usage string saying that
+	    this is not GNU mv, and it will break hard links. cp also breaks
+	    hard links.
+	* ln.c: implemented `-n' switch, no-deref symlinks.
+	* include<sys/param.h>: and use PATH_MAX everywhere.
+	* busybox: File name buffer overrun guards to prevent future crashes.
+	    - Always check exit status.
+	    - Purge all use of `creat()', replace with `open()'.
+	* utility.c 
+	    - recursiveAction was overriding the value of 
+		followLinks thus ignoring it.
+	    - isDirectory now takes a followLinks boolean, updated all callers
+	    - copyFile had the followLinks logic reversed.
+	* messages.c: New file. Put common error message strings all in
+	    one place in an attempt to shrink the binary a little.
+
+	-Karl M. Hegbloom
+
+
 	* Made tar creation support in busybox tar optional.
 	* You no longer _have_ to put a "-" in front of tar options.
 	* Tar could inadvertently change permissions and ownership on
@@ -16,11 +53,11 @@
 	    for the kernel init chroot patch by Werner Almesberger, which 
 	    allows init to chroot to a new device, and umount the old one.
 	* Fixed bug that wouldn't let one chown a symlink -- it would
-	  always dereference before.  -beppu
+	    always dereference before.  -beppu
 	* Fixed a bug where init could have reference already freed memory.
 	    Found and fixed by Taketoshi Sano <kgh12351@nifty.ne.jp>
 	* Several contributions from Friedrich Vedder <fwv@myrtle.lahn.de>
-	* added (and documented) "-n" option for head - 
+	* Added (and documented) "-n" option for head - 
 	* Cleanup for a number of usage messages -- also 
 	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
 	* Cosmetic fix to busybox.c (Don't print a comma at the
@@ -42,6 +79,11 @@
 	    Randolph Chung <tausq@debian.org>.
 	* cp could, when copying symlinks, change permissions of the
 	    files pointed to by the symlinks.
+	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	    - `chown' with 1 argument displayed the error incorrectly
+	    - `fdflush', `length' and `printf' crashed when run without arguments
+	    - `fdflush' tried to flush itself using *argv
+	    - added "skip" and "seek" to dd.
 
 
 	-Erik Andersen

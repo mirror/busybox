@@ -22,17 +22,18 @@
  */
 
 #include "internal.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_name_too_long
+#include "messages.c"
+
 #include <sys/types.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <errno.h>
-#if 0
-#include <unistd.h>
-#include <sys/stat.h>
-#endif
+#include <sys/param.h>		/* for PATH_MAX */
 
-typedef void (Display)(size_t, char *);
+typedef void (Display)(long, char *);
 
 static const char du_usage[] =
 "du [OPTION]... [FILE]...\n\n"
@@ -44,13 +45,13 @@ static int	du_depth = 0;
 static Display	*print;
 
 static void
-print_normal(size_t size, char *filename)
+print_normal(long size, char *filename)
 {
-    fprintf(stdout, "%-7d %s\n", (size >> 1), filename);
+    fprintf(stdout, "%-7ld %s\n", size, filename);
 }
 
 static void
-print_summary(size_t size, char *filename)
+print_summary(long size, char *filename)
 {
     if (du_depth == 1) { 
 	print_normal(size, filename); 
@@ -59,11 +60,11 @@ print_summary(size_t size, char *filename)
 
 
 /* tiny recursive du */
-static size_t
+static long
 du(char *filename)
 {
     struct stat statbuf;
-    size_t	sum;
+    long	sum;
 
     if ((lstat(filename, &statbuf)) != 0) { 
 	fprintf(stdout, "du: %s: %s\n", filename, strerror(errno));
@@ -80,14 +81,19 @@ du(char *filename)
 	dir = opendir(filename);
 	if (!dir) { return 0; }
 	while ((entry = readdir(dir))) {
-	    char newfile[512];
+	    char newfile[PATH_MAX + 1];
 	    char *name = entry->d_name;
 
 	    if (  (strcmp(name, "..") == 0)
 	       || (strcmp(name, ".")  == 0)) 
 	    { continue; }
 
+	    if (strlen(filename) + strlen(name) + 1 > PATH_MAX) {
+	      fprintf(stderr, name_too_long, "du");
+	      return 0;
+	    }
 	    sprintf(newfile, "%s/%s", filename, name);
+
 	    sum += du(newfile);
 	}
 	closedir(dir);
@@ -130,14 +136,14 @@ du_main(int argc, char **argv)
     if (i >= argc) {
 	du(".");
     } else {
-	int sum;
+	long sum;
 	for ( ; i < argc; i++) {
 	    sum = du(argv[i]);
-	    if ((sum) && (isDirectory(argv[i]))) { print_normal(sum, argv[i]); }
+	    if ((sum) && (isDirectory(argv[i], FALSE))) { print_normal(sum, argv[i]); }
 	}
     }
 
     exit(0);
 }
 
-/* $Id: du.c,v 1.9 2000/01/23 18:19:02 erik Exp $ */
+/* $Id: du.c,v 1.10 2000/02/07 05:29:42 erik Exp $ */

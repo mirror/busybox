@@ -5,21 +5,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <mntent.h>
+#include <fstab.h>
 #include <sys/mount.h>
 
 extern const char mtab_file[]; /* Defined in utility.c */
 
-static char *
-stralloc(const char * string)
-{
-	int	length = strlen(string) + 1;
-	char *	n = malloc(length);
-	memcpy(n, string, length);
-	return n;
-}
 
-extern void
-erase_mtab(const char * name)
+void erase_mtab(const char * name)
 {
 	struct mntent	entries[20];
 	int	count = 0;
@@ -39,10 +31,10 @@ erase_mtab(const char * name)
 	}
 
 	while ( (m = getmntent(mountTable)) != 0 ) {
-		entries[count].mnt_fsname = stralloc(m->mnt_fsname);
-		entries[count].mnt_dir = stralloc(m->mnt_dir);
-		entries[count].mnt_type = stralloc(m->mnt_type);
-		entries[count].mnt_opts = stralloc(m->mnt_opts);
+		entries[count].mnt_fsname = strdup(m->mnt_fsname);
+		entries[count].mnt_dir = strdup(m->mnt_dir);
+		entries[count].mnt_type = strdup(m->mnt_type);
+		entries[count].mnt_opts = strdup(m->mnt_opts);
 		entries[count].mnt_freq = m->mnt_freq;
 		entries[count].mnt_passno = m->mnt_passno;
 		count++;
@@ -65,8 +57,7 @@ erase_mtab(const char * name)
 		perror(mtab_file);
 }
 
-extern void 
-write_mtab(char* blockDevice, char* directory, 
+void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags)
 {
 	FILE *mountTable = setmntent(mtab_file, "a+");
@@ -109,5 +100,4 @@ write_mtab(char* blockDevice, char* directory,
 	    endmntent(mountTable);
     }
 }
-
 

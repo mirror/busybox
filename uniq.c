@@ -193,4 +193,4 @@ uniq_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: uniq.c,v 1.5 2000/01/23 18:19:02 erik Exp $ */
+/* $Id: uniq.c,v 1.6 2000/02/07 05:29:42 erik Exp $ */

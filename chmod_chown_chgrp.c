@@ -21,10 +21,14 @@
  *
  */
 
+#include "internal.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_invalid_option
+#include "messages.c"
+
 #include <stdio.h>
 #include <grp.h>
 #include <pwd.h>
-#include "internal.h"
 
 
 static uid_t uid = -1;
@@ -69,7 +73,7 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 	case CHMOD_APP:
 	    /* Parse the specified modes */
 	    if ( parse_mode(theMode, &(statbuf->st_mode)) == FALSE ) {
-		fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, theMode);
+		fprintf(stderr, "%s: unknown mode: %s\n", invocationName, theMode);
 		exit( FALSE);
 	    }
 	    if (chmod(fileName, statbuf->st_mode) == 0)
@@ -84,6 +88,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 {
     int recursiveFlag=FALSE;
     char *groupName;
+    char *p;
     const char *appUsage;
 
     whichApp = (strcmp(*argv, "chown")==0)? CHOWN_APP : (strcmp(*argv, "chmod")==0)? CHMOD_APP : CHGRP_APP; 
@@ -103,7 +108,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 		recursiveFlag = TRUE;
 		break;
 	    default:
-		fprintf(stderr, "Unknown option: %c\n", **argv);
+		fprintf(stderr, invalid_option, invocationName, **argv);
 		usage( appUsage);
 	}
 	argc--;
@@ -117,14 +122,18 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	/* Find the selected group */
 	if ( whichApp==CHGRP_APP ) {
 	    groupName = *argv;
-	    gid = my_getgrnam(groupName);
+	    gid = strtoul(groupName, &p, 10); /* maybe it's already numeric */
+	    if (groupName == p)
+	        gid = my_getgrnam(groupName);
 	    if (gid == -1)
 		goto bad_group;
 	} else {
 	    groupName = strchr(*argv, '.');
 	    if (groupName) {
 		*groupName++ = '\0';
-		gid = my_getgrnam(groupName);
+	        gid = strtoul(groupName, &p, 10);
+	        if (groupName == p)
+		    gid = my_getgrnam(groupName);
 		if (gid == -1)
 		    goto bad_group;
 	    } else
@@ -134,9 +143,11 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
 	/* Find the selected user (if appropriate)  */
 	if (whichApp==CHOWN_APP) {
-	    uid = my_getpwnam(*argv);
+	    uid = strtoul(*argv, &p, 10); /* if numeric ...*/
+	    if (*argv == p)
+	        uid = my_getpwnam(*argv);
 	    if (uid == -1) {
-		fprintf(stderr, "%s: Unknown user name: %s\n", invocationName, *argv);
+		fprintf(stderr, "%s: unknown user name: %s\n", invocationName, *argv);
 		exit( FALSE);
 	    }
 	}
@@ -144,7 +155,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     
     /* Ok, ready to do the deed now */
     if (argc <= 1) {
-	fprintf(stderr, "%s: too few arguments", invocationName);
+	fprintf(stderr, "%s: too few arguments\n", invocationName);
 	exit( FALSE);
     }
     while (argc-- > 1) {
@@ -154,7 +165,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     exit(TRUE);
 
 bad_group:
-    fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
+    fprintf(stderr, "%s: unknown group name: %s\n", invocationName, groupName);
     exit( FALSE);
 }
 

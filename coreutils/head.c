@@ -105,4 +105,4 @@ head_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: head.c,v 1.6 2000/01/25 18:13:53 erik Exp $ */
+/* $Id: head.c,v 1.7 2000/02/07 05:29:42 erik Exp $ */

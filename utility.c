@@ -25,6 +25,17 @@
  */
 
 #include "internal.h"
+#if defined (BB_CHMOD_CHOWN_CHGRP) \
+ || defined (BB_CP_MV)		   \
+ || defined (BB_FIND)		   \
+ || defined (BB_LS)		   \
+ || defined (BB_INSMOD)
+/* same conditions as recursiveAction */
+#define bb_need_name_too_long
+#endif
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -35,6 +46,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
@@ -58,9 +70,10 @@ const char mtab_file[] = "/etc/mtab";
 
 extern void usage(const char *usage)
 {
-    fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n", BB_VER, BB_BT);
+    fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
+	    BB_VER, BB_BT);
     fprintf(stderr, "Usage: %s\n", usage);
-    exit(FALSE);
+    exit FALSE;
 }
 
 
@@ -78,9 +91,8 @@ get_kernel_revision()
 {
   FILE *file;
   int major=0, minor=0, patch=0;
-  char* filename="/proc/sys/kernel/osrelease";
 
-  file = fopen(filename,"r");
+  file = fopen("/proc/sys/kernel/osrelease", "r");
   if (file == NULL) {
     /* bummer, /proc must not be mounted... */
     return( 0);
@@ -89,28 +101,34 @@ get_kernel_revision()
   fclose(file);
   return major*65536 + minor*256 + patch;
 }
-
-#endif
-
+#endif /* BB_INIT || BB_PS */
 
 
-#if defined (BB_CP) || defined (BB_MV)
+
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
  */
-int isDirectory(const char *name)
+int isDirectory(const char *fileName, const int followLinks)
 {
     struct stat statBuf;
+    int status;
 
-    if (stat(name, &statBuf) < 0)
-	return FALSE;
+    if (followLinks == TRUE)
+      status = stat(fileName, &statBuf);
+    else
+      status = lstat(fileName, &statBuf);
+
+    if (status < 0)
+      return FALSE;
     if (S_ISDIR(statBuf.st_mode))
-	return TRUE;
-    return(FALSE);
+      return TRUE;
+    return FALSE;
 }
+#endif
 
-
+#if defined (BB_CP_MV)
 /*
  * Copy one file to another, while possibly preserving its modes, times,
  * and modes.  Returns TRUE if successful, or FALSE on a failure with an
@@ -120,33 +138,33 @@ int isDirectory(const char *name)
  */
 int
 copyFile( const char *srcName, const char *destName, 
-	 int setModes, int followLinks)
+	  int setModes, int followLinks)
 {
     int rfd;
     int wfd;
     int rcc;
-    int result;
+    int status;
     char buf[BUF_SIZE];
     struct stat srcStatBuf;
     struct stat dstStatBuf;
     struct utimbuf times;
 
-    /* Grab the source file's stats */
-    if (followLinks == FALSE)
-	result = stat(srcName, &srcStatBuf);
+    if (followLinks == TRUE)
+	status = stat(srcName, &srcStatBuf);
     else 
-	result = lstat(srcName, &srcStatBuf);
-    if (result < 0) {
+	status = lstat(srcName, &srcStatBuf);
+
+    if (status < 0) {
 	perror(srcName);
 	return FALSE;
     }
 
-    /* Grab the dest file's stats */
-    if (followLinks == FALSE)
-	result = stat(destName, &dstStatBuf);
-    else 
-	result = lstat(destName, &dstStatBuf);
-    if (result < 0) {
+    if (followLinks == TRUE)	
+	status = stat(destName, &dstStatBuf);
+    else
+	status = lstat(destName, &dstStatBuf);
+
+    if (status < 0) {
 	dstStatBuf.st_ino = -1;
 	dstStatBuf.st_dev = -1;
     }
@@ -160,45 +178,49 @@ copyFile( const char *srcName, const char *destName,
     if (S_ISDIR(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying directory %s to %s\n", srcName, destName);
 	/* Make sure the directory is writable */
-	result = mkdir(destName, 0777777 ^ umask(0));
-	if (result < 0 && errno != EEXIST) {
+	status = mkdir(destName, 0777777 ^ umask(0));
+	if (status < 0 && errno != EEXIST) {
 	    perror(destName);
-	    return (FALSE);
+	    return FALSE;
 	}
     } else if (S_ISLNK(srcStatBuf.st_mode)) {
-	char *link_val;
+	char link_val[PATH_MAX + 1];
 	int link_size;
 
 	//fprintf(stderr, "copying link %s to %s\n", srcName, destName);
-	link_val = (char *) alloca(PATH_MAX + 2);
-	link_size = readlink(srcName, link_val, PATH_MAX + 1);
+	/* Warning: This could possibly truncate silently, to PATH_MAX chars */
+	link_size = readlink(srcName, &link_val[0], PATH_MAX);
 	if (link_size < 0) {
 	    perror(srcName);
-	    return (FALSE);
+	    return FALSE;
 	}
 	link_val[link_size] = '\0';
-	link_size = symlink(link_val, destName);
-	if (link_size != 0) {
+	status = symlink(link_val, destName);
+	if (status < 0) {
 	    perror(destName);
-	    return (FALSE);
+	    return FALSE;
 	}
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 	if (setModes == TRUE) {
-	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	    if (lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0) {
+	      perror(destName);
+	      return FALSE;
+	    }
 	}
 #endif
+	return TRUE;
     } else if (S_ISFIFO(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
-	if (mkfifo(destName, 0644)) {
+	if (mkfifo(destName, 0644) < 0) {
 	    perror(destName);
-	    return (FALSE);
+	    return FALSE;
 	}
     } else if (S_ISBLK(srcStatBuf.st_mode) || S_ISCHR(srcStatBuf.st_mode) 
-	    || S_ISSOCK (srcStatBuf.st_mode)) {
+		|| S_ISSOCK (srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying soc, blk, or chr %s to %s\n", srcName, destName);
-	if (mknod(destName, srcStatBuf.st_mode, srcStatBuf.st_rdev)) {
+	if (mknod(destName, srcStatBuf.st_mode, srcStatBuf.st_rdev) < 0) {
 	    perror(destName);
-	    return (FALSE);
+	    return FALSE;
 	}
     } else if (S_ISREG(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying regular file %s to %s\n", srcName, destName);
@@ -208,7 +230,7 @@ copyFile( const char *srcName, const char *destName,
 	    return FALSE;
 	}
 
-	wfd = creat(destName, srcStatBuf.st_mode);
+	wfd = open(destName, O_WRONLY | O_CREAT | O_TRUNC, srcStatBuf.st_mode);
 	if (wfd < 0) {
 	    perror(destName);
 	    close(rfd);
@@ -231,24 +253,32 @@ copyFile( const char *srcName, const char *destName,
 
     if (setModes == TRUE) {
 	/* This is fine, since symlinks never get here */
-	chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-	chmod(destName, srcStatBuf.st_mode);
+	if (chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0) {
+	  perror(destName);
+	  exit FALSE;
+	}
+	if (chmod(destName, srcStatBuf.st_mode) < 0) {
+	  perror(destName);
+	  exit FALSE;
+	}
 	times.actime = srcStatBuf.st_atime;
 	times.modtime = srcStatBuf.st_mtime;
-	utime(destName, &times);
+	if (utime(destName, &times) < 0) {
+	  perror(destName);
+	  exit FALSE;
+	}
     }
 
     return TRUE;
 
-
-  error_exit:
+ error_exit:
     perror(destName);
     close(rfd);
     close(wfd);
 
     return FALSE;
 }
-#endif
+#endif /* BB_CP_MV */
 
 
 
@@ -296,7 +326,7 @@ const char *modeString(int mode)
     }
     return buf;
 }
-#endif
+#endif /* BB_TAR || BB_LS */
 
 
 #if defined BB_TAR
@@ -324,9 +354,9 @@ const char *timeString(time_t timeVal)
 
     return buf;
 }
-#endif
+#endif /* BB_TAR */
 
-#if defined BB_TAR || defined BB_CP || defined BB_MV
+#if defined BB_TAR || defined BB_CP_MV
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -352,7 +382,7 @@ int fullWrite(int fd, const char *buf, int len)
 
     return total;
 }
-#endif
+#endif /* BB_TAR || BB_CP_MV */
 
 
 #if defined BB_TAR || defined BB_TAIL
@@ -385,10 +415,14 @@ int fullRead(int fd, char *buf, int len)
 
     return total;
 }
-#endif
+#endif /* BB_TAR || BB_TAIL */
 
 
-#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_CP) || defined (BB_FIND) || defined (BB_LS) || defined (BB_INSMOD)
+#if defined (BB_CHMOD_CHOWN_CHGRP) \
+ || defined (BB_CP_MV)		   \
+ || defined (BB_FIND)		   \
+ || defined (BB_LS)		   \
+ || defined (BB_INSMOD)
 /*
  * Walk down all the directories under the specified 
  * location, and do something (something specified
@@ -399,13 +433,15 @@ int fullRead(int fd, char *buf, int len)
  * and so isn't sufficiently portable to take over since glibc2.1
  * is so stinking huge.
  */
-int
-recursiveAction(const char *fileName, int recurse, int followLinks, int depthFirst,
-		int (*fileAction) (const char *fileName, struct stat* statbuf),
-		int (*dirAction) (const char *fileName, struct stat* statbuf))
+int recursiveAction(const char *fileName,
+		    int recurse, int followLinks, int depthFirst,
+		    int (*fileAction) (const char *fileName,
+				       struct stat* statbuf),
+		    int (*dirAction) (const char *fileName,
+				      struct stat* statbuf))
 {
     int status;
-    struct stat statbuf, statbuf1;
+    struct stat statbuf;
     struct dirent *next;
 
     if (followLinks == TRUE)
@@ -414,16 +450,20 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	status = lstat(fileName, &statbuf);
 
     if (status < 0) {
-	//fprintf(stderr, "status=%d followLinks=%d TRUE=%d\n", status, followLinks, TRUE);
+#ifdef BB_DEBUG_PRINT_SCAFFOLD
+      fprintf(stderr,
+	      "status=%d followLinks=%d TRUE=%d\n",
+	      status, followLinks, TRUE);
+#endif
 	perror(fileName);
-	return (FALSE);
+	return FALSE;
     }
 
-    if ( (followLinks == FALSE) && (S_ISLNK(statbuf.st_mode)) ) {
+    if ((followLinks == FALSE) && (S_ISLNK(statbuf.st_mode)) ) {
 	if (fileAction == NULL)
-	    return (TRUE);
+	    return TRUE;
 	else
-	    return (fileAction(fileName, &statbuf));
+	    return fileAction(fileName, &statbuf);
     }
 
     if (recurse == FALSE) {
@@ -431,67 +471,65 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	    if (dirAction != NULL)
 		return (dirAction(fileName, &statbuf));
 	    else
-		return (TRUE);
-	} 
-    }
-    
-    status = lstat(fileName, &statbuf1);
-    if (status < 0) {
-	perror(fileName);
-	return (FALSE);
+		return TRUE;
+	}
     }
 
-    if (S_ISDIR(statbuf.st_mode) && S_ISDIR(statbuf1.st_mode)) {
+    if (S_ISDIR(statbuf.st_mode)) {
 	DIR *dir;
 	dir = opendir(fileName);
 	if (!dir) {
 	    perror(fileName);
-	    return (FALSE);
+	    return FALSE;
 	}
 	if (dirAction != NULL && depthFirst == FALSE) {
 	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
-		return (FALSE);
+		return FALSE;
 	    }
 	}
 	while ((next = readdir(dir)) != NULL) {
-	    char nextFile[NAME_MAX];
+	    char nextFile[PATH_MAX + 1];
 	    if ((strcmp(next->d_name, "..") == 0)
-		|| (strcmp(next->d_name, ".") == 0)) {
+		 || (strcmp(next->d_name, ".") == 0)) {
 		continue;
+	    }
+	    if (strlen(fileName) + strlen(next->d_name) + 1 > PATH_MAX) {
+		fprintf(stderr, name_too_long, "ftw");
+		return FALSE;
 	    }
 	    sprintf(nextFile, "%s/%s", fileName, next->d_name);
 	    status =
 		recursiveAction(nextFile, TRUE, followLinks, depthFirst, 
-			fileAction, dirAction);
+				fileAction, dirAction);
 	    if (status < 0) {
 		closedir(dir);
-		return (FALSE);
+		return FALSE;
 	    }
 	}
 	status = closedir(dir);
 	if (status < 0) {
 	    perror(fileName);
-	    return (FALSE);
+	    return FALSE;
 	}
 	if (dirAction != NULL && depthFirst == TRUE) {
 	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
-		return (FALSE);
+		return FALSE;
 	    }
 	}
     } else {
 	if (fileAction == NULL)
-	    return (TRUE);
+	    return TRUE;
 	else
-	    return (fileAction(fileName, &statbuf));
+	    return fileAction(fileName, &statbuf);
     }
-    return (TRUE);
+    return TRUE;
 }
 
-#endif
+#endif /* BB_CHMOD_CHOWN_CHGRP || BB_CP_MV || BB_FIND || BB_LS || BB_INSMOD */
 
 
 
@@ -506,25 +544,25 @@ extern int createPath (const char *name, int mode)
 {
     char *cp;
     char *cpOld;
-    char buf[NAME_MAX];
+    char buf[PATH_MAX + 1];
     int retVal=0;
 
     strcpy( buf, name);
-    cp = strchr (buf, '/');
+    cp = strchr(buf, '/');
     while (cp) {
 	cpOld = cp;
-	cp = strchr (cp + 1, '/');
+	cp = strchr(cp + 1, '/');
 	*cpOld = '\0';
-	retVal = mkdir (buf, cp ? 0777 : mode);
+	retVal = mkdir(buf, cp ? 0777 : mode);
 	if (retVal != 0 && errno != EEXIST) {
-	    perror( buf);
-	    return( FALSE);
+	    perror(buf);
+	    return FALSE;
 	}
 	*cpOld = '/';
     }
-    return( TRUE);
+    return TRUE;
 }
-#endif
+#endif /* BB_TAR || BB_MKDIR */
 
 
 
@@ -624,7 +662,7 @@ parse_mode( const char* s, mode_t* theMode)
 }
 
 
-#endif
+#endif /* BB_CHMOD_CHOWN_CHGRP || BB_MKDIR */
 
 
 
@@ -712,7 +750,7 @@ my_getgrgid(char* group, gid_t gid)
 }
 
 
-#endif
+#endif /* BB_CHMOD_CHOWN_CHGRP || BB_PS */
 
 
 
@@ -804,7 +842,7 @@ int get_console_fd(char* tty_name)
 }
 
 
-#endif
+#endif /* BB_CHVT || BB_DEALLOCVT */
 
 
 #if !defined BB_REGEXP && (defined BB_GREP || defined BB_SED)  
@@ -883,8 +921,7 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
 	return FALSE;
 }
 
-
-#endif
+#endif /* ! BB_REGEXP && (BB_GREP || BB_SED) */
 
 
 #if defined BB_FIND
@@ -986,7 +1023,7 @@ check_wildcard_match(const char* text, const char* pattern)
 
     return TRUE;
 }
-#endif
+#endif /* BB_FIND */
 
 
 
@@ -1030,7 +1067,7 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
     endmntent(mountTable);
     return mountEntry;
 }
-#endif
+#endif /* BB_DF || BB_MTAB */
 
 
 
@@ -1052,7 +1089,8 @@ extern long getNum (const char *cp)
 	value = value * 10 + *cp++ - '0';
 
     switch (*cp++) {
-    case 'm':
+    case 'M':
+    case 'm': /* `tail' uses it traditionally */
 	value *= 1048576;
 	break;
 
@@ -1080,7 +1118,7 @@ extern long getNum (const char *cp)
 
     return value;
 }
-#endif
+#endif /* BB_DD || BB_TAIL */
 
 
 #if defined BB_INIT || defined BB_HALT || defined BB_REBOOT 
@@ -1120,9 +1158,12 @@ findInitPid()
     }
     return 0;
 }
-#endif
+#endif /* BB_INIT || BB_HALT || BB_REBOOT */
 
-#if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
+#if defined BB_GUNZIP \
+ || defined BB_GZIP   \
+ || defined BB_PRINTF \
+ || defined BB_TAIL
 extern void *xmalloc (size_t size)
 {
     void *cp = malloc (size);
@@ -1138,7 +1179,7 @@ extern void error(char *msg)
     fprintf(stderr, "\n%s\n", msg);
     exit(1);
 }
-#endif
+#endif /* BB_GUNZIP || BB_GZIP || BB_PRINTF || BB_TAIL */
 
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap)
@@ -1149,7 +1190,7 @@ extern int vdprintf(int d, const char *format, va_list ap)
     len = vsprintf(buf, format, ap);
     return write(d, buf, len);
 }
-#endif
+#endif /* BB_SYSLOGD */
 
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device)

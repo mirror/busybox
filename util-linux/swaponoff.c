@@ -65,7 +65,6 @@ static void
 do_em_all()
 {
 	struct mntent *m;
-	char swapName[NAME_MAX];
 	FILE *f = setmntent ("/etc/fstab", "r");
 
 	if (f == NULL) {
@@ -73,8 +72,8 @@ do_em_all()
 	    exit( FALSE); 
 	}
 	while ((m = getmntent (f)) != NULL) {
-	    if (!strstr (m->mnt_type, "swap")) {
-		    swap_enable_disable( swapName);
+	    if (!strstr (m->mnt_type, MNTTYPE_SWAP)) {
+		    swap_enable_disable( m->mnt_fsname);
 	    }
 	}
 	endmntent (f);

@@ -22,9 +22,13 @@
  */
 
 #include "internal.h"
+#define bb_need_name_too_long
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 #include <stdio.h>
 #include <errno.h>
-#include <sys/param.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
 static const char mkdir_usage[] =
 "mkdir [OPTION] DIRECTORY...\n\n"
@@ -40,27 +44,27 @@ static mode_t mode = 0777;
 
 extern int mkdir_main(int argc, char **argv)
 {
-    int i=FALSE;
+    int i = FALSE;
     argc--;
     argv++;
 
     /* Parse any options */
     while (argc > 0 && **argv == '-') {
-	while (i==FALSE && *++(*argv)) {
+	while (i == FALSE && *++(*argv)) {
 	    switch (**argv) {
 	    case 'm':
 		if (--argc == 0)
 		    usage( mkdir_usage);
 		/* Find the specified modes */
 		mode = 0;
-		if ( parse_mode(*(++argv), &mode) == FALSE ) {
+		if (parse_mode(*(++argv), &mode) == FALSE ) {
 		    fprintf(stderr, "Unknown mode: %s\n", *argv);
-		    exit( FALSE);
+		    exit FALSE;
 		}
 		/* Set the umask for this process so it doesn't 
 		 * screw up whatever the user just entered. */
 		umask(0);
-		i=TRUE;
+		i = TRUE;
 		break;
 	    case 'p':
 		parentFlag = TRUE;
@@ -73,7 +77,6 @@ extern int mkdir_main(int argc, char **argv)
 	argv++;
     }
 
-
     if (argc < 1) {
 	usage( mkdir_usage);
     }
@@ -81,13 +84,16 @@ extern int mkdir_main(int argc, char **argv)
     while (argc > 0) {
 	int status;
 	struct stat statBuf;
-	char buf[NAME_MAX];
-
+	char buf[PATH_MAX + 1];
+	if (strlen(*argv) > PATH_MAX - 1) {
+	    fprintf(stderr, name_too_long, "mkdir");
+	    exit FALSE;
+	}
 	strcpy (buf, *argv);
-	status=stat(buf, &statBuf);
-	if (parentFlag == FALSE && status != -1 && status != ENOENT ) {
+	status = stat(buf, &statBuf);
+	if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
 	    fprintf(stderr, "%s: File exists\n", buf);
-	    exit( FALSE);
+	    exit FALSE;
 	}
 	if (parentFlag == TRUE) {
 	    strcat( buf, "/");
@@ -96,13 +102,13 @@ extern int mkdir_main(int argc, char **argv)
 	else { 
 	    if (mkdir (buf, mode) != 0 && parentFlag == FALSE) {
 		perror(buf);
-		exit( FALSE);
+		exit FALSE;
 	    }
 	}
 	argc--;
 	argv++;
     }
-    exit( TRUE);
+    exit TRUE;
 }
 
 

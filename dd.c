@@ -40,15 +40,16 @@ typedef unsigned long long int uintmax_t;
 #endif
 
 static const char dd_usage[] =
-"dd [if=name] [of=name] [bs=n] [count=n]\n\n"
+"dd [if=name] [of=name] [bs=n] [count=n] [skip=n] [seek=n]\n\n"
 "Copy a file, converting and formatting according to options\n\n"
 "\tif=FILE\tread from FILE instead of stdin\n"
-"\tof=FILE\twrite to FILE instead of stout\n"
-"\tbs=n\tread and write N BYTES at a time\n"
+"\tof=FILE\twrite to FILE instead of stdout\n"
+"\tbs=n\tread and write n bytes at a time\n"
 "\tcount=n\tcopy only n input blocks\n"
-//"\tskip=n\tskip n input blocks\n"
+"\tskip=n\tskip n input blocks\n"
+"\tseek=n\tskip n output blocks\n"
 "\n"
-"BYTES may be suffixed by w (x2), k (x1024), b (x512), or m (x1024^2).\n";
+"Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)\n";
 
 
 
@@ -61,8 +62,9 @@ extern int dd_main (int argc, char **argv)
     int outFd;
     int inCc = 0;
     int outCc;
-    size_t blockSize = 512;
-    //uintmax_t skipBlocks = 0;
+    long blockSize = 512;
+    uintmax_t skipBlocks = 0;
+    uintmax_t seekBlocks = 0;
     uintmax_t count = (uintmax_t)-1;
     uintmax_t intotal;
     uintmax_t outTotal;
@@ -91,16 +93,22 @@ extern int dd_main (int argc, char **argv)
 		goto usage;
 	    }
 	}
-#if 0
 	else if (strncmp(*argv, "skip", 4) == 0) {
-	    skipBlocks = atoi( *argv); 
+	    skipBlocks = getNum ((strchr(*argv, '='))+1);
 	    if (skipBlocks <= 0) {
-		fprintf (stderr, "Bad skip value %d\n", skipBlocks);
+		fprintf (stderr, "Bad skip value %s\n", *argv);
 		goto usage;
 	    }
 
 	}
-#endif
+	else if (strncmp(*argv, "seek", 4) == 0) {
+	    seekBlocks = getNum ((strchr(*argv, '='))+1);
+	    if (seekBlocks <= 0) {
+		fprintf (stderr, "Bad seek value %s\n", *argv);
+		goto usage;
+	    }
+
+	}
 	else {
 	    goto usage;
 	}
@@ -131,7 +139,7 @@ extern int dd_main (int argc, char **argv)
     if (outFile == NULL)
 	outFd = fileno(stdout);
     else
-	outFd = creat (outFile, 0666);
+	outFd = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
     if (outFd < 0) {
 	perror (outFile);
@@ -140,10 +148,11 @@ extern int dd_main (int argc, char **argv)
 	exit( FALSE);
     }
 
-    //lseek(inFd, skipBlocks*blockSize, SEEK_SET);
+    lseek(inFd, skipBlocks*blockSize, SEEK_SET);
+    lseek(outFd, seekBlocks*blockSize, SEEK_SET);
     //
     //TODO: Convert to using fullRead & fullWrite
-    // from utilitity.c
+    // from utility.c
     //  -Erik
     while (outTotal < count * blockSize) {
 	inCc = read (inFd, buf, blockSize);

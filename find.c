@@ -90,7 +90,7 @@ int find_main(int argc, char **argv)
 		if (strcmp(*argv, "name")==0) {
 		    if (argc-- > 1) {
 			pattern = *(++argv);
-			stopit=TRUE;
+			stopit = TRUE;
 		    } else {
 			usage (find_usage);
 		    }

@@ -3,6 +3,9 @@
    */
 
 #include "internal.h"
+#define bb_need_name_too_long
+#define BB_DECLARE_EXTERN
+#include "messages.c"
 
 static const char gunzip_usage[] =
     "gunzip [OPTION]... FILE\n\n"
@@ -64,6 +67,7 @@ static char  *license_msg[] = {
 #include <signal.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/param.h>		/* for PATH_MAX */
 
 /* #include "tailor.h" */
 
@@ -627,8 +631,12 @@ typedef RETSIGTYPE (*sig_type) OF((int));
 #endif
 #define RW_USER (S_IRUSR | S_IWUSR)  /* creation mode for open() */
 
-#ifndef MAX_PATH_LEN
-#  define MAX_PATH_LEN   1024 /* max pathname length */
+#ifndef MAX_PATH_LEN /* max pathname length */
+#  ifdef PATH_MAX
+#    define MAX_PATH_LEN   PATH_MAX
+#  else
+#    define MAX_PATH_LEN   1024
+#  endif
 #endif
 
 #ifndef SEEK_END
@@ -696,8 +704,8 @@ int gunzip_main (int argc, char** argv)
     int delInputFile=0;
     struct stat statBuf;
     char* delFileName; 
-    char ifname[MAX_PATH_LEN]; /* input file name */
-    char ofname[MAX_PATH_LEN]; /* output file name */
+    char ifname[MAX_PATH_LEN + 1]; /* input file name */
+    char ofname[MAX_PATH_LEN + 1]; /* output file name */
 
     if (argc==1)
 	usage(gunzip_usage);
@@ -764,7 +772,11 @@ int gunzip_main (int argc, char** argv)
 	/* Open up the input file */
 	if (*argv=='\0')
 	    usage(gunzip_usage);
-	strncpy(ifname, *argv, MAX_PATH_LEN);
+	if (strlen(*argv) > MAX_PATH_LEN) {
+	    fprintf(stderr, name_too_long, "gunzip");
+	    do_exit(WARNING);
+	}
+	strcpy(ifname, *argv);
 
 	/* Open input fille */
 	inFileNum=open( ifname, O_RDONLY);
@@ -799,7 +811,11 @@ int gunzip_main (int argc, char** argv)
 	char* pos;
 
 	/* And get to work */
-	strncpy(ofname, ifname, MAX_PATH_LEN-4);
+	if (strlen(ifname) > MAX_PATH_LEN - 4) {
+	    fprintf(stderr, name_too_long, "gunzip");
+	    do_exit(WARNING);
+	}
+	strcpy(ofname, ifname);
 	pos=strstr(ofname, ".gz");
 	if (pos != NULL) {
 	    *pos='\0';
