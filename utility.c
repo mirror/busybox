@@ -641,7 +641,7 @@ int recursiveAction(const char *fileName,
 			status =
 				recursiveAction(nextFile, TRUE, followLinks, depthFirst,
 								fileAction, dirAction, userData);
-			if (status < 0) {
+			if (status == FALSE) {
 				closedir(dir);
 				return FALSE;
 			}

@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.19 2000/07/19 17:35:54 andersen Exp $"
+#ident "$Id: insmod.c,v 1.20 2000/08/01 18:16:56 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.19 2000/07/19 17:35:54 andersen Exp $"
+#ident "$Id: insmod.c,v 1.20 2000/08/01 18:16:56 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2694,7 +2694,7 @@ extern int insmod_main( int argc, char **argv)
 	if ((fp = fopen(*argv, "r")) == NULL) {
 		/* Hmpf.  Could not open it. Search through _PATH_MODULES to find a module named m_name */
 		if (recursiveAction(_PATH_MODULES, TRUE, FALSE, FALSE,
-							findNamedModule, 0, m_fullName) == TRUE) 
+							findNamedModule, 0, m_fullName) == FALSE) 
 		{
 			if (m_filename[0] == '\0'
 				|| ((fp = fopen(m_filename, "r")) == NULL)) 
@@ -2702,7 +2702,8 @@ extern int insmod_main( int argc, char **argv)
 				errorMsg("No module named '%s' found in '%s'\n", m_fullName, _PATH_MODULES);
 				exit(FALSE);
 			}
-		}
+		} else
+			fatalError("No module named '%s' found in '%s'\n", m_fullName, _PATH_MODULES);
 	} else
 		memcpy(m_filename, *argv, strlen(*argv));
 
