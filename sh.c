@@ -394,10 +394,10 @@ static int getCommand(FILE * source, char *command)
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		int len;
 		char *promptStr;
-		len=fprintf(stdout, "BBSHELL %s %s", cwd, prompt);
+		len=fprintf(stdout, "%s %s", cwd, prompt);
 		fflush(stdout);
 		promptStr=(char*)malloc(sizeof(char)*(len+1));
-		sprintf(promptStr, "BBSHELL %s %s", cwd, prompt);
+		sprintf(promptStr, "%s %s", cwd, prompt);
 		cmdedit_read_input(promptStr, fileno(stdin), fileno(stdout), command);
 		free( promptStr);
 		return 0;
