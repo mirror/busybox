@@ -243,6 +243,11 @@ extern int grep_main(int argc, char **argv)
 		perror_msg_and_die("atexit");
 #endif
 
+#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
+	if (strcmp (basename (argv[0]), "egrep") == 0)
+		reflags |= REG_ICASE;
+#endif
+
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:"
 #ifdef CONFIG_FEATURE_GREP_CONTEXT

@@ -8,6 +8,9 @@ comment 'Finding Utilities'
 
 bool 'find'	    CONFIG_FIND
 bool 'grep'	    CONFIG_GREP
+if [ "$CONFIG_GREP" = "y" ] ; then
+	bool ' egrep alias' CONFIG_FEATURE_GREP_EGREP_ALIAS
+fi
 bool 'which'	    CONFIG_WHICH
 bool 'xargs'	    CONFIG_XARGS
 endmenu

@@ -149,7 +149,7 @@
 #ifdef CONFIG_ECHO
 	APPLET(echo, echo_main, _BB_DIR_BIN)
 #endif
-#if defined(CONFIG_FEATURE_GREP_EGREP_ALIAS) && defined(CONFIG_GREP)
+#if defined(CONFIG_FEATURE_GREP_EGREP_ALIAS)
 	APPLET_NOUSAGE("egrep", grep_main, _BB_DIR_BIN)
 #endif
 #ifdef CONFIG_ENV
