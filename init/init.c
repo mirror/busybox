@@ -635,6 +635,7 @@ static void run_actions(initActionEnum action)
 #ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
+	sigset_t block_signals;
 
 	/* first disable all our signals */
 	sigemptyset(&block_signals);
