@@ -19,8 +19,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+  /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
+  * flexible :
+  *
+  * if bufsize is > 0 char *group cannot be set to NULL
+  *                   on success groupname is written on static allocated buffer
+  *                   on failure gid as string is written to buffer and NULL is returned
+  * if bufsize is = 0 char *group can be set to NULL
+  *                   on success groupname is returned 
+  *                   on failure NULL is returned
+  * if bufsize is < 0 char *group can be set to NULL
+  *                   on success groupname is returned
+  *                   on failure an error message is printed and the program exits   
+  */
+  
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "libbb.h"
 #include "pwd_.h"
 #include "grp_.h"
@@ -33,10 +48,21 @@ char * my_getgrgid(char *group, long gid, int bufsize)
 
 	mygroup  = getgrgid(gid);
 	if (mygroup==NULL) {
-		snprintf(group, bufsize, "%ld", gid);
+		if(bufsize > 0) {
+			assert(group != NULL);
+			snprintf(group, bufsize, "%ld", (long)gid);
+		}
+		if( bufsize < 0 ) {
+			bb_error_msg_and_die("unknown gid %ld", (long)gid);
+		} 
 		return NULL;
 	} else {
-		return safe_strncpy(group, mygroup->gr_name, bufsize);
+		if(bufsize > 0)
+		{
+			assert(group != NULL);
+			return safe_strncpy(group, mygroup->gr_name, bufsize);
+		}
+		return mygroup->gr_name;
 	}
 }
 

@@ -26,21 +26,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
-#include "pwd_.h"
-#include "grp_.h"
 
 extern int whoami_main(int argc, char **argv)
 {
-	struct passwd *p;
-	uid_t uid;
-	
 	if (argc > 1)
 		bb_show_usage();
 
-	uid = geteuid();
-	if((p = getpwuid(uid))!=NULL) {
-		puts(p->pw_name);
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
-	}
-	bb_error_msg_and_die("cannot find username for UID %u", (unsigned) uid);
+	puts(my_getpwuid(NULL, geteuid(), -1));
+	/* exits on error */
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

@@ -145,7 +145,6 @@ extern int passwd_main(int argc, char **argv)
 	int uflg = 0;				/* -u - unlock account */
 	int dflg = 0;				/* -d - delete password */
 	const struct passwd *pw;
-	unsigned short ruid;
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	const struct spwd *sp;
@@ -170,12 +169,8 @@ extern int passwd_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	}
-	ruid = getuid();
-	pw = (struct passwd *) getpwuid(ruid);
-	if (!pw) {
-               bb_error_msg_and_die("Cannot determine your user name.");
-	}
-	myname = (char *) bb_xstrdup(pw->pw_name);
+	myname = (char *) bb_xstrdup(my_getpwuid(NULL, getuid(), -1));
+	/* exits on error */
 	if (optind < argc) {
 		name = argv[optind];
 	} else {

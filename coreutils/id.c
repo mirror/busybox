@@ -21,90 +21,121 @@
  */
 
 /* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
+/* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever length and to
+ * be more similar to GNU id. 
+ */
 
 #include "busybox.h"
+#include "grp_.h"
+#include "pwd_.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
 #include <sys/types.h>
+
 #ifdef CONFIG_SELINUX
 #include <proc_secure.h>
 #include <flask_util.h>
 #endif
 
-#define JUST_USER         1
-#define JUST_GROUP        2
-#define PRINT_REAL        4
-#define NAME_NOT_NUMBER   8
+#define PRINT_REAL        1
+#define NAME_NOT_NUMBER   2
+#define JUST_USER         4
+#define JUST_GROUP        8
+
+void printf_full(unsigned int id, char *arg, char prefix)
+{	
+	printf("%cid=%u",prefix, id);
+	if(arg)
+		printf("(%s) ", arg);
+}
 
 extern int id_main(int argc, char **argv)
 {
-	char user[32], group[32];
-	long pwnam, grnam;
-	int uid, gid;
+	struct passwd *p;
+	char *user;
+	char *group;
+	uid_t uid;
+	gid_t gid;
 	int flags;
 #ifdef CONFIG_SELINUX
 	int is_flask_enabled_flag = is_flask_enabled();
 #endif
 
-	flags = bb_getopt_ulflags(argc, argv, "ugrn");
+	bb_opt_complementaly = "u~g:g~u";
+	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-	if (((flags & (JUST_USER | JUST_GROUP)) == (JUST_USER | JUST_GROUP))
-		|| (argc > optind + 1)
-	) {
+	if ((flags & 0x80000000UL)
+	 /* Don't allow -n -r -nr */
+	|| (flags <= 3 && flags > 0) 
+	|| (argc > optind + 1))
 		bb_show_usage();
+	
+	/* This values could be overwritten later */
+	uid = geteuid();
+	gid = getegid();
+	if (flags & PRINT_REAL) {
+		uid = getuid();
+		gid = getgid();
 	}
+	
+	if(argv[optind])
+	{
 
-	if (argv[optind] == NULL) {
-		if (flags & PRINT_REAL) {
-			uid = getuid();
-			gid = getgid();
-		} else {
-			uid = geteuid();
-			gid = getegid();
-		}
-		my_getpwuid(user, uid, sizeof(user));
-	} else {
-		safe_strncpy(user, argv[optind], sizeof(user));
-	    gid = my_getpwnamegid(user);
+		p=getpwnam(argv[optind]);
+		/* this is needed because it exits on failure */
+		uid = my_getpwnam(argv[optind]);
+		gid = p->pw_gid;
+		/* in this case PRINT_REAL is the same */ 
 	}
-	my_getgrgid(group, gid, sizeof(group));
+	
+	user=my_getpwuid(NULL, uid, (flags & JUST_USER) ? -1 : 0);
 
-	pwnam=my_getpwnam(user);
-	grnam=my_getgrnam(group);
+	if(flags & JUST_USER)
+	{
+		gid=uid;
+		group=user;
+		goto PRINT; 
+	}
+	
+	group=my_getgrgid(NULL, gid, (flags & JUST_GROUP) ? -1 : 0);
 
-	if (flags & (JUST_GROUP | JUST_USER)) {
-		char *s = group;
-		if (flags & JUST_USER) {
-			s = user;
-			grnam = pwnam;
-		}
-		if (flags & NAME_NOT_NUMBER) {
-			puts(s);
-		} else {
-			printf("%ld\n", grnam);
-		}
-	} else {
-#ifdef CONFIG_SELINUX
-		printf("uid=%ld(%s) gid=%ld(%s)", pwnam, user, grnam, group);
-		if(is_flask_enabled_flag)
-		{
-			security_id_t mysid = getsecsid();
-			char context[80];
-			int len = sizeof(context);
-			context[0] = '\0';
-			if(security_sid_to_context(mysid, context, &len))
-				strcpy(context, "unknown");
-			printf(" context=%s\n", context);
-		}
+	if(flags & JUST_GROUP) 
+	{
+PRINT:		
+		if(flags & NAME_NOT_NUMBER)
+			puts(group);
 		else
-			printf("\n");
-#else
-		printf("uid=%ld(%s) gid=%ld(%s)\n", pwnam, user, grnam, group);
-#endif
-
+			printf ("%u\n", gid);
+		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
-
-	bb_fflush_stdout_and_exit(0);
+	
+	/* Print full info like GNU id */
+	printf_full(uid, user, 'u');
+	printf_full(gid, group, 'g');
+#ifdef CONFIG_SELINUX
+	if(is_flask_enabled_flag)
+	{
+		security_id_t mysid = getsecsid();
+		char context[80];
+		int len = sizeof(context);
+		context[0] = '\0';
+		if(security_sid_to_context(mysid, context, &len))
+			strcpy(context, "unknown");
+		printf("context=%s", context);
+	}
+#endif
+	puts("");
+	bb_fflush_stdout_and_exit((user && group) ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+
+/* END CODE */
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
+

@@ -19,8 +19,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+ /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
+  * flexible :
+  *
+  * if bufsize is > 0 char *user can not be set to NULL
+  *                   on success username is written on static allocated buffer
+  *                   on failure uid as string is written to buffer and NULL is returned
+  * if bufsize is = 0 char *user can be set to NULL
+  *                   on success username is returned 
+  *                   on failure NULL is returned
+  * if bufsize is < 0 char *user can be set to NULL
+  *                   on success username is returned
+  *                   on failure an error message is printed and the program exits   
+  */
+  
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "libbb.h"
 #include "pwd_.h"
 #include "grp_.h"
@@ -34,10 +49,21 @@ char * my_getpwuid(char *name, long uid, int bufsize)
 
 	myuser  = getpwuid(uid);
 	if (myuser==NULL) {
-		snprintf(name, bufsize, "%ld", (long)uid);
+		if(bufsize > 0) {
+			assert(name != NULL);
+			snprintf(name, bufsize, "%ld", (long)uid);
+		}
+		if (bufsize < 0 ) {
+			bb_error_msg_and_die("unknown uid %ld", (long)uid); 
+		}
 		return NULL;
 	} else {
-		return safe_strncpy(name, myuser->pw_name, bufsize);
+		if(bufsize > 0 )
+		{
+			assert(name != NULL);
+			return safe_strncpy(name, myuser->pw_name, bufsize);
+		}
+		return myuser->pw_name;
 	}
 }
 
