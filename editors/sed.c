@@ -111,7 +111,10 @@ typedef struct sed_cmd_s {
 
 /* globals */
 /* options */
-static int be_quiet = 0;
+static int be_quiet = 0, in_place=0;
+FILE *nonstdout;
+char *outname;
+
 
 static const char bad_format_in_subst[] =
 	"bad format in substitution expression";
@@ -167,6 +170,13 @@ static void free_and_close_stuff(void)
 	}
 }
 #endif
+
+/* If something bad happens during -i operation, delete temp file */
+
+static void cleanup_outname(void)
+{
+  if(outname) unlink(outname);
+}
 
 /* strdup, replacing "\n" with '\n', and "\delimiter" with 'delimiter' */
 
@@ -690,7 +700,7 @@ static void flush_append(void)
 {
 	/* Output appended lines. */
 	while(append_head) {
-		puts(append_head->string);
+		fprintf(nonstdout,"%s\n",append_head->string);
 		append_tail=append_head->next;
 		free(append_head->string);
 		free(append_head);
@@ -728,12 +738,17 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 	fputs(s,file);
 	if(!no_newline) fputc('\n',file);
 
+    if(ferror(file)) {
+		fprintf(stderr,"Write failed.\n");
+		exit(4);  /* It's what gnu sed exits with... */
+	}
+
 	return no_newline;
 }
 
-#define sed_puts(s,n) missing_newline=puts_maybe_newline(s,stdout,missing_newline,n)
+#define sed_puts(s,n) missing_newline=puts_maybe_newline(s,nonstdout,missing_newline,n)
 
-static void process_file(FILE * file)
+static void process_file(FILE *file)
 {
 	char *pattern_space, *next_line, *hold_space=NULL;
 	static int linenum = 0, missing_newline=0;
@@ -819,7 +834,7 @@ restart:
 
 					/* Print line number */
 					case '=':
-						printf("%d\n", linenum);
+						fprintf(nonstdout,"%d\n", linenum);
 						break;
 
 					/* Write the current pattern space up to the first newline */
@@ -1091,8 +1106,12 @@ extern int sed_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "ne:f:")) > 0) {
+	while ((opt = getopt(argc, argv, "ine:f:")) > 0) {
 		switch (opt) {
+		case 'i':
+			in_place++;
+			atexit(cleanup_outname);
+			break;
 		case 'n':
 			be_quiet++;
 			break;
@@ -1131,23 +1150,51 @@ extern int sed_main(int argc, char **argv)
 	/* Flush any unfinished commands. */
 	add_cmd("");
 
+	/* By default, we write to stdout */
+	nonstdout=stdout;
+
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
 	if (argv[optind] == NULL) {
+		if(in_place) {
+			fprintf(stderr,"sed: Filename required for -i\n");
+			exit(1);
+		}
 		process_file(stdin);
 	} else {
 		int i;
 		FILE *file;
 
 		for (i = optind; i < argc; i++) {
-			if(!strcmp(argv[i], "-")) {
+			if(!strcmp(argv[i], "-") && !in_place) {
 				process_file(stdin);
 			} else {
 				file = bb_wfopen(argv[i], "r");
 				if (file) {
+					if(in_place) {
+						struct stat statbuf;
+						outname=bb_xstrndup(argv[i],strlen(argv[i])+6);
+						strcat(outname,"XXXXXX");
+						/* Set permissions of output file */
+						fstat(fileno(file),&statbuf);
+						mkstemp(outname);
+						nonstdout=bb_wfopen(outname,"w");
+						/* Set permissions of output file */
+						fstat(fileno(file),&statbuf);
+						fchmod(fileno(file),statbuf.st_mode);
+						atexit(cleanup_outname);
+					}
 					process_file(file);
 					fclose(file);
+					if(in_place) {
+						fclose(nonstdout);
+						nonstdout=stdout;
+						unlink(argv[i]);
+						rename(outname,argv[i]);
+						free(outname);
+						outname=0;
+					}
 				} else {
 					status = EXIT_FAILURE;
 				}
