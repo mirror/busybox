@@ -37,6 +37,8 @@
  * used in busybox and size optimizations,
  * support locale, rewrited arith (see notes to this)
  *
+ * Modified by Paul Mundt <lethal@linux-sh.org> (c) 2004 to support
+ * dynamic variables.
  */
 
 
@@ -88,7 +90,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <sysexits.h>
-
+#include <time.h>
 #include <fnmatch.h>
 
 
@@ -1465,6 +1467,7 @@ static void reset(void);
 #define VNOFUNC         0x40    /* don't call the callback function */
 #define VNOSET          0x80    /* do not set variable - just readonly test */
 #define VNOSAVE         0x100   /* when text is on the heap before setvareq */
+#define VDYNAMIC		0x200	/* dynamic variable */
 
 
 struct var {
@@ -1474,6 +1477,9 @@ struct var {
 	void (*func)(const char *);
 					/* function to be called when  */
 					/* the variable gets set/unset */
+	char *(*lookup_func)(const char *);
+					/* function to be called when  */
+					/* the variable is read (if dynamic) */
 };
 
 struct localvar {
@@ -1500,6 +1506,9 @@ static void change_lc_all(const char *value);
 static void change_lc_ctype(const char *value);
 #endif
 
+static char *get_random(const char *);
+static void change_random(const char *);
+
 #define VTABSIZE 39
 
 static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
@@ -1513,30 +1522,32 @@ static const char defifs[] = " \t\n";
 
 static struct var varinit[] = {
 #ifdef IFS_BROKEN
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0, 0 },
 #else
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0, 0 },
 #endif
 
 #ifdef CONFIG_ASH_MAIL
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail, 0 },
 #endif
 
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0,			0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0, 			0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0,			0 },
 #ifdef CONFIG_ASH_GETOPTS
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset, 0 },
 #endif
 #ifdef CONFIG_LOCALE_SUPPORT
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL=", change_lc_all},
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE=", change_lc_ctype},
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL=", change_lc_all, 0},
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE=", change_lc_ctype, 0},
 #endif
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE=", NULL},
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE=", NULL, 0},
 #endif
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET | VDYNAMIC, "RANDOM\0",
+		change_random, get_random},
 };
 
 #define vifs varinit[0]
@@ -9019,6 +9030,22 @@ static void change_lc_ctype(const char *value)
 
 #endif
 
+/* Roughly copied from bash.. */
+static unsigned long rseed = 1;
+static char *get_random(const char *var)
+{
+	char buf[255];
+	rseed = (rseed + getpid() + ((time_t)time((time_t *)0)));
+	rseed = rseed * 1103515245 + 12345;
+	sprintf(buf, "%d", (unsigned int)((rseed >> 16 & 32767)));
+	return bb_xstrdup(buf);
+}
+
+static void change_random(const char *value)
+{
+	rseed = strtoul(value, (char **)NULL, 10);
+}
+
 #ifdef CONFIG_ASH_GETOPTS
 static int
 getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *optoff)
@@ -12031,9 +12058,20 @@ lookupvar(const char *name)
 {
 	struct var *v;
 
-	if ((v = *findvar(hashvar(name), name)) && !(v->flags & VUNSET)) {
+	if ((v = *findvar(hashvar(name), name)) && !(v->flags & (VUNSET|VDYNAMIC))) {
 		return strchrnul(v->text, '=') + 1;
 	}
+
+	/*
+	 * Dynamic variables are implemented roughly the same way they are
+	 * in bash. Namely, they're "special" so long as they aren't unset.
+	 * As soon as they're unset, they're no longer dynamic, and dynamic
+	 * lookup will no longer happen at that point. -- PFM.
+	 */
+	if (v && ((v->flags & VDYNAMIC)))
+		if (v->lookup_func)
+			return v->lookup_func(name);
+
 	return NULL;
 }
 
@@ -12308,6 +12346,8 @@ unsetvar(const char *s)
 		retval = 1;
 		if (flags & VREADONLY)
 			goto out;
+		if (flags & VDYNAMIC)
+			vp->flags &= ~VDYNAMIC;
 		if (flags & VUNSET)
 			goto ok;
 		if ((flags & VSTRFIXED) == 0) {
