@@ -268,18 +268,18 @@ enum {
 	FILEUTILS_INTERACTIVE = 16
 };
 
-extern const char *applet_name;
-extern const char *full_version;
-extern const char *name_too_long;
-extern const char *omitting_directory;
-extern const char *not_a_directory;
-extern const char *memory_exhausted;
-extern const char *invalid_date;
-extern const char *invalid_option;
-extern const char *io_error;
-extern const char *dash_dash_help;
-extern const char *write_error;
-extern const char *too_few_args;
-extern const char *name_longer_than_foo;
+extern const char * const applet_name;
+extern const char * const full_version;
+extern const char * const name_too_long;
+extern const char * const omitting_directory;
+extern const char * const not_a_directory;
+extern const char * const memory_exhausted;
+extern const char * const invalid_date;
+extern const char * const invalid_option;
+extern const char * const io_error;
+extern const char * const dash_dash_help;
+extern const char * const write_error;
+extern const char * const too_few_args;
+extern const char * const name_longer_than_foo;
 
 #endif /* __LIBBB_H__ */
