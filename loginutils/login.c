@@ -325,7 +325,7 @@ static int check_tty ( const char *tty )
 		return 0;
 	}
 	/* A missing securetty file is not an error. */
-	return 0;
+	return 1;
 }
 
 #endif
