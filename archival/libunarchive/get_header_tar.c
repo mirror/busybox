@@ -29,6 +29,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 {
 	file_header_t *file_header = archive_handle->file_header;
 	union {
+		/* ustar header, Posix 1003.1 */
 		unsigned char raw[512];
 		struct {
 			char name[100];	/*   0-99 */
@@ -128,12 +129,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 			file_header->mode |= S_IFREG;
 		}
 		break;
-#if 0
-	/* hard links are detected as entries with 0 size, a link name, 
-	 * and not being a symlink, hence we have nothing to do here */
-	case '1':
-		break;
-#endif
 	case '2':
 		file_header->mode |= S_IFLNK;
 		break;
@@ -150,6 +145,11 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFIFO;
 		break;
 # endif
+	/* hard links are detected as entries with 0 size, a link name, 
+	 * and not being a symlink, hence we have nothing to do here */
+	case '1':
+		file_header->mode |= ~S_IFLNK;
+		break;
 # ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(file_header->size + 1);
