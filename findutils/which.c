@@ -58,7 +58,7 @@ extern int which_main(int argc, char **argv)
 			if (stat (buf, &filestat) == 0
 			    && filestat.st_mode & S_IXUSR)
 			{
-				printf ("%s\n", buf);
+				puts(buf);
 				found = 1;
 				break;
 			}

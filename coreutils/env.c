@@ -66,7 +66,7 @@ extern int env_main(int argc, char** argv)
 		perror_msg_and_die("%s", *argv);
 	}
 	for (ep = environ; *ep; ep++)
-		printf("%s\n", *ep);
+		puts(*ep);
 	return 0;
 }
 

@@ -170,7 +170,7 @@ static void grep_file(FILE *file)
 	}
 	/* just grep -l: print just the filename, but only if we grepped the line in the file  */
 	else if (print_files_with_matches && !print_match_counts && nmatches > 0) {
-		printf("%s\n", cur_file);
+		puts(cur_file);
 	}
 
 

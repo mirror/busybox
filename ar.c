@@ -119,7 +119,7 @@ extern int ar_main(int argc, char **argv)
 				(int) ar_extract_list->size, time_string(ar_extract_list->mtime));
 		}
 		if ((funct & display) || (funct & verbose)){
-			printf("%s\n", ar_extract_list->name);
+			puts(ar_extract_list->name);
 		}
 		ar_extract_list = ar_extract_list->next;
 	}

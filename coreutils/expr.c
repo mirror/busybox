@@ -89,8 +89,8 @@ int expr_main (int argc, char **argv)
 
 	if (v->type == integer)
 		printf ("%d\n", v->u.i);
-	else 
-		printf ("%s\n", v->u.s);
+	else
+		puts (v->u.s);
 
 	exit (null (v));
 }

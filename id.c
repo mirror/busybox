@@ -79,12 +79,12 @@ extern int id_main(int argc, char **argv)
 
 	if (no_group) {
 		if(name_not_number && user)
-			printf("%s\n",user);
+			puts(user);
 		else
 			printf("%ld\n", pwnam);
 	} else if (no_user) {
 		if(name_not_number && group)
-			printf("%s\n", group);
+			puts(group);
 		else
 			printf("%ld\n", grnam);
 	} else {

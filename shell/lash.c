@@ -416,7 +416,7 @@ static int builtin_pwd(struct child_prog *dummy)
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
 		cwd = unknown;
-	printf( "%s\n", cwd);
+	puts(cwd);
 	return EXIT_SUCCESS;
 }
 
@@ -429,7 +429,7 @@ static int builtin_export(struct child_prog *child)
 	if (v == NULL) {
 		char **e;
 		for (e = environ; *e; e++) {
-			printf( "%s\n", *e);
+			puts(*e);
 		}
 		return 0;
 	}

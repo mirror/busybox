@@ -241,7 +241,7 @@ int date_main(int argc, char **argv)
 	/* Print OUTPUT (after ALL that!) */
 	t_buff = xmalloc(201);
 	strftime(t_buff, 200, date_fmt, &tm_time);
-	printf("%s\n", t_buff);
+	puts(t_buff);
 
 	return EXIT_SUCCESS;
 }

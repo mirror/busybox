@@ -99,7 +99,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 			field_length = strlen(field);
 			field_start += (field_length + 1);
 			if (strstr(field, argument) == field) {
-				printf("%s\n", field + strlen(argument) + 2);
+				puts(field + strlen(argument) + 2);
 			}
 			free(field);
 		}

@@ -47,6 +47,6 @@ extern int basename_main(int argc, char **argv)
 		if (m>=n && strncmp(s+m-n, *argv, n)==0)
 			s[m-n] = '\0';
 	}
-	printf("%s\n", s);
+	puts(s);
 	return EXIT_SUCCESS;
 }
