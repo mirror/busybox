@@ -53,14 +53,16 @@ for $a (@apps) {
 	print O "#define BB_$a\n", $trailer;
 	close O;
 	system("echo -e '\n***\n$a\n***' >>$logfile");
-	# todo: figure out why the "rm -f *.o" is needed
-	$result{$a} = system("rm -f *.o; make $make_opt busybox >>$logfile 2>&1");
+	# With a fast computer and 1-second resolution on file timestamps, this
+	# process pushes beyond the limits of what unix make can understand.
+	# That's why need to weed out obsolete files before restarting make.
+	$result{$a} = system("rm -f *.o applet_source_list; make $make_opt busybox >>$logfile 2>&1");
 	$flag = $result{$a} ? "FAILED!!!" : "ok";
 	printf("Applet %-20s: %s\n", $a, $flag);
 	$total_tests++;
 	$failed_tests++ if $flag eq "FAILED!!!";
 	# pause long enough to let user stop us with a ^C
-	select(undef, undef, undef, 0.05);
+	select(undef, undef, undef, 0.03);
 }
 
 # Clean up our mess
