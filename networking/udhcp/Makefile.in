@@ -45,5 +45,6 @@ libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
 $(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
 	$(AR) -ro $@ $(UDHCP_OBJS)
 
-$(UDHCP_OBJS): $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
+$(UDHCP_OBJS): %.o : %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DIN_BUSYBOX -c $< -o $@
+
