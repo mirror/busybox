@@ -232,20 +232,20 @@ distclean: clean
 
 release: distclean #doc
 	cd ..;					\
-	rm -rf busybox-$(VERSION);		\
-	cp -a busybox busybox-$(VERSION);	\
+	rm -rf $(PROG)-$(VERSION);		\
+	cp -a busybox $(PROG)-$(VERSION);	\
 						\
-	find busybox-$(VERSION)/ -type d	\
+	find $(PROG)-$(VERSION)/ -type d	\
 				 -name CVS	\
 				 -print		\
 		-exec rm -rf {} \; ;            \
 						\
-	find busybox-$(VERSION)/ -type f	\
+	find $(PROG)-$(VERSION)/ -type f	\
 				 -name .\#*	\
 				 -print		\
 		-exec rm -f {} \;  ;            \
 						\
-	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
+	tar -cvzf $(PROG)-$(VERSION).tar.gz $(PROG)-$(VERSION)/;
 
 tags:
 	ctags -R .
