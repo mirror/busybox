@@ -33,7 +33,8 @@ static int compare_ascii(const void *x, const void *y)
 
 static int compare_numeric(const void *x, const void *y)
 {
-	return atoi(*(char **)x) - atoi(*(char **)y);
+	int z = atoi(*(char **)x) - atoi(*(char **)y);
+	return z ? z : strcmp(*(char **)x, *(char **)y);
 }
 
 int sort_main(int argc, char **argv)
@@ -70,6 +71,7 @@ int sort_main(int argc, char **argv)
 
 		while ((line = get_line_from_file(fp)) != NULL) {
 			lines = xrealloc(lines, sizeof(char *) * (nlines + 1));
+			line[strlen(line) - 1] = '\0';
 			lines[nlines++] = line;
 		}
 	}
@@ -81,10 +83,10 @@ int sort_main(int argc, char **argv)
 #ifdef BB_FEATURE_SORT_REVERSE
 	if (reverse)
 		for (i = nlines - 1; 0 <= i; i--)
-			fputs(lines[i], stdout);
+			puts(lines[i]);
 	else
 #endif
 	for (i = 0; i < nlines; i++)
-		fputs(lines[i], stdout);
+		puts(lines[i]);
 	return EXIT_SUCCESS;
 }
