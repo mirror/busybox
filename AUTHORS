@@ -1,0 +1,40 @@
+List of the authors of code contained in busybox.
+
+If you should be listed here, or the description of 
+what you have done needs more detail, or is incorect, 
+_please_ let me know.
+
+ -Erik
+
+-----------
+
+Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+    Tons of new stuff, major rewrite of most of the
+    core apps, tons of new apps as noted in header files.
+
+Bruce Perens <bruce@pixar.com>
+    Original author of BusyBox. His code is still in many apps.
+
+John Beppu <beppu@lineo.com>
+    du, head, tee
+
+Brian Candler <B.Candler@pobox.com>
+    tiny-ls(ls)
+
+Randolph Chung <tausq@debian.org>
+    fbset, ping, hostname, and mkfifo
+
+Dave Cinege <dcinege@psychosis.com>	
+    more(v2), makedevs, dutmp, modularization, auto links file, 
+    various fixes, Linux Router Project maintenance
+
+Linus Torvalds <torvalds@transmeta.com>
+    mkswap, fsck.minix, mkfs.minix
+
+Charles P. Wright <cpwright@villagenet.com>
+    gzip, mini-netcat(nc)
+
+Enrique Zanardi <ezanardi@ull.es>
+    tarcat (since removed), loadkmap, various fixes, Debian maintenance
+
+
