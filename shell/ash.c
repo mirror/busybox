@@ -308,7 +308,6 @@ static int stacknleft = MINSIZE;
 #define STADJUST(amount, p)     (p += (amount), sstrnleft -= (amount))
 #define grabstackstr(p) stalloc(stackblocksize() - sstrnleft)
 
-#define ckfree(p)       free((pointer)(p))
 
 
 #ifdef DEBUG
@@ -1305,7 +1304,7 @@ setalias(char *name, char *val)
 	INTOFF;
 	if (ap) {
 		if (!(ap->flag & ALIASINUSE)) {
-			ckfree(ap->val);
+			free(ap->val);
 		}
 		ap->val = xstrdup(val);
 		ap->flag &= ~ALIASDEAD;
@@ -1446,9 +1445,9 @@ freealias(struct alias *ap)
 	}
 
 	next = ap->next;
-	ckfree(ap->name);
-	ckfree(ap->val);
-	ckfree(ap);
+	free(ap->name);
+	free(ap->val);
+	free(ap);
 	return next;
 }
 
@@ -2172,18 +2171,6 @@ copyfunc(union node *n)
 }
 
 /*
- * Free a parse tree.
- */
-
-static void
-freefunc(union node *n)
-{
-	if (n)
-		ckfree(n);
-}
-
-
-/*
  * Add a new command entry, replacing any existing command entry for
  * the same name.
  */
@@ -2196,7 +2183,7 @@ addcmdentry(char *name, struct cmdentry *entry)
 	INTOFF;
 	cmdp = cmdlookup(name, 1);
 	if (cmdp->cmdtype == CMDFUNCTION) {
-		freefunc(cmdp->param.func);
+		free(cmdp->param.func);
 	}
 	cmdp->cmdtype = entry->cmdtype;
 	cmdp->param = entry->u;
@@ -3130,7 +3117,7 @@ clear_traps(void)
 	for (tp = trap ; tp < &trap[NSIG] ; tp++) {
 		if (*tp && **tp) {      /* trap not NULL or SIG_IGN */
 			INTOFF;
-			ckfree(*tp);
+			free(*tp);
 			*tp = NULL;
 			if (tp != &trap[0])
 				setsignal(tp - trap);
@@ -3250,12 +3237,11 @@ popfile(void)
 	INTOFF;
 	if (pf->fd >= 0)
 		close(pf->fd);
-	if (pf->buf)
-		ckfree(pf->buf);
+	free(pf->buf);
 	while (pf->strpush)
 		popstring();
 	parsefile = pf->prev;
-	ckfree(pf);
+	free(pf);
 	parsenleft = parsefile->nleft;
 	parselleft = parsefile->lleft;
 	parsenextc = parsefile->nextc;
@@ -3543,7 +3529,7 @@ printentry(struct tblentry *cmdp, int verbose)
 			out1str("a function\n");
 			name = commandtext(cmdp->param.func);
 			printf("%s() {\n %s\n}", cmdp->cmdname, name);
-			ckfree(name);
+			free(name);
 			INTON;
 		}
 #ifdef DEBUG
@@ -3867,7 +3853,7 @@ clearcmdentry(int firstchange)
 			 || (cmdp->cmdtype == CMDBUILTIN &&
 			     builtinloc >= firstchange)) {
 				*pp = cmdp->next;
-				ckfree(cmdp);
+				free(cmdp);
 			} else {
 				pp = &cmdp->next;
 			}
@@ -3894,8 +3880,8 @@ deletefuncs(void)
 		while ((cmdp = *pp) != NULL) {
 			if (cmdp->cmdtype == CMDFUNCTION) {
 				*pp = cmdp->next;
-				freefunc(cmdp->param.func);
-				ckfree(cmdp);
+				free(cmdp->param.func);
+				free(cmdp);
 			} else {
 				pp = &cmdp->next;
 			}
@@ -3961,7 +3947,7 @@ delete_cmd_entry()
 	INTOFF;
 	cmdp = *lastcmdentry;
 	*lastcmdentry = cmdp->next;
-	ckfree(cmdp);
+	free(cmdp);
 	INTON;
 }
 
@@ -4010,7 +3996,7 @@ unsetfunc(char *name)
 	struct tblentry *cmdp;
 
 	if ((cmdp = cmdlookup(name, 0)) != NULL && cmdp->cmdtype == CMDFUNCTION) {
-		freefunc(cmdp->param.func);
+		free(cmdp->param.func);
 		delete_cmd_entry();
 	}
 }
@@ -4526,7 +4512,7 @@ removerecordregions(int endoff)
 			struct ifsregion *ifsp;
 			INTOFF;
 			ifsp = ifsfirst.next->next;
-			ckfree(ifsfirst.next);
+			free(ifsfirst.next);
 			ifsfirst.next = ifsp;
 			INTON;
 		}
@@ -4546,7 +4532,7 @@ removerecordregions(int endoff)
 		struct ifsregion *ifsp;
 		INTOFF;
 		ifsp = ifslastp->next->next;
-		ckfree(ifslastp->next);
+		free(ifslastp->next);
 		ifslastp->next = ifsp;
 		INTON;
 	}
@@ -4709,8 +4695,7 @@ err1:
 err2:
 	if (in.fd >= 0)
 		close(in.fd);
-	if (in.buf)
-		ckfree(in.buf);
+	free(in.buf);
 	if (in.jp)
 		exitstatus = waitforjob(in.jp);
 	handler = savehandler;
@@ -5091,7 +5076,7 @@ ifsfree(void)
 		struct ifsregion *ifsp;
 		INTOFF;
 		ifsp = ifsfirst.next->next;
-		ckfree(ifsfirst.next);
+		free(ifsfirst.next);
 		ifsfirst.next = ifsp;
 		INTON;
 	}
@@ -5203,7 +5188,7 @@ expandmeta(struct strlist *str, int flag)
 		}
 
 		expmeta(expdir, str->text);
-		ckfree(expdir);
+		free(expdir);
 		expdir = NULL;
 		INTON;
 		if (exparg.lastp == savelastp) {
@@ -5896,7 +5881,7 @@ popstring(void)
 			}
 		}
 		if (sp->string != sp->ap->val) {
-			ckfree(sp->string);
+			free(sp->string);
 		}
 
 		sp->ap->flag &= ~ALIASINUSE;
@@ -5910,7 +5895,7 @@ popstring(void)
 /*dprintf("*** calling popstring: restoring to '%s'\n", parsenextc);*/
 	parsefile->strpush = sp->prev;
 	if (sp != &(parsefile->basestrpush))
-		ckfree(sp);
+		free(sp);
 	INTON;
 }
 
@@ -6411,10 +6396,10 @@ freejob(struct job *jp)
 	INTOFF;
 	for (i = jp->nprocs, ps = jp->ps ; --i >= 0 ; ps++) {
 		if (ps->cmd != nullstr)
-			ckfree(ps->cmd);
+			free(ps->cmd);
 	}
 	if (jp->ps != &jp->ps0)
-		ckfree(jp->ps);
+		free(jp->ps);
 	jp->used = 0;
 #ifdef CONFIG_ASH_JOB_CONTROL
 	if (curjob == jp - jobtab + 1)
@@ -6555,7 +6540,7 @@ makejob(const union node *node, int nprocs)
 				for (i = 0; i < njobs; i++)
 					if (jp[i].ps == &jobtab[i].ps0)
 						jp[i].ps = &jp[i].ps0;
-				ckfree(jobtab);
+				free(jobtab);
 				jobtab = jp;
 			}
 			jp = jobtab + njobs;
@@ -7368,7 +7353,6 @@ commandtext(const union node *n)
 
 static void waitonint(int sig) {
 	intreceived = 1;
-	return;
 }
 
 #ifdef CONFIG_ASH_MAIL
@@ -7840,7 +7824,7 @@ popstackmark(struct stackmark *mark)
 	while (stackp != mark->stackp) {
 		sp = stackp;
 		stackp = sp->prev;
-		ckfree(sp);
+		free(sp);
 	}
 	stacknxt = mark->stacknxt;
 	stacknleft = mark->stacknleft;
@@ -9025,8 +9009,8 @@ freeparam(volatile struct shparam *param)
 
 	if (param->malloc) {
 		for (ap = param->p ; *ap ; ap++)
-			ckfree(*ap);
-		ckfree(param->p);
+			free(*ap);
+		free(param->p);
 	}
 }
 
@@ -9051,7 +9035,7 @@ shiftcmd(int argc, char **argv)
 	shellparam.nparam -= n;
 	for (ap1 = shellparam.p ; --n >= 0 ; ap1++) {
 		if (shellparam.malloc)
-			ckfree(*ap1);
+			free(*ap1);
 	}
 	ap2 = shellparam.p;
 	while ((*ap2++ = *ap1++) != NULL);
@@ -10673,8 +10657,7 @@ parsebackq: {
 
 	savepbq = parsebackquote;
 	if (setjmp(jmploc.loc)) {
-		if (str)
-			ckfree(str);
+		free(str);
 		parsebackquote = 0;
 		handler = savehandler;
 		longjmp(handler->loc, 1);
@@ -10794,7 +10777,7 @@ done:
 		memcpy(out, str, savelen);
 		STADJUST(savelen, out);
 		INTOFF;
-		ckfree(str);
+		free(str);
 		str = NULL;
 		INTON;
 	}
@@ -11237,7 +11220,7 @@ popredir(void)
 		}
 	}
 	redirlist = rp->next;
-	ckfree(rp);
+	free(rp);
 	INTON;
 }
 
@@ -11683,8 +11666,7 @@ trapcmd(int argc, char **argv)
 			else
 				action = xstrdup(action);
 		}
-		if (trap[signo])
-			ckfree(trap[signo]);
+		free(trap[signo]);
 		trap[signo] = action;
 		if (signo != 0)
 			setsignal(signo);
@@ -11995,7 +11977,7 @@ setvareq(char *s, int flags)
 			(*vp->func)(strchr(s, '=') + 1);
 
 		if ((vp->flags & (VTEXTFIXED|VSTACK)) == 0)
-			ckfree(vp->text);
+			free(vp->text);
 
 		vp->flags &= ~(VTEXTFIXED|VSTACK|VUNSET);
 		vp->flags |= flags;
@@ -12122,9 +12104,9 @@ shprocvar(void) {
 			if ((vp->flags & VEXPORT) == 0) {
 				*prev = vp->next;
 				if ((vp->flags & VTEXTFIXED) == 0)
-					ckfree(vp->text);
+					free(vp->text);
 				if ((vp->flags & VSTRFIXED) == 0)
-					ckfree(vp);
+					free(vp);
 			} else {
 				if (vp->flags & VSTACK) {
 					vp->text = xstrdup(vp->text);
@@ -12270,16 +12252,16 @@ poplocalvars() {
 		vp = lvp->vp;
 		if (vp == NULL) {       /* $- saved */
 			memcpy(optet_vals, lvp->text, sizeof optet_vals);
-			ckfree(lvp->text);
+			free(lvp->text);
 		} else if ((lvp->flags & (VUNSET|VSTRFIXED)) == VUNSET) {
 			(void)unsetvar(vp->text);
 		} else {
 			if ((vp->flags & VTEXTFIXED) == 0)
-				ckfree(vp->text);
+				free(vp->text);
 			vp->flags = lvp->flags;
 			vp->text = lvp->text;
 		}
-		ckfree(lvp);
+		free(lvp);
 	}
 }
 
@@ -12353,9 +12335,9 @@ unsetvar(const char *s)
 		vp->flags |= VUNSET;
 		if ((vp->flags & VSTRFIXED) == 0) {
 			if ((vp->flags & VTEXTFIXED) == 0)
-				ckfree(vp->text);
+				free(vp->text);
 			*vpp = vp->next;
-			ckfree(vp);
+			free(vp);
 		}
 		INTON;
 		return (0);
@@ -12440,7 +12422,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.55 2002/07/11 11:11:51 andersen Exp $
+ * $Id: ash.c,v 1.56 2002/08/02 06:39:47 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
