@@ -155,8 +155,6 @@ struct nfs_mount_data {
 #define HAVE_personality
 #define HAVE_tm_gmtoff
 
-extern char *xstrdup (const char *s);
-extern char *xstrndup (const char *s, int n);
 static char *nfs_strerror(int stat);
 
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
