@@ -224,7 +224,7 @@
 //
 //Allow the shell to invoke all the compiled in BusyBox commands as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell
-//amoung other thing.
+//among other thing.
 #define BB_FEATURE_SH_STANDALONE_SHELL
 //
 // Enable tab completion in the shell (not yet 
