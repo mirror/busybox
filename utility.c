@@ -1705,7 +1705,7 @@ char process_escape_sequence(char **ptr)
 }
 #endif
 
-#if defined BB_BASENAME || defined BB_LN
+#if defined BB_BASENAME || defined BB_LN || defined BB_SH
 char *get_last_path_component(char *path)
 {
 	char *s=path+strlen(path)-1;
