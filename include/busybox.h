@@ -39,6 +39,7 @@
 
 #include <features.h>
 
+/* Pull in the utility routines from libbb */
 #include "libbb.h"
 
 enum Location {
@@ -56,11 +57,12 @@ enum SUIDRoot {
 };
 
 struct BB_applet {
-	const	char*	name;
-	int	(*main)(int argc, char** argv);
-	enum	Location	location  : 4;
-	enum 	SUIDRoot	need_suid : 4;
+	const char *name;
+	int (*main) (int argc, char **argv);
+	enum Location location:4;
+	enum SUIDRoot need_suid:4;
 };
+
 /* From busybox.c */
 extern const struct BB_applet applets[];
 
@@ -105,16 +107,13 @@ extern const struct BB_applet applets[];
 #define RB_POWER_OFF   0x4321fedc
 #endif
 
-
-/* Pull in the utility routines from libbb */
-// #include "libbb.h"
-
 /* Try to pull in PATH_MAX */
 #include <limits.h>
+
 /* for PATH_MAX on systems that don't have it in limits.h */
-#include <sys/param.h> 
-#ifndef PATH_MAX 
+#include <sys/param.h>
+#ifndef PATH_MAX
 #define  PATH_MAX         256
 #endif
 
-#endif /* _BB_INTERNAL_H_ */
+#endif							/* _BB_INTERNAL_H_ */
