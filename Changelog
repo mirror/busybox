@@ -72,6 +72,7 @@
 	    of nested directories.  Thanks to Kevin Traas <kevin@netmaster.com>
 	    for helping track this one down.
 	* More doc updates
+	* math takes input from stdin if no args are given.  -- John Beppu
 
 
 	 -Erik Andersen

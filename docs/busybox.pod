@@ -1017,10 +1017,11 @@ Usage: math expression ...
 
 This is a Tiny RPN calculator that understands the
 following operations: +, -, /, *, and, or, not, eor.
+If no arguments are given, math will process input from STDIN.
 
 Example:
 
-	$ math 2 2 add
+	$ math 2 2 +
 	4
 	$ math 8 8 \* 2 2 + /
 	16
@@ -1028,6 +1029,8 @@ Example:
 	0
 	$ math 0 1 or
 	1
+	$ echo 72 9 / | math
+	8
 
 -------------------------------
 
@@ -1949,4 +1952,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.39 2000/06/07 21:19:49 proski Exp $
+# $Id: busybox.pod,v 1.40 2000/06/12 23:04:55 beppu Exp $
