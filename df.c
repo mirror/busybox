@@ -31,7 +31,7 @@
 
 extern const char mtab_file[];	/* Defined in utility.c */
 #ifdef BB_FEATURE_HUMAN_READABLE
-unsigned long disp_hr = KILOBYTE; 
+static unsigned long disp_hr = KILOBYTE; 
 #endif
 
 static int df(char *device, const char *mountPoint)

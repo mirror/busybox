@@ -36,7 +36,7 @@
 
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-unsigned long du_disp_hr = KILOBYTE;
+static unsigned long disp_hr = KILOBYTE;
 #endif
 
 typedef void (Display) (long, char *);
@@ -48,8 +48,19 @@ static Display *print;
 
 static void print_normal(long size, char *filename)
 {
+	unsigned long base;
 #ifdef BB_FEATURE_HUMAN_READABLE
-	printf("%s\t%s\n", format(size, du_disp_hr), filename);
+	switch (disp_hr) {
+		case MEGABYTE:
+			base = KILOBYTE;
+			break;
+		case KILOBYTE:
+			base = 1;
+			break;
+		default:
+			base = 0;
+	}
+printf("%s\t%s\n", format(size, base), filename);
 #else
 	printf("%ld\t%s\n", size, filename);
 #endif
@@ -156,8 +167,8 @@ int du_main(int argc, char **argv)
 					count_hardlinks = 1;
 					break;
 #ifdef BB_FEATURE_HUMAN_READABLE
-			case 'h': du_disp_hr = 0;        break;
-			case 'm': du_disp_hr = MEGABYTE; break;
+			case 'h': disp_hr = 0;        break;
+			case 'm': disp_hr = MEGABYTE; break;
 #endif
 			case 'k': break;
 			default:
@@ -185,7 +196,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.40 2001/03/07 03:53:40 andersen Exp $ */
+/* $Id: du.c,v 1.41 2001/03/07 06:04:08 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
