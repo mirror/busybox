@@ -715,7 +715,7 @@ static interfaces_file *read_interfaces(char *filename)
 		}
 
 		if (strcmp(firstword, "mapping") == 0) {
-#if 0
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 			currmap = xmalloc(sizeof(mapping_defn));
 			currmap->max_matches = 0;
 			currmap->n_matches = 0;
