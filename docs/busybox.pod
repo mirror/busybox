@@ -65,6 +65,8 @@ reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep, sort, sync,
 syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true, tty, umount,
 uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
 
+-------------------------------
+
 =over 4
 
 =item basename
@@ -545,7 +547,7 @@ OPTIONS:
 	-i      ignore case distinctions
 	-n      print line number with output lines
 	-q      be quiet. Returns 0 if result was found, 1 otherwise
-    -v      select non-matching lines
+	-v      select non-matching lines
 
 This version of grep matches full regular expresions.
 
@@ -799,6 +801,7 @@ Usage: length string
 Prints out the length of the specified string.
 
 Example:
+
 	$ length "Hello"
 	5
 
@@ -807,6 +810,7 @@ Example:
 =item ln
 
 Usage: ln [OPTION] TARGET... LINK_NAME|DIRECTORY
+
 Create a link named LINK_NAME or DIRECTORY to the specified TARGET
  
 Options:
@@ -817,7 +821,7 @@ Options:
 Example:
 
     $ ln -s BusyBox /tmp/ls
-    [andersen@debian BusyBox]$ ls -l /tmp/ls
+    $ ls -l /tmp/ls
     lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*
 
 -------------------------------
@@ -1061,7 +1065,7 @@ Creates a temporary file with its name based on TEMPLATE.
 TEMPLATE is any name with six `Xs' (i.e. /tmp/temp.XXXXXX).
 
 Example:
-	
+
 	$ mktemp /tmp/temp.XXXXXX
 	/tmp/temp.mWiLjM
 	$ ls -la /tmp/temp.mWiLjM
@@ -1605,6 +1609,7 @@ Example:
 -------------------------------
 
 =item tr
+
 Usage: tr [-cds] STRING1 [STRING2]
 
 Translate, squeeze, and/or delete characters from
@@ -1798,6 +1803,20 @@ it decompresses the file inquestion and send the output to stdout.
 
 =back
 
+=head1 LIBC NSS
+
+GNU Libc uses the Name Service Switch (NSS) to configure the behavior of the C
+library for the local environment, and to configure how it reads system data,
+such as passwords and group information.  BusyBox has made it Policy that it
+will never use NSS, and will never use and libc calls that make use of NSS.
+This allows you to run an embedded system without the need for installing an
+/etc/nsswitch.conf file and without and /lib/libnss_* libraries installed.
+
+If you are using a system that is using a remote LDAP server for authentication
+via GNU libc NSS, and you want to use BusyBox, then you will need to adjust the
+BusyBox source.  Chances are though, that if you have enough space to install
+of that stuff on your system, then you probably want the full GNU utilities.
+
 =head1 SEE ALSO
 
 textutils(1), shellutils(1), etc...
@@ -1857,4 +1876,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.26 2000/05/02 05:32:07 erik Exp $
+# $Id: busybox.pod,v 1.27 2000/05/02 06:40:02 erik Exp $
