@@ -571,7 +571,6 @@ extern void cmdedit_init(void)
 		atexit(cmdedit_reset_term);	/* be sure to do this only once */
 	}
 
-#if 0
 	if ((handlers_sets & SET_TERM_HANDLERS) == 0) {
 		signal(SIGKILL, clean_up_and_die);
 		signal(SIGINT, clean_up_and_die);
@@ -579,8 +578,6 @@ extern void cmdedit_init(void)
 		signal(SIGTERM, clean_up_and_die);
 		handlers_sets |= SET_TERM_HANDLERS;
 	}
-#endif	
-
 }
 
 #ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
@@ -983,17 +980,14 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 			 || (int_buf[i + 1] & ~QUOT) == '~')) {
 		i++;
 	}
-	if (i) {
-		collapse_pos(0, i);
-	}
 
 	/* set only match and destroy quotes */
 	j = 0;
-	for (i = 0; pos_buf[i] >= 0; i++) {
-		matchBuf[i] = matchBuf[pos_buf[i]];
+	for (c = 0; pos_buf[i] >= 0; i++) {
+		matchBuf[c++] = matchBuf[pos_buf[i]];
 		j = pos_buf[i] + 1;
 	}
-	matchBuf[i] = 0;
+	matchBuf[c] = 0;
 	/* old lenght matchBuf with quotes symbols */
 	*len_with_quotes = j ? j - pos_buf[0] : 0;
 
@@ -1097,8 +1091,7 @@ static void input_tab(int *lastWasTab)
 			/* new len                         */
 			len = strlen(command_ps);
 			/* write out the matched command   */
-			input_end();
-			input_backward(cursor - recalc_pos);
+			redraw(cmdedit_y, len - recalc_pos);
 		}
 		if (tmp != matches[0])
 			free(tmp);
@@ -1489,7 +1482,6 @@ prepare_to_die:
 extern void cmdedit_terminate(void)
 {
 	cmdedit_reset_term();
-#if 0
 	if ((handlers_sets & SET_TERM_HANDLERS) != 0) {
 		signal(SIGKILL, SIG_DFL);
 		signal(SIGINT, SIG_DFL);
@@ -1498,7 +1490,6 @@ extern void cmdedit_terminate(void)
 		signal(SIGWINCH, SIG_DFL);
 		handlers_sets &= ~SET_TERM_HANDLERS;
 	}
-#endif	
 }
 
 #endif	/* BB_FEATURE_COMMAND_EDITING */
