@@ -90,6 +90,17 @@ line_newFromFile(FILE *src)
     return NULL;
 }
 
+/* Line destructor */
+static Line *
+line_release(Line *self)
+{
+    if (self->data) { 
+	free(self->data); 
+	free(self);
+    }
+    return self;
+}
+
 
 /* Comparison */
 
@@ -148,7 +159,16 @@ list_writeToFile(List *self, FILE* dst)
 static List *
 list_release(List *self)
 {
-    return self;
+    Line *i;
+    Line *die;
+
+    i = self->head;
+    while (i) {
+	die = i;
+	i = die->next;
+	line_delete(die);
+    }
+    return self; /* bad poetry? */
 }
 
 
@@ -195,4 +215,4 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.2 1999/12/22 00:30:29 beppu Exp $ */
+/* $Id: sort.c,v 1.3 1999/12/22 17:57:31 beppu Exp $ */

@@ -64,6 +64,7 @@
 //#define BB_SFDISK
 #define BB_SED
 #define BB_SLEEP
+#define BB_SORT
 #define BB_SWAPONOFF
 #define BB_SYNC
 #define BB_SYSLOGD

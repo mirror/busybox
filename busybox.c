@@ -184,6 +184,9 @@ static const struct Applet applets[] = {
 #ifdef BB_SLEEP			//bin
     {"sleep", sleep_main},
 #endif
+#ifdef BB_SORT			//bin
+    {"sort", sort_main},
+#endif
 #ifdef BB_SYNC			//bin
     {"sync", sync_main},
 #endif
