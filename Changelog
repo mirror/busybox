@@ -1,4 +1,5 @@
 0.44
+	* Now compiles vs libc5 (which can save lots of space for embedded systems).
 	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
 	    help messages (i.e --help).  Saves 17k over a full compile.
 	* Added cut and tr from minix, since due to the license change, 

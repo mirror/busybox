@@ -22,7 +22,6 @@ Bugs that need fixing before the 0.44 release goes out the door:
     is not on.
  - doc / website updates to tell what the real mailing list is for busybox.
  - fix 'cp' (or test suite script) so that it passes the test suite.
- - merge Pavel's rm fixes.
 
 These could get done before the 0.44 release if we have time, but we won't
 hold up the 0.44 release just because of these:
