@@ -281,7 +281,7 @@ const struct BB_applet applets[] = {
 	{"tee", tee_main, _BB_DIR_USR_BIN, tee_usage},
 #endif
 #ifdef BB_TOUCH
-	{"touch", touch_main, _BB_DIR_USR_BIN, touch_usage},
+	{"touch", touch_main, _BB_DIR_BIN, touch_usage},
 #endif
 #ifdef BB_TR
 	{"tr", tr_main, _BB_DIR_USR_BIN, tr_usage},
