@@ -1041,7 +1041,8 @@ char **create_list(const char *filename)
 		return(file_list);
 	}
 	while (getline(&line, &length, list_stream) != -1) {
-		file_list = xrealloc(file_list, sizeof(char *) * (length + 1));
+		/* +2 as we need to include space for the terminating NULL pointer */
+		file_list = xrealloc(file_list, sizeof(char *) * (length + 2));
 		last_char = last_char_is(line, '\n');
 		if (last_char) {
 			*last_char = '\0';
