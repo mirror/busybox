@@ -82,12 +82,8 @@ extern int more_main(int argc, char **argv)
 		if (argc == 0) {
 			file = stdin;
 		} else
-			file = fopen(*argv, "r");
+			file = xfopen(*argv, "r");
 
-		if (file == NULL) {
-			perror(*argv);
-			exit(FALSE);
-		}
 		fstat(fileno(file), &st);
 
 #ifdef BB_FEATURE_USE_TERMIOS

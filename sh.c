@@ -1447,10 +1447,7 @@ int shell_main(int argc_l, char **argv_l)
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else if (local_pending_command==NULL) {
 		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
-		input = fopen(argv[optind], "r");
-		if (!input) {
-			fatalError("%s: %s\n", argv[optind], strerror(errno));
-		}
+		input = xfopen(argv[optind], "r");
 	}
 
 	/* initialize the cwd -- this is never freed...*/

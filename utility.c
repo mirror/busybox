@@ -1718,7 +1718,7 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 }
 #endif
 
-#if defined BB_UNIQ
+#if defined BB_HOSTNAME || defined BB_LOADACM || defined BB_MORE || defined BB_SED || defined BB_SH || defined BB_UNIQ || defined BB_WC
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;

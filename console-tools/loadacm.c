@@ -330,10 +330,7 @@ void saveoldmap(int fd, char *omfil)
 	}
 #endif
 
-	if ((fp = fopen(omfil, "w")) == NULL) {
-		perror(omfil);
-		exit(1);
-	}
+	fp = xfopen(omfil, "w");
 #ifdef GIO_UNISCRNMAP
 	if (is_old_map) {
 #endif

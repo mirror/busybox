@@ -134,13 +134,10 @@ int wc_main(int argc, char **argv)
 
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		wc_file(stdin, "");
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
-			file = fopen(argv[optind], "r");
-			if (file == NULL) {
-				fatalError(argv[optind]);
-			}
+			file = xfopen(argv[optind], "r");
 			wc_file(file, argv[optind]);
 			num_files_counted++;
 			optind++;
@@ -151,5 +148,5 @@ int wc_main(int argc, char **argv)
 		print_counts(total_lines, total_words, total_chars,
 					 max_length, "total");
 
-	return 0 ;
+	return EXIT_SUCCESS;
 }

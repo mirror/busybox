@@ -472,9 +472,7 @@ static void load_cmd_file(char *filename)
 	char *line;
 	char *nextline;
 
-	cmdfile = fopen(filename, "r");
-	if (cmdfile == NULL)
-		fatalError(strerror(errno));
+	cmdfile = xfopen(filename, "r");
 
 	while ((line = get_line_from_file(cmdfile)) != NULL) {
 		/* if a line ends with '\' it needs the next line appended to it */

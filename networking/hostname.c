@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.13 2000/09/25 21:45:57 andersen Exp $
+ * $Id: hostname.c,v 1.14 2000/09/27 02:43:35 kraai Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -46,18 +46,14 @@ void do_sethostname(char *s, int isfile)
 			exit(1);
 		}
 	} else {
-		if ((f = fopen(s, "r")) == NULL) {
-			perror(s);
+		f = xfopen(s, "r");
+		fgets(buf, 255, f);
+		fclose(f);
+		if (buf[strlen(buf) - 1] == '\n')
+			buf[strlen(buf) - 1] = 0;
+		if (sethostname(buf, strlen(buf)) < 0) {
+			perror("sethostname");
 			exit(1);
-		} else {
-			fgets(buf, 255, f);
-			fclose(f);
-			if (buf[strlen(buf) - 1] == '\n')
-				buf[strlen(buf) - 1] = 0;
-			if (sethostname(buf, strlen(buf)) < 0) {
-				perror("sethostname");
-				exit(1);
-			}
 		}
 	}
 }
