@@ -22,21 +22,20 @@
  *
  */
 
+
 #include <sys/syslog.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-
 #include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 #include <net/if.h>
 #include <netinet/ether.h>
+#include <linux/sockios.h>
 
 #include "busybox.h"
 
-/* set interface name, from <linux/sockios.h> */
-#define SIOCSIFNAME	0x8923
 /* Octets in one ethernet addr, from <linux/if_ether.h>	 */
 #define ETH_ALEN	6
 
@@ -46,12 +45,12 @@
 
 typedef struct mactable_s {
 	struct mactable_s *next;
-	struct mactable_s **pprev;
+	struct mactable_s *prev;
 	char *ifname;
 	struct ether_addr *mac;
 } mactable_t;
 
-static void serror_msg_and_die(const char use_syslog, const char *s, ...)
+static void serror(const char use_syslog, const char *s, ...)
 {
 	va_list ap;
 
@@ -67,8 +66,22 @@ static void serror_msg_and_die(const char use_syslog, const char *s, ...)
 	}
 
 	va_end(ap);
-	
+
 	exit(EXIT_FAILURE);
+}
+
+/* Check ascii str_macaddr, convert and copy to *mac */
+struct ether_addr *cc_macaddr(char *str_macaddr, unsigned char use_syslog)
+{
+	struct ether_addr *lmac, *mac;
+
+	lmac = ether_aton(str_macaddr);
+	if (lmac == NULL)
+		serror(use_syslog, "cannot parse MAC %s", str_macaddr);
+	mac = xcalloc(1, ETH_ALEN);
+	memcpy(mac, lmac, ETH_ALEN);
+
+	return mac;
 }
 
 int nameif_main(int argc, char **argv)
@@ -77,10 +90,11 @@ int nameif_main(int argc, char **argv)
 	FILE *ifh;
 	char *fname = "/etc/mactab";
 	char *line;
-	unsigned short linenum = 0;
 	unsigned char use_syslog = 0;
 	int ctl_sk = -1;
 	int opt;
+	int if_index = 1;
+	mactable_t *ch = NULL;
 
 	static struct option opts[] = {
 		{"syslog", 0, NULL, 's'},
@@ -101,40 +115,33 @@ int nameif_main(int argc, char **argv)
 		}
 	}
 
-	if ((argc - optind) & 1) {
+	if ((argc - optind) & 1)
 		show_usage();
-	}
 
 	if (optind < argc) {
 		while (optind < argc) {
-			struct ether_addr *mac;
-			mactable_t *ch;
 
-			if (strlen(argv[optind]) > IF_NAMESIZE) {
-				serror_msg_and_die(use_syslog, "interface name `%s' too long", argv[optind]);
-			}
+			if (strlen(argv[optind]) > IF_NAMESIZE)
+				serror(use_syslog, "interface name `%s' too long",
+					   argv[optind]);
 			optind++;
-			mac = ether_aton(argv[optind]);
-			if (mac == NULL) {
-				serror_msg_and_die(use_syslog, "cannot parse MAC %s", argv[optind]);
-			}
+
 			ch = xcalloc(1, sizeof(mactable_t));
+			ch->next = NULL;
+			ch->prev = NULL;
 			ch->ifname = strdup(argv[optind - 1]);
-			ch->mac = xcalloc(1, ETH_ALEN);
-			memcpy(ch->mac, mac, ETH_ALEN);
+			ch->mac = cc_macaddr(argv[optind], use_syslog);
 			optind++;
 			if (clist)
-				clist->pprev = &ch->next;
+				clist->prev = ch->next;
 			ch->next = clist;
-			ch->pprev = &clist;
+			ch->prev = clist;
 			clist = ch;
 		}
 	} else {
 		ifh = xfopen(fname, "r");
 
 		while ((line = get_line_from_file(ifh)) != NULL) {
-			struct ether_addr *mac;
-			mactable_t *ch;
 			char *line_ptr;
 			unsigned short name_length;
 
@@ -142,74 +149,71 @@ int nameif_main(int argc, char **argv)
 			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n'))
 				continue;
 			name_length = strcspn(line_ptr, " \t");
-			if (name_length > IF_NAMESIZE) {
-				serror_msg_and_die(use_syslog, "interface name `%s' too long", argv[optind]); 
-			}
+			if (name_length > IF_NAMESIZE)
+				serror(use_syslog, "interface name `%s' too long",
+					   argv[optind]);
 			ch = xcalloc(1, sizeof(mactable_t));
+			ch->next = NULL;
+			ch->prev = NULL;
 			ch->ifname = strndup(line_ptr, name_length);
 			line_ptr += name_length;
 			line_ptr += strspn(line_ptr, " \t");
 			name_length = strspn(line_ptr, "0123456789ABCDEFabcdef:");
 			line_ptr[name_length] = '\0';
-			mac = ether_aton(line_ptr);
-			if (mac == NULL) {
-				serror_msg_and_die(use_syslog,  "cannot parse MAC %s", argv[optind]);
-			}
-			ch->mac = xcalloc(1, ETH_ALEN);
-			memcpy(ch->mac, mac, ETH_ALEN);
+			ch->mac = cc_macaddr(line_ptr, use_syslog);
 			if (clist)
-				clist->pprev = &ch->next;
+				clist->prev = ch;
 			ch->next = clist;
-			ch->pprev = &clist;
 			clist = ch;
 			free(line);
 		}
 		fclose(ifh);
 	}
 
-	ifh = xfopen("/proc/net/dev", "r");
-	while ((line = get_line_from_file(ifh)) != NULL) {
-		char *line_ptr;
-		unsigned short iface_name_length;
-		struct ifreq ifr;
-		mactable_t *ch = NULL;
+	if ((ctl_sk = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
+		serror(use_syslog, "socket: %s", strerror(errno));
 
-		linenum++;
-		if (linenum < 3)
+	while (clist) {
+		struct ifreq ifr;
+
+		bzero(&ifr, sizeof(struct ifreq));
+		if_index++;
+		ifr.ifr_ifindex = if_index;
+
+		/* Get ifname by index or die */
+		if (ioctl(ctl_sk, SIOCGIFNAME, &ifr))
+			break;
+
+		/* Has this device hwaddr? */
+		if (ioctl(ctl_sk, SIOCGIFHWADDR, &ifr))
 			continue;
-		line_ptr = line + strspn(line, " \t");
-		if (line_ptr[0] == '\n')
-			continue;
-		iface_name_length = strcspn(line_ptr, ":");
-		if (ctl_sk < 0)
-			ctl_sk = socket(PF_INET, SOCK_DGRAM, 0);
-		memset(&ifr, 0, sizeof(struct ifreq));
-		strncpy(ifr.ifr_name, line_ptr, iface_name_length);
-		if (ioctl(ctl_sk, SIOCGIFHWADDR, &ifr) < 0) {
-//			serror_msg(use_syslog, "cannot read hardware address of %s: %s", ifr.ifr_name, strerror(errno));
-			continue;
-		}
+
+		/* Search for mac like in ifr.ifr_hwaddr.sa_data */
 		for (ch = clist; ch; ch = ch->next)
 			if (!memcmp(ch->mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN))
 				break;
-		if (ch == NULL) {
+
+		/* Nothing found for current ifr.ifr_hwaddr.sa_data */
+		if (ch == NULL)
 			continue;
-		}
 
 		strcpy(ifr.ifr_newname, ch->ifname);
+		if (ioctl(ctl_sk, SIOCSIFNAME, &ifr) < 0)
+			serror(use_syslog, "cannot change ifname %s to %s: %s",
+				   ifr.ifr_name, ch->ifname, strerror(errno));
 
-		if (ioctl(ctl_sk, SIOCSIFNAME, &ifr) < 0) {;
-			serror_msg_and_die(use_syslog, "cannot change name of %s to %s: %s", ifr.ifr_name, ch->ifname, strerror(errno));
+		/* Remove list entry of renamed interface */
+		if (ch->prev != NULL) {
+			(ch->prev)->next = ch->next;
+		} else {
+			clist = ch->next;
 		}
-		*ch->pprev = ch->next;
+		if (ch->next != NULL)
+			(ch->next)->prev = ch->prev;
 		free(ch);
-		free(line);
 	}
-	fclose(ifh);
 
 	while (clist) {
-		mactable_t *ch;
-
 		ch = clist;
 		clist = clist->next;
 		free(ch);
