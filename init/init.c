@@ -1160,7 +1160,7 @@ extern int init_main(int argc, char **argv)
 
 		/* Wait for a child process to exit */
 		wpid = wait(&status);
-		while (init_action_list && wpid > 0) {
+		while (wpid > 0) {
 			/* Find out who died and clean up their corpse */
 			for (a = init_action_list; a; a = a->next) {
 				if (a->pid == wpid) {
