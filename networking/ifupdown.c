@@ -1032,7 +1032,7 @@ static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *o
 	bb_xasprintf(&buf[0], "/etc/network/if-%s.d", opt);
 	buf[1] = NULL;
 
-	run_parts(&buf, 2, environ);
+	run_parts(buf, 2, environ);
 	free(buf[0]);
 	return (1);
 }
