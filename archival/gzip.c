@@ -1246,6 +1246,9 @@ int gzip_main(int argc, char **argv)
 		tostdout = 1;
 	}
 
+	if (argc - optind > 1)
+		show_usage ();
+
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
 		error_msg_and_die( "compressed data not written to terminal. Use -f to force it.");
 
