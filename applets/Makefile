@@ -19,7 +19,6 @@
 
 TOPDIR   :=..
 L_TARGET := applets.a
-EXTRA_CFLAGS+=-I $(TOPDIR)/applets
 
 obj-y           :=
 obj-n           :=
