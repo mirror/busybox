@@ -67,6 +67,7 @@ extern int more_main(int argc, char **argv)
 	int please_display_more_prompt = -1;
 	struct stat st;
 	FILE *file;
+	FILE *in_file = stdin;
 	int len, page_height;
 
 	argc--;
@@ -78,6 +79,7 @@ extern int more_main(int argc, char **argv)
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
 			cin = bb_xfopen(CONSOLE_DEV, "r");
+		in_file = cin;
 		please_display_more_prompt = 0;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 		getTermSettings(fileno(cin), &initial_settings);
@@ -108,7 +110,7 @@ extern int more_main(int argc, char **argv)
 		if(please_display_more_prompt>0)
 			please_display_more_prompt = 0;
 
-		get_terminal_width_height(0, &terminal_width, &terminal_height);
+		get_terminal_width_height(fileno(in_file), &terminal_width, &terminal_height);
 		if (terminal_height > 4)
 			terminal_height -= 2;
 		if (terminal_width > 0)

@@ -982,7 +982,7 @@ extern int ls_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width.  */
-	get_terminal_width_height(0, &terminal_width, NULL);
+	get_terminal_width_height(fileno(stdout), &terminal_width, NULL);
 	/* Go one less... */
 	terminal_width--;
 #endif

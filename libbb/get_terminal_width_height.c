@@ -36,7 +36,7 @@ void get_terminal_width_height(int fd, int *width, int *height)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-	if (ioctl(0, TIOCGWINSZ, &win) != 0) {
+	if (ioctl(fd, TIOCGWINSZ, &win) != 0) {
 		win.ws_row = 24;
 		win.ws_col = 80;
 	}
