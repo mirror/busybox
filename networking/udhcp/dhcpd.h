@@ -5,7 +5,9 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 
+#include "libbb_udhcp.h"
 #include "leases.h"
+#include "version.h"
 
 /************************************/
 /* Defaults _you_ may want to tweak */
@@ -13,6 +15,7 @@
 
 /* the period of time the client is allowed to use that address */
 #define LEASE_TIME              (60*60*24*10) /* 10 days of seconds */
+#define LEASES_FILE		"/var/lib/misc/udhcpd.leases"
 
 /* where to find the DHCP server configuration file */
 #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"

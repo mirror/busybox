@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	FILE *fp;
 	int i, c, mode = REMAINING;
 	long expires;
-	const char *file = leases_file;
+	const char *file = LEASES_FILE;
 	struct dhcpOfferedAddr lease;
 	struct in_addr addr;
 	
