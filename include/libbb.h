@@ -213,36 +213,41 @@ char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-typedef struct ar_headers_s {
+typedef struct file_headers_s {
 	char *name;
+	char *link_name;
 	off_t size;
 	uid_t uid;
 	gid_t gid;
 	mode_t mode;
 	time_t mtime;
 	off_t offset;
-	struct ar_headers_s *next;
-} ar_headers_t;
-extern ar_headers_t *get_ar_headers(FILE *in_file);
-extern int seek_ared_file(FILE *in_file, ar_headers_t *headers, const char *tar_gz_file);
+	dev_t device;
+	struct file_headers_s *next;
+} file_headers_t;
+file_headers_t *get_ar_headers(FILE *in_file);
+file_headers_t *get_tar_headers(FILE *tar_stream);
+file_headers_t *get_tar_gz_headers(FILE *compressed_stream);
+file_headers_t *append_archive_list(file_headers_t *head, file_headers_t *tail_entry);
+file_headers_t *add_from_archive_list(file_headers_t *master_list, file_headers_t *new_list, const char *name);
 
-typedef enum extract_function_e {
-	extract_contents = 1,
-	extract_control = 2,
-	extract_info = 4,
-	extract_extract = 8,
-	extract_verbose_extract = 16,
-	extract_list = 32,
-	extract_fsys_tarfile = 64,
-	extract_field = 128,
-	extract_contents_to_file = 256
-} extract_function_t;
-extern char *deb_extract(const char *package_filename, int function,
-	const char *argument, const char *argument2);
-extern char *untar(FILE *src_tar_file, FILE *output, int untar_function,
-	const char *argument, const char *file_prefix);
-extern char *read_text_file_to_buffer(FILE *src_file);
-extern char *read_package_field(const char *package_buffer);
+enum extract_functions_e {
+	extract_verbose_list = 1,
+	extract_list = 2,
+	extract_one_to_buffer = 4,
+	extract_to_stdout = 8,
+	extract_all_to_fs = 16,
+	extract_preserve_date = 32,
+	extract_data_tar_gz = 64,
+	extract_control_tar_gz = 128,
+	extract_unzip_only = 256
+};
+char *extract_archive(FILE *src_stream, FILE *out_stream, file_headers_t *extract_headers, int function, const char *prefix);
+char *deb_extract(const char *package_filename, FILE *out_stream, const int function,
+	const char *prefix, const char *filename);
+char *read_package_field(const char *package_buffer);
+int seek_sub_file(FILE *in_file, file_headers_t *headers, const char *tar_gz_file);
+char *fgets_str(FILE *file, const char *terminating_string);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);

@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern ar_headers_t *get_ar_headers(FILE *in_file)
+file_headers_t *get_ar_headers(FILE *in_file)
 {
 	typedef struct raw_ar_header_s {	/* Byte Offset */
 		char name[16];	/*  0-15 */
@@ -44,7 +44,7 @@ extern ar_headers_t *get_ar_headers(FILE *in_file)
 
 	raw_ar_header_t raw_ar_header;
 
-	ar_headers_t *ar_list, *ar_tmp, *ar_entry;
+	file_headers_t *ar_list, *ar_entry;
 	char ar_magic[8];
 	char *long_name=NULL;
 	
@@ -59,10 +59,10 @@ extern ar_headers_t *get_ar_headers(FILE *in_file)
 		return(NULL);
 	}
 	
-	ar_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+	ar_list = (file_headers_t *) xcalloc(1, sizeof(file_headers_t));
 
 	while (fread((char *) &raw_ar_header, 1, 60, in_file) == 60) {
-		ar_entry = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+		ar_entry = (file_headers_t *) xcalloc(1, sizeof(file_headers_t));
 		/* check the end of header markers are valid */
 		if ((raw_ar_header.fmag[0] != '`') || (raw_ar_header.fmag[1] != '\n')) {
 			char newline;
@@ -113,12 +113,7 @@ extern ar_headers_t *get_ar_headers(FILE *in_file)
 
 		fseek(in_file, (off_t) ar_entry->size, SEEK_CUR);
 
-		ar_tmp = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
-		*ar_tmp = *ar_list;
-		*ar_list = *ar_entry;
-		free(ar_entry);
-		ar_list->next = ar_tmp;
+		ar_list = append_archive_list(ar_list, ar_entry);
 	}
-
 	return(ar_list);
 }

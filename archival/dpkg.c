@@ -13,7 +13,6 @@
 
 #include "busybox.h"
 
-
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
 /* Should we do full dependency checking? */
@@ -487,7 +486,7 @@ static void *status_read(void)
 		return(NULL);
 	}
 
-	while ( (package_control_buffer = read_text_file_to_buffer(f)) != NULL) {
+	while ( (package_control_buffer = fgets_str(f, "\n\n")) != NULL) {
 		m = (package_t *)xcalloc(1, sizeof(package_t));
 		fill_package_struct(m, package_control_buffer);
 		if (m->package) {
@@ -650,24 +649,26 @@ static int dpkg_doconfigure(package_t *pkg)
 
 static int dpkg_dounpack(package_t *pkg)
 {
-	int r = 0;
+	FILE *out_stream;
+	char *info_prefix;
 	int status = TRUE;
-	char *lst_path;
+	int r = 0;
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
 	/* extract the data file */
-	deb_extract(pkg->filename, extract_extract, "/", NULL);
+	deb_extract(pkg->filename, stdout, (extract_data_tar_gz | extract_all_to_fs), "/", NULL);
 
 	/* extract the control files */
-	deb_extract(pkg->filename, extract_control, infodir, pkg->package);
+	info_prefix = (char *) malloc(strlen(pkg->package) + strlen(infodir) + 2 + 5 + 1);
+	sprintf(info_prefix, "%s/%s.", infodir, pkg->package);
+	deb_extract(pkg->package, stdout, (extract_control_tar_gz | extract_all_to_fs), info_prefix, NULL);
 
 	/* Create the list file */
-	lst_path = xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
-	strcpy(lst_path, infodir);
-	strcat(lst_path, pkg->package);
-	strcat(lst_path, ".list");
-	deb_extract(pkg->filename, extract_contents_to_file, lst_path, NULL);
+	strcat(info_prefix, "list");
+	out_stream = wfopen(info_prefix, "w");			
+	deb_extract(pkg->package, out_stream, (extract_data_tar_gz | extract_list), NULL, NULL);
+	fclose(out_stream);
 
 	pkg->state_want = state_want_install;
 	pkg->state_flag = state_flag_ok;
@@ -692,7 +693,7 @@ static int dpkg_read_control(package_t *pkg)
 	if ((pkg_file = wfopen(pkg->filename, "r")) == NULL) {
 		return EXIT_FAILURE;
 	}
-	control_buffer = deb_extract(pkg->filename, extract_field, NULL, NULL);
+	control_buffer = deb_extract(pkg->filename, stdout, (extract_control_tar_gz | extract_one_to_buffer), NULL, "./control");
 	fill_package_struct(pkg, control_buffer);
 	return EXIT_SUCCESS;
 }

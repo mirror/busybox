@@ -30,36 +30,27 @@
 
 extern int ar_main(int argc, char **argv)
 {
-	const int preserve_date = 1;	/* preserve original dates */
-	const int verbose = 2;		/* be verbose */
-	const int display = 4;		/* display contents */
-	const int extract_to_file = 8;	/* extract contents of archive */
-	const int extract_to_stdout = 16;	/* extract to stdout */
-
-	FILE *src_file = NULL, *dst_file = NULL;
-	int funct = 0, opt=0;
-
-	ar_headers_t *head, *ar_extract_list=NULL;
-
-	ar_extract_list = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
-	head = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
+	FILE *src_stream = NULL;
+	int extract_function = 0, opt = 0;
+	file_headers_t *head;
+	file_headers_t *ar_extract_list = NULL;
 
 	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
 		switch (opt) {
 		case 'o':
-			funct |= preserve_date;
+			extract_function |= extract_preserve_date;
 			break;
 		case 'v':
-			funct |= verbose;
+			extract_function |= extract_verbose_list;
 			break;
 		case 't':
-			funct |= display;
+			extract_function |= extract_list;
 			break;
 		case 'p':
-			funct |= extract_to_stdout;
+			extract_function |= extract_to_stdout;
 			break;
 		case 'x':
-			funct |= extract_to_file;
+			extract_function |= extract_all_to_fs;
 			break;
 		default:
 			show_usage();
@@ -71,57 +62,28 @@ extern int ar_main(int argc, char **argv)
 		show_usage();
 	}
 
-	if ( (src_file = wfopen(argv[optind], "r")) < 0) {
-		error_msg_and_die("Cannot read %s", argv[optind]);
-	}
+	src_stream = xfopen(argv[optind++], "r");
+	head = get_ar_headers(src_stream);
 
-	optind++;	
-	head = get_ar_headers(src_file);
 	/* find files to extract or display */
 	/* search through argv and build extract list */
-	for (;optind < argc; optind++) {
-		ar_headers_t *ar_entry;
-		ar_entry = (ar_headers_t *) xcalloc(1, sizeof(ar_headers_t));
-		ar_entry = head;
-		while (ar_entry->next != NULL) {
-			if (strcmp(argv[optind], ar_entry->name) == 0) {
-				ar_headers_t *tmp;
-				tmp = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
-				*tmp = *ar_extract_list;
-				*ar_extract_list = *ar_entry;
-				ar_extract_list->next = tmp;
-				break;					
-			}
-			ar_entry=ar_entry->next;
+	ar_extract_list = (file_headers_t *) xcalloc(1, sizeof(file_headers_t));
+	if (optind < argc) {
+		while (optind < argc) {
+			ar_extract_list = add_from_archive_list(head, ar_extract_list, argv[optind]);
+			optind++;
 		}
-	}
-
-	/* if individual files not found extract all files */	
-	if (ar_extract_list->next==NULL) {
+	} else {
 		ar_extract_list = head;
 	}
 
-	/* find files to extract or display */	
-	while (ar_extract_list->next != NULL) {
-		if (funct & extract_to_file) {
-			dst_file = wfopen(ar_extract_list->name, "w");				
-		}
-		else if (funct & extract_to_stdout) {
-			dst_file = stdout;
-		}
-		if ((funct & extract_to_file) || (funct & extract_to_stdout)) {
-			fseek(src_file, ar_extract_list->offset, SEEK_SET);
-			copy_file_chunk(src_file, dst_file, ar_extract_list->size);			
-		}
-		if (funct & verbose) {
-			printf("%s %d/%d %8d %s ", mode_string(ar_extract_list->mode), 
-				ar_extract_list->uid, ar_extract_list->gid,
-				(int) ar_extract_list->size, time_string(ar_extract_list->mtime));
-		}
-		if ((funct & display) || (funct & verbose)){
-			puts(ar_extract_list->name);
-		}
-		ar_extract_list = ar_extract_list->next;
-	}
+	/* If there isnt even one possible entry then abort */
+	if (ar_extract_list->name == NULL) {
+		error_msg_and_die("No files to extract");
+	}	
+
+	fseek(src_stream, 0, SEEK_SET);
+	extract_archive(src_stream, stdout, ar_extract_list, extract_function, "./");
+
 	return EXIT_SUCCESS;
 }
