@@ -144,6 +144,41 @@
 // pretty/useful).
 //
 //
+// If you enabled BB_SH above, you may select one of the following shells.  
+// You can only select ONE of the following shells.  Sorry.
+//
+// lash is the very smallest shell (adds just 10k) and it is quite usable as a
+// command prompt, but it is not suitable for any but the most trivial scripting
+// (such as an initrd that calls insmod a few times) since it does not
+// understand Bourne shell grammer.  It does handle pipes, redirects, and job
+// control though.  Adding in command editing makes it very nice lightweight
+// command prompt.
+//#define BB_FEATURE_LASH
+//
+// hush is also quite small (just 18k) and it has very complete Bourne shell
+// grammer.  It handles if/then/else/fi just fine, but doesn't handle loops
+// like for/do/done or case/esac and such.  It also currently has a problem
+// with job control.
+//#define BB_FEATURE_HUSH
+//
+// msh: The minix shell (adds just 30k) is quite complete and handles things
+// like for/do/done, case/esac and all the things you expect a Bourne shell to
+// do.  It is not always pedantically correct about Bourne shell grammer (try
+// running the shell testscript "tests/sh.testcases" on it and compare vs
+// bash) but for most things it works quite well.  It also uses only vfork, so
+// it can be used on uClinux systems.  This was only recently added, so there is 
+// still room to shrink  it further...
+#define BB_FEATURE_MSH
+//
+// ash: This adds about 60k in the default configuration and is the most
+// complete and most pedantically correct shell included with busybox.  This
+// shell was also recently added, and several people (mainly Vladimir and Erik)
+// have been working on it.  There are a number of configurable things at the
+// top of ash.c as well, so check those out if you want to tweak things.  The
+// Posix math support is currently disabled (that bit of code was horrible) but
+// will be restored for the next BusyBox release.
+//#define BB_FEATURE_ASH
+//
 // BusyBox will, by default, malloc space for its buffers.  This costs code
 // size for the call to xmalloc.  You can use the following feature to have
 // them put on the stack.  For some very small machines with limited stack
@@ -390,6 +425,26 @@
 		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
 		#undef BB_FEATURE_COMMAND_USERNAME_COMPLETION
 		#undef BB_FEATURE_SH_FANCY_PROMPT
+	#endif
+	#if ! defined BB_FEATURE_LASH && ! defined BB_FEATURE_HUSH && ! defined BB_FEATURE_MSH && ! defined BB_FEATURE_ASH
+		#define BB_FEATURE_MSH
+	#endif
+	#if defined BB_FEATURE_ASH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
+		#undef  BB_FEATURE_LASH
+		#undef  BB_FEATURE_HUSH
+		#undef  BB_FEATURE_MSH
+	#elif defined BB_FEATURE_MSH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
+		#undef  BB_FEATURE_LASH
+		#undef  BB_FEATURE_HUSH
+		#undef  BB_FEATURE_ASH
+	#elif defined BB_FEATURE_HUSH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
+		#undef  BB_FEATURE_LASH
+		#undef  BB_FEATURE_MSH
+		#undef  BB_FEATURE_ASH
+	#elif defined BB_FEATURE_LASH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
+		#undef  BB_FEATURE_HUSH
+		#undef  BB_FEATURE_MSH
+		#undef  BB_FEATURE_ASH
 	#endif
 #else
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
