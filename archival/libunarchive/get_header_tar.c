@@ -16,6 +16,11 @@
  *  FIXME: Better checking required in oldcompatability mode, 
  *  the file db.1.85.tar.gz from sleepycat.com has trailing garbage
  *  GNU tar can handle it, busybox tar reports invalid tar header. 
+ *
+ *  References:
+ *    GNU tar and star man pages,
+ *    Opengroup's ustar interchange format,
+ *      	http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
  */
 
 #include <stdio.h>
@@ -122,6 +127,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 
 	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
+	/* busybox identifies hard links as being regular files with 0 size and a link name */
+	case '1':
+		file_header->mode &= (S_IFREG | 07777);
+		break;
+	case 'x':
+	case 'g':
+		bb_error_msg_and_die("pax is not tar");
+		break;
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	case 0:
 	case '0':
@@ -146,11 +159,11 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case '6':
 		file_header->mode |= S_IFIFO;
 		break;
-#endif
-	/* hard links are detected as regular files with 0 size and a link name */
-	case '1':
-		file_header->mode &= (S_IFREG | 07777);
+	case '7':
+		/* Reserved for high performance files, treat as normal file */
+		file_header->mode |= S_IFREG;
 		break;
+#endif
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(file_header->size + 1);
@@ -169,13 +182,15 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 			file_header->name = linkname;
 			return(get_header_tar(archive_handle));
 		}
-	case 'D':
-	case 'M':
-	case 'N':
-	case 'S':
-	case 'V':
+	case 'D':	/* GNU dump dir */
+	case 'M':	/* Continuation of multi volume archive*/
+	case 'N':	/* Old GNU for names > 100 characters */
+	case 'S':	/* Sparse file */
+	case 'V':	/* Volume header */
 		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
 #endif
+	default:
+		bb_error_msg("Unknown typeflag: 0x%x", tar.formated.typeflag);
 	}
 	{	/* Strip trailing '/' in directories */
 		/* Must be done after mode is set as '/' is used to check if its a directory */
