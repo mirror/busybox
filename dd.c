@@ -52,9 +52,11 @@ extern int dd_main(int argc, char **argv)
 	uintmax_t skipBlocks = 0;
 	uintmax_t seekBlocks = 0;
 	uintmax_t count = (uintmax_t) - 1;
-	uintmax_t intotal;
-	uintmax_t outTotal;
-	unsigned char *buf;
+	uintmax_t inTotal = 0;
+	uintmax_t outTotal = 0;
+	uintmax_t totalSize;
+	uintmax_t readSize;
+	unsigned char buf[BUFSIZ];
 
 	argc--;
 	argv++;
@@ -98,11 +100,6 @@ extern int dd_main(int argc, char **argv)
 		argv++;
 	}
 
-	buf = xmalloc(blockSize);
-
-	intotal = 0;
-	outTotal = 0;
-
 	if (inFile == NULL)
 		inFd = fileno(stdin);
 	else
@@ -134,9 +131,13 @@ extern int dd_main(int argc, char **argv)
 
 	lseek(inFd, skipBlocks * blockSize, SEEK_SET);
 	lseek(outFd, seekBlocks * blockSize, SEEK_SET);
-
-	while ((inCc = read(inFd, buf, sizeof(buf))) > 0) {
-		intotal +=inCc;
+	totalSize=count*blockSize;
+	printf("totalsize is %d\n",(int) totalSize);
+	while ((readSize = totalSize - inTotal) > 0) {
+		if (readSize > BUFSIZ)
+			readSize=BUFSIZ;
+		inCc = read(inFd, buf, readSize);
+		inTotal += inCc;
 		if ((outCc = fullWrite(outFd, buf, inCc)) < 0)
 			break;
 		outTotal += outCc;
@@ -150,8 +151,8 @@ extern int dd_main(int argc, char **argv)
 	free(buf);
 #endif
 
-	printf("%ld+%d records in\n", (long) (intotal / blockSize),
-		   (intotal % blockSize) != 0);
+	printf("%ld+%d records in\n", (long) (inTotal / blockSize),
+		   (inTotal % blockSize) != 0);
 	printf("%ld+%d records out\n", (long) (outTotal / blockSize),
 		   (outTotal % blockSize) != 0);
 	exit(TRUE);
