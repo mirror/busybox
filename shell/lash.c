@@ -1071,7 +1071,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 					/* Now paste into the *commandPtr all the stuff 
 					 * leftover after the second backtick */
-					memcpy(src, charptr2, strlen(charptr2));
+					memcpy(src, charptr2, strlen(charptr2)+1);
 					free(charptr2);
 
 					/* Now recursively call parseCommand to deal with the new
