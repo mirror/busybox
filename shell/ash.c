@@ -9967,8 +9967,8 @@ static int
 readtoken() {
 	int t;
 
-#ifdef CONFIG_ASH_ALIAS
 	int savecheckalias = checkalias;
+#ifdef CONFIG_ASH_ALIAS
 	int savecheckkwd = checkkwd;
 	struct alias *ap;
 #endif
@@ -9983,9 +9983,7 @@ top:
 
 	t = xxreadtoken();
 
-#ifdef CONFIG_ASH_ALIAS
 	checkalias = savecheckalias;
-#endif
 
 	if (checkkwd) {
 		/*
@@ -10021,8 +10019,8 @@ top:
 		}
 	} else if (checkalias == 2 && isassignment(wordtext)) {
 		lasttoken = t = TASSIGN;
-#ifdef CONFIG_ASH_ALIAS
 	} else if (checkalias) {
+#ifdef CONFIG_ASH_ALIAS
 		if (!quoteflag && (ap = *__lookupalias(wordtext)) != NULL && !(ap->flag & ALIASINUSE)) {
 			if (*ap->val) {
 				pushstring(ap->val, strlen(ap->val), ap);
@@ -10030,8 +10028,8 @@ top:
 			checkkwd = savecheckkwd;
 			goto top;
 		}
-		checkalias = 0;
 #endif
+		checkalias = 0;
 	}
 out:
 #ifdef DEBUG
@@ -12442,7 +12440,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.53 2002/07/03 23:19:22 andersen Exp $
+ * $Id: ash.c,v 1.54 2002/07/04 00:19:46 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
