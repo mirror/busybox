@@ -26,7 +26,7 @@
  */
 
 //
-//This works pretty well now, and is not on by default.
+//This works pretty well now, and is now on by default.
 #define BB_FEATURE_SH_ENVIRONMENT
 //
 //Backtick support has some problems, use at your own risk!
@@ -34,7 +34,7 @@
 //
 //If, then, else, etc. support..  This should now behave basically
 //like any other Bourne shell...
-//#define BB_FEATURE_SH_IF_EXPRESSIONS
+#define BB_FEATURE_SH_IF_EXPRESSIONS
 //
 /* This is currently a little broken... */
 //#define HANDLE_CONTINUATION_CHARS
@@ -316,22 +316,23 @@ static int builtin_fg_bg(struct child_prog *child)
 	int i, jobNum;
 	struct job *job=NULL;
 	
+	if (!child->argv[1] || child->argv[2]) {
+		error_msg("%s: exactly one argument is expected\n",
+				child->argv[0]);
+		return EXIT_FAILURE;
+	}
 
-		if (!child->argv[1] || child->argv[2]) {
-			error_msg("%s: exactly one argument is expected\n",
-					child->argv[0]);
-			return EXIT_FAILURE;
+	if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
+		error_msg("%s: bad argument '%s'\n",
+				child->argv[0], child->argv[1]);
+		return EXIT_FAILURE;
+	}
+
+	for (job = child->family->job_list->head; job; job = job->next) {
+		if (job->jobid == jobNum) {
+			break;
 		}
-		if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
-			error_msg("%s: bad argument '%s'\n",
-					child->argv[0], child->argv[1]);
-			return EXIT_FAILURE;
-		}
-		for (job = child->family->job_list->head; job; job = job->next) {
-			if (job->jobid == jobNum) {
-				break;
-			}
-		}
+	}
 
 	if (!job) {
 		error_msg("%s: unknown job %d\n",
@@ -524,7 +525,7 @@ static int builtin_else(struct child_prog *child)
 	}
 
 	cmd->job_context |= ELSE_EXP_CONTEXT;
-	debug_printf("job=%p builtin_else set job context to %x\n", child->family, cmd->job_context);
+	debug_printf("job=%p builtin_else set job context to %x\n", cmd, cmd->job_context);
 
 	/* Now run the 'else' command */
 	debug_printf( "'else' now running '%s'\n", charptr1);
@@ -583,12 +584,13 @@ static int builtin_unset(struct child_prog *child)
 
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 /* currently used by if/then/else.
- * Needlessly (?) forks and reparses the command line.
- * But pseudo_exec on the pre-parsed args doesn't have the
- * "fork, stick around until the child exits, and find it's return code"
- * functionality.  The fork is not needed if the predicate is
- * non-forking builtin, and maybe not even if it's a forking builtin.
- * applets pretty clearly need the fork.
+ *
+ * Reparsing the command line for this purpose is gross,
+ * incorrect, and fundamentally unfixable; in particular,
+ * think about what happens with command substitution.
+ * We really need to pull out the run, wait, return status
+ * functionality out of busy_loop so we can child->argv++
+ * and use that, without going back through parse_command.
  */
 static int run_command_predicate(char *cmd)
 {
@@ -684,7 +686,9 @@ static void checkjobs(struct jobset *job_list)
 		perror("waitpid");
 }
 
-static int setup_redirects(struct child_prog *prog)
+/* squirrel != NULL means we squirrel away copies of stdin, stdout,
+ * and stderr if they are redirected. */
+static int setup_redirects(struct child_prog *prog, int squirrel[])
 {
 	int i;
 	int openfd;
@@ -714,6 +718,9 @@ static int setup_redirects(struct child_prog *prog)
 		}
 
 		if (openfd != redir->fd) {
+			if (squirrel && redir->fd < 3) {
+				squirrel[redir->fd] = dup(redir->fd);
+			}
 			dup2(openfd, redir->fd);
 			close(openfd);
 		}
@@ -722,6 +729,19 @@ static int setup_redirects(struct child_prog *prog)
 	return 0;
 }
 
+static void restore_redirects(int squirrel[])
+{
+	int i, fd;
+	for (i=0; i<3; i++) {
+		fd = squirrel[i];
+		if (fd != -1) {
+			/* No error checking.  I sure wouldn't know what
+			 * to do with an error if I found one! */
+			dup2(fd, i);
+			close(fd);
+		}
+	}
+}
 
 static int get_command(FILE * source, char *command)
 {
@@ -1304,11 +1324,18 @@ static int pseudo_exec(struct child_prog *child)
 	struct BB_applet search_applet, *applet;
 #endif
 
-	/* Check if the command matches any of the forking builtins.
-	 * XXX It would probably be wise to check for non-forking builtins
-	 * here as well, since in some context the non-forking path
-	 * is disabled or bypassed.  See comment in run_command.
+	/* Check if the command matches any of the non-forking builtins.
+	 * Depending on context, this might be redundant.  But it's
+	 * easier to waste a few CPU cycles than it is to figure out
+	 * if this is one of those cases.
 	 */
+	for (x = bltins; x->cmd; x++) {
+		if (strcmp(child->argv[0], x->cmd) == 0 ) {
+			exit(x->function(child));
+		}
+	}
+
+	/* Check if the command matches any of the forking builtins. */
 	for (x = bltins_forking; x->cmd; x++) {
 		if (strcmp(child->argv[0], x->cmd) == 0) {
 			applet_name=x->cmd;
@@ -1435,15 +1462,22 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		}
 #endif
 
-		/* Check if the command matches any non-forking builtins.
-		 * XXX should probably skip this test, and fork anyway, if
-		 * there redirects of some kind demand forking to work right.
-		 * pseudo_exec would then need to handle the non-forking command
-		 * in a forked context.
+		/* Check if the command matches any non-forking builtins,
+		 * but only if this is a simple command.
+		 * Non-forking builtins within pipes have to fork anyway,
+		 * and are handled in pseudo_exec.  "echo foo | read bar"
+		 * is doomed to failure, and doesn't work on bash, either.
 		 */
-		for (x = bltins; x->cmd; x++) {
-			if (strcmp(child->argv[0], x->cmd) == 0 ) {
-				return(x->function(child));
+		if (newjob->num_progs == 1) {
+			for (x = bltins; x->cmd; x++) {
+				if (strcmp(child->argv[0], x->cmd) == 0 ) {
+					int squirrel[] = {-1, -1, -1};
+					int rcode;
+					setup_redirects(child, squirrel);
+					rcode = x->function(child);
+					restore_redirects(squirrel);
+					return rcode;
+				}
 			}
 		}
 
@@ -1466,7 +1500,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 
 			/* explicit redirects override pipes */
-			setup_redirects(child);
+			setup_redirects(child,NULL);
 
 			pseudo_exec(child);
 		}
