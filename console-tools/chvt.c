@@ -4,12 +4,12 @@
  *
  * busyboxed by Erik Andersen
  */
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 
 /* From <linux/vt.h> */
 static const int VT_ACTIVATE = 0x5606;  /* make vt active */

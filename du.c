@@ -22,11 +22,6 @@
  *
  */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_name_too_long
-#include "messages.c"
-
 #include <sys/types.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -34,6 +29,11 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <errno.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_name_too_long
+#include "messages.c"
+
 
 #ifdef BB_FEATURE_HUMAN_READABLE
 unsigned long du_disp_hr = KILOBYTE;
@@ -187,7 +187,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.37 2001/02/14 21:23:05 andersen Exp $ */
+/* $Id: du.c,v 1.38 2001/02/20 06:14:07 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

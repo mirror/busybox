@@ -21,7 +21,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -30,6 +29,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "busybox.h"
 #if !defined BB_SYSLOGD
 
 #define SYSLOG_NAMES
@@ -40,6 +40,7 @@
  * structures.  Argh.... bad libc, bad, bad...
  */
 #include <sys/syslog.h>
+
 typedef struct _code {
 	char *c_name;
 	int c_val;

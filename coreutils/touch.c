@@ -22,7 +22,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -30,6 +29,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 extern int touch_main(int argc, char **argv)
 {

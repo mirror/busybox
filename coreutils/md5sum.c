@@ -20,11 +20,11 @@
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu> */
 /* Hacked to work with BusyBox by Alfred M. Szmidt <ams@trillian.itslinux.org> */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
 #include <getopt.h>
+#include "busybox.h"
 
 /* For some silly reason, this file uses backwards TRUE and FALSE conventions */
 #undef TRUE

@@ -26,7 +26,6 @@
 
 */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,6 +37,7 @@
 #include <netdb.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 
 int nc_main(int argc, char **argv)
 {

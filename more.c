@@ -25,12 +25,12 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_help
 #include "messages.c"

@@ -21,14 +21,14 @@
  *
  */
 
-#include "busybox.h"
-
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include "busybox.h"
+
 
 static const struct suffix_mult dd_suffixes[] = {
 	{ "c", 1 },

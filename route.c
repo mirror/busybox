@@ -15,14 +15,13 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.6 2001/02/18 20:12:25 andersen Exp $
+ * $Id: route.c,v 1.7 2001/02/20 06:14:08 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * busybox style adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
  * displayroute() format now matches net-tools-1.57/lib/inet_gr.c line 173.
  */
 
-#include "busybox.h"
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -38,6 +37,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <ctype.h>
+#include "busybox.h"
 
 #define _(x) x
 

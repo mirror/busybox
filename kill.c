@@ -21,7 +21,6 @@
  */
 
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -30,6 +29,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
+#include "busybox.h"
 
 static const int KILL = 0;
 static const int KILLALL = 1;

@@ -22,10 +22,10 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 extern int 
 echo_main(int argc, char** argv)

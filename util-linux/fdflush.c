@@ -21,11 +21,11 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 /* From <linux/fd.h> */
 #define FDFLUSH  _IO(2,0x4b)

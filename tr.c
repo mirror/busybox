@@ -24,12 +24,12 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_write_error
 #include "messages.c"

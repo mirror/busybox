@@ -22,16 +22,16 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_invalid_option
 #define bb_need_too_few_args
 #include "messages.c"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 
 static long uid = -1;

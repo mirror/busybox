@@ -20,11 +20,6 @@
  *
 */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_invalid_date
-#define bb_need_memory_exhausted
-#include "messages.c"
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -33,6 +28,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_invalid_date
+#define bb_need_memory_exhausted
+#include "messages.c"
 
 
 /* This 'date' command supports only 2 time setting formats, 

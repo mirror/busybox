@@ -57,7 +57,6 @@ static char *license_msg[] = {
 };
 #endif
 
-#include "busybox.h"
 #include <getopt.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -71,6 +70,7 @@ static char *license_msg[] = {
 #include <stdlib.h>
 #include <time.h>
 #include <dirent.h>
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_memory_exhausted
 #define bb_need_name_too_long

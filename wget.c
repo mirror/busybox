@@ -14,7 +14,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -32,6 +31,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+
+#include "busybox.h"
 
 /* Stupid libc5 doesn't define this... */
 #ifndef timersub
@@ -533,7 +534,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.27 2001/02/14 21:23:06 andersen Exp $
+ *	$Id: wget.c,v 1.28 2001/02/20 06:14:08 andersen Exp $
  */
 
 

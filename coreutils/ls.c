@@ -50,7 +50,6 @@ enum {
 
 /************************************************************************/
 
-#include "busybox.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -67,6 +66,7 @@ enum {
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)

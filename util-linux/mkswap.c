@@ -35,7 +35,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -45,6 +44,7 @@
 #include <sys/utsname.h>
 #include <asm/page.h>			/* for PAGE_SIZE and PAGE_SHIFT */
 				/* we also get PAGE_SIZE via getpagesize() */
+#include "busybox.h"
 
 #ifndef _IO
 /* pre-1.3.45 */

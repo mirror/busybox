@@ -1,10 +1,10 @@
 /* vi: set sw=4 ts=4: */
-#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 #undef APPLET
 #undef APPLET_NOUSAGE

@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
-#include "busybox.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "busybox.h"
 
 extern int length_main(int argc, char **argv)
 {

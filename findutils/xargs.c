@@ -21,10 +21,10 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "busybox.h"
 
 int xargs_main(int argc, char **argv)
 {

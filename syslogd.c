@@ -23,7 +23,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -56,6 +55,7 @@ static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 #else
 # include <sys/klog.h>
 #endif
+#include "busybox.h"
 
 
 

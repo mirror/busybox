@@ -36,11 +36,6 @@
  */
 
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_io_error
-#define bb_need_name_longer_than_foo
-#include "messages.c"
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
@@ -55,6 +50,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_io_error
+#define bb_need_name_longer_than_foo
+#include "messages.c"
 
 #ifdef BB_FEATURE_TAR_GZIP
 extern int unzip(int in, int out);

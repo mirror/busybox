@@ -20,10 +20,10 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "busybox.h"
 
 extern int logname_main(int argc, char **argv)
 {

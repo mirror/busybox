@@ -7,13 +7,13 @@
  * known bugs: can't deal with alpha ranges
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include "busybox.h"
 
 int makedevs_main(int argc, char **argv)
 {

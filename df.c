@@ -22,12 +22,12 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <mntent.h>
 #include <sys/vfs.h>
 #include <getopt.h>
+#include "busybox.h"
 
 extern const char mtab_file[];	/* Defined in utility.c */
 #ifdef BB_FEATURE_HUMAN_READABLE

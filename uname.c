@@ -31,7 +31,6 @@
 
 /* Busyboxed by Erik Andersen */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -40,6 +39,7 @@
 #if defined (HAVE_SYSINFO) && defined (HAVE_SYS_SYSTEMINFO_H)
 # include <sys/systeminfo.h>
 #endif
+#include "busybox.h"
 
 static void print_element(unsigned int mask, char *element);
 

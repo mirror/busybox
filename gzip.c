@@ -29,11 +29,6 @@
  *
  */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_memory_exhausted
-#include "messages.c"
-
 /* These defines are very important for BusyBox.  Without these,
  * huge chunks of ram are pre-allocated making the BusyBox bss 
  * size Freaking Huge(tm), which is a bad thing.*/
@@ -43,9 +38,15 @@
 /* I don't like nested includes, but the string and io functions are used
  * too often
  */
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_memory_exhausted
+#include "messages.c"
+
 #define memzero(s, n)     memset ((void *)(s), 0, (n))
 
 #ifndef RETSIGTYPE
@@ -1628,12 +1629,6 @@ ulg deflate()
 #  include <unistd.h>
 #endif
 
-#if defined(STDC_HEADERS) || !defined(NO_STDLIB_H)
-#  include <stdlib.h>
-#else
-extern int errno;
-#endif
-
 #if defined(DIRENT)
 #  include <dirent.h>
 typedef struct dirent dir_type;
@@ -3096,12 +3091,6 @@ local void set_file_type()
 #endif
 #ifndef NO_FCNTL_H
 #  include <fcntl.h>
-#endif
-
-#if defined(STDC_HEADERS) || !defined(NO_STDLIB_H)
-#  include <stdlib.h>
-#else
-extern int errno;
 #endif
 
 /* ===========================================================================

@@ -22,7 +22,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <mntent.h>
 #include <dirent.h>
@@ -31,6 +30,7 @@
 #include <sys/mount.h>
 #include <sys/syscall.h>
 #include <linux/unistd.h>
+#include "busybox.h"
 
 _syscall2(int, swapon, const char *, path, int, flags);
 _syscall1(int, swapoff, const char *, path);

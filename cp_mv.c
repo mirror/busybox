@@ -25,13 +25,6 @@
  *
  */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_name_too_long
-#define bb_need_omitting_directory
-#define bb_need_not_a_directory
-#include "messages.c"
-
 #include <stdio.h>
 #include <time.h>
 #include <utime.h>
@@ -43,6 +36,13 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_name_too_long
+#define bb_need_omitting_directory
+#define bb_need_not_a_directory
+#include "messages.c"
+
 
 static const int is_cp = 0;
 static const int is_mv = 1;

@@ -27,7 +27,6 @@
 #define DEBUG_INIT
 */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -43,13 +42,14 @@
 #include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "busybox.h"
+#define bb_need_full_version
+#define BB_DECLARE_EXTERN
+#include "messages.c"
 #ifdef BB_SYSLOGD
 # include <sys/syslog.h>
 #endif
 
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
 
 /* From <linux/vt.h> */
 struct vt_stat {

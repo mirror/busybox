@@ -7,7 +7,6 @@
  * Peter Novodvorsky <petya@logic.ru>
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -17,9 +16,10 @@
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/kd.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/kd.h>
+#include "busybox.h"
 
 typedef unsigned short unicode;
 

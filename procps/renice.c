@@ -20,12 +20,12 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "busybox.h"
 
 
 extern int renice_main(int argc, char **argv)

@@ -21,17 +21,17 @@
  *
  */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_not_a_directory
-#include "messages.c"
-
 #include <stdio.h>
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_not_a_directory
+#include "messages.c"
+
 
 static const int LN_SYMLINK = 1;
 static const int LN_FORCE = 2;

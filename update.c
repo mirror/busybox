@@ -28,7 +28,6 @@
  * earlier) kernel. 2.2.x and higher flush filesystem buffers automatically.
  */
 
-#include "busybox.h"
 #include <sys/param.h>
 #include <sys/syslog.h>
 #include <unistd.h> /* for getopt() */
@@ -42,6 +41,7 @@
 #include <linux/unistd.h>
 static _syscall2(int, bdflush, int, func, int, data);
 #endif /* __GLIBC__ */
+#include "busybox.h"
 
 static unsigned int sync_duration = 30;
 static unsigned int flush_duration = 5;

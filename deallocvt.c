@@ -3,12 +3,12 @@
  * disalloc.c - aeb - 940501 - Disallocate virtual terminal(s)
  * Renamed deallocvt.
  */
-#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 
 /* From <linux/vt.h> */
 static const int VT_DISALLOCATE = 0x5608;  /* free memory associated to vt */

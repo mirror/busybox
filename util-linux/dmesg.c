@@ -15,7 +15,6 @@
  * Support, replaced getopt, added some gotos for redundant stuff.
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -33,6 +32,7 @@ static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 #else
 # include <sys/klog.h>
 #endif
+#include "busybox.h"
 
 int dmesg_main(int argc, char **argv)
 {

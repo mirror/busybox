@@ -7,7 +7,6 @@
  * Loads the console font, and possibly the corresponding screen map(s).
  * (Adapted for busybox by Matej Vela.)
  */
-#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -20,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <sys/kd.h>
 #include <endian.h>
+#include "busybox.h"
 
 static const int PSF_MAGIC1 = 0x36;
 static const int PSF_MAGIC2 = 0x04;

@@ -4,11 +4,11 @@
  *
  * busyboxed by Evin Robertson
  */
-#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/syscall.h>
 #include <linux/unistd.h>
+#include "busybox.h"
 
 #ifndef __NR_pivot_root
 #error Sorry, but this kernel does not support the pivot_root syscall

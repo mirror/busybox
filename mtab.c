@@ -1,5 +1,4 @@
 /* vi: set sw=4 ts=4: */
-#include "busybox.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -8,6 +7,7 @@
 #include <mntent.h>
 #include <fstab.h>
 #include <sys/mount.h>
+#include "busybox.h"
 
 extern const char mtab_file[];	/* Defined in utility.c */
 

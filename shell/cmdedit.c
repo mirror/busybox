@@ -32,6 +32,21 @@
 
 //#define TEST
 
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <ctype.h>
+#include <signal.h>
+#include <limits.h>
+
+#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
+
 
 #ifndef TEST
 
@@ -60,21 +75,6 @@
 
 #if defined(BB_FEATURE_SH_USERNAME_COMPLETION) || defined(BB_FEATURE_BASH_STYLE_PROMT)
 #define BB_FEATURE_GETUSERNAME_AND_HOMEDIR
-#endif
-
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <ctype.h>
-#include <signal.h>
-#include <limits.h>
-
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
-#include <dirent.h>
-#include <sys/stat.h>
 #endif
 
 #ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR

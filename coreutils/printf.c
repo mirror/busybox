@@ -47,7 +47,6 @@
 
 //   19990508 Busy Boxed! Dave Cinege
 
-#include "busybox.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -56,6 +55,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include "busybox.h"
 
 
 #ifndef S_IFMT

@@ -43,7 +43,6 @@
  *	
  */
 
-#include "busybox.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -54,6 +53,7 @@
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h> /* For Erik's nifty devmtab device driver */
 #endif
+#include "busybox.h"
 
 enum {
 	MS_MGC_VAL = 0xc0ed0000, /* Magic number indicatng "new" flags */

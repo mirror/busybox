@@ -22,12 +22,12 @@
 /* Hacked to work with BusyBox by Alfred M. Szmidt */
 
 
-#include "busybox.h"
 
 #include <stdio.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 #define	RW (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 

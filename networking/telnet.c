@@ -30,7 +30,6 @@
  *
  */
 
-#include "busybox.h"
 #include <termios.h>
 #include <unistd.h>
 #include <errno.h>
@@ -43,6 +42,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include "busybox.h"
 
 #if 0
 static const int DOTRACE = 1;

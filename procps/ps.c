@@ -28,7 +28,6 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,6 +37,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_help
 #include "messages.c"

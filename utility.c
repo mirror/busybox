@@ -25,6 +25,20 @@
  *
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <time.h>
+#include <utime.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/ioctl.h>
+#include <sys/utsname.h>		/* for uname(2) */
+
 #include "busybox.h"
 #if defined (BB_CHMOD_CHOWN_CHGRP) \
  || defined (BB_CP_MV)		   \
@@ -41,20 +55,6 @@
 #define BB_DECLARE_EXTERN
 #include "messages.c"
 #include "usage.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <time.h>
-#include <utime.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>		/* for uname(2) */
 
 #include "pwd_grp/pwd.h"
 #include "pwd_grp/grp.h"

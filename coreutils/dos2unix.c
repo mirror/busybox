@@ -22,9 +22,9 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 int dos2unix_main( int argc, char **argv ) {
  	int c;

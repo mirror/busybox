@@ -21,7 +21,6 @@
  *
  */
 
-#include "busybox.h"
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -29,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include "busybox.h"
 
 static const struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },

@@ -20,14 +20,14 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include "busybox.h"
 
 int mknod_main(int argc, char **argv)
 {

@@ -28,7 +28,6 @@
 
    */
 
-#include "busybox.h"
 
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -53,6 +52,7 @@
 #include <limits.h>
 #include <memory.h>
 #include <fcntl.h>
+#include "busybox.h"
 
 #define STREQ(a, b) (strcmp ((a), (b)) == 0)
 

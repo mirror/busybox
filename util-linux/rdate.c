@@ -21,9 +21,6 @@
  *
 */
 
-#include "busybox.h"
-#define BB_DECLARE_EXTERN
-#include "messages.c"
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -33,6 +30,9 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "busybox.h"
+#define BB_DECLARE_EXTERN
+#include "messages.c"
 
 
 static const int RFC_868_BIAS = 2208988800UL;

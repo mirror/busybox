@@ -31,13 +31,13 @@
  * 	"This program is in the Public Domain."
  */
 
-#include "busybox.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_help
 #include "messages.c"

@@ -24,7 +24,6 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,6 +32,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include "busybox.h"
 
 #define DEFAULTFBDEV  "/dev/fb0"
 #define DEFAULTFBMODE "/etc/fb.modes"

@@ -21,7 +21,6 @@
  *
  */
 
-#include "busybox.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -32,6 +31,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include "busybox.h"
 
 /*
  |  I'm only implementing non-interactive mode;
@@ -170,4 +170,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.21 2001/02/14 21:23:06 andersen Exp $ */
+/* $Id: nslookup.c,v 1.22 2001/02/20 06:14:08 andersen Exp $ */

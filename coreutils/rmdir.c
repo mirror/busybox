@@ -22,11 +22,11 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 extern int rmdir_main(int argc, char **argv)
 {

@@ -62,7 +62,6 @@
  *	removed getopt based parser and added a hand rolled one.
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -75,6 +74,7 @@
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <mntent.h>
+#include "busybox.h"
 
 
 typedef unsigned char u8;

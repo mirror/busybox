@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.37 2001/02/14 21:23:06 andersen Exp $
+ * $Id: ping.c,v 1.38 2001/02/20 06:14:08 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -31,7 +31,6 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "busybox.h"
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/file.h>
@@ -50,6 +49,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 
 /* It turns out that libc5 doesn't have proper icmp support

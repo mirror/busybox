@@ -20,11 +20,11 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include "busybox.h"
 
 extern int tty_main(int argc, char **argv)
 {

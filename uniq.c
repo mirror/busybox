@@ -23,12 +23,12 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
 #include <errno.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 static int print_count;
 static int print_uniq = 1;

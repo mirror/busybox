@@ -15,17 +15,16 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.2 2001/02/14 21:23:06 andersen Exp $
+ * $Id: ifconfig.c,v 1.3 2001/02/20 06:14:07 andersen Exp $
  *
  */
 
-#include "busybox.h"
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>   // strcmp and friends
 #include <ctype.h>    // isdigit and friends
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
@@ -33,6 +32,7 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <linux/if_ether.h>
+#include "busybox.h"
 
 static int sockfd;  /* socket fd we use to manipulate stuff with */
 

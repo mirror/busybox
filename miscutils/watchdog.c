@@ -20,11 +20,11 @@
  *
  */
 
-#include "busybox.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 extern int watchdog_main(int argc, char **argv)
 {
