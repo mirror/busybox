@@ -109,6 +109,7 @@ extern int more_main(int argc, char **argv)
 		if(file==0)
 			goto loop;
 			
+		st.st_size = 0;
 		fstat(fileno(file), &st);
 
 		if(please_display_more_prompt>0)
@@ -128,7 +129,7 @@ extern int more_main(int argc, char **argv)
 
 			if (please_display_more_prompt>0) {
 				len = printf("--More-- ");
-				if (file != stdin) {
+				if (file != stdin && st.st_size > 0) {
 #if _FILE_OFFSET_BITS == 64
 					len += printf("(%d%% of %lld bytes)",
 						   (int) (100 * ((double) ftell(file) /
