@@ -27,10 +27,44 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <linux/if_vlan.h>
 #include <string.h>
 #include <limits.h>
 #include "busybox.h"
+
+/* Stuff from linux/if_vlan.h, kernel version 2.4.23 */
+enum vlan_ioctl_cmds {
+	ADD_VLAN_CMD,
+	DEL_VLAN_CMD,
+	SET_VLAN_INGRESS_PRIORITY_CMD,
+	SET_VLAN_EGRESS_PRIORITY_CMD,
+	GET_VLAN_INGRESS_PRIORITY_CMD,
+	GET_VLAN_EGRESS_PRIORITY_CMD,
+	SET_VLAN_NAME_TYPE_CMD,
+	SET_VLAN_FLAG_CMD
+};
+enum vlan_name_types {
+	VLAN_NAME_TYPE_PLUS_VID, /* Name will look like:  vlan0005 */
+	VLAN_NAME_TYPE_RAW_PLUS_VID, /* name will look like:  eth1.0005 */
+	VLAN_NAME_TYPE_PLUS_VID_NO_PAD, /* Name will look like:  vlan5 */
+	VLAN_NAME_TYPE_RAW_PLUS_VID_NO_PAD, /* Name will look like:  eth0.5 */
+	VLAN_NAME_TYPE_HIGHEST
+};
+
+struct vlan_ioctl_args {
+	int cmd; /* Should be one of the vlan_ioctl_cmds enum above. */
+	char device1[24];
+
+        union {
+		char device2[24];
+		int VID;
+		unsigned int skb_priority;
+		unsigned int name_type;
+		unsigned int bind_type;
+		unsigned int flag; /* Matches vlan_dev_info flags */
+        } u;
+
+	short vlan_qos;   
+};
 
 #define VLAN_GROUP_ARRAY_LEN 4096
 #define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options 	*/
