@@ -22,12 +22,14 @@
 #include <string.h>
 #include "libbb.h"
 
+#if defined __UCLIBC__ || __GNU_LIBRARY___ < 5
+
 /* Return a string containing the path name of the parent
  * directory of PATH.  */
 
-char *dirname(const char *path)
+char *dirname(char *path)
 {
-	const char *s;
+	char *s;
 
 	/* Go to the end of the string.  */
 	s = path + strlen(path) - 1;
@@ -49,3 +51,5 @@ char *dirname(const char *path)
 	s[1] = '\0';
 	return path;
 }
+
+#endif

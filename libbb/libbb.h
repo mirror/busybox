@@ -259,7 +259,7 @@ extern FILE *gz_open(FILE *compressed_file, int *pid);
 extern struct hostent *xgethostbyname(const char *name);
 extern int create_icmp_socket(void);
 
-char *dirname (const char *path);
+char *dirname (char *path);
 
 int make_directory (char *path, long mode, int flags);
 
