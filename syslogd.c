@@ -155,8 +155,6 @@ void ipcsyslog_init(void){
 		    perror_msg_and_die("semget");
 		}else
     			perror_msg_and_die("semget");
-	    } else {
-		    sem_up(s_semid);
 	    }
 	}else{
 		printf("Buffer already allocated just grab the semaphore?");
