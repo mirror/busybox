@@ -980,6 +980,7 @@ set_window_size(int rows, int cols, int fd)
 		if ((ioctl(fd, TIOCSWINSZ, (char *) &win) != 0)
 			|| (ioctl(fd, TIOCSSIZE, (char *) &ttysz) != 0)) {
 			perror_on_device("%s");
+		}
 		return;
 	}
 # endif
