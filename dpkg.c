@@ -35,9 +35,13 @@
 #define BUFSIZE		4096
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
-#define ADMINDIR "/var/lib/dpkg"
-#define STATUSFILE	ADMINDIR ## "/status.udeb"
-#define DPKGCIDIR	ADMINDIR ## "/tmp.ci/"
+static const char statusfile[] = "/var/lib/dpkg/status.udeb";
+static const char new_statusfile[] = "/var/lib/dpkg/status.udeb.new";
+static const char bak_statusfile[] = "/var/lib/dpkg/status.udeb.bak";
+
+static const char dpkgcidir[] = "/var/lib/dpkg/tmp.ci/";
+static const char rm_dpkgcidir[] = "rm -rf /var/lib/dpkg/tmp.ci/";
+
 static const char infodir[] = "/var/lib/dpkg/info/";
 static const char udpkg_quiet[] = "UDPKG_QUIET";
 
@@ -95,6 +99,16 @@ typedef struct package_s {
 	struct package_s *next;
 } package_t;
 
+#ifdef DODEBUG
+static int do_system(const char *cmd)
+{
+	DPRINTF("cmd is %s\n", cmd);
+	return system(cmd);
+}
+#else
+#define do_system(cmd) system(cmd)
+#endif
+
 static int package_compare(const void *p1, const void *p2)
 {
 	return strcmp(((package_t *)p1)->package, 
@@ -111,41 +125,46 @@ static char **depends_split(const char *dependsstr)
 	int i = 0;
 
 	dependsvec[0] = 0;
-
-	if (dependsstr != 0) {
-		p = strdup(dependsstr);
-		while (*p != 0 && *p != '\n') {
-			if (*p != ' ') {
-				if (*p == ',') {
-					*p = 0;
-					dependsvec[++i] = 0;
-				} else
-					if (dependsvec[i] == 0)
-						dependsvec[i] = p;
-			} else {
-				*p = 0; /* eat the space... */
-			}
-			p++;
-		}
-		*p = 0;
+	if (dependsstr == 0) {
+		goto end;
 	}
+
+	p = strdup(dependsstr);
+	while (*p != 0 && *p != '\n') {
+		if (*p != ' ') {
+			if (*p == ',') {
+				*p = 0;
+				dependsvec[++i] = 0;
+			} else {
+				if (dependsvec[i] == 0) {
+					dependsvec[i] = p;
+				}
+			}
+		} else {
+			*p = 0; /* eat the space... */
+		}
+		p++;
+	}
+	*p = 0;
+
+end:
 	dependsvec[i+1] = 0;
 	return dependsvec;
 }
 
+/* Topological sort algorithm:
+ * ordered is the output list, pkgs is the dependency graph, pkg is 
+ * the current node
+ *
+ * recursively add all the adjacent nodes to the ordered list, marking
+ * each one as visited along the way
+ *
+ * yes, this algorithm looks a bit odd when all the params have the
+ * same type :-)
+ */
 static void depends_sort_visit(package_t **ordered, package_t *pkgs,
 		package_t *pkg)
 {
-	/* Topological sort algorithm:
-	 * ordered is the output list, pkgs is the dependency graph, pkg is 
-	 * the current node
-	 *
-	 * recursively add all the adjacent nodes to the ordered list, marking
-	 * each one as visited along the way
-	 *
-	 * yes, this algorithm looks a bit odd when all the params have the
-	 * same type :-)
-	 */
 	unsigned short i;
 
 	/* mark node as processing */
@@ -164,6 +183,7 @@ static void depends_sort_visit(package_t **ordered, package_t *pkgs,
 	newnode->next = *ordered;
 	*ordered = newnode;
 #endif
+
 	pkg->next = *ordered;
 	*ordered = pkg;
 
@@ -178,12 +198,14 @@ static package_t *depends_sort(package_t *pkgs)
 	package_t *ordered = NULL;
 	package_t *pkg;
 
-	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
+	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
 		pkg->color = color_white;
-
-	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
-		if (pkg->color == color_white)
+	}
+	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
+		if (pkg->color == color_white) {
 			depends_sort_visit(&ordered, pkgs, pkg);
+		}
+	}
 
 	/* Leaks the old list... return the new one... */
 	return ordered;
@@ -218,17 +240,15 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 			if ((found = tfind(&dependpkg, &status, package_compare)) == 0 ||
 			    ((chk = *(package_t **)found) &&
 			     (chk->status & (status_flagok | status_statusinstalled)) != 
-			      (status_flagok | status_statusinstalled)))
-			{
+			      (status_flagok | status_statusinstalled))) {
+
 				/* if it fails, we look through the list of packages we are going to 
 				 * install */
 				for (chk = pkgs; chk != 0; chk = chk->next) {
-					if (strcmp(chk->package, dependsvec[i]) == 0 ||
-					    (chk->provides && 
+					if (strcmp(chk->package, dependsvec[i]) == 0 || (chk->provides && 
 					     strncmp(chk->provides, dependsvec[i], strlen(dependsvec[i])) == 0)) {
 						if (chk->requiredcount >= DEPENDSMAX) {
-							fprintf(stderr, "Too many dependencies for %s\n", 
-								chk->package);
+							fprintf(stderr, "Too many dependencies for %s\n", chk->package);
 							return 0;
 						}
 						if (chk != pkg) {
@@ -264,16 +284,16 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
  *    replacing any pre-existing entries. when a merge happens, status info 
  *    read using the status_read function is written back to the status file
  */
-
 static unsigned long status_parse(const char *line)
 {
 	char *p;
 	int i, j;
 	unsigned long l = 0;
-	for (i = 0; i < 3; i++)
-	{
-		p = strchr(line, ' ');
-		if (p) *p = 0; 
+
+	for (i = 0; i < 3; i++) {
+		if ((p = strchr(line, ' ')) != NULL) {
+			*p = 0;
+		}
 		j = 1;
 		while (statuswords[i][j] != 0) {
 			if (strcmp(line, statuswords[i][j]) == 0) {
@@ -288,6 +308,7 @@ static unsigned long status_parse(const char *line)
 		}
 		line = p+1;
 	}
+
 	return l;
 }
 
@@ -313,6 +334,7 @@ static const char *status_print(unsigned long flags)
 			return NULL;
 		}
 	}
+
 	return buf;
 }
 
@@ -326,6 +348,7 @@ static void control_read(FILE *file, package_t *p)
 
 	while ((line = get_line_from_file(file)) != NULL) {
 		line[strlen(line)] = 0;
+
 		if (strlen(line) == 0) {
 			break;
 		} else
@@ -359,13 +382,15 @@ static void *status_read(void)
 	void *status = 0;
 	package_t *m = 0, *p = 0, *t = 0;
 
-	if ((f = fopen(STATUSFILE, "r")) == NULL) {
-		perror(STATUSFILE);
+	if ((f = fopen(statusfile, "r")) == NULL) {
+		perror(statusfile);
 		return 0;
 	}
+
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Reading database...)\n");
 	}
+
 	while (!feof(f)) {
 		m = (package_t *)xmalloc(sizeof(package_t));
 		memset(m, 0, sizeof(package_t));
@@ -389,7 +414,7 @@ static void *status_read(void)
 				p->package = strdup(m->provides);
 
 				t = *(package_t **)tsearch(p, &status, package_compare);
-				if (!(t == p)) {
+				if (t != p) {
 					free(p->package);
 					free(p);
 				}
@@ -422,18 +447,19 @@ static int status_merge(void *status, package_t *pkgs)
 	package_t locpkg;
 	int r = 0;
 
-	if ((fin = fopen(STATUSFILE, "r")) == NULL) {
-		perror(STATUSFILE);
+	if ((fin = fopen(statusfile, "r")) == NULL) {
+		perror(statusfile);
 		return 0;
 	}
-	if ((fout = fopen(STATUSFILE ".new", "w")) == NULL) {
-		perror(STATUSFILE ".new");
+	if ((fout = fopen(new_statusfile, "w")) == NULL) {
+		perror(new_statusfile);
 		return 0;
 	}
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Updating database...)\n");
 	}
-	while (((line = get_line_from_file(fin)) != NULL) && (feof(fin) != 0)) { 
+
+	while (((line = get_line_from_file(fin)) != NULL) && !feof(fin)) { 
 		line[strlen(line)] = 0; /* trim newline */
 		/* If we see a package header, find out if it's a package
 		 * that we have processed. if so, we skip that block for
@@ -488,26 +514,13 @@ static int status_merge(void *status, package_t *pkgs)
 	fclose(fin);
 	fclose(fout);
 
-	r = rename(STATUSFILE, STATUSFILE ".bak");
+	r = rename(statusfile, bak_statusfile);
 	if (r == 0) {
-		r = rename(STATUSFILE ".new", STATUSFILE);
+		r = rename(new_statusfile, statusfile);
 	}
+
 	return 0;
 }
-
-/* 
- * Main udpkg implementation routines
- */
-
-#ifdef DODEBUG
-static int do_system(const char *cmd)
-{
-	DPRINTF("cmd is %s\n", cmd);
-	return system(cmd);
-}
-#else
-#define do_system(cmd) system(cmd)
-#endif
 
 static int is_file(const char *fn)
 {
@@ -524,9 +537,11 @@ static int dpkg_doconfigure(package_t *pkg)
 	int r;
 	char postinst[1024];
 	char buf[1024];
+
 	DPRINTF("Configuring %s\n", pkg->package);
 	pkg->status &= status_statusmask;
 	snprintf(postinst, sizeof(postinst), "%s%s.postinst", infodir, pkg->package);
+
 	if (is_file(postinst)) {
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
 		if ((r = do_system(buf)) != 0) {
@@ -535,7 +550,6 @@ static int dpkg_doconfigure(package_t *pkg)
 			return 1;
 		}
 	}
-
 	pkg->status |= status_statusinstalled;
 	
 	return 0;
@@ -543,80 +557,78 @@ static int dpkg_doconfigure(package_t *pkg)
 
 static int dpkg_dounpack(package_t *pkg)
 {
-	int r = 0;
+	int r = 0, i;
 	char *cwd, *p;
 	FILE *infp, *outfp;
 	char buf[1024], buf2[1024];
-	int i;
 	char *adminscripts[] = { "prerm", "postrm", "preinst", "postinst",
-	                         "conffiles", "md5sums", "shlibs", 
-				 "templates" };
+			"conffiles", "md5sums", "shlibs", "templates" };
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
 	cwd = getcwd(0, 0);
 	chdir("/");
 	snprintf(buf, sizeof(buf), "ar -p %s data.tar.gz|zcat|tar -xf -", pkg->file);
-	if (SYSTEM(buf) == 0) {
-		/* Installs the package scripts into the info directory */
-		for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
-			snprintf(buf, sizeof(buf), "%s%s/%s",
-				DPKGCIDIR, pkg->package, adminscripts[i]);
-			snprintf(buf2, sizeof(buf), "%s%s.%s", 
-				infodir, pkg->package, adminscripts[i]);
-			if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0) {
-				fprintf(stderr, "Cannot copy %s to %s: %s\n", 
-					buf, buf2, strerror(errno));
-				r = 1;
-				break;
-			} else {
-				/* ugly hack to create the list file; should
-				 * probably do something more elegant
-				 *
-				 * why oh why does dpkg create the list file
-				 * so oddly...
-				 */
-				snprintf(buf, sizeof(buf), 
-					"ar -p %s data.tar.gz|zcat|tar -tf -", 
-					pkg->file);
-				snprintf(buf2, sizeof(buf2),
-					"%s%s.list", infodir, pkg->package);
-				if ((infp = popen(buf, "r")) == NULL ||
-				    (outfp = fopen(buf2, "w")) == NULL) {
-					fprintf(stderr, "Cannot create %s\n",
-						buf2);
-					r = 1;
-					break;
-				}
-				while (fgets(buf, sizeof(buf), infp) &&
-				       !feof(infp)) {
-					p = buf;
-					if (*p == '.') p++;
-					if (*p == '/' && *(p+1) == '\n') {
-						*(p+1) = '.';
-						*(p+2) = '\n';
-						*(p+3) = 0;
-					}
-					if (p[strlen(p)-2] == '/') {
-						p[strlen(p)-2] = '\n';
-						p[strlen(p)-1] = 0;
-					}
-					fputs(p, outfp);
-				}
-				fclose(infp);
-				fclose(outfp);
-			}
-		}
-		pkg->status &= status_wantmask;
-		pkg->status |= status_wantinstall;
-		pkg->status &= status_flagmask;
-		pkg->status |= status_flagok;
-		pkg->status &= status_statusmask;
-		if (r == 0)
-			pkg->status |= status_statusunpacked;
-		else
-			pkg->status |= status_statushalfinstalled;
+	if (SYSTEM(buf) != 0) {
+		goto end;
 	}
+	/* Installs the package scripts into the info directory */
+	for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
+		snprintf(buf, sizeof(buf), "%s%s/%s",
+			dpkgcidir, pkg->package, adminscripts[i]);
+		snprintf(buf2, sizeof(buf), "%s%s.%s", 
+			infodir, pkg->package, adminscripts[i]);
+		if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0) {
+			fprintf(stderr, "Cannot copy %s to %s: %s\n", 
+				buf, buf2, strerror(errno));
+			r = 1;
+			break;
+		}
+		/* ugly hack to create the list file; should
+		 * probably do something more elegant
+		 *
+		 * why oh why does dpkg create the list file
+		 * so oddly...
+		 */
+		snprintf(buf, sizeof(buf), "ar -p %s data.tar.gz|zcat|tar -tf -", pkg->file);
+		snprintf(buf2, sizeof(buf2), "%s%s.list", infodir, pkg->package);
+		if ((infp = popen(buf, "r")) == NULL || (outfp = fopen(buf2, "w")) == NULL) {
+			fprintf(stderr, "Cannot create %s\n", buf2);
+			r = 1;
+			break;
+		}
+		while (fgets(buf, sizeof(buf), infp) && !feof(infp)) {
+			p = buf;
+			if (*p == '.') {
+				p++;
+			}
+			if ((*p == '/') && (*(p + 1) == '\n')) {
+				*(p + 1) = '.';
+				*(p + 2) = '\n';
+				*(p + 3) = 0;
+			}
+			if (p[strlen(p) - 2] == '/') {
+				p[strlen(p) - 2] = '\n';
+				p[strlen(p) - 1] = 0;
+			}
+			fputs(p, outfp);
+		}
+		fclose(infp);
+		fclose(outfp);
+	}
+
+	pkg->status &= status_wantmask;
+	pkg->status |= status_wantinstall;
+	pkg->status &= status_flagmask;
+	pkg->status |= status_flagok;
+	pkg->status &= status_statusmask;
+
+	if (r == 0) {
+		pkg->status |= status_statusunpacked;
+	} else {
+		pkg->status |= status_statushalfinstalled;
+	}
+end:
 	chdir(cwd);
 	return r;
 }
@@ -638,15 +650,17 @@ static int dpkg_unpackcontrol(package_t *pkg)
 	p = strrchr(pkg->file, '/');
 	if (p) p++; else p = pkg->file;
 	p = pkg->package = strdup(p);
-	while (*p != 0 && *p != '_' && *p != '.') p++;
+	while (*p != 0 && *p != '_' && *p != '.') {
+		p++;
+	}
 	*p = 0;
 
 	cwd = getcwd(0, 0);
-	snprintf(buf, sizeof(buf), "%s%s", DPKGCIDIR, pkg->package);
+	snprintf(buf, sizeof(buf), "%s%s", dpkgcidir, pkg->package);
 	DPRINTF("dir = %s\n", buf);
+
 	if (mkdir(buf, S_IRWXU) == 0 && chdir(buf) == 0) {
-		snprintf(buf, sizeof(buf), "ar -p %s control.tar.gz|zcat|tar -xf -",
-			pkg->file);
+		snprintf(buf, sizeof(buf), "ar -p %s control.tar.gz|zcat|tar -xf -", pkg->file);
 		if (SYSTEM(buf) == 0) {
 			if ((f = fopen("control", "r")) != NULL) {
 				control_read(f, pkg);
@@ -654,9 +668,9 @@ static int dpkg_unpackcontrol(package_t *pkg)
 			}
 		}
 	}
-
 	chdir(cwd);
 	free(cwd);
+
 	return r;
 }
 
@@ -666,19 +680,19 @@ static int dpkg_unpack(package_t *pkgs)
 	package_t *pkg;
 	void *status = status_read();
 
-	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
-	    mkdir(DPKGCIDIR, S_IRWXU) != 0) {
+	if (SYSTEM(rm_dpkgcidir) != 0 ||
+	    mkdir(dpkgcidir, S_IRWXU) != 0) {
 		perror("mkdir");
 		return 1;
 	}
-	
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
 		dpkg_unpackcontrol(pkg);
 		r = dpkg_dounpack(pkg);
 		if (r != 0) break;
 	}
 	status_merge(status, pkgs);
-	SYSTEM("rm -rf -- " DPKGCIDIR);
+	SYSTEM(rm_dpkgcidir);
+
 	return r;
 }
 
@@ -688,18 +702,23 @@ static int dpkg_configure(package_t *pkgs)
 	void *found;
 	package_t *pkg;
 	void *status = status_read();
+
 	for (pkg = pkgs; pkg != 0 && r == 0; pkg = pkg->next) {
 		found = tfind(pkg, &status, package_compare);
+
 		if (found == 0) {
 			fprintf(stderr, "Trying to configure %s, but it is not installed\n", pkg->package);
 			r = 1;
-		} else {
-			/* configure the package listed in the status file;
-			 * not pkg, as we have info only for the latter */
+		} 
+		/* configure the package listed in the status file;
+		 * not pkg, as we have info only for the latter
+		 */
+		else {
 			r = dpkg_doconfigure(*(package_t **)found);
 		}
 	}
 	status_merge(status, 0);
+
 	return r;
 }
 
@@ -707,8 +726,9 @@ static int dpkg_install(package_t *pkgs)
 {
 	package_t *p, *ordered = 0;
 	void *status = status_read();
-	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
-	    mkdir(DPKGCIDIR, S_IRWXU) != 0) {
+
+	if (SYSTEM(rm_dpkgcidir) != 0 ||
+	    mkdir(dpkgcidir, S_IRWXU) != 0) {
 		perror("mkdir");
 		return 1;
 	}
@@ -747,7 +767,8 @@ static int dpkg_install(package_t *pkgs)
 	if (ordered != 0) {
 		status_merge(status, pkgs);
 	}
-	SYSTEM("rm -rf -- " DPKGCIDIR);
+	SYSTEM(rm_dpkgcidir);
+
 	return 0;
 }
 
@@ -755,10 +776,12 @@ static int dpkg_remove(package_t *pkgs)
 {
 	package_t *p;
 	void *status = status_read();
+
 	for (p = pkgs; p != 0; p = p->next)
 	{
 	}
 	status_merge(status, 0);
+
 	return 0;
 }
 
@@ -768,16 +791,19 @@ extern int dpkg_main(int argc, char **argv)
 	char *s;
 	package_t *p, *packages = NULL;
 	char *cwd = getcwd(0, 0);
+
 	while (*++argv) {
 		if (**argv == '-') {
 			/* Nasty little hack to "parse" long options. */
 			s = *argv;
-			while (*s == '-')
+			while (*s == '-') {
 				s++;
+			}
 			opt=s[0];
 		} else {
 			p = (package_t *)xmalloc(sizeof(package_t));
 			memset(p, 0, sizeof(package_t));
+
 			if (**argv == '/') {
 				p->file = *argv;
 			} else
@@ -787,11 +813,12 @@ extern int dpkg_main(int argc, char **argv)
 			} else {
 				p->package = strdup(*argv);
 			}
+
 			p->next = packages;
 			packages = p;
-		}
-			
+		}		
 	}
+
 	switch (opt) {
 		case 'i':
 			return dpkg_install(packages);
@@ -801,10 +828,8 @@ extern int dpkg_main(int argc, char **argv)
 			return dpkg_unpack(packages);
 		case 'c':
 			return dpkg_configure(packages);
+		default :	
+			usage(dpkg_usage);
+			return 0;
 	}
-
-	/* if it falls through to here, some of the command line options were
-	   wrong */
-	usage(dpkg_usage);
-	return 0;
 }
