@@ -1,0 +1,314 @@
+Index: coreutils/Config.in
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/Config.in,v
+retrieving revision 1.24
+diff -u -r1.24 Config.in
+--- a/coreutils/Config.in	15 Mar 2004 08:28:19 -0000	1.24
++++ b/coreutils/Config.in	1 May 2004 11:39:04 -0000
+@@ -218,6 +218,14 @@
+ 	help
+ 	  id displays the current user and group ID names.
+ 
++config CONFIG_FEATURE_ID_GROUPS_ALIAS
++	bool "  Support 'groups' as alias to 'id -Gn'"
++	default y
++	depends on CONFIG_ID
++	help
++	  Print the groups a user is in.  This is an alias to 'id -Gn' on
++	  most systems.
++
+ config CONFIG_INSTALL
+ 	bool "install"
+ 	default n
+Index: coreutils/id.c
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/id.c,v
+retrieving revision 1.24
+diff -u -r1.24 id.c
+--- a/coreutils/id.c	15 Mar 2004 08:28:20 -0000	1.24
++++ b/coreutils/id.c	1 May 2004 11:39:05 -0000
+@@ -3,6 +3,8 @@
+  * Mini id implementation for busybox
+  *
+  * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
++ * Copyright (C) 2004 by Tony J. White <tjw@tjw.org>
++ * Copyright (C) 2004 by Glenn McGrath <bug1@iinet.net.au>
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+@@ -20,7 +22,6 @@
+  *
+  */
+ 
+-/* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
+ 
+ #include "busybox.h"
+ #include <stdio.h>
+@@ -33,78 +34,153 @@
+ #include <flask_util.h>
+ #endif
+ 
+-#define JUST_USER         1
+-#define JUST_GROUP        2
+-#define PRINT_REAL        4
+-#define NAME_NOT_NUMBER   8
++#define ID_OPT_JUST_USER      	1
++#define ID_OPT_JUST_GROUP     	2
++#define ID_OPT_ALL_GROUPS   	4
++#define ID_OPT_PRINT_REAL     	8
++#define ID_OPT_NAME_NOT_NUMBER	16
++
++static void print_groups(unsigned long flags, const char sep)
++{
++	gid_t gids[64];
++	int gid_count;
++	int i;
++
++	gid_count = getgroups(64, gids);
++	
++	for (i = 0; i < gid_count; i++) {
++		struct group *tmp_grp;
++
++		if (i != 0) {
++			putchar(sep);
++		}
++		tmp_grp = getgrgid(gids[i]);
++		if (flags & ID_OPT_NAME_NOT_NUMBER) {
++			if (tmp_grp == NULL) {
++				continue;
++			}
++			printf("%s", tmp_grp->gr_name);
++		} else {
++			printf("%u", gids[i]);
++			if (!(flags & ID_OPT_ALL_GROUPS)) {
++				if (tmp_grp == NULL) {
++					continue;
++				}
++				printf("(%s)", tmp_grp->gr_name);
++			}
++		}
++	}
++}
+ 
+ extern int id_main(int argc, char **argv)
+ {
+-	char user[9], group[9];
+-	long pwnam, grnam;
+-	int uid, gid;
+-	int flags;
++	struct group *grp;
++	struct passwd *usr;
++	unsigned long flags;
++	uid_t uid;
++	uid_t gid;
++	uid_t euid;
++	uid_t egid;
+ #ifdef CONFIG_SELINUX
+ 	int is_flask_enabled_flag = is_flask_enabled();
+ #endif
+ 
+-	flags = bb_getopt_ulflags(argc, argv, "ugrn");
++	bb_opt_complementaly = "u~gG:g~uG:G~ug:~n";
++	flags = bb_getopt_ulflags(argc, argv, "ugGrn");
+ 
+-	if (((flags & (JUST_USER | JUST_GROUP)) == (JUST_USER | JUST_GROUP))
+-		|| (argc > optind + 1)
+-	) {
++	/* Check one and only one context option was given */
++	if ((flags & 0x80000000UL) ||
++		(flags & (ID_OPT_PRINT_REAL | ID_OPT_ALL_GROUPS)) ||
++		((flags & (ID_OPT_PRINT_REAL | ID_OPT_NAME_NOT_NUMBER)) ==
++			(ID_OPT_PRINT_REAL | ID_OPT_NAME_NOT_NUMBER))) {
+ 		bb_show_usage();
+ 	}
+ 
++#ifdef CONFIG_FEATURE_ID_GROUPS_ALIAS
++	/* groups command is an alias for 'id -Gn' */
++	if (bb_applet_name[0] == 'g') {
++		flags |= (ID_OPT_ALL_GROUPS + ID_OPT_NAME_NOT_NUMBER);
++	}
++#endif
++
++	uid = getuid();
++	gid = getgid();
++	euid = geteuid();
++	egid = getegid();
++
++	if (flags & ID_OPT_PRINT_REAL) {
++		euid = uid;
++		egid = gid;
++	}
++
+ 	if (argv[optind] == NULL) {
+-		if (flags & PRINT_REAL) {
+-			uid = getuid();
+-			gid = getgid();
+-		} else {
+-			uid = geteuid();
+-			gid = getegid();
+-		}
+-		my_getpwuid(user, uid);
++		usr = getpwuid(euid);
++		grp = getgrgid(egid);
+ 	} else {
+-		safe_strncpy(user, argv[optind], sizeof(user));
+-	    gid = my_getpwnamegid(user);
++		usr = getpwnam(argv[optind]);
++		grp = getgrnam(argv[optind]);
+ 	}
+-	my_getgrgid(group, gid);
+ 
+-	pwnam=my_getpwnam(user);
+-	grnam=my_getgrnam(group);
++	if (usr == NULL) {
++		bb_perror_msg_and_die("cannot find user name");
++	}
++	if (grp == NULL) {
++		bb_perror_msg_and_die("cannot find group name");
++	}
+ 
+-	if (flags & (JUST_GROUP | JUST_USER)) {
+-		char *s = group;
+-		if (flags & JUST_USER) {
+-			s = user;
+-			grnam = pwnam;
++	if (flags & ID_OPT_JUST_USER) {
++		if (flags & ID_OPT_NAME_NOT_NUMBER) {
++			printf("%s", grp->gr_name);
++		} else {
++			printf("%u", euid);
+ 		}
+-		if (flags & NAME_NOT_NUMBER) {
+-			puts(s);
++	}
++	else if (flags & ID_OPT_JUST_GROUP) {
++		if (flags & ID_OPT_NAME_NOT_NUMBER) {
++			printf("%s", grp->gr_name);
+ 		} else {
+-			printf("%ld\n", grnam);
++			printf("%u", egid);
+ 		}
++	}
++	else if (flags & ID_OPT_ALL_GROUPS) {
++		print_groups(flags, ' ');
+ 	} else {
+-#ifdef CONFIG_SELINUX
+-		printf("uid=%ld(%s) gid=%ld(%s)", pwnam, user, grnam, group);
+-		if(is_flask_enabled_flag)
+-		{
+-			security_id_t mysid = getsecsid();
+-			char context[80];
+-			int len = sizeof(context);
+-			context[0] = '\0';
+-			if(security_sid_to_context(mysid, context, &len))
+-				strcpy(context, "unknown");
+-			printf(" context=%s\n", context);
+-		}
+-		else
+-			printf("\n");
+-#else
+-		printf("uid=%ld(%s) gid=%ld(%s)\n", pwnam, user, grnam, group);
+-#endif
++		printf("uid=%u(%s) gid=%u(%s)", uid, usr->pw_name, gid, grp->gr_name);
++		if (uid != euid) {
++			struct passwd *eusr;
++			printf(" euid=%u", euid);
++			eusr = getpwuid(euid);
++			if (eusr != NULL) {
++				printf("(%s)", eusr->pw_name);
++			}
++		}
++		if (gid != egid) {
++			struct group *egrp;
++			printf(" egid=%u", egid);
++			egrp = getgrgid(egid);
++			if (egrp != NULL) {
++				printf("(%s)", egrp->gr_name);
++			}
++		}
++		printf(" groups=");
++		print_groups(flags, ',');
++	}
+ 
++#ifdef CONFIG_SELINUX
++	if (is_flask_enabled_flag)
++	{
++		security_id_t mysid = getsecsid();
++		char context[80];
++		int len = sizeof(context);
++
++		context[0] = '\0';
++		if (security_sid_to_context(mysid, len, &len)) {
++			strcpy(context, "unknown");
++		}
++		printf(" context=%s", context);
+ 	}
++#endif
+ 
++	putchar('\n');
+ 	bb_fflush_stdout_and_exit(0);
+ }
+Index: include/applets.h
+===================================================================
+RCS file: /var/cvs/busybox/include/applets.h,v
+retrieving revision 1.113
+diff -u -r1.113 applets.h
+--- a/include/applets.h	6 Apr 2004 16:59:43 -0000	1.113
++++ b/include/applets.h	1 May 2004 11:39:06 -0000
+@@ -232,6 +232,9 @@
+ #ifdef CONFIG_GREP
+ 	APPLET(grep, grep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+ #endif
++#if defined(CONFIG_FEATURE_ID_GROUPS_ALIAS)
++	APPLET(groups, id_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
++#endif
+ #ifdef CONFIG_GUNZIP
+ 	APPLET(gunzip, gunzip_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+ #endif
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.207
+diff -u -r1.207 usage.h
+--- a/include/usage.h	14 Apr 2004 17:59:21 -0000	1.207
++++ b/include/usage.h	1 May 2004 11:39:10 -0000
+@@ -800,6 +800,16 @@
+ 	"$ grep ^[rR]oo. /etc/passwd\n" \
+ 	"root:x:0:0:root:/root:/bin/bash\n"
+ 
++#define groups_trivial_usage \
++	" [USERNAME]"
++#define groups_full_usage \
++	"Print all group names that USERNAME is a member of." 
++#define groups_example_usage \
++	"$ groups\n" \
++	"andersen users\n" \
++	"$ groups tjw\n" \
++	"tjw users\n"
++
+ #define gunzip_trivial_usage \
+ 	"[OPTION]... FILE"
+ #define gunzip_full_usage \
+@@ -1035,7 +1045,7 @@
+ #endif
+ 
+ #define id_trivial_usage \
+-	"[OPTIONS]... [USERNAME]"
++	"[-Ggu[nr]]] [USERNAME]"
+ #define id_full_usage \
+ 	"Print information for USERNAME or the current user\n\n" \
+ 	"Options:\n" \
+@@ -1043,10 +1053,11 @@
+ 	"\t-g\tprints only the group ID\n" \
+ 	"\t-u\tprints only the user ID\n" \
+ 	"\t-n\tprint a name instead of a number\n" \
+-	"\t-r\tprints the real user ID instead of the effective ID"
++	"\t-r\tprints the real user ID instead of the effective ID\n" \
++	"\t-G\tprints all groups the user belongs to"
+ #define id_example_usage \
+ 	"$ id\n" \
+-	"uid=1000(andersen) gid=1000(andersen)\n"
++	"uid=1000(andersen) gid=1000(andersen) groups=1000(andersen),100(users)\n"
+ 
+ #ifdef CONFIG_FEATURE_IFCONFIG_SLIP
+   #define USAGE_SIOCSKEEPALIVE(a) a
