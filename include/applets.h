@@ -200,6 +200,12 @@
 #ifdef CONFIG_FSCK_MINIX
 	APPLET_ODDNAME("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, _BB_SUID_NEVER, fsck_minix)
 #endif
+#ifdef CONFIG_FTPGET
+	APPLET(ftpget, ftpgetput_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_FTPPUT
+	APPLET(ftpput, ftpgetput_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_GETOPT
 	APPLET(getopt, getopt_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

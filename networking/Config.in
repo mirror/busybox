@@ -11,6 +11,18 @@ config CONFIG_FEATURE_IPV6
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FTPGET
+	bool "ftpget"
+	default n
+	help
+	  Retrieve a remote file via FTP.
+
+config CONFIG_FTPPUT
+	bool "ftpput"
+	default n
+	help
+	  Store a remote file via FTP.
+
 config CONFIG_HOSTNAME
 	bool "hostname"
 	default n

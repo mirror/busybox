@@ -602,6 +602,27 @@
 	"\t-m\tActivates MINIX-like \"mode not cleared\" warnings\n" \
 	"\t-f\tForce file system check."
 
+#define ftpget_trivial_usage \
+	"[options] remote-host local-directory remote-file"
+#define ftpget_full_usage \
+	"Retrieve a remote file via FTP.\n\n" \
+	"Options:\n" \
+	"\t-c, --continue         Continue a previous transfer\n" \
+	"\t-v, --verbose          Verbose\n" \
+	"\t-u, --username         Username to be used\n" \
+	"\t-p, --password         Password to be used\n" \
+	"\t-P, --port             Port number to be used\n" 
+
+#define ftpput_trivial_usage \
+	"[options] remote-host remote-directory local-file"
+#define ftpput_full_usage \
+	"Store a local file on a remote machine via FTP.\n\n" \
+	"Options:\n" \
+	"\t-v, --verbose          Verbose\n" \
+	"\t-u, --username         Username to be used\n" \
+	"\t-p, --password         Password to be used\n" \
+	"\t-P, --port             Port number to be used\n" 
+
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
 #define getopt_full_usage \
