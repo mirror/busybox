@@ -404,6 +404,9 @@ read_response:
 							server.host = target.host;
 							server.port = target.port;
 						}
+						bb_lookup_host(&s_in, server.host);
+						s_in.sin_port = server.port;
+						break;
 					}
 				}
 			}
@@ -834,7 +837,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.65 2004/01/17 05:03:31 bug1 Exp $
+ *	$Id: wget.c,v 1.66 2004/01/17 23:07:14 bug1 Exp $
  */
 
 
