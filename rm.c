@@ -68,14 +68,12 @@ extern int rm_main(int argc, char **argv)
 	int stopIt=FALSE;
 	struct stat statbuf;
 
-	if (argc < 2) {
-		usage(rm_usage);
-	}
+	argc--;
 	argv++;
 
 	/* Parse any options */
-	while (--argc >= 0 && *argv && **argv && stopIt==FALSE) {
-		while (**argv == '-') {
+	while (argc > 0 && stopIt == FALSE) {
+		if (**argv == '-') {
 			while (*++(*argv))
 				switch (**argv) {
 					case 'R':
@@ -91,8 +89,15 @@ extern int rm_main(int argc, char **argv)
 					default:
 						usage(rm_usage);
 				}
+			argc--;
+			argv++;
 		}
-		argv++;
+		else
+			break;
+	}
+
+	if (argc < 1 && forceFlag == FALSE) {
+		usage(rm_usage);
 	}
 
 	while (argc-- > 0) {
