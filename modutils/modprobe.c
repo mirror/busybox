@@ -259,6 +259,7 @@ static struct dep_t *build_dep ( void )
 			current-> m_deparr [current-> m_depcnt - 1] = dep;		
 
 			//printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] );
+			p = next + 2;
 			} while (next < end);
 		}
 
