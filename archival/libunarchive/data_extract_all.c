@@ -42,7 +42,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 	/* Check if the file already exists */
 	if (archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
 		/* Remove the existing entry if it exists */
-		if ((unlink(file_header->name) == -1) && (errno != ENOENT)) {
+		if (((file_header->mode & S_IFMT) != S_IFDIR) && (unlink(file_header->name) == -1) && (errno != ENOENT)) {
 			bb_perror_msg_and_die("Couldnt remove old file");
 		}
 	}
