@@ -139,12 +139,6 @@
 // at the same time...
 #define BB_FEATURE_USE_PROCFS
 //
-// Enable full regular expressions.  This adds about 
-// 4k.  When this is off, things that would normally
-// use regualr expressions (like grep) will just use
-// normal strings.
-#define BB_FEATURE_FULL_REGULAR_EXPRESSIONS
-//
 // This compiles out everything but the most 
 // trivial --help usage information (i.e. reduces binary size)
 //#define BB_FEATURE_TRIVIAL_HELP
@@ -279,10 +273,6 @@
 //
 #ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
 #define BB_MTAB
-#endif
-//
-#if defined BB_FEATURE_FULL_REGULAR_EXPRESSIONS && (defined BB_SED || defined BB_GREP )
-#define BB_REGEXP
 #endif
 //
 #if defined BB_FEATURE_SH_COMMAND_EDITING && defined BB_SH
