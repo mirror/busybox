@@ -150,7 +150,6 @@ typedef struct ppathcnf ppathcnf;
 #define MOUNTPROG 100005
 #define MOUNTVERS 1
 
-#if defined(__STDC__) || defined(__cplusplus)
 #define MOUNTPROC_NULL 0
 extern  void * mountproc_null_1(void *, CLIENT *);
 extern  void * mountproc_null_1_svc(void *, struct svc_req *);
@@ -174,33 +173,8 @@ extern  exports * mountproc_exportall_1(void *, CLIENT *);
 extern  exports * mountproc_exportall_1_svc(void *, struct svc_req *);
 extern int mountprog_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
-#else /* K&R C */
-#define MOUNTPROC_NULL 0
-extern  void * mountproc_null_1();
-extern  void * mountproc_null_1_svc();
-#define MOUNTPROC_MNT 1
-extern  fhstatus * mountproc_mnt_1();
-extern  fhstatus * mountproc_mnt_1_svc();
-#define MOUNTPROC_DUMP 2
-extern  mountlist * mountproc_dump_1();
-extern  mountlist * mountproc_dump_1_svc();
-#define MOUNTPROC_UMNT 3
-extern  void * mountproc_umnt_1();
-extern  void * mountproc_umnt_1_svc();
-#define MOUNTPROC_UMNTALL 4
-extern  void * mountproc_umntall_1();
-extern  void * mountproc_umntall_1_svc();
-#define MOUNTPROC_EXPORT 5
-extern  exports * mountproc_export_1();
-extern  exports * mountproc_export_1_svc();
-#define MOUNTPROC_EXPORTALL 6
-extern  exports * mountproc_exportall_1();
-extern  exports * mountproc_exportall_1_svc();
-extern int mountprog_1_freeresult ();
-#endif /* K&R C */
 #define MOUNTVERS_POSIX 2
 
-#if defined(__STDC__) || defined(__cplusplus)
 extern  void * mountproc_null_2(void *, CLIENT *);
 extern  void * mountproc_null_2_svc(void *, struct svc_req *);
 extern  fhstatus * mountproc_mnt_2(dirpath *, CLIENT *);
@@ -220,29 +194,8 @@ extern  ppathcnf * mountproc_pathconf_2(dirpath *, CLIENT *);
 extern  ppathcnf * mountproc_pathconf_2_svc(dirpath *, struct svc_req *);
 extern int mountprog_2_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
-#else /* K&R C */
-extern  void * mountproc_null_2();
-extern  void * mountproc_null_2_svc();
-extern  fhstatus * mountproc_mnt_2();
-extern  fhstatus * mountproc_mnt_2_svc();
-extern  mountlist * mountproc_dump_2();
-extern  mountlist * mountproc_dump_2_svc();
-extern  void * mountproc_umnt_2();
-extern  void * mountproc_umnt_2_svc();
-extern  void * mountproc_umntall_2();
-extern  void * mountproc_umntall_2_svc();
-extern  exports * mountproc_export_2();
-extern  exports * mountproc_export_2_svc();
-extern  exports * mountproc_exportall_2();
-extern  exports * mountproc_exportall_2_svc();
-#define MOUNTPROC_PATHCONF 7
-extern  ppathcnf * mountproc_pathconf_2();
-extern  ppathcnf * mountproc_pathconf_2_svc();
-extern int mountprog_2_freeresult ();
-#endif /* K&R C */
 #define MOUNT_V3 3
 
-#if defined(__STDC__) || defined(__cplusplus)
 #define MOUNTPROC3_NULL 0
 extern  void * mountproc3_null_3(void *, CLIENT *);
 extern  void * mountproc3_null_3_svc(void *, struct svc_req *);
@@ -263,31 +216,8 @@ extern  exports * mountproc3_export_3(void *, CLIENT *);
 extern  exports * mountproc3_export_3_svc(void *, struct svc_req *);
 extern int mountprog_3_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
-#else /* K&R C */
-#define MOUNTPROC3_NULL 0
-extern  void * mountproc3_null_3();
-extern  void * mountproc3_null_3_svc();
-#define MOUNTPROC3_MNT 1
-extern  mountres3 * mountproc3_mnt_3();
-extern  mountres3 * mountproc3_mnt_3_svc();
-#define MOUNTPROC3_DUMP 2
-extern  mountlist * mountproc3_dump_3();
-extern  mountlist * mountproc3_dump_3_svc();
-#define MOUNTPROC3_UMNT 3
-extern  void * mountproc3_umnt_3();
-extern  void * mountproc3_umnt_3_svc();
-#define MOUNTPROC3_UMNTALL 4
-extern  void * mountproc3_umntall_3();
-extern  void * mountproc3_umntall_3_svc();
-#define MOUNTPROC3_EXPORT 5
-extern  exports * mountproc3_export_3();
-extern  exports * mountproc3_export_3_svc();
-extern int mountprog_3_freeresult ();
-#endif /* K&R C */
-
 /* the xdr functions */
 
-#if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_fhandle (XDR *, fhandle);
 extern  bool_t xdr_fhandle3 (XDR *, fhandle3*);
 extern  bool_t xdr_mountstat3 (XDR *, mountstat3*);
@@ -303,25 +233,6 @@ extern  bool_t xdr_groupnode (XDR *, groupnode*);
 extern  bool_t xdr_exports (XDR *, exports*);
 extern  bool_t xdr_exportnode (XDR *, exportnode*);
 extern  bool_t xdr_ppathcnf (XDR *, ppathcnf*);
-
-#else /* K&R C */
-extern bool_t xdr_fhandle ();
-extern bool_t xdr_fhandle3 ();
-extern bool_t xdr_mountstat3 ();
-extern bool_t xdr_fhstatus ();
-extern bool_t xdr_mountres3_ok ();
-extern bool_t xdr_mountres3 ();
-extern bool_t xdr_dirpath ();
-extern bool_t xdr_name ();
-extern bool_t xdr_mountlist ();
-extern bool_t xdr_mountbody ();
-extern bool_t xdr_groups ();
-extern bool_t xdr_groupnode ();
-extern bool_t xdr_exports ();
-extern bool_t xdr_exportnode ();
-extern bool_t xdr_ppathcnf ();
-
-#endif /* K&R C */
 
 #ifdef __cplusplus
 }
