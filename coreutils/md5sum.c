@@ -181,7 +181,14 @@ extern void *md5_buffer __P ((const char *buffer, size_t len, void *resblock));
 //--------end of md5.h
 //----------------------------------------------------------------------------
 
-#define SWAP(n) (n)
+/* Handle endian-ness */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	#define SWAP(n) (n)
+#else
+	#define SWAP(n) ((n << 24) | ((n&65280)<<8) | ((n&16711680)>>8) | (n>>24))
+#endif
+
+
 
 /* This array contains the bytes used to pad the buffer to the next
    64-byte boundary.  (RFC 1321, 3.1: Step 1)  */
