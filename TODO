@@ -19,6 +19,8 @@ Possible apps to include some time:
 
 * hwclock
 * group/commonize strings, remove dups (for i18n, l10n)
+* login/sulogin/passwd/etc are part of tinylogin.  These are 
+    being merged into busybox as time allows.
 
 -----------
 
