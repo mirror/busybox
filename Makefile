@@ -200,6 +200,7 @@ CONFIGURATION = menuconfig
 do-it-all:      menuconfig
 endif
 
+
 SUBDIRS =applets archival console-tools editors fileutils findutils init \
 	miscutils modutils networking pwd_grp shell shellutils sysklogd \
 	textutils util-linux libbb
@@ -209,7 +210,7 @@ bbsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 $(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
 	$(MAKE) CFLAGS="$(CFLAGS)" -C $(patsubst _dir_%, %, $@)
 
-busybox: bbsubdirs
+busybox: config.h depend bbsubdirs
 	$(CC) $(LDFLAGS) -o $@ $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
 	$(STRIPCMD)
 
@@ -291,13 +292,19 @@ scripts/mkdep: scripts/mkdep.c
 scripts/split-include: scripts/split-include.c
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/split-include scripts/split-include.c
 
-dep-files: scripts/mkdep #archdep
-	rm -f .depend .hdepend
-	scripts/mkdep -I $(TOPDIR)/include -- `find $(TOPDIR) -name \*.c -print` >> .depend
-	scripts/mkdep -I $(TOPDIR)/include -- `find $(TOPDIR) -name \*.h -print` >> .hdepend
-	$(MAKE) $(patsubst %,_sfdep_%,$(SUBDIRS)) _FASTDEP_ALL_SUB_DIRS="$(SUBDIRS)"
+dep-files: scripts/mkdep
+	if [ ! -f .depend ] ; then \
+		rm -f .depend .hdepend; \
+		mkdir -p $(TOPDIR)/include/config; \
+		scripts/mkdep -I $(TOPDIR)/include -- \
+			`find $(TOPDIR) -name \*.c -print` >> .depend; \
+		scripts/mkdep -I $(TOPDIR)/include -- \
+			`find $(TOPDIR) -name \*.h -print` >> .hdepend; \
+		$(MAKE) $(patsubst %,_sfdep_%,$(SUBDIRS)) _FASTDEP_ALL_SUB_DIRS="$(SUBDIRS)" ; \
+	fi;
 
-depend dep: dep-files
+
+depend dep: config.h dep-files
 	@ echo -e "\n\nNow run 'make' to build BusyBox\n\n"
 
 CONFIG_SHELL := ${shell if [ -x "$$BASH" ]; then echo $$BASH; \
@@ -308,14 +315,22 @@ include/config/MARKER: scripts/split-include include/config.h
 	scripts/split-include include/config.h include/config
 	@ touch include/config/MARKER
 
+config.h:
+	@if [ ! -f include/config.h ] ; then \
+		make oldconfig; \
+	fi;
+
 menuconfig:
+	mkdir -p $(TOPDIR)/include/config
 	$(MAKE) -C scripts/lxdialog all
 	$(CONFIG_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
 
 config:
+	mkdir -p $(TOPDIR)/include/config
 	$(CONFIG_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
 
 oldconfig:
+	mkdir -p $(TOPDIR)/include/config
 	$(CONFIG_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
 
 
