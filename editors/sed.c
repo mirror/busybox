@@ -322,7 +322,7 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 	 *
 	 */
 
-	if (editstr[1] != '\\' && (editstr[2] != '\n' || editstr[2] != '\r'))
+	if (editstr[1] != '\\' || (editstr[2] != '\n' && editstr[2] != '\r'))
 		error_msg_and_die("bad format in edit expression");
 
 	/* store the edit line text */

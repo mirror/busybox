@@ -1,0 +1,1 @@
+! busybox sed -e 'i\foo' </dev/null
