@@ -479,7 +479,8 @@ singlemount:
 			if (strchr(device, ':') != NULL)
 				filesystemType = "nfs";
 			if (strcmp(filesystemType, "nfs") == 0) {
-				rc = nfsmount (device, directory, &flags, &extra_opts, &string_flags, 1)
+				rc = nfsmount (device, directory, &flags,
+					&extra_opts, &string_flags, 1);
 				if ( rc != 0) {
 					fatalError("nfsmount failed: %s\n", strerror(errno));	
 					rc = FALSE;
