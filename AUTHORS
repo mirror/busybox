@@ -71,7 +71,7 @@ Glenn McGrath <bug1@optushome.com.au>
 
 Vladimir Oleynik <dzo@simtreas.ru>
     cmdedit; xargs(current), httpd(current);
-    ports: ash, crond, fdisk, inetd, stty, traceroute, telnetd, top;
+    ports: ash, crond, fdisk, inetd, stty, traceroute, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 

@@ -51,12 +51,12 @@ config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 	  internet superserver daemon for usaging.
 
 config CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	bool "  Enable Basic Authentication and IP address checking"
+	bool "  Enable Basic Authentication"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  Utilizes /etc/httpd.conf for security settings allowing 
-          ip address filtering and basic authentication on a per url basis.
+	  Utilizes /etc/httpd.conf for basic authentication on a
+	  per url basis.
 
 config CONFIG_FEATURE_HTTPD_CGI
 	bool "  Enable support Common Gateway Interface"
