@@ -1080,32 +1080,31 @@ extern int gunzip_main(int argc, char **argv)
 		if (argc != 2) {
 			show_usage();
 		}
-		flags |= gunzip_force;
-		flags |= gunzip_to_stdout;
+		flags |= (gunzip_force | gunzip_to_stdout);
 	} else
 #endif
-	{
+	if (strcmp(applet_name, "gunzip") == 0) {
 		/* workout flags as regular gunzip */
 		/* set default flags */
 		if (argc == 1) {
 			flags |= (gunzip_from_stdin | gunzip_to_stdout);
-		}
-
-		/* Parse any options */
-		while ((opt = getopt(argc, argv, "ctfh")) != -1) {
-			switch (opt) {
-			case 'c':
-				flags |= gunzip_to_stdout;
-				break;
-			case 'f':
-				flags |= gunzip_force;
-				break;
-			case 't':
-				flags |= gunzip_test;
-				break;
-			case 'h':
-			default:
-				show_usage(); /* exit's inside usage */
+		} else {
+			/* Parse any options */
+			while ((opt = getopt(argc, argv, "ctfh")) != -1) {
+				switch (opt) {
+				case 'c':
+					flags |= gunzip_to_stdout;
+					break;
+				case 'f':
+					flags |= gunzip_force;
+					break;
+				case 't':
+					flags |= gunzip_test;
+					break;
+				case 'h':
+				default:
+					show_usage(); /* exit's inside usage */
+				}
 			}
 		}
 	}
@@ -1116,7 +1115,6 @@ extern int gunzip_main(int argc, char **argv)
 		if ((flags & gunzip_force) == 0) {
 			error_msg_and_die("data not written to terminal. Use -f to force it.");
 		}
-		strcpy(if_name, "stdin");
 	} else {
 		if_name = strdup(argv[optind]);
 		/* Open input file */
@@ -1135,8 +1133,6 @@ extern int gunzip_main(int argc, char **argv)
 		if (isatty(fileno(out_file)) && ((flags & gunzip_force) == 0)) {
 			error_msg_and_die("data not written to terminal. Use -f to force it.");
 		}
-
-		strcpy(of_name, "stdout");
 	} else if (flags & gunzip_test) {
 		out_file = xfopen("/dev/null", "w"); /* why does test use filenum 2 ? */
 	} else {
