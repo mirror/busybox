@@ -77,7 +77,11 @@ static void print(long size, char *filename)
 	bb_printf("%s\t%s\n", make_human_readable_str(size, 512, disp_hr),
 		   filename);
 #else
-	bb_printf("%ld\t%s\n", size >> disp_k, filename);
+	if (disp_k) {
+		size++;
+		size >>= 1;
+	}
+	bb_printf("%ld\t%s\n", size, filename);
 #endif
 }
 
