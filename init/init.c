@@ -53,10 +53,6 @@
 #endif
 
 
-#if defined(__UCLIBC__) && !defined(__ARCH_HAS_MMU__)
-#define fork	vfork
-#endif
-
 #define INIT_BUFFS_SIZE 256
 
 /* From <linux/vt.h> */
@@ -580,6 +576,7 @@ static pid_t run(const struct init_action *a)
 			}
 		}
 
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 		if (a->action & ASKFIRST) {
 			char c;
 			/*
@@ -597,6 +594,7 @@ static pid_t run(const struct init_action *a)
 			while(read(0, &c, 1) == 1 && c != '\n')
 				;
 		}
+#endif
 
 		/* Log the process name and args */
 		message(LOG, "Starting pid %d, console %s: '%s'",
