@@ -3660,6 +3660,18 @@
 		</para>
 	</sect1>
 
+	<sect1 id="watchdog">
+	    <title>watchdog</title>
+
+		<para>
+		Usage: watchdog device
+		</para>
+
+		<para>
+		Periodically writes to watchdog device B<device>.
+		</para>
+	</sect1>
+
 	<sect1 id="wc">
 	    <title>wc</title>
 

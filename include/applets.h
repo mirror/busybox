@@ -362,6 +362,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_UUENCODE
 	APPLET("uuencode", uuencode_main, _BB_DIR_USR_BIN, uuencode_usage)
 #endif
+#ifdef BB_WATCHDOG
+	APPLET("watchdog", watchdog_main, _BB_DIR_SBIN, watchdog_usage)
+#endif
 #ifdef BB_WC
 	APPLET("wc", wc_main, _BB_DIR_USR_BIN, wc_usage)
 #endif

@@ -62,10 +62,10 @@ gunzip, gzip, halt, head, hostid, hostname, id, init, insmod, kill, killall,
 length, ln, loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs,
 mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
 nslookup, ping, poweroff, printf, ps, pwd, rdate, reboot, renice, reset, rm,
-rmdir, rmmod, sed, setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd,
-tail, tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, 
-unix2dos, unrpm, update, uptime, usleep, uudecode, uuencode, wc, which, whoami,
-xargs, yes, zcat, [
+rmdir, rmmod, sed, setkeycodes, sh, sleep, sort, swapoff, swapon, sync,
+syslogd, tail, tar, tee, telnet, test, touch, tr, true, tty, umount, uname,
+uniq, unix2dos, unrpm, update, uptime, usleep, uudecode, uuencode, watchdog,
+wc, which, whoami, xargs, yes, zcat, [
 
 -------------------------------
 
@@ -2095,6 +2095,14 @@ Example:
 
 -------------------------------
 
+=item watchdog
+
+Usage: watchdog device
+
+Periodically writes to watchdog device B<device>.
+
+-------------------------------
+
 =item wc
 
 Usage: wc [OPTION]... [FILE]...
@@ -2322,4 +2330,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.88 2001/01/25 05:12:02 andersen Exp $
+# $Id: busybox.pod,v 1.89 2001/01/25 23:40:32 andersen Exp $

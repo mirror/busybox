@@ -1487,6 +1487,15 @@ const char uuencode_usage[] =
 	;
 #endif
 
+#if defined BB_WATCHDOG
+const char watchdog_usage[] =
+	"watchdog dev\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPeriodically write to watchdog device \"dev\".\n"
+#endif
+	;
+#endif
+
 #if defined BB_WC
 const char wc_usage[] =
 	"wc [OPTION]... [FILE]..."

@@ -103,12 +103,6 @@
 //#define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
-#define BB_UPTIME
-//#define BB_USLEEP
-#define BB_WC
-//#define BB_WGET
-#define BB_WHICH
-#define BB_WHOAMI
 //#define BB_UUENCODE
 //#define BB_UUDECODE
 #define BB_UMOUNT
@@ -116,6 +110,13 @@
 #define BB_UNAME
 //#define BB_UNIX2DOS
 //#define BB_UPDATE
+#define BB_UPTIME
+//#define BB_USLEEP
+//#define BB_WATCHDOG
+#define BB_WC
+//#define BB_WGET
+#define BB_WHICH
+#define BB_WHOAMI
 #define BB_XARGS
 #define BB_YES
 // End of Applications List
