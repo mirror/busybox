@@ -45,7 +45,7 @@ extern void displayroutes(int noresolve, int netstatfmt);
 #define NETSTAT_RAW			0x40
 #define NETSTAT_UNIX		0x80
 
-int flags = NETSTAT_CONNECTED | 
+static int flags = NETSTAT_CONNECTED |
 			NETSTAT_TCP | NETSTAT_UDP | NETSTAT_RAW | NETSTAT_UNIX;
 
 #define PROGNAME_WIDTHs PROGNAME_WIDTH1(PROGNAME_WIDTH)
@@ -68,7 +68,7 @@ enum {
     TCP_CLOSING			/* now a valid state */
 };
 
-static const char *tcp_state[] =
+static const char * const tcp_state[] =
 {
     "",
     "ESTABLISHED",
@@ -142,7 +142,8 @@ static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int 
 static void tcp_do_one(int lnr, const char *line)
 {
 	char local_addr[64], rem_addr[64];
-	char *state_str, more[512];
+	const char *state_str;
+	char more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
 	struct sockaddr_in localaddr, remaddr;
 	unsigned long rxq, txq, time_len, retr, inode;
@@ -168,10 +169,10 @@ static void tcp_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus tcp line.\n");
+		error_msg("warning, got bogus tcp line.");
 		return;
 	}
-	state_str=(char*)tcp_state[state];
+	state_str = tcp_state[state];
 	if ((rem_port && (flags&NETSTAT_CONNECTED)) ||
 		(!rem_port && (flags&NETSTAT_LISTENING)))
 	{
@@ -218,7 +219,7 @@ static void udp_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus udp line.\n");
+		error_msg("warning, got bogus udp line.");
 		return;
 	}
 	switch (state) {
@@ -282,7 +283,7 @@ static void raw_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus raw line.\n");
+		error_msg("warning, got bogus raw line.");
 		return;
 	}
 	state_str=itoa(state);
@@ -325,7 +326,7 @@ static void unix_do_one(int nr, const char *line)
 	num = sscanf(line, "%p: %lX %lX %lX %X %X %d %s",
 				 &d, &refcnt, &proto, &unix_flags, &type, &state, &inode, path);
 	if (num < 6) {
-		error_msg("warning, got bogus unix line.\n");
+		error_msg("warning, got bogus unix line.");
 		return;
 	}
 	if (!(has & HAS_INODE))
@@ -432,22 +433,19 @@ static void unix_do_one(int nr, const char *line)
 #define _PATH_PROCNET_RAW "/proc/net/raw"
 #define _PATH_PROCNET_UNIX "/proc/net/unix"
 
-static int do_info(char *file, char *name, void (*proc)(int, const char *))
+static void do_info(const char *file, const char *name, void (*proc)(int, const char *))
 {
 	char buffer[8192];
-	int rc = 0;
 	int lnr = 0;
 	FILE *procinfo;
 
-	procinfo = fopen((file), "r");
+	procinfo = fopen(file, "r");
 	if (procinfo == NULL) {
 		if (errno != ENOENT) {
-			perror((file));
-			return -1;
+			perror(file);
+		} else {
+		error_msg("no support for `%s' on this system.", name);
 		}
-		error_msg("%s: no support for `%s' on this system.\n",
-				"netstat", (name));
-		rc = 1;
 	} else {
 		do {
 			if (fgets(buffer, sizeof(buffer), procinfo))
@@ -455,7 +453,6 @@ static int do_info(char *file, char *name, void (*proc)(int, const char *))
 		} while (!feof(procinfo));
 		fclose(procinfo);
 	}
-	return rc;
 }
 
 /*
@@ -505,8 +502,7 @@ int netstat_main(int argc, char **argv)
 		displayroutes ( flags & NETSTAT_NUMERIC, !extended );
 		return 0; 
 #else
-		printf( "-r (display routing table) is not compiled in.\n" );
-		return 1;
+		error_msg_and_die( "-r (display routing table) is not compiled in." );
 #endif
 	}	
 		
