@@ -1662,6 +1662,10 @@ Karl M. Hegbloom <karlheg@debian.org>
 
 =for html <br>
 
+John Lombardo <john@deltanet.com>	
+
+=for html <br>
+
 Bruce Perens <bruce@perens.com>
 
 =for html <br>
@@ -1680,4 +1684,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.11 2000/04/16 10:22:28 beppu Exp $
+# $Id: busybox.pod,v 1.12 2000/04/17 05:13:59 beppu Exp $
