@@ -297,6 +297,7 @@ int udhcpc_main(int argc, char *argv[])
 					timeout = now + ((packet_num == 2) ? 4 : 2);
 					packet_num++;
 				} else {
+					run_script(NULL, "leasefail");
 					if (client_config.background_if_no_lease) {
 						LOG(LOG_INFO, "No lease, forking to background.");
 						client_background();
