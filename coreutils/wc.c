@@ -22,6 +22,7 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <getopt.h>
 
 static int total_lines, total_words, total_chars, max_length;
 static int print_lines, print_words, print_chars, print_length;
@@ -103,13 +104,14 @@ static void wc_file(FILE * file, const char *name)
 int wc_main(int argc, char **argv)
 {
 	FILE *file;
+	unsigned int num_files_counted = 0;
+	int opt;
 
 	total_lines = total_words = total_chars = max_length = 0;
 	print_lines = print_words = print_chars = print_length = 0;
 
-	while (--argc && **(++argv) == '-') {
-		while (*++(*argv))
-			switch (**argv) {
+	while ((opt = getopt(argc, argv, "clLw")) > 0) {
+			switch (opt) {
 			case 'c':
 				print_chars = 1;
 				break;
@@ -130,26 +132,24 @@ int wc_main(int argc, char **argv)
 	if (!print_lines && !print_words && !print_chars && !print_length)
 		print_lines = print_words = print_chars = 1;
 
-	if (argc == 0) {
+	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		wc_file(stdin, "");
 		exit(TRUE);
-	} else if (argc == 1) {
-		file = fopen(*argv, "r");
-		if (file == NULL) {
-			fatalError(*argv);
-		}
-		wc_file(file, *argv);
 	} else {
-		while (argc-- > 0) {
-			file = fopen(*argv, "r");
+		while (optind < argc) {
+			file = fopen(argv[optind], "r");
 			if (file == NULL) {
-				fatalError(*argv);
+				fatalError(argv[optind]);
 			}
-			wc_file(file, *argv);
-			argv++;
+			wc_file(file, argv[optind]);
+			num_files_counted++;
+			optind++;
 		}
+	}
+
+	if (num_files_counted > 1)
 		print_counts(total_lines, total_words, total_chars,
 					 max_length, "total");
-	}
-	return(TRUE);
+
+	return 0 ;
 }
