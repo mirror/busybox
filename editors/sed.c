@@ -313,7 +313,7 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr, char **re
 	return idx;
 }
 
-static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
+static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 {
 	int cflags = 0;
 	char *match;
@@ -462,13 +462,13 @@ void add_cmd(char *cmdstr)
 	/* Append this line to any unfinished line from last time. */
 	if(add_cmd_line) {
 		int lastlen=strlen(add_cmd_line);
-		char *temp=xmalloc(lastlen+strlen(cmdstr)+2);
+		char *tmp=xmalloc(lastlen+strlen(cmdstr)+2);
 
-		memcpy(temp,add_cmd_line,lastlen);
-		temp[lastlen]='\n';
-		strcpy(temp+lastlen+1,cmdstr);
+		memcpy(tmp,add_cmd_line,lastlen);
+		tmp[lastlen]='\n';
+		strcpy(tmp+lastlen+1,cmdstr);
 		free(add_cmd_line);
-		cmdstr=add_cmd_line=temp;
+		cmdstr=add_cmd_line=tmp;
 	} else add_cmd_line=NULL;
 
 	/* If this line ends with backslash, request next line. */
