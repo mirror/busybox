@@ -190,7 +190,7 @@ ifeq ($(strip $(DOSTATIC)),true)
     LDFLAGS += --static
 endif
 
-ifndef $(PREFIX)
+ifeq ($(strip $(PREFIX)),)
     PREFIX:=`pwd`/_install
 endif
 
