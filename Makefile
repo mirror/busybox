@@ -113,7 +113,7 @@ OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
 	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS = -I $(TOPDIR)/include -I $(TOPDIR)/busybox
+CFLAGS = -I $(TOPDIR)/include
 ARFLAGS = -r
 
 #
@@ -202,7 +202,7 @@ endif
 
 SUBDIRS =applets archival console-tools editors fileutils findutils init \
 	miscutils modutils networking pwd_grp shell shellutils sysklogd \
-	textutils tinylogin util-linux libbb
+	textutils util-linux libbb
 
 bbsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 
