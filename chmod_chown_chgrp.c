@@ -98,13 +98,11 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	char *p;
 	const char *appUsage;
 
-	whichApp =
-		(strcmp(*argv, "chown") == 0)? 
+	whichApp = (strcmp(*argv, "chown") == 0)? 
 			CHOWN_APP : (strcmp(*argv, "chmod") == 0)? 
 				CHMOD_APP : CHGRP_APP;
 
-	appUsage =
-		(whichApp == CHOWN_APP)? 
+	appUsage = (whichApp == CHOWN_APP)? 
 			chown_usage : (whichApp == CHMOD_APP) ? chmod_usage : chgrp_usage;
 
 	if (argc < 2)

@@ -1,33 +1,46 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini ps implementation for busybox
+ * Mini ps implementation(s) for busybox
+ *
+ * Copyright (C) 1999 by Lineo, inc.  Written by Erik Andersen
+ * <andersen@lineo.com>, <andersee@debian.org>
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * This contains _two_ implementations of ps for Linux.  One uses the
+ * traditional /proc virtual filesystem, and the other use the devps kernel
+ * driver (written by Erik Andersen to avoid using /proc thereby saving 100k+).
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+ * Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
 
 #include "internal.h"
+#include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <stdio.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <ctype.h>
+
+#if ! defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+
+/* The following is the first ps implementation --
+ * the one using the /proc virtual filesystem.
+ */
 
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
@@ -105,16 +118,12 @@ extern int ps_main(int argc, char **argv)
 	char groupName[10] = "";
 	int i, c;
 
-	if (argc > 1 && **(argv + 1) == '-') {
-		usage
-			("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
-	}
+	if (argc > 1 && **(argv + 1) == '-')
+		usage ("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
 
 	dir = opendir("/proc");
-	if (!dir) {
-		perror("Can't open /proc");
-		exit(FALSE);
-	}
+	if (!dir)
+		fatalError("Can't open /proc");
 
 	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
 			"State", "Command");
@@ -131,9 +140,9 @@ extern int ps_main(int argc, char **argv)
 
 		/* Make some adjustments as needed */
 		my_getpwuid(uidName, p.ruid);
-		my_getgrgid(groupName, p.rgid);
 		if (*uidName == '\0')
 			sprintf(uidName, "%d", p.ruid);
+		my_getgrgid(groupName, p.rgid);
 		if (*groupName == '\0')
 			sprintf(groupName, "%d", p.rgid);
 
@@ -141,10 +150,8 @@ extern int ps_main(int argc, char **argv)
 				p.state);
 		sprintf(path, "/proc/%s/cmdline", entry->d_name);
 		file = fopen(path, "r");
-		if (file == NULL) {
-			perror(path);
-			exit(FALSE);
-		}
+		if (file == NULL)
+			fatalError("Can't open %s: %s\n", path, strerror(errno));
 		i = 0;
 		while (((c = getc(file)) != EOF) && (i < 53)) {
 			i++;
@@ -159,3 +166,90 @@ extern int ps_main(int argc, char **argv)
 	closedir(dir);
 	exit(TRUE);
 }
+
+
+#else /* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+
+
+/* The following is the second ps implementation --
+ * this one uses the nifty new devps kernel device.
+ */
+
+#include <sys/ioctl.h>
+#include <linux/devps.h>
+
+
+extern int ps_main(int argc, char **argv)
+{
+	char device[] = "/dev/ps";
+	int i, fd;
+	pid_t num_pids;
+	pid_t* pid_array = NULL;
+	struct pid_info info;
+	char uidName[10] = "";
+	char groupName[10] = "";
+
+	if (argc > 1 && **(argv + 1) == '-') 
+		usage("ps-devps\n\nReport process status\n\nThis version of ps accepts no options.\n\n");
+
+	/* open device */ 
+	fd = open(device, O_RDONLY);
+	if (fd < 0) 
+		fatalError( "open failed for `%s': %s\n", device, strerror (errno));
+
+	/* Find out how many processes there are */
+	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
+		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+	
+	/* Allocate some memory -- grab a few extras just in case 
+	 * some new processes start up while we wait. The kernel will
+	 * just ignore any extras if we give it too many, and will trunc.
+	 * the list if we give it too few.  */
+	pid_array = (pid_t*) calloc( num_pids+10, sizeof(pid_t));
+	pid_array[0] = num_pids+10;
+
+	/* Now grab the pid list */
+	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
+		fatalError("\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+
+	/* Print up a ps listing */
+	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
+			"State", "Command");
+
+	for (i=1; i<pid_array[0] ; i++) {
+		uidName[0] = '\0';
+		groupName[0] = '\0';
+	    info.pid = pid_array[i];
+
+	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
+			fatalError("\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+	    
+		/* Make some adjustments as needed */
+		my_getpwuid(uidName, info.euid);
+		if (*uidName == '\0')
+			sprintf(uidName, "%ld", info.euid);
+		my_getgrgid(groupName, info.egid);
+		if (*groupName == '\0')
+			sprintf(groupName, "%ld", info.egid);
+
+		fprintf(stdout, "%5d %-8s %-8s %c ", info.pid, uidName, groupName, info.state);
+
+		if (strlen(info.command_line) > 1)
+			fprintf(stdout, "%s\n", info.command_line);
+		else
+			fprintf(stdout, "[%s]\n", info.name);
+
+	}
+
+	/* Free memory */
+	free( pid_array);
+
+	/* close device */
+	if (close (fd) != 0) 
+		fatalError("close failed for `%s': %s\n", device, strerror (errno));
+ 
+	exit (0);
+}
+
+#endif /* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+

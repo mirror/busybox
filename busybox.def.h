@@ -39,6 +39,7 @@
 // Don't turn BB_INSMOD on.  It doesn't work.
 //#define BB_INSMOD
 #define BB_KILL
+#define BB_KILLALL
 #define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
@@ -106,8 +107,17 @@
 // pretty/useful).
 //
 //
+// Turn this on to use Erik's very cool devps, devmtab, 
+// etc. kernel drivers, thereby eliminating the need for 
+// the /proc filesystem and thereby saving lots and lots 
+// memory for more important things.
+// You can't use this and USE_PROCFS at the same time...
+//#define BB_FEATURE_USE_DEVPS_N_DEVMTAB
+//
+//
 // enable features that use the /proc filesystem (apps that 
 // break without this will tell you on compile)...
+// You can't use this and DEVPS_N_DEVMTAB at the same time...
 #define BB_FEATURE_USE_PROCFS
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
@@ -161,6 +171,6 @@
 // just like an initrd does.  Requires a kernel patch by Werner Almesberger. 
 // ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
 #ifdef BB_MOUNT
-#define BB_FEATURE_INIT_CHROOT
+//#define BB_FEATURE_INIT_CHROOT
 #endif
 //

@@ -46,6 +46,10 @@
 #include <sys/mount.h>
 #include <ctype.h>
 #include <fstab.h>
+#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#include <linux/devmtab.h>
+#endif
+
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
@@ -221,9 +225,8 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 {
 	int status = 0;
 
-	char buf[255];
-
 #if defined BB_FEATURE_USE_PROCFS
+	char buf[255];
 	if (strcmp(filesystemType, "auto") == 0) {
 		FILE *f = fopen("/proc/filesystems", "r");
 
@@ -250,6 +253,43 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 			}
 		}
 		fclose(f);
+	} else
+#endif
+#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+	if (strcmp(filesystemType, "auto") == 0) {
+		int fd, i, numfilesystems;
+		char device[] = "/dev/mtab";
+		struct k_fstype *fslist;
+
+		/* open device */ 
+		fd = open(device, O_RDONLY);
+		if (fd < 0)
+			fatalError("open failed for `%s': %s\n", device, strerror (errno));
+
+		/* How many filesystems?  We need to know to allocate enough space */
+		numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
+		if (numfilesystems<0)
+			fatalError("\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", strerror (errno));
+		fslist = (struct k_fstype *) calloc ( numfilesystems, sizeof(struct k_fstype));
+
+		/* Grab the list of available filesystems */
+		status = ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist);
+		if (status<0)
+			fatalError("\nDEVMTAB_GET_FILESYSTEMS: %s\n", strerror (errno));
+
+		/* Walk the list trying to mount filesystems 
+		 * that do not claim to be nodev filesystems */
+		for( i = 0 ; i < numfilesystems ; i++) {
+			if (fslist[i].mnt_nodev)
+				continue;
+			status = do_mount(blockDevice, directory, fslist[i].mnt_type,
+							  flags | MS_MGC_VAL, string_flags,
+							  useMtab, fakeIt, mtab_opts);
+			if (status == TRUE)
+				break;
+		}
+		free( fslist);
+		close(fd);
 	} else
 #endif
 	{
@@ -285,6 +325,39 @@ extern int mount_main(int argc, char **argv)
 	/* Only compiled in if BB_MTAB is not defined */
 	whine_if_fstab_is_missing();
 
+#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+	if (argc == 1) {
+		int fd, i, numfilesystems;
+		char device[] = "/dev/mtab";
+		struct k_mntent *mntentlist;
+
+		/* open device */ 
+		fd = open(device, O_RDONLY);
+		if (fd < 0)
+			fatalError("open failed for `%s': %s\n", device, strerror (errno));
+
+		/* How many mounted filesystems?  We need to know to 
+		 * allocate enough space for later... */
+		numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
+		if (numfilesystems<0)
+			fatalError( "\nDEVMTAB_COUNT_MOUNTS: %s\n", strerror (errno));
+		mntentlist = (struct k_mntent *) calloc ( numfilesystems, sizeof(struct k_mntent));
+		
+		/* Grab the list of mounted filesystems */
+		if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)
+			fatalError( "\nDEVMTAB_GET_MOUNTS: %s\n", strerror (errno));
+
+		for( i = 0 ; i < numfilesystems ; i++) {
+			fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
+					mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
+					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
+					mntentlist[i].mnt_passno);
+		}
+		free( mntentlist);
+		close(fd);
+		exit(TRUE);
+	}
+#else
 	if (argc == 1) {
 		FILE *mountTable = setmntent(mtab_file, "r");
 
@@ -310,7 +383,7 @@ extern int mount_main(int argc, char **argv)
 		}
 		exit(TRUE);
 	}
-
+#endif
 
 	/* Parse options */
 	i = --argc;
@@ -372,10 +445,9 @@ extern int mount_main(int argc, char **argv)
 		struct mntent *m;
 		FILE *f = setmntent("/etc/fstab", "r");
 
-		if (f == NULL) {
-			perror("/etc/fstab");
-			exit(FALSE);
-		}
+		if (f == NULL)
+			fatalError( "\nCannot ream /etc/fstab: %s\n", strerror (errno));
+
 		while ((m = getmntent(f)) != NULL) {
 			// If the file system isn't noauto, 
 			// and isn't swap or nfs, then mount it

@@ -56,6 +56,13 @@
 #include <linux/loop.h>
 #endif
 
+/* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
+ * list of available filesystems used for the -t auto option */ 
+#if defined BB_FEATURE_USE_PROCFS && defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+//#error Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again.
+#error "Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again."
+#endif
+
 
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
 #  if defined BB_FEATURE_USE_PROCFS
@@ -64,8 +71,12 @@ const char mtab_file[] = "/proc/mounts";
 #    if defined BB_MTAB
 const char mtab_file[] = "/etc/mtab";
 #    else
-#      error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or BB_FEATURE_USE_PROCFS
+#      if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+const char mtab_file[] = "/dev/mtab";
+#    else
+#        error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or ( BB_FEATURE_USE_PROCFS | BB_FEATURE_USE_DEVPS_N_DEVMTAB)
 #    endif
+#  endif
 #  endif
 #endif
 
@@ -1238,29 +1249,96 @@ extern int device_open(char *device, int mode)
 
 #if defined BB_INIT || defined BB_HALT || defined BB_REBOOT
 
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
+#ifdef BB_FEATURE_USE_DEVPS_N_DEVMTAB
+#include <linux/devps.h>
 #endif
-/* findInitPid()
+
+#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+/* findPidByName()
  *  
- *  This finds the pid of init (which is not always 1).
- *  Currently, it's implemented by rummaging through the proc filesystem.
+ *  This finds the pid of the specified process,
+ *  by using the /dev/ps device driver.
  *
  *  [return]
  *  0	    failure
- *  pid	    when init's pid is found.
+ *  pid	    when the pid is found.
  */
-extern pid_t findInitPid()
+extern pid_t findPidByName( char* pidName)
 {
-	pid_t init_pid;
+	int fd, i;
+	char device[] = "/dev/ps";
+	pid_t thePid = 0;
+	pid_t num_pids;
+	pid_t* pid_array = NULL;
+
+	/* open device */ 
+	fd = open(device, O_RDONLY);
+	if (fd < 0)
+		fatalError( "open failed for `%s': %s\n", device, strerror (errno));
+
+	/* Find out how many processes there are */
+	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
+		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+	
+	/* Allocate some memory -- grab a few extras just in case 
+	 * some new processes start up while we wait. The kernel will
+	 * just ignore any extras if we give it too many, and will trunc.
+	 * the list if we give it too few.  */
+	pid_array = (pid_t*) calloc( num_pids+10, sizeof(pid_t));
+	pid_array[0] = num_pids+10;
+
+	/* Now grab the pid list */
+	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
+		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+
+	/* Now search for a match */
+	for (i=1; i<pid_array[0] ; i++) {
+		struct pid_info info;
+
+	    info.pid = pid_array[i];
+	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
+			fatalError( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+
+		if ((strstr(info.command_line, pidName) != NULL)) {
+			thePid = info.pid;
+			break;
+		}
+	}
+
+	/* Free memory */
+	free( pid_array);
+
+	/* close device */
+	if (close (fd) != 0) 
+		fatalError( "close failed for `%s': %s\n",device, strerror (errno));
+
+	return thePid;
+}
+#else		/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
+/* findPidByName()
+ *  
+ *  This finds the pid of the specified process.
+ *  Currently, it's implemented by rummaging through 
+ *  the proc filesystem.
+ *
+ *  [return]
+ *  0	    failure
+ *  pid	    when the pid is found.
+ */
+extern pid_t findPidByName( char* pidName)
+{
+	pid_t thePid;
 	char filename[256];
 	char buffer[256];
 
 	/* no need to opendir ;) */
-	for (init_pid = 1; init_pid < 65536; init_pid++) {
+	for (thePid = 1; thePid < 65536; thePid++) {
 		FILE *status;
 
-		sprintf(filename, "/proc/%d/cmdline", init_pid);
+		sprintf(filename, "/proc/%d/cmdline", thePid);
 		status = fopen(filename, "r");
 		if (!status) {
 			continue;
@@ -1268,12 +1346,13 @@ extern pid_t findInitPid()
 		fgets(buffer, 256, status);
 		fclose(status);
 
-		if ((strstr(buffer, "init") != NULL)) {
-			return init_pid;
+		if ((strstr(buffer, pidName) != NULL)) {
+			return thePid;
 		}
 	}
 	return 0;
 }
+#endif							/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
 #endif							/* BB_INIT || BB_HALT || BB_REBOOT */
 
 #if defined BB_GUNZIP \

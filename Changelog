@@ -1,5 +1,5 @@
 0.43
-	* Wrote basename, and uptime.
+	* Wrote basename, killall, and uptime.
 	* Added freeramdisk, which will free up all memory associated
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
 	    and then adjusted a bit by me.
@@ -35,8 +35,8 @@
 	    - Fixes to the makefile for handling "strip"
 	* An initial telnet implementation was added by 
 	    Randolph Chung <tausq@debian.org>.
-	* Fixed a bug where "sed 's/foo/bar/g'" would go into an 
-	    infinite loop.
+	* Fixed a bug where "sed 's/foo/bar/g'" (i.e. a script w/o a "-e")
+	    would go into an infinite loop.
 
 
 	-Erik Andersen

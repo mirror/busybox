@@ -139,6 +139,9 @@ static const struct Applet applets[] = {
 #ifdef BB_KILL					//bin
 	{"kill", kill_main},
 #endif
+#ifdef BB_KILLALL				//usr/bin
+	{"killall", kill_main},
+#endif
 #ifdef BB_LENGTH				//usr/bin
 	{"length", length_main},
 #endif

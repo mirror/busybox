@@ -27,5 +27,5 @@
 extern int halt_main(int argc, char **argv)
 {
 	/* don't assume init's pid == 1 */
-	exit(kill(findInitPid(), SIGUSR1));
+	exit(kill(findPidByName("init"), SIGUSR1));
 }

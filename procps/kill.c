@@ -24,6 +24,7 @@
 #include "internal.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
@@ -35,6 +36,14 @@ static const char *kill_usage =
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
 	"Options:\n" "\t-l\tList all signal names and numbers.\n\n";
 
+static const char *killall_usage =
+	"killall [-signal] process-name [process-name ...]\n\n"
+	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
+	"Options:\n" "\t-l\tList all signal names and numbers.\n\n";
+
+
+#define KILL	0
+#define KILLALL	1
 
 struct signal_name {
 	const char *name;
@@ -120,13 +129,19 @@ const struct signal_name signames[] = {
 
 extern int kill_main(int argc, char **argv)
 {
-	int sig = SIGTERM;
+	int whichApp, sig = SIGTERM;
+	const char *appUsage;
+
+	/* Figure out what we are trying to do here */
+	whichApp = (strcmp(*argv, "killall") == 0)? 
+		KILLALL : KILL; 
+	appUsage = (whichApp == KILLALL)?  killall_usage : kill_usage;
 
 	argc--;
 	argv++;
 	/* Parse any options */
 	if (argc < 1)
-		usage(kill_usage);
+		usage(appUsage);
 
 	while (argc > 0 && **argv == '-') {
 		while (*++(*argv)) {
@@ -150,7 +165,7 @@ extern int kill_main(int argc, char **argv)
 				}
 				break;
 			case '-':
-				usage(kill_usage);
+				usage(appUsage);
 			default:
 				{
 					if (isdigit(**argv)) {
@@ -186,32 +201,34 @@ extern int kill_main(int argc, char **argv)
 
   do_it_now:
 
-	while (--argc >= 0) {
-		int pid;
-		struct stat statbuf;
-		char pidpath[20] = "/proc/";
+	if (whichApp == KILL) {
+		/* Looks like they want to do a kill. Do that */
+		while (--argc >= 0) {
+			int pid;
 
-		if (!isdigit(**argv)) {
-			fprintf(stderr, "bad PID: %s\n", *argv);
-			exit(FALSE);
+			if (!isdigit(**argv))
+				fatalError( "Bad PID: %s\n", strerror(errno));
+			pid = strtol(*argv, NULL, 0);
+			if (kill(pid, sig) != 0) 
+				fatalError( "Could not kill pid '%d': %s\n", pid, strerror(errno));
+			argv++;
 		}
-		pid = atoi(*argv);
-		snprintf(pidpath, 20, "/proc/%s/stat", *argv);
-		if (stat(pidpath, &statbuf) != 0) {
-			fprintf(stderr, "kill: (%d) - No such pid\n", pid);
-			exit(FALSE);
+	} else {
+		/* Looks like they want to do a killall.  Do that */
+		while (--argc >= 0) {
+			int pid;
+
+			while((pid = findPidByName( *argv))) {
+				if (kill(pid, sig) != 0) 
+					fatalError( "Could not kill pid '%d': %s\n", pid, strerror(errno));
+			}
+			argv++;
 		}
-		fprintf(stderr, "sig = %d\n", sig);
-		if (kill(pid, sig) != 0) {
-			perror(*argv);
-			exit(FALSE);
-		}
-		argv++;
 	}
+
 	exit(TRUE);
 
 
   end:
-	fprintf(stderr, "bad signal name: %s\n", *argv);
-	exit(TRUE);
+	fatalError( "bad signal name: %s\n", *argv);
 }
