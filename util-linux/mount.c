@@ -22,8 +22,8 @@
  *		will try mounting stuff with all fses when passed -t auto
  *
  * 1999-04-17	Dave Cinege...Rewrote -t auto. Fixed ro mtab.
- * 1999-10-07	Erik Andersen.  Removed mtab usage, major adjustments,
- *              and some serious dieting all around.
+ * 1999-10-07	Erik Andersen.  Rewrote of a lot of code. Removed mtab 
+ *              usage, major adjustments, and some serious dieting all around.
 */
 
 #include "internal.h"
@@ -81,36 +81,42 @@ static const struct mount_options mount_options[] = {
 };
 
 
+/* Seperate standard mount options from the nonstandard string options */
 static void
-parse_mount_options ( char *options, unsigned long *flags, char *data)
+parse_mount_options ( char *options, unsigned long *flags, char *strflags)
 {
-    printf("option=%s\n", options);
-    while (*options) {
+    while (options) {
+	int gotone=FALSE;
 	char *comma = strchr (options, ',');
 	const struct mount_options* f = mount_options;
 	if (comma)
 	    *comma = '\0';
 
-	printf("checking option=%s vs %s\n", options, f->name);
 	while (f->name != 0) {
-	    printf("checking option=%s vs %s\n", options, f->name);
 	    if (strcasecmp (f->name, options) == 0) {
 		*flags &= f->and;
 		*flags |= f->or;
-		return;
+		gotone=TRUE;
+		break;
 	    }
 	    f++;
 	}
-	if (*data) {
-	    data += strlen (data);
-	    *data++ = ',';
+	if (*strflags && strflags!= '\0' && gotone==FALSE) {
+	    char *temp=strflags;
+	    temp += strlen (strflags);
+	    *temp++ = ',';
+	    *temp++ = '\0';
 	}
-	strcpy (data, options);
+	if (gotone==FALSE) {
+	    strcat (strflags, options);
+	    gotone=FALSE;
+	}
 	if (comma) {
 	    *comma = ',';
 	    options = ++comma;
-	} else
+	} else {
 	    break;
+	}
     }
 }
 
@@ -163,11 +169,13 @@ mount_one (
 
 extern int mount_main (int argc, char **argv)
 {
-    char string_flags[1024]="\0";
+    char string_flags[1024]="";
     unsigned long flags = 0;
     char *filesystemType = "auto";
+    char *device = NULL;
+    char *directory = NULL;
     int all = 0;
-    int i = argc;
+    int i;
 
     if (argc == 1) {
 	FILE *mountTable;
@@ -187,29 +195,31 @@ extern int mount_main (int argc, char **argv)
 
 
     /* Parse options */
-    while (**argv) {
+    i = --argc;
+    argv++;
+    while (i > 0 && **argv) {
 	if (**argv == '-') {
-	    switch (**argv) {
+	    while (i>0 && *++(*argv)) switch (**argv) {
 	    case 'o':
-		if (++argv == 0) {
+		if (--i == 0) {
 		    fprintf (stderr, "%s\n", mount_usage);
 		    return( FALSE);
 		}
-		parse_mount_options (*argv, &flags, string_flags);
-		argc--;
-		argv++;
+		parse_mount_options (*(++argv), &flags, string_flags);
+		--i;
+		++argv;
 		break;
 	    case 'r':
 		flags |= MS_RDONLY;
 		break;
 	    case 't':
-		if (++argv == 0) {
+		if (--i == 0) {
 		    fprintf (stderr, "%s\n", mount_usage);
 		    return( FALSE);
 		}
-		filesystemType = *argv;
-		argc--;
-		argv++;
+		filesystemType = *(++argv);
+		--i;
+		++argv;
 		break;
 	    case 'w':
 		flags &= ~MS_RDONLY;
@@ -220,6 +230,16 @@ extern int mount_main (int argc, char **argv)
 	    case 'v':
 	    case 'h':
 	    case '-':
+		fprintf (stderr, "%s\n", mount_usage);
+		return( TRUE);
+		break;
+	    }
+	} else {
+	    if (device == NULL)
+		device=*argv;
+	    else if (directory == NULL)
+		directory=*argv;
+	    else {
 		fprintf (stderr, "%s\n", mount_usage);
 		return( TRUE);
 	    }
@@ -236,9 +256,6 @@ extern int mount_main (int argc, char **argv)
 	    perror("/etc/fstab");
 	    return( FALSE); 
 	}
-	// FIXME: Combine read routine (make new function) with unmount_all
-	// to save space.
-
 	while ((m = getmntent (f)) != NULL) {
 	    // If the file system isn't noauto, and isn't mounted on /, mount 
 	    // it
@@ -250,19 +267,11 @@ extern int mount_main (int argc, char **argv)
 			   m->mnt_opts);
 	    }
 	}
-
 	endmntent (f);
     } else {
-	if (argc >= 3) {
-	    while (i < argc)
-		argv--;
-	    while (**argv == '-')
-		argv++;
-	    if (mount_one
-		(*argv, *(argv+1), filesystemType, flags,
-		 string_flags) == 0) return 0;
-	    else
-		return( FALSE);
+	if (device && directory) {
+	    return (mount_one (device, directory, filesystemType, 
+			flags, string_flags));
 	} else {
 	    fprintf (stderr, "%s\n", mount_usage);
 	    return( FALSE);

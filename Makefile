@@ -11,8 +11,10 @@ ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 ifeq ($(DODEBUG),true)
     CFLAGS=-Wall -g -D_GNU_SOURCE
     STRIP=
+    LDFLAGS=
 else
     CFLAGS=-Wall -O2 -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    LDFLAGS= -s
     STRIP= strip --remove-section=.note --remove-section=.comment busybox
 endif
 
@@ -21,17 +23,15 @@ ifndef $(prefix)
 endif
 BINDIR=$(prefix)
 
-LDFLAGS= -s
 LIBRARIES=-lc
 OBJECTS=$(shell ./busybox.sh)
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
 
 all: busybox links
-#all: busybox
 
 busybox: $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o busybox $(OBJECTS) $(LIBRARIES)
+	$(CC) $(LDFLAGS) -o busybox $(OBJECTS) $(LIBRARIES)
 	$(STRIP)
 
 links:
