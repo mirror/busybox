@@ -82,8 +82,7 @@ int strings_main(int argc, char **argv)
 pipe:
 
 			count=0;
-			do
-			{
+			do{
 				c=fgetc(file);
 				if(ISSTR(c))
 				{
@@ -110,11 +109,9 @@ pipe:
 					i=0;
 				}
 				count++;
-			}
-			while(c!=EOF);
+			}while(c!=EOF);
 
-			if(file!=stdin)
-				fclose(file);
+			bb_fclose_nonstdin(file);
 		}
 		else
 		{
