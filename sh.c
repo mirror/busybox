@@ -1022,10 +1022,6 @@ static int busy_loop(FILE * input)
 
 	/* return controlling TTY back to parent process group before exiting */
 	if (tcsetpgrp(0, parent_pgrp))
-		perror("tcsetpgrp"); 
-
-	/* return controlling TTY back to parent process group before exiting */
-	if (tcsetpgrp(0, parent_pgrp))
 		perror("tcsetpgrp");
 
 	/* return exit status if called with "-c" */
