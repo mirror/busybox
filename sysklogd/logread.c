@@ -23,6 +23,15 @@
  *
  */
 
+
+/* Stupid libc doesn't have a reliable way for use to know 
+ * that libc5 is being used.   Assume this is good enough */ 
+#if defined __GLIBC__ || defined __UCLIBC__
+#error Sorry.  Looks like you are using libc5.  
+#error libc5 shm support isn't good enough.
+#error Please disable BB_FEATURE_IPC_SYSLOG 
+#endif	
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -134,4 +143,3 @@ static void error_exit(const char *str){
 
 	exit(1);
 }
-

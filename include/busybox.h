@@ -35,6 +35,14 @@
 #include "dmalloc.h"
 #endif
 
+/* Stupid libc doesn't have a reliable way for use to know 
+ * that libc5 is being used.   Assume this is good enough */ 
+#if ! defined __GLIBC__ || ! defined __UCLIBC__
+/* libc5 doesn't define socklen_t */
+typedef unsigned int socklen_t;
+#endif	
+
+
 /* Some useful definitions */
 #define FALSE   ((int) 0)
 #define TRUE    ((int) 1)

@@ -43,7 +43,6 @@
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
 #include <sys/syscall.h>
 #include <linux/unistd.h>
-typedef unsigned int socklen_t;
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
