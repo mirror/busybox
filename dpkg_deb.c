@@ -15,12 +15,14 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
 #include "busybox.h"
 
 extern int dpkg_deb_main(int argc, char **argv)
 {
 	char *argument = NULL;
+	char *output_buffer = NULL;
 	int opt = 0;
 	int optflag = 0;	
 	
@@ -86,7 +88,22 @@ extern int dpkg_deb_main(int argc, char **argv)
 		default:
 	}
 
-	deb_extract(argv[optind], optflag, argument);
+	output_buffer = deb_extract(argv[optind], optflag, argument, NULL);
+
+	if (optflag & extract_field) {
+		char *field = NULL;
+		int field_length = 0;
+		int field_start = 0;
+
+		while ((field = read_package_field(&output_buffer[field_start])) != NULL) {
+			field_length = strlen(field);
+			field_start += (field_length + 1);
+			if (strstr(field, argument) == field) {
+				printf("%s\n", field + strlen(argument) + 2);
+			}
+			free(field);
+		}
+	}
 
 	return(EXIT_SUCCESS);
 }

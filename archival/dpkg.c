@@ -20,7 +20,7 @@
 #define DODEPENDS 1
 
 /* Should we do debugging? */
-//#define DODEBUG 1
+#define DODEBUG 0
 
 #ifdef DODEBUG
 #define SYSTEM(x) do_system(x)
@@ -32,63 +32,68 @@
 
 /* from dpkg-deb.c */
 
-static const int dpkg_deb_contents = 1;
-static const int dpkg_deb_control = 2;
-//	const int dpkg_deb_info = 4;
-static const int dpkg_deb_extract = 8;
-static const int dpkg_deb_verbose_extract = 16;
-static const int dpkg_deb_list = 32;
-
 static const char statusfile[] = "/var/lib/dpkg/status.udeb";
 static const char new_statusfile[] = "/var/lib/dpkg/status.udeb.new";
 static const char bak_statusfile[] = "/var/lib/dpkg/status.udeb.bak";
-
-static const char dpkgcidir[] = "/var/lib/dpkg/tmp.ci/";
 
 static const char infodir[] = "/var/lib/dpkg/info/";
 static const char udpkg_quiet[] = "UDPKG_QUIET";
 
 //static const int status_want_unknown	= 1;
-static const int status_want_install	= 2;
-//static const int status_want_hold	= 3;
-//static const int status_want_deinstall	= 4;
-//static const int status_want_purge	= 5;
+static const int state_want_install	= 2;
+//static const int state_want_hold	= 3;
+//static const int state_want_deinstall	= 4;
+//static const int state_want_purge	= 5;
 
-static const int status_flag_ok	= 1;
-//static const int status_flag_reinstreq = 2; 
-//static const int status_flag_hold	= 3;
-//static const int status_flag_holdreinstreq = 4;
+static const int state_flag_ok	= 1;
+//static const int state_flag_reinstreq = 2; 
+//static const int state_flag_hold	= 3;
+//static const int state_flag_holdreinstreq = 4;
 
-//static const int status_statusnoninstalled = 1;
-static const int status_status_unpacked	= 2;
-static const int status_status_halfconfigured = 3; 
-static const int status_status_installed	= 4;
-static const int status_status_halfinstalled	= 5;
-//static const int status_statusconfigfiles	= 6;
-//static const int status_statuspostinstfailed	= 7;
-//static const int status_statusremovalfailed	= 8;
+//static const int state_statusnoninstalled = 1;
+static const int state_status_unpacked	= 2;
+static const int state_status_halfconfigured = 3; 
+static const int state_status_installed	= 4;
+static const int state_status_halfinstalled	= 5;
+//static const int state_statusconfigfiles	= 6;
+//static const int state_statuspostinstfailed	= 7;
+//static const int state_statusremovalfailed	= 8;
 
-static const char *status_words_want[] = { "unknown", "install", "hold", "deinstall", "purge", 0 };
-static const char *status_words_flag[] = { "ok", "reinstreq", "hold", "hold-reinstreq", 0 };
-static const char *status_words_status[] = { "not-installed", "unpacked", "half-configured", "installed", 
+static const char *state_words_want[] = { "unknown", "install", "hold", "deinstall", "purge", 0 };
+static const char *state_words_flag[] = { "ok", "reinstreq", "hold", "hold-reinstreq", 0 };
+static const char *state_words_status[] = { "not-installed", "unpacked", "half-configured", "installed", 
 		"half-installed", "config-files", "post-inst-failed", "removal-failed", 0 };
 
 static const int color_white	= 0;
 static const int color_grey	= 1;
 static const int color_black	= 2;
 
-/* data structures */
+/* data structures */ 
 typedef struct package_s {
-	char *file;
+	char *filename;
 	char *package;
-	char *version;
+	unsigned char state_want;
+	unsigned char state_flag;
+	unsigned char state_status;
 	char *depends;
 	char *provides;
 	char *description;
+	char *priority;
+	char *section;
+	char *installed_size;
+	char *maintainer;
+	char *source;
+	char *version;
+	char *pre_depends;
+	char *replaces;
+	char *recommends;
+	char *suggests;
+	char *conflicts;
+	char *conffiles;
+	char *long_description;
+	char *architecture;
+	char *md5sum;
 	int installer_menu_item;
-	unsigned char status_want;
-	unsigned char status_flag;
-	unsigned char status_status;
 	char color; /* for topo-sort */
 	struct package_s *requiredfor[DEPENDSMAX]; 
 	unsigned short requiredcount;
@@ -265,8 +270,8 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 			/* Check for dependencies; first look for installed packages */
 			dependpkg.package = dependsvec[i];
 			if (((found = tfind(&dependpkg, &status, package_compare)) == 0) ||
-			    ((chk = *(package_t **)found) && (chk->status_flag & status_flag_ok) &&
-				(chk->status_status & status_status_installed))) {
+			    ((chk = *(package_t **)found) && (chk->state_flag & state_flag_ok) &&
+				(chk->state_status & state_status_installed))) {
 
 				/* if it fails, we look through the list of packages we are going to 
 				 * install */
@@ -328,47 +333,100 @@ static unsigned char status_parse(const char *line, const char **status_words)
 }
 
 /*
- * Read a control file (or a stanza of a status file) and parse it,
+ * Read the buffered control file and parse it,
  * filling parsed fields into the package structure
  */
-static int control_read(FILE *file, package_t *p)
+static int fill_package_struct(package_t *package, const char *package_buffer)
 {
-	char *line;
+	char *field = NULL;
+	int field_start = 0;
+	int field_length = 0;
+	while ((field = read_package_field(&package_buffer[field_start])) != NULL) {
+		field_length = strlen(field);
+		field_start += (field_length + 1);
 
-	while ((line = get_line_from_file(file)) != NULL) {
-		line[strlen(line) - 1] = '\0';
-
-		if (strlen(line) == 0) {
+		if (strlen(field) == 0) {
+			printf("empty line: *this shouldnt happen i dont think*\n");
 			break;
 		}
-		else if (strstr(line, "Package: ") == line) {
-				p->package = xstrdup(line + 9);
+
+		/* these are common to both installed and uninstalled packages */
+		if (strstr(field, "Package: ") == field) {
+			package->package = strdup(field + 9);
 		}
-		else if (strstr(line, "Status: ") == line) {
-				char *word_pointer;
-				word_pointer = strchr(line, ' ') + 1;
-				p->status_want = status_parse(word_pointer, status_words_want);
-				word_pointer = strchr(word_pointer, ' ') + 1;
-				p->status_flag = status_parse(word_pointer, status_words_flag);
-				word_pointer = strchr(word_pointer, ' ') + 1;
-				p->status_status = status_parse(word_pointer, status_words_status);
+		else if (strstr(field, "Depends: ") == field) {
+			package->depends = strdup(field + 9);
 		}
-		else if (strstr(line, "Depends: ") == line) {
-				p->depends = xstrdup(line + 9);
+		else if (strstr(field, "Provides: ") == field) {
+			package->provides = strdup(field + 10);
 		}
-		else if (strstr(line, "Provides: ") == line) {
-				p->provides = xstrdup(line + 10);
-		}
-		else if (strstr(line, "Description: ") == line) {
-				p->description = xstrdup(line + 13);
 		/* This is specific to the Debian Installer. Ifdef? */
+		else if (strstr(field, "installer-menu-item: ") == field) {
+			package->installer_menu_item = atoi(field + 21);
 		}
-		else if (strstr(line, "installer-menu-item: ") == line) {
-				p->installer_menu_item = atoi(line + 21);
+		else if (strstr(field, "Description: ") == field) {
+			package->description = strdup(field + 13);
 		}
-		/* TODO: localized descriptions */
+		else if (strstr(field, "Priority: ") == field) {
+			package->priority = strdup(field + 10);
+		}
+		else if (strstr(field, "Section: ") == field) {
+			package->section = strdup(field + 9);
+		}
+		else if (strstr(field, "Installed-Size: ") == field) {
+			package->installed_size = strdup(field + 16);
+		}
+		else if (strstr(field, "Maintainer: ") == field) {
+			package->maintainer = strdup(field + 12);
+		}
+		else if (strstr(field, "Version: ") == field) {
+			package->version = strdup(field + 9);
+		}
+		else if (strstr(field, "Suggests: ") == field) {
+			package->suggests = strdup(field + 10);
+		}
+		else if (strstr(field, "Recommends: ") == field) {
+			package->recommends = strdup(field + 12);
+		}
+/*		else if (strstr(field, "Conffiles: ") == field) {
+			package->conffiles = read_block(file);
+				package->conffiles = xcalloc(1, 1);
+				while ((field = strtok(NULL, "\n")) != NULL) {
+					package->long_description = xrealloc(package->conffiles, 
+					strlen(package->conffiles) + strlen(field) + 1);
+					strcat(package->conffiles, field);
+				}
+			}
+*/
+		/* These are only in available file */
+		else if (strstr(field, "Architecture: ") == field) {
+			package->architecture = strdup(field + 14);
+		}
+		else if (strstr(field, "Filename: ") == field) {
+			package->filename = strdup(field + 10);
+		}
+		else if (strstr(field, "MD5sum ") == field) {
+			package->md5sum = strdup(field + 7);
+		}
+
+		/* This is only needed for status file */
+		if (strstr(field, "Status: ") == field) {
+			char *word_pointer;
+
+			word_pointer = strchr(field, ' ') + 1;
+			package->state_want = status_parse(word_pointer, state_words_want);
+			word_pointer = strchr(word_pointer, ' ') + 1;
+			package->state_flag = status_parse(word_pointer, state_words_flag);
+			word_pointer = strchr(word_pointer, ' ') + 1;
+			package->state_status = status_parse(word_pointer, state_words_status);
+		} else {
+			package->state_want = status_parse("purge", state_words_want);
+			package->state_flag = status_parse("ok", state_words_flag);
+			package->state_status = status_parse("not-installed", state_words_status);
+		}
+
+		free(field);
 	}
-	free(line);
 	return EXIT_SUCCESS;
 }
 
@@ -377,6 +435,7 @@ static void *status_read(void)
 	FILE *f;
 	void *status = 0;
 	package_t *m = 0, *p = 0, *t = 0;
+	char *package_control_buffer = NULL;
 
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Reading database...)\n");
@@ -386,9 +445,11 @@ static void *status_read(void)
 		return(NULL);
 	}
 
-	while (!feof(f)) {
+	while ( (package_control_buffer = read_text_file_to_buffer(f)) != NULL) {
 		m = (package_t *)xcalloc(1, sizeof(package_t));
-		control_read(f, m);
+		printf("read buffer [%s]\n", package_control_buffer);
+		fill_package_struct(m, package_control_buffer);
+		printf("package is [%s]\n", m->package);
 		if (m->package) {
 			/*
 			 * If there is an item in the tree by this name,
@@ -418,9 +479,9 @@ static void *status_read(void)
 					 * packages of different statuses
 				 	 * provide it).
 				 	 */
-					t->status_want = m->status_want;
-					t->status_flag = m->status_flag;
-					t->status_status = m->status_status;
+					t->state_want = m->state_want;
+					t->state_flag = m->state_flag;
+					t->state_status = m->state_status;
 				}
 			}
 		}
@@ -428,6 +489,7 @@ static void *status_read(void)
 			free(m);
 		}
 	}
+	printf("done\n");
 	fclose(f);
 	return status;
 }
@@ -479,9 +541,9 @@ static int status_merge(void *status, package_t *pkgs)
 			}
 			if (strstr(line, "Status: ") == line && statpkg != 0) {
 				snprintf(line, sizeof(line), "Status: %s %s %s",
-					status_words_want[statpkg->status_want - 1], 
-					status_words_flag[statpkg->status_flag - 1], 
-					status_words_status[statpkg->status_status - 1]);
+					state_words_want[statpkg->state_want - 1], 
+					state_words_flag[statpkg->state_flag - 1], 
+					state_words_status[statpkg->state_status - 1]);
 			}
 			fprintf(fout, "%s\n", line);
 		}
@@ -492,9 +554,9 @@ static int status_merge(void *status, package_t *pkgs)
 	// Print out packages we processed.
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
 		fprintf(fout, "Package: %s\nStatus: %s %s %s\n", 
-			pkg->package, status_words_want[pkg->status_want - 1],
-				status_words_flag[pkg->status_flag - 1],
-				status_words_status[pkg->status_status - 1]);
+			pkg->package, state_words_want[pkg->state_want - 1],
+				state_words_flag[pkg->state_flag - 1],
+				state_words_status[pkg->state_status - 1]);
 
 		if (pkg->depends)
 			fprintf(fout, "Depends: %s\n", pkg->depends);
@@ -544,144 +606,68 @@ static int dpkg_doconfigure(package_t *pkg)
 	char buf[1024];
 
 	DPRINTF("Configuring %s\n", pkg->package);
-	pkg->status_status = 0;
+	pkg->state_status = 0;
 	snprintf(postinst, sizeof(postinst), "%s%s.postinst", infodir, pkg->package);
 
 	if (is_file(postinst)) {
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
 		if ((r = do_system(buf)) != 0) {
 			error_msg("postinst exited with status %d\n", r);
-			pkg->status_status = status_status_halfconfigured;
+			pkg->state_status = state_status_halfconfigured;
 			return 1;
 		}
 	}
-	pkg->status_status = status_status_installed;
+	pkg->state_status = state_status_installed;
 	
 	return 0;
 }
 
 static int dpkg_dounpack(package_t *pkg)
 {
-	int r = 0, i;
+	int r = 0;
 	int status = TRUE;
-	char *cwd = xgetcwd(0);
-	char *src_filename = NULL;
-	char *dst_filename = NULL;
-//	char *lst_file = NULL;
-	char *adminscripts[] = { "prerm", "postrm", "preinst", "postinst",
-			"conffiles", "md5sums", "shlibs", "templates" };
+	char *lst_path;
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
-	if(cwd==NULL)
-		exit(EXIT_FAILURE);
-	chdir("/");
-	deb_extract(pkg->file, dpkg_deb_extract, "/");
+	/* extract the data file */
+	deb_extract(pkg->filename, extract_extract, "/", NULL);
 
-	/* Installs the package scripts into the info directory */
-	for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
-		struct stat src_stat_buf;
-		FILE *src_file = NULL, *dst_file = NULL;
+	/* extract the control files */
+	deb_extract(pkg->filename, extract_control, infodir, pkg->package);
 
-		/* The full path of the current location of the admin file */
-		src_filename = xrealloc(src_filename, strlen(dpkgcidir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		sprintf(src_filename, "%s%s/%s", dpkgcidir, pkg->package, adminscripts[i]);
+	/* Create the list file */
+	lst_path = xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
+	strcpy(lst_path, infodir);
+	strcat(lst_path, pkg->package);
+	strcat(lst_path, ".list");
+	deb_extract(pkg->filename, extract_contents_to_file, lst_path, NULL);
 
-		/* the full path of where we want the file to be copied to */
-		dst_filename = xrealloc(dst_filename, strlen(infodir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		sprintf(dst_filename, "%s%s.%s", infodir, pkg->package, adminscripts[i]);
-
-		/*
-		 * copy admin file to permanent home
-		 * NOTE: Maybe merge this behaviour into libb/copy_file.c
-		 */
-		if (lstat(src_filename, &src_stat_buf) == 0) {
-			if ((src_file = wfopen(src_filename, "r")) != NULL) {
-			 	if ((dst_file = wfopen(dst_filename, "w")) == NULL) {
-					status = FALSE;
-					perror_msg("Opening %s", dst_filename);
-				}
-				copy_file_chunk(src_file, dst_file, src_stat_buf.st_size);
-				fclose(src_file);
-				fclose(dst_file);
-			} else {
-				status = FALSE;
-				error_msg("couldnt open [%s]\n", src_filename);
-			}
-		}
-	}
-
-	/* 
-	 * create the list file 
-	 * FIXME: currently this dumps the lst to stdout instead of a file
-	 */
-/*	lst_file = (char *) xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
-	strcpy(lst_file, infodir);
-	strcat(lst_file, pkg->package);
-	strcat(lst_file, ".list");
-	deb_extract(dpkg_deb_list, NULL, pkg->file);
-*/
-
-	pkg->status_want = status_want_install;
-	pkg->status_flag = status_flag_ok;
+	pkg->state_want = state_want_install;
+	pkg->state_flag = state_flag_ok;
  
 	if (status == TRUE) {
-		pkg->status_status = status_status_unpacked;
+		pkg->state_status = state_status_unpacked;
 	} else {
-		pkg->status_status = status_status_halfinstalled;
+		pkg->state_status = state_status_halfinstalled;
 	}
 
-	chdir(cwd);
 	return r;
 }
 
 /*
- * Extract and parse the control.tar.gz from the specified package
+ * Extract and parse the control file from control.tar.gz
  */
-static int dpkg_unpackcontrol(package_t *pkg)
+static int dpkg_read_control(package_t *pkg)
 {
-	char *tmp_name;
-	FILE *file;
-	int length;
+	FILE *pkg_file;
+	char *control_buffer = NULL;
 
-	/* clean the temp directory (dpkgcidir) be recreating it */
-	remove_dir(dpkgcidir);
-	if (create_path(dpkgcidir, S_IRWXU) == FALSE) {
+	if ((pkg_file = wfopen(pkg->filename, "r")) == NULL) {
 		return EXIT_FAILURE;
 	}
-
-	/*
-	 * Get the package name from the file name,
-	 * first remove the directories
-	 */
-	if ((tmp_name = strrchr(pkg->file, '/')) == NULL) {
-		tmp_name = pkg->file;
-	} else {
-		tmp_name++;
-	}
-	/* now remove trailing version numbers etc */
-	length = strcspn(tmp_name, "_.");
-	pkg->package = (char *) xcalloc(1, length + 1);
-	/* store the package name */
-	strncpy(pkg->package, tmp_name, length);
-
-	/* work out the full extraction path */
-	tmp_name = (char *) xcalloc(1, strlen(dpkgcidir) + strlen(pkg->package) + 9);
-	strcpy(tmp_name, dpkgcidir);
-	strcat(tmp_name, pkg->package);
-
-	/* extract control.tar.gz to the full extraction path */
-	deb_extract(pkg->file, dpkg_deb_control, tmp_name);
-
-	/* parse the extracted control file */
-	strcat(tmp_name, "/control");
-	if ((file = wfopen(tmp_name, "r")) == NULL) {
-		return EXIT_FAILURE;
-	}
-	if (control_read(file, pkg) == EXIT_FAILURE) {
-		return EXIT_FAILURE;
-	}
-
+	control_buffer = deb_extract(pkg->filename, extract_field, NULL, NULL);
+	fill_package_struct(pkg, control_buffer);
 	return EXIT_SUCCESS;
 }
 
@@ -691,15 +677,12 @@ static int dpkg_unpack(package_t *pkgs, void *status)
 	package_t *pkg;
 
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
-		if (dpkg_unpackcontrol(pkg) == EXIT_FAILURE) {
-			return EXIT_FAILURE;
-		}
+		dpkg_read_control(pkg);
 		if ((r = dpkg_dounpack(pkg)) != 0 ) {
 			break;
 		}
 	}
 	status_merge(status, pkgs);
-	remove_dir(dpkgcidir);
 
 	return r;
 }
@@ -735,9 +718,7 @@ static int dpkg_install(package_t *pkgs, void *status)
 
 	/* Stage 1: parse all the control information */
 	for (p = pkgs; p != 0; p = p->next) {
-		if (dpkg_unpackcontrol(p) == EXIT_FAILURE) {
-			return(EXIT_FAILURE);
-		}
+		dpkg_read_control(p);
 	}
 
 	/* Stage 2: resolve dependencies */
@@ -749,27 +730,26 @@ static int dpkg_install(package_t *pkgs, void *status)
 	
 	/* Stage 3: install */
 	for (p = ordered; p != 0; p = p->next) {
-		p->status_want = status_want_install;
+		p->state_want = state_want_install;
 
 		/* for now the flag is always set to ok... this is probably
 		 * not what we want
 		 */
-		p->status_flag = status_flag_ok;
+		p->state_flag = state_flag_ok;
 
 		DPRINTF("Installing %s\n", p->package);
 		if (dpkg_dounpack(p) != 0) {
-			perror_msg(p->file);
+			perror_msg(p->filename);
 		}
 
 		if (dpkg_doconfigure(p) != 0) {
-			perror_msg(p->file);
+			perror_msg(p->filename);
 		}
 	}
 
 	if (ordered != 0) {
 		status_merge(status, pkgs);
 	}
-	remove_dir(dpkgcidir);
 
 	return 0;
 }
@@ -822,7 +802,7 @@ extern int dpkg_main(int argc, char **argv)
 		if (optflag & arg_configure) {
 			p->package = xstrdup(argv[optind]);
 		} else {
-			p->file = xstrdup(argv[optind]);
+			p->filename = xstrdup(argv[optind]);
 		}
 		p->next = packages;
 		packages = p;
@@ -830,7 +810,6 @@ extern int dpkg_main(int argc, char **argv)
 		optind++;
 	}
 
-	create_path(dpkgcidir, S_IRWXU);
 	create_path(infodir, S_IRWXU);
 
 	status = status_read();

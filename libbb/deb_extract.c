@@ -34,12 +34,13 @@
  * The contents of argument depend on the value of function.
  * It is either a dir name or a control file or field name(see dpkg_deb.c)
  */
-extern int deb_extract(const char *package_filename, int function, char *argument)
+extern char *deb_extract(const char *package_filename, const int function, const char *argument, const char *argument2)
 {
 
 	FILE *deb_file, *uncompressed_file;
 	ar_headers_t *headers = NULL;
 	char *ared_file = NULL;
+	char *output_buffer = NULL;
 	int gunzip_pid;
 
 	switch (function) {
@@ -61,7 +62,7 @@ extern int deb_extract(const char *package_filename, int function, char *argumen
 	/* get a linked list of all ar entries */
 	if ((headers = get_ar_headers(deb_file)) == NULL) {
 		error_msg("Couldnt get ar headers\n");
-		return(EXIT_FAILURE);
+		return(NULL);
 	}
 
 	/* seek to the start of the .tar.gz file within the ar file*/
@@ -75,27 +76,23 @@ extern int deb_extract(const char *package_filename, int function, char *argumen
 	if (function & extract_fsys_tarfile) {
 		copy_file_chunk(uncompressed_file, stdout, -1);
 	} else {
-		char *output_buffer = NULL;
-		output_buffer = untar(uncompressed_file, stdout, function, argument);
-		if (function & extract_field) {
-			char *field = NULL;
-			int field_length = 0;
-			int field_start = 0;
-			while ((field = read_package_field(&output_buffer[field_start])) != NULL) {
-				field_length = strlen(field);
-				field_start += (field_length + 1);
-				if (strstr(field, argument) == field) {
-					printf("%s\n", field + strlen(argument) + 2);
-				}
-				free(field);
-			}
+		FILE *output;
+
+		if (function & extract_contents_to_file) {
+			output = wfopen(argument, "w");
+		} else {
+			output = stdout;
+		}
+
+		output_buffer = untar(uncompressed_file, output, function, argument, argument2);
+		if (output != stdout) {
+			fclose(output);
 		}
 	}
-
 	gz_close(gunzip_pid);
 	fclose(deb_file);
 	fclose(uncompressed_file);
 	free(ared_file);
 
-	return(EXIT_SUCCESS);
+	return(output_buffer);
 }

@@ -22,7 +22,8 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, const char *argument)
+extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
+	const char *argument, const char *file_prefix)
 {
 	typedef struct raw_tar_header {
         char name[100];               /*   0-99 */
@@ -102,7 +103,21 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, c
 			next_header_offset += (512 - size % 512);
 		}
 
-		if (untar_function & (extract_contents | extract_verbose_extract)) {
+		/* If an exclude list is specified check current file against list 
+		if (*exclude_list != NULL) {
+			i = 0;
+			while (exclude_list[i] != 0) {
+				if (strncmp(exclude_list[i], raw_tar_header.name, strlen(raw_tar_header.name)) == 0) {
+					break;
+				}
+				i++;
+			}
+		if (exclude_list[i] != 0) {
+				continue;
+			}
+		} */
+
+		if (untar_function & (extract_contents | extract_verbose_extract | extract_contents_to_file)) {
 			fprintf(output, "%s\n", raw_tar_header.name);
 		}
 
@@ -123,10 +138,29 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, c
 						case (extract_extract):
 						case (extract_verbose_extract):
 						case (extract_control): {
-								FILE *dst_file = wfopen(dir, "w");
+								FILE *dst_file = NULL;
+								char *full_name;
+
+								if (file_prefix != NULL) {
+									char *file_name = NULL, *file_extension = NULL;
+
+									file_extension = xmalloc(strlen(raw_tar_header.name) + 1);
+									file_extension = strrchr(raw_tar_header.name, '/');
+									file_extension++;
+									file_name = xmalloc(strlen(file_prefix) + strlen(file_extension) + 2);
+									strcpy(file_name, file_prefix);
+									strcat(file_name, ".");
+									strcat(file_name, file_extension);
+
+									full_name = concat_path_file(strndup(dir, strlen(dir) - strlen(strrchr(dir, '/'))), file_name);
+								} else {
+									full_name = xstrdup(dir);
+								}
+								dst_file = wfopen(full_name, "w");
 								copy_file_chunk(src_tar_file, dst_file, (unsigned long long) size);
 								uncompressed_count += size;
 								fclose(dst_file);
+								chmod(full_name, mode);
 							}
 							break;
 						case (extract_info):
@@ -136,7 +170,7 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, c
 							}
 							break;
 						case (extract_field):
-							if (strstr(raw_tar_header.name, "control") != NULL) {
+							if (strstr(raw_tar_header.name, "./control") != NULL) {
 								return(read_text_file_to_buffer(src_tar_file));
 							}
 							break;

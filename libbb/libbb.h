@@ -236,10 +236,13 @@ typedef enum extract_function_e {
 	extract_verbose_extract = 16,
 	extract_list = 32,
 	extract_fsys_tarfile = 64,
-	extract_field = 128
+	extract_field = 128,
+	extract_contents_to_file = 256
 } extract_function_t;
-extern int deb_extract(const char *package_filename, int function, char *target_dir);
-extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, const char *argument);
+extern char *deb_extract(const char *package_filename, const int function,
+	const char *argument, const char *argument2);
+extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
+	const char *argument, const char *file_prefix);
 extern char *read_text_file_to_buffer(FILE *src_file);
 extern char *read_package_field(const char *package_buffer);
 
