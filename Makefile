@@ -365,7 +365,7 @@ $(LIBBB_MOBJ): $(LIBBB_MSRC)
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
-$(LIBBB_AROBJS): $(LIBBB_ARCSRC)
+$(LIBBB_AROBJS): $(LIBBB_ARCSRC) Makefile
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
