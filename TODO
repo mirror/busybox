@@ -18,15 +18,26 @@ around to it some time. If you have any good ideas, please let me know.
 
 Bugs that need fixing before the 0.44 release goes out the door:
 
- - 'grep foo$ file' doesn't work
- - 'grep *foo file' segfaults
+ - merge telnet client from Tomi Ollila
+ - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
+    is not on.
+ - doc / website updates to tell what the real mailing list is for busybox.
+ - fix 'cp' (or test suite script) so that it passes the test suite.
+ - merge Pavel's rm fixes.
+
+These could get done before the 0.44 release if we have time, but we won't
+hold up the 0.44 release just because of these:
+
  - ps dirent race bug (need to stat the file before attempting chdir)
  - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
     /tmp/file in the current directory, rather then trying and failing to create
     a symlink named "." in the current working directory).
- - "math" should also take input from stdin
- - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
-    is not on.
+
+These will be deferred til after 0.44 is released. We will rework these to use
+libc regex functions instead (as per the mailing list discussion):
+
+ - 'grep foo$ file' doesn't work
+ - 'grep *foo file' segfaults
 
 
 -----------
