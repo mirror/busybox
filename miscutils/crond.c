@@ -203,8 +203,9 @@ crond_main(int ac, char **av)
     if (!(opt & 4)) {
 	if(daemon(1, 0) < 0) {
 		bb_perror_msg_and_die("daemon");
+	} 
 #if defined(__uClinux__)
-	} else {
+	else {
 	    /* reexec for vfork() do continue parent */
 	    vfork_daemon_rexec(ac, av, "-f");
 	}

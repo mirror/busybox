@@ -147,7 +147,6 @@ extern int klogd_main(int argc, char **argv)
 	}
 
 	if (doFork) {
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		if (daemon(0, 1) < 0)
 			bb_perror_msg_and_die("daemon");
 #if defined(__uClinux__)

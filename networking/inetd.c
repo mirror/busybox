@@ -832,13 +832,13 @@ inetd_main(int argc, char *argv[])
 
 #if defined(__uClinux__)
 	opt = bb_getopt_ulflags(argc, argv, "q:f", &sq);
-	if (!(opt & 4)) {
+	if (!(opt & 2)) {
 	    daemon(0, 0);
 	    /* reexec for vfork() do continue parent */
 	    vfork_daemon_rexec(argc, argv, "-f");
 	}
 #else
-	opt = bb_getopt_ulflags(ac, av, "q:", &sq);
+	opt = bb_getopt_ulflags(argc, argv, "q:", &sq);
 	daemon(0, 0);
 #endif /* uClinux */
 
