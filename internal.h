@@ -177,6 +177,8 @@ extern pid_t findInitPid();
 
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device);
+extern int set_loop(const char *device, const char *file, int offset, int *loopro);
+extern char *find_unused_loop_device (void);
 #endif
 
 #if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
