@@ -1750,14 +1750,14 @@ textutils(1), shellutils(1), etc...
 
 =head1 MAINTAINER
 
-Erik Andersen <erik@lineo.com>
+Erik Andersen <andersee@debian.org> <andersen@lineo.com>
 
 =head1 AUTHORS
 
 The following people have contributed code to BusyBox whether
 they know it or not.
 
-Erik Andersen <erik@lineo.com>
+Erik Andersen <andersee@debian.org>
 
 =for html <br>
 
@@ -1803,4 +1803,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.18 2000/04/19 05:12:02 erik Exp $
+# $Id: busybox.pod,v 1.19 2000/04/19 05:15:12 erik Exp $
