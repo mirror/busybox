@@ -26,7 +26,40 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "libbb.h"
-#include "loop.h" /* Pull in loop device support */
+
+/* Grumble...  The 2.6.x kernel breaks asm/posix_types.h
+ * so we get to try and cope as best we can... */
+#include <linux/version.h>
+#include <asm/posix_types.h>
+#if LINUX_VERSION_CODE >= 132608
+#define __bb_kernel_dev_t   __kernel_old_dev_t
+#elif LINUX_VERSION_CODE >= 0x20600
+#define __bb_kernel_dev_t   __kernel_dev_t
+#else
+#define __bb_kernel_dev_t   unsigned short
+#endif
+
+/* Stuff stolen from linux/loop.h */
+#define LO_NAME_SIZE        64
+#define LO_KEY_SIZE         32
+#define LOOP_SET_FD         0x4C00
+#define LOOP_CLR_FD         0x4C01
+#define LOOP_SET_STATUS     0x4C02
+#define LOOP_GET_STATUS     0x4C03
+struct loop_info {
+	int                lo_number;
+	__bb_kernel_dev_t  lo_device;
+	unsigned long      lo_inode;
+	__bb_kernel_dev_t  lo_rdevice;
+	int                lo_offset;
+	int                lo_encrypt_type;
+	int                lo_encrypt_key_size;
+	int                lo_flags;
+	char               lo_name[LO_NAME_SIZE];
+	unsigned char      lo_encrypt_key[LO_KEY_SIZE];
+	unsigned long      lo_init[2];
+	char               reserved[4];
+};
 
 extern int del_loop(const char *device)
 {

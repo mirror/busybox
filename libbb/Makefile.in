@@ -96,9 +96,3 @@ $(LIBBB_MOBJS2): $(LIBBB_MSRC2)
 $(LIBBB_MOBJS3): $(LIBBB_MSRC3)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 
-$(LIBBB_DIR)loop.o: $(LIBBB_DIR)loop.h
-
-$(LIBBB_DIR)loop.h: $(LIBBB_DIR)mk_loop_h.sh
-	@ $(SHELL) $< > $@
-
-
