@@ -31,6 +31,12 @@ DODEBUG = false
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
+# To compile vs an alternative libc, you may need to use/adjust
+# the following lines to meet your needs.  This is how I did it...
+#CFLAGS+=-nostdinc -I/home/andersen/CVS/uC-libc/include -I/usr/include/linux
+#LDFLAGS+=-nostdlib -L/home/andersen/CVS/libc.a
+
+
 CC = gcc
 
 # use '-Os' optimization if available, else use -O2
@@ -42,10 +48,6 @@ OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&
 ifndef $(STRIPTOOL)
     STRIPTOOL = strip
 endif
-
-# TODO: Try compiling vs other libcs.  
-# See what -nostdinc and -nostdlib do for them.
-# also try --prefix=/usr/my-libc-stuff
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
@@ -65,17 +67,17 @@ else
 	#want to give it a shot...
 	#
 	#ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
-	#	-o /dev/null -xc /dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
-	#    CFLAGS += -ffunction-sections -fdata-sections -DFUNCTION_SECTIONS
-	#    LDFLAGS += --gc-sections
+	#	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
+	#	CFLAGS += -ffunction-sections -fdata-sections
+	#	LDFLAGS += --gc-sections
 	#endif
-	#
     endif
 endif
 
 ifndef $(PREFIX)
     PREFIX = `pwd`/_install
 endif
+
 
 LIBRARIES =
 OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o utility.o

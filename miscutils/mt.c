@@ -61,7 +61,7 @@ extern int mt_main(int argc, char **argv)
 	struct mtop op;
 	int fd;
 	
-	if ((argc != 2 && argc != 3) || **(argv + 1) == '-') {
+	if ((argc != 2 && argc != 3) && **(argv + 1) != '-') {
 		usage(mt_usage);
 	}
 

@@ -181,7 +181,7 @@ int date_main(int argc, char **argv)
 					set_time = 1;
 					if (date_str != NULL)
 						usage(date_usage);
-					date_str = optarg;
+					date_str = *argv;
 					break;
 				case 'u':
 					utc = 1;
@@ -192,7 +192,7 @@ int date_main(int argc, char **argv)
 					use_arg = 1;
 					if (date_str != NULL)
 						usage(date_usage);
-					date_str = optarg;
+					date_str = *argv;
 					break;
 				case '-':
 					usage(date_usage);
