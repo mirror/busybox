@@ -250,6 +250,7 @@ static struct jobset *job_list;
 static unsigned int last_bg_pid=0;
 static char *PS1;
 static char *PS2 = "> ";
+static char **__shell_local_env = 0;
 
 #define B_CHUNK (100)
 #define B_NOSPAC 1
@@ -1609,11 +1610,104 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
-
+/* This is used to set local variables (i.e. stuff not going into the environment) */
 static int set_local_var(const char *s)
 {
-	/* when you write this, also need to update lookup_param() */
-	printf("assignment %s not handled: write me!\n",s);
+	char **ep;
+	char *tmp,*name, *value;
+	size_t size;
+	size_t namelen;
+	size_t vallen;
+	int result=0;
+
+	name=tmp=strdup(s);
+
+	/* Assume when we enter this function that we are already in
+	 * NAME=VALUE format.  So the first order of business is to
+	 * split 's' on the '=' into 'name' and 'value' */ 
+	value = strchr(name, '=');
+	if (!value) {
+		result = -1;
+		goto done_already;
+	}
+	*value='\0';
+	++value;
+	printf("name='%s' and value='%s'\n",name, value);
+
+	namelen = strlen (name);
+	vallen = strlen (value);
+
+	/* Now see how many local environment entries we have, and check
+	 * if we match an existing environment entry (so we can overwrite it) */
+	size = 0;
+	for (ep = __shell_local_env; ep && *ep != NULL; ++ep) {
+		if (!memcmp (*ep, name, namelen) && (*ep)[namelen] == '=')
+			break;
+		else
+			++size;
+	}
+
+	if (ep == NULL || *ep == NULL) {
+		static char **last_environ = NULL;
+		char **new_environ = (char **) malloc((size + 2) * sizeof(char *));
+		if (new_environ == NULL) {
+			result = -1;
+			goto done_already;
+		}
+		memcpy((__ptr_t) new_environ, (__ptr_t) __shell_local_env, size * sizeof(char *));
+
+		new_environ[size] = malloc (namelen + 1 + vallen + 1);
+		if (new_environ[size] == NULL) {
+			free (new_environ);
+			errno=ENOMEM;
+			result = -1;
+			goto done_already;
+		}
+		memcpy (new_environ[size], name, namelen);
+		new_environ[size][namelen] = '=';
+		memcpy (&new_environ[size][namelen + 1], value, vallen + 1);
+
+		new_environ[size + 1] = NULL;
+
+		if (last_environ != NULL)
+			free ((__ptr_t) last_environ);
+		last_environ = new_environ;
+		__shell_local_env = new_environ;
+	}
+	else {
+		size_t len = strlen (*ep);
+		if (len < namelen + 1 + vallen) {
+			char *new = malloc (namelen + 1 + vallen + 1);
+			if (new == NULL) {
+				result = -1;
+				goto done_already;
+			}
+			*ep = new;
+			memcpy (*ep, name, namelen);
+			(*ep)[namelen] = '=';
+		}
+		memcpy (&(*ep)[namelen + 1], value, vallen + 1);
+	}
+
+done_already:
+	free(name);
+	return result;
+}
+
+char *get_local_var(const char *var)
+{
+	char **p;
+	int len;
+
+	len = strlen(var);
+
+	if (!__shell_local_env)
+		return 0;
+
+	for (p = __shell_local_env; *p; p++) {
+		if (memcmp(var, *p, len) == 0 && (*p)[len] == '=')
+			return *p + len + 1;
+	}
 	return 0;
 }
 
@@ -2018,7 +2112,10 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 static void lookup_param(o_string *dest, struct p_context *ctx, o_string *src)
 {
 	const char *p=NULL;
-	if (src->data) p = getenv(src->data);
+	if (src->data) { 
+		p = get_local_var(src->data);
+		if (!p) p = getenv(src->data);
+	}
 	if (p) parse_string(dest, ctx, p);   /* recursion */
 	b_free(src);
 }
