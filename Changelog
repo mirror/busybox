@@ -1,4 +1,6 @@
 0.32
+	* usage() now printf the BusyBox version.  This will help folks
+	    realize that they are not in Kansas anymore.
 	* Fixed mkdir -m option so that it works.
 
 0.31

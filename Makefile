@@ -44,7 +44,7 @@ ifndef $(prefix)
 endif
 BINDIR=$(prefix)
 
-LIBRARIES=-lc
+LIBRARIES=
 OBJECTS=$(shell ./busybox.sh)
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
