@@ -416,7 +416,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	status = lstat(fileName, &statbuf);
 
     if (status < 0) {
-	fprintf(stderr, "status=%d followLinks=%d TRUE=%d\n", status, followLinks, TRUE);
+	//fprintf(stderr, "status=%d followLinks=%d TRUE=%d\n", status, followLinks, TRUE);
 	perror(fileName);
 	return (FALSE);
     }
