@@ -72,6 +72,50 @@ static void close_and_delete_outfile(FILE* output, char *fname_out, int do_conti
 	}
 }
 
+/* Read NMEMB elements of SIZE bytes into PTR from STREAM.  Returns the
+ * number of elements read, and a short count if an eof or non-interrupt
+ * error is encountered.  */
+static size_t safe_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+	size_t ret = 0;
+
+	do {
+		clearerr(stream);
+		ret += fread((char *)ptr + (ret * size), size, nmemb - ret, stream);
+	} while (ret < nmemb && ferror(stream) && errno == EINTR);
+
+	return ret;
+}
+
+/* Write NMEMB elements of SIZE bytes from PTR to STREAM.  Returns the
+ * number of elements written, and a short count if an eof or non-interrupt
+ * error is encountered.  */
+static size_t safe_fwrite(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+	size_t ret = 0;
+
+	do {
+		clearerr(stream);
+		ret += fwrite((char *)ptr + (ret * size), size, nmemb - ret, stream);
+	} while (ret < nmemb && ferror(stream) && errno == EINTR);
+
+	return ret;
+}
+
+/* Read a line or SIZE - 1 bytes into S, whichever is less, from STREAM.
+ * Returns S, or NULL if an eof or non-interrupt error is encountered.  */
+static char *safe_fgets(char *s, int size, FILE *stream)
+{
+	char *ret;
+
+	do {
+		clearerr(stream);
+		ret = fgets(s, size, stream);
+	} while (ret == NULL && ferror(stream) && errno == EINTR);
+
+	return ret;
+}
+
 #define close_delete_and_die(s...) { \
 	close_and_delete_outfile(output, fname_out, do_continue); \
 	error_msg_and_die(s); }
@@ -395,8 +439,8 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		progressmeter(-1);
 #endif
 	do {
-		while ((filesize > 0 || !got_clen) && (n = fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
-		fwrite(buf, 1, n, output);
+		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
+		safe_fwrite(buf, 1, n, output);
 #ifdef BB_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
 #endif
@@ -405,8 +449,8 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	}
 
 		if (chunked) {
-			fgets(buf, sizeof(buf), dfp); /* This is a newline */
-			fgets(buf, sizeof(buf), dfp);
+			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
+			safe_fgets(buf, sizeof(buf), dfp);
 			filesize = strtol(buf, (char **) NULL, 16);
 			if (filesize==0) chunked = 0; /* all done! */
 		}
@@ -733,7 +777,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.36 2001/04/17 18:13:16 markw Exp $
+ *	$Id: wget.c,v 1.37 2001/05/09 19:15:46 kraai Exp $
  */
 
 
