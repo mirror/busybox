@@ -60,7 +60,8 @@ static void print_line(const char *line, int linenum, char decoration)
 {
 #ifdef BB_FEATURE_GREP_CONTEXT
 	/* possibly print the little '--' seperator */
-	if (last_line_printed && last_line_printed < linenum - 1) {
+	if ((lines_before || lines_after) && last_line_printed &&
+			last_line_printed < linenum - 1) {
 		puts("--");
 	}
 	last_line_printed = linenum;
