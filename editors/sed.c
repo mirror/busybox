@@ -848,8 +848,11 @@ static void process_file(FILE *file)
 						}
 						break;
 					case 'q':	/* Branch to end of script and quit */
-						free(line);
-						return;
+						deleted = 1;
+						/* Exit the outer while loop */
+						free(next_line);
+						next_line = NULL;
+						break;
 					case 'n':	/* Read next line from input */
 						free(line);
 						line = next_line;
