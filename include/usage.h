@@ -989,25 +989,38 @@
 	"\t-x\tdo not export externs"
 
 #define ip_trivial_usage \
-	"not written yet"
+	"[ OPTIONS ] { address | link | route | tunnel } { COMMAND | help }"
 #define ip_full_usage \
-	"not written yet"
+	"ip [ OPTIONS ] OBJECT { COMMAND | help }\n" \
+	"where  OBJECT := { link | addr | route | tunnel }\n" \
+	"OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }\n"
+
+#define ipaddr_trivial_usage \
+	"{ {add|del} IFADDR dev STRING | {show|flush} [ dev STRING ] [ to PREFIX ] }"
+#define ipaddr_full_usage \
+	"ipaddr {add|del} IFADDR dev STRING\n" \
+	"ipaddr {show|flush} [ dev STRING ] [ scope SCOPE-ID ]\n" \
+	"                    [ to PREFIX ] [ label PATTERN ]\n" \
+	"IFADDR := PREFIX | ADDR peer PREFIX\n" \
+	"          [ broadcast ADDR ] [ anycast ADDR ]\n" \
+	"          [ label STRING ] [ scope SCOPE-ID ]\n" \
+	"SCOPE-ID := [ host | link | global | NUMBER ]\n"
 
 #ifndef CONFIG_FEATURE_IPCALC_FANCY
-#define ipcalc_trivial_usage \
+# define ipcalc_trivial_usage \
 	"[--broadcast] [--netmask] [--network] ipaddr <netmask>"
 
-#define ipcalc_full_usage \
+# define ipcalc_full_usage \
 	"Calculate IP network settings from a IP address\n\n" \
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
 	"\t-n\t--netmask\tDisplay default netmask for IP.\n" \
 	"\t-w\t--network\tDisplay calculated network address." 
 #else
-#define ipcalc_trivial_usage \
+# define ipcalc_trivial_usage \
 	"[OPTION]... ipaddr <netmask>"
 
-#define ipcalc_full_usage \
+# define ipcalc_full_usage \
 	"Calculate IP network settings from a IP address\n\n" \
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
@@ -1022,6 +1035,32 @@
 	"a host. The various options specify what information ipcalc\n" \
 	"should display on standard out. Multiple options may be\n" \
 	"specified.\n"
+
+#define iplink_trivial_usage \
+	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
+#define iplink_full_usage \
+	"iplink set DEVICE { up | down | arp { on | off } |\n" \
+	"                     dynamic { on | off } |\n" \
+	"                     mtu MTU }\n" \
+	"iplink show [ DEVICE ]\n"
+
+#define iproute_trivial_usage \
+	"{ list | flush | { add | del | change | append | replace | monitor } ROUTE }"
+#define iproute_full_usage \
+	"iproute { list | flush } SELECTOR\n" \
+	"iproute get ADDRESS [ from ADDRESS iif STRING ]\n" \
+	"                     [ oif STRING ]  [ tos TOS ]\n" \
+	"iproute { add | del | change | append | replace | monitor } ROUTE\n" \
+	"SELECTOR := [ root PREFIX ] [ match PREFIX ] [ proto RTPROTO ]\n" \
+	"ROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]\n"
+
+#define iptunnel_trivial_usage \
+	"{ add | change | del | show } [ NAME ] [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
+#define iptunnel_full_usage \
+	"iptunnel { add | change | del | show } [ NAME ]\n" \
+	"          [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
+	"          [ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
+	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]\n"
 
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"

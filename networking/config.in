@@ -33,10 +33,26 @@ bool 'ipcalc'	    CONFIG_IPCALC
 if [ "$CONFIG_IPCALC" = "y" ]; then
     bool '  Fancy IPCALC, more options, adds 300 bytes'	CONFIG_FEATURE_IPCALC_FANCY
 fi
-bool 'nc'	    CONFIG_NC
+bool 'ipaddr'		CONFIG_IPADDR
+if [ "$CONFIG_IP" = "y" ] && [ "$CONFIG_IPADDR" = "y" ]; then
+	define_bool	CONFIG_FEATURE_IP_ADDRESS	y
+fi
+bool 'iplink'		CONFIG_IPLINK
+if [ "$CONFIG_IP" = "y" ] && [ "$CONFIG_IPLINK" = "y" ]; then
+	define_bool	CONFIG_FEATURE_IP_LINK	y
+fi
+bool 'iproute'		CONFIG_IPROUTE
+if [ "$CONFIG_IP" = "y" ] && [ "$CONFIG_IPROUTE" = "y" ]; then
+	define_bool	CONFIG_FEATURE_IP_ROUTE	y
+fi
+bool 'iptunnel'		CONFIG_IPTUNNEL
+if [ "$CONFIG_IP" = "y" ] && [ "$CONFIG_IPTUNNEL" = "y" ]; then
+	define_bool	CONFIG_FEATURE_IP_TUNNEL	y
+fi
+bool 'nc'			CONFIG_NC
 bool 'netstat'	    CONFIG_NETSTAT
 bool 'nslookup'	    CONFIG_NSLOOKUP
-bool 'ping'	    CONFIG_PING
+bool 'ping'			CONFIG_PING
 if [ "$CONFIG_PING" = "y" ]; then
     bool '  Enable fancy ping output'		CONFIG_FEATURE_FANCY_PING
 fi

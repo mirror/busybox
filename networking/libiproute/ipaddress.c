@@ -230,7 +230,6 @@ int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	if ((filter.flags^ifa->ifa_flags)&filter.flagmask)
 		return 0;
 	if (filter.label) {
-		SPRINT_BUF(b1);
 		const char *label;
 		if (rta_tb[IFA_LABEL])
 			label = RTA_DATA(rta_tb[IFA_LABEL]);
@@ -541,10 +540,10 @@ int ipaddr_list_link(int argc, char **argv)
 	return ipaddr_list(argc, argv);
 }
 
-void ipaddr_reset_filter(int oneline)
+void ipaddr_reset_filter(int _oneline)
 {
 	memset(&filter, 0, sizeof(filter));
-	filter.oneline = oneline;
+	filter.oneline = _oneline;
 }
 
 int default_scope(inet_prefix *lcl)

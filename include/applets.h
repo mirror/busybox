@@ -255,10 +255,22 @@
 	APPLET(insmod, insmod_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_IP
-	APPLET(ip, ip_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+	APPLET(ip, ip_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_IPCALC
 	APPLET(ipcalc, ipcalc_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IPADDRESS
+	APPLET(ipaddr, ipaddr_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IPLINK
+	APPLET(iplink, iplink_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IPROUTE
+	APPLET(iproute, iproute_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IPTUNNEL
+	APPLET(iptunnel, iptunnel_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_KILL
 	APPLET(kill, kill_main, _BB_DIR_BIN, _BB_SUID_NEVER)

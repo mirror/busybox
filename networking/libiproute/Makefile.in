@@ -23,6 +23,7 @@ LIBIPROUTE_DIR:=$(TOPDIR)networking/libiproute/
 endif
 
 LIBIPROUTE-$(CONFIG_IP) += \
+	ip_parse_common_args.o \
 	ipaddress.o \
 	iplink.o \
 	iproute.o \
