@@ -77,6 +77,25 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 
 <ul>
 
+    <p> <li> <b>13 December 2000 -- BusyBox 0.48 released</b>
+    <br>
+
+	     This release fixes lots and lots of bugs.  This has had some very
+	     rigorous testing, and looks very, very clean.  The usual tar
+	     update of course: tar no longer breaks hardlinks, tar -xzf is
+	     optionally supported, and the LRP folks will be pleased to know
+	     that 'tar -X' and 'tar --exclude' are both now in.  Applets are
+	     now looked up using a binary search makeing lash (the busybox
+	     shell) much faster.  For the new debian-installer (for Debian
+	     woody) a .udeb can now be generated.  
+	     <p>
+	     The curious can get a list of some of the more interesting chages by reading 
+	     the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a>. 
+	     <p>
+	     Many thanks go out to the many many people that have contributed to 
+	     this release, especially Matt Kraai, Larry Doolittle, and Kent Robotti.
+
+
     <p> <li> <b>26 September 2000 -- BusyBox 0.47 released</b>
     <br>
 
@@ -88,48 +107,6 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 	     more correct option parsing.
 	     See the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> 
 	     for complete details.
-
-
-    <p> <li> <b>11 July 2000 -- BusyBox 0.46 released</b>
-    <br>
-
-	     This release fixes several bugs (including a ugly bug in tar,
-	     and fixes for NFSv3 mount support).  Added a dumpkmap to allow 
-	     people to dump a binary keymaps for use with 'loadkmap', and a
-	     completely reworked 'grep' and 'sed' which should behave better.
-	     BusyBox shell can now also be used as a login shell.
-	     See the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> 
-	     for complete details.
-
-
-    <p> <li> <b>21 June 2000 -- BusyBox 0.45 released</b>
-    <br>
-
-	     This release has been slow in coming, but is very solid at this
-	     point.  BusyBox now supports libc5 as well as GNU libc.  This
-	     release provides the following new apps: cut, tr, insmod, ar,
-	     mktemp, setkeycodes, md5sum, uuencode, uudecode, which, and
-	     telnet.  There are bug fixes for just about every app as well (see
-	     the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> for
-	     details).
-	     <p>
-	     Also, some exciting infrastructure news!  Busybox now has its own 
-	     <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a>, 
-	     publically browsable
-	     <a href="http://opensource.lineo.com/cgi-bin/cvsweb/busybox/">CVS tree</a>,  
-	     anonymous
-	     <a href="http://opensource.lineo.com/cvs_anon.html">CVS access</a>, and
-	     for those that are actively contributing there is even 
-	     <a href="http://opensource.lineo.com/cvs_write.html">CVS write access</a>.
-	     I think this will be a huge help to the ongoing development of BusyBox.
-	     <p>
-	     Also, for the curious, there is no 0.44 release.  Somehow 0.44 got announced
-	     a few weeks ago prior to its actually being released.  To avoid any confusion
-	     we are just skipping 0.44.
-	     <p>
-	     Many thanks go out to the many people that have contributed to this release
-	     of BusyBox (esp. Pavel Roskin)!
-
 
 
     <p> <li> <b>Old News</b>
@@ -176,6 +153,8 @@ Current documentation for BusyBox includes:
 		grammatical, whatever) please let me know.
     <li> <a href="ftp://oss.lineo.com/busybox/BusyBox.pdf">BusyBox.pdf</a>.
 		This is basically the same document, but in pdf format.
+    <li> <a href="ftp://oss.lineo.com/busybox/README">README</a>.
+		This is the README file included in the busybox source release.
     <li> <a href="http://bugs.lineo.com/db/pa/lbusybox.html">BusyBoxBugs</a>.
 		Need to report a bug?  Need to check if a bug has been filed?
     <li> If you need more help, the BusyBox
