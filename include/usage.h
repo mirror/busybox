@@ -917,8 +917,8 @@
 	USAGE_KLOGD("\t-K\t\tDo not start up the klogd process\n") \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
 	USAGE_REMOTE_LOG( \
-	"\n\t-R HOST[:PORT]\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n" \
-	"\t-L\t\tLog locally as well as network logging (default is network only)")
+	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
+	"\t-L\t\tLog locally and via network logging (default is network only)")
 
 
 #ifdef BB_FEATURE_SIMPLE_TAIL
