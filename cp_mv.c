@@ -214,6 +214,10 @@ extern int cp_mv_main(int argc, char **argv)
 			usage(cp_mv_usage[dz_i]);
 		}
 	} else {					/* (dz_i == is_mv) */
+		/* Initialize optind to 1, since in libc5 optind
+		 * is not initialized until getopt() is called
+		 * (or until sneaky programmers force it...). */
+		optind = 1;
 		recursiveFlag = preserveFlag = TRUE;
 		followLinks = FALSE;
 	}
