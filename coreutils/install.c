@@ -39,6 +39,16 @@
 #define INSTALL_OPT_MODE  32
 #define INSTALL_OPT_OWNER  64
 
+static const struct option install_long_options[] = {
+	{ "directory",	0,	NULL,	'd' },
+	{ "preserve-timestamps",	0,	NULL,	'p' },
+	{ "strip",	0,	NULL,	's' },
+	{ "group",	0,	NULL,	'g' },
+	{ "mode", 	0,	NULL,	'm' },
+	{ "owner",	0,	NULL,	'o' },
+	{ 0,	0,	0,	0 }
+};
+	
 extern int install_main(int argc, char **argv)
 {
 	struct stat statbuf;
@@ -53,8 +63,9 @@ extern int install_main(int argc, char **argv)
 	int flags;
 	int i;
 
-	/* -c exists for backwards compatability, its needed */
+	bb_applet_long_options = install_long_options;
 	bb_opt_complementaly = "s~d:d~s";
+	/* -c exists for backwards compatability, its needed */
 	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
 
 	/* Check valid options were given */
