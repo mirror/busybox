@@ -39,8 +39,7 @@ busybox-udeb:
 	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
 	$(MAKE)
-	install -D busybox ./debian/busybox-unstable-udeb/bin/busybox
-	dh_installchangelogs Changelog -pbusybox-unstable-udeb
+	$(MAKE) PREFIX=./debian/busybox-udeb/ install
 	dh_strip -pbusybox-unstable-udeb
 	dh_compress -pbusybox-unstable-udeb
 	dh_fixperms -pbusybox-unstable-udeb
