@@ -470,48 +470,53 @@ static int builtin_export(struct child_prog *child)
 /* built-in 'fg' and 'bg' handler */
 static int builtin_fg_bg(struct child_prog *child)
 {
-	int i, jobNum;
-	struct pipe *job=NULL;
-	
-	if (!child->argv[1] || child->argv[2]) {
-		error_msg("%s: exactly one argument is expected\n",
-				child->argv[0]);
-		return EXIT_FAILURE;
-	}
+	int i, jobnum;
+	struct pipe *pi=NULL;
 
-	if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
-		error_msg("%s: bad argument '%s'\n",
-				child->argv[0], child->argv[1]);
-		return EXIT_FAILURE;
-	}
+	/* If they gave us no args, assume they want the last backgrounded task */
+	if (!child->argv[1]) {
+		for (pi = job_list->head; pi; pi = pi->next) {
+			if (pi->progs && pi->progs->pid == last_bg_pid) {
+				break;
+			}
+		}
+		if (!pi) {
+			error_msg("%s: no current job", child->argv[0]);
+			return EXIT_FAILURE;
+		}
+	} else {
+		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
+			error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+			return EXIT_FAILURE;
+		}
 
-	for (job = job_list->head; job; job = job->next) {
-		if (job->jobid == jobNum) {
-			break;
+		for (pi = job_list->head; pi; pi = pi->next) {
+			if (pi->jobid == jobnum) {
+				break;
+			}
+		}
+		if (!pi) {
+			error_msg("%s: %d: no such job", child->argv[0], jobnum);
+			return EXIT_FAILURE;
 		}
 	}
-
-	if (!job) {
-		error_msg("%s: unknown job %d\n",
-				child->argv[0], jobNum);
-		return EXIT_FAILURE;
-	}
-
 	if (*child->argv[0] == 'f') {
 		/* Make this job the foreground job */
+		signal(SIGTTOU, SIG_IGN);
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
+		if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
 			perror_msg("tcsetpgrp"); 
-		job_list->fg = job;
+		signal(SIGTTOU, SIG_DFL);
+		job_list->fg = pi;
 	}
 
 	/* Restart the processes in the job */
-	for (i = 0; i < job->num_progs; i++)
-		job->progs[i].is_stopped = 0;
+	for (i = 0; i < pi->num_progs; i++)
+		pi->progs[i].is_stopped = 0;
 
-	kill(-job->pgrp, SIGCONT);
+	kill(-pi->pgrp, SIGCONT);
 
-	job->stopped_progs = 0;
+	pi->stopped_progs = 0;
 	return EXIT_SUCCESS;
 }
 
@@ -1055,7 +1060,7 @@ static void insert_bg_job(struct pipe *pi)
 	}
 
 	/* physically copy the struct job */
-	*thejob = *pi;   
+	memcpy(thejob, pi, sizeof(struct pipe));
 	thejob->next = NULL;
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
@@ -1102,6 +1107,7 @@ static void free_pipe(struct pipe *pi)
 		free(pi->cmdbuf);
 	memset(pi, 0, sizeof(struct pipe));
 }
+
 
 /* Checks to see if any background processes have exited -- if they 
    have, figure out why and see if a job has completed */
@@ -1169,13 +1175,26 @@ static void checkjobs()
 static int run_pipe_real(struct pipe *pi)
 {
 	int i;
+	int ctty;
 	int nextin, nextout;
 	int pipefds[2];				/* pipefds[0] is for reading */
 	struct child_prog *child;
 	struct built_in_command *x;
 
+	ctty = -1;
 	nextin = 0;
 	pi->pgrp = 0;
+
+	/* Check if we are supposed to run in the foreground */
+	if (pi->followup!=PIPE_BG) {
+		if ((pi->pgrp = tcgetpgrp(ctty = 2)) < 0
+				&& (pi->pgrp = tcgetpgrp(ctty = 0)) < 0
+				&& (pi->pgrp = tcgetpgrp(ctty = 1)) < 0)
+			return errno = ENOTTY, -1;
+
+		if (pi->pgrp < 0 && pi->pgrp != getpgrp())
+			return errno = EPERM, -1;
+	}
 
 	/* Check if this is a simple builtin (not part of a pipe).
 	 * Builtins within pipes have to fork anyway, and are handled in
@@ -1225,6 +1244,7 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* XXX test for failed fork()? */
 		if (!(child->pid = fork())) {
+
 			signal(SIGTTOU, SIG_DFL);
 			
 			close_all();
@@ -1244,22 +1264,33 @@ static int run_pipe_real(struct pipe *pi)
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child,NULL);
+			
+			if (pi->followup!=PIPE_BG) {
+				/* Put our child in the process group whose leader is the
+				 * first process in this pipe. */
+				if (pi->pgrp < 0) {
+					pi->pgrp = child->pid;
+				}
+				/* Don't check for errors.  The child may be dead already,
+				 * in which case setpgid returns error code EACCES. */
+				if (setpgid(0, pi->pgrp) == 0) {
+					signal(SIGTTOU, SIG_IGN);
+					tcsetpgrp(ctty, pi->pgrp);
+					signal(SIGTTOU, SIG_DFL);
+				}
+			}
 
 			pseudo_exec(child);
 		}
-		if (interactive) {
-			/* Put our child in the process group whose leader is the
-			 * first process in this pipe. */
-			if (pi->pgrp==0) {
-				pi->pgrp = child->pid;
-			}
-			/* Don't check for errors.  The child may be dead already,
-			 * in which case setpgid returns error code EACCES. */
-			setpgid(child->pid, pi->pgrp);
+		/* Put our child in the process group whose leader is the
+		 * first process in this pipe. */
+		if (pi->pgrp < 0) {
+			pi->pgrp = child->pid;
 		}
-		/* In the non-interactive case, do nothing.  Leave the children
-		 * with the process group that they inherited from us. */
-	
+		/* Don't check for errors.  The child may be dead already,
+		 * in which case setpgid returns error code EACCES. */
+		setpgid(child->pid, pi->pgrp);
+
 		if (nextin != 0)
 			close(nextin);
 		if (nextout != 1)
@@ -1295,13 +1326,10 @@ static int run_list_real(struct pipe *pi)
 			/* XXX check bash's behavior with nontrivial pipes */
 			/* XXX compute jobid */
 			/* XXX what does bash do with attempts to background builtins? */
-#if 0
-			printf("[%d] %d\n", pi->jobid, pi->pgrp);
-			last_bg_pid = pi->pgrp;
-#endif	
 			insert_bg_job(pi);
 			rcode = EXIT_SUCCESS;
 		} else {
+
 			if (interactive) {
 				/* move the new process group into the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
