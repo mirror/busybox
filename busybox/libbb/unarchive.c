@@ -127,13 +127,15 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 			}
 		}
 		if (function & extract_create_leading_dirs) { /* Create leading directories with default umask */
-			char *parent = dirname(full_name);
+			char *buf, *parent;
+			buf = xstrdup(full_name);
+			parent = dirname(buf);
 			if (make_directory (parent, -1, FILEUTILS_RECUR) != 0) {
 				if ((function & extract_quiet) != extract_quiet) {
 					error_msg("couldn't create leading directories");
 				}
 			}
-			free (parent);
+			free (buf);
 		}
 		switch(file_entry->mode & S_IFMT) {
 			case S_IFREG:
@@ -158,7 +160,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				if (stat_res != 0) {
 					if (mkdir(full_name, file_entry->mode) < 0) {
 						if ((function & extract_quiet) != extract_quiet) {
-							perror_msg("extract_archive: ");
+							perror_msg("extract_archive: %s", full_name);
 						}
 					}
 				}
@@ -264,6 +266,9 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 			/* seek past the data entry */
 			seek_sub_file(src_stream, file_entry->size);
 		}
+		free(file_entry->name); /* may be null, but doesn't matter */
+		free(file_entry->link_name);
+		free(file_entry);
 	}
 	return(buffer);
 }
