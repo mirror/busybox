@@ -771,7 +771,7 @@ extern int inetd_main(int argc, char *argv[])
 #endif /* uClinux */
 
 	if(opt & 1) {
-			global_queuelen = atoi(optarg);
+			global_queuelen = atoi(sq);
 			if (global_queuelen < 8) global_queuelen=8;
 		}
 	argc -= optind;
