@@ -29,9 +29,6 @@
 #include <sys/syscall.h>
 #include "busybox.h"
 
-extern int delete_module(const char * name);
-
-
 extern int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;
@@ -55,7 +52,7 @@ extern int rmmod_main(int argc, char **argv)
 				/* until the number of modules does not change */
 				buf = xmalloc(bufsize = 256);
 				while (nmod != pnmod) {
-					if (delete_module(NULL))
+					if (syscall(__NR_delete_module, NULL, flags) < 0)
 						bb_perror_msg_and_die("rmmod");
 					pnmod = nmod;
 					/* 1 == QM_MODULES */
