@@ -518,7 +518,7 @@ static pid_t run(struct init_action *a)
 
 		/* If the init Action requires up to wait, then force the
 		 * supplied terminal to be the controlling tty. */
-		if (a->action & (SYSINIT|WAIT|CTRLALTDEL|SHUTDOWN|RESTART)) {
+		if (a->action & (SYSINIT|WAIT|CTRLALTDEL|SHUTDOWN|RESTART|ASKFIRST)) {
 
 			/* Take over the controlling tty */
 			ioctl(fd, TIOCSCTTY, 1);
