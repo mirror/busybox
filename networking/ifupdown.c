@@ -398,7 +398,7 @@ static int loopback_up(interface_defn *ifd, execfn *exec)
 
 static int loopback_down(interface_defn *ifd, execfn *exec)
 {
-	if (!execute("ifconfig %iface% down", ifd, exec)) {
+	if (!execute("ifconfig %iface% 127.0.0.1 down", ifd, exec)) {
 		return(0);
 	}
 	return(1);
