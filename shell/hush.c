@@ -55,7 +55,6 @@
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash - done?
  *      finish implementing reserved words: for, while, until, do, done
- *      finish implementing local variable assignment
  *      change { and } from special chars to reserved words
  *      builtins: break, continue, eval, return, set, trap, ulimit
  *      test magic exec
@@ -325,6 +324,7 @@ static int builtin_help(struct child_prog *child);
 static int builtin_jobs(struct child_prog *child);
 static int builtin_pwd(struct child_prog *child);
 static int builtin_read(struct child_prog *child);
+static int builtin_set(struct child_prog *child);
 static int builtin_shift(struct child_prog *child);
 static int builtin_source(struct child_prog *child);
 static int builtin_umask(struct child_prog *child);
@@ -388,6 +388,11 @@ static void checkjobs();
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
 static void free_pipe(struct pipe *pi);
+/*     local variable support */
+static char *get_local_var(const char *var);
+static int   set_local_var(const char *s);
+static void  unset_local_var(const char *name);
+
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -402,7 +407,8 @@ static struct built_in_command bltins[] = {
 	{"continue", "Continue for, while or until loop", builtin_not_written},
 	{"env", "Print all environment variables", builtin_env},
 	{"eval", "Construct and run shell command", builtin_not_written},
-	{"exec", "Exec command, replacing this shell with the exec'd process", builtin_exec},
+	{"exec", "Exec command, replacing this shell with the exec'd process", 
+		builtin_exec},
 	{"exit", "Exit from shell()", builtin_exit},
 	{"export", "Set environment variable", builtin_export},
 	{"fg", "Bring job into the foreground", builtin_fg_bg},
@@ -410,7 +416,7 @@ static struct built_in_command bltins[] = {
 	{"pwd", "Print current directory", builtin_pwd},
 	{"read", "Input environment variable", builtin_read},
 	{"return", "Return from a function", builtin_not_written},
-	{"set", "Set/unset shell options", builtin_not_written},
+	{"set", "Set/unset shell local variables", builtin_set},
 	{"shift", "Shift positional parameters", builtin_shift},
 	{"trap", "Trap signals", builtin_not_written},
 	{"ulimit","Controls resource limits", builtin_not_written},
@@ -472,16 +478,41 @@ static int builtin_exit(struct child_prog *child)
 static int builtin_export(struct child_prog *child)
 {
 	int res;
+	char *value, *name = child->argv[1];
 
-	if (child->argv[1] == NULL) {
+	if (name == NULL) {
 		return (builtin_env(child));
 	}
-	/* FIXME -- I leak memory.  This will be
-	 * fixed up properly when we add local
-	 * variable support -- I hope */
-	res = putenv(strdup(child->argv[1]));
+
+	value = strchr(name, '=');
+	if (!value) {
+		/* They are exporting something without an =VALUE.
+		 * Assume this is a local shell variable they are exporting */
+		name = get_local_var(name);
+		if (! name ) { 
+			error_msg("export failed");
+			return (EXIT_FAILURE);
+		}
+		/* FIXME -- I leak memory!!!!! */
+		value = malloc(strlen(child->argv[1]) + strlen(name) + 2);
+		sprintf(value, "%s=%s", child->argv[1], name);
+	} else {
+		/* Bourne shells always put exported variables into the 
+		 * local shell variable list.  Do that first... */
+		set_local_var(name);
+		/* FIXME -- I leak memory!!!!! */
+		value = strdup(name);
+	}
+
+	/* FIXME -- I leak memory!!!!!
+	 * It seems most putenv implementations place the very char* pointer
+	 * we pass in directly into the environ array, so the memory holding
+	 * this string has to be persistant.  We can't even use the memory for
+	 * the local shell variable list, since where that memory is keeps 
+	 * changing due to reallocs... */
+	res = putenv(value);
 	if (res)
-		fprintf(stderr, "export: %s\n", strerror(errno));
+		perror_msg("export");
 	return (res);
 }
 
@@ -616,6 +647,27 @@ static int builtin_read(struct child_prog *child)
 	return (res);
 }
 
+/* built-in 'set VAR=value' handler */
+static int builtin_set(struct child_prog *child)
+{
+	int res;
+	char *temp = child->argv[1];
+
+	if (child->argv[1] == NULL) {
+		char **e = __shell_local_env;
+		if (e == NULL) return EXIT_FAILURE;
+		for (; *e; e++) {
+			puts(*e);
+		}
+		return EXIT_SUCCESS;
+	}
+	res = set_local_var(temp);
+	if (res)
+		fprintf(stderr, "set: %s\n", strerror(errno));
+	return (res);
+}
+
+
 /* Built-in 'shift' handler */
 static int builtin_shift(struct child_prog *child)
 {
@@ -685,6 +737,7 @@ static int builtin_unset(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 	unsetenv(child->argv[1]);
+	unset_local_var(child->argv[1]);
 	return EXIT_SUCCESS;
 }
 
@@ -1610,7 +1663,27 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 	return gr;
 }
 
-/* This is used to set local variables (i.e. stuff not going into the environment) */
+/* This is used to get/check local shell variables */
+static char *get_local_var(const char *s)
+{
+	char **p;
+	int len;
+
+	if (!s)
+		return NULL;
+	if (!__shell_local_env)
+		return NULL;
+	len = strlen(s);
+
+	for (p = __shell_local_env; *p; p++) {
+		if (memcmp(s, *p, len) == 0 && (*p)[len] == '=') {
+			return *p + len + 1;
+		}
+	}
+	return NULL;
+}
+
+/* This is used to set local shell variables */
 static int set_local_var(const char *s)
 {
 	char **ep;
@@ -1653,7 +1726,8 @@ static int set_local_var(const char *s)
 			result = -1;
 			goto done_already;
 		}
-		memcpy((__ptr_t) new_environ, (__ptr_t) __shell_local_env, size * sizeof(char *));
+		memcpy((__ptr_t) new_environ, (__ptr_t) __shell_local_env, 
+				size * sizeof(char *));
 
 		new_environ[size] = malloc (namelen + 1 + vallen + 1);
 		if (new_environ[size] == NULL) {
@@ -1688,26 +1762,35 @@ static int set_local_var(const char *s)
 		memcpy (&(*ep)[namelen + 1], value, vallen + 1);
 	}
 
+	/* One last little detail...  If this variable is already
+	 * in the environment we must set it there as well... */
+	tmp = getenv(name);
+	if (tmp) { 
+		/* FIXME -- I leak memory!!!!! */
+		putenv(strdup(s));
+	}
+
 done_already:
 	free(name);
 	return result;
 }
 
-char *get_local_var(const char *var)
+static void unset_local_var(const char *name)
 {
-	char **p;
-	int len;
+	char **ep, **dp;
+	size_t namelen;
 
-	len = strlen(var);
-
-	if (!__shell_local_env)
-		return 0;
-
-	for (p = __shell_local_env; *p; p++) {
-		if (memcmp(var, *p, len) == 0 && (*p)[len] == '=')
-			return *p + len + 1;
+	if (!name)
+		return;
+	namelen = strlen(name);
+	for (dp = ep = __shell_local_env; ep && *ep != NULL; ++ep) {
+		if (memcmp (*ep, name, namelen)==0 && (*ep)[namelen] == '=') {
+			*dp = *ep;
+			++dp;
+			*ep = NULL;
+			break;
+		}
 	}
-	return 0;
 }
 
 static int is_assignment(const char *s)
@@ -2112,8 +2195,9 @@ static void lookup_param(o_string *dest, struct p_context *ctx, o_string *src)
 {
 	const char *p=NULL;
 	if (src->data) { 
-		p = get_local_var(src->data);
-		if (!p) p = getenv(src->data);
+		p = getenv(src->data);
+		if (!p) 
+			p = get_local_var(src->data);
 	}
 	if (p) parse_string(dest, ctx, p);   /* recursion */
 	b_free(src);
