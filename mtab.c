@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <mntent.h>
-#include <fstab.h>
 #include <sys/mount.h>
 #include "busybox.h"
 
