@@ -537,12 +537,6 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 	int altered = 0;
 	regmatch_t *regmatch = NULL;
 
-	/* if the user specified that they didn't want anything printed (i.e. a -n
-	 * flag and no 'p' flag after the s///), then there's really no point doing
-	 * anything here. */
-	if (be_quiet && !sed_cmd->sub_p)
-		return 0;
-
 	/* we only proceed if the substitution 'search' expression matches */
 	if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == REG_NOMATCH)
 		return 0;
@@ -614,6 +608,12 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 			 *    no other lines are printed - this is the reason why the 'p'
 			 *    flag exists in the first place.
 			 */
+
+			/* if the user specified that they didn't want anything printed (i.e. a -n
+			 * flag and no 'p' flag after the s///), then there's really no point doing
+			 * anything here. */
+			if (be_quiet && !sed_cmd->sub_p)
+				break;
 
 			/* we print the line once, unless we were told to be quiet */
 			if (!be_quiet)
