@@ -26,7 +26,7 @@
  */
 
 
-#define BB_FEATURE_SH_BACKTICKS
+//#define BB_FEATURE_SH_BACKTICKS
 //#define BB_FEATURE_SH_IF_EXPRESSIONS
 #define BB_FEATURE_SH_ENVIRONMENT
 //#define DEBUG_SHELL
@@ -108,6 +108,7 @@ struct builtInCommand {
 /* function prototypes for builtins */
 static int builtin_cd(struct job *cmd, struct jobSet *junk);
 static int builtin_env(struct job *dummy, struct jobSet *junk);
+static int builtin_exec(struct job *cmd, struct jobSet *junk);
 static int builtin_exit(struct job *cmd, struct jobSet *junk);
 static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList);
 static int builtin_help(struct job *cmd, struct jobSet *junk);
@@ -139,6 +140,7 @@ static int busy_loop(FILE * input);
 static struct builtInCommand bltins[] = {
 	{"bg", "Resume a job in the background", builtin_fg_bg},
 	{"cd", "Change working directory", builtin_cd},
+	{"exec", "Exec command, replacing this shell with the exec'd process", builtin_exec},
 	{"exit", "Exit from shell()", builtin_exit},
 	{"fg", "Bring job into the foreground", builtin_fg_bg},
 	{"jobs", "Lists the active jobs", builtin_jobs},
@@ -217,6 +219,19 @@ static int builtin_env(struct job *dummy, struct jobSet *junk)
 		fprintf(stdout, "%s\n", *e);
 	}
 	return (0);
+}
+
+/* built-in 'exec' handler */
+static int builtin_exec(struct job *cmd, struct jobSet *junk)
+{
+	if (cmd->progs[0].argv[1])
+	{
+		cmd->progs[0].argv++;
+		execvp(cmd->progs[0].argv[0], cmd->progs[0].argv);
+		fatalError("Exec to %s failed: %s\n", cmd->progs[0].argv[0],
+				strerror(errno));
+	}
+	return TRUE;
 }
 
 /* built-in 'exit' handler */
