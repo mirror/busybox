@@ -3,7 +3,10 @@
  *  Based on ifupdown by Anthony Towns
  *  Copyright (c) 1999 Anthony Towns <aj@azure.humbug.org.au>
  *
+ *  Changes to upstream version
  *  Remove checks for kernel version, assume kernel version 2.2.0 or better
+ *  Lines in the interfaces file cannot wrap.
+ *  The default state file is moved to /var/run/ifstate
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -605,77 +608,6 @@ static int duplicate_if(interface_defn *ifa, interface_defn *ifb)
 	return(1);
 }
 
-static int get_line(char **result, size_t * result_len, FILE * f, int *line)
-{
-	size_t pos;
-
-	do {
-		pos = 0;
-		do {
-			if (*result_len - pos < 10) {
-				char *newstr = xrealloc(*result, *result_len * 2 + 80);
-				*result = newstr;
-				*result_len = *result_len * 2 + 80;
-			}
-
-			if (!fgets(*result + pos, *result_len - pos, f)) {
-				if (ferror(f) == 0 && pos == 0)
-					return 0;
-				if (ferror(f) != 0)
-					return 0;
-			}
-			pos += xstrlen(*result + pos);
-		} while (pos == *result_len - 1 && (*result)[pos - 1] != '\n');
-
-		if (pos != 0 && (*result)[pos - 1] == '\n') {
-			(*result)[--pos] = '\0';
-		}
-
-		(*line)++;
-		{
-			int first = 0;
-
-			while (isspace((*result)[first]) && (*result)[first]) {
-				first++;
-			}
-
-			memmove(*result, *result + first, pos - first + 1);
-			pos -= first;
-		}
-	} while ((*result)[0] == '#');
-
-	while ((*result)[pos - 1] == '\\') {
-		(*result)[--pos] = '\0';
-		do {
-			if (*result_len - pos < 10) {
-				char *newstr = xrealloc(*result, *result_len * 2 + 80);
-				*result = newstr;
-				*result_len = *result_len * 2 + 80;
-			}
-
-			if (!fgets(*result + pos, *result_len - pos, f)) {
-				if (ferror(f) == 0 && pos == 0)
-					return 0;
-				if (ferror(f) != 0)
-					return 0;
-			}
-			pos += xstrlen(*result + pos);
-		} while (pos == *result_len - 1 && (*result)[pos - 1] != '\n');
-
-		if (pos != 0 && (*result)[pos - 1] == '\n') {
-			(*result)[--pos] = '\0';
-		}
-		(*line)++;
-	}
-
-	while (isspace((*result)[pos - 1])) {	/* remove trailing whitespace */
-		pos--;
-	}
-	(*result)[pos] = '\0';
-
-	return 1;
-}
-
 static interfaces_file *read_interfaces(char *filename)
 {
 	interface_defn *currif = NULL;
@@ -687,8 +619,7 @@ static interfaces_file *read_interfaces(char *filename)
 	char firstword[80];
 	char *buf = NULL;
 	char *rest;
-	int line;
-	size_t buf_len = 0;
+//	int line;
 
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
@@ -701,9 +632,20 @@ static interfaces_file *read_interfaces(char *filename)
 	if (f == NULL) {
 		return NULL;
 	}
-	line = 0;
 
-	while (get_line(&buf, &buf_len, f, &line)) {
+	while ((buf = get_line_from_file(f)) != NULL) {
+		char *end;
+
+		if (buf[0] == '#') {
+			continue;
+		}
+		end = last_char_is(buf, '\n');
+		if (end) {
+			*end = '\0';
+		}
+		while ((end = last_char_is(buf, ' ')) != NULL) {
+			*end = '\0';
+		}
 		rest = next_word(buf, firstword, 80);
 		if (rest == NULL) {
 			continue;	/* blank line */
@@ -763,12 +705,12 @@ static interfaces_file *read_interfaces(char *filename)
 				rest = next_word(rest, method_name, 80);
 
 				if (rest == NULL) {
-					error_msg("%s:%d: too few parameters for iface line", filename, line);
+					error_msg("too few parameters for line \"%s\"", buf);
 					return NULL;
 				}
 
 				if (rest[0] != '\0') {
-					error_msg("%s:%d: too many parameters for iface line", filename, line);
+					error_msg("too many parameters \"%s\"", buf);
 					return NULL;
 				}
 
@@ -776,13 +718,13 @@ static interfaces_file *read_interfaces(char *filename)
 
 				currif->address_family = get_address_family(addr_fams, address_family_name);
 				if (!currif->address_family) {
-					error_msg("%s:%d: unknown address type", filename, line);
+					error_msg("unknown address type \"%s\"", buf);
 					return NULL;
 				}
 
 				currif->method = get_method(currif->address_family, method_name);
 				if (!currif->method) {
-					error_msg("%s:%d: unknown method", filename, line);
+					error_msg("unknown method \"%s\"", buf);
 					return NULL;
 				}
 
@@ -797,7 +739,7 @@ static interfaces_file *read_interfaces(char *filename)
 
 					while (*where != NULL) {
 						if (duplicate_if(*where, currif)) {
-							error_msg("%s:%d: duplicate interface", filename, line);
+							error_msg("duplicate interface \"%s\"", buf);
 							return NULL;
 						}
 						where = &(*where)->next;
@@ -814,7 +756,7 @@ static interfaces_file *read_interfaces(char *filename)
 
 				for (i = 0; i < defn->n_autointerfaces; i++) {
 					if (strcmp(firstword, defn->autointerfaces[i]) == 0) {
-						perror_msg("%s:%d: interface declared auto twice", filename, line);
+						perror_msg("interface declared auto twice \"%s\"", buf);
 						return NULL;
 					}
 				}
@@ -839,7 +781,7 @@ static interfaces_file *read_interfaces(char *filename)
 				int i;
 
 				if (xstrlen(rest) == 0) {
-					error_msg("%s:%d: option with empty value", filename, line);
+					error_msg("option with empty value \"%s\"", buf);
 					return NULL;
 				}
 
@@ -849,7 +791,7 @@ static interfaces_file *read_interfaces(char *filename)
 					&& strcmp(firstword, "post-down") != 0) {
 					for (i = 0; i < currif->n_options; i++) {
 						if (strcmp(currif->option[i].name, firstword) == 0) {
-							error_msg("%s:%d: duplicate option", filename, line);
+							error_msg("duplicate option \"%s\"", buf);
 							return NULL;
 						}
 					}
@@ -878,7 +820,7 @@ static interfaces_file *read_interfaces(char *filename)
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 				if (strcmp(firstword, "script") == 0) {
 					if (currmap->script != NULL) {
-						error_msg("%s:%d: duplicate script in mapping", filename, line);
+						error_msg("duplicate script in mapping \"%s\"", buf);
 						return NULL;
 					} else {
 						currmap->script = xstrdup(rest);
@@ -891,14 +833,14 @@ static interfaces_file *read_interfaces(char *filename)
 					currmap->mapping[currmap->n_mappings] = xstrdup(rest);
 					currmap->n_mappings++;
 				} else {
-					error_msg("%s:%d: misplaced option", filename, line);
+					error_msg("misplaced option \"%s\"", buf);
 					return NULL;
 				}
 #endif
 				break;
 			case NONE:
 			default:
-				error_msg("%s:%d: misplaced option", filename, line);
+				error_msg("misplaced option \"%s\"", buf);
 				return NULL;
 			}
 		}
@@ -908,7 +850,6 @@ static interfaces_file *read_interfaces(char *filename)
 		return NULL;
 	}
 	fclose(f);
-	line = -1;
 
 	return defn;
 }
@@ -1187,10 +1128,12 @@ extern int ifupdown_main(int argc, char **argv)
 	char **target_iface = NULL;
 	char **state = NULL;	/* list of iface=liface */
 	char *interfaces = "/etc/network/interfaces";
-	char *statefile = "/etc/network/ifstate";
+	char *statefile = "/var/run/ifstate";
 
-	int do_all = 0;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	int run_mappings = 1;
+#endif
+	int do_all = 0;
 	int force = 0;
 	int n_target_ifaces = 0;
 	int n_state = 0;
@@ -1258,45 +1201,13 @@ extern int ifupdown_main(int argc, char **argv)
 	}
 
 	if (state_fp != NULL) {
-		char buf[80];
-		char *p;
-#if 0
-		if (!no_act) {
-			int flags;
-			struct flock lock;
-			const int state_fd = fileno(state_fp);
-			
-			flags = fcntl(state_fd, F_GETFD);
-			if ((flags < 0) || (fcntl(state_fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
-				perror_msg_and_die("failed to set FD_CLOEXEC on statefile %s", statefile);
-			}
-
-			lock.l_type = F_WRLCK;
-			lock.l_whence = SEEK_SET;
-			lock.l_start = 0;
-			lock.l_len = 0;
-
-			if (fcntl(state_fd, F_SETLKW, &lock) < 0) {
-				perror_msg_and_die("failed to lock statefile %s", statefile);
-			}
-		}
-#endif
-		rewind(state_fp);
-		while ((p = fgets(buf, sizeof buf, state_fp)) != NULL) {
-			char *pch;
-
-			pch = buf + xstrlen(buf) - 1;
-			while (pch > buf && isspace(*pch)) {
-				pch--;
-			}
-			*(pch + 1) = '\0';
-
-			pch = buf;
-			while (isspace(*pch)) {
-				pch++;
-			}
-
-			add_to_state(&state, &n_state, &max_state, xstrdup(pch));
+		char *start;
+		while ((start = get_line_from_file(state_fp)) != NULL) {
+			char *end_ptr;
+			/* We should only need to check for a single character */
+			end_ptr = start + strcspn(start, " \t\n");
+			*end_ptr = '\0';
+			add_to_state(&state, &n_state, &max_state, start);
 		}
 	}
 
