@@ -33,6 +33,14 @@ config CONFIG_RUN_PARTS
 	  Unless you know that run-parts is used in some of your scripts
 	  you can safely say N here.
 
+config CONFIG_START_STOP_DAEMON
+	bool "start-stop-daemon"
+	default y
+	help
+	  start-stop-daemon is used to control the creation and
+	  termination of system-level processes, usually the ones
+	  started during the startup of the system.
+
 config CONFIG_WHICH
 	bool "which"
 	default n

@@ -31,7 +31,6 @@ INIT-$(CONFIG_MSVC)			+= msvc.o
 INIT-$(CONFIG_PIDFILEHACK)		+= pidfilehack.o
 INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
-INIT-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
 
 ifeq ($(CONFIG_HALT), y)
 CONFIG_INIT_SHARED=y

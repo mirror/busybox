@@ -54,6 +54,13 @@
 
 #include "libbb.h"
 
+static const struct option runparts_long_options[] = {
+	{ "test",		0,		NULL,		't' },
+	{ "umask",		1,		NULL,		'u' },
+	{ "arg",		1,		NULL,		'a' },
+	{ 0,			0,		0,			0 }
+};
+
 /* run_parts_main */
 /* Process options */
 int run_parts_main(int argc, char **argv)
@@ -65,32 +72,31 @@ int run_parts_main(int argc, char **argv)
 
 	umask(022);
 
-	while ((opt = getopt(argc, argv, "tu:a:")) != -1) {
+	while ((opt = getopt_long (argc, argv, "tu:a:",
+					runparts_long_options, NULL)) > 0)
+	{
 		switch (opt) {
-		case 't':		/* Enable test mode */
-			test_mode = 1;
-			break;
-		case 'u':		/* Set the umask of the programs executed */
-			/* Check and set the umask of the program executed. As stated in the original
-			 * run-parts, the octal conversion in libc is not foolproof; it will take the 
-			 * 8 and 9 digits under some circumstances. We'll just have to live with it.
-			 */
-			{
-				const unsigned int mask = (unsigned int) strtol(optarg, NULL, 8);
-				if (mask > 07777) {
-					bb_perror_msg_and_die("bad umask value");
-				}
-				umask(mask);
-			}
-			break;
-		case 'a':		/* Pass an argument to the programs */
-			/* Add an argument to the commands that we will call.
-			 * Called once for every argument. */
-			args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
-			args[argcount++] = optarg;
-			break;
-		default:
-			bb_show_usage();
+			/* Enable test mode */
+			case 't':
+				test_mode++;
+				break;
+			/* Set the umask of the programs executed */
+			case 'u':
+				/* Check and set the umask of the program executed. As stated in the original
+				 * run-parts, the octal conversion in libc is not foolproof; it will take the 
+				 * 8 and 9 digits under some circumstances. We'll just have to live with it.
+				 */
+				umask(bb_xgetlarg(optarg, 8, 0, 07777));
+				break;
+			/* Pass an argument to the programs */
+			case 'a':
+				/* Add an argument to the commands that we will call.
+				 * Called once for every argument. */
+				args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
+				args[argcount++] = optarg;
+				break;
+			default:
+				bb_show_usage();
 		}
 	}
 

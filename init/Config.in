@@ -85,15 +85,6 @@ config CONFIG_MSVC
 	help
 	  msvc is used to start and stop processes controlled by minit
 
-# Should start-stop-daemon be moved under debianutils?
-config CONFIG_START_STOP_DAEMON
-	bool "start-stop-daemon"
-	default y
-	help
-	  start-stop-daemon is used to control the creation and
-	  termination of system-level processes, usually the ones
-	  started during the startup of the system.
-
 config CONFIG_MESG
 	bool "mesg"
 	default y
