@@ -35,7 +35,7 @@ DOSTATIC = false
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
 # Do not enable this for production builds...
-DODEBUG = true
+DODEBUG = false
 
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
 # which is an excellent public domain mem leak and malloc problem
