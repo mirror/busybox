@@ -39,7 +39,7 @@ all: busybox busybox.links #doc
 -include .config.cmd
 include $(patsubst %,%/Makefile.in, $(DIRS))
 
-busybox: .depend include/config.h $(libraries-y ) 
+busybox: .depend include/config.h $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ $(libraries-y) $(LIBRARIES)
 	$(STRIPCMD) $@
 
