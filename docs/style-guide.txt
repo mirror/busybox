@@ -21,11 +21,12 @@ Declaration Order
 
 Here is the order in which code should be laid out in a file:
 
+ - commented program name and one-line description
  - commented author name and email address(es)
  - commented GPL boilerplate
- - commented description of program
+ - commented longer description / notes for the program (if needed)
  - #includes and #defines
- - const and globals variables
+ - const and global variables
  - function declarations (if necessary)
  - function implementations
 
@@ -37,7 +38,7 @@ This is everybody's favorite flame topic so let's get it out of the way right
 up front.
 
 
-Tabs vs Spaces in Line Indentation
+Tabs vs. Spaces in Line Indentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The preference in Busybox is to indent lines with tabs. Do not indent lines
@@ -56,7 +57,7 @@ multi-line comments that use an asterisk at the beginning of each line, i.e.:
 
 Furthermore, The preference is that tabs be set to display at four spaces
 wide, but the beauty of using only tabs (and not spaces) at the beginning of
-lines is that you can set your editor to display tabs at *watever* number of
+lines is that you can set your editor to display tabs at *whatever* number of
 spaces is desired and the code will still look fine.
 
 
@@ -76,7 +77,7 @@ Put spaces between terms and operators. Example:
 	While it extends the line a bit longer, the spaced version is more
 	readable. An allowable exception to this rule is the situation where
 	excluding the spacing makes it more obvious that we are dealing with a
-	single term (even if it is a compund term) such as:
+	single term (even if it is a compound term) such as:
 
 		if (str[idx] == '/' && str[idx-1] != '\\')
 
@@ -89,11 +90,19 @@ Bracket Spacing
 ~~~~~~~~~~~~~~~
 
 If an opening bracket starts a function, it should be on the
-next line with no spacing before it. However, if a bracet follows an opening
+next line with no spacing before it. However, if a bracket follows an opening
 control block, it should be on the same line with a single space (not a tab)
-between it and the opening control block statment. Examples:
+between it and the opening control block statement. Examples:
 
 	Don't do this:
+
+		while (!done)
+		{
+
+		do
+		{
+
+	Don't do this either:
 
 		while (!done){
 		do{
@@ -121,7 +130,7 @@ is being declared or called). Examples:
 		while (foo) {
 		for (i = 0; i < n; i++) {
 
-	Do functions like this:
+	But do functions like this:
 
 		static int my_func(int foo, char bar)
 		...
@@ -131,8 +140,8 @@ is being declared or called). Examples:
 Cuddled Elses
 ~~~~~~~~~~~~~
 
-Also, please "cuddle" your else statments by putting the else keyword on the
-same line after the right bracket that closes an 'if' statment.
+Also, please "cuddle" your else statements by putting the else keyword on the
+same line after the right bracket that closes an 'if' statement.
 
 	Don't do this:
 
@@ -151,25 +160,36 @@ same line after the right bracket that closes an 'if' statment.
 		stmt;
 	}
 
+The exception to this rule is if you want to include a comment before the else
+block. Example:
+
+	if (foo) {
+		stmts...
+	}
+	/* otherwise, we're just kidding ourselves, so re-frob the input */
+	else {
+		other_stmts...
+	}
+
 
 Variable and Function Names
 ---------------------------
 
 Use the K&R style with names in all lower-case and underscores occasionally
-used to seperate words (e.g. "variable_name" and "numchars" are both
+used to separate words (e.g., "variable_name" and "numchars" are both
 acceptable). Using underscores makes variable and function names more readable
 because it looks like whitespace; using lower-case is easy on the eyes.
 
 Note: The Busybox codebase is very much a mixture of code gathered from a
-variety of locations. This explains why the current codebase contains such a
-plethora of different naming styles (Java, Pascal, K&R, just-plain-weird,
+variety of sources. This explains why the current codebase contains such a
+hodge-podge of different naming styles (Java, Pascal, K&R, just-plain-weird,
 etc.). The K&R guideline explained above should therefore be used on new files
 that are added to the repository. Furthermore, the maintainer of an existing
-file that uses alternate naming conventions should -- at his own convenience
--- convert those names over to K&R style; converting variable names is a very
-low priority task. Perhaps in the future we will include some magical Perl
-script that can go through and convert files--left as an exersize to the
-reader.
+file that uses alternate naming conventions should -- at his own convenience --
+convert those names over to K&R style; converting variable names is a very low
+priority task. Perhaps in the future we will include some magical Perl script
+that can go through and convert files -- left as an exercise to the reader for
+now.
 
 
 Tip and Pointers
@@ -177,31 +197,34 @@ Tip and Pointers
 
 The following are simple coding guidelines that should be followed:
 
- - When in doubt about the propper behavior of a busybox program (output,
+ - When in doubt about the proper behavior of a Busybox program (output,
    formatting, options, etc.), model it after the equivalent GNU program.
    Doesn't matter how that program behaves on some other flavor of *NIX;
    doesn't matter what the POSIX standard says or doesn't say, just model
-   busybox programs after their GNU counterparts and nobody has to get hurt.
+   Busybox programs after their GNU counterparts and nobody has to get hurt.
 
  - Don't use a '#define var 80' when you can use 'static const int var 80'
-   instead. This makes the compiler do typechecking for you (rather than
+   instead. This makes the compiler do type checking for you (rather than
    relying on the more error-prone preprocessor) and it makes debugging
-   programs much easier since the value of the variable can be easily queried.
+   programs much easier since the value of the variable can be easily
+   displayed.
 
  - If a const variable is used in only one function, do not make it global to
    the file. Instead, declare it inside the function body.
 
  - Inside applet files, all functions should be declared static so as to keep
-   the global namespace clean. The only exception to this rule is the
+   the global name space clean. The only exception to this rule is the
    "applet_main" function which must be declared extern.
 
  - If you write a function that performs a task that could be useful outside
    the immediate file, turn it into a general-purpose function with no ties to
    any applet and put it in the utility.c file instead.
 
- - Put all help/usage messages in usage.c. Put other strings in messages.c
-   (Side Note: we might want to use a single file instead of two, food for
-   thought).
+ - Put all help/usage messages in usage.c. Put other strings in messages.c.
+   Putting these strings into their own file is a calculated decision designed
+   to confine spelling errors to a single place and aid internationalization
+   efforts, if needed.  (Side Note: we might want to use a single file instead
+   of two, food for thought).
 
  - There's a right way and a wrong way to test for sting equivalence with
    strcmp:
@@ -218,7 +241,9 @@ The following are simple coding guidelines that should be followed:
 
 	The use of the "equals" (==) operator in the latter example makes it much
 	more obvious that you are testing for equivalence. The former example with
-	the "not" (!) operator makes it look like you are testing for an error.
+	the "not" (!) operator makes it look like you are testing for an error. In
+	a more perfect world, we would have a streq() function in the string
+	library, but that ain't the world we're living in.
 
  - Do not use old-style function declarations that declare variable types
    between the parameter list and opening bracket. Example:
