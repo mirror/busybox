@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.5 2001/03/08 22:57:00 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.6 2001/03/09 23:06:15 mjn3 Exp $
  *
  */
 
@@ -271,8 +271,7 @@ int ifconfig_main(int argc, char **argv)
 
 	/* Create a channel to the NET kernel. */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("socket");
-		exit(1);
+		perror_msg_and_die("socket");
 	}
 
 	/* skip argv[0] */
