@@ -244,6 +244,7 @@ clean:
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
+	- rm -f Config.h.ORG bb.def.h busybox.REGRESS.sh.results bb.OptionsAndFeatures
 	- rm -rf docs/busybox _install
 	- rm -f busybox.links loop.h *~ *.o core
 
