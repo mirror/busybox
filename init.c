@@ -120,10 +120,12 @@ static _syscall2(int, bdflush, int, func, int, data);
 
 #define VT_PRIMARY   "/dev/tty1"     /* Primary virtual console */
 #define VT_SECONDARY "/dev/tty2"     /* Virtual console */
-#define VT_LOG       "/dev/tty3"     /* Virtual console */
+#define VT_THIRD     "/dev/tty3"     /* Virtual console */
+#define VT_FOURTH    "/dev/tty4"     /* Virtual console */
+#define VT_LOG       "/dev/tty5"     /* Virtual console */
 #define SERIAL_CON0  "/dev/ttyS0"    /* Primary serial console */
 #define SERIAL_CON1  "/dev/ttyS1"    /* Serial console */
-#define SHELL        "/bin/sh"	     /* Default shell */
+#define SHELL        "-/bin/sh"	     /* Default shell */
 #define INITTAB      "/etc/inittab"  /* inittab file location */
 #ifndef INIT_SCRIPT
 #define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
@@ -171,6 +173,8 @@ initAction *initActionList = NULL;
 
 
 static char *secondConsole = VT_SECONDARY;
+static char *thirdConsole  = VT_THIRD;
+static char *fourthConsole = VT_FOURTH;
 static char *log           = VT_LOG;
 static int  kernelVersion  = 0;
 static char termType[32]   = "TERM=linux";
@@ -371,11 +375,13 @@ static void console_init()
 		/* Perhaps we should panic here? */
 		snprintf(console, sizeof(console) - 1, "/dev/null");
 	} else {
-		/* check for serial console and disable logging to tty3 & running a
-		   * shell to tty2 */
+		/* check for serial console and disable logging to tty5 & running a
+		   * shell to tty2-4 */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			log = NULL;
 			secondConsole = NULL;
+			thirdConsole = NULL;
+			fourthConsole = NULL;
 			/* Force the TERM setting to vt102 for serial console --
 			 * iff TERM is set to linux (the default) */
 			if (strcmp( termType, "TERM=linux" ) == 0)
@@ -393,7 +399,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 	int i, fd;
 	pid_t pid;
 	char *tmpCmd;
-	char *cmd[255];
+        char *cmd[255], *cmdpath;
 	char buf[255];
 	static const char press_enter[] =
 
@@ -404,10 +410,8 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		"SHELL=/bin/sh",
 		termType,
 		"USER=root",
-		"ENV=/etc/profile",
 		0
 	};
-
 
 	if ((pid = fork()) == 0) {
 		/* Clean up */
@@ -481,6 +485,34 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			cmd[i] = NULL;
 		}
 
+               cmdpath = cmd[0];
+
+               /*
+                   Interactive shells want to see a dash in argv[0].  This
+                   typically is handled by login, argv will be setup this 
+                   way if a dash appears at the front of the command path 
+		   (like "-/bin/sh").
+               */
+
+               if (*cmdpath == '-') {
+                       char *s;
+
+                       /* skip over the dash */
+                         ++cmdpath;
+
+                       /* find the last component in the command pathname */
+						 s = get_last_path_component(cmdpath);
+
+                       /* make a new argv[0] */
+                       if ((cmd[0] = malloc(strlen(s)+2)) == NULL) {
+                               message(LOG | CONSOLE, "malloc failed");
+                               cmd[0] = cmdpath;
+                       } else {
+                               cmd[0][0] = '-';
+                               strcpy(cmd[0]+1, s);
+                       }
+               }
+
 #if defined BB_FEATURE_INIT_COREDUMPS
 		{
 			struct stat sb;
@@ -495,11 +527,11 @@ static pid_t run(char *command, char *terminal, int get_enter)
 
 		/* Now run it.  The new program will take over this PID, 
 		 * so nothing further in init.c should be run. */
-		execve(cmd[0], cmd, environment);
+                execve(cmdpath, cmd, environment);
 
-		/* We're still here?  Some error happened. */
-		message(LOG | CONSOLE, "Bummer, could not run '%s': %s\n", cmd[0],
-				strerror(errno));
+                /* We're still here?  Some error happened. */
+                message(LOG | CONSOLE, "Bummer, could not run '%s': %s\n", cmdpath,
+                                strerror(errno));
 		exit(-1);
 	}
 	return pid;
@@ -795,6 +827,12 @@ void parse_inittab(void)
 		/* Askfirst shell on tty2 */
 		if (secondConsole != NULL)
 			new_initAction(ASKFIRST, SHELL, secondConsole);
+		/* Askfirst shell on tty3 */
+		if (thirdConsole != NULL)
+			new_initAction(ASKFIRST, SHELL, thirdConsole);
+		/* Askfirst shell on tty4 */
+		if (fourthConsole != NULL)
+			new_initAction(ASKFIRST, SHELL, fourthConsole);
 		/* sysinit */
 		new_initAction(SYSINIT, INIT_SCRIPT, console);
 
@@ -958,9 +996,13 @@ extern int init_main(int argc, char **argv)
 	/* Check if we are supposed to be in single user mode */
 	if (argc > 1 && (!strcmp(argv[1], "single") ||
 					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
-		/* Ask first then start a shell on tty2 */
+		/* Ask first then start a shell on tty2-4 */
 		if (secondConsole != NULL)
 			new_initAction(ASKFIRST, SHELL, secondConsole);
+		if (thirdConsole != NULL)
+			new_initAction(ASKFIRST, SHELL, thirdConsole);
+		if (fourthConsole != NULL)
+			new_initAction(ASKFIRST, SHELL, fourthConsole);
 		/* Start a shell on tty1 */
 		new_initAction(RESPAWN, SHELL, console);
 	} else {

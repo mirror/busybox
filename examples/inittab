@@ -44,7 +44,6 @@
 #	tty2::askfirst:/bin/sh
 #
 
-
 # Boot-time system configuration/initialization script.
 # This is run first except when booting in single-user mode.
 #
@@ -52,16 +51,23 @@
 
 # /bin/sh invocations on selected ttys
 #
-# Start an "askfirst" shell on the console (whatever that may be)
-::askfirst:/bin/sh
-# Start an "askfirst" shell on /dev/tty2
-tty2::askfirst:/bin/sh
+# Note below that we prefix the shell commands with a "-" to indicate to the
+# shell that it is supposed to be a login shell.  Normally this is handled by
+# login, but since we are bypassing login in this case, BusyBox lets you do
+# this yourself...
+#
+# Start an "askfirst" shell on the console (whatever that may be).
+::askfirst:-/bin/sh
+#
+# Start an "askfirst" shell on /dev/tty2-4
+tty2::askfirst:-/bin/sh
+tty3::askfirst:-/bin/sh
+tty4::askfirst:-/bin/sh
 
 # /sbin/getty invocations for selected ttys
 #
-tty4::respawn:/sbin/getty 38400 tty4
 tty5::respawn:/sbin/getty 38400 tty5
-
+tty6::respawn:/sbin/getty 38400 tty6
 
 # Example of how to put a getty on a serial line (for a terminal)
 #
