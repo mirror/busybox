@@ -765,6 +765,7 @@
 "	::ctrlaltdel:/sbin/reboot\n" \
 "	::shutdown:/sbin/swapoff -a\n" \
 "	::shutdown:/bin/umount -a -r\n" \
+"	::restart:/sbin/init\n" \
 "\n" \
 "if it detects that /dev/console is _not_ a serial console, it will also run:\n" \
 "\n" \
@@ -796,7 +797,7 @@
 "	<action>: \n" \
 "\n" \
 "		Valid actions include: sysinit, respawn, askfirst, wait, \n" \
-"		once, ctrlaltdel, and shutdown.\n" \
+"		once, restart, ctrlaltdel, and shutdown.\n" \
 "\n" \
 "		The available actions can be classified into two groups: actions\n" \
 "		that are run only once, and actions that are re-run when the specified\n" \
@@ -809,7 +810,10 @@
 "			completion of all sysinit actions, all 'wait' actions are run.\n" \
 "			'wait' actions, like  'sysinit' actions, cause init to wait until\n" \
 "			the specified task completes.  'once' actions are asynchronous,\n" \
-"			therefore, init does not wait for them to complete.  'ctrlaltdel'\n" \
+"			therefore, init does not wait for them to complete.  'restart' is\n" \
+"			the action taken to restart the init process.  By default this should\n" \
+"			simply run /sbin/init, but can be a script which runs pivot_root or it\n" \
+"			can do all sorts of other interesting things.  The 'ctrlaltdel' init\n" \
 "			actions are run when the system detects that someone on the system\n" \
 "                       console has pressed the CTRL-ALT-DEL key combination.  Typically one\n" \
 "                       wants to run 'reboot' at this point to cause the system to reboot.\n" \
@@ -864,6 +868,9 @@
 "	#\n" \
 "	# Example how to put a getty on a modem line.\n" \
 "	#::respawn:/sbin/getty 57600 ttyS2\n" \
+"	\n" \
+"	# Stuff to do when restarting the init process\n" \
+"	::restart:/sbin/init\n" \
 "	\n" \
 "	# Stuff to do before rebooting\n" \
 "	::ctrlaltdel:/sbin/reboot\n" \

@@ -142,7 +142,8 @@ typedef enum {
 	WAIT,
 	ONCE,
 	CTRLALTDEL,
-	SHUTDOWN
+	SHUTDOWN,
+	RESTART
 } initActionEnum;
 
 /* A mapping between "inittab" action name strings and action type codes. */
@@ -159,6 +160,7 @@ static const struct initActionType actions[] = {
 	{"once", ONCE},
 	{"ctrlaltdel", CTRLALTDEL},
 	{"shutdown", SHUTDOWN},
+	{"restart", RESTART},
 	{0, 0}
 };
 
@@ -688,6 +690,26 @@ static void shutdown_system(void)
 	}
 }
 
+static void exec_signal(int sig)
+{
+	initAction *a, *tmp;
+	for (a = initActionList; a; a = tmp) {
+		tmp = a->nextPtr;
+		if (a->action == RESTART) {
+			shutdown_system();
+			message(CONSOLE|LOG, "Trying to re-exec %s\n", a->process);
+			execl(a->process, a->process, NULL);
+	
+			message(CONSOLE|LOG, "execl of %s failed: %s\n", 
+				a->process, sys_errlist[errno]);
+			sync();
+			sleep(2);
+			init_reboot(RB_HALT_SYSTEM);
+			loop_forever();
+		}
+	}
+}
+
 static void halt_signal(int sig)
 {
 	shutdown_system();
@@ -839,6 +861,8 @@ static void parse_inittab(void)
 		/* Swapoff on halt/reboot */
 		new_initAction(SHUTDOWN, "/sbin/swapoff -a", console);
 #endif
+		/* Prepare to restart init when a HUP is received */
+		new_initAction(RESTART, "/sbin/init", console);
 		/* Askfirst shell on tty1 */
 		new_initAction(ASKFIRST, LOGIN_SHELL, console);
 		/* Askfirst shell on tty2 */
@@ -937,6 +961,12 @@ extern int init_main(int argc, char **argv)
 	pid_t wpid;
 	int status;
 
+
+	if (argc > 1 && !strcmp(argv[1], "-q")) {
+		kill(1, SIGHUP);
+		exit(0);
+	}
+
 #ifndef DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1
@@ -949,6 +979,7 @@ extern int init_main(int argc, char **argv)
 	}
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
+	signal(SIGHUP, exec_signal);
 	signal(SIGUSR1, halt_signal);
 	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, ctrlaltdel_signal);

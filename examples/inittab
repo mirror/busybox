@@ -24,7 +24,7 @@
 # <runlevels>: The runlevels field is completely ignored.
 #
 # <action>: Valid actions include: sysinit, respawn, askfirst, wait, once, 
-#                                  ctrlaltdel, and shutdown.
+#                                  restart, ctrlaltdel, and shutdown.
 #
 #       Note: askfirst acts just like respawn, but before running the specified
 #       process it displays the line "Please press Enter to activate this
@@ -43,6 +43,8 @@
 #         ::ctrlaltdel:/sbin/reboot
 #         ::shutdown:/sbin/swapoff -a
 #         ::shutdown:/bin/umount -a -r
+#         ::restart:/sbin/init
+#
 # if it detects that /dev/console is _not_ a serial console, it will
 # also run:
 #         tty2::askfirst:/bin/sh
@@ -78,6 +80,9 @@ tty5::respawn:/sbin/getty 38400 tty6
 #
 # Example how to put a getty on a modem line.
 #::respawn:/sbin/getty 57600 ttyS2
+
+# Stuff to do when restarting the init process
+::restart:/sbin/init
 
 # Stuff to do before rebooting
 ::ctrlaltdel:/sbin/reboot
