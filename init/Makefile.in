@@ -25,6 +25,7 @@ endif
 INIT-y:=
 INIT-$(CONFIG_HALT)			+= halt.o
 INIT-$(CONFIG_INIT)			+= init.o
+INIT-$(CONFIG_MESG)			+= mesg.o
 INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
 INIT-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o

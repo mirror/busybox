@@ -22,6 +22,7 @@ fi
 
 bool 'start-stop-daemon'	    CONFIG_START_STOP_DAEMON
 bool 'run-parts'		    CONFIG_RUN_PARTS
+bool 'mesg'			    CONFIG_MESG
 	
 endmenu
 

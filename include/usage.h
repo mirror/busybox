@@ -1149,6 +1149,13 @@
 	"busybox: OK\n" \
 	"^D\n"
 
+#define mesg_trivial_usage \
+	"mesg [y|n]"
+#define mesg_full_usage \
+	"mesg [Y|N], controls write access to your terminal\n" \
+	"\ty\tAllow write access to your terminal.\n" \
+	"\tn\tDisallow write access to your terminal.\n"
+
 #define mkdir_trivial_usage \
 	"[OPTION] DIRECTORY..."
 #define mkdir_full_usage \
