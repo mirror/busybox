@@ -84,11 +84,17 @@ extern void show_usage(void)
 	static const char no_help[] = "No help available.\n";
 
 	const char *usage_string = no_help;
+	int i;
 
 	if (applet_using->usage_index >= 0) {
-			usage_string = usage_messages[applet_using->usage_index];
+		usage_string = usage_messages;
+		for (i=applet_using->usage_index ; i>0 ; ) {
+			if (!*usage_string++) {
+				--i;
+			}
+		}
 	}
-	fprintf(stderr, "%s\n\nUsage: %s %s\n", full_version,
+	fprintf(stderr, "%s\n\nUsage: %s %s\n\n", full_version,
 			applet_using->name, usage_string);
 	exit(EXIT_FAILURE);
 }
