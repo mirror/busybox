@@ -458,7 +458,9 @@ void showdirs(struct dnode **dn, int ndirs)
 				dnd= splitdnarray(subdnp, nfiles, SPLIT_DIR);
 				dndirs= countdirs(subdnp, nfiles);
 				if (dndirs > 0) {
+#ifdef BB_FEATURE_LS_SORTFILES
 					shellsort(dnd, dndirs);
+#endif
 					showdirs(dnd, dndirs);
 					free(dnd);  /* free the array of dnode pointers to the dirs */
 				}
@@ -715,7 +717,6 @@ extern int ls_main(int argc, char **argv)
 			case 'a': disp_opts |= DISP_HIDDEN | DISP_DOT; break;
 			case 'C': style_fmt = STYLE_COLUMNS; break;
 			case 'd': disp_opts |= DISP_NOLIST; break;
-			case 'e': list_fmt |= LIST_FULLTIME; break;
 			case 'g': /* ignore -- for ftp servers */ break;
 			case 'i': list_fmt |= LIST_INO; break;
 			case 'l': style_fmt = STYLE_LONG; list_fmt |= LIST_LONG; break;
@@ -736,9 +737,24 @@ extern int ls_main(int argc, char **argv)
 			case 'X': sort_opts= SORT_EXT; break;
 #endif
 #ifdef BB_FEATURE_LS_TIMESTAMPS
-			case 'c': time_fmt = TIME_CHANGE; sort_opts= SORT_CTIME; break;
-			case 't': sort_opts= SORT_MTIME; break;
-			case 'u': time_fmt = TIME_ACCESS; sort_opts= SORT_ATIME; break;
+			case 'e': list_fmt |= LIST_FULLTIME; break;
+			case 'c':
+				time_fmt = TIME_CHANGE;
+#ifdef BB_FEATURE_LS_SORTFILES
+				sort_opts= SORT_CTIME;
+#endif
+				break;
+			case 'u':
+				time_fmt = TIME_ACCESS;
+#ifdef BB_FEATURE_LS_SORTFILES
+				sort_opts= SORT_ATIME;
+#endif
+				break;
+			case 't':
+#ifdef BB_FEATURE_LS_SORTFILES
+				sort_opts= SORT_MTIME;
+#endif
+				break;
 #endif
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 			case 'L': follow_links= TRUE; break;
@@ -757,7 +773,7 @@ extern int ls_main(int argc, char **argv)
 	if (disp_opts & DISP_NOLIST)
 		disp_opts &= ~DISP_RECURSIVE;   /* no recurse if listing only dir */
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#if defined (BB_FEATURE_LS_TIMESTAMPS) && defined (BB_FEATURE_LS_SORTFILES)
 	if (time_fmt & TIME_CHANGE) sort_opts= SORT_CTIME;
 	if (time_fmt & TIME_ACCESS) sort_opts= SORT_ATIME;
 #endif
