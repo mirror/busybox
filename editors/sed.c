@@ -63,7 +63,7 @@ extern char *optarg; /* ditto */
 static int be_quiet = 0;
 
 
-struct sed_cmd {
+typedef struct sed_cmd_s {
 	/* Order by alignment requirements */
 
 	/* address storage */
@@ -101,10 +101,10 @@ struct sed_cmd {
 
 	/* inversion flag */
 	int invert;         /* the '!' after the address */ 
-};
+} sed_cmd_t;
 
 /* globals */
-static struct sed_cmd *sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
+static sed_cmd_t *sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
 static int ncmds = 0; /* number of sed commands */
 
 /*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
@@ -208,7 +208,7 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 	return idx;
 }
 
-static int parse_subst_cmd(struct sed_cmd * const sed_cmd, const char *substr)
+static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 {
 	int oldidx, cflags = REG_NEWLINE;
 	char *match;
@@ -292,7 +292,7 @@ static void move_back(char *str, int offset)
 	memmove(str, str + offset, strlen(str + offset) + 1);
 }
 
-static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
+static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 {
 	int i, j;
 
@@ -343,7 +343,7 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 }
 
 
-static int parse_file_cmd(struct sed_cmd *sed_cmd, const char *filecmdstr)
+static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
 {
 	int idx = 0;
 	int filenamelen = 0;
@@ -380,7 +380,7 @@ static int parse_file_cmd(struct sed_cmd *sed_cmd, const char *filecmdstr)
 }
 
 
-static char *parse_cmd_str(struct sed_cmd * const sed_cmd, char *cmdstr)
+static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
 	int idx = 0;
 
@@ -483,9 +483,9 @@ static void add_cmd_str(const char * const cmdstr)
 			continue;
 		}
 		/* grow the array */
-		sed_cmds = xrealloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
+		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t) * (++ncmds));
 		/* zero new element */
-		memset(&sed_cmds[ncmds-1], 0, sizeof(struct sed_cmd));
+		memset(&sed_cmds[ncmds-1], 0, sizeof(sed_cmd_t));
 		/* load command string into new array element, get remainder */
 		mystr = parse_cmd_str(&sed_cmds[ncmds-1], mystr);
 
@@ -592,7 +592,7 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 	}
 }
 
-static int do_subst_command(const struct sed_cmd *sed_cmd, char **line)
+static int do_subst_command(const sed_cmd_t *sed_cmd, char **line)
 {
 	char *hackline = *line;
 	struct pipeline thepipe = { NULL, 0 , 0};
@@ -676,7 +676,7 @@ static void process_file(FILE *file)
 
 		/* for every line, go through all the commands */
 		for (i = 0; i < ncmds; i++) {
-			struct sed_cmd *sed_cmd = &sed_cmds[i];
+			sed_cmd_t *sed_cmd = &sed_cmds[i];
 			int deleted = 0;
 
 			/*
