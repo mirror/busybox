@@ -11,8 +11,14 @@
 #include "busybox.h"
 
 #ifndef __NR_pivot_root
-#error Sorry, but this kernel does not support the pivot_root syscall
-#endif
+#warning This kernel does not support the pivot_root syscall
+#warning The pivot_root application is being stubbed out...
+int pivot_root_main(int argc, char **argv)
+{
+	printf("Please recompile with a kernel supporting the pivot_root syscall.\n");
+	return 0;
+}
+#else
 
 static _syscall2(int,pivot_root,const char *,new_root,const char *,put_old)
 
@@ -28,6 +34,7 @@ int pivot_root_main(int argc, char **argv)
     return EXIT_SUCCESS;
 
 }
+#endif
 
 
 /*
