@@ -33,6 +33,10 @@
 #include <stdio.h>
 #include <errno.h>
 
+#ifdef BB_FEATURE_HUMAN_READABLE
+unsigned long du_disp_hr = KILOBYTE;
+#endif
+
 typedef void (Display) (long, char *);
 
 static int du_depth = 0;
@@ -42,12 +46,17 @@ static Display *print;
 
 static void print_normal(long size, char *filename)
 {
+#ifdef BB_FEATURE_HUMAN_READABLE
+	printf("%s\t%s\n", format((size * KILOBYTE), du_disp_hr), filename);
+#else
 	printf("%ld\t%s\n", size, filename);
+#endif
 }
 
 static void print_summary(long size, char *filename)
 {
 	if (du_depth == 1) {
+printf("summary\n");
 		print_normal(size, filename);
 	}
 }
@@ -132,7 +141,11 @@ int du_main(int argc, char **argv)
 	print = print_normal;
 
 	/* parse argv[] */
-	while ((c = getopt(argc, argv, "sl")) != EOF) {
+	while ((c = getopt(argc, argv, "sl"
+#ifdef BB_FEATURE_HUMAN_READABLE
+"hm"
+#endif
+"k")) != EOF) {
 			switch (c) {
 			case 's':
 					print = print_summary;
@@ -140,6 +153,13 @@ int du_main(int argc, char **argv)
 			case 'l':
 					count_hardlinks = 1;
 					break;
+#ifdef BB_FEATURE_HUMAN_READABLE
+			case 'h': du_disp_hr = 0;        break;
+			case 'm': du_disp_hr = MEGABYTE; break;
+			case 'k': du_disp_hr = KILOBYTE; break;
+#else
+			case 'k': break;
+#endif
 			default:
 					usage(du_usage);
 			}
@@ -155,7 +175,7 @@ int du_main(int argc, char **argv)
 		for (i=optind; i < argc; i++) {
 			if ((sum = du(argv[i])) == 0)
 				status = EXIT_FAILURE;
-			if (is_directory(argv[i], FALSE, NULL)==FALSE) {
+			if(is_directory(argv[i], FALSE, NULL)==FALSE) {
 				print_normal(sum, argv[i]);
 			}
 			reset_ino_dev_hashtable();
@@ -165,7 +185,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.33 2001/01/18 02:57:08 kraai Exp $ */
+/* $Id: du.c,v 1.34 2001/01/22 22:35:38 rjune Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -28,6 +28,9 @@
 #include <sys/vfs.h>
 
 extern const char mtab_file[];	/* Defined in utility.c */
+#ifdef BB_FEATURE_HUMAN_READABLE
+unsigned long disp_hr = KILOBYTE; 
+#endif
 
 static int df(char *device, const char *mountPoint)
 {
@@ -42,19 +45,32 @@ static int df(char *device, const char *mountPoint)
 
 	if (s.f_blocks > 0) {
 		blocks_used = s.f_blocks - s.f_bfree;
-		blocks_percent_used = (long)
-			(blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
+		if(0 == blocks_used)
+			blocs_percent_used = 0;
+		else
+			blocks_percent_used = (long)
+			  (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
 		if (strcmp(device, "/dev/root") == 0) {
 			/* Adjusts device to be the real root device,
 			 * or leaves device alone if it can't find it */
 			find_real_root_device_name( device);
 		}
+#ifdef BB_FEATURE_HUMAN_READABLE
+		printf("%-20s %9s",
+			   device,
+			   format((s.f_blocks * s.f_bsize), disp_hr));
+		printf(" %9s", format((s.f_blocks - s.f_bfree) * s.f_bsize, disp_hr));
+		printf(" %9s %3ld%% %s\n",
+			   format(s.f_bavail * s.f_bsize, disp_hr),
+			   blocks_percent_used, mountPoint);
+#else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 			   device,
 			   (long) (s.f_blocks * (s.f_bsize / 1024.0)),
 			   (long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / 1024.0)),
 			   (long) (s.f_bavail * (s.f_bsize / 1024.0)),
 			   blocks_percent_used, mountPoint);
+#endif
 
 	}
 
@@ -64,24 +80,46 @@ static int df(char *device, const char *mountPoint)
 extern int df_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
+	int opt = 0;
+	int i = 0;
+
+	while ((opt = getopt(argc, argv, "?"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"hm"
+#endif
+	"k"
+)) > 0)
+	{
+		switch (opt) {
+#ifdef BB_FEATURE_HUMAN_READABLE
+			case 'h': disp_hr = 0;         break;
+			case 'm': disp_hr = MEGABYTE;  break;
+			case 'k': disp_hr = KILOBYTE;  break;
+#else
+			case 'k': break;
+#endif
+			case '?': goto print_df_usage; break;
+		}
+	}
 
 	printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
-		   "1k-blocks", "Used", "Available", "Use%", "Mounted on");
+#ifdef BB_FEATURE_HUMAN_READABLE
+		   (KILOBYTE == disp_hr) ? "1k-blocks" : "     Size",
+#else
+		   "1k-blocks",
+#endif
+	       "Used", "Available", "Use%", "Mounted on");
 
-	if (argc > 1) {
+
+	if(optind < argc) {
 		struct mntent *mountEntry;
-
-		if (**(argv + 1) == '-') {
-			usage(df_usage);
-		}
-		while (argc > 1) {
-			if ((mountEntry = find_mount_point(argv[1], mtab_file)) == 0) {
-				error_msg("%s: can't find mount point.\n", argv[1]);
+		for(i = optind; i < argc; i++)
+		{
+			if ((mountEntry = find_mount_point(argv[i], mtab_file)) == 0) {
+				error_msg("%s: can't find mount point.\n", argv[i]);
 				status = EXIT_FAILURE;
 			} else if (!df(mountEntry->mnt_fsname, mountEntry->mnt_dir))
 				status = EXIT_FAILURE;
-			argc--;
-			argv++;
 		}
 	} else {
 		FILE *mountTable;
@@ -101,6 +139,10 @@ extern int df_main(int argc, char **argv)
 	}
 
 	return status;
+
+print_df_usage:
+    usage(df_usage);
+    return(FALSE);
 }
 
 /*

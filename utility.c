@@ -1770,6 +1770,27 @@ ssize_t safe_read(int fd, void *buf, size_t count)
 }
 #endif
 
+#ifdef BB_FEATURE_HUMAN_READABLE
+char *format(unsigned long val, unsigned long hr)
+{
+	static char str[10] = "\0";
+
+	if(val == 0)
+		return("0");
+	if(hr)
+		snprintf(str, 9, "%ld", val/hr);
+	else if(val >= GIGABYTE)
+		snprintf(str, 9, "%.1LfG", ((long double)(val)/GIGABYTE));
+	else if(val >= MEGABYTE)
+		snprintf(str, 9, "%.1LfM", ((long double)(val)/MEGABYTE));
+	else if(val >= KILOBYTE)
+		snprintf(str, 9, "%.1Lfk", ((long double)(val)/KILOBYTE));
+	else
+		snprintf(str, 9, "%ld", (val));
+	return(str);
+}
+#endif
+
 /* END CODE */
 /*
 Local Variables:

@@ -259,4 +259,11 @@ extern int sysinfo (struct sysinfo* info);
 #define isclr(a,i)      (((a)[(i)/NBBY] & (1<<((i)%NBBY))) == 0)
 #endif
 
+#ifdef BB_FEATURE_HUMAN_READABLE
+char *format(unsigned long val, unsigned long hr);
+#define KILOBYTE 1024
+#define MEGABYTE (KILOBYTE*1024)
+#define GIGABYTE (MEGABYTE*1024)
+#endif
+
 #endif /* _BB_INTERNAL_H_ */

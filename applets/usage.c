@@ -190,9 +190,22 @@ const char deallocvt_usage[] =
 
 #if defined BB_DF
 const char df_usage[] =
-	"df [filesystem ...]"
+	"df [-?"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"hm"
+#endif
+	"k] [filesystem ...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nPrint the filesystem space used and space available."
+	"Options:\n"
+	"\t-?\tshow usage information\n"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\t-m\tprint sizes in megabytes\n"
+	"\t-k\tprint sizes in kilobytes(default)\n"
+#else
+	"\t-k\tprint sizes in kilobytes(compatability)\n"
+#endif
 #endif
 	;
 #endif
@@ -244,13 +257,25 @@ const char dpkg_deb_usage[] =
 
 #if defined BB_DU
 const char du_usage[] =
-	"du [OPTION]... [FILE]..."
+	"du [-?ls"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"hm"
+#endif
+	"k] [FILE]...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nSummarizes disk space used for each FILE and/or directory.\n"
 	"Disk space is printed in units of 1024 bytes.\n\n"
 	"Options:\n"
+        "\t-?\tshow usage information\n"
 	"\t-l\tcount sizes many times if hard linked\n"
 	"\t-s\tdisplay only a total for each argument"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\t-m\tprint sizes in megabytes\n"
+	"\t-k\tprint sizes in kilobytes(default)\n"
+#else
+	"\t-k\tprint sizes in kilobytes(compatability)\n"
+#endif
 #endif
 	;
 #endif
@@ -661,7 +686,10 @@ const char ls_usage[] =
 #ifdef BB_FEATURE_LS_SORTFILES
 	"X"
 #endif
-	"] [filenames...]"
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"h"
+#endif
+	"k] [filenames...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nList directory contents\n\n"
 	"Options:\n"
@@ -716,6 +744,14 @@ const char ls_usage[] =
 #ifdef BB_FEATURE_LS_SORTFILES
 	"\t-X\tsort the listing by extension\n"
 #endif
+
+#ifdef BB_FEATURE_HUMAN_READABLE
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\t-k\tprint sizes in kilobytes(default)\n"
+#else
+	"\t-k\tprint sizes in kilobytes(compatability)"
+#endif
+
 #endif /*  BB_FEATURE_TRIVIAL_HELP */
 	;
 #endif /* BB_LS */

@@ -290,6 +290,9 @@
 // have a really good reason for cleaning things up manually.
 //#define BB_FEATURE_CLEAN_UP
 //
+// Support for human readable output by ls, du, etc.(example 13k, 23M, 235G)
+#define BB_FEATURE_HUMAN_READABLE
+//
 // End of Features List
 //
 //

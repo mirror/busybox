@@ -176,6 +176,10 @@ static unsigned short tabstops = 8;
 
 static int status = EXIT_SUCCESS;
 
+#ifdef BB_FEATURE_HUMAN_READABLE
+unsigned long ls_disp_hr = KILOBYTE;
+#endif
+
 static int my_stat(struct dnode *cur)
 {
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
@@ -583,10 +587,14 @@ int list_single(struct dnode *dn)
 				column += 8;
 				break;
 			case LIST_BLOCKS:
+#ifdef BB_FEATURE_HUMAN_READABLE
+				fprintf(stdout, "%5s ", format(dn->dstat.st_size, ls_disp_hr));
+#else
 #if _FILE_OFFSET_BITS == 64
 				printf("%4lld ", dn->dstat.st_blocks>>1);
 #else
 				printf("%4ld ", dn->dstat.st_blocks>>1);
+#endif
 #endif
 				column += 5;
 				break;
@@ -622,10 +630,14 @@ int list_single(struct dnode *dn)
 				if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
 					printf("%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
+#ifdef BB_FEATURE_HUMAN_READABLE
+					fprintf(stdout, "%9s ", format(dn->dstat.st_size, ls_disp_hr));
+#else
 #if _FILE_OFFSET_BITS == 64
 					printf("%9lld ", dn->dstat.st_size);
 #else
 					printf("%9ld ", dn->dstat.st_size);
+#endif
 #endif
 				}
 				column += 10;
@@ -724,7 +736,10 @@ extern int ls_main(int argc, char **argv)
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 "L"
 #endif
-	)) > 0) {
+#ifdef BB_FEATURE_HUMAN_READABLE
+"h"
+#endif
+"k")) > 0) {
 		switch (opt) {
 			case '1': style_fmt = STYLE_SINGLE; break;
 			case 'A': disp_opts |= DISP_HIDDEN; break;
@@ -733,7 +748,13 @@ extern int ls_main(int argc, char **argv)
 			case 'd': disp_opts |= DISP_NOLIST; break;
 			case 'g': /* ignore -- for ftp servers */ break;
 			case 'i': list_fmt |= LIST_INO; break;
-			case 'l': style_fmt = STYLE_LONG; list_fmt |= LIST_LONG; break;
+			case 'l':
+				style_fmt = STYLE_LONG;
+				list_fmt |= LIST_LONG;
+#ifdef BB_FEATURE_HUMAN_READABLE
+				ls_disp_hr = 1;
+#endif
+			break;
 			case 'n': list_fmt |= LIST_ID_NUMERIC; break;
 			case 's': list_fmt |= LIST_BLOCKS; break;
 			case 'x': disp_opts = DISP_ROWS; break;
@@ -776,6 +797,12 @@ extern int ls_main(int argc, char **argv)
 #ifdef BB_FEATURE_AUTOWIDTH
 			case 'T': tabstops= atoi(optarg); break;
 			case 'w': terminal_width= atoi(optarg); break;
+#endif
+#ifdef BB_FEATURE_HUMAN_READABLE
+			case 'h': ls_disp_hr = 0; break;
+			case 'k': ls_disp_hr = KILOBYTE; break;
+#else
+			case 'k': break;
 #endif
 			default:
 				goto print_usage_message;
