@@ -88,6 +88,12 @@
 //
 //
 //
+// Don't turn BB_UTILITY off.  It contains support code 
+// that compiles to 0 if everything else if turned off.
+#define BB_UTILITY
+//
+//
+//
 // This is where feature definitions go.  Generally speaking,
 // turning this stuff off makes things a bit smaller (and less 
 // pretty/useful).
@@ -112,11 +118,4 @@
 #define BB_FEATURE_USE_INITTAB
 //Enable init being called as /linuxrc
 #define BB_FEATURE_LINUXRC
-//
-//
-//
-// Don't turn BB_UTILITY off.  It contains support code 
-// that compiles to 0 if everything else if turned off.
-#define BB_UTILITY
-//
 //

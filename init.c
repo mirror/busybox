@@ -61,9 +61,11 @@
 #define VT_LOG          "/dev/tty3"	  /* Virtual console */
 #define SERIAL_CON0     "/dev/ttyS0"      /* Primary serial console */
 #define SERIAL_CON1     "/dev/ttyS1"      /* Serial console */
-#define SHELL           "-sh"		  /* Default shell */
+#define SHELL           "/bin/sh"	  /* Default shell */
 #define INITTAB         "/etc/inittab"	  /* inittab file location */
+#ifndef INIT_SCRIPT
 #define INIT_SCRIPT	"/etc/init.d/rcS" /* Default sysinit script. */
+#endif
 
 #define LOG             0x1
 #define CONSOLE         0x2
@@ -330,6 +332,7 @@ static pid_t run(char* command,
 	"\nPlease press Enter to activate this console. ";
 
     if ((pid = fork()) == 0) {
+	int fd;
 	pid_t shell_pgid = getpid ();
 
 	/* Clean up */
@@ -338,17 +341,14 @@ static pid_t run(char* command,
 	close(2);
 	setsid();
 
-	if (device_open(terminal, O_RDWR) < 0) {
+	if ((fd=device_open(terminal, O_RDWR)) < 0) {
 	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
 	    exit(1);
 	}
-	dup(0);
-	dup(0);
-	/* Grab control of the terminal.  */
-	if (tcsetpgrp (0, getpgrp()) < 0) {
-	    message(LOG|CONSOLE, "tcsetpgrp error: %s\r\n", strerror(errno));
-	}
-	set_term(0);
+	dup(fd);
+	dup(fd);
+	set_term(fd);
+	tcsetpgrp (fd, getpgrp());
 
 	/* Reset signal handlers set for parent process */
 	signal(SIGUSR1, SIG_DFL);
@@ -497,7 +497,7 @@ static void reboot_signal(int sig)
 
 #endif
 
-void new_initAction (const struct initActionType *a, 
+void new_initAction (initActionEnum action,
 	char* process, char* cons)
 {
     initAction* newAction;
@@ -517,7 +517,7 @@ void new_initAction (const struct initActionType *a,
     newAction->nextPtr = initActionList;
     initActionList = newAction;
     strncpy( newAction->process, process, 255);
-    newAction->action = a->action;
+    newAction->action = action;
     if (*cons != '\0') {
 	strncpy(newAction->console, cons, 255);
     } else
@@ -561,12 +561,12 @@ void parse_inittab(void)
 	/* No inittab file -- set up some default behavior */
 #endif
 	/* Askfirst shell on tty1 */
-	new_initAction( &(actions[3]), SHELL, console );
+	new_initAction( ASKFIRST, SHELL, console );
 	/* Askfirst shell on tty2 */
 	if (second_console != NULL) 
-	    new_initAction( &(actions[3]), SHELL, second_console );
+	    new_initAction( ASKFIRST, SHELL, second_console );
 	/* sysinit */
-	new_initAction( &(actions[0]), INIT_SCRIPT, console );
+	new_initAction( SYSINIT, INIT_SCRIPT, console );
 
 	return;
 #ifdef BB_FEATURE_USE_INITTAB
@@ -584,7 +584,6 @@ void parse_inittab(void)
 
 	/* Keep a copy around for posterity's sake (and error msgs) */
 	strcpy(lineAsRead, buf);
-message(LOG|CONSOLE, "read='%s'\n", lineAsRead);
 
 	/* Grab the ID field */
 	s=p;
@@ -628,7 +627,7 @@ message(LOG|CONSOLE, "read='%s'\n", lineAsRead);
 		    }
 		    s = tmpConsole;
 		}
-		new_initAction( a, q, s);
+		new_initAction( a->action, q, s);
 		foundIt=TRUE;
 	    }
 	    a++;
@@ -712,9 +711,9 @@ extern int init_main(int argc, char **argv)
     {
 	/* Ask first then start a shell on tty2 */
 	if (second_console != NULL) 
-	    new_initAction( &(actions[3]), SHELL, second_console);
+	    new_initAction( ASKFIRST, SHELL, second_console);
 	/* Ask first then start a shell on tty1 */
-	new_initAction( &(actions[3]), SHELL, console);
+	new_initAction( ASKFIRST, SHELL, console);
     } else {
 	/* Not in single user mode -- see what inittab says */
 
@@ -731,7 +730,7 @@ extern int init_main(int argc, char **argv)
     /* First run the sysinit command */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == SYSINIT) {
-	    waitfor(a->process, console, FALSE);
+	    waitfor(a->process, a->console, FALSE);
 	    /* Now remove the "sysinit" entry from the list */
 	    delete_initAction( a);
 	}
@@ -739,7 +738,7 @@ extern int init_main(int argc, char **argv)
     /* Next run anything that wants to block */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == WAIT) {
-	    waitfor(a->process, console, FALSE);
+	    waitfor(a->process, a->console, FALSE);
 	    /* Now remove the "wait" entry from the list */
 	    delete_initAction( a);
 	}
@@ -747,7 +746,7 @@ extern int init_main(int argc, char **argv)
     /* Next run anything to be run only once */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == ONCE) {
-	    run(a->process, console, FALSE);
+	    run(a->process, a->console, FALSE);
 	    /* Now remove the "once" entry from the list */
 	    delete_initAction( a);
 	}
@@ -760,7 +759,6 @@ extern int init_main(int argc, char **argv)
 
     /* Now run the looping stuff for the rest of forever */
     while (1) {
-	message(LOG|CONSOLE, "Looping\n");
 	for( a=initActionList ; a; a=a->nextPtr) {
 	    /* Only run stuff with pid==0.  If they have
 	     * a pid, that means they are still running */
@@ -768,11 +766,11 @@ extern int init_main(int argc, char **argv)
 		switch(a->action) {
 		    case RESPAWN:
 			/* run the respawn stuff */
-			a->pid = run(a->process, console, FALSE);
+			a->pid = run(a->process, a->console, FALSE);
 			break;
 		    case ASKFIRST:
 			/* run the askfirst stuff */
-			a->pid = run(a->process, console, TRUE);
+			a->pid = run(a->process, a->console, TRUE);
 			break;
 		    /* silence the compiler's incessant whining */
 		    default:
