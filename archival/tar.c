@@ -601,7 +601,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 
 		/* Remove files if we would overwrite them */
-		if (extractFlag == TRUE && tostdOut == FALSE)
+		if (extractFlag == TRUE && tostdoutFlag == FALSE)
 			unlink(header.name);
 
 		/* If we got here, we can be certain we have a legitimate 
