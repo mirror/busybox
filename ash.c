@@ -58,7 +58,7 @@
 /* Getopts is used by shell procedures to parse positional parameters.
  * You probably want to leave this disabled, and use the busybox getopt
  * applet if you want to do this sort of thing.  There are some scripts
- * out there that use it, so it you need it, enable.  Most people will
+ * out there that use it, so if you need it, enable it.  Most people will
  * leave this disabled.  This adds 1k on an x86 system. */
 #undef ASH_GETOPTS
 
@@ -12785,7 +12785,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.17 2001/08/02 05:02:45 andersen Exp $
+ * $Id: ash.c,v 1.18 2001/08/10 15:22:35 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
