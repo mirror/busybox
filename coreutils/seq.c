@@ -1,4 +1,7 @@
+/* vi: set sw=4 ts=4: */
 /*
+ * seq implementation for busybox
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of version 2 of the GNU General Public License as
  *  published by the Free Software Foundation.
@@ -27,18 +30,22 @@ extern int seq_main(int argc, char **argv)
 	if (argc == 4) {
 		first = atof(argv[1]);
 		increment = atof(argv[2]);
-	}
-	else if (argc == 3) {
+	} else if (argc == 3) {
 		first = atof(argv[1]);
-	}
-	else if (argc != 2) {
+	} else if (argc != 2) {
 		bb_show_usage();
 	}
 	last = atof(argv[argc - 1]);
 
-	for (i = first; ((first <= last) ? (i <= last): (i >= last));i += increment) {
+	/* You should note that this is pos-5.0.91 semantics, -- FK. */
+	if ((first > last) && (increment > 0)) {
+		return EXIT_SUCCESS;
+	}
+
+	for (i = first; ((first <= last) ? (i <= last) : (i >= last));
+	     i += increment) {
 		printf("%g\n", i);
 	}
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
