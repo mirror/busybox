@@ -53,9 +53,6 @@
 #include <mntent.h>
 #include <ctype.h>
 #include "busybox.h"
-#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
-#	include <linux/devmtab.h>	/* For Erik's nifty devmtab device driver */
-#endif
 
 enum {
 	MS_MGC_VAL = 0xc0ed0000,	/* Magic number indicatng "new" flags */
@@ -247,39 +244,6 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 					 int mount_all)
 {
 	int status = 0;
-
-#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
-	if (strcmp(filesystemType, "auto") == 0) {
-		static const char *noauto_array[] =
-			{ "tmpfs", "shm", "proc", "ramfs", "devpts", "devfs", "usbdevfs",
-0 };
-		const char **noauto_fstype;
-		const int num_of_filesystems = sysfs(3, 0, 0);
-		char buf[255];
-		int i = 0;
-
-		filesystemType = buf;
-
-		while (i < num_of_filesystems) {
-			sysfs(2, i++, filesystemType);
-			for (noauto_fstype = noauto_array; *noauto_fstype;
-				 noauto_fstype++) {
-				if (!strcmp(filesystemType, *noauto_fstype)) {
-					break;
-				}
-			}
-			if (!*noauto_fstype) {
-				status =
-					do_mount(blockDevice, directory, filesystemType,
-							 flags | MS_MGC_VAL, string_flags, useMtab,
-							 fakeIt, mtab_opts, mount_all);
-				if (status) {
-					break;
-				}
-			}
-		}
-	}
-#else
 	if (strcmp(filesystemType, "auto") == 0) {
 		char buf[255];
 		FILE *f;
@@ -346,9 +310,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 			}
 		}
 		fclose(f);
-	}
-#endif
-	else {
+	} else {
 		status =
 			do_mount(blockDevice, directory, filesystemType,
 					 flags | MS_MGC_VAL, string_flags, useMtab, fakeIt,
@@ -366,47 +328,6 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 static void show_mounts(char *onlytype)
 {
-#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
-	int fd, i, numfilesystems;
-	char device[] = "/dev/mtab";
-	struct k_mntent *mntentlist;
-
-	/* open device */
-	fd = open(device, O_RDONLY);
-	if (fd < 0) {
-		perror_msg_and_die("open failed for `%s'", device);
-	}
-
-	/* How many mounted filesystems?  We need to know to 
-	 * allocate enough space for later... */
-	numfilesystems = ioctl(fd, DEVMTAB_COUNT_MOUNTS);
-	if (numfilesystems < 0) {
-		perror_msg_and_die("\nDEVMTAB_COUNT_MOUNTS");
-	}
-	mntentlist =
-		(struct k_mntent *) xcalloc(numfilesystems, sizeof(struct k_mntent));
-
-	/* Grab the list of mounted filesystems */
-	if (ioctl(fd, DEVMTAB_GET_MOUNTS, mntentlist) < 0) {
-		perror_msg_and_die("\nDEVMTAB_GET_MOUNTS");
-	}
-
-	for (i = 0; i < numfilesystems; i++) {
-		if (!onlytype || (strcmp(mntentlist[i].mnt_type, onlytype) == 0)) {
-			printf("%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
-				   mntentlist[i].mnt_dir, mntentlist[i].mnt_type,
-				   mntentlist[i].mnt_opts, mntentlist[i].mnt_freq,
-				   mntentlist[i].mnt_passno);
-		}
-	}
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	/* Don't bother to close files or free memory.  Exit 
-	 * does that automagically, so we can save a few bytes */
-	free(mntentlist);
-	close(fd);
-#endif
-	exit(EXIT_SUCCESS);
-#else
 	FILE *mountTable = setmntent(mtab_file, "r");
 
 	if (mountTable) {
@@ -433,7 +354,6 @@ static void show_mounts(char *onlytype)
 		perror_msg_and_die("%s", mtab_file);
 	}
 	exit(EXIT_SUCCESS);
-#endif
 }
 
 extern int mount_main(int argc, char **argv)

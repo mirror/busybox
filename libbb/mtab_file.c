@@ -23,16 +23,12 @@
 #include "libbb.h"
 
 
-/* Busybox mount uses either /proc/mounts or /dev/mtab to 
+/* Busybox mount uses either /proc/mounts or /etc/mtab to 
  * get the list of currently mounted filesystems */ 
 #if defined CONFIG_FEATURE_MTAB_SUPPORT
 const char mtab_file[] = "/etc/mtab";
 #else
-#  if defined CONFIG_FEATURE_USE_DEVPS_PATCH
-      const char mtab_file[] = "/dev/mtab";
-#  else
-      const char mtab_file[] = "/proc/mounts";
-#  endif
+const char mtab_file[] = "/proc/mounts";
 #endif
 
 

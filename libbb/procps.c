@@ -8,7 +8,6 @@
  *
  */
 
-#if ! defined CONFIG_FEATURE_USE_DEVPS_PATCH
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
@@ -130,8 +129,6 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		return memcpy(&ret_status, &curstatus, sizeof(procps_status_t));
 	}
 }
-
-#endif /* CONFIG_FEATURE_USE_DEVPS_PATCH. Else this file is empty */
 
 /* END CODE */
 /*
