@@ -362,32 +362,24 @@ static void doSyslogd (void)
 				--n_ready;
 
 				if (fd == sock_fd) {
-
 					int   conn;
-					pid_t pid;
 
+					//printf("New Connection request.\n");
 					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
 						perror_msg_and_die ("accept error");
 					}
 
-					pid = fork();
-
-					if (pid < 0) {
-						perror ("syslogd: fork");
-						close (conn);
-						continue;
-					}
-
-					if (pid == 0) {
-						serveConnection (conn);
-						close (conn);
-						exit( TRUE);
-					}
-					close (conn);
-				}
-			}
-		}
-	}
+					FD_SET(conn, &fds);
+					//printf("conn: %i, set_size: %i\n",conn,FD_SETSIZE);
+			  	} else {		
+					//printf("Serving connection: %i\n",fd);
+					serveConnection (fd);
+					close (fd);
+					FD_CLR(fd, &fds);
+				} /* fd == sock_fd */
+			}/* FD_ISSET() */
+		}/* for */
+	} /* for main loop */
 }
 
 #ifdef BB_FEATURE_KLOGD
