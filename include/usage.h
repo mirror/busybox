@@ -174,8 +174,8 @@
 	"\ti\t\textract\n" \
 	"\tm\t\tpreserve mtime\n" \
 	"\tt\t\tlist\n" \
-	"\tu\t\tunconditional overwrite\t" \
-	"\tF\t\tinput from file\t"
+	"\tu\t\tunconditional overwrite\n" \
+	"\tF\t\tinput from file"
 	
 #define cut_trivial_usage \
 	"[OPTION]... [FILE]..."
