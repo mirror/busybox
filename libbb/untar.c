@@ -55,13 +55,26 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 	while (fread((char *) &raw_tar_header, 1, 512, src_tar_file) == 512) {
 		long sum = 0;
 		char *dir = NULL;
+		
+		if (ferror(src_tar_file) || feof(src_tar_file)) {
+			break;
+		}
 
 		uncompressed_count += 512;
 
 		/* Check header has valid magic */
 		if (strncmp(raw_tar_header.magic, "ustar", 5) != 0) {
-			/* Put this pack after TODO (check child still alive) is done */
-			error_msg("Invalid tar magic");
+/*
+ * FIXME, Need HELP with this
+ *
+ * This has to fail silently or it incorrectly reports errors when called from
+ * deb_extract.
+ * The problem is deb_extract decompresses the .gz file in a child process and
+ * untar reads from the child proccess. The child process finishes and exits,
+ * but fread reads 0's from the src_tar_file even though the child
+ * closed its handle.
+ */
+//			error_msg("Invalid tar magic");
 			break;
 		}
 
@@ -109,7 +122,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 
 		}
 */
-		if (untar_function & (extract_verbose_extract | extract_contents)) {
+		if (untar_function & (extract_contents | extract_verbose_extract)) {
 			printf("%s\n", raw_tar_header.name);
 		}
 
@@ -144,7 +157,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 					break;
 				}
 			case '5':
-				if (untar_function & (extract_extract | extract_verbose_extract)) {
+				if (untar_function & extract_extract) {
 					if (create_path(dir, mode) != TRUE) {
 						free(dir);
 						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 

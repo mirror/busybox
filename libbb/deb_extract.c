@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 #include "libbb.h"
 
@@ -42,14 +43,9 @@ extern int deb_extract(const char *package_filename, int function, char *target_
 		case (extract_control):
 			ared_file = xstrdup("control.tar.gz");
 			break;
-		case (extract_contents):
-		case (extract_extract):
-		case (extract_verbose_extract):
-		case (extract_list):
+		default:
 			ared_file = xstrdup("data.tar.gz");
 			break;
-		default:
-			error_msg("Unknown extraction function");
 	}
 
 	/* open the debian package to be worked on */
@@ -71,9 +67,11 @@ extern int deb_extract(const char *package_filename, int function, char *target_
 	/* open a stream of decompressed data */
 	uncompressed_file = fdopen(gz_open(deb_file, &gunzip_pid), "r");
 
-	/* get a list of all tar headers inside the .gz file */
-	untar(uncompressed_file, function, target_dir);
-
+	if (function & extract_fsys_tarfile) {
+		copy_file_chunk(uncompressed_file, stdout, -1);
+	} else {
+		untar(uncompressed_file, function, target_dir);
+	}
 	/* we are deliberately terminating the child so we can safely ignore this */
 	gz_close(gunzip_pid);
 

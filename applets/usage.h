@@ -265,13 +265,13 @@
 	"WORK IN PROGRESS, only usefull for debian-installer"
 
 #define dpkg_deb_trivial_usage \
-	"[-cexX] file directory"
+	"[-cefxX] file directory"
 #define dpkg_deb_full_usage \
 	"Perform actions on debian packages (.debs)\n\n" \
 	"Options:\n" \
-	"\t-c\tList contents of filesystem tree (verbose)\n" \
-	"\t-l\tList contents of filesystem tree (.list format)\n" \
+	"\t-c\tList contents of filesystem tree\n" \
 	"\t-e\tExtract control files to directory\n" \
+	"\t-f\tExtract filesystem tree to stdout in tar format\n" \
 	"\t-x\tExctract packages filesystem tree to directory\n" \
 	"\t-X\tVerbose extract"
 #define dpkg_deb_example_usage \

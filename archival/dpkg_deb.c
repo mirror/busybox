@@ -24,13 +24,16 @@ extern int dpkg_deb_main(int argc, char **argv)
 	int opt = 0;
 	int optflag = 0;	
 	
-	while ((opt = getopt(argc, argv, "cexXl")) != -1) {
+	while ((opt = getopt(argc, argv, "cetXxl")) != -1) {
 		switch (opt) {
 			case 'c':
 				optflag |= extract_contents;
 				break;
 			case 'e':
 				optflag |= extract_control;
+				break;
+			case 't':
+				optflag |= extract_fsys_tarfile;
 				break;
 			case 'X':
 				optflag |= extract_verbose_extract;
