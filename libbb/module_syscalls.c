@@ -34,7 +34,7 @@
 #include "libbb.h"
 
 
-#if __GNU_LIBRARY__ < 5
+#if __GNU_LIBRARY__ < 5 || ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
 /* These syscalls are not included as part of libc5 */
 _syscall1(int, delete_module, const char *, name);
 _syscall1(int, get_kernel_syms, __ptr_t, ks);
