@@ -83,27 +83,21 @@
 #include "busybox.h"
 
 #if !defined(CONFIG_FEATURE_2_4_MODULES) && \
-	!defined(CONFIG_FEATURE_2_2_MODULES) && \
 	!defined(CONFIG_FEATURE_2_6_MODULES)
 #define CONFIG_FEATURE_2_4_MODULES
 #endif
 
-#if !defined(CONFIG_FEATURE_2_4_MODULES) && !defined(CONFIG_FEATURE_2_2_MODULES)
+#if !defined(CONFIG_FEATURE_2_4_MODULES)
 #define insmod_ng_main insmod_main
 #endif
-
-#if defined(CONFIG_FEATURE_2_4_MODULES) || defined(CONFIG_FEATURE_2_2_MODULES)
 
 #if defined(CONFIG_FEATURE_2_6_MODULES)
 extern int insmod_ng_main( int argc, char **argv);
 #endif
 
-#ifdef CONFIG_FEATURE_2_4_MODULES
-# undef CONFIG_FEATURE_2_2_MODULES
-# define new_sys_init_module	init_module
-#else
-# define old_sys_init_module	init_module
-#endif
+
+#if defined(CONFIG_FEATURE_2_4_MODULES)
+
 
 #ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
 #define LOADBITS 0
@@ -296,68 +290,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.119 2004/05/26 12:06:38 andersen Exp $"
-
-/* This file contains the structures used by the 2.0 and 2.1 kernels.
-   We do not use the kernel headers directly because we do not wish
-   to be dependent on a particular kernel version to compile insmod.  */
-
-
-/*======================================================================*/
-/* The structures used by Linux 2.0.  */
-
-/* The symbol format used by get_kernel_syms(2).  */
-struct old_kernel_sym
-{
-	unsigned long value;
-	char name[60];
-};
-
-struct old_module_ref
-{
-	unsigned long module;		/* kernel addresses */
-	unsigned long next;
-};
-
-struct old_module_symbol
-{
-	unsigned long addr;
-	unsigned long name;
-};
-
-struct old_symbol_table
-{
-	int size;			/* total, including string table!!! */
-	int n_symbols;
-	int n_refs;
-	struct old_module_symbol symbol[0]; /* actual size defined by n_symbols */
-	struct old_module_ref ref[0];	/* actual size defined by n_refs */
-};
-
-struct old_mod_routines
-{
-	unsigned long init;
-	unsigned long cleanup;
-};
-
-struct old_module
-{
-	unsigned long next;
-	unsigned long ref;		/* the list of modules that refer to me */
-	unsigned long symtab;
-	unsigned long name;
-	int size;			/* size of module in pages */
-	unsigned long addr;		/* address of module */
-	int state;
-	unsigned long cleanup;	/* cleanup routine */
-};
-
-/* Sent to init_module(2) or'ed into the code size parameter.  */
-static const int OLD_MOD_AUTOCLEAN = 0x40000000; /* big enough, but no sign problems... */
-
-int get_kernel_syms(struct old_kernel_sym *);
-int old_sys_init_module(const char *name, char *code, unsigned codesize,
-			struct old_mod_routines *, struct old_symbol_table *);
+#ident "$Id: insmod.c,v 1.120 2004/06/22 11:50:52 andersen Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -429,13 +362,11 @@ struct new_module
 	unsigned tgt_long persist_end;
 	unsigned tgt_long can_unload;
 	unsigned tgt_long runsize;
-#ifdef CONFIG_FEATURE_2_4_MODULES
 	const char *kallsyms_start;     /* All symbols for kernel debugging */
 	const char *kallsyms_end;
 	const char *archdata_start;     /* arch specific data for module */
 	const char *archdata_end;
 	const char *kernel_data;        /* Reserved for kernel internal use */
-#endif
 };
 
 #ifdef ARCHDATAM
@@ -461,9 +392,9 @@ static const int NEW_MOD_AUTOCLEAN = 4;
 static const int NEW_MOD_VISITED = 8;
 static const int NEW_MOD_USED_ONCE = 16;
 
-int new_sys_init_module(const char *name, const struct new_module *);
-int query_module(const char *name, int which, void *buf, size_t bufsize,
-		 size_t *ret);
+int init_module(const char *name, const struct new_module *);
+int query_module(const char *name, int which, void *buf,
+		size_t bufsize, size_t *ret);
 
 /* Values for query_module's which.  */
 
@@ -517,7 +448,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.119 2004/05/26 12:06:38 andersen Exp $"
+#ident "$Id: insmod.c,v 1.120 2004/06/22 11:50:52 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -660,10 +591,8 @@ static void *obj_extend_section (struct obj_section *sec, unsigned long more);
 static int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     const char *string);
 
-#ifdef CONFIG_FEATURE_2_4_MODULES
 static int obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     struct obj_symbol *sym);
-#endif
 
 static int obj_check_undefineds(struct obj_file *f);
 
@@ -694,10 +623,6 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 static void arch_create_got (struct obj_file *f);
 
 static int obj_gpl_license(struct obj_file *f, const char **license);
-
-#ifdef CONFIG_FEATURE_2_4_MODULES
-static int arch_init_module (struct obj_file *f, struct new_module *);
-#endif
 
 #endif /* obj.h */
 //----------------------------------------------------------------------------
@@ -1690,13 +1615,6 @@ static void arch_create_got(struct obj_file *f)
 #endif /* defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES) */
 }
 
-#ifdef CONFIG_FEATURE_2_4_MODULES
-static int arch_init_module(struct obj_file *f, struct new_module *mod)
-{
-	return 1;
-}
-#endif
-
 /*======================================================================*/
 
 /* Standard ELF hash function.  */
@@ -2013,8 +1931,7 @@ static void *obj_extend_section(struct obj_section *sec, unsigned long more)
    new module.  */
 
 static int
-add_symbols_from(
-				 struct obj_file *f,
+add_symbols_from( struct obj_file *f,
 				 int idx, struct new_module_symbol *syms, size_t nsyms)
 {
 	struct new_module_symbol *s;
@@ -2135,371 +2052,6 @@ static char *get_modinfo_value(struct obj_file *f, const char *key)
 
 	return NULL;
 }
-
-
-/*======================================================================*/
-/* Functions relating to module loading in pre 2.1 kernels.  */
-
-static int
-old_process_module_arguments(struct obj_file *f, int argc, char **argv)
-{
-	while (argc > 0) {
-		char *p, *q;
-		struct obj_symbol *sym;
-		int *loc;
-
-		p = *argv;
-		if ((q = strchr(p, '=')) == NULL) {
-			argc--;
-			continue;
-		}
-		*q++ = '\0';
-
-		sym = obj_find_symbol(f, p);
-
-		/* Also check that the parameter was not resolved from the kernel.  */
-		if (sym == NULL || sym->secidx > SHN_HIRESERVE) {
-			bb_error_msg("symbol for parameter %s not found", p);
-			return 0;
-		}
-
-		loc = (int *) (f->sections[sym->secidx]->contents + sym->value);
-
-		/* Do C quoting if we begin with a ".  */
-		if (*q == '"') {
-			char *r, *str;
-
-			str = alloca(strlen(q));
-			for (r = str, q++; *q != '"'; ++q, ++r) {
-				if (*q == '\0') {
-					bb_error_msg("improperly terminated string argument for %s", p);
-					return 0;
-				} else if (*q == '\\')
-					switch (*++q) {
-						case 'a':
-							*r = '\a';
-							break;
-						case 'b':
-							*r = '\b';
-							break;
-						case 'e':
-							*r = '\033';
-							break;
-						case 'f':
-							*r = '\f';
-							break;
-						case 'n':
-							*r = '\n';
-							break;
-						case 'r':
-							*r = '\r';
-							break;
-						case 't':
-							*r = '\t';
-							break;
-
-						case '0':
-						case '1':
-						case '2':
-						case '3':
-						case '4':
-						case '5':
-						case '6':
-						case '7':
-							{
-								int c = *q - '0';
-								if (q[1] >= '0' && q[1] <= '7') {
-									c = (c * 8) + *++q - '0';
-									if (q[1] >= '0' && q[1] <= '7')
-										c = (c * 8) + *++q - '0';
-								}
-								*r = c;
-							}
-							break;
-
-						default:
-							*r = *q;
-							break;
-					} else
-						*r = *q;
-			}
-			*r = '\0';
-			obj_string_patch(f, sym->secidx, sym->value, str);
-		} else if (*q >= '0' && *q <= '9') {
-			do
-				*loc++ = strtoul(q, &q, 0);
-			while (*q++ == ',');
-		} else {
-			char *contents = f->sections[sym->secidx]->contents;
-			char *myloc = contents + sym->value;
-			char *r;			/* To search for commas */
-
-			/* Break the string with comas */
-			while ((r = strchr(q, ',')) != (char *) NULL) {
-				*r++ = '\0';
-				obj_string_patch(f, sym->secidx, myloc - contents, q);
-				myloc += sizeof(char *);
-				q = r;
-			}
-
-			/* last part */
-			obj_string_patch(f, sym->secidx, myloc - contents, q);
-		}
-
-		argc--, argv++;
-	}
-
-	return 1;
-}
-
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
-static int old_is_module_checksummed(struct obj_file *f)
-{
-	return obj_find_symbol(f, "Using_Versions") != NULL;
-}
-/* Get the module's kernel version in the canonical integer form.  */
-
-static int
-old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
-{
-	struct obj_symbol *sym;
-	char *p, *q;
-	int a, b, c;
-
-	sym = obj_find_symbol(f, "kernel_version");
-	if (sym == NULL)
-		return -1;
-
-	p = f->sections[sym->secidx]->contents + sym->value;
-	safe_strncpy(str, p, STRVERSIONLEN);
-
-	a = strtoul(p, &p, 10);
-	if (*p != '.')
-		return -1;
-	b = strtoul(p + 1, &p, 10);
-	if (*p != '.')
-		return -1;
-	c = strtoul(p + 1, &q, 10);
-	if (p + 1 == q)
-		return -1;
-
-	return a << 16 | b << 8 | c;
-}
-
-#endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
-
-#ifdef CONFIG_FEATURE_2_2_MODULES
-
-/* Fetch all the symbols and divvy them up as appropriate for the modules.  */
-
-static int old_get_kernel_symbols(const char *m_name)
-{
-	struct old_kernel_sym *ks, *k;
-	struct new_module_symbol *s;
-	struct external_module *mod;
-	int nks, nms, nmod, i;
-
-	nks = get_kernel_syms(NULL);
-	if (nks <= 0) {
-		if (nks)
-			bb_perror_msg("get_kernel_syms: %s", m_name);
-		else
-			bb_error_msg("No kernel symbols");
-		return 0;
-	}
-
-	ks = k = xmalloc(nks * sizeof(*ks));
-
-	if (get_kernel_syms(ks) != nks) {
-		perror("inconsistency with get_kernel_syms -- is someone else "
-				"playing with modules?");
-		free(ks);
-		return 0;
-	}
-
-	/* Collect the module information.  */
-
-	mod = NULL;
-	nmod = -1;
-
-	while (k->name[0] == '#' && k->name[1]) {
-		struct old_kernel_sym *k2;
-
-		/* Find out how many symbols this module has.  */
-		for (k2 = k + 1; k2->name[0] != '#'; ++k2)
-			continue;
-		nms = k2 - k - 1;
-
-		mod = xrealloc(mod, (++nmod + 1) * sizeof(*mod));
-		mod[nmod].name = k->name + 1;
-		mod[nmod].addr = k->value;
-		mod[nmod].used = 0;
-		mod[nmod].nsyms = nms;
-		mod[nmod].syms = s = (nms ? xmalloc(nms * sizeof(*s)) : NULL);
-
-		for (i = 0, ++k; i < nms; ++i, ++s, ++k) {
-			s->name = (unsigned long) k->name;
-			s->value = k->value;
-		}
-
-		k = k2;
-	}
-
-	ext_modules = mod;
-	n_ext_modules = nmod + 1;
-
-	/* Now collect the symbols for the kernel proper.  */
-
-	if (k->name[0] == '#')
-		++k;
-
-	nksyms = nms = nks - (k - ks);
-	ksyms = s = (nms ? xmalloc(nms * sizeof(*s)) : NULL);
-
-	for (i = 0; i < nms; ++i, ++s, ++k) {
-		s->name = (unsigned long) k->name;
-		s->value = k->value;
-	}
-
-	return 1;
-}
-
-/* Return the kernel symbol checksum version, or zero if not used.  */
-
-static int old_is_kernel_checksummed(void)
-{
-	/* Using_Versions is the first symbol.  */
-	if (nksyms > 0
-			&& strcmp((char *) ksyms[0].name,
-				"Using_Versions") == 0) return ksyms[0].value;
-	else
-		return 0;
-}
-
-
-static int old_create_mod_use_count(struct obj_file *f)
-{
-	struct obj_section *sec;
-
-	sec = obj_create_alloced_section_first(f, ".moduse", sizeof(long),
-			sizeof(long));
-
-	obj_add_symbol(f, "mod_use_count_", -1,
-			ELFW(ST_INFO) (STB_LOCAL, STT_OBJECT), sec->idx, 0,
-			sizeof(long));
-
-	return 1;
-}
-
-static int
-old_init_module(const char *m_name, struct obj_file *f,
-				unsigned long m_size)
-{
-	char *image;
-	struct old_mod_routines routines;
-	struct old_symbol_table *symtab;
-	int ret;
-
-	/* Create the symbol table */
-	{
-		int nsyms = 0, strsize = 0, total;
-
-		/* Size things first... */
-		if (flag_export) {
-			int i;
-			for (i = 0; i < HASH_BUCKETS; ++i) {
-				struct obj_symbol *sym;
-				for (sym = f->symtab[i]; sym; sym = sym->next)
-					if (ELFW(ST_BIND) (sym->info) != STB_LOCAL
-							&& sym->secidx <= SHN_HIRESERVE)
-					{
-						sym->ksymidx = nsyms++;
-						strsize += strlen(sym->name) + 1;
-					}
-			}
-		}
-
-		total = (sizeof(struct old_symbol_table)
-				+ nsyms * sizeof(struct old_module_symbol)
-				+ n_ext_modules_used * sizeof(struct old_module_ref)
-				+ strsize);
-		symtab = xmalloc(total);
-		symtab->size = total;
-		symtab->n_symbols = nsyms;
-		symtab->n_refs = n_ext_modules_used;
-
-		if (flag_export && nsyms) {
-			struct old_module_symbol *ksym;
-			char *str;
-			int i;
-
-			ksym = symtab->symbol;
-			str = ((char *) ksym + nsyms * sizeof(struct old_module_symbol)
-					+ n_ext_modules_used * sizeof(struct old_module_ref));
-
-			for (i = 0; i < HASH_BUCKETS; ++i) {
-				struct obj_symbol *sym;
-				for (sym = f->symtab[i]; sym; sym = sym->next)
-					if (sym->ksymidx >= 0) {
-						ksym->addr = obj_symbol_final_value(f, sym);
-						ksym->name =
-							(unsigned long) str - (unsigned long) symtab;
-
-						strcpy(str, sym->name);
-						str += strlen(sym->name) + 1;
-						ksym++;
-					}
-			}
-		}
-
-		if (n_ext_modules_used) {
-			struct old_module_ref *ref;
-			int i;
-
-			ref = (struct old_module_ref *)
-				((char *) symtab->symbol + nsyms * sizeof(struct old_module_symbol));
-
-			for (i = 0; i < n_ext_modules; ++i)
-				if (ext_modules[i].used)
-					ref++->module = ext_modules[i].addr;
-		}
-	}
-
-	/* Fill in routines.  */
-
-	routines.init =
-		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "init_module"));
-	routines.cleanup =
-		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "cleanup_module"));
-
-	/* Whew!  All of the initialization is complete.  Collect the final
-	   module image and give it to the kernel.  */
-
-	image = xmalloc(m_size);
-	obj_create_image(f, image);
-
-	/* image holds the complete relocated module, accounting correctly for
-	   mod_use_count.  However the old module kernel support assume that
-	   it is receiving something which does not contain mod_use_count.  */
-	ret = old_sys_init_module(m_name, image + sizeof(long),
-			m_size | (flag_autoclean ? OLD_MOD_AUTOCLEAN
-				: 0), &routines, symtab);
-	if (ret)
-		bb_perror_msg("init_module: %s", m_name);
-
-	free(image);
-	free(symtab);
-
-	return ret == 0;
-}
-
-#else
-
-#define old_create_mod_use_count(x) TRUE
-#define old_init_module(x, y, z) TRUE
-
-#endif							/* CONFIG_FEATURE_2_2_MODULES */
-
 
 
 /*======================================================================*/
@@ -2784,8 +2336,6 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 #endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 
-#ifdef CONFIG_FEATURE_2_4_MODULES
-
 /* Fetch the loaded modules, and all currently exported symbols.  */
 
 static int new_get_kernel_symbols(void)
@@ -3015,8 +2565,7 @@ static int new_create_module_ksymtab(struct obj_file *f)
 
 
 static int
-new_init_module(const char *m_name, struct obj_file *f,
-				unsigned long m_size)
+new_init_module(const char *m_name, struct obj_file *f, unsigned long m_size)
 {
 	struct new_module *module;
 	struct obj_section *sec;
@@ -3079,16 +2628,13 @@ new_init_module(const char *m_name, struct obj_file *f,
 		module->kallsyms_end = module->kallsyms_start + sec->header.sh_size;
 	}
 
-	if (!arch_init_module(f, module))
-		return 0;
-
 	/* Whew!  All of the initialization is complete.  Collect the final
 	   module image and give it to the kernel.  */
 
 	image = xmalloc(m_size);
 	obj_create_image(f, image);
 
-	ret = new_sys_init_module(m_name, (struct new_module *) image);
+	ret = init_module(m_name, (struct new_module *) image);
 	if (ret)
 		bb_perror_msg("init_module: %s", m_name);
 
@@ -3096,16 +2642,6 @@ new_init_module(const char *m_name, struct obj_file *f,
 
 	return ret == 0;
 }
-
-#else
-
-#define new_init_module(x, y, z) TRUE
-#define new_create_this_module(x, y) 0
-#define new_add_ksymtab(x, y) -1
-#define new_create_module_ksymtab(x)
-#define query_module(v, w, x, y, z) -1
-
-#endif							/* CONFIG_FEATURE_2_4_MODULES */
 
 
 /*======================================================================*/
@@ -3139,7 +2675,6 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	return 1;
 }
 
-#ifdef CONFIG_FEATURE_2_4_MODULES
 static int
 obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 struct obj_symbol *sym)
@@ -3155,7 +2690,6 @@ obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 
 	return 1;
 }
-#endif
 
 static int obj_check_undefineds(struct obj_file *f)
 {
@@ -3853,10 +3387,7 @@ static int
 get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 {
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
-	if (get_modinfo_value(f, "kernel_version") == NULL)
-		return old_get_module_version(f, str);
-	else
-		return new_get_module_version(f, str);
+	return new_get_module_version(f, str);
 #else  /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 	strncpy(str, "???", sizeof(str));
 	return -1;
@@ -4075,8 +3606,6 @@ static void print_load_map(struct obj_file *f)
 extern int insmod_main( int argc, char **argv)
 {
 	int opt;
-	int k_crcs;
-	int k_new_syscalls;
 	int len;
 	char *tmp, *tmp1;
 	unsigned long m_size;
@@ -4090,7 +3619,7 @@ extern int insmod_main( int argc, char **argv)
 	struct utsname uts_info;
 	char m_strversion[STRVERSIONLEN];
 	int m_version;
-	int m_crcs;
+	int k_crcs, m_crcs;
 #endif
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	FILE *fp = 0;
@@ -4273,8 +3802,6 @@ extern int insmod_main( int argc, char **argv)
 			uts_info.release[0] = '\0';
 		if (m_has_modinfo) {
 			m_version = new_get_module_version(f, m_strversion);
-		} else {
-			m_version = old_get_module_version(f, m_strversion);
 			if (m_version == -1) {
 				bb_error_msg("couldn't find the kernel version the module was "
 						"compiled for");
@@ -4300,33 +3827,19 @@ extern int insmod_main( int argc, char **argv)
 	k_crcs = 0;
 #endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
-	k_new_syscalls = !query_module(NULL, 0, NULL, 0, NULL);
-
-	if (k_new_syscalls) {
-#ifdef CONFIG_FEATURE_2_4_MODULES
+	if (!query_module(NULL, 0, NULL, 0, NULL)) {
 		if (!new_get_kernel_symbols())
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
-#else
-		bb_error_msg("Not configured to support new kernels");
-		goto out;
-#endif
 	} else {
-#ifdef CONFIG_FEATURE_2_2_MODULES
-		if (!old_get_kernel_symbols(m_name))
-			goto out;
-		k_crcs = old_is_kernel_checksummed();
-#else
 		bb_error_msg("Not configured to support old kernels");
 		goto out;
-#endif
 	}
 
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+	m_crcs = 0;
 	if (m_has_modinfo)
 		m_crcs = new_is_module_checksummed(f);
-	else
-		m_crcs = old_is_module_checksummed(f);
 
 	if (m_crcs != k_crcs)
 		obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
@@ -4337,9 +3850,7 @@ extern int insmod_main( int argc, char **argv)
 
 	/* Allocate common symbols, symbol tables, and string tables.  */
 
-	if (k_new_syscalls
-			? !new_create_this_module(f, m_name)
-			: !old_create_mod_use_count(f))
+	if (!new_create_this_module(f, m_name))
 	{
 		goto out;
 	}
@@ -4354,9 +3865,7 @@ extern int insmod_main( int argc, char **argv)
 	++optind;
 
 	if (optind < argc) {
-		if (m_has_modinfo
-				? !new_process_module_arguments(f, argc - optind, argv + optind)
-				: !old_process_module_arguments(f, argc - optind, argv + optind))
+		if (new_process_module_arguments(f, argc - optind, argv + optind))
 		{
 			goto out;
 		}
@@ -4369,8 +3878,7 @@ extern int insmod_main( int argc, char **argv)
 	add_ksymoops_symbols(f, m_filename, m_name);
 #endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
-	if (k_new_syscalls)
-		new_create_module_ksymtab(f);
+	new_create_module_ksymtab(f);
 
 	/* Find current size of the module */
 	m_size = obj_load_size(f);
@@ -4406,9 +3914,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 	}
 
-	if (k_new_syscalls
-			? !new_init_module(m_name, f, m_size)
-			: !old_init_module(m_name, f, m_size))
+	if (!new_init_module(m_name, f, m_size))
 	{
 		delete_module(m_name);
 		goto out;
