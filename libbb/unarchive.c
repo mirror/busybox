@@ -142,7 +142,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				/* Use create_path instead of mkdir incase prefix path
 				 * hasnt been created */
 				if (function & extract_create_dirs) {
-					if (create_path(full_name, file_entry->mode) == FALSE) {
+					if (make_directory(full_name, file_entry->mode, FILEUTILS_RECUR) < 0) {
 						return NULL;
 					}
 				}
