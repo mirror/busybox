@@ -160,6 +160,7 @@ int wget_main(int argc, char **argv)
 	int n, try=5, status;
 	int port;
 	char *proxy;
+	char *dir_prefix=NULL;
 	char *s, buf[512];
 	struct stat sbuf;
 	char extra_headers[1024];
@@ -188,10 +189,13 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Crack command line.
 	 */
-	while ((n = getopt_long(argc, argv, "cqO:", long_options, &option_index)) != EOF) {
+	while ((n = getopt_long(argc, argv, "cqO:P:", long_options, &option_index)) != EOF) {
 		switch (n) {
 		case 'c':
 			++do_continue;
+			break;
+		case 'P':
+			dir_prefix = optarg;	
 			break;
 		case 'q':
 			quiet_flag = TRUE;
@@ -224,7 +228,6 @@ int wget_main(int argc, char **argv)
 		}
 	}
 
-	fprintf(stderr, "extra_headers='%s'\n", extra_headers);
 	if (argc - optind != 1)
 			show_usage();
 
@@ -269,6 +272,7 @@ int wget_main(int argc, char **argv)
 		output = stdout;
 		quiet_flag = TRUE;
 	} else {
+		fname_out = concat_path_file(dir_prefix, fname_out);
 		output = xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
 
@@ -812,7 +816,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.41 2001/05/16 15:40:48 kraai Exp $
+ *	$Id: wget.c,v 1.42 2001/06/21 19:45:06 andersen Exp $
  */
 
 
