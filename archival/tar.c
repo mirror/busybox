@@ -56,12 +56,6 @@
 #define bb_need_name_longer_than_foo
 #include "messages.c"
 
-#ifdef BB_FEATURE_TAR_GZIP
-extern int unzip(int in, int out);
-extern int gz_open(FILE *compressed_file, int *pid);
-extern void gz_close(int gunzip_pid);
-#endif
-
 /* Tar file constants  */
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)

@@ -227,4 +227,8 @@ typedef struct ar_headers_s {
 } ar_headers_t;
 extern ar_headers_t get_ar_headers(int srcFd);
 extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename);
+
+extern int unzip(FILE *l_in_file, FILE *l_out_file);
+extern void gz_close(int gunzip_pid);
+extern int gz_open(FILE *compressed_file, int *pid);
 #endif /* __LIBBB_H__ */
