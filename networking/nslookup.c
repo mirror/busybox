@@ -90,10 +90,10 @@ static int addr_list_fprint(char **h_addr_list)
 }
 
 /* print the results as nslookup would */
-static struct hostent *hostent_fprint(struct hostent *host)
+static struct hostent *hostent_fprint(struct hostent *host, const char *server_host)
 {
 	if (host) {
-		printf("Name:       %s\n", host->h_name);
+		printf("%s     %s\n", server_host, host->h_name);
 		addr_list_fprint(host->h_addr_list);
 	} else {
 		printf("*** Unknown host\n");
@@ -142,7 +142,7 @@ static inline void server_print(void)
 	struct sockaddr_in def = _res.nsaddr_list[0];
 	char *ip = inet_ntoa(def.sin_addr);
 
-	hostent_fprint(gethostbyaddr_wrapper(ip));
+	hostent_fprint(gethostbyaddr_wrapper(ip), "Server:");
 	printf("\n");
 }
 #endif	
@@ -176,8 +176,8 @@ int nslookup_main(int argc, char **argv)
 	} else {
 		host = xgethostbyname(argv[1]);
 	}
-	hostent_fprint(host);
+	hostent_fprint(host, "Name:  ");
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.26 2001/10/24 04:59:56 andersen Exp $ */
+/* $Id: nslookup.c,v 1.27 2001/11/10 11:22:43 andersen Exp $ */

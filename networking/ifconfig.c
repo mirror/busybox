@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.15 2001/10/28 09:36:48 andersen Exp $
+ * $Id: ifconfig.c,v 1.16 2001/11/10 11:22:43 andersen Exp $
  *
  */
 
@@ -34,14 +34,12 @@
 #include <string.h>   // strcmp and friends
 #include <ctype.h>    // isdigit and friends
 #include <stddef.h>				/* offsetof */
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <net/if.h>
 #include <net/if_arp.h>
+#include <netinet/in.h>
 #include <linux/if_ether.h>
+#include <net/if.h>
+#include "inet_common.h"
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_IFCONFIG_SLIP
@@ -339,7 +337,7 @@ int ifconfig_main(int argc, char **argv)
 						safe_strncpy(host, *argv, (sizeof host));
 						sai.sin_family = AF_INET;
 						sai.sin_port = 0;
-						if (!strcmp(host, "default")) {
+						if (!strcmp(host, bb_INET_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
 						} else if (inet_aton(host, &sai.sin_addr) == 0) {

@@ -30,10 +30,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <pwd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
+#include "inet_common.h"
 #include "busybox.h"
 
 #define NETSTAT_CONNECTED	0x01
@@ -95,7 +92,7 @@ typedef enum {
 #define SO_WAITDATA     (1<<17)	/* wait data to read            */
 #define SO_NOSPACE      (1<<18)	/* no space to write            */
 
-char *itoa(unsigned int i)
+static char *itoa(unsigned int i)
 {
 	/* 21 digits plus null terminator, good for 64-bit or smaller ints */
 	static char local[22];
@@ -108,24 +105,7 @@ char *itoa(unsigned int i)
 	return p + 1;
 }
 
-char *inet_sprint(struct sockaddr* addr, int num)
-{
-	char *str;
-	str=inet_ntoa(((struct sockaddr_in*)addr)->sin_addr);
-	if (!strcmp(str,"0.0.0.0")) {
-		str="*";
-	}
-	if (num)
-	{
-	} else {
-		struct hostent *he=gethostbyaddr(&((struct sockaddr_in*)addr)->sin_addr,4,AF_INET);
-		if (he)
-			str=he->h_name;
-	}
-	return str;
-}
-
-char *get_sname(int port, const char *proto, int num)
+static char *get_sname(int port, const char *proto, int num)
 {
 	char *str=itoa(ntohs(port));
 	if (num) {
@@ -140,10 +120,13 @@ char *get_sname(int port, const char *proto, int num)
 	return str;
 }
 
-void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, char *proto, int numeric)
+static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, char *proto, int numeric)
 {
 	char *port_name;
-	safe_strncpy(ip_port, inet_sprint(addr, numeric), size);
+
+	INET_rresolve(ip_port, size, (struct sockaddr_in *)addr,
+		0x4000 | ((numeric&NETSTAT_NUMERIC) ? 0x0fff : 0),
+		0xffffffff);
 	port_name=get_sname(htons(port), proto, numeric);
 	if ((strlen(ip_port) + strlen(port_name)) > 22)
 		ip_port[22 - strlen(port_name)] = '\0';

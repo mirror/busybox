@@ -1,8 +1,13 @@
-1) Check Config.h and adjust if you need a different functionality than
-   defined by default.
+1) Run 'make config' or 'make menuconfig' and select the 
+   functionality that you wish to enable.
 
-2) Check the Makefile
+2) make dep
 
-3) make
+3) Check the Makefile for any Makefile setting you wish 
+    to adjust for your system (things like like setting 
+    your cross compiler, adjusting optimizations, etc)
 
-4) make install
+4) make
+
+5) Run 'make install' or 'make PREFIX=/target install' to
+    install busybox and all the needed links.

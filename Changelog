@@ -26,7 +26,11 @@
 	* Magick
 	    -- made init run inittab command's in the order they show up
 		in the inittab file (FIFO instead of LIFO).
-
+	* Vladimir Oleynik
+	    -- reverse resolve network name and cache in route and ifconfig
+		applets, fix print nslookup server name if compile without
+		uClibc, fix route crashe 'route add', fix warnings compile
+		networking and pwd_grp applets
 
 	 -Erik Andersen, --not yet released--
 

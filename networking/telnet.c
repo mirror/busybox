@@ -112,7 +112,7 @@ struct Globalvars * Gptr;
 static struct Globalvars G;
 #endif
 
-static inline void iacflush()
+static inline void iacflush(void)
 {
 	write(G.netfd, G.iacbuf, G.iaclen);
 	G.iaclen = 0;
@@ -121,13 +121,12 @@ static inline void iacflush()
 /* Function prototypes */
 static int getport(char * p);
 static struct in_addr getserver(char * p);
-static int create_socket();
 static void setup_sockaddr_in(struct sockaddr_in * addr, int port);
 static int remote_connect(struct in_addr addr, int port);
-static void rawmode();
-static void cookmode();
-static void do_linemode();
-static void will_charmode();
+static void rawmode(void);
+static void cookmode(void);
+static void do_linemode(void);
+static void will_charmode(void);
 static void telopt(byte c);
 static int subneg(byte c);
 #if 0
@@ -147,7 +146,7 @@ static void doexit(int ev)
 	exit(ev);
 }	
 
-static void conescape()
+static void conescape(void)
 {
 	char b;
 
@@ -353,7 +352,7 @@ static void putiac_subopt(byte c, char *str)
 
 static char const escapecharis[] = "\r\nEscape character is ";
 
-static void setConMode()
+static void setConMode(void)
 {
 	if (G.telflags & UF_ECHO)
 	{
@@ -375,7 +374,7 @@ static void setConMode()
 
 /* ******************************* */
 
-static void will_charmode()
+static void will_charmode(void)
 {
 	G.charmode = CHM_TRY;
 	G.telflags |= (UF_ECHO | UF_SGA);
@@ -386,7 +385,7 @@ static void will_charmode()
 	iacflush();
 }
 
-static void do_linemode()
+static void do_linemode(void)
 {
 	G.charmode = CHM_TRY;
 	G.telflags &= ~(UF_ECHO | UF_SGA);
@@ -405,7 +404,7 @@ static inline void to_notsup(char c)
 	else if (G.telwish == DO)	putiac2(WONT, c);
 }
 
-static inline void to_echo()
+static inline void to_echo(void)
 {
 	/* if server requests ECHO, don't agree */
 	if      (G.telwish == DO) {	putiac2(WONT, TELOPT_ECHO);	return; }
@@ -432,7 +431,7 @@ static inline void to_echo()
 	WriteCS(1, "\r\n");  /* sudden modec */
 }
 
-static inline void to_sga()
+static inline void to_sga(void)
 {
 	/* daemon always sends will/wont, client do/dont */
 
@@ -454,7 +453,7 @@ static inline void to_sga()
 }
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-static inline void to_ttype()
+static inline void to_ttype(void)
 {
 	/* Tell server we will (or won't) do TTYPE */
 
@@ -471,10 +470,10 @@ static void telopt(byte c)
 {
 	switch (c)
 	{
-	case TELOPT_ECHO:		to_echo(c);		break;
-	case TELOPT_SGA:		to_sga(c);		break;
+	case TELOPT_ECHO:               to_echo();             break;
+	case TELOPT_SGA:                to_sga();              break;
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-	case TELOPT_TTYPE:		to_ttype(c);	break;
+	case TELOPT_TTYPE:              to_ttype();    break;
 #endif
 	default:				to_notsup(c);	break;
 	}
@@ -515,12 +514,12 @@ static void fgotsig(int sig)
 }
 
 
-static void rawmode()
+static void rawmode(void)
 {
 	tcsetattr(0, TCSADRAIN, &G.termios_raw);
 }	
 
-static void cookmode()
+static void cookmode(void)
 {
 	tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
@@ -650,7 +649,7 @@ static struct in_addr getserver(char * host)
 	return addr;
 }
 
-static int create_socket()
+static int create_socket(void)
 {
 	return socket(AF_INET, SOCK_STREAM, 0);
 }
@@ -708,4 +707,3 @@ c-basic-offset: 4
 tab-width: 4
 End:
 */
-

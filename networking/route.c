@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.13 2001/09/05 19:32:00 andersen Exp $
+ * $Id: route.c,v 1.14 2001/11/10 11:22:43 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -23,11 +23,9 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
+#include "inet_common.h"
 #include <net/route.h>
 #include <linux/param.h>  // HZ
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -55,29 +53,6 @@
 #define E_INTERN        2
 #define E_NOSUPP        1
 
-/* resolve XXX.YYY.ZZZ.QQQ -> binary */
-
-static int
-INET_resolve(char *name, struct sockaddr *sa)
-{
-	struct sockaddr_in *s_in = (struct sockaddr_in *)sa;
-
-	s_in->sin_family = AF_INET;
-	s_in->sin_port = 0;
-
-	/* Default is special, meaning 0.0.0.0. */
-	if (strcmp(name, "default")==0) {
-		s_in->sin_addr.s_addr = INADDR_ANY;
-		return 1;
-	}
-	/* Look to see if it's a dotted quad. */
-	if (inet_aton(name, &s_in->sin_addr)) {
-		return 0;
-	}
-	/* guess not.. */
-	return -1;
-}
-
 #if defined (SIOCADDRTOLD) || defined (RTF_IRTT)        /* route */
 #define HAVE_NEW_ADDRT 1
 #endif
@@ -96,13 +71,16 @@ INET_resolve(char *name, struct sockaddr *sa)
 #define full_mask(x) (((struct sockaddr_in *)&(x))->sin_addr.s_addr)
 #endif
 
+
+
 /* add or delete a route depending on action */
 
 static int
 INET_setroute(int action, int options, char **args)
 {
 	struct rtentry rt;
-	char target[128], gateway[128] = "NONE", netmask[128] = "default";
+	char target[128], gateway[128] = "NONE";
+	const char *netmask = bb_INET_default;
 	int xflag, isnet;
 	int skfd;
 
@@ -117,13 +95,15 @@ INET_setroute(int action, int options, char **args)
 		xflag = 2;
 		args++;
 	}
+	if (*args == NULL)
+	    show_usage();
 	safe_strncpy(target, *args++, (sizeof target));
 
 	/* Clean out the RTREQ structure. */
 	memset((char *) &rt, 0, sizeof(struct rtentry));
 
 
-	if ((isnet = INET_resolve(target, &rt.rt_dst)) < 0) {
+	if ((isnet = INET_resolve(target, (struct sockaddr_in *)&rt.rt_dst, xflag!=1)) < 0) {
 		error_msg(_("can't resolve %s"), target);
 		return EXIT_FAILURE;   /* XXX change to E_something */
 	}
@@ -169,8 +149,8 @@ INET_setroute(int action, int options, char **args)
 			args++;
 			if (!*args || mask_in_addr(rt))
 				show_usage();
-			safe_strncpy(netmask, *args, (sizeof netmask));
-			if ((isnet = INET_resolve(netmask, &mask)) < 0) {
+			netmask = *args;
+			if ((isnet = INET_resolve(netmask, (struct sockaddr_in *)&mask, 0)) < 0) {
 				error_msg(_("can't resolve netmask %s"), netmask);
 				return E_LOOKUP;
 			}
@@ -186,7 +166,7 @@ INET_setroute(int action, int options, char **args)
 			if (rt.rt_flags & RTF_GATEWAY)
 				show_usage();
 			safe_strncpy(gateway, *args, (sizeof gateway));
-			if ((isnet = INET_resolve(gateway, &rt.rt_gateway)) < 0) {
+			if ((isnet = INET_resolve(gateway, (struct sockaddr_in *)&rt.rt_gateway, 1)) < 0) {
 				error_msg(_("can't resolve gw %s"), gateway);
 				return E_LOOKUP;
 			}
@@ -362,7 +342,7 @@ INET_setroute(int action, int options, char **args)
 #define RTF_REJECT      0x0200          /* Reject route                 */
 #endif
 
-static void displayroutes(void)
+static void displayroutes(int noresolve)
 {
 	char buff[256];
 	int  nl = 0 ;
@@ -375,12 +355,17 @@ static void displayroutes(void)
 
 	char sdest[16], sgw[16];
 
-
 	FILE *fp = xfopen("/proc/net/route", "r");
+
+	if(noresolve)
+		noresolve = 0x0fff;
 
 	while( fgets(buff, sizeof(buff), fp) != NULL ) {
 		if(nl) {
 			int ifl = 0;
+			int numeric;
+			struct sockaddr_in s_addr;
+
 			while(buff[ifl]!=' ' && buff[ifl]!='\t' && buff[ifl]!='\0')
 				ifl++;
 			buff[ifl]=0;    /* interface */
@@ -412,10 +397,14 @@ static void displayroutes(void)
  				dest.s_addr = d;
  				gw.s_addr   = g;
  				mask.s_addr = m;
- 				strcpy(sdest,  (dest.s_addr==0 ? "default" :
-  					inet_ntoa(dest)));
- 				strcpy(sgw,    (gw.s_addr==0   ? "*"       :
-  					inet_ntoa(gw)));
+				memset(&s_addr, 0, sizeof(struct sockaddr_in));
+				s_addr.sin_family = AF_INET;
+				s_addr.sin_addr = dest;
+				numeric = noresolve | 0x8000; /* default instead of * */
+				INET_rresolve(sdest, sizeof(sdest), &s_addr, numeric, m);
+				numeric = noresolve | 0x4000; /* host instead of net */
+				s_addr.sin_addr = gw;
+				INET_rresolve(sgw, sizeof(sgw), &s_addr, numeric, m);
  				printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
  					sdest, sgw,
  					inet_ntoa(mask),
@@ -433,8 +422,8 @@ int route_main(int argc, char **argv)
 	argc--;
 	argv++;
 
-	if (*argv == NULL) {
-		displayroutes();
+	if (*argv == NULL || (*(argv+1)==NULL && strcmp(*argv, "-n")==0)) {
+		displayroutes(*argv != NULL);
 		return EXIT_SUCCESS;
 	} else {
 		/* check verb */

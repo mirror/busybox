@@ -72,11 +72,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include "inet_common.h"
 #include <netdb.h>
 #include <endian.h>
-#include <arpa/inet.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -228,8 +226,8 @@ static inline void
 inetname(struct sockaddr_in *from)
 {
 	char *cp;
-	struct hostent *hp;
 	static char domain[MAXHOSTNAMELEN + 1];
+	char name[MAXHOSTNAMELEN + 1];
 	static int first = 1;
 	const char *ina;
 
@@ -243,12 +241,11 @@ inetname(struct sockaddr_in *from)
 	}
 	cp = 0;
 	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
-		hp = gethostbyaddr((char *)&(from->sin_addr), sizeof (from->sin_addr), AF_INET);
-		if (hp) {
-			if ((cp = strchr(hp->h_name, '.')) &&
+		if(INET_rresolve(name, sizeof(name), from, 0, 0xffffffff) >= 0) {
+			if ((cp = strchr(name, '.')) &&
 			    !strcmp(cp + 1, domain))
 				*cp = 0;
-			cp = (char *)hp->h_name;
+			cp = (char *)name;
 		}
 	}
 	ina = inet_ntoa(from->sin_addr);
@@ -645,7 +642,7 @@ traceroute_main(argc, argv)
 		}
 		putchar('\n');
 		if (got_there || unreachable >= nprobes-1)
-			exit(0);
+			return 0;
 	}
 
 	return 0;
