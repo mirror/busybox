@@ -361,16 +361,15 @@ const struct BB_applet applets[] = {
 #ifdef BB_FEATURE_INSTALLER
 /* 
  * directory table
- *      this should be consistent w/ the enum, internal.h::Location,
- *      or else...
+ *		this should be consistent w/ the enum, internal.h::Location,
+ *		or else...
  */
 static char* install_dir[] = {
-    "/",
-    "/bin",
-    "/sbin",
-    "/usr/bin",
-    "/usr/sbin",
-	NULL
+	"/",
+	"/bin",
+	"/sbin",
+	"/usr/bin",
+	"/usr/sbin",
 };
 
 /* abstract link() */
@@ -384,10 +383,10 @@ typedef int (*__link_f)(const char *, const char *);
  */
 static char *busybox_fullpath()
 {
-	pid_t	pid;
-	char	path[256];
-	char	proc[256];
-	int		len;
+	pid_t pid;
+	char path[256];
+	char proc[256];
+	int len;
 
 	pid = getpid();
 	sprintf(proc, "/proc/%d/exe", pid);
@@ -404,30 +403,30 @@ static char *busybox_fullpath()
 /* create (sym)links for each applet */
 static int install_links(const char *busybox, int use_symbolic_links)
 {
-    __link_f Link = link;
+	__link_f Link = link;
 
-    char	command[256];
-	int		i;
-	int		rc = 0;
+	char command[256];
+	int i;
+	int rc = 0;
 
 	if (use_symbolic_links) Link = symlink;
 
-    for (i = 0; applets[i].name != NULL; i++) {
-        sprintf (
+	for (i = 0; applets[i].name != NULL; i++) {
+		sprintf (
 			command, 
 			"%s/%s", 
 			install_dir[applets[i].location], 
 			applets[i].name
 		);
 #if 1
-        rc |= Link(busybox, command);
+		rc |= Link(busybox, command);
 #else
-        puts(command);
+		puts(command);
 #endif
 		if (rc) {
 			fprintf(stderr,"busybox : %s : %s\n", command, strerror(errno));
 		}
-    }
+	}
 	return rc;
 }
 
