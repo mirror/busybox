@@ -61,6 +61,7 @@ enum {
 #include <signal.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/sysmacros.h>     /* major() and minor() */
 #include "busybox.h"
 #ifdef CONFIG_SELINUX
 #include <fs_secure.h>
@@ -70,11 +71,6 @@ enum {
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 #include <time.h>
-#endif
-
-#ifndef MAJOR
-#define MAJOR(dev) (((dev)>>8)&0xff)
-#define MINOR(dev) ((dev)&0xff)
 #endif
 
 /* what is the overall style of the listing */
@@ -700,8 +696,8 @@ static int list_single(struct dnode *dn)
 		case LIST_SIZE:
 		case LIST_DEV:
 			if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
-				column += printf("%4d, %3d ", (int) MAJOR(dn->dstat.st_rdev),
-					   (int) MINOR(dn->dstat.st_rdev));
+				column += printf("%4d, %3d ", (int) major(dn->dstat.st_rdev),
+					   (int) minor(dn->dstat.st_rdev));
 			} else {
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 				if (all_fmt & LS_DISP_HR) {

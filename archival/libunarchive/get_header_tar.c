@@ -121,8 +121,8 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->mtime = strtol(tar.formated.mtime, NULL, 8);
 	file_header->link_name = (tar.formated.linkname[0] != '\0') ?
 	    bb_xstrdup(tar.formated.linkname) : NULL;
-	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
-				 strtol(tar.formated.devminor, NULL, 8));
+	file_header->device = makedev(strtol(tar.formated.devmajor, NULL, 8),
+		strtol(tar.formated.devminor, NULL, 8));
 
 	/* Set bits 0-11 of the files mode */
 	file_header->mode = 07777 & strtol(tar.formated.mode, NULL, 8);

@@ -13,21 +13,22 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/sysmacros.h>     /* major() and minor() */
 #include "busybox.h"
 
 int makedevs_main(int argc, char **argv)
 {
 	mode_t mode;
 	char *basedev, *type, *nodname, buf[255];
-	int major, Sminor, S, E;
+	int Smajor, Sminor, S, E;
 
 	if (argc < 7 || *argv[1]=='-')
 		bb_show_usage();
 
 	basedev = argv[1];
 	type = argv[2];
-	major = atoi(argv[3]) << 8;  /* correcting param to mknod() */
-	Sminor = atoi(argv[4]);
+	Smajor = major(atoi(argv[3]));
+	Sminor = minor(atoi(argv[4]));
 	S = atoi(argv[5]);
 	E = atoi(argv[6]);
 	nodname = argc == 8 ? basedev : buf;
@@ -57,7 +58,7 @@ int makedevs_main(int argc, char **argv)
 
 	/* if mode != S_IFCHR and != S_IFBLK third param in mknod() ignored */
 
-		if (mknod(nodname, mode, major | Sminor))
+		if (mknod(nodname, mode, Smajor | Sminor))
 			bb_error_msg("Failed to create: %s", nodname);
 
 		if (nodname == basedev) /* ex. /dev/hda - to /dev/hda1 ... */

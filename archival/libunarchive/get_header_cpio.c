@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/sysmacros.h>     /* major() and minor() */
 #include "unarchive.h"
 #include "libbb.h"
 
@@ -143,7 +144,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 			}
 		}
 	}
-	file_header->device = (major << 8) | minor;
+	file_header->device = makedev(major, minor);
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_data(archive_handle);

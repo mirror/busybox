@@ -49,6 +49,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/sysmacros.h>     /* major() and minor() */
 #include "unarchive.h"
 #include "busybox.h"
 
@@ -57,11 +58,6 @@
 /* Tar file constants  */
 # define TAR_MAGIC          "ustar"	/* ustar and a null */
 # define TAR_VERSION        "  "	/* Be compatable with GNU tar format */
-
-# ifndef MAJOR
-#  define MAJOR(dev) (((dev)>>8)&0xff)
-#  define MINOR(dev) ((dev)&0xff)
-# endif
 
 static const int TAR_BLOCK_SIZE = 512;
 static const int TAR_MAGIC_LEN = 6;
@@ -262,15 +258,15 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	} else if (S_ISCHR(statbuf->st_mode)) {
 		header.typeflag = CHRTYPE;
 		putOctal(header.devmajor, sizeof(header.devmajor),
-				 MAJOR(statbuf->st_rdev));
+				 major(statbuf->st_rdev));
 		putOctal(header.devminor, sizeof(header.devminor),
-				 MINOR(statbuf->st_rdev));
+				 minor(statbuf->st_rdev));
 	} else if (S_ISBLK(statbuf->st_mode)) {
 		header.typeflag = BLKTYPE;
 		putOctal(header.devmajor, sizeof(header.devmajor),
-				 MAJOR(statbuf->st_rdev));
+				 major(statbuf->st_rdev));
 		putOctal(header.devminor, sizeof(header.devminor),
-				 MINOR(statbuf->st_rdev));
+				 minor(statbuf->st_rdev));
 	} else if (S_ISFIFO(statbuf->st_mode)) {
 		header.typeflag = FIFOTYPE;
 	} else if (S_ISREG(statbuf->st_mode)) {
