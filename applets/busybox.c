@@ -162,7 +162,18 @@ int busybox_main(int argc, char **argv)
 	been_there_done_that = 1;
 
 	/* Move the command line down a notch */
-	return (main(argc, argv+1));
+	/* Preserve pointers so setproctitle() works consistently */
+	len = argv[argc] + strlen(argv[argc]) - argv[1];
+	memmove(argv[0], argv[1], len);
+	memset(argv[0] + len, 0, argv[1] - argv[0]);
+
+	/* Fix up the argv pointers */
+	len = argv[1] - argv[0];
+	memmove(argv, argv + 1, sizeof(char *) * (argc + 1));
+	for (i = 0; i < argc; i++)
+		argv[i] -= len;
+
+	return (main(argc, argv));
 }
 
 /*
