@@ -315,7 +315,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	char new_opts[1024];
 	struct timeval total_timeout;
 	enum clnt_stat clnt_stat;
-	static struct nfs_mount_data data;
+	struct nfs_mount_data data;
 	char *opt, *opteq;
 	int val;
 	struct hostent *hp;
@@ -602,10 +602,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 
 	data.version = nfs_mount_version;
-	*mount_opts = (char *) &data;
 
 	if (*flags & MS_REMOUNT)
-		return 0;
+		goto copy_data_and_return;
 
 	/*
 	 * If the previous mount operation on the same host was
@@ -857,6 +856,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	auth_destroy(mclient->cl_auth);
 	clnt_destroy(mclient);
 	close(msock);
+copy_data_and_return:
+	*mount_opts = xrealloc(*mount_opts, sizeof(data));
+	memcpy(*mount_opts, &data, sizeof(data));
 	return 0;
 
 	/* abort */
