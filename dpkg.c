@@ -11,18 +11,13 @@
 
 #include "busybox.h"
 
-//#define PACKAGE "udpkg"
-//#define VERSION "0.1"
+#define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
-/*
- * Should we do full dependency checking?
- */
+/* Should we do full dependency checking? */
 #define DODEPENDS 1
 
-/*
- * Should we do debugging?
- */
-#define DODEBUG 0
+/* Should we do debugging? */
+#define DODEBUG 1
 
 #ifdef DODEBUG
 #define SYSTEM(x) do_system(x)
@@ -32,15 +27,20 @@
 #define DPRINTF(fmt,args...) /* nothing */
 #endif
 
-#define BUFSIZE		4096
-#define DEPENDSMAX	64	/* maximum number of depends we can handle */
+/* from dpkg-deb.c */
+extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename);
+static const int dpkg_deb_contents = 1;
+static const int dpkg_deb_control = 2;
+//	const int dpkg_deb_info = 4;
+static const int dpkg_deb_extract = 8;
+static const int dpkg_deb_verbose_extract = 16;
+static const int dpkg_deb_list = 32;
 
 static const char statusfile[] = "/var/lib/dpkg/status.udeb";
 static const char new_statusfile[] = "/var/lib/dpkg/status.udeb.new";
 static const char bak_statusfile[] = "/var/lib/dpkg/status.udeb.bak";
 
 static const char dpkgcidir[] = "/var/lib/dpkg/tmp.ci/";
-static const char rm_dpkgcidir[] = "rm -rf /var/lib/dpkg/tmp.ci/";
 
 static const char infodir[] = "/var/lib/dpkg/info/";
 static const char udpkg_quiet[] = "UDPKG_QUIET";
@@ -113,6 +113,21 @@ static int package_compare(const void *p1, const void *p2)
 {
 	return strcmp(((package_t *)p1)->package, 
 		((package_t *)p2)->package);
+}
+
+static int remove_dpkgcidir()
+{
+	char *rm_dpkgcidir = NULL;
+
+	rm_dpkgcidir = (char *) xmalloc(strlen(dpkgcidir) + 8);
+	strcpy(rm_dpkgcidir, "rm -rf ");
+	strcat(rm_dpkgcidir, dpkgcidir);
+
+	if (SYSTEM(rm_dpkgcidir) != 0) {
+		perror("mkdir ");
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
 
 #ifdef DODEPENDS
@@ -342,7 +357,7 @@ static const char *status_print(unsigned long flags)
  * Read a control file (or a stanza of a status file) and parse it,
  * filling parsed fields into the package structure
  */
-static void control_read(FILE *file, package_t *p)
+static int control_read(FILE *file, package_t *p)
 {
 	char *line;
 
@@ -374,6 +389,7 @@ static void control_read(FILE *file, package_t *p)
 		/* TODO: localized descriptions */
 	}
 	free(line);
+	return EXIT_SUCCESS;
 }
 
 static void *status_read(void)
@@ -558,62 +574,52 @@ static int dpkg_doconfigure(package_t *pkg)
 static int dpkg_dounpack(package_t *pkg)
 {
 	int r = 0, i;
-	char *cwd, *p;
-	FILE *infp, *outfp;
+	char *cwd;
+	FILE *outfp;
+	char *src_file = NULL;
+	char *dst_file = NULL;
+	char *lst_file = NULL;
+	char *adminscripts[] = { "/prerm", "/postrm", "/preinst", "/postinst",
+			"/conffiles", "/md5sums", "/shlibs", "/templates" };
 	char buf[1024], buf2[1024];
-	char *adminscripts[] = { "prerm", "postrm", "preinst", "postinst",
-			"conffiles", "md5sums", "shlibs", "templates" };
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
 	cwd = getcwd(0, 0);
 	chdir("/");
-	snprintf(buf, sizeof(buf), "ar -p %s data.tar.gz|zcat|tar -xf -", pkg->file);
-	if (SYSTEM(buf) != 0) {
-		goto end;
-	}
+	deb_extract(dpkg_deb_extract, "/", pkg->file);
+
 	/* Installs the package scripts into the info directory */
 	for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
-		snprintf(buf, sizeof(buf), "%s%s/%s",
-			dpkgcidir, pkg->package, adminscripts[i]);
-		snprintf(buf2, sizeof(buf), "%s%s.%s", 
-			infodir, pkg->package, adminscripts[i]);
-		if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0) {
-			fprintf(stderr, "Cannot copy %s to %s: %s\n", 
-				buf, buf2, strerror(errno));
-			r = 1;
-			break;
+		/* The full path of the current location of the admin file */
+		src_file = xrealloc(src_file, strlen(dpkgcidir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
+		strcpy(src_file, dpkgcidir);
+		strcat(src_file, pkg->package);
+		strcat(src_file, adminscripts[i]);
+
+		/* the full path of where we want the file to be copied to */
+		dst_file = xrealloc(dst_file, strlen(infodir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
+		strcpy(dst_file, infodir);
+		strcat(dst_file, pkg->package);
+		strcat(dst_file, adminscripts[i]);
+
+		/* copy admin file to permanent home */
+		if (copy_file(src_file, dst_file, TRUE, FALSE, FALSE) < 0) {
+			error_msg_and_die("Cannot copy %s to %s ", buf, buf2);
 		}
-		/* ugly hack to create the list file; should
-		 * probably do something more elegant
-		 *
-		 * why oh why does dpkg create the list file
-		 * so oddly...
-		 */
-		snprintf(buf, sizeof(buf), "ar -p %s data.tar.gz|zcat|tar -tf -", pkg->file);
-		snprintf(buf2, sizeof(buf2), "%s%s.list", infodir, pkg->package);
-		if ((infp = popen(buf, "r")) == NULL || (outfp = fopen(buf2, "w")) == NULL) {
-			fprintf(stderr, "Cannot create %s\n", buf2);
-			r = 1;
-			break;
-		}
-		while (fgets(buf, sizeof(buf), infp) && !feof(infp)) {
-			p = buf;
-			if (*p == '.') {
-				p++;
-			}
-			if ((*p == '/') && (*(p + 1) == '\n')) {
-				*(p + 1) = '.';
-				*(p + 2) = '\n';
-				*(p + 3) = 0;
-			}
-			if (p[strlen(p) - 2] == '/') {
-				p[strlen(p) - 2] = '\n';
-				p[strlen(p) - 1] = 0;
-			}
-			fputs(p, outfp);
-		}
-		fclose(infp);
+
+		/* create the list file */
+		lst_file = (char *) malloc(strlen(infodir) + strlen(pkg->package) + 6);
+		strcpy(lst_file, infodir);
+		strcat(lst_file, pkg->package);
+		strcat(lst_file, ".list");
+		outfp = freopen(lst_file, "w", stdout);
+		deb_extract(dpkg_deb_list, NULL, pkg->file);
+		stdout = freopen(NULL, "w", outfp);
+
+		printf("done\n");
+		getchar();
+
 		fclose(outfp);
 	}
 
@@ -628,80 +634,86 @@ static int dpkg_dounpack(package_t *pkg)
 	} else {
 		pkg->status |= status_statushalfinstalled;
 	}
-end:
 	chdir(cwd);
 	return r;
 }
 
-static int dpkg_doinstall(package_t *pkg)
-{
-	DPRINTF("Installing %s\n", pkg->package);
-	return (dpkg_dounpack(pkg) || dpkg_doconfigure(pkg));
-}
-
+/*
+ * Extract and parse the control.tar.gz from the specified package
+ */
 static int dpkg_unpackcontrol(package_t *pkg)
 {
-	int r = 1;
-	char *cwd = 0;
-	char *p;
-	char buf[1024];
-	FILE *f;
+	char *tmp_name;
+	FILE *file;
+	int length;
 
-	p = strrchr(pkg->file, '/');
-	if (p) p++; else p = pkg->file;
-	p = pkg->package = strdup(p);
-	while (*p != 0 && *p != '_' && *p != '.') {
-		p++;
+	/* clean the temp directory (dpkgcidir) be recreating it */
+	remove_dpkgcidir();
+	if (mkdir(dpkgcidir, S_IRWXU) != 0) {
+		perror("mkdir");
+		return EXIT_FAILURE;
 	}
-	*p = 0;
 
-	cwd = getcwd(0, 0);
-	snprintf(buf, sizeof(buf), "%s%s", dpkgcidir, pkg->package);
-	DPRINTF("dir = %s\n", buf);
-
-	if (mkdir(buf, S_IRWXU) == 0 && chdir(buf) == 0) {
-		snprintf(buf, sizeof(buf), "ar -p %s control.tar.gz|zcat|tar -xf -", pkg->file);
-		if (SYSTEM(buf) == 0) {
-			if ((f = fopen("control", "r")) != NULL) {
-				control_read(f, pkg);
-				r = 0;
-			}
-		}
+	/*
+	 * Get the package name from the file name,
+	 * first remove the directories
+	 */
+	if ((tmp_name = strrchr(pkg->file, '/')) == NULL) {
+		tmp_name = pkg->file;
+	} else {
+		tmp_name++;
 	}
-	chdir(cwd);
-	free(cwd);
+	/* now remove trailing version numbers etc */
+	length = strcspn(tmp_name, "_.");
+	pkg->package = (char *) xmalloc(length + 1);
+	/* store the package name */
+	strncpy(pkg->package, tmp_name, length);
 
-	return r;
+	/* work out the full extraction path */
+	tmp_name = (char *) xmalloc(strlen(dpkgcidir) + strlen(pkg->package) + 9);
+	memset(tmp_name, 0, strlen(dpkgcidir) + strlen(pkg->package) + 9);
+	strcpy(tmp_name, dpkgcidir);
+	strcat(tmp_name, pkg->package);
+
+	/* extract control.tar.gz to the full extraction path */
+	deb_extract(dpkg_deb_control, tmp_name, pkg->file);
+
+	/* parse the extracted control file */
+	strcat(tmp_name, "/control");
+	if ((file = fopen(tmp_name, "r")) == NULL) {
+		return EXIT_FAILURE;
+	}
+	if (control_read(file, pkg) == EXIT_FAILURE) {
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }
 
-static int dpkg_unpack(package_t *pkgs)
+static int dpkg_unpack(package_t *pkgs, void *status)
 {
 	int r = 0;
 	package_t *pkg;
-	void *status = status_read();
 
-	if (SYSTEM(rm_dpkgcidir) != 0 ||
-	    mkdir(dpkgcidir, S_IRWXU) != 0) {
-		perror("mkdir");
-		return 1;
-	}
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
-		dpkg_unpackcontrol(pkg);
-		r = dpkg_dounpack(pkg);
-		if (r != 0) break;
+		if (dpkg_unpackcontrol(pkg) == EXIT_FAILURE) {
+			return EXIT_FAILURE;
+		}
+		if ((r = dpkg_dounpack(pkg)) != 0 ) {
+			break;
+		}
 	}
 	status_merge(status, pkgs);
-	SYSTEM(rm_dpkgcidir);
+	remove_dpkgcidir();
 
 	return r;
 }
 
-static int dpkg_configure(package_t *pkgs)
+static int dpkg_configure(package_t *pkgs, void *status)
 {
 	int r = 0;
 	void *found;
 	package_t *pkg;
-	void *status = status_read();
 
 	for (pkg = pkgs; pkg != 0 && r == 0; pkg = pkg->next) {
 		found = tfind(pkg, &status, package_compare);
@@ -722,25 +734,18 @@ static int dpkg_configure(package_t *pkgs)
 	return r;
 }
 
-static int dpkg_install(package_t *pkgs)
+static int dpkg_install(package_t *pkgs, void *status)
 {
 	package_t *p, *ordered = 0;
-	void *status = status_read();
 
-	if (SYSTEM(rm_dpkgcidir) != 0 ||
-	    mkdir(dpkgcidir, S_IRWXU) != 0) {
-		perror("mkdir");
-		return 1;
-	}
-	
 	/* Stage 1: parse all the control information */
-	for (p = pkgs; p != 0; p = p->next)
-		if (dpkg_unpackcontrol(p) != 0) {
+	for (p = pkgs; p != 0; p = p->next) {
+		if (dpkg_unpackcontrol(p) == EXIT_FAILURE) {
 			perror(p->file);
-			/* force loop break, and prevents further ops */
-			pkgs = 0;
+			return EXIT_FAILURE;
 		}
-	
+	}
+
 	/* Stage 2: resolve dependencies */
 #ifdef DODEPENDS
 	ordered = depends_resolve(pkgs, status);
@@ -759,7 +764,11 @@ static int dpkg_install(package_t *pkgs)
 		p->status &= status_flagmask;
 		p->status |= status_flagok;
 
-		if (dpkg_doinstall(p) != 0) {
+		DPRINTF("Installing %s\n", p->package);
+		if (dpkg_dounpack(p) != 0) {
+			perror(p->file);
+		}
+		if (dpkg_doconfigure(p) != 0) {
 			perror(p->file);
 		}
 	}
@@ -767,15 +776,14 @@ static int dpkg_install(package_t *pkgs)
 	if (ordered != 0) {
 		status_merge(status, pkgs);
 	}
-	SYSTEM(rm_dpkgcidir);
+	remove_dpkgcidir();
 
 	return 0;
 }
 
-static int dpkg_remove(package_t *pkgs)
+static int dpkg_remove(package_t *pkgs, void *status)
 {
 	package_t *p;
-	void *status = status_read();
 
 	for (p = pkgs; p != 0; p = p->next)
 	{
@@ -791,6 +799,7 @@ extern int dpkg_main(int argc, char **argv)
 	char *s;
 	package_t *p, *packages = NULL;
 	char *cwd = getcwd(0, 0);
+	void *status = NULL;
 
 	while (*++argv) {
 		if (**argv == '-') {
@@ -819,17 +828,19 @@ extern int dpkg_main(int argc, char **argv)
 		}		
 	}
 
+	status = status_read();
+
 	switch (opt) {
 		case 'i':
-			return dpkg_install(packages);
+			return dpkg_install(packages, status);
 		case 'r':
-			return dpkg_remove(packages);
+			return dpkg_remove(packages, status);
 		case 'u':
-			return dpkg_unpack(packages);
+			return dpkg_unpack(packages, status);
 		case 'c':
-			return dpkg_configure(packages);
-		default :	
+			return dpkg_configure(packages, status);
+		default :
 			usage(dpkg_usage);
-			return 0;
+			return EXIT_FAILURE;
 	}
 }
