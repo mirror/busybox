@@ -443,7 +443,6 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr)
 	filenamelen = strcspn(&filecmdstr[idx], semicolon_whitespace);
 	sed_cmd->filename = xmalloc(filenamelen + 1);
 	safe_strncpy(sed_cmd->filename, &filecmdstr[idx], filenamelen + 1);
-
 	return idx + filenamelen;
 }
 
@@ -996,10 +995,10 @@ static void process_file(FILE * file)
 				case 'r':{
 					FILE *outfile;
 
-					puts(pattern_space);
 					outfile = fopen(sed_cmd->filename, "r");
-					if (outfile)
+					if (outfile) {
 						bb_xprint_and_close_file(outfile);
+					}
 					/* else if we couldn't open the output file,
 					 * no biggie, just don't print anything */
 					altered++;
