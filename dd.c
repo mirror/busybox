@@ -20,7 +20,7 @@ const char dd_usage[] =
 usage: [if=name] [of=name] [bs=n] [count=n]\n\
 \tif=FILE\tread from FILE instead of stdin\n\
 \tof=FILE\twrite to FILE instead of stout\n\
-\tbs=n\tread and write N bytes at a time\n\
+\tbs=n\tread and write N BYTES at a time\n\
 \tcount=n\tcopy only n input blocks\n\
 \tskip=n\tskip n input blocks\n\
 \n\
@@ -100,25 +100,25 @@ extern int dd_main (int argc, char **argv)
 
     /* Parse any options */
     while (argc) {
-	if (inFile == NULL && (strncmp("if", *argv, 2) == 0))
-	    inFile=*argv;
-	else if (outFile == NULL && (strncmp("of", *argv, 2) == 0))
-	    outFile=*argv;
+	if (inFile == NULL && (strncmp(*argv, "if", 2) == 0))
+	    inFile=((strchr(*argv, '='))+1);
+	else if (outFile == NULL && (strncmp(*argv, "of", 2) == 0))
+	    outFile=((strchr(*argv, '='))+1);
 	else if (strncmp("count", *argv, 5) == 0) {
-	    count = getNum (*argv);
+	    count = getNum ((strchr(*argv, '='))+1);
 	    if (count <= 0) {
 		fprintf (stderr, "Bad count value %ld\n", count);
 		goto usage;
 	    }
 	}
-	else if (strncmp("bs", *argv, 2) == 0) {
-	    blockSize = getNum(*argv);
+	else if (strncmp(*argv, "bs", 2) == 0) {
+	    blockSize = getNum ((strchr(*argv, '='))+1);
 	    if (blockSize <= 0) {
 		fprintf (stderr, "Bad block size value %d\n", blockSize);
 		goto usage;
 	    }
 	}
-	else if (strncmp("skip", *argv, 4) == 0) {
+	else if (strncmp(*argv, "skip", 4) == 0) {
 	    skipBlocks = atoi( *argv); 
 	    if (skipBlocks <= 0) {
 		fprintf (stderr, "Bad skip value %d\n", skipBlocks);
@@ -129,10 +129,9 @@ extern int dd_main (int argc, char **argv)
 	else {
 	    fprintf (stderr, "Got here. argv=%s\n", *argv);
 	    goto usage;
-
+	}
 	argc--;
 	argv++;
-	}
     }
     if ( inFile == NULL || outFile == NULL)
 	goto usage;
@@ -140,13 +139,13 @@ extern int dd_main (int argc, char **argv)
     buf = malloc (blockSize);
     if (buf == NULL) {
 	fprintf (stderr, "Cannot allocate buffer\n");
-	return( FALSE);
+	exit( FALSE);
     }
 
     intotal = 0;
     outTotal = 0;
 
-    if (!inFile)
+    if (inFile == NULL)
 	inFd = STDIN;
     else
 	inFd = open (inFile, 0);
@@ -154,10 +153,10 @@ extern int dd_main (int argc, char **argv)
     if (inFd < 0) {
 	perror (inFile);
 	free (buf);
-	return( FALSE);
+	exit( FALSE);
     }
 
-    if (!outFile)
+    if (outFile == NULL)
 	outFd = STDOUT;
     else
 	outFd = creat (outFile, 0666);
@@ -166,10 +165,10 @@ extern int dd_main (int argc, char **argv)
 	perror (outFile);
 	close (inFd);
 	free (buf);
-	return( FALSE);
+	exit( FALSE);
     }
 
-    lseek(inFd, skipBlocks*blockSize, SEEK_SET);
+    //lseek(inFd, skipBlocks*blockSize, SEEK_SET);
     while (outTotal < count * blockSize) {
 	inCc = read (inFd, buf, blockSize);
 	if (inCc < 0) {
