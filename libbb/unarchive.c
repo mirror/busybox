@@ -82,8 +82,11 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 		/* strip leading '/' in filename to extract as prefix may not be dir */
 		/* Cant use concat_path_file here as prefix might not be a directory */
 		char *path = file_entry->name;
-		if (*path == '/') {
-			path++;
+		if (strncmp("./", path, 2) == 0) {
+			path += 2;
+			if (strlen(path) == 0) {
+				return(NULL);
+			}
 		}
 		full_name = xmalloc(strlen(prefix) + strlen(path) + 1);
 		strcpy(full_name, prefix);
@@ -91,7 +94,6 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 	} else {
 		full_name = file_entry->name;
 	}
-
 	if (function & extract_to_stdout) {
 		if (S_ISREG(file_entry->mode)) {
 			copy_file_chunk(src_stream, out_stream, file_entry->size);			
@@ -244,6 +246,7 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 				}
 			}
 		}
+
 		if (found) {
 			buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
 		} else {
