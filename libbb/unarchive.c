@@ -568,7 +568,9 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 
 	/* open the debian package to be worked on */
 	deb_stream = wfopen(package_filename, "r");
-
+	if (deb_stream == NULL) {
+		return(NULL);
+	}
 	/* set the buffer size */
 	setvbuf(deb_stream, NULL, _IOFBF, 0x8000);
 
