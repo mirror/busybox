@@ -1,7 +1,12 @@
 0.51pre
 	* Erik Andersen -- added env applet
 	* Erik Andersen -- Split utility.c into libbb
-	* <fixme>
+	* Andreas Neuhaus <andy@fasta.fh-dortmund.de> -- fix for merging
+	    kernel command line environment variables into child environment
+	    for init.c
+	* Matt Kraai -- Added a new 'shutdown' action to busybox init.  Now
+	    you can specify arbitrary behavior for 'ctrlaltdel' without that
+	    behavior needing to be a reboot.
 
 
 	 -Erik Andersen, not yet released

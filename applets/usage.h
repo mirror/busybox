@@ -663,10 +663,15 @@
 "\n" \
 "	::sysinit:/etc/init.d/rcS\n" \
 "	::askfirst:/bin/sh\n" \
+"	::ctrlaltdel:/sbin/reboot\n" \
+"	::shutdown:/sbin/swapoff -a\n" \
+"	::shutdown:/bin/umount -a -r\n" \
 "\n" \
 "if it detects that /dev/console is _not_ a serial console, it will also run:\n" \
 "\n" \
 "	tty2::askfirst:/bin/sh\n" \
+"	tty3::askfirst:/bin/sh\n" \
+"	tty4::askfirst:/bin/sh\n" \
 "\n" \
 "If you choose to use an /etc/inittab file, the inittab entry format is as follows:\n" \
 "\n" \
@@ -692,7 +697,7 @@
 "	<action>: \n" \
 "\n" \
 "		Valid actions include: sysinit, respawn, askfirst, wait, \n" \
-"		once, and ctrlaltdel.\n" \
+"		once, ctrlaltdel, and shutdown.\n" \
 "\n" \
 "		The available actions can be classified into two groups: actions\n" \
 "		that are run only once, and actions that are re-run when the specified\n" \
@@ -706,9 +711,12 @@
 "			'wait' actions, like  'sysinit' actions, cause init to wait until\n" \
 "			the specified task completes.  'once' actions are asyncronous,\n" \
 "			therefore, init does not wait for them to complete.  'ctrlaltdel'\n" \
-"			actions are run immediately before init causes the system to reboot\n" \
-"			(unmounting filesystems with a 'ctrlaltdel' action is a very good\n" \
-"			idea).\n" \
+"			actions are run when the system detects that someone on the system\n" \
+"                       console has pressed the CTRL-ALT-DEL key combination.  Typically one\n" \
+"                       wants to run 'reboot' at this point to cause the system to reboot.\n" \
+"			Finally the 'shutdown' action specifies the actions to taken when\n" \
+"                       init is told to reboot.  Unmounting filesystems and disabling swap\n" \
+"                       is a very good here\n" \
 "\n" \
 "		Run repeatedly actions:\n" \
 "\n" \
@@ -759,8 +767,9 @@
 "	#::respawn:/sbin/getty 57600 ttyS2\n" \
 "	\n" \
 "	# Stuff to do before rebooting\n" \
-"	::ctrlaltdel:/bin/umount -a -r\n" \
-"	::ctrlaltdel:/sbin/swapoff -a\n"
+"	::ctrlaltdel:/sbin/reboot\n" \
+"	::shutdown:/bin/umount -a -r\n" \
+"	::shutdown:/sbin/swapoff -a\n"
 
 #define insmod_trivial_usage \
 	"[OPTION]... MODULE [symbol=value]..."

@@ -906,10 +906,15 @@ it has the following default behavior:
 
 	::sysinit:/etc/init.d/rcS
 	::askfirst:/bin/sh
+	::ctrlaltdel:/sbin/reboot
+	::shutdown:/sbin/swapoff -a
+	::shutdown:/bin/umount -a -r
 
 if it detects that /dev/console is _not_ a serial console, it will also run:
 
 	tty2::askfirst:/bin/sh
+	tty3::askfirst:/bin/sh
+	tty4::askfirst:/bin/sh
 
 If you choose to use an /etc/inittab file, the inittab entry format is as follows:
 
@@ -935,7 +940,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 	<action>: 
 
 		Valid actions include: sysinit, respawn, askfirst, wait, 
-		once, and ctrlaltdel.
+		once, ctrlaltdel, and shutdown.
 
 		The available actions can be classified into two groups: actions
 		that are run only once, and actions that are re-run when the specified
@@ -949,9 +954,12 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 			'wait' actions, like  'sysinit' actions, cause init to wait until
 			the specified task completes.  'once' actions are asyncronous,
 			therefore, init does not wait for them to complete.  'ctrlaltdel'
-			actions are run immediately before init causes the system to reboot
-			(unmounting filesystems with a 'ctrlaltdel' action is a very good
-			idea).
+			actions are run when the system detects that someone on the system
+            console has pressed the CTRL-ALT-DEL key combination.  Typically one
+            wants to run 'reboot' at this point to cause the system to reboot.
+			Finally the 'shutdown' action specifies the actions to taken when
+            init is told to reboot.  Unmounting filesystems and disabling swap
+            is a very good here.
 
 		Run repeatedly actions:
 
@@ -984,10 +992,9 @@ Example /etc/inittab file:
 	tty4::respawn:/sbin/getty 38400 tty5
 	tty5::respawn:/sbin/getty 38400 tty6
 	
-	
-	
-	::ctrlaltdel:/bin/umount -a -r
-	::ctrlaltdel:/sbin/swapoff -a
+	::ctrlaltdel:/sbin/reboot
+	::shutdown:/bin/umount -a -r
+	::shutdown:/sbin/swapoff -a
 
 
 -------------------------------
@@ -2476,4 +2483,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.92 2001/03/15 21:20:25 markw Exp $
+# $Id: busybox.pod,v 1.93 2001/04/03 18:01:51 andersen Exp $

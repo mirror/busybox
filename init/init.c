@@ -146,7 +146,8 @@ typedef enum {
 	ASKFIRST,
 	WAIT,
 	ONCE,
-	CTRLALTDEL
+	CTRLALTDEL,
+	SHUTDOWN
 } initActionEnum;
 
 /* A mapping between "inittab" action name strings and action type codes. */
@@ -162,6 +163,7 @@ static const struct initActionType actions[] = {
 	{"wait", WAIT},
 	{"once", ONCE},
 	{"ctrlaltdel", CTRLALTDEL},
+	{"shutdown", SHUTDOWN},
 	{0, 0}
 };
 
@@ -617,12 +619,12 @@ static void check_memory()
 }
 
 /* Run all commands to be run right before halt/reboot */
-static void run_lastAction(void)
+static void run_actions(initActionEnum action)
 {
 	initAction *a, *tmp;
 	for (a = initActionList; a; a = tmp) {
 		tmp = a->nextPtr;
-		if (a->action == CTRLALTDEL) {
+		if (a->action == action) {
 			waitfor(a->process, a->console, FALSE);
 			delete_initAction(a);
 		}
@@ -654,7 +656,7 @@ static void shutdown_system(void)
 	sleep(1);
 
 	/* run everything to be run at "ctrlaltdel" */
-	run_lastAction();
+	run_actions(SHUTDOWN);
 
 	sync();
 	if (kernelVersion > 0 && kernelVersion <= KERNEL_VERSION(2,2,11)) {
@@ -694,6 +696,11 @@ static void reboot_signal(int sig)
 
 	init_reboot(RB_AUTOBOOT);
 	exit(0);
+}
+
+static void ctrlaltdel_signal(int sig)
+{
+	run_actions(CTRLALTDEL);
 }
 
 #endif							/* ! DEBUG_INIT */
@@ -767,10 +774,12 @@ static void parse_inittab(void)
 	if (file == NULL) {
 		/* No inittab file -- set up some default behavior */
 #endif
+		/* Reboot on Ctrl-Alt-Del */
+		new_initAction(CTRLALTDEL, "/sbin/reboot", console);
 		/* Swapoff on halt/reboot */
-		new_initAction(CTRLALTDEL, "/sbin/swapoff -a", console);
+		new_initAction(SHUTDOWN, "/sbin/swapoff -a", console);
 		/* Umount all filesystems on halt/reboot */
-		new_initAction(CTRLALTDEL, "/bin/umount -a -r", console);
+		new_initAction(SHUTDOWN, "/bin/umount -a -r", console);
 		/* Askfirst shell on tty1 */
 		new_initAction(ASKFIRST, SHELL, console);
 		/* Askfirst shell on tty2 */
@@ -883,7 +892,7 @@ extern int init_main(int argc, char **argv)
 	 * clear all of these in run() */
 	signal(SIGUSR1, halt_signal);
 	signal(SIGUSR2, halt_signal);
-	signal(SIGINT, reboot_signal);
+	signal(SIGINT, ctrlaltdel_signal);
 	signal(SIGTERM, reboot_signal);
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
