@@ -26,8 +26,7 @@ Bugs that need fixing:
  - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
     /tmp/file in the current directory, rather then trying and failing to create
     a symlink named "." in the current working directory).
- - Prune sfdisk
- - Graft fdisk instead
+ - Prune sfdisk, graft in std fdisk instead
 
 
 We will rework these to use libc regex functions instead (as per the mailing
