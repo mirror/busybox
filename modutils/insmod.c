@@ -102,6 +102,19 @@
 #define ELFCLASSM	ELFCLASS32
 #endif
 
+#if defined(__s390__)
+#define BB_USE_PLT_ENTRIES
+#define BB_PLT_ENTRY_SIZE 8
+#define BB_USE_GOT_ENTRIES
+#define BB_GOT_ENTRY_SIZE 8
+#define BB_USE_SINGLE
+
+#define MATCH_MACHINE(x) (x == EM_S390)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#endif
+
 #if defined(__i386__)
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 4
@@ -234,7 +247,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.94 2003/01/23 04:57:35 andersen Exp $"
+#ident "$Id: insmod.c,v 1.95 2003/01/23 06:02:39 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -455,7 +468,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.94 2003/01/23 04:57:35 andersen Exp $"
+#ident "$Id: insmod.c,v 1.95 2003/01/23 06:02:39 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -855,6 +868,89 @@ arch_apply_relocation(struct obj_file *f,
 		assert(got);
 		*loc += v - got;
 		break;
+
+#elif defined(__s390__)
+    case R_390_32:
+      *(unsigned int *) loc += v;
+      break;
+    case R_390_16:
+      *(unsigned short *) loc += v;
+      break;
+    case R_390_8:
+      *(unsigned char *) loc += v;
+      break;
+
+    case R_390_PC32:
+      *(unsigned int *) loc += v - dot;
+      break;
+    case R_390_PC16DBL:
+      *(unsigned short *) loc += (v - dot) >> 1;
+      break;
+    case R_390_PC16: 
+      *(unsigned short *) loc += v - dot;
+      break;
+
+    case R_390_PLT32:
+    case R_390_PLT16DBL:
+      /* find the plt entry and initialize it.  */
+      assert(isym != NULL);
+      pe = (struct arch_single_entry *) &isym->pltent;
+      assert(pe->allocated);
+      if (pe->inited == 0) {
+        ip = (unsigned long *)(ifile->plt->contents + pe->offset); 
+        ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
+        ip[1] = 0x100607f1;
+       if (ELF32_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+         ip[2] = v - 2;
+       else
+         ip[2] = v;
+        pe->inited = 1;
+      }
+
+      /* Insert relative distance to target.  */
+      v = plt + pe->offset - dot;
+      if (ELF32_R_TYPE(rel->r_info) == R_390_PLT32)
+        *(unsigned int *) loc = (unsigned int) v;
+      else if (ELF32_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+        *(unsigned short *) loc = (unsigned short) ((v + 2) >> 1);
+      break;
+
+    case R_390_GLOB_DAT:
+    case R_390_JMP_SLOT:
+      *loc = v;
+      break;
+
+    case R_390_RELATIVE:
+      *loc += f->baseaddr;
+      break;
+
+    case R_390_GOTPC:
+      assert(got != 0);
+      *(unsigned long *) loc += got - dot;
+      break;
+
+    case R_390_GOT12:
+    case R_390_GOT16:
+    case R_390_GOT32:
+      assert(isym != NULL);
+      assert(got != 0);
+      if (!isym->gotent.inited)
+	{
+	  isym->gotent.inited = 1;
+	  *(Elf32_Addr *)(ifile->got->contents + isym->gotent.offset) = v;
+	}
+      if (ELF32_R_TYPE(rel->r_info) == R_390_GOT12)
+        *(unsigned short *) loc |= (*(unsigned short *) loc + isym->gotent.offset) & 0xfff;
+      else if (ELF32_R_TYPE(rel->r_info) == R_390_GOT16)
+        *(unsigned short *) loc += isym->gotent.offset;
+      else if (ELF32_R_TYPE(rel->r_info) == R_390_GOT32)
+        *(unsigned int *) loc += isym->gotent.offset;
+      break;
+
+    case R_390_GOTOFF:
+      assert(got != 0);
+      *loc += v - got;
+      break;
 
 #elif defined(__i386__)
 
