@@ -421,7 +421,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #ifdef CONFIG_FEATURE_TFTP_DEBUG
 						 printf("using blksize %u\n", blksize);
 #endif
-					         tftp_bufsize = foo + 4;
+					         tftp_bufsize = blksize + 4;
 						 block_nr = 0;
 						 continue;
 					 }
