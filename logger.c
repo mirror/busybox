@@ -149,10 +149,19 @@ extern int logger_main(int argc, char **argv)
 		}
 		message = buf;
 	} else {
-		if (argc >= 1)
-			message = *argv;
-		else
+		if (argc >= 1) {
+			int len = 1; /* for the '\0' */
+			for (; *argv != NULL; argv++) {
+				len += strlen(*argv);
+				len += 1;  /* for the space between the args */
+				message = xrealloc(message, len);
+				strcat(message, *argv);
+				strcat(message, " ");
+			}
+			message[strlen(message)-1] = '\0';
+		} else {
 			error_msg_and_die("No message\n");
+		}
 	}
 
 	openlog(name, option, (pri | LOG_FACMASK));
