@@ -189,7 +189,7 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 extern int cp_mv_main(int argc, char **argv)
 {
 	volatile int i;
-	char c;
+	int c;
 
 	if (*applet_name == 'c' && *(applet_name + 1) == 'p')
 		dz_i = is_cp;
