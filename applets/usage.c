@@ -160,6 +160,7 @@ const char dd_usage[] =
 	"\tcount=N\tcopy only N input blocks\n"
 	"\tskip=N\tskip N input blocks\n"
 	"\tseek=N\tskip N output blocks\n"
+	"\tconv=notrunc\t dont truncate of at end of write\n"
 	"\n"
 	"Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)\n"
 #endif
