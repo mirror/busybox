@@ -27,11 +27,8 @@
  * consider important, its worth keeping a note of differences anyway, just to
  * make it easier to maintain.
  *  - The first value for the Confflile: field isnt placed on a new line.
- *  - The <package>.control file is extracted and kept in the info dir.
  *  - When installing a package the Status: field is placed at the end of the
  *      section, rather than just after the Package: field.
- *  - Packages with previously unknown status are inserted at the begining of
- *      the status file
  *
  * Bugs that need to be fixed
  *  - (unknown, please let me know when you find any)
@@ -1138,21 +1135,22 @@ int run_package_script(const char *package_name, const char *script_type)
 	return(result);
 }
 
+const char *all_control_files[] = {"preinst", "postinst", "prerm", "postrm",
+	"list", "md5sums", "shlibs", "conffiles", "config", "templates", NULL };
+
 char **all_control_list(const char *package_name)
 {
-	const char *extensions[11] = {"preinst", "postinst", "prerm", "postrm",
-		"list", "md5sums", "shlibs", "conffiles", "config", "templates", NULL };
 	unsigned short i = 0;
 	char **remove_files;
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = malloc(sizeof(char *) * 11);
-	while (extensions[i]) {
-		remove_files[i] = xmalloc(strlen(package_name) + strlen(extensions[i]) + 21);
-		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, extensions[i]);
+	remove_files = malloc(sizeof(all_control_files));
+	while (all_control_files[i]) {
+		remove_files[i] = xmalloc(strlen(package_name) + strlen(all_control_files[i]) + 21);
+		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);
 		i++;
 	}
-	remove_files[10] = NULL;
+	remove_files[sizeof(all_control_files)/sizeof(char*) - 1] = NULL;
 
 	return(remove_files);
 }
@@ -1211,9 +1209,10 @@ void list_packages(void)
     }
 }
 
-void remove_package(const unsigned int package_num)
+void remove_package(const unsigned int package_num, int noisy)
 {
 	const char *package_name = name_hashtable[package_hashtable[package_num]->name];
+	const char *package_version = name_hashtable[package_hashtable[package_num]->version];
 	const unsigned int status_num = search_status_hashtable(package_name);
 	const int package_name_length = strlen(package_name);
 	char **remove_files;
@@ -1222,7 +1221,8 @@ void remove_package(const unsigned int package_num)
 	char conffile_name[package_name_length + 30];
 	int return_value;
 
-	printf("Removing %s ...\n", package_name);
+	if ( noisy ) 
+		printf("Removing %s (%s) ...\n", package_name, package_version);
 
 	/* run prerm script */
 	return_value = run_package_script(package_name, "prerm");
@@ -1267,10 +1267,13 @@ void remove_package(const unsigned int package_num)
 void purge_package(const unsigned int package_num)
 {
 	const char *package_name = name_hashtable[package_hashtable[package_num]->name];
+	const char *package_version = name_hashtable[package_hashtable[package_num]->version];
 	const unsigned int status_num = search_status_hashtable(package_name);
 	char **remove_files;
 	char **exclude_files;
 	char list_name[strlen(package_name) + 25];
+
+	printf("Purging %s (%s) ...\n", package_name, package_version);
 
 	/* run prerm script */
 	if (run_package_script(package_name, "prerm") != 0) {
@@ -1322,7 +1325,6 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 
 	/* Setup the tar archive handle */
 	tar_handle = init_handle();
-	tar_handle->filter = filter_accept_list;
 	tar_handle->src_fd = ar_handle->src_fd;
 
 	/* We dont care about data.tar.* or debian-binary, just control.tar.* */
@@ -1345,15 +1347,14 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 
 	/* Setup the tar archive handle */
 	tar_handle = init_handle();
-	tar_handle->filter = filter_accept_all;
 	tar_handle->src_fd = ar_handle->src_fd;
 
-	/* We dont care about data.tar.* or debian-binary, just control.tar.* */
+	/* We dont care about control.tar.* or debian-binary, just data.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	tar_handle->accept = llist_add_to(NULL, "data.tar.gz");
+	ar_handle->accept = llist_add_to(NULL, "data.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	tar_handle->accept = llist_add_to(ar_handle->accept, "data.tar.bz2");
+	ar_handle->accept = llist_add_to(ar_handle->accept, "data.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1395,6 +1396,8 @@ static void unpack_package(deb_file_t *deb_file)
 	char *info_prefix;
 	archive_handle_t *archive_handle;
 	FILE *out_stream;
+	llist_t *accept_list = NULL;
+	int i = 0;
 
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
@@ -1402,7 +1405,7 @@ static void unpack_package(deb_file_t *deb_file)
 		printf("Preparing to replace %s %s (using %s) ...\n", package_name,
 			name_hashtable[package_hashtable[status_package_num]->version],
 			deb_file->filename);
-		remove_package(status_package_num);
+		remove_package(status_package_num, 0);
 	} else {
 		printf("Unpacking %s (from %s) ...\n", package_name, deb_file->filename);
 	}
@@ -1412,8 +1415,18 @@ static void unpack_package(deb_file_t *deb_file)
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_control(archive_handle);
+
+	while(all_control_files[i]) {
+		char *c = (char *) xmalloc(3 + bb_strlen(all_control_files[i]));
+		sprintf(c, "./%s", all_control_files[i]);
+		accept_list= llist_add_to(accept_list, c);
+		i++;
+	}
+	archive_handle->sub_archive->accept = accept_list;
+	archive_handle->sub_archive->filter = filter_accept_list;
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
 	archive_handle->sub_archive->buffer = info_prefix;
+	archive_handle->sub_archive->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
 	unpack_ar_archive(archive_handle);
 
 	/* Run the preinst prior to extracting */
@@ -1425,16 +1438,19 @@ static void unpack_package(deb_file_t *deb_file)
 	/* Extract data.tar.gz to the root directory */
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_data(archive_handle);
+	archive_handle->sub_archive->action_data = data_extract_all_prefix;
+	archive_handle->sub_archive->buffer = "/";
+	archive_handle->sub_archive->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
 	out_stream = bb_xfopen(info_prefix, "w");			
-	while (archive_handle->passed) {
-		/* blindly skip over the leading '.' */
-		fputs(archive_handle->passed->data + 1, out_stream);
+	while (archive_handle->sub_archive->passed) {
+		/* the leading . has been stripped by data_extract_all_prefix already */
+		fputs(archive_handle->sub_archive->passed->data, out_stream);
 		fputc('\n', out_stream);
-		archive_handle->passed = archive_handle->passed->link;
+		archive_handle->sub_archive->passed = archive_handle->sub_archive->passed->link;
 	}
 	fclose(out_stream);
 
@@ -1451,7 +1467,7 @@ void configure_package(deb_file_t *deb_file)
 	const char *package_version = name_hashtable[package_hashtable[deb_file->package]->version];
 	const int status_num = search_status_hashtable(package_name);
 
-	printf("Setting up %s (%s)\n", package_name, package_version);
+	printf("Setting up %s (%s) ...\n", package_name, package_version);
 
 	/* Run the postinst script */
 	if (run_package_script(package_name, "postinst") != 0) {
@@ -1562,7 +1578,7 @@ int dpkg_main(int argc, char **argv)
 					status_node->status = search_name_hashtable("want-install reinstreq not-installed");
 					status_hashtable[status_num] = status_node;
 				} else {
-					status_hashtable[status_num]->status = search_name_hashtable("want-install reinstreq not-installed");
+					status_hashtable[status_num]->status = search_name_hashtable("want-install reinstreq installed");
 				}
 			}
 		}
@@ -1604,10 +1620,11 @@ int dpkg_main(int argc, char **argv)
 		}
 	}
 
+	/* TODO: install or remove packages in the correct dependency order */
 	for (i = 0; i < deb_count; i++) {
 		/* Remove or purge packages */
 		if (dpkg_opt & dpkg_opt_remove) {
-			remove_package(deb_file[i]->package);
+			remove_package(deb_file[i]->package, 1);
 		}
 		else if (dpkg_opt & dpkg_opt_purge) {
 			purge_package(deb_file[i]->package);
@@ -1617,11 +1634,16 @@ int dpkg_main(int argc, char **argv)
 		}
 		else if (dpkg_opt & dpkg_opt_install) {
 			unpack_package(deb_file[i]);
-			configure_package(deb_file[i]);
+			/* package is configured in second pass below */
 		}
 		else if (dpkg_opt & dpkg_opt_configure) {
 			configure_package(deb_file[i]);
 		}
+	}
+	/* configure installed packages */
+	if (dpkg_opt & dpkg_opt_install) {
+		for (i = 0; i < deb_count; i++)
+			configure_package(deb_file[i]);
 	}
 
 	write_status_file(deb_file);
