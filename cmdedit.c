@@ -1211,7 +1211,8 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 		fflush(stdout);			/* buffered out to fast */
 
 		if (read(inputFd, &c, 1) < 1)
-			return;
+			/* if we can't read input then exit */
+			goto prepare_to_die;
 
 		switch (c) {
 		case '\n':
@@ -1243,6 +1244,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* Control-d -- Delete one character, or exit
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
+prepare_to_die:
 				printf("exit");
 				clean_up_and_die(0);
 			} else {

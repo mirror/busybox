@@ -1019,6 +1019,8 @@ static int expand_arguments(char *command)
 				(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
 			if (*tmpcmd == '\0')
 				break;
+			/* we need to trim() the result for glob! */
+			trim(tmpcmd);
 			retval = glob(tmpcmd, flags, NULL, &expand_result);
 			free(tmpcmd); /* Free mem allocated by strsep_space */
 			if (retval == GLOB_NOSPACE) {
@@ -1041,10 +1043,8 @@ static int expand_arguments(char *command)
 						error_msg(out_of_space);
 						return FALSE;
 					}
-					if (i>0) {
-						strcat(command+total_length, " ");
-						total_length+=1;
-					}
+					strcat(command+total_length, " ");
+					total_length+=1;
 					strcat(command+total_length, expand_result.gl_pathv[i]);
 					total_length+=length;
 				}
@@ -1803,7 +1803,7 @@ static int busy_loop(FILE * input)
 			if (!job_list.fg) {
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
-				if (tcsetpgrp(0, getpid()) && errno != ENOTTY)
+				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
 					perror_msg("tcsetpgrp"); 
 			}
 		}
