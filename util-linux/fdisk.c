@@ -838,110 +838,6 @@ typedef struct {
 #define SUN_SSWAP32(x) (sun_other_endian ? __swap32(x) \
 				 : (uint32_t)(x))
 
-/*
- * llseek.c -- stub calling the llseek system call
- *
- * Copyright (C) 1994 Remy Card.  This file may be redistributed
- * under the terms of the GNU Public License.
- */
-
-
-#ifdef __linux__
-
-#ifdef HAVE_LLSEEK
-#include <syscall.h>
-
-#else   /* HAVE_LLSEEK */
-
-#if defined(__alpha__) || defined(__ia64__)
-
-#define my_llseek lseek
-
-#else
-#include <asm/unistd.h>       /* for __NR__llseek */
-
-static int _llseek (unsigned int, unsigned long,
-		   unsigned long, ext2_loff_t *, unsigned int);
-
-#ifdef __NR__llseek
-
-static _syscall5(int,_llseek,unsigned int,f_d,unsigned long,offset_high,
-		 unsigned long, offset_low,ext2_loff_t *,result,
-		 unsigned int, origin)
-
-#else
-
-/* no __NR__llseek on compilation machine - might give it explicitly */
-static int _llseek (unsigned int f_d, unsigned long oh,
-		    unsigned long ol, ext2_loff_t *result,
-		    unsigned int origin) {
-	errno = ENOSYS;
-	return -1;
-}
-
-#endif
-
-static ext2_loff_t my_llseek (unsigned int f_d, ext2_loff_t offset,
-		unsigned int origin)
-{
-	ext2_loff_t result;
-	int retval;
-
-	retval = _llseek (f_d, ((unsigned long long) offset) >> 32,
-			((unsigned long long) offset) & 0xffffffff,
-			&result, origin);
-	return (retval == -1 ? (ext2_loff_t) retval : result);
-}
-
-#endif /* __alpha__ */
-
-#endif  /* HAVE_LLSEEK */
-
-static ext2_loff_t ext2_llseek (unsigned int f_d, ext2_loff_t offset,
-			 unsigned int origin)
-{
-	ext2_loff_t result;
-	static int do_compat = 0;
-
-	if (!do_compat) {
-		result = my_llseek (f_d, offset, origin);
-		if (!(result == -1 && errno == ENOSYS))
-			return result;
-
-		/*
-		 * Just in case this code runs on top of an old kernel
-		 * which does not support the llseek system call
-		 */
-		do_compat = 1;
-		/*
-		 * Now try ordinary lseek.
-		 */
-	}
-
-	if ((sizeof(off_t) >= sizeof(ext2_loff_t)) ||
-	    (offset < ((ext2_loff_t) 1 << ((sizeof(off_t)*8) -1))))
-		return lseek(f_d, (off_t) offset, origin);
-
-	errno = EINVAL;
-	return -1;
-}
-
-#else /* !linux */
-
-static ext2_loff_t ext2_llseek (unsigned int f_d, ext2_loff_t offset,
-			 unsigned int origin)
-{
-	if ((sizeof(off_t) < sizeof(ext2_loff_t)) &&
-	    (offset >= ((ext2_loff_t) 1 << ((sizeof(off_t)*8) -1)))) {
-		errno = EINVAL;
-		return -1;
-	}
-	return lseek (f_d, (off_t) offset, origin);
-}
-
-#endif  /* linux */
-
-
 #ifdef CONFIG_FEATURE_OSF_LABEL
 /*
    Changes:
@@ -1466,7 +1362,7 @@ xbsd_write_bootstrap (void)
   sector = get_start_sect(xbsd_part);
 #endif
 
-  if (ext2_llseek (fd, (ext2_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
+  if (lseek (fd, (ext2_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (BSD_BBSIZE != write (fd, disklabelbuffer, BSD_BBSIZE))
     fdisk_fatal (unable_to_write);
@@ -1634,7 +1530,7 @@ xbsd_readlabel (struct partition *p, struct xbsd_disklabel *d)
 	sector = 0;
 #endif
 
-	if (ext2_llseek (fd, (ext2_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
+	if (lseek (fd, (ext2_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
 		fdisk_fatal (unable_to_seek);
 	if (BSD_BBSIZE != read (fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal (unable_to_read);
@@ -1680,12 +1576,12 @@ xbsd_writelabel (struct partition *p, struct xbsd_disklabel *d)
 
 #if defined (__alpha__) && BSD_LABELSECTOR == 0
   alpha_bootblock_checksum (disklabelbuffer);
-  if (ext2_llseek (fd, (ext2_loff_t) 0, SEEK_SET) == -1)
+  if (lseek (fd, (ext2_loff_t) 0, SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (BSD_BBSIZE != write (fd, disklabelbuffer, BSD_BBSIZE))
     fdisk_fatal (unable_to_write);
 #else
-  if (ext2_llseek (fd, (ext2_loff_t) sector * SECTOR_SIZE + BSD_LABELOFFSET,
+  if (lseek (fd, (ext2_loff_t) sector * SECTOR_SIZE + BSD_LABELOFFSET,
 		   SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (sizeof (struct xbsd_disklabel) != write (fd, d, sizeof (struct xbsd_disklabel)))
@@ -2120,7 +2016,7 @@ sgi_write_table(void)
 	 */
 	sgiinfo*info = fill_sgiinfo();  /* fills the block appropriately */
 	int infostartblock = SGI_SSWAP32( sgilabel->directory[0].vol_file_start );
-	if( ext2_llseek(fd, (ext2_loff_t)infostartblock*
+	if( lseek(fd, (ext2_loff_t)infostartblock*
 	    SECTOR_SIZE, SEEK_SET) < 0 )
 	    fdisk_fatal(unable_to_seek);
 	if( write(fd, info, SECTOR_SIZE) != SECTOR_SIZE )
@@ -3517,7 +3413,7 @@ static void fdisk_fatal(enum failure why) {
 static void
 seek_sector(uint secno) {
 	ext2_loff_t offset = (ext2_loff_t) secno * sector_size;
-	if (ext2_llseek(fd, offset, SEEK_SET) == (ext2_loff_t) -1)
+	if (lseek(fd, offset, SEEK_SET) == (ext2_loff_t) -1)
 		fdisk_fatal(unable_to_seek);
 }
 
