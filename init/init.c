@@ -167,7 +167,7 @@ static char console[32]    = _PATH_CONSOLE;
 static sig_atomic_t got_cont = 0;
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
-#if defined BB_FEATURE_EXTRA_QUIET
+#if defined CONFIG_FEATURE_EXTRA_QUIET
 static const int MAYBE_CONSOLE = 0x0;
 #else
 #define MAYBE_CONSOLE	CONSOLE
@@ -391,7 +391,7 @@ static void console_init(void)
 			if (strcmp( termType, "TERM=linux" ) == 0)
 				safe_strncpy(termType, "TERM=vt102", sizeof(termType));
 			message(LOG | CONSOLE,
-					"serial console detected.  Disabling virtual terminals.\n");
+					"\rserial console detected.  Disabling virtual terminals.\n");
 		}
 		close(fd);
 	}
@@ -438,7 +438,7 @@ static void check_memory(void)
 
   goodnight:
 	message(CONSOLE,
-			"Sorry, your computer does not have enough memory.\n");
+			"\rSorry, your computer does not have enough memory.\n");
 	loop_forever();
 }
 
@@ -506,11 +506,11 @@ static pid_t run(struct init_action *a)
 		/* Open the new terminal device */
 		if ((fd = device_open(a->terminal, O_RDWR|O_NOCTTY)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
-				message(LOG | CONSOLE, "device '%s' does not exist.\n",
+				message(LOG | CONSOLE, "\rdevice '%s' does not exist.\n",
 						a->terminal);
 				_exit(1);
 			}
-			message(LOG | CONSOLE, "Bummer, can't open %s\n", a->terminal);
+			message(LOG | CONSOLE, "\rBummer, can't open %s\n", a->terminal);
 			_exit(1);
 		}
 		/* Make sure the terminal will act fairly normal for us */
@@ -554,7 +554,7 @@ static pid_t run(struct init_action *a)
 
 				/* Use a temporary process to steal the controlling tty. */
 				if ((pid = fork()) < 0) {
-					message(LOG | CONSOLE, "Can't fork!\n");
+					message(LOG | CONSOLE, "\rCan't fork!\n");
 					_exit(1);
 				}       
 				if (pid == 0) {
@@ -659,7 +659,7 @@ static pid_t run(struct init_action *a)
 		execve(cmdpath, cmd, environment);
 
 		/* We're still here?  Some error happened. */
-		message(LOG | CONSOLE, "Bummer, could not run '%s': %s\n", cmdpath,
+		message(LOG | CONSOLE, "\rBummer, could not run '%s': %s\n", cmdpath,
 				strerror(errno));
 		_exit(-1);
 	}
@@ -731,16 +731,16 @@ static void shutdown_system(void)
 	/* Allow Ctrl-Alt-Del to reboot system. */
 	init_reboot(RB_ENABLE_CAD);
 
-	message(CONSOLE|LOG, "\nThe system is going down NOW !!\n");
+	message(CONSOLE|LOG, "\n\rThe system is going down NOW !!\n");
 	sync();
 
 	/* Send signals to every process _except_ pid 1 */
-	message(CONSOLE|LOG, "Sending SIGTERM to all processes.\n");
+	message(CONSOLE|LOG, "\rSending SIGTERM to all processes.\n");
 	kill(-1, SIGTERM);
 	sleep(1);
 	sync();
 
-	message(CONSOLE|LOG, "Sending SIGKILL to all processes.\n");
+	message(CONSOLE|LOG, "\rSending SIGKILL to all processes.\n");
 	kill(-1, SIGKILL);
 	sleep(1);
 
@@ -762,10 +762,10 @@ static void exec_signal(int sig)
 		tmp = a->next;
 		if (a->action & RESTART) {
 			shutdown_system();
-			message(CONSOLE|LOG, "Trying to re-exec %s\n", a->command);
+			message(CONSOLE|LOG, "\rTrying to re-exec %s\n", a->command);
 			execl(a->command, a->command, NULL);
 	
-			message(CONSOLE|LOG, "execl of %s failed: %s\n", 
+			message(CONSOLE|LOG, "\rexec of '%s' failed: %s\n", 
 				a->command, sys_errlist[errno]);
 			sync();
 			sleep(2);
@@ -781,10 +781,10 @@ static void halt_signal(int sig)
 	message(CONSOLE|LOG,
 #if #cpu(s390)
 			/* Seems the s390 console is Wierd(tm). */
-			"The system is halted. You may reboot now.\n"
+			"\rThe system is halted. You may reboot now.\n"
 #else
 			/* secondConsole is NULL for a serial console */
-			"The system is halted. Press %s or turn off power\n",
+			"\rThe system is halted. Press %s or turn off power\n",
 			(secondConsole == NULL)? "Reset" : "CTRL-ALT-DEL"
 #endif
 		   );
@@ -804,7 +804,7 @@ static void halt_signal(int sig)
 static void reboot_signal(int sig)
 {
 	shutdown_system();
-	message(CONSOLE|LOG, "Please stand by while rebooting the system.\n");
+	message(CONSOLE|LOG, "\rPlease stand by while rebooting the system.\n");
 	sync();
 
 	/* allow time for last message to reach serial console */
@@ -858,7 +858,7 @@ static void new_init_action(int action, char *command, char *cons)
 
 	new_action = calloc((size_t) (1), sizeof(struct init_action));
 	if (!new_action) {
-		message(LOG | CONSOLE, "Memory allocation failure\n");
+		message(LOG | CONSOLE, "\rMemory allocation failure\n");
 		loop_forever();
 	}
 
@@ -963,7 +963,7 @@ static void parse_inittab(void)
 		/* Separate the ID field from the runlevels */
 		runlev = strchr(id, ':');
 		if (runlev == NULL || *(runlev + 1) == '\0') {
-			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
 			continue;
 		} else {
 			*runlev = '\0';
@@ -973,7 +973,7 @@ static void parse_inittab(void)
 		/* Separate the runlevels from the action */
 		action = strchr(runlev, ':');
 		if (action == NULL || *(action + 1) == '\0') {
-			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
 			continue;
 		} else {
 			*action = '\0';
@@ -983,7 +983,7 @@ static void parse_inittab(void)
 		/* Separate the action from the command */
 		command = strchr(action, ':');
 		if (command == NULL || *(command + 1) == '\0') {
-			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
 			continue;
 		} else {
 			*command = '\0';
@@ -1008,7 +1008,7 @@ static void parse_inittab(void)
 			continue;
 		else {
 			/* Choke on an unknown action */
-			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
 		}
 	}
 	return;
@@ -1080,7 +1080,7 @@ extern int init_main(int argc, char **argv)
 	putenv("PATH="_PATH_STDPATH);
 
 	/* Hello world */
-	message(MAYBE_CONSOLE|LOG, "init started:  %s\n", full_version);
+	message(MAYBE_CONSOLE|LOG, "\rinit started:  %s\n", full_version);
 
 	/* Make sure there is enough memory to do something useful. */
 	check_memory();
@@ -1123,7 +1123,7 @@ extern int init_main(int argc, char **argv)
 
 	/* If there is nothing else to do, stop */
 	if (init_action_list == NULL) {
-		message(LOG | CONSOLE, "No more tasks for init -- sleeping forever.\n");
+		message(LOG | CONSOLE, "\rNo more tasks for init -- sleeping forever.\n");
 		loop_forever();
 	}
 
