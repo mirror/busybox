@@ -87,7 +87,7 @@ static int terminal_height = TERMINAL_HEIGHT;
 extern int more_main(int argc, char **argv)
 {
 	int c, lines = 0, input = 0;
-	int next_page = 0;
+	int please_display_more_prompt = 0;
 	struct stat st;
 	FILE *file;
 
@@ -140,10 +140,10 @@ extern int more_main(int argc, char **argv)
 
 #endif
 		while ((c = getc(file)) != EOF) {
-			if (next_page) {
+			if (please_display_more_prompt) {
 				int len = 0;
 
-				next_page = 0;
+				please_display_more_prompt = 0;
 				lines = 0;
 				len = fprintf(stdout, "--More-- ");
 				if (file != stdin) {
@@ -162,6 +162,11 @@ extern int more_main(int argc, char **argv)
 					);
 
 				fflush(stdout);
+
+				/*
+				 * We've just displayed the "--More--" prompt, so now we need
+				 * to get input from the user.
+				 */
 #ifdef BB_FEATURE_USE_TERMIOS
 				input = getc(cin);
 #else
@@ -180,6 +185,17 @@ extern int more_main(int argc, char **argv)
 #endif
 
 			}
+
+			/* 
+			 * There are two input streams to worry about here:
+			 *
+			 *     c : the character we are reading from the file being "mored"
+			 * input : a character received from the keyboard
+			 *
+			 * If we hit a newline in the _file_ stream, we want to test and
+			 * see if any characters have been hit in the _input_ stream. This
+			 * allows the user to quit while in the middle of a file.
+			 */
 			if (c == '\n') {
 				switch (input) {
 				case 'q':
@@ -187,12 +203,13 @@ extern int more_main(int argc, char **argv)
 				case '\n':
 					/* increment by just one line if we are at 
 					 * the end of this line*/
-					next_page = 1;
+					please_display_more_prompt = 1;
 					break;
 				}
 				if (++lines == terminal_height)
-					next_page = 1;
+					please_display_more_prompt = 1;
 			}
+			/* If any key other than a return is hit, scroll by one page */
 			putc(c, stdout);
 		}
 		fclose(file);
