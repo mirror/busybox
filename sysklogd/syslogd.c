@@ -308,7 +308,7 @@ static void doSyslogd (void)
 	/* Create the syslog file so realpath() can work. */
 	close (open (_PATH_LOG, O_RDWR | O_CREAT, 0644));
 	if (realpath (_PATH_LOG, lfile) == NULL)
-		fatalError ("Could not resolv path to " _PATH_LOG ": %s\n", strerror (errno));
+		fatalError ("Could not resolve path to " _PATH_LOG ": %s\n", strerror (errno));
 
 	unlink (lfile);
 
