@@ -1696,6 +1696,19 @@
 	"\t-n\tDont resolve names.\n" \
 	"\t-e\tDisplay other/more information"
 
+#define rpm_trivial_usage \
+	"-i -q[ildc]p package.rpm"
+#define rpm_full_usage \
+	"Manipulates RPM packages" \
+	"Options:" \
+	"\t-i Install package" \
+	"\t-q Query package" \
+	"\t\t-p Query uninstalled package" \
+	"\t\t-i Show information" \
+	"\t\t-l List contents" \
+	"\t\t-d List documents" \
+	"\t\t-c List config files"
+
 #define rpm2cpio_trivial_usage \
 	"package.rpm"
 #define rpm2cpio_full_usage \

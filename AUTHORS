@@ -16,7 +16,7 @@ Erik Andersen <andersen@codepoet.org>, <andersee@debian.org>
     core apps, tons of new apps as noted in header files.
 
 Laurence Anderson <l.d.anderson@warwick.ac.uk>
-    rpm2cpio, unzip, get_header_cpio, read_gz interface
+    rpm2cpio, unzip, get_header_cpio, read_gz interface, rpm
 
 Edward Betts <edward@debian.org>
     expr, hostid, logname, tty, wc, whoami, yes

@@ -43,7 +43,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 	switch(file_header->mode & S_IFMT) {
 		case S_IFREG: {
 #ifdef CONFIG_CPIO
-			if (file_header->link_name) {
+			if (file_header->link_name && file_header->size == 0) {
 				/* hard link */
 				res = link(file_header->link_name, file_header->name);
 				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {

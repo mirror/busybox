@@ -35,6 +35,7 @@ LIBUNARCHIVE-y:= \
 	filter_accept_reject_list.o \
 \
 	get_header_ar.o \
+	get_header_cpio.o \
 	get_header_tar.o \
 	get_header_tar_bz2.o \
 	get_header_tar_gz.o \

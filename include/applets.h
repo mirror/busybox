@@ -440,6 +440,9 @@
 #ifdef CONFIG_ROUTE
  	APPLET(route, route_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_RPM
+	APPLET(rpm, rpm_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_RPM2CPIO
 	APPLET(rpm2cpio, rpm2cpio_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

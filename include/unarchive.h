@@ -85,6 +85,7 @@ extern void check_header_gzip(int src_fd);
 extern void check_trailer_gzip(int src_fd);
 
 extern char get_header_ar(archive_handle_t *archive_handle);
+extern char get_header_cpio(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);
 extern char get_header_tar_bz2(archive_handle_t *archive_handle);
 extern char get_header_tar_gz(archive_handle_t *archive_handle);

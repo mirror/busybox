@@ -139,7 +139,13 @@ config CONFIG_RPM2CPIO
 	bool "rpm2cpio"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Converts an RPM file into a CPIO archive.
+
+config CONFIG_RPM
+	bool "rpm"
+	default n
+	help
+	  Mini RPM applet - querys and extracts
 
 config CONFIG_TAR
 	bool "tar"

@@ -32,6 +32,7 @@ ARCHIVAL-$(CONFIG_DPKG_DEB)	+= dpkg_deb.o
 ARCHIVAL-$(CONFIG_GUNZIP)	+= gunzip.o
 ARCHIVAL-$(CONFIG_GZIP)		+= gzip.o
 ARCHIVAL-$(CONFIG_RPM2CPIO)	+= rpm2cpio.o
+ARCHIVAL-$(CONFIG_RPM)		+= rpm.o
 ARCHIVAL-$(CONFIG_TAR)		+= tar.o
 ARCHIVAL-$(CONFIG_UNCOMPRESS)	+= uncompress.o
 ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
