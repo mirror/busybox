@@ -246,6 +246,9 @@ extern int tar_main(int argc, char **argv)
 						break;
 					}
 #endif
+					if (strcmp(*argv, "-help")==0) {
+						usage(tar_usage);
+					}
 					break;
 
 				default:
