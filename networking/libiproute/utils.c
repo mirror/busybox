@@ -14,19 +14,10 @@
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <string.h>
-#include <netdb.h>
 #include <arpa/inet.h>
-#include <resolv.h>
 
-#include "./linux/pkt_sched.h"
 #include "utils.h"
 #include "libbb.h"
 

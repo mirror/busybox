@@ -8,14 +8,10 @@
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
 #include <string.h>
-#include <sys/time.h>
+
 #include <stdint.h>
 
 static void rtnl_tab_initialize(char *file, char **tab, int size)

@@ -15,23 +15,15 @@
  * Kunihiro Ishiguro <kunihiro@zebra.org> 001102: rtnh_ifindex was not initialized
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <arpa/inet.h>
-#include <linux/in_route.h>
+
+#include <stdlib.h>
+#include <string.h>
 
 #include "rt_names.h"
 #include "utils.h"
 
-#include "busybox.h"
+#include "libbb.h"
 
 #ifndef RTAX_RTTVAR
 #define RTAX_RTTVAR RTAX_HOPS

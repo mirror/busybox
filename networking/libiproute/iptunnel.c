@@ -16,26 +16,23 @@
  * Phil Karn <karn@ka9q.ampr.org>	990408:	"pmtudisc" flag
  */
 
-#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <arpa/inet.h>
 
-#include <linux/if.h>
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+
 #include <linux/if_arp.h>
 #include <linux/if_tunnel.h>
 
 #include "rt_names.h"
 #include "utils.h"
 
-#include "busybox.h"
+#include "libbb.h"
 
 static int do_ioctl_get_ifindex(char *dev)
 {

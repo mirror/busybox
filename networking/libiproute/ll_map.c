@@ -11,16 +11,11 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <string.h>
+#include <stdlib.h>
+#include <netinet/in.h>
 
 #include "libnetlink.h"
-#include "ll_map.h"
 
 struct idxmap
 {

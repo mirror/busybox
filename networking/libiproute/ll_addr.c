@@ -9,21 +9,10 @@
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
 
-#include <linux/netdevice.h>
 #include <linux/if_arp.h>
-#include <linux/sockios.h>
 
 #include "utils.h"
 #include "libbb.h"
