@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.5 2001/02/15 23:31:40 markw Exp $
+ * $Id: route.c,v 1.6 2001/02/18 20:12:25 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * busybox style adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -361,11 +361,8 @@ void displayroutes(void)
 	char sdest[16], sgw[16];
 
 
-	FILE *fp = fopen("/proc/net/route", "r");
+	FILE *fp = xfopen("/proc/net/route", "r");
 
-	if(fp==0) {
-		perror_msg_and_die("/proc/net/route");
-	}
 	while( fgets(buff, sizeof(buff), fp) != NULL ) {
 		if(nl) {
 			int ifl = 0;
@@ -376,9 +373,6 @@ void displayroutes(void)
 			   &d, &g, &flgs, &ref, &use, &metric, &m)!=7) {
 				error_msg_and_die( "Unsuported kernel route format\n");
 			}
-			dest.s_addr = d;
-			gw.s_addr   = g;
-			mask.s_addr = m;
 			if(nl==1) {
                 printf("Kernel IP routing table\n"
 "Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
@@ -393,6 +387,9 @@ void displayroutes(void)
 			if(flgs&4)
 				flags[ifl++]='H';
 			flags[ifl]=0;
+			dest.s_addr = d;
+			gw.s_addr   = g;
+			mask.s_addr = m;
 			strcpy(sdest,  (dest.s_addr==0 ? "default" :
 					inet_ntoa(dest)));
 			strcpy(sgw,    (gw.s_addr==0   ? "*"       :
