@@ -130,9 +130,9 @@ between it and the opening control block statement. Examples:
 Spacing around Parentheses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Put a space between C keywords and left parens, but not between
-function names and the left paren that starts it's parameter list (whether it
-is being declared or called). Examples:
+Put a space between C keywords and left parens, but not between function names
+and the left paren that starts it's parameter list (whether it is being
+declared or called). Examples:
 
 	Don't do this:
 
@@ -200,7 +200,6 @@ block. Example:
 
 
 
-
 Variable and Function Names
 ---------------------------
 
@@ -225,27 +224,54 @@ because it looks like whitespace; using lower-case is easy on the eyes.
 
 Exceptions:
 
- - Enums, macros, and constant variables should all be in upper-case with
-   words optionally seperatedy by underscores (i.e. FIFOTYPE, ISBLKDEV()).
+ - Enums, macros, and constant variables are occasionally written in all
+   upper-case with words optionally seperatedy by underscores (i.e. FIFOTYPE,
+   ISBLKDEV()).
 
  - Nobody is going to get mad at you for using 'pvar' as the name of a
    variable that is a pointer to 'var'.
 
-Note: The Busybox codebase is very much a mixture of code gathered from a
-variety of sources. This explains why the current codebase contains such a
-hodge-podge of different naming styles (Java, Pascal, K&R, just-plain-weird,
-etc.). The K&R guideline explained above should therefore be used on new files
-that are added to the repository. Furthermore, the maintainer of an existing
-file that uses alternate naming conventions should -- at his own convenience
--- convert those names over to K&R style; converting variable names is a very
-low priority task. Perhaps in the future we will include some magical Perl
-script that can go through and convert variable names, left as an exercise for
-the reader for now.
 
-For the time being, if you want to do a search-and-replace of a variable name
-in different files, do the following in the busybox directory:
+Converting to K&R
+~~~~~~~~~~~~~~~~~
+
+The Busybox codebase is very much a mixture of code gathered from a variety of
+sources. This explains why the current codebase contains such a hodge-podge of
+different naming styles (Java, Pascal, K&R, just-plain-weird, etc.). The K&R
+guideline explained above should therefore be used on new files that are added
+to the repository. Furthermore, the maintainer of an existing file that uses
+alternate naming conventions should, at his own convenience, convert those
+names over to K&R style. Converting variable names is a very low priority
+task.
+
+If you want to do a search-and-replace of a single variable name in different
+files, you can do the following in the busybox directory:
 
 	$ perl -pi -e 's/\bOldVar\b/new_var/g' *.[ch]
+
+If you want to convert all the non-K&R vars in your file all at once, follow
+these steps:
+
+ - In the busybox directory type 'scripts/mk2knr.pl files-to-convert'. This
+   does not do the actual conversion, rather, it generates a script called
+   'convertme.pl' that shows what will be converted, giving you a chance to
+   review the changes beforehand.
+
+ - Review the 'convertme.pl' script that gets generated in the busybox
+   directory and remove / edit any of the substitutions in there. Please
+   especially check for false positives (strings that should not be
+   converted).
+
+ - Type './convertme.pl same-files-as-before' to perform the actual
+   conversion.
+
+ - Compile and see if everything still works.
+ 
+Please be aware of changes that have cascading effects into other files. For
+example, if you're changing the name of something in, say utility.c, you
+should probably run 'scripts/mk2knr.pl utility.c' at first, but when you run
+the 'convertme.pl' script you should run it on _all_ files like so:
+'./convertme.pl *.[ch]'.
 
 
 
@@ -299,17 +325,18 @@ Use 'static inline' instead of a macro.
 		}
 
 Static inline functions are greatly preferred over macros. They provide type
-safety, have no length limitations, no formatting limitations, and under gcc
-they are as cheap as macros. Besides, really long macros with backslashes at
-the end of each line are ugly as sin.
+safety, have no length limitations, no formatting limitations, have an actual
+return value, and under gcc they are as cheap as macros. Besides, really long
+macros with backslashes at the end of each line are ugly as sin.
 
 
 The Folly of #ifdef
 ~~~~~~~~~~~~~~~~~~~
 
 Code cluttered with ifdefs is difficult to read and maintain. Don't do it.
-Instead, put your ifdefs in a header, and conditionally define 'static inline'
-functions, (or *maybe* macros), which are used in the code.  
+Instead, put your ifdefs at the top of your .c file (or in a header), and
+conditionally define 'static inline' functions, (or *maybe* macros), which are
+used in the code.  
 
 	Don't do this:
 
@@ -480,7 +507,8 @@ When in doubt about the proper behavior of a Busybox program (output,
 formatting, options, etc.), model it after the equivalent GNU program.
 Doesn't matter how that program behaves on some other flavor of *NIX; doesn't
 matter what the POSIX standard says or doesn't say, just model Busybox
-programs after their GNU counterparts and nobody has to get hurt.
+programs after their GNU counterparts and it will make life easier on (nearly)
+everyone.
 
 The only time we deviate from emulating the GNU behavior is when:
 
@@ -585,15 +613,13 @@ one comment) before the block, rather than commenting each and every line.
 There is an optimal ammount of commenting that a program can have; you can
 comment too much as well as too little.
 
-A picture is really worth a thousand words here, so here is an example that
-illustrates emphasizing logical blocks:
+A picture is really worth a thousand words here, the following example
+illustrates how to emphasize logical blocks:
 
 	while (line = get_line_from_file(fp)) {
 
 		/* eat the newline, if any */
-		if (line[strlen(line)-1] == '\n') {
-			line[strlen(line)-1] = '\0';
-		}
+		chomp(line);
 
 		/* ignore blank lines */
 		if (strlen(file_to_act_on) == 0) {
@@ -650,4 +676,5 @@ use getopt, they won't get false positives.
 
 Additional Note: Do not use the getopt_long library function and do not try to
 hand-roll your own long option parsing. Busybox applets should only support
-short options, plus explanations and examples in usage.h.
+short options. Explanations and examples of the short options should be
+documented in usage.h.
