@@ -90,11 +90,13 @@ enum Location {
 	_BB_DIR_USR_SBIN
 };
 
-struct Applet {
+struct BB_applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
 	enum	Location	location;
 };
+/* From busybox.c */
+extern const struct BB_applet applets[];
 
 extern int basename_main(int argc, char **argv);
 extern int busybox_main(int argc, char** argv);

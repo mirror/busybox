@@ -30,7 +30,7 @@ int atexit(void (*__func) (void))
 void *__libc_stack_end;
 #endif
 
-static const struct Applet applets[] = {
+const struct BB_applet applets[] = {
 
 #ifdef BB_BASENAME
 	{"basename", basename_main, _BB_DIR_USR_BIN},
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
 {
 	char				*s;
 	char				*name;
-	const struct Applet	*a		= applets;
+	const struct BB_applet	*a		= applets;
 
 	for (s = name = argv[0]; *s != '\0';) {
 		if (*s++ == '/')
@@ -384,7 +384,7 @@ int busybox_main(int argc, char **argv)
 	argv++;
 
 	if (been_there_done_that == 1 || argc < 1) {
-		const struct Applet *a = applets;
+		const struct BB_applet *a = applets;
 
 		fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 				BB_VER, BB_BT);

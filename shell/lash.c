@@ -721,6 +721,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 	return 0;
 }
 
+
 static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 {
 	struct job *job;
@@ -728,14 +729,10 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 	int nextin, nextout;
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
+#ifdef BB_FEATURE_STANDALONE_SHELL
+	const struct BB_applet *a = applets;
+#endif
 
-	/* handle built-ins here -- we don't fork() so we can't background
-	   these very easily */
-	for (x = bltins; x->cmd; x++) {
-		if (!strcmp(newJob.progs[0].argv[0], x->cmd)) {
-			return (x->function(&newJob, jobList));
-		}
-	}
 
 	nextin = 0, nextout = 1;
 	for (i = 0; i < newJob.numProgs; i++) {
@@ -761,6 +758,25 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 
 			/* explicit redirections override pipes */
 			setupRedirections(newJob.progs + i);
+
+			/* Match any built-ins here */
+			for (x = bltins; x->cmd; x++) {
+				if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
+					exit (x->function(&newJob, jobList));
+				}
+			}
+#ifdef BB_FEATURE_STANDALONE_SHELL
+			/* Handle busybox internals here */
+			while (a->name != 0) {
+				if (strcmp(newJob.progs[i].argv[0], a->name) == 0) {
+					int argc;
+					char** argv=newJob.progs[i].argv;
+					for(argc=0;*argv!=NULL, argv++, argc++);
+					exit((*(a->main)) (argc, newJob.progs[i].argv));
+				}
+				a++;
+			}
+#endif
 
 			execvp(newJob.progs[i].argv[0], newJob.progs[i].argv);
 			fatalError("sh: %s: %s\n", newJob.progs[i].argv[0],

@@ -201,6 +201,11 @@
 // Enable command line editing in the shell
 //#define BB_FEATURE_SH_COMMAND_EDITING
 //
+//Allow the shell to invoke all the compiled in BusyBox commands as if they
+//were shell builtins.  Nice for staticly linking an emergency rescue shell
+//amoung other thing.
+#ifdef BB_FEATURE_STANDALONE_SHELL
+//
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)
 //#define BB_FEATURE_SH_TAB_COMPLETION

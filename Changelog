@@ -30,6 +30,10 @@
 	* zcat now works (wasn't working since option parsing was broken)
 	* Renamed "mnc" to the more correct "nc".
 	* Makefile intelligence updates
+	* BusyBox sh (lash) internals now behave wrt pipes and redirects. 
+	* BusyBox sh (lash) now supports being used as a standalone shell.  When
+	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
+	    be invoked as shell internals.
 	* More doc updates
 
 
