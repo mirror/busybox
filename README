@@ -30,6 +30,24 @@ forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e., make PREFIX="/tmp/foo" install)
 
 ----------------
+    
+Supported architectures:
+
+   Busybox in general will build on any architecture supported by gcc.  It has
+   a few specialized features added for __sparc__ and __alpha__.  insmod
+   functionality is currently limited to x86, ARM, and SH3/4.
+
+Supported libcs:
+
+   glibc-2.0.x, glibc-2.1.x, Linux-libc5, uClibc.  People are looking at
+   newlib and diet-libc, but consider them unsupported, untested, or worse.
+
+Supported kernels:
+
+   Full functionality requires Linux 2.0.x, 2.2.x, or 2.4.x.  A large fraction
+   of the code should run on just about anything.
+
+----------------
 
 Getting help:
 
