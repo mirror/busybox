@@ -662,12 +662,12 @@ static int dpkg_dounpack(package_t *pkg)
 	/* extract the control files */
 	info_prefix = (char *) malloc(strlen(pkg->package) + strlen(infodir) + 2 + 5 + 1);
 	sprintf(info_prefix, "%s/%s.", infodir, pkg->package);
-	deb_extract(pkg->package, stdout, (extract_control_tar_gz | extract_all_to_fs), info_prefix, NULL);
+	deb_extract(pkg->filename, stdout, (extract_control_tar_gz | extract_all_to_fs), info_prefix, NULL);
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
 	out_stream = wfopen(info_prefix, "w");			
-	deb_extract(pkg->package, out_stream, (extract_data_tar_gz | extract_list), NULL, NULL);
+	deb_extract(pkg->filename, out_stream, (extract_data_tar_gz | extract_list), NULL, NULL);
 	fclose(out_stream);
 
 	pkg->state_want = state_want_install;
