@@ -49,6 +49,9 @@
 #define EUNDEFVAR   10002
 #define EUNBALPER   10000
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
+#define MAX_INTERFACE_LENGTH 10
+#endif
 
 #if 0
 #define debug_noise(fmt, args...) printf(fmt, ## args)
@@ -1106,12 +1109,13 @@ static int popen2(FILE **in, FILE **out, char *command, ...)
 	/* unreached */
 }
 
-static int run_mapping(char *physical, char *logical, int len, struct mapping_defn_t * map)
+static char * run_mapping(char *physical, char *logical, int len, struct mapping_defn_t * map)
 {
 	FILE *in, *out;
 	int i, status;
 	pid_t pid;
 
+	char *new_logical = NULL;
 
 	pid = popen2(&in, &out, map->script, physical, NULL);
 	if (pid == 0) {
@@ -1123,16 +1127,18 @@ static int run_mapping(char *physical, char *logical, int len, struct mapping_de
 	fclose(in);
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-		if (fgets(logical, len, out)) {
-			char *pch = logical + bb_strlen(logical) - 1;
+		new_logical = (char *)xmalloc(MAX_INTERFACE_LENGTH);
 
-			while (pch >= logical && isspace(*pch))
+		if (fgets(new_logical, MAX_INTERFACE_LENGTH, out)) {
+			char *pch = new_logical + bb_strlen(new_logical) - 1;
+
+			while (pch >= new_logical && isspace(*pch))
 				*(pch--) = '\0';
 		}
 	}
 	fclose(out);
 
-	return 1;
+	return new_logical ? new_logical : logical;
 }
 #endif /* CONFIG_FEATURE_IFUPDOWN_IPV6 */
 
@@ -1318,7 +1324,7 @@ extern int ifupdown_main(int argc, char **argv)
 					if (verbose) {
 						printf("Running mapping script %s on %s\n", currmap->script, liface);
 					}
-					run_mapping(iface, liface, sizeof(liface), currmap);
+					liface = run_mapping(iface, liface, sizeof(liface), currmap);
 					break;
 				}
 			}
