@@ -9,7 +9,8 @@ config CONFIG_FEATURE_IPV6
 	bool "Enable IPv6 support"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable IPv6 support to busybox. This makes applets that talk IP
+	  able to work with IPv6.
 
 config CONFIG_ARPING
 	bool "arping"
@@ -143,7 +144,8 @@ config CONFIG_FEATURE_IFCONFIG_SLIP
 	default n
 	depends on CONFIG_IFCONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow "keepalive" and "outfill" support for SLIP.  If you're not
+	  planning on using serial lines, leave this unchecked.
 
 config CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	bool "  Enable options \"mem_start\", \"io_addr\", and \"irq\""
@@ -167,7 +169,8 @@ config CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 	default n
 	depends on CONFIG_IFCONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  Setting this will make ifconfig attempt to find the broadcast
+	  automatically if the value '+' is used.
 
 config CONFIG_IFUPDOWN
 	bool "ifupdown"
@@ -180,28 +183,29 @@ config CONFIG_FEATURE_IFUPDOWN_IP
 	default n
 	depends on CONFIG_IFUPDOWN && CONFIG_IP && CONFIG_FEATURE_IP_ADDRESS && CONFIG_FEATURE_IP_LINK && CONFIG_FEATURE_IP_ROUTE
 	help
-	  Please submit a patch to add help text for this item.
+	  Use "ip" in "ifupdown".
 
 config CONFIG_FEATURE_IFUPDOWN_IPV4
 	bool "  Enable support for IPv4"
 	default y
 	depends on CONFIG_IFUPDOWN
 	help
-	  Please submit a patch to add help text for this item.
+	  If you want busybox to talk IPv4, leave this on.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV6
 	bool "  Enable support for IPv6"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
-	  Please submit a patch to add help text for this item.
+	  If you need support for IPv6, turn this option on.
 
 config CONFIG_FEATURE_IFUPDOWN_IPX
 	bool "  Enable support for IPX"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
-	  Please submit a patch to add help text for this item.
+	  If this option is selected you can use busybox to work with IPX
+	  networks.
 
 config CONFIG_FEATURE_IFUPDOWN_MAPPING
 	bool "  Enable mapping support"
@@ -257,7 +261,9 @@ config CONFIG_IP
 	bool "ip"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  The "ip" applet is a TCP/IP interface configuration and routing
+	  utility.  You generally don't need "ip" to use busybox with
+	  TCP/IP.
 
 if CONFIG_IP && CONFIG_IPADDR
 	config CONFIG_FEATURE_IP_ADDRESS
@@ -270,7 +276,7 @@ if ! (CONFIG_IP && CONFIG_IPADDR)
 		default y
 		depends on CONFIG_IP
 		help
-		  Please submit a patch to add help text for this item.
+		  Address manipulation support for the "ip" applet.
 endif
 
 if CONFIG_IP && CONFIG_IPLINK
@@ -284,7 +290,7 @@ if !(CONFIG_IP && CONFIG_IPLINK)
 		default y
 		depends on CONFIG_IP
 		help
-		  Please submit a patch to add help text for this item.
+		  Configure network devices with "ip".
 endif
 
 if CONFIG_IP && CONFIG_IPROUTE
@@ -298,7 +304,7 @@ if !(CONFIG_IP && CONFIG_IPROUTE)
 		default y
 		depends on CONFIG_IP
 		help
-		  Please submit a patch to add help text for this item.
+		  Add support for routing table management to "ip".  
 endif
 
 if CONFIG_IP && CONFIG_IPTUNNEL
@@ -312,7 +318,7 @@ if !(CONFIG_IP && CONFIG_IPTUNNEL)
 		default n
 		depends on CONFIG_IP
 		help
-		  Please submit a patch to add help text for this item.
+		  Add support for tunneling commands to "ip".
 endif
 
 config CONFIG_IPCALC
@@ -327,31 +333,31 @@ config CONFIG_FEATURE_IPCALC_FANCY
 	default y
 	depends on CONFIG_IPCALC
 	help
-	  Please submit a patch to add help text for this item.
+	  Adds the fields hostname and silent to the output of "ipcalc".
 
 config CONFIG_IPADDR
 	bool "ipaddr"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Equivalent to selecting address support to "ip", above.
 
 config CONFIG_IPLINK
 	bool "iplink"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Equivalent to selecting link support to "ip", above.
 
 config CONFIG_IPROUTE
 	bool "iproute"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Equivalent to selecting route support to "ip", above.
 
 config CONFIG_IPTUNNEL
 	bool "iptunnel"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Equivalent to selecting tunnel support to "ip", above.
 
 config CONFIG_NAMEIF
 	bool "nameif"
@@ -384,7 +390,7 @@ config CONFIG_NSLOOKUP
 	bool "nslookup"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Nslookup is a tool to query Internet name servers.
 
 config CONFIG_PING
 	bool "ping"
@@ -398,21 +404,23 @@ config CONFIG_FEATURE_FANCY_PING
 	default y
 	depends on CONFIG_PING
 	help
-	  Please submit a patch to add help text for this item.
+	  Make the output from the ping applet include statistics, and at the
+	  same time provide full support for ICMP packets.
 
 config CONFIG_PING6
 	bool "ping6"
 	default n
 	depends on CONFIG_FEATURE_IPV6
 	help
-	  Please submit a patch to add help text for this item.
+	  This will give you a ping that can talk IPv6.
 
 config CONFIG_FEATURE_FANCY_PING6
 	bool "  Enable fancy ping6 output"
 	default y
 	depends on CONFIG_PING6
 	help
-	  Please submit a patch to add help text for this item.
+	  Make the output from the ping6 applet include statistics, and at the
+	  same time provide full support for ICMP packets.
 
 config CONFIG_ROUTE
 	bool "route"
@@ -424,27 +432,34 @@ config CONFIG_TELNET
 	bool "telnet"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Telnet is an interface to the TELNET protocol, but is also commonly
+	  used to test other simple protocols.
 
 config CONFIG_FEATURE_TELNET_TTYPE
 	bool "  Pass TERM type to remote host"
 	default y
 	depends on CONFIG_TELNET
 	help
-	  Please submit a patch to add help text for this item.
+	  Setting this option will forward the TERM environment variable to the
+	  remote host you are connecting to.  This is useful to make sure that
+	  things like ANSI colors and other control sequences behave.
 
 config CONFIG_TELNETD
 	bool "telnetd"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  A daemon for the TELNET protocol, allowing you to log on to the host
+	  running the daemon.  Please keep in mind that the TELNET protocol
+	  sends passwords in plain text.  If you can't afford the space for
+	  any SSH daemon and you trust your network, say 'y' here.
 
 config CONFIG_FEATURE_TELNETD_INETD
 	bool "  Support call from inetd only"
 	default n
 	depends on CONFIG_TELNETD
 	help
-	  Please submit a patch to add help text for this item.
+	  Selecting this will make telnetd only callable from inetd, removing the
+	  standalone support.
 
 config CONFIG_TFTP
 	bool "tftp"
@@ -482,7 +497,9 @@ config CONFIG_FEATURE_TFTP_DEBUG
 	default n
 	depends on CONFIG_TFTP
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable debug settings for tftp.  This is useful if you're running
+	  into problems with tftp as the protocol doesn't help you much when
+	  you run into problems.
 
 config CONFIG_TRACEROUTE
 	bool "traceroute"
@@ -495,7 +512,8 @@ config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
-	  Please submit a patch to add help text for this item.
+	  Add some verbosity to traceroute.  This includes amongst other things
+	  hostnames and ICMP response types.
 
 config CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	bool "  Enable SO_DEBUG option"

@@ -62,7 +62,7 @@ config FEATURE_CPU_USAGE_PERCENTAGE
 	default y
 	depends on CONFIG_TOP
 	help
-	  Please submit a patch to add help text for this item.
+	  Make top display CPU usage.
 
 config CONFIG_UPTIME
 	bool "uptime"

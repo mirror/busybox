@@ -56,35 +56,40 @@ config CONFIG_FEATURE_VI_COLON
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable a limited set of colon commands for vi.  This does not
+	  provide an "ex" mode.
 
 config CONFIG_FEATURE_VI_YANKMARK
 	bool "  Enable yank/put commands and mark cmds"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  This will enable you to use yank and put, as well as mark in
+	  busybox vi.
 
 config CONFIG_FEATURE_VI_SEARCH
 	bool "  Enable search and replace cmds"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Select this if you wish to be able to do search and replace in
+	  busybox vi.
 
 config CONFIG_FEATURE_VI_USE_SIGNALS
 	bool "  Catch signals"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Selecting this option will make busybox vi signal aware.  This will
+	  make busybox vi support SIGWINCH to deal with Window Changes, catch
+	  Ctrl-Z and Ctrl-C and alarms.
 
 config CONFIG_FEATURE_VI_DOT_CMD
 	bool "  Remember previous cmd and \".\" cmd"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Make busybox vi remember the last command and be able to repeat it.
 
 config CONFIG_FEATURE_VI_READONLY
 	bool "  Enable -R option and \"view\" mode"
@@ -99,28 +104,29 @@ config CONFIG_FEATURE_VI_SETOPTS
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable the editor to set some (ai, ic, showmatch) options.
 
 config CONFIG_FEATURE_VI_SET
 	bool "  Support for :set"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Support for ":set".
 
 config CONFIG_FEATURE_VI_WIN_RESIZE
 	bool "  Handle window resize"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Make busybox vi behave nicely with terminals that get resized.
 
 config CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	bool "  Optimize cursor movement"
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  This will make the cursor movement faster, but requires more memory
+	  and it makes the applet a tiny bit larger.
 
 endmenu
 

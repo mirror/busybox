@@ -201,14 +201,15 @@ config CONFIG_FEATURE_SH_FANCY_PROMPT
 	default n
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
 	help
-	  Please submit a patch to add help text for this item.
+	  Setting this option allows for prompts to use things like \w and
+	  \$ and also using escape codes.
 
 config CONFIG_FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
 	default n
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
 	help
-	  Please submit a patch to add help text for this item.
+	  Remove the busybox introduction when starting a shell.
 
 endmenu
 

@@ -16,7 +16,7 @@ config CONFIG_FEATURE_OLD_MODULE_INTERFACE
 	default n
 	depends on CONFIG_INSMOD
 	help
-	  Please submit a patch to add help text for this item.
+	  Provide insmod support for older (pre 2.1) Linux kernels.
 
 if CONFIG_INSMOD && !CONFIG_FEATURE_OLD_MODULE_INTERFACE
     config CONFIG_FEATURE_NEW_MODULE_INTERFACE
@@ -30,7 +30,7 @@ config CONFIG_FEATURE_NEW_MODULE_INTERFACE
 	default y
 	depends on CONFIG_INSMOD
 	help
-	  Please submit a patch to add help text for this item.
+	  Support module loading for newer (post 2.1) Linux kernels.
 endif
 
 config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
@@ -38,7 +38,8 @@ config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	default n
 	depends on CONFIG_INSMOD
 	help
-	  Please submit a patch to add help text for this item.
+	  Support checking of versions for modules.  This is used to
+	  ensure that the kernel and module are made for each other.
 
 config CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	bool "  Add module symbols to kernel symbol table"
@@ -90,7 +91,9 @@ config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 	default y
 	depends on CONFIG_LSMOD && CONFIG_FEATURE_NEW_MODULE_INTERFACE
 	help
-	  Please submit a patch to add help text for this item.
+	  This will provide some extra information about each module when
+	  running lsmod.  The fields provided are address, size, flags and
+	  usage count.
 
 config CONFIG_MODPROBE
 	bool "modprobe"
@@ -110,7 +113,9 @@ config CONFIG_FEATURE_CHECK_TAINTED_MODULE
 	default y
 	depends on CONFIG_INSMOD || CONFIG_LSMOD
 	help
-	  Please submit a patch to add help text for this item.
+	  Support checking for tainted modules.  These are usually binary
+	  only modules that will make the linux-kernel list ignore your
+	  support request.
 
 
 endmenu
