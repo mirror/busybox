@@ -220,7 +220,7 @@ const char du_usage[] =
 
 #if defined BB_DUMPKMAP
 const char dumpkmap_usage[] =
-	"dumpkmap\n"
+	"dumpkmap > keymap\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nPrints out a binary keyboard translation table to standard input.\n"
 #endif
@@ -477,7 +477,7 @@ const char ln_usage[] =
 
 #if defined BB_LOADACM
 const char loadacm_usage[] =
-	"loadacm\n"
+	"loadacm < mapfile\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nLoads an acm from standard input.\n"
 #endif
@@ -486,7 +486,7 @@ const char loadacm_usage[] =
 
 #if defined BB_LOADFONT
 const char loadfont_usage[] =
-	"loadfont\n"
+	"loadfont < font\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"Loads a console font from standard input.\n"
 #endif
@@ -495,7 +495,7 @@ const char loadfont_usage[] =
 
 #if defined BB_LOADKMAP
 const char loadkmap_usage[] =
-	"loadkmap\n"
+	"loadkmap < keymap\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nLoads a binary keyboard translation table from standard input.\n"
 #endif

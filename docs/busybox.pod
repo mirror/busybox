@@ -446,6 +446,10 @@ Usage: dumpkmap
 
 Prints out a binary keyboard translation table to standard input.
 
+Example:
+
+	$ dumpkmap > keymap
+
 -------------------------------
 
 =item dutmp
@@ -2108,4 +2112,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.64 2000/08/21 23:29:45 andersen Exp $
+# $Id: busybox.pod,v 1.65 2000/09/01 16:12:57 andersen Exp $

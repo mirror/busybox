@@ -796,6 +796,16 @@
 		<para>
 		Prints out a binary keyboard translation table to standard input.
 		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dumpkmap &lt; keymap
+		</screen>
+		</para>
 	</sect1>
 
 	<sect1 id="dutmp">
