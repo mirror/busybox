@@ -234,10 +234,10 @@ extern int sysinfo (struct sysinfo* info);
 
 #ifdef BB_FEATURE_HUMAN_READABLE
 const char *format(unsigned long val, unsigned long hr);
+#endif
 #define KILOBYTE 1024
 #define MEGABYTE (KILOBYTE*1024)
 #define GIGABYTE (MEGABYTE*1024)
-#endif
 
 #ifdef BB_FEATURE_BUFFERS_GO_ON_STACK
 #define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
