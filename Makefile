@@ -177,16 +177,10 @@ allnoconfig: scripts/config/conf
 defconfig: scripts/config/conf
 	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
-test tests: busybox
-	# Note that 'tests' is depricated.  Use 'make check' instead
-	# To use the nice new testsuite....
-	cd tests && ./tester.sh
-
 check: busybox
 	cd testsuite && ./runtest
 
 clean:
-	- $(MAKE) -C tests clean
 	- rm -f docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
@@ -229,6 +223,6 @@ tags:
 endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 .PHONY: dummy subdirs release distclean clean config oldconfig \
-	menuconfig tags check test tests depend
+	menuconfig tags check test depend
 
 
