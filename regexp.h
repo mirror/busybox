@@ -25,24 +25,6 @@
 #define	_REGEXP_H_
 
 
-
-
-#define NSUBEXP  10
-typedef struct regexp {
-	char	*startp[NSUBEXP];
-	char	*endp[NSUBEXP];
-	int	minlen;		/* length of shortest possible match */
-	char	first;		/* first character, if known; else \0 */
-	char	bol;		/* boolean: must start at beginning of line? */
-	char	program[1];	/* Unwarranted chumminess with compiler. */
-} regexp;
-
-
-
-extern regexp *regcomp(char* text);
-extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase);
-extern void regsub(struct regexp* re, char* src, char* dst);
-
 extern int find_match(char *haystack, char *needle, int ignoreCase);
 extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase);
 
