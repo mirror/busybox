@@ -148,85 +148,65 @@ extern int tar_main(int argc, char **argv)
 	int createFlag   = FALSE;
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
-	int stopIt;
+	int opt;
 
 	if (argc <= 1)
 		usage(tar_usage);
 
-	/* Parse any options */
-	while (--argc > 0 && strspn(*(++argv), "-cxt") >0 ) {
-		stopIt=FALSE;
-		while (stopIt==FALSE && *argv && **argv) {
-			switch (**argv) {
-				case 'f':
-					if (--argc == 0) {
-						fatalError( "Option requires an argument: No file specified\n");
-					}
-					if (*tarName != '-')
-						fatalError( "Only one 'f' option allowed\n");
-					tarName = *(++argv);
-					if (tarName == NULL)
-						fatalError( "Option requires an argument: No file specified\n");
-					if (!strcmp(tarName, "-") && createFlag == TRUE)
-						tostdoutFlag = TRUE;
-					stopIt=TRUE;
-					break;
-
-				case 't':
-					if (extractFlag == TRUE || createFlag == TRUE)
-						goto flagError;
-					listFlag = TRUE;
-					break;
-
-				case 'x':
-					if (listFlag == TRUE || createFlag == TRUE)
-						goto flagError;
-					extractFlag = TRUE;
-					break;
+	/* do normal option parsing */
+	while ((opt = getopt(argc, argv, "cxtvOf:-:")) > 0) {
+		switch (opt) {
 				case 'c':
 					if (extractFlag == TRUE || listFlag == TRUE)
 						goto flagError;
 					createFlag = TRUE;
 					break;
-
+				case 'x':
+					if (listFlag == TRUE || createFlag == TRUE)
+						goto flagError;
+					extractFlag = TRUE;
+					break;
+				case 't':
+					if (extractFlag == TRUE || createFlag == TRUE)
+						goto flagError;
+					listFlag = TRUE;
+					break;
 				case 'v':
 					verboseFlag = TRUE;
 					break;
-
 				case 'O':
 					tostdoutFlag = TRUE;
 					tarName = "-";
+					break;					
+				case 'f':
+					if (*tarName != '-')
+						fatalError( "Only one 'f' option allowed\n");
+					tarName = optarg;
+					if (!strcmp(tarName, "-") && createFlag == TRUE)
+						tostdoutFlag = TRUE;
 					break;
 				case '-':
 #if defined BB_FEATURE_TAR_EXCLUDE
-					if (strcmp(*argv, "-exclude")==0) {
-						if (--argc == 0) {
-							fatalError( "Option requires an argument: No file specified\n");
-						}
+					if (strcmp(optarg, "exclude")==0) {
+						if (argv[optind]==NULL)
+							fatalError( "option `--exclude' requires an argument\n");
 						excludeList=realloc( excludeList, sizeof(char**) * (excludeListSize+2));
-						excludeList[excludeListSize] = *(++argv);
+						excludeList[excludeListSize] = argv[optind];
 						/* Remove leading "/"s */
 						if (*excludeList[excludeListSize] =='/') {
 							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
 						}
-						if (excludeList[excludeListSize++] == NULL)
-							fatalError( "Option requires an argument: No file specified\n");
 						/* Tack a NULL onto the end of the list */
 						excludeList[excludeListSize] = NULL;
-						stopIt=TRUE;
+						optind++;
 						break;
 					}
 #endif
-					if (strcmp(*argv, "-help")==0) {
-						usage(tar_usage);
-					}
-					break;
-
+					fatalError( "Unknown tar flag '%s'\n" 
+							"Try `tar --help' for more information\n", optarg);
 				default:
 					fatalError( "Unknown tar flag '%c'\n" 
 							"Try `tar --help' for more information\n", **argv);
-			}
-			++(*argv);
 		}
 	}
 
@@ -238,7 +218,7 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv, excludeList));
+		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc-optind, &argv[optind], excludeList));
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
@@ -603,18 +583,20 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			}
 		}
 		/* List contents if we are supposed to do that */
-		if (verboseFlag == TRUE || listFlag == TRUE) {
+		if (verboseFlag == TRUE && listFlag != TRUE) {
 			/* Now the normal listing */
-			printf("%s", header.name);
+			FILE *vbFd = stdout;
+			if (tostdoutFlag == TRUE)	// If the archive goes to stdout, verbose to stderr
+				vbFd = stderr;
+			fprintf(vbFd, "%s\n", header.name);
 		}
+			
 		if (verboseFlag == TRUE && listFlag == TRUE) {
-			/* If this is a link, say so */
-			if (header.type==LNKTYPE)
+			printf("%s", header.name);
+			if (header.type==LNKTYPE)	/* If this is a link, say so */
 				printf(" link to %s", header.linkname);
 			else if (header.type==SYMTYPE)
 				printf(" -> %s", header.linkname);
-		}
-		if (verboseFlag == TRUE || listFlag == TRUE) {
 			printf("\n");
 		}
 
@@ -745,7 +727,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 #endif
 	const unsigned char *cp = (const unsigned char *) &header;
 	ssize_t size = sizeof(struct TarHeader);
-
+		
 	memset( &header, 0, size);
 
 	if (*fileName=='/') {
@@ -848,8 +830,12 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		write(tbInfo->tarFd, "\0", 1);
 	}
 	/* Now do the verbose thing (or not) */
-	if (tbInfo->verboseFlag==TRUE)
-		fprintf(stdout, "%s\n", header.name);
+	if (tbInfo->verboseFlag==TRUE) {
+		FILE *vbFd = stdout;
+		if (tbInfo->tarFd == fileno(stdout))	// If the archive goes to stdout, verbose to stderr
+			vbFd = stderr;
+		fprintf(vbFd, "%s\n", header.name);
+	}
 
 	return ( TRUE);
 }

@@ -34,6 +34,13 @@
  *
  * 2000-01-12   Ben Collins <bcollins@debian.org>, Borrowed utils-linux's
  *              mount to add loop support.
+ *
+ * 2000-04-30	Dave Cinege <dcinege@psychosis.com>
+ *		Rewrote fstab while loop and lower mount section. Can now do
+ *		single mounts from fstab. Can override fstab options for single
+ *		mount. Common mount_one call for single mounts and 'all'. Fixed
+ *		mtab updating and stale entries. Removed 'remount' default. 
+ *	
  */
 
 #include "internal.h"
@@ -147,6 +154,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 #if defined BB_MTAB
 		if (useMtab == TRUE) {
+			erase_mtab(specialfile);	// Clean any stale entries
 			write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
 		}
 #endif
@@ -318,6 +326,8 @@ extern int mount_main(int argc, char **argv)
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
 	int i;
+	int rc = FALSE;
+	int fstabmount = FALSE;	
 
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 	if (argc == 1) {
@@ -435,56 +445,70 @@ extern int mount_main(int argc, char **argv)
 		argv++;
 	}
 
-	if (all == TRUE) {
+	if (all == TRUE || directory == NULL) {
 		struct mntent *m;
 		FILE *f = setmntent("/etc/fstab", "r");
+		fstabmount = TRUE;
 
 		if (f == NULL)
 			fatalError( "\nCannot read /etc/fstab: %s\n", strerror (errno));
 
 		while ((m = getmntent(f)) != NULL) {
-			// If the filesystem isn't noauto, 
-			// and isn't swap or nfs, then mount it
-			if ((!strstr(m->mnt_opts, "noauto")) &&
-					(!strstr(m->mnt_type, "swap")) &&
-					(!strstr(m->mnt_type, "nfs"))) {
+			if (all == FALSE && directory == NULL && (
+				(strcmp(device, m->mnt_fsname) != 0) &&
+				(strcmp(device, m->mnt_dir) != 0) ) ) {
+				continue;
+			}
+			
+			if (all == TRUE && (				// If we're mounting 'all'
+				(strstr(m->mnt_opts, "noauto")) ||	// and the file system isn't noauto,
+				(strstr(m->mnt_type, "swap")) ||	// and isn't swap or nfs, then mount it
+				(strstr(m->mnt_type, "nfs")) ) ) {
+				continue;
+			}
+			
+			if (all == TRUE || flags == 0) {	// Allow single mount to override fstab flags
 				flags = 0;
 				*string_flags = '\0';
 				parse_mount_options(m->mnt_opts, &flags, string_flags);
-				if (mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
-							flags, string_flags, useMtab, fakeIt,
-							extra_opts, FALSE)==FALSE) 
-				{
-					/* Try again, but this time try a remount */
-					mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
-							flags|MS_REMOUNT, string_flags, useMtab, fakeIt,
-							extra_opts, TRUE);
-				}
 			}
-		}
-		endmntent(f);
-	} else {
-		if (device && directory) {
+			
+			device = strdup(m->mnt_fsname);
+			directory = strdup(m->mnt_dir);
+			filesystemType = strdup(m->mnt_type);
+singlemount:			
 #ifdef BB_NFSMOUNT
 			if (strchr(device, ':') != NULL)
 				filesystemType = "nfs";
 			if (strcmp(filesystemType, "nfs") == 0) {
-				int ret;
-				ret = nfsmount (device, directory, &flags,
-						&extra_opts, &string_flags, 1);
-				if (ret != 0)
-					fatalError("nfsmount failed: %s\n", strerror(errno));
-			}
+				rc = nfsmount (device, directory, &flags, &extra_opts, &string_flags, 1)
+				if ( rc != 0) {
+					fatalError("nfsmount failed: %s\n", strerror(errno));	
+					rc = FALSE;
+				}
+			} else
 #endif
-			exit(mount_one(device, directory, filesystemType,
-						   flags, string_flags, useMtab, fakeIt,
-						   extra_opts, TRUE));
-		} else {
-			goto goodbye;
-		}
-	}
-	exit(TRUE);
+			rc = mount_one(device, directory, filesystemType, flags,
+				string_flags, useMtab, fakeIt, extra_opts, TRUE);
+				
+			if (all == FALSE)
+				break;
 
-  goodbye:
+			rc = TRUE;	// Always return 0 for 'all'
+		}
+		if (fstabmount == TRUE)
+			endmntent(f);
+			
+		if (all == FALSE && fstabmount == TRUE && directory == NULL)
+			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
+	
+		exit(rc);
+	}
+	
+	goto singlemount;
+	
+	exit(FALSE);
+
+goodbye:
 	usage(mount_usage);
 }

@@ -1634,7 +1634,7 @@ File selection:
 
         f               name of tarfile or "-" for stdin
         O               extract to stdout
-        --exclude       file to exclude
+        exclude         file to exclude
 
 Informative output:
 
@@ -2044,4 +2044,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.59 2000/07/21 21:32:12 andersen Exp $
+# $Id: busybox.pod,v 1.60 2000/08/02 18:48:25 andersen Exp $

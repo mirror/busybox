@@ -68,11 +68,11 @@
 
 
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
-#  if defined BB_FEATURE_USE_PROCFS
-const char mtab_file[] = "/proc/mounts";
-#  else
-#    if defined BB_MTAB
+#  if defined BB_MTAB
 const char mtab_file[] = "/etc/mtab";
+#  else
+#    if defined BB_FEATURE_USE_PROCFS
+const char mtab_file[] = "/proc/mounts";
 #    else
 #      if defined BB_FEATURE_USE_DEVPS_PATCH
 const char mtab_file[] = "/dev/mtab";

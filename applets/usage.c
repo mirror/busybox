@@ -1053,7 +1053,7 @@ const char tar_usage[] =
 	"tar -[xtvO] "
 #endif
 #if defined BB_FEATURE_TAR_EXCLUDE
-	"[-X File(s)] "
+	"[--exclude File] "
 #endif
 	"[-f tarFile] [FILE(s)] ...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
@@ -1069,7 +1069,7 @@ const char tar_usage[] =
 	"\tf\t\tname of tarfile or \"-\" for stdin\n"
 	"\tO\t\textract to stdout\n"
 #if defined BB_FEATURE_TAR_EXCLUDE
-	"\tX\t\tfile(s) to exclude\n"
+	"\texclude\t\tfile to exclude\n"
 #endif
 	"\nInformative output:\n"
 	"\tv\t\tverbosely list files processed\n"

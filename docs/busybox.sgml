@@ -2901,10 +2901,10 @@
 
 		<para>
 		<screen>
-			f FILE		Use FILE for tarfile (or stdin if '-')
-		        O		Extract to stdout
-        		--exclude FILE	Exclude FILE
-			v		List files processed
+			f FILE			Use FILE for tarfile (or stdin if '-')
+			O				Extract to stdout
+			exclude FILE	File to exclude
+			v				List files processed
 		</screen>
 		</para>
 
