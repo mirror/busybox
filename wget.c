@@ -98,7 +98,7 @@ int wget_main(int argc, char **argv)
 
 
 	if (do_continue && !fname_out)
-		fatalError("wget: cannot specify continue (-c) without a filename (-O)\n");
+		fatalError("cannot specify continue (-c) without a filename (-O)\n");
 	/*
 	 * Parse url into components.
 	 */
@@ -115,7 +115,7 @@ int wget_main(int argc, char **argv)
 	if (fname_out != NULL) {
 		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) 
 				== NULL)
-			fatalError("wget: freopen(%s): %s\n", fname_out, strerror(errno));
+			fatalPerror("fopen(%s)", fname_out);
 	} else { 
 		output=stdout;
 	}
@@ -126,7 +126,7 @@ int wget_main(int argc, char **argv)
 	if (do_continue) {
 		struct stat sbuf;
 		if (fstat(fileno(output), &sbuf) < 0)
-			fatalError("wget: fstat(): %s\n", strerror(errno));
+			fatalError("fstat()");
 		if (sbuf.st_size > 0)
 			beg_range = sbuf.st_size;
 		else
@@ -145,7 +145,7 @@ int wget_main(int argc, char **argv)
 	 * Retrieve HTTP response line and check for "200" status code.
 	 */
 	if (fgets(buf, sizeof(buf), sfp) == NULL)
-		fatalError("wget: no response from server\n");
+		fatalError("no response from server\n");
 	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
 		;
 	for ( ; isspace(*s) ; ++s)
@@ -154,13 +154,13 @@ int wget_main(int argc, char **argv)
 		case 200:
 			if (!do_continue)
 				break;
-			fatalError("wget: server does not support ranges\n");
+			fatalError("server does not support ranges\n");
 		case 206:
 			if (do_continue)
 				break;
 			/*FALLTHRU*/
 		default:
-			fatalError("wget: server returned error: %s", buf);
+			fatalError("server returned error: %s", buf);
 	}
 
 	/*
@@ -173,7 +173,7 @@ int wget_main(int argc, char **argv)
 			continue;
 		}
 		if (strcmp(buf, "transfer-encoding") == 0) {
-			fatalError("wget: server wants to do %s transfer encoding\n", s);
+			fatalError("server wants to do %s transfer encoding\n", s);
 			continue;
 		}
 	}
@@ -195,7 +195,7 @@ int wget_main(int argc, char **argv)
 			filesize -= n;
 	}
 	if (n == 0 && ferror(sfp))
-		fatalError("wget: network read error: %s", strerror(errno));
+		fatalPerror("network read error");
 
 	exit(0);
 }
@@ -208,12 +208,12 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 	*uri_port = 80;
 
 	if (strncmp(url, "http://", 7) != 0)
-		fatalError("wget: not an http url: %s\n", url);
+		fatalError("not an http url: %s\n", url);
 
 	/* pull the host portion to the front of the buffer */
 	for (s = url, h = url+7 ; *h != '/' ; ++h) {
 		if (*h == '\0')
-			fatalError("wget: cannot parse url: %s\n", url);
+			fatalError("cannot parse url: %s\n", url);
 		if (*h == ':') {
 			*uri_port = atoi(h+1);
 			*h = '\0';
@@ -236,7 +236,7 @@ FILE *open_socket(char *host, int port)
 	memzero(&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
-		fatalError("wget: cannot resolve %s\n", host);
+		fatalError("cannot resolve %s\n", host);
 	memcpy(&sin.sin_addr, hp->h_addr_list[0], hp->h_length);
 	sin.sin_port = htons(port);
 
@@ -244,11 +244,11 @@ FILE *open_socket(char *host, int port)
 	 * Get the server onto a stdio stream.
 	 */
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		fatalError("wget: socket(): %s\n", strerror(errno));
+		fatalPerror("socket()");
 	if (connect(fd, (struct sockaddr *) &sin, sizeof(sin)) < 0)
-		fatalError("wget: connect(%s): %s\n", host, strerror(errno));
+		fatalPerror("connect(%s)", host);
 	if ((fp = fdopen(fd, "r+")) == NULL)
-		fatalError("wget: fdopen(): %s\n", strerror(errno));
+		fatalPerror("fdopen()");
 
 	return fp;
 }
@@ -277,7 +277,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 	/* verify we are at the end of the header name */
 	if (*s != ':')
-		fatalError("wget: bad header line: %s\n", buf);
+		fatalError("bad header line: %s\n", buf);
 
 	/* locate the start of the header value */
 	for (*s++ = '\0' ; *s == ' ' || *s == '\t' ; ++s)
@@ -336,7 +336,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.5 2000/10/03 00:21:45 andersen Exp $
+ *	$Id: wget.c,v 1.6 2000/10/25 16:25:50 kraai Exp $
  */
 
 
