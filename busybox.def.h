@@ -92,6 +92,7 @@
 #define BB_TRUE_FALSE
 #define BB_TTY
 #define BB_UPTIME
+#define BB_USLEEP
 #define BB_WC
 #define BB_WHOAMI
 #define BB_UMOUNT

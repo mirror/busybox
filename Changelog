@@ -16,6 +16,7 @@
 	    and then adjusted a bit by me.
 	* Added tr and dirname from John Lombardo <john@deltanet.com> 
 	* Added echo and test (from me).
+	* Added usleep contributed by Nicolas Pitre <nico@cam.org>
 	* tar wouldn't create directory entries that don't end in '/',
 	    now it does (thanks to Avery Pennarun <apenwarr@worldvisions.ca>)
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:

@@ -157,6 +157,7 @@ extern int uname_main(int argc, char** argv);
 extern int uptime_main(int argc, char** argv);
 extern int uniq_main(int argc, char** argv);
 extern int update_main(int argc, char** argv);
+extern int usleep_main(int argc, char** argv);
 extern int wc_main(int argc, char** argv);
 extern int whoami_main(int argc, char** argv);
 extern int yes_main(int argc, char** argv);

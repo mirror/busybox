@@ -311,6 +311,9 @@ static const struct Applet applets[] = {
 #ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN},
 #endif
+#ifdef BB_USLEEP
+	{"usleep", usleep_main, _BB_DIR_BIN},
+#endif
 #ifdef BB_WC
 	{"wc", wc_main, _BB_DIR_USR_BIN},
 #endif
