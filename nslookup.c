@@ -45,7 +45,7 @@
  * I could dig through /etc/resolv.conf, but is there a
  * better (programatic) way?
  */
-static inline void server_fprint(void)
+static inline void server_print(void)
 {
 	printf("Server:     %s\n", "default");
 	printf("Address:    %s\n\n", "default");
@@ -159,7 +159,7 @@ int nslookup_main(int argc, char **argv)
 		usage(nslookup_usage);
 	}
 
-	server_fprint();
+	server_print();
 	if (is_ip_address(argv[1])) {
 		host = gethostbyaddr_wrapper(argv[1]);
 	} else {
@@ -169,4 +169,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.14 2001/01/20 16:22:58 andersen Exp $ */
+/* $Id: nslookup.c,v 1.15 2001/01/20 21:51:21 andersen Exp $ */
