@@ -1360,14 +1360,12 @@ extern pid_t* findPidByName( char* pidName)
 		FILE *status;
 		char filename[256];
 		char buffer[256];
-		char* p;
 
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
 			continue;
 
-		/* Now open the status file */
-		sprintf(filename, "/proc/%s/status", next->d_name);
+		sprintf(filename, "/proc/%s/cmdline", next->d_name);
 		status = fopen(filename, "r");
 		if (!status) {
 			continue;
@@ -1375,22 +1373,12 @@ extern pid_t* findPidByName( char* pidName)
 		fgets(buffer, 256, status);
 		fclose(status);
 
-		/* Make sure we only match on the process name */
-		p=buffer+5; /* Skip the name */
-		while ((p)++) {
-			if (*p==0 || *p=='\n') {
-				*p='\0';
-				break;
-			}
-		}
-		p=buffer+6; /* Skip the "Name:\t" */
-
-		if ((strstr(p, pidName) != NULL)
-				&& (strlen(pidName) == strlen(p))) {
+		if (strstr(get_last_path_component(buffer), pidName) != NULL) {
 			pidList=xrealloc( pidList, sizeof(pid_t) * (i+2));
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
+
 	if (pidList)
 		pidList[i]=0;
 	return pidList;
