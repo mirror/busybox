@@ -216,11 +216,11 @@ busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
 
-busybox.links: Config.h
+busybox.links: Config.h applets.h
 	- $(BB_SRC_DIR)/busybox.mkll $(CONFIG_H) $(BB_SRC_DIR)/applets.h >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
-$(OBJECTS): %.o: %.c Config.h busybox.h Makefile
+$(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
 
 utility.o: loop.h
 
