@@ -78,13 +78,16 @@ int xargs_main(int argc, char **argv)
 	/* Now, read in one line at a time from stdin, and run command+args on it */
 	in_from_stdin = get_line_from_file(stdin);
 	for (;in_from_stdin!=NULL;) {
+		char *tmp;
 		len = strlen(in_from_stdin) + len_args_from_cmdline;
-		if ( len > len_cmd_to_be_executed ) {
-			len_cmd_to_be_executed=len+3;
-			cmd_to_be_executed=xrealloc(cmd_to_be_executed, len_cmd_to_be_executed);
-		}
+		len_cmd_to_be_executed+=len+3;
+		cmd_to_be_executed=xrealloc(cmd_to_be_executed, len_cmd_to_be_executed);
+
+		/* Strip out any \n's, so we just get one command to run */
+		while( (tmp = strchr(in_from_stdin, '\n')) != NULL )
+			*tmp=' ';
+
 		strcat(cmd_to_be_executed, in_from_stdin);
-		strcat(cmd_to_be_executed+strlen(cmd_to_be_executed)-2, " ");
 		strcat(cmd_to_be_executed, " ");
 	
 		free(in_from_stdin);
