@@ -703,14 +703,15 @@ int recursive_action(const char *fileName,
 			perror_msg("%s", fileName);
 			return FALSE;
 		}
+		status = TRUE;
 		while ((next = readdir(dir)) != NULL) {
-			char nextFile[BUFSIZ + 1];
+			char nextFile[PATH_MAX];
 
 			if ((strcmp(next->d_name, "..") == 0)
-				|| (strcmp(next->d_name, ".") == 0)) {
+					|| (strcmp(next->d_name, ".") == 0)) {
 				continue;
 			}
-			if (strlen(fileName) + strlen(next->d_name) + 1 > BUFSIZ) {
+			if (strlen(fileName) + strlen(next->d_name) + 1 > PATH_MAX) {
 				error_msg(name_too_long);
 				return FALSE;
 			}
@@ -719,26 +720,20 @@ int recursive_action(const char *fileName,
 				sprintf(nextFile, "%s%s", fileName, next->d_name);
 			else
 				sprintf(nextFile, "%s/%s", fileName, next->d_name);
-			status =
-				recursive_action(nextFile, TRUE, followLinks, depthFirst,
-								fileAction, dirAction, userData);
-			if (status == FALSE) {
-				closedir(dir);
-				return FALSE;
+			if (recursive_action(nextFile, TRUE, followLinks, depthFirst,
+						fileAction, dirAction, userData) == FALSE) {
+				status = FALSE;
 			}
 		}
-		status = closedir(dir);
-		if (status < 0) {
-			perror_msg("%s", fileName);
-			return FALSE;
-		}
+		closedir(dir);
 		if (dirAction != NULL && depthFirst == TRUE) {
-			status = dirAction(fileName, &statbuf, userData);
-			if (status == FALSE) {
+			if (dirAction(fileName, &statbuf, userData) == FALSE) {
 				perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}
+		if (status == FALSE)
+			return FALSE;
 	} else {
 		if (fileAction == NULL)
 			return TRUE;
