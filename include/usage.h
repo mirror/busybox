@@ -228,7 +228,7 @@
 	"\t-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
 	"\t-d num\tdebug level\n" \
 	"\t-l num\tlog level (8 - default)\n" \
-	"\t-S\tlog to syslod (default)\n" \
+	"\t-S\tlog to syslogd (default)\n" \
 	"\t-L file\tlog to file\n" \
 	"\t-f\trun in fordeground\n" \
 	"\t-b\trun in background (default)\n" \
@@ -431,7 +431,7 @@
 	"\t-C\tConfigure an unpackaged package\n" \
 	"\t-P\tPurge all files of a package\n" \
 	"\t-r\tRemove all but the configuration files for a package\n" \
-	"\t-u\tUnpack a package, but dont configure it"
+	"\t-u\tUnpack a package, but don't configure it"
 
 #define dpkg_deb_trivial_usage \
 	"[-cefxX] FILE [argument]"
@@ -500,8 +500,8 @@
 	"Displays the DHCP leases granted by udhcpd.\n\n" \
 	"Options:\n" \
 	"\t-f,\t--file=FILENAME\tLeases file to load\n" \
-	"\t-r,\t--remaining\tInterepret lease times as time remaing\n" \
-	"\t-a,\t--absolute\tInterepret lease times as expire time"
+	"\t-r,\t--remaining\tInterpret lease times as time remaing\n" \
+	"\t-a,\t--absolute\tInterpret lease times as expire time"
 
 #ifdef CONFIG_FEATURE_FANCY_ECHO
   #define USAGE_FANCY_ECHO(a) a
@@ -1217,7 +1217,7 @@
 "\n" \
 "	<process>:\n" \
 "\n" \
-"		Specifies the process to be executed and it's command line.\n" \
+"		Specifies the process to be executed and its command line.\n" \
 "\n" \
 "Example /etc/inittab file:\n" \
 "\n" \
