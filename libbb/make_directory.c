@@ -38,24 +38,6 @@
  * Also create parent directories as necessary if flags contains
  * FILEUTILS_RECUR.  */
 
-static mode_t default_permission(char *path, mode_t old_permision)
-{
-	struct stat statbuf;
-	char *pp;
-
-	statbuf.st_mode = 0777;
-
-	/* stat the directory */
-	pp = strrchr(path, '/');
-	if ((pp) && (pp != path)) {
-		*pp = '\0';
-		stat(path, &statbuf);
-		*pp = '/';
-	}
-
-	return(statbuf.st_mode & old_permision);
-}
-
 int make_directory (char *path, long mode, int flags)
 {
 	int ret;
@@ -70,7 +52,19 @@ int make_directory (char *path, long mode, int flags)
 	}
 
 	if (mode == -1) {
-		mode = default_permission(path, 07777);
+		struct stat statbuf;
+		char *pp = strrchr(path, '/');
+
+		statbuf.st_mode = 0777;
+
+		/* stat the directory */
+		if ((pp) && (pp != path)) {
+			*pp = '\0';
+			stat(path, &statbuf);
+			*pp = '/';
+		}
+
+		mode = statbuf.st_mode;
 	}
 
 	ret = mkdir(path, mode);
