@@ -2,14 +2,14 @@
 /*
  * Termios command line History and Editting.
  *
- * Copyright (c) 1986-2001 may safely be consumed by a BSD or GPL license.
+ * Copyright (c) 1986-2003 may safely be consumed by a BSD or GPL license.
  * Written by:   Vladimir Oleynik <dzo@simtreas.ru>
  *
  * Used ideas:
  *      Adam Rogoyski    <rogoyski@cs.utexas.edu>
  *      Dave Cinege      <dcinege@psychosis.com>
  *      Jakub Jelinek (c) 1995
- *      Erik Andersen    <andersee@debian.org> (Majorly adjusted for busybox)
+ *      Erik Andersen    <andersen@codepoet.org> (Majorly adjusted for busybox)
  *
  * This code is 'as is' with no warranty.
  *
@@ -163,11 +163,6 @@ static int my_gid;
 
 #endif  /* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
-/* It seems that libc5 doesn't know what a sighandler_t is... */
-#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
-typedef void (*sighandler_t) (int);
-#endif
-
 static void cmdedit_setwidth(int w, int redraw_flg);
 
 static void win_changed(int nsig)
@@ -264,6 +259,7 @@ static inline void out1str(const char *s)
 	if ( s )
 		fputs(s, stdout);
 }
+
 static inline void beep(void)
 {
 	putchar('\007');

@@ -5,6 +5,10 @@
  * Copyright (c) 1989, 1991, 1993, 1994
  *      The Regents of the University of California.  All rights reserved.
  *
+ * Copyright (c) 1997-2003 Herbert Xu <herbert@debian.org>
+ * was re-ported from NetBSD and debianized.
+ *
+ *
  * This code is derived from software contributed to Berkeley by
  * Kenneth Almquist.
  *
@@ -22,14 +26,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * This version of ash is adapted from the source in Debian's ash 0.3.8-5
- * package.
- * Maintainer Herbert Xu <herbert@debian.org> (C) 1997-2002
  *
  * Modified by Vladimir Oleynik <dzo@simtreas.ru> to be used in busybox
  *
  *
- * Original copyright notice is retained at the end of this file.
+ * Original BSD copyright notice is retained at the end of this file.
  */
 
 /*
@@ -1485,8 +1486,11 @@ static const char defpathvar[] =
 	"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 #ifdef IFS_BROKEN
 static const char defifsvar[] = "IFS= \t\n";
-#endif
+#define defifs (defifsvar + 4)
+#else
 static const char defifs[] = " \t\n";
+#endif
+
 
 static struct var varinit[] = {
 #ifdef IFS_BROKEN
@@ -9848,6 +9852,89 @@ out:
  *  have parseword (readtoken1?) handle both words and redirection.]
  */
 
+#define NEW_xxreadtoken
+#ifdef NEW_xxreadtoken
+
+/* singles must be first! */
+static const char xxreadtoken_chars[7] = { '\n', '(', ')', '&', '|', ';', 0 };
+
+static const char xxreadtoken_tokens[] = {
+	TNL, TLP, TRP,          /* only single occurrence allowed */
+	TBACKGND, TPIPE, TSEMI, /* if single occurrence */
+	TEOF,                   /* corresponds to trailing nul */
+	TAND, TOR, TENDCASE,    /* if double occurrence */
+};
+
+#define xxreadtoken_doubles \
+	(sizeof(xxreadtoken_tokens) - sizeof(xxreadtoken_chars))
+#define xxreadtoken_singles \
+	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
+
+static int xxreadtoken()
+{
+	int c;
+
+	if (tokpushback) {
+		tokpushback = 0;
+		return lasttoken;
+	}
+	if (needprompt) {
+		setprompt(2);
+		needprompt = 0;
+	}
+	startlinno = plinno;
+	for (;;) {                      /* until token or start of word found */
+		c = pgetc_macro();
+
+		if ((c != ' ') && (c != '\t')
+#ifdef CONFIG_ASH_ALIAS
+			&& (c != PEOA)
+#endif
+			) {
+			if (c == '#') {
+				while ((c = pgetc()) != '\n' && c != PEOF);
+				pungetc();
+			} else if (c == '\\') {
+				if (pgetc() != '\n') {
+					pungetc();
+					goto READTOKEN1;
+				}
+				startlinno = ++plinno;
+				if (doprompt)
+					setprompt(2);
+			} else {
+				const char *p
+					= xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
+
+				if (c != PEOF) {
+					if (c == '\n') {
+						plinno++;
+						needprompt = doprompt;
+					}
+
+					p = strchr(xxreadtoken_chars, c);
+					if (p == NULL) {
+					  READTOKEN1:
+						return readtoken1(c, BASESYNTAX, (char *) NULL, 0);
+					}
+
+					if (p - xxreadtoken_chars >= xxreadtoken_singles) {
+						if (pgetc() == *p) {    /* double occurrence? */
+							p += xxreadtoken_doubles + 1;
+						} else {
+							pungetc();
+						}
+					}
+				}
+
+				return lasttoken = xxreadtoken_tokens[p - xxreadtoken_chars];
+			}
+		}
+	}
+}
+
+
+#else
 #define RETURN(token)   return lasttoken = token
 
 static int
@@ -9918,7 +10005,7 @@ breakloop:
 	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
-
+#endif /* NEW_xxreadtoken */
 
 
 /*
@@ -10909,10 +10996,6 @@ redirect(union node *redir, int flags)
 }
 
 
-
-
-
-
 /*
  * Undo the effects of the last redirection.
  */
@@ -10960,7 +11043,6 @@ clearredir(int drop)
 		popredir(drop);
 	}
 }
-
 
 
 /*
@@ -11071,7 +11153,6 @@ binop:
 		break;
 	}
 }
-
 
 
 static void
@@ -11422,7 +11503,6 @@ trapcmd(int argc, char **argv)
 }
 
 
-
 /*
  * Clear traps on a fork.
  */
@@ -11443,7 +11523,6 @@ clear_traps(void)
 		}
 	}
 }
-
 
 
 /*
@@ -11546,7 +11625,6 @@ ignoresig(int signo)
 }
 
 
-
 /*
  * Signal handler.
  */
@@ -11563,7 +11641,6 @@ onsig(int signo)
 		intpending = 1;
 	}
 }
-
 
 
 /*
@@ -11591,11 +11668,9 @@ dotrap(void)
 }
 
 
-
 /*
  * Controls whether the shell is interactive or not.
  */
-
 
 void
 setinteractive(int on)
@@ -11691,7 +11766,6 @@ exitshell(void)
 	}
 #endif
 out:
-	out1c('\n');
 	_exit(status);
 	/* NOTREACHED */
 }
@@ -11780,7 +11854,6 @@ setvar(const char *name, const char *val, int flags)
 }
 
 
-
 /*
  * Same as setvar except that the variable and value are passed in
  * the first argument as name=value.  Since the first argument will
@@ -11830,7 +11903,6 @@ setvareq(char *s, int flags)
 }
 
 
-
 /*
  * Process a linked list of variable assignments.
  */
@@ -11866,7 +11938,6 @@ lookupvar(const char *name)
 }
 
 
-
 /*
  * Search the environment of a builtin command.
  */
@@ -11882,7 +11953,6 @@ bltinlookup(const char *name)
 	}
 	return lookupvar(name);
 }
-
 
 
 /*
@@ -11915,7 +11985,6 @@ listvars(int on, int off, char ***end)
 	*ep++ = NULL;
 	return grabstackstr(ep);
 }
-
 
 
 /*
@@ -12051,7 +12120,6 @@ localcmd(int argc, char **argv)
 	}
 	return 0;
 }
-
 
 
 
@@ -12568,7 +12636,7 @@ ulimitcmd(int argc, char **argv)
 
 		if (all || argptr[1])
 			error("too many arguments");
-		if (strcmp(p, "unlimited") == 0)
+		if (strncmp(p, "unlimited\n", 9) == 0)
 			val = RLIM_INFINITY;
 		else {
 			val = (rlim_t) 0;
