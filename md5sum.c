@@ -901,7 +901,12 @@ int md5sum_main(int argc,
 
       fail = md5_file (file, binary, md5buffer);
       err |= fail;
-      if (!fail) {
+      if (!fail && STREQ(file, "-")) {
+	  size_t i;
+	  for (i = 0; i < 16; ++i)
+	      printf ("%02x", md5buffer[i]);
+	  putchar ('\n');
+      } else if (!fail) {
         size_t i;
         /* Output a leading backslash if the file name contains
            a newline or backslash.  */
