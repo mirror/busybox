@@ -74,7 +74,7 @@ int klogctl(int type, char *b, int len)
 
 int umount2(const char * special_file, int flags)
 {
-#ifndef __NR_pivot_root
+#ifndef __NR_umount2
 #warning This kernel does not support the umount2 syscall
 #warning -> The umount2 system call is being stubbed out...
 	/* BusyBox was compiled against a kernel that did not support
