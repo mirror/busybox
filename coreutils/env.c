@@ -44,20 +44,13 @@ extern int env_main(int argc, char** argv)
 {
 	char **ep, *p;
 	char *cleanenv[1] = { NULL };
-	int ch;
+	unsigned long opt;
 
-	while ((ch = getopt(argc, argv, "iu:")) > 0) {
-		switch(ch) {
-		case 'i':
+	opt = bb_getopt_ulflags(argc, argv, "iu:", &p);
+	if(opt & 1)
 			environ = cleanenv;
-			break;
-		case 'u':
-			unsetenv(optarg);
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
+	if(opt & 2)
+		unsetenv(p);
 
 	argv += optind;
 

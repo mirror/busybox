@@ -166,8 +166,9 @@ int du_main(int argc, char **argv)
 {
 	long total;
 	int slink_depth_save;
-	int print_final_total = 0;
-	int c;
+	int print_final_total;
+	char *smax_print_depth;
+	unsigned long opt;
 
 #ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 	if (getenv("POSIXLY_CORRECT")) {	/* TODO - a new libbb function? */
@@ -185,57 +186,57 @@ int du_main(int argc, char **argv)
 	 * gnu du exits with an error code in this case.  We choose to simply
 	 * ignore -a.  This is consistent with -s being equivalent to -d 0.
 	 */
-
-	while ((c = getopt(argc, argv, "aHkLsx" "d:" "lc"
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-					   "hm"
-#endif
-					   )) > 0) {
-		switch (c) {
-		case 'a':
-			print_files = INT_MAX;
-			break;
-		case 'H':
-			slink_depth = 1;
-			break;
-		case 'k':
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-			disp_hr = KILOBYTE;
-#elif !defined CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
-			disp_k = 1;
-#endif
-			break;
-		case 'L':
-			slink_depth = INT_MAX;
-			break;
-		case 's':
-			max_print_depth = 0;
-			break;
-		case 'x':
-			one_file_system = 1;
-			break;
-
-		case 'd':
-			max_print_depth = bb_xgetularg10_bnd(optarg, 0, INT_MAX);
-			break;
-		case 'l':
-			count_hardlinks = 1;
-			break;
-		case 'c':
-			print_final_total = 1;
-			break;
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-		case 'h':
-			disp_hr = 0;
-			break;
-		case 'm':
-			disp_hr = MEGABYTE;
-			break;
-#endif
-		default:
-			bb_show_usage();
-		}
+	bb_opt_complementaly = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
+	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
+	if((opt & (1 << 9))) {
+		/* -h opt */
+		disp_hr = 0;
 	}
+	if((opt & (1 << 10))) {
+		/* -m opt */
+		disp_hr = MEGABYTE;
+	}
+	if((opt & (1 << 2))) {
+		/* -k opt */
+			disp_hr = KILOBYTE;
+	}
+#else
+	bb_opt_complementaly = "H-L:L-H:s-d:d-s";
+	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
+#if !defined CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+	if((opt & (1 << 2))) {
+		/* -k opt */
+			disp_k = 1;
+	}
+#endif
+#endif
+	if((opt & (1 << 0))) {
+		/* -a opt */
+		print_files = INT_MAX;
+	}
+	if((opt & (1 << 1))) {
+		/* -H opt */
+		slink_depth = 1;
+	}
+	if((opt & (1 << 3))) {
+		/* -L opt */
+			slink_depth = INT_MAX;
+	}
+	if((opt & (1 << 4))) {
+		/* -s opt */
+			max_print_depth = 0;
+		}
+	one_file_system = opt & (1 << 5); /* -x opt */
+	if((opt & (1 << 6))) {
+		/* -d opt */
+		max_print_depth = bb_xgetularg10_bnd(smax_print_depth, 0, INT_MAX);
+	}
+	if((opt & (1 << 7))) {
+		/* -l opt */
+		count_hardlinks = 1;
+	}
+	print_final_total = opt & (1 << 8); /* -c opt */
 
 	/* go through remaining args (if any) */
 	argv += optind;
@@ -252,7 +253,9 @@ int du_main(int argc, char **argv)
 		total += du(*argv);
 		slink_depth = slink_depth_save;
 	} while (*++argv);
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	reset_ino_dev_hashtable();
+#endif
 
 	if (print_final_total) {
 		print(total, "total");

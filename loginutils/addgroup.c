@@ -122,6 +122,17 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
 	return 0;
 }
 
+#ifndef CONFIG_ADDUSER
+static inline void if_i_am_not_root(void)
+{
+	if (geteuid()) {
+		bb_error_msg_and_die( "Only root may add a user or group to the system.");
+	}
+}
+#else
+extern void if_i_am_not_root(void);
+#endif
+
 /*
  * addgroup will take a login_name as its first parameter.
  *
@@ -131,21 +142,13 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
  * ________________________________________________________________________ */
 int addgroup_main(int argc, char **argv)
 {
-	int opt;
 	char *group;
 	char *user;
 	gid_t gid = 0;
 
 	/* get remaining args */
-	while ((opt = getopt (argc, argv, "g:")) != -1) {
-		switch (opt) {
-			case 'g':
-				gid = strtol(optarg, NULL, 10);
-				break;
-			default:
-				bb_show_usage();
-				break;
-		}
+	if(bb_getopt_ulflags(argc, argv, "g:", &group)) {
+		gid = strtol(group, NULL, 10);
 	}
 
 	if (optind < argc) {
@@ -161,14 +164,8 @@ int addgroup_main(int argc, char **argv)
 	} else {
 		user = "";
 	}
-	
-	if (geteuid() != 0) {
-		bb_error_msg_and_die
-			("Only root may add a group to the system.");
-	}
+	if_i_am_not_root();
 
 	/* werk */
 	return addgroup(bb_path_group_file, group, gid, user);
 }
-
-/* $Id: addgroup.c,v 1.10 2003/03/19 09:12:20 mjn3 Exp $ */

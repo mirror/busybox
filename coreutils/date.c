@@ -120,74 +120,65 @@ int date_main(int argc, char **argv)
 	char *date_str = NULL;
 	char *date_fmt = NULL;
 	char *t_buff;
-	int c;
-	int set_time = 0;
-	int rfc822 = 0;
-	int utc = 0;
+	int set_time;
+	int rfc822;
+	int utc;
 	int use_arg = 0;
 	time_t tm;
+	unsigned long opt;
 	struct tm tm_time;
 
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	int ifmt = 0;
+	char *isofmt_arg;
 
 # define GETOPT_ISOFMT  "I::"
 #else
 # define GETOPT_ISOFMT
 #endif
-
-	/* Interpret command line args */
-	while ((c = getopt(argc, argv, "Rs:ud:" GETOPT_ISOFMT)) != EOF) {
-		switch (c) {
-		case 'R':
-			rfc822 = 1;
-			break;
-		case 's':
-			set_time = 1;
-			if ((date_str != NULL) || ((date_str = optarg) == NULL)) {
-				bb_show_usage();
-			}
-			break;
-		case 'u':
-			utc = 1;
+	bb_opt_complementaly = "d~ds:s~ds";
+	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:" GETOPT_ISOFMT,
+					&date_str, &date_str
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+					, &isofmt_arg
+#endif
+					);
+	rfc822 = opt & 1;
+	set_time = opt & 2;
+	utc = opt & 4;
+	if(utc) {
 			if (putenv("TZ=UTC0") != 0)
 				bb_error_msg_and_die(bb_msg_memory_exhausted);
-			break;
-		case 'd':
-			use_arg = 1;
-			if ((date_str != NULL) || ((date_str = optarg) == NULL))
+	}
+	use_arg = opt & 8;
+	if(opt & 0x80000000UL)
 				bb_show_usage();
-			break;
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
-		case 'I':
-			if (!optarg)
+	if(opt & 16) {
+		if (!isofmt_arg)
 				ifmt = 1;
 			else {
-				int ifmt_len = bb_strlen(optarg);
+			int ifmt_len = bb_strlen(isofmt_arg);
 
 				if ((ifmt_len <= 4)
-					&& (strncmp(optarg, "date", ifmt_len) == 0)) {
+				&& (strncmp(isofmt_arg, "date", ifmt_len) == 0)) {
 					ifmt = 1;
 				} else if ((ifmt_len <= 5)
-						   && (strncmp(optarg, "hours", ifmt_len) == 0)) {
+					   && (strncmp(isofmt_arg, "hours", ifmt_len) == 0)) {
 					ifmt = 2;
 				} else if ((ifmt_len <= 7)
-						   && (strncmp(optarg, "minutes", ifmt_len) == 0)) {
+					   && (strncmp(isofmt_arg, "minutes", ifmt_len) == 0)) {
 					ifmt = 3;
 				} else if ((ifmt_len <= 7)
-						   && (strncmp(optarg, "seconds", ifmt_len) == 0)) {
+					   && (strncmp(isofmt_arg, "seconds", ifmt_len) == 0)) {
 					ifmt = 4;
 				}
 			}
-			if (ifmt) {
-				break;	/* else bb_show_usage(); */
-			}
-#endif
-		default:
+		if (!ifmt) {
 			bb_show_usage();
 		}
 	}
-
+#endif
 
 	if ((date_fmt == NULL) && (optind < argc) && (argv[optind][0] == '+')) {
 		date_fmt = &argv[optind][1];	/* Skip over the '+' */

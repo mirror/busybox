@@ -208,9 +208,15 @@ static int adduser(const char *filename, struct passwd *p)
 
 
 /* return current uid (root is always uid == 0, right?) */
-static inline uid_t i_am_not_root(void)
+#ifndef CONFIG_ADDGROUP
+static inline void if_i_am_not_root(void)
+#else
+void if_i_am_not_root(void)
+#endif
 {
-	return geteuid();
+	if (geteuid()) {
+		bb_error_msg_and_die( "Only root may add a user or group to the system.");
+	}
 }
 
 /*
@@ -224,11 +230,10 @@ static inline uid_t i_am_not_root(void)
  * ________________________________________________________________________ */
 int adduser_main(int argc, char **argv)
 {
-	int opt;
 	const char *login;
-	const char *gecos;
+	const char *gecos = default_gecos;
 	const char *home = NULL;
-	const char *shell;
+	const char *shell = default_shell;
 
 	struct passwd pw;
 
@@ -236,30 +241,11 @@ int adduser_main(int argc, char **argv)
 	if (argc < 2) {
 		bb_show_usage();
 	}
-	gecos = default_gecos;
-	shell = default_shell;
-
 	/* get args */
-	while ((opt = getopt (argc, argv, "h:g:s:")) != -1)
-		switch (opt) {
-			case 'h':
-				home = optarg;
-				break;
-			case 'g':
-				gecos = optarg;
-				break;
-			case 's':
-				shell = optarg;
-				break;
-			default:
-				bb_show_usage();
-				break;
-		}
+	bb_getopt_ulflags(argc, argv, "h:g:s:", &home, &gecos, &shell);
 
 	/* got root? */
-	if (i_am_not_root()) {
-		bb_error_msg_and_die( "Only root may add a user or group to the system.");
-	}
+	if_i_am_not_root();
 
 	/* get login */
 	if (optind >= argc) {
@@ -288,5 +274,3 @@ int adduser_main(int argc, char **argv)
 	/* grand finale */
 	return adduser(bb_path_passwd_file, &pw);
 }
-
-/* $Id: adduser.c,v 1.5 2003/03/19 09:12:20 mjn3 Exp $ */

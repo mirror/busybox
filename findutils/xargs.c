@@ -66,24 +66,13 @@ int xargs_main(int argc, char **argv)
 	char *file_to_act_on;
 	char **args;
 	int  i, a;
-	char flg_vi       = 0;    /* verbose |& interactive */
-	char flg_no_empty = 0;
+	char flg_vi;            /* verbose |& interactive */
+	char flg_no_empty;
 
-	while ((a = getopt(argc, argv, "prt")) > 0) {
-		switch(a) {
-			case 'p':
-				flg_vi |= 3;
-				break;
-			case 't':
-				flg_vi |= 1;
-				break;
-			case 'r':
-				flg_no_empty = 1;
-				break;
-			default:
-				bb_show_usage();
-		}
-	}
+	bb_opt_complementaly = "pt";
+	a = bb_getopt_ulflags(argc, argv, "tpr");
+	flg_vi = a & 3;
+	flg_no_empty = a & 4;
 
 	a = argc - optind;
 	argv += optind;
@@ -110,7 +99,7 @@ int xargs_main(int argc, char **argv)
 						fputc(' ', stderr);
 					fputs(args[i], stderr);
 				}
-				fprintf(stderr, "%s", ((flg_vi & 2) ? " ?..." : "\n"));
+				fputs(((flg_vi & 2) ? " ?..." : "\n"), stderr);
 			}
 			if((flg_vi & 2) == 0 || bb_ask_confirmation() != 0 ) {
 				xargs_exec(args);

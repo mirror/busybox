@@ -452,10 +452,8 @@ static int getn(const char *s)
 	if (errno != 0)
 		bb_error_msg_and_die("%s: out of range", s);
 
-	while (isspace(*p))
-		p++;
-
-	if (*p)
+	/*   p = bb_skip_whitespace(p); avoid const warning */
+	if (*(bb_skip_whitespace(p)))
 		bb_error_msg_and_die("%s: bad number", s);
 
 	return (int) r;

@@ -55,41 +55,27 @@ extern int df_main(int argc, char **argv)
 	unsigned long df_disp_hr = KILOBYTE; 
 #endif
 	int status = EXIT_SUCCESS;
-	int opt;
+	unsigned long opt;
 	FILE *mount_table;
 	struct mntent *mount_entry;
 	struct statfs s;
 	static const char hdr_1k[] = "1k-blocks"; /* default display is kilobytes */
 	const char *disp_units_hdr = hdr_1k;
 
-	while ((opt = getopt(argc, argv, "k"
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	"hm"
-#endif
-)) > 0)
-	{
-		switch (opt) {
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-			case 'h':
+	bb_opt_complementaly = "h-km:k-hm:m-hk";
+	opt = bb_getopt_ulflags(argc, argv, "hmk");
+	if(opt & 1) {
 				df_disp_hr = 0;
 				disp_units_hdr = "     Size";
-				break;
-			case 'm':
+	}
+	if(opt & 2) {
 				df_disp_hr = MEGABYTE;
 				disp_units_hdr = "1M-blocks";
-				break;
-#endif
-			case 'k':
-				/* default display is kilobytes */
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-				df_disp_hr = KILOBYTE;
-				disp_units_hdr =  hdr_1k;
-#endif
-				break;
-			default:
-					  bb_show_usage();
-		}
 	}
+#else
+	opt = bb_getopt_ulflags(argc, argv, "k");
+#endif
 
 	bb_printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",
 			  "", disp_units_hdr);

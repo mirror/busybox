@@ -117,46 +117,40 @@ static CronFile *FileBase;
 int
 crond_main(int ac, char **av)
 {
-    int i;
+    unsigned long opt;
+    char *lopt, *Lopt, *copt;
+#ifdef FEATURE_DEBUG_OPT
+    char *dopt;
+    bb_opt_complementaly = "f-b:b-f:S-L:L-S:d-l";
+#else
+    bb_opt_complementaly = "f-b:b-f:S-L:L-S";
+#endif
 
     opterr = 0;         /* disable getopt 'errors' message.*/
-
-    while ((i = getopt(ac,av,
+    opt = bb_getopt_ulflags(ac, av, "l:L:fbSc:"
 #ifdef FEATURE_DEBUG_OPT
 				"d:"
 #endif
-					"l:L:fbSc:")) != EOF){
-
-	switch (i){
-	    case 'l':
-		LogLevel = atoi(optarg);
-		break;
+	    , &lopt, &Lopt, &copt
 #ifdef FEATURE_DEBUG_OPT
-	    case 'd':
-		DebugOpt = atoi(optarg);
-		LogLevel = 0;
-		break;
+	    , &dopt
 #endif
-	    case 'f':
-		ForegroundOpt = 1;
-		break;
-	    case 'b':
-		ForegroundOpt = 0;
-		break;
-	    case 'S':                   /* select logging to syslog */
-		LoggerOpt = 0;
-		break;
-	    case 'L':                   /* select internal file logger */
-		LoggerOpt = 1;
-		if (*optarg != 0) LogFile = optarg;
-		break;
-	    case 'c':
-		if (*optarg != 0) CDir = optarg;
-		break;
-	    default: /*  parse error */
-		bb_show_usage();
+	    );
+    if(opt & 1)
+	LogLevel = atoi(lopt);
+    LoggerOpt = opt & 2;
+    if(LoggerOpt)
+	if (*Lopt != 0) LogFile = Lopt;
+    ForegroundOpt = opt & 4;
+    if(opt & 32) {
+	if (*copt != 0) CDir = copt;
 	}
+#ifdef FEATURE_DEBUG_OPT
+    if(opt & 64) {
+	DebugOpt = atoi(dopt);
+	LogLevel = 0;
     }
+#endif
 
     /*
      * change directory
@@ -165,6 +159,9 @@ crond_main(int ac, char **av)
     if (chdir(CDir) != 0)
 	bb_perror_msg_and_die("chdir");
 
+    signal(SIGHUP,SIG_IGN);   /* hmm.. but, if kill -HUP original
+				 * version - his died. ;(
+				 */
     /*
      * close stdin and stdout, stderr.
      * close unused descriptors -  don't need.
@@ -177,9 +174,6 @@ crond_main(int ac, char **av)
     }
 
     (void)startlogger();                /* need if syslog mode selected */
-    signal(SIGHUP,SIG_IGN);   /* hmm.. but, if kill -HUP original
-				 * version - his died. ;(
-				 */
 
     /*
      * main loop - synchronize to 1 second after the minute, minimum sleep

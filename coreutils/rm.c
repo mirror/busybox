@@ -36,22 +36,16 @@ extern int rm_main(int argc, char **argv)
 {
 	int status = 0;
 	int flags = 0;
-	int opt;
+	unsigned long opt;
 
-	while ((opt = getopt(argc, argv, "fiRr")) > 0) {
-		if ((opt == 'r') || (opt == 'R')) {
-			flags |= FILEUTILS_RECUR;
-		} else {
-			flags &= ~(FILEUTILS_INTERACTIVE | FILEUTILS_FORCE);
-			if (opt == 'i') {
-				flags |= FILEUTILS_INTERACTIVE;
-			} else if (opt == 'f') {
+	bb_opt_complementaly = "f-i:i-f";
+	opt = bb_getopt_ulflags(argc, argv, "fiRr");
+	if(opt & 1)
 				flags |= FILEUTILS_FORCE;
-			} else {
-				bb_show_usage();
-			}
-		}
-	}
+	if(opt & 2)
+		flags |= FILEUTILS_INTERACTIVE;
+	if(opt & 12)
+		flags |= FILEUTILS_RECUR;
 
 	if (*(argv += optind) != NULL) {
 		do {

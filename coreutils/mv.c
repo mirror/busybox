@@ -31,10 +31,21 @@
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-static const char *fmt = "cannot overwrite %sdirectory with %sdirectory";
+static const struct option mv_long_options[] = {
+	{ "interactive", 0, NULL, 'i' },
+	{ "force", 0, NULL, 'f' },
+	{ 0, 0, 0, 0 }
+};
+
+static const char mv_getopt_short_option[] = "fi";
+#define OPT_FILEUTILS_FORCE       1
+#define OPT_FILEUTILS_INTERACTIVE 2
+
+static const char fmt[] = "cannot overwrite %sdirectory with %sdirectory";
 
 extern int mv_main(int argc, char **argv)
 {
@@ -44,20 +55,12 @@ extern int mv_main(int argc, char **argv)
 	const char *dest;
 	int dest_exists;
 	int source_exists;
-	int opt;
-	int flags = 0;
+	unsigned long flags;
 	int status = 0;
 
-	while ((opt = getopt(argc, argv, "fi")) > 0) {
-		flags &= ~(FILEUTILS_INTERACTIVE | FILEUTILS_FORCE);
-		if (opt == 'i') {
-			flags |= FILEUTILS_INTERACTIVE;
-		} else if (opt == 'f') {
-			flags |= FILEUTILS_FORCE;
-		} else {
-			bb_show_usage();
-		}
-	}
+	bb_applet_long_options = mv_long_options;
+	bb_opt_complementaly = "f-i:i-f";
+	flags = bb_getopt_ulflags(argc, argv, mv_getopt_short_option);
 
 	if (optind + 2 > argc)
 		bb_show_usage();
@@ -77,8 +80,7 @@ extern int mv_main(int argc, char **argv)
 	}
 	
 	do {
-		dest = concat_path_file(last,
-								bb_get_last_path_component(*argv));
+		dest = concat_path_file(last, bb_get_last_path_component(*argv));
 
 		if ((dest_exists = cp_mv_stat(dest, &dest_stat)) < 0) {
 			goto RET_1;
@@ -86,9 +88,9 @@ extern int mv_main(int argc, char **argv)
 
 	DO_MOVE:
 		
-		if (dest_exists && !(flags & FILEUTILS_FORCE) &&
+		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE) &&
 			((access(dest, W_OK) < 0 && isatty(0)) ||
-			 (flags & FILEUTILS_INTERACTIVE))) {
+			 (flags & OPT_FILEUTILS_INTERACTIVE))) {
 				 if (fprintf(stderr, "mv: overwrite `%s'? ", dest) < 0) {
 					 goto RET_1;	/* Ouch! fprintf failed! */
 				 }

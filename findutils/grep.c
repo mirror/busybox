@@ -19,42 +19,71 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
+/*
+ * Jun 2003 by Vladimir Oleynik <dzo@simtreas.ru> -
+ * correction "-e pattern1 -e -e pattern2" logic and more optimizations.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <regex.h>
-#include <string.h> /* for strerror() */
+#include <string.h>
 #include <errno.h>
 #include "busybox.h"
 
 
-extern int optind; /* in unistd.h */
-extern void xregcomp(regex_t *preg, const char *regex, int cflags); /* in busybox.h */
-
 /* options */
-static int reflags            = REG_NOSUB; 
-static int print_filename     = 0;
-static int print_line_num     = 0;
-static int print_match_counts = 0;
-static int be_quiet           = 0;
-static int invert_search      = 0;
-static int suppress_err_msgs  = 0;
-static int print_files_with_matches  = 0;
-static int fgrep_flag		 = 0;
+#define GREP_OPTS "lnqvscFiHhe:f:"
+#define GREP_OPT_l 1
+static char print_files_with_matches;
+#define GREP_OPT_n 2
+static char print_line_num;
+#define GREP_OPT_q 4
+static char be_quiet;
+#define GREP_OPT_v 8
+typedef char invert_search_t;
+static invert_search_t invert_search;
+#define GREP_OPT_s 16
+static char suppress_err_msgs;
+#define GREP_OPT_c 32
+static char print_match_counts;
+#define GREP_OPT_F 64
+static char fgrep_flag;
+#define GREP_OPT_i 128
+#define GREP_OPT_H 256
+#define GREP_OPT_h 512
+#define GREP_OPT_e 1024
+#define GREP_OPT_f 2048
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
+#define GREP_OPT_CONTEXT "A:B:C"
+#define GREP_OPT_A 4096
+#define GREP_OPT_B 8192
+#define GREP_OPT_C 16384
+#define GREP_OPT_E 32768U
+#else
+#define GREP_OPT_CONTEXT ""
+#define GREP_OPT_E 4096
+#endif
+#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
+# define OPT_EGREP "E"
+#else
+# define OPT_EGREP ""
+#endif
+
+static int reflags;
+static int print_filename;
 
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
-extern char *optarg; /* in getopt.h */
-static int lines_before      = 0;
-static int lines_after       = 0;
-static char **before_buf     = NULL;
-static int last_line_printed = 0;
+static int lines_before;
+static int lines_after;
+static char **before_buf;
+static int last_line_printed;
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */
 
 /* globals used internally */
-static llist_t *pattern_head = NULL; /* growable list of patterns to match */
-static int matched; /* keeps track of whether we ever matched */
-static char *cur_file = NULL; /* the current file we are reading */
+static llist_t *pattern_head;   /* growable list of patterns to match */
+static char *cur_file;          /* the current file we are reading */
 
 
 static void print_line(const char *line, int linenum, char decoration)
@@ -74,11 +103,13 @@ static void print_line(const char *line, int linenum, char decoration)
 	puts(line);
 }
 
+extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 
-static void grep_file(FILE *file)
+
+static int grep_file(FILE *file)
 {
-	char *line = NULL;
-	int ret;
+	char *line;
+	invert_search_t ret;
 	int linenum = 0;
 	int nmatches = 0;
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
@@ -91,15 +122,10 @@ static void grep_file(FILE *file)
 		llist_t *pattern_ptr = pattern_head;
 
 		linenum++;
-
+		ret = 0;
 		while (pattern_ptr) {
 			if (fgrep_flag) {
-				if (strstr(line, pattern_ptr->data)) {
-					/* Match found */
-					ret = 0;
-				} else {
-					ret = 1;
-				}
+				ret = strstr(line, pattern_ptr->data) != NULL;
 			} else {
 				/*
 				 * test for a postitive-assertion match (regexec returns success (0)
@@ -109,15 +135,22 @@ static void grep_file(FILE *file)
 				 */
 				regex_t regex;
 				xregcomp(&regex, pattern_ptr->data, reflags);
-				ret = regexec(&regex, line, 0, NULL, 0);
+				ret = regexec(&regex, line, 0, NULL, 0) == 0;
 				regfree(&regex);
 			}
-			if ((ret == 0 && !invert_search) || (ret == REG_NOMATCH && invert_search)) {
+			if (!ret)
+				break;
+			pattern_ptr = pattern_ptr->link;
+		} /* while (pattern_ptr) */
 
-				/* if we found a match but were told to be quiet, stop here and
-				 * return success */
+		if ((ret ^ invert_search)) {
+
+			if (print_files_with_matches || be_quiet)
+				free(line);
+
+			/* if we found a match but were told to be quiet, stop here */
 				if (be_quiet)
-					exit(0);
+				return -1;
 
 				/* keep track of matches */
 				nmatches++;
@@ -177,8 +210,6 @@ static void grep_file(FILE *file)
 				print_n_lines_after--;
 			}
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
-			pattern_ptr = pattern_ptr->link;
-		} /* for */
 		free(line);
 	}
 
@@ -190,9 +221,6 @@ static void grep_file(FILE *file)
 	if (print_match_counts) {
 		if (print_filename)
 			printf("%s:", cur_file);
-		if (print_files_with_matches && nmatches > 0)
-			printf("1\n");
-		else
 		    printf("%d\n", nmatches);
 	}
 
@@ -201,188 +229,163 @@ static void grep_file(FILE *file)
 		puts(cur_file);
 	}
 
-
-	/* remember if we matched */
-	if (nmatches != 0)
-		matched = 1;
+	return nmatches;
 }
 
-#if 0
-static void add_pattern(char *restr)
-{
-//	regexes = xrealloc(regexes, sizeof(regex_t) * (++nregexes));
-//	xregcomp(&regexes[nregexes-1], restr, reflags);
-	pattern_head = llist_add_to(pattern_head, restr);
-}
-#endif
-
-static void	load_regexes_from_file(const char *filename)
+static void load_regexes_from_file(llist_t *fopt)
 {
 	char *line;
-	FILE *f = bb_xfopen(filename, "r");
+	FILE *f;
+
+	while(fopt) {
+		llist_t *cur = fopt;
+		char *ffile = cur->data;
+
+		fopt = cur->link;
+		free(cur);
+		f = bb_xfopen(ffile, "r");
 	while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
 		pattern_head = llist_add_to(pattern_head, line);
 	}
-}
-
-
-#ifdef CONFIG_FEATURE_CLEAN_UP
-static void destroy_regexes(void)
-{
-	llist_t *pattern_head_ptr;
-
-	if (pattern_head == NULL)
-		return;
-
-	/* destroy all the elments in the pattern list */
-	while (pattern_head) {
-		pattern_head_ptr = pattern_head;
-		pattern_head = pattern_head->link;
-		free(pattern_head_ptr->data);
-		free(pattern_head_ptr);		
 	}
 }
-#endif
 
 
 extern int grep_main(int argc, char **argv)
 {
-	int opt;
-#if defined (CONFIG_FEATURE_GREP_CONTEXT)
-	char *junk;
-#endif
-
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	/* destroy command strings on exit */
-	atexit(destroy_regexes);
-#endif
-
-#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-	if (strcmp(bb_get_last_path_component(argv[0]), "egrep") == 0)
-		reflags |= REG_EXTENDED;
-#endif
+	FILE *file;
+	int matched;
+	unsigned long opt;
+	llist_t *fopt;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:F"
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
-"A:B:C:"
-#endif
-#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-"E"
-#endif
-)) > 0) {
-		switch (opt) {
-			case 'i':
-				reflags |= REG_ICASE;
-				break;
-			case 'l':
-				print_files_with_matches++;
-				break;
-			case 'H':
-				print_filename++;
-				break;
-			case 'h':
-				print_filename--;
-				break;
-			case 'n':
-				print_line_num++;
-				break;
-			case 'q':
-				be_quiet++;
-				break;
-			case 'v':
-				invert_search++;
-				break;
-			case 's':
-				suppress_err_msgs++;
-				break;
-			case 'c':
-				print_match_counts++;
-				break;
-			case 'e':
-				pattern_head = llist_add_to(pattern_head, strdup(optarg));
-				break;
-#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-			case 'E':
-				reflags |= REG_EXTENDED;
-				break;
-#endif
-			case 'F':
-				fgrep_flag = 1;
-				break;
-			case 'f':
-				load_regexes_from_file(optarg);
-				break;
-#ifdef CONFIG_FEATURE_GREP_CONTEXT
-			case 'A':
-				lines_after = strtoul(optarg, &junk, 10);
-				if(*junk != '\0')
-					bb_error_msg_and_die("invalid context length argument");
-				break;
-			case 'B':
-				lines_before = strtoul(optarg, &junk, 10);
-				if(*junk != '\0')
-					bb_error_msg_and_die("invalid context length argument");
-				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
-				break;
-			case 'C':
-				lines_after = lines_before = strtoul(optarg, &junk, 10);
-				if(*junk != '\0')
-					bb_error_msg_and_die("invalid context length argument");
-				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
-				break;
-#endif /* CONFIG_FEATURE_GREP_CONTEXT */
-			default:
-				bb_show_usage();
-		}
+  {
+	char *junk;
+	char *slines_after;
+	char *slines_before;
+	char *Copt;
+
+	bb_opt_complementaly = "H-h:e*:f*:C-AB";
+	opt = bb_getopt_ulflags(argc, argv,
+		GREP_OPTS GREP_OPT_CONTEXT OPT_EGREP,
+		&pattern_head, &fopt,
+		&slines_after, &slines_before, &Copt);
+
+	if(opt & GREP_OPT_C) {
+		/* C option unseted A and B options, but next -A or -B
+		   may be ovewrite own option */
+		if(!(opt & GREP_OPT_A))         /* not overwtited */
+			slines_after = Copt;
+		if(!(opt & GREP_OPT_B))         /* not overwtited */
+			slines_before = Copt;
+		opt |= GREP_OPT_A|GREP_OPT_B;   /* set for parse now */
 	}
+	if(opt & GREP_OPT_A) {
+		lines_after = strtoul(slines_after, &junk, 10);
+				if(*junk != '\0')
+					bb_error_msg_and_die("invalid context length argument");
+	}
+	if(opt & GREP_OPT_B) {
+		lines_before = strtoul(slines_before, &junk, 10);
+				if(*junk != '\0')
+					bb_error_msg_and_die("invalid context length argument");
+		}
+	/* sanity checks after parse may be invalid numbers ;-) */
+	if ((opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l))) {
+		opt &= ~GREP_OPT_n;
+		lines_before = 0;
+		lines_after = 0;
+	} else if(lines_before > 0)
+		before_buf = (char **)xcalloc(lines_before, sizeof(char *));
+	}
+#else
+	/* with auto sanity checks */
+	bb_opt_complementaly = "H-h:e*:f*:c-n:q-n:l-n";
+	opt = bb_getopt_ulflags(argc, argv, GREP_OPTS OPT_EGREP,
+		&pattern_head, &fopt);
+
+#endif
+	print_files_with_matches = opt & GREP_OPT_l;
+	print_line_num = opt & GREP_OPT_n;
+	be_quiet = opt & GREP_OPT_q;
+	invert_search = (opt & GREP_OPT_v) != 0;        /* 0 | 1 */
+	suppress_err_msgs = opt & GREP_OPT_s;
+	print_match_counts = opt & GREP_OPT_c;
+	fgrep_flag = opt & GREP_OPT_F;
+	if(opt & GREP_OPT_H)
+		print_filename++;
+	if(opt & GREP_OPT_h)
+		print_filename--;
+	if(opt & GREP_OPT_f)
+		load_regexes_from_file(fopt);
+
+#ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
+	if(bb_applet_name[0] == 'e' || (opt & GREP_OPT_E))
+		reflags = REG_EXTENDED | REG_NOSUB;
+	else
+#endif
+		reflags = REG_NOSUB;
+
+	if(opt & GREP_OPT_i)
+		reflags |= REG_ICASE;
+
+	argv += optind;
+	argc -= optind;
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
 	if (pattern_head == NULL) {
-		if (argv[optind] == NULL)
+		if (*argv == NULL)
 			bb_show_usage();
 		else {
-			pattern_head = llist_add_to(pattern_head, strdup(argv[optind]));
-			optind++;
+			pattern_head = llist_add_to(pattern_head, *argv++);
+			argc--;
 		}
-	}
-
-	/* sanity checks */
-	if (print_match_counts || be_quiet || print_files_with_matches) {
-		print_line_num = 0;
-#ifdef CONFIG_FEATURE_GREP_CONTEXT
-		lines_before = 0;
-		lines_after = 0;
-#endif
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames */
-	if ((argc-1) - (optind) > 0)
+	if (argc > 1) {
 		print_filename++;
 
 	/* If no files were specified, or '-' was specified, take input from
 	 * stdin. Otherwise, we grep through all the files specified. */
-	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
-		grep_file(stdin);
+	} else if (argc == 0) {
+		argc++;
 	}
-	else {
-		int i;
-		FILE *file;
-		for (i = optind; i < argc; i++) {
-			cur_file = argv[i];
+	matched = 0;
+	while (argc--) {
+		cur_file = *argv++;
+		if(!cur_file || (*cur_file == '-' && !cur_file[1])) {
+			cur_file = "-";
+			file = stdin;
+		} else {
 			file = fopen(cur_file, "r");
+		}
 			if (file == NULL) {
 				if (!suppress_err_msgs)
 					bb_perror_msg("%s", cur_file);
+		} else {
+			matched += grep_file(file);
+			if(matched < 0) {
+				/* we found a match but were told to be quiet, stop here and
+				* return success */
+				break;
 			}
-			else {
-				grep_file(file);
 				fclose(file);
 			}
 		}
+
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	/* destroy all the elments in the pattern list */
+	while (pattern_head) {
+		llist_t *pattern_head_ptr = pattern_head;
+
+		pattern_head = pattern_head->link;
+		free(pattern_head_ptr);
 	}
+#endif
 
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }

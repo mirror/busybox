@@ -414,22 +414,25 @@ static int           set_mode(const struct mode_info *info,
 					int reversed, struct termios *mode);
 static speed_t       string_to_baud(const char *arg);
 static tcflag_t*     mode_type_flag(enum mode_type type, struct termios *mode);
-static void          display_all(struct termios *mode, int fd,
-								 const char *device_name);
-static void          display_changed(struct termios *mode, int fd,
-									 const char *device_name);
-static void          display_recoverable(struct termios *mode, int fd,
-										 const char *device_name);
+static void          display_all(struct termios *mode, int fd);
+static void          display_changed(struct termios *mode, int fd);
+static void          display_recoverable(struct termios *mode, int fd);
 static void          display_speed(struct termios *mode, int fancy);
-static void          display_window_size(int fancy, int fd,
-					const char *device_name);
+static void          display_window_size(int fancy, int fd);
 static void          sane_mode(struct termios *mode);
 static void          set_control_char(const struct control_info *info,
 					const char *arg, struct termios *mode);
 static void          set_speed(enum speed_setting type,
 					const char *arg, struct termios *mode);
-static void          set_window_size(int rows, int cols, int fd,
-					const char *device_name);
+static void          set_window_size(int rows, int cols, int fd);
+
+static const char *device_name;
+
+static __attribute__ ((noreturn)) void perror_on_device(const char *fmt)
+{
+	bb_perror_msg_and_die(fmt, device_name);
+}
+
 
 /* The width of the screen, for output wrapping. */
 static int max_col;
@@ -477,7 +480,7 @@ extern int main(int argc, char **argv)
 #endif
 {
 	struct termios mode;
-	void (*output_func)(struct termios *, int, const char *);
+	void (*output_func)(struct termios *, int);
 	int    optc;
 	int    require_set_attr;
 	int    speed_was_set;
@@ -487,7 +490,7 @@ extern int main(int argc, char **argv)
 	int    noargs = 1;
 	char * file_name = NULL;
 	int    fd;
-	const char *device_name;
+
 
 	output_func = display_changed;
 	verbose_output = 0;
@@ -543,13 +546,10 @@ extern int main(int argc, char **argv)
 		int fdflags;
 
 		device_name = file_name;
-		fd = open(device_name, O_RDONLY | O_NONBLOCK);
-		if (fd < 0)
-			bb_perror_msg_and_die("%s", device_name);
+		fd = bb_xopen(device_name, O_RDONLY | O_NONBLOCK);
 		if ((fdflags = fcntl(fd, F_GETFL)) == -1
 			|| fcntl(fd, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
-			bb_perror_msg_and_die("%s: couldn't reset non-blocking mode",
-							   device_name);
+			perror_on_device("%s: couldn't reset non-blocking mode");
 	} else {
 		fd = 0;
 		device_name = bb_msg_standard_input;
@@ -559,12 +559,12 @@ extern int main(int argc, char **argv)
 	   spurious difference in an uninitialized portion of the structure.  */
 	memset(&mode, 0, sizeof(mode));
 	if (tcgetattr(fd, &mode))
-		bb_perror_msg_and_die("%s", device_name);
+		perror_on_device("%s");
 
 	if (verbose_output | recoverable_output | noargs) {
 		max_col = screen_columns();
 		current_col = 0;
-		output_func(&mode, fd, device_name);
+		output_func(&mode, fd);
 		return EXIT_SUCCESS;
 	}
 
@@ -644,18 +644,18 @@ extern int main(int argc, char **argv)
 				    bb_error_msg_and_die("missing argument to `%s'", argv[k]);
 				++k;
 				set_window_size((int) bb_xparse_number(argv[k], stty_suffixes),
-								-1, fd, device_name);
+								-1, fd);
 			} else if (STREQ(argv[k], "cols") || STREQ(argv[k], "columns")) {
 				if (k == argc - 1)
 				    bb_error_msg_and_die("missing argument to `%s'", argv[k]);
 				++k;
 				set_window_size(-1,
 						(int) bb_xparse_number(argv[k], stty_suffixes),
-						fd, device_name);
+						fd);
 			} else if (STREQ(argv[k], "size")) {
 				max_col = screen_columns();
 				current_col = 0;
-				display_window_size(0, fd, device_name);
+				display_window_size(0, fd);
 			}
 #endif
 #ifdef HAVE_C_LINE
@@ -685,7 +685,7 @@ extern int main(int argc, char **argv)
 		struct termios new_mode;
 
 		if (tcsetattr(fd, TCSADRAIN, &mode))
-			bb_perror_msg_and_die("%s", device_name);
+			perror_on_device("%s");
 
 		/* POSIX (according to Zlotnick's book) tcsetattr returns zero if
 		   it performs *any* of the requested operations.  This means it
@@ -698,7 +698,7 @@ extern int main(int argc, char **argv)
 		   spurious difference in an uninitialized portion of the structure.  */
 		memset(&new_mode, 0, sizeof(new_mode));
 		if (tcgetattr(fd, &new_mode))
-			bb_perror_msg_and_die("%s", device_name);
+			perror_on_device("%s");
 
 		/* Normally, one shouldn't use memcmp to compare structures that
 		   may have `holes' containing uninitialized data, but we have been
@@ -721,8 +721,7 @@ extern int main(int argc, char **argv)
 			new_mode.c_cflag &= (~CIBAUD);
 			if (speed_was_set || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
 #endif
-				bb_error_msg_and_die ("%s: unable to perform all requested operations",
-					 device_name);
+				perror_on_device ("%s: unable to perform all requested operations");
 		}
 	}
 
@@ -948,13 +947,13 @@ static int get_win_size(int fd, struct winsize *win)
 }
 
 static void
-set_window_size(int rows, int cols, int fd, const char *device_name)
+set_window_size(int rows, int cols, int fd)
 {
 	struct winsize win;
 
 	if (get_win_size(fd, &win)) {
 		if (errno != EINVAL)
-			bb_perror_msg_and_die("%s", device_name);
+			perror_on_device("%s");
 		memset(&win, 0, sizeof(win));
 	}
 
@@ -980,23 +979,23 @@ set_window_size(int rows, int cols, int fd, const char *device_name)
 
 		if ((ioctl(fd, TIOCSWINSZ, (char *) &win) != 0)
 			|| (ioctl(fd, TIOCSSIZE, (char *) &ttysz) != 0)) {
-			bb_perror_msg_and_die("%s", device_name);
+			perror_on_device("%s");
 		return;
 	}
 # endif
 
 	if (ioctl(fd, TIOCSWINSZ, (char *) &win))
-		bb_perror_msg_and_die("%s", device_name);
+		perror_on_device("%s");
 }
 
-static void display_window_size(int fancy, int fd, const char *device_name)
+static void display_window_size(int fancy, int fd)
 {
 	const char *fmt_str = "%s" "\0" "%s: no size information for this device";
 	struct winsize win;
 
 	if (get_win_size(fd, &win)) {
 		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
-			bb_perror_msg_and_die(fmt_str, device_name);
+			perror_on_device(fmt_str);
 		}
 	} else {
 		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
@@ -1047,7 +1046,7 @@ static tcflag_t *mode_type_flag(enum mode_type type, struct termios *mode)
 	return NULL;
 }
 
-static void display_changed(struct termios *mode, int fd, const char *device_name)
+static void display_changed(struct termios *mode, int fd)
 {
 	int i;
 	int empty_line;
@@ -1122,7 +1121,7 @@ static void display_changed(struct termios *mode, int fd, const char *device_nam
 }
 
 static void
-display_all(struct termios *mode, int fd, const char *device_name)
+display_all(struct termios *mode, int fd)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -1131,7 +1130,7 @@ display_all(struct termios *mode, int fd, const char *device_name)
 
 	display_speed(mode, 1);
 #ifdef TIOCGWINSZ
-	display_window_size(1, fd, device_name);
+	display_window_size(1, fd);
 #endif
 #ifdef HAVE_C_LINE
 	wrapf("line = %d;", mode->c_line);
@@ -1202,7 +1201,7 @@ static void display_speed(struct termios *mode, int fancy)
 		current_col = 0;
 }
 
-static void display_recoverable(struct termios *mode, int fd, const char *device_name)
+static void display_recoverable(struct termios *mode, int fd)
 {
 	int i;
 

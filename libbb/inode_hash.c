@@ -83,6 +83,7 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
 	ino_dev_hashtable[i] = bucket;
 }
 
+#ifdef CONFIG_FEATURE_CLEAN_UP
 /* Clear statbuf hash table */
 void reset_ino_dev_hashtable(void)
 {
@@ -97,6 +98,7 @@ void reset_ino_dev_hashtable(void)
 		}
 	}
 }
+#endif
 
 
 /* END CODE */

@@ -22,20 +22,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> /* getopt */
+#include <getopt.h>
+#include <unistd.h>
 #include <string.h>
 #include <limits.h>
 #include "busybox.h"
 
 
-/* globals from other files */
-extern int optind;
-extern char *optarg;
-
-
 /* option vars */
-static char part = 0; /* (b)yte, (c)har, (f)ields */
-static unsigned int supress_non_delimited_lines = 0;
+static const char optstring[] = "b:c:f:d:sn";
+#define OPT_BYTE_FLGS    1
+#define OPT_CHAR_FLGS    2
+#define OPT_FIELDS_FLGS  4
+#define OPT_DELIM_FLGS   8
+#define OPT_SUPRESS_FLGS 16
+static char part; /* (b)yte, (c)har, (f)ields */
+static unsigned int supress_non_delimited_lines;
 static char delim = '\t'; /* delimiter, default is tab */
 
 struct cut_list {
@@ -270,11 +272,11 @@ static void cut_file(FILE *file)
 	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
 
 		/* cut based on chars/bytes XXX: only works when sizeof(char) == byte */
-		if (part == 'c' || part == 'b')
+		if ((part & (OPT_CHAR_FLGS | OPT_BYTE_FLGS)))
 			cut_line_by_chars(line);
 
 		/* cut based on fields */
-		else if (part == 'f') {
+		else {
 			if (delim == '\n')
 				cut_file_by_lines(line, linenum);
 			else
@@ -289,46 +291,32 @@ static void cut_file(FILE *file)
 
 extern int cut_main(int argc, char **argv)
 {
-	int opt;
+	unsigned long opt;
+	char *sopt, *sdopt;
 
-	while ((opt = getopt(argc, argv, "b:c:d:f:ns")) > 0) {
-		switch (opt) {
-			case 'b':
-			case 'c':
-			case 'f':
-				/* make sure they didn't ask for two types of lists */
-				if (part != 0) {
+	bb_opt_complementaly = "b~bcf:c~bcf:f~bcf";
+	opt = bb_getopt_ulflags(argc, argv, optstring, &sopt, &sopt, &sopt, &sdopt);
+	part = opt & (OPT_BYTE_FLGS|OPT_CHAR_FLGS|OPT_FIELDS_FLGS);
+	if(part == 0)
+		bb_error_msg_and_die("you must specify a list of bytes, characters, or fields");
+	if(opt & 0x80000000UL)
 					bb_error_msg_and_die("only one type of list may be specified");
-				}
-				part = (char)opt;
-				parse_lists(optarg);
-				break;
-			case 'd':
-				if (strlen(optarg) > 1) {
+	parse_lists(sopt);
+	if((opt & (OPT_DELIM_FLGS))) {
+		if (strlen(sdopt) > 1) {
 					bb_error_msg_and_die("the delimiter must be a single character");
 				}
-				delim = optarg[0];
-				break;
-			case 'n':
-				/* no-op */
-				break;
-			case 's':
-				supress_non_delimited_lines++;
-				break;
-		}
+		delim = sdopt[0];
 	}
-
-	if (part == 0) {
-		bb_error_msg_and_die("you must specify a list of bytes, characters, or fields");
-	}
+	supress_non_delimited_lines = opt & OPT_SUPRESS_FLGS;
 
 	/*  non-field (char or byte) cutting has some special handling */
-	if (part != 'f') {
+	if (part != OPT_FIELDS_FLGS) {
 		if (supress_non_delimited_lines) {
 			bb_error_msg_and_die("suppressing non-delimited lines makes sense"
 					" only when operating on fields");
 		}
-		if (delim != '\t' && part != 'f') {
+		if (delim != '\t') {
 			bb_error_msg_and_die("a delimiter may be specified only when operating on fields");
 		}
 	}

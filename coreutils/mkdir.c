@@ -31,27 +31,33 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "busybox.h"
+
+static const struct option mkdir_long_options[] = {
+	{ "mode", 1, NULL, 'm' },
+	{ "parents", 0, NULL, 'p' },
+	{ 0, 0, 0, 0 }
+};
 
 extern int mkdir_main (int argc, char **argv)
 {
 	mode_t mode = (mode_t)(-1);
 	int status = EXIT_SUCCESS;
 	int flags = 0;
-	int opt;
+	unsigned long opt;
+	char *smode;
 
-	while ((opt = getopt (argc, argv, "m:p")) > 0) {
-		if (opt == 'm') {
+	bb_applet_long_options = mkdir_long_options;
+	opt = bb_getopt_ulflags(argc, argv, "m:p", &smode);
+	if(opt & 1) {
 			mode = 0777;
-			if (!bb_parse_mode (optarg, &mode)) {
-				bb_error_msg_and_die ("invalid mode `%s'", optarg);
-			}
-		} else if (opt == 'p') {
-			flags |= FILEUTILS_RECUR;
-		} else {
-			bb_show_usage();
+		if (!bb_parse_mode (smode, &mode)) {
+			bb_error_msg_and_die ("invalid mode `%s'", smode);
 		}
 	}
+	if(opt & 2)
+		flags |= FILEUTILS_RECUR;
 
 	if (optind == argc) {
 		bb_show_usage();
