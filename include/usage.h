@@ -38,6 +38,23 @@
 	"\t-x\t\textract\n" \
 	"\t-v\t\tverbosely list files processed\n"
 
+#define arping_trivial_usage \
+	"[-fqbDUA] [-c count] [-w timeout] [-I device] [-s sender] target\n"
+#define arping_full_usage \
+	"Ping hosts by ARP requests/replies.\n\n" \
+	"Options:\n" \
+	"\t-f\t\tQuit on first ARP reply\n" \
+	"\t-q\t\tBe quiet\n" \
+	"\t-b\t\tKeep broadcasting, don't go unicast\n" \
+	"\t-D\t\tDuplicated address detection mode\n" \
+	"\t-U\t\tUnsolicited ARP mode, update your neighbours\n" \
+	"\t-A\t\tARP answer mode, update your neighbours\n" \
+	"\t-c count\tStop after sending count ARP request packets\n" \
+	"\t-w timeout\tTime to wait for ARP reply, in seconds\n" \
+	"\t-I device\tOutgoing interface name, default is eth0\n" \
+	"\t-s sender\tSet specific sender IP address\n" \
+	"\ttarget\t\tTarget IP address of ARP request\n"
+
 #define	awk_trivial_usage \
 	"[-v var=val][-F sep] { -f progname | 'programtext' } [FILE ...]"
 #define	awk_full_usage \

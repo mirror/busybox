@@ -23,6 +23,7 @@ NETWORKING_DIR:=$(TOPDIR)networking/
 endif
 
 NETWORKING-y:=
+NETWORKING-$(CONFIG_ARPING)	+= arping.o
 NETWORKING-$(CONFIG_FTPGET)	+= ftpgetput.o
 NETWORKING-$(CONFIG_FTPPUT)	+= ftpgetput.o
 NETWORKING-$(CONFIG_HOSTNAME)	+= hostname.o

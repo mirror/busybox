@@ -11,6 +11,12 @@ config CONFIG_FEATURE_IPV6
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_ARPING
+	bool "arping"
+	default n
+	help
+	  Ping hosts by ARP packets
+
 config CONFIG_FTPGET
 	bool "ftpget"
 	default n

@@ -58,6 +58,9 @@
 #ifdef CONFIG_AR
 	APPLET(ar, ar_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_ARPING
+	APPLET(arping, arping_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_ASH
 	APPLET_NOUSAGE("ash", ash_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
