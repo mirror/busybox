@@ -21,7 +21,6 @@ around to it some time. If you have any good ideas, please let me know.
 * hwclock
 * killall
 * stty
-* sort/uniq
 * wc
 * tr
 * expr (maybe?)  (ash builtin?)

@@ -33,6 +33,7 @@
 	    - Glibc 2.0.7 and libc5 compile fixes
 	* Grep -i previously failed on UPPER CASE patterns due to a silly 
 	    regexp implementation bug that is now fixed.
+	# Implemented uniq. -beppu
 	    
 
 	-Erik Andersen
