@@ -97,6 +97,7 @@ sub sgml_for_usage {
 # {
 #     trivial => "...",
 #     full    => "...",
+#     example => "...",
 # }
 my %docs;
 
@@ -137,7 +138,6 @@ foreach (@ARGV) {
 			$type   = $2;
 			@line   = continuation($fh);
 			my $doc = $docs{$applet} ||= { };
-
 			my $text      = join("\n", @line);
 			$doc->{$type} = beautify($text);
 		}
@@ -216,4 +216,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.13 2001/02/26 02:50:11 beppu Exp $
+# $Id: autodocifier.pl,v 1.14 2001/03/06 19:25:25 beppu Exp $
