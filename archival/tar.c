@@ -596,6 +596,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 
 
 static const char tar_options[]="ctxjT:X:C:f:Opvz";
+
 #define CTX_CREATE	1
 #define CTX_TEST	2
 #define CTX_EXTRACT	4
@@ -670,21 +671,28 @@ int tar_main(int argc, char **argv)
 				tar_handle->action_header = header_list;
 			}
 	}
-#ifdef CONFIG_FEATURE_TAR_GZIP
+
 	if(opt & TAR_OPT_GZIP) {
-			get_header_ptr = get_header_tar_gz;
-	}
+#ifdef CONFIG_FEATURE_TAR_GZIP
+		get_header_ptr = get_header_tar_gz;
+#else
+		bb_show_usage();
 #endif
-#ifdef CONFIG_FEATURE_TAR_BZIP2
+	}
 	if(opt & TAR_OPT_BZIP2) {
+#ifdef CONFIG_FEATURE_TAR_BZIP2
 			get_header_ptr = get_header_tar_bz2;
-	}
+#else
+		bb_show_usage();
 #endif
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
+	}
 	if(opt & TAR_OPT_EXCLUDE) {
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
 		tar_handle->reject = append_file_list_to_list(tar_handle->reject);
-	}
+#else
+		bb_show_usage();
 #endif
+	}
 	/* Check if we are reading from stdin */
 	if ((argv[optind]) && (*argv[optind] == '-')) {
 		/* Default is to read from stdin, so just skip to next arg */
