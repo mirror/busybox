@@ -282,6 +282,12 @@
 #endif
 #endif
 //
+#if defined BB_FEATURE_AUTOWIDTH
+#ifndef BB_FEATURE_USE_TERMIOS
+#define BB_FEATURE_USE_TERMIOS
+#endif
+#endif
+//
 #if defined BB_INSMOD
 #ifndef BB_FEATURE_INSMOD_OLD_KERNEL
 #define BB_FEATURE_INSMOD_NEW_KERNEL
