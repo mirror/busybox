@@ -272,25 +272,61 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 #else
 	if (strcmp(filesystemType, "auto") == 0) {
 		char buf[255];
-		FILE *f = xfopen("/proc/filesystems", "r");
+		FILE *f;
+		int read_proc = 0;
+		
+		f = fopen ( "/etc/filesystems", "r" );
+		
+		if ( f ) {
+			while ( fgets ( buf, sizeof( buf ), f )) {
+				if ( *buf == '*' )
+					read_proc = 1;
+				else if ( *buf == '#' )
+					continue;
+				else {
+					filesystemType = buf;
+				
+					// Add NULL termination to each line
+					while (*filesystemType && !isspace ( *filesystemType ))
+						filesystemType++;
+					*filesystemType = '\0';
 
-		while (fgets(buf, sizeof(buf), f) != NULL) {
-			filesystemType = buf;
-			if (*filesystemType == '\t') {	// Not a nodev filesystem
+					filesystemType = buf;
+					
+					if ( xstrlen ( filesystemType )) {
+						status = do_mount(blockDevice, directory, filesystemType,
+										  flags | MS_MGC_VAL, string_flags,
+										  useMtab, fakeIt, mtab_opts, mount_all);
+						if (status)
+							break;
+					}
+					
+				}
+			}		
+			fclose ( f );
+		}
 
-				// Add NULL termination to each line
-				while (*filesystemType && *filesystemType != '\n')
-					filesystemType++;
-				*filesystemType = '\0';
+		if (( !f || read_proc ) && !status ) {
+			f = xfopen("/proc/filesystems", "r");
 
+			while (fgets(buf, sizeof(buf), f) != NULL) {
 				filesystemType = buf;
-				filesystemType++;	// hop past tab
+				if (*filesystemType == '\t') {	// Not a nodev filesystem
+	
+					// Add NULL termination to each line
+					while (*filesystemType && *filesystemType != '\n')
+						filesystemType++;
+					*filesystemType = '\0';
 
-				status = do_mount(blockDevice, directory, filesystemType,
-								  flags | MS_MGC_VAL, string_flags,
-								  useMtab, fakeIt, mtab_opts, mount_all);
-				if (status)
-					break;
+					filesystemType = buf;
+					filesystemType++;	// hop past tab
+
+					status = do_mount(blockDevice, directory, filesystemType,
+									  flags | MS_MGC_VAL, string_flags,
+									  useMtab, fakeIt, mtab_opts, mount_all);
+					if (status)
+						break;
+				}
 			}
 		}
 		fclose(f);
