@@ -307,22 +307,40 @@ address_family_t addr_ipx = {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV6
 static int loopback_up6(interface_defn_t *ifd, execfn *exec)
 {
-	if (!execute("ifconfig %iface% add ::1", ifd, exec)) {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% up", ifd, exec))
 		return(0);
-	}
+	if (!execute("ip addr add ::1 dev %iface%", ifd, exec))
+		return(0);
+#else
+	if (!execute("ifconfig %iface% add ::1", ifd, exec))
+		return(0);
+#endif
 	return(1);
 }
 
 static int loopback_down6(interface_defn_t *ifd, execfn *exec)
 {
-	if (!execute("ifconfig %iface% del ::1", ifd, exec)) {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% down", ifd, exec))
 		return(0);
-	}
+#else
+	if (!execute("ifconfig %iface% del ::1", ifd, exec))
+		return(0);
+#endif
 	return(1);
 }
 
 static int static_up6(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% up", ifd, exec))
+		return(0);
+	if (!execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec))
+		return(0);
+	if (!execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec))
+		return(0);
+#else
 	if (!execute("ifconfig %iface% [[media %media%]] [[hw %hwaddress%]] [[mtu %mtu%]] up", ifd, exec)) {
 		return(0);
 	}
@@ -332,17 +350,24 @@ static int static_up6(interface_defn_t *ifd, execfn *exec)
 	if (!execute("[[ route -A inet6 add ::/0 gw %gateway% ]]", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
 static int static_down6(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% down", ifd, exec))
+		return(0);
+#else
 	if (!execute("ifconfig %iface% down", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
 static int v4tunnel_up(interface_defn_t *ifd, execfn *exec)
 {
 	if (!execute("ip tunnel add %iface% mode sit remote %endpoint% [[local %local%]] [[ttl %ttl%]]", ifd, exec)) {
@@ -367,9 +392,12 @@ static int v4tunnel_down(interface_defn_t * ifd, execfn * exec)
 	}
 	return(1);
 }
+#endif
 
 static method_t methods6[] = {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	{ "v4tunnel", v4tunnel_up, v4tunnel_down, },
+#endif
 	{ "static", static_up6, static_down6, },
 	{ "loopback", loopback_up6, loopback_down6, },
 };
@@ -384,22 +412,44 @@ address_family_t addr_inet6 = {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV4
 static int loopback_up(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% up", ifd, exec))
+		return(0);
+	if (!execute("ip addr add 127.0.0.1 dev %iface%", ifd, exec))
+		return(0);
+#else
 	if (!execute("ifconfig %iface% 127.0.0.1 up", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
 static int loopback_down(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip -f inet addr flush dev %iface%", ifd, exec))
+		return(0);
+	if (!execute("ip link set %iface% down", ifd, exec))
+		return(0);
+#else
 	if (!execute("ifconfig %iface% 127.0.0.1 down", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
 static int static_up(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("ip link set %iface% up", ifd, exec))
+		return(0);
+	if (!execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec))
+		return(0);
+	if (!execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec))
+		return(0);
+#else
 	if (!execute("ifconfig %iface% %address% netmask %netmask% [[broadcast %broadcast%]] 	[[pointopoint %pointopoint%]] [[media %media%]] [[mtu %mtu%]] 	[[hw %hwaddress%]] up",
 		 ifd, exec)) {
 		return(0);
@@ -407,17 +457,27 @@ static int static_up(interface_defn_t *ifd, execfn *exec)
 	if (!execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
 static int static_down(interface_defn_t *ifd, execfn *exec)
 {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	if (!execute("[[ ip route del default via %gateway% dev %iface% ]]", ifd, exec))
+		return(0);
+	if (!execute("ip -f inet addr flush dev %iface%", ifd, exec))
+		return(0);
+	if (!execute("ip link set %iface% down", ifd, exec))
+		return(0);
+#else
 	if (!execute("[[ route del default gw %gateway% %iface% ]]", ifd, exec)) {
 		return(0);
 	}
 	if (!execute("ifconfig %iface% down", ifd, exec)) {
 		return(0);
 	}
+#endif
 	return(1);
 }
 
@@ -936,7 +996,6 @@ static int doit(char *str)
 		case 0:		/* child */
 			execle("/bin/sh", "/bin/sh", "-c", str, NULL, environ);
 			exit(127);
-		default:		/* parent */
 		}
 		waitpid(child, &status, 0);
 		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {

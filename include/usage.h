@@ -878,28 +878,28 @@
 #define ifup_full_usage \
 	"Usage: ifup <options> <ifaces...>\n\n" \
 	"Options:\n" \
-	"\t-h, --help\t\tthis help\n" \
-	"\t-a, --all\t\tde/configure all interfaces automatically\n" \
-	"\t-i, --interfaces FILE\tuse FILE for interface definitions\n" \
-    "\t-n, --no-act\t\tprint out what would happen, but don't do it\n" \
-	"\t\t\t\t(note that this option doesn't disable mappings)\n" \
-    "\t-v, --verbose\t\tprint out what would happen before doing it\n" \
-	"\t--no-mappings\t\tdon't run any mappings\n" \
-	"\t--force\t\t\tforce de/configuration\n"
+	"\t-h\tthis help\n" \
+	"\t-a\tde/configure all interfaces automatically\n" \
+	"\t-i FILE\tuse FILE for interface definitions\n" \
+	"\t-n\tprint out what would happen, but don't do it\n" \
+	"\t\t\t(note that this option doesn't disable mappings)\n" \
+	"\t-v\tprint out what would happen before doing it\n" \
+	"\t-m\tdon't run any mappings\n" \
+	"\t-f\tforce de/configuration\n"
 
 #define ifdown_trivial_usage \
 	"<-ahinv> <ifaces...>"
 #define ifdown_full_usage \
 	"Usage: ifdown <options> <ifaces...>\n\n" \
 	"Options:\n" \
-	"\t-h, --help\t\tthis help\n" \
-	"\t-a, --all\t\tde/configure all interfaces automatically\n" \
-	"\t-i, --interfaces FILE\tuse FILE for interface definitions\n" \
-    "\t-n, --no-act\t\tprint out what would happen, but don't do it\n" \
-	"\t\t\t\t(note that this option doesn't disable mappings)\n" \
-    "\t-v, --verbose\t\tprint out what would happen before doing it\n" \
-	"\t--no-mappings\t\tdon't run any mappings\n" \
-	"\t--force\t\t\tforce de/configuration\n"
+	"\t-h\tthis help\n" \
+	"\t-a\tde/configure all interfaces automatically\n" \
+	"\t-i FILE\tuse FILE for interface definitions\n" \
+	"\t-n\tprint out what would happen, but don't do it\n" \
+	"\t\t(note that this option doesn't disable mappings)\n" \
+	"\t-v\tprint out what would happen before doing it\n" \
+	"\t-m\tdon't run any mappings\n" \
+	"\t-f\tforce de/configuration\n"
 	
 #define init_trivial_usage \
 	""

@@ -96,6 +96,13 @@ config CONFIG_IFUPDOWN
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_IFUPDOWN_IP
+	bool "  Use ip applet"
+	default n
+	depends on CONFIG_IFUPDOWN && CONFIG_IP && CONFIG_FEATURE_IP_ADDRESS && CONFIG_FEATURE_IP_LINK && CONFIG_FEATURE_IP_ROUTE
+	help
+	  Please submit a patch to add help text for this item.
+
 config CONFIG_FEATURE_IFUPDOWN_IPV4
 	bool "  Enable support for IPv4"
 	default y
@@ -104,14 +111,14 @@ config CONFIG_FEATURE_IFUPDOWN_IPV4
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV6
-	bool "  Enable support for IPv6 (requires ip command)"
+	bool "  Enable support for IPv6"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_IFUPDOWN_IPX
-	bool "  Enable support for IPX (requires ipx_interface command)"
+	bool "  Enable support for IPX"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help

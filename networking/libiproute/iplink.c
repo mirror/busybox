@@ -334,7 +334,7 @@ static int ipaddr_list_link(int argc, char **argv)
 {
 	preferred_family = AF_PACKET;
 	do_link = 1;
-	return ipaddr_list(argc, argv);
+	return ipaddr_list_or_flush(argc, argv, 0);
 }
 
 int do_iplink(int argc, char **argv)

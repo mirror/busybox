@@ -42,6 +42,10 @@ static struct
 	int flags, flagmask;
 	int up;
 	char *label;
+	int flushed;
+	char *flushb;
+	int flushp;
+	int flushe;
 	struct rtnl_handle *rth;
 } filter;
 
@@ -191,6 +195,16 @@ static int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg
 	return 0;
 }
 
+static int flush_update(void)
+{
+	if (rtnl_send(filter.rth, filter.flushb, filter.flushp) < 0) {
+		perror("Failed to send flush request\n");
+		return -1;
+	}
+	filter.flushp = 0;
+	return 0;
+}
+
 static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
@@ -207,6 +221,9 @@ static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg
 		error_msg("wrong nlmsg len %d", len);
 		return -1;
 	}
+
+	if (filter.flushb && n->nlmsg_type != RTM_NEWADDR)
+		return 0;
 
 	memset(rta_tb, 0, sizeof(rta_tb));
 	parse_rtattr(rta_tb, IFA_MAX, IFA_RTA(ifa), n->nlmsg_len - NLMSG_LENGTH(sizeof(*ifa)));
@@ -240,6 +257,22 @@ static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg
 			if (inet_addr_match(&dst, &filter.pfx, filter.pfx.bitlen))
 				return 0;
 		}
+	}
+
+	if (filter.flushb) {
+		struct nlmsghdr *fn;
+		if (NLMSG_ALIGN(filter.flushp) + n->nlmsg_len > filter.flushe) {
+			if (flush_update())
+				return -1;
+		}
+		fn = (struct nlmsghdr*)(filter.flushb + NLMSG_ALIGN(filter.flushp));
+		memcpy(fn, n, n->nlmsg_len);
+		fn->nlmsg_type = RTM_DELADDR;
+		fn->nlmsg_flags = NLM_F_REQUEST;
+		fn->nlmsg_seq = ++filter.rth->seq;
+		filter.flushp = (((char*)fn) + n->nlmsg_len) - filter.flushb;
+		filter.flushed++;
+		return 0;
 	}
 
 	if (n->nlmsg_type == RTM_DELADDR)
@@ -382,7 +415,7 @@ static void ipaddr_reset_filter(int _oneline)
 	filter.oneline = _oneline;
 }
 
-extern int ipaddr_list(int argc, char **argv)
+extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
 	const char *option[] = { "to", "scope", "up", "label", "dev", 0 };
 	struct nlmsg_list *linfo = NULL;
@@ -397,6 +430,17 @@ extern int ipaddr_list(int argc, char **argv)
 
 	if (filter.family == AF_UNSPEC)
 		filter.family = preferred_family;
+
+	if (flush) {
+		if (argc <= 0) {
+			fprintf(stderr, "Flush requires arguments.\n");
+			return -1;
+		}
+		if (filter.family == AF_PACKET) {
+			fprintf(stderr, "Cannot flush link addresses.\n");
+			return -1;
+		}
+	}
 
 	while (argc > 0) {
 		const unsigned short option_num = compare_string_array(option, *argv);
@@ -458,6 +502,37 @@ extern int ipaddr_list(int argc, char **argv)
 		if (filter.ifindex <= 0) {
 			error_msg("Device \"%s\" does not exist.", filter_dev);
 			return -1;
+		}
+	}
+
+	if (flush) {
+		int round = 0;
+		char flushb[4096-512];
+
+		filter.flushb = flushb;
+		filter.flushp = 0;
+		filter.flushe = sizeof(flushb);
+		filter.rth = &rth;
+
+		for (;;) {
+			if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
+				perror("Cannot send dump request");
+				exit(1);
+			}
+			filter.flushed = 0;
+			if (rtnl_dump_filter(&rth, print_addrinfo, stdout, NULL, NULL) < 0) {
+				fprintf(stderr, "Flush terminated\n");
+				exit(1);
+			}
+			if (filter.flushed == 0) {
+				if (round == 0)
+					fprintf(stderr, "Nothing to flush.\n");
+				fflush(stdout);
+				return 0;
+			}
+			round++;
+			if (flush_update() < 0)
+				exit(1);
 		}
 	}
 
@@ -727,7 +802,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 
 extern int do_ipaddr(int argc, char **argv)
 {
-	const char *commands[] = { "add", "delete", "list", "show", "lst", 0 };
+	const char *commands[] = { "add", "delete", "list", "show", "lst", "flush", 0 };
 	unsigned short command_num = 2;
 
 	if (*argv) {
@@ -741,7 +816,9 @@ extern int do_ipaddr(int argc, char **argv)
 		case 2: /* list */
 		case 3: /* show */
 		case 4: /* lst */
-			return ipaddr_list(argc-1, argv+1);
+			return ipaddr_list_or_flush(argc-1, argv+1, 0);
+		case 5: /* flush */
+			return ipaddr_list_or_flush(argc-1, argv+1, 1);
 	}
 	error_msg_and_die("Unknown command %s", *argv);
 }
