@@ -47,37 +47,6 @@
 
 //#define BB_FEATURE_TFTP_DEBUG
 
-/* we don't need #ifdefs with these constants and optimization... */
-
-#ifdef BB_FEATURE_TFTP_GET
-#define BB_TFTP_GET (1 << 0)
-#else
-#define BB_TFTP_GET 0
-#endif
-
-#ifdef BB_FEATURE_TFTP_PUT
-#define BB_TFTP_PUT (1 << 1)
-#else
-#define BB_TFTP_PUT 0
-#endif
-
-#ifdef BB_FEATURE_TFTP_DEBUG
-#define BB_TFTP_DEBUG 1
-#else
-#define BB_TFTP_DEBUG 0
-#endif
-
-#define BB_TFTP_NO_RETRIES 5
-#define BB_TFTP_TIMEOUT    5	/* seconds */
-
-#define	RRQ	1			/* read request */
-#define	WRQ	2			/* write request */
-#define	DATA	3		/* data packet */
-#define	ACK	4			/* acknowledgement */
-#define	ERROR	5		/* error code */
-
-#define BUFSIZE (512+4)
-
 static const char *tftp_error_msg[] = {
 	"Undefined error",
 	"File not found",
@@ -89,24 +58,32 @@ static const char *tftp_error_msg[] = {
 	"No such user"
 };
 
-static inline int tftp(int cmd, struct hostent *host,
-					   char *serverfile, int localfd, int port)
+const int tftp_cmd_get = 1;
+const int tftp_cmd_put = 2;
+
+static inline int tftp(const int cmd, const struct hostent *host,
+	const char *serverfile, int localfd, const int port, int tftp_bufsize)
 {
+	const int cmd_get = cmd & tftp_cmd_get;
+	const int cmd_put = cmd & tftp_cmd_put;
+	const int bb_tftp_num_retries = 5;
+
 	struct sockaddr_in sa;
-	int socketfd;
-	struct timeval tv;
-	fd_set rfds;
 	struct sockaddr_in from;
+	struct timeval tv;
 	socklen_t fromlen;
+	fd_set rfds;
 	char *cp;
 	unsigned short tmp;
-	int len, opcode, finished;
-	int timeout, block_nr;
+	int socketfd;
+	int len;
+	int opcode = 0;
+	int finished = 0;
+	int timeout = bb_tftp_num_retries;
+	int block_nr = 1;
+	RESERVE_BB_BUFFER(buf, tftp_bufsize + 4); // Why 4 ?
 
-	RESERVE_BB_BUFFER(buf, BUFSIZE);
-
-	opcode = finished = timeout = 0;
-	block_nr = 1;
+	tftp_bufsize += 4;
 
 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror_msg("socket");
@@ -125,12 +102,12 @@ static inline int tftp(int cmd, struct hostent *host,
 
 	/* build opcode */
 
-	if (cmd & BB_TFTP_GET) {
-		opcode = RRQ;
+	if (cmd_get) {
+		opcode = 1;	// read request = 1
 	}
 
-	if (cmd & BB_TFTP_PUT) {
-		opcode = WRQ;
+	if (cmd_put) {
+		opcode = 2;	// write request = 2
 	}
 
 	while (1) {
@@ -147,16 +124,17 @@ static inline int tftp(int cmd, struct hostent *host,
 
 		/* add filename and mode */
 
-		if ((BB_TFTP_GET && (opcode == RRQ)) ||
-			(BB_TFTP_PUT && (opcode == WRQ))) {
+		if ((cmd_get && (opcode == 1)) || // read request = 1
+			(cmd_put && (opcode == 2))) { // write request = 2
 
-			while (cp != &buf[BUFSIZE - 1]) {
+			/* what is this trying to do ? */
+			while (cp != &buf[tftp_bufsize - 1]) {
 				if ((*cp = *serverfile++) == '\0')
 					break;
 				cp++;
 			}
-
-			if ((*cp != '\0') || (&buf[BUFSIZE - 1] - cp) < 7) {
+			/* and this ? */
+			if ((*cp != '\0') || (&buf[tftp_bufsize - 1] - cp) < 7) {
 				error_msg("too long server-filename");
 				break;
 			}
@@ -167,8 +145,8 @@ static inline int tftp(int cmd, struct hostent *host,
 
 		/* add ack and data */
 
-		if ((BB_TFTP_GET && (opcode == ACK)) ||
-			(BB_TFTP_PUT && (opcode == DATA))) {
+		if ((cmd_get && (opcode == 4)) || // acknowledgement = 4
+			(cmd_put && (opcode == 3))) { // data packet == 3
 
 			*((unsigned short *) cp) = htons(block_nr);
 
@@ -176,15 +154,15 @@ static inline int tftp(int cmd, struct hostent *host,
 
 			block_nr++;
 
-			if (BB_TFTP_PUT && (opcode == DATA)) {
-				len = read(localfd, cp, BUFSIZE - 4);
+			if (cmd_put && (opcode == 3)) { // data packet == 3
+				len = read(localfd, cp, tftp_bufsize - 4);
 
 				if (len < 0) {
 					perror_msg("read");
 					break;
 				}
 
-				if (len != (BUFSIZE - 4)) {
+				if (len != (tftp_bufsize - 4)) {
 					finished++;
 				}
 
@@ -202,16 +180,14 @@ static inline int tftp(int cmd, struct hostent *host,
 
 			len = cp - buf;
 
-			if (BB_TFTP_DEBUG) {
-				printf("sending %u bytes\n", len);
-
-				for (cp = buf; cp < &buf[len]; cp++)
-					printf("%02x ", *cp);
-				printf("\n");
-			}
-
+#ifdef BB_FEATURE_TFTP_DEBUG
+			printf("sending %u bytes\n", len);
+			for (cp = buf; cp < &buf[len]; cp++)
+				printf("%02x ", *cp);
+			printf("\n");
+#endif
 			if (sendto(socketfd, buf, len, 0,
-					   (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+					(struct sockaddr *) &sa, sizeof(sa)) < 0) {
 				perror_msg("send");
 				len = -1;
 				break;
@@ -224,7 +200,7 @@ static inline int tftp(int cmd, struct hostent *host,
 			memset(&from, 0, sizeof(from));
 			fromlen = sizeof(from);
 
-			tv.tv_sec = BB_TFTP_TIMEOUT;
+			tv.tv_sec = 5; // BB_TFPT_TIMEOUT = 5
 			tv.tv_usec = 0;
 
 			FD_ZERO(&rfds);
@@ -232,9 +208,8 @@ static inline int tftp(int cmd, struct hostent *host,
 
 			switch (select(FD_SETSIZE, &rfds, NULL, NULL, &tv)) {
 			case 1:
-				len = recvfrom(socketfd, buf,
-							   BUFSIZE, 0,
-							   (struct sockaddr *) &from, &fromlen);
+				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
+						(struct sockaddr *) &from, &fromlen);
 
 				if (len < 0) {
 					perror_msg("recvfrom");
@@ -245,28 +220,23 @@ static inline int tftp(int cmd, struct hostent *host,
 
 				if (sa.sin_port == htons(port)) {
 					sa.sin_port = from.sin_port;
-					break;
 				}
-
 				if (sa.sin_port == from.sin_port) {
 					break;
 				}
 
 				/* fall-through for bad packets! */
 				/* discard the packet - treat as timeout */
+				timeout = bb_tftp_num_retries;
 
 			case 0:
 				error_msg("timeout");
 
-				if (!timeout) {
-					timeout = BB_TFTP_NO_RETRIES;
-				} else {
-					timeout--;
-				}
-
-				if (!timeout) {
+				if (timeout == 0) {
 					len = -1;
 					error_msg("last timeout");
+				} else {
+					timeout--;
 				}
 				break;
 
@@ -287,11 +257,11 @@ static inline int tftp(int cmd, struct hostent *host,
 		opcode = ntohs(*((unsigned short *) buf));
 		tmp = ntohs(*((unsigned short *) &buf[2]));
 
-		if (BB_TFTP_DEBUG) {
-			printf("received %d bytes: %04x %04x\n", len, opcode, tmp);
-		}
+#ifdef BB_FEATURE_TFTP_DEBUG
+		printf("received %d bytes: %04x %04x\n", len, opcode, tmp);
+#endif
 
-		if (BB_TFTP_GET && (opcode == DATA)) {
+		if (cmd_get && (opcode == 3)) { // data packet == 3
 
 			if (tmp == block_nr) {
 				len = write(localfd, &buf[4], len - 4);
@@ -301,33 +271,33 @@ static inline int tftp(int cmd, struct hostent *host,
 					break;
 				}
 
-				if (len != (BUFSIZE - 4)) {
+				if (len != (tftp_bufsize - 4)) {
 					finished++;
 				}
 
-				opcode = ACK;
+				opcode = 4; // acknowledgement = 4
 				continue;
 			}
 		}
 
-		if (BB_TFTP_PUT && (opcode == ACK)) {
+		if (cmd_put && (opcode == 4)) { // acknowledgement = 4
 
 			if (tmp == (block_nr - 1)) {
 				if (finished) {
 					break;
 				}
 
-				opcode = DATA;
+				opcode = 3; // data packet == 3
 				continue;
 			}
 		}
 
-		if (opcode == ERROR) {
+		if (opcode == 5) { // error code == 5
 			char *msg = NULL;
 
 			if (buf[4] != '\0') {
 				msg = &buf[4];
-				buf[BUFSIZE - 1] = '\0';
+				buf[tftp_bufsize - 1] = '\0';
 			} else if (tmp < (sizeof(tftp_error_msg) / sizeof(char *))) {
 				msg = (char *) tftp_error_msg[tmp];
 			}
@@ -347,68 +317,67 @@ static inline int tftp(int cmd, struct hostent *host,
 
 int tftp_main(int argc, char **argv)
 {
-	char *cp, *s;
-	char *serverstr;
-	struct hostent *host;
-	char *serverfile;
-	char *localfile;
-	int cmd, flags, fd, bad;
+	struct hostent *host = NULL;
+	char *localfile = NULL;
+	char *remotefile = NULL;
+	int port = 69;
+	int cmd = 0;
+	int fd = -1;
+	int flags = 0;
+	int opt;
+	int result;
+	int blocksize = 512;
 
-	host = (void *) serverstr = serverfile = localfile = NULL;
-	flags = cmd = 0;
-	bad = 1;
-
-	if (argc > 3) {
-		if (BB_TFTP_GET && (strcmp(argv[1], "get") == 0)) {
-			cmd = BB_TFTP_GET;
+	while ((opt = getopt(argc, argv, "b:gpl:r:")) != -1) {
+		switch (opt) {
+		case 'b':
+			blocksize = atoi(optarg);
+			break;
+#ifdef BB_FEATURE_TFTP_GET
+		case 'g':
+			cmd = tftp_cmd_get;
 			flags = O_WRONLY | O_CREAT;
-			serverstr = argv[2];
-			localfile = argv[3];
-		}
-
-		if (BB_TFTP_PUT && (strcmp(argv[1], "put") == 0)) {
-			cmd = BB_TFTP_PUT;
+			break;
+#endif
+#ifdef BB_FEATURE_TFTP_PUT
+		case 'p':
+			cmd = tftp_cmd_put;
 			flags = O_RDONLY;
-			localfile = argv[2];
-			serverstr = argv[3];
+			break;
+#endif
+		case 'l': 
+			localfile = xstrdup(optarg);
+			break;
+		case 'r':
+			remotefile = xstrdup(optarg);
+			break;
 		}
-
 	}
 
-	if (!(cmd & (BB_TFTP_GET | BB_TFTP_PUT))) {
+	if ((cmd == 0) || (optind == argc)) {
 		show_usage();
 	}
 
-	for (cp = serverstr; *cp != '\0'; cp++)
-		if (*cp == ':')
-			break;
-
-	if (*cp == ':') {
-
-		serverfile = cp + 1;
-
-		s = xstrdup(serverstr);
-		s[cp - serverstr] = '\0';
-
-		host = xgethostbyname(s);
-
-		free(s);
-	}
-
-	if (BB_TFTP_DEBUG) {
-		printf("using server \"%s\", serverfile \"%s\","
-			   "localfile \"%s\".\n",
-			   inet_ntoa(*((struct in_addr *) host->h_addr)),
-			   serverfile, localfile);
-	}
-
-	if ((fd = open(localfile, flags, 0644)) < 0) {
+	fd = open(localfile, flags, 0644);
+	if (fd < 0) {
 		perror_msg_and_die("local file");
 	}
 
-	flags = tftp(cmd, host, serverfile, fd, 69);
+	host = xgethostbyname(argv[optind]);
 
+	if (optind + 2 == argc) {
+		port = atoi(argv[optind + 1]);
+	}
+
+#ifdef BB_FEATURE_TFTP_DEBUG
+	printf("using server \"%s\", serverfile \"%s\","
+		"localfile \"%s\".\n",
+		inet_ntoa(*((struct in_addr *) host->h_addr)),
+		remotefile, localfile);
+#endif
+
+	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 	close(fd);
 
-	return flags;
+	return(result);
 }
