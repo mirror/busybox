@@ -482,10 +482,10 @@ static const mode_t MBIT[] = {
 	S_IROTH, S_IWOTH, S_IXOTH
 };
 
-#define MODE1  "rwxrwxrwx"
-#define MODE0  "---------"
-#define SMODE1 "..s..s..t"
-#define SMODE0 "..S..S..T"
+static const char MODE1[]  = "rwxrwxrwx";
+static const char MODE0[]  = "---------";
+static const char SMODE1[] = "..s..s..t";
+static const char SMODE0[] = "..S..S..T";
 
 /*
  * Return the standard ls-like mode string from a file mode.
