@@ -45,23 +45,24 @@ echo_main(int argc, char** argv)
 	int nflag = 0;
 	int eflag = 0;
 
-	ap = argv;
-	if (argc)
-		ap++;
-	while ((p = *ap) != NULL && *p == '-') {
-		if (strcmp(p, "-n")==0) {
+
+	while ((c = getopt(argc, argv, "neE")) != EOF) {
+		switch (c) {
+		case 'n': 
 			nflag = 1;
-		} else if (strcmp(p, "-e")==0) {
+			break;
+		case 'e':
 			eflag = 1;
-		} else if (strcmp(p, "-E")==0) {
+			break;
+		case 'E':
 			eflag = 0;
+			break;
+		default: 
+			usage(uname_usage);
 		}
-		else if (strncmp(p, "--", 2)==0) {
-			usage( uname_usage);
-		} 
-		else break;
-		ap++;
 	}
+
+	ap = &argv[optind];
 	while ((p = *ap++) != NULL) {
 		while ((c = *p++) != '\0') {
 			if (c == '\\' && eflag) {

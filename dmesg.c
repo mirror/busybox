@@ -44,50 +44,36 @@ static const char dmesg_usage[] = "dmesg [-c] [-n LEVEL] [-s SIZE]\n"
 
 int dmesg_main(int argc, char **argv)
 {
-	char *buf;
+	char *buf, c;
 	int bufsize = 8196;
 	int i;
 	int n;
 	int level = 0;
 	int lastc;
 	int cmd = 3;
-	int stopDoingThat;
 
-	argc--;
-	argv++;
-
-	/* Parse any options */
-	while (argc && **argv == '-') {
-		stopDoingThat = FALSE;
-		while (stopDoingThat == FALSE && *++(*argv)) {
-			switch (**argv) {
-			case 'c':
-				cmd = 4;
-				break;
-			case 'n':
-				cmd = 8;
-				if (--argc == 0)
-					goto end;
-				level = atoi(*(++argv));
-				if (--argc > 0)
-					++argv;
-				stopDoingThat = TRUE;
-				break;
-			case 's':
-				if (--argc == 0)
-					goto end;
-				bufsize = atoi(*(++argv));
-				if (--argc > 0)
-					++argv;
-				stopDoingThat = TRUE;
-				break;
-			default:
-				goto end;
-			}
+	while ((c = getopt(argc, argv, "cn:s:")) != EOF) {
+		switch (c) {
+		case 'c':
+			cmd = 4;
+			break;
+		case 'n':
+			cmd = 8;
+			if (optarg == NULL)
+				usage(dmesg_usage);
+			level = atoi(optarg);
+			break;
+		case 's':
+			if (optarg == NULL)
+				usage(dmesg_usage);
+			bufsize = atoi(optarg);
+			break;
+		default:
+			usage(dmesg_usage);
 		}
-	}
+	}			
 
-	if (argc > 1) {
+	if (optind < argc) {
 		goto end;
 	}
 
