@@ -105,6 +105,9 @@ static const struct Applet applets[] = {
 #ifdef BB_LS			//bin
     {"ls", ls_main},
 #endif
+#ifdef BB_LSMOD			//sbin
+    {"lsmod", lsmod_main},
+#endif
 #ifdef BB_MAKEDEVS		//sbin
     {"makedevs", makedevs_main},
 #endif

@@ -1,6 +1,9 @@
 0.40
 	* Added the -s option to du -beppu
 	* Fixed an embarrasing segfault in head	-beppu
+	* New App: lsmod -erik
+
+	-Erik Andersen
 
 0.39 
 	* New Apps: ping, hostname, and mkfifo contributed by Randolph Chung

@@ -35,6 +35,7 @@
 //#define BB_LOADKMAP
 #define BB_LOGGER
 #define BB_LS
+#define BB_LSMOD
 //#define BB_MAKEDEVS
 //#define BB_MATH
 #define BB_MKDIR
