@@ -2,8 +2,6 @@
 #ifndef _DHCPC_H
 #define _DHCPC_H
 
-#include "libbb_udhcp.h"
-
 #define INIT_SELECTING	0
 #define REQUESTING	1
 #define BOUND		2

@@ -25,11 +25,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "packet.h"
-#include "debug.h"
 #include "dhcpd.h"
 #include "options.h"
-#include "leases.h"
+#include "common.h"
 
 /* send a packet to giaddr using the kernel ip stack */
 static int send_packet_to_relay(struct dhcpMessage *payload)
@@ -258,6 +256,3 @@ int send_inform(struct dhcpMessage *oldpacket)
 
 	return send_packet(&packet, 0);
 }
-
-
-

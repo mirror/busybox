@@ -283,11 +283,11 @@
 #ifdef CONFIG_IP
 	APPLET(ip, ip_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_IPCALC
-	APPLET(ipcalc, ipcalc_main, _BB_DIR_BIN, _BB_SUID_NEVER)
-#endif
 #ifdef CONFIG_IPADDRESS
 	APPLET(ipaddr, ipaddr_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IPCALC
+	APPLET(ipcalc, ipcalc_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_IPLINK
 	APPLET(iplink, iplink_main, _BB_DIR_BIN, _BB_SUID_NEVER)
@@ -386,7 +386,7 @@
 	APPLET(more, more_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_MOUNT
-	APPLET(mount, mount_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+	APPLET(mount, mount_main, _BB_DIR_BIN, _BB_SUID_MAYBE)
 #endif
 #ifdef CONFIG_MSH
 	APPLET_NOUSAGE("msh", msh_main, _BB_DIR_BIN, _BB_SUID_NEVER)
@@ -428,7 +428,7 @@
 	APPLET(pidof, pidof_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_PING
-	APPLET(ping, ping_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+	APPLET(ping, ping_main, _BB_DIR_BIN, _BB_SUID_MAYBE)
 #endif
 #ifdef CONFIG_PING6
 	APPLET(ping6, ping6_main, _BB_DIR_BIN, _BB_SUID_NEVER)
@@ -572,7 +572,7 @@
 	APPLET(tr, tr_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_TRACEROUTE
-	APPLET(traceroute, traceroute_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+	APPLET(traceroute, traceroute_main, _BB_DIR_USR_BIN, _BB_SUID_MAYBE)
 #endif
 #ifdef CONFIG_TRUE
 	APPLET(true, true_main, _BB_DIR_BIN, _BB_SUID_NEVER)

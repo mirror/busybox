@@ -1,3 +1,7 @@
+0.9.10
+  Size optimization (over 3k), more busybox integration
+  (Vladimir Oleynik <dzo@simtreas.ru>
+
 0.9.9 (pending)
 + Fixed a little endian problem in mton (Bastian Blank <waldi@debian.org>)
 + Fixed a arpping alignment problem (Rui He <rhe@3eti.com>)

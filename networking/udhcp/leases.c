@@ -9,12 +9,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "debug.h"
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
-#include "leases.h"
 #include "arpping.h"
+#include "common.h"
+
 
 unsigned char blank_chaddr[] = {[0 ... 15] = 0};
 
@@ -102,6 +102,20 @@ struct dhcpOfferedAddr *find_lease_by_yiaddr(u_int32_t yiaddr)
 }
 
 
+/* check is an IP is taken, if it is, add it to the lease table */
+static int check_ip(u_int32_t addr)
+{
+	struct in_addr temp;
+
+	if (arpping(addr, server_config.server, server_config.arp, server_config.interface) == 0) {
+		temp.s_addr = addr;
+		LOG(LOG_INFO, "%s belongs to someone, reserving it for %ld seconds",
+			inet_ntoa(temp), server_config.conflict_time);
+		add_lease(blank_chaddr, addr, server_config.conflict_time);
+		return 1;
+	} else return 0;
+}
+
 /* find an assignable address, it check_expired is true, we check all the expired leases as well.
  * Maybe this should try expired leases by age... */
 u_int32_t find_address(int check_expired) 
@@ -133,19 +147,3 @@ u_int32_t find_address(int check_expired)
 	}
 	return 0;
 }
-
-
-/* check is an IP is taken, if it is, add it to the lease table */
-int check_ip(u_int32_t addr)
-{
-	struct in_addr temp;
-	
-	if (arpping(addr, server_config.server, server_config.arp, server_config.interface) == 0) {
-		temp.s_addr = addr;
-	 	LOG(LOG_INFO, "%s belongs to someone, reserving it for %ld seconds", 
-	 		inet_ntoa(temp), server_config.conflict_time);
-		add_lease(blank_chaddr, addr, server_config.conflict_time);
-		return 1;
-	} else return 0;
-}
-

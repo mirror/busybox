@@ -14,10 +14,9 @@
 #endif
 #include <errno.h>
 
-#include "packet.h"
-#include "debug.h"
 #include "dhcpd.h"
 #include "options.h"
+#include "common.h"
 
 
 void init_header(struct dhcpMessage *packet, char type)
@@ -123,7 +122,7 @@ int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port
 	struct udp_dhcp_packet packet;
 
 	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %s", strerror(errno));
+		DEBUG(LOG_ERR, "socket call failed: %m");
 		return -1;
 	}
 	
@@ -136,7 +135,7 @@ int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port
 	dest.sll_halen = 6;
 	memcpy(dest.sll_addr, dest_arp, 6);
 	if (bind(fd, (struct sockaddr *)&dest, sizeof(struct sockaddr_ll)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %s", strerror(errno));
+		DEBUG(LOG_ERR, "bind call failed: %m");
 		close(fd);
 		return -1;
 	}
@@ -159,7 +158,7 @@ int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_port
 
 	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0, (struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
-		DEBUG(LOG_ERR, "write on socket failed: %s", strerror(errno));
+		DEBUG(LOG_ERR, "write on socket failed: %m");
 	}
 	close(fd);
 	return result;
@@ -200,4 +199,3 @@ int kernel_packet(struct dhcpMessage *payload, u_int32_t source_ip, int source_p
 	close(fd);
 	return result;
 }	
-

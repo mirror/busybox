@@ -1,79 +1,55 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <syslog.h>
-#include <signal.h>
-#include <errno.h>
 #include <getopt.h>
 #include <time.h>
 
-#include "libbb_udhcp.h"
+#include "leases.h"
+#include "busybox.h"
 
 #define REMAINING 0
 #define ABSOLUTE 1
 
-struct lease_t {
-	unsigned char chaddr[16];
-	u_int32_t yiaddr;
-	u_int32_t expires;
-};
-
-#ifdef IN_BUSYBOX
 int dumpleases_main(int argc, char *argv[])
-#else
-int main(int argc, char *argv[])
-#endif
 {
 	FILE *fp;
 	int i, c, mode = REMAINING;
 	long expires;
-	char file[255] = "/var/lib/misc/udhcpd.leases";
-	struct lease_t lease;
+	const char *file = leases_file;
+	struct dhcpOfferedAddr lease;
 	struct in_addr addr;
 	
-	static struct option options[] = {
+	static const struct option options[] = {
 		{"absolute", 0, 0, 'a'},
 		{"remaining", 0, 0, 'r'},
 		{"file", 1, 0, 'f'},
-		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "arf:h", options, &option_index);
+		c = getopt_long(argc, argv, "arf:", options, &option_index);
 		if (c == -1) break;
 		
 		switch (c) {
 		case 'a': mode = ABSOLUTE; break;
 		case 'r': mode = REMAINING; break;
 		case 'f':
-			strncpy(file, optarg, 255);
-			file[254] = '\0';
+			file =  optarg;
 			break;
-		case 'h':
-			printf("Usage: dumpleases -f <file> -[r|a]\n\n");
-			printf("  -f, --file=FILENAME             Leases file to load\n");
-			printf("  -r, --remaining                 Interepret lease times as time remaing\n");
-			printf("  -a, --absolute                  Interepret lease times as expire time\n");
-			break;
+		default:
+			bb_show_usage();
 		}
 	}
 			
-	if (!(fp = fopen(file, "r"))) {
-		perror("could not open input file");
-		return 0;
-	}
+	fp = bb_xfopen(file, "r");
 
 	printf("Mac Address       IP-Address      Expires %s\n", mode == REMAINING ? "in" : "at");  
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */

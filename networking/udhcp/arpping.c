@@ -5,22 +5,19 @@
  * by Yoichi Hariguchi <yoichi@fore.com>
  */
 
-#include <sys/types.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/if_ether.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
 #include "dhcpd.h"
-#include "debug.h"
 #include "arpping.h"
+#include "common.h"
 
 /* args:	yiaddr - what IP to ping
  *		ip - our ip
@@ -47,7 +44,7 @@ int arpping(u_int32_t yiaddr, u_int32_t ip, unsigned char *mac, char *interface)
 
 
 	if ((s = socket (PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) == -1) {
-		LOG(LOG_ERR, "Could not open raw socket");
+		LOG(LOG_ERR, bb_msg_can_not_create_raw_socket);
 		return -1;
 	}
 	
@@ -84,7 +81,7 @@ int arpping(u_int32_t yiaddr, u_int32_t ip, unsigned char *mac, char *interface)
 		FD_SET(s, &fdset);
 		tm.tv_sec = timeout;
 		if (select(s + 1, &fdset, (fd_set *) NULL, (fd_set *) NULL, &tm) < 0) {
-			DEBUG(LOG_ERR, "Error on ARPING request: %s", strerror(errno));
+			DEBUG(LOG_ERR, "Error on ARPING request: %m");
 			if (errno != EINTR) rv = 0;
 		} else if (FD_ISSET(s, &fdset)) {
 			if (recv(s, &arp, sizeof(arp), 0) < 0 ) rv = 0;

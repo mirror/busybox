@@ -35,17 +35,13 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 
 
 #include "dhcpd.h"
-#include "packet.h"
 #include "options.h"
 #include "dhcpc.h"
-#include "debug.h"
+#include "common.h"
 
 
 /* Create a random xid */
@@ -58,8 +54,7 @@ unsigned long random_xid(void)
 
 		fd = open("/dev/urandom", 0);
 		if (fd < 0 || read(fd, &seed, sizeof(seed)) < 0) {
-			LOG(LOG_WARNING, "Could not load seed from /dev/urandom: %s",
-				strerror(errno));
+			LOG(LOG_WARNING, "Could not load seed from /dev/urandom: %m");
 			seed = time(0);
 		}
 		if (fd >= 0) close(fd);
@@ -250,4 +245,3 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
 	
 }
-

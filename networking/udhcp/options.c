@@ -3,15 +3,13 @@
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
  
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "debug.h"
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
-#include "leases.h"
+#include "common.h"
 
 
 /* supported options are easily added here */

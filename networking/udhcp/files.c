@@ -3,23 +3,20 @@
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
  
-#include <stdio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
-#include <netdb.h>
 
-#include "debug.h"
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
-#include "leases.h"
+#include "common.h"
 
 /* on these functions, make sure you datatype matches */
-static int read_ip(char *line, void *arg)
+static int read_ip(const char *line, void *arg)
 {
 	struct in_addr *addr = arg;
 	struct hostent *host;
@@ -34,7 +31,7 @@ static int read_ip(char *line, void *arg)
 }
 
 
-static int read_str(char *line, void *arg)
+static int read_str(const char *line, void *arg)
 {
 	char **dest = arg;
 	
@@ -45,7 +42,7 @@ static int read_str(char *line, void *arg)
 }
 
 
-static int read_u32(char *line, void *arg)
+static int read_u32(const char *line, void *arg)
 {
 	u_int32_t *dest = arg;
 	char *endptr;
@@ -54,7 +51,7 @@ static int read_u32(char *line, void *arg)
 }
 
 
-static int read_yn(char *line, void *arg)
+static int read_yn(const char *line, void *arg)
 {
 	char *dest = arg;
 	int retval = 1;
@@ -68,32 +65,33 @@ static int read_yn(char *line, void *arg)
 	return retval;
 }
 
+#define READ_CONFIG_BUF_SIZE 512        /* domainname may have 254 chars */
 
 /* read a dhcp option and add it to opt_list */
-static int read_opt(char *line, void *arg)
+static int read_opt(const char *const_line, void *arg)
 {
+    char line[READ_CONFIG_BUF_SIZE];
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
-	struct dhcp_option *option = NULL;
-	int retval = 0, length = 0;
-	char buffer[255];
+    struct dhcp_option *option;
+    int retval = 0, length;
+    char buffer[256];                       /* max opt length */
 	u_int16_t result_u16;
 	u_int32_t result_u32;
-	int i;
-
-	if (!(opt = strtok(line, " \t="))) return 0;
+    void *valptr;
 	
-	for (i = 0; options[i].code; i++)
-		if (!strcmp(options[i].name, opt))
-			option = &(options[i]);
+    if ((opt = strtok(strcpy(line, const_line), " \t="))) {
 		
-	if (!option) return 0;
+	for (option = options; option->code; option++)
+		if (!strcasecmp(option->name, opt))
+			break;
 	
-	do {
+	if (option->code) do {
 		val = strtok(NULL, ", \t");
-		if (val) {
+		if(!val)
+			break;
 			length = option_lengths[option->flags & TYPE_MASK];
-			retval = 0;
+		valptr = NULL;
 			switch (option->flags & TYPE_MASK) {
 			case OPTION_IP:
 				retval = read_ip(val, buffer);
@@ -107,8 +105,9 @@ static int read_opt(char *line, void *arg)
 				length = strlen(val);
 				if (length > 0) {
 					if (length > 254) length = 254;
-					memcpy(buffer, val, length);
-					retval = 1;
+				endptr = buffer + length;
+				endptr[0] = 0;
+				valptr = val;
 				}
 				break;
 			case OPTION_BOOLEAN:
@@ -116,41 +115,44 @@ static int read_opt(char *line, void *arg)
 				break;
 			case OPTION_U8:
 				buffer[0] = strtoul(val, &endptr, 0);
-				retval = (endptr[0] == '\0');
+			valptr = buffer;
 				break;
 			case OPTION_U16:
 				result_u16 = htons(strtoul(val, &endptr, 0));
-				memcpy(buffer, &result_u16, 2);
-				retval = (endptr[0] == '\0');
+			valptr = &result_u16;
 				break;
 			case OPTION_S16:
 				result_u16 = htons(strtol(val, &endptr, 0));
-				memcpy(buffer, &result_u16, 2);
-				retval = (endptr[0] == '\0');
+			valptr = &result_u16;
 				break;
 			case OPTION_U32:
 				result_u32 = htonl(strtoul(val, &endptr, 0));
-				memcpy(buffer, &result_u32, 4);
-				retval = (endptr[0] == '\0');
+			valptr = &result_u32;
 				break;
 			case OPTION_S32:
 				result_u32 = htonl(strtol(val, &endptr, 0));	
-				memcpy(buffer, &result_u32, 4);
-				retval = (endptr[0] == '\0');
+			valptr = &result_u32;
 				break;
 			default:
+			retval = 0;
 				break;
 			}
+		if(valptr) {
+			memcpy(buffer, valptr, length);
+			retval = (endptr[0] == '\0');
+		}
 			if (retval) 
 				attach_option(opt_list, option, buffer, length);
-		};
-	} while (val && retval && option->flags & OPTION_LIST);
+		else
+			break;
+	} while (option->flags & OPTION_LIST);
+    }
 	return retval;
 }
 
 
-static struct config_keyword keywords[] = {
-	/* keyword[14]	handler   variable address		default[20] */
+static const struct config_keyword keywords[] = {
+	/* keyword      handler   variable address              default     */
 	{"start",	read_ip,  &(server_config.start),	"192.168.0.20"},
 	{"end",		read_ip,  &(server_config.end),		"192.168.0.254"},
 	{"interface",	read_str, &(server_config.interface),	"eth0"},
@@ -163,7 +165,7 @@ static struct config_keyword keywords[] = {
 	{"conflict_time",read_u32,&(server_config.conflict_time),"3600"},
 	{"offer_time",	read_u32, &(server_config.offer_time),	"60"},
 	{"min_lease",	read_u32, &(server_config.min_lease),	"60"},
-	{"lease_file",	read_str, &(server_config.lease_file),	"/var/lib/misc/udhcpd.leases"},
+	{"lease_file",  read_str, &(server_config.lease_file),  leases_file},
 	{"pidfile",	read_str, &(server_config.pidfile),	"/var/run/udhcpd.pid"},
 	{"notify_file", read_str, &(server_config.notify_file),	""},
 	{"siaddr",	read_ip,  &(server_config.siaddr),	"0.0.0.0"},
@@ -174,14 +176,15 @@ static struct config_keyword keywords[] = {
 };
 
 
-int read_config(char *file)
+int read_config(const char *file)
 {
 	FILE *in;
-	char buffer[80], orig[80], *token, *line;
+	char buffer[READ_CONFIG_BUF_SIZE], orig[READ_CONFIG_BUF_SIZE];
+	char *token, *line;
 	int i;
 
-	for (i = 0; strlen(keywords[i].keyword); i++)
-		if (strlen(keywords[i].def))
+	for (i = 0; keywords[i].keyword[0]; i++)
+		if (keywords[i].def[0])
 			keywords[i].handler(keywords[i].def, keywords[i].var);
 
 	if (!(in = fopen(file, "r"))) {
@@ -189,24 +192,25 @@ int read_config(char *file)
 		return 0;
 	}
 	
-	while (fgets(buffer, 80, in)) {
+	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
 		if (strchr(buffer, '\n')) *(strchr(buffer, '\n')) = '\0';
-		strncpy(orig, buffer, 80);
+		strcpy(orig, buffer);
 		if (strchr(buffer, '#')) *(strchr(buffer, '#')) = '\0';
-		token = buffer + strspn(buffer, " \t");
-		if (*token == '\0') continue;
-		line = token + strcspn(token, " \t=");
-		if (*line == '\0') continue;
-		*line = '\0';
+		token = strtok(buffer, " \t");
+		if(!token)
+			continue;
+		line = strtok(NULL, "");
+		if(!line)
+			continue;
+		while(*line == '=' || isspace(*line))
 		line++;
-		
-		/* eat leading whitespace */
-		line = line + strspn(line, " \t=");
 		/* eat trailing whitespace */
 		for (i = strlen(line); i > 0 && isspace(line[i - 1]); i--);
 		line[i] = '\0';
+		if (*line == '\0')
+			continue;
 		
-		for (i = 0; strlen(keywords[i].keyword); i++)
+		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
 					LOG(LOG_ERR, "unable to parse '%s'", orig);
@@ -233,16 +237,17 @@ void write_leases(void)
 	}
 	
 	for (i = 0; i < server_config.max_leases; i++) {
+		struct dhcpOfferedAddr lease;
 		if (leases[i].yiaddr != 0) {
 			if (server_config.remaining) {
 				if (lease_expired(&(leases[i])))
 					lease_time = 0;
 				else lease_time = leases[i].expires - curr;
 			} else lease_time = leases[i].expires;
-			lease_time = htonl(lease_time);
-			fwrite(leases[i].chaddr, 16, 1, fp);
-			fwrite(&(leases[i].yiaddr), 4, 1, fp);
-			fwrite(&lease_time, 4, 1, fp);
+			lease.expires = htonl(lease_time);
+			memcpy(lease.chaddr, leases[i].chaddr, 16);
+			lease.yiaddr = leases[i].yiaddr;
+			fwrite(leases, sizeof(lease), 1, fp);
 		}
 	}
 	fclose(fp);
@@ -254,7 +259,7 @@ void write_leases(void)
 }
 
 
-void read_leases(char *file)
+void read_leases(const char *file)
 {
 	FILE *fp;
 	unsigned int i = 0;
@@ -280,5 +285,3 @@ void read_leases(char *file)
 	DEBUG(LOG_INFO, "Read %d leases", i);
 	fclose(fp);
 }
-		
-		

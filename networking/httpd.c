@@ -402,6 +402,7 @@ static void parse_conf(const char *path, int flag)
 
     /* free previous ip setup if present */
     free_config_lines(&config->ip_a_d);
+    config->flg_deny_all = 0;
     /* retain previous auth and mime config only for subdir parse */
     if(flag != SUBDIR_PARSE) {
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH

@@ -3,15 +3,15 @@
 #define _FILES_H
 
 struct config_keyword {
-	char keyword[14];
-	int (*handler)(char *line, void *var);
+	const char *keyword;
+	int (* const handler)(const char *line, void *var);
 	void *var;
-	char def[30];
+	const char *def;
 };
 
 
-int read_config(char *file);
+int read_config(const char *file);
 void write_leases(void);
-void read_leases(char *file);
+void read_leases(const char *file);
 
 #endif

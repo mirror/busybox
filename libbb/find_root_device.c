@@ -48,10 +48,13 @@ extern char *find_real_root_device_name(const char* name)
 			bb_perror_msg("could not open '/dev'");
 		else {
 			while((entry = readdir(dir)) != NULL) {
-
-				fileName = concat_subpath_file("/dev", entry->d_name);
-				if(fileName == NULL)
+				const char *name = entry->d_name;
+				/* Must skip ".." since that is "/", and so we
+				 * would get a false positive on ".."  */
+				if (name[0] == '.' && name[1] == '.' && !name[2])
 					continue;
+
+				fileName = concat_path_file("/dev", name);
 
 				/* Some char devices have the same dev_t as block
 				 * devices, so make sure this is a block device */
@@ -66,7 +69,7 @@ extern char *find_real_root_device_name(const char* name)
 		}
 	}
 	if(fileName==NULL)
-		fileName=bb_xstrdup("/dev/root");
+		fileName = bb_xstrdup("/dev/root");
 	return fileName;
 }
 
