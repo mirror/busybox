@@ -289,7 +289,7 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 
 
 busybox: $(PWD_LIB) $(OBJECTS) 
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBRARIES) $(PWD_LIB)
 	$(STRIP)
 
 # Without VPATH, rule expands to "/bin/sh busybox.mkll Config.h applets.h"
@@ -306,8 +306,8 @@ $(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
 	- mkdir -p $(PWD_GRP)
 	$(CC) $(CFLAGS) $(PWD_CFLAGS) -c $< -o $*.o
 
-$(PWD_LIB): $(PWD_OBJS)
-	$(AR) $(ARFLAGS) $(PWD_LIB) $^
+libpwd.a: $(PWD_OBJS)
+	$(AR) $(ARFLAGS) $@ $^
 
 usage.o: usage.h
 
@@ -326,7 +326,7 @@ clean:
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
 	- rm -f multibuild.log Config.h.orig
-	- rm -rf docs/busybox _install $(PWD_LIB) 
+	- rm -rf docs/busybox _install libpwd.a
 	- rm -f busybox.links loop.h *~ slist.mk core applet_source_list
 	- find -name \*.o -exec rm -f {} \;
 
