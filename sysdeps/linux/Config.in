@@ -166,6 +166,14 @@ config CONFIG_INSTALL_NO_USR
 	  Disable use of /usr. Don't activate this option if you don't know,
 	  that you really want this behaviour.
 
+config PREFIX
+	string "BusyBox installation prefix"
+	default "./_install"
+	help
+	  Define Your directory to install BusyBox files/subdirs.
+
+
+
 endmenu
 
 source archival/Config.in
