@@ -1337,7 +1337,8 @@ static int sendFile(const char *url)
 
 	sendHeaders(HTTP_OK);
 	while ((count = bb_full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-		bb_full_write(a_c_w, buf, count);
+		if (bb_full_write(a_c_w, buf, count) != count)
+			break;
 	}
 	close(f);
   } else {
