@@ -228,6 +228,7 @@ int tail_main(int argc, char **argv)
 		buf = tailbuf;
 		taillen = 0;
 		seen = 1;
+		newline = 0;
 
 		while ((nread = tail_read(fds[i], buf, tailbufsize-taillen)) > 0) {
 			if (from_top) {
