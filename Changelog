@@ -3,7 +3,7 @@
 	    <tausq@debian.org>.  2 items off the TODO list!
 	* I wrote free (just calls "cat /proc/meminfo").
 	* Added tail, based on tail from GNU textutils-1.19, but adjusted
-	    to suit my evil purposes.  Costs 6k.
+	    to suit my evil purposes.  Costs 6k.  I'll make it smaller sometime.
 	* on reboot, init called 'umount -a -n', which caused errors
 	    when BB_MTAB was not enabled.  Changed to 'umount -a',
 	    which does the right thing.
@@ -17,11 +17,11 @@
 	* Fixed reboot, halt (and added poweroff) such that they handle it when
 	    init is not at PID 1 (like when running in an initrd).
 	* Added a prelinary du implementation.  Some parameter parsing
-	    stuff still needs to be added. -beppu  (John Beppu <beppu@lineo.com>)
+	    stuff still needs to be added. -beppu (John Beppu <beppu@lineo.com>)
 	* Implemented tee.  -beppu
 	* Implemented head. -beppu
 
-	-Erik Andrsen
+	-Erik Andrsen, Dec 10, 1999
 
 0.38
 	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
