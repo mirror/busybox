@@ -83,31 +83,37 @@ extern int run_parts(char **args, const unsigned char test_mode)
 			if (test_mode & 1) {
 				puts(filename);
 			} else {
-				/* exec_errno is common vfork variable */
-				volatile int exec_errno = 0;
+				pid_t pid, wpid;
 				int result;
-				int pid;
 
 				if ((pid = vfork()) < 0) {
 					bb_perror_msg_and_die("failed to fork");
-				} else if (!pid) {
-					args[0] = filename;
+				} else if (pid==0) {
 					execv(filename, args);
-					exec_errno = errno;
 					_exit(1);
 				}
 
-				waitpid(pid, &result, 0);
-				if(exec_errno) {
-					errno = exec_errno;
-					bb_perror_msg_and_die("failed to exec %s", filename);
-				}
-				if (WIFEXITED(result) && WEXITSTATUS(result)) {
-					bb_perror_msg("%s exited with return code %d", filename, WEXITSTATUS(result));
-					exitstatus = 1;
-				} else if (WIFSIGNALED(result)) {
-					bb_perror_msg("%s exited because of uncaught signal %d", filename, WTERMSIG(result));
-					exitstatus = 1;
+				/* Wait for the child process to exit.  Since we use vfork
+				 * we shouldn't actually have to do any waiting... */
+				wpid = wait(&result);
+				while (wpid > 0) {
+					/* Find out who died, make sure it is the right process */
+					if (pid == wpid) {
+						if (WIFEXITED(result) && WEXITSTATUS(result)) {
+							bb_perror_msg("%s exited with return code %d", filename, WEXITSTATUS(result));
+							exitstatus = 1;
+						} else if (WIFSIGNALED(result) && WIFSIGNALED(result)) {
+							int sig;
+							sig = WTERMSIG(result);
+							bb_perror_msg("%s exited because of uncaught signal %d (%s)", 
+									filename, sig, u_signal_names(0, &sig, 1));
+							exitstatus = 1;
+						}
+						break;
+					} else {
+						/* Just in case some _other_ random child process exits */
+						wpid = wait(&result);
+					}
 				}
 			}
 		} 
