@@ -354,7 +354,7 @@ const struct BB_applet applets[] = {
 	{0}
 };
 
-const char *applet_name;
+char *applet_name;
 
 #ifdef BB_FEATURE_INSTALLER
 /* 

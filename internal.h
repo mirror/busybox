@@ -208,7 +208,7 @@ extern int which_main(int argc, char** argv);
 extern int whoami_main(int argc, char** argv);
 extern int yes_main(int argc, char** argv);
 
-extern const char *applet_name;
+extern char *applet_name;
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
 extern void errorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
