@@ -6050,7 +6050,9 @@ retry:
 	if (!iflag || parsefile->fd)
 		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
+#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 		cmdedit_path_lookup = pathval();
+#endif
 		nr = cmdedit_read_input((char *) cmdedit_prompt, buf);
 		if(nr == 0) {
 			/* Ctrl+C presend */
