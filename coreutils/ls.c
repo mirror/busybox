@@ -837,6 +837,7 @@ extern int ls_main(int argc, char **argv)
 		switch (opt) {
 		case '1':
 			style_fmt = STYLE_SINGLE;
+			list_fmt = LIST_SHORT;
 			break;
 		case 'A':
 			disp_opts |= DISP_HIDDEN;
@@ -846,6 +847,7 @@ extern int ls_main(int argc, char **argv)
 			break;
 		case 'C':
 			style_fmt = STYLE_COLUMNS;
+			list_fmt = LIST_SHORT;
 			break;
 		case 'd':
 			disp_opts |= DISP_NOLIST;
@@ -956,8 +958,8 @@ extern int ls_main(int argc, char **argv)
 	if (time_fmt & TIME_ACCESS)
 		sort_opts = SORT_ATIME;
 #endif
-	if (style_fmt != STYLE_LONG)
-		list_fmt &= ~LIST_ID_NUMERIC;	/* numeric uid only for long list */
+	if (style_fmt != STYLE_LONG) /* only for long list */
+		list_fmt &= ~(LIST_ID_NUMERIC|LIST_FULLTIME|LIST_ID_NAME|LIST_ID_NUMERIC);
 #ifdef CONFIG_FEATURE_LS_USERNAME
 	if (style_fmt == STYLE_LONG && (list_fmt & LIST_ID_NUMERIC))
 		list_fmt &= ~LIST_ID_NAME;	/* don't list names if numeric uid */
