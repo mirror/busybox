@@ -2836,7 +2836,7 @@ error:
 							p = *argv++, --argc;
 						p=GET_NUMBER(p,&set_apmmode,&apmmode);
 						if (!set_apmmode)
-							printf("-B: %s (1-255)", bb_msg_missing_value);
+							bb_error_msg("-B: %s (1-255)", bb_msg_missing_value);
 						break;
 					case 't':
 						do_timings = 1;
