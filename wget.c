@@ -56,10 +56,18 @@ int wget_main(int argc, char **argv)
 			usage(wget_usage);
 		}
 	}
-	if (do_continue && !fname_out)
-		fatalError("wget: cannot specify continue (-c) without a filename (-O)\n");
+
 	if (argc - optind != 1)
 			usage(wget_usage);
+
+	/* Guess an output filename */
+	if (!fname_out) {
+		fname_out = get_last_path_component(argv[optind]);
+	}
+
+	if (do_continue && !fname_out)
+		fatalError("wget: cannot specify continue (-c) without a filename (-O)\n");
+
 	/*
 	 * Parse url into components.
 	 */
