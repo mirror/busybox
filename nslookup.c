@@ -128,6 +128,14 @@ static struct hostent *gethostbyaddr_wrapper(const char *address)
 	return gethostbyaddr((char *) &addr, 4, AF_INET);	/* IPv4 only for now */
 }
 
+#ifdef __UCLIBC__
+#warning FIXME after fixing uClibc to define struct _res 
+static inline void server_print(void)
+{
+       printf("Server:     %s\n", "default");
+       printf("Address:    %s\n\n", "default");
+}
+#else
 /* lookup the default nameserver and display it */
 static inline void server_print(void)
 {
@@ -137,6 +145,7 @@ static inline void server_print(void)
 	hostent_fprint(gethostbyaddr_wrapper(ip));
 	printf("\n");
 }
+#endif	
 
 /* naive function to check whether char *s is an ip address */
 static int is_ip_address(const char *s)
@@ -171,4 +180,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.23 2001/06/12 22:21:24 andersen Exp $ */
+/* $Id: nslookup.c,v 1.24 2001/07/06 17:51:29 andersen Exp $ */
