@@ -17,22 +17,21 @@
 
 int makedevs_main(int argc, char **argv)
 {
-
-	const char *basedev = argv[1];
-	const char *type = argv[2];
-	int major = atoi(argv[3]);
-	int Sminor = atoi(argv[4]);
-	int S = atoi(argv[5]);
-	int E = atoi(argv[6]);
-	int sbase = argc == 8 ? 1 : 0;
-
-	mode_t mode = 0;
 	dev_t dev = 0;
-	char devname[255];
-	char buf[255];
+	mode_t mode = 0;
+	char *basedev, *type, devname[255], buf[255];
+	int major, Sminor, S, E, sbase;
 
 	if (argc < 7 || *argv[1]=='-')
 		show_usage();
+
+	basedev = argv[1];
+	type = argv[2];
+	major = atoi(argv[3]);
+	Sminor = atoi(argv[4]);
+	S = atoi(argv[5]);
+	E = atoi(argv[6]);
+	sbase = argc == 8 ? 1 : 0;
 
 	switch (type[0]) {
 	case 'c':
