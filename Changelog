@@ -24,13 +24,17 @@
 	    read and exec should work better now
 	* Matt Kraai et al. -- more tar improvements and bug fixes, now 
 	    handles regexp file exclusion
-	* Larry Doolittle -- new script to automate build rule checking
+	* Larry Doolittle -- new script (multibuild.pl) to automate build rule
+	    checking
 	* Matt Kraai -- update/cleanup of the docs on how to use init.
 	* Erik Andersen -- sh.c renamed all symbols per the style guide.  
 	    Better if-then-else-fi handling
 	* Erik Andersen -- cleaner division of labor between cmdedit.c and sh.c
 	* Erik Andersen -- md5sum was broken in 0.48.  Now fixed (and doesn't 
 	    use getline, shrinking static compiles (since nothing else used it).
+	* Mark Whitley -- Updates to style guide
+	* Mark Whitley -- Big cleanup in utility.c: style guide compliance,
+	    de-macro-ifying some variables and functions
 
 
 	 -Erik Andersen, <not released yet>
