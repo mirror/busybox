@@ -59,7 +59,8 @@ extern int env_main(int argc, char** argv)
 		cleanenv[0] = NULL;
 	}
 	for (argv += optind; *argv && (p = strchr(*argv, '=')); ++argv)
-		putenv(*argv);
+		if (putenv(*argv) < 0)
+			perror_msg_and_die("%s", *argv);
 	if (*argv) {
 		execvp(*argv, argv);
 		perror_msg_and_die("%s", *argv);
