@@ -143,6 +143,11 @@ extern int gunzip_main(int argc, char **argv)
 			new_path = xstrdup(old_path);
 
 			extension = strrchr(new_path, '.');
+#ifdef CONFIG_FEATURE_UNCOMPRESS
+			if (extension && (strcmp(extension, ".Z") == 0)) {
+				*extension = '\0';
+			} else
+#endif
 			if (extension && (strcmp(extension, ".gz") == 0)) {
 				*extension = '\0';
 			} else if (extension && (strcmp(extension, ".tgz") == 0)) {
@@ -169,22 +174,21 @@ extern int gunzip_main(int argc, char **argv)
 			magic2 = xread_char(src_fd);
 #ifdef CONFIG_FEATURE_UNCOMPRESS
 			if (magic2 == 0x9d) {
-				printf("uncompress\n");
-				return(uncompress(src_fd, dst_fd));
+				status = uncompress(src_fd, dst_fd);
 			} else 
 #endif
 				if (magic2 == 0x8b) {
 					check_header_gzip(src_fd);
 					status = inflate(src_fd, dst_fd);
 					if (status != 0) {
-						error_msg("Error inflating");
+						error_msg_and_die("Error inflating");
 					}
 					check_trailer_gzip(src_fd);
 				} else {
-					error_msg_and_die("Invalid magic\n");
+					error_msg_and_die("Invalid magic");
 				}
 		} else {
-			error_msg_and_die("Invalid magic\n");
+			error_msg_and_die("Invalid magic");
 		}
 
 		if ((status != EXIT_SUCCESS) && (new_path)) {
