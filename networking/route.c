@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.15 2002/05/14 23:03:23 sandman Exp $
+ * $Id: route.c,v 1.16 2002/05/16 19:14:15 sandman Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -375,10 +375,8 @@ void displayroutes(int noresolve, int netstatfmt)
 			}
 			if(nl==1) {
 				printf("Kernel IP routing table\n");
-				if ( netstatfmt ) 
-					printf("Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface\n");
-				else				
-					printf("Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+				printf("Destination     Gateway         Genmask         Flags %s Iface\n",
+				       netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
 			}
 			ifl = 0;        /* parse flags */
  			if(flgs&RTF_UP) {
@@ -408,18 +406,12 @@ void displayroutes(int noresolve, int netstatfmt)
 				numeric = noresolve | 0x4000; /* host instead of net */
 				s_addr.sin_addr = gw;
 				INET_rresolve(sgw, sizeof(sgw), &s_addr, numeric, m);
-				if ( netstatfmt ) {
- 					printf("%-16s%-16s%-16s%-6s%5d %-5d %6d %s\n",
- 						sdest, sgw,
- 						inet_ntoa(mask),
- 						flags, mtu, win, ir, buff);
- 				}
- 				else {
- 					printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
- 						sdest, sgw,
- 						inet_ntoa(mask),
-	 					flags, metric, ref, use, buff);
- 				}
+
+				printf("%-16s%-16s%-16s%-6s", sdest, sgw, inet_ntoa(mask), flags);
+				if ( netstatfmt )
+ 					printf("%5d %-5d %6d %s\n", mtu, win, ir, buff);
+ 				else
+ 					printf("%-6d %-2d %7d %s\n", metric, ref, use, buff);
 			}
  		}
 		nl++;
