@@ -1,5 +1,1 @@
-if busybox false; then
-	return 1
-else
-	return 0
-fi
+! busybox false

@@ -1,5 +1,1 @@
-if busybox tar tx; then
-	return 1
-else
-	return 0
-fi
+! busybox tar tx
