@@ -35,8 +35,7 @@ extern int whoami_main(int argc, char **argv)
 	my_getpwuid(user, uid);
 	if (user) {
 		puts(user);
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	}
-	errorMsg("cannot find username for UID %u\n", (unsigned) uid);
-	return(FALSE);
+	fatalError("cannot find username for UID %u\n", (unsigned) uid);
 }
