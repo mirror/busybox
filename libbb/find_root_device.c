@@ -38,8 +38,11 @@ extern char *find_real_root_device_name(const char* name)
 	if (stat("/", &rootStat) != 0) 
 		bb_perror_msg("could not stat '/'");
 	else {
-		if ((dev = rootStat.st_rdev)==0) 
-			dev=rootStat.st_dev;
+		/* This check is here in case they pass in /dev name */
+		if ((rootStat.st_mode & S_IFMT) == S_IFBLK)
+			dev = rootStat.st_rdev;
+		else
+			dev = rootStat.st_dev;
 
 		dir = opendir("/dev");
 		if (!dir) 
