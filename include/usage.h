@@ -2230,6 +2230,7 @@
 	"\n\t-b|--background\t\t\tforce process into background"\
 	"\n\t-u|--user <username>|<uid>\tstop this user's processes"\
 	"\n\t-x|--exec <executable>\t\tprogram to either start or check"\
+	"\n\t-m|--make-pidfile <filename>\tcreate the -p file and enter pid in it"\
 	"\n\t-n|--name <process-name>\tstop processes with this name"\
 	"\n\t-p|--pidfile <pid-file>\t\tsave or load pid using a pid-file"\
 	"\n\t-q|--quiet\t\t\tbe quiet" \

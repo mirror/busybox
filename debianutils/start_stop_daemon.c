@@ -116,18 +116,18 @@ check(int pid)
 
 
 static void
-do_pidfile(const char *name)
+do_pidfile(void)
 {
 	FILE *f;
 	pid_t pid;
 
-	f = fopen(name, "r");
+	f = fopen(pidfile, "r");
 	if (f) {
 		if (fscanf(f, "%d", &pid) == 1)
 			check(pid);
 		fclose(f);
 	} else if (errno != ENOENT)
-		bb_perror_msg_and_die("open pidfile %s", name);
+		bb_perror_msg_and_die("open pidfile %s", pidfile);
 
 }
 
@@ -137,6 +137,11 @@ do_procinit(void)
 	DIR *procdir;
 	struct dirent *entry;
 	int foundany, pid;
+
+	if (pidfile) {
+		do_pidfile();
+		return;
+	}
 
 	procdir = opendir("/proc");
 	if (!procdir)
@@ -162,15 +167,14 @@ do_stop(void)
 	struct pid_list *p;
 	int killed = 0;
 
-	if (pidfile)
-		do_pidfile(pidfile);
-	else
-		do_procinit();
+	do_procinit();
 
 	if (cmdname)
 		strcpy(what, cmdname);
 	else if (execname)
 		strcpy(what, execname);
+	else if (pidfile)
+		sprintf(what, "process in pidfile `%.200s'", pidfile);
 	else if (userspec)
 		sprintf(what, "process(es) owned by `%s'", userspec);
 	else
@@ -186,7 +190,7 @@ do_stop(void)
 			p->pid = -p->pid;
 			killed++;
 		} else {
-			bb_perror_msg("warning: failed to kill %d:", p->pid);
+			bb_perror_msg("warning: failed to kill %d", p->pid);
 		}
 	}
 	if (!quiet && killed) {
@@ -200,23 +204,25 @@ do_stop(void)
 
 
 static const struct option ssd_long_options[] = {
-	{ "stop",		0,		NULL,		'K' },
-	{ "start",		0,		NULL,		'S' },
-	{ "background",	0,		NULL,		'b' },
-	{ "quiet",		0,		NULL,		'q' },
-	{ "startas",	1,		NULL,		'a' },
-	{ "name",		1,		NULL,		'n' },
-	{ "signal",		1,		NULL,		's' },
-	{ "user",		1,		NULL,		'u' },
-	{ "exec",		1,		NULL,		'x' },
-	{ "pidfile",	1,		NULL,		'p' },
+	{ "stop",				0,		NULL,		'K' },
+	{ "start",				0,		NULL,		'S' },
+	{ "background",			0,		NULL,		'b' },
+	{ "quiet",				0,		NULL,		'q' },
+	{ "make-pidfile",		0,		NULL,		'm' },
+	{ "startas",			1,		NULL,		'a' },
+	{ "name",				1,		NULL,		'n' },
+	{ "signal",				1,		NULL,		's' },
+	{ "user",				1,		NULL,		'u' },
+	{ "exec",				1,		NULL,		'x' },
+	{ "pidfile",			1,		NULL,		'p' },
 	{ 0,			0,		0,			0 }
 };
 
-#define SSD_CTX_STOP	1
-#define SSD_CTX_START	2
+#define SSD_CTX_STOP		1
+#define SSD_CTX_START		2
 #define SSD_OPT_BACKGROUND	4
-#define SSD_OPT_QUIET	8
+#define SSD_OPT_QUIET		8
+#define SSD_OPT_MAKEPID		16
 
 int
 start_stop_daemon_main(int argc, char **argv)
@@ -228,7 +234,7 @@ start_stop_daemon_main(int argc, char **argv)
 	bb_applet_long_options = ssd_long_options;
 
 	bb_opt_complementaly = "K~S:S~K";
-	opt = bb_getopt_ulflags(argc, argv, "KSbqa:n:s:u:x:p:",
+	opt = bb_getopt_ulflags(argc, argv, "KSbqma:n:s:u:x:p:",
 			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
 	/* Check one and only one context option was given */
@@ -240,8 +246,8 @@ start_stop_daemon_main(int argc, char **argv)
 		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
 	}
 
-	if (!execname && !userspec)
-		bb_error_msg_and_die ("need at least one of -x or -u");
+	if (!execname && !pidfile && !userspec && !cmdname)
+		bb_error_msg_and_die ("need at least one of -x, -p, -u, or -n");
 
 	if (!startas)
 		startas = execname;
@@ -249,18 +255,21 @@ start_stop_daemon_main(int argc, char **argv)
 	if ((opt & SSD_CTX_START) && !startas)
 		bb_error_msg_and_die ("-S needs -x or -a");
 
+	if ((opt & SSD_OPT_MAKEPID) && pidfile == NULL)
+		bb_error_msg_and_die ("-m needs -p");
+
 	argc -= optind;
 	argv += optind;
 
 	if (userspec && sscanf(userspec, "%d", &user_id) != 1)
 		user_id = my_getpwnam(userspec);
 
-	do_procinit();
-
 	if (opt & SSD_CTX_STOP) {
 		do_stop();
 		return EXIT_SUCCESS;
 	}
+
+	do_procinit();
 
 	if (found) {
 		if (!quiet)
@@ -271,8 +280,17 @@ start_stop_daemon_main(int argc, char **argv)
 	if (opt & SSD_OPT_BACKGROUND) {
 		if (daemon(0, 0) == -1)
 			bb_perror_msg_and_die ("unable to fork");
+		setsid();
 	}
-	setsid();
+	if (opt & SSD_OPT_MAKEPID) {
+		/* user wants _us_ to make the pidfile */
+		FILE *pidf = fopen(pidfile, "w");
+		pid_t pidt = getpid();
+		if (pidf == NULL)
+			bb_perror_msg_and_die("Unable to write pidfile '%s'", pidfile);
+		fprintf(pidf, "%d\n", pidt);
+		fclose(pidf);
+	}
 	execv(startas, argv);
 	bb_perror_msg_and_die ("unable to start %s", startas);
 }
