@@ -182,6 +182,11 @@ copyFile( const char *srcName, const char *destName,
 	    perror(destName);
 	    return (FALSE);
 	}
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+	if (setModes == TRUE) {
+	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	}
+#endif
     } else if (S_ISFIFO(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
 	if (mkfifo(destName, 0644)) {
@@ -225,16 +230,9 @@ copyFile( const char *srcName, const char *destName,
     }
 
     if (setModes == TRUE) {
-	if (! S_ISLNK(srcStatBuf.st_mode)) {
-	    chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-	    /* Never chmod a symlink; it follows the link */
-	    chmod(destName, srcStatBuf.st_mode);
-	}
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-	else { 
-	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-	}
-#endif
+	/* This is fine, since symlinks never get here */
+	chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	chmod(destName, srcStatBuf.st_mode);
 	times.actime = srcStatBuf.st_atime;
 	times.modtime = srcStatBuf.st_mtime;
 	utime(destName, &times);
