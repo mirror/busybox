@@ -27,26 +27,33 @@
 #include "busybox.h"
 
 static int total_lines, total_words, total_chars, max_length;
-static int print_lines, print_words, print_chars, print_length;
+//static int print_lines, print_words, print_chars, print_length;
+static char print_type = 0;
+enum print_e {
+	print_lines = 1,
+	print_words = 2,
+	print_chars = 4,
+	print_length = 8
+};
 
 static void print_counts(int lines, int words, int chars, int length,
 				  		 const char *name)
 {
 	char const *space = "";
 
-	if (print_lines) {
+	if (print_type & print_lines) {
 		printf("%7d", lines);
 		space = " ";
 	}
-	if (print_words) {
+	if (print_type & print_words) {
 		printf("%s%7d", space, words);
 		space = " ";
 	}
-	if (print_chars) {
+	if (print_type & print_chars) {
 		printf("%s%7d", space, chars);
 		space = " ";
 	}
-	if (print_length)
+	if (print_type & print_length)
 		printf("%s%7d", space, length);
 	if (*name)
 		printf(" %s", name);
@@ -110,36 +117,37 @@ int wc_main(int argc, char **argv)
 	int opt, status = EXIT_SUCCESS;
 
 	total_lines = total_words = total_chars = max_length = 0;
-	print_lines = print_words = print_chars = print_length = 0;
 
 	while ((opt = getopt(argc, argv, "clLw")) > 0) {
 			switch (opt) {
 			case 'c':
-				print_chars = 1;
+				print_type |= print_chars;
 				break;
 			case 'l':
-				print_lines = 1;
+				print_type |= print_lines;
 				break;
 			case 'L':
-				print_length = 1;
+				print_type |= print_length;
 				break;
 			case 'w':
-				print_words = 1;
+				print_type |= print_words;
 				break;
 			default:
 				show_usage();
 			}
 	}
 
-	if (!print_lines && !print_words && !print_chars && !print_length)
-		print_lines = print_words = print_chars = 1;
+	if (print_type == 0) {
+		print_type = print_lines | print_words | print_chars;
+	}
 
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		wc_file(stdin, "");
 		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
-			if ((file = wfopen(argv[optind], "r")) != NULL)
+			file = wfopen(argv[optind], "r");
+			if (file != NULL)
 				wc_file(file, argv[optind]);
 			else
 				status = EXIT_FAILURE;
