@@ -80,10 +80,12 @@ extern int install_main(int argc, char **argv)
 					*argv_ptr = '\0';
 					old_argv_ptr++;
 				}
-				if ((mkdir(*argv, mode) == -1) && (errno != EEXIST)) {
-					bb_perror_msg("coulnt create %s", *argv);
-					ret = EXIT_FAILURE;
-					break;
+				if (mkdir(*argv, mode) == -1) {
+					if (errno != EEXIST) {
+						bb_perror_msg("coulnt create %s", *argv);
+						ret = EXIT_FAILURE;
+						break;
+					}
 				}
 				else if (lchown(*argv, uid, gid) == -1) {
 					bb_perror_msg("cannot change ownership of %s", *argv);
