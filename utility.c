@@ -1675,6 +1675,23 @@ char process_escape_sequence(char **ptr)
 }
 #endif
 
+#if defined BB_BASENAME || defined BB_LN
+char *get_last_path_component(char *path)
+{
+	char *s=path+strlen(path)-1;
+
+	/* strip trailing slashes */
+	while (s && *s == '/') {
+		*s-- = '\0';
+	}
+
+	/* find last component */
+	s = strrchr(path, '/');
+	if (s==NULL) return path;
+	else return s+1;
+}
+#endif
+
 /* END CODE */
 /*
 Local Variables:

@@ -52,7 +52,7 @@ static int followLinks = TRUE;
 
 extern int ln_main(int argc, char **argv)
 {
-	char *linkName;
+	char *linkName, *dirName;
 	int linkIntoDirFlag;
 	int stopIt = FALSE;
 
@@ -104,6 +104,9 @@ extern int ln_main(int argc, char **argv)
 		exit FALSE;
 	}
 
+	if (linkIntoDirFlag == TRUE)
+		dirName = linkName;
+
 	while (argc-- >= 2) {
 #if 0
 		char srcName[BUFSIZ + 1];
@@ -126,6 +129,14 @@ extern int ln_main(int argc, char **argv)
 			srcName[nChars] = '\0';
 		}
 #endif
+		if (linkIntoDirFlag == TRUE) {
+			char *baseName = get_last_path_component(*argv);
+			linkName = (char *)malloc(strlen(dirName)+strlen(baseName)+2);
+			strcpy(linkName, dirName);
+			if(dirName[strlen(dirName)-1] != '/')
+				strcat(linkName, "/");
+			strcat(linkName,baseName);
+		}
 
 		if (removeoldFlag == TRUE) {
 			status = (unlink(linkName) && errno != ENOENT);
@@ -143,6 +154,11 @@ extern int ln_main(int argc, char **argv)
 			perror(linkName);
 			exit FALSE;
 		}
+
+		if (linkIntoDirFlag)
+			free(linkName);
+
+		argv++;
 	}
 	return( TRUE);
 }

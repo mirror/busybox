@@ -43,14 +43,7 @@ extern int basename_main(int argc, char **argv)
 
 	argv++;
 
-	s1=*argv+strlen(*argv)-1;
-	while (s1 && *s1 == '/') {
-		*s1 = '\0';
-		s1--;
-	}
-	s = strrchr(*argv, '/');
-	if (s==NULL) s=*argv;
-	else s++;
+	s = get_last_path_component(*argv);
 
 	if (argc>2) {
 		argv++;
@@ -62,4 +55,3 @@ extern int basename_main(int argc, char **argv)
 	printf("%s\n", s);
 	return(TRUE);
 }
-
