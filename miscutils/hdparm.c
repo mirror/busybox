@@ -507,6 +507,8 @@ static void bb_ioctl_on_off(int fd, int request, void *argp, const char *string,
 		on_off((unsigned long) argp);
 	}
 }
+
+#ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 static void if_else_printf(unsigned long i, char *fmt1, char *fmt2, ... )
 {
 		va_list ap;
@@ -528,6 +530,13 @@ static void xprint_ascii(uint16_t *val ,int i, char * string, int n)
 		print_ascii(&val[i], n);
 	}
 }
+
+static void if_strcat(unsigned long test, char *modes, char *string)
+{
+	if (test)
+		strcat(modes,string);
+}
+#endif
 
 static void sync_and_sleep(int i)
 {
@@ -566,12 +575,6 @@ unsigned long int set_flag(char *p, char max)
 	if (*p >= '0' && *p <=  max )
 		return 1;
 	return 0;
-}
-
-static void if_strcat(unsigned long test, char *modes, char *string)
-{
-	if (test)
-		strcat(modes,string);
 }
 
 /* end of  busybox specific stuff */
