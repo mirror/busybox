@@ -96,8 +96,8 @@ extern void errorMsg(char *s, ...)
 	va_start(p, s);
 	fflush(stdout);
 	vfprintf(stderr, s, p);
-	fprintf(stderr, "\n");
 	va_end(p);
+	fflush(stderr);
 }
 
 extern void fatalError(char *s, ...)
@@ -107,8 +107,8 @@ extern void fatalError(char *s, ...)
 	va_start(p, s);
 	fflush(stdout);
 	vfprintf(stderr, s, p);
-	fprintf(stderr, "\n");
 	va_end(p);
+	fflush(stderr);
 	exit( FALSE);
 }
 

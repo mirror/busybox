@@ -223,12 +223,15 @@ static const struct Applet applets[] = {
 #ifdef BB_RMMOD					//sbin
 	{"rmmod", rmmod_main},
 #endif
+#ifdef BB_SED					//bin
+	{"sed", sed_main},
+#endif
+#ifdef BB_SH					//bin
+	{"sh", shell_main},
+#endif
 #ifdef BB_SFDISK				//sbin
 	{"fdisk", sfdisk_main},
 	{"sfdisk", sfdisk_main},
-#endif
-#ifdef BB_SED					//bin
-	{"sed", sed_main},
 #endif
 #ifdef BB_SLEEP					//bin
 	{"sleep", sleep_main},
