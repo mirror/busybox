@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.13 2001/07/19 22:28:01 andersen Exp $";
+	"$Id: vi.c,v 1.14 2001/07/31 15:01:12 kraai Exp $";
 
 /*
  * To compile for standalone use:
@@ -1982,9 +1982,13 @@ static void colon(Byte * buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
+#ifdef BB_FEATURE_VI_READONLY
 		l= readonly;			// remember current files' status
+#endif
 		ch = file_insert(fn, q, file_size(fn));
+#ifdef BB_FEATURE_VI_READONLY
 		readonly= l;
+#endif
 		if (ch < 0)
 			goto vc1;	// nothing was inserted
 		// how many lines in text[]?
