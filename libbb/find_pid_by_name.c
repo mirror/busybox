@@ -97,8 +97,17 @@ extern pid_t* find_pid_by_name( char* pidName)
 			pidList[j++]=info.pid;
 		}
 	}
-	if (pidList)
+	if (pidList) {
 		pidList[j]=0;
+	} else if ( strcmp(pidName, "init")==0) {
+		/* If we found nothing and they were trying to kill "init", 
+		 * guess PID 1 and call it good...  Perhaps we should simply
+		 * exit if /proc isn't mounted, but this will do for now. */
+		pidList=xrealloc( pidList, sizeof(pid_t));
+		pidList[0]=1;
+	} else {
+		pidList[0]=-1;
+	}
 
 	/* Free memory */
 	free( pid_array);
@@ -165,10 +174,14 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	if (pidList)
 		pidList[i]=0;
-	else {
-		/* If we found nothing, guess PID 1 and call it good */
+	else if ( strcmp(pidName, "init")==0) {
+		/* If we found nothing and they were trying to kill "init", 
+		 * guess PID 1 and call it good...  Perhaps we should simply
+		 * exit if /proc isn't mounted, but this will do for now. */
 		pidList=xrealloc( pidList, sizeof(pid_t));
 		pidList[0]=1;
+	} else {
+		pidList[0]=-1;
 	}
 	return pidList;
 }
