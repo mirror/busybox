@@ -1148,10 +1148,12 @@ static int sendCgi(const char *url,
 	addEnv("HTTP", "COOKIE", cookie);
       if(content_type)
 	addEnv("CONTENT", "TYPE", content_type);
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
       if(config->remoteuser) {
 	addEnv("REMOTE", "USER", config->remoteuser);
 	addEnv("AUTH_TYPE", "", "Basic");
       }
+#endif
       if(config->referer)
 	addEnv("HTTP", "REFERER", config->referer);
 
@@ -1707,8 +1709,10 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 # ifdef CONFIG_FEATURE_HTTPD_CGI
   free(cookie);
   free(content_type);
-  free(config->remoteuser);
   free(config->referer);
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+  free(config->remoteuser);
+#endif
 # endif
   shutdown(a_c_w, SHUT_WR);
   shutdown(a_c_r, SHUT_RD);
