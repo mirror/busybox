@@ -388,9 +388,8 @@ static int parse_file_cmd(struct sed_cmd *sed_cmd, const char *filecmdstr)
 	/* the first non-whitespace we get is a filename. the filename ends when we
 	 * hit a normal sed command terminator or end of string */
 	filenamelen = strcspn(&filecmdstr[idx], "; \n\r\t\v\0");
-	sed_cmd->filename = xmalloc(sizeof(char) * filenamelen + 1);
-	strncpy(sed_cmd->filename, &filecmdstr[idx], filenamelen);
-	sed_cmd->filename[filenamelen] = 0;
+	sed_cmd->filename = xmalloc(filenamelen + 1);
+	safe_strncpy(sed_cmd->filename, &filecmdstr[idx], filenamelen + 1);
 
 	return idx + filenamelen;
 }
