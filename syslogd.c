@@ -161,9 +161,6 @@ static void logMessage (int pri, char *msg)
 
 	/* todo: supress duplicates */
 
-	/* now spew out the message to wherever it is supposed to go */
-	message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
-
 #ifdef BB_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
         if ( -1 != remotefd){
@@ -184,8 +181,11 @@ static void logMessage (int pri, char *msg)
             error_msg_and_die("syslogd: cannot write to remote file handle on" 
                        "%s:%d\n",RemoteHost,RemotePort);
           }
-        }
+        } else
 #endif
+	/* now spew out the message to wherever it is supposed to go */
+	message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+
 
 }
 

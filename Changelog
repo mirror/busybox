@@ -46,6 +46,8 @@
 	* Jim Gleason <jimg@lineo.com> -- fixed tar so it no longer breaks 
 	    hard links.
 	* Matt Kraai -- logger now logs all arguments, not just the first
+	* Gennady Feldman -- syslogd no longer logs to localhost if compiled
+	    for remote logging...
 
 
 	 -Erik Andersen
