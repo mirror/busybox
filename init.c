@@ -204,7 +204,7 @@ static void message(int device, char *fmt, ...)
 		va_start(arguments, fmt);
 		vsnprintf(msg, sizeof(msg), fmt, arguments);
 		va_end(arguments);
-		openlog("init", 0, LOG_USER);
+		openlog(applet_name, 0, LOG_USER);
 		syslog(LOG_USER|LOG_INFO, msg);
 		closelog();
 	}
@@ -222,7 +222,6 @@ static void message(int device, char *fmt, ...)
 		} else if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
 			log_fd = -2;
 			fprintf(stderr, "Bummer, can't write to log on %s!\r\n", log);
-			fflush(stderr);
 			log = NULL;
 			device = CONSOLE;
 		}
@@ -248,7 +247,6 @@ static void message(int device, char *fmt, ...)
 			fprintf(stderr, "Bummer, can't print: ");
 			va_start(arguments, fmt);
 			vfprintf(stderr, fmt, arguments);
-			fflush(stderr);
 			va_end(arguments);
 		}
 	}
@@ -299,7 +297,7 @@ static int check_free_memory()
 	unsigned int result, u, s=10;
 
 	if (sysinfo(&info) != 0) {
-		perror_msg("Error checking free memory: ");
+		perror_msg("Error checking free memory");
 		return -1;
 	}
 
@@ -945,7 +943,7 @@ extern int init_main(int argc, char **argv)
 	{
 			usage("init\n\nInit is the parent of all processes.\n\n"
 				  "This version of init is designed to be run only "
-				  "by the kernel.\n");
+				  "by the kernel.");
 	}
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
@@ -1026,7 +1024,7 @@ extern int init_main(int argc, char **argv)
 	argv[0]="init";
 
 	if (argc > 1)
-		strncpy(argv[1], "\0", strlen(argv[1])+1);
+		argv[1][0]=0;
 
 	/* Now run everything that needs to be run */
 
