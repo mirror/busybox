@@ -84,7 +84,7 @@ extern void vperror_msg(const char *s, va_list p);
 
 const char *mode_string(int mode);
 const char *time_string(time_t timeVal);
-int is_directory(const char *name, const int followLinks, struct stat *statBuf);
+int is_directory(const char *name, int followLinks, struct stat *statBuf);
 int isDevice(const char *name);
 
 typedef struct ino_dev_hash_bucket_struct {
@@ -219,7 +219,7 @@ int klogctl(int type, char * b, int len);
 char *xgetcwd(char *cwd);
 char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
-int last_char_is(const char *s, const int c);
+char *last_char_is(char *s, int c);
 
 typedef struct ar_headers_s {
 	char *name;
@@ -245,9 +245,9 @@ typedef enum extract_function_e {
 	extract_field = 128,
 	extract_contents_to_file = 256
 } extract_function_t;
-extern char *deb_extract(const char *package_filename, const int function,
+extern char *deb_extract(const char *package_filename, int function,
 	const char *argument, const char *argument2);
-extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
+extern char *untar(FILE *src_tar_file, FILE *output, int untar_function,
 	const char *argument, const char *file_prefix);
 extern char *read_text_file_to_buffer(FILE *src_file);
 extern char *read_package_field(const char *package_buffer);
