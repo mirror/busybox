@@ -57,5 +57,5 @@ $(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
 	$(AR) -ro $@ $(UDHCP_OBJS)
 
 $(UDHCP_OBJS): %.o : %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DIN_BUSYBOX -c $< -o $@
 
