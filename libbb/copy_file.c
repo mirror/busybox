@@ -147,6 +147,7 @@ copy_file(const char *src_name, const char *dst_name,
 		}
 
 	 	dst_file = fopen(dst_name, "w");
+		chmod(dst_name, srcStatBuf.st_mode);
 		if (dst_file == NULL) {
 			if (!quiet_flag) {
 				perror_msg("%s", dst_name);
