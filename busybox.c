@@ -166,7 +166,7 @@ int busybox_main(int argc, char **argv)
 			}
 		}
 		fprintf(stderr, "\n\n");
-		exit(-1);
+		exit(0);
 	}
 
 	/* Flag that we've been here already */
