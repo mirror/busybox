@@ -292,6 +292,8 @@ touch F ; rm F
 # XXX: doesn't DNS resolve
 route
 
+# rpm2cpio
+
 # rpmunpack
 
 # sed - we can do some one-liners here, some testing is a little
@@ -401,3 +403,4 @@ ls -1 ../e* | xargs
 ls -1 ../e* | xargs md5sum
 
 # yes - can't test: interactive (needs ^C)
+
