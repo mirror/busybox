@@ -303,7 +303,7 @@ static const struct Applet applets[] = {
 	{"uname", uname_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_UNIQ
-	{"uniq", uniq_main, _BB_DIR_BIN},
+	{"uniq", uniq_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN},

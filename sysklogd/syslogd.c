@@ -226,18 +226,20 @@ static void doSyslogd (void)
 				}
 				else {
 #define			  BUFSIZE 1024 + 1
-					char buf[BUFSIZE];
+					char buf;
 					char *q, *p;
 					int n_read;
 					char line[BUFSIZE];
 					unsigned char c;
+					int pri;
+
+					/* Get set to read in a line */
+					memset (line, 0, sizeof(line));
+					pri = (LOG_USER | LOG_NOTICE);
 
 					/* Keep reading stuff till there is nothing else to read */
-					while( (n_read = read (fd, buf, BUFSIZE)) > 0 && errno != EOF) {
-						int pri = (LOG_USER | LOG_NOTICE);
-
-						memset (line, 0, sizeof(line));
-						p = buf;
+					while( (n_read = read (fd, &buf, 1)) > 0) {
+						p = &buf;
 						q = line;
 						while (p && (c = *p) && q < &line[sizeof(line) - 1]) {
 							if (c == '<') {
@@ -262,6 +264,7 @@ static void doSyslogd (void)
 
 						/* Now log it */
 						logMessage(pri, line);
+						break;
 					}
 					close (fd);
 					FD_CLR (fd, &readfds);

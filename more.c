@@ -33,25 +33,17 @@
 
 static const char more_usage[] = "more [file ...]\n";
 
-/* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS
 
-#if #cpu(sparc)
-#      define USE_OLD_TERMIO
-#      include <termio.h>
-#      define termios termio
-#      define stty(fd,argp) ioctl(fd,TCSETAF,argp)
-#else
-#      include <termios.h>
-#      define stty(fd,argp) tcsetattr(fd,TCSANOW,argp)
-#endif
+#include <termio.h>
 
 FILE *cin;
-struct termios initial_settings, new_settings;
+/* sparc and other have broken termios support: use old termio handling. */
+struct termio initial_settings, new_settings;
 
 void gotsig(int sig)
 {
-	stty(fileno(cin), &initial_settings);
+	ioctl(fileno(cin), TCSETAF, &initial_settings);
 	fprintf(stdout, "\n");
 	exit(TRUE);
 }
@@ -106,15 +98,11 @@ extern int more_main(int argc, char **argv)
 		cin = fopen("/dev/tty", "r");
 		if (!cin)
 			cin = fopen("/dev/console", "r");
-#ifdef USE_OLD_TERMIO
 		ioctl(fileno(cin), TCGETA, &initial_settings);
-#else
-		tcgetattr(fileno(cin), &initial_settings);
-#endif
 		new_settings = initial_settings;
 		new_settings.c_lflag &= ~ICANON;
 		new_settings.c_lflag &= ~ECHO;
-		stty(fileno(cin), &new_settings);
+		ioctl(fileno(cin), TCSETAF, &new_settings);
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);

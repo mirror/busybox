@@ -120,7 +120,6 @@ static struct builtInCommand bltins[] = {
 	{"pwd", "Print current directory", "pwd", shell_pwd},
 	{"export", "Set environment variable", "export [VAR=value]", shell_export},
 	{"unset", "Unset environment variable", "unset VAR", shell_unset},
-	
 	{".", "Source-in and run commands in a file", ". filename", shell_source},
 	{"help", "List shell built-in commands", "help", shell_help},
 	{NULL, NULL, NULL, NULL}

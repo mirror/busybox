@@ -1364,7 +1364,8 @@ extern pid_t* findPidByName( char* pidName)
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
-	pidList[i]=0;
+	if (pidList!=NULL)
+		pidList[i]=0;
 	return pidList;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */

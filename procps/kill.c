@@ -230,6 +230,8 @@ extern int kill_main(int argc, char **argv)
 			for(; pidList && pidList!=0; pidList++) {
 				if (kill(*pidList, sig) != 0) 
 					fatalError( "Could not kill pid '%d': %s\n", *pidList, strerror(errno));
+				else 
+					printf("killed %d\n", *pidList);
 			}
 			/* Note that we don't bother to free the memory
 			 * allocated in findPidByName().  It will be freed

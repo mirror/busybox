@@ -101,12 +101,12 @@ busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
 	
-docs: docs/busybox.pod
-	$(MAKE) -C docs clean all
-
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
+docs:
+	$(MAKE) -C docs
+	
 regexp.o nfsmount.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c
 
@@ -126,7 +126,7 @@ install: busybox busybox.links
 	./install.sh $(PREFIX)
 
 dist release: distclean
-	$(MAKE) -C docs clean all 
+	$(MAKE) -C docs
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\

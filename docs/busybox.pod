@@ -68,7 +68,7 @@ Example:
 
 -------------------------------
 
-=item cat
+=item cat  
 
 Usage: cat [file ...]
 
@@ -807,19 +807,22 @@ Example:
 
 =item loadacm
 
-FIXME
+FIXME -- this command does not yet have proper documentation
 
 -------------------------------
 
 =item loadfont
 
-FIXME
+Usage: loadfont
+
+Loads a console font from standard input.
+
 
 -------------------------------
 
 =item loadkmap
 
-FIXME
+FIXME -- this command does not yet have proper documentation
 
 -------------------------------
 
@@ -1294,7 +1297,7 @@ Usage: sh
 
 lash -- the BusyBox LAme SHell (command interpreter)
 
-FIXME
+FIXME -- this command does not yet have proper documentation
 
 -------------------------------
 
@@ -1778,4 +1781,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.15 2000/04/17 17:46:46 beppu Exp $
+# $Id: busybox.pod,v 1.16 2000/04/18 00:00:52 erik Exp $

@@ -83,6 +83,7 @@ cmdedit_setwidth(int w)
 void cmdedit_reset_term(void)
 {
 	if (reset_term)
+		/* sparc and other have broken termios support: use old termio handling. */
 		ioctl(fileno(stdin), TCSETA, (void *) &old_term);
 }
 
@@ -378,6 +379,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 	memset(command, 0, sizeof(command));
 	if (!reset_term) {
+		/* sparc and other have broken termios support: use old termio handling. */
 		ioctl(inputFd, TCGETA, (void *) &old_term);
 		memcpy(&new_term, &old_term, sizeof(struct termio));
 
@@ -589,6 +591,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 	}
 
 	nr = len + 1;
+	/* sparc and other have broken termios support: use old termio handling. */
 	ioctl(inputFd, TCSETA, (void *) &old_term);
 	reset_term = 0;
 

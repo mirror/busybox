@@ -2,7 +2,7 @@
 # ------------------------
 # Copyright (C) 2000  Erik Andersen <andersee@debian.org>  GPL
 
-all:: clean doc
+all: clean doc
 
 doc:
 	@echo
@@ -14,10 +14,8 @@ doc:
 	pod2text busybox.pod > ../BusyBox.txt
 	@rm -f pod2html*
 
-clean::
+clean:
 	@rm -f ../BusyBox.html ../BusyBox.1 ../BusyBox.txt pod2html*
 
 distclean: clean
-
-.PHONY: all clean distclean doc
 
