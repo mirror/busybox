@@ -28,7 +28,10 @@
  */
 char * last_char_is(const char *s, int c)
 {
-	char *sret  = (char *)s+strlen(s)-1;
+	char *sret;
+	if (!s)
+	    return NULL;
+	sret  = (char *)s+strlen(s)-1;
 	if (sret>=s && *sret == c) { 
 		return sret;
 	} else {
