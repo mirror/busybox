@@ -58,6 +58,8 @@
 
 #ifdef BB_FEATURE_TAR_GZIP
 extern int unzip(int in, int out);
+extern int gz_open(FILE *compressed_file, int *pid);
+extern void gz_close(int gunzip_pid);
 #endif
 
 /* Tar file constants  */
@@ -202,6 +204,7 @@ extern int tar_main(int argc, char **argv)
 	char file[256];
 #endif
 #if defined BB_FEATURE_TAR_GZIP
+	FILE *comp_file = NULL;
 	int unzipFlag    = FALSE;
 #endif
 	int listFlag     = FALSE;
@@ -211,6 +214,7 @@ extern int tar_main(int argc, char **argv)
 	int tostdoutFlag = FALSE;
 	int status       = FALSE;
 	int opt;
+	pid_t pid;
 
 	if (argc <= 1)
 		show_usage();
@@ -315,12 +319,24 @@ extern int tar_main(int argc, char **argv)
 
 #ifdef BB_FEATURE_TAR_GZIP	
 		/* unzip tarFd in a seperate process */
-		if (unzipFlag == TRUE)
-			tarFd = tar_unzip_init(tarFd);
+		if (unzipFlag == TRUE) {
+			comp_file = fdopen(tarFd, "r");
+			printf("1\n");
+			if ((tarFd = gz_open(comp_file, &pid)) == EXIT_FAILURE) {
+				error_msg_and_die("Couldnt unzip file");
+			}
+			printf("2\n");
+		}
 #endif			
 		status = readTarFile(tarFd, extractFlag, listFlag, tostdoutFlag,
 					verboseFlag, extractList, excludeList);
+		close(tarFd);
 	}
+
+#ifdef BB_FEATURE_TAR_GZIP	
+	gz_close(pid);
+	fclose(comp_file);
+#endif			
 
 	if (status == TRUE)
 		return EXIT_SUCCESS;

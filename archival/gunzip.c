@@ -918,7 +918,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	in_file = l_in_file;
 	out_file = l_out_file;
 
-	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
+/*	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
 	}
 #ifdef SIGTERM
@@ -931,7 +931,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 		(void) signal(SIGHUP, (sig_type) abort_gzip);
 	}
 #endif
-
+*/
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(unsigned char)));
 	outcnt = 0;
@@ -1018,33 +1018,32 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	return 0;
 }
 
-extern FILE *gz_open(FILE *compressed_file, int *pid)
+extern int gz_open(FILE *compressed_file, int *pid)
 {
 	int unzip_pipe[2];
 
-	signal(SIGCHLD, abort_gzip);
+//	signal(SIGCHLD, abort_gzip);
 	if (pipe(unzip_pipe)!=0) {
 		error_msg("pipe error");
-		return NULL;
+		return(EXIT_FAILURE);
 	}
 	if ((*pid = fork()) == -1) {
 		error_msg("fork failured");
-		return NULL;
+		return(EXIT_FAILURE);
 	}
 	if (*pid==0) {
 		/* child process */
 		close(unzip_pipe[0]);
 		unzip(compressed_file, fdopen(unzip_pipe[1], "w"));
-//		printf("finished unzipping\n");
+		printf("finished unzipping\n");
 		fflush(NULL);
-//		printf("fluched\n");
 		fclose(compressed_file);
 		close(unzip_pipe[1]);
 		exit(EXIT_SUCCESS);
 	}
 	
 	close(unzip_pipe[1]);
-	return (fdopen(unzip_pipe[0], "r"));
+	return(unzip_pipe[0]);
 }
 
 extern void gz_close(int gunzip_pid)
