@@ -41,6 +41,65 @@
     <p> <li> <b>Take me back to the <a href="http://busybox.lineo.com/">BusyBox</a> web site.</b>
     <hr>
 
+    <li> <b>10 April 2001 -- BusyBox 0.51 released</b>
+    <br>
+
+	     BusyBox 0.51 (the "rock-solid release") is now out there.  This
+	     release adds only 2 new applets: env and vi.  The vi applet,
+	     contributed by Sterling Huxley, is very functional, and is only
+	     22k.  This release fixes 3 critical bugs in the 0.50 release.
+	     There were 2 potential segfaults in lash (the busybox shell) in
+	     the 0.50 release which are now fixed.  Another critical bug in
+	     0.50 which is now fixed: syslogd from 0.50 could potentially
+	     deadlock the init process and thereby break your entire system.
+	     <p>
+
+	     There are a number of improvements in this release as well.  For
+	     one thing, the wget applet is greatly improved.  Dmitry Zakharov
+	     added FTP support, and Laurence Anderson make wget fully RFC
+	     compliant for HTTP 1.1.  The mechanism for including utility
+	     functions in previous releases was clumsy and error prone.  Now
+	     all utility functions are part of a new libbb library, which makes
+	     maintaining utility functions much simpler.  And BusyBox now
+	     compiles on itanium systems (thanks to the Debian itanium porters
+	     for letting me use their system!).
+	     <p>
+	     You can read the 
+	     <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> for
+	     complete details.  BusyBox 0.51 can be downloaded from 
+	     <a href="ftp://oss.lineo.com/busybox">ftp://oss.lineo.com/busybox</a>.
+	     <p>Have Fun!
+	     <p>
+
+    <li> <b>Busybox Boot-Floppy Image</b>
+
+    <p>Because you asked for it, we have made available a <a href=
+    "ftp://opensource.lineo.com/busybox/busybox.floppy.img"> Busybox boot floppy
+    image</a>. Here's how you use it:
+
+    <ol>
+
+	    <li> <a href= "ftp://opensource.lineo.com/busybox/busybox.floppy.img">
+	    Download the image</a>
+
+	    <li> dd it onto a floppy like so: <tt> dd if=busybox.floppy.img
+	    of=/dev/fd0 ; sync </tt>
+
+	    <li> Pop it in a machine and boot up.
+
+    </ol>
+
+    <p> If you want to look at the contents of the initrd image, do this:
+
+    <pre>
+	    mount ./busybox.floppy.img /mnt -o loop -t msdos        
+	    cp /mnt/initrd.gz /tmp                          
+	    umount /mnt           
+	    gunzip /tmp/initrd.gz
+	    mount /tmp/initrd /mnt -o loop -t minix
+    </pre>
+
+
     <li> <b>15 March 2001 -- BusyBox 0.50 released</b>
     <br>
 
