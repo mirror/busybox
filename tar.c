@@ -300,11 +300,14 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 	/* Open the file to be written, if a file is supposed to be written */
 	if (extractFlag==TRUE && tostdoutFlag==FALSE) {
-		if ((outFd=open(header->name, O_CREAT|O_TRUNC|O_WRONLY, header->mode & ~S_IFMT)) < 0)
-			errorMsg(io_error, header->name, strerror(errno)); 
 		/* Create the path to the file, just in case it isn't there...
 		 * This should not screw up path permissions or anything. */
 		createPath(header->name, 0777);
+		if ((outFd=open(header->name, O_CREAT|O_TRUNC|O_WRONLY, 
+						header->mode & ~S_IFMT)) < 0) {
+			errorMsg(io_error, header->name, strerror(errno)); 
+			return( FALSE);
+		}
 	}
 
 	/* Write out the file, if we are supposed to be doing that */

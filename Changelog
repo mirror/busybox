@@ -67,6 +67,10 @@
 	    Pavel Roskin
 	* Syslogd will not go to background if "-n" is given. Better help
 	    and argument checking -- Pavel Roskin
+	* Fixed a small bug that could cause tar to emit warning messages
+	    and not extract the first file in a directory in some cases
+	    of nested directories.  Thanks to Kevin Traas <kevin@netmaster.com>
+	    for helping track this one down.
 	* More doc updates
 
 
