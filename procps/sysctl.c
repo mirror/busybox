@@ -34,7 +34,6 @@
 /*
  *    Function Prototypes
  */
-static int sysctl_usage(void);
 static int sysctl_read_setting(const char *setting, int output);
 static int sysctl_write_setting(const char *setting, int output);
 static int sysctl_preload_file(const char *filename, int output);
@@ -43,27 +42,32 @@ static int sysctl_display_all(const char *path, int output, int show_table);
 /*
  *    Globals...
  */
-static const char *PROC_PATH = "/proc/sys/";
-static const char *DEFAULT_PRELOAD = "/etc/sysctl.conf";
+static const char PROC_PATH[] = "/proc/sys/";
+static const char DEFAULT_PRELOAD[] = "/etc/sysctl.conf";
 
 /* error messages */
-static const char *ERR_UNKNOWN_PARAMETER = "error: Unknown parameter '%s'\n";
-static const char *ERR_MALFORMED_SETTING = "error: Malformed setting '%s'\n";
-static const char *ERR_NO_EQUALS =
+static const char ERR_UNKNOWN_PARAMETER[] = "error: Unknown parameter '%s'\n";
+static const char ERR_MALFORMED_SETTING[] = "error: Malformed setting '%s'\n";
+static const char ERR_NO_EQUALS[] =
 	"error: '%s' must be of the form name=value\n";
-static const char *ERR_INVALID_KEY = "error: '%s' is an unknown key\n";
-static const char *ERR_UNKNOWN_WRITING =
+static const char ERR_INVALID_KEY[] = "error: '%s' is an unknown key\n";
+static const char ERR_UNKNOWN_WRITING[] =
 	"error: unknown error %d setting key '%s'\n";
-static const char *ERR_UNKNOWN_READING =
+static const char ERR_UNKNOWN_READING[] =
 	"error: unknown error %d reading key '%s'\n";
-static const char *ERR_PERMISSION_DENIED =
+static const char ERR_PERMISSION_DENIED[] =
 	"error: permission denied on key '%s'\n";
-static const char *ERR_OPENING_DIR = "error: unable to open directory '%s'\n";
-static const char *ERR_PRELOAD_FILE =
+static const char ERR_OPENING_DIR[] = "error: unable to open directory '%s'\n";
+static const char ERR_PRELOAD_FILE[] =
 	"error: unable to open preload file '%s'\n";
-static const char *WARN_BAD_LINE =
+static const char WARN_BAD_LINE[] =
 	"warning: %s(%d): invalid syntax, continuing...\n";
 
+
+static void dwrite_str(int fd, const char *buf)
+{
+	write(fd, buf, strlen(buf));
+}
 
 /*
  *    sysctl_main()... 
@@ -76,7 +80,7 @@ int sysctl_main(int argc, char **argv)
 	int switches_allowed = 1;
 
 	if (argc < 2)
-		return sysctl_usage();
+		bb_show_usage();
 
 	argv++;
 
@@ -103,10 +107,10 @@ int sysctl_main(int argc, char **argv)
 										  ((*argv)[1] == 'a') ? 0 : 1);
 			case 'h':
 			case '?':
-				return sysctl_usage();
+				bb_show_usage();
 			default:
 				bb_error_msg(ERR_UNKNOWN_PARAMETER, *argv);
-				return sysctl_usage();
+				bb_show_usage();
 			}
 		} else {
 			switches_allowed = 0;
@@ -119,14 +123,6 @@ int sysctl_main(int argc, char **argv)
 	return retval;
 }						/* end sysctl_main() */
 
-/*
- *     Display the sysctl_usage format
- */
-int sysctl_usage()
-{
-	bb_show_usage();
-	return -1;
-}						/* end sysctl_usage() */
 
 
 /*
@@ -134,17 +130,18 @@ int sysctl_usage()
  *	preload the sysctl's from a conf file
  *           - we parse the file and then reform it (strip out whitespace)
  */
+#define PRELOAD_BUF 256
+
 int sysctl_preload_file(const char *filename, int output)
 {
 	int lineno = 0;
-	char oneline[256];
-	char buffer[256];
+	char oneline[PRELOAD_BUF];
+	char buffer[PRELOAD_BUF];
 	char *name, *value, *ptr;
 	FILE *fp = NULL;
 
 	if (!filename || ((fp = fopen(filename, "r")) == NULL)) {
-		bb_error_msg(ERR_PRELOAD_FILE, filename);
-		return 1;
+		bb_error_msg_and_die(ERR_PRELOAD_FILE, filename);
 	}
 
 	while (fgets(oneline, sizeof(oneline) - 1, fp)) {
@@ -175,9 +172,9 @@ int sysctl_preload_file(const char *filename, int output)
 
 		while ((*value == ' ' || *value == '\t') && *value != 0)
 			value++;
-		strncpy(buffer, name, sizeof(buffer));
-		strncat(buffer, "=", sizeof(buffer));
-		strncat(buffer, value, sizeof(buffer));
+		strcpy(buffer, name);
+		strcat(buffer, "=");
+		strcat(buffer, value);
 		sysctl_write_setting(buffer, output);
 	}
 	fclose(fp);
@@ -200,7 +197,7 @@ int sysctl_write_setting(const char *setting, int output)
 	if (!name)			/* probably dont' want to display this  err */
 		return 0;
 
-	if (!(equals = index(setting, '='))) {
+	if (!(equals = strchr(setting, '='))) {
 		bb_error_msg(ERR_NO_EQUALS, setting);
 		return -1;
 	}
@@ -212,16 +209,8 @@ int sysctl_write_setting(const char *setting, int output)
 		return -2;
 	}
 
-	tmpname =
-		(char *) xmalloc((equals - name + 1 + bb_strlen(PROC_PATH)) *
-						 sizeof(char));
-	outname = (char *) xmalloc((equals - name + 1) * sizeof(char));
-
-	strcpy(tmpname, PROC_PATH);
-	strncat(tmpname, name, (int) (equals - name));
-	tmpname[equals - name + bb_strlen(PROC_PATH)] = 0;
-	strncpy(outname, name, (int) (equals - name));
-	outname[equals - name] = 0;
+	bb_xasprintf(&tmpname, "%s%.*s", PROC_PATH, (equals - name), name);
+	outname = bb_xstrdup(tmpname + strlen(PROC_PATH));
 
 	while ((cptr = strchr(tmpname, '.')) != NULL)
 		*cptr = '/';
@@ -243,14 +232,14 @@ int sysctl_write_setting(const char *setting, int output)
 		}
 		retval = -1;
 	} else {
-		write(fd, value, bb_strlen(value));
+		dwrite_str(fd, value);
 		close(fd);
 		if (output) {
-			write(STDOUT_FILENO, outname, bb_strlen(outname));
-			write(STDOUT_FILENO, " = ", 3);
+			dwrite_str(STDOUT_FILENO, outname);
+			dwrite_str(STDOUT_FILENO, " = ");
 		}
-		write(STDOUT_FILENO, value, bb_strlen(value));
-		write(STDOUT_FILENO, "\n", 1);
+		dwrite_str(STDOUT_FILENO, value);
+		dwrite_str(STDOUT_FILENO, "\n");
 	}
 
 	/* cleanup */
@@ -275,14 +264,8 @@ int sysctl_read_setting(const char *setting, int output)
 	if (!setting || !*setting)
 		bb_error_msg(ERR_INVALID_KEY, setting);
 
-	tmpname =
-		(char *) xmalloc((bb_strlen(name) + bb_strlen(PROC_PATH) + 1) *
-						 sizeof(char));
-	outname = (char *) xmalloc((bb_strlen(name) + 1) * sizeof(char));
-
-	strcpy(tmpname, PROC_PATH);
-	strcat(tmpname, name);
-	strcpy(outname, name);
+	tmpname = concat_path_file(PROC_PATH, name);
+	outname = bb_xstrdup(tmpname + strlen(PROC_PATH));
 
 	while ((cptr = strchr(tmpname, '.')) != NULL)
 		*cptr = '/';
@@ -305,10 +288,10 @@ int sysctl_read_setting(const char *setting, int output)
 	} else {
 		while (fgets(inbuf, sizeof(inbuf) - 1, fp)) {
 			if (output) {
-				write(STDOUT_FILENO, outname, bb_strlen(outname));
-				write(STDOUT_FILENO, " = ", 3);
+				dwrite_str(STDOUT_FILENO, outname);
+				dwrite_str(STDOUT_FILENO, " = ");
 			}
-			write(STDOUT_FILENO, inbuf, bb_strlen(inbuf));
+			dwrite_str(STDOUT_FILENO, inbuf);
 		}
 		fclose(fp);
 	}
@@ -337,18 +320,14 @@ int sysctl_display_all(const char *path, int output, int show_table)
 		bb_perror_msg(ERR_OPENING_DIR, path);
 		retval = -1;
 	} else {
-		readdir(dp);
-		readdir(dp);	/* skip . and .. */
 		while ((de = readdir(dp)) != NULL) {
-			tmpdir =
-				(char *) xmalloc(bb_strlen(path) + bb_strlen(de->d_name) + 2);
-			strcpy(tmpdir, path);
-			strcat(tmpdir, de->d_name);
+			tmpdir = concat_subpath_file(path, de->d_name);
+			if(tmpdir == NULL)
+				continue;
 			if ((retval2 = stat(tmpdir, &ts)) != 0)
 				bb_perror_msg(tmpdir);
 			else {
 				if (S_ISDIR(ts.st_mode)) {
-					strcat(tmpdir, "/");
 					sysctl_display_all(tmpdir, output, show_table);
 				} else
 					retval |=
@@ -369,4 +348,5 @@ int main(int argc, char **argv)
 {
 	return sysctl_main(argc, argv);
 }
+const char *bb_applet_name = "sysctl";
 #endif
