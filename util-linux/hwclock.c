@@ -183,9 +183,9 @@ static int check_utc(void)
 }
 
 #define HWCLOCK_OPT_LOCALTIME	1
-#define HWCLOCK_OPT_UTC      	8
-#define HWCLOCK_OPT_SHOW     	2
-#define HWCLOCK_OPT_HCTOSYS  	4
+#define HWCLOCK_OPT_UTC      	2
+#define HWCLOCK_OPT_SHOW     	4
+#define HWCLOCK_OPT_HCTOSYS  	8
 #define HWCLOCK_OPT_SYSTOHC  	16
 
 extern int hwclock_main ( int argc, char **argv )
