@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.h,v 1.1 2001/11/10 12:18:42 andersen Exp $
+ * Version:     $Id: inet_common.h,v 1.2 2002/07/03 11:46:38 andersen Exp $
  *
  */
 
@@ -28,3 +28,6 @@ extern int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirs
  */
 extern int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 			 int numeric, unsigned int netmask);
+
+extern int INET6_resolve(char *name, struct sockaddr_in6 *sin6);
+extern int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric);

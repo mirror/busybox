@@ -6,6 +6,7 @@
 mainmenu_option next_comment
 comment 'Networking Utilities'
 
+bool 'Enable IPv6 support'						CONFIG_FEATURE_IPV6
 bool 'hostname'	    CONFIG_HOSTNAME
 bool 'ifconfig'	    CONFIG_IFCONFIG
 if [ "$CONFIG_IFCONFIG" = "y" ]; then
@@ -21,6 +22,12 @@ bool 'nslookup'	    CONFIG_NSLOOKUP
 bool 'ping'	    CONFIG_PING
 if [ "$CONFIG_PING" = "y" ]; then
     bool '  Enable fancy ping output'		CONFIG_FEATURE_FANCY_PING
+fi
+if [ "$CONFIG_FEATURE_IPV6" = "y" ]; then
+    bool 'ping6'	    CONFIG_PING6
+    if [ "$CONFIG_PING6" = "y" ]; then
+        bool '  Enable fancy ping6 output'		CONFIG_FEATURE_FANCY_PING6
+    fi
 fi
 bool 'route'	    CONFIG_ROUTE
 bool 'telnet'	    CONFIG_TELNET

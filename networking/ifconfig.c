@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.16 2001/11/10 11:22:43 andersen Exp $
+ * $Id: ifconfig.c,v 1.17 2002/07/03 11:46:34 andersen Exp $
  *
  */
 
@@ -27,6 +27,9 @@
  * args missing from initial port.
  *
  * Still missing:  media, tunnel.
+ *
+ * 2002-04-20
+ * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
 
 #include <stdio.h>
@@ -63,6 +66,14 @@
 
 #ifndef IFF_DYNAMIC
 #define IFF_DYNAMIC     0x8000  /* dialup device with changing addresses */
+#endif
+
+#if CONFIG_FEATURE_IPV6
+struct in6_ifreq {
+	struct in6_addr	ifr6_addr;
+	uint32_t	ifr6_prefixlen;
+	int		ifr6_ifindex; 
+};
 #endif
 
 /*
@@ -143,6 +154,7 @@
 #define ARG_KEEPALIVE    (A_ARG_REQ | A_CAST_CHAR_PTR)
 #define ARG_OUTFILL      (A_ARG_REQ | A_CAST_CHAR_PTR)
 #define ARG_HOSTNAME     (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER | A_COLON_CHK)
+#define ARG_ADD_DEL      (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER)
 
 
 /*
@@ -187,6 +199,10 @@ static const struct arg1opt Arg1Opt[] = {
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
 #endif
 	/* Last entry if for unmatched (possibly hostname) arg. */
+#if CONFIG_FEATURE_IPV6
+	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
+	{"SIOCDIFADDR",    SIOCDIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
+#endif
 	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)},
 };
 
@@ -211,6 +227,10 @@ static const struct options OptArray[] = {
 	{"mem_start",    N_ARG,         ARG_MEM_START,   0},
 	{"io_addr",      N_ARG,         ARG_IO_ADDR,     0},
 	{"irq",          N_ARG,         ARG_IRQ,         0},
+#endif
+#if CONFIG_FEATURE_IPV6
+	{"add",          N_ARG,         ARG_ADD_DEL,     0},
+	{"del",          N_ARG,         ARG_ADD_DEL,     0},
 #endif
 	{"arp",          N_CLR | M_SET, 0,               IFF_NOARP},
 	{"trailers",     N_CLR | M_SET, 0,               IFF_NOTRAILERS},
@@ -244,6 +264,9 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
+#if CONFIG_FEATURE_IPV6
+	struct sockaddr_in6 sai6;
+#endif
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
 	struct sockaddr sa;
 #endif
@@ -334,12 +357,54 @@ int ifconfig_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
 					if (mask & A_CAST_RESOLVE) {
 #endif
+#if CONFIG_FEATURE_IPV6
+						char *prefix;
+						int prefix_len=0;
+#endif
+
 						safe_strncpy(host, *argv, (sizeof host));
+#if CONFIG_FEATURE_IPV6
+						if ((prefix = strchr(host, '/'))) {
+							prefix_len = atol(prefix + 1);
+							if ((prefix_len < 0) || (prefix_len > 128)) {
+								++goterr;
+								goto LOOP;
+							}
+							*prefix = 0;
+						}
+#endif
+
 						sai.sin_family = AF_INET;
 						sai.sin_port = 0;
 						if (!strcmp(host, bb_INET_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
+#if CONFIG_FEATURE_IPV6
+						} else
+						if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
+							int sockfd6;
+							struct in6_ifreq ifr6;
+							
+							memcpy((char *) &ifr6.ifr6_addr, (char *) &sai6.sin6_addr,
+							                              sizeof(struct in6_addr));
+
+							/* Create a channel to the NET kernel. */
+							if ((sockfd6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+								perror_msg_and_die("socket6");
+							}
+							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0) {
+								perror("SIOGIFINDEX");
+								++goterr;
+							continue;
+							}
+							ifr6.ifr6_ifindex = ifr.ifr_ifindex;
+							ifr6.ifr6_prefixlen = prefix_len;
+							if (ioctl(sockfd6, a1op->selector, &ifr6) < 0) {
+								perror(a1op->name);
+								++goterr;
+							}
+							continue;
+#endif
 						} else if (inet_aton(host, &sai.sin_addr) == 0) {
 							/* It's not a dotted quad. */
 							++goterr;

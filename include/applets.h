@@ -344,6 +344,9 @@
 #ifdef CONFIG_PING
 	APPLET(ping, ping_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_PING6
+	APPLET(ping6, ping6_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_PIVOT_ROOT
  	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

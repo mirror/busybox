@@ -233,7 +233,10 @@ extern void gz_close(int gunzip_pid);
 extern FILE *gz_open(FILE *compressed_file, int *pid);
 
 extern struct hostent *xgethostbyname(const char *name);
+extern struct hostent *xgethostbyname2(const char *name, int af);
 extern int create_icmp_socket(void);
+extern int create_icmp6_socket(void);
+extern int xconnect(const char *host, const char *port);
 
 char *dirname (char *path);
 

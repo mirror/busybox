@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.7 2001/11/10 11:22:46 andersen Exp $
+ * Version:     $Id: interface.c,v 1.8 2002/07/03 11:46:36 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -52,6 +52,10 @@
 #undef HAVE_AFECONET
 #undef HAVE_AFASH
 
+#if CONFIG_FEATURE_IPV6
+#define HAVE_AFINET6 1
+#endif
+
 /* 
  * 
  * Device Hardware types.
@@ -77,6 +81,7 @@
 
 #define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
+#define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
 #define KRELEASE(maj,min,patch) ((maj) * 65536 + (min)*256 + (patch))
 
@@ -424,6 +429,76 @@ static struct aftype inet_aftype =
 };
 
 #endif				/* HAVE_AFINET */
+
+#if HAVE_AFINET6
+
+#ifdef KEEP_UNUSED
+static void INET6_reserror(char *text)
+{
+    herror(text);
+}
+
+/* Display an Internet socket address. */
+static char *INET6_print(unsigned char *ptr)
+{
+    static char name[80];
+
+    inet_ntop(AF_INET6, (struct in6_addr *) ptr, name, 80);
+    return name;
+}
+#endif /* KEEP_UNUSED */
+
+/* Display an Internet socket address. */
+/* dirty! struct sockaddr usually doesn't suffer for inet6 addresses, fst. */
+static char *INET6_sprint(struct sockaddr *sap, int numeric)
+{
+    static char buff[128];
+
+    if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
+	return safe_strncpy(buff, _("[NONE SET]"), sizeof(buff));
+    if (INET6_rresolve(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric) != 0)
+	return safe_strncpy(buff, _("[UNKNOWN]"), sizeof(buff));
+    return (buff);
+}
+
+#ifdef KEEP_UNUSED
+static int INET6_getsock(char *bufp, struct sockaddr *sap)
+{
+    struct sockaddr_in6 *sin6;
+
+    sin6 = (struct sockaddr_in6 *) sap;
+    sin6->sin6_family = AF_INET6;
+    sin6->sin6_port = 0;
+
+    if (inet_pton(AF_INET6, bufp, sin6->sin6_addr.s6_addr) <= 0)
+	return (-1);
+
+    return 16;			/* ?;) */
+}
+
+static int INET6_input(int type, char *bufp, struct sockaddr *sap)
+{
+    switch (type) {
+    case 1:
+	return (INET6_getsock(bufp, sap));
+    default:
+	return (INET6_resolve(bufp, (struct sockaddr_in6 *) sap));
+    }
+}
+#endif /* KEEP_UNUSED */
+
+static struct aftype inet6_aftype =
+{
+    "inet6", "IPv6", AF_INET6, sizeof(struct in6_addr),
+    NULL /* UNUSED INET6_print */, INET6_sprint,
+	NULL /* UNUSED INET6_input */, NULL /* UNUSED INET6_reserror */,
+    NULL /*INET6_rprint */ , NULL /*INET6_rinput */ ,
+    NULL /* UNUSED INET6_getnetmask */,
+    -1,
+    NULL
+};
+
+#endif				/* HAVE_AFINET6 */
 
 /* Display an UNSPEC address. */
 static char *UNSPEC_print(unsigned char *ptr)
@@ -1709,7 +1784,6 @@ static void ife_print(struct interface *ptr)
     char addr6[40], devname[20];
     struct sockaddr_in6 sap;
     int plen, scope, dad_status, if_idx;
-    extern struct aftype inet6_aftype;
     char addr6p[8][5];
 #endif
 
@@ -1756,8 +1830,24 @@ static void ife_print(struct interface *ptr)
 #endif
 
 #if HAVE_AFINET6
-    /* FIXME: should be integrated into interface.c.   */
 
+#define IPV6_ADDR_ANY           0x0000U
+
+#define IPV6_ADDR_UNICAST       0x0001U
+#define IPV6_ADDR_MULTICAST     0x0002U
+#define IPV6_ADDR_ANYCAST       0x0004U
+
+#define IPV6_ADDR_LOOPBACK      0x0010U
+#define IPV6_ADDR_LINKLOCAL     0x0020U
+#define IPV6_ADDR_SITELOCAL     0x0040U
+  
+#define IPV6_ADDR_COMPATv4      0x0080U
+    
+#define IPV6_ADDR_SCOPE_MASK    0x00f0U
+    
+#define IPV6_ADDR_MAPPED        0x1000U
+#define IPV6_ADDR_RESERVED      0x2000U         /* reserved address space */
+    
     if ((f = fopen(_PATH_PROCNET_IFINET6, "r")) != NULL) {
 	while (fscanf(f, "%4s%4s%4s%4s%4s%4s%4s%4s %02x %02x %02x %02x %20s\n",
 		      addr6p[0], addr6p[1], addr6p[2], addr6p[3],
@@ -1767,11 +1857,12 @@ static void ife_print(struct interface *ptr)
 		sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
 			addr6p[0], addr6p[1], addr6p[2], addr6p[3],
 			addr6p[4], addr6p[5], addr6p[6], addr6p[7]);
-		inet6_aftype.input(1, addr6, (struct sockaddr *) &sap);
+		inet_pton(AF_INET6, addr6, (struct sockaddr *) &sap.sin6_addr);
+		sap.sin6_family=AF_INET6;
 		printf(_("          inet6 addr: %s/%d"),
 		 inet6_aftype.sprint((struct sockaddr *) &sap, 1), plen);
 		printf(_(" Scope:"));
-		switch (scope) {
+		switch (scope & IPV6_ADDR_SCOPE_MASK) {
 		case 0:
 		    printf(_("Global"));
 		    break;

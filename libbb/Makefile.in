@@ -40,7 +40,9 @@ LIBBB_SRC:= \
 	dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c \
 	simplify_path.c inet_common.c inode_hash.c obscure.c pwd2spwd.c xfuncs.c \
 	correct_password.c change_identity.c setup_environment.c run_shell.c \
-	pw_encrypt.c restricted_shell.c
+	pw_encrypt.c restricted_shell.c xgethostbyname2.c create_icmp6_socket.c \
+	xconnect.c
+
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 
 LIBBB_MSRC:=$(LIBBB_DIR)messages.c

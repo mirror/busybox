@@ -733,12 +733,19 @@
 #else
   #define USAGE_IFCONFIG_OPT_A(a)
 #endif
+#ifdef CONFIG_FEATURE_IPV6
+  #define USAGE_IPV6(a) a
+#else
+  #define USAGE_IPV6(a)
+#endif
 
 #define ifconfig_trivial_usage \
 	USAGE_IFCONFIG_OPT_A("[-a]") " <interface> [<address>]"
 #define ifconfig_full_usage \
 	"configure a network interface\n\n" \
 	"Options:\n" \
+	USAGE_IPV6("[add <address>[/<prefixlen>]]\n") \
+	USAGE_IPV6("[del <address>[/<prefixlen>]]\n") \
 	"\t[[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n" \
 	"\t[netmask <address>]  [dstaddr <address>]\n" \
 	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
@@ -1367,6 +1374,29 @@
 	"64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms\n" \
 	"\n" \
 	"--- debian ping statistics ---\n" \
+	"1 packets transmitted, 1 packets received, 0% packet loss\n" \
+	"round-trip min/avg/max = 20.1/20.1/20.1 ms\n" 
+
+#ifndef CONFIG_FEATURE_FANCY_PING6
+#define ping6_trivial_usage "host"
+#define ping6_full_usage    "Send ICMP ECHO_REQUEST packets to network hosts"
+#else
+#define ping6_trivial_usage \
+	"[OPTION]... host"
+#define ping6_full_usage \
+	"Send ICMP ECHO_REQUEST packets to network hosts.\n\n" \
+	"Options:\n" \
+	"\t-c COUNT\tSend only COUNT pings.\n" \
+	"\t-s SIZE\t\tSend SIZE data bytes in packets (default=56).\n" \
+	"\t-q\t\tQuiet mode, only displays output at start\n" \
+	"\t\t\tand when finished."
+#endif
+#define ping6_example_usage \
+	"$ ping6 ip6-localhost\n" \
+	"PING ip6-localhost (::1): 56 data bytes\n" \
+	"64 bytes from ::1: icmp6_seq=0 ttl=64 time=20.1 ms\n" \
+	"\n" \
+	"--- ip6-localhost ping statistics ---\n" \
 	"1 packets transmitted, 1 packets received, 0% packet loss\n" \
 	"round-trip min/avg/max = 20.1/20.1/20.1 ms\n" 
 

@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.2 2002/06/06 12:11:55 andersen Exp $
+ * Version:     $Id: inet_common.c,v 1.3 2002/07/03 11:46:36 andersen Exp $
  *
  */
 
@@ -177,3 +177,65 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 
     return (0);
 }
+
+#if CONFIG_FEATURE_IPV6
+
+int INET6_resolve(char *name, struct sockaddr_in6 *sin6)
+{
+    struct addrinfo req, *ai;
+    int s;
+
+    memset (&req, '\0', sizeof req);
+    req.ai_family = AF_INET6;
+    if ((s = getaddrinfo(name, NULL, &req, &ai))) {
+	fprintf(stderr, "getaddrinfo: %s: %d\n", name, s);
+	return -1;
+    }
+    memcpy(sin6, ai->ai_addr, sizeof(struct sockaddr_in6));
+
+    freeaddrinfo(ai);
+
+    return (0);
+}
+
+#ifndef IN6_IS_ADDR_UNSPECIFIED
+#define IN6_IS_ADDR_UNSPECIFIED(a) \
+        (((__u32 *) (a))[0] == 0 && ((__u32 *) (a))[1] == 0 && \
+         ((__u32 *) (a))[2] == 0 && ((__u32 *) (a))[3] == 0)
+#endif
+
+
+int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric)
+{
+    int s;
+
+    /* Grmpf. -FvK */
+    if (sin6->sin6_family != AF_INET6) {
+#ifdef DEBUG
+	fprintf(stderr, _("rresolve: unsupport address family %d !\n"),
+		sin6->sin6_family);
+#endif
+	errno = EAFNOSUPPORT;
+	return (-1);
+    }
+    if (numeric & 0x7FFF) {
+	inet_ntop(AF_INET6, &sin6->sin6_addr, name, len);
+	return (0);
+    }
+    if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr)) {
+        if (numeric & 0x8000)
+	    strcpy(name, "default");
+	else
+	    strcpy(name, "*");
+	return (0);
+    }
+
+    if ((s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6),
+			 name, len , NULL, 0, 0))) {
+	fputs("getnameinfo failed\n", stderr);
+	return -1;
+    }
+    return (0);
+}
+
+#endif	/* CONFIG_FEATURE_IPV6 */

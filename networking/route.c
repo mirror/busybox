@@ -1,7 +1,7 @@
 /* route
  *
  * Similar to the standard Unix route, but with only the necessary
- * parts for AF_INET
+ * parts for AF_INET and AF_INET6
  *
  * Bjorn Wesen, Axis Communications AB
  *
@@ -15,16 +15,19 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.16 2002/05/16 19:14:15 sandman Exp $
+ * $Id: route.c,v 1.17 2002/07/03 11:46:34 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
+ *
+ * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include "inet_common.h"
 #include <net/route.h>
+#include <net/if.h>
 #include <linux/param.h>  // HZ
 #include <stdio.h>
 #include <errno.h>
@@ -325,6 +328,139 @@ INET_setroute(int action, int options, char **args)
 	return EXIT_SUCCESS;
 }
 
+#if CONFIG_FEATURE_IPV6
+static int INET6_setroute(int action, int options, char **args)
+{
+	struct in6_rtmsg rt;
+	struct ifreq ifr;
+	struct sockaddr_in6 sa6;
+	char target[128], gateway[128] = "NONE";
+	int metric, prefix_len;
+	char *devname = NULL;
+	char *cp;
+	int skfd;
+
+	if (*args == NULL)
+		show_usage();
+
+	strcpy(target, *args++);
+	if (!strcmp(target, "default")) {
+		prefix_len = 0;
+		memset(&sa6, 0, sizeof(sa6));
+	} else {
+		if ((cp = strchr(target, '/'))) {
+			prefix_len = atol(cp + 1);
+			if ((prefix_len < 0) || (prefix_len > 128))
+				show_usage();
+			*cp = 0;
+		} else {
+			prefix_len = 128;
+		}
+		if (INET6_resolve(target, (struct sockaddr_in6 *)&sa6) < 0) {
+			error_msg(_("can't resolve %s"), target);
+			return EXIT_FAILURE;   /* XXX change to E_something */
+		}
+	}
+
+	/* Clean out the RTREQ structure. */
+	memset((char *) &rt, 0, sizeof(struct in6_rtmsg));
+
+	memcpy(&rt.rtmsg_dst, sa6.sin6_addr.s6_addr, sizeof(struct in6_addr));
+
+	/* Fill in the other fields. */
+	rt.rtmsg_flags = RTF_UP;
+	if (prefix_len == 128)
+		rt.rtmsg_flags |= RTF_HOST;
+	rt.rtmsg_metric = 1;
+	rt.rtmsg_dst_len = prefix_len;
+
+	while (*args) {
+		if (!strcmp(*args, "metric")) {
+
+			args++;
+			if (!*args || !isdigit(**args))
+				show_usage();
+			metric = atoi(*args);
+			rt.rtmsg_metric = metric;
+			args++;
+			continue;
+		}
+		if (!strcmp(*args, "gw") || !strcmp(*args, "gateway")) {
+			args++;
+			if (!*args)
+				show_usage();
+			if (rt.rtmsg_flags & RTF_GATEWAY)
+				show_usage();
+			strcpy(gateway, *args);
+			if (INET6_resolve(gateway, (struct sockaddr_in6 *)&sa6) < 0) {
+				error_msg(_("can't resolve gw %s"), gateway);
+				return (E_LOOKUP);
+			}
+			memcpy(&rt.rtmsg_gateway, sa6.sin6_addr.s6_addr,
+			       sizeof(struct in6_addr));
+			rt.rtmsg_flags |= RTF_GATEWAY;
+			args++;
+			continue;
+		}
+		if (!strcmp(*args, "mod")) {
+			args++;
+			rt.rtmsg_flags |= RTF_MODIFIED;
+			continue;
+		}
+		if (!strcmp(*args, "dyn")) {
+			args++;
+			rt.rtmsg_flags |= RTF_DYNAMIC;
+			continue;
+		}
+		if (!strcmp(*args, "device") || !strcmp(*args, "dev")) {
+			args++;
+			if (!*args)
+				show_usage();
+		} else if (args[1])
+			show_usage();
+
+		devname = *args;
+		args++;
+	}
+
+	/* Create a socket to the INET6 kernel. */
+	if ((skfd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+		perror("socket");
+		return (E_SOCK);
+	}
+	if (devname) {
+		memset(&ifr, 0, sizeof(ifr));
+		strcpy(ifr.ifr_name, devname);
+
+		if (ioctl(skfd, SIOGIFINDEX, &ifr) < 0) {
+			perror("SIOGIFINDEX");
+			return (E_SOCK);
+		}
+		rt.rtmsg_ifindex = ifr.ifr_ifindex;
+	} else
+		rt.rtmsg_ifindex = 0;
+
+	/* Tell the kernel to accept this route. */
+	if (action == RTACTION_DEL) {
+		if (ioctl(skfd, SIOCDELRT, &rt) < 0) {
+			perror("SIOCDELRT");
+			close(skfd);
+			return (E_SOCK);
+		}
+	} else {
+		if (ioctl(skfd, SIOCADDRT, &rt) < 0) {
+			perror("SIOCADDRT");
+			close(skfd);
+			return (E_SOCK);
+		}
+	}
+
+	/* Close the socket. */
+	(void) close(skfd);
+	return (0);
+}
+#endif
+
 #ifndef RTF_UP
 /* Keep this in sync with /usr/src/linux/include/linux/route.h */
 #define RTF_UP          0x0001          /* route usable                 */
@@ -418,17 +554,103 @@ void displayroutes(int noresolve, int netstatfmt)
   	}
 }
 
+#if CONFIG_FEATURE_IPV6
+static void INET6_displayroutes(int noresolve)
+{
+	char buff[256];
+	char iface[16], flags[16];
+	char addr6[128], naddr6[128];
+	struct sockaddr_in6 saddr6, snaddr6;
+	int iflags, metric, refcnt, use, prefix_len, slen;
+	int numeric;
+
+	char addr6p[8][5], saddr6p[8][5], naddr6p[8][5];
+
+	FILE *fp = xfopen("/proc/net/ipv6_route", "r");
+	flags[0]='U';
+
+	if(noresolve)
+		noresolve = 0x0fff;
+	numeric = noresolve | 0x8000; /* default instead of * */
+
+	printf("Kernel IPv6 routing table\n"
+	       "Destination                                 "
+	       "Next Hop                                "
+	       "Flags Metric Ref    Use Iface\n");
+
+	while( fgets(buff, sizeof(buff), fp) != NULL ) {
+		int ifl;
+
+		if(sscanf(buff, "%4s%4s%4s%4s%4s%4s%4s%4s %02x "
+			  "%4s%4s%4s%4s%4s%4s%4s%4s %02x "
+			  "%4s%4s%4s%4s%4s%4s%4s%4s %08x %08x %08x %08x %s\n",
+			  addr6p[0], addr6p[1], addr6p[2], addr6p[3],
+			  addr6p[4], addr6p[5], addr6p[6], addr6p[7],
+			  &prefix_len,
+			  saddr6p[0], saddr6p[1], saddr6p[2], saddr6p[3],
+			  saddr6p[4], saddr6p[5], saddr6p[6], saddr6p[7],
+			  &slen,
+			  naddr6p[0], naddr6p[1], naddr6p[2], naddr6p[3],
+			  naddr6p[4], naddr6p[5], naddr6p[6], naddr6p[7],
+			  &metric, &use, &refcnt, &iflags, iface)!=31) {
+			error_msg_and_die( "Unsuported kernel route format\n");
+		}
+
+		ifl = 1;        /* parse flags */
+		if (!(iflags & RTF_UP))
+			continue;
+		if (iflags & RTF_GATEWAY)
+			flags[ifl++]='G';
+		if (iflags & RTF_HOST)
+			flags[ifl++]='H';
+		if (iflags & RTF_DEFAULT)
+			flags[ifl++]='D';
+		if (iflags & RTF_ADDRCONF)
+			flags[ifl++]='A';
+		if (iflags & RTF_CACHE)
+			flags[ifl++]='C';
+		flags[ifl]=0;
+
+		/* Fetch and resolve the target address. */
+		snprintf(addr6, sizeof(addr6), "%s:%s:%s:%s:%s:%s:%s:%s",
+			 addr6p[0], addr6p[1], addr6p[2], addr6p[3],
+			 addr6p[4], addr6p[5], addr6p[6], addr6p[7]);
+		inet_pton(AF_INET6, addr6, (struct sockaddr *) &saddr6.sin6_addr);
+		saddr6.sin6_family=AF_INET6;
+
+		INET6_rresolve(addr6, sizeof(addr6), (struct sockaddr_in6 *) &saddr6, numeric);
+		snprintf(addr6, sizeof(addr6), "%s/%d", addr6, prefix_len);
+
+		/* Fetch and resolve the nexthop address. */
+		snprintf(naddr6, sizeof(naddr6), "%s:%s:%s:%s:%s:%s:%s:%s",
+			 naddr6p[0], naddr6p[1], naddr6p[2], naddr6p[3],
+			 naddr6p[4], naddr6p[5], naddr6p[6], naddr6p[7]);
+		inet_pton(AF_INET6, naddr6, (struct sockaddr *) &snaddr6.sin6_addr);
+		snaddr6.sin6_family=AF_INET6;
+
+		INET6_rresolve(naddr6, sizeof(naddr6), (struct sockaddr_in6 *) &snaddr6, numeric);
+
+		/* Print the info. */
+		printf("%-43s %-39s %-5s %-6d %-2d %7d %-8s\n",
+		       addr6, naddr6, flags, metric, refcnt, use, iface);
+	}
+}
+#endif
+
 int route_main(int argc, char **argv)
 {
 	int opt;
 	int what = 0;
+#if CONFIG_FEATURE_IPV6
+	int af=AF_INET;
+#endif
 
 	if ( !argv [1] || ( argv [1][0] == '-' )) {
 		/* check options */
 		int noresolve = 0;
 		int extended = 0;
 	
-		while ((opt = getopt(argc, argv, "ne")) > 0) {
+		while ((opt = getopt(argc, argv, "A:ne")) > 0) {
 			switch (opt) {
 				case 'n':
 					noresolve = 1;
@@ -436,11 +658,22 @@ int route_main(int argc, char **argv)
 				case 'e':
 					extended = 1;
 					break;
+				case 'A':
+#if CONFIG_FEATURE_IPV6
+					if (strcmp(optarg, "inet6")==0)
+						af=AF_INET6;
+					break;
+#endif
 				default:
 					show_usage ( );
 			}
 		}
 	
+#if CONFIG_FEATURE_IPV6
+		if (af==AF_INET6)
+			INET6_displayroutes(*argv != NULL);
+		else
+#endif
 		displayroutes ( noresolve, extended );
 		return EXIT_SUCCESS;
 	} else {
@@ -455,5 +688,9 @@ int route_main(int argc, char **argv)
 			show_usage();
 	}
 
+#if CONFIG_FEATURE_IPV6
+	if (af==AF_INET6)
+		return INET6_setroute(what, 0, argv+2);
+#endif
 	return INET_setroute(what, 0, argv+2 );	
 }
