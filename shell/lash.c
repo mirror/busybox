@@ -656,6 +656,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (openfd != redir->fd) {
 			if (squirrel && redir->fd < 3) {
 				squirrel[redir->fd] = dup(redir->fd);
+				fcntl (squirrel[redir->fd], F_SETFD, FD_CLOEXEC);
 			}
 			dup2(openfd, redir->fd);
 			close(openfd);
