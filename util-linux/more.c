@@ -164,6 +164,9 @@ extern int more_main(int argc, char **argv)
 				lines = 0;
 				page_height = terminal_height;
 				please_display_more_prompt = 0;
+
+				if (input == 'q')
+					goto end;
 			}
 
 			/* 
@@ -177,15 +180,10 @@ extern int more_main(int argc, char **argv)
 			 * allows the user to quit while in the middle of a file.
 			 */
 			if (c == '\n') {
-				switch (input) {
-				case 'q':
-					goto end;
-				case '\n':
-					/* increment by just one line if we are at 
-					 * the end of this line*/
+				/* increment by just one line if we are at
+				 * the end of this line */
+				if (input == '\n')
 					please_display_more_prompt = 1;
-					break;
-				}
 				/* Adjust the terminal height for any overlap, so that
 				 * no lines get lost off the top. */
 				if (len >= terminal_width) {
@@ -216,7 +214,7 @@ extern int more_main(int argc, char **argv)
 	} while (--argc > 0);
   end:
 #ifdef BB_FEATURE_USE_TERMIOS
-	gotsig(0);
+	setTermSettings(fileno(cin), &initial_settings);
 #endif
-	return(TRUE);
+	return 0;
 }
