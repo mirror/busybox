@@ -140,9 +140,9 @@ extern int dd_main(int argc, char **argv)
 	while ((readSize = totalSize - inTotal) > 0) {
 		if (readSize > BUFSIZ)
 			readSize=BUFSIZ;
-		inCc = read(inFd, buf, readSize);
+		inCc = fullRead(inFd, buf, readSize);
 		inTotal += inCc;
-		if ((outCc = fullWrite(outFd, buf, inCc)) < 0)
+		if ((outCc = fullWrite(outFd, buf, inCc)) < 1)
 			break;
 		outTotal += outCc;
         }
