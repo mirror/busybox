@@ -5,51 +5,43 @@
 TOPDIR=../../
 include $(TOPDIR)Rules.mak
 
-
 all: ncurses conf mconf
 
-#HOSTCFLAGS=-Wall -g -O0
 LIBS = -lncurses
 ifeq (/usr/include/ncurses/ncurses.h, $(wildcard /usr/include/ncurses/ncurses.h))
-	HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses.h>"
+	HOSTNCURSES += -I/usr/include/ncurses -DCURSES_LOC="<ncurses.h>"
 else
 ifeq (/usr/include/ncurses/curses.h, $(wildcard /usr/include/ncurses/curses.h))
-	HOSTCFLAGS += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
+	HOSTNCURSES += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
 else
 ifeq (/usr/include/ncurses.h, $(wildcard /usr/include/ncurses.h))
-	HOSTCFLAGS += -DCURSES_LOC="<ncurses.h>"
+	HOSTNCURSES += -DCURSES_LOC="<ncurses.h>"
 else
-	HOSTCFLAGS += -DCURSES_LOC="<curses.h>"
+	HOSTNCURSES += -DCURSES_LOC="<curses.h>"
 endif
 endif
 endif
 
 
-CONF_SRC  =conf.c zconf.tab.c
-MCONF_SRC =mconf.c zconf.tab.c
-LXDLG_SRC =checklist.c menubox.c textbox.c yesno.c inputbox.c util.c msgbox.c
+CONF_SRC  =conf.c
+MCONF_SRC =mconf.c checklist.c menubox.c textbox.c yesno.c inputbox.c util.c msgbox.c
+SHARED_SRC=zconf.tab.c
+SHARED_DEPS:=lkc.h lkc_proto.h lkc_defs.h expr.h zconf.tab.h
 CONF_OBJS =$(patsubst %.c,%.o, $(CONF_SRC))
 MCONF_OBJS=$(patsubst %.c,%.o, $(MCONF_SRC))
-LXDLG_OBJS=$(patsubst %.c,%.o, $(LXDLG_SRC))
+SHARED_OBJS=$(patsubst %.c,%.o, $(SHARED_SRC))
 
-conf: $(CONF_OBJS) 
-	$(HOSTCC) $(HOSTCFLAGS) $(NATIVE_LDFLAGS) $^ -o $@
+conf: $(CONF_OBJS) $(SHARED_OBJS) 
+	$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@
 
-mconf: $(MCONF_OBJS) $(LXDLG_OBJS)
-	$(HOSTCC) $(HOSTCFLAGS) $(NATIVE_LDFLAGS) $^ -o $@ $(LIBS)
+mconf: $(MCONF_OBJS) $(SHARED_OBJS)
+	$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@ $(LIBS)
 
-lkc_deps:=lkc.h lkc_proto.h lkc_defs.h expr.h zconf.tab.h
-
-conf.o: conf.c $(lkc_deps)
-
-mconf.o: mconf.c $(lkc_deps)
-
-zconf.tab.o: zconf.tab.c lex.zconf.c confdata.c expr.c symbol.c menu.c $(lkc_deps)
-
-lex.zconf.o: lex.zconf.c $(lkc_deps)
-
-%.o : %.c
+$(CONF_OBJS): %.o : %.c $(SHARED_DEPS)
 	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
+
+$(MCONF_OBJS): %.o : %.c $(SHARED_DEPS)
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTNCURSES) -I. -c $< -o $@
 
 lkc_defs.h: lkc_proto.h
 	@sed < $< > $@ 's/P(\([^,]*\),.*/#define \1 (\*\1_p)/'
@@ -69,8 +61,14 @@ lex.%.c: %.l
 	flex -P$(notdir $*) -o$@ $<
 else
 
+lex.zconf.o: lex.zconf.c $(SHARED_DEPS)
+	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
+
 lex.zconf.c: lex.zconf.c_shipped
 	cp lex.zconf.c_shipped lex.zconf.c
+
+zconf.tab.o: zconf.tab.c lex.zconf.c confdata.c expr.c symbol.c menu.c $(SHARED_DEPS)
+	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
 
 zconf.tab.c: zconf.tab.c_shipped
 	cp zconf.tab.c_shipped zconf.tab.c

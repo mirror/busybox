@@ -31,7 +31,7 @@ DIRS:=applets archival archival/libunarchive console-tools debianutils \
 	networking/libiproute networking/udhcp procps loginutils shell \
 	shellutils sysklogd textutils util-linux libbb libpwdgrp
 
-ifdef include_config
+ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links #doc
 
@@ -142,7 +142,7 @@ include/config/MARKER: depend scripts/split-include
 
 include/config.h: .config
 	@if [ ! -x ./scripts/config/conf ] ; then \
-	    make -C scripts/config; \
+	    make -C scripts/config conf; \
 	fi;
 	@./scripts/config/conf -o sysdeps/$(TARGET_OS)/Config.in
 
@@ -154,18 +154,20 @@ finished2:
 	@echo Finished installing...
 	@echo
 
-else # ifdef include_config
+else # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: menuconfig
-
-ifeq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
-# Targets which don't need .config
 
 # configuration
 # ---------------------------------------------------------------------------
 
-scripts/config/conf scripts/config/mconf:
-	make -C scripts/config
+scripts/config/conf:
+	make -C scripts/config conf
+	-@if [ ! -f .config ] ; then \
+		cp sysdeps/$(TARGET_OS)/defconfig .config; \
+	fi
+scripts/config/mconf:
+	make -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
 		cp sysdeps/$(TARGET_OS)/defconfig .config; \
 	fi
@@ -239,8 +241,7 @@ tags:
 	ctags -R .
 
 
-endif # ifeq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
-endif # ifdef include_config
+endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 .PHONY: dummy subdirs release distclean clean config oldconfig \
 	menuconfig tags check test tests depend

@@ -5,6 +5,10 @@
 
 mainmenu "BusyBox Configuration"
 
+config HAVE_DOT_CONFIG
+	bool
+	default y
+
 menu "General Configuration"
 
 choice
