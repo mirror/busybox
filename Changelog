@@ -1481,3 +1481,105 @@ Members:
 	networking/httpd.c:1.15->1.16 
 	networking/ipcalc.c:1.6->1.7 
 
+---------------------
+PatchSet 3560 
+Date: 2003/09/12 05:43:49
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Update changelog for release
+
+Members: 
+	Changelog:1.282->1.283 
+
+---------------------
+PatchSet 3561 
+Date: 2003/09/12 05:49:21
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+config option CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN must depend
+on CONFIG_FEATURE_SH_STANDALONE_SHELL.
+
+Members: 
+	shell/Config.in:1.9->1.10 
+
+---------------------
+PatchSet 3562 
+Date: 2003/09/12 06:50:51
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Teach rdate to timeout in 10 seconds to avoid blocking forever
+with odd or broken networking setups
+
+Members: 
+	util-linux/rdate.c:1.23->1.24 
+
+---------------------
+PatchSet 3563 
+Date: 2003/09/12 06:59:53
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Invoke run-parts on /etc/network/if-*.d per the behavior of
+the upstream ifupdown code...
+
+Members: 
+	networking/ifupdown.c:1.32->1.33 
+
+---------------------
+PatchSet 3564 
+Date: 2003/09/12 07:31:28
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Use the typeflag to identify if its a hardlink on OLD and GNU posix
+modes, fixes a bug extracting hardlinks to symlinks.
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.21->1.22 
+
+---------------------
+PatchSet 3565 
+Date: 2003/09/12 07:49:09
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix handling of hardlinks when OLDGNU and GNU extensions arent enabled.
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.22->1.23 
+
+---------------------
+PatchSet 3566 
+Date: 2003/09/12 07:59:17
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Update webpage a bit
+
+Members: 
+	docs/busybox.net/index.html:1.128->1.129 
+	docs/busybox.net/oldnews.html:1.15->1.16 
+	docs/busybox.net/screenshot.html:1.5->1.6 
+
+---------------------
+PatchSet 3567 
+Date: 2003/09/12 07:59:52
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+I suppose it is now Sept 12...
+
+Members: 
+	docs/busybox.net/index.html:1.129->1.130 
+
