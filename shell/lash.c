@@ -56,14 +56,18 @@
 #include <glob.h>
 #define expand_t	glob_t
 
+/* Always enable for the moment... */
+#define CONFIG_LASH_PIPE_N_REDIRECTS
 
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 enum redir_type { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 	REDIRECT_APPEND
 };
+#endif
 
 static const unsigned int DEFAULT_CONTEXT=0x1;
 static const unsigned int IF_TRUE_CONTEXT=0x2;
@@ -71,25 +75,28 @@ static const unsigned int IF_FALSE_CONTEXT=0x4;
 static const unsigned int THEN_EXP_CONTEXT=0x8;
 static const unsigned int ELSE_EXP_CONTEXT=0x10;
 
-
-struct jobset {
-	struct job *head;			/* head of list of running jobs */
-	struct job *fg;				/* current foreground job */
-};
-
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 struct redir_struct {
 	enum redir_type type;	/* type of redirection */
 	int fd;						/* file descriptor being redirected */
 	char *filename;				/* file to redirect fd to */
 };
+#endif
 
 struct child_prog {
 	pid_t pid;					/* 0 if exited */
 	char **argv;				/* program name and arguments */
 	int num_redirects;			/* elements in redirection array */
-	struct redir_struct *redirects;	/* I/O redirects */
 	int is_stopped;				/* is the program currently running? */
 	struct job *family;			/* pointer back to the child's parent job */
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+	struct redir_struct *redirects;	/* I/O redirects */
+#endif
+};
+
+struct jobset {
+	struct job *head;			/* head of list of running jobs */
+	struct job *fg;				/* current foreground job */
 };
 
 struct job {
@@ -514,8 +521,10 @@ static void free_job(struct job *cmd)
 
 	for (i = 0; i < cmd->num_progs; i++) {
 		free(cmd->progs[i].argv);
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 		if (cmd->progs[i].redirects)
 			free(cmd->progs[i].redirects);
+#endif
 	}
 	free(cmd->progs);
 	free(cmd->text);
@@ -548,7 +557,7 @@ static void remove_job(struct jobset *j_list, struct job *job)
 	free(job);
 }
 
-/* Checks to see if any background processes have exited -- if they 
+/* Checks to see if any background processes have exited -- if they
    have, figure out why and see if a job has completed */
 static void checkjobs(struct jobset *j_list)
 {
@@ -593,7 +602,7 @@ static void checkjobs(struct jobset *j_list)
 				printf(JOB_STATUS_FORMAT, job->jobid, "Stopped",
 					   job->text);
 			}
-#endif	
+#endif
 		}
 	}
 
@@ -601,6 +610,7 @@ static void checkjobs(struct jobset *j_list)
 		bb_perror_msg("waitpid");
 }
 
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
 static int setup_redirects(struct child_prog *prog, int squirrel[])
@@ -656,6 +666,15 @@ static void restore_redirects(int squirrel[])
 		}
 	}
 }
+#else
+static inline int setup_redirects(struct child_prog *prog, int squirrel[])
+{
+	return 0;
+}
+static inline void restore_redirects(int squirrel[])
+{
+}
+#endif
 
 static inline void cmdedit_set_initial_prompt(void)
 {
@@ -665,7 +684,7 @@ static inline void cmdedit_set_initial_prompt(void)
 	PS1 = getenv("PS1");
 	if(PS1==0)
 		PS1 = "\\w \\$ ";
-#endif	
+#endif
 }
 
 static inline void setup_prompt_string(char **prompt_str)
@@ -682,7 +701,7 @@ static inline void setup_prompt_string(char **prompt_str)
 	}
 #else
 	*prompt_str = (shell_context==0)? PS1 : PS2;
-#endif	
+#endif
 }
 
 static int get_command(FILE * source, char *command)
@@ -761,7 +780,7 @@ char * strsep_space( char *string, int * ix)
 		(*ix)++;
 	}
 
-	/* Find the end of any whitespace trailing behind 
+	/* Find the end of any whitespace trailing behind
 	 * the token and let that be part of the token */
 	while( string && string[*ix] && isspace(string[*ix]) ) {
 		(*ix)++;
@@ -774,7 +793,7 @@ char * strsep_space( char *string, int * ix)
 
 	token = xmalloc(*ix+1);
 	token[*ix] = '\0';
-	strncpy(token, string,  *ix); 
+	strncpy(token, string,  *ix);
 
 	return token;
 }
@@ -789,10 +808,10 @@ static int expand_arguments(char *command)
 	int flags = GLOB_NOCHECK
 #ifdef GLOB_BRACE
 		| GLOB_BRACE
-#endif	
+#endif
 #ifdef GLOB_TILDE
 		| GLOB_TILDE
-#endif	
+#endif
 		;
 
 	/* get rid of the terminating \n */
@@ -817,7 +836,7 @@ static int expand_arguments(char *command)
 	 * we write stuff into the original (in a minute) */
 	cmd = cmd_copy = bb_xstrdup(command);
 	*command = '\0';
-	for (ix = 0, tmpcmd = cmd; 
+	for (ix = 0, tmpcmd = cmd;
 			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
 		if (*tmpcmd == '\0')
 			break;
@@ -832,7 +851,7 @@ static int expand_arguments(char *command)
 			return FALSE;
 		} else if (retval != 0) {
 			/* Some other error.  GLOB_NOMATCH shouldn't
-			 * happen because of the GLOB_NOCHECK flag in 
+			 * happen because of the GLOB_NOCHECK flag in
 			 * the glob call. */
 			bb_error_msg("syntax error");
 			return FALSE;
@@ -856,7 +875,7 @@ static int expand_arguments(char *command)
 	free(cmd_copy);
 	trim(command);
 
-	/* Now do the shell variable substitutions which 
+	/* Now do the shell variable substitutions which
 	 * wordexp can't do for us, namely $? and $! */
 	src = command;
 	while((dst = strchr(src,'$')) != NULL){
@@ -946,21 +965,25 @@ static int expand_arguments(char *command)
 
 /* Return cmd->num_progs as 0 if no command is present (e.g. an empty
    line). If a valid command is found, command_ptr is set to point to
-   the beginning of the next command (if the original command had more 
-   then one job associated with it) or NULL if no more commands are 
+   the beginning of the next command (if the original command had more
+   then one job associated with it) or NULL if no more commands are
    present. */
 static int parse_command(char **command_ptr, struct job *job, int *inbg)
 {
 	char *command;
 	char *return_command = NULL;
-	char *src, *buf, *chptr;
+	char *src, *buf;
 	int argc_l = 0;
 	int done = 0;
 	int argv_alloced;
-	int i, saw_quote = 0;
+	int saw_quote = 0;
 	char quote = '\0';
 	int count;
 	struct child_prog *prog;
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+	int i;
+	char *chptr;
+#endif
 
 	/* skip leading white space */
 	while (**command_ptr && isspace(**command_ptr))
@@ -976,21 +999,23 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	job->num_progs = 1;
 	job->progs = xmalloc(sizeof(*job->progs));
 
-	/* We set the argv elements to point inside of this string. The 
+	/* We set the argv elements to point inside of this string. The
 	   memory is freed by free_job(). Allocate twice the original
 	   length in case we need to quote every single character.
 
-	   Getting clean memory relieves us of the task of NULL 
-	   terminating things and makes the rest of this look a bit 
+	   Getting clean memory relieves us of the task of NULL
+	   terminating things and makes the rest of this look a bit
 	   cleaner (though it is, admittedly, a tad less efficient) */
 	job->cmdbuf = command = xcalloc(2*strlen(*command_ptr) + 1, sizeof(char));
 	job->text = NULL;
 
 	prog = job->progs;
 	prog->num_redirects = 0;
-	prog->redirects = NULL;
 	prog->is_stopped = 0;
 	prog->family = job;
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
+	prog->redirects = NULL;
+#endif
 
 	argv_alloced = 5;
 	prog->argv = xmalloc(sizeof(*prog->argv) * argv_alloced);
@@ -1046,6 +1071,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					done = 1;
 				break;
 
+#ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 			case '>':			/* redirects */
 			case '<':
 				i = prog->num_redirects++;
@@ -1143,6 +1169,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				src--;			/* we'll ++ it at the end of the loop */
 
 				break;
+#endif
 
 			case '&':			/* background */
 				*inbg = 1;
@@ -1189,7 +1216,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	}
 
 	*command_ptr = return_command;
-	
+
 	return 0;
 }
 
@@ -1236,7 +1263,7 @@ static int pseudo_exec(struct child_prog *child)
 
 #ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	/* If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then
-	 * if you run /bin/cat, it will use BusyBox cat even if 
+	 * if you run /bin/cat, it will use BusyBox cat even if
 	 * /bin/cat exists on the filesystem and is _not_ busybox.
 	 * Some systems want this, others do not.  Choose wisely.  :-)
 	 */
@@ -1254,7 +1281,7 @@ static int pseudo_exec(struct child_prog *child)
 
 	execvp(child->argv[0], child->argv);
 
-	/* Do not use bb_perror_msg_and_die() here, since we must not 
+	/* Do not use bb_perror_msg_and_die() here, since we must not
 	 * call exit() but should call _exit() instead */
 	fprintf(stderr, "%s: %m\n", child->argv[0]);
 	_exit(EXIT_FAILURE);
@@ -1286,7 +1313,7 @@ static void insert_job(struct job *newjob, int inbg)
 	thejob->stopped_progs = 0;
 
 	if (inbg) {
-		/* we don't wait for background thejobs to return -- append it 
+		/* we don't wait for background thejobs to return -- append it
 		   to the list of backgrounded thejobs and leave it alone */
 		printf("[%d] %d\n", thejob->jobid,
 			   newjob->progs[newjob->num_progs - 1].pid);
@@ -1336,8 +1363,8 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		if (newjob->num_progs == 1) {
 			for (x = bltins; x->cmd; x++) {
 				if (strcmp(child->argv[0], x->cmd) == 0 ) {
-					int squirrel[] = {-1, -1, -1};
 					int rcode;
+					int squirrel[] = {-1, -1, -1};
 					setup_redirects(child, squirrel);
 					rcode = x->function(child);
 					restore_redirects(squirrel);
@@ -1347,9 +1374,9 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		}
 
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
-		if (!(child->pid = fork())) 
+		if (!(child->pid = fork()))
 #else
-		if (!(child->pid = vfork())) 
+		if (!(child->pid = vfork()))
 #endif
 		{
 			/* Set the handling for job control signals back to the default.  */
@@ -1394,7 +1421,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		if (nextout != 1)
 			close(nextout);
 
-		/* If there isn't another process, nextin is garbage 
+		/* If there isn't another process, nextin is garbage
 		   but it doesn't matter */
 		nextin = pipefds[0];
 	}
@@ -1446,7 +1473,7 @@ static int busy_loop(FILE * input)
 			if (!parse_command(&next_command, &newjob, &inbg) &&
 				newjob.num_progs) {
 				int pipefds[2] = {-1,-1};
-				debug_printf( "job=%p fed to run_command by busy_loop()'\n", 
+				debug_printf( "job=%p fed to run_command by busy_loop()'\n",
 						&newjob);
 				run_command(&newjob, inbg, pipefds);
 			}
@@ -1495,7 +1522,7 @@ static int busy_loop(FILE * input)
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
 				if (tcsetpgrp(shell_terminal, getpgrp()) && errno != ENOTTY)
-					bb_perror_msg("tcsetpgrp"); 
+					bb_perror_msg("tcsetpgrp");
 			}
 		}
 	}
@@ -1508,7 +1535,7 @@ static int busy_loop(FILE * input)
 	/* return exit status if called with "-c" */
 	if (input == NULL && WIFEXITED(status))
 		return WEXITSTATUS(status);
-	
+
 	return 0;
 }
 
@@ -1534,7 +1561,7 @@ void free_memory(void)
 static void setup_job_control(void)
 {
 	int status;
-	
+
 	/* Loop until we are in the foreground.  */
 	while ((status = tcgetpgrp (shell_terminal)) >= 0) {
 		if (status == (shell_pgrp = getpgrp ())) {
@@ -1580,7 +1607,7 @@ int lash_main(int argc_l, char **argv_l)
 		prof_input = fopen("/etc/profile", "r");
 		if (prof_input) {
 			int tmp_fd = fileno(prof_input);
-			mark_open(tmp_fd);	
+			mark_open(tmp_fd);
 			/* Now run the file */
 			busy_loop(prof_input);
 			fclose(prof_input);
@@ -1644,6 +1671,6 @@ int lash_main(int argc_l, char **argv_l)
 #else
 	PS1 = NULL;
 #endif
-	
+
 	return (busy_loop(input));
 }
