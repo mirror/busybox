@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.3 2003/01/21 20:55:56 bug1 Exp $
+/* $Id: telnetd.c,v 1.4 2003/01/22 21:09:48 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -391,9 +391,8 @@ telnetd_main(int argc, char **argv)
 	argv_init[0] = loginpath;
 
 #ifdef CONFIG_FEATURE_TELNETD_INETD
-	sessions = make_new_session();
-
 	maxfd = 1;
+	sessions = make_new_session();
 #else /* CONFIG_EATURE_TELNETD_INETD */
 	sessions = 0;
 
