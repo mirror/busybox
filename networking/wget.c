@@ -71,7 +71,11 @@ int wget_main(int argc, char **argv)
 			++do_continue;
 			break;
 		case 'O':
-			fname_out = (strcmp(optarg, "-") == 0 ? NULL : optarg);
+			/* can't set fname_out to NULL if outputting to stdout, because
+			 * this gets interpreted as the auto-gen output filename
+			 * case below  - tausq@debian.org
+			 */
+			fname_out = (strcmp(optarg, "-") == 0 ? (char *)1 : optarg);
 			break;
 		default:
 			usage(wget_usage);
@@ -110,12 +114,12 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Open the output stream.
 	 */
-	if (fname_out != NULL) {
+	if (fname_out != (char *)1) {
 		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) 
 				== NULL)
 			fatalPerror("fopen(%s)", fname_out);
-	} else { 
-		output=stdout;
+	} else {
+		output = stdout;
 	}
 
 	/*
@@ -202,6 +206,7 @@ int wget_main(int argc, char **argv)
 void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 {
 	char *s, *h;
+	static char *defaultpath = "/";
 
 	*uri_port = 80;
 
@@ -209,9 +214,7 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 		fatalError("not an http url: %s\n", url);
 
 	/* pull the host portion to the front of the buffer */
-	for (s = url, h = url+7 ; *h != '/' ; ++h) {
-		if (*h == '\0')
-			fatalError("cannot parse url: %s\n", url);
+	for (s = url, h = url+7 ; *h != '/' && *h != 0; ++h) {
 		if (*h == ':') {
 			*uri_port = atoi(h+1);
 			*h = '\0';
@@ -219,6 +222,9 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 		*s++ = *h;
 	}
 	*s = '\0';
+
+	if (*h == 0) h = defaultpath;
+
 	*uri_host = url;
 	*uri_path = h;
 }
@@ -469,7 +475,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.7 2000/11/14 23:29:24 andersen Exp $
+ *	$Id: wget.c,v 1.8 2000/12/07 03:53:47 tausq Exp $
  */
 
 
