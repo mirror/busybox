@@ -769,7 +769,11 @@ void write_status_file(deb_file_t **deb_file)
 
 	/* Update previously known packages */
 	while ((control_buffer = fgets_str(old_status_file, "\n\n")) != NULL) {
-		tmp_string = strstr(control_buffer, "Package:") + 8;
+		if ((tmp_string = strstr(control_buffer, "Package:")) == NULL) {
+			continue;
+		}
+
+		tmp_string += 8;
  		tmp_string += strspn(tmp_string, " \n\t");
 		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
 		write_flag = FALSE;
