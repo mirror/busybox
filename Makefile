@@ -1,4 +1,5 @@
 
+PROG=busybox
 VERSION=0.29alpha1
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
@@ -18,7 +19,7 @@ ifeq ($(DODEBUG),true)
 else
     CFLAGS=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS= -s
-    STRIP= strip --remove-section=.note --remove-section=.comment busybox
+    STRIP= strip --remove-section=.note --remove-section=.comment
 endif
 
 ifndef $(prefix)
@@ -34,22 +35,22 @@ CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
 all: busybox links
 
 busybox: $(OBJECTS)
-	$(CC) $(LDFLAGS) -o busybox $(OBJECTS) $(LIBRARIES)
-	$(STRIP)
+	$(CC) $(LDFLAGS) -o $(PROG) $(OBJECTS) $(LIBRARIES)
+	$(STRIP) $(PROG)
 
 links:
 	- ./busybox.mkll | sort >busybox.links
 	
 clean:
-	- rm -f busybox busybox.links *~ *.o core 
+	- rm -f $(PROG) busybox.links *~ *.o core 
 
 distclean: clean
-	- rm -f busybox
+	- rm -f $(PROG)
 
 force:
 
 $(OBJECTS):  busybox.def.h internal.h Makefile
 
-install:    busybox
+install:    $(PROG)
 	install.sh $(BINDIR)
 
