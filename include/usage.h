@@ -918,8 +918,8 @@
 "	\n" \
 "	# /sbin/getty invocations for selected ttys\n" \
 "	#\n" \
-"	tty4::respawn:/sbin/getty 38400 tty5\n" \
-"	tty5::respawn:/sbin/getty 38400 tty6\n" \
+"	tty4::respawn:/sbin/getty 38400 tty4\n" \
+"	tty5::respawn:/sbin/getty 38400 tty5\n" \
 "	\n" \
 "	\n" \
 "	# Example of how to put a getty on a serial line (for a terminal)\n" \
