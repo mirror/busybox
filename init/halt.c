@@ -23,19 +23,10 @@
 
 #include "busybox.h"
 #include <signal.h>
+#include "init_shared.h"
+
 
 extern int halt_main(int argc, char **argv)
 {
-#ifdef CONFIG_FEATURE_INITRD
-	/* don't assume init's pid == 1 */
-	long *pid = find_pid_by_name("init");
-	if (!pid || *pid<=0) {
-		pid = find_pid_by_name("linuxrc");
-		if (!pid || *pid<=0)
-			bb_error_msg_and_die("no process killed");
-	}
-	return(kill(*pid, SIGUSR1));
-#else
-	return(kill(1, SIGUSR1));
-#endif
+	return kill_init(SIGUSR1);
 }

@@ -33,6 +33,28 @@ INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
 INIT-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
 
+ifeq ($(CONFIG_HALT), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_INIT), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_POWEROFF), y)
+CONFIG_INIT_SHARED=y
+else
+ifeq ($(CONFIG_REBOOT), y)
+CONFIG_INIT_SHARED=y
+else
+CONFIG_INIT_SHARED=n
+endif
+endif
+endif
+endif
+
+ifeq ($(CONFIG_INIT_SHARED), y)
+INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
+endif
+
 libraries-y+=$(INIT_DIR)$(INIT_AR)
 
 $(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))

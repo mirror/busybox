@@ -27,6 +27,8 @@
 #include <getopt.h>
 
 #include "busybox.h"
+#include "init_shared.h"
+
 
 #if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__) 
   #include <sys/reboot.h>
@@ -42,23 +44,11 @@ static const int RB_AUTOBOOT = 0x01234567;
 
 extern int reboot_main(int argc, char **argv)
 {
-	int delay = 0; /* delay in seconds before rebooting */
-	int rc;
+	char *delay; /* delay in seconds before rebooting */
 
-	while ((rc = getopt(argc, argv, "d:")) > 0) {
-		switch (rc) {
-		case 'd':
-			delay = atoi(optarg);
-			break;
-
-		default:
-			bb_show_usage();
-			break;
-		}
+	if(bb_getopt_ulflags(argc, argv, "d:", &delay)) {
+		sleep(atoi(delay));
 	}
-
-	if(delay > 0)
-		sleep(delay);
 
 #ifdef CONFIG_USER_INIT
 		/* Don't kill ourself */
@@ -83,29 +73,11 @@ extern int reboot_main(int argc, char **argv)
 		sleep(1);
 
 		sync();
-		if (kernelVersion > 0 && kernelVersion <= KERNEL_VERSION(2,2,11)) {
-			/* bdflush, kupdate not needed for kernels >2.2.11 */
-			bdflush(1, 0);
-			sync();
-		}
 
 		init_reboot(RB_AUTOBOOT);
-		exit(0); /* Shrug */
+		return 0; /* Shrug */
 #else
-#ifdef CONFIG_FEATURE_INITRD
-	{
-		/* don't assume init's pid == 1 */
-		long *pid = find_pid_by_name("init");
-		if (!pid || *pid<=0)
-			pid = find_pid_by_name("linuxrc");
-		if (!pid || *pid<=0)
-			bb_error_msg_and_die("no process killed");
-		fflush(stdout);
-		return(kill(*pid, SIGTERM));
-	}
-#else
-	return(kill(1, SIGTERM));
-#endif
+	return kill_init(SIGTERM);
 #endif
 }
 

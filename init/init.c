@@ -43,6 +43,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "busybox.h"
+
+#include "init_shared.h"
+
+
 #ifdef CONFIG_SYSLOGD
 # include <sys/syslog.h>
 #endif
@@ -152,7 +156,6 @@ struct init_action {
 
 /* Static variables */
 static struct init_action *init_action_list = NULL;
-static int kernelVersion;
 static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
 
 #ifndef CONFIG_SYSLOGD
@@ -764,7 +767,7 @@ static void halt_signal(int sig)
 	/* allow time for last message to reach serial console */
 	sleep(2);
 
-	if (sig == SIGUSR2 && kernelVersion >= KERNEL_VERSION(2, 2, 0))
+	if (sig == SIGUSR2)
 		init_reboot(RB_POWER_OFF);
 	else
 		init_reboot(RB_HALT_SYSTEM);
@@ -1014,15 +1017,7 @@ extern int init_main(int argc, char **argv)
 	int status;
 
 	if (argc > 1 && !strcmp(argv[1], "-q")) {
-		/* don't assume init's pid == 1 */
-		long *pid = find_pid_by_name("init");
-
-		if (!pid || *pid <= 0) {
-			pid = find_pid_by_name("linuxrc");
-			if (!pid || *pid <= 0)
-				bb_error_msg_and_die("no process killed");
-		}
-		return kill(*pid, SIGHUP);
+		return kill_init(SIGHUP);
 	}
 #ifndef DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
@@ -1048,9 +1043,6 @@ extern int init_main(int argc, char **argv)
 	 * SIGINT on CAD so we can shut things down gracefully... */
 	init_reboot(RB_DISABLE_CAD);
 #endif
-
-	/* Figure out what kernel this is running */
-	kernelVersion = get_kernel_revision();
 
 	/* Figure out where the default console should be */
 	console_init();
