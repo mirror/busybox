@@ -60,6 +60,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			break;
 		}
 		case S_IFDIR:
+			unlink(file_header->name);
 			res = mkdir(file_header->name, file_header->mode);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
 				perror_msg("extract_archive: %s", file_header->name);
@@ -67,6 +68,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			break;
 		case S_IFLNK:
 			/* Symlink */
+			unlink(file_header->name);
 			res = symlink(file_header->link_name, file_header->name);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
 				perror_msg("Cannot create symlink from %s to '%s'", file_header->name, file_header->link_name);
@@ -76,6 +78,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		case S_IFBLK:
 		case S_IFCHR:
 		case S_IFIFO:
+			unlink(file_header->name);
 			res = mknod(file_header->name, file_header->mode, file_header->device);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
 				perror_msg("Cannot create node %s", file_header->name);
