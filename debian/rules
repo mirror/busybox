@@ -82,7 +82,7 @@ do_static: half_clean build-static install-static
 
 
 # Now for the .udeb stuff
-PACKAGE=busybox
+PACKAGE=busybox-udeb
 VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
 ARCH=$(shell dpkg --print-architecture)
 FILENAME=$(PACKAGE)_$(VERSION)_$(ARCH).udeb
