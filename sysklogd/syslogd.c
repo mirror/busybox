@@ -7,6 +7,8 @@
  *
  * Copyright (C) 2000 by Karl M. Hegbloom <karlheg@debian.org>
  *
+ * "circular buffer" Copyright (C) 2001 by Gennady Feldman <gfeldman@cachier.com>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -40,24 +42,7 @@
 #include <sys/un.h>
 #include <sys/param.h>
 
-#if ! defined __GLIBC__ && ! defined __UCLIBC__
-#include <sys/syscall.h>
-#include <linux/unistd.h>
-typedef unsigned int socklen_t;
-
-#ifndef __alpha__
-# define __NR_klogctl __NR_syslog
-static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
-#else							/* __alpha__ */
-#define klogctl syslog
-#endif
-
-#else
-# include <sys/klog.h>
-#endif
 #include "busybox.h"
-
-
 
 /* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
 #define SYSLOG_NAMES
@@ -91,6 +76,184 @@ static int doRemoteLog = FALSE;
 static int local_logging = FALSE;
 #endif
 
+/* circular buffer variables/structures */
+#ifdef BB_FEATURE_IPC_SYSLOG
+
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+
+/* our shared key */
+static const long KEY_ID = 0x414e4547; /*"GENA"*/
+
+// Semaphore operation structures
+static struct shbuf_ds {
+	int size;		// size of data written
+	int head;		// start of message list
+	int tail;		// end of message list
+	char data[1];		// data/messages
+} *buf = NULL;			// shared memory pointer
+
+static struct sembuf SMwup[1] = {{1, -1, IPC_NOWAIT}}; // set SMwup
+static struct sembuf SMwdn[3] = {{0, 0}, {1, 0}, {1, +1}}; // set SMwdn
+
+static int 	shmid = -1;	// ipc shared memory id
+static int 	s_semid = -1;	// ipc semaphore id
+int	data_size = 16000; // data size
+int	shm_size = 16000 + sizeof(*buf); // our buffer size
+static int circular_logging = FALSE;
+
+/*
+ * sem_up - up()'s a semaphore.
+ */
+static inline void sem_up(int semid)
+{
+	if ( semop(semid, SMwup, 1) == -1 )
+		perror_msg_and_die("semop[SMwup]");
+}
+
+/*
+ * sem_down - down()'s a semaphore
+ */
+static inline void sem_down(int semid)
+{
+	if ( semop(semid, SMwdn, 2) == -1 )
+		perror_msg_and_die("semop[SMwdn]");
+}
+
+
+void ipcsyslog_cleanup(void){
+	printf("Exiting Syslogd!\n");
+	if (shmid != -1)
+		shmdt(buf);
+
+	if (shmid != -1)
+		shmctl(shmid, IPC_RMID, NULL);
+	if (s_semid != -1)
+		semctl(s_semid, 0, IPC_RMID, 0);
+}
+
+void ipcsyslog_init(void){
+	if (buf == NULL){
+	    if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1)
+		    	perror_msg_and_die("shmget");
+
+
+	    if ((buf = shmat(shmid, NULL, 0)) == NULL)
+    			perror_msg_and_die("shmat");
+
+
+	    buf->size=data_size;
+	    buf->head=buf->tail=0;
+
+	    // we'll trust the OS to set initial semval to 0 (let's hope)
+	    if ((s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023)) == -1){
+	    	if (errno == EEXIST){
+		   if ((s_semid = semget(KEY_ID, 2, 0)) == -1)
+		    perror_msg_and_die("semget");
+		}else
+    			perror_msg_and_die("semget");
+	    }
+	}else{
+		printf("Buffer already allocated just grab the semaphore?");
+	}
+}
+
+/* write message to buffer */
+void circ_message(const char *msg){
+	int l=strlen(msg)+1; /* count the whole message w/ '\0' included */
+
+	sem_down(s_semid);
+
+	/*
+	 * Circular Buffer Algorithm:
+	 * --------------------------
+	 *
+	 * Start-off w/ empty buffer of specific size SHM_SIZ
+	 * Start filling it up w/ messages. I use '\0' as separator to break up messages.
+	 * This is also very handy since we can do printf on message.
+	 *
+	 * Once the buffer is full we need to get rid of the first message in buffer and
+	 * insert the new message. (Note: if the message being added is >1 message then
+	 * we will need to "remove" >1 old message from the buffer). The way this is done
+	 * is the following:
+	 *	When we reach the end of the buffer we set a mark and start from the beginning.
+	 *	Now what about the beginning and end of the buffer? Well we have the "head"
+	 *	index/pointer which is the starting point for the messages and we have "tail"
+	 *	index/pointer which is the ending point for the messages. When we "display" the
+	 *	messages we start from the beginning and continue until we reach "tail". If we
+	 *	reach end of buffer, then we just start from the beginning (offset 0). "head" and
+	 *	"tail" are actually offsets from the beginning of the buffer.
+	 *
+	 * Note: This algorithm uses Linux IPC mechanism w/ shared memory and semaphores to provide
+	 * 	 a threasafe way of handling shared memory operations.
+	 */
+	if ( (buf->tail + l) < buf->size ){
+		/* before we append the message we need to check the HEAD so that we won't
+		   overwrite any of the message that we still need and adjust HEAD to point
+		   to the next message! */
+		if ( buf->tail < buf->head){
+			if ( (buf->tail + l) >= buf->head ){
+			  /* we need to move the HEAD to point to the next message
+			   * Theoretically we have enough room to add the whole message to the
+			   * buffer, because of the first outer IF statement, so we don't have
+			   * to worry about overflows here!
+			   */
+			   int k= buf->tail + l - buf->head; /* we need to know how many bytes
+			   					we are overwriting to make
+								enough room */
+			   char *c=memchr(buf->data+buf->head + k,'\0',buf->size - (buf->head + k));
+			   if (c != NULL) {/* do a sanity check just in case! */
+			   	buf->head = c - buf->data + 1; /* we need to convert pointer to
+								  offset + skip the '\0' since
+								  we need to point to the beginning
+								  of the next message */
+				/* Note: HEAD is only used to "retrieve" messages, it's not used
+					when writing messages into our buffer */
+			   }else{ /* show an error message to know we messed up? */
+			   	printf("Weird! Can't find the terminator token??? \n");
+			   	buf->head=0;
+			   }
+			}
+		} /* in other cases no overflows have been done yet, so we don't care! */
+
+		/* we should be ok to append the message now */
+		strncpy(buf->data + buf->tail,msg,l); /* append our message */
+		buf->tail+=l; /* count full message w/ '\0' terminating char */
+	}else{
+		/* we need to break up the message and "circle" it around */
+		char *c;
+		int k=buf->tail + l - buf->size; /* count # of bytes we don't fit */
+		
+		/* We need to move HEAD! This is always the case since we are going
+		 * to "circle" the message.
+		 */
+		c=memchr(buf->data + k ,'\0', buf->size - k);
+		
+		if (c != NULL) /* if we don't have '\0'??? weird!!! */{
+			/* move head pointer*/
+			buf->head=c-buf->data+1; 
+			
+			/* now write the first part of the message */			
+			strncpy(buf->data + buf->tail, msg, l - k - 1);
+			
+			/* ALWAYS terminate end of buffer w/ '\0' */
+			buf->data[buf->size-1]='\0'; 
+			
+			/* now write out the rest of the string to the beginning of the buffer */
+			strcpy(buf->data, &msg[l-k-1]);
+
+			/* we need to place the TAIL at the end of the message */
+			buf->tail = k + 1;
+		}else{
+			printf("Weird! Can't find the terminator token from the beginning??? \n");
+			buf->head = buf->tail = 0; /* reset buffer, since it's probably corrupted */
+		}
+		
+	}
+	sem_up(s_semid);
+}
+#endif
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
 static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -104,6 +267,16 @@ static void message (char *fmt, ...)
 	fl.l_start  = 0;
 	fl.l_len    = 1;
 
+#ifdef BB_FEATURE_IPC_SYSLOG
+	if ((circular_logging == TRUE) && (buf != NULL)){
+			char b[1024];
+			va_start (arguments, fmt);
+			vsprintf (b, fmt, arguments);
+			va_end (arguments);
+			circ_message(b);
+
+	}else
+#endif
 	if ((fd = device_open (logFilePath,
 						   O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
 						   O_NONBLOCK)) >= 0) {
@@ -197,6 +370,10 @@ static void quit_signal(int sig)
 {
 	logMessage(0, "System log daemon exiting.");
 	unlink(lfile);
+#ifdef BB_FEATURE_IPC_SYSLOG
+	ipcsyslog_cleanup();
+#endif
+
 	exit(TRUE);
 }
 
@@ -382,85 +559,6 @@ static void doSyslogd (void)
 	} /* for main loop */
 }
 
-#ifdef BB_FEATURE_KLOGD
-
-static void klogd_signal(int sig)
-{
-	klogctl(7, NULL, 0);
-	klogctl(0, 0, 0);
-	logMessage(0, "Kernel log daemon exiting.");
-	exit(TRUE);
-}
-
-static void doKlogd (void) __attribute__ ((noreturn));
-static void doKlogd (void)
-{
-	int priority = LOG_INFO;
-	char log_buffer[4096];
-	int i, n, lastc;
-	char *start;
-
-	/* Set up sig handlers */
-	signal(SIGINT, klogd_signal);
-	signal(SIGKILL, klogd_signal);
-	signal(SIGTERM, klogd_signal);
-	signal(SIGHUP, SIG_IGN);
-
-#ifdef BB_FEATURE_REMOTE_LOG
-        if (doRemoteLog == TRUE){
-          init_RemoteLog();
-        }
-#endif
-
-	logMessage(0, "klogd started: "
-			   "BusyBox v" BB_VER " (" BB_BT ")");
-
-	/* "Open the log. Currently a NOP." */
-	klogctl(1, NULL, 0);
-
-	while (1) {
-		/* Use kernel syscalls */
-		memset(log_buffer, '\0', sizeof(log_buffer));
-		n = klogctl(2, log_buffer, sizeof(log_buffer));
-		if (n < 0) {
-			char message[80];
-
-			if (errno == EINTR)
-				continue;
-			snprintf(message, 79, "klogd: Error return from sys_sycall: " \
-					 "%d - %s.\n", errno, strerror(errno));
-			logMessage(LOG_SYSLOG | LOG_ERR, message);
-			exit(1);
-		}
-
-		/* klogctl buffer parsing modelled after code in dmesg.c */
-		start=&log_buffer[0];
-		lastc='\0';
-		for (i=0; i<n; i++) {
-			if (lastc == '\0' && log_buffer[i] == '<') {
-				priority = 0;
-				i++;
-				while (isdigit(log_buffer[i])) {
-					priority = priority*10+(log_buffer[i]-'0');
-					i++;
-				}
-				if (log_buffer[i] == '>') i++;
-				start = &log_buffer[i];
-			}
-			if (log_buffer[i] == '\n') {
-				log_buffer[i] = '\0';  /* zero terminate this message */
-				logMessage(LOG_KERN | priority, start);
-				start = &log_buffer[i+1];
-				priority = LOG_INFO;
-			}
-			lastc = log_buffer[i];
-		}
-	}
-
-}
-
-#endif
-
 static void daemon_init (char **argv, char *dz, void fn (void))
 {
 	setsid();
@@ -472,16 +570,13 @@ static void daemon_init (char **argv, char *dz, void fn (void))
 
 extern int syslogd_main(int argc, char **argv)
 {
-	int opt, pid, klogd_pid;
+	int opt, pid;
 	int doFork = TRUE;
 
-#ifdef BB_FEATURE_KLOGD
-	int startKlogd = TRUE;
-#endif
 	char *p;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "m:nKO:R:L")) > 0) {
+	while ((opt = getopt(argc, argv, "m:nO:R:LC")) > 0) {
 		switch (opt) {
 			case 'm':
 				MarkInterval = atoi(optarg) * 60;
@@ -489,11 +584,6 @@ extern int syslogd_main(int argc, char **argv)
 			case 'n':
 				doFork = FALSE;
 				break;
-#ifdef BB_FEATURE_KLOGD
-			case 'K':
-				startKlogd = FALSE;
-				break;
-#endif
 			case 'O':
 				logFilePath = strdup(optarg);
 				break;
@@ -510,6 +600,11 @@ extern int syslogd_main(int argc, char **argv)
 				local_logging = TRUE;
 				break;
 #endif
+#ifdef BB_FEATURE_IPC_SYSLOG
+			case 'C':
+				circular_logging = TRUE;
+				break;
+#endif
 			default:
 				show_usage();
 		}
@@ -521,6 +616,7 @@ extern int syslogd_main(int argc, char **argv)
 		local_logging = TRUE;
 #endif
 
+
 	/* Store away localhost's name before the fork */
 	gethostname(LocalHostName, sizeof(LocalHostName));
 	if ((p = strchr(LocalHostName, '.'))) {
@@ -529,13 +625,9 @@ extern int syslogd_main(int argc, char **argv)
 
 	umask(0);
 
-#ifdef BB_FEATURE_KLOGD
-	/* Start up the klogd process */
-	if (startKlogd == TRUE) {
-		klogd_pid = fork();
-		if (klogd_pid == 0) {
-			daemon_init (argv, "klogd", doKlogd);
-		}
+#ifdef BB_FEATURE_IPC_SYSLOG
+	if (circular_logging == TRUE ){
+ 	   ipcsyslog_init();
 	}
 #endif
 

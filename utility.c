@@ -77,6 +77,10 @@ const char mtab_file[] = "/proc/mounts";
 #  endif
 #endif
 
+#if defined(BB_KLOGD) || defined(BB_LOGGER)
+#include <syslog.h>
+#endif
+
 static struct BB_applet *applet_using;
 
 extern void show_usage(void)
@@ -1825,6 +1829,20 @@ void chomp(char *s)
 
 	if (s[len-1] == '\n')
 		s[len-1] = '\0';
+}
+#endif
+
+#if defined(BB_KLOGD) || defined(BB_LOGGER)
+void syslog_msg_with_name(const char *name, int facility, int pri, const char *msg)
+{
+ 	openlog(name, 0, facility);
+	syslog(pri, "%s", msg);
+	closelog();
+}
+
+void syslog_msg(int facility, int pri, const char *msg)
+{
+ 	syslog_msg_with_name(applet_using->name, facility, pri, msg);
 }
 #endif
 

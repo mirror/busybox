@@ -468,6 +468,13 @@
 	"Options:\n" \
 	"\t-l\tList all signal names and numbers."
 
+#define klogd_trivial_usage \
+	"-n"
+#define klogd_full_usage \
+	"Kernel logger.\n"\
+	"Options:\n"\
+	"\t-n\tRun as a foreground process."
+
 #define length_trivial_usage \
 	"STRING"
 #define length_full_usage \
@@ -512,6 +519,12 @@
 	""
 #define logname_full_usage \
 	"Print the name of the current user."
+
+#define logread_trivial_usage \
+        ""
+
+#define logread_full_usage \
+        "Shows the messages from syslogd (using circular buffer)."
 
 #ifdef BB_FEATURE_LS_TIMESTAMPS
   #define USAGE_LS_TIMESTAMPS(a) a
@@ -913,11 +926,6 @@
 	"Write all buffered filesystem blocks to disk."
 
 
-#ifdef BB_FEATURE_KLOGD
-  #define USAGE_KLOGD(a) a
-#else
-  #define USAGE_KLOGD(a)
-#endif
 #ifdef BB_FEATURE_REMOTE_LOG
   #define USAGE_REMOTE_LOG(a) a
 #else
@@ -926,12 +934,11 @@
 #define syslogd_trivial_usage \
 	"[OPTION]..."
 #define syslogd_full_usage \
-	"Linux system and kernel (provides klogd) logging utility.\n" \
-	"Note that this version of syslogd/klogd ignores /etc/syslog.conf.\n\n" \
+	"Linux system and kernel logging utility.\n" \
+	"Note that this version of syslogd ignores /etc/syslog.conf.\n\n" \
 	"Options:\n" \
 	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
-	USAGE_KLOGD("\t-K\t\tDo not start up the klogd process\n") \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
 	USAGE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \

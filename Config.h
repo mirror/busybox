@@ -52,6 +52,7 @@
 //#define BB_INSMOD
 #define BB_KILL
 #define BB_KILLALL
+#define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
 //#define BB_LOADACM
@@ -59,6 +60,7 @@
 //#define BB_LOADKMAP
 #define BB_LOGGER
 //#define BB_LOGNAME
+#define BB_LOGREAD
 #define BB_LS
 #define BB_LSMOD
 //#define BB_MAKEDEVS

@@ -191,6 +191,9 @@
 #ifdef BB_KILLALL
 	APPLET(killall, kill_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_KLOGD
+	APPLET(klogd, klogd_main, _BB_DIR_SBIN)
+#endif
 #ifdef BB_LENGTH
 	APPLET(length, length_main, _BB_DIR_USR_BIN)
 #endif
@@ -214,6 +217,9 @@
 #endif
 #ifdef BB_LOGNAME
 	APPLET(logname, logname_main, _BB_DIR_USR_BIN)
+#endif
+#ifdef BB_LOGREAD
+	APPLET(logread, logread_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_LS
 	APPLET(ls, ls_main, _BB_DIR_BIN)

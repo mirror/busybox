@@ -148,9 +148,10 @@ extern int logger_main(int argc, char **argv)
 		message[strlen(message)-1] = '\0';
 	}
 
-	openlog(name, option, (pri | LOG_FACMASK));
+	/*openlog(name, option, (pri | LOG_FACMASK));
 	syslog(pri, "%s", message);
-	closelog();
+	closelog();*/
+	syslog_msg_with_name(name,(pri | LOG_FACMASK),pri,message);
 	return EXIT_SUCCESS;
 }
 
