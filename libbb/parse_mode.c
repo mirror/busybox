@@ -65,7 +65,7 @@ extern int bb_parse_mode(const char *s, mode_t *current_mode)
 		char *e;
 
 		tmp = strtol(s, &e, 8);
-		if (*e || (tmp > 0xffffU)) { /* Check range and trailing chars. */
+		if (*e || (tmp > 07777U)) { /* Check range and trailing chars. */
 			return 0;
 		}
 		*current_mode = tmp;

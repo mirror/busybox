@@ -38,7 +38,7 @@
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (!bb_parse_mode((char *)junk, &(statbuf->st_mode)))
-		bb_error_msg_and_die( "unknown mode: %s", (char *)junk);
+		bb_error_msg_and_die( "invalid mode: %s", (char *)junk);
 	if (chmod(fileName, statbuf->st_mode) == 0)
 		return (TRUE);
 	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
