@@ -18,13 +18,14 @@ around to it some time. If you have any good ideas, please let me know.
 * traceroute/nslookup/netstat
 * rdate
 * hwclock
-* login/getty
 * killall
 * tee
 * stty
-* head/tail
+* head
 * sort/uniq
 * wc
 * tr
-* expr (maybe)?
+* expr (maybe)?  (ash builtin?)
+* login/sulogin/passwd/getty  (These are actully now part of tinylogin, which 
+                                I've just started to maintain).
 

@@ -13,35 +13,16 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
-
-/* Can display any amount of data, unlike the Unix version, which uses
-   a fixed size buffer and therefore can only deliver a limited number
-   of lines.
-
-   Options:
-   -b			Tail by N 512-byte blocks.
-   -c, --bytes=N[bkm]	Tail by N bytes
-			[or 512-byte blocks, kilobytes, or megabytes].
-   -f, --follow		Loop forever trying to read more characters at the
-			end of the file, on the assumption that the file
-			is growing.  Ignored if reading from a pipe.
-   -n, --lines=N	Tail by N lines.
-   -q, --quiet, --silent	Never print filename headers.
-   -v, --verbose		Always print filename headers.
-
-   If a number (N) starts with a `+', begin printing with the Nth item
-   from the start of each file, instead of from the end.
-
-   Reads from standard input if no files are given or when a filename of
-   ``-'' is encountered.
-   By default, filename headers are printed only more than one file
-   is given.
-   By default, prints the last 10 lines (tail -n 10).
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
    Original version by Paul Rubin <phr@ocf.berkeley.edu>.
    Extensions by David MacKenzie <djm@gnu.ai.mit.edu>.
-   tail -f for multiple files by Ian Lance Taylor <ian@airs.com>.  */
+   tail -f for multiple files by Ian Lance Taylor <ian@airs.com>.  
+
+   Rewrote the option parser, removed locales support,
+    and generally busyboxed, Erik Andersen <andersen@lineo.com>
+ 
+ */
 
 #include "internal.h"
 
@@ -49,16 +30,25 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <ctype.h>
+
 
 
 /* Disable assertions.  Some systems have broken assert macros.  */
 #define NDEBUG 1
 
 
-static void error(int i, int errnum, char* fmt, const char *msg)
+static void error(int i, int errnum, char* fmt, ...)
 {
-    fprintf(stderr, fmt, msg);
-    perror( errnum);
+    va_list arguments;
+
+    va_start(arguments, fmt);
+    vfprintf(stderr, fmt, arguments);
+    fprintf(stderr, "\n%s\n", strerror( errnum));
+    va_end(arguments);
     exit(i);
 }
 
@@ -69,7 +59,7 @@ static void error(int i, int errnum, char* fmt, const char *msg)
       assert ((fd) == 1);						\
       assert ((n_bytes) >= 0);						\
       if (n_bytes > 0 && fwrite ((buffer), 1, (n_bytes), stdout) == 0)	\
-	error (EXIT_FAILURE, errno, "write error", NULL);			\
+	error (EXIT_FAILURE, errno, "write error");			\
     }									\
   while (0)
 
@@ -110,7 +100,6 @@ enum header_mode
 };
 
 char *xmalloc ();
-int safe_read ();
 
 /* The name this program was run with.  */
 char *program_name;
@@ -118,33 +107,24 @@ char *program_name;
 /* Nonzero if we have ever read standard input.  */
 static int have_read_stdin;
 
-/* If nonzero, display usage information and exit.  */
-static int show_help;
-
-/* If nonzero, print the version on standard output then exit.  */
-static int show_version;
 
 static const char tail_usage[] = 
 "tail [OPTION]... [FILE]...\n\
+\n\
 Print last 10 lines of each FILE to standard output.\n\
 With more than one FILE, precede each with a header giving the file name.\n\
 With no FILE, or when FILE is -, read standard input.\n\
 \n\
-  -c, --bytes=N            output the last N bytes\n\
-  -f, --follow             output appended data as the file grows\n\
-  -n, --lines=N            output the last N lines, instead of last 10\n\
-  -q, --quiet, --silent    never output headers giving file names\n\
-  -v, --verbose            always output headers giving file names\n\
-      --help               display this help and exit\n\
-      --version            output version information and exit\n\
+  -c=N[kbm]       output the last N bytes\n\
+  -f              output appended data as the file grows\n\
+  -n=N            output the last N lines, instead of last 10\n\
+  -q              never output headers giving file names\n\
+  -v              always output headers giving file names\n\
+  --help          display this help and exit\n\
 \n\
-If the first character of N (the number of bytes or lines) is a `+',\n\
-print beginning with the Nth item from the start of each file, otherwise,\n\
-print the last N items in the file.  N may have a multiplier suffix:\n\
-b for 512, k for 1024, m for 1048576 (1 Meg).  A first OPTION of -VALUE\n\
-or +VALUE is treated like -n VALUE or -n +VALUE unless VALUE has one of\n\
-the [bkm] suffix multipliers, in which case it is treated like -c VALUE\n\
-or -c +VALUE.\n";
+If the first character of N (bytes or lines) is a `+', output begins with \n\
+the Nth item from the start of each file, otherwise, print the last N items\n\
+in the file.  N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).\n\n";
 
 static void
 write_header (const char *filename, const char *comment)
@@ -184,7 +164,7 @@ file_lines (const char *filename, int fd, long int n_lines, off_t pos)
      reads will be on block boundaries, which might increase efficiency.  */
   pos -= bytes_read;
   lseek (fd, pos, SEEK_SET);
-  bytes_read = safe_read (fd, buffer, bytes_read);
+  bytes_read = fullRead (fd, buffer, bytes_read);
   if (bytes_read == -1)
     {
       error (0, errno, "%s", filename);
@@ -220,7 +200,7 @@ file_lines (const char *filename, int fd, long int n_lines, off_t pos)
       pos -= BUFSIZ;
       lseek (fd, pos, SEEK_SET);
     }
-  while ((bytes_read = safe_read (fd, buffer, BUFSIZ)) > 0);
+  while ((bytes_read = fullRead (fd, buffer, BUFSIZ)) > 0);
   if (bytes_read == -1)
     {
       error (0, errno, "%s", filename);
@@ -255,7 +235,7 @@ pipe_lines (const char *filename, int fd, long int n_lines)
   tmp = (LBUFFER *) xmalloc (sizeof (LBUFFER));
 
   /* Input is always read into a fresh buffer.  */
-  while ((tmp->nbytes = safe_read (fd, tmp->buffer, BUFSIZ)) > 0)
+  while ((tmp->nbytes = fullRead (fd, tmp->buffer, BUFSIZ)) > 0)
     {
       tmp->nlines = 0;
       tmp->next = NULL;
@@ -374,7 +354,7 @@ pipe_bytes (const char *filename, int fd, off_t n_bytes)
   tmp = (CBUFFER *) xmalloc (sizeof (CBUFFER));
 
   /* Input is always read into a fresh buffer.  */
-  while ((tmp->nbytes = safe_read (fd, tmp->buffer, BUFSIZ)) > 0)
+  while ((tmp->nbytes = fullRead (fd, tmp->buffer, BUFSIZ)) > 0)
     {
       tmp->next = NULL;
 
@@ -453,7 +433,7 @@ start_bytes (const char *filename, int fd, off_t n_bytes)
   char buffer[BUFSIZ];
   int bytes_read = 0;
 
-  while (n_bytes > 0 && (bytes_read = safe_read (fd, buffer, BUFSIZ)) > 0)
+  while (n_bytes > 0 && (bytes_read = fullRead (fd, buffer, BUFSIZ)) > 0)
     n_bytes -= bytes_read;
   if (bytes_read == -1)
     {
@@ -476,7 +456,7 @@ start_lines (const char *filename, int fd, long int n_lines)
   int bytes_read = 0;
   int bytes_to_skip = 0;
 
-  while (n_lines && (bytes_read = safe_read (fd, buffer, BUFSIZ)) > 0)
+  while (n_lines && (bytes_read = fullRead (fd, buffer, BUFSIZ)) > 0)
     {
       bytes_to_skip = 0;
       while (bytes_to_skip < bytes_read)
@@ -509,7 +489,7 @@ dump_remainder (const char *filename, int fd)
 
   total = 0;
 output:
-  while ((bytes_read = safe_read (fd, buffer, BUFSIZ)) > 0)
+  while ((bytes_read = fullRead (fd, buffer, BUFSIZ)) > 0)
     {
       XWRITE (STDOUT_FILENO, buffer, bytes_read);
       total += bytes_read;
@@ -731,7 +711,7 @@ tail_file (const char *filename, off_t n_units, int filenum)
   int fd, errors;
   struct stat stats;
 
-  if (!strcmp (filename, "-")
+  if (!strcmp (filename, "-"))
     {
       have_read_stdin = 1;
       filename = "standard input";
@@ -815,16 +795,15 @@ tail_file (const char *filename, off_t n_units, int filenum)
 }
 
 extern int
-tai_main (int argc, char **argv)
+tail_main (int argc, char **argv)
 {
+  int stopit = 0;
   enum header_mode header_mode = multiple_files;
   int exit_status = 0;
   /* If from_start, the number of items to skip before printing; otherwise,
      the number of items at the end of the file to print.  Initially, -1
      means the value has not been set.  */
   off_t n_units = -1;
-  long int tmp_long;
-  int c;			/* Option character.  */
   int n_files;
   char **file;
 
@@ -832,48 +811,38 @@ tai_main (int argc, char **argv)
   have_read_stdin = 0;
   count_lines = 1;
   forever = forever_multiple = from_start = print_headers = 0;
-
-  if (argc > 1
-      && ((argv[1][0] == '-' && ISDIGIT (argv[1][1]))
-	  || (argv[1][0] == '+' && (ISDIGIT (argv[1][1])
-				    || argv[1][1] == 0))))
-    {
-      /* Old option syntax: a dash or plus, one or more digits (zero digits
-	 are acceptable with a plus), and one or more option letters.  */
-      if (argv[1][0] == '+')
-	from_start = 1;
-      if (argv[1][1] != '\0')
-	{
-	  strtol_error s_err;
-	  char *p;
-
-	  s_err = xstrtol (++argv[1], &p, 0, &tmp_long, "bkm");
-	  n_units = tmp_long;
-	  if (s_err == LONGINT_OVERFLOW)
-	    {
-	      STRTOL_FATAL_ERROR (argv[1], "argument", s_err);
-	    }
-
-	  /* If a [bkm] suffix was given then count bytes, not lines.  */
-	  if (p[-1] == 'b' || p[-1] == 'k' || p[-1] == 'm')
-	    count_lines = 0;
-
-	  /* Parse any appended option letters.  */
-	  while (*p)
-	    {
-	      switch (*p)
-		{
+      
+  /* Parse any options */
+  //fprintf(stderr, "argc=%d, argv=%s\n", argc, *argv);
+    while (--argc > 0 && ( **(++argv) == '-' || **argv == '+' )) {
+	if (**argv == '+') {
+	    from_start = 1;
+	}
+	stopit = 0;
+	while (stopit == 0 && *(++(*argv))) {
+	    switch (**argv) {
 		case 'c':
-		  /* Interpret N_UNITS as # of bytes.  */
 		  count_lines = 0;
+
+		  if (--argc < 1) {
+		      usage(tail_usage);
+		  }
+		  n_units = getNum(*(++argv));
+		  stopit = 1;
 		  break;
 
 		case 'f':
 		  forever = 1;
 		  break;
 
-		case 'l':
+		case 'n':
 		  count_lines = 1;
+
+		  if (--argc < 1) {
+		      usage(tail_usage);
+		  }
+		  n_units = atol(*(++argv));
+		  stopit = 1;
 		  break;
 
 		case 'q':
@@ -885,26 +854,11 @@ tai_main (int argc, char **argv)
 		  break;
 
 		default:
-		  error (0, 0, "unrecognized option '%c'", *p);
 		  usage (tail_usage);
-		}
-	      ++p;
 	    }
 	}
-      /* Make the options we just parsed invisible to getopt.  */
-      argv[1] = argv[0];
-      argv++;
-      argc--;
     }
 
-  if (show_version)
-    {
-      printf ("tail - %s\n", PACKAGE_VERSION);
-      exit (EXIT_SUCCESS);
-    }
-
-  if (show_help)
-    usage (tail_usage);
 
   if (n_units == -1)
     n_units = DEFAULT_N_LINES;
@@ -918,8 +872,8 @@ tai_main (int argc, char **argv)
 	--n_units;
     }
 
-  n_files = argc - optind;
-  file = argv + optind;
+  n_files = argc;
+  file = argv;
 
   if (n_files > 1 && forever)
     {

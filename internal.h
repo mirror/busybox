@@ -155,6 +155,7 @@ extern void write_mtab(char* blockDevice, char* directory,
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern int check_wildcard_match(const char* text, const char* pattern);
+extern long getNum (const char *cp);
 
 
 #if defined BB_MTAB

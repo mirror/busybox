@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.4 1999/12/08 23:19:36 andersen Exp $
+ * $Id: ping.c,v 1.5 1999/12/09 06:11:36 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -53,6 +53,7 @@
 #define	MAXPACKET	65468
 #define	MAX_DUP_CHK	(8 * 128)
 #define MAXWAIT         10
+#define PINGINTERVAL    1 /* second */
 
 #define O_QUIET         (1 << 0)
 
@@ -155,8 +156,8 @@ static void sendping(int ign)
     }
 
     signal(SIGALRM, sendping);
-    if (pingcount == 0 || ntransmitted < pingcount) { /* schedule next */
-        alarm(1);
+    if (pingcount == 0 || ntransmitted < pingcount) { /* schedule next in 1s */
+        alarm(PINGINTERVAL);
     } else { /* done, wait for the last ping to come back */
 	/* todo, don't necessarily need to wait so long... */
         signal(SIGALRM, pingstats);
@@ -243,9 +244,8 @@ static void ping(char *host)
 	exit(1);
     }
 
-#ifdef SUID_BUSYBOX
+    /* drop root privs if running setuid */
     setuid(getuid());
-#endif
     
     memset(&pingaddr, 0, sizeof(struct sockaddr_in));
     pingaddr.sin_family = AF_INET;
@@ -305,35 +305,31 @@ static void ping(char *host)
 
 extern int ping_main(int argc, char **argv)
 {
+    char *thisarg;
+    
     argc--;
     argv++;
     options = 0;
     /* Parse any options */
-    if (argc < 1) usage(ping_usage);
-
-    while (**argv == '-') {
-	while (*++(*argv))
-	    switch (**argv) {
-	    case 'c':
-		argc--; argv++;
-		if (argc < 1) usage(ping_usage);
-		pingcount = atoi(*argv);
-		break;
-	    case 'q':
-		options |= O_QUIET;
-		break;
-	    default:
-		usage(ping_usage);
-	    }
-	argc--;
-	argv++;
+    while (argc > 1) {
+        if (**argv != '-') usage(ping_usage);
+        thisarg = *argv; thisarg++;
+        switch (*thisarg) {
+	    case 'q': options |= O_QUIET; break;
+ 	    case 'c':
+	        argc--; argv++;
+	        pingcount = atoi(*argv);	        
+	        break;
+  	    default:
+	        usage(ping_usage);
+        }
+        argc--; argv++;
     }
-
-    if (argc < 1) usage(ping_usage);
+    if (argc < 1) usage(ping_usage);       
 
     myid = getpid() & 0xFFFF;
-    ping(*(argv++));
-    exit( TRUE);
+    ping(*argv);
+    exit(TRUE);
 }
 
 /*

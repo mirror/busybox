@@ -1,5 +1,5 @@
 /*
- * $Id: hostname.c,v 1.4 1999/12/08 23:19:36 andersen Exp $
+ * $Id: hostname.c,v 1.5 1999/12/09 06:11:36 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>

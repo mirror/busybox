@@ -48,52 +48,8 @@ static const char dd_usage[] =
 "\tcount=n\tcopy only n input blocks\n"
 //"\tskip=n\tskip n input blocks\n"
 "\n"
-"BYTES may be suffixed: by k for x1024, b for x512, and w for x2.\n";
+"BYTES may be suffixed by w (x2), k (x1024), b (x512), or m (x1024^2).\n";
 
-
-
-
-/*
- * Read a number with a possible multiplier.
- * Returns -1 if the number format is illegal.
- */
-static long getNum (const char *cp)
-{
-    long value;
-
-    if (!isDecimal (*cp))
-	return -1;
-
-    value = 0;
-
-    while (isDecimal (*cp))
-	value = value * 10 + *cp++ - '0';
-
-    switch (*cp++) {
-    case 'k':
-	value *= 1024;
-	break;
-
-    case 'b':
-	value *= 512;
-	break;
-
-    case 'w':
-	value *= 2;
-	break;
-
-    case '\0':
-	return value;
-
-    default:
-	return -1;
-    }
-
-    if (*cp)
-	return -1;
-
-    return value;
-}
 
 
 extern int dd_main (int argc, char **argv)
