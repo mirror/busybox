@@ -154,10 +154,6 @@ struct TarInfo
 };
 typedef struct TarInfo TarInfo;
 
-/* Static data  */
-static const unsigned long TarChecksumOffset = (const unsigned long)&(((TarHeader *)0)->chksum);
-
-
 /* Local procedures to restore files from a tar file.  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** excludeList);
@@ -472,10 +468,23 @@ static int
 readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 {
 	int i;
-	long chksum, sum;
+	long chksum, sum=0;
 	unsigned char *s = (unsigned char *)rawHeader;
 
 	header->name  = rawHeader->name;
+	/* Check for and relativify any absolute paths */
+	if ( *(header->name) == '/' ) {
+		static int alreadyWarned=FALSE;
+
+		while (*(header->name) == '/')
+			++*(header->name);
+
+		if (alreadyWarned == FALSE) {
+			errorMsg("tar: Removing leading '/' from member names\n");
+			alreadyWarned = TRUE;
+		}
+	}
+
 	header->mode  = getOctal(rawHeader->mode, sizeof(rawHeader->mode));
 	header->uid   =  getOctal(rawHeader->uid, sizeof(rawHeader->uid));
 	header->gid   =  getOctal(rawHeader->gid, sizeof(rawHeader->gid));
@@ -484,16 +493,32 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
 	header->type  = rawHeader->typeflag;
 	header->linkname  = rawHeader->linkname;
+	/* Check for and relativify any absolute paths */
+	if ( *(header->linkname) == '/' ) {
+		static int alreadyWarned=FALSE;
+
+		while (*(header->linkname) == '/')
+			++*(header->linkname);
+
+		if (alreadyWarned == FALSE) {
+			errorMsg("tar: Removing leading '/' from link names\n");
+			alreadyWarned = TRUE;
+		}
+	}
 	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
 	header->devminor  = getOctal(rawHeader->devminor, sizeof(rawHeader->devminor));
 
 	/* Check the checksum */
-	sum = ' ' * sizeof(rawHeader->chksum);
-	for ( i = TarChecksumOffset; i > 0; i-- )
+	for (i = sizeof(*rawHeader); i-- != 0;) {
 		sum += *s++;
-	s += sizeof(rawHeader->chksum);       
-	for ( i = (512 - TarChecksumOffset - sizeof(rawHeader->chksum)); i > 0; i-- )
-		sum += *s++;
+	}
+	/* Remove the effects of the checksum field (replace 
+	 * with blanks for the purposes of the checksum) */
+	s = rawHeader->chksum;
+	for (i = sizeof(rawHeader->chksum) ; i-- != 0;) {
+		sum -= *s++;
+	}
+	sum += ' ' * sizeof(rawHeader->chksum);
 	if (sum == chksum )
 		return ( TRUE);
 	return( FALSE);
@@ -511,7 +536,6 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	int errorFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
-	int alreadyWarned=FALSE;
 	//int skipFileFlag=FALSE;
 
 	/* Open the tar file for reading.  */
@@ -544,18 +568,6 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 		if ( *(header.name) == '\0' )
 				goto endgame;
-
-		/* Check for and relativify any absolute paths */
-		if ( *(header.name) == '/' ) {
-
-			while (*(header.name) == '/')
-				++*(header.name);
-
-			if (alreadyWarned == FALSE) {
-				errorMsg("Absolute path detected, removing leading slashes\n");
-				alreadyWarned = TRUE;
-			}
-		}
 
 		/* Special treatment if the list (-t) flag is on */
 		if (verboseFlag == TRUE && extractFlag == FALSE) {
@@ -751,13 +763,14 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 			errorMsg("tar: Removing leading '/' from member names\n");
 			alreadyWarned=TRUE;
 		}
-		strcpy(header.name, fileName+1); 
+		strncpy(header.name, fileName+1, sizeof(header.name)); 
 	}
 	else {
-		strcpy(header.name, fileName); 
+		strncpy(header.name, fileName, sizeof(header.name)); 
 	}
-#if 0
-	/* Now that leading '/''s have been removed */
+
+	/* Now that leading '/''s have been removed, 
+	 * check for excluded files....  */
 	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
 		printf( "comparing '%s' and '%s'", *tmpList, header.name);
 		if (strcmp( *tmpList, header.name)==0)
@@ -765,7 +778,6 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		else
 			printf( "\n");
 	}
-#endif
 
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
@@ -775,15 +787,15 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	strncpy(header.magic, TAR_MAGIC TAR_VERSION, 
 			TAR_MAGIC_LEN + TAR_VERSION_LEN );
 
+	/* Enter the user and group names (default to root if it fails) */
 	my_getpwuid(header.uname, statbuf->st_uid);
-	/* Put some sort of sane fallback in place... */
 	if (! *header.uname)
-		strncpy(header.uname, "root", 5);
+		strcpy(header.uname, "root");
 	my_getgrgid(header.gname, statbuf->st_gid);
 	if (! *header.uname)
-		strncpy(header.uname, "root", 5);
+		strcpy(header.uname, "root");
 
-	// FIXME: (or most likely not) I break Hard Links
+	// FIXME (or most likely not): I break Hard Links
 	if (S_ISLNK(statbuf->st_mode)) {
 		char buffer[BUFSIZ];
 		header.typeflag  = SYMTYPE;
@@ -791,7 +803,17 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 			errorMsg("Error reading symlink '%s': %s\n", header.name, strerror(errno));
 			return ( FALSE);
 		}
-		strncpy(header.linkname, buffer, sizeof(header.linkname)); 
+		if (*buffer=='/') {
+			static int alreadyWarned=FALSE;
+			if (alreadyWarned==FALSE) {
+				errorMsg("tar: Removing leading '/' from link names\n");
+				alreadyWarned=TRUE;
+			}
+			strncpy(header.linkname, buffer+1, sizeof(header.linkname)); 
+		}
+		else {
+			strncpy(header.linkname, buffer, sizeof(header.linkname)); 
+		}
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag  = DIRTYPE;
 		strncat(header.name, "/", sizeof(header.name)); 
