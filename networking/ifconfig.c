@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.6 2001/03/09 23:06:15 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.7 2001/03/10 02:00:54 mjn3 Exp $
  *
  */
 
@@ -234,7 +234,7 @@ static int in_ether(char *bufp, struct sockaddr *sap);
 #endif
 
 #ifdef BB_FEATURE_IFCONFIG_STATUS
-extern int display_interfaces(void);
+extern int display_interfaces(int display_all);
 #endif
 
 /*
@@ -263,20 +263,26 @@ int ifconfig_main(int argc, char **argv)
 
 	if(argc < 2) {
 #ifdef BB_FEATURE_IFCONFIG_STATUS
-		return(display_interfaces());
+		return(display_interfaces(0));
 #else
 		show_usage();
 #endif
 	}
 
+	/* skip argv[0] */
+	argc--;
+	argv++;
+
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+	if ((argc == 1) && (strcmp(*argv, "-a") == 0)) {
+		return(display_interfaces(1));
+	}
+#endif
+
 	/* Create a channel to the NET kernel. */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror_msg_and_die("socket");
 	}
-
-	/* skip argv[0] */
-	argc--;
-	argv++;
 
 	/* get interface name */
 	safe_strncpy(ifr.ifr_name, *argv, IFNAMSIZ);
@@ -290,7 +296,7 @@ int ifconfig_main(int argc, char **argv)
 			mask = M_MASK;		/*    set the appropriate mask. */
 		}
 		for (op = OptArray ; op->name ; op++) {	/* Find table entry. */
-			if (!strcmp(p,op->name)) { /* If name matches... */
+			if (strcmp(p,op->name) == 0) { /* If name matches... */
 				if ((mask &= op->flags)) { /* set the mask and go. */
 				    goto FOUND_ARG;;
 				}

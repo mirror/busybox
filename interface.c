@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.2 2001/03/06 20:54:43 andersen Exp $
+ * Version:     $Id: interface.c,v 1.3 2001/03/10 02:00:54 mjn3 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -2059,14 +2059,15 @@ static int if_print(char *ifname)
     return res; 
 }
 
-int display_interfaces(void)
+int display_interfaces(int opt_all)
 {
     int status;
 
+	opt_a = opt_all;
+
     /* Create a channel to the NET kernel. */
     if ((skfd = sockets_open(0)) < 0) {
-	perror("socket");
-	exit(1);
+		perror_msg_and_die("socket");
     }
 
     /* Do we have to show the current setup? */
