@@ -829,13 +829,6 @@ static void cont_handler(int sig)
 	got_cont = 1;
 }
 
-/* Reap any zombie processes that are reparented to init */
-static void child_handler(int sig)
-{
-	int status;
-	while ( wait3(&status, WNOHANG, NULL) > 0 );
-}
-
 #endif							/* ! DEBUG_INIT */
 
 static void new_init_action(int action, const char *command, const char *cons)
@@ -1076,7 +1069,6 @@ extern int init_main(int argc, char **argv)
 	signal(SIGCONT, cont_handler);
 	signal(SIGSTOP, stop_handler);
 	signal(SIGTSTP, stop_handler);
-	signal(SIGCHLD, child_handler);
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
 	 * SIGINT on CAD so we can shut things down gracefully... */

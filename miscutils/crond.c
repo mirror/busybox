@@ -299,6 +299,7 @@ static int
 ChangeUser(const char *user)
 {
     struct passwd *pas;
+    const char *err_msg;
 
     /*
      * Obtain password entry and change privilages
@@ -315,18 +316,9 @@ ChangeUser(const char *user)
     /*
      * Change running state to the user in question
      */
-
-    if (initgroups(user, pas->pw_gid) < 0) {
-	crondlog("\011initgroups failed: %s %m", user);
-	return(-1);
-    }
-    /* drop all priviledges */
-    if (setgid(pas->pw_gid) < 0) {
-	crondlog("\011setgid failed: %s %d", user, pas->pw_gid);
-	return(-1);
-    }
-    if (setuid(pas->pw_uid) < 0) {
-	crondlog("\011setuid failed: %s %d", user, pas->pw_uid);
+    err_msg = change_identity_e2str(pas);
+    if (err_msg) {
+	crondlog("\011%s for user %s", err_msg, user);
 	return(-1);
     }
 	if (chdir(pas->pw_dir) < 0) {

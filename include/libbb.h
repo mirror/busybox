@@ -411,6 +411,7 @@ void bb_xasprintf(char **string_ptr, const char *format, ...) __attribute__ ((fo
 
 #define FAIL_DELAY    3
 extern void change_identity ( const struct passwd *pw );
+extern const char *change_identity_e2str ( const struct passwd *pw );
 extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args
 #ifdef CONFIG_SELINUX
 	, security_id_t sid
