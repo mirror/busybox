@@ -6,11 +6,6 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-#undef APPLET
-#undef APPLET_NOUSAGE
-#undef PROTOTYPES
-#include "applets.h"
-
 #define bb_need_full_version
 #define BB_DECLARE_EXTERN
 #include "messages.c"

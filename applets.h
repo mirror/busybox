@@ -436,7 +436,4 @@
 	{ 0,NULL,0 }
 };
 
-/* The -1 arises because of the {0,NULL,0,-1} entry above. */
-size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
-
 #endif
