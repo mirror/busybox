@@ -1,6 +1,13 @@
+busybox (1:0.60.1-1) unstable; urgency=low
+
+  * New stable version released.  See changelog for details.
+  * Enabled 'ar' for the udeb
+
+ -- Erik Andersen <andersee@debian.org>  Thu, 23 Aug 2001 15:44:14 -0600
+
 busybox (1:0.60.0-1) unstable; urgency=low
 
-  * New version released.  See changelog for details.
+  * New stable version released.  See changelog for details.
 
  -- Erik Andersen <andersee@debian.org>  Thu,  2 Aug 2001 12:12:37 -0600
 
