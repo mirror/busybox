@@ -312,7 +312,7 @@ static void console_init()
 	/* check for serial console and disable logging to tty3 & running a
 	* shell to tty2 */
 	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
-	    message(LOG|CONSOLE, "serial console detected.  Disabling 2nd virtual terminal.\r\n", console );
+	    message(LOG|CONSOLE, "serial console detected.  Disabling virtual terminals.\r\n", console );
 	    log = NULL;
 	    second_console = NULL;
 	}
@@ -523,8 +523,8 @@ void new_initAction (initActionEnum action,
     } else
 	strncpy(newAction->console, console, 255);
     newAction->pid = 0;
-    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
-	    newAction->process, newAction->action, newAction->console);
+//    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
+//	    newAction->process, newAction->action, newAction->console);
 }
 
 void delete_initAction (initAction *action)
@@ -542,9 +542,9 @@ void delete_initAction (initAction *action)
 /* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
  * actions(i.e runs INIT_SCRIPT and then starts a pair 
- * of "askfirst" shells.  If BB_FEATURE_USE_INITTAB 
- * _is_ defined, but /etc/inittab is missing == same
- * default behavior.
+ * of "askfirst" shells).  If BB_FEATURE_USE_INITTAB 
+ * _is_ defined, but /etc/inittab is missing, this 
+ * results in the same set of default behaviors.
  * */
 void parse_inittab(void) 
 {
