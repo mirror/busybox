@@ -318,7 +318,7 @@
 	"\t-d\toutput will be in DOS format"
 
 #define dpkg_trivial_usage \
-	"-i package_file\n"
+	"-i package_file\n" \
 	"[-CPru] package_name"
 #define dpkg_full_usage \
 	"\t-i\tInstall the package\n" \
