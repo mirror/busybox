@@ -35,8 +35,6 @@ Bugs that need fixing before the 0.44 release goes out the door:
     /tmp/file in the current directory, rather then trying and failing to create
     a symlink named "." in the current working directory).
   - implement 'ls -R'.
-  - "cp -a sourcedir/*" (note: no dest) - produces an odd error message about
-    the last file in the dir, rather than saying "missing destination file".
   - "math" should also take input from stdin
   - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
     is not on.
