@@ -39,6 +39,13 @@ MISCUTILS-$(CONFIG_WATCHDOG)		+= watchdog.o
 
 libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)
 
+needlibm-y:=
+needlibm-$(CONFIG_DC) := y
+
+ifeq ($(needlibm-y),y)
+  LIBRARIES += -lm
+endif
+
 $(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
 
