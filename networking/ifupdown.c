@@ -557,7 +557,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
-	return (result || execute("ifconfig %iface% down", ifd, exec));
+	return (result || bootp_down(ifd, exec));
 }
 
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
