@@ -1281,11 +1281,13 @@
 	"221 foobar closing connection\n" 
 
 #define netstat_trivial_usage \
-	"[-lantuwx]"
+	"[-laenrtuwx]"
 #define netstat_full_usage \
 	"-l display listening server sockets\n" \
 	"-a display all sockets (default: connected)\n" \
+	"-e display other/more information\n" \
 	"-n don't resolve names\n" \
+	"-r display routing table\n" \
 	"-t tcp sockets\n" \
 	"-u udp sockets\n" \
 	"-w raw sockets\n" \
@@ -1450,7 +1452,8 @@
 #define route_full_usage \
 	"Edit the kernel's routing tables.\n\n" \
 	"Options:\n" \
-	"\t-n\tDont resolve names."
+	"\t-n\tDont resolve names.\n" \
+	"\t-e\tDisplay other/more information"
 
 #define rpm2cpio_trivial_usage \
 	"package.rpm"
