@@ -24,6 +24,13 @@
 #include <errno.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <endian.h>
+#include <sys/types.h>
+#if defined HAVE_LIMITS_H
+# include <limits.h>
+#endif
 #include "busybox.h"
 
 /* For some silly reason, this file uses backwards TRUE and FALSE conventions */
@@ -60,12 +67,6 @@
 
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.  */
 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <string.h>
-#include <endian.h>
-
-#include "busybox.h"
 //----------------------------------------------------------------------------
 //--------md5.h
 //----------------------------------------------------------------------------
@@ -93,12 +94,6 @@
 #ifndef _MD5_H
 static const int _MD5_H = 1;
 
-#include <stdio.h>
-
-#if defined HAVE_LIMITS_H || defined _LIBC
-# include <limits.h>
-#endif
-
 /* The following contortions are an attempt to use the C preprocessor
    to determine an unsigned integral type that is 32 bits wide.  An
    alternative approach is to use autoconf's AC_CHECK_SIZEOF macro, but
@@ -106,7 +101,6 @@ static const int _MD5_H = 1;
    the resulting executable.  Locally running cross-compiled executables
    is usually not possible.  */
 
-# include <sys/types.h>
 typedef u_int32_t md5_uint32;
 
 /* Structure to save state of computation between the single steps.  */

@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.8 2001/05/13 00:48:09 andersen Exp $";
+	"$Id: vi.c,v 1.9 2001/06/23 13:49:14 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -65,9 +65,6 @@ char *vi_Version =
 //#define BB_FEATURE_VI_CRASHME		// randomly pick commands to execute
 #endif							/* STANDALONE */
 
-#ifndef STANDALONE
-#include "busybox.h"
-#endif							/* STANDALONE */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +83,9 @@ char *vi_Version =
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
+#ifndef STANDALONE
+#include "busybox.h"
+#endif							/* STANDALONE */
 
 #ifndef TRUE
 #define TRUE			((int)1)

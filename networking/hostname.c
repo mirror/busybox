@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.28 2001/05/16 15:40:48 kraai Exp $
+ * $Id: hostname.c,v 1.29 2001/06/23 13:49:14 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -23,7 +23,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "busybox.h"
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -31,6 +30,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 static void do_sethostname(char *s, int isfile)
 {
