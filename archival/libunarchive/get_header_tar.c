@@ -47,6 +47,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	} tar;
 	long sum = 0;
 	long i;
+	char *tmp;
 
 	/* Align header */
 	archive_handle->offset += data_align(archive_handle->src_fd, archive_handle->offset, 512);
@@ -91,6 +92,11 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	} else {
 		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
+	tmp = last_char_is(archive_handle->file_header->name, '/');
+	if (tmp) {
+		*tmp = '\0';
+	}
+
 	file_header->mode = strtol(tar.formated.mode, NULL, 8);
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
 	file_header->gid = strtol(tar.formated.gid, NULL, 8);
@@ -159,6 +165,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		archive_handle->action_header(archive_handle->file_header);
 		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
 		archive_handle->action_data(archive_handle);
+		archive_handle->passed = add_to_list(archive_handle->passed, archive_handle->file_header->name);
 	} else {
 		data_skip(archive_handle);			
 	}

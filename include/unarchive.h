@@ -36,6 +36,7 @@ typedef struct archive_handle_s {
 	char (*filter)(const llist_t *, const llist_t *, const char *);
 	const llist_t *accept;
 	const llist_t *reject;
+	const llist_t *passed;	/* List of files that have successfully been worked on */
 
 	/* Contains the processed header entry */
 	file_header_t *file_header;
@@ -89,5 +90,5 @@ extern void seek_sub_file(int src_fd, unsigned int amount);
 extern const unsigned short data_align(const int src_fd, const unsigned int offset, const unsigned short align_to);
 extern const llist_t *add_to_list(const llist_t *old_head, const char *new_item);
 extern int copy_file_chunk_fd(int src_fd, int dst_fd, unsigned long long chunksize);
-
+extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
 #endif

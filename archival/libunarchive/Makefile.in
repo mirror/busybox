@@ -48,6 +48,7 @@ LIBUNARCHIVE-y:= \
 	init_handle.o \
 	seek_sub_file.o \
 	unpack_ar_archive.o \
+	find_list_entry.o
 
 LIBUNARCHIVE-$(CONFIG_DPKG) += 
 LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += 

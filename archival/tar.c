@@ -586,14 +586,10 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 static const llist_t *append_file_list_to_list(const char *filename, const llist_t *list)
 {
 	FILE *src_stream = xfopen(filename, "r");
-	while(1) {
-		char *line = get_line_from_file(src_stream);
-		if (line == NULL) {
-			break;
-		}
+	char *line;
+	while((line = get_line_from_file(src_stream)) != NULL) {
 		chomp(line);
 		list = add_to_list(list, line);
-		free(line);
 	}
 	fclose(src_stream);
 
@@ -715,14 +711,10 @@ int tar_main(int argc, char **argv)
 		tar_handle->accept = add_to_list(tar_handle->accept, argv[optind]);
 		optind++;
 
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
-		if (tar_handle->reject) {
-			printf("Reject list\n");
-			tar_handle->filter = filter_accept_reject_list;
-		} else
-#endif	/* CONFIG_FEATURE_TAR_EXCLUDE */
+	}
 
-			tar_handle->filter = filter_accept_list;
+	if ((tar_handle->accept) || (tar_handle->reject)) {
+		tar_handle->filter = filter_accept_reject_list;
 	}
 
 	if ((base_dir) && (chdir(base_dir))) {
@@ -761,13 +753,18 @@ int tar_main(int argc, char **argv)
 #endif /* CONFIG_FEATURE_TAR_CREATE */
 
 			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
+
+		/* Ckeck that every file that should have been extracted was */
+		while (tar_handle->accept) {
+			if (find_list_entry(tar_handle->reject, tar_handle->accept->data) == NULL) {
+				if (find_list_entry(tar_handle->passed, tar_handle->accept->data) == NULL) {
+					error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
+				}
+			}
+			tar_handle->accept = tar_handle->accept->link;
+		}
 	}
 
-	/* Skip through list */
-	while (tar_handle->accept) {
-		error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
-		tar_handle->accept = tar_handle->accept->link;
-	}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	if (tar_handle->src_fd != fileno(stdin)) {
 		close(tar_handle->src_fd);

@@ -2,33 +2,24 @@
 #include <stdlib.h>
 #include "unarchive.h"
 
-static char check_list(const llist_t *list, const char *filename)
-{
-	if (list) {
-		while (list) {
-			if (fnmatch(list->data, filename, 0) == 0) {
-				return(EXIT_SUCCESS);
-			}
-			list = list->link;
-		}
-	}
-	return(EXIT_FAILURE);
-}
-
 /*
  * Accept names that are in the accept list
  */
 extern char filter_accept_reject_list(const llist_t *accept_list, const llist_t *reject_list, const char *key)
 {
+	const llist_t *accept_entry = find_list_entry(accept_list, key);
+	const llist_t *reject_entry = find_list_entry(reject_list, key);
+
 	/* Fail if an accept list was specified and the key wasnt in there */
-	if ((accept_list) && (check_list(accept_list, key) == EXIT_FAILURE)) {
+	if (accept_list && (accept_entry == NULL)) {
 		return(EXIT_FAILURE);
 	}
 
 	/* If the key is in a reject list fail */
-	if (check_list(reject_list, key) == EXIT_FAILURE) {
+	if (reject_entry) {
 		return(EXIT_FAILURE);
 	}
 
+	/* Accepted */
 	return(EXIT_SUCCESS);
 }
