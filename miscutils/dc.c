@@ -168,7 +168,7 @@ static char *get_token(char **buffer)
 	while (isspace(*current)) { current++; }
 	if (*current != 0) {
 		start = current;
-		while (!isspace(*current) && current != 0) { current++; }
+		while (!isspace(*current) && *current != 0) { current++; }
 		*buffer = current;
 	}
 	return start;
