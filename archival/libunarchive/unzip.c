@@ -65,7 +65,12 @@ static char *license_msg[] = {
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include "config.h"
 #include "libbb.h"
+
+#ifdef CONFIG_FEATURE_UNCOMPRESS
+int uncompress ( FILE *in, FILE *out );
+#endif
 
 static FILE *in_file, *out_file;
 
@@ -911,6 +916,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	unsigned char flags;	/* compression flags */
 	typedef void (*sig_type) (int);
 	unsigned short i;
+	unsigned char magic [2];
 
 	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
@@ -926,8 +932,18 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	}
 #endif
 
+	magic [0] = fgetc(l_in_file);
+	magic [1] = fgetc(l_in_file);
+	
+#ifdef CONFIG_FEATURE_UNCOMPRESS
+	/* Magic header for compress files, 1F 9d = \037\235 */
+	if (( magic [0] == 0x1F ) && ( magic [1] == 0x9d)) {
+		return uncompress ( l_in_file, l_out_file );
+	}
+#endif
+
 	/* Magic header for gzip files, 1F 8B = \037\213 */
-	if ((fgetc(l_in_file) != 0x1F) || (fgetc(l_in_file) != 0x8b)) {
+	if (( magic [0] != 0x1F ) || ( magic [1] != 0x8b)) {
 		error_msg("Invalid gzip magic");
 		return EXIT_FAILURE;
 	}
