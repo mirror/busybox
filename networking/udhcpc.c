@@ -176,7 +176,7 @@ enum {
 # define LOG_ERR	"error"
 # define LOG_INFO	"info"
 # define LOG_DEBUG	"debug"
-# define LOG(level, str, args...) do { printf("%s, ", level); printf(str, ## args); printf("\n"); } while(0)
+# define LOG(level, str, args...) do { printf("%s, " str "\n", level, ## args); } while(0)
 # define OPEN_LOG(name) do {;} while(0)
 #define CLOSE_LOG() do {;} while(0)
 #endif
@@ -280,7 +280,7 @@ static const struct dhcp_option options[] = {
 };
 
 /* Lengths of the different option types */
-static const int option_lengths[] = {
+static const unsigned char option_lengths[] = {
 	[OPTION_IP] =		4,
 	[OPTION_IP_PAIR] =	8,
 	[OPTION_BOOLEAN] =	1,
@@ -558,7 +558,7 @@ static void add_requests(struct dhcpMessage *packet)
 }
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
-static int send_discover(unsigned long xid, unsigned long requested)
+static inline int send_discover(unsigned long xid, unsigned long requested)
 {
 	struct dhcpMessage packet;
 
@@ -568,13 +568,13 @@ static int send_discover(unsigned long xid, unsigned long requested)
 		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 
 	add_requests(&packet);
-	LOG(LOG_DEBUG, "Sending discover...");
+	DEBUG(LOG_DEBUG, "Sending discover...");
 	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST, 
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
 /* Broadcasts a DHCP request message */
-static int send_selecting(unsigned long xid, unsigned long server, unsigned long requested)
+static inline int send_selecting(unsigned long xid, unsigned long server, unsigned long requested)
 {
 	struct dhcpMessage packet;
 	struct in_addr addr;
@@ -587,7 +587,7 @@ static int send_selecting(unsigned long xid, unsigned long server, unsigned long
 	
 	add_requests(&packet);
 	addr.s_addr = requested;
-	LOG(LOG_DEBUG, "Sending select for %s...", inet_ntoa(addr));
+	DEBUG(LOG_DEBUG, "Sending select for %s...", inet_ntoa(addr));
 	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST, 
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
@@ -597,19 +597,17 @@ static int send_selecting(unsigned long xid, unsigned long server, unsigned long
 static int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
 {
 	struct dhcpMessage packet;
-	int ret = 0;
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
 	packet.ciaddr = ciaddr;
 
 	add_requests(&packet);
-	LOG(LOG_DEBUG, "Sending renew...");
+	DEBUG(LOG_DEBUG, "Sending renew...");
 	if (server) 
-		ret = kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
-	else ret = raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+		return kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
-	return ret;
 }	
 
 /* Create a random xid */
@@ -739,7 +737,7 @@ static int sprintip(char *dest, char *pre, unsigned char *ip) {
 
 
 /* Fill dest with the text of option 'option'. */
-static void fill_options(char *dest, unsigned char *option, const struct dhcp_option *type_p)
+extern inline void fill_options(char *dest, unsigned char *option, const struct dhcp_option *type_p)
 {
 	int type, optlen;
 	u_int16_t val_u16;
@@ -917,7 +915,7 @@ static void release_requested(int sig)
 		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested_ip);
 		add_simple_option(packet.options, DHCP_SERVER_ID, server_addr);
 
-		LOG(LOG_DEBUG, "Sending release...");
+		DEBUG(LOG_DEBUG, "Sending release...");
 		kernel_packet(&packet, requested_ip, CLIENT_PORT, server_addr, SERVER_PORT);
 		run_script(NULL, "deconfig");
 	}
@@ -978,7 +976,7 @@ static void terminate(int sig)
 }
 
 
-static int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char *arp)
+extern inline int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsigned char *arp)
 {
 	int l_fd;
 	struct ifreq ifr;
@@ -1024,7 +1022,7 @@ static int read_interface(char *interface, int *ifindex, u_int32_t *addr, unsign
 }
 
 
-static int listen_socket(unsigned int ip, int port, char *inf)
+extern inline int listen_socket(unsigned int ip, int port, char *inf)
 {
 	struct ifreq interface;
 	int l_fd;
@@ -1129,7 +1127,7 @@ static int get_packet(struct dhcpMessage *packet, int l_fd)
 	return bytes;
 }
 
-static int get_raw_packet(struct dhcpMessage *payload, int l_fd)
+extern inline int get_raw_packet(struct dhcpMessage *payload, int l_fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
@@ -1198,7 +1196,6 @@ static int get_raw_packet(struct dhcpMessage *payload, int l_fd)
 	}
 	DEBUG(LOG_INFO, "oooooh!!! got some!");
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
-	
 }
 
 
@@ -1239,7 +1236,8 @@ int udhcpc_main(int argc, char *argv[])
 		
 		switch (c) {
 		case 'c':
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
+			len = strlen(optarg);
+			if (len > 255) len = 255;
 			if (client_config.clientid) free(client_config.clientid);
 			client_config.clientid = xmalloc(len + 2);
 			client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
@@ -1251,7 +1249,8 @@ int udhcpc_main(int argc, char *argv[])
 			client_config.foreground = 1;
 			break;
 		case 'H':
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
+			len = strlen(optarg);
+			if (len > 255) len = 255;
 			if (client_config.hostname) free(client_config.hostname);
 			client_config.hostname = xmalloc(len + 2);
 			client_config.hostname[OPT_CODE] = DHCP_HOST_NAME;
