@@ -1,574 +1,239 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (c) 1988, 1993
- *	The Regents of the University of California.  All rights reserved.
+ * Mini tr implementation for busybox
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ * This version of tr is adapted from Minix tr
+ * Author: Michiel Huisjes
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * 
+ * Original copyright notice is retained at the end of this file.
  */
 
-#if 0
-#ifndef lint
-static const char copyright[] = "@(#) Copyright (c) 1988, 1993\n\
-	The Regents of the University of California.  All rights reserved.\n";
-#endif							/* not lint */
-
-#ifndef lint
-#if 0
-static char sccsid[] = "@(#)tr.c	8.2 (Berkeley) 5/4/95";
-#endif
-static const char rcsid[] =
-
-	"$Id: tr.c,v 1.4 2000/04/17 16:44:46 erik Exp $";
-#endif							/* not lint */
-#endif							/* #if 0 */
-
 #include "internal.h"
-#include <locale.h>
-#include <sys/types.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
-
-#include <err.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
 
-#include <ctype.h>
-#include <err.h>
-#include <stddef.h>
 
-typedef struct {
-	enum { STRING1, STRING2 } which;
-	enum { EOS, INFINITE, NORMAL, RANGE, SEQUENCE, SET } state;
-	int cnt;					/* character count */
-	int lastch;					/* last character */
-	int equiv[2];				/* equivalence set */
-	int *set;					/* set of characters */
-	char *str;					/* user's string */
-} STR;
 
-#include <limits.h>
-#define	NCHARS	(UCHAR_MAX + 1)	/* Number of possible characters. */
-#define	OOBCH	(UCHAR_MAX + 1)	/* Out of band character value. */
+#ifdef TRUE
+#undef TRUE
+#undef FALSE
+#define TRUE	1
+#define FALSE	0
+#endif
 
-static int next __P((STR *));
+#define ASCII		0377
 
-static int string1[NCHARS] = {
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,	/* ASCII */
-	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-	0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-	0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-	0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
-	0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-	0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
-	0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
-	0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f,
-	0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
-	0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
-	0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-	0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
-	0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
-	0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
-	0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
-	0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
-	0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7,
-	0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
-	0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
-	0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
-	0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7,
-	0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
-	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7,
-	0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
-	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
-	0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
-}, string2[NCHARS];
+/* some glabals shared across this file */
+static char com_fl, del_fl, sq_fl;
+static unsigned char output[BUFSIZ], input[BUFSIZ];
+static unsigned char vector[ASCII + 1];
+static char invec[ASCII + 1], outvec[ASCII + 1];
+static short in_index, out_index;
 
-STR s1 = { STRING1, NORMAL, 0, OOBCH, {0, OOBCH}, NULL, NULL };
-STR s2 = { STRING2, NORMAL, 0, OOBCH, {0, OOBCH}, NULL, NULL };
 
-static void setup(string, arg, str, cflag)
-int *string;
-char *arg;
-STR *str;
-int cflag;
+static void convert()
 {
-	register int cnt, *p;
+	short read_chars = 0;
+	short c, coded;
+	short last = -1;
 
-	str->str = arg;
-	bzero(string, NCHARS * sizeof(int));
-
-	while (next(str))
-		string[str->lastch] = 1;
-	if (cflag)
-		for (p = string, cnt = NCHARS; cnt--; ++p)
-			*p = !*p;
-}
-
-static void tr_usage()
-{
-	usage( "\ttr [-cdsu] string1 [string2]\n\n"
-		   "Translate, squeeze, and/or delete characters from standard\n"
-		   "input, writing to standard output.\n");
-}
-
-
-extern int tr_main(argc, argv)
-int argc;
-char **argv;
-{
-	register int ch, cnt, lastch, *p;
-	int cflag, dflag, sflag, isstring2;
-
-	(void) setlocale(LC_CTYPE, "");
-
-	cflag = dflag = sflag = 0;
-	while ((ch = getopt(argc, argv, "cdsu")) != -1)
-		switch ((char) ch) {
-		case 'c':
-			cflag = 1;
-			break;
-		case 'd':
-			dflag = 1;
-			break;
-		case 's':
-			sflag = 1;
-			break;
-		case 'u':
-			setbuf(stdout, (char *) NULL);
-			break;
-		case '?':
-		default:
-			tr_usage();
-		}
-	argc -= optind;
-	argv += optind;
-
-	switch (argc) {
-	case 0:
-	default:
-		tr_usage();
-		/* NOTREACHED */
-	case 1:
-		isstring2 = 0;
-		break;
-	case 2:
-		isstring2 = 1;
-		break;
-	}
-
-	/*
-	 * tr -ds [-c] string1 string2
-	 * Delete all characters (or complemented characters) in string1.
-	 * Squeeze all characters in string2.
-	 */
-	if (dflag && sflag) {
-		if (!isstring2)
-			tr_usage();
-
-		setup(string1, argv[0], &s1, cflag);
-		setup(string2, argv[1], &s2, 0);
-
-		for (lastch = OOBCH; (ch = getchar()) != EOF;)
-			if (!string1[ch] && (!string2[ch] || lastch != ch)) {
-				lastch = ch;
-				(void) putchar(ch);
+	for (;;) {
+		if (in_index == read_chars) {
+			if ((read_chars = read(0, (char *) input, BUFSIZ)) <= 0) {
+				if (write(1, (char *) output, out_index) != out_index)
+					write(2, "Bad write\n", 10);
+				exit(0);
 			}
-		exit(0);
-	}
-
-	/*
-	 * tr -d [-c] string1
-	 * Delete all characters (or complemented characters) in string1.
-	 */
-	if (dflag) {
-		if (isstring2)
-			tr_usage();
-
-		setup(string1, argv[0], &s1, cflag);
-
-		while ((ch = getchar()) != EOF)
-			if (!string1[ch])
-				(void) putchar(ch);
-		exit(0);
-	}
-
-	/*
-	 * tr -s [-c] string1
-	 * Squeeze all characters (or complemented characters) in string1.
-	 */
-	if (sflag && !isstring2) {
-		setup(string1, argv[0], &s1, cflag);
-
-		for (lastch = OOBCH; (ch = getchar()) != EOF;)
-			if (!string1[ch] || lastch != ch) {
-				lastch = ch;
-				(void) putchar(ch);
+			in_index = 0;
+		}
+		c = input[in_index++];
+		coded = vector[c];
+		if (del_fl && invec[c])
+			continue;
+		if (sq_fl && last == coded && outvec[coded])
+			continue;
+		output[out_index++] = last = coded;
+		if (out_index == BUFSIZ) {
+			if (write(1, (char *) output, out_index) != out_index) {
+				write(2, "Bad write\n", 10);
+				exit(1);
 			}
-		exit(0);
+			out_index = 0;
+		}
 	}
 
-	/*
-	 * tr [-cs] string1 string2
-	 * Replace all characters (or complemented characters) in string1 with
-	 * the character in the same position in string2.  If the -s option is
-	 * specified, squeeze all the characters in string2.
-	 */
-	if (!isstring2)
-		tr_usage();
-
-	s1.str = argv[0];
-	s2.str = argv[1];
-
-	if (cflag)
-		for (cnt = NCHARS, p = string1; cnt--;)
-			*p++ = OOBCH;
-
-	if (!next(&s2))
-		errx(1, "empty string2");
-
-	/* If string2 runs out of characters, use the last one specified. */
-	if (sflag)
-		while (next(&s1)) {
-			string1[s1.lastch] = ch = s2.lastch;
-			string2[ch] = 1;
-			(void) next(&s2);
-	} else
-		while (next(&s1)) {
-			string1[s1.lastch] = ch = s2.lastch;
-			(void) next(&s2);
-		}
-
-	if (cflag)
-		for (cnt = 0, p = string1; cnt < NCHARS; ++p, ++cnt)
-			*p = *p == OOBCH ? ch : cnt;
-
-	if (sflag)
-		for (lastch = OOBCH; (ch = getchar()) != EOF;) {
-			ch = string1[ch];
-			if (!string2[ch] || lastch != ch) {
-				lastch = ch;
-				(void) putchar(ch);
-			}
-	} else
-		while ((ch = getchar()) != EOF)
-			(void) putchar(string1[ch]);
-	exit(0);
-}
-
-static int backslash __P((STR *));
-static int bracket __P((STR *));
-static int c_class __P((const void *, const void *));
-static void genclass __P((STR *));
-static void genequiv __P((STR *));
-static int genrange __P((STR *));
-static void genseq __P((STR *));
-
-static int next(s)
-register STR *s;
-{
-	register int ch;
-
-	switch (s->state) {
-	case EOS:
-		return (0);
-	case INFINITE:
-		return (1);
-	case NORMAL:
-		switch (ch = (u_char) * s->str) {
-		case '\0':
-			s->state = EOS;
-			return (0);
-		case '\\':
-			s->lastch = backslash(s);
-			break;
-		case '[':
-			if (bracket(s))
-				return (next(s));
-			/* FALLTHROUGH */
-		default:
-			++s->str;
-			s->lastch = ch;
-			break;
-		}
-
-		/* We can start a range at any time. */
-		if (s->str[0] == '-' && genrange(s))
-			return (next(s));
-		return (1);
-	case RANGE:
-		if (s->cnt-- == 0) {
-			s->state = NORMAL;
-			return (next(s));
-		}
-		++s->lastch;
-		return (1);
-	case SEQUENCE:
-		if (s->cnt-- == 0) {
-			s->state = NORMAL;
-			return (next(s));
-		}
-		return (1);
-	case SET:
-		if ((s->lastch = s->set[s->cnt++]) == OOBCH) {
-			s->state = NORMAL;
-			return (next(s));
-		}
-		return (1);
-	}
 	/* NOTREACHED */
+}
+
+static void map(register unsigned char *string1, register unsigned char *string2)
+{
+	unsigned char last = '0';
+
+	while (*string1) {
+		if (*string2 == '\0')
+			vector[*string1] = last;
+		else
+			vector[*string1] = last = *string2++;
+		string1++;
+	}
+}
+
+static void expand(register char *arg, register unsigned char *buffer)
+{
+	int i, ac;
+
+	while (*arg) {
+		if (*arg == '\\') {
+			arg++;
+			i = ac = 0;
+			if (*arg >= '0' && *arg <= '7') {
+				do {
+					ac = (ac << 3) + *arg++ - '0';
+					i++;
+				} while (i < 4 && *arg >= '0' && *arg <= '7');
+				*buffer++ = ac;
+			} else if (*arg != '\0')
+				*buffer++ = *arg++;
+		} else if (*arg == '[') {
+			arg++;
+			i = *arg++;
+			if (*arg++ != '-') {
+				*buffer++ = '[';
+				arg -= 2;
+				continue;
+			}
+			ac = *arg++;
+			while (i <= ac)
+				*buffer++ = i++;
+			arg++;				/* Skip ']' */
+		} else
+			*buffer++ = *arg++;
+	}
+}
+
+static void complement(unsigned char *buffer)
+{
+	register unsigned char *ptr;
+	register short i, index;
+	unsigned char conv[ASCII + 2];
+
+	index = 0;
+	for (i = 1; i <= ASCII; i++) {
+		for (ptr = buffer; *ptr; ptr++)
+			if (*ptr == i)
+				break;
+		if (*ptr == '\0')
+			conv[index++] = i & ASCII;
+	}
+	conv[index] = '\0';
+	strcpy((char *) buffer, (char *) conv);
+}
+
+extern int tr_main(int argc, char **argv)
+{
+	register unsigned char *ptr;
+	int index = 1;
+	short i;
+
+	if (argc > 1 && argv[index][0] == '-') {
+		for (ptr = (unsigned char *) &argv[index][1]; *ptr; ptr++) {
+			switch (*ptr) {
+			case 'c':
+				com_fl = TRUE;
+				break;
+			case 'd':
+				del_fl = TRUE;
+				break;
+			case 's':
+				sq_fl = TRUE;
+				break;
+			default:
+				usage("tr [-cds] STRING1 [STRING2]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+					  "\nTranslate, squeeze, and/or delete characters from\n"
+					  "standard input, writing to standard output.\n\n"
+					  "Options:\n"
+					  "\t-c\ttake complement of STRING1\n"
+					  "\t-d\tdelete input characters coded STRING1\n"
+					  "\t-s\tsqueeze multiple output characters of STRING2 into one character\n"
+#endif
+					  );
+			}
+		}
+		index++;
+	}
+	for (i = 0; i <= ASCII; i++) {
+		vector[i] = i;
+		invec[i] = outvec[i] = FALSE;
+	}
+
+	if (argv[index] != NULL) {
+		expand(argv[index++], input);
+		if (com_fl)
+			complement(input);
+		if (argv[index] != NULL)
+			expand(argv[index], output);
+		if (argv[index] != NULL)
+			map(input, output);
+		for (ptr = input; *ptr; ptr++)
+			invec[*ptr] = TRUE;
+		for (ptr = output; *ptr; ptr++)
+			outvec[*ptr] = TRUE;
+	}
+	convert();
 	return (0);
 }
 
-static int bracket(s)
-register STR *s;
-{
-	register char *p;
-
-	switch (s->str[1]) {
-	case ':':					/* "[:class:]" */
-		if ((p = strstr(s->str + 2, ":]")) == NULL)
-			return (0);
-		*p = '\0';
-		s->str += 2;
-		genclass(s);
-		s->str = p + 2;
-		return (1);
-	case '=':					/* "[=equiv=]" */
-		if ((p = strstr(s->str + 2, "=]")) == NULL)
-			return (0);
-		s->str += 2;
-		genequiv(s);
-		return (1);
-	default:					/* "[\###*n]" or "[#*n]" */
-		if ((p = strpbrk(s->str + 2, "*]")) == NULL)
-			return (0);
-		if (p[0] != '*' || index(p, ']') == NULL)
-			return (0);
-		s->str += 1;
-		genseq(s);
-		return (1);
-	}
-	/* NOTREACHED */
-}
-
-typedef struct {
-	char *name;
-	int (*func) __P((int));
-	int *set;
-} CLASS;
-
-static CLASS classes[] = {
-#undef isalnum
-	{"alnum", isalnum,},
-#undef isalpha
-	{"alpha", isalpha,},
-/*#undef isblank
-	{ "blank",  isblank,  },*/
-#undef iscntrl
-	{"cntrl", iscntrl,},
-#undef isdigit
-	{"digit", isdigit,},
-#undef isgraph
-	{"graph", isgraph,},
-#undef islower
-	{"lower", islower,},
-#undef isprint
-	{"print", isprint,},
-#undef ispunct
-	{"punct", ispunct,},
-#undef isspace
-	{"space", isspace,},
-#undef isupper
-	{"upper", isupper,},
-#undef isxdigit
-	{"xdigit", isxdigit,},
-};
-
-static void genclass(s)
-STR *s;
-{
-	register int cnt, (*func) __P((int));
-	CLASS *cp, tmp;
-	int *p;
-
-	tmp.name = s->str;
-	if ((cp = (CLASS *) bsearch(&tmp, classes, sizeof(classes) /
-								sizeof(CLASS), sizeof(CLASS),
-								c_class)) == NULL) errx(1,
-														"unknown class %s",
-														s->str);
-
-	cp->set = p = xmalloc((NCHARS + 1) * sizeof(int));
-	bzero(p, (NCHARS + 1) * sizeof(int));
-
-	for (cnt = 0, func = cp->func; cnt < NCHARS; ++cnt)
-		if ((func) (cnt))
-			*p++ = cnt;
-	*p = OOBCH;
-
-	s->cnt = 0;
-	s->state = SET;
-	s->set = cp->set;
-}
-
-static int c_class(a, b)
-const void *a, *b;
-{
-	return (strcmp(((CLASS *) a)->name, ((CLASS *) b)->name));
-}
-
 /*
- * English doesn't have any equivalence classes, so for now
- * we just syntax check and grab the character.
+ * Copyright (c) 1987,1997, Prentice Hall
+ * All rights reserved.
+ * 
+ * Redistribution and use of the MINIX operating system in source and
+ * binary forms, with or without modification, are permitted provided
+ * that the following conditions are met:
+ * 
+ * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * 
+ * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimer in the documentation and/or other materials provided
+ * with the distribution.
+ * 
+ * Neither the name of Prentice Hall nor the names of the software
+ * authors or contributors may be used to endorse or promote
+ * products derived from this software without specific prior
+ * written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND
+ * CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL PRENTICE HALL OR ANY AUTHORS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
-static void genequiv(s)
-STR *s;
-{
-	if (*s->str == '\\') {
-		s->equiv[0] = backslash(s);
-		if (*s->str != '=')
-			errx(1, "misplaced equivalence equals sign");
-	} else {
-		s->equiv[0] = s->str[0];
-		if (s->str[1] != '=')
-			errx(1, "misplaced equivalence equals sign");
-	}
-	s->str += 2;
-	s->cnt = 0;
-	s->state = SET;
-	s->set = s->equiv;
-}
 
-static int genrange(s)
-STR *s;
-{
-	int stopval;
-	char *savestart;
-
-	savestart = s->str;
-	stopval = *++s->str == '\\' ? backslash(s) : (u_char) * s->str++;
-	if (stopval < (u_char) s->lastch) {
-		s->str = savestart;
-		return (0);
-	}
-	s->cnt = stopval - s->lastch + 1;
-	s->state = RANGE;
-	--s->lastch;
-	return (1);
-}
-
-static void genseq(s)
-STR *s;
-{
-	char *ep;
-
-	if (s->which == STRING1)
-		errx(1, "sequences only valid in string2");
-
-	if (*s->str == '\\')
-		s->lastch = backslash(s);
-	else
-		s->lastch = *s->str++;
-	if (*s->str != '*')
-		errx(1, "misplaced sequence asterisk");
-
-	switch (*++s->str) {
-	case '\\':
-		s->cnt = backslash(s);
-		break;
-	case ']':
-		s->cnt = 0;
-		++s->str;
-		break;
-	default:
-		if (isdigit((u_char) * s->str)) {
-			s->cnt = strtol(s->str, &ep, 0);
-			if (*ep == ']') {
-				s->str = ep + 1;
-				break;
-			}
-		}
-		errx(1, "illegal sequence count");
-		/* NOTREACHED */
-	}
-
-	s->state = s->cnt ? SEQUENCE : INFINITE;
-}
-
-/*
- * Translate \??? into a character.  Up to 3 octal digits, if no digits either
- * an escape code or a literal character.
- */
-static int backslash(s)
-register STR *s;
-{
-	register int ch, cnt, val;
-
-	for (cnt = val = 0;;) {
-		ch = (u_char) * ++s->str;
-		if (!isascii(ch) || !isdigit(ch))
-			break;
-		val = val * 8 + ch - '0';
-		if (++cnt == 3) {
-			++s->str;
-			break;
-		}
-	}
-	if (cnt)
-		return (val);
-	if (ch != '\0')
-		++s->str;
-	switch (ch) {
-	case 'a':					/* escape characters */
-		return ('\7');
-	case 'b':
-		return ('\b');
-	case 'f':
-		return ('\f');
-	case 'n':
-		return ('\n');
-	case 'r':
-		return ('\r');
-	case 't':
-		return ('\t');
-	case 'v':
-		return ('\13');
-	case '\0':					/*  \" -> \ */
-		s->state = EOS;
-		return ('\\');
-	default:					/* \x" -> x */
-		return (ch);
-	}
-}
