@@ -371,8 +371,11 @@ static void doSyslogd (void)
 						continue;
 					}
 
-					if (pid == 0)
+					if (pid == 0) {
 						serveConnection (conn);
+						close (conn);
+						exit( TRUE);
+					}
 					close (conn);
 				}
 			}
