@@ -67,7 +67,7 @@ int tail_stream(int fd)
 	ssize_t endpoint=0;
 	ssize_t count=0;
 	ssize_t filesize=0;
-	char direction=1;
+	int direction=1;
 
 	filelocation=0;
 	startpoint=bs=BUFSIZ;
