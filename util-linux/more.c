@@ -67,8 +67,8 @@ static int terminal_height = 24;
 
 extern int more_main(int argc, char **argv)
 {
-	int c, lines = 0, input = 0;
-	int please_display_more_prompt = 0;
+	int c, lines, input = 0;
+	int please_display_more_prompt;
 	struct stat st;
 	FILE *file;
 	int len, page_height;
@@ -113,13 +113,13 @@ extern int more_main(int argc, char **argv)
 		(void) signal(SIGTERM, gotsig);
 
 #endif
-		len = 0;
+		len=0;
+		lines = 0;
 		page_height = terminal_height;
+		please_display_more_prompt = 0;
 		while ((c = getc(file)) != EOF) {
 
 			if (please_display_more_prompt) {
-				lines = 0;
-				please_display_more_prompt = 0;
 				len = printf("--More-- ");
 				if (file != stdin) {
 #if _FILE_OFFSET_BITS == 64
@@ -163,13 +163,15 @@ extern int more_main(int argc, char **argv)
 				fflush(stdout);
 #endif
 				len=0;
+				lines = 0;
 				page_height = terminal_height;
+				please_display_more_prompt = 0;
 			}
 
 			/* 
 			 * There are two input streams to worry about here:
 			 *
-			 *     c : the character we are reading from the file being "mored"
+			 * c     : the character we are reading from the file being "mored"
 			 * input : a character received from the keyboard
 			 *
 			 * If we hit a newline in the _file_ stream, we want to test and
@@ -188,7 +190,7 @@ extern int more_main(int argc, char **argv)
 				}
 				/* Adjust the terminal height for any overlap, so that
 				 * no lines get lost off the top. */
-				if (len) {
+				if (len >= terminal_width) {
 					div_t result = div( len, terminal_width); 
 					if (result.quot) {
 						if (result.rem)
@@ -197,7 +199,7 @@ extern int more_main(int argc, char **argv)
 							page_height-=(result.quot-1);
 					}
 				}
-				if (++lines == page_height) {
+				if (++lines >= page_height) {
 					please_display_more_prompt = 1;
 				}
 				len=0;
