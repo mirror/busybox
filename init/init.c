@@ -93,9 +93,8 @@ static const int RB_AUTOBOOT = 0x01234567;
 #endif
 #endif
 
-#ifndef _PATH_STDPATH
+#undef _PATH_STDPATH
 #define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
-#endif
 
 
 #if defined BB_FEATURE_INIT_COREDUMPS

@@ -113,7 +113,6 @@
 #define BB_UMOUNT
 #define BB_UNIQ
 #define BB_UNAME
-//#define BB_UNIX2DOS
 //#define BB_UPDATE
 #define BB_UPTIME
 //#define BB_USLEEP
@@ -399,4 +398,8 @@
 #ifndef BB_FEATURE_NEW_MODULE_INTERFACE
 #define BB_FEATURE_NEW_MODULE_INTERFACE
 #endif
+#endif
+//
+#if defined BB_DOS2UNIX 
+#define BB_UNIX2DOS
 #endif
