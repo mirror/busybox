@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.49 2002/03/20 11:59:28 andersen Exp $
+ * $Id: ping.c,v 1.50 2002/03/21 14:04:43 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -176,9 +176,9 @@ static int in_cksum(unsigned short *buf, int sz)
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING
 static char *hostname = NULL;
-void noresp(int ign)
+static void noresp(int ign)
 {
-	printf("No response from %s\n", h->h_name);
+	printf("No response from %s\n", hostname);
 	exit(0);
 }
 
@@ -232,7 +232,7 @@ static void ping(const char *host)
 				break;
 		}
 	}
-	printf("%s is alive!\n", h->h_name);
+	printf("%s is alive!\n", hostname);
 	return;
 }
 
