@@ -137,42 +137,32 @@ static long du(char *filename)
 int du_main(int argc, char **argv)
 {
 	int i;
-	char opt;
+	char c;
 
 	/* default behaviour */
 	print = print_normal;
 
 	/* parse argv[] */
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			opt = argv[i][1];
-			switch (opt) {
+	while ((c = getopt(argc, argv, "sl")) != EOF) {
+			switch (c) {
 			case 's':
-				print = print_summary;
-				break;
+					print = print_summary;
+					break;
 			case 'l':
-				count_hardlinks = 1;
-				break;
-			case 'h':
-			case '-':
-				usage(du_usage);
-				break;
+					count_hardlinks = 1;
+					break;
 			default:
-				errorMsg("invalid option -- %c\n", opt);
-				usage(du_usage);
+					usage(du_usage);
 			}
-		} else {
-			break;
-		}
 	}
 
 	/* go through remaining args (if any) */
-	if (i >= argc) {
+	if (optind >= argc) {
 		du(".");
 	} else {
 		long sum;
 
-		for (; i < argc; i++) {
+		for (i=optind; i < argc; i++) {
 			sum = du(argv[i]);
 			if (sum && isDirectory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
@@ -184,7 +174,7 @@ int du_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: du.c,v 1.21 2000/07/14 01:51:25 kraai Exp $ */
+/* $Id: du.c,v 1.22 2000/07/14 18:38:26 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
