@@ -1,4 +1,5 @@
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [...]>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [
+]>
 <book id="BusyBoxDocumentation">
  <bookinfo>
   <title>BusyBox - The Swiss Army Knife of Embedded Linux</title>
@@ -59,8 +60,8 @@
 
   <chapter id="Syntax">
      <title>How to use BusyBox</title>
-	<sect1 id="How to use BusyBox">
-	    <title>Syntax</title
+	<sect1 id="How-to-use-BusyBox">
+	    <title>Syntax</title>
 
 	    <para>
 	    <screen>
@@ -75,7 +76,9 @@
 	    </para>
 	</sect1>
 
-	<sect1 id="Invoking BusyBox">
+	<sect1 id="Invoking-BusyBox">
+	    <title>Invoking BusyBox</title>
+
 	    <para>
 	    When you create a link to BusyBox for the function you wish to use, when
 	    BusyBox is called using that link it will behave as if the command itself
@@ -115,7 +118,9 @@
 
 	</sect1>
 
-	<sect1 id="Common options">
+	<sect1 id="Common-options">
+	    <title>Common options</title>
+
 	    <para>
 	    Most BusyBox commands support the <emphasis>--help</emphasis> option to provide 
 	    a terse runtime description of their behavior. 
@@ -125,7 +130,7 @@
 
   <chapter id="Commands">
      <title>BusyBox Commands</title>
-	<sect1 id="Available BusyBox Commands">
+	<sect1 id="Available-BusyBox-Commands">
 	    <title>Available BusyBox Commands</title>
 		<para>
 		Currently defined functions include:
@@ -1261,7 +1266,7 @@
 		</para>
 	</sect1>
 
-<	<sect1 id="gzip">
+	<sect1 id="gzip">
 	    <title>gzip</title>
 
 		<para>
@@ -1489,7 +1494,7 @@
 		<screen>
 			&lt;id&gt;:&lt;runlevels&gt;:&lt;action&gt;:&lt;process&gt;
 		</screen>
-		<para>
+		</para>
 
 		<sect2>
 		    <title>id</title>
@@ -1550,9 +1555,8 @@
 			</para>
 		</sect2>
 
-		<para>
-		Example /etc/inittab file:
-		</para>
+		<sect2>
+		    <title>Example /etc/inittab file</title>
 
 		<para>
 		<screen>
@@ -1585,6 +1589,7 @@
 			::ctrlaltdel:/sbin/swapoff -a &gt; /dev/null 2&gt;&amp;1
 		</screen>
 		</para>
+		</sect2>
 	</sect1>
 
 	<sect1 id="insmod">
@@ -3128,8 +3133,8 @@
 		</para>
 
 		<para>
-		<screen>
 		   or: [ EXPRESSION ]
+		</para>
 
 		<para>
 		Check file types and compare values returning an exit
