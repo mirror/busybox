@@ -386,7 +386,9 @@ static void logMessage(int pri, char *msg)
 	time_t now;
 	char *timestamp;
 	static char res[20] = "";
+#ifdef CONFIG_FEATURE_REMOTE_LOG	
 	static char line[512];
+#endif
 	CODE *c_pri, *c_fac;
 
 	if (pri != 0) {

@@ -305,13 +305,8 @@ int adduser_main(int argc, char **argv)
 
 	if (usegroup) {
 		/* Add user to a group that already exists */
-		struct group *g;
-
-		g = getgrnam(usegroup);
-		if (g == NULL)
-			bb_error_msg_and_die("group %s does not exist", usegroup);
-
-		pw.pw_gid = g->gr_gid;
+		pw.pw_gid = my_getgrnam(usegroup);
+		/* exits on error */	
 	}
 
 	/* grand finale */

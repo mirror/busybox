@@ -4,14 +4,14 @@
 #define addgroup_trivial_usage \
 	"[-g GID] group_name [user_name]"
 #define addgroup_full_usage \
-	"Adds a group to the system" \
+	"Adds a group to the system\n\n" \
 	"Options:\n" \
 	"\t-g GID\t\tspecify gid"
 
 #define adduser_trivial_usage \
 	"[OPTIONS] user_name"
 #define adduser_full_usage \
-	"Adds a user to the system" \
+	"Adds a user to the system\n\n" \
 	"Options:\n" \
 	"\t-h DIR\t\tAssign home directory DIR\n" \
 	"\t-g GECOS\tAssign gecos field GECOS\n" \
