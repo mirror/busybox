@@ -12,7 +12,7 @@
 	"\t-p timeconstant\n"
 
 #define ar_trivial_usage \
-	"-[ov] [ptx] ARCHIVE FILES"
+	"-[ov][ptx] ARCHIVE FILES"
 #define ar_full_usage \
 	"Extract or list FILES from an ar archive.\n\n" \
 	"Options:\n" \
