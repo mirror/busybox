@@ -19,7 +19,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.46
+VERSION   := 0.47pre
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
@@ -168,7 +168,7 @@ test tests:
 clean:
 	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
-	- cd tests && $(MAKE) clean
+	cd tests && $(MAKE) clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \

@@ -1,4 +1,4 @@
-0.47
+0.47pre
 
 	* 'make install' now creates relative symlinks, and added a new
 	    'make install-hardlinks' target to (tada) install hardlinks.

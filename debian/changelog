@@ -1,3 +1,9 @@
+busybox (0.47pre-1) unstable; urgency=low
+
+  * New version in progress.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Tue, 11 Jul 2000 12:15:44 -0600
+
 busybox (0.46-1) unstable; urgency=low
 
   * New version released.  See changelog for details.
