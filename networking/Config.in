@@ -376,11 +376,11 @@ config CONFIG_IPCALC
 	  resulting broadcast, network, and host range.
 
 config CONFIG_FEATURE_IPCALC_FANCY
-	bool "  Fancy IPCALC, more options, adds 300 bytes"
+	bool "  Fancy IPCALC, more options, adds 1 kbyte"
 	default y
 	depends on CONFIG_IPCALC
 	help
-	  Adds the fields hostname and silent to the output of "ipcalc".
+	  Adds the options hostname, prefix and silent to the output of "ipcalc".
 
 config CONFIG_IPADDR
 	bool "ipaddr"
