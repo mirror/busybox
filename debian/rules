@@ -29,7 +29,7 @@ debian/build-stamp-busybox:
 	cp Makefile $(bbbd)
 	cp debian/Config.h-deb $(bbbd)/Config.h
 	-(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" applet_source_list)
-	(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../")
+	(cd $(bbbd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
 	touch debian/build-stamp-busybox
 
 install: build
@@ -54,7 +54,7 @@ debian/build-stamp-busybox-static:
 	mkdir -p $(bbsbd)
 	cp Makefile $(bbsbd)
 	cp debian/Config.h-static $(bbsbd)/Config.h
-	(cd $(bbsbd); $(MAKE) DOSTATIC=true "BB_SRC_DIR=../../")
+	(cd $(bbsbd); $(MAKE) DOSTATIC=true USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
 	touch debian/build-stamp-busybox-static
 
 install-static: build
@@ -95,7 +95,7 @@ debian/build-stamp-busybox-udeb:
 	mkdir -p $(bbubd)
 	cp Makefile $(bbubd)
 	cp debian/Config.h-udeb $(bbubd)/Config.h
-	(cd $(bbubd); $(MAKE) "BB_SRC_DIR=../../")
+	(cd $(bbubd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
 	touch debian/build-stamp-busybox-udeb
 
 install-udeb: build
