@@ -579,9 +579,7 @@ static pid_t run(struct init_action *a)
 		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 			cmd[0] = SHELL;
 			cmd[1] = "-c";
-			strcpy(buf, "exec ");
-			safe_strncpy(buf + sizeof("exec "), a->command, 
-					sizeof(buf) - sizeof("exec "));
+			snprintf(buf, sizeof(buf), "exec %s", a->command);
 			cmd[2] = buf;
 			cmd[3] = NULL;
 		} else {
