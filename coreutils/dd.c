@@ -50,7 +50,6 @@ int dd_main(int argc, char **argv)
 	size_t bs = 512, count = -1;
 	ssize_t n;
 	off_t seek = 0, skip = 0;
-	FILE *statusfp;
 	char *infile = NULL, *outfile = NULL, *buf;
 
 	for (i = 1; i < argc; i++) {
@@ -110,12 +109,9 @@ int dd_main(int argc, char **argv)
 			if (ftruncate(ofd, seek * bs) < 0)
 				perror_msg_and_die("%s", outfile);
 		}
-
-		statusfp = stdout;
 	} else {
 		ofd = STDOUT_FILENO;
 		outfile = "standard output";
-		statusfp = stderr;
 	}
 
 	if (skip) {
@@ -151,8 +147,8 @@ int dd_main(int argc, char **argv)
 			out_part++;
 	}
 
-	fprintf(statusfp, "%ld+%ld records in\n", (long)in_full, (long)in_part);
-	fprintf(statusfp, "%ld+%ld records out\n", (long)out_full, (long)out_part);
+	fprintf(stderr, "%ld+%ld records in\n", (long)in_full, (long)in_part);
+	fprintf(stderr, "%ld+%ld records out\n", (long)out_full, (long)out_part);
 
 	return EXIT_SUCCESS;
 }
