@@ -2,8 +2,8 @@
 /*
  * Mini insmod implementation for busybox
  *
- * This version of insmod supports x86, x86_64, ARM, SH3/4/5, powerpc, m68k,
- * MIPS, v850e, and H8/300.
+ * This version of insmod supports ARM, CRIS, H8/300, x86, ia64, x86_64,
+ * m68k, MIPS, PowerPC, S390, SH3/4/5, Sparc, v850e, and x86_64.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * and Ron Alder <alder@lineo.com>
@@ -109,67 +109,82 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 
+/* ARM support */
 #if defined(__arm__)
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 8
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
-
 #define MATCH_MACHINE(x) (x == EM_ARM)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFCLASSM	ELFCLASS32
-#endif
-
-#if defined(__s390__)
 #define CONFIG_USE_PLT_ENTRIES
 #define CONFIG_PLT_ENTRY_SIZE 8
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 8
 #define CONFIG_USE_SINGLE
+#endif
 
-#define MATCH_MACHINE(x) (x == EM_S390)
+/* CRIS */
+#if defined(__cris__)
+#define MATCH_MACHINE(x) (x == EM_CRIS)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
+#ifndef EM_CRIS
+#define EM_CRIS 76
+#define R_CRIS_NONE 0
+#define R_CRIS_32   3
+#endif
 #endif
 
-#if defined(__i386__)
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
+/* H8/300 */
+#if defined(__H8300H__) || defined(__H8300S__)
+#define MATCH_MACHINE(x) (x == EM_H8_300)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
 #define CONFIG_USE_SINGLE
+#define SYMBOL_PREFIX	"_"
+#endif
 
+/* x86 */
+#if defined(__i386__)
 #ifndef EM_486
 #define MATCH_MACHINE(x) (x == EM_386)
 #else
 #define MATCH_MACHINE(x) (x == EM_386 || x == EM_486)
 #endif
-
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFCLASSM	ELFCLASS32
-#endif
-
-#if defined(__x86_64__)
-#define MATCH_MACHINE(x) (x == EM_X86_64)
-#define SHT_RELM	SHT_REL
-#define Elf64_RelM	Elf64_Rel
-#define ELFCLASSM	ELFCLASS64
-#endif
-
-#if defined(__mc68000__)
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 4
 #define CONFIG_USE_SINGLE
+#endif
 
+/* IA64, aka Itanium */
+#if defined(__ia64__)
+#define MATCH_MACHINE(x) (x == EM_IA_64)
+#define SHT_RELM       SHT_RELA
+#define Elf64_RelM     Elf64_Rela
+#define ELFCLASSM      ELFCLASS64
+#endif
+
+/* m68k */
+#if defined(__mc68000__)
 #define MATCH_MACHINE(x) (x == EM_68K)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
 #endif
 
+/* MIPS */
 #if defined(__mips__)
+#define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+#define ELFCLASSM	ELFCLASS32
 /* Account for ELF spec changes.  */
 #ifndef EM_MIPS_RS3_LE
 #ifdef EM_MIPS_RS4_BE
@@ -178,92 +193,85 @@ extern int insmod_ng_main( int argc, char **argv);
 #define EM_MIPS_RS3_LE	10
 #endif
 #endif /* !EM_MIPS_RS3_LE */
-
-#define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
-#define SHT_RELM	SHT_REL
-#define Elf32_RelM	Elf32_Rel
-#define ELFCLASSM	ELFCLASS32
 #define ARCHDATAM       "__dbe_table"
 #endif
 
+/* PowerPC */
 #if defined(__powerpc__)
+#define MATCH_MACHINE(x) (x == EM_PPC)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
 #define CONFIG_USE_PLT_ENTRIES
 #define CONFIG_PLT_ENTRY_SIZE 16
 #define CONFIG_USE_PLT_LIST
 #define CONFIG_LIST_ARCHTYPE ElfW(Addr)
 #define CONFIG_USE_LIST
-
-#define MATCH_MACHINE(x) (x == EM_PPC)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-#define ELFCLASSM	ELFCLASS32
 #define ARCHDATAM       "__ftr_fixup"
 #endif
 
-#if defined(__sh__)
+/* S390 */
+#if defined(__s390__)
+#define MATCH_MACHINE(x) (x == EM_S390)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 8
 #define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_GOT_ENTRY_SIZE 8
 #define CONFIG_USE_SINGLE
+#endif
 
+/* SuperH */
+#if defined(__sh__)
 #define MATCH_MACHINE(x) (x == EM_SH)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
 /* the SH changes have only been tested in =little endian= mode */
 /* I'm not sure about big endian, so let's warn: */
-
 #if defined(__sh__) && defined(__BIG_ENDIAN__)
 #error insmod.c may require changes for use on big endian SH
 #endif
-
-/* it may or may not work on the SH1/SH2... So let's error on those
-   also */
-#if ((!(defined(__SH3__) || defined(__SH4__) || defined(__SH5__)))) && \
-	(defined(__sh__))
+/* it may or may not work on the SH1/SH2... Error on those also */
+#if ((!(defined(__SH3__) || defined(__SH4__) || defined(__SH5__)))) && (defined(__sh__))
 #error insmod.c may require changes for SH1 or SH2 use
 #endif
 #endif
 
-#if defined (__v850e__)
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
-
-#ifndef EM_CYGNUS_V850	/* grumble */
-#define EM_CYGNUS_V850 	0x9080
+/* Sparc */
+#if defined(__sparc__)
+#define MATCH_MACHINE(x) (x == EM_SPARC)
+#define SHT_RELM       SHT_RELA
+#define Elf32_RelM     Elf32_Rela
+#define ELFCLASSM      ELFCLASS32
 #endif
 
+/* v850e */
+#if defined (__v850e__)
 #define MATCH_MACHINE(x) ((x) == EM_V850 || (x) == EM_CYGNUS_V850)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-
-#define SYMBOL_PREFIX	"_"
-#endif
-
-#if defined(__cris__)
-#ifndef EM_CRIS
-#define EM_CRIS 76
-#define R_CRIS_NONE 0
-#define R_CRIS_32   3
-#endif
-
-#define MATCH_MACHINE(x) (x == EM_CRIS)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-#define ELFCLASSM	ELFCLASS32
-#endif
-
-#if defined(__H8300H__) || defined(__H8300S__)
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 8
 #define CONFIG_USE_SINGLE
-
-#define MATCH_MACHINE(x) (x == EM_H8_300)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-
-#define ELFCLASSM	ELFCLASS32
+#ifndef EM_CYGNUS_V850	/* grumble */
+#define EM_CYGNUS_V850 	0x9080
+#endif
 #define SYMBOL_PREFIX	"_"
+#endif
+
+/* X86_64  */
+#if defined(__x86_64__)
+#define MATCH_MACHINE(x) (x == EM_X86_64)
+#define SHT_RELM	SHT_REL
+#define Elf64_RelM	Elf64_Rel
+#define ELFCLASSM	ELFCLASS64
 #endif
 
 #ifndef SHT_RELM
@@ -300,7 +308,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.124 2004/08/28 00:43:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.125 2004/09/02 23:03:25 andersen Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -458,7 +466,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.124 2004/08/28 00:43:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.125 2004/09/02 23:03:25 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 

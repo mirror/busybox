@@ -33,23 +33,24 @@ Supported architectures:
 
    BusyBox in general will build on any architecture supported by gcc.  It has
    a few specialized features added for __sparc__ and __alpha__.  insmod
-   functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k,
-   MIPS, cris, and v850e.
+   functionality is currently limited to ARM, CRIS, H8/300, x86, ia64,
+   x86_64, m68k, MIPS, PowerPC, S390, SH3/4/5, Sparc, v850e, and x86_64
+   for 2.4.x kernels.  For 2.6.x kernels
 
 Supported C Libraries:
 
-   glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, glibc-2.3.x, uClibc.  People
-   are looking at newlib and diet-libc, but consider them unsupported,
-   untested, or worse.  Linux-libc5 is no longer supported -- you
-   should probably use uClibc instead if you want a small C library.
+   uClibc and glibc are supported.  People have been looking at newlib and
+   diet-libc, but they are currently considered unsupported, untested, or
+   worse.  Linux-libc5 is no longer supported -- you should probably use uClibc
+   instead if you want a small C library.
 
 Supported kernels:
 
    Full functionality requires Linux 2.2.x or better.  A large fraction of the
    code should run on just about anything.  While the current code is fairly
    Linux specific, it should be fairly easy to port the majority of the code
-   to, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you are into
-   that sort of thing).
+   to support, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you
+   are into that sort of thing).
 
 ----------------
 
