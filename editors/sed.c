@@ -343,7 +343,7 @@ static int parse_translate_cmd(sed_cmd_t * const sed_cmd, const char *cmdstr)
 		sed_cmd->translate[i * 2] = match[i];
 		sed_cmd->translate[(i * 2) + 1] = replace[i];
 	}
-	return(idx);
+	return(idx + 1);
 }
 
 static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
