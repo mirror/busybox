@@ -504,11 +504,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 void append_file_to_list(const char *new_name, char ***list, int *list_count)
 {
 	*list = realloc(*list, sizeof(char *) * (*list_count + 2));
-	if (last_char_is(new_name, '/')) {
-		(*list)[*list_count] = concat_path_file(new_name, "*");
-	} else {
-		(*list)[*list_count] = xstrdup(new_name);
-	}
+	(*list)[*list_count] = xstrdup(new_name);
 	(*list_count)++;
 	(*list)[*list_count] = NULL;
 }
