@@ -97,5 +97,13 @@ config CONFIG_XARGS
 	  xargs is used to execute a specified command on
 	  every item from standard input.  
 
+config CONFIG_FEATURE_XARGS_FANCY
+	bool "  Enable extra options (-x -s -n and -E)"
+	default y
+	depends on CONFIG_XARGS
+	help
+	  Default xargs only provides the -t option, this enables the
+	  x, s, n and E options.
+
 endmenu
 

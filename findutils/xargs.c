@@ -27,17 +27,9 @@
  *
  *
  * BUGS:
- *	p option doesnt accept user input, should read input from /dev/tty
- *
- *	E option doesnt allow spaces before argument
- *
- *	xargs should terminate if an invocation of a constructed command line
- *  returns an exit status of 255.
- *
- *  exit value of isnt correct 
- *
- *  doesnt print quoted string properly
- *
+ *      - E option doesnt allow spaces before argument
+ *      - exit value of isnt correct 
+ *      - doesnt print quoted string properly
  */
 
 #include <stdio.h>
@@ -48,53 +40,77 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include "busybox.h"
 
 /*
    This function have special algorithm.
    Don`t use fork and include to main!
 */
-static void xargs_exec(char * const * args)
+static int xargs_exec(char **args)
 {
-	int p;
-	int common[4];  /* shared vfork stack */
+	pid_t p;
+	volatile int exec_errno;	/* shared vfork stack */
+	
+	exec_errno = 0;
+	p = vfork();
+	if (p < 0) {
+		bb_perror_msg_and_die("vfork");
+	} else if (p == 0) {
+		/* vfork -- child */
+		execvp(args[0], args);
+		exec_errno = errno;	/* set error to shared stack */
+		_exit(1);
+	} else {
+		/* vfork -- parent */
+		int status;
 
-	common[0] = 0;
-	if ((p = vfork()) >= 0) {
-		if (p == 0) {
-			/* vfork -- child */
-			execvp(args[0], args);
-			common[0] = errno; /* set error to shared stack */
-			_exit(1);
-		} else {
-			/* vfork -- parent */
-			wait(NULL);
-			if(common[0]) {
-				errno = common[0];
-				bb_perror_msg_and_die("%s", args[0]);
+		while (wait(&status) == (pid_t) - 1) {
+			if (errno != EINTR) {
+				break;
 			}
 		}
-	} else {
-		bb_perror_msg_and_die("vfork");
+
+		if (exec_errno) {
+			errno = exec_errno;
+			bb_perror_msg("%s", args[0]);
+			return exec_errno == ENOENT ? 127 : 126;
+		} else if (WEXITSTATUS(status) == 255) {
+			bb_error_msg("%s: exited with status 255; aborting", args[0]);
+			return 124;
+		} else if (WIFSTOPPED(status)) {
+			bb_error_msg("%s: stopped by signal %d", args[0],
+						 WSTOPSIG(status));
+			return 125;
+		} else if (WIFSIGNALED(status)) {
+			bb_error_msg("%s: terminated by signal %d", args[0],
+						 WTERMSIG(status));
+			return 125;
+		} else if (WEXITSTATUS(status)) {
+			return 123;
+		} else {
+			return 0;
+		}
 	}
 }
 
-#define OPT_VERBOSE	0x2
-#define OPT_INTERACTIVE	0x4
-#define OPT_TERMINATE	0x8
-#define OPT_UPTO_NUMBER	0x10
-#define OPT_UPTO_SIZE	0x20
-#define OPT_EOF_STRING	0x40
+#define OPT_VERBOSE	0x1
+#define OPT_TERMINATE	0x2
+#define OPT_UPTO_NUMBER	0x4
+#define OPT_UPTO_SIZE	0x8
+#define OPT_EOF_STRING	0x10
 
 int xargs_main(int argc, char **argv)
 {
+#ifdef CONFIG_FEATURE_XARGS_FANCY
 	char *s_max_args = NULL;
 	char *s_line_size = NULL;
+#endif
+	char *eof_string = "_";
 	unsigned long flg;
 
-	char *eof_string = "_";
-	int line_size = LINE_MAX;
-	unsigned int max_args = LINE_MAX / 2;
+	int line_size;
+	unsigned int max_args = LINE_MAX;
 
 	char *line_buffer = NULL;
 	char *line_buffer_ptr_ptr;
@@ -106,21 +122,35 @@ int xargs_main(int argc, char **argv)
 	int i;
 	int a;
 
+#if 0
+	/* Default to maximum line length */
+	if (LINE_MAX > ARG_MAX - 2048) {
+		/* Minimum command line length */
+		line_size = LINE_MAX;
+	} else {
+		/* Maximum command line length */
+		line_size = ARG_MAX = 2048;
+	}
+#else
+	line_size = LINE_MAX;
+#endif
 	
-	bb_opt_complementaly = "pt";
+#ifndef CONFIG_FEATURE_XARGS_FANCY
+	flg = bb_getopt_ulflags(argc, argv, "+t");
+#else
+	flg = bb_getopt_ulflags(argc, argv, "+txn:s:E::", &s_max_args, &s_line_size, &eof_string);
 
-	flg = bb_getopt_ulflags(argc, argv, "+tpxn:s:E::", &s_max_args, &s_line_size, &eof_string);
-
+	if (s_line_size) {
+		line_size =	bb_xgetularg10_bnd(s_max_args, 1, line_size);
+	}
 	if (s_max_args) {
 		max_args = bb_xgetularg10(s_max_args);
 	}
-	if (s_line_size) {
-		line_size = bb_xgetularg10(s_line_size);
-	}
+#endif
 
 	a = argc - optind;
 	argv += optind;
-	if(a==0) {
+	if (a == 0) {
 		/* default behavior is to echo all the filenames */
 		*argv = "echo";
 		a++;
@@ -158,13 +188,15 @@ int xargs_main(int argc, char **argv)
 					/* EOF, exit outer loop */
 					break;
 				}
-				line_buffer_ptr = strtok_r(line_buffer, " \t", &line_buffer_ptr_ptr);
+				line_buffer_ptr =
+					strtok_r(line_buffer, " \t", &line_buffer_ptr_ptr);
 			} else {
 				if (old_arg) {
 					line_buffer_ptr = old_arg;
 					old_arg = NULL;
 				} else {
-					line_buffer_ptr = strtok_r(NULL, " \t", &line_buffer_ptr_ptr);
+					line_buffer_ptr =
+						strtok_r(NULL, " \t", &line_buffer_ptr_ptr);
 				}
 			}
 			/* If no arguments left go back and get another line */
@@ -174,7 +206,11 @@ int xargs_main(int argc, char **argv)
 				continue;
 			}
 
+#ifdef CONFIG_FEATURE_XARGS_FANCY
 			if (eof_string && (strcmp(line_buffer_ptr, eof_string) == 0)) {
+#else
+			if (strcmp(line_buffer_ptr, eof_string) == 0) {
+#endif
 				/* logical EOF, exit outer loop */
 				line_buffer = NULL;
 				break;
@@ -183,7 +219,12 @@ int xargs_main(int argc, char **argv)
 			/* Check the next argument will fit */
 			arg_size += 1 + strlen(line_buffer_ptr);
 			if (arg_size > line_size) {
-				if ((arg_count == 0) || ((flg & OPT_TERMINATE) && (arg_count != max_args))){
+				if ((arg_count == 0)
+#ifdef CONFIG_FEATURE_XARGS_FANCY
+					|| ((flg & OPT_TERMINATE) && (arg_count != max_args))) {
+#else
+					) {
+#endif
 					bb_error_msg_and_die("argument line too long");
 				}
 				old_arg = line_buffer_ptr;
@@ -196,20 +237,20 @@ int xargs_main(int argc, char **argv)
 			arg_count++;
 		} while (arg_count < max_args);
 
+		/* Remove the last space */
+		args_entry_ptr[arg_size - 1] = '\0';
+
 		if (*args_entry_ptr != '\0') {
-			if(flg & (OPT_VERBOSE | OPT_INTERACTIVE)) {
-				for(i=0; args[i]; i++) {
-					if(i)
+			if (flg & OPT_VERBOSE) {
+				for (i = 0; args[i]; i++) {
+					if (i) {
 						fputc(' ', stderr);
+					}
 					fputs(args[i], stderr);
 				}
-
-				fputs(((flg & OPT_INTERACTIVE) ? " ?..." : "\n"), stderr);
+				fputc('\n', stderr);
 			}
-
-			if((flg & OPT_INTERACTIVE) == 0 || bb_ask_confirmation() != 0 ) {
-				xargs_exec(args);
-			}
+			xargs_exec(args);
 		}
 	} while (line_buffer);
 
