@@ -58,6 +58,13 @@ config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	  Utilizes password settings from /etc/httpd.conf for basic
 	  authentication on a per url basis.
 
+config CONFIG_FEATURE_HTTPD_AUTH_MD5
+	bool "  Enable support MD5 crypted password for httpd.conf"
+	default n
+	depends on CONFIG_FEATURE_HTTPD_BASIC_AUTH
+	help
+	  Please help my - send patch for set this help message
+
 
 if !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
@@ -105,7 +112,7 @@ config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 
 config CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
 	bool "  Enable setting of CGI_varname=value environment vars for CGI"
-	default y
+	default n
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
 	  This option parses POST or GET arguments from a form and

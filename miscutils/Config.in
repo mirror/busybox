@@ -19,6 +19,13 @@ config CONFIG_CROND
 	  Crond is a background daemon that parses individual crontab
 	  files and executes commands on behalf of the users in question.
 
+config CONFIG_FEATURE_CROND_CALL_SENDMAIL
+	bool "  Using /usr/sbin/sendmail?"
+	default n
+	depends on CONFIG_CROND
+	help
+	  Support call /usr/sbin/sendmail for send cmd outputs.
+
 config CONFIG_CRONTAB
 	bool "crontab"
 	default n

@@ -453,4 +453,6 @@ extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
 void print_login_issue(const char *issue_file, const char *tty);
 void print_login_prompt(void);
 
+void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
+
 #endif /* __LIBCONFIG_H__ */

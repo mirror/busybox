@@ -806,7 +806,9 @@ inetd_main(int argc, char *argv[])
 	struct passwd *pwd;
 	struct group *grp = NULL;
 	struct sigaction sa;
-	int ch, pid;
+	int pid;
+	unsigned long opt;
+	char *sq;
 	gid_t gid;
 
 #ifdef INETD_UNSUPPORT_BILTIN
@@ -828,14 +830,21 @@ inetd_main(int argc, char *argv[])
 	LastArg = environ[-1] + strlen(environ[-1]);
 #endif
 
-	while ((ch = getopt(argc, argv, "q:")) != EOF)
-		switch(ch) {
-		case 'q':
+#if defined(__uClinux__)
+	opt = bb_getopt_ulflags(argc, argv, "q:f", &sq);
+	if (!(opt & 4)) {
+	    daemon(0, 0);
+	    /* reexec for vfork() do continue parent */
+	    vfork_daemon_rexec(argc, argv, "-f");
+	}
+#else
+	opt = bb_getopt_ulflags(ac, av, "q:", &sq);
+	daemon(0, 0);
+#endif /* uClinux */
+
+	if(opt & 1) {
 			global_queuelen = atoi(optarg);
 			if (global_queuelen < 8) global_queuelen=8;
-			break;
-		default:
-			bb_show_usage(); // "[-q len] [conf]"
 		}
 	argc -= optind;
 	argv += optind;
@@ -843,7 +852,6 @@ inetd_main(int argc, char *argv[])
 	if (argc > 0)
 		CONFIG = argv[0];
 
-	daemon(0, 0);
 	openlog(bb_applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 	{
 		FILE *fp;

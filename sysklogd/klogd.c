@@ -150,8 +150,8 @@ extern int klogd_main(int argc, char **argv)
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		if (daemon(0, 1) < 0)
 			bb_perror_msg_and_die("daemon");
-#else
-		bb_error_msg_and_die("daemon not supported");
+#if defined(__uClinux__)
+		vfork_daemon_rexec(argc, argv, "-n");
 #endif
 	}
 	doKlogd(console_log_level);

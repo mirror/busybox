@@ -53,6 +53,13 @@ NETWORKING-$(CONFIG_WGET)		+= wget.o
 
 libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
 
+needcrypt-y:=
+needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
+
+ifeq ($(needcrypt-y),y)
+  LIBRARIES += -lcrypt
+endif
+
 $(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
 	$(AR) -ro $@ $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
 

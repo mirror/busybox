@@ -153,12 +153,14 @@ static const char home[] = "./";
 /* Config options, disable this for do very small module */
 //#define CONFIG_FEATURE_HTTPD_CGI
 //#define CONFIG_FEATURE_HTTPD_BASIC_AUTH
+//#define CONFIG_FEATURE_HTTPD_AUTH_MD5
 
 #ifdef HTTPD_STANDALONE
 /* standalone, enable all features */
 #undef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 /* unset config option for remove warning as redefined */
 #undef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+#undef CONFIG_FEATURE_HTTPD_AUTH_MD5
 #undef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
 #undef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 #undef CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
@@ -168,6 +170,7 @@ static const char home[] = "./";
 #undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 /* enable all features now */
 #define CONFIG_FEATURE_HTTPD_BASIC_AUTH
+#define CONFIG_FEATURE_HTTPD_AUTH_MD5
 #define CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
 #define CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 #define CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
@@ -425,11 +428,11 @@ static void parse_conf(const char *path, int flag)
     }
 
     while((f = fopen(cf, "r")) == NULL) {
-	if(flag != FIRST_PARSE) {
+	if(flag == SUBDIR_PARSE || flag == FIND_FROM_HTTPD_ROOT) {
 	    /* config file not found, no changes to config */
 	    return;
 	}
-	if(config->configFile)      /* if -c option given */
+	if(config->configFile && flag == FIRST_PARSE) /* if -c option given */
 	    bb_perror_msg_and_die("%s", cf);
 	flag = FIND_FROM_HTTPD_ROOT;
 	cf = httpd_conf;
@@ -1326,10 +1329,38 @@ static int checkPerm(const char *path, const char *request)
 	    if(strncmp(p0, path, l) == 0 &&
 			    (l == 1 || path[l] == '/' || path[l] == 0)) {
 		/* path match found.  Check request */
+
+		/* for check next /path:user:password */
+		prev = p0;
+#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+		{
+			char *cipher;
+			char *pp;
+			char *u = strchr(request, ':');
+
+			if(u == NULL) {
+				/* bad request, ':' required */
+				continue;
+			}
+			if(strncmp(p, request, u-request) != 0) {
+				/* user uncompared */
+				continue;
+			}
+			pp = strchr(p, ':');
+			if(pp && pp[1] == '$' && pp[2] == '1' &&
+						 pp[3] == '$' && pp[4]) {
+				pp++;
+				cipher = pw_encrypt(u+1, pp);
+				if (strcmp(cipher, pp) == 0)
+					return 1;   /* Ok */
+				/* unauthorized */
+				continue;
+			}
+		}
+#endif
 		if (strcmp(p, request) == 0)
 		    return 1;   /* Ok */
-		/* unauthorized, but check next /path:user:password */
-		prev = p0;
+		/* unauthorized */
 	    }
 	}
     }   /* for */
@@ -1731,7 +1762,12 @@ static const char httpd_opts[]="c:d:h:"
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 				"r:"
-#define OPT_INC_2 1
+# ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+				"m:"
+# define OPT_INC_2 2
+# else
+# define OPT_INC_2 1
+#endif
 #else
 #define OPT_INC_2 0
 #endif
@@ -1740,14 +1776,15 @@ static const char httpd_opts[]="c:d:h:"
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
 				"u:"
 #endif
-#endif
+#endif /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
 					;
 
 #define OPT_CONFIG_FILE (1<<0)
 #define OPT_DECODE_URL  (1<<1)
 #define OPT_HOME_HTTPD  (1<<2)
 #define OPT_ENCODE_URL  (1<<(2+OPT_INC_1))
-#define OPT_REALM       (1<<(2+OPT_INC_1+OPT_INC_2))
+#define OPT_REALM       (1<<(3+OPT_INC_1))
+#define OPT_MD5         (1<<(4+OPT_INC_1))
 #define OPT_PORT        (1<<(3+OPT_INC_1+OPT_INC_2))
 #define OPT_DEBUG       (1<<(4+OPT_INC_1+OPT_INC_2))
 #define OPT_SETUID      (1<<(5+OPT_INC_1+OPT_INC_2))
@@ -1778,6 +1815,10 @@ int httpd_main(int argc, char *argv[])
   long uid = -1;
 #endif
 
+#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+  const char *pass;
+#endif
+
   config = xcalloc(1, sizeof(*config));
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   config->realm = "Web Server Authentication";
@@ -1796,6 +1837,9 @@ int httpd_main(int argc, char *argv[])
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 			, &(config->realm)
+# ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+			, &pass
+# endif
 #endif
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 			, &s_port
@@ -1812,6 +1856,12 @@ int httpd_main(int argc, char *argv[])
 #ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
   if(opt & OPT_ENCODE_URL) {
       printf("%s", encodeString(url_for_encode));
+      return 0;
+  }
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+  if(opt & OPT_MD5) {
+      printf("%s\n", pw_encrypt(pass, "$1$"));
       return 0;
   }
 #endif
