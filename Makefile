@@ -37,8 +37,6 @@ DOSTATIC = false
 
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
-# eg: `make DODEBUG=true tests'
-# Do not enable this for production builds...
 DODEBUG = false
 
 # Setting this to `true' will cause busybox to directly use the system's
