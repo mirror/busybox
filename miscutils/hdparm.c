@@ -383,7 +383,7 @@ static const char *cmd_feat_str[] = {
 	"SET FEATURES subcommand required to spinup after power up",
 	"Power-Up In Standby feature set",	/* word 83 bit  5 */
 	"Removable Media Status Notification feature set",
-	"Advanced Power Management feature set",/* word 83 bit  3 */
+	"Adv. Power Management feature set",/* word 83 bit  3 */
 	"CFA feature set",			/* word 83 bit  2 */
 	"READ/WRITE DMA QUEUED",		/* word 83 bit  1 */
 	"DOWNLOAD MICROCODE cmd", 		/* word 83 bit  0 */
@@ -473,7 +473,7 @@ const char * const bb_msg_op_not_supp	=" operation not supported on %s disks";
 static void bb_ioctl(int fd, int request, void *argp, const char *string)
 {
 	if (ioctl (fd, request, argp) != 0)
-		bb_error_msg(" %s", string);
+		bb_perror_msg(" %s", string);
 }
 
 static void if_printf(unsigned long i, char *fmt, ... )
@@ -500,7 +500,7 @@ static void bb_ioctl_on_off(int fd, int request, void *argp, const char *string,
 							 const char * fmt)
 {
 	if (ioctl (fd, request, &argp) != 0)
-		bb_error_msg(" %s", string);
+		bb_perror_msg(" %s", string);
 	else
 	{
 		printf(fmt, (unsigned long) argp);
@@ -556,20 +556,7 @@ static void check_if_maj_and_set_val(uint16_t a, uint16_t b)
 		a = b;
 }
 
-char * check_ptr(char *p, int argc, char **argv)
-{
-	if (!*p && argc && isdigit(**argv))
-		p = *argv++, --argc;
-	return p;
-}
-
-char * check_ptr_v2(char *p, int argc, char **argv)
-{
-	if (!*p && argc && isalnum(**argv))
-		p = *argv++, --argc;
-	return p;
-}
-
+static
 unsigned long int set_flag(char *p, char max)
 {
 	if (*p >= '0' && *p <=  max )
@@ -1238,7 +1225,7 @@ static int verbose = 0, get_identity = 0, get_geom = 0, noisy = 1, quiet = 0;
 static int flagcount = 0, do_flush = 0, is_scsi_hd = 0, is_xt_hd = 0;
 static int do_ctimings, do_timings = 0;
 
-static unsigned long set_readahead= 0, get_readahead= 0, bbreadahead= 0;
+static unsigned long set_readahead= 0, get_readahead= 0, readahead= 0;
 static unsigned long set_readonly = 0, get_readonly = 0, readonly = 0;
 static unsigned long set_unmask   = 0, get_unmask   = 0, unmask   = 0;
 static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;
@@ -1470,7 +1457,7 @@ static void flush_buffer_cache (int fd)
 #ifdef HDIO_DRIVE_CMD
 	sleep(1);
 	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL)	/* await completion */
-			bb_error_msg("HDIO_DRIVE_CMD");
+			bb_perror_msg("HDIO_DRIVE_CMD");
 #endif
 }
 
@@ -1511,7 +1498,7 @@ static int read_big_block (int fd, char *buf)
 
 static double correction = 0.0;
 
-void do_time (int flag, int fd)
+static void do_time (int flag, int fd)
 /*
 	flag = 0 time_cache
 	flag = 1 time_device
@@ -1948,8 +1935,8 @@ static void process_dev (char *devname)
 
 	if (set_readahead)
 	{
-		if_printf(get_readahead," setting fs readahead to %ld\n", bbreadahead);
-		bb_ioctl(fd, BLKRASET,(int *)bbreadahead,"BLKRASET");
+		if_printf(get_readahead," setting fs readahead to %ld\n", readahead);
+		bb_ioctl(fd, BLKRASET,(int *)readahead,"BLKRASET");
 	}
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	if (unregister_hwif)
@@ -2003,7 +1990,7 @@ static void process_dev (char *devname)
 		no_xt();
 		if_printf(get_mult, " setting multcount to %ld\n", mult);
 		if(ioctl(fd, HDIO_SET_MULTCOUNT, mult))
-			bb_error_msg("HDIO_SET_MULTCOUNT");
+			bb_perror_msg("HDIO_SET_MULTCOUNT");
 #ifndef HDIO_DRIVE_CMD
 		else
 			force_operation = 1;
@@ -2150,12 +2137,12 @@ static void process_dev (char *devname)
 		if_printf_on_off(get_wcache," setting drive write-caching to %ld", wcache);
 #ifdef DO_FLUSHCACHE
 		if (!wcache && ioctl(fd, HDIO_DRIVE_CMD, &flushcache))
-			bb_error_msg ("HDIO_DRIVE_CMD(flushcache)");
+			bb_perror_msg ("HDIO_DRIVE_CMD(flushcache)");
 #endif /* DO_FLUSHCACHE */
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setcache)");
 #ifdef DO_FLUSHCACHE
 		if (!wcache && ioctl(fd, HDIO_DRIVE_CMD, &flushcache))
-			bb_error_msg ("HDIO_DRIVE_CMD(flushcache)");
+			bb_perror_msg ("HDIO_DRIVE_CMD(flushcache)");
 #endif /* DO_FLUSHCACHE */
 	}
 	if (set_standbynow)
@@ -2172,7 +2159,7 @@ static void process_dev (char *devname)
 		if_printf(get_standbynow," issuing standby command\n");
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
 		 && ioctl(fd, HDIO_DRIVE_CMD, &args2))
-			bb_error_msg("HDIO_DRIVE_CMD(standby)");
+			bb_perror_msg("HDIO_DRIVE_CMD(standby)");
 	}
 	if (set_sleepnow)
 	{
@@ -2188,7 +2175,7 @@ static void process_dev (char *devname)
 		if_printf(get_sleepnow," issuing sleep command\n");
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
 		 && ioctl(fd, HDIO_DRIVE_CMD, &args2))
-			bb_error_msg("HDIO_DRIVE_CMD(sleep)");
+			bb_perror_msg("HDIO_DRIVE_CMD(sleep)");
 	}
 	if (set_seagate)
 	{
@@ -2230,7 +2217,7 @@ static void process_dev (char *devname)
 		if (ioctl(fd, HDIO_GET_MULTCOUNT, &multcount))
 		{
 			if ((verbose && !is_xt_hd) || get_mult)
-				bb_error_msg("HDIO_GET_MULTCOUNT");
+				bb_perror_msg("HDIO_GET_MULTCOUNT");
 		}
 		else if (verbose | get_mult)
 		{
@@ -2243,7 +2230,7 @@ static void process_dev (char *devname)
 		no_scsi();
 		no_xt();
 		if(ioctl(fd, HDIO_GET_32BIT, &parm))
-			bb_error_msg("HDIO_GET_32BIT");
+			bb_perror_msg("HDIO_GET_32BIT");
 		else
 		{
 			printf(" IO_support   =%3ld (", parm);
@@ -2282,7 +2269,7 @@ static void process_dev (char *devname)
 	if ((verbose && !is_scsi_hd) || get_dma) {
 		no_scsi();
 		if(ioctl(fd, HDIO_GET_DMA, &parm))
-			bb_error_msg("HDIO_GET_DMA");
+			bb_perror_msg("HDIO_GET_DMA");
 		else
 		{
 			printf(" using_dma    = %2ld", parm);
@@ -2333,13 +2320,13 @@ static void process_dev (char *devname)
 #endif
 
 		if (ioctl(fd, BLKGETSIZE, &parm))
-			bb_error_msg("BLKGETSIZE");
+			bb_perror_msg("BLKGETSIZE");
 #ifdef HDIO_GETGEO_BIG
 		else if (!ioctl(fd, HDIO_GETGEO_BIG, &bg))
 			printf(msg, bg.cylinders, bg.heads, bg.sectors, parm, bg.start);
 #endif
 		else if (ioctl(fd, HDIO_GETGEO, &g))
-			bb_error_msg("HDIO_GETGEO");
+			bb_perror_msg("HDIO_GETGEO");
 		else
 			printf(msg, g.cylinders, g.heads, g.sectors, parm, g.start);
 	}
@@ -2409,7 +2396,7 @@ static void process_dev (char *devname)
 		else if (errno == -ENOMSG)
 			printf(" no identification info available\n");
 		else
-			bb_error_msg("HDIO_GET_IDENTITY");
+			bb_perror_msg("HDIO_GET_IDENTITY");
 	}
 
 	if (get_IDentity)
@@ -2425,7 +2412,7 @@ static void process_dev (char *devname)
 			args[0] = WIN_PIDENTIFY;
 			if (ioctl(fd, HDIO_DRIVE_CMD, &args))
 			{
-				bb_error_msg("HDIO_DRIVE_CMD(identify)");
+				bb_perror_msg("HDIO_DRIVE_CMD(identify)");
 				goto identify_abort;
 			}
 		}
@@ -2454,7 +2441,7 @@ identify_abort:
 	{
 		no_scsi();
 		if (ioctl(fd, HDIO_GET_BUSSTATE, &parm))
-			bb_error_msg("HDIO_GET_BUSSTATE");
+			bb_perror_msg("HDIO_GET_BUSSTATE");
 		else
 		{
 			printf(" busstate     = %2ld", parm);
@@ -2473,6 +2460,35 @@ identify_abort:
 	if (do_flush)
 		flush_buffer_cache (fd);
 	close (fd);
+}
+
+static char * GET_NUMBER(char *p, unsigned long *flag, unsigned long *num)
+{
+	*num = 0;
+	while (isdigit(*p)) {
+		*flag = 1;
+		*num = (*num * 10) + (*p++ - '0');
+	}
+	return p;
+}
+
+static char * GET_STRING(char *p, unsigned long *flag, int *num)
+{
+	char *tmpstr;
+	char name[32];
+	tmpstr = name;
+	tmpstr[0] = '\0';
+	while (isalnum(*p) && (tmpstr - name) < 31) {
+		tmpstr[0] = *p++;
+		tmpstr[1] = '\0';
+		++tmpstr;
+	}
+	*num = translate_xfermode(name);
+	if (*num == -1)
+		*flag = 0;
+	else
+		*flag = 1;
+	return p;
 }
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
@@ -2510,8 +2526,6 @@ int hdparm_main(int argc, char **argv)
 {
 	const char * const bb_msg_missing_value ="missing value";
 	char c, *p;
-	char *tmpstr;
-	char name[32];
 	/*int neg;*/
 
 	++argv;
@@ -2565,7 +2579,8 @@ int hdparm_main(int argc, char **argv)
 					case 'u':
 						get_unmask = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_unmask = set_flag(p,'1'))==1)
 							unmask  = *p++ - '0';
 						break;
@@ -2573,7 +2588,8 @@ int hdparm_main(int argc, char **argv)
 					case 'd':
 						get_dma = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_dma = set_flag(p,'9'))==1)
 							dma = *p++ - '0';
 						break;
@@ -2581,65 +2597,47 @@ int hdparm_main(int argc, char **argv)
 					case 'n':
 						get_nowerr = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_nowerr = set_flag(p,'1'))==1)
 							nowerr  = *p++ - '0';
 						break;
 					case 'p':
 						noisy_piomode = noisy;
 						noisy = 1;
-						p = check_ptr_v2(p,argc,argv);
-						tmpstr = name;
-						tmpstr[0] = '\0';
-						while (isalnum(*p) && (tmpstr - name) < 31)
-						{
-							tmpstr[0] = *p++;
-							tmpstr[1] = '\0';
-							++tmpstr;
-						}
-						piomode = translate_xfermode(name);
-						if (piomode == -1)
-							set_piomode = 0;
-						else
-							set_piomode = 1;
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_STRING(p,&set_piomode,&piomode);
 						break;
 					case 'r':
 						get_readonly = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_readonly = set_flag(p,'1'))==1)
 							readonly  = *p++ - '0';
 						break;
 					case 'm':
 						get_mult = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_mult = 1;
-							mult = (mult * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_mult,&mult);
 						break;
 					case 'c':
 						get_io32bit = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_io32bit = 1;
-							io32bit = (io32bit * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_io32bit,&io32bit);
 						break;
 #ifdef HDIO_DRIVE_CMD
 					case 'S':
 						get_standby = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_standby = 1;
-							standby_requested = (standby_requested * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_standby,&standby_requested);
 						if (!set_standby)
 							bb_error_msg("-S: %s", bb_msg_missing_value);
 						break;
@@ -2647,24 +2645,18 @@ int hdparm_main(int argc, char **argv)
 					case 'D':
 						get_defects = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_defects = 1;
-							defects = (defects * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_defects,&defects);
 						if (!set_defects)
 							bb_error_msg("-D: %s", bb_msg_missing_value);
 						break;
 					case 'P':
 						get_prefetch = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_prefetch = 1;
-							prefetch = (prefetch * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_prefetch,&prefetch);
 						if (!set_prefetch)
 							bb_error_msg("-P: %s", bb_msg_missing_value);
 						break;
@@ -2672,20 +2664,9 @@ int hdparm_main(int argc, char **argv)
 					case 'X':
 						get_xfermode = noisy;
 						noisy = 1;
-						p = check_ptr_v2(p,argc,argv);
-						tmpstr = name;
-						tmpstr[0] = '\0';
-						while (isalnum(*p) && (tmpstr - name) < 31)
-						{
-							tmpstr[0] = *p++;
-							tmpstr[1] = '\0';
-							++tmpstr;
-						}
-						xfermode_requested = translate_xfermode(name);
-						if (xfermode_requested == -1)
-							set_xfermode = 0;
-						else
-							set_xfermode = 1;
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_STRING(p,&set_xfermode,&xfermode_requested);
 						if (!set_xfermode)
 							bb_error_msg("-X: %s", bb_msg_missing_value);
 						break;
@@ -2693,7 +2674,8 @@ int hdparm_main(int argc, char **argv)
 					case 'K':
 						get_dkeep = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_dkeep = set_flag(p,'1'))==1)
 							dkeep  = *p++ - '0';
 						else
@@ -2703,7 +2685,8 @@ int hdparm_main(int argc, char **argv)
 					case 'A':
 						get_lookahead = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_lookahead = set_flag(p,'1'))==1)
 							lookahead  = *p++ - '0';
 						else
@@ -2713,7 +2696,8 @@ int hdparm_main(int argc, char **argv)
 					case 'L':
 						get_doorlock = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_doorlock = set_flag(p,'1'))==1)
 							doorlock  = *p++ - '0';
 						else
@@ -2723,7 +2707,8 @@ int hdparm_main(int argc, char **argv)
 					case 'W':
 						get_wcache = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_wcache = set_flag(p,'1'))==1)
 							wcache  = *p++ - '0';
 						else
@@ -2760,13 +2745,15 @@ int hdparm_main(int argc, char **argv)
 					case 'k':
 						get_keep = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_keep = set_flag(p,'1'))==1)
 							keep  = *p++ - '0';
 						break;
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 					case 'U':
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if(! p)
 							goto error; /* "expected hwif_nr" */
 
@@ -2777,7 +2764,8 @@ int hdparm_main(int argc, char **argv)
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 					case 'R':
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if(! p)
 							goto error; /* "expected hwif_data" */
 
@@ -2804,19 +2792,20 @@ error:
 						break;
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
 					case 'Q':
+#ifdef HDIO_GET_QDMA
 						get_dma_q = noisy;
 						noisy = 1;
-						/* neg = 0; */
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_dma_q = 1;
-							dma_q = (dma_q * 10) + (*p++ - '0');
-						}
-						/* what is this for ? as neg = 0 (see above) it seems to do nothing */
-						/*if (neg)
-							dma_q = -dma_q;*/
+#ifdef HDIO_SET_QDMA
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_dma_q,&dma_q);
+#ifdef HDIO_GET_QDMA
+						dma_q = -dma_q;
+#endif
+#endif
+#endif
 						break;
+
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
 					case 'w':
 						perform_reset = 1;
@@ -2824,7 +2813,8 @@ error:
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 					case 'x':
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((perform_tristate = set_flag(p,'1'))==1)
 							tristate  = *p++ - '0';
 						else
@@ -2835,22 +2825,16 @@ error:
 					case 'a':
 						get_readahead = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_readahead = 1;
-							bbreadahead = (bbreadahead * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_readahead,&readahead);
 						break;
 					case 'B':
 						get_apmmode = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
-						while (isdigit(*p))
-						{
-							set_apmmode = 1;
-							apmmode = (io32bit * 10) + (*p++ - '0');
-						}
+						if (!*p && argc && isalnum(**argv))
+							p = *argv++, --argc;
+						p=GET_NUMBER(p,&set_apmmode,&apmmode);
 						if (!set_apmmode)
 							printf("-B: %s (1-255)", bb_msg_missing_value);
 						break;
@@ -2866,7 +2850,8 @@ error:
 					case 'b':
 						get_busstate = noisy;
 						noisy = 1;
-						p = check_ptr(p,argc,argv);
+						if (!*p && argc && isdigit(**argv))
+							p = *argv++, --argc;
 						if((set_busstate = set_flag(p,'2'))==1)
 							busstate  = *p++ - '0';
 						break;
@@ -2878,9 +2863,9 @@ error:
 			}
 			if (!argc)
 				bb_show_usage();
-		}
-		else
+		} else {
 			process_dev (p);
+		}
 	}
 	return 0 ;
 }
