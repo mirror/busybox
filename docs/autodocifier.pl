@@ -125,7 +125,6 @@ foreach (@ARGV) {
 	my $fh = *USAGE;
 	my ($applet, $type, @line);
 	while (<$fh>) {
-
 		if (/^#define (\w+)_(\w+)_usage/) {
 			$applet = $1;
 			$type   = $2;
@@ -135,7 +134,6 @@ foreach (@ARGV) {
 			my $text      = join("\n", @line);
 			$doc->{$type} = beautify($text);
 		}
-
 	}
 }
 
@@ -211,4 +209,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.11 2001/02/24 14:37:48 beppu Exp $
+# $Id: autodocifier.pl,v 1.12 2001/02/24 14:44:25 beppu Exp $
