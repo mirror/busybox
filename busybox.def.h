@@ -80,6 +80,8 @@
 #define BB_TAIL
 #define BB_TAR
 #define BB_TEE
+// Don't turn BB_TELNET on.  It doesn't work.
+#define BB_TELNET
 #define BB_TOUCH
 #define BB_TRUE_FALSE
 #define BB_TTY

@@ -249,6 +249,9 @@ static const struct Applet applets[] = {
 #ifdef BB_TAR					//bin
 	{"tar", tar_main},
 #endif
+#ifdef BB_TELNET				//usr/bin
+	{"telnet", telnet_main},
+#endif
 #ifdef BB_TEE					//bin
 	{"tee", tee_main},
 #endif
