@@ -190,7 +190,7 @@ extern int authenticate(int argc, char **argv, void (*hash_ptr)(FILE *stream, un
 	}
 
 	if (argc == optind) {
-		argv[argc] = "-";
+		argv[argc++] = "-";
 	}
 
 	while (optind < argc) {
