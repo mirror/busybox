@@ -42,7 +42,7 @@
 #include <sys/param.h>
 #include <linux/unistd.h>
 
-#if __GNU_LIBRARY__ < 5
+#if ! defined __GLIBC__ && ! defined __UCLIBC__
 
 typedef unsigned int socklen_t;
 

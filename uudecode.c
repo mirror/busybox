@@ -55,6 +55,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <getopt.h>
 #include <pwd.h>
 
 /*struct passwd *getpwnam();*/

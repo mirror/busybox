@@ -68,7 +68,7 @@ int screen_map_load(int fd, FILE * fp)
 	int parse_failed = 0;
 	int is_unicode;
 
-	if (fstat(fp->_fileno, &stbuf))
+	if (fstat(fileno(fp), &stbuf))
 		perror("Cannot stat map file"), exit(1);
 
 	/* first try a UTF screen-map: either ASCII (no restriction) or binary (regular file) */

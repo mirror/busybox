@@ -24,6 +24,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
+#include <getopt.h>
+
+/* It turns out that libc5 doesn't have this in its headers
+ * even though it is actually in the lib.  Force it to work */
+#if ! defined __GLIBC__ && ! defined __UCLIBC__
+#define getline __getline
+extern _IO_ssize_t getline __P ((char **, size_t *, FILE *));
+#endif
 
 //----------------------------------------------------------------------------
 //--------md5.c
