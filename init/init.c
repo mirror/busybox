@@ -782,7 +782,7 @@ static void exec_signal(int sig)
 			execl(a->command, a->command, NULL);
 
 			message(CONSOLE | LOG, "\rexec of '%s' failed: %s\n",
-					a->command, sys_errlist[errno]);
+					a->command, strerror(errno));
 			sync();
 			sleep(2);
 			init_reboot(RB_HALT_SYSTEM);

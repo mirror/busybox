@@ -420,7 +420,7 @@ static int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip,
 	struct udp_dhcp_packet packet;
 
 	if ((l_fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "socket call failed: %s", strerror(errno));
 		return -1;
 	}
 
@@ -433,7 +433,7 @@ static int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip,
 	dest.sll_halen = 6;
 	memcpy(dest.sll_addr, dest_arp, 6);
 	if (bind(l_fd, (struct sockaddr *) &dest, sizeof(struct sockaddr_ll)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "bind call failed: %s", strerror(errno));
 		close(l_fd);
 		return -1;
 	}
@@ -458,7 +458,7 @@ static int raw_packet(struct dhcpMessage *payload, u_int32_t source_ip,
 		sendto(l_fd, &packet, sizeof(struct udp_dhcp_packet), 0,
 			   (struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
-		DEBUG(LOG_ERR, "write on socket failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "write on socket failed: %s", strerror(errno));
 	}
 	close(l_fd);
 	return result;
@@ -900,7 +900,7 @@ static void run_script(struct dhcpMessage *packet, const char *name)
 		DEBUG(LOG_INFO, "execle'ing %s", client_config.script);
 		execle(client_config.script, client_config.script, name, NULL, envp);
 		LOG(LOG_ERR, "script %s failed: %s",
-			client_config.script, sys_errlist[errno]);
+			client_config.script, strerror(errno));
 		exit(1);
 	}
 }
@@ -1007,7 +1007,7 @@ static inline int read_interface(char *interface, int *ifindex,
 				DEBUG(LOG_INFO, "%s (our ip) = %s", ifr.ifr_name,
 					  inet_ntoa(s_in->sin_addr));
 			} else {
-				LOG(LOG_ERR, "SIOCGIFADDR failed!: %s", sys_errlist[errno]);
+				LOG(LOG_ERR, "SIOCGIFADDR failed!: %s", strerror(errno));
 				return -1;
 			}
 		}
@@ -1016,7 +1016,7 @@ static inline int read_interface(char *interface, int *ifindex,
 			DEBUG(LOG_INFO, "adapter index %d", ifr.ifr_ifindex);
 			*ifindex = ifr.ifr_ifindex;
 		} else {
-			LOG(LOG_ERR, "SIOCGIFINDEX failed!: %s", sys_errlist[errno]);
+			LOG(LOG_ERR, "SIOCGIFINDEX failed!: %s", strerror(errno));
 			return -1;
 		}
 		if (ioctl(l_fd, SIOCGIFHWADDR, &ifr) == 0) {
@@ -1025,11 +1025,11 @@ static inline int read_interface(char *interface, int *ifindex,
 				  "adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
 				  arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
 		} else {
-			LOG(LOG_ERR, "SIOCGIFHWADDR failed!: %s", sys_errlist[errno]);
+			LOG(LOG_ERR, "SIOCGIFHWADDR failed!: %s", strerror(errno));
 			return -1;
 		}
 	} else {
-		LOG(LOG_ERR, "socket failed!: %s", sys_errlist[errno]);
+		LOG(LOG_ERR, "socket failed!: %s", strerror(errno));
 		return -1;
 	}
 	close(l_fd);
@@ -1046,7 +1046,7 @@ static inline int listen_socket(unsigned int ip, int port, char *inf)
 
 	DEBUG(LOG_INFO, "Opening listen socket on 0x%08x:%d %s\n", ip, port, inf);
 	if ((l_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "socket call failed: %s", strerror(errno));
 		return -1;
 	}
 
@@ -1090,7 +1090,7 @@ static int raw_socket(int ifindex)
 
 	DEBUG(LOG_INFO, "Opening raw socket on ifindex %d\n", ifindex);
 	if ((l_fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "socket call failed: %s", strerror(errno));
 		return -1;
 	}
 
@@ -1098,7 +1098,7 @@ static int raw_socket(int ifindex)
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
 	if (bind(l_fd, (struct sockaddr *) &sock, sizeof(sock)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %s", sys_errlist[errno]);
+		DEBUG(LOG_ERR, "bind call failed: %s", strerror(errno));
 		close(l_fd);
 		return -1;
 	}
@@ -1375,7 +1375,7 @@ int udhcpc_main(int argc, char *argv[])
 			}
 			if (fd_main < 0) {
 				LOG(LOG_ERR, "FATAL: couldn't listen on socket, %s",
-					sys_errlist[errno]);
+					strerror(errno));
 				exit_client(0);
 			}
 		}
@@ -1488,7 +1488,7 @@ int udhcpc_main(int argc, char *argv[])
 			}
 			if (len == -1 && errno != EINTR) {
 				DEBUG(LOG_INFO, "error on read, %s, reopening socket",
-					  sys_errlist[errno]);
+					  strerror(errno));
 				change_mode(listen_mode);	/* just close and reopen */
 			}
 			if (len < 0) {
