@@ -91,7 +91,7 @@ extern int more_main(int argc, char **argv)
 #ifdef BB_FEATURE_USE_TERMIOS
 		cin = fopen("/dev/tty", "r");
 		if (!cin)
-			cin = fopen("/dev/console", "r");
+			cin = xfopen("/dev/console", "r");
 		getTermSettings(fileno(cin), &initial_settings);
 		new_settings = initial_settings;
 		new_settings.c_cc[VMIN] = 1;
