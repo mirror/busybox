@@ -174,10 +174,10 @@ int nslookup_main(int argc, char **argv)
 	if (is_ip_address(argv[1])) {
 		host = gethostbyaddr_wrapper(argv[1]);
 	} else {
-		host = gethostbyname(argv[1]);
+		host = xgethostbyname(argv[1]);
 	}
 	hostent_fprint(host);
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.24 2001/07/06 17:51:29 andersen Exp $ */
+/* $Id: nslookup.c,v 1.25 2001/10/01 17:50:25 kraai Exp $ */
