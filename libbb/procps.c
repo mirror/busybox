@@ -115,7 +115,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 					buf[--n] = 0;
 				name = buf;
 				while(n) {
-					if(*name < ' ')
+					if(((unsigned char)*name) < ' ')
 						*name = ' ';
 					name++;
 					n--;

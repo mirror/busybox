@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.25 2002/11/28 11:27:23 aaronl Exp $";
+	"$Id: vi.c,v 1.26 2002/12/02 21:18:08 bug1 Exp $";
 
 /*
  * To compile for standalone use:
@@ -87,6 +87,12 @@ static const char vi_Version[] =
 #include "busybox.h"
 #endif							/* STANDALONE */
 
+#ifdef CONFIG_LOCALE_SUPPORT
+#define Isprint(c) isprint((c))
+#else
+#define Isprint(c) ( (c) >= ' ' && (c) != 127 && (c) != ((unsigned char)'\233') )
+#endif
+
 #ifndef TRUE
 #define TRUE			((int)1)
 #define FALSE			((int)0)
@@ -116,6 +122,22 @@ static const char vi_Version[] =
 #define VI_K_FUN11		147	// Function Key F11
 #define VI_K_FUN12		148	// Function Key F12
 
+/* vt102 typical ESC sequence */
+/* terminal standout start/normal ESC sequence */
+static const char SOs[] = "\033[7m";
+static const char SOn[] = "\033[0m";
+/* terminal bell sequence */
+static const char bell[] = "\007";
+/* Clear-end-of-line and Clear-end-of-screen ESC sequence */
+static const char Ceol[] = "\033[0K";
+static const char Ceos [] = "\033[0J";
+/* Cursor motion arbitrary destination ESC sequence */
+static const char CMrc[] = "\033[%d;%dH";
+/* Cursor motion up and down ESC sequence */
+static const char CMup[] = "\033[A";
+static const char CMdown[] = "\n";
+
+
 static const int YANKONLY = FALSE;
 static const int YANKDEL = TRUE;
 static const int FORWARD = 1;	// code depends on "1"  for array index
@@ -131,27 +153,29 @@ static const int S_END_ALNUM = 5;	// used in skip_thing() for moving "dot"
 
 typedef unsigned char Byte;
 
+static int vi_setops;
+#define VI_AUTOINDENT 1
+#define VI_SHOWMATCH  2
+#define VI_IGNORECASE 4
+#define VI_ERR_METHOD 8
+#define autoindent (vi_setops & VI_AUTOINDENT)
+#define showmatch  (vi_setops & VI_SHOWMATCH )
+#define ignorecase (vi_setops & VI_IGNORECASE)
+/* indicate error with beep or flash */
+#define err_method (vi_setops & VI_ERR_METHOD)
+
 
 static int editing;		// >0 while we are editing a file
 static int cmd_mode;		// 0=command  1=insert
 static int file_modified;	// buffer contents changed
-static int err_method;		// indicate error with beep or flash
 static int fn_start;		// index of first cmd line file name
 static int save_argc;		// how many file names on cmd line
 static int cmdcnt;		// repetition count
 static fd_set rfds;		// use select() for small sleeps
 static struct timeval tv;	// use select() for small sleeps
-static char erase_char;		// the users erase character
 static int rows, columns;	// the terminal screen is this size
 static int crow, ccol, offset;	// cursor is on Crow x Ccol with Horz Ofset
-static char *SOs, *SOn;		// terminal standout start/normal ESC sequence
-static char *bell;		// terminal bell sequence
-static char *Ceol, *Ceos;	// Clear-end-of-line and Clear-end-of-screen ESC sequence
-static char *CMrc;		// Cursor motion arbitrary destination ESC sequence
-static char *CMup, *CMdown;	// Cursor motion up and down ESC sequence
 static Byte *status_buffer;	// mesages to the user
-static Byte last_input_char;	// last char read from user
-static Byte last_forward_char;	// last char searched for with 'f'
 static Byte *cfn;		// previous, current, and next file name
 static Byte *text, *end, *textend;	// pointers to the user data in memory
 static Byte *screen;		// pointer to the virtual screen buffer
@@ -160,6 +184,9 @@ static Byte *screenbegin;	// index into text[], of top line on the screen
 static Byte *dot;		// where all the action takes place
 static int tabstop;
 static struct termios term_orig, term_vi;	// remember what the cooked mode was
+static Byte erase_char;         // the users erase character
+static Byte last_input_char;    // last char read from user
+static Byte last_forward_char;  // last char searched for with 'f'
 
 #ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 static int last_row;		// where the cursor was last moved to
@@ -167,6 +194,9 @@ static int last_row;		// where the cursor was last moved to
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 static jmp_buf restart;		// catch_sig()
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
+#if defined(CONFIG_FEATURE_VI_USE_SIGNALS) || defined(CONFIG_FEATURE_VI_CRASHME)
+static int my_pid;
+#endif
 #ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 static struct winsize winsize;	// remember the window size
 #endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
@@ -181,11 +211,6 @@ static Byte *modifying_cmds;	// cmds that modify text[]
 #ifdef CONFIG_FEATURE_VI_READONLY
 static int vi_readonly, readonly;
 #endif							/* CONFIG_FEATURE_VI_READONLY */
-#ifdef CONFIG_FEATURE_VI_SETOPTS
-static int autoindent;
-static int showmatch;
-static int ignorecase;
-#endif							/* CONFIG_FEATURE_VI_SETOPTS */
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 static Byte *reg[28];		// named register a-z, "D", and "U" 0-25,26,27
 static int YDreg, Ureg;		// default delete register and orig line for "U"
@@ -202,7 +227,6 @@ static void do_cmd(Byte);	// execute a command
 static void sync_cursor(Byte *, int *, int *);	// synchronize the screen cursor to dot
 static Byte *begin_line(Byte *);	// return pointer to cur line B-o-l
 static Byte *end_line(Byte *);	// return pointer to cur line E-o-l
-extern inline Byte *dollar_line(Byte *);	// return pointer to just before NL
 static Byte *prev_line(Byte *);	// return pointer to prev line B-o-l
 static Byte *next_line(Byte *);	// return pointer to next line B-o-l
 static Byte *end_screen(void);	// get pointer to last char on screen
@@ -232,13 +256,12 @@ static Byte *text_hole_delete(Byte *, Byte *);	// at "p", delete a 'size' byte h
 static Byte *text_hole_make(Byte *, int);	// at "p", make a 'size' byte hole
 static Byte *yank_delete(Byte *, Byte *, int, int);	// yank text[] into register then delete
 static void show_help(void);	// display some help info
-extern inline void print_literal(Byte *, Byte *);	// copy s to buf, convert unprintable
 static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
 static int mysleep(int);	// sleep for 'h' 1/100 seconds
 static Byte readit(void);	// read (maybe cursor) key from stdin
 static Byte get_one_char(void);	// read 1 char from stdin
-static int file_size(Byte *);	// what is the byte size of "fn"
+static int file_size(const Byte *);   // what is the byte size of "fn"
 static int file_insert(Byte *, Byte *, int);
 static int file_write(Byte *, Byte *, Byte *);
 static void place_cursor(int, int, int);
@@ -248,16 +271,17 @@ static void clear_to_eos(void);
 static void standout_start(void);	// send "start reverse video" sequence
 static void standout_end(void);	// send "end reverse video" sequence
 static void flash(int);		// flash the terminal screen
-static void beep(void);		// beep the terminal
-static void indicate_error(char);	// use flash or beep to indicate error
 static void show_status_line(void);	// put a message on the bottom line
-static void psb(char *, ...);	// Print Status Buf
-static void psbs(char *, ...);	// Print Status Buf in standout mode
+static void psb(const char *, ...);     // Print Status Buf
+static void psbs(const char *, ...);    // Print Status Buf in standout mode
 static void ni(Byte *);		// display messages
 static void edit_status(void);	// show file status on status line
 static void redraw(int);	// force a full screen refresh
 static void format_line(Byte*, Byte*, int);
 static void refresh(int);	// update the terminal from screen[]
+
+static void Indicate_Error(void);       // use flash or beep to indicate error
+#define indicate_error(c) Indicate_Error()
 
 #ifdef CONFIG_FEATURE_VI_SEARCH
 static Byte *char_search(Byte *, Byte *, int, int);	// search for pattern starting at p
@@ -269,12 +293,10 @@ static Byte *get_one_address(Byte *, int *);	// get colon addr, if present
 static Byte *get_address(Byte *, int *, int *);	// get two colon addrs, if present
 static void colon(Byte *);	// execute the "colon" mode cmds
 #endif							/* CONFIG_FEATURE_VI_COLON */
-static Byte *get_input_line(Byte *);	// get input line- use "status line"
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 static void winch_sig(int);	// catch window size changes
 static void suspend_sig(int);	// catch ctrl-Z
-static void alarm_sig(int);	// catch alarm time-outs
-static void catch_sig(int);	// catch ctrl-C
+static void catch_sig(int);     // catch ctrl-C and alarm time-outs
 static void core_sig(int);	// catch a core dump signal
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
@@ -296,7 +318,6 @@ static Byte *string_insert(Byte *, Byte *);	// insert the string at 'p'
 static Byte *text_yank(Byte *, Byte *, int);	// save copy of "p" into a register
 static Byte what_reg(void);		// what is letter of current YDreg
 static void check_context(Byte);	// remember context for '' command
-extern inline Byte *swap_context(Byte *);	// goto new context for '' command
 #endif							/* CONFIG_FEATURE_VI_YANKMARK */
 #ifdef CONFIG_FEATURE_VI_CRASHME
 static void crash_dummy();
@@ -305,26 +326,28 @@ static int crashme = 0;
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 
+static void write1(const char *out)
+{
+	fputs(out, stdout);
+}
+
 extern int vi_main(int argc, char **argv)
 {
 	int c;
+	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, 200);
 
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	int i;
 #endif							/* CONFIG_FEATURE_VI_YANKMARK */
-
-	CMrc= "\033[%d;%dH";	// Terminal Crusor motion ESC sequence
-	CMup= "\033[A";		// move cursor up one line, same col
-	CMdown="\n";		// move cursor down one line, same col
-	Ceol= "\033[0K";	// Clear from cursor to end of line
-	Ceos= "\033[0J";	// Clear from cursor to end of screen
-	SOs = "\033[7m";	// Terminal standout mode on
-	SOn = "\033[0m";	// Terminal standout mode off
-	bell= "\007";		// Terminal bell sequence
+#if defined(CONFIG_FEATURE_VI_USE_SIGNALS) || defined(CONFIG_FEATURE_VI_CRASHME)
+	my_pid = getpid();
+#endif
 #ifdef CONFIG_FEATURE_VI_CRASHME
-	(void) srand((long) getpid());
+	(void) srand((long) my_pid);
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
-	status_buffer = (Byte *) xmalloc(200);	// hold messages to user
+
+	status_buffer = STATUS_BUFFER;
+
 #ifdef CONFIG_FEATURE_VI_READONLY
 	vi_readonly = readonly = FALSE;
 	if (strncmp(argv[0], "view", 4) == 0) {
@@ -332,11 +355,7 @@ extern int vi_main(int argc, char **argv)
 		vi_readonly = TRUE;
 	}
 #endif							/* CONFIG_FEATURE_VI_READONLY */
-#ifdef CONFIG_FEATURE_VI_SETOPTS
-	autoindent = 1;
-	ignorecase = 1;
-	showmatch = 1;
-#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE | VI_ERR_METHOD;
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	for (i = 0; i < 28; i++) {
 		reg[i] = 0;
@@ -395,11 +414,10 @@ extern int vi_main(int argc, char **argv)
 
 static void edit_file(Byte * fn)
 {
-	char c;
+	Byte c;
 	int cnt, size, ch;
 
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
-	char *msg;
 	int sig;
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 #ifdef CONFIG_FEATURE_VI_YANKMARK
@@ -435,33 +453,20 @@ static void edit_file(Byte * fn)
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
-	err_method = 1;		// flash
 	last_forward_char = last_input_char = '\0';
 	crow = 0;
 	ccol = 0;
 	edit_status();
 
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
-	signal(SIGHUP, catch_sig);
-	signal(SIGINT, catch_sig);
-	signal(SIGALRM, alarm_sig);
-	signal(SIGTERM, catch_sig);
-	signal(SIGQUIT, core_sig);
-	signal(SIGILL, core_sig);
-	signal(SIGTRAP, core_sig);
-	signal(SIGIOT, core_sig);
-	signal(SIGABRT, core_sig);
-	signal(SIGFPE, core_sig);
-	signal(SIGBUS, core_sig);
-	signal(SIGSEGV, core_sig);
-#ifdef SIGSYS
-	signal(SIGSYS, core_sig);
-#endif	
+	catch_sig(0);
+	core_sig(0);
 	signal(SIGWINCH, winch_sig);
 	signal(SIGTSTP, suspend_sig);
 	sig = setjmp(restart);
 	if (sig != 0) {
-		msg = "";
+		const char *msg = "";
+
 		if (sig == SIGWINCH)
 			msg = "(window resize)";
 		if (sig == SIGHUP)
@@ -496,6 +501,7 @@ static void edit_file(Byte * fn)
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	redraw(FALSE);			// dont force every col re-draw
 	show_status_line();
+	fflush(stdout);
 
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
@@ -548,212 +554,6 @@ static void edit_file(Byte * fn)
 	clear_to_eol();		// Erase to end of line
 	cookmode();
 }
-
-static Byte readbuffer[BUFSIZ];
-
-#ifdef CONFIG_FEATURE_VI_CRASHME
-static int totalcmds = 0;
-static int Mp = 85;		// Movement command Probability
-static int Np = 90;		// Non-movement command Probability
-static int Dp = 96;		// Delete command Probability
-static int Ip = 97;		// Insert command Probability
-static int Yp = 98;		// Yank command Probability
-static int Pp = 99;		// Put command Probability
-static int M = 0, N = 0, I = 0, D = 0, Y = 0, P = 0, U = 0;
-char chars[20] = "\t012345 abcdABCD-=.$";
-char *words[20] = { "this", "is", "a", "test",
-	"broadcast", "the", "emergency", "of",
-	"system", "quick", "brown", "fox",
-	"jumped", "over", "lazy", "dogs",
-	"back", "January", "Febuary", "March"
-};
-char *lines[20] = {
-	"You should have received a copy of the GNU General Public License\n",
-	"char c, cm, *cmd, *cmd1;\n",
-	"generate a command by percentages\n",
-	"Numbers may be typed as a prefix to some commands.\n",
-	"Quit, discarding changes!\n",
-	"Forced write, if permission originally not valid.\n",
-	"In general, any ex or ed command (such as substitute or delete).\n",
-	"I have tickets available for the Blazers vs LA Clippers for Monday, Janurary 1 at 1:00pm.\n",
-	"Please get w/ me and I will go over it with you.\n",
-	"The following is a list of scheduled, committed changes.\n",
-	"1.   Launch Norton Antivirus (Start, Programs, Norton Antivirus)\n",
-	"Reminder....Town Meeting in Central Perk cafe today at 3:00pm.\n",
-	"Any question about transactions please contact Sterling Huxley.\n",
-	"I will try to get back to you by Friday, December 31.\n",
-	"This Change will be implemented on Friday.\n",
-	"Let me know if you have problems accessing this;\n",
-	"Sterling Huxley recently added you to the access list.\n",
-	"Would you like to go to lunch?\n",
-	"The last command will be automatically run.\n",
-	"This is too much english for a computer geek.\n",
-};
-char *multilines[20] = {
-	"You should have received a copy of the GNU General Public License\n",
-	"char c, cm, *cmd, *cmd1;\n",
-	"generate a command by percentages\n",
-	"Numbers may be typed as a prefix to some commands.\n",
-	"Quit, discarding changes!\n",
-	"Forced write, if permission originally not valid.\n",
-	"In general, any ex or ed command (such as substitute or delete).\n",
-	"I have tickets available for the Blazers vs LA Clippers for Monday, Janurary 1 at 1:00pm.\n",
-	"Please get w/ me and I will go over it with you.\n",
-	"The following is a list of scheduled, committed changes.\n",
-	"1.   Launch Norton Antivirus (Start, Programs, Norton Antivirus)\n",
-	"Reminder....Town Meeting in Central Perk cafe today at 3:00pm.\n",
-	"Any question about transactions please contact Sterling Huxley.\n",
-	"I will try to get back to you by Friday, December 31.\n",
-	"This Change will be implemented on Friday.\n",
-	"Let me know if you have problems accessing this;\n",
-	"Sterling Huxley recently added you to the access list.\n",
-	"Would you like to go to lunch?\n",
-	"The last command will be automatically run.\n",
-	"This is too much english for a computer geek.\n",
-};
-
-// create a random command to execute
-static void crash_dummy()
-{
-	static int sleeptime;	// how long to pause between commands
-	char c, cm, *cmd, *cmd1;
-	int i, cnt, thing, rbi, startrbi, percent;
-
-	// "dot" movement commands
-	cmd1 = " \n\r\002\004\005\006\025\0310^$-+wWeEbBhjklHL";
-
-	// is there already a command running?
-	if (strlen((char *) readbuffer) > 0)
-		goto cd1;
-  cd0:
-	startrbi = rbi = 0;
-	sleeptime = 0;		// how long to pause between commands
-	memset(readbuffer, '\0', BUFSIZ - 1);	// clear the read buffer
-	// generate a command by percentages
-	percent = (int) lrand48() % 100;	// get a number from 0-99
-	if (percent < Mp) {	//  Movement commands
-		// available commands
-		cmd = cmd1;
-		M++;
-	} else if (percent < Np) {	//  non-movement commands
-		cmd = "mz<>\'\"";	// available commands
-		N++;
-	} else if (percent < Dp) {	//  Delete commands
-		cmd = "dx";		// available commands
-		D++;
-	} else if (percent < Ip) {	//  Inset commands
-		cmd = "iIaAsrJ";	// available commands
-		I++;
-	} else if (percent < Yp) {	//  Yank commands
-		cmd = "yY";		// available commands
-		Y++;
-	} else if (percent < Pp) {	//  Put commands
-		cmd = "pP";		// available commands
-		P++;
-	} else {
-		// We do not know how to handle this command, try again
-		U++;
-		goto cd0;
-	}
-	// randomly pick one of the available cmds from "cmd[]"
-	i = (int) lrand48() % strlen(cmd);
-	cm = cmd[i];
-	if (strchr(":\024", cm))
-		goto cd0;		// dont allow colon or ctrl-T commands
-	readbuffer[rbi++] = cm;	// put cmd into input buffer
-
-	// now we have the command-
-	// there are 1, 2, and multi char commands
-	// find out which and generate the rest of command as necessary
-	if (strchr("dmryz<>\'\"", cm)) {	// 2-char commands
-		cmd1 = " \n\r0$^-+wWeEbBhjklHL";
-		if (cm == 'm' || cm == '\'' || cm == '\"') {	// pick a reg[]
-			cmd1 = "abcdefghijklmnopqrstuvwxyz";
-		}
-		thing = (int) lrand48() % strlen(cmd1);	// pick a movement command
-		c = cmd1[thing];
-		readbuffer[rbi++] = c;	// add movement to input buffer
-	}
-	if (strchr("iIaAsc", cm)) {	// multi-char commands
-		if (cm == 'c') {
-			// change some thing
-			thing = (int) lrand48() % strlen(cmd1);	// pick a movement command
-			c = cmd1[thing];
-			readbuffer[rbi++] = c;	// add movement to input buffer
-		}
-		thing = (int) lrand48() % 4;	// what thing to insert
-		cnt = (int) lrand48() % 10;	// how many to insert
-		for (i = 0; i < cnt; i++) {
-			if (thing == 0) {	// insert chars
-				readbuffer[rbi++] = chars[((int) lrand48() % strlen(chars))];
-			} else if (thing == 1) {	// insert words
-				strcat((char *) readbuffer, words[(int) lrand48() % 20]);
-				strcat((char *) readbuffer, " ");
-				sleeptime = 0;	// how fast to type
-			} else if (thing == 2) {	// insert lines
-				strcat((char *) readbuffer, lines[(int) lrand48() % 20]);
-				sleeptime = 0;	// how fast to type
-			} else {	// insert multi-lines
-				strcat((char *) readbuffer, multilines[(int) lrand48() % 20]);
-				sleeptime = 0;	// how fast to type
-			}
-		}
-		strcat((char *) readbuffer, "\033");
-	}
-  cd1:
-	totalcmds++;
-	if (sleeptime > 0)
-		(void) mysleep(sleeptime);	// sleep 1/100 sec
-}
-
-// test to see if there are any errors
-static void crash_test()
-{
-	static time_t oldtim;
-	time_t tim;
-	char d[2], buf[BUFSIZ], msg[BUFSIZ];
-
-	msg[0] = '\0';
-	if (end < text) {
-		strcat((char *) msg, "end<text ");
-	}
-	if (end > textend) {
-		strcat((char *) msg, "end>textend ");
-	}
-	if (dot < text) {
-		strcat((char *) msg, "dot<text ");
-	}
-	if (dot > end) {
-		strcat((char *) msg, "dot>end ");
-	}
-	if (screenbegin < text) {
-		strcat((char *) msg, "screenbegin<text ");
-	}
-	if (screenbegin > end - 1) {
-		strcat((char *) msg, "screenbegin>end-1 ");
-	}
-
-	if (strlen(msg) > 0) {
-		alarm(0);
-		sprintf(buf, "\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
-			totalcmds, last_input_char, msg, SOs, SOn);
-		write(1, buf, strlen(buf));
-		while (read(0, d, 1) > 0) {
-			if (d[0] == '\n' || d[0] == '\r')
-				break;
-		}
-		alarm(3);
-	}
-	tim = (time_t) time((time_t *) 0);
-	if (tim >= (oldtim + 3)) {
-		sprintf((char *) status_buffer,
-				"Tot=%d: M=%d N=%d I=%d D=%d Y=%d P=%d U=%d size=%d",
-				totalcmds, M, N, I, D, Y, P, U, end - text + 1);
-		oldtim = tim;
-	}
-	return;
-}
-#endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 //----- The Colon commands -------------------------------------
 #ifdef CONFIG_FEATURE_VI_COLON
@@ -847,6 +647,23 @@ ga0:
 		p++;				// skip over trailing spaces
 	return (p);
 }
+
+#ifdef CONFIG_FEATURE_VI_SETOPTS
+static void setops(const Byte *args, const char *opname, int flg_no,
+			const char *short_opname, int opt)
+{
+	const char *a = (char *) args + flg_no;
+	int l = strlen(opname) - 1; /* opname have + ' ' */
+
+	if (strncasecmp(a, opname, l) == 0 ||
+			strncasecmp(a, short_opname, 2) == 0) {
+		if(flg_no)
+			vi_setops &= ~opt;
+		 else
+			vi_setops |= opt;
+	}
+}
+#endif
 
 static void colon(Byte * buf)
 {
@@ -1065,19 +882,27 @@ static void colon(Byte * buf)
 		}
 		place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 		clear_to_eol();	// clear the line
-		write(1, "\r\n", 2);
+		puts("\r");
 		for (; q <= r; q++) {
+			int c_is_no_print;
+
 			c = *q;
-			if (c > '~')
+			c_is_no_print = c > 127 && !Isprint(c);
+			if (c_is_no_print) {
+				c = '.';
 				standout_start();
+				}
 			if (c == '\n') {
-				write(1, "$\r", 2);
-			} else if (*q < ' ') {
-				write(1, "^", 1);
+				write1("$\r");
+			} else if (c < ' ' || c == 127) {
+				putchar('^');
+				if(c == 127)
+					c = '?';
+				 else
 				c += '@';
 			}
-			write(1, &c, 1);
-			if (c > '~')
+			putchar(c);
+			if (c_is_no_print)
 				standout_end();
 		}
 #ifdef CONFIG_FEATURE_VI_SET
@@ -1185,23 +1010,11 @@ static void colon(Byte * buf)
 		if (strncasecmp((char *) args, "no", 2) == 0)
 			i = 2;		// ":set noautoindent"
 #ifdef CONFIG_FEATURE_VI_SETOPTS
-		if (strncasecmp((char *) args + i, "autoindent", 10) == 0 ||
-			strncasecmp((char *) args + i, "ai", 2) == 0) {
-			autoindent = (i == 2) ? 0 : 1;
-		}
-		if (strncasecmp((char *) args + i, "flash", 5) == 0 ||
-			strncasecmp((char *) args + i, "fl", 2) == 0) {
-			err_method = (i == 2) ? 0 : 1;
-		}
-		if (strncasecmp((char *) args + i, "ignorecase", 10) == 0 ||
-			strncasecmp((char *) args + i, "ic", 2) == 0) {
-			ignorecase = (i == 2) ? 0 : 1;
-		}
-		if (strncasecmp((char *) args + i, "showmatch", 9) == 0 ||
-			strncasecmp((char *) args + i, "sm", 2) == 0) {
-			showmatch = (i == 2) ? 0 : 1;
-		}
-		if (strncasecmp((char *) args + i, "tabstop", 7) == 0) {
+		setops(args, "autoindent ", i, "ai", VI_AUTOINDENT);
+		setops(args, "flash ", i, "fl", VI_ERR_METHOD);
+		setops(args, "ignorecase ", i, "ic", VI_IGNORECASE);
+		setops(args, "showmatch ", i, "ic", VI_SHOWMATCH);
+		if (strncasecmp((char *) args + i, "tabstop=%d ", 7) == 0) {
 			sscanf(strchr((char *) args + i, '='), "=%d", &ch);
 			if (ch > 0 && ch < columns - 1)
 				tabstop = ch;
@@ -1318,9 +1131,7 @@ static void colon(Byte * buf)
 #ifdef CONFIG_FEATURE_VI_SEARCH
 colon_s_fail:
 	psb(":s expression missing delimiters");
-	return;
 #endif
-
 }
 
 static void Hit_Return(void)
@@ -1328,7 +1139,7 @@ static void Hit_Return(void)
 	char c;
 
 	standout_start();	// start reverse video
-	write(1, "[Hit return to continue]", 24);
+	write1("[Hit return to continue]");
 	standout_end();		// end reverse video
 	while ((c = get_one_char()) != '\n' && c != '\r')	/*do nothing */
 		;
@@ -1392,7 +1203,7 @@ static void sync_cursor(Byte * d, int *row, int *col)
 		if (*tp == '\t') {
 			//         7       - (co %    8  )
 			co += ((tabstop - 1) - (co % tabstop));
-		} else if (*tp < ' ') {
+		} else if (*tp < ' ' || *tp == 127) {
 			co++;		// display as ^X, use 2 columns
 		}
 	} while (tp++ < d && ++co);
@@ -1442,7 +1253,7 @@ static Byte *end_line(Byte * p) // return pointer to NL of cur line line
 	return (p);
 }
 
-extern inline Byte *dollar_line(Byte * p) // return pointer to just before NL line
+static inline Byte *dollar_line(Byte * p) // return pointer to just before NL line
 {
 	while (p < end - 1 && *p != '\n')
 		p++;			// go to cur line E-o-l
@@ -1547,7 +1358,7 @@ static Byte *move_to_col(Byte * p, int l)
 		if (*p == '\t') {
 			//         7       - (co %    8  )
 			co += ((tabstop - 1) - (co % tabstop));
-		} else if (*p < ' ') {
+		} else if (*p < ' ' || *p == 127) {
 			co++;		// display as ^X, use 2 columns
 		}
 	} while (++co <= l && p++ < end);
@@ -1787,7 +1598,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
 			// also rmove char from last_modifying_cmd
-			if (strlen((char *) last_modifying_cmd) > 0) {
+			if (last_modifying_cmd != 0 && strlen((char *) last_modifying_cmd) > 0) {
 				Byte *q;
 
 				q = last_modifying_cmd;
@@ -2130,7 +1941,7 @@ static void show_help(void)
 	);
 }
 
-extern inline void print_literal(Byte * buf, Byte * s) // copy s to buf, convert unprintable
+static inline void print_literal(Byte * buf, Byte * s) // copy s to buf, convert unprintable
 {
 	Byte c, b[2];
 
@@ -2139,19 +1950,25 @@ extern inline void print_literal(Byte * buf, Byte * s) // copy s to buf, convert
 	if (strlen((char *) s) <= 0)
 		s = (Byte *) "(NULL)";
 	for (; *s > '\0'; s++) {
+		int c_is_no_print;
+
 		c = *s;
-		if (*s > '~') {
-			strcat((char *) buf, SOs);
-			c = *s - 128;
+		c_is_no_print = c > 127 && !Isprint(c);
+		if (c_is_no_print) {
+			strcat((char *) buf, SOn);
+			c = '.';
 		}
-		if (*s < ' ') {
+		if (c < ' ' || c == 127) {
 			strcat((char *) buf, "^");
+			if(c == 127)
+				c = '?';
+			 else
 			c += '@';
 		}
 		b[0] = c;
 		strcat((char *) buf, (char *) b);
-		if (*s > '~')
-			strcat((char *) buf, SOn);
+		if (c_is_no_print)
+			strcat((char *) buf, SOs);
 		if (*s == '\n') {
 			strcat((char *) buf, "$");
 		}
@@ -2259,7 +2076,7 @@ static void check_context(Byte cmd)
 	return;
 }
 
-extern inline Byte *swap_context(Byte * p) // goto new context for '' command make this the current context
+static inline Byte *swap_context(Byte * p) // goto new context for '' command make this the current context
 {
 	Byte *tmp;
 
@@ -2301,6 +2118,7 @@ static void rawmode(void)
 
 static void cookmode(void)
 {
+	fflush(stdout);
 	tcsetattr(0, TCSANOW, &term_orig);
 }
 
@@ -2348,7 +2166,7 @@ static void cont_sig(int sig)
 
 	signal(SIGTSTP, suspend_sig);
 	signal(SIGCONT, SIG_DFL);
-	kill(getpid(), SIGCONT);
+	kill(my_pid, SIGCONT);
 }
 
 //----- Come here when we get a Suspend signal -------------------
@@ -2360,7 +2178,7 @@ static void suspend_sig(int sig)
 
 	signal(SIGCONT, cont_sig);
 	signal(SIGTSTP, SIG_DFL);
-	kill(getpid(), SIGTSTP);
+	kill(my_pid, SIGTSTP);
 }
 
 //----- Come here when we get a signal ---------------------------
@@ -2369,12 +2187,8 @@ static void catch_sig(int sig)
 	signal(SIGHUP, catch_sig);
 	signal(SIGINT, catch_sig);
 	signal(SIGTERM, catch_sig);
-	longjmp(restart, sig);
-}
-
-static void alarm_sig(int sig)
-{
 	signal(SIGALRM, catch_sig);
+	if(sig)
 	longjmp(restart, sig);
 }
 
@@ -2393,15 +2207,18 @@ static void core_sig(int sig)
 	signal(SIGSYS, core_sig);
 #endif
 
+	if(sig) {       // signaled
 	dot = bound_dot(dot);	// make sure "dot" is valid
 
 	longjmp(restart, sig);
+	}
 }
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 
 static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 {
 	// Don't hang- Wait 5/100 seconds-  1 Sec= 1000000
+	fflush(stdout);
 	FD_ZERO(&rfds);
 	FD_SET(0, &rfds);
 	tv.tv_sec = 0;
@@ -2410,60 +2227,66 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	return (FD_ISSET(0, &rfds));
 }
 
+static Byte readbuffer[BUFSIZ];
+static int readed_for_parse;
+
 //----- IO Routines --------------------------------------------
 static Byte readit(void)	// read (maybe cursor) key from stdin
 {
 	Byte c;
-	int i, bufsiz, cnt, cmdindex;
+	int n;
 	struct esc_cmds {
-		Byte *seq;
+		const char *seq;
 		Byte val;
 	};
 
-	static struct esc_cmds esccmds[] = {
-		{(Byte *) "OA", (Byte) VI_K_UP},	// cursor key Up
-		{(Byte *) "OB", (Byte) VI_K_DOWN},	// cursor key Down
-		{(Byte *) "OC", (Byte) VI_K_RIGHT},	// Cursor Key Right
-		{(Byte *) "OD", (Byte) VI_K_LEFT},	// cursor key Left
-		{(Byte *) "OH", (Byte) VI_K_HOME},	// Cursor Key Home
-		{(Byte *) "OF", (Byte) VI_K_END},	// Cursor Key End
-		{(Byte *) "[A", (Byte) VI_K_UP},	// cursor key Up
-		{(Byte *) "[B", (Byte) VI_K_DOWN},	// cursor key Down
-		{(Byte *) "[C", (Byte) VI_K_RIGHT},	// Cursor Key Right
-		{(Byte *) "[D", (Byte) VI_K_LEFT},	// cursor key Left
-		{(Byte *) "[H", (Byte) VI_K_HOME},	// Cursor Key Home
-		{(Byte *) "[F", (Byte) VI_K_END},	// Cursor Key End
-		{(Byte *) "[2~", (Byte) VI_K_INSERT},	// Cursor Key Insert
-		{(Byte *) "[5~", (Byte) VI_K_PAGEUP},	// Cursor Key Page Up
-		{(Byte *) "[6~", (Byte) VI_K_PAGEDOWN},	// Cursor Key Page Down
-		{(Byte *) "OP", (Byte) VI_K_FUN1},	// Function Key F1
-		{(Byte *) "OQ", (Byte) VI_K_FUN2},	// Function Key F2
-		{(Byte *) "OR", (Byte) VI_K_FUN3},	// Function Key F3
-		{(Byte *) "OS", (Byte) VI_K_FUN4},	// Function Key F4
-		{(Byte *) "[15~", (Byte) VI_K_FUN5},	// Function Key F5
-		{(Byte *) "[17~", (Byte) VI_K_FUN6},	// Function Key F6
-		{(Byte *) "[18~", (Byte) VI_K_FUN7},	// Function Key F7
-		{(Byte *) "[19~", (Byte) VI_K_FUN8},	// Function Key F8
-		{(Byte *) "[20~", (Byte) VI_K_FUN9},	// Function Key F9
-		{(Byte *) "[21~", (Byte) VI_K_FUN10},	// Function Key F10
-		{(Byte *) "[23~", (Byte) VI_K_FUN11},	// Function Key F11
-		{(Byte *) "[24~", (Byte) VI_K_FUN12},	// Function Key F12
-		{(Byte *) "[11~", (Byte) VI_K_FUN1},	// Function Key F1
-		{(Byte *) "[12~", (Byte) VI_K_FUN2},	// Function Key F2
-		{(Byte *) "[13~", (Byte) VI_K_FUN3},	// Function Key F3
-		{(Byte *) "[14~", (Byte) VI_K_FUN4},	// Function Key F4
+	static const struct esc_cmds esccmds[] = {
+		{"OA", (Byte) VI_K_UP},       // cursor key Up
+		{"OB", (Byte) VI_K_DOWN},     // cursor key Down
+		{"OC", (Byte) VI_K_RIGHT},    // Cursor Key Right
+		{"OD", (Byte) VI_K_LEFT},     // cursor key Left
+		{"OH", (Byte) VI_K_HOME},     // Cursor Key Home
+		{"OF", (Byte) VI_K_END},      // Cursor Key End
+		{"[A", (Byte) VI_K_UP},       // cursor key Up
+		{"[B", (Byte) VI_K_DOWN},     // cursor key Down
+		{"[C", (Byte) VI_K_RIGHT},    // Cursor Key Right
+		{"[D", (Byte) VI_K_LEFT},     // cursor key Left
+		{"[H", (Byte) VI_K_HOME},     // Cursor Key Home
+		{"[F", (Byte) VI_K_END},      // Cursor Key End
+		{"[1~", (Byte) VI_K_HOME},     // Cursor Key Home
+		{"[2~", (Byte) VI_K_INSERT},  // Cursor Key Insert
+		{"[4~", (Byte) VI_K_END},      // Cursor Key End
+		{"[5~", (Byte) VI_K_PAGEUP},  // Cursor Key Page Up
+		{"[6~", (Byte) VI_K_PAGEDOWN},        // Cursor Key Page Down
+		{"OP", (Byte) VI_K_FUN1},     // Function Key F1
+		{"OQ", (Byte) VI_K_FUN2},     // Function Key F2
+		{"OR", (Byte) VI_K_FUN3},     // Function Key F3
+		{"OS", (Byte) VI_K_FUN4},     // Function Key F4
+		{"[15~", (Byte) VI_K_FUN5},   // Function Key F5
+		{"[17~", (Byte) VI_K_FUN6},   // Function Key F6
+		{"[18~", (Byte) VI_K_FUN7},   // Function Key F7
+		{"[19~", (Byte) VI_K_FUN8},   // Function Key F8
+		{"[20~", (Byte) VI_K_FUN9},   // Function Key F9
+		{"[21~", (Byte) VI_K_FUN10},  // Function Key F10
+		{"[23~", (Byte) VI_K_FUN11},  // Function Key F11
+		{"[24~", (Byte) VI_K_FUN12},  // Function Key F12
+		{"[11~", (Byte) VI_K_FUN1},   // Function Key F1
+		{"[12~", (Byte) VI_K_FUN2},   // Function Key F2
+		{"[13~", (Byte) VI_K_FUN3},   // Function Key F3
+		{"[14~", (Byte) VI_K_FUN4},   // Function Key F4
 	};
 
 #define ESCCMDS_COUNT (sizeof(esccmds)/sizeof(struct esc_cmds))
 
 	(void) alarm(0);	// turn alarm OFF while we wait for input
+	fflush(stdout);
+	n = readed_for_parse;
 	// get input from User- are there already input chars in Q?
-	bufsiz = strlen((char *) readbuffer);
-	if (bufsiz <= 0) {
+	if (n <= 0) {
 	  ri0:
 		// the Q is empty, wait for a typed char
-		bufsiz = read(0, readbuffer, BUFSIZ - 1);
-		if (bufsiz < 0) {
+		n = read(0, readbuffer, BUFSIZ - 1);
+		if (n < 0) {
 			if (errno == EINTR)
 				goto ri0;	// interrupted sys call
 			if (errno == EBADF)
@@ -2475,14 +2298,10 @@ static Byte readit(void)	// read (maybe cursor) key from stdin
 			if (errno == EIO)
 				editing = 0;
 			errno = 0;
-			bufsiz = 0;
 		}
-		readbuffer[bufsiz] = '\0';
-	}
-	// return char if it is not part of ESC sequence
-	if (readbuffer[0] != 27)
-		goto ri1;
-
+		if(n <= 0)
+			return 0;       // error
+		if (readbuffer[0] == 27) {
 	// This is an ESC char. Is this Esc sequence?
 	// Could be bare Esc key. See if there are any
 	// more chars to read after the ESC. This would
@@ -2493,34 +2312,44 @@ static Byte readit(void)	// read (maybe cursor) key from stdin
 	tv.tv_usec = 50000;	// Wait 5/100 seconds- 1 Sec=1000000
 
 	// keep reading while there are input chars and room in buffer
-	while (select(1, &rfds, NULL, NULL, &tv) > 0 && bufsiz <= (BUFSIZ - 5)) {
+			while (select(1, &rfds, NULL, NULL, &tv) > 0 && n <= (BUFSIZ - 5)) {
 		// read the rest of the ESC string
-		i = read(0, (void *) (readbuffer + bufsiz), BUFSIZ - bufsiz);
-		if (i > 0) {
-			bufsiz += i;
-			readbuffer[bufsiz] = '\0';	// Terminate the string
-		}
-	}
-	// Maybe cursor or function key?
-	for (cmdindex = 0; cmdindex < ESCCMDS_COUNT; cmdindex++) {
-		cnt = strlen((char *) esccmds[cmdindex].seq);
-		i = strncmp((char *) esccmds[cmdindex].seq, (char *) readbuffer, cnt);
-		if (i == 0) {
-			// is a Cursor key- put derived value back into Q
-			readbuffer[0] = esccmds[cmdindex].val;
-			// squeeze out the ESC sequence
-			for (i = 1; i < cnt; i++) {
-				memmove(readbuffer + 1, readbuffer + 2, BUFSIZ - 2);
-				readbuffer[BUFSIZ - 1] = '\0';
+				int r = read(0, (void *) (readbuffer + n), BUFSIZ - n);
+				if (r > 0) {
+					n += r;
+				}
 			}
+		}
+		readed_for_parse = n;
+	}
+	c = readbuffer[0];
+	if(c == 27 && n > 1) {
+	// Maybe cursor or function key?
+		const struct esc_cmds *eindex;
+
+		for (eindex = esccmds; eindex < &esccmds[ESCCMDS_COUNT]; eindex++) {
+			int cnt = strlen(eindex->seq);
+
+			if(n <= cnt)
+				continue;
+			if(strncmp(eindex->seq, (char *) readbuffer + 1, cnt))
+				continue;
+			// is a Cursor key- put derived value back into Q
+			c = eindex->val;
+			// for squeeze out the ESC sequence
+			n = cnt + 1;
 			break;
 		}
+		if(eindex == &esccmds[ESCCMDS_COUNT]) {
+			/* defined ESC sequence not found, set only one ESC */
+			n = 1;
 	}
-  ri1:
-	c = readbuffer[0];
-	// remove one char from Q
-	memmove(readbuffer, readbuffer + 1, BUFSIZ - 1);
-	readbuffer[BUFSIZ - 1] = '\0';
+	} else {
+		n = 1;
+	}
+	// remove key sequence from Q
+	readed_for_parse -= n;
+	memmove(readbuffer, readbuffer + n, BUFSIZ - n);
 	(void) alarm(3);	// we are done waiting for input, turn alarm ON
 	return (c);
 }
@@ -2561,7 +2390,6 @@ static Byte get_one_char()
 				// add new char to q
 				last_modifying_cmd[len] = c;
 			}
-
 		}
 	}
 #else							/* CONFIG_FEATURE_VI_DOT_CMD */
@@ -2581,7 +2409,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	*status_buffer = '\0';	// clear the status buffer
 	place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 	clear_to_eol();		// clear the line
-	write(1, prompt, strlen((char *) prompt));	// write out the :, /, or ? prompt
+	write1(prompt);      // write out the :, /, or ? prompt
 
 	for (i = strlen((char *) buf); i < BUFSIZ;) {
 		c = get_one_char();	// read user input
@@ -2591,14 +2419,14 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 			i--;		// backup to prev char
 			buf[i] = '\0';	// erase the char
 			buf[i + 1] = '\0';	// null terminate buffer
-			write(1, " ", 3);	// erase char on screen
+			write1("\b \b");     // erase char on screen
 			if (i <= 0) {	// user backs up before b-o-l, exit
 				break;
 			}
 		} else {
 			buf[i] = c;	// save char in buffer
 			buf[i + 1] = '\0';	// make sure buffer is null terminated
-			write(1, buf + i, 1);	// echo the char back to user
+			putchar(c);   // echo the char back to user
 			i++;
 		}
 	}
@@ -2608,7 +2436,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	return (obufp);
 }
 
-static int file_size(Byte * fn) // what is the byte size of "fn"
+static int file_size(const Byte * fn) // what is the byte size of "fn"
 {
 	struct stat st_buf;
 	int cnt, sr;
@@ -2729,7 +2557,6 @@ static void place_cursor(int row, int col, int opti)
 {
 	char cm1[BUFSIZ];
 	char *cm;
-	int l;
 #ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	char cm2[BUFSIZ];
 	Byte *screenp;
@@ -2784,32 +2611,31 @@ static void place_cursor(int row, int col, int opti)
 	} */
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
   pc0:
-	l= strlen(cm);
-	if (l) write(1, cm, l);			// move the cursor
+	write1(cm);                 // move the cursor
 }
 
 //----- Erase from cursor to end of line -----------------------
 static void clear_to_eol()
 {
-	write(1, Ceol, strlen(Ceol));	// Erase from cursor to end of line
+	write1(Ceol);   // Erase from cursor to end of line
 }
 
 //----- Erase from cursor to end of screen -----------------------
 static void clear_to_eos()
 {
-	write(1, Ceos, strlen(Ceos));	// Erase from cursor to end of screen
+	write1(Ceos);   // Erase from cursor to end of screen
 }
 
 //----- Start standout mode ------------------------------------
 static void standout_start() // send "start reverse video" sequence
 {
-	write(1, SOs, strlen(SOs));	// Start reverse video mode
+	write1(SOs);     // Start reverse video mode
 }
 
 //----- End standout mode --------------------------------------
 static void standout_end() // send "end reverse video" sequence
 {
-	write(1, SOn, strlen(SOn));	// End reverse video mode
+	write1(SOn);     // End reverse video mode
 }
 
 //----- Flash the screen  --------------------------------------
@@ -2822,19 +2648,14 @@ static void flash(int h)
 	redraw(TRUE);
 }
 
-static void beep()
-{
-	write(1, bell, strlen(bell));	// send out a bell character
-}
-
-static void indicate_error(char c)
+static void Indicate_Error(void)
 {
 #ifdef CONFIG_FEATURE_VI_CRASHME
 	if (crashme > 0)
 		return;			// generate a random command
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
-	if (err_method == 0) {
-		beep();
+	if (!err_method) {
+		write1(bell);   // send out a bell character
 	} else {
 		flash(10);
 	}
@@ -2859,7 +2680,7 @@ static void show_status_line(void)
 	if (cnt > 0 && last_cksum != cksum) {
 		last_cksum= cksum;		// remember if we have seen this line
 		place_cursor(rows - 1, 0, FALSE);	// put cursor on status line
-		write(1, status_buffer, cnt);
+		write1(status_buffer);
 		clear_to_eol();
 		place_cursor(crow, ccol, FALSE);	// put cursor back in correct place
 	}
@@ -2867,7 +2688,7 @@ static void show_status_line(void)
 
 //----- format the status buffer, the bottom line of screen ------
 // print status buffer, with STANDOUT mode
-static void psbs(char *format, ...)
+static void psbs(const char *format, ...)
 {
 	va_list args;
 
@@ -2882,7 +2703,7 @@ static void psbs(char *format, ...)
 }
 
 // print status buffer
-static void psb(char *format, ...)
+static void psb(const char *format, ...)
 {
 	va_list args;
 
@@ -2954,7 +2775,10 @@ static void format_line(Byte *dest, Byte *src, int li)
 		}
 		if (c == '\n')
 			break;
-		if (c < ' ' || c > '~') {
+		if (c > 127 && !Isprint(c)) {
+			c = '.';
+		}
+		if (c < ' ' || c == 127) {
 			if (c == '\t') {
 				c = ' ';
 				//       co %    8     !=     7
@@ -2963,8 +2787,10 @@ static void format_line(Byte *dest, Byte *src, int li)
 				}
 			} else {
 				dest[co++] = '^';
-				c |= '@';       // make it visible
-				c &= 0x7f;      // get rid of hi bit
+				if(c == 127)
+					c = '?';
+				 else
+					c += '@';       // make it visible
 			}
 		}
 		// the co++ is done here so that the column will
@@ -3067,7 +2893,15 @@ static void refresh(int full_screen)
 			}
 
 			// write line out to terminal
-			write(1, sp+cs, ce-cs+1);
+			{
+				int nic = ce-cs+1;
+				char *out = sp+cs;
+
+				while(nic-- > 0) {
+					putchar(*out);
+					out++;
+				}
+			}
 #ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 			last_row = li;
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
@@ -3131,12 +2965,14 @@ static void do_cmd(Byte c)
 	}
 
 	if (cmd_mode == 2) {
+		//  flip-flop Insert/Replace mode
+		if (c == VI_K_INSERT) goto dc_i;
 		// we are 'R'eplacing the current *dot with new char
 		if (*dot == '\n') {
 			// don't Replace past E-o-l
 			cmd_mode = 1;	// convert to insert
 		} else {
-			if (1 <= c && c <= 127) {	// only ASCII chars
+			if (1 <= c || Isprint(c)) {
 				if (c != 27)
 					dot = yank_delete(dot, dot, 0, YANKDEL);	// delete char
 				dot = char_insert(dot, c);	// insert new char
@@ -3148,8 +2984,8 @@ static void do_cmd(Byte c)
 		//  hitting "Insert" twice means "R" replace mode
 		if (c == VI_K_INSERT) goto dc5;
 		// insert the char c at "dot"
-		if (1 <= c && c <= 127) {
-			dot = char_insert(dot, c);	// only ASCII chars
+		if (1 <= c || Isprint(c)) {
+			dot = char_insert(dot, c);
 		}
 		goto dc1;
 	}
@@ -3202,7 +3038,7 @@ key_cmd_mode:
 	default:			// unrecognised command
 		buf[0] = c;
 		buf[1] = '\0';
-		if (c <= ' ') {
+		if (c < ' ') {
 			buf[0] = '^';
 			buf[1] = c + '@';
 			buf[2] = '\0';
@@ -3953,3 +3789,208 @@ key_cmd_mode:
 	if (*dot == '\n' && cnt > 0 && cmd_mode == 0)
 		dot--;
 }
+
+#ifdef CONFIG_FEATURE_VI_CRASHME
+static int totalcmds = 0;
+static int Mp = 85;             // Movement command Probability
+static int Np = 90;             // Non-movement command Probability
+static int Dp = 96;             // Delete command Probability
+static int Ip = 97;             // Insert command Probability
+static int Yp = 98;             // Yank command Probability
+static int Pp = 99;             // Put command Probability
+static int M = 0, N = 0, I = 0, D = 0, Y = 0, P = 0, U = 0;
+char chars[20] = "\t012345 abcdABCD-=.$";
+char *words[20] = { "this", "is", "a", "test",
+	"broadcast", "the", "emergency", "of",
+	"system", "quick", "brown", "fox",
+	"jumped", "over", "lazy", "dogs",
+	"back", "January", "Febuary", "March"
+};
+char *lines[20] = {
+	"You should have received a copy of the GNU General Public License\n",
+	"char c, cm, *cmd, *cmd1;\n",
+	"generate a command by percentages\n",
+	"Numbers may be typed as a prefix to some commands.\n",
+	"Quit, discarding changes!\n",
+	"Forced write, if permission originally not valid.\n",
+	"In general, any ex or ed command (such as substitute or delete).\n",
+	"I have tickets available for the Blazers vs LA Clippers for Monday, Janurary 1 at 1:00pm.\n",
+	"Please get w/ me and I will go over it with you.\n",
+	"The following is a list of scheduled, committed changes.\n",
+	"1.   Launch Norton Antivirus (Start, Programs, Norton Antivirus)\n",
+	"Reminder....Town Meeting in Central Perk cafe today at 3:00pm.\n",
+	"Any question about transactions please contact Sterling Huxley.\n",
+	"I will try to get back to you by Friday, December 31.\n",
+	"This Change will be implemented on Friday.\n",
+	"Let me know if you have problems accessing this;\n",
+	"Sterling Huxley recently added you to the access list.\n",
+	"Would you like to go to lunch?\n",
+	"The last command will be automatically run.\n",
+	"This is too much english for a computer geek.\n",
+};
+char *multilines[20] = {
+	"You should have received a copy of the GNU General Public License\n",
+	"char c, cm, *cmd, *cmd1;\n",
+	"generate a command by percentages\n",
+	"Numbers may be typed as a prefix to some commands.\n",
+	"Quit, discarding changes!\n",
+	"Forced write, if permission originally not valid.\n",
+	"In general, any ex or ed command (such as substitute or delete).\n",
+	"I have tickets available for the Blazers vs LA Clippers for Monday, Janurary 1 at 1:00pm.\n",
+	"Please get w/ me and I will go over it with you.\n",
+	"The following is a list of scheduled, committed changes.\n",
+	"1.   Launch Norton Antivirus (Start, Programs, Norton Antivirus)\n",
+	"Reminder....Town Meeting in Central Perk cafe today at 3:00pm.\n",
+	"Any question about transactions please contact Sterling Huxley.\n",
+	"I will try to get back to you by Friday, December 31.\n",
+	"This Change will be implemented on Friday.\n",
+	"Let me know if you have problems accessing this;\n",
+	"Sterling Huxley recently added you to the access list.\n",
+	"Would you like to go to lunch?\n",
+	"The last command will be automatically run.\n",
+	"This is too much english for a computer geek.\n",
+};
+
+// create a random command to execute
+static void crash_dummy()
+{
+	static int sleeptime;   // how long to pause between commands
+	char c, cm, *cmd, *cmd1;
+	int i, cnt, thing, rbi, startrbi, percent;
+
+	// "dot" movement commands
+	cmd1 = " \n\r\002\004\005\006\025\0310^$-+wWeEbBhjklHL";
+
+	// is there already a command running?
+	if (readed_for_parse > 0)
+		goto cd1;
+  cd0:
+	startrbi = rbi = 0;
+	sleeptime = 0;          // how long to pause between commands
+	memset(readbuffer, '\0', BUFSIZ);   // clear the read buffer
+	// generate a command by percentages
+	percent = (int) lrand48() % 100;        // get a number from 0-99
+	if (percent < Mp) {     //  Movement commands
+		// available commands
+		cmd = cmd1;
+		M++;
+	} else if (percent < Np) {      //  non-movement commands
+		cmd = "mz<>\'\"";       // available commands
+		N++;
+	} else if (percent < Dp) {      //  Delete commands
+		cmd = "dx";             // available commands
+		D++;
+	} else if (percent < Ip) {      //  Inset commands
+		cmd = "iIaAsrJ";        // available commands
+		I++;
+	} else if (percent < Yp) {      //  Yank commands
+		cmd = "yY";             // available commands
+		Y++;
+	} else if (percent < Pp) {      //  Put commands
+		cmd = "pP";             // available commands
+		P++;
+	} else {
+		// We do not know how to handle this command, try again
+		U++;
+		goto cd0;
+	}
+	// randomly pick one of the available cmds from "cmd[]"
+	i = (int) lrand48() % strlen(cmd);
+	cm = cmd[i];
+	if (strchr(":\024", cm))
+		goto cd0;               // dont allow colon or ctrl-T commands
+	readbuffer[rbi++] = cm; // put cmd into input buffer
+
+	// now we have the command-
+	// there are 1, 2, and multi char commands
+	// find out which and generate the rest of command as necessary
+	if (strchr("dmryz<>\'\"", cm)) {        // 2-char commands
+		cmd1 = " \n\r0$^-+wWeEbBhjklHL";
+		if (cm == 'm' || cm == '\'' || cm == '\"') {    // pick a reg[]
+			cmd1 = "abcdefghijklmnopqrstuvwxyz";
+		}
+		thing = (int) lrand48() % strlen(cmd1); // pick a movement command
+		c = cmd1[thing];
+		readbuffer[rbi++] = c;  // add movement to input buffer
+	}
+	if (strchr("iIaAsc", cm)) {     // multi-char commands
+		if (cm == 'c') {
+			// change some thing
+			thing = (int) lrand48() % strlen(cmd1); // pick a movement command
+			c = cmd1[thing];
+			readbuffer[rbi++] = c;  // add movement to input buffer
+		}
+		thing = (int) lrand48() % 4;    // what thing to insert
+		cnt = (int) lrand48() % 10;     // how many to insert
+		for (i = 0; i < cnt; i++) {
+			if (thing == 0) {       // insert chars
+				readbuffer[rbi++] = chars[((int) lrand48() % strlen(chars))];
+			} else if (thing == 1) {        // insert words
+				strcat((char *) readbuffer, words[(int) lrand48() % 20]);
+				strcat((char *) readbuffer, " ");
+				sleeptime = 0;  // how fast to type
+			} else if (thing == 2) {        // insert lines
+				strcat((char *) readbuffer, lines[(int) lrand48() % 20]);
+				sleeptime = 0;  // how fast to type
+			} else {        // insert multi-lines
+				strcat((char *) readbuffer, multilines[(int) lrand48() % 20]);
+				sleeptime = 0;  // how fast to type
+			}
+		}
+		strcat((char *) readbuffer, "\033");
+	}
+	readed_for_parse = strlen(readbuffer);
+  cd1:
+	totalcmds++;
+	if (sleeptime > 0)
+		(void) mysleep(sleeptime);      // sleep 1/100 sec
+}
+
+// test to see if there are any errors
+static void crash_test()
+{
+	static time_t oldtim;
+	time_t tim;
+	char d[2], buf[BUFSIZ], msg[BUFSIZ];
+
+	msg[0] = '\0';
+	if (end < text) {
+		strcat((char *) msg, "end<text ");
+	}
+	if (end > textend) {
+		strcat((char *) msg, "end>textend ");
+	}
+	if (dot < text) {
+		strcat((char *) msg, "dot<text ");
+	}
+	if (dot > end) {
+		strcat((char *) msg, "dot>end ");
+	}
+	if (screenbegin < text) {
+		strcat((char *) msg, "screenbegin<text ");
+	}
+	if (screenbegin > end - 1) {
+		strcat((char *) msg, "screenbegin>end-1 ");
+	}
+
+	if (strlen(msg) > 0) {
+		alarm(0);
+		printf(buf, "\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
+			totalcmds, last_input_char, msg, SOs, SOn);
+		fflush(stdout);
+		while (read(0, d, 1) > 0) {
+			if (d[0] == '\n' || d[0] == '\r')
+				break;
+		}
+		alarm(3);
+	}
+	tim = (time_t) time((time_t *) 0);
+	if (tim >= (oldtim + 3)) {
+		sprintf((char *) status_buffer,
+				"Tot=%d: M=%d N=%d I=%d D=%d Y=%d P=%d U=%d size=%d",
+				totalcmds, M, N, I, D, Y, P, U, end - text + 1);
+		oldtim = tim;
+	}
+	return;
+}
+#endif                                                  /* CONFIG_FEATURE_VI_CRASHME */
