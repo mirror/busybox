@@ -509,7 +509,7 @@ static int iproute_list(int argc, char **argv)
 	}
 
 	if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-		error_msg_and_die"Dump terminated");
+		error_msg_and_die("Dump terminated");
 	}
 
 	exit(0);
