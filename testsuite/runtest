@@ -2,6 +2,23 @@
 
 PATH=$(dirname $(pwd)):$PATH
 
+show_result ()
+{
+	local resolution=$1
+	local testcase=$2
+	local status=0
+
+	if [ $resolution = UPASS -o $resolution = FAIL ]; then
+		status=1
+	fi
+
+	if [ "$verbose" -o $status -eq 1 ]; then
+		echo "$resolution: $testcase"
+	fi
+
+	return $status
+}
+
 run_applet_testcase ()
 {
 	local applet=$1
@@ -15,7 +32,7 @@ run_applet_testcase ()
 	local testname=$(basename $testcase)
 
 	if grep -q "^# CONFIG_${uc_applet} is not set$" ../.config; then
-		echo "UNSUPPORTED: $testname"
+		show_result UNSUPPORTED $testname
 		return 0
 	fi
 
@@ -23,7 +40,7 @@ run_applet_testcase ()
 		local feature=`sed -ne 's/.*UNSUPPORTED: //p' $testcase`
 
 		if grep -q "^# ${feature} is not set$" ../.config; then
-			echo "UNSUPPORTED: $testname"
+			show_result UNSUPPORTED $testname
 			return 0
 		fi
 	fi
@@ -37,15 +54,11 @@ run_applet_testcase ()
 	pushd tmp >/dev/null
 
 	if . ../$testcase >/dev/null 2>&1; then
-		echo "${U}PASS: $testname"
-		if [ "$U" ]; then
-			status=1
-		fi
+		show_result ${U}PASS $testname
+		status=$!
 	else
-		echo "${X}FAIL: $testname"
-		if [ ! "$X" ]; then
-			status=1
-		fi
+		show_result ${X}FAIL $testname
+		status=$!
 	fi
 
 	popd >/dev/null
@@ -77,6 +90,11 @@ run_applet_tests ()
 
 
 status=0
+
+if [ x"$1" = x"-v" ]; then
+	verbose=1
+	shift
+fi
 
 if [ $# -ne 0 ]; then
 	applets="$@"

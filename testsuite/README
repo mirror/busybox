@@ -1,6 +1,8 @@
 To run the test suite, change to this directory and run
-"./runtest".  To only run the test cases for particular applets,
-specify them as parameters to runtest.
+"./runtest".  It will run all of the test cases, and list those
+with unexpected outcomes.  Adding the -v option will cause it to
+show expected outcomes as well.  To only run the test cases for
+particular applets, specify them as parameters to runtest.
 
 The test cases for an applet reside in the subdirectory of the
 applet name.  The name of the test case should be the assertion
