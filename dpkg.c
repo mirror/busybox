@@ -11,6 +11,15 @@
 
 #include "busybox.h"
 
+
+/* Stupid libc doesn't have a reliable way for use to know 
+ * that libc5 is being used.   Assume this is good enough */ 
+#if defined __GLIBC__ || defined __UCLIBC__
+#error It looks like you are using libc5, which doesn't support 
+#error tfind().  tfind() is used by busybox dpkg.
+#error Please disable BB_DPKG.  Sorry.
+#endif	
+
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
 /* Should we do full dependency checking? */
