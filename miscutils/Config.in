@@ -18,6 +18,11 @@ config CONFIG_CROND
 	help
 	  Crond is a background daemon that parses individual crontab
 	  files and executes commands on behalf of the users in question.
+	  This is a port of dcron from slackware.  It uses files of the
+	  format /var/spool/cron/crontabs/<username> files, for example:
+	      $ cat /var/spool/cron/crontabs/root
+	      # Run daily cron jobs at 4:40 every day:
+	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
 
 config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 	bool "  Using /usr/sbin/sendmail?"
