@@ -16,6 +16,8 @@
 #include "arpping.h"
 #include "common.h"
 
+#include "static_leases.h"
+
 
 uint8_t blank_chaddr[] = {[0 ... 15] = 0};
 
@@ -134,6 +136,10 @@ uint32_t find_address(int check_expired)
 		/* ie, 192.168.55.255 */
 		if ((addr & 0xFF) == 0xFF) continue;
 
+		/* Only do if it isn't an assigned as a static lease */
+		if(!reservedIp(server_config.static_leases, htonl(addr)))
+		{
+
 		/* lease is not taken */
 		ret = htonl(addr);
 		if ((!(lease = find_lease_by_yiaddr(ret)) ||
@@ -146,6 +152,7 @@ uint32_t find_address(int check_expired)
 			return ret;
 			break;
 		}
+	}
 	}
 	return 0;
 }

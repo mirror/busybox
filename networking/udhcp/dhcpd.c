@@ -44,6 +44,7 @@
 #include "serverpacket.h"
 #include "common.h"
 #include "signalpipe.h"
+#include "static_leases.h"
 
 
 /* globals */
@@ -68,8 +69,11 @@ int main(int argc, char *argv[])
 	unsigned long timeout_end;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease;
+	struct dhcpOfferedAddr static_lease;
 	int max_sock;
 	unsigned long num_ips;
+
+	uint32_t static_lease_ip;
 
 	memset(&server_config, 0, sizeof(struct server_config_t));
 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
@@ -162,8 +166,25 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		/* ADDME: look for a static lease */
+		/* Look for a static lease */
+		static_lease_ip = getIpByMac(server_config.static_leases, &packet.chaddr);
+
+		if(static_lease_ip)
+		{
+			printf("Found static lease: %x\n", static_lease_ip);
+
+			memcpy(&static_lease.chaddr, &packet.chaddr, 16);
+			static_lease.yiaddr = static_lease_ip;
+			static_lease.expires = 0;
+
+			lease = &static_lease;
+
+		}
+		else
+		{
 		lease = find_lease_by_chaddr(packet.chaddr);
+		}
+
 		switch (state[0]) {
 		case DHCPDISCOVER:
 			DEBUG(LOG_INFO,"received DISCOVER");
@@ -181,7 +202,7 @@ int main(int argc, char *argv[])
 			if (requested) memcpy(&requested_align, requested, 4);
 			if (server_id) memcpy(&server_id_align, server_id, 4);
 
-			if (lease) { /*ADDME: or static lease */
+			if (lease) {
 				if (server_id) {
 					/* SELECTING State */
 					DEBUG(LOG_INFO, "server_id = %08x", ntohl(server_id_align));

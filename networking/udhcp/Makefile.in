@@ -40,7 +40,7 @@ UDHCP-$(CONFIG_UDHCP_SHARED)    += common.c options.c packet.c pidfile.c \
 UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c clientsocket.c \
 				   script.c
 UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c \
-				   serverpacket.c
+				   serverpacket.c static_leases.c
 UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
 UDHCP_OBJS=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 

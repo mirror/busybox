@@ -11,6 +11,9 @@
 #include <ctype.h>
 #include <netdb.h>
 
+#include <netinet/ether.h>
+#include "static_leases.h"
+
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
@@ -35,6 +38,22 @@ static int read_ip(const char *line, void *arg)
 			addr->s_addr = *((unsigned long *) host->h_addr_list[0]);
 		else retval = 0;
 	}
+	return retval;
+}
+
+static int read_mac(const char *line, void *arg)
+{
+	uint8_t *mac_bytes = arg;
+	struct ether_addr *temp_ether_addr;
+	int retval = 1;
+
+	temp_ether_addr = ether_aton(line);
+
+	if(temp_ether_addr == NULL)
+		retval = 0;
+	else
+		memcpy(mac_bytes, temp_ether_addr, 6);
+
 	return retval;
 }
 
@@ -150,6 +169,39 @@ static int read_opt(const char *const_line, void *arg)
 	return retval;
 }
 
+static int read_staticlease(const char *const_line, void *arg)
+{
+
+	char *line;
+	char *mac_string;
+	char *ip_string;
+	uint8_t *mac_bytes;
+	uint32_t *ip;
+
+
+	/* Allocate memory for addresses */
+	mac_bytes = xmalloc(sizeof(unsigned char) * 8);
+	ip = xmalloc(sizeof(uint32_t));
+
+	/* Read mac */
+	line = (char *) const_line;
+	mac_string = strtok(line, " \t");
+	read_mac(mac_string, mac_bytes);
+
+	/* Read ip */
+	ip_string = strtok(NULL, " \t");
+	read_ip(ip_string, ip);
+
+	addStaticLease(arg, mac_bytes, ip);
+
+#ifdef UDHCP_DEBUG
+	printStaticLeases(arg);
+#endif
+
+	return 1;
+
+}
+
 
 static const struct config_keyword keywords[] = {
 	/* keyword	handler   variable address		default */
@@ -171,6 +223,7 @@ static const struct config_keyword keywords[] = {
 	{"siaddr",	read_ip,  &(server_config.siaddr),	"0.0.0.0"},
 	{"sname",	read_str, &(server_config.sname),	""},
 	{"boot_file",	read_str, &(server_config.boot_file),	""},
+	{"static_lease",read_staticlease, &(server_config.static_leases),	""},
 	/*ADDME: static lease */
 	{"",		NULL, 	  NULL,				""}
 };

@@ -99,6 +99,12 @@ struct option_set {
 	struct option_set *next;
 };
 
+struct static_lease {
+	uint8_t *mac;
+	uint32_t *ip;
+	struct static_lease *next;
+};
+
 struct server_config_t {
 	uint32_t server;		/* Our IP, in network order */
 	uint32_t start;		/* Start address of leases, network order */
@@ -124,6 +130,7 @@ struct server_config_t {
 	uint32_t siaddr;		/* next server bootp option */
 	char *sname;			/* bootp server name */
 	char *boot_file;		/* bootp boot file option */
+	struct static_lease *static_leases; /* List of ip/mac pairs to assign static leases */
 };
 
 extern struct server_config_t server_config;
