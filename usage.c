@@ -757,6 +757,11 @@ const char mt_usage[] =
 	"mt [-f device] opcode value\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nControl magnetic tape drive operation\n"
+	"\nAvailable Opcodes:\n\n"
+	"bsf bsfm bsr bss datacompression drvbuffer eof eom erase\n"
+	"fsf fsfm fsr fss load lock mkpart nop offline ras1 ras2\n"
+	"ras3 reset retension rew rewoffline seek setblk setdensity\n"
+	"setpart tell unload unlock weof wset\n"
 #endif
 	;
 #endif
