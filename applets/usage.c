@@ -1017,7 +1017,6 @@ const char syslogd_usage[] =
 #endif
 
 #if defined BB_TAIL
-#if defined BB_FEATURE_SIMPLE_TAIL
 const char tail_usage[] =
 	"tail [OPTION] [FILE]...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
@@ -1025,32 +1024,25 @@ const char tail_usage[] =
 	"With more than one FILE, precede each with a header giving the\n"
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n"
 	"Options:\n"
-	"\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
-
-	"\t-f\t\tOutput data as the file grows.  This version\n"
-	"\t\t\tof 'tail -f' supports only one file at a time.\n"
+#ifndef BB_FEATURE_SIMPLE_TAIL
+	"\t-c=N[kbm]\toutput the last N bytes\n"
 #endif
-	;
-#else /* ! defined BB_FEATURE_SIMPLE_TAIL */
-const char tail_usage[] =
-	"tail [OPTION]... [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrint last 10 lines of each FILE to standard output.\n"
-	"With more than one FILE, precede each with a header giving the file name.\n"
-	"With no FILE, or when FILE is -, read standard input.\n"
-	"\n"
-	"  -c=N[kbm]       output the last N bytes\n"
-	"  -f              output appended data as the file grows\n"
-	"  -n=N            output the last N lines, instead of last 10\n"
-	"  -q              never output headers giving file names\n"
-	"  -v              always output headers giving file names\n"
-	"\n"
+	"\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
+	"\t\t\tAlso can be -NUM or +NUM.\n"
+	"\t-f\t\tOutput data as the file grows.\n"
+#ifndef BB_FEATURE_SIMPLE_TAIL
+	"\t-q\t\tnever output headers giving file names\n"
+	"\t-s SEC\t\tWait SEC seconds between reads with -f\n"
+	"\t-v\t\talways output headers giving file names\n\n"
 	"If the first character of N (bytes or lines) is a `+', output begins with \n"
 	"the Nth item from the start of each file, otherwise, print the last N items\n"
-	"in the file.  N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).\n"
+	"in the file. N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).\n"
+//#else
+//	"\nIf the first character of N (bytes or lines) is a `+', output begins with \n"
+//	"the Nth item from the start of each file.\n"
+#endif
 #endif
 	;
-#endif
 #endif
 
 #if defined BB_TAR
@@ -1061,9 +1053,9 @@ const char tar_usage[] =
 	"tar -[xtvO] "
 #endif
 #if defined BB_FEATURE_TAR_EXCLUDE
-	"[--exclude File] "
+	"[-X File(s)] "
 #endif
-	"[-f tarFile] [FILE] ...\n"
+	"[-f tarFile] [FILE(s)] ...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nCreate, extract, or list files from a tar file.  Note that\n"
 	"this version of tar treats hard links as separate files.\n\n"
@@ -1077,7 +1069,7 @@ const char tar_usage[] =
 	"\tf\t\tname of tarfile or \"-\" for stdin\n"
 	"\tO\t\textract to stdout\n"
 #if defined BB_FEATURE_TAR_EXCLUDE
-	"\t--exclude\tfile to exclude\n"
+	"\tX\t\tfile(s) to exclude\n"
 #endif
 	"\nInformative output:\n"
 	"\tv\t\tverbosely list files processed\n"

@@ -190,7 +190,7 @@
 // enable syslogd -R remotehost
 #define BB_FEATURE_REMOTE_LOG
 //
-//Simple tail implementation (2.25k vs 3k for the full one).
+//Simple tail implementation (2.34k vs 3k for the full one).
 //Both provide 'tail -f' support (only one file at a time.)
 #define BB_FEATURE_SIMPLE_TAIL
 //

@@ -47,47 +47,34 @@
 
 static int n_files = 0;
 static char **files = NULL;
-
-static char follow=0;
+static char * buffer;
+static ssize_t bytes_read=0;
+static ssize_t bs;
+static ssize_t filelocation=0;
+static char pip;
 
 #ifdef BB_FEATURE_SIMPLE_TAIL
 static const char unit_type=LINES;
-static const char sleep_int=1;
 #else
 static char unit_type=LINES;
-static int sleep_int=1;
 static char verbose = 0;
 #endif
 
-//static off_t units=-11;
 static off_t units=0;
 
-int tail_stream(int file_id)
+int tail_stream(int fd)
 {
-	int fd;
-	ssize_t bytes_read=0;
-	ssize_t bs=BUFSIZ;
-	ssize_t startpoint=bs;
+	ssize_t startpoint;
 	ssize_t endpoint=0;
 	ssize_t count=0;
 	ssize_t filesize=0;
-	ssize_t filelocation=0;
 	char direction=1;
-	char * buffer;
-	char pipe;
 
-
-	if (!strcmp(files[file_id], STDIN))
-		fd = 0;
-	else
-		fd = open(files[file_id], O_RDONLY);
-	if (fd == -1)
-		fatalError("Unable to open file %s.\n", files[file_id]);
-
-	buffer=malloc(bs);
+	filelocation=0;
+	startpoint=bs=BUFSIZ;
 
 	filesize=lseek(fd, -1, SEEK_END)+1;
-	pipe=(filesize<=0);
+	pip=(filesize<=0);
 
 	if(units>=0)
 		lseek(fd,0,SEEK_SET);
@@ -96,7 +83,7 @@ int tail_stream(int file_id)
 		count=1;
 	}
 	while(units != 0) {
-		if (pipe) {
+		if (pip) {
 			char * line;
 			ssize_t f_size=0;
 
@@ -140,12 +127,12 @@ int tail_stream(int file_id)
 #endif
 				if(buffer[startpoint-1]=='\n')
 					count++;
-			if (!pipe)
+			if (!pip)
 				filelocation=lseek(fd,0,SEEK_CUR);
-			if(count==abs(units))
+			if(count==units*direction)
 				break;
 		}
-		if((count==abs(units)) | pipe)
+		if((count==units*direction) | pip)
 			break;
 		if(direction<0){
 			filelocation = lseek(fd, -bytes_read, SEEK_CUR);
@@ -153,29 +140,11 @@ int tail_stream(int file_id)
 				break;
 		}
 	}
-	if(pipe && (direction<0))
+	if(pip && (direction<0))
 		bs++;
 	bytes_read=bs-startpoint;
 	memcpy(&buffer[0],&buffer[startpoint],bytes_read);
 
-	bs=BUFSIZ;
-	while (1) {
-		if((filelocation>0 || pipe)){
-			write(1,buffer,bytes_read);
-		}
-		bytes_read = read(fd, buffer, bs);
-		filelocation+=bytes_read;
-		if (bytes_read <= 0) {
-			if (!follow) {
-				close(fd);
-				break;
-			}
-			sleep(sleep_int);
-		}
-		usleep(sleep_int * 1000);
-	}
-	if (buffer)
-		free(buffer);
 	return 0;
 }
 
@@ -192,33 +161,31 @@ int tail_main(int argc, char **argv)
 {
 	int show_headers = 1;
 	int test;
-	int c;
-	int nargs=0;
-	char **argn=NULL;
+	int opt;
+	int optc=0;
+	char **optv=NULL;
+	char follow=0;
+	int sleep_int=1;
+	int *fd;
 
 	opterr = 0;
 	
-	for(c=0;c<argc;c++){
-		test=atoi(argv[c]);
+	for(opt=0;opt<argc;opt++){
+		test=atoi(argv[opt]);
 		if(test){
 			units=test;
 			if(units<0)
 				units=units-1;
 		}else{
-			nargs++;
-			argn = realloc(argn, nargs);
-			argn[nargs - 1] = (char *) malloc(strlen(argv[c]) + 1);
-			strcpy(argn[nargs - 1], argv[c]);
+			optc++;
+			optv = realloc(optv, optc);
+			optv[optc - 1] = (char *) malloc(strlen(argv[opt]) + 1);
+			strcpy(optv[optc - 1], argv[opt]);
 		}
 	}
-	while (1) {
-		int opt_index = 0;
+	while ((opt=getopt(optc,optv,"c:fhn:s:q:v")) >0) {
 
-		c = getopt_long_only(nargs, argn,
-			"c:fhn:s:qv", NULL, &opt_index);
-		if (c == -1)
-			break;
-		switch (c) {
+		switch (opt) {
 
 #ifndef BB_FEATURE_SIMPLE_TAIL
 
@@ -277,37 +244,89 @@ int tail_main(int argc, char **argv)
 				usage(tail_usage);
 			break;
 		default:
-			errorMsg("\nUnknown arg: %c.\n\n",c);
+			errorMsg("\nUnknown arg: %c.\n\n",optopt);
 			usage(tail_usage);
 		}
 	}
-	while (optind < nargs) {
-		if (!strcmp(argn[optind], "-"))
-			add_file(STDIN);
-		else
-			add_file(argn[optind]);
-		optind++;
+	while (optind <= optc) {
+		if(optind==optc) {
+			if (n_files==0)
+				add_file(STDIN);
+			else
+				break;
+		}else {
+			if (!strcmp(optv[optind], "-"))
+				add_file(STDIN);
+			else
+				add_file(optv[optind]);
+			optind++;
+		}
 	}
 	if(units==0)
 		units=-11;
 	if(units>0)
 		units--;
-	if (n_files == 0)
-		add_file(STDIN);
+	fd=malloc(sizeof(int)*n_files);
 	if (n_files == 1)
 #ifndef BB_FEATURE_SIMPLE_TAIL
 		if (!verbose)
 #endif
 			show_headers = 0;
+	buffer=malloc(BUFSIZ);
 	for (test = 0; test < n_files; test++) {
 		if (show_headers)
 			printf("==> %s <==\n", files[test]);
-		tail_stream(test);
+		if (!strcmp(files[test], STDIN))
+			fd[test] = 0;
+		else
+			fd[test] = open(files[test], O_RDONLY);
+		if (fd[test] == -1)
+			fatalError("Unable to open file %s.\n", files[test]);
+		tail_stream(fd[test]);
+
+		bs=BUFSIZ;
+		while (1) {
+			if((filelocation>0 || pip)){
+				write(1,buffer,bytes_read);
+			}
+			bytes_read = read(fd[test], buffer, bs);
+			filelocation+=bytes_read;
+			if (bytes_read <= 0) {
+				break;
+			}
+			usleep(sleep_int * 1000);
+		}
+		if(n_files>1)
+			printf("\n");
 	}
+	while(1){
+		for (test = 0; test < n_files; test++) {
+			if(!follow){
+				close(fd[test]);
+				continue;
+			} else {
+				sleep(sleep_int);
+				bytes_read = read(fd[test], buffer, bs);
+				if(bytes_read>0) {
+					if (show_headers)
+						printf("==> %s <==\n", files[test]);
+					write(1,buffer,bytes_read);
+					if(n_files>1)
+						printf("\n");
+				}
+			}
+		}
+		if(!follow)
+			break;
+	}
+	if (fd)
+		free(fd);
+	if (buffer)
+		free(buffer);
 	if(files)
 		free(files);
-	if(argn)
-		free(argn);
+	if(optv)
+		free(optv);
 	return 0;
 }
 
