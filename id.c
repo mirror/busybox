@@ -33,27 +33,29 @@ extern int id_main(int argc, char **argv)
 	int no_user = 0, no_group = 0, print_real = 0;
 	char *cp, *user, *group;
 	unsigned long gid;
+	int opt;
 	
 	cp = user = group = NULL;
 
-	argc--; argv++;
-
-	while (argc > 0) {
-		cp = *argv;
-		if (*cp == '-') {
-			switch (*++cp) {
-			case 'u': no_group = 1; break;
-			case 'g': no_user = 1; break;
-			case 'r': print_real = 1; break;
-			default: usage(id_usage);
-			}
-		} else {
-			user = cp;			
+	while ((opt = getopt(argc, argv, "ugr")) > 0) {
+		switch (opt) {
+			case 'u':
+				no_group++;
+				break;
+			case 'g':
+				no_user++;
+				break;
+			case 'r':
+				print_real++;
+				break;
+			default:
+				usage(id_usage);
 		}
-		argc--; argv++;
 	}
 
 	if (no_user && no_group) usage(id_usage);
+
+	user = argv[optind];
 
 	if (user == NULL) {
 		user = xmalloc(9);
@@ -71,12 +73,13 @@ extern int id_main(int argc, char **argv)
 		my_getgrgid(group, gid);
 	}
 
-	if (no_group) printf("%lu\n", my_getpwnam(user));
-	else if (no_user) printf("%lu\n", my_getgrnam(group));
+	if (no_group)
+		printf("%lu\n", my_getpwnam(user));
+	else if (no_user)
+		printf("%lu\n", my_getgrnam(group));
 	else
 		printf("uid=%lu(%s) gid=%lu(%s)\n",
-			   my_getpwnam(user), user, my_getgrnam(group), group);
-	
+				my_getpwnam(user), user, my_getgrnam(group), group);
 
 	return(0);
 }
