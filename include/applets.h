@@ -506,6 +506,9 @@
 #ifdef CONFIG_WHICH
 	APPLET(which, which_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_WHO
+	APPLET(who, who_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_WHOAMI
 	APPLET(whoami, whoami_main, _BB_DIR_USR_BIN)
 #endif

@@ -1261,9 +1261,13 @@
 	"$ mv /tmp/foo /bin/bar\n" 
 
 #define nc_trivial_usage \
-	"[IP] [port]" 
+	"[OPTIONS] [IP] [port]" 
 #define nc_full_usage \
-	"Netcat opens a pipe to IP:port"
+	"Netcat opens a pipe to IP:port\n\n" \
+	"Options:\n" \
+	"\t-l\t\tlisten mode, for inbound connects\n" \
+	"\t-p PORT\t\tlocal port number\n" \
+	"\t-e PROG\t\tprogram to exec after connect (dangerous!)"
 #define nc_example_usage \
 	"$ nc foobar.somedomain.com 25\n" \
 	"220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600\n" \
@@ -1967,6 +1971,10 @@
 #define which_example_usage \
 	"$ which login\n" \
 	"/bin/login\n"
+#define who_trivial_usage \
+        " "
+#define who_full_usage \
+        "Prints the current user names and related information"
 
 #define whoami_trivial_usage \
 	""
