@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.2 2001/04/04 19:29:48 andersen Exp $";
+	"$Id: vi.c,v 1.3 2001/04/04 19:33:32 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -296,7 +296,6 @@ static int crashme = 0;
 
 extern int vi_main(int argc, char **argv)
 {
-	extern char *optarg;
 	int c;
 
 #ifdef BB_FEATURE_VI_YANKMARK
