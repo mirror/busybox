@@ -36,6 +36,9 @@ CFLAGS += -I/usr/include/selinux
 LIBRARIES += -lsecure
 endif
 
+CONFIG_CONFIG_IN = sysdeps/$(TARGET_OS)/Config.in
+CONFIG_DEFCONFIG = sysdeps/$(TARGET_OS)/defconfig
+
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
@@ -150,7 +153,7 @@ include/config.h: .config
 	@if [ ! -x ./scripts/config/conf ] ; then \
 	    $(MAKE) -C scripts/config conf; \
 	fi;
-	@./scripts/config/conf -o sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
@@ -170,34 +173,34 @@ all: menuconfig
 scripts/config/conf:
 	$(MAKE) -C scripts/config conf
 	-@if [ ! -f .config ] ; then \
-		cp sysdeps/$(TARGET_OS)/defconfig .config; \
+		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
 scripts/config/mconf:
 	$(MAKE) -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
-		cp sysdeps/$(TARGET_OS)/defconfig .config; \
+		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
 
 menuconfig: scripts/config/mconf
-	@./scripts/config/mconf sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
 
 config: scripts/config/conf
-	@./scripts/config/conf sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf $(CONFIG_CONFIG_IN)
 
 oldconfig: scripts/config/conf
-	@./scripts/config/conf -o sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 randconfig: scripts/config/conf
-	@./scripts/config/conf -r sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -r $(CONFIG_CONFIG_IN)
 
 allyesconfig: scripts/config/conf
-	@./scripts/config/conf -y sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
-	@./scripts/config/conf -n sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
 
 defconfig: scripts/config/conf
-	@./scripts/config/conf -d sysdeps/$(TARGET_OS)/Config.in
+	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
 test tests: busybox
 	# Note that 'tests' is depricated.  Use 'make check' instead
