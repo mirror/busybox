@@ -1405,12 +1405,14 @@ extern int ifupdown_main(int argc, char **argv)
 			}
 		}
 		if (state_fp != NULL && !no_act) {
+			unsigned short j;
+
 			if (ftruncate(fileno(state_fp), 0) < 0) {
 				error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
 			}
 
 			rewind(state_fp);
-			for (i = 0; i < n_state; i++) {
+			for (j = 0; j < n_state; j++) {
 				fputs(state[i], state_fp);
 				fputc('\n', state_fp);
 			}
