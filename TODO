@@ -10,6 +10,10 @@ around to it some time. If you have any good ideas, please let me know.
     separate package (named perhaps tiny-netkit?).  This currently includes 
     hostid, hostname, mnc, and ping.
 
+* init's waitfor() calls wait() which can catch and ignore the wrong pid 
+    exiting.  That other process is then not restarted.
+
+
 
  -Erik
 

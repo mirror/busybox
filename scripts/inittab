@@ -23,7 +23,8 @@
 #
 # <runlevels>: The runlevels field is completely ignored.
 #
-# <action>: Valid actions include: sysinit, respawn, askfirst, wait, and once.
+# <action>: Valid actions include: sysinit, respawn, askfirst, wait, once, 
+#                                  and ctrlaltdel.
 #
 #       Note: askfirst acts just like respawn, but before running the specified
 #       process it displays the line "Please press Enter to activate this
@@ -70,6 +71,7 @@ tty5::respawn:/sbin/getty 38400 tty5
 # Example how to put a getty on a modem line.
 #ttyS2::respawn:/sbin/getty -x0 -s 57600 ttyS2
 
-# Not currently supported, but may be sometime in the future...
-#::ctrlaltdel:/sbin/reboot
+# Stuff to do before rebooting
+::ctrlaltdel:/bin/umount -a -r > /dev/null 2>&1
+::ctrlaltdel:/sbin/swapoff -a > /dev/null 2>&1
 
