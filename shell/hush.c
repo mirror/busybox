@@ -365,6 +365,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int pipe_wait(struct pipe *pi);
 static int run_list_real(struct pipe *pi);
 static void pseudo_exec(struct child_prog *child) __attribute__ ((noreturn));
+int controlling_tty(int check_pgrp);
 static int run_pipe_real(struct pipe *pi);
 /*   extended glob support: */
 static int globhack(const char *src, int flags, glob_t *pglob);
@@ -576,7 +577,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		signal(SIGTTOU, SIG_IGN);
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
-			perror_msg("tcsetpgrp"); 
+			perror_msg("tcsetpgrp-1"); 
 		signal(SIGTTOU, SIG_DFL);
 		job_list->fg = pi;
 	}
@@ -1059,13 +1060,14 @@ static int pipe_wait(struct pipe *pi)
 	return rcode;
 }
 
-/* very simple version for testing */
+/* never returns */
 static void pseudo_exec(struct child_prog *child)
 {
 	int i, rcode;
 	struct built_in_command *x;
 	if (child->argv) {
 		for (i=0; is_assignment(child->argv[i]); i++) {
+			debug_printf("pid %d environment modification: %s\n",getpid(),child->argv[i]);
 			putenv(strdup(child->argv[i]));
 		}
 		child->argv+=i;  /* XXX this hack isn't so horrible, since we are about
@@ -1125,7 +1127,7 @@ static void pseudo_exec(struct child_prog *child)
 #endif
 		debug_printf("exec of %s\n",child->argv[0]);
 		execvp(child->argv[0],child->argv);
-		perror("execvp");
+		perror_msg("couldn't exec: %s",child->argv[0]);
 		exit(1);
 	} else if (child->group) {
 		debug_printf("runtime nesting to group\n");
@@ -1224,7 +1226,7 @@ static void free_pipe(struct pipe *pi)
    have, figure out why and see if a job has completed */
 static void checkjobs()
 {
-	int status;
+	int status, ctty;
 	int prognum = 0;
 	struct pipe *pi;
 	pid_t childpid;
@@ -1264,8 +1266,31 @@ static void checkjobs()
 		perror_msg("waitpid");
 
 	/* move the shell to the foreground */
-	if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
-		perror_msg("tcsetpgrp"); 
+	if (interactive && (ctty=controlling_tty(0))!=-1) {
+		if (tcsetpgrp(ctty, getpgrp()))
+			perror_msg("tcsetpgrp-2");
+	}
+}
+
+/* Figure out our controlling tty, checking in order stderr,
+ * stdin, and stdout.  If check_pgrp is set, also check that
+ * we belong to the foreground process group associated with
+ * that tty.  The value of ctty is needed in order to call
+ * tcsetpgrp(ctty, ...); */
+int controlling_tty(int check_pgrp)
+{
+	pid_t curpgrp;
+	int ctty;
+
+	if ((curpgrp = tcgetpgrp(ctty = 2)) < 0
+		&& (curpgrp = tcgetpgrp(ctty = 0)) < 0
+		&& (curpgrp = tcgetpgrp(ctty = 1)) < 0)
+		return errno = ENOTTY, -1;
+
+	if (check_pgrp && curpgrp != getpgrp())
+		return errno = EPERM, -1;
+
+	return ctty;
 }
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
@@ -1295,17 +1320,11 @@ static int run_pipe_real(struct pipe *pi)
 
 	ctty = -1;
 	nextin = 0;
-	pi->pgrp = 0;
+	pi->pgrp = -1;
 
 	/* Check if we are supposed to run in the foreground */
 	if (interactive && pi->followup!=PIPE_BG) {
-		if ((pi->pgrp = tcgetpgrp(ctty = 2)) < 0
-				&& (pi->pgrp = tcgetpgrp(ctty = 0)) < 0
-				&& (pi->pgrp = tcgetpgrp(ctty = 1)) < 0)
-			return errno = ENOTTY, -1;
-
-		if (pi->pgrp < 0 && pi->pgrp != getpgrp())
-			return errno = EPERM, -1;
+		if ((ctty = controlling_tty(pi->pgrp<0)) < 0) return -1;
 	}
 
 	/* Check if this is a simple builtin (not part of a pipe).
@@ -1395,11 +1414,11 @@ static int run_pipe_real(struct pipe *pi)
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child,NULL);
 			
-			if (pi->followup!=PIPE_BG) {
+			if (interactive && pi->followup!=PIPE_BG) {
 				/* If we (the child) win the race, put ourselves in the process
 				 * group whose leader is the first process in this pipe. */
 				if (pi->pgrp < 0) {
-					pi->pgrp = child->pid;
+					pi->pgrp = getpid();
 				}
 				if (setpgid(0, pi->pgrp) == 0) {
 					signal(SIGTTOU, SIG_IGN);
@@ -1461,13 +1480,15 @@ static int run_list_real(struct pipe *pi)
 			if (interactive) {
 				/* move the new process group into the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
+				/* XXX probably this "0" should come from controlling_tty() */
 				if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
-					perror_msg("tcsetpgrp");
+					perror_msg("tcsetpgrp-3");
 				rcode = pipe_wait(pi);
 				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
-					perror_msg("tcsetpgrp");
+					perror_msg("tcsetpgrp-4");
 			} else {
 				rcode = pipe_wait(pi);
+				debug_printf("pipe_wait returned %d\n",rcode);
 			}
 		}
 		last_return_code=rcode;
@@ -2484,6 +2505,25 @@ static int parse_file_outer(FILE *f)
 	return rcode;
 }
 
+
+/* I think Erik wrote this.  It looks imperfect at best */
+void grab_tty_control(void)
+{
+	pid_t initialpgrp;
+	do {
+		initialpgrp = tcgetpgrp(fileno(stderr));
+		if (initialpgrp < 0) {
+			error_msg("sh: can't access tty; job control disabled\n");
+		}
+		if (initialpgrp == -1)
+			initialpgrp = getpgrp();
+		else if (initialpgrp != getpgrp()) {
+			killpg(initialpgrp, SIGTTIN);
+			continue;
+		}
+	} while (0);
+}
+
 int shell_main(int argc, char **argv)
 {
 	int opt;
@@ -2507,19 +2547,6 @@ int shell_main(int argc, char **argv)
 	/* If we get started under a job aware app (like bash 
 	 * for example), make sure we are now in charge so we 
 	 * don't fight over who gets the foreground */
-	do { 
-		pid_t initialpgrp;
-		initialpgrp = tcgetpgrp(fileno(stderr));
-		if (initialpgrp < 0) {
-			error_msg_and_die("sh: can't access tty; job control disabled\n");
-		}
-		if (initialpgrp == -1)
-			initialpgrp = getpgrp();
-		else if (initialpgrp != getpgrp()) {
-			killpg(initialpgrp, SIGTTIN);
-			continue;
-		}
-	} while (0);
 	/* don't pay any attention to this signal; it just confuses 
 	   things and isn't really meant for shells anyway */
 	signal(SIGTTOU, SIG_IGN);
@@ -2588,6 +2615,9 @@ int shell_main(int argc, char **argv)
 	if (interactive) {
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\nhush -- the humble shell v0.01 (testing)\n\n");
+		grab_tty_control();
+	}
+	if (argv[optind]==NULL) {
 		opt=parse_file_outer(stdin);
 		goto final_return;
 	}
