@@ -72,6 +72,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_DATE
 	{"date", date_main, _BB_DIR_BIN},
 #endif
+#ifdef BB_DC
+	{"dc", dc_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_DD
 	{"dd", dd_main, _BB_DIR_BIN},
 #endif

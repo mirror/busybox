@@ -86,6 +86,8 @@
 	* Fixed grep "Line too long" problem -- John Beppu
 	* Fixed 'grep -q -i B some_file' so it works
 	* math takes input from stdin if no args are given.  -- John Beppu
+	* math was renamed to dc.  Although it deviates from dc's behaviour,
+	    this will probably be remedied in the future.  -- John Beppu
 
 
 	 -Erik Andersen

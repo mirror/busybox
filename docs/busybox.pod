@@ -313,6 +313,32 @@ Example:
 
 -------------------------------
 
+=item dc
+
+Usage: dc expression ...
+
+This is a Tiny RPN calculator that understands the
+following operations: +, -, /, *, and, or, not, eor.
+If no arguments are given, dc will process input from STDIN.
+
+The behaviour of BusyBox/dc deviates (just a little ;-) from
+GNU/dc, but this will be remedied in the future.
+
+Example:
+
+	$ dc 2 2 +
+	4
+	$ dc 8 8 \* 2 2 + /
+	16
+	$ dc 0 1 and
+	0
+	$ dc 0 1 or
+	1
+	$ echo 72 9 div 8 mul | dc
+	64
+
+-------------------------------
+
 =item dd
 
 Usage: dd [if=name] [of=name] [bs=n] [count=n] [skip=n] [seek=n]
@@ -1009,29 +1035,6 @@ Example:
 	[creates ttyS2-ttyS63]
 	$ makedevs /dev/hda b 3 0 0 8 s
 	[creates hda,hda1-hda8]
-
--------------------------------
-
-=item math
-
-Usage: math expression ...
-
-This is a Tiny RPN calculator that understands the
-following operations: +, -, /, *, and, or, not, eor.
-If no arguments are given, math will process input from STDIN.
-
-Example:
-
-	$ math 2 2 +
-	4
-	$ math 8 8 \* 2 2 + /
-	16
-	$ math 0 1 and
-	0
-	$ math 0 1 or
-	1
-	$ echo 72 9 / | math
-	8
 
 -------------------------------
 
@@ -2021,4 +2024,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.43 2000/06/20 00:11:07 proski Exp $
+# $Id: busybox.pod,v 1.44 2000/06/21 19:06:16 beppu Exp $

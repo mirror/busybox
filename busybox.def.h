@@ -17,6 +17,7 @@
 #define BB_CP_MV
 #define BB_CUT
 #define BB_DATE
+#define BB_DC
 #define BB_DD
 #define BB_DEALLOCVT
 #define BB_DF
@@ -54,7 +55,6 @@
 #define BB_LS
 #define BB_LSMOD
 #define BB_MAKEDEVS
-#define BB_MATH
 //#define BB_MD5SUM
 #define BB_MKDIR
 #define BB_MKFIFO

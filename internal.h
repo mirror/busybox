@@ -113,6 +113,7 @@ extern int clear_main(int argc, char** argv);
 extern int cp_mv_main(int argc, char** argv);
 extern int cut_main(int argc, char** argv);
 extern int date_main(int argc, char** argv);
+extern int dc_main(int argc, char** argv);
 extern int dd_main(int argc, char** argv);
 extern int dirname_main(int argc, char** argv);
 extern int deallocvt_main(int argc, char** argv);

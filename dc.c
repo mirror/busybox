@@ -8,7 +8,7 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static const char math_usage[] = "math expression ...\n"
+static const char dc_usage[] = "math expression ...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 		"\nThis is a Tiny RPN calculator that understands the\n"
 		"following operations: +, -, /, *, and, or, not, eor.\n"
@@ -162,7 +162,7 @@ static int number_of_tokens(char *buffer)
 	return i;
 }
 
-int math_main(int argc, char **argv)
+int dc_main(int argc, char **argv)
 {
 	/* take stuff from stdin if no args are given */
 	if (argc <= 1) {
@@ -182,7 +182,7 @@ int math_main(int argc, char **argv)
 		}
 	} else {
 		if (*argv[1]=='-')
-			usage(math_usage);
+			usage(dc_usage);
 		while (argc >= 2) {
 			stack_machine(argv[1]);
 			argv++;
