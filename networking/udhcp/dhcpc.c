@@ -51,7 +51,7 @@ static unsigned long requested_ip; /* = 0 */
 static unsigned long server_addr;
 static unsigned long timeout;
 static int packet_num; /* = 0 */
-static int fd;
+static int fd = -1;
 static int signal_pipe[2];
 
 #define LISTEN_NONE 0
@@ -109,7 +109,7 @@ static void change_mode(int new_mode)
 {
 	DEBUG(LOG_INFO, "entering %s listen mode",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
-	close(fd);
+	if (fd >= 0) close(fd);
 	fd = -1;
 	listen_mode = new_mode;
 }
@@ -198,6 +198,7 @@ static void background(void)
 		exit_client(1);
 	}
 	client_config.foreground = 1; /* Do not fork again. */
+	client_config.background_if_no_lease = 0;
 	pidfile_write_release(pid_fd);
 }
 
@@ -533,7 +534,7 @@ int main(int argc, char *argv[])
 			/* case BOUND, RELEASED: - ignore all packets */
 			}	
 		} else if (retval > 0 && FD_ISSET(signal_pipe[0], &rfds)) {
-			if (read(signal_pipe[0], &sig, sizeof(signal)) < 0) {
+			if (read(signal_pipe[0], &sig, sizeof(sig)) < 0) {
 				DEBUG(LOG_ERR, "Could not read signal: %s", 
 					strerror(errno));
 				continue; /* probably just EINTR */
