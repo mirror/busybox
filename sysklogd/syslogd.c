@@ -411,14 +411,16 @@ static int serveConnection (int conn)
 		int           pri = (LOG_USER | LOG_NOTICE);
 		char          line[ BUFSIZE + 1 ];
 		unsigned char c;
+		int           gotpri = 0;
 
 		char *q = line;
 
 		tmpbuf[ n_read - 1 ] = '\0';
 
 		while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
-			if (c == '<') {
+			if ((c == '<') && !gotpri && isdigit(p[1])) {
 			/* Parse the magic priority number. */
+				gotpri = 1;
 				pri = 0;
 				while (isdigit (*(++p))) {
 					pri = 10 * pri + (*p - '0');
