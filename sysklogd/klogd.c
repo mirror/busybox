@@ -104,7 +104,7 @@ static void doKlogd(const int console_log_level)
 			}
 			if (log_buffer[i] == '\n') {
 				log_buffer[i] = '\0';	/* zero terminate this message */
-				syslog(priority, start);
+				syslog(priority, "%s", start);
 				start = &log_buffer[i + 1];
 				priority = LOG_INFO;
 			}
