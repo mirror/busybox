@@ -68,7 +68,8 @@ static char *license_msg[] = {
 
 extern int gunzip_main(int argc, char **argv)
 {
-	FILE *in_file, *out_file;
+	FILE *in_file = stdin;
+	FILE *out_file = NULL;
 	struct stat stat_buf;
 
 	char *if_name = NULL;
@@ -112,7 +113,6 @@ extern int gunzip_main(int argc, char **argv)
 	/* Set input filename and number */
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		flags |= gunzip_to_stdout;
-		in_file = stdin;
 	} else {
 		if_name = strdup(argv[optind]);
 		/* Open input file */
