@@ -1213,9 +1213,10 @@ static const struct varinit varinit[] = {
 	  NULL },
 	{ &vpath,       VSTRFIXED|VTEXTFIXED,           defpathvar,
 	  changepath },
-	/*
-	 * vps1 depends on uid
-	 */
+#if defined(CONFIG_FEATURE_COMMAND_EDITING) && defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
+	{ &vps1,        VSTRFIXED|VTEXTFIXED,           "PS1=\\w \\$ ",
+	  NULL },
+#endif /* else vps1 depends on uid */
 	{ &vps2,        VSTRFIXED|VTEXTFIXED,           "PS2=> ",
 	  NULL },
 	{ &voptind,     VSTRFIXED|VTEXTFIXED,           "OPTIND=1",
@@ -11896,6 +11897,7 @@ initvar() {
 			vp->func = ip->func;
 		}
 	}
+#if !defined(CONFIG_FEATURE_COMMAND_EDITING) || !defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 	/*
 	 * PS1 depends on uid
 	 */
@@ -11906,6 +11908,7 @@ initvar() {
 		vps1.text = xstrdup(geteuid() ? "PS1=$ " : "PS1=# ");
 		vps1.flags = VSTRFIXED|VTEXTFIXED;
 	}
+#endif
 }
 
 /*
@@ -12430,7 +12433,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.46 2002/01/09 15:37:36 andersen Exp $
+ * $Id: ash.c,v 1.47 2002/04/13 05:37:10 timr Exp $
  */
 static int timescmd (int argc, char **argv)
 {
