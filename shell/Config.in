@@ -67,6 +67,15 @@ config CONFIG_ASH_MATH_SUPPORT
 	help
 	  Enable math support in the ash shell.
 
+config CONFIG_ASH_MATH_SUPPORT_64
+	bool "    Extend Posix math support to 64 bit"
+	default n
+	depends on CONFIG_ASH_MATH_SUPPORT
+	help
+	  Enable 64-bit math support in the ash shell.  This will make
+	  the shell slightly larger, but will allow computation with very
+	  large numbers.
+
 config CONFIG_ASH_GETOPTS
 	bool "  Enable getopt builtin to parse positional parameters"
 	default n

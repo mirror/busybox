@@ -1446,7 +1446,13 @@ static void defun(char *, union node *);
 static void unsetfunc(const char *);
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
-static long dash_arith(const char *);
+#ifdef CONFIG_ASH_MATH_SUPPORT_64
+typedef int64_t arith_t;
+#else
+typedef long arith_t;
+#endif
+static arith_t dash_arith(const char *);
+static arith_t arith(const char *expr, int *perrcode);
 #endif
 
 #ifdef CONFIG_ASH_RANDOM_SUPPORT
@@ -4531,7 +4537,7 @@ static void ifsfree(void);
 static void expandmeta(struct strlist *, int);
 static int patmatch(char *, const char *);
 
-static int cvtnum(long);
+static int cvtnum(arith_t);
 static size_t esclen(const char *, const char *);
 static char *scanleft(char *, char *, char *, char *, int, int);
 static char *scanright(char *, char *, char *, char *, int, int);
@@ -5902,12 +5908,16 @@ casematch(union node *pattern, char *val)
  */
 
 static int
-cvtnum(long num)
+cvtnum(arith_t num)
 {
 	int len;
 
 	expdest = makestrspace(32, expdest);
+#ifdef CONFIG_ASH_MATH_SUPPORT_64
+	len = fmtstr(expdest, 32, "%lld", (long long) num);
+#else
 	len = fmtstr(expdest, 32, "%ld", num);
+#endif
 	STADJUST(len, expdest);
 	return len;
 }
@@ -12488,10 +12498,10 @@ static int timescmd(int ac, char **av)
 }
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
-static long
+static arith_t
 dash_arith(const char *s)
 {
-	long result;
+	arith_t result;
 	int errcode = 0;
 
 	INTOFF;
@@ -12523,7 +12533,7 @@ static int
 letcmd(int argc, char **argv)
 {
 	char **ap;
-	long i;
+	arith_t i;
 
 	ap = argv + 1;
 	if(!*ap)
@@ -13094,8 +13104,8 @@ static inline int is_right_associativity(operator prec)
 
 
 typedef struct ARITCH_VAR_NUM {
-	long val;
-	long contidional_second_val;
+	arith_t val;
+	arith_t contidional_second_val;
 	char contidional_second_val_initialized;
 	char *var;      /* if NULL then is regular number,
 			   else is variable name */
@@ -13152,9 +13162,9 @@ static int arith_lookup_val(v_n_t *t)
 static inline int
 arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
-	long numptr_val;
+	int64_t numptr_val;
 	v_n_t *numptr_m1;
-	long rez;
+	int64_t rez;
 	int ret_arith_lookup_val;
 
 	if (NUMPTR == numstack) goto err; /* There is no operator that can work
@@ -13280,7 +13290,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			goto err;
 		}
 		/* save to shell variable */
-		sprintf(buf, "%ld", rez);
+		sprintf(buf, "%lld", (long long) rez);
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
 		if(op == TOK_POST_INC)
@@ -13343,7 +13353,7 @@ static const char op_tokens[] = {
 #define endexpression &op_tokens[sizeof(op_tokens)-7]
 
 
-extern long arith (const char *expr, int *perrcode)
+static arith_t arith (const char *expr, int *perrcode)
 {
     register char arithval; /* Current character under analysis */
     operator lasttok, op;

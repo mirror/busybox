@@ -289,8 +289,6 @@ char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-extern long arith (const char *startbuf, int *errcode);
-
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 //#warning yuk!
 char *fgets_str(FILE *file, const char *terminating_string);
