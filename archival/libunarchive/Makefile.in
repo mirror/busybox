@@ -53,7 +53,6 @@ LIBUNARCHIVE-y:= \
 \
 	archive_copy_file.o \
 \
-	add_to_list.o \
 	check_header_gzip.o \
 	check_trailer_gzip.o \
 	data_align.o \

@@ -357,4 +357,10 @@ typedef struct {
 extern procps_status_t * procps_scan(int save_user_arg0);
 extern unsigned short compare_string_array(const char *string_array[], const char *key);
 
+typedef struct llist_s {
+	char *data;
+	struct llist_s *link;
+} llist_t;
+extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
+
 #endif /* __LIBCONFIG_H__ */

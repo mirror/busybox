@@ -3,7 +3,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-extern const llist_t *add_to_list(const llist_t *old_head, const char *new_item)
+extern llist_t *llist_add_to(llist_t *old_head, char *new_item)
 {
 	llist_t *new_head;
 

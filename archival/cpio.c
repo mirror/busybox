@@ -79,7 +79,7 @@ extern int cpio_main(int argc, char **argv)
 
 	while (optind < argc) {
 		archive_handle->filter = filter_accept_list;
-		archive_handle->accept = add_to_list(archive_handle->accept, argv[optind]);
+		archive_handle->accept = llist_add_to(archive_handle->accept, argv[optind]);
 		optind++;
 	}
 

@@ -1330,10 +1330,10 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 
 	/* We dont care about data.tar.* or debian-binary, just control.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	ar_handle->accept = add_to_list(NULL, "control.tar.gz");
+	ar_handle->accept = llist_add_to(NULL, "control.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	ar_handle->accept = add_to_list(ar_handle->accept, "control.tar.bz2");
+	ar_handle->accept = llist_add_to(ar_handle->accept, "control.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1353,10 +1353,10 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 
 	/* We dont care about data.tar.* or debian-binary, just control.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	tar_handle->accept = add_to_list(NULL, "data.tar.gz");
+	tar_handle->accept = llist_add_to(NULL, "data.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	tar_handle->accept = add_to_list(ar_handle->accept, "data.tar.bz2");
+	tar_handle->accept = llist_add_to(ar_handle->accept, "data.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1365,7 +1365,7 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	return;	
 }
 
-static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, const llist_t *accept)
+static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *accept)
 {
 	ar_handle->sub_archive->action_data = data_extract_to_buffer;
 	ar_handle->sub_archive->accept = accept;
@@ -1532,10 +1532,10 @@ int dpkg_main(int argc, char **argv)
 		deb_file[deb_count] = (deb_file_t *) xmalloc(sizeof(deb_file_t));
 		if (dpkg_opt & dpkg_opt_filename) {
 			archive_handle_t *archive_handle;
-			const llist_t *control_list = NULL;
+			llist_t *control_list = NULL;
 
 			/* Extract the control file */
-			control_list = add_to_list(NULL, "./control");
+			control_list = llist_add_to(NULL, "./control");
 			archive_handle = init_archive_deb_ar(argv[optind]);
 			init_archive_deb_control(archive_handle);
 			deb_file[deb_count]->control_file = deb_extract_control_file_to_buffer(archive_handle, control_list);

@@ -7,8 +7,8 @@
 #define ARCHIVE_EXTRACT_QUIET	8
 
 #include <sys/types.h>
-
 #include <stdio.h>
+#include "libbb.h"
 
 typedef struct file_headers_s {
 	char *name;
@@ -21,17 +21,12 @@ typedef struct file_headers_s {
 	dev_t device;
 } file_header_t;
 
-typedef struct llist_s {
-	const char *data;
-	const struct llist_s *link;
-} llist_t;
-
 typedef struct archive_handle_s {
 	/* define if the header and data compenent should processed */
 	char (*filter)(struct archive_handle_s *);
-	const llist_t *accept;
-	const llist_t *reject;
-	const llist_t *passed;	/* List of files that have successfully been worked on */
+	llist_t *accept;
+	llist_t *reject;
+	llist_t *passed;	/* List of files that have successfully been worked on */
 
 	/* Contains the processed header entry */
 	file_header_t *file_header;
@@ -103,7 +98,6 @@ extern void archive_xread_all(const archive_handle_t *archive_handle, void *buf,
 extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *buf, size_t count);
 
 extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary);
-extern const llist_t *add_to_list(const llist_t *old_head, const char *new_item);
 extern void archive_copy_file(const archive_handle_t *archive_handle, const int dst_fd);
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
 

@@ -27,7 +27,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	archive_handle_t *tar_archive;
 	int opt = 0;
 #ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
-	const llist_t *control_tar_llist = NULL;
+	llist_t *control_tar_llist = NULL;
 #endif
 	
 	/* Setup the tar archive handle */
@@ -39,16 +39,16 @@ extern int dpkg_deb_main(int argc, char **argv)
 	ar_archive->filter = filter_accept_list_reassign;
 
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	ar_archive->accept = add_to_list(NULL, "data.tar.gz");
+	ar_archive->accept = llist_add_to(NULL, "data.tar.gz");
 # ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
-	control_tar_llist = add_to_list(NULL, "control.tar.gz");
+	control_tar_llist = llist_add_to(NULL, "control.tar.gz");
 # endif
 #endif
 
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	ar_archive->accept = add_to_list(ar_archive->accept, "data.tar.bz2");
+	ar_archive->accept = llist_add_to(ar_archive->accept, "data.tar.bz2");
 # ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
-	control_tar_llist = add_to_list(control_tar_llist, "control.tar.bz2");
+	control_tar_llist = llist_add_to(control_tar_llist, "control.tar.bz2");
 # endif
 #endif
 
@@ -71,7 +71,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 				 * it should accept a second argument which specifies a 
 				 * specific field to print */
 				ar_archive->accept = control_tar_llist;
-				tar_archive->accept = add_to_list(NULL, "./control");;
+				tar_archive->accept = llist_add_to(NULL, "./control");;
 				tar_archive->filter = filter_accept_list;
 				tar_archive->action_data = data_extract_to_stdout;
 				break;

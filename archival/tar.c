@@ -583,13 +583,13 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 #endif							/* tar_create */
 
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
-static const llist_t *append_file_list_to_list(const char *filename, const llist_t *list)
+static llist_t *append_file_list_to_list(const char *filename, llist_t *list)
 {
 	FILE *src_stream = xfopen(filename, "r");
 	char *line;
 	while((line = get_line_from_file(src_stream)) != NULL) {
 		chomp(line);
-		list = add_to_list(list, line);
+		list = llist_add_to(list, line);
 	}
 	fclose(src_stream);
 
@@ -708,7 +708,7 @@ int tar_main(int argc, char **argv)
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, seperate function ? */
 	while (optind < argc) {
-		tar_handle->accept = add_to_list(tar_handle->accept, argv[optind]);
+		tar_handle->accept = llist_add_to(tar_handle->accept, argv[optind]);
 		optind++;
 	}
 
