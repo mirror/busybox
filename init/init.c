@@ -846,7 +846,7 @@ static void cont_handler(int sig)
 
 static void new_init_action(int action, const char *command, const char *cons)
 {
-	struct init_action *new_action, *a;
+	struct init_action *new_action, *a, *last;
 
 	if (*cons == '\0')
 		cons = console;
@@ -864,16 +864,17 @@ static void new_init_action(int action, const char *command, const char *cons)
 	}
 
 	/* Append to the end of the list */
-	for (a = init_action_list; a && a->next; a = a->next) {
+	for (a = last = init_action_list; a; a = a->next) {
 		/* don't enter action if it's already in the list */
 		if ((strcmp(a->command, command) == 0) &&
 		    (strcmp(a->terminal, cons) ==0)) {
 			free(new_action);
 			return;
 		}
+		last = a;
 	}
-	if (a) {
-		a->next = new_action;
+	if (last) {
+		last->next = new_action;
 	} else {
 		init_action_list = new_action;
 	}
