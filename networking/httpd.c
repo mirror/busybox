@@ -474,9 +474,11 @@ static void free_config_lines(Htaccess **pprev)
 static void parse_conf(const char *path, int flag)
 {
     FILE *f;
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
     Htaccess *cur;
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
     Htaccess *prev;
+#endif
 #endif
 
     const char *cf = config->configFile;
@@ -688,8 +690,8 @@ static void parse_conf(const char *path, int flag)
 		}
 	    }
 #endif
-#endif
 	}
+#endif
    }
    fclose(f);
 }
