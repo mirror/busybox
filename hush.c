@@ -1186,7 +1186,7 @@ static int run_list_real(struct pipe *pi)
 				if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
 				rcode = pipe_wait(pi);
-				if (tcsetpgrp(0, getpid()) && errno != ENOTTY)
+				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
 				signal(SIGTTIN, SIG_DFL);
 				signal(SIGTTOU, SIG_DFL);
