@@ -37,9 +37,9 @@
 static unsigned long disp_hr = KILOBYTE;
 #endif
 
-static int du_depth = 0;
-static int count_hardlinks = 0;
-static int one_file_system = 0;
+static int du_depth /*= 0*/;
+static int count_hardlinks /*= 0*/;
+static int one_file_system /*= 0*/;
 static dev_t dir_dev;
 
 static void (*print) (long, char *);
@@ -186,7 +186,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.54 2002/08/23 03:25:22 bug1 Exp $ */
+/* $Id: du.c,v 1.55 2002/08/23 07:28:45 aaronl Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
