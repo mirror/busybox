@@ -131,10 +131,10 @@ struct fb_var_screeninfo {
 };
 
 
-static struct cmdoptions_t {
-	char *name;
-	unsigned char param_count;
-	unsigned char code;
+const static struct cmdoptions_t {
+	const char *name;
+	const unsigned char param_count;
+	const unsigned char code;
 } g_cmdoptions[] = {
 	{
 	"-fb", 1, CMD_FB}, {
@@ -284,7 +284,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	return 0;
 }
 
-static void setmode(struct fb_var_screeninfo *base,
+static inline void setmode(struct fb_var_screeninfo *base,
 					struct fb_var_screeninfo *set)
 {
 	if ((int) set->xres > 0)
@@ -299,7 +299,7 @@ static void setmode(struct fb_var_screeninfo *base,
 		base->bits_per_pixel = set->bits_per_pixel;
 }
 
-static void showmode(struct fb_var_screeninfo *v)
+static inline void showmode(struct fb_var_screeninfo *v)
 {
 	double drate = 0, hrate = 0, vrate = 0;
 
@@ -312,21 +312,21 @@ static void showmode(struct fb_var_screeninfo *v)
 			hrate / (v->upper_margin + v->yres + v->lower_margin +
 					 v->vsync_len);
 	}
-	printf("\nmode \"%ux%u-%u\"\n", v->xres, v->yres, (int) (vrate + 0.5));
+	printf("\nmode \"%ux%u-%u\"\n"
 #ifdef CONFIG_FEATURE_FBSET_FANCY
-	printf("\t# D: %.3f MHz, H: %.3f kHz, V: %.3f Hz\n", drate / 1e6,
-		   hrate / 1e3, vrate);
+	"\t# D: %.3f MHz, H: %.3f kHz, V: %.3f Hz\n"
 #endif
-	printf("\tgeometry %u %u %u %u %u\n", v->xres, v->yres,
-		   v->xres_virtual, v->yres_virtual, v->bits_per_pixel);
-	printf("\ttimings %u %u %u %u %u %u %u\n", v->pixclock, v->left_margin,
+	"\tgeometry %u %u %u %u %u\n\ttimings %u %u %u %u %u %u %u\n\taccel %s\n\trgba %u/%u,%u/%u,%u/%u,%u/%u\nendmode\n\n",
+		   v->xres, v->yres, (int) (vrate + 0.5),
+#ifdef CONFIG_FEATURE_FBSET_FANCY
+		   drate / 1e6, hrate / 1e3, vrate,
+#endif
+		   v->xres, v->yres, v->xres_virtual, v->yres_virtual,
+		   v->bits_per_pixel, v->pixclock, v->left_margin,
 		   v->right_margin, v->upper_margin, v->lower_margin, v->hsync_len,
-		   v->vsync_len);
-	printf("\taccel %s\n", (v->accel_flags > 0 ? "true" : "false"));
-	printf("\trgba %u/%u,%u/%u,%u/%u,%u/%u\n", v->red.length,
+		   v->vsync_len, (v->accel_flags > 0 ? "true" : "false"), v->red.length,
 		   v->red.offset, v->green.length, v->green.offset, v->blue.length,
 		   v->blue.offset, v->transp.length, v->transp.offset);
-	printf("endmode\n\n");
 }
 
 #ifdef STANDALONE
