@@ -36,7 +36,8 @@ Supported architectures:
 
    Busybox in general will build on any architecture supported by gcc.  It has
    a few specialized features added for __sparc__ and __alpha__.  insmod
-   functionality is currently limited to x86, ARM, SH3/4, powerpc, and MIPS.
+   functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k, 
+   and MIPS.
 
 Supported libcs:
 

@@ -1,7 +1,10 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Mini insmod implementation for busybox
- * This version of insmod now supports x86, ARM, SH3/4, powerpc, and MIPS.
+ *
+ * This version of insmod supports x86, ARM, SH3/4, powerpc, m68k, 
+ * and MIPS.
+ *
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>
@@ -130,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.68 2001/07/17 01:12:36 andersen Exp $"
+#ident "$Id: insmod.c,v 1.69 2001/07/25 16:58:58 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -347,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.68 2001/07/17 01:12:36 andersen Exp $"
+#ident "$Id: insmod.c,v 1.69 2001/07/25 16:58:58 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
