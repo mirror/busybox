@@ -1,6 +1,6 @@
 # Rules.make for busybox
 #
-# Copyright (C) 2002 Erik Andersen <andersen@codepoet.org>
+# Copyright (C) 2001-2003 Erik Andersen <andersen@codepoet.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 #--------------------------------------------------------
 PROG      := busybox
-VERSION   := 0.61.pre
+VERSION   := 1.00-pre1
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
 

@@ -38,7 +38,7 @@ endif
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-all: busybox busybox.links #doc
+all: busybox busybox.links doc
 
 # In this section, we need .config
 -include .config.cmd
