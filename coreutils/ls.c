@@ -176,7 +176,7 @@ static unsigned short terminal_width;
 static unsigned short column_width;
 static unsigned short tabstops;
 #else
-# define column_width	COLUMN_WIDTH 
+static unsigned short column_width = COLUMN_WIDTH;
 #endif
 
 static int status = EXIT_SUCCESS;
