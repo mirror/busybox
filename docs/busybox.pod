@@ -276,11 +276,12 @@ Prints selected fields from each input FILE to standard output.
 
 Options:
 
-        -b LIST Output only bytes from LIST
-        -c LIST Output only characters from LIST
-        -d DELIM        Use DELIM instead of tab as the field delimiter
-        -f N    Print only these fields
-        -n      Ignored
+		-b LIST Output only bytes from LIST
+		-c LIST Output only characters from LIST
+		-d CHAR Use CHAR instead of tab as the field delimiter
+		-s      Only output Lines if the include DELIM
+		-f N    Print only these fields
+		-n      Ignored
 
 Example:
 
@@ -2062,4 +2063,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.51 2000/06/21 22:53:24 andersen Exp $
+# $Id: busybox.pod,v 1.52 2000/06/26 12:14:30 andersen Exp $

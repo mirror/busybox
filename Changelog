@@ -6,6 +6,8 @@
 	* Fixed a nasty bug in tar when could mess up saved symlinks.
 	* Fixed insmod module option parsing for options lacking an '='.
 	    Fix thanks to Marc Nijdam <marc_nijdam@hp.com>
+	* Fixed segfault with 'cut -f 1 -d:' and added 'cut -s' suport.
+	    Fix thanks to Arne Bernin <arne@matrix.loopback.org>
 
 	 -Erik Andersen
 

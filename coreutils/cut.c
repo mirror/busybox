@@ -51,15 +51,14 @@ int num_args;
 #define OPTIONC		2			/* define for mode: option -c    */
 #define OPTIONB		3			/* define for mode: option -b    */
 #define NOTSET		0			/* option not selected       */
-#define SET		1				/* option selected       */
-
+#define SET			1			/* option selected       */
+#define OPTIONS		1			/*define option -s */
 /* Defines for the warnings						*/
 #define DELIMITER_NOT_APPLICABLE	0
 #define OVERRIDING_PREVIOUS_MODE	1
 #define OPTION_NOT_APPLICABLE		2
 #define UNKNOWN_OPTION			3
 #define FILE_NOT_READABLE		4
-
 /* Defines for the fatal errors						*/
 #define SYNTAX_ERROR				101
 #define POSITION_ERROR				102
@@ -75,6 +74,7 @@ FILE *fd;
 char *name;
 char line[BUFSIZ];
 int exit_status;
+int option = 0;                                     /* for -s option */
 
 int cut_main(int argc, char **argv);
 void warn(int warn_number, char *option);
@@ -85,7 +85,7 @@ void cut(void);
 void warn(int warn_number, char *option)
 {
 	static char *warn_msg[] = {
-		"%s: Option -d allowed only with -f\n",
+		"%s: Option -%s allowed only with -f\n",
 		"%s: -%s overrides earlier option\n",
 		"%s: -%s not allowed in current mode\n",
 		"%s: Cannot open %s\n"
@@ -161,7 +161,8 @@ void cut()
 	char *columns[MAX_FIELD];
 
 	while (fgets(line, BUFSIZ, fd)) {
-		length = strlen(line) - 1;
+	        maxcol=0;
+	        length = strlen(line) - 1;
 		*(line + length) = 0;
 		switch (mode) {
 		case DUMP_STDIN:
@@ -182,11 +183,15 @@ void cut()
 				for (i = 0; i < num_args; i++) {
 					for (j = args[i * 2]; j <= args[i * 2 + 1]; j++)
 						if (j <= maxcol) {
+							 
 							printf("%s", columns[j - 1]);
+						       
 							if (i != num_args - 1 || j != args[i * 2 + 1])
 								putchar(delim);
 						}
 				}
+			} else if (option != OPTIONS) {
+			  printf("%s",line);
 			}
 			break;
 		case OPTIONC:
@@ -217,7 +222,8 @@ int cut_main(int argc, char **argv)
 				"Options:\n"
 				"\t-b LIST\tOutput only bytes from LIST\n"
 				"\t-c LIST\tOutput only characters from LIST\n"
-				"\t-d DELIM\tUse DELIM instead of tab as the field delimiter\n"
+				"\t-d CHAR\tUse CHAR instead of tab as the field delimiter\n"
+				"\t-s\tOnly output Lines if the include DELIM\n"
 				"\t-f N\tPrint only these fields\n"
 				"\t-n\tIgnored\n"
 #endif
@@ -229,7 +235,10 @@ int cut_main(int argc, char **argv)
 			case 'd':
 				if (mode == OPTIONC || mode == OPTIONB)
 					warn(DELIMITER_NOT_APPLICABLE, "d");
-				delim = argv[i++][0];
+				if (argc > i)
+					delim = argv[i++][0];
+				else
+					cuterror(SYNTAX_ERROR);
 				break;
 			case 'f':
 				sprintf(line, "%s", argv[i++]);
@@ -248,6 +257,10 @@ int cut_main(int argc, char **argv)
 				if (mode == OPTIONF || mode == OPTIONB)
 					warn(OVERRIDING_PREVIOUS_MODE, "c");
 				mode = OPTIONC;
+				break;
+			case 's':
+			        option = OPTIONS;
+		
 				break;
 			case '\0':			/* - means: read from stdin      */
 				numberFilenames++;
@@ -268,6 +281,9 @@ int cut_main(int argc, char **argv)
 /* Here follow the checks, if the selected options are reasonable.	*/
 	if (mode == OPTIONB)		/* since in Minix char := byte       */
 		mode = OPTIONC;
+	
+	if (mode != OPTIONF && option == OPTIONS)
+	        warn(DELIMITER_NOT_APPLICABLE,"s");
 	get_args();
 	if (numberFilenames != 0) {
 		i = 1;
