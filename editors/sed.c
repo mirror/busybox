@@ -637,7 +637,7 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 			break;
 
 		case 'a':
-			fputs(line, stdout);
+			puts(line);
 			fputs(sed_cmd->editline, stdout);
 			altered++;
 			break;
@@ -653,7 +653,7 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 
 		case 'r': {
 			FILE *file;
-			fputs(line, stdout);
+			puts(line);
 			file = fopen(sed_cmd->filename, "r");
 			if (file)
 				print_file(file);
@@ -724,7 +724,7 @@ static void process_file(FILE *file)
 		 * line was altered (via a 'd'elete or 's'ubstitution), in which case
 		 * the altered line was already printed */
 		if (!be_quiet && !line_altered)
-			fputs(line, stdout);
+			puts(line);
 
 		free(line);
 	}
