@@ -1096,7 +1096,7 @@ static void add_cmd_block(char *cmdstr)
 
 extern int sed_main(int argc, char **argv)
 {
-	int opt, status = EXIT_SUCCESS;
+	char opt, getpat=1, status = EXIT_SUCCESS;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
@@ -1124,6 +1124,7 @@ extern int sed_main(int argc, char **argv)
 			break;
 		case 'e':
 			add_cmd_block(optarg);
+			getpat=0;
 			break;
 		case 'f':
 		{
@@ -1135,6 +1136,7 @@ extern int sed_main(int argc, char **argv)
 			while ((line = bb_get_chomped_line_from_file(cmdfile))
 				 != NULL) {
 				add_cmd(line);
+				getpat=0;
 				free(line);
 			}
 			bb_xprint_and_close_file(cmdfile);
@@ -1148,7 +1150,7 @@ extern int sed_main(int argc, char **argv)
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
-	if (sed_cmd_head.next == NULL) {
+	if(getpat) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else
