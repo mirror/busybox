@@ -959,15 +959,29 @@ static int expand_arguments(char *command)
 					else
 						var = itoa(last_bg_pid);
 					break;
-#if 0
-				/* Everything else like $$, $#, $[0-9], etcshould all be 
-				 * expanded by wordexp(), so we can skip that stuff here */
+				/* Everything else like $$, $#, $[0-9], etc should all be
+				 * expanded by wordexp(), so we can in theory skip that stuff
+				 * here, but just to be on the safe side (i.e. since uClibc
+				 * wordexp doesn't do this stuff yet), lets leave it in for
+				 * now. */
 				case '$':
+					var = itoa(getpid());
+					break;
 				case '#':
+					var = itoa(argc-1);
+					break;
 				case '0':case '1':case '2':case '3':case '4':
 				case '5':case '6':case '7':case '8':case '9':
+					{
+						int index=*(dst + 1)-48;
+						if (index >= argc) {
+							var='\0';
+						} else {
+							var = argv[index];
+						}
+					}
 					break;
-#endif	
+
 			}
 		}
 		if (var) {
@@ -982,9 +996,17 @@ static int expand_arguments(char *command)
 			memmove(dst+subst_len, next_dst+1, subst_len); 
 			/* Now copy in the new stuff */
 			strncpy(dst, var, subst_len);
+			src = dst;
+			src++;
+		} else {
+			/* Seems we got an un-expandable variable.  So delete it. */
+			char *next_dst;
+			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?")) != NULL) {
+				/* Move stuff to the end of the string to accommodate filling 
+				 * the created gap with the new stuff */
+				memmove(dst, next_dst,  next_dst-dst); 
+			}
 		}
-		src = dst;
-		src++;
 	}
 
 
