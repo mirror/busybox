@@ -56,7 +56,8 @@
 
 static const char tar_usage[] =
 	"tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
-	"Create, extract, or list files from a tar file.\n\n"
+	"Create, extract, or list files from a tar file.  Note that\n"
+	"this version of tar packs hard links as separate files.\n\n"
 	"Options:\n"
 
 	"\tc=create, x=extract, t=list contents, v=verbose,\n"
@@ -110,10 +111,10 @@ typedef struct TarHeader TarHeader;
 
 /* A few useful constants */
 #define TAR_MAGIC          "ustar"        /* ustar and a null */
-#define TAR_VERSION        "00"           /* 00 and no null */
+//#define TAR_VERSION      "00"           /* 00 and no null */
+#define TAR_VERSION        "  "           /* Be compatable with old GNU format */
 #define TAR_MAGIC_LEN       6
 #define TAR_VERSION_LEN     2
-#define TAR_NAME_LEN        100
 #define TAR_BLOCK_SIZE      512
 
 /* A nice enum with all the possible tar file content types */
@@ -366,7 +367,8 @@ tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return;
 
 	if (link(header->linkname, header->name) < 0) {
-		errorMsg("Error creating hard link '%s': %s\n", header->linkname, strerror(errno)); 
+		errorMsg("Error creating hard link '%s' to '%s': %s\n", 
+				header->name, header->linkname, strerror(errno)); 
 		return;
 	}
 
@@ -382,7 +384,8 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 #ifdef	S_ISLNK
 	if (symlink(header->linkname, header->name) < 0) {
-		errorMsg("Error creating symlink '%s': %s\n", header->linkname, strerror(errno)); 
+		errorMsg("Error creating symlink '%s' to '%s': %s\n", 
+				header->name, header->linkname, strerror(errno)); 
 		return;
 	}
 	/* Try to change ownership of the symlink.
@@ -644,18 +647,15 @@ typedef struct TarBallInfo TarBallInfo;
 static int putOctal (char *cp, int len, long value)
 {
 	int tempLength;
-	char *tempString;
 	char tempBuffer[32];
+	char *tempString = tempBuffer;
 
 	/* Create a string of the specified length with an initial space,
 	 * leading zeroes and the octal number, and a trailing null.  */
-	tempString = tempBuffer;
-
-	sprintf (tempString, " %0*lo", len - 2, value);
-
-	tempLength = strlen (tempString) + 1;
+	sprintf (tempString, "%0*lo", len - 1, value);
 
 	/* If the string is too large, suppress the leading space.  */
+	tempLength = strlen (tempString) + 1;
 	if (tempLength > len) {
 		tempLength--;
 		tempString++;
@@ -677,10 +677,14 @@ static int putOctal (char *cp, int len, long value)
 
 /* Write out a tar header for the specified file/directory/whatever */
 static int
-writeTarHeader(struct TarHeader *header, const char *fileName, struct stat *statbuf)
+writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *statbuf)
 {
-	//int i;
-	//long chksum, sum;
+	long chksum=0;
+	struct TarHeader header;
+	const unsigned char *cp = (const unsigned char *) &header;
+	ssize_t size = sizeof(struct TarHeader);
+
+	memset( &header, 0, size);
 
 	if (*fileName=='/') {
 		static int alreadyWarned=FALSE;
@@ -688,66 +692,88 @@ writeTarHeader(struct TarHeader *header, const char *fileName, struct stat *stat
 			errorMsg("tar: Removing leading '/' from member names\n");
 			alreadyWarned=TRUE;
 		}
-		strcpy(header->name, fileName+1); 
+		strcpy(header.name, fileName+1); 
 	}
 	else {
-		strcpy(header->name, fileName); 
+		strcpy(header.name, fileName); 
 	}
-	putOctal(header->mode, sizeof(header->mode), statbuf->st_mode & 0777);
-	putOctal(header->uid, sizeof(header->uid), statbuf->st_uid);
-	putOctal(header->gid, sizeof(header->gid), statbuf->st_gid);
-	putOctal(header->size, sizeof(header->size), statbuf->st_size);
-	putOctal(header->mtime, sizeof(header->mtime), statbuf->st_mtime);
+	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
+	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
+	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
+	putOctal(header.size, sizeof(header.size), 0); /* Regular file size is handled later */
+	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
+	strncpy(header.magic, TAR_MAGIC TAR_VERSION, 
+			TAR_MAGIC_LEN + TAR_VERSION_LEN );
 
+	my_getpwuid(header.uname, statbuf->st_uid);
+	/* Put some sort of sane fallback in place... */
+	if (! *header.uname)
+		strncpy(header.uname, "root", 5);
+	my_getgrgid(header.gname, statbuf->st_gid);
+	if (! *header.uname)
+		strncpy(header.uname, "root", 5);
+
+	// FIXME: (or most likely not) I break Hard Links
 	if (S_ISLNK(statbuf->st_mode)) {
-		header->typeflag  = LNKTYPE;
-		// TODO -- Handle SYMTYPE
+		char buffer[BUFSIZ];
+		header.typeflag  = SYMTYPE;
+		if ( readlink(fileName, buffer, sizeof(buffer) - 1) < 0) {
+			errorMsg("Error reading symlink '%s': %s\n", header.name, strerror(errno));
+			return ( FALSE);
+		}
+		strncpy(header.linkname, buffer, sizeof(header.linkname)); 
 	} else if (S_ISDIR(statbuf->st_mode)) {
-		header->typeflag  = DIRTYPE;
-		strncat(header->name, "/", sizeof(header->name)); 
+		header.typeflag  = DIRTYPE;
+		strncat(header.name, "/", sizeof(header.name)); 
 	} else if (S_ISCHR(statbuf->st_mode)) {
-		header->typeflag  = CHRTYPE;
-		putOctal(header->devmajor, sizeof(header->devmajor), MAJOR(statbuf->st_rdev));
-		putOctal(header->devminor, sizeof(header->devminor), MINOR(statbuf->st_rdev));
+		header.typeflag  = CHRTYPE;
+		putOctal(header.devmajor, sizeof(header.devmajor), MAJOR(statbuf->st_rdev));
+		putOctal(header.devminor, sizeof(header.devminor), MINOR(statbuf->st_rdev));
 	} else if (S_ISBLK(statbuf->st_mode)) {
-		header->typeflag  = BLKTYPE;
-		putOctal(header->devmajor, sizeof(header->devmajor), MAJOR(statbuf->st_rdev));
-		putOctal(header->devminor, sizeof(header->devminor), MINOR(statbuf->st_rdev));
+		header.typeflag  = BLKTYPE;
+		putOctal(header.devmajor, sizeof(header.devmajor), MAJOR(statbuf->st_rdev));
+		putOctal(header.devminor, sizeof(header.devminor), MINOR(statbuf->st_rdev));
 	} else if (S_ISFIFO(statbuf->st_mode)) {
-		header->typeflag  = FIFOTYPE;
-	} else if (S_ISLNK(statbuf->st_mode)) {
-		header->typeflag  = LNKTYPE;
-	} else if (S_ISLNK(statbuf->st_mode)) {
-		header->typeflag  = REGTYPE;
+		header.typeflag  = FIFOTYPE;
+	} else if (S_ISREG(statbuf->st_mode)) {
+		header.typeflag  = REGTYPE;
+		putOctal(header.size, sizeof(header.size), statbuf->st_size);
 	} else {
+		errorMsg("tar: %s: Unknown file type\n", fileName);
 		return ( FALSE);
 	}
+
+	/* Calculate and store the checksum (i.e. the sum of all of the bytes of
+	 * the header).  The checksum field must be filled with blanks for the
+	 * calculation.  The checksum field is formatted differently from the
+	 * other fields: it has [6] digits, a null, then a space -- rather than
+	 * digits, followed by a null like the other fields... */
+	memset(header.chksum, ' ', sizeof(header.chksum));
+	cp = (const unsigned char *) &header;
+	while (size-- > 0)
+		chksum += *cp++;
+	putOctal(header.chksum, 7, chksum);
+	
+	/* Now write the header out to disk */
+	if ((size=fullWrite(tbInfo->tarFd, (char*)&header, sizeof(struct TarHeader))) < 0) {
+		errorMsg(io_error, fileName, strerror(errno)); 
+		return ( FALSE);
+	}
+	/* Pad the header up to the tar block size */
+	for (; size<TAR_BLOCK_SIZE; size++) {
+		write(tbInfo->tarFd, "\0", 1);
+	}
+	/* Now do the verbose thing (or not) */
+	if (tbInfo->verboseFlag==TRUE)
+		fprintf(stdout, "%s\n", header.name);
+
 	return ( TRUE);
-
-#if 0	
-	header->linkname  = rawHeader->linkname;
-	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
-	header->devminor  = getOctal(rawHeader->devminor, sizeof(rawHeader->devminor));
-
-	/* Write out the checksum */
-	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
-
-	return ( TRUE);
-#endif
 }
 
 
 static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* userData)
 {
-	int inputFileFd;
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
-	char header[sizeof(struct TarHeader)];
-
-	/* First open the file we want to archive, and make sure all is well */
-	if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
-		errorMsg("tar: %s: Cannot open: %s\n", fileName, strerror(errno));
-		return( TRUE);
-	}
 
 	/* It is against the rules to archive a socket */
 	if (S_ISSOCK(statbuf->st_mode)) {
@@ -764,13 +790,41 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 		return( TRUE);
 	}
 
-	memset( header, 0, sizeof(struct TarHeader));
-	if (writeTarHeader((struct TarHeader *)header, fileName, statbuf)==FALSE) {
-		dprintf(tbInfo->tarFd, "%s", header);
+	if (writeTarHeader(tbInfo, fileName, statbuf)==FALSE) {
+		return( FALSE);
 	} 
-	/* Now do the verbose thing (or not) */
-	if (tbInfo->verboseFlag==TRUE)
-		fprintf(stdout, "%s\n", ((struct TarHeader *)header)->name);
+
+	/* Now, if the file is a regular file, copy it out to the tarball */
+	if (S_ISREG(statbuf->st_mode)) {
+		int  inputFileFd;
+		char buffer[BUFSIZ];
+		ssize_t size=0, readSize=0;
+
+		/* open the file we want to archive, and make sure all is well */
+		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
+			errorMsg("tar: %s: Cannot open: %s\n", fileName, strerror(errno));
+			return( FALSE);
+		}
+		
+		/* write the file to the archive */
+		while ( (size = fullRead(inputFileFd, buffer, sizeof(buffer))) > 0 ) {
+			if (fullWrite(tbInfo->tarFd, buffer, size) != size ) {
+				/* Output file seems to have a problem */
+				errorMsg(io_error, fileName, strerror(errno)); 
+				return( FALSE);
+			}
+			readSize+=size;
+		}
+		if (size == -1) {
+			errorMsg(io_error, fileName, strerror(errno)); 
+			return( FALSE);
+		}
+		/* Pad the file up to the tar block size */
+		for (; (readSize%TAR_BLOCK_SIZE) != 0; readSize++) {
+			write(tbInfo->tarFd, "\0", 1);
+		}
+		close( inputFileFd);
+	}
 
 	return( TRUE);
 }
@@ -780,6 +834,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 {
 	int tarFd=-1;
 	int errorFlag=FALSE;
+	ssize_t size;
 	//int skipFileFlag=FALSE;
 	struct TarBallInfo tbInfo;
 	tbInfo.verboseFlag = verboseFlag;
@@ -813,6 +868,10 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 					(void*) &tbInfo) == FALSE) {
 			errorFlag = TRUE;
 		}
+	}
+	/* Write two empty blocks to the end of the archive */
+	for (size=0; size<(2*TAR_BLOCK_SIZE); size++) {
+		write(tbInfo.tarFd, "\0", 1);
 	}
 	/* Hang up the tools, close up shop, head home */
 	close(tarFd);

@@ -783,7 +783,7 @@ extern int parse_mode(const char *s, mode_t * theMode)
 
 
 
-#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_PS)
+#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS || defined BB_TAR 
 
 /* Use this to avoid needing the glibc NSS stuff 
  * This uses storage buf to hold things.
@@ -858,7 +858,7 @@ void my_getgrgid(char *group, gid_t gid)
 }
 
 
-#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_PS */
+#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR */
 
 
 

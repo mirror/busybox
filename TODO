@@ -15,15 +15,12 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------
 
-* Allow tar to create archives with sockets, devices, and other special files
 * Make insmod actually work
 * dnsdomainname
 * traceroute/netstat
 * rdate
 * hwclock
-* killall
 * stty
-* tr
 * cut
 * expr (maybe?)  (ash builtin?)
 
@@ -40,57 +37,16 @@ and then start with the biggest things and make them smaller...
 
 busybox.defs.h is too big and hard to follow.
 
-I either need to add a better build system (like the Linux kernel?)
-or I need to split up busybox.defs.h into coherent chunks (i.e.
-busybox.defs.h just has a bunch of: 
-
-#include "fileutils.h"
-#include "shellutils.h"
-
-which would then have smaller sets of #defines...
-Hmm.  Needs to be carefully thought out.
+Perhaps I need to add a better build system (like the Linux kernel?)
 
 -----------------------
 
 
--rw-r--r-- 1000/1000      4398 2000-01-06 21:55 uniq.c
--rw-r--r-- 1000/1000      1568 1999-10-20 18:08 update.c
--rw-r----- 0/1000         1168 2000-01-29 21:03 update.o
--rw-r--r-- 1000/1000     22820 2000-01-05 11:36 utility.c
--rw-r----- 0/1000         7372 2000-01-29 21:03 utility.o
-tar: Skipping to next file header
-tar: Skipping to next file header
-tar: Archive - EOF not on block boundary
-tar: Error is not recoverable: exiting now
-
-
-#1 You are storing by id instead of name like normal tar. Did you realize this?
-(or am I missing some compile option? )ctar did not do this, and I don't think
-it's a good idea for LRP.
-
-#2
-ctar did not produce the EOF error like your tar does. I believe you need to
-pad the end of the archive with at least 2 tarsized (512byte) blocks. (I
-think???)
-
-#3
 There is no exclude file(s) option to tar. LRP's packaging system can not
 function without this. Will you have the time to add this soon?
 
 
 -----------------------
-
-cd /mnt
-mkdir BACKUP
-mv * BACKUP
-
-Today, "mv" behaved as a cp -a and my disk becomed full. It does not
-work properly either when renaming a directory into something else
-(it produces a lot of disk activity when doing this).
-
-
------------------------
-
 
 Feature request:
 
@@ -113,13 +69,6 @@ I'll add this to the TODO list,
 
 -----------------------
 
-
- In utility.c:copyFile: It uses followLinks for both source and
- destination files... is that right for `mv'?  Will need to revisit
- the GNU, freeBSD, and MINIX versions for this... Should read the
- Unix98 and POSIX specs also.
-
------------------------
 
  I think that the add_inode &c in utility.c needs to also stow the
  st_dev field, and that du.c should NOT call `reset_inode_list'

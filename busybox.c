@@ -382,8 +382,8 @@ int busybox_main(int argc, char **argv)
 		fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
 		fprintf(stderr, "   or: [function] [arguments]...\n\n");
 		fprintf(stderr,
-				"\tMost people will create a link to busybox for each\n"
-				"\tfunction name, and busybox will act like whatever you invoke it as.\n");
+				"\tMost people will create a link to busybox for each function\n"
+				"\tname, and busybox will act like whatever you invoke it as.\n");
 		fprintf(stderr, "\nCurrently defined functions:\n");
 
 		while (a->name != 0) {

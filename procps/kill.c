@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini kill implementation for busybox
+ * Mini kill/killall implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  *
