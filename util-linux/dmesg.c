@@ -14,7 +14,6 @@
 
 #include <linux/unistd.h>
 #include <stdio.h>
-#include <getopt.h>
 
 #define __NR_klog __NR_syslog
 
@@ -22,74 +21,78 @@
 #include <sys/klog.h>
 #define klog klogctl
 #else
-static inline _syscall3(int,klog,int,type,char *,b,int,len)
-#endif /* __GLIBC__ */
+static inline _syscall3 (int, klog, int, type, char *, b, int, len)
+#endif				/* __GLIBC__ */
 
-const char			dmesg_usage[] = "dmesg";
 
-int
-dmesg_main(int argc, char * * argv)
+
+static const char dmesg_usage[] = "dmesg [-c] [-n level]\n";
+
+int dmesg_main (int argc, char **argv)
 {
 
-   char buf[4096];
-   int  i;
-   int  n;
-   int  c;
-   int  level = 0;
-   int  lastc;
-   int  cmd = 3;
+    char buf[4096];
+    int i;
+    int n;
+    int level = 0;
+    int lastc;
+    int cmd = 3;
 
-   while ((c = getopt( argc, argv, "cn:" )) != EOF) {
-      switch (c) {
-      case 'c':
-	 cmd = 4;
-	 break;
-      case 'n':
-	 cmd = 8;
-	 level = atoi(optarg);
-	 break;
-      case '?':
-      default:
-	 fprintf(stderr, "%s\n", dmesg_usage);
-	 exit(1);
-      }
-   }
-   argc -= optind;
-   argv += optind;
-   
-   if (argc > 1) {
-     fprintf(stderr, "%s\n", dmesg_usage);
-      exit(1);
-   }
+    argc--;
+    argv++;
 
-   if (cmd == 8) {
-      n = klog( cmd, NULL, level );
-      if (n < 0) {
-	 perror( "klog" );
-	 exit( 1 );
-      }
-      exit( 0 );
-   }
+    /* Parse any options */
+    while (argc && **argv == '-') {
+	while (*++(*argv))
+	    switch (**argv) {
+	    case 'c':
+		cmd = 4;
+		break;
+	    case 'n':
+		cmd = 8;
+		if (--argc == 0)
+		    goto end;
+		level = atoi (*(++argv));
+		--argc;
+		++argv;
+		break;
+	    default:
+		goto end;
+	    }
+    }
 
-   n = klog( cmd, buf, sizeof( buf ) );
-   if (n < 0) {
-      perror( "klog" );
-      exit( 1 );
-   }
+    if (cmd == 8) {
+	n = klog (cmd, NULL, level);
+	if (n < 0) {
+	    perror ("klog");
+	    exit (FALSE);
+	}
+	exit (TRUE);
+    }
 
-   lastc = '\n';
-   for (i = 0; i < n; i++) {
-      if ((i == 0 || buf[i - 1] == '\n') && buf[i] == '<') {
-	 i++;
-	 while (buf[i] >= '0' && buf[i] <= '9')
+    n = klog (cmd, buf, sizeof (buf));
+    if (n < 0) {
+	perror ("klog");
+	exit (FALSE);
+    }
+
+    lastc = '\n';
+    for (i = 0; i < n; i++) {
+	if ((i == 0 || buf[i - 1] == '\n') && buf[i] == '<') {
 	    i++;
-	 if (buf[i] == '>')
-	    i++;
-      }
-      lastc = buf[i];
-      putchar( lastc );
-   }
-   if (lastc != '\n')
-      putchar( '\n' );
-   return 0;
+	    while (buf[i] >= '0' && buf[i] <= '9')
+		i++;
+	    if (buf[i] == '>')
+		i++;
+	}
+	lastc = buf[i];
+	putchar (lastc);
+    }
+    if (lastc != '\n')
+	putchar ('\n');
+    exit (TRUE);
+
+  end:
+    fprintf (stderr, "Usage: %s\n", dmesg_usage);
+    exit (FALSE);
 }

@@ -22,15 +22,27 @@
 #include "internal.h"
 #include <stdio.h>
 
-const char cat_usage[] = "[file ...]";
+
+static void print_file( FILE *file) 
+{
+    int c;
+    while ((c = getc(file)) != EOF)
+	putc(c, stdout);
+    fclose(file);
+    fflush(stdout);
+}
 
 extern int cat_more_main(int argc, char **argv)
 {
-    int c;
-    FILE *file = stdin;
+    FILE *file;
 
-    if ( (argc < 2) || (**(argv+1) == '-') ) {
-	fprintf(stderr, "Usage: %s %s", *argv, cat_usage);
+    if (argc==1) {
+	print_file( stdin);
+	exit( TRUE);
+    }
+
+    if ( **(argv+1) == '-' ) {
+	fprintf(stderr, "Usage: cat [file ...]\n");
 	exit(FALSE);
     }
     argc--;
@@ -42,11 +54,7 @@ extern int cat_more_main(int argc, char **argv)
 	    perror(*argv);
 	    exit(FALSE);
 	}
-	while ((c = getc(file)) != EOF)
-	    putc(c, stdout);
-	fclose(file);
-	fflush(stdout);
-
+	print_file( file);
 	argc--;
 	argv++;
     }

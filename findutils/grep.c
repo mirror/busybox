@@ -11,7 +11,6 @@
  */
 
 #include "internal.h"
-#ifdef BB_GREP
 
 #include <stdio.h>
 #include <dirent.h>
@@ -31,7 +30,76 @@ const char grep_usage[] =
 
 
 
-static int search (const char *string, const char *word, int ignoreCase);
+/*
+ * See if the specified word is found in the specified string.
+ */
+static int search (const char *string, const char *word, int ignoreCase)
+{
+    const char *cp1;
+    const char *cp2;
+    int len;
+    int lowFirst;
+    int ch1;
+    int ch2;
+
+    len = strlen (word);
+
+    if (!ignoreCase) {
+	while (TRUE) {
+	    string = strchr (string, word[0]);
+
+	    if (string == NULL)
+		return FALSE;
+
+	    if (memcmp (string, word, len) == 0)
+		return TRUE;
+
+	    string++;
+	}
+    }
+
+    /* 
+     * Here if we need to check case independence.
+     * Do the search by lower casing both strings.
+     */
+    lowFirst = *word;
+
+    if (isupper (lowFirst))
+	lowFirst = tolower (lowFirst);
+
+    while (TRUE) {
+	while (*string && (*string != lowFirst) &&
+	       (!isupper (*string) || (tolower (*string) != lowFirst))) {
+	    string++;
+	}
+
+	if (*string == '\0')
+	    return FALSE;
+
+	cp1 = string;
+	cp2 = word;
+
+	do {
+	    if (*cp2 == '\0')
+		return TRUE;
+
+	    ch1 = *cp1++;
+
+	    if (isupper (ch1))
+		ch1 = tolower (ch1);
+
+	    ch2 = *cp2++;
+
+	    if (isupper (ch2))
+		ch2 = tolower (ch2);
+
+	}
+	while (ch1 == ch2);
+
+	string++;
+    }
+    return (TRUE);
+}
 
 
 extern int grep_main (int argc, char **argv)
@@ -122,76 +190,6 @@ extern int grep_main (int argc, char **argv)
 }
 
 
-/*
- * See if the specified word is found in the specified string.
- */
-static int search (const char *string, const char *word, int ignoreCase)
-{
-    const char *cp1;
-    const char *cp2;
-    int len;
-    int lowFirst;
-    int ch1;
-    int ch2;
-
-    len = strlen (word);
-
-    if (!ignoreCase) {
-	while (TRUE) {
-	    string = strchr (string, word[0]);
-
-	    if (string == NULL)
-		return FALSE;
-
-	    if (memcmp (string, word, len) == 0)
-		return TRUE;
-
-	    string++;
-	}
-    }
-
-    /* 
-     * Here if we need to check case independence.
-     * Do the search by lower casing both strings.
-     */
-    lowFirst = *word;
-
-    if (isupper (lowFirst))
-	lowFirst = tolower (lowFirst);
-
-    while (TRUE) {
-	while (*string && (*string != lowFirst) &&
-	       (!isupper (*string) || (tolower (*string) != lowFirst))) {
-	    string++;
-	}
-
-	if (*string == '\0')
-	    return FALSE;
-
-	cp1 = string;
-	cp2 = word;
-
-	do {
-	    if (*cp2 == '\0')
-		return TRUE;
-
-	    ch1 = *cp1++;
-
-	    if (isupper (ch1))
-		ch1 = tolower (ch1);
-
-	    ch2 = *cp2++;
-
-	    if (isupper (ch2))
-		ch2 = tolower (ch2);
-
-	}
-	while (ch1 == ch2);
-
-	string++;
-    }
-    return (TRUE);
-}
-
-#endif
 /* END CODE */
+
+

@@ -16,7 +16,7 @@
 //#define BB_DESCEND
 #define BB_DF
 #define BB_DMESG
-//#define BB_DUTMP
+#define BB_DUTMP
 //#define BB_DYADIC
 #define BB_FALSE
 //#define BB_FDFLUSH
@@ -24,7 +24,7 @@
 #define BB_GREP
 ////#define BB_HALT
 //#define BB_INIT
-//#define BB_KILL
+#define BB_KILL
 ////#define BB_LENGTH
 //#define BB_LN
 //#define BB_LOADKMAP
@@ -44,10 +44,10 @@
 //#define BB_POSTPROCESS
 //#define BB_PRINTF
 #define BB_PWD
-//#define BB_REBOOT
+#define BB_REBOOT
 //#define BB_RM
 //#define BB_RMDIR
-//#define BB_SLEEP
+#define BB_SLEEP
 ////#define BB_SWAPOFF
 //#define BB_SWAPON
 //#define BB_SYNC

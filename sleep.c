@@ -1,15 +1,20 @@
 #include "internal.h"
 #include <stdio.h>
 
-const char	sleep_usage[] = "sleep seconds\n"
-"\n"
-"\tPause program execution for the given number of seconds.\n";
+const char	sleep_usage[] = " NUMBER\n"
+"Pause for NUMBER seconds.\n";
 
 extern int
-sleep_main(struct FileInfo * i, int argc, char * * argv)
+sleep_main(int argc, char * * argv)
 {
-	if ( sleep(atoi(argv[1])) != 0 )
-		return -1;
-	else
-		return 0;
+        if ( (argc < 2) || (**(argv+1) == '-') ) {
+	    fprintf(stderr, "Usage: %s %s", *argv, sleep_usage);
+	    exit(FALSE);
+	}
+
+	if ( sleep(atoi(*(++argv))) != 0 ) {
+		perror( "sleep");
+		exit (FALSE);
+	} else
+		exit (TRUE);
 }
