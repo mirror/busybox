@@ -147,6 +147,9 @@ extern int tar_main(int argc, char **argv)
 	char** extractList=NULL;
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
+        char *excludeFileName ="-";
+        FILE *fileList;
+        char file[256];
 #endif
 	const char *tarName="-";
 	int listFlag     = FALSE;
@@ -198,7 +201,7 @@ extern int tar_main(int argc, char **argv)
 					break;
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
-					if (strcmp(*argv, "exclude")==0) {
+					if (strcmp(*argv, "xclude")==0) {
 						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
 						excludeList[excludeListSize] = *(++argv);
 						if (excludeList[excludeListSize] == NULL)
@@ -211,6 +214,30 @@ extern int tar_main(int argc, char **argv)
 						stopIt=TRUE;
 						break;
 					}
+                                case 'X':
+                                       if (*excludeFileName != '-')
+                                               fatalError("Only one 'X' option allowed\n");
+                                       excludeFileName = *(++argv);
+                                       if  (excludeFileName == NULL)
+                                               fatalError("Option requires an argument: No file specified\n");
+                                       fileList = fopen (excludeFileName, "rt");
+                                       if (! fileList)
+                                               fatalError("Exclude file: file not found\n");
+                                       while (!feof(fileList)) {
+                                               fscanf(fileList, "%s", file);
+                                               excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
+                                               excludeList[excludeListSize] = malloc(sizeof(char) * (strlen(file)+1));
+                                               strcpy(excludeList[excludeListSize],file);
+                                               /* Remove leading "/"s */
+                                               if (*excludeList[excludeListSize] == '/')
+                                                       excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+                                               /* Tack a NULL onto the end of the list */
+                                                       excludeList[++excludeListSize] = NULL;
+                                       }
+ 
+                                       fclose(fileList);
+                                       stopIt=TRUE;
+                                       break;
 #endif
 				case '-':
 						break;
