@@ -1,3 +1,9 @@
+busybox (0.48pre-2) unstable; urgency=low
+
+  * Lots more source updates and bug fixes.  See changelog for details.
+
+ -- Erik Andersen <andersee@debian.org>  Sat,  9 Dec 2000 21:42:57 -0700
+
 busybox (0.48pre-1) unstable; urgency=low
 
   * Now includes .udeb support for the debian-installer -- note that this
