@@ -48,7 +48,7 @@ LIBUNARCHIVE-y:= \
 	open_transformer.o \
 	init_handle.o
 
-GUNZIP_FILES:= check_header_gzip.o unzip.o
+GUNZIP_FILES:= check_header_gzip.o decompress_unzip.o
 DPKG_FILES:= \
 	get_header_ar.o \
 	unpack_ar_archive.o \
@@ -63,14 +63,14 @@ LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += $(DPKG_FILES)
 LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_GZ) += $(GUNZIP_FILES) get_header_tar_gz.o
 LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_BZ2) += decompress_bunzip2.o get_header_tar_bz2.o
 LIBUNARCHIVE-$(CONFIG_GUNZIP) += $(GUNZIP_FILES)
-LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += uncompress.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += decompress_uncompress.o
 LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o
 LIBUNARCHIVE-$(CONFIG_RPM) += $(GUNZIP_FILES) get_header_cpio.o
 LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
 LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_BZIP2) += decompress_bunzip2.o get_header_tar_bz2.o
 LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_GZIP) += $(GUNZIP_FILES) get_header_tar_gz.o
-LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_COMPRESS) += uncompress.o
-LIBUNARCHIVE-$(CONFIG_UNCOMPRESS) += uncompress.o
+LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_COMPRESS) += decompress_uncompress.o
+LIBUNARCHIVE-$(CONFIG_UNCOMPRESS) += decompress_uncompress.o
 LIBUNARCHIVE-$(CONFIG_UNZIP) += $(GUNZIP_FILES)
 
 libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
