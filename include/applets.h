@@ -437,7 +437,7 @@
 #ifdef CONFIG_TFTP
 	APPLET(tftp, tftp_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef BB_TIME
+#ifdef CONFIG_TIME
 	APPLET(time, time_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef CONFIG_TOUCH

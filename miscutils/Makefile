@@ -33,6 +33,7 @@ obj-$(CONFIG_MAKEDEVS)		+= makedevs.o
 obj-$(CONFIG_MKTEMP)		+= mktemp.o
 obj-$(CONFIG_MT)		+= mt.o
 obj-$(CONFIG_READLINK)		+= readlink.o
+obj-$(CONFIG_TIME)		+= time.o
 obj-$(CONFIG_UPDATE)		+= update.o
 obj-$(CONFIG_WATCHDOG)		+= watchdog.o
 

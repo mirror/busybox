@@ -1704,8 +1704,8 @@
 #define time_trivial_usage \
 	"[OPTION]... COMMAND [ARGS...]"
 #define time_full_usage \
-	"Runs the program COMMAND with arguments ARGS.  When COMMAND finishes,\n"
-	"COMMAND's resource usage information is displayed\n\n"
+	"Runs the program COMMAND with arguments ARGS.  When COMMAND finishes,\n" \
+	"COMMAND's resource usage information is displayed\n\n" \
 	"Options:\n" \
 	"\t-v\tDisplays verbose resource usage information."
 
