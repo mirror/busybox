@@ -90,6 +90,14 @@
 #define MINOR(dev) ((dev)&0xff)
 #endif
 
+#ifdef BB_FEATURE_LS_SORTFILES
+struct dnode {				/* the basic node */
+	char *name;				/* the dir entry name */
+	char *fullname;			/* the dir entry name */
+	struct stat dstat;		/* the file stat info */
+};
+typedef struct dnode dnode_t;
+#endif 
 static unsigned char display_fmt = FMT_AUTO;
 static unsigned short opts = 0;
 static unsigned short column = 0;
@@ -328,6 +336,48 @@ static void list_single(const char *name, struct stat *info,
 	}
 }
 
+#ifdef BB_FEATURE_LS_SORTFILES
+void shellsort(struct dnode *dn[], int size)
+{
+    struct dnode *temp;
+    int gap, i, j;
+
+    /* shell short the array */
+    for (gap= size/2; gap>0; gap /=2) {
+        for (i=gap; i<size; i++) {
+            for (j= i-gap; j>=0; j-=gap) {
+                if (strcmp(dn[j]->name, dn[j+gap]->name) <= 0)
+                    break;
+                temp= dn[j];
+                dn[j]= dn[j+gap];
+                dn[j+gap]= temp;
+            }
+        }
+    }
+}
+
+void showdnodes(struct dnode *dn[], int nfiles)
+{
+	int nf, nc;
+	int ncols, fpc, i;
+
+	ncols= (int)(terminal_width / (column_width + COLUMN_GAP));
+	/* files per column.  The +1 means the last col is shorter than others */
+	fpc= (nfiles / ncols) + 1;
+	for (nf=0; nf<fpc; nf++) {
+		for (nc=0; nc<ncols; nc++) {
+			/* reach into the array based on the column and row */
+			i= (nc * fpc) + nf;
+			if (i >= nfiles) {
+				newline();
+			} else {
+				list_single(dn[i]->name, &dn[i]->dstat, dn[i]->fullname);
+			}
+		}
+	}
+}
+#endif
+
 /**
  **
  ** List the given file or directory, expanding a directory
@@ -341,6 +391,11 @@ static int list_item(const char *name)
 	DIR *dir;
 	struct dirent *entry;
 	char fullname[BUFSIZ + 1], *fnend;
+#ifdef BB_FEATURE_LS_SORTFILES
+	int ni=0, nfiles=0;
+	struct dnode **dnp;
+	dnode_t *cur;
+#endif
 
 	if (lstat(name, &info))
 		goto listerr;
@@ -369,6 +424,18 @@ static int list_item(const char *name)
 	column_width = 0;
 	while ((entry = readdir(dir)) != NULL) {
 		short w = strlen(entry->d_name);
+#ifdef BB_FEATURE_LS_SORTFILES
+		const char *en = entry->d_name;
+
+		if (en[0] == '.') {
+			if (!en[1] || (en[1] == '.' && !en[2])) {	/* . or .. */
+				if (!(opts & DISP_DOT))
+					continue;
+			} else if (!(opts & DISP_HIDDEN))
+				continue;
+		}
+		nfiles++;	/* count how many files there will be */
+#endif
 
 		if (column_width < w)
 			column_width = w;
@@ -381,6 +448,12 @@ static int list_item(const char *name)
 	if (!dir)
 		goto listerr;
 #endif
+#endif
+#ifdef BB_FEATURE_LS_SORTFILES
+	/* now that we know how many files there are
+	 * allocate memory for an array to hold dnode pointers
+	 */
+	dnp= (struct dnode **)calloc((size_t)nfiles, (size_t)(sizeof(struct dnode *)));
 #endif
 
 	/* List the contents */
@@ -402,11 +475,24 @@ static int list_item(const char *name)
 		}
 		/* FIXME: avoid stat if not required */
 		strcpy(fnend, entry->d_name);
+#ifdef BB_FEATURE_LS_SORTFILES
+		/* allocate memory for a node and memory for the file name */
+		cur= (struct dnode *)malloc(sizeof(struct dnode));
+		cur->fullname= strcpy((char *)malloc(strlen(fullname)+1), fullname);
+		cur->name= cur->fullname + (int)(fnend - fullname) ;
+		lstat(fullname, &cur->dstat);   /* get file stat info into node */
+		dnp[ni++]= cur;   /* save pointer to node in array */
+#else
 		if (lstat(fullname, &info))
 			goto direrr;		/* (shouldn't fail) */
 		list_single(entry->d_name, &info, fullname);
+#endif
 	}
 	closedir(dir);
+#ifdef BB_FEATURE_LS_SORTFILES
+	shellsort(dnp, nfiles);
+	showdnodes(dnp, nfiles);
+#endif
 
 	if (opts & DISP_DIRNAME) {      /* separate the directory */
 		if (column) {

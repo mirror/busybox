@@ -7,8 +7,10 @@
 	* syslogd can now log messages to a remote host -- patch thanks
 	    to Gyepi Sam <gyepi@praxis-sw.com>
 	* Rewrite of 'tail' to make it simpler, smaller, and more robust.  
-	    It now weighs only 2.25k (3k when full featured).  The code it
-	    much cleaner, thanks to "Allen Soard" <esp-software@mail.hypermart.net>
+	    It now weighs only 2.25k (3k when full featured).  The code is
+	    cleaner too, thanks to Allen Soard <esp-software@mail.hypermart.net>
+	* Add optional ls file sorting, thanks to a patch from 
+	    Sterling Huxley <sterling@europa.com>
 
 
 	 -Erik Andersen
