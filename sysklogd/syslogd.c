@@ -426,19 +426,29 @@ static int serveConnection(char *tmpbuf, int n_read)
 		int pri = (LOG_USER | LOG_NOTICE);
 		char line[MAXLINE + 1];
 		unsigned char c;
-
 		char *q = line;
+		char *p1 = 0;
+		int	 oldpri;
 
 		while ((c = *p) && q < &line[sizeof(line) - 1]) {
-			if (c == '<') {
+			if (c == '<' && p1 == 0) {
 				/* Parse the magic priority number. */
+				p1 = p;
+				oldpri = pri;
 				pri = 0;
 				while (isdigit(*(++p))) {
 					pri = 10 * pri + (*p - '0');
 				}
-				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
-					pri = (LOG_USER | LOG_NOTICE);
-				}
+				if ( *p != '>') {
+					*q++ = c;
+					p=p1;
+					p1=0;
+					pri=oldpri;
+				} else {
+					if (pri & ~(LOG_FACMASK | LOG_PRIMASK)){
+						pri = (LOG_USER | LOG_NOTICE);
+					}
+  				}
 			} else if (c == '\n') {
 				*q++ = ' ';
 			} else if (iscntrl(c) && (c < 0177)) {
@@ -563,10 +573,10 @@ static void doSyslogd(void)
 		if (FD_ISSET(sock_fd, &fds)) {
 			int i;
 
-			RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZ + 1);
+			RESERVE_CONFIG_BUFFER(tmpbuf, MAXLINE + 1);
 
-			memset(tmpbuf, '\0', BUFSIZ + 1);
-			if ((i = recv(sock_fd, tmpbuf, BUFSIZ, 0)) > 0) {
+			memset(tmpbuf, '\0', MAXLINE + 1);
+			if ((i = recv(sock_fd, tmpbuf, MAXLINE, 0)) > 0) {
 				serveConnection(tmpbuf, i);
 			} else {
 				bb_perror_msg_and_die("UNIX socket error");
