@@ -735,13 +735,12 @@ extern int ls_main(int argc, char **argv)
 	time_fmt= TIME_MOD;
 #endif
 #ifdef BB_FEATURE_AUTOWIDTH
-		ioctl(fileno(stdout), TIOCGWINSZ, &win);
-		if (win.ws_row > 4)
-			column_width = win.ws_row - 2;
-		if (win.ws_col > 0)
-			terminal_width = win.ws_col - 1;
+	ioctl(fileno(stdout), TIOCGWINSZ, &win);
+	if (win.ws_row > 4)
+		column_width = win.ws_row - 2;
+	if (win.ws_col > 0)
+		terminal_width = win.ws_col - 1;
 #endif
-	tabstops = 8;
 	nfiles=0;
 
 	/* process options */
