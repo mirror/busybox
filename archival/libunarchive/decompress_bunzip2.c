@@ -590,6 +590,22 @@ extern int uncompressStream(int src_fd, int dst_fd)
 	return i;
 }
 
+/* This new version is not yet properly integrated with tar */
+extern ssize_t read_bz2(int fd, void *buf, size_t count)
+{
+#warning FIXME "bzip2 tar support is broken!"
+	return(0);
+}
+
+extern void BZ2_bzReadOpen(int fd, void *unused, int nUnused)
+{
+#warning FIXME "bzip2 tar support is broken!"
+}
+extern void BZ2_bzReadClose(void)
+{
+#warning FIXME "bzip2 tar support is broken!"
+}
+
 #ifdef TESTING
 
 static char * const bunzip_errors[]={NULL,"Bad file checksum","Not bzip data",
