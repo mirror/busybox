@@ -287,11 +287,25 @@ static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 }
 #endif
 
+#define FTPGETPUT_OPT_CONTINUE	1
+#define FTPGETPUT_OPT_VERBOSE	2
+#define FTPGETPUT_OPT_USER	4
+#define FTPGETPUT_OPT_PASSWORD	8
+#define FTPGETPUT_OPT_PORT	16
+
+static const struct option ftpgetput_long_options[] = {
+	{"continue", 1, NULL, 'c'},
+	{"verbose", 0, NULL, 'v'},
+	{"username", 1, NULL, 'u'},
+	{"password", 1, NULL, 'p'},
+	{"port", 1, NULL, 'P'},
+	{0, 0, 0, 0}
+};
+
 int ftpgetput_main(int argc, char **argv)
 {
 	/* content-length of the file */
-	int option_index = -1;
-	int opt;
+	unsigned long opt;
 
 	/* socket to ftp server */
 	FILE *control_stream;
@@ -301,15 +315,6 @@ int ftpgetput_main(int argc, char **argv)
 	ftp_host_info_t *server;
 
 	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
-
-	struct option long_options[] = {
-		{"username", 1, NULL, 'u'},
-		{"password", 1, NULL, 'p'},
-		{"port", 1, NULL, 'P'},
-		{"continue", 1, NULL, 'c'},
-		{"verbose", 0, NULL, 'v'},
-		{0, 0, 0, 0}
-	};
 
 #ifdef CONFIG_FTPPUT
 	if (bb_applet_name[3] == 'p') {
@@ -330,26 +335,13 @@ int ftpgetput_main(int argc, char **argv)
 	 * Decipher the command line 
 	 */
 	server->port = "21";
-	while ((opt = getopt_long(argc, argv, "u:p:P:cv", long_options, &option_index)) != EOF) {
-		switch(opt) {
-		case 'c':
-			do_continue = 1;
-			break;
-		case 'u':
-			server->user = optarg;
-			break;
-		case 'p':
-			server->password = optarg;
-			break;
-		case 'P':
-			server->port = optarg;
-			break;
-		case 'v':
-			verbose_flag = 1;
-			break;
-		default:
-			bb_show_usage();
-		}
+	bb_applet_long_options = ftpgetput_long_options;
+	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &server->port);
+	if (opt & FTPGETPUT_OPT_CONTINUE) {
+		do_continue = 1;
+	}
+	if (opt & FTPGETPUT_OPT_VERBOSE) {
+		verbose_flag = 1;
 	}
 
 	/*
