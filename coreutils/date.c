@@ -209,6 +209,7 @@ int date_main(int argc, char **argv)
 		}
 
 		/* Correct any day of week and day of year etc. fields */
+		tm_time.tm_isdst = -1;	/* Be sure to recheck dst. */
 		tm = mktime(&tm_time);
 		if (tm < 0) {
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
