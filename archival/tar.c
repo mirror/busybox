@@ -181,9 +181,9 @@ extern int tar_main(int argc, char **argv)
 
 	while (
 #ifndef BB_FEATURE_TAR_EXCLUDE
-			(opt = getopt(argc, argv, "cxtzvOf:"))
+			(opt = getopt(argc, argv, "cxtzvOf:p"))
 #else
-			(opt = getopt_long(argc, argv, "cxtzvOf:X:", longopts, NULL))
+			(opt = getopt_long(argc, argv, "cxtzvOf:X:p", longopts, NULL))
 #endif
 			> 0) {
 		switch (opt) {
@@ -238,7 +238,9 @@ extern int tar_main(int argc, char **argv)
 				fclose(fileList);
 				break;
 #endif
-				default:
+			case 'p':
+				break;
+			default:
 					show_usage();
 		}
 	}
