@@ -102,6 +102,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 		if (S_ISREG(file_entry->mode)) {
 			buffer = (char *) xmalloc(file_entry->size + 1);
 			fread(buffer, 1, file_entry->size, src_stream);
+			buffer[file_entry->size] = '\0';
 			archive_offset += file_entry->size;
 			return(buffer);
 		}
