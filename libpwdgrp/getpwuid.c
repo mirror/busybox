@@ -22,8 +22,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "pwd_.h"
 #include "busybox.h"
+#include "pwd_.h"
 
 struct passwd *getpwuid(uid_t uid)
 {
