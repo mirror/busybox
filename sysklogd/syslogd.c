@@ -78,6 +78,8 @@ static char LocalHostName[64];
 #include <netinet/in.h>
 /* udp socket for logging to remote host */
 static int remotefd = -1;
+static struct sockaddr_in remoteaddr;
+static int remoteaddrlen;
 
 /* where do we log? */
 static char *RemoteHost;
@@ -384,6 +386,7 @@ static void logMessage(int pri, char *msg)
 	time_t now;
 	char *timestamp;
 	static char res[20] = "";
+	static char line[512];
 	CODE *c_pri, *c_fac;
 
 	if (pri != 0) {
@@ -414,21 +417,15 @@ static void logMessage(int pri, char *msg)
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
 	if (-1 != remotefd) {
-		static const int IOV_COUNT = 2;
-		struct iovec iov[IOV_COUNT];
-		struct iovec *v = iov;
 
-		memset(&res, 0, sizeof(res));
-		snprintf(res, sizeof(res), "<%d>", pri);
-		v->iov_base = res;
-		v->iov_len = strlen(res);
-		v++;
+		memset(&line, 0, sizeof(line));
+		snprintf(line, sizeof(line), "<%d> <%s>", pri, msg);
 
-		v->iov_base = msg;
-		v->iov_len = strlen(msg);
-	  writev_retry:
-		if ((-1 == writev(remotefd, iov, IOV_COUNT)) && (errno == EINTR)) {
-			goto writev_retry;
+	retry:
+    	if(( -1 == sendto(remotefd, line, strlen(line), 0, 
+						(struct sockaddr *) &remoteaddr, 
+						remoteaddrlen)) && (errno == EINTR)) {
+			goto retry;
 		}
 	}
 	if (local_logging == TRUE)
@@ -508,12 +505,10 @@ static int serveConnection(char *tmpbuf, int n_read)
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 static void init_RemoteLog(void)
 {
-
-	struct sockaddr_in remoteaddr;
 	struct hostent *hostinfo;
-	int len = sizeof(remoteaddr);
+	remoteaddrlen = sizeof(remoteaddr);
 
-	memset(&remoteaddr, 0, len);
+	memset(&remoteaddr, 0, remoteaddrlen);
 
 	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -526,15 +521,6 @@ static void init_RemoteLog(void)
 	remoteaddr.sin_family = AF_INET;
 	remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
 	remoteaddr.sin_port = htons(RemotePort);
-
-	/* Since we are using UDP sockets, connect just sets the default host and port
-	 * for future operations
-	 */
-	if (0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))) {
-		bb_error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost,
-						  RemotePort);
-	}
-
 }
 #endif
 
