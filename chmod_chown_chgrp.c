@@ -25,6 +25,7 @@
 #include "internal.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_invalid_option
+#define bb_need_too_few_args
 #include "messages.c"
 
 #include <stdio.h>
@@ -114,22 +115,25 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	if (argc < 2)
 		usage(appUsage);
 	invocationName = *argv;
-	argc--;
 	argv++;
 
 	/* Parse options */
-	while (argc && (**argv == '-')) {
+	while (--argc >= 0 && *argv && (**argv == '-')) {
 		while (*++(*argv))
 			switch (**argv) {
-			case 'R':
-				recursiveFlag = TRUE;
-				break;
-			default:
-				fprintf(stderr, invalid_option, invocationName, **argv);
-				usage(appUsage);
+				case 'R':
+					recursiveFlag = TRUE;
+					break;
+				default:
+					fprintf(stderr, invalid_option, invocationName, **argv);
+					usage(appUsage);
 			}
-		argc--;
 		argv++;
+	}
+
+	if (argc == 0 || *argv == NULL) {
+		fprintf(stderr, too_few_args, invocationName);
+		usage(appUsage);
 	}
 
 	if (whichApp == CHMOD_APP) {

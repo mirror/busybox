@@ -74,6 +74,9 @@
 #if defined bb_need_write_error || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(write_error, "Write Error\n")
 #endif
+#if defined bb_need_too_few_args || ! defined BB_DECLARE_EXTERN
+	BB_DEF_MESSAGE(too_few_args, "%s: too few arguments\n")
+#endif
 
 
 
