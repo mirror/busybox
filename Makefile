@@ -55,6 +55,8 @@ DODMALLOC = false
 DOLFS = false
 
 # If you have a "pristine" source directory, point BB_SRC_DIR to it.
+# Experimental and incomplete; tell the mailing list
+# <busybox@opensource.lineo.com> if you do or don't like it so far.
 BB_SRC_DIR = .
 
 # If you are running a cross compiler, you may want to set this
@@ -79,8 +81,6 @@ OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&
     then echo "-Os"; else echo "-O2" ; fi)
 
 WARNINGS = -Wall
-
-VPATH += :$(BB_SRC_DIR)
 
 ifeq ($(DOLFS),true)
     # For large file summit support
@@ -122,7 +122,23 @@ ifndef $(PREFIX)
     PREFIX = `pwd`/_install
 endif
 
-OBJECTS   = $(shell cd $(BB_SRC_DIR); ./busybox.sh) busybox.o messages.o usage.o utility.o
+# Additional complications due to support for pristine source dir.
+# Config.h in the build directory should take precedence over the
+# copy in BB_SRC_DIR, both during the compilation phase and the
+# shell script that finds the list of object files.
+#
+# Work in progress by <ldoolitt@recycle.lbl.gov>.
+# If it gets in your way, set DISABLE_VPATH=yes
+ifeq ($(DISABLE_VPATH),yes)
+    CONFIG_H = Config.h
+else
+    VPATH = .:$(BB_SRC_DIR)
+    CONFIG_LIST = $(addsuffix /Config.h,$(subst :, ,$(VPATH)))
+    CONFIG_H    = $(word 1,$(shell ls -f -1 $(CONFIG_LIST) 2>/dev/null))
+    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+endif
+
+OBJECTS   = $(shell $(BB_SRC_DIR)/busybox.sh $(CONFIG_H) $(BB_SRC_DIR)) busybox.o messages.o usage.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
@@ -141,17 +157,23 @@ docs/BusyBox.txt: docs/busybox.pod
 	@echo
 	@echo BusyBox Documentation
 	@echo
-	- pod2text docs/busybox.pod > docs/BusyBox.txt
+	- mkdir -p docs
+	- (cd $(BB_SRC_DIR); pod2text docs/busybox.pod) > docs/BusyBox.txt
 
 docs/BusyBox.1: docs/busybox.pod
-	- pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > docs/BusyBox.1
+	- mkdir -p docs
+	- (cd $(BB_SRC_DIR); pod2man --center=BusyBox \
+		--release="version $(VERSION)" \
+		docs/busybox.pod ) > docs/BusyBox.1
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/BusyBox.html
-	- ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
+	- ln -s docs/busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
 docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
-	- pod2html --noindex docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
+	- mkdir -p docs/busybox.lineo.com
+	- (cd $(BB_SRC_DIR); pod2html --noindex docs/busybox.pod ) \
+		> docs/busybox.lineo.com/BusyBox.html
 	- rm -f pod2html*
 
 
@@ -162,18 +184,23 @@ docs/busybox.txt: docs/busybox.sgml
 	@echo
 	@echo BusyBox Documentation
 	@echo
-	(cd docs; sgmltools -b txt busybox.sgml)
+	- mkdir -p docs
+	(cd docs; sgmltools -b txt $(BB_SRC_DIR)/busybox.sgml)
 
 docs/busybox.dvi: docs/busybox.sgml
-	(cd docs; sgmltools -b dvi busybox.sgml)
+	- mkdir -p docs
+	(cd docs; sgmltools -b dvi $(BB_SRC_DIR)/busybox.sgml)
 
 docs/busybox.ps: docs/busybox.sgml
-	(cd docs; sgmltools -b ps busybox.sgml)
+	- mkdir -p docs
+	(cd docs; sgmltools -b ps $(BB_SRC_DIR)/busybox.sgml)
 
 docs/busybox.pdf: docs/busybox.ps
-	(cd docs; ps2pdf busybox.ps)
+	- mkdir -p docs
+	(cd docs; ps2pdf $(BB_SRC_DIR)/busybox.ps)
 
 docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
+	- mkdir -p docs
 	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
 
@@ -183,15 +210,15 @@ busybox: $(OBJECTS)
 	$(STRIP)
 
 busybox.links: Config.h
-	- ./busybox.mkll | sort >$@
+	-(cd $(BB_SRC_DIR); ./busybox.mkll ) | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h Makefile
 
 utility.o: loop.h
 
-loop.h:
-	@$(BB_SRC_DIR)/mk_loop_h.sh
+loop.h: mk_loop_h.sh
+	@ sh $<
 
 test tests:
 	cd tests && $(MAKE) all
@@ -203,7 +230,7 @@ clean:
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
 	- rm -rf docs/busybox _install
-	- rm -f busybox.links *~ *.o core
+	- rm -f busybox.links loop.h *~ *.o core
 
 distclean: clean
 	- rm -f busybox
@@ -214,6 +241,12 @@ install: busybox busybox.links
 
 install-hardlinks: busybox busybox.links
 	./install.sh $(PREFIX) --hardlinks
+
+debug_pristine:
+	@ echo VPATH=\"$(VPATH)\"
+	@ echo CONFIG_LIST=\"$(CONFIG_LIST)\"
+	@ echo CONFIG_H=\"$(CONFIG_H)\"
+	@ echo OBJECTS=\"$(OBJECTS)\"
 
 dist release: distclean doc
 	cd ..;					\
