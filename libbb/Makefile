@@ -27,18 +27,12 @@ LIBBB_OBJ= full_version name_too_long omitting_directory not_a_directory \
 	write_error too_few_args name_longer_than_foo unknown can_not_create_raw_socket
 LIBBB_MOBJS=$(patsubst %,%.o, $(LIBBB_OBJ))
 
-LIBBB_ARCSRC=unarchive.c
-LIBBB_ARCOBJ= archive_offset seek_sub_file extract_archive unarchive \
-	get_header_ar get_header_cpio get_header_tar deb_extract
-LIBBB_AROBJS=$(patsubst %,%.o, $(LIBBB_ARCOBJ))
-
-
 obj-y           :=
 obj-n           :=
 obj-            :=
 
 obj-y += ask_confirmation.o chomp.o concat_path_file.o copy_file.o \
-	copy_file_chunk.o deb_functs.o libc5.o device_open.o error_msg.o \
+	copy_file_chunk.o libc5.o device_open.o error_msg.o \
 	error_msg_and_die.o fgets_str.o find_mount_point.o find_pid_by_name.o \
 	find_root_device.o full_read.o full_write.o get_console.o \
 	get_last_path_component.o get_line_from_file.o gz_open.o human_readable.o \
