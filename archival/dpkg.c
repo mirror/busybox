@@ -17,10 +17,10 @@
 #define DEPENDSMAX	64	/* maximum number of depends we can handle */
 
 /* Should we do full dependency checking? */
-#define DODEPENDS 1
+//#define DODEPENDS 0
 
 /* Should we do debugging? */
-#define DODEBUG 0
+//#define DODEBUG 0
 
 #ifdef DODEBUG
 #define SYSTEM(x) do_system(x)
@@ -341,6 +341,7 @@ static int fill_package_struct(package_t *package, const char *package_buffer)
 	char *field = NULL;
 	int field_start = 0;
 	int field_length = 0;
+
 	while ((field = read_package_field(&package_buffer[field_start])) != NULL) {
 		field_length = strlen(field);
 		field_start += (field_length + 1);
@@ -430,6 +431,78 @@ static int fill_package_struct(package_t *package, const char *package_buffer)
 	return EXIT_SUCCESS;
 }
 
+extern void write_package(FILE *out_file, package_t *pkg)
+{
+	if (pkg->package) {
+		fprintf(out_file, "Package: %s\n", pkg->package);
+	}
+	if ((pkg->state_want != 0) || (pkg->state_flag != 0)|| (pkg->state_status != 0)) {
+		fprintf(out_file, "Status: %s %s %s\n", 
+			state_words_want[pkg->state_want - 1],
+			state_words_flag[pkg->state_flag - 1],
+			state_words_status[pkg->state_status - 1]);
+	}
+	if (pkg->depends) {
+		fprintf(out_file, "Depends: %s\n", pkg->depends);
+	}
+	if (pkg->provides) {
+		fprintf(out_file, "Provides: %s\n", pkg->provides);
+	}
+	if (pkg->priority) {
+		fprintf(out_file, "Priority: %s\n", pkg->priority);
+	}
+	if (pkg->section) {
+		fprintf(out_file, "Section: %s\n", pkg->section);
+	}
+	if (pkg->section) {
+		fprintf(out_file, "Installed-Size: %s\n", pkg->installed_size);
+	}
+	if (pkg->maintainer) {
+		fprintf(out_file, "Maintainer: %s\n", pkg->maintainer);
+	}
+	if (pkg->source) {
+		fprintf(out_file, "Source: %s\n", pkg->source);
+	}
+	if (pkg->version) {
+		fprintf(out_file, "Version: %s\n", pkg->version);
+	}
+	if (pkg->pre_depends) {
+		fprintf(out_file, "Pre-depends: %s\n", pkg->pre_depends);
+	}
+	if (pkg->replaces) {
+		fprintf(out_file, "Replaces: %s\n", pkg->replaces);
+	}
+	if (pkg->recommends) {
+		fprintf(out_file, "Recommends: %s\n", pkg->recommends);
+	}
+	if (pkg->suggests) {
+		fprintf(out_file, "Suggests: %s\n", pkg->suggests);
+	}
+	if (pkg->conflicts) {
+		fprintf(out_file, "Conflicts: %s\n", pkg->conflicts);
+	}
+	if (pkg->conffiles) {
+		fprintf(out_file, "Conf-files: %s\n", pkg->conffiles);
+	}
+	if (pkg->architecture) {
+		fprintf(out_file, "Architecture: %s\n", pkg->architecture);
+	}
+	if (pkg->filename) {
+		fprintf(out_file, "Filename: %s\n", pkg->filename);
+	}
+	if (pkg->md5sum) {
+		fprintf(out_file, "MD5sum: %s\n", pkg->md5sum);
+	}
+	if (pkg->installer_menu_item) {
+		fprintf(out_file, "installer-main-menu %d\n", pkg->installer_menu_item);
+	}
+	if (pkg->description) {
+		fprintf(out_file, "Description: %s\n", pkg->description);
+	}
+	fputc('\n', out_file);
+	pkg = pkg->next;
+}
+
 static void *status_read(void)
 {
 	FILE *f;
@@ -447,9 +520,7 @@ static void *status_read(void)
 
 	while ( (package_control_buffer = read_text_file_to_buffer(f)) != NULL) {
 		m = (package_t *)xcalloc(1, sizeof(package_t));
-		printf("read buffer [%s]\n", package_control_buffer);
 		fill_package_struct(m, package_control_buffer);
-		printf("package is [%s]\n", m->package);
 		if (m->package) {
 			/*
 			 * If there is an item in the tree by this name,
@@ -489,7 +560,6 @@ static void *status_read(void)
 			free(m);
 		}
 	}
-	printf("done\n");
 	fclose(f);
 	return status;
 }
@@ -553,20 +623,7 @@ static int status_merge(void *status, package_t *pkgs)
 
 	// Print out packages we processed.
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
-		fprintf(fout, "Package: %s\nStatus: %s %s %s\n", 
-			pkg->package, state_words_want[pkg->state_want - 1],
-				state_words_flag[pkg->state_flag - 1],
-				state_words_status[pkg->state_status - 1]);
-
-		if (pkg->depends)
-			fprintf(fout, "Depends: %s\n", pkg->depends);
-		if (pkg->provides)
-			fprintf(fout, "Provides: %s\n", pkg->provides);
-		if (pkg->installer_menu_item)
-			fprintf(fout, "installer-menu-item: %i\n", pkg->installer_menu_item);
-		if (pkg->description)
-			fprintf(fout, "Description: %s\n", pkg->description);
-		fputc('\n', fout);
+		write_package(fout, pkg);
 	}
 	fclose(fout);
 
