@@ -239,7 +239,7 @@ enum extract_functions_e {
 	extract_unconditional = 512,
 	extract_create_leading_dirs = 1024
 };
-char *unarchive(FILE *src_stream, file_header_t *(*get_header)(FILE *),
+char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_header)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names);
 char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename);

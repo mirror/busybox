@@ -211,7 +211,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 #endif
 
 #ifdef L_unarchive
-char *unarchive(FILE *src_stream, file_header_t *(*get_headers)(FILE *),
+char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names)
 {
 	file_header_t *file_entry;
@@ -237,7 +237,7 @@ char *unarchive(FILE *src_stream, file_header_t *(*get_headers)(FILE *),
 				continue;
 			}
 		}
-		buffer = extract_archive(src_stream, stdout, file_entry, extract_function, prefix);
+		buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
 	}
 	return(buffer);
 }
@@ -568,7 +568,7 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 			/* open a stream of decompressed data */
 			uncompressed_stream = gz_open(deb_stream, &gunzip_pid);
 			archive_offset = 0;
-			output_buffer = unarchive(uncompressed_stream, get_header_tar, extract_function, prefix, file_list);
+			output_buffer = unarchive(uncompressed_stream, out_stream, get_header_tar, extract_function, prefix, file_list);
 		}
 		seek_sub_file(deb_stream, ar_header->size);
 	}

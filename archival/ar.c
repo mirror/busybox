@@ -84,6 +84,6 @@ extern int ar_main(int argc, char **argv)
 		optind++;
 	}
 
-	unarchive(src_stream, &get_header_ar, extract_function, "./", extract_names);
+	unarchive(src_stream, stdout, &get_header_ar, extract_function, "./", extract_names);
 	return EXIT_SUCCESS;
 }

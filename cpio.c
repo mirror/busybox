@@ -85,7 +85,7 @@ extern int cpio_main(int argc, char **argv)
 		optind++;
 	}
 
-	unarchive(src_stream, &get_header_cpio, extract_function, "./", extract_names);
+	unarchive(src_stream, stdout, &get_header_cpio, extract_function, "./", extract_names);
 	if (oldmask) umask(oldmask); /* Restore umask if we changed it */
 	return EXIT_SUCCESS;
 }
