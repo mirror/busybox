@@ -101,7 +101,8 @@ docs/BusyBox.1: docs/busybox.pod
 	pod2man --center=BusyBox --release="version $(VERSION)" docs/busybox.pod > docs/BusyBox.1
 
 docs/BusyBox.html: docs/busybox.pod
-	pod2html docs/busybox.pod > docs/BusyBox.html
+	pod2html docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
+	ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 	- rm -f pod2html*
 
 clean:
@@ -123,7 +124,8 @@ clean:
 	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
 	- cd tests && $(MAKE) clean
-	- rm -f BusyBox.html BusyBox.1 BusyBox.txt pod2html*
+	- rm -f docs/BusyBox.html docs/busybox.lineo.com/BusyBox.html \
+		docs/BusyBox.1 docs/BusyBox.txt pod2html*
 
 distclean: clean
 	- rm -f busybox
