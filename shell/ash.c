@@ -13271,7 +13271,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			if(numptr_val < 0)
 				return -3;      /* exponent less than 0 */
 			else {
-				long c = 1;
+				arith_t c = 1;
 
 				if(numptr_val)
 					while(numptr_val--)
@@ -13294,7 +13294,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			goto err;
 		}
 		/* save to shell variable */
-		sprintf(buf, "%lld", (long long) rez);
+		snprintf(buf, sizeof(buf), "%lld", (long long) rez);
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
 		if(op == TOK_POST_INC)
@@ -13420,7 +13420,7 @@ static arith_t arith (const char *expr, int *perrcode)
 			goto prologue;
 		}
 		if((p = endofname(expr)) != expr) {
-			int var_name_size = (p-expr) + 1;  /* trailing zero */
+			size_t var_name_size = (p-expr) + 1;  /* trailing zero */
 
 			numstackptr->var = alloca(var_name_size);
 			safe_strncpy(numstackptr->var, expr, var_name_size);
@@ -13432,7 +13432,7 @@ static arith_t arith (const char *expr, int *perrcode)
 			continue;
 		} else if (is_digit(arithval)) {
 			numstackptr->var = NULL;
-			numstackptr->val = strtol(expr, (char **) &expr, 0);
+			numstackptr->val = strtoll(expr, (char **) &expr, 0);
 			goto num;
 		}
 		for(p = op_tokens; ; p++) {
