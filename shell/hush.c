@@ -1632,7 +1632,6 @@ static int set_local_var(const char *s)
 	}
 	*value='\0';
 	++value;
-	printf("name='%s' and value='%s'\n",name, value);
 
 	namelen = strlen (name);
 	vallen = strlen (value);
