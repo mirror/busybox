@@ -133,7 +133,7 @@ struct TarInfo
 typedef struct TarInfo TarInfo;
 
 /* Local procedures to restore files from a tar file.  */
-extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
+static int readTarFile(int tarFd, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** extractList,
 		char** excludeList);
 
@@ -571,7 +571,7 @@ static int extract_file(char **extract_files, const char *file)
  * Read a tar file and extract or list the specified files within it.
  * If the list is empty than all files are extracted or listed.
  */
-extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
+static int readTarFile(int tarFd, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** extractList,
 		char** excludeList)
 {
