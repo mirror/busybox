@@ -511,7 +511,7 @@ static inline void to_ttype(void)
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-static inline void to_naws()
+static inline void to_naws(void)
 { 
 	/* Tell server we will do NAWS */
 	putiac2(WILL, TELOPT_NAWS);
