@@ -912,9 +912,9 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 		(void) signal(SIGINT, (sig_type) abort_gzip);
 	}
 #ifdef SIGTERM
-	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGTERM, (sig_type) abort_gzip);
-	}
+//	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
+//		(void) signal(SIGTERM, (sig_type) abort_gzip);
+//	}
 #endif
 #ifdef SIGHUP
 	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
