@@ -42,6 +42,27 @@ volatile void usage(const char *usage)
 }
 
 
+#if defined (BB_INIT) || defined (BB_PS)
+
+/* Returns kernel version encoded as major*65536 + minor*256 + patch,
+ * so, for example,  to check if the kernel is greater than 2.2.11:
+ *	if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
+ */
+int
+get_kernel_revision()
+{
+  FILE *f;
+  int major=0, minor=0, patch=0;
+
+  f = fopen("/proc/sys/kernel/osrelease","r");
+  fscanf(f,"%d.%d.%d",&major,&minor,&patch);
+  fclose(f);
+  return major*65536 + minor*256 + patch;
+}
+
+#endif
+
+
 
 #if defined (BB_CP) || defined (BB_MV)
 /*
@@ -657,6 +678,86 @@ parse_mode( const char* s, mode_t* theMode)
 
 #endif
 
+
+
+
+
+
+
+#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_PS)
+
+/* Use this to avoid needing the glibc NSS stuff 
+ * This uses storage buf to hold things.
+ * */
+uid_t 
+my_getid(const char *filename, char *name, uid_t id) 
+{
+	FILE *stream;
+	char *rname, *start, *end, buf[128];
+	uid_t rid;
+
+	stream=fopen(filename,"r");
+
+	while (fgets (buf, 128, stream) != NULL) {
+		if (buf[0] == '#')
+			continue;
+
+		start = buf;
+		end = strchr (start, ':');
+		if (end == NULL)
+			continue;
+		*end = '\0';
+		rname = start;
+
+		start = end + 1;
+		end = strchr (start, ':');
+		if (end == NULL)
+			continue;
+
+		start = end + 1;
+		rid = (uid_t) strtol (start, &end, 10);
+		if (end == start)
+			continue;
+
+		if (name) {
+		    if (0 == strcmp(rname, name))
+			return( rid);
+                }
+		if ( id != -1 && id == rid ) {
+		    strncpy(name, rname, 8);
+		    return( TRUE);
+		}
+	}
+	fclose(stream);
+	return (-1);
+}
+
+uid_t 
+my_getpwnam(char *name) 
+{
+    return my_getid("/etc/passwd", name, -1);
+}
+
+gid_t 
+my_getgrnam(char *name) 
+{
+    return my_getid("/etc/group", name, -1);
+}
+
+void
+my_getpwuid(char* name, uid_t uid) 
+{
+    my_getid("/etc/passwd", name, uid);
+}
+
+void
+my_getgrgid(char* group, gid_t gid) 
+{
+    my_getid("/etc/group", group, gid);
+}
+
+
+#endif
 
 
 /* END CODE */

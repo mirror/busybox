@@ -138,6 +138,12 @@ extern void createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 extern volatile void usage(const char *usage);
 
+extern uid_t my_getpwnam(char *name);
+extern gid_t my_getgrnam(char *name); 
+extern void my_getpwuid(char* name, uid_t uid);
+extern void my_getgrgid(char* group, gid_t gid);
+extern int get_kernel_revision();
+
 
 
 #if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)

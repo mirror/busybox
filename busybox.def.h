@@ -21,7 +21,7 @@
 #define BB_GREP
 #define BB_HALT
 #define BB_INIT
-//#define BB_KILL   // Supplied by ash
+#define BB_KILL
 //#define BB_LENGTH
 #define BB_LN
 #define BB_LOADFONT

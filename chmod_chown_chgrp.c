@@ -48,56 +48,6 @@ static const char chmod_usage[] = "[-R] MODE[,MODE]... FILE...\n"
  "\t-R\tchange files and directories recursively.\n";
 
 
-uid_t my_getid(const char *filename, const char *name) 
-{
-	FILE *stream;
-	char *rname, *start, *end, buf[128];
-	uid_t rid;
-
-	stream=fopen(filename,"r");
-
-	while (fgets (buf, 128, stream) != NULL) {
-		if (buf[0] == '#')
-			continue;
-
-		start = buf;
-		end = strchr (start, ':');
-		if (end == NULL)
-			continue;
-		*end = '\0';
-		rname = start;
-
-		start = end + 1;
-		end = strchr (start, ':');
-		if (end == NULL)
-			continue;
-
-		start = end + 1;
-		rid = (uid_t) strtol (start, &end, 10);
-		if (end == start)
-			continue;
-
-		if (name) {
-		    if (0 == strcmp(rname, name))
-			return( rid);
-		}
-	}
-	fclose(stream);
-	return (-1);
-}
-
-uid_t 
-my_getpwnam(char *name) 
-{
-    return my_getid("/etc/passwd", name);
-}
-
-gid_t 
-my_getgrnam(char *name) 
-{
-    return my_getid("/etc/group", name);
-}
-
 static int fileAction(const char *fileName, struct stat* statbuf)
 {
     switch (whichApp) {

@@ -194,19 +194,6 @@ set_free_pages()
     fclose(f);
 }
 
-static int
-get_kernel_revision()
-{
-  FILE *f;
-  int major=0, minor=0, patch=0;
-
-  f = fopen("/proc/sys/kernel/osrelease","r");
-  fscanf(f,"%d.%d.%d",&major,&minor,&patch);
-  fclose(f);
-  return major*65536 + minor*256 + patch;
-}
-
-
 static void
 shutdown_system(void)
 {
