@@ -330,7 +330,7 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 	size_t  writeSize;
 	size_t  readSize;
 	size_t  actualWriteSz;
-	char    buffer[BUFSIZ];
+	char    buffer[20 * TAR_BLOCK_SIZE];
 	size_t  size = header->size;
 	int outFd=fileno(stdout);
 
@@ -354,9 +354,9 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 		if ( size > sizeof(buffer) )
 			writeSize = readSize = sizeof(buffer);
 		else {
-			int mod = size % 512;
+			int mod = size % TAR_BLOCK_SIZE;
 			if ( mod != 0 )
-				readSize = size + (512 - mod);
+				readSize = size + (TAR_BLOCK_SIZE - mod);
 			else
 				readSize = size;
 			writeSize = size;
