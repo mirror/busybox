@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <fnmatch.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -242,7 +243,7 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 		if (extract_names != NULL) {
 			int found_flag = FALSE;
 			for(i = 0; extract_names[i] != 0; i++) {
-				if (fnmatch(extract_names[i], file_entry->name, 0) == 0) {
+				if (fnmatch(extract_names[i], file_entry->name, FNM_LEADING_DIR) == 0) {
 					found_flag = TRUE;
 					break;
 				}
@@ -506,8 +507,8 @@ file_header_t *get_header_tar(FILE *tar_stream)
 		} formated;
 	} tar;
 	file_header_t *tar_entry = NULL;
-	long i;
 	long sum = 0;
+	long i;
 
 	if (archive_offset % 512 != 0) {
 		seek_sub_file(tar_stream, 512 - (archive_offset % 512));
