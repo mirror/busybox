@@ -1,6 +1,6 @@
 /*
  *  minit version 0.9.1 by Felix von Leitner
- *  ported to busybox by Glenn McGrath <bug1@optushome.com.au>
+ *  ported to busybox by Glenn McGrath <bug1@iinet.net.au>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

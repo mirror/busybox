@@ -14,7 +14,7 @@
 + use /dev/urandom to seed xid's (instead of time(0)) (me)
 + fixed renew behavior (me)
 + udhcp now fits nicely into busybox
-  (Glenn McGrath <bug1@optushome.com.au> as well as myself)
+  (Glenn McGrath <bug1@iinet.net.au> as well as myself)
 + updated client manpage (me)
 + both client and server now use sockets for signal handling,
   hopefully, this will be the last needed change in signal

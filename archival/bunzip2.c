@@ -1,5 +1,5 @@
 /*
- *  Modified for busybox by Glenn McGrath <bug1@optushome.com.au>
+ *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
  *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
  *
  *  This program is free software; you can redistribute it and/or modify

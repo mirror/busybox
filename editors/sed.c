@@ -5,7 +5,7 @@
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
  * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  * Copyright (C) 2002  Matt Kraai
- * Copyright (C) 2003 by Glenn McGrath <bug1@optushome.com.au>
+ * Copyright (C) 2003 by Glenn McGrath <bug1@iinet.net.au>
  * Copyright (C) 2003,2004 by Rob Landley <rob@landley.net>
  *
  * This program is free software; you can redistribute it and/or modify

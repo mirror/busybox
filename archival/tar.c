@@ -3,7 +3,7 @@
  * Mini tar implementation for busybox
  *
  * Modified to use common extraction code used by ar, cpio, dpkg-deb, dpkg
- *  Glenn McGrath <bug1@optushome.com.au>
+ *  Glenn McGrath <bug1@iinet.net.au>
  *
  * Note, that as of BusyBox-0.43, tar has been completely rewritten from the
  * ground up.  It still has remnants of the old code lying about, but it is

@@ -3,7 +3,7 @@
  *
  * Written 2000 by Andi Kleen.
  * Busybox port 2002 by Nick Fedchik <nick@fedchik.org.ua>
- *			Glenn McGrath <bug1@optushome.com.au>
+ *			Glenn McGrath <bug1@iinet.net.au>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

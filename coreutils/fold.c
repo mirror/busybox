@@ -4,7 +4,7 @@
    Copyright (C) 91, 1995-2002 Free Software Foundation, Inc.
 
    Modified for busybox based on coreutils v 5.0
-   Copyright (C) 2003 Glenn McGrath <bug1@optushome.com.au>
+   Copyright (C) 2003 Glenn McGrath <bug1@iinet.net.au>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

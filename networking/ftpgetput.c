@@ -5,7 +5,7 @@
  * Mini implementation of FTP to retrieve a remote file.
  *
  * Copyright (C) 2002 Jeff Angielski, The PTR Group <jeff@theptrgroup.com>
- * Copyright (C) 2002 Glenn McGrath <bug1@optushome.com.au>
+ * Copyright (C) 2002 Glenn McGrath <bug1@iinet.net.au>
  *
  * Based on wget.c by Chip Rosenthal Covad Communications
  * <chip@laserlink.net>

@@ -156,7 +156,7 @@ John Lombardo <john@deltanet.com>
 
 =for html <br>
 
-Glenn McGrath <bug1@optushome.com.au>
+Glenn McGrath <bug1@iinet.net.au>
 
     ar, dpkg, dpkg-deb
 
@@ -252,5 +252,5 @@ Tito Ragusa <farmatito@tiscali.it>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.16 2004/04/13 16:31:41 andersen Exp $
+# $Id: busybox_footer.pod,v 1.17 2004/04/25 05:11:14 bug1 Exp $
 

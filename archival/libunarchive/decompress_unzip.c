@@ -12,7 +12,7 @@
  * command line handling.
  *
  * General cleanup to better adhere to the style guide and make use of standard
- * busybox functions by Glenn McGrath <bug1@optushome.com.au>
+ * busybox functions by Glenn McGrath <bug1@iinet.net.au>
  *
  * read_gz interface + associated hacking by Laurence Anderson
  *

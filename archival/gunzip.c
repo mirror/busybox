@@ -12,7 +12,7 @@
  * handling.
  *
  * General cleanup to better adhere to the style guide and make use of standard
- * busybox functions by Glenn McGrath <bug1@optushome.com.au>
+ * busybox functions by Glenn McGrath <bug1@iinet.net.au>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

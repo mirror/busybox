@@ -9,7 +9,7 @@ incorect, _please_ let me know.
 -----------
 
 Emanuele Aina <emanuele.aina@tiscali.it>
-	run-parts
+    run-parts
 
 Erik Andersen <andersen@codepoet.org>
     Tons of new stuff, major rewrite of most of the
@@ -40,7 +40,7 @@ Dave Cinege <dcinege@psychosis.com>
     various fixes, Linux Router Project maintenance
 
 Jordan Crouse <jordan@cosmicpenguin.net>
-	ipcalc
+    ipcalc
 
 Magnus Damm <damm@opensource.se>
     tftp client
@@ -66,13 +66,15 @@ Matt Kraai <kraai@alumni.cmu.edu>
     documentation, bugfixes, test suite
 
 Stephan Linz <linz@li-pro.net>
-	ipcalc, Red Hat equivalence
+    ipcalc, Red Hat equivalence
 
 John Lombardo <john@deltanet.com>
     tr
 
-Glenn McGrath <bug1@optushome.com.au>
-    ar, dpkg, dpkg-deb
+Glenn McGrath <bug1@iinet.net.au>
+    Common unarchving code and unarchiving applets, ifupdown, ftpgetput,
+    nameif, sed, patch, fold, install, uudecode. 
+    Various bugfixes, review and apply numerous patches. 
 
 Manuel Novoa III <mjn3@codepoet.org>
     cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,
@@ -123,5 +125,5 @@ Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
 Tito Ragusa <farmatito@tiscali.it>
-	devfsd and size optimizations in strings, openvt and deallocvt.
+    devfsd and size optimizations in strings, openvt and deallocvt.
 

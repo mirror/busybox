@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  *  ifupdown for busybox
- *  Copyright (c) 2002 Glenn McGrath <bug1@optushome.com.au>
+ *  Copyright (c) 2002 Glenn McGrath <bug1@iinet.net.au>
  *  Copyright (c) 2003-2004 Erik Andersen <andersen@codepoet.org>
  *
  *  Based on ifupdown v 0.6.4 by Anthony Towns
