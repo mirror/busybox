@@ -219,7 +219,10 @@ static void message(int device, const char *fmt, ...)
 {
 	va_list arguments;
 	int l;
-		char msg[1024];
+	char msg[1024];
+#ifndef CONFIG_SYSLOGD
+	static int log_fd = -1;
+#endif
 
 	msg[0] = '\r';
 		va_start(arguments, fmt);
@@ -236,7 +239,6 @@ static void message(int device, const char *fmt, ...)
 	msg[l++] = '\n';
 	msg[l] = 0;
 #else
-	static int log_fd = -1;
 
 	msg[l++] = '\n';
 	msg[l] = 0;
