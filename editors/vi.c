@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.28 2003/03/19 09:11:45 mjn3 Exp $";
+	"$Id: vi.c,v 1.29 2003/09/15 08:33:36 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -197,9 +197,6 @@ static jmp_buf restart;		// catch_sig()
 #if defined(CONFIG_FEATURE_VI_USE_SIGNALS) || defined(CONFIG_FEATURE_VI_CRASHME)
 static int my_pid;
 #endif
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-static struct winsize winsize;	// remember the window size
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
 static int adding2q;		// are we currently adding user input to q
 static Byte *last_modifying_cmd;	// last modifying cmd for "."
@@ -411,6 +408,14 @@ extern int vi_main(int argc, char **argv)
 
 	return (0);
 }
+
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
+//----- See what the window size currently is --------------------
+static inline void window_size_get(int fd)
+{
+	get_terminal_width_height(fd, &columns, &rows);
+}
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 
 static void edit_file(Byte * fn)
 {
@@ -2121,29 +2126,6 @@ static void cookmode(void)
 	fflush(stdout);
 	tcsetattr(0, TCSANOW, &term_orig);
 }
-
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-//----- See what the window size currently is --------------------
-static void window_size_get(int sig)
-{
-	int i;
-
-	i = ioctl(0, TIOCGWINSZ, &winsize);
-	if (i != 0) {
-		// force 24x80
-		winsize.ws_row = 24;
-		winsize.ws_col = 80;
-	}
-	if (winsize.ws_row <= 1) {
-		winsize.ws_row = 24;
-	}
-	if (winsize.ws_col <= 1) {
-		winsize.ws_col = 80;
-	}
-	rows = (int) winsize.ws_row;
-	columns = (int) winsize.ws_col;
-}
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 
 //----- Come here when we get a window resize signal ---------
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS

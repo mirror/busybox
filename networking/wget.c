@@ -679,12 +679,9 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 static int
 getttywidth(void)
 {
-	struct winsize winsize;
-
-	if (ioctl(fileno(stdout), TIOCGWINSZ, &winsize) != -1)
-		return (winsize.ws_col ? winsize.ws_col : 80);
-	else
-		return (80);
+	int width=0;
+	get_terminal_width_height(0, &width, NULL);
+	return (width);
 }
 
 static void
@@ -841,7 +838,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.59 2003/09/11 08:25:11 andersen Exp $
+ *	$Id: wget.c,v 1.60 2003/09/15 08:33:37 andersen Exp $
  */
 
 

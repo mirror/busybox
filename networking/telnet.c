@@ -44,10 +44,6 @@
 #include <netinet/in.h>
 #include "busybox.h"
 
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-#   include <sys/ioctl.h>
-#endif
-
 #if 0
 static const int DOTRACE = 1;
 #endif
@@ -585,11 +581,7 @@ extern int telnet_main(int argc, char** argv)
 #endif	
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-    struct winsize winp;
-    if( ioctl(0, TIOCGWINSZ, &winp) == 0 ) {
-	win_width  = winp.ws_col;
-	win_height = winp.ws_row;
-    }
+	get_terminal_width_height(0, &win_width, &win_height);
 #endif
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE

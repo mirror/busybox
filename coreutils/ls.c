@@ -203,7 +203,7 @@ static int is_flask_enabled_flag;
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-static unsigned short terminal_width = TERMINAL_WIDTH;
+static int terminal_width = TERMINAL_WIDTH;
 static unsigned short tabstops = COLUMN_GAP;
 #else
 #define tabstops COLUMN_GAP
@@ -915,10 +915,6 @@ extern int ls_main(int argc, char **argv)
 	is_flask_enabled_flag = is_flask_enabled();
 #endif
 
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-	struct winsize win = { 0, 0, 0, 0 };
-#endif
-
 	all_fmt = LIST_SHORT | DISP_NORMAL | STYLE_AUTO
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 		| TIME_MOD
@@ -927,11 +923,10 @@ extern int ls_main(int argc, char **argv)
 		| SORT_NAME | SORT_ORDER_FORWARD
 #endif
 		;
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-	ioctl(fileno(stdout), TIOCGWINSZ, &win);
-	if (win.ws_col > 0)
-		terminal_width = win.ws_col - 1;
-#endif
+	/* Obtain the terminal width.  */
+	get_terminal_width_height(0, &terminal_width, NULL);
+	/* Go one less... */
+	terminal_width--;
 	nfiles = 0;
 
 #ifdef CONFIG_FEATURE_LS_COLOR

@@ -167,15 +167,13 @@ static void cmdedit_setwidth(int w, int redraw_flg);
 
 static void win_changed(int nsig)
 {
-	struct winsize win = { 0, 0, 0, 0 };
 	static sighandler_t previous_SIGWINCH_handler;  /* for reset */
 
 	/*   emulate      || signal call */
 	if (nsig == -SIGWINCH || nsig == SIGWINCH) {
-		ioctl(0, TIOCGWINSZ, &win);
-		if (win.ws_col > 0) {
-			cmdedit_setwidth(win.ws_col, nsig == SIGWINCH);
-		}
+		int width = 0;
+		get_terminal_width_height(0, &width, NULL);
+		cmdedit_setwidth(width, nsig == SIGWINCH);
 	}
 	/* Unix not all standart in recall signal */
 

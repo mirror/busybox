@@ -373,10 +373,11 @@ static void display_status(int count, int col)
 			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
 		else
 			sprintf(rss_str_buf, "%7ld", s->rss);
+		printf(
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
-		printf("%5d %-8s %s  %s %5d %2d.%d %2u.%u ",
+			"%5d %-8s %s  %s %5d %2d.%d %2u.%u ",
 #else
-		printf("%5d %-8s %s  %s %5d %2u.%u ",
+			"%5d %-8s %s  %s %5d %2u.%u ",
 #endif
 			s->pid, s->user, s->state, rss_str_buf, s->ppid,
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
@@ -432,9 +433,6 @@ int top_main(int argc, char **argv)
 	fd_set readfds;
 	unsigned char c;
 	struct sigaction sa;
-#if defined CONFIG_FEATURE_AUTOWIDTH
-	struct winsize win = { 0, 0, 0, 0 };
-#endif
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 	/* Default update rate is 5 seconds */
@@ -478,17 +476,16 @@ int top_main(int argc, char **argv)
 	sigaction (SIGINT, &sa, (struct sigaction *) 0);
 	tcsetattr(0, TCSANOW, (void *) &new_settings);
 	atexit(reset_term);
-#if defined CONFIG_FEATURE_AUTOWIDTH
-	ioctl(0, TIOCGWINSZ, &win);
-	if (win.ws_row > 4) {
-	    lines = win.ws_row - 5;
+
+	get_terminal_width_height(0, &col, &lines);
+	if (lines > 4) {
+	    lines -= 5;
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
-	    col = win.ws_col - 80 + 35 - 6;
+	    col = col - 80 + 35 - 6;
 #else
-	    col = win.ws_col - 80 + 35;
+	    col = col - 80 + 35;
 #endif
 	}
-#endif
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
 	sort_function[0] = pcpu_sort;

@@ -69,10 +69,6 @@ extern int more_main(int argc, char **argv)
 	FILE *file;
 	int len, page_height;
 
-#if defined CONFIG_FEATURE_AUTOWIDTH && defined CONFIG_FEATURE_USE_TERMIOS
-	struct winsize win = { 0, 0, 0, 0 };
-#endif
-
 	argc--;
 	argv++;
 
@@ -115,13 +111,12 @@ extern int more_main(int argc, char **argv)
 		if(please_display_more_prompt>0)
 			please_display_more_prompt = 0;
 
-#if defined CONFIG_FEATURE_AUTOWIDTH && defined CONFIG_FEATURE_USE_TERMIOS
-		ioctl(fileno(stdout), TIOCGWINSZ, &win);
-		if (win.ws_row > 4)
-			terminal_height = win.ws_row - 2;
-		if (win.ws_col > 0)
-			terminal_width = win.ws_col - 1;
-#endif
+		get_terminal_width_height(0, &terminal_width, &terminal_height);
+		if (terminal_height > 4)
+			terminal_height -= 2;
+		if (terminal_width > 0)
+			terminal_width -= 1;
+
 		len=0;
 		lines = 0;
 		page_height = terminal_height;

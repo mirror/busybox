@@ -462,9 +462,10 @@ typedef struct llist_s {
 } llist_t;
 extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
 
-void print_login_issue(const char *issue_file, const char *tty);
-void print_login_prompt(void);
+extern void print_login_issue(const char *issue_file, const char *tty);
+extern void print_login_prompt(void);
 
-void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
+extern void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
+extern void get_terminal_width_height(int fd, int *width, int *height);
 
 #endif /* __LIBCONFIG_H__ */
