@@ -52,9 +52,7 @@ extern int adjtimex(struct timex *buf);
 #include <sys/timex.h>
 #endif
 
-#ifdef BB_VER
 #include "busybox.h"
-#endif
 
 static struct {int bit; char *name;} statlist[] = {
 	{ STA_PLL,       "PLL"       },
