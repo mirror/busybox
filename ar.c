@@ -43,7 +43,7 @@ typedef struct ar_headers_s {
 /*
  * return the headerL_t struct for the filename descriptor
  */
-extern ar_headers_t get_headers(int srcFd)
+extern ar_headers_t get_ar_headers(int srcFd)
 {
 	typedef struct raw_ar_header_s {	/* Byte Offset */
 		char name[16];	/*  0-15 */
@@ -54,6 +54,7 @@ extern ar_headers_t get_headers(int srcFd)
 		char size[10];	/* 48-57 */
 		char fmag[2];	/* 58-59 */
 	} raw_ar_header_t;
+
 	raw_ar_header_t raw_ar_header;
 
 	ar_headers_t *head, *entry;
@@ -64,21 +65,24 @@ extern ar_headers_t get_headers(int srcFd)
 	entry = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
 	
 	/* check ar magic */
-	if (full_read(srcFd, ar_magic, 8) != 8)
+	if (full_read(srcFd, ar_magic, 8) != 8) {
 		error_msg_and_die("cannot read magic");
-	if (strncmp(ar_magic,"!<arch>",7) != 0)
+	}
+
+	if (strncmp(ar_magic,"!<arch>",7) != 0) {
 		error_msg_and_die("invalid magic");
+	}
 
 	while (full_read(srcFd, (char *) &raw_ar_header, 60)==60) {
 		/* check the end of header markers are valid */
 		if ((raw_ar_header.fmag[0]!='`') || (raw_ar_header.fmag[1]!='\n')) {
-			char newline[1];
+			char newline;
 			if (raw_ar_header.fmag[1]!='`') {
 				break;
 			}
 			/* some version of ar, have an extra '\n' after each entry */
-			read(srcFd, newline, 1);
-			if (newline[0]!='\n') {
+			read(srcFd, &newline, 1);
+			if (newline!='\n') {
 				break;
 			}
 			/* fix up the header, we started reading 1 byte too early due to a '\n' */
@@ -171,7 +175,7 @@ extern int ar_main(int argc, char **argv)
 		error_msg_and_die("Cannot read %s", argv[optind]);
 
 	optind++;	
-	head = get_headers(srcFd);
+	head = get_ar_headers(srcFd);
 
 	/* find files to extract or display */
 	/* search through argv and build extract list */
