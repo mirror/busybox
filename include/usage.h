@@ -828,11 +828,11 @@
 	"-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-	"[-d<delay>"
+	"[-d<delay>]"
 #define halt_full_usage \
 	"Halt the system.\n" \
 	"Options:\n" \
-	"\t-d\t\tdelay interval for halting.\n"
+	"\t-d\t\tdelay interval for halting."
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 #define USAGE_HDPARM_IDENT(a) a
@@ -1840,10 +1840,12 @@
 	"$ patch -p1 <example.diff"
 
 #define pidof_trivial_usage \
-	"process-name [process-name ...]"
+	"process-name [OPTION] [process-name ...]"
 #define pidof_full_usage \
 	"Lists the PIDs of all processes with names that match the\n" \
-	"names on the command line"
+	"names on the command line.\n" \
+	"Options:\n" \
+	"\t-s\t\tdisplay only a single PID."
 #define pidof_example_usage \
 	"$ pidof init\n" \
 	"1\n"
@@ -1901,9 +1903,11 @@
 	"the new root file system."
 
 #define poweroff_trivial_usage \
-	""
+	"[-d<delay>]"
 #define poweroff_full_usage \
-	"Halt the system and request that the kernel shut off the power."
+	"Halt the system and request that the kernel shut off the power.\n" \
+	"Options:\n" \
+	"\t-d\t\tdelay interval for shutting off."
 
 #define printf_trivial_usage \
 	"FORMAT [ARGUMENT...]"
@@ -1977,7 +1981,7 @@
 #define reboot_full_usage \
 	"Reboot the system.\n" \
 	"Options:\n" \
-	"\t-d\t\tdelay interval for rebooting.\n"
+	"\t-d\t\tdelay interval for rebooting."
 
 #define renice_trivial_usage \
 	"priority pid [pid ...]"
