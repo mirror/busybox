@@ -318,6 +318,9 @@
 // Support for the find -mtine option.
 #define BB_FEATURE_FIND_MTIME
 //
+// Support for the -A -B and -C context flags in grep
+//#define BB_FEATURE_GREP_CONTEXT
+//
 // End of Features List
 //
 //
