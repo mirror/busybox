@@ -64,6 +64,9 @@ extern int install_main(int argc, char **argv)
 			break;
 		case 's':	/* Strip binaries */
 			strip_flag = 1;
+			/* Fall through */
+		case 'c':
+			/* do nothing */
 			break;
 		default:
 			bb_show_usage();
