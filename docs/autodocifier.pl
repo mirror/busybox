@@ -36,8 +36,6 @@ sub beautify {
 		}
 		@line
 	);
-        print STDERR "-- d\n";
-        print STDERR $text;
 	return $text;
 }
 
@@ -182,4 +180,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.6 2001/02/23 16:15:34 beppu Exp $
+# $Id: autodocifier.pl,v 1.7 2001/02/23 16:16:08 beppu Exp $
