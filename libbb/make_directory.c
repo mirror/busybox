@@ -61,7 +61,7 @@ int make_directory (char *path, long mode, int flags)
 		if ((flags == FILEUTILS_RECUR) && (errno == EEXIST)) {
 			ret = 0;
 		} else {
-			perror_msg("Cannot create directory '%s'", path);
+			perror_msg_and_die("Cannot create directory '%s'", path);
 		}
 	}
 	return(ret);
