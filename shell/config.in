@@ -30,10 +30,23 @@ if [ "$CONFIG_FEATURE_SH_IS_MSH" = "y" ] ; then
 fi
 
 bool 'ash'	    CONFIG_ASH
+if [ "$CONFIG_ASH" = "y" ] ; then
+	comment 'Ash Shell Options'
+	bool 'Enable Job control'		CONFIG_ASH_JOB_CONTROL
+	bool 'Enable alias support'		CONFIG_ASH_ALIAS
+	bool 'Enable Posix math support'	CONFIG_ASH_MATH_SUPPORT
+	bool 'Enable getopt builtin to parse positional parameters'		CONFIG_ASH_GETOPTS
+	bool 'Enable cmdcmd to override shell builtins'		CONFIG_ASH_CMDCMD
+	bool 'Check for new mail on interactive shells'		CONFIG_ASH_MAIL
+	bool 'Optimize for size instead of speed'	CONFIG_ASH_OPTIMIZE_FOR_SIZE
+	comment ''
+fi
+
 bool 'hush'	    CONFIG_HUSH
 bool 'lash'	    CONFIG_LASH
 bool 'msh'	    CONFIG_MSH
 
+	
 comment 'Bourne Shell Options'
 bool 'command line editing'		CONFIG_FEATURE_COMMAND_EDITING
 bool 'tab completion'			CONFIG_FEATURE_COMMAND_TAB_COMPLETION
