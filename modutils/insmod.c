@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.16 2000/07/14 01:51:25 kraai Exp $"
+#ident "$Id: insmod.c,v 1.17 2000/07/14 16:23:32 proski Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.16 2000/07/14 01:51:25 kraai Exp $"
+#ident "$Id: insmod.c,v 1.17 2000/07/14 16:23:32 proski Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1134,7 +1134,7 @@ add_symbols_from(
 static void add_kernel_symbols(struct obj_file *f)
 {
 	struct external_module *m;
-	size_t i, nused = 0;
+	int i, nused = 0;
 
 	/* Add module symbols first.  */
 
@@ -1166,10 +1166,10 @@ static char *get_modinfo_value(struct obj_file *f, const char *key)
 		v = strchr(p, '=');
 		n = strchr(p, '\0');
 		if (v) {
-			if (v - p == klen && strncmp(p, key, klen) == 0)
+			if (p + klen == v && strncmp(p, key, klen) == 0)
 				return v + 1;
 		} else {
-			if (n - p == klen && strcmp(p, key) == 0)
+			if (p + klen == n && strcmp(p, key) == 0)
 				return n;
 		}
 		p = n + 1;
@@ -1692,7 +1692,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					loc += tgt_sizeof_char_p;
 				} else {
 					/* Array of chars (in fact, matrix !) */
-					long charssize;	/* size of each member */
+					unsigned long charssize;	/* size of each member */
 
 					/* Get the size of each member */
 					/* Probably we should do that outside the loop ? */
