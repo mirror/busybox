@@ -450,45 +450,41 @@ struct dnode **list_dir(char *path)
 	struct dnode *dn, *cur, **dnp;
 	struct dirent *entry;
 	DIR *dir;
-	char *fnend, fullname[BUFSIZ+1] ;
 	int i, nfiles;
 
 	if (path==NULL) return(NULL);
-	strcpy(fullname, path);
-	fnend = fullname + strlen(fullname);
-	if (fnend[-1] != '/') {
-		strcat(fullname, "/");
-		fnend++;
-	}
 
 	dn= NULL;
 	nfiles= 0;
-	dir = opendir(fullname);
+	dir = opendir(path);
 	if (dir == NULL) {
-		errorMsg("%s: %s\n", fullname, strerror(errno));
+		errorMsg("%s: %s\n", path, strerror(errno));
 		return(NULL);	/* could not open the dir */
 	}
 	while ((entry = readdir(dir)) != NULL) {
 		/* are we going to list the file- it may be . or .. or a hidden file */
-		strcpy(fnend, entry->d_name);
-		if ((strcmp(fnend, ".")==0) && !(disp_opts & DISP_DOT)) continue;
-		if ((strcmp(fnend, "..")==0) && !(disp_opts & DISP_DOT)) continue;
-		if ((fnend[0] ==  '.') && !(disp_opts & DISP_HIDDEN)) continue;
+		if ((strcmp(entry->d_name, ".")==0) && !(disp_opts & DISP_DOT)) continue;
+		if ((strcmp(entry->d_name, "..")==0) && !(disp_opts & DISP_DOT)) continue;
+		if ((entry->d_name[0] ==  '.') && !(disp_opts & DISP_HIDDEN)) continue;
 		cur= (struct dnode *)xmalloc(sizeof(struct dnode));
-		cur->fullname= xstrdup(fullname);
-		cur->name= cur->fullname + (int)(fnend - fullname) ;
+		cur->fullname = xmalloc(strlen(path)+1+strlen(entry->d_name)+1);
+		strcpy(cur->fullname, path);
+		if (cur->fullname[strlen(cur->fullname)-1] != '/')
+			strcat(cur->fullname, "/");
+		cur->name= cur->fullname + strlen(cur->fullname);
+		strcat(cur->fullname, entry->d_name);
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 		if (follow_links == TRUE) {
-			if (stat(fullname, &cur->dstat)) {
-				errorMsg("%s: %s\n", fullname, strerror(errno));
+			if (stat(cur->fullname, &cur->dstat)) {
+				errorMsg("%s: %s\n", cur->fullname, strerror(errno));
 				free(cur->fullname);
 				free(cur);
 				continue;
 			}
 		} else
 #endif
-		if (lstat(fullname, &cur->dstat)) {   /* get file stat info into node */
-			errorMsg("%s: %s\n", fullname, strerror(errno));
+		if (lstat(cur->fullname, &cur->dstat)) {   /* get file stat info into node */
+			errorMsg("%s: %s\n", cur->fullname, strerror(errno));
 			free(cur->fullname);
 			free(cur);
 			continue;
