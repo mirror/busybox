@@ -50,6 +50,7 @@ int xargs_main(int argc, char **argv)
 		/* concatenate all the arguments passed to xargs together */
 		int i;
 		int len = 1; /* for the '\0' */
+		cmd_to_be_executed = xmalloc(80);
 		for (i = 1; i < argc; i++) {
 			len += strlen(argv[i]);
 			len += 1;  /* for the space between the args */
