@@ -1159,7 +1159,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	int argc_l = 0;
 	int done = 0;
 	int argv_alloced;
-	int i;
+	int i, saw_quote = 0;
 	char quote = '\0';
 	int count;
 	struct child_prog *prog;
@@ -1221,7 +1221,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					   *src == ']') *buf++ = '\\';
 			*buf++ = *src;
 		} else if (isspace(*src)) {
-			if (*prog->argv[argc_l]) {
+			if (*prog->argv[argc_l] || saw_quote) {
 				buf++, argc_l++;
 				/* +1 here leaves room for the NULL which ends argv */
 				if ((argc_l + 1) == argv_alloced) {
@@ -1231,12 +1231,14 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 										  argv_alloced);
 				}
 				prog->argv[argc_l] = buf;
+				saw_quote = 0;
 			}
 		} else
 			switch (*src) {
 			case '"':
 			case '\'':
 				quote = *src;
+				saw_quote = 1;
 				break;
 
 			case '#':			/* comment */
@@ -1305,7 +1307,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 			case '|':			/* pipe */
 				/* finish this command */
-				if (*prog->argv[argc_l])
+				if (*prog->argv[argc_l] || saw_quote)
 					argc_l++;
 				if (!argc_l) {
 					error_msg("empty command in pipe");
@@ -1474,7 +1476,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 		src++;
 	}
 
-	if (*prog->argv[argc_l]) {
+	if (*prog->argv[argc_l] || saw_quote) {
 		argc_l++;
 	}
 	if (!argc_l) {
