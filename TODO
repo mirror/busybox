@@ -31,6 +31,8 @@ hold up the 0.44 release just because of these:
  - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
     /tmp/file in the current directory, rather then trying and failing to create
     a symlink named "." in the current working directory).
+ - Prune sfdisk
+ - Graft fdisk
 
 These will be deferred til after 0.44 is released. We will rework these to use
 libc regex functions instead (as per the mailing list discussion):
