@@ -190,8 +190,8 @@
 // enable syslogd -R remotehost
 #define BB_FEATURE_REMOTE_LOG
 //
-//Simple tail implementation (2k vs 6k for the full one).  Still
-//provides 'tail -f' support -- but for only one file at a time.
+//Simple tail implementation (2.25k vs 3k for the full one).
+//Both provide 'tail -f' support (only one file at a time.)
 #define BB_FEATURE_SIMPLE_TAIL
 //
 // Enable support for loop devices in mount
