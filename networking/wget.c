@@ -24,6 +24,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <getopt.h>
+
 #include "busybox.h"
 
 /* Stupid libc5 doesn't define this... */
@@ -157,7 +162,10 @@ int wget_main(int argc, char **argv)
 	char *proxy;
 	char *s, buf[512];
 	struct stat sbuf;
-
+	char extra_headers[1024];
+	char *extra_headers_ptr = extra_headers;
+	int extra_headers_left = sizeof(extra_headers);
+	int which_long_opt = 0, option_index = -1;
 	struct host_info server, target;
 
 	FILE *sfp = NULL;			/* socket to web/ftp server			*/
@@ -169,10 +177,18 @@ int wget_main(int argc, char **argv)
 	FILE *output;				/* socket to web server				*/
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
 
+#define LONG_HEADER	1
+	struct option long_options[] = {
+		{ "continue",		0, NULL, 'c' },
+		{ "quiet",		0, NULL, 'q' },
+		{ "output-document",	1, NULL, 'O' },
+		{ "header",		1, &which_long_opt, LONG_HEADER },
+		{ 0,			0, 0, 0 }
+	};
 	/*
 	 * Crack command line.
 	 */
-	while ((n = getopt(argc, argv, "cqO:")) != EOF) {
+	while ((n = getopt_long(argc, argv, "cqO:", long_options, &option_index)) != EOF) {
 		switch (n) {
 		case 'c':
 			++do_continue;
@@ -187,11 +203,28 @@ int wget_main(int argc, char **argv)
 			 */
 			fname_out = optarg;
 			break;
+		case 0:
+			switch (which_long_opt) {
+				case LONG_HEADER: {
+					int arglen = strlen(optarg);
+					if(extra_headers_left - arglen - 2 <= 0)
+						error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
+					strcpy(extra_headers_ptr, optarg);
+					extra_headers_ptr += arglen;
+					extra_headers_left -= ( arglen + 2 );
+					*extra_headers_ptr++ = '\r';
+					*extra_headers_ptr++ = '\n';
+					*(extra_headers_ptr + 1) = 0;
+					break;
+				}
+			}
+			break;
 		default:
 			show_usage();
 		}
 	}
 
+	fprintf(stderr, "extra_headers='%s'\n", extra_headers);
 	if (argc - optind != 1)
 			show_usage();
 
@@ -291,6 +324,8 @@ int wget_main(int argc, char **argv)
 
 			if (do_continue)
 				fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
+			if(extra_headers_left < sizeof(extra_headers))
+				fprintf(sfp,extra_headers);
 			fprintf(sfp,"Connection: close\r\n\r\n");
 
 			/*
@@ -778,7 +813,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.38 2001/05/13 00:55:54 andersen Exp $
+ *	$Id: wget.c,v 1.39 2001/05/15 17:51:37 andersen Exp $
  */
 
 
