@@ -15,6 +15,7 @@ files by typing 'indent myfile.c myfile.h' and it will magically apply all the
 right formatting rules to your file. Please _do_not_ run this on all the files
 in the directory, just your own.
 
+
 Declaration Order
 -----------------
 
@@ -28,15 +29,22 @@ Here is the order in which code should be laid out in a file:
  - function declarations (if necessary)
  - function implementations
 
+
 Whitespace
 ----------
 
-Tabs vs Spaces in Line Indentation: The preference in Busybox is to indent
-lines with tabs. Do not indent lines with spaces and do not indents lines
-using a mixture of tabs and spaces. (The indentation style in the Apache and
-Postfix source does this sort of thing: \s\s\s\sif (expr) {\n\tstmt; --ick.)
-The only exception to this rule is multi-line comments that use an asterisk at
-the beginning of each line, i.e.:
+This is everybody's favorite flame topic so let's get it out of the way right
+up front.
+
+
+Tabs vs Spaces in Line Indentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The preference in Busybox is to indent lines with tabs. Do not indent lines
+with spaces and do not indents lines using a mixture of tabs and spaces. (The
+indentation style in the Apache and Postfix source does this sort of thing:
+\s\s\s\sif (expr) {\n\tstmt; --ick.) The only exception to this rule is
+multi-line comments that use an asterisk at the beginning of each line, i.e.:
 
 	/t/*
 	/t * This is a block comment.
@@ -52,7 +60,10 @@ lines is that you can set your editor to display tabs at *watever* number of
 spaces is desired and the code will still look fine.
 
 
-Operator Spacing: Put spaces between terms and operators. Example:
+Operator Spacing
+~~~~~~~~~~~~~~~~
+
+Put spaces between terms and operators. Example:
 
 	Don't do this:
 
@@ -74,7 +85,10 @@ Operator Spacing: Put spaces between terms and operators. Example:
 		if ((argc-1) - (optind+1) > 0)
 
 
-Bracket Spacing: If an opening bracket starts a function, it should be on the
+Bracket Spacing
+~~~~~~~~~~~~~~~
+
+If an opening bracket starts a function, it should be on the
 next line with no spacing before it. However, if a bracet follows an opening
 control block, it should be on the same line with a single space (not a tab)
 between it and the opening control block statment. Examples:
@@ -88,6 +102,34 @@ between it and the opening control block statment. Examples:
 
 		while (!done) {
 		do {
+
+
+Paren Spacing
+~~~~~~~~~~~~~
+
+Put a space between C keywords and left parens, but not between
+function names and the left paren that starts it's parameter list (whether it
+is being declared or called). Examples:
+
+	Don't do this:
+
+		while(foo) {
+		for(i = 0; i < n; i++) {
+
+	Do this instead:
+
+		while (foo) {
+		for (i = 0; i < n; i++) {
+
+	Do functions like this:
+
+		static int my_func(int foo, char bar)
+		...
+		baz = my_func(1, 2);
+
+
+Cuddled Elses
+~~~~~~~~~~~~~
 
 Also, please "cuddle" your else statments by putting the else keyword on the
 same line after the right bracket that closes an 'if' statment.
@@ -109,26 +151,6 @@ same line after the right bracket that closes an 'if' statment.
 		stmt;
 	}
 
-
-Paren Spacing: Put a space between C keywords and left parens, but not between
-function names and the left paren that starts it's parameter list (whether it
-is being declared or called). Examples:
-
-	Don't do this:
-
-		while(foo) {
-		for(i = 0; i < n; i++) {
-
-	Do this instead:
-
-		while (foo) {
-		for (i = 0; i < n; i++) {
-
-	Do functions like this:
-
-		static int my_func(int foo, char bar)
-		...
-		baz = my_func(1, 2);
 
 Variable and Function Names
 ---------------------------
@@ -154,6 +176,12 @@ Tip and Pointers
 ----------------
 
 The following are simple coding guidelines that should be followed:
+
+ - When in doubt about the propper behavior of a busybox program (output,
+   formatting, options, etc.), model it after the equivalent GNU program.
+   Doesn't matter how that program behaves on some other flavor of *NIX;
+   doesn't matter what the POSIX standard says or doesn't say, just model
+   busybox programs after their GNU counterparts and nobody has to get hurt.
 
  - Don't use a '#define var 80' when you can use 'static const int var 80'
    instead. This makes the compiler do typechecking for you (rather than
