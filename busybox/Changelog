@@ -1,3 +1,48 @@
+0.60.2.pre
+
+    Stable Release
+
+
+    New Applets & New Features:
+	none.  :)
+
+    Known Problems (to be fixed in 0.60.2)
+	* msh can segfault on constructs such as
+		for i in `ls *.c` ; do echo $i ; done
+	  due to a memory allocation problem.  This only seems to cause
+	  problems when the backtick expands to be several k in size.
+
+    Bugfixes:
+	* Matt Kraai
+	    -- Fix sed s/[/]// handling (noted by Dumas Patrice).
+	    -- Fix dirname(3) improper consts, allow libc version to override.
+	    -- Fixed invoking applets when their names contain a leading dash 
+		and a full pathname.
+	    -- Fix ash exec
+	    -- Fixed basename to be SUSv2 compliant (which specifies that the
+		extension should stay if it is identical to the basename.
+	    -- Fixed rmdir, since SuS2 says rmdir must provide -p
+	* Ethan Benson <erbenson@alaska.net>
+	    -- Fix mount's noauto option to not automount as "usbdevfs"
+	* Vladimir Oleynik
+	    -- Add support for `busybox --help APPLET'
+	    -- Fixed route so it properly displays _all_ route entries
+	* Laurence Anderson
+	    -- Removed some traces of no-longer existant rpmunpack (which
+		has been obsoleted by the rpm2cpio applet).
+	    -- Fixed unarchive.c to use the correct buffer when calling 
+		dirname, improve an error message, and plug some memory leaks.
+	    -- Fixed rpm2cpio.c mkfs_minix.c fsck_minix.c fbset.c to use
+		standard types (s/u16/u_int16_t/g  s/u32/u_int32_t/g  etc)
+
+	 
+	 
+	 -Erik Andersen, --not yet released--
+
+
+
+
+
 0.60.1
 
     Stable Release

@@ -1,3 +1,13 @@
+busybox (1:0.60.2-1) unstable; urgency=low
+
+  * New stable version released.  See changelog for details.
+  * Teaches 'mount -t auto' to ignore usbdevfs, thanks to
+    Ethan Benson <erbenson@alaska.net> (closes: #111055)
+  * Removes all the .o files from the source tarball (oops!)
+    thanks to Matt Kraai, who noticed.
+
+ -- Erik Andersen <andersee@debian.org>  Thu, 23 Aug 2001 15:44:14 -0600
+
 busybox (1:0.60.1-1) unstable; urgency=low
 
   * New stable version released.  See changelog for details.
