@@ -4126,9 +4126,6 @@ changepath(const char *newval)
 		firstchange = 0;
 	clearcmdentry(firstchange);
 	builtinloc = idx_bltin;
-#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
-	cmdedit_path_lookup = newval;
-#endif
 }
 
 
@@ -6026,6 +6023,7 @@ retry:
 	if (!iflag || parsefile->fd)
 		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
+		cmdedit_path_lookup = pathval();
 		nr = cmdedit_read_input((char *) cmdedit_prompt, buf);
 		if(nr == 0) {
 			/* Ctrl+C presend */
