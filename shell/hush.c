@@ -116,6 +116,10 @@
 #undef CONFIG_FEATURE_SH_FANCY_PROMPT
 #define BB_BANNER
 #endif
+#define SPECIAL_VAR_SYMBOL 03
+#define FLAG_EXIT_FROM_LOOP 1
+#define FLAG_PARSE_SEMICOLON (1 << 1)		/* symbol ';' is special for parser */
+#define FLAG_REPARSING		 (1 << 2)		/* >=2nd pass */
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -157,7 +161,8 @@ typedef enum {
 	RES_DO    = 9,
 	RES_DONE  = 10,
 	RES_XXXX  = 11,
-	RES_SNTX  = 12
+	RES_IN    = 12,
+	RES_SNTX  = 13
 } reserved_style;
 #define FLAG_END   (1<<RES_NONE)
 #define FLAG_IF    (1<<RES_IF)
@@ -170,6 +175,7 @@ typedef enum {
 #define FLAG_UNTIL (1<<RES_UNTIL)
 #define FLAG_DO    (1<<RES_DO)
 #define FLAG_DONE  (1<<RES_DONE)
+#define FLAG_IN    (1<<RES_IN)
 #define FLAG_START (1<<RES_XXXX)
 
 /* This holds pointers to the various results of parsing */
@@ -181,6 +187,7 @@ struct p_context {
 	reserved_style w;
 	int old_flag;				/* for figuring out valid reserved words */
 	struct p_context *stack;
+	int type;			/* define type of parser : ";$" common or special symbol */
 	/* How about quoting status? */
 };
 
@@ -201,6 +208,8 @@ struct child_prog {
 	glob_t glob_result;			/* result of parameter globbing */
 	int is_stopped;				/* is the program currently running? */
 	struct pipe *family;		/* pointer back to the child's parent pipe */
+	int sp;				/* number of SPECIAL_VAR_SYMBOL */
+	int type;
 };
 
 struct pipe {
@@ -319,6 +328,7 @@ static void __syntax(char *file, int line) {
 /*   function prototypes for builtins */
 static int builtin_cd(struct child_prog *child);
 static int builtin_env(struct child_prog *child);
+static int builtin_eval(struct child_prog *child);
 static int builtin_exec(struct child_prog *child);
 static int builtin_exit(struct child_prog *child);
 static int builtin_export(struct child_prog *child);
@@ -376,19 +386,22 @@ static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
 static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, int subst_end);
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
-static void lookup_param(o_string *dest, struct p_context *ctx, o_string *src);
+static char *lookup_param(char *src);
+static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
 static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
 static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *input0, int end_trigger);
 /*   setup: */
-static int parse_stream_outer(struct in_str *inp);
-static int parse_string_outer(const char *s);
+static int parse_stream_outer(struct in_str *inp, int flag);
+static int parse_string_outer(const char *s, int flag);
 static int parse_file_outer(FILE *f);
 /*   job management: */
 static int checkjobs(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
 /*     local variable support */
+static char **make_list_in(char **inp, char *name);
+static char *insert_var_value(char *inp);
 static char *get_local_var(const char *var);
 static void  unset_local_var(const char *name);
 static int set_local_var(const char *s, int flg_export);
@@ -405,7 +418,7 @@ static struct built_in_command bltins[] = {
 	{"cd", "Change working directory", builtin_cd},
 	{"continue", "Continue for, while or until loop", builtin_not_written},
 	{"env", "Print all environment variables", builtin_env},
-	{"eval", "Construct and run shell command", builtin_not_written},
+	{"eval", "Construct and run shell command", builtin_eval},
 	{"exec", "Exec command, replacing this shell with the exec'd process", 
 		builtin_exec},
 	{"exit", "Exit from shell()", builtin_exit},
@@ -436,6 +449,21 @@ static const char *set_cwd(void)
 	return cwd;
 }
 
+/* built-in 'eval' handler */
+static int builtin_eval(struct child_prog *child)
+{
+	char *str = NULL;
+	int rcode = EXIT_SUCCESS;
+	
+	if (child->argv[1]) {
+		str = make_string(child->argv + 1);
+		parse_string_outer(str, FLAG_EXIT_FROM_LOOP | 
+					FLAG_PARSE_SEMICOLON);
+		free(str);
+		rcode = last_return_code;
+	}
+	return rcode;
+}
 
 /* built-in 'cd <path>' handler */
 static int builtin_cd(struct child_prog *child)
@@ -1046,11 +1074,14 @@ static void restore_redirects(int squirrel[])
 static void pseudo_exec(struct child_prog *child)
 {
 	int i, rcode;
+	char *p;
 	struct built_in_command *x;
 	if (child->argv) {
 		for (i=0; is_assignment(child->argv[i]); i++) {
 			debug_printf("pid %d environment modification: %s\n",getpid(),child->argv[i]);
-			putenv(strdup(child->argv[i]));
+			p = insert_var_value(child->argv[i]);
+			putenv(strdup(p));
+			if (p != child->argv[i]) free(p);
 		}
 		child->argv+=i;  /* XXX this hack isn't so horrible, since we are about
 		                        to exit, and therefore don't need to keep data
@@ -1317,6 +1348,7 @@ static int run_pipe_real(struct pipe *pi)
 	int pipefds[2];				/* pipefds[0] is for reading */
 	struct child_prog *child;
 	struct built_in_command *x;
+	char *p;
 
 	nextin = 0;
 	pi->pgrp = -1;
@@ -1359,9 +1391,27 @@ static int run_pipe_real(struct pipe *pi)
 					export_me=1;
 				}
 				free(name);
-				set_local_var(child->argv[i], export_me);
+				p = insert_var_value(child->argv[i]);
+				set_local_var(p, export_me);
+				if (p != child->argv[i]) free(p);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
+		}
+		for (i = 0; is_assignment(child->argv[i]); i++) {
+			p = insert_var_value(child->argv[i]);
+			putenv(strdup(p));
+			if (p != child->argv[i]) {
+				child->sp--;
+				free(p);
+			}
+		}
+		if (child->sp) {
+			char * str = NULL;
+			
+			str = make_string((child->argv + i));
+			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
+			free(str);
+			return last_return_code;
 		}
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(child->argv[i], x->cmd) == 0 ) {
@@ -1378,9 +1428,6 @@ static int run_pipe_real(struct pipe *pi)
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
-				for (i=0; is_assignment(child->argv[i]); i++) {
-					putenv(strdup(child->argv[i]));
-				}
 				child->argv+=i;  /* XXX horrible hack */
 				rcode = x->function(child);
 				child->argv-=i;  /* XXX restore hack so free() can work right */
@@ -1474,19 +1521,97 @@ static int run_pipe_real(struct pipe *pi)
 
 static int run_list_real(struct pipe *pi)
 {
-	int rcode=0;
+	char *save_name = NULL;
+	char **list = NULL;
+	char **save_list = NULL;
+	struct pipe *rpipe;
+	int flag_rep = 0;
+	int save_num_progs;
+	int rcode=0, flag_skip=1;
+	int flag_restore = 0;
 	int if_code=0, next_if_code=0;  /* need double-buffer to handle elif */
 	reserved_style rmode, skip_more_in_this_rmode=RES_XXXX;
-	for (;pi;pi=pi->next) {
+	/* check syntax for "for" */
+	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
+		if ((rpipe->r_mode == RES_IN ||
+		    rpipe->r_mode == RES_FOR) &&
+		    (rpipe->next == NULL)) {
+				syntax();
+				return 1;
+		}		
+		if ((rpipe->r_mode == RES_IN && 
+			(rpipe->next->r_mode == RES_IN && 
+			rpipe->next->progs->argv != NULL))||
+			(rpipe->r_mode == RES_FOR &&
+			rpipe->next->r_mode != RES_IN)) { 
+				syntax();
+				return 1;
+		}
+	}
+	for (; pi; pi = (flag_restore != 0) ? rpipe : pi->next) {
+		if (pi->r_mode == RES_WHILE || pi->r_mode == RES_UNTIL ||
+			pi->r_mode == RES_FOR) {
+				flag_restore = 0;
+				if (!rpipe) {
+					flag_rep = 0;
+					rpipe = pi;
+				}
+		}
 		rmode = pi->r_mode;
 		debug_printf("rmode=%d  if_code=%d  next_if_code=%d skip_more=%d\n", rmode, if_code, next_if_code, skip_more_in_this_rmode);
-		if (rmode == skip_more_in_this_rmode) continue;
+		if (rmode == skip_more_in_this_rmode && flag_skip) {
+			if (pi->followup == PIPE_SEQ) flag_skip=0;
+			continue;
+		}
+		flag_skip = 1;
 		skip_more_in_this_rmode = RES_XXXX;
 		if (rmode == RES_THEN || rmode == RES_ELSE) if_code = next_if_code;
 		if (rmode == RES_THEN &&  if_code) continue;
 		if (rmode == RES_ELSE && !if_code) continue;
 		if (rmode == RES_ELIF && !if_code) continue;
+		if (rmode == RES_FOR && pi->num_progs) {
+			if (!list) {
+				/* if no variable values after "in" we skip "for" */		
+				if (!pi->next->progs->argv) continue;
+				/* create list of variable values */
+				list = make_list_in(pi->next->progs->argv,
+					pi->progs->argv[0]);
+				save_list = list;
+				save_name = pi->progs->argv[0];
+				pi->progs->argv[0] = NULL;
+				flag_rep = 1;
+			}	
+			if (!(*list)) {
+				free(pi->progs->argv[0]);
+				free(save_list);
+				list = NULL;
+				flag_rep = 0;
+				pi->progs->argv[0] = save_name;
+				pi->progs->glob_result.gl_pathv[0] =
+					pi->progs->argv[0];
+				continue;
+			} else {			
+				/* insert new value from list for variable */
+				if (pi->progs->argv[0]) 
+					free(pi->progs->argv[0]);
+				pi->progs->argv[0] = *list++;
+				pi->progs->glob_result.gl_pathv[0] =
+					pi->progs->argv[0];
+			}
+		}		
+		if (rmode == RES_IN) continue;
+		if (rmode == RES_DO) {
+			if (!flag_rep) continue;
+		}	    
+		if ((rmode == RES_DONE)) {
+			if (flag_rep) {
+				flag_restore = 1;
+			} else {
+				rpipe = NULL;
+			}
+		}		
 		if (pi->num_progs == 0) continue;
+		save_num_progs = pi->num_progs; /* save number of programs */
 		rcode = run_pipe_real(pi);
 		debug_printf("run_pipe_real returned %d\n",rcode);
 		if (rcode!=-1) {
@@ -1513,8 +1638,13 @@ static int run_list_real(struct pipe *pi)
 			debug_printf("checkjobs returned %d\n",rcode);
 		}
 		last_return_code=rcode;
+		pi->num_progs = save_num_progs; /* restore number of programs */
 		if ( rmode == RES_IF || rmode == RES_ELIF )
 			next_if_code=rcode;  /* can be overwritten a number of times */
+		if (rmode == RES_WHILE) 
+			flag_rep = !last_return_code;
+		if (rmode == RES_UNTIL) 
+			flag_rep = last_return_code;
 		if ( (rcode==EXIT_SUCCESS && pi->followup==PIPE_OR) ||
 		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
 			skip_more_in_this_rmode=rmode;
@@ -1898,6 +2028,7 @@ static void initialize_context(struct p_context *ctx)
 	ctx->pipe=ctx->list_head;
 	ctx->w=RES_NONE;
 	ctx->stack=NULL;
+	ctx->old_flag=0;
 	done_command(ctx);   /* creates the memory for working child */
 }
 
@@ -1924,9 +2055,10 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "elif",  RES_ELIF,  FLAG_THEN },
 		{ "else",  RES_ELSE,  FLAG_FI   },
 		{ "fi",    RES_FI,    FLAG_END  },
-		{ "for",   RES_FOR,   FLAG_DO   | FLAG_START },
+		{ "for",   RES_FOR,   FLAG_IN   | FLAG_START },
 		{ "while", RES_WHILE, FLAG_DO   | FLAG_START },
 		{ "until", RES_UNTIL, FLAG_DO   | FLAG_START },
+		{ "in",    RES_IN,    FLAG_DO   },
 		{ "do",    RES_DO,    FLAG_DONE },
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
@@ -1939,13 +2071,20 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 			if (r->flag & FLAG_START) {
 				struct p_context *new = xmalloc(sizeof(struct p_context));
 				debug_printf("push stack\n");
+				if (ctx->w == RES_IN || ctx->w == RES_FOR) {
+					syntax();
+					free(new);
+					ctx->w = RES_SNTX;
+					b_reset(dest);
+					return 1;
+				}
 				*new = *ctx;   /* physical copy */
 				initialize_context(ctx);
 				ctx->stack=new;
 			} else if ( ctx->w == RES_NONE || ! (ctx->old_flag & (1<<r->code))) {
 				syntax();
 				ctx->w = RES_SNTX;
-				b_reset (dest);
+				b_reset(dest);
 				return 1;
 			}
 			ctx->w=r->code;
@@ -1953,6 +2092,7 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 			if (ctx->old_flag & FLAG_END) {
 				struct p_context *old;
 				debug_printf("pop stack\n");
+				done_pipe(ctx,PIPE_SEQ);
 				old = ctx->stack;
 				old->child->group = ctx->list_head;
 				old->child->subshell = 0;
@@ -1986,7 +2126,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 			syntax();
 			return 1;  /* syntax error, groups and arglists don't mix */
 		}
-		if (!child->argv) {
+		if (!child->argv && (ctx->type & FLAG_PARSE_SEMICOLON)) {
 			debug_printf("checking %s for reserved-ness\n",dest->data);
 			if (reserved_word(dest,ctx)) return ctx->w==RES_SNTX;
 		}
@@ -2005,6 +2145,10 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		}
 	} else {
 		child->argv = glob_target->gl_pathv;
+	}
+	if (ctx->w == RES_FOR) {
+		done_word(dest,ctx);
+		done_pipe(ctx,PIPE_SEQ);
 	}
 	return 0;
 }
@@ -2041,8 +2185,10 @@ static int done_command(struct p_context *ctx)
 	prog->group = NULL;
 	prog->glob_result.gl_pathv = NULL;
 	prog->family = pi;
+	prog->sp = 0;
+	ctx->child = prog;
+	prog->type = ctx->type;
 
-	ctx->child=prog;
 	/* but ctx->pipe and ctx->list_head remain unchanged */
 	return 0;
 }
@@ -2227,32 +2373,32 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 
 /* basically useful version until someone wants to get fancier,
  * see the bash man page under "Parameter Expansion" */
-static void lookup_param(o_string *dest, struct p_context *ctx, o_string *src)
+static char *lookup_param(char *src)
 {
-	const char *p=NULL;
-	if (src->data) { 
-		p = getenv(src->data);
+	char *p=NULL;
+	if (src) { 
+		p = getenv(src);
 		if (!p) 
-			p = get_local_var(src->data);
+			p = get_local_var(src);
 	}
-	if (p) parse_string(dest, ctx, p);   /* recursion */
-	b_free(src);
+	return p;
 }
 
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
 	int i, advance=0;
-	o_string alt=NULL_O_STRING;
 	char sep[]=" ";
 	int ch = input->peek(input);  /* first character after the $ */
 	debug_printf("handle_dollar: ch=%c\n",ch);
 	if (isalpha(ch)) {
+		b_addchr(dest, SPECIAL_VAR_SYMBOL);
+		ctx->child->sp++;
 		while(ch=b_peek(input),isalnum(ch) || ch=='_') {
 			b_getch(input);
-			b_addchr(&alt,ch);
+			b_addchr(dest,ch);
 		}
-		lookup_param(dest, ctx, &alt);
+		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
 		i = ch-'0';  /* XXX is $0 special? */
 		if (i<global_argc) {
@@ -2277,16 +2423,18 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			advance = 1;
 			break;
 		case '{':
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
+			ctx->child->sp++;
 			b_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
 			while(ch=b_getch(input),ch!=EOF && ch!='}') {
-				b_addchr(&alt,ch);
+				b_addchr(dest,ch);
 			}
 			if (ch != '}') {
 				syntax();
 				return 1;
 			}
-			lookup_param(dest, ctx, &alt);
+			b_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		case '(':
 			b_getch(input);
@@ -2348,7 +2496,9 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			b_addqchr(dest, ch, dest->quote);
 		} else {
 			if (m==2) {  /* unquoted IFS */
-				done_word(dest, ctx);
+				if (done_word(dest, ctx)) {
+					return 1;
+				}	
 				/* If we aren't performing a substitution, treat a newline as a
 				 * command separator.  */
 				if (end_trigger != '\0' && ch=='\n')
@@ -2509,30 +2659,46 @@ void update_ifs_map(void)
 
 /* most recursion does not come through here, the exeception is
  * from builtin_source() */
-int parse_stream_outer(struct in_str *inp)
+int parse_stream_outer(struct in_str *inp, int flag)
 {
 
 	struct p_context ctx;
 	o_string temp=NULL_O_STRING;
 	int rcode;
 	do {
+		ctx.type = flag;
 		initialize_context(&ctx);
 		update_ifs_map();
+		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING)) mapset(";$&|", 0);
 		inp->promptmode=1;
 		rcode = parse_stream(&temp, &ctx, inp, '\n');
-		done_word(&temp, &ctx);
-		done_pipe(&ctx,PIPE_SEQ);
-		run_list(ctx.list_head);
+		if (rcode != 1 && ctx.old_flag != 0) {
+			syntax();
+		}
+		if (rcode != 1 && ctx.old_flag == 0) {
+			done_word(&temp, &ctx);
+			done_pipe(&ctx,PIPE_SEQ);
+			run_list(ctx.list_head);
+		} else {
+			if (ctx.old_flag != 0) {
+				free(ctx.stack);
+				b_reset(&temp);
+			}	
+			temp.nonnull = 0;
+			temp.quote = 0;
+			inp->p = NULL;
+			free_pipe_list(ctx.list_head,0);
+		}
 		b_free(&temp);
-	} while (rcode != -1);   /* loop on syntax errors, return on EOF */
+	} while (rcode != -1 && !(flag & FLAG_EXIT_FROM_LOOP));   /* loop on syntax errors, return on EOF */
 	return 0;
 }
 
-static int parse_string_outer(const char *s)
+static int parse_string_outer(const char *s, int flag)
 {
 	struct in_str input;
 	setup_string_in_str(&input, s);
-	return parse_stream_outer(&input);
+	return parse_stream_outer(&input, flag);
 }
 
 static int parse_file_outer(FILE *f)
@@ -2540,7 +2706,7 @@ static int parse_file_outer(FILE *f)
 	int rcode;
 	struct in_str input;
 	setup_file_in_str(&input, f);
-	rcode = parse_stream_outer(&input);
+	rcode = parse_stream_outer(&input, FLAG_PARSE_SEMICOLON);
 	return rcode;
 }
 
@@ -2630,7 +2796,7 @@ int hush_main(int argc, char **argv)
 				{
 					global_argv = argv+optind;
 					global_argc = argc-optind;
-					opt = parse_string_outer(optarg);
+					opt = parse_string_outer(optarg, FLAG_PARSE_SEMICOLON);
 					goto final_return;
 				}
 				break;
@@ -2702,4 +2868,107 @@ int hush_main(int argc, char **argv)
 
 final_return:
 	return(opt?opt:last_return_code);
+}
+
+static char *insert_var_value(char *inp)
+{
+	int res_str_len = 0;
+	int len;
+	int done = 0;
+	char *p, *p1, *res_str = NULL;
+	
+	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
+		if (p != inp) {
+			len = p - inp;
+			res_str = xrealloc(res_str, (res_str_len + len));
+			strncpy((res_str + res_str_len), inp, len);
+			res_str_len += len;
+		}
+		inp = ++p;
+		p = strchr(inp, SPECIAL_VAR_SYMBOL);
+		*p = '\0';
+		if ((p1 = lookup_param(inp))) {
+			len = res_str_len + strlen(p1);
+			res_str = xrealloc(res_str, (1 + len));
+			strcpy((res_str + res_str_len), p1);
+			res_str_len = len;
+		} 
+		*p = SPECIAL_VAR_SYMBOL;
+		inp = ++p;
+		done = 1;
+	}
+	if (done) {
+		res_str = xrealloc(res_str, (1 + res_str_len + strlen(inp)));
+		strcpy((res_str + res_str_len), inp);
+		while ((p = strchr(res_str, '\n'))) {
+			*p = ' ';
+		}
+	}
+	return (res_str == NULL) ? inp : res_str;
+}
+
+static char **make_list_in(char **inp, char *name)
+{
+	int len, i;
+	int name_len = strlen(name);
+	int n = 0;
+	char **list;
+	char *p1, *p2, *p3;
+	
+	/* create list of variable values */	
+	list = xmalloc(sizeof(*list));
+	for (i = 0; inp[i]; i++) {
+		p3 = insert_var_value(inp[i]);
+		p1 = p3;
+		while (*p1) {
+			if ((*p1 == ' ')) {
+				p1++;
+				continue;
+			}
+			if ((p2 = strchr(p1, ' '))) {
+				len = p2 - p1;
+			} else {	
+				len = strlen(p1);
+				p2 = p1 + len;
+			}
+			/* we use n + 2 in realloc for list,because we add 
+			 * new element and then we will add NULL element */
+			list = xrealloc(list, sizeof(*list) * (n + 2));			
+			list[n] = xmalloc(2 + name_len + len);
+			strcpy(list[n], name);
+			strcat(list[n], "=");
+			strncat(list[n], p1, len);
+			list[n++][name_len + len + 1] = '\0';
+			p1 = p2;
+		}
+		if (p3 != inp[i]) free(p3);
+	}
+	list[n] = NULL;
+	return list;
+}	
+
+/* Make new string for parser */
+static char * make_string(char ** inp)
+{
+	char *p;
+	char *str = NULL;
+	int n;
+	int len = 2;
+
+	for (n = 0; inp[n]; n++) {
+		p = insert_var_value(inp[n]);
+		str = xrealloc(str, (len + strlen(p)));
+		if (n) {
+			strcat(str, " ");
+		} else {
+			*str = '\0';
+		}
+		strcat(str, p);
+		len = strlen(str) + 3;
+		if (p != inp[n]) free(p);
+	}
+	len = strlen(str);
+	*(str + len) = '\n';
+	*(str + len + 1) = '\0';
+	return str;
 }
