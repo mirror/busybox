@@ -42,7 +42,6 @@
 #include <linux/version.h>
 #include <linux/reboot.h>
 #include <linux/unistd.h>
-#include <sys/sysinfo.h>		/* For check_free_memory() */
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
@@ -270,13 +269,28 @@ static int check_free_memory()
 {
 	struct sysinfo info;
 
+	/* Pre initialize mem_unit in case this kernel is something prior to
+	 * the linux 2.4 kernel (which will actually fill in mem_unit... */
 	sysinfo(&info);
 	if (sysinfo(&info) != 0) {
-		message(LOG, "Error checking free memory: %s\n", strerror(errno));
+		printf("Error checking free memory: %s\n", strerror(errno));
 		return -1;
 	}
+	if (info.mem_unit==0) {
+		/* Looks like we have a kernel prior to Linux 2.4.x */
+		info.mem_unit=1024;
+		info.totalram/=info.mem_unit;
+		info.totalswap/=info.mem_unit;
+	} else {
+		/* Bah. Linux 2.4.x completely changed sysinfo. This can in theory
+		overflow a 32 bit unsigned long, but who puts more then 4GiB ram+swap
+		on an embedded system? */
+		info.mem_unit/=1024;
+		info.totalram*=info.mem_unit;
+		info.totalswap*=info.mem_unit;
+	}
 
-	return((info.totalram+info.totalswap)/1024);
+	return(info.totalram+info.totalswap);
 }
 
 static void console_init()

@@ -131,6 +131,15 @@ extern int get_kernel_revision(void)
 }
 #endif                                                 /* BB_INIT */
 
+
+
+#if defined BB_FREE || defined BB_INIT || defined BB_UNAME || defined BB_UPTIME
+#include <sys/syscall.h>
+_syscall1(int, sysinfo, struct sysinfo *, info);
+#endif                                                 /* BB_INIT */
+
+
+
 #if defined (BB_CP_MV) || defined (BB_DU)
 
 #define HASH_SIZE	311		/* Should be prime */
@@ -1189,6 +1198,9 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
 		return 0;
 
 	while ((mountEntry = getmntent(mountTable)) != 0) {
+		if (strcmp(mountEntry->mnt_fsname, "none") == 0) {
+			continue;
+		}
 		if (strcmp(name, mountEntry->mnt_dir) == 0
 			|| strcmp(name, mountEntry->mnt_fsname) == 0)	/* String match. */
 			break;

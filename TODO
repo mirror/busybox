@@ -39,31 +39,14 @@ list discussion):
 
 Linux 2.4.x kernels
 
-BusyBox 0.45 currently will not work with the Linux 2.4.x kernels.  
+BusyBox 0.46 currently will not work with the Linux 2.4.x kernels.  
 I know of the following problems:
 
-1) The sysinfo syscall has changed what it does (binary incompatable), breaking
-    init and free.
-2) BusyBox NFS support is broken with 2.4.x (needs to be adjusted for NFSv3 and
+1) BusyBox NFS support is broken with 2.4.x (needs to be adjusted for NFSv3 and
     kernel header changes).
-3) mount,umount,and df are all broken by the "none" entries for fake filesystems
-    such as the shared mem one.  Al Viro claims these will be disappearing soon...
-
-I made a kernel patch that reverts the sysinfo changes
-    http://kernelnotes.org/lnxlists/linux-kernel/lk_0006_01/msg00619.html
-
-and I have been fighting with Alan Cox to get these changes fixed in a binary
-compatable way, but Alan has so far not been very receptive.  I am planning on
-appealing to Linus (when he gets back from vacation) and then going with
-whatever he decides...
-
-So my thought is, 2.4.x just isn't ready for BusyBox to target it, and even if
-it was, BusyBox isn't ready yet either.  Seems to me like this will not be
-ready for a while, and we should just not worry about it yet.
 
 As long as I have BB_FEATURE_NFSMOUNT turned off, everything compiles cleanly
-for me with linux2.4.0test1-ac22-riel (i.e. I don't see the freeramdisk.c
-problem you reported).  I use Debian potato (gcc 2.95.2, GNU libc 2.1.3).
+for me with linux2.4.0test2.  I use Debian potato (gcc 2.95.2, GNU libc 2.1.3).
 Of course, as noted above, compiling != working.
 
 -----------

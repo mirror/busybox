@@ -23,20 +23,36 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/sysinfo.h>
+#include <errno.h>
 
-#define DIVISOR	1024
+
 extern int free_main(int argc, char **argv)
 {
 	struct sysinfo info;
 	sysinfo(&info);
-	info.totalram/=DIVISOR;
-	info.freeram/=DIVISOR;
-	info.totalswap/=DIVISOR;
-	info.freeswap/=DIVISOR;
-	info.sharedram/=DIVISOR;
-	info.bufferram/=DIVISOR;
-
+	/* Kernels prior to 2.4.x will return info.mem_unit==0.  Kernels after
+	 * 2.4.x actually fill this value in */
+	if (info.mem_unit==0) {
+		/* Looks like we have a kernel prior to Linux 2.4.x */
+		info.mem_unit=1024;
+		info.totalram/=info.mem_unit;
+		info.freeram/=info.mem_unit;
+		info.totalswap/=info.mem_unit;
+		info.freeswap/=info.mem_unit;
+		info.sharedram/=info.mem_unit;
+		info.bufferram/=info.mem_unit;
+	} else {
+		/* Bah. Linux 2.4.x completely changed sysinfo. This can in theory
+		overflow a 32 bit unsigned long, but who puts more then 4GiB ram+swap
+		on an embedded system? */
+		info.mem_unit/=1024;
+		info.totalram*=info.mem_unit;
+		info.freeram*=info.mem_unit;
+		info.totalswap*=info.mem_unit;
+		info.freeswap*=info.mem_unit;
+		info.sharedram*=info.mem_unit;
+		info.bufferram*=info.mem_unit;
+	}
 	if (argc > 1 && **(argv + 1) == '-') {
 		usage("free\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
@@ -61,3 +77,5 @@ extern int free_main(int argc, char **argv)
 			info.freeram+info.freeswap);
 	return(TRUE);
 }
+
+

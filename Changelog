@@ -1,3 +1,13 @@
+0.46
+
+	* Updates to handle Linux 2.4.0 kernels (kludged around the
+	    "none" entries in /proc/mounts, added a hack to make sysinfo
+	    work with both old and new kernels).
+	* Fixed a nasty bug in tar when could mess up saved symlinks.
+
+	 -Erik Andersen
+
+
 0.45
 	* Now compiles vs libc5 (which can save lots of space for 
 	    embedded systems).
