@@ -1263,6 +1263,16 @@ prepare_to_die:
 			input_tab(&lastWasTab);
 #endif
 			break;
+		case 12:
+			/* Control-l -- clear screen
+			 * if the len=0 and no chars in edit line */
+			if (len == 0) {
+				printf("\033[H\033[J");
+				put_prompt();
+			} else {
+				beep();
+			}
+			break;
 		case 14:
 			/* Control-n -- Get next command in history */
 			if (hp && hp->n && hp->n->s) {
@@ -1288,7 +1298,6 @@ prepare_to_die:
 				redraw(cmdedit_y, len -= cursor);
 			}
 			break;
-
 		case ESC:{
 			/* escape sequence follows */
 			if (safe_read(0, &c, 1) < 1)
