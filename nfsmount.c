@@ -33,6 +33,9 @@
  * nfsmount.c,v 1.1.1.1 1993/11/18 08:40:51 jrs Exp
  */
 
+#include "internal.h"
+#undef FALSE
+#undef TRUE
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>

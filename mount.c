@@ -203,7 +203,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 /* Seperate standard mount options from the nonstandard string options */
 static void
-parse_mount_options(char *options, unsigned long *flags, char *strflags)
+parse_mount_options(char *options, int *flags, char *strflags)
 {
 	while (options) {
 		int gotone = FALSE;
@@ -342,7 +342,7 @@ extern int mount_main(int argc, char **argv)
 	char string_flags_buf[1024] = "";
 	char *string_flags = string_flags_buf;
 	char *extra_opts = string_flags_buf;
-	unsigned long flags = 0;
+	int flags = 0;
 	char *filesystemType = "auto";
 	char *device = NULL;
 	char *directory = NULL;

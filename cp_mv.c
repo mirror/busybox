@@ -188,7 +188,7 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int cp_mv_main(int argc, char **argv)
 {
-	int i;
+	volatile int i;
 	char c;
 
 	if (*applet_name == 'c' && *(applet_name + 1) == 'p')

@@ -297,8 +297,8 @@ extern int vdprintf(int d, const char *format, va_list ap);
 #endif
 
 #if defined BB_NFSMOUNT
-int nfsmount(const char *spec, const char *node, unsigned long *flags,
-	char **extra_opts, char **mount_opts, int running_bg);
+int nfsmount(const char *spec, const char *node, int *flags,
+	     char **extra_opts, char **mount_opts, int running_bg);
 #endif
 
 #ifndef RB_POWER_OFF
