@@ -29,29 +29,21 @@ extern int free_main(int argc, char **argv)
 {
 	struct sysinfo info;
 	sysinfo(&info);
-	/* Kernels prior to 2.4.x will return info.mem_unit==0.  Kernels after
-	 * 2.4.x actually fill this value in */
+
+	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
 	if (info.mem_unit==0) {
-		/* Looks like we have a kernel prior to Linux 2.4.x */
-		info.mem_unit=1024;
-		info.totalram/=info.mem_unit;
-		info.freeram/=info.mem_unit;
-		info.totalswap/=info.mem_unit;
-		info.freeswap/=info.mem_unit;
-		info.sharedram/=info.mem_unit;
-		info.bufferram/=info.mem_unit;
-	} else {
-		/* Bah. Linux 2.4.x completely changed sysinfo. This can in theory
-		overflow a 32 bit unsigned long, but who puts more then 4GiB ram+swap
-		on an embedded system? */
-		info.mem_unit/=1024;
-		info.totalram*=info.mem_unit;
-		info.freeram*=info.mem_unit;
-		info.totalswap*=info.mem_unit;
-		info.freeswap*=info.mem_unit;
-		info.sharedram*=info.mem_unit;
-		info.bufferram*=info.mem_unit;
+		info.mem_unit=1;
 	}
+	info.mem_unit*=1024;
+	
+	/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
+	info.totalram/=info.mem_unit;
+	info.freeram/=info.mem_unit;
+	info.totalswap/=info.mem_unit;
+	info.freeswap/=info.mem_unit;
+	info.sharedram/=info.mem_unit;
+	info.bufferram/=info.mem_unit;
+
 	if (argc > 1 && **(argv + 1) == '-')
 		usage(free_usage);
 
