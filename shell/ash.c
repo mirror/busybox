@@ -3932,7 +3932,7 @@ static int typecmd(int argc, char **argv)
 		argv_a[0] = argv[i];
 		argptr = argv_a;
 		optptr = "v";
-		err |= hashcmd(argc, argv);
+		err |= hashcmd(2, argv);
 	}
 	return err;
 }
