@@ -551,21 +551,12 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	return(0);
 }
 
-static int bootp_down(struct interface_defn_t *ifd, execfn *exec)
-{
-#ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	return(execute("ip link set %iface% down", ifd, exec));
-#else
-	return(execute("ifconfig %iface% down", ifd, exec));
-#endif
-}
-
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result = 0;
 	if (execable("/sbin/udhcpc")) {
-		execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-		execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+		result = execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+		result += execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
 	} else if (execable("/sbin/pump")) {
 		result = execute("pump -i %iface% -k", ifd, exec);
 	} else if (execable("/sbin/dhclient")) {
@@ -573,8 +564,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
-	static_down(ifd, exec);
-	return (result || bootp_down(ifd, exec));
+	return (result || static_down(ifd, exec));
 }
 
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
@@ -611,7 +601,7 @@ static struct method_t methods[] =
 	{ "wvdial", wvdial_up, wvdial_down, },
 	{ "ppp", ppp_up, ppp_down, },
 	{ "static", static_up, static_down, },
-	{ "bootp", bootp_up, bootp_down, },
+	{ "bootp", bootp_up, static_down, },
 	{ "dhcp", dhcp_up, dhcp_down, },
 	{ "loopback", loopback_up, loopback_down, },
 };
