@@ -23,16 +23,22 @@
  *
  */
 
+/*
+ * Note: This program is only necessary if you are running a 2.0.x (or
+ * earlier) kernel. 2.2.x and higher flush filesystem buffers automatically.
+ */
+
 #include "internal.h"
 #include <sys/param.h>
 #include <sys/syslog.h>
+#include <unistd.h> /* for getopt() */
 
 
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
 static _syscall2(int, bdflush, int, func, int, data);
-#endif							/* __GLIBC__ */
+#endif /* __GLIBC__ */
 
 static unsigned int sync_duration = 30;
 static unsigned int flush_duration = 5;
@@ -41,29 +47,22 @@ static int use_sync = 0;
 extern int update_main(int argc, char **argv)
 {
 	int pid;
+	int opt;
 
-	argc--;
-	argv++;
-	while (argc>0 && **argv == '-') {
-		while (*++(*argv)) {
-			switch (**argv) {
+	while ((opt = getopt(argc, argv, "Ss:f:")) > 0) {
+		switch (opt) {
 			case 'S':
 				use_sync = 1;
 				break;
 			case 's':
-				if (--argc < 1) usage(update_usage);
-				sync_duration = atoi(*(++argv));
+				sync_duration = atoi(optarg);
 				break;
 			case 'f':
-				if (--argc < 1) usage(update_usage);
-				flush_duration = atoi(*(++argv));
+				flush_duration = atoi(optarg);
 				break;
 			default:
 				usage(update_usage);
-			}
 		}
-		argc--;
-		argv++;
 	}
 
 	pid = fork();
@@ -79,6 +78,8 @@ extern int update_main(int argc, char **argv)
 		 * This is no longer necessary since 1.3.5x, but it will harmlessly
 		 * exit if that is the case.
 		 */
+
+		/* set the program name that will show up in a 'ps' listing */
 		argv[0] = "bdflush (update)";
 		argv[1] = NULL;
 		argv[2] = NULL;
