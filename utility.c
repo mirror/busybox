@@ -525,10 +525,12 @@ int fullRead(int fd, char *buf, int len)
 
 
 #if defined (BB_CHMOD_CHOWN_CHGRP) \
- || defined (BB_CP_MV)		   \
- || defined (BB_FIND)		   \
- || defined (BB_LS)		   \
- || defined (BB_INSMOD)
+ || defined (BB_CP_MV)			\
+ || defined (BB_FIND)			\
+ || defined (BB_INSMOD)			\
+ || defined (BB_RM)				\
+ || defined (BB_TAR)
+
 /*
  * Walk down all the directories under the specified 
  * location, and do something (something specified

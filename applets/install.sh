@@ -15,6 +15,7 @@ for i in $h ; do
 	ln -fs /bin/busybox $1$i
 done
 rm -f $1/bin/busybox
+mkdir -p $1/bin
 install -m 755 busybox $1/bin/busybox
 
 exit 0

@@ -149,7 +149,7 @@ static const struct Applet applets[] = {
 #ifdef BB_LENGTH
 	{"length", length_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_FEATURE_LINUXRC		//
+#ifdef BB_LINUXRC
 	{"linuxrc", init_main, _BB_DIR_ROOT},
 #endif
 #ifdef BB_LN

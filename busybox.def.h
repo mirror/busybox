@@ -211,6 +211,7 @@
 //---------------------------------------------------
 // Nothing beyond this point should ever be touched by 
 // mere mortals so leave this stuff alone.
+//
 #ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
 #define BB_MTAB
 #endif
@@ -232,6 +233,13 @@
 #ifdef BB_FEATURE_LINUXRC
 #ifndef BB_INIT
 #define BB_INIT
+#define BB_LINUXRC
+#endif
+#endif
+//
+#ifdef BB_GZIP
+#ifndef BB_GUNZIP
+#define BB_GUNZIP
 #endif
 #endif
 //
