@@ -34,23 +34,23 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # to something more interesting...  Target architecture is determined
 # by asking the CC compiler what arch it compiles things for, so unless
 # your compiler is broken, you should not need to specify TARGET_ARCH
-CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
+CROSS          ?=$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
 #CROSS           =/usr/i386-linux-uclibc/bin/i386-uclibc-
-CC             = $(CROSS)gcc
-AR             = $(CROSS)ar
-AS             = $(CROSS)as
-LD             = $(CROSS)ld
-NM             = $(CROSS)nm
-STRIP          = $(CROSS)strip
-CPP            = $(CC) -E
+CC             ?= $(CROSS)gcc
+AR             ?= $(CROSS)ar
+AS             ?= $(CROSS)as
+LD             ?= $(CROSS)ld
+NM             ?= $(CROSS)nm
+STRIP          ?= $(CROSS)strip
+CPP            ?= $(CC) -E
 MAKEFILES      = $(TOPDIR).config
 
 # What OS are you compiling busybox for?  This allows you to include
 # OS specific things, syscall overrides, etc.
-TARGET_OS=linux
+TARGET_OS?=linux
 
 # Select the compiler needed to build binaries for your development system
-HOSTCC    = gcc
+HOSTCC    ?= gcc
 HOSTCFLAGS= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
 # Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc. 
@@ -86,8 +86,7 @@ ARFLAGS=-r
 
 #--------------------------------------------------------
 export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
-ifeq ($(strip $(TARGET_ARCH)),)
-TARGET_ARCH=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+TARGET_ARCH?=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
 		-e 's/sparc.*/sparc/' \
 		-e 's/arm.*/arm/g' \
@@ -99,7 +98,6 @@ TARGET_ARCH=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/mipsel-.*/mipsel/' \
 		-e 's/cris.*/cris/' \
 		)
-endif
 
 # Pull in the user's busybox configuration
 ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
