@@ -268,8 +268,12 @@ static void recursive_check(unsigned int ino);
 static void recursive_check2(unsigned int ino);
 #endif
 
-#define inode_in_use(x) (isset(inode_map,(x)))
-#define zone_in_use(x) (isset(zone_map,(x)-FIRSTZONE+1))
+static inline int bit(char * a,unsigned int i)
+{
+	  return (a[i >> 3] & (1<<(i & 7))) != 0;
+}
+#define inode_in_use(x) (bit(inode_map,(x)))
+#define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
 
 #define mark_inode(x) (setbit(inode_map,(x)),changed=1)
 #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1)

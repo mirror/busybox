@@ -242,8 +242,12 @@ static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 static int used_good_blocks = 0;
 static unsigned long req_nr_inodes = 0;
 
-#define inode_in_use(x) (isset(inode_map,(x)))
-#define zone_in_use(x) (isset(zone_map,(x)-FIRSTZONE+1))
+static inline int bit(char * a,unsigned int i)
+{
+	  return (a[i >> 3] & (1<<(i & 7))) != 0;
+}
+#define inode_in_use(x) (bit(inode_map,(x)))
+#define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
 
 #define mark_inode(x) (setbit(inode_map,(x)))
 #define unmark_inode(x) (clrbit(inode_map,(x)))
