@@ -1,3 +1,7 @@
+0.40
+	* Added the -s option to du -beppu
+	* Fixed an embarrasing segfault in head	-beppu
+
 0.39 
 	* New Apps: ping, hostname, and mkfifo contributed by Randolph Chung
 	    <tausq@debian.org>.  3 items off the TODO list!
