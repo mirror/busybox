@@ -66,15 +66,12 @@ static int match = FALSE, beQuiet = FALSE;
 static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
 					int ignoreCase, int tellLine, int invertSearch)
 {
-	char *cp;
 	long line = 0;
 	char *haystack;
 	int  truth = !invertSearch;
 
 	while ((haystack = cstring_lineFromFile(fp))) {
 		line++;
-		cp = &haystack[strlen(haystack) - 1];
-
 		if (find_match(haystack, needle, ignoreCase) == truth) {
 			if (tellName == TRUE)
 				printf("%s:", fileName);
