@@ -37,6 +37,8 @@
 
 #include <features.h>
 
+#include "config.h"
+
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
 typedef unsigned int socklen_t;

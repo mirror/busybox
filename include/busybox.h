@@ -39,6 +39,7 @@
 
 #include <features.h>
 
+#include "libbb.h"
 
 enum Location {
 	_BB_DIR_ROOT = 0,
@@ -48,10 +49,17 @@ enum Location {
 	_BB_DIR_USR_SBIN
 };
 
+enum SUIDRoot {
+	_BB_SUID_NEVER = 0,
+	_BB_SUID_MAYBE,
+	_BB_SUID_ALWAYS
+};
+
 struct BB_applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
-	enum	Location	location;
+	enum	Location	location  : 4;
+	enum 	SUIDRoot	need_suid : 4;
 };
 /* From busybox.c */
 extern const struct BB_applet applets[];
@@ -99,7 +107,7 @@ extern const struct BB_applet applets[];
 
 
 /* Pull in the utility routines from libbb */
-#include "libbb.h"
+// #include "libbb.h"
 
 /* Try to pull in PATH_MAX */
 #include <limits.h>

@@ -25,6 +25,7 @@
  *
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +40,42 @@ struct BB_applet *applet_using;
 
 /* The -1 arises because of the {0,NULL,0,-1} entry above. */
 const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
+
+
+#ifdef CONFIG_FEATURE_SUID
+
+static void check_suid ( struct BB_applet *app );
+
+#ifdef CONFIG_FEATURE_SUID_CONFIG
+
+#include <sys/stat.h>
+#include <ctype.h>
+#include "pwd.h"
+#include "grp.h"
+
+static void parse_error ( int line, const char *err );
+static void parse_config_file ( void );
+
+#define CONFIG_FILE "/etc/busybox.conf"
+
+// applets [] is const, so we have to define this "override" structure
+struct BB_suid_config {
+	struct BB_applet *m_applet;
+
+	uid_t  m_uid;
+	gid_t  m_gid;
+	mode_t m_mode;
+	
+	struct BB_suid_config *m_next;
+};
+
+static struct BB_suid_config *suid_config;
+
+#endif // CONFIG_FEATURE_SUID_CONFIG
+
+#endif // CONFIG_FEATURE_SUID
+
+
 
 extern void show_usage(void)
 {
@@ -80,6 +117,11 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	static int recurse_level = 0;
 	extern int been_there_done_that; /* From busybox.c */
 
+#ifdef CONFIG_FEATURE_SUID_CONFIG
+	if ( recurse_level == 0 )
+		parse_config_file ( );
+#endif
+
 	recurse_level++;
 	/* Do a binary search to find the applet entry given the name. */
 	if ((applet_using = find_applet_by_name(name)) != NULL) {
@@ -96,6 +138,10 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 			been_there_done_that=1;
 			busybox_main(0, NULL);
 		}
+#ifdef CONFIG_FEATURE_SUID
+		check_suid ( applet_using );
+#endif
+			
 		exit((*(applet_using->main)) (argc, argv));
 	}
 	/* Just in case they have renamed busybox - Check argv[1] */
@@ -105,6 +151,247 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	recurse_level--;
 }
 
+
+#ifdef CONFIG_FEATURE_SUID
+
+#ifdef CONFIG_FEATURE_SUID_CONFIG
+
+// check if u is member of group g
+static int ingroup ( uid_t u, gid_t g )
+{
+	struct group *grp = getgrgid ( g );
+	
+	if ( grp ) {
+		char **mem;
+		
+		for ( mem = grp-> gr_mem; *mem; mem++ ) {
+			struct passwd *pwd = getpwnam ( *mem );
+		
+			if ( pwd && ( pwd-> pw_uid == u ))
+				return 1;
+		}
+	}
+	return 0;
+}
+
+#endif
+
+
+void check_suid ( struct BB_applet *applet )
+{
+	uid_t ruid = getuid ( ); // real [ug]id
+	uid_t rgid = getgid ( );
+			
+#ifdef CONFIG_FEATURE_SUID_CONFIG
+	struct BB_suid_config *sct;
+	
+	for ( sct = suid_config; sct; sct = sct-> m_next ) {
+		if ( sct-> m_applet == applet )
+			break;
+	}		
+	if ( sct ) {
+		mode_t m = sct-> m_mode;
+		
+		if ( sct-> m_uid == ruid ) // same uid
+			m >>= 6;
+		else if (( sct-> m_gid == rgid ) || ingroup ( ruid, sct-> m_gid )) // same group / in group
+			m >>= 3;
+
+		if (!( m & S_IXOTH ))   // is x bit not set ?
+			error_msg_and_die ( "You have no permission to run this applet!" );
+	
+		if (( sct-> m_mode & ( S_ISGID | S_IXGRP )) == ( S_ISGID | S_IXGRP )) { // *both* have to be set for sgid
+			if ( setegid ( sct-> m_gid ))
+				error_msg_and_die ( "BusyBox binary has insufficient rights to set proper GID for applet!" );
+		}
+		else
+			setgid ( rgid ); // no sgid -> drop
+			
+		if ( sct-> m_mode & S_ISUID ) {
+			if ( seteuid ( sct-> m_uid ))
+				error_msg_and_die ( "BusyBox binary has insufficient rights to set proper UID for applet!" );
+		}	
+		else
+			setuid ( ruid ); // no suid -> drop
+	}
+	else { // default: drop all priviledges
+		setgid ( rgid );
+		setuid ( ruid );
+	}
+#else
+
+	if ( applet-> need_suid == _BB_SUID_ALWAYS ) {
+		if ( geteuid ( ) != 0 ) 
+			error_msg_and_die ( "This applet requires root priviledges!" );
+	} 
+	else if ( applet-> need_suid == _BB_SUID_NEVER ) {
+		setgid ( rgid ); // drop all priviledges
+		setuid ( ruid );
+	}	
+#endif	
+}
+
+#ifdef CONFIG_FEATURE_SUID_CONFIG
+
+void parse_error ( int line, const char *err )
+{
+	char msg [512];
+	snprintf ( msg, sizeof( msg ) - 1, "Parse error in %s, line %d: %s", CONFIG_FILE, line, err );
+
+	error_msg_and_die ( msg );
+}
+
+
+void parse_config_file ( void )
+{
+	struct stat st;
+
+	suid_config = 0;
+	
+	// is there a config file ?
+	if ( stat ( CONFIG_FILE, &st ) == 0 ) {
+		// is it owned by root with no write perm. for group and others ?
+		if ( S_ISREG( st. st_mode ) && ( st. st_uid == 0 )	&& (!( st. st_mode & ( S_IWGRP | S_IWOTH )))) {
+			// that's ok .. then try to open it
+			FILE *f = fopen ( CONFIG_FILE, "r" );
+
+			if ( f ) {
+				char buffer [4096];
+				int section = 0;
+				int lc = 0;
+				
+				while ( fgets ( buffer, sizeof( buffer ) - 1, f )) {
+					char c = buffer [0];
+					char *p;
+				
+					lc++;
+					
+					p = strchr ( buffer, '#' );
+					if ( p )
+						*p = 0;
+					p = buffer + xstrlen ( buffer );
+					while (( p > buffer ) && isspace ( *--p ))
+						*p = 0;		
+						
+					if ( p == buffer )
+						continue;					
+				
+					if ( c == '[' ) {
+						p = strchr ( buffer, ']' );
+						
+						if ( !p || ( p == ( buffer + 1 )))  // no matching ] or empty []
+							parse_error ( lc, "malformed section header" );
+
+						*p = 0;
+						
+						if ( strcasecmp ( buffer + 1, "SUID" ) == 0 )
+							section = 1;
+						else
+							section = -1; // unknown section - just skip
+					}
+					else if ( section ) {
+						switch ( section ) {
+							case 1: { // SUID
+								int l;
+								struct BB_applet *applet;
+
+								p = strchr ( buffer, '=' ); // <key>[::space::]*=[::space::]*<value>
+								
+								if ( !p || ( p == ( buffer + 1 ))) // no = or key is empty
+									parse_error ( lc, "malformed keyword" );
+								
+								l = p - buffer;
+								while ( isspace ( buffer [--l] )) { } // skip whitespace
+								
+								buffer [l+1] = 0;
+								
+								if (( applet = find_applet_by_name ( buffer ))) {
+									struct BB_suid_config *sct = xmalloc ( sizeof( struct BB_suid_config ));
+									
+									sct-> m_applet = applet;
+									sct-> m_next = suid_config;
+									suid_config = sct;
+									
+									while ( isspace ( *++p )) { } // skip whitespace
+												
+									sct-> m_mode = 0;			
+									
+									switch ( *p++ ) {
+										case 'S': sct-> m_mode |= S_ISUID; break;
+										case 's': sct-> m_mode |= S_ISUID; // no break
+										case 'x': sct-> m_mode |= S_IXUSR; break;
+										case '-': break;
+										default : parse_error ( lc, "invalid user mode" );
+									}
+										
+									switch ( *p++ ) {
+										case 's': sct-> m_mode |= S_ISGID; // no break
+										case 'x': sct-> m_mode |= S_IXGRP; break;
+										case 'S': break;
+										case '-': break;
+										default : parse_error ( lc, "invalid group mode" );
+									}
+										
+									switch ( *p ) {
+										case 't': 
+										case 'x': sct-> m_mode |= S_IXOTH; break;
+										case 'T':
+										case '-': break;
+										default : parse_error ( lc, "invalid other mode" );
+									}
+										
+									while ( isspace ( *++p )) { } // skip whitespace
+									
+									if ( isdigit ( *p )) {
+										sct-> m_uid = strtol ( p, &p, 10 );
+										if ( *p++ != '.' )
+											parse_error ( lc, "parsing <uid>.<gid>" );										
+									}
+									else {
+										struct passwd *pwd;
+										char *p2 = strchr ( p, '.' );
+										
+										if ( !p2 ) 
+											parse_error ( lc, "parsing <uid>.<gid>" );										
+	
+										*p2 = 0;
+										pwd = getpwnam ( p );
+						
+										if ( !pwd ) 
+											parse_error ( lc, "invalid user name" );
+										
+										sct-> m_uid = pwd-> pw_uid;
+										p = p2 + 1;
+									}		
+									if ( isdigit ( *p )) 
+										sct-> m_gid = strtol ( p, &p, 10 );
+									else {
+										struct group *grp = getgrnam ( p );
+						
+										if ( !grp ) 
+											parse_error ( lc, "invalid group name" );
+										
+										sct-> m_gid = grp-> gr_gid;
+									}																		
+								}
+								break;
+							}
+							default: // unknown - skip
+								break;
+						}					
+					}
+					else
+						parse_error ( lc, "keyword not within section" );
+				}				
+				fclose ( f );
+			}
+		}
+	}
+}
+
+#endif
+
+#endif
 
 /* END CODE */
 /*

@@ -16,6 +16,14 @@ bool 'Enable locale support (system needs locale for this to work)'	CONFIG_LOCAL
 bool 'Support for devfs'						CONFIG_FEATURE_DEVFS
 bool 'Support compress format (.Z) in unzip operations'  		CONFIG_FEATURE_UNCOMPRESS 
 bool 'Clean up all memory before exiting (usually not needed)'		CONFIG_FEATURE_CLEAN_UP
+bool 'Support for SUID/SGID handling'  					CONFIG_FEATURE_SUID
+if [ "$CONFIG_FEATURE_SUID" = "y" ]; then
+  bool '  Runtime configuration via /etc/busybox.conf'			CONFIG_FEATURE_SUID_CONFIG
+fi
+bool 'Use busybox password and group functions'				CONFIG_USE_BB_PWD_GRP
+if [ "$CONFIG_USE_BB_PWD_GRP" = "y" ]; then
+   bool '  Use busybox shadow password functions'			CONFIG_USE_BB_SHADOW
+fi
 endmenu
 
 source archival/config.in
@@ -27,7 +35,7 @@ source init/config.in
 source miscutils/config.in
 source modutils/config.in
 source networking/config.in
-source pwd_grp/config.in
+source loginutils/config.in
 source procps/config.in
 source shell/config.in
 source shellutils/config.in
