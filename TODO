@@ -33,8 +33,13 @@ Bugs that need fixing:
 	touch -c
   - I believe that swaponoff may also be also broken (check it).
   - It used to be that BusyBox tar would happily overwrite existing files on
-  an extraction.  However, as of 0.42, BusyBox tar simply dies as soon as an 
-  existing file is found.
+      an extraction.  However, as of 0.42, BusyBox tar simply dies as soon as an 
+      existing file is found.
+  - Make 'mount -a' work even when /proc isn't mounted (ugly bug).
+  - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
+    /tmp/file in the current directory, rather then trying and failing to create
+    a symlink named "." in the current working directory).
+  - implement 'ls -R'.
 
 
 -----------
