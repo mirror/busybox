@@ -2,7 +2,14 @@ Source: busybox
 Priority: optional
 Maintainer: Erik Andersen <andersee@debian.org>
 Build-Depends: debhelper (>= 2.1.18), dpkg-dev (>= 1.7.0)
+Build-Depends-Indep: sgmltools-lite, w3m
 Standards-Version: 3.2.1.0
+
+Package: busybox-doc
+Architecture: all
+Section: doc
+Description: Documentation for busybox
+ Documentation in various formats on busybox commands and their options.
 
 Package: busybox
 Architecture: any

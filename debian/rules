@@ -21,6 +21,7 @@ busybox-deb:
 	$(MAKE)
 	install -D busybox ./debian/busybox/bin/busybox
 	dh_installchangelogs Changelog -pbusybox
+	dh_installdocs -pbusybox
 	dh_strip -pbusybox
 	dh_compress -pbusybox
 	dh_fixperms -pbusybox
@@ -58,6 +59,7 @@ busybox-static:
 	$(MAKE)
 	install -D busybox ./debian/busybox-static/bin/busybox
 	dh_installchangelogs Changelog -pbusybox-static
+	dh_installdocs -pbusybox-static
 	dh_strip -pbusybox-static
 	dh_compress -pbusybox-static
 	dh_fixperms -pbusybox-static
@@ -68,6 +70,20 @@ busybox-static:
 	dh_builddeb -pbusybox-static
 
 binary-arch: busybox-deb busybox-udeb busybox-static
+
+binary-indep:
+	dh_testdir
+	dh_testroot
+	$(MAKE) clean
+	$(MAKE) newdoc
+	dh_installdocs -pbusybox-doc
+	dh_installchangelogs Changelog -pbusybox-doc
+	dh_compress -pbusybox-doc
+	dh_fixperms -pbusybox-doc
+	dh_installdeb -pbusybox-doc
+	dh_gencontrol -pbusybox-doc
+	dh_md5sums -pbusybox-doc
+	dh_builddeb -pbusybox-doc
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
