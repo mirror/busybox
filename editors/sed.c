@@ -1057,7 +1057,11 @@ static void process_file(FILE * file)
 						hold_space_size = strlen(hold_space);
 					}
 					hold_space = xrealloc(hold_space, hold_space_size + strlen(pattern_space) + 2);
-					strcat(hold_space, "\n");
+					if (hold_space_size) {
+						strcat(hold_space, "\n");
+					} else {
+						hold_space[0] = '\n';
+					}
 					strcat(hold_space, pattern_space); 
 					break;
 				}
@@ -1103,6 +1107,7 @@ static void process_file(FILE * file)
 
 			if (deleted)
 				break;
+
 		}
 
 		/* we will print the line unless we were told to be quiet or if the
@@ -1155,7 +1160,7 @@ extern int sed_main(int argc, char **argv)
 		else {
 			char *str_cmd = strdup(argv[optind]);
 
-			add_cmd_str(strdup(str_cmd));
+			add_cmd_str(strd_cmd);
 			free(str_cmd);
 			optind++;
 		}
