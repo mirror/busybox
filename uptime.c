@@ -24,7 +24,7 @@
 /* This version of uptime doesn't display the number of users on the system,
  * since busybox init doesn't mess with utmp.  For folks using utmp that are
  * just dying to have # of users reported, feel free to write it as some type
- * of BB_FEATURE_UMTP_SUPPORT #define
+ * of BB_FEATURE_UTMP_SUPPORT #define
  */
 
 
