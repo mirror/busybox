@@ -179,13 +179,12 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		archive_handle->action_header(archive_handle->file_header);
 		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
 		archive_handle->action_data(archive_handle);
-		archive_handle->passed = llist_add_to(archive_handle->passed, archive_handle->file_header->name);
+		archive_handle->passed = llist_add_to(archive_handle->passed, file_header->name);
 	} else {
 		data_skip(archive_handle);			
 	}
 	archive_handle->offset += file_header->size;
 
-	free(file_header->name);
 	free(file_header->link_name);
 
 	return(EXIT_SUCCESS);
