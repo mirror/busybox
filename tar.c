@@ -922,6 +922,8 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 		strncpy(header.linkname, tbInfo->hlInfo->name, sizeof(header.linkname));
 	} else if (S_ISLNK(statbuf->st_mode)) {
 		char *lpath = xreadlink(real_name);
+		if (!lpath) /* Already printed err msg inside xreadlink() */
+			return ( FALSE);
 		header.typeflag  = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname)); 
 		free(lpath);

@@ -37,6 +37,8 @@ int readlink_main(int argc, char **argv)
 		show_usage();
 
 	buf = xreadlink(argv[1]);
+	if (!buf)
+		return EXIT_FAILURE;
 	puts(buf);
 #ifdef BB_FEATURE_CLEAN_UP
 	free(buf);

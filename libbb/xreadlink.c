@@ -1,5 +1,6 @@
 /*
- *  xreadlink.c - safe implementation of readlink
+ *  xreadlink.c - safe implementation of readlink.
+ *  Returns a NULL on failure...
  */
 
 #include <stdio.h>
@@ -22,8 +23,10 @@ extern char *xreadlink(const char *path)
 	do {
 		buf = xrealloc(buf, bufsize += GROWBY);
 		readsize = readlink(path, buf, bufsize); /* 1st try */
-		if (readsize == -1)
-			perror_msg("%s:%s", applet_name, path);
+		if (readsize == -1) {
+		    perror_msg("%s:%s", applet_name, path);
+		    return NULL;
+		}
 	}           
 	while (bufsize < readsize + 1);
 
