@@ -23,26 +23,6 @@
  * Copyright (c) 1992 Roger Binns
  * Copyright (C) 1994-1996 Charles L. Blake.
  * Copyright (C) 1992-1998 Michael K. Johnson
- * May 
- * This reads the PIDs of all processes and their status and shows
- * the status of processes (first ones that fit to screen) at given
- * intervals.
- *
- * NOTES:
- * - At startup this changes to /proc, all the reads are then
- *   relative to that.
- *
- * (C) Eero Tamminen <oak at welho dot com>
- *
- * Rewritten by Vladimir Oleynik (C) 2002 <dzo@simtreas.ru>
- */
-
-/* Original code Copyrights */
-/*
- * Copyright (c) 1992 Branko Lankester
- * Copyright (c) 1992 Roger Binns
- * Copyright (C) 1994-1996 Charles L. Blake.
- * Copyright (C) 1992-1998 Michael K. Johnson
  * May be distributed under the conditions of the
  * GNU Library General Public License
  */
