@@ -254,7 +254,7 @@ static int login_prompt ( char *buf_name )
 
 	for(i=0; i<EMPTY_USERNAME_COUNT; i++) {
 	gethostname ( buf, sizeof( buf ));
-	printf ( "\nBusyBox on %s login: ", buf );
+	printf ( "\n%s login: ", buf );
 	fflush ( stdout );
 
 	if ( !fgets ( buf, sizeof( buf ) - 1, stdin ))
