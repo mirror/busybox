@@ -50,10 +50,10 @@
 #include <stdio.h>
 #include <mntent.h>
 #include <ctype.h>
-#if defined BB_FEATURE_USE_DEVPS_PATCH
-#include <linux/devmtab.h> /* For Erik's nifty devmtab device driver */
-#endif
 #include "busybox.h"
+#if defined BB_FEATURE_USE_DEVPS_PATCH
+#	include <linux/devmtab.h> /* For Erik's nifty devmtab device driver */
+#endif
 
 enum {
 	MS_MGC_VAL = 0xc0ed0000, /* Magic number indicatng "new" flags */

@@ -64,6 +64,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+#include "busybox.h"
+#include "cmdedit.h"
 
 #ifdef BB_LOCALE_SUPPORT
 #include <locale.h>
@@ -79,8 +81,6 @@
 #include <glob.h>
 #define expand_t	glob_t
 #endif	
-#include "busybox.h"
-#include "cmdedit.h"
 
 
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
