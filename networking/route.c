@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.20 2002/12/11 03:57:12 andersen Exp $
+ * $Id: route.c,v 1.21 2002/12/16 22:04:18 sandman Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -498,6 +498,11 @@ void displayroutes(int noresolve, int netstatfmt)
 	if (noresolve)
 		noresolve = 0x0fff;
 
+	printf("Kernel IP routing table\n");
+	printf
+		("Destination     Gateway         Genmask         Flags %s Iface\n",
+		 netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
+
 	while (fgets(buff, sizeof(buff), fp) != NULL) {
 		if (nl) {
 			int ifl = 0;
@@ -511,12 +516,6 @@ void displayroutes(int noresolve, int netstatfmt)
 					   &d, &g, &flgs, &ref, &use, &metric, &m, &mtu, &win,
 					   &ir) != 10) {
 				error_msg_and_die("Unsuported kernel route format\n");
-			}
-			if (nl == 1) {
-				printf("Kernel IP routing table\n");
-				printf
-					("Destination     Gateway         Genmask         Flags %s Iface\n",
-					 netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
 			}
 			ifl = 0;	/* parse flags */
 			if (flgs & RTF_UP) {
