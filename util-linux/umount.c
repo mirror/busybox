@@ -216,7 +216,7 @@ static int umount_all(int useMtab)
 		if (status != 0) {
 			/* Don't bother retrying the umount on busy devices */
 			if (errno == EBUSY) {
-				perror(mountpt);
+				perror_msg("%s", mountpt);
 				continue;
 			}
 			status = do_umount(mountpt, useMtab);
@@ -280,7 +280,6 @@ extern int umount_main(int argc, char **argv)
 	}
 	if (do_umount(*argv, useMtab) == TRUE)
 		return EXIT_SUCCESS;
-	perror("umount");
-	return EXIT_FAILURE;
+	perror_msg_and_die("%s", *argv);
 }
 

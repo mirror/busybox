@@ -27,7 +27,7 @@ void erase_mtab(const char *name)
 		/* Bummer.  fall back on trying the /proc filesystem */
 		&& (mountTable = setmntent("/proc/mounts", "r")) == 0) {
 #endif
-		perror(mtab_file);
+		perror_msg("%s", mtab_file);
 		return;
 	}
 
@@ -55,7 +55,7 @@ void erase_mtab(const char *name)
 		}
 		endmntent(mountTable);
 	} else if (errno != EROFS)
-		perror(mtab_file);
+		perror_msg("%s", mtab_file);
 }
 
 void write_mtab(char *blockDevice, char *directory,
@@ -65,7 +65,7 @@ void write_mtab(char *blockDevice, char *directory,
 	struct mntent m;
 
 	if (mountTable == 0) {
-		perror(mtab_file);
+		perror_msg("%s", mtab_file);
 		return;
 	}
 	if (mountTable) {

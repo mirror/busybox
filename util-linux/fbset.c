@@ -33,8 +33,6 @@
 #include <ctype.h>
 #include <sys/ioctl.h>
 
-#define PERROR(ctx)   do { perror(ctx); exit(1); } while(0)
-
 #define DEFAULTFBDEV  "/dev/fb0"
 #define DEFAULTFBMODE "/etc/fb.modes"
 
@@ -198,7 +196,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char *p = buf;
 
 	if ((f = fopen(fn, "r")) == NULL)
-		PERROR("readmode(fopen)");
+		perror_msg_and_die("readmode(fopen)");
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
 		if ((p = strstr(buf, "mode ")) || (p = strstr(buf, "mode\t"))) {
@@ -428,9 +426,9 @@ extern int fbset_main(int argc, char **argv)
 	}
 
 	if ((fh = open(fbdev, O_RDONLY)) < 0)
-		PERROR("fbset(open)");
+		perror_msg_and_die("fbset(open)");
 	if (ioctl(fh, FBIOGET_VSCREENINFO, &var))
-		PERROR("fbset(ioctl)");
+		perror_msg_and_die("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
 			error_msg("Unknown video mode `%s'\n", mode);
@@ -441,7 +439,7 @@ extern int fbset_main(int argc, char **argv)
 	setmode(&var, &varset);
 	if (g_options & OPT_CHANGE)
 		if (ioctl(fh, FBIOPUT_VSCREENINFO, &var))
-			PERROR("fbset(ioctl)");
+			perror_msg_and_die("fbset(ioctl)");
 	showmode(&var);
 	/* Don't close the file, as exiting will take care of that */
 	/* close(fh); */

@@ -329,11 +329,8 @@ static int get_size(const char *file)
 	int fd;
 	long size;
 
-	fd = open(file, O_RDWR);
-	if (fd < 0) {
-		perror(file);
-		exit(1);
-	}
+	if ((fd = open(file, O_RDWR)) < 0)
+		perror_msg_and_die("%s", file);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
 		close(fd);
 		return (size * 512);

@@ -709,10 +709,8 @@ extern int sed_main(int argc, char **argv)
 
 #ifdef BB_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
-	if (atexit(destroy_cmd_strs) == -1) {
-		perror("sed");
-		exit(1);
-	}
+	if (atexit(destroy_cmd_strs) == -1)
+		perror_msg_and_die("atexit");
 #endif
 
 	/* do normal option parsing */

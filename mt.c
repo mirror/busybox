@@ -85,15 +85,11 @@ extern int mt_main(int argc, char **argv)
 	else
 		op.mt_count = 1;		/* One, not zero, right? */
 
-	if ((fd = open(file, O_RDONLY, 0)) < 0) {
-		perror(file);
-		return EXIT_FAILURE;
-	}
+	if ((fd = open(file, O_RDONLY, 0)) < 0)
+		perror_msg_and_die("%s", file);
 
-	if (ioctl(fd, MTIOCTOP, &op) != 0) {
-		perror(file);
-		return EXIT_FAILURE;
-	}
+	if (ioctl(fd, MTIOCTOP, &op) != 0)
+		perror_msg_and_die("%s", file);
 
 	return EXIT_SUCCESS;
 }

@@ -1867,18 +1867,13 @@ int gzip_main(int argc, char **argv)
 			usage(gzip_usage);
 		strncpy(ifname, *argv, MAX_PATH_LEN);
 
-		/* Open input fille */
+		/* Open input file */
 		inFileNum = open(ifname, O_RDONLY);
-		if (inFileNum < 0) {
-			perror(ifname);
-			exit(WARNING);
-		}
+		if (inFileNum < 0)
+			perror_msg_and_die("%s", ifname);
 		/* Get the time stamp on the input file. */
-		result = stat(ifname, &statBuf);
-		if (result < 0) {
-			perror(ifname);
-			exit(WARNING);
-		}
+		if (stat(ifname, &statBuf) < 0)
+			perror_msg_and_die("%s", ifname);
 		time_stamp = statBuf.st_ctime;
 		ifile_size = statBuf.st_size;
 	}
@@ -1909,10 +1904,8 @@ int gzip_main(int argc, char **argv)
 #else
 		outFileNum = open(ofname, O_RDWR | O_CREAT | O_EXCL);
 #endif
-		if (outFileNum < 0) {
-			perror(ofname);
-			exit(WARNING);
-		}
+		if (outFileNum < 0)
+			perror_msg_and_die("%s", ofname);
 		SET_BINARY_MODE(outFileNum);
 		/* Set permissions on the file */
 		fchmod(outFileNum, statBuf.st_mode);
@@ -1930,10 +1923,8 @@ int gzip_main(int argc, char **argv)
 		else
 			delFileName = ofname;
 
-		if (unlink(delFileName) < 0) {
-			perror(delFileName);
-			exit(EXIT_FAILURE);
-		}
+		if (unlink(delFileName) < 0)
+			perror_msg_and_die("%s", delFileName);
 	}
 
 	return(exit_code);

@@ -81,10 +81,8 @@ int xargs_main(int argc, char **argv)
 		strcat(execstr, cmd_to_be_executed);
 		strcat(execstr, file_to_act_on);
 		cmd_output = popen(execstr, "r");
-		if (cmd_output == NULL) {
-			perror("popen");
-			exit(1);
-		}
+		if (cmd_output == NULL)
+			perror_msg_and_die("popen");
 
 		/* harvest the output */
 		while ((output_line = get_line_from_file(cmd_output)) != NULL) {

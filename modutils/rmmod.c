@@ -45,10 +45,8 @@ extern int rmmod_main(int argc, char **argv)
 			switch (**argv) {
 			case 'a':
 				/* Unload _all_ unused modules via NULL delete_module() call */
-				if (delete_module(NULL)) {
-					perror("rmmod");
-					return EXIT_FAILURE;
-				}
+				if (delete_module(NULL))
+					perror_msg_and_die("rmmod");
 				return EXIT_SUCCESS;
 			default:
 				usage(rmmod_usage);
@@ -58,7 +56,7 @@ extern int rmmod_main(int argc, char **argv)
 
 	while (argc-- > 0) {
 		if (delete_module(*argv) < 0) {
-			perror(*argv);
+			perror_msg("%s", *argv);
 			ret = EXIT_FAILURE;
 		}
 		argv++;

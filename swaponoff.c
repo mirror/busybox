@@ -48,10 +48,8 @@ static void swap_enable_disable(char *device)
 	else
 		status = swapoff(device);
 
-	if (status != 0) {
-		perror(applet_name);
-		exit(EXIT_FAILURE);
-	}
+	if (status != 0)
+		perror_msg_and_die(applet_name);
 }
 
 static void do_em_all()
@@ -59,10 +57,8 @@ static void do_em_all()
 	struct mntent *m;
 	FILE *f = setmntent("/etc/fstab", "r");
 
-	if (f == NULL) {
-		perror("/etc/fstab");
-		exit(FALSE);
-	}
+	if (f == NULL)
+		perror_msg_and_die("/etc/fstab");
 	while ((m = getmntent(f)) != NULL) {
 		if (strcmp(m->mnt_type, MNTTYPE_SWAP)==0) {
 			swap_enable_disable(m->mnt_fsname);

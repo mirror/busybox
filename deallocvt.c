@@ -25,10 +25,8 @@ int deallocvt_main(int argc, char *argv[])
 
 	if (argc == 1) {
 		/* deallocate all unused consoles */
-		if (ioctl(fd, VT_DISALLOCATE, 0)) {
-			perror("VT_DISALLOCATE");
-			return EXIT_FAILURE;
-		}
+		if (ioctl(fd, VT_DISALLOCATE, 0))
+			perror_msg_and_die("VT_DISALLOCATE");
 	} else {
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
@@ -36,10 +34,8 @@ int deallocvt_main(int argc, char *argv[])
 				error_msg("0: illegal VT number\n");
 			else if (num == 1)
 				error_msg("VT 1 cannot be deallocated\n");
-			else if (ioctl(fd, VT_DISALLOCATE, num)) {
-				perror("VT_DISALLOCATE");
-				error_msg_and_die("could not deallocate console %d\n", num);
-			}
+			else if (ioctl(fd, VT_DISALLOCATE, num))
+				perror_msg_and_die("VT_DISALLOCATE");
 		}
 	}
 

@@ -383,7 +383,7 @@ extern int mount_main(int argc, char **argv)
 			}
 			endmntent(mountTable);
 		} else {
-			perror(mtab_file);
+			perror_msg_and_die("%s", mtab_file);
 		}
 		return EXIT_SUCCESS;
 	}

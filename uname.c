@@ -114,11 +114,11 @@ int uname_main(int argc, char **argv)
 		toprint = PRINT_SYSNAME;
 
 	if (uname(&name) == -1)
-		perror("cannot get system name");
+		perror_msg("cannot get system name");
 
 #if defined (HAVE_SYSINFO) && defined (SI_ARCHITECTURE)
 	if (sysinfo(SI_ARCHITECTURE, processor, sizeof(processor)) == -1)
-		perror("cannot get processor type");
+		perror_msg("cannot get processor type");
 }
 
 #else

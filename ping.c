@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.29 2000/12/18 03:57:16 kraai Exp $
+ * $Id: ping.c,v 1.30 2000/12/22 01:48:07 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -190,10 +190,8 @@ static void ping(const char *host)
 	int pingsock, c;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
-	if ((pingsock = socket(AF_INET, SOCK_RAW, 1)) < 0) {	/* 1 == ICMP */
-		perror("ping: creating a raw socket");
-		exit(1);
-	}
+	if ((pingsock = socket(AF_INET, SOCK_RAW, 1)) < 0)	/* 1 == ICMP */
+		perror_msg_and_die("creating a raw socket");
 
 	/* drop root privs if running setuid */
 	setuid(getuid());
@@ -216,12 +214,8 @@ static void ping(const char *host)
 	c = sendto(pingsock, packet, sizeof(packet), 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in));
 
-	if (c < 0 || c != sizeof(packet)) {
-		if (c < 0)
-			perror("ping: sendto");
-		error_msg("write incomplete\n");
-		exit(1);
-	}
+	if (c < 0 || c != sizeof(packet))
+		perror_msg_and_die("sendto");
 
 	signal(SIGALRM, noresp);
 	alarm(5);					/* give the host 5000ms to respond */
@@ -234,7 +228,7 @@ static void ping(const char *host)
 						  (struct sockaddr *) &from, &fromlen)) < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("ping: recvfrom");
+			perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= 76) {			/* ip + icmp */
@@ -439,12 +433,10 @@ static void ping(const char *host)
 	 * proto->p_proto to have the correct value for "icmp" */
 	if ((pingsock = socket(AF_INET, SOCK_RAW,
 						   (proto ? proto->p_proto : 1))) < 0) {	/* 1 == ICMP */
-		if (errno == EPERM) {
-			error_msg("permission denied. (are you root?)\n");
-		} else {
-			perror("ping: creating a raw socket");
-		}
-		exit(1);
+		if (errno == EPERM)
+			error_msg_and_die("permission denied. (are you root?)\n");
+		else
+			perror_msg_and_die("creating a raw socket");
 	}
 
 	/* drop root privs if running setuid */
@@ -498,7 +490,7 @@ static void ping(const char *host)
 						  (struct sockaddr *) &from, &fromlen)) < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("ping: recvfrom");
+			perror_msg("recvfrom");
 			continue;
 		}
 		unpack(packet, c, &from);

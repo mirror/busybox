@@ -260,11 +260,8 @@ static long get_size(const char *file)
 	int fd;
 	long size;
 
-	fd = open(file, O_RDONLY);
-	if (fd < 0) {
-		perror(file);
-		exit(1);
-	}
+	if ((fd = open(file, O_RDONLY)) < 0)
+		perror_msg_and_die("%s", file);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
 		int sectors_per_page = pagesize / 512;
 
@@ -367,10 +364,8 @@ int mkswap_main(int argc, char **argv)
 	}
 
 	DEV = open(device_name, O_RDWR);
-	if (DEV < 0 || fstat(DEV, &statbuf) < 0) {
-		perror(device_name);
-		return EXIT_FAILURE;
-	}
+	if (DEV < 0 || fstat(DEV, &statbuf) < 0)
+		perror_msg_and_die("%s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)

@@ -344,7 +344,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		/* Make this job the foreground job */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
-			perror("tcsetpgrp"); 
+			perror_msg("tcsetpgrp"); 
 		child->family->job_list->fg = job;
 	}
 
@@ -683,7 +683,7 @@ static void checkjobs(struct jobset *job_list)
 	}
 
 	if (childpid == -1 && errno != ECHILD)
-		perror("waitpid");
+		perror_msg("waitpid");
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -1422,7 +1422,7 @@ static void insert_job(struct job *newjob, int inbg)
 		/* move the new process group into the foreground */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(0, newjob->pgrp) && errno != ENOTTY)
-			perror("tcsetpgrp");
+			perror_msg("tcsetpgrp");
 	}
 }
 
@@ -1612,7 +1612,7 @@ static int busy_loop(FILE * input)
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
 				if (tcsetpgrp(0, getpid()) && errno != ENOTTY)
-					perror("tcsetpgrp"); 
+					perror_msg("tcsetpgrp"); 
 			}
 		}
 	}
@@ -1620,7 +1620,7 @@ static int busy_loop(FILE * input)
 
 	/* return controlling TTY back to parent process group before exiting */
 	if (tcsetpgrp(0, parent_pgrp))
-		perror("tcsetpgrp");
+		perror_msg("tcsetpgrp");
 
 	/* return exit status if called with "-c" */
 	if (input == NULL && WIFEXITED(status))

@@ -69,20 +69,16 @@ int dmesg_main(int argc, char **argv)
 	}
 
 	if (cmd == 8) {
-		n = klogctl(cmd, NULL, level);
-		if (n < 0) {
-			goto klogctl_error;
-		}
+		if (klogctl(cmd, NULL, level) < 0)
+			perror_msg_and_die("klogctl");
 		return EXIT_SUCCESS;
 	}
 
 	if (bufsize < 4096)
 		bufsize = 4096;
 	buf = (char *) xmalloc(bufsize);
-	n = klogctl(cmd, buf, bufsize);
-	if (n < 0) {
-		goto klogctl_error;
-	}
+	if ((n = klogctl(cmd, buf, bufsize)) < 0)
+		perror_msg_and_die("klogctl");
 
 	lastc = '\n';
 	for (i = 0; i < n; i++) {
@@ -101,8 +97,5 @@ int dmesg_main(int argc, char **argv)
 	return EXIT_SUCCESS;
   end:
 	usage(dmesg_usage);
-	return EXIT_FAILURE;
-  klogctl_error:
-	perror("klogctl");
 	return EXIT_FAILURE;
 }

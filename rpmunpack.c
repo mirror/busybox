@@ -40,10 +40,9 @@ static void myread(int num)
 
   if ((err = read(infile, buffer, num)) != num) {
 	if (err < 0)
-		perror(progname);
+		perror_msg_and_die(progname);
 	else
-		fprintf(stderr, "Unexpected end of input file!\n");
-	exit(1);
+		error_msg_and_die("Unexpected end of input file!\n");
   }
 }
 
@@ -68,10 +67,8 @@ int rpmunpack_main(int argc, char **argv)
   /* Open input file */
   if (argc == 1)
 	infile = STDIN_FILENO;
-  else if ((infile = open(argv[1], O_RDONLY)) < 0) {
-	perror(progname);
-	exit(1);
-  }
+  else if ((infile = open(argv[1], O_RDONLY)) < 0)
+	perror_msg_and_die("%s", argv[1]);
 
   /* Read magic ID and output filename */
   myread(4);
@@ -87,10 +84,8 @@ int rpmunpack_main(int argc, char **argv)
   strcat(buffer, ".cpio.gz");
   if (infile == STDIN_FILENO)
 	outfile = STDOUT_FILENO;
-  else if ((outfile = open(buffer, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0) {
-	perror(progname);
-	exit(1);
-  }
+  else if ((outfile = open(buffer, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
+	  perror_msg_and_die("%s", buffer);
 
   /*
    * Now search for the GZIP signature. This is rather awkward, but I don't
@@ -114,23 +109,15 @@ int rpmunpack_main(int argc, char **argv)
   }
   buffer[0] = GZ_MAGIC_1;
   buffer[1] = GZ_MAGIC_2;
-  if (write(outfile, buffer, 2) < 0) {
-	perror(progname);
-	exit(1);
-  }
+  if (write(outfile, buffer, 2) < 0)
+	perror_msg_and_die("write");
 
   /* Now simply copy the GZIP archive into the output file */
   while ((len = read(infile, buffer, BUFSIZE)) > 0) {
-	if (write(outfile, buffer, len) < 0) {
-		perror(progname);
-		exit(1);
-	}
+	if (write(outfile, buffer, len) < 0)
+		perror_msg_and_die("write");
   }
-  if (len < 0) {
-	perror(progname);
-	exit(1);
-  }
-  close(outfile);
-  close(infile);
-  exit(0);
+  if (len < 0)
+    perror_msg_and_die("read");
+  return EXIT_SUCCESS;
 }

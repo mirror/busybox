@@ -153,7 +153,7 @@ extern int get_kernel_revision(void)
 	int major = 0, minor = 0, patch = 0;
 
 	if (uname(&name) == -1) {
-		perror("cannot get system information");
+		perror_msg("cannot get system information");
 		return (0);
 	}
 	major = atoi(strtok(name.release, "."));
@@ -341,7 +341,7 @@ copy_file(const char *srcName, const char *destName,
 		status = lstat(srcName, &srcStatBuf);
 
 	if (status < 0) {
-		perror(srcName);
+		perror_msg("%s", srcName);
 		return FALSE;
 	}
 
@@ -367,7 +367,7 @@ copy_file(const char *srcName, const char *destName,
 		/* Make sure the directory is writable */
 		status = mkdir(destName, 0777777 ^ umask(0));
 		if (status < 0 && errno != EEXIST) {
-			perror(destName);
+			perror_msg("%s", destName);
 			return FALSE;
 		}
 	} else if (S_ISLNK(srcStatBuf.st_mode)) {
@@ -378,13 +378,13 @@ copy_file(const char *srcName, const char *destName,
 		/* Warning: This could possibly truncate silently, to BUFSIZ chars */
 		link_size = readlink(srcName, &link_val[0], BUFSIZ);
 		if (link_size < 0) {
-			perror(srcName);
+			perror_msg("%s", srcName);
 			return FALSE;
 		}
 		link_val[link_size] = '\0';
 		status = symlink(link_val, destName);
 		if (status < 0) {
-			perror(destName);
+			perror_msg("%s", destName);
 			return FALSE;
 		}
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
@@ -397,28 +397,28 @@ copy_file(const char *srcName, const char *destName,
 	} else if (S_ISFIFO(srcStatBuf.st_mode)) {
 		//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
 		if (mkfifo(destName, 0644) < 0) {
-			perror(destName);
+			perror_msg("%s", destName);
 			return FALSE;
 		}
 	} else if (S_ISBLK(srcStatBuf.st_mode) || S_ISCHR(srcStatBuf.st_mode)
 			   || S_ISSOCK(srcStatBuf.st_mode)) {
 		//fprintf(stderr, "copying soc, blk, or chr %s to %s\n", srcName, destName);
 		if (mknod(destName, srcStatBuf.st_mode, srcStatBuf.st_rdev) < 0) {
-			perror(destName);
+			perror_msg("%s", destName);
 			return FALSE;
 		}
 	} else if (S_ISREG(srcStatBuf.st_mode)) {
 		//fprintf(stderr, "copying regular file %s to %s\n", srcName, destName);
 		rfd = open(srcName, O_RDONLY);
 		if (rfd < 0) {
-			perror(srcName);
+			perror_msg("%s", srcName);
 			return FALSE;
 		}
 
 	 	wfd = open(destName, O_WRONLY | O_CREAT | O_TRUNC,
 				 srcStatBuf.st_mode);
 		if (wfd < 0) {
-			perror(destName);
+			perror_msg("%s", destName);
 			close(rfd);
 			return FALSE;
 		}
@@ -434,26 +434,20 @@ copy_file(const char *srcName, const char *destName,
 
 	if (setModes == TRUE) {
 		/* This is fine, since symlinks never get here */
-		if (chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0) {
-			perror(destName);
-			exit(EXIT_FAILURE);
-		}
-		if (chmod(destName, srcStatBuf.st_mode) < 0) {
-			perror(destName);
-			exit(EXIT_FAILURE);
-		}
+		if (chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0)
+			perror_msg_and_die("%s", destName);
+		if (chmod(destName, srcStatBuf.st_mode) < 0)
+			perror_msg_and_die("%s", destName);
 		times.actime = srcStatBuf.st_atime;
 		times.modtime = srcStatBuf.st_mtime;
-		if (utime(destName, &times) < 0) {
-			perror(destName);
-			exit(EXIT_FAILURE);
-		}
+		if (utime(destName, &times) < 0)
+			perror_msg_and_die("%s", destName);
 	}
 
 	return TRUE;
 
   error_exit:
-	perror(destName);
+	perror_msg("%s", destName);
 	close(rfd);
 	close(wfd);
 
@@ -745,7 +739,7 @@ extern int create_path(const char *name, int mode)
 		*cpOld = '\0';
 		retVal = mkdir(buf, cp ? 0777 : mode);
 		if (retVal != 0 && errno != EEXIST) {
-			perror(buf);
+			perror_msg("%s", buf);
 			return FALSE;
 		}
 		*cpOld = '/';
@@ -1450,11 +1444,11 @@ extern int del_loop(const char *device)
 	int fd;
 
 	if ((fd = open(device, O_RDONLY)) < 0) {
-		perror(device);
+		perror_msg("%s", device);
 		return (FALSE);
 	}
 	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
-		perror("ioctl: LOOP_CLR_FD");
+		perror_msg("ioctl: LOOP_CLR_FD");
 		return (FALSE);
 	}
 	close(fd);
@@ -1470,12 +1464,12 @@ extern int set_loop(const char *device, const char *file, int offset,
 	mode = *loopro ? O_RDONLY : O_RDWR;
 	if ((ffd = open(file, mode)) < 0 && !*loopro
 		&& (errno != EROFS || (ffd = open(file, mode = O_RDONLY)) < 0)) {
-		perror(file);
+		perror_msg("%s", file);
 		return 1;
 	}
 	if ((fd = open(device, mode)) < 0) {
 		close(ffd);
-		perror(device);
+		perror_msg("%s", device);
 		return 1;
 	}
 	*loopro = (mode == O_RDONLY);
@@ -1488,14 +1482,14 @@ extern int set_loop(const char *device, const char *file, int offset,
 
 	loopinfo.lo_encrypt_key_size = 0;
 	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
-		perror("ioctl: LOOP_SET_FD");
+		perror_msg("ioctl: LOOP_SET_FD");
 		close(fd);
 		close(ffd);
 		return 1;
 	}
 	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
 		(void) ioctl(fd, LOOP_CLR_FD, 0);
-		perror("ioctl: LOOP_SET_STATUS");
+		perror_msg("ioctl: LOOP_SET_STATUS");
 		close(fd);
 		close(ffd);
 		return 1;
