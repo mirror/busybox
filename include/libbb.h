@@ -215,4 +215,16 @@ int klogctl(int type, char * b, int len);
 char *xgetcwd(char *cwd);
 char *concat_path_file(const char *path, const char *filename);
 
+typedef struct ar_headers_s {
+	char *name;
+	off_t size;
+	uid_t uid;
+	gid_t gid;
+	mode_t mode;
+	time_t mtime;
+	off_t offset;
+	struct ar_headers_s *next;
+} ar_headers_t;
+extern ar_headers_t get_ar_headers(int srcFd);
+
 #endif /* __LIBBB_H__ */

@@ -31,18 +31,6 @@
 extern int gz_open(FILE *compressed_file, int *pid);
 extern void gz_close(int gunzip_pid);
 
-typedef struct ar_headers_s {
-	char *name;
-	size_t size;
-	uid_t uid;
-	gid_t gid;
-	mode_t mode;
-	time_t mtime;
-	off_t offset;
-	struct ar_headers_s *next;
-} ar_headers_t;
-
-extern ar_headers_t get_ar_headers(int srcFd);
 extern int tar_unzip_init(int tarFd);
 extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
 	int tostdoutFlag, int verboseFlag, char** extractList, char** excludeList);
