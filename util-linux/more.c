@@ -84,11 +84,8 @@ extern int more_main(int argc, char **argv)
 		new_settings = initial_settings;
 		new_settings.c_lflag &= ~ICANON;
 		new_settings.c_lflag &= ~ECHO;
-#ifndef linux
-                /* Hmm, in linux c_cc[] not parsed if set ~ICANON */
 		new_settings.c_cc[VMIN] = 1;
 		new_settings.c_cc[VTIME] = 0;
-#endif
 		setTermSettings(fileno(cin), &new_settings);
 		atexit(set_tty_to_initial_mode);
 		(void) signal(SIGINT, gotsig);
