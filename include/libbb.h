@@ -55,7 +55,10 @@
 
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
+#ifndef _SOCKLEN_T
+#define _SOCKLEN_T
 typedef unsigned int socklen_t;
+#endif
 /* libc5 doesn't implement BSD 4.4 daemon() */
 extern int daemon (int nochdir, int noclose);
 /* libc5 doesn't implement strtok_r */

@@ -95,7 +95,9 @@ extern const struct BB_applet applets[];
 
 /* Bit map related macros -- libc5 doens't provide these... sigh.  */
 #ifndef setbit
+#ifndef NBBY
 #define NBBY            CHAR_BIT
+#endif
 #define setbit(a,i)     ((a)[(i)/NBBY] |= 1<<((i)%NBBY))
 #define clrbit(a,i)     ((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
 #define isset(a,i)      ((a)[(i)/NBBY] & (1<<((i)%NBBY)))
