@@ -63,24 +63,6 @@
 
 /* md5.c - Functions to compute MD5 message digest of files or memory blocks
  *         according to the definition of MD5 in RFC 1321 from April 1992.
- * Copyright (C) 1995, 1996 Free Software Foundation, Inc.
- *
- * NOTE: The canonical source of this file is maintained with the GNU C
- * Library.  Bugs can be reported to bug-glibc@prep.ai.mit.edu.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2, or (at your option) any
- * later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.  */
@@ -90,34 +72,7 @@
 //----------------------------------------------------------------------------
 
 /* md5.h - Declaration of functions and data types used for MD5 sum
-   computing library functions.
-   Copyright (C) 1995, 1996 Free Software Foundation, Inc.
-   NOTE: The canonical source of this file is maintained with the GNU C
-   Library.  Bugs can be reported to bug-glibc@prep.ai.mit.edu.
-
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
-
-#ifndef _MD5_H
-static const int _MD5_H = 1;
-
-/* The following contortions are an attempt to use the C preprocessor
-   to determine an unsigned integral type that is 32 bits wide.  An
-   alternative approach is to use autoconf's AC_CHECK_SIZEOF macro, but
-   doing that would require that the configure script compile and *run*
-   the resulting executable.  Locally running cross-compiled executables
-   is usually not possible.  */
+   computing library functions. */
 
 typedef u_int32_t md5_uint32;
 
@@ -141,20 +96,20 @@ struct md5_ctx
 
 /* Initialize structure containing state of computation.
    (RFC 1321, 3.3: Step 3)  */
-extern void md5_init_ctx __P ((struct md5_ctx *ctx));
+static void md5_init_ctx __P ((struct md5_ctx *ctx));
 
 /* Starting with the result of former calls of this function (or the
    initialization function update the context for the next LEN bytes
    starting at BUFFER.
    It is necessary that LEN is a multiple of 64!!! */
-extern void md5_process_block __P ((const void *buffer, size_t len,
+static void md5_process_block __P ((const void *buffer, size_t len,
 				    struct md5_ctx *ctx));
 
 /* Starting with the result of former calls of this function (or the
    initialization function update the context for the next LEN bytes
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
-extern void md5_process_bytes __P ((const void *buffer, size_t len,
+static void md5_process_bytes __P ((const void *buffer, size_t len,
 				    struct md5_ctx *ctx));
 
 /* Process the remaining bytes in the buffer and put result from CTX
@@ -164,30 +119,21 @@ extern void md5_process_bytes __P ((const void *buffer, size_t len,
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-extern void *md5_finish_ctx __P ((struct md5_ctx *ctx, void *resbuf));
+static void *md5_finish_ctx __P ((struct md5_ctx *ctx, void *resbuf));
 
 
-/* Put result from CTX in first 16 bytes following RESBUF.  The result is
-   always in little endian byte order, so that a byte-wise output yields
-   to the wanted ASCII representation of the message digest.
-
-   IMPORTANT: On some systems it is required that RESBUF is correctly
-   aligned for a 32 bits value.  */
-extern void *md5_read_ctx __P ((const struct md5_ctx *ctx, void *resbuf));
 
 
 /* Compute MD5 message digest for bytes read from STREAM.  The
    resulting message digest number will be written into the 16 bytes
    beginning at RESBLOCK.  */
-extern int md5_stream __P ((FILE *stream, void *resblock));
+static int md5_stream __P ((FILE *stream, void *resblock));
 
 /* Compute MD5 message digest for LEN bytes beginning at BUFFER.  The
    result is always in little endian byte order, so that a byte-wise
    output yields to the wanted ASCII representation of the message
    digest.  */
-extern void *md5_buffer __P ((const char *buffer, size_t len, void *resblock));
-
-#endif
+static void *md5_buffer __P ((const char *buffer, size_t len, void *resblock));
 
 //----------------------------------------------------------------------------
 //--------end of md5.h
@@ -221,27 +167,12 @@ void md5_init_ctx(struct md5_ctx *ctx)
   ctx->buflen = 0;
 }
 
-/* Put result from CTX in first 16 bytes following RESBUF.  The result
-   must be in little endian byte order.
-
-   IMPORTANT: On some systems it is required that RESBUF is correctly
-   aligned for a 32 bits value.  */
-void *md5_read_ctx(const struct md5_ctx *ctx, void *resbuf)
-{
-  ((md5_uint32 *) resbuf)[0] = SWAP(ctx->A);
-  ((md5_uint32 *) resbuf)[1] = SWAP(ctx->B);
-  ((md5_uint32 *) resbuf)[2] = SWAP(ctx->C);
-  ((md5_uint32 *) resbuf)[3] = SWAP(ctx->D);
-
-  return resbuf;
-}
-
 /* Process the remaining bytes in the internal buffer and the usual
    prolog according to the standard and write the result to RESBUF.
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-void *md5_finish_ctx(struct md5_ctx *ctx, void *resbuf)
+static void *md5_finish_ctx(struct md5_ctx *ctx, void *resbuf)
 {
   /* Take yet unprocessed bytes into account.  */
   md5_uint32 bytes = ctx->buflen;
@@ -268,13 +199,24 @@ void *md5_finish_ctx(struct md5_ctx *ctx, void *resbuf)
   /* Process last bytes.  */
   md5_process_block(ctx->buffer, bytes + pad + 8, ctx);
 
-  return md5_read_ctx(ctx, resbuf);
+/* Put result from CTX in first 16 bytes following RESBUF.  The result is
+   always in little endian byte order, so that a byte-wise output yields
+   to the wanted ASCII representation of the message digest.
+
+   IMPORTANT: On some systems it is required that RESBUF is correctly
+   aligned for a 32 bits value.  */
+  ((md5_uint32 *) resbuf)[0] = SWAP(ctx->A);
+  ((md5_uint32 *) resbuf)[1] = SWAP(ctx->B);
+  ((md5_uint32 *) resbuf)[2] = SWAP(ctx->C);
+  ((md5_uint32 *) resbuf)[3] = SWAP(ctx->D);
+
+  return resbuf;
 }
 
 /* Compute MD5 message digest for bytes read from STREAM.  The
    resulting message digest number will be written into the 16 bytes
    beginning at RESBLOCK.  */
-int md5_stream(FILE *stream, void *resblock)
+static int md5_stream(FILE *stream, void *resblock)
 {
   /* Important: BLOCKSIZE must be a multiple of 64.  */
 static const int BLOCKSIZE = 4096;
@@ -326,7 +268,7 @@ static const int BLOCKSIZE = 4096;
    result is always in little endian byte order, so that a byte-wise
    output yields to the wanted ASCII representation of the message
    digest.  */
-void *md5_buffer(const char *buffer, size_t len, void *resblock)
+static void *md5_buffer(const char *buffer, size_t len, void *resblock)
 {
   struct md5_ctx ctx;
 
@@ -340,7 +282,7 @@ void *md5_buffer(const char *buffer, size_t len, void *resblock)
   return md5_finish_ctx(&ctx, resblock);
 }
 
-void md5_process_bytes(const void *buffer, size_t len, struct md5_ctx *ctx)
+static void md5_process_bytes(const void *buffer, size_t len, struct md5_ctx *ctx)
 {
   /* When we already have some bits in our internal buffer concatenate
      both inputs first.  */
@@ -388,7 +330,7 @@ void md5_process_bytes(const void *buffer, size_t len, struct md5_ctx *ctx)
 
 /* Process LEN bytes of BUFFER, accumulating context into CTX.
    It is assumed that LEN % 64 == 0.  */
-void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
+static void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
 {
   md5_uint32 correct_words[16];
   const md5_uint32 *words = buffer;
@@ -490,7 +432,6 @@ void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
 		break;
 	    case 3:
 		temp += FI(B,C,D);
-		break;
 	}
 	temp += cwp[(int)(*pp++)] + *pc++;
 	temp = CYCLIC (temp, ps[i&3]);
@@ -550,6 +491,7 @@ void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
 
     /* It is unfortunate that C does not provide an operator for
        cyclic rotation.  Hope the C compiler is smart enough.  */
+    /* gcc 2.95.4 seems to be --aaronl */
 #define CYCLIC(w, s) (w = (w << s) | (w >> (32 - s)))
 
     /* Before we start, one word to the strange constants.
@@ -707,11 +649,7 @@ void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ctx)
 //----------------------------------------------------------------------------
 
 #define ISWHITE(c) ((c) == ' ' || (c) == '\t')
-#define IN_CTYPE_DOMAIN(c) 1
-#define ISXDIGIT(c) (IN_CTYPE_DOMAIN (c) && isxdigit (c))
-#define STREQ(a, b) (strcmp ((a), (b)) == 0)
-#define TOLOWER(Ch) tolower (Ch)
-#define OPENOPTS(BINARY) "r"
+#define ISXDIGIT(c) (isxdigit (c))
 
 /* The minimum length of a valid digest line in a file produced
    by `md5sum FILE' and read by `md5sum -c'.  This length does
@@ -731,7 +669,6 @@ static int warn = 0; /* With -w, print a message to standard error warning
 static int split_3(char *s,
                    size_t s_len,
                    unsigned char **u,
-                   int *binary,
                    char **w)
 {
   size_t i = 0;
@@ -762,9 +699,8 @@ static int split_3(char *s,
 
   s[i++] = '\0';
 
-  if (s[i] != ' ' && s[i] != '*')
+  if (s[i] != ' ' && s[i++] != '*')
     return FALSE;
-  *binary = (s[i++] == '*');
 
   /* All characters between the type indicator and end of line are
      significant -- that includes leading and trailing white space.  */
@@ -812,7 +748,7 @@ static int split_3(char *s,
   return TRUE;
 }
 
-static int hex_digits(unsigned char const *s)
+static inline int hex_digits(unsigned char const *s)
 {
   while (*s) {
     if (!ISXDIGIT(*s))
@@ -826,16 +762,15 @@ static int hex_digits(unsigned char const *s)
    put the result in *MD5_RESULT.  Return non-zero upon failure, zero
    to indicate success.  */
 static int md5_file(const char *filename,
-                    int binary,
                     unsigned char *md5_result)
 {
   FILE *fp;
 
-  if (STREQ(filename, "-")) {
+  if (filename[0] == '-' && filename[1] == '\0') {
     have_read_stdin = 1;
     fp = stdin;
   } else {
-    fp = fopen(filename, OPENOPTS(binary));
+    fp = fopen(filename, "r");
     if (fp == NULL) {
       perror_msg("%s", filename);
       return FALSE;
@@ -868,7 +803,7 @@ static int md5_check(const char *checkfile_name)
   size_t line_number;
   char line[BUFSIZ];
 
-  if (STREQ(checkfile_name, "-")) {
+  if (checkfile_name[0] == '-' && checkfile_name[1] == '\0') {
     have_read_stdin = 1;
     checkfile_stream = stdin;
   } else {
@@ -883,7 +818,6 @@ static int md5_check(const char *checkfile_name)
 
   do {
     char *filename;
-    int binary;
     unsigned char *md5num;
     int line_length;
 
@@ -903,7 +837,7 @@ static int md5_check(const char *checkfile_name)
     if (line[line_length - 1] == '\n')
       line[--line_length] = '\0';
 
-    if (split_3(line, line_length, &md5num, &binary, &filename)
+    if (split_3(line, line_length, &md5num, &filename)
         || !hex_digits(md5num)) {
       if (warn) {
         error_msg("%s: %lu: improperly formatted MD5 checksum line",
@@ -919,7 +853,7 @@ static int md5_check(const char *checkfile_name)
 
       ++n_properly_formated_lines;
 
-      if (md5_file(filename, binary, md5buffer)) {
+      if (md5_file(filename, md5buffer)) {
         ++n_open_or_read_failures;
         if (!status_only) {
           printf("%s: FAILED open or read\n", filename);
@@ -930,9 +864,9 @@ static int md5_check(const char *checkfile_name)
         /* Compare generated binary number with text representation
            in check file.  Ignore case of hex digits.  */
         for (cnt = 0; cnt < 16; ++cnt) {
-          if (TOLOWER(md5num[2 * cnt])
+          if (tolower(md5num[2 * cnt])
               != bin2hex[md5buffer[cnt] >> 4]
-              || (TOLOWER(md5num[2 * cnt + 1])
+              || (tolower(md5num[2 * cnt + 1])
                   != (bin2hex[md5buffer[cnt] & 0xf])))
             break;
         }
@@ -997,8 +931,8 @@ int md5sum_main(int argc,
   char **string = NULL;
   size_t n_strings = 0;
   size_t err = 0;
-  int file_type_specified = 0;
-  int binary = 0;
+  char file_type_specified = 0;
+  char binary = 0;
 
   while ((opt = getopt(argc, argv, "g:bcstw")) != -1) {
     switch (opt) {
@@ -1084,9 +1018,9 @@ int md5sum_main(int argc,
       int fail;
       char *file = argv[optind];
 
-      fail = md5_file (file, binary, md5buffer);
+      fail = md5_file (file, md5buffer);
       err |= fail;
-      if (!fail && STREQ(file, "-")) {
+      if (!fail && file[0]=='-' && file[1] == '\0') {
 	  size_t i;
 	  for (i = 0; i < 16; ++i)
 	      printf ("%02x", md5buffer[i]);
