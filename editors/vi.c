@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.18 2001/11/17 06:57:42 andersen Exp $";
+	"$Id: vi.c,v 1.19 2001/11/17 07:14:06 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -242,7 +242,7 @@ static int file_size(Byte *);	// what is the byte size of "fn"
 static int file_insert(Byte *, Byte *, int);
 static int file_write(Byte *, Byte *, Byte *);
 static void place_cursor(int, int, int);
-static void screen_erase();
+static void screen_erase(void);
 static void clear_to_eol(void);
 static void clear_to_eos(void);
 static void standout_start(void);	// send "start reverse video" sequence
@@ -279,7 +279,7 @@ static void core_sig(int);	// catch a core dump signal
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
 static void start_new_cmd_q(Byte);	// new queue for command
-static void end_cmd_q();	// stop saving input chars
+static void end_cmd_q(void);	// stop saving input chars
 #else							/* CONFIG_FEATURE_VI_DOT_CMD */
 #define end_cmd_q()
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
@@ -789,6 +789,20 @@ static void do_cmd(Byte c)
 	cnt = yf = dir = 0;	// quiet the compiler
 	p = q = save_dot = msg = buf;	// quiet the compiler
 	memset(buf, '\0', 9);	// clear buf
+
+	/* if this is a cursor key, skip these checks */
+	switch (c) {
+		case VI_K_UP:
+		case VI_K_DOWN:
+		case VI_K_LEFT:
+		case VI_K_RIGHT:
+		case VI_K_HOME:
+		case VI_K_END:
+		case VI_K_PAGEUP:
+		case VI_K_PAGEDOWN:
+			goto key_cmd_mode;
+	}
+
 	if (cmd_mode == 2) {
 		// we are 'R'eplacing the current *dot with new char
 		if (*dot == '\n') {
@@ -813,6 +827,7 @@ static void do_cmd(Byte c)
 		goto dc1;
 	}
 
+key_cmd_mode:
 	switch (c) {
 		//case 0x01:	// soh
 		//case 0x09:	// ht
@@ -3039,7 +3054,7 @@ static void start_new_cmd_q(Byte c)
 	return;
 }
 
-static void end_cmd_q()
+static void end_cmd_q(void)
 {
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	YDreg = 26;			// go back to default Yank/Delete reg
