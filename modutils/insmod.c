@@ -124,7 +124,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.62 2001/05/14 18:27:25 kraai Exp $"
+#ident "$Id: insmod.c,v 1.63 2001/05/14 20:03:04 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -330,7 +330,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.62 2001/05/14 18:27:25 kraai Exp $"
+#ident "$Id: insmod.c,v 1.63 2001/05/14 20:03:04 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3180,18 +3180,29 @@ extern int insmod_main( int argc, char **argv)
 		 * but do not error out yet if we fail to find it... */
 		if (uname(&myuname) == 0) {
 			char module_dir[FILENAME_MAX];
+			char real_module_dir[FILENAME_MAX];
 			snprintf (module_dir, sizeof(module_dir), "%s/%s", 
 					_PATH_MODULES, myuname.release);
-			recursive_action(module_dir, TRUE, TRUE, FALSE,
+			/* Jump through hoops in case /lib/modules/`uname -r`
+			 * is a symlink.  We do not want recursive_action to
+			 * follow symlinks, but we do want to follow the
+			 * /lib/modules/`uname -r` dir, So resolve it ourselves
+			 * if it is a link... */
+			if (realpath (module_dir, real_module_dir) == NULL)
+				strcpy(real_module_dir, module_dir);
+			recursive_action(real_module_dir, TRUE, FALSE, FALSE,
 					check_module_name_match, 0, m_fullName);
 		}
 
 		/* Check if we have found anything yet */
 		if (m_filename[0] == '\0' || ((fp = fopen(m_filename, "r")) == NULL)) 
 		{
+			char module_dir[FILENAME_MAX];
+			if (realpath (_PATH_MODULES, module_dir) == NULL)
+				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
-			if (recursive_action(_PATH_MODULES, TRUE, TRUE, FALSE,
+			if (recursive_action(module_dir, TRUE, FALSE, FALSE,
 						check_module_name_match, 0, m_fullName) == FALSE) 
 			{
 				if (m_filename[0] == '\0'
