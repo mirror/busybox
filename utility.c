@@ -610,6 +610,7 @@ int recursiveAction(const char *fileName,
 				fprintf(stderr, name_too_long, "ftw");
 				return FALSE;
 			}
+			memset(nextFile, 0, sizeof(nextFile));
 			sprintf(nextFile, "%s/%s", fileName, next->d_name);
 			status =
 				recursiveAction(nextFile, TRUE, followLinks, depthFirst,
@@ -1083,11 +1084,14 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 				if (*text == ch)
 					found = TRUE;
 			}
-
-			//if (!found)
+			if (found == FALSE)
+				continue;
 			if (found == TRUE) {
-				pattern = retryPat;
-				text = ++retryText;
+				//printf("Got a match.  pattern='%s'  text='%s'\n", pattern, text);
+				if (retryPat || retryText) {
+					pattern = retryPat;
+					text = ++retryText;
+				}
 			}
 
 			/* fall into next case */
@@ -1378,7 +1382,7 @@ extern pid_t* findPidByName( char* pidName)
 		}
 		p=buffer+6; /* Skip the "Name:\t" */
 
-		if (((q=strstr(q, pidName)) != NULL)
+		if (((q=strstr(p, pidName)) != NULL)
 				&& (strncmp(q, pidName, strlen(pidName)) != 0)) {
 			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
 			if (pidList==NULL)
