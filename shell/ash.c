@@ -26,12 +26,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- *
- * Modified by Vladimir Oleynik <dzo@simtreas.ru> to be used in busybox
- *
- *
  * Original BSD copyright notice is retained at the end of this file.
  */
+
+/*
+ * rewrite arith.y to micro stack based cryptic algorithm by
+ * Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
+ *
+ * Modified by Vladimir Oleynik <dzo@simtreas.ru> (c) 2001-2003 to be
+ * used in busybox and size optimizations,
+ * support locale, rewrited arith (see notes to this)
+ *
+ */
+
 
 /*
  * The follow should be set to reflect the type of system you have:
@@ -83,8 +90,6 @@
 #include <sysexits.h>
 
 #include <fnmatch.h>
-#include <glob.h>
-
 
 
 #include "busybox.h"
@@ -544,7 +549,7 @@ static int parsenleft;                  /* copy of parsefile->nleft */
 static int parselleft;                  /* copy of parsefile->lleft */
 
 /* next character in input buffer */
-static char *parsenextc;               /* copy of parsefile->nextc */
+static char *parsenextc;                /* copy of parsefile->nextc */
 static struct parsefile basepf;         /* top level input file */
 static char basebuf[IBUFSIZ];           /* buffer for top level input file */
 static struct parsefile *parsefile = &basepf;  /* current input file */
@@ -588,16 +593,12 @@ static const char homestr[] = "HOME";
 #define TRACEV(param)
 #endif
 
-#if defined(__GNUC__) && __GNUC__ < 3
-#define va_copy __va_copy
-#endif
-
 #if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
 #define __builtin_expect(x, expected_value) (x)
 #endif
 
 #define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
+
 
 #define TEOF 0
 #define TNL 1
@@ -1223,9 +1224,6 @@ static int dotcmd(int, char **);
 static int evalcmd(int, char **);
 static int execcmd(int, char **);
 static int exitcmd(int, char **);
-#ifdef CONFIG_ASH_MATH_SUPPORT
-static int expcmd(int, char **);
-#endif
 static int exportcmd(int, char **);
 static int falsecmd(int, char **);
 #ifdef JOBS
@@ -1240,6 +1238,9 @@ static int helpcmd(int argc, char **argv);
 #endif
 #ifdef JOBS
 static int jobscmd(int, char **);
+#endif
+#ifdef CONFIG_ASH_MATH_SUPPORT
+static int letcmd(int, char **);
 #endif
 static int localcmd(int, char **);
 static int pwdcmd(int, char **);
@@ -1345,9 +1346,6 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG      "eval", evalcmd },
 	{ BUILTIN_SPEC_REG      "exec", execcmd },
 	{ BUILTIN_SPEC_REG      "exit", exitcmd },
-#ifdef CONFIG_ASH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC        "exp", expcmd },
-#endif
 	{ BUILTIN_SPEC_REG_ASSG "export", exportcmd },
 	{ BUILTIN_REGULAR       "false", falsecmd },
 #ifdef JOBS
@@ -1365,7 +1363,7 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_REGULAR       "kill", killcmd },
 #endif
 #ifdef CONFIG_ASH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC        "let", expcmd },
+	{ BUILTIN_NOSPEC        "let", letcmd },
 #endif
 	{ BUILTIN_ASSIGN        "local", localcmd },
 	{ BUILTIN_NOSPEC        "pwd", pwdcmd },
@@ -1421,7 +1419,6 @@ static void defun(char *, union node *);
 static void unsetfunc(const char *);
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
-/* From arith.y */
 static int dash_arith(const char *);
 #endif
 
@@ -1482,8 +1479,7 @@ static void change_lc_ctype(const char *value);
 
 #define VTABSIZE 39
 
-static const char defpathvar[] =
-	"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+static const char defpathvar[] = "PATH=/usr/local/bin:/usr/bin:/sbin:/bin";
 #ifdef IFS_BROKEN
 static const char defifsvar[] = "IFS= \t\n";
 #define defifs (defifsvar + 4)
@@ -4522,8 +4518,6 @@ static void removerecordregions(int);
 static void ifsbreakup(char *, struct arglist *);
 static void ifsfree(void);
 static void expandmeta(struct strlist *, int);
-static void addglob(const glob_t *);
-static void addfname(char *);
 static int patmatch(char *, const char *);
 
 static int cvtnum(long);
@@ -4536,7 +4530,7 @@ static void varunset(const char *, const char *, const char *, int)
 
 #define pmatch(a, b) !fnmatch((a), (b), 0)
 /*
- * Prepare a pattern for a glob(3) call.
+ * Prepare a pattern for a expmeta (internal glob(3)) call.
  *
  * Returns an stalloced string.
  */
@@ -4623,7 +4617,6 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 		arglist->lastp = exparg.lastp;
 	}
 }
-
 
 
 /*
@@ -4987,10 +4980,9 @@ read:
 
 
 static char *
-scanleft(
-	char *startp, char *rmesc, char *rmescend, char *str, int quotes,
-	int zero
-) {
+scanleft(char *startp, char *rmesc, char *rmescend, char *str, int quotes,
+	int zero)
+{
 	char *loc;
 	char *loc2;
 	char c;
@@ -5019,10 +5011,9 @@ scanleft(
 
 
 static char *
-scanright(
-	char *startp, char *rmesc, char *rmescend, char *str, int quotes,
-	int zero
-) {
+scanright(char *startp, char *rmesc, char *rmescend, char *str, int quotes,
+	int zero)
+{
 	int esc = 0;
 	char *loc;
 	char *loc2;
@@ -5330,7 +5321,6 @@ varisset(char *name, int nulok)
 }
 
 
-
 /*
  * Put a string on the stack.
  */
@@ -5359,7 +5349,6 @@ strtodest(const char *p, int syntax, int quotes)
 {
 	memtodest(p, strlen(p), syntax, quotes);
 }
-
 
 
 /*
@@ -5437,7 +5426,6 @@ param:
 }
 
 
-
 /*
  * Record the fact that we have to scan this region of the
  * string for IFS characters.
@@ -5462,7 +5450,6 @@ recordregion(int start, int end, int nulonly)
 	ifslastp->endoff = end;
 	ifslastp->nulonly = nulonly;
 }
-
 
 
 /*
@@ -5573,79 +5560,69 @@ ifsfree(void)
 	INTON;
 }
 
+static void expmeta(char *, char *);
+static struct strlist *expsort(struct strlist *);
+static struct strlist *msort(struct strlist *, int);
 
+static char *expdir;
 
-/*
- * Expand shell metacharacters.  At this point, the only control characters
- * should be escapes.  The results are stored in the list exparg.
- */
 
 static void
-expandmeta(str, flag)
-	struct strlist *str;
-	int flag;
+expandmeta(struct strlist *str, int flag)
 {
+	static const char metachars[] = {
+		'*', '?', '[', 0
+	};
 	/* TODO - EXP_REDIR */
 
 	while (str) {
-		const char *p;
-		glob_t pglob;
-		int i;
+		struct strlist **savelastp;
+		struct strlist *sp;
+		char *p;
 
 		if (fflag)
 			goto nometa;
+		if (!strpbrk(str->text, metachars))
+			goto nometa;
+		savelastp = exparg.lastp;
+
 		INTOFF;
 		p = preglob(str->text, 0, RMESCAPE_ALLOC | RMESCAPE_HEAP);
-		i = glob(p, GLOB_NOMAGIC, 0, &pglob);
+		{
+			int i = strlen(str->text);
+			expdir = ckmalloc(i < 2048 ? 2048 : i); /* XXX */
+		}
+
+		expmeta(expdir, p);
+		ckfree(expdir);
 		if (p != str->text)
 			ckfree(p);
-		switch (i) {
-		case 0:
-			if (!(pglob.gl_flags & GLOB_MAGCHAR))
-				goto nometa2;
-			addglob(&pglob);
-			globfree(&pglob);
-			INTON;
-			break;
-		case GLOB_NOMATCH:
-nometa2:
-			globfree(&pglob);
-			INTON;
+		INTON;
+		if (exparg.lastp == savelastp) {
+			/*
+			 * no matches
+			 */
 nometa:
 			*exparg.lastp = str;
 			rmescapes(str->text);
 			exparg.lastp = &str->next;
-			break;
-		default:        /* GLOB_NOSPACE */
-			error(bb_msg_memory_exhausted);
+		} else {
+			*exparg.lastp = NULL;
+			*savelastp = sp = expsort(*savelastp);
+			while (sp->next != NULL)
+				sp = sp->next;
+			exparg.lastp = &sp->next;
 		}
 		str = str->next;
 	}
 }
-
-
-/*
- * Add the result of glob(3) to the list.
- */
-
-static void
-addglob(pglob)
-	const glob_t *pglob;
-{
-	char **p = pglob->gl_pathv;
-
-	do {
-		addfname(*p);
-	} while (*++p);
-}
-
 
 /*
  * Add a file name to the list.
  */
 
 static void
-addfname(char *name)
+addfname(const char *name)
 {
 	struct strlist *sp;
 
@@ -5653,6 +5630,184 @@ addfname(char *name)
 	sp->text = sstrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
+}
+
+
+/*
+ * Do metacharacter (i.e. *, ?, [...]) expansion.
+ */
+
+static void
+expmeta(char *enddir, char *name)
+{
+	char *p;
+	const char *cp;
+	char *start;
+	char *endname;
+	int metaflag;
+	struct stat64 statb;
+	DIR *dirp;
+	struct dirent *dp;
+	int atend;
+	int matchdot;
+
+	metaflag = 0;
+	start = name;
+	for (p = name; *p; p++) {
+		if (*p == '*' || *p == '?')
+			metaflag = 1;
+		else if (*p == '[') {
+			char *q = p + 1;
+			if (*q == '!')
+				q++;
+			for (;;) {
+				if (*q == '\\')
+					q++;
+				if (*q == '/' || *q == '\0')
+					break;
+				if (*++q == ']') {
+					metaflag = 1;
+					break;
+				}
+			}
+		} else if (*p == '\\')
+			p++;
+		else if (*p == '/') {
+			if (metaflag)
+				goto out;
+			start = p + 1;
+		}
+	}
+out:
+	if (metaflag == 0) {    /* we've reached the end of the file name */
+		if (enddir != expdir)
+			metaflag++;
+		p = name;
+		do {
+			if (*p == '\\')
+				p++;
+			*enddir++ = *p;
+		} while (*p++);
+		if (metaflag == 0 || lstat64(expdir, &statb) >= 0)
+			addfname(expdir);
+		return;
+	}
+	endname = p;
+	if (name < start) {
+		p = name;
+		do {
+			if (*p == '\\')
+				p++;
+			*enddir++ = *p++;
+		} while (p < start);
+	}
+	if (enddir == expdir) {
+		cp = ".";
+	} else if (enddir == expdir + 1 && *expdir == '/') {
+		cp = "/";
+	} else {
+		cp = expdir;
+		enddir[-1] = '\0';
+	}
+	if ((dirp = opendir(cp)) == NULL)
+		return;
+	if (enddir != expdir)
+		enddir[-1] = '/';
+	if (*endname == 0) {
+		atend = 1;
+	} else {
+		atend = 0;
+		*endname++ = '\0';
+	}
+	matchdot = 0;
+	p = start;
+	if (*p == '\\')
+		p++;
+	if (*p == '.')
+		matchdot++;
+	while (! intpending && (dp = readdir(dirp)) != NULL) {
+		if (dp->d_name[0] == '.' && ! matchdot)
+			continue;
+		if (pmatch(start, dp->d_name)) {
+			if (atend) {
+				scopy(dp->d_name, enddir);
+				addfname(expdir);
+			} else {
+				for (p = enddir, cp = dp->d_name;
+				     (*p++ = *cp++) != '\0';)
+					continue;
+				p[-1] = '/';
+				expmeta(p, endname);
+			}
+		}
+	}
+	closedir(dirp);
+	if (! atend)
+		endname[-1] = '/';
+}
+
+/*
+ * Sort the results of file name expansion.  It calculates the number of
+ * strings to sort and then calls msort (short for merge sort) to do the
+ * work.
+ */
+
+static struct strlist *
+expsort(struct strlist *str)
+{
+	int len;
+	struct strlist *sp;
+
+	len = 0;
+	for (sp = str ; sp ; sp = sp->next)
+		len++;
+	return msort(str, len);
+}
+
+
+static struct strlist *
+msort(struct strlist *list, int len)
+{
+	struct strlist *p, *q = NULL;
+	struct strlist **lpp;
+	int half;
+	int n;
+
+	if (len <= 1)
+		return list;
+	half = len >> 1;
+	p = list;
+	for (n = half ; --n >= 0 ; ) {
+		q = p;
+		p = p->next;
+	}
+	q->next = NULL;                 /* terminate first half of list */
+	q = msort(list, half);          /* sort first half of list */
+	p = msort(p, len - half);               /* sort second half */
+	lpp = &list;
+	for (;;) {
+#ifdef CONFIG_LOCALE_SUPPORT
+		if (strcoll(p->text, q->text) < 0)
+#else
+		if (strcmp(p->text, q->text) < 0)
+#endif
+						{
+			*lpp = p;
+			lpp = &p->next;
+			if ((p = *lpp) == NULL) {
+				*lpp = q;
+				break;
+			}
+		} else {
+			*lpp = q;
+			lpp = &q->next;
+			if ((q = *lpp) == NULL) {
+				*lpp = p;
+				break;
+			}
+		}
+	}
+	return list;
 }
 
 
@@ -5736,7 +5891,6 @@ copy:
 }
 
 
-
 /*
  * See if a pattern matches in a case statement.
  */
@@ -5790,12 +5944,12 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 	}
 	error("%.*s: %s%s", end - var - 1, var, msg, tail);
 }
+
+
 /*      $NetBSD: input.c,v 1.37 2002/11/24 22:35:40 christos Exp $      */
 
-
-
 /*
- * This file implements the input routines used by the parser.
+ * This implements the input routines used by the parser.
  */
 
 #define EOF_NLEFT -99           /* value of parsenleft when EOF pushed back */
@@ -6147,7 +6301,6 @@ setinputstring(char *string)
 }
 
 
-
 /*
  * To handle the "." command, a stack of input files is used.  Pushfile
  * adds a new entry to the stack and popfile restores the previous level.
@@ -6205,7 +6358,6 @@ popallfiles(void)
 }
 
 
-
 /*
  * Close the file(s) that the shell is reading commands from.  Called
  * after a fork is done.
@@ -6220,8 +6372,8 @@ closescript(void)
 		parsefile->fd = 0;
 	}
 }
-/*      $NetBSD: jobs.c,v 1.56 2002/11/25 12:13:03 agc Exp $    */
 
+/*      $NetBSD: jobs.c,v 1.56 2002/11/25 12:13:03 agc Exp $    */
 
 /* mode flags for set_curjob */
 #define CUR_DELETE 2
@@ -6382,9 +6534,7 @@ close:
 }
 
 static int
-killcmd(argc, argv)
-	int argc;
-	char **argv;
+killcmd(int argc, char **argv)
 {
 	int signo = -1;
 	int list = 0;
@@ -6625,8 +6775,7 @@ showjob(FILE *out, struct job *jp, int mode)
 		col = fmtstr(s, 48, " |\n%*c%d ", indent, ' ', ps->pid) - 3;
 
 start:
-		fprintf(
-			out, "%s%*c%s",
+		fprintf(out, "%s%*c%s",
 			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
 		);
 		if (!(mode & SHOW_PID)) {
@@ -6781,7 +6930,6 @@ out:
 }
 
 
-
 /*
  * Convert a job name to a job structure.
  */
@@ -6864,7 +7012,6 @@ gotit:
 err:
 	error(err_msg, name);
 }
-
 
 
 /*
@@ -7260,10 +7407,10 @@ out:
 }
 
 
-
 /*
  * return 1 if there are stopped jobs, otherwise 0
  */
+
 int
 stoppedjobs(void)
 {
@@ -7467,7 +7614,6 @@ cmdlist(union node *np, int sep)
 			cmdputs(spcstr);
 	}
 }
-
 
 static void
 cmdputs(const char *s)
@@ -7749,7 +7895,7 @@ ash_main(int argc, char **argv)
 		if (e == EXEXIT || state == 0 || iflag == 0 || ! rootshell)
 			exitshell();
 
-		if (e == EXINT ) {
+		if (e == EXINT) {
 			outcslow('\n', stderr);
 		}
 		popstackmark(&smark);
@@ -7814,7 +7960,6 @@ state3:
 		evalstring(minusc, 0);
 
 	if (sflag || minusc == NULL) {
-state4: /* XXX ??? - why isn't this before the "if" statement */
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
 	    if ( iflag ) {
 		const char *hp = lookupvar("HISTFILE");
@@ -7823,6 +7968,7 @@ state4: /* XXX ??? - why isn't this before the "if" statement */
 			load_history ( hp );
 	    }
 #endif
+state4: /* XXX ??? - why isn't this before the "if" statement */
 		cmdloop(1);
 	}
 #if PROFILE
@@ -7895,7 +8041,6 @@ cmdloop(int top)
 }
 
 
-
 /*
  * Read /etc/profile or .profile.  Return on error.
  */
@@ -7929,7 +8074,6 @@ read_profile(const char *name)
 	}
 	popfile();
 }
-
 
 
 /*
@@ -8019,23 +8163,7 @@ exitcmd(int argc, char **argv)
 /*      $NetBSD: memalloc.c,v 1.27 2003/01/22 20:36:04 dsl Exp $        */
 
 /*
- * Like malloc, but returns an error when out of space.
- */
-
-static pointer
-ckmalloc(size_t nbytes)
-{
-	pointer p;
-
-	p = malloc(nbytes);
-	if (p == NULL)
-		error(bb_msg_memory_exhausted);
-	return p;
-}
-
-
-/*
- * Same for realloc.
+ * Same for malloc, realloc, but returns an error when out of space.
  */
 
 static pointer
@@ -8047,6 +8175,11 @@ ckrealloc(pointer p, size_t nbytes)
 	return p;
 }
 
+static pointer
+ckmalloc(size_t nbytes)
+{
+	return ckrealloc(NULL, nbytes);
+}
 
 /*
  * Make a copy of a string in safe storage.
@@ -8118,7 +8251,6 @@ stunalloc(pointer p)
 	stacknleft += stacknxt - (char *)p;
 	stacknxt = p;
 }
-
 
 
 void
@@ -8327,7 +8459,6 @@ number(const char *s)
 }
 
 
-
 /*
  * Check for a valid number.  This should be elsewhere.
  */
@@ -8479,7 +8610,6 @@ calcsize(union node *n)
 }
 
 
-
 static void
 sizenodelist(struct nodelist *lp)
 {
@@ -8489,7 +8619,6 @@ sizenodelist(struct nodelist *lp)
 		lp = lp->next;
 	}
 }
-
 
 
 static union node *
@@ -8601,7 +8730,6 @@ copynodelist(struct nodelist *lp)
 }
 
 
-
 static char *
 nodesavestr(char   *s)
 {
@@ -8610,7 +8738,6 @@ nodesavestr(char   *s)
 	funcstring = stpcpy(funcstring, s) + 1;
 	return rtn;
 }
-
 
 
 /*
@@ -8773,7 +8900,6 @@ options(int cmdline)
 		}
 	}
 }
-
 
 
 static void
@@ -10669,7 +10795,7 @@ noexpand(char *text)
 
 char *
 endofname(const char *name)
-	{
+{
 	char *p;
 
 	p = (char *) name;
@@ -10735,7 +10861,7 @@ static void setprompt(int whichprompt)
 static const char *const *findkwd(const char *s)
 {
 	return bsearch(s, tokname_array + KWDOFFSET,
-				   (sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
+		       (sizeof(tokname_array) / sizeof(const char *)) - KWDOFFSET,
 				   sizeof(const char *), pstrcmp);
 }
 
@@ -12122,7 +12248,6 @@ localcmd(int argc, char **argv)
 }
 
 
-
 /*
  * Called after a function returns.
  * Interrupts must be off.
@@ -12320,14 +12445,18 @@ int timescmd(int ac, char **av) {
 static int
 dash_arith(const char *s)
 {
-	long result = 0;
+	long result;
 	int errcode = 0;
 
 	INTOFF;
 	result = arith(s, &errcode);
 	if (errcode < 0) {
-		if (errcode == -2)
+		if (errcode == -3)
+			error("exponent less than 0");
+		else if (errcode == -2)
 			error("divide by zero");
+		else if (errcode == -5)
+			error("expression recursion loop detected");
 		else
 			synerror(s);
 	}
@@ -12338,41 +12467,26 @@ dash_arith(const char *s)
 
 
 /*
- *  The exp(1) builtin.
+ *  The let builtin. partial stolen from GNU Bash, the Bourne Again SHell.
+ *  Copyright (C) 1987, 1989, 1991 Free Software Foundation, Inc.
+ *
+ *  Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
+
 static int
-expcmd(int argc, char **argv)
+letcmd(int argc, char **argv)
 {
-	const char *p;
-	char *concat;
 	char **ap;
 	long i;
 
-	if (argc > 1) {
-		p = argv[1];
-		if (argc > 2) {
-			/*
-			 * concatenate arguments
-			 */
-			STARTSTACKSTR(concat);
-			ap = argv + 2;
-			for (;;) {
-				while (*p)
-					STPUTC(*p++, concat);
-				if ((p = *ap++) == NULL)
-					break;
-				STPUTC(' ', concat);
-			}
-			STPUTC('\0', concat);
-			p = grabstackstr(concat);
-		}
-	} else
-		p = nullstr;
+	ap = argv + 1;
+	if(!*ap)
+		error("expression expected");
+	for (ap = argv + 1; *ap; ap++) {
+		i = dash_arith(*ap);
+	}
 
-	i = dash_arith(p);
-
-	out1fmt("%ld\n", i);
-	return (! i);
+	return (!i);
 }
 #endif /* CONFIG_ASH_MATH_SUPPORT */
 
@@ -12696,6 +12810,649 @@ ulimitcmd(int argc, char **argv)
 	}
 	return 0;
 }
+
+
+#ifdef CONFIG_ASH_MATH_SUPPORT
+
+/* Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
+
+   Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+/* This is my infix parser/evaluator. It is optimized for size, intended
+ * as a replacement for yacc-based parsers. However, it may well be faster
+ * than a comparable parser writen in yacc. The supported operators are
+ * listed in #defines below. Parens, order of operations, and error handling
+ * are supported. This code is threadsafe. The exact expression format should
+ * be that which POSIX specifies for shells. */
+
+/* The code uses a simple two-stack algorithm. See
+ * http://www.onthenet.com.au/~grahamis/int2008/week02/lect02.html
+ * for a detailed explaination of the infix-to-postfix algorithm on which
+ * this is based (this code differs in that it applies operators immediately
+ * to the stack instead of adding them to a queue to end up with an
+ * expression). */
+
+/* To use the routine, call it with an expression string and error return
+ * pointer */
+
+/*
+ * Aug 24, 2001              Manuel Novoa III
+ *
+ * Reduced the generated code size by about 30% (i386) and fixed several bugs.
+ *
+ * 1) In arith_apply():
+ *    a) Cached values of *numptr and &(numptr[-1]).
+ *    b) Removed redundant test for zero denominator.
+ *
+ * 2) In arith():
+ *    a) Eliminated redundant code for processing operator tokens by moving
+ *       to a table-based implementation.  Also folded handling of parens
+ *       into the table.
+ *    b) Combined all 3 loops which called arith_apply to reduce generated
+ *       code size at the cost of speed.
+ *
+ * 3) The following expressions were treated as valid by the original code:
+ *       1()  ,    0!  ,    1 ( *3 )   .
+ *    These bugs have been fixed by internally enclosing the expression in
+ *    parens and then checking that all binary ops and right parens are
+ *    preceded by a valid expression (NUM_TOKEN).
+ *
+ * Note: It may be desireable to replace Aaron's test for whitespace with
+ * ctype's isspace() if it is used by another busybox applet or if additional
+ * whitespace chars should be considered.  Look below the "#include"s for a
+ * precompiler test.
+ */
+
+/*
+ * Aug 26, 2001              Manuel Novoa III
+ *
+ * Return 0 for null expressions.  Pointed out by Vladimir Oleynik.
+ *
+ * Merge in Aaron's comments previously posted to the busybox list,
+ * modified slightly to take account of my changes to the code.
+ *
+ */
+
+/*
+ *  (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
+ *
+ * - allow access to variable,
+ *   used recursive find value indirection (c=2*2; a="c"; $((a+=2)) produce 6)
+ * - realize assign syntax (VAR=expr, +=, *= etc)
+ * - realize exponentiation (** operator)
+ * - realize comma separated - expr, expr
+ * - realise ++expr --expr expr++ expr--
+ * - realise expr ? expr : expr (but, second expr calculate always)
+ * - allow hexdecimal and octal numbers
+ * - was restored loses XOR operator
+ * - remove one goto label, added three ;-)
+ * - protect $((num num)) as true zero expr (Manuel`s error)
+ * - always use special isspace(), see comment from bash ;-)
+ */
+
+
+#define arith_isspace(arithval) \
+	(arithval == ' ' || arithval == '\n' || arithval == '\t')
+
+
+typedef unsigned char operator;
+
+/* An operator's token id is a bit of a bitfield. The lower 5 bits are the
+ * precedence, and 3 high bits are an ID unique accross operators of that
+ * precedence. The ID portion is so that multiple operators can have the
+ * same precedence, ensuring that the leftmost one is evaluated first.
+ * Consider * and /. */
+
+#define tok_decl(prec,id) (((id)<<5)|(prec))
+#define PREC(op) ((op) & 0x1F)
+
+#define TOK_LPAREN tok_decl(0,0)
+
+#define TOK_COMMA tok_decl(1,0)
+
+#define TOK_ASSIGN tok_decl(2,0)
+#define TOK_AND_ASSIGN tok_decl(2,1)
+#define TOK_OR_ASSIGN tok_decl(2,2)
+#define TOK_XOR_ASSIGN tok_decl(2,3)
+#define TOK_PLUS_ASSIGN tok_decl(2,4)
+#define TOK_MINUS_ASSIGN tok_decl(2,5)
+#define TOK_LSHIFT_ASSIGN tok_decl(2,6)
+#define TOK_RSHIFT_ASSIGN tok_decl(2,7)
+
+#define TOK_MUL_ASSIGN tok_decl(3,0)
+#define TOK_DIV_ASSIGN tok_decl(3,1)
+#define TOK_REM_ASSIGN tok_decl(3,2)
+
+/* all assign is right associativity and precedence eq, but (7+3)<<5 > 256 */
+#define convert_prec_is_assing(prec) do { if(prec == 3) prec = 2; } while(0)
+
+/* conditional is right associativity too */
+#define TOK_CONDITIONAL tok_decl(4,0)
+#define TOK_CONDITIONAL_SEP tok_decl(4,1)
+
+#define TOK_OR tok_decl(5,0)
+
+#define TOK_AND tok_decl(6,0)
+
+#define TOK_BOR tok_decl(7,0)
+
+#define TOK_BXOR tok_decl(8,0)
+
+#define TOK_BAND tok_decl(9,0)
+
+#define TOK_EQ tok_decl(10,0)
+#define TOK_NE tok_decl(10,1)
+
+#define TOK_LT tok_decl(11,0)
+#define TOK_GT tok_decl(11,1)
+#define TOK_GE tok_decl(11,2)
+#define TOK_LE tok_decl(11,3)
+
+#define TOK_LSHIFT tok_decl(12,0)
+#define TOK_RSHIFT tok_decl(12,1)
+
+#define TOK_ADD tok_decl(13,0)
+#define TOK_SUB tok_decl(13,1)
+
+#define TOK_MUL tok_decl(14,0)
+#define TOK_DIV tok_decl(14,1)
+#define TOK_REM tok_decl(14,2)
+
+/* exponent is right associativity */
+#define TOK_EXPONENT tok_decl(15,1)
+
+/* For now unary operators. */
+#define UNARYPREC 16
+#define TOK_BNOT tok_decl(UNARYPREC,0)
+#define TOK_NOT tok_decl(UNARYPREC,1)
+
+#define TOK_UMINUS tok_decl(UNARYPREC+1,0)
+#define TOK_UPLUS tok_decl(UNARYPREC+1,1)
+
+#define PREC_PRE (UNARYPREC+2)
+
+#define TOK_PRE_INC tok_decl(PREC_PRE, 0)
+#define TOK_PRE_DEC tok_decl(PREC_PRE, 1)
+
+#define PREC_POST (UNARYPREC+3)
+
+#define TOK_POST_INC tok_decl(PREC_POST, 0)
+#define TOK_POST_DEC tok_decl(PREC_POST, 1)
+
+#define SPEC_PREC (UNARYPREC+4)
+
+#define TOK_NUM tok_decl(SPEC_PREC, 0)
+#define TOK_RPAREN tok_decl(SPEC_PREC, 1)
+
+#define NUMPTR (*numstackptr)
+
+static inline int tok_have_assign(operator op)
+{
+	operator prec = PREC(op);
+
+	convert_prec_is_assing(prec);
+	return (prec == PREC(TOK_ASSIGN) ||
+			prec == PREC_PRE || prec == PREC_POST);
+}
+
+static inline int is_right_associativity(operator prec)
+{
+    return (prec == PREC(TOK_ASSIGN) || prec == PREC(TOK_EXPONENT) ||
+	    prec == PREC(TOK_CONDITIONAL));
+}
+
+
+typedef struct ARITCH_VAR_NUM {
+	long val;
+	long contidional_second_val;
+	char contidional_second_val_initialized;
+	char *var;      /* if NULL then is regular number,
+			   else is varable name */
+} v_n_t;
+
+
+typedef struct CHK_VAR_RECURSIVE_LOOPED {
+	const char *var;
+	struct CHK_VAR_RECURSIVE_LOOPED *next;
+} chk_var_recursive_looped_t;
+
+static chk_var_recursive_looped_t *prev_chk_var_recursive;
+
+
+static int arith_lookup_val(v_n_t *t)
+{
+    if(t->var) {
+	const char * p = lookupvar(t->var);
+
+	if(p) {
+	    int errcode;
+
+	    /* recursive try as expression */
+	    chk_var_recursive_looped_t *cur;
+	    chk_var_recursive_looped_t cur_save;
+
+	    for(cur = prev_chk_var_recursive; cur; cur = cur->next) {
+		if(strcmp(cur->var, t->var) == 0) {
+		    /* expression recursion loop detected */
+		    return -5;
+		}
+	    }
+	    /* save current lookuped var name */
+	    cur = prev_chk_var_recursive;
+	    cur_save.var = t->var;
+	    cur_save.next = cur;
+	    prev_chk_var_recursive = &cur_save;
+
+	    t->val = arith (p, &errcode);
+	    /* restore previous ptr after recursiving */
+	    prev_chk_var_recursive = cur;
+	    return errcode;
+	} else {
+	    /* allow undefined var as 0 */
+	    t->val = 0;
+	}
+    }
+    return 0;
+}
+
+/* "applying" a token means performing it on the top elements on the integer
+ * stack. For a unary operator it will only change the top element, but a
+ * binary operator will pop two arguments and push a result */
+static inline int
+arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
+{
+	long numptr_val;
+	v_n_t *numptr_m1;
+	long rez;
+	int ret_arith_lookup_val;
+
+	if (NUMPTR == numstack) goto err; /* There is no operator that can work
+										 without arguments */
+	numptr_m1 = NUMPTR - 1;
+
+	/* check operand is var with noninteger value */
+	ret_arith_lookup_val = arith_lookup_val(numptr_m1);
+	if(ret_arith_lookup_val)
+		return ret_arith_lookup_val;
+
+	rez = numptr_m1->val;
+	if (op == TOK_UMINUS)
+		rez *= -1;
+	else if (op == TOK_NOT)
+		rez = !rez;
+	else if (op == TOK_BNOT)
+		rez = ~rez;
+	else if (op == TOK_POST_INC || op == TOK_PRE_INC)
+		rez++;
+	else if (op == TOK_POST_DEC || op == TOK_PRE_DEC)
+		rez--;
+	else if (op != TOK_UPLUS) {
+		/* Binary operators */
+
+	    /* check and binary operators need two arguments */
+	    if (numptr_m1 == numstack) goto err;
+
+	    /* ... and they pop one */
+	    --NUMPTR;
+	    numptr_val = rez;
+	    if (op == TOK_CONDITIONAL) {
+		if(! numptr_m1->contidional_second_val_initialized) {
+		    /* protect $((expr1 ? expr2)) without ": expr" */
+		    goto err;
+		}
+		rez = numptr_m1->contidional_second_val;
+	    } else if(numptr_m1->contidional_second_val_initialized) {
+		    /* protect $((expr1 : expr2)) without "expr ? " */
+		    goto err;
+	    }
+	    numptr_m1 = NUMPTR - 1;
+	    if(op != TOK_ASSIGN) {
+		/* check operand is var with noninteger value for not '=' */
+		ret_arith_lookup_val = arith_lookup_val(numptr_m1);
+		if(ret_arith_lookup_val)
+		    return ret_arith_lookup_val;
+	    }
+	    if (op == TOK_CONDITIONAL) {
+		    numptr_m1->contidional_second_val = rez;
+	    }
+	    rez = numptr_m1->val;
+	    if (op == TOK_BOR || op == TOK_OR_ASSIGN)
+			rez |= numptr_val;
+	    else if (op == TOK_OR)
+			rez = numptr_val || rez;
+	    else if (op == TOK_BAND || op == TOK_AND_ASSIGN)
+			rez &= numptr_val;
+	    else if (op == TOK_BXOR || op == TOK_XOR_ASSIGN)
+			rez ^= numptr_val;
+	    else if (op == TOK_AND)
+			rez = rez && numptr_val;
+	    else if (op == TOK_EQ)
+			rez = (rez == numptr_val);
+	    else if (op == TOK_NE)
+			rez = (rez != numptr_val);
+	    else if (op == TOK_GE)
+			rez = (rez >= numptr_val);
+	    else if (op == TOK_RSHIFT || op == TOK_RSHIFT_ASSIGN)
+			rez >>= numptr_val;
+	    else if (op == TOK_LSHIFT || op == TOK_LSHIFT_ASSIGN)
+			rez <<= numptr_val;
+	    else if (op == TOK_GT)
+			rez = (rez > numptr_val);
+	    else if (op == TOK_LT)
+			rez = (rez < numptr_val);
+	    else if (op == TOK_LE)
+			rez = (rez <= numptr_val);
+	    else if (op == TOK_MUL || op == TOK_MUL_ASSIGN)
+			rez *= numptr_val;
+	    else if (op == TOK_ADD || op == TOK_PLUS_ASSIGN)
+			rez += numptr_val;
+	    else if (op == TOK_SUB || op == TOK_MINUS_ASSIGN)
+			rez -= numptr_val;
+	    else if (op == TOK_ASSIGN || op == TOK_COMMA)
+			rez = numptr_val;
+	    else if (op == TOK_CONDITIONAL_SEP) {
+			if (numptr_m1 == numstack) {
+			    /* protect $((expr : expr)) without "expr ? " */
+			    goto err;
+			}
+			numptr_m1->contidional_second_val_initialized = op;
+			numptr_m1->contidional_second_val = numptr_val;
+	    }
+	    else if (op == TOK_CONDITIONAL) {
+			rez = rez ?
+			      numptr_val : numptr_m1->contidional_second_val;
+	    }
+	    else if(op == TOK_EXPONENT) {
+			if(numptr_val < 0)
+				return -3;      /* exponent less than 0 */
+			else {
+				long c = 1;
+
+				if(numptr_val)
+					while(numptr_val--)
+						c *= rez;
+				rez = c;
+			}
+	    }
+	    else if(numptr_val==0)          /* zero divisor check */
+			return -2;
+	    else if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
+			rez /= numptr_val;
+	    else if (op == TOK_REM || op == TOK_REM_ASSIGN)
+			rez %= numptr_val;
+	}
+	if(tok_have_assign(op)) {
+		char buf[32];
+
+		if(numptr_m1->var == NULL) {
+			/* Hmm, 1=2 ? */
+			goto err;
+		}
+		/* save to shell variable */
+		sprintf(buf, "%ld", rez);
+		setvar(numptr_m1->var, buf, 0);
+		/* after saving, make previous value for v++ or v-- */
+		if(op == TOK_POST_INC)
+			rez--;
+		else if(op == TOK_POST_DEC)
+			rez++;
+	}
+	numptr_m1->val = rez;
+	/* protect geting var value, is number now */
+	numptr_m1->var = NULL;
+	return 0;
+err: return(-1);
+}
+
+/* longest must first */
+static const char op_tokens[] = {
+	'<','<','=',0, TOK_LSHIFT_ASSIGN,
+	'>','>','=',0, TOK_RSHIFT_ASSIGN,
+	'<','<',    0, TOK_LSHIFT,
+	'>','>',    0, TOK_RSHIFT,
+	'|','|',    0, TOK_OR,
+	'&','&',    0, TOK_AND,
+	'!','=',    0, TOK_NE,
+	'<','=',    0, TOK_LE,
+	'>','=',    0, TOK_GE,
+	'=','=',    0, TOK_EQ,
+	'|','=',    0, TOK_OR_ASSIGN,
+	'&','=',    0, TOK_AND_ASSIGN,
+	'*','=',    0, TOK_MUL_ASSIGN,
+	'/','=',    0, TOK_DIV_ASSIGN,
+	'%','=',    0, TOK_REM_ASSIGN,
+	'+','=',    0, TOK_PLUS_ASSIGN,
+	'-','=',    0, TOK_MINUS_ASSIGN,
+	'-','-',    0, TOK_POST_DEC,
+	'^','=',    0, TOK_XOR_ASSIGN,
+	'+','+',    0, TOK_POST_INC,
+	'*','*',    0, TOK_EXPONENT,
+	'!',        0, TOK_NOT,
+	'<',        0, TOK_LT,
+	'>',        0, TOK_GT,
+	'=',        0, TOK_ASSIGN,
+	'|',        0, TOK_BOR,
+	'&',        0, TOK_BAND,
+	'*',        0, TOK_MUL,
+	'/',        0, TOK_DIV,
+	'%',        0, TOK_REM,
+	'+',        0, TOK_ADD,
+	'-',        0, TOK_SUB,
+	'^',        0, TOK_BXOR,
+	/* uniq */
+	'~',        0, TOK_BNOT,
+	',',        0, TOK_COMMA,
+	'?',        0, TOK_CONDITIONAL,
+	':',        0, TOK_CONDITIONAL_SEP,
+	')',        0, TOK_RPAREN,
+	'(',        0, TOK_LPAREN,
+	0
+};
+/* ptr to ")" */
+#define endexpression &op_tokens[sizeof(op_tokens)-7]
+
+
+extern long arith (const char *expr, int *perrcode)
+{
+    register char arithval; /* Current character under analysis */
+    operator lasttok, op;
+    operator prec;
+
+    const char *p = endexpression;
+    int errcode;
+
+    size_t datasizes = strlen(expr) + 2;
+
+    /* Stack of integers */
+    /* The proof that there can be no more than strlen(startbuf)/2+1 integers
+     * in any given correct or incorrect expression is left as an excersize to
+     * the reader. */
+    v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
+	    *numstackptr = numstack;
+    /* Stack of operator tokens */
+    operator *stack = alloca((datasizes) * sizeof(operator)),
+	    *stackptr = stack;
+
+    *stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
+    *perrcode = errcode = 0;
+
+    while(1) {
+	if ((arithval = *expr) == 0) {
+		if (p == endexpression) {
+			/* Null expression. */
+			return 0;
+		}
+
+		/* This is only reached after all tokens have been extracted from the
+		 * input stream. If there are still tokens on the operator stack, they
+		 * are to be applied in order. At the end, there should be a final
+		 * result on the integer stack */
+
+		if (expr != endexpression + 1) {
+			/* If we haven't done so already, */
+			/* append a closing right paren */
+			expr = endexpression;
+			/* and let the loop process it. */
+			continue;
+		}
+		/* At this point, we're done with the expression. */
+		if (numstackptr != numstack+1) {
+			/* ... but if there isn't, it's bad */
+		  err:
+			return (*perrcode = -1);
+		}
+		if(numstack->var) {
+		    /* expression is $((var)) only, lookup now */
+		    errcode = arith_lookup_val(numstack);
+		}
+	ret:
+		*perrcode = errcode;
+		return numstack->val;
+	} else {
+		/* Continue processing the expression. */
+		if (arith_isspace(arithval)) {
+			/* Skip whitespace */
+			goto prologue;
+		}
+		if((p = endofname(expr)) != expr) {
+			int var_name_size = (p-expr) + 1;  /* trailing zero */
+
+			numstackptr->var = alloca(var_name_size);
+			safe_strncpy(numstackptr->var, expr, var_name_size);
+			expr = p;
+		num:
+			numstackptr->contidional_second_val_initialized = 0;
+			numstackptr++;
+			lasttok = TOK_NUM;
+			continue;
+		} else if (is_digit(arithval)) {
+			numstackptr->var = NULL;
+			numstackptr->val = strtol(expr, (char **) &expr, 0);
+			goto num;
+		}
+		for(p = op_tokens; ; p++) {
+			const char *o;
+
+			if(*p == 0) {
+				/* strange operator not found */
+				goto err;
+			}
+			for(o = expr; *p && *o == *p; p++)
+				o++;
+			if(! *p) {
+				/* found */
+				expr = o - 1;
+				break;
+			}
+			/* skip tail uncompared token */
+			while(*p)
+				p++;
+			/* skip zero delim */
+			p++;
+		}
+		op = p[1];
+
+		/* post grammar: a++ reduce to num */
+		if(lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
+		    lasttok = TOK_NUM;
+
+		/* Plus and minus are binary (not unary) _only_ if the last
+		 * token was as number, or a right paren (which pretends to be
+		 * a number, since it evaluates to one). Think about it.
+		 * It makes sense. */
+		if (lasttok != TOK_NUM) {
+			switch(op) {
+				case TOK_ADD:
+				    op = TOK_UPLUS;
+				    break;
+				case TOK_SUB:
+				    op = TOK_UMINUS;
+				    break;
+				case TOK_POST_INC:
+				    op = TOK_PRE_INC;
+				    break;
+				case TOK_POST_DEC:
+				    op = TOK_PRE_DEC;
+				    break;
+			}
+		}
+		/* We don't want a unary operator to cause recursive descent on the
+		 * stack, because there can be many in a row and it could cause an
+		 * operator to be evaluated before its argument is pushed onto the
+		 * integer stack. */
+		/* But for binary operators, "apply" everything on the operator
+		 * stack until we find an operator with a lesser priority than the
+		 * one we have just extracted. */
+		/* Left paren is given the lowest priority so it will never be
+		 * "applied" in this way.
+		 * if associativity is right and priority eq, applied also skip
+		 */
+		prec = PREC(op);
+		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
+			/* not left paren or unary */
+			if (lasttok != TOK_NUM) {
+				/* binary op must be preceded by a num */
+				goto err;
+			}
+			while (stackptr != stack) {
+			    if (op == TOK_RPAREN) {
+				/* The algorithm employed here is simple: while we don't
+				 * hit an open paren nor the bottom of the stack, pop
+				 * tokens and apply them */
+				if (stackptr[-1] == TOK_LPAREN) {
+				    --stackptr;
+				    /* Any operator directly after a */
+				    lasttok = TOK_NUM;
+				    /* close paren should consider itself binary */
+				    goto prologue;
+				}
+			    } else {
+				operator prev_prec = PREC(stackptr[-1]);
+
+				convert_prec_is_assing(prec);
+				convert_prec_is_assing(prev_prec);
+				if (prev_prec < prec)
+					break;
+				/* check right assoc */
+				if(prev_prec == prec && is_right_associativity(prec))
+					break;
+			    }
+			    errcode = arith_apply(*--stackptr, numstack, &numstackptr);
+			    if(errcode) goto ret;
+			}
+			if (op == TOK_RPAREN) {
+				goto err;
+			}
+		}
+
+		/* Push this operator to the stack and remember it. */
+		*stackptr++ = lasttok = op;
+
+	  prologue:
+		++expr;
+	}
+    }
+}
+#endif /* CONFIG_ASH_MATH_SUPPORT */
+
 
 #ifdef DEBUG
 const char *bb_applet_name = "debug stuff usage";

@@ -24,7 +24,7 @@ LIBBB_DIR:=$(TOPDIR)libbb/
 endif
 
 LIBBB_SRC:= \
-	arith.c bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
+	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c \
 	copyfd.c correct_password.c create_icmp_socket.c \
 	create_icmp6_socket.c device_open.c dump.c error_msg.c \
