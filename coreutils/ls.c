@@ -920,10 +920,10 @@ static const unsigned opt_flags[] = {
 # endif
 #endif
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-	SORT_ORDER_REVERSE,       	/* r */
 	SORT_SIZE,               	/* S */
+	SORT_EXT,                	/* X */
+	SORT_ORDER_REVERSE,       	/* r */
 	SORT_VERSION,             	/* v */
-	SORT_EXT,                	/* v */
 #endif
 #ifdef CONFIG_FEATURE_LS_FILETYPES
 	LIST_FILETYPE | LIST_EXEC,	/* F */
@@ -1109,7 +1109,6 @@ extern int ls_main(int argc, char **argv)
 		dnp[i] = cur;	/* save pointer to node in array */
 		cur = cur->next;
 	}
-
 
 	if (all_fmt & DISP_NOLIST) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
