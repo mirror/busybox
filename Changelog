@@ -15,8 +15,8 @@
 	* Fixed rebooting from init.  I'd left some debugging code in
 	    which blocked reboots.
 	* Added a prelinary du implementation.  Some parameter parsing
-	    stuff still needs to be added.  -beppu
-	* Implemented tee -beppu
+	    stuff still needs to be added. -beppu  (John Beppu <beppu@lineo.com>)
+	* Implemented tee. -beppu
 
 	-Erik Andrsen
 
