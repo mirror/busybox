@@ -839,7 +839,6 @@ static void process_file(FILE * file)
 				still_in_range || ((sed_cmd->beg_line == -1)
 					&& (next_line == NULL))
 				);
-
 			if (sed_cmd->cmd == '{') {
 				block_mask = block_mask & matched;
 			}
@@ -925,7 +924,7 @@ static void process_file(FILE * file)
 						}
 					}
 #endif
-					altered |= substituted;
+					altered = substituted;
 					if (!be_quiet && altered && ((sed_cmd->next == NULL)
 							|| (sed_cmd->next->cmd != 's'))) {
 						force_print = 1;
