@@ -2373,11 +2373,11 @@ int bunzip2_main(int argc, char **argv)
 	}
 
 	if (uncompressStream(src_stream, dst_stream)) {
-		if (save_name != NULL)
+		if (!(flags & bunzip_to_stdout))
 			delete_name = argv[optind];
 		status = EXIT_SUCCESS;
 	} else {
-		if (save_name != NULL)
+		if (!(flags & bunzip_to_stdout))
 			delete_name = save_name;
 		status = EXIT_FAILURE;
 	}
