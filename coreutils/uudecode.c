@@ -29,8 +29,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "busybox.h"
-#include "pwd_grp/pwd.h"
-#include "pwd_grp/grp.h"
+#include "pwd.h"
+#include "grp.h"
 
 /*struct passwd *getpwnam();*/
 

@@ -89,7 +89,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <paths.h>
-#include <pwd.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -107,6 +106,7 @@
 #include <sys/times.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "pwd.h"
 
 
 #if !defined(FNMATCH_BROKEN)
@@ -12627,7 +12627,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.30 2001/10/24 08:01:06 andersen Exp $
+ * $Id: ash.c,v 1.31 2001/10/24 17:19:35 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
