@@ -13,9 +13,9 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- *  FIXME: Better checking required in oldcompatability mode, 
- *  the file db.1.85.tar.gz from sleepycat.com has trailing garbage
- *  GNU tar can handle it, busybox tar reports invalid tar header. 
+ *  FIXME:
+ *    In privelidged mode if uname and gname map to a uid amd gid then use the
+ *    mapped value instead of the uid/gid values in tar header
  *
  *  References:
  *    GNU tar and star man pages,
@@ -135,14 +135,16 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case 'g':
 		bb_error_msg_and_die("pax is not tar");
 		break;
-#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
+	case '7':
+		/* Reserved for high performance files, treat as normal file */
 	case 0:
 	case '0':
+#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 		if (last_char_is(file_header->name, '/')) {
 			file_header->mode |= S_IFDIR;
-		} else {
+		} else
+#endif
 			file_header->mode |= S_IFREG;
-		}
 		break;
 	case '2':
 		file_header->mode |= S_IFLNK;
@@ -159,11 +161,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case '6':
 		file_header->mode |= S_IFIFO;
 		break;
-	case '7':
-		/* Reserved for high performance files, treat as normal file */
-		file_header->mode |= S_IFREG;
-		break;
-#endif
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(file_header->size + 1);
