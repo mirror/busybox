@@ -47,6 +47,7 @@
 #include <fnmatch.h>
 #include <string.h>
 #include <errno.h>
+#include "unarchive.h"
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_TAR_CREATE

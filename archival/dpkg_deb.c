@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include "unarchive.h"
 #include "busybox.h"
 
 extern int dpkg_deb_main(int argc, char **argv)

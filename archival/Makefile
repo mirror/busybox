@@ -23,6 +23,7 @@ L_TARGET := archival.a
 obj-y           :=
 obj-n           :=
 obj-            :=
+subdir-y	:= libunarchive
 
 obj-$(CONFIG_AR)		+= ar.o
 obj-$(CONFIG_BUNZIP2)		+= bunzip2.o

@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "unarchive.h"
 #include "busybox.h"
 
 extern int cpio_main(int argc, char **argv)
