@@ -528,7 +528,10 @@ char **merge_list(char **include_list, char **exclude_list)
 	int new_include_count = 0;
 	int include_count = 0;
 	int exclude_count;
-	
+
+	if (include_list == NULL)
+		return exclude_list;
+
 	while (include_list[include_count] != NULL) {
 		int found = FALSE;
 		exclude_count = 0;
@@ -684,8 +687,8 @@ int tar_main(int argc, char **argv)
 #ifdef BB_FEATURE_TAR_EXCLUDE
 	/* Remove excluded files from the include list */
 	if (exclude_list != NULL) {
-		/* If both an exclude and include file list was present then
-		 * its an exclude from include list only, if not its really an
+		/* If both an exclude and include file list were present then
+		 * it's an exclude from include list only, if not it's really an
 		 * exclude list (and a poor choice of variable names) */
 		if (include_list == NULL) {
 			extract_function |= extract_exclude_list;
