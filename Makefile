@@ -227,7 +227,10 @@ ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
 	    fgetpwent.c __getgrent.c grent.c getgrnam.c getgrgid.c fgetgrent.c \
 	    initgroups.c setgroups.c
     PWD_OBJS=$(patsubst %.c,$(PWD_GRP)/%.o, $(PWD_CSRC))
-    PWD_CFLAGS = -I$(PWD_GRP_DIR)
+ifneq ($(strip $(BB_SRC_DIR)),)
+    PWD_CFLAGS = -I- -I.
+endif
+    PWD_CFLAGS += -I$(PWD_GRP_DIR)
 else
     CFLAGS    += -DUSE_SYSTEM_PWD_GRP
 endif
@@ -249,9 +252,10 @@ xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
 copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
 dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
-LIBBB_CFLAGS = -I$(LIBBB)
-ifneq ($(strip $(BB_SRC_DIR)),)
-    LIBBB_CFLAGS += -I$(BB_SRC_DIR)/$(LIBBB)
+ifeq ($(strip $(BB_SRC_DIR)),)
+    LIBBB_CFLAGS += -I$(LIBBB)
+else
+    LIBBB_CFLAGS = -I- -I. -I./$(LIBBB) -I$(BB_SRC_DIR)/$(LIBBB) -I$(BB_SRC_DIR)
 endif
 
 LIBBB_MSRC=libbb/messages.c
@@ -351,7 +355,11 @@ busybox.links: busybox.mkll Config.h applets.h
 nfsmount.o cmdedit.o: %.o: %.h
 ash.o hush.o lash.o msh.o: cmdedit.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
+ifeq ($(strip $(BB_SRC_DIR)),)
 	$(CC) $(CFLAGS) -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+else
+	$(CC) $(CFLAGS) -I- -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+endif
 
 $(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
 	- mkdir -p $(PWD_GRP)

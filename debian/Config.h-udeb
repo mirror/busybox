@@ -78,13 +78,15 @@
 #define BB_MKNOD
 #define BB_MKSWAP
 //#define BB_MKTEMP
-//#define BB_NC
+//#define BB_MODPROBE
 #define BB_MORE
 #define BB_MOUNT
 //#define BB_MSH
 //#define BB_MT
 #define BB_MV
+//#define BB_NC
 //#define BB_NSLOOKUP
+//#define BB_PIDOF
 #define BB_PING
 #define BB_PIVOT_ROOT
 #define BB_POWEROFF
@@ -117,6 +119,7 @@
 //#define BB_TFTP
 #define BB_TOUCH
 #define BB_TR
+//#define BB_TRACEROUTE
 #define BB_TRUE_FALSE
 #define BB_TTY
 //#define BB_UNIX2DOS
@@ -468,6 +471,3 @@
 # define BB_SH
 # define shell_main msh_main
 #endif
-
-
-

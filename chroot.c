@@ -48,17 +48,17 @@ int chroot_main(int argc, char **argv)
 		prog = *argv;
 		execvp(*argv, argv);
 	} else {
-#ifndef BB_SH
-		prog = getenv("SHELL");
-		if (!prog)
-			prog = "/bin/sh";
-		execlp(prog, prog, NULL);
-#else
+#if defined(BB_SH) && defined BB_FEATURE_SH_STANDALONE_SHELL
 		char shell[] = "/bin/sh";
 		char *shell_argv[2] = { shell, NULL };
 		applet_name = shell;
 		shell_main(1, shell_argv);
 		return EXIT_SUCCESS;
+#else
+		prog = getenv("SHELL");
+		if (!prog)
+			prog = "/bin/sh";
+		execlp(prog, prog, NULL);
 #endif
 	}
 	perror_msg_and_die("cannot execute %s", prog);

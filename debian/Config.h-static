@@ -52,7 +52,7 @@
 #define BB_HEAD
 #define BB_HOSTID
 #define BB_HOSTNAME
-#define BB_HUSH
+//#define BB_HUSH
 #define BB_ID
 #define BB_IFCONFIG
 #define BB_INIT
@@ -60,7 +60,7 @@
 #define BB_KILL
 #define BB_KILLALL
 #define BB_KLOGD
-#define BB_LASH
+//#define BB_LASH
 #define BB_LENGTH
 #define BB_LN
 #define BB_LOADACM
@@ -78,13 +78,15 @@
 #define BB_MKNOD
 #define BB_MKSWAP
 #define BB_MKTEMP
-#define BB_NC
+//#define BB_MODPROBE
 #define BB_MORE
 #define BB_MOUNT
-#define BB_MSH
+//#define BB_MSH
 #define BB_MT
 #define BB_MV
+#define BB_NC
 #define BB_NSLOOKUP
+#define BB_PIDOF
 #define BB_PING
 #define BB_PIVOT_ROOT
 #define BB_POWEROFF
@@ -117,6 +119,7 @@
 #define BB_TFTP
 #define BB_TOUCH
 #define BB_TR
+#define BB_TRACEROUTE
 #define BB_TRUE_FALSE
 #define BB_TTY
 #define BB_UNIX2DOS
@@ -148,10 +151,10 @@
 //
 // If you enabled one or more of the shells, you may select which one
 // should be run when sh is invoked:
-//#define BB_FEATURE_SH_IS_ASH
+#define BB_FEATURE_SH_IS_ASH
 //#define BB_FEATURE_SH_IS_HUSH
 //#define BB_FEATURE_SH_IS_LASH
-#define BB_FEATURE_SH_IS_MSH
+//#define BB_FEATURE_SH_IS_MSH
 //
 // BusyBox will, by default, malloc space for its buffers.  This costs code
 // size for the call to xmalloc.  You can use the following feature to have
@@ -468,5 +471,3 @@
 # define BB_SH
 # define shell_main msh_main
 #endif
-
-
