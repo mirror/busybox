@@ -38,6 +38,7 @@
 #include <signal.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/sysmacros.h>
 
 
 static const char tar_usage[] =
@@ -276,7 +277,7 @@ static void readTarFile (int fileCount, char **fileTable)
      * Open the tar file for reading.
      */
     if ((tarName == NULL) || !strcmp (tarName, "-")) {
-	tarFd = STDIN;
+	tarFd = fileno(stdin);
     } else
 	tarFd = open (tarName, O_RDONLY);
 
@@ -552,7 +553,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * Start the output file.
      */
     if (tostdoutFlag == TRUE)
-	outFd = STDOUT;
+	outFd = fileno(stdout);
     else {
 	if ( S_ISCHR(mode) || S_ISBLK(mode) || S_ISSOCK(mode) ) {
 	    devFileFlag = TRUE;
@@ -650,7 +651,7 @@ static void writeTarFile (int fileCount, char **fileTable)
      */
     if ((tarName == NULL) || !strcmp (tarName, "-")) {
 	tostdoutFlag = TRUE;
-	tarFd = STDOUT;
+	tarFd = fileno(stdout);
     } else
 	tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 

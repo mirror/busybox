@@ -85,8 +85,9 @@ extern int mkdir_main(int argc, char **argv)
 	    fprintf(stderr, "%s: File exists\n", *argv);
 	    exit( FALSE);
 	}
-	if (parentFlag == TRUE)
+	if (parentFlag == TRUE) {
 	    createPath(*argv, mode);
+	}
 	else { 
 	    if (mkdir (*argv, mode) != 0) {
 		perror(*argv);

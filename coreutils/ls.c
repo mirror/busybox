@@ -475,7 +475,7 @@ ls_main(int argc, char * * argv)
 
 	/* choose a display format */
 	if (display_fmt == FMT_AUTO)
-		display_fmt = isatty(STDOUT_FILENO) ? FMT_COLUMNS : FMT_SINGLE;
+		display_fmt = isatty(fileno(stdout)) ? FMT_COLUMNS : FMT_SINGLE;
 	if (argi < argc - 1)
 		opts |= DISP_DIRNAME; /* 2 or more items? label directories */
 #ifdef FEATURE_AUTOWIDTH

@@ -162,8 +162,13 @@ extern int dd_main (int argc, char **argv)
     intotal = 0;
     outTotal = 0;
 
-    if (inFile == NULL)
-	inFd = STDIN;
+    if (inFile == NULL) {
+	struct stat statBuf;
+	inFd = fileno(stdin);
+	if (fstat(inFd, &statBuf) < 0)
+	    exit( FALSE);
+	count = statBuf.st_size;
+    }
     else
 	inFd = open (inFile, 0);
 
@@ -174,7 +179,7 @@ extern int dd_main (int argc, char **argv)
     }
 
     if (outFile == NULL)
-	outFd = STDOUT;
+	outFd = fileno(stdout);
     else
 	outFd = creat (outFile, 0666);
 
@@ -191,6 +196,8 @@ extern int dd_main (int argc, char **argv)
 	if (inCc < 0) {
 	    perror (inFile);
 	    goto cleanup;
+	} else if (inCc == 0) {
+	    goto cleanup;
 	}
 	intotal += inCc;
 	cp = buf;
@@ -201,6 +208,8 @@ extern int dd_main (int argc, char **argv)
 	    outCc = write (outFd, cp, inCc);
 	    if (outCc < 0) {
 		perror (outFile);
+		goto cleanup;
+	    } else if (outCc == 0) {
 		goto cleanup;
 	    }
 

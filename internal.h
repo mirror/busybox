@@ -33,8 +33,6 @@
 
 
 /* Some useful definitions */
-#define STDIN	0
-#define STDOUT	1
 #define FALSE   ((int) 1)
 #define TRUE    ((int) 0)
 

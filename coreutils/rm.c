@@ -31,8 +31,8 @@
 static const char* rm_usage = "rm [OPTION]... FILE...\n\n"
 "Remove (unlink) the FILE(s).\n\n"
 "Options:\n"
-"\t-f\tremove existing destinations, never prompt\n"
-"\t-r\tremove the contents of directories recursively\n";
+"\t-f\t\tremove existing destinations, never prompt\n"
+"\t-r or -R\tremove the contents of directories recursively\n";
 
 
 static int recursiveFlag = FALSE;
@@ -72,6 +72,7 @@ extern int rm_main(int argc, char **argv)
     while (**argv == '-') {
 	while (*++(*argv))
 	    switch (**argv) {
+	    case 'R':
 	    case 'r':
 		recursiveFlag = TRUE;
 		break;

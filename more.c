@@ -122,7 +122,7 @@ extern int more_main(int argc, char **argv)
 	stty(fileno(cin), &new_settings);
 
 #ifdef BB_FEATURE_AUTOWIDTH	
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
+	ioctl(fileno(stdout), TIOCGWINSZ, &win);
 	if (win.ws_row > 4) 
 	    terminal_height = win.ws_row - 2;
 	if (win.ws_col > 0) 

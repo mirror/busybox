@@ -130,32 +130,40 @@ void message(int device, char *fmt, ...)
 void set_term( int fd)
 {
     struct termios tty;
+#if 0
     static const char control_characters[] = {
 	'\003', '\034', '\177', '\030', '\004', '\0',
 	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
 	'\017', '\027', '\026', '\0'
 	};
+#else	
+    static const char control_characters[] = {
+	'\003', '\034', '\177', '\025', '\004', '\0',
+	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
+	'\017', '\027', '\026', '\0'
+	};
+#endif
 
     tcgetattr(fd, &tty);
 
-    /* Make it be sane */
-    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-    tty.c_cflag |= HUPCL|CLOCAL;
-
-    /* input modes */
-    tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
+    /* set control chars */
+    memcpy(tty.c_cc, control_characters, sizeof(control_characters));
 
     /* use line dicipline 0 */
     tty.c_line = 0;
+
+    /* Make it be sane */
+    //tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
+    //tty.c_cflag |= HUPCL|CLOCAL;
+
+    /* input modes */
+    tty.c_iflag = ICRNL|IXON|IXOFF;
 
     /* output modes */
     tty.c_oflag = OPOST|ONLCR;
 
     /* local modes */
-    tty.c_lflag = ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOPRT|ECHOKE|IEXTEN;
-
-    /* control chars */
-    memcpy(tty.c_cc, control_characters, sizeof(control_characters));
+    tty.c_lflag = ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOKE|IEXTEN;
 
     tcsetattr(fd, TCSANOW, &tty);
 }
@@ -210,7 +218,7 @@ static void console_init()
 
 	console = the_console;
 	/* 2.2 kernels: identify the real console backend and try to use it */
-	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
+	if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 	    /* this is a serial console */
 	    snprintf( the_console, sizeof the_console, "/dev/ttyS%d", sr.line );
 	}
@@ -245,6 +253,7 @@ static void console_init()
 	/* check for serial console and disable logging to tty3 & running a
 	* shell to tty2 */
 	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
+	    message(LOG|CONSOLE, "serial console detected.  Disabling 2nd virtual terminal.\r\n", console );
 	    log = NULL;
 	    second_console = NULL;
 	}
@@ -362,7 +371,7 @@ static void shutdown_system(void)
     /* Allow Ctrl-Alt-Del to reboot system. */
     reboot(RB_ENABLE_CAD);
 #endif
-    message(CONSOLE, "The system is going down NOW !!\r\n");
+    message(CONSOLE, "\r\nThe system is going down NOW !!\r\n");
     sync();
     /* Send signals to every process _except_ pid 1 */
     message(CONSOLE, "Sending SIGHUP to all processes.\r\n");
@@ -376,7 +385,9 @@ static void shutdown_system(void)
     kill(-1, SIGKILL);
 #endif
     sleep(1);
+    message(CONSOLE, "Disabling swap.\r\n");
     waitfor(run( swap_off_cmd, console, FALSE));
+    message(CONSOLE, "Unmounting filesystems.\r\n");
     waitfor(run( umount_cmd, console, FALSE));
     sync();
     if (kernel_version > 0 && kernel_version <= 2 * 65536 + 2 * 256 + 11) {
