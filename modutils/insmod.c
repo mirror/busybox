@@ -119,7 +119,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.50 2001/02/24 20:01:53 andersen Exp $"
+#ident "$Id: insmod.c,v 1.51 2001/03/12 23:08:34 markw Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -325,7 +325,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.50 2001/02/24 20:01:53 andersen Exp $"
+#ident "$Id: insmod.c,v 1.51 2001/03/12 23:08:34 markw Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2306,48 +2306,50 @@ static int new_get_kernel_symbols(void)
 	}
 
 	n_ext_modules = nmod = ret;
-	ext_modules = modules = xmalloc(nmod * sizeof(*modules));
-	memset(modules, 0, nmod * sizeof(*modules));
 
 	/* Collect the modules' symbols.  */
 
-	for (i = 0, mn = module_names, m = modules;
-		 i < nmod; ++i, ++m, mn += strlen(mn) + 1) {
-		struct new_module_info info;
-
-		if (query_module(mn, QM_INFO, &info, sizeof(info), &ret)) {
-			if (errno == ENOENT) {
-				/* The module was removed out from underneath us.  */
-				continue;
-			}
-			perror_msg("query_module: QM_INFO: %s", mn);
-			return 0;
-		}
-
-		syms = xmalloc(bufsize = 1024);
-	  retry_mod_sym_load:
-		if (query_module(mn, QM_SYMBOLS, syms, bufsize, &ret)) {
-			switch (errno) {
-			case ENOSPC:
-				syms = xrealloc(syms, bufsize = ret);
-				goto retry_mod_sym_load;
-			case ENOENT:
-				/* The module was removed out from underneath us.  */
-				continue;
-			default:
-				perror_msg("query_module: QM_SYMBOLS: %s", mn);
+	if (nmod){
+		ext_modules = modules = xmalloc(nmod * sizeof(*modules));
+		memset(modules, 0, nmod * sizeof(*modules));
+		for (i = 0, mn = module_names, m = modules;
+			 i < nmod; ++i, ++m, mn += strlen(mn) + 1) {
+			struct new_module_info info;
+	
+			if (query_module(mn, QM_INFO, &info, sizeof(info), &ret)) {
+				if (errno == ENOENT) {
+					/* The module was removed out from underneath us.  */
+					continue;
+				}
+				perror_msg("query_module: QM_INFO: %s", mn);
 				return 0;
 			}
-		}
-		nsyms = ret;
-
-		m->name = mn;
-		m->addr = info.addr;
-		m->nsyms = nsyms;
-		m->syms = syms;
-
-		for (j = 0, s = syms; j < nsyms; ++j, ++s) {
-			s->name += (unsigned long) syms;
+	
+			syms = xmalloc(bufsize = 1024);
+		  retry_mod_sym_load:
+			if (query_module(mn, QM_SYMBOLS, syms, bufsize, &ret)) {
+				switch (errno) {
+				case ENOSPC:
+					syms = xrealloc(syms, bufsize = ret);
+					goto retry_mod_sym_load;
+				case ENOENT:
+					/* The module was removed out from underneath us.  */
+					continue;
+				default:
+					perror_msg("query_module: QM_SYMBOLS: %s", mn);
+					return 0;
+				}
+			}
+			nsyms = ret;
+	
+			m->name = mn;
+			m->addr = info.addr;
+			m->nsyms = nsyms;
+			m->syms = syms;
+	
+			for (j = 0, s = syms; j < nsyms; ++j, ++s) {
+				s->name += (unsigned long) syms;
+			}
 		}
 	}
 
