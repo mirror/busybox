@@ -57,7 +57,8 @@
 #define expand_t	glob_t
 
 /* Always enable for the moment... */
-#define CONFIG_LASH_PIPE_N_REDIRECTS
+//#define CONFIG_LASH_PIPE_N_REDIRECTS
+//#define CONFIG_LASH_JOB_CONTROL
 
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
@@ -192,7 +193,6 @@ static int last_return_code;
 static int last_bg_pid;
 static unsigned int last_jobid;
 static int shell_terminal;
-static pid_t shell_pgrp;
 static char *PS1;
 static char *PS2 = "> ";
 
@@ -513,6 +513,7 @@ static void close_all()
 }
 
 
+#ifdef CONFIG_LASH_JOB_CONTROL
 /* free up all memory from a job */
 static void free_job(struct job *cmd)
 {
@@ -609,6 +610,17 @@ static void checkjobs(struct jobset *j_list)
 	if (childpid == -1 && errno != ECHILD)
 		bb_perror_msg("waitpid");
 }
+#else
+static void checkjobs(struct jobset *j_list)
+{
+}
+static void free_job(struct job *cmd)
+{
+}
+static void remove_job(struct jobset *j_list, struct job *job)
+{
+}
+#endif
 
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -1171,8 +1183,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				break;
 #endif
 
+#ifdef CONFIG_LASH_JOB_CONTROL
 			case '&':			/* background */
 				*inbg = 1;
+#endif
 			case ';':			/* multiple commands */
 				done = 1;
 				return_command = *command_ptr + (src - *command_ptr) + 1;
@@ -1312,6 +1326,7 @@ static void insert_job(struct job *newjob, int inbg)
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
 
+#ifdef CONFIG_LASH_JOB_CONTROL
 	if (inbg) {
 		/* we don't wait for background thejobs to return -- append it
 		   to the list of backgrounded thejobs and leave it alone */
@@ -1327,6 +1342,7 @@ static void insert_job(struct job *newjob, int inbg)
 		if (tcsetpgrp(shell_terminal, newjob->pgrp) && errno != ENOTTY)
 			bb_perror_msg("tcsetpgrp");
 	}
+#endif
 }
 
 static int run_command(struct job *newjob, int inbg, int outpipe[2])
@@ -1438,15 +1454,17 @@ static int busy_loop(FILE * input)
 	char *command;
 	char *next_command = NULL;
 	struct job newjob;
-	pid_t  parent_pgrp;
 	int i;
 	int inbg;
 	int status;
 	newjob.job_list = &job_list;
 	newjob.job_context = DEFAULT_CONTEXT;
+#ifdef CONFIG_LASH_JOB_CONTROL
+	pid_t  parent_pgrp;
 
 	/* save current owner of TTY so we can restore it on exit */
 	parent_pgrp = tcgetpgrp(shell_terminal);
+#endif
 
 	command = (char *) xcalloc(BUFSIZ, sizeof(char));
 
@@ -1506,7 +1524,9 @@ static int busy_loop(FILE * input)
 					remove_job(&job_list, job_list.fg);
 					job_list.fg = NULL;
 				}
-			} else {
+			}
+#ifdef CONFIG_LASH_JOB_CONTROL
+			else {
 				/* the child was stopped */
 				job_list.fg->stopped_progs++;
 				job_list.fg->progs[i].is_stopped = 1;
@@ -1524,13 +1544,16 @@ static int busy_loop(FILE * input)
 				if (tcsetpgrp(shell_terminal, getpgrp()) && errno != ENOTTY)
 					bb_perror_msg("tcsetpgrp");
 			}
+#endif
 		}
 	}
 	free(command);
 
+#ifdef CONFIG_LASH_JOB_CONTROL
 	/* return controlling TTY back to parent process group before exiting */
 	if (tcsetpgrp(shell_terminal, parent_pgrp) && errno != ENOTTY)
 		bb_perror_msg("tcsetpgrp");
+#endif
 
 	/* return exit status if called with "-c" */
 	if (input == NULL && WIFEXITED(status))
@@ -1538,7 +1561,6 @@ static int busy_loop(FILE * input)
 
 	return 0;
 }
-
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 void free_memory(void)
@@ -1555,12 +1577,14 @@ void free_memory(void)
 }
 #endif
 
+#ifdef CONFIG_LASH_JOB_CONTROL
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
 static void setup_job_control(void)
 {
 	int status;
+	pid_t shell_pgrp;
 
 	/* Loop until we are in the foreground.  */
 	while ((status = tcgetpgrp (shell_terminal)) >= 0) {
@@ -1586,6 +1610,11 @@ static void setup_job_control(void)
 	/* Grab control of the terminal.  */
 	tcsetpgrp(shell_terminal, shell_pgrp);
 }
+#else
+static inline void setup_job_control(void)
+{
+}
+#endif
 
 int lash_main(int argc_l, char **argv_l)
 {
@@ -1647,7 +1676,7 @@ int lash_main(int argc_l, char **argv_l)
 	if (interactive==TRUE) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
 		printf( "\n\n" BB_BANNER " Built-in shell (lash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
