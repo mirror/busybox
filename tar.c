@@ -1,12 +1,12 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * Mini tar implementation for busybox 
  *
- * Mini tar implementation for busybox Note, that as of BusyBox 0.43 tar has
- * been completely rewritten from the ground up.  It still has remnents of the
- * old code lying about, but it pretty different (i.e. cleaner, less global
- * variables, etc)
+ * Note, that as of BusyBox 0.43 tar has been completely rewritten from the
+ * ground up.  It still has remnents of the old code lying about, but it pretty
+ * different (i.e. cleaner, less global variables, etc)
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  * Based in part in the tar implementation in sash
@@ -15,7 +15,7 @@
  *  provided that this copyright notice remains intact.
  *  Permission to distribute sash derived code under the GPL has been granted.
  *
- * Based in part on the tar implementation in busybox-0.28
+ * Based in part on the tar implementation from busybox-0.28
  *  Copyright (C) 1995 Bruce Perens
  *  This is free software under the GNU General Public License.
  *
@@ -162,8 +162,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
-static int writeTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag, int argc, char **argv);
+static int writeTarFile(const char* tarName, int tostdoutFlag, 
+		int verboseFlag, int argc, char **argv);
 static int putOctal(char *cp, int len, long value);
 
 #endif
@@ -249,7 +249,7 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, argc, argv));
+		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv));
 #endif
 	} else {
 		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag));
@@ -410,8 +410,6 @@ tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 		mknod(header->name, header->mode, makedev(header->devmajor, header->devminor));
 	} else if (S_ISFIFO(header->mode)) {
 		mkfifo(header->name, header->mode);
-	} else {
-		open(header->name, O_WRONLY | O_CREAT | O_TRUNC, header->mode);
 	}
 
 	/* Now set permissions etc for the new directory */
@@ -625,6 +623,21 @@ endgame:
 
 #ifdef BB_FEATURE_TAR_CREATE
 
+/* Some info to be carried along when creating a new tarball */
+struct TarBallInfo
+{
+	char* fileName;               /* File name of the tarball */
+	int tarFd;                    /* Open-for-write file descriptor
+									 for the tarball */
+	struct stat statBuf;          /* Stat info for the tarball, letting
+									 us know the inode and device that the
+									 tarball lives, so we can avoid trying 
+									 to include the tarball into itself */
+	int verboseFlag;              /* Whether to print extra stuff or not */
+};
+typedef struct TarBallInfo TarBallInfo;
+
+
 /* Put an octal string into the specified buffer.
  * The number is zero and space padded and possibly null padded.
  * Returns TRUE if successful.  */ 
@@ -662,41 +675,55 @@ static int putOctal (char *cp, int len, long value)
 	return TRUE;
 }
 
-/* Write out a tar header for the specified file */
+/* Write out a tar header for the specified file/directory/whatever */
 static int
-writeTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
+writeTarHeader(struct TarHeader *header, const char *fileName, struct stat *statbuf)
 {
-	int i;
-	long chksum, sum;
-	unsigned char *s = (unsigned char *)rawHeader;
+	//int i;
+	//long chksum, sum;
 
-	struct TarHeader header;
-
-	strcpy(header.name, fileName); 
-	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode & 0777);
-	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
-	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
-	putOctal(header.size, sizeof(header.size), statbuf->st_size);
-	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
-
-	if (S_ISLNK(statbuf.st_mode)) {
-		header.type  = LNKTYPE;
-		// Handle SYMTYPE
-	} else if (S_ISDIR(statbuf.st_mode)) {
-		header.type  = DIRTYPE;
-	} else if (S_ISCHR(statbuf.st_mode)) {
-		header.type  = CHRTYPE;
-	} else if (S_ISBLK(statbuf.st_mode)) {
-		header.type  = BLKTYPE;
-	} else if (S_ISFIFO(statbuf.st_mode)) {
-		header.type  = FIFOTYPE;
-	} else if (S_ISSOCK(statbuf.st_mode)) {
-		header.type  = S_ISSOCK;
-	} else if (S_ISLNK(statbuf.st_mode)) {
-		header.type  = LNKTYPE;
-	} else if (S_ISLNK(statbuf.st_mode)) {
-		header.type  = REGTYPE;
+	if (*fileName=='/') {
+		static int alreadyWarned=FALSE;
+		if (alreadyWarned==FALSE) {
+			errorMsg("tar: Removing leading '/' from member names\n");
+			alreadyWarned=TRUE;
+		}
+		strcpy(header->name, fileName+1); 
 	}
+	else {
+		strcpy(header->name, fileName); 
+	}
+	putOctal(header->mode, sizeof(header->mode), statbuf->st_mode & 0777);
+	putOctal(header->uid, sizeof(header->uid), statbuf->st_uid);
+	putOctal(header->gid, sizeof(header->gid), statbuf->st_gid);
+	putOctal(header->size, sizeof(header->size), statbuf->st_size);
+	putOctal(header->mtime, sizeof(header->mtime), statbuf->st_mtime);
+
+	if (S_ISLNK(statbuf->st_mode)) {
+		header->typeflag  = LNKTYPE;
+		// TODO -- Handle SYMTYPE
+	} else if (S_ISDIR(statbuf->st_mode)) {
+		header->typeflag  = DIRTYPE;
+		strncat(header->name, "/", sizeof(header->name)); 
+	} else if (S_ISCHR(statbuf->st_mode)) {
+		header->typeflag  = CHRTYPE;
+		putOctal(header->devmajor, sizeof(header->devmajor), MAJOR(statbuf->st_rdev));
+		putOctal(header->devminor, sizeof(header->devminor), MINOR(statbuf->st_rdev));
+	} else if (S_ISBLK(statbuf->st_mode)) {
+		header->typeflag  = BLKTYPE;
+		putOctal(header->devmajor, sizeof(header->devmajor), MAJOR(statbuf->st_rdev));
+		putOctal(header->devminor, sizeof(header->devminor), MINOR(statbuf->st_rdev));
+	} else if (S_ISFIFO(statbuf->st_mode)) {
+		header->typeflag  = FIFOTYPE;
+	} else if (S_ISLNK(statbuf->st_mode)) {
+		header->typeflag  = LNKTYPE;
+	} else if (S_ISLNK(statbuf->st_mode)) {
+		header->typeflag  = REGTYPE;
+	} else {
+		return ( FALSE);
+	}
+	return ( TRUE);
+
 #if 0	
 	header->linkname  = rawHeader->linkname;
 	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
@@ -704,31 +731,58 @@ writeTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 
 	/* Write out the checksum */
 	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
-#endif
 
 	return ( TRUE);
+#endif
 }
 
 
-static int fileAction(const char *fileName, struct stat *statbuf, void* userData)
+static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* userData)
 {
-	int *tarFd=(int*)userData;
-	dprintf(*tarFd, "%s\n", fileName);
-	return (TRUE);
+	int inputFileFd;
+	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
+	char header[sizeof(struct TarHeader)];
+
+	/* First open the file we want to archive, and make sure all is well */
+	if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
+		errorMsg("tar: %s: Cannot open: %s\n", fileName, strerror(errno));
+		return( TRUE);
+	}
+
+	/* It is against the rules to archive a socket */
+	if (S_ISSOCK(statbuf->st_mode)) {
+		errorMsg("tar: %s: socket ignored\n", fileName);
+		return( TRUE);
+	}
+
+	/* It is a bad idea to store the archive we are in the process of creating,
+	 * so check the device and inode to be sure that this particular file isn't
+	 * the new tarball */
+	if (tbInfo->statBuf.st_dev == statbuf->st_dev &&
+			tbInfo->statBuf.st_ino == statbuf->st_ino) {
+		errorMsg("tar: %s: file is the archive; skipping\n", fileName);
+		return( TRUE);
+	}
+
+	memset( header, 0, sizeof(struct TarHeader));
+	if (writeTarHeader((struct TarHeader *)header, fileName, statbuf)==FALSE) {
+		dprintf(tbInfo->tarFd, "%s", header);
+	} 
+	/* Now do the verbose thing (or not) */
+	if (tbInfo->verboseFlag==TRUE)
+		fprintf(stdout, "%s\n", ((struct TarHeader *)header)->name);
+
+	return( TRUE);
 }
 
-static int writeTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag, int argc, char **argv)
+static int writeTarFile(const char* tarName, int tostdoutFlag, 
+		int verboseFlag, int argc, char **argv)
 {
 	int tarFd=-1;
-	//int errorFlag=FALSE;
-	//TarHeader rawHeader;
-	//TarInfo header;
-	//int alreadyWarned=FALSE;
+	int errorFlag=FALSE;
 	//int skipFileFlag=FALSE;
-	struct stat tarballStat;
-	dev_t tarDev = 0;
-	ino_t tarInode = 0;
+	struct TarBallInfo tbInfo;
+	tbInfo.verboseFlag = verboseFlag;
 
 	/* Make sure there is at least one file to tar up.  */
 	if (argc <= 0)
@@ -736,19 +790,17 @@ static int writeTarFile(const char* tarName, int extractFlag, int listFlag,
 
 	/* Open the tar file for writing.  */
 	if (tostdoutFlag == TRUE)
-		tarFd = fileno(stdout);
+		tbInfo.tarFd = fileno(stdout);
 	else
-		tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (tarFd < 0) {
-		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
+		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (tbInfo.tarFd < 0) {
+		errorMsg( "tar: Error opening '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
-	/* Store the device and inode of the tarball, so we can be sure
-	 * not to try and include it into itself....  */
-	if (fstat(tarFd, &tarballStat) < 0)
+	/* Store the stat info for the tarball's file, so
+	 * can avoid including the tarball into itself....  */
+	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		fatalError(io_error, tarName, strerror(errno)); 
-	tarDev = tarballStat.st_dev;
-	tarInode = tarballStat.st_ino;
 
 	/* Set the umask for this process so it doesn't 
 	 * screw up permission setting for us later. */
@@ -757,12 +809,17 @@ static int writeTarFile(const char* tarName, int extractFlag, int listFlag,
 	/* Read the directory/files and iterate over them one at a time */
 	while (argc-- > 0) {
 		if (recursiveAction(*argv++, TRUE, FALSE, FALSE,
-					fileAction, fileAction, (void*) &tarFd) == FALSE) {
-			exit(FALSE);
+					writeFileToTarball, writeFileToTarball, 
+					(void*) &tbInfo) == FALSE) {
+			errorFlag = TRUE;
 		}
 	}
-
+	/* Hang up the tools, close up shop, head home */
 	close(tarFd);
+	if (errorFlag == TRUE) {
+		errorMsg("tar: Error exit delayed from previous errors\n");
+		return(FALSE);
+	}
 	return( TRUE);
 }
 
