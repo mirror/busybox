@@ -37,9 +37,12 @@ LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
 libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
 
 needcrypt-y:=
-needcrypt-$(CONFIG_LOGIN) := y
-needcrypt-$(CONFIG_SU)    := y
-needcrypt-$(CONFIG_VLOCK) := y
+needcrypt-$(CONFIG_LOGIN)	:= y
+needcrypt-$(CONFIG_PASSWD)	:= y
+needcrypt-$(CONFIG_SU)		:= y
+needcrypt-$(CONFIG_SULOGIN)	:= y
+needcrypt-$(CONFIG_VLOCK)	:= y
+
 
 ifeq ($(needcrypt-y),y)
   LIBRARIES += -lcrypt
