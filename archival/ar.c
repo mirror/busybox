@@ -21,7 +21,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Last modified 9 September 2000
+ * Last modified 20 September 2000
  */
 #include <stdio.h>
 #include <string.h>
@@ -158,7 +158,7 @@ static int checkArMagic(int srcFd)
 
         headerStart = lseek(srcFd, 0, SEEK_CUR);
         if (fullRead(srcFd, arMagic, 8) != 8) {
-                printf("fatal error/n");
+                errorMsg("fatal error\n");
                 return (FALSE);
         }
         lseek(srcFd, headerStart, SEEK_SET);
@@ -338,16 +338,13 @@ extern int ar_main(int argc, char **argv)
 		}
 	}
  
-        /* check the src filename was specified */
-	if (optind == argc) {
-                usage(ar_usage);
-                return(FALSE);
-        }
+	/* check the src filename was specified */
+	if (optind == argc)
+		usage(ar_usage);
 	
-        if ( (srcFd = open(argv[optind], O_RDONLY)) < 0) {
-          	errorMsg("Cannot read %s\n", optarg);
-                return (FALSE);
-        }
+	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
+		fatalError("Cannot read %s\n", argv[optind]);
+
  	optind++;	
 	entry = (headerL_t *) xmalloc(sizeof(headerL_t));
 	header = (headerL_t *) xmalloc(sizeof(headerL_t));
