@@ -54,7 +54,7 @@ void setspent(void)
 	if (shadow) {
 		rewind(shadow);
 	} else {
-		shadow == bb_xfopen(SHADOW_FILE, "r");
+		shadow = bb_xfopen(SHADOW_FILE, "r");
 	}
 }
 
