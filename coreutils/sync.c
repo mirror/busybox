@@ -1,4 +1,5 @@
 #include "internal.h"
+#include <stdio.h>
 
 extern int
 sync_main(int argc, char * * argv)
