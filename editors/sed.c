@@ -1096,9 +1096,9 @@ static void add_cmd_block(char *cmdstr)
 
 extern int sed_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
 	int opt;
-	char getpat=1;
-	char status = EXIT_SUCCESS;
+	uint8_t getpat = 1;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
