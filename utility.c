@@ -479,7 +479,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_CP)
+#if defined (BB_TAR) || defined (BB_MKDIR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,

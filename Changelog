@@ -15,6 +15,8 @@
 	    special files.
 	* cp and mv were quite broken when moving directories.  I have rewritten 
 	    them so they should now work as expected.  
+	* New app: loadacm contributed by Peter Novodvorsky <petya@logic.ru>
+	    for loading application character maps for working with Unicode fonts.
 	    
 
 	-Erik Andersen

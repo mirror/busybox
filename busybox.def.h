@@ -33,6 +33,7 @@
 #define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
+//#define BB_LOADACM
 //#define BB_LOADFONT
 //#define BB_LOADKMAP
 #define BB_LOGGER
