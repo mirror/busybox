@@ -576,7 +576,9 @@ static struct dnode **list_dir(char *path)
 static int list_single(struct dnode *dn)
 {
 	int i;
+#ifdef CONFIG_FEATURE_LS_USERNAME
 	char scratch[BUFSIZ + 1];
+#endif
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 	char *filetime;
 	time_t ttime, age;
