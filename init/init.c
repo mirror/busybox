@@ -51,6 +51,8 @@
 #define fork	vfork
 #endif
 
+#define INIT_BUFFS_SIZE 256
+
 /* From <linux/vt.h> */
 struct vt_stat {
 	unsigned short v_active;        /* active vt */
@@ -149,8 +151,8 @@ static const struct init_action_type actions[] = {
 /* Set up a linked list of init_actions, to be read from inittab */
 struct init_action {
 	pid_t pid;
-	char command[256];
-	char terminal[256];
+	char command[INIT_BUFFS_SIZE];
+	char terminal[INIT_BUFFS_SIZE];
 	struct init_action *next;
 	int action;
 };
@@ -445,9 +447,10 @@ static void check_memory(void)
 static pid_t run(struct init_action *a)
 {
 	struct stat sb;
-	int i, j, fd, junk; 
+	int i, j, junk;
 	pid_t pid, pgrp, tmp_pid;
-	char *s, *tmpCmd, *cmd[255], *cmdpath, buf[255];
+	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
+	char buf[INIT_BUFFS_SIZE+6];    /* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
 	char *environment[MAXENV+1] = {
 		termType,
@@ -505,7 +508,7 @@ static pid_t run(struct init_action *a)
 			setsid();
 
 		/* Open the new terminal device */
-		if ((fd = device_open(a->terminal, O_RDWR|O_NOCTTY)) < 0) {
+		if ((device_open(a->terminal, O_RDWR|O_NOCTTY)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
 				message(LOG | CONSOLE, "\rdevice '%s' does not exist.\n",
 						a->terminal);
@@ -517,14 +520,14 @@ static pid_t run(struct init_action *a)
 
 		/* Non-interactive jobs should not get a controling tty */
 		if ((a->action & (RESPAWN))==0)
-			(void)ioctl(fd, TIOCSCTTY, 0);
+			(void)ioctl(0, TIOCSCTTY, 0);
 
 		/* Make sure the terminal will act fairly normal for us */
 		set_term(0);
-		/* Setup stdin, stdout, stderr for the new process so 
+		/* Setup stdout, stderr for the new process so
 		 * they point to the supplied terminal */
-		dup(fd);
-		dup(fd);
+		dup(0);
+		dup(0);
 
 		/* For interactive jobs, create a new session 
 		 * and become the process group leader */
@@ -554,7 +557,7 @@ static pid_t run(struct init_action *a)
 					;
 
 				/* See if stealing the controlling tty back is necessary */
-				pgrp = tcgetpgrp(fd);
+				pgrp = tcgetpgrp(0);
 				if (pgrp != getpid())
 					_exit(0);
 
@@ -565,7 +568,7 @@ static pid_t run(struct init_action *a)
 				}       
 				if (pid == 0) {
 					setsid();
-					ioctl(tmp_pid, TIOCSCTTY, 1);
+					ioctl(0, TIOCSCTTY, 1);
 					_exit(0);
 				}       
 				while((tmp_pid = waitpid(pid, &junk, 0)) != pid) {
@@ -582,18 +585,17 @@ static pid_t run(struct init_action *a)
 		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 			cmd[0] = SHELL;
 			cmd[1] = "-c";
-			snprintf(buf, sizeof(buf), "exec %s", a->command);
+			strcat(strcpy(buf, "exec "), a->command);
 			cmd[2] = buf;
 			cmd[3] = NULL;
 		} else {
 			/* Convert command (char*) into cmd (char**, one word per string) */
-			safe_strncpy(buf, a->command, sizeof(buf));
+			strcpy(buf, a->command);
 			s = buf;
 			for (tmpCmd = buf, i = 0;
 					(tmpCmd = strsep(&s, " \t")) != NULL;) {
 				if (*tmpCmd != '\0') {
 					cmd[i] = tmpCmd;
-					tmpCmd++;
 					i++;
 				}
 			}
@@ -886,9 +888,9 @@ static void new_init_action(int action, char *command, char *cons)
 	} else {
 		init_action_list = new_action;
 	}
-	safe_strncpy(new_action->command, command, 255);
+	strcpy(new_action->command, command);
 	new_action->action = action;
-	safe_strncpy(new_action->terminal, cons, 255);
+	strcpy(new_action->terminal, cons);
 	new_action->pid = 0;
 //    message(LOG|CONSOLE, "command='%s' action='%d' terminal='%s'\n",
 //      new_action->command, new_action->action, new_action->terminal);
@@ -922,7 +924,7 @@ static void parse_inittab(void)
 {
 #ifdef CONFIG_FEATURE_USE_INITTAB
 	FILE *file;
-	char buf[256], lineAsRead[256], tmpConsole[256];
+	char buf[INIT_BUFFS_SIZE], lineAsRead[INIT_BUFFS_SIZE], tmpConsole[INIT_BUFFS_SIZE];
 	char *id, *runlev, *action, *command, *eol;
 	const struct init_action_type *a = actions;
 	int foundIt;
@@ -960,7 +962,7 @@ static void parse_inittab(void)
 #ifdef CONFIG_FEATURE_USE_INITTAB
 	}
 
-	while (fgets(buf, 255, file) != NULL) {
+	while (fgets(buf, INIT_BUFFS_SIZE, file) != NULL) {
 		foundIt = FALSE;
 		/* Skip leading spaces */
 		for (id = buf; *id == ' ' || *id == '\t'; id++);
@@ -1013,7 +1015,7 @@ static void parse_inittab(void)
 			if (strcmp(a->name, action) == 0) {
 				if (*id != '\0') {
 					strcpy(tmpConsole, "/dev/");
-					strncat(tmpConsole, id, 200);
+					strncat(tmpConsole, id, INIT_BUFFS_SIZE-6);
 					id = tmpConsole;
 				}
 				new_init_action(a->action, command, id);
