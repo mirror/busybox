@@ -55,6 +55,7 @@ extern int mt_main(int argc, char **argv)
 	const char *file = "/dev/tape";
 	const struct mt_opcodes *code = opcodes;
 	struct mtop op;
+	struct mtpos position;
 	int fd, mode;
 	
 	if (argc < 2) {
@@ -103,8 +104,18 @@ extern int mt_main(int argc, char **argv)
 	if ((fd = open(file, mode, 0)) < 0)
 		perror_msg_and_die("%s", file);
 
-	if (ioctl(fd, MTIOCTOP, &op) != 0)
-		perror_msg_and_die("%s", file);
+	switch (code->value) {
+		case MTTELL:
+			if (ioctl(fd, MTIOCPOS, &position) < 0)
+				perror_msg_and_die("%s", file);
+			printf ("At block %d.\n", (int) position.mt_blkno);
+			break;
+
+		default:
+			if (ioctl(fd, MTIOCTOP, &op) != 0)
+				perror_msg_and_die("%s", file);
+			break;
+	}
 
 	return EXIT_SUCCESS;
 }
