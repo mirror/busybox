@@ -4,14 +4,6 @@
  *
  * Chip Rosenthal Covad Communications <chip@laserlink.net>
  *
- * Note: According to RFC2616 section 3.6.1, "All HTTP/1.1 applications MUST be
- * able to receive and decode the "chunked" transfer-coding, and MUST ignore
- * chunk-extension extensions they do not understand."  
- *
- * This prevents this particular wget app from completely RFC compliant, and as
- * such, prevents it from being used as a general purpose web browser...  This
- * is a design decision, since it makes the code smaller.
- *
  */
 
 #include <stdio.h>
@@ -63,6 +55,7 @@ static void progressmeter(int flag);
 
 /* Globals (can be accessed from signal handlers */
 static off_t filesize = 0;		/* content-length of the file */
+static int chunked = 0;			/* chunked transfer encoding */
 #ifdef BB_FEATURE_WGET_STATUSBAR
 static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
@@ -231,11 +224,11 @@ int wget_main(int argc, char **argv)
 			 * Send HTTP request.
 			 */
 			if (proxy) {
-				fprintf(sfp, "GET %stp://%s:%d/%s HTTP/1.0\r\n", 
+				fprintf(sfp, "GET %stp://%s:%d/%s HTTP/1.1\r\n",
 					target.is_ftp ? "f" : "ht", target.host,
 					target.port, target.path);
 			} else {
-				fprintf(sfp, "GET /%s HTTP/1.0\r\n", target.path);
+				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
 
 			fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", target.host);
@@ -258,7 +251,7 @@ int wget_main(int argc, char **argv)
 			/*
 		 	* Retrieve HTTP response line and check for "200" status code.
 		 	*/
-			if (fgets(buf, sizeof(buf), sfp) == NULL)
+read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 				close_delete_and_die("no response from server");
 				
 			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
@@ -267,6 +260,9 @@ int wget_main(int argc, char **argv)
 			;
 			switch (status = atoi(s)) {
 				case 0:
+				case 100:
+					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL);
+					goto read_response;
 				case 200:
 					if (do_continue && output != stdout)
 						output = freopen(fname_out, "w", output);
@@ -295,9 +291,13 @@ int wget_main(int argc, char **argv)
 					got_clen = 1;
 					continue;
 				}
-				if (strcasecmp(buf, "transfer-encoding") == 0)
+				if (strcasecmp(buf, "transfer-encoding") == 0) {
+					if (strcasecmp(s, "chunked") == 0) {
+						chunked = got_clen = 1;
+					} else {
 					close_delete_and_die("server wants to do %s transfer encoding", s);
-
+					}
+				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
 						target.path = xstrdup(s+1);
@@ -386,12 +386,17 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Retrieve file
 	 */
+	if (chunked) {
+		fgets(buf, sizeof(buf), dfp);
+		filesize = strtol(buf, (char **) NULL, 16);
+	}
+	do {
 #ifdef BB_FEATURE_WGET_STATUSBAR
 	statbytes=0;
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
 #endif
-	while ((filesize > 0 || !got_clen) && (n = fread(buf, 1, sizeof(buf), dfp)) > 0) {
+		while ((filesize > 0 || !got_clen) && (n = fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
 		fwrite(buf, 1, n, output);
 #ifdef BB_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
@@ -402,8 +407,16 @@ int wget_main(int argc, char **argv)
 			filesize -= n;
 	}
 
+		if (chunked) {
+			fgets(buf, sizeof(buf), dfp); /* This is a newline */
+			fgets(buf, sizeof(buf), dfp);
+			filesize = strtol(buf, (char **) NULL, 16);
+			if (filesize==0) chunked = 0; /* all done! */
+		}
+
 	if (n == 0 && ferror(dfp))
 		perror_msg_and_die("network read error");
+	} while (chunked);
 
 	if (!proxy && target.is_ftp) {
 		fclose(dfp);
@@ -411,7 +424,7 @@ int wget_main(int argc, char **argv)
 			error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
-
+	printf("\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -608,7 +621,7 @@ progressmeter(int flag)
 
 	(void) gettimeofday(&now, (struct timezone *) 0);
 	cursize = statbytes;
-	if (filesize != 0) {
+	if (filesize != 0 && !chunked) {
 		ratio = 100.0 * cursize / filesize;
 		ratio = MAX(ratio, 0);
 		ratio = MIN(ratio, 100);
@@ -719,7 +732,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.31 2001/04/05 21:45:53 andersen Exp $
+ *	$Id: wget.c,v 1.32 2001/04/10 18:17:05 andersen Exp $
  */
 
 

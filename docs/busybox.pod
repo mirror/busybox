@@ -770,6 +770,7 @@ Options:
 	-H	prefix output lines with filename where match was found
 	-h	suppress the prefixing filename on output
 	-i	ignore case distinctions
+	-l	list names of files that match
 	-n	print line number with output lines
 	-q	be quiet. Returns 0 if result was found, 1 otherwise
 	-v	select non-matching lines
@@ -2536,4 +2537,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.99 2001/04/10 00:00:05 kraai Exp $
+# $Id: busybox.pod,v 1.100 2001/04/10 18:17:05 andersen Exp $

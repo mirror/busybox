@@ -22,6 +22,8 @@
 	* Erik Andersen -- Cleanups for libc5, glibc, and uClibc.
 	* Erik Andersen and Matt Kraai -- Cleanups for the human-readable
 	    output from ls, du, and df.
+	* Laurence Anderson <laurence@zxmail.com> -- Fixed wget HTTP 1.1
+	    support and added chunked encoding so it is now RFC compliant.
 	* John Beppu -- The busybox.pod documentation is now automagically
 	    generated from the source code.  This makes it _much_ simpler.  
 	    Now to update the docs, just update the usage message...
@@ -51,6 +53,7 @@
 	* Vladimir Oleynik -- More cmdedit updates
 	* Vladimir Oleynik -- Fixed `du' applet so it continues running 
 	    after permission errors.
+	* Vladimir Oleynik -- Reduced stack usage in recursive_action()
 	* Pierre Peiffer <pierre.peiffer@sxb.bsf.alcatel.fr> -- made
 		find_pid_by_name() cope with swapped out processes.
 	* Jari Ruusu <jari.ruusu@pp.inet.fi> -- updates so that setting
@@ -58,13 +61,12 @@
 	* Anthony Towns <aj@azure.humbug.org.au> -- fixed a bug with 
 	    sed address range handling
 	* Dmitry Zakharov <dmit@crp.bank.gov.ua> -- a number of updates
-	    to wget: support for ftp downloads, basic HTTP basic auth, 
-	    handling of http redirects, protocol changed to 1.0 to stop 
-	    servers from requesting chunked encoding, when attempting to 
-	    continue an aborted download but server doesn't support restarts
-	    then reopen output file in write mode, bugfix: when content-length 
-	    not given, wget didn't download anything, if -c is not specified,
-	    it no longer default to restarting an aborted download. 
+	    to wget: support for ftp downloads, basic HTTP basic auth, handling
+	    of http redirects, when attempting to continue an aborted download
+	    but server doesn't support restarts then reopen output file in
+	    write mode, bugfix: when content-length not given, wget didn't
+	    download anything, if -c is not specified, it no longer default to
+	    restarting an aborted download. 
 
 
 	 -Erik Andersen, not yet released
@@ -76,8 +78,8 @@
 	* Erik Andersen -- lash environment variable expansion rewritten,
 	    with lots of help/fixes/testing from Larry Doolittle.
 	* Erik Andersen -- Fix use of busybox with dmalloc debugging lib
-	* Erik Andersen -- fixed ls behavior for broken or very narrow terminals.
-	* Erik Andersen -- stub umount2 and pivot_root if they are not available.
+	* Erik Andersen -- fixed ls behavior for broken or very narrow terminals
+	* Erik Andersen -- stub umount2 and pivot_root if they are not available
 	* Erik Andersen -- libc5 fixes
 	* Erik Andersen -- make init work with devfsd
 	* Erik Andersen -- fixed df for nfs and dos where blksize = 512
