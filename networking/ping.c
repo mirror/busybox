@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.25 2000/09/25 21:45:58 andersen Exp $
+ * $Id: ping.c,v 1.26 2000/11/14 23:29:24 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -565,10 +565,10 @@ extern int ping_main(int argc, char **argv)
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
+ *
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
+ *
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.

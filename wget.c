@@ -2,17 +2,15 @@
 /*
  * wget - retrieve a file using HTTP
  *
- * Chip Rosenthal
- * Covad Communications
- * <chip@laserlink.net>
+ * Chip Rosenthal Covad Communications <chip@laserlink.net>
  *
- * Note: According to RFC2616 section 3.6.1, "All HTTP/1.1 applications 
- * MUST be able to receive and decode the "chunked" transfer-coding, 
- * and MUST ignore chunk-extension extensions they do not understand."  
- * This prevents this particular wget app from completely RFC compliant,
- * and as such, prevents it from being used as a general purpose web browser...
+ * Note: According to RFC2616 section 3.6.1, "All HTTP/1.1 applications MUST be
+ * able to receive and decode the "chunked" transfer-coding, and MUST ignore
+ * chunk-extension extensions they do not understand."  
  *
- * This is a design decision, since it makes the code smaller.
+ * This prevents this particular wget app from completely RFC compliant, and as
+ * such, prevents it from being used as a general purpose web browser...  This
+ * is a design decision, since it makes the code smaller.
  *
  */
 
@@ -302,42 +300,10 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 }
 
 #ifdef BB_FEATURE_STATUSBAR
-/* Stuff below is from BSD rcp util.c, as added to openshh. */
-
-/*-
- * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- *	$Id: wget.c,v 1.6 2000/10/25 16:25:50 kraai Exp $
- */
+/* Stuff below is from BSD rcp util.c, as added to openshh. 
+ * Original copyright notice is retained at the end of this file.
+ * 
+ */ 
 
 
 int
@@ -467,6 +433,47 @@ progressmeter(int flag)
 	}
 }
 #endif
+
+/* Original copyright notice which applies to the BB_FEATURE_STATUSBAR stuff,
+ * much of which was blatently stolen from openssh.  */
+ 
+/*-
+ * Copyright (c) 1992, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
+ *
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ *	$Id: wget.c,v 1.7 2000/11/14 23:29:24 andersen Exp $
+ */
+
+
+
 /*
 Local Variables:
 c-file-style: "linux"
@@ -474,4 +481,6 @@ c-basic-offset: 4
 tab-width: 4
 End:
 */
+
+
 
