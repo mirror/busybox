@@ -156,12 +156,12 @@ free
 # getopt
 
 # grep
-grep -l strdup ../*.c
-grep -c strdup ../*.c
-grep -lc strdup ../*.c
-grep -cv strdup ../*.c
-grep -i null ../grep.c
-grep -e strdup -e regcomp -e atexit ../grep.c
+grep -l strdup ../*utils/*.c
+grep -c strdup ../*utils/*.c
+grep -lc strdup ../*utils/*.c
+grep -cv strdup ../*utils/*.c
+grep -i null ../findutils/grep.c
+grep -e strdup -e regcomp -e atexit ../findutils/grep.c
 
 # gunzip
 
@@ -304,8 +304,8 @@ echo -e "foo\\n\\nbar" | sed -ne '/^$/p'
 sed -e '/test$/d' testcases
 sed -e '/^echo/d' testcases
 sed -e '/test/s/dangerous/PELIGROSO/' testcases
-sed -ne '1,/getopt/p' ../pwd.c
-sed -e '/getopt/r ../pwd.c' ../sed.c
+sed -ne '1,/getopt/p' ../shellutils/pwd.c
+sed -e '/getopt/r ../shellutils/pwd.c' ../editors/sed.c
 
 
 # setkeycodes
