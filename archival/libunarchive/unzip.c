@@ -186,6 +186,8 @@ static int huft_free(huft_t *t)
 	return 0;
 }
 
+typedef unsigned char extra_bits_t;
+
 /* Given a list of code lengths and a maximum table size, make a set of
  * tables to decode that set of codes.  Return zero on success, one if
  * the given code set is incomplete (the tables are still built in this
@@ -201,7 +203,7 @@ static int huft_free(huft_t *t)
  * m:	maximum lookup bits, returns actual
  */
 static int huft_build(unsigned int *b, const unsigned int n, const unsigned int s, 
-	const unsigned short *d, const unsigned short *e, huft_t **t, int *m)
+	const unsigned short *d, const extra_bits_t *e, huft_t **t, int *m)
 {
 	unsigned a;		/* counter for codes of length k */
 	unsigned c[BMAX + 1];	/* bit length count table */
@@ -489,6 +491,30 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 	return 0;
 }
 
+static const unsigned short cplens[] = {     /* Copy lengths for literal codes 257..285 */
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+    35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+};
+/* note: see note #13 above about the 258 in this list. */
+static const extra_bits_t cplext[] = {  /* Extra bits for literal codes 257..285 */
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
+};                 /* 99==invalid */
+static const unsigned short cpdist[] = {     /* Copy offsets for distance codes 0..29 */
+    1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+    257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+    8193, 12289, 16385, 24577
+};
+static const extra_bits_t cpdext[] = {  /* Extra bits for distance codes */
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+    7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+    12, 12, 13, 13
+};
+/* Tables for deflate from PKZIP's appnote.txt. */
+static const extra_bits_t border[] = {  /* Order of the bit length code lengths */
+    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+};
+
 /*
  * decompress an inflated block
  * e: last block flag
@@ -500,25 +526,6 @@ static int inflate_block(int *e)
 	unsigned t;			/* block type */
 	register unsigned long b;			/* bit buffer */
 	register unsigned k;		/* number of bits in bit buffer */
-	static unsigned short cplens[] = {		/* Copy lengths for literal codes 257..285 */
-		3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-		35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
-	};
-	/* note: see note #13 above about the 258 in this list. */
-	static unsigned short cplext[] = {		/* Extra bits for literal codes 257..285 */
-		0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-		3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
-	};				/* 99==invalid */
-	static unsigned short cpdist[] = {		/* Copy offsets for distance codes 0..29 */
-		1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
-		257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-		8193, 12289, 16385, 24577
-	};
-	static unsigned short cpdext[] = {		/* Extra bits for distance codes */
-		0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-		7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-		12, 12, 13, 13
-	};
 
 	/* make local bit buffer */
 	b = bb;
@@ -657,12 +664,8 @@ static int inflate_block(int *e)
 		}
 	case 2:	/* Inflate dynamic */
 		{
-			/* Tables for deflate from PKZIP's appnote.txt. */
-			static unsigned border[] = {	/* Order of the bit length code lengths */
-				16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-			};
-			int dbits = 6;					/* bits in base distance lookup table */
-			int lbits = 9;					/* bits in base literal/length lookup table */
+			const int dbits = 6;					/* bits in base distance lookup table */
+			const int lbits = 9;					/* bits in base literal/length lookup table */
 
 			int i;						/* temporary variables */
 			unsigned j;

@@ -174,15 +174,6 @@ typedef int file_t;				/* Do not use stdio */
 #define put_byte(c) {outbuf[outcnt++]=(uch)(c); if (outcnt==OUTBUFSIZ)\
    flush_outbuf();}
 
-/* Output a 16 bit value, lsb first */
-#define put_short(w) \
-{ if (outcnt < OUTBUFSIZ-2) { \
-    outbuf[outcnt++] = (uch) ((w) & 0xff); \
-    outbuf[outcnt++] = (uch) ((ush)(w) >> 8); \
-  } else { \
-	put_short_when_full(w); \
-  } \
-}
 
 /* Output a 32 bit value to the bit stream, lsb first */
 #if 0
@@ -246,9 +237,6 @@ static int (*read_buf) (char *buf, unsigned size);
 
 	/* from util.c: */
 static void flush_outbuf (void);
-
-static void put_short_when_full (ush);
-
 
 /* lzw.h -- define the lzw functions.
  * Copyright (C) 1992-1993 Jean-loup Gailly.
@@ -335,6 +323,19 @@ static int ifd;						/* input file descriptor */
 static int ofd;						/* output file descriptor */
 static unsigned insize;				/* valid bytes in inbuf */
 static unsigned outcnt;				/* bytes in output buffer */
+
+
+/* Output a 16 bit value, lsb first */
+static void put_short(ush w)
+{
+  if (outcnt < OUTBUFSIZ-2) {
+    outbuf[outcnt++] = (uch) ((w) & 0xff);
+    outbuf[outcnt++] = (uch) ((ush)(w) >> 8);
+  } else {
+    put_byte((uch)((w) & 0xff));
+    put_byte((uch)((ush)(w) >> 8));
+  }
+}
 
 /* ========================================================================
  * Signal and error handler.
@@ -1481,7 +1482,7 @@ static const extra_bits_t extra_blbits[BL_CODES]
  * if we rely on DIST_BUFSIZE == LIT_BUFSIZE.
  */
 #if LIT_BUFSIZE > INBUFSIZ
-error cannot overlay l_buf and inbuf
+#error cannot overlay l_buf and inbuf
 #endif
 #define REP_3_6      16
 /* repeat previous bit length 3-6 times (2 bits of repeat count) */
@@ -2462,21 +2463,10 @@ static void set_file_type()
 static ulg crc;					/* crc on uncompressed file data */
 static long header_bytes;				/* number of bytes in gzip header */
 
-static void put_short_when_full(ush w)
-{
-	put_byte((uch)((w) & 0xff));
-	put_byte((uch)((ush)(w) >> 8));
-}
-
-static void put_short_function(ush n)
-{
-	put_short(n);
-}
-
 static void put_long(ulg n)
 {
-	put_short_function((n) & 0xffff);
-	put_short_function(((ulg)(n)) >> 16);
+	put_short((n) & 0xffff);
+	put_short(((ulg)(n)) >> 16);
 }
 
 /* put_header_byte is used for the compressed output

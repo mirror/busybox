@@ -276,7 +276,7 @@ int numFileNames;
 int numFilesProcessed;
 int exitValue;
 
-unsigned int BZ2_crc32Table[256] = {
+const unsigned int BZ2_crc32Table[256] = {
 
    /*-- Ugly, innit? --*/
 
