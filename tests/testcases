@@ -258,7 +258,12 @@ touch F ; rm F
 # rpmunpack
 # sed - we can do some one-liners here; probably needs it's own input file
 # setkeycodes
-# sh - this should probably have it's own testcase or input file
+
+# sh - note that we cannot test the shell interactively here
+sh -c "echo a b c"
+sh -c ">"
+sh -c "a"
+
 # sleep - can't test: produces no output
 
 # sort
