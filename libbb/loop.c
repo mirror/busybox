@@ -37,6 +37,7 @@ extern int del_loop(const char *device)
 		return (FALSE);
 	}
 	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
+		close(fd);
 		bb_perror_msg("ioctl: LOOP_CLR_FD");
 		return (FALSE);
 	}
