@@ -156,7 +156,7 @@ extern int logger_main(int argc, char **argv)
 	}
 
 	openlog(name, option, (pri | LOG_FACMASK));
-	syslog(pri, message);
+	syslog(pri, "%s", message);
 	closelog();
 
 	return EXIT_SUCCESS;
