@@ -208,14 +208,13 @@ extern int mount_main (int argc, char **argv)
     char *filesystemType = "auto";
     char *device = NULL;
     char *directory = NULL;
-    struct stat statBuf;
     int all = FALSE;
     int fakeIt = FALSE;
     int useMtab = TRUE;
     int i;
 
-    if (stat("/etc/fstab", &statBuf) < 0) 
-	fprintf(stderr, "/etc/fstab file missing -- Please install one.\n\n");
+    /* Only compiled in if BB_MTAB is not defined */
+    whine_if_fstab_is_missing();
 
     if (argc == 1) {
 	FILE *mountTable = setmntent (mtab_file, "r");

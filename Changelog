@@ -1,5 +1,12 @@
 0.33
 	* Fixed a bug where init could hang instead of rebooting.
+	* Removed some debugging noise from init.c
+	* Fixed ln so it works now (it was very broken).
+	* Fixed df so it won't segfault when there is no /etc/fstab,
+	* If BB_MTAB is not defined, df and mount will whine if /etc/fstab
+	    is not installed (since they cannot fixup "/dev/root" to 
+	    state the real root device name)
+	* merged some redundant code from mtab.c/df.c into utility.c
 
 0.32
 	* More changes -- many thanks to Lineo for paying me to work on

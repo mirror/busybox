@@ -29,6 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <mntent.h>
 
 
 /* Some useful definitions */
@@ -145,10 +146,17 @@ extern void my_getpwuid(char* name, uid_t uid);
 extern void my_getgrgid(char* group, gid_t gid);
 extern int get_kernel_revision();
 extern int get_console_fd(char* tty_name);
-
+extern struct mntent *findMountPoint(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
+
+
+#if defined BB_MTAB
+#define whine_if_fstab_is_missing() {} 
+#else
+extern void whine_if_fstab_is_missing();
+#endif
 
 
 #if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)

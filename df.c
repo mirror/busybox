@@ -38,6 +38,7 @@ static int df(char *device, const char *mountPoint)
     struct statfs s;
     long blocks_used;
     long blocks_percent_used;
+    struct fstab* fstabItem;
 
     if (statfs(mountPoint, &s) != 0) {
 	perror(mountPoint);
@@ -48,9 +49,12 @@ static int df(char *device, const char *mountPoint)
 	blocks_used = s.f_blocks - s.f_bfree;
 	blocks_percent_used = (long)
 	    (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
-	if (strcmp(device, "/dev/root") == 0)
-	    device = (getfsfile("/"))->fs_spec;
-
+	/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
+	if (strcmp (device, "/dev/root") == 0) {
+	    fstabItem = getfsfile ("/");
+	    if (fstabItem != NULL)
+		device = fstabItem->fs_spec;
+	}
 	printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 	       device,
 	       (long) (s.f_blocks * (s.f_bsize / 1024.0)),
@@ -63,51 +67,13 @@ static int df(char *device, const char *mountPoint)
     return 0;
 }
 
-/*
- * Given a block device, find the mount table entry if that block device
- * is mounted.
- *
- * Given any other file (or directory), find the mount table entry for its
- * filesystem.
- */
-extern struct mntent *findMountPoint(const char *name, const char *table)
-{
-    struct stat s;
-    dev_t mountDevice;
-    FILE *mountTable;
-    struct mntent *mountEntry;
-
-    if (stat(name, &s) != 0)
-	return 0;
-
-    if ((s.st_mode & S_IFMT) == S_IFBLK)
-	mountDevice = s.st_rdev;
-    else
-	mountDevice = s.st_dev;
-
-
-    if ((mountTable = setmntent(table, "r")) == 0)
-	return 0;
-
-    while ((mountEntry = getmntent(mountTable)) != 0) {
-	if (strcmp(name, mountEntry->mnt_dir) == 0
-	    || strcmp(name, mountEntry->mnt_fsname) == 0)	/* String match. */
-	    break;
-	if (stat(mountEntry->mnt_fsname, &s) == 0 && s.st_rdev == mountDevice)	/* Match the device. */
-	    break;
-	if (stat(mountEntry->mnt_dir, &s) == 0 && s.st_dev == mountDevice)	/* Match the directory's mount point. */
-	    break;
-    }
-    endmntent(mountTable);
-    return mountEntry;
-}
-
-
-
 extern int df_main(int argc, char **argv)
 {
     printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
 	   "1k-blocks", "Used", "Available", "Use%", "Mounted on");
+
+    /* Only compiled in if BB_MTAB is not defined */
+    whine_if_fstab_is_missing();
 
     if (argc > 1) {
 	struct mntent *mountEntry;

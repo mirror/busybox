@@ -27,23 +27,21 @@
 #include <errno.h>
 
 
-static const char ln_usage[] = "ln [-s] [-f] original-name additional-name\n"
-"\n"
-"\tAdd a new name that refers to the same file as \"original-name\"\n"
-"\n"
-"\t-s:\tUse a \"symbolic\" link, instead of a \"hard\" link.\n"
-"\t-f:\tRemove existing destination files.\n";
+static const char ln_usage[] = "ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n"
+"Create a link named LINK_NAME or DIRECTORY to the specified TARGET\n"
+"\nOptions:\n"
+"\t-s\tmake symbolic links instead of hard links\n"
+"\t-f\tremove existing destination files\n";
 
 
 static int symlinkFlag = FALSE;
 static int removeoldFlag = FALSE;
-static const char *destName;
 
 
 extern int ln_main(int argc, char **argv)
 {
     int status;
-    char newdestName[NAME_MAX];
+    static char* linkName;
 
     if (argc < 3) {
 	usage (ln_usage);
@@ -69,30 +67,27 @@ extern int ln_main(int argc, char **argv)
     }
 
 
-    destName = argv[argc - 1];
+    linkName = argv[argc - 1];
 
-    if ((argc > 3) && !(isDirectory(destName))) {
-	fprintf(stderr, "%s: not a directory\n", destName);
+    if ((argc > 3) && !(isDirectory(linkName))) {
+	fprintf(stderr, "%s: not a directory\n", linkName);
 	exit (FALSE);
     }
 
     while (argc-- >= 2) {
-	strcpy(newdestName, destName);
-	strcat(newdestName, (*argv)+(strlen(*(++argv))));
-	
 	if (removeoldFlag==TRUE ) {
-	    status = ( unlink(newdestName) && errno != ENOENT );
+	    status = ( unlink(linkName) && errno != ENOENT );
 	    if ( status != 0 ) {
-		perror(newdestName);
+		perror(linkName);
 		exit( FALSE);
 	    }
 	}
 	if ( symlinkFlag==TRUE)
-		status = symlink(*argv, newdestName);
+		status = symlink(*argv, linkName);
 	else
-		status = link(*argv, newdestName);
+		status = link(*argv, linkName);
 	if ( status != 0 ) {
-	    perror(newdestName);
+	    perror(linkName);
 	    exit( FALSE);
 	}
     }
