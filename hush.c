@@ -1243,6 +1243,9 @@ static void checkjobs()
 				break;
 		}
 
+		if(pi==NULL)
+			return;
+
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* child exited */
 			pi->running_progs--;
@@ -1253,8 +1256,6 @@ static void checkjobs()
 				remove_bg_job(pi);
 			}
 		} else {
-			if(pi==NULL)
-				break;
 			/* child stopped */
 			pi->stopped_progs++;
 			pi->progs[prognum].is_stopped = 1;
@@ -1727,31 +1728,33 @@ static int set_local_var(const char *s, int flg_export)
 					cur->flg_export=flg_export;
 				else
 					result++;
+				free(newval);
 			} else {
 				if(cur->flg_read_only) {
-					result = -1;
 					error_msg("%s: readonly variable", name);
+					free(newval);
+					result = -1;
 				} else {
 					if(flg_export>0 || cur->flg_export>1)
 						cur->flg_export=1;
 					free(cur->value);
 					cur->value = newval;
-					newval = 0; /* protect free */
 				}
 			}
 		} else {
 			cur = malloc(sizeof(struct variables));
 			if(cur==0) {
+				free(newval);
 				result = -1;
 			} else {
 				cur->name = strdup(name);
 				if(cur->name == 0) {
 					free(cur);
+					free(newval);
 					result = -1;
 				} else {
 					struct variables *bottom = top_vars;
 					cur->value = newval;
-					newval = 0;     /* protect free */
 					cur->next = 0;
 					cur->flg_export = flg_export;
 					cur->flg_read_only = 0;
@@ -1770,7 +1773,6 @@ static int set_local_var(const char *s, int flg_export)
 		if(result>0)            /* equivalent to previous set */
 			result = 0;
 	}
-	free(newval);
 	return result;
 }
 
@@ -2473,10 +2475,10 @@ void update_ifs_map(void)
 	 * The map[] array only really needs two bits each, and on most machines
 	 * that would be faster because of the reduced L1 cache footprint.
 	 */
-	memset(map,0,sizeof(map));        /* most characters flow through always */
-	mapset("\\$'\"`", 3);     /* never flow through */
-	mapset("<>;&|(){}#", 1);  /* flow through if quoted */
-	mapset(ifs, 2);           /* also flow through if quoted */
+	memset(map,0,sizeof(map)); /* most characters flow through always */
+	mapset("\\$'\"`", 3);      /* never flow through */
+	mapset("<>;&|(){}#", 1);   /* flow through if quoted */
+	mapset(ifs, 2);            /* also flow through if quoted */
 }
 
 /* most recursion does not come through here, the exeception is
@@ -2549,7 +2551,7 @@ int shell_main(int argc, char **argv)
 	 * shell_main(), therefore we cannot rely on the BSS to zero out this 
 	 * stuff.  Reset these to 0 every time. */
 	ifs = NULL;
-	memset(map,0,sizeof(map));
+	/* map[] is taken care of with call to update_ifs_map() */
 	fake_mode = 0;
 	interactive = 0;
 	close_me_head = NULL;
@@ -2650,7 +2652,20 @@ int shell_main(int argc, char **argv)
 	opt = parse_file_outer(input);
 
 #ifdef BB_FEATURE_CLEAN_UP
-	fclose(input.file);
+	fclose(input);
+	if (cwd && cwd != unknown)
+		free((char*)cwd);
+	{
+		struct variables *cur, *tmp;
+		for(cur = top_vars; cur; cur = tmp) {
+			tmp = cur->next;
+			if (!cur->flg_read_only) {
+				free(cur->name);
+				free(cur->value);
+				free(cur);
+			}
+		}
+	}
 #endif
 
 final_return:
