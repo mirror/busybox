@@ -53,7 +53,8 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 #endif
 			{
 				/* Regular file */
-				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT);
+				unlink(file_header->name);
+				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
 				archive_copy_file(archive_handle, dst_fd);
 				close(dst_fd);
 			}
