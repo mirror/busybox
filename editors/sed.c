@@ -1001,6 +1001,11 @@ static void process_file(FILE * file)
 						strcat(pattern_space, next_line);
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
+					} else {
+						/* Jump to end of script and exist */
+						deleted = 1;
+						free(next_line);
+						next_line = NULL;
 					}
 					break;
 				case 't':
