@@ -40,7 +40,7 @@ static char *private_get_line_from_file(FILE *file, int c)
 
 	while ((ch = getc(file)) != EOF) {
 		/* grow the line buffer as necessary */
-		if (idx > linebufsz-2) {
+		if (idx > linebufsz - 2) {
 			linebuf = xrealloc(linebuf, linebufsz += GROWBY);
 		}
 		linebuf[idx++] = (char)ch;
@@ -51,7 +51,6 @@ static char *private_get_line_from_file(FILE *file, int c)
 			break;
 		}
 	}
-
 	if (linebuf) {
 		if (ferror(file)) {
 			free(linebuf);

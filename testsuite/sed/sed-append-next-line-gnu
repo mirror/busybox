@@ -1,5 +1,4 @@
-# XFAIL
-# This will fail if CONFIG_FEATURE_SED_GNU_COMPATABILITY is defined
+# FEATURE: CONFIG_FEATURE_SED_GNU_COMPATABILITY
 busybox sed 'N;p'>output <<EOF
 a
 b
@@ -11,4 +10,5 @@ b
 a
 b
 c
+
 EOF

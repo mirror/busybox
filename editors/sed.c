@@ -45,9 +45,11 @@
 	 - GNU extensions
 	 - and more.
 
-	Bugs:
-	
-	 - lots
+	Todo:
+
+	 - Create a wrapper around regex to make libc's regex conform with sed
+	 - Fix bugs
+
 
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
@@ -298,7 +300,15 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	}
 
 	/* process the flags */
-	while (substr[++idx]) {
+#ifndef CONFIG_FEATURE_SED_GNU_COMPATABILITY
+	idx++;
+#else
+	/* GNU sed allows blanks before the flag, this can lead to an incosistent
+	 * interpretation of 's/a/b/ g' as being either 's/a/b/g' or 's/a/b/;g'.
+	 * which results in very different behaviour.
+	 */
+	while (substr[++idx])
+#endif
 		switch (substr[idx]) {
 		case 'g':
 			if (match[0] != '^') {
@@ -312,16 +322,20 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 		case 'p':
 			sed_cmd->sub_p = 1;
 			break;
+#ifdef CONFIG_FEATURE_SED_GNU_COMPATABILITY
 		default:
 			/* any whitespace or semicolon trailing after a s/// is ok */
 			if (strchr(semicolon_whitespace, substr[idx]))
 				goto out;
-			/* else */
 			bb_error_msg_and_die("bad option in substitution expression");
+#endif
 		}
-	}
 
-  out:
+#ifndef CONFIG_FEATURE_SED_GNU_COMPATABILITY
+		idx++;
+#else
+out:
+#endif
 	/* compile the match string into a regex */
 	if (*match != '\0') {
 		/* If match is empty, we use last regex used at runtime */
@@ -556,15 +570,12 @@ static char *add_cmd(char *cmdstr)
 		sed_cmd->invert = 1;
 		cmdstr++;
 
-#ifdef SED_FEATURE_STRICT_CHECKING
+#ifdef CONFIG_FEATURE_SED_GNU_COMPATABILITY
 		/* According to the spec
 		 * It is unspecified whether <blank>s can follow a '!' character,
 		 * and conforming applications shall not follow a '!' character
 		 * with <blank>s.
 		 */
-		if (isblank(cmdstr[idx]) {
-			bb_error_msg_and_die("blank follows '!'");}
-#else
 		/* skip whitespace before the command */
 		while (isspace(*cmdstr)) {
 			cmdstr++;
@@ -931,7 +942,6 @@ static void process_file(FILE * file)
 					}
 					/* we also print the line if we were given the 'p' flag
 					 * (this is quite possibly the second printing) */
-//					if ((sed_cmd->sub_p) && (!altered || substituted)) {
 					if ((sed_cmd->sub_p) && (altered || substituted)) {
 						puts(pattern_space);
 					}
@@ -1007,20 +1017,25 @@ static void process_file(FILE * file)
 					}
 					break;
 				case 'N':	/* Append the next line to the current line */
-					if (next_line) {
-						pattern_space =
-							realloc(pattern_space,
-							strlen(pattern_space) + strlen(next_line) + 2);
-						strcat(pattern_space, "\n");
-						strcat(pattern_space, next_line);
-						next_line = bb_get_chomped_line_from_file(file);
-						linenum++;
-					} else {
+					if (next_line == NULL) {
 						/* Jump to end of script and exist */
 						deleted = 1;
 						free(next_line);
+#ifdef CONFIG_FEATURE_SED_GNU_COMPATABILITY
+						/* GNU sed will add the newline character 
+						 * The GNU sed info page labels this as a bug that wont be fixed 
+						 */
+						next_line = calloc(1,1);
+#else
 						next_line = NULL;
+						break;
+#endif
 					}
+					pattern_space = realloc(pattern_space, strlen(pattern_space) + strlen(next_line) + 2);
+					strcat(pattern_space, "\n");
+					strcat(pattern_space, next_line);
+					next_line = bb_get_chomped_line_from_file(file);
+					linenum++;
 					break;
 				case 't':
 					if (substituted)
@@ -1164,12 +1179,10 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt, status = EXIT_SUCCESS;
 
-#if 0 /* This doesnt seem to be working */
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1)
 		bb_perror_msg_and_die("atexit");
-#endif
 #endif
 
 	/* do normal option parsing */
@@ -1223,8 +1236,5 @@ extern int sed_main(int argc, char **argv)
 		}
 	}
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	destroy_cmd_strs();
-#endif	
 	return status;
 }
