@@ -84,11 +84,6 @@ The following steps will create a root file system.
 	For this, just cp -a the etc/ directory onto rootfs. Again, if you want
 	all the details, you can just look at the files in the dir.
 
- - Run ldconfig so busybox and other binaries can have access to the libraries
-   that they need:
-
-   (path to)uClibc/ld.so-1/util/ldconfig -r loop/
-
  - Unmount the rootfs from the mountpoint:
 
 	umount loop
