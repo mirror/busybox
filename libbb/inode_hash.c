@@ -29,6 +29,13 @@
 #define HASH_SIZE	311		/* Should be prime */
 #define hash_inode(i)	((i) % HASH_SIZE)
 
+typedef struct ino_dev_hash_bucket_struct {
+  struct ino_dev_hash_bucket_struct *next;
+  ino_t ino;
+  dev_t dev;
+  char name[1];
+} ino_dev_hashtable_bucket_t;
+
 static ino_dev_hashtable_bucket_t *ino_dev_hashtable[HASH_SIZE];
 
 /*

@@ -286,4 +286,8 @@ extern const char * const can_not_create_raw_socket;
 #define CURRENT_TTY "/dev/tty"
 #define CONSOLE_DEV "/dev/console"
 
+int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
+void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
+void reset_ino_dev_hashtable(void);
+
 #endif /* __LIBCONFIG_H__ */

@@ -59,78 +59,6 @@ static void print_summary(long size, char *filename)
 	}
 }
 
-#define HASH_SIZE       311             /* Should be prime */
-#define hash_inode(i)   ((i) % HASH_SIZE)
-
-typedef struct ino_dev_hash_bucket_struct {
-  struct ino_dev_hash_bucket_struct *next;
-  ino_t ino;
-  dev_t dev;
-  char name[1];
-} ino_dev_hashtable_bucket_t;
-
-static ino_dev_hashtable_bucket_t *ino_dev_hashtable[HASH_SIZE];
-
-/*
- * Return 1 if statbuf->st_ino && statbuf->st_dev are recorded in
- * `ino_dev_hashtable', else return 0
- *
- * If NAME is a non-NULL pointer to a character pointer, and there is
- * a match, then set *NAME to the value of the name slot in that
- * bucket.
- */
-static int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name)
-{
-	ino_dev_hashtable_bucket_t *bucket;
-
-	bucket = ino_dev_hashtable[hash_inode(statbuf->st_ino)];
-	while (bucket != NULL) {
-	  if ((bucket->ino == statbuf->st_ino) &&
-		  (bucket->dev == statbuf->st_dev))
-	  {
-		if (name) *name = bucket->name;
-		return 1;
-	  }
-	  bucket = bucket->next;
-	}
-	return 0;
-}
-
-/* Add statbuf to statbuf hash table */
-static void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
-{
-	int i;
-	size_t s;
-	ino_dev_hashtable_bucket_t *bucket;
-
-	i = hash_inode(statbuf->st_ino);
-	s = name ? strlen(name) : 0;
-	bucket = xmalloc(sizeof(ino_dev_hashtable_bucket_t) + s);
-	bucket->ino = statbuf->st_ino;
-	bucket->dev = statbuf->st_dev;
-	if (name)
-		strcpy(bucket->name, name);
-	else
-		bucket->name[0] = '\0';
-	bucket->next = ino_dev_hashtable[i];
-	ino_dev_hashtable[i] = bucket;
-}
-
-/* Clear statbuf hash table */
-static void reset_ino_dev_hashtable(void)
-{
-	int i;
-	ino_dev_hashtable_bucket_t *bucket;
-
-	for (i = 0; i < HASH_SIZE; i++) {
-		while (ino_dev_hashtable[i] != NULL) {
-			bucket = ino_dev_hashtable[i]->next;
-			free(ino_dev_hashtable[i]);
-			ino_dev_hashtable[i] = bucket;
-		}
-	}
-}
-
 /* tiny recursive du */
 static long du(char *filename)
 {
@@ -246,7 +174,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.51 2001/10/24 04:59:27 andersen Exp $ */
+/* $Id: du.c,v 1.52 2001/12/17 15:26:25 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

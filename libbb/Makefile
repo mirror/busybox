@@ -45,7 +45,7 @@ obj-y += ask_confirmation.o chomp.o concat_path_file.o copy_file.o \
 	xgetcwd.o xreadlink.o xregcomp.o interface.o remove_file.o last_char_is.o \
 	copyfd.o vherror_msg.o herror_msg.o herror_msg_and_die.o xgethostbyname.o \
 	dirname.o make_directory.o create_icmp_socket.o u_signal_names.o arith.o \
-	simplify_path.o inet_common.o $(LIBBB_MOBJS) $(LIBBB_AROBJS)
+	simplify_path.o inet_common.o inode_hash.o $(LIBBB_MOBJS) $(LIBBB_AROBJS)
 
 
 # Hand off to toplevel Rules.mak

@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libbb.h"
+#include "busybox.h"
 
 int copy_file(const char *source, const char *dest, int flags)
 {
@@ -131,6 +131,19 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
 		FILE *sfp, *dfp=NULL;
+#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
+		char *link_name;
+
+		if (!(flags & FILEUTILS_DEREFERENCE) &&
+				is_in_ino_dev_hashtable(&source_stat, &link_name)) {
+			if (link(link_name, dest) < 0) {
+				perror_msg("unable to link `%s'", dest);
+				return -1;
+			}
+
+			return 0;
+		}
+#endif
 
 		if ((sfp = fopen(source, "r")) == NULL) {
 			perror_msg("unable to open `%s'", source);
@@ -212,11 +225,20 @@ int copy_file(const char *source, const char *dest, int flags)
 			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
 				perror_msg("unable to preserve ownership of `%s'", dest);
 #endif
+
+#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
+		add_to_ino_dev_hashtable(&source_stat, dest);
+#endif
+
 		return 0;
 	} else {
 		error_msg("internal error: unrecognized file type");
 		return -1;
 	}
+
+#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
+	add_to_ino_dev_hashtable(&source_stat, dest);
+#endif
 
 end:
 
