@@ -49,33 +49,13 @@
 #include "busybox.h"
 
 typedef struct ftp_host_info_s {
-	char *host;
-	char *port;
 	char *user;
 	char *password;
 	struct sockaddr_in *s_in;
 } ftp_host_info_t;
 
-static char verbose_flag;
+static char verbose_flag = 0;
 static char do_continue = 0;
-
-static ftp_host_info_t *ftp_init(void)
-{
-	ftp_host_info_t *host;
-
-	host = xcalloc(1, sizeof(ftp_host_info_t));
-
-	/* Set the default port */
-	if (getservbyname("ftp", "tcp")) {
-		host->port = "ftp";
-	} else {
-		host->port = "21";
-	}
-	host->user = "anonymous";
-	host->password = "busybox@";
-
-	return(host);
-}
 
 static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 {
@@ -306,6 +286,7 @@ int ftpgetput_main(int argc, char **argv)
 {
 	/* content-length of the file */
 	unsigned long opt;
+	char *port = "ftp";
 
 	/* socket to ftp server */
 	FILE *control_stream;
@@ -316,27 +297,37 @@ int ftpgetput_main(int argc, char **argv)
 
 	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
 
+	/* Check to see if the command is ftpget or ftput */
 #ifdef CONFIG_FTPPUT
+# ifdef CONFIG_FTPGET
 	if (bb_applet_name[3] == 'p') {
 		ftp_action = ftp_send;
-	} 
+	}
+# else
+	ftp_action = ftp_send;
+# endif
 #endif
 #ifdef CONFIG_FTPGET
+# ifdef CONFIG_FTPPUT
 	if (bb_applet_name[3] == 'g') {
 		ftp_action = ftp_recieve;
 	}
+# else
+	ftp_action = ftp_recieve;
+# endif
 #endif
 
 	/* Set default values */
-	server = ftp_init();
+	server = xmalloc(sizeof(ftp_host_info_t));
+	server->user = "anonymous";
+	server->password = "busybox@";
 	verbose_flag = 0;
 
 	/* 
 	 * Decipher the command line 
 	 */
-	server->port = "21";
 	bb_applet_long_options = ftpgetput_long_options;
-	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &server->port);
+	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
 	if (opt & FTPGETPUT_OPT_CONTINUE) {
 		do_continue = 1;
 	}
@@ -355,12 +346,11 @@ int ftpgetput_main(int argc, char **argv)
 	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
 	 * and we want to connect to only one IP... */
 	server->s_in = &s_in;
-	server->host = argv[optind];
-	bb_lookup_host(&s_in, server->host);
-	s_in.sin_port = bb_lookup_port(server->port, 21);
+	bb_lookup_host(&s_in, argv[optind]);
+	s_in.sin_port = bb_lookup_port(port, 21);
 	if (verbose_flag) {
-		fprintf(stdout, "Connecting to %s[%s]:%s\n",
-				server->host, inet_ntoa(s_in.sin_addr), server->port);
+		printf("Connecting to %s[%s]:%d\n",
+				argv[optind], inet_ntoa(s_in.sin_addr), ntohs(s_in.sin_port));
 	}
 
 	/*  Connect/Setup/Configure the FTP session */
