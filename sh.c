@@ -627,10 +627,10 @@ static int setupRedirections(struct childProgram *prog)
 			mode = O_RDONLY;
 			break;
 		case REDIRECT_OVERWRITE:
-			mode = O_RDWR | O_CREAT | O_TRUNC;
+			mode = O_WRONLY | O_CREAT | O_TRUNC;
 			break;
 		case REDIRECT_APPEND:
-			mode = O_RDWR | O_CREAT | O_APPEND;
+			mode = O_WRONLY | O_CREAT | O_APPEND;
 			break;
 		}
 
@@ -785,30 +785,42 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 #endif
 	}
 
-	rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->globResult);
-	if (rc == GLOB_NOSPACE) {
-		errorMsg("out of space during glob operation\n");
-		return;
-	} else if (rc == GLOB_NOMATCH ||
+	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
+		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->globResult);
+		if (rc == GLOB_NOSPACE) {
+			errorMsg("out of space during glob operation\n");
+			return;
+		} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
 				strcmp(prog->argv[argc_l - 1],
 						prog->globResult.gl_pathv[i]) == 0)) {
-		/* we need to remove whatever \ quoting is still present */
-		src = dst = prog->argv[argc_l - 1];
-		while (*src) {
-			if (*src != '\\')
-				*dst++ = *src;
-			src++;
+			/* we need to remove whatever \ quoting is still present */
+			src = dst = prog->argv[argc_l - 1];
+			while (*src) {
+				if (*src != '\\')
+					*dst++ = *src;
+				src++;
+			}
+			*dst = '\0';
+		} else if (!rc) {
+			argcAlloced += (prog->globResult.gl_pathc - i);
+			prog->argv = xrealloc(prog->argv, argcAlloced * sizeof(*prog->argv));
+			memcpy(prog->argv + (argc_l - 1), prog->globResult.gl_pathv + i,
+				   sizeof(*(prog->argv)) * (prog->globResult.gl_pathc - i));
+			argc_l += (prog->globResult.gl_pathc - i - 1);
 		}
-		*dst = '\0';
-	} else if (!rc) {
-		argcAlloced += (prog->globResult.gl_pathc - i);
-		prog->argv = xrealloc(prog->argv, argcAlloced * sizeof(*prog->argv));
-		memcpy(prog->argv + (argc_l - 1), prog->globResult.gl_pathv + i,
-			   sizeof(*(prog->argv)) * (prog->globResult.gl_pathc - i));
-		argc_l += (prog->globResult.gl_pathc - i - 1);
+	}else{
+	 		src = dst = prog->argv[argc_l - 1];
+			while (*src) {
+				if (*src != '\\')
+					*dst++ = *src;
+				src++;
+			}
+			*dst = '\0';
+			prog->globResult.gl_pathc=0;
+			if (flags==0)
+				prog->globResult.gl_pathv=NULL;
 	}
-
 	*argcAllocedPtr = argcAlloced;
 	*argcPtr = argc_l;
 }
@@ -1128,7 +1140,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 	}
 
 	*commandPtr = returnCommand;
-
+	
 	return 0;
 }
 
@@ -1142,7 +1154,6 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	const struct BB_applet *a = applets;
 #endif
-
 
 	nextin = 0, nextout = 1;
 	for (i = 0; i < newJob->numProgs; i++) {
