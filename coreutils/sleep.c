@@ -2,7 +2,6 @@
 /*
  * Mini sleep implementation for busybox
  *
- *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  *
  * This program is free software; you can redistribute it and/or modify

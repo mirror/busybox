@@ -10,7 +10,7 @@
  * very different now (i.e., cleaner, less global variables, etc.)
  *
  * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
  *
  * Based in part in the tar implementation in sash
  *  Copyright (c) 1999 by David I. Bell
