@@ -50,19 +50,21 @@ volatile unsigned long statbytes; /* Number of bytes transferred so far. */
 
 int wget_main(int argc, char **argv)
 {
+	int n;
+	char *proxy, *proxy_host;
+	int uri_port, proxy_port;
+	char *s, buf[512];
+	struct stat sbuf;
+
 	FILE *sfp;					/* socket to web server				*/
 	char *uri_host, *uri_path;	/* parsed from command line url		*/
-	char *proxy;
-	int uri_port;
-	char *s, buf[512];
-	int n;
-
 	char *fname_out = NULL;		/* where to direct output (-O)		*/
 	int do_continue = 0;		/* continue a prev transfer (-c)	*/
 	long beg_range = 0L;		/*   range at which continue begins	*/
 	int got_clen = 0;			/* got content-length: from server	*/
-	FILE *output;					/* socket to web server				*/
-	int quiet_flag = FALSE;
+	FILE *output;				/* socket to web server				*/
+	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
+
 	/*
 	 * Crack command line.
 	 */
@@ -89,20 +91,6 @@ int wget_main(int argc, char **argv)
 	if (argc - optind != 1)
 			usage(wget_usage);
 
-	/* Guess an output filename */
-	if (!fname_out) {
-		fname_out = 
-#ifdef BB_FEATURE_STATUSBAR
-			curfile = 
-#endif
-			get_last_path_component(argv[optind]);
-#ifdef BB_FEATURE_STATUSBAR
-	} else {
-		curfile=argv[optind];
-#endif
-	}
-
-
 	if (do_continue && !fname_out)
 		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
 
@@ -111,22 +99,52 @@ int wget_main(int argc, char **argv)
 	 */
 	if ((proxy = getenv("http_proxy")) != NULL) {
 		proxy = xstrdup(proxy);
-		parse_url(proxy, &uri_host, &uri_port, &uri_path);
-		uri_path = argv[optind];
+		parse_url(proxy, &proxy_host, &proxy_port, &uri_path);
+		parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
 	} else {
 		/*
 		 * Parse url into components.
 		 */
 		parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
+		proxy_host=uri_host;
+		proxy_port=uri_port;
 	}
+	
+	/* Guess an output filename */
+	if (!fname_out) {
+		fname_out = 
+#ifdef BB_FEATURE_STATUSBAR
+			curfile = 
+#endif
+			get_last_path_component(uri_path);
+		if (fname_out==NULL || strlen(fname_out)<1) {
+			fname_out = 
+#ifdef BB_FEATURE_STATUSBAR
+				curfile = 
+#endif
+				"index.html";
+		}
+#ifdef BB_FEATURE_STATUSBAR
+	} else {
+		curfile=argv[optind];
+#endif
+	}
+
 
 	/*
 	 * Open socket to server.
 	 */
-	sfp = open_socket(uri_host, uri_port);
+	sfp = open_socket(proxy_host, proxy_port);
+
+	/* Make the assumption that if the file already exists
+	 * on disk that the intention is to continue downloading
+	 * a previously aborted download  -Erik */
+	if (stat(fname_out, &sbuf) == 0) {
+		++do_continue;
+	}
 
 	/*
-	 * Open the output stream.
+	 * Open the output file stream.
 	 */
 	if (fname_out != (char *)1) {
 		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) 
@@ -140,7 +158,6 @@ int wget_main(int argc, char **argv)
 	 * Determine where to start transfer.
 	 */
 	if (do_continue) {
-		struct stat sbuf;
 		if (fstat(fileno(output), &sbuf) < 0)
 			error_msg_and_die("fstat()");
 		if (sbuf.st_size > 0)
@@ -152,16 +169,19 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Send HTTP request.
 	 */
-	fprintf(sfp, "GET %s HTTP/1.1\r\nHost: %s\r\n", uri_path, uri_host);
+	fprintf(sfp, "GET http://%s:%d/%s HTTP/1.1\r\n", 
+			uri_host, uri_port, uri_path);
+	fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", uri_host);
 	if (do_continue)
 		fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
-	fputs("Connection: close\r\n\r\n", sfp);
+	fprintf(sfp,"Connection: close\r\n\r\n");
 
 	/*
 	 * Retrieve HTTP response line and check for "200" status code.
 	 */
-	if (fgets(buf, sizeof(buf), sfp) == NULL)
+	if (fgets(buf, sizeof(buf), sfp) == NULL) {
 		error_msg_and_die("no response from server\n");
+	}
 	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
 		;
 	for ( ; isspace(*s) ; ++s)
@@ -243,6 +263,9 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 
 	*uri_host = url;
 	*uri_path = h;
+
+	if (!strcmp( *uri_host, *uri_path))
+		*uri_path = defaultpath;
 }
 
 
@@ -491,7 +514,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.12 2000/12/09 08:12:06 bug1 Exp $
+ *	$Id: wget.c,v 1.13 2000/12/09 16:55:35 andersen Exp $
  */
 
 
