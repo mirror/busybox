@@ -55,24 +55,27 @@
 #ifdef BB_FEATURE_TAR_CREATE
 
 static const char tar_usage[] =
-	"tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
+	"tar -[cxtvOf] [tarFile] [-X excludeFile] [FILE] ...\n\n"
 	"Create, extract, or list files from a tar file.  Note that\n"
 	"this version of tar packs hard links as separate files.\n\n"
 	"Options:\n"
 
 	"\tc=create, x=extract, t=list contents, v=verbose,\n"
-	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
+	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n"
+	"\tX=exclude file\n";
 
 #else
 
 static const char tar_usage[] =
-	"tar -[xtvOf] [tarFileName] [FILE] ...\n\n"
+	"tar -[xtvO] [-f tarFile] [-X excludeFile] [FILE] ...\n\n"
 	"Extract, or list files stored in a tar file.  This\n"
 	"version of tar does not support creation of tar files.\n\n"
 	"Options:\n"
 
 	"\tx=extract, t=list contents, v=verbose,\n"
-	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
+	"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n"
+	"\tX=exclude file\n";
+
 
 #endif
 
@@ -157,90 +160,106 @@ static const unsigned long TarChecksumOffset = (const unsigned long)&(((TarHeade
 
 /* Local procedures to restore files from a tar file.  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag);
+		int tostdoutFlag, int verboseFlag, char** excludeList);
 
 
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
 static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv);
-static int putOctal(char *cp, int len, long value);
-
+		int verboseFlag, int argc, char **argv, char** excludeList);
 #endif
 
 
 extern int tar_main(int argc, char **argv)
 {
+	char** excludeList=NULL;
+	int excludeListSize=0;
 	const char *tarName=NULL;
-	const char *options;
 	int listFlag     = FALSE;
 	int extractFlag  = FALSE;
 	int createFlag   = FALSE;
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
+	int stopIt;
 
-	argc--;
-	argv++;
-
-	if (argc < 1)
+	if (argc <= 1)
 		usage(tar_usage);
 
-	/* Parse options  */
-	if (**argv == '-')
-		options = (*argv++) + 1;
-	else
-		options = (*argv++);
-	argc--;
+	/* Parse any options */
+	while (--argc > 0 && **(++argv) == '-') {
+		stopIt=FALSE;
+		while (stopIt==FALSE && *(++(*argv))) {
+			switch (**argv) {
+				case 'f':
+					if (--argc == 0) {
+						fatalError( "Option requires an argument: No file specified\n");
+					}
+					if (tarName != NULL)
+						fatalError( "Only one 'f' option allowed\n");
+					tarName = *(++argv);
+					if (tarName == NULL)
+						fatalError( "Option requires an argument: No file specified\n");
+					stopIt=TRUE;
+					break;
 
-	for (; *options; options++) {
-		switch (*options) {
-		case 'f':
-			if (tarName != NULL)
-				fatalError( "Only one 'f' option allowed\n");
+				case 't':
+					if (extractFlag == TRUE || createFlag == TRUE)
+						goto flagError;
+					listFlag = TRUE;
+					break;
 
-			tarName = *argv++;
-			if (tarName == NULL)
-				fatalError( "Option requires an argument: No file specified\n");
-			argc--;
+				case 'x':
+					if (listFlag == TRUE || createFlag == TRUE)
+						goto flagError;
+					extractFlag = TRUE;
+					break;
+				case 'c':
+					if (extractFlag == TRUE || listFlag == TRUE)
+						goto flagError;
+					createFlag = TRUE;
+					break;
 
-			break;
+				case 'v':
+					verboseFlag = TRUE;
+					break;
 
-		case 't':
-			if (extractFlag == TRUE || createFlag == TRUE)
-				goto flagError;
-			listFlag = TRUE;
-			break;
+				case 'O':
+					tostdoutFlag = TRUE;
+					tarName = "-";
+					break;
+				case 'X':
+					if (--argc == 0) {
+						fatalError( "Option requires an argument: No file specified\n");
+					}
+					excludeList=realloc( excludeList, sizeof(char**) * (excludeListSize+1));
+					excludeList[excludeListSize] = *(++argv);
+					/* Remove leading "/"s */
+					if (*excludeList[excludeListSize] =='/') {
+						excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
+					}
+					if (excludeList[excludeListSize++] == NULL)
+						fatalError( "Option requires an argument: No file specified\n");
+					stopIt=TRUE;
+					break;
 
-		case 'x':
-			if (listFlag == TRUE || createFlag == TRUE)
-				goto flagError;
-			extractFlag = TRUE;
-			break;
-		case 'c':
-			if (extractFlag == TRUE || listFlag == TRUE)
-				goto flagError;
-			createFlag = TRUE;
-			break;
+				case '-':
+					usage(tar_usage);
+					break;
 
-		case 'v':
-			verboseFlag = TRUE;
-			break;
-
-		case 'O':
-			tostdoutFlag = TRUE;
-			tarName = "-";
-			break;
-
-		case '-':
-			usage(tar_usage);
-			break;
-
-		default:
-			fatalError( "Unknown tar flag '%c'\n" 
-					"Try `tar --help' for more information\n", *options);
+				default:
+					fatalError( "Unknown tar flag '%c'\n" 
+							"Try `tar --help' for more information\n", **argv);
+			}
 		}
 	}
+#if 0
+	for (i=0; i<excludeListSize; i++) {
+		printf( "%s\n", excludeList[i]);
+		fflush(stdout);
+	}
+#endif
+
 
 	/* 
 	 * Do the correct type of action supplying the rest of the
@@ -250,10 +269,10 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv));
+		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv, excludeList));
 #endif
 	} else {
-		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag));
+		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, excludeList));
 	}
 
   flagError:
@@ -486,7 +505,7 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
  * If the list is empty than all files are extracted or listed.
  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
-		int tostdoutFlag, int verboseFlag)
+		int tostdoutFlag, int verboseFlag, char** excludeList)
 {
 	int status, tarFd=0;
 	int errorFlag=FALSE;
@@ -675,6 +694,7 @@ struct TarBallInfo
 									 tarball lives, so we can avoid trying 
 									 to include the tarball into itself */
 	int verboseFlag;              /* Whether to print extra stuff or not */
+	char** excludeList;           /* List of files to not include */
 };
 typedef struct TarBallInfo TarBallInfo;
 
@@ -719,6 +739,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 {
 	long chksum=0;
 	struct TarHeader header;
+	char** tmpList;
 	const unsigned char *cp = (const unsigned char *) &header;
 	ssize_t size = sizeof(struct TarHeader);
 
@@ -735,6 +756,17 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	else {
 		strcpy(header.name, fileName); 
 	}
+#if 0
+	/* Now that leading '/''s have been removed */
+	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
+		printf( "comparing '%s' and '%s'", *tmpList, header.name);
+		if (strcmp( *tmpList, header.name)==0)
+			printf( ": match\n");
+		else
+			printf( "\n");
+	}
+#endif
+
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
 	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
@@ -868,12 +900,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 }
 
 static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv)
+		int verboseFlag, int argc, char **argv, char** excludeList)
 {
 	int tarFd=-1;
 	int errorFlag=FALSE;
 	ssize_t size;
-	//int skipFileFlag=FALSE;
 	struct TarBallInfo tbInfo;
 	tbInfo.verboseFlag = verboseFlag;
 
@@ -890,6 +921,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 		errorMsg( "tar: Error opening '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
+	tbInfo.excludeList=excludeList;
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
