@@ -153,6 +153,13 @@ extern _syscall5(int, mount, const char *, special_file, const char *, dir,
 		const char *, fstype, unsigned long int, rwflag, const void *, data);
 #endif
 
+#if defined BB_INSMOD || defined BB_LSMOD
+#ifndef __NR_query_module
+#define __NR_query_module     167
+#endif
+_syscall5(int, query_module, const char *, name, int, which,
+		void *, buf, size_t, bufsize, size_t*, ret);
+#endif
 
 
 #if defined (BB_CP_MV) || defined (BB_DU)
