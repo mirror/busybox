@@ -162,7 +162,9 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	int want_option_ack = 0;
 #endif
 
-	RESERVE_CONFIG_BUFFER(buf, tftp_bufsize + 4); /* Opcode + Block # + Data */
+	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
+	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
+	char *buf=xmalloc(tftp_bufsize + 4);
 
 	tftp_bufsize += 4;
 
