@@ -579,7 +579,10 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 
 	/* if there's anything left of the line, print it */
 	if (*hackline)
-		fputs(hackline, stdout);
+		puts(hackline);
+	/* otherwise, we need to print a newline */
+	else
+		printf("\n");
 
 	/* cleanup */
 	free(regmatch);
@@ -594,7 +597,7 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 	switch (sed_cmd->cmd) {
 
 		case 'p':
-			fputs(line, stdout);
+			puts(line);
 			break;
 
 		case 'd':
