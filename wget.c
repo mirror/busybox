@@ -424,7 +424,10 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 			error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
-	printf("\n");
+#ifdef BB_FEATURE_WGET_STATUSBAR
+	if (quiet_flag==FALSE)
+		printf("\n");
+#endif
 	exit(EXIT_SUCCESS);
 }
 
@@ -732,7 +735,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.33 2001/04/11 20:03:01 kraai Exp $
+ *	$Id: wget.c,v 1.34 2001/04/11 20:07:27 kraai Exp $
  */
 
 
