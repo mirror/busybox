@@ -78,7 +78,10 @@ extern size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size, ssize
 
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size)
 {
-	return(bb_full_fd_action(fd1, fd2, size, bb_full_write));
+	if (size) {
+		return(bb_full_fd_action(fd1, fd2, size, bb_full_write));
+	}
+	return(0);
 }
 
 extern int bb_copyfd_eof(int fd1, int fd2)
