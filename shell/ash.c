@@ -1625,9 +1625,8 @@ static int fmtstr(char *, size_t, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
 static void xwrite(int, const void *, size_t);
 
+static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
 
-#define outerr(f)       ferror(f)
-#define out2c(c)        outcslow((c), stderr)
 
 static void out1str(const char *p)
 {
@@ -1637,15 +1636,7 @@ static void out1str(const char *p)
 static void out2str(const char *p)
 {
 	outstr(p, stderr);
-}
-
-static void out1c(char c)
-{
-	char s[2];
-
-	s[0] = c;
-	s[1] = 0;
-	outstr(s, stdout);
+	flushout(stderr);
 }
 
 /*
@@ -1988,6 +1979,7 @@ static int nextopt(const char *);
 
 /* flags passed to redirect */
 #define REDIR_PUSH 01           /* save previous values of file descriptors */
+#define REDIR_SAVEFD2 03       /* set preverrout */
 
 union node;
 static void redirect(union node *, int);
@@ -2674,7 +2666,6 @@ static void evalcommand(union node *, int);
 static int evalbltin(const struct builtincmd *, int, char **);
 static int evalfun(struct funcnode *, int, char **, int);
 static void prehash(union node *);
-static int eprintlist(struct strlist *, int);
 static int bltincmd(int, char **);
 
 
@@ -2765,7 +2756,7 @@ evaltree(union node *n, int flags)
 	default:
 #ifdef DEBUG
 		out1fmt("Node type = %d\n", n->type);
-		flushout(stdout);
+		fflush(stdout);
 		break;
 #endif
 	case NNOT:
@@ -3201,7 +3192,7 @@ evalcommand(union node *cmd, int flags)
 	struct arglist varlist;
 	char **argv;
 	int argc;
-	struct strlist *sp;
+	const struct strlist *sp;
 	struct cmdentry cmdentry;
 	struct job *jp;
 	char *lastarg;
@@ -3244,8 +3235,9 @@ evalcommand(union node *cmd, int flags)
 	if (iflag && funcnest == 0 && argc > 0)
 		lastarg = nargv[-1];
 
+	preverrout_fd = 2;
 	expredir(cmd->ncmd.redirect);
-	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH);
+	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH|REDIR_SAVEFD2);
 
 	path = vpath.text;
 	for (argp = cmd->ncmd.assign; argp; argp = argp->narg.next) {
@@ -3266,14 +3258,24 @@ evalcommand(union node *cmd, int flags)
 
 	/* Print the command if xflag is set. */
 	if (xflag) {
-		int sep;
+		int n;
+		const char *p = " %s";
 
-		out2str(ps4val());
-		sep = 0;
-		sep = eprintlist(varlist.list, sep);
-		eprintlist(arglist.list, sep);
-		out2c('\n');
-		flushall();
+		p++;
+		dprintf(preverrout_fd, p, ps4val());
+
+		sp = varlist.list;
+		for(n = 0; n < 2; n++) {
+			while (sp) {
+				dprintf(preverrout_fd, p, sp->text);
+				sp = sp->next;
+				if(*p == '%') {
+					p--;
+				}
+			}
+			sp = arglist.list;
+		}
+		xwrite(preverrout_fd, "\n", 1);
 	}
 
 	cmd_is_exec = 0;
@@ -3418,7 +3420,7 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv) {
 	exitstatus = (*cmd->builtin)(argc, argv);
 	flushall();
 cmddone:
-	exitstatus |= outerr(stdout);
+	exitstatus |= ferror(stdout);
 	commandname = savecmdname;
 	exsig = 0;
 	handler = savehandler;
@@ -3588,20 +3590,6 @@ execcmd(int argc, char **argv)
 }
 
 
-static int
-eprintlist(struct strlist *sp, int sep)
-{
-	while (sp) {
-		const char *p;
-
-		p = " %s" + (1 - sep);
-		sep |= 1;
-		fprintf(stderr, p, sp->text);
-		sp = sp->next;
-	}
-
-	return sep;
-}
 /*      $NetBSD: exec.c,v 1.35 2003/01/22 20:36:04 dsl Exp $    */
 
 /*
@@ -3632,7 +3620,6 @@ static int builtinloc = -1;             /* index in path of %builtin, or -1 */
 
 
 static void tryexec(char *, char **, char **);
-static void printentry(struct tblentry *);
 static void clearcmdentry(int);
 static struct tblentry *cmdlookup(const char *, int);
 static void delete_cmd_entry(void);
@@ -3797,8 +3784,23 @@ padvance(const char **path, const char *name)
 }
 
 
-
 /*** Command hashing code ***/
+
+static void
+printentry(struct tblentry *cmdp)
+{
+	int idx;
+	const char *path;
+	char *name;
+
+	idx = cmdp->param.index;
+	path = pathval();
+	do {
+		name = padvance(&path, cmdp->cmdname);
+		stunalloc(name);
+	} while (--idx >= 0);
+	out1fmt("%s%s\n", name, (cmdp->rehash ? "*" : nullstr));
+}
 
 
 static int
@@ -3836,25 +3838,6 @@ hashcmd(int argc, char **argv)
 	}
 	return c;
 }
-
-
-static void
-printentry(struct tblentry *cmdp)
-{
-	int idx;
-	const char *path;
-	char *name;
-
-	idx = cmdp->param.index;
-	path = pathval();
-	do {
-		name = padvance(&path, cmdp->cmdname);
-		stunalloc(name);
-	} while (--idx >= 0);
-	out1str(name);
-	out1fmt(snlfmt, cmdp->rehash ? "*" : nullstr);
-}
-
 
 
 /*
@@ -4401,7 +4384,7 @@ describe_command(char *command)
 	}
 
 out:
-	out1c('\n');
+	outstr("\n", stdout);
 	return 0;
 }
 
@@ -6155,7 +6138,6 @@ check:
 
 	if (vflag) {
 		out2str(parsenextc);
-		flushout(stderr);
 	}
 
 	*q = savec;
@@ -9208,9 +9190,8 @@ nextopt(const char *optstring)
 	return c;
 }
 
+
 /*      $NetBSD: output.c,v 1.27 2002/11/24 22:35:42 christos Exp $     */
-
-
 
 void
 outstr(const char *p, FILE *file)
@@ -9228,7 +9209,6 @@ flushall(void)
 	fflush(stderr);
 	INTON;
 }
-
 
 void
 flushout(FILE *dest)
@@ -11119,6 +11099,8 @@ redirect(union node *redir, int flags)
 		dupredirect(n, newfd);
 	} while ((n = n->nfile.next));
 	INTON;
+	if (flags & REDIR_SAVEFD2 && sv && sv->renamed[2] >= 0)
+		preverrout_fd = sv->renamed[2];
 }
 
 
@@ -12544,7 +12526,6 @@ readcmd(int argc, char **argv)
 	}
 	if (prompt && isatty(0)) {
 		out2str(prompt);
-		flushall();
 	}
 	if (*(ap = argptr) == NULL)
 		error("arg count");

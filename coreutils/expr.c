@@ -7,6 +7,7 @@
  *
  * Busybox modifications 
  * Copyright (c) 2000  Edward Betts <edward@debian.org>.
+ * Aug 2003  Vladimir Oleynik - reduced 464 bytes.
  *
  * this program is free software; you can redistribute it and/or modify
  * it under the terms of the gnu general public license as published by
@@ -40,6 +41,7 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <sys/types.h>
+#include <errno.h>
 #include "busybox.h"
 
 
@@ -135,10 +137,8 @@ static int null (VALUE *v)
 	switch (v->type) {
 		case integer:
 			return v->u.i == 0;
-		case string:
+		default: /* string: */
 			return v->u.s[0] == '\0' || strcmp (v->u.s, "0") == 0;
-		default:
-			abort ();
 	}
 }
 
@@ -156,13 +156,9 @@ static void tostring (VALUE *v)
 
 static int toarith (VALUE *v)
 {
+	if(v->type == string) {
 	int i;
 
-	switch (v->type) {
-		case integer:
-			return 1;
-		case string:
-			i = 0;
 			/* Don't interpret the empty string as an integer.  */
 			if (v->u.s == 0)
 				return 0;
@@ -170,10 +166,8 @@ static int toarith (VALUE *v)
 			free (v->u.s);
 			v->u.i = i;
 			v->type = integer;
-			return 1;
-		default:
-			abort ();
 	}
+	return 1;
 }
 
 /* Return nonzero if the next token matches STR exactly.
@@ -189,55 +183,58 @@ nextarg (char *str)
 
 /* The comparison operator handling functions.  */
 
-#define cmpf(name, rel)					\
-static int name (VALUE *l, VALUE *r)		\
-{							\
-	if (l->type == string || r->type == string) {		\
-		tostring (l);				\
-		tostring (r);				\
-		return strcmp (l->u.s, r->u.s) rel 0;	\
-	}						\
-	else						\
-		return l->u.i rel r->u.i;		\
-}
- cmpf (less_than, <)
- cmpf (less_equal, <=)
- cmpf (equal, ==)
- cmpf (not_equal, !=)
- cmpf (greater_equal, >=)
- cmpf (greater_than, >)
+static int cmp_common (VALUE *l, VALUE *r, int op)
+{
+	int cmpval;
 
-#undef cmpf
+	if (l->type == string || r->type == string) {
+		tostring (l);
+		tostring (r);
+		cmpval = strcmp (l->u.s, r->u.s);
+	}
+	else
+		cmpval = l->u.i - r->u.i;
+	switch(op) {
+		case '<':
+			return cmpval < 0;
+		case ('L'+'E'):
+			return cmpval <= 0;
+		case '=':
+			return cmpval == 0;
+		case '!':
+			return cmpval != 0;
+		case '>':
+			return cmpval > 0;
+		default: /* >= */
+			return cmpval >= 0;
+	}
+}
 
 /* The arithmetic operator handling functions.  */
 
-#define arithf(name, op)			\
-static						\
-int name (VALUE *l, VALUE *r)		\
-{						\
-  if (!toarith (l) || !toarith (r))		\
-    bb_error_msg_and_die ("non-numeric argument");	\
-  return l->u.i op r->u.i;			\
+static int arithmetic_common (VALUE *l, VALUE *r, int op)
+{
+  int li, ri;
+
+  if (!toarith (l) || !toarith (r))
+    bb_error_msg_and_die ("non-numeric argument");
+  li = l->u.i;
+  ri = r->u.i;
+  if((op == '/' || op == '%') && ri == 0)
+    bb_error_msg_and_die ( "division by zero");
+  switch(op) {
+	case '+':
+		return li + ri;
+	case '-':
+		return li - ri;
+	case '*':
+		return li * ri;
+	case '/':
+		return li / ri;
+	default:
+		return li % ri;
+  }
 }
-
-#define arithdivf(name, op)			\
-static int name (VALUE *l, VALUE *r)		\
-{						\
-  if (!toarith (l) || !toarith (r))		\
-    bb_error_msg_and_die ( "non-numeric argument");	\
-  if (r->u.i == 0)				\
-    bb_error_msg_and_die ( "division by zero");		\
-  return l->u.i op r->u.i;			\
-}
-
- arithf (plus, +)
- arithf (minus, -)
- arithf (multiply, *)
- arithdivf (divide, /)
- arithdivf (mod, %)
-
-#undef arithf
-#undef arithdivf
 
 /* Do the : operator.
    SV is the VALUE for the lhs (the string),
@@ -408,21 +405,21 @@ static VALUE *eval5 (void)
 static VALUE *eval4 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (VALUE *, VALUE *), val;
+	int op, val;
 
 	l = eval5 ();
 	while (1) {
 		if (nextarg ("*"))
-			fxn = multiply;
+			op = '*';
 		else if (nextarg ("/"))
-			fxn = divide;
+			op = '/';
 		else if (nextarg ("%"))
-			fxn = mod;
+			op = '%';
 		else
 			return l;
 		args++;
 		r = eval5 ();
-		val = (*fxn) (l, r);
+		val = arithmetic_common (l, r, op);
 		freev (l);
 		freev (r);
 		l = int_value (val);
@@ -434,19 +431,19 @@ static VALUE *eval4 (void)
 static VALUE *eval3 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (VALUE *, VALUE *), val;
+	int op, val;
 
 	l = eval4 ();
 	while (1) {
 		if (nextarg ("+"))
-			fxn = plus;
+			op = '+';
 		else if (nextarg ("-"))
-			fxn = minus;
+			op = '+';
 		else
 			return l;
 		args++;
 		r = eval4 ();
-		val = (*fxn) (l, r);
+		val = arithmetic_common (l, r, op);
 		freev (l);
 		freev (r);
 		l = int_value (val);
@@ -458,29 +455,29 @@ static VALUE *eval3 (void)
 static VALUE *eval2 (void)
 {
 	VALUE *l, *r;
-	int (*fxn) (VALUE *, VALUE *), val;
+	int op, val;
 
 	l = eval3 ();
 	while (1) {
 		if (nextarg ("<"))
-			fxn = less_than;
+			op = '<';
 		else if (nextarg ("<="))
-			fxn = less_equal;
+			op = 'L'+'E';
 		else if (nextarg ("=") || nextarg ("=="))
-			fxn = equal;
+			op = '=';
 		else if (nextarg ("!="))
-			fxn = not_equal;
+			op = '!';
 		else if (nextarg (">="))
-			fxn = greater_equal;
+			op = 'G'+'E';
 		else if (nextarg (">"))
-			fxn = greater_than;
+			op = '>';
 		else
 			return l;
 		args++;
 		r = eval3 ();
 		toarith (l);
 		toarith (r);
-		val = (*fxn) (l, r);
+		val = cmp_common (l, r, op);
 		freev (l);
 		freev (r);
 		l = int_value (val);
