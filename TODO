@@ -10,15 +10,13 @@ around to it some time. If you have any good ideas, please let me know.
     netkit-tiny.  Per discussions on the mailing list, this isn't going
     to happen.  False alarm.  Sorry about the confusion.  
 
-* The busybox shell, lash, is really too weak for serious use, although it is
-    possible to run many simple systems with it.  BusyBox 0.49 was supposed to
-    have a new shell, updated to understand full Bourne grammar.  Well, that
-    simply didn't happen in time for the release.  A rewrite is in progress
-    that will result in a new shell that understands the full Bourne grammar.
-    This new shell is being championed by Larry Doolittle
-    <ldoolitt@recycle.lbl.gov>, and could use your help.  Please see the work
-    in progress at http://doolittle.faludi.com/~larry/parser.html and help
-    us out.
+* The default busybox shell, lash, is really too weak for serious use,
+    although it is possible to run many simple systems with it.  BusyBox
+    0.52 now contains a rewritten shell, hush, which understands most
+    Bourne grammar, with only about a 4 Kbyte binary size penalty.  You can
+    engage hush at pre-compile time by "ln -sf hush.c sh.c; touch hush.c".
+    Hush is young, and has plenty of bugs to shake out, so think twice before
+    using it for production systems.  We welcome bug reports and patches.
 
  -Erik
 
@@ -31,8 +29,11 @@ Possible apps to include some time:
 
 -----------
 
-Write a fixup_globals function to do just that right before calling
-non-forking applets.  Or, just always fork in the shell...
+With sysvinit, reboot, poweroff and halt all used a named pipe, 
+/dev/initctl, to communicate with the init process.  Busybox
+currently uses signals to communicate with init.  This makes
+busybox incompatible with sysvinit.  We should probably use
+a named pipe as well so we can be compatible.
 
 -----------------------
 
