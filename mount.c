@@ -144,7 +144,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
 				error_msg("WARNING: loop device is read-only");
-				flags &= ~MS_RDONLY;
+				flags |= MS_RDONLY;
 			}
 		}
 #endif
