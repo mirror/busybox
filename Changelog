@@ -13,6 +13,9 @@
 	* Fixed a bug where tar would set, and then clear SGID and SUID bits.
 	* Fixed a bug where tar would not set the user and group on device
 	    special files.
+	* cp and mv were quite broken when moving directories.  I have rewritten 
+	    them so they should now work as expected.  
+	    
 
 	-Erik Andersen
 

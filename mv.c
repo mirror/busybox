@@ -27,7 +27,6 @@
 #include <utime.h>
 #include <dirent.h>
 
-
 static const char mv_usage[] = "mv SOURCE DEST\n"
 "   or: mv SOURCE... DIRECTORY\n\n"
 "Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n";
@@ -35,26 +34,49 @@ static const char mv_usage[] = "mv SOURCE DEST\n"
 
 static const char *srcName;
 static const char *destName;
-static int dirFlag = FALSE;
+static int destDirFlag = FALSE;
+static int srcDirFlag = FALSE;
 
 static int fileAction(const char *fileName, struct stat* statbuf)
 {
     char newdestName[NAME_MAX];
 
-    fprintf(stderr, "srcName='%s'  destName='%s'\n", srcName, destName);
     strcpy(newdestName, destName);
-    strcat(newdestName, "/");
-    strcat(newdestName, strstr(fileName, fileName));
-    fprintf(stderr, "newdestName='%s'\n", newdestName); 
+    if ( srcDirFlag == TRUE ) {
+	strcat(newdestName, strstr(fileName, srcName) + strlen(srcName));
+    } 
+    
+    if (destDirFlag==TRUE && srcDirFlag == FALSE) {
+	if (newdestName[strlen(newdestName)-1] != '/' ) {
+	    strcat(newdestName, "/");
+	}
+	strcat(newdestName, srcName);
+    }
+    
     return (copyFile(fileName, newdestName, TRUE, TRUE));
+}
+
+static int rmfileAction(const char *fileName, struct stat* statbuf)
+{
+    if (unlink( fileName) < 0 ) {
+	perror( fileName);
+	return ( FALSE);
+    }
+    return ( TRUE);
+}
+
+static int rmdirAction(const char *fileName, struct stat* statbuf)
+{
+    if (rmdir( fileName) < 0 ) {
+	perror( fileName);
+	return ( FALSE);
+    }
+    return ( TRUE);
 }
 
 
 extern int mv_main(int argc, char **argv)
 {
-    char newdestName[NAME_MAX];
-    char *skipName;
-
     if (argc < 3) {
 	usage (mv_usage);
     }
@@ -62,45 +84,23 @@ extern int mv_main(int argc, char **argv)
     argv++;
 
     destName = argv[argc - 1];
-    dirFlag = isDirectory(destName);
+    destDirFlag = isDirectory(destName);
 
-    if ((argc > 3) && dirFlag==FALSE) {
+    if ((argc > 3) && destDirFlag==FALSE) {
 	fprintf(stderr, "%s: not a directory\n", destName);
 	exit (FALSE);
     }
-    
+
     while (argc-- > 1) {
 	srcName = *(argv++);
-	skipName = strrchr(srcName, '/');
-	if (skipName) 
-	    skipName++;
-	strcpy(newdestName, destName);
-	if (dirFlag==TRUE) {
-	    strcat(newdestName, "/");
-	    if ( skipName != NULL)
-		strcat(newdestName, strstr(srcName, skipName));
-	    else
-		strcat(newdestName, srcName);
+	srcDirFlag = isDirectory(srcName);
+	if (recursiveAction(srcName, TRUE, TRUE, FALSE,
+			       fileAction, fileAction) == FALSE) {
+	    exit( FALSE);
 	}
-	if (isDirectory(srcName)==TRUE && newdestName[strlen(newdestName)] != '/') {
-		strcat(newdestName, "/");
-	    createPath(newdestName, 0777);
-	    fprintf(stderr, "srcName = '%s'\n", srcName);
-	    fprintf(stderr, "newdestName = '%s'\n", newdestName);
-	    if (recursiveAction(srcName, TRUE, TRUE, FALSE,
-				   fileAction, fileAction) == FALSE) 
-	    {
-		exit( FALSE);
-	    }
-	    exit( TRUE);
-	} else {
-	    if (copyFile(srcName, newdestName, FALSE, FALSE)  == FALSE) {
-		exit( FALSE);
-	    }
-	    if (unlink (srcName) < 0) {
-		perror (srcName);
-		exit( FALSE);
-	    }
+	if (recursiveAction(srcName, TRUE, TRUE, TRUE,
+			       rmfileAction, rmdirAction) == FALSE) {
+	    exit( FALSE);
 	}
     }
     exit( TRUE);

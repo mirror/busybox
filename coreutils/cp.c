@@ -43,7 +43,6 @@ static int preserveFlag = FALSE;
 static const char *srcName;
 static const char *destName;
 static int destDirFlag = FALSE;
-static int destExistsFlag = FALSE;
 static int srcDirFlag = FALSE;
 
 static int fileAction(const char *fileName, struct stat* statbuf)
@@ -71,8 +70,6 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 
 extern int cp_main(int argc, char **argv)
 {
-    struct stat statBuf;
-
     if (argc < 3) {
 	usage (cp_usage);
     }
@@ -106,11 +103,7 @@ extern int cp_main(int argc, char **argv)
 
 
     destName = argv[argc - 1];
-    if (stat(destName, &statBuf) >= 0) {
-	destExistsFlag = TRUE;
-	if (S_ISDIR(statBuf.st_mode))
-	    destDirFlag = TRUE;
-    }
+    destDirFlag = isDirectory(destName);
 
     if ((argc > 3) && destDirFlag==FALSE) {
 	fprintf(stderr, "%s: not a directory\n", destName);
