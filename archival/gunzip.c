@@ -1017,6 +1017,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	return 0;
 }
 
+#ifdef BB_FEATURE_TAR_GZIP
 extern int gz_open(FILE *compressed_file, int *pid)
 {
 	int unzip_pipe[2];
@@ -1056,6 +1057,7 @@ extern void gz_close(int gunzip_pid)
 	free(window);
 	free(crc_table);
 }
+#endif	
 
 extern int gunzip_main(int argc, char **argv)
 {
