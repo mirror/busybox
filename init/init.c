@@ -500,7 +500,12 @@ static pid_t run(const struct init_action *a)
 				signal(SIGCHLD, SIG_DFL);
 
 				/* Wait for child to exit */
-				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid);
+				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid) {
+					if (tmp_pid == -1 && errno == ECHILD) {
+						break;
+					}
+					/* FIXME handle other errors */
+                }
 
 				/* See if stealing the controlling tty back is necessary */
 				pgrp = tcgetpgrp(0);
@@ -624,12 +629,15 @@ static int waitfor(const struct init_action *a)
 
 	pid = run(a);
 	while (1) {
-		wpid = wait(&status);
-		if (wpid > 0 && wpid != pid) {
-			continue;
-		}
+		wpid = waitpid(pid,&status,0);
 		if (wpid == pid)
 			break;
+		if (wpid == -1 && errno == ECHILD) {
+			/* we missed its termination */
+			break;
+		}
+		/* FIXME other errors should maybe trigger an error, but allow
+		 * the program to continue */
 	}
 	return wpid;
 }
