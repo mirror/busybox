@@ -902,7 +902,7 @@ static void process_file(FILE * file)
 				}
 #endif
 					/* we print the pattern_space once, unless we were told to be quiet */
-					substituted = do_subst_command(sed_cmd, &pattern_space);
+					substituted |= do_subst_command(sed_cmd, &pattern_space);
 
 #ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
 					/* undo HACK: escape newlines twice so regex can match them */
