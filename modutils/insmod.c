@@ -253,7 +253,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.101 2003/08/30 06:00:33 bug1 Exp $"
+#ident "$Id: insmod.c,v 1.102 2003/08/31 01:58:18 bug1 Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -474,7 +474,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.101 2003/08/30 06:00:33 bug1 Exp $"
+#ident "$Id: insmod.c,v 1.102 2003/08/31 01:58:18 bug1 Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1942,7 +1942,7 @@ add_symbols_from(
 		   argument initialization.  We will also create a false
 		   dependency on the module.  */
 		struct obj_symbol *sym;
-		char *name = (char *)s->name;
+		char *name;
 
 		/* GPL licensed modules can use symbols exported with
 		 * EXPORT_SYMBOL_GPL, so ignore any GPLONLY_ prefix on the
@@ -1956,6 +1956,7 @@ add_symbols_from(
 			else
 				continue;
 		}
+		name = (char *)s->name;
 
 #ifdef SYMBOL_PREFIX
 		/* Prepend SYMBOL_PREFIX to the symbol's name (the
@@ -4128,6 +4129,14 @@ extern int insmod_main( int argc, char **argv)
 		m_filename = bb_xstrdup(argv[optind]);
 
 	printf("Using %s\n", m_filename);
+
+#ifdef CONFIG_FEATURE_REALLY_NEW_MODULE_INTERFACE
+    if (create_module(NULL, 0) < 0 && errno == ENOSYS) {
+		optind--;
+		argv[optind] = m_filename;
+		return insmod_ng_main(argc - optind, argv + optind);
+    }
+#endif
 
 	if ((f = obj_load(fp, LOADBITS)) == NULL)
 		bb_perror_msg_and_die("Could not load the module");
