@@ -227,8 +227,18 @@ typedef struct ar_headers_s {
 } ar_headers_t;
 extern ar_headers_t *get_ar_headers(FILE *in_file);
 extern int seek_ared_file(FILE *in_file, ar_headers_t *headers, const char *tar_gz_file);
-extern int deb_extract(const char *package_filename, const int function, char *target_dir);
-extern int untar(FILE *src_tar_file, int untar_function, char *base_path);
+
+typedef enum extract_function_e {
+	extract_contents = 1,
+	extract_control = 2,
+	extract_info = 4,
+	extract_extract = 8,
+	extract_verbose_extract = 16,
+	extract_list = 32
+} extract_function_t;
+extern int deb_extract(const char *package_filename, int function, char *target_dir);
+extern int untar(FILE *src_tar_file, int function, char *base_path);
+
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
 extern int gz_open(FILE *compressed_file, int *pid);

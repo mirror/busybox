@@ -29,25 +29,27 @@
 #include <signal.h>
 #include "libbb.h"
 
-const int dpkg_deb_contents = 1;
-const int dpkg_deb_control = 2;
-const int dpkg_deb_info = 4;
-const int dpkg_deb_extract = 8;
-const int dpkg_deb_verbose_extract = 16;
-const int dpkg_deb_list = 32;
-
-extern int deb_extract(const char *package_filename, const int function, char *target_dir)
+extern int deb_extract(const char *package_filename, int function, char *target_dir)
 {
 
 	FILE *deb_file, *uncompressed_file;
 	ar_headers_t *headers = NULL;
-	char *ared_file;
+	char *ared_file = NULL;
 	int gunzip_pid;
 
-	if ((function == dpkg_deb_info) || (function == dpkg_deb_control)) {
-		ared_file = xstrdup("control.tar.gz");
-	} else {
-		ared_file = xstrdup("data.tar.gz");
+	switch (function) {
+		case (extract_info):
+		case (extract_control):
+			ared_file = xstrdup("control.tar.gz");
+			break;
+		case (extract_contents):
+		case (extract_extract):
+		case (extract_verbose_extract):
+		case (extract_list):
+			ared_file = xstrdup("data.tar.gz");
+			break;
+		default:
+			error_msg("Unknown extraction function");
 	}
 
 	/* open the debian package to be worked on */
@@ -70,12 +72,14 @@ extern int deb_extract(const char *package_filename, const int function, char *t
 	uncompressed_file = fdopen(gz_open(deb_file, &gunzip_pid), "r");
 
 	/* get a list of all tar headers inside the .gz file */
-	untar(uncompressed_file, dpkg_deb_extract, target_dir);
+	untar(uncompressed_file, function, target_dir);
 
 	/* we are deliberately terminating the child so we can safely ignore this */
-	signal(SIGTERM, SIG_IGN);
 	gz_close(gunzip_pid);
+
 	fclose(deb_file);
 	fclose(uncompressed_file);
+	free(ared_file);
+
 	return(EXIT_SUCCESS);
 }

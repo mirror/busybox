@@ -20,12 +20,6 @@
 
 extern int dpkg_deb_main(int argc, char **argv)
 {
-	const int dpkg_deb_contents = 1;
-	const int dpkg_deb_control = 2;
-//	const int dpkg_deb_info = 4;
-	const int dpkg_deb_extract = 8;
-	const int dpkg_deb_verbose_extract = 16;
-	const int dpkg_deb_list = 32;
 	char *target_dir = NULL;
 	int opt = 0;
 	int optflag = 0;	
@@ -33,22 +27,22 @@ extern int dpkg_deb_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "cexXl")) != -1) {
 		switch (opt) {
 			case 'c':
-				optflag |= dpkg_deb_contents;
+				optflag |= extract_contents;
 				break;
 			case 'e':
-				optflag |= dpkg_deb_control;
+				optflag |= extract_control;
 				break;
 			case 'X':
-				optflag |= dpkg_deb_verbose_extract;
+				optflag |= extract_verbose_extract;
 				break;
 			case 'x':
-				optflag |= dpkg_deb_extract;
+				optflag |= extract_extract;
 				break;
 			case 'l':
-				optflag |= dpkg_deb_list;
+				optflag |= extract_list;
 				break;
 /*			case 'I':
-				optflag |= dpkg_deb_info;
+				optflag |= extract_info;
 				break;
 */
 			default:
@@ -59,14 +53,19 @@ extern int dpkg_deb_main(int argc, char **argv)
 	if (((optind + 1 ) > argc) || (optflag == 0))  {
 		show_usage();
 	}
-	if ((optflag & dpkg_deb_control) || (optflag & dpkg_deb_extract) || (optflag & dpkg_deb_verbose_extract)) {
-		if ( (optind + 1) == argc ) {
-			target_dir = (char *) xmalloc(7);
-			strcpy(target_dir, "DEBIAN");
-		} else {
+	switch (optflag) {
+		case (extract_control):
+		case (extract_extract):
+		case (extract_verbose_extract):
+			if ( (optind + 1) == argc ) {
+				target_dir = (char *) xmalloc(7);
+				strcpy(target_dir, "DEBIAN");
+			}
+			break;
+		default: {
 			target_dir = (char *) xmalloc(strlen(argv[optind + 1]));
 			strcpy(target_dir, argv[optind + 1]);
-		}
+			}
 	}
 	deb_extract(argv[optind], optflag, target_dir);
 /*	else if (optflag & dpkg_deb_info) {

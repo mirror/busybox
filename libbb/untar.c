@@ -44,13 +44,6 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
         char padding[12];             /* 500-512 */
 	} raw_tar_header_t;
 
-//	const int dpkg_deb_contents = 1;
-//	const int dpkg_deb_control = 2;
-//	const int dpkg_deb_info = 4;
-	const int untar_extract = 8;
-//	const int dpkg_deb_verbose_extract = 16;
-//	const int dpkg_deb_list = 32;
-
 	raw_tar_header_t raw_tar_header;
 	unsigned char *temp = (unsigned char *) &raw_tar_header;
 	long i;
@@ -61,7 +54,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 
 //	signal(SIGCHLD, child_died);
 
-	while (fread((char *) &raw_tar_header, 1, 512, src_tar_file)==512) {
+	while (fread((char *) &raw_tar_header, 1, 512, src_tar_file) == 512) {
 		long sum = 0;
 		char *dir;
 
@@ -130,30 +123,41 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				 * supposed to be a directory, and fall through
 				 */
 				if (raw_tar_header.name[strlen(raw_tar_header.name)-1] != '/') {
-					if (untar_function & untar_extract) {
-						int out_count=0;
-						FILE *dst_file;
-	
-						dst_file = wfopen(dir, "w");
-						if (copy_file_chunk(src_tar_file, dst_file, size) == FALSE) {
-							error_msg_and_die("Couldnt extract file");
-						}
-						uncompressed_count += out_count;
-						fclose(dst_file);
-						break;
+					switch (untar_function) {
+						case (extract_verbose_extract):
+							printf("%s\n", raw_tar_header.name);
+						case (extract_extract): {
+								FILE *dst_file = wfopen(dir, "w");
+								copy_file_chunk(src_tar_file, dst_file, size);
+								fclose(dst_file);
+							}
+							break;
+						default: {
+								int remaining = size;
+								while (remaining-- > 0) {
+									fgetc(src_tar_file);
+								}
+							}
 					}
+					uncompressed_count += size;
+					break;
 				}
 			case '5':
-				if (untar_function & untar_extract) {
-					if (create_path(dir, mode) != TRUE) {
-						free(dir);
-						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
-						return(EXIT_FAILURE);
-					}
+				switch (untar_function) {
+					case (extract_verbose_extract):
+						printf("%s\n", raw_tar_header.name);
+					case  (extract_extract):
+						if (create_path(dir, mode) != TRUE) {
+							free(dir);
+							perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
+							return(EXIT_FAILURE);
+						}
+						break;
+					default:
 				}
 				break;
 			case '1':
-				if (untar_function & untar_extract) {
+				if (untar_function & extract_extract) {
 					if (link(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create hard link to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
@@ -162,7 +166,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				}
 				break;
 			case '2':
-				if (untar_function & untar_extract) {
+				if (untar_function & extract_extract) {
 					if (symlink(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create symlink to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
@@ -183,18 +187,5 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 		}
 		free(dir);
 	}
-	/* skip to start of next header */
-	while(uncompressed_count < next_header_offset) {
-		char ch[2];
-		if (fread(ch, 1, 1, src_tar_file) != 1) {
-			error_msg("read error\n");
-			getchar();
-		} else {
-			uncompressed_count++;
-		}
-	}
-		/* 
-		 * TODO: Check that gunzip child hasnt finished
-		 */
 	return(EXIT_SUCCESS);
 }
