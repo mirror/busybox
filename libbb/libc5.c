@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 
-#if __GNU_LIBRARY__ < 5
+#ifndef __dietlibc__ &&  __GNU_LIBRARY__ < 5
 
 /*
  * Some systems already have updwtmp().  Some don't...  This is
