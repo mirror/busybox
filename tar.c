@@ -936,7 +936,8 @@ static int putOctal (char *cp, int len, long value)
 
 /* Write out a tar header for the specified file/directory/whatever */
 static int
-writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *statbuf)
+writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
+		const char *real_name, struct stat *statbuf)
 {
 	long chksum=0;
 	struct TarHeader header;
@@ -945,7 +946,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		
 	memset( &header, 0, size);
 
-	strncpy(header.name, fileName, sizeof(header.name)); 
+	strncpy(header.name, header_name, sizeof(header.name)); 
 
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
@@ -971,7 +972,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		int link_size=0;
 		char buffer[BUFSIZ];
 		header.typeflag  = SYMTYPE;
-		link_size = readlink(fileName, buffer, sizeof(buffer) - 1);
+		link_size = readlink(real_name, buffer, sizeof(buffer) - 1);
 		if ( link_size < 0) {
 			perror_msg("Error reading symlink '%s'", header.name);
 			return ( FALSE);
@@ -995,7 +996,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		header.typeflag  = REGTYPE;
 		putOctal(header.size, sizeof(header.size), statbuf->st_size);
 	} else {
-		error_msg("%s: Unknown file type\n", fileName);
+		error_msg("%s: Unknown file type\n", real_name);
 		return ( FALSE);
 	}
 
@@ -1012,7 +1013,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	
 	/* Now write the header out to disk */
 	if ((size=full_write(tbInfo->tarFd, (char*)&header, sizeof(struct TarHeader))) < 0) {
-		error_msg(io_error, fileName, strerror(errno)); 
+		error_msg(io_error, real_name, strerror(errno)); 
 		return ( FALSE);
 	}
 	/* Pad the header up to the tar block size */
@@ -1034,6 +1035,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* userData)
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
+	const char *header_name;
 #if defined BB_FEATURE_TAR_EXCLUDE
 	char** tmpList;
 #endif
@@ -1069,13 +1071,14 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 		return( TRUE);
 	}
 
-	while (fileName[0] == '/') {
+	header_name = fileName;
+	while (header_name[0] == '/') {
 		static int alreadyWarned=FALSE;
 		if (alreadyWarned==FALSE) {
 			error_msg("Removing leading '/' from member names\n");
 			alreadyWarned=TRUE;
 		}
-		fileName++;
+		header_name++;
 	}
 
 	if (strlen(fileName) >= NAME_SIZE) {
@@ -1083,7 +1086,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 		return ( TRUE);
 	}
 
-	if (fileName[0] == '\0')
+	if (header_name[0] == '\0')
 		return TRUE;
 
 #if defined BB_FEATURE_TAR_EXCLUDE
@@ -1091,7 +1094,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
 		/* Do some extra hoop jumping for when directory names
 		 * end in '/' but the entry in tmpList doesn't */
-		if (strncmp( *tmpList, fileName, strlen(*tmpList))==0 || (
+		if (strncmp( *tmpList, header_name, strlen(*tmpList))==0 || (
 					fileName[strlen(fileName)-1]=='/'
 					&& strncmp( *tmpList, fileName, 
 						MIN(strlen(fileName)-1, strlen(*tmpList)))==0)) {
@@ -1100,7 +1103,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	}
 #endif
 
-	if (writeTarHeader(tbInfo, fileName, statbuf)==FALSE) {
+	if (writeTarHeader(tbInfo, header_name, fileName, statbuf)==FALSE) {
 		return( FALSE);
 	} 
 
