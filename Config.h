@@ -309,6 +309,15 @@
 // Support for human readable output by ls, du, etc.(example 13k, 23M, 235G)
 #define BB_FEATURE_HUMAN_READABLE
 //
+// Support for the find -type option.
+#define BB_FEATURE_FIND_TYPE
+//
+// Support for the find -perm option.
+#define BB_FEATURE_FIND_PERM
+//
+// Support for the find -mtine option.
+#define BB_FEATURE_FIND_MTIME
+//
 // End of Features List
 //
 //

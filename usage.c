@@ -377,7 +377,15 @@ const char find_usage[] =
 	"\nEXPRESSION may consist of:\n"
 	"\t-follow\t\tDereference symbolic links.\n"
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN.\n"
-	"\t-print\t\tprint the full file name followed by a newline to stdout."
+#ifdef BB_FEATURE_FIND_TYPE
+	"\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)\n"
+#endif
+#ifdef BB_FEATURE_FIND_PERM
+	"\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN); or exactly (NNN)\n"
+#endif
+#ifdef BB_FEATURE_FIND_MTIME
+	"\t-mtime TIME\tModified time is greater than (+N); less than (-N); or exactly (N) days\n"
+#endif
 #endif
 	;
 #endif
