@@ -17,8 +17,6 @@ around to it some time. If you have any good ideas, please let me know.
 
 Bugs that need fixing as of Mon May  8 17:22:06 MDT 2000
 
- - zcat option parsing broke (maybe replace zcat binary with a shell script?)
- - cp -fa doesn't work (-a option parsing probably overrides everything)
  - 'grep foo$ file' doesn't work
  - 'grep *foo file' segfaults
  - ps dirent race bug (need to stat the file before attempting chdir)

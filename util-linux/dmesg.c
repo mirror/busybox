@@ -34,7 +34,15 @@ static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 # include <sys/klog.h>
 #endif
 
-static const char dmesg_usage[] = "dmesg [-c] [-n level] [-s bufsize]\n";
+static const char dmesg_usage[] = "dmesg [-c] [-n LEVEL] [-s SIZE]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrints or controls the kernel ring buffer\n\n"
+	"Options:\n"
+	"\t-c\t\tClears the ring buffer's contents after printing\n"
+	"\t-n LEVEL\tSets console logging level\n"
+	"\t-s SIZE\t\tUse a buffer of size SIZE\n"
+#endif
+	;
 
 int dmesg_main(int argc, char **argv)
 {

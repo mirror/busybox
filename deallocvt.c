@@ -19,7 +19,11 @@ int deallocvt_main(int argc, char *argv[])
 
 	if ((argc != 2) || (**(argv + 1) == '-')) {
 		usage
-			("deallocvt N\n\nDeallocate unused virtual terminal /dev/ttyN\n");
+			("deallocvt N\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+			 "\nDeallocate unused virtual terminal /dev/ttyN\n"
+#endif
+			 );
 	}
 
 	progname = argv[0];

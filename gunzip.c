@@ -715,11 +715,12 @@ int gunzip_main(int argc, char **argv)
 	char ifname[MAX_PATH_LEN + 1];	/* input file name */
 	char ofname[MAX_PATH_LEN + 1];	/* output file name */
 
-	if (argc == 1)
-		usage(gunzip_usage);
-
-	if (strcmp(*argv, "zcat") == 0)
+	if (strcmp(*argv, "zcat") == 0) {
 		to_stdout = 1;
+		if (argc == 1) {
+			fromstdin = 1;
+		}
+	}
 
 	/* Parse any options */
 	while (--argc > 0 && **(++argv) == '-') {

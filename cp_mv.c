@@ -70,6 +70,7 @@ static const char *cp_mv_usage[] =	/* .rodata */
 static int recursiveFlag;
 static int followLinks;
 static int preserveFlag;
+static int forceFlag;
 
 static const char *baseSrcName;
 static int		   srcDirFlag;
@@ -167,7 +168,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 			add_to_ino_dev_hashtable(statbuf, destName);
 		}
 	}
-	return copyFile(fileName, destName, preserveFlag, followLinks);
+	return copyFile(fileName, destName, preserveFlag, followLinks, forceFlag);
 }
 
 static int
@@ -200,7 +201,7 @@ extern int cp_mv_main(int argc, char **argv)
 	argv++;
 
 	if (dz_i == is_cp) {
-		recursiveFlag = preserveFlag = FALSE;
+		recursiveFlag = preserveFlag = forceFlag = FALSE;
 		followLinks = TRUE;
 		while (**argv == '-') {
 			while (*++(*argv)) {
@@ -220,7 +221,7 @@ extern int cp_mv_main(int argc, char **argv)
 					recursiveFlag = TRUE;
 					break;
 				case 'f':
-				   /* for compatibility; busybox cp/mv always does force */
+					forceFlag = TRUE;
 					break;
 				default:
 					usage(cp_mv_usage[is_cp]);

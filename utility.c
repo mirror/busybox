@@ -234,15 +234,14 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 
 #if defined (BB_CP_MV)
 /*
- * Copy one file to another, while possibly preserving its modes, times,
- * and modes.  Returns TRUE if successful, or FALSE on a failure with an
- * error message output.  (Failure is not indicated if the attributes cannot
- * be set.)
- *  -Erik Andersen
+ * Copy one file to another, while possibly preserving its modes, times, and
+ * modes.  Returns TRUE if successful, or FALSE on a failure with an error
+ * message output.  (Failure is not indicated if attributes cannot be set.)
+ * -Erik Andersen
  */
 int
 copyFile(const char *srcName, const char *destName,
-		 int setModes, int followLinks)
+		 int setModes, int followLinks, int forceFlag)
 {
 	int rfd;
 	int wfd;
@@ -268,7 +267,8 @@ copyFile(const char *srcName, const char *destName,
 	else
 		status = lstat(destName, &dstStatBuf);
 
-	if (status < 0) {
+	if (status < 0 || forceFlag==TRUE) {
+		unlink(destName);
 		dstStatBuf.st_ino = -1;
 		dstStatBuf.st_dev = -1;
 	}
@@ -306,10 +306,8 @@ copyFile(const char *srcName, const char *destName,
 		}
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 		if (setModes == TRUE) {
-			if (lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0) {
-				perror(destName);
-				return FALSE;
-			}
+			/* Try to set owner, but fail silently like GNU cp */
+			lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
 		}
 #endif
 		return TRUE;

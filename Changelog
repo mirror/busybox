@@ -27,6 +27,9 @@
 	* Fixed basename to support stripping of suffixes.  Patch thanks
 	    to xiong jianxin <jxiong@uiuc.edu>
 	* More doc updates
+	* cp -fa now works as expected for symlinks (it didn't before)
+	* zcat now works (wasn't working since option parsing was broken)
+
 
 	 -Erik
 

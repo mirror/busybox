@@ -215,8 +215,8 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
-int copyFile(const char *srcName, const char *destName, int setModes,
-	        int followLinks);
+int copyFile(const char *srcName, const char *destName,
+		 int setModes, int followLinks, int forceFlag);
 char *buildName(const char *dirName, const char *fileName);
 int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
