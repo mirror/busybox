@@ -147,7 +147,7 @@ unsigned char *bytebuffer = NULL;
 unsigned int bytebuffer_offset = 0;
 unsigned int bytebuffer_size = 0;
 
-static void fill_bytebuffer()
+static void fill_bytebuffer(void)
 {
 	if (bytebuffer_offset >= bytebuffer_size) {
 		/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
