@@ -577,17 +577,15 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	} else {
 	    outFd = open (name, O_WRONLY | O_CREAT | O_TRUNC, mode);
 	}
+	if (outFd < 0) {
+	    perror (name);
+	    skipFileFlag = TRUE;
+	    return;
+	}
+	chown(name, uid, gid);
+	chmod(name, mode);
     }
 
-    if (outFd < 0) {
-	perror (name);
-	skipFileFlag = TRUE;
-	return;
-    }
-    if (tostdoutFlag == FALSE) {
-	fchown(outFd, uid, gid);
-	fchmod(outFd, mode);
-    }
 
     /* 
      * If the file is empty, then that's all we need to do.
