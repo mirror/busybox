@@ -108,6 +108,6 @@ install: busybox busybox.links
 dist: release
 
 release: distclean
-	(cd .. ; rm -rf busybox-$(VERSION) ; cp -a busybox busybox-$(VERSION); rm -rf busybox-$(VERSION)/CVS busybox-$(VERSION)/.cvsignore ; tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
+	(cd .. ; rm -rf busybox-$(VERSION) ; cp -a busybox busybox-$(VERSION); rm -rf busybox-$(VERSION)/CVS busybox-$(VERSION)/scripts/CVS busybox-$(VERSION)/docs/CVS busybox-$(VERSION)/.cvsignore ; tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
 
 
