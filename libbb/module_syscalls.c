@@ -32,42 +32,16 @@
 #include "libbb.h"
 
 
-struct old_module_ref
-{
-  unsigned long module;		/* kernel addresses */
-  unsigned long next;
-};
-
-struct old_module_symbol
-{
-  unsigned long addr;
-  unsigned long name;
-};
-
-struct old_symbol_table
-{
-  int size;			/* total, including string table!!! */
-  int n_symbols;
-  int n_refs;
-  struct old_module_symbol symbol[0]; /* actual size defined by n_symbols */
-  struct old_module_ref ref[0];	/* actual size defined by n_refs */
-};
-
-struct old_mod_routines
-{
-  unsigned long init;
-  unsigned long cleanup;
-};
-
-#define __NR_old_sys_init_module  __NR_init_module
-_syscall5(int, old_sys_init_module, const char *, name, char *, code,
-		  unsigned, codesize, struct old_mod_routines *, routines,
-		  struct old_symbol_table *, symtab);
-
 #if __GNU_LIBRARY__ < 5
 /* These syscalls are not included as part of libc5 */
 _syscall1(int, delete_module, const char *, name);
 _syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks);
+
+/* This may have 5 arguments (for old 2.0 kernels) or 2 arguments
+ * (for 2.2 and 2.4 kernels).  Use the greatest common denominator,
+ * and let the kernel cope with whatever it gets.  Its good at that. */
+_syscall5(int, init_module, void *, first, void *, second, void *, third,
+		void *, fourth, void *, fifth);
 
 #ifndef __NR_query_module
 #warning This kernel does not support the query_module syscall
@@ -85,11 +59,11 @@ _syscall5(int, query_module, const char *, name, int, which,
 #endif
 
 /* Jump through hoops to fixup error return codes */
-#define __NR__create_module  __NR_create_module
-static inline _syscall2(long, _create_module, const char *, name, size_t, size)
+#define __NR___create_module  __NR_create_module
+static inline _syscall2(long, __create_module, const char *, name, size_t, size)
 unsigned long create_module(const char *name, size_t size)
 {
-	long ret = _create_module(name, size);
+	long ret = __create_module(name, size);
 
 	if (ret == -1 && errno > 125) {
 		ret = -errno;
