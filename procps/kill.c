@@ -32,8 +32,8 @@
 #include <unistd.h>
 #include "busybox.h"
 
-static const int KILL = 0;
-static const int KILLALL = 1;
+#define KILL 0
+#define KILLALL 1
 
 extern int kill_main(int argc, char **argv)
 {
@@ -43,7 +43,7 @@ extern int kill_main(int argc, char **argv)
 
 #ifdef CONFIG_KILLALL
 	/* Figure out what we are trying to do here */
-	whichApp = (strcmp(bb_applet_name, "killall") == 0)? KILLALL : KILL; 
+	whichApp = (strcmp(bb_applet_name, "killall") == 0)? KILLALL : KILL;
 #else
 	whichApp = KILL;
 #endif
@@ -91,7 +91,7 @@ extern int kill_main(int argc, char **argv)
 		quiet++;
 		argv++;
 		argc--;
-		if(argv[1][0] != '-'){
+		if(argc<2 || argv[1][0] != '-'){
 			goto do_it_now;
 		}
 	}
@@ -118,7 +118,7 @@ do_it_now:
 			argv++;
 		}
 
-	} 
+	}
 #ifdef CONFIG_KILLALL
 	else {
 		pid_t myPid=getpid();
