@@ -46,8 +46,11 @@ int sort_main(int argc, char **argv)
 #ifdef BB_FEATURE_SORT_REVERSE
 	int reverse = FALSE;
 #endif
+#ifdef BB_FEATURE_SORT_UNIQUE
+	int unique = FALSE;
+#endif
 
-	while ((opt = getopt(argc, argv, "nr")) != -1) {
+	while ((opt = getopt(argc, argv, "nru")) != -1) {
 		switch (opt) {
 			case 'n':
 				compare = compare_numeric;
@@ -55,6 +58,11 @@ int sort_main(int argc, char **argv)
 #ifdef BB_FEATURE_SORT_REVERSE
 			case 'r':
 				reverse = TRUE;
+				break;
+#endif
+#ifdef BB_FEATURE_SORT_UNIQUE
+			case 'u':
+				unique = TRUE;
 				break;
 #endif
 			default:
@@ -81,12 +89,18 @@ int sort_main(int argc, char **argv)
 
 	/* print it */
 #ifdef BB_FEATURE_SORT_REVERSE
-	if (reverse)
-		for (i = nlines - 1; 0 <= i; i--)
-			puts(lines[i]);
-	else
+	if (reverse) {
+		for (i = --nlines; 0 <= i; i--)
+#ifdef BB_FEATURE_SORT_UNIQUE
+			if((!unique) || (i == nlines) || (strcmp(lines[i + 1], lines[i])))
 #endif
-	for (i = 0; i < nlines; i++)
-		puts(lines[i]);
+				puts(lines[i]);
+	} else
+#endif
+		for (i = 0; i < nlines; i++)
+#ifdef BB_FEATURE_SORT_UNIQUE
+			if((!unique) || (!i) || (strcmp(lines[i - 1], lines[i])))
+#endif
+				puts(lines[i]);
 	return EXIT_SUCCESS;
 }

@@ -1356,15 +1356,24 @@
 	"[2 second delay results]\n"
 
 
+#ifdef BB_FEATURE_SORT_UNIQUE
+  #define USAGE_SORT_UNIQUE(a) a
+#else
+  #define USAGE_SORT_UNIQUE(a)
+#endif
 #ifdef BB_FEATURE_SORT_REVERSE
   #define USAGE_SORT_REVERSE(a) a
 #else
   #define USAGE_SORT_REVERSE(a)
 #endif
 #define sort_trivial_usage \
-	"[-n]" USAGE_SORT_REVERSE(" [-r]") " [FILE]..."
+	"[-n" USAGE_SORT_REVERSE("r") USAGE_SORT_UNIQUE("u") "] [FILE]..."
 #define sort_full_usage \
-	"Sorts lines of text in the specified files"
+	"Sorts lines of text in the specified files\n\n"\
+	"Options:\n" \
+	USAGE_SORT_UNIQUE("\t-u\tsuppress duplicate lines\n") \
+	USAGE_SORT_REVERSE("\t-r\tsort in reverse order\n") \
+	"\t-n\tsort numerics"
 #define sort_example_usage \
 	"$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
 	"a\n" \

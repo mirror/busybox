@@ -235,8 +235,11 @@
 // Enable support for tar -z option (currently only works for inflating)
 #define BB_FEATURE_TAR_GZIP 
 //
-//// Enable reverse sort
+// Enable reverse sort
 #define BB_FEATURE_SORT_REVERSE
+//
+// Enable uniqe sort
+#define BB_FEATURE_SORT_UNIQUE
 //
 // Enable command line editing in the shell.  
 // Only relevant if BB_SH is enabled. On by default.
