@@ -194,7 +194,11 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, r
 		*linenum = -1;
 		idx++;
 	}
-	else if (my_str[idx] == '/') {
+	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
+		if (my_str[idx] == '\\') {
+			my_str[idx] = 0;
+			sed_cmd-> delimiter = my_str[++idx];
+		}
 		idx = index_of_next_unescaped_regexp_delim(sed_cmd, my_str, ++idx);
 		if (idx == -1)
 			error_msg_and_die("unterminated match expression");
