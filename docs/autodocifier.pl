@@ -81,7 +81,10 @@ sub sgml_for_usage {
 	my $name  = shift;
 	my $usage = shift;
 	return
-	"FIXME";
+		"<fixme>\n".
+		"  $name\n".
+		"</fixme>\n"
+	;
 }
 
 # the keys are applet names, and 
@@ -135,11 +138,13 @@ foreach (@ARGV) {
 	}
 }
 
-#use Data::Dumper;
-#print Data::Dumper->Dump([\%docs], [qw(docs)]);
+my $generator = \&pod_for_usage;
+if (defined $opt{sgml}) {
+    $generator = \&sgml_for_usage;
+}
 
 foreach my $name (sort keys %docs) {
-	print pod_for_usage($name, $docs{$name});
+	print $generator->($name, $docs{$name});
 }
 
 exit 0;
@@ -166,19 +171,29 @@ This script was based on a script by Erik Andersen (andersen@lineo.com).
 
 =head1 OPTIONS
 
-these control my behaviour
-
-=over 8
+=over 4
 
 =item --help
 
 This displays the help message.
 
+=item --pod
+
+Generate POD (this is the default)
+
+=item --sgml
+
+Generate SGML
+
+=item --verbose
+
+Be verbose (not implemented)
+
 =back
 
 =head1 FILES
 
-files that I manipulate
+F<usage.h>
 
 =head1 COPYRIGHT
 
@@ -192,4 +207,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.8 2001/02/23 17:41:41 beppu Exp $
+# $Id: autodocifier.pl,v 1.9 2001/02/23 17:51:08 beppu Exp $
