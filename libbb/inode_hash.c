@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "libbb.h"
 
 #define HASH_SIZE	311		/* Should be prime */
