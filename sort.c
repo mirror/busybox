@@ -32,6 +32,7 @@ static const char sort_usage[] =
 "Usage: sort [OPTION]... [FILE]...\n\n"
 ;
 
+/* structs ________________________________________________________________ */
 
 /* line node */
 typedef struct {
@@ -42,19 +43,51 @@ typedef struct {
 /* singly-linked list of lines */
 typedef struct {
     int		len;	    /* number of Lines */
-    Line	*line;	    /* array fed to qsort */
+    Line	*sorted;    /* array fed to qsort */
+
     Line	*head;	    /* head of List */
+    Line	*current    /* current Line */
 } List;
 
 
-/* Line methods */
+/* methods ________________________________________________________________ */
 
 static const int max = 1024;
 
+/* mallocate Line */
 static Line *
-line_new()
+line_alloc()
 {
-    char buffer[max];
+    Line *self;
+    self = malloc(1 * sizeof(Line));
+    return self;
+}
+
+/* Initialize Line with string */
+static Line *
+line_init(Line *self, const char *string)
+{
+    self->data = malloc((strlen(string) + 1) * sizeof(char));
+    if (self->data == NULL) { return NULL; }
+    strcpy(self->data, string);
+    self->next = NULL;
+    return self;
+}
+
+/* Construct Line from FILE* */
+static Line *
+line_newFromFile(FILE *src)
+{
+    char    buffer[max];
+    Line    *self;
+
+    if (fgets(buffer, max, src)) {
+	self = line_alloc();
+	if (self == NULL) { return NULL; }
+	line_init(self, buffer);
+	return self;
+    }
+    return NULL;
 }
 
 
@@ -69,15 +102,54 @@ compare_numeric(const void *, const void *);
 
 /* List */
 
-static void
-list_insert();
+/* */
+static List *
+list_init(List *self)
+{
+    self->len     = 0;
+    self->sorted  = NULL;
+    self->head    = NULL;
+    self->current = NULL;
+    return self;
+}
 
+/* for simplicity, the List gains ownership of the line */
 static void
-list_sort();
+list_insert(List *self, Line *line)
+{
+    if (line == NULL) { return NULL; }
 
-static void
-list_print();
+    /* first insertion */
+    if (self->head == NULL) {
+	self->head    = line;
+	self->current = line;
 
+    /* all subsequent insertions */
+    } else {
+	self->current->next = line;
+	self->current       = line;
+    }
+    self->len++;
+    return self;
+}
+
+/* */
+static List *
+list_sort(List *self);
+
+/* precondition:  list must be sorted */
+static List *
+list_writeToFile(List *self, FILE* dst)
+{
+    if (self->sorted == NULL) { return NULL; }
+}
+
+/* deallocate */
+static List *
+list_release(List *self)
+{
+    return self;
+}
 
 
 /*
@@ -123,5 +195,4 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Date: 1999/12/21 20:00:35 $ */
-/* $Id: sort.c,v 1.1 1999/12/21 20:00:35 beppu Exp $ */
+/* $Id: sort.c,v 1.2 1999/12/22 00:30:29 beppu Exp $ */
