@@ -507,11 +507,11 @@
 		    * from Matthew Grant <grantma@anathoth.gen.nz>
 		to accomodate glibc timezone support.  I then ripped out GNU
 		getopt.
-	    * mkswap -- new version merged from util-linux.  Can now make
-	    * >128Meg swaps.  Replaced the old and star, unstar, and tarcat
-	    * with the tar 
-		implementation from sash.   Now tar behaves as god intended it
-		to (i.e. tar -xvf <file> and tar -cf <file> <dir> work).
+	    * mkswap -- new version merged from util-linux.  Can now make 
+			>128Meg swaps.  
+		* Replaced the old and star, unstar, and tarcat with the tar 
+			implementation from sash.   Now tar behaves as god intended it
+			to (i.e. tar -xvf <file> and tar -cf <file> <dir> work).
 	    * dd -- rewritten.  Can with with files, stdin, stdout.  Added the
 	    * following new apps: loadfont -- added from debian boot floppies
 	    * chroot -- added based on a patch from Paolo Molaro

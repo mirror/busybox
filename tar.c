@@ -1,9 +1,23 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini tar implementation for busybox
+ *
+ * Mini tar implementation for busybox Note, that as of BusyBox 0.43 tar has
+ * been completely rewritten from the ground up.  It still has remnents of the
+ * old code lying about, but it pretty different (i.e. cleaner, less global
+ * variables, etc)
  *
  * Copyright (C) 1999 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ *
+ * Based in part in the tar implementation in sash
+ *  Copyright (c) 1999 by David I. Bell
+ *  Permission is granted to use, distribute, or modify this source,
+ *  provided that this copyright notice remains intact.
+ *  Permission to distribute sash derived code under the GPL has been granted.
+ *
+ * Based in part on the tar implementation in busybox-0.28
+ *  Copyright (C) 1995 Bruce Perens
+ *  This is free software under the GNU General Public License.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,17 +161,9 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 
 #ifdef BB_FEATURE_TAR_CREATE
-/*
- * Local procedures to save files into a tar file.
- */
-static void saveFile(const char *fileName, int seeLinks);
-static void saveRegularFile(const char *fileName,
-							const struct stat *statbuf);
-static void saveDirectory(const char *fileName,
-						  const struct stat *statbuf);
-static void writeHeader(const char *fileName, const struct stat *statbuf);
-static void writeTarFile(int argc, char **argv);
-static void writeTarBlock(const char *buf, int len);
+/* Local procedures to save files into a tar file.  */
+static int writeTarFile(const char* tarName, int extractFlag, int listFlag, 
+		int tostdoutFlag, int verboseFlag, int argc, char **argv);
 static int putOctal(char *cp, int len, long value);
 
 #endif
@@ -242,7 +248,7 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(argc, argv));
+		exit(writeTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, argc, argv));
 #endif
 	} else {
 		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag));
@@ -347,10 +353,9 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 	/* make the final component, just in case it was
 	 * omitted by createPath() (which will skip the
 	 * directory if it doesn't have a terminating '/') */
-	mkdir(header->name, header->mode);
-
-	/* Now set permissions etc for the new directory */
-	fixUpPermissions(header);
+	if (mkdir(header->name, header->mode) == 0) {
+		fixUpPermissions(header);
+	}
 }
 
 static void
@@ -615,4 +620,90 @@ endgame:
 	} 
 	return( FALSE);
 }
+
+
+#ifdef BB_FEATURE_TAR_CREATE
+
+/* Put an octal string into the specified buffer.
+ * The number is zero and space padded and possibly null padded.
+ * Returns TRUE if successful.  */ 
+static int putOctal (char *cp, int len, long value)
+{
+	int tempLength;
+	char *tempString;
+	char tempBuffer[32];
+
+	/* Create a string of the specified length with an initial space,
+	 * leading zeroes and the octal number, and a trailing null.  */
+	tempString = tempBuffer;
+
+	sprintf (tempString, " %0*lo", len - 2, value);
+
+	tempLength = strlen (tempString) + 1;
+
+	/* If the string is too large, suppress the leading space.  */
+	if (tempLength > len) {
+		tempLength--;
+		tempString++;
+	}
+
+	/* If the string is still too large, suppress the trailing null.  */
+	if (tempLength > len)
+		tempLength--;
+
+	/* If the string is still too large, fail.  */
+	if (tempLength > len)
+		return FALSE;
+
+	/* Copy the string to the field.  */
+	memcpy (cp, tempString, len);
+
+	return TRUE;
+}
+
+static int fileAction(const char *fileName, struct stat *statbuf)
+{
+	fprintf(stdout, "%s\n", fileName);
+	return (TRUE);
+}
+
+static int writeTarFile(const char* tarName, int extractFlag, int listFlag, 
+		int tostdoutFlag, int verboseFlag, int argc, char **argv)
+{
+	int tarFd=0;
+	//int errorFlag=FALSE;
+	//TarHeader rawHeader;
+	//TarInfo header;
+	//int alreadyWarned=FALSE;
+	char *directory = ".";
+	//int skipFileFlag=FALSE;
+
+	/* Open the tar file for writing.  */
+	if (!strcmp(tarName, "-"))
+		tarFd = fileno(stdout);
+	else
+		tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (tarFd < 0) {
+		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
+		return ( FALSE);
+	}
+
+	/* Set the umask for this process so it doesn't 
+	 * screw up permission setting for us later. */
+	umask(0);
+
+	/* Read the directory/files and iterate over them one at a time */
+	if (recursiveAction(directory, TRUE, FALSE, FALSE,
+						fileAction, fileAction) == FALSE) {
+		exit(FALSE);
+	}
+
+
+	// TODO: DO STUFF HERE
+	close(tarFd);
+	return( TRUE);
+}
+
+
+#endif
 

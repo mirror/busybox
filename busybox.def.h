@@ -161,7 +161,7 @@
 #define BB_FEATURE_REMOUNT
 //
 // Enable support for creation of tar files.
-//#define BB_FEATURE_TAR_CREATE
+#define BB_FEATURE_TAR_CREATE
 //
 //// Enable reverse sort
 //#define BB_FEATURE_SORT_REVERSE
