@@ -130,7 +130,7 @@ busybox: $(ALL_MAKEFILES) .depend include/config.h $(libraries-y)
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/config.h $(top_srcdir)/include/applets.h
 	- $(SHELL) $^ >$@
 
-install: applets/install.sh busybox busybox.links
+install: $(top_srcdir)/applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX)
 ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
 	@echo
