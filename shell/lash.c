@@ -41,7 +41,7 @@
 #include "cmdedit.h"
 #endif
 
-
+#define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 
@@ -100,6 +100,7 @@ static int shell_pwd(struct job *dummy, struct jobSet *junk);
 static int shell_export(struct job *cmd, struct jobSet *junk);
 static int shell_source(struct job *cmd, struct jobSet *jobList);
 static int shell_unset(struct job *cmd, struct jobSet *junk);
+static int shell_read(struct job *cmd, struct jobSet *junk);
 
 static void checkJobs(struct jobSet *jobList);
 static int getCommand(FILE * source, char *command);
@@ -118,6 +119,7 @@ static struct builtInCommand bltins[] = {
 	{"jobs", "Lists the active jobs", "jobs", shell_jobs},
 	{"export", "Set environment variable", "export [VAR=value]", shell_export},
 	{"unset", "Unset environment variable", "unset VAR", shell_unset},
+	{"read", "Input environment variable", "read [VAR]", shell_read},
 	{NULL, NULL, NULL, NULL}
 };
 
@@ -138,8 +140,8 @@ static const char shell_usage[] =
 #endif
 	;
 
-static char cwd[1024];
 static char *prompt = "# ";
+static char *cwd = NULL;
 static char *local_pending_command = NULL;
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
@@ -297,6 +299,40 @@ static int shell_export(struct job *cmd, struct jobSet *junk)
 	res = putenv(cmd->progs[0].argv[1]);
 	if (res)
 		fprintf(stdout, "export: %s\n", strerror(errno));
+	return (res);
+}
+
+/* built-in 'read VAR' handler */
+static int shell_read(struct job *cmd, struct jobSet *junk)
+{
+	int res = 0, len, newlen;
+	char *s;
+	char string[MAX_READ];
+
+	if (cmd->progs[0].argv[1]) {
+		/* argument (VAR) given: put "VAR=" into buffer */
+		strcpy(string, cmd->progs[0].argv[1]);
+		len = strlen(string);
+		string[len++] = '=';
+		string[len]   = '\0';
+		fgets(&string[len], sizeof(string) - len, stdin);	/* read string */
+		newlen = strlen(string);
+		if(newlen > len)
+			string[--newlen] = '\0';	/* chomp trailing newline */
+		/*
+		** string should now contain "VAR=<value>"
+		** copy it (putenv() won't do that, so we must make sure
+		** the string resides in a static buffer!)
+		*/
+		res = -1;
+		if((s = strdup(string)))
+			res = putenv(s);
+		if (res)
+			fprintf(stdout, "read: %s\n", strerror(errno));
+	}
+	else
+		fgets(string, sizeof(string), stdin);
+
 	return (res);
 }
 
@@ -461,7 +497,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 	int rc;
 	int flags;
 	int i;
-	char *src, *dst;
+	char *src, *dst, *var;
 
 	if (argc > 1) {				/* cmd->globResult is already initialized */
 		flags = GLOB_APPEND;
@@ -471,6 +507,9 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		flags = 0;
 		i = 0;
 	}
+	/* do shell variable substitution */
+	if(*prog->argv[argc - 1] == '$' && (var = getenv(prog->argv[argc - 1] + 1)))
+		prog->argv[argc - 1] = var;
 
 	rc = glob(prog->argv[argc - 1], flags, NULL, &prog->globResult);
 	if (rc == GLOB_NOSPACE) {
@@ -535,12 +574,13 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 	job->progs = malloc(sizeof(*job->progs));
 
 	/* We set the argv elements to point inside of this string. The 
-	   memory is freed by freeJob(). 
+	   memory is freed by freeJob(). Allocate twice the original
+	   length in case we need to quote every single character.
 
 	   Getting clean memory relieves us of the task of NULL 
 	   terminating things and makes the rest of this look a bit 
 	   cleaner (though it is, admittedly, a tad less efficient) */
-	job->cmdBuf = command = calloc(1, strlen(*commandPtr) + 1);
+	job->cmdBuf = command = calloc(1, 2*strlen(*commandPtr) + 1);
 	job->text = NULL;
 
 	prog = job->progs;
@@ -583,9 +623,8 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 										 sizeof(*prog->argv) *
 										 argvAlloced);
 				}
-				prog->argv[argc] = buf;
-
 				globLastArgument(prog, &argc, &argvAlloced);
+				prog->argv[argc] = buf;
 			}
 		} else
 			switch (*src) {
@@ -615,6 +654,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 					if (*chptr && *prog->argv[argc]) {
 						buf++, argc++;
 						globLastArgument(prog, &argc, &argvAlloced);
+						prog->argv[argc] = buf;
 					}
 				}
 
@@ -749,7 +789,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 	int nextin, nextout;
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
-#ifdef BB_FEATURE_STANDALONE_SHELL
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	const struct BB_applet *a = applets;
 #endif
 
@@ -792,7 +832,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 					exit (x->function(&newJob, jobList));
 				}
 			}
-#ifdef BB_FEATURE_STANDALONE_SHELL
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
 			/* Handle busybox internals here */
 			while (a->name != 0) {
 				if (strcmp(newJob.progs[i].argv[0], a->name) == 0) {
@@ -984,6 +1024,14 @@ static int busy_loop(FILE * input)
 	if (tcsetpgrp(0, parent_pgrp))
 		perror("tcsetpgrp"); 
 
+	/* return controlling TTY back to parent process group before exiting */
+	if (tcsetpgrp(0, parent_pgrp))
+		perror("tcsetpgrp");
+
+	/* return exit status if called with "-c" */
+	if (input == NULL && WIFEXITED(status))
+		return WEXITSTATUS(status);
+	
 	return 0;
 }
 
@@ -993,7 +1041,11 @@ int shell_main(int argc, char **argv)
 	FILE *input = stdin;
 
 	/* initialize the cwd */
-	getcwd(cwd, sizeof(cwd));
+	cwd = (char *) calloc(BUFSIZ, sizeof(char));
+	if (cwd == 0) {
+		fatalError("sh: out of memory\n");
+	}
+	getcwd(cwd, sizeof(char)*BUFSIZ);
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 	cmdedit_init();
@@ -1018,10 +1070,13 @@ int shell_main(int argc, char **argv)
 			for(i=2; i<argc; i++)
 			{
 				if (strlen(local_pending_command) + strlen(argv[i]) >= BUFSIZ) {
-				  fatalError("sh: commands for -c option too long\n");
+					local_pending_command = realloc(local_pending_command, 
+							strlen(local_pending_command) + strlen(argv[i]));
+					if (local_pending_command==NULL) 
+					  fatalError("sh: commands for -c option too long\n");
 				}
 				strcat(local_pending_command, argv[i]);
-				if (i + 1 < argc)
+				if ( (i + 1) < argc)
 				  strcat(local_pending_command, " ");
 			}
 			input = NULL;
