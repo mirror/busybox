@@ -3,9 +3,19 @@
 	* Fixed uname problem causing the kernel version to be
 	    mis-detected (causing problems with poweroff, init,
 	    and other things).  
-	* kent robotti -- Renamed unrpm to original rpmunpack, so you can use 
+	* Kent Robotti -- Renamed unrpm to original rpmunpack, so you can use 
 	    an included shell script called unrpm as a front end to it.  There's
 	    also a shell script called undeb included for debian packages.  
+	* Matt Kraai -- fix an infinate loop with ls -aR
+	* Larry Doolittle -- Shaves off about 100 bytes and 200 bytes heap 
+	    from date.c.  Also document the "-d" option in the usage message.
+	* Gennady Feldman -- fixed dd to use blocksize when reading/writing, 
+	    (it was reading the whole thing and then writing it out).  Also 
+	    updated usage information (was missing conv=notrunc) and added 
+	    conv=sync feature.
+	*  Larry Doolittle (in collaboration with Matt Kraai) to allow for a 
+	    pristine source directory -- where all the .o files and such are 
+	    not placed into the source tree.  Thanks Larry!
 
 	 -Erik Andersen
 
