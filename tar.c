@@ -169,13 +169,16 @@ extern int tar_unzip_init(int tarFd)
 
 	if (child_pid==0) {
 		/* child process */
+		close(unzip_pipe[0]);
 		gunzip_init();
 		unzip(tarFd, unzip_pipe[1]);
 		exit(EXIT_SUCCESS);
 	}
-	else
+	else {
 		/* return fd of uncompressed data to parent process */
+		close(unzip_pipe[1]);
 		return(unzip_pipe[0]);
+	}
 }
 #endif
 
