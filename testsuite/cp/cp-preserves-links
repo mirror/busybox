@@ -2,4 +2,4 @@ touch foo
 ln -s foo bar
 busybox cp -d bar baz
 test -L baz
-test `readlink baz` = "foo"
+test xfoo = x`readlink baz`

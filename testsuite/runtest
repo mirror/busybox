@@ -2,37 +2,19 @@
 
 PATH=$(dirname $(pwd)):$PATH
 
-show_result ()
-{
-	local resolution=$1
-	local testcase=$2
-	local status=0
-
-	if [ $resolution = XPASS -o $resolution = FAIL ]; then
-		status=1
-	fi
-
-	if [ "$verbose" -o $status -eq 1 ]; then
-		echo "$resolution: $testcase"
-	fi
-
-	return $status
-}
-
 run_applet_testcase ()
 {
 	local applet=$1
 	local testcase=$2
 
 	local status=0
-	local X=
 	local RES=
 
 	local uc_applet=$(echo $applet | tr a-z A-Z)
 	local testname=$(basename $testcase)
 
 	if grep -q "^# CONFIG_${uc_applet} is not set$" ../.config; then
-		show_result UNTESTED $testname
+		echo UNTESTED: $testname
 		return 0
 	fi
 
@@ -40,13 +22,9 @@ run_applet_testcase ()
 		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
 
 		if grep -q "^# ${feature} is not set$" ../.config; then
-			show_result UNTESTED $testname
+			echo UNTESTED: $testname
 			return 0
 		fi
-	fi
-
-	if grep -q "^# XFAIL$" $testcase; then
-		X=X
 	fi
 
 	rm -rf tmp
@@ -56,14 +34,14 @@ run_applet_testcase ()
 	sh -x -e ../$testcase >.logfile.txt 2>&1
 
 	if [ $? != 0 ] ; then
-		show_result ${X}FAIL $testname
-		if [ "$verbose" == 1 ]; then
+		echo FAIL: $testname
+		if [ "$verbose" = 1 ]; then
 			cat .logfile.txt
-			exit 1;
+			#exit 1;
 		fi;
 		status=$?
 	else
-		show_result ${X}PASS $testname
+		echo PASS: $testname
 		rm -f .logfile.txt
 		status=$?
 	fi

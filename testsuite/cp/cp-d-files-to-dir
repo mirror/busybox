@@ -7,5 +7,5 @@ busybox cp -d file1 file2 file3 link1 there
 test -f there/file1
 test -f there/file2
 test ! -s there/file3
-test -l there/link1
-test `readlink there/link1` = "file2"
+test -L there/link1
+test xfile2 = x`readlink there/link1`

@@ -8,7 +8,7 @@ busybox cp -a file1 file2 link1 dir1 there
 test -f there/file1
 test -f there/file2
 test ! -s there/dir1/file3
-test -l there/link1
-test `readlink there/link1` = "file2"
-test ! file3 -ot there/dir1/file3
-test ! file3 -nt there/dir1/file3
+test -L there/link1
+test xfile2 = x`readlink there/link1`
+test ! dir1/file3 -ot there/dir1/file3
+test ! dir1/file3 -nt there/dir1/file3

@@ -1,0 +1,3 @@
+ls -h .. > logfile.gnu
+busybox ls -h .. > logfile.bb
+cmp logfile.gnu logfile.bb

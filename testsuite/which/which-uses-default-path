@@ -2,6 +2,3 @@ BUSYBOX=$(type -p busybox)
 SAVED_PATH=$PATH
 unset PATH
 $BUSYBOX which ls
-STATUS=$?
-export PATH=$SAVED_PATH
-return $STATUS

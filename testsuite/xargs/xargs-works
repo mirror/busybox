@@ -1,0 +1,3 @@
+find -name \*works -type f | xargs md5sum > logfile.gnu
+find -name \*works -type f | busybox xargs md5sum > logfile.bb
+diff -u logfile.gnu logfile.bb
