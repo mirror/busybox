@@ -112,7 +112,7 @@ static void sha_hash(unsigned int *data, int *hash)
 	hash[4] += e;
 }
 
-static void sha1sum_stream(FILE *fd, unsigned int *hashval)
+static char sha1sum_stream(FILE *fd, unsigned int *hashval)
 {
 	RESERVE_CONFIG_BUFFER(buffer, 64);
 	int length = 0;
@@ -145,7 +145,7 @@ static void sha1sum_stream(FILE *fd, unsigned int *hashval)
 
 	RELEASE_CONFIG_BUFFER(buffer);
 
-	return;
+	return(EXIT_SUCCESS);
 }
 
 static void print_hash(unsigned int *hash_value, unsigned char hash_length, unsigned char *filename)
@@ -167,11 +167,12 @@ static void print_hash(unsigned int *hash_value, unsigned char hash_length, unsi
 /* This should become a common function used by sha1sum and md5sum,
  * it needs extra functionality first
  */
-extern int authenticate(int argc, char **argv, void (*hash_ptr)(FILE *stream, unsigned int *hashval), const unsigned char hash_length)
+extern int authenticate(int argc, char **argv, char (*hash_ptr)(FILE *stream, unsigned int *hashval), const unsigned char hash_length)
 {
 	unsigned int hash_value[hash_length];
 	unsigned char flags = 0;
 	int opt;
+	int return_value;
 
 	while ((opt = getopt(argc, argv, "sc:w")) != -1) {
 		switch (opt) {
@@ -193,31 +194,37 @@ extern int authenticate(int argc, char **argv, void (*hash_ptr)(FILE *stream, un
 		argv[argc++] = "-";
 	}
 
+	return_value = EXIT_SUCCESS;
 	while (optind < argc) {
 		FILE *stream;
 		unsigned char *file_ptr = argv[optind];
+
+		optind++;
 
 		if ((file_ptr[0] == '-') && (file_ptr[1] == '\0')) {
 			stream = stdin;
 		} else {
 			stream = bb_wfopen(file_ptr, "r");
 			if (stream == NULL) {
-				return(EXIT_FAILURE);
+				return_value = EXIT_FAILURE;
+				continue;
 			}
 		}
-		hash_ptr(stream, hash_value);
-		if (!flags & FLAG_SILENT) {
+		if (hash_ptr(stream, hash_value) == EXIT_FAILURE) {
+			return_value = EXIT_FAILURE;
+		}
+		else if (!flags & FLAG_SILENT) {
 			print_hash(hash_value, hash_length, file_ptr);
 		}
 
 		if (fclose(stream) == EOF) {
-			bb_perror_msg_and_die("Couldnt close file %s", file_ptr);
+			bb_perror_msg("Couldnt close file %s", file_ptr);
+			return_value = EXIT_FAILURE;
 		}
 
-		optind++;
 	}
 
-	return(EXIT_SUCCESS);
+	return(return_value);
 }
 
 extern int sha1sum_main(int argc, char **argv)
