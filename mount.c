@@ -43,6 +43,7 @@
  *	
  */
 
+#include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -338,8 +339,7 @@ extern int mount_main(int argc, char **argv)
 	char *extra_opts = string_flags_buf;
 	int flags = 0;
 	char *filesystemType = "auto";
-	char *device = NULL;
-	char *directory = NULL;
+	char device[PATH_MAX], directory[PATH_MAX];
 	int all = FALSE;
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
@@ -378,15 +378,18 @@ extern int mount_main(int argc, char **argv)
 		}
 	}
 
-	if (argv[optind] != NULL) {
-		device = argv[optind];
-		directory = argv[optind + 1];
-	}
-
-	if (device == NULL && !all)
+	if (!all && optind == argc)
 		show_mounts();
 
-	if (all == TRUE || directory == NULL) {
+	if (optind < argc)
+		if (realpath(argv[optind], device) == NULL)
+			perror_msg_and_die("%s", device);
+
+	if (optind + 1 < argc)
+		if (realpath(argv[optind + 1], directory) == NULL)
+			perror_msg_and_die("%s", directory);
+
+	if (all == TRUE || optind + 1 == argc) {
 		struct mntent *m;
 		FILE *f = setmntent("/etc/fstab", "r");
 		fstabmount = TRUE;
@@ -395,7 +398,7 @@ extern int mount_main(int argc, char **argv)
 			perror_msg_and_die( "\nCannot read /etc/fstab");
 
 		while ((m = getmntent(f)) != NULL) {
-			if (all == FALSE && directory == NULL && (
+			if (all == FALSE && optind + 1 == argc && (
 				(strcmp(device, m->mnt_fsname) != 0) &&
 				(strcmp(device, m->mnt_dir) != 0) ) ) {
 				continue;
@@ -414,8 +417,8 @@ extern int mount_main(int argc, char **argv)
 				parse_mount_options(m->mnt_opts, &flags, string_flags);
 			}
 			
-			device = strdup(m->mnt_fsname);
-			directory = strdup(m->mnt_dir);
+			strcpy(device, m->mnt_fsname);
+			strcpy(directory, m->mnt_dir);
 			filesystemType = strdup(m->mnt_type);
 singlemount:			
 			string_flags = strdup(string_flags);
@@ -441,7 +444,7 @@ singlemount:
 		if (fstabmount == TRUE)
 			endmntent(f);
 			
-		if (all == FALSE && fstabmount == TRUE && directory == NULL)
+		if (all == FALSE && fstabmount == TRUE && optind + 1 == argc)
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
 	
 		return rc;
