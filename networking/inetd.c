@@ -90,15 +90,6 @@
 
 #include "busybox.h"
 
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/file.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #ifndef __linux__
 #ifndef RLIMIT_NOFILE
@@ -106,14 +97,15 @@
 #endif
 #endif
 
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <sys/file.h>
-#include <sys/wait.h>
-#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/param.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/un.h>
+#include <sys/wait.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
