@@ -22,48 +22,69 @@
  *
  */
 
-#include <string.h>
 #include <stdio.h>
 #include <limits.h>
 #include <ctype.h>
 #include "libbb.h"
 
-#define isodigit(c) ((c) >= '0' && (c) <= '7')
-#define hextobin(c) ((c)>='a'&&(c)<='f' ? (c)-'a'+10 : (c)>='A'&&(c)<='F' ? (c)-'A'+10 : (c)-'0')
-#define octtobin(c) ((c) - '0')
+#define WANT_HEX_ESCAPES 1
+
+/* Usual "this only works for ascii compatible encodings" disclaimer. */
+#undef _tolower
+#define _tolower(X) ((X)|((char) 0x20))
+
 char bb_process_escape_sequence(const char **ptr)
 {
-	const char *p, *q;
-	unsigned int num_digits, r, n, hexescape;
 	static const char charmap[] = {
 		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
 		'\a', '\b', '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
 
-	n = r = hexescape = num_digits = 0;
+	const char *p;
+	const char *q;
+	unsigned int num_digits;
+	unsigned int r;
+	unsigned int n;
+	unsigned int d;
+	unsigned int base;
+
+	num_digits = n = 0;
+	base = 8;
 	q = *ptr;
 
+#ifdef WANT_HEX_ESCAPES
 	if (*q == 'x') {
-		hexescape++;
 		++q;
+		base = 16;
+		++num_digits;
 	}
+#endif
 
 	do {
-		if (hexescape && isxdigit(*q)) {
-			r = n * 16 + hextobin(*q);
-		} else if (isodigit(*q)) {
-			r = n * 8 + octtobin(*q);
-		} else {
+		d = (unsigned int)(*q - '0');
+#ifdef WANT_HEX_ESCAPES
+		if (d >= 10) {
+			d = ((unsigned int)(_tolower(*q) - 'a')) + 10;
+		}
+#endif
+
+		if (d >= base) {
+#ifdef WANT_HEX_ESCAPES
+			if ((base == 16) && (!--num_digits)) {
+/* 				return '\\'; */
+				--q;
+			}
+#endif
 			break;
 		}
-		if (r <= UCHAR_MAX) {
-			n = r;
-			++q;
-			if (++num_digits < 3) {
-				continue;
-			}
+
+		r = n * base + d;
+		if (r > UCHAR_MAX) {
+			break;
 		}
-		break;
-	} while (1);
+
+		n = r;
+		++q;
+	} while (++num_digits < 3);
 
 	if (num_digits == 0) {	/* mnemonic escape sequence? */
 		p = charmap;
@@ -77,6 +98,7 @@ char bb_process_escape_sequence(const char **ptr)
 	}
 
 	*ptr = q;
+
 	return (char) n;
 }
 
