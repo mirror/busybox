@@ -23,18 +23,38 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "busybox.h"
+
+#ifdef CONFIG_FEATURE_READLINK_FOLLOW
+# define READLINK_FOLLOW	"f"
+# define READLINK_FLAG_f	(1 << 0)
+#else
+# define READLINK_FOLLOW	""
+#endif
+
+static const char readlink_options[] = READLINK_FOLLOW;
 
 int readlink_main(int argc, char **argv)
 {
 	char *buf = NULL;
+	unsigned long opt = bb_getopt_ulflags(argc, argv, readlink_options);
+#ifdef CONFIG_FEATURE_READLINK_FOLLOW
+	RESERVE_CONFIG_BUFFER(resolved_path, PATH_MAX);
+#endif
 
 	/* no options, no getopt */
 
-	if (argc != 2)
+	if (optind + 1 != argc)
 		bb_show_usage();
 
-	buf = xreadlink(argv[1]);
+#ifdef CONFIG_FEATURE_READLINK_FOLLOW
+	if (opt & READLINK_FLAG_f) {
+		buf = realpath(argv[optind], resolved_path);
+	} else
+#endif
+		buf = xreadlink(argv[optind]);
+
 	if (!buf)
 		return EXIT_FAILURE;
 	puts(buf);

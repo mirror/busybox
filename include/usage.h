@@ -1985,10 +1985,18 @@
 	"\t-s\tSet the system date and time (default).\n" \
 	"\t-p\tPrint the date and time."
 
+#ifdef CONFIG_FEATURE_READLINK_FOLLOW
+#define USAGE_READLINK_FOLLOW(a) a
+#else
+#define USAGE_READLINK_FOLLOW(a)
+#endif
+
 #define readlink_trivial_usage \
-	""
+	USAGE_READLINK_FOLLOW("[-f] ") "FILE"
 #define readlink_full_usage \
-	"Displays the value of a symbolic link."
+	"Displays the value of a symbolic link." \
+	USAGE_READLINK_FOLLOW("\n\nOptions:\n" \
+	"\t-f\tcanonicalize by following all symlinks")
 
 #define realpath_trivial_usage \
 	"pathname  ..."
