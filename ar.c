@@ -249,7 +249,7 @@ static int readArFile(char *fileList[16], int fileListSize, int funct)
 		else {  
 			extFileFlag=0;
 			
-			if (funct&AR_DISPLAY) 
+			if ((funct&AR_DISPLAY) || (funct&AR_VERBOSE))
 				displayEntry(&arEntry, funct);
 
 			/* check file was specified to be extracted only if 
