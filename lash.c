@@ -771,7 +771,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 				if (strcmp(newJob.progs[i].argv[0], a->name) == 0) {
 					int argc;
 					char** argv=newJob.progs[i].argv;
-					for(argc=0;*argv!=NULL, argv++, argc++);
+					for(argc=0;*argv!=NULL; argv++, argc++);
 					exit((*(a->main)) (argc, newJob.progs[i].argv));
 				}
 				a++;
