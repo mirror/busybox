@@ -407,9 +407,9 @@ static inline int tftp(const int cmd, const struct hostent *host,
 						       "blksize");
 
 				 if (res) {
-				         int foo = atoi(res);
+				         int blksize = atoi(res);
 			     
-					 if (tftp_blocksize_check(foo,
+					 if (tftp_blocksize_check(blksize,
 							   tftp_bufsize - 4)) {
 
 					         if (cmd_put) {
@@ -419,7 +419,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				                         opcode = TFTP_ACK;
 						 }
 #ifdef CONFIG_FEATURE_TFTP_DEBUG
-						 printf("using blksize %u\n");
+						 printf("using blksize %u\n", blksize);
 #endif
 					         tftp_bufsize = foo + 4;
 						 block_nr = 0;
