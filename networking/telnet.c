@@ -584,7 +584,7 @@ static int getport(char * p)
 
 	if ((unsigned)(port - 1 ) > 65534)
 	{
-		error_msg_and_die("%s: bad port number\n", p);
+		error_msg_and_die("%s: bad port number", p);
 	}
 	return port;
 }
@@ -596,7 +596,7 @@ static struct in_addr getserver(char * host)
 	struct hostent * he;
 	if ((he = gethostbyname(host)) == NULL)
 	{
-		error_msg_and_die("%s: Unknown host\n", host);
+		error_msg_and_die("%s: Unknown host", host);
 	}
 	memcpy(&addr, he->h_addr, sizeof addr);
 

@@ -65,7 +65,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	case CHMOD_APP:
 		/* Parse the specified modes */
 		if (parse_mode(theMode, &(statbuf->st_mode)) == FALSE) {
-			error_msg_and_die( "unknown mode: %s\n", theMode);
+			error_msg_and_die( "unknown mode: %s", theMode);
 		}
 		if (chmod(fileName, statbuf->st_mode) == 0)
 			return (TRUE);
@@ -150,7 +150,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			if (*argv == p)
 				uid = my_getpwnam(*argv);
 			if (uid == -1) {
-				error_msg_and_die( "unknown user name: %s\n", *argv);
+				error_msg_and_die( "unknown user name: %s", *argv);
 			}
 		}
 	}
@@ -167,7 +167,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 
   bad_group:
-	error_msg_and_die( "unknown group name: %s\n", groupName);
+	error_msg_and_die( "unknown group name: %s", groupName);
 }
 
 /*

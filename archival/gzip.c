@@ -1382,7 +1382,7 @@ int length;
 			   (char *) window + start, length) != EQUAL) {
 		fprintf(stderr,
 				" start %d, match %d, length %d\n", start, match, length);
-		error_msg("invalid match\n");
+		error_msg("invalid match");
 	}
 	if (verbose > 1) {
 		fprintf(stderr, "\\[%d,%d]", start - match, length);
@@ -1822,9 +1822,9 @@ int gzip_main(int argc, char **argv)
 	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
-		error_msg_and_die( "data not read from terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not read from terminal. Use -f to force it.");
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		error_msg_and_die( "data not written to terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not written to terminal. Use -f to force it.");
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -2894,7 +2894,7 @@ int eof;						/* true if this is the last block for a file */
 #endif
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
-			error_msg("block vanished\n");
+			error_msg("block vanished");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		compressed_len = stored_len << 3;
@@ -3077,7 +3077,7 @@ local void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		error_msg("-l used on binary file\n");
+		error_msg("-l used on binary file");
 	}
 }
 
@@ -3239,7 +3239,7 @@ char *env;						/* name of environment variable */
 
 	/* Copy the program name first */
 	if (oargc-- < 0)
-		error_msg("argc<=0\n");
+		error_msg("argc<=0");
 	*(nargv++) = *(oargv++);
 
 	/* Then copy the environment args */

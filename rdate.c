@@ -72,7 +72,7 @@ time_t askremotedate(char *host)
 	}
 	if (read(fd, (void *)&nett, 4) != 4) {	/* read time from server */
 		close(fd);
-		error_msg("%s did not send the complete time\n", host);
+		error_msg("%s did not send the complete time", host);
 	}
 	close(fd);
 

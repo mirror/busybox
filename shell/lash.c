@@ -321,13 +321,13 @@ static int builtin_fg_bg(struct child_prog *child)
 	struct job *job=NULL;
 	
 	if (!child->argv[1] || child->argv[2]) {
-		error_msg("%s: exactly one argument is expected\n",
+		error_msg("%s: exactly one argument is expected",
 				child->argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
-		error_msg("%s: bad argument '%s'\n",
+		error_msg("%s: bad argument '%s'",
 				child->argv[0], child->argv[1]);
 		return EXIT_FAILURE;
 	}
@@ -339,7 +339,7 @@ static int builtin_fg_bg(struct child_prog *child)
 	}
 
 	if (!job) {
-		error_msg("%s: unknown job %d\n",
+		error_msg("%s: unknown job %d",
 				child->argv[0], jobNum);
 		return EXIT_FAILURE;
 	}
@@ -492,7 +492,7 @@ static int builtin_then(struct child_prog *child)
 	debug_printf( "job=%p entering builtin_then ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
 	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
 		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `then'\n", syntax_err);
+		error_msg("%s `then'", syntax_err);
 		return EXIT_FAILURE;
 	}
 
@@ -520,7 +520,7 @@ static int builtin_else(struct child_prog *child)
 
 	if (! (cmd->job_context & THEN_EXP_CONTEXT)) {
 		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `else'\n", syntax_err);
+		error_msg("%s `else'", syntax_err);
 		return EXIT_FAILURE;
 	}
 	/* If the if result was TRUE, skip the 'else' stuff */
@@ -543,7 +543,7 @@ static int builtin_fi(struct child_prog *child)
 	debug_printf( "job=%p entering builtin_fi ('%s')-- context=%d\n", cmd, "", cmd->job_context);
 	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
 		shell_context = 0; /* Reset the shell's context on an error */
-		error_msg("%s `fi'\n", syntax_err);
+		error_msg("%s `fi'", syntax_err);
 		return EXIT_FAILURE;
 	}
 	/* Clear out the if and then context bits */
@@ -748,7 +748,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			error_msg("error opening %s: %s\n", redir->filename,
+			error_msg("error opening %s: %s", redir->filename,
 					strerror(errno));
 			return 1;
 		}
@@ -960,7 +960,7 @@ static void expand_argument(struct child_prog *prog, int *argcPtr,
 	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
 		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->glob_result);
 		if (rc == GLOB_NOSPACE) {
-			error_msg("out of space during glob operation\n");
+			error_msg("out of space during glob operation");
 			return;
 		} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->glob_result.gl_pathc - i) == 1 &&
@@ -1068,7 +1068,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 			if (*src == '\\') {
 				src++;
 				if (!*src) {
-					error_msg("character expected after \\\n");
+					error_msg("character expected after \\");
 					free_job(job);
 					return 1;
 				}
@@ -1152,7 +1152,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					chptr++;
 
 				if (!*chptr) {
-					error_msg("file name expected after %c\n", *src);
+					error_msg("file name expected after %c", *src);
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1171,7 +1171,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				if (*prog->argv[argc_l])
 					argc_l++;
 				if (!argc_l) {
-					error_msg("empty command in pipe\n");
+					error_msg("empty command in pipe");
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1199,7 +1199,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					src++;
 
 				if (!*src) {
-					error_msg("empty command in pipe\n");
+					error_msg("empty command in pipe");
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1307,7 +1307,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					printf("erik: found a continue char at EOL...\n");
 					command = (char *) xcalloc(BUFSIZ, sizeof(char));
 					if (get_command(input, command)) {
-						error_msg("character expected after \\\n");
+						error_msg("character expected after \\");
 						free(command);
 						free_job(job);
 						return 1;
@@ -1323,7 +1323,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					free(command);
 					break;
 #else
-					error_msg("character expected after \\\n");
+					error_msg("character expected after \\");
 					free(command);
 					free_job(job);
 					return 1;
@@ -1738,7 +1738,7 @@ int shell_main(int argc_l, char **argv_l)
 			case 'c':
 				input = NULL;
 				if (local_pending_command != 0)
-					error_msg_and_die("multiple -c arguments\n");
+					error_msg_and_die("multiple -c arguments");
 				local_pending_command = xstrdup(argv[optind]);
 				optind++;
 				argv = argv+optind;

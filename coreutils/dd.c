@@ -76,7 +76,7 @@ int dd_main(int argc, char **argv)
 					sync = TRUE;
 					buf += 4;
 				} else {
-					error_msg_and_die("invalid conversion `%s'\n", argv[i]+5);
+					error_msg_and_die("invalid conversion `%s'", argv[i]+5);
 				}
 				if (buf[0] == '\0')
 					break;

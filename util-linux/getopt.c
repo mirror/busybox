@@ -258,7 +258,7 @@ void add_long_options(char *options)
                                         arg_opt=required_argument;
                                 }
                                 if (strlen(tokptr) == 0)
-                                        error_msg("empty long option after -l or --long argument\n");
+                                        error_msg("empty long option after -l or --long argument");
                         }
                         add_longopt(tokptr,arg_opt);
                 }
@@ -277,7 +277,7 @@ void set_shell(const char *new_shell)
         else if (!strcmp(new_shell,"csh"))
                 shell=TCSH;
         else
-                error_msg("unknown shell after -s or --shell argument\n");
+                error_msg("unknown shell after -s or --shell argument");
 }
 
 
@@ -326,7 +326,7 @@ int getopt_main(int argc, char *argv[])
                         printf(" --\n");
                         exit(0);
                 } else
-                        error_msg_and_die("missing optstring argument\n");
+                        error_msg_and_die("missing optstring argument");
         }
 
         if (argv[1][0] != '-' || compatible) {
@@ -377,7 +377,7 @@ int getopt_main(int argc, char *argv[])
 
         if (!optstr) {
                 if (optind >= argc)
-                        error_msg_and_die("missing optstring argument\n");
+                        error_msg_and_die("missing optstring argument");
                 else {
                         optstr=xmalloc(strlen(argv[optind])+1);
                         strcpy(optstr,argv[optind]);

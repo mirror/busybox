@@ -223,7 +223,7 @@ extern int kill_main(int argc, char **argv)
 			pidList = find_pid_by_name( *argv);
 			if (!pidList) {
 				all_found = FALSE;
-				error_msg( "%s: no process killed\n", *argv);
+				error_msg( "%s: no process killed", *argv);
 			}
 
 			for(; pidList && *pidList!=0; pidList++) {
@@ -246,5 +246,5 @@ extern int kill_main(int argc, char **argv)
 
 
   end:
-	error_msg_and_die( "bad signal name: %s\n", *argv);
+	error_msg_and_die( "bad signal name: %s", *argv);
 }

@@ -52,7 +52,7 @@ extern int mkdir_main(int argc, char **argv)
 				/* Find the specified modes */
 				mode = 0;
 				if (parse_mode(*(++argv), &mode) == FALSE) {
-					error_msg_and_die("Unknown mode: %s\n", *argv);
+					error_msg_and_die("Unknown mode: %s", *argv);
 				}
 				/* Set the umask for this process so it doesn't 
 				 * screw up whatever the user just entered. */
@@ -85,7 +85,7 @@ extern int mkdir_main(int argc, char **argv)
 		strcpy(buf, *argv);
 		status = stat(buf, &statBuf);
 		if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
-			error_msg_and_die("%s: File exists\n", buf);
+			error_msg_and_die("%s: File exists", buf);
 		}
 		if (parentFlag == TRUE) {
 			strcat(buf, "/");

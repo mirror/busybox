@@ -142,7 +142,7 @@ static void encode()
   }
 
   if (ferror (stdin))
-    error_msg("Read error\n");
+    error_msg("Read error");
 
   if (trans_ptr == uu_std) {
     putchar (ENC ('\0'));
@@ -196,7 +196,7 @@ int uuencode_main (int argc,
   encode();
   printf(trans_ptr == uu_std ? "end\n" : "====\n");
   if (ferror (stdout)) {
-    error_msg("Write error\n");
+    error_msg("Write error");
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

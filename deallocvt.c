@@ -31,9 +31,9 @@ int deallocvt_main(int argc, char *argv[])
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
-				error_msg("0: illegal VT number\n");
+				error_msg("0: illegal VT number");
 			else if (num == 1)
-				error_msg("VT 1 cannot be deallocated\n");
+				error_msg("VT 1 cannot be deallocated");
 			else if (ioctl(fd, VT_DISALLOCATE, num))
 				perror_msg_and_die("VT_DISALLOCATE");
 		}

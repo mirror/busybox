@@ -297,7 +297,7 @@ int in;					/* input file descriptor */
 
 		method = (int) get_byte();
 		if (method != DEFLATED) {
-			error_msg("unknown method %d -- get newer version of gzip\n", method);
+			error_msg("unknown method %d -- get newer version of gzip", method);
 			exit_code = ERROR;
 			return -1;
 		}
@@ -1116,11 +1116,11 @@ int in, out;					/* input and output file descriptors */
 		if (res == 3) {
 			error_msg(memory_exhausted);
 		} else if (res != 0) {
-			error_msg("invalid compressed data--format violated\n");
+			error_msg("invalid compressed data--format violated");
 		}
 
 	} else {
-		error_msg("internal error, invalid method\n");
+		error_msg("internal error, invalid method");
 	}
 
 	/* Get the crc and original length */
@@ -1149,15 +1149,15 @@ int in, out;					/* input and output file descriptors */
 
 	/* Validate decompression */
 	if (orig_crc != updcrc(outbuf, 0)) {
-		error_msg("invalid compressed data--crc error\n");
+		error_msg("invalid compressed data--crc error");
 	}
 	if (orig_len != (ulg) bytes_out) {
-		error_msg("invalid compressed data--length error\n");
+		error_msg("invalid compressed data--length error");
 	}
 
 	/* Check if there are more entries in a pkzip file */
 	if (pkzip && inptr + 4 < insize && LG(inbuf + inptr) == LOCSIG) {
-		fprintf(stderr, "has more than one entry--rest ignored\n");
+		error_msg("has more than one entry--rest ignored");
 		if (exit_code == OK)
 			exit_code = WARNING;
 	}
@@ -1261,9 +1261,9 @@ int gunzip_main(int argc, char **argv)
 	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
-		error_msg_and_die( "data not read from terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not read from terminal. Use -f to force it.");
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		error_msg_and_die( "data not written to terminal. Use -f to force it.\n");
+		error_msg_and_die( "data not written to terminal. Use -f to force it.");
 
 	gunzip_init();
 

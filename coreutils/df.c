@@ -118,7 +118,7 @@ extern int df_main(int argc, char **argv)
 		for(i = optind; i < argc; i++)
 		{
 			if ((mountEntry = find_mount_point(argv[i], mtab_file)) == 0) {
-				error_msg("%s: can't find mount point.\n", argv[i]);
+				error_msg("%s: can't find mount point.", argv[i]);
 				status = EXIT_FAILURE;
 			} else if (!df(mountEntry->mnt_fsname, mountEntry->mnt_dir))
 				status = EXIT_FAILURE;

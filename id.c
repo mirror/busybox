@@ -77,7 +77,7 @@ extern int id_main(int argc, char **argv)
 	pwnam=my_getpwnam(user);
 	grnam=my_getgrnam(group);
 	if (gid == -1 || pwnam==-1 || grnam==-1) {
-		error_msg_and_die("%s: No such user\n", user);
+		error_msg_and_die("%s: No such user", user);
 	}
 
 	if (no_group) {

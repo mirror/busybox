@@ -52,37 +52,37 @@
 	 "BusyBox v" BB_VER " (" BB_BT ") multi-call binary -- GPL2")
 #endif
 #if defined bb_need_name_too_long || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(name_too_long, "file name too long\n")
+	BB_DEF_MESSAGE(name_too_long, "file name too long")
 #endif
 #if defined bb_need_omitting_directory || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(omitting_directory, "%s: omitting directory\n")
+	BB_DEF_MESSAGE(omitting_directory, "%s: omitting directory")
 #endif
 #if defined bb_need_not_a_directory || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(not_a_directory, "%s: not a directory\n")
+	BB_DEF_MESSAGE(not_a_directory, "%s: not a directory")
 #endif
 #if defined bb_need_memory_exhausted || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(memory_exhausted, "memory exhausted\n")
+	BB_DEF_MESSAGE(memory_exhausted, "memory exhausted")
 #endif
 #if defined bb_need_invalid_date || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(invalid_date, "invalid date `%s'\n")
+	BB_DEF_MESSAGE(invalid_date, "invalid date `%s'")
 #endif
 #if defined bb_need_invalid_option || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(invalid_option, "invalid option -- %c\n")
+	BB_DEF_MESSAGE(invalid_option, "invalid option -- %c")
 #endif
 #if defined bb_need_io_error || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(io_error, "%s: input/output error -- %s\n")
+	BB_DEF_MESSAGE(io_error, "%s: input/output error -- %s")
 #endif
 #if defined bb_need_help || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(dash_dash_help, "--help")
 #endif
 #if defined bb_need_write_error || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(write_error, "Write Error\n")
+	BB_DEF_MESSAGE(write_error, "Write Error")
 #endif
 #if defined bb_need_too_few_args || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(too_few_args, "too few arguments\n")
+	BB_DEF_MESSAGE(too_few_args, "too few arguments")
 #endif
 #if defined bb_need_name_longer_than_foo || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(name_longer_than_foo, "Names longer than %d chars not supported.\n")
+	BB_DEF_MESSAGE(name_longer_than_foo, "Names longer than %d chars not supported.")
 #endif
 
 

@@ -279,7 +279,7 @@ static void check_mount(void)
 	if (!mnt)
 		return;
 
-	error_msg_and_die("%s is mounted; will not make a filesystem here!\n", device_name);
+	error_msg_and_die("%s is mounted; will not make a filesystem here!", device_name);
 }
 
 static long valid_offset(int fd, int offset)
@@ -336,28 +336,28 @@ static void write_tables(void)
 	Super.s_state &= ~MINIX_ERROR_FS;
 
 	if (lseek(DEV, 0, SEEK_SET))
-		error_msg_and_die("seek to boot block failed in write_tables\n");
+		error_msg_and_die("seek to boot block failed in write_tables");
 	if (512 != write(DEV, boot_block_buffer, 512))
-		error_msg_and_die("unable to clear boot sector\n");
+		error_msg_and_die("unable to clear boot sector");
 	if (BLOCK_SIZE != lseek(DEV, BLOCK_SIZE, SEEK_SET))
-		error_msg_and_die("seek failed in write_tables\n");
+		error_msg_and_die("seek failed in write_tables");
 	if (BLOCK_SIZE != write(DEV, super_block_buffer, BLOCK_SIZE))
-		error_msg_and_die("unable to write super-block\n");
+		error_msg_and_die("unable to write super-block");
 	if (IMAPS * BLOCK_SIZE != write(DEV, inode_map, IMAPS * BLOCK_SIZE))
-		error_msg_and_die("unable to write inode map\n");
+		error_msg_and_die("unable to write inode map");
 	if (ZMAPS * BLOCK_SIZE != write(DEV, zone_map, ZMAPS * BLOCK_SIZE))
-		error_msg_and_die("unable to write zone map\n");
+		error_msg_and_die("unable to write zone map");
 	if (INODE_BUFFER_SIZE != write(DEV, inode_buffer, INODE_BUFFER_SIZE))
-		error_msg_and_die("unable to write inodes\n");
+		error_msg_and_die("unable to write inodes");
 
 }
 
 static void write_block(int blk, char *buffer)
 {
 	if (blk * BLOCK_SIZE != lseek(DEV, blk * BLOCK_SIZE, SEEK_SET))
-		error_msg_and_die("seek failed in write_block\n");
+		error_msg_and_die("seek failed in write_block");
 	if (BLOCK_SIZE != write(DEV, buffer, BLOCK_SIZE))
-		error_msg_and_die("write failed in write_block\n");
+		error_msg_and_die("write failed in write_block");
 }
 
 static int get_free_block(void)
@@ -365,7 +365,7 @@ static int get_free_block(void)
 	int blk;
 
 	if (used_good_blocks + 1 >= MAX_GOOD_BLOCKS)
-		error_msg_and_die("too many bad blocks\n");
+		error_msg_and_die("too many bad blocks");
 	if (used_good_blocks)
 		blk = good_blocks_table[used_good_blocks - 1] + 1;
 	else
@@ -373,7 +373,7 @@ static int get_free_block(void)
 	while (blk < ZONES && zone_in_use(blk))
 		blk++;
 	if (blk >= ZONES)
-		error_msg_and_die("not enough good blocks\n");
+		error_msg_and_die("not enough good blocks");
 	good_blocks_table[used_good_blocks] = blk;
 	used_good_blocks++;
 	return blk;
@@ -439,7 +439,7 @@ static void make_bad_inode(void)
 				goto end_bad;
 		}
 	}
-	error_msg_and_die("too many bad blocks\n");
+	error_msg_and_die("too many bad blocks");
   end_bad:
 	if (ind)
 		write_block(ind, (char *) ind_block);
@@ -489,7 +489,7 @@ static void make_bad_inode2(void)
 		}
 	}
 	/* Could make triple indirect block here */
-	error_msg_and_die("too many bad blocks\n");
+	error_msg_and_die("too many bad blocks");
   end_bad:
 	if (ind)
 		write_block(ind, (char *) ind_block);
@@ -590,7 +590,7 @@ static void setup_tables(void)
 	 * /sbin/mkfs.minix -i 200 test.fs
 	 * */
 	if (i >= 999) {
-		error_msg_and_die("unable to allocate buffers for maps\n");
+		error_msg_and_die("unable to allocate buffers for maps");
 	}
 	FIRSTZONE = NORM_FIRSTZONE;
 	inode_map = xmalloc(IMAPS * BLOCK_SIZE);
@@ -621,7 +621,7 @@ long do_check(char *buffer, int try, unsigned int current_block)
 	/* Seek to the correct loc. */
 	if (lseek(DEV, current_block * BLOCK_SIZE, SEEK_SET) !=
 		current_block * BLOCK_SIZE) {
-		error_msg_and_die("seek failed during testing of blocks\n");
+		error_msg_and_die("seek failed during testing of blocks");
 	}
 
 
@@ -661,7 +661,7 @@ static void check_blocks(void)
 	while (currently_testing < ZONES) {
 		if (lseek(DEV, currently_testing * BLOCK_SIZE, SEEK_SET) !=
 			currently_testing * BLOCK_SIZE)
-			error_msg_and_die("seek failed in check_blocks\n");
+			error_msg_and_die("seek failed in check_blocks");
 		try = TEST_BUFFER_BLOCKS;
 		if (currently_testing + try > ZONES)
 			try = ZONES - currently_testing;
@@ -670,7 +670,7 @@ static void check_blocks(void)
 		if (got == try)
 			continue;
 		if (currently_testing < FIRSTZONE)
-			error_msg_and_die("bad blocks before data-area: cannot make fs\n");
+			error_msg_and_die("bad blocks before data-area: cannot make fs");
 		mark_zone(currently_testing);
 		badblocks++;
 		currently_testing++;
@@ -690,7 +690,7 @@ char *filename;
 
 	listfile = fopen(filename, "r");
 	if (listfile == (FILE *) NULL) {
-		error_msg_and_die("can't open file of bad blocks\n");
+		error_msg_and_die("can't open file of bad blocks");
 	}
 	while (!feof(listfile)) {
 		fscanf(listfile, "%ld\n", &blockno);
@@ -712,10 +712,10 @@ extern int mkfs_minix_main(int argc, char **argv)
 	int stopIt=FALSE;
 
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
-		error_msg_and_die("bad inode size\n");
+		error_msg_and_die("bad inode size");
 #ifdef BB_FEATURE_MINIX2
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
-		error_msg_and_die("bad inode size\n");
+		error_msg_and_die("bad inode size");
 #endif
 	
 	/* Parse options */
@@ -781,7 +781,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 #ifdef BB_FEATURE_MINIX2
 						version2 = 1;
 #else
-						error_msg("%s: not compiled with minix v2 support\n",
+						error_msg("%s: not compiled with minix v2 support",
 								device_name);
 						exit(-1);
 #endif
@@ -832,13 +832,13 @@ goodbye:
 	strcpy(tmp + 2, ".badblocks");
 	DEV = open(device_name, O_RDWR);
 	if (DEV < 0)
-		error_msg_and_die("unable to open %s\n", device_name);
+		error_msg_and_die("unable to open %s", device_name);
 	if (fstat(DEV, &statbuf) < 0)
-		error_msg_and_die("unable to stat %s\n", device_name);
+		error_msg_and_die("unable to stat %s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
-		error_msg_and_die("will not try to make filesystem on '%s'\n", device_name);
+		error_msg_and_die("will not try to make filesystem on '%s'", device_name);
 	setup_tables();
 	if (check)
 		check_blocks();

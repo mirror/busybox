@@ -54,12 +54,12 @@ static void decompose_list(const char *list)
 	/* the list must contain only digits and no more than one minus sign */
 	for (ptr = (char *)list; *ptr; ptr++) {
 		if (!isdigit(*ptr) && *ptr != '-') {
-			error_msg_and_die("invalid byte or field list\n");
+			error_msg_and_die("invalid byte or field list");
 		}
 		if (*ptr == '-') {
 			nminus++;
 			if (nminus > 1) {
-				error_msg_and_die("invalid byte or field list\n");
+				error_msg_and_die("invalid byte or field list");
 			}
 		}
 	}
@@ -68,7 +68,7 @@ static void decompose_list(const char *list)
 	if (nminus == 0) {
 		startpos = strtol(list, &ptr, 10);
 		if (startpos == 0) {
-			error_msg_and_die("missing list of fields\n");
+			error_msg_and_die("missing list of fields");
 		}
 		endpos = startpos;
 	}
@@ -188,14 +188,14 @@ extern int cut_main(int argc, char **argv)
 			case 'f':
 				/* make sure they didn't ask for two types of lists */
 				if (part != 0) {
-					error_msg_and_die("only one type of list may be specified\n");
+					error_msg_and_die("only one type of list may be specified");
 				}
 				part = (char)opt;
 				decompose_list(optarg);
 				break;
 			case 'd':
 				if (strlen(optarg) > 1) {
-					error_msg_and_die("the delimiter must be a single character\n");
+					error_msg_and_die("the delimiter must be a single character");
 				}
 				delim = optarg[0];
 				break;
@@ -209,17 +209,17 @@ extern int cut_main(int argc, char **argv)
 	}
 
 	if (part == 0) {
-		error_msg_and_die("you must specify a list of bytes, characters, or fields\n");
+		error_msg_and_die("you must specify a list of bytes, characters, or fields");
 	}
 
 	if (supress_non_delimited_lines && part != 'f') {
 		error_msg_and_die("suppressing non-delimited lines makes sense"
-				" only when operating on fields\n");
+				" only when operating on fields");
 
 	}
 
 	if (delim != '\t' && part != 'f') {
-		error_msg_and_die("a delimiter may be specified only when operating on fields\n");
+		error_msg_and_die("a delimiter may be specified only when operating on fields");
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no

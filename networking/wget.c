@@ -148,7 +148,7 @@ int wget_main(int argc, char **argv)
 #endif
 	}
 	if (do_continue && !fname_out)
-		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
+		error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
 
 
 	/*
@@ -200,7 +200,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (fgets(buf, sizeof(buf), sfp) == NULL) {
 		close_and_delete_outfile(output, fname_out, do_continue);
-		error_msg_and_die("no response from server\n");
+		error_msg_and_die("no response from server");
 	}
 	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
 		;
@@ -230,7 +230,7 @@ int wget_main(int argc, char **argv)
 		}
 		if (strcasecmp(buf, "transfer-encoding") == 0) {
 			close_and_delete_outfile(output, fname_out, do_continue);
-			error_msg_and_die("server wants to do %s transfer encoding\n", s);
+			error_msg_and_die("server wants to do %s transfer encoding", s);
 			continue;
 		}
 	}
@@ -267,7 +267,7 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 	*uri_port = 80;
 
 	if (strncmp(url, "http://", 7) != 0)
-		error_msg_and_die("not an http url: %s\n", url);
+		error_msg_and_die("not an http url: %s", url);
 
 	*uri_host = url + 7;
 
@@ -297,7 +297,7 @@ FILE *open_socket(char *host, int port)
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
-		error_msg_and_die("cannot resolve %s\n", host);
+		error_msg_and_die("cannot resolve %s", host);
 	memcpy(&sin.sin_addr, hp->h_addr_list[0], hp->h_length);
 	sin.sin_port = htons(port);
 
@@ -338,7 +338,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 	/* verify we are at the end of the header name */
 	if (*s != ':')
-		error_msg_and_die("bad header line: %s\n", buf);
+		error_msg_and_die("bad header line: %s", buf);
 
 	/* locate the start of the header value */
 	for (*s++ = '\0' ; *s == ' ' || *s == '\t' ; ++s)
@@ -532,7 +532,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.24 2001/01/31 17:49:47 andersen Exp $
+ *	$Id: wget.c,v 1.25 2001/01/31 19:00:21 kraai Exp $
  */
 
 

@@ -118,7 +118,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 		extract_flag = TRUE;
 		strcpy(ar_filename, "data.tar.gz");
 		if ( (optind + 2) > argc ) {
-			error_msg_and_die("No directory specified\n");
+			error_msg_and_die("No directory specified");
 		}
 		target_dir = (char *) xmalloc(strlen(argv[optind+1]));			
 		strcpy(target_dir, argv[optind+1]);
@@ -128,7 +128,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 		list_flag = TRUE;
 		strcpy(ar_filename, "data.tar.gz");
 		if ( (optind + 2) > argc ) {
-			error_msg_and_die("No directory specified\n");
+			error_msg_and_die("No directory specified");
 		}
 		target_dir = (char *) xmalloc(strlen(argv[optind+1]));			
 		strcpy(target_dir, argv[optind+1]);
@@ -139,7 +139,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	
 	*ar_headers = get_headers(srcFd);
 	if (ar_headers->next==NULL)
-		error_msg_and_die("Couldnt find %s in %s\n",ar_filename, argv[optind]);
+		error_msg_and_die("Couldnt find %s in %s", ar_filename, argv[optind]);
 
 	while (ar_headers->next != NULL) {
 		if (strcmp(ar_headers->name, ar_filename)==0)
@@ -154,7 +154,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 			mkdir(target_dir, 0755);
 		}
 		if (chdir(target_dir)==-1) {
-			error_msg_and_die("Cannot change to dir %s\n",argv[optind+1]);
+			error_msg_and_die("Cannot change to dir %s", argv[optind+1]);
 		}
 	}
 	status = readTarFile(srcFd, extract_flag, list_flag, extract_to_stdout, verbose_flag, NULL, extract_list);

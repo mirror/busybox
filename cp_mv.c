@@ -282,7 +282,7 @@ extern int cp_mv_main(int argc, char **argv)
 				if ((sb.st_ino == srcStatBuf.st_ino) &&
 					(sb.st_dev == srcStatBuf.st_dev)) {
 					error_msg("Cannot %s `%s' into a subdirectory of itself, "
-							"`%s/%s'\n", applet_name, baseSrcName,
+							"`%s/%s'", applet_name, baseSrcName,
 							baseDestName, baseSrcName);
 					state = -1;
 					continue;

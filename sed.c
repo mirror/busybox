@@ -169,7 +169,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, rege
 	else if (my_str[idx] == '/') {
 		idx = index_of_next_unescaped_regexp_delim(sed_cmd, my_str, ++idx);
 		if (idx == -1)
-			error_msg_and_die("unterminated match expression\n");
+			error_msg_and_die("unterminated match expression");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		xregcomp(*regex, my_str+1, 0);
@@ -177,7 +177,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, rege
 	}
 	else {
 		error_msg("get_address: no address found in string\n"
-				"\t(you probably didn't check the string you passed me)\n");
+				"\t(you probably didn't check the string you passed me)");
 		idx = -1;
 	}
 
@@ -213,7 +213,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	/* verify that the 's' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
 	if (!substr[++idx])
-		error_msg_and_die("bad format in substitution expression\n");
+		error_msg_and_die("bad format in substitution expression");
 	else
 	    sed_cmd->delimiter=substr[idx];
 
@@ -221,7 +221,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	oldidx = idx+1;
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
-		error_msg_and_die("bad format in substitution expression\n");
+		error_msg_and_die("bad format in substitution expression");
 	match = strdup_substr(substr, oldidx, idx);
 
 	/* determine the number of back references in the match string */
@@ -240,7 +240,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	oldidx = idx+1;
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
-		error_msg_and_die("bad format in substitution expression\n");
+		error_msg_and_die("bad format in substitution expression");
 	sed_cmd->replace = strdup_substr(substr, oldidx, idx);
 
 	/* process the flags */
@@ -260,7 +260,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 				if (strchr("; \t\v\n\r", substr[idx]))
 					goto out;
 				/* else */
-				error_msg_and_die("bad option in substitution expression\n");
+				error_msg_and_die("bad option in substitution expression");
 		}
 	}
 
@@ -302,7 +302,7 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 	 */
 
 	if (editstr[1] != '\\' && (editstr[2] != '\n' || editstr[2] != '\r'))
-		error_msg_and_die("bad format in edit expression\n");
+		error_msg_and_die("bad format in edit expression");
 
 	/* store the edit line text */
 	/* make editline big enough to accomodate the extra '\n' we will tack on
@@ -366,9 +366,9 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
-		error_msg_and_die("missing command\n");
+		error_msg_and_die("missing command");
 	if (!strchr("pdsaic", cmdstr[idx])) /* <-- XXX add new commands here */
-		error_msg_and_die("invalid command\n");
+		error_msg_and_die("invalid command");
 	sed_cmd->cmd = cmdstr[idx];
 
 	/* special-case handling for (s)ubstitution */
@@ -378,7 +378,7 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	/* special-case handling for (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", cmdstr[idx])) {
 		if (sed_cmd->end_line || sed_cmd->end_match)
-			error_msg_and_die("only a beginning address can be specified for edit commands\n");
+			error_msg_and_die("only a beginning address can be specified for edit commands");
 		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
 	}
 	/* if it was a single-letter command (such as 'p' or 'd') we need to

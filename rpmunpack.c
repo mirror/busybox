@@ -44,7 +44,7 @@ static void myread(int num, char *buffer)
 	if (err < 0)
 		perror_msg_and_die(progname);
 	else
-		error_msg_and_die("Unexpected end of input file!\n");
+		error_msg_and_die("Unexpected end of input file!");
   }
 }
 

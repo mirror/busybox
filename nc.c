@@ -59,7 +59,7 @@ int nc_main(int argc, char **argv)
 		perror_msg_and_die("socket");
 
 	if ((hostinfo = gethostbyname(*argv)) == NULL)
-		error_msg_and_die("cannot resolve %s\n", *argv);
+		error_msg_and_die("cannot resolve %s", *argv);
 
 	address.sin_family = AF_INET;
 	address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;

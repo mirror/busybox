@@ -290,7 +290,7 @@ static void show_usage(void)
 
 static void die(const char *str)
 {
-	error_msg("%s\n", str);
+	error_msg("%s", str);
 	leave(8);
 }
 

@@ -186,7 +186,7 @@ extern int tr_main(int argc, char **argv)
 			input_length = complement(input, input_length);
 		if (argv[index] != NULL) {
 			if (*argv[index] == '\0')
-				error_msg_and_die("STRING2 cannot be empty\n");
+				error_msg_and_die("STRING2 cannot be empty");
 			output_length = expand(argv[index], output);
 			map(input, input_length, output, output_length);
 		}

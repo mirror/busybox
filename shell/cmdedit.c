@@ -318,7 +318,7 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 				input_backward();
 		}
 	} else {
-		error_msg("\n*** Error: minimum screen width is %d\n", cmdedit_termw);
+		error_msg("\n*** Error: minimum screen width is %d", cmdedit_termw);
 	}
 }
 

@@ -95,7 +95,7 @@ extern int swap_on_off_main(int argc, char **argv)
 					struct stat statBuf;
 
 					if (stat("/etc/fstab", &statBuf) < 0)
-						error_msg_and_die("/etc/fstab file missing\n");
+						error_msg_and_die("/etc/fstab file missing");
 				}
 				do_em_all();
 				break;

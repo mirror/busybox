@@ -105,6 +105,7 @@ extern void error_msg(const char *s, ...)
 	va_start(p, s);
 	verror_msg(s, p);
 	va_end(p);
+	putc('\n', stderr);
 }
 
 extern void error_msg_and_die(const char *s, ...)
@@ -114,6 +115,7 @@ extern void error_msg_and_die(const char *s, ...)
 	va_start(p, s);
 	verror_msg(s, p);
 	va_end(p);
+	putc('\n', stderr);
 	exit(EXIT_FAILURE);
 }
 
@@ -361,7 +363,7 @@ copy_file(const char *srcName, const char *destName,
 
 	if ((srcStatBuf.st_dev == dstStatBuf.st_dev) &&
 		(srcStatBuf.st_ino == dstStatBuf.st_ino)) {
-		error_msg("Copying file \"%s\" to itself\n", srcName);
+		error_msg("Copying file \"%s\" to itself", srcName);
 		return FALSE;
 	}
 
@@ -921,11 +923,11 @@ long my_getpwnamegid(char *name)
 
 	myuser=getpwnam(name);
 	if (myuser==NULL)
-		error_msg_and_die( "unknown user name: %s\n", name);
+		error_msg_and_die( "unknown user name: %s", name);
 
 	mygroup  = getgrgid(myuser->pw_gid);
 	if (mygroup==NULL)
-		error_msg_and_die( "unknown gid %ld\n", (long)myuser->pw_gid);
+		error_msg_and_die( "unknown gid %ld", (long)myuser->pw_gid);
 
 	return mygroup->gr_gid;
 }
@@ -1015,7 +1017,7 @@ int get_console_fd(char *tty_name)
 		if (is_a_console(fd))
 			return fd;
 
-	error_msg("Couldnt get a file descriptor referring to the console\n");
+	error_msg("Couldnt get a file descriptor referring to the console");
 	return -1;					/* total failure */
 }
 
@@ -1374,7 +1376,7 @@ extern char * xstrndup (const char *s, int n) {
 	char *t;
 
 	if (s == NULL)
-		error_msg_and_die("xstrndup bug\n");
+		error_msg_and_die("xstrndup bug");
 
 	t = xmalloc(n+1);
 	strncpy(t,s,n);
@@ -1495,13 +1497,13 @@ extern int find_real_root_device_name(char* name)
 	char fileName[BUFSIZ];
 
 	if (stat("/", &rootStat) != 0) {
-		error_msg("could not stat '/'\n");
+		error_msg("could not stat '/'");
 		return( FALSE);
 	}
 
 	dir = opendir("/dev");
 	if (!dir) {
-		error_msg("could not open '/dev'\n");
+		error_msg("could not open '/dev'");
 		return( FALSE);
 	}
 
@@ -1660,7 +1662,7 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
-		error_msg_and_die("xregcomp: %s\n", errmsg);
+		error_msg_and_die("xregcomp: %s", errmsg);
 	}
 }
 #endif
@@ -1707,7 +1709,7 @@ unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes)
 	
 	ret = strtoul(numstr, &end, 10);
 	if (numstr == end)
-		error_msg_and_die("invalid number `%s'\n", numstr);
+		error_msg_and_die("invalid number `%s'", numstr);
 	while (end[0] != '\0') {
 		for (sm = suffixes; sm->suffix != NULL; sm++) {
 			len = strlen(sm->suffix);
@@ -1718,7 +1720,7 @@ unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes)
 			}
 		}
 		if (sm->suffix == NULL)
-			error_msg_and_die("invalid number `%s'\n", numstr);
+			error_msg_and_die("invalid number `%s'", numstr);
 	}
 	return ret;
 }

@@ -62,7 +62,7 @@ static void do_loadfont(int fd, char *inbuf, int unit, int fontsize)
 	memset(buf, 0, sizeof(buf));
 
 	if (unit < 1 || unit > 32)
-		error_msg_and_die("Bad character size %d\n", unit);
+		error_msg_and_die("Bad character size %d", unit);
 
 	for (i = 0; i < fontsize; i++)
 		memcpy(buf + (32 * i), inbuf + (unit * i), unit);
@@ -119,8 +119,8 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	if (ioctl(fd, PIO_UNIMAPCLR, &advice)) {
 #ifdef ENOIOCTLCMD
 		if (errno == ENOIOCTLCMD) {
-			error_msg("It seems this kernel is older than 1.1.92\n");
-			error_msg_and_die("No Unicode mapping table loaded.\n");
+			error_msg("It seems this kernel is older than 1.1.92");
+			error_msg_and_die("No Unicode mapping table loaded.");
 		} else
 #endif
 			perror_msg_and_die("PIO_UNIMAPCLR");
@@ -174,11 +174,11 @@ static void loadnewfont(int fd)
 			goto no_psf;
 
 		if (psfhdr.mode > PSF_MAXMODE)
-			error_msg_and_die("Unsupported psf file mode\n");
+			error_msg_and_die("Unsupported psf file mode");
 		fontsize = ((psfhdr.mode & PSF_MODE512) ? 512 : 256);
 #if !defined( PIO_FONTX ) || defined( __sparc__ )
 		if (fontsize != 256)
-			error_msg_and_die("Only fontsize 256 supported\n");
+			error_msg_and_die("Only fontsize 256 supported");
 #endif
 		hastable = (psfhdr.mode & PSF_MODEHASTAB);
 		unit = psfhdr.charsize;
@@ -186,7 +186,7 @@ static void loadnewfont(int fd)
 
 		head = head0 + fontsize * unit;
 		if (head > inputlth || (!hastable && head != inputlth))
-			error_msg_and_die("Input file: bad length\n");
+			error_msg_and_die("Input file: bad length");
 		do_loadfont(fd, inbuf + head0, unit, fontsize);
 		if (hastable)
 			do_loadtable(fd, inbuf + head, inputlth - head, fontsize);
@@ -201,7 +201,7 @@ static void loadnewfont(int fd)
 	} else {
 		/* bare font */
 		if (inputlth & 0377)
-			error_msg_and_die("Bad input file size\n");
+			error_msg_and_die("Bad input file size");
 		offset = 0;
 		unit = inputlth / 256;
 	}

@@ -65,9 +65,9 @@ extern ar_headers_t get_headers(int srcFd)
 	
 	/* check ar magic */
 	if (full_read(srcFd, ar_magic, 8) != 8)
-		error_msg_and_die("cannot read magic\n");
+		error_msg_and_die("cannot read magic");
 	if (strncmp(ar_magic,"!<arch>",7) != 0)
-		error_msg_and_die("invalid magic\n");
+		error_msg_and_die("invalid magic");
 
 	while (full_read(srcFd, (char *) &raw_ar_header, 60)==60) {
 		/* check the end of header markers are valid */
@@ -168,7 +168,7 @@ extern int ar_main(int argc, char **argv)
 		usage(ar_usage);
 	
 	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
-		error_msg_and_die("Cannot read %s\n", argv[optind]);
+		error_msg_and_die("Cannot read %s", argv[optind]);
 
 	optind++;	
 	head = get_headers(srcFd);

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.21 2001/01/27 08:24:37 andersen Exp $
+ * $Id: hostname.c,v 1.22 2001/01/31 19:00:20 kraai Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -41,7 +41,7 @@ void do_sethostname(char *s, int isfile)
 	if (!isfile) {
 		if (sethostname(s, strlen(s)) < 0) {
 			if (errno == EPERM)
-				error_msg_and_die("you must be root to change the hostname\n");
+				error_msg_and_die("you must be root to change the hostname");
 			else
 				perror_msg_and_die("sethostname");
 		}

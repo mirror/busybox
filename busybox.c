@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 		exit((*(applet->main)) (argc, argv));
 	}
 
-	error_msg_and_die("applet not found\n");
+	error_msg_and_die("applet not found");
 }
 
 

@@ -70,7 +70,7 @@ int screen_map_load(int fd, FILE * fp)
 		if (parse_failed) {
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
-					error_msg_and_die("16bit screen-map MUST be a regular file.\n");
+					error_msg_and_die("16bit screen-map MUST be a regular file.");
 				else
 					perror_msg_and_die("fseek failed reading binary 16bit screen-map");
 			}
@@ -79,7 +79,7 @@ int screen_map_load(int fd, FILE * fp)
 				perror_msg_and_die("Cannot read [new] map from file");
 #if 0
 			else
-				error_msg("Input screen-map is binary.\n");
+				error_msg("Input screen-map is binary.");
 #endif
 		}
 
@@ -96,7 +96,7 @@ int screen_map_load(int fd, FILE * fp)
 	/* rewind... */
 	if (-1 == fseek(fp, 0, SEEK_SET)) {
 		if (errno == ESPIPE)
-			error_msg("Assuming 8bit screen-map - MUST be a regular file.\n"),
+			error_msg("Assuming 8bit screen-map - MUST be a regular file."),
 				exit(1);
 		else
 			perror_msg_and_die("fseek failed assuming 8bit screen-map");
@@ -109,7 +109,7 @@ int screen_map_load(int fd, FILE * fp)
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
 					/* should not - it succedeed above */
-					error_msg_and_die("fseek() returned ESPIPE !\n");
+					error_msg_and_die("fseek() returned ESPIPE !");
 				else
 					perror_msg_and_die("fseek for binary 8bit screen-map");
 			}
@@ -118,7 +118,7 @@ int screen_map_load(int fd, FILE * fp)
 				perror_msg_and_die("Cannot read [old] map from file");
 #if 0
 			else
-				error_msg("Input screen-map is binary.\n");
+				error_msg("Input screen-map is binary.");
 #endif
 		}
 
@@ -127,7 +127,7 @@ int screen_map_load(int fd, FILE * fp)
 		else
 			return 0;
 	}
-	error_msg("Error parsing symbolic map\n");
+	error_msg("Error parsing symbolic map");
 	return(1);
 }
 

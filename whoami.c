@@ -38,5 +38,5 @@ extern int whoami_main(int argc, char **argv)
 		puts(user);
 		return EXIT_SUCCESS;
 	}
-	error_msg_and_die("cannot find username for UID %u\n", (unsigned) uid);
+	error_msg_and_die("cannot find username for UID %u", (unsigned) uid);
 }

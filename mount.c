@@ -132,20 +132,20 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
-				error_msg_and_die("Could not find a spare loop device\n");
+				error_msg_and_die("Could not find a spare loop device");
 			}
 			if (set_loop(specialfile, lofile, 0, &loro)) {
-				error_msg_and_die("Could not setup loop device\n");
+				error_msg_and_die("Could not setup loop device");
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
-				error_msg("WARNING: loop device is read-only\n");
+				error_msg("WARNING: loop device is read-only");
 				flags &= ~MS_RDONLY;
 			}
 		}
 #endif
 		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
 		if (errno == EROFS) {
-			error_msg("%s is write-protected, mounting read-only\n", specialfile);
+			error_msg("%s is write-protected, mounting read-only", specialfile);
 			status = mount(specialfile, dir, filesystemtype, flags |= MS_RDONLY, string_flags);
 		}
 	}
@@ -171,7 +171,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 #endif
 
 	if (errno == EPERM) {
-		error_msg_and_die("permission denied. Are you root?\n");
+		error_msg_and_die("permission denied. Are you root?");
 	}
 
 	return (FALSE);

@@ -182,7 +182,7 @@ static const int IOV_COUNT = 2;
 
 		if ( -1 == writev(remotefd,iov, IOV_COUNT)){
 			error_msg_and_die("syslogd: cannot write to remote file handle on" 
-					"%s:%d\n",RemoteHost,RemotePort);
+					"%s:%d",RemoteHost,RemotePort);
 		}
 	}
 	if (local_logging == TRUE)
@@ -264,13 +264,13 @@ static void init_RemoteLog (void){
   remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (remotefd < 0) {
-    error_msg_and_die("syslogd: cannot create socket\n");
+    error_msg_and_die("syslogd: cannot create socket");
   }
 
   hostinfo = (struct hostent *) gethostbyname(RemoteHost);
 
   if (!hostinfo) {
-    error_msg_and_die("syslogd: cannot resolve remote host name [%s]\n", RemoteHost);
+    error_msg_and_die("syslogd: cannot resolve remote host name [%s]", RemoteHost);
   }
 
   remoteaddr.sin_family = AF_INET;
@@ -282,7 +282,7 @@ static void init_RemoteLog (void){
      for future operations
   */
   if ( 0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))){
-    error_msg_and_die("syslogd: cannot connect to remote host %s:%d\n", RemoteHost, RemotePort);
+    error_msg_and_die("syslogd: cannot connect to remote host %s:%d", RemoteHost, RemotePort);
   }
 
 }

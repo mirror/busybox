@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.35 2001/01/27 08:24:37 andersen Exp $
+ * $Id: ping.c,v 1.36 2001/01/31 19:00:21 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -203,7 +203,7 @@ static void ping(const char *host)
 
 	pingaddr.sin_family = AF_INET;
 	if (!(h = gethostbyname(host))) {
-		error_msg("unknown host %s\n", host);
+		error_msg("unknown host %s", host);
 		exit(1);
 	}
 	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
@@ -324,7 +324,7 @@ static void sendping(int junk)
 	if (i < 0)
 		perror_msg_and_die("sendto");
 	else if ((size_t)i != sizeof(packet))
-		error_msg_and_die("ping wrote %d chars; %d expected\n", i,
+		error_msg_and_die("ping wrote %d chars; %d expected", i,
 			   (int)sizeof(packet));
 
 	signal(SIGALRM, sendping);
@@ -419,7 +419,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		printf("\n");
 	} else 
 		if (icmppkt->icmp_type != ICMP_ECHO)
-			error_msg("Warning: Got ICMP %d (%s)\n",
+			error_msg("Warning: Got ICMP %d (%s)",
 					icmppkt->icmp_type, icmp_type_name (icmppkt->icmp_type));
 }
 
@@ -437,7 +437,7 @@ static void ping(const char *host)
 	if ((pingsock = socket(AF_INET, SOCK_RAW,
 						   (proto ? proto->p_proto : 1))) < 0) {	/* 1 == ICMP */
 		if (errno == EPERM)
-			error_msg_and_die("permission denied. (are you root?)\n");
+			error_msg_and_die("permission denied. (are you root?)");
 		else
 			perror_msg_and_die("creating a raw socket");
 	}
@@ -449,12 +449,12 @@ static void ping(const char *host)
 
 	pingaddr.sin_family = AF_INET;
 	if (!(h = gethostbyname(host))) {
-		error_msg("unknown host %s\n", host);
+		error_msg("unknown host %s", host);
 		exit(1);
 	}
 
 	if (h->h_addrtype != AF_INET) {
-		error_msg("unknown address type; only AF_INET is currently supported.\n");
+		error_msg("unknown address type; only AF_INET is currently supported.");
 		exit(1);
 	}
 

@@ -99,20 +99,20 @@ static void parse_proc_status(char *S, proc_t * P)
 	if (tmp)
 		sscanf(tmp, "Pid:\t%d\n" "PPid:\t%d\n", &P->pid, &P->ppid);
 	else
-		error_msg("Internal error!\n");
+		error_msg("Internal error!");
 
 	/* For busybox, ignoring effective, saved, etc */
 	tmp = strstr(S, "Uid:");
 	if (tmp)
 		sscanf(tmp, "Uid:\t%d", &P->ruid);
 	else
-		error_msg("Internal error!\n");
+		error_msg("Internal error!");
 
 	tmp = strstr(S, "Gid:");
 	if (tmp)
 		sscanf(tmp, "Gid:\t%d", &P->rgid);
 	else
-		error_msg("Internal error!\n");
+		error_msg("Internal error!");
 
 }
 
@@ -137,7 +137,7 @@ extern int ps_main(int argc, char **argv)
 
 	dir = opendir("/proc");
 	if (!dir)
-		error_msg_and_die("Can't open /proc\n");
+		error_msg_and_die("Can't open /proc");
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);

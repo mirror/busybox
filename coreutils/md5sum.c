@@ -719,7 +719,7 @@ static int md5_check(const char *checkfile_name)
     if (split_3(line, line_length, &md5num, &binary, &filename)
         || !hex_digits(md5num)) {
       if (warn) {
-        error_msg("%s: %lu: improperly formatted MD5 checksum line\n",
+        error_msg("%s: %lu: improperly formatted MD5 checksum line",
                  checkfile_name, (unsigned long) line_number);
       }
     } else {
@@ -764,7 +764,7 @@ static int md5_check(const char *checkfile_name)
   while (!feof(checkfile_stream) && !ferror(checkfile_stream));
 
   if (ferror(checkfile_stream)) {
-    error_msg("%s: read error\n", checkfile_name); /* */
+    error_msg("%s: read error", checkfile_name);
     return FALSE;
   }
 
@@ -775,7 +775,7 @@ static int md5_check(const char *checkfile_name)
 
   if (n_properly_formated_lines == 0) {
     /* Warn if no tests are found.  */
-    error_msg("%s: no properly formatted MD5 checksum lines found\n",
+    error_msg("%s: no properly formatted MD5 checksum lines found",
              checkfile_name);
     return FALSE;
   } else {
@@ -784,13 +784,13 @@ static int md5_check(const char *checkfile_name)
                                  - n_open_or_read_failures);
 
       if (n_open_or_read_failures > 0) {
-        error_msg("WARNING: %d of %d listed files could not be read\n",
+        error_msg("WARNING: %d of %d listed files could not be read",
                  n_open_or_read_failures, n_properly_formated_lines);
         return FALSE;
       }
 
       if (n_mismatched_checksums > 0) {
-        error_msg("WARNING: %d of %d computed checksums did NOT match\n",
+        error_msg("WARNING: %d of %d computed checksums did NOT match",
                  n_mismatched_checksums, n_computed_checkums);
         return FALSE;
       }
@@ -855,26 +855,26 @@ int md5sum_main(int argc,
   }
 
   if (file_type_specified && do_check) {
-    error_msg_and_die("the -b and -t options are meaningless when verifying checksums\n");
+    error_msg_and_die("the -b and -t options are meaningless when verifying checksums");
   }
 
   if (n_strings > 0 && do_check) {
-    error_msg_and_die("the -g and -c options are mutually exclusive\n");
+    error_msg_and_die("the -g and -c options are mutually exclusive");
   }
 
   if (status_only && !do_check) {
-    error_msg_and_die("the -s option is meaningful only when verifying checksums\n");
+    error_msg_and_die("the -s option is meaningful only when verifying checksums");
   }
 
   if (warn && !do_check) {
-    error_msg_and_die("the -w option is meaningful only when verifying checksums\n");
+    error_msg_and_die("the -w option is meaningful only when verifying checksums");
   }
 
   if (n_strings > 0) {
     size_t i;
 
     if (optind < argc) {
-      error_msg_and_die("no files may be specified when using -g\n");
+      error_msg_and_die("no files may be specified when using -g");
     }
     for (i = 0; i < n_strings; ++i) {
       size_t cnt;
@@ -887,7 +887,7 @@ int md5sum_main(int argc,
     }
   } else if (do_check) {
     if (optind + 1 < argc) {
-      error_msg("only one argument may be specified when using -c\n");
+      error_msg("only one argument may be specified when using -c");
     }
 
     err = md5_check ((optind == argc) ? "-" : argv[optind]);
@@ -940,11 +940,11 @@ int md5sum_main(int argc,
   }
 
   if (fclose (stdout) == EOF) {
-    error_msg_and_die("write error\n");
+    error_msg_and_die("write error");
   }
 
   if (have_read_stdin && fclose (stdin) == EOF) {
-    error_msg_and_die("standard input\n");
+    error_msg_and_die("standard input");
   }
 
   if (err == 0)

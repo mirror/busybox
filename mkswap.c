@@ -87,7 +87,7 @@ static void init_signature_page()
 
 #ifdef PAGE_SIZE
 	if (pagesize != PAGE_SIZE)
-		error_msg("Assuming pages of size %d\n", pagesize);
+		error_msg("Assuming pages of size %d", pagesize);
 #endif
 	signature_page = (int *) xmalloc(pagesize);
 	memset(signature_page, 0, pagesize);
@@ -185,7 +185,7 @@ static void page_bad(int page)
 		bit_test_and_clear(signature_page, page);
 	else {
 		if (badpages == MAX_BADPAGES)
-			error_msg_and_die("too many bad pages\n");
+			error_msg_and_die("too many bad pages");
 		p->badpages[badpages] = page;
 	}
 	badpages++;
@@ -206,7 +206,7 @@ static void check_blocks(void)
 		}
 		if (do_seek && lseek(DEV, current_page * pagesize, SEEK_SET) !=
 			current_page * pagesize)
-			error_msg_and_die("seek failed in check_blocks\n");
+			error_msg_and_die("seek failed in check_blocks");
 		if ((do_seek = (pagesize != read(DEV, buffer, pagesize)))) {
 			page_bad(current_page++);
 			continue;
@@ -307,14 +307,14 @@ int mkswap_main(int argc, char **argv)
 		}
 	}
 	if (!device_name) {
-		error_msg("error: Nowhere to set up swap on?\n");
+		error_msg("error: Nowhere to set up swap on?");
 		usage(mkswap_usage);
 	}
 	sz = get_size(device_name);
 	if (!PAGES) {
 		PAGES = sz;
 	} else if (PAGES > sz && !force) {
-		error_msg("error: size %ld is larger than device size %d\n",
+		error_msg("error: size %ld is larger than device size %d",
 				PAGES * (pagesize / 1024), sz * (pagesize / 1024));
 		return EXIT_FAILURE;
 	}
@@ -330,11 +330,11 @@ int mkswap_main(int argc, char **argv)
 			version = 1;
 	}
 	if (version != 0 && version != 1) {
-		error_msg("error: unknown version %d\n", version);
+		error_msg("error: unknown version %d", version);
 		usage(mkswap_usage);
 	}
 	if (PAGES < 10) {
-		error_msg("error: swap area needs to be at least %ldkB\n",
+		error_msg("error: swap area needs to be at least %ldkB",
 				(long) (10 * pagesize / 1024));
 		usage(mkswap_usage);
 	}
@@ -353,7 +353,7 @@ int mkswap_main(int argc, char **argv)
 #endif
 	if (PAGES > maxpages) {
 		PAGES = maxpages;
-		error_msg("warning: truncating swap area to %ldkB\n",
+		error_msg("warning: truncating swap area to %ldkB",
 				PAGES * pagesize / 1024);
 	}
 
@@ -363,7 +363,7 @@ int mkswap_main(int argc, char **argv)
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
-		error_msg_and_die("Will not try to make swapdevice on '%s'\n", device_name);
+		error_msg_and_die("Will not try to make swapdevice on '%s'", device_name);
 
 #ifdef __sparc__
 	if (!force && version == 0) {
@@ -372,7 +372,7 @@ int mkswap_main(int argc, char **argv)
 		unsigned short *q, sum;
 
 		if (read(DEV, buffer, 512) != 512)
-			error_msg_and_die("fatal: first page unreadable\n");
+			error_msg_and_die("fatal: first page unreadable");
 		if (buffer[508] == 0xDA && buffer[509] == 0xBE) {
 			q = (unsigned short *) (buffer + 510);
 			for (sum = 0; q >= (unsigned short *) buffer;)
@@ -381,7 +381,7 @@ int mkswap_main(int argc, char **argv)
 				error_msg("Device '%s' contains a valid Sun disklabel.\n"
 "This probably means creating v0 swap would destroy your partition table\n"
 "No swap created. If you really want to create swap v0 on that device, use\n"
-"the -f option to force it.\n", device_name);
+"the -f option to force it.", device_name);
 				return EXIT_FAILURE;
 			}
 		}
@@ -391,7 +391,7 @@ int mkswap_main(int argc, char **argv)
 	if (version == 0 || check)
 		check_blocks();
 	if (version == 0 && !bit_test_and_clear(signature_page, 0))
-		error_msg_and_die("fatal: first page unreadable\n");
+		error_msg_and_die("fatal: first page unreadable");
 	if (version == 1) {
 		p->version = version;
 		p->last_page = PAGES - 1;
@@ -400,23 +400,23 @@ int mkswap_main(int argc, char **argv)
 
 	goodpages = PAGES - badpages - 1;
 	if (goodpages <= 0)
-		error_msg_and_die("Unable to set up swap-space: unreadable\n");
+		error_msg_and_die("Unable to set up swap-space: unreadable");
 	printf("Setting up swapspace version %d, size = %ld bytes\n",
 		   version, (long) (goodpages * pagesize));
 	write_signature((version == 0) ? "SWAP-SPACE" : "SWAPSPACE2");
 
 	offset = ((version == 0) ? 0 : 1024);
 	if (lseek(DEV, offset, SEEK_SET) != offset)
-		error_msg_and_die("unable to rewind swap-device\n");
+		error_msg_and_die("unable to rewind swap-device");
 	if (write(DEV, (char *) signature_page + offset, pagesize - offset)
 		!= pagesize - offset)
-		error_msg_and_die("unable to write signature page\n");
+		error_msg_and_die("unable to write signature page");
 
 	/*
 	 * A subsequent swapon() will fail if the signature
 	 * is not actually on disk. (This is a kernel bug.)
 	 */
 	if (fsync(DEV))
-		error_msg_and_die("fsync failed\n");
+		error_msg_and_die("fsync failed");
 	return EXIT_SUCCESS;
 }
