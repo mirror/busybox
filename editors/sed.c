@@ -577,12 +577,7 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 			break;
 	}
 
-	/* if there's anything left of the line, print it */
-	if (*hackline)
-		puts(hackline);
-	/* otherwise, we need to print a newline */
-	else
-		printf("\n");
+	puts(hackline);
 
 	/* cleanup */
 	free(regmatch);
