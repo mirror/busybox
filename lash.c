@@ -1010,7 +1010,14 @@ static int expand_arguments(char *command)
 	 * (char*) into cmd (char**, one word per string) */
 	{
         
-		int flags = GLOB_NOCHECK|GLOB_BRACE|GLOB_TILDE;
+		int flags = GLOB_NOCHECK
+#ifdef GLOB_BRACE
+				| GLOB_BRACE
+#endif	
+#ifdef GLOB_TILDE
+				| GLOB_TILDE
+#endif	
+			;
 		char *tmpcmd, *cmd, *cmd_copy;
 		/* We need a clean copy, so strsep can mess up the copy while
 		 * we write stuff into the original (in a minute) */
