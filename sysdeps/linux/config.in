@@ -20,6 +20,9 @@ bool 'Support for SUID/SGID handling'  					CONFIG_FEATURE_SUID
 if [ "$CONFIG_FEATURE_SUID" = "y" ]; then
   bool '  Runtime configuration via /etc/busybox.conf'			CONFIG_FEATURE_SUID_CONFIG
 fi
+if [ "$CONFIG_FEATURE_SUID_CONFIG" = "y" ]; then
+  bool '    Suppress message if config file is not readable'			CONFIG_FEATURE_SUID_CONFIG_QUIET
+fi
 endmenu
 
 source archival/config.in

@@ -223,12 +223,14 @@ void check_suid ( struct BB_applet *applet )
 		return;
 	}
 	else {
+#ifndef CONFIG_FEATURE_SUID_CONFIG_QUIET	
 		static int onetime = 0;
 		
 		if ( !onetime ) {
 			onetime = 1;
 			fprintf ( stderr, "Using fallback suid method\n" );
 		}
+#endif		
 	}
 #endif
 
