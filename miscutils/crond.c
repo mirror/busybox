@@ -22,9 +22,7 @@
 #include <time.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <pwd.h>
 #include <unistd.h>
-#include <grp.h>
 #include <syslog.h>
 #include <signal.h>
 #include <getopt.h>
