@@ -80,14 +80,23 @@ static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void message (char *fmt, ...)
 {
 	int fd;
+	struct flock fl;
 	va_list arguments;
+
+	fl.l_whence = SEEK_SET;
+	fl.l_start  = 0;
+	fl.l_len    = 1;
 
 	if ((fd = device_open (logFilePath,
 						   O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
 						   O_NONBLOCK)) >= 0) {
+		fl.l_type = F_WRLCK;
+		fcntl (fd, F_SETLKW, &fl);
 		va_start (arguments, fmt);
 		vdprintf (fd, fmt, arguments);
 		va_end (arguments);
+		fl.l_type = F_UNLCK;
+		fcntl (fd, F_SETLKW, &fl);
 		close (fd);
 	} else {
 		/* Always send console messages to /dev/console so people will see them. */
@@ -173,6 +182,7 @@ static void doSyslogd (void)
 	signal (SIGTERM, quit_signal);
 	signal (SIGQUIT, quit_signal);
 	signal (SIGHUP,  SIG_IGN);
+	signal (SIGCLD,  SIG_IGN);
 	signal (SIGALRM, domark);
 	alarm (MarkInterval);
 
@@ -216,54 +226,68 @@ static void doSyslogd (void)
 
 		for (fd = 0; (n_ready > 0) && (fd < FD_SETSIZE); fd++) {
 			if (FD_ISSET (fd, &readfds)) {
+
 				--n_ready;
+
 				if (fd == sock_fd) {
-					int conn;
+
+					int   conn;
+					pid_t pid;
+
 					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
 						fatalError ("accept error: %s\n", strerror (errno));
 					}
-					FD_SET (conn, &fds);
-					continue;
-				}
-				else {
-#					define BUFSIZE 1023
-					char buf[ BUFSIZE + 1 ];
-					int n_read;
 
-					while ((n_read = read (fd, buf, BUFSIZE )) > 0) {
+					pid = fork();
 
-						int pri = (LOG_USER | LOG_NOTICE);
-						char line[ BUFSIZE + 1 ];
-						unsigned char c;
-						char *p = buf, *q = line;
-
-						buf[ n_read - 1 ] = '\0';
-
-						while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
-							if (c == '<') {
-								/* Parse the magic priority number. */
-								pri = 0;
-								while (isdigit (*(++p))) {
-									pri = 10 * pri + (*p - '0');
-								}
-								if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
-									pri = (LOG_USER | LOG_NOTICE);
-							} else if (c == '\n') {
-								*q++ = ' ';
-							} else if (iscntrl (c) && (c < 0177)) {
-								*q++ = '^';
-								*q++ = c ^ 0100;
-							} else {
-								*q++ = c;
-							}
-							p++;
-						}
-						*q = '\0';
-						/* Now log it */
-						logMessage (pri, line);
+					if (pid < 0) {
+						perror ("syslogd: fork");
+						close (conn);
+						continue;
 					}
-					close (fd);
-					FD_CLR (fd, &fds);
+
+					if (pid > 0) {
+
+#						define BUFSIZE 1023
+						char   buf[ BUFSIZE + 1 ];
+						int    n_read;
+
+						while ((n_read = read (conn, buf, BUFSIZE )) > 0) {
+
+							int           pri = (LOG_USER | LOG_NOTICE);
+							char          line[ BUFSIZE + 1 ];
+							unsigned char c;
+
+							char *p = buf, *q = line;
+
+							buf[ n_read - 1 ] = '\0';
+
+							while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
+								if (c == '<') {
+								/* Parse the magic priority number. */
+									pri = 0;
+									while (isdigit (*(++p))) {
+										pri = 10 * pri + (*p - '0');
+									}
+									if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
+										pri = (LOG_USER | LOG_NOTICE);
+								} else if (c == '\n') {
+									*q++ = ' ';
+								} else if (iscntrl (c) && (c < 0177)) {
+									*q++ = '^';
+									*q++ = c ^ 0100;
+								} else {
+									*q++ = c;
+								}
+								p++;
+							}
+							*q = '\0';
+							/* Now log it */
+							logMessage (pri, line);
+						}
+						exit (0);
+					}
+					close (conn);
 				}
 			}
 		}
@@ -432,9 +456,9 @@ extern int syslogd_main(int argc, char **argv)
 }
 
 /*
- * Local Variables
- * c-file-style: "linux"
- * c-basic-offset: 4
- * tab-width: 4
- * End:
- */
+Local Variables
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

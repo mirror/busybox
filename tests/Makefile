@@ -29,3 +29,5 @@ BBL := $(shell pushd .. >/dev/null &&		\
 ${BBL}: ../busybox
 	rm -f $@
 	ln ../busybox $@
+
+syslog_test: syslog_test.c

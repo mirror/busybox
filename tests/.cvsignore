@@ -13,3 +13,4 @@ mv
 mv_*.bb
 mv_*.gnu
 mv_tests
+syslog_test
