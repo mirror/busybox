@@ -159,6 +159,12 @@ $(TOPDIR)include/config.h:
 		make oldconfig; \
 	fi;
 
+$(TOPDIR).config:
+	cp $(TOPDIR)sysdeps/$(TARGET_OS)/defconfig $(TOPDIR).config
+	mkdir -p $(TOPDIR)include/config
+	$(MAKE) -C scripts/lxdialog all
+	$(BB_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
+
 menuconfig:
 	mkdir -p $(TOPDIR)include/config
 	$(MAKE) -C scripts/lxdialog all
