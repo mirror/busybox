@@ -43,7 +43,7 @@ LIBBB_SRC:= \
 	setup_environment.c simplify_path.c syscalls.c syslog_msg_with_name.c \
 	time_string.c trim.c u_signal_names.c vdprintf.c verror_msg.c \
 	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c xfuncs.c \
-	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c bb_xgetlarg.c 
+	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c xgetlarg.c 
 	
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
