@@ -319,7 +319,7 @@
 // Support for Minix filesystem, version 2
 //#define BB_FEATURE_MINIX2
 //
-// Enable ifconfig status reporting output -- this feature adds 12k.
+// Enable ifconfig status reporting output -- this feature adds 7k.
 //#define BB_FEATURE_IFCONFIG_STATUS
 //
 // Enable ifconfig slip-specific options "keepalive" and "outfill"
@@ -330,6 +330,10 @@
 //
 // Enable ifconfig option "hw".  Currently works for only with "ether".
 //#define BB_FEATURE_IFCONFIG_HW
+//
+// Allows "broadcast +" to set broadcast automatically based on hostaddr
+// and netmask, at a cost of about 100 bytes of code (i386).
+//#define BB_FEATURE_IFCONFIG_BROADCAST_PLUS
 //
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 

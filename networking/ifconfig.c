@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.11 2001/07/07 05:19:52 andersen Exp $
+ * $Id: ifconfig.c,v 1.12 2001/08/10 06:02:23 mjn3 Exp $
  *
  */
 
@@ -110,8 +110,6 @@
 #define A_NETMASK        0x20	/* Set if netmask (check for multiple sets). */
 #define A_SET_AFTER      0x40	/* Set a flag at the end. */
 #define A_COLON_CHK      0x80	/* Is this needed?  See below. */
-#define A_HOSTNAME      0x100	/* Set if it is ip addr. */
-#define A_BROADCAST     0x200	/* Set if it is broadcast addr. */
 
 /*
  * These defines are for dealing with the A_CAST_TYPE field.
@@ -141,12 +139,12 @@
 #define ARG_IRQ          (A_ARG_REQ | A_MAP_UCHAR)
 #define ARG_DSTADDR      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE)
 #define ARG_NETMASK      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_NETMASK)
-#define ARG_BROADCAST    (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER | A_BROADCAST)
+#define ARG_BROADCAST    (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER)
 #define ARG_HW           (A_ARG_REQ | A_CAST_HOST_COPY_IN_ETHER)
 #define ARG_POINTOPOINT  (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER)
 #define ARG_KEEPALIVE    (A_ARG_REQ | A_CAST_CHAR_PTR)
 #define ARG_OUTFILL      (A_ARG_REQ | A_CAST_CHAR_PTR)
-#define ARG_HOSTNAME     (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER | A_COLON_CHK | A_HOSTNAME)
+#define ARG_HOSTNAME     (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER | A_COLON_CHK)
 
 
 /*
@@ -162,7 +160,7 @@ struct arg1opt {
 struct options {
 	const char *name;
 	const unsigned char flags;
-	const unsigned int arg_flags;
+	const unsigned char arg_flags;
 	const unsigned short selector;
 };
 
@@ -248,7 +246,6 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
-	struct sockaddr_in sai_hostname, sai_netmask;
 #ifdef BB_FEATURE_IFCONFIG_HW
 	struct sockaddr sa;
 #endif
@@ -259,8 +256,8 @@ int ifconfig_main(int argc, char **argv)
 	int selector;
 	char *p;
 	char host[128];
-	unsigned int mask;
-	unsigned int did_flags;
+	unsigned char mask;
+	unsigned char did_flags;
 
 	goterr = 0;
 	did_flags = 0;
@@ -334,7 +331,7 @@ int ifconfig_main(int argc, char **argv)
 				}
 			} else {			/* got an arg so process it */
 			HOSTNAME:
-				did_flags |= (mask & (A_NETMASK|A_HOSTNAME));
+				did_flags |= (mask & A_NETMASK);
 				if (mask & A_CAST_HOST_COPY) {
 #ifdef BB_FEATURE_IFCONFIG_HW
 					if (mask & A_CAST_RESOLVE) {
@@ -345,20 +342,11 @@ int ifconfig_main(int argc, char **argv)
 						if (!strcmp(host, "default")) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
-						} else if ((!strcmp(host, "+")) && (mask & A_BROADCAST) &&
-								 (did_flags & (A_NETMASK|A_HOSTNAME))) {
-							/* + is special, meaning broadcast is derived. */
-							sai.sin_addr.s_addr = (~sai_netmask.sin_addr.s_addr) |
-								(sai_hostname.sin_addr.s_addr & sai_netmask.sin_addr.s_addr);
 						} else if (inet_aton(host, &sai.sin_addr) == 0) {
 							/* It's not a dotted quad. */
 							++goterr;
 							continue;
 						}
-						if(mask & A_HOSTNAME)
-							sai_hostname = sai;
-						if(mask & A_NETMASK)
-							sai_netmask = sai;
 						p = (char *) &sai;
 #ifdef BB_FEATURE_IFCONFIG_HW
 					} else { /* A_CAST_HOST_COPY_IN_ETHER */
