@@ -573,7 +573,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
-	static_down(ifd, exec)
+	static_down(ifd, exec);
 	return (result || bootp_down(ifd, exec));
 }
 
