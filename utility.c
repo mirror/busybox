@@ -112,6 +112,7 @@ extern void fatalError(const char *s, ...)
 	exit( FALSE);
 }
 
+#if defined BB_INIT
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
@@ -128,7 +129,9 @@ extern int get_kernel_revision(void)
 	sscanf(name.version, "%d.%d.%d", &major, &minor, &patch);
 	return major * 65536 + minor * 256 + patch;
 }
+#endif                                                 /* BB_INIT */
 
+#if defined (BB_CP_MV) || defined (BB_DU)
 
 #define HASH_SIZE	311		/* Should be prime */
 #define hash_inode(i)	((i) % HASH_SIZE)
@@ -195,7 +198,9 @@ void reset_ino_dev_hashtable(void)
 	}
 }
 
+#endif /* BB_CP_MV || BB_DU */
 
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
@@ -226,7 +231,9 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 	}
 	return status;
 }
+#endif
 
+#if defined (BB_CP_MV)
 /*
  * Copy one file to another, while possibly preserving its modes, times, and
  * modes.  Returns TRUE if successful, or FALSE on a failure with an error
@@ -376,8 +383,11 @@ copyFile(const char *srcName, const char *destName,
 
 	return FALSE;
 }
+#endif							/* BB_CP_MV */
 
 
+
+#if defined BB_TAR || defined BB_LS
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
@@ -420,8 +430,10 @@ const char *modeString(int mode)
 	}
 	return buf;
 }
+#endif							/* BB_TAR || BB_LS */
 
 
+#if defined BB_TAR
 /*
  * Return the standard ls-like time string from a time_t
  * This is static and so is overwritten on each call.
@@ -446,7 +458,9 @@ const char *timeString(time_t timeVal)
 
 	return buf;
 }
+#endif							/* BB_TAR */
 
+#if defined BB_TAR || defined BB_CP_MV
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -472,8 +486,10 @@ int fullWrite(int fd, const char *buf, int len)
 
 	return total;
 }
+#endif							/* BB_TAR || BB_CP_MV */
 
 
+#if defined BB_TAR || defined BB_TAIL
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -503,7 +519,15 @@ int fullRead(int fd, char *buf, int len)
 
 	return total;
 }
+#endif							/* BB_TAR || BB_TAIL */
 
+
+#if defined (BB_CHMOD_CHOWN_CHGRP) \
+ || defined (BB_CP_MV)			\
+ || defined (BB_FIND)			\
+ || defined (BB_INSMOD)			\
+ || defined (BB_RM)				\
+ || defined (BB_TAR)
 
 /*
  * Walk down all the directories under the specified 
@@ -617,9 +641,11 @@ int recursiveAction(const char *fileName,
 	return TRUE;
 }
 
+#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_CP_MV || BB_FIND || BB_LS || BB_INSMOD */
 
 
 
+#if defined (BB_TAR) || defined (BB_MKDIR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
@@ -649,10 +675,15 @@ extern int createPath(const char *name, int mode)
 	}
 	return TRUE;
 }
+#endif							/* BB_TAR || BB_MKDIR */
 
 
 
+#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR)
 /* [ugoa]{+|-|=}[rwxst] */
+
+
+
 extern int parse_mode(const char *s, mode_t * theMode)
 {
 	mode_t andMode =
@@ -745,8 +776,13 @@ extern int parse_mode(const char *s, mode_t * theMode)
 }
 
 
+#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_MKDIR */
 
 
+
+
+
+#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS || defined BB_TAR || defined BB_ID 
 
 /* This parses entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox, since we want to avoid using the glibc NSS stuff, which
@@ -852,6 +888,10 @@ gid_t my_getpwnamegid(char *name)
 	return gid;
 }
 
+#endif /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR || BB_ID */ 
+
+
+#if (defined BB_CHVT) || (defined BB_DEALLOCVT)
 
 
 #include <linux/kd.h>
@@ -936,9 +976,11 @@ int get_console_fd(char *tty_name)
 }
 
 
+#endif							/* BB_CHVT || BB_DEALLOCVT */
 
 
-#if !defined BB_REGEXP
+#if !defined BB_REGEXP && (defined BB_GREP || defined BB_SED)
+
 /* Do a case insensitive strstr() */
 char *stristr(char *haystack, const char *needle)
 {
@@ -1009,9 +1051,11 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle,
 	else
 		return FALSE;
 }
-#endif							/* ! BB_REGEXP */
+
+#endif							/* ! BB_REGEXP && (BB_GREP || BB_SED) */
 
 
+#if defined BB_FIND
 /*
  * Routine to see if a text string is matched by a wildcard pattern.
  * Returns TRUE if the text is matched, or FALSE if it is not matched
@@ -1111,10 +1155,12 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 
 	return TRUE;
 }
+#endif							/* BB_FIND */
 
 
 
 
+#if defined BB_DF || defined BB_MTAB
 /*
  * Given a block device, find the mount table entry if that block device
  * is mounted.
@@ -1153,9 +1199,11 @@ extern struct mntent *findMountPoint(const char *name, const char *table)
 	endmntent(mountTable);
 	return mountEntry;
 }
+#endif							/* BB_DF || BB_MTAB */
 
 
 
+#if defined BB_DD || defined BB_TAIL
 /*
  * Read a number with a possible multiplier.
  * Returns -1 if the number format is illegal.
@@ -1202,8 +1250,10 @@ extern long getNum(const char *cp)
 
 	return value;
 }
+#endif							/* BB_DD || BB_TAIL */
 
 
+#if defined BB_INIT || defined BB_SYSLOGD
 /* try to open up the specified device */
 extern int device_open(char *device, int mode)
 {
@@ -1222,11 +1272,15 @@ extern int device_open(char *device, int mode)
 		fcntl(fd, F_SETFL, mode);
 	return fd;
 }
+#endif							/* BB_INIT BB_SYSLOGD */
 
 
+#if defined BB_KILLALL || ( defined BB_FEATURE_LINUXRC && ( defined BB_HALT || defined BB_REBOOT || defined BB_POWEROFF ))
 #ifdef BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devps.h>
+#endif
 
+#if defined BB_FEATURE_USE_DEVPS_PATCH
 /* findPidByName()
  *  
  *  This finds the pid of the specified process,
@@ -1365,6 +1419,7 @@ extern pid_t* findPidByName( char* pidName)
 	return pidList;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */
+#endif							/* BB_KILLALL || ( BB_FEATURE_LINUXRC && ( BB_HALT || BB_REBOOT || BB_POWEROFF )) */
 
 /* this should really be farmed out to libbusybox.a */
 extern void *xmalloc(size_t size)
@@ -1376,7 +1431,7 @@ extern void *xmalloc(size_t size)
 	return cp;
 }
 
-#if (__GLIBC__ < 2)
+#if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap)
 {
 	char buf[BUF_SIZE];
@@ -1385,8 +1440,9 @@ extern int vdprintf(int d, const char *format, va_list ap)
 	len = vsprintf(buf, format, ap);
 	return write(d, buf, len);
 }
-#endif
+#endif							/* BB_SYSLOGD */
 
+#if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device)
 {
 	int fd;
@@ -1470,7 +1526,9 @@ extern char *find_unused_loop_device(void)
 	}
 	return NULL;
 }
+#endif							/* BB_FEATURE_MOUNT_LOOP */
 
+#if defined BB_MOUNT || defined BB_DF || ( defined BB_UMOUNT && ! defined BB_MTAB)
 extern int find_real_root_device_name(char* name)
 {
 	DIR *dir;
@@ -1512,6 +1570,7 @@ extern int find_real_root_device_name(char* name)
 
 	return( FALSE);
 }
+#endif
 
 const unsigned int CSTRING_BUFFER_LENGTH = 128;
 /* recursive parser that returns cstrings of arbitrary length

@@ -59,6 +59,17 @@ else
     #Only staticly link when _not_ debugging 
     ifeq ($(DOSTATIC),true)
 	LDFLAGS += --static
+	#
+	#use '-ffunction-sections -fdata-sections' and '--gc-sections' if they work
+	#to try and strip out any unused junk.  Doesn't do much for me, but you may
+	#want to give it a shot...
+	#
+	#ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
+	#	-o /dev/null -xc /dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
+	#    CFLAGS += -ffunction-sections -fdata-sections -DFUNCTION_SECTIONS
+	#    LDFLAGS += --gc-sections
+	#endif
+	#
     endif
 endif
 
@@ -72,13 +83,6 @@ CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
-endif
-
-# use '-ffunction-sections -fdata-sections' and '--gc-sections' if they work
-ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
-	-o /dev/null -xc /dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
-    CFLAGS += -ffunction-sections -fdata-sections -DFUNCTION_SECTIONS
-    LDFLAGS += --gc-sections
 endif
 
 all: busybox busybox.links doc
