@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.36 2004/04/14 17:51:09 andersen Exp $";
+	"$Id: vi.c,v 1.37 2004/07/20 06:44:46 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -693,12 +693,13 @@ static void colon(Byte * buf)
 	// :s/find/replace/ // substitute pattern "find" with "replace"
 	// :!<cmd>	// run <cmd> then return
 	//
+	forced = useforce = FALSE;
+
 	if (strlen((char *) buf) <= 0)
 		goto vc1;
 	if (*buf == ':')
 		buf++;			// move past the ':'
 
-	forced = useforce = FALSE;
 	li = st = ch = i = 0;
 	b = e = -1;
 	q = text;			// assume 1,$ for the range
