@@ -175,6 +175,11 @@ extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
 
+#if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
+extern void *xmalloc (size_t size);
+extern void error(char *msg);
+#endif
+
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap);
 #endif

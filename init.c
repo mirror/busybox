@@ -488,9 +488,14 @@ static void shutdown_system(void)
 static void halt_signal(int sig)
 {
     shutdown_system();
-    message(CONSOLE,
-	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
+    message(CONSOLE, "The system is halted. Press %s or turn off power\r\n",
+    	(secondConsole == NULL) /* serial console */
+	    ? "Reset" : "CTRL-ALT-DEL");
     sync();
+
+    /* allow time for last message to reach serial console */
+    sleep(2);
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
     if (sig == SIGUSR2)
 	reboot(RB_POWER_OFF);
@@ -505,6 +510,10 @@ static void reboot_signal(int sig)
     shutdown_system();
     message(CONSOLE, "Please stand by while rebooting the system.\r\n");
     sync();
+
+    /* allow time for last message to reach serial console */
+    sleep(2);
+
     reboot(RB_AUTOBOOT);
     exit(0);
 }
@@ -580,7 +589,9 @@ static void check_chroot(int sig)
     /* execute init in the (hopefully) new root */
     execve("/sbin/init",argv_init,envp_init);
 
-    message(CONSOLE, "ERROR: Could not exec new init. Hit ctrl+alt+delete to reboot.\r\n");
+    message(CONSOLE, "ERROR: Could not exec new init. Press %s to reboot.\r\n",
+    	(secondConsole == NULL) /* serial console */
+	    ? "Reset" : "CTRL-ALT-DEL");
     return;
 } 
 #endif /* BB_FEATURE_INIT_CHROOT */
@@ -592,11 +603,14 @@ void new_initAction (initActionEnum action,
 {
     initAction* newAction;
 
+    if (*cons == '\0')
+    	cons = console;
+ 
     /* If BusyBox detects that a serial console is in use, 
-     * then entries containing non-empty id fields will _not_ be run.
+     * then entries not refering to the console or null devices will _not_ be run.
      * The exception to this rule is the null device.
      */
-    if (secondConsole == NULL && (*cons != '\0' || strncmp(cons, "null", 4)))
+    if (secondConsole == NULL && strcmp(cons, console) && strcmp(cons, "/dev/null"))
 	return;
 
     newAction = calloc ((size_t)(1), sizeof(initAction));
@@ -608,10 +622,7 @@ void new_initAction (initActionEnum action,
     initActionList = newAction;
     strncpy( newAction->process, process, 255);
     newAction->action = action;
-    if (*cons != '\0') {
-	strncpy(newAction->console, cons, 255);
-    } else
-	strncpy(newAction->console, console, 255);
+    strncpy(newAction->console, cons, 255);
     newAction->pid = 0;
 //    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
 //	    newAction->process, newAction->action, newAction->console);
@@ -620,9 +631,13 @@ void new_initAction (initActionEnum action,
 void delete_initAction (initAction *action)
 {
     initAction *a, *b=NULL;
-    for( a=initActionList ; a; b=a, a=a->nextPtr) {
-	if (a == action && b != NULL) {
-	    b->nextPtr=a->nextPtr;
+    for( a=initActionList ; a ; b=a, a=a->nextPtr) {
+	if (a == action) {
+	    if (b==NULL) {
+		initActionList=a->nextPtr;
+	    } else {
+		b->nextPtr=a->nextPtr;
+	    }
 	    free( a);
 	    break;
 	}
@@ -805,8 +820,8 @@ extern int init_main(int argc, char **argv)
 	/* Ask first then start a shell on tty2 */
 	if (secondConsole != NULL) 
 	    new_initAction( ASKFIRST, SHELL, secondConsole);
-	/* Ask first then start a shell on tty1 */
-	new_initAction( ASKFIRST, SHELL, console);
+	/* Start a shell on tty1 */
+	new_initAction( RESPAWN, SHELL, console);
     } else {
 	/* Not in single user mode -- see what inittab says */
 

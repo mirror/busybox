@@ -61,7 +61,7 @@ head_main(int argc, char **argv)
 	    switch (opt) {
 		case 'n':
 		    tmplen = 0;
-		    if (i++ < argc)
+		    if (++i < argc)
 			tmplen = atoi(argv[i]);
 		    if (tmplen < 1)
 			usage(head_usage);
@@ -105,4 +105,4 @@ head_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: head.c,v 1.5 2000/01/23 18:19:02 erik Exp $ */
+/* $Id: head.c,v 1.6 2000/01/25 18:13:53 erik Exp $ */

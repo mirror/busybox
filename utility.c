@@ -175,7 +175,7 @@ copyFile( const char *srcName, const char *destName,
 	}
     } else if (S_ISFIFO(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
-	if (mkfifo(destName, 644)) {
+	if (mkfifo(destName, 0644)) {
 	    perror(destName);
 	    return (FALSE);
 	}
@@ -406,7 +406,6 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
     else
 	status = lstat(fileName, &statbuf);
 
-    status = lstat(fileName, &statbuf);
     if (status < 0) {
 	perror(fileName);
 	return (FALSE);
@@ -1115,6 +1114,24 @@ findInitPid()
 	}
     }
     return 0;
+}
+#endif
+
+#if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
+extern void *xmalloc (size_t size)
+{
+    void *cp = malloc (size);
+
+    if (cp == NULL) {
+	error("out of memory");
+    }
+    return cp;
+}
+
+extern void error(char *msg)
+{
+    fprintf(stderr, "\n%s\n", msg);
+    exit(1);
 }
 #endif
 

@@ -15,12 +15,23 @@
 	* Optional support contributed by Ben Collins <bcollins@debian.org> 
 	    for the kernel init chroot patch by Werner Almesberger, which 
 	    allows init to chroot to a new device, and umount the old one.
-	* added (and documented) "-n" option for head - 
-	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
-	* Cleanup for a number of usage messages -- also 
-	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
 	* Fixed bug that wouldn't let one chown a symlink -- it would
 	  always dereference before.  -beppu
+	* Fixed a bug where init could have reference already freed memory.
+	    Found and fixed by Taketoshi Sano <kgh12351@nifty.ne.jp>
+	* Several contributions from Friedrich Vedder <fwv@myrtle.lahn.de>
+	* added (and documented) "-n" option for head - 
+	* Cleanup for a number of usage messages -- also 
+	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
+	* Cosmetic fix to busybox.c (Don't print a comma at the
+	    end of line if there are no more application names).
+	* Fixed a stupid bug in "head" option handling ("head -n" would segfault).
+	* Moved commonly used functions "xmalloc()" and "exit()"
+	    to utility.c (with proper #ifdef's).
+	* Created a tiny tail implementation, removing -c, -q, -v, and making
+	    tail -f work only with a single file.  This reduced tail 
+	    from 6k to 2.4k.  The bigger/more featured tail can still be
+	    had by disabling BB_FEATURE_SIMPLE_TAIL in dusybox.defs.h
 
 
 	-Erik Andersen

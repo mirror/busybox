@@ -321,6 +321,9 @@ extern int save_orig_name; /* set if original name must be saved */
 #define WARN(msg) {fprintf msg ; \
 		   if (exit_code == OK) exit_code = WARNING;}
 
+#define do_exit(c) exit(c)
+
+
 	/* in unzip.c */
 extern int unzip      OF((int in, int out));
 
@@ -359,7 +362,6 @@ extern void error         OF((char *m));
 extern void warn          OF((char *a, char *b));
 extern void read_error    OF((void));
 extern void write_error   OF((void));
-extern voidp xmalloc      OF((unsigned int size));
 
 	/* in inflate.c */
 extern int inflate OF((void));
@@ -679,7 +681,6 @@ long header_bytes;   /* number of bytes in gzip header */
 /* local functions */
 
 local int  get_method   OF((int in));
-local void do_exit(int exitcode) __attribute__ ((noreturn));
 
 #define strequ(s1, s2) (strcmp((s1),(s2)) == 0)
 
@@ -925,30 +926,6 @@ local int get_method(in)
 	WARN((stderr, "\ndecompression OK, trailing garbage ignored\n"));
 	return -2;
     }
-}
-
-
-/* ========================================================================
- * Free all dynamically allocated variables and exit with the given code.
- */
-local void do_exit(exitcode)
-    int exitcode;
-{
-    static int in_exit = 0;
-
-    if (in_exit) exit(exitcode);
-    in_exit = 1;
-    FREE(inbuf);
-    FREE(outbuf);
-    FREE(d_buf);
-    FREE(window);
-#ifndef MAXSEG_64K
-    FREE(tab_prefix);
-#else
-    FREE(tab_prefix0);
-    FREE(tab_prefix1);
-#endif
-    exit(exitcode);
 }
 
 /* ========================================================================
@@ -1284,13 +1261,6 @@ int strcspn(s, reject)
 /* ========================================================================
  * Error handlers.
  */
-void error(m)
-    char *m;
-{
-    fprintf(stderr, "\n%s\n", m);
-    abort_gzip();
-}
-
 void warn(a, b)
     char *a, *b;            /* message strings juxtaposed in output */
 {
@@ -1315,18 +1285,6 @@ void write_error()
     abort_gzip();
 }
 
-
-/* ========================================================================
- * Semi-safe malloc -- never returns NULL.
- */
-voidp xmalloc (size)
-    unsigned size;
-{
-    voidp cp = (voidp)malloc (size);
-
-    if (cp == NULL) error("out of memory");
-    return cp;
-}
 
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by makecrc.c)

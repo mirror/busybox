@@ -277,7 +277,8 @@ extern int save_orig_name; /* set if original name must be saved */
 #define WARN(msg) {if (!quiet) fprintf msg ; \
 		   if (exit_code == OK) exit_code = WARNING;}
 
-local void do_exit(int exitcode) __attribute__ ((noreturn));
+#define do_exit(c) exit(c)
+
 
 	/* in zip.c: */
 extern int zip        OF((int in, int out));
@@ -328,7 +329,6 @@ extern void warn          OF((char *a, char *b));
 extern void read_error    OF((void));
 extern void write_error   OF((void));
 extern void display_ratio OF((long num, long den, FILE *file));
-extern voidp xmalloc      OF((unsigned int size));
 
 	/* in inflate.c */
 extern int inflate OF((void));
@@ -1912,29 +1912,6 @@ int gzip_main(int argc, char ** argv)
     do_exit(exit_code);
 }
 
-/* ========================================================================
- * Free all dynamically allocated variables and exit with the given code.
- */
-local void do_exit(int exitcode)
-{
-    static int in_exit = 0;
-
-    if (in_exit) exit(exitcode);
-    in_exit = 1;
-    if (env != NULL)  free(env),  env  = NULL;
-    if (args != NULL) free((char*)args), args = NULL;
-    FREE(inbuf);
-    FREE(outbuf);
-    FREE(d_buf);
-    FREE(window);
-#ifndef MAXSEG_64K
-    FREE(tab_prefix);
-#else
-    FREE(tab_prefix0);
-    FREE(tab_prefix1);
-#endif
-    exit(exitcode);
-}
 /* trees.c -- output deflated data using Huffman coding
  * Copyright (C) 1992-1993 Jean-loup Gailly
  * This is free software; you can redistribute it and/or modify it under the

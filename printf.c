@@ -121,8 +121,6 @@
 #define hextobin(c) ((c)>='a'&&(c)<='f' ? (c)-'a'+10 : (c)>='A'&&(c)<='F' ? (c)-'A'+10 : (c)-'0')
 #define octtobin(c) ((c) - '0')
 
-char *xmalloc ();
-
 static double xstrtod __P ((char *s));
 static int print_esc __P ((char *escstart));
 static int print_formatted __P ((char *format, int argc, char **argv));

@@ -1,3 +1,402 @@
+#include "internal.h"
+/* This file contains _two_ implementations of tail.  One is
+ * a bit more full featured, but costs 6k.  The other (i.e. the
+ * SIMPLE_TAIL one) is less capable, but is good enough for about
+ * 99% of the things folks want to use tail for, and only costs 2k.
+ */
+
+
+#ifdef BB_FEATURE_SIMPLE_TAIL
+
+/* tail -- output the last part of file(s)
+   Copyright (C) 89, 90, 91, 95, 1996 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+   Original version by Paul Rubin <phr@ocf.berkeley.edu>.
+   Extensions by David MacKenzie <djm@gnu.ai.mit.edu>.
+   tail -f for multiple files by Ian Lance Taylor <ian@airs.com>.  
+
+   Rewrote the option parser, removed locales support,
+    and generally busyboxed, Erik Andersen <andersen@lineo.com>
+
+   Removed superfluous options and associated code ("-c", "-n", "-q").
+   Removed "tail -f" suport for multiple files.
+   Both changes by Friedrich Vedder <fwv@myrtle.lahn.de>.
+
+ */
+
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <ctype.h>
+
+
+#define XWRITE(fd, buffer, n_bytes)					\
+  do {									\
+      if (n_bytes > 0 && fwrite ((buffer), 1, (n_bytes), stdout) == 0)	\
+	  error("write error");					\
+  } while (0)
+
+/* Number of items to tail.  */
+#define DEFAULT_N_LINES 10
+
+/* Size of atomic reads.  */
+#ifndef BUFSIZ
+#define BUFSIZ (512 * 8)
+#endif
+
+/* If nonzero, read from the end of one file until killed.  */
+static int forever;
+
+/* If nonzero, print filename headers.  */
+static int print_headers;
+
+const char tail_usage[] =
+    "tail [OPTION] [FILE]...\n\n"
+    "Print last 10 lines of each FILE to standard output.\n"
+    "With more than one FILE, precede each with a header giving the\n"
+    "file name. With no FILE, or when FILE is -, read standard input.\n\n"
+    "Options:\n"
+    "\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
+    "\t-f\t\tOutput data as the file grows.  This version\n"
+    "\t\t\tof 'tail -f' supports only one file at a time.\n";
+
+
+static void write_header(const char *filename)
+{
+    static int first_file = 1;
+
+    printf("%s==> %s <==\n", (first_file ? "" : "\n"), filename);
+    first_file = 0;
+}
+
+/* Print the last N_LINES lines from the end of file FD.
+   Go backward through the file, reading `BUFSIZ' bytes at a time (except
+   probably the first), until we hit the start of the file or have
+   read NUMBER newlines.
+   POS starts out as the length of the file (the offset of the last
+   byte of the file + 1).
+   Return 0 if successful, 1 if an error occurred.  */
+
+static int
+file_lines(const char *filename, int fd, long int n_lines, off_t pos)
+{
+    char buffer[BUFSIZ];
+    int bytes_read;
+    int i;			/* Index into `buffer' for scanning.  */
+
+    if (n_lines == 0)
+	return 0;
+
+    /* Set `bytes_read' to the size of the last, probably partial, buffer;
+       0 < `bytes_read' <= `BUFSIZ'.  */
+    bytes_read = pos % BUFSIZ;
+    if (bytes_read == 0)
+	bytes_read = BUFSIZ;
+    /* Make `pos' a multiple of `BUFSIZ' (0 if the file is short), so that all
+       reads will be on block boundaries, which might increase efficiency.  */
+    pos -= bytes_read;
+    lseek(fd, pos, SEEK_SET);
+    bytes_read = fullRead(fd, buffer, bytes_read);
+    if (bytes_read == -1)
+	error("read error");
+
+    /* Count the incomplete line on files that don't end with a newline.  */
+    if (bytes_read && buffer[bytes_read - 1] != '\n')
+	--n_lines;
+
+    do {
+	/* Scan backward, counting the newlines in this bufferfull.  */
+	for (i = bytes_read - 1; i >= 0; i--) {
+	    /* Have we counted the requested number of newlines yet?  */
+	    if (buffer[i] == '\n' && n_lines-- == 0) {
+		/* If this newline wasn't the last character in the buffer,
+		   print the text after it.  */
+		if (i != bytes_read - 1)
+		    XWRITE(STDOUT_FILENO, &buffer[i + 1],
+			   bytes_read - (i + 1));
+		return 0;
+	    }
+	}
+	/* Not enough newlines in that bufferfull.  */
+	if (pos == 0) {
+	    /* Not enough lines in the file; print the entire file.  */
+	    lseek(fd, (off_t) 0, SEEK_SET);
+	    return 0;
+	}
+	pos -= BUFSIZ;
+	lseek(fd, pos, SEEK_SET);
+    }
+    while ((bytes_read = fullRead(fd, buffer, BUFSIZ)) > 0);
+    if (bytes_read == -1)
+	error("read error");
+
+    return 0;
+}
+
+/* Print the last N_LINES lines from the end of the standard input,
+   open for reading as pipe FD.
+   Buffer the text as a linked list of LBUFFERs, adding them as needed.
+   Return 0 if successful, 1 if an error occured.  */
+
+static int pipe_lines(const char *filename, int fd, long int n_lines)
+{
+    struct linebuffer {
+	int nbytes, nlines;
+	char buffer[BUFSIZ];
+	struct linebuffer *next;
+    };
+    typedef struct linebuffer LBUFFER;
+    LBUFFER *first, *last, *tmp;
+    int i;			/* Index into buffers.  */
+    int total_lines = 0;	/* Total number of newlines in all buffers.  */
+    int errors = 0;
+
+    first = last = (LBUFFER *) xmalloc(sizeof(LBUFFER));
+    first->nbytes = first->nlines = 0;
+    first->next = NULL;
+    tmp = (LBUFFER *) xmalloc(sizeof(LBUFFER));
+
+    /* Input is always read into a fresh buffer.  */
+    while ((tmp->nbytes = fullRead(fd, tmp->buffer, BUFSIZ)) > 0) {
+	tmp->nlines = 0;
+	tmp->next = NULL;
+
+	/* Count the number of newlines just read.  */
+	for (i = 0; i < tmp->nbytes; i++)
+	    if (tmp->buffer[i] == '\n')
+		++tmp->nlines;
+	total_lines += tmp->nlines;
+
+	/* If there is enough room in the last buffer read, just append the new
+	   one to it.  This is because when reading from a pipe, `nbytes' can
+	   often be very small.  */
+	if (tmp->nbytes + last->nbytes < BUFSIZ) {
+	    memcpy(&last->buffer[last->nbytes], tmp->buffer, tmp->nbytes);
+	    last->nbytes += tmp->nbytes;
+	    last->nlines += tmp->nlines;
+	} else {
+	    /* If there's not enough room, link the new buffer onto the end of
+	       the list, then either free up the oldest buffer for the next
+	       read if that would leave enough lines, or else malloc a new one.
+	       Some compaction mechanism is possible but probably not
+	       worthwhile.  */
+	    last = last->next = tmp;
+	    if (total_lines - first->nlines > n_lines) {
+		tmp = first;
+		total_lines -= first->nlines;
+		first = first->next;
+	    } else
+		tmp = (LBUFFER *) xmalloc(sizeof(LBUFFER));
+	}
+    }
+    if (tmp->nbytes == -1)
+	error("read error");
+
+    free((char *) tmp);
+
+    /* This prevents a core dump when the pipe contains no newlines.  */
+    if (n_lines == 0)
+	goto free_lbuffers;
+
+    /* Count the incomplete line on files that don't end with a newline.  */
+    if (last->buffer[last->nbytes - 1] != '\n') {
+	++last->nlines;
+	++total_lines;
+    }
+
+    /* Run through the list, printing lines.  First, skip over unneeded
+       buffers.  */
+    for (tmp = first; total_lines - tmp->nlines > n_lines; tmp = tmp->next)
+	total_lines -= tmp->nlines;
+
+    /* Find the correct beginning, then print the rest of the file.  */
+    if (total_lines > n_lines) {
+	char *cp;
+
+	/* Skip `total_lines' - `n_lines' newlines.  We made sure that
+	   `total_lines' - `n_lines' <= `tmp->nlines'.  */
+	cp = tmp->buffer;
+	for (i = total_lines - n_lines; i; --i)
+	    while (*cp++ != '\n')
+		/* Do nothing.  */ ;
+	i = cp - tmp->buffer;
+    } else
+	i = 0;
+    XWRITE(STDOUT_FILENO, &tmp->buffer[i], tmp->nbytes - i);
+
+    for (tmp = tmp->next; tmp; tmp = tmp->next)
+	XWRITE(STDOUT_FILENO, tmp->buffer, tmp->nbytes);
+
+  free_lbuffers:
+    while (first) {
+	tmp = first->next;
+	free((char *) first);
+	first = tmp;
+    }
+    return errors;
+}
+
+/* Display file FILENAME from the current position in FD to the end.
+   If `forever' is nonzero, keep reading from the end of the file
+   until killed.  Return the number of bytes read from the file.  */
+
+static long dump_remainder(const char *filename, int fd)
+{
+    char buffer[BUFSIZ];
+    int bytes_read;
+    long total;
+
+    total = 0;
+  output:
+    while ((bytes_read = fullRead(fd, buffer, BUFSIZ)) > 0) {
+	XWRITE(STDOUT_FILENO, buffer, bytes_read);
+	total += bytes_read;
+    }
+    if (bytes_read == -1)
+	error("read error");
+    if (forever) {
+	fflush(stdout);
+	sleep(1);
+	goto output;
+    }
+
+    return total;
+}
+
+/* Output the last N_LINES lines of file FILENAME open for reading in FD.
+   Return 0 if successful, 1 if an error occurred.  */
+
+static int tail_lines(const char *filename, int fd, long int n_lines)
+{
+    struct stat stats;
+    off_t length;
+
+    if (print_headers)
+	write_header(filename);
+
+    if (fstat(fd, &stats))
+	error("fstat error");
+
+    /* Use file_lines only if FD refers to a regular file with
+       its file pointer positioned at beginning of file.  */
+    /* FIXME: adding the lseek conjunct is a kludge.
+       Once there's a reasonable test suite, fix the true culprit:
+       file_lines.  file_lines shouldn't presume that the input
+       file pointer is initially positioned to beginning of file.  */
+    if (S_ISREG(stats.st_mode)
+	&& lseek(fd, (off_t) 0, SEEK_CUR) == (off_t) 0) {
+	length = lseek(fd, (off_t) 0, SEEK_END);
+	if (length != 0 && file_lines(filename, fd, n_lines, length))
+	    return 1;
+	dump_remainder(filename, fd);
+    } else
+	return pipe_lines(filename, fd, n_lines);
+
+    return 0;
+}
+
+/* Display the last N_UNITS lines of file FILENAME.
+   "-" for FILENAME means the standard input.
+   Return 0 if successful, 1 if an error occurred.  */
+
+static int tail_file(const char *filename, off_t n_units)
+{
+    int fd, errors;
+
+    if (!strcmp(filename, "-")) {
+	filename = "standard input";
+	errors = tail_lines(filename, 0, (long) n_units);
+    } else {
+	/* Not standard input.  */
+	fd = open(filename, O_RDONLY);
+	if (fd == -1)
+	    error("open error");
+
+	errors = tail_lines(filename, fd, (long) n_units);
+	close(fd);
+    }
+
+    return errors;
+}
+
+extern int tail_main(int argc, char **argv)
+{
+    int exit_status = 0;
+    int n_units = DEFAULT_N_LINES;
+    int n_tmp, i;
+    char opt;
+
+    forever = print_headers = 0;
+
+    /* parse argv[] */
+    for (i = 1; i < argc; i++) {
+	if (argv[i][0] == '-') {
+	    opt = argv[i][1];
+	    switch (opt) {
+	    case 'f':
+		forever = 1;
+		break;
+	    case 'n':
+		n_tmp = 0;
+		if (++i < argc)
+		    n_tmp = atoi(argv[i]);
+		if (n_tmp < 1)
+		    usage(tail_usage);
+		n_units = n_tmp;
+		break;
+	    case '-':
+	    case 'h':
+		usage(tail_usage);
+	    default:
+		fprintf(stderr, "tail: invalid option -- %c\n", opt);
+		usage(tail_usage);
+	    }
+	} else {
+	    break;
+	}
+    }
+
+    if (i + 1 < argc) {
+	if (forever) {
+	    fprintf(stderr,
+		    "tail: option -f is invalid with multiple files\n");
+	    usage(tail_usage);
+	}
+	print_headers = 1;
+    }
+
+    if (i >= argc) {
+	exit_status |= tail_file("-", n_units);
+    } else {
+	for (; i < argc; i++)
+	    exit_status |= tail_file(argv[i], n_units);
+    }
+
+    exit(exit_status == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+}
+
+
+#else
+// Here follows the code for the full featured tail code
+
+
 /* tail -- output the last part of file(s)
    Copyright (C) 89, 90, 91, 95, 1996 Free Software Foundation, Inc.
 
@@ -42,7 +441,7 @@
 #define NDEBUG 1
 
 
-static void error(int i, int errnum, char* fmt, ...)
+static void detailed_error(int i, int errnum, char* fmt, ...)
 {
     va_list arguments;
 
@@ -60,7 +459,7 @@ static void error(int i, int errnum, char* fmt, ...)
       assert ((fd) == 1);						\
       assert ((n_bytes) >= 0);						\
       if (n_bytes > 0 && fwrite ((buffer), 1, (n_bytes), stdout) == 0)	\
-	error (EXIT_FAILURE, errno, "write error");			\
+	detailed_error (EXIT_FAILURE, errno, "write error");			\
     }									\
   while (0)
 
@@ -99,8 +498,6 @@ enum header_mode
 {
   multiple_files, always, never
 };
-
-char *xmalloc ();
 
 /* The name this program was run with.  */
 char *program_name;
@@ -168,7 +565,7 @@ file_lines (const char *filename, int fd, long int n_lines, off_t pos)
   bytes_read = fullRead (fd, buffer, bytes_read);
   if (bytes_read == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
 
@@ -204,7 +601,7 @@ file_lines (const char *filename, int fd, long int n_lines, off_t pos)
   while ((bytes_read = fullRead (fd, buffer, BUFSIZ)) > 0);
   if (bytes_read == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
   return 0;
@@ -276,7 +673,7 @@ pipe_lines (const char *filename, int fd, long int n_lines)
     }
   if (tmp->nbytes == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       errors = 1;
       free ((char *) tmp);
       goto free_lbuffers;
@@ -390,7 +787,7 @@ pipe_bytes (const char *filename, int fd, off_t n_bytes)
     }
   if (tmp->nbytes == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       errors = 1;
       free ((char *) tmp);
       goto free_cbuffers;
@@ -438,7 +835,7 @@ start_bytes (const char *filename, int fd, off_t n_bytes)
     n_bytes -= bytes_read;
   if (bytes_read == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
   else if (n_bytes < 0)
@@ -466,7 +863,7 @@ start_lines (const char *filename, int fd, long int n_lines)
     }
   if (bytes_read == -1)
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
   else if (bytes_to_skip < bytes_read)
@@ -496,7 +893,7 @@ output:
       total += bytes_read;
     }
   if (bytes_read == -1)
-    error (EXIT_FAILURE, errno, "%s", filename);
+    detailed_error (EXIT_FAILURE, errno, "%s", filename);
   if (forever)
     {
       fflush (stdout);
@@ -540,7 +937,7 @@ tail_forever (char **names, int nfiles)
 	    continue;
 	  if (fstat (file_descs[i], &stats) < 0)
 	    {
-	      error (0, errno, "%s", names[i]);
+	      detailed_error (0, errno, "%s", names[i]);
 	      file_descs[i] = -1;
 	      continue;
 	    }
@@ -590,7 +987,7 @@ tail_bytes (const char *filename, int fd, off_t n_bytes)
      error, either.  */
   if (fstat (fd, &stats))
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
 
@@ -619,7 +1016,7 @@ tail_bytes (const char *filename, int fd, off_t n_bytes)
 	    }
 	  else
 	    {
-	      error (0, errno, "%s", filename);
+	      detailed_error (0, errno, "%s", filename);
 	      return 1;
 	    }
 
@@ -656,7 +1053,7 @@ tail_lines (const char *filename, int fd, long int n_lines)
 
   if (fstat (fd, &stats))
     {
-      error (0, errno, "%s", filename);
+      detailed_error (0, errno, "%s", filename);
       return 1;
     }
 
@@ -723,12 +1120,12 @@ tail_file (const char *filename, off_t n_units, int filenum)
 	{
 	  if (fstat (0, &stats) < 0)
 	    {
-	      error (0, errno, "standard input");
+	      detailed_error (0, errno, "standard input");
 	      errors = 1;
 	    }
 	  else if (!S_ISREG (stats.st_mode))
 	    {
-	      error (0, 0,
+	      detailed_error (0, 0,
 		     "standard input: cannot follow end of non-regular file");
 	      errors = 1;
 	    }
@@ -749,7 +1146,7 @@ tail_file (const char *filename, off_t n_units, int filenum)
 	{
 	  if (forever_multiple)
 	    file_descs[filenum] = -1;
-	  error (0, errno, "%s", filename);
+	  detailed_error (0, errno, "%s", filename);
 	  errors = 1;
 	}
       else
@@ -761,12 +1158,12 @@ tail_file (const char *filename, off_t n_units, int filenum)
 	    {
 	      if (fstat (fd, &stats) < 0)
 		{
-		  error (0, errno, "%s", filename);
+		  detailed_error (0, errno, "%s", filename);
 		  errors = 1;
 		}
 	      else if (!S_ISREG (stats.st_mode))
 		{
-		  error (0, 0, "%s: cannot follow end of non-regular file",
+		  detailed_error (0, 0, "%s: cannot follow end of non-regular file",
 			 filename);
 		  errors = 1;
 		}
@@ -785,7 +1182,7 @@ tail_file (const char *filename, off_t n_units, int filenum)
 	    {
 	      if (close (fd))
 		{
-		  error (0, errno, "%s", filename);
+		  detailed_error (0, errno, "%s", filename);
 		  errors = 1;
 		}
 	    }
@@ -903,8 +1300,11 @@ tail_main (int argc, char **argv)
     }
 
   if (have_read_stdin && close (0) < 0)
-    error (EXIT_FAILURE, errno, "-");
+    detailed_error (EXIT_FAILURE, errno, "-");
   if (fclose (stdout) == EOF)
-    error (EXIT_FAILURE, errno, "write error");
+    detailed_error (EXIT_FAILURE, errno, "write error");
   exit (exit_status == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+
+
+#endif

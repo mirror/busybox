@@ -83,7 +83,7 @@ static const struct Applet applets[] = {
 #ifdef BB_FREE			//usr/bin
     {"free", free_main},
 #endif
-#ifdef BB_DEALLOCVT			//usr/bin
+#ifdef BB_DEALLOCVT		//usr/bin
     {"deallocvt", deallocvt_main},
 #endif
 #ifdef BB_FSCK_MINIX		//sbin
@@ -328,7 +328,7 @@ int busybox_main(int argc, char **argv)
 
 	while (a->name != 0) {
 	    col+=fprintf(stderr, "%s%s", ((col==0)? "\t":", "), (a++)->name);
-	    if (col>60) {
+	    if (col>60 && a->name != 0) {
 		fprintf(stderr, ",\n");
 		col=0;
 	    }
