@@ -2,10 +2,106 @@ Busybox TODO
 
 Stuff that needs to be done
 
-----
 tr - missing SuS3 features in busybox 1.0pre10 
 
 tr doesnt support [:blank:], [:digit:] or other predefined classes, [=equiv=]
 support is also missing.
 ----
- 
+find
+  doesn't understand () or -exec, and these are actually used out in the real
+  world.  The "make uninstall" of lots of things (including busybox itself)
+  breaks because of this, and sometimes even "make install" (like udev).
+----
+comm
+  Perl needs "comm" to build.  It's small and simple, but we haven't got it.
+---
+sh
+  The command shell situation is a big mess.  We have three or four different
+  shells that don't really share any code, and the "standalone shell" doesn't
+  work all that well (especially not in a chroot environment), due to apps not
+  being reentrant.  Unifying the various shells and figuring out a configurable
+  way of adding the minimal set of bash features a given script uses is a big
+  job, but it be a big improvement.
+---
+gzip
+  Can't handle compressing multiple files at once.  (I don't mean making a
+  multiple file archive, I mean compressing more than one file at a time.)
+  Some global variables aren't re-initialized between runs.
+---
+gunzip
+  same problem as gzip.  "gunzip one.gz two.gz three.gz" doesn't work for
+  two.gz and three.gz due to global variables not getting reset.
+---
+diff
+  We should have a diff -u command.  We have patch, we should have diff
+  (we only need to support unified diffs though).
+---
+patch
+  should have -i support, and simple fuzz factor support to apply patches
+  at an offset shouldn't take up too much space.
+---
+man
+  It would be nice to have a man command.  Not one that handles troff or
+  anything, just one that can handle preformatted ascii man pages, possibly
+  compressed.  This could probably be a script in the extras directory that
+  calls cat/zcatbzcat | more
+---
+less
+  More sucks if you're used to less.  A tiny less implementation would be
+  very nice.
+---
+bzip2
+  Compression-side support.
+
+
+Architectural issues:
+
+Do a SUSv3 audit
+  Look at the full Single Unix Specification version 3 (available online at
+  "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
+  figure out which of our apps are compliant, and what we're missing that
+  we might actually care about.
+
+  Even better would be some kind of automated compliance test harness that
+  exercises each command line option and the various corner cases.
+--
+Unify archivers
+  Lots of archivers have the same general infrastructure.  The directory
+  traversal code should be factored out, and the guts of each archiver could
+  be some setup code and a series of callbacks for "add this file",
+  "add this directory", "add this symlink" and so on.
+
+  This could clean up tar and zip, and make it cheaper to add cpio and ar
+  write support, and possibly even cheaply add things like mkisofs someday,
+  if it becomes relevant.
+---
+Text buffer support.
+  Several existing applets and potential additions (sort, vi, less...) read
+  a whole file into memory and act on it.  There might be an opportunity
+  for shared code in there that could be moved into libbb...
+---
+Individual compilation of applets.
+  It would be nice if busybox had the option to compile to individual applets,
+  for people who want an alternate implementation less bloated than the gnu
+  utils (or simply with less political baggage), but without it being one big
+  executable.
+
+  Turning libbb into a real dll is another possibility, especially if libbb
+  could export some of the other library interfaces we've already more or less
+  got the code for (like zlib).
+---
+buildroot - Make a "dogfood" option
+  Busybox is now capable of replacing most gnu packages for real world use,
+  such as developing software or in a live CD.  A system built from busybox
+  (1.00 with updated sort.c), uclibc 0.9.27, gcc, binutils, make, and a few
+  other development tools (http://www.landley.net/code/firmware has an example
+  system using autoconf, automake, bison, flex, libtools, m4, zlib,
+  and groff: dunno what subset of that is actually necessary) is capable of
+  rebuilding itself, from scratch, under itself.
+
+  It would be a good "eating our own dogfood" test if buildroot had the option
+  of using busybox instead of bzip2, coreutils, file, findutils, gawk, grep,
+  inetutils, modutils, net-tools, procps, sed, shadow, sysklogd, sysvinit, tar,
+  util-linux, and vim.  Anything that's wrong with the resulting system, we
+  can fix.  (It would be nice to be able to upgrade busybox to be able to
+  replace bash, diffutils, gzip, less, and patch as well.)
