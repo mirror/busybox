@@ -65,7 +65,7 @@ extern char *optarg; /* ditto */
 
 /* options */
 static int be_quiet = 0;
-
+static const char bad_format_in_subst[] = "bad format in substitution expression";
 
 typedef struct sed_cmd_s {
 	/* Order by alignment requirements */
@@ -190,7 +190,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	/* verify that the 's' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
 	if (*cmdstr == '\0')
-		bb_error_msg_and_die("bad format in substitution expression");
+		bb_error_msg_and_die(bad_format_in_subst);
 	else
 		delimiter = *cmdstr_ptr;
 
@@ -199,7 +199,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	/* save the match string */
 	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
 	if (idx == -1) {
-		bb_error_msg_and_die("bad format in substitution expression");
+		bb_error_msg_and_die(bad_format_in_subst);
 	}
 	*match = bb_xstrndup(cmdstr_ptr, idx);
 
@@ -207,7 +207,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	cmdstr_ptr += idx + 1;
 	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
 	if (idx == -1) {
-		bb_error_msg_and_die("bad format in substitution expression");
+		bb_error_msg_and_die(bad_format_in_subst);
 	}
 	*replace = bb_xstrndup(cmdstr_ptr, idx);
 
