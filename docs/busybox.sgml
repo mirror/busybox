@@ -57,7 +57,6 @@
 	</para>
   </chapter>
 
-
   <chapter id="Syntax">
      <title>How to use BusyBox</title>
 	<sect1 id="How to use BusyBox">
@@ -75,7 +74,6 @@
 	    </screen>
 	    </para>
 	</sect1>
-
 
 	<sect1 id="Invoking BusyBox">
 	    <para>
@@ -147,12 +145,11 @@
 		</para>
 	</sect1>
 
-
 	<sect1 id="ar">
 	    <title>ar</title>
 
 		<para>
-		Usage: ar [optxvV] archive [filenames]
+		Usage: ar [OPTION] archive [FILENAME]...
 		</para>
 
 		<para>
@@ -165,17 +162,14 @@
 
 		<para>
 		<screen>
-			o               preserve original dates
-			p               extract to stdout
-			t               list
-			x               extract
-			v               verbosely list files processed
+			o	Preserve original dates
+			p	Extract to stdout
+			t	List
+			x	Extract
+			v	Verbosely list files processed
 		</screen>
 		</para>
 	</sect1>
-
-
-
 
 	<sect1 id="basename">
 	    <title>basename</title>
@@ -184,7 +178,7 @@
 		</para>
 
 		<para>
-		Strips directory path and suffixes from FILE. If specified, also removes
+		Strip directory path and suffixes from FILE. If specified, also removes
 		any trailing SUFFIX.
 		</para>
 
@@ -204,16 +198,15 @@
 		</para>
 	</sect1>
 
-
 	<sect1 id="cat">
 	    <title>cat</title>
 
 		<para>
-		Usage: cat [FILE ...]
+		Usage: cat [FILE]...
 		</para>
 
 		<para>
-		Concatenates <literal>FILE(s)</literal> and prints them to the standard
+		Concatenate <literal>FILE(s)</literal> and prints them to the standard
 		output.
 		</para>
 
@@ -227,166 +220,17 @@
 			110716.72 17.67
 		</screen>
 		</para>
-
 	</sect1>
-
-
 
 	<sect1 id="chgrp">
 	    <title>chgrp</title>
 
-	    <para>
-	    Usage: chgrp [OPTION]... GROUP FILE...
-	    </para>
-
-	    <para>
-	    Change the group membership of each FILE to GROUP.
-	    </para>
-
-	    <para>
-	    Options:
-	    </para>
-
-	    <para>
-	    <screen>
-		    -R      change files and directories recursively
-	    </screen>
-	    </para>
-
-	    <para>
-	    Example:
-	    </para>
-
-	    <para>
-	    <screen>
-		    $ ls -l /tmp/foo
-		    -r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
-		    $ chgrp root /tmp/foo
-		    $ ls -l /tmp/foo
-		    -r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo
-	    </screen>
-	    </para>
-	</sect1>
-
-
-
-	<sect1 id="chmod">
-	    <title>chmod</title>
-
-	    <para>
-	    Usage: chmod [<emphasis>-R</emphasis>] MODE[,MODE]... FILE...
-	    </para>
-
-	    <para>
-	    Changes file access permissions for the specified
-	    <literal>FILE(s)</literal> (or directories). Each MODE is defined by
-	    combining the letters for WHO has access to the file, an OPERATOR for
-	    selecting how the permissions should be changed, and a PERMISSION for
-	    <literal>FILE(s)</literal> (or directories).
-	    </para>
-
-	    <para>
-	    WHO may be chosen from
-	    </para>
-
-	    <para>
-	    <screen>
-		    u       User who owns the file
-		    g       Users in the file's Group
-		    o       Other users not in the file's group
-		    a       All users
-	    </screen>
-	    </para>
-
-	    <para>
-	    OPERATOR may be chosen from
-	    </para>
-
-	    <para>
-	    <screen>
-		    +       Add a permission
-		    -       Remove a permission
-		    =       Assign a permission
-	    </screen>
-	    </para>
-
-	    <para>
-	    PERMISSION may be chosen from
-	    </para>
-
-	    <para>
-	    <screen>
-		    r       Read
-		    w       Write
-		    x       Execute (or access for directories)
-		    s       Set user (or group) ID bit
-		    t       Sticky bit (for directories prevents removing files by non-owners)
-	    </screen>
-	    </para>
-
-	    <para>
-	    Alternately, permissions can be set numerically where the first three
-	    numbers are calculated by adding the octal values, such as
-	    </para>
-
-	    <para>
-	    <screen>
-		    4       Read
-		    2       Write
-		    1       Execute
-	    </screen>
-	    </para>
-
-	    <para>
-	    An optional fourth digit can also be used to specify
-	    </para>
-
-	    <para>
-	    <screen>
-		    4       Set user ID
-		    2       Set group ID
-		    1       Sticky bit
-	    </screen>
-	    </para>
-
-	    <para>
-	    Options:
-	    </para>
-
-	    <para>
-	    <screen>
-		    -R      Change files and directories recursively.
-	    </screen>
-	    </para>
-
-	    <para>
-	    Example:
-	    </para>
-
-	    <para>
-	    <screen>
-		    $ ls -l /tmp/foo
-		    -rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo
-		    $ chmod u+x /tmp/foo
-		    $ ls -l /tmp/foo
-		    -rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*
-		    $ chmod 444 /tmp/foo
-		    $ ls -l /tmp/foo
-		    -r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
-	    </screen>
-	    </para>
-	</sect1>
-
-
-	
-	<sect1 id="chown">
-	    <title>chown</title>
 		<para>
-		Usage: chown [OPTION]... OWNER[&lt;.|:&gt;[GROUP] FILE...
+		Usage: chgrp [OPTION]... GROUP FILE...
 		</para>
 
 		<para>
-		Changes the owner and/or group of each FILE to OWNER and/or GROUP.
+		Change the group membership of each FILE to GROUP.
 		</para>
 
 		<para>
@@ -395,7 +239,149 @@
 
 		<para>
 		<screen>
-			-R      Changes files and directories recursively
+			-R      Change files and directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
+			$ chgrp root /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="chmod">
+	    <title>chmod</title>
+
+		<para>
+		Usage: chmod [<emphasis>-R</emphasis>] MODE[,MODE]... FILE...
+		</para>
+
+		<para>
+		Change file access permissions for the specified
+		<literal>FILE(s)</literal> (or directories). Each MODE is defined by
+		combining the letters for WHO has access to the file, an OPERATOR for
+		selecting how the permissions should be changed, and a PERMISSION for
+		<literal>FILE(s)</literal> (or directories).
+		</para>
+
+		<para>
+		WHO may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			u       User who owns the file
+			g       Users in the file's Group
+			o       Other users not in the file's group
+			a       All users
+		</screen>
+		</para>
+
+		<para>
+		OPERATOR may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			+       Add a permission
+			-       Remove a permission
+			=       Assign a permission
+		</screen>
+		</para>
+
+		<para>
+		PERMISSION may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			r       Read
+			w       Write
+			x       Execute (or access for directories)
+			s       Set user (or group) ID bit
+			t       Sticky bit (for directories prevents removing files by non-owners)
+		</screen>
+		</para>
+
+		<para>
+		Alternately, permissions can be set numerically where the first three
+		numbers are calculated by adding the octal values, such as
+		</para>
+
+		<para>
+		<screen>
+			4       Read
+			2       Write
+			1       Execute
+		</screen>
+		</para>
+
+		<para>
+		An optional fourth digit can also be used to specify
+		</para>
+
+		<para>
+		<screen>
+			4       Set user ID
+			2       Set group ID
+			1       Sticky bit
+		</screen>
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Change files and directories recursively.
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+			$ chmod u+x /tmp/foo
+			$ ls -l /tmp/foo
+			-rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*
+			$ chmod 444 /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="chown">
+	    <title>chown</title>
+		<para>
+		Usage: chown [OPTION]... OWNER[&lt;.|:&gt;[GROUP] FILE...
+		</para>
+
+		<para>
+		Change the owner and/or group of each FILE to OWNER and/or GROUP.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Change files and directories recursively
 		</screen>
 		</para>
 
@@ -416,8 +402,6 @@
 		</screen>
 		</para>
 	</sect1>
-
-
 
 	<sect1 id="chroot">
 	    <title>chroot</title>
@@ -445,7 +429,6 @@
 		</para>
 	</sect1>
 
-
 	<sect1 id="chvt">
 	    <title>chvt</title>
 		<para>
@@ -453,12 +436,9 @@
 		</para>
 
 		<para>
-		Changes the foreground virtual terminal to /dev/ttyN
+		Change the foreground virtual terminal to /dev/ttyN
 		</para>
 	</sect1>
-
-
-
 
 	<sect1 id="clear">
 	    <title>clear</title>
@@ -468,10 +448,9 @@
 		</para>
 
 		<para>
-		Clears the screen.
+		Clear the screen.
 		</para>
 	</sect1>
-
 
 	<sect1 id="cp">
 	    <title>cp</title>
@@ -487,7 +466,7 @@
 		</para>
 
 		<para>
-		Copies SOURCE to DEST, or multiple <literal>SOURCE(s)</literal> to
+		Copy SOURCE to DEST, or multiple <literal>SOURCE(s)</literal> to
 		DIRECTORY.
 		</para>
 
@@ -498,13 +477,12 @@
 		<para>
 		<screen>
 			-a      Same as -dpR
-			-d      Preserves links
-			-p      Preserves file attributes if possible
-			-R      Copies directories recursively
+			-d      Preserve links
+			-p      Preserve file attributes if possible
+			-R      Copy directories recursively
 		</screen>
 		</para>
 	</sect1>
-
 
 	<sect1 id="cut">
 	    <title>cut</title>
@@ -514,7 +492,7 @@
 		</para>
 
 		<para>
-		Prints selected fields from each input FILE to standard output.
+		Print selected fields from each input FILE to standard output.
 		</para>
 
 		<para>
@@ -546,8 +524,6 @@
 		</para>
 	</sect1>
 
-
-
 	<sect1 id="date">
 	    <title>date</title>
 
@@ -562,7 +538,7 @@
 		</para>
 
 		<para>
-		Displays the current time in the given FORMAT, or sets the system date.
+		Display the current time in the given FORMAT, or set the system date.
 		</para>
 
 		<para>
@@ -571,9 +547,9 @@
 
 		<para>
 		<screen>
-			-R      Outputs RFC-822 compliant date string
-			-s      Sets time described by STRING
-			-u      Prints or sets Coordinated Universal Time
+			-R      Output RFC-822 compliant date string
+			-s      Set time described by STRING
+			-u      Print or set Coordinated Universal Time
 		</screen>
 		</para>
 
@@ -589,464 +565,320 @@
 		</para>
 	</sect1>
 
+	<sect1 id="dc">
+	    <title>dc</title>
 
+		<para>
+		Usage: dc [EXPRESSION]
+		</para>
+
+		<para>
+		This is a Tiny RPN calculator that understands the
+		following operations: +, -, /, *, and, or, not, eor. If
+		no arguments are given, dc will process input from
+		stdin.
+		</para>
+
+		<para>
+		The behaviour of BusyBox/dc deviates (just a little ;-)
+		from GNU/dc, but this will be remedied in the future.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dc 2 2 +
+			4
+			$ dc 8 8 \* 2 2 + /
+			16
+			$ dc 0 1 and
+			0
+			$ dc 0 1 or
+			1
+			$ echo 72 9 div 8 mul | dc
+			64
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dd">
+	    <title>dd</title>
+
+		<para>
+		Usage: dd [OPTION]...
+		</para>
+
+		<para>
+		Copy a file, converting and formatting according to
+		options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			if=FILE Read from FILE instead of stdin
+			of=FILE Write to FILE instead of stdout
+			bs=N    Read and write N bytes at a time
+			count=N Copy only N input blocks
+			skip=N  Skip N input blocks
+			seek=N  Skip N output blocks
+		</screen>
+		</para>
+
+		<para>
+		Numbers may be suffixed by w (x2), k (x1024), b (x512),
+		or M (x1024^2).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4
+			4+0 records in
+			4+0 records out
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="deallocvt">
+	    <title>deallocvt</title>
+
+		<para>
+		Usage: deallocvt N
+		</para>
+
+		<para>
+		Deallocate unused virtual terminal /dev/ttyN.
+		</para>
+	</sect1>
+
+	<sect1 id="df">
+	    <title>df</title>
+
+		<para>
+		Usage: df [FILE]...
+		</para>
+
+		<para>
+		Print the filesystem space used and space available.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ df
+			Filesystem           1k-blocks      Used Available Use% Mounted on
+			/dev/sda3              8690864   8553540    137324  98% /
+			/dev/sda1                64216     36364     27852  57% /boot
+			$ df /dev/sda3
+			Filesystem           1k-blocks      Used Available Use% Mounted on
+			/dev/sda3              8690864   8553540    137324  98% /
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="dirname">
+	    <title>dirname</title>
+
+		<para>
+		Usage: dirname NAME
+		</para>
+
+		<para>
+		Strip non-directory suffix from NAME.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dirname /tmp/foo
+			/tmp
+			$ dirname /tmp/foo/
+			/tmp
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dmesg">
+	    <title>dmesg</title>
+
+		<para>
+		Usage: dmesg [OPTION]...
+		</para>
+
+		<para>
+		Print or control the kernel ring buffer.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c		Clear the ring buffer after printing
+			-n LEVEL	Set the console logging level to LEVEL
+			-s BUFSIZE	Query ring buffer using a buffer of BUFSIZE
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="du">
+	    <title>du</title>
+
+		<para>
+		Usage: du [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Summarize the disk space used for each FILE or current
+		directory.  Disk space printed in units of 1k (i.e.
+		1024 bytes).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	Count sizes many times if hard linked
+			-s	Display only a total for each argument
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ du
+			16	./CVS
+			12	./kernel-patches/CVS
+			80	./kernel-patches
+			12	./tests/CVS
+			36	./tests
+			12	./scripts/CVS
+			16	./scripts
+			12	./docs/CVS
+			104	./docs
+			2417	.
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dutmp">
+	    <title>dutmp</title>
+
+		<para>
+		Usage: dutmp [FILE]
+		</para>
+
+		<para>
+		Dump utmp file format (pipe delimited) from FILE or
+		stdin to stdout.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dutmp /var/run/utmp
+			8|7||si|||0|0|0|955637625|760097|0
+			2|0|~|~~|reboot||0|0|0|955637625|782235|0
+			1|20020|~|~~|runlevel||0|0|0|955637625|800089|0
+			8|125||l4|||0|0|0|955637629|998367|0
+			6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0
+			6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0
+			7|336|pts/0|vt00andersen|andersen|:0.0|0|0|0|955637763|0|0
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="echo">
+	    <title>echo</title>
+
+		<para>
+		Usage: echo [OPTION]... [ARG]...
+		</para>
+
+		<para>
+		Print ARGs to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n	Suppress trailing newline
+			-e	Enable interpretation of escaped characters
+			-E	Disable interpretation of escaped characters
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Erik is cool"
+			Erik is cool
+			$ echo -e "Erik\nis\ncool"
+			Erik
+			is
+			cool
+			$ echo "Erik\nis\ncool"
+			Erik\nis\ncool
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="false">
+	    <title>false</title>
+
+		<para>
+		Usage: false
+		</para>
+
+		<para>
+		Returns an exit code of FALSE (1).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ false
+			$ echo $?
+			1
+		</screen>
+		</para>
+	</sect1>
 
 <!-- This is where I have stopped formatting stuff -->
-
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>dc
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: dc expression ...
-
-
-</para>
-
-<para>
-This is a Tiny RPN calculator that understands the following operations: +,
--, /, *, and, or, not, eor. If no arguments are given, dc will process
-input from STDIN.
-
-
-</para>
-
-<para>
-The behaviour of BusyBox/dc deviates (just a little ;-) from GNU/dc, but
-this will be remedied in the future.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ dc 2 2 +
-        4
-        $ dc 8 8 \* 2 2 + /
-        16
-        $ dc 0 1 and
-        0
-        $ dc 0 1 or
-        1
-        $ echo 72 9 div 8 mul | dc
-        64
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>dd
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: dd [if=name] [of=name] [bs=n] [count=n] [skip=n] [seek=n]
-
-
-</para>
-
-<para>
-Copy a file, converting and formatting according to options
-
-
-</para>
-
-<para>
-<screen>
-        if=FILE read from FILE instead of stdin
-        of=FILE write to FILE instead of stdout
-        bs=n    read and write n bytes at a time
-        count=n copy only n input blocks
-        skip=n  skip n input blocks
-        seek=n  skip n output blocks
-</screen>
-
-
-</para>
-
-<para>
-Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ dd if=/dev/zero of=/dev/ram1 bs=1M count=4
-        4+0 records in
-        4+0 records out
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>deallocvt
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: deallocvt N
-
-
-</para>
-
-<para>
-Deallocates unused virtual terminal /dev/ttyN
-
-
-</para>
-
-<para>
--------------------------------
-
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>df
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: df [filesystem ...]
-
-
-</para>
-
-<para>
-Prints the filesystem space used and space available.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ df
-        Filesystem           1k-blocks      Used Available Use% Mounted on
-        /dev/sda3              8690864   8553540    137324  98% /
-        /dev/sda1                64216     36364     27852  57% /boot
-        $ df /dev/sda3
-        Filesystem           1k-blocks      Used Available Use% Mounted on
-        /dev/sda3              8690864   8553540    137324  98% /
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>dirname
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: dirname NAME
-
-
-</para>
-
-<para>
-Strip non-directory suffix from file name
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ dirname /tmp/foo
-        /tmp
-        $ dirname /tmp/foo/
-        /tmp
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>dmesg
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: dmesg [<emphasis>-c</emphasis>] [<emphasis>-n</emphasis> level] [<emphasis>-s</emphasis> bufsize]
-
-
-</para>
-
-<para>
-Print or controls the kernel ring buffer.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>du
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: du [OPTION]... [FILE]...
-
-
-</para>
-
-<para>
-Summarize disk space used for each FILE and/or directory. Disk space is
-printed in units of 1k (i.e. 1024 bytes).
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -l      count sizes many times if hard linked
-        -s      display only a total for each argument
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ ./BusyBox du
-        16      ./CVS
-        12      ./kernel-patches/CVS
-        80      ./kernel-patches
-        12      ./tests/CVS
-        36      ./tests
-        12      ./scripts/CVS
-        16      ./scripts
-        12      ./docs/CVS
-        104     ./docs
-        2417    .
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>dutmp
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: dutmp [FILE]
-
-
-</para>
-
-<para>
-Dump utmp file format (pipe delimited) from FILE or stdin to stdout.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ dutmp /var/run/utmp
-        8|7||si|||0|0|0|955637625|760097|0
-        2|0|~|~~|reboot||0|0|0|955637625|782235|0
-        1|20020|~|~~|runlevel||0|0|0|955637625|800089|0
-        8|125||l4|||0|0|0|955637629|998367|0
-        6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0
-        6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0
-        7|336|pts/0|vt00andersen|andersen|:0.0|0|0|0|955637763|0|0
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>echo
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: echo [-neE] [ARG ...]
-
-
-</para>
-
-<para>
-Prints the specified ARGs to stdout
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -n      suppress trailing newline
-        -e      interpret backslash-escaped characters (i.e. \t=tab etc)
-        -E      disable interpretation of backslash-escaped characters
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ echo "Erik is cool"
-        Erik is cool
-        $  echo -e "Erik\nis\ncool"
-        Erik
-        is
-        cool
-        $ echo "Erik\nis\ncool"
-        Erik\nis\ncool
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>false
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Returns an exit code of FALSE (1)
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ false
-        $ echo $?
-        1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>fbset
 
 </emphasis></term>
