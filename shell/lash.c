@@ -1458,10 +1458,9 @@ static int busy_loop(FILE * input)
 	int inbg;
 	int status;
 #ifdef CONFIG_LASH_JOB_CONTROL
-        pid_t  parent_pgrp;
-                                                                                
-        /* save current owner of TTY so we can restore it on exit */
-        parent_pgrp = tcgetpgrp(shell_terminal);
+	pid_t  parent_pgrp;
+	/* save current owner of TTY so we can restore it on exit */
+	parent_pgrp = tcgetpgrp(shell_terminal);
 #endif
 	newjob.job_list = &job_list;
 	newjob.job_context = DEFAULT_CONTEXT;
