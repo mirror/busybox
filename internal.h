@@ -152,7 +152,6 @@ extern int logname_main(int argc, char **argv);
 extern int ls_main(int argc, char** argv);
 extern int lsmod_main(int argc, char** argv);
 extern int makedevs_main(int argc, char** argv);
-extern int math_main(int argc, char** argv);
 extern int md5sum_main(int argc, char** argv);
 extern int mkdir_main(int argc, char** argv);
 extern int mkfifo_main(int argc, char **argv);

@@ -55,11 +55,11 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dd,
-df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
+ar, basename, cat, chgrp, chmod, chown, chroot, clear, chvt, cp, cut, date, dc,
+dd, df, dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, id, init, kill, killall, length, ln, loadacm, loadfont, loadkmap,
-logger, logname, ls, lsmod, makedevs, math, md5sum, mkdir, mkfifo, mkfs.minix,
+logger, logname, ls, lsmod, makedevs, md5sum, mkdir, mkfifo, mkfs.minix,
 mknod, mkswap, mktemp, nc, more, mount, mt, mv, nslookup, ping, poweroff,
 printf, ps, pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep,
 sort, sync, syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true,
@@ -2024,4 +2024,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.44 2000/06/21 19:06:16 beppu Exp $
+# $Id: busybox.pod,v 1.45 2000/06/21 20:17:29 proski Exp $

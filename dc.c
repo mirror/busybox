@@ -8,11 +8,11 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static const char dc_usage[] = "math expression ...\n"
+static const char dc_usage[] = "dc expression ...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 		"\nThis is a Tiny RPN calculator that understands the\n"
 		"following operations: +, -, /, *, and, or, not, eor.\n"
-		"i.e. 'math 2 2 add' -> 4, and 'math 8 8 \\* 2 2 + /' -> 16\n"
+		"i.e. 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16\n"
 #endif
 		;
 
@@ -22,7 +22,7 @@ static unsigned int pointer;
 static void push(double a)
 {
 	if (pointer >= (sizeof(stack) / sizeof(*stack))) {
-		fprintf(stderr, "math: stack overflow\n");
+		fprintf(stderr, "dc: stack overflow\n");
 		exit(-1);
 	} else
 		stack[pointer++] = a;
@@ -31,7 +31,7 @@ static void push(double a)
 static double pop()
 {
 	if (pointer == 0) {
-		fprintf(stderr, "math: stack underflow\n");
+		fprintf(stderr, "dc: stack underflow\n");
 		exit(-1);
 	}
 	return stack[--pointer];
@@ -132,7 +132,7 @@ static void stack_machine(const char *argument)
 		}
 		o++;
 	}
-	fprintf(stderr, "math: %s: syntax error.\n", argument);
+	fprintf(stderr, "dc: %s: syntax error.\n", argument);
 	exit(-1);
 }
 

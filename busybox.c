@@ -189,9 +189,6 @@ const struct BB_applet applets[] = {
 #ifdef BB_MAKEDEVS
 	{"makedevs", makedevs_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MATH
-	{"math", math_main, _BB_DIR_USR_BIN},
-#endif
 #ifdef BB_MD5SUM
 	{"md5sum", md5sum_main, _BB_DIR_USR_BIN},
 #endif
