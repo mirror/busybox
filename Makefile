@@ -28,6 +28,11 @@ export VERSION
 # overridden at the command line.  For example:
 #   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
 
+# If you want to add some simple compiler switches (like -march=i686),
+# especially from the command line, use this instead of CFLAGS directly.
+# For optimization overrides, it's better still to set OPTIMIZATION.
+CFLAGS_EXTRA =
+ 
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
@@ -153,6 +158,9 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
+# Put user-supplied flags at the end, where they
+# have a chance of winning.
+CFLAGS += $(CFLAGS_EXTRA)
 
 all: busybox busybox.links doc
 
