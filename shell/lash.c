@@ -184,10 +184,8 @@ static struct built_in_command bltins_forking[] = {
 	{NULL, NULL, NULL}
 };
 
-static char prompt[3];
 static char *cwd;
 static char *local_pending_command = NULL;
-static char *prompt_str = NULL;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
@@ -210,19 +208,6 @@ static inline void debug_printf(const char *format, ...)
 }
 #else
 static inline void debug_printf(const char *format, ...) { }
-#endif
-
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
-static inline void win_changed(int junk)
-{
-	struct winsize win = { 0, 0, 0, 0 };
-	ioctl(0, TIOCGWINSZ, &win);
-	if (win.ws_col > 0) {
-		cmdedit_setwidth( win.ws_col - 1);
-	}
-}
-#else
-static inline void win_changed(int junk) {}
 #endif
 
 /*
@@ -743,9 +728,40 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
-static int get_command(FILE * source, char *command)
+static char* setup_prompt_string(int state)
 {
 	char user[9],buf[255],*s;
+	char prompt[3];
+	char prompt_str[BUFSIZ];
+
+	/* Set up the prompt */
+	if (state == 0) {
+		/* get User Name and setup prompt */
+		strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
+		my_getpwuid(user, geteuid());
+
+		/* get HostName */
+		gethostname(buf, 255);
+		s = strchr(buf, '.');
+		if (s) {
+			*s = 0;
+		}
+	} else {
+		strcpy(prompt,"> ");
+	}
+
+	if (state == 0) {
+		snprintf(prompt_str, BUFSIZ-1, "[%s@%s %s]%s", user, buf, 
+				get_last_path_component(cwd), prompt);
+	} else {
+		sprintf(prompt_str, "%s", prompt);
+	}
+	return(strdup(prompt_str));  /* Must free this memory */
+}
+
+static int get_command(FILE * source, char *command)
+{
+	char *prompt_str;
 	
 	if (source == NULL) {
 		if (local_pending_command) {
@@ -758,25 +774,10 @@ static int get_command(FILE * source, char *command)
 		return 1;
 	}
 
-	if (shell_context == 0) {
-		/* get User Name and setup prompt */
-		strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
-		my_getpwuid(user, geteuid());
-		
-		/* get HostName */
-		gethostname(buf, 255);
-		s = strchr(buf, '.');
-		if (s) {
-			*s = 0;
-		}
-	} else {
-		strcpy(prompt,"> ");
-	}
+	prompt_str = setup_prompt_string(shell_context);
 	
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
-		int len;
-
 		/*
 		** enable command line editing only while a command line
 		** is actually being read; otherwise, we'll end up bequeathing
@@ -784,32 +785,12 @@ static int get_command(FILE * source, char *command)
 		** child processes (rob@sysgo.de)
 		*/
 		cmdedit_init();
-		signal(SIGWINCH, win_changed);
-		debug_printf( "in get_command() -- job_context=%d\n", shell_context);
-		fflush(stdout);
-		if (shell_context == 0) {
-			len=fprintf(stdout, "[%s@%s %s]%s", user, buf, 
-					get_last_path_component(cwd), prompt);
-		} else {
-			len=fprintf(stdout, "%s", prompt);
-		}
-		fflush(stdout);
-		prompt_str=(char*)xmalloc(sizeof(char)*(len+1));
-		if (shell_context == 0) {
-			sprintf(prompt_str, "[%s@%s %s]%s", user, buf, 
-					get_last_path_component(cwd), prompt);
-		} else {
-			sprintf(prompt_str, "%s", prompt);
-		}
 		cmdedit_read_input(prompt_str, command);
 		free( prompt_str);
 		cmdedit_terminate();
-		signal(SIGWINCH, SIG_DFL);
 		return 0;
 #else
-		fprintf(stdout, "[%s@%s %s]%s",user, buf, 
-				get_last_path_component(cwd), prompt);
-		fflush(stdout);
+		fprintf(stdout, "%s", prompt_str);
 #endif
 	}
 
@@ -1712,6 +1693,5 @@ int shell_main(int argc_l, char **argv_l)
 	atexit(free_memory);
 #endif
 
-	win_changed(0);
 	return (busy_loop(input));
 }
