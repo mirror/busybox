@@ -90,8 +90,8 @@ extern int grep_main (int argc, char **argv)
     char *cp;
     char *needle;
     char *fileName;
-    int tellName=FALSE;
-    int ignoreCase=FALSE;
+    int tellName=TRUE;
+    int ignoreCase=TRUE;
     int tellLine=FALSE;
 
 
@@ -115,7 +115,7 @@ extern int grep_main (int argc, char **argv)
 		break;
 
 	    case 'h':
-		tellName = TRUE;
+		tellName = FALSE;
 		break;
 
 	    case 'n':
@@ -137,6 +137,9 @@ extern int grep_main (int argc, char **argv)
     if (argc==0) {
 	do_grep( stdin, needle, "stdin", FALSE, ignoreCase, tellLine);
     } else {
+	/* Never print the filename for just one file */ 
+	if (argc==1)
+	    tellName=FALSE;
 	while (argc-- > 0) {
 	    fileName = *argv++;
 

@@ -1,5 +1,7 @@
 0.42
 	* Made tar creation support in busybox tar optional.
+	* Made grep and grep -h do the right thing wrt printing
+	    the file name (it failed to print files names in many cases).
 
 	-Erik Andersen
 
