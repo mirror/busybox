@@ -131,7 +131,7 @@ extern int recursive_action(const char *fileName, int recurse,
 	  void* userData);
 
 extern int bb_parse_mode( const char* s, mode_t* theMode);
-extern long bb_xgetlarg(char *arg, int base, long lower, long upper);
+extern long bb_xgetlarg(const char *arg, int base, long lower, long upper);
 
 extern unsigned long bb_baud_to_value(speed_t speed);
 extern speed_t bb_value_to_baud(unsigned long value);
@@ -162,6 +162,7 @@ extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
 extern const char *bb_opt_complementaly;
 extern const struct option *bb_applet_long_options;
 extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...);
+
 //#warning rename?
 extern FILE *bb_wfopen_input(const char *filename);
 

@@ -45,7 +45,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 	time(&t);
 	uname(&uts);
 
-	puts("");	/* start a new line */
+	puts("\r");	/* start a new line */
 
 	if ((fd = fopen(issue_file, "r"))) {
 		while ((c = fgetc(fd)) != EOF) {

@@ -13,7 +13,7 @@
 
 #include "busybox.h"
 
-extern long bb_xgetlarg(char *arg, int base, long lower, long upper)
+extern long bb_xgetlarg(const char *arg, int base, long lower, long upper)
 {
 	long result;
 	char *endptr;

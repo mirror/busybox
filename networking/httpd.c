@@ -122,7 +122,7 @@
 #include "busybox.h"
 
 
-static const char httpdVersion[] = "busybox httpd/1.27 25-May-2003";
+static const char httpdVersion[] = "busybox httpd/1.28 22-Jun-2003";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
@@ -647,11 +647,12 @@ static char *encodeString(const char *string)
  * $Errors: None
  *
  ****************************************************************************/
-static char *decodeString(char *string, int flag_plus_to_space)
+static char *decodeString(char *orig, int flag_plus_to_space)
 {
   /* note that decoded string is always shorter than original */
-  char *orig = string;
+  char *string = orig;
   char *ptr = string;
+
   while (*ptr)
   {
     if (*ptr == '+' && flag_plus_to_space)    { *string++ = ' '; ptr++; }
@@ -706,6 +707,7 @@ static void addEnv(const char *name_before_underline,
   }
 }
 
+#if defined(CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV) || !defined(CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY)
 /* set environs SERVER_PORT and REMOTE_PORT */
 static void addEnvPort(const char *port_name)
 {
@@ -714,6 +716,7 @@ static void addEnvPort(const char *port_name)
       sprintf(buf, "%u", config->port);
       addEnv(port_name, "PORT", buf);
 }
+#endif
 #endif          /* CONFIG_FEATURE_HTTPD_CGI */
 
 #ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
@@ -1332,7 +1335,7 @@ static int checkPerm(const char *path, const char *request)
     }   /* for */
 
     if(ipaddr)
-	return config->flg_deny_all;
+	return !config->flg_deny_all;
     return prev == NULL;
 }
 
@@ -1355,7 +1358,7 @@ static int checkPermIP(const char *request)
     }
 
     /* if uncofigured, return 1 - access from all */
-    return config->flg_deny_all;
+    return !config->flg_deny_all;
 }
 #define checkPerm(null, request) checkPermIP(request)
 #endif  /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
@@ -1675,9 +1678,6 @@ static int miniHttpd(int server)
 		exit(0);
 	}
 	close(s);
-#ifdef TEST
-	return 0;  // exit after processing one request
-#endif
       }
     }
   } // while (1)
@@ -1721,16 +1721,52 @@ static void sighup_handler(int sig)
 }
 #endif
 
+
+static const char httpd_opts[]="c:d:h:"
+#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+				"e:"
+#define OPT_INC_1 1
+#else
+#define OPT_INC_1 0
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+				"r:"
+#define OPT_INC_2 1
+#else
+#define OPT_INC_2 0
+#endif
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+				"p:v"
+#ifdef CONFIG_FEATURE_HTTPD_SETUID
+				"u:"
+#endif
+#endif
+					;
+
+#define OPT_CONFIG_FILE (1<<0)
+#define OPT_DECODE_URL  (1<<1)
+#define OPT_HOME_HTTPD  (1<<2)
+#define OPT_ENCODE_URL  (1<<(2+OPT_INC_1))
+#define OPT_REALM       (1<<(2+OPT_INC_1+OPT_INC_2))
+#define OPT_PORT        (1<<(3+OPT_INC_1+OPT_INC_2))
+#define OPT_DEBUG       (1<<(4+OPT_INC_1+OPT_INC_2))
+#define OPT_SETUID      (1<<(5+OPT_INC_1+OPT_INC_2))
+
+
 #ifdef HTTPD_STANDALONE
 int main(int argc, char *argv[])
 #else
 int httpd_main(int argc, char *argv[])
 #endif
 {
+  unsigned long opt;
   const char *home_httpd = home;
-#ifdef TEST
-  const char *testArgs[5];
-  int numTestArgs=0;
+  char *url_for_decode;
+#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+  const char *url_for_encode;
+#endif
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  const char *s_port;
 #endif
 
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
@@ -1738,6 +1774,7 @@ int httpd_main(int argc, char *argv[])
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
+  const char *s_uid;
   long uid = -1;
 #endif
 
@@ -1752,77 +1789,48 @@ int httpd_main(int argc, char *argv[])
 
   config->ContentLength = -1;
 
-  /* check if user supplied a port number */
-  for (;;) {
-    int c = getopt( argc, argv, "c:d:h:"
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-				"p:v"
-#endif
+  opt = bb_getopt_ulflags(argc, argv, httpd_opts,
+			&(config->configFile), &url_for_decode, &home_httpd
 #ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-		"e:"
+			, &url_for_encode
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-		"r:"
+			, &(config->realm)
 #endif
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+			, &s_port
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
-		"u:"
+			, &s_uid
 #endif
-#ifdef TEST
-		"t:"
 #endif
     );
-    if (c == EOF) break;
-    switch (c) {
-    case 'c':
-      config->configFile = optarg;
-      break;
-    case 'h':
-      home_httpd = optarg;
-      break;
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-    case 'v':
-      config->debugHttpd = 1;
-      break;
-    case 'p':
-      config->port = bb_xgetlarg(optarg, 10, 1, 0xffff);
-      break;
-#endif
-    case 'd':
-      printf("%s", decodeString(optarg, 1));
+
+  if(opt & OPT_DECODE_URL) {
+      printf("%s", decodeString(url_for_decode, 1));
       return 0;
+  }
 #ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-    case 'e':
-      printf("%s", encodeString(optarg));
+  if(opt & OPT_ENCODE_URL) {
+      printf("%s", encodeString(url_for_encode));
       return 0;
+  }
 #endif
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-    case 'r':
-      config->realm = optarg;
-      break;
-#endif
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+    if(opt & OPT_PORT)
+	config->port = bb_xgetlarg(s_port, 10, 1, 0xffff);
+    config->debugHttpd = opt & OPT_DEBUG;
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
-    case 'u':
-      {
+    if(opt & OPT_SETUID) {
 	char *e;
 
-	uid = strtol(optarg, &e, 0);
+	uid = strtol(s_uid, &e, 0);
 	if(*e != '\0') {
 		/* not integer */
-		uid = my_getpwnam(optarg);
+		uid = my_getpwnam(s_uid);
 	}
       }
-      break;
 #endif
-#ifdef TEST
-    case 't':
-      testArgs[numTestArgs++]=optarg;
-      break;
 #endif
-    default:
-      bb_error_msg("%s", httpdVersion);
-      bb_show_usage();
-    }
-  }
 
   if(chdir(home_httpd)) {
     bb_perror_msg_and_die("can`t chdir to %s", home_httpd);
@@ -1843,18 +1851,6 @@ int httpd_main(int argc, char *argv[])
   sighup_handler(0);
 #else
   parse_conf(default_path_httpd_conf, FIRST_PARSE);
-#endif
-
-#ifdef TEST
-  if (numTestArgs)
-  {
-	  int result;
-	  if (strcmp(testArgs[0], "ip") == 0) testArgs[0] = 0;
-	  if (numTestArgs > 2)
-	    parse_conf(testArgs[2], SUBDIR_PARSE);
-	  result = printf("%d\n", checkPerm(testArgs[0], testArgs[1]));
-	  return result;
-  }
 #endif
 
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
