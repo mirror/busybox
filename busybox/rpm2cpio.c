@@ -26,27 +26,23 @@
 #define RPM_MAGIC "\355\253\356\333"
 #define RPM_HEADER_MAGIC "\216\255\350"
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-
 struct rpm_lead {
     unsigned char magic[4];
-    u8 major, minor;
-    u16 type;
-    u16 archnum;
+    u_int8_t major, minor;
+    u_int16_t type;
+    u_int16_t archnum;
     char name[66];
-    u16 osnum;
-    u16 signature_type;
+    u_int16_t osnum;
+    u_int16_t signature_type;
     char reserved[16];
 };
 
 struct rpm_header {
 	char magic[3]; /* 3 byte magic: 0x8e 0xad 0xe8 */
-	u8 version; /* 1 byte version number */
-	u32 reserved; /* 4 bytes reserved */
-	u32 entries; /* Number of entries in header (4 bytes) */
-	u32 size; /* Size of store (4 bytes) */
+	u_int8_t version; /* 1 byte version number */
+	u_int32_t reserved; /* 4 bytes reserved */
+	u_int32_t entries; /* Number of entries in header (4 bytes) */
+	u_int32_t size; /* Size of store (4 bytes) */
 };
 
 void skip_header(FILE *rpmfile)

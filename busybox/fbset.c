@@ -85,7 +85,7 @@ static unsigned int g_options = 0;
 /* Stuff stolen from the kernel's fb.h */
 static const int FBIOGET_VSCREENINFO = 0x4600;
 static const int FBIOPUT_VSCREENINFO = 0x4601;
-#define __u32			unsigned int
+#define __u32			u_int32_t
 struct fb_bitfield {
 	__u32 offset;			/* beginning of bitfield	*/
 	__u32 length;			/* length of bitfield		*/
