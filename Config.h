@@ -446,22 +446,15 @@
 	#if ! defined BB_FEATURE_LASH && ! defined BB_FEATURE_HUSH && ! defined BB_FEATURE_MSH && ! defined BB_FEATURE_ASH
 		#define BB_FEATURE_MSH
 	#endif
-	#if defined BB_FEATURE_ASH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
-		#undef  BB_FEATURE_LASH
-		#undef  BB_FEATURE_HUSH
+	#if defined BB_FEATURE_ASH
 		#undef  BB_FEATURE_MSH
-	#elif defined BB_FEATURE_MSH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
-		#undef  BB_FEATURE_LASH
 		#undef  BB_FEATURE_HUSH
-		#undef  BB_FEATURE_ASH
-	#elif defined BB_FEATURE_HUSH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
 		#undef  BB_FEATURE_LASH
-		#undef  BB_FEATURE_MSH
-		#undef  BB_FEATURE_ASH
-	#elif defined BB_FEATURE_LASH && (defined BB_FEATURE_LASH || defined BB_FEATURE_HUSH || defined BB_FEATURE_MSH)
+	#elif defined BB_FEATURE_MSH
 		#undef  BB_FEATURE_HUSH
-		#undef  BB_FEATURE_MSH
-		#undef  BB_FEATURE_ASH
+		#undef  BB_FEATURE_LASH
+	#elif defined BB_FEATURE_HUSH
+		#undef  BB_FEATURE_LASH
 	#endif
 #else
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
