@@ -112,7 +112,7 @@ typedef struct sed_cmd_s {
 
 /* globals */
 /* options */
-static int be_quiet = 0, in_place=0;
+static int be_quiet = 0, in_place=0, regex_type=0;
 FILE *nonstdout;
 char *outname;
 
@@ -298,7 +298,7 @@ static int get_address(char *my_str, int *linenum, regex_t ** regex)
 
 		temp=copy_parsing_slashn(pos,next);
 		*regex = (regex_t *) xmalloc(sizeof(regex_t));
-		xregcomp(*regex, temp, REG_NEWLINE);
+		xregcomp(*regex, temp, regex_type|REG_NEWLINE);
 		free(temp);
 		/* Move position to next character after last delimiter */
 		pos+=(next+1);
@@ -326,7 +326,7 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr, char **re
 
 static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 {
-	int cflags = 0;
+	int cflags = regex_type;
 	char *match;
 	int idx = 0;
 
@@ -1115,11 +1115,14 @@ extern int sed_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "ine:f:")) > 0) {
+	while ((opt = getopt(argc, argv, "irne:f:")) > 0) {
 		switch (opt) {
 		case 'i':
 			in_place++;
 			atexit(cleanup_outname);
+			break;
+		case 'r':
+			regex_type|=REG_EXTENDED;
 			break;
 		case 'n':
 			be_quiet++;
