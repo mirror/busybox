@@ -98,3 +98,15 @@ Feature request:
   can support (an optionnal -s should be used for symbolic links instead
   of hard links).
 
+
+-----------------------
+
+
+> Have you ever thought of doig network logging in busybox syslogd ? It
+> would quite make sense on embedded systems... :)
+
+So far I had not considered it.  Basically, you wish to have
+messages from the embedded box logged to a remote network
+syslog box, right?  I can see that this would be useful.
+I'll add this to the TODO list,
+
