@@ -130,7 +130,7 @@ static void stack_machine(const char *argument)
 
 int math_main(int argc, char **argv)
 {
-	if (argc < 1 || *argv[1]=='-')
+	if (argc <= 1 || *argv[1]=='-')
 		usage(math_usage);
 	while (argc >= 2) {
 		stack_machine(argv[1]);
