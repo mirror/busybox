@@ -31,7 +31,9 @@
 #include <sys/types.h>
 #include "busybox.h"
 
-static const int ASCII = 0377;
+/* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
+ * enabled, we otherwise get a "storage size isn't constant error. */
+#define ASCII 0377
 
 /* some "globals" shared across this file */
 static char com_fl, del_fl, sq_fl;

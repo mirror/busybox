@@ -387,7 +387,9 @@ static void domark(int sig)
 	}
 }
 
-static const int BUFSIZE = 1023;
+/* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
+ * enabled, we otherwise get a "storage size isn't constant error. */
+#define BUFSIZE 1023
 static int serveConnection (int conn)
 {
 	RESERVE_BB_BUFFER(tmpbuf, BUFSIZE + 1);
