@@ -402,7 +402,7 @@
 	APPLET(uniq, uniq_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UNIX2DOS
-	APPLET(unix2dos, dos2unix_main, _BB_DIR_USR_BIN)
+	APPLET(unix2dos, unix2dos_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_UPDATE
 	APPLET(update, update_main, _BB_DIR_SBIN)
