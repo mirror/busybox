@@ -142,7 +142,7 @@ busybox: $(OBJECTS)
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
-regexp.o nfsmount.o cmdedit.o: %.o: %.h
+nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
 
 test tests:
