@@ -320,19 +320,6 @@ static void free_config_lines(Htaccess **pprev)
     *pprev = NULL;
 }
 
-static void add_config_line(Htaccess **pprev, Htaccess *cur)
-{
-    if(*pprev == NULL) {
-	*pprev = cur;
-    } else {
-	Htaccess *prev;
-
-	for(prev = *pprev; prev->next; prev = prev->next)
-		;
-	prev->next = cur;
-    }
-}
-
 /* flag */
 #define FIRST_PARSE          0
 #define SUBDIR_PARSE         1
@@ -480,11 +467,30 @@ static void parse_conf(const char *path, int flag)
 	    if(*cf == '/')
 		free(p0);
 #endif
-	    if(*cf == 'A' || *cf == 'D')
-		add_config_line(&config->ip_a_d, cur);
+	    if(*cf == 'A' || *cf == 'D') {
+		if(*cf == 'D' && *c) {
+			/* Deny:form_IP move top */
+			cur->next = config->ip_a_d;
+			config->ip_a_d = cur;
+		} else {
+			/* add to bottom current IP config line */
+			Htaccess *prev_IP = config->ip_a_d;
+
+			if(prev_IP == NULL) {
+				config->ip_a_d = cur;
+			} else {
+				while(prev_IP->next)
+					prev_IP = prev_IP->next;
+				prev_IP->next = cur;
+			}
+		}
+	    }
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	    else if(*cf == '.')
-		add_config_line(&config->mime_a, cur);
+	    else if(*cf == '.') {
+		/* config .mime line move top for overwrite previous */
+		cur->next = config->mime_a;
+		config->mime_a = cur;
+	    }
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
@@ -726,28 +732,21 @@ static void decodeBase64(char *Data)
   while (*in) {
     int t = *in++;
 
-    switch(t) {
-	case '+':
-		t = 62;
-		break;
-	case '/':
-		t = 63;
-		break;
-	case '=':
-		t = 0;
-		break;
-	case 'A' ... 'Z':
-		t = t - 'A';
-		break;
-	case 'a' ... 'z':
-		t = t - 'a' + 26;
-		break;
-	case '0' ... '9':
-		t = t - '0' + 52;
-		break;
-	default:
-		continue;
-    }
+    if(t >= '0' && t <= '9')
+	t = t - '0' + 52;
+    else if(t >= 'A' && t <= 'Z')
+	t = t - 'A';
+    else if(t >= 'a' && t <= 'z')
+	t = t - 'a' + 26;
+    else if(t == '+')
+	t = 62;
+    else if(t == '/')
+	t = 63;
+    else if(t == '=')
+	t = 0;
+    else
+	continue;
+
     ch = (ch << 6) | t;
     i++;
     if (i == 4) {
