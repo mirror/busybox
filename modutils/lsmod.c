@@ -169,6 +169,9 @@ extern int lsmod_main(int argc, char **argv)
 		printf("\n");
 	}
 
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	free(module_names);
+#endif
 
 	return( 0);
 }
