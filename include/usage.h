@@ -1371,11 +1371,12 @@
 	"$ kill 252\n"
 
 #define killall_trivial_usage \
-	"[-signal] process-name [process-name ...]"
+	"[-q] [-signal] process-name [process-name ...]"
 #define killall_full_usage \
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"\
 	"Options:\n" \
-	"\t-l\tList all signal names and numbers."
+	"\t-l\tList all signal names and numbers.\n"\
+	"\t-q\tDo not complain if no processes were killed."
 #define killall_example_usage \
 	"$ killall apache\n"
 
