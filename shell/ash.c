@@ -13162,9 +13162,8 @@ static int arith_lookup_val(v_n_t *t)
 static inline int
 arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
-	int64_t numptr_val;
 	v_n_t *numptr_m1;
-	int64_t rez;
+	arith_t numptr_val, rez
 	int ret_arith_lookup_val;
 
 	if (NUMPTR == numstack) goto err; /* There is no operator that can work
