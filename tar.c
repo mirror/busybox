@@ -51,6 +51,7 @@
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 #include <getopt.h>
+#include <fnmatch.h>
 
 #ifdef BB_FEATURE_TAR_GZIP
 extern int unzip(int in, int out);
@@ -251,9 +252,6 @@ extern int tar_main(int argc, char **argv)
 						excludeList[excludeListSize] = *(++argv);
 						if (excludeList[excludeListSize] == NULL)
 							error_msg_and_die( "Option requires an argument: No file specified\n");
-						/* Remove leading "/"s */
-						while (*excludeList[excludeListSize] =='/')
-							excludeList[excludeListSize]++;
 						/* Tack a NULL onto the end of the list */
 						excludeList[++excludeListSize] = NULL;
 						stopIt=TRUE;
@@ -274,9 +272,6 @@ extern int tar_main(int argc, char **argv)
 						if (file[strlen(file)-1] == '\n')
 							file[strlen(file)-1] = '\0';
 						excludeList[excludeListSize] = xstrdup(file);
-						/* Remove leading "/"s */
-						while (*excludeList[excludeListSize] == '/')
-							excludeList[excludeListSize]++;
 						/* Tack a NULL onto the end of the list */
 						excludeList[++excludeListSize] = NULL;
 					}
@@ -576,6 +571,32 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 	return( FALSE);
 }
 
+int exclude_file(char **excluded_files, const char *file)
+{
+	int i;
+
+	if (excluded_files == NULL)
+		return 0;
+
+	for (i = 0; excluded_files[i] != NULL; i++) {
+		if (excluded_files[i][0] == '/') {
+			if (fnmatch(excluded_files[i], file,
+						FNM_PATHNAME | FNM_LEADING_DIR) == 0)
+				return 1;
+		} else {
+			const char *p;
+
+			for (p = file; p[0] != '\0'; p++) {
+				if ((p == file || p[-1] == '/') && p[0] != '/' &&
+						fnmatch(excluded_files[i], p,
+							FNM_PATHNAME | FNM_LEADING_DIR) == 0)
+					return 1;
+			}
+		}
+	}
+
+	return 0;
+}
 
 /*
  * Read a tar file and extract or list the specified files within it.
@@ -629,32 +650,19 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 		}
 
 #if defined BB_FEATURE_TAR_EXCLUDE
-		{
-			int skipFlag=FALSE;
-			/* Check for excluded files....  */
-			for (tmpList=excludeList; tmpList && *tmpList; tmpList++) {
-				/* Do some extra hoop jumping for when directory names
-				 * end in '/' but the entry in tmpList doesn't */
-				if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
-							header.name[strlen(header.name)-1]=='/'
-							&& strncmp( *tmpList, header.name, 
-								MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
-					/* If it is a regular file, pretend to extract it with
-					 * the extractFlag set to FALSE, so the junk in the tarball
-					 * is properly skipped over */
-					if ( header.type==REGTYPE || header.type==REGTYPE0 ) {
-						if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
-							errorFlag = TRUE;
-					}
-					skipFlag=TRUE;
-					break;
-				}
-			}
+		if (exclude_file(excludeList, header.name)) {
 			/* There are not the droids you're looking for, move along */
-			if (skipFlag==TRUE)
-				continue;
+			/* If it is a regular file, pretend to extract it with
+			 * the extractFlag set to FALSE, so the junk in the tarball
+			 * is properly skipped over */
+			if ( header.type==REGTYPE || header.type==REGTYPE0 ) {
+				if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+					errorFlag = TRUE;
+			}
+			continue;
 		}
 #endif
+
 		if (extractList != NULL) {
 			int skipFlag = TRUE;
 			for (tmpList = extractList; *tmpList != NULL; tmpList++) {
@@ -1036,9 +1044,6 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *)userData;
 	const char *header_name;
-#if defined BB_FEATURE_TAR_EXCLUDE
-	char** tmpList;
-#endif
 
 	/*
 	** Check to see if we are dealing with a hard link.
@@ -1090,16 +1095,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 		return TRUE;
 
 #if defined BB_FEATURE_TAR_EXCLUDE
-	/* Check for excluded files....  */
-	for (tmpList=tbInfo->excludeList; tmpList && *tmpList; tmpList++) {
-		/* Do some extra hoop jumping for when directory names
-		 * end in '/' but the entry in tmpList doesn't */
-		if (strncmp( *tmpList, header_name, strlen(*tmpList))==0 || (
-					fileName[strlen(fileName)-1]=='/'
-					&& strncmp( *tmpList, fileName, 
-						MIN(strlen(fileName)-1, strlen(*tmpList)))==0)) {
-			return SKIP;
-		}
+	if (exclude_file(tbInfo->excludeList, header_name)) {
+		return SKIP;
 	}
 #endif
 
