@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini dirname implementation for busybox
+ * Mini strdup_substr function.
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 2001  Mark Whitley.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,23 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
  */
 
-/* getopt not needed */
+/* Return a substring of STR, starting at index START and ending at END,
+ * allocated on the heap.  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "busybox.h"
-
-extern int dirname_main(int argc, char **argv)
+char *strdup_substr(const char *str, int start, int end)
 {
-	if ((argc < 2) || (**(argv + 1) == '-'))
-		show_usage();
-	argv++;
-
-	puts (dirname (argv[0]));
-
-	return EXIT_SUCCESS;
+	int size = end - start + 1;
+	char *newstr = xmalloc(size);
+	memcpy(newstr, str+start, size-1);
+	newstr[size-1] = '\0';
+	return newstr;
 }

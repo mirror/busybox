@@ -338,7 +338,9 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 	if (extractFlag==TRUE && tostdoutFlag==FALSE) {
 		/* Create the path to the file, just in case it isn't there...
 		 * This should not screw up path permissions or anything. */
-		create_path(header->name, 0777);
+		char *dir = dirname (header->name);
+		make_directory (dir, -1, FILEUTILS_RECUR);
+		free (dir);
 		if ((outFd=open(header->name, O_CREAT|O_TRUNC|O_WRONLY, 
 						header->mode & ~S_IFMT)) < 0) {
 			error_msg(io_error, header->name, strerror(errno)); 
@@ -397,8 +399,7 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 	if (extractFlag==FALSE || tostdoutFlag==TRUE)
 		return( TRUE);
 
-	if (create_path(header->name, header->mode) != TRUE) {
-		perror_msg("%s: Cannot mkdir", header->name); 
+	if (make_directory(header->name, header->mode, FILEUTILS_RECUR) < 0) {
 		return( FALSE);
 	}
 	/* make the final component, just in case it was

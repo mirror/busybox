@@ -243,6 +243,10 @@ extern FILE *gz_open(FILE *compressed_file, int *pid);
 
 extern struct hostent *xgethostbyname(const char *name);
 
+char *dirname (const char *path);
+char *strdup_substr (const char *s, int start, int end);
+int make_directory (char *path, mode_t mode, int flags);
+
 #define CT_AUTO	0
 #define CT_UNIX2DOS	1
 #define CT_DOS2UNIX	2

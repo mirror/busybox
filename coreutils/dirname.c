@@ -30,21 +30,11 @@
 
 extern int dirname_main(int argc, char **argv)
 {
-	char* s;
-
 	if ((argc < 2) || (**(argv + 1) == '-'))
 		show_usage();
 	argv++;
 
-	s=*argv+strlen(*argv)-1;
-	while (s > *argv && *s == '/') {
-		*s-- = '\0';
-	}
-	s = strrchr(*argv, '/');
-	if (s != NULL && s == *argv)
-		s[1] = '\0';
-	else if (s != NULL)
-		*s = '\0';
-	puts(s ? *argv : ".");
+	puts (dirname (argv[0]));
+
 	return EXIT_SUCCESS;
 }

@@ -195,15 +195,6 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, r
 	return idx;
 }
 
-static char *strdup_substr(const char *str, int start, int end)
-{
-	int size = end - start + 1;
-	char *newstr = xmalloc(size);
-	memcpy(newstr, str+start, size-1);
-	newstr[size-1] = '\0';
-	return newstr;
-}
-
 static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 {
 	int oldidx, cflags = REG_NEWLINE;

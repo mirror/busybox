@@ -2,8 +2,7 @@
 /*
  * Mini mkdir implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 2001 Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,79 +20,45 @@
  *
  */
 
-#include <stdio.h>
 #include <errno.h>
-#include <string.h>
+#include <getopt.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "busybox.h"
 
-
-static int parentFlag = FALSE;
-static mode_t mode = 0777;
-
-
-extern int mkdir_main(int argc, char **argv)
+extern int mkdir_main (int argc, char **argv)
 {
-	int i = FALSE;
+	mode_t mode = -1;
+	int flags = 0;
+	int status = 0;
+	int i, opt;
 
-	argc--;
-	argv++;
-
-	/* Parse any options */
-	while (argc > 0 && **argv == '-') {
-		while (i == FALSE && *++(*argv)) {
-			switch (**argv) {
-			case 'm':
-				if (--argc == 0)
-					show_usage();
-				/* Find the specified modes */
-				mode = 0;
-				if (parse_mode(*(++argv), &mode) == FALSE) {
-					error_msg_and_die("Unknown mode: %s", *argv);
-				}
-				/* Set the umask for this process so it doesn't 
-				 * screw up whatever the user just entered. */
-				umask(0);
-				i = TRUE;
-				break;
-			case 'p':
-				parentFlag = TRUE;
-				break;
-			default:
-				show_usage();
-			}
+	while ((opt = getopt (argc, argv, "m:p")) != -1) {
+		switch (opt) {
+		case 'm':
+			mode = 0777;
+			if (!parse_mode (optarg, &mode))
+				error_msg_and_die ("invalid mode `%s'", optarg);
+			break;
+		case 'p':
+			flags |= FILEUTILS_RECUR;
+			break;
+		default:
+			show_usage ();
 		}
-		argc--;
-		argv++;
 	}
 
-	if (argc < 1) {
-		show_usage();
-	}
+	if (optind == argc)
+		show_usage ();
 
-	while (argc > 0) {
-		int status;
-		struct stat statBuf;
-		char buf[BUFSIZ + 1];
+	for (i = optind; i < argc; i++)
+		if (make_directory (argv[i], mode, flags) < 0)
+			status = 1;
 
-		if (strlen(*argv) > BUFSIZ - 1) {
-			error_msg_and_die(name_too_long);
-		}
-		strcpy(buf, *argv);
-		status = stat(buf, &statBuf);
-		if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
-			error_msg_and_die("%s: File exists", buf);
-		}
-		if (parentFlag == TRUE) {
-			strcat(buf, "/");
-			create_path(buf, mode);
-		} else {
-			if (mkdir(buf, mode) != 0 && parentFlag == FALSE) {
-				perror_msg_and_die(buf);
-			}
-		}
-		argc--;
-		argv++;
-	}
-	return EXIT_SUCCESS;
+	return status;
 }

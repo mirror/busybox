@@ -237,7 +237,7 @@ endif
 LIBBB	  = libbb
 LIBBB_LIB = libbb.a
 LIBBB_CSRC= ask_confirmation.c chomp.c concat_path_file.c copy_file.c \
-copy_file_chunk.c create_path.c daemon.c device_open.c error_msg.c \
+copy_file_chunk.c daemon.c device_open.c error_msg.c \
 error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
 find_root_device.c full_read.c full_write.c get_console.c \
 get_last_path_component.c get_line_from_file.c gz_open.c human_readable.c \
@@ -248,7 +248,8 @@ print_file.c process_escape_sequence.c read_package_field.c recursive_action.c \
 safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
 trim.c unarchive.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
 xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
-copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c
+copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
+dirname.c make_directory.c strdup_substr.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB)
 ifneq ($(strip $(BB_SRC_DIR)),)

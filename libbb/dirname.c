@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini dirname implementation for busybox
+ * Mini dirname function.
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 2001  Matt Kraai.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,23 +17,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
  */
 
-/* getopt not needed */
+#include "libbb.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "busybox.h"
+/* Return a string on the heap containing the directory component of PATH.  */
 
-extern int dirname_main(int argc, char **argv)
+char *dirname(const char *path)
 {
-	if ((argc < 2) || (**(argv + 1) == '-'))
-		show_usage();
-	argv++;
+	const char *s;
 
-	puts (dirname (argv[0]));
+	/* Go to the end of the string.  */
+	s = path + strlen(path) - 1;
 
-	return EXIT_SUCCESS;
+	/* Strip off trailing /s (unless it is also the leading /).  */
+	while (path < s && s[0] == '/')
+		s--;
+
+	/* Strip the last component.  */
+	while (path <= s && s[0] != '/')
+		s--;
+
+	while (path < s && s[0] == '/')
+		s--;
+
+	if (s < path)
+		return xstrdup (".");
+	else
+		return strdup_substr (path, 0, s - path + 1);
 }
