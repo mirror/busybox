@@ -714,6 +714,9 @@ static void new_initAction(initActionEnum action, char *process, char *cons)
 	if (secondConsole == NULL && strcmp(cons, console)
 		&& strcmp(cons, "/dev/null"))
 		return;
+	if (strcmp(cons, "/dev/null") == 0 && action == ASKFIRST)
+		return;
+
 
 	newAction = calloc((size_t) (1), sizeof(initAction));
 	if (!newAction) {
@@ -960,23 +963,11 @@ extern int init_main(int argc, char **argv)
 	/* Now run everything that needs to be run */
 
 	/* First run the sysinit command */
-	for (a = initActionList; a; a = tmp) {
-		tmp = a->nextPtr;
-		if (a->action == SYSINIT) {
-			waitfor(a->process, a->console, FALSE);
-			/* Now remove the "sysinit" entry from the list */
-			delete_initAction(a);
-		}
-	}
+	run_actions(SYSINIT);
+
 	/* Next run anything that wants to block */
-	for (a = initActionList; a; a = tmp) {
-		tmp = a->nextPtr;
-		if (a->action == WAIT) {
-			waitfor(a->process, a->console, FALSE);
-			/* Now remove the "wait" entry from the list */
-			delete_initAction(a);
-		}
-	}
+	run_actions(WAIT);
+
 	/* Next run anything to be run only once */
 	for (a = initActionList; a; a = tmp) {
 		tmp = a->nextPtr;
