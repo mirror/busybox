@@ -2,7 +2,10 @@
 
 	* Fixed uname problem causing the kernel version to be
 	    mis-detected (causing problems with poweroff, init,
-	    and other things).
+	    and other things).  
+	* kent robotti -- Renamed unrpm to original rpmunpack, so you can use 
+	    an included shell script called unrpm as a front end to it.  There's
+	    also a shell script called undeb included for debian packages.  
 
 	 -Erik Andersen
 

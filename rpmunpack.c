@@ -1,5 +1,5 @@
 /*
- * Mini unrpm implementation for busybox
+ * rpmunpack for busybox
  *
  * rpmunpack.c  -  Utility program to unpack an RPM archive
  *
@@ -14,11 +14,7 @@
  */
  
 #include "busybox.h" 
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <fcntl.h>
-#include <string.h>
 
 /*
  * Some general definitions
@@ -46,7 +42,7 @@ static void myread(int num)
 	if (err < 0)
 		perror(progname);
 	else
-		fprintf(stderr, "unexpected end of input file\n");
+		fprintf(stderr, "Unexpected end of input file!\n");
 	exit(1);
   }
 }
@@ -54,7 +50,7 @@ static void myread(int num)
 /*
  * Main program
  */
-int unrpm_main(int argc, char **argv)
+int rpmunpack_main(int argc, char **argv)
 {
   int len, status = 0;
 
@@ -66,7 +62,7 @@ int unrpm_main(int argc, char **argv)
 
   /* Check for command line parameters */
 	if (argc>=2 && *argv[1]=='-') {
-           usage(unrpm_usage);
+           usage(rpmunpack_usage);
 	}
 
   /* Open input file */
@@ -80,7 +76,7 @@ int unrpm_main(int argc, char **argv)
   /* Read magic ID and output filename */
   myread(4);
   if (strncmp(buffer, RPM_MAGIC, 4)) {
-	fprintf(stderr, "input file is not in RPM format\n");
+	fprintf(stderr, "Input file is not in RPM format!\n");
 	exit(1);
   }
   myread(6);		/* Skip flags */
