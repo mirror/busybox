@@ -46,6 +46,9 @@
 #ifdef BB_TEST
 	APPLET_NOUSAGE("[", test_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_ADJTIMEX
+	APPLET(adjtimex, adjtimex_main, _BB_DIR_SBIN)
+#endif
 #ifdef BB_AR
 	APPLET(ar, ar_main, _BB_DIR_USR_BIN)
 #endif

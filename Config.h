@@ -7,6 +7,7 @@
 //
 //
 // BusyBox Applications
+//#define BB_ADJTIMEX
 //#define BB_AR
 #define BB_BASENAME
 #define BB_CAT

@@ -1,3 +1,16 @@
+#define adjtimex_trivial_usage \
+	"[-q] [-o offset] [-f frequency] [-p timeconstant] [-t tick]"
+#define adjtimex_full_usage \
+	"Reads and optionally sets system timebase parameters.\n" \
+	"See adjtimex(2).\n\n" \
+	"Options:\n" \
+	"\t-q\t\tquiet mode - do not print\n" \
+	"\t-o offset\ttime offset, microseconds\n" \
+	"\t-f frequency\tfrequency adjust, integer kernel units (65536 is 1ppm)\n" \
+	"\t\t\t(positive values make the system clock run fast)\n" \
+	"\t-t tick\t\tmicroseconds per tick, usually 10000\n" \
+	"\t-p timeconstant\n"
+
 #define ar_trivial_usage \
 	"-[ovR]{ptx} archive filenames"
 #define ar_full_usage \
