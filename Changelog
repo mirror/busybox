@@ -1,5 +1,8 @@
 0.48
 
+	* Matt Kraai -- fix all usage of TRUE and FALSE so all apps now
+	    return EXIT_SUCCESS or EXIT_FAILURE to the system.
+	    Now TRUE and FALSE are set to the C standard where TRUE=1.
 	* Fixed uname problem causing the kernel version to be
 	    mis-detected (causing problems with poweroff, init,
 	    and other things).  
@@ -18,6 +21,8 @@
 	    not placed into the source tree.  Thanks Larry!
 	*  Larry Doolittle -- use the applet definitions in applets.h 
 	    to autogenerate the applet function and usage prototypes.
+	* Sebastien Huet, Arne Bernin, and Kent Robotti -- Add in tar -X and
+	    fixed a bug breaking tar --exclude.  
 
 	 -Erik Andersen
 
