@@ -260,6 +260,8 @@ extern int umount_main(int argc, char **argv)
 				doRemount = TRUE;
 				break;
 #endif
+			case 'v':
+				break; /* ignore -v */
 			default:
 				usage(umount_usage);
 			}

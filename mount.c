@@ -418,6 +418,7 @@ extern int mount_main(int argc, char **argv)
 					break;
 #endif
 				case 'v':
+					break; /* ignore -v */
 				case 'h':
 				case '-':
 					goto goodbye;

@@ -22,21 +22,21 @@
  */
 
 #include "internal.h"
-#include <stdio.h>
-#include <stdarg.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <ctype.h>
-#include <netdb.h>
-#include <sys/klog.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <paths.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/klog.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <time.h>
+#include <unistd.h>
 
 #define ksyslog klogctl
 extern int ksyslog(int type, char *buf, int len);
@@ -47,8 +47,10 @@ extern int ksyslog(int type, char *buf, int len);
 #include <sys/syslog.h>
 
 /* Path for the file where all log messages are written */
-#define __LOG_FILE		"/var/log/messages"
+#define __LOG_FILE "/var/log/messages"
 
+/* Path to the unix socket */
+char lfile[PATH_MAX] = "";
 
 static char *logFilePath = __LOG_FILE;
 
@@ -70,9 +72,8 @@ static const char syslogd_usage[] =
 #endif
 	"\t-O\tSpecify an alternate log file.  default=/var/log/messages\n";
 
-
 /* Note: There is also a function called "message()" in init.c */
-/* print a message to the log file */
+/* Print a message to the log file. */
 static void message(char *fmt, ...)
 {
 	int fd;
@@ -145,7 +146,7 @@ static void logMessage(int pri, char *msg)
 static void quit_signal(int sig)
 {
 	logMessage(0, "System log daemon exiting.");
-	unlink(_PATH_LOG);
+	unlink(lfile);
 	exit(TRUE);
 }
 
@@ -157,88 +158,134 @@ static void domark(int sig)
 	}
 }
 
-static void doSyslogd(void)
+static void doSyslogd (void) __attribute__ ((noreturn));
+static void doSyslogd (void)
 {
 	struct sockaddr_un sunx;
-	int fd, conn;
 	size_t addrLength;
-	char buf[1024];
-	char *q, *p = buf;
-	int readSize;
+	int sock_fd;
+	fd_set readfds;
+	char lfile[PATH_MAX];
+	int t = readlink(_PATH_LOG, lfile, sizeof(lfile) - 1); /* Resolve symlinks */
 
 	/* Set up sig handlers */
-	signal(SIGINT, quit_signal);
-	signal(SIGTERM, quit_signal);
-	signal(SIGQUIT, quit_signal);
-	signal(SIGALRM, domark);
-	signal(SIGHUP, SIG_IGN);
-	alarm(MarkInterval);
+	signal (SIGINT,  quit_signal);
+	signal (SIGTERM, quit_signal);
+	signal (SIGQUIT, quit_signal);
+	signal (SIGHUP,  SIG_IGN);
+	signal (SIGALRM, domark);
+	alarm (MarkInterval);
 
-	/* Remove any preexisting socket/file */
-	unlink(_PATH_LOG);
+	if (t == -1)
+		strncpy(lfile, _PATH_LOG, sizeof(lfile));
+	else
+		lfile[t] = '\0';
 
-	memset(&sunx, 0, sizeof(sunx));
-	sunx.sun_family = AF_UNIX;	/* Unix domain socket */
-	strncpy(sunx.sun_path, _PATH_LOG, sizeof(sunx.sun_path));
-	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		perror("Couldn't obtain descriptor for socket " _PATH_LOG);
-		exit(FALSE);
+	unlink (lfile);
+
+	memset (&sunx, 0, sizeof(sunx));
+
+	sunx.sun_family = AF_UNIX;
+	strncpy (sunx.sun_path, lfile, sizeof(sunx.sun_path));
+	if ((sock_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+		perror ("Couldn't obtain descriptor for socket " _PATH_LOG);
+		exit (FALSE);
 	}
 
-	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
-	if ((bind(fd, (struct sockaddr *) &sunx, addrLength)) ||
-		(listen(fd, 5))) {
-		perror("Could not connect to socket " _PATH_LOG);
-		exit(FALSE);
+	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
+	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) ||
+		(listen (sock_fd, 5))) {
+		perror ("Could not connect to socket " _PATH_LOG);
+		exit (FALSE);
 	}
 
-	umask(0);
-	if (chmod(_PATH_LOG, 0666) < 0) {
-		perror("Could not set permission on " _PATH_LOG);
-		exit(FALSE);
+	if (chmod (lfile, 0666) < 0) {
+		perror ("Could not set permission on " _PATH_LOG);
+		exit (FALSE);
 	}
 
-	logMessage(0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
+	FD_ZERO (&readfds);
+	FD_SET (sock_fd, &readfds);
 
+	logMessage (0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
 
-	while ((conn = accept(fd, (struct sockaddr *) &sunx,
-						  &addrLength)) >= 0) {
-		while ((readSize = read(conn, buf, sizeof(buf))) > 0) {
-			char line[1025];
-			unsigned char c;
-			int pri = (LOG_USER | LOG_NOTICE);
+	for (;;) {
+		int n_ready;
+		int fd;
 
-			memset(line, 0, sizeof(line));
-			p = buf;
-			q = line;
-			while (p && (c = *p) && q < &line[sizeof(line) - 1]) {
-				if (c == '<') {
-					/* Parse the magic priority number */
-					pri = 0;
-					while (isdigit(*(++p))) {
-						pri = 10 * pri + (*p - '0');
-					}
-					if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
-						pri = (LOG_USER | LOG_NOTICE);
-				} else if (c == '\n') {
-					*q++ = ' ';
-				} else if (iscntrl(c) && (c < 0177)) {
-					*q++ = '^';
-					*q++ = c ^ 0100;
-				} else {
-					*q++ = c;
-				}
-				p++;
-			}
-			*q = '\0';
-
-			/* Now log it */
-			logMessage(pri, line);
+		if ((n_ready = select (FD_SETSIZE, &readfds, NULL, NULL, NULL)) < 0) {
+			if (errno == EINTR) continue; /* alarm may have happened. */
+			perror ("select");
+			exit (FALSE);
 		}
-		close(conn);
-	}
 
-	close(fd);
+		/* Skip stdin, stdout, stderr */
+		for (fd = 3; fd <= FD_SETSIZE; fd++) {
+			if (FD_ISSET (fd, &readfds)) {
+				if (fd == sock_fd) {
+					int conn;
+					if ((conn = accept(sock_fd, (struct sockaddr *) &sunx,
+									   &addrLength)) < 0) {
+						perror ("accept");
+						exit (FALSE); /* #### ??? */
+					}
+					FD_SET (conn, &readfds);
+				}
+				else {
+#define			  BUFSIZE 1024 + 1
+					char buf[BUFSIZE];
+					char *q, *p;
+					int n_read;
+
+					n_read = read (fd, buf, BUFSIZE);
+
+					if (n_read < 0) {
+						perror ("read error");
+						goto close_fd;
+					}
+					else if (n_read > 0) {
+						char line[BUFSIZE];
+						unsigned char c;
+						int pri = (LOG_USER | LOG_NOTICE);
+
+						memset (line, 0, sizeof(line));
+						p = buf;
+						q = line;
+						while (p && (c = *p) && q < &line[sizeof(line) - 1]) {
+							if (c == '<') {
+								/* Parse the magic priority number */
+								pri = 0;
+								while (isdigit(*(++p))) {
+									pri = 10 * pri + (*p - '0');
+								}
+								if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
+									pri = (LOG_USER | LOG_NOTICE);
+							} else if (c == '\n') {
+								*q++ = ' ';
+							} else if (iscntrl(c) && (c < 0177)) {
+								*q++ = '^';
+								*q++ = c ^ 0100;
+							} else {
+								*q++ = c;
+							}
+							p++;
+						}
+						*q = '\0';
+
+						/* Now log it */
+						logMessage(pri, line);
+
+					close_fd:
+						close (fd);
+						FD_CLR (fd, &readfds);
+					}
+					else {		/* EOF */
+						goto close_fd;
+					}
+				}
+			}
+		}
+	}
 }
 
 #ifdef BB_KLOGD
@@ -251,7 +298,8 @@ static void klogd_signal(int sig)
 	exit(TRUE);
 }
 
-static void doKlogd(void)
+static void doKlogd (void) __attribute__ ((noreturn));
+static void doKlogd (void)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
@@ -317,6 +365,16 @@ static void doKlogd(void)
 
 #endif
 
+static void daemon_init (char **argv, char *dz, void fn (void)) __attribute__ ((noreturn));
+static void daemon_init (char **argv, char *dz, void fn (void))
+{
+	setsid();
+	chdir ("/");
+	strncpy(argv[0], dz, strlen(argv[0]));
+	fn();
+	exit(0);
+}
+
 extern int syslogd_main(int argc, char **argv)
 {
 	int pid, klogd_pid;
@@ -366,13 +424,14 @@ extern int syslogd_main(int argc, char **argv)
 		*p++ = '\0';
 	}
 
+	umask(0);
+
 #ifdef BB_KLOGD
 	/* Start up the klogd process */
 	if (startKlogd == TRUE) {
 		klogd_pid = fork();
 		if (klogd_pid == 0) {
-			strncpy(argv[0], "klogd", strlen(argv[0]));
-			doKlogd();
+			daemon_init (argv, "klogd", doKlogd);
 		}
 	}
 #endif
@@ -382,8 +441,7 @@ extern int syslogd_main(int argc, char **argv)
 		if (pid < 0)
 			exit(pid);
 		else if (pid == 0) {
-			strncpy(argv[0], "syslogd", strlen(argv[0]));
-			doSyslogd();
+			daemon_init (argv, "syslogd", doSyslogd);
 		}
 	} else {
 		doSyslogd();
@@ -391,3 +449,11 @@ extern int syslogd_main(int argc, char **argv)
 
 	exit(TRUE);
 }
+
+/*
+ * Local Variables
+ * c-file-style: "linux"
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

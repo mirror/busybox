@@ -45,7 +45,7 @@
 #include <sys/reboot.h>
 #include <sys/sysinfo.h>		/* For check_free_memory() */
 #ifdef BB_SYSLOGD
-#include <sys/syslog.h>
+# include <sys/syslog.h>
 #endif
 #include <sys/sysmacros.h>
 #include <sys/types.h>
@@ -53,6 +53,15 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+
+
+/*
+ * When CORE_ENABLE_FLAG_FILE exists, setrlimit is called before
+ * process is spawned to set corelimit to unlimited.
+ */
+#define CORE_ENABLE_FLAG_FILE "/.init_enable_core"
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #ifndef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
@@ -404,6 +413,16 @@ static pid_t run(char *command, char *terminal, int get_enter)
 				}
 			}
 			cmd[i] = NULL;
+		}
+
+		{
+			struct stat sb;
+			if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
+				struct rlimit limit;
+				limit.rlim_cur = RLIM_INFINITY;
+				limit.rlim_max = RLIM_INFINITY;
+				setrlimit(RLIMIT_CORE, &limit);
+			}
 		}
 
 		/* Now run it.  The new program will take over this PID, 
@@ -836,6 +855,7 @@ extern int init_main(int argc, char **argv)
 	close(1);
 	close(2);
 	set_term(0);
+	chdir("/");
 	setsid();
 
 	/* Make sure PATH is set to something sane */
@@ -881,7 +901,7 @@ extern int init_main(int argc, char **argv)
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
-	
+
 	/* Fix up argv[0] to be certain we claim to be init */
 	strncpy(argv[0], "init", strlen(argv[0])+1);
 	if (argc > 1)
