@@ -282,7 +282,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.115 2004/03/19 12:17:04 andersen Exp $"
+#ident "$Id: insmod.c,v 1.116 2004/04/06 11:56:26 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -503,7 +503,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.115 2004/03/19 12:17:04 andersen Exp $"
+#ident "$Id: insmod.c,v 1.116 2004/04/06 11:56:26 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -811,11 +811,11 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 			free(tmp1);
 			/* Stop searching if we find a match */
 			m_filename = bb_xstrdup(filename);
-			return (TRUE);
+			return (FALSE);
 		}
 		free(tmp1);
 	}
-	return (FALSE);
+	return (TRUE);
 }
 
 
