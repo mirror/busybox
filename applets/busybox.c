@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 	}
 	a++;
     }
-    return (busybox_main(argc, argv));
+    exit (busybox_main(argc, argv));
 }
 
 
@@ -216,8 +216,7 @@ int busybox_main(int argc, char **argv)
 	fprintf(stderr, "\nCurrently defined functions:\n");
 
 	while (a->name != 0) {
-	    col+=fprintf(stderr, "%s%s", ((col==0)? "\t":", "), a->name);
-	    a++;
+	    col+=fprintf(stderr, "%s%s", ((col==0)? "\t":", "), (a++)->name);
 	    if (col>60) {
 		fprintf(stderr, ",\n");
 		col=0;

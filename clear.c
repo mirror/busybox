@@ -27,5 +27,5 @@ extern int
 clear_main(int argc, char** argv)
 {
 	printf("\033[H\033[J");
-	return 0;
+	exit( TRUE);
 }

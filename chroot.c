@@ -20,8 +20,9 @@
  */
 
 #include "internal.h"
+#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <errno.h>
 
 
 static const char chroot_usage[] = "NEWROOT [COMMAND...]\n"
@@ -31,18 +32,17 @@ static const char chroot_usage[] = "NEWROOT [COMMAND...]\n"
 
 int chroot_main(int argc, char **argv)
 {
-    if (argc < 2) {
+    if ( (argc < 2) || (**(argv+1) == '-') ) {
 	fprintf(stderr, "Usage: %s %s", *argv, chroot_usage);
-	return( FALSE);
+	exit( FALSE);
     }
     argc--;
     argv++;
 
-    fprintf(stderr, "new root: %s\n", *argv);
-    
     if (chroot (*argv) || (chdir ("/"))) {
-	perror("cannot chroot");
-	return( FALSE);
+	fprintf(stderr, "chroot: cannot change root directory to %s: %s\n",
+		*argv, strerror(errno));
+	exit( FALSE);
     }
 
     argc--;
@@ -56,10 +56,10 @@ int chroot_main(int argc, char **argv)
 	prog = getenv ("SHELL");
 	if (!prog)
 	    prog = "/bin/sh";
-	fprintf(stderr, "no command. running: %s\n", prog);
 	execlp (prog, prog, NULL);
     }
-    perror("cannot exec");
-    return(FALSE);
+    fprintf(stderr, "chroot: cannot execute %s: %s\n",
+		*argv, strerror(errno));
+    exit( FALSE);
 }
 

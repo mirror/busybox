@@ -91,7 +91,7 @@ extern int cp_main(int argc, char **argv)
 
     if (argc < 3) {
 	fprintf(stderr, "Usage: %s", cp_usage);
-	return (FALSE);
+	exit (FALSE);
     }
     argc--;
     argv++;
@@ -129,13 +129,13 @@ extern int cp_main(int argc, char **argv)
 
     if ((argc > 3) && !dirFlag) {
 	fprintf(stderr, "%s: not a directory\n", destName);
-	return (FALSE);
+	exit (FALSE);
     }
 
     while (argc-- >= 2) {
 	srcName = *(argv++);
-	return recursiveAction(srcName, recursiveFlag, followLinks,
-			       fileAction, fileAction);
+	exit( recursiveAction(srcName, recursiveFlag, followLinks,
+			       fileAction, fileAction));
     }
-    return( TRUE);
+    exit( TRUE);
 }

@@ -66,7 +66,7 @@ int chown_main(int argc, char **argv)
     if (argc < 2) {
 	fprintf(stderr, "Usage: %s %s", *argv, 
 		(chownApp==TRUE)? chown_usage : chgrp_usage);
-	return( FALSE);
+	exit( FALSE);
     }
     invocationName=*argv;
     argc--;
@@ -80,7 +80,7 @@ int chown_main(int argc, char **argv)
 		break;
 	    default:
 		fprintf(stderr, "Unknown option: %c\n", **argv);
-		return( FALSE);
+		exit( FALSE);
 	}
 	argc--;
 	argv++;
@@ -95,7 +95,7 @@ int chown_main(int argc, char **argv)
     grp = getgrnam(groupName);
     if (grp == NULL) {
 	fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
-	return( FALSE);
+	exit( FALSE);
     }
     gid = grp->gr_gid;
 
@@ -104,7 +104,7 @@ int chown_main(int argc, char **argv)
 	pwd = getpwnam(*argv);
 	if (pwd == NULL) {
 	    fprintf(stderr, "%s: Unknown user name: %s\n", invocationName, *argv);
-	    return( FALSE);
+	    exit( FALSE);
 	}
 	uid = pwd->pw_uid;
     }
@@ -112,11 +112,11 @@ int chown_main(int argc, char **argv)
     /* Ok, ready to do the deed now */
     if (argc <= 1) {
 	fprintf(stderr, "%s: too few arguments", invocationName);
-	return( FALSE);
+	exit( FALSE);
     }
     while (argc-- > 1) {
 	argv++;
 	recursiveAction( *argv, recursiveFlag, TRUE, fileAction, fileAction);
     }
-    return(TRUE);
+    exit(TRUE);
 }

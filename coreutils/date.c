@@ -1,3 +1,24 @@
+/*
+ * Mini date implementation for busybox
+ *
+ * Copyright (C) 1999 by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+*/
+
 #include "internal.h"
 #include <stdlib.h>
 #include <errno.h>
@@ -5,7 +26,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdio.h>
-#include <getopt.h>
 
 
 /* This 'date' command supports only 2 time setting formats, 
@@ -14,25 +34,12 @@
    an RFC 822 complient date output for shell scripting
    mail commands */
 
-const char	date_usage[] = "date [-uR] [+FORMAT|+%f] [ [-s|-d] MMDDhhmm[[CC]YY]\n"
-"| [[[[CCYY.]MM.DD-]hh:mm[:ss]]]] ]";
-
-//static const char date_usage[] = "Usage: date [OPTION]... [+FORMAT]\n"
-//"or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
-//"Display the current time in the given FORMAT, or set the system date.\n";
-
-
-static struct option const long_options[] =
-{
-  {"date", required_argument, NULL, 'd'},
-  /*  {"rfc-822", no_argument, NULL, 'R'},
-  {"set", required_argument, NULL, 's'},
-  {"uct", no_argument, NULL, 'u'},
-  {"utc", no_argument, NULL, 'u'},
-  {"universal", no_argument, NULL, 'u'}, */
-  {NULL, 0, NULL, 0}
-};
-  
+const char	date_usage[] = "Usage: date [OPTION]... [+FORMAT]\n"
+"  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
+"Display the current time in the given FORMAT, or set the system date.\n"
+"\nOptions:\n\t-R\t\toutput RFC-822 compliant date string\n"
+"\t-s\t\tset time described by STRING\n"
+"\t-u\t\tprint or set Coordinated Universal Time\n";
 
 
 /* Input parsing code is always bulky - used heavy duty libc stuff as
@@ -53,7 +60,7 @@ date_conv_time(struct tm *tm_time, const char *t_string) {
 
   if(nr < 4 || nr > 5) {
     fprintf(stderr, "date: invalid date `%s'\n", t_string);
-    exit(1);
+    exit( FALSE);
   }
 
   /* correct for century  - minor Y2K problem here? */
@@ -147,15 +154,15 @@ date_conv_ftime(struct tm *tm_time, const char *t_string) {
 
   fprintf(stderr, "date: invalid date `%s'\n", t_string);
 
-  exit(1);
+  exit( FALSE);
 
 }
 
 
 void
 date_err(void) {
-  fprintf(stderr, "date: only one date argument can be given at a time.\n");
-  exit(1);
+    fprintf (stderr, "%s\n", date_usage);
+    exit( FALSE);
 }
 
 int
@@ -164,82 +171,56 @@ date_main(int argc, char * * argv)
   char *date_str = NULL;
   char *date_fmt = NULL;
   char *t_buff;
+  int i;
   int set_time = 0;
   int rfc822 = 0;
   int utc = 0;
   int use_arg = 0;
-  int n_args;
   time_t tm; 
   struct tm tm_time;
-  char optc;
   
   /* Interpret command line args */
-	
-
-  while ((optc = getopt_long (argc, argv, "d:Rs:u", long_options, NULL))
-         != EOF) {
-    switch (optc) {
-    case 0:
-      break;    
-
-    case 'R':
-      rfc822 = 1;
-      break;
-
-    case 's':
-      set_time = 1;
-      if(date_str != NULL) date_err();
-      date_str = optarg;
-      break;
-
-    case 'u':
-      utc = 1;
-      if (putenv ("TZ=UTC0") != 0) {
-	fprintf(stderr,"date: memory exhausted\n");
-	return(1);
-      }
-#if LOCALTIME_CACHE
-      tzset ();
-#endif                                                                                break;
-
-    case 'd':
-      use_arg = 1;
-      if(date_str != NULL) date_err();
-      date_str = optarg;
-      break;
-
-    default:
-      fprintf(stderr, "Usage: %s", date_usage);
-      break;
+    i = --argc;
+    argv++;
+    while (i > 0 && **argv) {
+	if (**argv == '-') {
+	    while (i>0 && *++(*argv)) switch (**argv) {
+	    case 'R':
+		rfc822 = 1;
+		break;
+	    case 's':
+		set_time = 1;
+		if(date_str != NULL) date_err();
+		date_str = optarg;
+		break;
+	    case 'u':
+		utc = 1;
+		if (putenv ("TZ=UTC0") != 0) {
+		    fprintf(stderr,"date: memory exhausted\n");
+		    exit( FALSE);
+		}
+		/* Look ma, no break.  Don't fix it either. */
+	    case 'd':
+		use_arg = 1;
+		if(date_str != NULL) date_err();
+		date_str = optarg;
+		break;
+	    case '-':
+		date_err();
+	    }
+	} else {
+	    if ( (date_fmt == NULL) && (strcmp(*argv, "+")==0) )
+		date_fmt=*argv;
+	    else if (date_str == NULL) {
+		set_time = 1;
+		date_str=*argv;
+	    } else { 
+		date_err();
+	    }
+	}
+	i--;
+	argv++;
     }
-  }
-
-
-  n_args = argc - optind; 
-
-  while (n_args--){
-    switch(argv[optind][0]) {
-      case '+':
-      /* Date format strings */
-      if(date_fmt != NULL) {
-	fprintf(stderr, "date: only one date format can be given.\n");
-	return(1);
-      }
-      date_fmt = &argv[optind][1];
-      break;
-
-      case '\0':
-      break;
-
-      default:
-      /* Anything left over must be a date string to set the time */
-      set_time = 1;
-      if(date_str != NULL) date_err();
-      date_str = argv[optind];
-      break;
-    }
-    optind++;
-  }
 
 
   /* Now we have parsed all the information except the date format
@@ -267,14 +248,14 @@ date_main(int argc, char * * argv)
     tm = mktime(&tm_time);
     if (tm < 0 ) {
       fprintf(stderr, "date: invalid date `%s'\n", date_str);
-      exit(1);
+      exit( FALSE);
     }
 
     /* if setting time, set it */
     if(set_time) {
       if( stime(&tm) < 0) {
 	fprintf(stderr, "date: can't set date.\n");
-	exit(1);
+	exit( FALSE);
       }
     }
   }
@@ -292,7 +273,7 @@ date_main(int argc, char * * argv)
   } else if ( *date_fmt == '\0' ) {
     /* Imitate what GNU 'date' does with NO format string! */
     printf ("\n");
-    return(0);
+    exit( TRUE);
   }
 
   /* Handle special conversions */
@@ -306,6 +287,7 @@ date_main(int argc, char * * argv)
   strftime(t_buff, 200, date_fmt, &tm_time);
   printf("%s\n", t_buff);
 
-  return(0);
+  exit( TRUE);
 
 }
+

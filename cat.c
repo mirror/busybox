@@ -29,9 +29,9 @@ extern int cat_more_main(int argc, char **argv)
     int c;
     FILE *file = stdin;
 
-    if (argc < 2) {
+    if ( (argc < 2) || (**(argv+1) == '-') ) {
 	fprintf(stderr, "Usage: %s %s", *argv, cat_usage);
-	return(FALSE);
+	exit(FALSE);
     }
     argc--;
     argv++;
@@ -40,7 +40,7 @@ extern int cat_more_main(int argc, char **argv)
 	file = fopen(*argv, "r");
 	if (file == NULL) {
 	    perror(*argv);
-	    return(FALSE);
+	    exit(FALSE);
 	}
 	while ((c = getc(file)) != EOF)
 	    putc(c, stdout);
@@ -50,5 +50,5 @@ extern int cat_more_main(int argc, char **argv)
 	argc--;
 	argv++;
     }
-    return(TRUE);
+    exit(TRUE);
 }

@@ -35,7 +35,7 @@
 //#define BB_MKDIR
 //#define BB_MKNOD
 ////#define BB_MKSWAP
-//#define BB_MNC
+#define BB_MNC
 //#define BB_MONADIC
 #define BB_MORE
 #define BB_MOUNT
@@ -43,7 +43,7 @@
 #define BB_MV
 //#define BB_POSTPROCESS
 //#define BB_PRINTF
-//#define BB_PWD
+#define BB_PWD
 //#define BB_REBOOT
 //#define BB_RM
 //#define BB_RMDIR
