@@ -80,10 +80,12 @@ int nc_main(int argc, char **argv)
 	}
 
 	if (do_listen) {
+		socklen_t addrlen = sizeof(address);
+
 		if (listen(sfd, 1) < 0)
 			perror_msg_and_die("listen");
 
-		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &opt)) < 0)
+		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
 			perror_msg_and_die("accept");
 
 		close(sfd);
