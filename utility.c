@@ -37,6 +37,7 @@
 #define bb_need_name_too_long
 #endif
 #define bb_need_memory_exhausted
+#define bb_need_full_version
 #define BB_DECLARE_EXTERN
 #include "messages.c"
 
@@ -84,8 +85,7 @@ const char mtab_file[] = "/dev/mtab";
 
 extern void usage(const char *usage)
 {
-	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
-			BB_VER, BB_BT);
+	fprintf(stderr, "%s\n\n", full_version);
 	fprintf(stderr, "Usage: %s\n", usage);
 	exit FALSE;
 }

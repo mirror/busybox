@@ -46,6 +46,10 @@
 #include "cmdedit.h"
 #endif
 
+#define bb_need_full_version
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 #define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
@@ -1141,7 +1145,7 @@ int shell_main(int argc, char **argv)
 	//}
 
 	if (argc < 2) {
-		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
+		fprintf(stdout, "\n\n%s Built-in shell\n", full_version);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else {
 		if (argv[1][0]=='-' && argv[1][1]=='c') {

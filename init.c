@@ -46,6 +46,10 @@
 # include <sys/syslog.h>
 #endif
 
+#define bb_need_full_version
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 /* From <linux/vt.h> */
 struct vt_stat {
 	unsigned short v_active;        /* active vt */
@@ -938,16 +942,14 @@ extern int init_main(int argc, char **argv)
 			CONSOLE|
 #endif
 			LOG,
-			"init started:  BusyBox v%s (%s) multi-call binary\r\n",
-			BB_VER, BB_BT);
+			"init started:  %s\r\n", full_version);
 #else
 	message(
 #if ! defined BB_FEATURE_EXTRA_QUIET
 			CONSOLE|
 #endif
 			LOG,
-			"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n",
-			getpid(), BB_VER, BB_BT);
+			"init(%d) started:  %s\r\n", getpid(), full_version);
 #endif
 
 

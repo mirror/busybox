@@ -52,6 +52,9 @@
 #include <ctype.h> /* for isspace() */
 #include "internal.h"
 
+#define bb_need_full_version
+#define BB_DECLARE_EXTERN
+#include "messages.c"
 
 /* externs */
 extern int optind; /* in unistd.h */
@@ -676,7 +679,7 @@ extern int sed_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {
 		switch (opt) {
 			case 'V':
-				printf("BusyBox v%s (%s)\n", BB_VER, BB_BT);
+				printf("%s\n", full_version);
 				exit(0);
 				break;
 			case 'h':

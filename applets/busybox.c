@@ -4,6 +4,10 @@
 #include <string.h>
 #include <errno.h>
 
+#define bb_need_full_version
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 static int been_there_done_that = 0;
 
 /* It has been alledged that doing such things can
@@ -504,14 +508,14 @@ int busybox_main(int argc, char **argv)
 	if (been_there_done_that == 1 || argc < 1) {
 		const struct BB_applet *a = applets;
 
-		fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n"
+		fprintf(stderr, "%s\n\n"
 				"Usage: busybox [function] [arguments]...\n"
 				"   or: [function] [arguments]...\n\n"
 				"\tBusyBox is a multi-call binary that combines many common Unix\n"
 				"\tutilities into a single executable.  Most people will create a\n"
 				"\tlink to busybox for each function they wish to use, and BusyBox\n"
 				"\twill act like whatever it was invoked as.\n" 
-				"\nCurrently defined functions:\n", BB_VER, BB_BT);
+				"\nCurrently defined functions:\n", full_version);
 
 		while (a->name != 0) {
 			col +=
