@@ -1232,7 +1232,7 @@ void purge_package(const unsigned int package_num)
 	char list_name[strlen(package_name) + 25];
 
 	/* run prerm script */
-	if (run_package_script(package_name, "prerm") == -1) {
+	if (run_package_script(package_name, "prerm") != 0) {
 		error_msg_and_die("script failed, prerm failure");
 	}
 
@@ -1269,7 +1269,6 @@ void unpack_package(deb_file_t *deb_file)
 
 	FILE *out_stream;
 	char *info_prefix;
-	int return_value;
 
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
@@ -1288,11 +1287,7 @@ void unpack_package(deb_file_t *deb_file)
 	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs | extract_unconditional), info_prefix, NULL);
 
 	/* Run the preinst prior to extracting */
-	return_value = run_package_script(package_name, "preinst");
-	if (return_value == -1) {
-	    error_msg_and_die("could not execute pre-installation script.");
-	}
-	if (return_value != 0) {
+	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
 		error_msg_and_die("subprocess pre-installation script returned error.");
 	}	
@@ -1318,13 +1313,11 @@ void configure_package(deb_file_t *deb_file)
 	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const char *package_version = name_hashtable[package_hashtable[deb_file->package]->version];
 	const int status_num = search_status_hashtable(package_name);
-	int return_value;
 
 	printf("Setting up %s (%s)\n", package_name, package_version);
 
 	/* Run the postinst script */
-	return_value = run_package_script(package_name, "postinst");
-	if (return_value == -1) {
+	if (run_package_script(package_name, "postinst") != 0) {
 		/* TODO: handle failure gracefully */
 		error_msg_and_die("postrm failure.. set status to what?");
 	}
