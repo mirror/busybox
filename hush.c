@@ -102,7 +102,7 @@
 #include <signal.h>
 
 /* #include <dmalloc.h> */
-#define DEBUG_SHELL
+/* #define DEBUG_SHELL */
 
 #ifdef BB_VER
 #include "busybox.h"
@@ -814,7 +814,12 @@ static int file_get(struct in_str *i)
 		if (i->__promptme && interactive && i->file == stdin) {
 			get_user_input(i);
 			i->promptmode=2;
+		} else {
+			static char buffer;
+			buffer = fgetc(i->file);
+			i->p = &buffer;
 		}
+
 		i->__promptme = 0;
 
 		if (i->p && *i->p) {
@@ -1152,15 +1157,17 @@ static int run_list_real(struct pipe *pi)
 {
 	int rcode=0;
 	int if_code=0, next_if_code=0;  /* need double-buffer to handle elif */
-	reserved_style rmode=RES_NONE;
+	reserved_style rmode, skip_more_in_this_rmode=RES_XXXX;
 	for (;pi;pi=pi->next) {
 		rmode = pi->r_mode;
-		debug_printf("rmode=%d  if_code=%d  next_if_code=%d\n", rmode, if_code, next_if_code);
+		debug_printf("rmode=%d  if_code=%d  next_if_code=%d skip_more=%d\n", rmode, if_code, next_if_code, skip_more_in_this_rmode);
+		if (rmode == skip_more_in_this_rmode) continue;
+		skip_more_in_this_rmode = RES_XXXX;
 		if (rmode == RES_THEN || rmode == RES_ELSE) if_code = next_if_code;
 		if (rmode == RES_THEN &&  if_code) continue;
 		if (rmode == RES_ELSE && !if_code) continue;
 		if (rmode == RES_ELIF && !if_code) continue;
-		if (pi->num_progs == 0) break;
+		if (pi->num_progs == 0) continue;
 		rcode = run_pipe_real(pi);
 		if (rcode!=-1) {
 			/* We only ran a builtin: rcode was set by the return value
@@ -1194,7 +1201,8 @@ static int run_list_real(struct pipe *pi)
 			next_if_code=rcode;  /* can be overwritten a number of times */
 		if ( (rcode==EXIT_SUCCESS && pi->followup==PIPE_OR) ||
 		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
-			return rcode;  /* XXX broken if list is part of if/then/else */
+			skip_more_in_this_rmode=rmode;
+			/* return rcode; */ /* XXX broken if list is part of if/then/else */
 	}
 	return rcode;
 }
