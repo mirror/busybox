@@ -939,20 +939,47 @@
 #define hostname_example_usage \
 	"$ hostname\n" \
 	"sage \n"
+
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   #define USAGE_HTTPD_BASIC_AUTH(a) a
+  #ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+    #define USAGE_HTTPD_AUTH_MD5(a) a
+  #else
+    #define USAGE_HTTPD_AUTH_MD5(a)
+  #endif
 #else
   #define USAGE_HTTPD_BASIC_AUTH(a)
+  #define USAGE_HTTPD_AUTH_MD5(a)
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  #define USAGE_HTTPD_STANDALONE(a)
+  #define USAGE_HTTPD_SETUID(a)
+#else
+  #define USAGE_HTTPD_STANDALONE(a) a
+  #ifdef CONFIG_FEATURE_HTTPD_SETUID
+    #define USAGE_HTTPD_SETUID(a) a
+  #else
+    #define USAGE_HTTPD_SETUID(a)
+  #endif
 #endif
 #define httpd_trivial_usage \
-	"[-p <port>] [-d/-e <string>]" USAGE_HTTPD_BASIC_AUTH(" [-c <conf file>] [-r <realm>]")
+	"[-c <conf file>]" \
+	USAGE_HTTPD_STANDALONE(" [-p <port>]") \
+	USAGE_HTTPD_SETUID(" [-u user]") \
+	USAGE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
+	USAGE_HTTPD_AUTH_MD5(" [-m pass]") \
+	" [-d/-e <string>]"
 #define httpd_full_usage \
        "Listens for incoming http server requests.\n"\
        "Options:\n" \
-       "\t-p PORT\tServer port (default 80).\n" \
-       USAGE_HTTPD_BASIC_AUTH("\t-c FILE\tSpecifies configuration file.  (default httpd.conf)\n\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
+       "\t-c FILE\tSpecifies configuration file. (default httpd.conf)\n" \
+       USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
+       USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privilegies port\n") \
+       USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
+       USAGE_HTTPD_AUTH_MD5("\t-m PASS\tCrypt PASS with md5 algorithm\n") \
        "\t-e STRING\tHtml encode STRING\n" \
-       "\t-d STRING\tURL decode STRING\n" 
+       "\t-d STRING\tURL decode STRING"
+
 #define hwclock_trivial_usage \
 	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
 #define hwclock_full_usage \
