@@ -1,6 +1,4 @@
 0.40
-	* Added the -s option to du -beppu
-	* Fixed an embarrasing segfault in head	-beppu
 	* New Apps: sort, uniq. -beppu
 	* New Apps: lsmod, rmmod -erik
 	* New Apps: fbset contributed by Randolph Chung <tausq@debian.org>.
@@ -12,7 +10,9 @@
 	    being present, but if you dont like the defautl behavior you can
 	    now do something about it.  Init is much cleaner as a result.
 	* Fixed an bug in syslogd causing it to stop after 20 minutes. -erik
+	* Fixed an embarrasing segfault in head	-beppu
 	* Fixed the embarrasing failure of 'logger -p'. -erik
+	* Added the -s option to du -beppu
 	* Re-worked the source tree a bit so it will compile under glibc 2.0.7 
 	    with the 2.0.x Linux kernel.
 	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
@@ -41,7 +41,7 @@
 	* Fixed a bug where 'mknod --help' would segfault.
 	    
 
-	-Erik Andersen
+	-Erik Andersen, Jan 07, 2000
 
 0.39 
 	* New Apps: ping, hostname, and mkfifo contributed by Randolph Chung
