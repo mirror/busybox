@@ -12,7 +12,7 @@
 	"\t-p timeconstant\n"
 
 #define ar_trivial_usage \
-	"-[ovR]{ptx} ARCHIVE FILES"
+	"-[ov] [ptx] ARCHIVE FILES"
 #define ar_full_usage \
 	"Extract or list FILES from an ar archive.\n\n" \
 	"Options:\n" \
@@ -20,8 +20,7 @@
 	"\t-p\t\textract to stdout\n" \
 	"\t-t\t\tlist\n" \
 	"\t-x\t\textract\n" \
-	"\t-v\t\tverbosely list files processed\n" \
-	"\t-R\t\trecursive action"
+	"\t-v\t\tverbosely list files processed\n"
 
 #define basename_trivial_usage \
 	"FILE [SUFFIX]"
