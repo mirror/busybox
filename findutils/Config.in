@@ -9,7 +9,7 @@ config CONFIG_FIND
 	bool "find"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  find is used to search your system to find specified files.
 
 config CONFIG_FEATURE_FIND_MTIME
 	bool "  Enable modified time matching (-mtime) option"
@@ -58,7 +58,7 @@ config CONFIG_GREP
 	bool "grep"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  grep is used to search files for a specified pattern.
 
 config CONFIG_FEATURE_GREP_EGREP_ALIAS
 	bool "  Support extended regular expressions (egrep & grep -E)"
@@ -87,8 +87,8 @@ config CONFIG_XARGS
 	bool "xargs"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
-
+	  xargs is used to execute a specified command on
+	  every item from standard input.  
 
 endmenu
 

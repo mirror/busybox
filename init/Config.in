@@ -9,21 +9,21 @@ config CONFIG_INIT
 	bool "init"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  init is the first program run when the system boots.
 
 config CONFIG_FEATURE_USE_INITTAB
 	bool "  Support reading an inittab file?"
 	default y
 	depends on CONFIG_INIT
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow init to read an inittab file when the system boot.
 
 config CONFIG_FEATURE_INITRD
 	bool "  Support running init from within an initrd?"
 	default y
 	depends on CONFIG_INIT
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow init to be called from an initrd as linuxrc.
 
 config CONFIG_FEATURE_INIT_COREDUMPS
 	bool "  Support dumping core for child processes (debugging only)?"

@@ -206,8 +206,8 @@ config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	default y
 	depends on CONFIG_TAR
 	help
-	 With this option busybox supports the GNU long filename
-	  and linkanmes.
+	 With this option busybox supports GNU long filenames and 
+	 linknames.
 
 config CONFIG_FEATURE_UNARCHIVE_TAPE
 	bool "  Enable tape drive support"

@@ -9,7 +9,7 @@ config CONFIG_INSMOD
 	bool "insmod"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	insmod is used to load specified modules in the running kernel.
 
 config CONFIG_FEATURE_OLD_MODULE_INTERFACE
 	bool "  Support older (pre 2.1) Linux kernels"
@@ -83,7 +83,7 @@ config CONFIG_LSMOD
 	bool "lsmod"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  lsmod is used to display a list of loaded modules.
 
 config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 	bool "  Support lsmod query_module interface (add 638 bytes)"
@@ -102,7 +102,7 @@ config CONFIG_RMMOD
 	bool "rmmod"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  rmmod is used to unload specified modules from the kernel.
 
 config CONFIG_FEATURE_CHECK_TAINTED_MODULE
 	bool "Support tainted module checking with new kernels"

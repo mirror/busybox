@@ -92,7 +92,8 @@ config CONFIG_FEATURE_DATE_ISOFMT
 	default y
 	depends on CONFIG_DATE
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable option (-I) to output an ISO-8601 compliant
+	  date/time string.
 
 config CONFIG_DD
 	bool "dd"

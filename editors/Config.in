@@ -28,7 +28,8 @@ config CONFIG_SED
 	bool "sed"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  sed is used to perform text transformations on a file
+	  or input from a pipeline.
 
 config CONFIG_FEATURE_SED_EMBEDED_NEWLINE
 	bool " Embeded newline (EXPERIMENTAL)"
@@ -43,7 +44,10 @@ config CONFIG_VI
 	bool "vi"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  'vi' is a text editor.  More specifically, it is the One True
+	  text editor <grin>.  It does, however, have a rather steep 
+	  learning curve.  If you are not already comfortable with 'vi'
+	  you may wish to use something else.
 
 config CONFIG_FEATURE_VI_COLON
 	bool "  Enable \":\" colon commands (no \"ex\" mode)"
