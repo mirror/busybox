@@ -160,7 +160,7 @@ static int complement(unsigned char *buffer, unsigned int buffer_len)
 extern int tr_main(int argc, char **argv)
 {
 	register unsigned char *ptr;
-	unsigned int output_length, input_length;
+	unsigned int output_length=0, input_length;
 	int index = 1;
 	short i;
 
