@@ -98,12 +98,6 @@
 #include <sys/param.h>
 #include "busybox.h"
 
- 
- typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-
-
 static const int MINIX_ROOT_INO = 1;
 static const int MINIX_LINK_MAX = 250;
 static const int MINIX2_LINK_MAX = 65530;
@@ -130,13 +124,13 @@ static const int MINIX_V2 = 0x0002;		/* minix V2 fs */
  * Note the 8-bit gid and atime and ctime.
  */
 struct minix_inode {
-	u16 i_mode;
-	u16 i_uid;
-	u32 i_size;
-	u32 i_time;
-	u8  i_gid;
-	u8  i_nlinks;
-	u16 i_zone[9];
+	u_int16_t i_mode;
+	u_int16_t i_uid;
+	u_int32_t i_size;
+	u_int32_t i_time;
+	u_int8_t  i_gid;
+	u_int8_t  i_nlinks;
+	u_int16_t i_zone[9];
 };
 
 /*
@@ -146,35 +140,35 @@ struct minix_inode {
  * now 16-bit. The inode is now 64 bytes instead of 32.
  */
 struct minix2_inode {
-	u16 i_mode;
-	u16 i_nlinks;
-	u16 i_uid;
-	u16 i_gid;
-	u32 i_size;
-	u32 i_atime;
-	u32 i_mtime;
-	u32 i_ctime;
-	u32 i_zone[10];
+	u_int16_t i_mode;
+	u_int16_t i_nlinks;
+	u_int16_t i_uid;
+	u_int16_t i_gid;
+	u_int32_t i_size;
+	u_int32_t i_atime;
+	u_int32_t i_mtime;
+	u_int32_t i_ctime;
+	u_int32_t i_zone[10];
 };
 
 /*
  * minix super-block data on disk
  */
 struct minix_super_block {
-	u16 s_ninodes;
-	u16 s_nzones;
-	u16 s_imap_blocks;
-	u16 s_zmap_blocks;
-	u16 s_firstdatazone;
-	u16 s_log_zone_size;
-	u32 s_max_size;
-	u16 s_magic;
-	u16 s_state;
-	u32 s_zones;
+	u_int16_t s_ninodes;
+	u_int16_t s_nzones;
+	u_int16_t s_imap_blocks;
+	u_int16_t s_zmap_blocks;
+	u_int16_t s_firstdatazone;
+	u_int16_t s_log_zone_size;
+	u_int32_t s_max_size;
+	u_int16_t s_magic;
+	u_int16_t s_state;
+	u_int32_t s_zones;
 };
 
 struct minix_dir_entry {
-	u16 inode;
+	u_int16_t inode;
 	char name[0];
 };
 
