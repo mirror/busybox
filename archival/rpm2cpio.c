@@ -68,8 +68,7 @@ extern int rpm2cpio_main(int argc, char **argv)
 	if (argc == 1) {
 		rpmfile = stdin;
 	} else {
-		rpmfile = fopen(argv[1], "r");
-	 	if (!rpmfile) perror_msg_and_die("Can't open rpm file");
+		rpmfile = xfopen(argv[1], "r");
 		/* set the buffer size */
 		setvbuf(rpmfile, NULL, _IOFBF, 0x8000);
 	}

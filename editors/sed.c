@@ -804,7 +804,7 @@ static void process_file(FILE *file)
 
 extern int sed_main(int argc, char **argv)
 {
-	int opt;
+	int opt, status = EXIT_SUCCESS;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
@@ -851,15 +851,13 @@ extern int sed_main(int argc, char **argv)
 		int i;
 		FILE *file;
 		for (i = optind; i < argc; i++) {
-			file = fopen(argv[i], "r");
-			if (file == NULL) {
-				perror_msg("%s", argv[i]);
-			} else {
+			if (file = wfopen(argv[i], "r")) {
 				process_file(file);
 				fclose(file);
-			}
+			} else
+				status = EXIT_FAILURE;
 		}
 	}
 	
-	return 0;
+	return status;
 }

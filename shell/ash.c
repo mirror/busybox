@@ -11815,10 +11815,8 @@ opentrace() {
 #else
 	strcpy(s, "./trace");
 #endif /* not_this_way */
-	if ((tracefile = fopen(s, "a")) == NULL) {
-		fprintf(stderr, "Can't open %s\n", s);
+	if ((tracefile = wfopen(s, "a")) == NULL)
 		return;
-	}
 #ifdef O_APPEND
 	if ((flags = fcntl(fileno(tracefile), F_GETFL, 0)) >= 0)
 		fcntl(fileno(tracefile), F_SETFL, flags | O_APPEND);
@@ -12648,7 +12646,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.34 2001/10/31 11:05:49 andersen Exp $
+ * $Id: ash.c,v 1.35 2001/11/12 16:44:55 kraai Exp $
  */
 static int timescmd (int argc, char **argv)
 {
