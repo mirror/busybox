@@ -25,9 +25,11 @@
 #include <string.h>
 #include <fnmatch.h>
 
+#define sysinfo kernel_sysinfo
 #include <linux/netdevice.h>
 #include <linux/if_arp.h>
 #include <linux/sockios.h>
+#undef sysinfo
 
 #include "rt_names.h"
 #include "utils.h"
