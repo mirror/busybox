@@ -11,17 +11,17 @@ the expected functionality and behave very much like their GNU counterparts.
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
-systems. To create a working system, just add a kernel, a shell (such as ash),
-and an editor (such as elvis-tiny or ae).
+systems. To create a working system, just add a kernel and an editor (such as
+e3 (http://www.sax.de/~adlibiti) or elvis-tiny).
 
 BusyBox was originally written to support the Debian Rescue/Install disks, but
 it also makes an excellent environment for any small or embedded system.
 
-As of version 0.20 there is a version number. : ) Also as of version 0.20,
+As of version 0.20 there is now a version number. : ) Also as of version 0.20,
 BusyBox is now modularized to easily allow you to build only the components you
 need, thereby reducing binary size. To turn off unwanted BusyBox components,
-simply edit the file "Config.h" and comment out the components you do not
-need using C++ style (//) comments.
+simply edit the file "Config.h" and comment out the components you do not need
+using C++ style (//) comments.
 
 After the build is complete, a busybox.links file is generated.  This is
 used by 'make install' to create symlinks to the busybox binary for all
@@ -30,24 +30,57 @@ forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e., make PREFIX="/tmp/foo" install)
 
 ----------------
+
 Getting help:
+
 When you find you need help, you can check out the BusyBox mailing list
 archives at http://opensource.lineo.com/lists/busybox/ or even join
 the mailing list if you are interested.
 
 ----------------
+
 Bugs:
-If you find bugs, follow the instructions at http://bugs.lineo.com/Reporting.html
-and submit a bug report.  This way, we can be sure nothing falls through the 
-cracks...
+
+If you find bugs, please submit a bug report.  Full instructions on how to
+report a bug are found at http://bugs.lineo.com/Reporting.html.
+
+For the impatient: To submit a bug, simply send an email describing the problem
+to submit@bugs.lineo.com.  Bug reports should look something like this:
+
+    To: submit@bugs.lineo.com
+    From: diligent@testing.linux.org
+    Subject: /bin/true doesn't work
+
+    Package: busybox
+    Version: 0.48
+
+    When I invoke '/bin/true' it doesn't work.  I expected it to return 
+    a "0" but it returned a "1" instead.  Here is the transcript:
+	$ /bin/true ; echo $?
+	1
+    With GNU /bin/true, I get the following output:
+	$ /bin/true ; echo $?
+	0
+    I am using Debian 2.2r2, kernel version 2.2.18, and the latest
+    uClibc from CVS.  Thanks for the wonderful program!
+	-Diligent
+
+Note the careful description and use of examples showing not only what BusyBox
+does, but also a counter example showing what an equivalent GNU app does.  Bug
+reports lacking such detail may take a _long_ time to be fixed...  Thanks for
+understanding.
 
 ----------------
+
 FTP:
+
 Source for the latest released version can always be downloaded from 
     ftp://ftp.lineo.com/pub/busybox. 
 
 ----------------
+
 CVS:
+
 BusyBox now has its own publicly browsable CVS tree at:
     http://opensource.lineo.com/cgi-bin/cvsweb/busybox/
 
@@ -56,7 +89,6 @@ Anonymous CVS access is available.  For instructions, check out:
 
 For those that are actively contributing there is even CVS write access:
     http://opensource.lineo.com/cvs_write.html
-
 
 ----------------
 

@@ -6,22 +6,26 @@ around to it some time. If you have any good ideas, please let me know.
 * login/sulogin/passwd/getty/etc are part of tinylogin, and so are not
     needed or wanted in busybox (or else I'd have to link to libcrypt).
 
-* Networking apps are probably going to be split out some time soon into a
-    separate package (named perhaps netkit-tiny?).  This would remove the
-    following items from BusyBox: hostid, hostname, nc, nslookup, telnet, and
-    ping.  nfs mounting and syslogd (network logging) will remain in BusyBox.
+* Networking apps are going to be split out to a new package called netkit-tiny
+    before the next release of Busybox.  This will remove the following items
+    from BusyBox: hostid, hostname, nc, nslookup, telnet, and ping.  nfs
+    mounting and syslogd (network logging) will remain in BusyBox.
 
  -Erik
 
 -----------
 
-* dnsdomainname
-* traceroute/netstat
+Possible apps to include some time:
+
 * hwclock
 * stty
-* tftp
-* ftp
 * group/commonize strings, remove dups (for i18n, l10n)
+
+-----------------------
+
+The Busybox lash shell needs to be taught Bourne shell grammer.  This
+is planned for the next release of Busybox.  Look out ash, we are coming
+for you...
 
 -----------------------
 
@@ -31,11 +35,18 @@ Running the following:
 	sed -ne 's/.*undefined reference to `\(.*\)..*/\1/gp' | sort | uniq
 
 reveals the list of all external (i.e. libc) things that BusyBox depends on.
-It would be a very nice thing to reduce this list to an absolute minimum, and
-then create a microLibc to provide these functions.  There is no good reason
-for GNU libc to be so big.  I'm sure it can be a lot better.
+It would be a very nice thing to reduce this list to an absolute minimum, to
+reduce the footprint of busybox when staticly linking with libraries such as
+uClibc.
 
-(BTW, this is more informative if BB_FEATURE_NFSMOUNT is turned off...)
+-----------------------
+
+Currently, busybox bypasses libc NSS.  Some folks might want that,
+so perhaps adding in the option to choose whether to go to libc for
+things like getpwnam() or whether to use the busybox version might 
+be nice.
+
+-----------------------
 
 Most wanted list:
 

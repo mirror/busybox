@@ -51,6 +51,7 @@
 	* Matt Kraai -- logger now logs all arguments, not just the first
 	* Gennady Feldman -- syslogd no longer logs to localhost if compiled
 	    for remote logging...
+	* Richard June <rjune@ims1.imagestream-is.com> -- support for 'gzip -d'
 	* various artists -- Other good stuff that I forgot to document.
 
 
