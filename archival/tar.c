@@ -596,6 +596,12 @@ readHeader(const TarHeader * hp, int fileCount, char **fileTable)
 	 */
 	if (S_ISDIR(mode)) {
 		if (createPath(outName, mode) == TRUE) {
+			/* make the final component, just in case it was
+			 * omitted by createPath() (which will skip the
+			 * directory if it doesn't have a terminating '/')
+			 */
+			mkdir(outName, mode);
+
 			/* Set the file time */
 			utb.actime = mtime;
 			utb.modtime = mtime;

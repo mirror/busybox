@@ -365,6 +365,17 @@ extern int syslogd_main(int argc, char **argv)
 		*p++ = '\0';
 	}
 
+#ifdef BB_KLOGD
+	/* Start up the klogd process */
+	if (startKlogd == TRUE) {
+		klogd_pid = fork();
+		if (klogd_pid == 0) {
+			strncpy(argv[0], "klogd", strlen(argv[0]));
+			doKlogd();
+		}
+	}
+#endif
+
 	if (doFork == TRUE) {
 		pid = fork();
 		if (pid < 0)
@@ -376,17 +387,6 @@ extern int syslogd_main(int argc, char **argv)
 	} else {
 		doSyslogd();
 	}
-
-#ifdef BB_KLOGD
-	/* Start up the klogd process */
-	if (startKlogd == TRUE) {
-		klogd_pid = fork();
-		if (klogd_pid == 0) {
-			strncpy(argv[0], "klogd", strlen(argv[0]));
-			doKlogd();
-		}
-	}
-#endif
 
 	exit(TRUE);
 }

@@ -58,9 +58,9 @@ static void server_fprint(FILE * dst)
 /* only works for IPv4 */
 static int addr_fprint(char *addr, FILE * dst)
 {
-	uint8_t split[4];
-	uint32_t ip;
-	uint32_t *x = (uint32_t *) addr;
+	u_int8_t split[4];
+	u_int32_t ip;
+	u_int32_t *x = (u_int32_t *) addr;
 
 	ip = ntohl(*x);
 	split[0] = (ip & 0xff000000) >> 24;
@@ -73,12 +73,12 @@ static int addr_fprint(char *addr, FILE * dst)
 }
 
 /* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
- * into a uint32_t
+ * into a u_int32_t
  */
-static uint32_t str_to_addr(const char *addr)
+static u_int32_t str_to_addr(const char *addr)
 {
-	uint32_t split[4];
-	uint32_t ip;
+	u_int32_t split[4];
+	u_int32_t ip;
 
 	sscanf(addr, "%d.%d.%d.%d",
 		   &split[0], &split[1], &split[2], &split[3]);
@@ -174,4 +174,4 @@ int nslookup_main(int argc, char **argv)
 	return 0;
 }
 
-/* $Id: nslookup.c,v 1.4 2000/02/08 19:58:47 erik Exp $ */
+/* $Id: nslookup.c,v 1.5 2000/02/18 21:34:17 erik Exp $ */

@@ -118,7 +118,7 @@ initAction *initActionList = NULL;
 static char *secondConsole = VT_SECONDARY;
 static char *log = VT_LOG;
 static int kernelVersion = 0;
-static char termType[32] = "TERM=ansi";
+static char termType[32] = "TERM=linux";
 static char console[32] = _PATH_CONSOLE;
 static void delete_initAction(initAction * action);
 
@@ -314,6 +314,8 @@ static void console_init()
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			log = NULL;
 			secondConsole = NULL;
+			/* Force the TERM setting to vt102 for serial console */
+			snprintf(termType, sizeof(termType) - 1, "TERM=vt102");
 			message(LOG | CONSOLE,
 					"serial console detected.  Disabling virtual terminals.\r\n");
 		}
@@ -839,11 +841,11 @@ extern int init_main(int argc, char **argv)
 
 	/* Hello world */
 #ifndef DEBUG_INIT
-	message(LOG | CONSOLE,
+	message(LOG,
 			"init started:  BusyBox v%s (%s) multi-call binary\r\n",
 			BB_VER, BB_BT);
 #else
-	message(LOG | CONSOLE,
+	message(LOG,
 			"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n",
 			getpid(), BB_VER, BB_BT);
 #endif
@@ -851,7 +853,7 @@ extern int init_main(int argc, char **argv)
 
 	/* Mount /proc */
 	if (mount("proc", "/proc", "proc", 0, 0) == 0) {
-		message(LOG | CONSOLE, "Mounting /proc: done.\n");
+		message(LOG, "Mounting /proc: done.\n");
 		kernelVersion = get_kernel_revision();
 	} else
 		message(LOG | CONSOLE, "Mounting /proc: failed!\n");

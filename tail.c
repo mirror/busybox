@@ -330,7 +330,7 @@ static int tail_file(const char *filename, off_t n_units)
 		/* Not standard input.  */
 		fd = open(filename, O_RDONLY);
 		if (fd == -1)
-			errorMsg("open error");
+			fatalError("open error");
 
 		errors = tail_lines(filename, fd, (long) n_units);
 		close(fd);

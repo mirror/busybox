@@ -37,6 +37,9 @@ void *__libc_stack_end;
 
 static const struct Applet applets[] = {
 
+#ifdef BB_BASENAME				//usr/bin/basename
+	{"basename", basename_main},
+#endif
 #ifdef BB_BUSYBOX				//bin
 	{"busybox", busybox_main},
 #endif

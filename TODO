@@ -24,8 +24,27 @@ around to it some time. If you have any good ideas, please let me know.
 * killall
 * stty
 * tr
+* cut
 * expr (maybe?)  (ash builtin?)
 
+
+
+-----------------------
+
+
+busybox.defs.h is too big and hard to follow.
+
+I either need to add a better build system (like the Linux kernel?)
+or I need to split up busybox.defs.h into coherent chunks (i.e.
+busybox.defs.h just has a bunch of: 
+
+#include "fileutils.h"
+#include "shellutils.h"
+
+which would then have smaller sets of #defines...
+Hmm.  Needs to be carefully thought out.
+
+-----------------------
 
 
 
@@ -66,4 +85,23 @@ think???)
 #3
 There is no exclude file(s) option to tar. LRP's packaging system can not
 function without this. Will you have the time to add this soon?
+
+
+-----------------------
+
+
+/bin/busybox --install -s    which makes all links to commands that it
+  can support (an optionnal -s should be used for symbolic links instead
+  of hard links).
+
+-----------------------
+
+cd /mnt
+mkdir BACKUP
+mv * BACKUP
+
+Today, "mv" behaved as a cp -a and my disk becomed full. It does not
+work properly either when renaming a directory into something else
+(it produces a lot of disk activity when doing this).
+
 

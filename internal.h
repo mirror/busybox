@@ -57,6 +57,7 @@ struct Applet {
 	int	(*main)(int argc, char** argv);
 };
 
+extern int basename_main(int argc, char **argv);
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_main(int argc, char** argv);

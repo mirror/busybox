@@ -19,7 +19,7 @@
 #
 
 # PROG      := busybox
-VERSION   := 0.42
+VERSION   := 0.43
 BUILDTIME := $(shell TZ=GMT date "+%Y%m%d-%H%M")
 
 # Set the following to `true' to make a debuggable build.
@@ -89,7 +89,7 @@ ifndef $(PREFIX)
 endif
 
 LIBRARIES =
-OBJECTS   = $(shell ./busybox.sh) messages.o utility.o
+OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT

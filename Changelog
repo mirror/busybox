@@ -1,3 +1,17 @@
+0.43
+	* Wrote basename
+	* tar wouldn't create directory entries that don't end in '/',
+	    now it does (fix thanks to Avery Pennarun <apenwarr@worldvisions.ca>)
+	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	    -  When `tail' fails to open a file it now exits.
+	    - When `syslogd' is given the `-n' option it should still use 
+		fork() for running klogd.
+	* nslookup types are now changed to u_int32_t (instead of uint32_t)
+	    changed per a patch from Pascal Bellard <pascal.bellard@ascend.com>
+
+	-Erik Andersen
+
+
 0.42
 
         * Fairly massive restructuring of umount.c to deal with remounting 
