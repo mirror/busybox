@@ -483,8 +483,10 @@ static int list_item(const char *name)
 		lstat(fullname, &cur->dstat);   /* get file stat info into node */
 		dnp[ni++]= cur;   /* save pointer to node in array */
 #else
-		if (lstat(fullname, &info))
-			goto direrr;		/* (shouldn't fail) */
+		if (lstat(fullname, &info)) {
+			closedir(dir);
+			goto listerr;		/* (shouldn't fail) */
+		}
 		list_single(entry->d_name, &info, fullname);
 #endif
 	}
@@ -504,8 +506,6 @@ static int list_item(const char *name)
 
 	return 0;
 
-  direrr:
-	closedir(dir);
   listerr:
 	newline();
 	perror(name);
