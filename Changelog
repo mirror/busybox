@@ -37,6 +37,7 @@
 	* Fixed mount and umount.  Previously they could leak loop device 
 	    allocations, causing the system to quickly run out.  Fix for umount
 	    by Ben Collins <bcollins@debian.org>, and mount was fixed by me.
+	* ls formatting on 8 char user names fixed by Randolph Chung <tausq@debian.org>.
 
 
 	-Erik Andersen

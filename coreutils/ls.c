@@ -198,7 +198,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 			if (*scratch) {
 			    fputs(scratch, stdout);
 			    if ( strlen( scratch) <= 8 )
-				wr("         ", 8-strlen( scratch));
+				wr("          ", 9-strlen( scratch));
 			}
 			else {
 				writenum((long) info->st_uid,(short)8);
