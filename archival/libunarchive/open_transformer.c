@@ -7,27 +7,44 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Library General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <sys/types.h>
-
-#include <errno.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "libbb.h"
-#include "unarchive.h"
 
-extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary)
+/* transformer(), more than meets the eye */
+extern int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
 {
-	const unsigned short skip_amount = (boundary - (archive_handle->offset % boundary)) % boundary;
+	int fd_pipe[2];
+	int pid;
 
-	archive_handle->seek(archive_handle, skip_amount);
-	archive_handle->offset += skip_amount;
+	if (pipe(fd_pipe) != 0) {
+		bb_perror_msg_and_die("Can't create pipe");
+	}
 
-	return;
+	pid = fork();
+	if (pid == -1) {
+		bb_perror_msg_and_die("Fork failed");
+	}
+
+	if (pid == 0) {
+		/* child process */
+	    close(fd_pipe[0]); /* We don't wan't to read from the pipe */
+	    transformer(src_fd, fd_pipe[1]);
+	    close(fd_pipe[1]); /* Send EOF */
+	    exit(0);
+	    /* notreached */
+	}
+	/* parent process */
+	close(fd_pipe[1]); /* Don't want to write down the pipe */
+	close(src_fd);
+
+	return(fd_pipe[0]);
 }

@@ -96,10 +96,9 @@ extern int rpm2cpio_main(int argc, char **argv)
 	}
 
 	check_header_gzip(rpm_fd);
-	if (inflate(rpm_fd, fileno(stdout)) != 0) {
+	if (inflate_gunzip(rpm_fd, fileno(stdout)) != 0) {
 		bb_error_msg("Error inflating");
 	}
-	check_trailer_gzip(rpm_fd);
 
 	close(rpm_fd);
 

@@ -199,7 +199,8 @@ extern int unzip_main(int argc, char **argv)
 			archive_handle->action_data(archive_handle);
 		} else {
 			dst_fd = bb_xopen(archive_handle->file_header->name, O_WRONLY | O_CREAT);
-			inflate(archive_handle->src_fd, dst_fd);
+			inflate_init(zip_header.formated.cmpsize);
+			inflate_unzip(archive_handle->src_fd, dst_fd);
 			close(dst_fd);
 			chmod(archive_handle->file_header->name, archive_handle->file_header->mode);
 
@@ -227,10 +228,8 @@ extern int unzip_main(int argc, char **argv)
 		/* Data descriptor section */
 		if (zip_header.formated.flags & 4) {
 			/* skip over duplicate crc, compressed size and uncompressed size */
-			unsigned short i;
-			for (i = 0; i != 12; i++) {
-				archive_xread_char(archive_handle);
-			}
+			unsigned char data_description[12];
+			archive_xread_all(archive_handle, data_description, 12);
 			archive_handle->offset += 12;
 		}
 	}

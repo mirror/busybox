@@ -179,11 +179,10 @@ extern int gunzip_main(int argc, char **argv)
 #endif
 				if (magic2 == 0x8b) {
 					check_header_gzip(src_fd);
-					status = inflate(src_fd, dst_fd);
+					status = inflate_gunzip(src_fd, dst_fd);
 					if (status != 0) {
 						bb_error_msg_and_die("Error inflating");
 					}
-					check_trailer_gzip(src_fd);
 				} else {
 					bb_error_msg_and_die("Invalid magic");
 				}

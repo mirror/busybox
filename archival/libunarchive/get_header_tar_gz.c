@@ -23,6 +23,9 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 {
 	unsigned char magic[2];
 
+	/* Cant lseek over pipe's */
+	archive_handle->seek = seek_by_char;
+
 	archive_xread_all(archive_handle, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("Invalid gzip magic");
@@ -30,20 +33,10 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 
 	check_header_gzip(archive_handle->src_fd);
 
-	GZ_gzReadOpen(archive_handle->src_fd, 0, 0);
-
-	archive_handle->read = read_gz;
-	archive_handle->seek = seek_by_char;
-
+	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
 
-	/* Cleanup */
-	GZ_gzReadClose();
-
-	check_trailer_gzip(archive_handle->src_fd);
-	
-	/* Can only do one tar.gz per archive */
+	/* Can only do one file at a time */
 	return(EXIT_FAILURE);
 }
-

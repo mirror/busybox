@@ -103,7 +103,7 @@ static unsigned int gunzip_bb;	/* bit buffer */
 static unsigned char gunzip_bk;	/* bits in bit buffer */
 
 /* These control the size of the bytebuffer */
-#define BYTEBUFFER_MAX 0x8000
+static unsigned int bytebuffer_max = 0x8000;
 static unsigned char *bytebuffer = NULL;
 static unsigned int bytebuffer_offset = 0;
 static unsigned int bytebuffer_size = 0;
@@ -144,21 +144,16 @@ static const unsigned char border[] = {
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
 };
 
-static void fill_bytebuffer(void)
-{
-	if (bytebuffer_offset >= bytebuffer_size) {
-		/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
-		 * to the front of the bytebuffer, leave 4 bytes free at end of tail
-		 * so we can easily top up buffer in check_trailer_gzip() */
-		bytebuffer_size = 4 + bb_xread(gunzip_src_fd, &bytebuffer[4], BYTEBUFFER_MAX - 8);
-		bytebuffer_offset = 4;
-	}
-}
-
 static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current, const unsigned int required)
 {
 	while (*current < required) {
-		fill_bytebuffer();
+		if (bytebuffer_offset >= bytebuffer_size) {
+			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
+			 * to the front of the bytebuffer, leave 4 bytes free at end of tail
+			 * so we can easily top up buffer in check_trailer_gzip() */
+			bytebuffer_size = 4 + bb_xread(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8);
+			bytebuffer_offset = 4;
+		}
 		bitbuffer |= ((unsigned int) bytebuffer[bytebuffer_offset]) << *current;
 		bytebuffer_offset++;
 		*current += 8;
@@ -861,9 +856,9 @@ static void calculate_gunzip_crc(void)
 
 static int inflate_get_next_window(void)
 {
-	static int needAnotherBlock = 1;
 	static int method = -1; // Method == -1 for stored, -2 for codes
 	static int e = 0;
+	static int needAnotherBlock = 1;
 	
 	gunzip_outbuf_count = 0;
 
@@ -873,6 +868,8 @@ static int inflate_get_next_window(void)
 		if (needAnotherBlock) {
 			if(e) {
 				calculate_gunzip_crc();
+				e = 0;
+				needAnotherBlock = 1;
 				return 0;
 			} // Last block
 			method = inflate_block(&e);
@@ -895,54 +892,25 @@ static int inflate_get_next_window(void)
 	/* Doesnt get here */
 }
 
-/*
- * User functions
- *
- * read_gz, GZ_gzReadOpen, GZ_gzReadClose, inflate
- */
-
-extern ssize_t read_gz(int fd, void *buf, size_t count)
+/* Initialise bytebuffer, be carefull not to overfill the buffer */
+extern void inflate_init(unsigned int bufsize)
 {
-	static int morebytes = 0, finished = 0;
-	
-	if (morebytes) {
-		int bytesRead = morebytes > count ? count : morebytes;
-		memcpy(buf, gunzip_window + (gunzip_outbuf_count - morebytes), bytesRead);
-		morebytes -= bytesRead;
-		return bytesRead;
-	} else if (finished) {
-		return 0;
-	} else if (count >= 0x8000) { // We can decompress direcly to the buffer, 32k at a time
-		// Could decompress to larger buffer, but it must be a power of 2, and calculating that is probably more expensive than the benefit
-		unsigned char *old_gunzip_window = gunzip_window; // Save old window
-		gunzip_window = buf;
-		if (inflate_get_next_window() == 0) finished = 1;
-		gunzip_window = old_gunzip_window; // Restore old window
-		return gunzip_outbuf_count;
-	} else { // Oh well, need to split up the gunzip_window
-		int bytesRead;
-		if (inflate_get_next_window() == 0) finished = 1;
-		morebytes = gunzip_outbuf_count;
-		bytesRead = morebytes > count ? count : morebytes;
-		memcpy(buf, gunzip_window, bytesRead);
-		morebytes -= bytesRead;
-		return bytesRead;
-	}
-	
+	/* Set the bytebuffer size, default is same as gunzip_wsize */
+	bytebuffer_max = bufsize + 8;
+	bytebuffer_offset = 4;
+	bytebuffer_size = 0;
 }
 
-extern void GZ_gzReadOpen(int fd, void *unused, int nUnused)
+extern int inflate_unzip(int in, int out)
 {
+	ssize_t nwrote;
 	typedef void (*sig_type) (int);
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	gunzip_window = xmalloc(gunzip_wsize);
 	gunzip_outbuf_count = 0;
 	gunzip_bytes_out = 0;
-	gunzip_src_fd = fd;
-
-	/* Input buffer */
-	bytebuffer = xmalloc(BYTEBUFFER_MAX);
+	gunzip_src_fd = in;
 
 	/* initialize gunzip_window, bit buffer */
 	gunzip_bk = 0;
@@ -950,10 +918,20 @@ extern void GZ_gzReadOpen(int fd, void *unused, int nUnused)
 
 	/* Create the crc table */
 	make_gunzip_crc_table();
-}
 
-extern void GZ_gzReadClose(void)
-{
+	/* Allocate space for buffer */
+	bytebuffer = xmalloc(bytebuffer_max);	
+
+	while(1) {
+		int ret = inflate_get_next_window();
+		nwrote = bb_full_write(out, gunzip_window, gunzip_outbuf_count);
+		if (nwrote == -1) {
+			bb_perror_msg("write");
+			return -1;
+		}
+		if (ret == 0) break;
+	}
+
 	/* Cleanup */
 	free(gunzip_window);
 	free(gunzip_crc_table);
@@ -967,57 +945,20 @@ extern void GZ_gzReadClose(void)
 		gunzip_bb >>= 8;
 		gunzip_bk -= 8;
 	}
-}
-
-/*extern int inflate(int in, int out) // Useful for testing read_gz
-{
-	char buf[8192];
-	ssize_t nread, nwrote;
-
-	GZ_gzReadOpen(in, 0, 0);
-	while(1) { // Robbed from bb_copyfd.c
-		nread = read_gz(in, buf, sizeof(buf));
-		if (nread == 0) break; // no data to write
-		else if (nread == -1) {
-			bb_perror_msg("read");
-			return -1;
-		}
-		nwrote = bb_full_write(out, buf, nread);
-		if (nwrote == -1) {
-			bb_perror_msg("write");
-			return -1;
-		}
-	}
-	GZ_gzReadClose();
-	return 0;
-}*/
-
-extern int inflate(int in, int out)
-{
-	ssize_t nwrote;
-	GZ_gzReadOpen(in, 0, 0);
-	while(1) {
-		int ret = inflate_get_next_window();
-		nwrote = bb_full_write(out, gunzip_window, gunzip_outbuf_count);
-		if (nwrote == -1) {
-			bb_perror_msg("write");
-			return -1;
-		}
-		if (ret == 0) break;
-	}
-	GZ_gzReadClose();
 	return 0;
 }
 
-extern void check_trailer_gzip(int src_fd)
+extern int inflate_gunzip(int in, int out)
 {
 	unsigned int stored_crc = 0;
 	unsigned char count;
 
+	inflate_unzip(in, out);
+
 	/* top up the input buffer with the rest of the trailer */
 	count = bytebuffer_size - bytebuffer_offset;
 	if (count < 8) {
-		bb_xread_all(src_fd, &bytebuffer[bytebuffer_size], 8 - count);
+		bb_xread_all(in, &bytebuffer[bytebuffer_size], 8 - count);
 		bytebuffer_size += 8 - count;
 	}
 	for (count = 0; count != 4; count++) {
@@ -1027,14 +968,15 @@ extern void check_trailer_gzip(int src_fd)
 
 	/* Validate decompression - crc */
 	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
-		bb_error_msg_and_die("crc error");
+		bb_error_msg("crc error");
 	}
 
 	/* Validate decompression - size */
 	if (gunzip_bytes_out !=
 		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
 		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
-		bb_error_msg_and_die("Incorrect length, but crc is correct");
+		bb_error_msg("Incorrect length");
 	}
-
+	
+	return 0;
 }

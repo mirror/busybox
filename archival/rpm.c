@@ -197,7 +197,6 @@ void extract_cpio_gz(int fd) {
 
 	/* Initialise */
 	archive_handle = init_handle();
-	archive_handle->read = read_gz;
 	archive_handle->seek = seek_by_char;
 	//archive_handle->action_header = header_list;
 	archive_handle->action_data = data_extract_all;
@@ -213,11 +212,9 @@ void extract_cpio_gz(int fd) {
 	check_header_gzip(archive_handle->src_fd);	
 	chdir("/"); // Install RPM's to root
 
-	GZ_gzReadOpen(archive_handle->src_fd, 0, 0);
+	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);
+	archive_handle->offset = 0;
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS);
-	GZ_gzReadClose();
-	
-	check_trailer_gzip(archive_handle->src_fd);
 }
 
 

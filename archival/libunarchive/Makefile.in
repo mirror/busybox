@@ -49,6 +49,7 @@ LIBUNARCHIVE-y:= \
 \
 	data_align.o \
 	find_list_entry.o \
+	open_transformer.o \
 	init_handle.o
 
 GUNZIP_FILES:= check_header_gzip.o unzip.o

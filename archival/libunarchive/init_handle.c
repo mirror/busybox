@@ -30,7 +30,6 @@ archive_handle_t *init_handle(void)
 	archive_handle->action_header = header_skip;
 	archive_handle->action_data = data_skip;
 	archive_handle->filter = filter_accept_all;
-	archive_handle->read = bb_full_read;
 	archive_handle->seek = seek_by_jump;
 
 	return(archive_handle);
