@@ -30,26 +30,15 @@
 extern void *xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
-
-	if (!ptr)
+	if (ptr == NULL && size != 0)
 		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
 
-extern void *xrealloc(void *old, size_t size)
+extern void *xrealloc(void *ptr, size_t size)
 {
-	void *ptr;
-
-	/* SuS2 says "If size is 0 and ptr is not a null pointer, the
-	 * object pointed to is freed."  Do that here, in case realloc
-	 * returns a NULL, since we don't want to choke in that case. */
-	if (size==0 && old) {
-		free(old);
-		return NULL;
-	}
-
-	ptr = realloc(old, size);
-	if (!ptr)
+	ptr = realloc(ptr, size);
+	if (ptr == NULL && size != 0)
 		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
@@ -57,7 +46,7 @@ extern void *xrealloc(void *old, size_t size)
 extern void *xcalloc(size_t nmemb, size_t size)
 {
 	void *ptr = calloc(nmemb, size);
-	if (!ptr)
+	if (ptr == NULL && nmemb != 0 && size != 0)
 		error_msg_and_die(memory_exhausted);
 	return ptr;
 }
