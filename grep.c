@@ -56,7 +56,7 @@ static void print_matched_line(char *line, int linenum)
 	if (print_line_num)
 		printf("%i:", linenum);
 
-	printf("%s", line);
+	puts(line);
 }
 
 static void grep_file(FILE *file)
@@ -67,6 +67,8 @@ static void grep_file(FILE *file)
 	int nmatches = 0;
 
 	while ((line = get_line_from_file(file)) != NULL) {
+		if (line[strlen(line)-1] == '\n')
+			line[strlen(line)-1] = '\0';
 		linenum++;
 		ret = regexec(&regex, line, 0, NULL, 0);
 		if (ret == 0 && !invert_search) { /* match */
@@ -144,7 +146,7 @@ extern int grep_main(int argc, char **argv)
 	/* compile the regular expression
 	 * we're not going to mess with sub-expressions, and we need to
 	 * treat newlines right. */
-	reflags = REG_NOSUB | REG_NEWLINE; 
+	reflags = REG_NOSUB; 
 	if (ignore_case)
 		reflags |= REG_ICASE;
 	xregcomp(&regex, argv[optind], reflags);
