@@ -91,7 +91,7 @@ extern int gunzip_main(int argc, char **argv)
 	if (strcmp(applet_name, "zcat") == 0)
 		flags |= gunzip_to_stdout;
 
-	while ((opt = getopt(argc, argv, "ctfh")) != -1) {
+	while ((opt = getopt(argc, argv, "ctfhd")) != -1) {
 		switch (opt) {
 		case 'c':
 			flags |= gunzip_to_stdout;
@@ -101,6 +101,8 @@ extern int gunzip_main(int argc, char **argv)
 			break;
 		case 't':
 			flags |= gunzip_test;
+			break;
+		case 'd': /* Used to convert gzip to gunzip. */
 			break;
 		case 'h':
 		default:

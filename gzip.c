@@ -1900,42 +1900,36 @@ int gzip_main(int argc, char **argv)
 	int tostdout = 0;
 	int fromstdin = 0;
 	int force = 0;
+	int opt;
 
-	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
-		if (*((*argv) + 1) == '\0') {
+	while ((opt = getopt(argc, argv, "cf123456789d")) != -1) {
+		switch (opt) {
+		case 'c':
 			tostdout = 1;
-		}
-		while (*(++(*argv))) {
-			switch (**argv) {
-			case 'c':
-				tostdout = 1;
-				break;
-			case 'f':
-				force = 1;
-				break;
-			/* Ignore 1-9 (compression level) options */
-			case '1': case '2': case '3': case '4': case '5':
-			case '6': case '7': case '8': case '9':
-				break;
+			break;
+		case 'f':
+			force = 1;
+			break;
+		/* Ignore 1-9 (compression level) options */
+		case '1': case '2': case '3': case '4': case '5':
+		case '6': case '7': case '8': case '9':
+			break;
 #ifdef BB_GUNZIP
-			case 'd':
-				exit(gunzip_main(argc, argv));
+		case 'd':
+			optind = 1;
+			return gunzip_main(argc, argv);
 #endif
-			default:
-				show_usage();
-			}
+		default:
+			show_usage();
 		}
 	}
-	if (argc <= 0 ) {
+	if (optind == argc) {
 		fromstdin = 1;
 		tostdout = 1;
 	}
 
-	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
-		error_msg_and_die( "data not read from terminal. Use -f to force it.");
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		error_msg_and_die( "data not written to terminal. Use -f to force it.");
+		error_msg_and_die( "compressed data not written to terminal. Use -f to force it.");
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -1975,9 +1969,7 @@ int gzip_main(int argc, char **argv)
 		ifile_size = -1L;		/* convention for unknown size */
 	} else {
 		/* Open up the input file */
-		if (argc <= 0)
-			show_usage();
-		strncpy(ifname, *argv, MAX_PATH_LEN);
+		strncpy(ifname, argv[optind], MAX_PATH_LEN);
 
 		/* Open input file */
 		inFileNum = open(ifname, O_RDONLY);
