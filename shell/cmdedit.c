@@ -105,8 +105,7 @@ struct history {
  * command-line when the user has typed more than the current width. This
  * would allow the user to see a 'window' of what he has typed.
  */
-void
-cmdedit_setwidth(int w)
+static void cmdedit_setwidth(int w)
 {
 	if (w > 20) {
 		cmdedit_termw = w;
@@ -116,8 +115,17 @@ cmdedit_setwidth(int w)
 	}
 }
 
+static void win_changed(int junk)
+{
+	struct winsize win = { 0, 0, 0, 0 };
+	ioctl(0, TIOCGWINSZ, &win);
+	if (win.ws_col > 0) {
+		cmdedit_setwidth( win.ws_col - 1);
+	}
+}
 
-void cmdedit_reset_term(void)
+
+static void cmdedit_reset_term(void)
 {
 	if (reset_term)
 		/* sparc and other have broken termios support: use old termio handling. */
@@ -136,7 +144,7 @@ void cmdedit_reset_term(void)
 #endif
 }
 
-void clean_up_and_die(int sig)
+static void clean_up_and_die(int sig)
 {
 	cmdedit_reset_term();
 	fprintf(stdout, "\n");
@@ -145,7 +153,7 @@ void clean_up_and_die(int sig)
 }
 
 /* Go to HOME position */
-void input_home(int outputFd, int *cursor)
+static void input_home(int outputFd, int *cursor)
 {
 	while (*cursor > 0) {
 		xwrite(outputFd, "\b", 1);
@@ -154,7 +162,7 @@ void input_home(int outputFd, int *cursor)
 }
 
 /* Go to END position */
-void input_end(int outputFd, int *cursor, int len)
+static void input_end(int outputFd, int *cursor, int len)
 {
 	while (*cursor < len) {
 		xwrite(outputFd, "\033[C", 3);
@@ -163,7 +171,7 @@ void input_end(int outputFd, int *cursor, int len)
 }
 
 /* Delete the char in back of the cursor */
-void input_backspace(char* command, int outputFd, int *cursor, int *len)
+static void input_backspace(char* command, int outputFd, int *cursor, int *len)
 {
 	int j = 0;
 
@@ -196,7 +204,7 @@ void input_backspace(char* command, int outputFd, int *cursor, int *len)
 }
 
 /* Delete the char in front of the cursor */
-void input_delete(char* command, int outputFd, int cursor, int *len)
+static void input_delete(char* command, int outputFd, int cursor, int *len)
 {
 	int j = 0;
 
@@ -220,7 +228,7 @@ void input_delete(char* command, int outputFd, int cursor, int *len)
 }
 
 /* Move forward one charactor */
-void input_forward(int outputFd, int *cursor, int len)
+static void input_forward(int outputFd, int *cursor, int len)
 {
 	if (*cursor < len) {
 		xwrite(outputFd, "\033[C", 3);
@@ -229,7 +237,7 @@ void input_forward(int outputFd, int *cursor, int len)
 }
 
 /* Move back one charactor */
-void input_backward(int outputFd, int *cursor)
+static void input_backward(int outputFd, int *cursor)
 {
 	if (*cursor > 0) {
 		xwrite(outputFd, "\033[D", 3);
@@ -240,7 +248,7 @@ void input_backward(int outputFd, int *cursor)
 
 
 #ifdef BB_FEATURE_SH_TAB_COMPLETION
-char** username_tab_completion(char* command, int *num_matches)
+static char** username_tab_completion(char* command, int *num_matches)
 {
 	char **matches = (char **) NULL;
 	*num_matches=0;
@@ -249,7 +257,7 @@ char** username_tab_completion(char* command, int *num_matches)
 }
 
 #include <dirent.h>
-char** exe_n_cwd_tab_completion(char* command, int *num_matches)
+static char** exe_n_cwd_tab_completion(char* command, int *num_matches)
 {
 	char *dirName;
 	char **matches;
@@ -289,7 +297,7 @@ char** exe_n_cwd_tab_completion(char* command, int *num_matches)
 	return (matches);
 }
 
-void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len, int lastWasTab)
+static void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len, int lastWasTab)
 {
 	/* Do TAB completion */
 	static int num_matches=0;
@@ -387,7 +395,7 @@ void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len,
 }
 #endif
 
-void get_previous_history(struct history **hp, char* command)
+static void get_previous_history(struct history **hp, char* command)
 {
 	if ((*hp)->s)
 		free((*hp)->s);
@@ -395,7 +403,7 @@ void get_previous_history(struct history **hp, char* command)
 	*hp = (*hp)->p;
 }
 
-void get_next_history(struct history **hp, char* command)
+static void get_next_history(struct history **hp, char* command)
 {
 	if ((*hp)->s)
 		free((*hp)->s);
@@ -449,6 +457,9 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 	setTermSettings(inputFd, (void*) &new_settings);
 
 	memset(command, 0, BUFSIZ);
+
+	/* Print out the command prompt */
+	xwrite(outputFd, prompt, strlen(prompt));
 
 	while (1) {
 
@@ -721,6 +732,9 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 extern void cmdedit_init(void)
 {
+	win_changed(0);
+	signal(SIGWINCH, win_changed);
+
 	if(exithandler_set == 0) {
 		atexit(cmdedit_reset_term);	/* be sure to do this only once */
 		exithandler_set = 1;
@@ -745,6 +759,7 @@ extern void cmdedit_terminate(void)
 	signal(SIGINT, SIG_DFL);
 	signal(SIGQUIT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
+	signal(SIGWINCH, SIG_DFL);
 }
 
 
