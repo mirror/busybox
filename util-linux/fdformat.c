@@ -107,12 +107,18 @@ int fdformat_main(int argc,char **argv)
 	bb_xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
 
 	/* n == track */
-	for (n = 0; n < param.track; n++) {
-		descr.track = n;
-		for(descr.head=0, print_and_flush("%3d\b\b\b", n) ; descr.head < param.head; descr.head++){
-			bb_xioctl(fd,FDFMTTRK, &descr,"FDFMTTRK");
-		}
+	for (n = 0; n < param.track; n++)
+	{
+	    descr.head = 0;
+	    descr.track = n;
+	    bb_xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
+	    print_and_flush("%3d\b\b\b", n);
+	    if (param.head == 2) {
+		descr.head = 1;
+		bb_xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
+	    }
 	}
+
 	bb_xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
 	print_and_flush("done\n", NULL);
 
