@@ -29,7 +29,9 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <stdlib.h>	/* free() */
 #include "libbb.h"
+
 
 /* same conditions as recursive_action */
 #define bb_need_name_too_long
@@ -112,25 +114,18 @@ int recursive_action(const char *fileName,
 		}
 		status = TRUE;
 		while ((next = readdir(dir)) != NULL) {
-			char nextFile[PATH_MAX];
+			char *nextFile;
 
 			if ((strcmp(next->d_name, "..") == 0)
 					|| (strcmp(next->d_name, ".") == 0)) {
 				continue;
 			}
-			if (strlen(fileName) + strlen(next->d_name) + 1 > PATH_MAX) {
-				error_msg(name_too_long);
-				return FALSE;
-			}
-			memset(nextFile, 0, sizeof(nextFile));
-			if (fileName[strlen(fileName)-1] == '/')
-				sprintf(nextFile, "%s%s", fileName, next->d_name);
-			else
-				sprintf(nextFile, "%s/%s", fileName, next->d_name);
+			nextFile = concat_path_file(fileName, next->d_name);
 			if (recursive_action(nextFile, TRUE, followLinks, depthFirst,
 						fileAction, dirAction, userData) == FALSE) {
 				status = FALSE;
 			}
+			free(nextFile);
 		}
 		closedir(dir);
 		if (dirAction != NULL && depthFirst == TRUE) {
