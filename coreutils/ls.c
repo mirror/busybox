@@ -185,31 +185,6 @@ static int status = EXIT_SUCCESS;
 unsigned long ls_disp_hr = KILOBYTE;
 #endif
 
-/* sparc termios is broken -- use old termio handling. */
-#ifdef BB_FEATURE_USE_TERMIOS
-#	if #cpu(sparc)
-#		include <termio.h>
-#		define termios termio
-#		define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
-#		define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
-#	else
-#		include <termios.h>
-#		define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
-#		define getTermSettings(fd,argp) tcgetattr(fd, argp);
-#	endif
-
-static FILE *cin;
-
-static struct termios initial_settings, new_settings;
-
-static void gotsig(int sig)
-{
-	setTermSettings(fileno(cin), &initial_settings);
-	putchar('\n');
-	exit(EXIT_FAILURE);
-}
-#endif /* BB_FEATURE_USE_TERMIOS */
-
 static int my_stat(struct dnode *cur)
 {
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
@@ -736,7 +711,7 @@ extern int ls_main(int argc, char **argv)
 	int opt;
 	int oi, ac;
 	char **av;
-#if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
+#ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 #endif
 
@@ -751,32 +726,11 @@ extern int ls_main(int argc, char **argv)
 	time_fmt= TIME_MOD;
 #endif
 #ifdef BB_FEATURE_AUTOWIDTH
-#ifdef BB_FEATURE_USE_TERMIOS
-		cin = fopen("/dev/tty", "r");
-		if (!cin)
-			cin = fopen("/dev/console", "r");
-		getTermSettings(fileno(cin), &initial_settings);
-		new_settings = initial_settings;
-		new_settings.c_cc[VMIN] = 1;
-		new_settings.c_cc[VTIME] = 0;
-		new_settings.c_lflag &= ~ICANON;
-		new_settings.c_lflag &= ~ECHO;
-		setTermSettings(fileno(cin), &new_settings);
-
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_row > 4)
 			column_width = win.ws_row - 2;
 		if (win.ws_col > 0)
 			terminal_width = win.ws_col - 1;
-
-		(void) signal(SIGINT, gotsig);
-		(void) signal(SIGQUIT, gotsig);
-		(void) signal(SIGTERM, gotsig);
-#else
-
-	terminal_width = TERMINAL_WIDTH;
-	column_width = COLUMN_WIDTH;
-#endif
 #endif
 	tabstops = 8;
 	nfiles=0;
@@ -963,10 +917,6 @@ extern int ls_main(int argc, char **argv)
 			showdirs(dnd, dndirs);
 		}
 	}
-
-#ifdef BB_FEATURE_USE_TERMIOS
-	gotsig(0);
-#endif
 	return(status);
 
   print_usage_message:
