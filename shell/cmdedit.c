@@ -27,6 +27,7 @@
    Small bugs (simple effect):
    - not true viewing if terminal size (x*y symbols) less
      size (prompt + editor`s line + 2 symbols)
+   - not true viewing if length prompt less terminal width
  */
 
 
@@ -50,29 +51,36 @@
 
 #else
 
-#define BB_FEATURE_SH_COMMAND_EDITING
-#define BB_FEATURE_SH_TAB_COMPLETION
-#define BB_FEATURE_SH_USERNAME_COMPLETION
+#define BB_FEATURE_COMMAND_EDITING
+#define BB_FEATURE_COMMAND_TAB_COMPLETION
+#define BB_FEATURE_COMMAND_USERNAME_COMPLETION
 #define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-#define BB_FEATURE_BASH_STYLE_PROMT
+#undef BB_FEATURE_SIMPLE_PROMPT
 #define BB_FEATURE_CLEAN_UP
 
 #define D(x)  x
 
+#ifndef TRUE
+#define TRUE  1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 #endif							/* TEST */
 
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
 #include <dirent.h>
 #include <sys/stat.h>
 #endif
 
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
+#ifdef BB_FEATURE_COMMAND_EDITING
 
-#ifndef BB_FEATURE_SH_TAB_COMPLETION
-#undef  BB_FEATURE_SH_USERNAME_COMPLETION
+#ifndef BB_FEATURE_COMMAND_TAB_COMPLETION
+#undef  BB_FEATURE_COMMAND_USERNAME_COMPLETION
 #endif
 
-#if defined(BB_FEATURE_SH_USERNAME_COMPLETION) || defined(BB_FEATURE_BASH_STYLE_PROMT)
+#if defined(BB_FEATURE_COMMAND_USERNAME_COMPLETION) || !defined(BB_FEATURE_SIMPLE_PROMPT)
 #define BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 #endif
 
@@ -154,26 +162,26 @@ static
 volatile int handlers_sets = 0;	/* Set next bites: */
 
 enum {
-	SET_ATEXIT = 1,				/* when atexit() has been called and
-								   get euid,uid,gid to fast compare  */
-	SET_TERM_HANDLERS = 2,		/* set many terminates signal handlers */
-	SET_WCHG_HANDLERS = 4,		/* winchg signal handler */
-	SET_RESET_TERM = 8,			/* if the terminal needs to be reset upon exit */
+	SET_ATEXIT = 1,		/* when atexit() has been called 
+				   and get euid,uid,gid to fast compare */
+	SET_TERM_HANDLERS = 2,	/* set many terminates signal handlers */
+	SET_WCHG_HANDLERS = 4,	/* winchg signal handler */
+	SET_RESET_TERM = 8,	/* if the terminal needs to be reset upon exit */
 };
 
 
-static int cmdedit_x;			/* real x terminal position */
-static int cmdedit_y;			/* pseudoreal y terminal position */
+static int cmdedit_x;		/* real x terminal position */
+static int cmdedit_y;		/* pseudoreal y terminal position */
 static int cmdedit_prmt_len;	/* lenght prompt without colores string */
 
-static int cursor;				/* required global for signal handler */
-static int len;					/* --- "" - - "" - -"- --""-- --""--- */
-static char *command_ps;		/* --- "" - - "" - -"- --""-- --""--- */
+static int cursor;		/* required global for signal handler */
+static int len;			/* --- "" - - "" - -"- --""-- --""--- */
+static char *command_ps;	/* --- "" - - "" - -"- --""-- --""--- */
 static
-#ifndef BB_FEATURE_BASH_STYLE_PROMT
+#ifdef BB_FEATURE_SIMPLE_PROMPT
 	const
 #endif
-char *cmdedit_prompt;			/* --- "" - - "" - -"- --""-- --""--- */
+char *cmdedit_prompt;		/* --- "" - - "" - -"- --""-- --""--- */
 
 /* Link into lash to reset context to 0 on ^C and such */
 extern unsigned int shell_context;
@@ -185,13 +193,13 @@ static char *home_pwd_buf = "";
 static int my_euid;
 #endif
 
-#ifdef BB_FEATURE_BASH_STYLE_PROMT
+#ifndef BB_FEATURE_SIMPLE_PROMPT
 static char *hostname_buf = "";
 static int num_ok_lines = 1;
 #endif
 
 
-#ifdef  BB_FEATURE_SH_TAB_COMPLETION
+#ifdef  BB_FEATURE_COMMAND_TAB_COMPLETION
 
 #ifndef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 static int my_euid;
@@ -200,7 +208,7 @@ static int my_euid;
 static int my_uid;
 static int my_gid;
 
-#endif							/* BB_FEATURE_SH_TAB_COMPLETION */
+#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
 
 
 static void cmdedit_setwidth(int w, int redraw_flg);
@@ -245,7 +253,6 @@ static void cmdedit_reset_term(void)
 	if (his_front) {
 		struct history *n;
 
-		//while(his_front!=his_end) {
 		while (his_front != his_end) {
 			n = his_front->n;
 			free(his_front->s);
@@ -355,25 +362,27 @@ static void put_prompt(void)
 	cursor = 0;
 }
 
-#ifdef BB_FEATURE_BASH_STYLE_PROMT
-static void
-add_to_prompt(char **prmt_mem_ptr, int *alm, int *prmt_len,
-			  const char *addb)
+#ifdef BB_FEATURE_SIMPLE_PROMPT
+static void parse_prompt(const char *prmt_ptr)
 {
-	int l = strlen(addb);
-
-	*prmt_len += l;
+	cmdedit_prompt = prmt_ptr;
+	cmdedit_prmt_len = strlen(prmt_ptr);
+	put_prompt();
+}
+#else
+static void add_to_prompt(char **prmt_mem_ptr, int *alm, 
+		int *prmt_len, const char *addb)
+{
+	*prmt_len += strlen(addb);
 	if (*alm < (*prmt_len) + 1) {
 		*alm = (*prmt_len) + 1;
 		*prmt_mem_ptr = xrealloc(*prmt_mem_ptr, *alm);
 	}
 	strcat(*prmt_mem_ptr, addb);
 }
-#endif
 
 static void parse_prompt(const char *prmt_ptr)
 {
-#ifdef BB_FEATURE_BASH_STYLE_PROMT
 	int alm = strlen(prmt_ptr) + 1;	/* supposedly require memory */
 	int prmt_len = 0;
 	int sub_len = 0;
@@ -394,9 +403,11 @@ static void parse_prompt(const char *prmt_ptr)
 				break;
 			prmt_ptr++;
 			switch (c) {
+#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 			case 'u':
 				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, user_buf);
 				continue;
+#endif	
 			case 'h':
 				if (hostname_buf[0] == 0) {
 					hostname_buf = xcalloc(256, 1);
@@ -415,6 +426,7 @@ static void parse_prompt(const char *prmt_ptr)
 			case '$':
 				c = my_euid == 0 ? '#' : '$';
 				break;
+#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 			case 'w':
 				if (pwd_buf[0] == 0) {
 					int l;
@@ -429,6 +441,7 @@ static void parse_prompt(const char *prmt_ptr)
 				}
 				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, pwd_buf);
 				continue;
+#endif	
 			case '!':
 				snprintf(buf, sizeof(buf), "%d", num_ok_lines);
 				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, buf);
@@ -485,20 +498,21 @@ static void parse_prompt(const char *prmt_ptr)
 		if (flg_not_length == ']')
 			sub_len++;
 	}
+#if 0
 	cmdedit_prmt_len = prmt_len - sub_len;
-	cmdedit_prompt = prmt_mem_ptr;
-#else
 	cmdedit_prompt = prmt_ptr;
-	cmdedit_prmt_len = strlen(prmt_ptr);
-#endif
+#endif	
+	cmdedit_prompt = prmt_mem_ptr;
+	cmdedit_prmt_len = strlen(cmdedit_prompt);
 	put_prompt();
 }
+#endif
 
 
 /* draw promt, editor line, and clear tail */
 static void redraw(int y, int back_cursor)
 {
-	if (y > 0)					/* up to start y */
+	if (y > 0)				/* up to start y */
 		printf("\033[%dA", y);
 	cmdedit_y = 0;				/* new quasireal y */
 	putchar('\r');
@@ -518,7 +532,7 @@ static void input_delete(void)
 
 	strcpy(command_ps + j, command_ps + j + 1);
 	len--;
-	input_end();				/* rewtite new line */
+	input_end();			/* rewtite new line */
 	cmdedit_set_out_char(0);	/* destroy end char */
 	input_backward(cursor - j);	/* back to old pos cursor */
 }
@@ -545,7 +559,7 @@ static void clean_up_and_die(int sig)
 {
 	goto_new_line();
 	if (sig != SIGINT)
-		exit(EXIT_SUCCESS);		/* cmdedit_reset_term() called in atexit */
+		exit(EXIT_SUCCESS);	/* cmdedit_reset_term() called in atexit */
 	cmdedit_reset_term();
 }
 
@@ -556,7 +570,6 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 		cmdedit_termw = cmdedit_termw % w;
 	}
 	if (w > cmdedit_termw) {
-
 		cmdedit_termw = w;
 
 		if (redraw_flg) {
@@ -590,14 +603,14 @@ extern void cmdedit_init(void)
 		}
 #endif
 
-#ifdef  BB_FEATURE_SH_TAB_COMPLETION
+#ifdef  BB_FEATURE_COMMAND_TAB_COMPLETION
 
 #ifndef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 		my_euid = geteuid();
 #endif
 		my_uid = getuid();
 		my_gid = getgid();
-#endif							/* BB_FEATURE_SH_TAB_COMPLETION */
+#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
 		handlers_sets |= SET_ATEXIT;
 		atexit(cmdedit_reset_term);	/* be sure to do this only once */
 	}
@@ -612,7 +625,7 @@ extern void cmdedit_init(void)
 
 }
 
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
 
 static int is_execute(const struct stat *st)
 {
@@ -623,7 +636,7 @@ static int is_execute(const struct stat *st)
 	return FALSE;
 }
 
-#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
+#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
 
 static char **username_tab_completion(char *ud, int *num_matches)
 {
@@ -632,19 +645,19 @@ static char **username_tab_completion(char *ud, int *num_matches)
 	char *temp;
 
 
-	ud++;						/* ~user/... to user/... */
+	ud++;				/* ~user/... to user/... */
 	userlen = strlen(ud);
 
 	if (num_matches == 0) {		/* "~/..." or "~user/..." */
 		char *sav_ud = ud - 1;
 		char *home = 0;
 
-		if (*ud == '/') {		/* "~/..."     */
+		if (*ud == '/') {	/* "~/..."     */
 			home = home_pwd_buf;
 		} else {
 			/* "~user/..." */
 			temp = strchr(ud, '/');
-			*temp = 0;			/* ~user\0 */
+			*temp = 0;		/* ~user\0 */
 			entry = getpwnam(ud);
 			*temp = '/';		/* restore ~user/... */
 			ud = temp;
@@ -660,7 +673,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 				strcpy(sav_ud, temp2);
 			}
 		}
-		return 0;				/* void, result save to argument :-) */
+		return 0;	/* void, result save to argument :-) */
 	} else {
 		/* "~[^/]*" */
 		char **matches = (char **) NULL;
@@ -685,7 +698,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 		return (matches);
 	}
 }
-#endif							/* BB_FEATURE_SH_USERNAME_COMPLETION */
+#endif	/* BB_FEATURE_COMMAND_USERNAME_COMPLETION */
 
 enum {
 	FIND_EXE_ONLY = 0,
@@ -710,11 +723,11 @@ static int path_parse(char ***p, int flags)
 	npth = 0;
 
 	for (;;) {
-		npth++;					/* count words is + 1 count ':' */
+		npth++;			/* count words is + 1 count ':' */
 		tmp = strchr(tmp, ':');
 		if (tmp) {
 			if (*++tmp == 0)
-				break;			/* :<empty> */
+				break;	/* :<empty> */
 		} else
 			break;
 	}
@@ -723,7 +736,7 @@ static int path_parse(char ***p, int flags)
 
 	tmp = pth;
 	(*p)[0] = xstrdup(tmp);
-	npth = 1;					/* count words is + 1 count ':' */
+	npth = 1;			/* count words is + 1 count ':' */
 
 	for (;;) {
 		tmp = strchr(tmp, ':');
@@ -754,7 +767,7 @@ static char *add_quote_for_spec_chars(char *found)
 }
 
 static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
-									   int type)
+					int type)
 {
 
 	char **matches = 0;
@@ -782,7 +795,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 		strcpy(dirbuf, command);
 		/* set dir only */
 		dirbuf[(pfind - command) + 1] = 0;
-#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
+#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')	/* ~/... or ~user/... */
 			username_tab_completion(dirbuf, 0);
 #endif
@@ -796,7 +809,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 	for (i = 0; i < npaths; i++) {
 
 		dir = opendir(paths[i]);
-		if (!dir)				/* Don't print an error */
+		if (!dir)			/* Don't print an error */
 			continue;
 
 		while ((next = readdir(dir)) != NULL) {
@@ -987,7 +1000,8 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] == ' ' || int_buf[i] == '<' || int_buf[i] == '>') {
 			if (int_buf[i] == ' ' && command_mode == FIND_EXE_ONLY
-				&& strncmp(&matchBuf[pos_buf[0]], "cd", 2) == 0)
+				&& matchBuf[pos_buf[0]]=='c'
+				&& matchBuf[pos_buf[1]]=='d' )
 				command_mode = FIND_DIR_ONLY;
 			else {
 				command_mode = FIND_FILE_ONLY;
@@ -1065,7 +1079,7 @@ static void input_tab(int *lastWasTab)
 		/* Free up any memory already allocated */
 		input_tab(0);
 
-#ifdef BB_FEATURE_SH_USERNAME_COMPLETION
+#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word,
 		 * then try completing this word as a username. */
 
@@ -1085,7 +1099,7 @@ static void input_tab(int *lastWasTab)
 
 			beep();
 			if (!matches)
-				return;			/* not found */
+				return;		/* not found */
 			/* sort */
 			qsort(matches, num_matches, sizeof(char *), match_compare);
 
@@ -1101,7 +1115,7 @@ static void input_tab(int *lastWasTab)
 				free(tmp);
 				return;
 			}
-		} else {				/* one match */
+		} else {			/* one match */
 			tmp = matches[0];
 			/* for next completion current found */
 			*lastWasTab = FALSE;
@@ -1164,7 +1178,7 @@ static void input_tab(int *lastWasTab)
 		}
 	}
 }
-#endif							/* BB_FEATURE_SH_TAB_COMPLETION */
+#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
 
 static void get_previous_history(struct history **hp, struct history *p)
 {
@@ -1201,6 +1215,7 @@ enum {
  * Furthermore, the "vi" command editing keys are not implemented.
  *
  */
+ 
 extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 {
 
@@ -1212,7 +1227,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	struct history *hp = his_end;
 
 	/* prepare before init handlers */
-	cmdedit_y = 0;				/* quasireal y, not true work if line > xt*yt */
+	cmdedit_y = 0;	/* quasireal y, not true work if line > xt*yt */
 	len = 0;
 	command_ps = command;
 
@@ -1223,9 +1238,11 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 
 		new_settings.c_cc[VMIN] = 1;
 		new_settings.c_cc[VTIME] = 0;
-		new_settings.c_cc[VINTR] = _POSIX_VDISABLE;	/* Turn off CTRL-C, so we can trap it */
+		/* Turn off CTRL-C, so we can trap it */
+		new_settings.c_cc[VINTR] = _POSIX_VDISABLE;	
 		new_settings.c_lflag &= ~ICANON;	/* unbuffered input */
-		new_settings.c_lflag &= ~(ECHO | ECHOCTL | ECHONL);	/* Turn off echoing */
+		/* Turn off echoing */
+		new_settings.c_lflag &= ~(ECHO | ECHOCTL | ECHONL);	
 	}
 
 	command[0] = 0;
@@ -1295,7 +1312,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			input_backspace();
 			break;
 		case '\t':
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
 			input_tab(&lastWasTab);
 #endif
 			break;
@@ -1335,7 +1352,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 					return;
 			}
 			switch (c) {
-#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
 			case '\t':			/* Alt-Tab */
 
 				input_tab(&lastWasTab);
@@ -1402,7 +1419,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			break;
 		}
 
-		default:				/* If it's regular input, do the normal thing */
+		default:	/* If it's regular input, do the normal thing */
 #ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
 			/* Control-V -- Add non-printable symbol */
 			if (c == 22) {
@@ -1493,16 +1510,16 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				history_counter++;
 			}
 		}
-#if defined(BB_FEATURE_BASH_STYLE_PROMT)
+#if !defined(BB_FEATURE_SIMPLE_PROMPT)
 		num_ok_lines++;
 #endif
 	}
 	command[len++] = '\n';		/* set '\n' */
 	command[len] = 0;
-#if defined(BB_FEATURE_CLEAN_UP) && defined(BB_FEATURE_SH_TAB_COMPLETION)
+#if defined(BB_FEATURE_CLEAN_UP) && defined(BB_FEATURE_COMMAND_TAB_COMPLETION)
 	input_tab(0);				/* strong free */
 #endif
-#if defined(BB_FEATURE_BASH_STYLE_PROMT)
+#if !defined(BB_FEATURE_SIMPLE_PROMPT)
 	free(cmdedit_prompt);
 #endif
 	return;
@@ -1523,7 +1540,7 @@ extern void cmdedit_terminate(void)
 	}
 }
 
-#endif							/* BB_FEATURE_SH_COMMAND_EDITING */
+#endif	/* BB_FEATURE_COMMAND_EDITING */
 
 
 #ifdef TEST
@@ -1534,21 +1551,25 @@ int main(int argc, char **argv)
 {
 	char buff[BUFSIZ];
 	char *prompt =
-#if defined(BB_FEATURE_BASH_STYLE_PROMT)
-		"\\[\\033[32;1m\\]\\u@\\[\\033[33;1m\\]\\h:\
+#if !defined(BB_FEATURE_SIMPLE_PROMPT)
+		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:\
 \\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] \
-\\!\\[\\033[36;1m\\]\\$ \\[\\033[0m\\]";
+\\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";
 #else
 		"% ";
 #endif
 
 	shell_context = 1;
 	do {
+		int l;
 		cmdedit_read_input(prompt, buff);
+		l = strlen(buff);
+		if(l > 0 && buff[l-1] == '\n')
+			buff[l-1] = 0;
 		printf("*** cmdedit_read_input() returned line =%s=\n", buff);
 	} while (shell_context);
 	printf("*** cmdedit_read_input() detect ^C\n");
 	return 0;
 }
 
-#endif							/* TEST */
+#endif	/* TEST */

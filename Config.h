@@ -241,7 +241,14 @@
 //
 // Enable command line editing in the shell.  
 // Only relevant if BB_SH is enabled.
-#define BB_FEATURE_SH_COMMAND_EDITING
+#define BB_FEATURE_COMMAND_EDITING
+//
+// Enable tab completion in the shell.  This is now working quite nicely.
+// This feature adds a bit over 4k. Only relevant if BB_SH is enabled.
+#define BB_FEATURE_COMMAND_TAB_COMPLETION
+//
+// Attempts to match usernames in a ~-prefixed path
+//#define BB_FEATURE_COMMAND_USERNAME_COMPLETION
 //
 //Allow the shell to invoke all the compiled in BusyBox applets as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell,
@@ -258,21 +265,11 @@
 // Only relevant if BB_SH is enabled.
 #define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
-// Enable tab completion in the shell.  This is now working quite nicely.
-// This feature adds a bit over 4k. Only relevant if BB_SH is enabled.
-//#define BB_FEATURE_SH_TAB_COMPLETION
-//
-// Enable a simpler shell prompt of the form "path #"
-// instead of the default "[username@hostname path]#"
-//
 // Some deeply embedded systems don't have usernames or even hostnames,
 // and the default prompt can look rather hideous on them. Uncomment
 // this option for a simpler, path-only prompt (which was the default until
 // around BusyBox-0.48):
-#define BB_FEATURE_SH_SIMPLE_PROMPT
-//
-// Attempts to match usernames in a ~-prefixed path
-//#define BB_FEATURE_SH_USERNAME_COMPLETION
+#define BB_FEATURE_SIMPLE_PROMPT
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
@@ -355,7 +352,7 @@
 #undef BB_MTAB
 #endif	
 //
-#if defined BB_FEATURE_SH_COMMAND_EDITING && defined BB_SH
+#if defined BB_FEATURE_COMMAND_EDITING && defined BB_SH
 #define BB_CMDEDIT
 #endif
 //
@@ -406,7 +403,7 @@
 #define BB_NFSMOUNT
 #endif
 //
-#if defined BB_FEATURE_SH_COMMAND_EDITING
+#if defined BB_FEATURE_COMMAND_EDITING
 #ifndef BB_FEATURE_USE_TERMIOS
 #define BB_FEATURE_USE_TERMIOS
 #endif

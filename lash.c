@@ -39,11 +39,15 @@
 //#define BB_FEATURE_SH_BACKTICKS
 //
 //If, then, else, etc. support..  This should now behave basically
-//like any other Bourne shell...
+//like any other Bourne shell -- sortof...
 #define BB_FEATURE_SH_IF_EXPRESSIONS
 //
-/* This is currently a little broken... */
-//#define HANDLE_CONTINUATION_CHARS
+/* This is currently sortof broken, only for the brave... */
+#undef HANDLE_CONTINUATION_CHARS
+//
+/* This would be great -- if wordexp wouldn't strip all quoting
+ * out from the target strings...  As is, a parser needs  */
+#undef BB_FEATURE_SH_WORDEXP
 //
 //For debugging/development on the shell only...
 //#define DEBUG_SHELL
@@ -61,10 +65,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
-//#undef __GLIBC__
-//#undef __UCLIBC__
+#undef BB_FEATURE_SH_WORDEXP
 
-#if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
+#if BB_FEATURE_SH_WORDEXP
 #include <wordexp.h>
 #define expand_t	wordexp_t
 #undef BB_FEATURE_SH_BACKTICKS
@@ -227,6 +230,10 @@ static int show_x_trace;
 static char syntax_err[]="syntax error near unexpected token";
 #endif
 
+static char *PS1;
+static char *PS2;
+
+
 #ifdef DEBUG_SHELL
 static inline void debug_printf(const char *format, ...)
 {
@@ -286,7 +293,7 @@ static int builtin_cd(struct child_prog *child)
 	else
 		newdir = child->argv[1];
 	if (chdir(newdir)) {
-		printf("cd: %s: %s\n", newdir, strerror(errno));
+		printf("cd: %s: %m\n", newdir);
 		return EXIT_FAILURE;
 	}
 	getcwd(cwd, sizeof(char)*MAX_LINE);
@@ -425,13 +432,20 @@ static int builtin_pwd(struct child_prog *dummy)
 static int builtin_export(struct child_prog *child)
 {
 	int res;
+	char *v = child->argv[1];
 
-	if (child->argv[1] == NULL) {
+	if (v == NULL) {
 		return (builtin_env(child));
 	}
-	res = putenv(child->argv[1]);
+	res = putenv(v);
 	if (res)
-		fprintf(stderr, "export: %s\n", strerror(errno));
+		fprintf(stderr, "export: %m\n");
+#ifndef BB_FEATURE_SIMPLE_PROMPT
+	if (strncmp(v, "PS1=", 4)==0)
+		PS1 = getenv("PS1");
+	else if (strncmp(v, "PS2=", 4)==0)
+		PS2 = getenv("PS2");
+#endif
 	return (res);
 }
 
@@ -461,7 +475,7 @@ static int builtin_read(struct child_prog *child)
 		if((s = strdup(string)))
 			res = putenv(s);
 		if (res)
-			fprintf(stderr, "read: %s\n", strerror(errno));
+			fprintf(stderr, "read: %m\n");
 	}
 	else
 		fgets(string, sizeof(string), stdin);
@@ -759,8 +773,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			error_msg("error opening %s: %s", redir->filename,
-					strerror(errno));
+			perror_msg("error opening %s", redir->filename);
 			return 1;
 		}
 
@@ -790,56 +803,39 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
-#if defined(BB_FEATURE_SH_SIMPLE_PROMPT)
-static char* setup_prompt_string(int state)
+static inline void cmdedit_set_initial_prompt(void)
 {
-       char prompt_str[BUFSIZ];
-
-       /* Set up the prompt */
-       if (state == 0) {
-               /* simple prompt */
-               sprintf(prompt_str, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
-       } else {
-               strcpy(prompt_str,"> ");
-       }
-
-       return(strdup(prompt_str));  /* Must free this memory */
-}
-
+#ifdef BB_FEATURE_SIMPLE_PROMPT
+	PS1 = NULL;
+	PS2 = "> ";
 #else
-
-static char* setup_prompt_string(int state)
-{
-	char user[9],buf[255],*s;
-	char prompt[3];
-	char prompt_str[BUFSIZ];
-
-	/* Set up the prompt */
-	if (state == 0) {
-		/* get User Name and setup prompt */
-		strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
-		my_getpwuid(user, geteuid());
-
-		/* get HostName */
-		gethostname(buf, 255);
-		s = strchr(buf, '.');
-		if (s) {
-			*s = 0;
-		}
-	} else {
-		strcpy(prompt,"> ");
+	PS1 = getenv("PS1");
+	if(PS1==0) {
+		PS1 = "\\w \\$ ";
 	}
-
-	if (state == 0) {
-		snprintf(prompt_str, BUFSIZ-1, "[%s@%s %s]%s", user, buf, 
-				get_last_path_component(cwd), prompt);
-	} else {
-		sprintf(prompt_str, "%s", prompt);
-	}
-	return(strdup(prompt_str));  /* Must free this memory */
+	PS2 = getenv("PS2");
+	if(PS2==0) 
+		PS2 = "> ";
+#endif	
 }
 
-#endif 
+static inline void setup_prompt_string(char **prompt_str)
+{
+#ifdef BB_FEATURE_SIMPLE_PROMPT
+	/* Set up the prompt */
+	if (shell_context == 0) {
+		if (PS1)
+			free(PS1);
+		PS1=xmalloc(strlen(cwd)+4);
+		sprintf(PS1, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
+		*prompt_str = PS1;
+	} else {
+		*prompt_str = PS2;
+	}
+#else
+	*prompt_str = (shell_context==0)? PS1 : PS2;
+#endif	
+}
 
 static int get_command(FILE * source, char *command)
 {
@@ -857,9 +853,9 @@ static int get_command(FILE * source, char *command)
 	}
 
 	if (source == stdin) {
-		prompt_str = setup_prompt_string(shell_context);
+		setup_prompt_string(&prompt_str);
 
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
+#ifdef BB_FEATURE_COMMAND_EDITING
 		/*
 		** enable command line editing only while a command line
 		** is actually being read; otherwise, we'll end up bequeathing
@@ -868,11 +864,9 @@ static int get_command(FILE * source, char *command)
 		*/
 		cmdedit_read_input(prompt_str, command);
 		cmdedit_terminate();
-		free(prompt_str);
 		return 0;
 #else
 		fputs(prompt_str, stdout);
-		free(prompt_str);
 #endif
 	}
 
@@ -910,25 +904,72 @@ static char* itoa(register int i)
 }
 #endif	
 
+#if defined BB_FEATURE_SH_ENVIRONMENT && ! defined BB_FEATURE_SH_WORDEXP
+char * strsep_space( char *string, int * index)
+{
+	char *token, *begin;
+
+	begin = string;
+
+	/* Short circuit the trivial case */
+	if ( !string || ! string[*index])
+		return NULL;
+
+	/* Find the end of the token. */
+	while( string && string[*index] && !isspace(string[*index]) ) {
+		(*index)++;
+	}
+
+	/* Find the end of any whitespace trailing behind 
+	 * the token and let that be part of the token */
+	while( string && string[*index] && isspace(string[*index]) ) {
+		(*index)++;
+	}
+
+	if (! string && *index==0) {
+		/* Nothing useful was found */
+		return NULL;
+	}
+
+	token = xmalloc(*index);
+	token[*index] = '\0';
+	strncpy(token, string,  *index); 
+
+	return token;
+}
+#endif	
+
+
 static int expand_arguments(char *command)
 {
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 	expand_t expand_result;
 	char *src, *dst, *var;
+	int index = 0;
 	int i=0, length, total_length=0, retval;
 	const char *out_of_space = "out of space during expansion"; 
 #endif
 
 	/* get rid of the terminating \n */
 	chomp(command);
+	
+	/* Fix up escape sequences to be the Real Thing(tm) */
+	while( command && command[index]) {
+		if (command[index] == '\\') {
+			char *tmp = command+index+1;
+			command[index+1] = process_escape_sequence(  &tmp );
+			memmove(command+index, command+index+1, strlen(command+index));
+		}
+		index++;
+	}
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 
 
-#if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
+#if BB_FEATURE_SH_WORDEXP
 	/* This first part uses wordexp() which is a wonderful C lib 
 	 * function which expands nearly everything.  */ 
-	retval = wordexp (command, &expand_result, 0);
+	retval = wordexp (command, &expand_result, WRDE_SHOWERR);
 	if (retval == WRDE_NOSPACE) {
 		/* Mem may have been allocated... */
 		wordfree (&expand_result);
@@ -970,15 +1011,17 @@ static int expand_arguments(char *command)
 	{
         
 		int flags = GLOB_NOCHECK|GLOB_BRACE|GLOB_TILDE;
-		char * tmpcmd, *cmd, *cmd_copy;
+		char *tmpcmd, *cmd, *cmd_copy;
 		/* We need a clean copy, so strsep can mess up the copy while
 		 * we write stuff into the original (in a minute) */
 		cmd = cmd_copy = strdup(command);
 		*command = '\0';
-		for (tmpcmd = cmd; (tmpcmd = strsep(&cmd, " \t")) != NULL;) {
+		for (index = 0, tmpcmd = cmd; 
+				(tmpcmd = strsep_space(cmd, &index)) != NULL; cmd += index, index=0) {
 			if (*tmpcmd == '\0')
 				break;
 			retval = glob(tmpcmd, flags, NULL, &expand_result);
+			free(tmpcmd); /* Free mem allocated by strsep_space */
 			if (retval == GLOB_NOSPACE) {
 				/* Mem may have been allocated... */
 				globfree (&expand_result);
@@ -1711,7 +1754,8 @@ static int busy_loop(FILE * input)
 			if (!parse_command(&next_command, &newjob, &inbg) &&
 				newjob.num_progs) {
 				int pipefds[2] = {-1,-1};
-				debug_printf( "job=%p being fed to run_command by busy_loop()'\n", &newjob);
+				debug_printf( "job=%p fed to run_command by busy_loop()'\n", 
+						&newjob);
 				run_command(&newjob, inbg, pipefds);
 			}
 			else {
@@ -1879,5 +1923,13 @@ int shell_main(int argc_l, char **argv_l)
 	atexit(free_memory);
 #endif
 
+#ifdef BB_FEATURE_COMMAND_EDITING
+	cmdedit_set_initial_prompt();
+#else
+	PS1 = NULL;
+	PS2 = "> ";
+#endif
+	
 	return (busy_loop(input));
 }
+
