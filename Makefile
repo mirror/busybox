@@ -184,19 +184,19 @@ docs/busybox.txt: docs/busybox.sgml
 	@echo BusyBox Documentation
 	@echo
 	- mkdir -p docs
-	(cd docs; sgmltools -b txt $(BB_SRC_DIR)/busybox.sgml)
+	(cd docs; sgmltools -b txt busybox.sgml)
 
 docs/busybox.dvi: docs/busybox.sgml
 	- mkdir -p docs
-	(cd docs; sgmltools -b dvi $(BB_SRC_DIR)/busybox.sgml)
+	(cd docs; sgmltools -b dvi busybox.sgml)
 
 docs/busybox.ps: docs/busybox.sgml
 	- mkdir -p docs
-	(cd docs; sgmltools -b ps $(BB_SRC_DIR)/busybox.sgml)
+	(cd docs; sgmltools -b ps busybox.sgml)
 
 docs/busybox.pdf: docs/busybox.ps
 	- mkdir -p docs
-	(cd docs; ps2pdf $(BB_SRC_DIR)/busybox.ps)
+	(cd docs; ps2pdf busybox.ps)
 
 docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	- mkdir -p docs
@@ -209,7 +209,7 @@ busybox: $(OBJECTS)
 	$(STRIP)
 
 busybox.links: Config.h
-	-$(BB_SRC_DIR)/busybox.mkll $(BB_SRC_DIR)/applets.h | sort >$@
+	- $(BB_SRC_DIR)/busybox.mkll $(CONFIG_H) $(BB_SRC_DIR)/applets.h >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h Makefile

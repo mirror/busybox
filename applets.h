@@ -10,16 +10,19 @@
  * file result in the listing remaining in ascii order. You have been warned.
  */
 
-#ifndef PROTOTYPES
-const struct BB_applet applets[] = {
-#define APPLET(a,b,c,d) {a,b,c,d},
-#define APPLET_NOUSAGE(a,b,c) {a,b,c,NULL},
-#else
+#if defined(PROTOTYPES)
 #define APPLET(a,b,c,d) \
 	extern int b(int argc, char **argv); \
 	extern const char d[];
 #define APPLET_NOUSAGE(a,b,c) \
 	extern int b(int argc, char **argv);
+#elif defined(MAKE_LINKS)
+#define APPLET(a,b,c,d) LINK c a
+#define APPLET_NOUSAGE(a,b,c) LINK c a
+#else
+const struct BB_applet applets[] = {
+#define APPLET(a,b,c,d) {a,b,c,d},
+#define APPLET_NOUSAGE(a,b,c) {a,b,c,NULL},
 #endif
 
 #ifdef BB_TEST
@@ -378,7 +381,7 @@ const struct BB_applet applets[] = {
 	APPLET("zcat", gunzip_main, _BB_DIR_BIN, gunzip_usage)
 #endif
 
-#ifndef PROTOTYPES
+#if !defined(PROTOTYPES) && !defined(MAKE_LINKS)
 	{ 0,NULL,0,NULL}
 };
 

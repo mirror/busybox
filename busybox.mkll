@@ -1,23 +1,16 @@
 #!/bin/sh
 # Make busybox links list file.
 
-DF="Config.h"
-
-MF=$1
-if [ "$MF" = "" ]; then
-    MF="applets.h"
-fi
-
-LIST="$(gcc -E -dM $DF | sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/BB_\1/gp;' | sort)"
-
-for def in ${LIST}; do
-	i=`sed -n '/^#ifdef \<'$def'\>.*/,/^#endif/{ s/.*\"\(.*\)\".*\(_BB_DIR_[A-Z_]*\).*$/\2\/\1/gp; }' $MF`
-	for j in $i; do 
-		if [ -z $j ] ; then 
-			continue;
-		fi;
-		echo $j | sed -e 's/_BB_DIR_ROOT//g;s/_BB_DIR_BIN/\/bin/g;' \
-		    -e 's/_BB_DIR_SBIN/\/sbin/g;s/_BB_DIR_USR_BIN/\/usr\/bin/g;' \
-		    -e 's/_BB_DIR_USR_SBIN/\/usr\/sbin/g;'
-	done;
-done
+CONFIG_H=${1:-Config.h}
+APPLETS_H=${2:-applets.h}
+gcc -E -DMAKE_LINKS -include $CONFIG_H $APPLETS_H |
+  awk '/^[ \t]*LINK/{
+	match($2,"_BB_DIR[A-Z_]*")
+	dir=substr($2,RSTART+7,RLENGTH-7)
+	gsub("_","/",dir)
+	if(dir=="/ROOT") dir=""
+	file=$3
+	gsub("\"","",file)
+	if (file=="busybox") next
+	print tolower(dir) "/" file
+  }'
