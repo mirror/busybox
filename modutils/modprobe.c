@@ -44,9 +44,38 @@ static struct dep_t *depend;
 static int autoclean, show_only, quiet, do_syslog, verbose;
 
 
+/* Jump through hoops to simulate how fgets() grabs just one line at a
+ * time... Don't use any stdio since modprobe gets called from a kernel
+ * thread and stdio junk can overflow the limited stack... 
+ */
+static char *reads ( int fd, char *buffer, size_t len )
+{
+	int n = read ( fd, buffer, len );
+	
+	if ( n > 0 ) {
+		char *p;
+	
+		buffer [len-1] = 0;
+		p = strchr ( buffer, '\n' );
+		
+		if ( p ) {
+			off_t offset;
+			
+			offset = lseek ( fd, 0L, SEEK_CUR );               // Get the current file descriptor offset 
+			lseek ( fd, offset-n + (p-buffer) + 1, SEEK_SET ); // Set the file descriptor offset to right after the \n
+
+			p[1] = 0;
+		}
+		return buffer;
+	}
+	
+	else
+		return 0;
+}
+
 static struct dep_t *build_dep ( void )
 {
-	int fd, n;
+	int fd;
 	struct utsname un;
 	struct dep_t *first = 0;
 	struct dep_t *current = 0;
@@ -66,27 +95,13 @@ static struct dep_t *build_dep ( void )
 	strcat ( filename, un.release );
 	strcat ( filename, "/modules.dep" );
 
-	if ((fd = open ( filename, O_RDONLY )) < 0)
+	if (( fd = open ( filename, O_RDONLY )) < 0 )
 		return 0;
 
-	while ( (n = read(fd, buffer, 255)) > 0) {
-		int l;
+	while ( reads ( fd, buffer, sizeof( buffer ))) {
+		int l = xstrlen ( buffer );
 		char *p = 0;
-
-		/* Jump through hoops to simulate how fgets() grabs just one line at a
-		 * time... Don't use any stdio since modprobe gets called from a kernel
-		 * thread and stdio junk can overflow the limited stack... */
-		p = strchr ( buffer, '\n' );
-		if (p) {
-			off_t offset;
-			/* Get the current file descriptor offset */
-			offset = lseek(fd, 0L, SEEK_CUR);
-			/* Set the file descriptor offset to right after the \n */
-			lseek(fd, offset-n+p-buffer+1, SEEK_SET);
-			*(p+1)='\0';
-		}
-
-		l = xstrlen ( buffer );
+		
 		while ( isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
 			l--;
@@ -182,29 +197,16 @@ static struct dep_t *build_dep ( void )
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
 
-	if ((fd = open ( "/etc/modules.conf", O_RDONLY )) < 0)
-		if ((fd = open ( "/etc/conf.modules", O_RDONLY )) < 0)
+	if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
+		if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
 			return first;
 	
 	continuation_line = 0;
-	while ( read(fd, buffer, 255) > 0) {
+	while ( reads ( fd, buffer, sizeof( buffer ))) {
 		int l;
 		char *p;
 		
-		/* Jump through hoops to simulate how fgets() grabs just one line at a
-		 * time... Don't use any stdio since modprobe gets called from a kernel
-		 * thread and stdio junk can overflow the limited stack... */
-		p = strchr ( buffer, '\n' );
-		if (p) {
-			off_t offset;
-			/* Get the current file descriptor offset */
-			offset = lseek(fd, 0L, SEEK_CUR);
-			/* Set the file descriptor offset to right after the \n */
-			lseek(fd, offset-n+p-buffer+1, SEEK_SET);
-			*(p+1)='\0';
-		}
-
-		p = strchr ( buffer, '#' );
+		p = strchr ( buffer, '#' );	
 		if ( p )
 			*p = 0;
 			
