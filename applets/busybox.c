@@ -203,6 +203,7 @@ int busybox_main(int argc, char **argv)
 	}
 	while(index<=index2)
 		*index++='\0';
+	argv[ps_index]=NULL;
 
 	return (main(argc, argv));
 }
