@@ -2106,11 +2106,15 @@
 	"Options:\n" \
 	"\t-n\t\tsuppress automatic printing of pattern space\n" \
 	"\t-e script\tadd the script to the commands to be executed\n" \
-	"\t-f scriptfile\tadd the contents of script-file to the commands to be executed\n" \
+	"\t-f scriptfile\tadd script-file contents to the\n" \
+	    "\t\t\tcommands to be executed\n" \
+	"\t-i\t\tEdit files in-place\n" \
 	"\n" \
-	"If no -e or -f is given, the first non-option argument is taken as the\n" \
-	"sed script to interpret. All remaining arguments are names of input\n" \
-	"files; if no input files are specified, then the standard input is read."
+	"If no -e or -f is given, the first non-option argument is taken as the sed\n"\
+	"script to interpret. All remaining arguments are names of input files; if no\n"\
+	"input files are specified, then the standard input is read.  Source files\n" \
+	"will not be modified unless -i option is given."
+
 #define sed_example_usage \
 	"$ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
 	"bar\n"
