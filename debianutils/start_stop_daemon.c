@@ -199,7 +199,7 @@ int
 start_stop_daemon_main(int argc, char **argv)
 {
 	int flags;
-	char *signame;
+	char *signame = NULL;
 	bb_applet_long_options = ssd_long_options;
 
 	flags = bb_getopt_ulflags(argc, argv, "KSba:n:s:u:x:", 
@@ -210,7 +210,9 @@ start_stop_daemon_main(int argc, char **argv)
 	start = (flags & 2);
 	fork_before_exec = (flags & 4);
 
-	signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
+	if (signame) {
+		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
+	}
 
 	if (start == stop)
 		bb_error_msg_and_die ("need exactly one of -S or -K");
