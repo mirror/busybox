@@ -53,7 +53,7 @@ extern int which_main(int argc, char **argv)
 		argv++;
 		found = 0;
 		for (i = 0; i < count; i++) {
-			char buf[strlen(path_n)+1+strlen(*argv)];
+			char buf[strlen(path_n)+strlen(*argv)+2];
 			strcpy (buf, path_n);
 			strcat (buf, "/");
 			strcat (buf, *argv);
