@@ -43,6 +43,7 @@
 
 static const char uname_usage[] =
 	"uname [OPTION]...\n\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
 	"Print certain system information.  With no OPTION, same as -s.\n\n"
 	"Options:\n"
 	"\t-a\tprint all information\n"
@@ -52,7 +53,9 @@ static const char uname_usage[] =
 	"\t-s\tprint the operating system name\n"
 
 	"\t-p\tprint the host processor type\n"
-	"\t-v\tprint the operating system version\n";
+	"\t-v\tprint the operating system version\n"
+#endif
+	;
 
 
 static void print_element(unsigned int mask, char *element);

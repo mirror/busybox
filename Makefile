@@ -96,7 +96,6 @@ ifdef BB_INIT_SCRIPT
 endif
 
 all: busybox busybox.links docs
-.PHONY: all
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
@@ -111,26 +110,21 @@ busybox.links: busybox.def.h
 regexp.o nfsmount.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c
 
-.PHONY: test tests
 test tests:
 	cd tests && $(MAKE) all
 
-.PHONY: clean
 clean:
 	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
 	- cd tests && $(MAKE) clean
 
-.PHONY: distclean
 distclean: clean
 	- rm -f busybox
 	- cd tests && $(MAKE) distclean
 
-.PHONY: install
 install: busybox busybox.links
 	./install.sh $(PREFIX)
 
-.PHONY: dist release
 dist release: distclean
 	$(MAKE) -C docs clean all 
 	cd ..;					\
