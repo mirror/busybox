@@ -118,7 +118,9 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 #define DATE_OPT_SET    	0x02
 #define DATE_OPT_UTC    	0x04
 #define DATE_OPT_DATE   	0x08
-#define DATE_OPT_REFERENCE	0x10
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+# define DATE_OPT_TIMESPEC	0x10
+#endif
 
 int date_main(int argc, char **argv)
 {
@@ -156,7 +158,7 @@ int date_main(int argc, char **argv)
 	if(opt & 0x80000000UL)
 		bb_show_usage();
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
-	if(opt & DATE_OPT_REFERENCE) {
+	if(opt & DATE_OPT_TIMESPEC) {
 		if (!isofmt_arg) {
 			ifmt = 1;
 		} else {
