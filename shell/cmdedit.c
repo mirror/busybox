@@ -207,7 +207,8 @@ static void cmdedit_reset_term(void)
 		handlers_sets &= ~SET_WCHG_HANDLERS;
 	}
 	fflush(stdout);
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if 0
+//#ifdef CONFIG_FEATURE_CLEAN_UP
 	if (his_front) {
 		struct history *n;
 
@@ -1267,7 +1268,7 @@ prepare_to_die:
 			/* Control-k -- clear to end of line */  
 			*(command + cursor) = 0;
 			len = cursor;
-			redraw(cmdedit_y, 0);
+			printf("\033[J");
 			break;
 		case 12: 
 			{
