@@ -32,7 +32,7 @@ obj-n           :=
 obj-            :=
 
 obj-y += ask_confirmation.o chomp.o concat_path_file.o copy_file.o \
-	copy_file_chunk.o libc5.o device_open.o error_msg.o \
+	copy_file_chunk.o dump.o libc5.o device_open.o error_msg.o \
 	error_msg_and_die.o fgets_str.o find_mount_point.o find_pid_by_name.o \
 	find_root_device.o full_read.o full_write.o get_console.o \
 	get_last_path_component.o get_line_from_file.o gz_open.o human_readable.o \

@@ -646,6 +646,23 @@
 	"root:x:0:0:root:/root:/bin/bash\n" \
 	"daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
+#define hexdump_trivial_usage \
+	"[-[bcdefnosvx]] [OPTION] FILE"
+#define hexdump_full_usage \
+	"The hexdump utility is a filter which displays the specified files,\n" \
+	"or the standard input, if no files are specified, in a user specified\n"\
+	"format\n" \
+	"\t-b\t\tOne-byte octal display\n" \
+	"\t-c\t\tOne-byte character display\n" \
+	"\t-d\t\tTwo-byte decimal display\n" \
+	"\t-e FORMAT STRING\n" \
+	"\t-f FORMAT FILE\n" \
+	"\t-n LENGTH\tInterpret only length bytes of input\n" \
+	"\t-o\t\tTwo-byte octal display\n" \
+	"\t-s OFFSET\tSkip offset byte\n" \
+	"\t-v\t\tdisplay all input data\n" \
+	"\t-x\t\tTwo-byte hexadecimal display\n"
+
 #define hostid_trivial_usage \
 	""
 #define hostid_full_usage \
@@ -1248,6 +1265,12 @@
 	"\n" \
 	"Name:       debian\n" \
 	"Address:    127.0.0.1\n" 
+
+#define od_trivial_usage \
+	"[-aBbcDdeFfHhIiLlOovXx] [FILE]"
+#define od_full_usage \
+	"Write an unambiguous representation, octal bytes by default, of FILE\n"\
+	"to standard output.  With no FILE, or when FILE is -, read standard input."
 
 #define pidof_trivial_usage \
 	"process-name [process-name ...]"

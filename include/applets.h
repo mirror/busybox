@@ -200,6 +200,9 @@
 #ifdef CONFIG_HEAD
 	APPLET(head, head_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_HEXDUMP
+	APPLET(hexdump, hexdump_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_HOSTID
 	APPLET(hostid, hostid_main, _BB_DIR_USR_BIN)
 #endif
@@ -316,6 +319,9 @@
 #endif
 #ifdef CONFIG_NSLOOKUP
 	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN)
+#endif
+#ifdef CONFIG_OD
+	APPLET(od, od_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef CONFIG_PIDOF
 	APPLET(pidof, pidof_main, _BB_DIR_BIN)

@@ -13,6 +13,7 @@ bool 'fdflush'		    CONFIG_FDFLUSH
 bool 'freeramdisk'	    CONFIG_FREERAMDISK
 bool 'fsck_minix'	    CONFIG_FSCK_MINIX
 bool 'getopt'		    CONFIG_GETOPT
+bool 'hexdump'  	    CONFIG_HEXDUMP  
 bool 'mkfs_minix'	    CONFIG_MKFS_MINIX
 bool 'mkswap'		    CONFIG_MKSWAP
 bool 'more'		    CONFIG_MORE
