@@ -23,10 +23,10 @@ static void set_filesize_limit(int blocks);
 
 int get_algo(char *a)
 {
-	int x = 0;					/* standart: DES */
+	int x = 1;					/* standard: MD5 */
 
-	if (strcasecmp(a, "md5") == 0)
-		x = 1;
+	if (strcasecmp(a, "des") == 0)
+		x = 0;
 	return x;
 }
 
