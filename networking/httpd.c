@@ -1271,7 +1271,9 @@ static int sendCgi(const char *url,
 	    }
 	    firstLine = 0;
 	  }
-	  bb_full_write(s, rbuf, count);
+	  if (bb_full_write(s, rbuf, count) != count)
+	      break;
+
 #ifdef DEBUG
 	  if (config->debugHttpd)
 		fprintf(stderr, "cgi read %d bytes\n", count);
