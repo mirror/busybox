@@ -261,6 +261,19 @@ extern int tar_main(int argc, char **argv)
 }
 					
 static void
+fixUpPermissions(TarInfo *header)
+{
+	struct utimbuf t;
+	/* Now set permissions etc for the new file */
+	chown(header->name, header->uid, header->gid);
+	chmod(header->name, header->mode);
+	/* Reset the time */
+	t.actime = time(0);
+	t.modtime = header->mtime;
+	utime(header->name, &t);
+}
+				
+static int
 tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 {
 	size_t  writeSize;
@@ -295,7 +308,7 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 		if ( (readSize = fullRead(header->tarFd, buffer, readSize)) <= 0 ) {
 			/* Tarball seems to have a problem */
 			errorMsg("tar: Unexpected EOF in archive\n"); 
-			return;
+			return( FALSE);
 		}
 		if ( readSize < writeSize )
 			writeSize = readSize;
@@ -306,7 +319,7 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 			if ((actualWriteSz=fullWrite(outFd, buffer, writeSize)) != writeSize ) {
 				/* Output file seems to have a problem */
 				errorMsg(io_error, header->name, strerror(errno)); 
-				return;
+				return( FALSE);
 			}
 		}
 
@@ -316,41 +329,23 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 	/* Now we are done writing the file out, so try 
 	 * and fix up the permissions and whatnot */
 	if (extractFlag==TRUE && tostdoutFlag==FALSE) {
-		struct utimbuf t;
-		/* Now set permissions etc for the new file */
-		fchown(outFd, header->uid, header->gid);
-		fchmod(outFd, header->mode & ~S_IFMT);
 		close(outFd);
-		/* File must be closed before trying to change the date */
-		t.actime = time(0);
-		t.modtime = header->mtime;
-		utime(header->name, &t);
+		fixUpPermissions(header);
 	}
+	return( TRUE);
 }
 
-static void
-fixUpPermissions(TarInfo *header)
-{
-	struct utimbuf t;
-	/* Now set permissions etc for the new file */
-	chown(header->name, header->uid, header->gid);
-	chmod(header->name, header->mode);
-	/* Reset the time */
-	t.actime = time(0);
-	t.modtime = header->mtime;
-	utime(header->name, &t);
-}
-				
-static void
+static int
 tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 {
 
 	if (extractFlag==FALSE || tostdoutFlag==TRUE)
-		return;
+		return( TRUE);
 
 	if (createPath(header->name, header->mode) != TRUE) {
-		errorMsg("Error creating directory '%s': %s", header->name, strerror(errno)); 
-		return;  
+		errorMsg("tar: %s: Cannot mkdir: %s\n", 
+				header->name, strerror(errno)); 
+		return( FALSE);
 	}
 	/* make the final component, just in case it was
 	 * omitted by createPath() (which will skip the
@@ -358,35 +353,37 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 	if (mkdir(header->name, header->mode) == 0) {
 		fixUpPermissions(header);
 	}
+	return( TRUE);
 }
 
-static void
+static int
 tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 {
 	if (extractFlag==FALSE || tostdoutFlag==TRUE)
-		return;
+		return( TRUE);
 
 	if (link(header->linkname, header->name) < 0) {
-		errorMsg("Error creating hard link '%s' to '%s': %s\n", 
+		errorMsg("tar: %s: Cannot create hard link to '%s': %s\n", 
 				header->name, header->linkname, strerror(errno)); 
-		return;
+		return( FALSE);
 	}
 
 	/* Now set permissions etc for the new directory */
 	fixUpPermissions(header);
+	return( TRUE);
 }
 
-static void
+static int
 tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 {
 	if (extractFlag==FALSE || tostdoutFlag==TRUE)
-		return;
+		return( TRUE);
 
 #ifdef	S_ISLNK
 	if (symlink(header->linkname, header->name) < 0) {
-		errorMsg("Error creating symlink '%s' to '%s': %s\n", 
+		errorMsg("tar: %s: Cannot create symlink to '%s': %s\n", 
 				header->name, header->linkname, strerror(errno)); 
-		return;
+		return( FALSE);
 	}
 	/* Try to change ownership of the symlink.
 	 * If libs doesn't support that, don't bother.
@@ -399,24 +396,36 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 	/* Do not change permissions or date on symlink,
 	 * since it changes the pointed to file instead.  duh. */
 #else
-	fprintf(stderr, "Cannot create symbolic links\n");
+	errorMsg("tar: %s: Cannot create symlink to '%s': %s\n", 
+			header->name, header->linkname, 
+			"symlinks not supported"); 
 #endif
+	return( TRUE);
 }
 
-static void
+static int
 tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 {
 	if (extractFlag==FALSE || tostdoutFlag==TRUE)
-		return;
+		return( TRUE);
 
 	if (S_ISCHR(header->mode) || S_ISBLK(header->mode) || S_ISSOCK(header->mode)) {
-		mknod(header->name, header->mode, makedev(header->devmajor, header->devminor));
+		if (mknod(header->name, header->mode, makedev(header->devmajor, header->devminor)) < 0) {
+			errorMsg("tar: %s: Cannot mknod: %s\n",
+				header->name, strerror(errno)); 
+			return( FALSE);
+		}
 	} else if (S_ISFIFO(header->mode)) {
-		mkfifo(header->name, header->mode);
+		if (mkfifo(header->name, header->mode) < 0) {
+			errorMsg("tar: %s: Cannot mkfifo: %s\n",
+				header->name, strerror(errno)); 
+			return( FALSE);
+		}
 	}
 
 	/* Now set permissions etc for the new directory */
 	fixUpPermissions(header);
+	return( TRUE);
 }
 
 /* Read an octal value in a field of the specified width, with optional
@@ -535,7 +544,20 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			char buf[35];
 			struct tm *tm = localtime (&(header.mtime));
 
-			len=printf("%s %d/%-d ", modeString(header.mode), header.uid, header.gid);
+			len=printf("%s ", modeString(header.mode));
+			memset(buf, 0, 8*sizeof(char));
+			my_getpwuid(buf, header.uid);
+			if (! *buf)
+				len+=printf("%d", header.uid);
+			else
+				len+=printf("%s", buf);
+			memset(buf, 0, 8*sizeof(char));
+			my_getgrgid(buf, header.gid);
+			if (! *buf)
+				len+=printf("/%-d ", header.gid);
+			else
+				len+=printf("/%-s ", buf);
+
 			if (header.type==CHRTYPE || header.type==BLKTYPE) {
 				len1=snprintf(buf, sizeof(buf), "%ld,%-ld ", 
 						header.devmajor, header.devminor);
@@ -558,11 +580,15 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		if (verboseFlag == TRUE || listFlag == TRUE) {
 			/* Now the normal listing */
 			printf("%s", header.name);
+		}
+		if (verboseFlag == TRUE && listFlag == TRUE) {
 			/* If this is a link, say so */
 			if (header.type==LNKTYPE)
 				printf(" link to %s", header.linkname);
 			else if (header.type==SYMTYPE)
 				printf(" -> %s", header.linkname);
+		}
+		if (verboseFlag == TRUE || listFlag == TRUE) {
 			printf("\n");
 		}
 
@@ -573,6 +599,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			skipFileFlag = TRUE;
 		}
 #endif
+		/* Remove any clutter lying in our way */
+		unlink( header.name);
 
 		/* If we got here, we can be certain we have a legitimate 
 		 * header to work with.  So work with it.  */
@@ -582,22 +610,27 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				/* If the name ends in a '/' then assume it is
 				 * supposed to be a directory, and fall through */
 				if (header.name[strlen(header.name)-1] != '/') {
-					tarExtractRegularFile(&header, extractFlag, tostdoutFlag);
+					if (tarExtractRegularFile(&header, extractFlag, tostdoutFlag)==FALSE)
+						errorFlag=TRUE;
 					break;
 				}
 			case DIRTYPE:
-				tarExtractDirectory( &header, extractFlag, tostdoutFlag);
+				if (tarExtractDirectory( &header, extractFlag, tostdoutFlag)==FALSE)
+					errorFlag=TRUE;
 				break;
 			case LNKTYPE:
-				tarExtractHardLink( &header, extractFlag, tostdoutFlag);
+				if (tarExtractHardLink( &header, extractFlag, tostdoutFlag)==FALSE)
+					errorFlag=TRUE;
 				break;
 			case SYMTYPE:
-				tarExtractSymLink( &header, extractFlag, tostdoutFlag);
+				if (tarExtractSymLink( &header, extractFlag, tostdoutFlag)==FALSE)
+					errorFlag=TRUE;
 				break;
 			case CHRTYPE:
 			case BLKTYPE:
 			case FIFOTYPE:
-				tarExtractSpecial( &header, extractFlag, tostdoutFlag);
+				if (tarExtractSpecial( &header, extractFlag, tostdoutFlag)==FALSE)
+					errorFlag=TRUE;
 				break;
 			default:
 				close( tarFd);
@@ -610,14 +643,19 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		errorMsg( "Error reading '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
-	else 
+	else if (errorFlag==TRUE) {
+		errorMsg( "tar: Error exit delayed from previous errors\n");
+		return( FALSE);
+	} else 
 		return( status);
 
 	/* Stuff to do when we are done */
 endgame:
 	close( tarFd);
 	if ( *(header.name) == '\0' ) {
-		if (errorFlag==FALSE)
+		if (errorFlag==TRUE)
+			errorMsg( "tar: Error exit delayed from previous errors\n");
+		else
 			return( TRUE);
 	} 
 	return( FALSE);
