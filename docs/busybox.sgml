@@ -139,7 +139,7 @@
 		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 		mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
 		nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
-		setkeycodes, sfdisk, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
+		setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
 		tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
 		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
 		</para>
@@ -2620,78 +2620,6 @@
 		</para>
 	</sect1>
 
-	<sect1 id="sfdisk">
-	    <title>sfdisk</title>
-
-		<para>
-		Usage: sfdisk [OPTION]... DEVICE
-		</para>
-
-		<para>
-		Partition DEVICE.
-		</para>
-
-		<para>
-		Options:
-		</para>
-
-		<para>
-		<screen>
-			-s	List size of a partition
-			-c	Print or change partition Id
-			-l	List partitions of each device
-			-d	Idem, but in a format suitable for later input
-			-i	Number cylinders etc. from 1 instead of from 0
-			-uS	Accept/report in units of sectors
-			-uB	Accept/report in units of blocks
-			-uC	Accept/report in units of cylinders
-			-uM	Accept/report in units of MB
-			-T	List the known partition types
-			-D	For DOS-compatibility: waste a little space
-			-R	Make kernel reread partition table
-			-N NUM	Change only the partition with number NUM
-			-n	Do not actually write to disk
-			-O FILE	Save the sectors that will be overwritten to FILE
-			-I FILE	Restore these sectors from FILE
-		</screen>
-		</para>
-
-		<para>
-		Dangerous options:
-		</para>
-
-		<para>
-		<screen>
-			-g	Print the kernel's idea of the geometry
-			-x	Also list extended partitions on output
-				or expect descriptors for them on input
-			-L	Do not complain about things irrelevant for Linux
-			-q	Suppress warning messages
-		</screen>
-		</para>
-
-		<para>
-		You can override the detected geometry using:
-		</para>
-
-		<para>
-		<screen>
-			-C NUM	Set the number of cylinders to use
-			-H NUM	Set the number of heads to use
-			-S NUM	Set the number of sectors to use
-		</screen>
-		</para>
-
-		<para>
-		You can disable all consistency checking with:
-		</para>
-
-		<para>
-		<screen>
-			-f	Do what I say, even if it is stupid
-		</screen>
-		</para>
-	</sect1>
 
 	<sect1 id="sh">
 	    <title>sh</title>

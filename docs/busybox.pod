@@ -62,7 +62,7 @@ head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
 nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
-setkeycodes, sfdisk, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
+setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
 tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
 uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
 
@@ -1476,49 +1476,6 @@ Example:
 
 -------------------------------
 
-=item sfdisk
-
-Usage: sfdisk [options] device ...
-
-device: something like /dev/hda or /dev/sda
-
-useful options:
-
-    -s [or --show-size]: list size of a partition
-    -c [or --id]:        print or change partition Id
-    -l [or --list]:      list partitions of each device
-    -d [or --dump]:      idem, but in a format suitable for later input
-    -i [or --increment]: number cylinders etc. from 1 instead of from 0
-    -uS, -uB, -uC, -uM:  accept/report in units of sectors/blocks/cylinders/MB
-    -T [or --list-types]:list the known partition types
-    -D [or --DOS]:       for DOS-compatibility: waste a little space
-    -R [or --re-read]:   make kernel reread partition table
-    -N# :                change only the partition with number #
-    -n :                 do not actually write to disk
-    -O file :            save the sectors that will be overwritten to file
-    -I file :            restore these sectors again
-    -v [or --version]:   print version
-    -? [or --help]:      print this message
-
-dangerous options:
-
-    -g [or --show-geometry]: print the kernel's idea of the geometry
-    -x [or --show-extended]: also list extended partitions on output
-
-                             or expect descriptors for them on input
-    -L  [or --Linux]:      do not complain about things irrelevant for Linux
-    -q  [or --quiet]:      suppress warning messages
-    You can override the detected geometry using:
-    -C# [or --cylinders #]:set the number of cylinders to use
-    -H# [or --heads #]:    set the number of heads to use
-    -S# [or --sectors #]:  set the number of sectors to use
-
-You can disable all consistency checking with:
-
-    -f  [or --force]:      do what I say, even if it is stupid
-
--------------------------------
-
 =item sh
 
 Usage: sh
@@ -2063,4 +2020,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.54 2000/07/04 22:17:01 andersen Exp $
+# $Id: busybox.pod,v 1.55 2000/07/08 00:09:30 andersen Exp $
