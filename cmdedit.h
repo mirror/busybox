@@ -1,5 +1,5 @@
-#ifndef GETLINE_H
-#define GETLINE_H
+#ifndef CMDEDIT_H
+#define CMDEDIT_H
 
 /* unix systems can #define POSIX to use termios, otherwise 
  * the bsd or sysv interface will be used 
@@ -34,4 +34,4 @@ extern int	(*cmdedit_tab_hook)();
 
 #endif /* __STDC__ */
 
-#endif /* GETLINE_H */
+#endif /* CMDEDIT_H */
