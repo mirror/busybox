@@ -74,73 +74,57 @@ struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 
 struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 {
-	struct tm itm_time, jtm_time, ktm_time, ltm_time, mtm_time, ntm_time;
-
-	itm_time = *tm_time;
-	jtm_time = *tm_time;
-	ktm_time = *tm_time;
-	ltm_time = *tm_time;
-	mtm_time = *tm_time;
-	ntm_time = *tm_time;
+	struct tm t;
 
 	/* Parse input and assign appropriately to tm_time */
 
-	if (sscanf(t_string, "%d:%d:%d",
-			   &itm_time.tm_hour, &itm_time.tm_min, &itm_time.tm_sec) == 3) {
+	if (t=*tm_time,sscanf(t_string, "%d:%d:%d",
+			   &t.tm_hour, &t.tm_min, &t.tm_sec) == 3) {
+					/* no adjustments needed */
 
-		*tm_time = itm_time;
-		return (tm_time);
+	} else if (t=*tm_time,sscanf(t_string, "%d:%d",
+					  &t.tm_hour, &t.tm_min) == 2) {
+					/* no adjustments needed */
 
-	} else if (sscanf(t_string, "%d:%d",
-					  &jtm_time.tm_hour, &jtm_time.tm_min) == 2) {
 
-		*tm_time = jtm_time;
-		return (tm_time);
+	} else if (t=*tm_time,sscanf(t_string, "%d.%d-%d:%d:%d",
+					  &t.tm_mon,
+					  &t.tm_mday,
+					  &t.tm_hour,
+					  &t.tm_min, &t.tm_sec) == 5) {
 
-	} else if (sscanf(t_string, "%d.%d-%d:%d:%d",
-					  &ktm_time.tm_mon,
-					  &ktm_time.tm_mday,
-					  &ktm_time.tm_hour,
-					  &ktm_time.tm_min, &ktm_time.tm_sec) == 5) {
+		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 
-		ktm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-		*tm_time = ktm_time;
-		return (tm_time);
+	} else if (t=*tm_time,sscanf(t_string, "%d.%d-%d:%d",
+					  &t.tm_mon,
+					  &t.tm_mday,
+					  &t.tm_hour, &t.tm_min) == 4) {
 
-	} else if (sscanf(t_string, "%d.%d-%d:%d",
-					  &ltm_time.tm_mon,
-					  &ltm_time.tm_mday,
-					  &ltm_time.tm_hour, &ltm_time.tm_min) == 4) {
+		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 
-		ltm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-		*tm_time = ltm_time;
-		return (tm_time);
+	} else if (t=*tm_time,sscanf(t_string, "%d.%d.%d-%d:%d:%d",
+					  &t.tm_year,
+					  &t.tm_mon,
+					  &t.tm_mday,
+					  &t.tm_hour,
+					  &t.tm_min, &t.tm_sec) == 6) {
 
-	} else if (sscanf(t_string, "%d.%d.%d-%d:%d:%d",
-					  &mtm_time.tm_year,
-					  &mtm_time.tm_mon,
-					  &mtm_time.tm_mday,
-					  &mtm_time.tm_hour,
-					  &mtm_time.tm_min, &mtm_time.tm_sec) == 6) {
+		t.tm_year -= 1900;	/* Adjust years */
+		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 
-		mtm_time.tm_year -= 1900;	/* Adjust years */
-		mtm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-		*tm_time = mtm_time;
-		return (tm_time);
+	} else if (t=*tm_time,sscanf(t_string, "%d.%d.%d-%d:%d",
+					  &t.tm_year,
+					  &t.tm_mon,
+					  &t.tm_mday,
+					  &t.tm_hour, &t.tm_min) == 5) {
+		t.tm_year -= 1900;	/* Adjust years */
+		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 
-	} else if (sscanf(t_string, "%d.%d.%d-%d:%d",
-					  &ntm_time.tm_year,
-					  &ntm_time.tm_mon,
-					  &ntm_time.tm_mday,
-					  &ntm_time.tm_hour, &ntm_time.tm_min) == 5) {
-		ntm_time.tm_year -= 1900;	/* Adjust years */
-		ntm_time.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-		*tm_time = ntm_time;
-		return (tm_time);
-
+	} else {
+		fatalError(invalid_date, t_string); 
 	}
-
-	fatalError(invalid_date, t_string); 
+	*tm_time = t;
+	return (tm_time);
 }
 
 
