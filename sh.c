@@ -113,7 +113,6 @@ static int busy_loop(FILE * input);
 static struct builtInCommand bltins[] = {
 	{"bg", "Resume a job in the background", "bg [%%job]", shell_fg_bg},
 	{"cd", "Change working directory", "cd [dir]", shell_cd},
-	//{"echo", "Echo arguments on stdout", "echo arg1 [...]", shell_echo},
 	{"env", "Print all environment variables", "env", shell_env},
 	{"exit", "Exit from shell()", "exit", shell_exit},
 	{"fg", "Bring job into the foreground", "fg [%%job]", shell_fg_bg},
