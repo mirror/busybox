@@ -35,37 +35,37 @@
 
 /* options */
 #define GREP_OPTS "lnqvscFiHhe:f:L"
-#define GREP_OPT_l 1
+#define GREP_OPT_l (1<<0)
 static char print_files_with_matches;
-#define GREP_OPT_n 2
+#define GREP_OPT_n (1<<1)
 static char print_line_num;
-#define GREP_OPT_q 4
+#define GREP_OPT_q (1<<2)
 static char be_quiet;
-#define GREP_OPT_v 8
+#define GREP_OPT_v (1<<3)
 typedef char invert_search_t;
 static invert_search_t invert_search;
-#define GREP_OPT_s 16
+#define GREP_OPT_s (1<<4)
 static char suppress_err_msgs;
-#define GREP_OPT_c 32
+#define GREP_OPT_c (1<<5)
 static char print_match_counts;
-#define GREP_OPT_F 64
+#define GREP_OPT_F (1<<6)
 static char fgrep_flag;
-#define GREP_OPT_i 128
-#define GREP_OPT_H 256
-#define GREP_OPT_h 512
-#define GREP_OPT_e 1024
-#define GREP_OPT_f 2048
-#define GREP_OPT_L 4096
+#define GREP_OPT_i (1<<7)
+#define GREP_OPT_H (1<<8)
+#define GREP_OPT_h (1<<9)
+#define GREP_OPT_e (1<<10)
+#define GREP_OPT_f (1<<11)
+#define GREP_OPT_L (1<<12)
 static char print_files_without_matches;
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 #define GREP_OPT_CONTEXT "A:B:C"
-#define GREP_OPT_A 8192
-#define GREP_OPT_B 16384
-#define GREP_OPT_C 32768
-#define GREP_OPT_E 65536
+#define GREP_OPT_A (1<<13)
+#define GREP_OPT_B (1<<14)
+#define GREP_OPT_C (1<<15)
+#define GREP_OPT_E (1<<16)
 #else
 #define GREP_OPT_CONTEXT ""
-#define GREP_OPT_E 8192
+#define GREP_OPT_E (1<<13)
 #endif
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
 # define OPT_EGREP "E"
