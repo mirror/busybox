@@ -52,9 +52,13 @@ int makedevs_main(int argc, char **argv)
 
 		if (type[0] != 'f')
 			dev = (major << 8) | Sminor;
-		strcpy(devname, basedev);
+		safe_strncpy(devname, basedev, sizeof(devname));
 
 		if (sbase == 0) {
+			int len;
+			len = strlen(devname);
+			if (S > 10000 || len > (sizeof(devname)-6))
+				error_msg_and_die("%s: number too large", buf);
 			sprintf(buf, "%d", S);
 			strcat(devname, buf);
 		} else {
