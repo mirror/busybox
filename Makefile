@@ -93,21 +93,20 @@ else
     CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
     LDFLAGS  += -s
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
-    #Only staticly link when _not_ debugging 
-    ifeq ($(DOSTATIC),true)
-	LDFLAGS += --static
-	#
-	#use '-ffunction-sections -fdata-sections' and '--gc-sections' (if they 
-	# work) to try and strip out any unused junk.  Doesn't do much for me, 
-	# but you may want to give it a shot...
-	#
-	#ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
-	#	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) \
-	#			--gc-sections -v >/dev/null && echo 1),1)
-	#	CFLAGS += -ffunction-sections -fdata-sections
-	#	LDFLAGS += --gc-sections
-	#endif
-    endif
+endif
+ifeq ($(DOSTATIC),true)
+    LDFLAGS += --static
+    #
+    #use '-ffunction-sections -fdata-sections' and '--gc-sections' (if they 
+    # work) to try and strip out any unused junk.  Doesn't do much for me, 
+    # but you may want to give it a shot...
+    #
+    #ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
+    #	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) \
+    #			--gc-sections -v >/dev/null && echo 1),1)
+    #	CFLAGS += -ffunction-sections -fdata-sections
+    #	LDFLAGS += --gc-sections
+    #endif
 endif
 
 ifndef $(PREFIX)
