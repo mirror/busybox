@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "libbb.h"
@@ -40,11 +41,15 @@ extern int install_main(int argc, char **argv)
 	gid_t gid = -1;
 	int copy_flags = 0;
 	int strip_flag = 0;
+	int dir_flag = 0;
 	mode_t mode = 0755;
 
 	/* -c exists for backwards compatability, its needed */
-	while ((i = getopt(argc, argv, "cg:m:o:ps")) != -1) {
+	while ((i = getopt(argc, argv, "cdg:m:o:ps")) != -1) {
 		switch (i) {
+		case 'd':	/* Create directories */
+			dir_flag = 1;
+			break;
 		case 'g':	/* group */
 			gid = get_ug_id(optarg, my_getgrnam);
 			break;
@@ -63,6 +68,31 @@ extern int install_main(int argc, char **argv)
 		default:
 			bb_show_usage();
 		}
+	}
+
+	if (dir_flag) {
+		for (argv += optind; *argv; argv++) {
+			unsigned char *dir_name = *argv;
+			unsigned char *argv_ptr;
+
+			ret |= bb_make_directory(dir_name, mode, FILEUTILS_RECUR);
+			do {
+				argv_ptr = strrchr(dir_name, '/');
+
+				/* Skip the "." and ".." directories */
+				if ((dir_name[0] == '.') && ((dir_name[1] == '\0') || ((dir_name[1] == '.') && (dir_name[2] == '\0')))) {
+					break;
+				}
+				if (chown(dir_name, uid, gid) == -1) {
+					bb_perror_msg("cannot change ownership of %s", argv_ptr);
+					ret |= EXIT_FAILURE;
+				}
+				if (argv_ptr) {
+					*argv_ptr = '\0';
+				}
+			} while (argv_ptr);
+		}
+		return(ret);
 	}
 
 	if ((stat(argv[argc - 1], &statbuf) == -1) && (errno != ENOENT)) {
