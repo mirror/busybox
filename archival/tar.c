@@ -142,7 +142,7 @@ enum TarFileType
 typedef enum TarFileType TarFileType;
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static void
+extern inline void
 addHardLinkInfo (HardLinkInfo **hlInfoHeadPtr, dev_t dev, ino_t ino,
 		short linkCount, const char *name)
 {
@@ -180,7 +180,7 @@ freeHardLinkInfo (HardLinkInfo **hlInfoHeadPtr)
 }
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static HardLinkInfo *
+extern inline HardLinkInfo *
 findHardLinkInfo (HardLinkInfo *hlInfo, dev_t dev, ino_t ino)
 {
 	while(hlInfo) {
@@ -226,7 +226,7 @@ static int putOctal (char *cp, int len, long value)
 }
 
 /* Write out a tar header for the specified file/directory/whatever */
-static int
+extern inline int
 writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 		const char *real_name, struct stat *statbuf)
 {
@@ -320,7 +320,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 }
 
 # if defined CONFIG_FEATURE_TAR_EXCLUDE
-static int exclude_file(char **excluded_files, const char *file)
+extern inline int exclude_file(char **excluded_files, const char *file)
 {
 	int i;
 
@@ -448,7 +448,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	return( TRUE);
 }
 
-static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
+extern inline int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		char** excludeList, int gzip)
 {
 #ifdef CONFIG_FEATURE_TAR_GZIP
@@ -601,6 +601,7 @@ void append_file_list_to_list(char *filename, char ***name_list, int *num_of_ent
 /*
  * Create a list of names that are in the include list AND NOT in the exclude lists
  */
+#if 0 /* this is unused */
 char **list_and_not_list(char **include_list, char **exclude_list)
 {
 	char **new_include_list = NULL;
@@ -635,6 +636,7 @@ char **list_and_not_list(char **include_list, char **exclude_list)
 	new_include_list[new_include_count] = NULL;
 	return(new_include_list);
 }
+#endif
 #endif
 
 int tar_main(int argc, char **argv)
