@@ -65,6 +65,11 @@
 #include <unistd.h>
 #include <getopt.h>
 
+// fix compile with uClibc (which does #define index strchr) -andy
+#ifdef index
+#undef index
+#endif
+
 #undef BB_FEATURE_SH_WORDEXP
 
 #if BB_FEATURE_SH_WORDEXP
