@@ -1362,75 +1362,8 @@ static const char *visible(unsigned int ch)
 }
 
 #ifdef TEST
-unsigned long parse_number(const char *numstr,
-		const struct suffix_mult *suffixes)
-{
-	const struct suffix_mult *sm;
-	unsigned long int ret;
-	int len;
-	char *end;
-
-	ret = strtoul(numstr, &end, 10);
-	if (numstr == end)
-		error_msg_and_die("invalid number `%s'", numstr);
-	while (end[0] != '\0') {
-		sm = suffixes;
-		while ( sm != 0 ) {
-			if(sm->suffix) {
-				len = strlen(sm->suffix);
-				if (strncmp(sm->suffix, end, len) == 0) {
-					ret *= sm->mult;
-					end += len;
-					break;
-				}
-			sm++;
-
-			} else
-				sm = 0;
-		}
-		if (sm == 0)
-			error_msg_and_die("invalid number `%s'", numstr);
-	}
-	return ret;
-}
 
 const char *applet_name = "stty";
-
-static void verror_msg(const char *s, va_list p)
-{
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	vfprintf(stderr, s, p);
-}
-
-extern void error_msg_and_die(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	verror_msg(s, p);
-	va_end(p);
-	putc('\n', stderr);
-	exit(EXIT_FAILURE);
-}
-
-static void vperror_msg(const char *s, va_list p)
-{
-	int err=errno;
-	verror_msg(s, p);
-	if (*s) s = ": ";
-	fprintf(stderr, "%s%s\n", s, strerror(err));
-}
-
-extern void perror_msg_and_die(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	vperror_msg(s, p);
-	va_end(p);
-	exit(EXIT_FAILURE);
-}
 
 #endif
 
