@@ -844,7 +844,7 @@ static void saveDirectory (const char *dirName, const struct stat *statbuf)
     DIR *dir;
     struct dirent *entry;
     int needSlash;
-    char fullName[PATH_LEN];
+    char fullName[NAME_MAX];
 
     /* 
      * Construct the directory name as used in the tar file by appending

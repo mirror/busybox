@@ -16,12 +16,10 @@ static const struct Applet applets[] = {
 #ifdef BB_CAT			//bin
     {"cat", cat_more_main},
 #endif
-#ifdef BB_CHMOD			//bin
-    {"chmod", chmod_main},
-#endif
-#ifdef BB_CHOWN			//bin
-    {"chown", chown_main},
-    {"chgrp", chown_main},
+#ifdef BB_CHMOD_CHOWN_CHGRP	//bin
+    {"chmod", chmod_chown_chgrp_main},
+    {"chown", chmod_chown_chgrp_main},
+    {"chgrp", chmod_chown_chgrp_main},
 #endif
 #ifdef BB_CHROOT		//sbin
     {"chroot", chroot_main},

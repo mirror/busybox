@@ -1,5 +1,5 @@
 /*
- * Mini chown/chgrp implementation for busybox
+ * Mini chown/chmod/chgrp implementation for busybox
  *
  * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
  *
@@ -27,9 +27,14 @@
 
 static int uid=-1;
 static int gid=0;
-static int chownApp;
+static int whichApp;
 static char* invocationName=NULL;
+static mode_t mode=7777;
 
+
+#define CHGRP_APP   1
+#define CHOWN_APP   2
+#define CHMOD_APP   3
 
 static const char chgrp_usage[] = "[OPTION]... GROUP FILE...\n"
     "Change the group membership of each FILE to GROUP.\n"
@@ -37,23 +42,135 @@ static const char chgrp_usage[] = "[OPTION]... GROUP FILE...\n"
 static const char chown_usage[] = "[OPTION]...  OWNER[.[GROUP] FILE...\n"
     "Change the owner and/or group of each FILE to OWNER and/or GROUP.\n"
     "\n\tOptions:\n" "\t-R\tchange files and directories recursively\n";
+static const char chmod_usage[] = "[-R] MODE[,MODE]... FILE...\n"
+"Each MODE is one or more of the letters ugoa, one of the symbols +-= and\n"
+"one or more of the letters rwxst.\n\n"
+ "\t-R\tchange files and directories recursively.\n";
 
 
 
 static int fileAction(const char *fileName)
 {
     struct stat statBuf;
-    if ((stat(fileName, &statBuf) < 0) || 
-	    (chown(fileName, 
-		   ((chownApp==TRUE)? uid: statBuf.st_uid), 
-		   gid) < 0)) { 
-	perror(fileName);
-	return( FALSE);
+    if (stat(fileName, &statBuf) < 0) {
+	switch (whichApp) {
+	    case CHGRP_APP:
+	    case CHOWN_APP:
+		if (chown(fileName, ((whichApp==CHOWN_APP)? uid: statBuf.st_uid), gid) < 0)
+		    return( TRUE);
+	    case CHMOD_APP:
+		if (chmod(fileName, mode))
+		    return( TRUE);
+	}
     }
-    return( TRUE);
+    perror(fileName);
+    return( FALSE);
 }
 
-int chown_main(int argc, char **argv)
+/* [ugoa]{+|-|=}[rwxstl] */
+int parse_mode( const char* s, mode_t* or, mode_t* and, int* group_execute) 
+{
+	mode_t	mode = 0;
+	mode_t	groups = S_ISVTX;
+	char	type;
+	char	c;
+
+	do {
+		for ( ; ; ) {
+			switch ( c = *s++ ) {
+			case '\0':
+				return (FALSE);
+			case 'u':
+				groups |= S_ISUID|S_IRWXU;
+				continue;
+			case 'g':
+				groups |= S_ISGID|S_IRWXG;
+				continue;
+			case 'o':
+				groups |= S_IRWXO;
+				continue;
+			case 'a':
+				groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+				continue;
+			case '+':
+			case '=':
+			case '-':
+				type = c;
+				if ( groups == S_ISVTX ) /* The default is "all" */
+					groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+				break;
+			default:
+				if ( c >= '0' && c <= '7' && mode == 0 && groups == S_ISVTX ) {
+					*and = 0;
+					*or = strtol(--s, 0, 010);
+					return (TRUE);
+				}
+				else
+					return (FALSE);
+			}
+			break;
+		}
+
+		while ( (c = *s++) != '\0' ) {
+			switch ( c ) {
+			case ',':
+				break;
+			case 'r':
+				mode |= S_IRUSR|S_IRGRP|S_IROTH;
+				continue;
+			case 'w':
+				mode |= S_IWUSR|S_IWGRP|S_IWOTH;
+				continue;
+			case 'x':
+				mode |= S_IXUSR|S_IXGRP|S_IXOTH;
+				continue;
+			case 's':
+				if ( group_execute != 0 && (groups & S_IRWXG) ) {
+					if ( *group_execute < 0 )
+						return (FALSE);
+					if ( type != '-' ) {
+						mode |= S_IXGRP;
+						*group_execute = 1;
+					}
+				}
+				mode |= S_ISUID|S_ISGID;
+				continue;
+			case 'l':
+				if ( *group_execute > 0 )
+					return (FALSE);
+				if ( type != '-' ) {
+					*and &= ~S_IXGRP;
+					*group_execute = -1;
+				}
+				mode |= S_ISGID;
+				groups |= S_ISGID;
+				continue;
+			case 't':
+				mode |= S_ISVTX;
+				continue;
+			default:
+				return (FALSE);
+			}
+			break;
+		}
+		switch ( type ) {
+		case '=':
+			*and &= ~(groups);
+			/* fall through */
+		case '+':
+			*or |= mode & groups;
+			break;
+		case '-':
+			*and &= ~(mode & groups);
+			*or &= *and;
+			break;
+		}
+	} while ( c == ',' );
+	return (TRUE);
+}
+
+
+int chmod_chown_chgrp_main(int argc, char **argv)
 {
     struct group *grp;
     struct passwd *pwd;
@@ -61,11 +178,11 @@ int chown_main(int argc, char **argv)
     char *groupName;
 
 
-    chownApp = (strcmp(*argv, "chown")==0)? TRUE : FALSE;
+    whichApp = (strcmp(*argv, "chown")==0)? CHOWN_APP : (strcmp(*argv, "chmod")==0)? CHMOD_APP : CHGRP_APP; 
 
     if (argc < 2) {
 	fprintf(stderr, "Usage: %s %s", *argv, 
-		(chownApp==TRUE)? chown_usage : chgrp_usage);
+		(whichApp==TRUE)? chown_usage : chgrp_usage);
 	exit( FALSE);
     }
     invocationName=*argv;
@@ -86,29 +203,40 @@ int chown_main(int argc, char **argv)
 	argv++;
     }
     
-    /* Find the selected group */
-    groupName = strchr(*argv, '.');
-    if ( chownApp==TRUE && groupName )
-	*groupName++ = '\0';
-    else
-	groupName = *argv;
-    grp = getgrnam(groupName);
-    if (grp == NULL) {
-	fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
-	exit( FALSE);
-    }
-    gid = grp->gr_gid;
-
-    /* Find the selected user (if appropriate)  */
-    if (chownApp==TRUE) {
-	pwd = getpwnam(*argv);
-	if (pwd == NULL) {
-	    fprintf(stderr, "%s: Unknown user name: %s\n", invocationName, *argv);
+    if ( whichApp == CHMOD_APP ) {
+	/* Find the specified modes */
+	if ( parse_mode(*argv, &orWithMode, &andWithMode, 0) == FALSE ) {
+	    fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, *argv);
 	    exit( FALSE);
 	}
-	uid = pwd->pw_uid;
-    }
+	mode &= andWithMode;
+	mode |= orWithMode;
+    } else {
 
+	/* Find the selected group */
+	groupName = strchr(*argv, '.');
+	if ( whichApp==TRUE && groupName )
+	    *groupName++ = '\0';
+	else
+	    groupName = *argv;
+	grp = getgrnam(groupName);
+	if (grp == NULL) {
+	    fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
+	    exit( FALSE);
+	}
+	gid = grp->gr_gid;
+
+	/* Find the selected user (if appropriate)  */
+	if (whichApp==TRUE) {
+	    pwd = getpwnam(*argv);
+	    if (pwd == NULL) {
+		fprintf(stderr, "%s: Unknown user name: %s\n", invocationName, *argv);
+		exit( FALSE);
+	    }
+	    uid = pwd->pw_uid;
+	}
+    }
+    
     /* Ok, ready to do the deed now */
     if (argc <= 1) {
 	fprintf(stderr, "%s: too few arguments", invocationName);
@@ -120,3 +248,4 @@ int chown_main(int argc, char **argv)
     }
     exit(TRUE);
 }
+
