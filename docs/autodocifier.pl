@@ -46,9 +46,10 @@ sub pod_for_usage {
 	my $trivial = $usage->{trivial};
 	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
 
-	my @full = 
+	my $full = 
+		join("\n"
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
-		split("\n", $usage->{full});
+		split("\n", $usage->{full}));
 
 	return
 		"-------------------------------\n".
@@ -57,7 +58,7 @@ sub pod_for_usage {
 		"\n\n".
 		"$name $trivial".
 		"\n\n".
-		join("\n", @full).
+		$full.
 		"\n\n"
 	;
 }
@@ -146,11 +147,9 @@ The purpose of this script is to automagically generate documentation
 for busybox using its usage.h as the original source for content.
 Currently, the same content has to be duplicated in 3 places in
 slightly different formats -- F<usage.h>, F<docs/busybox.pod>, and
-F<docs/busybox.sgml>.  Duplicating the same content in these 3 places
-is tedious, so Perl has come to the rescue.
+F<docs/busybox.sgml>.  This is tedious, so Perl has come to the rescue.
 
-This script was based on an original work by 
-Erik Andersen (andersen@lineo.com).
+This script was based on a script by Erik Andersen (andersen@lineo.com).
 
 =head1 OPTIONS
 
@@ -180,4 +179,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.3 2001/02/23 02:54:31 beppu Exp $
+# $Id: autodocifier.pl,v 1.4 2001/02/23 03:12:45 beppu Exp $
