@@ -47,7 +47,8 @@ BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time.  This makes it easy to customize your embedded
 systems.  To create a working system, just add a kernel, a shell (such as ash),
-and an editor (such as elvis-tiny or ae).
+and an editor (such as elvis-tiny or ae).  For a really minimal system, just
+the the busybox shell (not a POSIX shell, but very small and quite usable).
 <p>
 
 BusyBox is now maintained by 
@@ -76,6 +77,19 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 
 <ul>
 
+    <p> <li> <b>26 September 2000 -- BusyBox 0.47 released</b>
+    <br>
+
+	     This release fixes lots of bugs (including an ugly bug in 0.46
+	     syslogd that could fork-bomb your system).  Added several new
+	     apps: rdate, wget, getopt, dos2unix, unix2dos, reset, unrpm, 
+	     renice, xargs, and expr.  syslogd now supports network logging.
+	     There are the usual tar updates.  Most apps now use getopt for
+	     more correct option parsing.
+	     See the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> 
+	     for complete details.
+
+
     <p> <li> <b>11 July 2000 -- BusyBox 0.46 released</b>
     <br>
 
@@ -84,7 +98,8 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 	     people to dump a binary keymaps for use with 'loadkmap', and a
 	     completely reworked 'grep' and 'sed' which should behave better.
 	     BusyBox shell can now also be used as a login shell.
-	     See the <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a> for complete details.
+	     See the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> 
+	     for complete details.
 
 
     <p> <li> <b>21 June 2000 -- BusyBox 0.45 released</b>
@@ -95,7 +110,7 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 	     release provides the following new apps: cut, tr, insmod, ar,
 	     mktemp, setkeycodes, md5sum, uuencode, uudecode, which, and
 	     telnet.  There are bug fixes for just about every app as well (see
-	     the <a href="ftp://ftp.lineo.com/pub/busybox/Changelog">changelog</a> for
+	     the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> for
 	     details).
 	     <p>
 	     Also, some exciting infrastructure news!  Busybox now has its own 
@@ -133,7 +148,7 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 <ul>
     <li> Source for the latest release can always be downloaded from 
-	<a href="ftp://ftp.lineo.com/pub/busybox">ftp://ftp.lineo.com/pub/busybox</a>.
+	<a href="ftp://oss.lineo.com/busybox">ftp://oss.lineo.com/busybox</a>.
     <li> BusyBox now has its own publically browsable
 	<a href="http://opensource.lineo.com/cgi-bin/cvsweb/busybox/">CVS tree</a>,  
 	anonymous
@@ -153,13 +168,16 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 Current documentation for BusyBox includes: 
 <ul>
-    <li> <a href="BusyBox.html">BusyBox.html</a>
-		This is a list of the all the available commands in BusyBox with complete 
-		usage information and examples of how to use each app.  I spent 
-		a <em>lot</em> of time updating these docs and trying to make them 
-		fairly comprehensive for the BusyBox 0.43 release.  If you find any 
-		errors (factual, grammatical, whatever) please let me know.
+    <li> <a href="ftp://oss.lineo.com/busybox/BusyBox.html">BusyBox.html</a>.
+		This is a list of the all the available commands in BusyBox with 
+		complete usage information and examples of how to use each app.  I 
+		have spent a <em>lot</em> of time updating these docs and trying to 
+		make them fairly comprehensive.  If you find any errors (factual, 
+		grammatical, whatever) please let me know.
+    <li> <a href="ftp://oss.lineo.com/busybox/BusyBox.pdf">BusyBox.pdf</a>.
+		This is basically the same document, but in pdf format.
     <li> <a href="http://bugs.lineo.com/db/pa/lbusybox.html">BusyBoxBugs</a>.
+		Need to report a bug?  Need to check if a bug has been filed?
     <li> If you need more help, the BusyBox
     <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a> is
     a good place to start.
@@ -178,7 +196,7 @@ I know of the following products and/or projects that use BusyBox -- listed
 in the order I happen to add them to the web page:
 <ul>
     <li> <a href="http://www.lineo.com/products/embedix_linux/">Lineo Embedix Linux</a>
-    <li> <a href="http://cvs.debian.org/boot-floppies/">Debian boot floppies project</a>
+    <li> <a href="http://cvs.debian.org/boot-floppies/">Debian installer (boot floppies) project</a>
     <li> <a href="http://www.linuxrouter.org/">Linux Router Project </a>
     <li> <a href="http://linux-embedded.org/">LEM</a>
     <li> <a href="http://www.toms.net/rb/">tomsrtbt</a>
