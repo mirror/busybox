@@ -426,14 +426,20 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 						do_syslog ? "-s" : "", list-> m_module );
 		}
 
-		if ( verbose )
-			printf ( "%s\n", lcmd );
-		if ( !show_only && *lcmd) {
-			int rc2 = system ( lcmd );
-			if (do_insert) rc = rc2; /* only last module matters */
-			else if (!rc2) rc = 0; /* success if remove any mod */
+		if (*lcmd) {
+			if (verbose) {
+				printf("%s\n", lcmd);
+			}
+			if (!show_only) {
+				int rc2 = system(lcmd);
+				if (do_insert) {
+					rc = rc2; /* only last module matters */
+				}
+				else if (!rc2) {
+					rc = 0; /* success if remove any mod */
+				}
+			}
 		}
-
 		list = do_insert ? list-> m_prev : list-> m_next;
 	}
 	return (show_only) ? 0 : rc;
@@ -665,5 +671,3 @@ extern int modprobe_main(int argc, char** argv)
 
 	return EXIT_SUCCESS;
 }
-
-
