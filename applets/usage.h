@@ -12,9 +12,9 @@
 	"\t-p timeconstant\n"
 
 #define ar_trivial_usage \
-	"-[ovR]{ptx} archive filenames"
+	"-[ovR]{ptx} ARCHIVE FILES"
 #define ar_full_usage \
-	"Extract or list files from an ar archive.\n\n" \
+	"Extract or list FILES from an ar archive.\n\n" \
 	"Options:\n" \
 	"\t-o\t\tpreserve original dates\n" \
 	"\t-p\t\textract to stdout\n" \
@@ -213,7 +213,7 @@
   #define USAGE_NOT_HUMAN_READABLE(a) a
 #endif
 #define df_trivial_usage \
-	"[-" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [filesystem ...]"
+	"[-" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILESYSTEM ...]"
 #define df_full_usage \
 	"Print the filesystem space used and space available.\n\n" \
 	"Options:\n" \
@@ -251,23 +251,22 @@
 	"\t-s SIZE\t\tUse a buffer of size SIZE"
 
 #define dos2unix_trivial_usage \
-	"[option] [file]"
+	"[option] [FILE]"
 #define dos2unix_full_usage \
-	"Converts a text file to/from dos format to unix format.\n\n" \
+	"Converts FILE from dos format to unix format.  When no option\n" \
+	"is given, the input is converted to the opposite output format.\n" \
+	"When no file is given, uses stdin for input and stdout for output." \
 	"Options:\n" \
 	"\t-u\toutput will be in UNIX format\n" \
 	"\t-d\toutput will be in DOS format\n\n" \
-	"- when no option is given then input format will be automaticaly detected\n" \
-	"  and converted to the oposite format on output\n" \
-	"- when no file is given, then stdin is used as input and stdout as output"
 
 #define dpkg_trivial_usage \
 	"[-i|-r|--unpack|--configure] my.deb"
 #define dpkg_full_usage \
-	"WORK IN PROGRESS, only usefull for debian-installer"
+	"WORK IN PROGRESS, only useful for debian-installer"
 
 #define dpkg_deb_trivial_usage \
-	"[-cefItxX] file [argument]"
+	"[-cefItxX] FILE [argument]"
 #define dpkg_deb_full_usage \
 	"Perform actions on debian packages (.debs)\n\n" \
 	"Options:\n" \
@@ -519,7 +518,7 @@
         "done\n"
 
 #define grep_trivial_usage \
-	"[-ihHnqvs] pattern [files...]"
+	"[-ihHnqvs] PATTERN [FILEs...]"
 #define grep_full_usage \
 	"Search for PATTERN in each FILE or standard input.\n\n" \
 	"Options:\n" \
@@ -560,11 +559,11 @@
 	"\t-c\tWrite output to standard output instead of FILE.gz\n" \
 	"\t-d\tdecompress"
 #define gzip_example_usage \
-	"$ ls -la /tmp/BusyBox*\n" \
-	"-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n" \
-	"$ gzip /tmp/BusyBox-0.43.tar\n" \
-	"$ ls -la /tmp/BusyBox*\n" \
-	"-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/BusyBox-0.43.tar.gz\n"
+	"$ ls -la /tmp/busybox*\n" \
+	"-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox.tar\n" \
+	"$ gzip /tmp/busybox.tar\n" \
+	"$ ls -la /tmp/busybox*\n" \
+	"-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
 	""
@@ -590,10 +589,10 @@
 	"Print out a unique 32-bit identifier for the machine."
 
 #define hostname_trivial_usage \
-	"[OPTION] {hostname | -F file}"
+	"[OPTION] {hostname | -F FILE}"
 #define hostname_full_usage \
 	"Get or set the hostname or DNS domain name. If a hostname is given\n" \
-	"(or a file with the -F parameter), the host name will be set.\n\n" \
+	"(or FILE with the -F parameter), the host name will be set.\n\n" \
 	"Options:\n" \
 	"\t-s\t\tShort\n" \
 	"\t-i\t\tAddresses for the hostname\n" \
@@ -601,7 +600,7 @@
 	"\t-F, --file FILE\tUse the contents of FILE to specify the hostname"
 #define hostname_example_usage \
 	"$ hostname\n" \
-	"slag \n"
+	"sage \n"
 
 #define id_trivial_usage \
 	"[OPTIONS]... [USERNAME]"
@@ -1004,7 +1003,7 @@
 #define mkdir_trivial_usage \
 	"[OPTION] DIRECTORY..."
 #define mkdir_full_usage \
-	"Create the DIRECTORY(ies), if they do not already exist\n\n" \
+	"Create the DIRECTORY(ies) if they do not already exist\n\n" \
 	"Options:\n" \
 	"\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n" \
 	"\t-p\tno error if existing, make parent directories as needed"
@@ -1087,7 +1086,7 @@
   #define USAGE_MTAB(a)
 #endif
 #define mount_trivial_usage \
-	"[flags] device node [-o options,more-options]"
+	"[flags] DEVICE NODE [-o options,more-options]"
 #define mount_full_usage \
 	"Mount a filesystem\n\n" \
 	"Flags:\n"  \
@@ -1114,7 +1113,7 @@
 	"\tro/rw:\t\tMount for read-only / read-write.\n" \
 	"\tbind:\t\tUse the linux 2.4.x \"bind\" feature.\n" \
 	"\nThere are EVEN MORE flags that are specific to each filesystem.\n" \
-	"You'll have to see the written documentation for those."
+	"You'll have to see the written documentation for those filesystems."
 #define mount_example_usage \
 	"$ mount\n" \
 	"/dev/hda3 on / type minix (rw)\n" \
@@ -1191,9 +1190,9 @@
 	"round-trip min/avg/max = 20.1/20.1/20.1 ms\n" 
 
 #define pivot_root_trivial_usage \
-	"new_root put_old"
+	"NEW_ROOT PUT_OLD"
 #define pivot_root_full_usage \
-	"Move the current root file system to put_old and make new_root\n" \
+	"Move the current root file system to PUT_OLD and make NEW_ROOT\n" \
 	"the new root file system."
 
 #define poweroff_trivial_usage \
@@ -1382,27 +1381,27 @@
 	"f\n"
 
 #define stty_trivial_usage \
-	"[-a|g] [-F device] [SETTING]..."
+	"[-a|g] [-F DEVICE] [SETTING]..."
 #define stty_full_usage \
 	"Without arguments, prints baud rate, line discipline," \
 	"\nand deviations from stty sane." \
 	"\n\nOptions:" \
-	"\n\t-F device\topen device instead of stdin" \
+	"\n\t-F DEVICE\topen device instead of stdin" \
 	"\n\t-a\t\tprint all current settings in human-readable form" \
 	"\n\t-g\t\tprint in stty-readable form" \
 	"\n\t[SETTING]\tsee documentation"
 
 #define swapoff_trivial_usage \
-	"[OPTION] [device]"
+	"[OPTION] [DEVICE]"
 #define swapoff_full_usage \
-	"Stop swapping virtual memory pages on the given device.\n\n" \
+	"Stop swapping virtual memory pages on DEVICE.\n\n" \
 	"Options:\n" \
 	"\t-a\tStop swapping on all swap devices"
 
 #define swapon_trivial_usage \
-	"[OPTION] [device]"
+	"[OPTION] [DEVICE]"
 #define swapon_full_usage \
-	"Start swapping virtual memory pages on the given device.\n\n" \
+	"Start swapping virtual memory pages on DEVICE.\n\n" \
 	"Options:\n" \
 	"\t-a\tStart swapping on all swap devices"
 
@@ -1471,8 +1470,8 @@
 #endif
 #define tar_trivial_usage \
 	"-[" USAGE_TAR_CREATE("c") "xtvO] " \
-	USAGE_TAR_EXCLUDE("[--exclude File] [-X File]") \
-	"[-f tarFile] [FILE(s)] ..."
+	USAGE_TAR_EXCLUDE("[--exclude FILE] [-X FILE]") \
+	"[-f TARFILE] [FILE(s)] ..."
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \
 	"Main operation mode:\n" \
@@ -1480,7 +1479,7 @@
 	"\tx\t\textract\n" \
 	"\tt\t\tlist\n" \
 	"\nFile selection:\n" \
-	"\tf\t\tname of tarfile or \"-\" for stdin\n" \
+	"\tf\t\tname of TARFILE or \"-\" for stdin\n" \
 	"\tO\t\textract to stdout\n" \
 	USAGE_TAR_EXCLUDE( \
 	"\texclude\t\tfile to exclude\n" \
@@ -1504,7 +1503,7 @@
 	"Hello\n"
 
 #define telnet_trivial_usage \
-	"host [port]"
+	"HOST [PORT]"
 #define telnet_full_usage \
 	"Telnet is used to establish interactive communication with another\n"\
 	"computer over a network using the TELNET protocol."
@@ -1553,9 +1552,9 @@
 	"\nWhen naming a server, use the syntax \"server:file\"."
 
 #define touch_trivial_usage \
-	"[-c] file [file ...]"
+	"[-c] FILE [FILE ...]"
 #define touch_full_usage \
-	"Update the last-modified date on the given file[s].\n\n" \
+	"Update the last-modified date on the given FILE[s].\n\n" \
 	"Options:\n" \
 	"\t-c\tDo not create any files"
 #define touch_example_usage \
@@ -1603,13 +1602,13 @@
   #define USAGE_MOUNT_FORCE(a)
 #endif
 #define umount_trivial_usage \
-	"[flags] filesystem|directory"
+	"[flags] FILESYSTEM|DIRECTORY"
 #define umount_full_usage \
 	"Unmount file systems\n" \
 	"\nFlags:\n" "\t-a\tUnmount all file systems" \
 	USAGE_MTAB(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
 	"\n\t-r\tTry to remount devices as read-only if mount is busy" \
-	USAGE_MOUNT_FORCE("\n\t-f\tForce filesystem umount (i.e. unreachable NFS server)") \
+	USAGE_MOUNT_FORCE("\n\t-f\tForce umount (i.e. unreachable NFS server)") \
 	USAGE_MOUNT_LOOP("\n\t-l\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
 	"$ umount /dev/hdc1 \n"
@@ -1646,9 +1645,14 @@
 	"c\n"
 
 #define unix2dos_trivial_usage \
-	"[option] [file]"
+	"[option] [FILE]"
 #define unix2dos_full_usage \
-	"See 'dos2unix --help' for help!"
+	"Converts FILE from unix format to dos format.  When no option\n" \
+	"is given, the input is converted to the opposite output format.\n" \
+	"When no file is given, uses stdin for input and stdout for output." \
+	"Options:\n" \
+	"\t-u\toutput will be in UNIX format\n" \
+	"\t-d\toutput will be in DOS format\n\n" \
 
 #define update_trivial_usage \
 	"[options]"
