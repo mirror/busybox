@@ -50,7 +50,8 @@ static time_t askremotedate(const char *host)
 	struct sockaddr_in s_in;
 	int fd;
 
-	bb_lookup_host(&s_in, host, "time");
+	bb_lookup_host(&s_in, host);
+	s_in.sin_port = bb_lookup_port("time", 37);
 
 	/* Add a timeout for dead or non accessable servers */
 	alarm(10);

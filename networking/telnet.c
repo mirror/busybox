@@ -570,8 +570,6 @@ static void cookmode(void)
 
 extern int telnet_main(int argc, char** argv)
 {
-	char *host;
-	char *port;
 	int len;
 	struct sockaddr_in s_in;
 #ifdef USE_POLL
@@ -597,12 +595,12 @@ extern int telnet_main(int argc, char** argv)
 	G.termios_raw = G.termios_def;
 	cfmakeraw(&G.termios_raw);
 	
-	if (argc < 2)	bb_show_usage();
-	port = (argc > 2)? argv[2] : "23";
+	if (argc < 2)
+		bb_show_usage();
 	
-	host = argv[1];
+	bb_lookup_host(&s_in, argv[1]);
+	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", 23);
 	
-	bb_lookup_host(&s_in, host, port);
 	G.netfd = xconnect(&s_in);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);

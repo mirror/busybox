@@ -18,30 +18,31 @@
 #include <arpa/inet.h>
 #include "libbb.h"
 
-int bb_getport(const char *port)
+/* Return network byte ordered port number for a service.
+ * If "port" is a number use it as the port.
+ * If "port" is a name it is looked up in /etc/services, if it isnt found return
+ * default_port
+ */
+unsigned short bb_lookup_port(const char *port, unsigned short default_port)
 {
-	int port_nr;
+	unsigned short port_nr = htons(default_port);
+	if (port) {
 	char *endptr;
-	struct servent *tserv;
+		long port_long = strtol(port, &endptr, 10);
 
-	if (!port) {
-		return -1;
-	}
-	port_nr=strtol(port, &endptr, 10);
-	if (errno != 0 || *endptr!='\0' || endptr==port || port_nr < 1 || port_nr > 65536) 
-	{
-		if (port_nr==0 && (tserv = getservbyname(port, "tcp")) != NULL) {
+		if (errno != 0 || *endptr!='\0' || endptr==port || port_long < 0 || port_long > 65535) {
+			struct servent *tserv = getservbyname(port, "tcp");
+			if (tserv) {
 			port_nr = tserv->s_port;
-		} else {
-			return -1;
 		}
 	} else {
-		port_nr = htons(port_nr);
+			port_nr = htons(port_long);
+		}
 	}
 	return port_nr;
 }
 
-void bb_lookup_host(struct sockaddr_in *s_in, const char *host, const char *port)
+void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 {
 	struct hostent *he;
 
@@ -49,10 +50,6 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host, const char *port
 	s_in->sin_family = AF_INET;
 	he = xgethostbyname(host);
 	memcpy(&(s_in->sin_addr), he->h_addr_list[0], he->h_length);
-
-	if (port) {
-		s_in->sin_port=bb_getport(port);
-	}
 }
 
 int xconnect(struct sockaddr_in *s_addr)

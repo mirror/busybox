@@ -40,7 +40,7 @@ struct host_info {
 };
 
 static void parse_url(char *url, struct host_info *h);
-static FILE *open_socket(struct sockaddr_in *s_in, int port);
+static FILE *open_socket(struct sockaddr_in *s_in);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
@@ -286,10 +286,11 @@ int wget_main(int argc, char **argv)
 	/* We want to do exactly _one_ DNS lookup, since some
 	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
 	 * and we want to connect to only one IP... */
-	bb_lookup_host(&s_in, server.host, NULL);
+	bb_lookup_host(&s_in, server.host);
+	s_in.sin_port = server.port;
 	if (quiet_flag==FALSE) {
 		fprintf(stdout, "Connecting to %s[%s]:%d\n",
-				server.host, inet_ntoa(s_in.sin_addr), server.port);
+				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
 	}
 
 	if (proxy || !target.is_ftp) {
@@ -306,7 +307,7 @@ int wget_main(int argc, char **argv)
 			 * Open socket to http server
 			 */
 			if (sfp) fclose(sfp);
-			sfp = open_socket(&s_in, server.port);
+			sfp = open_socket(&s_in);
 			
 			/*
 			 * Send HTTP request.
@@ -418,7 +419,7 @@ read_response:
 		if (! target.user)
 			target.user = bb_xstrdup("anonymous:busybox@");
 
-		sfp = open_socket(&s_in, server.port);
+		sfp = open_socket(&s_in);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
 			close_delete_and_die("%s", buf+4);
 
@@ -461,7 +462,8 @@ read_response:
 		port = atoi(s+1);
 		s = strrchr(buf, ',');
 		port += atoi(s+1) * 256;
-		dfp = open_socket(&s_in, port);
+		s_in.sin_port = htons(port);
+		dfp = open_socket(&s_in);
 
 		if (do_continue) {
 			sprintf(buf, "REST %ld", beg_range);
@@ -535,11 +537,11 @@ void parse_url(char *url, struct host_info *h)
 	char *cp, *sp, *up, *pp;
 
 	if (strncmp(url, "http://", 7) == 0) {
-		h->port = 80;
+		h->port = bb_lookup_port("http", 80);
 		h->host = url + 7;
 		h->is_ftp = 0;
 	} else if (strncmp(url, "ftp://", 6) == 0) {
-		h->port = 21;
+		h->port = bb_lookup_port("ftp", 21);
 		h->host = url + 6;
 		h->is_ftp = 1;
 	} else
@@ -586,21 +588,12 @@ void parse_url(char *url, struct host_info *h)
 }
 
 
-FILE *open_socket(struct sockaddr_in *s_in, int port)
+FILE *open_socket(struct sockaddr_in *s_in)
 {
-	int fd;
 	FILE *fp;
 
-	if (port>0 && port < 65536) {
-		s_in->sin_port=htons(port);
-	}
-
-	fd=xconnect(s_in);
-
-	/*
-	 * Get the server onto a stdio stream.
-	 */
-	if ((fp = fdopen(fd, "r+")) == NULL)
+	fp = fdopen(xconnect(s_in), "r+");
+	if (fp == NULL)
 		bb_perror_msg_and_die("fdopen()");
 
 	return fp;
@@ -842,7 +835,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.62 2003/12/19 12:08:56 bug1 Exp $
+ *	$Id: wget.c,v 1.63 2003/12/20 01:47:18 bug1 Exp $
  */
 
 
