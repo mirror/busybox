@@ -22,6 +22,7 @@
  *
  */
 
+#include <limits.h>
 #include <stdio.h>
 #include <mntent.h>
 #include <errno.h>
@@ -236,6 +237,8 @@ static int umount_all(void)
 
 extern int umount_main(int argc, char **argv)
 {
+	char path[PATH_MAX];
+
 	if (argc < 2) {
 		show_usage();
 	}
@@ -282,7 +285,9 @@ extern int umount_main(int argc, char **argv)
 		else
 			return EXIT_FAILURE;
 	}
-	if (do_umount(*argv) == TRUE)
+	if (realpath(*argv, path) == NULL)
+		perror_msg_and_die("%s", path);
+	if (do_umount(path) == TRUE)
 		return EXIT_SUCCESS;
 	perror_msg_and_die("%s", *argv);
 }
