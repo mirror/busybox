@@ -1,0 +1,4 @@
+# XFAIL
+touch foo
+tar cf foo.tar foo
+! busybox tar xf foo.tar bar
