@@ -265,6 +265,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 			case 'g':
 				sed_cmd->sub_g = 1;
 				break;
+			/* Hmm, i dont see the I option mentioned in the standard */
 			case 'I':
 				cflags |= REG_ICASE;
 				break;
@@ -381,7 +382,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("pd=", sed_cmd->cmd)) {
+	if (strchr("pqd=", sed_cmd->cmd)) {
 		cmdstr++;
 	}
 	/* handle (s)ubstitution command */
@@ -400,7 +401,6 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 			error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
-	/* handle grouped commands */
 	else {
 		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
@@ -794,16 +794,19 @@ static void process_file(FILE *file)
 						break;
 
 					case 'r': {
-								  FILE *outfile;
-								  puts(line);
-								  outfile = fopen(sed_cmd->filename, "r");
-								  if (outfile)
-									  print_file(outfile);
-								  /* else if we couldn't open the output file,
-								   * no biggie, just don't print anything */
-								  altered++;
-						  }
-							  break;
+							FILE *outfile;
+							puts(line);
+							outfile = fopen(sed_cmd->filename, "r");
+							if (outfile)
+								print_file(outfile);
+								/* else if we couldn't open the output file,
+								 * no biggie, just don't print anything */
+								altered++;
+						}
+						break;
+					case 'q':	/* Branch to end of script and quit */
+						free(line);
+						return;
 				}
 			}
 
