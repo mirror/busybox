@@ -47,6 +47,7 @@ LIBUNARCHIVE-y:= \
 	check_trailer_gzip.o \
 	copy_file_chunk_fd.o \
 	data_align.o \
+	decompress_bunzip2.o \
 	find_list_entry.o \
 	init_handle.o \
 	seek_sub_file.o \

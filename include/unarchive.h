@@ -7,6 +7,7 @@
 #define ARCHIVE_EXTRACT_QUIET	8
 
 #include <sys/types.h>
+#include <stdio.h>
 
 typedef struct gunzip_s {
 	unsigned short buffer_count;
@@ -89,6 +90,8 @@ extern void check_trailer_gzip(int src_fd);
 extern char get_header_ar(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);
 extern char get_header_tar_gz(archive_handle_t *archive_handle);
+
+extern unsigned char uncompressStream(FILE *zStream, FILE *stream);
 
 extern void seek_sub_file(int src_fd, unsigned int amount);
 extern const unsigned short data_align(const int src_fd, const unsigned int offset, const unsigned short align_to);
