@@ -178,7 +178,7 @@ static int index_of_next_unescaped_regexp_delim(const struct sed_cmd * const sed
 static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, regex_t **regex)
 {
 	char *my_str = xstrdup(str);
-	int idx = 0;
+	int idx = 0, idx_start = 1;
 	char olddelimiter;
 	olddelimiter = sed_cmd->delimiter;
 	sed_cmd->delimiter = '/';
@@ -196,7 +196,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, r
 	}
 	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
 		if (my_str[idx] == '\\') {
-			my_str[idx] = 0;
+			idx_start++;
 			sed_cmd-> delimiter = my_str[++idx];
 		}
 		idx = index_of_next_unescaped_regexp_delim(sed_cmd, my_str, ++idx);
@@ -204,7 +204,7 @@ static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, r
 			error_msg_and_die("unterminated match expression");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
-		xregcomp(*regex, my_str+1, REG_NEWLINE);
+		xregcomp(*regex, my_str+idx_start, REG_NEWLINE);
 		idx++; /* so it points to the next character after the last '/' */
 	}
 	else {
@@ -401,7 +401,7 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	 */
 
 	/* first part (if present) is an address: either a number or a /regex/ */
-	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
+	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/' || ( cmdstr[idx] == '\\' && cmdstr[idx+1] != '\\'))
 		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
