@@ -133,8 +133,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
-static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv, char** excludeList);
+static int writeTarFile(const char* tarName, int verboseFlag, int argc,
+		char **argv, char** excludeList);
 #endif
 
 static struct option longopts[] =
@@ -185,14 +185,11 @@ extern int tar_main(int argc, char **argv)
 					break;
 				case 'O':
 					tostdoutFlag = TRUE;
-					tarName = "-";
 					break;					
 				case 'f':
 					if (*tarName != '-')
 						fatalError( "Only one 'f' option allowed\n");
 					tarName = optarg;
-					if (!strcmp(tarName, "-") && createFlag == TRUE)
-						tostdoutFlag = TRUE;
 					break;
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
@@ -218,7 +215,7 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc-optind, &argv[optind], excludeList));
+		exit(writeTarFile(tarName, verboseFlag, argc-optind, &argv[optind], excludeList));
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
@@ -922,8 +919,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	return( TRUE);
 }
 
-static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv, char** excludeList)
+static int writeTarFile(const char* tarName, int verboseFlag, int argc,
+		char **argv, char** excludeList)
 {
 	int tarFd=-1;
 	int errorFlag=FALSE;
@@ -936,7 +933,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 		fatalError("Cowardly refusing to create an empty archive\n");
 
 	/* Open the tar file for writing.  */
-	if (tostdoutFlag == TRUE)
+	if (strcmp(tarName, "-") == 0)
 		tbInfo.tarFd = fileno(stdout);
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
