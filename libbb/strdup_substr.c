@@ -22,6 +22,8 @@
 /* Return a substring of STR, starting at index START and ending at END,
  * allocated on the heap.  */
 
+#include "libbb.h"
+
 char *strdup_substr(const char *str, int start, int end)
 {
 	int size = end - start + 1;
