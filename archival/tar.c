@@ -583,7 +583,6 @@ int tar_main(int argc, char **argv)
 	char **exclude_list = NULL;
 	char *src_filename = NULL;
 	char *dst_prefix = NULL;
-	char *file_list_name = NULL;
 	int opt;
 	unsigned short untar_funct = 0;
 	unsigned short untar_funct_required = 0;
@@ -737,9 +736,6 @@ int tar_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	if (src_filename) {
 		free(src_filename);
-	}
-	if (file_list_name) {
-		free(file_list_name);
 	}
 #endif
 	return(EXIT_SUCCESS);
