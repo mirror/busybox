@@ -306,6 +306,12 @@ config CONFIG_RMDIR
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_SHA1SUM
+	bool "sha1sum"
+	default n
+	help
+	  Compute and check SHA1 message digest
+
 config CONFIG_SLEEP
 	bool "sleep"
 	default n

@@ -1859,6 +1859,11 @@
 "use ash or bash.  If you just need a very simple and extremely small shell,\n" \
 "this will do the job."
 
+#define sha1sum_trivial_usage \
+	"[OPTION] [FILE]"
+#define sha1sum_full_usage \
+	"[OPTION] [FILE]"
+
 #define sleep_trivial_usage \
 	"N"
 #define sleep_full_usage \

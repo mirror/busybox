@@ -487,6 +487,9 @@
 #elif defined(CONFIG_FEATURE_SH_IS_MSH) && defined(CONFIG_MSH)
 	APPLET_NOUSAGE("sh", msh_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_SHA1SUM
+	APPLET(sha1sum, sha1sum_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_SLEEP
 	APPLET(sleep, sleep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
