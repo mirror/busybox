@@ -20,8 +20,8 @@
  *
  */
 /*
- * Jun 2003 by Vladimir Oleynik <dzo@simtreas.ru> -
- * correction "-e pattern1 -e -e pattern2" logic and more optimizations.
+ * Apr 2004 by Vladimir Oleynik <dzo@simtreas.ru> -
+ * correction "-e pattern1 -e pattern2" logic and more optimizations.
 */
 
 #include <stdio.h>
@@ -135,11 +135,9 @@ static int grep_file(FILE *file)
 				 */
 				regex_t regex;
 				xregcomp(&regex, pattern_ptr->data, reflags);
-				ret = regexec(&regex, line, 0, NULL, 0) == 0;
+				ret |= regexec(&regex, line, 0, NULL, 0) == 0;
 				regfree(&regex);
 			}
-			if (!ret)
-				break;
 			pattern_ptr = pattern_ptr->link;
 		} /* while (pattern_ptr) */
 
