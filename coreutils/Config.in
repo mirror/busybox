@@ -400,22 +400,6 @@ config CONFIG_SORT
 	help
 	  sort is used to sort lines of text in specified files.
 
-config CONFIG_FEATURE_SORT_REVERSE
-	bool "  Enable reverse sort"
-	default y
-	depends on CONFIG_SORT
-	help
-	  Enable the `-r' option that allows sort to sort lines of
-	  text in reverse.
-
-config CONFIG_FEATURE_SORT_UNIQUE
-	bool "  Enable unique sort"
-	default y
-	depends on CONFIG_SORT
-	help
-	  Enable the `-u' option that allows sort to only sort lines
-	  that are uniq. 
-
 config CONFIG_STTY
 	bool "stty"
 	default n
