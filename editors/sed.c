@@ -985,11 +985,19 @@ static void process_file(FILE * file)
 					next_line = NULL;
 					break;
 				case 'n':	/* Read next line from input */
+					if (!be_quiet) {
+						puts(pattern_space);
+					}
 					if (next_line) {
 						free(pattern_space);
 						pattern_space = next_line;
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
+					} else {
+						/* Jump to end of script and exist */
+						deleted = 1;
+						free(next_line);
+						next_line = NULL;
 					}
 					break;
 				case 'N':	/* Append the next line to the current line */
