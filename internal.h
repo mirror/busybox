@@ -112,6 +112,7 @@ extern int syslogd_main(int argc, char **argv);
 extern int logger_main(int argc, char **argv);
 extern int tar_main(int argc, char** argv);
 extern int tail_main(int argc, char** argv);
+extern int tee_main(int argc, char** argv);
 extern int touch_main(int argc, char** argv);
 extern int tput_main(int argc, char** argv);
 extern int true_main(int argc, char** argv);

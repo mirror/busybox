@@ -182,6 +182,9 @@ static const struct Applet applets[] = {
 #ifdef BB_TAR			//bin
     {"tar", tar_main},
 #endif
+#ifdef BB_TEE			//bin
+    {"tee", tee_main},
+#endif
 #ifdef BB_TOUCH			//usr/bin
     {"touch", touch_main},
 #endif

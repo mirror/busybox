@@ -59,8 +59,9 @@
 #define BB_SWAPONOFF
 #define BB_SYNC
 #define BB_SYSLOGD
-#define BB_TAR
 #define BB_TAIL
+#define BB_TAR
+#define BB_TEE
 #define BB_TOUCH
 #define BB_TRUE_FALSE
 #define BB_UMOUNT

@@ -16,6 +16,7 @@
 	    which blocked reboots.
 	* Added a prelinary du implementation.  Some parameter parsing
 	    stuff still needs to be added.  -beppu
+	* Implemented tee -beppu
 
 	-Erik Andrsen
 
