@@ -421,11 +421,6 @@ dist release: distclean doc
 		-exec rm -rf {} \; ;            \
 						\
 	find busybox-$(VERSION)/ -type f	\
-				 -name .cvsignore \
-				 -print		\
-		-exec rm -f {}  \; ;            \
-						\
-	find busybox-$(VERSION)/ -type f	\
 				 -name .\#*	\
 				 -print		\
 		-exec rm -f {} \;  ;            \
