@@ -135,6 +135,14 @@ int busybox_main(int argc, char **argv)
 	/* If we've already been here once, exit now */
 	if (been_there_done_that == 1 || argc < 1) {
 		const struct BB_applet *a = applets;
+		int output_width = 60;
+
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+		/* Obtain the terminal width.  */
+		get_terminal_width_height(0, &output_width, NULL);
+		/* leading tab and room to wrap */
+		output_width -= 20;
+#endif
 
 		fprintf(stderr, "%s\n\n"
 				"Usage: busybox [function] [arguments]...\n"
@@ -149,7 +157,7 @@ int busybox_main(int argc, char **argv)
 			col +=
 				fprintf(stderr, "%s%s", ((col == 0) ? "\t" : ", "),
 						(a++)->name);
-			if (col > 60 && a->name != 0) {
+			if (col > output_width && a->name != 0) {
 				fprintf(stderr, ",\n");
 				col = 0;
 			}
