@@ -1,495 +1,63 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
-"http://www.w3.org/TR/REC-html40/loose.dtd">
-
-<html>
-  <head>
-    <meta name="generator" content=
-    "HTML Tidy for Linux/x86 (vers 1st February 2002), see www.w3.org">
-
-    <title>BusyBox</title>
-<style type="text/css">
- body {
-  background-color: #DEE2DE;
-  color: #000000;
- }
- :link { color: #660000 }
- :visited { color: #660000 }
- :active { color: #660000 }
- td.c2 {font-family: arial, helvetica, sans-serif; font-size: 80%}
- td.c1 {font-family: lucida, helvetica; font-size: 248%}
-</style>
-  </head>
-
-  <body>
-    <basefont face="lucida, helvetica, arial" size="3"> 
-
-    <div class="c3">
-      <table border="0" cellspacing="1" cellpadding="2">
-        <tr>
-          <td class="c1">BUSYBOX</td>
-        </tr>
-      </table>
-      <a href="/"><img src="images/busybox1.png" alt="BusyBox"
-      border="0" width="164" height="116"></a><br>
-       <!-- Begin Introduction section -->
-       
-
-      <table width="95%" cellspacing="1" cellpadding="4" border=
-      "1">
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name= "intro"><big>
-	  <b>The Swiss Army Knife of Embedded Linux</b>
-	  </big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-	    BusyBox combines tiny versions of many common UNIX utilities
-	    into a single small executable. It provides minimalist
-	    replacements for most of the utilities you usually find in GNU
-	    fileutils, shellutils, etc. The utilities in BusyBox generally
-	    have fewer options than their full-featured GNU cousins;
-	    however, the options that are included provide the expected
-	    functionality and behave very much like their GNU counterparts.
-	    BusyBox provides a fairly complete POSIX environment for any
-	    small or embedded system.
-
-            <p>BusyBox has been written with size-optimization and
-            limited resources in mind. It is also extremely modular
-            so you can easily include or exclude commands (or
-            features) at compile time. This makes it easy to
-            customize your embedded systems. To create a working
-            system, just add /dev, /etc, and a kernel.</p>
-
-            <p>BusyBox is maintained by <a href=
-            "http://codepoet.org/andersen/erik/erik.html">Erik
-            Andersen</a>, and licensed under the <a href=
-            "http://www.gnu.org/copyleft/gpl.html">GNU GENERAL
-            PUBLIC LICENSE</a>.</p>
-
-            <h3>Screenshot</h3>
-
-            <p>Because everybody loves screenshots, a screenshot of
-            BusyBox is now available <a href=
-            "screenshot.html">right here</a>.</p>
-
-            <h3>Mailing List Information</h3>
-            BusyBox has a <a href="/lists/busybox/">mailing list</a>.<br>
-            To subscribe, go and visit <a href="/mailman/listinfo/busybox">this page</a>. 
-	    <br> 
-	    Before asking questions on the mailing list
-	    you should probably first search the mailing list archives...
-	    <form method="GET" action="http://www.google.com/custom">
-	    <input type="hidden" name="domains" value="busybox.net">
-	    <input type="hidden" name="sitesearch" value="busybox.net">
-	    <a href="http://www.google.com"><img src="http://www.google.com/logos/Logo_25wht.gif" border="0" alt="Google" height="32" width="75" align="middle"></a>&nbsp;<input type="text" name="q" size="31" maxlength="255" value="">&nbsp;<input type="submit" name="sa" value="search the mailing list archives">...
-	    </form>
-
-
-
-            <!-- Begin Latest News section -->
-          </td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "news"><big><b>Latest News</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-            <ul>
-
-              <p>
-              <li><b>12 Sept 2003 -- BusyBox 1.0.0-pre3 released</b><p> 
-
-		Here goes the third pre-release for the new BusyBox stable
-		series.  The last prerelease has held up quite well under
-		testing, but a number of problems have turned up as the number
-		of people using it has increased.  Thanks everyone for all
-		the testing, bug reports, and patches!
-
-		<p>
-		
-		If you have submitted a patch or a bug report to the busybox
-		mailing list and no one has emailed you explaining why your
-		patch was rejected, it is safe to say that your patch has
-		somehow gotten lost or forgotten.  That happens sometimes.
-		Please re-submit your patch or bug report to the BusyBox
-		mailing list!
-
-		<p>
-
-		The point of the "-preX" versions is to get a larger group of
-		people and vendors testing, so any problems that turn up can be
-		fixed prior to the final 1.0.0 release.  The main feature
-		(besides additional testing) that is still still on the TODO
-		list before the final BusyBox 1.0.0 release is sorting out the
-		modutils issues.  For the new 2.6.x kernels, we already have
-		patches adding insmod and rmmod support and those need to be
-		integrated.  For 2.4.x kernels, for which busybox only supports
-		a limited number of architectures, we may want to invest a bit
-		more work before we cut 1.0.0.  Or we may just leave 2.4.x
-		module loading alone.
-
-		<p>
-
-		I had hoped this release would be out a month ago.  And of
-		course, it wasn't since Erik became busy getting a release of 
-		<a href="http://www.uclibc.org/">uClibc</a> 
-		out the door.  Many thanks to Glenn McGrath (bug1) for
-		stepping in and helping get a bunch of patches merged!  I am
-		not even going to state a date for releasing BusyBox 1.0.0
-		-pre4 (or the final 1.0.0).  We're aiming for late September...
-		But if this release proves as to be exceptionally stable (or
-		exceptionally unstable!), the next release may be very soon
-		indeed.  
-
-		<p>
-
-		The <a href="downloads/Changelog">changelog</a> has all 
-		the details.  And as usual you can 
-		<a href="downloads">download busybox here</a>.
-
-		<p>Have Fun!
-		<p>
-
-
-
-              <p>
-              <li><b>Old News</b><br>
-               For the old news, visit <a href="oldnews.html">the
-              old news page</a>.</li>
-            </ul>
-          </td>
-        </tr>
-
-
-	<!-- Begin Sponsors section -->
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "sponsors"><big><b>Sponsors</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-	    Please visit our sponsors and thank them for their
-	    support! They have provided money for equipment and
-	    bandwidth. Next time you need help with a project,
-	    consider these fine companies! 
-
-
-	    <ul>
-	      <li><a href="http://www.penguru.net">Penguru Consulting</a><br>
-	      Custom development for embedded Linux systems and multimedia platforms
-	      </li>
-
-	      <li><a href="http://opensource.se/">opensource.se</a><br>
-	      Embedded open source consulting in Europe.
-	      </li>
-
-	      <li><a href="http://www.codepoet-consulting.com">Codepoet Consulting</a><br>
-	      Custom Linux, embedded Linux, BusyBox, and uClibc
-	      development.
-	      </li>
-
-	    </ul>
-	    Several individuals have also contributed. If you have
-	    already contributed and would like your name added
-	    here, just let me know. If you would like to be a
-	    BusyBox sponsor, email <a href=
-	    "mailto:andersen@codepoet.org">Erik</a>. 
-          </td>
-        </tr>
-
-	<!-- Begin Download section -->
-        <p>
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "download"><big><b>Download</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-              Source for the latest release can always be
-              downloaded from <a href="downloads">http://www.busybox.net/downloads</a>.
-	      <p>
-
-	  BusyBox now has <b>two</b> CVS trees.  The "busybox-stable" tree
-	  contains the older 0.60.x stable series.  The "busybox" tree contains
-	  the latest 1.0.0-preX development version of busybox.<br>
-
-            <ul>
-		  <li><a href= "downloads/snapshots/">Daily Snapshots of the the latest 
-		    stable, and the latest development CVS source trees can be found right here</a>. 
-		  <br>
-		  </li><li><a href="/cgi-bin/cvsweb/busybox/">Click here to browse the CVS 
-		      tree for the 1.0.0-preX development version of BusyBox</a>
-		  </li><li><a href="/cgi-bin/cvsweb/busybox.stable/">Click here to browse
-		    the CVS tree for the stable 0.60.x version of BusyBox</a>.
-		    </li><li>Anonymous <a href="cvs_anon.html">CVS
-		    access</a> is available.
-		    </li><li>For those that are actively contributing there is
-		    even <a href="cvs_write.html">CVS write access</a>.</li>
-            </ul>
-          </td>
-        </tr>
-
-	<!-- Begin Docs section -->
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "docs"><big><b>Documentation</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-            Current documentation for BusyBox includes: 
-
-            <ul>
-              <li><a href=
-              "downloads/BusyBox.html">BusyBox.html</a>. This is a
-              list of the all the available commands in BusyBox
-              with complete usage information and examples of how
-              to use each app. I have spent a <em>lot</em> of time
-              updating these docs and trying to make them fairly
-              comprehensive. If you find any errors (factual,
-              grammatical, whatever) please let me know.</li>
-
-              <li><a href="downloads/README">README</a>. This is
-              the README file included in the busybox source
-              release.</li>
-
-              <li>If you need more help, the BusyBox <a href=
-              "lists/busybox/">mailing list</a> is a good place to
-              start.</li>
-            </ul>
-          </td>
-        </tr>
-
-	<!-- Begin Links section -->
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "links"><big><b>Important Links</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-            <ul>
-              <li><a href="http://perens.com/FreeSoftware/">Free
-              Software from Bruce Perens</a><br>
-               The original idea for BusyBox, and all versions up
-              to 0.26 were written by <a href=
-              "mailto:bruce@perens.com">Bruce Perens</a>. This is
-              his BusyBox website.</li>
-
-              <li><a href=
-              "http://freshmeat.net/projects/busybox/">Freshmeat
-              AppIndex record for BusyBox</a></li>
-
-              <li><a href=
-              "http://tinylogin.busybox.net/">TinyLogin</a> is a
-              nice embedded tool for handling authentication,
-              changing passwords, and similar tasks which nicely
-              complements BusyBox.</li>
-
-              <li><a href="http://udhcp.busybox.net/">udhcp</a> is
-              a tiny dhcp client and/or server which is ideal for
-              embedded systems.</li>
-
-              <li><a href="http://www.uclibc.org/">uClibc</a> is a
-              C library for embedded systems. You can actually
-              statically link a "Hello World" application under x86
-              that only takes 4k (as opposed to 200k under GNU
-              libc). It can do dynamic linking too and works nicely
-              with BusyBox to create very small embedded Linux systems.
-	      </li>
-            </ul>
-          </td>
-        </tr>
-
-	<!-- Begin Projects section -->
-        <tr>
-          <td bgcolor="#CCCCC0" align="center"><a name=
-          "projects"><big><b>Products/Projects Using BusyBox</b></big></a></td>
-        </tr>
-
-        <tr>
-          <td bgcolor="#EEEEE0">
-            <p>I know of the following products and/or projects
-            that use BusyBox -- listed in the order I happen to add
-            them to the web page:</p>
-
-            <ul>
-	    
-
-              <li><a href="/cgi-bin/cvsweb/buildroot/">buildroot</a> a configurable
-	      means for building your own busybox/uClibc based system systems.
-
-              </li><li><a href=
-              "http://cvs.debian.org/boot-floppies/">
-	      Debian installer (boot floppies) project</a>
-
-              </li><li><a href="http://redhat.com/">Red Hat installer</a>
-
-              </li><li><a href=
-              "http://distro.ibiblio.org/pub/Linux/distributions/slackware/source/rootdsks/">
-              Slackware Installer</a>
-
-              </li><li><a href="http://www.gentoo.org/">Gentoo Linux install/boot CDs</a>
-              </li><li><a href="http://www.mandrake.com/">The Mandrake installer</a>
-
-              </li><li><a href="http://Leaf.SourceForge.net">Linux Embedded Appliance Firewall (the sucessor of the Linux Router Project) supporting all sorts of embedded Linux gateways, routers, wireless routers, and firewalls,</a>
-
-              </li><li><a href="http://linux-embedded.org/">LEM</a>
-
-              </li><li><a href=
-              "http://www.toms.net/rb/">tomsrtbt</a>
-
-              </li><li><a href="http://www.stormix.com/">Stormix
-              Installer</a>
-
-              </li><li><a href=
-              "http://www.emacinc.com/linux2_sbc.htm">EMAC Linux
-              2.0 SBC</a>
-
-              </li><li><a href="http://www.trinux.org/">Trinux</a>
-
-              </li><li><a href="http://oddas.sourceforge.net/">ODDAS
-              project</a>
-
-              </li><li><a href="http://byld.sourceforge.net/">Build Your
-              Linux Disk</a>
-
-              </li><li><a href=
-              "http://homepages.ihug.co.nz/~ichi/baslinux.html">BasicLinux</a>
-
-              </li><li><a href=
-              "http://ibiblio.org/pub/Linux/system/recovery">Zdisk</a>
-
-              </li><li><a href="http://www.adtran.com">AdTran -
-              VPN/firewall VPN Linux Distribution</a>
-
-              </li><li><a href="http://mkcdrec.ota.be/">mkCDrec - make
-              CD-ROM recovery</a>
-
-              </li><li><a href=
-              "http://recycle.lbl.gov/~ldoolitt/bse/">Linux on
-              nanoEngine</a>
-
-              </li><li><a href=
-              "http://www.zelow.no/floppyfw/">Floppyfw</a>
-
-              </li><li><a href="http://midori.transmeta.com/">Midori
-              Linux</a> - <a href=
-              "http://www.wired.com/news/technology/0,1282,42399,00.html">
-              Article on Midori Linux</a> on <a href=
-              "http://www.wired.com">Wired</a>. Quote from Erik at
-              the top of <a href=
-              "http://www.wired.com/news/technology/0,1282,42399-2,00.html">
-              this page</a>
-
-              </li><li><a href="http://www.ltsp.org/">Linux Terminal
-              Server Project</a>
-
-              </li><li><a href=
-              "http://www.devil-linux.org/">Devil-Linux</a>
-
-              </li><li><a href=
-              "http://dutnux.sourceforge.net/">DutNux</a>
-
-              </li><li><a href=
-              "http://www.microwerks.net/~hugo/mindi/">Mindi</a>
-
-              </li><li><a href=
-              "http://www.tzi.de/~pharao90/ttylinux">ttylinux</a>
-
-              </li><li><a href="http://www.coyotelinux.com/">Coyote Linux</a>
-
-              </li><li><a href="http://www.partimage.org/">Partition
-              Image</a>
-
-              </li><li><a href="http://www.fli4l.de/">fli4l the on(e)-disk-router</a>
-
-              </li><li><a href="http://tinfoilhat.cultists.net/">Tinfoil
-              Hat Linux</a>
-
-              </li><li><a href="http://familiar.handhelds.org/">Familiar Linux</a> - a linux distribution for handheld computers
-              </li><li><a href="http://rescuecd.sourceforge.net/">Timo's Rescue CD Set</a>
-              </li><li><a href="http://sf.net/projects/netstation/">Netstation</a>
-              </li><li><a href="http://www.fiwix.org/">GNU/Fiwix Operating System</a>
-              </li><li><a href="http://www.softcraft.com/">Generations Linux</a>
-              </li><li><a href="http://systemimager.org/relatedprojects/">SystemImager / System Installation Suite</a>
-              </li><li><a href="http://www.bablokb.de/gendist/">GENDIST distribution generator</a>
-              </li><li><a href="http://diet-pc.sourceforge.net/">DIET-PC embedded Linux thin client distribution</a>
-              </li><li><a href="http://byzgl.sourceforge.net/">BYZantine Gnu/Linux</a>
-              </li><li><a href="http://dban.sourceforge.net/">Darik's Boot and Nuke</a>
-              </li><li><a href="http://www.timesys.com/">TimeSys real-time Linux</a>
-              </li><li><a href="http://movix.sf.net/">MoviX</a> -- boots from CD and automatically plays every video file on the CD
-              </li><li><a href="http://katamaran.sourceforge.net">katamaran</a>Linux, X11, xfce windowmanager, based on BusyBox
-              </li><li><a href="http://www.sourceforge.net/projects/simplygnustep">Prometheus SimplyGNUstep</a>
-              </li><li><a href="http://www.renyi.hu/~ekho/lowlife/">lowlife</a>A documentation project on how to make your own uClibc-based systems and floppy.
-              </li><li><a href="http://metadistros.hispalinux.es/">Metadistros</a>a project to allow you easily make Live-CD distributions.
-              </li><li><a href="http://salvare.sourceforge.net/">Salvare</a>More Linux than tomsrtbt but less than Knoppix, aims to provide a useful workstation as well as a rescue disk.
-              </li><li><a href="http://www.stresslinux.org/">stresslinux</a>minimal linux distribution running from a bootable cdrom or via PXE.
-              </li><li><a href="http://thinstation.sourceforge.net/">thinstation</a>convert standard PCs into full-featured diskless thinclients.
-              </li><li><a href="http://www.uhulinux.hu/">UHU-Linux Hungary</a>
-
-              </li><li><a href="http://tuxscreen.net">Tuxscreen Linux Phone</a>
-              </li><li><a href="http://www.kerbango.com/">The Kerbango Internet Radio</a>
-              </li><li><a href="http://www.linuxmagic.com/vpn/">LinuxMagic VPN Firewall</a>
-              </li><li><a href="http://www.isilver-inc.com/">I-Silver Linux appliance servers</a>
-              </li><li><a href="http://zaurus.sourceforge.net/">Sharp Zaurus PDA</a>
-              </li><li><a href="http://www.cyclades.com/">Cyclades-TS and other Cyclades products</a>
-              </li><li><a href="http://www.buffalo-technology.com/products/wireless/wbr-g54.htm">Buffalo WBR-G54 wireless router</a>
-              </li><li><a href="http://catalog.belkin.com/IWCatProductPage.process?Merchant_Id=&Section_Id=201522&pcount=&Product_Id=136493">Belkin 54g Wireless DSL/Cable Gateway Router</a>
-              </li><li><a href="http://www.linksys.com/products/product.asp?prid=508">Linksys WRT54G - Wireless-G Broadband Router</a>
-              </li><li><a href="http://www.dell.com/us/en/biz/topics/sbtopic_005_truemobile.htm">Dell TrueMobile 1184</a>
-              </li><li><a href="http://actiontec.com/products/modems/dual_pcmodem/dpm_overview.html">Actiontec Dual PC Modem</a>
-
-
-            </ul>
-
-            <p>Do you use BusyBox? I'd love to know about it and
-            I'd be happy to link to you. <!-- End of Table -->
-            </p>
-          </td>
-        </tr>
-      </table>
-
-      <!-- Footer -->
-      <hr>
-      <table width="100%">
-        <tr>
-          <td class="c2">Mail all comments, insults, suggestions
-          and bribes to <a href="mailto:andersen@codepoet.org">Erik
-          Andersen</a><br>
-           The Busybox logo is copyright 1999-2002, Erik
-          Andersen.</td>
-
-          <td><a href="http://www.vim.org"><img border="0" width=
-          "90" height="36" src="images/written.in.vi.png" alt=
-          "This site created with the vi editor"></a></td>
-
-          <td><a href="http://www.gimp.org/"><img border="0" width=
-          "90" height="36" src="images/gfx_by_gimp.png" alt=
-          "Graphics by GIMP"></a></td>
-
-          <td><a href="http://www.linuxtoday.com"><img width="90"
-          height="36" src="images/ltbutton2.png" alt="Linux Today">
-          </a></td>
-
-          <td>
-            <p><a href="http://slashdot.org"><img width="90"
-            height="36" src="images/sdsmall.png" alt="Slashdot">
-            </a></p>
-          </td>
-
-          <td><a href="http://freshmeat.net"><img width="90"
-          height="36" src="images/fm.mini.png" alt="Freshmeat">
-          </a></td>
-        </tr>
-      </table>
-    </div>
-  </body>
-</html>
+<!--#include file="header.html" -->
 
+
+<!-- Begin Introduction section -->
+
+<h3>BusyBox: The Swiss Army Knife of Embedded Linux</h3>
+
+
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides replacements for most of the utilities you
+usually find in GNU fileutils, shellutils, etc. The utilities in BusyBox
+generally have fewer options than their full-featured GNU cousins; however,
+the options that are included provide the expected functionality and behave
+very much like their GNU counterparts.  BusyBox provides a fairly complete
+environment for any small or embedded system.
+
+<p>
+
+BusyBox has been written with size-optimization and limited resources in
+mind. It is also extremely modular so you can easily include or exclude
+commands (or features) at compile time. This makes it easy to customize
+your embedded systems. To create a working system, just add some device
+nodes in /dev, a few configuration files in /etc, and a Linux kernel.
+
+<p>
+
+BusyBox is maintained by <a href=
+"http://codepoet.org/andersen/erik/erik.html">Erik Andersen</a>, and
+licensed under the 
+<a href= "http://www.gnu.org/copyleft/gpl.html">GNU GENERAL PUBLIC LICENSE</a>
+
+<p>
+<p>
+
+<h3>Sponsors</h3>
+
+Please visit our sponsors and thank them for their
+support! They have provided money for equipment and
+bandwidth. Next time you need help with a project,
+consider these fine companies! 
+
+
+<ul>
+  <li><a href="http://www.penguru.net">Penguru Consulting</a><br>
+  Custom development for embedded Linux systems and multimedia platforms
+  </li>
+
+  <li><a href="http://opensource.se/">opensource.se</a><br>
+  Embedded open source consulting in Europe.
+  </li>
+
+  <li><a href="http://www.codepoet-consulting.com">Codepoet Consulting</a><br>
+  Custom Linux, embedded Linux, BusyBox, and uClibc
+  development.
+  </li>
+
+</ul>
+
+If you wish to be a sponsor, or if you have already contributed and would like
+your name added here, email <a href= "mailto:andersen@codepoet.org">Erik</a>. 
+
+
+<!--#include file="footer.html" -->

@@ -1,0 +1,117 @@
+<!--#include file="header.html" -->
+
+
+<ul>
+
+  <p>
+  <li><b>12 Sept 2003 -- BusyBox 1.0.0-pre3 released</b><p> 
+
+    Here goes the third pre-release for the new BusyBox stable
+    series.  The last prerelease has held up quite well under
+    testing, but a number of problems have turned up as the number
+    of people using it has increased.  Thanks everyone for all
+    the testing, bug reports, and patches!
+
+    <p>
+    
+    If you have submitted a patch or a bug report to the busybox
+    mailing list and no one has emailed you explaining why your
+    patch was rejected, it is safe to say that your patch has
+    somehow gotten lost or forgotten.  That happens sometimes.
+    Please re-submit your patch or bug report to the BusyBox
+    mailing list!
+
+    <p>
+
+    The point of the "-preX" versions is to get a larger group of
+    people and vendors testing, so any problems that turn up can be
+    fixed prior to the final 1.0.0 release.  The main feature
+    (besides additional testing) that is still still on the TODO
+    list before the final BusyBox 1.0.0 release is sorting out the
+    modutils issues.  For the new 2.6.x kernels, we already have
+    patches adding insmod and rmmod support and those need to be
+    integrated.  For 2.4.x kernels, for which busybox only supports
+    a limited number of architectures, we may want to invest a bit
+    more work before we cut 1.0.0.  Or we may just leave 2.4.x
+    module loading alone.
+
+    <p>
+
+    I had hoped this release would be out a month ago.  And of
+    course, it wasn't since Erik became busy getting a release of 
+    <a href="http://www.uclibc.org/">uClibc</a> 
+    out the door.  Many thanks to Glenn McGrath (bug1) for
+    stepping in and helping get a bunch of patches merged!  I am
+    not even going to state a date for releasing BusyBox 1.0.0
+    -pre4 (or the final 1.0.0).  We're aiming for late September...
+    But if this release proves as to be exceptionally stable (or
+    exceptionally unstable!), the next release may be very soon
+    indeed.  
+
+    <p>
+
+    The <a href="downloads/Changelog">changelog</a> has all 
+    the details.  And as usual you can 
+    <a href="downloads">download busybox here</a>.
+
+    <p>Have Fun!
+    <p>
+
+
+
+    <p>
+
+    <li><b>30 July 2003 -- BusyBox 1.0.0-pre2 released</b><p> 
+
+    Here goes another pre release for the new BusyBox stable
+    series.  The last prerelease (pre1) was given quite a lot of
+    testing (thanks everyone!) which has helped turn up a number of
+    bugs, and these problems have now been fixed.
+
+    <p>
+
+    Highlights of -pre2 include updating the 'ash' shell to sync up
+    with the Debian 'dash' shell, a new 'hdparm' applet was added,
+    init again supports pivot_root,  The 'reboot' 'halt' and
+    'poweroff' applets can now be used without using busybox init.
+    an ifconfig buffer overflow was fixed, losetup now allows
+    read-write loop devices, uClinux daemon support was added, the
+    'watchdog', 'fdisk', and 'kill' applets were rewritten, there were
+    tons of doc updates, and there were many other bugs fixed.
+    <p>
+
+    If you have submitted a patch and it is not included in this
+    release and Erik has not emailed you explaining why your patch
+    was rejected, it is safe to say that he has lost your patch.
+    That happens sometimes.   Please re-submit your patch to the
+    BusyBox mailing list.
+    <p>
+
+    The point of the "-preX" versions is to get a larger group of
+    people and vendors testing, so any problems that turn up can be
+    fixed prior to the final 1.0.0 release.  The main feature that
+    is still still on the TODO list before the final BusyBox 1.0.0
+    release is adding module support for the new 2.6.x kernels.  If
+    necessary, a -pre3 BusyBox release will happen on August 6th.
+    Hopefully (i.e.  unless some horrible catastrophic problem
+	    turns up) the final BusyBox 1.0.0 release will be ready by
+    then...
+    <p>
+
+    The <a href="downloads/Changelog">changelog</a> has all 
+    the details.  As usual you can <a href="downloads">download busybox here</a>.
+
+    <p>Have Fun!
+    <p>
+
+    <p>
+
+    <p>
+    <li><b>Old News</b><p> 
+    <a href="/oldnews.html">Click here to read older news</a>
+
+
+</ul>
+
+<!--#include file="footer.html" -->
+

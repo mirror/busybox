@@ -1,0 +1,44 @@
+<!--#include file="header.html" -->
+
+
+<h3>How to use CVS</h3>
+
+
+If you want to know all the gory details, you will want to visit
+<a href="http://www.cvshome.org/">the CVS main web page</a>.<p>
+For the impatient, the following is probably about all you need to know:
+<p>
+
+<dl>
+    <dt><pre>cvs checkout -c</pre>
+    <dd>Will list the modules available for checkout
+    <dt><pre>cvs checkout &lt module name &gt</pre> 
+    <dd>Will checkout the named module
+    <dt><pre>cvs co &lt module name &gt</pre> 
+    <dd>Same thing
+    <dt><pre>cvs update</pre>
+
+    <dd>Updates your local archive so it is in sync with the repository 
+    -- your local updates are left intact.  Tries to merge upstream updates 
+    into your local updates.  You will see the following tags when it is
+    updating your local repository: C means conflict, U means update, 
+    P means patched, and M means modified.
+    <dt><pre>cvs up</pre>
+    <dd>Same thing
+    <dt><pre>cvs update &lt file name &gt</pre>
+    <dd>Same thing but for just the named file(s)/directory(s).
+    <dt><pre>cvs commit</pre>
+    <dd>Will check in all your work.
+    <dt><pre>cvs add &lt file name &gt</pre>
+
+    <dd>Adds the named file/directory into CVS
+    <dt><pre>cvs remove &lt file name &gt</pre>
+    <dd>Removes the named file/directory from the upstream repository.
+    <dt><pre>cvs rm &lt file name &gt</pre>
+    <dd>Same thing
+    <dt><pre>cvs log &lt file name &gt</pre>
+</dl>
+
+
+<!--#include file="footer.html" -->
+
