@@ -119,8 +119,11 @@ typedef struct sed_cmd_s {
 /* linked list of sed commands */
 static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
+static sed_cmd_t *block_cmd;
 
+static int in_block = 0;
 const char * const semicolon_whitespace = "; \n\r\t\v\0";
+static regex_t *previous_regex_ptr = NULL;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_cmd_strs(void)
@@ -245,6 +248,7 @@ static int get_address(char *my_str, int *linenum, regex_t **regex)
 			bb_error_msg_and_die("unterminated match expression");
 		}
 		my_str[idx] = '\0';
+	
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		xregcomp(*regex, my_str+idx_start, REG_NEWLINE);
 		idx++; /* so it points to the next character after the last '/' */
@@ -305,8 +309,11 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 
 out:	
 	/* compile the match string into a regex */
-	sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
-	xregcomp(sed_cmd->sub_match, match, cflags);
+	if (*match != '\0') {
+		/* If match is empty, we use last regex used at runtime */
+		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
+		xregcomp(sed_cmd->sub_match, match, cflags);
+	}
 	free(match);
 
 	return idx;
@@ -493,7 +500,18 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 
 	/* if this is a comment, jump past it and keep going */
 	if (*cmdstr == '#') {
+		/* "#n" is the same as using -n on the command line */
+		if (cmdstr[1] == 'n') {
+			be_quiet++;
+		}
 		return(strpbrk(cmdstr, "\n\r"));
+	}
+	
+	/* Test for end of block */
+	if (*cmdstr == '}') {
+		in_block = 0;
+		cmdstr++;
+		return(cmdstr);
 	}
 
 	/* parse the command
@@ -548,32 +566,34 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	if (*cmdstr == '\0')
 		bb_error_msg_and_die("missing command");
 
+	/* This is the start of a block of commands */
+	if (*cmdstr == '{') {
+		if (in_block != 0) {
+			bb_error_msg_and_die("cant handle sub-blocks");
+		}
+		in_block = 1;
+		block_cmd = sed_cmd;
+		
+		return(cmdstr + 1);
+	}
+
 	sed_cmd->cmd = *cmdstr;
 	cmdstr++;
 
-	if (sed_cmd->cmd == '{') {
-		do {
-			sed_cmd_t *sed_cmd_new;
-			char *end_ptr = strpbrk(cmdstr, ";}");
-
-			*end_ptr = '\0';
-			sed_cmd_new = xcalloc(1, sizeof(sed_cmd_t));
-			sed_cmd_new->beg_match = sed_cmd->beg_match;
-			sed_cmd_new->end_match = sed_cmd->end_match;
-			sed_cmd_new->beg_line = sed_cmd->beg_line;
-			sed_cmd_new->end_line = sed_cmd->end_line;
-			sed_cmd_new->invert = sed_cmd->invert;
-
-			add_cmd(sed_cmd_new, cmdstr);
-			cmdstr = end_ptr + 1;
-		} while (*cmdstr != '\0');
-	} else {
-		cmdstr = parse_cmd_str(sed_cmd, cmdstr);
-
-		/* Add the command to the command array */
-		sed_cmd_tail->linear = sed_cmd;
-		sed_cmd_tail = sed_cmd_tail->linear;
+	if (in_block == 1) {
+		sed_cmd->beg_match = block_cmd->beg_match;
+		sed_cmd->end_match = block_cmd->end_match;
+		sed_cmd->beg_line = block_cmd->beg_line;
+		sed_cmd->end_line = block_cmd->end_line;
+		sed_cmd->invert = block_cmd->invert;
 	}
+
+	cmdstr = parse_cmd_str(sed_cmd, cmdstr);
+
+	/* Add the command to the command array */
+	sed_cmd_tail->linear = sed_cmd;
+	sed_cmd_tail = sed_cmd_tail->linear;
+
 	return(cmdstr);
 }
 
@@ -700,17 +720,27 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 	}
 }
 
-static int do_subst_command(const sed_cmd_t *sed_cmd, char **line)
+static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 {
 	char *hackline = *line;
 	struct pipeline thepipe = { NULL, 0 , 0};
 	struct pipeline *const pipeline = &thepipe;
 	int altered = 0;
+	int result;
 	regmatch_t *regmatch = NULL;
+	regex_t *current_regex;
+
+	if (sed_cmd->sub_match == NULL) {
+		current_regex = previous_regex_ptr;
+	} else {
+		previous_regex_ptr = current_regex = sed_cmd->sub_match;
+	}
+	result = regexec(current_regex, hackline, 0, NULL, 0);
 
 	/* we only proceed if the substitution 'search' expression matches */
-	if (regexec(sed_cmd->sub_match, hackline, 0, NULL, 0) == REG_NOMATCH)
+	if (result == REG_NOMATCH) {
 		return 0;
+	}
 
 	/* whaddaya know, it matched. get the number of back references */
 	regmatch = xmalloc(sizeof(regmatch_t) * (sed_cmd->num_backrefs+1));
@@ -724,7 +754,7 @@ static int do_subst_command(const sed_cmd_t *sed_cmd, char **line)
 
 	/* and now, as long as we've got a line to try matching and if we can match
 	 * the search string, we make substitutions */
-	while ((*hackline || !altered) && (regexec(sed_cmd->sub_match, hackline,
+	while ((*hackline || !altered) && (regexec(current_regex, hackline,
 					sed_cmd->num_backrefs+1, regmatch, 0) != REG_NOMATCH) ) {
 		int i;
 
@@ -818,6 +848,10 @@ static void process_file(FILE *file)
 			   );
 
 			if (sed_cmd->invert ^ matched) {
+				/* Update last used regex incase a blank substitute BRE is found */
+				if (sed_cmd->beg_match) {
+					previous_regex_ptr = sed_cmd->beg_match;
+				}
 
 				/*
 				 * actual sedding
@@ -999,6 +1033,8 @@ static void process_file(FILE *file)
 				if (
 					/* this is a single-address command or... */
 					(sed_cmd->end_line == 0 && sed_cmd->end_match == NULL) || (
+						/* If only one address */
+
 						/* we were in the middle of our address range (this
 						 * isn't the first time through) and.. */
 						(still_in_range == 1) && (
