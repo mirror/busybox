@@ -449,7 +449,7 @@ ls [ -1acdelnpuxACF ] [FILENAMES]
 
 		-d	List directories, not there contents.
 
-		-e	(no information on this option)
+		-e	List both full date and full time
 
 		-l	List in long format including permissions, owner, size
 
