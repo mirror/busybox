@@ -1,2 +1,1 @@
-# UNSUPPORTED: CONFIG_FEATURE_CLEAN_UP
 echo foo | busybox grep -e foo -e bar
