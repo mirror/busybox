@@ -1,0 +1,18 @@
+busybox (0.44-1) frozen; urgency=low
+
+  * First attempt at packaging BusyBox as a .deb.  This has been in 
+    in the Debian boot-floppies CVS tree forever.  Hopefully, having it as a
+    standalone app will make life easier for me, the debian-installer team, and
+    everyone else as well...
+  * I have created a busybox-static that can be used as a rescue shell when you 
+    hose your system.  Just invoke "busybox sh" to fir up the shell.  This has
+    every app provided by busybox staically linked in.  There have been several
+    times in the past that I would have loved to have this sitting on my system
+    (i.e. when libc gets screwed up.)
+
+ -- Erik Andersen <andersee@debian.org>  Sun, 18 Jun 2000 21:45:47 -0600
+
+Local variables:
+mode: debian-changelog
+add-log-mailing-address: "andersee@debian.org"
+End:

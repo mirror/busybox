@@ -1,0 +1,119 @@
+#!/usr/bin/make -f
+
+# This is a bit unusual, in that I have to completely recompile everything
+# twice.  The first is the normal, dynamically linked package.  The second is
+# for the statically linked package.  This file has been adjusted accordingly.
+
+# This is the debhelper compatability version to use.
+export DH_COMPAT=1
+
+bb=debian/tmp
+bbs=debian/busybox-static
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp-busybox build-stamp-busybox-static
+	-$(MAKE) clean
+	-rm -rf $(bb) $(bbs)
+	dh_clean
+
+half_clean:
+	dh_testdir
+	dh_testroot
+	rm -rf $(bbs) build-stamp-busybox-static
+	-$(MAKE) clean
+
+build: build-stamp-busybox
+build-stamp-busybox:
+	dh_testdir
+	$(MAKE)
+	touch build-stamp-busybox
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	$(MAKE) "PREFIX=$(bb)" install
+	mkdir -p $(bb)/usr/share/man/man1
+	cp docs/BusyBox.1 $(bb)/usr/share/man/man1/busybox.1
+
+# Now for the statically linked stuff
+build-static: build-stamp-busybox-static
+build-stamp-busybox-static:
+	dh_testdir
+	$(MAKE) DOSTATIC=true
+	touch build-stamp-busybox-static
+
+install-static: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	# Do not run 'make install', since we do not want all the symlinks. 
+	# This just installes the busybox binary...
+	#$(MAKE) "PREFIX=$(bbs)" install
+	mkdir -p $(bbs)/bin/
+	cp busybox $(bbs)/bin/busybox
+	mkdir -p $(bbs)/usr/share/man/man1/
+	cp docs/BusyBox.1 $(bbs)/usr/share/man/man1/busybox.1
+
+do_static: half_clean build-static install-static
+
+
+# Build architecture-independent files here.
+binary-indep:
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: busybox busybox-static clean
+
+busybox: install
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	dh_installdocs       -p$@ docs/BusyBox.txt \
+		docs/BusyBox.html docs/busybox.lineo.com AUTHORS README TODO
+	rm -rf $(bb)/usr/share/doc/busybox/busybox.lineo.com/CVS \
+		$(bb)/usr/share/doc/busybox/busybox.lineo.com/.cvsignore \
+		$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/CVS \
+		$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/.cvsignore
+	#dh_undocumented      -p$@
+	dh_installchangelogs -p$@ Changelog
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	dh_gencontrol        -p$@
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@
+
+
+busybox-static: do_static
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	dh_installdocs       -p$@ docs/BusyBox.txt \
+		docs/BusyBox.html docs/busybox.lineo.com AUTHORS README TODO
+	rm -rf $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/CVS \
+		$(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/.cvsignore \
+		$(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/images/CVS \
+		$(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/images/.cvsignore
+	dh_undocumented      -p$@
+	dh_installchangelogs -p$@ Changelog
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	dh_gencontrol        -p$@
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@
+
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
