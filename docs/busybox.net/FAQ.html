@@ -18,6 +18,7 @@ have additions to this FAQ document, we would love to add them,
 <li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
 	you don't answer all my questions on the mailing list instantly?  I demand
 	that you help me with all of my problems <em>Right Now</em>!</a>
+<li><a href="#getting_started">How can I get started using BusyBox?</a>
 <li><a href="#helpme">I need help with BusyBox!  What should I do?</a>
 <li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to
 	be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide
@@ -146,6 +147,27 @@ have additions to this FAQ document, we would love to add them,
 
 <hr />
 <p>
+<h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
+<p>
+
+    An easy method to build your own basic BusyBox based system, is to
+    follow these simple steps:
+    <ul>
+	<li> Point your web browser <a href="/cgi-bin/cvsweb/buildroot/">here</a>
+	<li> Click on "Download tarball"
+	<li> Unpack the tarball on your Linux system somewhere
+	<li> run 'make' and configure things to taste.
+	<li> run 'unset CC'.   Some Linux systems (i.e. Gentoo) set 'CC'
+	    in the system environment which messes up cross compiles.
+	<li> run 'make'
+	<li> go have lunch, drink a pop, call a friend, play a video game, etc
+		till it finishes downloading software and compiling things.
+	<li> You should now have a shiny new BusyBox based system.
+    </ul>
+
+
+<hr />
+<p>
 <h2><a name="demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
 	you don't answer all my questions on the mailing list instantly?  I demand
 	that you help me with all of my problems <em>Right Now</em>!</a></h2>
@@ -198,8 +220,8 @@ have additions to this FAQ document, we would love to add them,
 	href="http://codepoet-consulting.com/">CodePoet Consulting</a> to bid
     on your project.  If Erik is too busy to personally add your feature, there
     are many other active BusyBox contributors who will almost certainly be able
-    to help you out.  Erik can contact them and ask them about their availability,
-    and may even ask you to post your request for services on the mailing list.
+    to help you out.  Erik can contact them privatly, and may even let you to
+    post your request for services on the mailing list.
 
 
 <hr />
@@ -218,7 +240,7 @@ have additions to this FAQ document, we would love to add them,
 	<input type="hidden" name="cmd" value="_xclick">
 	<input type="hidden" name="business" value="andersen@codepoet.org">
 	<input type="hidden" name="item_name" value="Support BusyBox">
-	<input type="hidden" name="image_url" value="https://codepoet-consulting.com/images/codepoet.png">
+	<input type="hidden" name="image_url" value="http://codepoet-consulting.com/images/codepoet.png">
 	<input type="hidden" name="no_shipping" value="1">
 	<input type="image" src="images/donate.png" name="submit" alt="Make donation using PayPal">
     </form>
