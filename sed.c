@@ -639,8 +639,8 @@ static void process_file(FILE *file)
 			}
 
 			/* are we acting on a range of line numbers? */
-			else if (sed_cmds[i].beg_line > 0 && sed_cmds[i].end_line > 0) {
-				if (linenum >= sed_cmds[i].beg_line && linenum <= sed_cmds[i].end_line)
+			else if (sed_cmds[i].beg_line > 0 && sed_cmds[i].end_line != 0) {
+				if (linenum >= sed_cmds[i].beg_line && (sed_cmds[i].end_line == -1 || linenum <= sed_cmds[i].end_line))
 					line_altered += do_sed_command(&sed_cmds[i], line);
 			}
 
