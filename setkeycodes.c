@@ -27,7 +27,14 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/kd.h>
+
+
+/* From <linux/kd.h> */
+struct kbkeycode {
+	unsigned int scancode, keycode;
+};
+#define KDSETKEYCODE    0x4B4D  /* write kernel keycode table entry */
+
 
 static const char setkeycodes_usage[] =
 	"setkeycodes SCANCODE KEYCODE ...\n"

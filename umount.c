@@ -26,20 +26,20 @@
 #include <stdio.h>
 #include <mntent.h>
 #include <errno.h>
+#include <sys/mount.h>
 #include <linux/unistd.h>
 
 
-//#include <sys/mount.h>
-/* Include our own version of sys/mount.h, since libc5 doesn't
- * know about umount2 */
-static _syscall1(int, umount, const char *, special_file);
-static _syscall2(int, umount2, const char *, special_file, int, flags);
-static _syscall5(int, mount, const char *, special_file, const char *, dir,
-		const char *, fstype, unsigned long int, rwflag, const void *, data);
+/* Include our own version of umount2 if we need it... */
+#ifndef __NR_umount2
+#define __NR_umount2           52
 #define MNT_FORCE		1
-#define MS_MGC_VAL		0xc0ed0000		/* Magic flag number to indicate "new" flags */
-#define MS_REMOUNT		32				/* Alter flags of a mounted FS.  */
-#define MS_RDONLY		1				/* Mount read-only.  */
+#define MS_MGC_VAL		0xc0ed0000 /* Magic number indicatng "new" flags */
+#define MS_REMOUNT		32	/* Alter flags of a mounted FS.  */
+#define MS_RDONLY		1	/* Mount read-only.  */
+
+#endif
+static _syscall2(int, umount2, const char *, special_file, int, flags);
 
 
 static const char umount_usage[] =

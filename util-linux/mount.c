@@ -48,15 +48,17 @@
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h>
 #endif
-#ifndef MS_RDONLY
-#include <linux/fs.h>
+
+/* 2.0.x. kernels don't know about MS_NODIRATIME */
+#ifndef MS_NODIRATIME
+#define MS_NODIRATIME   2048    /* Do not update directory access times */
 #endif
+
 
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/loop.h>
 
 
 static int use_loop = FALSE;

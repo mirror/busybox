@@ -5,11 +5,14 @@
  */
 #include "internal.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <linux/vt.h>
-#include <stdio.h>
+
+/* From <linux/vt.h> */
+#define VT_DISALLOCATE  0x5608  /* free memory associated to vt */
+
 
 char *progname;
 

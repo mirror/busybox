@@ -45,14 +45,14 @@
 #include <dirent.h>
 #include <time.h>
 #include <utime.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
-#include <sys/ioctl.h>
 #include <linux/loop.h>
 #endif
 
@@ -904,9 +904,10 @@ unsigned long my_getpwnamegid(char *name)
 
 #if (defined BB_CHVT) || (defined BB_DEALLOCVT) || (defined BB_SETKEYCODES)
 
-
-#include <linux/kd.h>
-#include <sys/ioctl.h>
+/* From <linux/kd.h> */ 
+#define KDGKBTYPE       0x4B33  /* get keyboard type */
+#define         KB_84           0x01
+#define         KB_101          0x02    /* this is what we always answer */
 
 int is_a_console(int fd)
 {

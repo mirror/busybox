@@ -71,7 +71,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.11 2000/06/26 11:16:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.12 2000/07/08 18:55:24 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -277,7 +277,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.11 2000/06/26 11:16:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.12 2000/07/08 18:55:24 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -530,6 +530,9 @@ _syscall2(int, new_sys_init_module, const char *, name,
 _syscall5(int, old_sys_init_module, const char *, name, char *, code,
 		  unsigned, codesize, struct old_mod_routines *, routines,
 		  struct old_symbol_table *, symtab)
+#ifndef __NR_query_module
+#define __NR_query_module     167
+#endif
 _syscall5(int, query_module, const char *, name, int, which,
 		void *, buf, size_t, bufsize, size_t*, ret);
 #ifndef BB_RMMOD

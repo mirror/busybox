@@ -24,9 +24,10 @@
 #include "internal.h"
 #include <stdio.h>
 #include <sys/ioctl.h>
-#include <linux/fd.h>
 #include <fcntl.h>
 
+/* From <linux/fd.h> */
+#define FDFLUSH  _IO(2,0x4b)
 
 extern int fdflush_main(int argc, char **argv)
 {

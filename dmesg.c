@@ -16,7 +16,6 @@
  */
 
 #include "internal.h"
-#include <linux/unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -24,6 +23,7 @@
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
+#include <linux/unistd.h>
 static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 #else							/* __alpha__ */
 #define klogctl syslog

@@ -37,12 +37,6 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <asm/types.h>
-#include <linux/serial.h>		/* for serial_struct */
-#include <linux/version.h>
-#include <linux/reboot.h>
-#include <linux/unistd.h>
-#include <linux/vt.h>				/* for vt_stat */
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
@@ -51,6 +45,33 @@
 #ifdef BB_SYSLOGD
 # include <sys/syslog.h>
 #endif
+
+/* From <linux/vt.h> */
+struct vt_stat {
+	unsigned short v_active;        /* active vt */
+	unsigned short v_signal;        /* signal to send */
+	unsigned short v_state;         /* vt bitmask */
+};
+#define VT_GETSTATE     0x5603  /* get global vt state info */
+
+/* From <linux/serial.h> */
+struct serial_struct {
+	int     type;
+	int     line;
+	int     port;
+	int     irq;
+	int     flags;
+	int     xmit_fifo_size;
+	int     custom_divisor;
+	int     baud_base;
+	unsigned short  close_delay;
+	char    reserved_char[2];
+	int     hub6;
+	unsigned short  closing_wait; /* time to wait before closing */
+	unsigned short  closing_wait2; /* no longer used... */
+	int     reserved[4];
+};
+
 
 
 #ifndef RB_HALT_SYSTEM
@@ -84,13 +105,12 @@
 #include <sys/time.h>
 #endif
 
-#ifndef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-#endif
 
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
+#include <linux/unistd.h>		/* for _syscall() macro */
 static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
@@ -568,7 +588,7 @@ static void shutdown_system(void)
 	run_lastAction();
 
 	sync();
-	if (kernelVersion > 0 && kernelVersion <= 2 * 65536 + 2 * 256 + 11) {
+	if (kernelVersion > 0 && kernelVersion <= KERNEL_VERSION(2,2,11)) {
 		/* bdflush, kupdate not needed for kernels >2.2.11 */
 		bdflush(1, 0);
 		sync();
@@ -587,11 +607,9 @@ static void halt_signal(int sig)
 	/* allow time for last message to reach serial console */
 	sleep(2);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
-	if (sig == SIGUSR2)
+	if (sig == SIGUSR2 && kernelVersion >= KERNEL_VERSION(2,2,0))
 		init_reboot(RB_POWER_OFF);
 	else
-#endif
 		init_reboot(RB_HALT_SYSTEM);
 	exit(0);
 }

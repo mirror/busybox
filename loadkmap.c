@@ -24,9 +24,19 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <linux/kd.h>
-#include <linux/keyboard.h>
 #include <sys/ioctl.h>
+
+/* From <linux/kd.h> */
+struct kbentry {
+	unsigned char kb_table;
+	unsigned char kb_index;
+	unsigned short kb_value;
+};
+#define KDSKBENT        0x4B47  /* sets one entry in translation table */
+
+/* From <linux/keyboard.h> */
+#define NR_KEYS         128
+#define MAX_NR_KEYMAPS  256
 
 
 static const char loadkmap_usage[] = "loadkmap\n"
