@@ -34,7 +34,7 @@
 
 
 /* options */
-#define GREP_OPTS "lnqvscFiHhe:f:"
+#define GREP_OPTS "lnqvscFiHhe:f:L"
 #define GREP_OPT_l 1
 static char print_files_with_matches;
 #define GREP_OPT_n 2
@@ -55,15 +55,17 @@ static char fgrep_flag;
 #define GREP_OPT_h 512
 #define GREP_OPT_e 1024
 #define GREP_OPT_f 2048
+#define GREP_OPT_L 4096
+static char print_files_without_matches;
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 #define GREP_OPT_CONTEXT "A:B:C"
-#define GREP_OPT_A 4096
-#define GREP_OPT_B 8192
-#define GREP_OPT_C 16384
-#define GREP_OPT_E 32768U
+#define GREP_OPT_A 8192
+#define GREP_OPT_B 16384
+#define GREP_OPT_C 32768
+#define GREP_OPT_E 65536
 #else
 #define GREP_OPT_CONTEXT ""
-#define GREP_OPT_E 4096
+#define GREP_OPT_E 8192
 #endif
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
 # define OPT_EGREP "E"
@@ -147,7 +149,7 @@ static int grep_file(FILE *file)
 				free(line);
 
 			/* if we found a match but were told to be quiet, stop here */
-				if (be_quiet)
+				if (be_quiet || print_files_without_matches)
 				return -1;
 
 				/* keep track of matches */
@@ -227,6 +229,11 @@ static int grep_file(FILE *file)
 		puts(cur_file);
 	}
 
+	/* grep -L: print just the filename, but only if we didn't grep the line in the file  */
+	if (print_files_without_matches && nmatches == 0) {
+		puts(cur_file);
+	}
+
 	return nmatches;
 }
 
@@ -290,7 +297,7 @@ extern int grep_main(int argc, char **argv)
 					bb_error_msg_and_die("invalid context length argument");
 		}
 	/* sanity checks after parse may be invalid numbers ;-) */
-	if ((opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l))) {
+	if ((opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L))) {
 		opt &= ~GREP_OPT_n;
 		lines_before = 0;
 		lines_after = 0;
@@ -305,6 +312,7 @@ extern int grep_main(int argc, char **argv)
 
 #endif
 	print_files_with_matches = opt & GREP_OPT_l;
+	print_files_without_matches = (opt & GREP_OPT_L) != 0;
 	print_line_num = opt & GREP_OPT_n;
 	be_quiet = opt & GREP_OPT_q;
 	invert_search = (opt & GREP_OPT_v) != 0;        /* 0 | 1 */
