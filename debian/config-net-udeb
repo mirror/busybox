@@ -181,7 +181,7 @@ CONFIG_REBOOT=y
 #
 # Login/Password Management Utilities
 #
-# CONFIG_USE_BB_PWD_GRP is not set
+CONFIG_USE_BB_PWD_GRP=y
 # CONFIG_ADDGROUP is not set
 # CONFIG_DELGROUP is not set
 # CONFIG_ADDUSER is not set
