@@ -1469,6 +1469,42 @@ extern char *find_unused_loop_device(void)
 }
 #endif							/* BB_FEATURE_MOUNT_LOOP */
 
+#if defined BB_MOUNT
+char* find_real_root_device_name(void)
+{
+	int gotIt=0;
+	DIR *dir;
+	struct dirent *entry;
+	struct stat statBuf, rootStat;
+	char fileName[BUFSIZ];
+
+	if (stat("/", &rootStat) != 0)
+		fatalError("Wierd.  I could not stat '/'\n");
+
+	if (!(dir = opendir("/dev"));
+		fatalError("Wierd.  I could not open '/dev'\n");
+
+	while((entry = readdir(dir)) != NULL) {
+		/* Must skip ".." since that is "/", and so we 
+		 * would get a false positive on ".."  */
+
+		if (strcmp(entry->d_name, "..") == 0)
+			continue;
+
+		sprintf( fileName, "/dev/%s", entry->d_name);
+
+		if (stat(fileName, &statBuf) != 0)
+			continue;
+		if (statBuf.st_rdev == rootStat.st_rdev) {
+			return (strdup(fileName));
+		}
+	}
+
+	return( NULL);
+}
+#endif
+
+
 #if defined BB_MTAB
 #define whine_if_fstab_is_missing() {}
 #else
