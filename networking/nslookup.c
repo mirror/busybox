@@ -45,14 +45,14 @@
  * I could dig through /etc/resolv.conf, but is there a
  * better (programatic) way?
  */
-static void server_fprint(FILE * dst)
+static inline void server_fprint(void)
 {
-	fprintf(dst, "Server:     %s\n", "default");
-	fprintf(dst, "Address:    %s\n\n", "default");
+	printf("Server:     %s\n", "default");
+	printf("Address:    %s\n\n", "default");
 }
 
 /* only works for IPv4 */
-static int addr_fprint(char *addr, FILE * dst)
+static int addr_fprint(char *addr)
 {
 	u_int8_t split[4];
 	u_int32_t ip;
@@ -63,8 +63,7 @@ static int addr_fprint(char *addr, FILE * dst)
 	split[1] = (ip & 0x00ff0000) >> 16;
 	split[2] = (ip & 0x0000ff00) >> 8;
 	split[3] = (ip & 0x000000ff);
-	fprintf(dst, "%d.%d.%d.%d", split[0], split[1], split[2], split[3]
-		);
+	printf("%d.%d.%d.%d", split[0], split[1], split[2], split[3]);
 	return 0;
 }
 
@@ -89,30 +88,30 @@ static u_int32_t str_to_addr(const char *addr)
 /* takes the NULL-terminated array h_addr_list, and
  * prints its contents appropriately
  */
-static int addr_list_fprint(char **h_addr_list, FILE * dst)
+static int addr_list_fprint(char **h_addr_list)
 {
 	int i, j;
 	char *addr_string = (h_addr_list[1])
 		? "Addresses: " : "Address:   ";
 
-	fprintf(dst, "%s ", addr_string);
+	printf("%s ", addr_string);
 	for (i = 0, j = 0; h_addr_list[i]; i++, j++) {
-		addr_fprint(h_addr_list[i], dst);
+		addr_fprint(h_addr_list[i]);
 
 		/* real nslookup does this */
 		if (j == 4) {
 			if (h_addr_list[i + 1]) {
-				fprintf(dst, "\n          ");
+				printf("\n          ");
 			}
 			j = 0;
 		} else {
 			if (h_addr_list[i + 1]) {
-				fprintf(dst, ", ");
+				printf(", ");
 			}
 		}
 
 	}
-	fprintf(dst, "\n");
+	printf("\n");
 	return 0;
 }
 
@@ -126,13 +125,13 @@ static struct hostent *gethostbyaddr_wrapper(const char *address)
 }
 
 /* print the results as nslookup would */
-static struct hostent *hostent_fprint(struct hostent *host, FILE * dst)
+static struct hostent *hostent_fprint(struct hostent *host)
 {
 	if (host) {
-		fprintf(dst, "Name:       %s\n", host->h_name);
-		addr_list_fprint(host->h_addr_list, dst);
+		printf("Name:       %s\n", host->h_name);
+		addr_list_fprint(host->h_addr_list);
 	} else {
-		fprintf(dst, "*** Unknown host\n");
+		printf("*** Unknown host\n");
 	}
 	return host;
 }
@@ -160,14 +159,14 @@ int nslookup_main(int argc, char **argv)
 		usage(nslookup_usage);
 	}
 
-	server_fprint(stdout);
+	server_fprint();
 	if (is_ip_address(argv[1])) {
 		host = gethostbyaddr_wrapper(argv[1]);
 	} else {
 		host = gethostbyname(argv[1]);
 	}
-	hostent_fprint(host, stdout);
+	hostent_fprint(host);
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.13 2000/12/01 02:55:13 kraai Exp $ */
+/* $Id: nslookup.c,v 1.14 2001/01/20 16:22:58 andersen Exp $ */
