@@ -1254,7 +1254,7 @@ int udhcpc_main(int argc, char *argv[])
 	while (1) {
 		int option_index = 0;
 
-		c = getopt_long(argc, argv, "c:fH:hi:np:qr:s:v", l_options,
+		c = getopt_long(argc, argv, "c:fH:i:np:qr:s:v", l_options,
 						&option_index);
 		if (c == -1) {
 			break;
@@ -1291,21 +1291,6 @@ int udhcpc_main(int argc, char *argv[])
 			client_config.hostname[OPT_LEN] = len;
 			strncpy(client_config.hostname + 2, optarg, len);
 			break;
-		case 'h':
-			puts("Usage: udhcpcd [OPTIONS]\n\n"
-				 "  -c, --clientid=CLIENTID         Client identifier\n"
-				 "  -H, --hostname=HOSTNAME         Client hostname\n"
-				 "  -f, --foreground                Do not fork after getting lease\n"
-				 "  -i, --interface=INTERFACE       Interface to use (default: eth0)\n"
-				 "  -n, --now                       Exit with failure if lease cannot be\n"
-				 "                                  immediately negotiated.\n"
-				 "  -p, --pidfile=file              Store process ID of daemon in file\n"
-				 "  -q, --quit                      Quit after obtaining lease\n"
-				 "  -r, --request=IP                IP address to request (default: none)\n"
-				 "  -s, --script=file               Run file at dhcp events (default:\n"
-				 "                                  " DEFAULT_SCRIPT ")\n"
-				 "  -v, --version                   Display version");
-			return 0;
 		case 'i':
 			client_config.interface = optarg;
 			break;
@@ -1328,6 +1313,8 @@ int udhcpc_main(int argc, char *argv[])
 			printf("udhcpcd, version %s\n\n", VERSION);
 			exit_client(0);
 			break;
+		default:
+			show_usage();
 		}
 	}
 

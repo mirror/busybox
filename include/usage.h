@@ -1916,6 +1916,7 @@
 #define udhcpc_trivial_usage \
 	"[-fqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p file] [-r IP] [-s script]"
 #define udhcpc_full_usage \
+	"\tUsage: udhcpcd [OPTIONS]\n" \
 	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
 	"\t-f,\t--foreground\tDo not fork after getting lease\n" \
