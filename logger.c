@@ -130,6 +130,7 @@ extern int logger_main(int argc, char **argv)
 		while ((c = getc(stdin)) != EOF && i < sizeof(buf)) {
 			buf[i++] = c;
 		}
+		buf[i++] = '\0';
 		message = buf;
 	} else {
 		len = 1; /* for the '\0' */
@@ -147,7 +148,6 @@ extern int logger_main(int argc, char **argv)
 	openlog(name, option, (pri | LOG_FACMASK));
 	syslog(pri, "%s", message);
 	closelog();
-
 	return EXIT_SUCCESS;
 }
 
