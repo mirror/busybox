@@ -69,8 +69,12 @@ config CONFIG_FEATURE_U_W_TMP
 config CONFIG_LOGIN
 	bool "login"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  login is used when signing onto a system.
+
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
 
 config CONFIG_FEATURE_SECURETTY
 	bool "  Support for /etc/securetty"
@@ -84,18 +88,26 @@ config CONFIG_FEATURE_SECURETTY
 config CONFIG_PASSWD
 	bool "passwd"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  passwd changes passwords for user and group accounts.  A normal user
 	  may only change the password for his/her own account, the super user
 	  may change the password for any account.  The administrator of a group
 	  may change the password for the group.
 
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
+
 config CONFIG_SU
 	bool "su"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  su is used to become another user during a login session.
 	  Invoked without a username, su defaults to becoming the super user.
+
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
 
 config CONFIG_SULOGIN
 	bool "sulogin"
@@ -107,8 +119,12 @@ config CONFIG_SULOGIN
 config CONFIG_VLOCK
 	bool "vlock"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.
+
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
 
 comment "Common options for adduser, deluser, login, su"
 	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU

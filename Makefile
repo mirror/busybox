@@ -57,6 +57,16 @@ busybox.links: applets/busybox.mkll include/config.h
 
 install: applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX)
+ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
+	@echo
+	@echo
+	@echo --------------------------------------------------
+	@echo You will probably need to make your busybox binary
+	@echo setuid root to ensure all configured applets will
+	@echo work properly.
+	@echo --------------------------------------------------
+	@echo
+endif
 
 uninstall: busybox.links
 	rm -f $(PREFIX)/bin/busybox

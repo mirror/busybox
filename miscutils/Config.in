@@ -15,6 +15,7 @@ config CONFIG_ADJTIMEX
 config CONFIG_CROND
 	bool "crond"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  Crond is a background daemon that parses individual crontab
 	  files and executes commands on behalf of the users in question.
@@ -23,6 +24,8 @@ config CONFIG_CROND
 	      $ cat /var/spool/cron/crontabs/root
 	      # Run daily cron jobs at 4:40 every day:
 	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
+	  Note that Busybox binary must be setuid root for this applet to
+	  work properly.
 
 config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 	bool "  Using /usr/sbin/sendmail?"
