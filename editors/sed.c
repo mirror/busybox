@@ -165,7 +165,7 @@ static void destroy_cmd_strs(void)
  * a backslash ('\').
  */
 static int index_of_next_unescaped_regexp_delim(const char delimiter,
-												const char *str)
+	const char *str)
 {
 	int bracket = -1;
 	int escaped = 0;
@@ -174,8 +174,8 @@ static int index_of_next_unescaped_regexp_delim(const char delimiter,
 
 	for (; (ch = str[idx]); idx++) {
 		if (bracket != -1) {
-			if (ch == ']' && !(bracket == idx - 1 ||
-							   (bracket == idx - 2 && str[idx - 1] == '^')))
+			if (ch == ']' && !(bracket == idx - 1 || (bracket == idx - 2
+						&& str[idx - 1] == '^')))
 				bracket = -1;
 		} else if (escaped)
 			escaped = 0;
@@ -392,7 +392,7 @@ static int parse_edit_cmd(sed_cmd_t * sed_cmd, const char *editstr)
 	/* store the edit line text */
 	sed_cmd->editline = xmalloc(strlen(&editstr[2]) + 2);
 	for (i = 2, j = 0;
-		 editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL; i++, j++) {
+		editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL; i++, j++) {
 		if ((editstr[i] == '\\') && strchr("\n\r", editstr[i + 1]) != NULL) {
 			sed_cmd->editline[j] = '\n';
 			i++;
@@ -449,7 +449,7 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr)
 /*
  *  Process the commands arguments
  */
-static char *parse_cmd_str(sed_cmd_t *sed_cmd, char *cmdstr)
+static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 {
 	/* handle (s)ubstitution command */
 	if (sed_cmd->cmd == 's') {
@@ -536,7 +536,7 @@ static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
 		idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
 		if (idx == 0) {
 			bb_error_msg_and_die("get_address: no address found in string\n"
-								 "\t(you probably didn't check the string you passed me)");
+				"\t(you probably didn't check the string you passed me)");
 		}
 		cmdstr += idx;
 	}
@@ -637,8 +637,8 @@ static void load_cmd_file(char *filename)
 	while ((line = bb_get_line_from_file(cmdfile)) != NULL) {
 		/* if a line ends with '\' it needs the next line appended to it */
 		while (((e = last_char_is(line, '\n')) != NULL)
-			   && (e > line) && (e[-1] == '\\')
-			   && ((nextline = bb_get_line_from_file(cmdfile)) != NULL)) {
+			&& (e > line) && (e[-1] == '\\')
+			&& ((nextline = bb_get_line_from_file(cmdfile)) != NULL)) {
 			line = xrealloc(line, (e - line) + 1 + strlen(nextline) + 1);
 			strcat(line, nextline);
 			free(nextline);
@@ -686,9 +686,7 @@ void pipe_putc(struct pipeline *const pipeline, char c)
 #endif
 
 static void print_subst_w_backrefs(const char *line, const char *replace,
-								   regmatch_t * regmatch,
-								   struct pipeline *const pipeline,
-								   int matches)
+	regmatch_t * regmatch, struct pipeline *const pipeline, int matches)
 {
 	int i;
 
@@ -707,7 +705,7 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 			/* print out the text held in regmatch[backref] */
 			if (backref <= matches && regmatch[backref].rm_so != -1)
 				for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo;
-					 j++)
+					j++)
 					pipeputc(line[j]);
 		}
 
@@ -723,6 +721,7 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 		 * purpose...) */
 		else if (replace[i] == '&') {
 			int j;
+
 			for (j = regmatch[0].rm_so; j < regmatch[0].rm_eo; j++)
 				pipeputc(line[j]);
 		}
@@ -766,9 +765,9 @@ static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 
 	/* and now, as long as we've got a line to try matching and if we can match
 	 * the search string, we make substitutions */
-	while ((*hackline || !altered) && (regexec(current_regex, hackline,
-											   sed_cmd->num_backrefs + 1,
-											   regmatch, 0) != REG_NOMATCH)) {
+	while ((*hackline || !altered)
+		&& (regexec(current_regex, hackline, sed_cmd->num_backrefs + 1,
+				regmatch, 0) != REG_NOMATCH)) {
 		int i;
 
 		/* print everything before the match */
@@ -776,8 +775,8 @@ static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 			pipeputc(hackline[i]);
 
 		/* then print the substitution string */
-		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch,
-							   pipeline, sed_cmd->num_backrefs);
+		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch, pipeline,
+			sed_cmd->num_backrefs);
 
 		/* advance past the match */
 		hackline += regmatch[0].rm_eo;
@@ -805,6 +804,7 @@ static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 static sed_cmd_t *branch_to(const char *label)
 {
 	sed_cmd_t *sed_cmd;
+
 	for (sed_cmd = sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
 		if ((sed_cmd->label) && (strcmp(sed_cmd->label, label) == 0)) {
 			break;
@@ -843,31 +843,26 @@ static void process_file(FILE * file)
 		force_print = 0;
 
 		/* for every line, go through all the commands */
-		for (sed_cmd = sed_cmd_head.next; sed_cmd;
-			 sed_cmd = sed_cmd->next) {
+		for (sed_cmd = sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
 			int deleted = 0;
 
 			/*
 			 * entry point into sedding...
 			 */
 			int matched = (
-							  /* no range necessary */
-							  (sed_cmd->beg_line == 0
-							   && sed_cmd->end_line == 0
-							   && sed_cmd->beg_match == NULL
-							   && sed_cmd->end_match == NULL) ||
-							  /* this line number is the first address we're looking for */
-							  (sed_cmd->beg_line
-							   && (sed_cmd->beg_line == linenum)) ||
-							  /* this line matches our first address regex */
-							  (sed_cmd->beg_match
-							   &&
-							   (regexec
-								(sed_cmd->beg_match, pattern_space, 0, NULL,
-								 0) == 0)) ||
-							  /* we are currently within the beginning & ending address range */
-							  still_in_range || ((sed_cmd->beg_line == -1)
-												 && (next_line == NULL))
+				/* no range necessary */
+				(sed_cmd->beg_line == 0 && sed_cmd->end_line == 0
+					&& sed_cmd->beg_match == NULL
+					&& sed_cmd->end_match == NULL) ||
+				/* this line number is the first address we're looking for */
+				(sed_cmd->beg_line && (sed_cmd->beg_line == linenum)) ||
+				/* this line matches our first address regex */
+				(sed_cmd->beg_match
+					&& (regexec(sed_cmd->beg_match, pattern_space, 0, NULL,
+							0) == 0)) ||
+				/* we are currently within the beginning & ending address range */
+				still_in_range || ((sed_cmd->beg_line == -1)
+					&& (next_line == NULL))
 				);
 
 			if (sed_cmd->invert ^ matched) {
@@ -927,7 +922,7 @@ static void process_file(FILE * file)
 
 						pattern_space =
 							xrealloc(pattern_space,
-									 strlen(pattern_space) + 2);
+							strlen(pattern_space) + 2);
 						tmp = strchr(pattern_space + offset, '\n');
 						memmove(tmp + 1, tmp, strlen(tmp) + 1);
 						tmp[0] = '\\';
@@ -952,8 +947,7 @@ static void process_file(FILE * file)
 #endif
 					altered |= substituted;
 					if (!be_quiet && altered && ((sed_cmd->next == NULL)
-												 || (sed_cmd->next->cmd !=
-													 's'))) {
+							|| (sed_cmd->next->cmd != 's'))) {
 						force_print = 1;
 					}
 
@@ -979,10 +973,8 @@ static void process_file(FILE * file)
 						/* multi-address case */
 						/* - matching text */
 						|| (sed_cmd->end_match
-							&&
-							(regexec
-							 (sed_cmd->end_match, pattern_space, 0, NULL,
-							  0) == 0))
+							&& (regexec(sed_cmd->end_match, pattern_space, 0,
+									NULL, 0) == 0))
 						/* - matching line numbers */
 						|| (sed_cmd->end_line > 0
 							&& sed_cmd->end_line == linenum)) {
@@ -994,11 +986,17 @@ static void process_file(FILE * file)
 
 				case 'r':{
 					FILE *outfile;
+
 					outfile = fopen(sed_cmd->filename, "r");
 					if (outfile) {
 						char *line;
-						while ((line = bb_get_chomped_line_from_file(outfile)) != NULL) {
-							pattern_space = xrealloc(pattern_space, strlen(line) + strlen(pattern_space) + 2);
+
+						while ((line =
+								bb_get_chomped_line_from_file(outfile)) !=
+							NULL) {
+							pattern_space =
+								xrealloc(pattern_space,
+								strlen(line) + strlen(pattern_space) + 2);
 							strcat(pattern_space, "\n");
 							strcat(pattern_space, line);
 						}
@@ -1023,8 +1021,7 @@ static void process_file(FILE * file)
 					if (next_line) {
 						pattern_space =
 							realloc(pattern_space,
-									strlen(pattern_space) +
-									strlen(next_line) + 2);
+							strlen(pattern_space) + strlen(next_line) + 2);
 						strcat(pattern_space, "\n");
 						strcat(pattern_space, next_line);
 						next_line = bb_get_chomped_line_from_file(file);
@@ -1077,39 +1074,23 @@ static void process_file(FILE * file)
 			 */
 			if (matched) {
 				if (
-					   /* this is a single-address command or... */
-					   (sed_cmd->end_line == 0 && sed_cmd->end_match == NULL)
-					   || (
-							  /* If only one address */
-							  /* we were in the middle of our address range (this
-							   * isn't the first time through) and.. */
-							  (still_in_range == 1) && (
-														   /* this line number is the last address we're looking for or... */
-														   (sed_cmd->
-															end_line
-															&& (sed_cmd->
-																end_line ==
-																linenum))
-														   ||
-														   /* this line matches our last address regex */
-														   (sed_cmd->
-															end_match
-															&&
-															(regexec
-															 (sed_cmd->
-															  end_match,
-															  pattern_space,
-															  0, NULL,
-															  0) == 0))
-							  )
-					   )
-					) {
+					/* this is a single-address command or... */
+					(sed_cmd->end_line == 0 && sed_cmd->end_match == NULL)
+					/* If only one address */
+					/* we were in the middle of our address range (this
+					 * isn't the first time through) and.. */
+					|| ((still_in_range == 1)
+						/* this line number is the last address we're looking for or... */
+						&& ((sed_cmd->end_line
+								&& (sed_cmd->end_line == linenum))
+							/* this line matches our last address regex */
+							|| (sed_cmd->end_match
+								&& (regexec(sed_cmd->end_match, pattern_space,
+										0, NULL, 0) == 0))))) {
 					/* we're out of our address range */
 					still_in_range = 0;
-				}
-
-				/* didn't hit the exit? then we're still in the middle of an address range */
-				else {
+				} else {
+					/* didn't hit the exit? then we're still in the middle of an address range */
 					still_in_range = 1;
 				}
 			}
