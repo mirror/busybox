@@ -233,4 +233,9 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
 extern int gz_open(FILE *compressed_file, int *pid);
 
+#define CT_AUTO	0
+#define CT_UNIX2DOS	1
+#define CT_DOS2UNIX	2
+extern int convert(char *fn, int ConvType);
+
 #endif /* __LIBBB_H__ */
