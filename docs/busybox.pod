@@ -594,7 +594,7 @@ Usage: fsck.minix [B<-larvsmf>] /dev/name
 
 Performs a consistency check for MINIX filesystems.
 
-OPTIONS:
+Options:
 
 	-l      Lists all filenames
 	-r      Perform interactive repairs
@@ -612,7 +612,7 @@ Usage: grep [OPTIONS]... PATTERN [FILE]...
 
 Search for PATTERN in each FILE or standard input.
 
-OPTIONS:
+Options:
 
 	-h      suppress the prefixing filename on output
 	-i      ignore case distinctions
@@ -1124,7 +1124,7 @@ Usage: mkfs.minix [B<-c> | B<-l> filename] [B<-nXX>] [B<-iXX>] /dev/name [blocks
 
 Make a MINIX filesystem.
 
-OPTIONS:
+Options:
 
 	-c              Check the device for bad blocks
 	-n [14|30]      Specify the maximum length of filenames
@@ -2063,4 +2063,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.53 2000/07/04 20:07:13 andersen Exp $
+# $Id: busybox.pod,v 1.54 2000/07/04 22:17:01 andersen Exp $

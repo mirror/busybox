@@ -183,7 +183,7 @@ static volatile void show_usage()
 			program_name);
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	fprintf(stderr, "\nMake a MINIX filesystem.\n\n");
-	fprintf(stderr, "OPTIONS:\n");
+	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "\t-c\t\tCheck the device for bad blocks\n");
 	fprintf(stderr,
 			"\t-n [14|30]\tSpecify the maximum length of filenames\n");

@@ -133,7 +133,7 @@ olddoc/BusyBox.html: olddoc/busybox.lineo.com/BusyBox.html
 	- ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
 olddoc/busybox.lineo.com/BusyBox.html: docs/busybox.pod
-	- pod2html docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
+	- pod2html --noindex docs/busybox.pod > docs/busybox.lineo.com/BusyBox.html
 	- rm -f pod2html*
 
 busybox: $(OBJECTS)

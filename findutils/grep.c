@@ -35,7 +35,7 @@ static const char grep_usage[] =
 	"grep [-ihHnqvs] pattern [files...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nSearch for PATTERN in each FILE or standard input.\n\n"
-	"OPTIONS:\n"
+	"Options:\n"
 	"\t-H\tprefix output lines with filename where match was found\n"
 	"\t-h\tsuppress the prefixing filename on output\n"
 	"\t-i\tignore case distinctions\n"

@@ -203,7 +203,7 @@ static void show_usage(void)
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	fprintf(stderr,
 			"\nPerforms a consistency check for MINIX filesystems.\n\n");
-	fprintf(stderr, "OPTIONS:\n");
+	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "\t-l\tLists all filenames\n");
 	fprintf(stderr, "\t-r\tPerform interactive repairs\n");
 	fprintf(stderr, "\t-a\tPerform automatic repairs\n");
