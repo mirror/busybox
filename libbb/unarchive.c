@@ -538,7 +538,8 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 	int gunzip_pid;
 
 	if (filename == NULL) {
-		file_list = NULL;
+		file_list = xmalloc(sizeof(char *));
+		file_list[0] = NULL;
 	} else {
 		file_list = xmalloc(sizeof(char *) * 3);
 		file_list[0] = xstrdup(filename);
