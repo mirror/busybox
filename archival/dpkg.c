@@ -33,12 +33,13 @@
 #endif
 
 #define BUFSIZE		4096
+#define DEPENDSMAX	64	/* maximum number of depends we can handle */
+
 #define ADMINDIR "/var/lib/dpkg"
 #define STATUSFILE	ADMINDIR ## "/status.udeb"
 #define DPKGCIDIR	ADMINDIR ## "/tmp.ci/"
-#define INFODIR		ADMINDIR ## "/info/"
-#define UDPKG_QUIET	"UDPKG_QUIET"
-#define DEPENDSMAX	64	/* maximum number of depends we can handle */
+static const char infodir[] = "/var/lib/dpkg/info/";
+static const char udpkg_quiet[] = "UDPKG_QUIET";
 
 //static const int status_wantstart	= 0;
 //static const int status_wantunknown	= (1 << 0);
@@ -379,7 +380,7 @@ static void *status_read(void)
 		perror(STATUSFILE);
 		return 0;
 	}
-	if (getenv(UDPKG_QUIET) == NULL)
+	if (getenv(udpkg_quiet) == NULL)
 		printf("(Reading database...)\n");
 	while (!feof(f))
 	{
@@ -452,7 +453,7 @@ static int status_merge(void *status, package_t *pkgs)
 		perror(STATUSFILE ".new");
 		return 0;
 	}
-	if (getenv(UDPKG_QUIET) == NULL)
+	if (getenv(udpkg_quiet) == NULL)
 		printf("(Updating database...)\n");
 	while (fgets(buf, BUFSIZE, fin) && !feof(fin))
 	{
@@ -535,38 +536,6 @@ static int is_file(const char *fn)
 	return S_ISREG(statbuf.st_mode);
 }
 
-static int dpkg_copyfile(const char *src, const char *dest)
-{
-	/* copy a (regular) file if it exists, preserving the mode, mtime 
-	 * and atime */
-	char buf[8192];
-	int infd, outfd;
-	int r;
-	struct stat srcStat;
-	struct utimbuf times;
-
-	if (stat(src, &srcStat) < 0) 
-	{
-		if (errno == 2) return 0; else return -1;
-	}
-	if ((infd = open(src, O_RDONLY)) < 0) 
-		return -1;
-	if ((outfd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, srcStat.st_mode)) < 0)
-		return -1;
-	while ((r = read(infd, buf, sizeof(buf))) > 0)
-	{
-		if (write(outfd, buf, r) < 0)
-			return -1;
-	}
-	close(outfd);
-	close(infd);
-	if (r < 0) return -1;
-	times.actime = srcStat.st_atime;
-	times.modtime = srcStat.st_mtime;
-	if (utime(dest, &times) < 0) return -1;
-	return 1;
-}
-
 static int dpkg_doconfigure(package_t *pkg)
 {
 	int r;
@@ -574,7 +543,7 @@ static int dpkg_doconfigure(package_t *pkg)
 	char buf[1024];
 	DPRINTF("Configuring %s\n", pkg->package);
 	pkg->status &= status_statusmask;
-	snprintf(postinst, sizeof(postinst), "%s%s.postinst", INFODIR, pkg->package);
+	snprintf(postinst, sizeof(postinst), "%s%s.postinst", infodir, pkg->package);
 	if (is_file(postinst))
 	{
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
@@ -616,8 +585,8 @@ static int dpkg_dounpack(package_t *pkg)
 			snprintf(buf, sizeof(buf), "%s%s/%s",
 				DPKGCIDIR, pkg->package, adminscripts[i]);
 			snprintf(buf2, sizeof(buf), "%s%s.%s", 
-				INFODIR, pkg->package, adminscripts[i]);
-			if (dpkg_copyfile(buf, buf2) < 0)
+				infodir, pkg->package, adminscripts[i]);
+			if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0)
 			{
 				fprintf(stderr, "Cannot copy %s to %s: %s\n", 
 					buf, buf2, strerror(errno));
@@ -636,7 +605,7 @@ static int dpkg_dounpack(package_t *pkg)
 					"ar -p %s data.tar.gz|zcat|tar -tf -", 
 					pkg->file);
 				snprintf(buf2, sizeof(buf2),
-					"%s%s.list", INFODIR, pkg->package);
+					"%s%s.list", infodir, pkg->package);
 				if ((infp = popen(buf, "r")) == NULL ||
 				    (outfp = fopen(buf2, "w")) == NULL)
 				{
