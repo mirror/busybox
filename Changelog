@@ -1,10 +1,21 @@
 0.52
 	
-	* Sterling Huxley -- Several bugfixes for the vi applet.
+    Critical Bugfixes:
+	*
+	
+    New Applet:
+	* Laurence Anderson -- rpm2cpio applet, obsoletes rpmunpack.
+	* Laurence Anderson and Glenn McGrath -- cpio applet, currently 
+	    only supports unpacking the ascii cpio format.
+
+    Other Changes:
+    	* Sterling Huxley -- Several bugfixes for the vi applet.
+	* Glenn McGrath -- Restructure unarchiving code to make more code
+	    common to the ar, cpio, dpkg, dpkg-deb applets.
+	    tar applet hasnt been assimilated yet.
 
 
-	 -Erik Andersen, not yet released
-
+	-Erik Andersen, not yet released
 
 
 0.51
