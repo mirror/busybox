@@ -1,0 +1,4 @@
+touch foo
+chmod a-r foo
+busybox cp foo bar
+test ! -f bar

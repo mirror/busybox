@@ -132,21 +132,30 @@ int copy_file(const char *source, const char *dest, int flags)
 	} else if (S_ISREG(source_stat.st_mode)) {
 		FILE *sfp, *dfp=NULL;
 
+		if ((sfp = fopen(source, "r")) == NULL) {
+			perror_msg("unable to open `%s'", source);
+			return -1;
+		}
+
 		if (dest_exists) {
 			if (flags & FILEUTILS_INTERACTIVE) {
 				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
-				if (!ask_confirmation())
+				if (!ask_confirmation()) {
+					fclose (sfp);
 					return 0;
+				}
 			}
 
 			if ((dfp = fopen(dest, "w")) == NULL) {
 				if (!(flags & FILEUTILS_FORCE)) {
 					perror_msg("unable to open `%s'", dest);
+					fclose (sfp);
 					return -1;
 				}
 
 				if (unlink(dest) < 0) {
 					perror_msg("unable to remove `%s'", dest);
+					fclose (sfp);
 					return -1;
 				}
 
@@ -162,15 +171,9 @@ int copy_file(const char *source, const char *dest, int flags)
 				if (fd >= 0)
 					close(fd);
 				perror_msg("unable to open `%s'", dest);
+				fclose (sfp);
 				return -1;
 			}
-		}
-
-		if ((sfp = fopen(source, "r")) == NULL) {
-			fclose(dfp);
-			perror_msg("unable to open `%s'", source);
-			status = -1;
-			goto end;
 		}
 
 		if (copy_file_chunk(sfp, dfp, -1) < 0)
