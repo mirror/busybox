@@ -64,6 +64,7 @@ int copy_file(const char *source, const char *dest, int flags)
 	if (S_ISDIR(source_stat.st_mode)) {
 		DIR *dp;
 		struct dirent *d;
+		mode_t saved_umask = 0;
 
 		if (!(flags & FILEUTILS_RECUR)) {
 			error_msg("%s: omitting directory", source);
@@ -77,7 +78,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				return -1;
 			}
 		} else {
-			mode_t mode, saved_umask;
+			mode_t mode;
 			saved_umask = umask(0);
 
 			mode = source_stat.st_mode;
@@ -120,6 +121,12 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		if (closedir(dp) < 0) {
 			perror_msg("unable to close directory `%s'", source);
+			status = -1;
+		}
+
+		if (!dest_exists &&
+				chmod(dest, source_stat.st_mode & ~saved_umask) < 0) {
+			perror_msg("unable to change permissions of `%s'", dest);
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
