@@ -64,17 +64,14 @@ static int df(char *device, const char *mountPoint)
 #ifdef BB_FEATURE_HUMAN_READABLE
 		switch (disp_hr) {
 			case MEGABYTE:
-				fprintf(stderr, "got MEGABYTE\n");
 				divisor = KILOBYTE;
 				base = KILOBYTE;
 				break;
 			case KILOBYTE:
-				fprintf(stderr, "got KILOBYTE\n");
 				divisor = KILOBYTE;
 				base = 1;
 				break;
 			default:
-				fprintf(stderr, "got something else\n");
 				divisor = KILOBYTE;
 				base = 0;
 		}
