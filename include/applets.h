@@ -563,7 +563,7 @@
 	APPLET(tty, tty_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UDHCPC
-	APPLET(udhcpc, udhcpc_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+	APPLET(udhcpc, udhcpc_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UDHCPD
         APPLET(udhcpd, udhcpd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
