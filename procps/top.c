@@ -23,6 +23,26 @@
  * Copyright (c) 1992 Roger Binns
  * Copyright (C) 1994-1996 Charles L. Blake.
  * Copyright (C) 1992-1998 Michael K. Johnson
+ * May 
+ * This reads the PIDs of all processes and their status and shows
+ * the status of processes (first ones that fit to screen) at given
+ * intervals.
+ *
+ * NOTES:
+ * - At startup this changes to /proc, all the reads are then
+ *   relative to that.
+ *
+ * (C) Eero Tamminen <oak at welho dot com>
+ *
+ * Rewritten by Vladimir Oleynik (C) 2002 <dzo@simtreas.ru>
+ */
+
+/* Original code Copyrights */
+/*
+ * Copyright (c) 1992 Branko Lankester
+ * Copyright (c) 1992 Roger Binns
+ * Copyright (C) 1994-1996 Charles L. Blake.
+ * Copyright (C) 1992-1998 Michael K. Johnson
  * May be distributed under the conditions of the
  * GNU Library General Public License
  */
@@ -55,22 +75,12 @@ static int ntop;
 
 static int pid_sort (procps_status_t *P, procps_status_t *Q)
 {
-    int p = P->pid;
-    int q = Q->pid;
-
-    if( p < q ) return -1;
-    if( p > q ) return  1;
-    return 0;
+    return (Q->pid - P->pid);
 }
 
 static int mem_sort (procps_status_t *P, procps_status_t *Q)
 {
-    long p = P->rss;
-    long q = Q->rss;
-
-    if( p > q ) return -1;
-    if( p < q ) return  1;
-    return 0;
+    return (int)(Q->rss - P->rss);
 }
 
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
@@ -80,24 +90,12 @@ static cmp_t sort_function[sort_depth];
 
 static int pcpu_sort (procps_status_t *P, procps_status_t *Q)
 {
-    int p = P->pcpu;
-    int q = Q->pcpu;
-
-    if( p > q ) return -1;
-    if( p < q ) return  1;
-    return 0;
+    return (Q->pcpu - P->pcpu);
 }
 
 static int time_sort (procps_status_t *P, procps_status_t *Q)
 {
-    long p = P->stime;
-    long q = Q->stime;
-
-    p += P->utime;
-    q += Q->utime;
-    if( p > q ) return -1;
-    if( p < q ) return  1;
-    return 0;
+    return (int)((Q->stime + Q->utime) - (P->stime + P->utime));
 }
 
 int mult_lvl_cmp(void* a, void* b) {
