@@ -548,15 +548,20 @@ int tftp_main(int argc, char **argv)
 	if ((cmd == 0) || (optind == argc)) {
 		show_usage();
 	}
-	if(cmd == tftp_cmd_get)
+	if(cmd == tftp_cmd_get) {
 	    if(localfile == NULL)
 		localfile = remotefile;
-
+	    if(localfile && strcmp(localfile, "-") == 0) {
+		fd = fileno(stdout);
+	    }
+	}
 	if(cmd == tftp_cmd_put)
 	    if(remotefile == NULL)
 		remotefile = localfile;
 
-	fd = open(localfile, flags, 0644);
+	if (fd==-1) {
+	    fd = open(localfile, flags, 0644);
+	}
 	if (fd < 0) {
 		perror_msg_and_die("local file");
 	}
@@ -577,7 +582,9 @@ int tftp_main(int argc, char **argv)
 	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	close(fd);
+	if (fd!=fileno(stdout)) {
+	    close(fd);
+	}
 #endif
 	return(result);
 }
