@@ -117,7 +117,7 @@ static VALUE *str_value (char *s)
 
 	v = xmalloc (sizeof(VALUE));
 	v->type = string;
-	v->u.s = strdup (s);
+	v->u.s = bb_xstrdup (s);
 	return v;
 }
 
