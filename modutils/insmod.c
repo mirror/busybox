@@ -233,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.85 2002/06/18 05:16:25 andersen Exp $"
+#ident "$Id: insmod.c,v 1.86 2002/06/22 17:15:42 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.85 2002/06/18 05:16:25 andersen Exp $"
+#ident "$Id: insmod.c,v 1.86 2002/06/22 17:15:42 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -738,7 +738,7 @@ static int n_ext_modules;
 static int n_ext_modules_used;
 extern int delete_module(const char *);
 
-static char m_filename[FILENAME_MAX];
+static char *m_filename;
 static char m_fullName[FILENAME_MAX];
 
 
@@ -759,7 +759,7 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 		if (strcmp(tmp, fullname) == 0) {
 			free(tmp1);
 			/* Stop searching if we find a match */
-			safe_strncpy(m_filename, filename, sizeof(m_filename));
+			m_filename = xstrdup(filename);
 			return (TRUE);
 		}
 		free(tmp1);
@@ -3429,10 +3429,9 @@ extern int insmod_main( int argc, char **argv)
 	char *tmp, *tmp1;
 	unsigned long m_size;
 	ElfW(Addr) m_addr;
-	FILE *fp;
 	struct obj_file *f;
 	struct stat st;
-	char m_name[FILENAME_MAX] = "\0";
+	char *m_name = 0;
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
@@ -3440,6 +3439,11 @@ extern int insmod_main( int argc, char **argv)
 	char m_strversion[STRVERSIONLEN];
 	int m_version;
 	int m_crcs;
+#endif
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	FILE *fp = 0;
+#else
+	FILE *fp;
 #endif
 
 	/* Parse any options */
@@ -3464,7 +3468,9 @@ extern int insmod_main( int argc, char **argv)
 				flag_export = 0;
 				break;
 			case 'o':			/* name the output module */
-				safe_strncpy(m_name, optarg, sizeof(m_name));
+				if(m_name)  /* Hmmm, duplicate "-o name". */
+					free(m_name);
+				m_name = xstrdup(optarg);
 				break;
 			case 'L':			/* Stub warning */
 				/* This is needed for compatibility with modprobe.
@@ -3490,22 +3496,17 @@ extern int insmod_main( int argc, char **argv)
 		len-=2;
 		tmp[len] = '\0';
 	}
-	/* Make sure there is space for the terminal NULL */
-	len += 1;
 
-	if (len >= sizeof(m_fullName)) {
-		len = sizeof(m_fullName);
-	}
-	safe_strncpy(m_fullName, tmp, len);
-	if (tmp1)
-		free(tmp1);
-	if (*m_name == '\0') {
-		safe_strncpy(m_name, m_fullName, sizeof(m_name));
-	}
-	len = strlen(m_fullName);
 	if (len > (sizeof(m_fullName)-3))
-		error_msg_and_die("%s: no module by that name found", m_fullName);
-	strcat(m_fullName, ".o");
+		error_msg_and_die("%s: module name too long", tmp);
+
+	strcat(strcpy(m_fullName, tmp), ".o");
+	if (!m_name) {
+		m_name = tmp;
+	} else {
+		free(tmp1);
+		tmp1 = 0;       /* flag for free(m_name) before exit() */
+	}
 
 	/* Get a filedesc for the module.  Check we we have a complete path */
 	if (stat(argv[optind], &st) < 0 || !S_ISREG(st.st_mode) ||
@@ -3531,7 +3532,7 @@ extern int insmod_main( int argc, char **argv)
 		}
 
 		/* Check if we have found anything yet */
-		if (m_filename[0] == '\0' || ((fp = fopen(m_filename, "r")) == NULL)) 
+		if (m_filename == 0 || ((fp = fopen(m_filename, "r")) == NULL))
 		{
 			char module_dir[FILENAME_MAX];
 			if (realpath (_PATH_MODULES, module_dir) == NULL)
@@ -3541,17 +3542,17 @@ extern int insmod_main( int argc, char **argv)
 			if (! recursive_action(module_dir, TRUE, FALSE, FALSE,
 						check_module_name_match, 0, m_fullName)) 
 			{
-				if (m_filename[0] == '\0'
+				if (m_filename == 0
 						|| ((fp = fopen(m_filename, "r")) == NULL)) 
 				{
 					error_msg("%s: no module by that name found", m_fullName);
-					return EXIT_FAILURE;
+					goto out;
 				}
 			} else
 				error_msg_and_die("%s: no module by that name found", m_fullName);
 		}
 	} else 
-		safe_strncpy(m_filename, argv[optind], sizeof(m_filename));
+		m_filename = xstrdup(argv[optind]);
 
 	printf("Using %s\n", m_filename);
 
@@ -3668,7 +3669,7 @@ extern int insmod_main( int argc, char **argv)
 
 
 	m_addr = create_module(m_name, m_size);
-	if (m_addr==-1) switch (errno) {
+	if (m_addr == -1) switch (errno) {
 	case EEXIST:
 		error_msg("A module named %s already exists", m_name);
 		goto out;
@@ -3708,6 +3709,15 @@ extern int insmod_main( int argc, char **argv)
 	exit_status = EXIT_SUCCESS;
 
 out:
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	if(fp)
 	fclose(fp);
+	if(tmp1) {
+		free(tmp1);
+	} else {
+		free(m_name);
+	}
+	free(m_filename);
+#endif
 	return(exit_status);
 }
