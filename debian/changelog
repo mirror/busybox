@@ -1,3 +1,11 @@
+busybox (0.51-1) unstable; urgency=low
+
+  * Force USE_SYSTEM_PWD_GRP=false, so busybox bypasses
+    the glibc NSS libraries. (closes: #93362)
+  * Removed irrelevant cruft from the bottem of debian/changelog
+
+ -- Erik Andersen <andersee@debian.org>  Mon,  9 Apr 2001 12:59:23 -0600
+
 busybox (0.50-1) unstable; urgency=low
 
   * Tons on improvements all around -- See changelog for details.
@@ -50,7 +58,3 @@ busybox (0.45-1) unstable; urgency=low
 
  -- Erik Andersen <andersee@debian.org>  Tue, 27 Jun 2000 12:26:41 -0600
 
-Local variables:
-mode: debian-changelog
-add-log-mailing-address: "andersee@debian.org"
-End:
