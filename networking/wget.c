@@ -639,7 +639,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 	
 	if (s1) {
 		if (!s2) s2="";
-		fprintf(fp, "%s%s\n", s1, s2);
+		fprintf(fp, "%s%s\r\n", s1, s2);
 		fflush(fp);
 	}
 	
@@ -824,7 +824,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.51 2002/07/12 00:04:46 sandman Exp $
+ *	$Id: wget.c,v 1.52 2003/03/11 18:03:39 andersen Exp $
  */
 
 
