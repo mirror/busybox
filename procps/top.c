@@ -409,17 +409,15 @@ static void display_status(int count, int col)
 			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
 		else
 			sprintf(rss_str_buf, "%7ld", s->rss);
-		printf(
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
-			"%5d %-8s %s  %s %5d %2d.%d %2u.%u ",
-#else
-			"%5d %-8s %s  %s %5d %2u.%u ",
-#endif
+		printf("%5d %-8s %s  %s %5d %2d.%d %2u.%u ",
 			s->pid, s->user, s->state, rss_str_buf, s->ppid,
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
-			s->pcpu/10, s->pcpu%10,
-#endif
+			s->pcpu/10, s->pcpu%10, pmem/10, pmem%10);
+#else
+		printf("%5d %-8s %s  %s %5d %2u.%u ",
+			s->pid, s->user, s->state, rss_str_buf, s->ppid,
 			pmem/10, pmem%10);
+#endif
 			if(strlen(namecmd) > col)
 				namecmd[col] = 0;
 			printf("%s\n", namecmd);
