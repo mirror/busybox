@@ -19,6 +19,8 @@ $convertme = 'convertme.pl';
 $convert = 0;
 %converted = ();
 
+# if no files were specified, print usage
+die "usage: $0 file.c | file.h\n" if scalar(@ARGV) == 0;
 
 # prepare the "convert me" file
 open(CM, ">$convertme") or die "convertme.pl $!";
@@ -29,7 +31,7 @@ while (<>) {
 
 	# if the line says "getopt" in it anywhere, we don't want to muck with it
 	# because option lists tend to include strings like "cxtzvOf:" which get
-	# matched by the javaStyle / Hungarian and PascalStyle regexps below
+	# matched by the "check for mixed case" regexps below
 	next if /getopt/;
 
 	# tokenize the string into just the variables
@@ -44,6 +46,9 @@ while (<>) {
 
 		# this checks for PascalStyle
 		$convert++ if ($var =~ /^[A-Z][a-z]+[A-Z][a-z]+/);
+
+		# if we want to add more checks, we can add 'em here, but the above
+		# checks catch "just enough" and not too much, so prolly not.
 
 		if ($convert) {
 			$convert = 0;
@@ -74,3 +79,6 @@ while (<>) {
 close(CM);
 chmod 0755, $convertme;
 
+# print a helpful help message
+print "Done. Scheduled name changes are in $convertme.\n";
+print "Please review/modify it and then type ./$convertme to do the search & replace.\n";
