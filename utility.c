@@ -217,10 +217,12 @@ copyFile( const char *srcName, const char *destName,
     if (setModes == TRUE) {
 	//fprintf(stderr, "Setting permissions for %s\n", destName);
 	chmod(destName, srcStatBuf.st_mode);
-	if (followLinks == TRUE)
-	    chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-	else
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+	if (followLinks == FALSE)
 	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	else
+#endif
+	    chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
 
 	times.actime = srcStatBuf.st_atime;
 	times.modtime = srcStatBuf.st_mtime;

@@ -1877,7 +1877,11 @@ int gzip_main(int argc, char ** argv)
 
 
 	/* Open output fille */
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 	outFileNum=open( ofname, O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW);
+#else
+	outFileNum=open( ofname, O_RDWR|O_CREAT|O_EXCL);
+#endif
 	if (outFileNum < 0) {
 	    perror(ofname);
 	    do_exit(WARNING);

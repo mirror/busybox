@@ -44,9 +44,6 @@ static int	du_depth = 0;
 static Display	*print;
 
 static void
-print_null(size_t size, char *filename) { }
-
-static void
 print_normal(size_t size, char *filename)
 {
     fprintf(stdout, "%-7d %s\n", (size >> 1), filename);
@@ -143,4 +140,4 @@ du_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: du.c,v 1.7 1999/12/16 21:16:47 beppu Exp $ */
+/* $Id: du.c,v 1.8 1999/12/17 18:44:15 erik Exp $ */

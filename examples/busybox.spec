@@ -1,5 +1,5 @@
 Name: busybox
-Version: 0.39
+Version: 0.40
 Release: 1
 Group: System/Utilities
 Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.

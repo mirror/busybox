@@ -32,8 +32,13 @@
 #include <ctype.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
+#include <linux/version.h>
 
 #define PERROR(ctx)   do { perror(ctx); exit(1); } while(0)
+
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+#endif
 
 #define DEFAULTFBDEV  "/dev/fb0"
 #define DEFAULTFBMODE "/etc/fb.modes"
@@ -185,10 +190,16 @@ static void showmode(struct fb_var_screeninfo *v)
 #endif
     printf("\tgeometry %u %u %u %u %u\n", v->xres, v->yres, 
            v->xres_virtual, v->yres_virtual, v->bits_per_pixel);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
     printf("\ttimings %u %u %u %u %u %u %u\n", v->pixclock, v->left_margin, 
            v->right_margin, v->upper_margin, v->lower_margin, v->hsync_len,
   	   v->vsync_len);
     printf("\taccel %s\n", (v->accel_flags > 0 ? "true" : "false"));
+#else
+    printf("\ttimings %lu %lu %lu %lu %lu %lu %lu\n", v->pixclock, v->left_margin, 
+           v->right_margin, v->upper_margin, v->lower_margin, v->hsync_len,
+  	   v->vsync_len);
+#endif
     printf("\trgba %u/%u,%u/%u,%u/%u,%u/%u\n", v->red.length, v->red.offset,
            v->green.length, v->green.offset, v->blue.length, v->blue.offset,
 	   v->transp.length, v->transp.offset);
@@ -215,7 +226,6 @@ extern int fbset_main(int argc, char **argv)
 #endif
 {
     struct fb_var_screeninfo var, varset;
-    struct fb_fix_screeninfo fix;
     int fh, i;    
     char *fbdev = DEFAULTFBDEV;
     char *modefile = DEFAULTFBMODE;

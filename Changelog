@@ -1,10 +1,12 @@
 0.40
 	* Added the -s option to du -beppu
 	* Fixed an embarrasing segfault in head	-beppu
+	* Fixed an bug in syslogd causing it to stop logging after 20 minutes. -erik
 	* New Apps: lsmod, rmmod -erik
 	* New Apps: fbset contributed by Randolph Chung <tausq@debian.org>.
-	* Fixed an bug in syslogd causing it to stop logging after 20 minutes. -erik
 	* Fixed the embarrasing failure of the -p opition in the logger app. -erik
+	* Re-worked the whole source tree a bit so it will compile under glibc 2.0.7 
+	    with the 2.0.x Linux kernel.
 
 	-Erik Andersen
 

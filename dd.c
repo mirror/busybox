@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#if (__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 1)
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 #include <inttypes.h>
 #else
 typedef unsigned long long int uintmax_t;

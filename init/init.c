@@ -41,12 +41,17 @@
 #include <linux/serial.h>	/* for serial_struct */
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
+#include <linux/version.h>
 #ifdef BB_SYSLOGD
 #include <sys/syslog.h>
 #endif
 
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
+#endif
+
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 
 
@@ -418,9 +423,11 @@ static void halt_signal(int sig)
 	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
     sync();
 #ifndef DEBUG_INIT
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
     if (sig == SIGUSR2)
 	reboot(RB_POWER_OFF);
     else
+#endif
 	reboot(RB_HALT_SYSTEM);
 #endif
     exit(0);

@@ -27,6 +27,7 @@
 #include "internal.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
