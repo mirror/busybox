@@ -218,7 +218,7 @@
 	"\t-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
 	"\t-d num\tdebug level\n" \
 	"\t-l num\tlog level (8 - default)\n" \
-	"\t-S\tlog to syslod (defualt)\n" \
+	"\t-S\tlog to syslod (default)\n" \
 	"\t-L file\tlog to file\n" \
 	"\t-f\trun in fordeground\n" \
 	"\t-b\trun in background (default)\n" \
