@@ -204,7 +204,7 @@ extern int tar_main(int argc, char **argv)
 					break;
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
-					if (strcmp(*argv, "-exclude")==0) {
+					if (strcmp(*argv, "exclude")==0) {
 						if (--argc == 0) {
 							fatalError( "Option requires an argument: No file specified\n");
 						}
