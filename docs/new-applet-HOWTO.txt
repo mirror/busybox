@@ -6,7 +6,7 @@ This document details the steps you must take to add a new applet to BusyBox.
 Credits:
 Matt Kraai - initial writeup
 Mark Whitley - the remix
-
+Thomas Lundquist - Added stuff for the new directory layout.
 
 Initial Write
 -------------
@@ -81,11 +81,25 @@ program that could be useful in another program, consider putting them in
 libbb.
 
 
+Placement / Directory
+---------------------
+
+Find the appropriate directory for your new applet.
+
+Add the applet to the applet directory Makefile:
+
+obj-$(CONFIG_MU)               += mu.o
+
+Add the applet to the applet directory config.in:
+
+bool 'mu'          CONFIG_MU
+
+
 Usage String(s)
 ---------------
 
-Next, add usage information for you applet to usage.h. This should look like
-the following:
+Next, add usage information for you applet to include/usage.h. 
+This should look like the following:
 
 	#define mu_trivial_usage \
 		"-[abcde] FILES"
@@ -104,9 +118,9 @@ currently exist in usage.h.)
 Header Files
 ------------
 
-Next, add an entry to applets.h.  Be *sure* to keep the list in alphabetical
-order, or else it will break the binary-search lookup algorithm in busybox.c
-and the Gods of BusyBox smite you. Yea, verily:
+Next, add an entry to include/applets.h.  Be *sure* to keep the list 
+in alphabetical order, or else it will break the binary-search lookup 
+algorithm in busybox.c and the Gods of BusyBox smite you. Yea, verily:
 
 	/* all programs above here are alphabetically "less than" 'mu' */
 	#ifdef CONFIG_MU
@@ -125,6 +139,8 @@ Documentation
 
 If you're feeling especially nice, you should also document your applet in the
 docs directory (but nobody ever does that).
+
+Adding some text to docs/Configure.help is a nice start.
 
 
 The Grand Announcement
