@@ -13,9 +13,11 @@ bool 'modprobe'	    CONFIG_MODPROBE
 bool 'rmmod'	    CONFIG_RMMOD
 
 if [ "$CONFIG_INSMOD" = "y" ]; then
-    bool 'Support insmod/lsmod/rmmod for post 2.1 kernels'     CONFIG_FEATURE_NEW_MODULE_INTERFACE
-    bool 'Support insmod/lsmod/rmmod for pre  2.1 kernels'     CONFIG_FEATURE_OLD_MODULE_INTERFACE
+    comment 'Module support options'
+    bool 'Support for new (post 2.1) kernels'			CONFIG_FEATURE_NEW_MODULE_INTERFACE
+    bool 'Support for older (pre 2.1) Linux kernels'		CONFIG_FEATURE_OLD_MODULE_INTERFACE
     bool 'Support module version checking'			CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+    bool 'Support image in kernel memory optimization (uClinux only)'		CONFIG_FEATURE_INSMOD_LOADINKMEM
 fi
 
 endmenu

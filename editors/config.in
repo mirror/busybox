@@ -8,5 +8,17 @@ comment 'Editors'
 
 bool 'sed'	    CONFIG_SED
 bool 'vi'	    CONFIG_VI
+if [ "$CONFIG_VI" = "y" ]; then
+    bool '  Enable ":" colon commands (no "ex" mode)'	CONFIG_FEATURE_VI_COLON
+    bool '  Enable yank/put commands and mark cmds'	CONFIG_FEATURE_VI_YANKMARK
+    bool '  Enable search and replace cmds'		CONFIG_FEATURE_VI_SEARCH
+    bool '  Catch signals'				CONFIG_FEATURE_VI_USE_SIGNALS
+    bool '  Remember previous cmd and "." cmd'		CONFIG_FEATURE_VI_DOT_CMD
+    bool '  Enable -R option and "view" mode'		CONFIG_FEATURE_VI_READONLY
+    bool '  Enable set-able options, ai ic showmatch'	CONFIG_FEATURE_VI_SETOPT
+    bool '  Support for :set'				CONFIG_FEATURE_VI_SET
+    bool '  Handle window resize'			CONFIG_FEATURE_VI_WIN_RESIZE
+    bool '  Optimize cursor movement'			CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
+fi
 endmenu
 

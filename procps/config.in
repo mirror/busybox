@@ -9,11 +9,14 @@ comment 'Process Utilities'
 bool 'free'	    CONFIG_FREE
 bool 'kill'	    CONFIG_KILL
 bool 'killall'      CONFIG_KILLALL
-if [ "$CONFIG_KILLALL" = "y" ] ; then
-	define_bool CONFIG_KILL	y
+if [ "$CONFIG_KILLALL" = "y" -a "$CONFIG_KILL" = "n" ] ; then
+    define_bool CONFIG_KILL	y
 fi
 bool 'pidof'	    CONFIG_PIDOF
 bool 'ps'	    CONFIG_PS
+if [ "$CONFIG_PS" = "y" ] ; then
+    bool '  Use devps instead of /proc (needs a patched kernel)'	CONFIG_FEATURE_USE_DEVPS_PATCH
+fi
 bool 'renice'	    CONFIG_RENICE
 bool 'uptime'	    CONFIG_UPTIME
 endmenu

@@ -9,20 +9,47 @@ comment 'Linux System Utilities'
 
 bool 'dmesg'		    CONFIG_DMESG
 bool 'fbset'		    CONFIG_FBSET
+if [ "$CONFIG_FBSET" = "y" ]; then
+    bool '  Turn on extra fbset options'	CONFIG_FEATURE_FBSET_FANCY
+    bool '  Turn on fbset readmode support'	CONFIG_FEATURE_FBSET_READMODE
+fi
 bool 'fdflush'		    CONFIG_FDFLUSH
 bool 'freeramdisk'	    CONFIG_FREERAMDISK
 bool 'fsck_minix'	    CONFIG_FSCK_MINIX
+bool 'mkfs_minix'	    CONFIG_MKFS_MINIX
+if [ "$CONFIG_FSCK_MINIX" = "y" -o "$CONFIG_MKFS_MINIX" = "y" ]; then
+    comment '  Minix filesystem support'
+    bool '    Support Minix fs v2 (fsck_minix/mkfs_minix)'	CONFIG_FEATURE_MINIX2
+fi
 bool 'getopt'		    CONFIG_GETOPT
 bool 'hexdump'  	    CONFIG_HEXDUMP  
-bool 'mkfs_minix'	    CONFIG_MKFS_MINIX
 bool 'mkswap'		    CONFIG_MKSWAP
 bool 'more'		    CONFIG_MORE
+if [ "$CONFIG_MORE" = "y" ]; then
+    bool '  Use termios to manipulate the screen'		CONFIG_FEATURE_USE_TERMIOS
+fi 
+if [ "$CONFIG_LS" = "y" -o "$CONFIG_MORE" = "y"]; then
+    comment '  Common options for ls and more'
+    bool    '   Calculate terminal & column widths'	CONFIG_FEATURE_AUTOWIDTH
+fi
 bool 'mount'		    CONFIG_MOUNT
-bool 'nfsmount'		    CONFIG_NFSMOUNT
+if [ "$CONFIG_MOUNT" = "y" ]; then
+    bool '  Support mounting nfs file systems'		    	CONFIG_NFSMOUNT
+    bool '  Use devmtab instead of /proc (needs a patched kernel)'	CONFIG_FEATURE_USE_DEVPS_PATCH
+fi
+fi	
+bool 'umount'		    CONFIG_UMOUNT
+if [ "$CONFIG_UMOUNT" = "y" ]; then
+    bool '  Support forced filesystem unmounting'		CONFIG_FEATURE_MOUNT_FORCE
+fi
+if [ "$CONFIG_MOUNT" = "y" -o "$CONFIG_UMOUNT" = "y" ]; then
+    comment 'Common options for mount/umount'
+    bool '  Support for loop devices'				CONFIG_FEATURE_MOUNT_LOOP
+    bool '  Support for a real /etc/mtab (instead of /proc/mounts)'	CONFIG_FEATURE_MTAB_SUPPORT
+fi
 bool 'pivot_root'	    CONFIG_PIVOT_ROOT
 bool 'rdate'		    CONFIG_RDATE
 bool 'swaponoff'	    CONFIG_SWAPONOFF
-bool 'umount'		    CONFIG_UMOUNT
 
 endmenu
 

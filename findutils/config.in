@@ -7,9 +7,15 @@ mainmenu_option next_comment
 comment 'Finding Utilities'
 
 bool 'find'	    CONFIG_FIND
+if [ "$CONFIG_FIND" = "y" ] ; then
+    bool '  Enable modified time matching (-mtime) option' CONFIG_FEATURE_FIND_MTIME
+    bool '  Enable permissions matching (-perm) option' CONFIG_FEATURE_FIND_PERM
+    bool '  Enable filetype matching (-type) option' CONFIG_FEATURE_FIND_TYPE
+fi
 bool 'grep'	    CONFIG_GREP
 if [ "$CONFIG_GREP" = "y" ] ; then
-	bool ' egrep alias' CONFIG_FEATURE_GREP_EGREP_ALIAS
+    bool '  Support extended regular expressions (egrep & grep -E)'		CONFIG_FEATURE_GREP_EGREP_ALIAS
+    bool '  Enable before and after context flags (-A, -B and -C)' 	CONFIG_FEATURE_GREP_CONTEXT
 fi
 bool 'which'	    CONFIG_WHICH
 bool 'xargs'	    CONFIG_XARGS
