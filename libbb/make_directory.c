@@ -41,7 +41,7 @@
 int make_directory (char *path, long mode, int flags)
 {
 	int ret;
-
+	
 	/* Calling apps probably should use 0777 instead of -1
 	 * then we dont need this condition
 	 */
@@ -50,7 +50,7 @@ int make_directory (char *path, long mode, int flags)
 	}
 	if (flags == FILEUTILS_RECUR) {
 		char *pp = strrchr(path, '/');
-		if (pp) {
+		if ((pp) && (pp != path)) {
 			*pp = '\0';
 			make_directory(path, mode, flags);
 			*pp = '/';
