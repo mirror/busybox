@@ -1070,9 +1070,9 @@ static void process_file(FILE * file)
 					}
 					pattern_space = xrealloc(pattern_space, pattern_space_size + hold_space_size);
 					if (pattern_space_size == 2) {
-						strcat(pattern_space, "\n");
-					} else {
 						strcpy(pattern_space, "\n");
+					} else {
+						strcat(pattern_space, "\n");
 					}
 					if (hold_space) {
 						strcat(pattern_space, hold_space);

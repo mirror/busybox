@@ -1,0 +1,13 @@
+busybox sed 'G'>output <<EOF
+a
+b
+c
+EOF
+cmp -s output - <<EOF
+a
+
+b
+
+c
+
+EOF
