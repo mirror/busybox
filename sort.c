@@ -71,7 +71,7 @@ int sort_main(int argc, char **argv)
 
 		while ((line = get_line_from_file(fp)) != NULL) {
 			lines = xrealloc(lines, sizeof(char *) * (nlines + 1));
-			line[strlen(line) - 1] = '\0';
+			chomp(line);
 			lines[nlines++] = line;
 		}
 	}
