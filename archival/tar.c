@@ -645,7 +645,9 @@ int tar_main(int argc, char **argv)
 			break;
 		case 'x':
 			ctx_flag |= CTX_EXTRACT;
-			tar_handle->action_data = data_extract_all;
+			if (tar_handle->action_data != data_extract_to_stdout) {
+				tar_handle->action_data = data_extract_all;
+			}
 			break;
 
 			/* These are optional */
