@@ -1,3 +1,23 @@
+busybox-cvs (0.60.99.cvs20030405-1) unstable; urgency=low
+
+  * new cvs version
+  * debian/control
+    - add busybox-cvs-net-udeb
+  * debian/rules
+    - arch depend debs
+    - new net-udeb
+  * debian/config*
+    - cleanup applet list
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 05 Apr 2003 11:44:50 +0200
+
+busybox-cvs (0.60.99.cvs20030221-1) unstable; urgency=low
+
+  * new cvs version
+  * enable new applets in udeb
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 21 Feb 2003 23:15:16 +0100
+
 busybox-cvs (0.60.99.cvs20030114-1) unstable; urgency=low
 
   * new cvs version

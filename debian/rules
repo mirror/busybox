@@ -6,8 +6,9 @@
 # This is the debhelper compatibility version to use.
 export DH_COMPAT=3
 
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
 VERSION = $(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
-ARCH = $(shell dpkg --print-architecture)
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
 	DODEBUG = true
@@ -15,38 +16,103 @@ endif
 ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 endif
 
-build-arch: build-arch-stamp
-build-arch-stamp:
+PACKAGE_PREFIX = busybox-cvs
+
+PACKAGES_DEB = $(PACKAGE_PREFIX) $(PACKAGE_PREFIX)-static
+PACKAGES_UDEB = $(PACKAGE_PREFIX)-udeb
+ifneq ($(wildcard ./debian/config-net-udeb-$(DEB_HOST_ARCH)),)
+PACKAGES_UDEB += $(PACKAGE_PREFIX)-net-udeb
+endif
+PACKAGES = $(PACKAGES_DEB) $(PACKAGES_UDEB)
+DEBHELPER_PACKAGES_DEB = $(patsubst %,-p%,$(PACKAGES_DEB))
+
+build-arch: build-arch-deb build-arch-static build-arch-udeb build-arch-net-udeb build-arch-doc
+
+build-arch-deb: build-arch-deb-stamp
+build-arch-deb-stamp:
 	$(MAKE) clean
+
+ifeq ($(wildcard ./debian/config-deb-$(DEB_HOST_ARCH)),)
 	cp ./debian/config-deb .config
+else
+	cp ./debian/config-deb-$(DEB_HOST_ARCH) .config
+endif
+
 	$(MAKE) dep
 	$(MAKE) DODEBUG=$(DODEBUG)
-	install busybox busybox-deb
 
+	install -d install-$(PACKAGE_PREFIX)/bin
+	install busybox install-$(PACKAGE_PREFIX)/bin/busybox
+
+	touch $@
+
+build-arch-static: build-arch-static-stamp
+build-arch-static-stamp:
 	$(MAKE) clean
+
+ifeq ($(wildcard ./debian/config-static-$(DEB_HOST_ARCH)),)
 	cp ./debian/config-static .config
+else
+	cp ./debian/config-static-$(DEB_HOST_ARCH) .config
+endif
+
 	$(MAKE) dep
 	$(MAKE) DODEBUG=$(DODEBUG)
-	install busybox busybox-static
 
+	install -d install-$(PACKAGE_PREFIX)-static/bin
+	install busybox install-$(PACKAGE_PREFIX)-static/bin/busybox
+
+	touch $@
+
+build-arch-udeb: build-arch-udeb-stamp
+build-arch-udeb-stamp:
 	$(MAKE) clean
+
+ifeq ($(wildcard ./debian/config-udeb-$(DEB_HOST_ARCH)),)
 	cp ./debian/config-udeb .config
+else
+	cp ./debian/config-udeb-$(DEB_HOST_ARCH) .config
+endif
+
 	$(MAKE) dep
 	$(MAKE) DODEBUG=$(DODEBUG)
 
+	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-udeb install
+
+	touch $@
+
+build-arch-net-udeb: build-arch-net-udeb-stamp
+build-arch-net-udeb-stamp:
+ifneq ($(wildcard ./debian/config-net-udeb-$(DEB_HOST_ARCH)),)
+	$(MAKE) clean
+
+	cp ./debian/config-net-udeb-$(DEB_HOST_ARCH) .config
+
+	$(MAKE) dep
+	$(MAKE) DODEBUG=$(DODEBUG)
+
+	$(MAKE) PREFIX=$(CURDIR)/install-$(PACKAGE_PREFIX)-net-udeb install
+endif
+
+	touch $@
+
+build-arch-doc: build-arch-doc-stamp
+build-arch-doc-stamp:
 	$(MAKE) docs/BusyBox.1
 
-	touch build-arch-stamp
+	cp docs/BusyBox.1 busybox.1
+
+	touch $@
 
 build: build-arch
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-arch-stamp build-indep-stamp debian/files~
+	rm -f build-*-stamp debian/files~
 
 	$(MAKE) distclean
-	-rm -f busybox-deb busybox-static busybox.1
+	-rm -rf busybox-deb busybox-static install* busybox.1
 
 	dh_clean
 
@@ -56,20 +122,23 @@ install: build-arch
 	dh_clean -k
 	dh_installdirs
 
-	install busybox-deb $(CURDIR)/debian/busybox-cvs/bin/busybox
-	install busybox-static $(CURDIR)/debian/busybox-cvs-static/bin/busybox
-	$(MAKE) PREFIX=$(CURDIR)/debian/busybox-cvs-udeb install
-	cp docs/BusyBox.1 busybox.1
+	for i in $(PACKAGES); do \
+	( \
+		cd install-$$i; \
+		find -type d -exec install -d $(CURDIR)/debian/$$i/{} \;; \
+		find \( -type f -o -type l \) -exec cp -a {} $(CURDIR)/debian/$$i/{} \;; \
+	); \
+	done
 
-	install -m644 debian/busybox-cvs-static.override \
-		debian/busybox-cvs-static/usr/share/lintian/overrides/busybox-cvs-static
+	install -m644 debian/$(PACKAGE_PREFIX)-static.override \
+		debian/$(PACKAGE_PREFIX)-static/usr/share/lintian/overrides/$(PACKAGE_PREFIX)-static
 
 # Build architecture-dependent files here.
 binary-arch: build-arch install
 	dh_testdir -a
 	dh_testroot -a
 #	dh_installdebconf -a
-	dh_installdocs -a -Nbusybox-cvs-udeb
+	dh_installdocs $(DEBHELPER_PACKAGES_DEB)
 #	dh_installexamples -a
 #	dh_installmenu -a
 #	dh_installlogrotate -a
@@ -78,10 +147,10 @@ binary-arch: build-arch install
 #	dh_installmime -a
 #	dh_installinit -a
 #	dh_installcron -a
-	dh_installman -a -Nbusybox-cvs-udeb
+	dh_installman $(DEBHELPER_PACKAGES_DEB)
 #	dh_installinfo -a
 #	dh_undocumented -a
-	dh_installchangelogs Changelog -a -Nbusybox-cvs-udeb
+	dh_installchangelogs Changelog $(DEBHELPER_PACKAGES_DEB)
 	dh_strip -a
 	dh_link -a
 	dh_compress -a
@@ -90,13 +159,15 @@ binary-arch: build-arch install
 	dh_installdeb -a
 #	dh_perl -a
 	dh_shlibdeps -a
-	dh_gencontrol -a -Nbusybox-cvs-udeb
-	dh_md5sums -a -Nbusybox-cvs-udeb
-	dh_builddeb -a -Nbusybox-cvs-udeb
+	dh_gencontrol $(DEBHELPER_PACKAGES_DEB)
+	dh_md5sums $(DEBHELPER_PACKAGES_DEB)
+	dh_builddeb $(DEBHELPER_PACKAGES_DEB)
 
-	dh_gencontrol -pbusybox-cvs-udeb -- -fdebian/files~
-	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer extra
-	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb
+	$(foreach PACKAGE, $(PACKAGES_UDEB), \
+	dh_gencontrol -p$(PACKAGE) -- -fdebian/files~; \
+	dpkg-distaddfile $(PACKAGE)_$(VERSION)_$(DEB_HOST_ARCH).udeb debian-installer extra; \
+	dh_builddeb -p$(PACKAGE) --filename=$(PACKAGE)_$(VERSION)_$(DEB_HOST_ARCH).udeb; \
+	)
 
 binary: binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
