@@ -1,5 +1,7 @@
 0.48
 
+	* Glenn McGrath -- tar now supports uncompressing tar files,
+	    define BB_FEATURE_TAR_GZIP to use the -z option.
 	* Matt Kraai -- fix all usage of TRUE and FALSE so all apps now
 	    return EXIT_SUCCESS or EXIT_FAILURE to the system.
 	    Now TRUE and FALSE are set to the C standard where TRUE=1.

@@ -52,6 +52,11 @@
 #include <sys/sysmacros.h>
 #include <getopt.h>
 
+#ifdef BB_FEATURE_TAR_GZIP
+extern int unzip(int in, int out);
+extern int gunzip_init();
+#endif
+
 /* Tar file constants  */
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)
@@ -129,11 +134,9 @@ struct TarInfo
 typedef struct TarInfo TarInfo;
 
 /* Local procedures to restore files from a tar file.  */
-static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
+static int readTarFile(int tarFd, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** extractList,
 		char** excludeList);
-
-
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
@@ -141,17 +144,54 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		char** excludeList);
 #endif
 
+#ifdef BB_FEATURE_TAR_GZIP
+/* Signal handler for when child gzip process dies...  */
+void child_died()
+{
+	fflush(stdout);
+	fflush(stderr);
+	exit(EXIT_FAILURE);
+}
+
+static int tar_unzip_init(int tarFd)
+{
+	int child_pid;
+	static int unzip_pipe[2];
+	/* Cope if child dies... Otherwise we block forever in read()... */
+	signal(SIGCHLD, child_died);
+
+	if (pipe(unzip_pipe)!=0)
+		error_msg_and_die("pipe error\n");
+			
+	if ( (child_pid = fork()) == -1)
+		error_msg_and_die("fork failure\n");
+
+	if (child_pid==0) {
+		/* child process */
+		gunzip_init();
+		unzip(tarFd, unzip_pipe[1]);
+		exit(EXIT_SUCCESS);
+	}
+	else
+		/* return fd of uncompressed data to parent process */
+		return(unzip_pipe[0]);
+}
+#endif
+
 extern int tar_main(int argc, char **argv)
 {
 	char** excludeList=NULL;
 	char** extractList=NULL;
+	const char *tarName="-";
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
-        char *excludeFileName ="-";
-        FILE *fileList;
-        char file[256];
+	char *excludeFileName ="-";
+	FILE *fileList;
+	char file[256];
 #endif
-	const char *tarName="-";
+#if defined BB_FEATURE_TAR_GZIP
+	int unzipFlag    = FALSE;
+#endif
 	int listFlag     = FALSE;
 	int extractFlag  = FALSE;
 	int createFlag   = FALSE;
@@ -160,7 +200,6 @@ extern int tar_main(int argc, char **argv)
 	int status       = FALSE;
 	int firstOpt     = TRUE;
 	int stopIt;
-																		   
 
 	if (argc <= 1)
 		usage(tar_usage);
@@ -185,6 +224,11 @@ extern int tar_main(int argc, char **argv)
 						goto flagError;
 					listFlag = TRUE;
 					break;
+#ifdef BB_FEATURE_TAR_GZIP
+				case 'z':
+					unzipFlag = TRUE;
+					break;
+#endif
 				case 'v':
 					verboseFlag = TRUE;
 					break;
@@ -255,13 +299,31 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		error_msg_and_die( "This version of tar was not compiled with tar creation support.\n");
 #else
+#ifdef BB_FEATURE_TAR_GZIP
+		if (unzipFlag==TRUE)
+			error_msg_and_die("Creation of compressed not internally support by tar, pipe to busybox gunzip\n");
+#endif
 		status = writeTarFile(tarName, verboseFlag, argv, excludeList);
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
+		int tarFd;
 		if (*argv)
 			extractList = argv;
-		status = readTarFile(tarName, extractFlag, listFlag, tostdoutFlag,
+		/* Open the tar file for reading.  */
+		if (!strcmp(tarName, "-"))
+			tarFd = fileno(stdin);
+		else
+			tarFd = open(tarName, O_RDONLY);
+		if (tarFd < 0)
+			error_msg_and_die( "Error opening '%s': %s\n", tarName, strerror(errno));
+
+#ifdef BB_FEATURE_TAR_GZIP	
+		/* unzip tarFd in a seperate process */
+		if (unzipFlag == TRUE)
+			tarFd = tar_unzip_init(tarFd);
+#endif			
+		status = readTarFile(tarFd, extractFlag, listFlag, tostdoutFlag,
 					verboseFlag, extractList, excludeList);
 	}
 
@@ -521,26 +583,16 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
  * Read a tar file and extract or list the specified files within it.
  * If the list is empty than all files are extracted or listed.
  */
-static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
+extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** extractList,
 		char** excludeList)
 {
-	int status, tarFd=-1;
+	int status;
 	int errorFlag=FALSE;
 	int skipNextHeaderFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
 	char** tmpList;
-
-	/* Open the tar file for reading.  */
-	if (!strcmp(tarName, "-"))
-		tarFd = fileno(stdin);
-	else
-		tarFd = open(tarName, O_RDONLY);
-	if (tarFd < 0) {
-		error_msg( "Error opening '%s': %s\n", tarName, strerror(errno));
-		return ( FALSE);
-	}
 
 	/* Set the umask for this process so it doesn't 
 	 * screw up permission setting for us later. */
@@ -739,7 +791,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	close(tarFd);
 	if (status > 0) {
 		/* Bummer - we read a partial header */
-		error_msg( "Error reading '%s': %s\n", tarName, strerror(errno));
+		error_msg( "Error reading tar file: %s\n", strerror(errno));
 		return ( FALSE);
 	}
 	else if (errorFlag==TRUE) {

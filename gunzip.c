@@ -1084,7 +1084,7 @@ int inflate()
  *   the compressed data, from offsets inptr to insize-1 included.
  *   The magic header has already been checked. The output buffer is cleared.
  */
-int unzip(in, out)
+extern int unzip(in, out)
 int in, out;					/* input and output file descriptors */
 {
 	int ext_header = 0;				/* set if extended local header */
@@ -1179,7 +1179,7 @@ void clear_bufs(void)
 /* ===========================================================================
  * Initialize gunzip buffers and signals
  */
-static int gunzip_init()
+extern int gunzip_init()
 {
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {

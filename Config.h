@@ -225,6 +225,9 @@
 // Enable support for "--exclude" and "-X" for excluding files
 #define BB_FEATURE_TAR_EXCLUDE
 //
+// Enable support for tar -z option (currently only works for inflating)
+#define BB_FEATURE_TAR_GZIP 
+//
 //// Enable reverse sort
 #define BB_FEATURE_SORT_REVERSE
 //
@@ -319,6 +322,12 @@
 #endif
 //
 #ifdef BB_GZIP
+#ifndef BB_GUNZIP
+#define BB_GUNZIP
+#endif
+#endif
+//
+#ifdef BB_FEATURE_TAR_GZIP
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
 #endif
