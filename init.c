@@ -538,7 +538,3 @@ extern int init_main(int argc, char **argv)
 	sleep(1);
     }
 }
-
-#if defined FOO
-    #error Ack!
-#endif

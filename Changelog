@@ -11,6 +11,11 @@
 	* NFS support added to mount by Eric Delaunay.  It costs 10k when compiled
 	    in, but that is still a big win for those that use NFS.
 	* Made 'rm -f' be silent for non-existant files (thanks to Eric Delaunay).
+	* changed zcat.c to gunzip.c.  It now obeys the principle of least surprise 
+	    and acts as god intended gunzip and zcat to act.  They answer --help and
+	    obey the '-c' flag.
+	* Fixed a bug in mv which caused it to not move files when the destination
+	    was a directory name.
 
 	-Erik Andersen
 	

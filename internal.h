@@ -114,7 +114,7 @@ extern int tryopen_main(int argc, char** argv);
 extern int umount_main(int argc, char** argv);
 extern int update_main(int argc, char** argv);
 extern int uname_main(int argc, char** argv);
-extern int zcat_main(int argc, char** argv);
+extern int gunzip_main (int argc, char** argv);
 extern int gzip_main(int argc, char** argv);
 
 

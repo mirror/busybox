@@ -56,7 +56,7 @@ extern int mv_main(int argc, char **argv)
 	fprintf(stderr, "%s: not a directory\n", destName);
 	exit (FALSE);
     }
-
+    
     while (argc-- > 1) {
 	srcName = *(argv++);
 	skipName = strrchr(srcName, '/');
@@ -67,6 +67,11 @@ extern int mv_main(int argc, char **argv)
 	    strcat(newdestName, "/");
 	    if ( skipName != NULL)
 		strcat(newdestName, strstr(srcName, skipName));
+	    else
+		strcat(newdestName, srcName);
+	    fprintf(stderr, "srcName='%s'\n", srcName);
+	    fprintf(stderr, "skipName='%s'\n", skipName);
+	    fprintf(stderr, "newdestName='%s'\n", newdestName);
 	}
 	if (copyFile(srcName, newdestName, FALSE, FALSE)  == FALSE) {
 	    exit( FALSE);

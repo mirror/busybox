@@ -174,9 +174,9 @@ static const struct Applet applets[] = {
 #ifdef BB_UPDATE		//sbin
     {"update", update_main},
 #endif
-#ifdef BB_ZCAT			//bin
-    {"zcat", zcat_main},
-    {"gunzip", zcat_main},
+#ifdef BB_GUNZIP		//bin
+    {"zcat", gunzip_main},
+    {"gunzip", gunzip_main},
 #endif
 #ifdef BB_GZIP			//bin
     {"gzip", gzip_main},

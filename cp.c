@@ -54,6 +54,8 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 	strcat(newdestName, "/");
 	if ( skipName != NULL)
 	    strcat(newdestName, strstr(fileName, skipName));
+	else
+	    strcat(newdestName, srcName);
     }
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
 }

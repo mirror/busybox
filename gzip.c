@@ -1788,7 +1788,6 @@ int gzip_main(int argc, char ** argv)
 	    tostdout = 1;
 	}
 	while (*(++(*argv))) {
-	    fprintf(stderr, "**argv='%c'\n", **argv);
 	    switch (**argv) {
 	    case 'c':
 		tostdout = 1;

@@ -59,8 +59,8 @@
 #define BB_UMOUNT
 #define BB_UPDATE
 #define BB_UNAME
-#define BB_ZCAT
 #define BB_GZIP
+#define BB_GUNZIP
 // Don't turn BB_UTILITY off.  It contains support code 
 // that compiles to 0 if everything else if turned off.
 #define BB_UTILITY
