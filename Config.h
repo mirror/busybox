@@ -388,18 +388,6 @@
 	#undef BB_FEATURE_LINUXRC
 #endif
 //
-#ifdef BB_DPKG
-	#ifndef BB_DPKG_DEB
-		#define BB_TAR
-	#endif
-#endif
-//
-#ifdef BB_DPKG_DEB
-	#ifndef BB_TAR
-		#define BB_TAR
-	#endif 
-#endif
-//
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
 	#define BB_NFSMOUNT
 #endif
