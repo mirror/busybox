@@ -57,7 +57,7 @@ int dd_main(int argc, char **argv)
 	off_t skip = 0;
 	int sync_flag = FALSE;
 	int noerror = FALSE;
-	int trunc = TRUE;
+	int trunc_flag = TRUE;
 	int oflag;
 	int ifd;
 	int ofd;
@@ -83,7 +83,7 @@ int dd_main(int argc, char **argv)
 			buf = argv[i]+5;
 			while (1) {
 				if (strncmp("notrunc", buf, 7) == 0) {
-					trunc = FALSE;
+					trunc_flag = FALSE;
 					buf += 7;
 				} else if (strncmp("sync", buf, 4) == 0) {
 					sync_flag = TRUE;
@@ -115,7 +115,7 @@ int dd_main(int argc, char **argv)
 	if (outfile != NULL) {
 		oflag = O_WRONLY | O_CREAT;
 
-		if (!seek && trunc) {
+		if (!seek && trunc_flag) {
 			oflag |= O_TRUNC;
 		}
 
@@ -123,7 +123,7 @@ int dd_main(int argc, char **argv)
 			bb_perror_msg_and_die("%s", outfile);
 		}
 
-		if (seek && trunc) {
+		if (seek && trunc_flag) {
 			if (ftruncate(ofd, seek * bs) < 0) {
 				struct stat st;
 
