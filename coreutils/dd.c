@@ -29,10 +29,15 @@
 
 
 #include "internal.h"
+#include <features.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#if (__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 1)
 #include <inttypes.h>
+#else
+typedef unsigned long long int uintmax_t;
+#endif
 
 static const char dd_usage[] =
 "dd [if=name] [of=name] [bs=n] [count=n]\n\n"

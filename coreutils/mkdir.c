@@ -80,17 +80,21 @@ extern int mkdir_main(int argc, char **argv)
     while (argc > 0) {
 	int status;
 	struct stat statBuf;
-	status=stat(*argv, &statBuf);
+	char buf[NAME_MAX];
+
+	strcpy (buf, *argv);
+	status=stat(buf, &statBuf);
 	if (status != -1 && status != ENOENT ) {
-	    fprintf(stderr, "%s: File exists\n", *argv);
+	    fprintf(stderr, "%s: File exists\n", buf);
 	    exit( FALSE);
 	}
 	if (parentFlag == TRUE) {
-	    createPath(*argv, mode);
+	    strcat( buf, "/");
+	    createPath(buf, mode);
 	}
 	else { 
-	    if (mkdir (*argv, mode) != 0) {
-		perror(*argv);
+	    if (mkdir (buf, mode) != 0) {
+		perror(buf);
 		exit( FALSE);
 	    }
 	}
