@@ -119,3 +119,7 @@ Charles P. Wright <cpwright@villagenet.com>
 
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
+
+Tito Ragusa <farmatito@tiscali.it>
+	devfsd and size optimizations in strings, openvt and deallocvt.
+

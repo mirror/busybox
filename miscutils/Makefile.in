@@ -28,6 +28,7 @@ MISCUTILS-$(CONFIG_ADJTIMEX)		+= adjtimex.o
 MISCUTILS-$(CONFIG_CROND)               += crond.o
 MISCUTILS-$(CONFIG_CRONTAB)             += crontab.o
 MISCUTILS-$(CONFIG_DC)			+= dc.o
+MISCUTILS-$(CONFIG_DEVFSD)		+= devfsd.o
 MISCUTILS-$(CONFIG_HDPARM)		+= hdparm.o
 MISCUTILS-$(CONFIG_LAST)		+= last.o
 MISCUTILS-$(CONFIG_MAKEDEVS)		+= makedevs.o

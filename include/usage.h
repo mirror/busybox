@@ -336,6 +336,18 @@
 #define deluser_full_usage \
 	 "Deletes user USER from the system"
 
+#define devfsd_trivial_usage \
+	"mntpnt [-v] [-fg] [-np]"
+#define devfsd_full_usage \
+	"Optional daemon for managing devfs (the Linux Device Filesystem).\n" \
+	"\nOptions:\n" \
+	"\tmntpnt\tThe mount point where devfs is mounted.\n\n" \
+	"\t-v\tPrint the protocol version numbers for devfsd\n" \
+	"\t\tand the kernel-side protocol version and exits.\n" \
+	"\t-fg\tRun the daemon in the foreground.\n\n" \
+	"\t-np\tExit  after  parsing  the configuration file and processing syn-\n" \
+	"\t\tthetic REGISTER events. Do not poll for events." 
+
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
   #define USAGE_HUMAN_READABLE(a) a
   #define USAGE_NOT_HUMAN_READABLE(a)

@@ -40,6 +40,27 @@ config CONFIG_DC
 	  Dc is a reverse-polish desk calculator which supports unlimited
 	  precision arithmetic.
 
+config CONFIG_DEVFSD
+	bool "devfsd"
+	default n
+	help
+	  Provides compatibility with old device names on a devfs systems.
+	  You should set it to true if you have devfs enabled.
+
+config CONFIG_DEVFSD_VERBOSE
+	bool "Increases logging to stderr and syslog"
+	default n
+	depends on CONFIG_DEVFSD
+	help
+	  Increases logging to stderr and syslog.
+
+config CONFIG_DEVFSD_DEBUG
+	bool "Adds function names to program output"
+	default n
+	depends on CONFIG_DEVFSD
+	help
+	  Adds function names to program output.
+
 config CONFIG_LAST
 	bool "last"
 	default n

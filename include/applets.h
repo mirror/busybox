@@ -142,6 +142,9 @@
 #ifdef CONFIG_DELUSER
 	APPLET(deluser, deluser_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_DEVFSD
+	APPLET(devfsd, devfsd_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_DF
 	APPLET(df, df_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
