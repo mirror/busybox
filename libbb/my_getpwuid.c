@@ -33,30 +33,6 @@
 
 
 
-/* returns a uid given a username */
-long my_getpwnam(const char *name)
-{
-	struct passwd *myuser;
-
-	myuser  = getpwnam(name);
-	if (myuser==NULL)
-		error_msg_and_die("unknown user name: %s", name);
-
-	return myuser->pw_uid;
-}
-
-/* returns a gid given a group name */
-long my_getgrnam(const char *name)
-{
-	struct group *mygroup;
-
-	mygroup  = getgrnam(name);
-	if (mygroup==NULL)
-		error_msg_and_die("unknown group name: %s", name);
-
-	return (mygroup->gr_gid);
-}
-
 /* gets a username given a uid */
 void my_getpwuid(char *name, long uid)
 {
@@ -68,36 +44,6 @@ void my_getpwuid(char *name, long uid)
 	else
 		strcpy(name, myuser->pw_name);
 }
-
-/* gets a groupname given a gid */
-void my_getgrgid(char *group, long gid)
-{
-	struct group *mygroup;
-
-	mygroup  = getgrgid(gid);
-	if (mygroup==NULL)
-		sprintf(group, "%-8ld ", (long)gid);
-	else
-		strcpy(group, mygroup->gr_name);
-}
-
-/* gets a gid given a user name */
-long my_getpwnamegid(const char *name)
-{
-	struct group *mygroup;
-	struct passwd *myuser;
-
-	myuser=getpwnam(name);
-	if (myuser==NULL)
-		error_msg_and_die("unknown user name: %s", name);
-
-	mygroup  = getgrgid(myuser->pw_gid);
-	if (mygroup==NULL)
-		error_msg_and_die("unknown gid %ld", (long)myuser->pw_gid);
-
-	return mygroup->gr_gid;
-}
-
 
 /* END CODE */
 /*
