@@ -31,6 +31,12 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------------------
 
+Compile with debugging on, run 'nm --size-sort ./busybox'
+and then start with the biggest things and make them smaller...
+
+
+-----------------------
+
 
 busybox.defs.h is too big and hard to follow.
 

@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-# PROG      := busybox
+PROG      := busybox
 VERSION   := 0.43
 BUILDTIME := $(shell TZ=GMT date "+%Y%m%d-%H%M")
 
@@ -77,7 +77,7 @@ ifeq ($(DODEBUG),true)
 else
     CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS  = -s
-    STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment
+    STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 
     ifeq ($(DOSTATIC),true)
 	LDFLAGS += --static
@@ -101,7 +101,7 @@ all: busybox busybox.links
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
-	$(STRIP) $@
+	$(STRIP)
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
