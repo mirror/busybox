@@ -47,6 +47,8 @@
 
 #define ESC	27
 #define DEL	127
+#define member(c, s) ((c) ? ((char *)strchr ((s), (c)) != (char *)NULL) : 0)
+#define whitespace(c) (((c) == ' ') || ((c) == '\t'))
 
 static struct history *his_front = NULL;	/* First element in command line list */
 static struct history *his_end = NULL;	/* Last element in command line list */
@@ -104,7 +106,7 @@ void cmdedit_reset_term(void)
 	xioctl(fileno(stdin), TCSETA, (void *) &old_term);
 }
 
-void gotaSignal(int sig)
+void prepareToDie(int sig)
 {
     cmdedit_reset_term();
     fprintf(stdout, "\n");
@@ -175,6 +177,40 @@ void input_backspace(int outputFd, int *cursor, int *len)
     }
 }
 
+char **username_completion_matches( char* matchBuf)
+{
+    fprintf(stderr, "\nin username_completion_matches\n");
+    return ( (char**) NULL);
+}
+char **command_completion_matches( char* matchBuf)
+{
+    fprintf(stderr, "\nin command_completion_matches\n");
+    return ( (char**) NULL);
+}
+char **directory_completion_matches( char* matchBuf)
+{
+    fprintf(stderr, "\nin directory_completion_matches\n");
+    return ( (char**) NULL);
+}
+
+/*
+ * This function is used to grab a character buffer
+ * from the input file descriptor and allows you to
+ * a string with full command editing (sortof like
+ * a mini readline).
+ *
+ * The following standard commands are not implemented:
+ * ESC-b -- Move back one word
+ * ESC-f -- Move forward one word
+ * ESC-d -- Delete back one word
+ * ESC-h -- Delete forward one word
+ * CTL-t -- Transpose two characters
+ *
+ * Furthermore, the "vi" command editing keys are not implemented.
+ *
+ * TODO: implement TAB command completion. :)
+ *
+ */
 extern int cmdedit_read_input(int inputFd, int outputFd,
 			    char command[BUFSIZ])
 {
@@ -185,6 +221,8 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
     int cursor = 0;
     int break_out = 0;
     int ret = 0;
+    int lastWasTab = FALSE;
+    char **matches = (char **)NULL;
     char c = 0;
     struct history *hp = his_end;
 
@@ -209,90 +247,233 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
 
 	if ((ret = read(inputFd, &c, 1)) < 1)
 	    return ret;
-
+	
 	switch (c) {
-	case 1:		/* Control-A Beginning of line */
+	case 1:		
+	    /* Control-a -- Beginning of line */
 	    input_home(outputFd, &cursor);
-	    break;
-	case 5:		/* Control-E EOL */
+	case 5:		
+	    /* Control-e -- End of line */
 	    input_end(outputFd, &cursor, len);
 	    break;
-	case 4:		/* Control-D */
+	case 2:
+	    /* Control-b -- Move back one character */
+	    if (cursor > 0) {
+		xwrite(outputFd, "\033[D", 3);
+		cursor--;
+	    }
+	    break;
+	case 6:	
+	    /* Control-f -- Move forward one character */
+	    if (cursor < len) {
+		xwrite(outputFd, "\033[C", 3);
+		cursor++;
+	    }
+	    break;
+	case 4:
+	    /* Control-d -- Delete one character */
 	    if (cursor != len) {
 		input_delete(outputFd, cursor);
 		len--;
+	    } else if (len == 0) {
+		prepareToDie(0);
+		exit(0);
 	    }
 	    break;
-	case '\b':		/* Backspace */
+	case 14:
+	    /* Control-n -- Get next command */
+	    if (hp && hp->n && hp->n->s) {	
+		free( hp->s);
+		hp->s = strdup(parsenextc);
+		hp = hp->n;
+		goto hop;
+	    }
+	    break;
+	case 16:
+	    /* Control-p -- Get previous command */
+	    if (hp && hp->p) {	
+		free( hp->s);
+		hp->s = strdup(parsenextc);
+		hp = hp->p;
+		goto hop;
+	    }
+	    break;
+	case '\t':
+	    {
+	    /* Do TAB completion */
+		int in_command_position=0, ti=len-1;
+
+		if (lastWasTab == FALSE) {
+		    char *tmp;
+		    char *matchBuf;
+
+		    if (matches) {
+			free(matches);
+			matches = (char **)NULL;
+		    }
+
+		    matchBuf = (char *) calloc(BUFSIZ, sizeof(char));
+
+		    /* Make a local copy of the string -- up 
+		     * to the the position of the cursor */
+		    strcpy( matchBuf, parsenextc); 
+		    matchBuf[cursor+1] = '\0';
+
+		    /* skip leading white space */
+		    tmp = matchBuf;
+		    while (*tmp && isspace(*tmp)) {
+			(tmp)++;
+			ti++;
+		    }
+
+		    /* Determine if this is a command word or not */
+		    //while ((ti > -1) && (whitespace (matchBuf[ti]))) {
+//printf("\nti=%d\n", ti);
+		//	ti--;
+		 //   }
+printf("\nti=%d\n", ti);
+
+		    if (ti < 0) {
+			  in_command_position++;
+		    } else if (member(matchBuf[ti], ";|&{(`")) {
+			int this_char, prev_char;
+			in_command_position++;
+			/* Handle the two character tokens `>&', `<&', and `>|'.
+			 We are not in a command position after one of these. */
+			this_char = matchBuf[ti];
+			prev_char = matchBuf[ti - 1];
+
+			if ((this_char == '&' && (prev_char == '<' || prev_char == '>')) ||
+				(this_char == '|' && prev_char == '>')) {
+			    in_command_position = 0;
+			} 
+			/* For now, do not bother with catching quoted
+			 * expressions and marking them as not in command
+			 * positions.  Some other day.  Or not.
+			 */
+			//else if (char_is_quoted (matchBuf, ti)) {
+			//    in_command_position = 0;
+			//}
+		    }
+printf("\nin_command_position=%d\n", in_command_position);
+		    /* If the word starts in `~', and there is no slash in the word, 
+		     * then try completing this word as a username. */
+		    if (*matchBuf == '~' && !strchr (matchBuf, '/'))
+			matches = username_completion_matches(matchBuf);
+
+		    /* If this word is in a command position, then complete over possible 
+		     * command names, including aliases, built-ins, and executables. */
+		    if (!matches && in_command_position) {
+			matches = command_completion_matches(matchBuf);
+
+		    /* If we are attempting command completion and nothing matches, 
+		     * then try and match directories as a last resort... */
+		    if (!matches)
+			matches = directory_completion_matches(matchBuf);
+		    }
+		} else {
+		    printf("\nprinting match list\n");
+		}
+		/* Rewrite the whole line (for debugging) */
+		for (; cursor > 0; cursor--)	
+		    xwrite(outputFd, "\b", 1);
+		len = strlen(parsenextc);
+		xwrite(outputFd, parsenextc, len);
+		cursor = len;
+		break;
+	    }
+	case '\b':		
 	case DEL:
+	    /* Backspace */
 	    input_backspace(outputFd, &cursor, &len);
 	    break;
-	case '\n':		/* Enter */
+	case '\n':		
+	    /* Enter */
 	    *(parsenextc + len++ + 1) = c;
 	    xwrite(outputFd, &c, 1);
 	    break_out = 1;
 	    break;
-	case ESC:		/* escape sequence follows */
+	case ESC:		{
+	    /* escape sequence follows */
 	    if ((ret = read(inputFd, &c, 1)) < 1)
 		return ret;
 
 	    if (c == '[') {	/* 91 */
 		if ((ret = read(inputFd, &c, 1)) < 1)
 		    return ret;
-
+		
 		switch (c) {
 		case 'A':
-		    if (hp && hp->p) {	/* Up */
+		    /* Up Arrow -- Get previous command */
+		    if (hp && hp->p) {	
+			free( hp->s);
+			hp->s = strdup(parsenextc);
 			hp = hp->p;
 			goto hop;
 		    }
 		    break;
 		case 'B':
-		    if (hp && hp->n && hp->n->s) {	/* Down */
+		    /* Down Arrow -- Get next command */
+		    if (hp && hp->n && hp->n->s) {	
+			free( hp->s);
+			hp->s = strdup(parsenextc);
 			hp = hp->n;
 			goto hop;
 		    }
 		    break;
 
-		  hop:		/* hop */
+		    /* This is where we rewrite the line 
+		     * using the selected history item */
+		  hop:		
 		    len = strlen(parsenextc);
 
-		    for (; cursor > 0; cursor--)	/* return to begining of line */
+		    /* return to begining of line */
+		    for (; cursor > 0; cursor--)	
 			xwrite(outputFd, "\b", 1);
+		    xwrite(outputFd, parsenextc, len);
 
-		    for (j = 0; j < len; j++)	/* erase old command */
+		    /* erase old command */
+		    for (j = 0; j < len; j++)	
 			xwrite(outputFd, " ", 1);
 
-		    for (j = len; j > 0; j--)	/* return to begining of line */
+		    /* return to begining of line */
+		    for (j = len; j > 0; j--)	
 			xwrite(outputFd, "\b", 1);
 
-		    strcpy(parsenextc, hp->s);	/* write new command */
+		    memset(parsenextc, 0, BUFSIZ);
+		    /* write new command */
+		    strcpy(parsenextc, hp->s);	
 		    len = strlen(hp->s);
 		    xwrite(outputFd, parsenextc, len);
 		    cursor = len;
 		    break;
-		case 'C':	/* Right */
+		case 'C':	
+		    /* Right Arrow -- Move forward one character */
 		    if (cursor < len) {
 			xwrite(outputFd, "\033[C", 3);
 			cursor++;
 		    }
 		    break;
-		case 'D':	/* Left */
+		case 'D':	
+		    /* Left Arrow -- Move back one character */
 		    if (cursor > 0) {
 			xwrite(outputFd, "\033[D", 3);
 			cursor--;
 		    }
 		    break;
-		case '3':	/* Delete */
+		case '3':	
+		    /* Delete */
 		    if (cursor != len) {
 			input_delete(outputFd, cursor);
 			len--;
 		    }
 		    break;
-		case '1':	/* Home (Ctrl-A) */
+		case '1':	
+		    /* Home (Ctrl-A) */
 		    input_home(outputFd, &cursor);
 		    break;
-		case '4':	/* End (Ctrl-E) */
+		case '4':	
+		    /* End (Ctrl-E) */
 		    input_end(outputFd, &cursor, len);
 		    break;
 		}
@@ -300,20 +481,24 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
 		    if ((ret = read(inputFd, &c, 1)) < 1)
 			return ret;	/* read 126 (~) */
 	    }
-	    if (c == 'O') {	/* 79 */
+	    if (c == 'O') {	
+		/* 79 */
 		if ((ret = read(inputFd, &c, 1)) < 1)
 		    return ret;
 		switch (c) {
-		case 'H':	/* Home (xterm) */
+		case 'H':	
+		    /* Home (xterm) */
 		    input_home(outputFd, &cursor);
 		    break;
-		case 'F':	/* End (xterm) */
+		case 'F':	
+		    /* End (xterm) */
 		    input_end(outputFd, &cursor, len);
 		    break;
 		}
 	    }
 	    c = 0;
 	    break;
+	}
 
 	default:		/* If it's regular input, do the normal thing */
 
@@ -343,6 +528,10 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
 	    xwrite(outputFd, &c, 1);
 	    break;
 	}
+	if (c=='\t')
+	    lastWasTab = TRUE;
+	else
+	    lastWasTab = FALSE;
 
 	if (break_out)		/* Enter is the command terminator, no more input. */
 	    break;
@@ -353,32 +542,33 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
     reset_term = 0;
 
 
-    if (*(parsenextc)) {	/* Handle command history log */
+    /* Handle command history log */
+    if (*(parsenextc)) {	
 
 	struct history *h = his_end;
 
-	if (!h) {		/* No previous history */
+	if (!h) {		
+	    /* No previous history */
 	    h = his_front = malloc(sizeof(struct history));
 	    h->n = malloc(sizeof(struct history));
 	    h->p = NULL;
 	    h->s = strdup(parsenextc);
-
 	    h->n->p = h;
 	    h->n->n = NULL;
 	    h->n->s = NULL;
 	    his_end = h->n;
 	    history_counter++;
-	} else {		/* Add a new history command */
-
+	} else {		
+	    /* Add a new history command */
 	    h->n = malloc(sizeof(struct history));
-
 	    h->n->p = h;
 	    h->n->n = NULL;
 	    h->n->s = NULL;
 	    h->s = strdup(parsenextc);
 	    his_end = h->n;
 
-	    if (history_counter >= MAX_HISTORY) {	/* After max history, remove the last known command */
+	    /* After max history, remove the oldest command */
+	    if (history_counter >= MAX_HISTORY) {	
 
 		struct history *p = his_front->n;
 
@@ -398,8 +588,8 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
 extern void cmdedit_init(void)
 {
     atexit(cmdedit_reset_term);
-    signal(SIGINT, gotaSignal);
-    signal(SIGQUIT, gotaSignal);
-    signal(SIGTERM, gotaSignal);
+    signal(SIGINT, prepareToDie);
+    signal(SIGQUIT, prepareToDie);
+    signal(SIGTERM, prepareToDie);
 }
 #endif				/* BB_FEATURE_SH_COMMAND_EDITING */

@@ -40,6 +40,7 @@
 // Don't bother turning BB_INSMOD on.  It doesn't work.
 //#define BB_INSMOD
 #define BB_KILL
+#define BB_KILLALL
 #define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
@@ -198,11 +199,23 @@
 #define BB_MTAB
 #endif
 //
-#ifdef BB_FEATURE_FULL_REGULAR_EXPRESSIONS
+#if defined BB_FEATURE_FULL_REGULAR_EXPRESSIONS && (defined BB_SED || defined BB_GREP )
 #define BB_REGEXP
 #endif
 //
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
+#if defined BB_FEATURE_SH_COMMAND_EDITING && defined BB_SH
 #define BB_CMDEDIT
+#endif
+//
+#ifdef BB_KILLALL
+#ifndef BB_KILL
+#define BB_KILL
+#endif
+#endif
+//
+#ifdef BB_FEATURE_LINUXRC
+#ifndef BB_INIT
+#define BB_INIT
+#endif
 #endif
 //

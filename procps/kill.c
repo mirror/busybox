@@ -36,11 +36,12 @@ static const char *kill_usage =
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
 	"Options:\n" "\t-l\tList all signal names and numbers.\n\n";
 
+#ifdef BB_KILLALL
 static const char *killall_usage =
 	"killall [-signal] process-name [process-name ...]\n\n"
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
 	"Options:\n" "\t-l\tList all signal names and numbers.\n\n";
-
+#endif
 
 #define KILL	0
 #define KILLALL	1
@@ -132,10 +133,15 @@ extern int kill_main(int argc, char **argv)
 	int whichApp, sig = SIGTERM;
 	const char *appUsage;
 
+#ifdef BB_KILLALL
 	/* Figure out what we are trying to do here */
 	whichApp = (strcmp(*argv, "killall") == 0)? 
 		KILLALL : KILL; 
 	appUsage = (whichApp == KILLALL)?  killall_usage : kill_usage;
+#else
+	whichApp = KILL;
+	appUsage = kill_usage;
+#endif
 
 	argc--;
 	argv++;
@@ -213,7 +219,9 @@ extern int kill_main(int argc, char **argv)
 				fatalError( "Could not kill pid '%d': %s\n", pid, strerror(errno));
 			argv++;
 		}
-	} else {
+	} 
+#ifdef BB_KILLALL
+	else {
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
 			int pid;
@@ -225,6 +233,7 @@ extern int kill_main(int argc, char **argv)
 			argv++;
 		}
 	}
+#endif
 
 	exit(TRUE);
 

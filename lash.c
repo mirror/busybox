@@ -98,7 +98,7 @@ static int shell_fg_bg(struct job *cmd, struct jobSet *jobList);
 static int shell_help(struct job *cmd, struct jobSet *junk);
 static int shell_jobs(struct job *dummy, struct jobSet *jobList);
 static int shell_pwd(struct job *dummy, struct jobSet *junk);
-static int shell_set(struct job *cmd, struct jobSet *junk);
+static int shell_export(struct job *cmd, struct jobSet *junk);
 static int shell_source(struct job *cmd, struct jobSet *jobList);
 static int shell_unset(struct job *cmd, struct jobSet *junk);
 
@@ -120,7 +120,7 @@ static struct builtInCommand bltins[] = {
 	{"fg", "Bring job into the foreground", "fg [%%job]", shell_fg_bg},
 	{"jobs", "Lists the active jobs", "jobs", shell_jobs},
 	{"pwd", "Print current directory", "pwd", shell_pwd},
-	{"set", "Set environment variable", "set [VAR=value]", shell_set},
+	{"export", "Set environment variable", "export [VAR=value]", shell_export},
 	{"unset", "Unset environment variable", "unset VAR", shell_unset},
 	
 		{".", "Source-in and run commands in a file", ". filename",
@@ -182,7 +182,7 @@ static int shell_exit(struct job *cmd, struct jobSet *junk)
 static int shell_fg_bg(struct job *cmd, struct jobSet *jobList)
 {
 	int i, jobNum;
-	struct job *job;
+	struct job *job=NULL;
 
 	if (!jobList->head) {
 		if (!cmd->progs[0].argv[1] || cmd->progs[0].argv[2]) {
@@ -268,8 +268,8 @@ static int shell_pwd(struct job *dummy, struct jobSet *junk)
 	return TRUE;
 }
 
-/* built-in 'set VAR=value' handler */
-static int shell_set(struct job *cmd, struct jobSet *junk)
+/* built-in 'export VAR=value' handler */
+static int shell_export(struct job *cmd, struct jobSet *junk)
 {
 	int res;
 
@@ -278,7 +278,7 @@ static int shell_set(struct job *cmd, struct jobSet *junk)
 	}
 	res = putenv(cmd->progs[0].argv[1]);
 	if (res)
-		fprintf(stdout, "set: %s\n", strerror(errno));
+		fprintf(stdout, "export: %s\n", strerror(errno));
 	return (res);
 }
 

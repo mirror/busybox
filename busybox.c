@@ -4,10 +4,6 @@
 #include <string.h>
 #include <errno.h>
 
-#ifndef BB_INIT
-#undef BB_FEATURE_LINUXRC
-#endif
-
 static int been_there_done_that = 0;
 
 /* It has been alledged that doing such things can

@@ -1,3 +1,10 @@
 #!/bin/sh
-sed -n -e 's/^#define.*BB_FEATURE.*$//g;y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/;' \
-    -e '/^#define/{s/.*bb_//;s/$/.o/p;}' busybox.def.h
+
+# I added in the extra "ls" so only source files that
+# actually exist will show up in the compile list.
+ls -1 ` \
+    cpp busybox.def.h -dM | \
+    sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/\1.c/gp;' \
+    | tr [:upper:] [:lower:] | sort
+` 2>/dev/null | sed -e 's/\.c$/\.o/g'
+
