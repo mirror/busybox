@@ -55,8 +55,14 @@ static int fileAction(const char *fileName, struct stat* statbuf)
     switch (whichApp) {
 	case CHGRP_APP:
 	case CHOWN_APP:
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 	    if (lchown(fileName, (whichApp==CHOWN_APP)? uid : statbuf->st_uid, 
-			(gid==-1)? statbuf->st_gid : gid) == 0) {
+			(gid==-1)? statbuf->st_gid : gid) == 0) 
+#else
+	    if (chown(fileName, (whichApp==CHOWN_APP)? uid : statbuf->st_uid, 
+			(gid==-1)? statbuf->st_gid : gid) == 0) 
+#endif
+	    {
 		return( TRUE);
 	    }
 	    break;
