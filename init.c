@@ -296,20 +296,17 @@ static int check_free_memory()
 		printf("Error checking free memory: %s\n", strerror(errno));
 		return -1;
 	}
+	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
 	if (info.mem_unit==0) {
-		/* Looks like we have a kernel prior to Linux 2.4.x */
-		info.mem_unit=1024;
-		info.totalram/=info.mem_unit;
-		info.totalswap/=info.mem_unit;
-	} else {
-		/* Bah. Linux 2.4.x completely changed sysinfo. This can in theory
-		overflow a 32 bit unsigned long, but who puts more then 4GiB ram+swap
-		on an embedded system? */
-		info.mem_unit/=1024;
-		info.totalram*=info.mem_unit;
-		info.totalswap*=info.mem_unit;
+		info.mem_unit=1;
 	}
-
+	info.mem_unit*=1024;
+	
+	/* Note:  These values can in theory overflow a 32 bit unsigned long (i.e.
+	 * mem >=  Gib), but who puts more then 4GiB ram+swap on an embedded
+	 * system? */
+	info.totalram/=info.mem_unit; 
+	info.totalswap/=info.mem_unit;
 	return(info.totalram+info.totalswap);
 }
 
