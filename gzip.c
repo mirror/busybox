@@ -1802,9 +1802,6 @@ int gzip_main(int argc, char **argv)
 	int fromstdin = 0;
 	int force = 0;
 
-	if (argc == 1)
-		usage(gzip_usage);
-
 	/* Parse any options */
 	while (--argc > 0 && **(++argv) == '-') {
 		if (*((*argv) + 1) == '\0') {
@@ -1827,8 +1824,10 @@ int gzip_main(int argc, char **argv)
 			}
 		}
 	}
-	if (argc <= 0)
+	if (argc <= 0 ) {
 		fromstdin = 1;
+		tostdout = 1;
+	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
 		fatalError( "data not read from terminal. Use -f to force it.\n");
