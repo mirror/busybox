@@ -13,6 +13,8 @@
 
 	* Rodney Brown  <RDBrown@mira.net> 
 	    -- Optimized gzip.c, shrinking it be ~1.5k
+	* Shu-Hao Chang <shuhao_chang@trend.com.tw>
+	    -- Fixed sed handling of multiple -e commands
 
 	 -Erik Andersen, --not yet released--
 
