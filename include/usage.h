@@ -1432,6 +1432,8 @@
 	"[{add|del|flush}]"
 #define route_full_usage \
 	"Edit the kernel's routing tables"
+	"Options:\n" \
+	"\t-n\tDont resolve names."
 
 #define rpm2cpio_trivial_usage \
 	"package.rpm"

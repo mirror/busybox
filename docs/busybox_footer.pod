@@ -113,7 +113,7 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 Vladimir Oleynik <dzo@simtreas.ru>
 
-    cmdedit, stty-port, locale, various fixes 
+    cmdedit; ports: ash, stty, traceroute; locale, various fixes
     and irreconcilable critic of everything not perfect.
 
 =for html <br>
@@ -166,4 +166,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.4 2001/04/17 17:09:34 beppu Exp $
+# $Id: busybox_footer.pod,v 1.5 2001/12/18 14:06:01 andersen Exp $

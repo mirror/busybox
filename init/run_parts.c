@@ -45,9 +45,9 @@
  * done - convert calls to error in perror... and remove error()
  * done - convert malloc/realloc to their x... counterparts 
  * done - remove catch_sigchld
- * use bb's isdirectory() ? It seems that no applet use it.
  * done - use bb's concat_path_file() 
- * declare run_parts_main() as extern and any other function as static? */
+ * done - declare run_parts_main() as extern and any other function as static?
+ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -61,17 +61,14 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
-/* #include <signal.h>
-   #include <sys/time.h> */
 
 #include "busybox.h"
 
-int test_mode = 0;
-int verbose_mode = 0;
-int exitstatus = 0;
+static int test_mode = 0;
+static int exitstatus = 0;
 
-int argcount = 0, argsize = 0;
-char **args = 0;
+static int argcount = 0, argsize = 0;
+static char **args = 0;
 
 
 /* set_umask */
@@ -80,7 +77,7 @@ char **args = 0;
  * 8 and 9 digits under some circumstances. We'll just have to live with it.
  */
 
-void set_umask (void)
+static void set_umask (void)
 {
   int mask, result;
 
@@ -97,14 +94,14 @@ void set_umask (void)
 /* add_argument */
 /* Add an argument to the commands that we will call. Called once for
    every argument. */
-void add_argument (char *newarg)
+static void add_argument (char *newarg)
 {
   if (argcount+1 >= argsize) {
     argsize = argsize ? argsize*2 : 4;
 	/*TODO if we convert to xrealloc we lose the verbose error message */
 	args = realloc(args, argsize * (sizeof(char*)));
     if (!args) {
-		perror_msg_and_die ("failed to reallocate memory for arguments: %s", strerror(errno));
+		perror_msg_and_die ("failed to reallocate memory for arguments");
 	}
   }
   args[argcount++] = newarg;
@@ -116,7 +113,7 @@ void add_argument (char *newarg)
  * underscores, and hyphens only?)
  */
 
-int valid_name (const struct dirent *d)
+static int valid_name (const struct dirent *d)
 {
 	char *c = d->d_name;
 	while (*c) {
@@ -132,19 +129,19 @@ int valid_name (const struct dirent *d)
 /* run_part */
 /* Execute a file */
 
-void run_part (char *progname)
+static void run_part (char *progname)
 {
   int result;
   int pid;
 
   
   if ((pid=fork()) < 0) {
-    perror_msg_and_die ("failed to fork: %s", strerror(errno));
+    perror_msg_and_die ("failed to fork");
   }
   else if (!pid) {
     args[0] = progname;
     execv (progname, args);
-    perror_msg_and_die ("failed to exec %s: %s", progname, strerror (errno));
+    perror_msg_and_die ("failed to exec %s", progname);
   }
 
   if (0) {
@@ -168,27 +165,12 @@ void run_part (char *progname)
 /* run_parts */
 /* Find the parts to run & call run_part() */
 
-void run_parts (char *dir_name)
+static void run_parts (char *dir_name)
 {
-  struct dirent **namelist;
-  char *filename = NULL;
-  size_t filename_length, dir_name_length;
-  int entries, i, result;
+  struct dirent **namelist = 0;
+  char *filename;
+  int entries, i;
   struct stat st;
-
-  /* dir_name + "/" */
-  dir_name_length = strlen(dir_name) + 1;
-  
-  /* dir_name + "/" + ".." + "\0" (This will save one realloc.) */
-  filename_length = dir_name_length + 2 + 1;
-
-  /* --
-   * Removed this part because I want try to use concat_path_file() */
-  
-/*  if (! (filename = malloc(filename_length))) {
-    error ("failed to allocate memory for path: %s", strerror(errno));
-    exit (1);
-  } */
 
   /* -- */
   
@@ -196,42 +178,17 @@ void run_parts (char *dir_name)
   entries = scandir (dir_name, &namelist, valid_name, alphasort);
 
   if (entries < 0) {
-    perror_msg_and_die ("failed to open directory %s: %s", dir_name, strerror (errno));
+    perror_msg_and_die ("failed to open directory %s", dir_name);
   }
   
   for (i = 0; i < entries; i++) {
-
-	  /* -- 
-	   * Removed this part because I want try to use concat_path_file() */
-	  
-	  /* if (filename_length < dir_name_length + strlen(namelist[i]->d_name) + 1) {
-		  filename_length = dir_name_length + strlen(namelist[i]->d_name) + 1;
-		  if (!(filename = realloc(filename, filename_length))) {
-			  error ("failed to reallocate memory for path: %s", strerror(errno));
-			  exit (1);
-			  }
-		  }
-		  
-		*/
-
-	  /* -- */
-	  
-	  
-	  /* --
-	   * Removed for concat_path_file() */
-	  
-/*	  strcpy (filename, dir_name); 
-	  strcat (filename, "/"); 
-	  strcat (filename, namelist[i]->d_name); */
 
 	  /* -- */
 
 	  filename = concat_path_file (dir_name, namelist[i]->d_name);
 	  
-	  result = stat (filename, &st);
-	  if (result < 0) {
-		  perror_msg_and_die ("failed to stat component %s: %s", filename,
-				  strerror (errno));
+	  if (stat (filename, &st) < 0) {
+		  perror_msg_and_die ("failed to stat component %s", filename);
 	  }
 	  if (S_ISREG(st.st_mode) && !access (filename, X_OK)) {
 		  if (test_mode)
@@ -240,17 +197,17 @@ void run_parts (char *dir_name)
 			  run_part (filename);
 		  }
 	  }
-	  /*TODO convert to isdirectory() */
+
 	  else if (!S_ISDIR(st.st_mode)) {
-		  printf ("run-parts: component %s is not an executable plain file\n",
+		  error_msg ("component %s is not an executable plain file",
 				  filename);
 		  exitstatus = 1;
 	  }
 	  
 	  free (namelist[i]);
+	  free (filename);
   }
   free (namelist);
-  free (filename);
 }
 
 /* run_parts_main */

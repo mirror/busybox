@@ -35,7 +35,7 @@ typedef int (*__link_f)(const char *, const char *);
  *		malloc'd string w/ full pathname of busybox's location
  *		NULL on failure
  */
-static char *busybox_fullpath()
+static char *busybox_fullpath(void)
 {
 	return xreadlink("/proc/self/exe");
 }
