@@ -53,6 +53,12 @@
 #include "nfsmount.h"
 #include <linux/nfs.h>  /* For the kernels nfs stuff */
 
+#ifndef NFS_FHSIZE
+#define NFS_FHSIZE	32
+#endif
+#ifndef NFS_PORT
+#define NFS_PORT	2049
+#endif
 
 /* Disable the nls stuff */
 # undef bindtextdomain
