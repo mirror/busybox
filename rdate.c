@@ -63,7 +63,7 @@ time_t askremotedate(char *host)
 	sin.sin_port= tserv->s_port;
 	sin.sin_family = AF_INET;
 
-	if (connect(fd, &sin, sizeof(sin)) < 0) {	/* connect to time server */
+	if (connect(fd, (struct sockaddr *)&sin, sizeof(sin)) < 0) {	/* connect to time server */
 		errorMsg("%s: %s\n", host, strerror(errno));
 		close(fd);
 		return(-1);
