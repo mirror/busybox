@@ -1831,13 +1831,13 @@ void chomp(char *s)
 #if defined(BB_SH)
 void trim(char *s)
 {
+	/* trim trailing whitespace */
+	while (isspace(s[strlen(s)-1]))
+		s[strlen(s)-1]='\0';
+
 	/* trim leading whitespace */
 	memmove(s, &s[strspn(s, " \n\r\t\v")], strlen(s));
 
-	/* trim trailing whitespace */
-	while (*s && (!isspace (*s)))
-		s++;
-	*s='\0';
 }
 #endif
 
