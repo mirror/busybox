@@ -26,15 +26,12 @@ sub beautify {
 	$text =~ s/"\s*"//sg;
 	my @line = split("\n", $text);
 	$text = join('',
-		map { eval }
-		map { qq[ sprintf(qq#$_#) ] }
 		map { 
 			s/^\s*//;
 			s/"//g;
-			s/% /%% /g;
-			$_
-		}
-		@line
+			s/%/%%/g;
+			eval qq[ sprintf(qq#$_#) ]
+		} @line
 	);
 	return $text;
 }
@@ -47,13 +44,13 @@ sub pod_for_usage {
 	# make options bold
 	my $trivial = $usage->{trivial};
 	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
-	my @f1;
 	my @f0 = 
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
 		split("\n", $usage->{full});
 
 	# add "\n" prior to certain lines to make indented
 	# lines look right
+	my @f1;
 	my $len = @f0;
 	for (my $i = 0; $i < $len; $i++) {
 		push @f1, $f0[$i];
@@ -76,7 +73,7 @@ sub pod_for_usage {
 	;
 }
 
-# generate SGML for an applet
+# FIXME | generate SGML for an applet
 sub sgml_for_usage {
 	my $name  = shift;
 	my $usage = shift;
@@ -96,7 +93,9 @@ sub sgml_for_usage {
 # }
 my %docs;
 
+
 # get command-line options
+
 my %opt;
 
 GetOptions(
@@ -118,7 +117,9 @@ if (defined $opt{help}) {
 	exit 1;
 }
 
+
 # collect documenation into %docs
+
 foreach (@ARGV) {
 	open(USAGE, $_) || die("$0: $!");
 	my $fh = *USAGE;
@@ -138,13 +139,16 @@ foreach (@ARGV) {
 	}
 }
 
+
+# generate structured documentation
+
 my $generator = \&pod_for_usage;
 if (defined $opt{sgml}) {
-    $generator = \&sgml_for_usage;
+	$generator = \&sgml_for_usage;
 }
 
-foreach my $name (sort keys %docs) {
-	print $generator->($name, $docs{$name});
+foreach my $applet (sort keys %docs) {
+	print $generator->($applet, $docs{$applet});
 }
 
 exit 0;
@@ -207,4 +211,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.10 2001/02/23 17:55:03 beppu Exp $
+# $Id: autodocifier.pl,v 1.11 2001/02/24 14:37:48 beppu Exp $
