@@ -1148,12 +1148,12 @@ static void checkjobs()
 		}
 	}
 
+	if (childpid == -1 && errno != ECHILD)
+		perror_msg("waitpid");
+
 	/* move the shell to the foreground */
 	if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
 		perror_msg("tcsetpgrp"); 
-
-	if (childpid == -1 && errno != ECHILD)
-		perror_msg("waitpid");
 }
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
