@@ -2620,9 +2620,11 @@
 	"Mon Dec 17 10:31:44 GMT 2000" 
 
 #define watchdog_trivial_usage \
-	"DEV"
+	"[-t <seconds>] DEV"
 #define watchdog_full_usage \
-	"Periodically write to watchdog device DEV"
+	"Periodically write to watchdog device DEV.\n" \
+	"Options:\n" \
+	"\t-t\tTimer period in seconds - default is 30."
 
 #define wc_trivial_usage \
 	"[OPTION]... [FILE]..."
