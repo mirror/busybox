@@ -55,7 +55,7 @@
 #define BB_FEATURE_COMMAND_TAB_COMPLETION
 #define BB_FEATURE_COMMAND_USERNAME_COMPLETION
 #define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-#undef BB_FEATURE_SIMPLE_PROMPT
+#undef BB_FEATURE_SH_SIMPLE_PROMPT
 #define BB_FEATURE_CLEAN_UP
 
 #define D(x)  x
@@ -80,7 +80,7 @@
 #undef  BB_FEATURE_COMMAND_USERNAME_COMPLETION
 #endif
 
-#if defined(BB_FEATURE_COMMAND_USERNAME_COMPLETION) || !defined(BB_FEATURE_SIMPLE_PROMPT)
+#if defined(BB_FEATURE_COMMAND_USERNAME_COMPLETION) || !defined(BB_FEATURE_SH_SIMPLE_PROMPT)
 #define BB_FEATURE_GETUSERNAME_AND_HOMEDIR
 #endif
 
@@ -178,7 +178,7 @@ static int cursor;		/* required global for signal handler */
 static int len;			/* --- "" - - "" - -"- --""-- --""--- */
 static char *command_ps;	/* --- "" - - "" - -"- --""-- --""--- */
 static
-#ifdef BB_FEATURE_SIMPLE_PROMPT
+#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
 	const
 #endif
 char *cmdedit_prompt;		/* --- "" - - "" - -"- --""-- --""--- */
@@ -193,7 +193,7 @@ static char *home_pwd_buf = "";
 static int my_euid;
 #endif
 
-#ifndef BB_FEATURE_SIMPLE_PROMPT
+#ifndef BB_FEATURE_SH_SIMPLE_PROMPT
 static char *hostname_buf = "";
 static int num_ok_lines = 1;
 #endif
@@ -362,7 +362,7 @@ static void put_prompt(void)
 	cursor = 0;
 }
 
-#ifdef BB_FEATURE_SIMPLE_PROMPT
+#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
 static void parse_prompt(const char *prmt_ptr)
 {
 	cmdedit_prompt = prmt_ptr;
@@ -1510,7 +1510,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				history_counter++;
 			}
 		}
-#if !defined(BB_FEATURE_SIMPLE_PROMPT)
+#if !defined(BB_FEATURE_SH_SIMPLE_PROMPT)
 		num_ok_lines++;
 #endif
 	}
@@ -1519,7 +1519,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 #if defined(BB_FEATURE_CLEAN_UP) && defined(BB_FEATURE_COMMAND_TAB_COMPLETION)
 	input_tab(0);				/* strong free */
 #endif
-#if !defined(BB_FEATURE_SIMPLE_PROMPT)
+#if !defined(BB_FEATURE_SH_SIMPLE_PROMPT)
 	free(cmdedit_prompt);
 #endif
 	return;
@@ -1551,7 +1551,7 @@ int main(int argc, char **argv)
 {
 	char buff[BUFSIZ];
 	char *prompt =
-#if !defined(BB_FEATURE_SIMPLE_PROMPT)
+#if !defined(BB_FEATURE_SH_SIMPLE_PROMPT)
 		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:\
 \\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] \
 \\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";

@@ -240,7 +240,7 @@
 #define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell.  
-// Only relevant if BB_SH is enabled.
+// Only relevant if BB_SH is enabled. On by default.
 #define BB_FEATURE_COMMAND_EDITING
 //
 // Enable tab completion in the shell.  This is now working quite nicely.
@@ -252,9 +252,9 @@
 //
 //Allow the shell to invoke all the compiled in BusyBox applets as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell,
-//among other things.
+//among other things. Off by default.
 // Only relevant if BB_SH is enabled.
-#define BB_FEATURE_SH_STANDALONE_SHELL
+//#define BB_FEATURE_SH_STANDALONE_SHELL
 //
 //When this is enabled, busybox shell applets can be called using full path
 //names.  This causes applets (i.e., most busybox commands) to override
@@ -262,14 +262,15 @@
 //will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
-// Only relevant if BB_SH is enabled.
-#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+// Only relevant if BB_SH is enabled. Off by default.
+//#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Some deeply embedded systems don't have usernames or even hostnames,
 // and the default prompt can look rather hideous on them. Uncomment
 // this option for a simpler, path-only prompt (which was the default until
-// around BusyBox-0.48):
-#define BB_FEATURE_SIMPLE_PROMPT
+// around BusyBox-0.48). On by default.
+// Only relevant if BB_SH is enabled.
+#define BB_FEATURE_SH_SIMPLE_PROMPT
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
@@ -345,96 +346,105 @@
 // mere mortals so leave this stuff alone.
 //
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
-#ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
-#define BB_MTAB
-#endif
+	#ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
+		#define BB_MTAB
+	#endif
 #else
-#undef BB_MTAB
+	#undef BB_MTAB
 #endif	
 //
-#if defined BB_FEATURE_COMMAND_EDITING && defined BB_SH
-#define BB_CMDEDIT
+#if defined BB_SH
+	#if defined BB_FEATURE_COMMAND_EDITING 
+		#define BB_CMDEDIT
+		#ifndef BB_FEATURE_USE_TERMIOS
+			#define BB_FEATURE_USE_TERMIOS
+		#endif
+	#else
+		#undef BB_FEATURE_COMMAND_EDITING
+		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
+		#undef BB_FEATURE_COMMAND_USERNAME_COMPLETION
+		#define BB_FEATURE_SH_SIMPLE_PROMPT
+	#endif
+#else
+	#undef BB_FEATURE_COMMAND_EDITING
+	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+	#undef BB_FEATURE_SH_STANDALONE_SHELL
+	#undef BB_FEATURE_SH_SIMPLE_PROMPT
 #endif
 //
 #ifdef BB_KILLALL
-#ifndef BB_KILL
-#define BB_KILL
-#endif
+	#ifndef BB_KILL
+		#define BB_KILL
+	#endif
 #endif
 //
 #ifndef BB_INIT
-#undef BB_LINUXRC
-#undef BB_FEATURE_LINUXRC
+	#undef BB_LINUXRC
+	#undef BB_FEATURE_LINUXRC
 #endif
 //
 #ifdef BB_GZIP
-#ifndef BB_GUNZIP
-#define BB_GUNZIP
-#endif
+	#ifndef BB_GUNZIP
+		#define BB_GUNZIP
+	#endif
 #endif
 //
 #ifdef BB_DPKG
-#ifndef BB_DPKG_DEB
-#define BB_DPKG_DEB
-#endif
+	#ifndef BB_DPKG_DEB
+		#define BB_DPKG_DEB
+	#endif
 #endif
 //
 #ifdef BB_DPKG_DEB
-#ifndef BB_AR
-#define BB_AR
-#endif
-#ifndef BB_TAR
-#define BB_TAR
-#endif 
-#ifndef BB_FEATURE_TAR_GZIP
-#define BB_FEATURE_TAR_GZIP
-#endif
+	#ifndef BB_AR
+		#define BB_AR
+	#endif
+	#ifndef BB_TAR
+		#define BB_TAR
+	#endif 
+	#ifndef BB_FEATURE_TAR_GZIP
+		#define BB_FEATURE_TAR_GZIP
+	#endif
 #endif
 //
 #ifdef BB_TAR
-#ifdef BB_FEATURE_TAR_GZIP
-#ifndef BB_GUNZIP
-#define BB_GUNZIP
-#endif
-#endif
+	#ifdef BB_FEATURE_TAR_GZIP
+		#ifndef BB_GUNZIP
+			#define BB_GUNZIP
+		#endif
+	#endif
 #endif
 //
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
-#define BB_NFSMOUNT
-#endif
-//
-#if defined BB_FEATURE_COMMAND_EDITING
-#ifndef BB_FEATURE_USE_TERMIOS
-#define BB_FEATURE_USE_TERMIOS
-#endif
+	#define BB_NFSMOUNT
 #endif
 //
 #if defined BB_IFCONFIG
-#ifdef BB_FEATURE_IFCONFIG_STATUS
-#define BB_INTERFACE
-#endif
+	#ifdef BB_FEATURE_IFCONFIG_STATUS
+		#define BB_INTERFACE
+	#endif
 #else
-#undef BB_INTERFACE
+	#undef BB_INTERFACE
 #endif	
 //
 #if defined BB_FEATURE_AUTOWIDTH
-#ifndef BB_FEATURE_USE_TERMIOS
-#define BB_FEATURE_USE_TERMIOS
-#endif
+	#ifndef BB_FEATURE_USE_TERMIOS
+		#define BB_FEATURE_USE_TERMIOS
+	#endif
 #endif
 //
 #if defined BB_INSMOD || defined BB_LSMOD
-#if ! defined BB_FEATURE_NEW_MODULE_INTERFACE && ! defined BB_FEATURE_OLD_MODULE_INTERFACE
-#define BB_FEATURE_NEW_MODULE_INTERFACE
-#endif
+	#if ! defined BB_FEATURE_NEW_MODULE_INTERFACE && ! defined BB_FEATURE_OLD_MODULE_INTERFACE
+		#define BB_FEATURE_NEW_MODULE_INTERFACE
+	#endif
 #endif
 //
 #ifdef BB_SYSLOGD
-#if defined BB_FEATURE_IPC_SYSLOG
-#define BB_LOGREAD
-#endif
+	#if defined BB_FEATURE_IPC_SYSLOG
+		#define BB_LOGREAD
+	#endif
 #endif
 //
 #if defined BB_DOS2UNIX 
-#define BB_UNIX2DOS
+	#define BB_UNIX2DOS
 #endif
