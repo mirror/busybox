@@ -710,10 +710,6 @@ int tar_main(int argc, char **argv)
 		tar_handle->filter = filter_accept_reject_list;
 	}
 
-	if ((base_dir) && (chdir(base_dir))) {
-		perror_msg_and_die("Couldnt chdir");
-	}
-
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
 	if (tar_create == TRUE) {
@@ -740,6 +736,11 @@ int tar_main(int argc, char **argv)
 		} else {
 			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
 		}
+
+		if ((base_dir) && (chdir(base_dir))) {
+			perror_msg_and_die("Couldnt chdir");
+		}
+
 		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
 
 		/* Ckeck that every file that should have been extracted was */
