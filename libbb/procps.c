@@ -16,6 +16,10 @@
 
 #include "libbb.h"
 
+#ifndef
+#define PAGE_MASK		(~((getpagesize())-1))
+#endif
+
 extern procps_status_t * procps_scan(int save_user_arg0
 #ifdef CONFIG_SELINUX
 	, int use_selinux , security_id_t *sid
