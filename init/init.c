@@ -188,6 +188,7 @@ static char console[32]    = _PATH_CONSOLE;
 static void delete_initAction(initAction * action);
 
 
+
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
 static void message(int device, char *fmt, ...)
@@ -393,6 +394,23 @@ static void console_init()
 	}
 	message(LOG, "console=%s\n", console);
 }
+	
+static void fixup_argv(int argc, char **argv, char *new_argv0)
+{
+	int len;
+	/* Fix up argv[0] to be certain we claim to be init */
+	len = strlen(argv[0]);
+	memset(argv[0], 0, len);
+	strncpy(argv[0], new_argv0, len);
+
+	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
+	len = 1;
+	while (argc > len) {
+		memset(argv[len], 0, strlen(argv[len]));
+		len++;
+	}
+}
+
 
 static pid_t run(char *command, char *terminal, int get_enter)
 {
@@ -402,6 +420,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 	char *tmpCmd, *s;
 	char *cmd[255], *cmdpath;
 	char buf[255];
+	struct stat sb;
 	static const char press_enter[] =
 
 #ifdef CUSTOMIZED_BANNER
@@ -447,8 +466,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		signal(SIGHUP, SIG_DFL);
 
 		if ((fd = device_open(terminal, O_RDWR)) < 0) {
-			struct stat statBuf;
-			if (stat(terminal, &statBuf) != 0) {
+			if (stat(terminal, &sb) != 0) {
 				message(LOG | CONSOLE, "device '%s' does not exist.\n",
 						terminal);
 				exit(1);
@@ -463,29 +481,6 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		tcsetpgrp(0, getpgrp());
 		set_term(0);
 
-		if (get_enter == TRUE) {
-			/*
-			 * Save memory by not exec-ing anything large (like a shell)
-			 * before the user wants it. This is critical if swap is not
-			 * enabled and the system has low memory. Generally this will
-			 * be run on the second virtual console, and the first will
-			 * be allowed to start a shell or whatever an init script 
-			 * specifies.
-			 */
-#ifdef DEBUG_INIT
-			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
-					command, getpid(), terminal);
-#endif
-			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
-			getc(stdin);
-		}
-
-#ifdef DEBUG_INIT
-		/* Log the process name and args */
-		message(LOG, "Starting pid %d, console %s: '%s'\r\n",
-				getpid(), terminal, command);
-#endif
-
 		/* See if any special /bin/sh requiring characters are present */
 		if (strpbrk(command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 			cmd[0] = SHELL;
@@ -497,7 +492,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		} else {
 			/* Convert command (char*) into cmd (char**, one word per string) */
 			for (tmpCmd = command, i = 0;
-				 (tmpCmd = strsep(&command, " \t")) != NULL;) {
+					(tmpCmd = strsep(&command, " \t")) != NULL;) {
 				if (*tmpCmd != '\0') {
 					cmd[i] = tmpCmd;
 					tmpCmd++;
@@ -507,53 +502,73 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			cmd[i] = NULL;
 		}
 
-               cmdpath = cmd[0];
+		cmdpath = cmd[0];
 
-               /*
-                   Interactive shells want to see a dash in argv[0].  This
-                   typically is handled by login, argv will be setup this 
-                   way if a dash appears at the front of the command path 
+		/*
+		   Interactive shells want to see a dash in argv[0].  This
+		   typically is handled by login, argv will be setup this 
+		   way if a dash appears at the front of the command path 
 		   (like "-/bin/sh").
-               */
+		 */
 
-               if (*cmdpath == '-') {
-                       char *s;
+		if (*cmdpath == '-') {
+			char *s;
 
-                       /* skip over the dash */
-                         ++cmdpath;
+			/* skip over the dash */
+			++cmdpath;
 
-                       /* find the last component in the command pathname */
-						 s = get_last_path_component(cmdpath);
+			/* find the last component in the command pathname */
+			s = get_last_path_component(cmdpath);
 
-                       /* make a new argv[0] */
-                       if ((cmd[0] = malloc(strlen(s)+2)) == NULL) {
-                               message(LOG | CONSOLE, "malloc failed");
-                               cmd[0] = cmdpath;
-                       } else {
-                               cmd[0][0] = '-';
-                               strcpy(cmd[0]+1, s);
-                       }
-               }
+			/* make a new argv[0] */
+			if ((cmd[0] = malloc(strlen(s)+2)) == NULL) {
+				message(LOG | CONSOLE, "malloc failed");
+				cmd[0] = cmdpath;
+			} else {
+				cmd[0][0] = '-';
+				strcpy(cmd[0]+1, s);
+			}
+		}
+
+		if (get_enter == TRUE) {
+			/*
+			 * Save memory by not exec-ing anything large (like a shell)
+			 * before the user wants it. This is critical if swap is not
+			 * enabled and the system has low memory. Generally this will
+			 * be run on the second virtual console, and the first will
+			 * be allowed to start a shell or whatever an init script 
+			 * specifies.
+			 */
+#ifdef DEBUG_INIT
+			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
+					cmd[0], getpid(), terminal);
+#endif
+			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
+			getc(stdin);
+		}
+
+#ifdef DEBUG_INIT
+		/* Log the process name and args */
+		message(LOG, "Starting pid %d, console %s: '%s'\r\n",
+				getpid(), terminal, command);
+#endif
 
 #if defined BB_FEATURE_INIT_COREDUMPS
-		{
-			struct stat sb;
-			if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
-				struct rlimit limit;
-				limit.rlim_cur = RLIM_INFINITY;
-				limit.rlim_max = RLIM_INFINITY;
-				setrlimit(RLIMIT_CORE, &limit);
-			}
+		if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
+			struct rlimit limit;
+			limit.rlim_cur = RLIM_INFINITY;
+			limit.rlim_max = RLIM_INFINITY;
+			setrlimit(RLIMIT_CORE, &limit);
 		}
 #endif
 
 		/* Now run it.  The new program will take over this PID, 
 		 * so nothing further in init.c should be run. */
-                execve(cmdpath, cmd, environment);
+		execve(cmdpath, cmd, environment);
 
-                /* We're still here?  Some error happened. */
-                message(LOG | CONSOLE, "Bummer, could not run '%s': %s\n", cmdpath,
-                                strerror(errno));
+		/* We're still here?  Some error happened. */
+		message(LOG | CONSOLE, "Bummer, could not run '%s': %s\n", cmdpath,
+				strerror(errno));
 		exit(-1);
 	}
 	return pid;
@@ -937,11 +952,8 @@ extern int init_main(int argc, char **argv)
 		parse_inittab();
 	}
 
-	/* Fix up argv[0] to be certain we claim to be init */
-	argv[0]="init";
-
-	if (argc > 1)
-		argv[1][0]=0;
+	/* Make the command line just say "init"  -- thats all, nothing else */
+	fixup_argv(argc, argv, "init");
 
 	/* Now run everything that needs to be run */
 
