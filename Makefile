@@ -101,18 +101,18 @@ OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&
 
 WARNINGS = -Wall
 
-ifeq ($(DOLFS),true)
+ifeq ($(strip $(DOLFS)),true)
     # For large file summit support
     CFLAGS+=-D_FILE_OFFSET_BITS=64
 endif
-ifeq ($(DODMALLOC),true)
+ifeq ($(strip $(DODMALLOC)),true)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC
     LIBRARIES = -ldmalloc
     # Force debug=true, since this is useless when not debugging...
     DODEBUG = true
 endif
-ifeq ($(DODEBUG),true)
+ifeq ($(strip $(DODEBUG)),true)
     CFLAGS  += $(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS += -Wl,-warn-common
     STRIP    =
@@ -121,7 +121,7 @@ else
     LDFLAGS += -s -Wl,-warn-common
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
 endif
-ifeq ($(DOSTATIC),true)
+ifeq ($(strip $(DOSTATIC)),true)
     LDFLAGS += --static
     #
     #use '-ffunction-sections -fdata-sections' and '--gc-sections' (if they 
@@ -147,7 +147,7 @@ endif
 #
 # Work in progress by <ldoolitt@recycle.lbl.gov>.
 # If it gets in your way, set DISABLE_VPATH=yes
-ifeq ($(DISABLE_VPATH),yes)
+ifeq ($(strip $(DISABLE_VPATH)),yes)
     CONFIG_H = Config.h
 else
     VPATH = .:$(BB_SRC_DIR)
@@ -164,7 +164,7 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-ifneq ($(USE_SYSTEM_PWD_GRP),true)
+ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
     PWD_LIB   = pwd_grp/libpwd.a
     LIBRARIES += $(PWD_LIB)
 else
