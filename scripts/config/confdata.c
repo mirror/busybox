@@ -17,7 +17,7 @@
 
 const char conf_def_filename[] = ".config";
 
-const char conf_defname[] = "extra/Configs/Config.$TARGET_ARCH.default";
+const char conf_defname[] = "sysdeps/linux/defconfig";
 
 const char *conf_confnames[] = {
 	".config",
