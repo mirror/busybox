@@ -34,13 +34,13 @@ extern int errno;  /* for use with strerror() */
 extern void xregcomp(regex_t *preg, const char *regex, int cflags); /* in busybox.h */
 
 /* options */
-static int ignore_case       = 0;
-static int print_filename    = 0;
-static int print_line_num    = 0;
-static int print_match_counts  = 0;
-static int be_quiet          = 0;
-static int invert_search     = 0;
-static int suppress_err_msgs = 0;
+static int reflags            = REG_NOSUB; 
+static int print_filename     = 0;
+static int print_line_num     = 0;
+static int print_match_counts = 0;
+static int be_quiet           = 0;
+static int invert_search      = 0;
+static int suppress_err_msgs  = 0;
 static int print_files_with_matches  = 0;
 
 #ifdef BB_FEATURE_GREP_CONTEXT
@@ -52,9 +52,11 @@ static int last_line_printed = 0;
 #endif /* BB_FEATURE_GREP_CONTEXT */
 
 /* globals used internally */
-static regex_t regex; /* storage space for compiled regular expression */
+static regex_t *regexes = NULL; /* growable array of compiled regular expressions */
+static int nregexes = 0; /* number of elements in above arrary */
 static int matched; /* keeps track of whether we ever matched */
 static char *cur_file = NULL; /* the current file we are reading */
+
 
 static void print_line(const char *line, int linenum, char decoration)
 {
@@ -73,12 +75,14 @@ static void print_line(const char *line, int linenum, char decoration)
 	puts(line);
 }
 
+
 static void grep_file(FILE *file)
 {
 	char *line = NULL;
 	int ret;
 	int linenum = 0;
 	int nmatches = 0;
+	int i;
 #ifdef BB_FEATURE_GREP_CONTEXT
 	int print_n_lines_after = 0;
 	int curpos = 0; /* track where we are in the circular 'before' buffer */
@@ -89,81 +93,81 @@ static void grep_file(FILE *file)
 		chomp(line);
 		linenum++;
 
-		/*
-		 * test for a postitive-assertion match (regexec returns success (0)
-		 * and the user did not specify invert search), or a negative-assertion
-		 * match (regexec returns failure (REG_NOMATCH) and the user specified
-		 * invert search)
-		 */
-		ret = regexec(&regex, line, 0, NULL, 0);
-		if ((ret == 0 && !invert_search) || (ret == REG_NOMATCH && invert_search)) {
+		for (i = 0; i < nregexes; i++) {
+			/*
+			 * test for a postitive-assertion match (regexec returns success (0)
+			 * and the user did not specify invert search), or a negative-assertion
+			 * match (regexec returns failure (REG_NOMATCH) and the user specified
+			 * invert search)
+			 */
+			ret = regexec(&regexes[i], line, 0, NULL, 0);
+			if ((ret == 0 && !invert_search) || (ret == REG_NOMATCH && invert_search)) {
 
-			/* if we found a match but were told to be quiet, stop here and
-			 * return success */
-			if (be_quiet) {
-				regfree(&regex);
-				exit(0);
-			}
+				/* if we found a match but were told to be quiet, stop here and
+				 * return success */
+				if (be_quiet)
+					exit(0);
 
-			/* keep track of matches */
-			nmatches++;
+				/* keep track of matches */
+				nmatches++;
 
-			/* if we're just printing filenames, we stop after the first match */
-			if (print_files_with_matches)
-				break;
+				/* if we're just printing filenames, we stop after the first match */
+				if (print_files_with_matches)
+					break;
 
-			/* print the matched line */
-			if (print_match_counts == 0) {
+				/* print the matched line */
+				if (print_match_counts == 0) {
 #ifdef BB_FEATURE_GREP_CONTEXT
-				int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
+					int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
-				/* if we were told to print 'before' lines and there is at least
-				 * one line in the circular buffer, print them */
-				if (lines_before && before_buf[prevpos] != NULL) {
-					int first_buf_entry_line_num = linenum - lines_before;
+					/* if we were told to print 'before' lines and there is at least
+					 * one line in the circular buffer, print them */
+					if (lines_before && before_buf[prevpos] != NULL) {
+						int first_buf_entry_line_num = linenum - lines_before;
 
-					/* advance to the first entry in the circular buffer, and
-					 * figure out the line number is of the first line in the
-					 * buffer */
-					idx = curpos;
-					while (before_buf[idx] == NULL) {
-						idx = (idx + 1) % lines_before;
-						first_buf_entry_line_num++;
+						/* advance to the first entry in the circular buffer, and
+						 * figure out the line number is of the first line in the
+						 * buffer */
+						idx = curpos;
+						while (before_buf[idx] == NULL) {
+							idx = (idx + 1) % lines_before;
+							first_buf_entry_line_num++;
+						}
+
+						/* now print each line in the buffer, clearing them as we go */
+						while (before_buf[idx] != NULL) {
+							print_line(before_buf[idx], first_buf_entry_line_num, '-');
+							free(before_buf[idx]);
+							before_buf[idx] = NULL;
+							idx = (idx + 1) % lines_before;
+							first_buf_entry_line_num++;
+						}
 					}
 
-					/* now print each line in the buffer, clearing them as we go */
-					while (before_buf[idx] != NULL) {
-						print_line(before_buf[idx], first_buf_entry_line_num, '-');
-						free(before_buf[idx]);
-						before_buf[idx] = NULL;
-						idx = (idx + 1) % lines_before;
-						first_buf_entry_line_num++;
-					}
+					/* make a note that we need to print 'after' lines */
+					print_n_lines_after = lines_after;
+#endif /* BB_FEATURE_GREP_CONTEXT */ 
+					print_line(line, linenum, ':');
 				}
-
-				/* make a note that we need to print 'after' lines */
-				print_n_lines_after = lines_after;
-#endif /* BB_FEATURE_GREP_CONTEXT */ 
-				print_line(line, linenum, ':');
 			}
-		}
 #ifdef BB_FEATURE_GREP_CONTEXT
-		else { /* no match */
-			/* Add the line to the circular 'before' buffer */
-			if(lines_before) {
-				if(before_buf[curpos])
-					free(before_buf[curpos]);
-				before_buf[curpos] = strdup(line);
-				curpos = (curpos + 1) % lines_before;
+			else { /* no match */
+				/* Add the line to the circular 'before' buffer */
+				if(lines_before) {
+					if(before_buf[curpos])
+						free(before_buf[curpos]);
+					before_buf[curpos] = strdup(line);
+					curpos = (curpos + 1) % lines_before;
+				}
 			}
-		}
 
-		/* if we need to print some context lines after the last match, do so */
-		if (print_n_lines_after && (last_line_printed != linenum)) {
-			print_line(line, linenum, '-');
-			print_n_lines_after--;
-		}
+			/* if we need to print some context lines after the last match, do so */
+			if (print_n_lines_after && (last_line_printed != linenum)) {
+				print_line(line, linenum, '-');
+				print_n_lines_after--;
+			}
 #endif /* BB_FEATURE_GREP_CONTEXT */ 
+		} /* for */
 		free(line);
 	}
 
@@ -189,23 +193,63 @@ static void grep_file(FILE *file)
 		matched = 1;
 }
 
+
+static void add_regex(const char *restr)
+{
+	regexes = xrealloc(regexes, sizeof(regex_t) * (++nregexes));
+	xregcomp(&regexes[nregexes-1], restr, reflags);
+}
+
+
+static void	load_regexes_from_file(const char *filename)
+{
+	char *line;
+	FILE *f = xfopen(filename, "r");
+	while ((line = get_line_from_file(f)) != NULL) {
+		chomp(line);
+		add_regex(line);
+		free(line);
+	}
+}
+
+
+#ifdef BB_FEATURE_CLEAN_UP
+static void destroy_regexes()
+{
+	if (regexes == NULL)
+		return;
+
+	/* destroy all the elments in the array */
+	while (--nregexes >= 0) {
+		regfree(regexes[nregexes]);
+		free(regexes[nregexes]);
+	}
+}
+#endif
+
+
 extern int grep_main(int argc, char **argv)
 {
 	int opt;
-	int reflags;
 #ifdef BB_FEATURE_GREP_CONTEXT
 	char *junk;
 #endif
 
+#ifdef BB_FEATURE_CLEAN_UP
+	/* destroy command strings on exit */
+	if (atexit(destroy_regexes) == -1)
+		perror_msg_and_die("atexit");
+#endif
+
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "iHhlnqvsc"
+	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:"
 #ifdef BB_FEATURE_GREP_CONTEXT
 "A:B:C:"
 #endif
 )) > 0) {
 		switch (opt) {
 			case 'i':
-				ignore_case++;
+				reflags |= REG_ICASE;
 				break;
 			case 'l':
 				print_files_with_matches++;
@@ -231,6 +275,12 @@ extern int grep_main(int argc, char **argv)
 			case 'c':
 				print_match_counts++;
 				break;
+			case 'e':
+				add_regex(optarg);
+				break;
+			case 'f':
+				load_regexes_from_file(optarg);
+				break;
 #ifdef BB_FEATURE_GREP_CONTEXT
 			case 'A':
 				lines_after = strtoul(optarg, &junk, 10);
@@ -255,11 +305,18 @@ extern int grep_main(int argc, char **argv)
 		}
 	}
 
-	/* argv[optind] should be the regex pattern; no pattern, no worky */
-	if (argv[optind] == NULL)
-		show_usage();
+	/* if we didn't get a pattern from a -e and no command file was specified,
+	 * argv[optind] should be the pattern. no pattern, no worky */
+	if (nregexes == 0) {
+		if (argv[optind] == NULL)
+			show_usage();
+		else {
+			add_regex(argv[optind]);
+			optind++;
+		}
+	}
 
-	/* sanity check */
+	/* sanity checks */
 	if (print_match_counts || be_quiet || print_files_with_matches) {
 		print_line_num = 0;
 #ifdef BB_FEATURE_GREP_CONTEXT
@@ -268,28 +325,20 @@ extern int grep_main(int argc, char **argv)
 #endif
 	}
 
-	/* compile the regular expression
-	 * we're not going to mess with sub-expressions, and we need to
-	 * treat newlines right. */
-	reflags = REG_NOSUB; 
-	if (ignore_case)
-		reflags |= REG_ICASE;
-	xregcomp(&regex, argv[optind], reflags);
-
-	/* argv[(optind+1)..(argc-1)] should be names of file to grep through. If
+	/* argv[(optind)..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames */
-	if ((argc-1) - (optind+1) > 0)
+	if ((argc-1) - (optind) > 0)
 		print_filename++;
 
 	/* If no files were specified, or '-' was specified, take input from
 	 * stdin. Otherwise, we grep through all the files specified. */
-	if (argv[optind+1] == NULL || (strcmp(argv[optind+1], "-") == 0)) {
+	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
 		grep_file(stdin);
 	}
 	else {
 		int i;
 		FILE *file;
-		for (i = optind + 1; i < argc; i++) {
+		for (i = optind; i < argc; i++) {
 			cur_file = argv[i];
 			file = fopen(cur_file, "r");
 			if (file == NULL) {
@@ -302,8 +351,6 @@ extern int grep_main(int argc, char **argv)
 			}
 		}
 	}
-
-	regfree(&regex);
 
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }

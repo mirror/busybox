@@ -150,9 +150,10 @@ free
 # grep
 grep -l strdup ../*.c
 grep -c strdup ../*.c
-# I swear, GNU grep seems broken for this next one
 grep -lc strdup ../*.c
 grep -cv strdup ../*.c
+grep -i null ../grep.c
+grep -e strdup -e regcomp -e atexit ../grep.c
 
 # gunzip
 
