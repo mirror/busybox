@@ -35,14 +35,13 @@ extern int env_main(int argc, char** argv)
 {
 	char **ep, *p;
 	char *cleanenv[1];
+	int ignore_environment = 0;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "-iu:")) != -1)
+	while ((ch = getopt(argc, argv, "+iu:")) != -1) {
 		switch(ch) {
-		case '-':
 		case 'i':
-			environ = cleanenv;
-			cleanenv[0] = NULL;
+			ignore_environment = 1;
 			break;
 		case 'u':
 			unsetenv(optarg);
@@ -50,15 +49,24 @@ extern int env_main(int argc, char** argv)
 		default:
 			show_usage();
 		}
+	}
+	if (optind != argc && !strcmp(argv[optind], "-")) {
+		ignore_environment = 1;
+		argv++;
+	}
+	if (ignore_environment) {
+		environ = cleanenv;
+		cleanenv[0] = NULL;
+	}
 	for (argv += optind; *argv && (p = strchr(*argv, '=')); ++argv)
-		setenv(*argv, ++p, 1);
+		putenv(*argv);
 	if (*argv) {
 		execvp(*argv, argv);
 		perror_msg_and_die("%s", *argv);
 	}
 	for (ep = environ; *ep; ep++)
 		printf("%s\n", *ep);
-	exit(EXIT_SUCCESS);
+	return 0;
 }
 
 /*
