@@ -112,8 +112,7 @@ static void grep_file(FILE *file)
 
 				/* if we were told to print 'before' lines and there is at least
 				 * one line in the circular buffer, print them */
-				if (lines_before && before_buf[prevpos] != NULL)
-				{
+				if (lines_before && before_buf[prevpos] != NULL) {
 					int first_buf_entry_line_num = linenum - lines_before;
 
 					/* advance to the first entry in the circular buffer, and
@@ -133,7 +132,6 @@ static void grep_file(FILE *file)
 						idx = (idx + 1) % lines_before;
 						first_buf_entry_line_num++;
 					}
-
 				}
 
 				/* make a note that we need to print 'after' lines */
@@ -145,8 +143,7 @@ static void grep_file(FILE *file)
 #ifdef BB_FEATURE_GREP_CONTEXT
 		else { /* no match */
 			/* Add the line to the circular 'before' buffer */
-			if(lines_before)
-			{
+			if(lines_before) {
 				if(before_buf[curpos])
 					free(before_buf[curpos]);
 				before_buf[curpos] = strdup(line);
