@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.10 2001/06/26 02:06:08 bug1 Exp $";
+	"$Id: vi.c,v 1.11 2001/07/02 18:06:14 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -367,7 +367,7 @@ extern int vi_main(int argc, char **argv)
 			//case 'h':	// help -- just use default
 		default:
 			show_help();
-			break;
+			return 1;
 		}
 	}
 
@@ -2958,34 +2958,35 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 
 static void show_help(void)
 {
-	printf("These features are available:\n");
+	puts("These features are available:"
 #ifdef BB_FEATURE_VI_SEARCH
-	printf("\tPattern searches with / and ?\n");
+	"\n\tPattern searches with / and ?"
 #endif							/* BB_FEATURE_VI_SEARCH */
 #ifdef BB_FEATURE_VI_DOT_CMD
-	printf("\tLast command repeat with \'.\'\n");
+	"\n\tLast command repeat with \'.\'"
 #endif							/* BB_FEATURE_VI_DOT_CMD */
 #ifdef BB_FEATURE_VI_YANKMARK
-	printf("\tLine marking with  'x\n");
-	printf("\tNamed buffers with  \"x\n");
+	"\n\tLine marking with  'x"
+	"\n\tNamed buffers with  \"x"
 #endif							/* BB_FEATURE_VI_YANKMARK */
 #ifdef BB_FEATURE_VI_READONLY
-	printf("\tReadonly if vi is called as \"view\"\n");
-	printf("\tReadonly with -R command line arg\n");
+	"\n\tReadonly if vi is called as \"view\""
+	"\n\tReadonly with -R command line arg"
 #endif							/* BB_FEATURE_VI_READONLY */
 #ifdef BB_FEATURE_VI_SET
-	printf("\tSome colon mode commands with \':\'\n");
+	"\n\tSome colon mode commands with \':\'"
 #endif							/* BB_FEATURE_VI_SET */
 #ifdef BB_FEATURE_VI_SETOPTS
-	printf("\tSettable options with \":set\"\n");
+	"\n\tSettable options with \":set\""
 #endif							/* BB_FEATURE_VI_SETOPTS */
 #ifdef BB_FEATURE_VI_USE_SIGNALS
-	printf("\tSignal catching- ^C\n");
-	printf("\tJob suspend and resume with ^Z\n");
+	"\n\tSignal catching- ^C"
+	"\n\tJob suspend and resume with ^Z"
 #endif							/* BB_FEATURE_VI_USE_SIGNALS */
 #ifdef BB_FEATURE_VI_WIN_RESIZE
-	printf("\tAdapt to window re-sizes\n");
+	"\n\tAdapt to window re-sizes"
 #endif							/* BB_FEATURE_VI_WIN_RESIZE */
+	);
 }
 
 static void print_literal(Byte * buf, Byte * s) // copy s to buf, convert unprintable
