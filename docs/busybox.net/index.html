@@ -102,41 +102,41 @@
             <ul>
 
               <p>
-              <li><b>15 July 2003 -- BusyBox 1.0.0-pre1 released</b><p> 
+              <li><b>30 July 2003 -- BusyBox 1.0.0-pre2 released</b><p> 
 
-		The busybox development series has been under construction for
-		nearly two years now.  Which is just entirely too long...  So
-		it is with great pleasure that I announce the imminent release
-		of a new stable series.  Due to the huge number of changes
-		since the last stable release (and the usual mindless version
-		number inflation) I am branding this new stable series verison
-		1.0.x...
+		Here goes another pre release for the new BusyBox stable
+		series.  The last prerelease (pre1) was given quite a lot of
+		testing (thanks everyone!) which has helped turn up a number of
+		bugs, and these problems have now been fixed.
+
 		<p>
 
-		The point of "-preX" versions is to get a larger group of
-		people and vendors testing, so any problems that turn up can be
-		fixed prior to the magic 1.0.0 release (which should happen
-		later this month)...  I plan to release BusyBox 1.0.0-pre2 next
-		Monday (July 21st), and, if necessary, -pre3 on July 28th.
-		Hopefully (i.e. unless some horrible catastrophic problem turns
-		up) the final BusyBox 1.0.0 release should be ready by the end
-		of July.
+		Highlights of -pre2 include updating the 'ash' shell to sync up
+		with the Debian 'dash' shell, a new 'hdparm' applet was added,
+		init again supports pivot_root,  The 'reboot' 'halt' and
+		'poweroff' applets can now be used without using busybox init.
+		an ifconfig buffer overflow was fixed, losetup now allows
+		read-write loop devices, uClinux daemon support was added, the
+		'watchdog', 'fdisk', and 'kill' applets were rewritten, there were
+		tons of doc updates, and there were many other bugs fixed.
 		<p>
 		
-		If you have submitted patches, and they are not in this release
-		and I have not emailed you explaining why your patch was
-		rejected, it is safe to say that I have lost your patch.  That
-		happens sometimes.  Please do <B>NOT</b> send all your patches,
-		support questions, etc, directly to Erik.  I get hundreds of
-		emails every day (which is why I end up losing patches
-		sometimes in the flood)...  The busybox mailing list is the
-		right place to send your patches, support questions, etc.
+		If you have submitted a patch and it is not included in this
+		release and Erik has not emailed you explaining why your patch
+		was rejected, it is safe to say that he has lost your patch.
+		That happens sometimes.   Please re-submit your patch to the
+		BusyBox mailing list.
 		<p>
 
-		I would like to especially thank Vladimir Oleynik (vodz), Glenn
-		McGrath (bug1), Robert Griebl (sandman), and Manuel Novoa III
-		(mjn3) for their significant efforts and contributions that
-		have made this release possible.
+		The point of the "-preX" versions is to get a larger group of
+		people and vendors testing, so any problems that turn up can be
+		fixed prior to the final 1.0.0 release.  The main feature that
+		is still still on the TODO list before the final BusyBox 1.0.0
+		release is adding module support for the new 2.6.x kernels.  If
+		necessary, a -pre3 BusyBox release will happen on August 6th.
+		Hopefully (i.e.  unless some horrible catastrophic problem
+		turns up) the final BusyBox 1.0.0 release will be ready by
+		then...
 		<p>
 
 		As usual you can <a href="downloads">download busybox here</a>.
@@ -428,6 +428,7 @@
               </li><li><a href="http://salvare.sourceforge.net/">Salvare</a>More Linux than tomsrtbt but less than Knoppix, aims to provide a useful workstation as well as a rescue disk.
               </li><li><a href="http://www.stresslinux.org/">stresslinux</a>minimal linux distribution running from a bootable cdrom or via PXE.
               </li><li><a href="http://thinstation.sourceforge.net/">thinstation</a>convert standard PCs into full-featured diskless thinclients.
+              </li><li><a href="http://www.uhulinux.hu/">UHU-Linux Hungary</a>
 
               </li><li><a href="http://tuxscreen.net">Tuxscreen Linux Phone</a>
               </li><li><a href="http://www.kerbango.com/">The Kerbango Internet Radio</a>
