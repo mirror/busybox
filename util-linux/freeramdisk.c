@@ -55,7 +55,9 @@ freeramdisk_main(int argc, char **argv)
 	if (ioctl(f, BLKFLSBUF) < 0) {
 		fatalError( "freeramdisk: failed ioctl on %s: %s", rname, strerror(errno));
 	}
-	close(f);
+	/* Don't bother closing.  Exit does
+	 * that, so we can save a few bytes */
+	/* close(f); */
 	exit(TRUE);
 }
 

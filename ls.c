@@ -70,11 +70,6 @@
 #define APPCHAR(mode)	("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
 #endif
 
-#ifndef MAJOR
-#define MAJOR(dev) (((dev)>>8)&0xff)
-#define MINOR(dev) ((dev)&0xff)
-#endif
-
 #define FMT_AUTO	0
 #define FMT_LONG	1			/* one record per line, extended info */
 #define FMT_SINGLE	2			/* one record per line */

@@ -62,7 +62,7 @@
 #define CMD_ALL         11
 #define CMD_INFO        12
 
-#ifdef BB_FBSET_FANCY
+#ifdef BB_FEATURE_FBSET_FANCY
 #define CMD_XRES	13
 #define CMD_YRES	14
 #define CMD_VXRES	15
@@ -105,7 +105,7 @@ struct cmdoptions_t {
 	"-vsync", 1, CMD_VSYNC}, {
 	"-laced", 1, CMD_LACED}, {
 	"-double", 1, CMD_DOUBLE},
-#ifdef BB_FBSET_FANCY
+#ifdef BB_FEATURE_FBSET_FANCY
 	{
 	"--help", 0, CMD_HELP}, {
 	"-all", 0, CMD_ALL}, {
@@ -164,8 +164,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 		}
 	}
 #else
-	fprintf(stderr,
-			"W: mode reading was disabled on this copy of fbset; ignoring request\n");
+	errorMsg( "mode reading not compiled in\n");
 #endif
 	return 0;
 }
@@ -199,7 +198,7 @@ static void showmode(struct fb_var_screeninfo *v)
 					 v->vsync_len);
 	}
 	printf("\nmode \"%ux%u-%u\"\n", v->xres, v->yres, (int) (vrate + 0.5));
-#ifdef BB_FBSET_FANCY
+#ifdef BB_FEATURE_FBSET_FANCY
 	printf("\t# D: %.3f MHz, H: %.3f kHz, V: %.3f Hz\n", drate / 1e6,
 		   hrate / 1e3, vrate);
 #endif
@@ -283,7 +282,7 @@ extern int fbset_main(int argc, char **argv)
 					varset.hsync_len = strtoul(argv[6], 0, 0);
 					varset.vsync_len = strtoul(argv[7], 0, 0);
 					break;
-#ifdef BB_FBSET_FANCY
+#ifdef BB_FEATURE_FBSET_FANCY
 				case CMD_XRES:
 					varset.xres = strtoul(argv[1], 0, 0);
 					break;
@@ -323,7 +322,8 @@ extern int fbset_main(int argc, char **argv)
 		if (ioctl(fh, FBIOPUT_VSCREENINFO, &var))
 			PERROR("fbset(ioctl)");
 	showmode(&var);
-	close(fh);
+	/* Don't close the file, as exiting will take care of that */
+	/* close(fh); */
 
-	return (TRUE);
+	exit (TRUE);
 }

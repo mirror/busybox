@@ -32,301 +32,301 @@ void *__libc_stack_end;
 
 static const struct Applet applets[] = {
 
-#ifdef BB_BASENAME				//usr/bin/basename
+#ifdef BB_BASENAME
 	{"basename", basename_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_BUSYBOX				//bin
+#ifdef BB_BUSYBOX
 	{"busybox", busybox_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_BLOCK_DEVICE			//sbin
+#ifdef BB_BLOCK_DEVICE
 	{"block_device", block_device_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_CAT					//bin
+#ifdef BB_CAT
 	{"cat", cat_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP		//bin
+#ifdef BB_CHMOD_CHOWN_CHGRP
 	{"chmod", chmod_chown_chgrp_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP		//bin
+#ifdef BB_CHMOD_CHOWN_CHGRP
 	{"chown", chmod_chown_chgrp_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP		//bin
+#ifdef BB_CHMOD_CHOWN_CHGRP
 	{"chgrp", chmod_chown_chgrp_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_CHROOT				//sbin
+#ifdef BB_CHROOT
 	{"chroot", chroot_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_CLEAR					//usr/bin
+#ifdef BB_CLEAR
 	{"clear", clear_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_CHVT					//usr/bin
+#ifdef BB_CHVT
 	{"chvt", chvt_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_CP_MV					//bin
+#ifdef BB_CP_MV
 	{"cp", cp_mv_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_CP_MV					//bin
+#ifdef BB_CP_MV
 	{"mv", cp_mv_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DATE					//bin
+#ifdef BB_DATE
 	{"date", date_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DD					//bin
+#ifdef BB_DD
 	{"dd", dd_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DF					//bin
+#ifdef BB_DF
 	{"df", df_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DIRNAME				//usr/bin
+#ifdef BB_DIRNAME
 	{"dirname", dirname_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_DMESG					//bin
+#ifdef BB_DMESG
 	{"dmesg", dmesg_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DU					//bin
+#ifdef BB_DU
 	{"du", du_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_DUTMP					//usr/sbin
+#ifdef BB_DUTMP
 	{"dutmp", dutmp_main, _BB_DIR_USR_SBIN},
 #endif
-#ifdef BB_ECHO					//bin
+#ifdef BB_ECHO
 	{"echo", echo_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_FBSET					//usr/sbin
+#ifdef BB_FBSET
 	{"fbset", fbset_main, _BB_DIR_USR_SBIN},
 #endif
-#ifdef BB_FDFLUSH				//bin
+#ifdef BB_FDFLUSH
 	{"fdflush", fdflush_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_FIND					//usr/bin
+#ifdef BB_FIND
 	{"find", find_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_FREE					//usr/bin
+#ifdef BB_FREE
 	{"free", free_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_FREERAMDISK			//sbin
+#ifdef BB_FREERAMDISK
 	{"freeramdisk", freeramdisk_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_DEALLOCVT				//usr/bin
+#ifdef BB_DEALLOCVT
 	{"deallocvt", deallocvt_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_FSCK_MINIX			//sbin
+#ifdef BB_FSCK_MINIX
 	{"fsck.minix", fsck_minix_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MKFS_MINIX			//sbin
+#ifdef BB_MKFS_MINIX
 	{"mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_GREP					//bin
+#ifdef BB_GREP
 	{"grep", grep_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_HALT					//sbin
+#ifdef BB_HALT
 	{"halt", halt_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_HEAD					//bin
+#ifdef BB_HEAD
 	{"head", head_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_HOSTID				//usr/bin
+#ifdef BB_HOSTID
 	{"hostid", hostid_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_HOSTNAME				//bin
+#ifdef BB_HOSTNAME
 	{"hostname", hostname_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_INIT					//sbin
+#ifdef BB_INIT
 	{"init", init_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_INSMOD				//sbin
+#ifdef BB_INSMOD
 	{"insmod", insmod_main, _BB_DIR_SBIN},
 #endif
 #ifdef BB_FEATURE_LINUXRC		//
 	{"linuxrc", init_main, _BB_DIR_ROOT},
 #endif
-#ifdef BB_KILL					//bin
+#ifdef BB_KILL
 	{"kill", kill_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_KILLALL				//usr/bin
+#ifdef BB_KILLALL
 	{"killall", kill_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_LENGTH				//usr/bin
+#ifdef BB_LENGTH
 	{"length", length_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_LN					//bin
+#ifdef BB_LN
 	{"ln", ln_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_LOADACM				//usr/bin
+#ifdef BB_LOADACM
 	{"loadacm", loadacm_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_LOADFONT				//usr/bin
+#ifdef BB_LOADFONT
 	{"loadfont", loadfont_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_LOADKMAP				//sbin
+#ifdef BB_LOADKMAP
 	{"loadkmap", loadkmap_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_LS					//bin
+#ifdef BB_LS
 	{"ls", ls_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_LSMOD					//sbin
+#ifdef BB_LSMOD
 	{"lsmod", lsmod_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MAKEDEVS				//sbin
+#ifdef BB_MAKEDEVS
 	{"makedevs", makedevs_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MATH					//usr/bin
+#ifdef BB_MATH
 	{"math", math_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_MKDIR					//bin
+#ifdef BB_MKDIR
 	{"mkdir", mkdir_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_MKFIFO				//usr/bin
+#ifdef BB_MKFIFO
 	{"mkfifo", mkfifo_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_MKNOD					//bin
+#ifdef BB_MKNOD
 	{"mknod", mknod_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_MKSWAP				//sbin
+#ifdef BB_MKSWAP
 	{"mkswap", mkswap_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_MNC					//usr/bin
+#ifdef BB_MNC
 	{"mnc", mnc_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_MORE					//bin
+#ifdef BB_MORE
 	{"more", more_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_MOUNT					//bin
+#ifdef BB_MOUNT
 	{"mount", mount_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_MT					//bin
+#ifdef BB_MT
 	{"mt", mt_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_NSLOOKUP				//usr/bin
+#ifdef BB_NSLOOKUP
 	{"nslookup", nslookup_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_PING					//bin
+#ifdef BB_PING
 	{"ping", ping_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_POWEROFF				//sbin
+#ifdef BB_POWEROFF
 	{"poweroff", poweroff_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_PRINTF				//usr/bin
+#ifdef BB_PRINTF
 	{"printf", printf_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_PS					//bin
+#ifdef BB_PS
 	{"ps", ps_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_PWD					//bin
+#ifdef BB_PWD
 	{"pwd", pwd_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_REBOOT				//sbin
+#ifdef BB_REBOOT
 	{"reboot", reboot_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_RM					//bin
+#ifdef BB_RM
 	{"rm", rm_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_RMDIR					//bin
+#ifdef BB_RMDIR
 	{"rmdir", rmdir_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_RMMOD					//sbin
+#ifdef BB_RMMOD
 	{"rmmod", rmmod_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_SED					//bin
+#ifdef BB_SED
 	{"sed", sed_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_SH					//bin
+#ifdef BB_SH
 	{"sh", shell_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_SFDISK				//sbin
+#ifdef BB_SFDISK
 	{"fdisk", sfdisk_main, _BB_DIR_SBIN},
-#ifdef BB_SFDISK				//sbin
+#ifdef BB_SFDISK
 #endif
 	{"sfdisk", sfdisk_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_SLEEP					//bin
+#ifdef BB_SLEEP
 	{"sleep", sleep_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_SORT					//bin
+#ifdef BB_SORT
 	{"sort", sort_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_SYNC					//bin
+#ifdef BB_SYNC
 	{"sync", sync_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_SYSLOGD				//sbin
+#ifdef BB_SYSLOGD
 	{"syslogd", syslogd_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_LOGGER				//usr/bin
+#ifdef BB_LOGGER
 	{"logger", logger_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_LOGNAME				//usr/bin
+#ifdef BB_LOGNAME
 	{"logname", logname_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_SWAPONOFF				//sbin
+#ifdef BB_SWAPONOFF
 	{"swapon", swap_on_off_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_SWAPONOFF				//sbin
+#ifdef BB_SWAPONOFF
 	{"swapoff", swap_on_off_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_TAIL					//usr/bin
+#ifdef BB_TAIL
 	{"tail", tail_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TAR					//bin
+#ifdef BB_TAR
 	{"tar", tar_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_TELNET				//usr/bin
+#ifdef BB_TELNET
 	{"telnet", telnet_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TEST					//usr/bin
+#ifdef BB_TEST
 	{"[", test_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TEST					//usr/bin
+#ifdef BB_TEST
 	{"test", test_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TEE					//bin
+#ifdef BB_TEE
 	{"tee", tee_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_TOUCH					//usr/bin
+#ifdef BB_TOUCH
 	{"touch", touch_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TR					//usr/bin
+#ifdef BB_TR
 	{"tr", tr_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_TRUE_FALSE			//bin
+#ifdef BB_TRUE_FALSE
 	{"true", true_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_TRUE_FALSE			//bin
+#ifdef BB_TRUE_FALSE
 	{"false", false_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_TTY					//usr/bin
+#ifdef BB_TTY
 	{"tty", tty_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_UMOUNT				//bin
+#ifdef BB_UMOUNT
 	{"umount", umount_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_UNAME					//bin
+#ifdef BB_UNAME
 	{"uname", uname_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_UPTIME				//usr/bin
+#ifdef BB_UPTIME
 	{"uptime", uptime_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_UNIQ					//bin
+#ifdef BB_UNIQ
 	{"uniq", uniq_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_UPDATE				//sbin
+#ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN},
 #endif
-#ifdef BB_WC					//usr/bin
+#ifdef BB_WC
 	{"wc", wc_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_WHOAMI				//usr/bin
+#ifdef BB_WHOAMI
 	{"whoami", whoami_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_YES					//usr/bin
+#ifdef BB_YES
 	{"yes", yes_main, _BB_DIR_USR_BIN},
 #endif
-#ifdef BB_GUNZIP				//bin
+#ifdef BB_GUNZIP
 	{"zcat", gunzip_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_GUNZIP				//bin
+#ifdef BB_GUNZIP
 	{"gunzip", gunzip_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_GZIP					//bin
+#ifdef BB_GZIP
 	{"gzip", gzip_main, _BB_DIR_BIN},
 #endif
 	{0}

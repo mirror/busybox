@@ -44,7 +44,9 @@ extern int fdflush_main(int argc, char **argv)
 	}
 
 	value = ioctl(fd, FDFLUSH, 0);
-	close(fd);
+	/* Don't bother closing.  Exit does
+	 * that, so we can save a few bytes */
+	/* close(fd); */
 
 	if (value) {
 		perror(*argv);

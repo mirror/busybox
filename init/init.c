@@ -825,6 +825,9 @@ extern int init_main(int argc, char **argv)
 	reboot(RB_DISABLE_CAD);
 #endif
 
+	/* Figure out what kernel this is running */
+	kernelVersion = get_kernel_revision();
+
 	/* Figure out where the default console should be */
 	console_init();
 

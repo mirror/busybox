@@ -185,6 +185,10 @@
 #define BB_FEATURE_SH_COMMAND_EDITING
 //
 //
+//Turn on extra fbset options
+//#define BB_FEATURE_FBSET_FANCY
+//
+//
 // End of Features List
 //
 //

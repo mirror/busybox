@@ -112,10 +112,10 @@ extern void fatalError(char *s, ...)
 	exit( FALSE);
 }
 
-#if defined (BB_INIT) || defined (BB_PS)
+#if defined BB_INIT
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
- *	if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
+ *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
  */
 int get_kernel_revision()
 {
@@ -129,7 +129,7 @@ int get_kernel_revision()
 	sscanf(name.version, "%d.%d.%d", &major, &minor, &patch);
 	return major * 65536 + minor * 256 + patch;
 }
-#endif							/* BB_INIT || BB_PS */
+#endif                                                 /* BB_INIT */
 
 #if defined (BB_CP_MV) || defined (BB_DU)
 

@@ -1242,6 +1242,7 @@ static void alloc_name_list(void)
 		name_list[i] = xmalloc(sizeof(char) * PATH_MAX + 1);
 }
 
+#if 0
 /* execute this atexit() to deallocate name_list[] */
 /* piptigger was here */
 static void free_name_list(void)
@@ -1257,6 +1258,7 @@ static void free_name_list(void)
 		free(name_list);
 	}
 }
+#endif
 
 extern int fsck_minix_main(int argc, char **argv)
 {
@@ -1265,7 +1267,9 @@ extern int fsck_minix_main(int argc, char **argv)
 	int retcode = 0;
 
 	alloc_name_list();
-	atexit(free_name_list);
+	/* Don't bother to free memory.  Exit does
+	 * that automagically, so we can save a few bytes */
+	//atexit(free_name_list);
 
 	if (argc && *argv)
 		program_name = *argv;

@@ -125,9 +125,12 @@ extern int dd_main(int argc, char **argv)
 		inFd = open(inFile, 0);
 
 	if (inFd < 0) {
-		perror(inFile);
-		free(buf);
-		exit(FALSE);
+		/* Note that we are not freeing buf or closing
+		 * files here to save a few bytes. This exits
+		 * here anyways... */
+
+		/* free(buf); */
+		fatalError( inFile);
 	}
 
 	if (outFile == NULL)
@@ -136,10 +139,13 @@ extern int dd_main(int argc, char **argv)
 		outFd = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
 	if (outFd < 0) {
-		perror(outFile);
-		close(inFd);
-		free(buf);
-		exit(FALSE);
+		/* Note that we are not freeing buf or closing
+		 * files here to save a few bytes. This exits
+		 * here anyways... */
+
+		/* close(inFd);
+		   free(buf); */
+		fatalError( outFile);
 	}
 
 	lseek(inFd, skipBlocks * blockSize, SEEK_SET);
@@ -180,9 +186,13 @@ extern int dd_main(int argc, char **argv)
 		perror(inFile);
 
   cleanup:
+	/* Note that we are not freeing memory or closing
+	 * files here, to save a few bytes. */
+#if 0
 	close(inFd);
 	close(outFd);
 	free(buf);
+#endif
 
 	printf("%ld+%d records in\n", (long) (intotal / blockSize),
 		   (intotal % blockSize) != 0);

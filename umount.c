@@ -145,6 +145,9 @@ char *mtab_next(void **iter)
 	return mp;
 }
 
+/* Don't bother to clean up, since exit() does that 
+ * automagically, so we can save a few bytes */
+#if 0
 void mtab_free(void)
 {
 	struct _mtab_entry_t *this, *next;
@@ -160,6 +163,7 @@ void mtab_free(void)
 		this = next;
 	}
 }
+#endif
 
 static int do_umount(const char *name, int useMtab)
 {

@@ -46,6 +46,12 @@
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
+
+#ifndef MAJOR
+#define MAJOR(dev) (((dev)>>8)&0xff)
+#define MINOR(dev) ((dev)&0xff)
+#endif
+
 #define isBlank(ch)     (((ch) == ' ') || ((ch) == '\t'))
 #define isDecimal(ch)   (((ch) >= '0') && ((ch) <= '9'))
 #define isOctal(ch)     (((ch) >= '0') && ((ch) <= '7'))
@@ -201,14 +207,12 @@ extern uid_t my_getpwnam(char *name);
 extern gid_t my_getgrnam(char *name); 
 extern void my_getpwuid(char* name, uid_t uid);
 extern void my_getgrgid(char* group, gid_t gid);
-extern int get_kernel_revision();
 extern int get_console_fd(char* tty_name);
 extern struct mntent *findMountPoint(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern void mtab_read(void);
-extern void mtab_free(void);
 extern char *mtab_first(void **iter);
 extern char *mtab_next(void **iter);
 extern char *mtab_getinfo(const char *match, const char which);

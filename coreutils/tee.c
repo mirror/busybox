@@ -125,8 +125,10 @@ int tee_main(int argc, char **argv)
 
 	/* clean up */
 	FL_apply(tee_fclose, 0);
-	free(FileList);
+	/* Don't bother to close files  Exit does that 
+	 * automagically, so we can save a few bytes */
+	/* free(FileList); */
 	exit(0);
 }
 
-/* $Id: tee.c,v 1.7 2000/03/08 00:14:35 beppu Exp $ */
+/* $Id: tee.c,v 1.8 2000/03/23 01:09:18 erik Exp $ */

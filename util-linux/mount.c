@@ -348,8 +348,12 @@ extern int mount_main(int argc, char **argv)
 					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
 					mntentlist[i].mnt_passno);
 		}
+		/* Don't bother to close files or free memory.  Exit 
+		 * does that automagically, so we can save a few bytes */
+#if 0
 		free( mntentlist);
 		close(fd);
+#endif
 		exit(TRUE);
 	}
 #else
