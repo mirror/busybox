@@ -941,20 +941,22 @@ static int expand_arguments(char *command)
 		return FALSE;
 	}
 	
-	/* Convert from char** (one word per string) to a simple char*,
-	 * but don't overflow command which is BUFSIZ in length */
-	*command = '\0';
-	while (i < expand_result.we_wordc && total_length < BUFSIZ) {
-		length=strlen(expand_result.we_wordv[i])+1;
-		if (BUFSIZ-total_length-length <= 0) {
-			error_msg(out_of_space);
-			return FALSE;
+	if (expand_result.we_wordc > 0) {
+		/* Convert from char** (one word per string) to a simple char*,
+		 * but don't overflow command which is BUFSIZ in length */
+		*command = '\0';
+		while (i < expand_result.we_wordc && total_length < BUFSIZ) {
+			length=strlen(expand_result.we_wordv[i])+1;
+			if (BUFSIZ-total_length-length <= 0) {
+				error_msg(out_of_space);
+				return FALSE;
+			}
+			strcat(command+total_length, expand_result.we_wordv[i++]);
+			strcat(command+total_length, " ");
+			total_length+=length;
 		}
-		strcat(command+total_length, expand_result.we_wordv[i++]);
-		strcat(command+total_length, " ");
-		total_length+=length;
+		wordfree (&expand_result);
 	}
-	wordfree (&expand_result);
 #else
 
 	/* Ok.  They don't have a recent glibc and they don't have uClibc.  Chances
