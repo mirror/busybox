@@ -29,7 +29,7 @@
 
 
 /* And the system call of the day is...  */
-extern int delete_module (const char * __name);
+_syscall1(int, delete_module, const char *, name)
 
 
 static const char rmmod_usage[] =

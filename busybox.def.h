@@ -28,6 +28,7 @@
 #define BB_HEAD
 #define BB_HOSTNAME
 #define BB_INIT
+#define BB_INSMOD
 #define BB_KILL
 #define BB_KLOGD
 //#define BB_LENGTH

@@ -79,6 +79,7 @@ extern int halt_main(int argc, char** argv);
 extern int head_main(int argc, char** argv);
 extern int hostname_main(int argc, char** argv);
 extern int init_main(int argc, char** argv);
+extern int insmod_main(int argc, char** argv);
 extern int kill_main(int argc, char** argv);
 extern int length_main(int argc, char** argv);
 extern int ln_main(int argc, char** argv);
