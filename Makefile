@@ -31,37 +31,12 @@ DODEBUG = true
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
-# Figure out what arch we are on (not used at the moment)
-ARCH := $(shell uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/')
-
-
 CC = gcc
 
-GCCMAJVERSION = $(shell $(CC) --version | cut -f1 -d'.')
-GCCMINVERSION = $(shell $(CC) --version | cut -f2 -d'.')
+# use '-Os' optimization if available, else use -O2
+OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
+    then echo "-Os"; else echo "-O2" ; fi)
 
-
-GCCSUPPORTSOPTSIZE = $(shell			\
-if ( test $(GCCMAJVERSION) -eq 2 ) ; then	\
-    if ( test $(GCCMINVERSION) -ge 66 ) ; then	\
-	echo "true";				\
-    else					\
-	echo "false";				\
-    fi;						\
-else						\
-    if ( test $(GCCMAJVERSION) -gt 2 ) ; then	\
-	echo "true";				\
-    else					\
-	echo "false";				\
-    fi;						\
-fi; )
-
-
-ifeq ($(GCCSUPPORTSOPTSIZE), true)
-    OPTIMIZATION = -Os
-else
-    OPTIMIZATION = -O2
-endif
 
 # Allow alternative stripping tools to be used...
 ifndef $(STRIPTOOL)
@@ -97,6 +72,13 @@ CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
+endif
+
+# use '-ffunction-sections -fdata-sections' and '--gc-sections' if they work
+ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
+	-o /dev/null -xc /dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
+    CFLAGS += -ffunction-sections -fdata-sections -DFUNCTION_SECTIONS
+    LDFLAGS += --gc-sections
 endif
 
 all: busybox busybox.links doc
