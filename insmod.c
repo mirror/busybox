@@ -71,7 +71,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.10 2000/06/22 18:19:31 andersen Exp $"
+#ident "$Id: insmod.c,v 1.11 2000/06/26 11:16:22 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -277,7 +277,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.10 2000/06/22 18:19:31 andersen Exp $"
+#ident "$Id: insmod.c,v 1.11 2000/06/26 11:16:22 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1189,8 +1189,10 @@ old_process_module_arguments(struct obj_file *f, int argc, char **argv)
 		int *loc;
 
 		p = *argv;
-		if ((q = strchr(p, '=')) == NULL)
+		if ((q = strchr(p, '=')) == NULL) {
+			argc--;
 			continue;
+                }
 		*q++ = '\0';
 
 		sym = obj_find_symbol(f, p);
@@ -1550,8 +1552,10 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 		int min, max, n;
 
 		p = *argv;
-		if ((q = strchr(p, '=')) == NULL)
+		if ((q = strchr(p, '=')) == NULL) {
+			argc--;
 			continue;
+                }
 
 		key = alloca(q - p + 6);
 		memcpy(key, "parm_", 5);

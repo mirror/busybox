@@ -4,6 +4,8 @@
 	    "none" entries in /proc/mounts, added a hack to make sysinfo
 	    work with both old and new kernels).
 	* Fixed a nasty bug in tar when could mess up saved symlinks.
+	* Fixed insmod module option parsing for options lacking an '='.
+	    Fix thanks to Marc Nijdam <marc_nijdam@hp.com>
 
 	 -Erik Andersen
 
