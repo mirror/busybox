@@ -39,6 +39,31 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		free(name);
 	}                  
 
+	/* Check if the file already exists */
+	if (archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
+		/* Remove the existing entry if it exists */
+		if ((unlink(file_header->name) == -1) && (errno != ENOENT)) {
+			bb_perror_msg_and_die("Couldnt remove old file");
+		}
+	}
+	else if (archive_handle->flags & ARCHIVE_EXTRACT_NEWER) {
+		/* Remove the existing entry if its older than the extracted entry */
+		struct stat statbuf;
+		if ((lstat(file_header->name, &statbuf) == -1) && (errno != ENOENT)) {
+			bb_perror_msg_and_die("Couldnt stat old file");
+		}
+		if (statbuf.st_mtime <= file_header->mtime) {
+			if (!(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
+				bb_error_msg("%s not created: newer or same age file exists", file_header->name);
+			}
+			data_skip(archive_handle);
+			return;
+		}
+		if ((unlink(file_header->name) == -1) && (errno != ENOENT)) {
+			bb_perror_msg_and_die("Couldnt remove old file");
+		}
+	}
+
 	/* Handle hard links seperately */
 	if (!S_ISLNK(file_header->mode) && (file_header->link_name) && (file_header->size == 0)) {
 		/* hard link */

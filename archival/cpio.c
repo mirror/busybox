@@ -40,8 +40,8 @@ extern int cpio_main(int argc, char **argv)
 	archive_handle = init_handle();
 	archive_handle->src_fd = fileno(stdin);
 	archive_handle->seek = seek_by_char;
-	archive_handle->action_header = header_list;
-
+	archive_handle->flags = ARCHIVE_EXTRACT_NEWER | ARCHIVE_PRESERVE_DATE;
+	
 	while ((opt = getopt(argc, argv, "idmuvtF:")) != -1) {
 		switch (opt) {
 		case 'i': /* extract */
@@ -50,17 +50,28 @@ extern int cpio_main(int argc, char **argv)
 		case 'd': /* create _leading_ directories */
 			archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
 			break;
+#if 0
 		case 'm': /* preserve modification time */
 			archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
 			break;
+#endif
 		case 'v': /* verbosly list files */
-			archive_handle->action_header = header_verbose_list;
+			if (archive_handle->action_header == header_list) {
+				archive_handle->action_header = header_verbose_list;
+			} else {
+				archive_handle->action_header = header_list;
+			}
 			break;
 		case 'u': /* unconditional */
 			archive_handle->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
+			archive_handle->flags &= ~ARCHIVE_EXTRACT_NEWER;
 			break;
 		case 't': /* list files */
-			archive_handle->action_header = header_list;
+			if (archive_handle->action_header == header_list) {
+				archive_handle->action_header = header_verbose_list;
+			} else {
+				archive_handle->action_header = header_list;
+			}
 			break;
 		case 'F':
 			archive_handle->src_fd = bb_xopen(optarg, O_RDONLY);
@@ -81,4 +92,3 @@ extern int cpio_main(int argc, char **argv)
 
 	return(EXIT_SUCCESS);
 }
-

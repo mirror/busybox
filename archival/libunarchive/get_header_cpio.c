@@ -36,7 +36,6 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	int namesize;
 	char dummy[16];
 	int major, minor, nlink, inode;
-	char extract_flag;
 	
 	if (pending_hardlinks) { /* Deal with any pending hardlinks */
 		hardlinks_t *tmp;
@@ -71,17 +70,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	}
 	archive_handle->offset += 110;
 
-	if (strncmp(&cpio_header[0], "07070", 5) != 0) {
-		printf("cpio header is %x-%x-%x-%x-%x\n",
-			cpio_header[0],
-			cpio_header[1],
-			cpio_header[2],
-			cpio_header[3],
-			cpio_header[4]);
-		bb_error_msg_and_die("Unsupported cpio format");
-	}
-		
-	if ((cpio_header[5] != '1') && (cpio_header[5] != '2')) {
+	if ((strncmp(&cpio_header[0], "07070", 5) != 0) || ((cpio_header[5] != '1') && (cpio_header[5] != '2'))) {
 		bb_error_msg_and_die("Unsupported cpio format, use newc or crc");
 	}
 
@@ -154,36 +143,13 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	}
 	file_header->device = (major << 8) | minor;
 
-	extract_flag = FALSE;
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
-		struct stat statbuf;
-
-		extract_flag = TRUE;
-
-		/* Check if the file already exists */
-		if (lstat (file_header->name, &statbuf) == 0) {
-			if ((archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) || (statbuf.st_mtime < file_header->mtime)) {
-				/* Remove file if flag set or its older than the file to be extracted */
-				if (unlink(file_header->name) == -1) {
-					bb_perror_msg_and_die("Couldnt remove old file");
-				}
-			} else {
-				if (! archive_handle->flags & ARCHIVE_EXTRACT_QUIET) {
-					bb_error_msg("%s not created: newer or same age file exists", file_header->name);
-				}
-				extract_flag = FALSE;
-			}
-		}
-		archive_handle->action_header(file_header);
-	}
-
-	archive_handle->action_header(file_header);
-	if (extract_flag) {
 		archive_handle->action_data(archive_handle);
+		archive_handle->action_header(archive_handle->file_header);
 	} else {
-		data_skip(archive_handle);
+		data_skip(archive_handle);			
 	}
+
 	archive_handle->offset += file_header->size;
 	return (EXIT_SUCCESS);
 }
-

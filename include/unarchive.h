@@ -5,6 +5,7 @@
 #define ARCHIVE_CREATE_LEADING_DIRS		2
 #define ARCHIVE_EXTRACT_UNCONDITIONAL	4
 #define ARCHIVE_EXTRACT_QUIET	8
+#define ARCHIVE_EXTRACT_NEWER	16
 
 #include <sys/types.h>
 #include <stdio.h>
