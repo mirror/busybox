@@ -147,7 +147,14 @@ free
 # freeramdisk
 # fsck.minix - won't test
 # getopt
+
 # grep
+grep -l strdup ../*.c
+grep -c strdup ../*.c
+# I swear, GNU grep seems broken for this next one
+grep -lc strdup ../*.c
+grep -cv strdup ../*.c
+
 # gunzip
 # gzip
 # halt
@@ -262,7 +269,13 @@ touch F ; rm F
 # rmmod - won't test: dangerous
 # route
 # rpmunpack
+
 # sed - we can do some one-liners here; probably needs it's own input file
+echo foo | sed -ne '/^$/p'
+sed -e '/test$/d' testcases
+sed -e '/^echo/d' testcases
+sed -e '/test/s/dangerous/PELIGROSO/' testcases
+
 # setkeycodes
 
 # sh - note that we cannot test the shell interactively here
