@@ -50,8 +50,8 @@ static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size)
 		}
 
 		read_actual = safe_read(src_fd, buffer, read_try);
-		if ((read_actual > 0) && (dst_fd >= 0)) {
-			if (bb_full_write(dst_fd, buffer, (size_t) read_actual) != read_actual) {
+		if (read_actual > 0) {
+			if ((dst_fd >= 0) && (bb_full_write(dst_fd, buffer, (size_t) read_actual) != read_actual)) {
 				bb_perror_msg(bb_msg_write_error);	/* match Read error below */
 				break;
 			}
