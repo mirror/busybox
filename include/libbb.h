@@ -169,7 +169,7 @@ extern char * my_getpwuid(char *name, long uid);
 extern char * my_getgrgid(char *group, long gid);
 extern long my_getpwnamegid(const char *name);
 
-extern int device_open(char *device, int mode);
+extern int device_open(const char *device, int mode);
 
 extern int del_loop(const char *device);
 extern int set_loop(const char *device, const char *file, int offset, int *loopro);

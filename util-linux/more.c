@@ -9,7 +9,7 @@
  * based on the original more implementation by Bruce, and code from the 
  * Debian boot-floppies team.
  *
- * Termios corrects by Vladimir Oleynik <vodz@usa.net>
+ * Termios corrects by Vladimir Oleynik <dzo@simtreas.ru>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

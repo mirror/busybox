@@ -3,7 +3,7 @@
  * Utility routines.
  *
  * Copyright (C) Manuel Nova III <mnovoa3@bellsouth.net>
- * and Vladimir Oleynik <vodz@usa.net> 
+ * and Vladimir Oleynik <dzo@simtreas.ru>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

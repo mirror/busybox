@@ -120,6 +120,8 @@ extern int bdflush(int func, long int data);
 
 #define MAXENV	16		/* Number of env. vars */
 
+#define CONSOLE_BUFF_SIZE 32
+
 /* Allowed init action types */
 #define SYSINIT     0x001
 #define RESPAWN     0x002
@@ -152,16 +154,15 @@ static const struct init_action_type actions[] = {
 struct init_action {
 	pid_t pid;
 	char command[INIT_BUFFS_SIZE];
-	char terminal[INIT_BUFFS_SIZE];
+	char terminal[CONSOLE_BUFF_SIZE];
 	struct init_action *next;
 	int action;
 };
 
 /* Static variables */
 static struct init_action *init_action_list = NULL;
-static int kernelVersion = 0;
-static char termType[32] = "TERM=linux";
-static char console[32] = _PATH_CONSOLE;
+static int kernelVersion;
+static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
 
 #ifndef CONFIG_SYSLOGD
 static char *log = VC_5;
@@ -184,9 +185,17 @@ static const int RB_DISABLE_CAD = 0;
 static const int RB_AUTOBOOT = 0x01234567;
 #endif
 
+static const char * const environment[] = {
+	"HOME=/",
+	"PATH=" _PATH_STDPATH,
+	"SHELL=" SHELL,
+	"USER=root",
+	NULL
+};
+
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
-static int waitfor(struct init_action *a);
+static int waitfor(const struct init_action *a);
 
 
 static void loop_forever(void)
@@ -197,38 +206,44 @@ static void loop_forever(void)
 
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
-#ifdef DEBUG_INIT
-static inline messageND(int device, char *fmt, ...)
+#ifndef DEBUG_INIT
+static inline void messageD(int device, const char *fmt, ...)
 {
 }
 #else
-#define messageND message
+#define messageD message
 #endif
-static void message(int device, char *fmt, ...)
+static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
-static void message(int device, char *fmt, ...)
+static void message(int device, const char *fmt, ...)
 {
 	va_list arguments;
-	int fd;
-
-#ifdef CONFIG_SYSLOGD
-
-	/* Log the message to syslogd */
-	if (device & LOG) {
+	int l;
 		char msg[1024];
 
+	msg[0] = '\r';
 		va_start(arguments, fmt);
-		vsnprintf(msg, sizeof(msg), fmt, arguments);
+	l = vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments) + 1;
 		va_end(arguments);
-		syslog_msg(LOG_USER, LOG_INFO, msg);
+
+#ifdef CONFIG_SYSLOGD
+	/* Log the message to syslogd */
+	if (device & LOG) {
+		/* don`t out "\r\n" */
+		syslog_msg(LOG_DAEMON, LOG_INFO, msg + 1);
 	}
+
+	msg[l++] = '\n';
+	msg[l] = 0;
 #else
 	static int log_fd = -1;
 
+	msg[l++] = '\n';
+	msg[l] = 0;
 	/* Take full control of the log tty, and never close it.
 	 * It's mine, all mine!  Muhahahaha! */
 	if (log_fd < 0) {
-		if ((log_fd = device_open(log, O_RDWR | O_NDELAY)) < 0) {
+		if ((log_fd = device_open(log, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
 			log_fd = -2;
 			error_msg("Bummer, can't write to log on %s!", log);
 			device = CONSOLE;
@@ -237,26 +252,25 @@ static void message(int device, char *fmt, ...)
 		}
 	}
 	if ((device & LOG) && (log_fd >= 0)) {
-		va_start(arguments, fmt);
-		vdprintf(log_fd, fmt, arguments);
-		va_end(arguments);
+		full_write(log_fd, msg, l);
 	}
 #endif
 
 	if (device & CONSOLE) {
+		int fd = device_open(_PATH_CONSOLE,
+					O_WRONLY | O_NOCTTY | O_NDELAY);
 		/* Always send console messages to /dev/console so people will see them. */
-		if ((fd =
-			 device_open(_PATH_CONSOLE,
-						 O_WRONLY | O_NOCTTY | O_NDELAY)) >= 0) {
-			va_start(arguments, fmt);
-			vdprintf(fd, fmt, arguments);
-			va_end(arguments);
+		if (fd >= 0) {
+			full_write(fd, msg, l);
 			close(fd);
+#ifdef DEBUG_INIT
+		/* all descriptors may be closed */
 		} else {
 			error_msg("Bummer, can't print: ");
 			va_start(arguments, fmt);
 			vfprintf(stderr, fmt, arguments);
 			va_end(arguments);
+#endif
 		}
 	}
 }
@@ -330,31 +344,23 @@ static int check_free_memory(void)
 static void console_init(void)
 {
 	int fd;
-	int tried_devcons = 0;
-	int tried_vtprimary = 0;
+	int tried = 0;
 	struct vt_stat vt;
 	struct serial_struct sr;
 	char *s;
 
-	if ((s = getenv("TERM")) != NULL) {
-		snprintf(termType, sizeof(termType) - 1, "TERM=%s", s);
-	}
-
-	if ((s = getenv("CONSOLE")) != NULL) {
+	if ((s = getenv("CONSOLE")) != NULL || (s = getenv("console")) != NULL) {
 		safe_strncpy(console, s, sizeof(console));
-	}
 #if #cpu(sparc)
 	/* sparc kernel supports console=tty[ab] parameter which is also 
 	 * passed to init, so catch it here */
-	else if ((s = getenv("console")) != NULL) {
 		/* remap tty[ab] to /dev/ttyS[01] */
 		if (strcmp(s, "ttya") == 0)
 			safe_strncpy(console, SC_0, sizeof(console));
 		else if (strcmp(s, "ttyb") == 0)
 			safe_strncpy(console, SC_1, sizeof(console));
-	}
 #endif
-	else {
+	} else {
 		/* 2.2 kernels: identify the real console backend and try to use it */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			/* this is a serial console */
@@ -364,39 +370,41 @@ static void console_init(void)
 			snprintf(console, sizeof(console) - 1, VC_FORMAT, vt.v_active);
 		} else {
 			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
-			tried_devcons++;
+			tried++;
 		}
 	}
 
-	while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
-		/* Can't open selected console -- try /dev/console */
-		if (!tried_devcons) {
-			tried_devcons++;
-			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
-			continue;
-		}
-		/* Can't open selected console -- try vt1 */
-		if (!tried_vtprimary) {
-			tried_vtprimary++;
-			safe_strncpy(console, VC_1, sizeof(console));
-			continue;
-		}
-		break;
+	while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0 && tried < 2) {
+		/* Can't open selected console -- try
+			logical system console and VT_MASTER */
+		safe_strncpy(console, (tried == 0 ? _PATH_CONSOLE : CURRENT_VC),
+							sizeof(console));
+		tried++;
 	}
 	if (fd < 0) {
 		/* Perhaps we should panic here? */
+#ifndef CONFIG_SYSLOGD
+		log =
+#endif
 		safe_strncpy(console, "/dev/null", sizeof(console));
 	} else {
+		s = getenv("TERM");
 		/* check for serial console */
-		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
+		if (ioctl(fd, TIOCGSERIAL, &sr) == 0) {
 			/* Force the TERM setting to vt102 for serial console --
 			 * if TERM is set to linux (the default) */
-			if (strcmp(termType, "TERM=linux") == 0)
-				safe_strncpy(termType, "TERM=vt102", sizeof(termType));
+			if (s == NULL || strcmp(s, "linux") == 0)
+				putenv("TERM=vt102");
+#ifndef CONFIG_SYSLOGD
+			log = console;
+#endif
+		} else {
+			if (s == NULL)
+				putenv("TERM=linux");
 		}
 		close(fd);
 	}
-	message(LOG, "console=%s\n", console);
+	messageD(LOG, "console=%s", console);
 }
 
 static void fixup_argv(int argc, char **argv, char *new_argv0)
@@ -416,67 +424,19 @@ static void fixup_argv(int argc, char **argv, char *new_argv0)
 	}
 }
 
-/* Make sure there is enough memory to do something useful. *
- * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
-static void check_memory(void)
-{
-	struct stat statBuf;
-
-	if (check_free_memory() > 1000)
-		return;
-
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
-	if (stat("/etc/fstab", &statBuf) == 0) {
-		/* swapon -a requires /proc typically */
-		system("/bin/mount -t proc proc /proc");
-		/* Try to turn on swap */
-		system("/sbin/swapon -a");
-		if (check_free_memory() < 1000)
-			goto goodnight;
-	} else
-		goto goodnight;
-	return;
-#endif
-
-  goodnight:
-	message(CONSOLE, "\rSorry, your computer does not have enough memory.\n");
-	loop_forever();
-}
-
-static pid_t run(struct init_action *a)
+static pid_t run(const struct init_action *a)
 {
 	struct stat sb;
-	int i, j, junk;
+	int i, junk;
 	pid_t pid, pgrp, tmp_pid;
 	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
-	char *environment[MAXENV + 1] = {
-		termType,
-		"HOME=/",
-		"PATH=" _PATH_STDPATH,
-		"SHELL=" SHELL,
-		"USER=root",
-		NULL
-	};
 	static const char press_enter[] =
 #ifdef CUSTOMIZED_BANNER
 #include CUSTOMIZED_BANNER
 #endif
 		"\nPlease press Enter to activate this console. ";
-
-	/* inherit environment to the child, merging our values -andy */
-	for (i = 0; environ[i]; i++) {
-		for (j = 0; environment[j]; j++) {
-			s = strchr(environment[j], '=');
-			if (!strncmp(environ[i], environment[j], s - environment[j]))
-				break;
-		}
-		if (!environment[j]) {
-			environment[j++] = environ[i];
-			environment[j] = NULL;
-		}
-	}
 
 	/* Block sigchild while forking.  */
 	sigemptyset(&nmask);
@@ -507,11 +467,11 @@ static pid_t run(struct init_action *a)
 		/* Open the new terminal device */
 		if ((device_open(a->terminal, O_RDWR)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
-				message(LOG | CONSOLE, "\rdevice '%s' does not exist.\n",
+				message(LOG | CONSOLE, "device '%s' does not exist.",
 						a->terminal);
 				_exit(1);
 			}
-			message(LOG | CONSOLE, "\rBummer, can't open %s\n", a->terminal);
+			message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
 			_exit(1);
 		}
 
@@ -528,7 +488,7 @@ static pid_t run(struct init_action *a)
 
 			/* Now fork off another process to just hang around */
 			if ((pid = fork()) < 0) {
-				message(LOG | CONSOLE, "Can't fork!\n");
+				message(LOG | CONSOLE, "Can't fork!");
 				_exit(1);
 			}
 
@@ -550,7 +510,7 @@ static pid_t run(struct init_action *a)
 
 				/* Use a temporary process to steal the controlling tty. */
 				if ((pid = fork()) < 0) {
-					message(LOG | CONSOLE, "\rCan't fork!\n");
+					message(LOG | CONSOLE, "Can't fork!");
 					_exit(1);
 				}
 				if (pid == 0) {
@@ -572,8 +532,7 @@ static pid_t run(struct init_action *a)
 		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 			cmd[0] = SHELL;
 			cmd[1] = "-c";
-			strcat(strcpy(buf, "exec "), a->command);
-			cmd[2] = buf;
+			cmd[2] = strcat(strcpy(buf, "exec "), a->command);
 			cmd[3] = NULL;
 		} else {
 			/* Convert command (char*) into cmd (char**, one word per string) */
@@ -607,7 +566,7 @@ static pid_t run(struct init_action *a)
 
 			/* make a new argv[0] */
 			if ((cmd[0] = malloc(strlen(s) + 2)) == NULL) {
-				message(LOG | CONSOLE, "malloc failed");
+				message(LOG | CONSOLE, memory_exhausted);
 				cmd[0] = cmdpath;
 			} else {
 				cmd[0][0] = '-';
@@ -616,6 +575,7 @@ static pid_t run(struct init_action *a)
 		}
 
 		if (a->action & ASKFIRST) {
+			char c;
 			/*
 			 * Save memory by not exec-ing anything large (like a shell)
 			 * before the user wants it. This is critical if swap is not
@@ -624,16 +584,16 @@ static pid_t run(struct init_action *a)
 			 * be allowed to start a shell or whatever an init script 
 			 * specifies.
 			 */
-			messageND(LOG,
-					  "Waiting for enter to start '%s' (pid %d, terminal %s)\n",
+			messageD(LOG, "Waiting for enter to start '%s'"
+						"(pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
-			fflush(stdout);
-			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
-			getc(stdin);
+			full_write(1, press_enter, sizeof(press_enter) - 1);
+			while(read(0, &c, 1) == 1 && c != '\n')
+				;
 		}
 
 		/* Log the process name and args */
-		messageND(LOG, "Starting pid %d, console %s: '%s'\n",
+		message(LOG, "Starting pid %d, console %s: '%s'",
 				  getpid(), a->terminal, cmdpath);
 
 #if defined CONFIG_FEATURE_INIT_COREDUMPS
@@ -648,17 +608,17 @@ static pid_t run(struct init_action *a)
 
 		/* Now run it.  The new program will take over this PID, 
 		 * so nothing further in init.c should be run. */
-		execve(cmdpath, cmd, environment);
+		execv(cmdpath, cmd);
 
 		/* We're still here?  Some error happened. */
-		message(LOG | CONSOLE, "\rBummer, could not run '%s': %m\n", cmdpath);
+		message(LOG | CONSOLE, "Bummer, could not run '%s': %m", cmdpath);
 		_exit(-1);
 	}
 	sigprocmask(SIG_SETMASK, &omask, NULL);
 	return pid;
 }
 
-static int waitfor(struct init_action *a)
+static int waitfor(const struct init_action *a)
 {
 	int pid;
 	int status, wpid;
@@ -700,7 +660,6 @@ static void run_actions(int action)
 	}
 }
 
-
 #ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
@@ -727,16 +686,16 @@ static void shutdown_system(void)
 	/* Allow Ctrl-Alt-Del to reboot system. */
 	init_reboot(RB_ENABLE_CAD);
 
-	message(CONSOLE | LOG, "\n\rThe system is going down NOW !!\n");
+	message(CONSOLE | LOG, "The system is going down NOW !!");
 	sync();
 
 	/* Send signals to every process _except_ pid 1 */
-	message(CONSOLE | LOG, "\rSending SIGTERM to all processes.\n");
+	message(CONSOLE | LOG, "Sending SIGTERM to all processes.");
 	kill(-1, SIGTERM);
 	sleep(1);
 	sync();
 
-	message(CONSOLE | LOG, "\rSending SIGKILL to all processes.\n");
+	message(CONSOLE | LOG, "Sending SIGKILL to all processes.");
 	kill(-1, SIGKILL);
 	sleep(1);
 
@@ -771,10 +730,10 @@ static void exec_signal(int sig)
 			sigaddset(&unblock_signals, SIGTSTP);
 			sigprocmask(SIG_UNBLOCK, &unblock_signals, NULL);
 
-			message(CONSOLE | LOG, "\rTrying to re-exec %s\n", a->command);
+			messageD(CONSOLE | LOG, "Trying to re-exec %s", a->command);
 			execl(a->command, a->command, NULL);
 
-			message(CONSOLE | LOG, "\rexec of '%s' failed: %m\n",
+			message(CONSOLE | LOG, "exec of '%s' failed: %m",
 					a->command);
 			sync();
 			sleep(2);
@@ -790,9 +749,9 @@ static void halt_signal(int sig)
 	message(CONSOLE | LOG,
 #if #cpu(s390)
 			/* Seems the s390 console is Wierd(tm). */
-			"\rThe system is halted. You may reboot now.\n"
+			"The system is halted. You may reboot now."
 #else
-			"\rThe system is halted. Press Reset or turn off power\n"
+			"The system is halted. Press Reset or turn off power"
 #endif
 		);
 	sync();
@@ -811,7 +770,7 @@ static void halt_signal(int sig)
 static void reboot_signal(int sig)
 {
 	shutdown_system();
-	message(CONSOLE | LOG, "\rPlease stand by while rebooting the system.\n");
+	message(CONSOLE | LOG, "Please stand by while rebooting the system.");
 	sync();
 
 	/* allow time for last message to reach serial console */
@@ -847,7 +806,7 @@ static void cont_handler(int sig)
 
 #endif							/* ! DEBUG_INIT */
 
-static void new_init_action(int action, char *command, char *cons)
+static void new_init_action(int action, char *command, const char *cons)
 {
 	struct init_action *new_action, *a;
 
@@ -862,7 +821,7 @@ static void new_init_action(int action, char *command, char *cons)
 
 	new_action = calloc((size_t) (1), sizeof(struct init_action));
 	if (!new_action) {
-		message(LOG | CONSOLE, "\rMemory allocation failure\n");
+		message(LOG | CONSOLE, "Memory allocation failure");
 		loop_forever();
 	}
 
@@ -876,9 +835,11 @@ static void new_init_action(int action, char *command, char *cons)
 	strcpy(new_action->command, command);
 	new_action->action = action;
 	strcpy(new_action->terminal, cons);
+#if 0   /* calloc zeroed always */
 	new_action->pid = 0;
-/*    message(LOG|CONSOLE, "command='%s' action='%d' terminal='%s'\n",
-		new_action->command, new_action->action, new_action->terminal); */
+#endif
+	messageD(LOG|CONSOLE, "command='%s' action='%d' terminal='%s'\n",
+		new_action->command, new_action->action, new_action->terminal);
 }
 
 static void delete_init_action(struct init_action *action)
@@ -898,6 +859,34 @@ static void delete_init_action(struct init_action *action)
 	}
 }
 
+/* Make sure there is enough memory to do something useful. *
+ * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
+static void check_memory(void)
+{
+	struct stat statBuf;
+
+	if (check_free_memory() > 1000)
+		return;
+
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+	if (stat("/etc/fstab", &statBuf) == 0) {
+		/* swapon -a requires /proc typically */
+		new_init_action(SYSINIT, "/bin/mount -t proc proc /proc", "");
+		/* Try to turn on swap */
+		new_init_action(SYSINIT, "/sbin/swapon -a", "");
+		run_actions(SYSINIT);   /* wait and removing */
+		if (check_free_memory() < 1000)
+			goto goodnight;
+	} else
+		goto goodnight;
+	return;
+#endif
+
+  goodnight:
+	message(CONSOLE, "Sorry, your computer does not have enough memory.");
+	loop_forever();
+}
+
 /* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
  * actions(i.e., runs INIT_SCRIPT and then starts a pair 
@@ -909,11 +898,10 @@ static void parse_inittab(void)
 {
 #ifdef CONFIG_FEATURE_USE_INITTAB
 	FILE *file;
-	char buf[INIT_BUFFS_SIZE], lineAsRead[INIT_BUFFS_SIZE],
-		tmpConsole[INIT_BUFFS_SIZE];
+	char buf[INIT_BUFFS_SIZE], lineAsRead[INIT_BUFFS_SIZE];
+	char tmpConsole[CONSOLE_BUFF_SIZE];
 	char *id, *runlev, *action, *command, *eol;
 	const struct init_action_type *a = actions;
-	int foundIt;
 
 
 	file = fopen(INITTAB, "r");
@@ -921,29 +909,28 @@ static void parse_inittab(void)
 		/* No inittab file -- set up some default behavior */
 #endif
 		/* Reboot on Ctrl-Alt-Del */
-		new_init_action(CTRLALTDEL, "/sbin/reboot", console);
+		new_init_action(CTRLALTDEL, "/sbin/reboot", "");
 		/* Umount all filesystems on halt/reboot */
-		new_init_action(SHUTDOWN, "/bin/umount -a -r", console);
+		new_init_action(SHUTDOWN, "/bin/umount -a -r", "");
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		/* Swapoff on halt/reboot */
-		new_init_action(SHUTDOWN, "/sbin/swapoff -a", console);
+		new_init_action(SHUTDOWN, "/sbin/swapoff -a", "");
 #endif
 		/* Prepare to restart init when a HUP is received */
-		new_init_action(RESTART, "/sbin/init", console);
+		new_init_action(RESTART, "/sbin/init", "");
 		/* Askfirst shell on tty1-4 */
-		new_init_action(ASKFIRST, LOGIN_SHELL, console);
+		new_init_action(ASKFIRST, LOGIN_SHELL, "");
 		new_init_action(ASKFIRST, LOGIN_SHELL, VC_2);
 		new_init_action(ASKFIRST, LOGIN_SHELL, VC_3);
 		new_init_action(ASKFIRST, LOGIN_SHELL, VC_4);
 		/* sysinit */
-		new_init_action(SYSINIT, INIT_SCRIPT, console);
+		new_init_action(SYSINIT, INIT_SCRIPT, "");
 
 		return;
 #ifdef CONFIG_FEATURE_USE_INITTAB
 	}
 
 	while (fgets(buf, INIT_BUFFS_SIZE, file) != NULL) {
-		foundIt = FALSE;
 		/* Skip leading spaces */
 		for (id = buf; *id == ' ' || *id == '\t'; id++);
 
@@ -962,7 +949,7 @@ static void parse_inittab(void)
 		/* Separate the ID field from the runlevels */
 		runlev = strchr(id, ':');
 		if (runlev == NULL || *(runlev + 1) == '\0') {
-			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "Bad inittab entry: %s", lineAsRead);
 			continue;
 		} else {
 			*runlev = '\0';
@@ -972,7 +959,7 @@ static void parse_inittab(void)
 		/* Separate the runlevels from the action */
 		action = strchr(runlev, ':');
 		if (action == NULL || *(action + 1) == '\0') {
-			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "Bad inittab entry: %s", lineAsRead);
 			continue;
 		} else {
 			*action = '\0';
@@ -982,7 +969,7 @@ static void parse_inittab(void)
 		/* Separate the action from the command */
 		command = strchr(action, ':');
 		if (command == NULL || *(command + 1) == '\0') {
-			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "Bad inittab entry: %s", lineAsRead);
 			continue;
 		} else {
 			*command = '\0';
@@ -990,31 +977,29 @@ static void parse_inittab(void)
 		}
 
 		/* Ok, now process it */
-		a = actions;
-		while (a->name != 0) {
+		for (a = actions; a->name != 0; a++) {
 			if (strcmp(a->name, action) == 0) {
 				if (*id != '\0') {
+					if(strncmp(id, "/dev/", 5) == 0)
+						id += 5;
 					strcpy(tmpConsole, "/dev/");
-					strncat(tmpConsole, id, INIT_BUFFS_SIZE - 6);
+					safe_strncpy(tmpConsole + 5, id,
+						CONSOLE_BUFF_SIZE - 5);
 					id = tmpConsole;
 				}
 				new_init_action(a->action, command, id);
-				foundIt = TRUE;
+				break;
 			}
-			a++;
 		}
-		if (foundIt == TRUE)
-			continue;
-		else {
+		if (a->name == 0) {
 			/* Choke on an unknown action */
-			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
+			message(LOG | CONSOLE, "Bad inittab entry: %s", lineAsRead);
 		}
 	}
 	fclose(file);
 	return;
 #endif							/* CONFIG_FEATURE_USE_INITTAB */
 }
-
 
 
 extern int init_main(int argc, char **argv)
@@ -1032,8 +1017,7 @@ extern int init_main(int argc, char **argv)
 			if (!pid || *pid <= 0)
 				error_msg_and_die("no process killed");
 		}
-		kill(*pid, SIGHUP);
-		exit(0);
+		return kill(*pid, SIGHUP);
 	}
 #ifndef DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
@@ -1078,12 +1062,14 @@ extern int init_main(int argc, char **argv)
 
 	chdir("/");
 	setsid();
-
-	/* Make sure PATH is set to something sane */
-	putenv("PATH=" _PATH_STDPATH);
-
+	{
+		const char * const *e;
+		/* Make sure environs is set to something sane */
+		for(e = environment; *e; e++)
+			putenv(*e);
+	}
 	/* Hello world */
-	message(MAYBE_CONSOLE | LOG, "\rinit started:  %s\n", full_version);
+	message(MAYBE_CONSOLE | LOG, "init started:  %s", full_version);
 
 	/* Make sure there is enough memory to do something useful. */
 	check_memory();
@@ -1091,12 +1077,8 @@ extern int init_main(int argc, char **argv)
 	/* Check if we are supposed to be in single user mode */
 	if (argc > 1 && (!strcmp(argv[1], "single") ||
 					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
-		/* Ask first then start a shell on tty2-4 */
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_2);
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_3);
-		new_init_action(ASKFIRST, LOGIN_SHELL, VC_4);
-		/* Start a shell on tty1 */
-		new_init_action(RESPAWN, LOGIN_SHELL, console);
+		/* Start a shell on console */
+		new_init_action(RESPAWN, LOGIN_SHELL, "");
 	} else {
 		/* Not in single user mode -- see what inittab says */
 
@@ -1124,7 +1106,7 @@ extern int init_main(int argc, char **argv)
 	/* If there is nothing else to do, stop */
 	if (init_action_list == NULL) {
 		message(LOG | CONSOLE,
-				"\rNo more tasks for init -- sleeping forever.\n");
+				"No more tasks for init -- sleeping forever.");
 		loop_forever();
 	}
 
@@ -1149,7 +1131,8 @@ extern int init_main(int argc, char **argv)
 					 * restarted by run_actions() */
 					a->pid = 0;
 					message(LOG, "Process '%s' (pid %d) exited.  "
-							"Scheduling it for restart.\n", a->command, wpid);
+							"Scheduling it for restart.",
+							a->command, wpid);
 				}
 			}
 			/* see if anyone else is waiting to be reaped */
