@@ -44,11 +44,12 @@ extern char get_header_tar_bz2(archive_handle_t *archive_handle)
 
 	if (pid == 0) {
 		/* child process */
+		int status;
+
 	    close(fd_pipe[0]); /* We don't wan't to read from the pipe */
-	    uncompressStream(archive_handle->src_fd, fd_pipe[1]);
-		check_trailer_gzip(archive_handle->src_fd);
+		uncompressStream(archive_handle->src_fd, fd_pipe[1]);
 	    close(fd_pipe[1]); /* Send EOF */
-	    exit(0);
+	    exit(status);
 	    /* notreached */
 	}
 	/* parent process */
