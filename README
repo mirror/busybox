@@ -16,11 +16,15 @@ the parts you do not need using C++ style (//) comments.
 After the build is complete a busybox.links file is generated which is
 then used by 'make install' to create symlinks to the busybox binary
 for all compiled in functions.  By default, 'make install' will place
-the symlink forest into `pwd`/busybox_install unless you have defined
-the PREFIX environment variable.
+the symlink forest into `pwd`/_install unless you have defined the 
+PREFIX environment variable.
 
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 
 	<andersen@lineo.com>
 	<andersee@deban.org>
+
+<blatent plug>
+Many thanks to go to Lineo for paying me to work on busybox. 
+</blatent plug>
 

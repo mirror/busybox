@@ -446,9 +446,11 @@ extern int init_main(int argc, char **argv)
     pid_t pid1 = 0;
     pid_t pid2 = 0;
     struct stat statbuf;
+    char which_vt1[30];
+    char which_vt2[30];
     const char* const rc_script_command[] = { INITSCRIPT, INITSCRIPT, 0};
-    const char* const getty1_command[] = { GETTY, GETTY, VT_PRIMARY, 0};
-    const char* const getty2_command[] = { GETTY, GETTY, VT_SECONDARY, 0};
+    const char* const getty1_command[] = { GETTY, GETTY, "38400", which_vt1, 0};
+    const char* const getty2_command[] = { GETTY, GETTY, "38400", which_vt2, 0};
     const char* const shell_command[] = { SHELL, "-" SHELL, 0};
     const char* const* tty1_command = shell_command;
     const char* const* tty2_command = shell_command;
@@ -516,11 +518,8 @@ extern int init_main(int argc, char **argv)
     } else
 	message(CONSOLE|LOG, "Mounting /proc: failed!\n");
 
-fprintf(stderr, "got proc\n");
-
     /* Make sure there is enough memory to do something useful. */
     check_memory();
-fprintf(stderr, "got check_memory\n");
 
     /* Check if we are supposed to be in single user mode */
     if ( argc > 1 && (!strcmp(argv[1], "single") || 
@@ -529,7 +528,6 @@ fprintf(stderr, "got check_memory\n");
 	tty1_command = shell_command;
 	tty2_command = shell_command;
     }
-fprintf(stderr, "got single\n");
 
     /* Make sure an init script exists before trying to run it */
     if (single==FALSE && stat(INITSCRIPT, &statbuf)==0) {
@@ -541,19 +539,22 @@ fprintf(stderr, "got single\n");
     /* Make sure /sbin/getty exists before trying to run it */
     if (stat(GETTY, &statbuf)==0) {
 	char* where;
-fprintf(stderr, "\n");
+	/* First do tty2 */
 	wait_for_enter_tty2 = FALSE;
-	where = strrchr( console, '/');
+	where = strrchr( second_console, '/');
 	if ( where != NULL) {
-	    strcpy( (char*)getty2_command[2], where);
+	    where++;
+	    strncpy( which_vt2, where, sizeof(which_vt2));
 	}
 	tty2_command = getty2_command;
+
 	/* Check on hooking a getty onto tty1 */
 	if (run_rc == FALSE && single==FALSE) {
 	    wait_for_enter_tty1 = FALSE;
-	    where = strrchr( second_console, '/');
+	    where = strrchr( console, '/');
 	    if ( where != NULL) {
-		strcpy( (char*)getty1_command[2], where);
+		where++;
+		strncpy( which_vt1, where, sizeof(which_vt1));
 	    }
 	    tty1_command = getty1_command;
 	}
