@@ -261,7 +261,7 @@ void reset_ino_dev_hashtable(void)
 
 #endif /* BB_CP_MV || BB_DU */
 
-#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN) || defined (BB_DPKG_DEB)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
