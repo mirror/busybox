@@ -86,7 +86,7 @@ chmod_usage_index
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nEach MODE is one or more of the letters ugoa, one of the symbols +-= and\n"
 	"one or more of the letters rwxst.\n\n"
-	"\nOptions:\n\t-R\tChanges files and directories recursively."
+	"Options:\n\t-R\tChanges files and directories recursively."
 #endif
 #endif
 DO_COMMA
@@ -226,15 +226,16 @@ DO_COMMA
 #if defined USAGE_ENUM
 dd_usage_index
 #elif defined USAGE_MESSAGES
-	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N] [conv=notrunc|sync]"
+	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N]\n"
+	"\t  [conv=notrunc|sync]"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nCopy a file, converting and formatting according to options\n\n"
-	"\tif=FILE\tread from FILE instead of stdin\n"
-	"\tof=FILE\twrite to FILE instead of stdout\n"
-	"\tbs=N\tread and write N bytes at a time\n"
-	"\tcount=N\tcopy only N input blocks\n"
-	"\tskip=N\tskip N input blocks\n"
-	"\tseek=N\tskip N output blocks\n"
+	"\tif=FILE\t\tread from FILE instead of stdin\n"
+	"\tof=FILE\t\twrite to FILE instead of stdout\n"
+	"\tbs=N\t\tread and write N bytes at a time\n"
+	"\tcount=N\t\tcopy only N input blocks\n"
+	"\tskip=N\t\tskip N input blocks\n"
+	"\tseek=N\t\tskip N output blocks\n"
 	"\tconv=notrunc\tdon't truncate output file\n"
 	"\tconv=sync\tpad blocks with zeros\n"
 	"\n"
@@ -261,17 +262,16 @@ DO_COMMA
 #if defined USAGE_ENUM
 df_usage_index
 #elif defined USAGE_MESSAGES
-	"[-?"
+	"[-"
 #ifdef BB_FEATURE_HUMAN_READABLE
 	"hm"
 #endif
-	"k] [filesystem ...]\n"
+	"k] [filesystem ...]"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\n\nPrint the filesystem space used and space available."
+	"\n\nPrint the filesystem space used and space available\n\n"
 	"Options:\n"
-	"\t-?\tshow usage information"
 #ifdef BB_FEATURE_HUMAN_READABLE
-	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G)\n"
 	"\t-m\tprint sizes in megabytes\n"
 	"\t-k\tprint sizes in kilobytes(default)"
 #else
@@ -356,7 +356,7 @@ DO_COMMA
 #if defined USAGE_ENUM
 du_usage_index
 #elif defined USAGE_MESSAGES
-	"[-?ls"
+	"[-ls"
 #ifdef BB_FEATURE_HUMAN_READABLE
 	"hm"
 #endif
@@ -365,11 +365,10 @@ du_usage_index
 	"\n\nSummarizes disk space used for each FILE and/or directory.\n"
 	"Disk space is printed in units of 1024 bytes.\n\n"
 	"Options:\n"
-        "\t-?\tshow usage information\n"
 	"\t-l\tcount sizes many times if hard linked\n"
 	"\t-s\tdisplay only a total for each argument"
 #ifdef BB_FEATURE_HUMAN_READABLE
-	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G)\n"
 	"\t-m\tprint sizes in megabytes\n"
 	"\t-k\tprint sizes in kilobytes(default)"
 #else
@@ -386,7 +385,7 @@ dumpkmap_usage_index
 #elif defined USAGE_MESSAGES
 	"> keymap"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\n\nPrints out a binary keyboard translation table to standard input."
+	"\n\nPrints out a binary keyboard translation table to standard output"
 #endif
 #endif
 DO_COMMA
@@ -994,7 +993,7 @@ ls_usage_index
 #endif
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n"
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G)\n"
 	"\t-k\tprint sizes in kilobytes(default)"
 #else
 	"\t-k\tprint sizes in kilobytes(compatability)"
@@ -1136,7 +1135,8 @@ mkswap_usage_index
 	"\n\nPrepare a disk partition to be used as a swap partition.\n\n"
 	"Options:\n" "\t-c\t\tCheck for read-ability.\n"
 	"\t-v0\t\tMake version 0 swap [max 128 Megs].\n"
-	"\t-v1\t\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n"
+	"\t-v1\t\tMake version 1 swap [big!] (default for kernels >\n"
+	"\t\t\t2.1.117).\n"
 	"\tblock-count\tNumber of block to use (default is entire partition)."
 #endif
 #endif
@@ -1178,7 +1178,7 @@ mount_usage_index
 	"Flags:\n" 
 	"\t-a:\t\tMount all filesystems in fstab.\n"
 #ifdef BB_MTAB
-	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
+	"\t-f:\t\t\"Fake\" Add entry to mount table but don't mount it.\n"
 	"\t-n:\t\tDon't write a mount table entry.\n"
 #endif
 	"\t-o option:\tOne of many filesystem options, listed below.\n"
@@ -1195,7 +1195,7 @@ mount_usage_index
 	"\tloop:\t\tMounts a file via loop device.\n"
 #endif
 	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n"
-	"\tremount:\tRe-mount a currently-mounted filesystem, changing its flags.\n"
+	"\tremount:\tRe-mount a mounted filesystem, changing its flags.\n"
 	"\tro/rw:\t\tMount for read-only / read-write.\n"
 	"\nThere are EVEN MORE flags that are specific to each filesystem.\n"
 	"You'll have to see the written documentation for those."
@@ -1492,7 +1492,6 @@ sed_usage_index
 	"-n\t\tsuppress automatic printing of pattern space\n"
 	"-e script\tadd the script to the commands to be executed\n"
 	"-f scriptfile\tadd the contents of script-file to the commands to be executed\n"
-	"-h\t\tdisplay this help message\n"
 	"\n"
 	"If no -e or -f is given, the first non-option argument is taken as the\n"
 	"sed script to interpret. All remaining arguments are names of input\n"
