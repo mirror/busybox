@@ -1058,6 +1058,15 @@ const char rmmod_usage[] =
 	;
 #endif
 
+#if defined BB_RPMUNPACK
+const char rpmunpack_usage[] =
+	"rpmunpack < package.rpm | gunzip | cpio -idmuv\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nExtracts an rpm archive.\n"
+#endif
+	;
+#endif
+
 #if defined BB_SED
 const char sed_usage[] =
 	"sed [-Vhnef] pattern [files...]\n"
@@ -1361,15 +1370,6 @@ const char unix2dos_usage[] =
 	"unix2dos < unixfile > dosfile\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nConverts a text file from unix format to dos format.\n"
-#endif
-	;
-#endif
-
-#if defined BB_UNRPM
-const char unrpm_usage[] =
-	"unrpm < package.rpm | gzip -d | cpio -idmuv\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nExtracts an rpm archive.\n"
 #endif
 	;
 #endif

@@ -84,6 +84,7 @@
 #define BB_RM
 #define BB_RMDIR
 #define BB_RMMOD
+#define BB_RPMUNPACK
 #define BB_SED
 #define BB_SETKEYCODES
 #define BB_SH
@@ -101,7 +102,6 @@
 #define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
-#define BB_UNRPM
 #define BB_UPTIME
 #define BB_USLEEP
 #define BB_WC

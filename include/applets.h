@@ -262,6 +262,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_RMMOD
 	{"rmmod", rmmod_main, _BB_DIR_SBIN, rmmod_usage},
 #endif
+#ifdef BB_RPMUNPACK
+	{"rpmunpack", rpmunpack_main, _BB_DIR_USR_BIN, rpmunpack_usage},
+#endif
 #ifdef BB_SED
 	{"sed", sed_main, _BB_DIR_BIN, sed_usage},
 #endif
@@ -327,9 +330,6 @@ const struct BB_applet applets[] = {
 #endif
 #ifdef BB_UNIX2DOS
 	{"unix2dos", unix2dos_main, _BB_DIR_USR_BIN, unix2dos_usage},
-#endif
-#ifdef BB_UNRPM
-	{"unrpm", unrpm_main, _BB_DIR_USR_BIN, unrpm_usage},
 #endif
 #ifdef BB_UPDATE
 	{"update", update_main, _BB_DIR_SBIN, update_usage},
