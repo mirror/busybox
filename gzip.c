@@ -380,7 +380,6 @@ extern int block_mode;   /* block compress mode -C compatible with 2.0 */
 #  undef LZW
 #endif
 
-/* $Id: gzip.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 /* tailor.h -- target dependent definitions
  * Copyright (C) 1992-1993 Jean-loup Gailly.
  * This is free software; you can redistribute it and/or modify it under the
@@ -391,7 +390,6 @@ extern int block_mode;   /* block compress mode -C compatible with 2.0 */
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: gzip.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 
 #if defined(__MSDOS__) && !defined(MSDOS)
 #  define MSDOS

@@ -76,8 +76,6 @@ static char  *license_msg[] = {
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: zcat.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
-
 #define RECORD_IO 0
 
 #define get_char() get_byte()
@@ -431,8 +429,6 @@ extern int unlzw  OF((int in, int out));
 #ifdef LZW
 #  undef LZW
 #endif
-
-/* $Id: zcat.c,v 1.5 1999/10/23 07:09:58 andersen Exp $ */
 
 /* #include "getopt.h" */
 
