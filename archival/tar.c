@@ -154,9 +154,9 @@ extern int tar_main(int argc, char **argv)
 	int createFlag   = FALSE;
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
-	int firstOpt = TRUE;
+	int status       = FALSE;
+	int firstOpt     = TRUE;
 	int stopIt;
-	int status;
 																		   
 
 	if (argc <= 1)
