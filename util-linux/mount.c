@@ -121,9 +121,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	int status = 0;
 	char *lofile = NULL;
 
-#if defined BB_MTAB
 	if (fakeIt == FALSE)
-#endif
 	{
 #if defined BB_FEATURE_MOUNT_LOOP
 		if (use_loop==TRUE) {
@@ -150,7 +148,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 
 	/* If the mount was sucessful, do anything needed, then return TRUE */
-	if (status == 0) {
+	if (status == 0 || fakeIt==TRUE) {
 
 #if defined BB_MTAB
 		if (useMtab == TRUE) {
