@@ -19,7 +19,7 @@
  * Vladimir Oleynik <dzo@simtreas.ru> 2001,2002 Busybox port
  */
 
-#define UTIL_LINUX_VERSION "2.11w"
+#define UTIL_LINUX_VERSION "2.11z"
 
 #define PROC_PARTITIONS "/proc/partitions"
 
@@ -4316,41 +4316,50 @@ read_int(uint low, uint dflt, uint high, uint base, char *mesg)
 		       && *line_ptr != '-' && *line_ptr != '+')
 			continue;
 
-		if (*line_ptr == '+' || *line_ptr == '-') {
-			i = atoi(line_ptr+1);
-			if (*line_ptr == '-')
-				i = -i;
-			while (isdigit(*++line_ptr))
-				use_default = 0;
-			switch (*line_ptr) {
-				case 'c':
-				case 'C':
+	        if (*line_ptr == '+' || *line_ptr == '-') {
+		       int minus = (*line_ptr == '-');
+		       int absolute = 0;
+
+		       i = atoi(line_ptr+1);
+
+		       while (isdigit(*++line_ptr))
+			       use_default = 0;
+	    
+		       switch (*line_ptr) {
+			       case 'c':
+			       case 'C':
 					if (!display_in_cyl_units)
 						i *= heads * sectors;
 					break;
-				case 'k':
-				case 'K':
-					i *= 2;
-					i /= (sector_size / 512);
-					i /= units_per_sector;
-					break;
-				case 'm':
-				case 'M':
-					i *= 2048;
-					i /= (sector_size / 512);
-					i /= units_per_sector;
-					break;
-				case 'g':
-				case 'G':
-					i *= 2048000;
-					i /= (sector_size / 512);
-					i /= units_per_sector;
-					break;
-				default:
-					break;
+			       case 'k':
+			       case 'K':
+				       absolute = 1000;
+				       break;
+			       case 'm':
+			       case 'M':
+				       absolute = 1000000;
+				       break;
+			       case 'g':
+			       case 'G':
+				       absolute = 1000000000;
+				       break;
+			       default:
+				       break;
+		       }
+		       if (absolute) {
+			       unsigned long long bytes;
+			       unsigned long unit;
+
+			       bytes = (unsigned long long) i * absolute;
+			       unit = sector_size * units_per_sector;
+			       bytes += unit/2;	/* round */
+			       bytes /= unit;
+			       i = bytes;
 			}
-			i += base;
-		} else {
+		       if (minus)
+			       i = -i;
+		       i += base;
+	        } else {
 			i = atoi(line_ptr);
 			while (isdigit(*line_ptr)) {
 				line_ptr++;
@@ -4701,7 +4710,7 @@ static void check_consistency(const struct partition *p, int partition) {
 
 /* Ending on cylinder boundary? */
 	if (peh != (heads - 1) || pes != sectors) {
-		printf(_("Partition %i does not end on cylinder boundary:\n"),
+	        printf(_("Partition %i does not end on cylinder boundary.\n"),
 			partition + 1);
 #if 0
 		printf(_("     phys=(%d, %d, %d) "), pec, peh, pes);
@@ -5266,13 +5275,14 @@ new_partition(void) {
 	}
 #endif
 
-	if (partitions >= MAXIMUM_PARTS) {
-		printf(_("The maximum number of partitions has been created\n"));
-		return;
-	}
-
 	for (i = 0; i < 4; i++)
 		free_primary += !ptes[i].part_table->sys_ind;
+
+       if (!free_primary && partitions >= MAXIMUM_PARTS) {
+	        printf(_("The maximum number of partitions has been created\n"));
+	        return;
+       }
+
 	if (!free_primary) {
 		if (extended_offset)
 			add_logical();
