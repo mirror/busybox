@@ -479,10 +479,9 @@ singlemount:
 			if (strchr(device, ':') != NULL)
 				filesystemType = "nfs";
 			if (strcmp(filesystemType, "nfs") == 0) {
-				rc = nfsmount (device, directory, &flags,
-					&extra_opts, &string_flags, 1);
-				if ( rc != 0) {
-					perror_msg_and_die("nfsmount failed");	
+				if (nfsmount (device, directory, &flags, &extra_opts,
+							&string_flags, 1)) {
+					perror_msg("nfsmount failed");
 					rc = EXIT_FAILURE;
 				}
 			}
@@ -500,7 +499,7 @@ singlemount:
 		if (all == FALSE && fstabmount == TRUE && directory == NULL)
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
 	
-		exit(rc);
+		return rc;
 	}
 	
 	goto singlemount;
