@@ -1386,7 +1386,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 }
 #endif
 
-#if defined BB_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET
+#if defined BB_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET || defined BB_DPKG_DEB
 # ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
