@@ -384,7 +384,7 @@ static int mod_strcmp ( const char *mod_path, const char *mod_name )
 static int already_loaded (const char *name)
 {
 	int fd;
-	char buffer[256];
+	char buffer[4096];
 
 	fd = open ("/proc/modules", O_RDONLY);
 	if (fd < 0)
@@ -409,7 +409,7 @@ static int already_loaded (const char *name)
 
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
-	char lcmd [256];
+	char lcmd [4096];
 	int rc = 0;
 
 	while ( list ) {
@@ -550,6 +550,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 	check_dep ( mod, &head, &tail );
 
 	if ( head && tail ) {
+#if defined(CONFIG_FEATURE_2_6_MODULES)
 		if ( argc ) {
 			int i;
 			int l = 0;
@@ -566,6 +567,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 				strcat ( head-> m_options, " " );
 			}
 		}
+#endif
 
 		// process tail ---> head
 		rc = mod_process ( tail, 1 );
