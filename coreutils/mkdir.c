@@ -35,7 +35,6 @@ extern int mkdir_main (int argc, char **argv)
 {
 	mode_t mode = -1;
 	int flags = 0;
-	int status = 0;
 	int i, opt;
 
 	while ((opt = getopt (argc, argv, "m:p")) != -1) {
@@ -56,9 +55,9 @@ extern int mkdir_main (int argc, char **argv)
 	if (optind == argc)
 		show_usage ();
 
-	for (i = optind; i < argc; i++)
-		if (make_directory (argv[i], mode, flags) < 0)
-			status = 1;
+	for (i = optind; i < argc; i++) {
+		make_directory (argv[i], mode, flags);
+	}
 
-	return status;
+	return(EXIT_SUCCESS);
 }
