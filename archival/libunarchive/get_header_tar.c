@@ -129,8 +129,8 @@ file_header_t *get_header_tar(FILE * tar_stream)
 	tar_entry->link_name =
 		strlen(tar.formated.linkname) ? xstrdup(tar.formated.linkname) : NULL;
 	tar_entry->device =
-		(strtol(tar.formated.devmajor, NULL, 8) << 8) +
-		strtol(tar.formated.devminor, NULL, 8);
+		(dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
+				 strtol(tar.formated.devminor, NULL, 8));
 
 	return (tar_entry);
 }
