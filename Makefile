@@ -273,7 +273,7 @@ CFLAGS += $(CFLAGS_EXTRA)
 all: applet_source_list busybox busybox.links doc
 
 sh.c:
-	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
+	@if [ ! -L sh.c ] ; then ln -s hush.c sh.c ; fi
 
 applet_source_list: busybox.sh Config.h sh.c
 	(echo -n "APPLET_SOURCES := "; BB_SRC_DIR=$(BB_SRC_DIR) $(SHELL) $^) > $@
@@ -397,7 +397,7 @@ clean:
 	- find -name \*.o -exec rm -f {} \;
 
 distclean: clean
-	- rm -f busybox
+	- rm -f busybox applet_source_list
 	- cd tests && $(MAKE) distclean
 
 install: install.sh busybox busybox.links
