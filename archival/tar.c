@@ -286,7 +286,7 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 		}
 		if ( (readSize = fullRead(header->tarFd, buffer, readSize)) <= 0 ) {
 			/* Tarball seems to have a problem */
-			errorMsg("Error reading tarfile: %s", strerror(errno)); 
+			errorMsg("tar: Unexpected EOF in archive\n"); 
 			return;
 		}
 		if ( readSize < writeSize )
@@ -360,7 +360,7 @@ tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return;
 
 	if (link(header->linkname, header->name) < 0) {
-		errorMsg("Error creating hard link '%s': %s", header->linkname, strerror(errno)); 
+		errorMsg("Error creating hard link '%s': %s\n", header->linkname, strerror(errno)); 
 		return;
 	}
 
@@ -376,7 +376,7 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 #ifdef	S_ISLNK
 	if (symlink(header->linkname, header->name) < 0) {
-		errorMsg("Error creating symlink '%s': %s", header->linkname, strerror(errno)); 
+		errorMsg("Error creating symlink '%s': %s\n", header->linkname, strerror(errno)); 
 		return;
 	}
 	/* Try to change ownership of the symlink.
@@ -485,7 +485,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	else
 		tarFd = open(tarName, O_RDONLY);
 	if (tarFd < 0) {
-		errorMsg( "Error opening '%s': %s", tarName, strerror(errno));
+		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
 
@@ -600,7 +600,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	close(tarFd);
 	if (status > 0) {
 		/* Bummer - we read a partial header */
-		errorMsg( "Error reading '%s': %s", tarName, strerror(errno));
+		errorMsg( "Error reading '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
 	else 
