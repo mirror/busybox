@@ -26,7 +26,7 @@ export VERSION
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
-DODEBUG = false
+DODEBUG = true
 
 # If you want a static binary, turn this on.
 DOSTATIC = false
@@ -108,7 +108,7 @@ docs:
 	$(MAKE) -C docs
 	
 regexp.o nfsmount.o: %.o: %.h
-$(OBJECTS): %.o: busybox.def.h internal.h  %.c
+$(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
 
 test tests:
 	cd tests && $(MAKE) all

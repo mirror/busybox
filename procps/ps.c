@@ -128,8 +128,9 @@ extern int ps_main(int argc, char **argv)
 
 
 
-	if (argc > 1 && **(argv + 1) == '-')
+	if (argc > 1 && strcmp(argv[1], "--help") == 0) {
 		usage ("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
+	}
 
 	dir = opendir("/proc");
 	if (!dir)

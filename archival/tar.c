@@ -70,13 +70,13 @@ static const char tar_usage[] =
 #endif
 	"\tx\t\textract\n"
 	"\tt\t\tlist\n"
-	"File selection:\n"
+	"\nFile selection:\n"
 	"\tf\t\tname of tarfile or \"-\" for stdin\n"
 	"\tO\t\textract to stdout\n"
 #if defined BB_FEATURE_TAR_EXCLUDE
 	"\t--exclude\tfile to exclude\n"
 #endif
-	"Informative output:\n"
+	"\nInformative output:\n"
 	"\tv\t\tverbosely list files processed\n"
 	;
 
@@ -184,7 +184,7 @@ extern int tar_main(int argc, char **argv)
 		usage(tar_usage);
 
 	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
+	while (--argc > 0 && (**(++argv) != '\0')) {
 		stopIt=FALSE;
 		while (stopIt==FALSE && *(++(*argv))) {
 			switch (**argv) {
@@ -245,7 +245,6 @@ extern int tar_main(int argc, char **argv)
 						break;
 					}
 #endif
-					usage(tar_usage);
 					break;
 
 				default:
