@@ -95,9 +95,9 @@
 # define SHA1_MASK   (SHA1_BLOCK_SIZE - 1)
 
 /* reverse byte order in 32-bit words   */
-# define ch(x,y,z)       (((x) & (y)) ^ (~(x) & (z)))
-# define parity(x,y,z)   ((x) ^ (y) ^ (z))
-# define maj(x,y,z)      (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+#define ch(x,y,z)       ((z) ^ ((x) & ((y) ^ (z))))
+#define parity(x,y,z)   ((x) ^ (y) ^ (z))
+#define maj(x,y,z)      (((x) & (y)) | ((z) & ((x) | (y))))
 
 /* A normal version as set out in the FIPS. This version uses   */
 /* partial loop unrolling and is optimised for the Pentium 4    */
@@ -276,6 +276,8 @@ void sha1_end(unsigned char hval[], sha1_ctx_t *ctx)
 /* Handle endian-ness */
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define SWAP(n) (n)
+# elif defined(bswap_32)
+#  define SWAP(n) bswap_32(n)
 # else
 #  define SWAP(n) ((n << 24) | ((n&65280)<<8) | ((n&16711680)>>8) | (n>>24))
 # endif
