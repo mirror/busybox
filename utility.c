@@ -63,8 +63,8 @@
 #include <sys/syscall.h>
 #include <linux/unistd.h>
 
-/* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
- * list of available filesystems used for the -t auto option */ 
+/* Busybox mount uses either /proc/mounts or /dev/mtab to 
+ * get the list of currently mounted filesystems */ 
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
 #  if defined BB_MTAB
 const char mtab_file[] = "/etc/mtab";

@@ -83,6 +83,7 @@ extern int mount (__const char *__special_file, __const char *__dir,
 			__const void *__data);
 extern int umount (__const char *__special_file);
 extern int umount2 (__const char *__special_file, int __flags);
+static _syscall3(int, sysfs, int, option, unsigned int, fs_index, char *, buf);
 
 
 extern const char mtab_file[];	/* Defined in utility.c */
@@ -233,72 +234,24 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 {
 	int status = 0;
 
-	char buf[255];
 	if (strcmp(filesystemType, "auto") == 0) {
-		FILE *f = xfopen("/proc/filesystems", "r");
+		int i=0;
+		const int num_of_filesystems = sysfs(3, 0, 0);
+		char buf[255];
+		filesystemType=buf;
 
-		while (fgets(buf, sizeof(buf), f) != NULL) {
-			filesystemType = buf;
-			if (*filesystemType == '\t') {	// Not a nodev filesystem
-
-				// Add NULL termination to each line
-				while (*filesystemType && *filesystemType != '\n')
-					filesystemType++;
-				*filesystemType = '\0';
-
-				filesystemType = buf;
-				filesystemType++;	// hop past tab
-
-				status = do_mount(blockDevice, directory, filesystemType,
-								  flags | MS_MGC_VAL, string_flags,
-								  useMtab, fakeIt, mtab_opts);
-				if (status == TRUE)
-					break;
-			}
-		}
-		fclose(f);
-	} else
-#if defined BB_FEATURE_USE_DEVPS_PATCH
-	if (strcmp(filesystemType, "auto") == 0) {
-		int fd, i, numfilesystems;
-		char device[] = "/dev/mtab";
-		struct k_fstype *fslist;
-
-		/* open device */ 
-		fd = open(device, O_RDONLY);
-		if (fd < 0)
-			perror_msg_and_die("open failed for `%s'", device);
-
-		/* How many filesystems?  We need to know to allocate enough space */
-		numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
-		if (numfilesystems<0)
-			perror_msg_and_die("\nDEVMTAB_COUNT_FILESYSTEMS");
-		fslist = (struct k_fstype *) xcalloc ( numfilesystems, sizeof(struct k_fstype));
-
-		/* Grab the list of available filesystems */
-		status = ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist);
-		if (status<0)
-			perror_msg_and_die("\nDEVMTAB_GET_FILESYSTEMS");
-
-		/* Walk the list trying to mount filesystems 
-		 * that do not claim to be nodev filesystems */
-		for( i = 0 ; i < numfilesystems ; i++) {
-			if (fslist[i].mnt_nodev)
-				continue;
-			status = do_mount(blockDevice, directory, fslist[i].mnt_type,
-							  flags | MS_MGC_VAL, string_flags,
-							  useMtab, fakeIt, mtab_opts);
+		while(i < num_of_filesystems) {
+			sysfs(2, i++, filesystemType);
+			status = do_mount(blockDevice, directory, filesystemType,
+					flags | MS_MGC_VAL, string_flags,
+					useMtab, fakeIt, mtab_opts);
 			if (status == TRUE)
 				break;
 		}
-		free( fslist);
-		close(fd);
-	} else
-#endif
-	{
+	} else {
 		status = do_mount(blockDevice, directory, filesystemType,
-						  flags | MS_MGC_VAL, string_flags, useMtab,
-						  fakeIt, mtab_opts);
+				flags | MS_MGC_VAL, string_flags, useMtab,
+				fakeIt, mtab_opts);
 	}
 
 	if (status == FALSE) {
