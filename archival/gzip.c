@@ -2142,7 +2142,7 @@ static void send_tree(ct_data * tree, int max_code)
  * Construct the Huffman tree for the bit lengths and return the index in
  * bl_order of the last bit length code to send.
  */
-static const int build_bl_tree()
+static int build_bl_tree()
 {
 	int max_blindex;	/* index of last bit length code of non zero freq */
 
