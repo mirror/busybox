@@ -43,10 +43,8 @@
 
 enum {
 	TERMINAL_WIDTH = 80,	/* use 79 if terminal has linefold bug */
-	COLUMN_WIDTH = 14,	/* default if AUTOWIDTH not defined */
 	COLUMN_GAP = 2,		/* includes the file type char */
 };
-
 
 /************************************************************************/
 
@@ -167,7 +165,7 @@ struct dnode {			/* the basic node */
 };
 typedef struct dnode dnode_t;
 
-static struct dnode **list_dir(char *);
+static struct dnode **list_dir(const char *);
 static struct dnode **dnalloc(int);
 static int list_single(struct dnode *);
 
@@ -186,14 +184,12 @@ static unsigned int time_fmt;
 static unsigned int follow_links = FALSE;
 #endif
 
-static unsigned short column = 0;
-
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static unsigned short terminal_width = TERMINAL_WIDTH;
-static unsigned short column_width = COLUMN_WIDTH;
 static unsigned short tabstops = COLUMN_GAP;
 #else
-static unsigned short column_width = COLUMN_WIDTH;
+#define tabstops COLUMN_GAP
+#define terminal_width TERMINAL_WIDTH
 #endif
 
 static int status = EXIT_SUCCESS;
@@ -202,35 +198,31 @@ static int status = EXIT_SUCCESS;
 static unsigned long ls_disp_hr = 0;
 #endif
 
-static int my_stat(struct dnode *cur)
+static struct dnode *my_stat(char *fullname, char *name)
 {
+	struct stat dstat;
+	struct dnode *cur;
+
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 	if (follow_links) {
-		if (stat(cur->fullname, &cur->dstat)) {
-			perror_msg("%s", cur->fullname);
+		if (stat(fullname, &dstat)) {
+			perror_msg("%s", fullname);
 			status = EXIT_FAILURE;
-			free(cur->fullname);
-			free(cur);
-			return -1;
+			return 0;
 		}
 	} else
 #endif
-	if (lstat(cur->fullname, &cur->dstat)) {
-		perror_msg("%s", cur->fullname);
+	if (lstat(fullname, &dstat)) {
+		perror_msg("%s", fullname);
 		status = EXIT_FAILURE;
-		free(cur->fullname);
-		free(cur);
-		return -1;
-	}
 	return 0;
-}
-
-static void newline(void)
-{
-	if (column > 0) {
-		putchar('\n');
-		column = 0;
 	}
+
+	cur = (struct dnode *) xmalloc(sizeof(struct dnode));
+	cur->fullname = fullname;
+	cur->name = name;
+	cur->dstat = dstat;
+	return cur;
 }
 
 /*----------------------------------------------------------------------*/
@@ -239,7 +231,6 @@ static char fgcolor(mode_t mode)
 {
 	/* Check wheter the file is existing (if so, color it red!) */
 	if (errno == ENOENT) {
-		errno = 0;
 		return '\037';
 	}
 	if (LIST_EXEC && S_ISREG(mode)
@@ -270,24 +261,6 @@ static char append_char(mode_t mode)
 	return APPCHAR(mode);
 }
 #endif
-
-/*----------------------------------------------------------------------*/
-static void nexttabstop(void)
-{
-	static short nexttab = 0;
-	int n = 0;
-
-	if (column > 0) {
-		n = nexttab - column;
-		if (n < 1)
-			n = 1;
-		while (n--) {
-			putchar(' ');
-			column++;
-		}
-	}
-	nexttab = column + column_width + COLUMN_GAP;
-}
 
 /*----------------------------------------------------------------------*/
 static int is_subdir(struct dnode *dn)
@@ -437,7 +410,11 @@ static int sortcmp(struct dnode *d1, struct dnode *d2)
 		cmp = 1;
 	if (dif == 0) {
 		/* sort by name- may be a tie_breaker for time or size cmp */
+#ifdef CONFIG_LOCALE_SUPPORT
+		dif = strcoll(d1->name, d2->name);
+#else
 		dif = strcmp(d1->name, d2->name);
+#endif
 		if (dif > 0)
 			cmp = 1;
 		if (dif < 0)
@@ -479,46 +456,40 @@ static void shellsort(struct dnode **dn, int size)
 static void showfiles(struct dnode **dn, int nfiles)
 {
 	int i, ncols, nrows, row, nc;
-
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-	int len;
-#endif
+	int column = 0;
+	int nexttab = 0;
+	int column_width = 0; /* for STYLE_LONG and STYLE_SINGLE not used */
 
 	if (dn == NULL || nfiles < 1)
 		return;
 
-#ifdef CONFIG_FEATURE_AUTOWIDTH
+	switch (style_fmt) {
+	case STYLE_LONG:        /* one record per line, extended info */
+	case STYLE_SINGLE:      /* one record per line */
+		ncols = 1;
+		break;
+	default:
 	/* find the longest file name-  use that as the column width */
-	column_width = 0;
 	for (i = 0; i < nfiles; i++) {
-		len = strlen(dn[i]->name) +
+			int len = strlen(dn[i]->name) +
 			((list_fmt & LIST_INO) ? 8 : 0) +
 			((list_fmt & LIST_BLOCKS) ? 5 : 0);
 		if (column_width < len)
 			column_width = len;
 	}
-	ncols = (int) (terminal_width / (column_width + COLUMN_GAP));
-#else
-	ncols = TERMINAL_WIDTH;
-#endif
-	switch (style_fmt) {
-	case STYLE_LONG:	/* one record per line, extended info */
-	case STYLE_SINGLE:	/* one record per line */
-		ncols = 1;
-		break;
+		column_width += tabstops;
+		ncols = (int) (terminal_width / column_width);
 	}
 
 	if (ncols > 1) {
 		nrows = nfiles / ncols;
+		if ((nrows * ncols) < nfiles)
+			nrows++;                /* round up fractionals */
 	} else {
 		nrows = nfiles;
 		ncols = 1;
 	}
-	if ((nrows * ncols) < nfiles)
-		nrows++;		/* round up fractionals */
 
-	if (nrows > nfiles)
-		nrows = nfiles;
 	for (row = 0; row < nrows; row++) {
 		for (nc = 0; nc < ncols; nc++) {
 			/* reach into the array based on the column and row */
@@ -526,11 +497,19 @@ static void showfiles(struct dnode **dn, int nfiles)
 			if (disp_opts & DISP_ROWS)
 				i = (row * ncols) + nc;	/* display across row */
 			if (i < nfiles) {
-				nexttabstop();
-				list_single(dn[i]);
+				if (column > 0) {
+					nexttab -= column;
+					while (nexttab--) {
+						putchar(' ');
+						column++;
+					}
 			}
+				nexttab = column + column_width;
+				column += list_single(dn[i]);
 		}
-		newline();
+		}
+		putchar('\n');
+		column = 0;
 	}
 }
 
@@ -580,7 +559,7 @@ static void showdirs(struct dnode **dn, int ndirs)
 }
 
 /*----------------------------------------------------------------------*/
-static struct dnode **list_dir(char *path)
+static struct dnode **list_dir(const char *path)
 {
 	struct dnode *dn, *cur, **dnp;
 	struct dirent *entry;
@@ -599,18 +578,21 @@ static struct dnode **list_dir(char *path)
 		return (NULL);	/* could not open the dir */
 	}
 	while ((entry = readdir(dir)) != NULL) {
+		char *fullname;
+
 		/* are we going to list the file- it may be . or .. or a hidden file */
-		if ((strcmp(entry->d_name, ".") == 0) && !(disp_opts & DISP_DOT))
+		if (entry->d_name[0] == '.') {
+			if ((entry->d_name[1] == 0 || (
+				entry->d_name[1] == '.'
+				&& entry->d_name[2] == 0))
+					&& !(disp_opts & DISP_DOT))
 			continue;
-		if ((strcmp(entry->d_name, "..") == 0) && !(disp_opts & DISP_DOT))
+			if (!(disp_opts & DISP_HIDDEN))
 			continue;
-		if ((entry->d_name[0] == '.') && !(disp_opts & DISP_HIDDEN))
-			continue;
-		cur = (struct dnode *) xmalloc(sizeof(struct dnode));
-		cur->fullname = concat_path_file(path, entry->d_name);
-		cur->name = cur->fullname +
-			(strlen(cur->fullname) - strlen(entry->d_name));
-		if (my_stat(cur))
+		}
+		fullname = concat_path_file(path, entry->d_name);
+		cur = my_stat(fullname, strrchr(fullname, '/') + 1);
+		if (!cur)
 			continue;
 		cur->next = dn;
 		dn = cur;
@@ -621,7 +603,7 @@ static struct dnode **list_dir(char *path)
 	/* now that we know how many files there are
 	   ** allocate memory for an array to hold dnode pointers
 	 */
-	if (nfiles < 1)
+	if (dn == NULL)
 		return (NULL);
 	dnp = dnalloc(nfiles);
 	for (i = 0, cur = dn; i < nfiles; i++) {
@@ -635,10 +617,10 @@ static struct dnode **list_dir(char *path)
 /*----------------------------------------------------------------------*/
 static int list_single(struct dnode *dn)
 {
-	int i;
+	int i, column = 0;
 
 #ifdef CONFIG_FEATURE_LS_USERNAME
-	char scratch[BUFSIZ + 1];
+	char scratch[16];
 #endif
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 	char *filetime;
@@ -649,7 +631,7 @@ static int list_single(struct dnode *dn)
 	char append;
 #endif
 
-	if (dn == NULL || dn->fullname == NULL)
+	if (dn->fullname == NULL)
 		return (0);
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
@@ -667,29 +649,20 @@ static int list_single(struct dnode *dn)
 	for (i = 0; i <= 31; i++) {
 		switch (list_fmt & (1 << i)) {
 		case LIST_INO:
-			printf("%7ld ", (long int) dn->dstat.st_ino);
-			column += 8;
+			column += printf("%7ld ", (long int) dn->dstat.st_ino);
 			break;
 		case LIST_BLOCKS:
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-			printf("%6s ", make_human_readable_str(dn->dstat.st_blocks >> 1,
-					KILOBYTE, (ls_disp_hr == TRUE) ? 0 : KILOBYTE));
-#else
 #if _FILE_OFFSET_BITS == 64
-			printf("%4lld ", dn->dstat.st_blocks >> 1);
+			column += printf("%4lld ", dn->dstat.st_blocks >> 1);
 #else
-			printf("%4ld ", dn->dstat.st_blocks >> 1);
+			column += printf("%4ld ", dn->dstat.st_blocks >> 1);
 #endif
-#endif
-			column += 5;
 			break;
 		case LIST_MODEBITS:
-			printf("%-10s ", (char *) mode_string(dn->dstat.st_mode));
-			column += 10;
+			column += printf("%-10s ", (char *) mode_string(dn->dstat.st_mode));
 			break;
 		case LIST_NLINKS:
-			printf("%4ld ", (long) dn->dstat.st_nlink);
-			column += 10;
+			column += printf("%4ld ", (long) dn->dstat.st_nlink);
 			break;
 		case LIST_ID_NAME:
 #ifdef CONFIG_FEATURE_LS_USERNAME
@@ -701,29 +674,28 @@ static int list_single(struct dnode *dn)
 			break;
 #endif
 		case LIST_ID_NUMERIC:
-			printf("%-8d %-8d", dn->dstat.st_uid, dn->dstat.st_gid);
-			column += 17;
+			column += printf("%-8d %-8d", dn->dstat.st_uid, dn->dstat.st_gid);
 			break;
 		case LIST_SIZE:
 		case LIST_DEV:
 			if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
-				printf("%4d, %3d ", (int) MAJOR(dn->dstat.st_rdev),
+				column += printf("%4d, %3d ", (int) MAJOR(dn->dstat.st_rdev),
 					   (int) MINOR(dn->dstat.st_rdev));
 			} else {
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 				if (ls_disp_hr == TRUE) {
-					printf("%8s ", make_human_readable_str(dn->dstat.st_size, 1, 0));
+					column += printf("%9s ",
+							make_human_readable_str(dn->dstat.st_size, 1, 0));
 				} else
 #endif
 				{
 #if _FILE_OFFSET_BITS == 64
-					printf("%9lld ", (long long) dn->dstat.st_size);
+					column += printf("%9lld ", (long long) dn->dstat.st_size);
 #else
-					printf("%9ld ", dn->dstat.st_size);
+					column += printf("%9ld ", dn->dstat.st_size);
 #endif
 				}
 			}
-			column += 10;
 			break;
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 		case LIST_FULLTIME:
@@ -752,13 +724,12 @@ static int list_single(struct dnode *dn)
 					   fgcolor(info.st_mode));
 			}
 #endif
-			printf("%s", dn->name);
+			column += printf("%s", dn->name);
 #ifdef CONFIG_FEATURE_LS_COLOR
 			if (show_color) {
 				printf("\033[0m");
 			}
 #endif
-			column += strlen(dn->name);
 			break;
 		case LIST_SYMLINK:
 			if (S_ISLNK(dn->dstat.st_mode)) {
@@ -778,13 +749,12 @@ static int list_single(struct dnode *dn)
 							   fgcolor(info.st_mode));
 					}
 #endif
-					printf("%s", lpath);
+					column += printf("%s", lpath) + 4;
 #ifdef CONFIG_FEATURE_LS_COLOR
 					if (show_color) {
 						printf("\033[0m");
 					}
 #endif
-					column += strlen(lpath) + 4;
 					free(lpath);
 				}
 			}
@@ -800,7 +770,7 @@ static int list_single(struct dnode *dn)
 		}
 	}
 
-	return (0);
+	return column;
 }
 
 /*----------------------------------------------------------------------*/
@@ -830,8 +800,6 @@ extern int ls_main(int argc, char **argv)
 #endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	ioctl(fileno(stdout), TIOCGWINSZ, &win);
-	if (win.ws_row > 4)
-		column_width = win.ws_row - 2;
 	if (win.ws_col > 0)
 		terminal_width = win.ws_col - 1;
 #endif
@@ -1025,10 +993,10 @@ extern int ls_main(int argc, char **argv)
 	/* stuff the command line file names into an dnode array */
 	dn = NULL;
 	for (oi = 0; oi < ac; oi++) {
-		cur = (struct dnode *) xmalloc(sizeof(struct dnode));
-		cur->fullname = xstrdup(av[oi]);
-		cur->name = cur->fullname;
-		if (my_stat(cur))
+		char *fullname = xstrdup(av[oi]);
+
+		cur = my_stat(fullname, fullname);
+		if (!cur)
 			continue;
 		cur->next = dn;
 		dn = cur;

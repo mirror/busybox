@@ -951,6 +951,44 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 	return command_mode;
 }
 
+/*
+   display by column original ideas from ls applet,
+   very optimize by my :)
+*/
+static void showfiles(char **matches, int nfiles)
+{
+	int ncols, row;
+	int column_width = 0;
+	int nrows = nfiles;
+
+	/* find the longest file name-  use that as the column width */
+	for (row = 0; row < nrows; row++) {
+		int l = strlen(matches[row]);
+
+		if (column_width < l)
+			column_width = l;
+	}
+	column_width += 2;              /* min space for columns */
+	ncols = cmdedit_termw / column_width;
+
+	if (ncols > 1) {
+		nrows /= ncols;
+		if(nfiles % ncols)
+			nrows++;        /* round up fractionals */
+		column_width = -column_width;   /* for printf("%-Ns", ...); */
+	} else {
+		ncols = 1;
+	}
+	for (row = 0; row < nrows; row++) {
+		int n = row;
+		int nc;
+
+		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++)
+			printf("%*s", column_width, matches[n]);
+		printf("%s\n", matches[n]);
+	}
+}
+
 
 static void input_tab(int *lastWasTab)
 {
@@ -1078,29 +1116,11 @@ static void input_tab(int *lastWasTab)
 		 * just hit TAB again, print a list of all the
 		 * available choices... */
 		if (matches && num_matches > 0) {
-			int i, col, l;
 			int sav_cursor = cursor;	/* change goto_new_line() */
 
 			/* Go to the next line */
 			goto_new_line();
-			for (i = 0, col = 0; i < num_matches; i++) {
-				l = strlen(matches[i]);
-				if (l < 14)
-					l = 14;
-				printf("%-14s  ", matches[i]);
-				col+=l;
-				if ((l += 2) > 16)
-					while (l % 16) {
-						putchar(' ');
-						l++;
-					}
-				if (col > (cmdedit_termw-l-l) && matches[i + 1] != NULL) {
-					putchar('\n');
-					col = 0;
-				}
-			}
-			/* Go to the next line and rewrite */
-			putchar('\n');
+			showfiles(matches, num_matches);
 			redraw(0, len - sav_cursor);
 		}
 	}
