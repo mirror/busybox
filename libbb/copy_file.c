@@ -94,7 +94,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 			umask(saved_umask);
 		}
-		
+
 		/* Recursively copy files in SOURCE.  */
 		if ((dp = opendir(source)) == NULL) {
 			perror_msg("unable to open directory `%s'", source);
@@ -116,7 +116,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			free(new_source);
 			free(new_dest);
 		}
-		
+
 		/* ??? What if an error occurs in readdir?  */
 
 		if (closedir(dp) < 0) {
@@ -173,7 +173,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			goto end;
 		}
 
-		copy_file_chunk(sfp, dfp, source_stat.st_size);
+		if (copy_file_chunk(sfp, dfp, -1) < 0)
+			status = -1;
 
 		if (fclose(dfp) < 0) {
 			perror_msg("unable to close `%s'", dest);

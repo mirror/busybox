@@ -29,38 +29,46 @@
 #include <sys/stat.h>
 #include "libbb.h"
 
-/*
- * Copy chunksize bytes between two file descriptors
- *
- * unsigned long is used so that if -1 is passed as chunksize it will read as
- * much as possible, and it will work with off_t or off64_t
- */
+/* Copy CHUNKSIZE bytes (or until EOF if CHUNKSIZE equals -1) from SRC_FILE
+ * to DST_FILE.  */
 extern int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize)
 {
-	off_t size, amount_written;
-	char buffer[BUFSIZ]; /* BUFSIZ is declared in stdio.h */
-	
-	while (chunksize > 0) {
-		if (chunksize > BUFSIZ) {
-			size = BUFSIZ;
-		} else {
-			size = chunksize;
-		}
-		amount_written = fwrite(buffer, 1, fread(buffer, 1, size, src_file), dst_file);
-		if (amount_written != size) {
-			error_msg("Couldnt write correct amount");
-			return(FALSE);
-		}
-		chunksize -= amount_written;
-	}
-	return (TRUE);
-}
+	size_t nread, nwritten, size;
+	char buffer[BUFSIZ];
 
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+	while (chunksize != 0) {
+		if (chunksize > BUFSIZ)
+			size = BUFSIZ;
+		else
+			size = chunksize;
+
+		nread = fread (buffer, 1, size, src_file);
+
+		if (nread != size && ferror (src_file)) {
+			perror_msg ("read");
+			return -1;
+		} else if (nread == 0) {
+			if (chunksize != -1) {
+				error_msg ("Unable to read all data");
+				return -1;
+			}
+
+			return 0;
+		}
+
+		nwritten = fwrite (buffer, 1, nread, dst_file);
+
+		if (nwritten != nread) {
+			if (ferror (dst_file))
+				perror_msg ("write");
+			else
+				error_msg ("Unable to write all data");
+			return -1;
+		}
+
+		if (chunksize != -1)
+			chunksize -= nwritten;
+	}
+
+	return 0;
+}
