@@ -201,7 +201,7 @@ struct sysinfo {
 };
 extern int sysinfo (struct sysinfo* info);
 
-const char *make_human_readable_str(unsigned long val, unsigned long hr);
+const char *make_human_readable_str(unsigned long val, unsigned long not_hr);
 enum {
 	KILOBYTE = 1024,
 	MEGABYTE = (KILOBYTE*1024),
