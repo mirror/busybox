@@ -865,9 +865,11 @@ static void new_init_action(int action, const char *command, const char *cons)
 
 	/* Append to the end of the list */
 	for (a = last = init_action_list; a; a = a->next) {
-		/* don't enter action if it's already in the list */
+		/* don't enter action if it's already in the list,
+		 * but do overwrite existing actions */
 		if ((strcmp(a->command, command) == 0) &&
 		    (strcmp(a->terminal, cons) ==0)) {
+			a->action = action;
 			free(new_action);
 			return;
 		}
@@ -1047,14 +1049,33 @@ static void parse_inittab(void)
 #endif							/* CONFIG_FEATURE_USE_INITTAB */
 }
 
+#ifdef CONFIG_FEATURE_USE_INITTAB
 static void reload_signal(int sig)
 {
-        message(LOG, "Reloading /etc/inittab");
-        parse_inittab();
+	struct init_action *a, *tmp;
+
+	message(LOG, "Reloading /etc/inittab");
+
+	/* disable old entrys */
+	for (a = init_action_list; a; a = a->next ) {
+		a->action = ONCE;
+	}
+
+	parse_inittab();
+
+	/* remove unused entrys */
+	for (a = init_action_list; a; a = tmp) {
+		tmp = a->next;
+		if (a->action & (ONCE | SYSINIT | WAIT ) &&
+				a->pid == 0 ) {
+			delete_init_action(a);
+		}
+	}
 	run_actions(RESPAWN);
-        return;
+	return;
 }
-                                                            
+#endif							/* CONFIG_FEATURE_USE_INITTAB */
+
 extern int init_main(int argc, char **argv)
 {
 	struct init_action *a;
@@ -1145,8 +1166,13 @@ extern int init_main(int argc, char **argv)
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
 
+#ifdef CONFIG_FEATURE_USE_INITTAB
 	/* Redefine SIGHUP to reread /etc/inittab */
 	signal(SIGHUP, reload_signal);
+#else
+	signal(SIGHUP, SIG_IGN);
+#endif /* CONFIG_FEATURE_USE_INITTAB */
+
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
