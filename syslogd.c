@@ -521,6 +521,12 @@ extern int syslogd_main(int argc, char **argv)
 		}
 	}
 
+#ifdef BB_FEATURE_REMOTE_LOG
+	/* If they have not specified remote logging, then log locally */
+	if (doRemoteLog == FALSE)
+		local_logging = TRUE;
+#endif
+
 	/* Store away localhost's name before the fork */
 	gethostname(LocalHostName, sizeof(LocalHostName));
 	if ((p = strchr(LocalHostName, '.'))) {
