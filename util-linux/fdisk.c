@@ -1007,7 +1007,7 @@ check_osf_label(void) {
 static void xbsd_print_disklabel(int);
 
 static int
-btrydev (char * dev) {
+btrydev (const char * dev) {
 	if (xbsd_readlabel (NULL, &xbsd_dlabel) == 0)
 		return -1;
 	printf(_("\nBSD label for device: %s\n"), dev);
