@@ -267,7 +267,9 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 			seek_sub_file(src_stream, file_entry->size);
 		}
 		free(file_entry->name); /* may be null, but doesn't matter */
-		free(file_entry->link_name);
+		if (file_entry->link_name) {
+			free(file_entry->link_name);
+		}
 		free(file_entry);
 	}
 	return(buffer);
@@ -614,8 +616,10 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 	fclose(deb_stream);
 	fclose(uncompressed_stream);
 	free(ared_file);
-	free(file_list[0]);
-	free(file_list);
+	if (filename != NULL) {
+		free(file_list[0]);
+		free(file_list);
+	}
 	return(output_buffer);
 }
 #endif
