@@ -420,10 +420,15 @@ int main(int argc, char **argv)
 	const struct BB_applet	*a		= applets;
 
 #ifdef BB_FEATURE_INSTALLER	
+	/* 
+	 * This style of argument parsing doesn't scale well 
+	 * in the event that busybox starts wanting more --options.
+	 * If someone has a cleaner approach, by all means implement it.
+	 */
 	if (argc > 1 && (strcmp(argv[1], "--install") == 0)) {
 		int use_symbolic_links = 0;
 
-		/* to use symlinks, or to not use symlinks... */
+		/* to use symlinks, or not to use symlinks... */
 		if (argc > 2) {
 			if ((strcmp(argv[2], "-s") == 0)) { 
 				use_symbolic_links = 1; 
