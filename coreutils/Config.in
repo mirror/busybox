@@ -455,6 +455,13 @@ if !CONFIG_ASH && !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
 	      and bash) have test builtin.
 endif
 
+config CONFIG_FEATURE_TEST_64
+	bool "  Extend test to 64 bit"
+	default n
+	depends on CONFIG_TEST
+	help
+	  Enable 64-bit support in test.
+
 config CONFIG_TOUCH
 	bool "touch"
 	default n

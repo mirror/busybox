@@ -155,19 +155,25 @@ static const struct t_op {
 	0, 0, 0}
 };
 
+#ifdef CONFIG_FEATURE_TEST_64
+typedef int64_t arith_t;
+#else
+typedef int arith_t;
+#endif
+
 static char **t_wp;
 static struct t_op const *t_wp_op;
 static gid_t *group_array = NULL;
 static int ngroups;
 
 static enum token t_lex(char *s);
-static int oexpr(enum token n);
-static int aexpr(enum token n);
-static int nexpr(enum token n);
+static arith_t oexpr(enum token n);
+static arith_t aexpr(enum token n);
+static arith_t nexpr(enum token n);
 static int binop(void);
-static int primary(enum token n);
+static arith_t primary(enum token n);
 static int filstat(char *nm, enum token mode);
-static int getn(const char *s);
+static arith_t getn(const char *s);
 static int newerf(const char *f1, const char *f2);
 static int olderf(const char *f1, const char *f2);
 static int equalf(const char *f1, const char *f2);
@@ -232,9 +238,9 @@ static void syntax(const char *op, const char *msg)
 	}
 }
 
-static int oexpr(enum token n)
+static arith_t oexpr(enum token n)
 {
-	int res;
+	arith_t res;
 
 	res = aexpr(n);
 	if (t_lex(*++t_wp) == BOR) {
@@ -244,9 +250,9 @@ static int oexpr(enum token n)
 	return res;
 }
 
-static int aexpr(enum token n)
+static arith_t aexpr(enum token n)
 {
-	int res;
+	arith_t res;
 
 	res = nexpr(n);
 	if (t_lex(*++t_wp) == BAND)
@@ -255,16 +261,16 @@ static int aexpr(enum token n)
 	return res;
 }
 
-static int nexpr(enum token n)
+static arith_t nexpr(enum token n)
 {
 	if (n == UNOT)
 		return !nexpr(t_lex(*++t_wp));
 	return primary(n);
 }
 
-static int primary(enum token n)
+static arith_t primary(enum token n)
 {
-	int res;
+	arith_t res;
 
 	if (n == EOI) {
 		syntax(NULL, "argument expected");
@@ -441,13 +447,21 @@ static enum token t_lex(char *s)
 }
 
 /* atoi with error detection */
-static int getn(const char *s)
+static arith_t getn(const char *s)
 {
 	char *p;
+#ifdef CONFIG_FEATURE_TEST_64
+	long long r;
+#else
 	long r;
+#endif
 
 	errno = 0;
+#ifdef CONFIG_FEATURE_TEST_64
+	r = strtoll(s, &p, 10);
+#else
 	r = strtol(s, &p, 10);
+#endif
 
 	if (errno != 0)
 		bb_error_msg_and_die("%s: out of range", s);
@@ -456,7 +470,7 @@ static int getn(const char *s)
 	if (*(bb_skip_whitespace(p)))
 		bb_error_msg_and_die("%s: bad number", s);
 
-	return (int) r;
+	return r;
 }
 
 static int newerf(const char *f1, const char *f2)
