@@ -6,10 +6,9 @@ around to it some time. If you have any good ideas, please let me know.
 * login/sulogin/passwd/getty/etc are part of tinylogin, and so are not
     needed or wanted in busybox (or else I'd have to link to libcrypt).
 
-* Networking apps are going to be split out to a new package called netkit-tiny
-    before the next release of Busybox.  This will remove the following items
-    from BusyBox: hostid, hostname, nc, nslookup, telnet, and ping.  nfs
-    mounting and syslogd (network logging) will remain in BusyBox.
+* We _were_ going to split networking apps into a new package called 
+    netkit-tiny.  Per discussions on the mailing list, this isn't going
+    to happen.  False alarm.  Sorry about the confusion.
 
  -Erik
 
@@ -36,8 +35,8 @@ Running the following:
 
 reveals the list of all external (i.e. libc) things that BusyBox depends on.
 It would be a very nice thing to reduce this list to an absolute minimum, to
-reduce the footprint of busybox when staticly linking with libraries such as
-uClibc.
+reduce the footprint of busybox, especially when staticly linking with
+libraries such as uClibc.
 
 -----------------------
 
