@@ -28,14 +28,16 @@
 
 extern int rmdir_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
+
 	if (argc == 1 || **(argv + 1) == '-')
 		usage(rmdir_usage);
 
 	while (--argc > 0) {
 		if (rmdir(*(++argv)) == -1) {
-			errorMsg("%s\n", strerror(errno));
-			exit(FALSE);
+			perrorMsg("%s", *argv);
+			status = EXIT_FAILURE;
 		}
 	}
-	return(TRUE);
+	return status;
 }
