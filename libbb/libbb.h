@@ -269,7 +269,7 @@ enum {
 	FILEUTILS_INTERACTIVE = 16
 };
 
-extern const char * const applet_name;
+extern const char *applet_name;
 extern const char * const full_version;
 extern const char * const name_too_long;
 extern const char * const omitting_directory;
