@@ -16,6 +16,7 @@ bool 'gzip'	    CONFIG_GZIP
 bool 'rpm2cpio'     CONFIG_RPM2CPIO
 bool 'tar'	    CONFIG_TAR
 if [ "$CONFIG_TAR" = "y" ] ; then
+	bool ' creation support' CONFIG_FEATURE_TAR_CREATE
 	bool ' exclude support'	CONFIG_FEATURE_TAR_EXCLUDE
 fi
 endmenu
