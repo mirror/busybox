@@ -253,7 +253,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.102 2003/08/31 01:58:18 bug1 Exp $"
+#ident "$Id: insmod.c,v 1.103 2003/09/03 00:42:58 bug1 Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -474,7 +474,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.102 2003/08/31 01:58:18 bug1 Exp $"
+#ident "$Id: insmod.c,v 1.103 2003/09/03 00:42:58 bug1 Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1928,14 +1928,15 @@ add_symbols_from(
 	struct new_module_symbol *s;
 	size_t i;
 	int used = 0;
-	int gpl;
 #ifdef SYMBOL_PREFIX
 	char *name_buf = 0;
 	size_t name_alloced_size = 0;
 #endif
+#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+	int gpl;
 
 	gpl = obj_gpl_license(f, NULL) == 0;
-
+#endif
 	for (i = 0, s = syms; i < nsyms; ++i, ++s) {
 		/* Only add symbols that are already marked external.
 		   If we override locals we may cause problems for
@@ -1951,9 +1952,11 @@ add_symbols_from(
 		 * their references.
 		 */
 		if (strncmp((char *)s->name, "GPLONLY_", 8) == 0) {
+#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
 			if (gpl)
 				((char *)s->name) += 8;
 			else
+#endif
 				continue;
 		}
 		name = (char *)s->name;

@@ -119,6 +119,7 @@ config CONFIG_FEATURE_CHECK_TAINTED_MODULE
 	  Support checking for tainted modules.  These are usually binary
 	  only modules that will make the linux-kernel list ignore your
 	  support request.
+	  This option is required to support GPLONLY modules.
 
 
 endmenu
