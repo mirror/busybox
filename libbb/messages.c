@@ -19,7 +19,7 @@
  *
  */
 
-#include "../busybox.h"
+#include "libbb.h"
 
 #ifdef L_full_version
 	const char *full_version = BB_BANNER " multi-call binary";

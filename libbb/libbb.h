@@ -35,6 +35,10 @@
 
 #include <features.h>
 
+#ifndef _BB_INTERNAL_H_
+#include "../busybox.h"
+#endif
+
 #if __GNU_LIBRARY__ < 5
 /* libc5 doesn't define socklen_t */
 typedef unsigned int socklen_t;
