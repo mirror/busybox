@@ -30,7 +30,6 @@
 
 #include "rt_names.h"
 #include "utils.h"
-#include "ip_common.h"
 
 #include "busybox.h"
 
@@ -60,7 +59,7 @@ static struct
 	inet_prefix msrc;
 } filter;
 
-int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct rtmsg *r = NLMSG_DATA(n);
@@ -238,7 +237,7 @@ int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	return 0;
 }
 
-int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
+static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
@@ -402,6 +401,13 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 	return sendto(rth->fd, (void*)&req, sizeof(req), 0, (struct sockaddr*)&nladdr, sizeof(nladdr));
 }
 
+static void iproute_reset_filter(void)
+{
+	memset(&filter, 0, sizeof(filter));
+	filter.mdst.bitlen = -1;
+	filter.msrc.bitlen = -1;
+}
+
 static int iproute_list(int argc, char **argv)
 {
 	int do_ipv6 = preferred_family;
@@ -516,7 +522,7 @@ static int iproute_list(int argc, char **argv)
 }
 
 
-int iproute_get(int argc, char **argv)
+static int iproute_get(int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
@@ -671,54 +677,46 @@ int iproute_get(int argc, char **argv)
 	exit(0);
 }
 
-void iproute_reset_filter()
-{
-	memset(&filter, 0, sizeof(filter));
-	filter.mdst.bitlen = -1;
-	filter.msrc.bitlen = -1;
-}
-
 int do_iproute(int argc, char **argv)
 {
-	if (argc < 1) {
-		return iproute_list(0, NULL);
+	const char *ip_route_commands[] = { "add", "append", "change", "chg",
+		"delete", "get", "list", "show", "prepend", "replace", "test", 0 };
+	unsigned short command_num = 6;
+	unsigned int flags = 0;
+	int cmd = RTM_NEWROUTE;
+
+	if (*argv) {
+		command_num = compare_string_array(ip_route_commands, *argv);
 	}
-	
-	if (matches(*argv, "add") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_CREATE|NLM_F_EXCL,
-				      argc-1, argv+1);
+	switch(command_num) {
+		case 0: /* add*/
+			flags = NLM_F_CREATE|NLM_F_EXCL;
+			break;
+		case 1: /* append */
+			flags = NLM_F_CREATE|NLM_F_APPEND;
+			break;
+		case 2: /* change */
+		case 3: /* chg */
+			flags = NLM_F_REPLACE;
+			break;
+		case 4: /* delete */
+			cmd = RTM_DELROUTE;
+			break;
+		case 5: /* get */
+			return iproute_get(argc-1, argv+1);
+		case 6: /* list */
+		case 7: /* show */
+			return iproute_list(argc-1, argv+1);
+		case 8: /* prepend */
+			flags = NLM_F_CREATE;
+		case 9: /* replace */
+			flags = NLM_F_CREATE|NLM_F_REPLACE;
+		case 10: /* test */
+			flags = NLM_F_EXCL;
+		default:
+			error_msg_and_die("Unknown command %s", *argv);
 	}
-	if (matches(*argv, "change") == 0 || strcmp(*argv, "chg") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_REPLACE,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "replace") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_CREATE|NLM_F_REPLACE,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "prepend") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_CREATE,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "append") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_CREATE|NLM_F_APPEND,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "test") == 0) {
-		return iproute_modify(RTM_NEWROUTE, NLM_F_EXCL,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "delete") == 0) {
-		return iproute_modify(RTM_DELROUTE, 0,
-				      argc-1, argv+1);
-	}
-	if (matches(*argv, "list") == 0 || matches(*argv, "show") == 0
-	    || matches(*argv, "lst") == 0) {
-		return iproute_list(argc-1, argv+1);
-	}
-	if (matches(*argv, "get") == 0) {
-		return iproute_get(argc-1, argv+1);
-	}
-	error_msg_and_die("Command \"%s\" is unknown, try \"ip route help\".", *argv);
+
+	return iproute_modify(cmd, flags, argc-1, argv+1);
 }
 
