@@ -8,6 +8,7 @@
 #include <utime.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include "busybox.h"
 
 //#define PACKAGE "udpkg"
@@ -24,19 +25,16 @@
 #define DODEBUG 0
 
 #ifdef DODEBUG
-#include <assert.h>
-#define ASSERT(x) assert(x)
 #define SYSTEM(x) do_system(x)
 #define DPRINTF(fmt,args...) fprintf(stderr, fmt, ##args)
 #else
-#define ASSERT(x) /* nothing */
 #define SYSTEM(x) system(x)
 #define DPRINTF(fmt,args...) /* nothing */
 #endif
 
 #define BUFSIZE		4096
 #define ADMINDIR "/var/lib/dpkg"
-#define STATUSFILE	ADMINDIR ## "/status"
+#define STATUSFILE	ADMINDIR ## "/status.udeb"
 #define DPKGCIDIR	ADMINDIR ## "/tmp.ci/"
 #define INFODIR		ADMINDIR ## "/info/"
 #define UDPKG_QUIET	"UDPKG_QUIET"
@@ -81,7 +79,7 @@ const int color_grey	= 1;
 const int color_black	= 2;
 
 /* data structures */
-struct package_t {
+typedef struct package_s {
 	char *file;
 	char *package;
 	char *version;
@@ -91,17 +89,16 @@ struct package_t {
 	int installer_menu_item;
 	unsigned long status;
 	char color; /* for topo-sort */
-	struct package_t *requiredfor[DEPENDSMAX]; 
+	struct package_s *requiredfor[DEPENDSMAX]; 
 	unsigned short requiredcount;
-	struct package_t *next;
-};
+	struct package_s *next;
+} package_t;
 
-/* function prototypes */
-void *status_read(void);
-void control_read(FILE *f, struct package_t *p);
-int status_merge(void *status, struct package_t *pkgs);
-int package_compare(const void *p1, const void *p2);
-struct package_t *depends_resolve(struct package_t *pkgs, void *status);
+static int package_compare(const void *p1, const void *p2)
+{
+	return strcmp(((package_t *)p1)->package, 
+		((package_t *)p2)->package);
+}
 
 #ifdef DODEPENDS
 #include <ctype.h>
@@ -139,8 +136,8 @@ static char **depends_split(const char *dependsstr)
 	return dependsvec;
 }
 
-static void depends_sort_visit(struct package_t **ordered, 
-	struct package_t *pkgs, struct package_t *pkg)
+static void depends_sort_visit(package_t **ordered, package_t *pkgs,
+		package_t *pkg)
 {
 	/* Topological sort algorithm:
 	 * ordered is the output list, pkgs is the dependency graph, pkg is 
@@ -177,12 +174,12 @@ static void depends_sort_visit(struct package_t **ordered,
 	pkg->color = color_black;
 }
 
-static struct package_t *depends_sort(struct package_t *pkgs)
+static package_t *depends_sort(package_t *pkgs)
 {
 	/* TODO: it needs to break cycles in the to-be-installed package 
 	 * graph... */
-	struct package_t *ordered = NULL;
-	struct package_t *pkg;
+	package_t *ordered = NULL;
+	package_t *pkg;
 
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
 		pkg->color = color_white;
@@ -207,10 +204,10 @@ static struct package_t *depends_sort(struct package_t *pkgs)
  * efficient algorithm, but given that at any one time you are unlikely
  * to install a very large number of packages it doesn't really matter
  */
-struct package_t *depends_resolve(struct package_t *pkgs, void *status)
+static package_t *depends_resolve(package_t *pkgs, void *status)
 {
-	struct package_t *pkg, *chk;
-	struct package_t dependpkg;
+	package_t *pkg, *chk;
+	package_t dependpkg;
 	char **dependsvec;
 	int i;
 	void *found;
@@ -224,7 +221,7 @@ struct package_t *depends_resolve(struct package_t *pkgs, void *status)
 			/* Check for dependencies; first look for installed packages */
 			dependpkg.package = dependsvec[i];
 			if ((found = tfind(&dependpkg, &status, package_compare)) == 0 ||
-			    ((chk = *(struct package_t **)found) &&
+			    ((chk = *(package_t **)found) &&
 			     (chk->status & (status_flagok | status_statusinstalled)) != 
 			      (status_flagok | status_statusinstalled)))
 			{
@@ -275,12 +272,6 @@ struct package_t *depends_resolve(struct package_t *pkgs, void *status)
  *    replacing any pre-existing entries. when a merge happens, status info 
  *    read using the status_read function is written back to the status file
  */
-
-int package_compare(const void *p1, const void *p2)
-{
-	return strcmp(((struct package_t *)p1)->package, 
-		((struct package_t *)p2)->package);
-}
 
 static unsigned long status_parse(const char *line)
 {
@@ -340,7 +331,7 @@ static const char *status_print(unsigned long flags)
  * Read a control file (or a stanza of a status file) and parse it,
  * filling parsed fields into the package structure
  */
-void control_read(FILE *f, struct package_t *p)
+static void control_read(FILE *f, package_t *p)
 {
 	char buf[BUFSIZE];
 	while (fgets(buf, BUFSIZE, f) && !feof(f))
@@ -377,11 +368,11 @@ void control_read(FILE *f, struct package_t *p)
 	}
 }
 
-void *status_read(void)
+static void *status_read(void)
 {
 	FILE *f;
 	void *status = 0;
-	struct package_t *m = 0, *p = 0, *t = 0;
+	package_t *m = 0, *p = 0, *t = 0;
 
 	if ((f = fopen(STATUSFILE, "r")) == NULL)
 	{
@@ -392,8 +383,8 @@ void *status_read(void)
 		printf("(Reading database...)\n");
 	while (!feof(f))
 	{
-		m = (struct package_t *)malloc(sizeof(struct package_t));
-		memset(m, 0, sizeof(struct package_t));
+		m = (package_t *)malloc(sizeof(package_t));
+		memset(m, 0, sizeof(package_t));
 		control_read(f, m);
 		if (m->package)
 		{
@@ -411,11 +402,11 @@ void *status_read(void)
 				 * of a pseudo package into the status
 				 * binary-tree.
 				 */
-				p = (struct package_t *)malloc(sizeof(struct package_t));
-				memset(p, 0, sizeof(struct package_t));
+				p = (package_t *)malloc(sizeof(package_t));
+				memset(p, 0, sizeof(package_t));
 				p->package = strdup(m->provides);
 
-				t = *(struct package_t **)tsearch(p, &status, package_compare);
+				t = *(package_t **)tsearch(p, &status, package_compare);
 				if (!(t == p))
 				{
 					free(p->package);
@@ -443,12 +434,12 @@ void *status_read(void)
 	return status;
 }
 
-int status_merge(void *status, struct package_t *pkgs)
+static int status_merge(void *status, package_t *pkgs)
 {
 	FILE *fin, *fout;
 	char buf[BUFSIZE];
-	struct package_t *pkg = 0, *statpkg = 0;
-	struct package_t locpkg;
+	package_t *pkg = 0, *statpkg = 0;
+	package_t locpkg;
 	int r = 0;
 
 	if ((fin = fopen(STATUSFILE, "r")) == NULL)
@@ -475,8 +466,8 @@ int status_merge(void *status, struct package_t *pkgs)
 		 */
 		if (strstr(buf, "Package: ") == buf)
 		{
-			for (pkg = pkgs; pkg != 0 && strncmp(buf+9,
-					pkg->package, strlen(pkg->package))!=0;
+			for (pkg = pkgs; pkg != 0 && strncmp(buf + 9,
+					pkg->package, strlen(buf) - 9)!=0;
 			     pkg = pkg->next) ;
 
 			locpkg.package = buf+9;
@@ -486,7 +477,7 @@ int status_merge(void *status, struct package_t *pkgs)
 			 * file was changed while we are processing (no locking
 			 * is currently done...
 			 */
-			if (statpkg != 0) statpkg = *(struct package_t **)statpkg;
+			if (statpkg != 0) statpkg = *(package_t **)statpkg;
 		}
 		if (pkg != 0) continue;
 
@@ -521,17 +512,6 @@ int status_merge(void *status, struct package_t *pkgs)
 	if (r == 0) r = rename(STATUSFILE ".new", STATUSFILE);
 	return 0;
 }
-
-#include <errno.h>
-#include <fcntl.h>
-#include <search.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <utime.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 /* 
  * Main udpkg implementation routines
@@ -587,7 +567,7 @@ static int dpkg_copyfile(const char *src, const char *dest)
 	return 1;
 }
 
-static int dpkg_doconfigure(struct package_t *pkg)
+static int dpkg_doconfigure(package_t *pkg)
 {
 	int r;
 	char postinst[1024];
@@ -611,7 +591,7 @@ static int dpkg_doconfigure(struct package_t *pkg)
 	return 0;
 }
 
-static int dpkg_dounpack(struct package_t *pkg)
+static int dpkg_dounpack(package_t *pkg)
 {
 	int r = 0;
 	char *cwd, *p;
@@ -701,13 +681,13 @@ static int dpkg_dounpack(struct package_t *pkg)
 	return r;
 }
 
-static int dpkg_doinstall(struct package_t *pkg)
+static int dpkg_doinstall(package_t *pkg)
 {
 	DPRINTF("Installing %s\n", pkg->package);
 	return (dpkg_dounpack(pkg) || dpkg_doconfigure(pkg));
 }
 
-static int dpkg_unpackcontrol(struct package_t *pkg)
+static int dpkg_unpackcontrol(package_t *pkg)
 {
 	int r = 1;
 	char *cwd = 0;
@@ -742,10 +722,10 @@ static int dpkg_unpackcontrol(struct package_t *pkg)
 	return r;
 }
 
-static int dpkg_unpack(struct package_t *pkgs)
+static int dpkg_unpack(package_t *pkgs)
 {
 	int r = 0;
-	struct package_t *pkg;
+	package_t *pkg;
 	void *status = status_read();
 
 	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
@@ -766,11 +746,11 @@ static int dpkg_unpack(struct package_t *pkgs)
 	return r;
 }
 
-static int dpkg_configure(struct package_t *pkgs)
+static int dpkg_configure(package_t *pkgs)
 {
 	int r = 0;
 	void *found;
-	struct package_t *pkg;
+	package_t *pkg;
 	void *status = status_read();
 	for (pkg = pkgs; pkg != 0 && r == 0; pkg = pkg->next)
 	{
@@ -784,16 +764,16 @@ static int dpkg_configure(struct package_t *pkgs)
 		{
 			/* configure the package listed in the status file;
 			 * not pkg, as we have info only for the latter */
-			r = dpkg_doconfigure(*(struct package_t **)found);
+			r = dpkg_doconfigure(*(package_t **)found);
 		}
 	}
 	status_merge(status, 0);
 	return r;
 }
 
-static int dpkg_install(struct package_t *pkgs)
+static int dpkg_install(package_t *pkgs)
 {
-	struct package_t *p, *ordered = 0;
+	package_t *p, *ordered = 0;
 	void *status = status_read();
 	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
 	    mkdir(DPKGCIDIR, S_IRWXU) != 0)
@@ -842,9 +822,9 @@ static int dpkg_install(struct package_t *pkgs)
 	return 0;
 }
 
-static int dpkg_remove(struct package_t *pkgs)
+static int dpkg_remove(package_t *pkgs)
 {
-	struct package_t *p;
+	package_t *p;
 	void *status = status_read();
 	for (p = pkgs; p != 0; p = p->next)
 	{
@@ -853,11 +833,11 @@ static int dpkg_remove(struct package_t *pkgs)
 	return 0;
 }
 
-int dpkg_main(int argc, char **argv)
+extern int dpkg_main(int argc, char **argv)
 {
 	char opt = 0;
 	char *s;
-	struct package_t *p, *packages = NULL;
+	package_t *p, *packages = NULL;
 	char *cwd = getcwd(0, 0);
 	while (*++argv)
 	{
@@ -870,8 +850,8 @@ int dpkg_main(int argc, char **argv)
 		}
 		else
 		{
-			p = (struct package_t *)malloc(sizeof(struct package_t));
-			memset(p, 0, sizeof(struct package_t));
+			p = (package_t *)malloc(sizeof(package_t));
+			memset(p, 0, sizeof(package_t));
 			if (**argv == '/')
 				p->file = *argv;
 			else if (opt != 'c')
