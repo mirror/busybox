@@ -31,8 +31,6 @@
  */
 
 
-//#define TEST
-
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -43,9 +41,15 @@
 #include <signal.h>
 #include <limits.h>
 
-#ifndef TEST
-
 #include "busybox.h"
+
+#ifdef BB_LOCALE_SUPPORT
+#define Isprint(c) isprint((c))
+#else
+#define Isprint(c) ( (c) >= ' ' && (c) != ((unsigned char)'\233') )
+#endif
+
+#ifndef TEST
 
 #define D(x)
 
@@ -58,13 +62,6 @@
 #define BB_FEATURE_CLEAN_UP
 
 #define D(x)  x
-
-#ifndef TRUE
-#define TRUE  1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
 
 #endif							/* TEST */
 
@@ -91,29 +88,6 @@
 #endif							/* TEST */
 #endif							/* advanced FEATURES */
 
-
-#ifdef TEST
-void *xrealloc(void *old, size_t size)
-{
-	return realloc(old, size);
-}
-
-void *xmalloc(size_t size)
-{
-	return malloc(size);
-}
-char *xstrdup(const char *s)
-{
-	return strdup(s);
-}
-
-void *xcalloc(size_t size, size_t se)
-{
-	return calloc(size, se);
-}
-
-#define error_msg(s, d)                   fprintf(stderr, s, d)
-#endif /* TEST */
 
 
 struct history {
@@ -238,7 +212,7 @@ static void win_changed(int nsig)
 static void cmdedit_reset_term(void)
 {
 	if ((handlers_sets & SET_RESET_TERM) != 0) {
-		/* sparc and other have broken termios support: use old termio handling. */
+/* sparc and other have broken termios support: use old termio handling. */
 		setTermSettings(fileno(stdin), (void *) &initial_settings);
 		handlers_sets &= ~SET_RESET_TERM;
 	}
@@ -270,9 +244,9 @@ static void cmdedit_set_out_char(int next_char)
 	int c = (int)((unsigned char) command_ps[cursor]);
 
 	if (c == 0)
-		c = ' ';				/* destroy end char? */
+		c = ' ';	/* destroy end char? */
 #ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-	if (!isprint(c)) {			/* Inverse put non-printable characters */
+	if (!Isprint(c)) {	/* Inverse put non-printable characters */
 		if (c >= 128)
 			c -= 128;
 		if (c < ' ')
@@ -328,7 +302,7 @@ static void input_backward(int num)
 {
 	if (num > cursor)
 		num = cursor;
-	cursor -= num;				/* new cursor (in command, not terminal) */
+	cursor -= num;		/* new cursor (in command, not terminal) */
 
 	if (cmdedit_x >= num) {		/* no to up line */
 		cmdedit_x -= num;
@@ -369,147 +343,116 @@ static void parse_prompt(const char *prmt_ptr)
 	put_prompt();
 }
 #else
-static void add_to_prompt(char **prmt_mem_ptr, int *alm, 
-		int *prmt_len, const char *addb)
-{
-	*prmt_len += strlen(addb);
-	if (*alm < (*prmt_len) + 1) {
-		*alm = (*prmt_len) + 1;
-		*prmt_mem_ptr = xrealloc(*prmt_mem_ptr, *alm);
-	}
-	strcat(*prmt_mem_ptr, addb);
-}
-
 static void parse_prompt(const char *prmt_ptr)
 {
-	int alm = strlen(prmt_ptr) + 1;	/* supposedly require memory */
 	int prmt_len = 0;
 	int sub_len = 0;
-	int flg_not_length = '[';
-	char *prmt_mem_ptr = xstrdup(prmt_ptr);
-	char pwd_buf[PATH_MAX + 1];
-	char buf[16];
-	int c;
-
-	pwd_buf[0] = 0;
-	*prmt_mem_ptr = 0;
+	char  flg_not_length = '[';
+	char *prmt_mem_ptr = xcalloc(1, 1);
+	char *pwd_buf = xgetcwd(0);
+	char  buf2[PATH_MAX + 1];
+	char  buf[2];
+	char  c;
+	char *pbuf;
 
 	while (*prmt_ptr) {
+		pbuf    = buf;
+		pbuf[1] = 0;
 		c = *prmt_ptr++;
 		if (c == '\\') {
-			c = *prmt_ptr;
-			if (c == 0)
+			const char *cp = prmt_ptr;
+			int l;
+			
+			c = process_escape_sequence(&prmt_ptr);
+			if(prmt_ptr==cp) {
+			  if (*cp == 0)
 				break;
-			prmt_ptr++;
-			switch (c) {
+			  c = *prmt_ptr++;
+			  switch (c) {
 #ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
-			case 'u':
-				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, user_buf);
-				continue;
+			  case 'u':
+				pbuf = user_buf;
+				break;
 #endif	
-			case 'h':
-				if (hostname_buf[0] == 0) {
-					hostname_buf = xcalloc(256, 1);
-					if (gethostname(hostname_buf, 255) < 0) {
-						strcpy(hostname_buf, "?");
+			  case 'h':
+				pbuf = hostname_buf;
+				if (*pbuf == 0) {
+					pbuf = xcalloc(256, 1);
+					if (gethostname(pbuf, 255) < 0) {
+						strcpy(pbuf, "?");
 					} else {
-						char *s = strchr(hostname_buf, '.');
+						char *s = strchr(pbuf, '.');
 
 						if (s)
 							*s = 0;
 					}
+					hostname_buf = pbuf;
 				}
-				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len,
-							  hostname_buf);
-				continue;
-			case '$':
+				break;
+			  case '$':
 				c = my_euid == 0 ? '#' : '$';
 				break;
 #ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
-			case 'w':
-				if (pwd_buf[0] == 0) {
-					int l;
-
-					getcwd(pwd_buf, PATH_MAX);
-					l = strlen(home_pwd_buf);
-					if (home_pwd_buf[0] != 0 &&
-						strncmp(home_pwd_buf, pwd_buf, l) == 0) {
-						strcpy(pwd_buf + 1, pwd_buf + l);
-						pwd_buf[0] = '~';
+			  case 'w':
+				pbuf = pwd_buf;
+				l = strlen(home_pwd_buf);
+				if (home_pwd_buf[0] != 0 &&
+				    strncmp(home_pwd_buf, pbuf, l) == 0 &&
+				    (pbuf[l]=='/' || pbuf[l]=='\0') &&
+				    strlen(pwd_buf+l)<PATH_MAX) {
+					pbuf = buf2;
+					*pbuf = '~';
+					strcpy(pbuf+1, pwd_buf+l);
 					}
-				}
-				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, pwd_buf);
-				continue;
+				break;
 #endif	
-			case 'W':
-				if (pwd_buf[0] == 0) {
-					char *z;
-					
-					getcwd(pwd_buf, PATH_MAX);
-					z = strrchr(pwd_buf,'/');
-					if ( (z != NULL) && (z != pwd_buf) ) {
-						z++;
-						strcpy(pwd_buf,z);
-					}
-				}
-				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, pwd_buf);
-				continue;
-			case '!':
-				snprintf(buf, sizeof(buf), "%d", num_ok_lines);
-				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, buf);
-				continue;
-			case 'e':
-			case 'E':			/* \e \E = \033 */
+			  case 'W':
+				pbuf = pwd_buf;
+				cp = strrchr(pbuf,'/');
+				if ( (cp != NULL) && (cp != pbuf) )
+					pbuf += (cp-pbuf)+1;
+				break;
+			  case '!':
+				snprintf(pbuf = buf2, sizeof(buf2), "%d", num_ok_lines);
+				break;
+			  case 'e': case 'E':     /* \e \E = \033 */
 				c = '\033';
 				break;
-			case 'x':
-			case 'X':
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':{
-				int l;
-				int ho = 0;
-				char *eho;
-
-				if (c == 'X')
-					c = 'x';
-
+			  case 'x': case 'X': 
 				for (l = 0; l < 3;) {
-
-					buf[l++] = *prmt_ptr;
-					buf[l] = 0;
-					ho = strtol(buf, &eho, c == 'x' ? 16 : 8);
-					if (ho > UCHAR_MAX || (eho - buf) < l) {
+					int h;
+					buf2[l++] = *prmt_ptr;
+					buf2[l] = 0;
+					h = strtol(buf2, &pbuf, 16);
+					if (h > UCHAR_MAX || (pbuf - buf2) < l) {
 						l--;
 						break;
 					}
 					prmt_ptr++;
 				}
-				buf[l] = 0;
-				ho = strtol(buf, 0, c == 'x' ? 16 : 8);
-				c = ho == 0 ? '?' : (char) ho;
+				buf2[l] = 0;
+				c = (char)strtol(buf2, 0, 16);
+				if(c==0)
+					c = '?';
+				pbuf = buf;
 				break;
-			}
-			case '[':
-			case ']':
+			  case '[': case ']':
 				if (c == flg_not_length) {
 					flg_not_length = flg_not_length == '[' ? ']' : '[';
 					continue;
 				}
 				break;
-			}
+			  }
+			} 
 		}
-		buf[0] = c;
-		buf[1] = 0;
-		add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, buf);
+		if(pbuf == buf)
+			*pbuf = c;
+		prmt_len += strlen(pbuf);
+		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_len+1), pbuf);
 		if (flg_not_length == ']')
 			sub_len++;
 	}
+	free(pwd_buf);
 	cmdedit_prompt = prmt_mem_ptr;
 	cmdedit_prmt_len = prmt_len - sub_len;
 	put_prompt();
@@ -789,7 +732,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 	char **paths = path1;
 	int npaths;
 	int i;
-	char found[BUFSIZ + 4 + PATH_MAX];
+	char *found;
 	char *pfind = strrchr(command, '/');
 
 	path1[0] = ".";
@@ -822,7 +765,6 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 			continue;
 
 		while ((next = readdir(dir)) != NULL) {
-			const char *str_merge = "%s/%s";
 			char *str_found = next->d_name;
 
 			/* matched ? */
@@ -835,25 +777,23 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 				else
 					continue;
 			}
-			if (paths[i][strlen(paths[i]) - 1] == '/')
-				str_merge = "%s%s";
-			sprintf(found, str_merge, paths[i], str_found);
+			found = concat_path_file(paths[i], str_found);
 			/* hmm, remover in progress? */
-			if (stat(found, &st) < 0)
-				continue;
+			if (stat(found, &st) < 0) 
+				goto cont;
 			/* find with dirs ? */
 			if (paths[i] != dirbuf)
 				strcpy(found, next->d_name);	/* only name */
 			if (S_ISDIR(st.st_mode)) {
 				/* name is directory      */
-				/* algorithmic only "/" ? */
-				if (*str_found)
-					strcat(found, "/");
+				str_found = found;
+				found = concat_path_file(found, "");
+				free(str_found);
 				str_found = add_quote_for_spec_chars(found);
 			} else {
 				/* not put found file if search only dirs for cd */
-				if (type == FIND_DIR_ONLY)
-					continue;
+				if (type == FIND_DIR_ONLY) 
+					goto cont;
 				str_found = add_quote_for_spec_chars(found);
 				if (type == FIND_FILE_ONLY ||
 					(type == FIND_EXE_ONLY && is_execute(&st) == TRUE))
@@ -863,6 +803,8 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 			matches = xrealloc(matches, (nm + 1) * sizeof(char *));
 
 			matches[nm++] = str_found;
+cont:
+			free(found);
 		}
 		closedir(dir);
 	}
@@ -1440,7 +1382,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				}
 			} else
 #endif
-			if (!isprint(c))	/* Skip non-printable characters */
+			if (!Isprint(c))	/* Skip non-printable characters */
 				break;
 
 			if (len >= (BUFSIZ - 2))	/* Need to leave space for enter */
@@ -1553,6 +1495,9 @@ extern void cmdedit_terminate(void)
 
 
 #ifdef TEST
+
+const char *applet_name = "debug stuff usage";
+const char *memory_exhausted = "Memory exhausted";
 
 #ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
 #include <locale.h>

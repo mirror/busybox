@@ -81,7 +81,7 @@ echo_main(int argc, char** argv)
 
 just_echo:
 	while (argc > 0) {
-		char *arg = argv[0];
+		const char *arg = argv[0];
 		register int c;
 
 		while ((c = *arg++)) {

@@ -42,12 +42,15 @@
 	    for init.c
 	* Glenn McGrath -- Fixed problems with dpkg and dpkg-deb applets
 	* Glenn McGrath -- Don't try to automount devfs 
-	* Vladimir N. Oleynik -- optimizations for more.c
-	* Vladimir N. Oleynik -- Added locale support to the shell.
-	* Vladimir N. Oleynik -- moved struct applet from busybox.c to applets.c
-	* Vladimir N. Oleynik -- A size optimization for rdate
-	* Vladimir N. Oleynik -- Fixed printf applets's locale handling
-	* Vladimir N. Oleynik -- More cmdedit updates
+	* Vladimir Oleynik -- optimizations for more.c
+	* Vladimir Oleynik -- Added locale support to the shell, and fixed
+	    locale support in several other places
+	* Vladimir Oleynik -- moved struct applet from busybox.c to applets.c
+	* Vladimir Oleynik -- A size optimization for rdate
+	* Vladimir Oleynik -- Fixed printf applets's locale handling
+	* Vladimir Oleynik -- More cmdedit updates
+	* Vladimir Oleynik -- Fixed `du' applet so it continues running 
+	    after permission errors.
 	* Pierre Peiffer <pierre.peiffer@sxb.bsf.alcatel.fr> -- made
 		find_pid_by_name() cope with swapped out processes.
 	* Jari Ruusu <jari.ruusu@pp.inet.fi> -- updates so that setting

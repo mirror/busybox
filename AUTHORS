@@ -73,3 +73,6 @@ Charles P. Wright <cpwright@villagenet.com>
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
+Vladimir Oleynik <dzo@simtreas.ru>
+    cmdedit, stty-port, locale, various fixes 
+    and irreconcilable critic of everything not perfect.

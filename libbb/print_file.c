@@ -2,9 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) tons of folks.  Tracking down who wrote what
- * isn't something I'm going to worry about...  If you wrote something
- * here, please feel free to acknowledge your work.
+ * Copyright (C) 1999-2001 Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
- * Permission has been granted to redistribute this code under the GPL.
- *
  */
 
 #include <stdio.h>
+#include <sys/stat.h>
 #include "libbb.h"
 
 
@@ -41,11 +36,21 @@ extern void print_file(FILE *file)
 
 extern int print_file_by_name(char *filename)
 {
-	FILE *file;
-	if ((file = wfopen(filename, "r")) == NULL)
-		return FALSE;
-	print_file(file);
-	return TRUE;
+	struct stat statBuf;
+	int status = TRUE;
+
+	if(is_directory(filename, TRUE, &statBuf)==TRUE) {
+		error_msg("%s: Is directory", filename);
+		status = FALSE;
+	} else {
+		FILE *f = wfopen(filename, "r");
+		if(f!=NULL)
+			print_file(f);
+		else
+			status = FALSE;
+	}
+
+	return status;
 }
 
 

@@ -256,18 +256,16 @@ extern int cp_mv_main(int argc, char **argv)
 			int			state = 0;
 			char		*pushd, *d, *p;
 
-			if ((pushd = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				perror_msg("getcwd()");
+			if ((pushd = xgetcwd(0)) == NULL)
 				continue;
-			}
+
 			if (chdir(baseDestName) < 0) {
 				perror_msg("chdir(%s)", baseSrcName);
 				continue;
 			}
-			if ((d = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				perror_msg("getcwd()");
+			if ((d = xgetcwd(0)) == NULL)
 				continue;
-			}
+
 			while (!state && *d != '\0') {
 				if (stat(d, &sb) < 0) {	/* stat not lstat - always dereference targets */
 					perror_msg("stat(%s)", d);

@@ -83,7 +83,8 @@ static long du(char *filename)
 	int len;
 
 	if ((lstat(filename, &statbuf)) != 0) {
-		perror_msg_and_die("%s", filename);
+		perror_msg("%s", filename);
+		return 0;
 	}
 
 	du_depth++;
@@ -110,22 +111,16 @@ static long du(char *filename)
 			filename[--len] = '\0';
 
 		while ((entry = readdir(dir))) {
-			char newfile[BUFSIZ + 1];
+			char *newfile;
 			char *name = entry->d_name;
 
 			if ((strcmp(name, "..") == 0)
 				|| (strcmp(name, ".") == 0)) {
 				continue;
 			}
-
-			if (len + strlen(name) + 1 > BUFSIZ) {
-				error_msg(name_too_long);
-				du_depth--;
-				return 0;
-			}
-			sprintf(newfile, "%s/%s", filename, name);
-
+			newfile = concat_path_file(filename, name);
 			sum += du(newfile);
+			free(newfile);
 		}
 		closedir(dir);
 		print(sum, filename);
@@ -197,7 +192,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.43 2001/03/09 14:36:42 andersen Exp $ */
+/* $Id: du.c,v 1.44 2001/04/09 22:48:11 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

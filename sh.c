@@ -64,7 +64,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#ifdef BB_LOCALE_SUPPORT
 #include <locale.h>
+#endif
 
 //#define BB_FEATURE_SH_WORDEXP
 
@@ -80,7 +83,6 @@
 #include "cmdedit.h"
 
 
-static const int MAX_LINE = 256;	/* size of input buffer for cwd data */
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
@@ -230,7 +232,7 @@ static char syntax_err[]="syntax error near unexpected token";
 #endif
 
 static char *PS1;
-static char *PS2;
+static char *PS2 = "> ";
 
 
 #ifdef DEBUG_SHELL
@@ -294,7 +296,7 @@ static int builtin_cd(struct child_prog *child)
 		printf("cd: %s: %m\n", newdir);
 		return EXIT_FAILURE;
 	}
-	getcwd(cwd, sizeof(char)*MAX_LINE);
+	cwd = xgetcwd(cwd);
 
 	return EXIT_SUCCESS;
 }
@@ -410,7 +412,6 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
-	getcwd(cwd, MAX_LINE);
 	printf( "%s\n", cwd);
 	return EXIT_SUCCESS;
 }
@@ -434,13 +435,14 @@ static int builtin_export(struct child_prog *child)
 #ifndef BB_FEATURE_SH_SIMPLE_PROMPT
 	if (strncmp(v, "PS1=", 4)==0)
 		PS1 = getenv("PS1");
-	else if (strncmp(v, "PS2=", 4)==0)
-		PS2 = getenv("PS2");
 #endif
+
+#ifdef BB_LOCALE_SUPPORT
 	if(strncmp(v, "LC_ALL=", 7)==0)
 		setlocale(LC_ALL, getenv("LC_ALL"));
 	if(strncmp(v, "LC_CTYPE=", 9)==0)
 		setlocale(LC_CTYPE, getenv("LC_CTYPE"));
+#endif
 
 	return (res);
 }
@@ -623,10 +625,7 @@ static int builtin_unset(struct child_prog *child)
  */
 static int run_command_predicate(char *cmd)
 {
-	int n=strlen(cmd);
-	local_pending_command = xmalloc(n+1);
-	strncpy(local_pending_command, cmd, n); 
-	local_pending_command[n]='\0';
+	local_pending_command = xstrdup(cmd);
 	return( busy_loop(NULL));
 }
 #endif
@@ -808,15 +807,10 @@ static inline void cmdedit_set_initial_prompt(void)
 {
 #ifdef BB_FEATURE_SH_SIMPLE_PROMPT
 	PS1 = NULL;
-	PS2 = "> ";
 #else
 	PS1 = getenv("PS1");
-	if(PS1==0) {
+	if(PS1==0)
 		PS1 = "\\w \\$ ";
-	}
-	PS2 = getenv("PS2");
-	if(PS2==0) 
-		PS2 = "> ";
 #endif	
 }
 
@@ -954,7 +948,7 @@ static int expand_arguments(char *command)
 	/* Fix up escape sequences to be the Real Thing(tm) */
 	while( command && command[ix]) {
 		if (command[ix] == '\\') {
-			char *tmp = command+ix+1;
+			const char *tmp = command+ix+1;
 			command[ix] = process_escape_sequence(  &tmp );
 			memmove(command+ix + 1, tmp, strlen(tmp)+1);
 		}
@@ -1829,8 +1823,10 @@ static int busy_loop(FILE * input)
 #ifdef BB_FEATURE_CLEAN_UP
 void free_memory(void)
 {
-	if (cwd)
+	if (cwd) {
 		free(cwd);
+		cwd = NULL;
+	}
 	if (local_pending_command)
 		free(local_pending_command);
 
@@ -1850,7 +1846,6 @@ int shell_main(int argc_l, char **argv_l)
 
 	/* These variables need re-initializing when recursing */
 	shell_context = 0;
-	cwd=NULL;
 	local_pending_command = NULL;
 	close_me_head = NULL;
 	job_list.head = NULL;
@@ -1921,8 +1916,7 @@ int shell_main(int argc_l, char **argv_l)
 	}
 
 	/* initialize the cwd -- this is never freed...*/
-	cwd=(char*)xmalloc(sizeof(char)*MAX_LINE+1);
-	getcwd(cwd, sizeof(char)*MAX_LINE);
+	cwd = xgetcwd(0);
 
 #ifdef BB_FEATURE_CLEAN_UP
 	atexit(free_memory);
@@ -1932,7 +1926,6 @@ int shell_main(int argc_l, char **argv_l)
 	cmdedit_set_initial_prompt();
 #else
 	PS1 = NULL;
-	PS2 = "> ";
 #endif
 	
 	return (busy_loop(input));

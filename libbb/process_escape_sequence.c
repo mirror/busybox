@@ -2,9 +2,8 @@
 /*
  * Utility routines.
  *
- * Copyright (C) tons of folks.  Tracking down who wrote what
- * isn't something I'm going to worry about...  If you wrote something
- * here, please feel free to acknowledge your work.
+ * Copyright (C) Manuel Nova III <mnovoa3@bellsouth.net>
+ * and Vladimir Oleynik <vodz@usa.net> 
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
- * Permission has been granted to redistribute this code under the GPL.
- *
+ * 
  */
 
 #include <stdio.h>
@@ -31,45 +28,45 @@
 
 
 
-char process_escape_sequence(char **ptr)
+char process_escape_sequence(const char **ptr)
 {
-       static const char charmap[] = {
-		   'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
-	       '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
+	static const char charmap[] = {
+		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
+		'\a', '\b', '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
 
-       const char *p;
-	   char *q;
-       int num_digits;
-       unsigned int n;
+	const char *p;
+	const char *q;
+	int num_digits;
+	unsigned int n;
+	
+	n = 0;
+	q = *ptr;
 
-       n = 0;
-	   q = *ptr;
+	for ( num_digits = 0 ; num_digits < 3 ; ++num_digits) {
+		if ((*q < '0') || (*q > '7')) { /* not a digit? */
+			break;
+		}
+		n = n * 8 + (*q++ - '0');
+	}
 
-       for ( num_digits = 0 ; num_digits < 3 ; ++num_digits) {
-	       if ((*q < '0') || (*q > '7')) { /* not a digit? */
-		       break;
-	       }
-	       n = n * 8 + (*q++ - '0');
-       }
-
-       if (num_digits == 0) {	/* mnemonic escape sequence? */
-		   for (p=charmap ; *p ; p++) {
-			   if (*p == *q) {
-				   q++;
-				   break;
-			   }
-		   }
-		   n = *(p+(sizeof(charmap)/2));
-	   }
+	if (num_digits == 0) {	/* mnemonic escape sequence? */
+		for (p=charmap ; *p ; p++) {
+			if (*p == *q) {
+				q++;
+				break;
+			}
+		}
+		n = *(p+(sizeof(charmap)/2));
+	}
 
 	   /* doesn't hurt to fall through to here from mnemonic case */
-	   if (n > UCHAR_MAX) {	/* is octal code too big for a char? */
-		   n /= 8;			/* adjust value and */
-		   --q;				/* back up one char */
-	   }
+	if (n > UCHAR_MAX) {	/* is octal code too big for a char? */
+		n /= 8;			/* adjust value and */
+		--q;				/* back up one char */
+	}
 
-	   *ptr = q;
-	   return (char) n;
+	*ptr = q;
+	return (char) n;
 }
 
 

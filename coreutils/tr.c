@@ -93,7 +93,7 @@ static void map(register unsigned char *string1, unsigned int string1_len,
 	}
 }
 
-static unsigned int expand(char *arg, register unsigned char *buffer)
+static unsigned int expand(const char *arg, register unsigned char *buffer)
 {
 	unsigned char *buffer_start = buffer;
 	int i, ac;

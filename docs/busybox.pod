@@ -2505,6 +2505,13 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 =for html <br>
 
+Vladimir Oleynik <dzo@simtreas.ru>
+
+    cmdedit, stty-port, locale, various fixes 
+    and irreconcilable critic of everything not perfect.
+
+=for html <br>
+
 Bruce Perens <bruce@pixar.com>
 
     Original author of BusyBox. His code is still in many apps.
@@ -2553,4 +2560,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.96 2001/04/05 21:45:54 andersen Exp $
+# $Id: busybox.pod,v 1.97 2001/04/09 22:48:11 andersen Exp $

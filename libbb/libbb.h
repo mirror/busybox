@@ -131,7 +131,7 @@ extern int find_real_root_device_name(char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);
 extern int print_file_by_name(char *filename);
-extern char process_escape_sequence(char **ptr);
+extern char process_escape_sequence(const char **ptr);
 extern char *get_last_path_component(char *path);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
@@ -150,7 +150,7 @@ extern char *xstrndup (const char *s, int n);
 extern char * safe_strncpy(char *dst, const char *src, size_t size);
 
 struct suffix_mult {
-	char *suffix;
+	const char *suffix;
 	int mult;
 };
 
@@ -212,5 +212,8 @@ enum {
 
 int ask_confirmation(void);
 int klogctl(int type, char * b, int len);
+
+char *xgetcwd(char *cwd);
+char *concat_path_file(const char *path, const char *filename);
 
 #endif /* __LIBBB_H__ */

@@ -32,11 +32,13 @@
 
 extern int pwd_main(int argc, char **argv)
 {
-	char buf[BUFSIZ + 1];
-
-	if (getcwd(buf, sizeof(buf)) == NULL)
-		perror_msg_and_die("getcwd");
-
-	puts(buf);
-	return EXIT_SUCCESS;
+	static char *buf; 
+	
+	buf = xgetcwd(buf);
+	
+	if (buf != NULL) {
+		puts(buf);
+		return EXIT_SUCCESS;
+	}
+	return EXIT_FAILURE;
 }

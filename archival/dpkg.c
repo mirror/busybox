@@ -20,7 +20,7 @@
 #define DODEPENDS 1
 
 /* Should we do debugging? */
-#define DODEBUG 1
+//#define DODEBUG 1
 
 #ifdef DODEBUG
 #define SYSTEM(x) do_system(x)
@@ -274,7 +274,7 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 					if (strcmp(chk->package, dependsvec[i]) == 0 || (chk->provides && 
 					     strncmp(chk->provides, dependsvec[i], strlen(dependsvec[i])) == 0)) {
 						if (chk->requiredcount >= DEPENDSMAX) {
-							fprintf(stderr, "Too many dependencies for %s\n", chk->package);
+							error_msg("Too many dependencies for %s", chk->package);
 							return 0;
 						}
 						if (chk != pkg) {
@@ -284,7 +284,7 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 					}
 				}
 				if (chk == 0) {
-					fprintf(stderr, "%s depends on %s, but it is not going to be installed\n", pkg->package, dependsvec[i]);
+					error_msg("%s depends on %s, but it is not going to be installed", pkg->package, dependsvec[i]);
 					return 0;
 				}
 			}
@@ -382,7 +382,7 @@ static void *status_read(void)
 		printf("(Reading database...)\n");
 	}
 
-	if ((f = fopen(statusfile, "r")) == NULL) {
+	if ((f = wfopen(statusfile, "r")) == NULL) {
 		return(NULL);
 	}
 
@@ -483,8 +483,7 @@ static int status_merge(void *status, package_t *pkgs)
 					status_words_flag[statpkg->status_flag - 1], 
 					status_words_status[statpkg->status_status - 1]);
 			}
-			fputs(line, fout);
-			fputc('\n', fout);
+			fprintf(fout, "%s\n", line);
 		}
 		fclose(fin);
 	}
@@ -551,7 +550,7 @@ static int dpkg_doconfigure(package_t *pkg)
 	if (is_file(postinst)) {
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
 		if ((r = do_system(buf)) != 0) {
-			fprintf(stderr, "postinst exited with status %d\n", r);
+			error_msg("postinst exited with status %d\n", r);
 			pkg->status_status = status_status_halfconfigured;
 			return 1;
 		}
@@ -565,7 +564,7 @@ static int dpkg_dounpack(package_t *pkg)
 {
 	int r = 0, i;
 	int status = TRUE;
-	char *cwd;
+	char *cwd = xgetcwd(0);
 	char *src_file = NULL;
 	char *dst_file = NULL;
 //	char *lst_file = NULL;
@@ -574,7 +573,8 @@ static int dpkg_dounpack(package_t *pkg)
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
-	cwd = getcwd(0, 0);
+	if(cwd==NULL)
+		exit(EXIT_FAILURE);
 	chdir("/");
 	deb_extract(dpkg_deb_extract, "/", pkg->file);
 
@@ -714,7 +714,7 @@ static int dpkg_configure(package_t *pkgs, void *status)
 		found = tfind(pkg, &status, package_compare);
 
 		if (found == 0) {
-			fprintf(stderr, "Trying to configure %s, but it is not installed\n", pkg->package);
+			error_msg("Trying to configure %s, but it is not installed", pkg->package);
 			r = 1;
 		} 
 		/* configure the package listed in the status file;

@@ -349,6 +349,9 @@
 #define BB_FEATURE_VI_SET		// :set
 #define BB_FEATURE_VI_WIN_RESIZE	// handle window resize
 //
+// Enable a if you system have setuped locale
+//#define BB_LOCALE_SUPPORT
+//
 // End of Features List
 //
 //
