@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.1 2001/03/06 00:48:59 andersen Exp $
+ * Version:     $Id: interface.c,v 1.2 2001/03/06 20:54:43 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -73,9 +73,6 @@
 #define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
-#define xmalloc malloc
-#define xcalloc calloc
-#define xrealloc realloc
 #define KRELEASE(maj,min,patch) ((maj) * 10000 + (min)*1000 + (patch))
 
 int procnetdev_vsn = 1;
@@ -391,11 +388,11 @@ static int INET_rresolve(char *name, size_t len, struct sockaddr_in *sin,
     }
     if ((ent == NULL) && (np == NULL))
 	safe_strncpy(name, inet_ntoa(sin->sin_addr), len);
-    pn = (struct addr *) malloc(sizeof(struct addr));
+    pn = (struct addr *) xmalloc(sizeof(struct addr));
     pn->addr = *sin;
     pn->next = INET_nn;
     pn->host = host;
-    pn->name = (char *) malloc(strlen(name) + 1);
+    pn->name = (char *) xmalloc(strlen(name) + 1);
     strcpy(pn->name, name);
     INET_nn = pn;
 
