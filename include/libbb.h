@@ -48,6 +48,10 @@
 # include "sha1.h"
 #endif
 
+/* Compatability with ANSI C */
+#ifndef inline
+# define inline
+#endif
 
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
@@ -69,9 +73,6 @@ char *strtok_r(char *s, const char *delim, char **ptrptr);
 
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
-
-static inline int is_decimal(int ch) { return ((ch >= '0') && (ch <= '9')); }
-static inline int is_octal(int ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 /* Macros for min/max.  */
 #ifndef MIN
@@ -329,7 +330,6 @@ extern char *pw_encrypt(const char *clear, const char *salt);
 extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
-//extern int xopen(const char *pathname, int flags, mode_t mode);
 extern int xopen(const char *pathname, int flags);
 extern ssize_t xread(int fd, void *buf, size_t count);
 extern ssize_t xread_all_eof(int fd, void *buf, size_t count);
