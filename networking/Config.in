@@ -46,77 +46,89 @@ config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  This option disabling uid and port options for httpd applet
-	  and more others reducing size moments, but require
-	  internet superserver daemon for usaging.
+	  This option disables uid and port options for the httpd applet
+	  but requires inetd server daemon.
 
 config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	bool "  Enable Basic Authentication"
-	default n
+	default y
 	depends on CONFIG_HTTPD
 	help
-	  Utilizes /etc/httpd.conf for basic authentication on a
-	  per url basis.
+	  Utilizes password settings from /etc/httpd.conf for basic
+	  authentication on a per url basis.
 
-config CONFIG_FEATURE_HTTPD_CGI
-	bool "  Enable support Common Gateway Interface"
-	default n
-	depends on CONFIG_HTTPD
-	help
-	  Disable this for do very small module
 
 config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "  Enable support reload global config file after hup signaled"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  Disable this for do very small module
+	  This option enables processing of SIGHUP to reload cached
+	  configuration settings.
 
 config CONFIG_FEATURE_HTTPD_SETUID
-	bool "  Enable support -u user option"
+	bool "  Enable support -u <user> option"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  Require for drop privilegies after bind() to privilegies port
+	  This option allows the server to run as a specific user
+	  rather than defaulting to the user that starts the server.
+	  Use of this option requires special privilegies to change to a
+	  different user.
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	bool "  Enable support load from config file mime types"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  After set this you can adding or change mime types from file
-	  suffixes in config files
+	  This option enables support for additional mime types at
+	  run-time to be specified in the configuration file.
 
+config CONFIG_FEATURE_HTTPD_CGI
+	bool "  Enable support Common Gateway Interface"
+	default y
+	depends on CONFIG_HTTPD
+	help
+	  This option allows scripts and executables to be invoked
+  	  when specific urls are requested.
 config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	bool "  Enable support set eviroment REMOTE_PORT"
+	bool "  Enable support set eviroment REMOTE_PORT variable for CGI"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
-	  After set this your CGI script can know own remote port connecting
+	  Use of this option can assist scripts in generating
+	  references that contain a unique port number.
 
 config CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
-	bool "  Enable support nonstandart httpd feature set CGI_var=value"
-	default n
+	bool "  Enable setting of CGI_varname=value environment vars for CGI"
+	default y
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
-	  After set this your CGI script can have trivial parse getted vars
+	  This option parses POST or GET arguments from a form and
+	  sets environment variables with their value.  This simplifies
+	  and speeds up CGI scripts.  A form argument of foo=bar would
+	  result in a script having the environment variable CGI_foo set
+	  to 'bar'.  In addition, this option sets a variable that
+	  lists all the argument names.  e.g. CGI_VARNAMES_="name1 name2".
 
 config CONFIG_FEATURE_HTTPD_DECODE_URL_STR
-	bool "  Support nonstandart httpd feature decode URL to stdout"
-	default n
+	bool "  Enable the -d option for shell script CGI simplification"
+	default y
 	depends on CONFIG_HTTPD
 	help
-	  After set this your can decode URL from -d argument to stdout,
-	  example -d "Hello%20World" as "Hello World"
+	  After set,  this option enables support for decoding of
+	  url-encoded form arguments via the -d option.  Output goes to
+	  stdout. For example, httpd -d "Hello%20World" produces "Hello World".
 
 config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-	bool "  Support nonstandart httpd feature encode argument to URL"
-	default n
+	bool "  Enable the -e option for shell script CGI simplification."
+	default y
 	depends on CONFIG_HTTPD
 	help
-	  After set this your can encode from -d argument to stdout as URL,
-	  example -e "<Hello World>" as "%3CHello%20World%3E"
-
+	  After set, this option allows html encoding arbitrary
+	  strings for display of the browser.  Output goes to stdout.
+	  For example, httpd -e "<Hello World>" as
+	  "&#60Hello&#32World&#62".
 
 config CONFIG_IFCONFIG
 	bool "ifconfig"
