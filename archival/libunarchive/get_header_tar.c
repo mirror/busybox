@@ -106,6 +106,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
 
+	{	/* Strip trailing '/' in directories */
+		char *tmp = last_char_is(file_header->name, '/');
+		if (tmp) {
+			*tmp = '\0';
+		}
+	}
+
+
 	file_header->mode = strtol(tar.formated.mode, NULL, 8);
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
 	file_header->gid = strtol(tar.formated.gid, NULL, 8);
