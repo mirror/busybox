@@ -87,7 +87,7 @@ ARFLAGS:=-r
 #--------------------------------------------------------
 export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 ifeq ($(strip $(TARGET_ARCH)),)
-TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+TARGET_ARCH=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
 		-e 's/sparc.*/sparc/' \
 		-e 's/arm.*/arm/g' \
