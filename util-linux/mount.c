@@ -101,6 +101,7 @@ static const struct mount_options mount_options[] = {
 	{"async", ~MS_SYNCHRONOUS, 0},
 	{"atime", ~0, ~MS_NOATIME},
 	{"defaults", ~0, 0},
+	{"noauto", ~0, 0},
 	{"dev", ~MS_NODEV, 0},
 	{"diratime", ~0, ~MS_NODIRATIME},
 	{"exec", ~MS_NOEXEC, 0},
