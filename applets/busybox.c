@@ -45,9 +45,6 @@ static const struct Applet applets[] = {
 #ifdef BB_DUTMP			//usr/sbin
     {"dutmp", cat_more_main},
 #endif
-#ifdef BB_FALSE			//bin
-    {"false", false_main},
-#endif
 #ifdef BB_FDFLUSH		//bin
     {"fdflush", fdflush_main},
 #endif
@@ -142,8 +139,9 @@ static const struct Applet applets[] = {
 #ifdef BB_TOUCH			//usr/bin
     {"touch", touch_main},
 #endif
-#ifdef BB_TRUE			//bin
+#ifdef BB_TRUE_FALSE		//bin
     {"true", true_main},
+    {"false", false_main},
 #endif
 #ifdef BB_UMOUNT		//bin
     {"umount",  umount_main},

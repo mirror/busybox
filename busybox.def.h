@@ -14,7 +14,6 @@
 #define BB_DF
 #define BB_DMESG
 //#define BB_DUTMP
-#define BB_FALSE
 #define BB_FDFLUSH
 #define BB_FIND
 #define BB_GREP
@@ -46,7 +45,7 @@
 #define BB_SYNC
 #define BB_TAR
 #define BB_TOUCH
-#define BB_TRUE
+#define BB_TRUE_FALSE
 #define BB_UMOUNT
 #define BB_UPDATE
 #define BB_UTILITY
