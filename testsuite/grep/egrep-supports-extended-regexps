@@ -1,1 +1,2 @@
+# UNSUPPORTED: CONFIG_FEATURE_GREP_EGREP_ALIAS
 test x`echo foo | busybox egrep fo+` = xfoo
