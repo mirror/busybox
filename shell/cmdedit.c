@@ -55,6 +55,13 @@
 
 #else
 
+/* pretect redefined for test */
+#undef CONFIG_FEATURE_COMMAND_EDITING
+#undef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+#undef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+#undef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
+#undef CONFIG_FEATURE_CLEAN_UP
+
 #define CONFIG_FEATURE_COMMAND_EDITING
 #define CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 #define CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
@@ -1187,8 +1194,7 @@ extern void save_history ( const char *tofile )
 		int i;
 
 		for ( i = 0; i < n_history; i++ ) {
-			fputs ( history [i], fp );
-			fputc ( '\n', fp );
+			fprintf(fp, "%s\n", history [i]);
 		}
 		fclose ( fp );
 	}
@@ -1238,7 +1244,6 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
 	/* Turn off echoing and CTRL-C, so we can trap it */
 	new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
-#ifndef linux
 	/* Hmm, in linux c_cc[] not parsed if set ~ICANON */
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
@@ -1247,7 +1252,6 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 #               define _POSIX_VDISABLE '\0'
 #       endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
-#endif
 	command[0] = 0;
 
 	setTermSettings(0, (void *) &new_settings);
@@ -1286,12 +1290,8 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			goto_new_line();
 			command[0] = 0;
 			len = 0;
-#if !defined(CONFIG_ASH)
 			lastWasTab = FALSE;
 			put_prompt();
-#else
-			break_out = 2;
-#endif
 			break;
 		case 4:
 			/* Control-d -- Delete one character, or exit
@@ -1336,7 +1336,7 @@ prepare_to_die:
 			printf("\033[J");
 			break;
 		case 12:
-				/* Control-l -- clear screen */
+			/* Control-l -- clear screen */
 			printf("\033[H");
 			redraw(0, len-cursor);
 			break;
@@ -1362,6 +1362,13 @@ prepare_to_die:
 				strcpy(command, command + cursor);
 				redraw(cmdedit_y, len -= cursor);
 			}
+			break;
+		case 23:
+			/* Control-W -- Remove the last word */
+			while (cursor > 0 && isspace(command[cursor-1]))
+				input_backspace();
+			while (cursor > 0 &&!isspace(command[cursor-1]))
+				input_backspace();
 			break;
 		case ESC:{
 			/* escape sequence follows */
@@ -1511,7 +1518,7 @@ rewrite_line:
 	}
 #endif
 #endif  /* MAX_HISTORY >= 1 */
-	if(break_out == 1) {
+	if (break_out > 0) {
 		command[len++] = '\n';          /* set '\n' */
 		command[len] = 0;
 	}
@@ -1522,11 +1529,7 @@ rewrite_line:
 	free(cmdedit_prompt);
 #endif
 	cmdedit_reset_term();
-#if !defined(CONFIG_ASH)
 	return len;
-#else
-	return break_out < 0 ? break_out : len;
-#endif
 }
 
 
@@ -1537,7 +1540,6 @@ rewrite_line:
 #ifdef TEST
 
 const char *bb_applet_name = "debug stuff usage";
-const char *memory_exhausted = "Memory exhausted";
 
 #ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #include <locale.h>
@@ -1560,15 +1562,15 @@ int main(int argc, char **argv)
 #endif
 	while(1) {
 		int l;
-		cmdedit_read_input(prompt, buff);
-		l = strlen(buff);
-		if(l==0)
-			break;
-		if(l > 0 && buff[l-1] == '\n')
+		l = cmdedit_read_input(prompt, buff);
+		if(l > 0 && buff[l-1] == '\n') {
 			buff[l-1] = 0;
-		printf("*** cmdedit_read_input() returned line =%s=\n", buff);
+			printf("*** cmdedit_read_input() returned line =%s=\n", buff);
+		} else {
+			break;
+		}
 	}
-	printf("*** cmdedit_read_input() detect ^C\n");
+	printf("*** cmdedit_read_input() detect ^D\n");
 	return 0;
 }
 
