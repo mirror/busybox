@@ -1185,7 +1185,7 @@ static int run_pipe_real(struct pipe *pi)
 	pi->pgrp = 0;
 
 	/* Check if we are supposed to run in the foreground */
-	if (pi->followup!=PIPE_BG) {
+	if (interactive && pi->followup!=PIPE_BG) {
 		if ((pi->pgrp = tcgetpgrp(ctty = 2)) < 0
 				&& (pi->pgrp = tcgetpgrp(ctty = 0)) < 0
 				&& (pi->pgrp = tcgetpgrp(ctty = 1)) < 0)
