@@ -79,7 +79,6 @@ static char LocalHostName[64];
 /* udp socket for logging to remote host */
 static int remotefd = -1;
 static struct sockaddr_in remoteaddr;
-static int remoteaddrlen;
 
 /* where do we log? */
 static char *RemoteHost;
@@ -381,13 +380,29 @@ static void message(char *fmt, ...)
 	}
 }
 
+#ifdef CONFIG_FEATURE_REMOTE_LOG
+static void init_RemoteLog(void)
+{
+	memset(&remoteaddr, 0, sizeof(remoteaddr));
+	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (remotefd < 0) {
+		bb_error_msg("cannot create socket");
+	}
+
+	remoteaddr.sin_family = AF_INET;
+	remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(RemoteHost))->h_addr_list;
+	remoteaddr.sin_port = htons(RemotePort);
+}
+#endif
+
 static void logMessage(int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
 	static char res[20] = "";
 #ifdef CONFIG_FEATURE_REMOTE_LOG	
-	static char line[512];
+	static char line[MAXLINE + 1];
 #endif
 	CODE *c_pri, *c_fac;
 
@@ -418,15 +433,20 @@ static void logMessage(int pri, char *msg)
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
-	if (-1 != remotefd) {
+	if (-1 == remotefd) {
+		init_RemoteLog();
+	}
 
-		memset(&line, 0, sizeof(line));
-		snprintf(line, sizeof(line), "<%d> <%s>", pri, msg);
+	if (-1 != remotefd) {
+		now = 1;
+		snprintf(line, sizeof(line), "<%d> %s", pri, msg);
 
 	retry:
     	if(( -1 == sendto(remotefd, line, strlen(line), 0, 
 						(struct sockaddr *) &remoteaddr, 
-						remoteaddrlen)) && (errno == EINTR)) {
+						sizeof(remoteaddr))) && (errno == EINTR)) {
+			sleep(now);
+			now *= 2;
 			goto retry;
 		}
 	}
@@ -502,29 +522,6 @@ static int serveConnection(char *tmpbuf, int n_read)
 	}
 	return n_read;
 }
-
-
-#ifdef CONFIG_FEATURE_REMOTE_LOG
-static void init_RemoteLog(void)
-{
-	struct hostent *hostinfo;
-	remoteaddrlen = sizeof(remoteaddr);
-
-	memset(&remoteaddr, 0, remoteaddrlen);
-
-	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
-
-	if (remotefd < 0) {
-		bb_error_msg_and_die("cannot create socket");
-	}
-
-	hostinfo = xgethostbyname(RemoteHost);
-
-	remoteaddr.sin_family = AF_INET;
-	remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-	remoteaddr.sin_port = htons(RemotePort);
-}
-#endif
 
 static void doSyslogd(void) __attribute__ ((noreturn));
 static void doSyslogd(void)
