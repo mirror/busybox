@@ -33,8 +33,8 @@
 #define lchown	chown
 #endif
 
-static long uid = -1;
-static long gid = -1;
+static long uid;
+static long gid;
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {

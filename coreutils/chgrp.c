@@ -34,7 +34,7 @@
 #endif
 
 
-static long gid = -1;
+static long gid;
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
