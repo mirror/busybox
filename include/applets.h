@@ -59,14 +59,14 @@
 #ifdef BB_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN)
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET(chgrp, chmod_chown_chgrp_main, _BB_DIR_BIN)
+#ifdef BB_CHGRP
+	APPLET(chgrp, chgrp_main, _BB_DIR_BIN)
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET(chmod, chmod_chown_chgrp_main, _BB_DIR_BIN)
+#ifdef BB_CHMOD
+	APPLET(chmod, chmod_main, _BB_DIR_BIN)
 #endif
-#ifdef BB_CHMOD_CHOWN_CHGRP
-	APPLET(chown, chmod_chown_chgrp_main, _BB_DIR_BIN)
+#ifdef BB_CHOWN
+	APPLET(chown, chown_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CHROOT
 	APPLET(chroot, chroot_main, _BB_DIR_USR_SBIN)

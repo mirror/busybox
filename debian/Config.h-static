@@ -10,7 +10,9 @@
 #define BB_AR
 #define BB_BASENAME
 #define BB_CAT
-#define BB_CHMOD_CHOWN_CHGRP
+#define BB_CHGRP
+#define BB_CHMOD
+#define BB_CHOWN
 #define BB_CHROOT
 #define BB_CHVT
 #define BB_CLEAR
