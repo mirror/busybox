@@ -47,52 +47,51 @@ extern int kill_init(int sig)
 }
 
 #ifndef CONFIG_INIT
-#define LOG				0x1
-#define CONSOLE			0x2
+const char * const bb_shutdown_format = "\r%s\n";
 extern int bb_shutdown_system(unsigned long magic)
 {
 	int pri = LOG_KERN|LOG_NOTICE|LOG_FACMASK;
-	char *message;
+	const char *message;
 
-    /* Don't kill ourself */
-    signal(SIGTERM,SIG_IGN);
-    signal(SIGHUP,SIG_IGN);
-    setpgrp();
+	/* Don't kill ourself */
+	signal(SIGTERM,SIG_IGN);
+	signal(SIGHUP,SIG_IGN);
+	setpgrp();
 
-    /* Allow Ctrl-Alt-Del to reboot system. */
+	/* Allow Ctrl-Alt-Del to reboot system. */
 #ifndef RB_ENABLE_CAD
 #define RB_ENABLE_CAD	0x89abcdef
 #endif
-    reboot(RB_ENABLE_CAD);
+	reboot(RB_ENABLE_CAD);
 
-	openlog("shutdown", 0, pri);
+	openlog(bb_applet_name, 0, pri);
 
-	message = "\n\rThe system is going down NOW !!\n";
+	message = "\nThe system is going down NOW !!";
 	syslog(pri, "%s", message);
-	fprintf(stdout, "%s", message);
+	printf(bb_shutdown_format, message);
 
-    sync();
+	sync();
 
-    /* Send signals to every process _except_ pid 1 */
-	message = "\rSending SIGTERM to all processes.\n";
+	/* Send signals to every process _except_ pid 1 */
+	message = "Sending SIGTERM to all processes.";
 	syslog(pri, "%s", message);
-	fprintf(stdout, "%s", message);
+	printf(bb_shutdown_format, message);
 
-    kill(-1, SIGTERM);
-    sleep(1);
-    sync();
+	kill(-1, SIGTERM);
+	sleep(1);
+	sync();
 
-	message = "\rSending SIGKILL to all processes.\n";
+	message = "Sending SIGKILL to all processes.";
 	syslog(pri, "%s", message);
-	fprintf(stdout, "%s", message);
+	printf(bb_shutdown_format, message);
 
-    kill(-1, SIGKILL);
-    sleep(1);
+	kill(-1, SIGKILL);
+	sleep(1);
 
-    sync();
+	sync();
 
-    reboot(magic);
-    return 0; /* Shrug */
+	reboot(magic);
+	return 0; /* Shrug */
 }
 #endif
 
