@@ -258,7 +258,7 @@ static void rewrite(FS * fs)
 				savech = *p3;
 				*p3 = '\0';
 				if (!(pr->fmt = realloc(pr->fmt, strlen(pr->fmt)+(p3-p2)+1)))
-					perror_msg_and_die("hexdump");
+					bb_perror_msg_and_die("hexdump");
 				strcat(pr->fmt, p2);
 				*p3 = savech;
 				p2 = p3;

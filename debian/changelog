@@ -1,3 +1,22 @@
+busybox-cvs (0.60.99.cvs20030420-2) unstable; urgency=low
+
+  * archival/tar.c
+    - unlink files first (upstream patch)
+
+ -- Bastian Blank <waldi@debian.org>  Mon, 21 Apr 2003 12:06:57 +0200
+
+busybox-cvs (0.60.99.cvs20030420-1) unstable; urgency=low
+
+  * new cvs version
+  * debian/config*-udeb*
+    - add ifconfig/route for easier transition
+  * debian/config-net-udeb-i386
+    - add logger
+  * debian/config-udeb*
+    - add uniq
+
+ -- Bastian Blank <waldi@debian.org>  Sun, 20 Apr 2003 21:02:58 +0200
+
 busybox-cvs (0.60.99.cvs20030405-1) unstable; urgency=low
 
   * new cvs version
