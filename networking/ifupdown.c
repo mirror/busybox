@@ -1023,7 +1023,7 @@ static int doit(char *str)
 static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *opt)
 {
 	int i;
-	char *buf[100];
+	char *buf;
 	for (i = 0; i < ifd->n_options; i++) {
 		if (strcmp(ifd->option[i].name, opt) == 0) {
 			if (!(*exec) (ifd->option[i].value)) {
@@ -1032,7 +1032,7 @@ static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *o
 		}
 	}
 	
-	bb_xasprintf(buf, "run-parts /etc/network/if-%s.d", opt);
+	bb_xasprintf(&buf, "run-parts /etc/network/if-%s.d", opt);
 	(*exec)(buf);
 
 	return (1);
