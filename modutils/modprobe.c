@@ -315,7 +315,7 @@ static struct dep_t *build_dep ( void )
 					current-> m_module  = bb_xstrdup ( alias );
 					current-> m_isalias = 1;
 
-					if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
+					if (( strcmp ( mod, "off" ) == 0 ) || ( strcmp ( mod, "null" ) == 0 )) {
 						current-> m_depcnt = 0;
 						current-> m_deparr = 0;
 					}
