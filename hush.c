@@ -257,6 +257,7 @@ static char *PS2;
 struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
 struct variables *top_vars = &shell_ver;
 
+
 #define B_CHUNK (100)
 #define B_NOSPAC 1
 
@@ -394,7 +395,7 @@ static void remove_bg_job(struct pipe *pi);
 static char *get_local_var(const char *var);
 static void  unset_local_var(const char *name);
 static int set_local_var(const char *s, int flg_export);
-
+static void sigchld_handler(int sig);
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -556,7 +557,6 @@ static int builtin_fg_bg(struct child_prog *child)
 			error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
 			return EXIT_FAILURE;
 		}
-
 		for (pi = job_list; pi; pi = pi->next) {
 			if (pi->jobid == jobnum) {
 				break;
@@ -567,6 +567,7 @@ static int builtin_fg_bg(struct child_prog *child)
 			return EXIT_FAILURE;
 		}
 	}
+
 	if (*child->argv[0] == 'f') {
 		/* Make this job the foreground job */
 		signal(SIGTTOU, SIG_IGN);
@@ -613,6 +614,7 @@ static int builtin_jobs(struct child_prog *child)
 			status_string = "Stopped";
 		else
 			status_string = "Running";
+
 		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->text);
 	}
 	return EXIT_SUCCESS;
@@ -1142,7 +1144,7 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* add thejob to the list of running jobs */
 	if (!job_list) {
-		thejob = job_list= xmalloc(sizeof(*thejob));
+		thejob = job_list = xmalloc(sizeof(*thejob));
 	} else {
 		for (thejob = job_list; thejob->next; thejob = thejob->next) /* nothing */;
 		thejob->next = xmalloc(sizeof(*thejob));
@@ -1178,14 +1180,14 @@ static void remove_bg_job(struct pipe *pi)
 	struct pipe *prev_pipe;
 
 	if (pi == job_list) {
-		job_list= pi->next;
+		job_list = pi->next;
 	} else {
 		prev_pipe = job_list;
 		while (prev_pipe->next != pi)
 			prev_pipe = prev_pipe->next;
 		prev_pipe->next = pi->next;
 	}
-
+	pi->stopped_progs = 0;
 	free_pipe(pi, 0);
 	free(pi);
 }
@@ -1210,7 +1212,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			int i, rcode = 0;
 			for (i=0; i < fg_pipe->num_progs; i++) {
 				if (fg_pipe->progs[i].pid == childpid) {
-					if (i==fg_pipe->num_progs-1)
+					if (i==fg_pipe->num_progs-1) 
 						rcode=WEXITSTATUS(status);
 					(fg_pipe->num_progs)--;
 					return(rcode);
@@ -1220,8 +1222,9 @@ static int checkjobs(struct pipe* fg_pipe)
 
 		for (pi = job_list; pi; pi = pi->next) {
 			prognum = 0;
-			while (prognum < pi->num_progs &&
-				   pi->progs[prognum].pid != childpid) prognum++;
+			while (prognum < pi->num_progs && pi->progs[prognum].pid != childpid) {
+				prognum++;
+			}
 			if (prognum < pi->num_progs)
 				break;
 		}
@@ -1245,9 +1248,14 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->stopped_progs++;
 			pi->progs[prognum].is_stopped = 1;
 
+#if 0
+			/* Printing this stuff is a pain, since it tends to
+			 * overwrite the prompt an inconveinient moments.  So
+			 * don't do that.  */
 			if (pi->stopped_progs == pi->num_progs) {
-				printf(JOB_STATUS_FORMAT, pi->jobid, "Stopped", pi->text);
+				printf("\n"JOB_STATUS_FORMAT, pi->jobid, "Stopped", pi->text);
 			}
+#endif	
 		}
 	}
 
@@ -1394,7 +1402,6 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* XXX test for failed fork()? */
 		if (!(child->pid = fork())) {
-
 			signal(SIGTTOU, SIG_DFL);
 			
 			close_all();
@@ -1414,7 +1421,7 @@ static int run_pipe_real(struct pipe *pi)
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child,NULL);
-			
+
 			if (interactive && pi->followup!=PIPE_BG) {
 				/* If we (the child) win the race, put ourselves in the process
 				 * group whose leader is the first process in this pipe. */
@@ -1423,15 +1430,17 @@ static int run_pipe_real(struct pipe *pi)
 				}
 				if (setpgid(0, pi->pgrp) == 0) {
 					signal(SIGTTOU, SIG_IGN);
-					tcsetpgrp(ctty, pi->pgrp);
+					tcsetpgrp(2, pi->pgrp);
 					signal(SIGTTOU, SIG_DFL);
 				}
 			}
 
 			pseudo_exec(child);
 		}
-		/* Put our child in the process group whose leader is the
-		 * first process in this pipe. */
+		
+
+		/* put our child in the process group whose leader is the
+		   first process in this pipe */
 		if (pi->pgrp < 0) {
 			pi->pgrp = child->pid;
 		}
@@ -1478,18 +1487,18 @@ static int run_list_real(struct pipe *pi)
 			insert_bg_job(pi);
 			rcode = EXIT_SUCCESS;
 		} else {
-
 			if (interactive) {
 				/* move the new process group into the foreground */
 				if (tcsetpgrp(ctty, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-3");
 				rcode = checkjobs(pi);
+				/* move the shell to the foreground */
 				if (tcsetpgrp(ctty, getpgid(0)) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-4");
 			} else {
 				rcode = checkjobs(pi);
 			}
-			debug_printf("pipe_wait returned %d\n",rcode);
+			debug_printf("checkjobs returned %d\n",rcode);
 		}
 		last_return_code=rcode;
 		if ( rmode == RES_IF || rmode == RES_ELIF )
@@ -1517,6 +1526,9 @@ static int free_pipe(struct pipe *pi, int indent)
 	struct redir_struct *r, *rnext;
 	int a, i, ret_code=0;
 	char *ind = indenter(indent);
+
+	if (pi->stopped_progs > 0)
+		return ret_code;
 	final_printf("%s run pipe: (pid %d)\n",ind,getpid());
 	for (i=0; i<pi->num_progs; i++) {
 		child = &pi->progs[i];
@@ -2516,6 +2528,27 @@ static int parse_file_outer(FILE *f)
 	return rcode;
 }
 
+static void sigchld_handler(int sig)
+{ 
+	checkjobs(NULL);
+	signal(SIGCHLD, sigchld_handler);
+}
+
+static void setup_job_control()
+{
+	/* If we get started under a job aware app (like bash 
+	 * for example), make sure we are now in charge so we 
+	 * don't fight over who gets the foreground */
+	/* don't pay any attention to this signal; it just confuses 
+	   things and isn't really meant for shells anyway */
+	setpgrp();
+	controlling_tty(0);
+	signal(SIGTTOU, SIG_IGN);
+	setpgid(0, getpid());
+	tcsetpgrp(ctty, getpid());
+	signal(SIGCHLD, sigchld_handler);
+}
+
 
 int shell_main(int argc, char **argv)
 {
@@ -2536,11 +2569,11 @@ int shell_main(int argc, char **argv)
 	interactive = 0;
 	close_me_head = NULL;
 	last_bg_pid = 0;
+	job_list = NULL;
 	last_jobid = 0;
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-	job_list = NULL;
 #ifdef BB_FEATURE_COMMAND_EDITING
 	cmdedit_set_initial_prompt();
 #else
@@ -2557,16 +2590,6 @@ int shell_main(int argc, char **argv)
 
 	last_return_code=EXIT_SUCCESS;
 
-
-	/* If we get started under a job aware app (like bash 
-	 * for example), make sure we are now in charge so we 
-	 * don't fight over who gets the foreground */
-	/* don't pay any attention to this signal; it just confuses 
-	   things and isn't really meant for shells anyway */
-	controlling_tty(0);
-	signal(SIGTTOU, SIG_IGN);
-	setpgid(0, getpid());
-	tcsetpgrp(ctty, getpid());
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
@@ -2620,7 +2643,9 @@ int shell_main(int argc, char **argv)
 	if (interactive) {
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\nhush -- the humble shell v0.01 (testing)\n\n");
+		setup_job_control();
 	}
+	
 	if (argv[optind]==NULL) {
 		opt=parse_file_outer(stdin);
 		goto final_return;
