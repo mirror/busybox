@@ -959,9 +959,13 @@ const char mv_usage[] =
 
 #if defined BB_NC
 const char nc_usage[] =
-	"nc [IP] [port]" 
+	"nc [-p PORT] IP PORT\n"
+	"   or: nc -l -p PORT"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\n\nNetcat opens a pipe to IP:port"
+	"\n\nNetcat opens a pipe to IP:PORT\n"
+	"Options:\n"
+	"\t-l\tListen on the socket.\n"
+	"\t-p PORT\tBind the local port to PORT."
 #endif
 	;
 #endif

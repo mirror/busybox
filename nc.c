@@ -41,7 +41,7 @@
 
 int nc_main(int argc, char **argv)
 {
-	int sfd;
+	int do_listen = 0, lport = 0, tmpfd, opt, sfd;
 	char buf[BUFSIZ];
 
 	struct sockaddr_in address;
@@ -49,24 +49,54 @@ int nc_main(int argc, char **argv)
 
 	fd_set readfds, testfds;
 
-	argc--;
-	argv++;
-	if (argc < 2 || **argv == '-') {
-		usage(nc_usage);
+	while ((opt = getopt(argc, argv, "lp:")) > 0) {
+		switch (opt) {
+			case 'l':
+				do_listen++;
+				break;
+			case 'p':
+				lport = atoi(optarg);
+				break;
+			default:
+				usage(nc_usage);
+		}
 	}
+
+	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
+		usage(nc_usage);
 
 	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		perror_msg_and_die("socket");
 
-	if ((hostinfo = gethostbyname(*argv)) == NULL)
-		error_msg_and_die("cannot resolve %s", *argv);
-
 	address.sin_family = AF_INET;
-	address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-	address.sin_port = htons(atoi(*(++argv)));
 
-	if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-		perror_msg_and_die("connect");
+	if (lport != 0) {
+		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
+		address.sin_port = htons(lport);
+
+		if (bind(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
+			perror_msg_and_die("bind");
+	}
+
+	if (do_listen) {
+		if (listen(sfd, 1) < 0)
+			perror_msg_and_die("listen");
+
+		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &opt)) < 0)
+			perror_msg_and_die("accept");
+
+		close(sfd);
+		sfd = tmpfd;
+	} else {
+		if ((hostinfo = gethostbyname(argv[optind])) == NULL)
+			error_msg_and_die("cannot resolve %s\n", argv[optind]);
+
+		address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
+		address.sin_port = htons(atoi(argv[optind+1]));
+
+		if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
+			perror_msg_and_die("connect");
+	}
 
 	FD_ZERO(&readfds);
 	FD_SET(sfd, &readfds);

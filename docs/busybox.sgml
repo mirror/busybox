@@ -2452,7 +2452,12 @@
 		</para>
 
 		<para>
-		Open a pipe to HOST:PORT.
+		   or: nc -p PORT -l
+		</para>
+
+
+		<para>
+		Open a pipe to HOST:PORT or listen for a connection on PORT.
 		</para>
 
 		<para>
