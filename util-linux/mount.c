@@ -120,9 +120,9 @@ static const struct mount_options mount_options[] = {
 };
 
 static int
-do_mount(char *specialfile, char *dir, char *filesystemtype,
-		 long flags, void *string_flags, int useMtab, int fakeIt,
-		 char *mtab_opts, int mount_all)
+do_mount(char *specialfile, char *dir, char *filesystemtype, long flags,
+		 void *string_flags, int useMtab, int fakeIt, char *mtab_opts,
+		 int mount_all)
 {
 	int status = 0;
 
@@ -158,8 +158,9 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 						   MS_RDONLY, string_flags);
 		}
 		/* Don't whine about already mounted filesystems when mounting all. */
-		if (status < 0 && errno == EBUSY && mount_all)
+		if (status < 0 && errno == EBUSY && mount_all) {
 			return TRUE;
+		}
 	}
 
 
@@ -204,8 +205,9 @@ static void parse_mount_options(char *options, int *flags, char **strflags)
 		char *comma = strchr(options, ',');
 		const struct mount_options *f = mount_options;
 
-		if (comma)
+		if (comma) {
 			*comma = '\0';
+		}
 
 		while (f->name != 0) {
 			if (strcasecmp(f->name, options) == 0) {
@@ -224,8 +226,10 @@ static void parse_mount_options(char *options, int *flags, char **strflags)
 		}
 #endif
 		if (!gotone) {
-			if (**strflags)	/* have previous parsed options */
+			if (**strflags) {
+				/* have previous parsed options */
 				paste_str(strflags, ",");
+			}
 			paste_str(strflags, options);
 		}
 		if (comma) {
@@ -237,10 +241,10 @@ static void parse_mount_options(char *options, int *flags, char **strflags)
 	}
 }
 
-static int
-mount_one(char *blockDevice, char *directory, char *filesystemType,
-		  unsigned long flags, char *string_flags, int useMtab, int fakeIt,
-		  char *mtab_opts, int whineOnErrors, int mount_all)
+static int mount_one(char *blockDevice, char *directory, char *filesystemType,
+					 unsigned long flags, char *string_flags, int useMtab,
+					 int fakeIt, char *mtab_opts, int whineOnErrors,
+					 int mount_all)
 {
 	int status = 0;
 
@@ -265,11 +269,13 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 				}
 			}
 			if (!*noauto_fstype) {
-				status = do_mount(blockDevice, directory, filesystemType,
-								  flags | MS_MGC_VAL, string_flags,
-								  useMtab, fakeIt, mtab_opts, mount_all);
-				if (status)
+				status =
+					do_mount(blockDevice, directory, filesystemType,
+							 flags | MS_MGC_VAL, string_flags, useMtab,
+							 fakeIt, mtab_opts, mount_all);
+				if (status) {
 					break;
+				}
 			}
 		}
 	}
@@ -283,16 +289,17 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 		if (f) {
 			while (fgets(buf, sizeof(buf), f)) {
-				if (*buf == '*')
+				if (*buf == '*') {
 					read_proc = 1;
-				else if (*buf == '#')
+				} else if (*buf == '#') {
 					continue;
-				else {
+				} else {
 					filesystemType = buf;
 
 					/* Add NULL termination to each line */
-					while (*filesystemType && !isspace(*filesystemType))
+					while (*filesystemType && !isspace(*filesystemType)) {
 						filesystemType++;
+					}
 					*filesystemType = '\0';
 
 					filesystemType = buf;
@@ -302,8 +309,9 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 							do_mount(blockDevice, directory, filesystemType,
 									 flags | MS_MGC_VAL, string_flags,
 									 useMtab, fakeIt, mtab_opts, mount_all);
-						if (status)
+						if (status) {
 							break;
+						}
 					}
 
 				}
@@ -319,18 +327,21 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 				if (*filesystemType == '\t') {	/* Not a nodev filesystem */
 
 					/* Add NULL termination to each line */
-					while (*filesystemType && *filesystemType != '\n')
+					while (*filesystemType && *filesystemType != '\n') {
 						filesystemType++;
+					}
 					*filesystemType = '\0';
 
 					filesystemType = buf;
 					filesystemType++;	/* hop past tab */
 
-					status = do_mount(blockDevice, directory, filesystemType,
-									  flags | MS_MGC_VAL, string_flags,
-									  useMtab, fakeIt, mtab_opts, mount_all);
-					if (status)
+					status =
+						do_mount(blockDevice, directory, filesystemType,
+								 flags | MS_MGC_VAL, string_flags, useMtab,
+								 fakeIt, mtab_opts, mount_all);
+					if (status) {
 						break;
+					}
 				}
 			}
 		}
@@ -338,9 +349,10 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	}
 #endif
 	else {
-		status = do_mount(blockDevice, directory, filesystemType,
-						  flags | MS_MGC_VAL, string_flags, useMtab,
-						  fakeIt, mtab_opts, mount_all);
+		status =
+			do_mount(blockDevice, directory, filesystemType,
+					 flags | MS_MGC_VAL, string_flags, useMtab, fakeIt,
+					 mtab_opts, mount_all);
 	}
 
 	if (!status) {
@@ -361,20 +373,23 @@ static void show_mounts(char *onlytype)
 
 	/* open device */
 	fd = open(device, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
 		perror_msg_and_die("open failed for `%s'", device);
+	}
 
 	/* How many mounted filesystems?  We need to know to 
 	 * allocate enough space for later... */
 	numfilesystems = ioctl(fd, DEVMTAB_COUNT_MOUNTS);
-	if (numfilesystems < 0)
+	if (numfilesystems < 0) {
 		perror_msg_and_die("\nDEVMTAB_COUNT_MOUNTS");
+	}
 	mntentlist =
 		(struct k_mntent *) xcalloc(numfilesystems, sizeof(struct k_mntent));
 
 	/* Grab the list of mounted filesystems */
-	if (ioctl(fd, DEVMTAB_GET_MOUNTS, mntentlist) < 0)
+	if (ioctl(fd, DEVMTAB_GET_MOUNTS, mntentlist) < 0) {
 		perror_msg_and_die("\nDEVMTAB_GET_MOUNTS");
+	}
 
 	for (i = 0; i < numfilesystems; i++) {
 		if (!onlytype || (strcmp(mntentlist[i].mnt_type, onlytype) == 0)) {
@@ -408,8 +423,9 @@ static void show_mounts(char *onlytype)
 					   m->mnt_type, m->mnt_opts);
 			}
 #ifdef CONFIG_FEATURE_CLEAN_UP
-			if (blockDevice != m->mnt_fsname)
+			if (blockDevice != m->mnt_fsname) {
 				free(blockDevice);
+			}
 #endif
 		}
 		endmntent(mountTable);
@@ -470,8 +486,9 @@ extern int mount_main(int argc, char **argv)
 		}
 	}
 
-	if (!all && optind == argc)
-		show_mounts(got_filesystemType ? filesystemType : 0);
+	if (!all && (optind == argc)) {
+		show_mounts(got_filesystemType ? filesystemType : NULL);
+	}
 
 	if (optind < argc) {
 		/* if device is a filename get its real path */
@@ -494,10 +511,9 @@ extern int mount_main(int argc, char **argv)
 			perror_msg_and_die("\nCannot read /etc/fstab");
 
 		while ((m = getmntent(f)) != NULL) {
-			if (!all && optind + 1 == argc && ((strcmp(device, m->mnt_fsname)
-												!= 0)
-											   && (strcmp(device, m->mnt_dir)
-												   != 0))) {
+			if (!all && (optind + 1 == argc)
+				&& ((strcmp(device, m->mnt_fsname) != 0)
+					&& (strcmp(device, m->mnt_dir) != 0))) {
 				continue;
 			}
 
@@ -523,27 +539,29 @@ extern int mount_main(int argc, char **argv)
 #ifdef CONFIG_NFSMOUNT
 			if (strchr(device, ':') != NULL) {
 				filesystemType = "nfs";
-				if (nfsmount(device, directory, &flags, &extra_opts,
-							 &string_flags, 1)) {
+				if (nfsmount
+					(device, directory, &flags, &extra_opts, &string_flags,
+					 1)) {
 					perror_msg("nfsmount failed");
 					rc = EXIT_FAILURE;
 				}
 			}
 #endif
-			if (!mount_one(device, directory, filesystemType, flags,
-						   string_flags, useMtab, fakeIt, extra_opts, TRUE,
-						   all))
+			if (!mount_one
+				(device, directory, filesystemType, flags, string_flags,
+				 useMtab, fakeIt, extra_opts, TRUE, all)) {
 				rc = EXIT_FAILURE;
-
-			if (!all)
+			}
+			if (!all) {
 				break;
+			}
 		}
-		if (f)
+		if (f) {
 			endmntent(f);
-
-		if (!all && f && m == NULL)
+		}
+		if (!all && f && m == NULL) {
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
-
+		}
 		return rc;
 	}
 
