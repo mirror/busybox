@@ -148,81 +148,151 @@ static char sha1sum_stream(FILE *fd, unsigned int *hashval)
 	return(EXIT_SUCCESS);
 }
 
-static void print_hash(unsigned int *hash_value, unsigned char hash_length, unsigned char *filename)
-{
-	unsigned char x;
-
-	for (x = 0; x < hash_length; x++) {
-		printf("%08x", hash_value[x]);
-	}
-	putchar(' ');
-	putchar(' ');
-	puts(filename);
-}
-
 #define FLAG_SILENT	1
 #define FLAG_CHECK	2
-#define FLAG_WARN	3
+#define FLAG_WARN	4
 
-/* This should become a common function used by sha1sum and md5sum,
- * it needs extra functionality first
- */
+static unsigned char *hash_bin_to_hex(unsigned int *hash_value, unsigned char hash_length)
+{
+	unsigned char x;
+	unsigned char *hex_value;
+
+	hex_value = xmalloc(hash_length * 8);
+	for (x = 0; x < hash_length; x++) {
+		sprintf(&hex_value[x * 8], "%08x", hash_value[x]);
+	}
+	return(hex_value);
+}
+
+FILE *wfopen_file_or_stdin(const char *file_ptr)
+{
+	FILE *stream;
+
+	if ((file_ptr[0] == '-') && (file_ptr[1] == '\0')) {
+		stream = stdin;
+	} else {
+		stream = bb_wfopen(file_ptr, "r");
+	}
+
+	return(stream);
+}
+
+/* This could become a common function for md5 as well, by using md5_stream */
 extern int authenticate(int argc, char **argv, char (*hash_ptr)(FILE *stream, unsigned int *hashval), const unsigned char hash_length)
 {
 	unsigned int hash_value[hash_length];
-	unsigned char flags = 0;
-	int opt;
-	int return_value;
+	unsigned int flags;
+	int return_value = EXIT_SUCCESS;
 
-	while ((opt = getopt(argc, argv, "sc:w")) != -1) {
-		switch (opt) {
-		case 's':	/* Dont output anything, status code shows success */
-			flags |= FLAG_SILENT;
-			break;
-#if 0
-		case 'c':	/* Check a list of checksums against stored values  */
-			break;
-		case 'w':	/* Warn of bad formatting when checking files */
-			break;
+#ifdef CONFIG_FEATURE_SHA1SUM_CHECK
+	flags = bb_getopt_ulflags(argc, argv, "scw");
+#else
+	flags = bb_getopt_ulflags(argc, argv, "s");
 #endif
-		default:
-			bb_show_usage();
+
+#ifdef CONFIG_FEATURE_SHA1SUM_CHECK
+	if (!(flags & FLAG_CHECK)) {
+		if (flags & FLAG_SILENT) {
+			bb_error_msg_and_die("the -s option is meaningful only when verifying checksums");
+		}
+		else if (flags & FLAG_WARN) {
+			bb_error_msg_and_die("the -w option is meaningful only when verifying checksums");
 		}
 	}
+#endif
 
 	if (argc == optind) {
 		argv[argc++] = "-";
 	}
 
-	return_value = EXIT_SUCCESS;
-	while (optind < argc) {
-		FILE *stream;
+#ifdef CONFIG_FEATURE_SHA1SUM_CHECK
+	if (flags & FLAG_CHECK) {
+		FILE *pre_computed_stream;
+		int count_total = 0;
+		int count_failed = 0;
 		unsigned char *file_ptr = argv[optind];
 
-		optind++;
+		if (optind + 1 != argc) {
+			bb_error_msg_and_die("only one argument may be specified when using -c");
+		}
+		pre_computed_stream = wfopen_file_or_stdin(file_ptr);
+		while (!feof(pre_computed_stream) && !ferror(pre_computed_stream)) {
+			FILE *stream;
+			char *line;
+			char *line_ptr;
+			char *hex_value;
 
-		if ((file_ptr[0] == '-') && (file_ptr[1] == '\0')) {
-			stream = stdin;
-		} else {
-			stream = bb_wfopen(file_ptr, "r");
+			line = bb_get_chomped_line_from_file(pre_computed_stream);
+			if (line == NULL) {
+				break;
+			}
+			count_total++;
+			line_ptr = strchr(line, ' ');
+			if (line_ptr == NULL) {
+				if (flags & FLAG_WARN) {
+					bb_error_msg("Invalid format");
+				}
+				free(line);
+				continue;
+			}
+			*line_ptr = '\0';
+			line_ptr++;
+			if ((flags & FLAG_WARN) && (*line_ptr != ' ')) {
+				bb_error_msg("Invalid format");
+				free(line);
+				continue;
+			}
+			line_ptr++;
+			stream = bb_wfopen(line_ptr, "r");
+			if (hash_ptr(stream, hash_value) == EXIT_FAILURE) {
+				return_value = EXIT_FAILURE;
+			}
+			if (fclose(stream) == EOF) {
+				bb_perror_msg("Couldnt close file %s", file_ptr);
+			}				
+			hex_value = hash_bin_to_hex(hash_value, hash_length);
+			printf("%s: ", line_ptr);
+			if (strcmp(hex_value, line) != 0) {
+				puts("FAILED");
+				count_failed++;
+			} else {
+				puts("ok");
+			}
+			free(line);
+		}
+		if (count_failed) {
+			bb_error_msg("WARNING: %d of %d computed checksum did NOT match", count_failed, count_total);
+		}
+		if (bb_fclose_nonstdin(pre_computed_stream) == EOF) {
+			bb_perror_msg_and_die("Couldnt close file %s", file_ptr);
+		}
+	} else
+#endif
+		while (optind < argc) {
+			FILE *stream;
+			unsigned char *file_ptr = argv[optind];
+
+			optind++;
+
+			stream = wfopen_file_or_stdin(file_ptr);
 			if (stream == NULL) {
 				return_value = EXIT_FAILURE;
 				continue;
 			}
-		}
-		if (hash_ptr(stream, hash_value) == EXIT_FAILURE) {
-			return_value = EXIT_FAILURE;
-		}
-		else if (!flags & FLAG_SILENT) {
-			print_hash(hash_value, hash_length, file_ptr);
-		}
+			if (hash_ptr(stream, hash_value) == EXIT_FAILURE) {
+				return_value = EXIT_FAILURE;
+			}
+			else if (!flags & FLAG_SILENT) {
+				char *hex_value = hash_bin_to_hex(hash_value, hash_length);
+				printf("%s  %s\n", hex_value, file_ptr);
+				free(hex_value);
+			}
 
-		if (fclose(stream) == EOF) {
-			bb_perror_msg("Couldnt close file %s", file_ptr);
-			return_value = EXIT_FAILURE;
+			if (bb_fclose_nonstdin(stream) == EOF) {
+				bb_perror_msg("Couldnt close file %s", file_ptr);
+				return_value = EXIT_FAILURE;
+			}
 		}
-
-	}
 
 	return(return_value);
 }

@@ -342,6 +342,13 @@ config CONFIG_SHA1SUM
 	help
 	  Compute and check SHA1 message digest
 
+config CONFIG_FEATURE_SHA1SUM_CHECK
+	bool "  Enale -c and -w options"
+	default n
+	help
+	  Enabling the -c and -w options allow files to be checked
+	  against pre-calculated hash values.
+
 config CONFIG_SLEEP
 	bool "sleep (single integer arg with no suffix)"
 	default n
