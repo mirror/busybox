@@ -1,12 +1,17 @@
 #!/bin/sh
 # Make busybox links list file.
 
+# input $1: full path to Config.h
+# input $2: full path to applets.h
+# output (stdout): list of pathnames that should be linked to busybox
+
+# Maintainer: Larry Doolittle <ldoolitt@recycle.lbl.gov>
+
 CONFIG_H=${1:-Config.h}
 APPLETS_H=${2:-applets.h}
 gcc -E -DMAKE_LINKS -include $CONFIG_H $APPLETS_H |
   awk '/^[ \t]*LINK/{
-	match($2,"_BB_DIR[A-Z_]*")
-	dir=substr($2,RSTART+7,RLENGTH-7)
+	dir=substr($2,8)
 	gsub("_","/",dir)
 	if(dir=="/ROOT") dir=""
 	file=$3
