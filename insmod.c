@@ -1,6 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Mini insmod implementation for busybox
+ * This version of insmod now supports x86, ARM, SH3/4, powerpc, and MIPS.
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>
@@ -123,7 +124,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.58 2001/04/24 21:41:41 andersen Exp $"
+#ident "$Id: insmod.c,v 1.59 2001/04/25 17:22:32 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -329,7 +330,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.58 2001/04/24 21:41:41 andersen Exp $"
+#ident "$Id: insmod.c,v 1.59 2001/04/25 17:22:32 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1787,7 +1788,10 @@ static int old_get_kernel_symbols(const char *m_name)
 
 	nks = get_kernel_syms(NULL);
 	if (nks <= 0) {
-		perror_msg("get_kernel_syms: %s", m_name);
+		if (nks)
+			perror_msg("get_kernel_syms: %s", m_name);
+		else
+			error_msg("No kernel symbols");
 		return 0;
 	}
 
@@ -1807,7 +1811,6 @@ static int old_get_kernel_symbols(const char *m_name)
 
 	while (k->name[0] == '#' && k->name[1]) {
 		struct old_kernel_sym *k2;
-		struct new_module_symbol *s;
 
 		/* Find out how many symbols this module has.  */
 		for (k2 = k + 1; k2->name[0] != '#'; ++k2)
@@ -2277,7 +2280,7 @@ static int new_get_kernel_symbols(void)
 	module_names = xmalloc(bufsize = 256);
   retry_modules_load:
 	if (query_module(NULL, QM_MODULES, module_names, bufsize, &ret)) {
-		if (errno == ENOSPC) {
+		if (errno == ENOSPC && bufsize < ret) {
 			module_names = xrealloc(module_names, bufsize = ret);
 			goto retry_modules_load;
 		}
@@ -2338,7 +2341,7 @@ static int new_get_kernel_symbols(void)
 	syms = xmalloc(bufsize = 16 * 1024);
   retry_kern_sym_load:
 	if (query_module(NULL, QM_SYMBOLS, syms, bufsize, &ret)) {
-		if (errno == ENOSPC) {
+		if (errno == ENOSPC && bufsize < ret) {
 			syms = xrealloc(syms, bufsize = ret);
 			goto retry_kern_sym_load;
 		}
@@ -3022,6 +3025,12 @@ struct obj_file *obj_load(FILE * fp)
 	for (i = 0; i < shnum; ++i) {
 		struct obj_section *sec = f->sections[i];
 
+		/* .modinfo should be contents only but gcc has no attribute for that.
+		 * The kernel may have marked .modinfo as ALLOC, ignore this bit.
+		 */
+		if (strcmp(sec->name, ".modinfo") == 0)
+			sec->header.sh_flags &= ~SHF_ALLOC;
+
 		if (sec->header.sh_flags & SHF_ALLOC)
 			obj_insert_section_load_order(f, sec);
 
@@ -3045,22 +3054,20 @@ struct obj_file *obj_load(FILE * fp)
 
 				/* Allocate space for a table of local symbols.  */
 				j = f->local_symtab_size = sec->header.sh_info;
-				f->local_symtab = xmalloc(j *=
-										  sizeof(struct obj_symbol *));
-				memset(f->local_symtab, 0, j);
+				f->local_symtab = xcalloc(j, sizeof(struct obj_symbol *));
 
 				/* Insert all symbols into the hash table.  */
 				for (j = 1, ++sym; j < nsym; ++j, ++sym) {
 					const char *name;
 					if (sym->st_name)
 						name = strtab + sym->st_name;
-		else
+					else
 						name = f->sections[sym->st_shndx]->name;
 
 					obj_add_symbol(f, name, j, sym->st_info, sym->st_shndx,
 								   sym->st_value, sym->st_size);
-		}
-	}
+				}
+			}
 			break;
 
 		case SHT_RELM:
@@ -3071,6 +3078,10 @@ struct obj_file *obj_load(FILE * fp)
 				return NULL;
 			}
 			break;
+			/* XXX  Relocation code from modutils-2.3.19 is not here.
+			 * Why?  That's about 20 lines of code from obj/obj_load.c,
+			 * which gets done in a second pass through the sections.
+			 * This BusyBox insmod does similar work in obj_relocate(). */
 		}
 	}
 
