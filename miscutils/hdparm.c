@@ -3,7 +3,7 @@
  * hdparm implementation for busybox
  *
  *
- * Copyright (C) [2003] by [Matteo Croce] <pinnolo@tin.it>
+ * Copyright (C) [2003] by [Matteo Croce] <3297627799@wind.it>
  *
  * Hacked by Tito <farmatito@tiscali.it> for size optimization.
  *
