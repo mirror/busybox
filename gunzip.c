@@ -1176,21 +1176,6 @@ void clear_bufs(void)
 	bytes_in = bytes_out = 0L;
 }
 
-/* ===========================================================================
- * Write the output buffer outbuf[0..outcnt-1] and update bytes_out.
- * (used for the compressed data only)
- */
-void flush_outbuf()
-{
-	if (outcnt == 0)
-		return;
-
-	if (!test_mode)
-		write_buf(ofd, (char *) outbuf, outcnt);
-	bytes_out += (ulg) outcnt;
-	outcnt = 0;
-}
-
 /* ======================================================================== */
 int gunzip_main(int argc, char **argv)
 {
