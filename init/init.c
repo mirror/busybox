@@ -239,10 +239,10 @@ void set_term(int fd)
 	tty.c_cc[VERASE] = CTRLCHAR('?');	/* Ctrl-? */
 	tty.c_cc[VKILL]  = CTRLCHAR('U');	/* Ctrl-U */
 	tty.c_cc[VEOF]   = CTRLCHAR('D');	/* Ctrl-D */
-	tty.c_cc[VSTOP]  = CTRLCHAR('S');	/* Ctrl-S */
 	tty.c_cc[VSTART] = CTRLCHAR('Q');	/* Ctrl-Q */
+	tty.c_cc[VSTOP]  = CTRLCHAR('S');	/* Ctrl-S */
 	tty.c_cc[VSUSP]  = CTRLCHAR('Z');	/* Ctrl-Z */
-
+	
 	/* use line dicipline 0 */
 	tty.c_line = 0;
 
