@@ -34,23 +34,23 @@ tries to make itself useful to small systems with limited resources.
 
 Currently defined functions include:
 
-	basename, cat, chmod, chown, chgrp, chroot, clear, chvt, cp, mv, date,
-	dd, df, dirname, dmesg, du, dutmp, echo, fbset, fdflush, find, free,
-	freeramdisk, deallocvt, fsck.minix, mkfs.minix, grep, gunzip, gzip,
-	halt, head, hostid, hostname, init, kill, killall, length, ln, loadacm,
-	loadfont, loadkmap, ls, lsmod, makedevs, math, mkdir, mkfifo, mknod,
-	mkswap, mnc, more, mount, mt, nslookup, poweroff, ping, printf, ps,
-	pwd, reboot, rm, rmdir, rmmod, sed, sh, fdisk, sfdisk, sleep, sort,
-	sync, syslogd, logger, logname, swapon, swapoff, tail, tar, [, test,
-	tee, touch, tr, true, false, tty, umount, uname, uptime, uniq, update,
-	usleep, wc, whoami, yes, zcat
+basename, cat, chmod, chown, chgrp, chroot, clear, chvt, cp, mv, date,
+dd, df, dirname, dmesg, du, dutmp, echo, fbset, fdflush, find, free,
+freeramdisk, deallocvt, fsck.minix, mkfs.minix, grep, gunzip, gzip,
+halt, head, hostid, hostname, init, kill, killall, length, ln, loadacm,
+loadfont, loadkmap, ls, lsmod, makedevs, math, mkdir, mkfifo, mknod,
+mkswap, mnc, more, mount, mt, nslookup, poweroff, ping, printf, ps,
+pwd, reboot, rm, rmdir, rmmod, sed, sh, fdisk, sfdisk, sleep, sort,
+sync, syslogd, logger, logname, swapon, swapoff, tail, tar, [, test,
+tee, touch, tr, true, false, tty, umount, uname, uptime, uniq, update,
+usleep, wc, whoami, yes, zcat
 
 =head1 OPTIONS
 
 Common Options: 
 
-	Most BusyBox commands support the "--help" option to provide a
-	terse runtime description of their behavior. 
+Most BusyBox commands support the B<--help> option to provide a
+terse runtime description of their behavior. 
 
 =over 4
 
@@ -80,7 +80,7 @@ Example:
 
 =item chmod
 
-Usage: chmod [-R] MODE[,MODE]... FILE...
+Usage: chmod [B<-R>] MODE[,MODE]... FILE...
 
 Changes file access permissions for the specified file(s) or directory(s).
 Each MODE is defined by combining the letters for WHO has access to the file,
@@ -223,12 +223,13 @@ Usage: date [OPTION]... [+FORMAT]
 Display the current time in the given FORMAT, or set the system date.
 
 Options:
+
         -R              output RFC-822 compliant date string
         -s              set time described by STRING
         -u              print or set Coordinated Universal Time
 
 Example:
-	
+
 	$ date
 	Wed Apr 12 18:52:41 MDT 2000
 
@@ -272,7 +273,7 @@ Exmaple:
 
 =item dmesg
 
-Usage: dmesg [-c] [-n level] [-s bufsize]
+Usage: dmesg [B<-c>] [B<-n> level] [B<-s> bufsize]
  
 Print or controls the kernel ring buffer.
 
@@ -284,6 +285,7 @@ Summarize disk space used for each FILE and/or directory.
 Disk space is printed in units of 1k (i.e. 1024 bytes).
 
 Options:
+
         -l      count sizes many times if hard linked
         -s      display only a total for each argument
 
@@ -369,11 +371,12 @@ Deallocates unused virtual terminal /dev/ttyN
 
 =item fsck.minix
 
-Usage: fsck.minix [-larvsmf] /dev/name
+Usage: fsck.minix [B<-larvsmf>] /dev/name
 
 Performs a consistency check for MINIX filesystems.
 
 OPTIONS:
+
         -l      Lists all filenames
         -r      Perform interactive repairs
         -a      Perform automatic repairs
@@ -385,11 +388,12 @@ OPTIONS:
 
 =item mkfs.minix
 
-Usage: mkfs.minix [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]
+Usage: mkfs.minix [B<-c> | B<-l> filename] [B<-nXX>] [B<-iXX>] /dev/name [blocks]
 
 Make a MINIX filesystem.
 
 OPTIONS:
+
         -c              Check the device for bad blocks
         -n [14|30]      Specify the maximum length of filenames
         -i              Specify the number of inodes for the filesystem
@@ -404,6 +408,7 @@ Usage: grep [OPTIONS]... PATTERN [FILE]...
 Search for PATTERN in each FILE or standard input.
 
 OPTIONS:
+
         -h      suppress the prefixing filename on output
         -i      ignore case distinctions
         -n      print line number with output lines
@@ -428,6 +433,7 @@ With more than one FILE, precede each with a header giving the
 file name. With no FILE, or when FILE is -, read standard input.
 
 Options:
+
         -n NUM          Print first NUM lines instead of first 10
 
 Example:
@@ -438,12 +444,13 @@ Example:
 
 =item hostname
 
-Usage: hostname [OPTION] {hostname | -F file}
+Usage: hostname [OPTION] {hostname | B<-F> file}
 
 Get or set the hostname or DNS domain name. If a hostname is given
-(or a file with the -F parameter), the host name will be set.
+(or a file with the B<-F> parameter), the host name will be set.
 
 Options:
+
         -s              Short
         -i              Addresses for the hostname
         -d              DNS domain name
@@ -456,11 +463,12 @@ Example:
 
 =item kill
 
-Usage: kill [-signal] process-id [process-id ...]
+Usage: kill [B<-signal>] process-id [process-id ...]
 
 Send a signal (default is SIGTERM) to the specified process(es).
 
 Options:
+
         -l      List all signal names and numbers.
 
 Example:
@@ -487,7 +495,7 @@ Options:
 
 =item ls
 
-Usage: ls [-1acdelnpuxACF] [filenames...]
+Usage: ls [B<-1acdelnpuxACF>] [filenames...]
  
 
 =item lsmod
@@ -519,7 +527,7 @@ TYPEs include:
 
 =item mkswap
 
-Usage: mkswap [-c] [-v0|-v1] device [block-count]
+Usage: mkswap [B<-c>] [-v0|-v1] device [block-count]
 Prepare a disk partition to be used as a swap partition.
  
 Options:
@@ -539,7 +547,7 @@ Usage: more [file ...]
 
 Usage: 	mount [flags]
 
-mount [flags] device directory [-o options,more-options]
+mount [flags] device directory [B<-o> options,more-options]
 
  Flags:
  -a:	Mount all file systems in fstab.
@@ -612,7 +620,7 @@ Remove the DIRECTORY(ies), if they are empty.
 
 =item sed
 
-Usage: sed [-n] -e script [file...]
+Usage: sed [B<-n>] B<-e> script [file...]
 Allowed sed scripts come in the following form:
 
  'ADDR [!] COMMAND'
@@ -630,8 +638,8 @@ Allowed sed scripts come in the following form:
 
 Options:
 
--e	add the script to the commands to be executed
--n	suppress automatic printing of pattern space
+ -e	add the script to the commands to be executed
+ -n	suppress automatic printing of pattern space
 
 This version of sed matches full regular expresions.
  
@@ -720,7 +728,7 @@ Options:
 
 =item touch
 
-Usage: touch [-c] file [file ...]
+Usage: touch [B<-c>] file [file ...]
  Update the last-modified date on the given file[s].
  
 
@@ -735,7 +743,8 @@ Usage: touch [-c] file [file ...]
 =item uname
 
 Usage: uname [OPTION]...
- Print certain system information.  With no OPTION, same as -s.
+
+Print certain system information.  With no OPTION, same as B<-s>.
  
 Options:
 
@@ -751,7 +760,9 @@ Options:
 =item umount
 
 Usage: Usage: umount [flags] filesystem|directory
- Flags:
+
+Flags:
+
  -a:	Unmount all file systems
  
 
@@ -797,7 +808,7 @@ Options:
 Usage: gzip [OPTION]... FILE
 
 Compress FILE with maximum compression.
-When FILE is -, reads standard input.  Implies -c.
+When FILE is -, reads standard input.  Implies B<-c>.
  
 Options:
 
