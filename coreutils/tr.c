@@ -70,7 +70,7 @@ static void convert()
 		coded = vector[c];
 		if (del_fl && invec[c])
 			continue;
-		if (sq_fl && last == coded && outvec[coded])
+		if (sq_fl && last == coded && (invec[c] || outvec[coded]))
 			continue;
 		output[out_index++] = last = coded;
 		if (out_index == BUFSIZ) {
