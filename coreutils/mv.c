@@ -29,7 +29,7 @@
 
 
 static const char mv_usage[] = "mv SOURCE DEST\n"
-"   or: mv SOURCE... DIRECTORY\n"
+"   or: mv SOURCE... DIRECTORY\n\n"
 "Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n";
 
 

@@ -41,8 +41,9 @@
 
 
 static const char uname_usage[] =
-    "uname [OPTION]...\n"
-    "Print certain system information.  With no OPTION, same as -s.\n"
+    "uname [OPTION]...\n\n"
+    "Print certain system information.  With no OPTION, same as -s.\n\n"
+    "Options:\n"
     "\t-a\tprint all information\n"
     "\t-m\tthe machine (hardware) type\n"
     "\t-n\tprint the machine's network node hostname\n"

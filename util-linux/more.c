@@ -37,7 +37,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 
-static const char more_usage[] = "[file ...]";
+static const char more_usage[] = "more [file ...]\n";
 
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS

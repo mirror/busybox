@@ -17,8 +17,10 @@ int
 deallocvt_main(int argc, char *argv[]) {
     int fd, num, i;
 
-    if (argc < 1)		/* unlikely */
-      exit(1);
+    if ( ( argc != 2) || (**(argv+1) == '-' ) ) {
+	usage ("deallocvt N\n\nDeallocate unused virtual terminal /dev/ttyN\n");
+    }
+
     progname = argv[0];
 
     fd = get_console_fd("/dev/console");

@@ -32,18 +32,18 @@
 #include <ctype.h>
 
 static const char sed_usage[] = 
-"sed [-n] [-e script] [file...]\n"
-"Allowed scripts come in the following form:\n\n"
-"'s/regexp/replacement/[gp]'\n"
-"\tattempt to match regexp against the pattern space\n"
-"\tand if successful replaces the matched portion with replacement.\n\n"
+"sed [-n] [-e script] [file...]\n\n"
+"Allowed sed scripts come in the following form:\n"
+"\t's/regexp/replacement/[gp]'\n"
+"which attempt to match regexp against the pattern space\n"
+"and if successful replaces the matched portion with replacement.\n\n"
 "Options:\n"
 "-e\tadd the script to the commands to be executed\n"
 "-n\tsuppress automatic printing of pattern space\n\n"
 #if defined BB_REGEXP
-"This version of sed matches full regexps.\n";
+"This version of sed matches full regular expresions.\n";
 #else
-"This version of sed matches strings (not full regexps).\n";
+"This version of sed matches strings (not full regular expresions).\n";
 #endif
     
 

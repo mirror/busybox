@@ -430,6 +430,13 @@ extern int init_main(int argc, char **argv)
 #endif
 
     
+#ifndef DEBUG_INIT
+    if (getpid() != 1) {
+	usage( "init\n\nInit is the parent of all processes.\n\n"
+		"This version of init is designed to be run only by the kernel\n");
+    }
+#endif
+
     /* Check if we are supposed to be in single user mode */
     if ( argc > 1 && (!strcmp(argv[1], "single") || 
 		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {

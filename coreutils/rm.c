@@ -27,8 +27,9 @@
 #include <utime.h>
 #include <dirent.h>
 
-static const char* rm_usage = "rm [OPTION]... FILE...\n"
+static const char* rm_usage = "rm [OPTION]... FILE...\n\n"
 "Remove (unlink) the FILE(s).\n\n"
+"Options:\n"
 "\t-f\tremove existing destinations, never prompt\n"
 "\t-r\tremove the contents of directories recursively\n";
 

@@ -23,8 +23,8 @@
 #include "internal.h"
 #include <stdio.h>
 
-const char	sleep_usage[] = " NUMBER\n"
-"Pause for NUMBER seconds.\n";
+const char	sleep_usage[] = "sleep N\n\n"
+"Pause for N seconds.\n";
 
 extern int
 sleep_main(int argc, char * * argv)

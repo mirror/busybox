@@ -100,7 +100,7 @@ extern int ps_main(int argc, char **argv)
     int i, c;
 
     if ( argc>1 && **(argv+1) == '-' ) {
-	usage ("ps - report process status\nThis version of ps accepts no options.\n");
+	usage ("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
     }
     
     dir = opendir("/proc");

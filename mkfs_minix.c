@@ -171,10 +171,15 @@ static volatile void die(char *str) {
 
 static volatile void show_usage()
 {
-	fprintf(stderr, "%s\n", program_name);
-	fprintf(stderr,
-		"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n",
-		  program_name);
+	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n", BB_VER, BB_BT);
+	fprintf(stderr, "Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n\n", program_name);
+	fprintf(stderr, "Make a MINIX filesystem.\n\n");
+	fprintf(stderr, "OPTIONS:\n");
+	fprintf(stderr, "\t-c\t\tCheck the device for bad blocks\n");
+	fprintf(stderr, "\t-n [14|30]\tSpecify the maximum length of filenames\n");
+	fprintf(stderr, "\t-i\t\tSpecify the number of inodes for the filesystem\n");
+	fprintf(stderr, "\t-l FILENAME\tRead the bad blocks list from FILENAME\n");
+	fprintf(stderr, "\t-v\t\tMake a Minix version 2 filesystem\n\n");
 	exit(16);
 }
 

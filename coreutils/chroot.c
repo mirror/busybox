@@ -27,7 +27,7 @@
 #include <errno.h>
 
 
-static const char chroot_usage[] = "NEWROOT [COMMAND...]\n"
+static const char chroot_usage[] = "chroot NEWROOT [COMMAND...]\n\n"
 "Run COMMAND with root directory set to NEWROOT.\n";
 
 

@@ -38,16 +38,16 @@ static mode_t mode=0644;
 #define CHOWN_APP   2
 #define CHMOD_APP   3
 
-static const char chgrp_usage[] = "[OPTION]... GROUP FILE...\n"
+static const char chgrp_usage[] = "chgrp [OPTION]... GROUP FILE...\n\n"
     "Change the group membership of each FILE to GROUP.\n"
-    "\n\tOptions:\n" "\t-R\tchange files and directories recursively\n";
-static const char chown_usage[] = "[OPTION]...  OWNER[.[GROUP] FILE...\n"
+    "\nOptions:\n\t-R\tchange files and directories recursively\n";
+static const char chown_usage[] = "chown [OPTION]...  OWNER[.[GROUP] FILE...\n\n"
     "Change the owner and/or group of each FILE to OWNER and/or GROUP.\n"
-    "\n\tOptions:\n" "\t-R\tchange files and directories recursively\n";
-static const char chmod_usage[] = "[-R] MODE[,MODE]... FILE...\n"
+    "\nOptions:\n\t-R\tchange files and directories recursively\n";
+static const char chmod_usage[] = "chmod [-R] MODE[,MODE]... FILE...\n\n"
 "Each MODE is one or more of the letters ugoa, one of the symbols +-= and\n"
 "one or more of the letters rwxst.\n\n"
- "\t-R\tchange files and directories recursively.\n";
+ "\nOptions:\n\t-R\tchange files and directories recursively.\n";
 
 
 static int fileAction(const char *fileName, struct stat* statbuf)
@@ -73,14 +73,14 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 {
     int recursiveFlag=FALSE;
     char *groupName;
+    const char *appUsage;
 
     whichApp = (strcmp(*argv, "chown")==0)? CHOWN_APP : (strcmp(*argv, "chmod")==0)? CHMOD_APP : CHGRP_APP; 
 
-    if (argc < 2) {
-	fprintf(stderr, "Usage: %s %s", *argv, 
-		(whichApp==TRUE)? chown_usage : chgrp_usage);
-	exit( FALSE);
-    }
+    appUsage = (whichApp==CHOWN_APP)? chown_usage : (whichApp==CHMOD_APP)? chmod_usage : chgrp_usage;
+
+    if (argc < 2) 
+	usage( appUsage);
     invocationName=*argv;
     argc--;
     argv++;
@@ -93,7 +93,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 		break;
 	    default:
 		fprintf(stderr, "Unknown option: %c\n", **argv);
-		exit( FALSE);
+		usage( appUsage);
 	}
 	argc--;
 	argv++;

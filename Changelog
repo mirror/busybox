@@ -1,3 +1,12 @@
+0.35
+	* Fixed tar so it now works as expected (it had TRUE/FALSE backwards)
+	* tar now accepts --help
+	* chmod, chown, and chgrp usage now works
+	* General usage cleanups in most apps
+	* umount now parses options correctly
+
+	-Erik Andersen
+
 0.34
 	* ls -l now displays link names outside the current directory,
 	    Patch thanks to Eric Delaunay

@@ -26,10 +26,11 @@
 #include <errno.h>
 #include <sys/param.h>
 
-static const char mkdir_usage[] = "Usage: mkdir [OPTION] DIRECTORY...\n"
+static const char mkdir_usage[] = "Usage: mkdir [OPTION] DIRECTORY...\n\n"
 "Create the DIRECTORY(ies), if they do not already exist\n\n"
-"-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"
-"-p\tno error if existing, make parent directories as needed\n";
+"Options:\n"
+"\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"
+"\t-p\tno error if existing, make parent directories as needed\n";
 
 
 static int parentFlag = FALSE;

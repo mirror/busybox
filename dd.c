@@ -34,7 +34,7 @@
 #include <errno.h>
 
 static const char dd_usage[] =
-"dd [if=name] [of=name] [bs=n] [count=n]\n"
+"dd [if=name] [of=name] [bs=n] [count=n]\n\n"
 "Copy a file, converting and formatting according to options\n\n"
 "\tif=FILE\tread from FILE instead of stdin\n"
 "\tof=FILE\twrite to FILE instead of stout\n"
@@ -227,8 +227,7 @@ extern int dd_main (int argc, char **argv)
     exit( TRUE);
   usage:
 
-    fprintf (stderr, "%s", dd_usage);
-    exit( FALSE);
+    usage( dd_usage);
 }
 
 

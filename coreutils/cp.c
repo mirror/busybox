@@ -28,7 +28,7 @@
 #include <dirent.h>
 
 static const char cp_usage[] = "cp [OPTION]... SOURCE DEST\n"
-    "   or: cp [OPTION]... SOURCE... DIRECTORY\n"
+    "   or: cp [OPTION]... SOURCE... DIRECTORY\n\n"
     "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n"
     "\n"
     "\t-a\tsame as -dpR\n"

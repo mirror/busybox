@@ -27,7 +27,7 @@ extern int
 sync_main(int argc, char * * argv)
 {
     if ( argc>1 && **(argv+1) == '-' ) {
-	usage( "sync\nWrite all buffered filesystem blocks to disk.\n");
+	usage( "sync\n\nWrite all buffered filesystem blocks to disk.\n");
     }
     exit( sync());
 }

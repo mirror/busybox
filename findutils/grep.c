@@ -32,15 +32,16 @@
 #include <ctype.h>
 
 static const char grep_usage[] =
-"grep [-ihn]... PATTERN [FILE]...\n"
+"grep [OPTIONS]... PATTERN [FILE]...\n\n"
 "Search for PATTERN in each FILE or standard input.\n\n"
+"OPTIONS:\n"
 "\t-h\tsuppress the prefixing filename on output\n"
 "\t-i\tignore case distinctions\n"
 "\t-n\tprint line number with output lines\n\n"
 #if defined BB_REGEXP
-"This version of grep matches full regexps.\n";
+"This version of grep matches full regular expresions.\n";
 #else
-"This version of grep matches strings (not regexps).\n";
+"This version of grep matches strings (not regular expresions).\n";
 #endif
 
 

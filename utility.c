@@ -46,7 +46,7 @@ const char mtab_file[] = "/proc/mounts";
 
 
 /* volatile so gcc knows this is the enod of the line */
-volatile void usage(const char *usage)
+extern void usage(const char *usage)
 {
     fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n", BB_VER, BB_BT);
     fprintf(stderr, "Usage: %s\n", usage);

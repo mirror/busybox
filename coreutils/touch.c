@@ -31,7 +31,7 @@
 
 
 static const char touch_usage[] = "touch [-c] file [file ...]\n\n"
-"\tUpdate the last-modified date on the given file[s].\n";
+"Update the last-modified date on the given file[s].\n";
 
 
 
@@ -54,7 +54,7 @@ touch_main(int argc, char **argv)
 		create = FALSE;
 		break;
 	    default:
-		fprintf(stderr, "Unknown option: %c\n", **argv);
+		usage( touch_usage);
 		exit( FALSE);
 	}
 	argc--;

@@ -32,9 +32,18 @@ static char* pattern=NULL;
 static char* directory=".";
 static int dereferenceFlag=FALSE;
 
-static const char find_usage[] = "find [path...] [expression]\n"
-"default path is the current directory; default expression is -print\n"
-"expression may consist of:\n";
+static const char find_usage[] = "find [PATH...] [EXPRESSION]\n\n"
+"Search for files in a directory hierarchy.  The default PATH is\n"
+"the current directory; default EXPRESSION is '-print'\n\n"
+"\nEXPRESSION may consist of:\n"
+"\t-follow\n\t\tDereference symbolic links.\n"
+"\t-name PATTERN\n\t\tFile name (with leading directories removed) matches PATTERN.\n"
+"\t-print\n\t\tprint the full file name followed by a newline to stdout.\n\n"
+#if defined BB_REGEXP
+"This version of find matches full regular expresions.\n";
+#else
+"This version of find matches strings (not regular expresions).\n";
+#endif
 
 
 

@@ -27,9 +27,9 @@
 #include <errno.h>
 
 
-static const char ln_usage[] = "ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n"
-"Create a link named LINK_NAME or DIRECTORY to the specified TARGET\n"
-"\nOptions:\n"
+static const char ln_usage[] = "ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n\n"
+"Create a link named LINK_NAME or DIRECTORY to the specified TARGET\n\n"
+"Options:\n"
 "\t-s\tmake symbolic links instead of hard links\n"
 "\t-f\tremove existing destination files\n";
 

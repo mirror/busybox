@@ -138,7 +138,7 @@ const char* timeString(time_t timeVal);
 
 extern void createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
-extern volatile void usage(const char *usage);
+extern void usage(const char *usage) __attribute__ ((noreturn));
 
 extern uid_t my_getpwnam(char *name);
 extern gid_t my_getgrnam(char *name); 

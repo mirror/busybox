@@ -35,7 +35,7 @@
    mail commands */
 
 static const char	date_usage[] = "date [OPTION]... [+FORMAT]\n"
-"  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
+"  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n\n"
 "Display the current time in the given FORMAT, or set the system date.\n"
 "\nOptions:\n\t-R\t\toutput RFC-822 compliant date string\n"
 "\t-s\t\tset time described by STRING\n"

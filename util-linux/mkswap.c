@@ -47,11 +47,12 @@
 				/* we also get PAGE_SIZE via getpagesize() */
 
 
-static const char mkswap_usage[] = "mkswap [-c] [-v0|-v1] device [block-count]\n"
+static const char mkswap_usage[] = "mkswap [-c] [-v0|-v1] device [block-count]\n\n"
 "Prepare a disk partition to be used as a swap partition.\n\n"
-"\t-c\tCheck for read-ability.\n"
-"\t-v0\tMake version 0 swap [max 128 Megs].\n"
-"\t-v1\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n"
+"Options:\n"
+"\t-c\t\tCheck for read-ability.\n"
+"\t-v0\t\tMake version 0 swap [max 128 Megs].\n"
+"\t-v1\t\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n"
 "\tblock-count\tNumber of block to use (default is entire partition).\n";
 
 

@@ -191,9 +191,17 @@ static void leave(int status)
 }
 
 static void show_usage(void) {
-	fprintf(stderr,
-		"Usage: %s [-larvsmf] /dev/name\n",
-		program_name);
+	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n", BB_VER, BB_BT);
+	fprintf(stderr, "Usage: %s [-larvsmf] /dev/name\n\n", program_name);
+	fprintf(stderr, "Performs a consistency check for MINIX filesystems.\n\n");
+	fprintf(stderr, "OPTIONS:\n");
+	fprintf(stderr, "\t-l\tLists all filenames\n");
+	fprintf(stderr, "\t-r\tPerform interactive repairs\n");
+	fprintf(stderr, "\t-a\tPerform automatic repairs\n");
+	fprintf(stderr, "\t-v\tverbose\n");
+	fprintf(stderr, "\t-s\tOutputs super-block information\n");
+	fprintf(stderr, "\t-m\tActivates MINIX-like \"mode not cleared\" warnings\n");
+	fprintf(stderr, "\t-f\tForce file system check.\n\n");
 	leave(16);
 }
 

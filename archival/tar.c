@@ -35,22 +35,13 @@
 #include <signal.h>
 #include <time.h>
 
-/* Note that tar.c expects TRUE and FALSE to be defined
- * exactly the opposite of how they are used everywhere else.
- * Some time this should be integrated a bit better, but this
- * does the job for now.
- */
-//#undef FALSE
-//#undef TRUE
-//#define FALSE ((int) 0)
-//#define TRUE  ((int) 1)
-
 
 static const char tar_usage[] =
-    "tar -[cxtvOf] [tarFileName] [FILE] ...\n"
-    "Create, extract, or list files from a tar file\n\n"
-    "\tc=create, x=extract, t=list contents, v=verbose,\n"
-    "\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
+"tar -[cxtvOf] [tarFileName] [FILE] ...\n\n"
+"Create, extract, or list files from a tar file\n\n"
+"Options:\n"
+"\tc=create, x=extract, t=list contents, v=verbose,\n"
+"\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
 
 
 
@@ -96,18 +87,18 @@ typedef struct {
 /*
  * Static data.
  */
-static int listFlag; //
-static int extractFlag; //
-static int createFlag; //
-static int verboseFlag; //
-static int tostdoutFlag; //
+static int listFlag;
+static int extractFlag;
+static int createFlag;
+static int verboseFlag;
+static int tostdoutFlag;
 
 static int inHeader; // <- check me
-static int badHeader; //
-static int errorFlag; //
-static int skipFileFlag; //
-static int warnedRoot; //
-static int eofFlag; //
+static int badHeader;
+static int errorFlag;
+static int skipFileFlag;
+static int warnedRoot;
+static int eofFlag;
 static long dataCc;
 static int outFd;
 static char outName[TAR_NAME_SIZE];
@@ -136,7 +127,7 @@ static void readHeader (const TarHeader * hp,
 /*
  * Local procedures to save files into a tar file.
  */
-static void saveFile (const char *fileName, int seeLinks); //
+static void saveFile (const char *fileName, int seeLinks);
 
 static void saveRegularFile (const char *fileName,
 			     const struct stat *statbuf);
@@ -145,13 +136,13 @@ static void saveDirectory (const char *fileName,
 			   const struct stat *statbuf);
 
 static int wantFileName (const char *fileName,
-			 int fileCount, char **fileTable); //
+			 int fileCount, char **fileTable);
 
 static void writeHeader (const char *fileName, const struct stat *statbuf);
 
 static void writeTarFile (int fileCount, char **fileTable);
 static void writeTarBlock (const char *buf, int len);
-static int putOctal (char *cp, int len, long value); //
+static int putOctal (char *cp, int len, long value);
 
 
 extern int tar_main (int argc, char **argv)
@@ -217,10 +208,13 @@ extern int tar_main (int argc, char **argv)
 		break;
 
 	    case '-':
+		usage( tar_usage);
 		break;
 
 	    default:
-		fprintf (stderr, "Unknown tar flag '%c'\n", *options);
+		fprintf (stderr, "Unknown tar flag '%c'\n"
+			"Try `tar --help' for more information\n", 
+			*options);
 
 		exit (FALSE);
 	    }
@@ -230,7 +224,6 @@ extern int tar_main (int argc, char **argv)
     /* 
      * Validate the options.
      */
-    fprintf(stderr, "TRUE=%d FALSE=%d\n", TRUE, FALSE);
     if (extractFlag + listFlag + createFlag != (TRUE+FALSE+FALSE)) {
 	fprintf (stderr,
 		 "Exactly one of 'c', 'x' or 't' must be specified\n");

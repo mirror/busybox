@@ -220,12 +220,12 @@ int busybox_main(int argc, char **argv)
 
     if (been_there_done_that == 1 || argc < 1) {
 	const struct Applet *a = applets;
-	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n",
+	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 		BB_VER, BB_BT);
-	fprintf(stderr, "\nUsage:\t[function] [arguments]...\n");
-	fprintf(stderr, "\tbusybox [function] [arguments]...\n");
+	fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
+	fprintf(stderr, "   or: [function] [arguments]...\n\n");
 	fprintf(stderr,
-		"\n\tMost people will create a symlink to busybox for each\n"
+		"\tMost people will create a symlink to busybox for each\n"
 		"\tfunction name, and busybox will act like whatever you invoke it as.\n");
 	fprintf(stderr, "\nCurrently defined functions:\n");
 

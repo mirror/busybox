@@ -43,7 +43,7 @@
 
 extern const char mtab_file[]; /* Defined in utility.c */
 
-static const char mount_usage[] = "Usage:\tmount [flags]\n"
+static const char mount_usage[] = "\tmount [flags]\n"
     "\tmount [flags] device directory [-o options,more-options]\n"
     "\n"
     "Flags:\n"
@@ -248,8 +248,7 @@ extern int mount_main (int argc, char **argv)
 	    while (i>0 && *++(*argv)) switch (**argv) {
 	    case 'o':
 		if (--i == 0) {
-		    fprintf (stderr, "%s\n", mount_usage);
-		    exit( FALSE);
+		    goto goodbye;
 		}
 		parse_mount_options (*(++argv), &flags, string_flags);
 		--i;
@@ -260,8 +259,7 @@ extern int mount_main (int argc, char **argv)
 		break;
 	    case 't':
 		if (--i == 0) {
-		    fprintf (stderr, "%s\n", mount_usage);
-		    exit( FALSE);
+		    goto goodbye;
 		}
 		filesystemType = *(++argv);
 		--i;
@@ -284,9 +282,7 @@ extern int mount_main (int argc, char **argv)
 	    case 'v':
 	    case 'h':
 	    case '-':
-		fprintf (stderr, "%s\n", mount_usage);
-		exit( TRUE);
-		break;
+		goto goodbye;
 	    }
 	} else {
 	    if (device == NULL)
@@ -294,8 +290,7 @@ extern int mount_main (int argc, char **argv)
 	    else if (directory == NULL)
 		directory=*argv;
 	    else {
-		fprintf (stderr, "%s\n", mount_usage);
-		exit( TRUE);
+		goto goodbye;
 	    }
 	}
 	i--;
@@ -331,9 +326,11 @@ extern int mount_main (int argc, char **argv)
 	    exit (mount_one (device, directory, filesystemType, 
 			flags, string_flags, useMtab, fakeIt));
 	} else {
-	    fprintf (stderr, "%s\n", mount_usage);
-	    exit( FALSE);
+	    goto goodbye;
 	}
     }
     exit( TRUE);
+
+goodbye:
+    usage( mount_usage);
 }

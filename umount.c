@@ -29,8 +29,8 @@
 #include <errno.h>
 
 static const char umount_usage[] = 
-"Usage: umount [flags] filesystem|directory\n"
-"Optional Flags:\n"
+"Usage: umount [flags] filesystem|directory\n\n"
+"Flags:\n"
 "\t-a:\tUnmount all file systems"
 #ifdef BB_MTAB
 " in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries\n"
@@ -108,7 +108,7 @@ umount_main(int argc, char** argv)
     }
 
     /* Parse any options */
-    while (argc-- > 0 && **(argv++) == '-') {
+    while (--argc > 0 && **(++argv) == '-') {
 	while (*++(*argv)) switch (**argv) {
 	    case 'a':
 		umountAll = TRUE;

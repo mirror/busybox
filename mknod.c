@@ -27,9 +27,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-static const char mknod_usage[] = "mknod file b|c|u|p major minor\n"
-"\tMake special files.\n"
-"\n"
+static const char mknod_usage[] = "mknod [OPTION]... NAME TYPE MAJOR MINOR\n\n"
+"Make block or character special files.\n\n"
+"Options:\n"
 "\tb:\tMake a block (buffered) device.\n"
 "\tc or u:\tMake a character (un-buffered) device.\n"
 "\tp:\tMake a named pipe. Major and minor are ignored for named pipes.\n";
