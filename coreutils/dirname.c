@@ -32,13 +32,14 @@ extern int dirname_main(int argc, char **argv)
 	argv++;
 
 	s=*argv+strlen(*argv)-1;
-	while (s && *s == '/') {
-		*s = '\0';
-		s=*argv+strlen(*argv)-1;
+	while (s != *argv && *s == '/') {
+		*s-- = '\0';
 	}
 	s = strrchr(*argv, '/');
-	if (s && *s)
+	if (s != NULL && s == *argv)
+		s[1] = '\0';
+	else if (s != NULL)
 		*s = '\0';
-	printf("%s\n", (s)? *argv : ".");
+	puts(s ? *argv : ".");
 	return EXIT_SUCCESS;
 }
