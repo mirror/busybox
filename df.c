@@ -74,18 +74,22 @@ static int do_df(char *device, const char *mount_point)
 				base = 0;
 		}
 		printf("%-20s %9s ", device,
-			   make_human_readable_str(s.f_blocks * (s.f_bsize/KILOBYTE), base));
+			   make_human_readable_str((unsigned long)(s.f_blocks * 
+					   (s.f_bsize/(double)KILOBYTE)), base));
 		printf("%9s ",
-			   make_human_readable_str((s.f_blocks - s.f_bfree) * (s.f_bsize/KILOBYTE), base));
+			   make_human_readable_str((unsigned long)(
+					   (s.f_blocks - s.f_bfree) * 
+					   (s.f_bsize/(double)KILOBYTE)), base));
 		printf("%9s %3ld%% %s\n",
-			   make_human_readable_str(s.f_bavail * (s.f_bsize/KILOBYTE), base),
+			   make_human_readable_str((unsigned long)(s.f_bavail * 
+					   (s.f_bsize/(double)KILOBYTE)), base),
 			   blocks_percent_used, mount_point);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 				device,
-				(long) (s.f_blocks * (s.f_bsize / KILOBYTE)),
-				(long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / KILOBYTE)),
-				(long) (s.f_bavail * (s.f_bsize / KILOBYTE)),
+				(long) (s.f_blocks * (s.f_bsize / (double)KILOBYTE)),
+				(long) ((s.f_blocks - s.f_bfree)*(s.f_bsize/(double)KILOBYTE)),
+				(long) (s.f_bavail * (s.f_bsize / (double)KILOBYTE)),
 				blocks_percent_used, mount_point);
 #endif
 	}
