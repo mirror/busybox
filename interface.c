@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.4 2001/03/12 09:57:59 mjn3 Exp $
+ * Version:     $Id: interface.c,v 1.5 2001/03/15 15:37:48 mjn3 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -2060,7 +2060,7 @@ static void ife_print(struct interface *ptr)
 	    printf(_("txqueuelen:%d "), ptr->tx_queue_len);
 	printf("\n          R");
 	print_bytes_scaled(ptr->stats.rx_bytes, "  T");
-	print_bytes_scaled(ptr->stats.rx_bytes, "\n");
+	print_bytes_scaled(ptr->stats.tx_bytes, "\n");
 
     }
 
