@@ -2,7 +2,7 @@
 
 #if defined BB_AR
 const char ar_usage[] =
-	"ar -ovtpv archive filenames \n"
+	"ar -[ovR]{ptx} archive filenames \n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nExtract or list files from an ar archive.\n\n"
 	"Options:\n"
@@ -11,6 +11,7 @@ const char ar_usage[] =
 	"\t-t\t\tlist\n"
 	"\t-x\t\textract\n"
 	"\t-v\t\tverbosely list files processed\n"
+	"\t-R\t\trecursive action\n"
 #endif
 	;
 #endif
