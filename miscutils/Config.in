@@ -47,6 +47,13 @@ config CONFIG_DEVFSD
 	  Provides compatibility with old device names on a devfs systems.
 	  You should set it to true if you have devfs enabled.
 
+config CONFIG_DEVFSD_MODLOAD
+	bool "Adds support for MODLOAD action"
+	default n
+	depends on CONFIG_DEVFSD
+	help
+	  This actually doesn't work with busybox  modutils but needs the real modutils.
+
 config CONFIG_DEVFSD_VERBOSE
 	bool "Increases logging to stderr and syslog"
 	default n

@@ -129,6 +129,8 @@ struct devfsd_notify_struct
 #define BUFFER_SIZE 16384
 #define DEVFSD_VERSION "1.3.25"
 #define CONFIG_FILE  "/etc/devfsd.conf"
+#define MODPROBE 		"/sbin/modprobe"
+#define CONFIG_MODULES_DEVFS "/etc/modules.devfs"
 #define MAX_ARGS     (6 + 1)
 #define MAX_SUBEXPR  10
 #define STRING_LENGTH 255
@@ -138,9 +140,14 @@ struct devfsd_notify_struct
 #define GID			1
 
 /* 	for msg_logger(), do_ioctl(),
-	fork_and_execute() and xopendir(). */
-# define DIE				1
+	fork_and_execute() */
+# define DIE			1
 # define NO_DIE			0
+
+/* for dir_operation() */
+#define RESTORE		0
+#define SERVICE		1
+#define READ_CONFIG 2
 
 /*  Update only after changing code to reflect new protocol  */
 #define DEVFSD_PROTOCOL_REVISION_DAEMON  5
@@ -151,11 +158,11 @@ struct devfsd_notify_struct
 #endif
 
 #define AC_PERMISSIONS				0
-#define AC_MODLOAD					1	/* not supported by busybox */
+#define AC_MODLOAD					1
 #define AC_EXECUTE					2
 #define AC_MFUNCTION				3	/* not supported by busybox */
 #define AC_CFUNCTION				4	/* not supported by busybox */
-#define AC_COPY					5
+#define AC_COPY						5
 #define AC_IGNORE					6
 #define AC_MKOLDCOMPAT				7
 #define AC_MKNEWCOMPAT				8
@@ -209,6 +216,8 @@ struct get_variable_info
     char devpath[STRING_LENGTH];
 };
 
+static void dir_operation(int , const char * , int,  unsigned long* );
+static void service(struct stat statbuf, char *path);
 static int st_expr_expand(char *, unsigned, const char *, const char *(*) (const char *, void *), void *);
 static const char *get_old_name(const char *, unsigned, char *, unsigned, unsigned);
 static int mksymlink (const char *oldpath, const char *newpath);
@@ -219,16 +228,18 @@ static void service_name (const struct devfsd_notify_struct *);
 static void action_permissions (const struct devfsd_notify_struct *, const struct config_entry_struct *);
 static void action_execute (const struct devfsd_notify_struct *, const struct config_entry_struct *,
 							const regmatch_t *, unsigned);
+#ifdef CONFIG_DEVFSD_MODLOAD
+static void action_modload (const struct devfsd_notify_struct *info, const struct config_entry_struct *entry);
+#endif
 static void action_copy (const struct devfsd_notify_struct *, const struct config_entry_struct *,
 						 const regmatch_t *, unsigned);
 static void action_compat (const struct devfsd_notify_struct *, unsigned);
 static void free_config (void);
-static void do_restore (const char *, int);
+static void restore(char *spath, struct stat source_stat, int rootlen);
 static int copy_inode (const char *, const struct stat *, mode_t, const char *, const struct stat *);
 static mode_t get_mode (const char *);
 static void signal_handler (int);
 static const char *get_variable (const char *, void *);
-static void do_scan_and_service (const char *);
 static int make_dir_tree (const char *);
 static int expand_expression(char *, unsigned, const char *, const char *(*)(const char *, void *), void *,
 							 const char *, const regmatch_t *, unsigned );
@@ -243,7 +254,6 @@ static char *write_old_sd_name (char *, unsigned, unsigned, char *);
 static void msg_logger(int die, int pri, const char * fmt, ... );
 static void do_ioctl(int die, int fd, int request, unsigned long event_mask_flag);
 static void fork_and_execute(int die, char *arg0, char **arg );
-DIR * xopendir(int die, const char * dir_name);
 static int get_uid_gid ( int, const char *);
 static void safe_memcpy( char * dest, const char * src, int len);
 
@@ -318,7 +328,7 @@ static void msg_logger(int die, int pri, const char * fmt, ... )
 static void do_ioctl(int die, int fd, int request, unsigned long event_mask_flag)
 {
 	if (ioctl (fd, request, event_mask_flag) != 0)
-		msg_logger(die, LOG_ERR, "ioctl() failed: %m\n");
+		msg_logger(die, LOG_ERR, "ioctl(): %m\n");
 }
 
 static void fork_and_execute(int die, char *arg0, char **arg )
@@ -345,19 +355,8 @@ static void fork_and_execute(int die, char *arg0, char **arg )
 	if(arg0 != NULL )
 	{
 		execvp (arg0, arg);
-		msg_logger(DIE, LOG_ERR, "execvp() failed: %s: %m\n", arg0);
+		msg_logger(DIE, LOG_ERR, "execvp(): %s: %m\n", arg0);
 	}
-}
-
-
-DIR * xopendir(int die, const char * dir_name)
-{
-	DIR *dp;
-
-	if ( ( dp = opendir (dir_name) ) == NULL )
- 		msg_logger( die, LOG_ERR, "opendir() failed: %s: %m\n", dir_name);
-	/* if die == DIE not reached else return NULL */
-	return dp;
 }
 
 static void safe_memcpy( char *dest, const char *src, int len)
@@ -437,7 +436,7 @@ int devfsd_main (int argc, char **argv)
 	umask (0);
 	read_config_file (CONFIG_FILE, FALSE, &event_mask);
 	/*  Do the scan before forking, so that boot scripts see the finished product  */
-	do_scan_and_service (mount_point);
+	dir_operation(SERVICE,mount_point,0,NULL);
 	if (no_polling)
 		exit (0);
 	if (do_daemon)
@@ -457,7 +456,7 @@ int devfsd_main (int argc, char **argv)
 		free_config ();
 		read_config_file (CONFIG_FILE, FALSE, &event_mask);
 		if (do_scan)
-			do_scan_and_service (mount_point);
+			dir_operation(SERVICE,mount_point,0,NULL);
 	}
 }   /*  End Function main  */
 
@@ -476,32 +475,17 @@ static void read_config_file (const char *path, int optional, unsigned long *eve
 	struct stat statbuf;
 	FILE *fp;
 	char buf[STRING_LENGTH];
+	char *line=NULL;
 
 #ifdef CONFIG_DEVFSD_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "read_config_file()\n");
 #endif
-
 	if (stat (path, &statbuf) != 0 || statbuf.st_size == 0 )
-		msg_logger((optional ==  0 )? DIE : NO_DIE, LOG_ERR, " %s: %m\n", path);
+		goto read_config_file_err;
 
 	if ( S_ISDIR (statbuf.st_mode) )
 	{
-
-		DIR *dp;
-		struct dirent *de;
-
-		dp = xopendir(DIE, path);
-
-		while ( ( de = readdir (dp) ) != NULL )
-		{
-			char fname[STRING_LENGTH];
-
-			if (de->d_name[0] == '.')
-				continue;
-			snprintf (fname, STRING_LENGTH, "%s/%s", path, de->d_name);
-			read_config_file (fname, optional, event_mask);
-		}
-		closedir (dp);
+		dir_operation(READ_CONFIG, path, 0, event_mask);
 		return;
 	}
 
@@ -509,9 +493,13 @@ static void read_config_file (const char *path, int optional, unsigned long *eve
 	{
 		while (fgets (buf, STRING_LENGTH, fp) != NULL)
 		{
-			char *line;
-
-			buf[strlen (buf) - 1] = '\0';
+			/*  GETS(3)       Linux Programmer's Manual
+			fgets() reads in at most one less than size characters from stream  and
+			stores  them  into  the buffer pointed to by s.  Reading stops after an
+			EOF or a newline.  If a newline is read, it is stored into the  buffer.
+			A '\0' is stored after the last character in the buffer.
+			*/
+			/*buf[strlen (buf) - 1] = '\0';*/
 			/*  Skip whitespace  */
 			for (line = buf; isspace (*line); ++line)
 				/*VOID*/;
@@ -520,12 +508,13 @@ static void read_config_file (const char *path, int optional, unsigned long *eve
 			process_config_line (line, event_mask);
 		}
 		fclose (fp);
-#ifdef CONFIG_DEVFSD_VERBOSE
-		msg_logger( NO_DIE, LOG_INFO, "read config file: %s\n", path);
-#endif
-		return;
+		errno=0;
 	}
-	msg_logger(( (optional == 0) && (errno == ENOENT) )? DIE : NO_DIE, LOG_ERR, " %s: %m\n", path);
+read_config_file_err:
+#ifdef CONFIG_DEVFSD_VERBOSE
+	msg_logger(((optional ==  0 ) && (errno == ENOENT))? DIE : NO_DIE, LOG_ERR, "read config file: %s: %m\n", path);
+#endif
+	return;
 }   /*  End Function read_config_file   */
 
 static void process_config_line (const char *line, unsigned long *event_mask)
@@ -541,6 +530,8 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 	char when[STRING_LENGTH], what[STRING_LENGTH];
 	char name[STRING_LENGTH];
 	char * msg="";
+	char *ptr;
+
 #ifdef CONFIG_DEVFSD_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "process_config_line()\n");
 #endif
@@ -562,12 +553,15 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 		 (strcasecmp (when, "OPTIONAL_INCLUDE") == 0) )
 	{
 		st_expr_expand (name, STRING_LENGTH, name, get_variable, NULL );
+#ifdef CONFIG_DEVFSD_VERBOSE
+		msg_logger( NO_DIE, LOG_INFO, "%sinclude: %s\n",(toupper (when[0]) == 'I') ? "": "optional_", name);
+#endif
 		read_config_file (name, (toupper (when[0]) == 'I') ? FALSE : TRUE, event_mask);
 		return;
 	}
 	if (strcasecmp (when, "RESTORE") == 0)
 	{
-		do_restore ( name, strlen (name) );
+		dir_operation(RESTORE,name, strlen (name),NULL);
 		return;
 	}
 	if (num_args < 3)
@@ -591,8 +585,6 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 
 	if (strcasecmp (what, "PERMISSIONS") == 0)
 	{
-		char *ptr;
-
 		new->action.what = AC_PERMISSIONS;
 		/*  Get user and group  */
 		if ( ( ptr = strchr (p[0], '.') ) == NULL )
@@ -607,6 +599,14 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 		/*  Get mode  */
 		new->u.permissions.mode = get_mode (p[1]);
 	}
+#ifdef CONFIG_DEVFSD_MODLOAD
+	else if (strcasecmp (what, "MODLOAD") == 0)
+		/*This  action will pass "/dev/$devname" (i.e. "/dev/" prefixed to
+		the device name) to the module loading  facility.  In  addition,
+		the /etc/modules.devfs configuration file is used.*/
+
+		 new->action.what = AC_MODLOAD;
+#endif
 	else if (strcasecmp (what, "EXECUTE") == 0)
 	{
 		new->action.what = AC_EXECUTE;
@@ -673,11 +673,6 @@ static int do_servicing (int fd, unsigned long event_mask)
 #endif
 	/*  Tell devfs what events we care about  */
 	tmp_event_mask = event_mask;
-	/*  May need to trap inode creates to watch for syslogd(8) starting  */
-	/*if (!syslog_is_open &&  !no_syslog)
-	{
-		tmp_event_mask |= 1 << DEVFSD_NOTIFY_CREATE; *//*FIXME  I'm not sure if this line is needed. TITO */
-	/*}*/
 	do_ioctl(DIE, fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
 	while (!caught_signal)
 	{
@@ -689,14 +684,6 @@ static int do_servicing (int fd, unsigned long event_mask)
 			continue;  /*  Yes, the order is important  */
 		if (bytes < 1)
 			break;
-		/*  Special trap for "/dev/log" creation  */
-		/*  Open syslog, now that "/dev/log" exists  */
-		/*if (!syslog_is_open && !no_syslog &&
-			 (info.type == DEVFSD_NOTIFY_CREATE) &&(strcmp (info.devname, "log") == 0) )
-		{
-			do_open_syslog ();
-			do_ioctl(DIE, fd, DEVFSDIOC_SET_EVENT_MASK, event_mask);*/ /*FIXME I'm not sure if this line is needed. TITO */
-		/*}*/
 		service_name (&info);
 	}
 	if (caught_signal)
@@ -752,6 +739,14 @@ static void service_name (const struct devfsd_notify_struct *info)
 #endif
 				action_permissions (info, entry);
 				break;
+#ifdef CONFIG_DEVFSD_MODLOAD
+			case AC_MODLOAD:
+				#ifdef CONFIG_DEVFSD_DEBUG
+				msg_logger( NO_DIE, LOG_INFO, "AC_MODLOAD\n");
+				#endif
+				action_modload (info, entry);
+				break;
+#endif
 			case AC_EXECUTE:
 #ifdef CONFIG_DEVFSD_DEBUG
 				msg_logger( NO_DIE, LOG_INFO, "AC_EXECUTE\n");
@@ -805,12 +800,38 @@ static void action_permissions (const struct devfsd_notify_struct *info,
 		 chown (info->devname, entry->u.permissions.uid, entry->u.permissions.gid) != 0)
 	{
 #ifdef CONFIG_DEVFSD_VERBOSE
-			msg_logger( NO_DIE, LOG_ERR, "chmod() or chown() error for: %s: %m\n",info->devname);
+			msg_logger( NO_DIE, LOG_ERR, "chmod() or chown(): %s: %m\n",info->devname);
 #endif
 		return;
 	}
 
 }   /*  End Function action_permissions  */
+
+#ifdef CONFIG_DEVFSD_MODLOAD
+static void action_modload (const struct devfsd_notify_struct *info,
+			    const struct config_entry_struct *entry)
+/*  [SUMMARY] Load a module.
+    <info> The devfs change.
+    <entry> The config file entry.
+    [RETURNS] Nothing.
+*/
+{
+	char *argv[6];
+	char device[STRING_LENGTH];
+
+	argv[0] = MODPROBE;
+	argv[1] = "-k";
+	argv[2] = "-C";
+	argv[3] = CONFIG_MODULES_DEVFS;
+	argv[4] = device;
+	argv[5] = NULL;
+	#ifdef CONFIG_DEVFSD_DEBUG
+	msg_logger( NO_DIE, LOG_INFO, "action_modload()\n");
+	#endif
+	snprintf (device, sizeof (device), "/dev/%s", info->devname);
+	fork_and_execute(DIE, argv[0], argv);
+}  /*  End Function action_modload  */
+#endif
 
 static void action_execute (const struct devfsd_notify_struct *info,
 			    const struct config_entry_struct *entry,
@@ -903,8 +924,7 @@ static void action_copy (const struct devfsd_notify_struct *info,
 				regexpr, numexpr);
 
 	if ( !make_dir_tree (destination) || lstat (source, &source_stat) != 0)
-		goto action_copy_error;
-
+			return;
 	lstat (destination, &dest_stat);
 	new_mode = source_stat.st_mode & ~S_ISVTX;
 	if (info->type == DEVFSD_NOTIFY_CREATE)
@@ -913,13 +933,11 @@ static void action_copy (const struct devfsd_notify_struct *info,
 		new_mode |= S_ISVTX;
 #ifdef CONFIG_DEVFSD_VERBOSE
 	if ( !copy_inode (destination, &dest_stat, new_mode, source, &source_stat) )
-action_copy_error:
-		msg_logger( NO_DIE, LOG_ERR, "error copying: %s to %s: %m\n", source, destination);
+		msg_logger( NO_DIE, LOG_ERR, "copy_inode(): %s to %s: %m\n", source, destination);
 #else
-	copy_inode (destination, &dest_stat, new_mode, source,&source_stat);
-action_copy_error:
-	return;
+	copy_inode (destination, &dest_stat, new_mode, source, &source_stat);
 #endif
+	return;
 }   /*  End Function action_copy  */
 
 static void action_compat (const struct devfsd_notify_struct *info,
@@ -1041,53 +1059,26 @@ static void action_compat (const struct devfsd_notify_struct *info,
 	}
 }   /*  End Function action_compat  */
 
-static void do_restore (const char *dir_name, int rootlen)
-/*  [SUMMARY] Restore state from a directory.
-    <dir_name> The directory containing the backing store.
-    <rootlen> The length of the root of the state directory hierarchy.
-    [RETURNS] Nothing.
-*/
+static void restore(char *spath, struct stat source_stat, int rootlen)
 {
-	DIR *dp;
-	struct dirent *de;
+	char dpath[STRING_LENGTH];
+	struct stat dest_stat;
 
 #ifdef CONFIG_DEVFSD_DEBUG
-	msg_logger( NO_DIE, LOG_INFO, "do_restore()\n");
+	msg_logger( NO_DIE, LOG_INFO, "restore()\n");
 #endif
 
-	if( (dp = xopendir(NO_DIE, dir_name))== NULL)
-		return;
+	dest_stat.st_mode = 0;
+	snprintf (dpath, sizeof dpath, "%s%s", mount_point, spath + rootlen);
+	lstat (dpath, &dest_stat);
 
-	while ( (de = readdir (dp) ) != NULL )
-	{
-		char spath[STRING_LENGTH], dpath[STRING_LENGTH];
+	if ( S_ISLNK (source_stat.st_mode) || (source_stat.st_mode & S_ISVTX) )
+		copy_inode (dpath, &dest_stat, (source_stat.st_mode & ~S_ISVTX) , spath, &source_stat);
 
-		struct stat source_stat, dest_stat;
-		dest_stat.st_mode = 0;
+	if ( S_ISDIR (source_stat.st_mode) )
+		dir_operation(RESTORE, spath, rootlen,NULL);
+}
 
-		if ( (strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0) )
-			continue;
-
-		snprintf (spath, sizeof spath, "%s/%s", dir_name, de->d_name);
-
-		if (lstat (spath, &source_stat) != 0)
-		{
-#ifdef CONFIG_DEVFSD_VERBOSE
-			msg_logger( NO_DIE, LOG_ERR, "%s: %m\n", spath);
-#endif
-			continue;
-		}
-		snprintf (dpath, sizeof dpath, "%s%s", mount_point, spath + rootlen);
-		lstat (dpath, &dest_stat);
-
-		if ( S_ISLNK (source_stat.st_mode) || (source_stat.st_mode & S_ISVTX) )
-			copy_inode (dpath, &dest_stat, (source_stat.st_mode & ~S_ISVTX) , spath, &source_stat);
-
-		if ( S_ISDIR (source_stat.st_mode) )
-			do_restore (spath, rootlen);
-	}
-	closedir (dp);
-}   /*  End Function do_restore  */
 
 static int copy_inode (const char *destpath, const struct stat *dest_stat,
 			mode_t new_mode,
@@ -1148,9 +1139,7 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 			close (fd);
 			if (val != 0 || chmod (destpath, new_mode & ~S_IFMT) != 0)
 				break;
-			if (chown (destpath, source_stat->st_uid, source_stat->st_gid) == 0)
-				return (TRUE);
-			break;
+			goto do_chown;
 		case S_IFLNK:
 			if ( ( val = readlink (sourcepath, symlink_val, STRING_LENGTH - 1) ) < 0 )
 				break;
@@ -1164,23 +1153,19 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 			close (fd);
 			if (chmod (destpath, new_mode & ~S_IFMT) != 0)
 				break;
-			if (chown (destpath, source_stat->st_uid, source_stat->st_gid) == 0)
-				return (TRUE);
-			break;
+			goto do_chown;
 		case S_IFBLK:
 		case S_IFCHR:
 		case S_IFIFO:
 			if (mknod (destpath, new_mode, source_stat->st_rdev) != 0)
 				break;
-			if (chown (destpath, source_stat->st_uid, source_stat->st_gid) == 0)
-				return (TRUE);
-			break;
+			goto do_chown;
 		case S_IFDIR:
 			if (mkdir (destpath, new_mode & ~S_IFMT) != 0)
 				break;
+do_chown:
 			if (chown (destpath, source_stat->st_uid, source_stat->st_gid) == 0)
 				return (TRUE);
-			return (TRUE);
 		/*break;*/
 	}
 	return (FALSE);
@@ -1228,15 +1213,14 @@ static int get_uid_gid (int flag, const char *string)
 {
 	struct passwd *pw_ent;
 	struct group *grp_ent;
-	char * msg_a="user";
-	char * msg_b="U";
+	char * msg="user";
 
 #ifdef CONFIG_DEVFSD_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "get_uid_gid()\n");
 
 
 	if(flag != UID && flag != GID )
-		msg_logger( DIE, LOG_ERR,"flag != UID && flag != GID\n");
+		msg_logger( DIE, LOG_ERR,"get_uid_gid(): flag != UID && flag != GID\n");
 #endif
 
 	if ( isdigit (string[0]) || ( (string[0] == '-') && isdigit (string[1]) ) )
@@ -1248,12 +1232,9 @@ static int get_uid_gid (int flag, const char *string)
 	if ( flag == GID && ( grp_ent = getgrnam (string) ) != NULL )
 		return (grp_ent->gr_gid);
 	else
-	{
-		msg_a="group";
-		msg_b="G";
-	}
+		msg="group";
 
-	msg_logger( NO_DIE, LOG_ERR,"unknown %s: %s, defaulting to %cID=0\n", msg_a, string, msg_b);
+	msg_logger( NO_DIE, LOG_ERR,"unknown %s: %s, defaulting to %cID=0\n", msg, string, msg[0] - 32);
 	return (0);
 }/*  End Function get_uid_gid  */
 
@@ -1264,7 +1245,7 @@ static mode_t get_mode (const char *string)
 */
 {
 	mode_t mode;
-
+	int i;
 #ifdef CONFIG_DEVFSD_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "get_mode()\n");
 #endif
@@ -1274,15 +1255,14 @@ static mode_t get_mode (const char *string)
 	if (strlen (string) != 9)
 		msg_logger( DIE, LOG_ERR, "bad mode: %s\n", string);
 	mode = 0;
-	if (string[0] == 'r') mode |= S_IRUSR;
-	if (string[1] == 'w') mode |= S_IWUSR;
-	if (string[2] == 'x') mode |= S_IXUSR;
-	if (string[3] == 'r') mode |= S_IRGRP;
-	if (string[4] == 'w') mode |= S_IWGRP;
-	if (string[5] == 'x') mode |= S_IXGRP;
-	if (string[6] == 'r') mode |= S_IROTH;
-	if (string[7] == 'w') mode |= S_IWOTH;
-	if (string[8] == 'x') mode |= S_IXOTH;
+	i= S_IRUSR;
+	while(i>0)
+	{
+		if(string[0]=='r'||string[0]=='w'||string[0]=='x')
+			mode+=i;
+		i=i/2;
+		string++;
+	}
 	return (mode);
 }   /*  End Function get_mode  */
 
@@ -1341,10 +1321,34 @@ static const char *get_variable (const char *variable, void *info)
 	return (NULL);
 }   /*  End Function get_variable  */
 
-static void do_scan_and_service (const char *dir_name)
+static void service(struct stat statbuf, char *path)
+{
+	struct devfsd_notify_struct info;
+
+#ifdef CONFIG_DEVFSD_DEBUG
+	msg_logger( NO_DIE, LOG_INFO, "service()\n");
+#endif
+
+	memset (&info, 0, sizeof info);
+	info.type = DEVFSD_NOTIFY_REGISTERED;
+	info.mode = statbuf.st_mode;
+	info.major = major (statbuf.st_rdev);
+	info.minor = minor (statbuf.st_rdev);
+	info.uid = statbuf.st_uid;
+	info.gid = statbuf.st_gid;
+	snprintf (info.devname, sizeof (info.devname), "%s", path + strlen (mount_point) + 1);
+	info.namelen = strlen (info.devname);
+	service_name (&info);
+	if ( S_ISDIR (statbuf.st_mode) )
+		dir_operation(SERVICE,path,0,NULL);
+}
+
+static void dir_operation(int type, const char * dir_name, int var, unsigned long *event_mask)
 /*  [SUMMARY] Scan a directory tree and generate register events on leaf nodes.
-    <dp> The directory pointer. This is closed upon completion.
+	<flag> To choose which function to perform
+	<dp> The directory pointer. This is closed upon completion.
     <dir_name> The name of the directory.
+	<rootlen> string length parameter.
     [RETURNS] Nothing.
 */
 {
@@ -1353,20 +1357,24 @@ static void do_scan_and_service (const char *dir_name)
 	struct dirent *de;
 	char path[STRING_LENGTH];
 
+
 #ifdef CONFIG_DEVFSD_DEBUG
-	msg_logger( NO_DIE, LOG_INFO, "do_scan_and_service ()\n");
+	msg_logger( NO_DIE, LOG_INFO, "dir_operation()\n");
 #endif
 
-	if((dp = xopendir(NO_DIE, dir_name))==NULL)
+	if((dp = opendir( dir_name))==NULL)
+	{
+		msg_logger( NO_DIE, LOG_ERR, "opendir(): %s: %m\n", dir_name);
 		return;
+	}
 
 	while ( (de = readdir (dp) ) != NULL )
 	{
-		struct devfsd_notify_struct info;
 
-		if ( (strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0) )
+		if ( (strcmp (de->d_name, ".") == 0)  || (strcmp (de->d_name, "..") == 0)  )
 			continue;
-		snprintf (path, sizeof (path), "%s/%s", dir_name, de->d_name);
+		snprintf (path, sizeof (path), "%s%s%s", dir_name,(last_char_is(dir_name,'/')==NULL)?"/":"", de->d_name);
+
 		if (lstat (path, &statbuf) != 0)
 		{
 #ifdef CONFIG_DEVFSD_VERBOSE
@@ -1374,18 +1382,18 @@ static void do_scan_and_service (const char *dir_name)
 #endif
 			continue;
 		}
-		memset (&info, 0, sizeof info);
-		info.type = DEVFSD_NOTIFY_REGISTERED;
-		info.mode = statbuf.st_mode;
-		info.major = major (statbuf.st_rdev);
-		info.minor = minor (statbuf.st_rdev);
-		info.uid = statbuf.st_uid;
-		info.gid = statbuf.st_gid;
-		snprintf (info.devname, sizeof (info.devname), "%s", path + strlen (mount_point) + 1);
-		info.namelen = strlen (info.devname);
-		service_name (&info);
-		if ( S_ISDIR (statbuf.st_mode) )
-			do_scan_and_service (path);
+		switch(type)
+		{
+			case SERVICE:
+				service(statbuf,path);
+				break;
+			case RESTORE:
+				restore(path, statbuf, var);
+				break;
+			case READ_CONFIG:
+				read_config_file (path, var, event_mask);
+				break;
+		}
 	}
 	closedir (dp);
 }   /*  End Function do_scan_and_service  */
@@ -1408,17 +1416,10 @@ static int mksymlink (const char *oldpath, const char *newpath)
 	if (symlink (oldpath, newpath) != 0)
     {
 #ifdef CONFIG_DEVFSD_VERBOSE
-		if (errno == EEXIST)
-			msg_logger( NO_DIE, LOG_INFO, "symlink(): %s: already exists\n", newpath);
-		else
-		{
-			msg_logger( NO_DIE, LOG_ERR, "symlink(): %s: %m\n", newpath);
-			return (-1);
-		}
-#else
+		msg_logger( NO_DIE, LOG_ERR, "symlink(): %s to %s: %m\n", oldpath, newpath);
+#endif
 		if (errno != EEXIST)
 			return (-1);
-#endif
 	}
     return (0);
 }   /*  End Function mksymlink  */
@@ -1700,7 +1701,6 @@ static char get_old_ide_name (unsigned int major, unsigned int minor)
 	char letter='y';	/* 121 */
 	char c='a'; 		/*  97 */
 	int i=IDE0_MAJOR;
-
 
 #ifdef CONFIG_DEVFSD_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "get_old_ide_name()\n");
