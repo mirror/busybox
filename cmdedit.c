@@ -1228,7 +1228,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
 prepare_to_die:
-#if !defined(BB_FEATURE_ASH)
+#if !defined(BB_ASH)
 				printf("exit");
 				goto_new_line();
 				/* cmdedit_reset_term() called in atexit */

@@ -401,9 +401,9 @@
 #if defined __UCLIBC__ && ! defined __UCLIBC_HAS_MMU__
 	#undef BB_RPM2CPIO		/* Uses gz_open(), which uses fork() */
 	#undef BB_DPKG_DEB		/* Uses gz_open(), which uses fork() */
-	#undef BB_FEATURE_ASH	/* Uses fork() */
-	#undef BB_FEATURE_HUSH	/* Uses fork() */
-	#undef BB_FEATURE_LASH	/* Uses fork() */
+	#undef BB_ASH			/* Uses fork() */
+	#undef BB_HUSH			/* Uses fork() */
+	#undef BB_LASH			/* Uses fork() */
 	#undef BB_INIT			/* Uses fork() */
 	#undef BB_FEATURE_TAR_GZIP	/* Uses fork() */
 	#undef BB_SYSLOGD		/* Uses daemon() */
@@ -418,19 +418,6 @@
 		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
 		#undef BB_FEATURE_COMMAND_USERNAME_COMPLETION
 		#undef BB_FEATURE_SH_FANCY_PROMPT
-	#endif
-	#if ! defined BB_FEATURE_LASH && ! defined BB_FEATURE_HUSH && ! defined BB_FEATURE_MSH && ! defined BB_FEATURE_ASH
-		#define BB_FEATURE_MSH
-	#endif
-	#if defined BB_FEATURE_ASH
-		#undef  BB_FEATURE_MSH
-		#undef  BB_FEATURE_HUSH
-		#undef  BB_FEATURE_LASH
-	#elif defined BB_FEATURE_MSH
-		#undef  BB_FEATURE_HUSH
-		#undef  BB_FEATURE_LASH
-	#elif defined BB_FEATURE_HUSH
-		#undef  BB_FEATURE_LASH
 	#endif
 #else
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN

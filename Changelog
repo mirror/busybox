@@ -66,6 +66,8 @@
 	    -- added "stopped jobs" warning to ash on exit
 	* Adam Slattery
 	    -- Fixed ping compile problem
+	* Robert J. Osborne <rj@resourceinternational.com>
+	    -- fixed a vi bug with delete and escape sequences on empty files.
 
 
 	 -Erik Andersen, 31 July 2001
