@@ -45,7 +45,7 @@ all: busybox busybox.links doc
 include $(patsubst %,%/Makefile.in, $(DIRS))
 
 busybox: .depend include/config.h $(libraries-y)
-	$(CC) $(LDFLAGS) -o $@ $(libraries-y) $(LIBRARIES)
+	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
 busybox.links: applets/busybox.mkll include/config.h
