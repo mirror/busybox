@@ -230,7 +230,7 @@
 #define BB_FEATURE_TAR_EXCLUDE
 //
 // Enable support for tar -z option (currently only works for inflating)
-#define BB_FEATURE_TAR_GZIP 
+//#define BB_FEATURE_TAR_GZIP 
 //
 //// Enable reverse sort
 #define BB_FEATURE_SORT_REVERSE
