@@ -288,21 +288,6 @@ static void leave(int status)
 	exit(status);
 }
 
-const char fsck_minix_usage[] =
-	"Usage: fsck.minix [-larvsmf] /dev/name\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPerforms a consistency check for MINIX filesystems.\n\n"
-	"Options:\n"
-	"\t-l\tLists all filenames\n"
-	"\t-r\tPerform interactive repairs\n"
-	"\t-a\tPerform automatic repairs\n"
-	"\t-v\tverbose\n"
-	"\t-s\tOutputs super-block information\n"
-	"\t-m\tActivates MINIX-like \"mode not cleared\" warnings\n"
-	"\t-f\tForce file system check.\n\n"
-#endif
-	;
-
 static void show_usage(void)
 {
 	usage(fsck_minix_usage);

@@ -38,14 +38,6 @@ struct kbentry {
 #define NR_KEYS         128
 #define MAX_NR_KEYMAPS  256
 
-
-static const char loadkmap_usage[] = "loadkmap\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLoads a binary keyboard translation table from standard input.\n"
-#endif
-	;
-
-
 int loadkmap_main(int argc, char **argv)
 {
 	struct kbentry ke;

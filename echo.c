@@ -25,17 +25,6 @@
 #include "internal.h"
 #include <stdio.h>
 
-static const char uname_usage[] =
-	"echo [-neE] [ARG ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrints the specified ARGs to stdout\n\n"
-	"Options:\n"
-	"\t-n\tsuppress trailing newline\n"
-	"\t-e\tinterpret backslash-escaped characters (i.e. \\t=tab etc)\n"
-	"\t-E\tdisable interpretation of backslash-escaped characters\n"
-#endif
-	;
-
 extern int 
 echo_main(int argc, char** argv)
 {
@@ -58,7 +47,7 @@ echo_main(int argc, char** argv)
 			eflag = 0;
 			break;
 		default: 
-			usage(uname_usage);
+			usage(echo_usage);
 		}
 	}
 

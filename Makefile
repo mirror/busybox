@@ -80,7 +80,7 @@ ifndef $(PREFIX)
     PREFIX = `pwd`/_install
 endif
 
-OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o utility.o
+OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o usage.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT

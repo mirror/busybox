@@ -27,14 +27,6 @@
 #include <string.h>
 #include <errno.h>
 
-static const char uniq_usage[] =
-	"uniq [OPTION]... [INPUT [OUTPUT]]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nDiscard all but one of successive identical lines from INPUT\n"
-	"(or standard input), writing to OUTPUT (or standard output).\n"
-#endif
-	;
-
 /* max chars in line */
 #define UNIQ_MAX 4096
 
@@ -187,4 +179,4 @@ int uniq_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: uniq.c,v 1.12 2000/07/14 01:51:25 kraai Exp $ */
+/* $Id: uniq.c,v 1.13 2000/07/16 20:57:15 kraai Exp $ */

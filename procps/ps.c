@@ -114,14 +114,6 @@ static void parse_proc_status(char *S, proc_t * P)
 
 }
 
-const char ps_usage[] =
-	"ps\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nReport process status\n"
-	"\nThis version of ps accepts no options.\n"
-#endif
-	;
-
 extern int ps_main(int argc, char **argv)
 {
 	proc_t p;

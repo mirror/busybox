@@ -47,20 +47,6 @@ extern CODE prioritynames[];
 extern CODE facilitynames[];
 #endif
 
-static const char logger_usage[] =
-	"logger [OPTION]... [MESSAGE]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nWrite MESSAGE to the system log.  If MESSAGE is '-', log stdin.\n\n"
-	"Options:\n"
-	"\t-s\tLog to stderr as well as the system log.\n"
-	"\t-t\tLog using the specified tag (defaults to user name).\n"
-
-	"\t-p\tEnter the message with the specified priority.\n"
-	"\t\tThis may be numerical or a ``facility.level'' pair.\n"
-#endif
-	;
-
-
 /* Decode a symbolic name to a numeric value 
  * this function is based on code
  * Copyright (c) 1983, 1993

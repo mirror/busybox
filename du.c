@@ -35,17 +35,6 @@
 
 typedef void (Display) (long, char *);
 
-static const char du_usage[] =
-	"du [OPTION]... [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nSummarizes disk space used for each FILE and/or directory.\n"
-	"Disk space is printed in units of 1024 bytes.\n\n"
-	"Options:\n"
-	"\t-l\tcount sizes many times if hard linked\n"
-	"\t-s\tdisplay only a total for each argument\n"
-#endif
-	;
-
 static int du_depth = 0;
 static int count_hardlinks = 0;
 
@@ -174,7 +163,7 @@ int du_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: du.c,v 1.22 2000/07/14 18:38:26 andersen Exp $ */
+/* $Id: du.c,v 1.23 2000/07/16 20:57:15 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

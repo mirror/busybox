@@ -24,12 +24,6 @@
 #include <stdio.h>
 #include <pwd.h>
 
-static const char whoami_usage[] = "whoami\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrints the user name associated with the current effective user id.\n"
-#endif
-	;
-
 extern int whoami_main(int argc, char **argv)
 {
 	char *user = xmalloc(9);

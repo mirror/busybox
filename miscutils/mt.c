@@ -4,12 +4,6 @@
 #include <sys/mtio.h>
 #include <sys/fcntl.h>
 
-static const char mt_usage[] = "mt [-f device] opcode value\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-			"\nControl magnetic tape drive operation\n"
-#endif
-			;
-
 struct mt_opcodes {
 	char *name;
 	short value;

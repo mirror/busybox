@@ -16,23 +16,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-static const char makedevs_usage[] =
-	"makedevs NAME TYPE MAJOR MINOR FIRST LAST [s]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreates a range of block or character special files\n\n"
-	"TYPEs include:\n"
-	"\tb:\tMake a block (buffered) device.\n"
-	"\tc or u:\tMake a character (un-buffered) device.\n"
-	"\tp:\tMake a named pipe. MAJOR and MINOR are ignored for named pipes.\n\n"
-	"FIRST specifies the number appended to NAME to create the first device.\n"
-	"LAST specifies the number of the last item that should be created.\n"
-	"If 's' is the last argument, the base device is created as well.\n\n"
-	"For example:\n"
-	"\tmakedevs /dev/ttyS c 4 66 2 63   ->  ttyS2-ttyS63\n"
-	"\tmakedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8\n"
-#endif
-	;
-
 int makedevs_main(int argc, char **argv)
 {
 

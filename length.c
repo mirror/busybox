@@ -4,13 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 
-const char length_usage[] =
-	"length STRING\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrints out the length of the specified STRING.\n"
-#endif
-	;
-
 extern int length_main(int argc, char **argv)
 {
 	if (argc != 2 || **(argv + 1) == '-')

@@ -40,12 +40,6 @@
 
 #define BUFSIZE 100
 
-static const char nc_usage[] = "nc [IP] [port]\n" 
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nNetcat opens a pipe to IP:port\n"
-#endif
-	;
-
 int nc_main(int argc, char **argv)
 {
 	int sfd;

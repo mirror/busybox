@@ -30,16 +30,6 @@
 #include <utime.h>
 #include <errno.h>
 
-
-static const char touch_usage[] = "touch [-c] file [file ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nUpdate the last-modified date on the given file[s].\n\n"
-	"Options:\n"
-	"\t-c\tDo not create any files\n"
-#endif
-	;
-
-
 extern int touch_main(int argc, char **argv)
 {
 	int fd;

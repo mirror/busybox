@@ -29,18 +29,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char mkdir_usage[] =
-	"mkdir [OPTION] DIRECTORY...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreate the DIRECTORY(ies), if they do not already exist\n\n"
-	"Options:\n"
-
-	"\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"
-	"\t-p\tno error if existing, make parent directories as needed\n"
-#endif
-	;
-
-
 static int parentFlag = FALSE;
 static mode_t mode = 0777;
 

@@ -47,20 +47,6 @@
 #include <asm/page.h>			/* for PAGE_SIZE and PAGE_SHIFT */
 				/* we also get PAGE_SIZE via getpagesize() */
 
-
-static const char mkswap_usage[] =
-	"mkswap [-c] [-v0|-v1] device [block-count]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrepare a disk partition to be used as a swap partition.\n\n"
-	"Options:\n" "\t-c\t\tCheck for read-ability.\n"
-	"\t-v0\t\tMake version 0 swap [max 128 Megs].\n"
-	"\t-v1\t\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n"
-
-	"\tblock-count\tNumber of block to use (default is entire partition).\n"
-#endif
-	;
-
-
 #ifndef _IO
 /* pre-1.3.45 */
 #define BLKGETSIZE 0x1260

@@ -28,12 +28,6 @@
 #include <sys/stat.h>
 #include <sys/vfs.h>
 
-static const char df_usage[] = "df [filesystem ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrint the filesystem space used and space available.\n"
-#endif
-	;
-
 extern const char mtab_file[];	/* Defined in utility.c */
 
 static int df(char *device, const char *mountPoint)

@@ -26,18 +26,6 @@
 #include <errno.h>
 #include <stdio.h>
 
-static const char tee_usage[] =
-	"tee [OPTION]... [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCopy standard input to each FILE, and also to standard output.\n\n"
-	"Options:\n" "\t-a\tappend to the given FILEs, do not overwrite\n"
-#if 0
-	"\t-i\tignore interrupt signals\n"
-#endif
-#endif
-;
-
-
 /* FileList _______________________________________________________________ */
 
 #define FL_MAX	1024
@@ -133,4 +121,4 @@ int tee_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: tee.c,v 1.12 2000/07/14 01:51:25 kraai Exp $ */
+/* $Id: tee.c,v 1.13 2000/07/16 20:57:15 kraai Exp $ */

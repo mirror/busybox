@@ -22,12 +22,6 @@
 #include <sys/ioctl.h>
 #include <sys/kd.h>
 
-static const char loadacm_usage[] = "loadacm\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLoads an acm from standard input.\n"
-#endif
-	;
-
 typedef unsigned short unicode;
 
 static long int ctoi(unsigned char *s, int *is_unicode);

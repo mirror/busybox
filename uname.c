@@ -40,24 +40,6 @@
 # include <sys/systeminfo.h>
 #endif
 
-
-static const char uname_usage[] =
-	"uname [OPTION]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrint certain system information.  With no OPTION, same as -s.\n\n"
-	"Options:\n"
-	"\t-a\tprint all information\n"
-	"\t-m\tthe machine (hardware) type\n"
-	"\t-n\tprint the machine's network node hostname\n"
-	"\t-r\tprint the operating system release\n"
-	"\t-s\tprint the operating system name\n"
-
-	"\t-p\tprint the host processor type\n"
-	"\t-v\tprint the operating system version\n"
-#endif
-	;
-
-
 static void print_element(unsigned int mask, char *element);
 
 /* Values that are bitwise or'd into `toprint'. */

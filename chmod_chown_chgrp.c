@@ -43,29 +43,6 @@ static char *theMode = NULL;
 #define CHOWN_APP   2
 #define CHMOD_APP   3
 
-static const char chgrp_usage[] = "chgrp [OPTION]... GROUP FILE...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nChange the group membership of each FILE to GROUP.\n"
-	"\nOptions:\n\t-R\tChanges files and directories recursively.\n"
-#endif
-	;
-static const char chown_usage[] =
-	"chown [OPTION]...  OWNER[<.|:>[GROUP] FILE...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nChange the owner and/or group of each FILE to OWNER and/or GROUP.\n"
-	"\nOptions:\n\t-R\tChanges files and directories recursively.\n"
-#endif
-	;
-static const char chmod_usage[] =
-	"chmod [-R] MODE[,MODE]... FILE...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nEach MODE is one or more of the letters ugoa, one of the symbols +-= and\n"
-	"one or more of the letters rwxst.\n\n"
-	"\nOptions:\n\t-R\tChanges files and directories recursively.\n"
-#endif
-	;
-
-
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	switch (whichApp) {

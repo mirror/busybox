@@ -30,19 +30,6 @@
 #include <dirent.h>
 #include <errno.h>
 
-static const char ln_usage[] =
-	"ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreate a link named LINK_NAME or DIRECTORY to the specified TARGET\n"
-	"\nYou may use '--' to indicate that all following arguments are non-options.\n\n"
-	"Options:\n"
-	"\t-s\tmake symbolic links instead of hard links\n"
-
-	"\t-f\tremove existing destination files\n"
-	"\t-n\tno dereference symlinks - treat like normal file\n"
-#endif
-	;
-
 static int symlinkFlag = FALSE;
 static int removeoldFlag = FALSE;
 static int followLinks = TRUE;

@@ -24,14 +24,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-static const char tty_usage[] = "tty\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrint the file name of the terminal connected to standard input.\n\n"
-	"Options:\n"
-	"\t-s\tprint nothing, only return an exit status\n"
-#endif
-	;
-
 extern int tty_main(int argc, char **argv)
 {
 	char *tty;

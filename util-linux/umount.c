@@ -39,28 +39,6 @@ extern int mount (__const char *__special_file, __const char *__dir,
 extern int umount (__const char *__special_file);
 extern int umount2 (__const char *__special_file, int __flags);
 
-
-
-static const char umount_usage[] =
-	"umount [flags] filesystem|directory\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"Unmount file systems\n"
-	"\nFlags:\n" "\t-a:\tUnmount all file systems"
-#ifdef BB_MTAB
-	" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries\n"
-#else
-	"\n"
-#endif
-	"\t-r:\tTry to remount devices as read-only if mount is busy\n"
-#if defined BB_FEATURE_MOUNT_FORCE
-	"\t-f:\tForce filesystem umount (i.e. unreachable NFS server)\n"
-#endif
-#if defined BB_FEATURE_MOUNT_LOOP
-	"\t-l:\tDo not free loop device (if a loop device has been used)\n"
-#endif
-#endif
-;
-
 struct _mtab_entry_t {
 	char *device;
 	char *mountpt;

@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.17 2000/07/14 16:23:32 proski Exp $"
+#ident "$Id: insmod.c,v 1.18 2000/07/16 20:57:15 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.17 2000/07/14 16:23:32 proski Exp $"
+#ident "$Id: insmod.c,v 1.18 2000/07/16 20:57:15 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -560,16 +560,6 @@ _syscall2(unsigned long, create_module, const char *, name, size_t, size)
 #endif
 static char m_filename[BUFSIZ + 1] = "\0";
 static char m_fullName[BUFSIZ + 1] = "\0";
-static const char insmod_usage[] =
-	"insmod [OPTION]... MODULE [symbol=value]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLoads the specified kernel modules into the kernel.\n\n"
-	"Options:\n"
-	"\t-f\tForce module to load into the wrong kernel version.\n"
-	"\t-k\tMake module autoclean-able.\n"
-	"\t-v\tverbose output\n" "\t-x\tdo not export externs\n"
-#endif
-;
 
 /*======================================================================*/
 

@@ -50,37 +50,6 @@
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 
-
-static const char tar_usage[] =
-#ifdef BB_FEATURE_TAR_CREATE
-	"tar -[cxtvO] "
-#else
-	"tar -[xtvO] "
-#endif
-#if defined BB_FEATURE_TAR_EXCLUDE
-	"[--exclude File] "
-#endif
-	"[-f tarFile] [FILE] ...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreate, extract, or list files from a tar file.  Note that\n"
-	"this version of tar treats hard links as separate files.\n\n"
-	"Main operation mode:\n"
-#ifdef BB_FEATURE_TAR_CREATE
-	"\tc\t\tcreate\n"
-#endif
-	"\tx\t\textract\n"
-	"\tt\t\tlist\n"
-	"\nFile selection:\n"
-	"\tf\t\tname of tarfile or \"-\" for stdin\n"
-	"\tO\t\textract to stdout\n"
-#if defined BB_FEATURE_TAR_EXCLUDE
-	"\t--exclude\tfile to exclude\n"
-#endif
-	"\nInformative output:\n"
-	"\tv\t\tverbosely list files processed\n"
-#endif
-	;
-
 /* Tar file constants  */
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)

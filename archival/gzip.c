@@ -40,19 +40,6 @@
 #define SMALL_MEM
 #define DYN_ALLOC
 
-
-static const char gzip_usage[] =
-	"gzip [OPTION]... FILE\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCompress FILE with maximum compression.\n"
-	"When FILE is '-', reads standard input.  Implies -c.\n\n"
-
-	"Options:\n"
-	"\t-c\tWrite output to standard output instead of FILE.gz\n"
-#endif
-	;
-
-
 /* I don't like nested includes, but the string and io functions are used
  * too often
  */

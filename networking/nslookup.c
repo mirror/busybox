@@ -41,13 +41,6 @@
  |  + find out how the real nslookup gets the default name server
  */
 
-static const char nslookup_usage[] = "nslookup [HOST]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nQueries the nameserver for the IP address of the given HOST\n"
-#endif
-;
-
-
 /* I have to see how the real nslookup does this.
  * I could dig through /etc/resolv.conf, but is there a
  * better (programatic) way?
@@ -177,4 +170,4 @@ int nslookup_main(int argc, char **argv)
 	return( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.10 2000/06/19 17:25:40 andersen Exp $ */
+/* $Id: nslookup.c,v 1.11 2000/07/16 20:57:15 kraai Exp $ */

@@ -35,25 +35,6 @@ _syscall1(int, swapoff, const char *, path);
 
 static int whichApp;
 
-static const char swapoff_usage[] =
-	"swapoff [OPTION] [device]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nStop swapping virtual memory pages on the given device.\n\n"
-	"Options:\n"
-	"\t-a\tStop swapping on all swap devices\n"
-#endif
-	;
-
-static const char swapon_usage[] =
-	"swapon [OPTION] [device]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nStart swapping virtual memory pages on the given device.\n\n"
-	"Options:\n"
-	"\t-a\tStart swapping on all swap devices\n"
-#endif
-	;
-
-
 #define SWAPON_APP   1
 #define SWAPOFF_APP  2
 

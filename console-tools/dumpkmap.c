@@ -38,14 +38,6 @@ struct kbentry {
 #define NR_KEYS         128
 #define MAX_NR_KEYMAPS  256
 
-
-static const char dumpkmap_usage[] = "dumpkmap\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrints out a binary keyboard translation table to standard input.\n"
-#endif
-	;
-
-
 int dumpkmap_main(int argc, char **argv)
 {
 	struct kbentry ke;

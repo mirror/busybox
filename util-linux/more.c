@@ -34,12 +34,6 @@
 #define bb_need_help
 #include "messages.c"
 
-static const char more_usage[] = "more [FILE ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nMore is a filter for viewing FILE one screenful at a time.\n"
-#endif
-	;
-
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS
 #	if #cpu(sparc)

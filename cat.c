@@ -34,13 +34,6 @@ static void print_file(FILE * file)
 	fflush(stdout);
 }
 
-static const char cat_usage[] =
-	"cat [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nConcatenates FILE(s) and prints them to stdout.\n"
-#endif
-	;
-
 extern int cat_main(int argc, char **argv)
 {
 	FILE *file;

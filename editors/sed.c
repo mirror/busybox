@@ -85,22 +85,6 @@ static int ncmds = 0; /* number of sed commands */
 
 /*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
 
-static const char sed_usage[] =
-	"sed [-Vhnef] pattern [files...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\n"
-	"-n\tsuppress automatic printing of pattern space\n"
-	"-e script\tadd the script to the commands to be executed\n"
-	"-f scriptfile\tadd the contents of script-file to the commands to be executed\n"
-	"-h\tdisplay this help message\n"
-	"-V\toutput version information and exit\n"
-	"\n"
-	"If no -e or -f is given, the first non-option argument is taken as the\n"
-	"sed script to interpret. All remaining arguments are names of input\n"
-	"files; if no input files are specified, then the standard input is read.\n"
-#endif
-	;
-
 #if 0
 static void destroy_cmd_strs()
 {

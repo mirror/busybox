@@ -26,14 +26,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-static const char mkfifo_usage[] = "mkfifo [OPTIONS] name\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreates a named pipe (identical to 'mknod name p')\n\n"
-	"Options:\n"
-	"\t-m\tcreate the pipe using the specified mode (default a=rw)\n"
-#endif
-	;
-
 extern int mkfifo_main(int argc, char **argv)
 {
 	char *thisarg;

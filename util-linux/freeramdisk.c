@@ -34,14 +34,6 @@
 /* From linux/fs.h */
 #define BLKFLSBUF  _IO(0x12,97)	/* flush buffer cache */
 
-
-static const char freeramdisk_usage[] =
-	"freeramdisk DEVICE\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nFrees all memory used by the specified ramdisk.\n"
-#endif
-	;
-
 extern int
 freeramdisk_main(int argc, char **argv)
 {

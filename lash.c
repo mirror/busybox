@@ -137,14 +137,6 @@ static struct builtInCommand bltins_forking[] = {
 	{NULL, NULL, NULL, NULL}
 };
 
-static const char shell_usage[] =
-	"sh [FILE]...\n"
-	"   or: sh -c command [args]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nlash: The BusyBox command interpreter (shell).\n\n"
-#endif
-	;
-
 static char *prompt = "# ";
 static char *cwd = NULL;
 static char *local_pending_command = NULL;

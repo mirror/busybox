@@ -34,19 +34,6 @@
 #define bb_need_write_error
 #include "messages.c"
 
-const char *tr_usage="tr [-cds] STRING1 [STRING2]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nTranslate, squeeze, and/or delete characters from\n"
-	"standard input, writing to standard output.\n\n"
-	"Options:\n"
-	"\t-c\ttake complement of STRING1\n"
-	"\t-d\tdelete input characters coded STRING1\n"
-	"\t-s\tsqueeze multiple output characters of STRING2 into one character\n"
-#endif
-;
-
-
-
 #ifdef TRUE
 #undef TRUE
 #undef FALSE

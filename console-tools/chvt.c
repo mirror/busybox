@@ -15,13 +15,6 @@
 #define VT_ACTIVATE     0x5606  /* make vt active */
 #define VT_WAITACTIVE   0x5607  /* wait for vt active */
 
-const char chvt_usage[] =
-	"chvt N\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nChanges the foreground virtual terminal to /dev/ttyN\n"
-#endif
-	;
-
 int chvt_main(int argc, char **argv)
 {
 	int fd, num;

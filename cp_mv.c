@@ -47,28 +47,6 @@
 #define is_mv 1
 static int         dz_i;		/* index into cp_mv_usage */
 
-const char cp_usage[] =
-	"cp [OPTION]... SOURCE DEST\n"
-	"   or: cp [OPTION]... SOURCE... DIRECTORY\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCopies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n"
-	"\n"
-	"\t-a\tSame as -dpR\n"
-	"\t-d\tPreserves links\n"
-	"\t-p\tPreserves file attributes if possible\n"
-	"\t-f\tforce (implied; ignored) - always set\n"
-	"\t-R\tCopies directories recursively\n"
-#endif
-	;
-
-const char mv_usage[] =
-	"mv SOURCE DEST\n"
-	"   or: mv SOURCE... DIRECTORY\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nRename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n"
-#endif
-	;
-
 static const char *cp_mv_usage[] =	/* .rodata */
 {
 	cp_usage,

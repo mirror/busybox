@@ -40,23 +40,6 @@
 typedef unsigned long long int uintmax_t;
 #endif
 
-static const char dd_usage[] =
-	"dd [if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCopy a file, converting and formatting according to options\n\n"
-	"\tif=FILE\tread from FILE instead of stdin\n"
-	"\tof=FILE\twrite to FILE instead of stdout\n"
-	"\tbs=N\tread and write N bytes at a time\n"
-	"\tcount=N\tcopy only N input blocks\n"
-	"\tskip=N\tskip N input blocks\n"
-	"\tseek=N\tskip N output blocks\n"
-	"\n"
-	"Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)\n"
-#endif
-	;
-
-
-
 extern int dd_main(int argc, char **argv)
 {
 	char *inFile = NULL;

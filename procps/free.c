@@ -25,13 +25,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-const char free_usage[] =
-	"free\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nDisplays the amount of free and used system memory\n"
-#endif
-	;
-
 extern int free_main(int argc, char **argv)
 {
 	struct sysinfo info;

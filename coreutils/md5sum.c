@@ -582,23 +582,6 @@ static int status_only = 0; /* With -c, don't generate any output.
 static int warn = 0; /* With -w, print a message to standard error warning
                         about each improperly formatted MD5 checksum line */
 
-static const char md5sum_usage[] =
-    "md5sum [OPTION] [FILE]...\n"
-    "or:    md5sum [OPTION] -c [FILE]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-    "\nPrint or check MD5 checksums.\n\n"
-    "Options:\n"
-    "With no FILE, or when FILE is -, read standard input.\n\n"
-    "\t-b\tread files in binary mode\n"
-    "\t-c\tcheck MD5 sums against given list\n"
-    "\t-t\tread files in text mode (default)\n"
-    "\t-g\tread a string\n"
-    "\nThe following two options are useful only when verifying checksums:\n"
-    "\t-s,\tdon't output anything, status code shows success\n"
-    "\t-w,\twarn about improperly formated MD5 checksum lines\n"
-#endif
-;
-
 static int split_3(char *s,
                    size_t s_len,
                    unsigned char **u,

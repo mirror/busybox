@@ -28,17 +28,6 @@
 #include <grp.h>
 #include <sys/types.h>
 
-static const char id_usage[] =
-	"id [OPTIONS]... [USERNAME]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPrint information for USERNAME or the current user\n\n"
-	"Options:\n"
-	"\t-g\tprints only the group ID\n"
-	"\t-u\tprints only the user ID\n"
-	"\t-r\tprints the real user ID instead of the effective ID (with -ug)\n\n"
-#endif
-	;
-
 extern int id_main(int argc, char **argv)
 {
 	int no_user = 0, no_group = 0, print_real = 0;

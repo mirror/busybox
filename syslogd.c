@@ -76,21 +76,6 @@ static int MarkInterval = 20 * 60;
 /* localhost's name */
 static char LocalHostName[32];
 
-static const char syslogd_usage[] =
-	"syslogd [OPTION]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLinux system and kernel (provides klogd) logging utility.\n"
-	"Note that this version of syslogd/klogd ignores /etc/syslog.conf.\n\n"
-	"Options:\n"
-	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n"
-	"\t-n\t\tRun as a foreground process\n"
-#ifdef BB_FEATURE_KLOGD
-	"\t-K\t\tDo not start up the klogd process\n"
-#endif
-	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n"
-#endif
-	;
-
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
 static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));

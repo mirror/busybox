@@ -31,21 +31,6 @@
 extern int optind; /* in unistd.h */
 extern int errno;  /* for use with strerror() */
 
-static const char grep_usage[] =
-	"grep [-ihHnqvs] pattern [files...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nSearch for PATTERN in each FILE or standard input.\n\n"
-	"Options:\n"
-	"\t-H\tprefix output lines with filename where match was found\n"
-	"\t-h\tsuppress the prefixing filename on output\n"
-	"\t-i\tignore case distinctions\n"
-	"\t-n\tprint line number with output lines\n"
-	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n"
-	"\t-v\tselect non-matching lines\n"
-	"\t-s\tsuppress file open/read error messages\n\n"
-#endif
-	;
-
 /* options */
 static int ignore_case       = 0;
 static int print_filename    = 0;

@@ -178,15 +178,6 @@ static int test_eaccess();
 static int is_a_group_member();
 static void initialize_group_array();
 
-const char test_usage[] =
-	"test EXPRESSION\n"
-	"or   [ EXPRESSION ]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nChecks file types and compares values returning an exit\n"
-	"code determined by the value of EXPRESSION.\n"
-#endif
-	;
-
 extern int
 test_main(int argc, char** argv)
 {

@@ -23,13 +23,6 @@
 #include "internal.h"
 #include <stdio.h>
 
-const char dirname_usage[] =
-	"dirname [FILENAME ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nStrips non-directory suffix from FILENAME\n"
-#endif
-	;
-
 extern int dirname_main(int argc, char **argv)
 {
 	char* s;

@@ -26,13 +26,6 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-const char which_usage[] =
-	"which [COMMAND ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLocates a COMMAND.\n"
-#endif
-	;
-
 extern int which_main(int argc, char **argv)
 {
 	char *path_list, *test, *tmp, *path_parsed;

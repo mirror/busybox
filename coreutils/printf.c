@@ -137,13 +137,6 @@ static void verify __P((char *s, char *end));
 /* The value to return to the calling program.  */
 static int exit_status;
 
-static const char printf_usage[] = "printf FORMAT [ARGUMENT...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nFormats and prints ARGUMENT(s) according to FORMAT,\n"
-	"Where FORMAT controls the output exactly as in C printf.\n"
-#endif
-	;
-
 int printf_main(int argc, char **argv)
 {
 	char *format;

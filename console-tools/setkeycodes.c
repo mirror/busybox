@@ -35,17 +35,6 @@ struct kbkeycode {
 };
 #define KDSETKEYCODE    0x4B4D  /* write kernel keycode table entry */
 
-
-static const char setkeycodes_usage[] =
-	"setkeycodes SCANCODE KEYCODE ...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nSet entries into the kernel's scancode-to-keycode map,\n"
-	"allowing unusual keyboards to generate usable keycodes.\n\n" 
-	"SCANCODE may be either xx or e0xx (hexadecimal),\n"
-	"and KEYCODE is given in decimal\n"
-#endif
-	;
-
 extern int 
 setkeycodes_main(int argc, char** argv)
 {

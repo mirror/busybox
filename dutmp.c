@@ -23,14 +23,6 @@
 #include "messages.c"
 #include <utmp.h>
 
-
-static const char dutmp_usage[] = "dutmp [FILE]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nDump utmp file format (pipe delimited) from FILE\n"
-	"or stdin to stdout.  (i.e. 'dutmp /var/run/utmp')\n"
-#endif
-	;
-
 extern int dutmp_main(int argc, char **argv)
 {
 

@@ -25,12 +25,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-const char usleep_usage[] = "usleep N\n" 
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPause for N microseconds.\n"
-#endif
-	;
-
 extern int usleep_main(int argc, char **argv)
 {
 	if ((argc < 2) || (**(argv + 1) == '-')) {

@@ -427,63 +427,6 @@ static int list_item(const char *name)
 	return 1;
 }
 
-static const char ls_usage[] = "ls [-1a"
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"c"
-#endif
-	"d"
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"e"
-#endif
-	"ln"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"p"
-#endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"u"
-#endif
-	"xAC"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"F"
-#endif
-#ifdef BB_FEATURE_LS_RECURSIVE
-	"R"
-#endif
-	"] [filenames...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nList directory contents\n\n"
-	"Options:\n"
-	"\t-a\tdo not hide entries starting with .\n"
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"\t-c\twith -l: show ctime (the time of last\n"
-    "\t\tmodification of file status information)\n"
-#endif
-	"\t-d\tlist directory entries instead of contents\n"
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"\t-e\tlist both full date and full time\n"
-#endif
-	"\t-l\tuse a long listing format\n"
-	"\t-n\tlist numeric UIDs and GIDs instead of names\n"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"\t-p\tappend indicator (one of /=@|) to entries\n"
-#endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-	"\t-u\twith -l: show access time (the time of last\n"
-	"\t\taccess of the file)\n"
-#endif
-	"\t-x\tlist entries by lines instead of by columns\n"
-	"\t-A\tdo not list implied . and ..\n"
-	"\t-C\tlist entries by columns\n"
-#ifdef BB_FEATURE_LS_FILETYPES
-	"\t-F\tappend indicator (one of */=@|) to entries\n"
-#endif
-#ifdef BB_FEATURE_LS_RECURSIVE
-	"\t-R\tlist subdirectories recursively\n"
-#endif
-#endif
-	;
-
-
 #ifdef BB_FEATURE_LS_RECURSIVE
 static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 {

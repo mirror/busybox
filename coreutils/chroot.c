@@ -27,15 +27,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-
-static const char chroot_usage[] = "chroot NEWROOT [COMMAND...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nRun COMMAND with root directory set to NEWROOT.\n"
-#endif
-	;
-
-
-
 int chroot_main(int argc, char **argv)
 {
 	char *prog;

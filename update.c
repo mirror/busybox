@@ -34,18 +34,6 @@
 static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
-
-static char update_usage[] =
-	"update [options]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nPeriodically flushes filesystem buffers.\n\n"
-	"Options:\n"
-	"\t-S\tforce use of sync(2) instead of flushing\n"
-	"\t-s SECS\tcall sync this often (default 30)\n"
-	"\t-f SECS\tflush some buffers this often (default 5)\n"
-#endif
-	;
-
 static unsigned int sync_duration = 30;
 static unsigned int flush_duration = 5;
 static int use_sync = 0;

@@ -134,14 +134,6 @@ static int local_bind(int port);
 
 /* Some globals */
 static int one = 1;
-static const char telnet_usage[] =
-	"telnet host [port]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nTelnet is used to establish interactive communication with another\n"
-	"computer over a network using the TELNET protocol.\n"
-#endif
-	;
-
 
 static void doexit(int ev)
 {

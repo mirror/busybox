@@ -300,15 +300,6 @@ static int decode (const char *inname,
     return read_stduu (inname);
 }
 
-static const char uudecode_usage[] =
-    "uudecode [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-    "\nUudecode a file that is uuencoded.\n\n"
-    "Options:\n"
-    "\t-o FILE\tdirect output to FILE\n"
-#endif
-;
-
 int uudecode_main (int argc,
                    char **argv)
 {

@@ -180,15 +180,6 @@ static void encode()
   }
 }
 
-static const char uuencode_usage[] =
-    "uuencode [OPTION] [INFILE] REMOTEFILE\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-    "\nUuencode a file.\n\n"
-    "Options:\n"
-    "\t-m\tuse base64 encoding as of RFC1521\n"
-#endif
-;
-
 int uuencode_main (int argc,
                    char **argv)
 {

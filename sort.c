@@ -29,16 +29,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char sort_usage[] = "sort [-n]"
-#ifdef BB_FEATURE_SORT_REVERSE
-" [-r]"
-#endif
-" [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-"\nSorts lines of text in the specified files\n"
-#endif
-;
-
 #ifdef BB_FEATURE_SORT_REVERSE
 #define APPLY_REVERSE(x) (reverse ? -(x) : (x))
 static int reverse = 0;
@@ -304,4 +294,4 @@ int sort_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: sort.c,v 1.19 2000/07/14 01:51:25 kraai Exp $ */
+/* $Id: sort.c,v 1.20 2000/07/16 20:57:15 kraai Exp $ */

@@ -26,14 +26,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-const char mktemp_usage[] =
-	"mktemp [-q] TEMPLATE\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nCreates a temporary file with its name based on TEMPLATE.\n"
-	"TEMPLATE is any name with six `Xs' (i.e. /tmp/temp.XXXXXX).\n"
-#endif
-	;
-
 extern int mktemp_main(int argc, char **argv)
 {
 	if (argc != 2 && (argc != 3 || strcmp(argv[1], "-q")))

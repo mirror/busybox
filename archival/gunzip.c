@@ -30,19 +30,7 @@
 #include "internal.h"
 #include <getopt.h>
 
-static const char gunzip_usage[] =
-	"gunzip [OPTION]... FILE\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nUncompress FILE (or standard input if FILE is '-').\n\n"
-	"Options:\n"
-
-	"\t-c\tWrite output to standard output\n"
-	"\t-t\tTest compressed file integrity\n"
-#endif
-	;
-
-	
-	/* These defines are very important for BusyBox.  Without these,
+/* These defines are very important for BusyBox.  Without these,
  * huge chunks of ram are pre-allocated making the BusyBox bss 
  * size Freaking Huge(tm), which is a bad thing.*/
 #define SMALL_MEM

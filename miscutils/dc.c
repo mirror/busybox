@@ -8,14 +8,6 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static const char dc_usage[] = "dc expression ...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-		"\nThis is a Tiny RPN calculator that understands the\n"
-		"following operations: +, -, /, *, and, or, not, eor.\n"
-		"i.e. 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16\n"
-#endif
-		;
-
 static double stack[100];
 static unsigned int pointer;
 

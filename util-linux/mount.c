@@ -80,38 +80,6 @@ extern int umount2 (__const char *__special_file, int __flags);
 
 extern const char mtab_file[];	/* Defined in utility.c */
 
-static const char mount_usage[] = 
-	"mount [flags] device directory [-o options,more-options]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nMount a filesystem\n\n"
-	"Flags:\n" 
-	"\t-a:\t\tMount all filesystems in fstab.\n"
-#ifdef BB_MTAB
-	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
-	"\t-n:\t\tDon't write a mount table entry.\n"
-#endif
-	"\t-o option:\tOne of many filesystem options, listed below.\n"
-	"\t-r:\t\tMount the filesystem read-only.\n"
-	"\t-t fs-type:\tSpecify the filesystem type.\n"
-	"\t-w:\t\tMount for reading and writing (default).\n"
-	"\n"
-	"Options for use with the \"-o\" flag:\n"
-	"\tasync/sync:\tWrites are asynchronous / synchronous.\n"
-	"\tatime/noatime:\tEnable / disable updates to inode access times.\n"
-	"\tdev/nodev:\tAllow use of special device files / disallow them.\n"
-	"\texec/noexec:\tAllow use of executable files / disallow them.\n"
-#if defined BB_FEATURE_MOUNT_LOOP
-	"\tloop:\t\tMounts a file via loop device.\n"
-#endif
-	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n"
-	"\tremount:\tRe-mount a currently-mounted filesystem, changing its flags.\n"
-	"\tro/rw:\t\tMount for read-only / read-write.\n"
-	"\nThere are EVEN MORE flags that are specific to each filesystem.\n"
-	"You'll have to see the written documentation for those.\n"
-#endif
-	;
-
-
 struct mount_options {
 	const char *name;
 	unsigned long and;

@@ -65,18 +65,6 @@ struct ArInfo {
 };
 typedef struct ArInfo ArInfo;
 
-static const char ar_usage[] = "ar [optxvV] archive [filenames] \n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nExtract or list files from an ar archive.\n\n"
-	"Options:\n"
-	"\to\t\tpreserve original dates\n"
-	"\tp\t\textract to stdout\n"
-	"\tt\t\tlist\n"
-	"\tx\t\textract\n"
-	"\tv\t\tverbosely list files processed\n"
-#endif
-	;
-
 /*
  * Display details of a file, verbosly if funct=2   
  */

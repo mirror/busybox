@@ -32,18 +32,6 @@
 /* And the system call of the day is...  */
 _syscall1(int, delete_module, const char *, name)
 
-
-static const char rmmod_usage[] =
-	"rmmod [OPTION]... [MODULE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nUnloads the specified kernel modules from the kernel.\n\n"
-	"Options:\n" 
-	"\t-a\tTry to remove all unused kernel modules.\n"
-#endif
-	;
-
-
-
 extern int rmmod_main(int argc, char **argv)
 {
 	if (argc <= 1) {
