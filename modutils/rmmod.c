@@ -34,9 +34,11 @@ extern int rmmod_main(int argc, char **argv)
 	int n, ret = EXIT_SUCCESS;
 	size_t nmod = 0; /* number of modules */
 	size_t pnmod = -1; /* previous number of modules */
+	unsigned int flags = O_NONBLOCK|O_EXCL;
+#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 	void *buf; /* hold the module names which we ignore but must get */
 	size_t bufsize = 0;
-	unsigned int flags = O_NONBLOCK|O_EXCL;
+#endif
 
 	/* Parse command line. */
 	while ((n = getopt(argc, argv, "a")) != EOF) {
@@ -50,17 +52,24 @@ extern int rmmod_main(int argc, char **argv)
 			case 'a':
 				/* Unload _all_ unused modules via NULL delete_module() call */
 				/* until the number of modules does not change */
+#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 				buf = xmalloc(bufsize = 256);
+#endif
 				while (nmod != pnmod) {
-					if (syscall(__NR_delete_module, NULL, flags) < 0)
+					if (syscall(__NR_delete_module, NULL, flags) < 0) {
+						if (errno==EFAULT)
+							return(ret);
 						bb_perror_msg_and_die("rmmod");
+					}
 					pnmod = nmod;
+#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 					/* 1 == QM_MODULES */
 					if (my_query_module(NULL, 1, &buf, &bufsize, &nmod)) {
 						bb_perror_msg_and_die("QM_MODULES");
 					}
+#endif
 				}
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if defined CONFIG_FEATURE_CLEAN_UP && CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 				free(buf);
 #endif
 				return EXIT_SUCCESS;

@@ -81,13 +81,7 @@ config CONFIG_LSMOD
 	  lsmod is used to display a list of loaded modules.
 
 config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-	bool "  Support lsmod query_module interface (add 638 bytes)"
-	default y
-	depends on CONFIG_LSMOD && ( CONFIG_FEATURE_2_4_MODULES || CONFIG_FEATURE_2_6_MODULES )
-	help
-	  This will provide some extra information about each module when
-	  running lsmod.  The fields provided are address, size, flags and
-	  usage count.
+	depends on CONFIG_FEATURE_2_4_MODULES && !CONFIG_FEATURE_2_6_MODULES
 
 config CONFIG_MODPROBE
 	bool "modprobe"
