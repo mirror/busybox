@@ -41,17 +41,17 @@ freeramdisk_main(int argc, char **argv)
 	FILE *f;
 
 	if (argc != 2) {
-		show_usage();
+		bb_show_usage();
 	}
 
-	f = xfopen(argv[1], "r+");
+	f = bb_xfopen(argv[1], "r+");
 	
 	result = ioctl(fileno(f), BLKFLSBUF);
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	fclose(f);
 #endif
 	if (result < 0) {
-		perror_msg_and_die("failed ioctl on %s", argv[1]);
+		bb_perror_msg_and_die("failed ioctl on %s", argv[1]);
 	}
 
 	/* Don't bother closing.  Exit does

@@ -20,67 +20,76 @@
  *
  */
 
-/* getopt not needed */
+/* BB_AUDIT SUSv3 N/A */
+/* BB_AUDIT GNU defects -- only option -n is supported. */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Removed dependency on date_main(), added proper error checking, and
+ * reduced size.
+ */
 
 #include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <time.h>
+#include <assert.h>
+#include <unistd.h>
 #include <sys/wait.h>
 #include "busybox.h"
 
 extern int watch_main(int argc, char **argv)
 {
-	const char date_argv[2][10] = { "date", "" };
 	const int header_len = 40;
-	char header[header_len + 1];
-	int period = 2;
-	char **cargv;
-	int cargc;
+	time_t t;
 	pid_t pid;
+	unsigned period = 2;
 	int old_stdout;
-	int i;
+	int len, len2;
+	char **watched_argv;
+	char header[header_len + 1];
 
 	if (argc < 2) {
-		show_usage();
-	} else {
-		cargv = argv + 1;
-		cargc = argc - 1;
-
-		/* don't use getopt, because it permutes the arguments */
-		if (argc >= 3 && !strcmp(argv[1], "-n")) {
-			period = strtol(argv[2], NULL, 10);
-			if (period < 1)
-				show_usage();
-			cargv += 2;
-			cargc -= 2;
-		}
+		bb_show_usage();
 	}
 
+	/* don't use getopt, because it permutes the arguments */
+	++argv;
+	if ((argc > 3) && !strcmp(*argv, "-n")
+	) {
+		period = bb_xgetularg10_bnd(argv[1], 1, UINT_MAX);
+		argv += 2;
+	}
+	watched_argv = argv;
 
 	/* create header */
-	snprintf(header, header_len, "Every %ds: ", period);
-	for (i = 0; i < cargc && (strlen(header) + strlen(cargv[i]) < header_len);
-		 i++) {
-		strcat(header, cargv[i]);
-		strcat(header, " ");
-	}
 
-	/* fill with blanks */
-	for (i = strlen(header); i < header_len; i++)
-		header[i] = ' ';
+	len = snprintf(header, header_len, "Every %ds:", period);
+	/* Don't bother checking for len < 0, as it should never happen.
+	 * But, just to be prepared... */
+	assert(len >= 0);
+	do {
+		len2 = strlen(*argv);
+		if (len + len2 >= header_len-1) {
+			break;
+		}
+		header[len] = ' ';
+		memcpy(header+len+1, *argv, len2);
+		len += len2+1;
+	} while (*++argv);
 
-	header[header_len - 1] = '\0';
-
+	header[len] = 0;
 
 	/* thanks to lye, who showed me how to redirect stdin/stdout */
 	old_stdout = dup(1);
 
 	while (1) {
-		printf("\033[H\033[J%s", header);
-		date_main(1, (char **) date_argv);
-		printf("\n");
+		time(&t);
+		/* Use dprintf to avoid fflush()ing stdout. */
+		if (dprintf(1, "\033[H\033[J%-*s%s\n", header_len, header, ctime(&t)) < 0) {
+			bb_perror_msg_and_die("printf");
+		}
 
 		pid = vfork();	/* vfork, because of ucLinux */
 		if (pid > 0) {
@@ -91,13 +100,11 @@ extern int watch_main(int argc, char **argv)
 			//child
 			close(1);
 			dup(old_stdout);
-			if (execvp(*cargv, cargv))
-				error_msg_and_die("Couldn't run command\n");
+			if (execvp(*watched_argv, watched_argv)) {
+				bb_error_msg_and_die("Couldn't run command\n");
+			}
 		} else {
-			error_msg_and_die("Couldn't vfork\n");
+			bb_error_msg_and_die("Couldn't vfork\n");
 		}
 	}
-
-
-	return EXIT_SUCCESS;
 }

@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) Manuel Nova III <mnovoa3@bellsouth.net>
+ * Copyright (C) Manuel Novoa III <mjn3@codepoet.org>
  * and Vladimir Oleynik <dzo@simtreas.ru>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,9 +26,7 @@
 #include <limits.h>
 #include "libbb.h"
 
-
-
-char process_escape_sequence(const char **ptr)
+char bb_process_escape_sequence(const char **ptr)
 {
 	static const char charmap[] = {
 		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
@@ -36,39 +34,42 @@ char process_escape_sequence(const char **ptr)
 
 	const char *p;
 	const char *q;
-	int num_digits;
+	unsigned int num_digits;
+	unsigned int r;
 	unsigned int n;
 	
 	n = 0;
 	q = *ptr;
 
-	for ( num_digits = 0 ; num_digits < 3 ; ++num_digits) {
-		if ((*q < '0') || (*q > '7')) { /* not a digit? */
-			break;
+	num_digits = 0;
+	do {
+		if (((unsigned int)(*q - '0')) <= 7) {
+			r = n * 8 + (*q - '0');
+			if (r <= UCHAR_MAX) {
+				n = r;
+				++q;
+				if (++num_digits < 3) {
+					continue;
+				}
+			}
 		}
-		n = n * 8 + (*q++ - '0');
-	}
+		break;
+	} while (1);
 
 	if (num_digits == 0) {	/* mnemonic escape sequence? */
-		for (p=charmap ; *p ; p++) {
+		p = charmap;
+		do {
 			if (*p == *q) {
 				q++;
 				break;
 			}
-		}
+		} while (*++p);
 		n = *(p+(sizeof(charmap)/2));
-	}
-
-	   /* doesn't hurt to fall through to here from mnemonic case */
-	if (n > UCHAR_MAX) {	/* is octal code too big for a char? */
-		n /= 8;			/* adjust value and */
-		--q;				/* back up one char */
 	}
 
 	*ptr = q;
 	return (char) n;
 }
-
 
 /* END CODE */
 /*

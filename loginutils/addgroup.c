@@ -54,16 +54,16 @@ static int group_study(const char *filename, struct group *g)
 	struct group *grp;
 	const int max = 65000;
 
-	etc_group = xfopen(filename, "r");
+	etc_group = bb_xfopen(filename, "r");
 
 	/* make sure gr_name isn't taken, make sure gid is kosher */
 	desired = g->gr_gid;
 	while ((grp = fgetgrent(etc_group))) {
 		if ((strcmp(grp->gr_name, g->gr_name)) == 0) {
-			error_msg_and_die("%s: group already in use\n", g->gr_name);
+			bb_error_msg_and_die("%s: group already in use\n", g->gr_name);
 		}
 		if ((desired) && grp->gr_gid == desired) {
-			error_msg_and_die("%d: gid has already been allocated\n",
+			bb_error_msg_and_die("%d: gid has already been allocated\n",
 							  desired);
 		}
 		if ((grp->gr_gid > g->gr_gid) && (grp->gr_gid < max)) {
@@ -89,7 +89,6 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	FILE *etc_gshadow;
-	const char *gshadow = gshadow_file;
 #endif
 
 	struct group gr;
@@ -104,7 +103,7 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
 		return 1;
 
 	/* add entry to group */
-	etc_group = xfopen(filename, "a");
+	etc_group = bb_xfopen(filename, "a");
 
 	fprintf(etc_group, entryfmt, group, default_passwd, gr.gr_gid, user);
 	fclose(etc_group);
@@ -112,8 +111,8 @@ static int addgroup(const char *filename, char *group, gid_t gid, const char *us
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	/* add entry to gshadow if necessary */
-	if (access(gshadow, F_OK|W_OK) == 0) {
-		etc_gshadow = xfopen(gshadow, "a");
+	if (access(bb_path_gshadow_file, F_OK|W_OK) == 0) {
+		etc_gshadow = bb_xfopen(bb_path_gshadow_file, "a");
 		fprintf(etc_gshadow, "%s:!::\n", group);
 		fclose(etc_gshadow);
 	}
@@ -144,7 +143,7 @@ int addgroup_main(int argc, char **argv)
 				gid = strtol(optarg, NULL, 10);
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 				break;
 		}
 	}
@@ -153,7 +152,7 @@ int addgroup_main(int argc, char **argv)
 		group = argv[optind];
 		optind++;
 	} else {
-		show_usage();
+		bb_show_usage();
 	}
 	
 	if (optind < argc) {
@@ -164,12 +163,12 @@ int addgroup_main(int argc, char **argv)
 	}
 	
 	if (geteuid() != 0) {
-		error_msg_and_die
+		bb_error_msg_and_die
 			("Only root may add a group to the system.");
 	}
 
 	/* werk */
-	return addgroup(group_file, group, gid, user);
+	return addgroup(bb_path_group_file, group, gid, user);
 }
 
-/* $Id: addgroup.c,v 1.9 2003/01/09 18:53:53 andersen Exp $ */
+/* $Id: addgroup.c,v 1.10 2003/03/19 09:12:20 mjn3 Exp $ */

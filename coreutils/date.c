@@ -53,7 +53,7 @@ static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 				&(tm_time->tm_year));
 
 	if (nr < 4 || nr > 5) {
-		error_msg_and_die(invalid_date, t_string);
+		bb_error_msg_and_die(bb_msg_invalid_date, t_string);
 	}
 
 	/* correct for century  - minor Y2K problem here? */
@@ -108,7 +108,7 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 		t.tm_year -= 1900;	/* Adjust years */
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 	} else {
-		error_msg_and_die(invalid_date, t_string);
+		bb_error_msg_and_die(bb_msg_invalid_date, t_string);
 	}
 	*tm_time = t;
 	return (tm_time);
@@ -145,25 +145,25 @@ int date_main(int argc, char **argv)
 		case 's':
 			set_time = 1;
 			if ((date_str != NULL) || ((date_str = optarg) == NULL)) {
-				show_usage();
+				bb_show_usage();
 			}
 			break;
 		case 'u':
 			utc = 1;
 			if (putenv("TZ=UTC0") != 0)
-				error_msg_and_die(memory_exhausted);
+				bb_error_msg_and_die(bb_msg_memory_exhausted);
 			break;
 		case 'd':
 			use_arg = 1;
 			if ((date_str != NULL) || ((date_str = optarg) == NULL))
-				show_usage();
+				bb_show_usage();
 			break;
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 		case 'I':
 			if (!optarg)
 				ifmt = 1;
 			else {
-				int ifmt_len = xstrlen(optarg);
+				int ifmt_len = bb_strlen(optarg);
 
 				if ((ifmt_len <= 4)
 					&& (strncmp(optarg, "date", ifmt_len) == 0)) {
@@ -180,11 +180,11 @@ int date_main(int argc, char **argv)
 				}
 			}
 			if (ifmt) {
-				break;	/* else show_usage(); */
+				break;	/* else bb_show_usage(); */
 			}
 #endif
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -220,15 +220,15 @@ int date_main(int argc, char **argv)
 		/* Correct any day of week and day of year etc. fields */
 		tm = mktime(&tm_time);
 		if (tm < 0) {
-			error_msg_and_die(invalid_date, date_str);
+			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
 		if (utc && (putenv("TZ=UTC0") != 0)) {
-			error_msg_and_die(memory_exhausted);
+			bb_error_msg_and_die(bb_msg_memory_exhausted);
 		}
 
 		/* if setting time, set it */
 		if (set_time && (stime(&tm) < 0)) {
-			perror_msg("cannot set date");
+			bb_perror_msg("cannot set date");
 		}
 	}
 

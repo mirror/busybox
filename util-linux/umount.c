@@ -67,7 +67,6 @@ static int useMtab = TRUE;
 #endif
 static int umountAll = FALSE;
 static int doRemount = FALSE;
-extern const char mtab_file[];	/* Defined in utility.c */
 
 
 
@@ -87,8 +86,8 @@ static void mtab_read(void)
 	if (mtab_cache != NULL)
 		return;
 
-	if ((fp = setmntent(mtab_file, "r")) == NULL) {
-		error_msg("Cannot open %s", mtab_file);
+	if ((fp = setmntent(bb_path_mtab_file, "r")) == NULL) {
+		bb_error_msg("Cannot open %s", bb_path_mtab_file);
 		return;
 	}
 	while ((e = getmntent(fp))) {
@@ -185,7 +184,7 @@ static int do_umount(const char *name)
 	if (status != 0 && doForce) {
 		status = umount2(blockDevice, MNT_FORCE);
 		if (status != 0) {
-			error_msg_and_die("forced umount of %s failed!", blockDevice);
+			bb_error_msg_and_die("forced umount of %s failed!", blockDevice);
 		}
 	}
 #endif
@@ -193,9 +192,9 @@ static int do_umount(const char *name)
 		status = mount(blockDevice, name, NULL,
 					   MS_MGC_VAL | MS_REMOUNT | MS_RDONLY, NULL);
 		if (status == 0) {
-			error_msg("%s busy - remounted read-only", blockDevice);
+			bb_error_msg("%s busy - remounted read-only", blockDevice);
 		} else {
-			error_msg("Cannot remount %s read-only", blockDevice);
+			bb_error_msg("Cannot remount %s read-only", blockDevice);
 		}
 	}
 	if (status == 0) {
@@ -221,7 +220,7 @@ static int umount_all(void)
 		if (!do_umount(mountpt)) {
 			/* Don't bother retrying the umount on busy devices */
 			if (errno == EBUSY) {
-				perror_msg("%s", mountpt);
+				bb_perror_msg("%s", mountpt);
 				status = FALSE;
 				continue;
 			}
@@ -241,7 +240,7 @@ extern int umount_main(int argc, char **argv)
 	char path[PATH_MAX];
 
 	if (argc < 2) {
-		show_usage();
+		bb_show_usage();
 	}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	atexit(mtab_free);
@@ -275,7 +274,7 @@ extern int umount_main(int argc, char **argv)
 			case 'v':
 				break; /* ignore -v */
 			default:
-				show_usage();
+				bb_show_usage();
 			}
 	}
 
@@ -287,9 +286,9 @@ extern int umount_main(int argc, char **argv)
 			return EXIT_FAILURE;
 	}
 	if (realpath(*argv, path) == NULL)
-		perror_msg_and_die("%s", path);
+		bb_perror_msg_and_die("%s", path);
 	if (do_umount(path))
 		return EXIT_SUCCESS;
-	perror_msg_and_die("%s", *argv);
+	bb_perror_msg_and_die("%s", *argv);
 }
 

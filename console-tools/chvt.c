@@ -23,13 +23,13 @@ int chvt_main(int argc, char **argv)
 	int fd, num;
 
 	if ((argc != 2) || (**(argv + 1) == '-'))
-		show_usage();
+		bb_show_usage();
 	fd = get_console_fd();
 	num = atoi(argv[1]);
 	if (ioctl(fd, VT_ACTIVATE, num))
-		perror_msg_and_die("VT_ACTIVATE");
+		bb_perror_msg_and_die("VT_ACTIVATE");
 	if (ioctl(fd, VT_WAITACTIVE, num))
-		perror_msg_and_die("VT_WAITACTIVE");
+		bb_perror_msg_and_die("VT_WAITACTIVE");
 	return EXIT_SUCCESS;
 }
 

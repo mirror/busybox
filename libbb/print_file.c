@@ -21,38 +21,49 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include "libbb.h"
 
-
-extern void print_file(FILE *file)
+extern void bb_xprint_and_close_file(FILE *file)
 {
-	fflush(stdout);
-	if (copyfd(fileno(file), fileno(stdout), 0) == -1) {
-		exit(EXIT_FAILURE);
+	bb_xfflush_stdout();
+	/* Note: Do not use STDOUT_FILENO here, as this is a lib routine
+	 *       and the calling code may have reassigned stdout. */
+	if (bb_copyfd(fileno(file), fileno(stdout), 0) == -1) {
+		/* bb_copyfd outputs any needed messages, so just die. */
+		exit(bb_default_error_retval);
 	}
+	/* Note: Since we're reading, don't bother checking the return value
+	 *       of fclose().  The only possible failure is EINTR which
+	 *       should already have been taken care of. */
 	fclose(file);
 }
 
-extern int print_file_by_name(char *filename)
-{
-	struct stat statBuf;
-	int status = TRUE;
+/* Returns:
+ *    0      if successful
+ *   -1      if 'filename' does not exist or is a directory
+ *  exits with default error code if an error occurs
+ */
 
-	if(is_directory(filename, TRUE, &statBuf)==TRUE) {
-		error_msg("%s: Is directory", filename);
-		status = FALSE;
-	} else {
-		FILE *f = wfopen(filename, "r");
-		if(f!=NULL)
-			print_file(f);
-		else
-			status = FALSE;
+extern int bb_xprint_file_by_name(const char *filename)
+{
+	FILE *f;
+
+#if 0
+	/* This check shouldn't be necessary for linux, but is left
+	* here disabled just in case. */
+	struct stat statBuf;
+
+	if(is_directory(filename, TRUE, &statBuf)) {
+		bb_error_msg("%s: Is directory", filename);
+	} else
+#endif
+	if ((f = bb_wfopen(filename, "r")) != NULL) {
+		bb_xprint_and_close_file(f);
+		return 0;
 	}
 
-	return status;
+	return -1;
 }
-
 
 /* END CODE */
 /*

@@ -23,17 +23,16 @@
 #include <unistd.h>
 #include "libbb.h"
 
-
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
  * Returns the amount read, or -1 on an error.
  * A short read is returned on an end of file.
  */
-int full_read(int fd, char *buf, int len)
+ssize_t bb_full_read(int fd, void *buf, size_t len)
 {
-	int cc;
-	int total;
+	ssize_t cc;
+	ssize_t total;
 
 	total = 0;
 
@@ -41,12 +40,12 @@ int full_read(int fd, char *buf, int len)
 		cc = read(fd, buf, len);
 
 		if (cc < 0)
-			return -1;
+			return cc;	/* read() returns -1 on failure. */
 
 		if (cc == 0)
 			break;
 
-		buf += cc;
+		buf = ((char *)buf) + cc;
 		total += cc;
 		len -= cc;
 	}

@@ -25,11 +25,11 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void vperror_msg(const char *s, va_list p)
+extern void bb_vperror_msg(const char *s, va_list p)
 {
 	int err=errno;
 	if(s == 0) s = "";
-	verror_msg(s, p);
+	bb_verror_msg(s, p);
 	if (*s) s = ": ";
 	fprintf(stderr, "%s%s\n", s, strerror(err));
 }

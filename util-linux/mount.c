@@ -86,8 +86,6 @@ extern int umount2(__const char *__special_file, int __flags);
 
 extern int sysfs(int option, unsigned int fs_index, char *buf);
 
-extern const char mtab_file[];	/* Defined in utility.c */
-
 struct mount_options {
 	const char *name;
 	unsigned long and;
@@ -136,20 +134,20 @@ do_mount(char *specialfile, char *dir, char *filesystemtype, long flags,
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
-				error_msg_and_die("Could not find a spare loop device");
+				bb_error_msg_and_die("Could not find a spare loop device");
 			}
 			if (set_loop(specialfile, lofile, 0, &loro)) {
-				error_msg_and_die("Could not setup loop device");
+				bb_error_msg_and_die("Could not setup loop device");
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
-				error_msg("WARNING: loop device is read-only");
+				bb_error_msg("WARNING: loop device is read-only");
 				flags |= MS_RDONLY;
 			}
 		}
 #endif
 		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
 		if (status < 0 && errno == EROFS) {
-			error_msg("%s is write-protected, mounting read-only",
+			bb_error_msg("%s is write-protected, mounting read-only",
 					  specialfile);
 			status = mount(specialfile, dir, filesystemtype, flags |=
 						   MS_RDONLY, string_flags);
@@ -181,7 +179,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype, long flags,
 #endif
 
 	if (errno == EPERM) {
-		error_msg_and_die("permission denied. Are you root?");
+		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
 	return (FALSE);
@@ -268,7 +266,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 					filesystemType = buf;
 
-					if (xstrlen(filesystemType)) {
+					if (bb_strlen(filesystemType)) {
 						status =
 							do_mount(blockDevice, directory, filesystemType,
 									 flags | MS_MGC_VAL, string_flags,
@@ -284,7 +282,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 		}
 
 		if ((!f || read_proc) && !status) {
-			f = xfopen("/proc/filesystems", "r");
+			f = bb_xfopen("/proc/filesystems", "r");
 
 			while (fgets(buf, sizeof(buf), f) != NULL) {
 				filesystemType = buf;
@@ -319,7 +317,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 	if (!status) {
 		if (whineOnErrors) {
-			perror_msg("Mounting %s on %s failed", blockDevice, directory);
+			bb_perror_msg("Mounting %s on %s failed", blockDevice, directory);
 		}
 		return (FALSE);
 	}
@@ -328,7 +326,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 static void show_mounts(char *onlytype)
 {
-	FILE *mountTable = setmntent(mtab_file, "r");
+	FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
 	if (mountTable) {
 		struct mntent *m;
@@ -351,7 +349,7 @@ static void show_mounts(char *onlytype)
 		}
 		endmntent(mountTable);
 	} else {
-		perror_msg_and_die("%s", mtab_file);
+		bb_perror_msg_and_die(bb_path_mtab_file);
 	}
 	exit(EXIT_SUCCESS);
 }
@@ -359,7 +357,7 @@ static void show_mounts(char *onlytype)
 extern int mount_main(int argc, char **argv)
 {
 	struct stat statbuf;
-	char *string_flags = xstrdup("");
+	char *string_flags = bb_xstrdup("");
 	char *extra_opts;
 	int flags = 0;
 	char *filesystemType = "auto";
@@ -413,7 +411,7 @@ extern int mount_main(int argc, char **argv)
 	if (optind < argc) {
 		/* if device is a filename get its real path */
 		if (stat(argv[optind], &statbuf) == 0) {
-			char *tmp = simplify_path(argv[optind]);
+			char *tmp = bb_simplify_path(argv[optind]);
 
 			safe_strncpy(device, tmp, PATH_MAX);
 		} else {
@@ -422,13 +420,13 @@ extern int mount_main(int argc, char **argv)
 	}
 
 	if (optind + 1 < argc)
-		directory = simplify_path(argv[optind + 1]);
+		directory = bb_simplify_path(argv[optind + 1]);
 
 	if (all || optind + 1 == argc) {
 		f = setmntent("/etc/fstab", "r");
 
 		if (f == NULL)
-			perror_msg_and_die("\nCannot read /etc/fstab");
+			bb_perror_msg_and_die("\nCannot read /etc/fstab");
 
 		while ((m = getmntent(f)) != NULL) {
 			if (!all && (optind + 1 == argc)
@@ -452,7 +450,7 @@ extern int mount_main(int argc, char **argv)
 
 			strcpy(device, m->mnt_fsname);
 			strcpy(directory, m->mnt_dir);
-			filesystemType = xstrdup(m->mnt_type);
+			filesystemType = bb_xstrdup(m->mnt_type);
 		  singlemount:
 			extra_opts = string_flags;
 			rc = EXIT_SUCCESS;
@@ -462,7 +460,7 @@ extern int mount_main(int argc, char **argv)
 				if (nfsmount
 					(device, directory, &flags, &extra_opts, &string_flags,
 					 1)) {
-					perror_msg("nfsmount failed");
+					bb_perror_msg("nfsmount failed");
 					rc = EXIT_FAILURE;
 				}
 			}

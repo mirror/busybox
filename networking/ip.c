@@ -72,7 +72,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		} else if (matches(opt, "-oneline") == 0) {
 			++oneline;
 		} else {
-			show_usage();
+			bb_show_usage();
 		}
 		argc--;	argv++;
 	}
@@ -109,7 +109,7 @@ int ip_main(int argc, char **argv)
 #endif
 	}
 	if (ret) {
-		show_usage();
+		bb_show_usage();
 	}
 	return(EXIT_SUCCESS);
 }

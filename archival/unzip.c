@@ -120,12 +120,12 @@ extern int unzip_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (argc == optind) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	printf("Archive:  %s\n", argv[optind]);
@@ -138,11 +138,11 @@ extern int unzip_main(int argc, char **argv)
 		archive_handle->src_fd = fileno(stdin);
 		archive_handle->seek = seek_by_char;
 	} else {
-		archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
+		archive_handle->src_fd = bb_xopen(argv[optind++], O_RDONLY);
 	}
 
 	if ((base_dir) && (chdir(base_dir))) {
-		perror_msg_and_die("Couldnt chdir");
+		bb_perror_msg_and_die("Couldnt chdir");
 	}
 
 	while (optind < argc) {
@@ -163,7 +163,7 @@ extern int unzip_main(int argc, char **argv)
 			break;
 		}
 		else if (magic != ZIP_FILEHEADER_MAGIC) {
-			error_msg_and_die("Invlaide zip magic");
+			bb_error_msg_and_die("Invlaide zip magic");
 		}
 
 		/* Read the file header */
@@ -172,7 +172,7 @@ extern int unzip_main(int argc, char **argv)
 		archive_handle->file_header->mode = S_IFREG | 0777;
 
 		if (zip_header.formated.method != 8) {
-			error_msg_and_die("Unsupported compression method %d\n", zip_header.formated.method);
+			bb_error_msg_and_die("Unsupported compression method %d\n", zip_header.formated.method);
 		}
 
 		/* Read filename */
@@ -198,19 +198,19 @@ extern int unzip_main(int argc, char **argv)
 		if (archive_handle->action_data) {
 			archive_handle->action_data(archive_handle);
 		} else {
-			dst_fd = xopen(archive_handle->file_header->name, O_WRONLY | O_CREAT);
+			dst_fd = bb_xopen(archive_handle->file_header->name, O_WRONLY | O_CREAT);
 			inflate(archive_handle->src_fd, dst_fd);
 			close(dst_fd);
 			chmod(archive_handle->file_header->name, archive_handle->file_header->mode);
 
 			/* Validate decompression - crc */
 			if (zip_header.formated.crc32 != (gunzip_crc ^ 0xffffffffL)) {
-				error_msg("Invalid compressed data--crc error");
+				bb_error_msg("Invalid compressed data--crc error");
 			}
 
 			/* Validate decompression - size */
 			if (gunzip_bytes_out != zip_header.formated.ucmpsize) {
-				error_msg("Invalid compressed data--length error");
+				bb_error_msg("Invalid compressed data--length error");
 			}
 		}
 

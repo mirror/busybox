@@ -62,12 +62,12 @@ extern int update_main(int argc, char **argv)
 				flush_duration = atoi(optarg);
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 	
 	if (daemon(0, 1) < 0)
-		perror_msg_and_die("daemon");
+		bb_perror_msg_and_die("daemon");
 
 #ifdef OPEN_MAX
 	for (pid = 0; pid < OPEN_MAX; pid++) close(pid);

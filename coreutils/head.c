@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini head implementation for busybox
+ * head implementation for busybox
  *
- * Copyright (C) 1999 by Lineo, inc. and John Beppu
- * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,82 +20,119 @@
  *
  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
+
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
-#include <string.h>
+#include <limits.h>
 #include <ctype.h>
+#include <unistd.h>
 #include "busybox.h"
 
-static int head(int len, FILE *fp)
-{
-	int i;
-	char *input;
+static const char head_opts[] =
+	"n:"
+#ifdef CONFIG_FEATURE_FANCY_HEAD
+	"c:qv"
+#endif
+	;
 
-	for (i = 0; i < len; i++) {
-		if ((input = get_line_from_file(fp)) == NULL)
-			break;
-		fputs(input, stdout);
-		free(input);
-	}
-	return 0;
-}
+static const char header_fmt_str[] = "\n==> %s <==\n";
 
-/* BusyBoxed head(1) */
 int head_main(int argc, char **argv)
 {
+	unsigned long count = 10;
+	unsigned long i;
+#ifdef CONFIG_FEATURE_FANCY_HEAD
+	int count_bytes = 0;
+	int header_threshhold = 1;
+#endif
+
 	FILE *fp;
-	int need_headers, opt, len = 10, status = EXIT_SUCCESS;
+	const char *fmt;
+	char *p;
+	int opt;
+	int c;
+	int retval = EXIT_SUCCESS;
 
-	if (( argc >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
-		len = atoi ( &argv [1][1] );
-		optind = 2;
+	/* Allow legacy syntax of an initial numeric option without -n. */
+	if ((argc > 1) && (argv[1][0] == '-')
+		/* && (isdigit)(argv[1][1]) */
+		&& (((unsigned int)(argv[1][1] - '0')) <= 9)
+	) {
+		--argc;
+		++argv;
+		p = (*argv) + 1;
+		goto GET_COUNT;
 	}
 
-	/* parse argv[] */
-	while ((opt = getopt(argc, argv, "n:")) > 0) {
-		switch (opt) {
-		case 'n':
-			len = atoi(optarg);
-			if (len >= 0)
+	while ((opt = getopt(argc, argv, head_opts)) > 0) {
+		switch(opt) {
+#ifdef CONFIG_FEATURE_FANCY_HEAD
+			case 'q':
+				header_threshhold = INT_MAX;
 				break;
-			/* fallthrough */
-		default:
-			show_usage();
+			case 'v':
+				header_threshhold = -1;
+				break;
+			case 'c':
+				count_bytes = 1;
+				/* fall through */
+#endif
+			case 'n':
+				p = optarg;
+			GET_COUNT:
+				count = bb_xgetularg10(p);
+				break;
+			default:
+				bb_show_usage();
 		}
 	}
 
-	/* get rest of argv[] or stdin if nothing's left */
-	if (argv[optind] == NULL) {
-		head(len, stdin);
-		return status;
-	} 
-
-	need_headers = optind != (argc - 1);
-	while (argv[optind]) {
-		if (strcmp(argv[optind], "-") == 0) {
-			fp = stdin;
-			argv[optind] = "standard input";
-		} else {
-			if ((fp = wfopen(argv[optind], "r")) == NULL)
-				status = EXIT_FAILURE;
-		}
-		if (fp) {
-			if (need_headers) {
-				printf("==> %s <==\n", argv[optind]);
-			}
-			head(len, fp);
-			if (ferror(fp)) {
-				perror_msg("%s", argv[optind]);
-				status = EXIT_FAILURE;
-			}
-			if (optind < argc - 1)
-				putchar('\n');
-			if (fp != stdin)
-				fclose(fp);
-		}
-		optind++;
+	argv += optind;
+	if (!*argv) {
+		*--argv = "-";
 	}
 
-	return status;
+	fmt = header_fmt_str + 1;
+#ifdef CONFIG_FEATURE_FANCY_HEAD
+	if (argc - optind <= header_threshhold) {
+		header_threshhold = 0;
+	}
+#else
+	if (argc <= optind + 1) {
+		fmt += 11;
+	}
+	/* Now define some things here to avoid #ifdefs in the code below.
+	 * These should optimize out of the if conditions below. */
+#define header_threshhold   1
+#define count_bytes         0
+#endif
+
+	do {
+		if ((fp = bb_wfopen_input(*argv)) != NULL) {
+			if (fp == stdin) {
+				*argv = (char *) bb_msg_standard_input;
+			}
+			if (header_threshhold) {
+				bb_printf(fmt, *argv);
+			}
+			i = count;
+			while (i && ((c = getc(fp)) != EOF)) {
+				if (count_bytes || (c == '\n')) {
+					--i;
+				}
+				putchar(c);
+			}
+			if (bb_fclose_nonstdin(fp)) {
+				bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+				retval = EXIT_FAILURE;
+			}
+			bb_xferror_stdout();
+		}
+		fmt = header_fmt_str;
+	} while (*++argv);
+
+	bb_fflush_stdout_and_exit(retval);
 }

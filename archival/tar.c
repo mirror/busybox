@@ -278,7 +278,7 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 		header.typeflag = REGTYPE;
 		putOctal(header.size, sizeof(header.size), statbuf->st_size);
 	} else {
-		error_msg("%s: Unknown file type", real_name);
+		bb_error_msg("%s: Unknown file type", real_name);
 		return (FALSE);
 	}
 
@@ -295,9 +295,9 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 
 	/* Now write the header out to disk */
 	if ((size =
-		 full_write(tbInfo->tarFd, (char *) &header,
+		 bb_full_write(tbInfo->tarFd, (char *) &header,
 					sizeof(struct TarHeader))) < 0) {
-		error_msg(io_error, real_name);
+		bb_error_msg(bb_msg_io_error, real_name);
 		return (FALSE);
 	}
 	/* Pad the header up to the tar block size */
@@ -368,7 +368,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	/* It is against the rules to archive a socket */
 	if (S_ISSOCK(statbuf->st_mode)) {
-		error_msg("%s: socket ignored", fileName);
+		bb_error_msg("%s: socket ignored", fileName);
 		return (TRUE);
 	}
 
@@ -377,7 +377,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	 * the new tarball */
 	if (tbInfo->statBuf.st_dev == statbuf->st_dev &&
 		tbInfo->statBuf.st_ino == statbuf->st_ino) {
-		error_msg("%s: file is the archive; skipping", fileName);
+		bb_error_msg("%s: file is the archive; skipping", fileName);
 		return (TRUE);
 	}
 
@@ -386,14 +386,14 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		static int alreadyWarned = FALSE;
 
 		if (alreadyWarned == FALSE) {
-			error_msg("Removing leading '/' from member names");
+			bb_error_msg("Removing leading '/' from member names");
 			alreadyWarned = TRUE;
 		}
 		header_name++;
 	}
 
 	if (strlen(fileName) >= NAME_SIZE) {
-		error_msg(name_longer_than_foo, NAME_SIZE);
+		bb_error_msg(bb_msg_name_longer_than_foo, NAME_SIZE);
 		return (TRUE);
 	}
 
@@ -419,21 +419,21 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
-			perror_msg("%s: Cannot open", fileName);
+			bb_perror_msg("%s: Cannot open", fileName);
 			return (FALSE);
 		}
 
 		/* write the file to the archive */
-		while ((size = full_read(inputFileFd, buffer, sizeof(buffer))) > 0) {
-			if (full_write(tbInfo->tarFd, buffer, size) != size) {
+		while ((size = bb_full_read(inputFileFd, buffer, sizeof(buffer))) > 0) {
+			if (bb_full_write(tbInfo->tarFd, buffer, size) != size) {
 				/* Output file seems to have a problem */
-				error_msg(io_error, fileName);
+				bb_error_msg(bb_msg_io_error, fileName);
 				return (FALSE);
 			}
 			readSize += size;
 		}
 		if (size == -1) {
-			error_msg(io_error, fileName);
+			bb_error_msg(bb_msg_io_error, fileName);
 			return (FALSE);
 		}
 		/* Pad the file up to the tar block size */
@@ -464,7 +464,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 	/* Make sure there is at least one file to tar up.  */
 	if (include == NULL) {
-		error_msg_and_die("Cowardly refusing to create an empty archive");
+		bb_error_msg_and_die("Cowardly refusing to create an empty archive");
 	}
 
 	/* Open the tar file for writing.  */
@@ -477,7 +477,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	}
 
 	if (tbInfo.tarFd < 0) {
-		perror_msg("%s: Cannot open", tarName);
+		bb_perror_msg("%s: Cannot open", tarName);
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return (FALSE);
 	}
@@ -485,12 +485,12 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
-		error_msg_and_die(io_error, tarName);
+		bb_error_msg_and_die(bb_msg_io_error, tarName);
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	if (gzip) {
 		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0) {
-			perror_msg_and_die("Failed to create gzip pipe");
+			bb_perror_msg_and_die("Failed to create gzip pipe");
 		}
 
 		signal(SIGPIPE, SIG_IGN);	/* we only want EPIPE on errors */
@@ -529,7 +529,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
-					perror_msg_and_die("Could not exec gzip process");
+					bb_perror_msg_and_die("Could not exec gzip process");
 				} else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
 					continue;	/* try it again */
 				break;
@@ -538,7 +538,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 			tbInfo.tarFd = gzipDataPipe[1];
 		} else {
-			perror_msg_and_die("Failed to vfork gzip process");
+			bb_perror_msg_and_die("Failed to vfork gzip process");
 		}
 	}
 #endif
@@ -567,7 +567,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	/* Hang up the tools, close up shop, head home */
 	close(tbInfo.tarFd);
 	if (errorFlag)
-		error_msg("Error exit delayed from previous errors");
+		bb_error_msg("Error exit delayed from previous errors");
 
 	freeHardLinkInfo(&tbInfo.hlInfoHead);
 
@@ -585,10 +585,9 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
 static llist_t *append_file_list_to_list(const char *filename, llist_t *list)
 {
-	FILE *src_stream = xfopen(filename, "r");
+	FILE *src_stream = bb_xfopen(filename, "r");
 	char *line;
-	while((line = get_line_from_file(src_stream)) != NULL) {
-		chomp(line);
+	while((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
 		list = llist_add_to(list, line);
 	}
 	fclose(src_stream);
@@ -611,7 +610,7 @@ int tar_main(int argc, char **argv)
 	unsigned char ctx_flag = 0;
 
 	if (argc < 2) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	/* Prepend '-' to the first argument if required */
@@ -690,13 +689,13 @@ int tar_main(int argc, char **argv)
 			break;
 #endif
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	/* Check one and only one context option was given */
 	if ((ctx_flag != CTX_CREATE) && (ctx_flag != CTX_TEST) && (ctx_flag != CTX_EXTRACT)) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	/* Check if we are reading from stdin */
@@ -740,11 +739,11 @@ int tar_main(int argc, char **argv)
 			tar_handle->src_fd = fileno(stdin);
 			tar_handle->seek = seek_by_char;
 		} else {
-			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
+			tar_handle->src_fd = bb_xopen(tar_filename, O_RDONLY);
 		}
 
 		if ((base_dir) && (chdir(base_dir))) {
-			perror_msg_and_die("Couldnt chdir");
+			bb_perror_msg_and_die("Couldnt chdir");
 		}
 
 		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
@@ -753,7 +752,7 @@ int tar_main(int argc, char **argv)
 		while (tar_handle->accept) {
 			if (find_list_entry(tar_handle->reject, tar_handle->accept->data) == NULL) {
 				if (find_list_entry(tar_handle->passed, tar_handle->accept->data) == NULL) {
-					error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
+					bb_error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
 				}
 			}
 			tar_handle->accept = tar_handle->accept->link;

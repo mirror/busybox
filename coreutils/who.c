@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include <busybox.h>
+#include "busybox.h"
 
 extern int who_main(int argc, char **argv)
 {
@@ -33,7 +33,7 @@ extern int who_main(int argc, char **argv)
     time_t      now, idle; 
 
     if (argc > 1) 
-        show_usage();
+        bb_show_usage();
 
     setutent();
     devlen = sizeof("/dev/") - 1;
@@ -81,5 +81,3 @@ extern int who_main(int argc, char **argv)
 
     return 0;
 }
-       
-     

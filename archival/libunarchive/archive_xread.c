@@ -26,7 +26,7 @@ extern ssize_t archive_xread(const archive_handle_t *archive_handle, unsigned ch
 
 	size = archive_handle->read(archive_handle->src_fd, buf, count);
 	if (size == -1) {
-		perror_msg_and_die("Read error");
+		bb_perror_msg_and_die("Read error");
 	}
 
 	return(size);

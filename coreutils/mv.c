@@ -2,7 +2,6 @@
 /*
  * Mini mv implementation for busybox
  *
- *
  * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,148 +20,122 @@
  *
  */
 
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Size reduction and improved error checking.
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
-
 #include "busybox.h"
+#include "libcoreutils/coreutils.h"
 
-static int flags;
-
-static int manual_rename(const char *source, const char *dest)
-{
-	struct stat source_stat;
-	struct stat dest_stat;
-	int source_exists = 1;
-	int dest_exists = 1;
-
-	if (stat(source, &source_stat) < 0) {
-		if (errno != ENOENT) {
-			perror_msg("unable to stat `%s'", source);
-			return -1;
-		}
-		source_exists = 0;
-	}
-
-	if (stat(dest, &dest_stat) < 0) {
-		if (errno != ENOENT) {
-			perror_msg("unable to stat `%s'", dest);
-			return -1;
-		}
-		dest_exists = 0;
-	}
-
-	if (dest_exists) {
-		if (S_ISDIR(dest_stat.st_mode) &&
-			  (!source_exists || !S_ISDIR(source_stat.st_mode))) {
-			error_msg("cannot overwrite directory with non-directory");
-			return -1;
-		}
-
-		if (!S_ISDIR(dest_stat.st_mode) && source_exists &&
-				S_ISDIR(source_stat.st_mode)) {
-			error_msg("cannot overwrite non-directory with directory");
-			return -1;
-		}
-
-		if (unlink(dest) < 0) {
-			perror_msg("cannot remove `%s'", dest);
-			return -1;
-		}
-	}
-
-	if (copy_file(source, dest,
-			FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS) < 0)
-		return -1;
-
-	if (remove_file(source, FILEUTILS_RECUR | FILEUTILS_FORCE) < 0)
-		return -1;
-
-	return 0;
-}
-
-static int move_file(const char *source, const char *dest)
-{
-	struct stat dest_stat;
-	int dest_exists = 1;
-
-	if (stat(dest, &dest_stat) < 0) {
-		if (errno != ENOENT) {
-			perror_msg("unable to stat `%s'", dest);
-			return -1;
-		}
-		dest_exists = 0;
-	}
-
-	if (dest_exists && !(flags & FILEUTILS_FORCE) &&
-			((access(dest, W_OK) < 0 && isatty(0)) ||
-			 (flags & FILEUTILS_INTERACTIVE))) {
-		fprintf(stderr, "mv: overwrite `%s'? ", dest);
-		if (!ask_confirmation())
-			return 0;
-	}
-
-	if (rename(source, dest) < 0) {
-		if (errno == EXDEV)
-			return manual_rename(source, dest);
-
-		perror_msg("unable to rename `%s'", source);
-		return -1;
-	}
-	
-	return 0;
-}
+static const char *fmt = "cannot overwrite %sdirectory with %sdirectory";
 
 extern int mv_main(int argc, char **argv)
 {
-	int status = 0;
+	struct stat source_stat;
+	struct stat dest_stat;
+	const char *last;
+	const char *dest;
+	int dest_exists;
+	int source_exists;
 	int opt;
-	int i;
+	int flags = 0;
+	int status = 0;
 
-	while ((opt = getopt(argc, argv, "fi")) != -1)
-		switch (opt) {
-		case 'f':
-			flags &= ~FILEUTILS_INTERACTIVE;
-			flags |= FILEUTILS_FORCE;
-			break;
-		case 'i':
-			flags &= ~FILEUTILS_FORCE;
+	while ((opt = getopt(argc, argv, "fi")) > 0) {
+		flags &= ~(FILEUTILS_INTERACTIVE | FILEUTILS_FORCE);
+		if (opt == 'i') {
 			flags |= FILEUTILS_INTERACTIVE;
-			break;
-		default:
-			show_usage();
+		} else if (opt == 'f') {
+			flags |= FILEUTILS_FORCE;
+		} else {
+			bb_show_usage();
 		}
+	}
 
 	if (optind + 2 > argc)
-		show_usage();
+		bb_show_usage();
+
+	last = argv[argc - 1];
+	argv += optind;
 
 	if (optind + 2 == argc) {
-		struct stat dest_stat;
-		int dest_exists = 1;
-
-		if (stat(argv[optind + 1], &dest_stat) < 0) {
-			if (errno != ENOENT)
-				perror_msg_and_die("unable to stat `%s'", argv[optind + 1]);
-			dest_exists = 0;
+		if ((dest_exists = cp_mv_stat(last, &dest_stat)) < 0) {
+			return 1;
 		}
 
-		if (!dest_exists || !S_ISDIR(dest_stat.st_mode)) {
-			if (move_file(argv[optind], argv[optind + 1]) < 0)
-				status = 1;
-			return status;
+		if (!(dest_exists & 2)) {
+			dest = last;
+			goto DO_MOVE;
 		}
 	}
+	
+	do {
+		dest = concat_path_file(last,
+								bb_get_last_path_component(*argv));
 
-	for (i = optind; i < argc - 1; i++) {
-		char *dest = concat_path_file(argv[argc - 1],
-				get_last_path_component(argv[i]));
-		if (move_file(argv[i], dest) < 0)
+		if ((dest_exists = cp_mv_stat(dest, &dest_stat)) < 0) {
+			goto RET_1;
+		}
+
+	DO_MOVE:
+		
+		if (dest_exists && !(flags & FILEUTILS_FORCE) &&
+			((access(dest, W_OK) < 0 && isatty(0)) ||
+			 (flags & FILEUTILS_INTERACTIVE))) {
+				 if (fprintf(stderr, "mv: overwrite `%s'? ", dest) < 0) {
+					 goto RET_1;	/* Ouch! fprintf failed! */
+				 }
+				 if (!bb_ask_confirmation())
+					 goto RET_0;
+		 }
+		
+		if (rename(*argv, dest) < 0) {
+			if (errno != EXDEV) {
+				bb_perror_msg("unable to rename `%s'", *argv);
+			} else if ((source_exists = cp_mv_stat(*argv, &source_stat)) >= 0) {
+				if (dest_exists) {
+					if (dest_exists & 2) {
+						if (!(source_exists & 2)) {
+							bb_error_msg(fmt, "", "non-");
+							goto RET_1;
+						}
+					} else {
+						if (source_exists & 2) {
+							bb_error_msg(fmt, "non-", "");
+							goto RET_1;
+						}
+					}
+					if (unlink(dest) < 0) {
+						bb_perror_msg("cannot remove `%s'", dest);
+						goto RET_1;
+					}
+				}
+				
+				if ((copy_file(*argv, dest,
+							   FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS) >= 0)
+					&& (remove_file(*argv, FILEUTILS_RECUR | FILEUTILS_FORCE) >= 0)
+					) {
+					goto RET_0;
+				}
+				
+			}
+		RET_1:
 			status = 1;
-		free(dest);
-	}
+		}
 
-	return status;
+	RET_0:
+		if (dest != last) {
+			free((void *) dest);
+		}
+		
+	} while (*++argv != last);
+	
+	exit(status);
 }

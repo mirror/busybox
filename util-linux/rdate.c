@@ -49,7 +49,7 @@ static time_t askremotedate(const char *host)
 	fd = xconnect(host, port);
 
 	if (read(fd, (void *)&nett, 4) != 4)    /* read time from server */
-		error_msg_and_die("%s did not send the complete time", host);
+		bb_error_msg_and_die("%s did not send the complete time", host);
 
 	close(fd);
 
@@ -83,18 +83,18 @@ int rdate_main(int argc, char **argv)
 				setdate = 0;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (optind == argc)
-		show_usage();
+		bb_show_usage();
 
 	remote_time = askremotedate(argv[optind]);
 
 	if (setdate) {
 		if (stime(&remote_time) < 0)
-			perror_msg_and_die("Could not set time of day");
+			bb_perror_msg_and_die("Could not set time of day");
 	}
 
 	if (printdate)

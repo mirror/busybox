@@ -194,7 +194,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char buf[256];
 	char *p = buf;
 
-	f = xfopen(fn, "r");
+	f = bb_xfopen(fn, "r");
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
 		if ((p = strstr(buf, "mode ")) || (p = strstr(buf, "mode\t"))) {
@@ -279,7 +279,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 		}
 	}
 #else
-	error_msg( "mode reading not compiled in");
+	bb_error_msg( "mode reading not compiled in");
 #endif
 	return 0;
 }
@@ -350,7 +350,7 @@ extern int fbset_main(int argc, char **argv)
 		for (i = 0; g_cmdoptions[i].name; i++) {
 			if (!strcmp(thisarg, g_cmdoptions[i].name)) {
 				if (argc - 1 < g_cmdoptions[i].param_count)
-					show_usage();
+					bb_show_usage();
 				switch (g_cmdoptions[i].code) {
 				case CMD_FB:
 					fbdev = argv[1];
@@ -399,18 +399,18 @@ extern int fbset_main(int argc, char **argv)
 				mode = *argv;
 				g_options |= OPT_READMODE;
 			} else {
-				show_usage();
+				bb_show_usage();
 			}
 		}
 	}
 
 	if ((fh = open(fbdev, O_RDONLY)) < 0)
-		perror_msg_and_die("fbset(open)");
+		bb_perror_msg_and_die("fbset(open)");
 	if (ioctl(fh, FBIOGET_VSCREENINFO, &var))
-		perror_msg_and_die("fbset(ioctl)");
+		bb_perror_msg_and_die("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
-			error_msg("Unknown video mode `%s'", mode);
+			bb_error_msg("Unknown video mode `%s'", mode);
 			return EXIT_FAILURE;
 		}
 	}
@@ -418,7 +418,7 @@ extern int fbset_main(int argc, char **argv)
 	setmode(&var, &varset);
 	if (g_options & OPT_CHANGE)
 		if (ioctl(fh, FBIOPUT_VSCREENINFO, &var))
-			perror_msg_and_die("fbset(ioctl)");
+			bb_perror_msg_and_die("fbset(ioctl)");
 	showmode(&var);
 	/* Don't close the file, as exiting will take care of that */
 	/* close(fh); */

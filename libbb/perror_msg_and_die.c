@@ -25,14 +25,14 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void perror_msg_and_die(const char *s, ...)
+extern void bb_perror_msg_and_die(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	vperror_msg(s, p);
+	bb_vperror_msg(s, p);
 	va_end(p);
-	exit(EXIT_FAILURE);
+	exit(bb_default_error_retval);
 }
 
 

@@ -28,3 +28,4 @@ extern unsigned short compare_string_array(const char *string_array[], const cha
 	}
 	return(i);
 }
+

@@ -35,6 +35,10 @@
 #include <sys/time.h>
 #include "busybox.h"
 
+#define CT_AUTO         0
+#define CT_UNIX2DOS     1
+#define CT_DOS2UNIX     2
+
 /* We are making a lame pseudo-random string generator here.  in
  * convert(), each pass through the while loop will add more and more
  * stuff into value, which is _supposed_ to wrap.  We don't care about
@@ -55,15 +59,13 @@ static int convert(char *fn, int ConvType)
 	FILE *in = stdin, *out = stdout;
 
 	if (fn != NULL) {
-		if ((in = wfopen(fn, "rw")) == NULL) {
-			return -1;
-		}
+		in = bb_xfopen(fn, "rw");
 		safe_strncpy(tempFn, fn, sizeof(tempFn));
 		c = strlen(tempFn);
 		tempFn[c] = '.';
 		while(1) {
 		    if (c >=BUFSIZ)
-			error_msg_and_die("unique name not found");
+			bb_error_msg_and_die("unique name not found");
 		    /* Get some semi random stuff to try and make a
 		     * random filename based (and in the same dir as)
 		     * the input file... */
@@ -92,7 +94,7 @@ static int convert(char *fn, int ConvType)
 				// file is alredy in DOS format so it is not necessery to touch it
 				remove(tempFn);
 				if (fclose(in) < 0 || fclose(out) < 0) {
-					perror_msg(NULL);
+					bb_perror_nomsg();
 					return -2;
 				}
 				return 0;
@@ -106,7 +108,7 @@ static int convert(char *fn, int ConvType)
 				// file is alredy in UNIX format so it is not necessery to touch it
 				remove(tempFn);
 				if ((fclose(in) < 0) || (fclose(out) < 0)) {
-					perror_msg(NULL);
+					bb_perror_nomsg();
 					return -2;
 				}
 				return 0;
@@ -137,7 +139,7 @@ static int convert(char *fn, int ConvType)
 
 	if (fn != NULL) {
 	    if (fclose(in) < 0 || fclose(out) < 0) {
-		perror_msg(NULL);
+		bb_perror_nomsg();
 		remove(tempFn);
 		return -2;
 	    }
@@ -146,7 +148,7 @@ static int convert(char *fn, int ConvType)
 	     * should be true since we put them into the same directory
 	     * so we _should_ be ok, but you never know... */
 	    if (rename(tempFn, fn) < 0) {
-		perror_msg("unable to rename '%s' as '%s'", tempFn, fn);
+		bb_perror_msg("unable to rename '%s' as '%s'", tempFn, fn);
 		return -1;
 	    }
 	}
@@ -177,7 +179,7 @@ int dos2unix_main(int argc, char *argv[])
 			ConvType = CT_DOS2UNIX;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 

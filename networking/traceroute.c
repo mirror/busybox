@@ -448,7 +448,7 @@ traceroute_main(int argc, char *argv[])
 		case 'm':
 			max_ttl = atoi(optarg);
 			if (max_ttl <= 1)
-				error_msg_and_die("max ttl must be >1.");
+				bb_error_msg_and_die("max ttl must be >1.");
 			break;
 		case 'n':
 			nflag++;
@@ -456,12 +456,12 @@ traceroute_main(int argc, char *argv[])
 		case 'p':
 			port = atoi(optarg);
 			if (port < 1)
-				error_msg_and_die("port must be >0.");
+				bb_error_msg_and_die("port must be >0.");
 			break;
 		case 'q':
 			nprobes = atoi(optarg);
 			if (nprobes < 1)
-				error_msg_and_die("nprobes must be >0.");
+				bb_error_msg_and_die("nprobes must be >0.");
 			break;
 		case 'r':
 			options |= SO_DONTROUTE;
@@ -476,7 +476,7 @@ traceroute_main(int argc, char *argv[])
 		case 't':
 			tos = atoi(optarg);
 			if (tos < 0 || tos > 255)
-				error_msg_and_die("tos must be 0 to 255.");
+				bb_error_msg_and_die("tos must be 0 to 255.");
 			break;
 		case 'v':
 #ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
@@ -486,16 +486,16 @@ traceroute_main(int argc, char *argv[])
 		case 'w':
 			waittime = atoi(optarg);
 			if (waittime <= 1)
-				error_msg_and_die("wait must be >1 sec.");
+				bb_error_msg_and_die("wait must be >1 sec.");
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	argc -= optind;
 	argv += optind;
 
 	if (argc < 1)
-		show_usage();
+		bb_show_usage();
 
 	setlinebuf (stdout);
 
@@ -507,7 +507,7 @@ traceroute_main(int argc, char *argv[])
 	if (*++argv)
 		datalen = atoi(*argv);
 	if (datalen < 0 || datalen >= MAXPACKET - sizeof(struct opacket))
-		error_msg_and_die("packet size must be 0 <= s < %d.",
+		bb_error_msg_and_die("packet size must be 0 <= s < %d.",
 		    MAXPACKET - sizeof(struct opacket));
 	datalen += sizeof(struct opacket);
 	outpacket = (struct opacket *)xmalloc((unsigned)datalen);
@@ -520,7 +520,7 @@ traceroute_main(int argc, char *argv[])
 	ident = (getpid() & 0xffff) | 0x8000;
 
 	if ((sndsock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0)
-		perror_msg_and_die(can_not_create_raw_socket);
+		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 
 	s = create_icmp_socket();
 
@@ -535,12 +535,12 @@ traceroute_main(int argc, char *argv[])
 #ifdef SO_SNDBUF
 	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&datalen,
 		       sizeof(datalen)) < 0)
-		perror_msg_and_die("SO_SNDBUF");
+		bb_perror_msg_and_die("SO_SNDBUF");
 #endif
 #ifdef IP_HDRINCL
 	if (setsockopt(sndsock, IPPROTO_IP, IP_HDRINCL, (char *)&on,
 		       sizeof(on)) < 0)
-		perror_msg_and_die("IP_HDRINCL");
+		bb_perror_msg_and_die("IP_HDRINCL");
 #endif
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
@@ -556,11 +556,11 @@ traceroute_main(int argc, char *argv[])
 		from.sin_family = AF_INET;
 		from.sin_addr.s_addr = inet_addr(source);
 		if (from.sin_addr.s_addr == -1)
-			error_msg_and_die("unknown host %s", source);
+			bb_error_msg_and_die("unknown host %s", source);
 		outpacket->ip.ip_src = from.sin_addr;
 #ifndef IP_HDRINCL
 		if (bind(sndsock, (struct sockaddr *)&from, sizeof(from)) < 0)
-			perror_msg_and_die("bind");
+			bb_perror_msg_and_die("bind");
 #endif
 	}
 

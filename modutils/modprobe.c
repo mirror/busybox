@@ -73,7 +73,7 @@ int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 	*ptag = tag;
 	*pvalue = value;
 	
-	return xstrlen( tag ) && xstrlen( value );
+	return bb_strlen( tag ) && bb_strlen( value );
 }
 
 /* Jump through hoops to simulate how fgets() grabs just one line at a
@@ -119,7 +119,7 @@ static struct dep_t *build_dep ( void )
 		return 0;
 		
 	// check for buffer overflow in following code
-	if ( xstrlen ( un.release ) > ( sizeof( buffer ) - 64 )) {
+	if ( bb_strlen ( un.release ) > ( sizeof( buffer ) - 64 )) {
 		return 0;
 	}
 				
@@ -131,7 +131,7 @@ static struct dep_t *build_dep ( void )
 		return 0;
 
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
-		int l = xstrlen ( buffer );
+		int l = bb_strlen ( buffer );
 		char *p = 0;
 		
 		while ( isspace ( buffer [l-1] )) {
@@ -163,7 +163,7 @@ static struct dep_t *build_dep ( void )
 				if (( *(col-2) == '.' ) && ( *(col-1) == 'o' ))
 					ext = 2;
 				
-				mod = xstrndup ( mods, col - mods - ext );
+				mod = bb_xstrndup ( mods, col - mods - ext );
 					
 				if ( !current ) {
 					first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
@@ -216,7 +216,7 @@ static struct dep_t *build_dep ( void )
 			if ((end-deps-ext+1) <= 0)
 				continue;
 			
-			dep = xstrndup ( deps, end - deps - ext + 1 );
+			dep = bb_xstrndup ( deps, end - deps - ext + 1 );
 			
 			current-> m_depcnt++;
 			current-> m_deparr = (char **) xrealloc ( current-> m_deparr, sizeof ( char *) * current-> m_depcnt );
@@ -247,7 +247,7 @@ static struct dep_t *build_dep ( void )
 		if ( p )
 			*p = 0;
 			
-		l = xstrlen ( buffer );
+		l = bb_strlen ( buffer );
 	
 		while ( l && isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
@@ -273,7 +273,7 @@ static struct dep_t *build_dep ( void )
 						current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
 						current = current-> m_next;
 					}
-					current-> m_module  = xstrdup ( alias );
+					current-> m_module  = bb_xstrdup ( alias );
 					current-> m_isalias = 1;
 					
 					if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
@@ -283,7 +283,7 @@ static struct dep_t *build_dep ( void )
 					else {
 						current-> m_depcnt  = 1;
 						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
-						current-> m_deparr[0] = xstrdup ( mod );
+						current-> m_deparr[0] = bb_xstrdup ( mod );
 					}
 					current-> m_next    = 0;					
 				}
@@ -299,7 +299,7 @@ static struct dep_t *build_dep ( void )
 							break;
 					}
 					if ( dt ) {
-						dt-> m_options = xrealloc ( dt-> m_options, xstrlen( opt ) + 1 );
+						dt-> m_options = xrealloc ( dt-> m_options, bb_strlen( opt ) + 1 );
 						strcpy ( dt-> m_options, opt );
 						
 						// fprintf ( stderr, "OPTION: '%s' -> '%s'\n", dt-> m_module, dt-> m_options );
@@ -346,7 +346,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	int lm;
 
 	// remove .o extension
-	lm = xstrlen ( mod );
+	lm = bb_strlen ( mod );
 	if (( mod [lm-2] == '.' ) && ( mod [lm-1] == 'o' ))
 		mod [lm-2] = 0;
 
@@ -441,7 +441,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 	
 			// append module args
 			for ( i = 0; i < argc; i++ ) 
-				l += ( xstrlen ( argv [i] ) + 1 );
+				l += ( bb_strlen ( argv [i] ) + 1 );
 		
 			head-> m_options = xrealloc ( head-> m_options, l + 1 );
 			head-> m_options [0] = 0;
@@ -494,7 +494,7 @@ extern int modprobe_main(int argc, char** argv)
 			break;
 		case 'C': // no config used
 		case 't': // no pattern matching
-			error_msg_and_die("-t and -C not supported");
+			bb_error_msg_and_die("-t and -C not supported");
 
 		case 'a': // ignore
 		case 'd': // ignore
@@ -519,7 +519,7 @@ extern int modprobe_main(int argc, char** argv)
 			break;
 		case 'V':
 		default:
-			show_usage();
+			bb_show_usage();
 			break;
 		}
 	}
@@ -527,21 +527,21 @@ extern int modprobe_main(int argc, char** argv)
 	depend = build_dep ( );	
 
 	if ( !depend ) 
-		error_msg_and_die ( "could not parse modules.dep\n" );
+		bb_error_msg_and_die ( "could not parse modules.dep\n" );
 	
 	if (remove_opt) {
 		do {
-			mod_remove ( optind < argc ? xstrdup ( argv [optind] ) : NULL );
+			mod_remove ( optind < argc ? bb_xstrdup ( argv [optind] ) : NULL );
 		} while ( ++optind < argc );
 		
 		return EXIT_SUCCESS;
 	}
 
 	if (optind >= argc) 
-		error_msg_and_die ( "No module or pattern provided\n" );
+		bb_error_msg_and_die ( "No module or pattern provided\n" );
 	
-	if ( mod_insert ( xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 )) 
-		error_msg_and_die ( "failed to load module %s", argv [optind] );
+	if ( mod_insert ( bb_xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 )) 
+		bb_error_msg_and_die ( "failed to load module %s", argv [optind] );
 	
 	return EXIT_SUCCESS;
 }

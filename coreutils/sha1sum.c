@@ -187,7 +187,7 @@ extern int authenticate(const int argc, char **argv, void (*hash_ptr)(FILE *stre
 			break;
 #endif
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -204,7 +204,7 @@ extern int authenticate(const int argc, char **argv, void (*hash_ptr)(FILE *stre
 				hash_ptr(stdin, hashval);
 				print_hash(hash_length, hashval, NULL);
 			} else {
-				FILE *stream = xfopen(argv[i], "r");
+				FILE *stream = bb_xfopen(argv[i], "r");
 				hash_ptr(stream, hashval);
 				fclose(stream);
 				print_hash(hash_length, hashval, argv[i]);

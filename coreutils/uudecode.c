@@ -46,7 +46,7 @@ static int read_stduu (const char *inname)
     char *p;
 
     if (fgets (buf, sizeof(buf), stdin) == NULL) {
-      error_msg("%s: Short file", inname);
+      bb_error_msg("%s: Short file", inname);
       return FALSE;
     }
     p = buf;
@@ -81,7 +81,7 @@ static int read_stduu (const char *inname)
 
   if (fgets (buf, sizeof(buf), stdin) == NULL
       || strcmp (buf, "end\n")) {
-    error_msg("%s: No `end' line", inname);
+    bb_error_msg("%s: No `end' line", inname);
     return FALSE;
   }
 
@@ -131,7 +131,7 @@ static int read_base64 (const char *inname)
     unsigned char *p;
 
     if (fgets (buf, sizeof(buf), stdin) == NULL) {
-      error_msg("%s: Short file", inname);
+      bb_error_msg("%s: Short file", inname);
       return FALSE;
     }
     p = buf;
@@ -139,7 +139,7 @@ static int read_base64 (const char *inname)
     if (memcmp (buf, "====", 4) == 0)
       break;
     if (last_data != 0) {
-      error_msg("%s: data following `=' padding character", inname);
+      bb_error_msg("%s: data following `=' padding character", inname);
       return FALSE;
     }
 
@@ -161,14 +161,14 @@ static int read_base64 (const char *inname)
 
       while ((b64_tab[*p] & '\100') != 0)
         if (*p == '\n' || *p++ == '=') {
-          error_msg("%s: illegal line", inname);
+          bb_error_msg("%s: illegal line", inname);
           return FALSE;
         }
       c2 = b64_tab[*p++];
 
       while (b64_tab[*p] == '\177')
         if (*p++ == '\n') {
-          error_msg("%s: illegal line", inname);
+          bb_error_msg("%s: illegal line", inname);
           return FALSE;
         }
       if (*p == '=') {
@@ -180,7 +180,7 @@ static int read_base64 (const char *inname)
 
       while (b64_tab[*p] == '\177')
         if (*p++ == '\n') {
-          error_msg("%s: illegal line", inname);
+          bb_error_msg("%s: illegal line", inname);
           return FALSE;
         }
       putchar (c1 << 2 | c2 >> 4);
@@ -213,7 +213,7 @@ static int decode (const char *inname,
 
   while (1) {
     if (fgets (buf, sizeof (buf), stdin) == NULL) {
-      error_msg("%s: No `begin' line", inname);
+      bb_error_msg("%s: No `begin' line", inname);
       return FALSE;
     }
 
@@ -239,13 +239,13 @@ static int decode (const char *inname,
       while (*p != '/')
         ++p;
       if (*p == '\0') {
-        error_msg("%s: Illegal ~user", inname);
+        bb_error_msg("%s: Illegal ~user", inname);
         return FALSE;
       }
       *p++ = '\0';
       pw = getpwnam (buf + 1);
       if (pw == NULL) {
-        error_msg("%s: No user `%s'", inname, buf + 1);
+        bb_error_msg("%s: No user `%s'", inname, buf + 1);
         return FALSE;
       }
       outname = concat_path_file(pw->pw_dir, p);
@@ -258,7 +258,7 @@ static int decode (const char *inname,
       && (freopen (outname, "w", stdout) == NULL
 	  || chmod (outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO))
          )) {
-    perror_msg("%s", outname); /* */
+    bb_perror_msg("%s", outname); /* */
     if (dofre)
 	free(outname);
     return FALSE;
@@ -295,7 +295,7 @@ int uudecode_main (int argc,
       break;
 
      default:
-      show_usage();
+      bb_show_usage();
     }
   }
 
@@ -308,7 +308,7 @@ int uudecode_main (int argc,
         if (decode (argv[optind], outname) != 0)
           exit_status = FALSE;
       } else {
-        perror_msg("%s", argv[optind]);
+        bb_perror_msg("%s", argv[optind]);
         exit_status = EXIT_FAILURE;
       }
       optind++;

@@ -55,7 +55,7 @@ int correct_password ( const struct passwd *pw )
 		struct spwd *sp = getspnam ( pw-> pw_name );
 		
 		if ( !sp )
-			error_msg_and_die ( "no valid shadow password" );
+			bb_error_msg_and_die ( "no valid shadow password" );
 		
 		correct = sp-> sp_pwdp;
 	}
@@ -73,6 +73,6 @@ int correct_password ( const struct passwd *pw )
 		return 0;
 	}
 	encrypted = crypt ( unencrypted, correct );
-	memset ( unencrypted, 0, xstrlen ( unencrypted ));
+	memset ( unencrypted, 0, bb_strlen ( unencrypted ));
 	return ( strcmp ( encrypted, correct ) == 0 ) ? 1 : 0;
 }

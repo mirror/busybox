@@ -20,24 +20,18 @@
  *
  */
 
-/* getopt not needed */
-
 #include <stdio.h>
-#include <dirent.h>
-#include <errno.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include "busybox.h"
 
 extern int pwd_main(int argc, char **argv)
 {
-	static char *buf; 
-	
-	buf = xgetcwd(buf);
-	
-	if (buf != NULL) {
+	char *buf;
+
+	if ((buf = xgetcwd(NULL)) != NULL) {
 		puts(buf);
-		return EXIT_SUCCESS;
+		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
+
 	return EXIT_FAILURE;
 }

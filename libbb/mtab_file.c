@@ -26,9 +26,9 @@
 /* Busybox mount uses either /proc/mounts or /etc/mtab to 
  * get the list of currently mounted filesystems */ 
 #if defined CONFIG_FEATURE_MTAB_SUPPORT
-const char mtab_file[] = CONFIG_FEATURE_MTAB_FILENAME;
+const char bb_path_mtab_file[] = CONFIG_FEATURE_MTAB_FILENAME;
 #else
-const char mtab_file[] = "/proc/mounts";
+const char bb_path_mtab_file[] = "/proc/mounts";
 #endif
 
 

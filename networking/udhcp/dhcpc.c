@@ -81,7 +81,7 @@ struct client_config_t client_config = {
 };
 
 #ifndef IN_BUSYBOX
-static void __attribute__ ((noreturn)) show_usage(void)
+static void __attribute__ ((noreturn)) bb_show_usage(void)
 {
 	printf(
 "Usage: udhcpc [OPTIONS]\n\n"
@@ -104,7 +104,7 @@ static void __attribute__ ((noreturn)) show_usage(void)
 	exit(0);
 }
 #else
-extern void show_usage(void) __attribute__ ((noreturn));
+extern void bb_show_usage(void) __attribute__ ((noreturn));
 #endif
 
 
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
 			exit_client(0);
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 

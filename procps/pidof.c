@@ -46,7 +46,7 @@ extern int pidof_main(int argc, char **argv)
 				single_flag = 1;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 

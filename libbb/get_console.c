@@ -106,7 +106,7 @@ int get_console_fd(void)
 		if (is_a_console(fd))
 			return fd;
 
-	error_msg("Couldn't get a file descriptor referring to the console");
+	bb_error_msg("Couldn't get a file descriptor referring to the console");
 	return -1;					/* total failure */
 }
 

@@ -32,7 +32,7 @@ int readlink_main(int argc, char **argv)
 	/* no options, no getopt */
 
 	if (argc != 2)
-		show_usage();
+		bb_show_usage();
 
 	buf = xreadlink(argv[1]);
 	if (!buf)

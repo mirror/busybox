@@ -62,19 +62,19 @@ int dd_main(int argc, char **argv)
 	int ifd;
 	int ofd;
 	int i;
-	char *infile = NULL;
-	char *outfile = NULL;
+	const char *infile = NULL;
+	const char *outfile = NULL;
 	char *buf;
 
 	for (i = 1; i < argc; i++) {
 		if (strncmp("bs=", argv[i], 3) == 0)
-			bs = parse_number(argv[i]+3, dd_suffixes);
+			bs = bb_xparse_number(argv[i]+3, dd_suffixes);
 		else if (strncmp("count=", argv[i], 6) == 0)
-			count = parse_number(argv[i]+6, dd_suffixes);
+			count = bb_xparse_number(argv[i]+6, dd_suffixes);
 		else if (strncmp("seek=", argv[i], 5) == 0)
-			seek = parse_number(argv[i]+5, dd_suffixes);
+			seek = bb_xparse_number(argv[i]+5, dd_suffixes);
 		else if (strncmp("skip=", argv[i], 5) == 0)
-			skip = parse_number(argv[i]+5, dd_suffixes);
+			skip = bb_xparse_number(argv[i]+5, dd_suffixes);
 		else if (strncmp("if=", argv[i], 3) == 0)
 			infile = argv[i]+3;
 		else if (strncmp("of=", argv[i], 3) == 0)
@@ -92,7 +92,7 @@ int dd_main(int argc, char **argv)
 					noerror = TRUE;
 					buf += 7;
 				} else {
-					error_msg_and_die("invalid conversion `%s'", argv[i]+5);
+					bb_error_msg_and_die("invalid conversion `%s'", argv[i]+5);
 				}
 				if (buf[0] == '\0')
 					break;
@@ -100,18 +100,18 @@ int dd_main(int argc, char **argv)
 					buf++;
 			}
 		} else
-			show_usage();
+			bb_show_usage();
 	}
 
 	buf = xmalloc(bs);
 
 	if (infile != NULL) {
 		if ((ifd = open(infile, O_RDONLY)) < 0) {
-			perror_msg_and_die("%s", infile);
+			bb_perror_msg_and_die("%s", infile);
 		}
 	} else {
 		ifd = STDIN_FILENO;
-		infile = "standard input";
+		infile = bb_msg_standard_input;
 	}
 
 	if (outfile != NULL) {
@@ -122,7 +122,7 @@ int dd_main(int argc, char **argv)
 		}
 
 		if ((ofd = open(outfile, oflag, 0666)) < 0) {
-			perror_msg_and_die("%s", outfile);
+			bb_perror_msg_and_die("%s", outfile);
 		}
 
 		if (seek && trunc) {
@@ -131,24 +131,24 @@ int dd_main(int argc, char **argv)
 
 				if (fstat (ofd, &st) < 0 || S_ISREG (st.st_mode) ||
 						S_ISDIR (st.st_mode)) {
-					perror_msg_and_die("%s", outfile);
+					bb_perror_msg_and_die("%s", outfile);
 				}
 			}
 		}
 	} else {
 		ofd = STDOUT_FILENO;
-		outfile = "standard output";
+		outfile = bb_msg_standard_output;
 	}
 
 	if (skip) {
 		if (lseek(ifd, skip * bs, SEEK_CUR) < 0) {
-			perror_msg_and_die("%s", infile);
+			bb_perror_msg_and_die("%s", infile);
 		}
 	}
 
 	if (seek) {
 		if (lseek(ofd, seek * bs, SEEK_CUR) < 0) {
-			perror_msg_and_die("%s", outfile);
+			bb_perror_msg_and_die("%s", outfile);
 		}
 	}
 
@@ -161,9 +161,9 @@ int dd_main(int argc, char **argv)
 		if (n < 0) {
 			if (noerror) {
 				n = bs;
-				perror_msg("%s", infile);
+				bb_perror_msg("%s", infile);
 			} else {
-				perror_msg_and_die("%s", infile);
+				bb_perror_msg_and_die("%s", infile);
 			}
 		}
 		if (n == 0) {
@@ -178,9 +178,9 @@ int dd_main(int argc, char **argv)
 			memset(buf + n, '\0', bs - n);
 			n = bs;
 		}
-		n = full_write(ofd, buf, n);
+		n = bb_full_write(ofd, buf, n);
 		if (n < 0) {
-			perror_msg_and_die("%s", outfile);
+			bb_perror_msg_and_die("%s", outfile);
 		}
 		if (n == bs) {
 			out_full++;
@@ -190,15 +190,16 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (close (ifd) < 0) {
-		perror_msg_and_die("%s", infile);
+		bb_perror_msg_and_die("%s", infile);
 	}
 
 	if (close (ofd) < 0) {
-		perror_msg_and_die("%s", outfile);
+		bb_perror_msg_and_die("%s", outfile);
 	}
 
-	fprintf(stderr, "%ld+%ld records in\n", (long)in_full, (long)in_part);
-	fprintf(stderr, "%ld+%ld records out\n", (long)out_full, (long)out_part);
+	fprintf(stderr, "%ld+%ld records in\n%ld+%ld records out\n",
+			(long)in_full, (long)in_part,
+			(long)out_full, (long)out_part);
 
 	return EXIT_SUCCESS;
 }

@@ -155,11 +155,11 @@ static unsigned long Hertz;
 
 #define FILE_TO_BUF(filename, fd) do{                           \
     if (fd == -1 && (fd = open(filename, O_RDONLY)) == -1) {    \
-	perror_msg_and_die("/proc not be mounted?");            \
+	bb_perror_msg_and_die("/proc not be mounted?");            \
     }                                                           \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
-	perror_msg_and_die("%s", filename);                     \
+	bb_perror_msg_and_die("%s", filename);                     \
     }                                                           \
     buf[local_n] = '\0';                                        \
 }while(0)
@@ -167,7 +167,7 @@ static unsigned long Hertz;
 #define FILE_TO_BUF2(filename, fd) do{                          \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
-	perror_msg_and_die("%s", filename);                     \
+	bb_perror_msg_and_die("%s", filename);                     \
     }                                                           \
     buf[local_n] = '\0';                                        \
 }while(0)
@@ -313,19 +313,19 @@ static unsigned long display_generic(void)
 	unsigned long total, used, mfree, shared, buffers, cached;
 
 	/* read memory info */
-	fp = xfopen("meminfo", "r");
+	fp = bb_xfopen("meminfo", "r");
 	fgets(buf, sizeof(buf), fp);	/* skip first line */
 
 	if (fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
 		   &total, &used, &mfree, &shared, &buffers, &cached) != 6) {
-		error_msg_and_die("failed to read '%s'", "meminfo");
+		bb_error_msg_and_die("failed to read '%s'", "meminfo");
 	}
 	fclose(fp);
 	
 	/* read load average */
-	fp = xfopen("loadavg", "r");
+	fp = bb_xfopen("loadavg", "r");
 	if (fscanf(fp, "%f %f %f", &avg1, &avg2, &avg3) != 3) {
-		error_msg_and_die("failed to read '%s'", "loadavg");
+		bb_error_msg_and_die("failed to read '%s'", "loadavg");
 	}
 	fclose(fp);
 
@@ -447,7 +447,7 @@ int top_main(int argc, char **argv)
 		    interval = atoi(optarg);
 		    break;
 		default:
-		    show_usage();
+		    bb_show_usage();
 	    }
 	}
 
@@ -461,7 +461,7 @@ int top_main(int argc, char **argv)
 #endif
 	/* change to /proc */
 	if (chdir("/proc") < 0) {
-		perror_msg_and_die("chdir('/proc')");
+		bb_perror_msg_and_die("chdir('/proc')");
 	}
 #if defined CONFIG_FEATURE_USE_TERMIOS
 	tcgetattr(0, (void *) &initial_settings);
@@ -508,7 +508,7 @@ int top_main(int argc, char **argv)
 			memcpy(top + n, p, sizeof(procps_status_t));
 		}
 		if (ntop == 0) {
-		perror_msg_and_die("scandir('/proc')");
+		bb_perror_msg_and_die("scandir('/proc')");
 	}
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
 		if(!Hertz) {

@@ -45,7 +45,7 @@
 static void xsetenv ( const char *key, const char *value )
 {
 	    if ( setenv ( key, value, 1 ))
-			        error_msg_and_die ( "out of memory" );
+			        bb_error_msg_and_die ( "out of memory" );
 }
 
 void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw )
@@ -62,7 +62,7 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 		if ( chdir ( pw-> pw_dir )) {
 			if ( chdir ( "/" )) {
 				syslog ( LOG_WARNING, "unable to cd to %s' for user %s'\n", pw-> pw_dir, pw-> pw_name );
-				error_msg_and_die ( "cannot cd to home directory or /" );
+				bb_error_msg_and_die ( "cannot cd to home directory or /" );
 			}
 			fputs ( "warning: cannot change to home directory\n", stderr );
 		}

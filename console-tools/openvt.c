@@ -43,16 +43,16 @@ int openvt_main(int argc, char **argv)
 	char * cmd_args = NULL;
 
 	if (argc < 3)
-        show_usage();
+        bb_show_usage();
 
 	if (!isdigit(argv[1][0]))
-	        show_usage();
+	        bb_show_usage();
 
 	vtno = (int) atol(argv[1]);
 
 	/* if (vtno <= 0 || vtno > 63) */
 	if (vtno <= 0 || vtno > 12)
-		error_msg_and_die("Illegal vt number (%d)", vtno);	  
+		bb_error_msg_and_die("Illegal vt number (%d)", vtno);	  
 
 	sprintf(vtname, VTNAME, vtno);
 
@@ -69,13 +69,13 @@ int openvt_main(int argc, char **argv)
 		if (setsid() < 0) {
 #endif
 
-			perror_msg_and_die("Unable to set new session");	  
+			bb_perror_msg_and_die("Unable to set new session");	  
 		}
 		close(0);			/* so that new vt becomes stdin */
 
 		/* and grab new one */
 		if ((fd = open(vtname, O_RDWR)) == -1)
-			perror_msg_and_die("could not open %s", vtname);	  
+			bb_perror_msg_and_die("could not open %s", vtname);	  
 
 		/* Reassign stdout and sterr */
 		close(1);

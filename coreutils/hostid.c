@@ -20,13 +20,19 @@
  *
  */
 
-#include <stdio.h>
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
 
 extern int hostid_main(int argc, char **argv)
 {
-	printf("%lx\n", gethostid());
-	return EXIT_SUCCESS;
+	if (argc > 1) {
+		bb_show_usage();
+	}
+
+	bb_printf("%lx\n", gethostid());
+
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

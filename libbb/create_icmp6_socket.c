@@ -26,9 +26,9 @@ int create_icmp6_socket(void)
 	if ((sock = socket(AF_INET6, SOCK_RAW,
 			(proto ? proto->p_proto : IPPROTO_ICMPV6))) < 0) {
 		if (errno == EPERM)
-			error_msg_and_die("permission denied. (are you root?)");
+			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 		else
-			perror_msg_and_die(can_not_create_raw_socket);
+			bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 	}
 
 	/* drop root privs if running setuid */

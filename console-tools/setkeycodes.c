@@ -43,7 +43,7 @@ setkeycodes_main(int argc, char** argv)
     struct kbkeycode a;
 
     if (argc % 2 != 1 || argc < 2) {
-      show_usage();
+      bb_show_usage();
 	}
 	 
 	fd = get_console_fd();
@@ -52,18 +52,18 @@ setkeycodes_main(int argc, char** argv)
 	a.keycode = atoi(argv[2]);
 	a.scancode = sc = strtol(argv[1], &ep, 16);
 	if (*ep) {
-      error_msg_and_die("error reading SCANCODE: '%s'", argv[1]);
+      bb_error_msg_and_die("error reading SCANCODE: '%s'", argv[1]);
 	}
 	if (a.scancode > 127) {
 	    a.scancode -= 0xe000;
 	    a.scancode += 128;
 	}
 	if (a.scancode > 255 || a.keycode > 127) {
-      error_msg_and_die("SCANCODE or KEYCODE outside bounds");
+      bb_error_msg_and_die("SCANCODE or KEYCODE outside bounds");
 	}
 	if (ioctl(fd,KDSETKEYCODE,&a)) {
 	    perror("KDSETKEYCODE");
-		error_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
+		bb_error_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
 	}
 	argc -= 2;
 	argv += 2;

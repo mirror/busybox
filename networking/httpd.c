@@ -178,12 +178,12 @@ static const char home[] = "/www";
 #define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 
 /* require from libbb.a for linking */
-const char *applet_name = "httpd";
+const char *bb_applet_name = "httpd";
 
-void show_usage(void)
+void bb_show_usage(void)
 {
   fprintf(stderr, "Usage: %s [-p <port>] [-c configFile] [-d/-e <string>] "
-		  "[-r realm] [-u user]\n", applet_name);
+		  "[-r realm] [-u user]\n", bb_applet_name);
   exit(1);
 }
 #endif
@@ -395,7 +395,7 @@ static int conf_sort(const void *p1, const void *p2)
     }
 #ifdef DEBUG
     if(!test)
-	error_msg_and_die("sort: can`t found compares!");
+	bb_error_msg_and_die("sort: can`t found compares!");
 #endif
     return test;
 }
@@ -423,7 +423,7 @@ static void parse_conf(const char *path, int flag)
 	cf = p0 = alloca(strlen(path) + sizeof(httpd_conf) + 2);
 	if(p0 == NULL) {
 	    if(flag == FIRST_PARSE)
-		error_msg_and_die(memory_exhausted);
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	    return;
 	}
 	sprintf(p0, "%s/%s", path, httpd_conf);
@@ -433,7 +433,7 @@ static void parse_conf(const char *path, int flag)
 	if(flag != FIRST_PARSE)
 	    return;                 /* subdir config not found */
 	if(p0 == NULL)              /* if -c option gived */
-		perror_msg_and_die("%s", cf);
+		bb_perror_msg_and_die("%s", cf);
 	p0 = NULL;
 	cf = httpd_conf;            /* set -c ./httpd_conf */
     }
@@ -543,7 +543,7 @@ static void parse_conf(const char *path, int flag)
 	pcur = alloca((n + 1) * sizeof(Htaccess *));
 	if(pcur == NULL) {
 	    if(flag == FIRST_PARSE)
-		error_msg_and_die(memory_exhausted);
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	    return;
 	}
 	n = 0;
@@ -557,7 +557,7 @@ static void parse_conf(const char *path, int flag)
 	config->Httpd_conf_parsed = *pcur;
 	for(cur = *pcur; cur; cur = cur->next) {
 #ifdef DEBUG
-	    error_msg("%s: %s:%s", cf, cur->before_colon, cur->after_colon);
+	    bb_error_msg("%s: %s:%s", cf, cur->before_colon, cur->after_colon);
 #endif
 	    cur->next = *++pcur;
 	}
@@ -829,10 +829,10 @@ static int openServer(void)
       listen(fd, 9);
       signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
     } else {
-	perror_msg_and_die("bind");
+	bb_perror_msg_and_die("bind");
     }
   } else {
-	perror_msg_and_die("create socket");
+	bb_perror_msg_and_die("create socket");
   }
   return fd;
 }
@@ -905,7 +905,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 #ifdef DEBUG
   if (config->debugHttpd) fprintf(stderr, "Headers: '%s'", buf);
 #endif
-  return full_write(a_c_w, buf, len);
+  return bb_full_write(a_c_w, buf, len);
 }
 
 /****************************************************************************
@@ -1105,7 +1105,7 @@ static int sendCgi(const char *url,
     outFd = toCgi[1];
     close(fromCgi[1]);
     close(toCgi[0]);
-    if (body) full_write(outFd, body, bodyLen);
+    if (body) bb_full_write(outFd, body, bodyLen);
     close(outFd);
 
     while (1) {
@@ -1129,9 +1129,9 @@ static int sendCgi(const char *url,
 #ifdef DEBUG
 	  if (config->debugHttpd) {
 	    if (WIFEXITED(status))
-	      error_msg("piped has exited with status=%d", WEXITSTATUS(status));
+	      bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
 	    if (WIFSIGNALED(status))
-	      error_msg("piped has exited with signal=%d", WTERMSIG(status));
+	      bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
 	  }
 #endif
 	  pid = -1;
@@ -1141,7 +1141,7 @@ static int sendCgi(const char *url,
 	int s = a_c_w;
 
 	// There is something to read
-	count = full_read(inFd, buf, sizeof(buf)-1);
+	count = bb_full_read(inFd, buf, sizeof(buf)-1);
 	// If a read returns 0 at this point then some type of error has
 	// occurred.  Bail now.
 	if (count == 0) break;
@@ -1149,14 +1149,14 @@ static int sendCgi(const char *url,
 	  if (firstLine) {
 	    /* check to see if the user script added headers */
 	    if (strncmp(buf, "HTTP/1.0 200 OK\n", 4) != 0) {
-	      full_write(s, "HTTP/1.0 200 OK\n", 16);
+	      bb_full_write(s, "HTTP/1.0 200 OK\n", 16);
 	    }
 	    if (strstr(buf, "ontent-") == 0) {
-	      full_write(s, "Content-type: text/plain\n\n", 26);
+	      bb_full_write(s, "Content-type: text/plain\n\n", 26);
 	    }
 	    firstLine=0;
 	  }
-	  full_write(s, buf, count);
+	  bb_full_write(s, buf, count);
 #ifdef DEBUG
 	  if (config->debugHttpd)
 		fprintf(stderr, "cgi read %d bytes\n", count);
@@ -1223,14 +1223,14 @@ static int sendFile(const char *url, char *buf)
 	int count;
 
 	sendHeaders(HTTP_OK);
-	while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-		full_write(a_c_w, buf, count);
+	while ((count = bb_full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
+		bb_full_write(a_c_w, buf, count);
 	}
 	close(f);
   } else {
 #ifdef DEBUG
 	if (config->debugHttpd)
-		perror_msg("Unable to open '%s'", url);
+		bb_perror_msg("Unable to open '%s'", url);
 #endif
 	sendHeaders(HTTP_NOT_FOUND);
   }
@@ -1399,7 +1399,7 @@ BAD_REQUEST:
 			   but CGI script can`t be a directory */
     }
 
-    /* algorithm stolen from libbb simplify_path(),
+    /* algorithm stolen from libbb bb_simplify_path(),
        but don`t strdup and reducing trailing slash */
     purl = test = url;
 
@@ -1517,7 +1517,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
     if (length > 0) {
       body = malloc(length + 1);
       if (body) {
-	length = full_read(a_c_r, body, length);
+	length = bb_full_read(a_c_r, body, length);
 	if(length < 0)          // closed
 		length = 0;
 	body[length] = 0;       // always null terminate for safety
@@ -1629,7 +1629,7 @@ static int miniHttpd(int server)
 	config->port = ntohs(fromAddr.sin_port);
 #ifdef DEBUG
 	if (config->debugHttpd) {
-		error_msg("connection from IP=%s, port %u\n",
+		bb_error_msg("connection from IP=%s, port %u\n",
 					config->rmt_ip, config->port);
 	}
 #endif
@@ -1748,7 +1748,7 @@ int httpd_main(int argc, char *argv[])
     case 'p':
       config->port = atoi(optarg);
       if(config->port <= 0 || config->port > 0xffff)
-	error_msg_and_die("invalid %s for -p", optarg);
+	bb_error_msg_and_die("invalid %s for -p", optarg);
       break;
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_DECODE_URL_STR
@@ -1780,13 +1780,13 @@ int httpd_main(int argc, char *argv[])
       break;
 #endif
     default:
-      error_msg("%s", httpdVersion);
-      show_usage();
+      bb_error_msg("%s", httpdVersion);
+      bb_show_usage();
     }
   }
 
   if(chdir(home_httpd)) {
-    perror_msg_and_die("can`t chdir to %s", home_httpd);
+    bb_perror_msg_and_die("can`t chdir to %s", home_httpd);
   }
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   server = openServer();
@@ -1809,7 +1809,7 @@ int httpd_main(int argc, char *argv[])
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   if (!config->debugHttpd) {
     if (daemon(1, 0) < 0)     /* don`t change curent directory */
-	perror_msg_and_die("daemon");
+	bb_perror_msg_and_die("daemon");
   }
   return miniHttpd(server);
 #else

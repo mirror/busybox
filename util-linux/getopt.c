@@ -37,7 +37,7 @@
  *     <misiek@misiek.eu.org>)
  * Ported to Busybox - Alfred M. Szmidt <ams@trillian.itslinux.org>
  *  Removed --version/-V and --help/-h in
- *  Removed prase_error(), using error_msg() from Busybox instead
+ *  Removed prase_error(), using bb_error_msg() from Busybox instead
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
  *
  */
@@ -95,7 +95,7 @@ const char *normalize(const char *arg)
         free(BUFFER);
 
         if (!quote) { /* Just copy arg */
-               BUFFER=xstrdup(arg);
+               BUFFER=bb_xstrdup(arg);
                 return BUFFER;
         }
 
@@ -224,7 +224,7 @@ void add_longopt(const char *name,int has_arg)
                 long_options[long_options_nr-1].has_arg=has_arg;
                 long_options[long_options_nr-1].flag=NULL;
                 long_options[long_options_nr-1].val=LONG_OPT;
-               long_options[long_options_nr-1].name=xstrdup(name);
+               long_options[long_options_nr-1].name=bb_xstrdup(name);
         }
         long_options_nr++;
 }
@@ -254,7 +254,7 @@ void add_long_options(char *options)
                                         arg_opt=required_argument;
                                 }
                                 if (tlen == 0)
-                                        error_msg("empty long option after -l or --long argument");
+                                        bb_error_msg("empty long option after -l or --long argument");
                         }
                         add_longopt(tokptr,arg_opt);
                 }
@@ -273,7 +273,7 @@ void set_shell(const char *new_shell)
         else if (!strcmp(new_shell,"csh"))
                 shell=TCSH;
         else
-                error_msg("unknown shell after -s or --shell argument");
+                bb_error_msg("unknown shell after -s or --shell argument");
 }
 
 
@@ -322,7 +322,7 @@ int getopt_main(int argc, char *argv[])
                         printf(" --\n");
                        return 0;
                 } else
-                        error_msg_and_die("missing optstring argument");
+                        bb_error_msg_and_die("missing optstring argument");
         }
 
         if (argv[1][0] != '-' || compatible) {
@@ -340,14 +340,14 @@ int getopt_main(int argc, char *argv[])
                         break;
                 case 'o':
                        free(optstr);
-                       optstr=xstrdup(optarg);
+                       optstr=bb_xstrdup(optarg);
                         break;
                 case 'l':
                         add_long_options(optarg);
                         break;
                 case 'n':
                        free(name);
-                       name=xstrdup(optarg);
+                       name=bb_xstrdup(optarg);
                         break;
                 case 'q':
                         quiet_errors=1;
@@ -364,14 +364,14 @@ int getopt_main(int argc, char *argv[])
                         quote=0;
                         break;
                 default:
-                        show_usage();
+                        bb_show_usage();
                 }
 
         if (!optstr) {
                 if (optind >= argc)
-                        error_msg_and_die("missing optstring argument");
+                        bb_error_msg_and_die("missing optstring argument");
                 else {
-                       optstr=xstrdup(argv[optind]);
+                       optstr=bb_xstrdup(argv[optind]);
                         optind++;
                 }
         }

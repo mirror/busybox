@@ -2838,7 +2838,7 @@ char *c, **v, **envp;
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = c;
 #ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	name = get_last_path_component(name);
+	name = bb_get_last_path_component(name);
 #endif
 	optind = 1;
 	if (find_applet_by_name(name)) {
@@ -2876,7 +2876,7 @@ char *c, **v, **envp;
 			return("no Shell");
 
 		case ENOMEM:
-			return((char*)memory_exhausted);
+			return((char*)bb_msg_memory_exhausted);
 
 		case E2BIG:
 			return("argument list too long");
@@ -3883,7 +3883,7 @@ int quoted;
 		;
 	if (i < 0) {
 		closepipe(pf);
-		err((char*)memory_exhausted);
+		err((char*)bb_msg_memory_exhausted);
 		return(0);
 	}
 	if (i != 0) {

@@ -78,7 +78,7 @@ int run_parts_main(int argc, char **argv)
 			{
 				const unsigned int mask = (unsigned int) strtol(optarg, NULL, 8);
 				if (mask > 07777) {
-					perror_msg_and_die("bad umask value");
+					bb_perror_msg_and_die("bad umask value");
 				}
 				umask(mask);
 			}
@@ -90,13 +90,13 @@ int run_parts_main(int argc, char **argv)
 			args[argcount++] = optarg;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	/* We require exactly one argument: the directory name */
 	if (optind != (argc - 1)) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	args[0] = argv[optind];

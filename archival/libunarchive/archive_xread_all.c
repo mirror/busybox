@@ -26,7 +26,7 @@ extern void archive_xread_all(const archive_handle_t *archive_handle, void *buf,
 
 	size = archive_xread(archive_handle, buf, count);
 	if (size != count) {
-		error_msg_and_die("Short read");
+		bb_error_msg_and_die("Short read");
 	}
 	return;
 }

@@ -22,65 +22,51 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include "libbb.h"
+#include "busybox.h"
 
-/* If chunksize is 0 copy untill EOF */
-extern int copyfd(int fd1, int fd2, const off_t chunksize)
+#if BUFSIZ < 4096
+#undef BUFSIZ
+#define BUFSIZ 4096
+#endif
+
+/* If chunksize is 0 copy until EOF */
+extern int bb_copyfd(int fd1, int fd2, const off_t chunksize)
 {
-	size_t nread;
-	size_t nwritten;
+	ssize_t nread;
 	size_t size;
-	size_t remaining;
-	char buffer[BUFSIZ];
+	off_t remaining;
+	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
 
+	remaining = size = BUFSIZ;
 	if (chunksize) {
 		remaining = chunksize;
-	} else {
-		remaining = -1;
 	}
 
 	do {
-		if ((chunksize > BUFSIZ) || (chunksize == 0)) {
-			size = BUFSIZ;
-		} else {
-			size = chunksize;
+		if (size > remaining) {
+			size = remaining;
 		}
 
-		nread = safe_read(fd1, buffer, size);
-
-		if (nread == -1) {
-			perror_msg("read failure");
-			return(-1);
-		}
-		else if (nread == 0) {
-			if (chunksize) {
-				error_msg("Unable to read all data");
-				return(-1);
-			} else {
-				return(0);
+		if ((nread = safe_read(fd1, buffer, size)) > 0) {
+			if (bb_full_write(fd2, buffer, nread) < 0) {
+				bb_perror_msg(bb_msg_write_error);	/* match Read error below */
+				break;
 			}
+			if (chunksize && ((remaining -= nread) == 0)) {
+				return 0;
+			}
+		} else if (!nread) {
+			if (chunksize) {
+				bb_error_msg("Unable to read all data");
+				break;
+			}
+			return 0;
+		} else {				/* nread < 0 */
+			bb_perror_msg("Read error");	/* match bb_msg_write_error above */
+			break;
 		}
 
-		nwritten = full_write(fd2, buffer, nread);
+	} while (1);
 
-		if (nwritten != nread) {
-			error_msg("Unable to write all data");
-			return(-1);
-		}
-
-		if (chunksize) {
-			remaining -= nwritten;
-		}
-	} while (remaining != 0);
-
-	return 0;
+	return -1;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

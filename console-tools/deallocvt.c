@@ -19,23 +19,23 @@ int deallocvt_main(int argc, char *argv[])
 
 	//if ((argc > 2) || ((argv == 2) && (**(argv + 1) == '-')))
 	if (argc > 2)
-		show_usage();
+		bb_show_usage();
 
 	fd = get_console_fd();
 
 	if (argc == 1) {
 		/* deallocate all unused consoles */
 		if (ioctl(fd, VT_DISALLOCATE, 0))
-			perror_msg_and_die("VT_DISALLOCATE");
+			bb_perror_msg_and_die("VT_DISALLOCATE");
 	} else {
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
-				error_msg("0: illegal VT number");
+				bb_error_msg("0: illegal VT number");
 			else if (num == 1)
-				error_msg("VT 1 cannot be deallocated");
+				bb_error_msg("VT 1 cannot be deallocated");
 			else if (ioctl(fd, VT_DISALLOCATE, num))
-				perror_msg_and_die("VT_DISALLOCATE");
+				bb_perror_msg_and_die("VT_DISALLOCATE");
 		}
 	}
 

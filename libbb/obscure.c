@@ -143,7 +143,7 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 		return "too simple";
 
 	msg = NULL;
-	newmono = str_lower(xstrdup(newval));
+	newmono = str_lower(bb_xstrdup(newval));
 	lenwrap = strlen(old) * 2 + 1;
 	wrapped = (char *) xmalloc(lenwrap);
 	str_lower(strcpy(wrapped, old));
@@ -208,8 +208,8 @@ obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
 	if (oldlen <= maxlen && newlen <= maxlen)
 		return NULL;
 
-	new1 = (char *) xstrdup(newval);
-	old1 = (char *) xstrdup(old);
+	new1 = (char *) bb_xstrdup(newval);
+	old1 = (char *) bb_xstrdup(old);
 	if (newlen > maxlen)
 		new1[maxlen] = '\0';
 	if (oldlen > maxlen)

@@ -94,7 +94,7 @@ int su_main ( int argc, char **argv )
 			opt_loginshell = 1;
 			break;
 		default:
-			show_usage ( );
+			bb_show_usage( );
 			break;
 		}
 	}
@@ -114,7 +114,7 @@ int su_main ( int argc, char **argv )
 		
 	pw = getpwnam ( opt_username );
 	if ( !pw )
-		error_msg_and_die ( "user %s does not exist", opt_username );
+		bb_error_msg_and_die ( "user %s does not exist", opt_username );
 		
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have
@@ -127,15 +127,15 @@ int su_main ( int argc, char **argv )
 	   the static data through the getlogin call from log_su.  */
 	pw_copy = *pw;
 	pw = &pw_copy;
-	pw-> pw_name  = xstrdup ( pw-> pw_name );
-	pw-> pw_dir   = xstrdup ( pw-> pw_dir );
-	pw-> pw_shell = xstrdup ( pw-> pw_shell );
+	pw-> pw_name  = bb_xstrdup ( pw-> pw_name );
+	pw-> pw_dir   = bb_xstrdup ( pw-> pw_dir );
+	pw-> pw_shell = bb_xstrdup ( pw-> pw_shell );
 
 	if (( getuid ( ) == 0 ) || correct_password ( pw )) 
 		log_su ( pw, 1 );
 	else {
 		log_su ( pw, 0 );
-		error_msg_and_die ( "incorrect password" );
+		bb_error_msg_and_die ( "incorrect password" );
 	}
 
 	if ( !opt_shell && opt_preserve )
@@ -152,7 +152,7 @@ int su_main ( int argc, char **argv )
 	}
 
 	if ( !opt_shell )
-		opt_shell = xstrdup ( pw-> pw_shell );
+		opt_shell = bb_xstrdup ( pw-> pw_shell );
 
 	change_identity ( pw );	
 	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );

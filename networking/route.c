@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.21 2002/12/16 22:04:18 sandman Exp $
+ * $Id: route.c,v 1.22 2003/03/19 09:12:39 mjn3 Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -88,7 +88,7 @@ static int INET_setroute(int action, int options, char **args)
 	xflag = 0;
 
 	if (*args == NULL)
-		show_usage();
+		bb_show_usage();
 	if (strcmp(*args, "-net") == 0) {
 		xflag = 1;
 		args++;
@@ -97,7 +97,7 @@ static int INET_setroute(int action, int options, char **args)
 		args++;
 	}
 	if (*args == NULL)
-		show_usage();
+		bb_show_usage();
 	safe_strncpy(target, *args++, (sizeof target));
 
 	/* Clean out the RTREQ structure. */
@@ -107,7 +107,7 @@ static int INET_setroute(int action, int options, char **args)
 	if ((isnet =
 		 INET_resolve(target, (struct sockaddr_in *) &rt.rt_dst,
 					  xflag != 1)) < 0) {
-		error_msg(_("can't resolve %s"), target);
+		bb_error_msg(_("can't resolve %s"), target);
 		return EXIT_FAILURE;	/* XXX change to E_something */
 	}
 
@@ -135,7 +135,7 @@ static int INET_setroute(int action, int options, char **args)
 
 			args++;
 			if (!*args || !isdigit(**args))
-				show_usage();
+				bb_show_usage();
 			metric = atoi(*args);
 #if HAVE_NEW_ADDRT
 			rt.rt_metric = metric + 1;
@@ -151,12 +151,12 @@ static int INET_setroute(int action, int options, char **args)
 
 			args++;
 			if (!*args || mask_in_addr(rt))
-				show_usage();
+				bb_show_usage();
 			netmask = *args;
 			if ((isnet =
 				 INET_resolve(netmask, (struct sockaddr_in *) &mask,
 							  0)) < 0) {
-				error_msg(_("can't resolve netmask %s"), netmask);
+				bb_error_msg(_("can't resolve netmask %s"), netmask);
 				return E_LOOKUP;
 			}
 			rt.rt_genmask = full_mask(mask);
@@ -167,18 +167,18 @@ static int INET_setroute(int action, int options, char **args)
 		if (strcmp(*args, "gw") == 0 || strcmp(*args, "gateway") == 0) {
 			args++;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 			if (rt.rt_flags & RTF_GATEWAY)
-				show_usage();
+				bb_show_usage();
 			safe_strncpy(gateway, *args, (sizeof gateway));
 			if ((isnet =
 				 INET_resolve(gateway, (struct sockaddr_in *) &rt.rt_gateway,
 							  1)) < 0) {
-				error_msg(_("can't resolve gw %s"), gateway);
+				bb_error_msg(_("can't resolve gw %s"), gateway);
 				return E_LOOKUP;
 			}
 			if (isnet) {
-				error_msg(_("%s: cannot use a NETWORK as gateway!"), gateway);
+				bb_error_msg(_("%s: cannot use a NETWORK as gateway!"), gateway);
 				return E_OPTERR;
 			}
 			rt.rt_flags |= RTF_GATEWAY;
@@ -190,11 +190,11 @@ static int INET_setroute(int action, int options, char **args)
 			args++;
 			rt.rt_flags |= RTF_MSS;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 			rt.rt_mss = atoi(*args);
 			args++;
 			if (rt.rt_mss < 64 || rt.rt_mss > 32768) {
-				error_msg(_("Invalid MSS."));
+				bb_error_msg(_("Invalid MSS."));
 				return E_OPTERR;
 			}
 			continue;
@@ -203,12 +203,12 @@ static int INET_setroute(int action, int options, char **args)
 		if (strcmp(*args, "window") == 0) {
 			args++;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 			rt.rt_flags |= RTF_WINDOW;
 			rt.rt_window = atoi(*args);
 			args++;
 			if (rt.rt_window < 128) {
-				error_msg(_("Invalid window."));
+				bb_error_msg(_("Invalid window."));
 				return E_OPTERR;
 			}
 			continue;
@@ -217,7 +217,7 @@ static int INET_setroute(int action, int options, char **args)
 		if (strcmp(*args, "irtt") == 0) {
 			args++;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 			args++;
 #if HAVE_RTF_IRTT
 			rt.rt_flags |= RTF_IRTT;
@@ -225,7 +225,7 @@ static int INET_setroute(int action, int options, char **args)
 			rt.rt_irtt *= (sysconf(_SC_CLK_TCK) / 100);	/* FIXME */
 #if 0					/* FIXME: do we need to check anything of this? */
 			if (rt.rt_irtt < 1 || rt.rt_irtt > (120 * HZ)) {
-				error_msg(_("Invalid initial rtt."));
+				bb_error_msg(_("Invalid initial rtt."));
 				return E_OPTERR;
 			}
 #endif
@@ -262,7 +262,7 @@ static int INET_setroute(int action, int options, char **args)
 		if (strcmp(*args, "device") == 0 || strcmp(*args, "dev") == 0) {
 			args++;
 			if (rt.rt_dev || *args == NULL)
-				show_usage();
+				bb_show_usage();
 			rt.rt_dev = *args++;
 			continue;
 		}
@@ -270,9 +270,9 @@ static int INET_setroute(int action, int options, char **args)
 		if (!rt.rt_dev) {
 			rt.rt_dev = *args++;
 			if (*args)
-				show_usage();	/* must be last to catch typos */
+				bb_show_usage();	/* must be last to catch typos */
 		} else {
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -287,17 +287,17 @@ static int INET_setroute(int action, int options, char **args)
 
 		mask = ~ntohl(mask);
 		if ((rt.rt_flags & RTF_HOST) && mask != 0xffffffff) {
-			error_msg(_("netmask %.8x doesn't make sense with host route"),
+			bb_error_msg(_("netmask %.8x doesn't make sense with host route"),
 					  (unsigned int) mask);
 			return E_OPTERR;
 		}
 		if (mask & (mask + 1)) {
-			error_msg(_("bogus netmask %s"), netmask);
+			bb_error_msg(_("bogus netmask %s"), netmask);
 			return E_OPTERR;
 		}
 		mask = ((struct sockaddr_in *) &rt.rt_dst)->sin_addr.s_addr;
 		if (mask & ~mask_in_addr(rt)) {
-			error_msg(_("netmask doesn't match route address"));
+			bb_error_msg(_("netmask doesn't match route address"));
 			return E_OPTERR;
 		}
 	}
@@ -343,7 +343,7 @@ static int INET6_setroute(int action, int options, char **args)
 	int skfd;
 
 	if (*args == NULL)
-		show_usage();
+		bb_show_usage();
 
 	strcpy(target, *args++);
 	if (!strcmp(target, "default")) {
@@ -353,13 +353,13 @@ static int INET6_setroute(int action, int options, char **args)
 		if ((cp = strchr(target, '/'))) {
 			prefix_len = atol(cp + 1);
 			if ((prefix_len < 0) || (prefix_len > 128))
-				show_usage();
+				bb_show_usage();
 			*cp = 0;
 		} else {
 			prefix_len = 128;
 		}
 		if (INET6_resolve(target, (struct sockaddr_in6 *) &sa6) < 0) {
-			error_msg(_("can't resolve %s"), target);
+			bb_error_msg(_("can't resolve %s"), target);
 			return EXIT_FAILURE;	/* XXX change to E_something */
 		}
 	}
@@ -381,7 +381,7 @@ static int INET6_setroute(int action, int options, char **args)
 
 			args++;
 			if (!*args || !isdigit(**args))
-				show_usage();
+				bb_show_usage();
 			metric = atoi(*args);
 			rt.rtmsg_metric = metric;
 			args++;
@@ -390,12 +390,12 @@ static int INET6_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "gw") || !strcmp(*args, "gateway")) {
 			args++;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 			if (rt.rtmsg_flags & RTF_GATEWAY)
-				show_usage();
+				bb_show_usage();
 			strcpy(gateway, *args);
 			if (INET6_resolve(gateway, (struct sockaddr_in6 *) &sa6) < 0) {
-				error_msg(_("can't resolve gw %s"), gateway);
+				bb_error_msg(_("can't resolve gw %s"), gateway);
 				return (E_LOOKUP);
 			}
 			memcpy(&rt.rtmsg_gateway, sa6.sin6_addr.s6_addr,
@@ -417,9 +417,9 @@ static int INET6_setroute(int action, int options, char **args)
 		if (!strcmp(*args, "device") || !strcmp(*args, "dev")) {
 			args++;
 			if (!*args)
-				show_usage();
+				bb_show_usage();
 		} else if (args[1])
-			show_usage();
+			bb_show_usage();
 
 		devname = *args;
 		args++;
@@ -493,7 +493,7 @@ void displayroutes(int noresolve, int netstatfmt)
 
 	char sdest[16], sgw[16];
 
-	FILE *fp = xfopen("/proc/net/route", "r");
+	FILE *fp = bb_xfopen("/proc/net/route", "r");
 
 	if (noresolve)
 		noresolve = 0x0fff;
@@ -515,7 +515,7 @@ void displayroutes(int noresolve, int netstatfmt)
 			if (sscanf(buff + ifl + 1, "%lx%lx%X%d%d%d%lx%d%d%d",
 					   &d, &g, &flgs, &ref, &use, &metric, &m, &mtu, &win,
 					   &ir) != 10) {
-				error_msg_and_die("Unsuported kernel route format\n");
+				bb_error_msg_and_die("Unsuported kernel route format\n");
 			}
 			ifl = 0;	/* parse flags */
 			if (flgs & RTF_UP) {
@@ -570,7 +570,7 @@ static void INET6_displayroutes(int noresolve)
 
 	char addr6p[8][5], saddr6p[8][5], naddr6p[8][5];
 
-	FILE *fp = xfopen("/proc/net/ipv6_route", "r");
+	FILE *fp = bb_xfopen("/proc/net/ipv6_route", "r");
 
 	flags[0] = 'U';
 
@@ -598,7 +598,7 @@ static void INET6_displayroutes(int noresolve)
 				   naddr6p[0], naddr6p[1], naddr6p[2], naddr6p[3],
 				   naddr6p[4], naddr6p[5], naddr6p[6], naddr6p[7],
 				   &metric, &use, &refcnt, &iflags, iface) != 31) {
-			error_msg_and_die("Unsuported kernel route format\n");
+			bb_error_msg_and_die("Unsuported kernel route format\n");
 		}
 
 		ifl = 1;		/* parse flags */
@@ -673,7 +673,7 @@ int route_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				show_usage();
+				bb_show_usage();
 			}
 		}
 
@@ -694,7 +694,7 @@ int route_main(int argc, char **argv)
 		else if (strcmp(argv[1], "flush") == 0)
 			what = RTACTION_FLUSH;
 		else
-			show_usage();
+			bb_show_usage();
 	}
 
 #ifdef CONFIG_FEATURE_IPV6

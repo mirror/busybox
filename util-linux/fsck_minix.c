@@ -279,7 +279,7 @@ static void leave(int status)
 
 static void die(const char *str)
 {
-	error_msg("%s", str);
+	bb_error_msg("%s", str);
 	leave(8);
 }
 
@@ -1344,7 +1344,7 @@ extern int fsck_minix_main(int argc, char **argv)
 		argv++;
 		if (argv[0][0] != '-') {
 			if (device_name)
-				show_usage();
+				bb_show_usage();
 			else
 				device_name = argv[0];
 		} else
@@ -1374,11 +1374,11 @@ extern int fsck_minix_main(int argc, char **argv)
 					force = 1;
 					break;
 				default:
-					show_usage();
+					bb_show_usage();
 				}
 	}
 	if (!device_name)
-		show_usage();
+		bb_show_usage();
 	check_mount();				/* trying to check a mounted filesystem? */
 	if (repair && !automatic) {
 		if (!isatty(0) || !isatty(1))
@@ -1399,7 +1399,7 @@ extern int fsck_minix_main(int argc, char **argv)
 	 * flags and whether or not the -f switch was specified on the 
 	 * command line.
 	 */
-	printf("%s, %s\n", applet_name, program_version);
+	printf("%s, %s\n", bb_applet_name, program_version);
 	if (!(Super.s_state & MINIX_ERROR_FS) &&
 		(Super.s_state & MINIX_VALID_FS) && !force) {
 		if (repair)

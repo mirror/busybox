@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.22 2003/01/14 08:54:07 andersen Exp $
+ * $Id: ifconfig.c,v 1.23 2003/03/19 09:12:38 mjn3 Exp $
  *
  */
 
@@ -323,14 +323,14 @@ int ifconfig_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argc ? *argv : NULL);
 #else
-		error_msg_and_die
+		bb_error_msg_and_die
 			("ifconfig was not compiled with interface status display support.");
 #endif
 	}
 
 	/* Create a channel to the NET kernel. */
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror_msg_and_die("socket");
+		bb_perror_msg_and_die("socket");
 	}
 
 	/* get interface name */
@@ -366,11 +366,11 @@ int ifconfig_main(int argc, char **argv)
 			mask = op->arg_flags;
 			a1op = Arg1Opt + (op - OptArray);
 			if (mask & A_NETMASK & did_flags) {
-				show_usage();
+				bb_show_usage();
 			}
 			if (*++argv == NULL) {
 				if (mask & A_ARG_REQ) {
-					show_usage();
+					bb_show_usage();
 				} else {
 					--argv;
 					mask &= A_SET_AFTER;	/* just for broadcast */
@@ -421,7 +421,7 @@ int ifconfig_main(int argc, char **argv)
 
 							/* Create a channel to the NET kernel. */
 							if ((sockfd6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-								perror_msg_and_die("socket6");
+								bb_perror_msg_and_die("socket6");
 							}
 							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0) {
 								perror("SIOGIFINDEX");
@@ -454,11 +454,11 @@ int ifconfig_main(int argc, char **argv)
 					} else {	/* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
 						if (strcmp("ether", *argv) || (*++argv == NULL)) {
-							show_usage();
+							bb_show_usage();
 						}
 						safe_strncpy(host, *argv, (sizeof host));
 						if (in_ether(host, &sa)) {
-							error_msg("invalid hw-addr %s", host);
+							bb_error_msg("invalid hw-addr %s", host);
 							++goterr;
 							continue;
 						}

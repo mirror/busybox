@@ -246,7 +246,7 @@ static int builtin_cd(struct child_prog *child)
 	}
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
-		cwd = unknown;
+		cwd = bb_msg_unknown;
 	return EXIT_SUCCESS;
 }
 
@@ -284,12 +284,12 @@ static int builtin_fg_bg(struct child_prog *child)
 			}
 		}
 		if (!job) {
-			error_msg("%s: no current job", child->argv[0]);
+			bb_error_msg("%s: no current job", child->argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
 		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-			error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+			bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
 			return EXIT_FAILURE;
 		}
 		for (job = child->family->job_list->head; job; job = job->next) {
@@ -298,7 +298,7 @@ static int builtin_fg_bg(struct child_prog *child)
 			}
 		}
 		if (!job) {
-			error_msg("%s: %d: no such job", child->argv[0], jobnum);
+			bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
 			return EXIT_FAILURE;
 		}
 	}
@@ -320,7 +320,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		if (i == ESRCH) {
 			remove_job(&job_list, job);
 		} else {
-			perror_msg("kill (SIGCONT)");
+			bb_perror_msg("kill (SIGCONT)");
 		}
 	}
 
@@ -371,7 +371,7 @@ static int builtin_pwd(struct child_prog *dummy)
 {
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
-		cwd = unknown;
+		cwd = bb_msg_unknown;
 	puts(cwd);
 	return EXIT_SUCCESS;
 }
@@ -489,7 +489,7 @@ static void mark_closed(int fd)
 {
 	struct close_me *tmp;
 	if (close_me_head == NULL || close_me_head->fd != fd)
-		error_msg_and_die("corrupt close_me");
+		bb_error_msg_and_die("corrupt close_me");
 	tmp = close_me_head;
 	close_me_head = close_me_head->next;
 	free(tmp);
@@ -599,7 +599,7 @@ static void checkjobs(struct jobset *j_list)
 	}
 
 	if (childpid == -1 && errno != ECHILD)
-		perror_msg("waitpid");
+		bb_perror_msg("waitpid");
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -628,7 +628,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			perror_msg("error opening %s", redir->filename);
+			bb_perror_msg("error opening %s", redir->filename);
 			return 1;
 		}
 
@@ -803,7 +803,7 @@ static int expand_arguments(char *command)
 	while( command && command[ix]) {
 		if (command[ix] == '\\') {
 			const char *tmp = command+ix+1;
-			command[ix] = process_escape_sequence(  &tmp );
+			command[ix] = bb_process_escape_sequence(  &tmp );
 			memmove(command+ix + 1, tmp, strlen(tmp)+1);
 		}
 		ix++;
@@ -816,7 +816,7 @@ static int expand_arguments(char *command)
 
 	/* We need a clean copy, so strsep can mess up the copy while
 	 * we write stuff into the original (in a minute) */
-	cmd = cmd_copy = xstrdup(command);
+	cmd = cmd_copy = bb_xstrdup(command);
 	*command = '\0';
 	for (ix = 0, tmpcmd = cmd; 
 			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
@@ -829,13 +829,13 @@ static int expand_arguments(char *command)
 		if (retval == GLOB_NOSPACE) {
 			/* Mem may have been allocated... */
 			globfree (&expand_result);
-			error_msg(out_of_space);
+			bb_error_msg(out_of_space);
 			return FALSE;
 		} else if (retval != 0) {
 			/* Some other error.  GLOB_NOMATCH shouldn't
 			 * happen because of the GLOB_NOCHECK flag in 
 			 * the glob call. */
-			error_msg("syntax error");
+			bb_error_msg("syntax error");
 			return FALSE;
 		} else {
 			/* Convert from char** (one word per string) to a simple char*,
@@ -843,7 +843,7 @@ static int expand_arguments(char *command)
 			for (i=0; i < expand_result.gl_pathc; i++) {
 				length=strlen(expand_result.gl_pathv[i]);
 				if (total_length+length+1 >= BUFSIZ) {
-					error_msg(out_of_space);
+					bb_error_msg(out_of_space);
 					return FALSE;
 				}
 				strcat(command+total_length, " ");
@@ -930,7 +930,7 @@ static int expand_arguments(char *command)
 			int subst_len = strlen(var);
 			int trail_len = strlen(src);
 			if (dst+subst_len+trail_len >= command+BUFSIZ) {
-				error_msg(out_of_space);
+				bb_error_msg(out_of_space);
 				return FALSE;
 			}
 			/* Move stuff to the end of the string to accommodate
@@ -1006,7 +1006,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 			if (*src == '\\') {
 				src++;
 				if (!*src) {
-					error_msg("character expected after \\");
+					bb_error_msg("character expected after \\");
 					free_job(job);
 					return 1;
 				}
@@ -1090,7 +1090,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					chptr++;
 
 				if (!*chptr) {
-					error_msg("file name expected after %c", *(src-1));
+					bb_error_msg("file name expected after %c", *(src-1));
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1109,7 +1109,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				if (*prog->argv[argc_l] || saw_quote)
 					argc_l++;
 				if (!argc_l) {
-					error_msg("empty command in pipe");
+					bb_error_msg("empty command in pipe");
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1136,7 +1136,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					src++;
 
 				if (!*src) {
-					error_msg("empty command in pipe");
+					bb_error_msg("empty command in pipe");
 					free_job(job);
 					job->num_progs=0;
 					return 1;
@@ -1155,7 +1155,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 			case '\\':
 				src++;
 				if (!*src) {
-					error_msg("character expected after \\");
+					bb_error_msg("character expected after \\");
 					free_job(job);
 					return 1;
 				}
@@ -1217,7 +1217,7 @@ static int pseudo_exec(struct child_prog *child)
 	/* Check if the command matches any of the forking builtins. */
 	for (x = bltins_forking; x->cmd; x++) {
 		if (strcmp(child->argv[0], x->cmd) == 0) {
-			applet_name=x->cmd;
+			bb_applet_name=x->cmd;
 			_exit (x->function(child));
 		}
 	}
@@ -1225,7 +1225,7 @@ static int pseudo_exec(struct child_prog *child)
 	/* Check if the command matches any busybox internal
 	 * commands ("applets") here.  Following discussions from
 	 * November 2000 on busybox@busybox.net, don't use
-	 * get_last_path_component().  This way explicit (with
+	 * bb_get_last_path_component().  This way explicit (with
 	 * slashes) filenames will never be interpreted as an
 	 * applet, just like with builtins.  This way the user can
 	 * override an applet with an explicit filename reference.
@@ -1241,7 +1241,7 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/cat exists on the filesystem and is _not_ busybox.
 	 * Some systems want this, others do not.  Choose wisely.  :-)
 	 */
-	name = get_last_path_component(name);
+	name = bb_get_last_path_component(name);
 #endif
 
 	{
@@ -1255,7 +1255,7 @@ static int pseudo_exec(struct child_prog *child)
 
 	execvp(child->argv[0], child->argv);
 
-	/* Do not use perror_msg_and_die() here, since we must not 
+	/* Do not use bb_perror_msg_and_die() here, since we must not 
 	 * call exit() but should call _exit() instead */
 	fprintf(stderr, "%s: %m\n", child->argv[0]);
 	_exit(EXIT_FAILURE);
@@ -1299,7 +1299,7 @@ static void insert_job(struct job *newjob, int inbg)
 		/* move the new process group into the foreground */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(shell_terminal, newjob->pgrp) && errno != ENOTTY)
-			perror_msg("tcsetpgrp");
+			bb_perror_msg("tcsetpgrp");
 	}
 }
 
@@ -1317,7 +1317,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		child = & (newjob->progs[i]);
 
 		if ((i + 1) < newjob->num_progs) {
-			if (pipe(pipefds)<0) perror_msg_and_die("pipe");
+			if (pipe(pipefds)<0) bb_perror_msg_and_die("pipe");
 			nextout = pipefds[1];
 		} else {
 			if (outpipe[1]!=-1) {
@@ -1464,7 +1464,7 @@ static int busy_loop(FILE * input)
 
 			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED)<0) {
 				if (errno != ECHILD) {
-					perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
+					bb_perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
 				}
 			}
 
@@ -1496,7 +1496,7 @@ static int busy_loop(FILE * input)
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
 				if (tcsetpgrp(shell_terminal, getpgrp()) && errno != ENOTTY)
-					perror_msg("tcsetpgrp"); 
+					bb_perror_msg("tcsetpgrp"); 
 			}
 		}
 	}
@@ -1504,7 +1504,7 @@ static int busy_loop(FILE * input)
 
 	/* return controlling TTY back to parent process group before exiting */
 	if (tcsetpgrp(shell_terminal, parent_pgrp) && errno != ENOTTY)
-		perror_msg("tcsetpgrp");
+		bb_perror_msg("tcsetpgrp");
 
 	/* return exit status if called with "-c" */
 	if (input == NULL && WIFEXITED(status))
@@ -1517,7 +1517,7 @@ static int busy_loop(FILE * input)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 void free_memory(void)
 {
-	if (cwd && cwd!=unknown) {
+	if (cwd && cwd!=bb_msg_unknown) {
 		free((char*)cwd);
 	}
 	if (local_pending_command)
@@ -1594,8 +1594,8 @@ int lash_main(int argc_l, char **argv_l)
 			case 'c':
 				input = NULL;
 				if (local_pending_command != 0)
-					error_msg_and_die("multiple -c arguments");
-				local_pending_command = xstrdup(argv[optind]);
+					bb_error_msg_and_die("multiple -c arguments");
+				local_pending_command = bb_xstrdup(argv[optind]);
 				optind++;
 				argv = argv+optind;
 				break;
@@ -1603,7 +1603,7 @@ int lash_main(int argc_l, char **argv_l)
 				interactive = TRUE;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 	/* A shell is interactive if the `-i' flag was given, or if all of
@@ -1627,14 +1627,14 @@ int lash_main(int argc_l, char **argv_l)
 #endif
 	} else if (local_pending_command==NULL) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
-		input = xfopen(argv[optind], "r");
+		input = bb_xfopen(argv[optind], "r");
 		mark_open(fileno(input));  /* be lazy, never mark this closed */
 	}
 
 	/* initialize the cwd -- this is never freed...*/
 	cwd = xgetcwd(0);
 	if (!cwd)
-		cwd = unknown;
+		cwd = bb_msg_unknown;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	atexit(free_memory);

@@ -78,14 +78,14 @@ int expr_main (int argc, char **argv)
 	VALUE *v;
 
 	if (argc == 1) {
-		error_msg_and_die("too few arguments");
+		bb_error_msg_and_die("too few arguments");
 	}
 
 	args = argv + 1;
 
 	v = eval ();
 	if (*args)
-		error_msg_and_die ("syntax error");
+		bb_error_msg_and_die ("syntax error");
 
 	if (v->type == integer)
 		printf ("%d\n", v->u.i);
@@ -147,7 +147,7 @@ static int null (VALUE *v)
 static void tostring (VALUE *v)
 {
 	if (v->type == integer) {
-               bb_asprintf (&(v->u.s), "%d", v->u.i);
+               bb_xasprintf (&(v->u.s), "%d", v->u.i);
 		v->type = string;
 	}
 }
@@ -216,7 +216,7 @@ static						\
 int name (VALUE *l, VALUE *r)		\
 {						\
   if (!toarith (l) || !toarith (r))		\
-    error_msg_and_die ("non-numeric argument");	\
+    bb_error_msg_and_die ("non-numeric argument");	\
   return l->u.i op r->u.i;			\
 }
 
@@ -224,9 +224,9 @@ int name (VALUE *l, VALUE *r)		\
 static int name (VALUE *l, VALUE *r)		\
 {						\
   if (!toarith (l) || !toarith (r))		\
-    error_msg_and_die ( "non-numeric argument");	\
+    bb_error_msg_and_die ( "non-numeric argument");	\
   if (r->u.i == 0)				\
-    error_msg_and_die ( "division by zero");		\
+    bb_error_msg_and_die ( "division by zero");		\
   return l->u.i op r->u.i;			\
 }
 
@@ -270,7 +270,7 @@ of a basic regular expression is not portable; it is being ignored",
 	re_syntax_options = RE_SYNTAX_POSIX_BASIC;
 	errmsg = re_compile_pattern (pv->u.s, len, &re_buffer);
 	if (errmsg) {
-		error_msg_and_die("%s", errmsg);
+		bb_error_msg_and_die("%s", errmsg);
 	}
 
 	len = re_match (&re_buffer, sv->u.s, strlen (sv->u.s), 0, &re_regs);
@@ -301,19 +301,19 @@ static VALUE *eval7 (void)
 	VALUE *v;
 
 	if (!*args)
-		error_msg_and_die ( "syntax error");
+		bb_error_msg_and_die ( "syntax error");
 
 	if (nextarg ("(")) {
 		args++;
 		v = eval ();
 		if (!nextarg (")"))
-			error_msg_and_die ( "syntax error");
+			bb_error_msg_and_die ( "syntax error");
 			args++;
 			return v;
 		}
 
 	if (nextarg (")"))
-		error_msg_and_die ( "syntax error");
+		bb_error_msg_and_die ( "syntax error");
 
 	return str_value (*args++);
 }
@@ -327,7 +327,7 @@ static VALUE *eval6 (void)
 	if (nextarg ("quote")) {
 		args++;
 		if (!*args)
-			error_msg_and_die ( "syntax error");
+			bb_error_msg_and_die ( "syntax error");
 		return str_value (*args++);
 	}
 	else if (nextarg ("length")) {
@@ -373,7 +373,7 @@ static VALUE *eval6 (void)
 		else {
 			v = xmalloc (sizeof(VALUE));
 			v->type = string;
-                       v->u.s = xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
+                       v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
 		}
 		freev (l);
 		freev (i1);

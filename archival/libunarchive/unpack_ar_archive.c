@@ -26,7 +26,7 @@ extern void unpack_ar_archive(archive_handle_t *ar_archive)
 
 	archive_xread_all(ar_archive, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
-		error_msg_and_die("Invalid ar magic");
+		bb_error_msg_and_die("Invalid ar magic");
 	}
 	ar_archive->offset += 7;
 

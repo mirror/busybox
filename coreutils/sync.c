@@ -20,15 +20,17 @@
  *
  */
 
-#include <stdio.h>
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
 
 extern int sync_main(int argc, char **argv)
 {
-	if (argc > 1 && **(argv + 1) == '-')
-		show_usage();
+	bb_warn_ignoring_args(argc - 1);
+
 	sync();
+
 	return(EXIT_SUCCESS);
 }

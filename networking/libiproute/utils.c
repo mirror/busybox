@@ -209,10 +209,10 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 int get_addr(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
+		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
 	}
 	if (get_addr_1(dst, arg, family)) {
-		error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
+		bb_error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
 	}
 	return 0;
 }
@@ -220,10 +220,10 @@ int get_addr(inet_prefix * dst, char *arg, int family)
 int get_prefix(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
+		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
 	}
 	if (get_prefix_1(dst, arg, family)) {
-		error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
+		bb_error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
 	}
 	return 0;
 }
@@ -233,32 +233,32 @@ __u32 get_addr32(char *name)
 	inet_prefix addr;
 
 	if (get_addr_1(&addr, name, AF_INET)) {
-		error_msg_and_die("an IP address is expected rather than \"%s\"", name);
+		bb_error_msg_and_die("an IP address is expected rather than \"%s\"", name);
 	}
 	return addr.data[0];
 }
 
 void incomplete_command()
 {
-	error_msg("Command line is not complete. Try option \"help\"");
+	bb_error_msg("Command line is not complete. Try option \"help\"");
 	exit(-1);
 }
 
 void invarg(char *msg, char *arg)
 {
-	error_msg("argument \"%s\" is wrong: %s", arg, msg);
+	bb_error_msg("argument \"%s\" is wrong: %s", arg, msg);
 	exit(-1);
 }
 
 void duparg(char *key, char *arg)
 {
-	error_msg("duplicate \"%s\": \"%s\" is the second value.", key, arg);
+	bb_error_msg("duplicate \"%s\": \"%s\" is the second value.", key, arg);
 	exit(-1);
 }
 
 void duparg2(char *key, char *arg)
 {
-	error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage.", key, arg);
+	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage.", key, arg);
 	exit(-1);
 }
 

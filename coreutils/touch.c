@@ -21,6 +21,16 @@
  *
  */
 
+/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m, -r, -t not supported. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/touch.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Previous version called open() and then utime().  While this will be
+ * be necessary to implement -r and -t, it currently only makes things bigger.
+ * Also, exiting on a failure was a bug.  All args should be processed.
+ */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -33,44 +43,35 @@
 extern int touch_main(int argc, char **argv)
 {
 	int fd;
-	int create = TRUE;
+	int flags;
+	int status = EXIT_SUCCESS;
 
-	/* Parse options */
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*(++(*argv))) {
-			switch (**argv) {
-			case 'c':
-				create = FALSE;
-				break;
-			default:
-				show_usage();
-			}
-		}
+	flags = bb_getopt_ulflags(argc, argv, "c");
+
+	argv += optind;
+
+	if (!*argv) {
+		bb_show_usage();
 	}
 
-	if (argc < 1) {
-		show_usage();
-	}
-
-	while (argc > 0) {
-		fd = open(*argv, create ? O_RDWR | O_CREAT : O_RDWR,
-				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		if (fd < 0) {
-			if (! create && errno == ENOENT) {
-				argc--;
-				argv++;
-				continue;
-			} else {
-				perror_msg_and_die("%s", *argv);
-			}
-		}
-		close(fd);
+	do {
 		if (utime(*argv, NULL)) {
-			perror_msg_and_die("%s", *argv);
+			if (errno == ENOENT) {	/* no such file*/
+				if (flags & 1) {	/* Creation is disabled, so ignore. */
+					continue;
+				}
+				/* Try to create the file. */
+				fd = open(*argv, O_RDWR | O_CREAT,
+						  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
+						  );
+				if ((fd >= 0) && !close(fd)) {
+					continue;
+				}
+			}
+			status = EXIT_FAILURE;
+			bb_perror_msg("%s", *argv);
 		}
-		argc--;
-		argv++;
-	}
+	} while (*++argv);
 
-	return EXIT_SUCCESS;
+	return status;
 }

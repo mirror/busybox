@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * simplify_path implementation for busybox
+ * bb_simplify_path implementation for busybox
  *
- * Copyright (C) 2001  Manuel Novoa III  <mjn3@opensource.lineo.com>
+ * Copyright (C) 2001  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,14 @@
  */
 
 #include <stdlib.h>
-
 #include "libbb.h"
 
-char *simplify_path(const char *path)
+char *bb_simplify_path(const char *path)
 {
 	char *s, *start, *p;
 
 	if (path[0] == '/')
-		start = xstrdup(path);
+		start = bb_xstrdup(path);
 	else {
 		s = xgetcwd(NULL);
 		start = concat_path_file(s, path);

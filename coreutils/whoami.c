@@ -20,7 +20,7 @@
  *
  */
 
-/* getopt not needed */
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,14 +30,15 @@
 extern int whoami_main(int argc, char **argv)
 {
 	char user[9];
-	uid_t uid = geteuid();
+	uid_t uid;
 
 	if (argc > 1)
-		show_usage();
+		bb_show_usage();
 
+	uid = geteuid();
 	if (my_getpwuid(user, uid)) {
 		puts(user);
-		return EXIT_SUCCESS;
+		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
-	error_msg_and_die("cannot find username for UID %u", (unsigned) uid);
+	bb_error_msg_and_die("cannot find username for UID %u", (unsigned) uid);
 }

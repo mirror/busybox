@@ -34,16 +34,16 @@ int loadacm_main(int argc, char **argv)
 	int fd;
 
 	if (argc>=2 && *argv[1]=='-') {
-		show_usage();
+		bb_show_usage();
 	}
 
 	fd = open(CURRENT_VC, O_RDWR);
 	if (fd < 0) {
-		perror_msg_and_die("Error opening " CURRENT_VC);
+		bb_perror_msg_and_die("Error opening " CURRENT_VC);
 	}
 
 	if (screen_map_load(fd, stdin)) {
-		perror_msg_and_die("Error loading acm");
+		bb_perror_msg_and_die("Error loading acm");
 	}
 
 	write(fd, "\033(K", 3);
@@ -60,7 +60,7 @@ static int screen_map_load(int fd, FILE * fp)
 	int is_unicode;
 
 	if (fstat(fileno(fp), &stbuf))
-		perror_msg_and_die("Cannot stat map file");
+		bb_perror_msg_and_die("Cannot stat map file");
 
 	/* first try a UTF screen-map: either ASCII (no restriction) or binary (regular file) */
 	if (!
@@ -70,16 +70,16 @@ static int screen_map_load(int fd, FILE * fp)
 		if (parse_failed) {
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
-					error_msg_and_die("16bit screen-map MUST be a regular file.");
+					bb_error_msg_and_die("16bit screen-map MUST be a regular file.");
 				else
-					perror_msg_and_die("fseek failed reading binary 16bit screen-map");
+					bb_perror_msg_and_die("fseek failed reading binary 16bit screen-map");
 			}
 
 			if (fread(wbuf, sizeof(unicode) * E_TABSZ, 1, fp) != 1)
-				perror_msg_and_die("Cannot read [new] map from file");
+				bb_perror_msg_and_die("Cannot read [new] map from file");
 #if 0
 			else
-				error_msg("Input screen-map is binary.");
+				bb_error_msg("Input screen-map is binary.");
 #endif
 		}
 
@@ -87,7 +87,7 @@ static int screen_map_load(int fd, FILE * fp)
 		/* same if it was binary, ie. if parse_failed */
 		if (parse_failed || is_unicode) {
 			if (ioctl(fd, PIO_UNISCRNMAP, wbuf))
-				perror_msg_and_die("PIO_UNISCRNMAP ioctl");
+				bb_perror_msg_and_die("PIO_UNISCRNMAP ioctl");
 			else
 				return 0;
 		}
@@ -96,10 +96,10 @@ static int screen_map_load(int fd, FILE * fp)
 	/* rewind... */
 	if (-1 == fseek(fp, 0, SEEK_SET)) {
 		if (errno == ESPIPE)
-			error_msg("Assuming 8bit screen-map - MUST be a regular file."),
+			bb_error_msg("Assuming 8bit screen-map - MUST be a regular file."),
 				exit(1);
 		else
-			perror_msg_and_die("fseek failed assuming 8bit screen-map");
+			bb_perror_msg_and_die("fseek failed assuming 8bit screen-map");
 	}
 
 	/* ... and try an old 8-bit screen-map */
@@ -109,25 +109,25 @@ static int screen_map_load(int fd, FILE * fp)
 			if (-1 == fseek(fp, 0, SEEK_SET)) {
 				if (errno == ESPIPE)
 					/* should not - it succedeed above */
-					error_msg_and_die("fseek() returned ESPIPE !");
+					bb_error_msg_and_die("fseek() returned ESPIPE !");
 				else
-					perror_msg_and_die("fseek for binary 8bit screen-map");
+					bb_perror_msg_and_die("fseek for binary 8bit screen-map");
 			}
 
 			if (fread(buf, E_TABSZ, 1, fp) != 1)
-				perror_msg_and_die("Cannot read [old] map from file");
+				bb_perror_msg_and_die("Cannot read [old] map from file");
 #if 0
 			else
-				error_msg("Input screen-map is binary.");
+				bb_error_msg("Input screen-map is binary.");
 #endif
 		}
 
 		if (ioctl(fd, PIO_SCRNMAP, buf))
-			perror_msg_and_die("PIO_SCRNMAP ioctl");
+			bb_perror_msg_and_die("PIO_SCRNMAP ioctl");
 		else
 			return 0;
 	}
-	error_msg("Error parsing symbolic map");
+	bb_error_msg("Error parsing symbolic map");
 	return(1);
 }
 
@@ -172,7 +172,7 @@ static int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
 			if (feof(fp))
 				break;
 			else
-				perror_msg_and_die("uni_screen_map_read_ascii() can't read line");
+				bb_perror_msg_and_die("uni_screen_map_read_ascii() can't read line");
 		}
 
 		/* get "charset-relative charcode", stripping leading spaces */

@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.14 2003/02/09 22:40:33 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.15 2003/03/19 09:12:07 mjn3 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -619,7 +619,7 @@ static int aftrans_opt(const char *arg)
 			if (strcmp(tmp1, paft->alias))
 				continue;
 			if (strlen(paft->name) + strlen(afname) + 1 >= sizeof(afname)) {
-				error_msg(_("Too many address family arguments."));
+				bb_error_msg(_("Too many address family arguments."));
 				return (0);
 			}
 			if (paft->flag)
@@ -630,7 +630,7 @@ static int aftrans_opt(const char *arg)
 			break;
 		}
 		if (!paft->alias) {
-			error_msg(_("Unknown address family `%s'."), tmp1);
+			bb_error_msg(_("Unknown address family `%s'."), tmp1);
 			return (1);
 		}
 		tmp1 = tmp2;
@@ -693,7 +693,7 @@ static struct aftype *get_aftype(const char *name)
 		afp++;
 	}
 	if (strchr(name, ','))
-		error_msg(_("Please don't supply more than one address family."));
+		bb_error_msg(_("Please don't supply more than one address family."));
 	return (NULL);
 }
 #endif							/* KEEP_UNUSED */
@@ -888,7 +888,7 @@ static int sockets_open(int family)
 			sfd = af->fd;
 	}
 	if (sfd < 0) {
-		error_msg(_("No usable address families found."));
+		bb_error_msg(_("No usable address families found."));
 	}
 	return sfd;
 }
@@ -960,7 +960,7 @@ static int if_readconf(void)
 	   (as of 2.1.128) */
 	skfd2 = get_socket_for_af(AF_INET);
 	if (skfd2 < 0) {
-		perror_msg(("warning: no inet socket available"));
+		bb_perror_msg(("warning: no inet socket available"));
 		/* Try to soldier on with whatever socket we can get hold of.  */
 		skfd2 = sockets_open(0);
 		if (skfd2 < 0)
@@ -1106,7 +1106,7 @@ static int if_readlist_proc(char *target)
 
 	fh = fopen(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		perror_msg(_("Warning: cannot open %s. Limited output."), _PATH_PROCNET_DEV);
+		bb_perror_msg(_("Warning: cannot open %s. Limited output."), _PATH_PROCNET_DEV);
 		return if_readconf();
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */
@@ -1366,7 +1366,7 @@ static int do_if_fetch(struct interface *ife)
 		} else {
 			errmsg = strerror(errno);
 		}
-		error_msg(_("%s: error fetching interface information: %s\n"),
+		bb_error_msg(_("%s: error fetching interface information: %s\n"),
 				ife->name, errmsg);
 		return -1;
 	}
@@ -1441,7 +1441,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val = c - 'A' + 10;
 		else {
 #ifdef DEBUG
-			error_msg(_("in_ether(%s): invalid ether address!\n"), orig);
+			bb_error_msg(_("in_ether(%s): invalid ether address!\n"), orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1458,7 +1458,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val >>= 4;
 		else {
 #ifdef DEBUG
-			error_msg(_("in_ether(%s): invalid ether address!"), orig);
+			bb_error_msg(_("in_ether(%s): invalid ether address!"), orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1472,7 +1472,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 		if (*bufp == ':') {
 #ifdef DEBUG
 			if (i == ETH_ALEN) {
-				error_msg(_("in_ether(%s): trailing : ignored!"), orig);
+				bb_error_msg(_("in_ether(%s): trailing : ignored!"), orig);
 			}
 #endif
 			bufp++;
@@ -1482,11 +1482,11 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 #ifdef DEBUG
 	/* That's it.  Any trailing junk? */
 	if ((i == ETH_ALEN) && (*bufp != '\0')) {
-		error_msg(_("in_ether(%s): trailing junk!"), orig);
+		bb_error_msg(_("in_ether(%s): trailing junk!"), orig);
 		errno = EINVAL;
 		return (-1);
 	}
-	error_msg("in_ether(%s): %s", orig, pr_ether(sap->sa_data));
+	bb_error_msg("in_ether(%s): %s", orig, pr_ether(sap->sa_data));
 #endif
 
 	return (0);
@@ -1511,7 +1511,7 @@ static struct hwtype ether_hwtype = {
 /* Start the PPP encapsulation on the file descriptor. */
 static int do_ppp(int fd)
 {
-	error_msg(_("You cannot start PPP with this program."));
+	bb_error_msg(_("You cannot start PPP with this program."));
 	return -1;
 }
 #endif							/* KEEP_UNUSED */
@@ -2052,7 +2052,7 @@ int display_interfaces(char *ifname)
 
 	/* Create a channel to the NET kernel. */
 	if ((skfd = sockets_open(0)) < 0) {
-		perror_msg_and_die("socket");
+		bb_perror_msg_and_die("socket");
 	}
 
 	/* Do we have to show the current setup? */

@@ -247,14 +247,14 @@ static void message(int device, const char *fmt, ...)
 	if (log_fd < 0) {
 		if ((log_fd = device_open(log, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
 			log_fd = -2;
-			error_msg("Bummer, can't write to log on %s!", log);
+			bb_error_msg("Bummer, can't write to log on %s!", log);
 			device = CONSOLE;
 		} else {
 			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
 		}
 	}
 	if ((device & LOG) && (log_fd >= 0)) {
-		full_write(log_fd, msg, l);
+		bb_full_write(log_fd, msg, l);
 	}
 #endif
 
@@ -263,12 +263,12 @@ static void message(int device, const char *fmt, ...)
 					O_WRONLY | O_NOCTTY | O_NDELAY);
 		/* Always send console messages to /dev/console so people will see them. */
 		if (fd >= 0) {
-			full_write(fd, msg, l);
+			bb_full_write(fd, msg, l);
 			close(fd);
 #ifdef DEBUG_INIT
 		/* all descriptors may be closed */
 		} else {
-			error_msg("Bummer, can't print: ");
+			bb_error_msg("Bummer, can't print: ");
 			va_start(arguments, fmt);
 			vfprintf(stderr, fmt, arguments);
 			va_end(arguments);
@@ -323,7 +323,7 @@ static int check_free_memory(void)
 	unsigned int result, u, s = 10;
 
 	if (sysinfo(&info) != 0) {
-		perror_msg("Error checking free memory");
+		bb_perror_msg("Error checking free memory");
 		return -1;
 	}
 
@@ -564,11 +564,11 @@ static pid_t run(const struct init_action *a)
 			++cmdpath;
 
 			/* find the last component in the command pathname */
-			s = get_last_path_component(cmdpath);
+			s = bb_get_last_path_component(cmdpath);
 
 			/* make a new argv[0] */
 			if ((cmd[0] = malloc(strlen(s) + 2)) == NULL) {
-				message(LOG | CONSOLE, memory_exhausted);
+				message(LOG | CONSOLE, bb_msg_memory_exhausted);
 				cmd[0] = cmdpath;
 			} else {
 				cmd[0][0] = '-';
@@ -589,7 +589,7 @@ static pid_t run(const struct init_action *a)
 			messageD(LOG, "Waiting for enter to start '%s'"
 						"(pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
-			full_write(1, press_enter, sizeof(press_enter) - 1);
+			bb_full_write(1, press_enter, sizeof(press_enter) - 1);
 			while(read(0, &c, 1) == 1 && c != '\n')
 				;
 		}
@@ -1017,7 +1017,7 @@ extern int init_main(int argc, char **argv)
 		if (!pid || *pid <= 0) {
 			pid = find_pid_by_name("linuxrc");
 			if (!pid || *pid <= 0)
-				error_msg_and_die("no process killed");
+				bb_error_msg_and_die("no process killed");
 		}
 		return kill(*pid, SIGHUP);
 	}
@@ -1025,10 +1025,10 @@ extern int init_main(int argc, char **argv)
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1
 #ifdef CONFIG_FEATURE_INITRD
-		&& strstr(applet_name, "linuxrc") == NULL
+		&& strstr(bb_applet_name, "linuxrc") == NULL
 #endif
 		) {
-		show_usage();
+		bb_show_usage();
 	}
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
@@ -1068,10 +1068,10 @@ extern int init_main(int argc, char **argv)
 		const char * const *e;
 		/* Make sure environs is set to something sane */
 		for(e = environment; *e; e++)
-			putenv(*e);
+			putenv((char *) *e);
 	}
 	/* Hello world */
-	message(MAYBE_CONSOLE | LOG, "init started:  %s", full_version);
+	message(MAYBE_CONSOLE | LOG, "init started:  %s", bb_msg_full_version);
 
 	/* Make sure there is enough memory to do something useful. */
 	check_memory();

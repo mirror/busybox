@@ -48,7 +48,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 			argc--;
 			argv++;
 			if (! argv[1]) 
-			    show_usage();
+			    bb_show_usage();
 			if (strcmp(argv[1], "inet") == 0)
 				preferred_family = AF_INET;
 			else if (strcmp(argv[1], "inet6") == 0)
@@ -66,7 +66,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		} else if (matches(opt, "-oneline") == 0) {
 			++oneline;
 		} else {
-			show_usage();
+			bb_show_usage();
 		}
 		argc--;	argv++;
 	}

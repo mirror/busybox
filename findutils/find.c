@@ -167,7 +167,7 @@ static int find_type(char *type)
 	}
 
 	if (mask == 0 || type[1] != '\0')
-		error_msg_and_die(msg_invalid_arg, type, "-type");
+		bb_error_msg_and_die(msg_invalid_arg, type, "-type");
 
 	return mask;
 }
@@ -192,22 +192,22 @@ int find_main(int argc, char **argv)
 			}
 		else if (strcmp(argv[i], "-name") == 0) {
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-name");
+				bb_error_msg_and_die(msg_req_arg, "-name");
 			pattern = argv[i];
 #ifdef CONFIG_FEATURE_FIND_TYPE
 		} else if (strcmp(argv[i], "-type") == 0) {
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-type");
+				bb_error_msg_and_die(msg_req_arg, "-type");
 			type_mask = find_type(argv[i]);
 #endif
 #ifdef CONFIG_FEATURE_FIND_PERM
 		} else if (strcmp(argv[i], "-perm") == 0) {
 			char *end;
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-perm");
+				bb_error_msg_and_die(msg_req_arg, "-perm");
 			perm_mask = strtol(argv[i], &end, 8);
 			if ((end[0] != '\0') || (perm_mask > 07777))
-				error_msg_and_die(msg_invalid_arg, argv[i], "-perm");
+				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-perm");
 			if ((perm_char = argv[i][0]) == '-')
 				perm_mask = -perm_mask;
 #endif
@@ -215,10 +215,10 @@ int find_main(int argc, char **argv)
 		} else if (strcmp(argv[i], "-mtime") == 0) {
 			char *end;
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-mtime");
+				bb_error_msg_and_die(msg_req_arg, "-mtime");
 			mtime_days = strtol(argv[i], &end, 10);
 			if (end[0] != '\0')
-				error_msg_and_die(msg_invalid_arg, argv[i], "-mtime");
+				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-mtime");
 			if ((mtime_char = argv[i][0]) == '-')
 				mtime_days = -mtime_days;
 #endif
@@ -231,14 +231,14 @@ int find_main(int argc, char **argv)
 
 			if ( firstopt == 1 ) {
 				if ( stat ( ".", &stbuf ) < 0 )
-					error_msg_and_die("could not stat '.'" );
+					bb_error_msg_and_die("could not stat '.'" );
 				xdev_dev [0] = stbuf. st_dev;
 			}
 			else {
 			
 				for (i = 1; i < firstopt; i++) {
 					if ( stat ( argv [i], &stbuf ) < 0 )
-						error_msg_and_die("could not stat '%s'", argv [i] );
+						bb_error_msg_and_die("could not stat '%s'", argv [i] );
 					xdev_dev [i-1] = stbuf. st_dev;
 				}
 			}						
@@ -247,22 +247,22 @@ int find_main(int argc, char **argv)
 		} else if (strcmp(argv[i], "-newer") == 0) {
 			struct stat stat_newer;
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-newer");
+				bb_error_msg_and_die(msg_req_arg, "-newer");
 		    if (stat (argv[i], &stat_newer) != 0)
-				error_msg_and_die("file %s not found", argv[i]);
+				bb_error_msg_and_die("file %s not found", argv[i]);
 			newer_mtime = stat_newer.st_mtime;
 #endif
 #ifdef CONFIG_FEATURE_FIND_INUM
 		} else if (strcmp(argv[i], "-inum") == 0) {
 			char *end;
 			if (++i == argc)
-				error_msg_and_die(msg_req_arg, "-inum");
+				bb_error_msg_and_die(msg_req_arg, "-inum");
 			inode_num = strtol(argv[i], &end, 10);
 			if (end[0] != '\0')
-				error_msg_and_die(msg_invalid_arg, argv[i], "-inum");
+				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-inum");
 #endif
 		} else
-			show_usage();
+			bb_show_usage();
 	}
 
 	if (firstopt == 1) {

@@ -604,7 +604,7 @@ extern int telnet_main(int argc, char** argv)
 	G.termios_raw = G.termios_def;
 	cfmakeraw(&G.termios_raw);
 	
-	if (argc < 2)	show_usage();
+	if (argc < 2)	bb_show_usage();
 	port = (argc > 2)? argv[2] : "23";
 	
 	host = argv[1];

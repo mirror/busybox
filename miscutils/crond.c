@@ -154,7 +154,7 @@ crond_main(int ac, char **av)
 		if (*optarg != 0) CDir = optarg;
 		break;
 	    default: /*  parse error */
-		show_usage();
+		bb_show_usage();
 	}
     }
 
@@ -163,7 +163,7 @@ crond_main(int ac, char **av)
      */
 
     if (chdir(CDir) != 0)
-	perror_msg_and_die("chdir");
+	bb_perror_msg_and_die("chdir");
 
     /*
      * close stdin and stdout, stderr.
@@ -173,7 +173,7 @@ crond_main(int ac, char **av)
 
     if (ForegroundOpt == 0) {
 	if(daemon(1, 0) < 0)
-		perror_msg_and_die("daemon");
+		bb_perror_msg_and_die("daemon");
     }
 
     (void)startlogger();                /* need if syslog mode selected */
@@ -268,7 +268,7 @@ vlog(int level, int MLOG_LEVEL, const char *ctl, va_list va)
 		    close(logfd);
 		 } else
 #ifdef FEATURE_DEBUG_OPT
-		    perror_msg("Can't open log file")
+		    bb_perror_msg("Can't open log file")
 #endif
 							;
 	    }
@@ -385,7 +385,7 @@ startlogger(void)
     int  logfd;
 
     if (LoggerOpt == 0)
-	openlog(applet_name, LOG_CONS|LOG_PID,LOG_CRON);
+	openlog(bb_applet_name, LOG_CONS|LOG_PID,LOG_CRON);
 
     else { /* test logfile */
 	if ((logfd = open(LogFile,O_WRONLY|O_CREAT|O_APPEND,600)) >= 0)

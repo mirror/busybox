@@ -29,7 +29,7 @@ include Rules.mak
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
-	sysklogd util-linux libbb libpwdgrp
+	sysklogd util-linux libbb libpwdgrp coreutils/libcoreutils
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 

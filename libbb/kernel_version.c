@@ -37,7 +37,7 @@ extern int get_kernel_revision(void)
 	int i, r;
 
 	if (uname(&name) == -1) {
-		perror_msg("cannot get system information");
+		bb_perror_msg("cannot get system information");
 		return (0);
 	}
 

@@ -72,7 +72,7 @@ int nc_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
@@ -85,13 +85,13 @@ int nc_main(int argc, char **argv)
 
 
 	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
-		show_usage();
+		bb_show_usage();
 
 	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		perror_msg_and_die("socket");
+		bb_perror_msg_and_die("socket");
 	x = 1;
 	if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
-		perror_msg_and_die ("reuseaddr failed");
+		bb_perror_msg_and_die ("reuseaddr failed");
 	address.sin_family = AF_INET;
 
 	if (lport != 0) {
@@ -99,17 +99,17 @@ int nc_main(int argc, char **argv)
 		address.sin_port = htons(lport);
 
 		if (bind(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-			perror_msg_and_die("bind");
+			bb_perror_msg_and_die("bind");
 	}
 
 	if (do_listen) {
 		socklen_t addrlen = sizeof(address);
 
 		if (listen(sfd, 1) < 0)
-			perror_msg_and_die("listen");
+			bb_perror_msg_and_die("listen");
 
 		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
-			perror_msg_and_die("accept");
+			bb_perror_msg_and_die("accept");
 
 		close(sfd);
 		sfd = tmpfd;
@@ -120,7 +120,7 @@ int nc_main(int argc, char **argv)
 		address.sin_port = htons(atoi(argv[optind+1]));
 
 		if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-			perror_msg_and_die("connect");
+			bb_perror_msg_and_die("connect");
 	}
 
 #ifdef GAPING_SECURITY_HOLE
@@ -149,12 +149,12 @@ int nc_main(int argc, char **argv)
 		testfds = readfds;
 
 		if (select(FD_SETSIZE, &testfds, NULL, NULL, NULL) < 0)
-			perror_msg_and_die("select");
+			bb_perror_msg_and_die("select");
 
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
 				if ((nread = safe_read(fd, buf, sizeof(buf))) < 0)
-					perror_msg_and_die("read");
+					bb_perror_msg_and_die("read");
 
 				if (fd == sfd) {
 					if (nread == 0)
@@ -166,8 +166,8 @@ int nc_main(int argc, char **argv)
 					ofd = sfd;
 				}
 
-				if (full_write(ofd, buf, nread) < 0)
-					perror_msg_and_die("write");
+				if (bb_full_write(ofd, buf, nread) < 0)
+					bb_perror_msg_and_die("write");
 				if (delay > 0) {
 					sleep(delay);
 				}

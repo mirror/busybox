@@ -21,6 +21,8 @@
  *
  */
 
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -29,46 +31,24 @@
 
 int chroot_main(int argc, char **argv)
 {
-	char *prog;
-
-	if ((argc < 2) || (**(argv + 1) == '-')) {
-		show_usage();
+	if (argc < 2) {
+		bb_show_usage();
 	}
-	argc--;
-	argv++;
 
+	++argv;
 	if (chroot(*argv) || (chdir("/"))) {
-		perror_msg_and_die("cannot change root directory to %s", *argv);
+		bb_perror_msg_and_die("cannot change root directory to %s", *argv);
 	}
 
-	argc--;
-	argv++;
-	if (argc >= 1) {
-		prog = *argv;
-		execvp(*argv, argv);
-	} else {
-#if defined shell_main && defined CONFIG_FEATURE_SH_STANDALONE_SHELL
-		char shell[] = "/bin/sh";
-		char *shell_argv[2] = { shell, NULL };
-		applet_name = shell;
-		shell_main(1, shell_argv);
-		return EXIT_SUCCESS;
-#else
-		prog = getenv("SHELL");
-		if (!prog)
-			prog = "/bin/sh";
-		execlp(prog, prog, NULL);
-#endif
+	++argv;
+	if (argc == 2) {
+		argv -= 2;
+		if (!(*argv = getenv("SHELL"))) {
+			*argv = (char *) "/bin/sh";
+		}
+		argv[1] = (char *) "-i";
 	}
-	perror_msg_and_die("cannot execute %s", prog);
 
+	execvp(*argv, argv);
+	bb_perror_msg_and_die("cannot execute %s", *argv);
 }
-
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

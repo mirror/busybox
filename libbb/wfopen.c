@@ -23,11 +23,11 @@
 #include <errno.h>
 #include "libbb.h"
 
-FILE *wfopen(const char *path, const char *mode)
+FILE *bb_wfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL) {
-		perror_msg("%s", path);
+		bb_perror_msg("%s", path);
 		errno = 0;
 	}
 	return fp;

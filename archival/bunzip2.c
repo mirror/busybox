@@ -41,7 +41,7 @@ int bunzip2_main(int argc, char **argv)
 	char *delete_name = NULL;
 
 	/* if called as bzcat */
-	if (strcmp(applet_name, "bzcat") == 0)
+	if (strcmp(bb_applet_name, "bzcat") == 0)
 		flags |= bunzip_to_stdout;
 
 	while ((opt = getopt(argc, argv, "cfh")) != -1) {
@@ -54,7 +54,7 @@ int bunzip2_main(int argc, char **argv)
 			break;
 		case 'h':
 		default:
-			show_usage(); /* exit's inside usage */
+			bb_show_usage(); /* exit's inside usage */
 		}
 	}
 
@@ -64,23 +64,23 @@ int bunzip2_main(int argc, char **argv)
 		src_fd = fileno(stdin);
 	} else {
 		/* Open input file */
-		src_fd = xopen(argv[optind], O_RDONLY);
+		src_fd = bb_xopen(argv[optind], O_RDONLY);
 
-		save_name = xstrdup(argv[optind]);
+		save_name = bb_xstrdup(argv[optind]);
 		if (strcmp(save_name + strlen(save_name) - 4, ".bz2") != 0)
-			error_msg_and_die("Invalid extension");
+			bb_error_msg_and_die("Invalid extension");
 		save_name[strlen(save_name) - 4] = '\0';
 	}
 
 	/* Check that the input is sane.  */
 	if (isatty(src_fd) && (flags & bunzip_force) == 0) {
-		error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
+		bb_error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
 	}
 
 	if (flags & bunzip_to_stdout) {
 		dst_fd = fileno(stdout);
 	} else {
-		dst_fd = xopen(save_name, O_WRONLY | O_CREAT);
+		dst_fd = bb_xopen(save_name, O_WRONLY | O_CREAT);
 	}
 
 	if (uncompressStream(src_fd, dst_fd)) {
@@ -96,7 +96,7 @@ int bunzip2_main(int argc, char **argv)
 	}
 
 	if ((delete_name) && (unlink(delete_name) < 0)) {
-		error_msg_and_die("Couldn't remove %s", delete_name);
+		bb_error_msg_and_die("Couldn't remove %s", delete_name);
 	}
 
 	return status;

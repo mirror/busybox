@@ -32,7 +32,7 @@ extern int poweroff_main(int argc, char **argv)
 	if (!pid || *pid<=0) {
 		pid = find_pid_by_name("linuxrc");
 		if (!pid || *pid<=0)
-			error_msg_and_die("no process killed");
+			bb_error_msg_and_die("no process killed");
 	}
 	return(kill(*pid, SIGUSR2));
 #else

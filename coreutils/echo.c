@@ -22,94 +22,107 @@
  * Original copyright notice is retained at the end of this file.
  */
 
+/* BB_AUDIT SUSv3 compliant -- unless configured as fancy echo. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/echo.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Because of behavioral differences, implemented configureable SUSv3
+ * or 'fancy' gnu-ish behaviors.  Also, reduced size and fixed bugs.
+ * 1) In handling '\c' escape, the previous version only suppressed the
+ *     trailing newline.  SUSv3 specifies _no_ output after '\c'.
+ * 2) SUSv3 specifies that octal escapes are of the form \0{#{#{#}}}.
+ *    The previous version version did not allow 4-digit octals.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int 
-echo_main(int argc, char** argv)
+extern int echo_main(int argc, char** argv)
 {
-	int nflag = 0;
+#ifndef CONFIG_FEATURE_FANCY_ECHO
+#define eflag '\\'
+	++argv;
+#else
+	const char *p;
+	int nflag = 1;
 	int eflag = 0;
 
-	/* Skip argv[0]. */
-	argc--;
-	argv++;
-
-	while (argc > 0 && *argv[0] == '-')
-	{
-		register char *temp;
-		register int ix;
-
-		/*
-		 * If it appears that we are handling options, then make sure
+	while (*++argv && (**argv == '-')) {
+		/* If it appears that we are handling options, then make sure
 		 * that all of the options specified are actually valid.
 		 * Otherwise, the string should just be echoed.
 		 */
-		temp = argv[0] + 1;
-
-		for (ix = 0; temp[ix]; ix++)
-		{
-			if (strrchr("neE", temp[ix]) == 0)
-				goto just_echo;
-		}
-
-		if (!*temp)
+		
+		if (!*(p = *argv + 1)) {	/* A single '-', so echo it. */
 			goto just_echo;
-
-		/*
-		 * All of the options in temp are valid options to echo.
-		 * Handle them.
-		 */
-		while (*temp)
-		{
-			if (*temp == 'n')
-				nflag = 1;
-			else if (*temp == 'e')
-				eflag = 1;
-			else if (*temp == 'E')
-				eflag = 0;
-			else
-				goto just_echo;
-
-			temp++;
 		}
-		argc--;
-		argv++;
+
+		do {
+			if (strrchr("neE", *p) == 0) {
+				goto just_echo;
+			}
+		} while (*++p);
+
+		/* All of the options in this arg are valid, so handle them. */
+		p = *argv + 1;
+		do {
+			if (*p == 'n') {
+				nflag = 0;
+			} else if (*p == 'e') {
+				eflag = '\\';
+			} else {
+				eflag = 0;
+			}
+		} while (*++p);
 	}
 
 just_echo:
-	while (argc > 0) {
-		const char *arg = argv[0];
+#endif
+	while (*argv) {
 		register int c;
 
-		while ((c = *arg++)) {
-
-			/* Check for escape sequence. */
-			if (c == '\\' && eflag && *arg) {
-				if (*arg == 'c') {
-					/* '\c' means cancel newline. */
-					nflag = 1;
-					arg++;
-					continue;
-				} else {
-					c = process_escape_sequence(&arg);
+		while ((c = *(*argv)++)) {
+			if (c == eflag) {	/* Check for escape seq. */
+				if (**argv == 'c') {
+					/* '\c' means cancel newline and 
+					 * ignore all subsequent chars. */
+					goto DONE;
+				}
+#ifndef CONFIG_FEATURE_FANCY_ECHO
+				/* SUSv3 specifies that octal escapes must begin with '0'. */
+				if (((unsigned int)(**argv - '1')) >= 7)
+#endif
+				{
+					/* Since SUSv3 mandates a first digit of 0, 4-digit octals
+					* of the form \0### are accepted. */
+					if ((**argv == '0') && (((unsigned int)(argv[0][1] - '0')) < 8)) {
+						(*argv)++;
+					}
+					/* bb_process_escape_sequence can handle nul correctly */
+					c = bb_process_escape_sequence((const char **) argv);
 				}
 			}
-
 			putchar(c);
 		}
-		argc--;
-		argv++;
-		if (argc > 0)
-			putchar(' ');
-	}
-	if (!nflag)
-		putchar('\n');
-	fflush(stdout);
 
-	return EXIT_SUCCESS;
+		if (*++argv) {
+			putchar(' ');
+		}
+	}
+
+#ifdef CONFIG_FEATURE_FANCY_ECHO
+	if (nflag) {
+		putchar('\n');
+	}
+#else
+	putchar('\n');
+#endif
+
+DONE:
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }
 
 /*-

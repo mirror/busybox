@@ -150,7 +150,7 @@ static void fill_bytebuffer(void)
 		/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
 		 * to the front of the bytebuffer, leave 4 bytes free at end of tail
 		 * so we can easily top up buffer in check_trailer_gzip() */
-		bytebuffer_size = 4 + xread(gunzip_src_fd, &bytebuffer[4], BYTEBUFFER_MAX - 8);
+		bytebuffer_size = 4 + bb_xread(gunzip_src_fd, &bytebuffer[4], BYTEBUFFER_MAX - 8);
 		bytebuffer_offset = 4;
 	}
 }
@@ -448,7 +448,7 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_b
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
 			do {
 				if (e == 99) {
-					error_msg_and_die("inflate_codes error 1");;
+					bb_error_msg_and_die("inflate_codes error 1");;
 				}
 				b >>= t->b;
 				k -= t->b;
@@ -484,7 +484,7 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_b
 			if ((e = (t = td + ((unsigned) b & md))->e) > 16)
 				do {
 					if (e == 99)
-						error_msg_and_die("inflate_codes error 2");;
+						bb_error_msg_and_die("inflate_codes error 2");;
 					b >>= t->b;
 					k -= t->b;
 					e -= 16;
@@ -821,7 +821,7 @@ static int inflate_block(int *e)
 
 		if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
 			if (i == 1) {
-				error_msg_and_die("Incomplete literal tree");
+				bb_error_msg_and_die("Incomplete literal tree");
 				huft_free(tl);
 			}
 			return i;	/* incomplete code set */
@@ -830,7 +830,7 @@ static int inflate_block(int *e)
 		bd = dbits;
 		if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
 			if (i == 1) {
-				error_msg_and_die("incomplete distance tree");
+				bb_error_msg_and_die("incomplete distance tree");
 				huft_free(td);
 			}
 			huft_free(tl);
@@ -846,7 +846,7 @@ static int inflate_block(int *e)
 	}
 	default:
 		/* bad block type */
-		error_msg_and_die("bad block type %d\n", t);
+		bb_error_msg_and_die("bad block type %d\n", t);
 	}
 }
 
@@ -884,7 +884,7 @@ static int inflate_get_next_window(void)
 					break;
 			case -2:	ret = inflate_codes(0,0,0,0,0);
 					break;
-			default:	error_msg_and_die("inflate error %d", method);
+			default:	bb_error_msg_and_die("inflate error %d", method);
 		}
 
 		if (ret == 1) {
@@ -975,16 +975,16 @@ extern void GZ_gzReadClose(void)
 	ssize_t nread, nwrote;
 
 	GZ_gzReadOpen(in, 0, 0);
-	while(1) { // Robbed from copyfd.c
+	while(1) { // Robbed from bb_copyfd.c
 		nread = read_gz(in, buf, sizeof(buf));
 		if (nread == 0) break; // no data to write
 		else if (nread == -1) {
-			perror_msg("read");
+			bb_perror_msg("read");
 			return -1;
 		}
-		nwrote = full_write(out, buf, nread);
+		nwrote = bb_full_write(out, buf, nread);
 		if (nwrote == -1) {
-			perror_msg("write");
+			bb_perror_msg("write");
 			return -1;
 		}
 	}
@@ -998,9 +998,9 @@ extern int inflate(int in, int out)
 	GZ_gzReadOpen(in, 0, 0);
 	while(1) {
 		int ret = inflate_get_next_window();
-		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
+		nwrote = bb_full_write(out, gunzip_window, gunzip_outbuf_count);
 		if (nwrote == -1) {
-			perror_msg("write");
+			bb_perror_msg("write");
 			return -1;
 		}
 		if (ret == 0) break;
@@ -1017,7 +1017,7 @@ extern void check_trailer_gzip(int src_fd)
 	/* top up the input buffer with the rest of the trailer */
 	count = bytebuffer_size - bytebuffer_offset;
 	if (count < 8) {
-		xread_all(src_fd, &bytebuffer[bytebuffer_size], 8 - count);
+		bb_xread_all(src_fd, &bytebuffer[bytebuffer_size], 8 - count);
 		bytebuffer_size += 8 - count;
 	}
 	for (count = 0; count != 4; count++) {
@@ -1027,14 +1027,14 @@ extern void check_trailer_gzip(int src_fd)
 
 	/* Validate decompression - crc */
 	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
-		error_msg_and_die("crc error");
+		bb_error_msg_and_die("crc error");
 	}
 
 	/* Validate decompression - size */
 	if (gunzip_bytes_out !=
 		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
 		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
-		error_msg_and_die("Incorrect length, but crc is correct");
+		bb_error_msg_and_die("Incorrect length, but crc is correct");
 	}
 
 }

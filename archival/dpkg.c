@@ -177,7 +177,7 @@ int search_name_hashtable(const char *key)
 			}
 		}
 	}
-	name_hashtable[probe_address] = xstrdup(key);
+	name_hashtable[probe_address] = bb_xstrdup(key);
 	return(probe_address);
 }
 
@@ -218,10 +218,10 @@ int version_compare_part(const char *version1, const char *version2)
 	int ret;
 
 	if (version1 == NULL) {
-		version1 = xstrdup("");
+		version1 = bb_xstrdup("");
 	}
 	if (version2 == NULL) {
-		version2 = xstrdup("");
+		version2 = bb_xstrdup("");
 	}
 	upstream_len1 = strlen(version1);
 	upstream_len2 = strlen(version2);
@@ -229,10 +229,10 @@ int version_compare_part(const char *version1, const char *version2)
 	while ((len1 < upstream_len1) || (len2 < upstream_len2)) {
 		/* Compare non-digit section */
 		tmp_int = strcspn(&version1[len1], "0123456789");
-		name1_char = xstrndup(&version1[len1], tmp_int);
+		name1_char = bb_xstrndup(&version1[len1], tmp_int);
 		len1 += tmp_int;
 		tmp_int = strcspn(&version2[len2], "0123456789");
-		name2_char = xstrndup(&version2[len2], tmp_int);
+		name2_char = bb_xstrndup(&version2[len2], tmp_int);
 		len2 += tmp_int;
 		tmp_int = strcmp(name1_char, name2_char);
 		free(name1_char);
@@ -244,10 +244,10 @@ int version_compare_part(const char *version1, const char *version2)
 
 		/* Compare digits */
 		tmp_int = strspn(&version1[len1], "0123456789");
-		name1_char = xstrndup(&version1[len1], tmp_int);
+		name1_char = bb_xstrndup(&version1[len1], tmp_int);
 		len1 += tmp_int;
 		tmp_int = strspn(&version2[len2], "0123456789");
-		name2_char = xstrndup(&version2[len2], tmp_int);
+		name2_char = bb_xstrndup(&version2[len2], tmp_int);
 		len2 += tmp_int;
 		ver_num1 = atoi(name1_char);
 		ver_num2 = atoi(name2_char);
@@ -306,8 +306,8 @@ int version_compare(const unsigned int ver1, const unsigned int ver2)
 	}
 
 	/* Compare upstream version */
-	upstream_ver1 = xstrdup(ver1_ptr);
-	upstream_ver2 = xstrdup(ver2_ptr);
+	upstream_ver1 = bb_xstrdup(ver1_ptr);
+	upstream_ver2 = bb_xstrdup(ver2_ptr);
 
 	/* Chop off debian version, and store for later use */
 	deb_ver1 = strrchr(upstream_ver1, '-');
@@ -397,7 +397,7 @@ int search_package_hashtable(const unsigned int name, const unsigned int version
  */
 void add_split_dependencies(common_node_t *parent_node, const char *whole_line, unsigned int edge_type)
 {
-	char *line = xstrdup(whole_line);
+	char *line = bb_xstrdup(whole_line);
 	char *line2;
 	char *line_ptr1 = NULL;
 	char *line_ptr2 = NULL;
@@ -410,7 +410,7 @@ void add_split_dependencies(common_node_t *parent_node, const char *whole_line, 
 
 	field = strtok_r(line, ",", &line_ptr1);
 	do {
-		line2 = xstrdup(field);
+		line2 = bb_xstrdup(field);
 		field2 = strtok_r(line2, "|", &line_ptr2);
 		if ((edge_type == EDGE_DEPENDS) && (strcmp(field, field2) != 0)) {
 			type = EDGE_OR_DEPENDS;
@@ -457,7 +457,7 @@ void add_split_dependencies(common_node_t *parent_node, const char *whole_line, 
 					else if (strncmp(version, ">=", offset_ch) == 0) {
 						edge->operator = VER_MORE_EQUAL;
 					} else {
-						error_msg_and_die("Illegal operator\n");
+						bb_error_msg_and_die("Illegal operator\n");
 					}
 				}
 				/* skip to start of version numbers */
@@ -588,7 +588,7 @@ unsigned int get_status(const unsigned int status_node, const int num)
 		status_string += strspn(status_string, " ");
 	}
 	len = strcspn(status_string, " \n\0");
-	state_sub_string = xstrndup(status_string, len);
+	state_sub_string = bb_xstrndup(status_string, len);
 	state_sub_num = search_name_hashtable(state_sub_string);
 	free(state_sub_string);
 	return(state_sub_num);
@@ -620,7 +620,7 @@ void set_status(const unsigned int status_node_num, const char *new_value, const
 			status_len = new_value_len;
 			break;
 		default:
-			error_msg_and_die("DEBUG ONLY: this shouldnt happen");
+			bb_error_msg_and_die("DEBUG ONLY: this shouldnt happen");
 	}
 
 	new_status = (char *) xmalloc(want_len + flag_len + status_len + 3);
@@ -638,7 +638,7 @@ void index_status_file(const char *filename)
 	status_node_t *status_node = NULL;
 	unsigned int status_num;
 
-	status_file = xfopen(filename, "r");
+	status_file = bb_xfopen(filename, "r");
 	while ((control_buffer = fgets_str(status_file, "\n\n")) != NULL) {
 		const unsigned int package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
@@ -648,7 +648,7 @@ void index_status_file(const char *filename)
 			if (status_line != NULL) {
 				status_line += 7;
 				status_line += strspn(status_line, " \n\t");
-				status_line = xstrndup(status_line, strcspn(status_line, "\n\0"));
+				status_line = bb_xstrndup(status_line, strcspn(status_line, "\n\0"));
 				status_node->status = search_name_hashtable(status_line);
 				free(status_line);
 			}
@@ -754,8 +754,8 @@ void write_buffer_no_status(FILE *new_status_file, const char *control_buffer)
 /* This could do with a cleanup */
 void write_status_file(deb_file_t **deb_file)
 {
-	FILE *old_status_file = xfopen("/var/lib/dpkg/status", "r");
-	FILE *new_status_file = xfopen("/var/lib/dpkg/status.udeb", "w");
+	FILE *old_status_file = bb_xfopen("/var/lib/dpkg/status", "r");
+	FILE *new_status_file = bb_xfopen("/var/lib/dpkg/status.udeb", "w");
 	char *package_name;
 	char *status_from_file;
 	char *control_buffer = NULL;
@@ -773,14 +773,14 @@ void write_status_file(deb_file_t **deb_file)
 
 		tmp_string += 8;
  		tmp_string += strspn(tmp_string, " \n\t");
-		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
+		package_name = bb_xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
 		write_flag = FALSE;
 		tmp_string = strstr(control_buffer, "Status:");
 		if (tmp_string != NULL) {
 			/* Seperate the status value from the control buffer */
 			tmp_string += 7;
 			tmp_string += strspn(tmp_string, " \n\t");
-			status_from_file = xstrndup(tmp_string, strcspn(tmp_string, "\n"));
+			status_from_file = bb_xstrndup(tmp_string, strcspn(tmp_string, "\n"));
 		} else {
 			status_from_file = NULL;
 		}
@@ -810,7 +810,7 @@ void write_status_file(deb_file_t **deb_file)
 					}
 					/* This is temperary, debugging only */
 					if (deb_file[i] == NULL) {
-						error_msg_and_die("ALERT: Couldnt find a control file, your status file may be broken, status may be incorrect for %s", package_name);
+						bb_error_msg_and_die("ALERT: Couldnt find a control file, your status file may be broken, status may be incorrect for %s", package_name);
 					}
 				}
 				else if (strcmp("not-installed", name_hashtable[state_status]) == 0) {
@@ -881,15 +881,15 @@ void write_status_file(deb_file_t **deb_file)
 	if (rename("/var/lib/dpkg/status", "/var/lib/dpkg/status.udeb.bak") == -1) {
 		struct stat stat_buf;	
 		if (stat("/var/lib/dpkg/status", &stat_buf) == 0) {
-			error_msg_and_die("Couldnt create backup status file");
+			bb_error_msg_and_die("Couldnt create backup status file");
 		}
 		/* Its ok if renaming the status file fails becasue status 
 		 * file doesnt exist, maybe we are starting from scratch */
-		error_msg("No status file found, creating new one");
+		bb_error_msg("No status file found, creating new one");
 	}
 
 	if (rename("/var/lib/dpkg/status.udeb", "/var/lib/dpkg/status") == -1) {
-		error_msg_and_die("DANGER: Couldnt create status file, you need to manually repair your status file");
+		bb_error_msg_and_die("DANGER: Couldnt create status file, you need to manually repair your status file");
 	}
 }
 
@@ -976,7 +976,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				}
 
 				if (result) {
-					error_msg_and_die("Package %s conflicts with %s",
+					bb_error_msg_and_die("Package %s conflicts with %s",
 						name_hashtable[package_node->name],
 						name_hashtable[package_edge->name]);
 				}
@@ -1021,7 +1021,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 					}
 
 					if (result) {
-						error_msg_and_die("Package %s pre-depends on %s, but it is not installed",
+						bb_error_msg_and_die("Package %s pre-depends on %s, but it is not installed",
 							name_hashtable[package_node->name],
 							name_hashtable[package_edge->name]);
 					}
@@ -1038,7 +1038,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 					}
 					/* It must be already installed, or to be installed */
 					if (result) {
-						error_msg_and_die("Package %s depends on %s, but it is not installed, or flaged to be installed",
+						bb_error_msg_and_die("Package %s depends on %s, but it is not installed, or flaged to be installed",
 							name_hashtable[package_node->name],
 							name_hashtable[package_edge->name]);
 					}
@@ -1065,9 +1065,8 @@ char **create_list(const char *filename)
 		return(NULL);
 	}
 
-	while ((line = get_line_from_file(list_stream)) != NULL) {
+	while ((line = bb_get_chomped_line_from_file(list_stream)) != NULL) {
 		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
-		chomp(line);
 		file_list[count] = line;
 		count++;
 	}
@@ -1228,7 +1227,7 @@ void remove_package(const unsigned int package_num)
 	/* run prerm script */
 	return_value = run_package_script(package_name, "prerm");
 	if (return_value == -1) {
-		error_msg_and_die("script failed, prerm failure");
+		bb_error_msg_and_die("script failed, prerm failure");
 	}
 
 	/* Create a list of files to remove, and a seperate list of those to keep */
@@ -1245,7 +1244,7 @@ void remove_package(const unsigned int package_num)
 
 	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
 	exclude_files = xmalloc(sizeof(char*) * 3);
-	exclude_files[0] = xstrdup(conffile_name);
+	exclude_files[0] = bb_xstrdup(conffile_name);
 	exclude_files[1] = xmalloc(package_name_length + 27);
 	sprintf(exclude_files[1], "/var/lib/dpkg/info/%s.postrm", package_name);
 	exclude_files[2] = NULL;
@@ -1275,7 +1274,7 @@ void purge_package(const unsigned int package_num)
 
 	/* run prerm script */
 	if (run_package_script(package_name, "prerm") != 0) {
-		error_msg_and_die("script failed, prerm failure");
+		bb_error_msg_and_die("script failed, prerm failure");
 	}
 
 	/* Create a list of files to remove */
@@ -1297,7 +1296,7 @@ void purge_package(const unsigned int package_num)
 
 	/* run postrm script */
 	if (run_package_script(package_name, "postrm") == -1) {
-		error_msg_and_die("postrm fialure.. set status to what?");
+		bb_error_msg_and_die("postrm fialure.. set status to what?");
 	}
 
 	/* Change package status */
@@ -1312,7 +1311,7 @@ static archive_handle_t *init_archive_deb_ar(const char *filename)
 	/* Setup an ar archive handle that refers to the gzip sub archive */	
 	ar_handle = init_handle();
 	ar_handle->filter = filter_accept_list_reassign;
-	ar_handle->src_fd = xopen(filename, O_RDONLY);
+	ar_handle->src_fd = bb_xopen(filename, O_RDONLY);
 
 	return(ar_handle);	
 }
@@ -1420,7 +1419,7 @@ static void unpack_package(deb_file_t *deb_file)
 	/* Run the preinst prior to extracting */
 	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
-		error_msg_and_die("subprocess pre-installation script returned error.");
+		bb_error_msg_and_die("subprocess pre-installation script returned error.");
 	}	
 
 	/* Extract data.tar.gz to the root directory */
@@ -1430,7 +1429,7 @@ static void unpack_package(deb_file_t *deb_file)
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
-	out_stream = xfopen(info_prefix, "w");			
+	out_stream = bb_xfopen(info_prefix, "w");			
 	while (archive_handle->passed) {
 		/* blindly skip over the leading '.' */
 		fputs(archive_handle->passed->data + 1, out_stream);
@@ -1457,7 +1456,7 @@ void configure_package(deb_file_t *deb_file)
 	/* Run the postinst script */
 	if (run_package_script(package_name, "postinst") != 0) {
 		/* TODO: handle failure gracefully */
-		error_msg_and_die("postrm failure.. set status to what?");
+		bb_error_msg_and_die("postrm failure.. set status to what?");
 	}
 	/* Change status to reflect success */
 	set_status(status_num, "install", 1);
@@ -1506,12 +1505,12 @@ int dpkg_main(int argc, char **argv)
 				dpkg_opt |= dpkg_opt_filename;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 	/* check for non-otion argument if expected  */
 	if ((dpkg_opt == 0) || ((argc == optind) && !(dpkg_opt && dpkg_opt_list_installed))) {
-		show_usage();
+		bb_show_usage();
 	}
 
 /*	puts("(Reading database ... xxxxx files and directories installed.)"); */
@@ -1538,13 +1537,13 @@ int dpkg_main(int argc, char **argv)
 			init_archive_deb_control(archive_handle);
 			deb_file[deb_count]->control_file = deb_extract_control_file_to_buffer(archive_handle, control_list);
 			if (deb_file[deb_count]->control_file == NULL) {
-				error_msg_and_die("Couldnt extract control file");
+				bb_error_msg_and_die("Couldnt extract control file");
 			}
-			deb_file[deb_count]->filename = xstrdup(argv[optind]);
+			deb_file[deb_count]->filename = bb_xstrdup(argv[optind]);
 			package_num = fill_package_struct(deb_file[deb_count]->control_file);
 
 			if (package_num == -1) {
-				error_msg("Invalid control file in %s", argv[optind]);
+				bb_error_msg("Invalid control file in %s", argv[optind]);
 				continue;
 			}
 			deb_file[deb_count]->package = (unsigned int) package_num;
@@ -1574,7 +1573,7 @@ int dpkg_main(int argc, char **argv)
 				search_name_hashtable(argv[optind]),
 				search_name_hashtable("ANY"), VER_ANY);
 			if (package_hashtable[deb_file[deb_count]->package] == NULL) {
-				error_msg_and_die("Package %s is uninstalled or unknown\n", argv[optind]);
+				bb_error_msg_and_die("Package %s is uninstalled or unknown\n", argv[optind]);
 			}
 			state_status = get_status(search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]), 3);
 
@@ -1582,13 +1581,13 @@ int dpkg_main(int argc, char **argv)
 			if (dpkg_opt & dpkg_opt_remove) {
 				if ((strcmp(name_hashtable[state_status], "not-installed") == 0) ||
 					(strcmp(name_hashtable[state_status], "config-files") == 0)) {
-					error_msg_and_die("%s is already removed.", name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
+					bb_error_msg_and_die("%s is already removed.", name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
 				}
 			}
 			else if (dpkg_opt & dpkg_opt_purge) {
 				/* if package status is "conf-files" then its ok */
 				if (strcmp(name_hashtable[state_status], "not-installed") == 0) {
-					error_msg_and_die("%s is already purged.", name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
+					bb_error_msg_and_die("%s is already purged.", name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
 				}
 			}
 		}
@@ -1601,7 +1600,7 @@ int dpkg_main(int argc, char **argv)
 	/* TODO: check dependencies before removing */
 	if ((dpkg_opt & dpkg_opt_force_ignore_depends) != dpkg_opt_force_ignore_depends) {
 		if (!check_deps(deb_file, 0, deb_count)) {
-			error_msg_and_die("Dependency check failed");
+			bb_error_msg_and_die("Dependency check failed");
 		}
 	}
 

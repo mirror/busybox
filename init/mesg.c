@@ -52,7 +52,7 @@ extern int mesg_main(int argc, char *argv[])
 				return EXIT_SUCCESS;
 			}
 		}
-		perror_msg_and_die("%s", tty);
+		bb_perror_msg_and_die("%s", tty);
 	}
-	show_usage();
+	bb_show_usage();
 }

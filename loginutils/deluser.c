@@ -116,19 +116,19 @@ int delgroup_main(int argc, char **argv)
 	int failure;
 
 	if (argc != 2) {
-		show_usage();
+		bb_show_usage();
 	} else {
 
-		failure = del_line_matching(argv[1], group_file);
+		failure = del_line_matching(argv[1], bb_path_group_file);
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		if (access(gshadow_file, W_OK) == 0) {
+		if (access(bb_path_gshadow_file, W_OK) == 0) {
 			/* EDR the |= works if the error is not 0, so he had it wrong */
-			failure |= del_line_matching(argv[1], gshadow_file);
+			failure |= del_line_matching(argv[1], bb_path_gshadow_file);
 		}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
 		/* if (!successful) { */
 		if (failure) {
-			error_msg_and_die("%s: Group could not be removed\n", argv[1]);
+			bb_error_msg_and_die("%s: Group could not be removed\n", argv[1]);
 		}
 
 	}
@@ -142,38 +142,38 @@ int deluser_main(int argc, char **argv)
 	int failure;
 
 	if (argc != 2) {
-		show_usage();
+		bb_show_usage();
 	} else {
 
-		failure = del_line_matching(argv[1], passwd_file);
+		failure = del_line_matching(argv[1], bb_path_passwd_file);
 		/* if (!successful) { */
 		if (failure) {
-			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], passwd_file);
+			bb_error_msg_and_die("%s: User could not be removed from %s\n",
+							  argv[1], bb_path_passwd_file);
 		}
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		failure = del_line_matching(argv[1], shadow_file);
+		failure = del_line_matching(argv[1], bb_path_shadow_file);
 		/* if (!successful) { */
 		if (failure) {
-			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], shadow_file);
+			bb_error_msg_and_die("%s: User could not be removed from %s\n",
+							  argv[1], bb_path_shadow_file);
 		}
-		failure = del_line_matching(argv[1], gshadow_file);
+		failure = del_line_matching(argv[1], bb_path_gshadow_file);
 		/* if (!successful) { */
 		if (failure) {
-			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], gshadow_file);
+			bb_error_msg_and_die("%s: User could not be removed from %s\n",
+							  argv[1], bb_path_gshadow_file);
 		}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
-		failure = del_line_matching(argv[1], group_file);
+		failure = del_line_matching(argv[1], bb_path_group_file);
 		/* if (!successful) { */
 		if (failure) {
-			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], group_file);
+			bb_error_msg_and_die("%s: User could not be removed from %s\n",
+							  argv[1], bb_path_group_file);
 		}
 
 	}
 	return (EXIT_SUCCESS);
 }
 
-/* $Id: deluser.c,v 1.2 2002/06/23 04:24:24 andersen Exp $ */
+/* $Id: deluser.c,v 1.3 2003/03/19 09:12:20 mjn3 Exp $ */

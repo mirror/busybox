@@ -2,7 +2,6 @@
 /*
  * Mini tail implementation for busybox
  *
- *
  * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,14 +20,30 @@
  *
  */
 
+/* BB_AUDIT SUSv3 compliant (need fancy for -c) */
+/* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/tail.html */
 
-#include <fcntl.h>
-#include <getopt.h>
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Pretty much rewritten to fix numerous bugs and reduce realloc() calls.
+ * Bugs fixed (although I may have forgotten one or two... it was pretty bad)
+ * 1) mixing printf/write without fflush()ing stdout
+ * 2) no check that any open files are present
+ * 3) optstring had -q taking an arg
+ * 4) no error checking on write in some cases, and a warning even then
+ * 5) q and s interaction bug
+ * 6) no check for lseek error
+ * 7) lseek attempted when count==0 even if arg was +0 (from top)
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include "busybox.h"
 
 static const struct suffix_mult tail_suffixes[] = {
@@ -38,234 +53,287 @@ static const struct suffix_mult tail_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static const int BYTES = 0;
-static const int LINES = 1;
+static int status
+#if EXIT_SUCCESS != 0
+	= EXIT_SUCCESS	/* If it is 0 (paranoid check), let bss initialize it. */
+#endif
+	;
 
-static char *tailbuf;
-static int taillen;
-static int newline;
-
-static void tailbuf_append(char *buf, int len)
+static void tail_xprint_header(const char *fmt, const char *filename)
 {
-	tailbuf = xrealloc(tailbuf, taillen + len);
-	memcpy(tailbuf + taillen, buf, len);
-	taillen += len;
+	/* If we get an output error, there is really no sense in continuing. */
+	if (dprintf(STDOUT_FILENO, fmt, filename) < 0) {
+		bb_perror_nomsg_and_die();
+	}
 }
 
-static void tailbuf_trunc(void)
+/* len should probably be size_t */
+static void tail_xbb_full_write(const char *buf, size_t len)
 {
-	char *s;
-	s = memchr(tailbuf, '\n', taillen);
-	memmove(tailbuf, s + 1, taillen - ((s + 1) - tailbuf));
-	taillen -= (s + 1) - tailbuf;
-	newline = 0;
+	/* If we get a write error, there is really no sense in continuing. */
+	if (bb_full_write(STDOUT_FILENO, buf, len) < 0) {
+		bb_perror_nomsg_and_die();
+	}
 }
+
+static ssize_t tail_read(int fd, char *buf, size_t count)
+{
+	ssize_t r;
+
+	if ((r = safe_read(fd, buf, count)) < 0) {
+		bb_perror_msg("read");
+		status = EXIT_FAILURE;
+	}
+
+	return r;
+}
+
+static const char tail_opts[] =
+	"fn:"
+#ifdef CONFIG_FEATURE_FANCY_TAIL
+	"c:qs:v"
+#endif
+	;
+
+static const char header_fmt[] = "\n==> %s <==\n";
 
 int tail_main(int argc, char **argv)
 {
-	int from_top = 0, units = LINES, count = 10, sleep_period = 1;
-	int show_headers = 0, hide_headers = 0, follow = 0;
-	int *fds, nfiles = 0, status = EXIT_SUCCESS, nread, nwrite, seen = 0;
-	char *s, *start, *end, buf[BUFSIZ];
-	int i, opt;
+	long count = 10;
+	unsigned int sleep_period = 1;
+	int from_top = 0;
+	int follow = 0;
+	int header_threshhold = 1;
+#ifdef CONFIG_FEATURE_FANCY_TAIL
+	int count_bytes = 0;
+#endif
 
-	if (argc >= 2) {
-		int line_num;
-		switch (argv[1][0]) {
-			case '+':
-				from_top = 1;
-				/* FALLS THROUGH */
-			case '-':
-				line_num = atoi(&argv[1][1]);
-				if (line_num != 0) {
-					optind = 2;
-					count = line_num;
-				}
-				break;
-		}
+	char *tailbuf;
+	size_t tailbufsize;
+	int taillen = 0;
+	int newline = 0;
+
+	int *fds, nfiles, nread, nwrite, seen, i, opt;
+	char *s, *buf;
+	const char *fmt;
+
+	/* Allow legacy syntax of an initial numeric option without -n. */
+	if ((argv[1][0] == '+')
+		|| ((argv[1][0] == '-')
+			/* && (isdigit)(argv[1][1]) */
+			&& (((unsigned int)(argv[1][1] - '0')) <= 9))
+		) {
+		optind = 2;
+		optarg = argv[1];
+		goto GET_COUNT;
 	}
 
-#ifdef CONFIG_FEATURE_FANCY_TAIL
-	while ((opt = getopt(argc, argv, "c:fn:q:s:v")) > 0) {
-#else
-	while ((opt = getopt(argc, argv, "fn:")) > 0) {
-#endif
+	while ((opt = getopt(argc, argv, tail_opts)) > 0) {
 		switch (opt) {
 			case 'f':
 				follow = 1;
 				break;
 #ifdef CONFIG_FEATURE_FANCY_TAIL
 			case 'c':
-				units = BYTES;
+				count_bytes = 1;
 				/* FALLS THROUGH */
 #endif
 			case 'n':
-				count = parse_number(optarg, tail_suffixes);
-				if (count < 0)
-					count = -count;
-				if (optarg[0] == '+')
+			GET_COUNT:
+				count = bb_xgetlarg10_sfx(optarg, tail_suffixes);
+				/* Note: Leading whitespace is an error trapped above. */
+				if (*optarg == '+') {
 					from_top = 1;
+				} else {
+					from_top = 0;
+				}
+				if (count < 0) {
+					count = -count;
+				}
 				break;
 #ifdef CONFIG_FEATURE_FANCY_TAIL
 			case 'q':
-				hide_headers = 1;
+				header_threshhold = INT_MAX;
 				break;
 			case 's':
-				sleep_period = parse_number(optarg, 0);
+				sleep_period =bb_xgetularg10_bnd(optarg, 0, UINT_MAX);
 				break;
 			case 'v':
-				show_headers = 1;
+				header_threshhold = 0;
 				break;
 #endif
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	/* open all the files */
 	fds = (int *)xmalloc(sizeof(int) * (argc - optind + 1));
-	if (argc == optind) {
-		fds[nfiles++] = STDIN_FILENO;
-		argv[optind] = "standard input";
-	} else {
-		for (i = optind; i < argc; i++) {
-			if (strcmp(argv[i], "-") == 0) {
-				fds[nfiles++] = STDIN_FILENO;
-				argv[i] = "standard input";
-			} else if ((fds[nfiles++] = open(argv[i], O_RDONLY)) < 0) {
-				perror_msg("%s", argv[i]);
-				status = EXIT_FAILURE;
-			}
+
+	argv += optind;
+	nfiles = i = 0;
+
+	if ((argc -= optind) == 0) {
+		struct stat statbuf;
+
+		if (!fstat(STDIN_FILENO, &statbuf) && S_ISFIFO(statbuf.st_mode)) {
+			follow = 0;
 		}
+		/* --argv; */
+		*argv = (char *) bb_msg_standard_input;
+		goto DO_STDIN;
 	}
-	
+
+	do {
+		if ((argv[i][0] == '-') && !argv[i][1]) {
+		DO_STDIN:
+			fds[nfiles] = STDIN_FILENO;
+		} else if ((fds[nfiles] = open(argv[i], O_RDONLY)) < 0) {
+			bb_perror_msg("%s", argv[i]);
+			status = EXIT_FAILURE;
+			continue;
+		}
+		argv[nfiles] = argv[i];
+		++nfiles;
+	} while (++i < argc);
+
+	if (!nfiles) {
+		bb_error_msg_and_die("no files");
+	}
+
+	tailbufsize = BUFSIZ;
 #ifdef CONFIG_FEATURE_FANCY_TAIL
 	/* tail the files */
-	if (!from_top && units == BYTES)
-		tailbuf = xmalloc(count);
+	if (from_top < count_bytes) {	/* Each is 0 or 1, so true iff 0 < 1. */
+		/* Hence, !from_top && count_bytes */
+		if (tailbufsize < count) {
+			tailbufsize = count + BUFSIZ;
+		}
+	}
 #endif
+	buf = tailbuf = xmalloc(tailbufsize);
 
-	for (i = 0; i < nfiles; i++) {
-		if (fds[i] == -1)
-			continue;
-		if (!count) {
-			lseek(fds[i], 0, SEEK_END);
+	fmt = header_fmt + 1;	/* Skip header leading newline on first output. */
+	i = 0;
+	do {
+		/* Be careful.  It would be possible to optimize the count-bytes
+		 * case if the file is seekable.  If you do though, remember that
+		 * starting file position may not be the beginning of the file.
+		 * Beware of backing up too far.  See example in wc.c.
+		 */
+		if ((!(count|from_top)) && (lseek(fds[i], 0, SEEK_END) >= 0)) {
 			continue;
 		}
-		seen = 0;
-		if (show_headers || (!hide_headers && nfiles > 1))
-			printf("%s==> %s <==\n", i == 0 ? "" : "\n", argv[optind + i]);
-		while ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0) {
+
+		if (nfiles > header_threshhold) {
+			tail_xprint_header(fmt, argv[i]);
+			fmt = header_fmt;
+		}
+
+		buf = tailbuf;
+		taillen = 0;
+		seen = 1;
+
+		while ((nread = tail_read(fds[i], buf, tailbufsize-taillen)) > 0) {
 			if (from_top) {
+				nwrite = nread;
+				if (seen < count) {
 #ifdef CONFIG_FEATURE_FANCY_TAIL
-				if (units == BYTES) {
-					if (count - 1 <= seen)
-						nwrite = nread;
-					else if (count - 1 <= seen + nread)
-						nwrite = nread + seen - (count - 1);
-					else
-						nwrite = 0;
-					seen += nread;
-				} else {
-#else
-				{
+					if (count_bytes) {
+						nwrite -= (count - seen);
+						seen = count;
+					} else
 #endif
-					if (count - 1 <= seen)
-						nwrite = nread;
-					else {
-						nwrite = 0;
-						for (s = memchr(buf, '\n', nread); s != NULL;
-								s = memchr(s+1, '\n', nread - (s + 1 - buf))) {
-							if (count - 1 <= ++seen) {
-								nwrite = nread - (s + 1 - buf);
+					{
+						s = buf;
+						do {
+							--nwrite;
+							if ((*s++ == '\n') && (++seen == count)) {
 								break;
 							}
+						} while (nwrite);
+					}
+				}
+				tail_xbb_full_write(buf + nread - nwrite, nwrite);
+			} else if (count) {
+#ifdef CONFIG_FEATURE_FANCY_TAIL
+				if (count_bytes) {
+					taillen += nread;
+					if (taillen > count) {
+						memmove(tailbuf, tailbuf + taillen - count, count);
+						taillen = count;
+					}
+				} else
+#endif
+				{
+					int k = nread;
+					int nbuf = 0;
+
+					while (k) {
+						--k;
+						if (buf[k] == '\n') {
+							++nbuf;
 						}
 					}
-				}
-				if (full_write(STDOUT_FILENO, buf + nread - nwrite,
-							nwrite) < 0) {
-					perror_msg("write");
-					status = EXIT_FAILURE;
-					break;
-				}
-			} else {
-#ifdef CONFIG_FEATURE_FANCY_TAIL
-				if (units == BYTES) {
-					if (nread < count) {
-						memmove(tailbuf, tailbuf + nread, count - nread);
-						memcpy(tailbuf + count - nread, buf, nread);
+
+					if (newline + nbuf < count) {
+						newline += nbuf;
+						taillen += nread;
+
 					} else {
-						memcpy(tailbuf, buf + nread - count, count);
+						int extra = 0;
+						if (buf[nread-1] != '\n') {
+							extra = 1;
+						}
+
+						k = newline + nbuf + extra - count;
+						s = tailbuf;
+						while (k) {
+							if (*s == '\n') {
+								--k;
+							}
+							++s;
+						}
+
+						taillen += nread - (s - tailbuf);
+						memmove(tailbuf, s, taillen);
+						newline = count - extra;
 					}
-					seen += nread;
-				} else {
-#else
-				{
-#endif
-					for (start = buf, end = memchr(buf, '\n', nread);
-							end != NULL; start = end+1,
-							end = memchr(start, '\n', nread - (start - buf))) {
-						if (newline && count <= seen)
-							tailbuf_trunc();
-						tailbuf_append(start, end - start + 1);
-						seen++;
-						newline = 1;
+					if (tailbufsize < taillen + BUFSIZ) {
+						tailbufsize = taillen + BUFSIZ;
+						tailbuf = xrealloc(tailbuf, tailbufsize);
 					}
-					if (newline && count <= seen && nread - (start - buf) > 0)
-						tailbuf_trunc();
-					tailbuf_append(start, nread - (start - buf));
 				}
+				buf = tailbuf + taillen;
 			}
 		}
 
-		if (nread < 0) {
-			perror_msg("read");
-			status = EXIT_FAILURE;
-		}
-
-#ifdef CONFIG_FEATURE_FANCY_TAIL
-		if (!from_top && units == BYTES) {
-			if (count < seen)
-				seen = count;
-			if (full_write(STDOUT_FILENO, tailbuf + count - seen, seen) < 0) {
-				perror_msg("write");
-				status = EXIT_FAILURE;
-			}
-		}
-#endif
-
-		if (!from_top && units == LINES) {
-			if (full_write(STDOUT_FILENO, tailbuf, taillen) < 0) {
-				perror_msg("write");
-				status = EXIT_FAILURE;
-			}
+		if (!from_top) {
+			tail_xbb_full_write(tailbuf, taillen);
 		}
 
 		taillen = 0;
-	}
+	} while (++i < nfiles);
+
+	buf = xrealloc(tailbuf, BUFSIZ);
+
+	fmt = NULL;
 
 	while (follow) {
 		sleep(sleep_period);
-
-		for (i = 0; i < nfiles; i++) {
-			if (fds[i] == -1)
-				continue;
-
-			if ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0) {
-				if (show_headers || (!hide_headers && nfiles > 1))
-					printf("\n==> %s <==\n", argv[optind + i]);
-
-				do {
-					full_write(STDOUT_FILENO, buf, nread);
-				} while ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0);
+		i = 0;
+		do {
+			if (nfiles > header_threshhold) {
+				fmt = header_fmt;
 			}
-
-			if (nread < 0) {
-				perror_msg("read");
-				status = EXIT_FAILURE;
+			while ((nread = tail_read(fds[i], buf, sizeof(buf))) > 0) {
+				if (fmt) {
+					tail_xprint_header(fmt, argv[i]);
+					fmt = NULL;
+				}
+				tail_xbb_full_write(buf, nread);
 			}
-		}
+		} while (++i < nfiles);
 	}
 
 	return status;

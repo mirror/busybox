@@ -48,12 +48,12 @@ int dumpkmap_main(int argc, char **argv)
 	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap";
 
 	if (argc>=2 && *argv[1]=='-') {
-		show_usage();
+		bb_show_usage();
 	}
 
 	fd = open(CURRENT_VC, O_RDWR);
 	if (fd < 0) {
-		perror_msg("Error opening " CURRENT_VC);
+		bb_perror_msg("Error opening " CURRENT_VC);
 		return EXIT_FAILURE;
 	}
 
@@ -81,7 +81,7 @@ int dumpkmap_main(int argc, char **argv)
 				ke.kb_table = i;
 				if (ioctl(fd, KDGKBENT, &ke) < 0) {
 				
-					error_msg("ioctl returned: %m, %s, %s, %xqq", (char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
+					bb_error_msg("ioctl returned: %m, %s, %s, %xqq", (char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
 					}
 				else {
 					write(1,(void*)&ke.kb_value,2);	

@@ -32,7 +32,7 @@ void syslog_msg_with_name(const char *name, int facility, int pri, const char *m
 
 void syslog_msg(int facility, int pri, const char *msg)
 {
- 	syslog_msg_with_name(applet_name, facility, pri, msg);
+ 	syslog_msg_with_name(bb_applet_name, facility, pri, msg);
 }
 
 /* END CODE */

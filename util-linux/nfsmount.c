@@ -357,7 +357,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	msock = fsock = -1;
 	mclient = NULL;
 	if (strlen(spec) >= sizeof(hostdir)) {
-		error_msg("excessively long host:dir argument");
+		bb_error_msg("excessively long host:dir argument");
 		goto fail;
 	}
 	strcpy(hostdir, spec);
@@ -369,10 +369,10 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		   until they can be fully supported. (mack@sgi.com) */
 		if ((s = strchr(hostdir, ','))) {
 			*s = '\0';
-			error_msg("warning: multiple hostnames not supported");
+			bb_error_msg("warning: multiple hostnames not supported");
 		}
 	} else {
-		error_msg("directory to mount not in host:dir format");
+		bb_error_msg("directory to mount not in host:dir format");
 		goto fail;
 	}
 
@@ -382,11 +382,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 	{
 		if ((hp = gethostbyname(hostname)) == NULL) {
-			herror_msg("%s", hostname);
+			bb_herror_msg("%s", hostname);
 			goto fail;
 		} else {
 			if (hp->h_length > sizeof(struct in_addr)) {
-				error_msg("got bad hp->h_length");
+				bb_error_msg("got bad hp->h_length");
 				hp->h_length = sizeof(struct in_addr);
 			}
 			memcpy(&server_addr.sin_addr,
@@ -403,12 +403,12 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (!old_opts)
 		old_opts = "";
 	if (strlen(old_opts) + strlen(s) + 10 >= sizeof(new_opts)) {
-		error_msg("excessively long option argument");
+		bb_error_msg("excessively long option argument");
 		goto fail;
 	}
 	sprintf(new_opts, "%s%saddr=%s",
 		old_opts, *old_opts ? "," : "", s);
-	*extra_opts = xstrdup(new_opts);
+	*extra_opts = bb_xstrdup(new_opts);
 
 	/* Set default options.
 	 * rsize/wsize (and bsize, for ver >= 3) are left 0 in order to
@@ -476,7 +476,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			else if (!strcmp(opt, "mountport"))
 			        mountport = val;
 			else if (!strcmp(opt, "mounthost"))
-			        mounthost=xstrndup(opteq+1,
+			        mounthost=bb_xstrndup(opteq+1,
 						  strcspn(opteq+1," \t\n\r,"));
 			else if (!strcmp(opt, "mountprog"))
 				mountprog = val;
@@ -563,11 +563,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
 #endif
 	if (nfsvers > MAX_NFSPROT) {
-		error_msg("NFSv%d not supported!", nfsvers);
+		bb_error_msg("NFSv%d not supported!", nfsvers);
 		return 0;
 	}
 	if (mountvers > MAX_NFSPROT) {
-		error_msg("NFSv%d not supported!", nfsvers);
+		bb_error_msg("NFSv%d not supported!", nfsvers);
 		return 0;
 	}
 	if (nfsvers && !mountvers)
@@ -627,11 +627,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	    mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
 	  } else {
 		  if ((hp = gethostbyname(mounthost)) == NULL) {
-			  herror_msg("%s", mounthost);
+			  bb_herror_msg("%s", mounthost);
 			  goto fail;
 		  } else {
 			  if (hp->h_length > sizeof(struct in_addr)) {
-				  error_msg("got bad hp->h_length?");
+				  bb_error_msg("got bad hp->h_length?");
 				  hp->h_length = sizeof(struct in_addr);
 			  }
 			  mount_server_addr.sin_family = AF_INET;
@@ -753,7 +753,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		if (!bg)
 		        goto fail;
 		if (!running_bg) {
-			prev_bg_host = xstrdup(hostname);
+			prev_bg_host = bb_xstrdup(hostname);
 			if (retry > 0)
 				retval = EX_BG;
 			goto fail;
@@ -766,7 +766,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	if (nfsvers == 2) {
 		if (status.nfsv2.fhs_status != 0) {
-			error_msg("%s:%s failed, reason given by server: %s",
+			bb_error_msg("%s:%s failed, reason given by server: %s",
 				hostname, pathname,
 				nfs_strerror(status.nfsv2.fhs_status));
 			goto fail;
@@ -784,7 +784,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #if NFS_MOUNT_VERSION >= 4
 		fhandle3 *my_fhandle;
 		if (status.nfsv3.fhs_status != 0) {
-			error_msg("%s:%s failed, reason given by server: %s",
+			bb_error_msg("%s:%s failed, reason given by server: %s",
 				hostname, pathname,
 				nfs_strerror(status.nfsv3.fhs_status));
 			goto fail;

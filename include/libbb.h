@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <termios.h>
 
 #include <netdb.h>
 
@@ -86,83 +87,131 @@ char *strtok_r(char *s, const char *delim, char **ptrptr);
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
-extern void show_usage(void) __attribute__ ((noreturn));
-extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-extern void perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-extern void vherror_msg(const char *s, va_list p);
-extern void herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-extern void herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void bb_show_usage(void) __attribute__ ((noreturn));
+extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void bb_vherror_msg(const char *s, va_list p);
+extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+
+extern void bb_perror_nomsg_and_die(void) __attribute__ ((noreturn));
+extern void bb_perror_nomsg(void);
 
 /* These two are used internally -- you shouldn't need to use them */
-extern void verror_msg(const char *s, va_list p);
-extern void vperror_msg(const char *s, va_list p);
+extern void bb_verror_msg(const char *s, va_list p) __attribute__ ((format (printf, 1, 0)));
+extern void bb_vperror_msg(const char *s, va_list p)  __attribute__ ((format (printf, 1, 0)));
 
-const char *mode_string(int mode);
-const char *time_string(time_t timeVal);
-int is_directory(const char *name, int followLinks, struct stat *statBuf);
-int isDevice(const char *name);
+extern const char *bb_mode_string(int mode);
+extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
 
-int remove_file(const char *path, int flags);
-int copy_file(const char *source, const char *dest, int flags);
-int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize);
-char *buildName(const char *dirName, const char *fileName);
-int makeString(int argc, const char **argv, char *buf, int bufLen);
-char *getChunk(int size);
-char *chunkstrdup(const char *str);
-void freeChunks(void);
-ssize_t safe_read(int fd, void *buf, size_t count);
-int full_write(int fd, const char *buf, int len);
-int full_read(int fd, char *buf, int len);
-int recursive_action(const char *fileName, int recurse, int followLinks, int depthFirst,
+extern int remove_file(const char *path, int flags);
+extern int copy_file(const char *source, const char *dest, int flags);
+extern ssize_t safe_read(int fd, void *buf, size_t count);
+extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
+extern ssize_t bb_full_read(int fd, void *buf, size_t len);
+extern int recursive_action(const char *fileName, int recurse,
+	  int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  void* userData);
 
-extern int parse_mode( const char* s, mode_t* theMode);
+extern int bb_parse_mode( const char* s, mode_t* theMode);
 extern long bb_xgetlarg(char *arg, int base, long lower, long upper);
+
+extern unsigned long bb_baud_to_value(speed_t speed);
+extern speed_t bb_value_to_baud(unsigned long value);
 
 extern int get_kernel_revision(void);
 
 extern int get_console_fd(void);
 extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
-	char* filesystemType, long flags, char* string_flags);
+					   char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
-extern long atoi_w_units (const char *cp);
-extern long* find_pid_by_name( const char* pidName);
+extern long *find_pid_by_name( const char* pidName);
 extern char *find_real_root_device_name(const char* name);
-extern char *get_line_from_file(FILE *file);
-extern void print_file(FILE *file);
-extern int copyfd(int fd1, int fd2, const off_t chunksize);
-extern int print_file_by_name(char *filename);
-extern char process_escape_sequence(const char **ptr);
-extern char *get_last_path_component(char *path);
-extern FILE *wfopen(const char *path, const char *mode);
-extern FILE *xfopen(const char *path, const char *mode);
+extern char *bb_get_line_from_file(FILE *file);
+extern char *bb_get_chomped_line_from_file(FILE *file);
+extern int   bb_copyfd(int fd1, int fd2, const off_t chunksize);
+extern void  bb_xprint_and_close_file(FILE *file);
+extern int   bb_xprint_file_by_name(const char *filename);
+extern char  bb_process_escape_sequence(const char **ptr);
+extern char *bb_get_last_path_component(char *path);
+extern FILE *bb_wfopen(const char *path, const char *mode);
+extern FILE *bb_xfopen(const char *path, const char *mode);
+
+//#warning rename?
+extern int   bb_fclose_nonstdin(FILE *f);
+extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
+extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts);
+//#warning rename?
+extern FILE *bb_wfopen_input(const char *filename);
+
+extern int bb_vfprintf(FILE * __restrict stream, const char * __restrict format,
+					   va_list arg) __attribute__ ((format (printf, 2, 0)));
+extern int bb_vprintf(const char * __restrict format, va_list arg)
+	__attribute__ ((format (printf, 1, 0)));
+extern int bb_fprintf(FILE * __restrict stream, const char * __restrict format, ...)
+	__attribute__ ((format (printf, 2, 3)));
+extern int bb_printf(const char * __restrict format, ...)
+	__attribute__ ((format (printf, 1, 2)));
+
+//#warning rename to xferror_filename?
+extern void bb_xferror(FILE *fp, const char *fn);
+extern void bb_xferror_stdout(void);
+extern void bb_xfflush_stdout(void);
+
+extern void bb_warn_ignoring_args(int n);
+
 extern void chomp(char *s);
 extern void trim(char *s);
+extern const char *bb_skip_whitespace(const char *);
+
 extern struct BB_applet *find_applet_by_name(const char *name);
 void run_applet_by_name(const char *name, int argc, char **argv);
 
+//#warning is this needed anymore?
 #ifndef DMALLOC
 extern void *xmalloc (size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
-extern char *xstrdup (const char *s);
+extern char *bb_xstrdup (const char *s);
 #endif
-extern char *xstrndup (const char *s, int n);
+extern char *bb_xstrndup (const char *s, int n);
 extern char * safe_strncpy(char *dst, const char *src, size_t size);
 
 struct suffix_mult {
 	const char *suffix;
-	int mult;
+	unsigned int mult;
 };
 
-extern unsigned long parse_number(const char *numstr,
+extern unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
+										  unsigned long lower,
+										  unsigned long upper,
+										  const struct suffix_mult *suffixes);
+extern unsigned long bb_xgetularg_bnd(const char *arg, int base,
+									  unsigned long lower,
+									  unsigned long upper);
+extern unsigned long bb_xgetularg10_bnd(const char *arg,
+										unsigned long lower,
+										unsigned long upper);
+extern unsigned long bb_xgetularg10(const char *arg);
+
+extern long bb_xgetlarg_bnd_sfx(const char *arg, int base,
+								long lower,
+								long upper,
+								const struct suffix_mult *suffixes);
+extern long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes);
+
+
+//#warning pitchable now?
+extern unsigned long bb_xparse_number(const char *numstr,
 		const struct suffix_mult *suffixes);
 
+
+//#warning change names?
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
@@ -217,7 +266,7 @@ enum {
 };
 const char *make_human_readable_str(unsigned long size, unsigned long block_size, unsigned long display_unit);
 
-int ask_confirmation(void);
+int bb_ask_confirmation(void);
 int klogctl(int type, char * b, int len);
 
 char *xgetcwd(char *cwd);
@@ -228,6 +277,7 @@ char *last_char_is(const char *s, int c);
 extern long arith (const char *startbuf, int *errcode);
 
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);
+//#warning yuk!
 char *fgets_str(FILE *file, const char *terminating_string);
 
 extern int uncompress(int fd_in, int fd_out);
@@ -239,19 +289,15 @@ extern int create_icmp_socket(void);
 extern int create_icmp6_socket(void);
 extern int xconnect(const char *host, const char *port);
 
+//#warning wrap this?
 char *dirname (char *path);
 
-int make_directory (char *path, long mode, int flags);
+int bb_make_directory (char *path, long mode, int flags);
 
 const char *u_signal_names(const char *str_sig, int *signo, int startnum);
-char *simplify_path(const char *path);
+char *bb_simplify_path(const char *path);
 
-#define CT_AUTO	0
-#define CT_UNIX2DOS	1
-#define CT_DOS2UNIX	2
-/* extern int convert(char *fn, int ConvType); */
-
-enum {
+enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
 	FILEUTILS_PRESERVE_STATUS = 1,
 	FILEUTILS_DEREFERENCE = 2,
 	FILEUTILS_RECUR = 4,
@@ -259,29 +305,31 @@ enum {
 	FILEUTILS_INTERACTIVE = 16
 };
 
-extern const char *applet_name;
-extern const char * const full_version;
-extern const char * const name_too_long;
-extern const char * const omitting_directory;
-extern const char * const not_a_directory;
-extern const char * const memory_exhausted;
-extern const char * const invalid_date;
-extern const char * const invalid_option;
-extern const char * const io_error;
-extern const char * const dash_dash_help;
-extern const char * const write_error;
-extern const char * const too_few_args;
-extern const char * const name_longer_than_foo;
-extern const char * const unknown;
-extern const char * const can_not_create_raw_socket;
-extern const char * const nologin_file;
-extern const char * const passwd_file;
-extern const char * const shadow_file;
-extern const char * const gshadow_file;
-extern const char * const group_file;
-extern const char * const securetty_file;
-extern const char * const motd_file;
-extern const char * const _path_login;
+extern const char *bb_applet_name;
+
+extern const char * const bb_msg_full_version;
+extern const char * const bb_msg_memory_exhausted;
+extern const char * const bb_msg_invalid_date;
+extern const char * const bb_msg_io_error;
+extern const char * const bb_msg_write_error;
+extern const char * const bb_msg_name_longer_than_foo;
+extern const char * const bb_msg_unknown;
+extern const char * const bb_msg_can_not_create_raw_socket;
+extern const char * const bb_msg_perm_denied_are_you_root;
+extern const char * const bb_msg_standard_input;
+extern const char * const bb_msg_standard_output;
+
+extern const char * const bb_path_nologin_file;
+extern const char * const bb_path_passwd_file;
+extern const char * const bb_path_shadow_file;
+extern const char * const bb_path_gshadow_file;
+extern const char * const bb_path_group_file;
+extern const char * const bb_path_securetty_file;
+extern const char * const bb_path_motd_file;
+
+extern const char bb_path_mtab_file[];
+
+extern int bb_default_error_retval;
 
 #ifdef CONFIG_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"
@@ -309,6 +357,8 @@ extern const char * const _path_login;
 # define LOOP_FORMAT "/dev/loop%d"
 #endif
 
+//#warning put these in .o files
+
 /* The following devices are the same on devfs and non-devfs systems.  */
 #define CURRENT_TTY "/dev/tty"
 #define CONSOLE_DEV "/dev/console"
@@ -318,10 +368,10 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
 /* Stupid gcc always includes its own builtin strlen()... */
-extern size_t xstrlen(const char *string);
-#define strlen(x)   xstrlen(x)
+extern size_t bb_strlen(const char *string);
+#define strlen(x)   bb_strlen(x)
 
-void bb_asprintf(char **string_ptr, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+void bb_xasprintf(char **string_ptr, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
 
 #define FAIL_DELAY    3
@@ -335,10 +385,10 @@ extern char *pw_encrypt(const char *clear, const char *salt);
 extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
-extern int xopen(const char *pathname, int flags);
-extern ssize_t xread(int fd, void *buf, size_t count);
-extern void xread_all(int fd, void *buf, size_t count);
-extern unsigned char xread_char(int fd);
+extern int bb_xopen(const char *pathname, int flags);
+extern ssize_t bb_xread(int fd, void *buf, size_t count);
+extern void bb_xread_all(int fd, void *buf, size_t count);
+extern unsigned char bb_xread_char(int fd);
 
 typedef struct {
 	int pid;

@@ -24,67 +24,84 @@
  *
  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* BB_AUDIT GNU defects - unsupported options -c, -f, -v, and long options. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/chmod.html */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <sys/stat.h>
 #include "busybox.h"
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (!parse_mode((char *)junk, &(statbuf->st_mode)))
-		error_msg_and_die( "unknown mode: %s", (char *)junk);
+	if (!bb_parse_mode((char *)junk, &(statbuf->st_mode)))
+		bb_error_msg_and_die( "unknown mode: %s", (char *)junk);
 	if (chmod(fileName, statbuf->st_mode) == 0)
 		return (TRUE);
-	perror(fileName);
+	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
 	return (FALSE);
 }
 
 int chmod_main(int argc, char **argv)
 {
-	int opt;
+	int retval = EXIT_SUCCESS;
 	int recursiveFlag = FALSE;
-	int modeind = 0;   /* Index of the mode argument in `argv'. */
+	int count;
 	char *smode;
-	static const char chmod_modes[] = "Rrwxstugoa,+-=";
+	char **p;
+	char *p0;
+	char opt = '-';
 
-	/* do normal option parsing */
-	while (1) {
-		int thisind = optind ? optind : 1;
+	++argv;
+	count = 0;
 
-		opt = getopt(argc, argv, chmod_modes);
-		if (opt == EOF)
-				break;
-		smode = strchr(chmod_modes, opt);
-		if(smode == NULL)
-				show_usage();
-		if(smode == chmod_modes) {      /* 'R' */
-			recursiveFlag = TRUE;
-		} else {
-		      if (modeind != 0 && modeind != thisind)
-			show_usage();
-		      modeind = thisind;
+	for (p = argv  ; *p ; p++) {
+		p0 = p[0];
+		if (p0[0] == opt) {
+			if ((p0[1] == '-') && !p0[2]) {
+				opt = 0;	/* Disable further option processing. */
+				continue;
+			}
+			if (p0[1] == 'R') {
+				char *s = p0 + 2;
+				while (*s == 'R') {
+					++s;
+				}
+				if (*s) {
+					bb_show_usage();
+				}
+				recursiveFlag = TRUE;
+				continue;
+			}
+			if (count) {
+				bb_show_usage();
+			}
 		}
+		argv[count] = p0;
+		++count;
 	}
 
-	if (modeind == 0)
-		modeind = optind++;
+	argv[count] = NULL;
 
-	opt = optind;
-	if (opt >= argc) {
-		error_msg_and_die(too_few_args);
+	if (count < 2) {
+		bb_show_usage();
 	}
 
-	smode = argv[modeind];
+	smode = *argv;
+	++argv;
+
 	/* Ok, ready to do the deed now */
-	for (; opt < argc; opt++) {
-		if (! recursive_action (argv[opt], recursiveFlag, FALSE, FALSE, fileAction,
-					fileAction, smode)) {
-			return EXIT_FAILURE;
+	do {
+		if (! recursive_action (*argv, recursiveFlag, FALSE, FALSE,
+								fileAction,	fileAction, smode)) {
+			retval = EXIT_FAILURE;
 		}
-	}
-	return EXIT_SUCCESS;
+	} while (*++argv);
+
+	return retval;
 }
 
 /*

@@ -1,3 +1,27 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * vconfig implementation for busybox
+ *
+ * Copyright (C) 2001  Manuel Novoa III  <mjn3@codepoet.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
+/* BB_AUDIT SUSv3 N/A */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -11,29 +35,14 @@
 #define VLAN_GROUP_ARRAY_LEN 4096
 #define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options 	*/
 
-/* This is rather specialized in that we're passing a 'char **' in
- * order to avoid the pointer dereference multiple times in the
- * actual calls below. */
-static unsigned long xstrtoul10(char **str, unsigned long max_val)
-{
-	char *endptr;
-	unsigned long r;
-
-	r = strtoul(str[2], &endptr, 10);
-	if ((r > max_val) || (*endptr != 0)) {
-		show_usage();
-	}
-	return r;
-}
-
 /* On entry, table points to the length of the current string plus
- * nul terminator plus data lenght for the subsequent entry.  The
+ * nul terminator plus data length for the subsequent entry.  The
  * return value is the last data entry for the matching string. */
 static const char *xfind_str(const char *table, const char *str)
 {
 	while (strcasecmp(str, table+1) != 0) {
 		if (!*(table += table[0])) {
-			show_usage();
+			bb_show_usage();
 		}
 	}
 	return table - 1;
@@ -89,12 +98,12 @@ int vconfig_main(int argc, char **argv)
 	int fd;
 
 	if (argc < 3) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	/* Don't bother closing the filedes.  It will be closed on cleanup. */
 	if (open(conf_file_name, O_RDONLY) < 0) { /* Is 802.1q is present? */
-	    perror_msg_and_die("open %s", conf_file_name);
+	    bb_perror_msg_and_die("open %s", conf_file_name);
 	}
 
 	memset(&ifr, 0, sizeof(struct vlan_ioctl_args));
@@ -103,16 +112,17 @@ int vconfig_main(int argc, char **argv)
 	p = xfind_str(cmds+2, *argv);
 	ifr.cmd = *p;
 	if (argc != p[-1]) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	if (ifr.cmd == SET_VLAN_NAME_TYPE_CMD) { /* set_name_type */
 		ifr.u.name_type = *xfind_str(name_types+1, argv[1]);
 	} else {
 		if (strlen(argv[1]) >= IF_NAMESIZE) {
-			error_msg_and_die("if_name >= %d chars\n", IF_NAMESIZE);
+			bb_error_msg_and_die("if_name >= %d chars\n", IF_NAMESIZE);
 		}
 		strcpy(ifr.device1, argv[1]);
+		p = argv[2];
 
 		/* I suppose one could try to combine some of the function calls below,
 		 * since ifr.u.flag, ifr.u.VID, and ifr.u.skb_priority are all same-sized
@@ -120,19 +130,19 @@ int vconfig_main(int argc, char **argv)
 		 * doing so wouldn't save that much space and would also make maintainence
 		 * more of a pain. */
 		if (ifr.cmd == SET_VLAN_FLAG_CMD) { /* set_flag */
-			ifr.u.flag = xstrtoul10(argv, 1);
+			ifr.u.flag = bb_xgetularg10_bnd(p, 0, 1);
 		} else if (ifr.cmd == ADD_VLAN_CMD) { /* add */
-			ifr.u.VID = xstrtoul10(argv, VLAN_GROUP_ARRAY_LEN-1);
+			ifr.u.VID = bb_xgetularg10_bnd(p, 0, VLAN_GROUP_ARRAY_LEN-1);
 		} else if (ifr.cmd != DEL_VLAN_CMD) { /* set_{egress|ingress}_map */
-			ifr.u.skb_priority = xstrtoul10(argv, ULONG_MAX);
-			ifr.vlan_qos = xstrtoul10(argv+1, 7);
+			ifr.u.skb_priority = bb_xgetularg10_bnd(p, 0, ULONG_MAX);
+			ifr.vlan_qos = bb_xgetularg10_bnd(argv[3], 0, 7);
 		}
 	}
 
 	if (((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		|| (ioctl(fd, SIOCSIFVLAN, &ifr) < 0)
 		) {
-		perror_msg_and_die("socket or ioctl error for %s", *argv);
+		bb_perror_msg_and_die("socket or ioctl error for %s", *argv);
 	}
 
 	return 0;

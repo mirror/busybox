@@ -61,7 +61,7 @@ crontab_main(int ac, char **av)
 
     UserId = getuid();
     if ((pas = getpwuid(UserId)) == NULL)
-	perror_msg_and_die("getpwuid");
+	bb_perror_msg_and_die("getpwuid");
 
     strncpy(caller, pas->pw_name, sizeof(caller));
 
@@ -105,10 +105,10 @@ crontab_main(int ac, char **av)
 		    if (pas) {
 			UserId = pas->pw_uid;
 		    } else {
-			error_msg_and_die("user %s unknown", av[i]);
+			bb_error_msg_and_die("user %s unknown", av[i]);
 		    }
 		} else {
-		    error_msg_and_die("only the superuser may specify a user");
+		    bb_error_msg_and_die("only the superuser may specify a user");
 		}
 	    }
 	    break;
@@ -116,7 +116,7 @@ crontab_main(int ac, char **av)
 	    if (getuid() == geteuid()) {
 		CDir = (*ptr) ? ptr : av[++i];
 	    } else {
-		error_msg_and_die("-c option: superuser only");
+		bb_error_msg_and_die("-c option: superuser only");
 	    }
 	    break;
 	default:
@@ -125,14 +125,14 @@ crontab_main(int ac, char **av)
 	}
     }
     if (i != ac || option == NONE)
-	show_usage();
+	bb_show_usage();
 
     /*
      * Get password entry
      */
 
     if ((pas = getpwuid(UserId)) == NULL)
-	perror_msg_and_die("getpwuid");
+	bb_perror_msg_and_die("getpwuid");
 
     /*
      * If there is a replacement file, obtain a secure descriptor to it.
@@ -141,7 +141,7 @@ crontab_main(int ac, char **av)
     if (repFile) {
 	repFd = GetReplaceStream(caller, repFile);
 	if (repFd < 0)
-	    error_msg_and_die("unable to read replacement file");
+	    bb_error_msg_and_die("unable to read replacement file");
     }
 
     /*
@@ -149,7 +149,7 @@ crontab_main(int ac, char **av)
      */
 
     if (chdir(CDir) < 0)
-	perror_msg_and_die("cannot change dir to %s", CDir);
+	bb_perror_msg_and_die("cannot change dir to %s", CDir);
 
     /*
      * Handle options as appropriate
@@ -166,7 +166,7 @@ crontab_main(int ac, char **av)
 		    fputs(buf, stdout);
 		fclose(fi);
 	    } else {
-		error_msg("no crontab for %s", pas->pw_name);
+		bb_error_msg("no crontab for %s", pas->pw_name);
 	    }
 	}
 	break;
@@ -190,7 +190,7 @@ crontab_main(int ac, char **av)
 		lseek(fd, 0L, 0);
 		repFd = fd;
 	    } else {
-		error_msg_and_die("unable to create %s", tmp);
+		bb_error_msg_and_die("unable to create %s", tmp);
 	    }
 
 	}
@@ -211,7 +211,7 @@ crontab_main(int ac, char **av)
 		close(fd);
 		rename(path, pas->pw_name);
 	    } else {
-		error_msg("unable to create %s/%s", CDir, path);
+		bb_error_msg("unable to create %s/%s", CDir, path);
 	    }
 	    close(repFd);
 	}
@@ -244,7 +244,7 @@ crontab_main(int ac, char **av)
 	    /* loop */
 	}
 	if (fo == NULL) {
-	    error_msg("unable to append to %s/%s", CDir, CRONUPDATE);
+	    bb_error_msg("unable to append to %s/%s", CDir, CRONUPDATE);
 	}
     }
     return 0;
@@ -291,7 +291,7 @@ GetReplaceStream(const char *user, const char *file)
 
     fd = open(file, O_RDONLY);
     if (fd < 0) {
-	error_msg("unable to open %s", file);
+	bb_error_msg("unable to open %s", file);
 	exit(0);
     }
     buf[0] = 0;
@@ -328,7 +328,7 @@ EditFile(const char *user, const char *file)
 	/*
 	 * PARENT - failure
 	 */
-	perror_msg_and_die("fork");
+	bb_perror_msg_and_die("fork");
     }
     wait4(pid, NULL, 0, NULL);
 }

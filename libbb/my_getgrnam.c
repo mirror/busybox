@@ -33,7 +33,7 @@ long my_getgrnam(const char *name)
 
 	mygroup  = getgrnam(name);
 	if (mygroup==NULL)
-		error_msg_and_die("unknown group name: %s", name);
+		bb_error_msg_and_die("unknown group name: %s", name);
 
 	return (mygroup->gr_gid);
 }

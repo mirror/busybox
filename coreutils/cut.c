@@ -92,7 +92,7 @@ static void parse_lists(char *lists)
 		} else {
 			s = strtoul(ntok, &junk, 10);
 			if(*junk != '\0' || s < 0)
-				error_msg_and_die("invalid byte or field list");
+				bb_error_msg_and_die("invalid byte or field list");
 			
 			/* account for the fact that arrays are zero based, while the user
 			 * expects the first char on the line to be char # 1 */
@@ -109,7 +109,7 @@ static void parse_lists(char *lists)
 		} else {
 			e = strtoul(ntok, &junk, 10);
 			if(*junk != '\0' || e < 0)
-				error_msg_and_die("invalid byte or field list");
+				bb_error_msg_and_die("invalid byte or field list");
 			/* if the user specified and end position of 0, that means "til the
 			 * end of the line */
 			if (e == 0)
@@ -121,7 +121,7 @@ static void parse_lists(char *lists)
 
 		/* if there's something left to tokenize, the user past an invalid list */
 		if (ltok)
-			error_msg_and_die("invalid byte or field list");
+			bb_error_msg_and_die("invalid byte or field list");
 		
 		/* add the new list */
 		cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
@@ -131,7 +131,7 @@ static void parse_lists(char *lists)
 
 	/* make sure we got some cut positions out of all that */
 	if (nlists == 0)
-		error_msg_and_die("missing list of positions");
+		bb_error_msg_and_die("missing list of positions");
 
 	/* now that the lists are parsed, we need to sort them to make life easier
 	 * on us when it comes time to print the chars / fields / lines */
@@ -267,8 +267,7 @@ static void cut_file(FILE *file)
 	unsigned int linenum = 0; /* keep these zero-based to be consistent */
 
 	/* go through every line in the file */
-	while ((line = get_line_from_file(file)) != NULL) {
-		chomp(line);
+	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
 
 		/* cut based on chars/bytes XXX: only works when sizeof(char) == byte */
 		if (part == 'c' || part == 'b')
@@ -299,14 +298,14 @@ extern int cut_main(int argc, char **argv)
 			case 'f':
 				/* make sure they didn't ask for two types of lists */
 				if (part != 0) {
-					error_msg_and_die("only one type of list may be specified");
+					bb_error_msg_and_die("only one type of list may be specified");
 				}
 				part = (char)opt;
 				parse_lists(optarg);
 				break;
 			case 'd':
 				if (strlen(optarg) > 1) {
-					error_msg_and_die("the delimiter must be a single character");
+					bb_error_msg_and_die("the delimiter must be a single character");
 				}
 				delim = optarg[0];
 				break;
@@ -320,17 +319,17 @@ extern int cut_main(int argc, char **argv)
 	}
 
 	if (part == 0) {
-		error_msg_and_die("you must specify a list of bytes, characters, or fields");
+		bb_error_msg_and_die("you must specify a list of bytes, characters, or fields");
 	}
 
 	/*  non-field (char or byte) cutting has some special handling */
 	if (part != 'f') {
 		if (supress_non_delimited_lines) {
-			error_msg_and_die("suppressing non-delimited lines makes sense"
+			bb_error_msg_and_die("suppressing non-delimited lines makes sense"
 					" only when operating on fields");
 		}
 		if (delim != '\t' && part != 'f') {
-			error_msg_and_die("a delimiter may be specified only when operating on fields");
+			bb_error_msg_and_die("a delimiter may be specified only when operating on fields");
 		}
 	}
 
@@ -344,7 +343,7 @@ extern int cut_main(int argc, char **argv)
 		int i;
 		FILE *file;
 		for (i = optind; i < argc; i++) {
-			file = wfopen(argv[i], "r");
+			file = bb_wfopen(argv[i], "r");
 			if(file) {
 				cut_file(file);
 				fclose(file);

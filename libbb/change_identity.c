@@ -43,12 +43,12 @@
 void change_identity ( const struct passwd *pw )
 {
 	if ( initgroups ( pw-> pw_name, pw-> pw_gid ) == -1 )
-		perror_msg_and_die ( "cannot set groups" );
+		bb_perror_msg_and_die ( "cannot set groups" );
 	endgrent ( );
 
 	if ( setgid ( pw-> pw_gid ))
-		perror_msg_and_die ( "cannot set group id" );
+		bb_perror_msg_and_die ( "cannot set group id" );
 	if ( setuid ( pw->pw_uid ))
-		perror_msg_and_die ( "cannot set user id" );
+		bb_perror_msg_and_die ( "cannot set user id" );
 }
 

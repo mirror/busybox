@@ -52,7 +52,7 @@ extern int reboot_main(int argc, char **argv)
 			break;
 
 		default:
-			show_usage();
+			bb_show_usage();
 			break;
 		}
 	}
@@ -99,7 +99,7 @@ extern int reboot_main(int argc, char **argv)
 		if (!pid || *pid<=0)
 			pid = find_pid_by_name("linuxrc");
 		if (!pid || *pid<=0)
-			error_msg_and_die("no process killed");
+			bb_error_msg_and_die("no process killed");
 		fflush(stdout);
 		return(kill(*pid, SIGTERM));
 	}

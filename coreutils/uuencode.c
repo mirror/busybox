@@ -29,7 +29,7 @@
 #include "busybox.h"
 
 /* Conversion table.  for base 64 */
-static char tbl_base64[65] = {
+static const char tbl_base64[65] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -41,7 +41,7 @@ static char tbl_base64[65] = {
 	'=' /* termination character */
 };
 
-static char tbl_std[65] = {
+static const char tbl_std[65] = {
 	'`', '!', '"', '#', '$', '%', '&', '\'',
 	'(', ')', '*', '+', ',', '-', '.', '/',
 	'0', '1', '2', '3', '4', '5', '6', '7',
@@ -92,40 +92,36 @@ int uuencode_main(int argc, char **argv)
 	int write_size = dst_buf_size;
 	struct stat stat_buf;
 	FILE *src_stream = stdin;
-	char *tbl = tbl_std;
+	const char *tbl;
 	size_t size;
 	mode_t mode;
-	int opt;
 	RESERVE_CONFIG_BUFFER(src_buf, SRC_BUF_SIZE + 1);
 	RESERVE_CONFIG_BUFFER(dst_buf, DST_BUF_SIZE + 1);
 
-	while ((opt = getopt(argc, argv, "m")) != -1) {
-		switch (opt) {
-		case 'm':
-			tbl = tbl_base64;
-   			break;
-		default:
-			show_usage();
-		}
+	tbl = tbl_std;
+	if (bb_getopt_ulflags(argc, argv, "m") & 1) {
+		tbl = tbl_base64;
 	}
 
 	switch (argc - optind) {
 		case 2:
-			src_stream = xfopen(argv[optind], "r");
-			stat(argv[optind], &stat_buf);
+			src_stream = bb_xfopen(argv[optind], "r");
+			if (stat(argv[optind], &stat_buf) < 0) {
+				bb_perror_msg_and_die("stat");
+			}
 			mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
 			if (src_stream == stdout) {
-				printf("NULL\n");
+				puts("NULL");
 			}
 			break;
 		case 1:
 			mode = 0666 & ~umask(0666);
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 	}
 
-	printf("begin%s %o %s", tbl == tbl_std ? "" : "-base64", mode, argv[argc - 1]);
+	bb_printf("begin%s %o %s", tbl == tbl_std ? "" : "-base64", mode, argv[argc - 1]);
 
 	while ((size = fread(src_buf, 1, src_buf_size, src_stream)) > 0) {
 		if (size != src_buf_size) {
@@ -142,10 +138,12 @@ int uuencode_main(int argc, char **argv)
 			putchar(tbl[size]);
 		}
 		if (fwrite(dst_buf, 1, write_size, stdout) != write_size) {
-			perror("Couldnt finish writing");
+			bb_perror_msg_and_die(bb_msg_write_error);
 		}
 	}
-	printf(tbl == tbl_std ? "\n`\nend\n" : "\n====\n");
+	bb_printf(tbl == tbl_std ? "\n`\nend\n" : "\n====\n");
 
-	return(EXIT_SUCCESS);
+	bb_xferror(src_stream, "source");	/* TODO - Fix this! */
+
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

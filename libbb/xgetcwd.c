@@ -40,7 +40,7 @@ xgetcwd (char *cwd)
 
   if (ret == NULL) {
       free (cwd);
-      perror_msg("getcwd()");
+      bb_perror_msg("getcwd()");
       return NULL;
   }
 

@@ -42,7 +42,7 @@ int dmesg_main(int argc, char **argv)
 	int lastc;
 	int cmd = 3;
 
-	while ((i = getopt(argc, argv, "cn:s:")) != EOF) {
+	while ((i = getopt(argc, argv, "cn:s:")) > 0) {
 		switch (i) {
 			case 'c':
 				cmd = 4;
@@ -58,12 +58,12 @@ int dmesg_main(int argc, char **argv)
 				bufsize = bb_xgetlarg(optarg, 10, 4096, 512*1024);
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (optind < argc) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	if (cmd == 8) {
@@ -98,5 +98,5 @@ all_done:
 #endif
 	return EXIT_SUCCESS;
 die_the_death:
-	perror_msg_and_die(NULL);
+	bb_perror_nomsg_and_die();
 }

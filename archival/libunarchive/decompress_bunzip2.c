@@ -1548,7 +1548,7 @@ extern ssize_t read_bz2(int fd, void *buf, size_t count)
 
 	while (1) {
 		if (bzf->strm.avail_in == 0) {
-			n = xread(bzf->fd, bzf->buf, BZ_MAX_UNUSED);
+			n = bb_xread(bzf->fd, bzf->buf, BZ_MAX_UNUSED);
 			if (n == 0) {
 				break;
 			}
@@ -1560,7 +1560,7 @@ extern ssize_t read_bz2(int fd, void *buf, size_t count)
 		ret = BZ2_bzDecompress(&(bzf->strm));
 
 		if ((ret != BZ_OK) && (ret != BZ_STREAM_END)) {
-			error_msg_and_die("Error decompressing");
+			bb_error_msg_and_die("Error decompressing");
 		}
 
 		if (ret == BZ_STREAM_END) {
@@ -1628,12 +1628,12 @@ extern unsigned char uncompressStream(int src_fd, int dst_fd)
 		while (bzerr == BZ_OK) {
 			nread = read_bz2(src_fd, obuf, 5000);
 			if (bzerr == BZ_DATA_ERROR_MAGIC) {
-				error_msg_and_die("invalid magic");
+				bb_error_msg_and_die("invalid magic");
 			}
 			if (((bzerr == BZ_OK) || (bzerr == BZ_STREAM_END)) && (nread > 0)) {
 				if (write(dst_fd, obuf, nread) != nread) {
 					BZ2_bzReadClose();
-					perror_msg_and_die("Couldnt write to file");
+					bb_perror_msg_and_die("Couldnt write to file");
 				}
 			}
 		}

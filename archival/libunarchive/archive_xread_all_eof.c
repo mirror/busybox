@@ -26,7 +26,7 @@ extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned 
 
 	size = archive_xread(archive_handle, buf, count);
 	if ((size != 0) && (size != count)) {
-		perror_msg_and_die("Short read, read %d of %d", size, count);
+		bb_perror_msg_and_die("Short read, read %d of %d", size, count);
 	}
 	return(size);
 }

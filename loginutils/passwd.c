@@ -46,13 +46,13 @@ extern int update_passwd(const struct passwd *pw, char *crypt_pw)
 	struct stat sb;
 	struct flock lock;
 
-	if (access(shadow_file, F_OK) == 0) {
+	if (access(bb_path_shadow_file, F_OK) == 0) {
 		has_shadow = 1;
 	}
 	if (has_shadow) {
-		snprintf(filename, sizeof filename, "%s", shadow_file);
+		snprintf(filename, sizeof filename, "%s", bb_path_shadow_file);
 	} else {
-		snprintf(filename, sizeof filename, "%s", passwd_file);
+		snprintf(filename, sizeof filename, "%s", bb_path_passwd_file);
 	}
 
 	if (((fp = fopen(filename, "r+")) == 0) || (fstat(fileno(fp), &sb))) {
@@ -167,30 +167,30 @@ extern int passwd_main(int argc, char **argv)
 			uflg++;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 	ruid = getuid();
 	pw = (struct passwd *) getpwuid(ruid);
 	if (!pw) {
-               error_msg_and_die("Cannot determine your user name.");
+               bb_error_msg_and_die("Cannot determine your user name.");
 	}
-	myname = (char *) xstrdup(pw->pw_name);
+	myname = (char *) bb_xstrdup(pw->pw_name);
 	if (optind < argc) {
 		name = argv[optind];
 	} else {
 		name = myname;
 	}
 	if ((lflg || uflg || dflg) && (optind >= argc || !amroot)) {
-		show_usage();
+		bb_show_usage();
 	}
 	pw = getpwnam(name);
 	if (!pw) {
-		error_msg_and_die("Unknown user %s\n", name);
+		bb_error_msg_and_die("Unknown user %s\n", name);
 	}
 	if (!amroot && pw->pw_uid != getuid()) {
 		syslog(LOG_WARNING, "can't change pwd for `%s'", name);
-		error_msg_and_die("Permission denied.\n");
+		bb_error_msg_and_die("Permission denied.\n");
 	}
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	sp = getspnam(name);
@@ -209,12 +209,12 @@ extern int passwd_main(int argc, char **argv)
 		if (!amroot) {
 			if (cp[0] == '!') {
 				syslog(LOG_WARNING, "password locked for `%s'", np);
-				error_msg_and_die( "The password for `%s' cannot be changed.\n", np);
+				bb_error_msg_and_die( "The password for `%s' cannot be changed.\n", np);
 			}
 		}
 		printf("Changing password for %s\n", name);
 		if (new_password(pw, amroot, algo)) {
-			error_msg_and_die( "The password for %s is unchanged.\n", name);
+			bb_error_msg_and_die( "The password for %s is unchanged.\n", name);
 		}
 	} else if (lflg) {
 		if (crypt_passwd[0] != '!') {
@@ -238,7 +238,7 @@ extern int passwd_main(int argc, char **argv)
 	umask(077);
 	if (setuid(0)) {
 		syslog(LOG_ERR, "can't setuid(0)");
-		error_msg_and_die( "Cannot change ID to root.\n");
+		bb_error_msg_and_die( "Cannot change ID to root.\n");
 	}
 	if (!update_passwd(pw, crypt_passwd)) {
 		syslog(LOG_INFO, "password for `%s' changed by user `%s'", name,
@@ -246,7 +246,7 @@ extern int passwd_main(int argc, char **argv)
 		printf("Password changed.\n");
 	} else {
 		syslog(LOG_WARNING, "an error occurred updating the password file");
-		error_msg_and_die("An error occurred updating the password file.\n");
+		bb_error_msg_and_die("An error occurred updating the password file.\n");
 	}
 	return (0);
 }

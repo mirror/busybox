@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.4 2003/01/22 21:09:48 bug1 Exp $
+/* $Id: telnetd.c,v 1.5 2003/03/19 09:12:39 mjn3 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -380,12 +380,12 @@ telnetd_main(int argc, char **argv)
 				break;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (access(loginpath, X_OK) < 0) {
-		error_msg_and_die ("'%s' unavailable.", loginpath);
+		bb_error_msg_and_die ("'%s' unavailable.", loginpath);
 	}
 
 	argv_init[0] = loginpath;
@@ -400,7 +400,7 @@ telnetd_main(int argc, char **argv)
 
 	master_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (master_fd < 0) {
-		perror_msg_and_die("socket");
+		bb_perror_msg_and_die("socket");
 	}
 	(void)setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
@@ -411,15 +411,15 @@ telnetd_main(int argc, char **argv)
 	sa.sin_port = htons(portnbr);
 
 	if (bind(master_fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-		perror_msg_and_die("bind");
+		bb_perror_msg_and_die("bind");
 	}
 
 	if (listen(master_fd, 1) < 0) {
-		perror_msg_and_die("listen");
+		bb_perror_msg_and_die("listen");
 	}
 
 	if (daemon(0, 0) < 0)
-		perror_msg_and_die("daemon");
+		bb_perror_msg_and_die("daemon");
 
 
 	maxfd = master_fd;

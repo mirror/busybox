@@ -141,7 +141,7 @@ static void fprintargv (FILE *fp, char *const *argv, const char *filler)
 	fputs (*av, fp);
     }
     if (ferror (fp))
-	error_msg_and_die("write error");
+	bb_error_msg_and_die("write error");
 }
 
 /* Return the number of kilobytes corresponding to a number of pages PAGES.
@@ -416,12 +416,12 @@ static void summarize (FILE *fp, const char *fmt, char **command, resource_t *re
 	}
 
 	if (ferror (fp))
-	    error_msg_and_die("write error");
+	    bb_error_msg_and_die("write error");
     }
     putc ('\n', fp);
 
     if (ferror (fp))
-	error_msg_and_die("write error");
+	bb_error_msg_and_die("write error");
 }
 
 /* Run command CMD and return statistics on it.
@@ -434,13 +434,13 @@ static void run_command (char *const *cmd, resource_t *resp)
     gettimeofday (&resp->start, (struct timezone *) 0);
     pid = fork ();		/* Run CMD as child process.  */
     if (pid < 0)
-	error_msg_and_die("cannot fork");
+	bb_error_msg_and_die("cannot fork");
     else if (pid == 0)
     {				/* If child.  */
 	/* Don't cast execvp arguments; that causes errors on some systems,
 	   versus merely warnings if the cast is left off.  */
 	execvp (cmd[0], cmd);
-	error_msg("cannot run %s", cmd[0]);
+	bb_error_msg("cannot run %s", cmd[0]);
 	_exit (errno == ENOENT ? 127 : 126);
     }
 
@@ -449,7 +449,7 @@ static void run_command (char *const *cmd, resource_t *resp)
     quit_signal = signal (SIGQUIT, SIG_IGN);
 
     if (resuse_end (pid, resp) == 0)
-	error_msg("error waiting for child process");
+	bb_error_msg("error waiting for child process");
 
     /* Re-enable signals.  */
     signal (SIGINT, interrupt_signal);
@@ -477,7 +477,7 @@ extern int time_main (int argc, char **argv)
 		    output_format = posix_format;
 		    break;
 		default:
-		    show_usage();
+		    bb_show_usage();
 	    }
 	    argc--;
 	    argv++;
@@ -486,7 +486,7 @@ extern int time_main (int argc, char **argv)
     }
 
     if (argv == NULL || *argv == NULL)
-	show_usage();
+	bb_show_usage();
 
     run_command (argv, &res);
     summarize (stdout, output_format, argv, &res);

@@ -180,9 +180,9 @@ extern int test_main(int argc, char **argv)
 {
 	int res;
 
-	if (strcmp(applet_name, "[") == 0) {
+	if (strcmp(bb_applet_name, "[") == 0) {
 		if (strcmp(argv[--argc], "]"))
-			error_msg_and_die("missing ]");
+			bb_error_msg_and_die("missing ]");
 		argv[argc] = NULL;
 	}
 	/* Implement special cases from POSIX.2, section 4.62.4 */
@@ -226,9 +226,9 @@ extern int test_main(int argc, char **argv)
 static void syntax(const char *op, const char *msg)
 {
 	if (op && *op) {
-		error_msg_and_die("%s: %s", op, msg);
+		bb_error_msg_and_die("%s: %s", op, msg);
 	} else {
-		error_msg_and_die("%s", msg);
+		bb_error_msg_and_die("%s", msg);
 	}
 }
 
@@ -450,13 +450,13 @@ static int getn(const char *s)
 	r = strtol(s, &p, 10);
 
 	if (errno != 0)
-		error_msg_and_die("%s: out of range", s);
+		bb_error_msg_and_die("%s: out of range", s);
 
 	while (isspace(*p))
 		p++;
 
 	if (*p)
-		error_msg_and_die("%s: bad number", s);
+		bb_error_msg_and_die("%s: bad number", s);
 
 	return (int) r;
 }

@@ -244,7 +244,7 @@ static char *parse(char *command, interface_defn_t *ifd)
 			varvalue = get_var(command, nextpercent - command, ifd);
 
 			if (varvalue) {
-				addstr(&result, &len, &pos, varvalue, xstrlen(varvalue));
+				addstr(&result, &len, &pos, varvalue, bb_strlen(varvalue));
 			} else {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 				/* Sigh...  Add a special case for 'ip' to convert from
@@ -255,7 +255,7 @@ static char *parse(char *command, interface_defn_t *ifd)
 					if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
 						char argument[255];
 						sprintf(argument, "%d", res);
-						addstr(&result, &len, &pos, argument, xstrlen(argument));
+						addstr(&result, &len, &pos, argument, bb_strlen(argument));
 						command = nextpercent + 1;
 						break;
 					}
@@ -734,9 +734,9 @@ static interfaces_file_t *read_interfaces(char *filename)
 	defn->mappings = NULL;
 	defn->ifaces = NULL;
 
-	f = xfopen(filename, "r");
+	f = bb_xfopen(filename, "r");
 
-	while ((buf = get_line_from_file(f)) != NULL) {
+	while ((buf = bb_get_line_from_file(f)) != NULL) {
 		char *buf_ptr = buf;
 
 		/* Ignore comments */
@@ -762,7 +762,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 					currmap->match = xrealloc(currmap->match, sizeof(currmap->match) * currmap->max_matches);
 				}
 
-				currmap->match[currmap->n_matches++] = xstrdup(firstword);
+				currmap->match[currmap->n_matches++] = bb_xstrdup(firstword);
 			}
 			currmap->max_mappings = 0;
 			currmap->n_mappings = 0;
@@ -802,26 +802,26 @@ static interfaces_file_t *read_interfaces(char *filename)
 				method_name = next_word(&buf_ptr);
 
 				if (buf_ptr == NULL) {
-					error_msg("too few parameters for line \"%s\"", buf);
+					bb_error_msg("too few parameters for line \"%s\"", buf);
 					return NULL;
 				}
 
 				if (buf_ptr[0] != '\0') {
-					error_msg("too many parameters \"%s\"", buf);
+					bb_error_msg("too many parameters \"%s\"", buf);
 					return NULL;
 				}
 
-				currif->iface = xstrdup(iface_name);
+				currif->iface = bb_xstrdup(iface_name);
 
 				currif->address_family = get_address_family(addr_fams, address_family_name);
 				if (!currif->address_family) {
-					error_msg("unknown address type \"%s\"", buf);
+					bb_error_msg("unknown address type \"%s\"", buf);
 					return NULL;
 				}
 
 				currif->method = get_method(currif->address_family, method_name);
 				if (!currif->method) {
-					error_msg("unknown method \"%s\"", buf);
+					bb_error_msg("unknown method \"%s\"", buf);
 					return NULL;
 				}
 
@@ -836,7 +836,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 
 					while (*where != NULL) {
 						if (duplicate_if(*where, currif)) {
-							error_msg("duplicate interface \"%s\"", buf);
+							bb_error_msg("duplicate interface \"%s\"", buf);
 							return NULL;
 						}
 						where = &(*where)->next;
@@ -852,7 +852,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 
 				/* Check the interface isnt already listed */
 				if (find_list_string(defn->autointerfaces, firstword)) {
-					perror_msg_and_die("interface declared auto twice \"%s\"", buf);
+					bb_perror_msg_and_die("interface declared auto twice \"%s\"", buf);
 				}
 
 				/* Add the interface to the list */
@@ -865,8 +865,8 @@ static interfaces_file_t *read_interfaces(char *filename)
 			{
 				int i;
 
-				if (xstrlen(buf_ptr) == 0) {
-					error_msg("option with empty value \"%s\"", buf);
+				if (bb_strlen(buf_ptr) == 0) {
+					bb_error_msg("option with empty value \"%s\"", buf);
 					return NULL;
 				}
 
@@ -876,7 +876,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 					&& strcmp(firstword, "post-down") != 0) {
 					for (i = 0; i < currif->n_options; i++) {
 						if (strcmp(currif->option[i].name, firstword) == 0) {
-							error_msg("duplicate option \"%s\"", buf);
+							bb_error_msg("duplicate option \"%s\"", buf);
 							return NULL;
 						}
 					}
@@ -889,8 +889,8 @@ static interfaces_file_t *read_interfaces(char *filename)
 					opt = xrealloc(currif->option, sizeof(*opt) * currif->max_options);
 					currif->option = opt;
 				}
-				currif->option[currif->n_options].name = xstrdup(firstword);
-				currif->option[currif->n_options].value = xstrdup(next_word(&buf_ptr));
+				currif->option[currif->n_options].name = bb_xstrdup(firstword);
+				currif->option[currif->n_options].value = bb_xstrdup(next_word(&buf_ptr));
 				if (!currif->option[currif->n_options].name) {
 					perror(filename);
 					return NULL;
@@ -905,34 +905,34 @@ static interfaces_file_t *read_interfaces(char *filename)
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 				if (strcmp(firstword, "script") == 0) {
 					if (currmap->script != NULL) {
-						error_msg("duplicate script in mapping \"%s\"", buf);
+						bb_error_msg("duplicate script in mapping \"%s\"", buf);
 						return NULL;
 					} else {
-						currmap->script = xstrdup(next_word(&buf_ptr));
+						currmap->script = bb_xstrdup(next_word(&buf_ptr));
 					}
 				} else if (strcmp(firstword, "map") == 0) {
 					if (currmap->max_mappings == currmap->n_mappings) {
 						currmap->max_mappings = currmap->max_mappings * 2 + 1;
 						currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
 					}
-					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
+					currmap->mapping[currmap->n_mappings] = bb_xstrdup(next_word(&buf_ptr));
 					currmap->n_mappings++;
 				} else {
-					error_msg("misplaced option \"%s\"", buf);
+					bb_error_msg("misplaced option \"%s\"", buf);
 					return NULL;
 				}
 #endif
 				break;
 			case NONE:
 			default:
-				error_msg("misplaced option \"%s\"", buf);
+				bb_error_msg("misplaced option \"%s\"", buf);
 				return NULL;
 			}
 		}
 		free(buf);
 	}
 	if (ferror(f) != 0) {
-		perror_msg_and_die("%s", filename);
+		bb_perror_msg_and_die("%s", filename);
 	}
 	fclose(f);
 
@@ -945,7 +945,7 @@ static char *setlocalenv(char *format, char *name, char *value)
 	char *here;
 	char *there;
 
-	result = xmalloc(xstrlen(format) + xstrlen(name) + xstrlen(value) + 1);
+	result = xmalloc(bb_strlen(format) + bb_strlen(name) + bb_strlen(value) + 1);
 
 	sprintf(result, format, name, value);
 
@@ -960,7 +960,7 @@ static char *setlocalenv(char *format, char *name, char *value)
 			here++;
 		}
 	}
-	memmove(here, there, xstrlen(there) + 1);
+	memmove(here, there, bb_strlen(there) + 1);
 
 	return result;
 }
@@ -1010,7 +1010,7 @@ static void set_environ(interface_defn_t *iface, char *mode)
 static int doit(char *str)
 {
 	if (verbose || no_act) {
-		error_msg("%s", str);
+		bb_error_msg("%s", str);
 	}
 	if (!no_act) {
 		pid_t child;
@@ -1045,7 +1045,7 @@ static int execute_all(interface_defn_t *ifd, execfn *exec, const char *opt)
 		}
 	}
 
-	buf = xmalloc(xstrlen(opt) + 19);
+	buf = xmalloc(bb_strlen(opt) + 19);
 	sprintf(buf, "/etc/network/if-%s.d", opt);
 	run_parts(&buf, 2);
 	free(buf);
@@ -1155,7 +1155,7 @@ static int run_mapping(char *physical, char *logical, int len, mapping_defn_t * 
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
 		if (fgets(logical, len, out)) {
-			char *pch = logical + xstrlen(logical) - 1;
+			char *pch = logical + bb_strlen(logical) - 1;
 
 			while (pch >= logical && isspace(*pch))
 				*(pch--) = '\0';
@@ -1169,7 +1169,7 @@ static int run_mapping(char *physical, char *logical, int len, mapping_defn_t * 
 
 static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
-	unsigned short iface_len = xstrlen(iface);
+	unsigned short iface_len = bb_strlen(iface);
 	llist_t *search = state_list;
 
 	while (search) {
@@ -1199,7 +1199,7 @@ extern int ifupdown_main(int argc, char **argv)
 	int force = 0;
 	int i;
 
-	if (applet_name[2] == 'u') {
+	if (bb_applet_name[2] == 'u') {
 		/* ifup command */
 		cmds = iface_up;
 	} else {
@@ -1214,7 +1214,7 @@ extern int ifupdown_main(int argc, char **argv)
 #endif
 		switch (i) {
 		case 'i':	/* interfaces */
-			interfaces = xstrdup(optarg);
+			interfaces = bb_xstrdup(optarg);
 			break;
 		case 'v':	/* verbose */
 			verbose = 1;
@@ -1234,18 +1234,18 @@ extern int ifupdown_main(int argc, char **argv)
 			force = 1;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 			break;
 		}
 	}
 
 	if (argc - optind > 0) {
 		if (do_all) {
-			show_usage();
+			bb_show_usage();
 		}
 	} else {
 		if (!do_all) {
-			show_usage();
+			bb_show_usage();
 		}
 	}			
 
@@ -1297,13 +1297,13 @@ extern int ifupdown_main(int argc, char **argv)
 			if (cmds == iface_up) {
 				/* ifup */
 				if (iface_state) {
-					error_msg("interface %s already configured", iface);
+					bb_error_msg("interface %s already configured", iface);
 					continue;
 				}
 			} else {
 				/* ifdown */
 				if (iface_state) {
-					error_msg("interface %s not configured", iface);
+					bb_error_msg("interface %s not configured", iface);
 					continue;
 				}
 			}
@@ -1319,7 +1319,7 @@ extern int ifupdown_main(int argc, char **argv)
 					if (fnmatch(currmap->match[i], liface, 0) != 0)
 						continue;
 					if (verbose) {
-						error_msg("Running mapping script %s on %s", currmap->script, liface);
+						bb_error_msg("Running mapping script %s on %s", currmap->script, liface);
 					}
 					run_mapping(iface, liface, sizeof(liface), currmap);
 					break;
@@ -1336,7 +1336,7 @@ extern int ifupdown_main(int argc, char **argv)
 				currif->iface = iface;
 
 				if (verbose) {
-					error_msg("Configuring interface %s=%s (%s)", iface, liface, currif->address_family->name);
+					bb_error_msg("Configuring interface %s=%s (%s)", iface, liface, currif->address_family->name);
 				}
 
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
@@ -1351,12 +1351,12 @@ extern int ifupdown_main(int argc, char **argv)
 		}
 
 		if (!okay && !force) {
-			error_msg("Ignoring unknown interface %s=%s.", iface, liface);
+			bb_error_msg("Ignoring unknown interface %s=%s.", iface, liface);
 		} else {
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
-				char *newiface = xmalloc(xstrlen(iface) + 1 + xstrlen(liface) + 1);
+				char *newiface = xmalloc(bb_strlen(iface) + 1 + bb_strlen(liface) + 1);
 				sprintf(newiface, "%s=%s", iface, liface);
 				if (iface_state == NULL) {
 					state_list = llist_add_to(state_list, newiface);
@@ -1387,10 +1387,10 @@ extern int ifupdown_main(int argc, char **argv)
 
 		if (state_fp)
 			fclose(state_fp);
-		state_fp = xfopen(statefile, "a+");
+		state_fp = bb_xfopen(statefile, "a+");
 
 		if (ftruncate(fileno(state_fp), 0) < 0) {
-			error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
+			bb_error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
 		}
 
 		rewind(state_fp);

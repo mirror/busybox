@@ -16,6 +16,9 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/uname.html */
+
 /* Option		Example
 
    -s, --sysname	SunOS
@@ -33,13 +36,18 @@
 
 /* Further size reductions by Glenn McGrath and Manuel Novoa III. */
 
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Now does proper error checking on i/o.  Plus some further space savings.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-#include <getopt.h>
 #include "busybox.h"
 
 typedef struct {
@@ -48,7 +56,6 @@ typedef struct {
 } uname_info_t;
 
 static const char options[] = "snrvmpa";
-static const char flags[] = "\x01\x02\x04\x08\x10\x20\x3f";
 static const unsigned short int utsname_offset[] = {
 	offsetof(uname_info_t,name.sysname),
 	offsetof(uname_info_t,name.nodename),
@@ -61,29 +68,28 @@ static const unsigned short int utsname_offset[] = {
 int uname_main(int argc, char **argv)
 {
 	uname_info_t uname_info;
-
 #if defined(__sparc__) && defined(__linux__)
 	char *fake_sparc = getenv("FAKE_SPARC");
 #endif
-
 	const unsigned short int *delta;
-	int opt;
-	char toprint = 0;
+	char toprint;
 
-	while ((opt = getopt(argc, argv, options)) != -1) {
-		const char *p = strchr(options,opt);
-		if (p == NULL) {
-			show_usage();
-		}
-		toprint |= flags[(int)(p-options)];
+	toprint = bb_getopt_ulflags(argc, argv, options);
+
+	if (argc != optind) {
+		bb_show_usage();
+	}
+
+	if (toprint & (1 << 6)) {
+		toprint = 0x3f;
 	}
 
 	if (toprint == 0) {
-		toprint = flags[0];		/* sysname */
+		toprint = 1;			/* sysname */
 	}
 
 	if (uname(&uname_info.name) == -1) {
-		error_msg_and_die("cannot get system name");
+		bb_error_msg_and_die("cannot get system name");
 	}
 
 #if defined(__sparc__) && defined(__linux__)
@@ -99,7 +105,7 @@ int uname_main(int argc, char **argv)
 	delta=utsname_offset;
 	do {
 		if (toprint & 1) {
-			printf(((char *)(&uname_info)) + *delta);
+			bb_printf(((char *)(&uname_info)) + *delta);
 			if (toprint > 1) {
 				putchar(' ');
 			}
@@ -108,5 +114,5 @@ int uname_main(int argc, char **argv)
 	} while (toprint >>= 1);
 	putchar('\n');
 
-	return EXIT_SUCCESS;
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

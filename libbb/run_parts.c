@@ -69,7 +69,7 @@ extern int run_parts(char **args, const unsigned char test_mode)
 		if (test_mode & 2) {
 			return(2);
 		}
-		perror_msg_and_die("failed to open directory %s", arg0);
+		bb_perror_msg_and_die("failed to open directory %s", arg0);
 	}
 
 	for (i = 0; i < entries; i++) {
@@ -77,7 +77,7 @@ extern int run_parts(char **args, const unsigned char test_mode)
 		filename = concat_path_file(arg0, namelist[i]->d_name);
 
 		if (stat(filename, &st) < 0) {
-			perror_msg_and_die("failed to stat component %s", filename);
+			bb_perror_msg_and_die("failed to stat component %s", filename);
 		}
 		if (S_ISREG(st.st_mode) && !access(filename, X_OK)) {
 			if (test_mode & 1) {
@@ -89,7 +89,7 @@ extern int run_parts(char **args, const unsigned char test_mode)
 				int pid;
 
 				if ((pid = vfork()) < 0) {
-					perror_msg_and_die("failed to fork");
+					bb_perror_msg_and_die("failed to fork");
 				} else if (!pid) {
 					args[0] = filename;
 					execv(filename, args);
@@ -100,19 +100,19 @@ extern int run_parts(char **args, const unsigned char test_mode)
 				waitpid(pid, &result, 0);
 				if(exec_errno) {
 					errno = exec_errno;
-					perror_msg_and_die("failed to exec %s", filename);
+					bb_perror_msg_and_die("failed to exec %s", filename);
 				}
 				if (WIFEXITED(result) && WEXITSTATUS(result)) {
-					perror_msg("%s exited with return code %d", filename, WEXITSTATUS(result));
+					bb_perror_msg("%s exited with return code %d", filename, WEXITSTATUS(result));
 					exitstatus = 1;
 				} else if (WIFSIGNALED(result)) {
-					perror_msg("%s exited because of uncaught signal %d", filename, WTERMSIG(result));
+					bb_perror_msg("%s exited because of uncaught signal %d", filename, WTERMSIG(result));
 					exitstatus = 1;
 				}
 			}
 		} 
 		else if (!S_ISDIR(st.st_mode)) {
-			error_msg("component %s is not an executable plain file", filename);
+			bb_error_msg("component %s is not an executable plain file", filename);
 			exitstatus = 1;
 		}
 

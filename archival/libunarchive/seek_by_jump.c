@@ -30,6 +30,6 @@ extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned 
 			seek_by_char(archive_handle, amount);
 		} else
 #endif
-			perror_msg_and_die("Seek failure");
+			bb_perror_msg_and_die("Seek failure");
 	}
 }

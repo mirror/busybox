@@ -25,6 +25,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "busybox.h"
 
 /* From <linux/fd.h> */
@@ -35,22 +36,19 @@ extern int fdflush_main(int argc, char **argv)
 	int fd, result;
 
 	if (argc <= 1)
-		show_usage();
-	if ((fd = open(*(++argv), 0)) < 0)
-		goto die_the_death;
+		bb_show_usage();
+
+	fd = bb_xopen(argv[1], 0);
 
 	result = ioctl(fd, FDFLUSH, 0);
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	close(fd);
 #endif
 	if (result) {
-		goto die_the_death;
+		bb_perror_nomsg_and_die();
 	}
 
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
 	return EXIT_SUCCESS;
-
-die_the_death:
-	perror_msg_and_die(NULL);
 }

@@ -44,7 +44,7 @@ extern int kill_main(int argc, char **argv)
 
 #ifdef CONFIG_KILLALL
 	/* Figure out what we are trying to do here */
-	whichApp = (strcmp(applet_name, "killall") == 0)? KILLALL : KILL; 
+	whichApp = (strcmp(bb_applet_name, "killall") == 0)? KILLALL : KILL; 
 #else
 	whichApp = KILL;
 #endif
@@ -54,7 +54,7 @@ extern int kill_main(int argc, char **argv)
 	argv++;
 	/* Parse any options */
 	if (argc < 1)
-		show_usage();
+		bb_show_usage();
 
 	while (argc > 0 && **argv == '-') {
 		while (*++(*argv)) {
@@ -87,11 +87,11 @@ extern int kill_main(int argc, char **argv)
 					}
 					return EXIT_SUCCESS;
 				case '-':
-					show_usage();
+					bb_show_usage();
 				default:
 					name = u_signal_names(*argv, &sig, 0);
 					if(name==NULL)
-						error_msg_and_die( "bad signal name: %s", *argv);
+						bb_error_msg_and_die( "bad signal name: %s", *argv);
 					argc--;
 					argv++;
 					goto do_it_now;
@@ -109,10 +109,10 @@ do_it_now:
 			int pid;
 
 			if (!isdigit(**argv))
-				perror_msg_and_die( "Bad PID");
+				bb_perror_msg_and_die( "Bad PID");
 			pid = strtol(*argv, NULL, 0);
 			if (kill(pid, sig) != 0) {
-				perror_msg( "Could not kill pid '%d'", pid);
+				bb_perror_msg( "Could not kill pid '%d'", pid);
 				errors++;
 			}
 			argv++;
@@ -130,7 +130,7 @@ do_it_now:
 			if (*pidList <= 0) {
 				errors++;
 				if (quiet==0)
-					error_msg( "%s: no process killed", *argv);
+					bb_error_msg( "%s: no process killed", *argv);
 				} else {
 					long *pl;
 
@@ -140,7 +140,7 @@ do_it_now:
 						if (kill(*pl, sig) != 0) {
 							errors++;
 							if (quiet==0)
-								perror_msg( "Could not kill pid '%ld'", *pl);
+								bb_perror_msg( "Could not kill pid '%ld'", *pl);
 						}
 					}
 			}

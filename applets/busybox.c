@@ -10,7 +10,7 @@
 #endif
 
 int been_there_done_that = 0; /* Also used in applets.c */
-const char *applet_name;
+const char *bb_applet_name;
 
 #ifdef CONFIG_FEATURE_INSTALLER
 /* 
@@ -60,7 +60,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 			install_dir[applets[i].location], applets[i].name);
 		rc = Link(busybox, fpc);
 		if (rc!=0 && errno!=EEXIST) {
-			perror_msg("%s", fpc);
+			bb_perror_msg("%s", fpc);
 		}
 		free(fpc);
 	}
@@ -72,14 +72,14 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
-	applet_name = argv[0];
+	bb_applet_name = argv[0];
 
-	if (applet_name[0] == '-')
-		applet_name++;
+	if (bb_applet_name[0] == '-')
+		bb_applet_name++;
 
-	for (s = applet_name; *s != '\0';) {
+	for (s = bb_applet_name; *s != '\0';) {
 		if (*s++ == '/')
-			applet_name = s;
+			bb_applet_name = s;
 	}
 
 #ifdef CONFIG_LOCALE_SUPPORT 
@@ -91,8 +91,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	run_applet_by_name(applet_name, argc, argv);
-	error_msg_and_die("applet not found");
+	run_applet_by_name(bb_applet_name, argc, argv);
+	bb_error_msg_and_die("applet not found");
 }
 
 
@@ -143,7 +143,7 @@ int busybox_main(int argc, char **argv)
 				"\tutilities into a single executable.  Most people will create a\n"
 				"\tlink to busybox for each function they wish to use, and BusyBox\n"
 				"\twill act like whatever it was invoked as.\n" 
-				"\nCurrently defined functions:\n", full_version);
+				"\nCurrently defined functions:\n", bb_msg_full_version);
 
 		while (a->name != 0) {
 			col +=

@@ -81,7 +81,7 @@ extern int more_main(int argc, char **argv)
 	if(isatty(fileno(stdout))) {
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
-			cin = xfopen(CONSOLE_DEV, "r");
+			cin = bb_xfopen(CONSOLE_DEV, "r");
 		please_display_more_prompt = 0;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 		getTermSettings(fileno(cin), &initial_settings);
@@ -105,7 +105,7 @@ extern int more_main(int argc, char **argv)
 		if (argc == 0) {
 			file = stdin;
 		} else
-			file = wfopen(*argv, "r");
+			file = bb_wfopen(*argv, "r");
 		if(file==0)
 			goto loop;
 			

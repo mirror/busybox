@@ -54,7 +54,7 @@ static void convert(void)
 		if (in_index == read_chars) {
 			if ((read_chars = read(0, (char *) pinput, BUFSIZ)) <= 0) {
 				if (write(1, (char *) poutput, out_index) != out_index)
-					error_msg("%s", write_error);
+					bb_error_msg(bb_msg_write_error);
 				exit(0);
 			}
 			in_index = 0;
@@ -68,7 +68,7 @@ static void convert(void)
 		poutput[out_index++] = last = coded;
 		if (out_index == BUFSIZ) {
 			if (write(1, (char *) poutput, out_index) != out_index)
-				error_msg_and_die("%s", write_error);
+				bb_error_msg_and_die(bb_msg_write_error);
 			out_index = 0;
 		}
 	}
@@ -102,7 +102,7 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 	while (*arg) {
 		if (*arg == '\\') {
 			arg++;
-			*buffer++ = process_escape_sequence(&arg);
+			*buffer++ = bb_process_escape_sequence(&arg);
 		} else if (*(arg+1) == '-') {
 			ac = *(arg+2);
 			if(ac == 0) {
@@ -181,7 +181,7 @@ extern int tr_main(int argc, char **argv)
 				sq_fl = TRUE;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 			}
 		}
 		idx++;
@@ -197,7 +197,7 @@ extern int tr_main(int argc, char **argv)
 			input_length = complement(input, input_length);
 		if (argv[idx] != NULL) {
 			if (*argv[idx] == '\0')
-				error_msg_and_die("STRING2 cannot be empty");
+				bb_error_msg_and_die("STRING2 cannot be empty");
 			output_length = expand(argv[idx], output);
 			map(input, input_length, output, output_length);
 		}

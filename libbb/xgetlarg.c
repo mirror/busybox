@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "busybox.h"
 
@@ -19,10 +20,16 @@ extern long bb_xgetlarg(char *arg, int base, long lower, long upper)
 	int errno_save = errno;
 
 	assert(arg!=NULL);
+
+	/* Don't allow leading whitespace. */
+	if ((isspace)(*arg)) {	/* Use an actual funciton call for minimal size. */
+		bb_show_usage();
+	}
+
 	errno = 0;
 	result = strtol(arg, &endptr, base);
-	if (errno != 0 || *endptr!='\0' || result < lower || result > upper)
-		show_usage();
+	if (errno != 0 || *endptr!='\0' || endptr==arg || result < lower || result > upper)
+		bb_show_usage();
 	errno = errno_save;
 	return result;
 }

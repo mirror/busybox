@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini Cat implementation for busybox
+ * cat implementation for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,33 +20,48 @@
  *
  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/cat.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * This is a new implementation of 'cat' which aims to be SUSv3 compliant.
+ *
+ * Changes from the previous implementation include:
+ * 1) Multiple '-' args are accepted as required by SUSv3.  The previous
+ *    implementation would close stdin and segfault on a subsequent '-'.
+ * 2) The '-u' options is required by SUSv3.  Note that the specified
+ *    behavior for '-u' is done by default, so all we need do is accept
+ *    the option.
+ */
+
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "busybox.h"
 
 extern int cat_main(int argc, char **argv)
 {
-	int status = EXIT_SUCCESS;
+	FILE *f;
+	int retval = EXIT_SUCCESS;
 
-	if (argc == 1) {
-		print_file(stdin);
-		return status;
+	bb_getopt_ulflags(argc, argv, "u");
+
+	argv += optind;
+	if (!*argv) {
+		*--argv = "-";
 	}
 
-	while (--argc > 0) {
-		if(!(strcmp(*++argv, "-"))) {
-			print_file(stdin);
-		} else if (! print_file_by_name(*argv)) {
-			status = EXIT_FAILURE;
+	do {
+		if ((f = bb_wfopen_input(*argv)) != NULL) {
+			int r = bb_copyfd(fileno(f), STDOUT_FILENO, 0);
+			bb_fclose_nonstdin(f);
+			if (r >= 0) {
+				continue;
+			}
 		}
-	}
-	return status;
-}
+		retval = EXIT_FAILURE;
+	} while (*++argv);
 
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+	return retval;
+}

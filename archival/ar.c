@@ -40,7 +40,7 @@
 
 static void header_verbose_list_ar(const file_header_t *file_header)
 {
-	const char *mode = mode_string(file_header->mode);
+	const char *mode = bb_mode_string(file_header->mode);
 	char *mtime;
 
 	mtime = ctime(&file_header->mtime);
@@ -58,7 +58,7 @@ static void data_extract_regular_file(archive_handle_t *archive_handle)
 	int dst_fd;
 
 	file_header = archive_handle->file_header;
-	dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT);
+	dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT);
 	archive_copy_file(archive_handle, dst_fd);	
 	close(dst_fd);
 
@@ -110,16 +110,16 @@ extern int ar_main(int argc, char **argv)
 			archive_handle->action_header = header_verbose_list_ar;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
  
 	/* check the src filename was specified */
 	if (optind == argc) {
-		show_usage();
+		bb_show_usage();
 	}
 
-	archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
+	archive_handle->src_fd = bb_xopen(argv[optind++], O_RDONLY);
 
 	/* TODO: This is the same as in tar, seperate function ? */
 	while (optind < argc) {
@@ -133,7 +133,7 @@ extern int ar_main(int argc, char **argv)
 #else
 	archive_xread_all(archive_handle, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
-		error_msg_and_die("Invalid ar magic");
+		bb_error_msg_and_die("Invalid ar magic");
 	}
 	archive_handle->offset += 7;
 

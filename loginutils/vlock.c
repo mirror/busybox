@@ -29,6 +29,7 @@
  * It now works with md5, sha1, etc passwords. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/vt.h>
 #include <signal.h>
 #include <string.h>
@@ -96,26 +97,26 @@ extern int vlock_main(int argc, char **argv)
 	struct termios term;
 
 	if (argc > 2) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	if (argc == 2) {
 		if (strncmp(argv[1], "-a", 2)) {
-			show_usage();
+			bb_show_usage();
 		} else {
 			o_lock_all = 1;
 		}
 	}
 
 	if ((pw = getpwuid(getuid())) == NULL) {
-		error_msg_and_die("no password for uid %d\n", getuid());
+		bb_error_msg_and_die("no password for uid %d\n", getuid());
 	}
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	if ((strcmp(pw->pw_passwd, "x") == 0)
 		|| (strcmp(pw->pw_passwd, "*") == 0)) {
 
 		if ((spw = getspuid(getuid())) == NULL) {
-			error_msg_and_die("could not read shadow password for uid %d: %s\n",
+			bb_error_msg_and_die("could not read shadow password for uid %d: %s\n",
 					   getuid(), strerror(errno));
 		}
 		if (spw->sp_pwdp) {
@@ -124,7 +125,7 @@ extern int vlock_main(int argc, char **argv)
 	}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
 	if (pw->pw_passwd[0] == '!' || pw->pw_passwd[0] == '*') {
-		error_msg_and_die("Account disabled for uid %d\n", getuid());
+		bb_error_msg_and_die("Account disabled for uid %d\n", getuid());
 	}
 
 	/* we no longer need root privs */
@@ -132,11 +133,11 @@ extern int vlock_main(int argc, char **argv)
 	setgid(getgid());
 
 	if ((vfd = open("/dev/tty", O_RDWR)) < 0) {
-		error_msg_and_die("/dev/tty");
+		bb_error_msg_and_die("/dev/tty");
 	};
 
 	if (ioctl(vfd, VT_GETMODE, &vtm) < 0) {
-		error_msg_and_die("/dev/tty");
+		bb_error_msg_and_die("/dev/tty");
 	};
 
 	/* mask a bunch of signals */

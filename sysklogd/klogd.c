@@ -136,12 +136,12 @@ extern int klogd_main(int argc, char **argv)
 		switch (opt) {
 		case 'c':
 			if ((optarg == NULL) || (optarg[1] != '\0')) {
-				show_usage();
+				bb_show_usage();
 			}
 			/* Valid levels are between 1 and 8 */
 			console_log_level = *optarg - '1';
 			if (console_log_level > 7) {
-				show_usage();
+				bb_show_usage();
 			}
 			console_log_level++;
 			
@@ -150,16 +150,16 @@ extern int klogd_main(int argc, char **argv)
 			doFork = FALSE;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	if (doFork) {
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		if (daemon(0, 1) < 0)
-			perror_msg_and_die("daemon");
+			bb_perror_msg_and_die("daemon");
 #else
-		error_msg_and_die("daemon not supported");
+		bb_error_msg_and_die("daemon not supported");
 #endif
 	}
 	doKlogd(console_log_level);

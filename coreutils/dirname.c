@@ -21,20 +21,20 @@
  *
  */
 
-/* getopt not needed */
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/dirname.html */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "busybox.h"
 
 extern int dirname_main(int argc, char **argv)
 {
-	if ((argc < 2) || (**(argv + 1) == '-'))
-		show_usage();
-	argv++;
+	if (argc != 2) {
+		bb_show_usage();
+	}
 
-	puts (dirname (argv[0]));
+	puts(dirname(argv[1]));
 
-	return EXIT_SUCCESS;
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

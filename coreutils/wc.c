@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini wc implementation for busybox
+ * wc implementation for busybox
  *
- * Copyright (C) 2000  Edward Betts <edward@debian.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,159 +20,208 @@
  *
  */
 
+/* BB_AUDIT SUSv3 _NOT_ compliant -- option -m is not currently supported. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/wc.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Rewritten to fix a number of problems and do some size optimizations.
+ * Problems in the previous busybox implementation (besides bloat) included: 
+ *  1) broken 'wc -c' optimization (read note below)
+ *  2) broken handling of '-' args
+ *  3) no checking of ferror on EOF returns
+ *  4) isprint() wasn't considered when word counting.
+ *
+ * TODO:
+ *
+ * When locale support is enabled, count multibyte chars in the '-m' case.
+ *
+ * NOTES:
+ *
+ * The previous busybox wc attempted an optimization using stat for the
+ * case of counting chars only.  I omitted that because it was broken.
+ * It didn't take into account the possibility of input coming from a
+ * pipe, or input from a file with file pointer not at the beginning.
+ *
+ * To implement such a speed optimization correctly, not only do you
+ * need the size, but also the file position.  Note also that the
+ * file position may be past the end of file.  Consider the example
+ * (adapted from example in gnu wc.c)
+ *
+ *      echo hello > /tmp/testfile &&
+ *      (dd ibs=1k skip=1 count=0 &> /dev/null ; wc -c) < /tmp/testfile
+ *
+ * for which 'wc -c' should output '0'.
+ */
+
 #include <stdio.h>
-#include <getopt.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "busybox.h"
 
-enum print_e {
-	print_lines = 1,
-	print_words = 2,
-	print_chars = 4,
-	print_length = 8
+#ifdef CONFIG_LOCALE_SUPPORT
+#include <locale.h>
+#include <ctype.h>
+#define isspace_given_isprint(c) isspace(c)
+#else
+#undef isspace
+#undef isprint
+#define isspace(c) ((((c) == ' ') || (((unsigned int)((c) - 9)) <= (13 - 9))))
+#define isprint(c) (((unsigned int)((c) - 0x20)) <= (0x7e - 0x20))
+#define isspace_given_isprint(c) ((c) == ' ')
+#endif
+
+enum {
+	WC_LINES	= 0,
+	WC_WORDS	= 1,
+	WC_CHARS	= 2,
+	WC_LENGTH	= 3
 };
 
-static unsigned int total_lines = 0;
-static unsigned int total_words = 0;
-static unsigned int total_chars = 0;
-static unsigned int max_length = 0;
-static char print_type = 0;
+/* Note: If this changes, remember to change the initialization of
+ *       'name' in wc_main.  It needs to point to the terminating nul. */
+static const char wc_opts[] = "lwcL";	/* READ THE WARNING ABOVE! */
 
-static void print_counts(const unsigned int lines, const unsigned int words,
-	const unsigned int chars, const unsigned int length, const char *name)
-{
-	int output = 0;
+enum {
+	OP_INC_LINE	= 1, /* OP_INC_LINE must be 1. */
+	OP_SPACE	= 2,
+	OP_NEWLINE	= 4,
+	OP_TAB		= 8,
+	OP_NUL		= 16,
+};
 
-	if (print_type & print_lines) {
-		printf("%7d", lines);
-		output++;
-	}
-	if (print_type & print_words) {
-		if (output++)
-			putchar(' ');
-		printf("%7d", words);
-	}
-	if (print_type & print_chars) {
-		if (output++)
-			putchar(' ');
-		printf("%7d", chars);
-	}
-	if (print_type & print_length) {
-		if (output++)
-			putchar(' ');
-		printf("%7d", length);
-	}
-	if (*name) {
-		printf(" %s", name);
-	}
-	putchar('\n');
-}
-
-static void wc_file(FILE * file, const char *name)
-{
-	unsigned int lines = 0;
-	unsigned int words = 0;
-	unsigned int chars = 0;
-	unsigned int length = 0;
-	unsigned int linepos = 0;
-	char in_word = 0;
-	int c;
-
-	while ((c = getc(file)) != EOF) {
-		chars++;
-		switch (c) {
-		case '\n':
-			lines++;
-		case '\r':
-		case '\f':
-			if (linepos > length)
-				length = linepos;
-			linepos = 0;
-			goto word_separator;
-		case '\t':
-			linepos += 8 - (linepos % 8);
-			goto word_separator;
-		case ' ':
-			linepos++;
-		case '\v':
-word_separator:
-			if (in_word) {
-				in_word = 0;
-				words++;
-			}
-			break;
-		default:
-			linepos++;
-			in_word = 1;
-			break;
-		}
-	}
-	if (linepos > length) {
-		length = linepos;
-	}
-	if (in_word) {
-		words++;
-	}
-	print_counts(lines, words, chars, length, name);
-	total_lines += lines;
-	total_words += words;
-	total_chars += chars;
-	if (length > max_length) {
-		max_length = length;
-	}
-}
+/* Note: If fmt_str changes, the offsets to 's' in the OUTPUT section
+ *       will need to be updated. */
+static const char fmt_str[] = " %7u\0 %s\n";
+static const char total_str[] = "total";
 
 int wc_main(int argc, char **argv)
 {
-	int opt;
-
-	while ((opt = getopt(argc, argv, "clLw")) > 0) {
-		switch (opt) {
-			case 'c':
-				print_type |= print_chars;
-				break;
-			case 'l':
-				print_type |= print_lines;
-				break;
-			case 'L':
-				print_type |= print_length;
-				break;
-			case 'w':
-				print_type |= print_words;
-				break;
-			default:
-				show_usage();
-		}
-	}
-
+	FILE *fp;
+	const char *s;
+	unsigned int *pcounts;
+	unsigned int counts[4];
+	unsigned int totals[4];
+	unsigned int linepos;
+	unsigned int u;
+	int num_files = 0;
+	int c;
+	char status = EXIT_SUCCESS;
+	char in_word;
+	char print_type;
+		
+	print_type = bb_getopt_ulflags(argc, argv, wc_opts);
+	
 	if (print_type == 0) {
-		print_type = print_lines | print_words | print_chars;
+		print_type = (1 << WC_LINES) | (1 << WC_WORDS) | (1 << WC_CHARS);
 	}
-
-	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
-		wc_file(stdin, "");
-	} else {
-		unsigned short num_files_counted = 0;
-		while (optind < argc) {
-			if (print_type == print_chars) {
-				struct stat statbuf;
-				stat(argv[optind], &statbuf);
-				print_counts(0, 0, statbuf.st_size, 0, argv[optind]);
-				total_chars += statbuf.st_size;
+	
+	argv += optind;
+	if (!*argv) {
+		*--argv = (char *) bb_msg_standard_input;
+	}
+	
+	memset(totals, 0, sizeof(totals));
+	
+	pcounts = counts;
+	
+	do {
+		++num_files;
+		if (!(fp = bb_wfopen_input(*argv))) {
+			status = EXIT_FAILURE;
+			continue;
+		}
+		
+		memset(counts, 0, sizeof(counts));
+		linepos = 0;
+		in_word = 0;
+		
+		do {
+			++counts[WC_CHARS];
+			c = getc(fp);
+			if (isprint(c)) {
+				++linepos;
+				if (!isspace_given_isprint(c)) {
+					in_word = 1;
+					continue;
+				}
+			} else if (((unsigned int)(c - 9)) <= 4) {
+				/* \t  9
+				 * \n 10
+				 * \v 11
+				 * \f 12
+				 * \r 13
+				 */
+				if (c == '\t') {
+					linepos = (linepos | 7) + 1;
+				} else {			/* '\n', '\r', '\f', or '\v' */
+				DO_EOF:
+					if (linepos > counts[WC_LENGTH]) {
+						counts[WC_LENGTH] = linepos;
+					}
+					if (c == '\n') {
+						++counts[WC_LINES];
+					}
+					if (c != '\v') {
+						linepos = 0;
+					}
+				}
+			} else if (c == EOF) {
+				if (ferror(fp)) {
+					bb_perror_msg("%s", *argv);
+					status = EXIT_FAILURE;
+				}
+				--counts[WC_CHARS];
+				goto DO_EOF;		/* Treat an EOF as '\r'. */
 			} else {
-				FILE *file;
-				file = xfopen(argv[optind], "r");
-				wc_file(file, argv[optind]);
-				fclose(file);
+				continue;
 			}
-			optind++;
-			num_files_counted++;
+			
+			counts[WC_WORDS] += in_word;
+			in_word = 0;
+			if (c == EOF) {
+				break;
+			}
+		} while (1);
+		
+		if (totals[WC_LENGTH] < counts[WC_LENGTH]) {
+			totals[WC_LENGTH] = counts[WC_LENGTH];
 		}
-		if (num_files_counted > 1) {
-			print_counts(total_lines, total_words, total_chars, max_length, "total");
+		totals[WC_LENGTH] -= counts[WC_LENGTH];
+		
+		bb_fclose_nonstdin(fp);
+		
+	OUTPUT:
+		s = fmt_str + 1;			/* Skip the leading space on 1st pass. */
+		u = 0;
+		do {
+			if (print_type & (1 << u)) {
+				bb_printf(s, pcounts[u]);
+				s = fmt_str;		/* Ok... restore the leading space. */
+			}
+			totals[u] += pcounts[u];
+		} while (++u < 4);
+		
+		s += 8;						/* Set the format to the empty string. */
+		
+		if (*argv != bb_msg_standard_input) {
+			s -= 3;					/* We have a name, so do %s conversion. */
 		}
+		bb_printf(s, *argv);
+		
+	} while (*++argv);
+	
+	/* If more than one file was processed, we want the totals.  To save some
+	 * space, we set the pcounts ptr to the totals array.  This has the side
+	 * effect of trashing the totals array after outputting it, but that's
+	 * irrelavent since we no longer need it. */
+	if (num_files > 1) {
+		num_files = 0;				/* Make sure we don't get here again. */
+		*--argv = (char *) total_str;
+		pcounts = totals;
+		goto OUTPUT;
 	}
-
-	return(EXIT_SUCCESS);
+	
+	bb_fflush_stdout_and_exit(status);
 }

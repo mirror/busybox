@@ -24,12 +24,12 @@
 
 #include "libbb.h"
 
-extern void herror_msg(const char *s, ...)
+extern void bb_herror_msg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	vherror_msg(s, p);
+	bb_vherror_msg(s, p);
 	va_end(p);
 }
 

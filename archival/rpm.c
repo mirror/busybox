@@ -116,7 +116,7 @@ int rpm_main(int argc, char **argv)
 			break;
 		case 'q': // First arg: Query mode
 			if (!func) func |= rpm_query;
-			else show_usage();
+			else bb_show_usage();
 			break;
 		case 'p': // Query a package
 			func |= rpm_query_package;
@@ -133,13 +133,13 @@ int rpm_main(int argc, char **argv)
 			func |= rpm_query_list_config;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
-	if (optind == argc) show_usage();
+	if (optind == argc) bb_show_usage();
 	while (optind < argc) {
-		rpm_fd = xopen(argv[optind], O_RDONLY);
+		rpm_fd = bb_xopen(argv[optind], O_RDONLY);
 		mytags = rpm_gettags(rpm_fd, (int *) &tagcount);
 		offset = lseek(rpm_fd, 0, SEEK_CUR);
 		if (!mytags) { printf("Error reading rpm header\n"); exit(-1); }
@@ -206,9 +206,9 @@ void extract_cpio_gz(int fd) {
 	archive_handle->src_fd = fd;
 	archive_handle->offset = 0;
 	
-	xread_all(archive_handle->src_fd, &magic, 2);
+	bb_xread_all(archive_handle->src_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		error_msg_and_die("Invalid gzip magic");
+		bb_error_msg_and_die("Invalid gzip magic");
 	}
 	check_header_gzip(archive_handle->src_fd);	
 	chdir("/"); // Install RPM's to root
@@ -314,7 +314,7 @@ void fileaction_dobackup(char *filename, int fileref)
 	if (rpm_getint(RPMTAG_FILEFLAGS, fileref) & RPMFILE_CONFIG) { /* Only need to backup config files */
 		stat_res = lstat (filename, &oldfile);
 		if (stat_res == 0 && S_ISREG(oldfile.st_mode)) { /* File already exists  - really should check MD5's etc to see if different */
-			newname = xstrdup(filename);
+			newname = bb_xstrdup(filename);
 			newname = strcat(newname, ".rpmorig");
 			copy_file(filename, newname, FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS);
 			remove_file(filename, FILEUTILS_RECUR | FILEUTILS_FORCE);

@@ -22,7 +22,7 @@ int makedevs_main(int argc, char **argv)
 	int major, Sminor, S, E;
 
 	if (argc < 7 || *argv[1]=='-')
-		show_usage();
+		bb_show_usage();
 
 	basedev = argv[1];
 	type = argv[2];
@@ -45,7 +45,7 @@ int makedevs_main(int argc, char **argv)
 		mode |= S_IFIFO;
 		break;
 	default:
-		show_usage();
+		bb_show_usage();
 	}
 
 	while (S <= E) {
@@ -53,12 +53,12 @@ int makedevs_main(int argc, char **argv)
 
 		sz = snprintf(buf, sizeof(buf), "%s%d", basedev, S);
 		if(sz<0 || sz>=sizeof(buf))  /* libc different */
-			error_msg_and_die("%s too large", basedev);
+			bb_error_msg_and_die("%s too large", basedev);
 
 	/* if mode != S_IFCHR and != S_IFBLK third param in mknod() ignored */
 
 		if (mknod(nodname, mode, major | Sminor))
-			error_msg("Failed to create: %s", nodname);
+			bb_error_msg("Failed to create: %s", nodname);
 
 		if (nodname == basedev) /* ex. /dev/hda - to /dev/hda1 ... */
 			nodname = buf;

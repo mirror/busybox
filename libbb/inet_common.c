@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.5 2002/11/28 09:52:23 bug1 Exp $
+ * Version:     $Id: inet_common.c,v 1.6 2003/03/19 09:12:07 mjn3 Exp $
  *
  */
 
@@ -44,7 +44,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	/* If we expect this to be a hostname, try hostname database first */
 #ifdef DEBUG
 	if (hostfirst) {
-		error_msg("gethostbyname (%s)", name);
+		bb_error_msg("gethostbyname (%s)", name);
 	}
 #endif
 	if (hostfirst && (hp = gethostbyname(name)) != (struct hostent *) NULL) {
@@ -54,7 +54,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	}
 	/* Try the NETWORKS database to see if this is a known network. */
 #ifdef DEBUG
-	error_msg("getnetbyname (%s)", name);
+	bb_error_msg("getnetbyname (%s)", name);
 #endif
 	if ((np = getnetbyname(name)) != (struct netent *) NULL) {
 		s_in->sin_addr.s_addr = htonl(np->n_net);
@@ -71,7 +71,7 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 #endif
 
 #ifdef DEBUG
-	error_msg("gethostbyname (%s)", name);
+	bb_error_msg("gethostbyname (%s)", name);
 #endif
 	if ((hp = gethostbyname(name)) == (struct hostent *) NULL) {
 		errno = h_errno;
@@ -109,7 +109,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	/* Grmpf. -FvK */
 	if (s_in->sin_family != AF_INET) {
 #ifdef DEBUG
-		error_msg("rresolve: unsupport address family %d !",
+		bb_error_msg("rresolve: unsupport address family %d !",
 				  s_in->sin_family);
 #endif
 		errno = EAFNOSUPPORT;
@@ -117,7 +117,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	}
 	ad = (unsigned long) s_in->sin_addr.s_addr;
 #ifdef DEBUG
-	error_msg("rresolve: %08lx, mask %08x, num %08x", ad, netmask, numeric);
+	bb_error_msg("rresolve: %08lx, mask %08x, num %08x", ad, netmask, numeric);
 #endif
 	if (ad == INADDR_ANY) {
 		if ((numeric & 0x0FFF) == 0) {
@@ -143,7 +143,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 		if (pn->addr.sin_addr.s_addr == ad && pn->host == host) {
 			safe_strncpy(name, pn->name, len);
 #ifdef DEBUG
-			error_msg("rresolve: found %s %08lx in cache",
+			bb_error_msg("rresolve: found %s %08lx in cache",
 					  (host ? "host" : "net"), ad);
 #endif
 			return (0);
@@ -156,7 +156,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	ent = NULL;
 	if (host) {
 #ifdef DEBUG
-		error_msg("gethostbyaddr (%08lx)", ad);
+		bb_error_msg("gethostbyaddr (%08lx)", ad);
 #endif
 		ent = gethostbyaddr((char *) &ad, 4, AF_INET);
 		if (ent != NULL) {
@@ -164,7 +164,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 		}
 	} else {
 #ifdef DEBUG
-		error_msg("getnetbyaddr (%08lx)", host_ad);
+		bb_error_msg("getnetbyaddr (%08lx)", host_ad);
 #endif
 		np = getnetbyaddr(host_ad, AF_INET);
 		if (np != NULL) {
@@ -178,7 +178,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	pn->addr = *s_in;
 	pn->next = INET_nn;
 	pn->host = host;
-	pn->name = xstrdup(name);
+	pn->name = bb_xstrdup(name);
 	INET_nn = pn;
 
 	return (0);
@@ -194,7 +194,7 @@ int INET6_resolve(char *name, struct sockaddr_in6 *sin6)
 	memset(&req, '\0', sizeof req);
 	req.ai_family = AF_INET6;
 	if ((s = getaddrinfo(name, NULL, &req, &ai))) {
-		error_msg("getaddrinfo: %s: %d", name, s);
+		bb_error_msg("getaddrinfo: %s: %d", name, s);
 		return -1;
 	}
 	memcpy(sin6, ai->ai_addr, sizeof(struct sockaddr_in6));
@@ -219,7 +219,7 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 	/* Grmpf. -FvK */
 	if (sin6->sin6_family != AF_INET6) {
 #ifdef DEBUG
-		error_msg(_("rresolve: unsupport address family %d !\n"),
+		bb_error_msg(_("rresolve: unsupport address family %d !\n"),
 				  sin6->sin6_family);
 #endif
 		errno = EAFNOSUPPORT;
@@ -240,7 +240,7 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 
 	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6), name, len, NULL, 0, 0);
 	if (s) {
-		error_msg("getnameinfo failed");
+		bb_error_msg("getnameinfo failed");
 		return -1;
 	}
 	return (0);

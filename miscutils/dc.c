@@ -16,14 +16,14 @@ static unsigned char base;
 static void push(double a)
 {
 	if (pointer >= (sizeof(stack) / sizeof(*stack)))
-		error_msg_and_die("stack overflow");
+		bb_error_msg_and_die("stack overflow");
 	stack[pointer++] = a;
 }
 
 static double pop(void)
 {
 	if (pointer == 0)
-		error_msg_and_die("stack underflow");
+		bb_error_msg_and_die("stack underflow");
 	return stack[--pointer];
 }
 
@@ -154,7 +154,7 @@ static void stack_machine(const char *argument)
 		}
 		o++;
 	}
-	error_msg_and_die("%s: syntax error.", argument);
+	bb_error_msg_and_die("%s: syntax error.", argument);
 }
 
 /* return pointer to next token in buffer and set *buffer to one char
@@ -191,7 +191,7 @@ int dc_main(int argc, char **argv)
 		char *line   = NULL;
 		char *cursor = NULL;
 		char *token  = NULL;
-		while ((line = get_line_from_file(stdin))) {
+		while ((line = bb_get_chomped_line_from_file(stdin))) {
 			cursor = line;
 			len = number_of_tokens(line);
 			for (i = 0; i < len; i++) {
@@ -203,7 +203,7 @@ int dc_main(int argc, char **argv)
 		}
 	} else {
 		if (*argv[1]=='-')
-			show_usage();
+			bb_show_usage();
 		while (argc >= 2) {
 			stack_machine(argv[1]);
 			argv++;

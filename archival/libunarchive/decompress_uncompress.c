@@ -121,14 +121,14 @@ extern int uncompress(int fd_in, int fd_out)
 
 	insize = 0;
 
-	inbuf[0] = xread_char(fd_in);
+	inbuf[0] = bb_xread_char(fd_in);
 
 	maxbits = inbuf[0] & BIT_MASK;
 	block_mode = inbuf[0] & BLOCK_MODE;
 	maxmaxcode = MAXCODE(maxbits);
 
 	if (maxbits > BITS) {
-		error_msg("compressed with %d bits, can only handle %d bits", maxbits,
+		bb_error_msg("compressed with %d bits, can only handle %d bits", maxbits,
 				  BITS);
 		return -1;
 	}
@@ -227,11 +227,11 @@ extern int uncompress(int fd_in, int fd_out)
 					posbits -= n_bits;
 					p = &inbuf[posbits >> 3];
 
-					error_msg
+					bb_error_msg
 						("insize:%d posbits:%d inbuf:%02X %02X %02X %02X %02X (%d)",
 						 insize, posbits, p[-1], p[0], p[1], p[2], p[3],
 						 (posbits & 07));
-					error_msg("uncompress: corrupt input");
+					bb_error_msg("uncompress: corrupt input");
 					return -1;
 				}
 

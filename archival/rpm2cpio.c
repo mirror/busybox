@@ -52,12 +52,12 @@ void skip_header(int rpm_fd)
 {
 	struct rpm_header header;
 
-	xread_all(rpm_fd, &header, sizeof(struct rpm_header));
+	bb_xread_all(rpm_fd, &header, sizeof(struct rpm_header));
 	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC, 3) != 0) {
-		error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
+		bb_error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
 	}
 	if (header.version != 1) {
-		error_msg_and_die("Unsupported RPM header version"); /* This program only supports v1 headers */
+		bb_error_msg_and_die("Unsupported RPM header version"); /* This program only supports v1 headers */
 	}
 	header.entries = ntohl(header.entries);
 	header.size = ntohl(header.size);
@@ -75,12 +75,12 @@ extern int rpm2cpio_main(int argc, char **argv)
 	if (argc == 1) {
 		rpm_fd = fileno(stdin);
 	} else {
-		rpm_fd = xopen(argv[1], O_RDONLY);
+		rpm_fd = bb_xopen(argv[1], O_RDONLY);
 	}
 
-	xread_all(rpm_fd, &lead, sizeof(struct rpm_lead));
+	bb_xread_all(rpm_fd, &lead, sizeof(struct rpm_lead));
 	if (strncmp((char *) &lead.magic, RPM_MAGIC, 4) != 0) {
-		error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
+		bb_error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
 	}
 
 	/* Skip the signature header */
@@ -90,14 +90,14 @@ extern int rpm2cpio_main(int argc, char **argv)
 	/* Skip the main header */
 	skip_header(rpm_fd);
 	
-	xread_all(rpm_fd, &magic, 2);
+	bb_xread_all(rpm_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		error_msg_and_die("Invalid gzip magic");
+		bb_error_msg_and_die("Invalid gzip magic");
 	}
 
 	check_header_gzip(rpm_fd);
 	if (inflate(rpm_fd, fileno(stdout)) != 0) {
-		error_msg("Error inflating");
+		bb_error_msg("Error inflating");
 	}
 	check_trailer_gzip(rpm_fd);
 

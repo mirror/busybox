@@ -1329,13 +1329,13 @@ static void setalias(char *name, char *val)
 		if (!(ap->flag & ALIASINUSE)) {
 			free(ap->val);
 		}
-		ap->val = xstrdup(val);
+		ap->val = bb_xstrdup(val);
 		ap->flag &= ~ALIASDEAD;
 	} else {
 		/* not found */
 		ap = xmalloc(sizeof(struct alias));
-		ap->name = xstrdup(name);
-		ap->val = xstrdup(val);
+		ap->name = bb_xstrdup(name);
+		ap->val = bb_xstrdup(val);
 		ap->flag = 0;
 		ap->next = 0;
 		*app = ap;
@@ -1829,7 +1829,7 @@ static void setpwd(const char *val, int setold)
 	if (!val)
 		getpwd();
 	else
-		curdir = simplify_path(val);
+		curdir = bb_simplify_path(val);
 	if (cated)
 		free(cated);
 	INTON;
@@ -3285,7 +3285,7 @@ static void tryexec(char *cmd, char **argv, char **envp)
 	char *name = cmd;
 
 #ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	name = get_last_path_component(name);
+	name = bb_get_last_path_component(name);
 	if(find_applet_by_name(name) != NULL)
 		flg_bb = 1;
 #else
@@ -7552,7 +7552,7 @@ static int dotcmd(int argc, char **argv)
 	exitstatus = 0;
 
 	for (sp = cmdenviron; sp; sp = sp->next)
-		setvareq(xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
+		setvareq(bb_xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
 	if (argc >= 2) {	/* That's what SVR2 does */
 		char *fullname;
@@ -7950,7 +7950,7 @@ static int umaskcmd(int argc, char **argv)
 			umask(mask);
 		} else {
 			mask = ~mask & 0777;
-			if (!parse_mode(ap, &mask)) {
+			if (!bb_parse_mode(ap, &mask)) {
 				error("Illegal mode: %s", ap);
 			}
 			umask(~mask & 0777);
@@ -8795,7 +8795,7 @@ static void setparam(char **argv)
 	for (nparam = 0; argv[nparam]; nparam++);
 	ap = newparam = xmalloc((nparam + 1) * sizeof *ap);
 	while (*argv) {
-		*ap++ = xstrdup(*argv++);
+		*ap++ = bb_xstrdup(*argv++);
 	}
 	*ap = NULL;
 	freeparam(&shellparam);
@@ -11429,7 +11429,7 @@ static void opentrace()
 #else
 	strcpy(s, "./trace");
 #endif							/* not_this_way */
-	if ((tracefile = wfopen(s, "a")) == NULL)
+	if ((tracefile = bb_wfopen(s, "a")) == NULL)
 		return;
 #ifdef O_APPEND
 	if ((flags = fcntl(fileno(tracefile), F_GETFL, 0)) >= 0)
@@ -11482,7 +11482,7 @@ static int trapcmd(int argc, char **argv)
 			if (action[0] == '-' && action[1] == '\0')
 				action = NULL;
 			else
-				action = xstrdup(action);
+				action = bb_xstrdup(action);
 		}
 		free(trap[signo]);
 		trap[signo] = action;
@@ -11700,7 +11700,7 @@ static void initvar()
 			vpp = hashvar(ip->text);
 			vp->next = *vpp;
 			*vpp = vp;
-			vp->text = xstrdup(ip->text);
+			vp->text = bb_xstrdup(ip->text);
 			vp->flags = ip->flags;
 			vp->func = ip->func;
 		}
@@ -11713,7 +11713,7 @@ static void initvar()
 		vpp = hashvar("PS1=$ ");
 		vps1.next = *vpp;
 		*vpp = &vps1;
-		vps1.text = xstrdup(geteuid()? "PS1=$ " : "PS1=# ");
+		vps1.text = bb_xstrdup(geteuid()? "PS1=$ " : "PS1=# ");
 		vps1.flags = VSTRFIXED | VTEXTFIXED;
 	}
 #endif
@@ -11833,7 +11833,7 @@ static void listsetvar(struct strlist *mylist)
 
 	INTOFF;
 	for (lp = mylist; lp; lp = lp->next) {
-		setvareq(xstrdup(lp->text), 0);
+		setvareq(bb_xstrdup(lp->text), 0);
 	}
 	INTON;
 }
@@ -11996,7 +11996,7 @@ static void mklocal(char *name)
 		vp = *findvar(vpp, name);
 		if (vp == NULL) {
 			if (strchr(name, '='))
-				setvareq(xstrdup(name), VSTRFIXED);
+				setvareq(bb_xstrdup(name), VSTRFIXED);
 			else
 				setvar(name, NULL, VSTRFIXED);
 			vp = *vpp;	/* the new variable */
@@ -12007,7 +12007,7 @@ static void mklocal(char *name)
 			lvp->flags = vp->flags;
 			vp->flags |= VSTRFIXED | VTEXTFIXED;
 			if (strchr(name, '='))
-				setvareq(xstrdup(name), 0);
+				setvareq(bb_xstrdup(name), 0);
 		}
 	}
 	lvp->vp = vp;
@@ -12243,7 +12243,7 @@ int letcmd(int argc, char **argv)
 			return 0;
 		}
 		snprintf(p, 12, "%ld", result);
-		setvar(argv[1], xstrdup(p), 0);
+		setvar(argv[1], bb_xstrdup(p), 0);
 	} else if (argc >= 3)
 		synerror("invalid operand");
 	return !result;

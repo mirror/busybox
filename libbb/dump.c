@@ -25,94 +25,80 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>		/* for isdigit() */
-#include "dump.h"
 #include "libbb.h"
+#include "dump.h"
 
-enum _vflag vflag = FIRST;
-FS *fshead;				/* head of format strings */
-extern FS *fshead;		/* head of format strings */
-extern int blocksize;
+enum _vflag bb_dump_vflag = FIRST;
+FS *bb_dump_fshead;				/* head of format strings */
 static FU *endfu;
 static char **_argv;
 static off_t savaddress;	/* saved address/offset in stream */
 static off_t eaddress;	/* end address */
 static off_t address;	/* address/offset in stream */
-off_t skip;				/* bytes to skip */
-off_t saveaddress;
-int exitval;			/* final exit value */
-int blocksize;			/* data block size */
-int length = -1;		/* max bytes to read */
+off_t bb_dump_skip;				/* bytes to skip */
+static int exitval;			/* final exit value */
+int bb_dump_blocksize;			/* data block size */
+int bb_dump_length = -1;		/* max bytes to read */
 
+static const char index_str[] = ".#-+ 0123456789";
 
-int size(FS * fs)
+static const char size_conv_str[] =
+"\x1\x4\x4\x4\x4\x4\x4\x8\x8\x8\x8\010cdiouxXeEfgG";
+
+static const char lcc[] = "diouxX";
+
+int bb_dump_size(FS * fs)
 {
 	register FU *fu;
-	register int bcnt, cursize;
+	register int bcnt, cur_size;
 	register char *fmt;
+	const char *p;
 	int prec;
 
-	/* figure out the data block size needed for each format unit */
-	for (cursize = 0, fu = fs->nextfu; fu; fu = fu->nextfu) {
+	/* figure out the data block bb_dump_size needed for each format unit */
+	for (cur_size = 0, fu = fs->nextfu; fu; fu = fu->nextfu) {
 		if (fu->bcnt) {
-			cursize += fu->bcnt * fu->reps;
+			cur_size += fu->bcnt * fu->reps;
 			continue;
 		}
 		for (bcnt = prec = 0, fmt = fu->fmt; *fmt; ++fmt) {
 			if (*fmt != '%')
 				continue;
 			/*
-			 * skip any special chars -- save precision in
+			 * bb_dump_skip any special chars -- save precision in
 			 * case it's a %s format.
 			 */
-			while (index(".#-+ 0123456789" + 1, *++fmt));
+			while (strchr(index_str + 1, *++fmt));
 			if (*fmt == '.' && isdigit(*++fmt)) {
 				prec = atoi(fmt);
 				while (isdigit(*++fmt));
 			}
-			switch (*fmt) {
-			case 'c':
-				bcnt += 1;
-				break;
-			case 'd':
-			case 'i':
-			case 'o':
-			case 'u':
-			case 'x':
-			case 'X':
-				bcnt += 4;
-				break;
-			case 'e':
-			case 'E':
-			case 'f':
-			case 'g':
-			case 'G':
-				bcnt += 8;
-				break;
-			case 's':
-				bcnt += prec;
-				break;
-			case '_':
-				switch (*++fmt) {
-				case 'c':
-				case 'p':
-				case 'u':
-					bcnt += 1;
-					break;
+			if (!(p = strchr(size_conv_str + 12, *fmt))) {
+				if (*fmt == 's') {
+					bcnt += prec;
+				} else if (*fmt == '_') {
+					++fmt;
+					if ((*fmt == 'c') || (*fmt == 'p') || (*fmt == 'u')) {
+						bcnt += 1;
+					}
 				}
+			} else {
+				bcnt += size_conv_str[p - (size_conv_str + 12)];
 			}
 		}
-		cursize += bcnt * fu->reps;
+		cur_size += bcnt * fu->reps;
 	}
-	return (cursize);
+	return (cur_size);
 }
 
-void rewrite(FS * fs)
+static void rewrite(FS * fs)
 {
 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
 	register PR *pr, **nextpr = NULL;
 	register FU *fu;
 	register char *p1, *p2;
 	char savech, *fmtp;
+	const char *byte_count_str;
 	int nconv, prec = 0;
 
 	for (fu = fs->nextfu; fu; fu = fu->nextfu) {
@@ -128,7 +114,7 @@ void rewrite(FS * fs)
 			else
 				*nextpr = pr;
 
-			/* skip preceding text and up to the next % sign */
+			/* bb_dump_skip preceding text and up to the next % sign */
 			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1);
 
 			/* only text in the string */
@@ -144,11 +130,11 @@ void rewrite(FS * fs)
 			 */
 			if (fu->bcnt) {
 				sokay = USEBCNT;
-				/* skip to conversion character */
-				for (++p1; index(".#-+ 0123456789", *p1); ++p1);
+				/* bb_dump_skip to conversion character */
+				for (++p1; strchr(index_str, *p1); ++p1);
 			} else {
-				/* skip any special chars, field width */
-				while (index(".#-+ 0123456789" + 1, *++p1));
+				/* bb_dump_skip any special chars, field width */
+				while (strchr(index_str + 1, *++p1));
 				if (*p1 == '.' && isdigit(*++p1)) {
 					sokay = USEPREC;
 					prec = atoi(p1);
@@ -162,104 +148,59 @@ void rewrite(FS * fs)
 			/*
 			 * figure out the byte count for each conversion;
 			 * rewrite the format as necessary, set up blank-
-			 * padding for end of data.
+			 * pbb_dump_adding for end of data.
 			 */
-			switch (*p1) {
-			case 'c':
+
+			if (*p1 == 'c') {
 				pr->flags = F_CHAR;
-				switch (fu->bcnt) {
-				case 0:
-				case 1:
-					pr->bcnt = 1;
-					break;
-				default:
-					p1[1] = '\0';
-					error_msg_and_die
-						("bad byte count for conversion character %s.", p1);
+			DO_BYTE_COUNT_1:
+				byte_count_str = "\001";
+			DO_BYTE_COUNT:
+				if (fu->bcnt) {
+					do {
+						if (fu->bcnt == *byte_count_str) {
+							break;
+						}
+					} while (*++byte_count_str);
 				}
-				break;
-			case 'd':
-			case 'i':
-				pr->flags = F_INT;
-				goto sw1;
-			case 'l':
+				/* Unlike the original, output the remainder of the format string. */
+				if (!*byte_count_str) {
+					bb_error_msg_and_die("bad byte count for conversion character %s.", p1);
+				}
+				pr->bcnt = *byte_count_str;
+			} else if (*p1 == 'l') {
 				++p2;
-				switch (p1[1]) {
-				case 'd':
-				case 'i':
-					++p1;
+				++p1;
+			DO_INT_CONV:
+				{
+					const char *e;
+					if (!(e = strchr(lcc, *p1))) {
+						goto DO_BAD_CONV_CHAR;
+					}
 					pr->flags = F_INT;
-					goto sw1;
-				case 'o':
-				case 'u':
-				case 'x':
-				case 'X':
-					++p1;
-					pr->flags = F_UINT;
-					goto sw1;
-				default:
-					p1[2] = '\0';
-					error_msg_and_die
-						("hexdump: bad conversion character %%%s.\n", p1);
+					if (e > lcc + 1) {
+						pr->flags = F_UINT;
+					}
+					byte_count_str = "\004\002\001";
+					goto DO_BYTE_COUNT;
 				}
 				/* NOTREACHED */
-			case 'o':
-			case 'u':
-			case 'x':
-			case 'X':
-				pr->flags = F_UINT;
-			  sw1:switch (fu->bcnt) {
-				case 0:
-				case 4:
-					pr->bcnt = 4;
-					break;
-				case 1:
-					pr->bcnt = 1;
-					break;
-				case 2:
-					pr->bcnt = 2;
-					break;
-				default:
-					p1[1] = '\0';
-					error_msg_and_die
-						("bad byte count for conversion character %s.", p1);
-				}
-				break;
-			case 'e':
-			case 'E':
-			case 'f':
-			case 'g':
-			case 'G':
+			} else if (strchr(lcc, *p1)) {
+				goto DO_INT_CONV;
+			} else if (strchr("eEfgG", *p1)) {
 				pr->flags = F_DBL;
-				switch (fu->bcnt) {
-				case 0:
-				case 8:
-					pr->bcnt = 8;
-					break;
-				case 4:
-					pr->bcnt = 4;
-					break;
-				default:
-					p1[1] = '\0';
-					error_msg_and_die
-						("bad byte count for conversion character %s.", p1);
-				}
-				break;
-			case 's':
+				byte_count_str = "\010\004";
+				goto DO_BYTE_COUNT;
+			} else if (*p1 == 's') {
 				pr->flags = F_STR;
-				switch (sokay) {
-				case NOTOKAY:
-					error_msg_and_die
-						("%%s requires a precision or a byte count.");
-				case USEBCNT:
+				if (sokay == USEBCNT) {
 					pr->bcnt = fu->bcnt;
-					break;
-				case USEPREC:
+				} else if (sokay == USEPREC) {
 					pr->bcnt = prec;
-					break;
+				} else {	/* NOTOKAY */
+					bb_error_msg_and_die("%%s requires a precision or a byte count.");
 				}
-				break;
-			case '_':
+			} else if (*p1 == '_') {
 				++p2;
 				switch (p1[1]) {
 				case 'A':
@@ -269,51 +210,29 @@ void rewrite(FS * fs)
 				case 'a':
 					pr->flags = F_ADDRESS;
 					++p2;
-					switch (p1[2]) {
-					case 'd':
-					case 'o':
-					case 'x':
-						*p1 = p1[2];
-						break;
-					default:
-						p1[3] = '\0';
-						error_msg_and_die
-							("hexdump: bad conversion character %%%s.\n", p1);
+					if ((p1[2] != 'd') && (p1[2] != 'o') && (p1[2] != 'x')) {
+						goto DO_BAD_CONV_CHAR;
 					}
+					*p1 = p1[2];
 					break;
 				case 'c':
 					pr->flags = F_C;
 					/* *p1 = 'c';   set in conv_c */
-					goto sw2;
+					goto DO_BYTE_COUNT_1;
 				case 'p':
 					pr->flags = F_P;
 					*p1 = 'c';
-					goto sw2;
+					goto DO_BYTE_COUNT_1;
 				case 'u':
 					pr->flags = F_U;
 					/* *p1 = 'c';   set in conv_u */
-				  sw2:switch (fu->bcnt) {
-					case 0:
-					case 1:
-						pr->bcnt = 1;
-						break;
-					default:
-						p1[2] = '\0';
-						error_msg_and_die
-							("bad byte count for conversion character %s.",
-							 p1);
-					}
-					break;
+					goto DO_BYTE_COUNT_1;
 				default:
-					p1[2] = '\0';
-					error_msg_and_die
-						("hexdump: bad conversion character %%%s.\n", p1);
+					goto DO_BAD_CONV_CHAR;
 				}
-				break;
-			default:
-				p1[1] = '\0';
-				error_msg_and_die("hexdump: bad conversion character %%%s.\n",
-								  p1);
+			} else {
+			DO_BAD_CONV_CHAR:
+				bb_error_msg_and_die("bad conversion character %%%s.\n", p1);
 			}
 
 			/*
@@ -322,16 +241,14 @@ void rewrite(FS * fs)
 			 */
 			savech = *p2;
 			p1[1] = '\0';
-			if (!(pr->fmt = strdup(fmtp)))
-				perror_msg_and_die("hexdump");
+			pr->fmt = bb_xstrdup(fmtp);
 			*p2 = savech;
 			pr->cchar = pr->fmt + (p1 - fmtp);
 			fmtp = p2;
 
 			/* only one conversion character if byte count */
 			if (!(pr->flags & F_ADDRESS) && fu->bcnt && nconv++) {
-				error_msg_and_die
-					("hexdump: byte count with multiple conversion characters.\n");
+				bb_error_msg_and_die("byte count with multiple conversion characters.\n");
 			}
 		}
 		/*
@@ -344,7 +261,7 @@ void rewrite(FS * fs)
 	}
 	/*
 	 * if the format string interprets any data at all, and it's
-	 * not the same as the blocksize, and its last format unit
+	 * not the same as the bb_dump_blocksize, and its last format unit
 	 * interprets any data at all, and has no iteration count,
 	 * repeat it as necessary.
 	 *
@@ -352,9 +269,9 @@ void rewrite(FS * fs)
 	 * gets output from the last iteration of the format unit.
 	 */
 	for (fu = fs->nextfu;; fu = fu->nextfu) {
-		if (!fu->nextfu && fs->bcnt < blocksize &&
+		if (!fu->nextfu && fs->bcnt < bb_dump_blocksize &&
 			!(fu->flags & F_SETREP) && fu->bcnt)
-			fu->reps += (blocksize - fs->bcnt) / fu->bcnt;
+			fu->reps += (bb_dump_blocksize - fs->bcnt) / fu->bcnt;
 		if (fu->reps > 1) {
 			for (pr = fu->nextpr;; pr = pr->nextpr)
 				if (!pr->nextpr)
@@ -369,31 +286,31 @@ void rewrite(FS * fs)
 	}
 }
 
-static void doskip(char *fname, int statok)
+static void do_skip(char *fname, int statok)
 {
 	struct stat sbuf;
 
 	if (statok) {
 		if (fstat(fileno(stdin), &sbuf)) {
-			perror_msg_and_die("hexdump: %s", fname);
+			bb_perror_msg_and_die("%s", fname);
 		}
 		if ((!(S_ISCHR(sbuf.st_mode) ||
 			   S_ISBLK(sbuf.st_mode) ||
-			   S_ISFIFO(sbuf.st_mode))) && skip >= sbuf.st_size) {
-			/* If size valid and skip >= size */
-			skip -= sbuf.st_size;
+			   S_ISFIFO(sbuf.st_mode))) && bb_dump_skip >= sbuf.st_size) {
+			/* If bb_dump_size valid and bb_dump_skip >= size */
+			bb_dump_skip -= sbuf.st_size;
 			address += sbuf.st_size;
 			return;
 		}
 	}
-	if (fseek(stdin, skip, SEEK_SET)) {
-		perror_msg_and_die("hexdump: %s", fname);
+	if (fseek(stdin, bb_dump_skip, SEEK_SET)) {
+		bb_perror_msg_and_die("%s", fname);
 	}
-	savaddress = address += skip;
-	skip = 0;
+	savaddress = address += bb_dump_skip;
+	bb_dump_skip = 0;
 }
 
-int next(char **argv)
+static int next(char **argv)
 {
 	static int done;
 	int statok;
@@ -405,7 +322,7 @@ int next(char **argv)
 	for (;;) {
 		if (*_argv) {
 			if (!(freopen(*_argv, "r", stdin))) {
-				perror_msg("%s", *_argv);
+				bb_perror_msg("%s", *_argv);
 				exitval = 1;
 				++_argv;
 				continue;
@@ -416,11 +333,11 @@ int next(char **argv)
 				return (0);
 			statok = 0;
 		}
-		if (skip)
-			doskip(statok ? *_argv : "stdin", statok);
+		if (bb_dump_skip)
+			do_skip(statok ? *_argv : "stdin", statok);
 		if (*_argv)
 			++_argv;
-		if (!skip)
+		if (!bb_dump_skip)
 			return (1);
 	}
 	/* NOTREACHED */
@@ -435,26 +352,26 @@ static u_char *get(void)
 	u_char *tmpp;
 
 	if (!curp) {
-		curp = (u_char *) xmalloc(blocksize);
-		savp = (u_char *) xmalloc(blocksize);
+		curp = (u_char *) xmalloc(bb_dump_blocksize);
+		savp = (u_char *) xmalloc(bb_dump_blocksize);
 	} else {
 		tmpp = curp;
 		curp = savp;
 		savp = tmpp;
-		address = savaddress += blocksize;
+		address = savaddress += bb_dump_blocksize;
 	}
-	for (need = blocksize, nread = 0;;) {
+	for (need = bb_dump_blocksize, nread = 0;;) {
 		/*
 		 * if read the right number of bytes, or at EOF for one file,
 		 * and no other files are available, zero-pad the rest of the
 		 * block and set the end flag.
 		 */
-		if (!length || (ateof && !next((char **) NULL))) {
-			if (need == blocksize) {
+		if (!bb_dump_length || (ateof && !next((char **) NULL))) {
+			if (need == bb_dump_blocksize) {
 				return ((u_char *) NULL);
 			}
-			if (vflag != ALL && !bcmp(curp, savp, nread)) {
-				if (vflag != DUP) {
+			if (bb_dump_vflag != ALL && !bcmp(curp, savp, nread)) {
+				if (bb_dump_vflag != DUP) {
 					printf("*\n");
 				}
 				return ((u_char *) NULL);
@@ -464,31 +381,32 @@ static u_char *get(void)
 			return (curp);
 		}
 		n = fread((char *) curp + nread, sizeof(u_char),
-				  length == -1 ? need : MIN(length, need), stdin);
+				  bb_dump_length == -1 ? need : MIN(bb_dump_length, need), stdin);
 		if (!n) {
 			if (ferror(stdin)) {
-				perror_msg("%s", _argv[-1]);
+				bb_perror_msg("%s", _argv[-1]);
 			}
 			ateof = 1;
 			continue;
 		}
 		ateof = 0;
-		if (length != -1) {
-			length -= n;
+		if (bb_dump_length != -1) {
+			bb_dump_length -= n;
 		}
 		if (!(need -= n)) {
-			if (vflag == ALL || vflag == FIRST || bcmp(curp, savp, blocksize)) {
-				if (vflag == DUP || vflag == FIRST) {
-					vflag = WAIT;
+			if (bb_dump_vflag == ALL || bb_dump_vflag == FIRST
+				|| bcmp(curp, savp, bb_dump_blocksize)) {
+				if (bb_dump_vflag == DUP || bb_dump_vflag == FIRST) {
+					bb_dump_vflag = WAIT;
 				}
 				return (curp);
 			}
-			if (vflag == WAIT) {
+			if (bb_dump_vflag == WAIT) {
 				printf("*\n");
 			}
-			vflag = DUP;
-			address = savaddress += blocksize;
-			need = blocksize;
+			bb_dump_vflag = DUP;
+			address = savaddress += bb_dump_blocksize;
+			need = bb_dump_blocksize;
 			nread = 0;
 		} else {
 			nread += n;
@@ -507,67 +425,59 @@ static void bpad(PR * pr)
 	pr->flags = F_BPAD;
 	*pr->cchar = 's';
 	for (p1 = pr->fmt; *p1 != '%'; ++p1);
-	for (p2 = ++p1; *p1 && index(" -0+#", *p1); ++p1);
+	for (p2 = ++p1; *p1 && strchr(" -0+#", *p1); ++p1);
 	while ((*p2++ = *p1++) != 0);
 }
 
-void conv_c(PR * pr, u_char * p)
-{
-	char buf[10], *str;
+static const char conv_str[] =
+	"\0\\0\0"
+	"\007\\a\0"				/* \a */
+	"\b\\b\0"
+	"\f\\b\0"
+	"\n\\n\0"
+	"\r\\r\0"
+	"\t\\t\0"
+	"\v\\v\0"
+	"\0";
 
-	switch (*p) {
-	case '\0':
-		str = "\\0";
-		goto strpr;
-		/* case '\a': */
-	case '\007':
-		str = "\\a";
-		goto strpr;
-	case '\b':
-		str = "\\b";
-		goto strpr;
-	case '\f':
-		str = "\\f";
-		goto strpr;
-	case '\n':
-		str = "\\n";
-		goto strpr;
-	case '\r':
-		str = "\\r";
-		goto strpr;
-	case '\t':
-		str = "\\t";
-		goto strpr;
-	case '\v':
-		str = "\\v";
-		goto strpr;
-	default:
-		break;
-	}
+
+static void conv_c(PR * pr, u_char * p)
+{
+	const char *str = conv_str;
+	char buf[10];
+
+	do {
+		if (*p == *str) {
+			++str;
+			goto strpr;
+		}
+		str += 4;
+	} while (*str);
+
 	if (isprint(*p)) {
 		*pr->cchar = 'c';
 		(void) printf(pr->fmt, *p);
 	} else {
-		sprintf(str = buf, "%03o", (int) *p);
+		sprintf(buf, "%03o", (int) *p);
+		str = buf;
 	  strpr:
 		*pr->cchar = 's';
 		printf(pr->fmt, str);
 	}
 }
 
-void conv_u(PR * pr, u_char * p)
+static void conv_u(PR * pr, u_char * p)
 {
-	static char *list[] = {
-		"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
-		"bs", "ht", "lf", "vt", "ff", "cr", "so", "si",
-		"dle", "dcl", "dc2", "dc3", "dc4", "nak", "syn", "etb",
-		"can", "em", "sub", "esc", "fs", "gs", "rs", "us",
-	};
+	static const char list[] =
+		"nul\0soh\0stx\0etx\0eot\0enq\0ack\0bel\0"
+		"bs\0_ht\0_lf\0_vt\0_ff\0_cr\0_so\0_si\0_"
+		"dle\0dcl\0dc2\0dc3\0dc4\0nak\0syn\0etb\0"
+		"can\0em\0_sub\0esc\0fs\0_gs\0_rs\0_us";
 
 	/* od used nl, not lf */
 	if (*p <= 0x1f) {
 		*pr->cchar = 's';
-		printf(pr->fmt, list[*p]);
+		printf(pr->fmt, list[4 * (int)(*p)]);
 	} else if (*p == 0x7f) {
 		*pr->cchar = 's';
 		printf(pr->fmt, "del");
@@ -580,7 +490,7 @@ void conv_u(PR * pr, u_char * p)
 	}
 }
 
-void display(void)
+static void display(void)
 {
 /*  extern FU *endfu; */
 	register FS *fs;
@@ -589,11 +499,11 @@ void display(void)
 	register int cnt;
 	register u_char *bp;
 
-/*  off_t saveaddress; */
+	off_t saveaddress;
 	u_char savech = 0, *savebp;
 
 	while ((bp = get()) != NULL) {
-		for (fs = fshead, savebp = bp, saveaddress = address; fs;
+		for (fs = bb_dump_fshead, savebp = bp, saveaddress = address; fs;
 			 fs = fs->nextfs, bp = savebp, address = saveaddress) {
 			for (fu = fs->nextfu; fu; fu = fu->nextfu) {
 				if (fu->flags & F_IGNORE) {
@@ -707,8 +617,8 @@ void display(void)
 	}
 	if (endfu) {
 		/*
-		 * if eaddress not set, error or file size was multiple of
-		 * blocksize, and no partial block ever found.
+		 * if eaddress not set, error or file bb_dump_size was multiple of
+		 * bb_dump_blocksize, and no partial block ever found.
 		 */
 		if (!eaddress) {
 			if (!address) {
@@ -729,19 +639,19 @@ void display(void)
 	}
 }
 
-int dump(char **argv)
+int bb_dump_dump(char **argv)
 {
 	register FS *tfs;
 
-	/* figure out the data block size */
-	for (blocksize = 0, tfs = fshead; tfs; tfs = tfs->nextfs) {
-		tfs->bcnt = size(tfs);
-		if (blocksize < tfs->bcnt) {
-			blocksize = tfs->bcnt;
+	/* figure out the data block bb_dump_size */
+	for (bb_dump_blocksize = 0, tfs = bb_dump_fshead; tfs; tfs = tfs->nextfs) {
+		tfs->bcnt = bb_dump_size(tfs);
+		if (bb_dump_blocksize < tfs->bcnt) {
+			bb_dump_blocksize = tfs->bcnt;
 		}
 	}
 	/* rewrite the rules, do syntax checking */
-	for (tfs = fshead; tfs; tfs = tfs->nextfs) {
+	for (tfs = bb_dump_fshead; tfs; tfs = tfs->nextfs) {
 		rewrite(tfs);
 	}
 
@@ -751,21 +661,21 @@ int dump(char **argv)
 	return (exitval);
 }
 
-void add(char *fmt)
+void bb_dump_add(const char *fmt)
 {
-	register char *p;
+	register const char *p;
 	register char *p1;
 	register char *p2;
 	static FS **nextfs;
 	FS *tfs;
 	FU *tfu, **nextfu;
-	char *savep;
+	const char *savep;
 
 	/* start new linked list of format units */
 	/* NOSTRICT */
 	tfs = (FS *) xmalloc(sizeof(FS));
-	if (!fshead) {
-		fshead = tfs;
+	if (!bb_dump_fshead) {
+		bb_dump_fshead = tfs;
 	} else {
 		*nextfs = tfs;
 	}
@@ -774,8 +684,8 @@ void add(char *fmt)
 
 	/* take the format string and break it up into format units */
 	for (p = fmt;;) {
-		/* skip leading white space */
-		for (; isspace(*p); ++p);
+		/* bb_dump_skip leading white space */
+		p = bb_skip_whitespace(p);
 		if (!*p) {
 			break;
 		}
@@ -791,43 +701,41 @@ void add(char *fmt)
 		if (isdigit(*p)) {
 			for (savep = p; isdigit(*p); ++p);
 			if (!isspace(*p) && *p != '/') {
-				error_msg_and_die("hexdump: bad format {%s}", fmt);
+				bb_error_msg_and_die("bad format {%s}", fmt);
 			}
 			/* may overwrite either white space or slash */
 			tfu->reps = atoi(savep);
 			tfu->flags = F_SETREP;
-			/* skip trailing white space */
-			for (++p; isspace(*p); ++p);
+			/* bb_dump_skip trailing white space */
+			p = bb_skip_whitespace(++p);
 		}
 
-		/* skip slash and trailing white space */
+		/* bb_dump_skip slash and trailing white space */
 		if (*p == '/') {
-			while (isspace(*++p));
+			p = bb_skip_whitespace(++p);
 		}
 
 		/* byte count */
 		if (isdigit(*p)) {
 			for (savep = p; isdigit(*p); ++p);
 			if (!isspace(*p)) {
-				error_msg_and_die("hexdump: bad format {%s}", fmt);
+				bb_error_msg_and_die("bad format {%s}", fmt);
 			}
 			tfu->bcnt = atoi(savep);
-			/* skip trailing white space */
-			for (++p; isspace(*p); ++p);
+			/* bb_dump_skip trailing white space */
+			p = bb_skip_whitespace(++p);
 		}
 
 		/* format */
 		if (*p != '"') {
-			error_msg_and_die("hexdump: bad format {%s}", fmt);
+			bb_error_msg_and_die("bad format {%s}", fmt);
 		}
 		for (savep = ++p; *p != '"';) {
 			if (*p++ == 0) {
-				error_msg_and_die("hexdump: bad format {%s}", fmt);
+				bb_error_msg_and_die("bad format {%s}", fmt);
 			}
 		}
-		if (!(tfu->fmt = malloc(p - savep + 1))) {
-			perror_msg_and_die("hexdump");
-		}
+		tfu->fmt = xmalloc(p - savep + 1);
 		strncpy(tfu->fmt, savep, p - savep);
 		tfu->fmt[p - savep] = '\0';
 /*      escape(tfu->fmt); */
@@ -841,33 +749,16 @@ void add(char *fmt)
 				break;
 			}
 			if (*p1 == '\\') {
-				switch (*++p1) {
-				case 'a':
-					/* *p2 = '\a'; */
-					*p2 = '\007';
-					break;
-				case 'b':
-					*p2 = '\b';
-					break;
-				case 'f':
-					*p2 = '\f';
-					break;
-				case 'n':
-					*p2 = '\n';
-					break;
-				case 'r':
-					*p2 = '\r';
-					break;
-				case 't':
-					*p2 = '\t';
-					break;
-				case 'v':
-					*p2 = '\v';
-					break;
-				default:
-					*p2 = *p1;
-					break;
-				}
+				const char *cs = conv_str + 4;
+				++p1;
+				*p2 = *p1;
+				do {
+					if (*p1 == cs[2]) {
+						*p2 = cs[0];
+						break;
+					}
+					cs += 4;
+				} while (*cs);
 			}
 		}
 

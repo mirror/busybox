@@ -5,17 +5,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-
-
 #include "libbb.h"
 
-
-void bb_asprintf(char **string_ptr, const char *format, ...)
+void bb_xasprintf(char **string_ptr, const char *format, ...)
 {
-       va_list p;
+	va_list p;
+	int r;
+	
+	va_start(p, format);
+	r = vasprintf(string_ptr, format, p);
+	va_end(p);
 
-       va_start(p, format);
-       if(vasprintf(string_ptr, format, p)<0)
-		error_msg_and_die(memory_exhausted);
-       va_end(p);
+	if (r < 0) {
+		bb_perror_msg_and_die("bb_xasprintf");
+	}
 }

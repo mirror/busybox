@@ -33,7 +33,7 @@ long my_getpwnam(const char *name)
 
 	myuser  = getpwnam(name);
 	if (myuser==NULL)
-		error_msg_and_die("unknown user name: %s", name);
+		bb_error_msg_and_die("unknown user name: %s", name);
 
 	return myuser->pw_uid;
 }

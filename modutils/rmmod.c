@@ -48,11 +48,11 @@ extern int rmmod_main(int argc, char **argv)
 				buf = xmalloc(bufsize = 256);
 				while (nmod != pnmod) {
 					if (delete_module(NULL))
-						perror_msg_and_die("rmmod");
+						bb_perror_msg_and_die("rmmod");
 					pnmod = nmod;
 					/* 1 == QM_MODULES */
 					if (my_query_module(NULL, 1, &buf, &bufsize, &nmod)) {
-						perror_msg_and_die("QM_MODULES");
+						bb_perror_msg_and_die("QM_MODULES");
 					}
 				}
 #ifdef CONFIG_FEATURE_CLEAN_UP
@@ -60,16 +60,16 @@ extern int rmmod_main(int argc, char **argv)
 #endif
 				return EXIT_SUCCESS;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (optind == argc)
-			show_usage();
+			bb_show_usage();
 
 	for (n = optind; n < argc; n++) {
 		if (delete_module(argv[n]) < 0) {
-			perror_msg("%s", argv[n]);
+			bb_perror_msg("%s", argv[n]);
 			ret = EXIT_FAILURE;
 		}
 	}

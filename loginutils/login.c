@@ -94,10 +94,10 @@ extern int login_main(int argc, char **argv)
 			 * (-f root, *NOT* -froot). --marekm
 			 */
 			if ( optarg != argv[optind-1] )
-				show_usage ( );
+				bb_show_usage( );
 
 			if ( !amroot ) 		/* Auth bypass only if real UID is zero */
-				error_msg_and_die ( "-f permission denied" );
+				bb_error_msg_and_die ( "-f permission denied" );
 			
 			safe_strncpy(username, optarg, USERNAME_SIZE);
 			opt_fflag = 1;
@@ -106,7 +106,7 @@ extern int login_main(int argc, char **argv)
 			opt_host = optarg;
 			break;
 		default:
-			show_usage ( );
+			bb_show_usage( );
 		}
 	}
 
@@ -275,11 +275,11 @@ static int login_prompt ( char *buf_name )
 
 static int check_nologin ( int amroot )
 {
-	if ( access ( nologin_file, F_OK ) == 0 ) {
+	if ( access ( bb_path_nologin_file, F_OK ) == 0 ) {
 		FILE *fp;
 		int c;
 
-		if (( fp = fopen ( nologin_file, "r" ))) {
+		if (( fp = fopen ( bb_path_nologin_file, "r" ))) {
 			while (( c = getc ( fp )) != EOF )
 				putchar (( c == '\n' ) ? '\r' : c );
 
@@ -304,9 +304,9 @@ static int check_tty ( const char *tty )
 	int i;
 	char buf[BUFSIZ];
 
-	if (( fp = fopen ( securetty_file, "r" ))) {
+	if (( fp = fopen ( bb_path_securetty_file, "r" ))) {
 		while ( fgets ( buf, sizeof( buf ) - 1, fp )) {
-			for ( i = xstrlen( buf ) - 1; i >= 0; --i ) {
+			for ( i = bb_strlen( buf ) - 1; i >= 0; --i ) {
 				if ( !isspace ( buf[i] ))
 					break;
 			}
@@ -348,7 +348,7 @@ static void motd ( )
 	FILE *fp;
 	register int c;
 
-	if (( fp = fopen ( motd_file, "r" ))) {
+	if (( fp = fopen ( bb_path_motd_file, "r" ))) {
 		while (( c = getc ( fp )) != EOF ) 
 			putchar ( c );		
 		fclose ( fp );

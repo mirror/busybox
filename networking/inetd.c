@@ -519,7 +519,7 @@ enter(struct servtab *cp)
 
 	sep = (struct servtab *)malloc(sizeof (*sep));
 	if (sep == NULL) {
-		syslog_err_and_discard_dg(SOCK_STREAM, memory_exhausted);
+		syslog_err_and_discard_dg(SOCK_STREAM, bb_msg_memory_exhausted);
 	}
 	*sep = *cp;
 	sep->se_fd = -1;
@@ -835,7 +835,7 @@ inetd_main(int argc, char *argv[])
 			if (global_queuelen < 8) global_queuelen=8;
 			break;
 		default:
-			show_usage(); // "[-q len] [conf]"
+			bb_show_usage(); // "[-q len] [conf]"
 		}
 	argc -= optind;
 	argv += optind;
@@ -844,7 +844,7 @@ inetd_main(int argc, char *argv[])
 		CONFIG = argv[0];
 
 	daemon(0, 0);
-	openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
+	openlog(bb_applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 	{
 		FILE *fp;
 

@@ -38,5 +38,12 @@ typedef struct _fs {			/* format strings */
 	int bcnt;
 } FS;
 
-void add(char *fmt);
-int dump (char **argv);
+extern void bb_dump_add(const char *fmt);
+extern int bb_dump_dump (char **argv);
+extern int bb_dump_size(FS * fs);
+
+extern FS *bb_dump_fshead;		/* head of format strings */
+extern int bb_dump_blocksize;				/* data block size */
+extern int bb_dump_length;			/* max bytes to read */
+extern enum _vflag bb_dump_vflag;
+extern off_t bb_dump_skip;                      /* bytes to skip */

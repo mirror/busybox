@@ -33,11 +33,11 @@ extern int watchdog_main(int argc, char **argv)
 	int fd;
 
 	if (argc != 2) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	if ((fd=open(argv[1], O_WRONLY)) == -1) {
-		perror_msg_and_die(argv[1]);
+		bb_perror_msg_and_die(argv[1]);
 	}
 
 	while (1) {

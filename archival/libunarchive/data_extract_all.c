@@ -34,8 +34,8 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 	int res;
 
 	if (archive_handle->flags & ARCHIVE_CREATE_LEADING_DIRS) {
-		char *name = xstrdup(file_header->name);
-		make_directory (dirname(name), 0777, FILEUTILS_RECUR);
+		char *name = bb_xstrdup(file_header->name);
+		bb_make_directory (dirname(name), 0777, FILEUTILS_RECUR);
 		free(name);
 	}                  
 
@@ -47,13 +47,13 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 				/* hard link */
 				res = link(file_header->link_name, file_header->name);
 				if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-					perror_msg("Couldnt create hard link");
+					bb_perror_msg("Couldnt create hard link");
 				}
 			} else
 #endif
 			{
 				/* Regular file */
-				dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT);
+				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT);
 				archive_copy_file(archive_handle, dst_fd);
 				close(dst_fd);
 			}
@@ -63,7 +63,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			unlink(file_header->name);
 			res = mkdir(file_header->name, file_header->mode);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				perror_msg("extract_archive: %s", file_header->name);
+				bb_perror_msg("extract_archive: %s", file_header->name);
 			}
 			break;
 		case S_IFLNK:
@@ -71,7 +71,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			unlink(file_header->name);
 			res = symlink(file_header->link_name, file_header->name);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				perror_msg("Cannot create symlink from %s to '%s'", file_header->name, file_header->link_name);
+				bb_perror_msg("Cannot create symlink from %s to '%s'", file_header->name, file_header->link_name);
 			}
 			break;
 		case S_IFSOCK:
@@ -81,11 +81,11 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 			unlink(file_header->name);
 			res = mknod(file_header->name, file_header->mode, file_header->device);
 			if ((res == -1) && !(archive_handle->flags & ARCHIVE_EXTRACT_QUIET)) {
-				perror_msg("Cannot create node %s", file_header->name);
+				bb_perror_msg("Cannot create node %s", file_header->name);
 			}
 			break;
 		default:
-			error_msg_and_die("Unrecognised file type");
+			bb_error_msg_and_die("Unrecognised file type");
 	}
 
 	chmod(file_header->name, file_header->mode);

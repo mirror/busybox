@@ -20,6 +20,19 @@
  *
  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/logname.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * SUSv3 specifies the string used is that returned from getlogin().
+ * The previous implementation used getpwuid() for geteuid(), which
+ * is _not_ the same.  Erik apparently made this change almost 3 years
+ * ago to avoid failing when no utmp was available.  However, the
+ * correct course of action wrt SUSv3 for a failing getlogin() is
+ * a dianostic message and an error return.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,14 +40,16 @@
 
 extern int logname_main(int argc, char **argv)
 {
-	char user[9];
+	const char *p;
 
-	if (argc > 1)
-		show_usage();
-
-	if (my_getpwuid(user, geteuid())) {
-		puts(user);
-		return EXIT_SUCCESS;
+	if (argc > 1) {
+		bb_show_usage();
 	}
-	error_msg_and_die("no login name");
+
+	if ((p = getlogin()) != NULL) {
+		puts(p);
+		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	}
+
+	bb_perror_msg_and_die("getlogin");
 }

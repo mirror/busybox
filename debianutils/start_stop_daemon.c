@@ -74,7 +74,7 @@ parse_options(int argc, char * const *argv)
 			break;
 		case 's':
 			if (sscanf(optarg, "%d", &signal_nr) != 1)
-				error_msg_and_die ("-s takes a numeric argument");
+				bb_error_msg_and_die ("-s takes a numeric argument");
 			break;
 		case 'u':
 			userspec = optarg;
@@ -86,21 +86,21 @@ parse_options(int argc, char * const *argv)
 			fork_before_exec = 1;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	if (start == stop)
-		error_msg_and_die ("need one of -S or -K");
+		bb_error_msg_and_die ("need one of -S or -K");
 
 	if (!execname && !userspec)
-		error_msg_and_die ("need at least one of -x or -u");
+		bb_error_msg_and_die ("need at least one of -x or -u");
 
 	if (!startas)
 		startas = execname;
 
 	if (start && !startas)
-		error_msg_and_die ("-S needs -x or -a");
+		bb_error_msg_and_die ("-S needs -x or -a");
 }
 
 
@@ -185,7 +185,7 @@ do_procfs(void)
 
 	procdir = opendir("/proc");
 	if (!procdir)
-		perror_msg_and_die ("opendir /proc");
+		bb_perror_msg_and_die ("opendir /proc");
 
 	foundany = 0;
 	while ((entry = readdir(procdir)) != NULL) {
@@ -196,7 +196,7 @@ do_procfs(void)
 	}
 	closedir(procdir);
 	if (!foundany)
-		error_msg_and_die ("nothing in /proc - not mounted?");
+		bb_error_msg_and_die ("nothing in /proc - not mounted?");
 }
 
 
@@ -214,7 +214,7 @@ do_stop(void)
 	else if (userspec)
 		sprintf(what, "process(es) owned by `%s'", userspec);
 	else
-		error_msg_and_die ("internal error, please report");
+		bb_error_msg_and_die ("internal error, please report");
 
 	if (!found) {
 		printf("no %s found; none killed.\n", what);
@@ -225,7 +225,7 @@ do_stop(void)
 			p->pid = -p->pid;
 			killed++;
 		} else {
-			perror_msg("warning: failed to kill %d:", p->pid);
+			bb_perror_msg("warning: failed to kill %d:", p->pid);
 		}
 	}
 	if (killed) {
@@ -262,10 +262,10 @@ start_stop_daemon_main(int argc, char **argv)
 	*--argv = startas;
 	if (fork_before_exec) {
 		if (daemon(0, 0) == -1)
-			perror_msg_and_die ("unable to fork");
+			bb_perror_msg_and_die ("unable to fork");
 	}
 	setsid();
 	execv(startas, argv);
-	perror_msg_and_die ("unable to start %s", startas);
+	bb_perror_msg_and_die ("unable to start %s", startas);
 }
 

@@ -60,10 +60,10 @@ int recursive_action(const char *fileName,
 
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
-		error_msg("status=%d followLinks=%d TRUE=%d",
+		bb_error_msg("status=%d followLinks=%d TRUE=%d",
 				status, followLinks, TRUE);
 #endif
-		perror_msg("%s", fileName);
+		bb_perror_msg("%s", fileName);
 		return FALSE;
 	}
 
@@ -89,14 +89,14 @@ int recursive_action(const char *fileName,
 		if (dirAction != NULL && ! depthFirst) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (! status) {
-				perror_msg("%s", fileName);
+				bb_perror_msg("%s", fileName);
 				return FALSE;
 			} else if (status == SKIP)
 				return TRUE;
 		}
 		dir = opendir(fileName);
 		if (!dir) {
-			perror_msg("%s", fileName);
+			bb_perror_msg("%s", fileName);
 			return FALSE;
 		}
 		status = TRUE;
@@ -117,7 +117,7 @@ int recursive_action(const char *fileName,
 		closedir(dir);
 		if (dirAction != NULL && depthFirst) {
 			if (! dirAction(fileName, &statbuf, userData)) {
-				perror_msg("%s", fileName);
+				bb_perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}

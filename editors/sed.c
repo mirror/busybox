@@ -200,7 +200,7 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 		}
 		idx = index_of_next_unescaped_regexp_delim(*delimiter, my_str, ++idx);
 		if (idx == -1) {
-			error_msg_and_die("unterminated match expression");
+			bb_error_msg_and_die("unterminated match expression");
 		}
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
@@ -230,7 +230,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	/* verify that the 's' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
 	if (substr[idx] == '\0')
-		error_msg_and_die("bad format in substitution expression");
+		bb_error_msg_and_die("bad format in substitution expression");
 	else
 	    sed_cmd->delimiter=substr[idx];
 
@@ -238,8 +238,8 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	oldidx = idx+1;
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
 	if (idx == -1)
-		error_msg_and_die("bad format in substitution expression");
-	match = xstrndup(substr + oldidx, idx - oldidx);
+		bb_error_msg_and_die("bad format in substitution expression");
+	match = bb_xstrndup(substr + oldidx, idx - oldidx);
 
 	/* determine the number of back references in the match string */
 	/* Note: we compute this here rather than in the do_subst_command()
@@ -257,8 +257,8 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	oldidx = idx+1;
 	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
 	if (idx == -1)
-		error_msg_and_die("bad format in substitution expression");
-	sed_cmd->replace = xstrndup(substr + oldidx, idx - oldidx);
+		bb_error_msg_and_die("bad format in substitution expression");
+	sed_cmd->replace = bb_xstrndup(substr + oldidx, idx - oldidx);
 
 	/* process the flags */
 	while (substr[++idx]) {
@@ -278,7 +278,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 				if (strchr(semicolon_whitespace, substr[idx]))
 					goto out;
 				/* else */
-				error_msg_and_die("bad option in substitution expression");
+				bb_error_msg_and_die("bad option in substitution expression");
 		}
 	}
 
@@ -317,7 +317,7 @@ static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 	 *
 	 */
 	if ((*editstr != '\\') || ((editstr[1] != '\n') && (editstr[1] != '\r'))) {
-		error_msg_and_die("bad format in edit expression");
+		bb_error_msg_and_die("bad format in edit expression");
 	}
 
 	/* store the edit line text */
@@ -390,20 +390,20 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", sed_cmd->cmd)) {
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
-			error_msg_and_die("only a beginning address can be specified for edit commands");
+			bb_error_msg_and_die("only a beginning address can be specified for edit commands");
 		cmdstr += parse_edit_cmd(sed_cmd, cmdstr);
 	}
 	/* handle file cmds: (r)ead */
 	else if (sed_cmd->cmd == 'r') {
 		if (sed_cmd->end_line || sed_cmd->end_match)
-			error_msg_and_die("Command only uses one address");
+			bb_error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
 	else if (strchr("nNpPqd=", sed_cmd->cmd) == 0) {
-		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
+		bb_error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
 	/* give back whatever's left over */
@@ -442,7 +442,7 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 		cmdstr++;
 		idx = get_address(&(sed_cmd->delimiter), cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
 		if (idx == 0) {
-			error_msg_and_die("get_address: no address found in string\n"
+			bb_error_msg_and_die("get_address: no address found in string\n"
 				"\t(you probably didn't check the string you passed me)");
 		}
 		cmdstr += idx;
@@ -465,7 +465,7 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 		 * with <blank>s.
 		 */
 		if (isblank(cmdstr[idx]) {
-			error_msg_and_die("blank follows '!'");
+			bb_error_msg_and_die("blank follows '!'");
 		}
 #else 
 		/* skip whitespace before the command */
@@ -478,7 +478,7 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 
 	/* last part (mandatory) will be a command */
 	if (*cmdstr == '\0')
-		error_msg_and_die("missing command");
+		bb_error_msg_and_die("missing command");
 
 	sed_cmd->cmd = *cmdstr;
 	cmdstr++;
@@ -517,14 +517,16 @@ static void load_cmd_file(char *filename)
 	FILE *cmdfile;
 	char *line;
 	char *nextline;
+	char *e;
 
-	cmdfile = xfopen(filename, "r");
+	cmdfile = bb_xfopen(filename, "r");
 
-	while ((line = get_line_from_file(cmdfile)) != NULL) {
+	while ((line = bb_get_line_from_file(cmdfile)) != NULL) {
 		/* if a line ends with '\' it needs the next line appended to it */
-		while (line[strlen(line)-2] == '\\' &&
-				(nextline = get_line_from_file(cmdfile)) != NULL) {
-			line = xrealloc(line, strlen(line) + strlen(nextline) + 1);
+		while (((e = last_char_is(line, '\n')) != NULL)
+			   && (e > line) && (e[-1] == '\\')
+			   && ((nextline = bb_get_line_from_file(cmdfile)) != NULL)) {
+			line = xrealloc(line, (e - line) + 1 + strlen(nextline) + 1);
 			strcat(line, nextline);
 			free(nextline);
 		}
@@ -677,20 +679,18 @@ static void process_file(FILE *file)
 	int altered;
 	int i;
 
-	line = get_line_from_file(file);
+	line = bb_get_chomped_line_from_file(file);
 	if (line == NULL) {
 		return;
 	}
-	chomp(line);
 
 	/* go through every line in the file */
 	do {
 		char *next_line;
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
-		next_line = get_line_from_file(file);
+		next_line = bb_get_chomped_line_from_file(file);
 
-		chomp(next_line);
 		linenum++;
 		altered = 0;
 
@@ -805,7 +805,7 @@ static void process_file(FILE *file)
 							puts(line);
 							outfile = fopen(sed_cmd->filename, "r");
 							if (outfile)
-								print_file(outfile);
+								bb_xprint_and_close_file(outfile);
 								/* else if we couldn't open the output file,
 								 * no biggie, just don't print anything */
 								altered++;
@@ -817,16 +817,14 @@ static void process_file(FILE *file)
 					case 'n':	/* Read next line from input */
 						free(line);
 						line = next_line;
-						next_line = get_line_from_file(file);
-						chomp(next_line);
+						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
 						break;
 					case 'N':	/* Append the next line to the current line */
 						line = realloc(line, strlen(line) + strlen(next_line) + 2);
 						strcat(line, "\n");
 						strcat(line, next_line);
-						next_line = get_line_from_file(file);
-						chomp(next_line);
+						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
 				}
 			}
@@ -880,7 +878,7 @@ extern int sed_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1)
-		perror_msg_and_die("atexit");
+		bb_perror_msg_and_die("atexit");
 #endif
 
 	/* do normal option parsing */
@@ -896,7 +894,7 @@ extern int sed_main(int argc, char **argv)
 				load_cmd_file(optarg);
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
@@ -904,7 +902,7 @@ extern int sed_main(int argc, char **argv)
 	 * argv[optind] should be the pattern. no pattern, no worky */
 	if (ncmds == 0) {
 		if (argv[optind] == NULL)
-			show_usage();
+			bb_show_usage();
 		else {
 			add_cmd_str(argv[optind]);
 			optind++;
@@ -921,7 +919,7 @@ extern int sed_main(int argc, char **argv)
 		int i;
 		FILE *file;
 		for (i = optind; i < argc; i++) {
-			file = wfopen(argv[i], "r");
+			file = bb_wfopen(argv[i], "r");
 			if (file) {
 				process_file(file);
 				fclose(file);

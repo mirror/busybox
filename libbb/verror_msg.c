@@ -25,10 +25,10 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void verror_msg(const char *s, va_list p)
+extern void bb_verror_msg(const char *s, va_list p)
 {
 	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
+	fprintf(stderr, "%s: ", bb_applet_name);
 	vfprintf(stderr, s, p);
 }
 

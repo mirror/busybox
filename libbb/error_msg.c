@@ -25,12 +25,12 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void error_msg(const char *s, ...)
+extern void bb_error_msg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	verror_msg(s, p);
+	bb_verror_msg(s, p);
 	va_end(p);
 	putc('\n', stderr);
 }

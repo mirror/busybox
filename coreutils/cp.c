@@ -2,7 +2,6 @@
 /*
  * Mini cp implementation for busybox
  *
- *
  * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,6 +20,15 @@
  *
  */
 
+/* BB_AUDIT SUSv3 defects - unsupported options -H, -L, and -P. */
+/* BB_AUDIT GNU defects - only extension options supported are -a and -d.  */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/cp.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Size reduction.
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,86 +37,76 @@
 #include <errno.h>
 #include <dirent.h>
 #include <stdlib.h>
-
+#include <assert.h>
 #include "busybox.h"
+#include "libcoreutils/coreutils.h"
+
+static const char cp_opts[] = "pdRfia";	/* WARNING!! ORDER IS IMPORTANT!! */
 
 extern int cp_main(int argc, char **argv)
 {
+	struct stat source_stat;
+	struct stat dest_stat;
+	const char *last;
+	const char *dest;
+	int s_flags;
+	int d_flags;
+	int flags;
 	int status = 0;
-	int opt;
-	int flags = FILEUTILS_DEREFERENCE;
-	int i;
 
-	while ((opt = getopt(argc, argv, "adfipR")) != -1)
-		switch (opt) {
-		case 'a':
-			flags |= FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR;
-			/* fallthrough */
-		case 'd':
-			flags &= ~FILEUTILS_DEREFERENCE;
-			break;
-		case 'f':
-			flags |= FILEUTILS_FORCE;
-			break;
-		case 'i':
-			flags |= FILEUTILS_INTERACTIVE;
-			break;
-		case 'p':
-			flags |= FILEUTILS_PRESERVE_STATUS;
-			break;
-		case 'R':
-			flags |= FILEUTILS_RECUR;
-			break;
-		default:
-			show_usage();
-		}
-	
-	if (optind + 2 > argc)
-		show_usage();
+	/* Since these are enums, #if tests will not work.  So use assert()s. */
+	assert(FILEUTILS_PRESERVE_STATUS == 1);
+	assert(FILEUTILS_DEREFERENCE == 2);
+	assert(FILEUTILS_RECUR == 4);
+	assert(FILEUTILS_FORCE == 8);
+	assert(FILEUTILS_INTERACTIVE == 16);
+
+	flags = bb_getopt_ulflags(argc, argv, cp_opts);
+
+	if (flags & 32) {
+		flags |= (FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR | FILEUTILS_DEREFERENCE);
+	}
+
+	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
+
+	if (optind + 2 > argc) {
+		bb_show_usage();
+	}
+
+	last = argv[argc - 1];
+	argv += optind;
 
 	/* If there are only two arguments and...  */
 	if (optind + 2 == argc) {
-		struct stat source_stat;
-		struct stat dest_stat;
-		int source_exists = 1;
-		int dest_exists = 1;
-
-		if ((!(flags & FILEUTILS_DEREFERENCE) &&
-				lstat(argv[optind], &source_stat) < 0) ||
-				((flags & FILEUTILS_DEREFERENCE) &&
-				 stat(argv[optind], &source_stat))) {
-			if (errno != ENOENT)
-				perror_msg_and_die("unable to stat `%s'", argv[optind]);
-			source_exists = 0;
+		s_flags = cp_mv_stat2(*argv, &source_stat,
+								 (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+		if ((s_flags < 0) || ((d_flags = cp_mv_stat(last, &dest_stat)) < 0)) {
+			exit(EXIT_FAILURE);
 		}
-
-		if (stat(argv[optind + 1], &dest_stat) < 0) {
-			if (errno != ENOENT)
-				perror_msg_and_die("unable to stat `%s'", argv[optind + 1]);
-			dest_exists = 0;
-		}
-		
 		/* ...if neither is a directory or...  */
-		if (((!source_exists || !S_ISDIR(source_stat.st_mode)) &&
-				(!dest_exists || !S_ISDIR(dest_stat.st_mode))) ||
-				/* ...recursing, the first is a directory, and the
-				 * second doesn't exist, then... */
-				((flags & FILEUTILS_RECUR) && S_ISDIR(source_stat.st_mode) &&
-				 !dest_exists)) {
+		if ( !((s_flags | d_flags) & 2) ||
+			/* ...recursing, the 1st is a directory, and the 2nd doesn't exist... */
+			/* ((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags) */
+			/* Simplify the above since FILEUTILS_RECUR >> 1 == 2. */
+			((((flags & FILEUTILS_RECUR) >> 1) & s_flags) && !d_flags)
+		) {
 			/* ...do a simple copy.  */
-			if (copy_file(argv[optind], argv[optind + 1], flags) < 0)
-				status = 1;
-			return status;
+				dest = last;
+				goto DO_COPY; /* Note: optind+2==argc implies argv[1]==last below. */
 		}
 	}
 
-	for (i = optind; i < argc - 1; i++) {
-		char *dest = concat_path_file(argv[argc - 1],
-				get_last_path_component(argv[i]));
-		if (copy_file(argv[i], dest, flags) < 0)
+	do {
+		dest = concat_path_file(last, bb_get_last_path_component(*argv));
+	DO_COPY:
+		if (copy_file(*argv, dest, flags) < 0) {
 			status = 1;
-		free(dest);
-	}
+		}
+		if (*++argv == last) {
+			break;
+		}
+		free((void *) dest);
+	} while (1);
 
-	return status;
+	exit(status);
 }

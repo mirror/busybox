@@ -35,11 +35,11 @@ long my_getpwnamegid(const char *name)
 
 	myuser=getpwnam(name);
 	if (myuser==NULL)
-		error_msg_and_die("unknown user name: %s", name);
+		bb_error_msg_and_die("unknown user name: %s", name);
 
 	mygroup  = getgrgid(myuser->pw_gid);
 	if (mygroup==NULL)
-		error_msg_and_die("unknown gid %ld", (long)myuser->pw_gid);
+		bb_error_msg_and_die("unknown gid %ld", (long)myuser->pw_gid);
 
 	return mygroup->gr_gid;
 }

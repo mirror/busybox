@@ -53,7 +53,7 @@ int pivot_root(const char * new_root,const char * put_old)
 	 *  you will need to recompile with a kernel supporting the
 	 *  pivot_root system call.
 	 */
-	error_msg("\n\nTo make this application work, you will need to recompile\n"
+	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
 		"with a kernel supporting the pivot_root system call. -Erik\n");
 	errno=ENOSYS;
 	return -1;
@@ -91,7 +91,7 @@ int umount2(const char * special_file, int flags)
 	 *  you will need to recompile with a kernel supporting the
 	 *  umount2 system call.
 	 */
-	error_msg("\n\nTo make this application work, you will need to recompile\n"
+	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
 		"with a kernel supporting the umount2 system call. -Erik\n");
 	errno=ENOSYS;
 	return -1;

@@ -66,7 +66,7 @@ static int passwd_study(const char *filename, struct passwd *p)
 	const int min = 500;
 	const int max = 65000;
 
-	passwd = wfopen(filename, "r");
+	passwd = bb_wfopen(filename, "r");
 	if (!passwd)
 		return 4;
 
@@ -112,7 +112,7 @@ static void addgroup_wrapper(const char *login, gid_t gid)
 {
 	char *cmd;
 
-	bb_asprintf(&cmd, "addgroup -g %d %s", gid, login);
+	bb_xasprintf(&cmd, "addgroup -g %d %s", gid, login);
 	system(cmd);
 	free(cmd);
 }
@@ -123,7 +123,7 @@ static void passwd_wrapper(const char *login)
 {
 	static const char prog[] = "passwd";
 	execlp(prog, prog, login, NULL);
-	error_msg_and_die("Failed to execute '%s', you must set the password for '%s' manually", prog, login);
+	bb_error_msg_and_die("Failed to execute '%s', you must set the password for '%s' manually", prog, login);
 }
 
 /* putpwent(3) remix */
@@ -137,7 +137,7 @@ static int adduser(const char *filename, struct passwd *p)
 #endif
 
 	/* make sure everything is kosher and setup uid && gid */
-	passwd = wfopen(filename, "a");
+	passwd = bb_wfopen(filename, "a");
 	if (passwd == NULL) {
 		return 1;
 	}
@@ -147,13 +147,13 @@ static int adduser(const char *filename, struct passwd *p)
 	r = passwd_study(filename, p);
 	if (r) {
 		if (r == 1)
-			error_msg("%s: login already in use", p->pw_name);
+			bb_error_msg("%s: login already in use", p->pw_name);
 		else if (r == 2)
-			error_msg("illegal uid or no uids left");
+			bb_error_msg("illegal uid or no uids left");
 		else if (r == 3)
-			error_msg("group name %s already in use", p->pw_name);
+			bb_error_msg("group name %s already in use", p->pw_name);
 		else
-			error_msg("generic error.");
+			bb_error_msg("generic error.");
 		return 1;
 	}
 
@@ -166,7 +166,7 @@ static int adduser(const char *filename, struct passwd *p)
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	/* add to shadow if necessary */
 	if (shadow_enabled) {
-		shadow = wfopen(shadow_file, "a");
+		shadow = bb_wfopen(bb_path_shadow_file, "a");
 		if (shadow == NULL) {
 			return 1;
 		}
@@ -191,16 +191,16 @@ static int adduser(const char *filename, struct passwd *p)
 
 	/* mkdir */
 	if (mkdir(p->pw_dir, 0755)) {
-		perror_msg("%s", p->pw_dir);
+		bb_perror_msg("%s", p->pw_dir);
 	}
 	/* Set the owner and group so it is owned by the new user. */
 	if (chown(p->pw_dir, p->pw_uid, p->pw_gid)) {
-		perror_msg("%s", p->pw_dir);
+		bb_perror_msg("%s", p->pw_dir);
 	}
 	/* Now fix up the permissions to 2755. Can't do it before now
 	 * since chown will clear the setgid bit */
 	if (chmod(p->pw_dir, 02755)) {
-		perror_msg("%s", p->pw_dir);
+		bb_perror_msg("%s", p->pw_dir);
 	}
 	/* interactively set passwd */
 	passwd_wrapper(p->pw_name);
@@ -234,7 +234,7 @@ int adduser_main(int argc, char **argv)
 
 	/* init */
 	if (argc < 2) {
-		show_usage();
+		bb_show_usage();
 	}
 	gecos = default_gecos;
 	shell = default_shell;
@@ -252,18 +252,18 @@ int adduser_main(int argc, char **argv)
 				shell = optarg;
 				break;
 			default:
-				show_usage ();
+				bb_show_usage();
 				break;
 		}
 
 	/* got root? */
 	if (i_am_not_root()) {
-		error_msg_and_die( "Only root may add a user or group to the system.");
+		bb_error_msg_and_die( "Only root may add a user or group to the system.");
 	}
 
 	/* get login */
 	if (optind >= argc) {
-		error_msg_and_die( "no user specified");
+		bb_error_msg_and_die( "no user specified");
 	}
 	login = argv[optind];
 
@@ -273,7 +273,7 @@ int adduser_main(int argc, char **argv)
 	}
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	/* is /etc/shadow in use? */
-	shadow_enabled = (0 == access(shadow_file, F_OK));
+	shadow_enabled = (0 == access(bb_path_shadow_file, F_OK));
 #endif
 
 	/* create a passwd struct */
@@ -286,7 +286,7 @@ int adduser_main(int argc, char **argv)
 	pw.pw_shell = (char *)shell;
 
 	/* grand finale */
-	return adduser(passwd_file, &pw);
+	return adduser(bb_path_passwd_file, &pw);
 }
 
-/* $Id: adduser.c,v 1.4 2002/09/16 06:22:24 andersen Exp $ */
+/* $Id: adduser.c,v 1.5 2003/03/19 09:12:20 mjn3 Exp $ */

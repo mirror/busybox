@@ -23,22 +23,18 @@
  */
 
 #include <ctype.h>
+#include <string.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include "dump.h"
 #include "busybox.h"
+#include "dump.h"
 
-extern FS *fshead;				/* head of format strings */
-extern int blocksize;				/* data block size */
-extern int length;			/* max bytes to read */
-
-#define	ishexdigit(c) \
-	((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+#define isdecdigit(c) (isdigit)(c)
+#define ishexdigit(c) (isxdigit)(c)
 
 static void
 odoffset(int argc, char ***argvp)
 {
-	extern off_t skip;
 	register char *num, *p;
 	int base;
 	char *end;
@@ -62,13 +58,15 @@ odoffset(int argc, char ***argvp)
 		return;
 	}
 
-	if (*p != '+' && (argc < 2 ||
-	    (!isdigit(p[0]) && (p[0] != 'x' || !ishexdigit(p[1])))))
+	if ((*p != '+')
+		&& (argc < 2
+			|| (!isdecdigit(p[0])
+				&& ((p[0] != 'x') || !ishexdigit(p[1])))))
 		return;
 
 	base = 0;
 	/*
-	 * skip over leading '+', 'x[0-9a-fA-f]' or '0x', and
+	 * bb_dump_skip over leading '+', 'x[0-9a-fA-f]' or '0x', and
 	 * set base.
 	 */
 	if (p[0] == '+')
@@ -81,11 +79,11 @@ odoffset(int argc, char ***argvp)
 		base = 16;
 	}
 
-	/* skip over the number */
+	/* bb_dump_skip over the number */
 	if (base == 16)
 		for (num = p; ishexdigit(*p); ++p);
 	else
-		for (num = p; isdigit(*p); ++p);
+		for (num = p; isdecdigit(*p); ++p);
 
 	/* check for no number */
 	if (num == p)
@@ -98,21 +96,23 @@ odoffset(int argc, char ***argvp)
 		base = 10;
 	}
 
-	skip = strtol(num, &end, base ? base : 8);
+	bb_dump_skip = strtol(num, &end, base ? base : 8);
 
 	/* if end isn't the same as p, we got a non-octal digit */
 	if (end != p)
-		skip = 0;
+		bb_dump_skip = 0;
 	else {
 		if (*p) {
-			if (*p == 'b')
-				skip *= 512;
-			else if (*p == 'B')
-				skip *= 1024;
-			++p;
+			if (*p == 'b') {
+				bb_dump_skip *= 512;
+				++p;
+			} else if (*p == 'B') {
+				bb_dump_skip *= 1024;
+				++p;
+			}
 		}
 		if (*p)
-			skip = 0;
+			bb_dump_skip = 0;
 		else {
 			++*argvp;
 			/*
@@ -121,117 +121,76 @@ odoffset(int argc, char ***argvp)
 			 * but it's easy.
 			 */
 #define	TYPE_OFFSET	7
-			if (base == 16) {
-				fshead->nextfu->fmt[TYPE_OFFSET] = 'x';
-				fshead->nextfs->nextfu->fmt[TYPE_OFFSET] = 'x';
-			} else if (base == 10) {
-				fshead->nextfu->fmt[TYPE_OFFSET] = 'd';
-				fshead->nextfs->nextfu->fmt[TYPE_OFFSET] = 'd';
+			{
+				char x_or_d;
+				if (base == 16) {
+					x_or_d = 'x';
+					goto DO_X_OR_D;
+				}
+				if (base == 10) {
+					x_or_d = 'd';
+				DO_X_OR_D:
+					bb_dump_fshead->nextfu->fmt[TYPE_OFFSET]
+						= bb_dump_fshead->nextfs->nextfu->fmt[TYPE_OFFSET]
+						= x_or_d;
+				}
 			}
 		}
 	}
 }
 
-static void odprecede(void)
-{
-	static int first = 1;
+static const char * const add_strings[] = {
+	"16/1 \"%3_u \" \"\\n\"",				/* a */
+	"8/2 \" %06o \" \"\\n\"",				/* B, o */
+	"16/1 \"%03o \" \"\\n\"",				/* b */
+	"16/1 \"%3_c \" \"\\n\"",				/* c */
+	"8/2 \"  %05u \" \"\\n\"",				/* d */
+	"4/4 \"     %010u \" \"\\n\"",			/* D */
+	"2/8 \"          %21.14e \" \"\\n\"",	/* e (undocumented in od), F */
+	"4/4 \" %14.7e \" \"\\n\"",				/* f */
+	"4/4 \"       %08x \" \"\\n\"",			/* H, X */
+	"8/2 \"   %04x \" \"\\n\"",				/* h, x */
+	"4/4 \"    %11d \" \"\\n\"",			/* I, L, l */
+	"8/2 \" %6d \" \"\\n\"",				/* i */
+	"4/4 \"    %011o \" \"\\n\"",			/* O */
+};
 
-	if (first) {
-		first = 0;
-		add("\"%07.7_Ao\n\"");
-		add("\"%07.7_ao  \"");
-	} else
-		add("\"         \"");
-}
+static const signed char od_opts[] = "aBbcDdeFfHhIiLlOovXx";
+
+static const signed char od_o2si[] = {
+	0, 1, 2, 3, 5,
+	4, 6, 6, 7, 8,
+	9, 0xa, 0xb, 0xa, 0xa,
+	0xb, 1, -1, 8, 9,
+};
 
 int od_main(int argc, char **argv)
 {
 	int ch;
-	extern enum _vflag vflag;
-	vflag = FIRST;
-	length = -1;
+	bb_dump_vflag = FIRST;
+	bb_dump_length = -1;
+	int first = 1;
+	signed char *p;
 
-	while ((ch = getopt(argc, argv, "aBbcDdeFfHhIiLlOoPpswvXx")) != EOF)
-		switch (ch) {
-		case 'a':
-			odprecede();
-			add("16/1 \"%3_u \" \"\\n\"");
-			break;
-		case 'B':
-		case 'o':
-			odprecede();
-			add("8/2 \" %06o \" \"\\n\"");
-			break;
-		case 'b':
-			odprecede();
-			add("16/1 \"%03o \" \"\\n\"");
-			break;
-		case 'c':
-			odprecede();
-			add("16/1 \"%3_c \" \"\\n\"");
-			break;
-		case 'd':
-			odprecede();
-			add("8/2 \"  %05u \" \"\\n\"");
-			break;
-		case 'D':
-			odprecede();
-			add("4/4 \"     %010u \" \"\\n\"");
-			break;
-		case 'e':		/* undocumented in od */
-		case 'F':
-			odprecede();
-			add("2/8 \"          %21.14e \" \"\\n\"");
-			break;
-			
-		case 'f':
-			odprecede();
-			add("4/4 \" %14.7e \" \"\\n\"");
-			break;
-		case 'H':
-		case 'X':
-			odprecede();
-			add("4/4 \"       %08x \" \"\\n\"");
-			break;
-		case 'h':
-		case 'x':
-			odprecede();
-			add("8/2 \"   %04x \" \"\\n\"");
-			break;
-		case 'I':
-		case 'L':
-		case 'l':
-			odprecede();
-			add("4/4 \"    %11d \" \"\\n\"");
-			break;
-		case 'i':
-			odprecede();
-			add("8/2 \" %6d \" \"\\n\"");
-			break;
-		case 'O':
-			odprecede();
-			add("4/4 \"    %011o \" \"\\n\"");
-			break;
-		case 'v':
-			vflag = ALL;
-			break;
-		case 'P':
-		case 'p':
-		case 's':
-		case 'w':
-		case '?':
-		default:
-			error_msg("od: od(1) has been deprecated for hexdump(1).\n");
-			if (ch != '?') {
-				error_msg("od: hexdump(1) compatibility doesn't support the -%c option%s\n",
-				    ch, ch == 's' ? "; see strings(1)." : ".");
+	while ((ch = getopt(argc, argv, od_opts)) > 0) {
+		if (((p = strchr(od_opts, ch)) != NULL) && (*p >= 0)) {
+			if (first) {
+				first = 0;
+				bb_dump_add("\"%07.7_Ao\n\"");
+				bb_dump_add("\"%07.7_ao  \"");
+			} else {
+				bb_dump_add("\"         \"");
 			}
-			show_usage();
+			bb_dump_add(add_strings[od_o2si[(int)(p-od_opts)]]);
+		} else if (ch == 'v') {
+			bb_dump_vflag = ALL;
+		} else {	/* P, p, s, w, or other unhandled */
+			bb_show_usage();
 		}
-
-	if (!fshead) {
-		add("\"%07.7_Ao\n\"");
-		add("\"%07.7_ao  \" 8/2 \"%06o \" \"\\n\"");
+	}
+	if (!bb_dump_fshead) {
+		bb_dump_add("\"%07.7_Ao\n\"");
+		bb_dump_add("\"%07.7_ao  \" 8/2 \"%06o \" \"\\n\"");
 	}
 
 	argc -= optind;
@@ -239,7 +198,7 @@ int od_main(int argc, char **argv)
 
 	odoffset(argc, &argv);
 
-	return(dump(argv));
+	return(bb_dump_dump(argv));
 }
 
 /*-

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.3 2003/01/12 06:08:33 andersen Exp $
+ * $Id: ping6.c,v 1.4 2003/03/19 09:12:38 mjn3 Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -112,7 +112,7 @@ static void ping(const char *host)
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
 
 	if (c < 0 || c != sizeof(packet))
-		perror_msg_and_die("sendto");
+		bb_perror_msg_and_die("sendto");
 
 	signal(SIGALRM, noresp);
 	alarm(5);					/* give the host 5000ms to respond */
@@ -125,7 +125,7 @@ static void ping(const char *host)
 						  (struct sockaddr *) &from, &fromlen)) < 0) {
 			if (errno == EINTR)
 				continue;
-			perror_msg("recvfrom");
+			bb_perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= 8) {			/* icmp6_hdr */
@@ -143,7 +143,7 @@ extern int ping6_main(int argc, char **argv)
 	argc--;
 	argv++;
 	if (argc < 1)
-		show_usage();
+		bb_show_usage();
 	ping(*argv);
 	return EXIT_SUCCESS;
 }
@@ -218,9 +218,9 @@ static void sendping(int junk)
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
 
 	if (i < 0)
-		perror_msg_and_die("sendto");
+		bb_perror_msg_and_die("sendto");
 	else if ((size_t)i != sizeof(packet))
-		error_msg_and_die("ping wrote %d chars; %d expected", i,
+		bb_error_msg_and_die("ping wrote %d chars; %d expected", i,
 			   (int)sizeof(packet));
 
 	signal(SIGALRM, sendping);
@@ -308,7 +308,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		printf("\n");
 	} else 
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
-			error_msg("Warning: Got ICMP %d (%s)",
+			bb_error_msg("Warning: Got ICMP %d (%s)",
 					icmppkt->icmp6_type, icmp6_type_name (icmppkt->icmp6_type));
 }
 
@@ -329,7 +329,7 @@ static void ping(const char *host)
 	pingaddr.sin6_family = AF_INET6;
 	hostent = xgethostbyname2(host, AF_INET6);
 	if (hostent->h_addrtype != AF_INET6)
-		error_msg_and_die("unknown address type; only AF_INET6 is currently supported.");
+		bb_error_msg_and_die("unknown address type; only AF_INET6 is currently supported.");
 
 	memcpy(&pingaddr.sin6_addr, hostent->h_addr, sizeof(pingaddr.sin6_addr));
 
@@ -350,7 +350,7 @@ static void ping(const char *host)
 		}
 		if (setsockopt(pingsock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
 					   sizeof(filt)) < 0)
-			error_msg_and_die("setsockopt(ICMP6_FILTER)");
+			bb_error_msg_and_die("setsockopt(ICMP6_FILTER)");
 	}
 #endif /*ICMP6_FILTER*/
 
@@ -374,7 +374,7 @@ static void ping(const char *host)
 
 	if (ifname) {
 		if ((pingaddr.sin6_scope_id = if_nametoindex(ifname)) == 0)
-			error_msg_and_die("%s: invalid interface name", ifname);
+			bb_error_msg_and_die("%s: invalid interface name", ifname);
 	}
 
 	printf("PING %s (%s): %d data bytes\n",
@@ -405,7 +405,7 @@ static void ping(const char *host)
 		if ((c = recvmsg(pingsock, &msg, 0)) < 0) {
 			if (errno == EINTR)
 				continue;
-			perror_msg("recvfrom");
+			bb_perror_msg("recvfrom");
 			continue;
 		}
 		for (cmsgptr = CMSG_FIRSTHDR(&msg); cmsgptr != NULL;
@@ -446,30 +446,30 @@ extern int ping6_main(int argc, char **argv)
 			break;
 		case 'c':
 			if (--argc <= 0)
-			        show_usage();
+			        bb_show_usage();
 			argv++;
 			pingcount = atoi(*argv);
 			break;
 		case 's':
 			if (--argc <= 0)
-			        show_usage();
+			        bb_show_usage();
 			argv++;
 			datalen = atoi(*argv);
 			break;
 		case 'I':
 			if (--argc <= 0)
-			        show_usage();
+			        bb_show_usage();
 			argv++;
 			ifname = *argv;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 		argc--;
 		argv++;
 	}
 	if (argc < 1)
-		show_usage();
+		bb_show_usage();
 
 	myid = getpid() & 0xFFFF;
 	ping(*argv);

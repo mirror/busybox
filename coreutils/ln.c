@@ -21,113 +21,86 @@
  *
  */
 
-#include <stdio.h>
-#include <dirent.h>
-#include <string.h>
+/* BB_AUDIT SUSv3 compliant */
+/* BB_AUDIT GNU options missing: -b, -d, -F, -i, -S, and -v. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/ln.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Fixed bug involving -n option.  Essentially, -n was always in effect.
+ */
+
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
 #include "busybox.h"
 
-
-static const int LN_SYMLINK = 1;
-static const int LN_FORCE = 2;
-static const int LN_NODEREFERENCE = 4;
-
-/*
- * linkDestName is where the link points to,
- * linkSrcName is the name of the link to be created.
- */
-static int fs_link(const char *link_destname, const char *link_srcname, 
-		const int flag)
-{
-	int status;
-	int src_is_dir;
-	char *src_name = 0;
-	const char *src;
-
-	if (link_destname==NULL)
-		return(FALSE);
-
-	if (link_srcname==NULL)
-		src = link_destname;
-	else
-		src = link_srcname;
-
-	if (flag&LN_NODEREFERENCE)
-		src_is_dir = is_directory(src, TRUE, NULL);
-	else
-		src_is_dir = is_directory(src, FALSE, NULL);
-	
-	if ((src_is_dir==TRUE)&&((flag&LN_NODEREFERENCE)==0)) {
-		char* srcdir_name;
-
-		srcdir_name = xstrdup(link_destname);
-		src_name = concat_path_file(src, get_last_path_component(srcdir_name));
-		src = src_name;
-		free(srcdir_name);
-	}
-	
-	if (flag&LN_FORCE)
-		unlink(src);
-		
-	if (flag&LN_SYMLINK)
-		status = symlink(link_destname, src);
-	else
-		status = link(link_destname, src);
-
-	if (status != 0) {
-		perror_msg(src);
-		status = FALSE;
-	} else {
-		status = TRUE;
-	}
-	free(src_name);
-	return status;
-}
+#define LN_SYMLINK          1
+#define LN_FORCE            2
+#define LN_NODEREFERENCE    4
 
 extern int ln_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
-	int flag = 0;
-	int opt;
-	
-	/* Parse any options */
-	while ((opt=getopt(argc, argv, "sfn")) != -1) {
-		switch(opt) {
-			case 's':
-				flag |= LN_SYMLINK;
-				break;
-			case 'f':
-				flag |= LN_FORCE;
-				break;
-			case 'n':
-				flag |= LN_NODEREFERENCE;
-				break;
-			default:
-				show_usage();
+	int flag;
+	char *last;
+	char *src_name;
+	const char *src;
+	int (*link_func)(const char *, const char *);
+
+	flag = bb_getopt_ulflags(argc, argv, "sfn");
+
+	if (argc == optind) {
+		bb_show_usage();
+	}
+
+	last = argv[argc - 1];
+	argv += optind;
+
+	if (argc == optind + 1) {
+		*--argv = last;
+		last = bb_get_last_path_component(bb_xstrdup(last));
+	}
+
+	do {
+		src_name = 0;
+		src = last;
+
+		if (is_directory(src,
+						 (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
+						 NULL)) {
+			src_name = bb_xstrdup(*argv);
+			src = concat_path_file(src, bb_get_last_path_component(src_name));
+			free(src_name);
+			src_name = (char *)src;
 		}
-	}
-	if (optind > (argc-1)) {
-		show_usage();
-	} 
-	if (optind == (argc-1)) {
-		if (fs_link(argv[optind], 
-					get_last_path_component(argv[optind]), flag)==FALSE)
-			status = EXIT_FAILURE;
-	}
-	while(optind<(argc-1)) {
-		if (fs_link(argv[optind], argv[argc-1], flag)==FALSE)
-			status = EXIT_FAILURE;
-		optind++;
-	}
+
+		if (flag & LN_FORCE) {
+			unlink(src);
+		}
+
+		link_func = link;
+		if (flag & LN_SYMLINK) {
+			link_func = symlink;
+		}
+		
+		if (link_func(*argv, src) != 0) {
+			bb_perror_msg(src);
+			status = EXIT_FAILURE;;
+		}
+
+		free(src_name);
+		
+	} while ((++argv)[1]);
+
 	return status;
 }
 
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+
+
+
+
+
+
+
+
+

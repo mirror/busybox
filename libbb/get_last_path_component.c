@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * get_last_path_component implementation for busybox
+ * bb_get_last_path_component implementation for busybox
  *
- * Copyright (C) 2001  Manuel Novoa III  <mjn3@opensource.lineo.com>
+ * Copyright (C) 2001  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 /* WARNING!!! Doing so will break basename applet at least! */
 #define EMULATE_BASENAME	0
 
-char *get_last_path_component(char *path)
+char *bb_get_last_path_component(char *path)
 {
 #if EMULATE_BASENAME
 	static const char null_or_empty[] = ".";

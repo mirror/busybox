@@ -20,6 +20,8 @@
  *
  */
 
+/* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
+
 #include "busybox.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -27,70 +29,58 @@
 #include <string.h>
 #include <sys/types.h>
 
+#define NO_GROUP          1
+#define NO_USER           2
+#define PRINT_REAL        4
+#define NAME_NOT_NUMBER   8
+
 extern int id_main(int argc, char **argv)
 {
-	int no_user = 0, no_group = 0, print_real = 0;
-	int name_not_number = 0;
 	char user[9], group[9];
-	long gid;
 	long pwnam, grnam;
-	int opt;
+	int uid, gid;
+	int flags;
 	
-	gid = 0;
+	flags = bb_getopt_ulflags(argc, argv, "ugrn");
 
-	while ((opt = getopt(argc, argv, "ugrn")) > 0) {
-		switch (opt) {
-			case 'u':
-				no_group++;
-				break;
-			case 'g':
-				no_user++;
-				break;
-			case 'r':
-				print_real++;
-				break;
-			case 'n':
-				name_not_number++;
-				break;
-			default:
-				show_usage();
-		}
+	if (((flags & (NO_USER | NO_GROUP)) == (NO_USER | NO_GROUP))
+		|| (argc > optind + 1)
+	) {
+		bb_show_usage();
 	}
 
-	if (no_user && no_group) show_usage();
-
 	if (argv[optind] == NULL) {
-		if (print_real) {
-			my_getpwuid(user, getuid());
-			my_getgrgid(group, getgid());
+		if (flags & PRINT_REAL) {
+			uid = getuid();
+			gid = getgid();
 		} else {
-			my_getpwuid(user, geteuid());
-			my_getgrgid(group, getegid());
+			uid = geteuid();
+			gid = getegid();
 		}
+		my_getpwuid(user, uid);
 	} else {
 		safe_strncpy(user, argv[optind], sizeof(user));
 	    gid = my_getpwnamegid(user);
-		my_getgrgid(group, gid);
 	}
+	my_getgrgid(group, gid);
 
 	pwnam=my_getpwnam(user);
 	grnam=my_getgrnam(group);
 
-	if (no_group) {
-		if(name_not_number)
-			puts(user);
-		else
-			printf("%ld\n", pwnam);
-	} else if (no_user) {
-		if(name_not_number)
-			puts(group);
-		else
+	if (flags & (NO_GROUP | NO_USER)) {
+		char *s = group;
+		if (flags & NO_GROUP) {
+			s = user;
+			grnam = pwnam;
+		}
+		if (flags & NAME_NOT_NUMBER) {
+			puts(s);
+		} else {
 			printf("%ld\n", grnam);
+		}
 	} else {
 		printf("uid=%ld(%s) gid=%ld(%s)\n", pwnam, user, grnam, group);
 	}
-	return(0);
+
+	bb_fflush_stdout_and_exit(0);
 }
-
-
-/* END CODE */

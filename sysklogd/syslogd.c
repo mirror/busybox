@@ -123,7 +123,7 @@ static int circular_logging = FALSE;
 static inline void sem_up(int semid)
 {
 	if (semop(semid, SMwup, 1) == -1) {
-		perror_msg_and_die("semop[SMwup]");
+		bb_perror_msg_and_die("semop[SMwup]");
 	}
 }
 
@@ -133,7 +133,7 @@ static inline void sem_up(int semid)
 static inline void sem_down(int semid)
 {
 	if (semop(semid, SMwdn, 3) == -1) {
-		perror_msg_and_die("semop[SMwdn]");
+		bb_perror_msg_and_die("semop[SMwdn]");
 	}
 }
 
@@ -157,11 +157,11 @@ void ipcsyslog_init(void)
 {
 	if (buf == NULL) {
 		if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1) {
-			perror_msg_and_die("shmget");
+			bb_perror_msg_and_die("shmget");
 		}
 
 		if ((buf = shmat(shmid, NULL, 0)) == NULL) {
-			perror_msg_and_die("shmat");
+			bb_perror_msg_and_die("shmat");
 		}
 
 		buf->size = data_size;
@@ -171,10 +171,10 @@ void ipcsyslog_init(void)
 		if ((s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023)) == -1) {
 			if (errno == EEXIST) {
 				if ((s_semid = semget(KEY_ID, 2, 0)) == -1) {
-					perror_msg_and_die("semget");
+					bb_perror_msg_and_die("semget");
 				}
 			} else {
-				perror_msg_and_die("semget");
+				bb_perror_msg_and_die("semget");
 			}
 		}
 	} else {
@@ -471,7 +471,7 @@ static void init_RemoteLog(void)
 	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (remotefd < 0) {
-		error_msg_and_die("cannot create socket");
+		bb_error_msg_and_die("cannot create socket");
 	}
 
 	hostinfo = xgethostbyname(RemoteHost);
@@ -484,7 +484,7 @@ static void init_RemoteLog(void)
 	 * for future operations
 	 */
 	if (0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))) {
-		error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost,
+		bb_error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost,
 						  RemotePort);
 	}
 
@@ -521,17 +521,17 @@ static void doSyslogd(void)
 	sunx.sun_family = AF_UNIX;
 	strncpy(sunx.sun_path, lfile, sizeof(sunx.sun_path));
 	if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
-		perror_msg_and_die("Couldn't get file descriptor for socket "
+		bb_perror_msg_and_die("Couldn't get file descriptor for socket "
 						   _PATH_LOG);
 	}
 
 	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
 	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
-		perror_msg_and_die("Could not connect to socket " _PATH_LOG);
+		bb_perror_msg_and_die("Could not connect to socket " _PATH_LOG);
 	}
 
 	if (chmod(lfile, 0666) < 0) {
-		perror_msg_and_die("Could not set permission on " _PATH_LOG);
+		bb_perror_msg_and_die("Could not set permission on " _PATH_LOG);
 	}
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
 	if (circular_logging == TRUE) {
@@ -557,7 +557,7 @@ static void doSyslogd(void)
 				/* alarm may have happened. */
 				continue;
 			}
-			perror_msg_and_die("select error");
+			bb_perror_msg_and_die("select error");
 		}
 
 		if (FD_ISSET(sock_fd, &fds)) {
@@ -569,7 +569,7 @@ static void doSyslogd(void)
 			if ((i = recv(sock_fd, tmpbuf, BUFSIZ, 0)) > 0) {
 				serveConnection(tmpbuf, i);
 			} else {
-				perror_msg_and_die("UNIX socket error");
+				bb_perror_msg_and_die("UNIX socket error");
 			}
 			RELEASE_CONFIG_BUFFER(tmpbuf);
 		}				/* FD_ISSET() */
@@ -598,11 +598,11 @@ extern int syslogd_main(int argc, char **argv)
 			break;
 #endif
 		case 'O':
-			logFilePath = xstrdup(optarg);
+			logFilePath = bb_xstrdup(optarg);
 			break;
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 		case 'R':
-			RemoteHost = xstrdup(optarg);
+			RemoteHost = bb_xstrdup(optarg);
 			if ((p = strchr(RemoteHost, ':'))) {
 				RemotePort = atoi(p + 1);
 				*p = '\0';
@@ -619,7 +619,7 @@ extern int syslogd_main(int argc, char **argv)
 			break;
 #endif
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -640,7 +640,7 @@ extern int syslogd_main(int argc, char **argv)
 
 #if ! defined(__uClinux__)
 	if ((doFork == TRUE) && (daemon(0, 1) < 0)) {
-		perror_msg_and_die("daemon");
+		bb_perror_msg_and_die("daemon");
 	}
 #endif
 	doSyslogd();

@@ -21,39 +21,55 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "libbb.h"
 
-
-
-/* get_line_from_file() - This function reads an entire line from a text file
+/* get_line_from_file() - This function reads an entire line from a text file,
  * up to a newline. It returns a malloc'ed char * which must be stored and
- * free'ed  by the caller. */
-extern char *get_line_from_file(FILE *file)
+ * free'ed  by the caller.  If 'c' is nonzero, the trailing '\n' (if any)
+ * is removed.  In event of a read error or EOF, NULL is returned. */
+
+static char *private_get_line_from_file(FILE *file, int c)
 {
-	static const int GROWBY = 80; /* how large we will grow strings by */
+#define GROWBY (80)		/* how large we will grow strings by */
 
 	int ch;
 	int idx = 0;
 	char *linebuf = NULL;
 	int linebufsz = 0;
 
-	while (1) {
-		ch = fgetc(file);
-		if (ch == EOF)
-			break;
+	while ((ch = getc(file)) != EOF) {
 		/* grow the line buffer as necessary */
-		while (idx > linebufsz-2)
+		if (idx > linebufsz-2) {
 			linebuf = xrealloc(linebuf, linebufsz += GROWBY);
+		}
 		linebuf[idx++] = (char)ch;
-		if (ch == '\n' || ch == '\0')
+		if (ch == '\n' || ch == '\0') {
+			if (c) {
+				--idx;
+			}
 			break;
+		}
 	}
 
-	if (idx == 0)
-		return NULL;
-
-	linebuf[idx] = 0;
+	if (linebuf) {
+		if (ferror(file)) {
+			free(linebuf);
+			return NULL;
+		}
+		linebuf[idx] = 0;
+	}
 	return linebuf;
+}
+
+extern char *bb_get_line_from_file(FILE *file)
+{
+	return private_get_line_from_file(file, 0);
+}
+
+extern char *bb_get_chomped_line_from_file(FILE *file)
+{
+	return private_get_line_from_file(file, 1);
 }
 
 

@@ -82,15 +82,15 @@ extern int dpkg_deb_main(int argc, char **argv)
 				tar_archive->action_data = data_extract_all;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (optind + 2 < argc)  {
-		show_usage();
+		bb_show_usage();
 	}
 
-	tar_archive->src_fd = ar_archive->src_fd = xopen(argv[optind++], O_RDONLY);
+	tar_archive->src_fd = ar_archive->src_fd = bb_xopen(argv[optind++], O_RDONLY);
 
 	/* Workout where to extract the files */
 	/* 2nd argument is a dir name */

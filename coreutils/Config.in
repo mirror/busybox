@@ -111,14 +111,28 @@ config CONFIG_DOS2UNIX
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_DU
-	bool "du"
+	bool "du (default blocksize of 512 bytes)"
 	default n
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+	bool "  Use a default blocksize of 1024 bytes (1K)"
+	default y
+	depends on CONFIG_DU
+	help
+	  Please submit a patch to add help text for this item.
+
 config CONFIG_ECHO
-	bool "echo"
+	bool "echo (basic SUSv3 version taking no options"
 	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_ECHO
+	bool "  Enable echo options (-n and -e)"
+	default y
+	depends on CONFIG_ECHO
 	help
 	  Please submit a patch to add help text for this item.
 
@@ -151,6 +165,13 @@ endif
 config CONFIG_HEAD
 	bool "head"
 	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_HEAD
+	bool "  Enable head options (-c, -q, and -v)"
+	default n
+	depends on CONFIG_HEAD
 	help
 	  Please submit a patch to add help text for this item.
 
@@ -313,8 +334,15 @@ config CONFIG_SHA1SUM
 	  Compute and check SHA1 message digest
 
 config CONFIG_SLEEP
-	bool "sleep"
+	bool "sleep (single integer arg with no suffix)"
 	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_SLEEP
+	bool "  Enable multiple integer args and optional time suffixes"
+	default n
+	depends on CONFIG_SLEEP
 	help
 	  Please submit a patch to add help text for this item.
 
@@ -366,6 +394,13 @@ config CONFIG_FEATURE_FANCY_TAIL
 config CONFIG_TEE
 	bool "tee"
 	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TEE_USE_BLOCK_IO
+	bool "  Enable block i/o (larger/faster) instead of byte i/o."
+	default n
+	depends on CONFIG_TEE
 	help
 	  Please submit a patch to add help text for this item.
 

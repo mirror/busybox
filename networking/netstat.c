@@ -200,7 +200,7 @@ static void tcp_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus tcp line.");
+		bb_error_msg("warning, got bogus tcp line.");
 		return;
 	}
 	state_str = tcp_state[state];
@@ -271,7 +271,7 @@ static void udp_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus udp line.");
+		bb_error_msg("warning, got bogus udp line.");
 		return;
 	}
 	switch (state) {
@@ -365,7 +365,7 @@ static void raw_do_one(int lnr, const char *line)
 	}
 
 	if (num < 10) {
-		error_msg("warning, got bogus raw line.");
+		bb_error_msg("warning, got bogus raw line.");
 		return;
 	}
 	state_str=itoa(state);
@@ -418,7 +418,7 @@ static void unix_do_one(int nr, const char *line)
 	num = sscanf(line, "%p: %lX %lX %lX %X %X %d %s",
 				 &d, &refcnt, &proto, &unix_flags, &type, &state, &inode, path);
 	if (num < 6) {
-		error_msg("warning, got bogus unix line.");
+		bb_error_msg("warning, got bogus unix line.");
 		return;
 	}
 	if (!(has & HAS_INODE))
@@ -539,7 +539,7 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
 		if (errno != ENOENT) {
 			perror(file);
 		} else {
-		error_msg("no support for `%s' on this system.", name);
+		bb_error_msg("no support for `%s' on this system.", name);
 		}
 	} else {
 		do {
@@ -597,14 +597,14 @@ int netstat_main(int argc, char **argv)
 			new_flags |= NETSTAT_UNIX;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	if ( showroute ) {
 #ifdef CONFIG_ROUTE	
 		displayroutes ( flags & NETSTAT_NUMERIC, !extended );
 		return 0; 
 #else
-		error_msg_and_die( "-r (display routing table) is not compiled in." );
+		bb_error_msg_and_die( "-r (display routing table) is not compiled in." );
 #endif
 	}	
 		

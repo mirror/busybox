@@ -87,7 +87,7 @@ extern int logread_main(int argc, char **argv)
 	
 	/* no options, no getopt */
 	if (argc > 1)
-		show_usage();
+		bb_show_usage();
 	
 	// handle intrrupt signal
 	if (setjmp(jmp_env)) goto output_end;

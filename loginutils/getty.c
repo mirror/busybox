@@ -169,6 +169,7 @@ struct chardata init_chardata = {
 	0,							/* no capslock */
 };
 
+#if 0
 struct Speedtab {
 	long speed;
 	int code;
@@ -211,6 +212,7 @@ static struct Speedtab speedtab[] = {
 #endif
 	{0, 0},
 };
+#endif
 
 static void parse_args(int argc, char **argv, struct options *op);
 static void parse_speeds(struct options *op, char *arg);
@@ -263,7 +265,7 @@ int getty_main(int argc, char **argv)
 	};
 
 #ifdef DEBUGGING
-	dbf = xfopen(DEBUGTERM, "w");
+	dbf = bb_xfopen(DEBUGTERM, "w");
 
 	{
 		int i;
@@ -383,7 +385,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		switch (c) {
 		case 'I':
 			if (!(op->initstring = strdup(optarg)))
-				error(memory_exhausted);
+				error(bb_msg_memory_exhausted);
 				
 			{
 				const char *p;
@@ -396,7 +398,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 				while (*p) {
 					if (*p == '\\') {
 						p++;
-						*q++ = process_escape_sequence(&p);
+						*q++ = bb_process_escape_sequence(&p);
 					} else {
 						*q++ = *p++;
 					}
@@ -439,12 +441,12 @@ static void parse_args(int argc, char **argv, struct options *op)
 			op->flags |= F_WAITCRLF;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 	debug("after getopt loop\n");
 	if (argc < optind + 2)		/* check parameter count */
-		show_usage();
+		bb_show_usage();
 
 	/* we loosen up a bit and accept both "baudrate tty" and "tty baudrate" */
 	if ('0' <= argv[optind][0] && argv[optind][0] <= '9') {
@@ -953,6 +955,7 @@ static int caps_lock(const char *s)
 /* bcode - convert speed string to speed code; return 0 on failure */
 static int bcode(const char *s)
 {
+#if 0
 	struct Speedtab *sp;
 	long speed = atol(s);
 
@@ -960,6 +963,14 @@ static int bcode(const char *s)
 		if (sp->speed == speed)
 			return (sp->code);
 	return (0);
+#else
+	int r;
+
+	if ((r = bb_value_to_baud(atol(s))) > 0) {
+		return r;
+	}
+	return 0;
+#endif
 }
 
 /* error - report errors to console or syslog; only understands %s and %m */
@@ -982,7 +993,7 @@ static void error(const char *fmt, ...)
 	buf[0] = '\0';
 	bp = buf;
 #else
-	strncpy(buf, applet_name, 256);
+	strncpy(buf, bb_applet_name, 256);
 	strncat(buf, ": ", 256);
 	buf[255] = 0;
 	bp = buf + strlen(buf);

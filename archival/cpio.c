@@ -63,11 +63,11 @@ extern int cpio_main(int argc, char **argv)
 			archive_handle->action_header = header_list;
 			break;
 		case 'F':
-			archive_handle->src_fd = xopen(optarg, O_RDONLY);
+			archive_handle->src_fd = bb_xopen(optarg, O_RDONLY);
 			archive_handle->seek = seek_by_jump;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 

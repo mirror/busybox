@@ -125,7 +125,7 @@ static int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), len);
 	if (tb[IFLA_IFNAME] == NULL) {
-		error_msg("nil ifname");
+		bb_error_msg("nil ifname");
 		return -1;
 	}
 	if (filter.label &&
@@ -217,7 +217,7 @@ static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg
 		return 0;
 	len -= NLMSG_LENGTH(sizeof(*ifa));
 	if (len < 0) {
-		error_msg("wrong nlmsg len %d", len);
+		bb_error_msg("wrong nlmsg len %d", len);
 		return -1;
 	}
 
@@ -489,17 +489,17 @@ extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		exit(1);
 
 	if (rtnl_wilddump_request(&rth, preferred_family, RTM_GETLINK) < 0) {
-		perror_msg_and_die("Cannot send dump request");
+		bb_perror_msg_and_die("Cannot send dump request");
 	}
 
 	if (rtnl_dump_filter(&rth, store_nlmsg, &linfo, NULL, NULL) < 0) {
-		error_msg_and_die("Dump terminated");
+		bb_error_msg_and_die("Dump terminated");
 	}
 
 	if (filter_dev) {
 		filter.ifindex = ll_name_to_index(filter_dev);
 		if (filter.ifindex <= 0) {
-			error_msg("Device \"%s\" does not exist.", filter_dev);
+			bb_error_msg("Device \"%s\" does not exist.", filter_dev);
 			return -1;
 		}
 	}
@@ -539,11 +539,11 @@ extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 	if (filter.family != AF_PACKET) {
 		if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
-			perror_msg_and_die("Cannot send dump request");
+			bb_perror_msg_and_die("Cannot send dump request");
 		}
 
 		if (rtnl_dump_filter(&rth, store_nlmsg, &ainfo, NULL, NULL) < 0) {
-			error_msg_and_die("Dump terminated");
+			bb_error_msg_and_die("Dump terminated");
 		}
 	}
 
@@ -749,11 +749,11 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	}
 
 	if (d == NULL) {
-		error_msg("Not enough information: \"dev\" argument is required.");
+		bb_error_msg("Not enough information: \"dev\" argument is required.");
 		return -1;
 	}
 	if (l && matches(d, l) != 0) {
-		error_msg_and_die("\"dev\" (%s) must match \"label\" (%s).", d, l);
+		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s).", d, l);
 	}
 
 	if (peer_len == 0 && local_len && cmd != RTM_DELADDR) {
@@ -767,7 +767,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		inet_prefix brd;
 		int i;
 		if (req.ifa.ifa_family != AF_INET) {
-			error_msg("Broadcast can be set only for IPv4 addresses");
+			bb_error_msg("Broadcast can be set only for IPv4 addresses");
 			return -1;
 		}
 		brd = peer;
@@ -791,7 +791,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	ll_init_map(&rth);
 
 	if ((req.ifa.ifa_index = ll_name_to_index(d)) == 0) {
-		error_msg("Cannot find device \"%s\"", d);
+		bb_error_msg("Cannot find device \"%s\"", d);
 		return -1;
 	}
 
@@ -821,5 +821,5 @@ extern int do_ipaddr(int argc, char **argv)
 		case 5: /* flush */
 			return ipaddr_list_or_flush(argc-1, argv+1, 1);
 	}
-	error_msg_and_die("Unknown command %s", *argv);
+	bb_error_msg_and_die("Unknown command %s", *argv);
 }

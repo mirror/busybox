@@ -85,7 +85,7 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 		return 0;
 	len -= NLMSG_LENGTH(sizeof(*r));
 	if (len < 0) {
-		error_msg("wrong nlmsg len %d", len);
+		bb_error_msg("wrong nlmsg len %d", len);
 		return -1;
 	}
 
@@ -385,7 +385,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 
 		if (d) {
 			if ((idx = ll_name_to_index(d)) == 0) {
-				error_msg("Cannot find device \"%s\"", d);
+				bb_error_msg("Cannot find device \"%s\"", d);
 				return -1;
 			}
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
@@ -549,7 +549,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 		if (id) {
 			if ((idx = ll_name_to_index(id)) == 0) {
-				error_msg("Cannot find device \"%s\"", id);
+				bb_error_msg("Cannot find device \"%s\"", id);
 				return -1;
 			}
 			filter.iif = idx;
@@ -557,7 +557,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 		}
 		if (od) {
 			if ((idx = ll_name_to_index(od)) == 0) {
-				error_msg("Cannot find device \"%s\"", od);
+				bb_error_msg("Cannot find device \"%s\"", od);
 			}
 			filter.oif = idx;
 			filter.oifmask = -1;
@@ -587,7 +587,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			}
 			filter.flushed = 0;
 			if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-				error_msg("Flush terminated\n");
+				bb_error_msg("Flush terminated\n");
 				return -1;
 			}
 			if (filter.flushed == 0) {
@@ -606,16 +606,16 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 	if (filter.tb != -1) {
 		if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
-			perror_msg_and_die("Cannot send dump request");
+			bb_perror_msg_and_die("Cannot send dump request");
 		}
 	} else {
 		if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
-			perror_msg_and_die("Cannot send dump request");
+			bb_perror_msg_and_die("Cannot send dump request");
 		}
 	}
 
 	if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-		error_msg_and_die("Dump terminated");
+		bb_error_msg_and_die("Dump terminated");
 	}
 
 	exit(0);
@@ -703,7 +703,7 @@ static int iproute_get(int argc, char **argv)
 	}
 
 	if (req.r.rtm_dst_len == 0) {
-		error_msg_and_die("need at least destination address");
+		bb_error_msg_and_die("need at least destination address");
 	}
 
 	if (rtnl_open(&rth, 0) < 0)
@@ -716,14 +716,14 @@ static int iproute_get(int argc, char **argv)
 
 		if (idev) {
 			if ((idx = ll_name_to_index(idev)) == 0) {
-				error_msg("Cannot find device \"%s\"", idev);
+				bb_error_msg("Cannot find device \"%s\"", idev);
 				return -1;
 			}
 			addattr32(&req.n, sizeof(req), RTA_IIF, idx);
 		}
 		if (odev) {
 			if ((idx = ll_name_to_index(odev)) == 0) {
-				error_msg("Cannot find device \"%s\"", odev);
+				bb_error_msg("Cannot find device \"%s\"", odev);
 				return -1;
 			}
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
@@ -744,16 +744,16 @@ static int iproute_get(int argc, char **argv)
 		struct rtattr * tb[RTA_MAX+1];
 
 		if (print_route(NULL, &req.n, (void*)stdout) < 0) {
-			error_msg_and_die("An error :-)");
+			bb_error_msg_and_die("An error :-)");
 		}
 
 		if (req.n.nlmsg_type != RTM_NEWROUTE) {
-			error_msg("Not a route?");
+			bb_error_msg("Not a route?");
 			return -1;
 		}
 		len -= NLMSG_LENGTH(sizeof(*r));
 		if (len < 0) {
-			error_msg("Wrong len %d", len);
+			bb_error_msg("Wrong len %d", len);
 			return -1;
 		}
 
@@ -764,7 +764,7 @@ static int iproute_get(int argc, char **argv)
 			tb[RTA_PREFSRC]->rta_type = RTA_SRC;
 			r->rtm_src_len = 8*RTA_PAYLOAD(tb[RTA_PREFSRC]);
 		} else if (!tb[RTA_SRC]) {
-			error_msg("Failed to connect the route");
+			bb_error_msg("Failed to connect the route");
 			return -1;
 		}
 		if (!odev && tb[RTA_OIF]) {
@@ -785,7 +785,7 @@ static int iproute_get(int argc, char **argv)
 	}
 
 	if (print_route(NULL, &req.n, (void*)stdout) < 0) {
-		error_msg_and_die("An error :-)");
+		bb_error_msg_and_die("An error :-)");
 	}
 
 	exit(0);
@@ -830,7 +830,7 @@ int do_iproute(int argc, char **argv)
 		case 11: /* flush */
 			return iproute_list_or_flush(argc-1, argv+1, 1);
 		default:
-			error_msg_and_die("Unknown command %s", *argv);
+			bb_error_msg_and_die("Unknown command %s", *argv);
 	}
 
 	return iproute_modify(cmd, flags, argc-1, argv+1);

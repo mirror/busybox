@@ -34,7 +34,7 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
-		error_msg_and_die("xregcomp: %s", errmsg);
+		bb_error_msg_and_die("xregcomp: %s", errmsg);
 	}
 }
 

@@ -102,10 +102,10 @@ int read_package_field(const char *package_buffer, char **field_name, char **fie
 	if (name_length == 0) {
 		*field_name = NULL;
 	} else {
-		*field_name = xstrndup(&package_buffer[offset_name_start], name_length);
+		*field_name = bb_xstrndup(&package_buffer[offset_name_start], name_length);
 	}
 	if (value_length > 0) {
-		*field_value = xstrndup(&package_buffer[offset_value_start], value_length);
+		*field_value = bb_xstrndup(&package_buffer[offset_value_start], value_length);
 	} else {
 		*field_value = NULL;
 	}

@@ -330,7 +330,7 @@ static void parse_prompt(const char *prmt_ptr)
 	char *pbuf;
 
 	if (!pwd_buf) {
-		pwd_buf=(char *)unknown;
+		pwd_buf=(char *)bb_msg_unknown;
 	}
 
 	while (*prmt_ptr) {
@@ -341,7 +341,7 @@ static void parse_prompt(const char *prmt_ptr)
 			const char *cp = prmt_ptr;
 			int l;
 			
-			c = process_escape_sequence(&prmt_ptr);
+			c = bb_process_escape_sequence(&prmt_ptr);
 			if(prmt_ptr==cp) {
 			  if (*cp == 0)
 				break;
@@ -430,7 +430,7 @@ static void parse_prompt(const char *prmt_ptr)
 		if (flg_not_length == ']')
 			sub_len++;
 	}
-	if(pwd_buf!=(char *)unknown)
+	if(pwd_buf!=(char *)bb_msg_unknown)
 		free(pwd_buf);
 	cmdedit_prompt = prmt_mem_ptr;
 	cmdedit_prmt_len = prmt_len - sub_len;
@@ -520,8 +520,8 @@ static void cmdedit_init(void)
 		my_euid = geteuid();
 		entry = getpwuid(my_euid);
 		if (entry) {
-			user_buf = xstrdup(entry->pw_name);
-			home_pwd_buf = xstrdup(entry->pw_dir);
+			user_buf = bb_xstrdup(entry->pw_name);
+			home_pwd_buf = bb_xstrdup(entry->pw_dir);
 		}
 #endif
 
@@ -598,7 +598,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 			/* Null usernames should result in all users as possible completions. */
 			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
 
-                               bb_asprintf(&temp, "~%s/", entry->pw_name);
+                               bb_xasprintf(&temp, "~%s/", entry->pw_name);
 				matches = xrealloc(matches, (nm + 1) * sizeof(char *));
 
 				matches[nm++] = temp;
@@ -647,7 +647,7 @@ static int path_parse(char ***p, int flags)
 	*p = xmalloc(npth * sizeof(char *));
 
 	tmp = pth;
-	(*p)[0] = xstrdup(tmp);
+	(*p)[0] = bb_xstrdup(tmp);
 	npth = 1;			/* count words is + 1 count ':' */
 
 	for (;;) {
@@ -1071,7 +1071,7 @@ static void input_tab(int *lastWasTab)
 			qsort(matches, num_matches, sizeof(char *), match_compare);
 
 			/* find minimal match */
-			tmp = xstrdup(matches[0]);
+			tmp = bb_xstrdup(matches[0]);
 			for (tmp1 = tmp; *tmp1; tmp1++)
 				for (len_found = 1; len_found < num_matches; len_found++)
 					if (matches[len_found][(tmp1 - tmp)] != *tmp1) {
@@ -1132,7 +1132,7 @@ static void get_previous_history(void)
 {
 	if(command_ps[0] != 0 || history[cur_history] == 0) {
 		free(history[cur_history]);
-		history[cur_history] = xstrdup(command_ps);
+		history[cur_history] = bb_xstrdup(command_ps);
 	}
 	cur_history--;
 }
@@ -1166,12 +1166,11 @@ extern void load_history ( const char *fromfile )
 	if (( fp = fopen ( fromfile, "r" ))) {
 	
 		for ( hi = 0; hi < MAX_HISTORY; ) {
-			char * hl = get_line_from_file(fp);
+			char * hl = bb_get_chomped_line_from_file(fp);
 			int l;
 
 			if(!hl)
 				break;
-			chomp(hl);
 			l = strlen(hl);
 			if(l >= BUFSIZ)
 				hl[BUFSIZ-1] = 0;
@@ -1500,7 +1499,7 @@ rewrite_line:
 			for(i = 0; i < (MAX_HISTORY-1); i++)
 				history[i] = history[i+1];
 		}
-		history[i++] = xstrdup(command);
+		history[i++] = bb_xstrdup(command);
 		cur_history = i;
 		n_history = i;
 #if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
@@ -1535,7 +1534,7 @@ rewrite_line:
 
 #ifdef TEST
 
-const char *applet_name = "debug stuff usage";
+const char *bb_applet_name = "debug stuff usage";
 const char *memory_exhausted = "Memory exhausted";
 
 #ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT

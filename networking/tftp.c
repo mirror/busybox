@@ -60,7 +60,7 @@
 #define TFTP_ERROR 5
 #define TFTP_OACK  6
 
-static const char *tftp_error_msg[] = {
+static const char *tftp_bb_error_msg[] = {
 	"Undefined error",
 	"File not found",
 	"Access violation",
@@ -86,7 +86,7 @@ static int tftp_blocksize_check(int blocksize, int bufsize)
 
         if ((bufsize && (blocksize > bufsize)) || 
 	    (blocksize < 8) || (blocksize > 65464)) {
-	        error_msg("bad blocksize");
+	        bb_error_msg("bad blocksize");
 	        return 0;
 	}
 
@@ -169,7 +169,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	tftp_bufsize += 4;
 
 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror_msg("socket");
+		bb_perror_msg("socket");
 		return EXIT_FAILURE;
 	}
 
@@ -223,7 +223,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			}
 
 			if (too_long || ((&buf[tftp_bufsize - 1] - cp) < 6)) {
-				error_msg("too long remote-filename");
+				bb_error_msg("too long remote-filename");
 				break;
 			}
 
@@ -239,7 +239,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			if (len != TFTP_BLOCKSIZE_DEFAULT) {
 
 			        if ((&buf[tftp_bufsize - 1] - cp) < 15) {
-				        error_msg("too long remote-filename");
+				        bb_error_msg("too long remote-filename");
 					break;
 				}
 
@@ -270,7 +270,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				len = read(localfd, cp, tftp_bufsize - 4);
 
 				if (len < 0) {
-					perror_msg("read");
+					bb_perror_msg("read");
 					break;
 				}
 
@@ -298,7 +298,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #endif
 			if (sendto(socketfd, buf, len, 0,
 					(struct sockaddr *) &sa, sizeof(sa)) < 0) {
-				perror_msg("send");
+				bb_perror_msg("send");
 				len = -1;
 				break;
 			}
@@ -325,7 +325,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 						(struct sockaddr *) &from, &fromlen);
 
 				if (len < 0) {
-					perror_msg("recvfrom");
+					bb_perror_msg("recvfrom");
 					break;
 				}
 
@@ -343,18 +343,18 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				timeout = bb_tftp_num_retries;
 
 			case 0:
-				error_msg("timeout");
+				bb_error_msg("timeout");
 
 				if (timeout == 0) {
 					len = -1;
-					error_msg("last timeout");
+					bb_error_msg("last timeout");
 				} else {
 					timeout--;
 				}
 				break;
 
 			default:
-				perror_msg("select");
+				bb_perror_msg("select");
 				len = -1;
 			}
 
@@ -380,14 +380,14 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			if (buf[4] != '\0') {
 				msg = &buf[4];
 				buf[tftp_bufsize - 1] = '\0';
-			} else if (tmp < (sizeof(tftp_error_msg) 
+			} else if (tmp < (sizeof(tftp_bb_error_msg) 
 					  / sizeof(char *))) {
 
-				msg = (char *) tftp_error_msg[tmp];
+				msg = (char *) tftp_bb_error_msg[tmp];
 			}
 
 			if (msg) {
-				error_msg("server says: %s", msg);
+				bb_error_msg("server says: %s", msg);
 			}
 
 			break;
@@ -429,11 +429,11 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				 }
 				 /* FIXME:
 				  * we should send ERROR 8 */
-				 error_msg("bad server option");
+				 bb_error_msg("bad server option");
 				 break;
 			 }
 
-			 error_msg("warning: blksize not supported by server"
+			 bb_error_msg("warning: blksize not supported by server"
 				   " - reverting to 512");
 
 			 tftp_bufsize = TFTP_BLOCKSIZE_DEFAULT + 4;
@@ -447,7 +447,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				len = write(localfd, &buf[4], len - 4);
 
 				if (len < 0) {
-					perror_msg("write");
+					bb_perror_msg("write");
 					break;
 				}
 
@@ -538,16 +538,16 @@ int tftp_main(int argc, char **argv)
 			break;
 #endif
 		case 'l': 
-			localfile = xstrdup(optarg);
+			localfile = bb_xstrdup(optarg);
 			break;
 		case 'r':
-			remotefile = xstrdup(optarg);
+			remotefile = bb_xstrdup(optarg);
 			break;
 		}
 	}
 
 	if ((cmd == 0) || (optind == argc)) {
-		show_usage();
+		bb_show_usage();
 	}
 	if(localfile && strcmp(localfile, "-") == 0) {
 	    fd = fileno((cmd==tftp_cmd_get)? stdout : stdin);
@@ -560,7 +560,7 @@ int tftp_main(int argc, char **argv)
 	    fd = open(localfile, flags, 0644);
 	}
 	if (fd < 0) {
-		perror_msg_and_die("local file");
+		bb_perror_msg_and_die("local file");
 	}
 
 	host = xgethostbyname(argv[optind]);

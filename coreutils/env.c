@@ -24,50 +24,66 @@
  * Modified for BusyBox by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  */
 
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/env.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Fixed bug involving exit return codes if execvp fails.  Also added
+ * output error checking.
+ */
+
 #include <stdio.h>
 #include <string.h>
-#include <getopt.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <unistd.h>
 #include "busybox.h"
 
 extern int env_main(int argc, char** argv)
 {
 	char **ep, *p;
-	char *cleanenv[1];
-	int ignore_environment = 0;
+	char *cleanenv[1] = { NULL };
 	int ch;
 
-	while ((ch = getopt(argc, argv, "+iu:")) != -1) {
+	while ((ch = getopt(argc, argv, "iu:")) > 0) {
 		switch(ch) {
 		case 'i':
-			ignore_environment = 1;
+			environ = cleanenv;
 			break;
 		case 'u':
 			unsetenv(optarg);
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
-	if (optind != argc && !strcmp(argv[optind], "-")) {
-		ignore_environment = 1;
-		argv++;
-	}
-	if (ignore_environment) {
+
+	argv += optind;
+
+	if (*argv && (argv[0][0] == '-') && !argv[0][1]) {
 		environ = cleanenv;
-		cleanenv[0] = NULL;
+		++argv;
 	}
-	for (argv += optind; *argv && (p = strchr(*argv, '=')); ++argv)
-		if (putenv(*argv) < 0)
-			perror_msg_and_die("%s", *argv);
+
+	while (*argv && ((p = strchr(*argv, '=')) != NULL)) {
+		if (putenv(*argv) < 0) {
+			bb_perror_msg_and_die("putenv");
+		}
+		++argv;
+	}
+
 	if (*argv) {
 		execvp(*argv, argv);
-		perror_msg_and_die("%s", *argv);
+		bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+		return (errno == ENOENT) ? 127 : 126;	/* SUSv3-mandated exit codes. */
 	}
-	for (ep = environ; *ep; ep++)
+
+	for (ep = environ; *ep; ep++) {
 		puts(*ep);
-	return 0;
+	}
+
+	bb_fflush_stdout_and_exit(0);
 }
 
 /*

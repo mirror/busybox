@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini mknod implementation for busybox
+ * mknod implementation for busybox
  *
- * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2002 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,73 +20,44 @@
  *
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
+
 #include <stdlib.h>
-#include <sys/types.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "busybox.h"
+#include "libcoreutils/coreutils.h"
 
-int mknod_main(int argc, char **argv)
+static const char modes_chars[] = { 'p', 'c', 'u', 'b', 0, 1, 1, 2 };
+static const mode_t modes_cubp[] = { S_IFIFO, S_IFCHR, S_IFBLK };
+
+extern int mknod_main(int argc, char **argv)
 {
-	char *thisarg;
-	mode_t mode = 0;
-	mode_t perm = 0666;
-	dev_t dev = (dev_t) 0;
+	mode_t mode;
+	dev_t dev;
+	const char *name;
 
-	argc--;
-	argv++;
+	mode = getopt_mk_fifo_nod(argc, argv);
+	argv += optind;
+	argc -= optind;
 
-	/* Parse any options */
-	while (argc > 1) {
-		if (**argv != '-')
-			break;
-		thisarg = *argv;
-		thisarg++;
-		switch (*thisarg) {
-		case 'm':
-			argc--;
-			argv++;
-			parse_mode(*argv, &perm);
-			umask(0);
-			break;
-		default:
-			show_usage();
+	if ((argc >= 2) && ((name = strchr(modes_chars, argv[1][0])) != NULL)) {
+		mode |= modes_cubp[(int)(name[4])];
+
+		dev = 0;
+		if ((*name != 'p') && ((argc -= 2) == 0)) {
+			dev = (bb_xgetularg10_bnd(argv[2], 0, 255) << 8)
+				+ bb_xgetularg10_bnd(argv[3], 0, 255);
 		}
-		argc--;
-		argv++;
-	}
-	if (argc != 4 && argc != 2) {
-		show_usage();
-	}
-	switch (argv[1][0]) {
-	case 'c':
-	case 'u':
-		mode = S_IFCHR;
-		break;
-	case 'b':
-		mode = S_IFBLK;
-		break;
-	case 'p':
-		mode = S_IFIFO;
-		if (argc != 2) {
-			show_usage();
+	
+		if (argc == 2) {
+			name = *argv;
+			if (mknod(name, mode, dev) == 0) {
+				return EXIT_SUCCESS;
+			}
+			bb_perror_msg_and_die("%s", name);
 		}
-		break;
-	default:
-		show_usage();
 	}
-
-	if (mode == S_IFCHR || mode == S_IFBLK) {
-		dev = (dev_t) ((atoi(argv[2]) << 8) | atoi(argv[3]));
-	}
-
-	mode |= perm;
-
-	if (mknod(argv[0], mode, dev) != 0)
-		perror_msg_and_die("%s", argv[0]);
-	return EXIT_SUCCESS;
+	bb_show_usage();
 }

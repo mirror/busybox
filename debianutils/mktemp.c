@@ -32,7 +32,7 @@
 extern int mktemp_main(int argc, char **argv)
 {
 	if (argc != 2 && (argc != 3 || strcmp(argv[1], "-q")))
-		show_usage();
+		bb_show_usage();
 	if(mkstemp(argv[argc-1]) < 0)
 		return EXIT_FAILURE;
 	(void) puts(argv[argc-1]);

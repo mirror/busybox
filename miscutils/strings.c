@@ -57,7 +57,7 @@ int strings_main(int argc, char **argv)
 				n = bb_xgetlarg(optarg, 10, 1, LONG_MAX);
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 
 	argc -= optind;
@@ -118,7 +118,7 @@ pipe:
 		}
 		else
 		{
-			perror_msg("%s",argv[a]);
+			bb_perror_msg("%s",argv[a]);
 			status=EXIT_FAILURE;
 		}
 	}

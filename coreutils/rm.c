@@ -2,7 +2,6 @@
 /*
  * Mini rm implementation for busybox
  *
- *
  * Copyright (C) 2001 Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  *
@@ -22,55 +21,51 @@
  *
  */
 
-#include <stdio.h>
-#include <time.h>
-#include <utime.h>
-#include <dirent.h>
-#include <errno.h>
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/rm.html */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Size reduction.
+ */
+
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <getopt.h>
 #include "busybox.h"
 
 extern int rm_main(int argc, char **argv)
 {
 	int status = 0;
-	int opt;
 	int flags = 0;
-	int i;
+	int opt;
 
-	while ((opt = getopt(argc, argv, "fiRr")) != -1) {
-		switch (opt) {
-		case 'f':
-			flags &= ~FILEUTILS_INTERACTIVE;
-			flags |= FILEUTILS_FORCE;
-			break;
-		case 'i':
-			flags &= ~FILEUTILS_FORCE;
-			flags |= FILEUTILS_INTERACTIVE;
-			break;
-		case 'R':
-		case 'r':
+	while ((opt = getopt(argc, argv, "fiRr")) > 0) {
+		if ((opt == 'r') || (opt == 'R')) {
 			flags |= FILEUTILS_RECUR;
-			break;
+		} else {
+			flags &= ~(FILEUTILS_INTERACTIVE | FILEUTILS_FORCE);
+			if (opt == 'i') {
+				flags |= FILEUTILS_INTERACTIVE;
+			} else if (opt == 'f') {
+				flags |= FILEUTILS_FORCE;
+			} else {
+				bb_show_usage();
+			}
 		}
 	}
 
-	if (!(flags & FILEUTILS_FORCE) && optind == argc)
-		show_usage();
+	if (*(argv += optind) != NULL) {
+		do {
+			const char *base = bb_get_last_path_component(*argv);
 
-	for (i = optind; i < argc; i++) {
-		char *base = get_last_path_component(argv[i]);
-
-		if (strcmp(base, ".") == 0 || strcmp(base, "..") == 0) {
-			error_msg("cannot remove `.' or `..'");
+			if ((base[0] == '.') && (!base[1] || ((base[1] == '.') && !base[2]))) {
+				bb_error_msg("cannot remove `.' or `..'");
+			} else if (remove_file(*argv, flags) >= 0) {
+				continue;
+			}
 			status = 1;
-			continue;
-		}
-
-		if (remove_file(argv[i], flags) < 0)
-			status = 1;
+		} while (*++argv);
+	} else if (!(flags & FILEUTILS_FORCE)) {
+		bb_show_usage();
 	}
 
 	return status;

@@ -33,11 +33,11 @@ extern int del_loop(const char *device)
 	int fd;
 
 	if ((fd = open(device, O_RDONLY)) < 0) {
-		perror_msg("%s", device);
+		bb_perror_msg("%s", device);
 		return (FALSE);
 	}
 	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
-		perror_msg("ioctl: LOOP_CLR_FD");
+		bb_perror_msg("ioctl: LOOP_CLR_FD");
 		return (FALSE);
 	}
 	close(fd);
@@ -53,12 +53,12 @@ extern int set_loop(const char *device, const char *file, int offset,
 	mode = *loopro ? O_RDONLY : O_RDWR;
 	if ((ffd = open(file, mode)) < 0 && !*loopro
 		&& (errno != EROFS || (ffd = open(file, mode = O_RDONLY)) < 0)) {
-		perror_msg("%s", file);
+		bb_perror_msg("%s", file);
 		return 1;
 	}
 	if ((fd = open(device, mode)) < 0) {
 		close(ffd);
-		perror_msg("%s", device);
+		bb_perror_msg("%s", device);
 		return 1;
 	}
 	*loopro = (mode == O_RDONLY);
@@ -70,14 +70,14 @@ extern int set_loop(const char *device, const char *file, int offset,
 
 	loopinfo.lo_encrypt_key_size = 0;
 	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
-		perror_msg("ioctl: LOOP_SET_FD");
+		bb_perror_msg("ioctl: LOOP_SET_FD");
 		close(fd);
 		close(ffd);
 		return 1;
 	}
 	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
 		(void) ioctl(fd, LOOP_CLR_FD, 0);
-		perror_msg("ioctl: LOOP_SET_STATUS");
+		bb_perror_msg("ioctl: LOOP_SET_STATUS");
 		close(fd);
 		close(ffd);
 		return 1;

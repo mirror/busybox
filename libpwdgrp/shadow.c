@@ -55,7 +55,7 @@ void setspent(void)
 		rewind(shadow);
 	} else {
 		if ((shadow = fopen("/etc/shadow", "r")) == NULL)
-			perror_msg_and_die("/etc/shadow");
+			bb_perror_msg_and_die("/etc/shadow");
 	}
 }
 

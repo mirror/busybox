@@ -21,9 +21,12 @@
  *
  */
 
-#include <stdio.h>
+/* BB_AUDIT SUSv3 defects - unsupported options -h, -H, -L, and -P. */
+/* BB_AUDIT GNU defects - unsupported options -h, -c, -f, -v, and long options. */
+/* BB_AUDIT Note: gnu chgrp does not support -H, -L, or -P. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/chgrp.html */
+
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include "busybox.h"
 
@@ -32,53 +35,46 @@
 #define lchown	chown
 #endif
 
-
-static long gid;
-
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (lchown(fileName, statbuf->st_uid, (gid == -1) ? statbuf->st_gid : gid) == 0) {
+	if (lchown(fileName, statbuf->st_uid, *((long *) junk)) == 0) {
 		return (TRUE);
 	}
-	perror(fileName);
+	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
 	return (FALSE);
 }
 
 int chgrp_main(int argc, char **argv)
 {
-	int opt;
-	int recursiveFlag = FALSE;
-	char *p=NULL;
+	long gid;
+	int recursiveFlag;;
+	int retval = EXIT_SUCCESS;
+	char *p;
 
-	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "R")) > 0) {
-		switch (opt) {
-			case 'R':
-				recursiveFlag = TRUE;
-				break;
-			default:
-				show_usage();
-		}
+	recursiveFlag = bb_getopt_ulflags(argc, argv, "R");
+
+	if (argc - optind < 2) {
+		bb_show_usage();
 	}
 
-	if (argc > optind && argc > 2 && argv[optind]) {
-		/* Find the selected group */
-		gid = strtoul(argv[optind], &p, 10);	/* maybe it's already numeric */
-		if (argv[optind] == p)
-			gid = my_getgrnam(argv[optind]);
-	} else {
-		error_msg_and_die(too_few_args);
+	argv += optind;
+
+	/* Find the selected group */
+	gid = strtoul(*argv, &p, 10);	/* maybe it's already numeric */
+	if (*p || (p == *argv)) {		/* trailing chars or nonnumeric */
+		gid = my_getgrnam(*argv);
 	}
+	++argv;
 
 	/* Ok, ready to do the deed now */
-	while (++optind < argc) {
-		if (! recursive_action (argv[optind], recursiveFlag, FALSE, FALSE, 
-					fileAction, fileAction, NULL)) {
-			return EXIT_FAILURE;
+	do {
+		if (! recursive_action (*argv, recursiveFlag, FALSE, FALSE, 
+								fileAction, fileAction, &gid)) {
+			retval = EXIT_FAILURE;
 		}
-	}
-	return EXIT_SUCCESS;
+	} while (*++argv);
 
+	return retval;
 }
 
 /*

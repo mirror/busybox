@@ -46,7 +46,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 		oldtmp = NULL;
 
 		while (tmp) {
-			error_msg_and_die("need to fix this\n");
+			bb_error_msg_and_die("need to fix this\n");
 			if (tmp->entry->link_name) { /* Found a hardlink ready to be extracted */
 				file_header = tmp->entry;
 				if (oldtmp) {
@@ -78,11 +78,11 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 			cpio_header[2],
 			cpio_header[3],
 			cpio_header[4]);
-		error_msg_and_die("Unsupported cpio format");
+		bb_error_msg_and_die("Unsupported cpio format");
 	}
 		
 	if ((cpio_header[5] != '1') && (cpio_header[5] != '2')) {
-		error_msg_and_die("Unsupported cpio format, use newc or crc");
+		bb_error_msg_and_die("Unsupported cpio format, use newc or crc");
 	}
 
 	{
@@ -109,7 +109,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 			hardlinks_t *tmp = saved_hardlinks;
 			hardlinks_t *oldtmp = NULL;
 			while (tmp) {
-				error_msg("%s not created: cannot resolve hardlink", tmp->entry->name);
+				bb_error_msg("%s not created: cannot resolve hardlink", tmp->entry->name);
 				oldtmp = tmp;
 				tmp = tmp->next;
 				free (oldtmp->entry->name);
@@ -142,13 +142,13 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 			pending_hardlinks = 1;
 			while (tmp) {
 				if (tmp->inode == inode) {
-					tmp->entry->link_name = xstrdup(file_header->name);
+					tmp->entry->link_name = bb_xstrdup(file_header->name);
 					nlink--;
 				}
 				tmp = tmp->next;
 			}
 			if (nlink > 1) {
-				error_msg("error resolving hardlink: did you create the archive with GNU cpio 2.0-2.2?");
+				bb_error_msg("error resolving hardlink: did you create the archive with GNU cpio 2.0-2.2?");
 			}
 		}
 	}
@@ -165,11 +165,11 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 			if ((archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) || (statbuf.st_mtime < file_header->mtime)) {
 				/* Remove file if flag set or its older than the file to be extracted */
 				if (unlink(file_header->name) == -1) {
-					perror_msg_and_die("Couldnt remove old file");
+					bb_perror_msg_and_die("Couldnt remove old file");
 				}
 			} else {
 				if (! archive_handle->flags & ARCHIVE_EXTRACT_QUIET) {
-					error_msg("%s not created: newer or same age file exists", file_header->name);
+					bb_error_msg("%s not created: newer or same age file exists", file_header->name);
 				}
 				extract_flag = FALSE;
 			}

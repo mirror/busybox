@@ -29,7 +29,7 @@ struct hostent *xgethostbyname(const char *name)
 	struct hostent *retval;
 
 	if ((retval = gethostbyname(name)) == NULL)
-		herror_msg_and_die("%s", name);
+		bb_herror_msg_and_die("%s", name);
 
 	return retval;
 }

@@ -41,7 +41,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 	static unsigned int ar_long_name_size;
 #endif
 
-	/* dont use xread as we want to handle the error ourself */
+	/* dont use bb_xread as we want to handle the error ourself */
 	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
 		/* End Of File */
 		return(EXIT_FAILURE);
@@ -51,14 +51,14 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 	if (ar.raw[0] == '\n') {
 		/* fix up the header, we started reading 1 byte too early */
 		memmove(ar.raw, &ar.raw[1], 59);
-		ar.raw[59] = xread_char(archive_handle->src_fd);
+		ar.raw[59] = bb_xread_char(archive_handle->src_fd);
 		archive_handle->offset++;
 	}
 	archive_handle->offset += 60;
 		
 	/* align the headers based on the header magic */
 	if ((ar.formated.magic[0] != '`') || (ar.formated.magic[1] != '\n')) {
-		error_msg_and_die("Invalid ar header");
+		bb_error_msg_and_die("Invalid ar header");
 	}
 
 	typed->mode = strtol(ar.formated.mode, NULL, 8);
@@ -76,7 +76,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 			 * in static variable long_names for use in future entries */
 			ar_long_name_size = typed->size;
 			ar_long_names = xmalloc(ar_long_name_size);
-			xread_all(archive_handle->src_fd, ar_long_names, ar_long_name_size);
+			bb_xread_all(archive_handle->src_fd, ar_long_names, ar_long_name_size);
 			archive_handle->offset += ar_long_name_size;
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
@@ -90,16 +90,16 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 			(saved in variable long_name) that conatains the real filename */
 			const unsigned int long_offset = atoi(&ar.formated.name[1]);
 			if (long_offset >= ar_long_name_size) {
-				error_msg_and_die("Cant resolve long filename");
+				bb_error_msg_and_die("Cant resolve long filename");
 			}
-			typed->name = xstrdup(ar_long_names + long_offset);
+			typed->name = bb_xstrdup(ar_long_names + long_offset);
 		}
 #else
-		error_msg_and_die("long filenames not supported");
+		bb_error_msg_and_die("long filenames not supported");
 #endif
 	} else {
 		/* short filenames */
-               typed->name = xstrndup(ar.formated.name, 16);
+               typed->name = bb_xstrndup(ar.formated.name, 16);
 	}
 
 	typed->name[strcspn(typed->name, " /")] = '\0';

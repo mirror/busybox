@@ -39,16 +39,16 @@ losetup_main (int argc, char **argv)
 	break;
 
       case 'o':
-	offset = parse_number (optarg, NULL);
+	offset = bb_xparse_number (optarg, NULL);
 	break;
 
       default:
-	show_usage ();
+	bb_show_usage();
       }
 
   if ((delete && (offset || optind + 1 != argc))
       || (!delete && optind + 2 != argc))
-    show_usage ();
+    bb_show_usage();
 
   if (delete)
     return del_loop (argv[optind]) ? EXIT_SUCCESS : EXIT_FAILURE;

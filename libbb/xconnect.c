@@ -30,7 +30,7 @@ int xconnect(const char *host, const char *port)
 	hints.ai_socktype = SOCK_STREAM;
 	error = getaddrinfo(host, port, &hints, &res);
 	if (error||!res)
-		perror_msg_and_die(gai_strerror(error));
+		bb_perror_msg_and_die(gai_strerror(error));
 	addr_info=res;
 	while (res) {
 		s=socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -50,7 +50,7 @@ int xconnect(const char *host, const char *port)
 	freeaddrinfo(addr_info);
 	if (error < 0)
 	{
-		perror_msg_and_die("Unable to connect to remote host (%s)", host);
+		bb_perror_msg_and_die("Unable to connect to remote host (%s)", host);
 	}
 	return s;
 #else
@@ -72,7 +72,7 @@ int xconnect(const char *host, const char *port)
 
 	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
 	{
-		perror_msg_and_die("Unable to connect to remote host (%s)", host);
+		bb_perror_msg_and_die("Unable to connect to remote host (%s)", host);
 	}
 	return s;
 #endif

@@ -75,7 +75,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
 #endif
-			error_msg_and_die("Invalid tar magic");
+			bb_error_msg_and_die("Invalid tar magic");
 	}
 	/* Do checksum on headers */
 	for (i =  0; i < 148 ; i++) {
@@ -86,7 +86,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		sum += tar.raw[i];
 	}
 	if (sum != strtol(tar.formated.chksum, NULL, 8)) {
-		error_msg("Invalid tar header checksum");
+		bb_error_msg("Invalid tar header checksum");
 		return(EXIT_FAILURE);
 	}
 
@@ -116,7 +116,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->size = strtol(tar.formated.size, NULL, 8);
 	file_header->mtime = strtol(tar.formated.mtime, NULL, 8);
 	file_header->link_name = (tar.formated.linkname[0] != '\0') ? 
-	    xstrdup(tar.formated.linkname) : NULL;
+	    bb_xstrdup(tar.formated.linkname) : NULL;
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
@@ -129,7 +129,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFREG;
 		break;
 	case '1':
-		error_msg("Internal hard link not supported");
+		bb_error_msg("Internal hard link not supported");
 		break;
 	case '2':
 		file_header->mode |= S_IFLNK;
@@ -170,7 +170,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case 'N':
 	case 'S':
 	case 'V':
-		error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
+		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
 # endif
 	}
 #endif

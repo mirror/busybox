@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini usleep implementation for busybox
+ * usleep implementation for busybox
  *
- * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,22 @@
  *
  */
 
-/* getopt not needed */
+/* BB_AUDIT SUSv3 N/A -- Apparently a busybox extension. */
 
 #include <stdlib.h>
+#include <limits.h>
 #include <unistd.h>
 #include "busybox.h"
 
 extern int usleep_main(int argc, char **argv)
 {
-	if ((argc < 2) || (**(argv + 1) == '-')) {
-		show_usage();
+	if (argc != 2) {
+		bb_show_usage();
 	}
 
-	usleep(atoi(*(++argv)));	/* return void */
+	if (usleep(bb_xgetularg10_bnd(argv[1], 0, UINT_MAX))) {
+		bb_perror_nomsg_and_die();
+	}
+
 	return EXIT_SUCCESS;
 }

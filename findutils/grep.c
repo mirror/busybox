@@ -88,8 +88,7 @@ static void grep_file(FILE *file)
 	int idx = 0; /* used for iteration through the circular buffer */
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
 
-	while ((line = get_line_from_file(file)) != NULL) {
-		chomp(line);
+	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
 		linenum++;
 
 		for (i = 0; i < nregexes; i++) {
@@ -154,7 +153,7 @@ static void grep_file(FILE *file)
 				/* Add the line to the circular 'before' buffer */
 				if(lines_before) {
 					free(before_buf[curpos]);
-					before_buf[curpos] = xstrdup(line);
+					before_buf[curpos] = bb_xstrdup(line);
 					curpos = (curpos + 1) % lines_before;
 				}
 			}
@@ -205,9 +204,8 @@ static void add_regex(const char *restr)
 static void	load_regexes_from_file(const char *filename)
 {
 	char *line;
-	FILE *f = xfopen(filename, "r");
-	while ((line = get_line_from_file(f)) != NULL) {
-		chomp(line);
+	FILE *f = bb_xfopen(filename, "r");
+	while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
 		add_regex(line);
 		free(line);
 	}
@@ -242,7 +240,7 @@ extern int grep_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-	if (strcmp(get_last_path_component(argv[0]), "egrep") == 0)
+	if (strcmp(bb_get_last_path_component(argv[0]), "egrep") == 0)
 		reflags |= REG_EXTENDED;
 #endif
 
@@ -298,23 +296,23 @@ extern int grep_main(int argc, char **argv)
 			case 'A':
 				lines_after = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
-					error_msg_and_die("invalid context length argument");
+					bb_error_msg_and_die("invalid context length argument");
 				break;
 			case 'B':
 				lines_before = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
-					error_msg_and_die("invalid context length argument");
+					bb_error_msg_and_die("invalid context length argument");
 				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
 				break;
 			case 'C':
 				lines_after = lines_before = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
-					error_msg_and_die("invalid context length argument");
+					bb_error_msg_and_die("invalid context length argument");
 				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
 				break;
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
@@ -322,7 +320,7 @@ extern int grep_main(int argc, char **argv)
 	 * argv[optind] should be the pattern. no pattern, no worky */
 	if (nregexes == 0) {
 		if (argv[optind] == NULL)
-			show_usage();
+			bb_show_usage();
 		else {
 			add_regex(argv[optind]);
 			optind++;
@@ -356,7 +354,7 @@ extern int grep_main(int argc, char **argv)
 			file = fopen(cur_file, "r");
 			if (file == NULL) {
 				if (!suppress_err_msgs)
-					perror_msg("%s", cur_file);
+					bb_perror_msg("%s", cur_file);
 			}
 			else {
 				grep_file(file);

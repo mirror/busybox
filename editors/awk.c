@@ -463,7 +463,7 @@ static const char EMSG_NO_MATH[] = "Math support is not compiled in";
 
 static void syntax_error(const char * const message)
 {
-	error_msg("%s:%i: %s", programname, lineno, message);
+	bb_error_msg("%s:%i: %s", programname, lineno, message);
 	awk_exit(1);
 }
 
@@ -546,7 +546,7 @@ static void *hash_find(xhash *hash, char *name) {
 		if (++hash->nel / hash->csize > 10)
 			hash_rebuild(hash);
 
-		l = xstrlen(name) + 1;
+		l = bb_strlen(name) + 1;
 		hi = xcalloc(sizeof(hash_item) + l, 1);
 		memcpy(hi->name, name, l);
 
@@ -571,7 +571,7 @@ static void hash_remove(xhash *hash, char *name) {
 	while (*phi) {
 		hi = *phi;
 		if (strcmp(hi->name, name) == 0) {
-			hash->glen -= (xstrlen(name) + 1);
+			hash->glen -= (bb_strlen(name) + 1);
 			hash->nel--;
 			*phi = hi->next;
 			free(hi);
@@ -609,7 +609,7 @@ static char nextchar(char **s) {
 
 	c = *((*s)++);
 	pps = *s;
-	if (c == '\\') c = process_escape_sequence((const char**)s);
+	if (c == '\\') c = bb_process_escape_sequence((const char**)s);
 	if (c == '\\' && *s == pps) c = *((*s)++);
 	return c;
 }
@@ -621,7 +621,7 @@ static inline int isalnum_(int c) {
 
 static FILE *afopen(const char *path, const char *mode) {
 
-	return (*path == '-' && *(path+1) == '\0') ? stdin : xfopen(path, mode);
+	return (*path == '-' && *(path+1) == '\0') ? stdin : bb_xfopen(path, mode);
 }
 
 /* -------- working with variables (set/get/copy/etc) -------- */
@@ -683,7 +683,7 @@ static var *setvar_p(var *v, char *value) {
 /* same as setvar_p but make a copy of string */
 static var *setvar_s(var *v, char *value) {
 
-	return setvar_p(v, (value && *value) ? xstrdup(value) : NULL);
+	return setvar_p(v, (value && *value) ? bb_xstrdup(value) : NULL);
 }
 
 /* same as setvar_s but set USER flag */
@@ -720,7 +720,7 @@ static char *getvar_s(var *v) {
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
 		fmt_num(buf, MAXVARFMT, getvar_s(V[CONVFMT]), v->number, TRUE);
-		v->string = xstrdup(buf);
+		v->string = bb_xstrdup(buf);
 		v->type |= VF_CACHED;
 	}
 	return (v->string == NULL) ? "" : v->string;
@@ -755,7 +755,7 @@ static var *copyvar(var *dest, var *src) {
 		dest->type |= (src->type & ~VF_DONTTOUCH);
 		dest->number = src->number;
 		if (src->string)
-			dest->string = xstrdup(src->string);
+			dest->string = bb_xstrdup(src->string);
 	}
 	handle_special(dest);
 	return dest;
@@ -903,7 +903,7 @@ static unsigned long next_token(unsigned long expected) {
 					syntax_error(EMSG_UNEXP_EOS);
 				if ((*s++ = *p++) == '\\') {
 					pp = p;
-					*(s-1) = process_escape_sequence((const char **)&p);
+					*(s-1) = bb_process_escape_sequence((const char **)&p);
 					if (*pp == '\\') *s++ = '\\';
 					if (p == pp) *s++ = *p++;
 				}
@@ -1153,7 +1153,7 @@ static node *chain_node(unsigned long info) {
 	if (seq->programname != programname) {
 		seq->programname = programname;
 		n = chain_node(OC_NEWSOURCE);
-		n->l.s = xstrdup(programname);
+		n->l.s = bb_xstrdup(programname);
 	}
 
 	n = seq->last;
@@ -1373,7 +1373,7 @@ static node *mk_splitter(char *s, tsplitter *spl) {
 		regfree(re);
 		regfree(ire);
 	}
-	if (xstrlen(s) > 1) {
+	if (bb_strlen(s) > 1) {
 		mk_re_node(s, n, re);
 	} else {
 		n->info = (unsigned long) *s;
@@ -1441,7 +1441,7 @@ static int awk_split(char *s, node *spl, char **slist) {
 	regmatch_t pmatch[2];
 
 	/* in worst case, each char would be a separate field */
-	*slist = s1 = xstrndup(s, xstrlen(s) * 2 + 3);
+	*slist = s1 = bb_xstrndup(s, bb_strlen(s) * 2 + 3);
 
 	c[0] = c[1] = (char)spl->info;
 	c[2] = c[3] = '\0';
@@ -1536,12 +1536,12 @@ static void handle_special(var *v) {
 
 		/* recalculate $0 */
 		sep = getvar_s(V[OFS]);
-		sl = xstrlen(sep);
+		sl = bb_strlen(sep);
 		b = NULL;
 		len = 0;
 		for (i=0; i<n; i++) {
 			s = getvar_s(&Fields[i]);
-			l = xstrlen(s);
+			l = bb_strlen(s);
 			if (b) {
 				memcpy(b+len, sep, sl);
 				len += sl;
@@ -1744,7 +1744,7 @@ static char *awk_printf(node *n) {
 	var *v, *arg;
 
 	v = nvalloc(1);
-	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), v)));
+	fmt = f = bb_xstrdup(getvar_s(evaluate(nextarg(&n), v)));
 
 	i = 0;
 	while (*f) {
@@ -1767,7 +1767,7 @@ static char *awk_printf(node *n) {
 
 		} else if (c == 's') {
 		    s1 = getvar_s(arg);
-			qrealloc(&b, incr+i+xstrlen(s1), &bsize);
+			qrealloc(&b, incr+i+bb_strlen(s1), &bsize);
 			i += sprintf(b+i, s, s1);
 
 		} else {
@@ -1807,7 +1807,7 @@ static int awk_sub(node *rn, char *repl, int nm, var *src, var *dest, int ex) {
 
 	i = di = 0;
 	sp = getvar_s(src);
-	rl = xstrlen(repl);
+	rl = bb_strlen(repl);
 	while (regexec(re, sp, 10, pmatch, sp==getvar_s(src) ? 0:REG_NOTBOL) == 0) {
 		so = pmatch[0].rm_so;
 		eo = pmatch[0].rm_eo;
@@ -1920,7 +1920,7 @@ static var *exec_builtin(node *op, var *res) {
 		break;
 
 	  case B_ss:
-		l = xstrlen(as[0]);
+		l = bb_strlen(as[0]);
 		i = getvar_i(av[1]) - 1;
 		if (i>l) i=l; if (i<0) i=0;
 		n = (nargs > 2) ? getvar_i(av[2]) : l-i;
@@ -1938,7 +1938,7 @@ static var *exec_builtin(node *op, var *res) {
 	  case B_up:
 		to_xxx = toupper;
 lo_cont:
-		s1 = s = xstrdup(as[0]);
+		s1 = s = bb_xstrdup(as[0]);
 		while (*s1) {
 			*s1 = (*to_xxx)(*s1);
 			s1++;
@@ -1948,8 +1948,8 @@ lo_cont:
 
 	  case B_ix:
 		n = 0;
-		ll = xstrlen(as[1]);
-		l = xstrlen(as[0]) - ll;
+		ll = bb_strlen(as[1]);
+		l = bb_strlen(as[0]) - ll;
 		if (ll > 0 && l >= 0) {
 			if (! icase) {
 				s = strstr(as[0], as[1]);
@@ -2112,10 +2112,10 @@ static var *evaluate(node *op, var *res) {
 				if (! X.rsm->F) {
 					if (opn == '|') {
 						if((X.rsm->F = popen(R.s, "w")) == NULL)
-							perror_msg_and_die("popen");
+							bb_perror_msg_and_die("popen");
 						X.rsm->is_pipe = 1;
 					} else {
-						X.rsm->F = xfopen(R.s, opn=='w' ? "w" : "a");
+						X.rsm->F = bb_xfopen(R.s, opn=='w' ? "w" : "a");
 					}
 				}
 				X.F = X.rsm->F;
@@ -2269,7 +2269,7 @@ re_cont:
 						X.rsm->F = popen(L.s, "r");
 						X.rsm->is_pipe = TRUE;
 					} else {
-						X.rsm->F = fopen(L.s, "r");		/* not xfopen! */
+						X.rsm->F = fopen(L.s, "r");		/* not bb_xfopen! */
 					}
 				}
 			} else {
@@ -2351,7 +2351,7 @@ re_cont:
 			  case F_le:
 			  	if (! op1)
 					L.s = getvar_s(V[F0]);
-				R.d = xstrlen(L.s);
+				R.d = bb_strlen(L.s);
 				break;
 
 			  case F_sy:
@@ -2439,12 +2439,12 @@ re_cont:
 		  /* concatenation (" ") and index joining (",") */
 		  case XC( OC_CONCAT ):
 		  case XC( OC_COMMA ):
-			opn = xstrlen(L.s) + xstrlen(R.s) + 2;
+			opn = bb_strlen(L.s) + bb_strlen(R.s) + 2;
 		  	X.s = (char *)xmalloc(opn);
 			strcpy(X.s, L.s);
 			if ((opinfo & OPCLSMASK) == OC_COMMA) {
 				L.s = getvar_s(V[SUBSEP]);
-				X.s = (char *)xrealloc(X.s, opn + xstrlen(L.s));
+				X.s = (char *)xrealloc(X.s, opn + bb_strlen(L.s));
 				strcat(X.s, L.s);
 			}
 			strcat(X.s, R.s);
@@ -2554,7 +2554,7 @@ static int is_assignment(char *expr) {
 
 	char *exprc, *s, *s0, *s1;
 
-	exprc = xstrdup(expr);
+	exprc = bb_xstrdup(expr);
 	if (!isalnum_(*exprc) || (s = strchr(exprc, '=')) == NULL) {
 		free(exprc);
 		return FALSE;
@@ -2649,7 +2649,7 @@ extern int awk_main(int argc, char **argv) {
 	}
 
 	for (envp=environ; *envp; envp++) {
-		s = xstrdup(*envp);
+		s = bb_xstrdup(*envp);
 		s1 = strchr(s, '=');
 		*(s1++) = '\0';
 		setvar_u(findvar(iamarray(V[ENVIRON]), s), s1);
@@ -2663,7 +2663,7 @@ extern int awk_main(int argc, char **argv) {
 				break;
 			case 'v':
 				if (! is_assignment(optarg))
-					show_usage();
+					bb_show_usage();
 				break;
 			case 'f':
 				from_file = TRUE;
@@ -2680,17 +2680,17 @@ extern int awk_main(int argc, char **argv) {
 				free(s);
 				break;
 			case 'W':
-				error_msg("Warning: unrecognized option '-W %s' ignored\n", optarg);
+				bb_error_msg("Warning: unrecognized option '-W %s' ignored\n", optarg);
 				break;
 
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
 	if (!from_file) {
 		if (argc == optind)
-			show_usage();
+			bb_show_usage();
 		programname="cmd. line";
 		parse_program(argv[optind++]);
 

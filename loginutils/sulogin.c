@@ -117,9 +117,9 @@ extern int sulogin_main(int argc, char **argv)
 			}
 		}
 	}
-	if (access(passwd_file, 0) == -1) {
+	if (access(bb_path_passwd_file, 0) == -1) {
 		syslog(LOG_WARNING, "No password file\n");
-		error_msg_and_die("No password file\n");
+		bb_error_msg_and_die("No password file\n");
 	}
 	if (!isatty(0) || !isatty(1) || !isatty(2)) {
 		exit(EXIT_FAILURE);
@@ -135,7 +135,7 @@ extern int sulogin_main(int argc, char **argv)
 	alarm(timeout);
 	if (!(pwd = getpwnam(name))) {
 		syslog(LOG_WARNING, "No password entry for `root'\n");
-		error_msg_and_die("No password entry for `root'\n");
+		bb_error_msg_and_die("No password entry for `root'\n");
 	}
 	pwent = *pwd;
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS

@@ -63,11 +63,11 @@ static void serror(const char *s, ...)
 	va_start(ap, s);
 
 	if (use_syslog) {
-		openlog(applet_name, 0, LOG_LOCAL0);
+		openlog(bb_applet_name, 0, LOG_LOCAL0);
 		vsyslog(LOG_ERR, s, ap);
 		closelog();
 	} else {
-		verror_msg(s, ap);
+		bb_verror_msg(s, ap);
 		putc('\n', stderr);
 	}
 
@@ -111,12 +111,12 @@ int nameif_main(int argc, char **argv)
 			use_syslog = 1;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	if ((argc - optind) & 1)
-		show_usage();
+		bb_show_usage();
 
 	if (optind < argc) {
 		char **a = argv + optind;
@@ -126,7 +126,7 @@ int nameif_main(int argc, char **argv)
 			if (strlen(*a) > IF_NAMESIZE)
 				serror("interface name `%s' too long", *a);
 			ch = xcalloc(1, sizeof(mactable_t));
-			ch->ifname = xstrdup(*a++);
+			ch->ifname = bb_xstrdup(*a++);
 			ch->mac = cc_macaddr(*a++);
 			if (clist)
 				clist->prev = ch;
@@ -134,9 +134,9 @@ int nameif_main(int argc, char **argv)
 			clist = ch;
 		}
 	} else {
-		ifh = xfopen(fname, "r");
+		ifh = bb_xfopen(fname, "r");
 
-		while ((line = get_line_from_file(ifh)) != NULL) {
+		while ((line = bb_get_line_from_file(ifh)) != NULL) {
 			char *line_ptr;
 			size_t name_length;
 
@@ -145,7 +145,7 @@ int nameif_main(int argc, char **argv)
 				continue;
 			name_length = strcspn(line_ptr, " \t");
 			ch = xcalloc(1, sizeof(mactable_t));
-			ch->ifname = xstrndup(line_ptr, name_length);
+			ch->ifname = bb_xstrndup(line_ptr, name_length);
 			if (name_length > IF_NAMESIZE)
 				serror("interface name `%s' too long", ch->ifname);
 			line_ptr += name_length;

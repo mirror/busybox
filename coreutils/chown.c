@@ -21,10 +21,14 @@
  *
  */
 
-#include <stdio.h>
+/* BB_AUDIT SUSv3 defects - unsupported options -h, -H, -L, and -P. */
+/* BB_AUDIT GNU defects - unsupported options -h, -c, -f, -v, and long options. */
+/* BB_AUDIT Note: gnu chown does not support -H, -L, or -P. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/chown.html */
+
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include "busybox.h"
 
 /* Don't use lchown for libc5 or glibc older then 2.1.x */
@@ -42,65 +46,67 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	if (chown_func(fileName, uid, (gid == -1) ? statbuf->st_gid : gid) == 0) {
 		return (TRUE);
 	}
-	perror(fileName);
+	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
 	return (FALSE);
+}
+
+#define FLAG_R 1
+#define FLAG_h 2
+
+static unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *))
+{
+	unsigned long r;
+	char *p;
+
+	r = strtoul(s, &p, 10);
+	if (*p || (s == p)) {
+		r = my_getxxnam(s);
+	}
+
+	return r;
 }
 
 int chown_main(int argc, char **argv)
 {
-	int opt;
-	int recursiveFlag = FALSE,
-		noderefFlag = FALSE;
-	char *groupName=NULL;
-	char *p=NULL;
+	int flags;
+	int retval = EXIT_SUCCESS;
+	char *groupName;
 
-	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "Rh")) > 0) {
-		switch (opt) {
-			case 'R':
-				recursiveFlag = TRUE;
-				break;
-			case 'h':
-				noderefFlag = TRUE;
-				break;
-			default:
-				show_usage();
-		}
+	flags = bb_getopt_ulflags(argc, argv, "Rh");
+
+	if (flags & FLAG_h) chown_func = lchown;
+
+	if (argc - optind < 2) {
+		bb_show_usage();
 	}
 
-	if (noderefFlag) chown_func = lchown;
+	argv += optind;
 
-	if (argc > optind && argc > 2 && argv[optind]) {
-		/* First, check if there is a group name here */
-		groupName = strchr(argv[optind], '.');
-		if (groupName == NULL)
-			groupName = strchr(argv[optind], ':');
-		if (groupName) {
-			*groupName++ = '\0';
-			gid = strtoul(groupName, &p, 10);
-			if (groupName == p)
-				gid = my_getgrnam(groupName);
-		} else {
-			gid = -1;
-		}
-		/* Now check for the username */
-		uid = strtoul(argv[optind], &p, 10);	/* Is is numeric? */
-		if (argv[optind] == p) {
-			uid = my_getpwnam(argv[optind]);
-		}
-	} else {
-		error_msg_and_die(too_few_args);
+	/* First, check if there is a group name here */
+	if ((groupName = strchr(*argv, '.')) == NULL) {
+		groupName = strchr(*argv, ':');
 	}
 
+	gid = -1;
+	if (groupName) {
+		*groupName++ = '\0';
+		gid = get_ug_id(groupName, my_getgrnam);
+	}
+
+	/* Now check for the username */
+	uid = get_ug_id(*argv, my_getpwnam);
+
+	++argv;
+	
 	/* Ok, ready to do the deed now */
-	while (++optind < argc) {
-		if (! recursive_action (argv[optind], recursiveFlag, FALSE, FALSE, 
-					fileAction, fileAction, NULL)) {
-			return EXIT_FAILURE;
+	do {
+		if (! recursive_action (*argv, (flags & FLAG_R), FALSE, FALSE, 
+								fileAction, fileAction, NULL)) {
+			retval = EXIT_FAILURE;
 		}
-	}
-	return EXIT_SUCCESS;
+	} while (*++argv);
 
+	return retval;
 }
 
 /*

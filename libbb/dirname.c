@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini dirname function.
+ * dirname implementation for busybox (for libc's missing one)
  *
- * Copyright (C) 2001  Matt Kraai.
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,39 +17,53 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
+/* Note: The previous busybox implementation did not handle NULL path
+ * and also moved a pointer before path, which is not portable in C.
+ * So I replaced it with my uClibc version.
  */
 
 #include <string.h>
 #include "libbb.h"
 
-#if defined __UCLIBC__ || __GNU_LIBRARY___ < 5
+#if __GNU_LIBRARY__ < 5
 
-/* Return a string containing the path name of the parent
- * directory of PATH.  */
-
+extern 
 char *dirname(char *path)
 {
-	char *s;
+	static const char null_or_empty_or_noslash[] = ".";
+	register char *s;
+	register char *last;
+	char *first;
 
-	/* Go to the end of the string.  */
-	s = path + strlen(path) - 1;
+	last = s = path;
 
-	/* Strip off trailing /s (unless it is also the leading /).  */
-	while (path < s && s[0] == '/')
-		s--;
+	if (s != NULL) {
 
-	/* Strip the last component.  */
-	while (path <= s && s[0] != '/')
-		s--;
+	LOOP:
+		while (*s && (*s != '/')) ++s;
+		first = s;
+		while (*s == '/') ++s;
+		if (*s) {
+			last = first;
+			goto LOOP;
+		}
 
-	while (path < s && s[0] == '/')
-		s--;
-
-	if (s < path)
-		return ".";
-
-	s[1] = '\0';
-	return path;
+		if (last == path) {
+			if (*last != '/') {
+				goto DOT;
+			}
+			if ((*++last == '/') && (last[1] == 0)) {
+				++last;
+			}
+		}
+		*last = 0;
+		return path;
+	}
+ DOT:
+	return (char *) null_or_empty_or_noslash;
 }
 
 #endif

@@ -123,7 +123,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 #define close_delete_and_die(s...) { \
 	close_and_delete_outfile(output, fname_out, do_continue); \
-	error_msg_and_die(s); }
+	bb_error_msg_and_die(s); }
 
 
 #ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
@@ -140,7 +140,7 @@ char *base64enc(char *p, char *buf, int len) {
 
         while(*p) {
 				if (s >= buf+len-4)
-					error_msg_and_die("buffer overflow");
+					bb_error_msg_and_die("buffer overflow");
                 *(s++) = al[(*p >> 2) & 0x3F];
                 *(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
                 *s = *(s+1) = '=';
@@ -221,7 +221,7 @@ int wget_main(int argc, char **argv)
 				case LONG_HEADER: {
 					int arglen = strlen(optarg);
 					if(extra_headers_left - arglen - 2 <= 0)
-						error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
+						bb_error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
 					strcpy(extra_headers_ptr, optarg);
 					extra_headers_ptr += arglen;
 					extra_headers_left -= ( arglen + 2 );
@@ -236,12 +236,12 @@ int wget_main(int argc, char **argv)
 			}
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	if (argc - optind != 1)
-			show_usage();
+			bb_show_usage();
 
 	parse_url(argv[optind], &target);
 	server.host = target.host;
@@ -253,7 +253,7 @@ int wget_main(int argc, char **argv)
 	if (!noproxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
 		if (proxy)
-			parse_url(xstrdup(proxy), &server);
+			parse_url(bb_xstrdup(proxy), &server);
 	}
 	
 	/* Guess an output filename */
@@ -262,7 +262,7 @@ int wget_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 			curfile = 
 #endif
-			get_last_path_component(target.path);
+			bb_get_last_path_component(target.path);
 		if (fname_out==NULL || strlen(fname_out)<1) {
 			fname_out = 
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
@@ -274,11 +274,11 @@ int wget_main(int argc, char **argv)
 			fname_out = concat_path_file(dir_prefix, fname_out);
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	} else {
-		curfile = get_last_path_component(fname_out);
+		curfile = bb_get_last_path_component(fname_out);
 #endif
 	}
 	if (do_continue && !fname_out)
-		error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
+		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
 
 
 	/*
@@ -288,7 +288,7 @@ int wget_main(int argc, char **argv)
 		output = stdout;
 		quiet_flag = TRUE;
 	} else {
-		output = xfopen(fname_out, (do_continue ? "a" : "w"));
+		output = bb_xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
 
 	/*
@@ -296,7 +296,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (do_continue) {
 		if (fstat(fileno(output), &sbuf) < 0)
-			perror_msg_and_die("fstat()");
+			bb_perror_msg_and_die("fstat()");
 		if (sbuf.st_size > 0)
 			beg_range = sbuf.st_size;
 		else
@@ -399,9 +399,9 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
-						target.path = xstrdup(s+1);
+						target.path = bb_xstrdup(s+1);
 					else {
-						parse_url(xstrdup(s), &target);
+						parse_url(bb_xstrdup(s), &target);
 						if (!proxy) {
 							server.host = target.host;
 							server.port = target.port;
@@ -419,7 +419,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		 *  FTP session
 		 */
 		if (! target.user)
-			target.user = xstrdup("anonymous:busybox@");
+			target.user = bb_xstrdup("anonymous:busybox@");
 
 		sfp = open_socket(server.host, server.port);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
@@ -496,7 +496,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	do {
 		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
 			if (safe_fwrite(buf, 1, n, output) != n)
-				perror_msg_and_die("write error");
+				bb_perror_msg_and_die("write error");
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
 #endif
@@ -512,7 +512,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		}
 
 	if (n == 0 && ferror(dfp))
-		perror_msg_and_die("network read error");
+		bb_perror_msg_and_die("network read error");
 	} while (chunked);
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	if (quiet_flag==FALSE)
@@ -521,7 +521,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	if (!proxy && target.is_ftp) {
 		fclose(dfp);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
-			error_msg_and_die("ftp error: %s", buf+4);
+			bb_error_msg_and_die("ftp error: %s", buf+4);
 		ftpcmd("QUIT", NULL, sfp, buf);
 	}
 	exit(EXIT_SUCCESS);
@@ -541,14 +541,14 @@ void parse_url(char *url, struct host_info *h)
 		h->host = url + 6;
 		h->is_ftp = 1;
 	} else
-		error_msg_and_die("not an http or ftp url: %s", url);
+		bb_error_msg_and_die("not an http or ftp url: %s", url);
 
 	sp = strchr(h->host, '/');
 	if (sp != NULL) {
 		*sp++ = '\0';
 		h->path = sp;
 	} else
-		h->path = xstrdup("");
+		h->path = bb_xstrdup("");
 
 	up = strrchr(h->host, '@');
 	if (up != NULL) {
@@ -580,7 +580,7 @@ FILE *open_socket(char *host, int port)
 	 * Get the server onto a stdio stream.
 	 */
 	if ((fp = fdopen(fd, "r+")) == NULL)
-		perror_msg_and_die("fdopen()");
+		bb_perror_msg_and_die("fdopen()");
 
 	return fp;
 }
@@ -609,7 +609,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 	/* verify we are at the end of the header name */
 	if (*s != ':')
-		error_msg_and_die("bad header line: %s", buf);
+		bb_error_msg_and_die("bad header line: %s", buf);
 
 	/* locate the start of the header value */
 	for (*s++ = '\0' ; *s == ' ' || *s == '\t' ; ++s)
@@ -646,7 +646,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 	do {
 		p = fgets(buf, 510, fp);
 		if (!p)
-			perror_msg_and_die("fgets()");
+			bb_perror_msg_and_die("fgets()");
 	} while (! isdigit(buf[0]) || buf[3] != ' ');
 	
 	return atoi(buf);
@@ -824,7 +824,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.52 2003/03/11 18:03:39 andersen Exp $
+ *	$Id: wget.c,v 1.53 2003/03/19 09:12:39 mjn3 Exp $
  */
 
 

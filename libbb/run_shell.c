@@ -57,11 +57,11 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	else
 		args = (const char **) xmalloc (sizeof (char *) * 4 );
 		
-	args [0] = get_last_path_component ( xstrdup ( shell ));
+	args [0] = bb_get_last_path_component ( bb_xstrdup ( shell ));
 	
 	if ( loginshell ) {
 		char *args0;
-		bb_asprintf ( &args0, "-%s", args [0] );
+		bb_xasprintf ( &args0, "-%s", args [0] );
 		args [0] = args0;
 	}
     
@@ -75,6 +75,6 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	}
 	args [argno] = 0;
 	execv ( shell, (char **) args );
-	perror_msg_and_die ( "cannot run %s", shell );
+	bb_perror_msg_and_die ( "cannot run %s", shell );
 }
 

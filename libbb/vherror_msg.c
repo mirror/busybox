@@ -26,11 +26,11 @@
 #include "libbb.h"
 
 
-extern void vherror_msg(const char *s, va_list p)
+extern void bb_vherror_msg(const char *s, va_list p)
 {
 	if(s == 0)
 		s = "";
-	verror_msg(s, p);
+	bb_verror_msg(s, p);
 	if (*s)
 		fputs(": ", stderr);
 	herror("");

@@ -77,11 +77,11 @@ time_t read_rtc ( int utc )
 
 	if (( rtc = open ( "/dev/rtc", O_RDONLY )) < 0 ) {
 		if (( rtc = open ( "/dev/misc/rtc", O_RDONLY )) < 0 )
-			perror_msg_and_die ( "Could not access RTC" );
+			bb_perror_msg_and_die ( "Could not access RTC" );
 	}
  	memset ( &tm, 0, sizeof( struct tm ));
 	if ( ioctl ( rtc, RTC_RD_TIME, &tm ) < 0 )
-		perror_msg_and_die ( "Could not read time from RTC" );
+		bb_perror_msg_and_die ( "Could not read time from RTC" );
 	tm. tm_isdst = -1; // not known
 	
 	close ( rtc );
@@ -111,7 +111,7 @@ void write_rtc ( time_t t, int utc )
 
 	if (( rtc = open ( "/dev/rtc", O_WRONLY )) < 0 ) {
 		if (( rtc = open ( "/dev/misc/rtc", O_WRONLY )) < 0 )
-			perror_msg_and_die ( "Could not access RTC" );
+			bb_perror_msg_and_die ( "Could not access RTC" );
 	}
  	
  	printf ( "1\n" );
@@ -122,7 +122,7 @@ void write_rtc ( time_t t, int utc )
  	printf ( "2\n") ;
  	
 	if ( ioctl ( rtc, RTC_SET_TIME, &tm ) < 0 )
-		perror_msg_and_die ( "Could not set the RTC time" );
+		bb_perror_msg_and_die ( "Could not set the RTC time" );
 	
 	close ( rtc );
 }
@@ -138,7 +138,7 @@ int show_clock ( int utc )
 	
 	safe_strncpy ( buffer, ctime ( &t ), sizeof( buffer ));
 	if ( buffer [0] )
-		buffer [xstrlen ( buffer ) - 1] = 0;
+		buffer [bb_strlen ( buffer ) - 1] = 0;
 	
 	//printf ( "%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : ( ptm-> tm_isdst ? tzname [1] : tzname [0] ));
 	printf ( "%s  %.6f seconds\n", buffer, 0.0 );
@@ -154,7 +154,7 @@ int to_sys_clock ( int utc )
 	tv. tv_sec = read_rtc ( utc );
 
 	if ( settimeofday ( &tv, &tz ))
-		perror_msg_and_die ( "settimeofday() failed" );
+		bb_perror_msg_and_die ( "settimeofday() failed" );
 
 	return 0;
 }
@@ -165,7 +165,7 @@ int from_sys_clock ( int utc )
 	struct timezone tz = { 0, 0 };
 
 	if ( gettimeofday ( &tv, &tz ))
-		perror_msg_and_die ( "gettimeofday() failed" );
+		bb_perror_msg_and_die ( "gettimeofday() failed" );
 
 	write_rtc ( tv. tv_sec, utc );
 	return 0;
@@ -181,7 +181,7 @@ int check_utc ( void )
 		char buffer [128];
 	
 		while ( fgets ( buffer, sizeof( buffer ), f )) {
-			int len = xstrlen ( buffer );
+			int len = bb_strlen ( buffer );
 			
 			while ( len && isspace ( buffer [len - 1] ))
 				len--;
@@ -238,7 +238,7 @@ extern int hwclock_main ( int argc, char **argv )
 			utc_arg = 1;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 			break;
 		}
 	}

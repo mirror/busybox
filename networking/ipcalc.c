@@ -82,24 +82,24 @@ int ipcalc_main(int argc, char **argv)
 			mode |= SILENT;
 #endif
 		else {
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	if (mode & (BROADCAST | NETWORK)) {
 		if (argc - optind > 2) {
-			show_usage();
+			bb_show_usage();
 		}
 	} else {
 		if (argc - optind != 1) {
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
 	ipaddr = inet_addr(argv[optind]);
 
 	if (ipaddr == INADDR_NONE) {
-		IPCALC_MSG(error_msg_and_die("bad IP address: %s\n", argv[optind]),
+		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s\n", argv[optind]),
 				   exit(EXIT_FAILURE));
 	}
 
@@ -109,7 +109,7 @@ int ipcalc_main(int argc, char **argv)
 	}
 
 	if (ipaddr == INADDR_NONE) {
-		IPCALC_MSG(error_msg_and_die("bad netmask: %s\n", argv[optind + 1]),
+		IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s\n", argv[optind + 1]),
 				   exit(EXIT_FAILURE));
 	}
 
@@ -138,7 +138,7 @@ int ipcalc_main(int argc, char **argv)
 
 		hostinfo = gethostbyaddr((char *) &ipaddr, sizeof(ipaddr), AF_INET);
 		if (!hostinfo) {
-			IPCALC_MSG(error_msg("cannot find hostname for %s", argv[optind]);
+			IPCALC_MSG(bb_error_msg("cannot find hostname for %s", argv[optind]);
 					   herror(NULL);
 					   putc('\n', stderr);,);
 			exit(EXIT_FAILURE);

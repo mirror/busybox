@@ -24,14 +24,14 @@
 
 #include "libbb.h"
 
-extern void herror_msg_and_die(const char *s, ...)
+extern void bb_herror_msg_and_die(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	vherror_msg(s, p);
+	bb_vherror_msg(s, p);
 	va_end(p);
-	exit(EXIT_FAILURE);
+	exit(bb_default_error_retval);
 }
 
 

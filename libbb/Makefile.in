@@ -42,26 +42,59 @@ LIBBB_SRC:= \
 	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_strncpy.c \
 	setup_environment.c simplify_path.c syscalls.c syslog_msg_with_name.c \
 	time_string.c trim.c u_signal_names.c vdprintf.c verror_msg.c \
-	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c xfuncs.c \
-	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c xgetlarg.c 
-	
+	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c \
+	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c xgetlarg.c \
+	\
+	fclose_nonstdin.c fflush_stdout_and_exit.c getopt_ulflags.c \
+	default_error_retval.c wfopen_input.c speed_table.c \
+	perror_nomsg_and_die.c perror_nomsg.c skip_whitespace.c \
+	warn_ignoring_args.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 
-LIBBB_MSRC:=$(LIBBB_DIR)messages.c
-LIBBB_MOBJ:=full_version.o name_too_long.o omitting_directory.o not_a_directory.o \
-	memory_exhausted.o invalid_date.o invalid_option.o io_error.o dash_dash_help.o \
-	write_error.o too_few_args.o name_longer_than_foo.o unknown.o can_not_create_raw_socket.o \
-	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o securetty_file.o \
-	motd_file.o
-LIBBB_MOBJS=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ))
+LIBBB_MSRC0:=$(LIBBB_DIR)messages.c
+LIBBB_MOBJ0:=full_version.o \
+	memory_exhausted.o invalid_date.o io_error.o \
+	write_error.o name_longer_than_foo.o unknown.o \
+	can_not_create_raw_socket.o perm_denied_are_you_root.o \
+	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o \
+	securetty_file.o motd_file.o \
+	msg_standard_input.o msg_standard_output.o
+
+LIBBB_MSRC1:=$(LIBBB_DIR)xfuncs.c
+LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
+	xfopen.o xopen.o xread.o xread_all.o xread_char.o \
+	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
+
+LIBBB_MSRC2:=$(LIBBB_DIR)printf.c
+LIBBB_MOBJ2:=vfprintf.o vprintf.o fprintf.o printf.o
+
+LIBBB_MSRC3:=$(LIBBB_DIR)xgetularg.c
+LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
+	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
+
+LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
+LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
+LIBBB_MOBJS2=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ2))
+LIBBB_MOBJS3=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ3))
 
 libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
 
-$(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS) 
-	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS)
+$(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
+	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3)
+	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
+		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) 
 
-$(LIBBB_MOBJS): $(LIBBB_MSRC)
+$(LIBBB_MOBJS0): $(LIBBB_MSRC0)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS1): $(LIBBB_MSRC1)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS2): $(LIBBB_MSRC2)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS3): $(LIBBB_MSRC3)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 
 $(LIBBB_DIR)loop.o: $(LIBBB_DIR)loop.h

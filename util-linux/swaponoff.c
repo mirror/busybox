@@ -51,13 +51,13 @@ static int swap_enable_disable(const char *device)
 	struct stat st;
 
 	if (stat(device, &st) < 0) {
-		perror_msg_and_die("cannot stat %s");
+		bb_perror_msg_and_die("cannot stat %s", device);
 	}
 
 	/* test for holes */
 	if (S_ISREG(st.st_mode)) {
 		if (st.st_blocks * 512 < st.st_size) {
-			error_msg_and_die("swap file has holes");
+			bb_error_msg_and_die("swap file has holes");
 		}
 	}
 
@@ -67,7 +67,7 @@ static int swap_enable_disable(const char *device)
 		status = swapoff(device);
 
 	if (status != 0) {
-		perror_msg("%s", device);
+		bb_perror_msg("%s", device);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
@@ -80,7 +80,7 @@ static int do_em_all(void)
 	int err = 0;
 
 	if (f == NULL)
-		perror_msg_and_die("/etc/fstab");
+		bb_perror_msg_and_die("/etc/fstab");
 	while ((m = getmntent(f)) != NULL) {
 		if (strcmp(m->mnt_type, MNTTYPE_SWAP)==0) {
 			if(swap_enable_disable(m->mnt_fsname) == EXIT_FAILURE)
@@ -94,7 +94,7 @@ static int do_em_all(void)
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	if (applet_name[5] == 'f') { /* "swapoff" */
+	if (bb_applet_name[5] == 'f') { /* "swapoff" */
 		whichApp = SWAPOFF_APP;
 	}
 
@@ -113,7 +113,7 @@ extern int swap_on_off_main(int argc, char **argv)
 					struct stat statBuf;
 
 					if (stat("/etc/fstab", &statBuf) < 0)
-						error_msg_and_die("/etc/fstab file missing");
+						bb_error_msg_and_die("/etc/fstab file missing");
 				}
 				return do_em_all();
 				break;
@@ -124,5 +124,5 @@ extern int swap_on_off_main(int argc, char **argv)
 	return swap_enable_disable(*argv);
 
   usage_and_exit:
-	show_usage();
+	bb_show_usage();
 }

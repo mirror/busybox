@@ -187,7 +187,7 @@ typedef int file_t;		/* Do not use stdio */
 
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) error_msg(msg);}
+#  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
 #  define Tracevv(x) {if (verbose>1) fprintf x ;}
@@ -352,10 +352,10 @@ static void clear_bufs(void)
 	bytes_in = 0L;
 }
 
-static void write_error_msg(void)
+static void write_bb_error_msg(void)
 {
 	fputc('\n', stderr);
-	perror_msg("");
+	bb_perror_nomsg();
 	abort_gzip();
 }
 
@@ -369,7 +369,7 @@ static void write_buf(int fd, void *buf, unsigned cnt)
 
 	while ((n = write(fd, buf, cnt)) != cnt) {
 		if (n == (unsigned) (-1)) {
-			write_error_msg();
+			write_bb_error_msg();
 		}
 		cnt -= n;
 		buf = (void *) ((char *) buf + n);
@@ -977,11 +977,11 @@ static void check_match(IPos start, IPos match, int length)
 	/* check that the match is indeed a match */
 	if (memcmp((char *) window + match,
 			   (char *) window + start, length) != EQUAL) {
-		error_msg(" start %d, match %d, length %d", start, match, length);
-		error_msg("invalid match");
+		bb_error_msg(" start %d, match %d, length %d", start, match, length);
+		bb_error_msg("invalid match");
 	}
 	if (verbose > 1) {
-		error_msg("\\[%d,%d]", start - match, length);
+		bb_error_msg("\\[%d,%d]", start - match, length);
 		do {
 			putc(window[start++], stderr);
 		} while (--length != 0);
@@ -1232,7 +1232,7 @@ int gzip_main(int argc, char **argv)
 			return gunzip_main(argc, argv);
 #endif
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -1282,7 +1282,7 @@ int gzip_main(int argc, char **argv)
 			} else {
 				inFileNum = open(argv[i], O_RDONLY);
 				if (inFileNum < 0 || fstat(inFileNum, &statBuf) < 0)
-					perror_msg_and_die("%s", argv[i]);
+					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;
 				ifile_size = statBuf.st_size;
 
@@ -1299,7 +1299,7 @@ int gzip_main(int argc, char **argv)
 					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
 #endif
 					if (outFileNum < 0) {
-						perror_msg("%s", path);
+						bb_perror_msg("%s", path);
 						free(path);
 						continue;
 					}
@@ -1311,7 +1311,7 @@ int gzip_main(int argc, char **argv)
 			}
 
 			if (path == NULL && isatty(outFileNum) && force == 0) {
-				error_msg
+				bb_error_msg
 					("compressed data not written to a terminal. Use -f to force compression.");
 				free(path);
 				continue;
@@ -1330,7 +1330,7 @@ int gzip_main(int argc, char **argv)
 					delFileName = path;
 
 				if (unlink(delFileName) < 0)
-					perror_msg("%s", delFileName);
+					bb_perror_msg("%s", delFileName);
 			}
 
 			free(path);
@@ -1655,7 +1655,7 @@ static void set_file_type(void);
 
 #else							/* DEBUG */
 #  define send_code(c, tree) \
-     { if (verbose>1) error_msg("\ncd %3d ",(c)); \
+     { if (verbose>1) bb_error_msg("\ncd %3d ",(c)); \
        send_bits(tree[c].Code, tree[c].Len); }
 #endif
 
@@ -2035,7 +2035,7 @@ static void build_tree(tree_desc * desc)
 		tree[n].Dad = tree[m].Dad = (ush) node;
 #ifdef DUMP_BL_TREE
 		if (tree == bl_tree) {
-			error_msg("\nnode %d(%d), sons %d(%d) %d(%d)",
+			bb_error_msg("\nnode %d(%d), sons %d(%d) %d(%d)",
 					node, tree[node].Freq, n, tree[n].Freq, m, tree[m].Freq);
 		}
 #endif
@@ -2273,7 +2273,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
-			error_msg("block vanished");
+			bb_error_msg("block vanished");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		compressed_len = stored_len << 3;
@@ -2442,7 +2442,7 @@ static void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		error_msg("-l used on binary file");
+		bb_error_msg("-l used on binary file");
 	}
 }
 

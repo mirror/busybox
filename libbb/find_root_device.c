@@ -38,14 +38,14 @@ extern char *find_real_root_device_name(const char* name)
 	dev_t dev;
 
 	if (stat("/", &rootStat) != 0) 
-		perror_msg("could not stat '/'");
+		bb_perror_msg("could not stat '/'");
 	else {
 		if ((dev = rootStat.st_rdev)==0) 
 			dev=rootStat.st_dev;
 
 		dir = opendir("/dev");
 		if (!dir) 
-			perror_msg("could not open '/dev'");
+			bb_perror_msg("could not open '/dev'");
 		else {
 			while((entry = readdir(dir)) != NULL) {
 
@@ -69,7 +69,7 @@ extern char *find_real_root_device_name(const char* name)
 		}
 	}
 	if(fileName==NULL)
-		fileName=xstrdup("/dev/root");
+		fileName=bb_xstrdup("/dev/root");
 	return fileName;
 }
 

@@ -8,57 +8,76 @@
  * versions of 'who', 'last', etc. IP Addr is output in hex, 
  * little endian on x86.
  * 
- * Modified to support all sorts of libcs by 
- * Erik Andersen <andersen@lineo.com>
  */
 
-#include <sys/types.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <utmp.h>
+/* Mar 13, 2003       Manuel Novoa III
+ *
+ * 1) Added proper error checking.
+ * 2) Allow '-' arg for stdin.
+ * 3) For modern libcs, take into account that utmp char[] members
+ *    need not be nul-terminated.
+ */
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
+#include <fcntl.h>
+#include <utmp.h>
 #include "busybox.h"
+
+/* Grr... utmp char[] members  do not have to be nul-terminated.
+ * Do what we can while still keeping this reasonably small.
+ * Note: We are assuming the ut_id[] size is fixed at 4. */
+
+#if __GNU_LIBRARY__ < 5
+#warning the format string needs to be changed
+#else
+#if (UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256)
+#error struct utmp member char[] size(s) have changed!
+#endif
+#endif
 
 extern int dutmp_main(int argc, char **argv)
 {
-
-	int file;
+	int file = STDIN_FILENO;
+	ssize_t n;
 	struct utmp ut;
 
-	if (argc<2) {
-		file = fileno(stdin);
-	} else if (*argv[1] == '-' ) {
-		show_usage();
-	} else  {
-		file = open(argv[1], O_RDONLY);
-		if (file < 0) {
-			error_msg_and_die(io_error, argv[1]);
-		}
+	if (argc > 2) {
+		bb_show_usage();
+	}
+	++argv;
+	if ((argc == 2) && ((argv[0][0] != '-') || argv[0][1])) {
+		file = bb_xopen(*argv, O_RDONLY);
 	}
 
-/* Kludge around the fact that the binary format for utmp has changed. */
+
+	while ((n = safe_read(file, (void*)&ut, sizeof(struct utmp))) != 0) {
+
+		if (n != sizeof(struct utmp)) {
+			bb_perror_msg_and_die("short read");
+		}
+
+		/* Kludge around the fact that the binary format for utmp has changed. */
 #if __GNU_LIBRARY__ < 5
-	/* Linux libc5 */
-	while (read(file, (void*)&ut, sizeof(struct utmp))) {
-		printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
-				ut.ut_type, ut.ut_pid, ut.ut_line,
-				ut.ut_id, ut.ut_user, ut.ut_host,
-				ctime(&(ut.ut_time)), 
-				(long)ut.ut_addr);
-	}
+		/* Linux libc5 */
+
+		bb_printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
+				  ut.ut_type, ut.ut_pid, ut.ut_line,
+				  ut.ut_id, ut.ut_user, ut.ut_host,
+				  ctime(&(ut.ut_time)), 
+				  (long)ut.ut_addr);
 #else
-	/* Glibc, uClibc, etc. */
-	while (read(file, (void*)&ut, sizeof(struct utmp))) {
-		printf("%d|%d|%s|%s|%s|%s|%d|%d|%ld|%ld|%ld|%x\n",
-		ut.ut_type, ut.ut_pid, ut.ut_line,
-		ut.ut_id, ut.ut_user,	ut.ut_host,
-		ut.ut_exit.e_termination, ut.ut_exit.e_exit,
-		ut.ut_session,
-		ut.ut_tv.tv_sec, ut.ut_tv.tv_usec,
-		ut.ut_addr);
-	}
+		/* Glibc, uClibc, etc. */
+
+		bb_printf("%d|%d|%.32s|%.4s|%.32s|%.256s|%d|%d|%ld|%ld|%ld|%x\n",
+				  ut.ut_type, ut.ut_pid, ut.ut_line,
+				  ut.ut_id, ut.ut_user,	ut.ut_host,
+				  ut.ut_exit.e_termination, ut.ut_exit.e_exit,
+				  ut.ut_session,
+				  ut.ut_tv.tv_sec, ut.ut_tv.tv_usec,
+				  ut.ut_addr);
 #endif
-	return EXIT_SUCCESS;
+	}
+
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

@@ -43,19 +43,19 @@ int copy_file(const char *source, const char *dest, int flags)
 			lstat(source, &source_stat) < 0) ||
 			((flags & FILEUTILS_DEREFERENCE) &&
 			 stat(source, &source_stat) < 0)) {
-		perror_msg("%s", source);
+		bb_perror_msg("%s", source);
 		return -1;
 	}
 
 	if (lstat(dest, &dest_stat) < 0) {
 		if (errno != ENOENT) {
-			perror_msg("unable to stat `%s'", dest);
+			bb_perror_msg("unable to stat `%s'", dest);
 			return -1;
 		}
 	} else {
 		if (source_stat.st_dev == dest_stat.st_dev &&
 			source_stat.st_ino == dest_stat.st_ino) {
-		error_msg("`%s' and `%s' are the same file", source, dest);
+		bb_error_msg("`%s' and `%s' are the same file", source, dest);
 		return -1;
 	}
 		dest_exists = 1;
@@ -67,14 +67,14 @@ int copy_file(const char *source, const char *dest, int flags)
 		mode_t saved_umask = 0;
 
 		if (!(flags & FILEUTILS_RECUR)) {
-			error_msg("%s: omitting directory", source);
+			bb_error_msg("%s: omitting directory", source);
 			return -1;
 		}
 
 		/* Create DEST.  */
 		if (dest_exists) {
 			if (!S_ISDIR(dest_stat.st_mode)) {
-				error_msg("`%s' is not a directory", dest);
+				bb_error_msg("`%s' is not a directory", dest);
 				return -1;
 			}
 		} else {
@@ -88,7 +88,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 			if (mkdir(dest, mode) < 0) {
 				umask(saved_umask);
-				perror_msg("cannot create directory `%s'", dest);
+				bb_perror_msg("cannot create directory `%s'", dest);
 				return -1;
 			}
 
@@ -97,7 +97,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		/* Recursively copy files in SOURCE.  */
 		if ((dp = opendir(source)) == NULL) {
-			perror_msg("unable to open directory `%s'", source);
+			bb_perror_msg("unable to open directory `%s'", source);
 			status = -1;
 			goto end;
 		}
@@ -121,7 +121,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		if (!dest_exists &&
 				chmod(dest, source_stat.st_mode & ~saved_umask) < 0) {
-			perror_msg("unable to change permissions of `%s'", dest);
+			bb_perror_msg("unable to change permissions of `%s'", dest);
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
@@ -132,7 +132,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (!(flags & FILEUTILS_DEREFERENCE) &&
 				is_in_ino_dev_hashtable(&source_stat, &link_name)) {
 			if (link(link_name, dest) < 0) {
-				perror_msg("unable to link `%s'", dest);
+				bb_perror_msg("unable to link `%s'", dest);
 				return -1;
 			}
 
@@ -140,14 +140,14 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 #endif
 
-		if ((sfp = wfopen(source, "r")) == NULL) {
+		if ((sfp = bb_wfopen(source, "r")) == NULL) {
 			return -1;
 		}
 
 		if (dest_exists) {
 			if (flags & FILEUTILS_INTERACTIVE) {
-				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
-				if (!ask_confirmation()) {
+				fprintf(stderr, "%s: overwrite `%s'? ", bb_applet_name, dest);
+				if (!bb_ask_confirmation()) {
 					fclose (sfp);
 					return 0;
 				}
@@ -155,13 +155,13 @@ int copy_file(const char *source, const char *dest, int flags)
 
 			if ((dfp = fopen(dest, "w")) == NULL) {
 				if (!(flags & FILEUTILS_FORCE)) {
-					perror_msg("unable to open `%s'", dest);
+					bb_perror_msg("unable to open `%s'", dest);
 					fclose (sfp);
 					return -1;
 				}
 
 				if (unlink(dest) < 0) {
-					perror_msg("unable to remove `%s'", dest);
+					bb_perror_msg("unable to remove `%s'", dest);
 					fclose (sfp);
 					return -1;
 				}
@@ -177,22 +177,22 @@ int copy_file(const char *source, const char *dest, int flags)
 					(dfp = fdopen(fd, "w")) == NULL) {
 				if (fd >= 0)
 					close(fd);
-				perror_msg("unable to open `%s'", dest);
+				bb_perror_msg("unable to open `%s'", dest);
 				fclose (sfp);
 				return -1;
 			}
 		}
 
-		if (copyfd(fileno(sfp), fileno(dfp), 0) == -1)
+		if (bb_copyfd(fileno(sfp), fileno(dfp), 0) == -1)
 			status = -1;
 
 		if (fclose(dfp) < 0) {
-			perror_msg("unable to close `%s'", dest);
+			bb_perror_msg("unable to close `%s'", dest);
 			status = -1;
 		}
 
 		if (fclose(sfp) < 0) {
-			perror_msg("unable to close `%s'", source);
+			bb_perror_msg("unable to close `%s'", source);
 			status = -1;
 		}
 			}
@@ -202,23 +202,23 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		if (dest_exists &&
 		       ((flags & FILEUTILS_FORCE) == 0 || unlink(dest) < 0)) {
-				perror_msg("unable to remove `%s'", dest);
+				bb_perror_msg("unable to remove `%s'", dest);
 				return -1;
 
 			}
 	} else {
-		error_msg("internal error: unrecognized file type");
+		bb_error_msg("internal error: unrecognized file type");
 		return -1;
 		}
 	if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
 	    S_ISSOCK(source_stat.st_mode)) {
 		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
-			perror_msg("unable to create `%s'", dest);
+			bb_perror_msg("unable to create `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISFIFO(source_stat.st_mode)) {
 		if (mkfifo(dest, source_stat.st_mode) < 0) {
-			perror_msg("cannot create fifo `%s'", dest);
+			bb_perror_msg("cannot create fifo `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISLNK(source_stat.st_mode)) {
@@ -226,7 +226,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 		lpath = xreadlink(source);
 		if (symlink(lpath, dest) < 0) {
-			perror_msg("cannot create symlink `%s'", dest);
+			bb_perror_msg("cannot create symlink `%s'", dest);
 			return -1;
 		}
 		free(lpath);
@@ -234,7 +234,7 @@ int copy_file(const char *source, const char *dest, int flags)
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 		if (flags & FILEUTILS_PRESERVE_STATUS)
 			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-				perror_msg("unable to preserve ownership of `%s'", dest);
+				bb_perror_msg("unable to preserve ownership of `%s'", dest);
 #endif
 
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
@@ -256,13 +256,13 @@ end:
 		times.actime = source_stat.st_atime;
 		times.modtime = source_stat.st_mtime;
 		if (utime(dest, &times) < 0)
-			perror_msg("unable to preserve times of `%s'", dest);
+			bb_perror_msg("unable to preserve times of `%s'", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
 			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
-			perror_msg("unable to preserve ownership of `%s'", dest);
+			bb_perror_msg("unable to preserve ownership of `%s'", dest);
 		}
 		if (chmod(dest, source_stat.st_mode) < 0)
-			perror_msg("unable to preserve permissions of `%s'", dest);
+			bb_perror_msg("unable to preserve permissions of `%s'", dest);
 	}
 
 	return status;

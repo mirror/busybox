@@ -78,7 +78,7 @@ static struct BB_suid_config *suid_config;
 
 
 
-extern void show_usage(void)
+extern void bb_show_usage(void)
 {
 	const char *format_string;
 	const char *usage_string = usage_messages;
@@ -93,7 +93,7 @@ extern void show_usage(void)
 	format_string = "%s\n\nUsage: %s %s\n\n";
 	if(*usage_string == '\b')
 		format_string = "%s\n\nNo help available.\n\n";
-	fprintf(stderr, format_string, full_version, applet_using->name, usage_string);
+	fprintf(stderr, format_string, bb_msg_full_version, applet_using->name, usage_string);
 
 	exit(EXIT_FAILURE);
 }
@@ -127,7 +127,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	recurse_level++;
 	/* Do a binary search to find the applet entry given the name. */
 	if ((applet_using = find_applet_by_name(name)) != NULL) {
-		applet_name = applet_using->name;
+		bb_applet_name = applet_using->name;
 		if (argv[1] && strcmp(argv[1], "--help") == 0) {
 			if (strcmp(applet_using->name, "busybox")==0) {
 				if(argv[2])
@@ -136,7 +136,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 				  applet_using = NULL;
 			}
 			if(applet_using)
-				show_usage();
+				bb_show_usage();
 			been_there_done_that=1;
 			busybox_main(0, NULL);
 		}
@@ -201,18 +201,18 @@ void check_suid ( struct BB_applet *applet )
 				m >>= 3;
 
 			if (!( m & S_IXOTH ))   /* is x bit not set ? */
-				error_msg_and_die ( "You have no permission to run this applet!" );
+				bb_error_msg_and_die ( "You have no permission to run this applet!" );
 
 			if (( sct-> m_mode & ( S_ISGID | S_IXGRP )) == ( S_ISGID | S_IXGRP )) { /* *both* have to be set for sgid */
 				if ( setegid ( sct-> m_gid ))
-					error_msg_and_die ( "BusyBox binary has insufficient rights to set proper GID for applet!" );
+					bb_error_msg_and_die ( "BusyBox binary has insufficient rights to set proper GID for applet!" );
 			}
 			else
 				setgid ( rgid ); /* no sgid -> drop */
 
 			if ( sct-> m_mode & S_ISUID ) {
 				if ( seteuid ( sct-> m_uid ))
-					error_msg_and_die ( "BusyBox binary has insufficient rights to set proper UID for applet!" );
+					bb_error_msg_and_die ( "BusyBox binary has insufficient rights to set proper UID for applet!" );
 			}	
 			else
 				setuid ( ruid ); /* no suid -> drop */
@@ -237,7 +237,7 @@ void check_suid ( struct BB_applet *applet )
 
 	if ( applet-> need_suid == _BB_SUID_ALWAYS ) {
 		if ( geteuid ( ) != 0 ) 
-			error_msg_and_die ( "This applet requires root priviledges!" );
+			bb_error_msg_and_die ( "This applet requires root priviledges!" );
 	} 
 	else if ( applet-> need_suid == _BB_SUID_NEVER ) {
 		setgid ( rgid ); /* drop all priviledges */
@@ -280,7 +280,7 @@ int parse_config_file ( void )
 					p = strchr ( buffer, '#' );
 					if ( p )
 						*p = 0;
-					p = buffer + xstrlen ( buffer );
+					p = buffer + bb_strlen ( buffer );
 					while (( p > buffer ) && isspace ( *--p ))
 						*p = 0;		
 

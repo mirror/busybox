@@ -34,7 +34,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 	if (!dir) {
 		dir = opendir("/proc");
 		if(!dir)
-			error_msg_and_die("Can't open /proc");
+			bb_error_msg_and_die("Can't open /proc");
 	}
 	for(;;) {
 		if((entry = readdir(dir)) == NULL) {

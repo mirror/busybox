@@ -59,12 +59,12 @@ extern int mt_main(int argc, char **argv)
 	int fd, mode;
 	
 	if (argc < 2) {
-		show_usage();
+		bb_show_usage();
 	}
 
 	if (strcmp(argv[1], "-f") == 0) {
 		if (argc < 4) {
-			show_usage();
+			bb_show_usage();
 		}
 		file = argv[2];
 		argv += 2;
@@ -78,7 +78,7 @@ extern int mt_main(int argc, char **argv)
 	}
 
 	if (code->name == 0) {
-		error_msg("unrecognized opcode %s.", argv[1]);
+		bb_error_msg("unrecognized opcode %s.", argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -102,18 +102,18 @@ extern int mt_main(int argc, char **argv)
 	}
 
 	if ((fd = open(file, mode, 0)) < 0)
-		perror_msg_and_die("%s", file);
+		bb_perror_msg_and_die("%s", file);
 
 	switch (code->value) {
 		case MTTELL:
 			if (ioctl(fd, MTIOCPOS, &position) < 0)
-				perror_msg_and_die("%s", file);
+				bb_perror_msg_and_die("%s", file);
 			printf ("At block %d.\n", (int) position.mt_blkno);
 			break;
 
 		default:
 			if (ioctl(fd, MTIOCTOP, &op) != 0)
-				perror_msg_and_die("%s", file);
+				bb_perror_msg_and_die("%s", file);
 			break;
 	}
 

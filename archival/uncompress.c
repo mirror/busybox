@@ -45,7 +45,7 @@ int uncompress_main(int argc, char **argv)
 			flags |= gunzip_force;
 			break;
 		default:
-			show_usage();	/* exit's inside usage */
+			bb_show_usage();	/* exit's inside usage */
 		}
 	}
 
@@ -63,17 +63,17 @@ int uncompress_main(int argc, char **argv)
 			src_fd = fileno(stdin);
 			flags |= gunzip_to_stdout;
 		} else {
-			src_fd = xopen(old_path, O_RDONLY);
+			src_fd = bb_xopen(old_path, O_RDONLY);
 
 			/* Get the time stamp on the input file. */
 			if (stat(old_path, &stat_buf) < 0) {
-				error_msg_and_die("Couldn't stat file %s", old_path);
+				bb_error_msg_and_die("Couldn't stat file %s", old_path);
 			}
 		}
 
 		/* Check that the input is sane.  */
 		if (isatty(src_fd) && ((flags & gunzip_force) == 0)) {
-			error_msg_and_die
+			bb_error_msg_and_die
 				("compressed data not read from terminal.  Use -f to force it.");
 		}
 
@@ -83,16 +83,16 @@ int uncompress_main(int argc, char **argv)
 		} else {
 			char *extension;
 
-			new_path = xstrdup(old_path);
+			new_path = bb_xstrdup(old_path);
 
 			extension = strrchr(new_path, '.');
 			if (!extension || (strcmp(extension, ".Z") != 0)) {
-				error_msg_and_die("Invalid extension");
+				bb_error_msg_and_die("Invalid extension");
 			}
 			*extension = '\0';
 
 			/* Open output file */
-			dst_fd = xopen(new_path, O_WRONLY | O_CREAT);
+			dst_fd = bb_xopen(new_path, O_WRONLY | O_CREAT);
 
 			/* Set permissions on the file */
 			chmod(new_path, stat_buf.st_mode);
@@ -102,10 +102,10 @@ int uncompress_main(int argc, char **argv)
 		}
 
 		/* do the decompression, and cleanup */
-		if ((xread_char(src_fd) == 0x1f) && (xread_char(src_fd) == 0x9d)) {
+		if ((bb_xread_char(src_fd) == 0x1f) && (bb_xread_char(src_fd) == 0x9d)) {
 			status = uncompress(src_fd, dst_fd);
 		} else {
-			error_msg_and_die("Invalid magic");
+			bb_error_msg_and_die("Invalid magic");
 		}
 
 		if ((status != EXIT_SUCCESS) && (new_path)) {
@@ -122,7 +122,7 @@ int uncompress_main(int argc, char **argv)
 
 		/* delete_path will be NULL if in test mode or from stdin */
 		if (delete_path && (unlink(delete_path) == -1)) {
-			error_msg_and_die("Couldn't remove %s", delete_path);
+			bb_error_msg_and_die("Couldn't remove %s", delete_path);
 		}
 
 		free(new_path);

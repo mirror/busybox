@@ -108,7 +108,7 @@ extern int lsmod_main(int argc, char **argv)
 	module_names = xmalloc(bufsize = 256);
 	if (my_query_module(NULL, QM_MODULES, (void **)&module_names, &bufsize,
 				&nmod)) {
-		perror_msg_and_die("QM_MODULES");
+		bb_perror_msg_and_die("QM_MODULES");
 	}
 
 	deps = xmalloc(depsize = 256);
@@ -122,14 +122,14 @@ extern int lsmod_main(int argc, char **argv)
 				continue;
 			}
 			/* else choke */
-			perror_msg_and_die("module %s: QM_INFO", mn);
+			bb_perror_msg_and_die("module %s: QM_INFO", mn);
 		}
 		if (my_query_module(mn, QM_REFS, (void **)&deps, &depsize, &count)) {
 			if (errno == ENOENT) {
 				/* The module was removed out from underneath us. */
 				continue;
 			}
-			perror_msg_and_die("module %s: QM_REFS", mn);
+			bb_perror_msg_and_die("module %s: QM_REFS", mn);
 		}
 		printf("%-20s%8lu%4ld", mn, info.size, info.usecount);
 		if (info.flags & NEW_MOD_DELETED)
@@ -167,9 +167,10 @@ extern int lsmod_main(int argc, char **argv)
 	printf("Module                  Size  Used by");
 	check_tainted();
 
-	if(print_file_by_name("/proc/modules") == FALSE)
+	if (bb_xprint_file_by_name("/proc/modules") < 0) {
+		return 0;
+	}
 	return 1;
-	return 0;
 }
 
 #endif /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */

@@ -53,11 +53,11 @@ static void xargs_exec(char * const * args)
 			wait(NULL);
 			if(common[0]) {
 				errno = common[0];
-				perror_msg_and_die("%s", args[0]);
+				bb_perror_msg_and_die("%s", args[0]);
 			}
 		}
 	} else {
-		perror_msg_and_die("vfork");
+		bb_perror_msg_and_die("vfork");
 	}
 }
 
@@ -81,7 +81,7 @@ int xargs_main(int argc, char **argv)
 				flg_no_empty = 1;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 		}
 	}
 
@@ -101,9 +101,7 @@ int xargs_main(int argc, char **argv)
 
 	/* Now, read in one line at a time from stdin, and store this 
 	 * line to be used later as an argument to the command */
-	while ((file_to_act_on = get_line_from_file(stdin)) != NULL) {
-		/* eat the newline off the filename. */
-		chomp(file_to_act_on);
+	while ((file_to_act_on = bb_get_chomped_line_from_file(stdin)) != NULL) {
 		if(file_to_act_on[0] != 0 || flg_no_empty == 0) {
 			args[a] = file_to_act_on[0] ? file_to_act_on : NULL;
 			if(flg_vi) {
@@ -114,7 +112,7 @@ int xargs_main(int argc, char **argv)
 				}
 				fprintf(stderr, "%s", ((flg_vi & 2) ? " ?..." : "\n"));
 			}
-			if((flg_vi & 2) == 0 || ask_confirmation() != 0 ) {
+			if((flg_vi & 2) == 0 || bb_ask_confirmation() != 0 ) {
 				xargs_exec(args);
 			}
 		}

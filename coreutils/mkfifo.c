@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini mkfifo implementation for busybox
+ * mkfifo implementation for busybox
  *
- * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,41 +20,32 @@
  *
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/mkfifo.html */
+
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include "busybox.h"
+#include "libcoreutils/coreutils.h"
 
 extern int mkfifo_main(int argc, char **argv)
 {
-	char *thisarg;
-	mode_t mode = 0666;
+	mode_t mode;
+	int retval = EXIT_SUCCESS;
 
-	argc--;
-	argv++;
+	mode = getopt_mk_fifo_nod(argc, argv);
 
-	/* Parse any options */
-	while (argc > 1) {
-		if (**argv != '-')
-			show_usage();
-		thisarg = *argv;
-		thisarg++;
-		switch (*thisarg) {
-		case 'm':
-			argc--;
-			argv++;
-			parse_mode(*argv, &mode);
-			break;
-		default:
-			show_usage();
-		}
-		argc--;
-		argv++;
+	if (!*(argv += optind)) {
+		bb_show_usage();
 	}
-	if (argc < 1 || *argv[0] == '-')
-		show_usage();
-	if (mkfifo(*argv, mode) < 0)
-		perror_msg_and_die("mkfifo");
-	return EXIT_SUCCESS;
+
+	do {
+		if (mkfifo(*argv, mode) < 0) {
+			bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
+			retval = EXIT_FAILURE;
+		}
+	} while (*++argv);
+
+	return retval;
 }

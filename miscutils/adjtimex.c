@@ -87,7 +87,7 @@ void usage(char *prog)
 		"Usage: %s [ -q ] [ -o offset ] [ -f frequency ] [ -p timeconstant ] [ -t tick ]\n",
 		prog);
 }
-#define show_usage() usage(argv[0])
+#define bb_show_usage() usage(argv[0])
 #endif
 
 int main(int argc, char ** argv)
@@ -121,12 +121,12 @@ int main(int argc, char ** argv)
 				txc.modes |= ADJ_TICK;
 				break;
 			default:
-				show_usage();
+				bb_show_usage();
 				exit(1);
 		}
 	}
 	if (argc != optind) { /* no valid non-option parameters */
-		show_usage();
+		bb_show_usage();
 		exit(1);
 	}
 

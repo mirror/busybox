@@ -5655,7 +5655,7 @@ tryprocpt(void) {
 	char line[100], ptname[100], devname[120], *s;
 	int ma, mi, sz;
 
-	procpt = wfopen(PROC_PARTITIONS, "r");
+	procpt = bb_wfopen(PROC_PARTITIONS, "r");
 
 	while (fgets(line, sizeof(line), procpt)) {
 		if (sscanf (line, " %d %d %d %[^\n ]",
@@ -5711,7 +5711,7 @@ int fdisk_main(int argc, char **argv) {
 			sector_size = atoi(optarg);
 			if (sector_size != 512 && sector_size != 1024 &&
 			    sector_size != 2048)
-				show_usage();
+				bb_show_usage();
 			sector_offset = 2;
 			user_set_sector_size = 1;
 			break;
@@ -5746,7 +5746,7 @@ int fdisk_main(int argc, char **argv) {
 			printf("fdisk v" UTIL_LINUX_VERSION "\n");
 			return 0;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
@@ -5794,7 +5794,7 @@ int fdisk_main(int argc, char **argv) {
 
 		opts = argc - optind;
 		if (opts <= 0)
-			show_usage();
+			bb_show_usage();
 
 		for (j = optind; j < argc; j++) {
 			disk_device = argv[j];
@@ -5816,7 +5816,7 @@ int fdisk_main(int argc, char **argv) {
 	if (argc-optind == 1)
 		disk_device = argv[optind];
 	else
-		show_usage();
+		bb_show_usage();
 
 	get_boot(fdisk);
 

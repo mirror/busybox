@@ -110,7 +110,7 @@
 #include "busybox.h"
 #include "cmdedit.h"
 #else
-#define applet_name "hush"
+#define bb_applet_name "hush"
 #include "standalone.h"
 #define hush_main main
 #undef CONFIG_FEATURE_SH_FANCY_PROMPT
@@ -320,7 +320,7 @@ static inline void debug_printf(const char *format, ...) { }
 #define final_printf debug_printf
 
 static void __syntax(char *file, int line) {
-	error_msg("syntax error %s:%d", file, line);
+	bb_error_msg("syntax error %s:%d", file, line);
 }
 #define syntax() __syntax(__FILE__, __LINE__)
 
@@ -441,11 +441,11 @@ static struct built_in_command bltins[] = {
 
 static const char *set_cwd(void)
 {
-	if(cwd==unknown)
+	if(cwd==bb_msg_unknown)
 		cwd = NULL;     /* xgetcwd(arg) called free(arg) */
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
-		cwd = unknown;
+		cwd = bb_msg_unknown;
 	return cwd;
 }
 
@@ -548,7 +548,7 @@ static int builtin_export(struct child_prog *child)
 		}
 	}
 	if (res<0)
-		perror_msg("export");
+		bb_perror_msg("export");
 	else if(res==0)
 		res = set_local_var(name, 1);
 	else
@@ -573,12 +573,12 @@ static int builtin_fg_bg(struct child_prog *child)
 			}
 		}
 		if (!pi) {
-			error_msg("%s: no current job", child->argv[0]);
+			bb_error_msg("%s: no current job", child->argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
 		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-			error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+			bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
 			return EXIT_FAILURE;
 		}
 		for (pi = job_list; pi; pi = pi->next) {
@@ -587,7 +587,7 @@ static int builtin_fg_bg(struct child_prog *child)
 			}
 		}
 		if (!pi) {
-			error_msg("%s: %d: no such job", child->argv[0], jobnum);
+			bb_error_msg("%s: %d: no such job", child->argv[0], jobnum);
 			return EXIT_FAILURE;
 		}
 	}
@@ -605,7 +605,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		if (i == ESRCH) {
 			remove_bg_job(pi);
 		} else {
-			perror_msg("kill (SIGCONT)");
+			bb_perror_msg("kill (SIGCONT)");
 		}
 	}
 
@@ -728,7 +728,7 @@ static int builtin_source(struct child_prog *child)
 	/* XXX search through $PATH is missing */
 	input = fopen(child->argv[1], "r");
 	if (!input) {
-		error_msg("Couldn't open file '%s'", child->argv[1]);
+		bb_error_msg("Couldn't open file '%s'", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -996,7 +996,7 @@ static void mark_closed(int fd)
 {
 	struct close_me *tmp;
 	if (close_me_head == NULL || close_me_head->fd != fd)
-		error_msg_and_die("corrupt close_me");
+		bb_error_msg_and_die("corrupt close_me");
 	tmp = close_me_head;
 	close_me_head = close_me_head->next;
 	free(tmp);
@@ -1029,7 +1029,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-				perror_msg("error opening %s", redir->word.gl_pathv[0]);
+				bb_perror_msg("error opening %s", redir->word.gl_pathv[0]);
 				return 1;
 			}
 		} else {
@@ -1125,14 +1125,14 @@ static void pseudo_exec(struct child_prog *child)
 #ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 			/* Following discussions from November 2000 on the busybox mailing
 			 * list, the default configuration, (without
-			 * get_last_path_component()) lets the user force use of an
+			 * bb_get_last_path_component()) lets the user force use of an
 			 * external command by specifying the full (with slashes) filename.
 			 * If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then applets
 			 * _aways_ override external commands, so if you want to run
 			 * /bin/cat, it will use BusyBox cat even if /bin/cat exists on the
 			 * filesystem and is _not_ busybox.  Some systems may want this,
 			 * most do not.  */
-			name = get_last_path_component(name);
+			name = bb_get_last_path_component(name);
 #endif
 			/* Count argc for use in a second... */
 			for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
@@ -1143,7 +1143,7 @@ static void pseudo_exec(struct child_prog *child)
 #endif
 		debug_printf("exec of %s\n",child->argv[0]);
 		execvp(child->argv[0],child->argv);
-		perror_msg("couldn't exec: %s",child->argv[0]);
+		bb_perror_msg("couldn't exec: %s",child->argv[0]);
 		_exit(1);
 	} else if (child->group) {
 		debug_printf("runtime nesting to group\n");
@@ -1292,11 +1292,11 @@ static int checkjobs(struct pipe* fg_pipe)
 	}
 
 	if (childpid == -1 && errno != ECHILD)
-		perror_msg("waitpid");
+		bb_perror_msg("waitpid");
 
 	/* move the shell to the foreground */
 	//if (interactive && tcsetpgrp(shell_terminal, getpgid(0)))
-	//	perror_msg("tcsetpgrp-2");
+	//	bb_perror_msg("tcsetpgrp-2");
 	return -1;
 }
 
@@ -1381,7 +1381,7 @@ static int run_pipe_real(struct pipe *pi)
 				 * variable. */
 				int export_me=0;
 				char *name, *value;
-				name = xstrdup(child->argv[i]);
+				name = bb_xstrdup(child->argv[i]);
 				debug_printf("Local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
@@ -1441,7 +1441,7 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
-			if (pipe(pipefds)<0) perror_msg_and_die("pipe");
+			if (pipe(pipefds)<0) bb_perror_msg_and_die("pipe");
 			nextout = pipefds[1];
 		} else {
 			nextout=1;
@@ -1626,11 +1626,11 @@ static int run_list_real(struct pipe *pi)
 			if (interactive) {
 				/* move the new process group into the foreground */
 				if (tcsetpgrp(shell_terminal, pi->pgrp) && errno != ENOTTY)
-					perror_msg("tcsetpgrp-3");
+					bb_perror_msg("tcsetpgrp-3");
 				rcode = checkjobs(pi);
 				/* move the shell to the foreground */
 				if (tcsetpgrp(shell_terminal, getpgid(0)) && errno != ENOTTY)
-					perror_msg("tcsetpgrp-4");
+					bb_perror_msg("tcsetpgrp-4");
 			} else {
 				rcode = checkjobs(pi);
 			}
@@ -1825,9 +1825,9 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 		debug_printf("globhack returned %d\n",gr);
 	}
 	if (gr == GLOB_NOSPACE)
-		error_msg_and_die("out of memory during glob");
+		bb_error_msg_and_die("out of memory during glob");
 	if (gr != 0) { /* GLOB_ABORTED ? */
-		error_msg("glob(3) error %d",gr);
+		bb_error_msg("glob(3) error %d",gr);
 	}
 	/* globprint(glob_target); */
 	return gr;
@@ -1881,7 +1881,7 @@ static int set_local_var(const char *s, int flg_export)
 				result++;
 		} else {
 			if(cur->flg_read_only) {
-				error_msg("%s: readonly variable", name);
+				bb_error_msg("%s: readonly variable", name);
 				result = -1;
 			} else {
 				if(flg_export>0 || cur->flg_export>1)
@@ -1935,7 +1935,7 @@ static void unset_local_var(const char *name)
 		if(cur!=0) {
 			struct variables *next = top_vars;
 			if(cur->flg_read_only) {
-				error_msg("%s: readonly variable", name);
+				bb_error_msg("%s: readonly variable", name);
 				return;
 			} else {
 				if(cur->flg_export)
@@ -2139,7 +2139,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	if (ctx->pending_redirect) {
 		ctx->pending_redirect=NULL;
 		if (glob_target->gl_pathc != 1) {
-			error_msg("ambiguous redirect");
+			bb_error_msg("ambiguous redirect");
 			return 1;
 		}
 	} else {
@@ -2231,7 +2231,7 @@ static int redirect_dup_num(struct in_str *input)
 	}
 	if (ok) return d;
 
-	error_msg("ambiguous redirect");
+	bb_error_msg("ambiguous redirect");
 	return -2;
 }
 
@@ -2267,14 +2267,14 @@ FILE *generate_stream_from_list(struct pipe *head)
 	FILE *pf;
 #if 1
 	int pid, channel[2];
-	if (pipe(channel)<0) perror_msg_and_die("pipe");
+	if (pipe(channel)<0) bb_perror_msg_and_die("pipe");
 #if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 	pid=fork();
 #else
 	pid=vfork();
 #endif
 	if (pid<0) {
-		perror_msg_and_die("fork");
+		bb_perror_msg_and_die("fork");
 	} else if (pid==0) {
 		close(channel[0]);
 		if (channel[1] != 1) {
@@ -2450,7 +2450,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		case '-':
 		case '_':
 			/* still unhandled, but should be eventually */
-			error_msg("unhandled syntax: $%c",ch);
+			bb_error_msg("unhandled syntax: $%c",ch);
 			return 1;
 			break;
 		default:
@@ -2811,7 +2811,7 @@ int hush_main(int argc, char **argv)
 						"   or: sh -c command [args]...\n\n");
 				exit(EXIT_FAILURE);
 #else
-				show_usage();
+				bb_show_usage();
 #endif
 		}
 	}
@@ -2845,12 +2845,12 @@ int hush_main(int argc, char **argv)
 	debug_printf("\nrunning script '%s'\n", argv[optind]);
 	global_argv = argv+optind;
 	global_argc = argc-optind;
-	input = xfopen(argv[optind], "r");
+	input = bb_xfopen(argv[optind], "r");
 	opt = parse_file_outer(input);
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	fclose(input);
-	if (cwd && cwd != unknown)
+	if (cwd && cwd != bb_msg_unknown)
 		free((char*)cwd);
 	{
 		struct variables *cur, *tmp;

@@ -20,46 +20,50 @@
  *
  */
 
-#include <errno.h>
-#include <getopt.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/mkdir.html */
 
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Fixed broken permission setting when -p was used; especially in
+ * conjunction with -m.
+ */
+
+#include <stdlib.h>
+#include <unistd.h>
 #include "busybox.h"
 
 extern int mkdir_main (int argc, char **argv)
 {
-	mode_t mode = -1;
+	mode_t mode = (mode_t)(-1);
+	int status = EXIT_SUCCESS;
 	int flags = 0;
-	int i, opt;
+	int opt;
 
-	while ((opt = getopt (argc, argv, "m:p")) != -1) {
-		switch (opt) {
-		case 'm':
+	while ((opt = getopt (argc, argv, "m:p")) > 0) {
+		if (opt == 'm') {
 			mode = 0777;
-			if (!parse_mode (optarg, &mode)) {
-				error_msg_and_die ("invalid mode `%s'", optarg);
+			if (!bb_parse_mode (optarg, &mode)) {
+				bb_error_msg_and_die ("invalid mode `%s'", optarg);
 			}
-			umask(0);
-			break;
-		case 'p':
+		} else if (opt == 'p') {
 			flags |= FILEUTILS_RECUR;
-			break;
-		default:
-			show_usage ();
+		} else {
+			bb_show_usage();
 		}
 	}
 
-	if (optind == argc)
-		show_usage ();
-
-	for (i = optind; i < argc; i++) {
-		make_directory (argv[i], mode, flags);
+	if (optind == argc) {
+		bb_show_usage();
 	}
 
-	return(EXIT_SUCCESS);
+	argv += optind;
+
+	do {
+		if (bb_make_directory(*argv, mode, flags)) {
+			status = EXIT_FAILURE;
+		}
+	} while (*++argv);
+
+	return status;
 }

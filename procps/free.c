@@ -63,7 +63,7 @@ extern int free_main(int argc, char **argv)
 	}
 
 	if (argc > 1 && **(argv + 1) == '-')
-		show_usage();
+		bb_show_usage();
 
 	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free", 
 			"shared", "buffers");

@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini yes implementation for busybox
+ * yes implementation for busybox
  *
- * Copyright (C) 2000  Edward Betts <edward@debian.org>.
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,12 @@
  *
  */
 
-/* getopt not needed */
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
+
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Size reductions and removed redundant applet name prefix from error messages.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,26 +33,24 @@
 
 extern int yes_main(int argc, char **argv)
 {
-	int i;
+	static const char fmt_str[] = " %s";
+	const char *fmt;
+	char **first_arg;
 
-	if (argc >= 2 && *argv[1] == '-')
-		show_usage();
-
-	if (argc == 1) {
-		while (1)
-			if (puts("y") == EOF) {
-				perror("yes");
-				return EXIT_FAILURE;
-			}
+	*argv = "y";
+	if (argc != 1) {
+		++argv;
 	}
 
-	while (1)
-		for (i = 1; i < argc; i++)
-			if (fputs(argv[i], stdout) == EOF
-				|| putchar(i == argc - 1 ? '\n' : ' ') == EOF) {
-				perror("yes");
-				return EXIT_FAILURE;
-			}
+	first_arg = argv;
+	do {
+		fmt = fmt_str + 1;
+		do {
+			bb_printf(fmt, *argv);
+			fmt = fmt_str;
+		} while (*++argv);
+		argv = first_arg;
+	} while (putchar('\n') != EOF);
 
-	return EXIT_SUCCESS;
+	bb_perror_nomsg_and_die();
 }

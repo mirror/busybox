@@ -25,7 +25,7 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle)
 
 	archive_xread_all(archive_handle, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		error_msg_and_die("Invalid gzip magic");
+		bb_error_msg_and_die("Invalid gzip magic");
 	}
 
 	check_header_gzip(archive_handle->src_fd);

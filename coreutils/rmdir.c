@@ -1,9 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini rmdir implementation for busybox
+ * rmdir implementation for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,76 +20,54 @@
  *
  */
 
-#include <getopt.h>
-#include <unistd.h>
-#include <stdlib.h>
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/rmdir.html */
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <libgen.h>
 #include "busybox.h"
 
-
-/* Return true if a path is composed of multiple components.  */
-
-static int
-multiple_components_p (const char *path)
-{
-	const char *s = path;
-
-	while (s[0] != '\0' && s[0] != '/')
-		s++;
-
-	while (s[0] == '/')
-		s++;
-
-	return (s[0] != '\0');
-}
-
-
-/* Remove a directory.  Returns 0 if successful, -1 on error.  */
-
-static int
-remove_directory (char *path, int flags)
-{
-	if (!(flags & FILEUTILS_RECUR)) {
-		if (rmdir (path) < 0) {
-			perror_msg ("unable to remove `%s'", path);
-			return -1;
-		}
-	} else {
-		if (remove_directory (path, 0) < 0)
-			return -1;
-
-		if (multiple_components_p (path))
-			if (remove_directory (dirname (path), flags) < 0)
-				return -1;
-	}
-
-	return 0;
-}
-
-
-extern int
-rmdir_main (int argc, char **argv)
+extern int rmdir_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
-	int flags = 0;
-	int i, opt;
+	int flags;
+	int do_dot;
+	char *path;
 
-	while ((opt = getopt (argc, argv, "p")) != -1)
-		switch (opt) {
-			case 'p':
-				flags |= FILEUTILS_RECUR;
-				break;
+	flags = bb_getopt_ulflags(argc, argv, "p");
 
-			default:
-				show_usage ();
-		}
+	argv += optind;
 
-	if (optind == argc)
-		show_usage();
+	if (!*argv) {
+		bb_show_usage();
+	}
 
-	for (i = optind; i < argc; i++)
-		if (remove_directory (argv[i], flags) < 0)
-			status = EXIT_FAILURE;
+	do {
+		path = *argv;
+
+		/* Record if the first char was a '.' so we can use dirname later. */
+		do_dot = (*path == '.');
+
+		do {
+			if (rmdir(path) < 0) {
+				bb_perror_msg("`%s'", path);	/* Match gnu rmdir msg. */
+				status = EXIT_FAILURE;
+			} else if (flags) {
+				/* Note: path was not empty or null since rmdir succeeded. */
+				path = dirname(path);
+				/* Path is now just the parent component.  Note that dirname
+				 * returns "." if there are no parents.  We must distinguish
+				 * this from the case of the original path starting with '.'.
+                 */
+				if (do_dot || (*path != '.') || path[1]) {
+					continue;
+				}
+			}
+			break;
+		} while (1);
+		
+	} while (*++argv);
 
 	return status;
 }

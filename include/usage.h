@@ -98,9 +98,11 @@
        "\t-y\tDisplay the entire year."
 
 #define cat_trivial_usage \
-	"[FILE]..."
+	"[-u] [FILE]..."
 #define cat_full_usage \
-	"Concatenates FILE(s) and prints them to stdout."
+	"Concatenates FILE(s) and prints them to stdout.\n\n" \
+	"Options:\n" \
+	"\t-u\tignored since unbuffered i/o is always used"
 #define cat_example_usage \
 	"$ cat /proc/uptime\n" \
 	"110716.72 17.67"
@@ -397,20 +399,34 @@
 #define dpkg_deb_example_usage \
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
+#ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+#define USAGE_DU_DEFALT_BLOCKSIZE_1k(a) a
+#define USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k(a)
+#else
+#define USAGE_DU_DEFALT_BLOCKSIZE_1k(a)
+#define USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k(a) a
+#endif
+
 #define du_trivial_usage \
-	"[-lsx" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILE]..."
+	"[-aHLdclsx" USAGE_HUMAN_READABLE("hm") "k] [FILE]..."
 #define du_full_usage \
 	"Summarizes disk space used for each FILE and/or directory.\n" \
-	"Disk space is printed in units of 1024 bytes.\n\n" \
+	"Disk space is printed in units of " \
+	USAGE_DU_DEFALT_BLOCKSIZE_1k("1024") USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k("512") \
+	" bytes.\n\n" \
 	"Options:\n" \
+	"\t-a\tshow sizes of files in addition to directories\n" \
+	"\t-H\tfollow symbolic links that are FILE command line args\n" \
+	"\t-L\tfollow all symbolic links encountered\n" \
+	"\t-d N\tlimit output to directories (and files with -a) of depth < N\n" \
+	"\t-c\toutput a grand total\n" \
 	"\t-l\tcount sizes many times if hard linked\n" \
-	"\t-s\tdisplay only a total for each argument" \
-	USAGE_HUMAN_READABLE( \
-	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	"\t-m\tprint sizes in megabytes\n" \
+	"\t-s\tdisplay only a total for each argument\n" \
 	"\t-x\tskip directories on different filesystems\n" \
-	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
-	"\n\t-k\tprint sizes in kilobytes(compatibility)")
+	USAGE_HUMAN_READABLE( \
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
+	"\t-m\tprint sizes in megabytes\n" ) \
+	"\t-k\tprint sizes in kilobytes" USAGE_DU_DEFALT_BLOCKSIZE_1k("(default)")
 #define du_example_usage \
 	"$ du\n" \
 	"16      ./CVS\n" \
@@ -451,25 +467,31 @@
 	"8|125||l4|||0|0|0|955637629|998367|0\n" \
 	"6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0\n" \
 	"6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0\n" \
-	"7|336|pts/0|vt00andersen|andersen|:0.0|0|0|0|955637763|0|0\n"
+	"7|336|pts/0|vt00|andersen|:0.0|0|0|0|955637763|0|0\n"
+
+#ifdef CONFIG_FEATURE_FANCY_ECHO
+  #define USAGE_FANCY_ECHO(a) a
+#else
+  #define USAGE_FANCY_ECHO(a) 
+#endif
 
 #define echo_trivial_usage \
-	"[-neE] [ARG ...]"
+	USAGE_FANCY_ECHO("[-neE] ") "[ARG ...]"
 #define echo_full_usage \
 	"Prints the specified ARGs to stdout\n\n" \
-	"Options:\n" \
+	USAGE_FANCY_ECHO("Options:\n" \
 	"\t-n\tsuppress trailing newline\n" \
 	"\t-e\tinterpret backslash-escaped characters (i.e., \\t=tab)\n" \
-	"\t-E\tdisable interpretation of backslash-escaped characters"
+	"\t-E\tdisable interpretation of backslash-escaped characters")
 #define echo_example_usage \
 	"$ echo "Erik is cool"\n" \
 	"Erik is cool\n" \
-	"$  echo -e "Erik\\nis\\ncool"\n" \
+	USAGE_FANCY_ECHO("$  echo -e "Erik\\nis\\ncool"\n" \
 	"Erik\n" \
 	"is\n" \
 	"cool\n" \
 	"$ echo "Erik\\nis\\ncool"\n" \
-	"Erik\\nis\\ncool\n"
+	"Erik\\nis\\ncool\n")
 
 #define env_trivial_usage \
 	"[-iu] [-] [name=value]... [command]"
@@ -757,6 +779,12 @@
 #define halt_full_usage \
 	"Halt the system."
 
+#ifdef CONFIG_FEATURE_FANCY_HEAD
+#define USAGE_FANCY_HEAD(a) a
+#else
+#define USAGE_FANCY_HEAD(a)
+#endif
+
 #define head_trivial_usage \
 	"[OPTION] [FILE]..."
 #define head_full_usage \
@@ -764,7 +792,11 @@
 	"With more than one FILE, precede each with a header giving the\n" \
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n" \
 	"Options:\n" \
-	"\t-n NUM\t\tPrint first NUM lines instead of first 10"
+	"\t-n NUM\t\tPrint first NUM lines instead of first 10" \
+	USAGE_FANCY_HEAD( \
+	"\n\t-c NUM\t\toutput the first NUM bytes\n" \
+	"\t-q\t\tnever output headers giving file names\n" \
+	"\t-v\t\talways output headers giving file names" )
 #define head_example_usage \
 	"$ head -n 2 /etc/passwd\n" \
 	"root:x:0:0:root:/root:/bin/bash\n" \
@@ -1762,7 +1794,7 @@
 	"Remove (unlink) the FILE(s).  You may use '--' to\n" \
 	"indicate that all following arguments are non-options.\n\n" \
 	"Options:\n" \
-	"\t-i\t\talways prompt before removing each destination" \
+	"\t-i\t\talways prompt before removing each destination\n" \
 	"\t-f\t\tremove existing destinations, never prompt\n" \
 	"\t-r or -R\tremove the contents of directories recursively"
 #define rm_example_usage \
@@ -1864,14 +1896,26 @@
 #define sha1sum_full_usage \
 	"[OPTION] [FILE]"
 
+#ifdef CONFIG_FEATURE_FANCY_SLEEP
+  #define USAGE_FANCY_SLEEP(a) a
+  #define USAGE_NOT_FANCY_SLEEP(a)
+#else
+  #define USAGE_FANCY_SLEEP(a) 
+  #define USAGE_NOT_FANCY_SLEEP(a) a
+#endif
+
 #define sleep_trivial_usage \
-	"N"
+	USAGE_FANCY_SLEEP("[") "N" USAGE_FANCY_SLEEP("]...") 
 #define sleep_full_usage \
-	"Pause for N seconds."
+	USAGE_NOT_FANCY_SLEEP("Pause for N seconds.") \
+	USAGE_FANCY_SLEEP( \
+"Pause for a time equal to the total of the args given, where each arg can\n" \
+"have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
 #define sleep_example_usage \
 	"$ sleep 2\n" \
-	"[2 second delay results]\n"
-
+	"[2 second delay results]\n" \
+	USAGE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
+	"[98528 second delay results]\n")
 
 #ifdef CONFIG_FEATURE_SORT_UNIQUE
   #define USAGE_SORT_UNIQUE(a) a
@@ -2077,7 +2121,8 @@
 #define tee_full_usage \
 	"Copy standard input to each FILE, and also to standard output.\n\n" \
 	"Options:\n" \
-	"\t-a\tappend to the given FILEs, do not overwrite"
+	"\t-a\tappend to the given FILEs, do not overwrite\n" \
+	"\t-i\tignore interrupt signals (SIGINT)"
 #define tee_example_usage \
 	"$ echo "Hello" | tee /tmp/foo\n" \
 	"$ cat /tmp/foo\n" \
@@ -2312,7 +2357,9 @@
 	"Options:\n" \
 	"\t-c\tprefix lines by the number of occurrences\n" \
 	"\t-d\tonly print duplicate lines\n" \
-	"\t-u\tonly print unique lines"
+	"\t-u\tonly print unique lines\n" \
+	"\t-f N\tskip the first N fields\n" \
+	"\t-s N\tskip the first N chars (after any skipped fields)"
 #define uniq_example_usage \
 	"$ echo -e \"a\\na\\nb\\nc\\nc\\na\" | sort | uniq\n" \
 	"a\n" \
