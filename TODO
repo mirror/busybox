@@ -28,6 +28,8 @@ Bugs that need fixing:
 	cp -a -a
 	ln -s -s
 	rm -f
+	rm -f -
+	rm -- -
 	touch -c
   - I believe that swaponoff may also be also broken (check it).
   - It used to be that BusyBox tar would happily overwrite existing files on

@@ -12,12 +12,14 @@
 	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
 	    be invoked as shell internals.  Best used when compiling staticly 
 	    (i.e. DOSTATIC=true)
-	* BusyBox sh (lash) internals now behave as expected wrt pipes and redirects. 
+	* BusyBox sh (lash) internals now behave as expected wrt pipes 
+	    and redirects. 
 	* Fixed ping warnings -- fix from Sascha Ziemann <szi@aibon.ping.de>
 	* Fixed update segfault
 	* Fixed mknod -- minor number was always 0
-	* Fixed tar option parsing, so both "tar xvf foo.tar" and "tar -xvf foo.tar"
-	    now work (i.e. no "-" before options) (this was very broken in 0.43).
+	* Fixed tar option parsing, so both "tar xvf foo.tar" and 
+	    "tar -xvf foo.tar" now work (i.e. no "-" before options) 
+	    (this was very broken in 0.43).
 	* Several contributions from Randolph Chung <tausq@debian.org>.
 	    * cp/mv now accepts the -f flag
 	    * tail can now accept -<num> commands (e.g. -10) for better 
