@@ -447,7 +447,8 @@ extern int init_main(int argc, char **argv)
 
     
 #ifndef DEBUG_INIT
-    if (getpid() != 1) {
+    /* Expect to be PID 1 iff we are run as init (not linuxrc) */
+    if (getpid() != 1 && strstr(argv[0], "init")!=NULL ) {
 	usage( "init\n\nInit is the parent of all processes.\n\n"
 		"This version of init is designed to be run only by the kernel\n");
     }

@@ -101,7 +101,7 @@ force:
 
 $(OBJECTS):  busybox.def.h internal.h Makefile
 
-install: busybox
+install: busybox busybox.links
 	./install.sh $(PREFIX)
 
 whichversion:
