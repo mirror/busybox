@@ -3,7 +3,7 @@
 #ifndef _LIBBB_UDHCP_H
 #define _LIBBB_UDHCP_H
 
-#ifdef BB_VER
+#ifdef IN_BUSYBOX
 #include "libbb.h"
 
 #ifdef CONFIG_FEATURE_UDHCP_SYSLOG

@@ -76,7 +76,7 @@ struct client_config_t client_config = {
 	arp: "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
-#ifndef BB_VER
+#ifndef IN_BUSYBOX
 static void __attribute__ ((noreturn)) show_usage(void)
 {
 	printf(
