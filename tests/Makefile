@@ -8,6 +8,7 @@ message_header:
 	@echo
 	@echo BusyBox Test Suite.
 	@echo
+	(cd ..; tests/busybox.REGRESS.sh)
 
 clean::
 
