@@ -84,6 +84,8 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 				perror_msg("Cannot create node %s", file_header->name);
 			}
 			break;
+		default:
+			error_msg_and_die("Unrecognised file type");
 	}
 
 	chmod(file_header->name, file_header->mode);

@@ -20,7 +20,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-#ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 static char *longname = NULL;
 static char *linkname = NULL;
 #endif
@@ -72,7 +72,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	 * 0's are for the old tar format
 	 */
 	if (strncmp(tar.formated.magic, "ustar", 5) != 0) {
-#ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
+#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
 #endif
 			error_msg_and_die("Invalid tar magic");
@@ -90,7 +90,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		return(EXIT_FAILURE);
 	}
 
-#ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	if (longname) {
 		file_header->name = longname;
 		longname = NULL;
@@ -120,33 +120,34 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
-#if defined CONFIG_FEATURE_TAR_OLD_FORMAT || defined CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+#if defined CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY || defined CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
-# ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
+# ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	case 0:
+	case '0':
 		file_header->mode |= S_IFREG;
 		break;
-	case 1:
+	case '1':
 		error_msg("Internal hard link not supported");
 		break;
-	case 2:
+	case '2':
 		file_header->mode |= S_IFLNK;
 		break;
-	case 3:
+	case '3':
 		file_header->mode |= S_IFCHR;
 		break;
-	case 4:
+	case '4':
 		file_header->mode |= S_IFBLK;
 		break;
-	case 5:
+	case '5':
 		file_header->mode |= S_IFDIR;
 		break;
-	case 6:
+	case '6':
 		file_header->mode |= S_IFIFO;
 		break;
 # endif
-# ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+# ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, longname, file_header->size);
@@ -164,6 +165,12 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 			file_header->name = linkname;
 			return(get_header_tar(archive_handle));
 		}
+	case 'D':
+	case 'M':
+	case 'N':
+	case 'S':
+	case 'V':
+		error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
 # endif
 	}
 #endif
