@@ -492,11 +492,45 @@ config CONFIG_FEATURE_TELNET_AUTOLOGIN
 config CONFIG_TELNETD
 	bool "telnetd"
 	default n
+	select CONFIG_LOGIN
 	help
 	  A daemon for the TELNET protocol, allowing you to log onto the host
 	  running the daemon.  Please keep in mind that the TELNET protocol
-	  sends passwords in plain text.  If you can't afford the space for
-	  any SSH daemon and you trust your network, you may say 'y' here.
+	  sends passwords in plain text.  If you can't afford the space for an
+	  SSH daemon and you trust your network, you may say 'y' here.  As a
+	  more secure alternative, you should seriously consider installing the
+	  very small Dropbear SSH daemon instead:
+		http://matt.ucc.asn.au/dropbear/dropbear.html
+
+	  Note that for busybox telnetd to work you need several things:
+	  First of all, your kernel needs:
+		  CONFIG_UNIX98_PTYS=y
+		  CONFIG_DEVPTS_FS=y
+
+	  Next, you need a /dev/pts directory on your root filesystem:
+
+		  $ ls -ld /dev/pts
+		  drwxr-xr-x  2 root root 0 Sep 23 13:21 /dev/pts/
+
+	  Next you need the pseudo terminal master multiplexer /dev/ptmx:
+
+		  $ ls -la /dev/ptmx
+		  crw-rw-rw-  1 root tty 5, 2 Sep 23 13:55 /dev/ptmx
+
+	  Any /dev/ttyp[0-9]* files you may have can be removed.
+	  Next, you need to mount the devpts filesystem on /dev/pts using:
+
+		  mount -t devpts devpts /dev/pts
+
+	  You need to be sure that Busybox has CONFIG_LOGIN and
+	  CONFIG_FEATURE_SUID enabled.  And finally, you should make
+	  certain that Busybox has been installed setuid root:
+
+		chown root.root /bin/busybox
+		chmod 4755 /bin/busybox
+
+	  with all that done, telnetd _should_ work....
+
 
 config CONFIG_FEATURE_TELNETD_INETD
 	bool "  Support call from inetd only"
