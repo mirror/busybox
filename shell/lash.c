@@ -64,6 +64,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <locale.h>
 
 //#define BB_FEATURE_SH_WORDEXP
 
@@ -446,6 +447,11 @@ static int builtin_export(struct child_prog *child)
 	else if (strncmp(v, "PS2=", 4)==0)
 		PS2 = getenv("PS2");
 #endif
+	if(strncmp(v, "LC_ALL=", 7)==0)
+		setlocale(LC_ALL, getenv("LC_ALL"));
+	if(strncmp(v, "LC_CTYPE=", 7)==0)
+		setlocale(LC_CTYPE, getenv("LC_CTYPE"));
+
 	return (res);
 }
 
