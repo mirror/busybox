@@ -435,8 +435,8 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 	result = execute("ip tunnel add %iface% mode sit remote "
 				"%endpoint% [[local %local%]] [[ttl %ttl%]]", ifd, exec);
-	result += execute("ip addr add %address%/%netmask% dev %iface% label %label%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
+	result += execute("ip addr add %address%/%netmask% dev %iface% label %label%", ifd, exec);
 	result += execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec);
 	return( result);
 }
