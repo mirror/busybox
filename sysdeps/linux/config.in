@@ -20,10 +20,6 @@ bool 'Support for SUID/SGID handling'  					CONFIG_FEATURE_SUID
 if [ "$CONFIG_FEATURE_SUID" = "y" ]; then
   bool '  Runtime configuration via /etc/busybox.conf'			CONFIG_FEATURE_SUID_CONFIG
 fi
-bool 'Use busybox password and group functions'				CONFIG_USE_BB_PWD_GRP
-if [ "$CONFIG_USE_BB_PWD_GRP" = "y" ]; then
-   bool '  Use busybox shadow password functions'			CONFIG_USE_BB_SHADOW
-fi
 endmenu
 
 source archival/config.in

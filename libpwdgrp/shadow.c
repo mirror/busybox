@@ -39,8 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "shadow.h"
+#include "shadow_.h"
 
 static FILE *shadow;
 static char spwbuf[BUFSIZ];
