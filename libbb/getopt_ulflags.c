@@ -60,7 +60,7 @@ const char *bb_opt_complementaly;
 
 typedef struct
 {
-	char opt;
+	unsigned char opt;
 	char list_flg;
 	unsigned long switch_on;
 	unsigned long switch_off;
@@ -159,10 +159,9 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
   while ((c = getopt_long (argc, argv, applet_opts,
 			    bb_applet_long_options, NULL)) > 0) {
-
 	for (on_off = complementaly; on_off->opt != c; on_off++) {
 	    if(!on_off->opt)
-		bb_show_usage ();
+			bb_show_usage ();
 	}
 	if(flags & on_off->incongruously)
 	    flags |= 0x80000000UL;
