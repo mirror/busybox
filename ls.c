@@ -57,16 +57,16 @@ enum {
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
-#ifdef BB_FEATURE_LS_TIMESTAMPS
-#include <time.h>
-#endif
 #include <string.h>
 #include <stdlib.h>
-
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
+
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+#include <time.h>
+#endif
 
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)
