@@ -799,13 +799,13 @@ static struct interfaces_file_t *read_interfaces(char *filename)
 
 				currif->address_family = get_address_family(addr_fams, address_family_name);
 				if (!currif->address_family) {
-					bb_error_msg("unknown address type \"%s\"", buf);
+					bb_error_msg("unknown address type \"%s\"", address_family_name);
 					return NULL;
 				}
 
 				currif->method = get_method(currif->address_family, method_name);
 				if (!currif->method) {
-					bb_error_msg("unknown method \"%s\"", buf);
+					bb_error_msg("unknown method \"%s\"", method_name);
 					return NULL;
 				}
 
