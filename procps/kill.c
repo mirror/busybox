@@ -114,7 +114,7 @@ extern int kill_main(int argc, char **argv)
 		pid_t myPid=getpid();
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
-			pid_t* pidList;
+			long* pidList;
 
 			pidList = find_pid_by_name( *argv);
 			if (!pidList || *pidList<=0) {

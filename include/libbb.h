@@ -116,7 +116,7 @@ extern void write_mtab(char* blockDevice, char* directory,
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern long atoi_w_units (const char *cp);
-extern pid_t* find_pid_by_name( char* pidName);
+extern long* find_pid_by_name( char* pidName);
 extern char *find_real_root_device_name(const char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);

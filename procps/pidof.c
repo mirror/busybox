@@ -58,7 +58,7 @@ extern int pidof_main(int argc, char **argv)
 
 	/* Looks like everything is set to go. */
 	while(optind < argc) {
-		pid_t* pidList;
+		long* pidList;
 
 		pidList = find_pid_by_name( argv[optind]);
 		if (!pidList || *pidList<=0) {

@@ -28,7 +28,7 @@ extern int halt_main(int argc, char **argv)
 {
 #ifdef CONFIG_FEATURE_INITRD
 	/* don't assume init's pid == 1 */
-	pid_t *pid = find_pid_by_name("init");
+	long *pid = find_pid_by_name("init");
 	if (!pid || *pid<=0) {
 		pid = find_pid_by_name("linuxrc");
 		if (!pid || *pid<=0)

@@ -40,13 +40,13 @@
  *
  *  Returns a list of all matching PIDs
  */
-extern pid_t* find_pid_by_name( char* pidName)
+extern long* find_pid_by_name( char* pidName)
 {
 	int fd, i, j;
 	char device[] = "/dev/ps";
 	pid_t num_pids;
 	pid_t* pid_array = NULL;
-	pid_t* pidList=NULL;
+	long* pidList=NULL;
 
 	/* open device */ 
 	fd = open(device, O_RDONLY);
@@ -87,20 +87,14 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 		if ((strstr(info.command_line, pidName) != NULL)
 				&& (strlen(pidName) == strlen(info.command_line))) {
-			pidList=xrealloc( pidList, sizeof(pid_t) * (j+2));
+			pidList=xrealloc( pidList, sizeof(long) * (j+2));
 			pidList[j++]=info.pid;
 		}
 	}
 	if (pidList) {
 		pidList[j]=0;
-	} else if ( strcmp(pidName, "init")==0) {
-		/* If we found nothing and they were trying to kill "init", 
-		 * guess PID 1 and call it good...  Perhaps we should simply
-		 * exit if /proc isn't mounted, but this will do for now. */
-		pidList=xrealloc( pidList, sizeof(pid_t));
-		pidList[0]=1;
 	} else {
-		pidList=xrealloc( pidList, sizeof(pid_t));
+		pidList=xrealloc( pidList, sizeof(long));
 		pidList[0]=-1;
 	}
 
@@ -124,11 +118,11 @@ extern pid_t* find_pid_by_name( char* pidName)
  *
  *  Returns a list of all matching PIDs
  */
-extern pid_t* find_pid_by_name( char* pidName)
+extern long* find_pid_by_name( char* pidName)
 {
 	DIR *dir;
 	struct dirent *next;
-	pid_t* pidList=NULL;
+	long* pidList=NULL;
 	int i=0;
 
 	dir = opendir("/proc");
@@ -162,21 +156,15 @@ extern pid_t* find_pid_by_name( char* pidName)
 		/* Buffer should contain a string like "Name:   binary_name" */
 		sscanf(buffer, "%*s %s", name);
 		if (strcmp(name, pidName) == 0) {
-			pidList=xrealloc( pidList, sizeof(pid_t) * (i+2));
+			pidList=xrealloc( pidList, sizeof(long) * (i+2));
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
 
-	if (pidList)
+	if (pidList) {
 		pidList[i]=0;
-	else if ( strcmp(pidName, "init")==0) {
-		/* If we found nothing and they were trying to kill "init", 
-		 * guess PID 1 and call it good...  Perhaps we should simply
-		 * exit if /proc isn't mounted, but this will do for now. */
-		pidList=xrealloc( pidList, sizeof(pid_t));
-		pidList[0]=1;
 	} else {
-		pidList=xrealloc( pidList, sizeof(pid_t));
+		pidList=xrealloc( pidList, sizeof(long));
 		pidList[0]=-1;
 	}
 	return pidList;
