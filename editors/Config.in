@@ -18,6 +18,12 @@ config CONFIG_FEATURE_AWK_MATH
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_PATCH
+	bool "patch"
+	default n
+	help
+	  Apply a unified diff formated patch.
+
 config CONFIG_SED
 	bool "sed"
 	default n

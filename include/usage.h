@@ -1696,6 +1696,13 @@
 	"\t-l\tLocks (disables) the specified user account.\n" \
 	"\t-u\tUnlocks (re-enables) the specified user account."
 
+#define patch_trivial_usage \
+	"[-p<num>]"
+#define patch_full_usage \
+	"[-p<num>]"
+#define patch_example_usage \
+	"$ patch -p1 <example.diff"
+
 #define pidfilehack_trivial_usage \
 	"[daemon.pid] [daemon]"
 #define pidfilehack_full_usage \

@@ -24,6 +24,7 @@ endif
 
 EDITOR-y:=
 EDITOR-$(CONFIG_AWK)	   += awk.o
+EDITOR-$(CONFIG_PATCH)	   += patch.o
 EDITOR-$(CONFIG_SED)       += sed.o
 EDITOR-$(CONFIG_VI)        += vi.o
 EDITOR_SRC:= $(EDITOR-y)

@@ -421,6 +421,9 @@
 #ifdef CONFIG_PASSWD
 	APPLET(passwd, passwd_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
 #endif
+#ifdef CONFIG_PATCH
+	APPLET(patch, patch_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_PIDFILEHACK
 	APPLET(pidfilehack, pidfilehack_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
