@@ -688,11 +688,11 @@
 	"Get or set the hostname or DNS domain name. If a hostname is given\n" \
 	"(or FILE with the -F parameter), the host name will be set.\n\n" \
 	"Options:\n" \
-	"\t-s\t\tShort\n" \
-	"\t-i\t\tAddresses for the hostname\n" \
-	"\t-d\t\tDNS domain name\n" \
-	"\t-f\t\tFully qualified domain name\n" \
-	"\t-F, --file FILE\tUse the contents of FILE to specify the hostname"
+	"\t-s\tShort\n" \
+	"\t-i\tAddresses for the hostname\n" \
+	"\t-d\tDNS domain name\n" \
+	"\t-f\tFully qualified domain name\n" \
+	"\t-F FILE\tUse the contents of FILE to specify the hostname"
 #define hostname_example_usage \
 	"$ hostname\n" \
 	"sage \n"
