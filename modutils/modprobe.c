@@ -23,7 +23,10 @@
 struct dep_t {
 	char *  m_module;
 	
-	int     m_depcnt;
+	int     m_isalias  : 1;
+	int     m_reserved : 15;
+	
+	int     m_depcnt   : 16;	
 	char ** m_deparr;
 	
 	struct dep_t * m_next;
@@ -70,7 +73,7 @@ static struct dep_t *build_dep ( void )
 		int l = xstrlen ( buffer );
 		char *p = 0;
 		
-		if ( buffer [l-1] == '\n' ) {
+		while ( isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
 			l--;
 		}
@@ -108,10 +111,11 @@ static struct dep_t *build_dep ( void )
 					current-> m_next = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
 					current = current-> m_next;
 				}
-				current-> m_module = mod;
-				current-> m_depcnt = 0;
-				current-> m_deparr = 0;
-				current-> m_next   = 0;
+				current-> m_module  = mod;
+				current-> m_isalias = 0;
+				current-> m_depcnt  = 0;
+				current-> m_deparr  = 0;
+				current-> m_next    = 0;
 						
 				//printf ( "%s:\n", mod );
 						
@@ -161,6 +165,78 @@ static struct dep_t *build_dep ( void )
 			continuation_line = 0;
 	}
 	fclose ( f );
+
+	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
+
+	f = fopen ( "/etc/modules.conf", "r" );
+	if ( !f )
+		f = fopen ( "/etc/conf.modules", "r" );
+	if ( f ) {
+		continuation_line = 0;
+	
+		while ( fgets ( buffer, sizeof( buffer), f )) {
+			int l;
+			char *p;
+			
+			p = strchr ( buffer, '#' );
+			if ( p )
+				*p = 0;
+				
+			l = xstrlen ( buffer );
+		
+			while ( l && isspace ( buffer [l-1] )) {
+				buffer [l-1] = 0;
+				l--;
+			}
+			
+			if ( l == 0 ) {
+				continuation_line = 0;
+				continue;
+			}
+			
+			if ( !continuation_line ) {		
+				if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
+					char *alias, *mod;
+
+					alias = buffer + 6;
+					
+					while ( isspace ( *alias ))
+						alias++;			
+					mod = alias;					
+					while ( !isspace ( *mod ))
+						mod++;
+					*mod = 0;
+					mod++;
+					while ( isspace ( *mod ))
+						mod++;
+											
+//					fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
+					
+					if ( !current ) {
+						first = current = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
+					}
+					else {
+						current-> m_next = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
+						current = current-> m_next;
+					}
+					current-> m_module  = xstrdup ( alias );
+					current-> m_isalias = 1;
+					
+					if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
+						current-> m_depcnt = 0;
+						current-> m_deparr = 0;
+					}
+					else {
+						current-> m_depcnt  = 1;
+						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
+						current-> m_deparr[0] = xstrdup ( mod );
+					}
+					current-> m_next    = 0;					
+				}				
+			}
+		}
+		fclose ( f );
+	}
 	
 	return first;
 }
@@ -202,6 +278,20 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	if (( mod [lm-2] == '.' ) && ( mod [lm-1] == 'o' ))
 		mod [lm-2] = 0;
 
+	// check dependencies
+	for ( dt = depend; dt; dt = dt-> m_next ) {
+		if ( strcmp ( dt-> m_module, mod ) == 0 ) 
+			break;
+	}
+	// resolve alias names
+	if ( dt && dt-> m_isalias ) {
+		if ( dt-> m_depcnt == 1 )
+			check_dep ( dt-> m_deparr [0], head, tail );
+		printf ( "Got alias: %s -> %s\n", mod, dt-> m_deparr [0] );
+			
+		return;
+	}
+	
 	// search for duplicates
 	for ( find = *head; find; find = find-> m_next ) {
 		if ( !strcmp ( mod, find-> m_module )) {
@@ -231,20 +321,17 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 		(*tail)-> m_next = find;
 	find-> m_prev   = *tail;
 	find-> m_next   = 0;
-	
+
 	if ( !*head )
 		*head = find;
 	*tail = find;
 		
-	// check dependencies
-	for ( dt = depend; dt; dt = dt-> m_next ) {
-		if ( !strcmp ( dt-> m_module, mod )) {
-			int i;
-			
-			for ( i = 0; i < dt-> m_depcnt; i++ )
-				check_dep ( dt-> m_deparr [i], head, tail );
-		}
-	}		
+	if ( dt ) {	
+		int i;
+		
+		for ( i = 0; i < dt-> m_depcnt; i++ )
+			check_dep ( dt-> m_deparr [i], head, tail );
+	}
 }
 
 
@@ -263,11 +350,11 @@ static int mod_insert ( char *mod, int argc, char **argv )
 		int l = 0;
 	
 		// append module args
-		l = xstrlen ( mod );
+		l = xstrlen ( head-> m_module );
 		for ( i = 0; i < argc; i++ ) 
 			l += ( xstrlen ( argv [i] ) + 1 );
 		
-		head-> m_module = xstrndup ( mod, l );
+		head-> m_module = realloc ( head-> m_module, l + 1 );
 		
 		for ( i = 0; i < argc; i++ ) {
 			strcat ( head-> m_module, " " );
