@@ -1,3 +1,5 @@
+#include <dirent.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -116,18 +118,34 @@ static int package_compare(const void *p1, const void *p2)
 		((package_t *)p2)->package);
 }
 
-static int remove_dpkgcidir()
+/*
+ * NOTE: this was handled by a "rm -rf" shell command
+ * Maybe theis behaviour should be integrated into the rm applet
+ * (i dont appreciate the rm applets recursive action fn)-bug1
+ */
+static int remove_dir(const char *dirname)
 {
-	char *rm_dpkgcidir = NULL;
+	struct dirent *fp;
+	DIR *dp = opendir(dirname);
+	while ((fp = readdir(dp)) != NULL) {
+		struct stat statbuf;
+		char *filename;
 
-	rm_dpkgcidir = (char *) xmalloc(strlen(dpkgcidir) + 8);
-	strcpy(rm_dpkgcidir, "rm -rf ");
-	strcat(rm_dpkgcidir, dpkgcidir);
+		filename = (char *) xcalloc(1, strlen(dirname) + strlen(fp->d_name) + 2);
+		strcpy(filename, dirname);
+		strcat(filename, fp->d_name);
+		lstat(filename, &statbuf);
 
-	if (SYSTEM(rm_dpkgcidir) != 0) {
-		perror("mkdir ");
-		return EXIT_FAILURE;
+		if ((strcmp(fp->d_name, ".") != 0) && (strcmp(fp->d_name, "..") != 0)) {
+			if (S_ISDIR(statbuf.st_mode)) {
+				remove_dir(strcat(filename, "/"));
+			}
+			else if (remove(filename) == -1) {
+				perror_msg(filename);
+			}
+		}
 	}
+	remove(dirname);
 	return EXIT_SUCCESS;
 }
 
@@ -145,7 +163,7 @@ static char **depends_split(const char *dependsstr)
 		goto end;
 	}
 
-	p = strdup(dependsstr);
+	p = xstrdup(dependsstr);
 	while (*p != 0 && *p != '\n') {
 		if (*p != ' ') {
 			if (*p == ',') {
@@ -363,25 +381,25 @@ static int control_read(FILE *file, package_t *p)
 	char *line;
 
 	while ((line = get_line_from_file(file)) != NULL) {
-		line[strlen(line)] = 0;
+		line[strlen(line) - 1] = '\0';
 
 		if (strlen(line) == 0) {
 			break;
 		} else
 			if (strstr(line, "Package: ") == line) {
-				p->package = strdup(line + 9);
+				p->package = xstrdup(line + 9);
 		} else
 			if (strstr(line, "Status: ") == line) {
 				p->status = status_parse(line + 8);
 		} else
 			if (strstr(line, "Depends: ") == line) {
-				p->depends = strdup(line + 9);
+				p->depends = xstrdup(line + 9);
 		} else
 			if (strstr(line, "Provides: ") == line) {
-				p->provides = strdup(line + 10);
+				p->provides = xstrdup(line + 10);
 		} else
 			if (strstr(line, "Description: ") == line) {
-				p->description = strdup(line + 13);
+				p->description = xstrdup(line + 13);
 		/* This is specific to the Debian Installer. Ifdef? */
 		} else
 			if (strstr(line, "installer-menu-item: ") == line) {
@@ -400,7 +418,7 @@ static void *status_read(void)
 	package_t *m = 0, *p = 0, *t = 0;
 
 	if ((f = fopen(statusfile, "r")) == NULL) {
-		perror(statusfile);
+		perror_msg(statusfile);
 		return 0;
 	}
 
@@ -409,8 +427,7 @@ static void *status_read(void)
 	}
 
 	while (!feof(f)) {
-		m = (package_t *)xmalloc(sizeof(package_t));
-		memset(m, 0, sizeof(package_t));
+		m = (package_t *)xcalloc(1, sizeof(package_t));
 		control_read(f, m);
 		if (m->package) {
 			/*
@@ -426,9 +443,8 @@ static void *status_read(void)
 				 * of a pseudo package into the status
 				 * binary-tree.
 				 */
-				p = (package_t *)xmalloc(sizeof(package_t));
-				memset(p, 0, sizeof(package_t));
-				p->package = strdup(m->provides);
+				p = (package_t *)xcalloc(1, sizeof(package_t));
+				p->package = xstrdup(m->provides);
 
 				t = *(package_t **)tsearch(p, &status, package_compare);
 				if (t != p) {
@@ -459,57 +475,52 @@ static void *status_read(void)
 static int status_merge(void *status, package_t *pkgs)
 {
 	FILE *fin, *fout;
-	char *line;
+	char *line = NULL;
 	package_t *pkg = 0, *statpkg = 0;
 	package_t locpkg;
 	int r = 0;
 
-	if ((fin = fopen(statusfile, "r")) == NULL) {
-		perror(statusfile);
-		return 0;
-	}
-	if ((fout = fopen(new_statusfile, "w")) == NULL) {
-		perror(new_statusfile);
+	if ((fout = wfopen(new_statusfile, "w")) == NULL) {
 		return 0;
 	}
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Updating database...)\n");
 	}
+	if ((fin = wfopen(statusfile, "r")) != NULL) {
+		while (((line = get_line_from_file(fin)) != NULL) && !feof(fin)) { 
+			line[strlen(line) - 1] = '\0'; /* trim newline */
+			/* If we see a package header, find out if it's a package
+			 * that we have processed. if so, we skip that block for
+			 * now (write it at the end).
+			 *
+			 * we also look at packages in the status cache and update
+			 * their status fields
+		 	 */
+			if (strstr(line, "Package: ") == line) {
+				for (pkg = pkgs; pkg != 0 && strcmp(line + 9,
+						pkg->package) != 0; pkg = pkg->next) ;
 
-	while (((line = get_line_from_file(fin)) != NULL) && !feof(fin)) { 
-		line[strlen(line)] = 0; /* trim newline */
-		/* If we see a package header, find out if it's a package
-		 * that we have processed. if so, we skip that block for
-		 * now (write it at the end).
-		 *
-		 * we also look at packages in the status cache and update
-		 * their status fields
-		 */
-		if (strstr(line, "Package: ") == line) {
-			for (pkg = pkgs; pkg != 0 && strncmp(line + 9,
-					pkg->package, strlen(line) - 9) != 0;
-			     pkg = pkg->next) ;
-
-			locpkg.package = line + 9;
-			statpkg = tfind(&locpkg, &status, package_compare);
+				locpkg.package = line + 9;
+				statpkg = tfind(&locpkg, &status, package_compare);
 			
-			/* note: statpkg should be non-zero, unless the status
-			 * file was changed while we are processing (no locking
-			 * is currently done...
-			 */
-			if (statpkg != 0) {
-				statpkg = *(package_t **)statpkg;
+				/* note: statpkg should be non-zero, unless the status
+				 * file was changed while we are processing (no locking
+				 * is currently done...
+				 */
+				if (statpkg != 0) {
+					statpkg = *(package_t **)statpkg;
+				}
 			}
+			if (pkg != 0) {
+				continue;
+			}
+			if (strstr(line, "Status: ") == line && statpkg != 0) {
+				snprintf(line, sizeof(line), "Status: %s",
+					status_print(statpkg->status));
+			}
+			fputs(line, fout);
+			fputc('\n', fout);
 		}
-		if (pkg != 0) {
-			continue;
-		}
-		if (strstr(line, "Status: ") == line && statpkg != 0) {
-			snprintf(line, sizeof(line), "Status: %s",
-				status_print(statpkg->status));
-		}
-		fputs(line, fout);
-		fputc('\n', fout);
 	}
 	free(line);
 
@@ -576,13 +587,11 @@ static int dpkg_dounpack(package_t *pkg)
 {
 	int r = 0, i;
 	char *cwd;
-	FILE *outfp;
 	char *src_file = NULL;
 	char *dst_file = NULL;
-	char *lst_file = NULL;
-	char *adminscripts[] = { "/prerm", "/postrm", "/preinst", "/postinst",
-			"/conffiles", "/md5sums", "/shlibs", "/templates" };
-	char buf[1024], buf2[1024];
+//	char *lst_file = NULL;
+	char *adminscripts[] = { "prerm", "postrm", "preinst", "postinst",
+			"conffiles", "md5sums", "shlibs", "templates" };
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
@@ -592,35 +601,45 @@ static int dpkg_dounpack(package_t *pkg)
 
 	/* Installs the package scripts into the info directory */
 	for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
+		struct stat src_stat_buf;
+		int src_fd = 0, dst_fd = 0;
+
 		/* The full path of the current location of the admin file */
 		src_file = xrealloc(src_file, strlen(dpkgcidir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		strcpy(src_file, dpkgcidir);
-		strcat(src_file, pkg->package);
-		strcat(src_file, adminscripts[i]);
+		sprintf(src_file, "%s%s/%s", dpkgcidir, pkg->package, adminscripts[i]);
 
 		/* the full path of where we want the file to be copied to */
 		dst_file = xrealloc(dst_file, strlen(infodir) + strlen(pkg->package) + strlen(adminscripts[i]) + 1);
-		strcpy(dst_file, infodir);
-		strcat(dst_file, pkg->package);
-		strcat(dst_file, adminscripts[i]);
+		sprintf(dst_file, "%s%s.%s", infodir, pkg->package, adminscripts[i]);
 
-		/* copy admin file to permanent home */
-		if (copy_file(src_file, dst_file, TRUE, FALSE, FALSE) < 0) {
-			error_msg_and_die("Cannot copy %s to %s ", buf, buf2);
+		/*
+		 * copy admin file to permanent home
+		 * NOTE: Maybe merge this behaviour into libb/copy_file.c
+		 */
+		if (lstat(src_file, &src_stat_buf) == 0) {
+			if ((src_fd = open(src_file, O_RDONLY)) != -1) {
+			 	if ((dst_fd = open(dst_file, O_WRONLY | O_CREAT, 0644)) == -1) {
+					perror_msg("Opening %s", dst_file);
+				}
+				copy_file_chunk(src_fd, dst_fd, src_stat_buf.st_size);
+				close(src_fd);
+				close(dst_fd);
+			} else {
+				error_msg("couldnt open [%s]\n", src_file);
+			}
 		}
-
-		/* create the list file */
-		lst_file = (char *) xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
-		strcpy(lst_file, infodir);
-		strcat(lst_file, pkg->package);
-		strcat(lst_file, ".list");
-		deb_extract(dpkg_deb_list, NULL, pkg->file);
-
-		printf("done\n");
-		getchar();
-
-		fclose(outfp);
 	}
+
+	/* 
+	 * create the list file 
+	 * FIXME: currently this dumps the lst to stdout instead of a file
+	 */
+/*	lst_file = (char *) xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
+	strcpy(lst_file, infodir);
+	strcat(lst_file, pkg->package);
+	strcat(lst_file, ".list");
+	deb_extract(dpkg_deb_list, NULL, pkg->file);
+*/
 
 	pkg->status &= status_wantmask;
 	pkg->status |= status_wantinstall;
@@ -647,7 +666,7 @@ static int dpkg_unpackcontrol(package_t *pkg)
 	int length;
 
 	/* clean the temp directory (dpkgcidir) be recreating it */
-	remove_dpkgcidir();
+	remove_dir(dpkgcidir);
 	if (mkdir(dpkgcidir, S_IRWXU) != 0) {
 		perror("mkdir");
 		return EXIT_FAILURE;
@@ -664,13 +683,12 @@ static int dpkg_unpackcontrol(package_t *pkg)
 	}
 	/* now remove trailing version numbers etc */
 	length = strcspn(tmp_name, "_.");
-	pkg->package = (char *) xmalloc(length + 1);
+	pkg->package = (char *) xcalloc(1, length + 1);
 	/* store the package name */
 	strncpy(pkg->package, tmp_name, length);
 
 	/* work out the full extraction path */
-	tmp_name = (char *) xmalloc(strlen(dpkgcidir) + strlen(pkg->package) + 9);
-	memset(tmp_name, 0, strlen(dpkgcidir) + strlen(pkg->package) + 9);
+	tmp_name = (char *) xcalloc(1, strlen(dpkgcidir) + strlen(pkg->package) + 9);
 	strcpy(tmp_name, dpkgcidir);
 	strcat(tmp_name, pkg->package);
 
@@ -679,7 +697,7 @@ static int dpkg_unpackcontrol(package_t *pkg)
 
 	/* parse the extracted control file */
 	strcat(tmp_name, "/control");
-	if ((file = fopen(tmp_name, "r")) == NULL) {
+	if ((file = wfopen(tmp_name, "r")) == NULL) {
 		return EXIT_FAILURE;
 	}
 	if (control_read(file, pkg) == EXIT_FAILURE) {
@@ -703,7 +721,7 @@ static int dpkg_unpack(package_t *pkgs, void *status)
 		}
 	}
 	status_merge(status, pkgs);
-	remove_dpkgcidir();
+	remove_dir(dpkgcidir);
 
 	return r;
 }
@@ -740,8 +758,7 @@ static int dpkg_install(package_t *pkgs, void *status)
 	/* Stage 1: parse all the control information */
 	for (p = pkgs; p != 0; p = p->next) {
 		if (dpkg_unpackcontrol(p) == EXIT_FAILURE) {
-			perror(p->file);
-			return EXIT_FAILURE;
+			return(EXIT_FAILURE);
 		}
 	}
 
@@ -765,21 +782,24 @@ static int dpkg_install(package_t *pkgs, void *status)
 
 		DPRINTF("Installing %s\n", p->package);
 		if (dpkg_dounpack(p) != 0) {
-			perror(p->file);
+			perror_msg(p->file);
 		}
 		if (dpkg_doconfigure(p) != 0) {
-			perror(p->file);
+			perror_msg(p->file);
 		}
 	}
-	
+
 	if (ordered != 0) {
 		status_merge(status, pkgs);
 	}
-	remove_dpkgcidir();
+	remove_dir(dpkgcidir);
 
 	return 0;
 }
 
+/*
+ * Not implemented yet
+ *
 static int dpkg_remove(package_t *pkgs, void *status)
 {
 	package_t *p;
@@ -791,55 +811,61 @@ static int dpkg_remove(package_t *pkgs, void *status)
 
 	return 0;
 }
+*/
 
 extern int dpkg_main(int argc, char **argv)
 {
-	char opt = 0;
-	char *s;
+	const int arg_install = 1;
+	const int arg_unpack = 2;
+	const int arg_configure = 4;
+
 	package_t *p, *packages = NULL;
-	char *cwd = getcwd(0, 0);
 	void *status = NULL;
+	char opt = 0;
+	int optflag = 0;
 
-	while (*++argv) {
-		if (**argv == '-') {
-			/* Nasty little hack to "parse" long options. */
-			s = *argv;
-			while (*s == '-') {
-				s++;
-			}
-			opt=s[0];
-		} else {
-			p = (package_t *)xmalloc(sizeof(package_t));
-			memset(p, 0, sizeof(package_t));
-
-			if (**argv == '/') {
-				p->file = *argv;
-			} else
-				if (opt != 'c') {
-					p->file = xmalloc(strlen(cwd) + strlen(*argv) + 2);
-					sprintf(p->file, "%s/%s", cwd, *argv);
-			} else {
-				p->package = strdup(*argv);
-			}
-
-			p->next = packages;
-			packages = p;
-		}		
+	while ((opt = getopt(argc, argv, "iruc")) != -1) {
+		switch (opt) {
+			case 'i':
+				optflag |= arg_install;
+				break;
+			case 'u':
+				optflag |= arg_unpack;
+				break;
+			case 'c':
+				optflag |= arg_configure;
+				break;
+			default:
+				show_usage();
+		}
 	}
+
+	while (optind < argc) {
+		p = (package_t *) xcalloc(1, sizeof(package_t));
+		if (optflag & arg_configure) {
+			p->package = xstrdup(argv[optind]);
+		} else {
+			p->file = xstrdup(argv[optind]);
+		}
+		p->next = packages;
+		packages = p;
+
+		optind++;
+	}
+
+	create_path(dpkgcidir, 0755);
+	create_path(infodir, 0755);
 
 	status = status_read();
 
-	switch (opt) {
-		case 'i':
-			return dpkg_install(packages, status);
-		case 'r':
-			return dpkg_remove(packages, status);
-		case 'u':
-			return dpkg_unpack(packages, status);
-		case 'c':
-			return dpkg_configure(packages, status);
-		default :
-			show_usage();
-			return EXIT_FAILURE;
+	if (optflag & arg_install) {
+		return dpkg_install(packages, status);
 	}
+	else if (optflag & arg_unpack) {
+		return dpkg_unpack(packages, status);
+	}
+	else if (optflag & arg_configure) {
+		return dpkg_configure(packages, status);
+	}
+	return(EXIT_FAILURE);
 }
