@@ -41,13 +41,14 @@ Supported architectures:
 
 Supported libcs:
 
-   glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, Linux-libc5, uClibc.  People
+   glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, glibc-2.3.x, uClibc.  People
    are looking at newlib and diet-libc, but consider them unsupported,
-   untested, or worse.
+   untested, or worse.  Linux-libc5 is no longer supported -- you
+   should probably use uClibc instead if you want a small C library.
 
 Supported kernels:
 
-   Full functionality requires Linux 2.0.x or better.  A large fraction of the
+   Full functionality requires Linux 2.2.x or better.  A large fraction of the
    code should run on just about anything.  While the current code is fairly
    Linux specific, it should be fairly easy to port the majority of the code
    to, say, FreeBSD or Solaris, or MacOsX, or even Windows (if you are into that
