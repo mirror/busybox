@@ -46,10 +46,7 @@
 #include "cmdedit.h"
 #endif
 
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
-
+#define MAX_LINE	256	/* size of input buffer for `read' builtin */
 #define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
@@ -147,7 +144,7 @@ static struct builtInCommand bltins_forking[] = {
 };
 
 static char *prompt = "# ";
-static char *cwd = NULL;
+static char *cwd;
 static char *local_pending_command = NULL;
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
@@ -175,7 +172,7 @@ static int builtin_cd(struct job *cmd, struct jobSet *junk)
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return FALSE;
 	}
-	getcwd(cwd, sizeof(cwd));
+	getcwd(cwd, sizeof(char)*MAX_LINE);
 
 	return TRUE;
 }
@@ -289,7 +286,7 @@ static int builtin_jobs(struct job *dummy, struct jobSet *jobList)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct job *dummy, struct jobSet *junk)
 {
-	getcwd(cwd, sizeof(cwd));
+	getcwd(cwd, sizeof(char)*MAX_LINE);
 	fprintf(stdout, "%s\n", cwd);
 	return TRUE;
 }
@@ -780,13 +777,8 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 						return 1;
 					}
 
-					/* Make a copy of any stuff left over in the command 
-					 * line after the second backtick */
-					charptr2 = xmalloc(strlen(ptr)+1);
-					memcpy(charptr2, ptr+1, strlen(ptr));
-
 					/* Make some space to hold just the backticked command */
-					charptr1 = xmalloc(1+ptr-src);
+					charptr1 = charptr2 = xmalloc(1+ptr-src);
 					snprintf(charptr1, 1+ptr-src, src);
 					newJob = xmalloc(sizeof(struct job));
 					/* Now parse and run the backticked command */
@@ -796,7 +788,14 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 						runCommand(newJob, &njobList, 0, pipefd);
 					}
 					checkJobs(jobList);
-					free(charptr1);
+					freeJob(newJob);
+					free(charptr2);
+					
+					/* Make a copy of any stuff left over in the command 
+					 * line after the second backtick */
+					charptr2 = xmalloc(strlen(ptr)+1);
+					memcpy(charptr2, ptr+1, strlen(ptr));
+
 
 					/* Copy the output from the backtick-ed command into the
 					 * command line, making extra room as needed  */
@@ -819,13 +818,12 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					/* Now paste into the *commandPtr all the stuff 
 					 * leftover after the second backtick */
 					memcpy(src, charptr2, strlen(charptr2));
-					fprintf(stderr,"*commandPtr='%s'\n", *commandPtr);
 					free(charptr2);
-
 
 					/* Now recursively call parseCommand to deal with the new
 					 * and improved version of the command line with the backtick
 					 * results expanded in place... */
+					freeJob(job);
 					return(parseCommand(commandPtr, job, jobList, isBg));
 				}
 				break;
@@ -863,24 +861,29 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 	return 0;
 }
 
-
 static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2])
 {
 	struct job *job;
-	int nextin=0, nextout, stdoutfd=fileno(stdout);
 	int i;
+	int nextin, nextout;
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	const struct BB_applet *a = applets;
 #endif
 
+
+	nextin = 0, nextout = 1;
 	for (i = 0; i < newJob->numProgs; i++) {
 		if ((i + 1) < newJob->numProgs) {
 			pipe(pipefds);
 			nextout = pipefds[1];
 		} else {
-			nextout = stdoutfd;
+			if (outPipe[1]!=-1) {
+				nextout = outPipe[1];
+			} else {
+				nextout = 1;
+			}
 		}
 
 		/* Check if the command matches any non-forking builtins */
@@ -895,15 +898,18 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 			if (outPipe[1]!=-1) {
 				close(outPipe[0]);
-				nextout = stdoutfd = outPipe[1];
+			}
+			if (nextin != 0) {
+				dup2(nextin, 0);
+				close(nextin);
+			}
+
+			if (nextout != 1) {
 				dup2(nextout, 1);
 				dup2(nextout, 2);
 				close(nextout);
 			}
 
-			//dup2(nextin, 0);
-			//close(nextin);
-			
 			/* explicit redirections override pipes */
 			setupRedirections(newJob->progs + i);
 
@@ -915,8 +921,8 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 			/* Check if the command matches any busybox internal commands here */
-			/* TODO: Add matching on commands with paths appended (i.e. 'cat' 
-			 * currently works, but '/bin/cat' doesn't ) */
+			/* TODO: Add matching when paths are appended (i.e. 'cat' currently
+			 * works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
 				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) {
 					int argc;
@@ -929,20 +935,19 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 #endif
 
 			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
-			fatalError("%s: %s\n", newJob->progs[i].argv[0],
+			fatalError("sh: %s: %s\n", newJob->progs[i].argv[0],
 					   strerror(errno));
 		}
-		if (outPipe[1]!=-1) { 
+		if (outPipe[1]!=-1) {
 			close(outPipe[1]);
 		}
 
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
 		setpgid(newJob->progs[i].pid, newJob->progs[0].pid);
-
 		if (nextin != 0)
 			close(nextin);
-		if (nextout != stdoutfd)
+		if (nextout != 1)
 			close(nextout);
 
 		/* If there isn't another process, nextin is garbage 
@@ -960,10 +965,10 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 	/* add the job to the list of running jobs */
 	if (!jobList->head) {
-		job = jobList->head = xmalloc(sizeof(*job));
+		job = jobList->head = malloc(sizeof(*job));
 	} else {
 		for (job = jobList->head; job->next; job = job->next);
-		job->next = xmalloc(sizeof(*job));
+		job->next = malloc(sizeof(*job));
 		job = job->next;
 	}
 
@@ -1066,9 +1071,9 @@ static int busy_loop(FILE * input)
 				int pipefds[2] = {-1,-1};
 				runCommand(&newJob, &jobList, inBg, pipefds);
 			} else {
-				nextCommand=NULL;
 				free(command);
 				command = (char *) calloc(BUFSIZ, sizeof(char));
+				nextCommand = NULL;
 			}
 		} else {
 			/* a job is running in the foreground; wait for it */
@@ -1123,16 +1128,14 @@ static int busy_loop(FILE * input)
 }
 
 
+
 int shell_main(int argc, char **argv)
 {
 	FILE *input = stdin;
 
-	/* initialize the cwd */
-	cwd = (char *) calloc(BUFSIZ, sizeof(char));
-	if (cwd == 0) {
-		fatalError("out of memory\n");
-	}
-	getcwd(cwd, sizeof(char)*BUFSIZ);
+	/* initialize the cwd -- this is never freed...*/
+	cwd=(char*)xmalloc(sizeof(char)*MAX_LINE+1);
+	getcwd(cwd, sizeof(char)*MAX_LINE);
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 	cmdedit_init();
@@ -1144,8 +1147,9 @@ int shell_main(int argc, char **argv)
 	//      builtin_source("/etc/profile");
 	//}
 
+
 	if (argc < 2) {
-		fprintf(stdout, "\n\n%s Built-in shell\n", full_version);
+		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else {
 		if (argv[1][0]=='-' && argv[1][1]=='c') {
