@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <regex.h>
 #include <termios.h>
 
 #include <netdb.h>
@@ -468,5 +469,5 @@ extern void print_login_prompt(void);
 extern void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
 extern void get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
-
+extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 #endif /* __LIBCONFIG_H__ */

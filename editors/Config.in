@@ -33,28 +33,6 @@ config CONFIG_SED
 	  sed is used to perform text transformations on a file
 	  or input from a pipeline.
 
-config CONFIG_FEATURE_SED_EMBEDED_NEWLINE
-	bool " Embeded newline (EXPERIMENTAL)"
-	default n
-	depends on CONFIG_SED
-	help
-	  This is a hack to allow matching of '\n' in regular expressions.
-	  It works by translating '\n' to "\n" and back.
-	  It may introduce unexpected results if you use "\n" in your text.
-
-config CONFIG_FEATURE_SED_GNU_COMPATABILITY
-	bool " Behave consistent with GNU sed"
-	default y
-	depends on CONFIG_SED
-	help
-	  Where GNU sed doesnt follow the posix standard, do as GNU sed does.
-	  Current difference are in
-	    - N command with odd number of lines (see GNU sed info page)
-	    - Blanks before substitution flags eg.
-	        GNU sed interprets 's/a/b/ g' as 's/a/b/g'
-		Standard says 's/a/b/ g' should be 's/a/b/;g'
-	    - GNU sed allows blanks between a '!' and the function.
-
 config CONFIG_VI
 	bool "vi"
 	default n
