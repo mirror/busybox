@@ -15,5 +15,7 @@ bool 'gunzip'	    CONFIG_GUNZIP
 bool 'gzip'	    CONFIG_GZIP
 bool 'rpm2cpio'     CONFIG_RPM2CPIO
 bool 'tar'	    CONFIG_TAR
+if [ "$CONFIG_TAR" = "y" ] ; then
+	bool ' exclude support'	CONFIG_FEATURE_TAR_EXCLUDE
+fi
 endmenu
-
