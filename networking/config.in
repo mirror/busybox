@@ -8,14 +8,41 @@ comment 'Networking Utilities'
 
 bool 'hostname'	    CONFIG_HOSTNAME
 bool 'ifconfig'	    CONFIG_IFCONFIG
+if [ "$CONFIG_IFCONFIG" = "y" ]; then
+    bool '  Enable status reporting output (+7k)'					CONFIG_FEATURE_IFCONFIG_STATUS  
+    bool '  Enable slip-specific options "keepalive" and "outfill"'	CONFIG_FEATURE_IFCONFIG_SLIP
+    bool '  Enable options "mem_start", "io_addr", and "irq"'		CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+    bool '  Enable option "hw" (ether only)'						CONFIG_FEATURE_IFCONFIG_HW 
+    bool '  Set the broadcast automatically'					CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+fi
 bool 'nc'	    CONFIG_NC
 bool 'nslookup'	    CONFIG_NSLOOKUP
 bool 'ping'	    CONFIG_PING
+if [ "$CONFIG_PING" = "y" ]; then
+    bool '  Enable fancy ping output'		CONFIG_FEATURE_FANCY_PING
+fi
 bool 'route'	    CONFIG_ROUTE
 bool 'telnet'	    CONFIG_TELNET
+if [ "$CONFIG_TELNET" = "y" ]; then
+    bool '  Pass TERM type to remote host'		CONFIG_FEATURE_TELNET_TTYPE
+fi
 bool 'tftp'	    CONFIG_TFTP
+if [ "$CONFIG_TFTP" = "y" ]; then
+    bool '  Enable "get" command'			CONFIG_FEATURE_TFTP_GET
+    bool '  Enable "put" command'			CONFIG_FEATURE_TFTP_PUT
+    bool '  Enable "blocksize" option'		CONFIG_FEATURE_TFTP_BLOCKSIZE
+    bool '  Enable debug'					CONFIG_FEATURE_TFTP_DEBUG
+fi
 bool 'traceroute'   CONFIG_TRACEROUTE
+if [ "$CONFIG_TRACEROUTE" = "y" ]; then
+    bool '  Enable verbose output'			CONFIG_FEATURE_TRACEROUTE_VERBOSE
+    bool '  Enable SO_DEBUG option'	CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
+fi
 bool 'wget'	    CONFIG_WGET
+if [ "$CONFIG_WGET" = "y" ]; then
+    bool '  Enable a nifty process meter (+2k)'	CONFIG_FEATURE_WGET_STATUSBAR
+	bool '  Enable HTTP authentication'			CONFIG_FEATURE_WGET_AUTHENTICATION
+fi
 
 endmenu
 
