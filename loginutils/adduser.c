@@ -110,18 +110,11 @@ static int passwd_study(const char *filename, struct passwd *p)
 
 static void addgroup_wrapper(const char *login, gid_t gid)
 {
-	int argc = 3;
-	const char *argv0_save;
-	char group_id[8];
-	char group_name[32];
-	char *argv[] = { group_name, "-g", group_id };
+	char *cmd = xmalloc(strlen(login)+32);
 
-	argv0_save = applet_name;
-	applet_name = "addgroup";
-	safe_strncpy(group_name, login, 32);
-	sprintf(group_id, "%d", gid);
-	addgroup_main(argc, argv);
-	applet_name = argv0_save;
+	sprintf(cmd, "addgroup -g %d %s", gid, login);
+	system(cmd);
+	free(cmd);
 }
 
 static void passwd_wrapper(const char *login)
@@ -235,8 +228,7 @@ static inline uid_t i_am_not_root(void)
  * ________________________________________________________________________ */
 int adduser_main(int argc, char **argv)
 {
-	int i = 0;
-	char opt;
+	int opt;
 	const char *login;
 	const char *gecos;
 	const char *home = NULL;
@@ -255,13 +247,13 @@ int adduser_main(int argc, char **argv)
 	while ((opt = getopt (argc, argv, "h:g:s:")) != -1)
 		switch (opt) {
 			case 'h':
-				home = argv[++i];
+				home = optarg;
 				break;
 			case 'g':
-				gecos = argv[++i];
+				gecos = optarg;
 				break;
 			case 's':
-				shell = argv[++i];
+				shell = optarg;
 				break;
 			default:
 				show_usage ();
@@ -301,4 +293,4 @@ int adduser_main(int argc, char **argv)
 	return adduser(passwd_file, &pw);
 }
 
-/* $Id: adduser.c,v 1.2 2002/06/23 04:24:24 andersen Exp $ */
+/* $Id: adduser.c,v 1.3 2002/07/16 23:50:05 sandman Exp $ */
