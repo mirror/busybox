@@ -358,6 +358,7 @@ $(LIBBB_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile libbb/libbb.h
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -c $< -o $*.o
 
 $(LIBBB_MOBJ): $(LIBBB_MSRC)
+	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
 libpwd.a: $(PWD_OBJS)
