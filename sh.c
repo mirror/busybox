@@ -25,6 +25,12 @@
  *
  */
 
+/* The parsing engine of this program is officially at a dead-end.
+ * Future work in that direction should move to the work posted
+ * at http://doolittle.faludi.com/~larry/parser.html .
+ * A start on the integration of that work with the rest of sh.c
+ * is at http://codepoet.org/sh.c .
+ */
 //
 //This works pretty well now, and is now on by default.
 #define BB_FEATURE_SH_ENVIRONMENT
@@ -117,6 +123,11 @@ struct built_in_command {
 	int (*function) (struct child_prog *);	/* function ptr */
 };
 
+struct close_me {
+	int fd;
+	struct close_me *next;
+};
+
 /* function prototypes for builtins */
 static int builtin_cd(struct child_prog *cmd);
 static int builtin_env(struct child_prog *dummy);
@@ -141,6 +152,8 @@ static int run_command_predicate(char *cmd);
 
 
 /* function prototypes for shell stuff */
+static void mark_open(int fd);
+static void mark_closed(int fd);
 static void checkjobs(struct jobset *job_list);
 static int get_command(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
@@ -194,6 +207,7 @@ static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
+static struct close_me *close_me_head = NULL;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 static int last_bg_pid=-1;
 static int last_return_code=-1;
@@ -545,6 +559,7 @@ static int builtin_source(struct child_prog *child)
 {
 	FILE *input;
 	int status;
+	int fd;
 
 	if (child->argv[1] == NULL)
 		return EXIT_FAILURE;
@@ -555,9 +570,12 @@ static int builtin_source(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 
+	fd=fileno(input);
+	mark_open(fd);
 	/* Now run the file */
 	status = busy_loop(input);
 	fclose(input);
+	mark_closed(fd);
 	return (status);
 }
 
@@ -591,6 +609,34 @@ static int run_command_predicate(char *cmd)
 	return( busy_loop(NULL));
 }
 #endif
+
+static void mark_open(int fd)
+{
+	struct close_me *new = xmalloc(sizeof(struct close_me));
+	new->fd = fd;
+	new->next = close_me_head;
+	close_me_head = new;
+}
+
+static void mark_closed(int fd)
+{
+	struct close_me *tmp;
+	if (close_me_head == NULL || close_me_head->fd != fd)
+		error_msg_and_die("corrupt close_me");
+	tmp = close_me_head;
+	close_me_head = close_me_head->next;
+	free(tmp);
+}
+
+static void close_all()
+{
+	struct close_me *c;
+	for (c=close_me_head; c; c=c->next) {
+		close(c->fd);
+	}
+	close_me_head = NULL;
+}
+
 
 /* free up all memory from a job */
 static void free_job(struct job *cmd)
@@ -767,7 +813,7 @@ static char* setup_prompt_string(int state)
 static int get_command(FILE * source, char *command)
 {
 	char *prompt_str;
-	
+
 	if (source == NULL) {
 		if (local_pending_command) {
 			/* a command specified (-c option): return it & mark it done */
@@ -781,7 +827,7 @@ static int get_command(FILE * source, char *command)
 
 	if (source == stdin) {
 		prompt_str = setup_prompt_string(shell_context);
-	
+
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		/*
 		** enable command line editing only while a command line
@@ -791,11 +837,12 @@ static int get_command(FILE * source, char *command)
 		*/
 		cmdedit_init();
 		cmdedit_read_input(prompt_str, command);
-		free( prompt_str);
+		free(prompt_str);
 		cmdedit_terminate();
 		return 0;
 #else
-		fprintf(stdout, "%s", prompt_str);
+		fputs(prompt_str, stdout);
+		free(prompt_str);
 #endif
 	}
 
@@ -1151,6 +1198,9 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 #ifdef BB_FEATURE_SH_BACKTICKS
 			case '`':
 				/* Exec a backtick-ed command */
+				/* Besides any previous brokenness, I have not
+				 * updated backtick handling for close_me support.
+				 * I don't know if it needs it or not.  -- LRD */
 				{
 					char* charptr1=NULL, *charptr2;
 					char* ptr=NULL;
@@ -1359,8 +1409,7 @@ static int pseudo_exec(struct child_prog *child)
 #endif
 
 	execvp(child->argv[0], child->argv);
-	error_msg_and_die("%s: %s\n", child->argv[0],
-			strerror(errno));
+	perror_msg_and_die("%s", child->argv[0]);
 }
 
 static void insert_job(struct job *newjob, int inbg)
@@ -1464,6 +1513,8 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		if (!(child->pid = fork())) {
 			signal(SIGTTOU, SIG_DFL);
 
+			close_all();
+
 			if (outpipe[1]!=-1) {
 				close(outpipe[0]);
 			}
@@ -1559,7 +1610,8 @@ static int busy_loop(FILE * input)
 			while (!job_list.fg->progs[i].pid ||
 				   job_list.fg->progs[i].is_stopped == 1) i++;
 
-			waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED);
+			if (waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED)<0)
+				perror_msg_and_die("waitpid(%d)",job_list.fg->progs[i].pid);
 
 			if (WIFEXITED(status) || WIFSIGNALED(status)) {
 				/* the child exited */
@@ -1649,15 +1701,18 @@ int shell_main(int argc_l, char **argv_l)
 #endif
 
 	if (argv[0] && argv[0][0] == '-') {
-		  FILE *input;
-		  input = fopen("/etc/profile", "r");
-		  if (!input) {
-			  fprintf(stdout, "Couldn't open file '/etc/profile'\n");
-		  } else {
-			  /* Now run the file */
-			  busy_loop(input);
-			  fclose(input);
-		  }
+		FILE *prof_input;
+		prof_input = fopen("/etc/profile", "r");
+		if (!prof_input) {
+			fprintf(stdout, "Couldn't open file '/etc/profile'\n");
+		} else {
+			int tmp_fd = fileno(prof_input);
+			mark_open(tmp_fd);	
+			/* Now run the file */
+			busy_loop(prof_input);
+			fclose(prof_input);
+			mark_closed(tmp_fd);
+		}
 	}
 
 	while ((opt = getopt(argc_l, argv_l, "cxi")) > 0) {
@@ -1701,6 +1756,7 @@ int shell_main(int argc_l, char **argv_l)
 	} else if (local_pending_command==NULL) {
 		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = xfopen(argv[optind], "r");
+		mark_open(fileno(input));  /* be lazy, never mark this closed */
 	}
 
 	/* initialize the cwd -- this is never freed...*/
