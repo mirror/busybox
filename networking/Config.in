@@ -515,13 +515,6 @@ config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	  Add some verbosity to traceroute.  This includes amongst other things
 	  hostnames and ICMP response types.
 
-config CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
-	bool "  Enable SO_DEBUG option"
-	default n
-	depends on CONFIG_TRACEROUTE
-	help
-	  Please submit a patch to add help text for this item.
-
 config CONFIG_VCONFIG
 	bool "vconfig"
 	default n
