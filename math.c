@@ -137,7 +137,7 @@ stack_machine(const char * argument)
 }
 
 int
-math_main(struct FileInfo * i, int argc, char * * argv)
+math_main(int argc, char * * argv)
 {
 	while ( argc >= 2 ) {
 		stack_machine(argv[1]);

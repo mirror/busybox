@@ -29,7 +29,7 @@ static int uid=-1;
 static int gid=0;
 static int whichApp;
 static char* invocationName=NULL;
-static mode_t mode=7777;
+static mode_t mode=0644;
 
 
 #define CHGRP_APP   1
@@ -59,6 +59,7 @@ static int fileAction(const char *fileName)
 		if (chown(fileName, ((whichApp==CHOWN_APP)? uid: statBuf.st_uid), gid) < 0)
 		    return( TRUE);
 	    case CHMOD_APP:
+		fprintf(stderr, "%s, %d\n", fileName, mode);
 		if (chmod(fileName, mode))
 		    return( TRUE);
 	}
@@ -67,118 +68,13 @@ static int fileAction(const char *fileName)
     return( FALSE);
 }
 
-/* [ugoa]{+|-|=}[rwxstl] */
-int parse_mode( const char* s, mode_t* or, mode_t* and, int* group_execute) 
-{
-	mode_t	mode = 0;
-	mode_t	groups = S_ISVTX;
-	char	type;
-	char	c;
-
-	do {
-		for ( ; ; ) {
-			switch ( c = *s++ ) {
-			case '\0':
-				return (FALSE);
-			case 'u':
-				groups |= S_ISUID|S_IRWXU;
-				continue;
-			case 'g':
-				groups |= S_ISGID|S_IRWXG;
-				continue;
-			case 'o':
-				groups |= S_IRWXO;
-				continue;
-			case 'a':
-				groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
-				continue;
-			case '+':
-			case '=':
-			case '-':
-				type = c;
-				if ( groups == S_ISVTX ) /* The default is "all" */
-					groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
-				break;
-			default:
-				if ( c >= '0' && c <= '7' && mode == 0 && groups == S_ISVTX ) {
-					*and = 0;
-					*or = strtol(--s, 0, 010);
-					return (TRUE);
-				}
-				else
-					return (FALSE);
-			}
-			break;
-		}
-
-		while ( (c = *s++) != '\0' ) {
-			switch ( c ) {
-			case ',':
-				break;
-			case 'r':
-				mode |= S_IRUSR|S_IRGRP|S_IROTH;
-				continue;
-			case 'w':
-				mode |= S_IWUSR|S_IWGRP|S_IWOTH;
-				continue;
-			case 'x':
-				mode |= S_IXUSR|S_IXGRP|S_IXOTH;
-				continue;
-			case 's':
-				if ( group_execute != 0 && (groups & S_IRWXG) ) {
-					if ( *group_execute < 0 )
-						return (FALSE);
-					if ( type != '-' ) {
-						mode |= S_IXGRP;
-						*group_execute = 1;
-					}
-				}
-				mode |= S_ISUID|S_ISGID;
-				continue;
-			case 'l':
-				if ( *group_execute > 0 )
-					return (FALSE);
-				if ( type != '-' ) {
-					*and &= ~S_IXGRP;
-					*group_execute = -1;
-				}
-				mode |= S_ISGID;
-				groups |= S_ISGID;
-				continue;
-			case 't':
-				mode |= S_ISVTX;
-				continue;
-			default:
-				return (FALSE);
-			}
-			break;
-		}
-		switch ( type ) {
-		case '=':
-			*and &= ~(groups);
-			/* fall through */
-		case '+':
-			*or |= mode & groups;
-			break;
-		case '-':
-			*and &= ~(mode & groups);
-			*or &= *and;
-			break;
-		}
-	} while ( c == ',' );
-	return (TRUE);
-}
-
-
 int chmod_chown_chgrp_main(int argc, char **argv)
 {
     struct group *grp;
     struct passwd *pwd;
     int recursiveFlag=FALSE;
     char *groupName;
-    mode_t andWithMode = S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
-    mode_t orWithMode = 0;
-
+    mode_t andWithMode= S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
 
     whichApp = (strcmp(*argv, "chown")==0)? CHOWN_APP : (strcmp(*argv, "chmod")==0)? CHMOD_APP : CHGRP_APP; 
 
@@ -207,12 +103,12 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     
     if ( whichApp == CHMOD_APP ) {
 	/* Find the specified modes */
-	if ( parse_mode(*argv, &orWithMode, &andWithMode, 0) == FALSE ) {
+	if ( parse_mode(*argv, &mode) == FALSE ) {
 	    fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, *argv);
 	    exit( FALSE);
 	}
-	mode &= andWithMode;
-	mode |= orWithMode;
+	//mode &= andWithMode;
+	fprintf(stderr, "mode %d\n", mode);
     } else {
 
 	/* Find the selected group */
@@ -245,8 +141,8 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	exit( FALSE);
     }
     while (argc-- > 1) {
-	argv++;
-	recursiveAction( *argv, recursiveFlag, TRUE, fileAction, fileAction);
+	if (recursiveAction( *(++argv), recursiveFlag, TRUE, fileAction, fileAction)==FALSE)
+	    exit( FALSE);
     }
     exit(TRUE);
 }

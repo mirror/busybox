@@ -103,7 +103,6 @@ static ino_t tarInode;
  */
 static void readTarFile (int fileCount, char **fileTable);
 static void readData (const char *cp, int count);
-static void createPath (const char *name, int mode);
 static long getOctal (const char *cp, int len);
 
 static void readHeader (const TarHeader * hp,
@@ -1018,36 +1017,6 @@ static void writeTarBlock (const char *buf, int len)
 	perror (tarName);
 
 	errorFlag = TRUE;
-    }
-}
-
-
-/*
- * Attempt to create the directories along the specified path, except for
- * the final component.  The mode is given for the final directory only,
- * while all previous ones get default protections.  Errors are not reported
- * here, as failures to restore files can be reported later.
- */
-static void createPath (const char *name, int mode)
-{
-    char *cp;
-    char *cpOld;
-    char buf[TAR_NAME_SIZE];
-
-    strcpy (buf, name);
-
-    cp = strchr (buf, '/');
-
-    while (cp) {
-	cpOld = cp;
-	cp = strchr (cp + 1, '/');
-
-	*cpOld = '\0';
-
-	if (mkdir (buf, cp ? 0777 : mode) == 0)
-	    printf ("Directory \"%s\" created\n", buf);
-
-	*cpOld = '/';
     }
 }
 

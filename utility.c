@@ -544,4 +544,127 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 
 #endif
 
+
+
+#if defined (BB_TAR) || defined (BB_MKDIR)
+/*
+ * Attempt to create the directories along the specified path, except for
+ * the final component.  The mode is given for the final directory only,
+ * while all previous ones get default protections.  Errors are not reported
+ * here, as failures to restore files can be reported later.
+ */
+extern void createPath (const char *name, int mode)
+{
+    char *cp;
+    char *cpOld;
+    char buf[NAME_MAX];
+
+    strcpy (buf, name);
+
+    cp = strchr (buf, '/');
+
+    while (cp) {
+	cpOld = cp;
+	cp = strchr (cp + 1, '/');
+
+	*cpOld = '\0';
+
+	if (mkdir (buf, cp ? 0777 : mode) == 0)
+	    printf ("Directory \"%s\" created\n", buf);
+
+	*cpOld = '/';
+    }
+}
+#endif
+
+
+
+#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR)
+/* [ugoa]{+|-|=}[rwxstl] */
+extern int parse_mode( const char* s, mode_t* theMode)
+{
+	mode_t or;
+	mode_t and;
+	mode_t	mode = 0;
+	mode_t	groups = S_ISVTX;
+	char	type;
+	char	c;
+
+	do {
+		for ( ; ; ) {
+			switch ( c = *s++ ) {
+			case '\0':
+				return (FALSE);
+			case 'u':
+				groups |= S_ISUID|S_IRWXU;
+				continue;
+			case 'g':
+				groups |= S_ISGID|S_IRWXG;
+				continue;
+			case 'o':
+				groups |= S_IRWXO;
+				continue;
+			case 'a':
+				groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+				continue;
+			case '+':
+			case '=':
+			case '-':
+				type = c;
+				if ( groups == S_ISVTX ) /* The default is "all" */
+					groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+				break;
+			default:
+				if ( c >= '0' && c <= '7' && mode == 0 && groups == S_ISVTX ) {
+					and = 0;
+					or = strtol(--s, 0, 010);
+					return (TRUE);
+				}
+				else
+					return (FALSE);
+			}
+			break;
+		}
+
+		while ( (c = *s++) != '\0' ) {
+			switch ( c ) {
+			case ',':
+				break;
+			case 'r':
+				mode |= S_IRUSR|S_IRGRP|S_IROTH;
+				continue;
+			case 'w':
+				mode |= S_IWUSR|S_IWGRP|S_IWOTH;
+				continue;
+			case 'x':
+				mode |= S_IXUSR|S_IXGRP|S_IXOTH;
+				continue;
+			case 's':
+				mode |= S_IXGRP|S_ISUID|S_ISGID;
+				continue;
+			case 't':
+				mode |= S_ISVTX;
+				continue;
+			default:
+				return (FALSE);
+			}
+			break;
+		}
+		switch ( type ) {
+		case '=':
+			and &= ~(groups);
+			/* fall through */
+		case '+':
+			or |= mode & groups;
+			break;
+		case '-':
+			and &= ~(mode & groups);
+			or &= and;
+			break;
+		}
+	} while ( c == ',' );
+	return (TRUE);
+}
+#endif
+
 /* END CODE */

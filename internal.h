@@ -66,9 +66,9 @@ extern int date_main(int argc, char** argv);
 extern int dd_main(int argc, char** argv);
 extern int df_main(int argc, char** argv);
 extern int dmesg_main(int argc, char** argv);
-extern int dyadic_main(int argc, char** argv);
 extern int false_main(int argc, char** argv);
 extern int fdisk_main(int argc, char** argv);
+extern int fdflush_main(int argc, char **argv);
 extern int find_main(int argc, char** argv);
 extern int grep_main(int argc, char** argv);
 extern int halt_main(int argc, char** argv);
@@ -81,16 +81,17 @@ extern int losetup_main(int argc, char** argv);
 extern int ls_main(int argc, char** argv);
 extern int makedevs_main(int argc, char** argv);
 extern int math_main(int argc, char** argv);
+extern int mkdir_main(int argc, char** argv);
 extern int mknod_main(int argc, char** argv);
 extern int mkswap_main(int argc, char** argv);
 extern int mnc_main(int argc, char** argv);
-extern int monadic_main(int argc, char** argv);
 extern int mount_main(int argc, char** argv);
 extern int mt_main(int argc, char** argv);
 extern int mv_main(int argc, char** argv);
 extern int printf_main(int argc, char** argv);
 extern int pwd_main(int argc, char** argv);
 extern int reboot_main(int argc, char** argv);
+extern int rmdir_main(int argc, char **argv);
 extern int rm_main(int argc, char** argv);
 extern int scan_partitions_main(int argc, char** argv);
 extern int sh_main(int argc, char** argv);
@@ -126,6 +127,8 @@ int recursiveAction(const char *fileName, int recurse, int followLinks,
 int match(const char* text, const char * pattern);
 const char* timeString(time_t timeVal);
 
+extern void createPath (const char *name, int mode);
+extern int parse_mode( const char* s, mode_t* theMode);
 
 #endif
 

@@ -3,7 +3,6 @@
  * IE	//#define BB_BLAH
  */
 
-//#define BB_BLOCK_DEVICE
 #define BB_BUSYBOX
 #define BB_CAT
 #define BB_CHMOD_CHOWN_CHGRP
@@ -16,20 +15,20 @@
 #define BB_DMESG
 #define BB_DUTMP
 #define BB_FALSE
-//#define BB_FDFLUSH
+#define BB_FDFLUSH
 #define BB_FIND
 #define BB_GREP
 ////#define BB_HALT
 //#define BB_INIT
 #define BB_KILL
 ////#define BB_LENGTH
-//#define BB_LN
+#define BB_LN
 //#define BB_LOADKMAP
 ////#define BB_LOSETUP
 #define BB_LS
 //#define BB_MAKEDEVS
-////#define BB_MATH
-//#define BB_MKDIR
+#define BB_MATH
+#define BB_MKDIR
 //#define BB_MKNOD
 ////#define BB_MKSWAP
 #define BB_MNC
@@ -37,12 +36,11 @@
 #define BB_MOUNT
 ////#define BB_MT
 #define BB_MV
-//#define BB_POSTPROCESS
 //#define BB_PRINTF
 #define BB_PWD
 #define BB_REBOOT
 //#define BB_RM
-//#define BB_RMDIR
+#define BB_RMDIR
 #define BB_SLEEP
 ////#define BB_SWAPOFF
 //#define BB_SWAPON

@@ -49,7 +49,7 @@ static const struct Applet applets[] = {
     {"false", false_main},
 #endif
 #ifdef BB_FDFLUSH		//bin
-    {"fdflush", monadic_main},
+    {"fdflush", fdflush_main},
 #endif
 #ifdef BB_FIND			//usr/bin
     {"find", find_main},
@@ -70,7 +70,7 @@ static const struct Applet applets[] = {
     {"length", length_main},
 #endif
 #ifdef BB_LN			//bin
-    {"ln", dyadic_main},
+    {"ln", ln_main},
 #endif
 #ifdef BB_LOADKMAP		//sbin
     {"loadkmap", loadkmap_main},
@@ -88,7 +88,7 @@ static const struct Applet applets[] = {
     {"math", math_main},
 #endif
 #ifdef BB_MKDIR			//bin
-    {"mkdir", monadic_main},
+    {"mkdir", mkdir_main},
 #endif
 #ifdef BB_MKNOD			//bin
     {"mknod", mknod_main},
@@ -124,7 +124,7 @@ static const struct Applet applets[] = {
     {"rm", rm_main},
 #endif
 #ifdef BB_RMDIR			//bin
-    {"rmdir", monadic_main},
+    {"rmdir", rmdir_main},
 #endif
 #ifdef BB_SLEEP			//bin
     {"sleep", sleep_main},
