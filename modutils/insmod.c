@@ -3453,8 +3453,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 		".text",
 		".rodata",
 		".data",
-		".bss"
-			".sbss"
+		".bss",
+		".sbss"
 	};
 
 	if (realpath(filename, real)) {
