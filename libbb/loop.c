@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <asm/posix_types.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -30,7 +31,6 @@
 /* Grumble...  The 2.6.x kernel breaks asm/posix_types.h
  * so we get to try and cope as best we can... */
 #include <linux/version.h>
-#include <asm/posix_types.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 #define __bb_kernel_dev_t   __kernel_old_dev_t
