@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.14 2001/10/28 05:12:18 andersen Exp $
+ * $Id: ifconfig.c,v 1.15 2001/10/28 09:36:48 andersen Exp $
  *
  */
 
@@ -356,7 +356,7 @@ int ifconfig_main(int argc, char **argv)
 						}
 						safe_strncpy(host, *argv, (sizeof host));
 						if (in_ether(host, &sa)) {
-							fprintf(stderr, "invalid hw-addr %s\n", host);
+							error_msg("invalid hw-addr %s", host);
 							++goterr;
 							continue;
 						}
