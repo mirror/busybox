@@ -290,7 +290,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.120 2004/06/22 11:50:52 andersen Exp $"
+#ident "$Id: insmod.c,v 1.121 2004/06/22 20:10:53 andersen Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -448,7 +448,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.120 2004/06/22 11:50:52 andersen Exp $"
+#ident "$Id: insmod.c,v 1.121 2004/06/22 20:10:53 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3607,6 +3607,7 @@ extern int insmod_main( int argc, char **argv)
 {
 	int opt;
 	int len;
+	int k_crcs;
 	char *tmp, *tmp1;
 	unsigned long m_size;
 	ElfW(Addr) m_addr;
@@ -3618,8 +3619,7 @@ extern int insmod_main( int argc, char **argv)
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	struct utsname uts_info;
 	char m_strversion[STRVERSIONLEN];
-	int m_version;
-	int k_crcs, m_crcs;
+	int m_version, m_crcs;
 #endif
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	FILE *fp = 0;
