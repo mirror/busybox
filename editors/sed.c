@@ -344,10 +344,11 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 				sed_cmd->which_match=(unsigned short)strtol(substr+idx,&pos,10);
 				idx=pos-substr;
 			}
-			/* Skip spaces */
-			if(isspace(substr[idx])) continue;
 			continue;
 		}
+		/* Skip spaces */
+		if(isspace(substr[idx])) continue;
+
 		switch (substr[idx]) {
 			/* Replace all occurrences */
 			case 'g':
