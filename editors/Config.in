@@ -24,6 +24,15 @@ config CONFIG_SED
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+	bool " Embeded newline (EXPERIMENTAL)"
+	default n
+	depends on CONFIG_SED
+	help
+	  This is a hack to allow matching of '\n' in regular expressions.
+	  It works by translating '\n' to "\n" and back.
+	  It may introduce unexpected results if you use "\n" in your text.
+
 config CONFIG_VI
 	bool "vi"
 	default n

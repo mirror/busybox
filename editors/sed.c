@@ -430,7 +430,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 
 static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 {
-	
+
 	/* Skip over leading whitespace and semicolons */
 	cmdstr += strspn(cmdstr, semicolon_whitespace);
 
@@ -491,7 +491,6 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 			cmdstr++;
 		}
 #endif
-
 	}
 
 	/* last part (mandatory) will be a command */
@@ -529,6 +528,18 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 
 static void add_cmd_str(char *cmdstr)
 {
+#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+	char *cmdstr_ptr = cmdstr;
+
+	/* HACK: convert "\n" to match tranlated '\n' string */
+	while((cmdstr_ptr = strstr(cmdstr_ptr, "\\n")) != NULL) {
+		cmdstr = xrealloc(cmdstr, strlen(cmdstr) + 2);
+		cmdstr_ptr = strstr(cmdstr, "\\n");
+		memmove(cmdstr_ptr + 1, cmdstr_ptr, strlen(cmdstr_ptr) + 1);
+		cmdstr_ptr[0] = '\\';
+		cmdstr_ptr += 3;
+	}
+#endif
 	do {
 		sed_cmd_t *sed_cmd;
 		sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
@@ -795,8 +806,35 @@ static void process_file(FILE *file)
 						 *    flag exists in the first place.
 						 */
 
+#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+						/* HACK: escape newlines twice so regex can match them */
+						{
+							int offset = 0;
+							while(strchr(line + offset, '\n') != NULL) {
+								char *tmp;
+								line = xrealloc(line, strlen(line) + 2);
+								tmp = strchr(line + offset, '\n');
+								memmove(tmp + 1, tmp, strlen(tmp) + 1);
+								tmp[0] = '\\';
+								tmp[1] = 'n';
+								offset = tmp - line + 2;
+							}
+						}
+#endif
 						/* we print the line once, unless we were told to be quiet */
 						substituted = do_subst_command(sed_cmd, &line);
+
+#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+						/* undo HACK: escape newlines twice so regex can match them */
+						{
+							char *tmp = line;
+
+							while((tmp = strstr(tmp, "\\n")) != NULL) {
+								memmove(tmp, tmp + 1, strlen(tmp + 1) + 1);
+								tmp[0] = '\n';
+							}
+						}
+#endif
 						altered |= substituted;
 						if (!be_quiet && altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
 							force_print = 1;
@@ -857,11 +895,13 @@ static void process_file(FILE *file)
 						linenum++;
 						break;
 					case 'N':	/* Append the next line to the current line */
-						line = realloc(line, strlen(line) + strlen(next_line) + 2);
-						strcat(line, "\n");
-						strcat(line, next_line);
-						next_line = bb_get_chomped_line_from_file(file);
-						linenum++;
+						if (next_line) {
+							line = realloc(line, strlen(line) + strlen(next_line) + 2);
+							strcat(line, "\n");
+							strcat(line, next_line);
+							next_line = bb_get_chomped_line_from_file(file);
+							linenum++;
+						}
 						break;
 					case 'b':
 						sed_cmd = branch_to(sed_cmd->label);
@@ -934,9 +974,12 @@ extern int sed_main(int argc, char **argv)
 			case 'n':
 				be_quiet++;
 				break;
-			case 'e':
-				add_cmd_str(optarg);
+			case 'e': {
+				char *str_cmd = strdup(optarg);
+				add_cmd_str(str_cmd);
+				free(str_cmd);
 				break;
+			}
 			case 'f': 
 				load_cmd_file(optarg);
 				break;
@@ -951,7 +994,9 @@ extern int sed_main(int argc, char **argv)
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else {
-			add_cmd_str(argv[optind]);
+			char *str_cmd = strdup(argv[optind]);
+			add_cmd_str(strdup(str_cmd));
+			free(str_cmd);
 			optind++;
 		}
 	}
