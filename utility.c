@@ -381,10 +381,12 @@ int fullRead(int fd, char *buf, int len)
  * location, and do something (something specified
  * by the fileAction and dirAction function pointers).
  *
- * TODO: check if ftw(3) can replace this to reduce code size...
+ * Unfortunatly, while nftw(3) could replace this and reduce 
+ * code size a bit, nftw() wasn't supported before GNU libc 2.1, 
+ * and so isn't sufficiently portable to take over...
  */
 int
-recursiveAction(const char *fileName, int recurse, int followLinks, int delayDirAction,
+recursiveAction(const char *fileName, int recurse, int followLinks, int depthFirst,
 		int (*fileAction) (const char *fileName, struct stat* statbuf),
 		int (*dirAction) (const char *fileName, struct stat* statbuf))
 {
@@ -418,7 +420,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int delayDir
 	    perror(fileName);
 	    return (FALSE);
 	}
-	if (dirAction != NULL && delayDirAction == FALSE) {
+	if (dirAction != NULL && depthFirst == FALSE) {
 	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
@@ -433,7 +435,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int delayDir
 	    }
 	    sprintf(nextFile, "%s/%s", fileName, next->d_name);
 	    status =
-		recursiveAction(nextFile, TRUE, followLinks, delayDirAction, 
+		recursiveAction(nextFile, TRUE, followLinks, depthFirst, 
 			fileAction, dirAction);
 	    if (status < 0) {
 		closedir(dir);
@@ -445,7 +447,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int delayDir
 	    perror(fileName);
 	    return (FALSE);
 	}
-	if (dirAction != NULL && delayDirAction == TRUE) {
+	if (dirAction != NULL && depthFirst == TRUE) {
 	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
