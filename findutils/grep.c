@@ -104,7 +104,6 @@ extern int grep_main(int argc, char **argv)
 {
 	int opt;
 	int reflags;
-	int ret;
 
 	/* do special-case option parsing */
 	if (argv[1] && (strcmp(argv[1], "--help") == 0))
@@ -147,20 +146,8 @@ extern int grep_main(int argc, char **argv)
 	reflags = REG_NOSUB | REG_NEWLINE; 
 	if (ignore_case)
 		reflags |= REG_ICASE;
-	if ((ret = regcomp(&regex, argv[optind], reflags)) != 0) {
-		int errmsgsz = regerror(ret, &regex, NULL, 0);
-		char *errmsg = malloc(errmsgsz);
-		if (errmsg == NULL) {
-			fprintf(stderr, "grep: memory error\n");
-			regfree(&regex);
-			exit(1);
-		}
-		regerror(ret, &regex, errmsg, errmsgsz);
-		fprintf(stderr, "grep: %s\n", errmsg);
-		free(errmsg);
-		regfree(&regex);
+	if (bb_regcomp(&regex, argv[optind], reflags) != 0)
 		exit(1);
-	}
 
 	/* argv[(optind+1)..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames */

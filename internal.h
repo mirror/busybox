@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <mntent.h>
-
+#include <regex.h>
 
 /* Some useful definitions */
 #define FALSE   ((int) 1)
@@ -259,6 +259,7 @@ extern int find_real_root_device_name(char* name);
 extern char *get_line_from_file(FILE *file);
 extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
+extern int bb_regcomp(regex_t *preg, const char *regex, int cflags);
 
 extern void *xmalloc (size_t size);
 extern char *xstrdup (const char *s);

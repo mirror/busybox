@@ -97,50 +97,6 @@ static const char sed_usage[] =
 #endif
 	;
 
-#if 0
-/* Nuke from here { */
-
-
-/* get_line_from_file() - This function reads an entire line from a text file
- *  * up to a newline. It returns a malloc'ed char * which must be stored and
- *   * free'ed  by the caller. */
-extern char *get_line_from_file(FILE *file)
-{
-	static const int GROWBY = 80; /* how large we will grow strings by */
-
-	int ch; 
-	int idx = 0;
-	char *linebuf = NULL;
-	int linebufsz = 0;
-
-	while (1) {
-		ch = fgetc(file);
-		if (ch == EOF)
-			break;
-		/* grow the line buffer as necessary */
-		if (idx > linebufsz-2)
-			linebuf = realloc(linebuf, linebufsz += GROWBY);
-		linebuf[idx++] = (char)ch;
-		if ((char)ch == '\n')
-			break;
-	}
-
-	if (idx == 0)
-		return NULL;
-
-	linebuf[idx] = 0;
-	return linebuf;
-}
-
-static void usage(const char *string)
-{
-	printf("usage: %s\n", string);
-	exit(0);
-}
-
-/* } to here when we integrate this into busybox */
-#endif
-
 static void destroy_cmd_strs()
 {
 	if (sed_cmds == NULL)
@@ -246,29 +202,15 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		idx++;
 	}
 	else if (my_str[idx] == '/') {
-		int ret;
 		idx = index_of_next_unescaped_slash(idx, my_str);
-		if (idx == -1) {
-			free(my_str);
+		if (idx == -1)
 			exit_sed(1, "sed: unterminated match expression\n");
-		}
-		my_str[idx] = 0; /* shave off the trailing '/' */
-		my_str++; /* shave off the leading '/' */
-		*regex = (regex_t *)malloc(sizeof(regex_t));
-		if ((ret = regcomp(*regex, my_str, 0)) != 0) {
-			/* error handling if regular expression couldn't be compiled */
-			int errmsgsz = regerror(ret, *regex, NULL, 0);
-			char *errmsg = malloc(errmsgsz);
-			if (errmsg == NULL) {
-				exit_sed(1, "sed: memory error\n");
-			}
-			regerror(ret, *regex, errmsg, errmsgsz);
-			fprintf(stderr, "sed: %s\n", errmsg);
-			free(errmsg);
+		my_str[idx] = '\0';
+		*regex = (regex_t *)xmalloc(sizeof(regex_t));
+		if (bb_regcomp(*regex, my_str+1, REG_NEWLINE) != 0) {
+			free(my_str);
 			exit_sed(1, NULL);
 		}
-		my_str--; /* move my_str back so free() (below) won't barf */
-		idx++; /* advance idx one past the end of the /match/ */
 	}
 	else {
 		fprintf(stderr, "sed.c:get_address: no address found in string\n");
@@ -278,6 +220,15 @@ static int get_address(const char *str, int *line, regex_t **regex)
 
 	free(my_str);
 	return idx;
+}
+
+static char *strdup_substr(const char *str, int start, int end)
+{
+	int size = end - start + 1;
+	char *newstr = xmalloc(size);
+	memcpy(newstr, str+start, size-1);
+	newstr[size-1] = '\0';
+	return newstr;
 }
 
 static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
@@ -306,10 +257,11 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	sed_cmd->cmd = cmdstr[idx];
 	/* special-case handling for 's' */
 	if (sed_cmd->cmd == 's') {
-		int oldidx;
+		int oldidx, cflags = REG_NEWLINE;
+		char *match;
 		/* format for substitution is:
-		 *    s/match/replace/g
-		 *    |               |
+		 *    s/match/replace/gI
+		 *    |               ||
 		 *    mandatory       optional
 		 */
 
@@ -317,19 +269,41 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 		if (cmdstr[++idx] != '/')
 			exit_sed(1, "sed: bad format in substitution expression\n");
 
-		/* get the substitution part */
-		idx += get_address(&cmdstr[idx], NULL, &sed_cmd->sub_match);
-
-		/* get the replacement part */
-		oldidx = idx;
+		/* save the match string */
+		oldidx = idx+1;
 		idx = index_of_next_unescaped_slash(idx, cmdstr);
-		sed_cmd->replace = (char *)malloc(idx - oldidx + 1);
-		strncpy(sed_cmd->replace, &cmdstr[oldidx], idx - oldidx);
-		sed_cmd->replace[idx - oldidx] = 0;
+		if (idx == -1)
+			exit_sed(1, "sed: bad format in substitution expression\n");
+		match = strdup_substr(cmdstr, oldidx, idx);
 
-		/* store the 'g' if present */
-		if (cmdstr[++idx] == 'g')
-			sed_cmd->sub_g = 1;
+		/* save the replacement string */
+		oldidx = idx+1;
+		idx = index_of_next_unescaped_slash(idx, cmdstr);
+		if (idx == -1)
+			exit_sed(1, "sed: bad format in substitution expression\n");
+		sed_cmd->replace = strdup_substr(cmdstr, oldidx, idx);
+
+		/* process the flags */
+		while (cmdstr[++idx]) {
+			switch (cmdstr[idx]) {
+			case 'g':
+				sed_cmd->sub_g = 1;
+				break;
+			case 'I':
+				cflags |= REG_ICASE;
+				break;
+			default:
+				exit_sed(1, "sed: bad option in substitution expression\n");
+			}
+		}
+			
+		/* compile the regex */
+		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
+		if (bb_regcomp(sed_cmd->sub_match, match, cflags) != 0) {
+			free(match);
+			exit_sed(1, NULL);
+		}
+		free(match);
 	}
 }
 
@@ -553,10 +527,3 @@ extern int sed_main(int argc, char **argv)
 	/* not reached */
 	return 0;
 }
-
-#ifdef TEST_SED
-int main(int argc, char **argv)
-{
-	return sed_main(argc, argv);
-}
-#endif
