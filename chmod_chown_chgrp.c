@@ -33,8 +33,8 @@
 #include <pwd.h>
 
 
-static unsigned long uid = -1;
-static unsigned long gid = -1;
+static long uid = -1;
+static long gid = -1;
 static int whichApp;
 static char *theMode = NULL;
 
