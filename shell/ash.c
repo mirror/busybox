@@ -67,6 +67,8 @@
  * standalone shell.   Adds about 272 bytes. */
 #undef ASH_CMDCMD
 
+/* Check for new mail on interactive shells? */
+#undef ASH_MAIL
 
 /* Optimize size vs speed as size */
 #define ASH_OPTIMIZE_FOR_SIZE
@@ -1397,16 +1399,6 @@ rmaliases(void)
 		}
 	}
 	INTON;
-}
-
-static struct alias *
-lookupalias(const char *name, int check)
-{
-	struct alias *ap = *__lookupalias(name);
-
-	if (check && ap && (ap->flag & ALIASINUSE))
-		return (NULL);
-	return (ap);
 }
 
 static void
@@ -3101,8 +3093,10 @@ true_main(argc, argv)
  */
 
 static void setsignal(int signo);
-static void chkmail(int silent);
 
+#ifdef ASH_MAIL
+static void chkmail(int silent);
+#endif
 
 static void
 setinteractive(int on)
@@ -3115,7 +3109,9 @@ setinteractive(int on)
 	setsignal(SIGINT);
 	setsignal(SIGQUIT);
 	setsignal(SIGTERM);
+#ifdef ASH_MAIL
 	chkmail(1);
+#endif
 	is_interactive = on;
 	if (do_banner==0 && is_interactive) {
 		/* Looks like they want an interactive shell */
@@ -3576,7 +3572,7 @@ hashcmd(argc, argv)
 			delete_cmd_entry();
 #ifdef ASH_ALIAS
 	/* Then look at the aliases */
-		if ((ap = lookupalias(name, 0)) != NULL) {
+		if ((ap = *__lookupalias(name)) != NULL) {
 			if (verbose=='v')
 				printf("%s is an alias for %s\n", name, ap->val);
 			else
@@ -7523,8 +7519,11 @@ static void waitonint(int sig) {
 	intreceived = 1;
 	return;
 }
+
+#ifdef ASH_MAIL
+
 /*
- * Routines to check for mail.  (Perhaps make part of main.c?)
+ * Routines to check for mail.
  */
 
 
@@ -7581,6 +7580,8 @@ chkmail(int silent)
 	nmboxes = i;
 	popstackmark(&smark);
 }
+
+#endif /* ASH_MAIL */
 
 #define PROFILE 0
 
@@ -7749,7 +7750,9 @@ cmdloop(int top)
 		if (iflag && top) {
 			inter++;
 			showjobs(1);
+#ifdef ASH_MAIL
 			chkmail(0);
+#endif
 			flushall();
 		}
 		n = parsecmd(inter);
@@ -10188,7 +10191,7 @@ top:
 		lasttoken = t = TASSIGN;
 #ifdef ASH_ALIAS
 	} else if (checkalias) {
-		if (!quoteflag && (ap = lookupalias(wordtext, 1)) != NULL) {
+		if (!quoteflag && (ap = *__lookupalias(wordtext)) != NULL && !(ap->flag & ALIASINUSE)) {
 			if (*ap->val) {
 				pushstring(ap->val, strlen(ap->val), ap);
 			}
@@ -11454,6 +11457,9 @@ dup_as_newfd(from, to)
 }
 
 #ifdef DEBUG
+/*
+ * Debugging stuff.
+ */
 static void shtree (union node *, int, char *, FILE*);
 static void shcmd (union node *, FILE *);
 static void sharg (union node *, FILE *);
@@ -11578,8 +11584,6 @@ shcmd(cmd, fp)
 	}
 }
 
-
-
 static void
 sharg(arg, fp)
 	union node *arg;
@@ -11681,16 +11685,8 @@ indent(amount, pfx, fp)
 		putc('\t', fp);
 	}
 }
-#endif
 
 
-
-/*
- * Debugging stuff.
- */
-
-
-#ifdef DEBUG
 FILE *tracefile;
 
 #if DEBUG == 2
@@ -12200,12 +12196,14 @@ setvareq(s, flags)
 		vp->flags |= flags;
 		vp->text = s;
 
+#ifdef ASH_MAIL
 		/*
 		 * We could roll this to a function, to handle it as
 		 * a regular variable function callback, but why bother?
 		 */
 		if (iflag && (vp == &vmpath || (vp == &vmail && !mpathset())))
 			chkmail(1);
+#endif
 		INTON;
 		return;
 	}
@@ -12246,7 +12244,7 @@ listsetvar(mylist)
 static const char *
 lookupvar(name)
 	const char *name;
-	{
+{
 	struct var *v;
 
 	if ((v = *findvar(hashvar(name), name)) && !(v->flags & VUNSET)) {
@@ -12650,7 +12648,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.33 2001/10/31 10:40:37 andersen Exp $
+ * $Id: ash.c,v 1.34 2001/10/31 11:05:49 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
