@@ -54,7 +54,6 @@ typedef struct Line {
 typedef struct {
 	int len;					/* number of Lines */
 	Line **sorted;				/* array fed to qsort */
-
 	Line *head;					/* head of List */
 	Line *current;				/* current Line */
 } List;
@@ -71,36 +70,23 @@ static const int max = 1024;
 static Line *line_alloc()
 {
 	Line *self;
-
 	self = malloc(1 * sizeof(Line));
-	return self;
-}
-
-/* Initialize Line with string */
-static Line *line_init(Line * self, const char *string)
-{
-	self->data = malloc((strlen(string) + 1) * sizeof(char));
-
-	if (self->data == NULL) {
-		return NULL;
-	}
-	strcpy(self->data, string);
-	self->next = NULL;
 	return self;
 }
 
 /* Construct Line from FILE* */
 static Line *line_newFromFile(FILE * src)
 {
-	char buffer[max];
 	Line *self;
+	char *cstring = NULL;
 
-	if (fgets(buffer, max, src)) {
+	if ((cstring = cstring_lineFromFile(src))) {
 		self = line_alloc();
 		if (self == NULL) {
 			return NULL;
 		}
-		line_init(self, buffer);
+		self->data = cstring;
+		self->next = NULL;
 		return self;
 	}
 	return NULL;
@@ -177,7 +163,7 @@ static List *list_insert(List * self, Line * line)
 		self->head = line;
 		self->current = line;
 
-		/* all subsequent insertions */
+	/* all subsequent insertions */
 	} else {
 		self->current->next = line;
 		self->current = line;
@@ -241,12 +227,6 @@ static void list_release(List * self)
 }
 
 
-/*
- * I need a list
- * to insert lines into
- * then I need to sort this list
- * and finally print it
- */
 
 int sort_main(int argc, char **argv)
 {
@@ -320,4 +300,4 @@ int sort_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: sort.c,v 1.14 2000/04/15 16:34:54 erik Exp $ */
+/* $Id: sort.c,v 1.15 2000/04/17 04:22:09 beppu Exp $ */

@@ -219,6 +219,8 @@ extern long getNum (const char *cp);
 extern pid_t* findPidByName( char* pidName);
 extern void *xmalloc (size_t size);
 extern int find_real_root_device_name(char* name);
+extern char *cstring_lineFromFile(FILE *f);
+
 
 #if defined BB_INIT || defined BB_SYSLOGD
 extern int device_open(char *device, int mode);

@@ -1521,6 +1521,57 @@ extern int find_real_root_device_name(char* name)
 }
 #endif
 
+const unsigned int CSTRING_BUFFER_LENGTH = 128;
+/* recursive parser that returns cstrings of arbitrary length
+ * from a FILE* 
+ */
+static char *
+cstring_alloc(FILE* f, int depth)
+{
+    char *cstring;
+    char buffer[CSTRING_BUFFER_LENGTH];
+    int	 target = CSTRING_BUFFER_LENGTH * depth;
+    int  i, len;
+    int  size;
+
+    /* fill buffer */
+    i = 0;
+    while ((buffer[i] = fgetc(f)) != EOF) {
+		if (buffer[i++] == 0x0a) { break; }
+		if (i == CSTRING_BUFFER_LENGTH) { break; }
+    }
+    len = i;
+
+    /* recurse or malloc? */
+    if (len == CSTRING_BUFFER_LENGTH) {
+		cstring = cstring_alloc(f, (depth + 1));
+    } else {
+		/* [special case] EOF */
+		if ((depth | len) == 0) { return NULL; }
+
+		/* malloc */
+		size = target + len + 1;
+		cstring = malloc(size);
+		if (!cstring) { return NULL; }
+		cstring[size - 1] = 0;
+    }
+
+    /* copy buffer */
+    if (cstring) {
+		memcpy(&cstring[target], buffer, len);
+    }
+    return cstring;
+}
+
+/* 
+ * wrapper around recursive cstring_alloc 
+ * it's the caller's responsibility to free the cstring
+ */ 
+char *
+cstring_lineFromFile(FILE *f)
+{
+    return cstring_alloc(f, 0);
+}
 
 /* END CODE */
 /*
