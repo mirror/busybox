@@ -1088,7 +1088,9 @@
 		<screen>
 			-follow		Dereference symbolic links
 			-name PATTERN	File name (leading directories removed) matches PATTERN
-			-print		Print the full file name followed by a newline to stdout
+			-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)
+			-perm PERMS	Permissions match any of (+NNN); all of (-NNN); or exactly (NNN)
+			-mtime TIME	Modified time is greater than (+N); less than (-N); or exactly (N) days
 		</screen>
 		</para>
 
