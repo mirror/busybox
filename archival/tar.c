@@ -149,6 +149,7 @@ extern int tar_main(int argc, char **argv)
 	int createFlag   = FALSE;
 	int verboseFlag  = FALSE;
 	int tostdoutFlag = FALSE;
+	int firstOpt = TRUE;
 	int stopIt;
 																		   
 
@@ -156,7 +157,9 @@ extern int tar_main(int argc, char **argv)
 		usage(tar_usage);
 
 	/* do normal option parsing */
-	while (--argc > 0 && strspn(*(++argv), "-cxt") >0 ) {
+	while (--argc > 0 && ((*argv && **(++argv) == '-') || 
+				(firstOpt==TRUE && strspn(*argv, "-cxt") ))) {
+		firstOpt=FALSE;
 		stopIt=FALSE;
 		while (stopIt==FALSE && *argv && **argv) {
 			switch (**argv) {
