@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.38 2001/02/20 06:14:08 andersen Exp $
+ * $Id: ping.c,v 1.39 2001/03/14 01:23:07 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -55,8 +55,6 @@
 /* It turns out that libc5 doesn't have proper icmp support
  * built into it header files, so we have to supplement it */
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
-typedef unsigned int socklen_t;
-
 static const int ICMP_MINLEN = 8;				/* abs minimum */
 
 struct icmp_ra_addr
