@@ -233,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.86 2002/06/22 17:15:42 andersen Exp $"
+#ident "$Id: insmod.c,v 1.87 2002/07/02 19:14:23 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.86 2002/06/22 17:15:42 andersen Exp $"
+#ident "$Id: insmod.c,v 1.87 2002/07/02 19:14:23 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -657,6 +657,7 @@ static const int STRVERSIONLEN = 32;
 static int flag_force_load = 0;
 static int flag_autoclean = 0;
 static int flag_verbose = 0;
+static int flag_quiet = 0;
 static int flag_export = 1;
 
 
@@ -2877,7 +2878,9 @@ static int obj_check_undefineds(struct obj_file *f)
 					sym->secidx = SHN_ABS;
 					sym->value = 0;
 				} else {
-					error_msg("unresolved symbol %s", sym->name);
+					if (!flag_quiet) {
+						error_msg("unresolved symbol %s", sym->name);
+					}
 					ret = 0;
 				}
 			}
@@ -3447,7 +3450,7 @@ extern int insmod_main( int argc, char **argv)
 #endif
 
 	/* Parse any options */
-	while ((opt = getopt(argc, argv, "fksvxLo:")) > 0) {
+	while ((opt = getopt(argc, argv, "fkqsvxLo:")) > 0) {
 		switch (opt) {
 			case 'f':			/* force loading */
 				flag_force_load = 1;
@@ -3463,6 +3466,9 @@ extern int insmod_main( int argc, char **argv)
 				break;
 			case 'v':			/* verbose output */
 				flag_verbose = 1;
+				break;
+			case 'q':			/* silent */
+				flag_quiet = 1;
 				break;
 			case 'x':			/* do not export externs */
 				flag_export = 0;
@@ -3566,32 +3572,33 @@ extern int insmod_main( int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
-
-	if (uname(&uts_info) < 0)
-		uts_info.release[0] = '\0';
-	if (m_has_modinfo) {
-		m_version = new_get_module_version(f, m_strversion);
-	} else {
-		m_version = old_get_module_version(f, m_strversion);
-		if (m_version == -1) {
-			error_msg("couldn't find the kernel version the module was "
-					"compiled for");
-			goto out;
-		}
-	}
-
-	if (strncmp(uts_info.release, m_strversion, STRVERSIONLEN) != 0) {
-		if (flag_force_load) {
-			error_msg("Warning: kernel-module version mismatch\n"
-					"\t%s was compiled for kernel version %s\n"
-					"\twhile this kernel is version %s",
-					m_filename, m_strversion, uts_info.release);
+	if (!flag_quiet) {
+		if (uname(&uts_info) < 0)
+			uts_info.release[0] = '\0';
+		if (m_has_modinfo) {
+			m_version = new_get_module_version(f, m_strversion);
 		} else {
-			error_msg("kernel-module version mismatch\n"
-					"\t%s was compiled for kernel version %s\n"
-					"\twhile this kernel is version %s.",
-					m_filename, m_strversion, uts_info.release);
-			goto out;
+			m_version = old_get_module_version(f, m_strversion);
+			if (m_version == -1) {
+				error_msg("couldn't find the kernel version the module was "
+						"compiled for");
+				goto out;
+			}
+		}
+
+		if (strncmp(uts_info.release, m_strversion, STRVERSIONLEN) != 0) {
+			if (flag_force_load) {
+				error_msg("Warning: kernel-module version mismatch\n"
+						"\t%s was compiled for kernel version %s\n"
+						"\twhile this kernel is version %s",
+						m_filename, m_strversion, uts_info.release);
+			} else {
+				error_msg("kernel-module version mismatch\n"
+						"\t%s was compiled for kernel version %s\n"
+						"\twhile this kernel is version %s.",
+						m_filename, m_strversion, uts_info.release);
+				goto out;
+			}
 		}
 	}
 	k_crcs = 0;

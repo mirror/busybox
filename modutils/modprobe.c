@@ -178,6 +178,10 @@ static struct dep_t *build_dep ( void )
 			
 			if (( *(end-1) == '.' ) && ( *end == 'o' ))
 				ext = 2;
+
+			/* Cope with blank lines */
+			if ((end-deps-ext+1) <= 0)
+				continue;
 			
 			dep = xstrndup ( deps, end - deps - ext + 1 );
 			
