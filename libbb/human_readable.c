@@ -28,9 +28,8 @@
 #include <stdio.h>
 #include "libbb.h"
 
-const char *make_human_readable_str(unsigned long size, 
-									unsigned long block_size,
-									unsigned long display_unit)
+const char *make_human_readable_str(unsigned long long size, 
+	unsigned long block_size, unsigned long display_unit)
 {
 	/* The code will adjust for additional (appended) units. */
 	static const char zero_and_units[] = { '0', 0, 'k', 'M', 'G', 'T' };
@@ -48,7 +47,7 @@ const char *make_human_readable_str(unsigned long size,
 	f = fmt;
 	frac = 0;
 
-	val = ((unsigned long long) size) * block_size;
+	val = size * block_size;
 	if (val == 0) {
 		return u;
 	}

@@ -267,7 +267,8 @@ enum {
 	MEGABYTE = (KILOBYTE*1024),
 	GIGABYTE = (MEGABYTE*1024)
 };
-const char *make_human_readable_str(unsigned long size, unsigned long block_size, unsigned long display_unit);
+const char *make_human_readable_str(unsigned long long size, 
+		unsigned long block_size, unsigned long display_unit);
 
 int bb_ask_confirmation(void);
 int klogctl(int type, char * b, int len);
