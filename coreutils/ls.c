@@ -360,8 +360,7 @@ static void dfree(struct dnode **dnp)
 
 	cur = dnp[0];
 	while (cur != NULL) {
-		if (cur->fullname != NULL)
-			free(cur->fullname);	/* free the filename */
+		free(cur->fullname);	/* free the filename */
 		next = cur->next;
 		free(cur);		/* free the dnode */
 		cur = next;

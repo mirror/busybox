@@ -153,8 +153,7 @@ static void grep_file(FILE *file)
 			else { /* no match */
 				/* Add the line to the circular 'before' buffer */
 				if(lines_before) {
-					if(before_buf[curpos])
-						free(before_buf[curpos]);
+					free(before_buf[curpos]);
 					before_buf[curpos] = xstrdup(line);
 					curpos = (curpos + 1) % lines_before;
 				}
@@ -225,8 +224,7 @@ static void destroy_regexes(void)
 	while (--nregexes >= 0) {
 		regfree(&(regexes[nregexes]));
 	}
-	if (regexes)
-	    free(regexes);
+	free(regexes);
 }
 #endif
 

@@ -92,8 +92,7 @@ const char *normalize(const char *arg)
         const char *argptr=arg;
         char *bufptr;
 
-        if (BUFFER != NULL)
-                free(BUFFER);
+        free(BUFFER);
 
         if (!quote) { /* Just copy arg */
                BUFFER=xstrdup(arg);
@@ -340,16 +339,14 @@ int getopt_main(int argc, char *argv[])
                         alternative=1;
                         break;
                 case 'o':
-                        if (optstr)
-                                free(optstr);
+                       free(optstr);
                        optstr=xstrdup(optarg);
                         break;
                 case 'l':
                         add_long_options(optarg);
                         break;
                 case 'n':
-                        if (name)
-                                free(name);
+                       free(name);
                        name=xstrdup(optarg);
                         break;
                 case 'q':

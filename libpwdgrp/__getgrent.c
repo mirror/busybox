@@ -186,8 +186,7 @@ struct group *__getgrent(int grp_fd)
 		members[member_num + 1] = NULL;
 	}
 #else							/* !GR_SCALE_DYNAMIC */
-	if (members != NULL)
-	    free(members);
+	free(members);
 	members = (char **) malloc((member_num + 1) * sizeof(char *));   
 	for ( ; field_begin && *field_begin != '\0'; field_begin = ptr) {
 	    if ((ptr = strchr(field_begin, ',')) != NULL)

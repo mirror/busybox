@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
 		switch (c) {
 		case 'c':
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.clientid) free(client_config.clientid);
+			free(client_config.clientid);
 			client_config.clientid = xmalloc(len + 2);
 			client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
 			client_config.clientid[OPT_LEN] = len;
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 		case 'h':
 		case 'H':
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.hostname) free(client_config.hostname);
+			free(client_config.hostname);
 			client_config.hostname = xmalloc(len + 2);
 			client_config.hostname[OPT_CODE] = DHCP_HOST_NAME;
 			client_config.hostname[OPT_LEN] = len;

@@ -491,13 +491,9 @@ void free_package(common_node_t *node)
 	unsigned short i;
 	if (node) {
 		for (i = 0; i < node->num_of_edges; i++) {
-			if (node->edge[i]) {
-				free(node->edge[i]);
-			}
+			free(node->edge[i]);
 		}
-		if (node->edge) {
-			free(node->edge);
-		}
+		free(node->edge);
 		free(node);
 	}
 }
@@ -571,12 +567,8 @@ unsigned int fill_package_struct(char *control_buffer)
 				break;
 		}
 fill_package_struct_cleanup:
-		if (field_name) {
-			free(field_name);
-		}
-		if (field_value) {
-			free(field_value);
-		}
+		free(field_name);
+		free(field_value);
 	}
 
 	if (new_node->version == search_name_hashtable("unknown")) {
@@ -880,9 +872,7 @@ void write_status_file(deb_file_t **deb_file)
 			fprintf(new_status_file, "%s\n\n", control_buffer);
 		}
 
-		if (status_from_file != NULL) {
-			free(status_from_file);
-		}
+		free(status_from_file);
 		free(package_name);
 		free(control_buffer);
 	}
@@ -1661,9 +1651,7 @@ int dpkg_main(int argc, char **argv)
 	free(deb_file);
 
 	for (i = 0; i < NAME_HASH_PRIME; i++) {
-		if (name_hashtable[i] != NULL) {
-			free(name_hashtable[i]);
-		}
+		free(name_hashtable[i]);
 	}
 
 	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
@@ -1673,9 +1661,7 @@ int dpkg_main(int argc, char **argv)
 	}
 
 	for (i = 0; i < STATUS_HASH_PRIME; i++) {
-		if (status_hashtable[i] != NULL) {
-			free(status_hashtable[i]);
-		}
+		free(status_hashtable[i]);
 	}
 
 	return(EXIT_SUCCESS);

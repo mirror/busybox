@@ -518,12 +518,9 @@ static void free_job(struct job *cmd)
 		if (cmd->progs[i].redirects)
 			free(cmd->progs[i].redirects);
 	}
-	if (cmd->progs)
-		free(cmd->progs);
-	if (cmd->text)
-		free(cmd->text);
-	if (cmd->cmdbuf)
-		free(cmd->cmdbuf);
+	free(cmd->progs);
+	free(cmd->text);
+	free(cmd->cmdbuf);
 	keep = cmd->job_list;
 	memset(cmd, 0, sizeof(struct job));
 	cmd->job_list = keep;
@@ -677,8 +674,7 @@ static inline void setup_prompt_string(char **prompt_str)
 #ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (shell_context == 0) {
-		if (PS1)
-			free(PS1);
+		free(PS1);
 		PS1=xmalloc(strlen(cwd)+4);
 		sprintf(PS1, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
 		*prompt_str = PS1;

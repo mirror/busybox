@@ -111,7 +111,7 @@ typedef unsigned long ulg;
 #  define ALLOC(type, array, size) { \
       array = (type*)xcalloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
    }
-#  define FREE(array) {if (array != NULL) free(array), array=NULL;}
+#  define FREE(array) {free(array), array=NULL;}
 #else
 #  define DECLARE(type, array, size)  static type array[size]
 #  define ALLOC(type, array, size)

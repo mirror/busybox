@@ -650,7 +650,7 @@ static void clear_array(xhash *array) {
 		while (hi) {
 			thi = hi;
 			hi = hi->next;
-			if (thi->data.v.string) free(thi->data.v.string);
+			free(thi->data.v.string);
 			free(thi);
 		}
 		array->items[i] = NULL;
@@ -661,7 +661,7 @@ static void clear_array(xhash *array) {
 /* clear a variable */
 static var *clrvar(var *v) {
 
-	if (v->string && !(v->type & VF_FSTR))
+	if (!(v->type & VF_FSTR))
 		free(v->string);
 
 	v->type &= VF_DONTTOUCH;
@@ -1504,7 +1504,7 @@ static void split_f0(void) {
 		return;
 
 	is_f0_split = TRUE;
-	if (fstrings) free(fstrings);
+	free(fstrings);
 	fsrealloc(0);
 	n = awk_split(getvar_s(V[F0]), &fsplitter.n, &fstrings);
 	fsrealloc(n);
@@ -2376,8 +2376,7 @@ re_cont:
 				X.rsm = (rstream *)hash_search(fdhash, L.s);
 				if (X.rsm) {
 					R.i = X.rsm->is_pipe ? pclose(X.rsm->F) : fclose(X.rsm->F);
-					if (X.rsm->buffer)
-						free(X.rsm->buffer);
+					free(X.rsm->buffer);
 					hash_remove(fdhash, L.s);
 				}
 				if (R.i != 0)

@@ -158,10 +158,8 @@ static void mtab_free(void)
 	this = mtab_cache;
 	while (this) {
 		next = this->next;
-		if (this->device)
-			free(this->device);
-		if (this->mountpt)
-			free(this->mountpt);
+		free(this->device);
+		free(this->mountpt);
 		free(this);
 		this = next;
 	}

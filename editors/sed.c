@@ -130,8 +130,7 @@ static void destroy_cmd_strs(void)
 			regfree(sed_cmds[ncmds].sub_match);
 			free(sed_cmds[ncmds].sub_match);
 		}
-		if (sed_cmds[ncmds].replace)
-			free(sed_cmds[ncmds].replace);
+		free(sed_cmds[ncmds].replace);
 	}
 
 	/* destroy the array */

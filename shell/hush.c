@@ -810,7 +810,7 @@ static void b_reset(o_string *o)
 static void b_free(o_string *o)
 {
 	b_reset(o);
-	if (o->data != NULL) free(o->data);
+	free(o->data);
 	o->data = NULL;
 	o->maxlen = 0;
 }
@@ -880,8 +880,7 @@ static inline void setup_prompt_string(int promptmode, char **prompt_str)
 #ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 1) {
-		if (PS1)
-			free(PS1);
+		free(PS1);
 		PS1=xmalloc(strlen(cwd)+4);
 		sprintf(PS1, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
 		*prompt_str = PS1;

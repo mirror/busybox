@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.24 2002/10/26 10:19:19 andersen Exp $";
+	"$Id: vi.c,v 1.25 2002/11/28 11:27:23 aaronl Exp $";
 
 /*
  * To compile for standalone use:
@@ -383,8 +383,7 @@ extern int vi_main(int argc, char **argv)
 	} else {
 		for (; optind < argc; optind++) {
 			editing = 1;	// 0=exit, 1=one file, 2+ =many files
-			if (cfn != 0)
-				free(cfn);
+			free(cfn);
 			cfn = (Byte *) xstrdup(argv[optind]);
 			edit_file(cfn);
 		}
@@ -490,10 +489,8 @@ static void edit_file(Byte * fn)
 	offset = 0;			// no horizontal offset
 	c = '\0';
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
-	if (last_modifying_cmd != 0)
-		free(last_modifying_cmd);
-	if (ioq_start != NULL)
-		free(ioq_start);
+	free(last_modifying_cmd);
+	free(ioq_start);
 	ioq = ioq_start = last_modifying_cmd = 0;
 	adding2q = 0;
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
@@ -998,8 +995,7 @@ static void colon(Byte * buf)
 		// There is a read-able regular file
 		// make this the current file
 		q = (Byte *) xstrdup((char *) fn);	// save the cfn
-		if (cfn != 0)
-			free(cfn);		// free the old name
+		free(cfn);		// free the old name
 		cfn = q;			// remember new cfn
 
 	  vc5:
@@ -1048,8 +1044,7 @@ static void colon(Byte * buf)
 		}
 		if (strlen((char *) args) > 0) {
 			// user wants a new filename
-			if (cfn != NULL)
-				free(cfn);
+			free(cfn);
 			cfn = (Byte *) xstrdup((char *) args);
 		} else {
 			// user wants file status info
@@ -1635,8 +1630,7 @@ static Byte *new_screen(int ro, int co)
 {
 	int li;
 
-	if (screen != 0)
-		free(screen);
+	free(screen);
 	screensize = ro * co + 8;
 	screen = (Byte *) xmalloc(screensize);
 	// initialize the new screen. assume this will be a empty file.
@@ -1652,10 +1646,7 @@ static Byte *new_text(int size)
 {
 	if (size < 10240)
 		size = 10240;	// have a minimum size for new files
-	if (text != 0) {
-		//text -= 4;
-		free(text);
-	}
+	free(text);
 	text = (Byte *) xmalloc(size + 8);
 	memset(text, '\0', size);	// clear new text[]
 	//text += 4;		// leave some room for "oops"
@@ -2171,8 +2162,7 @@ extern inline void print_literal(Byte * buf, Byte * s) // copy s to buf, convert
 static void start_new_cmd_q(Byte c)
 {
 	// release old cmd
-	if (last_modifying_cmd != 0)
-		free(last_modifying_cmd);
+	free(last_modifying_cmd);
 	// get buffer for new cmd
 	last_modifying_cmd = (Byte *) xmalloc(BUFSIZ);
 	memset(last_modifying_cmd, '\0', BUFSIZ);	// clear new cmd queue
@@ -2227,9 +2217,7 @@ static Byte *text_yank(Byte * p, Byte * q, int dest)	// copy text into a registe
 	}
 	cnt = q - p + 1;
 	t = reg[dest];
-	if (t != 0) {		// if already a yank register
-		free(t);		//   free it
-	}
+	free(t);		//  if already a yank register, free it
 	t = (Byte *) xmalloc(cnt + 1);	// get a new register
 	memset(t, '\0', cnt + 1);	// clear new text[]
 	strncpy((char *) t, (char *) p, cnt);	// copy text[] into bufer
@@ -2615,8 +2603,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 		}
 	}
 	refresh(FALSE);
-	if (obufp != NULL)
-		free(obufp);
+	free(obufp);
 	obufp = (Byte *) xstrdup((char *) buf);
 	return (obufp);
 }
@@ -3454,9 +3441,7 @@ key_cmd_mode:
 			goto dc3;	// if no pat re-use old pat
 		if (strlen((char *) q) > 1) {	// new pat- save it and find
 			// there is a new pat
-			if (last_search_pattern != 0) {
-				free(last_search_pattern);
-			}
+			free(last_search_pattern);
 			last_search_pattern = (Byte *) xstrdup((char *) q);
 			goto dc3;	// now find the pattern
 		}

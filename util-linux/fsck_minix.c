@@ -1314,9 +1314,7 @@ static void free_name_list(void)
 
 	if (name_list) { 
 		for (i = 0; i < MAX_DEPTH; i++) {
-			if (name_list[i]) {
-				free(name_list[i]);
-			}
+			free(name_list[i]);
 		}
 		free(name_list);
 	}
