@@ -162,7 +162,9 @@ static struct init_action *init_action_list = NULL;
 static int  kernelVersion  = 0;
 static char termType[32]   = "TERM=linux";
 static char console[32]    = _PATH_CONSOLE;
+#ifndef CONFIG_SYSLOGD
 static char *log           = VC_5;
+#endif
 static sig_atomic_t got_cont = 0;
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
