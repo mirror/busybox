@@ -64,7 +64,7 @@ static inline Bounds boundary(const char *buffer, const char *login)
 
 /* grep -v ^login (except it only deletes the first match) */
 /* ...in fact, I think I'm going to simplify this later */
-static int del_line_matching(const char *login, const char *filename)
+int del_line_matching(const char *login, const char *filename)
 {
 	char *buffer;
 	FILE *passwd;
@@ -110,4 +110,4 @@ static int del_line_matching(const char *login, const char *filename)
 }
 
 
-/* $Id: delline.c,v 1.1 2003/07/14 20:20:45 andersen Exp $ */
+/* $Id: delline.c,v 1.2 2003/07/14 21:50:51 andersen Exp $ */
