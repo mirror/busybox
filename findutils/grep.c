@@ -41,6 +41,7 @@ static int be_quiet           = 0;
 static int invert_search      = 0;
 static int suppress_err_msgs  = 0;
 static int print_files_with_matches  = 0;
+static int fgrep_flag		 = 0;
 
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 extern char *optarg; /* in getopt.h */
@@ -51,8 +52,7 @@ static int last_line_printed = 0;
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */
 
 /* globals used internally */
-static regex_t *regexes = NULL; /* growable array of compiled regular expressions */
-static int nregexes = 0; /* number of elements in above arrary */
+static llist_t *pattern_head = NULL; /* growable list of patterns to match */
 static int matched; /* keeps track of whether we ever matched */
 static char *cur_file = NULL; /* the current file we are reading */
 
@@ -81,7 +81,6 @@ static void grep_file(FILE *file)
 	int ret;
 	int linenum = 0;
 	int nmatches = 0;
-	int i;
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 	int print_n_lines_after = 0;
 	int curpos = 0; /* track where we are in the circular 'before' buffer */
@@ -89,16 +88,30 @@ static void grep_file(FILE *file)
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
 
 	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
+		llist_t *pattern_ptr = pattern_head;
+
 		linenum++;
 
-		for (i = 0; i < nregexes; i++) {
-			/*
-			 * test for a postitive-assertion match (regexec returns success (0)
-			 * and the user did not specify invert search), or a negative-assertion
-			 * match (regexec returns failure (REG_NOMATCH) and the user specified
-			 * invert search)
-			 */
-			ret = regexec(&regexes[i], line, 0, NULL, 0);
+		while (pattern_ptr) {
+			if (fgrep_flag) {
+				if (strstr(line, pattern_ptr->data)) {
+					/* Match found */
+					ret = 0;
+				} else {
+					ret = 1;
+				}
+			} else {
+				/*
+				 * test for a postitive-assertion match (regexec returns success (0)
+				 * and the user did not specify invert search), or a negative-assertion
+				 * match (regexec returns failure (REG_NOMATCH) and the user specified
+				 * invert search)
+				 */
+				regex_t regex;
+				xregcomp(&regex, pattern_ptr->data, reflags);
+				ret = regexec(&regex, line, 0, NULL, 0);
+				regfree(&regex);
+			}
 			if ((ret == 0 && !invert_search) || (ret == REG_NOMATCH && invert_search)) {
 
 				/* if we found a match but were told to be quiet, stop here and
@@ -164,6 +177,7 @@ static void grep_file(FILE *file)
 				print_n_lines_after--;
 			}
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
+			pattern_ptr = pattern_ptr->link;
 		} /* for */
 		free(line);
 	}
@@ -193,21 +207,21 @@ static void grep_file(FILE *file)
 		matched = 1;
 }
 
-
-static void add_regex(const char *restr)
+#if 0
+static void add_pattern(char *restr)
 {
-	regexes = xrealloc(regexes, sizeof(regex_t) * (++nregexes));
-	xregcomp(&regexes[nregexes-1], restr, reflags);
+//	regexes = xrealloc(regexes, sizeof(regex_t) * (++nregexes));
+//	xregcomp(&regexes[nregexes-1], restr, reflags);
+	pattern_head = llist_add_to(pattern_head, restr);
 }
-
+#endif
 
 static void	load_regexes_from_file(const char *filename)
 {
 	char *line;
 	FILE *f = bb_xfopen(filename, "r");
 	while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
-		add_regex(line);
-		free(line);
+		pattern_head = llist_add_to(pattern_head, line);
 	}
 }
 
@@ -215,14 +229,18 @@ static void	load_regexes_from_file(const char *filename)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_regexes(void)
 {
-	if (regexes == NULL)
+	llist_t *pattern_head_ptr;
+
+	if (pattern_head == NULL)
 		return;
 
-	/* destroy all the elments in the array */
-	while (--nregexes >= 0) {
-		regfree(&(regexes[nregexes]));
+	/* destroy all the elments in the pattern list */
+	while (pattern_head) {
+		pattern_head_ptr = pattern_head;
+		pattern_head = pattern_head->link;
+		free(pattern_head_ptr->data);
+		free(pattern_head_ptr);		
 	}
-	free(regexes);
 }
 #endif
 
@@ -245,7 +263,7 @@ extern int grep_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:"
+	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:F"
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
 "A:B:C:"
 #endif
@@ -282,13 +300,16 @@ extern int grep_main(int argc, char **argv)
 				print_match_counts++;
 				break;
 			case 'e':
-				add_regex(optarg);
+				pattern_head = llist_add_to(pattern_head, strdup(optarg));
 				break;
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
 			case 'E':
 				reflags |= REG_EXTENDED;
 				break;
 #endif
+			case 'F':
+				fgrep_flag = 1;
+				break;
 			case 'f':
 				load_regexes_from_file(optarg);
 				break;
@@ -318,11 +339,11 @@ extern int grep_main(int argc, char **argv)
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
-	if (nregexes == 0) {
+	if (pattern_head == NULL) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else {
-			add_regex(argv[optind]);
+			pattern_head = llist_add_to(pattern_head, argv[optind]);
 			optind++;
 		}
 	}
