@@ -69,19 +69,36 @@ static const int NEW_MOD_VISITED = 8;
 static const int NEW_MOD_USED_ONCE = 16;
 static const int NEW_MOD_INITIALIZING = 64;
 
+static int my_query_module(const char *name, int which, void **buf,
+		size_t *bufsize, size_t *ret)
+{
+	int my_ret;
+
+	my_ret = query_module(name, which, *buf, *bufsize, ret);
+
+	if (my_ret == -1 && errno == ENOSPC) {
+		*buf = xrealloc(*buf, *ret);
+		*bufsize = *ret;
+
+		my_ret = query_module(name, which, *buf, *bufsize, ret);
+	}
+
+	return my_ret;
+}
 
 extern int lsmod_main(int argc, char **argv)
 {
 	struct module_info info;
 	char *module_names, *mn, *deps, *dn;
-	size_t bufsize, nmod, count, i, j;
+	size_t bufsize, depsize, nmod, count, i, j;
 
 	module_names = xmalloc(bufsize = 256);
-	deps = xmalloc(bufsize);
-	if (query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
+	if (my_query_module(NULL, QM_MODULES, (void **)&module_names, &bufsize,
+				&nmod)) {
 		perror_msg_and_die("QM_MODULES");
 	}
 
+	deps = xmalloc(depsize = 256);
 	printf("Module                  Size  Used by\n");
 	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
 		if (query_module(mn, QM_INFO, &info, sizeof(info), &count)) {
@@ -92,15 +109,12 @@ extern int lsmod_main(int argc, char **argv)
 			/* else choke */
 			perror_msg_and_die("module %s: QM_INFO", mn);
 		}
-		while (query_module(mn, QM_REFS, deps, bufsize, &count)) {
+		if (my_query_module(mn, QM_REFS, (void **)&deps, &depsize, &count)) {
 			if (errno == ENOENT) {
 				/* The module was removed out from underneath us. */
 				continue;
 			}
-			if (errno != ENOSPC) {
-				error_msg_and_die("module %s: QM_REFS", mn);
-			}
-			deps = xrealloc(deps, bufsize = count);
+			perror_msg_and_die("module %s: QM_REFS", mn);
 		}
 		printf("%-20s%8lu%4ld ", mn, info.size, info.usecount);
 		if (info.flags & NEW_MOD_DELETED)
