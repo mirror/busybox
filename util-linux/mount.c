@@ -92,12 +92,12 @@ static const struct mount_options mount_options[] = {
 };
 
 #if ! defined BB_MTAB
-#define do_mount(specialfile, dir, filesystemtype, flags, string_flags, useMtab, fakeIt) \
+#define do_mount(specialfile, dir, filesystemtype, flags, string_flags, useMtab, fakeIt, mtab_opts) \
 	mount(specialfile, dir, filesystemtype, flags, string_flags)
 #else
 static int
 do_mount(char* specialfile, char* dir, char* filesystemtype, 
-	long flags, void* string_flags, int useMtab, int fakeIt)
+	long flags, void* string_flags, int useMtab, int fakeIt, char* mtab_opts)
 {
     int status=0;
 
@@ -106,7 +106,7 @@ do_mount(char* specialfile, char* dir, char* filesystemtype,
 
     if ( status == 0 ) {
 	if ( useMtab==TRUE )
-	    write_mtab(specialfile, dir, filesystemtype, flags, string_flags);
+	    write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
 	return 0;
     }
     else 
@@ -157,7 +157,7 @@ parse_mount_options ( char *options, unsigned long *flags, char *strflags)
 
 int
 mount_one(char *blockDevice, char *directory, char *filesystemType,
-	   unsigned long flags, char *string_flags, int useMtab, int fakeIt)
+	   unsigned long flags, char *string_flags, int useMtab, int fakeIt, char *mtab_opts)
 {
     int status = 0;
 
@@ -182,7 +182,8 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		filesystemType++;	// hop past tab
 
 		status = do_mount (blockDevice, directory, filesystemType,
-				flags | MS_MGC_VAL, string_flags, useMtab, fakeIt);
+				flags | MS_MGC_VAL, string_flags, useMtab, 
+				fakeIt, mtab_opts);
 		if (status == 0)
 		    break;
 	    }
@@ -190,7 +191,8 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	fclose (f);
     } else {
 	status = do_mount (blockDevice, directory, filesystemType,
-			flags | MS_MGC_VAL, string_flags, useMtab, fakeIt);
+			flags | MS_MGC_VAL, string_flags, useMtab, 
+			fakeIt, mtab_opts);
     }
 
     if (status) {
@@ -203,7 +205,9 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 extern int mount_main (int argc, char **argv)
 {
-    char string_flags[1024]="";
+    char string_flags_buf[1024]="";
+    char *string_flags = string_flags_buf;
+    char *extra_opts = string_flags_buf;
     unsigned long flags = 0;
     char *filesystemType = "auto";
     char *device = NULL;
@@ -245,14 +249,13 @@ extern int mount_main (int argc, char **argv)
     argv++;
     while (i > 0 && **argv) {
 	if (**argv == '-') {
-	    while (i>0 && *++(*argv)) switch (**argv) {
+	    char *opt = *argv;
+	    while (i>0 && *++opt) switch (*opt) {
 	    case 'o':
 		if (--i == 0) {
 		    goto goodbye;
 		}
 		parse_mount_options (*(++argv), &flags, string_flags);
-		--i;
-		++argv;
 		break;
 	    case 'r':
 		flags |= MS_RDONLY;
@@ -262,8 +265,6 @@ extern int mount_main (int argc, char **argv)
 		    goto goodbye;
 		}
 		filesystemType = *(++argv);
-		--i;
-		++argv;
 		break;
 	    case 'w':
 		flags &= ~MS_RDONLY;
@@ -317,14 +318,20 @@ extern int mount_main (int argc, char **argv)
 		*string_flags = '\0';
 		parse_mount_options(m->mnt_opts, &flags, string_flags);
 		mount_one (m->mnt_fsname, m->mnt_dir, m->mnt_type, 
-			flags, string_flags, useMtab, fakeIt);
+			flags, string_flags, useMtab, fakeIt, extra_opts);
 	    }
 	}
 	endmntent (f);
     } else {
 	if (device && directory) {
+#ifdef BB_NFSMOUNT
+	    if (strcmp(filesystemType, "nfs") == 0) {
+		if (nfsmount(device, directory, &flags, &extra_opts, &string_flags, 1) != 0)
+		exit(FALSE);
+	    }
+#endif
 	    exit (mount_one (device, directory, filesystemType, 
-			flags, string_flags, useMtab, fakeIt));
+			flags, string_flags, useMtab, fakeIt, extra_opts));
 	} else {
 	    goto goodbye;
 	}

@@ -34,9 +34,10 @@
 #define BB_MKDIR
 #define BB_MKNOD
 #define BB_MKSWAP
-#define BB_MNC
+//#define BB_MNC
 #define BB_MORE
 #define BB_MOUNT
+#define BB_NFSMOUNT
 //#define BB_MT
 //#define BB_MTAB
 #define BB_MV

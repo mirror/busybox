@@ -34,11 +34,11 @@ ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS=-Wall -g -D_GNU_SOURCE -DDEBUG_INIT
+    CFLAGS+=-Wall -g -D_GNU_SOURCE -DDEBUG_INIT
     STRIP=
     LDFLAGS=
 else
-    CFLAGS=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    CFLAGS+=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS= -s
     STRIP= strip --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 

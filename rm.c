@@ -26,6 +26,7 @@
 #include <time.h>
 #include <utime.h>
 #include <dirent.h>
+#include <errno.h>
 
 static const char* rm_usage = "rm [OPTION]... FILE...\n\n"
 "Remove (unlink) the FILE(s).\n\n"
@@ -59,6 +60,7 @@ static int dirAction(const char *fileName, struct stat* statbuf)
 
 extern int rm_main(int argc, char **argv)
 {
+    struct stat statbuf;
 
     if (argc < 2) {
 	usage( rm_usage);
@@ -85,9 +87,14 @@ extern int rm_main(int argc, char **argv)
 
     while (argc-- > 0) {
 	srcName = *(argv++);
-	if (recursiveAction( srcName, recursiveFlag, FALSE, TRUE, 
-			       fileAction, dirAction) == FALSE) {
-	    exit( FALSE);
+	if (forceFlag == TRUE && lstat(srcName, &statbuf) != 0 && errno == ENOENT) {
+	    /* do not reports errors for non-existent files if -f, just skip them */
+	}
+	else {
+	    if (recursiveAction( srcName, recursiveFlag, FALSE, 
+			TRUE, fileAction, dirAction) == FALSE) {
+		exit( FALSE);
+	    }
 	}
     }
     exit( TRUE);

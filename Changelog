@@ -7,6 +7,10 @@
 	* If BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS is defined, then whatever
 	    command you define it as will be run if the init script exits.
 	* Made createPath be quiet (again thanks to Eric Delaunay).
+	* Updated to install.sh to make it more robust (thanks to Adam Di Carlo)
+	* NFS support added to mount by Eric Delaunay.  It costs 10k when compiled
+	    in, but that is still a big win for those that use NFS.
+	* Made 'rm -f' be silent for non-existant files (thanks to Eric Delaunay).
 
 	-Erik Andersen
 	
