@@ -110,10 +110,17 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		if(save_user_arg0) {
 			if((fp = fopen(status, "r")) == NULL)
 				continue;
-			if(fgets(buf, sizeof(buf), fp) != NULL) {
-				name = strchr(buf, '\n');
-				if(name != NULL)
-					*name = 0;
+			if((n=fread(buf, 1, sizeof(buf)-1, fp)) > 0) {
+				if(buf[n-1]=='\n')
+					buf[--n] = 0;
+				name = buf;
+				while(n) {
+					if(*name < ' ')
+						*name = ' ';
+					name++;
+					n--;
+				}
+				*name = 0;
 				if(buf[0])
 					curstatus.cmd = strdup(buf);
 				/* if NULL it work true also */
