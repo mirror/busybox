@@ -37,6 +37,7 @@ extern int id_main(int argc, char **argv)
 	int opt;
 	
 	cp = user = group = NULL;
+	gid = 0;
 
 	while ((opt = getopt(argc, argv, "ugr")) > 0) {
 		switch (opt) {
