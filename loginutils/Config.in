@@ -54,7 +54,6 @@ config CONFIG_FEATURE_SECURETTY
 	help
 	  Please submit a patch to add help text for this item.
 
-
 config CONFIG_PASSWD
 	bool "passwd"
 	default n
@@ -67,20 +66,6 @@ config CONFIG_SU
 	help
 	  Please submit a patch to add help text for this item.
 
-config CONFIG_FEATURE_SHADOWPASSWDS
-	bool "Support for shadow passwords"
-	default y
-	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
-	help
-	  Please submit a patch to add help text for this item.
-
-config CONFIG_USE_BB_SHADOW
-	bool "  Use busybox shadow password functions"
-	default n
-	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
-	help
-	  Please submit a patch to add help text for this item.
-
 config CONFIG_SULOGIN
 	bool "sulogin"
 	default n
@@ -90,6 +75,23 @@ config CONFIG_SULOGIN
 config CONFIG_VLOCK
 	bool "vlock"
 	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+comment "Common options for adduser, deluser, login, su"
+	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
+
+config CONFIG_FEATURE_SHADOWPASSWDS
+	bool "Support for shadow passwords"
+	default n
+	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_USE_BB_SHADOW
+	bool "  Use busybox shadow password functions"
+	default n
+	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
 	help
 	  Please submit a patch to add help text for this item.
 
