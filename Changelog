@@ -34,6 +34,8 @@
 	* Fixed tar handling of stdin and stdout
 	* Renamed "internal.h" to the more sensible "busybox.h"
 	* Preliminary support for GNU HURD.
+	* Updated my devps and devmtab kernel patches for the latest 2.2.x
+	    kernel, for those wanting to go proc-less.
 	* Tons of other bugfixes.
 
 
