@@ -842,6 +842,21 @@ Example /etc/inittab file:
 
 -------------------------------
 
+=item insmod
+
+Usage: insmod [OPTION]... MODULE [symbol=value]...
+
+Loads the specified kernel modules into the kernel.
+
+Options:
+
+		-f      Force module to load into the wrong kernel version.
+		-k      Make module autoclean-able.
+		-v      verbose output
+		-x      do not export externs
+
+-------------------------------
+
 =item kill
 
 Usage: kill [B<-signal>] process-id [process-id ...]
@@ -2024,4 +2039,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.46 2000/06/21 20:25:07 proski Exp $
+# $Id: busybox.pod,v 1.47 2000/06/21 21:03:13 andersen Exp $
