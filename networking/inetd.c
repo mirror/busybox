@@ -156,6 +156,24 @@ static int     rlim_ofile_cur = OPEN_MAX;
 static struct rlimit   rlim_ofile;
 #endif
 
+#define INETD_UNSUPPORT_BILTIN 1
+
+/* Check unsupporting builtin */
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+#undef INETD_UNSUPPORT_BILTIN
+#endif
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+#undef INETD_UNSUPPORT_BILTIN
+#endif
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+#undef INETD_UNSUPPORT_BILTIN
+#endif
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+#undef INETD_UNSUPPORT_BILTIN
+#endif
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#undef INETD_UNSUPPORT_BILTIN
+#endif
 
 static struct  servtab {
 	char    *se_service;            /* name of service */
@@ -197,35 +215,28 @@ static int      timingout;
 static sigset_t blockmask, emptymask;
 
 
-#define INETD_UNSUPPORT_BILTIN 1
-
        /* Echo received data */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
-#undef INETD_UNSUPPORT_BILTIN
 static void echo_stream(int, struct servtab *);
 static void echo_dg(int, struct servtab *);
 #endif
 	/* Internet /dev/null */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
-#undef INETD_UNSUPPORT_BILTIN
 static void discard_stream(int, struct servtab *);
 static void discard_dg(int, struct servtab *);
 #endif
 	/* Return 32 bit time since 1900 */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
-#undef INETD_UNSUPPORT_BILTIN
 static void machtime_stream(int, struct servtab *);
 static void machtime_dg(int, struct servtab *);
 #endif
 	/* Return human-readable time */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
-#undef INETD_UNSUPPORT_BILTIN
 static void daytime_stream(int, struct servtab *);
 static void daytime_dg(int, struct servtab *);
 #endif
 	/* Familiar character generator */
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
-#undef INETD_UNSUPPORT_BILTIN
 static void chargen_stream(int, struct servtab *);
 static void chargen_dg(int, struct servtab *);
 #endif
@@ -536,7 +547,11 @@ bump_nofile(void)
 	rl.rlim_cur = MIN(rl.rlim_max, rl.rlim_cur + FD_CHUNK);
 	if (rl.rlim_cur <= rlim_ofile_cur) {
 		syslog(LOG_ERR,
-			"bump_nofile: cannot extend file limit, max = %d",
+#if _FILE_OFFSET_BITS == 64
+			"bump_nofile: cannot extend file limit, max = %lld",
+#else
+			"bump_nofile: cannot extend file limit, max = %ld",
+#endif
 			rl.rlim_cur);
 		return -1;
 	}
