@@ -28,7 +28,7 @@
 #define BB_LN
 #define BB_LOADFONT
 #define BB_LOADKMAP
-#define BB_LOGGER
+//#define BB_LOGGER
 #define BB_LS
 //#define BB_MAKEDEVS
 //#define BB_MATH
@@ -54,7 +54,7 @@
 #define BB_SLEEP
 #define BB_SWAPONOFF
 #define BB_SYNC
-#define BB_SYSLOGD
+//#define BB_SYSLOGD
 #define BB_TAR
 #define BB_TOUCH
 #define BB_TRUE_FALSE

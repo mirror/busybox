@@ -1,4 +1,6 @@
 0.37
+	* Wrote a micro syslogd, and a logger util (to log things to the syslog
+	    from the command line or scripts)  With both compiled in, costs 4k.
 	* Fixed 'make install' so symlinks are installed in their proper locations.
 	* Changed the build system slightly so that features can now be enabled
 	    or disabled from the busybox.defs.h header file, without trying to 

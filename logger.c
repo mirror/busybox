@@ -118,13 +118,17 @@ extern int logger_main(int argc, char **argv)
 {
     struct sockaddr_un sunx;
     int fd, pri = LOG_USER|LOG_NOTICE;
+    int fromStdinFlag=FALSE;
     int toStdErrFlag=FALSE;
-    char *message, buf[1024];
+    char *message, buf[1024], buf1[1024];
     time_t  now;
     size_t addrLength;
 
     /* Parse any options */
     while (--argc > 0 && **(++argv) == '-') {
+	if (*((*argv)+1) == '\0') {
+	    fromStdinFlag=TRUE;
+	}
 	while (*(++(*argv))) {
 	    switch (**argv) {
 	    case 's':
@@ -146,15 +150,21 @@ extern int logger_main(int argc, char **argv)
 	}
     }
 
-    if (argc>=1)
-	if (**argv=='-') {
-	    /* read from stdin */
-	} else {
-	    message=*argv;
+    if (fromStdinFlag==TRUE) {
+	/* read from stdin */
+	int i=0;
+	char c;
+	while ((c = getc(stdin)) != EOF && i<sizeof(buf1)) {
+	    buf1[i++]=c;
 	}
-    else {
-	fprintf(stderr, "No message\n");
-	exit( FALSE);
+	message=buf1;
+    } else {
+	if (argc>=1) {
+		message=*argv;
+	} else {
+	    fprintf(stderr, "No message\n");
+	    exit( FALSE);
+	}
     }
 
     memset(&sunx, 0, sizeof(sunx));
