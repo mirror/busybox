@@ -492,7 +492,9 @@ file_header_t *get_header_tar(FILE *tar_stream)
 	}
 
 	if (fread(tar.raw, 1, 512, tar_stream) != 512) {
-		error_msg("Couldnt read header");
+		/* Unfortunatly its common for tar files to have all sorts of
+		 * trailing garbage, fail silently */
+//		error_msg("Couldnt read header");
 		return(NULL);
 	}
 	archive_offset += 512;
