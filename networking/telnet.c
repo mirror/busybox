@@ -110,8 +110,6 @@ static struct Globalvars {
 #ifdef USE_GLOBALVAR_PTR
 struct Globalvars * Gptr;
 #define G (*Gptr)
-#else
-static struct Globalvars G;
 #endif
 
 static inline void iacflush(void)
