@@ -301,7 +301,10 @@ static void doSyslogd (void)
 	signal (SIGTERM, quit_signal);
 	signal (SIGQUIT, quit_signal);
 	signal (SIGHUP,  SIG_IGN);
+	signal (SIGCHLD,  SIG_IGN);
+#ifdef SIGCLD
 	signal (SIGCLD,  SIG_IGN);
+#endif
 	signal (SIGALRM, domark);
 	alarm (MarkInterval);
 
