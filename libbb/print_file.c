@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "libbb.h"
 
 extern void bb_xprint_and_close_file(FILE *file)
