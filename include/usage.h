@@ -874,46 +874,46 @@
 	"[options] [device] .."
 #define hdparm_full_usage \
 	"Options:" \
-	" -a   get/set fs readahead\n" \
-	" -A   set drive read-lookahead flag (0/1)\n" \
-	" -b   get/set bus state (0 == off, 1 == on, 2 == tristate)\n" \
-	" -B   set Advanced Power Management setting (1-255)\n" \
-	" -c   get/set IDE 32-bit IO setting\n" \
-	" -C   check IDE power mode status\n" \
-	USAGE_GETSET_DMA(" -d   get/set using_dma flag\n") \
-	" -D   enable/disable drive defect-mgmt\n" \
-	" -f   flush buffer cache for device on exit\n" \
-	" -g   display drive geometry\n" \
-	" -h   display terse usage information\n" \
-	" -i   display drive identification\n" \
-	USAGE_HDPARM_IDENT(" -I   detailed/current information directly from drive\n") \
-	USAGE_HDPARM_IDENT(" -Istdin  similar to -I, but wants /proc/ide/" "*" "/hd?/identify as input\n") \
-	" -k   get/set keep_settings_over_reset flag (0/1)\n" \
-	" -K   set drive keep_features_over_reset flag (0/1)\n" \
-	" -L   set drive doorlock (0/1) (removable harddisks only)\n" \
-	" -m   get/set multiple sector count\n" \
-	" -n   get/set ignore-write-errors flag (0/1)\n" \
-	" -p   set PIO mode on IDE interface chipset (0,1,2,3,4,...)\n" \
-	" -P   set drive prefetch count\n" \
-	" -q   change next setting quietly\n" \
-	" -Q   get/set DMA tagged-queuing depth (if supported)\n" \
-	" -r   get/set readonly flag (DANGEROUS to set)\n" \
-	USAGE_SCAN_HWIF(" -R   register an IDE interface (DANGEROUS)\n") \
-	" -S   set standby (spindown) timeout\n" \
-	" -t   perform device read timings\n" \
-	" -T   perform cache read timings\n" \
-	" -u   get/set unmaskirq flag (0/1)\n" \
-	USAGE_UNREGISTER_HWIF(" -U   un-register an IDE interface (DANGEROUS)\n") \
-	" -v   defaults; same as -mcudkrag for IDE drives\n" \
-	" -V   display program version and exit immediately\n" \
-	USAGE_DRIVE_RESET(" -w   perform device reset (DANGEROUS)\n") \
-	" -W   set drive write-caching flag (0/1) (DANGEROUS)\n" \
-	USAGE_TRISTATE_HWIF(" -x   tristate device for hotswap (0/1) (DANGEROUS)\n") \
-	" -X   set IDE xfer mode (DANGEROUS)\n" \
-	" -y   put IDE drive in standby mode\n" \
-	" -Y   put IDE drive to sleep\n" \
-	" -Z   disable Seagate auto-powersaving mode\n" \
-	" -z   re-read partition table"
+	"\t-a   get/set fs readahead\n" \
+	"\t-A   set drive read-lookahead flag (0/1)\n" \
+	"\t-b   get/set bus state (0 == off, 1 == on, 2 == tristate)\n" \
+	"\t-B   set Advanced Power Management setting (1-255)\n" \
+	"\t-c   get/set IDE 32-bit IO setting\n" \
+	"\t-C   check IDE power mode status\n" \
+	USAGE_GETSET_DMA("\t-d   get/set using_dma flag\n") \
+	"\t-D   enable/disable drive defect-mgmt\n" \
+	"\t-f   flush buffer cache for device on exit\n" \
+	"\t-g   display drive geometry\n" \
+	"\t-h   display terse usage information\n" \
+	"\t-i   display drive identification\n" \
+	USAGE_HDPARM_IDENT("\t-I   detailed/current information directly from drive\n") \
+	USAGE_HDPARM_IDENT("\t-Istdin  similar to -I, but wants /proc/ide/" "*" "/hd?/identify as input\n") \
+	"\t-k   get/set keep_settings_over_reset flag (0/1)\n" \
+	"\t-K   set drive keep_features_over_reset flag (0/1)\n" \
+	"\t-L   set drive doorlock (0/1) (removable harddisks only)\n" \
+	"\t-m   get/set multiple sector count\n" \
+	"\t-n   get/set ignore-write-errors flag (0/1)\n" \
+	"\t-p   set PIO mode on IDE interface chipset (0,1,2,3,4,...)\n" \
+	"\t-P   set drive prefetch count\n" \
+	"\t-q   change next setting quietly\n" \
+	"\t-Q   get/set DMA tagged-queuing depth (if supported)\n" \
+	"\t-r   get/set readonly flag (DANGEROUS to set)\n" \
+	USAGE_SCAN_HWIF("\t-R   register an IDE interface (DANGEROUS)\n") \
+	"\t-S   set standby (spindown) timeout\n" \
+	"\t-t   perform device read timings\n" \
+	"\t-T   perform cache read timings\n" \
+	"\t-u   get/set unmaskirq flag (0/1)\n" \
+	USAGE_UNREGISTER_HWIF("\t-U   un-register an IDE interface (DANGEROUS)\n") \
+	"\t-v   defaults; same as -mcudkrag for IDE drives\n" \
+	"\t-V   display program version and exit immediately\n" \
+	USAGE_DRIVE_RESET("\t-w   perform device reset (DANGEROUS)\n") \
+	"\t-W   set drive write-caching flag (0/1) (DANGEROUS)\n" \
+	USAGE_TRISTATE_HWIF("\t-x   tristate device for hotswap (0/1) (DANGEROUS)\n") \
+	"\t-X   set IDE xfer mode (DANGEROUS)\n" \
+	"\t-y   put IDE drive in standby mode\n" \
+	"\t-Y   put IDE drive to sleep\n" \
+	"\t-Z   disable Seagate auto-powersaving mode\n" \
+	"\t-z   re-read partition table"
 
 #ifdef CONFIG_FEATURE_FANCY_HEAD
 #define USAGE_FANCY_HEAD(a) a
@@ -1027,9 +1027,9 @@
 	"\t-l\tthe hardware clock is kept in local time"
 
 #ifdef CONFIG_SELINUX
-#define USAGE_SELINUX(a, b) a
+  #define USAGE_SELINUX(a) a
 #else
-#define USAGE_SELINUX(a, b) b
+  #define USAGE_SELINUX(a)
 #endif
 
 #define id_trivial_usage \
@@ -1037,11 +1037,11 @@
 #define id_full_usage \
 	"Print information for USERNAME or the current user\n\n" \
 	"Options:\n" \
+	USAGE_SELINUX("\t-c\tprints only the security context\n") \
 	"\t-g\tprints only the group ID\n" \
 	"\t-u\tprints only the user ID\n" \
-	USAGE_SELINUX("\t-c\tprints only the security context\n", "") \
-	"\t-n\tprint a name instead of a number (with for -ug)\n" \
-	"\t-r\tprints the real user ID instead of the effective ID (with -ug)"
+	"\t-n\tprint a name instead of a number\n" \
+	"\t-r\tprints the real user ID instead of the effective ID"
 #define id_example_usage \
 	"$ id\n" \
 	"uid=1000(andersen) gid=1000(andersen)\n"
@@ -1298,11 +1298,11 @@
 #define ipaddr_full_usage \
 	"ipaddr {add|del} IFADDR dev STRING\n" \
 	"ipaddr {show|flush} [ dev STRING ] [ scope SCOPE-ID ]\n" \
-	"                    [ to PREFIX ] [ label PATTERN ]\n" \
-	"IFADDR := PREFIX | ADDR peer PREFIX\n" \
-	"          [ broadcast ADDR ] [ anycast ADDR ]\n" \
-	"          [ label STRING ] [ scope SCOPE-ID ]\n" \
-	"SCOPE-ID := [ host | link | global | NUMBER ]"
+	"\t\t\t[ to PREFIX ] [ label PATTERN ]\n" \
+	"\t\t\tIFADDR := PREFIX | ADDR peer PREFIX\n" \
+	"\t\t\t[ broadcast ADDR ] [ anycast ADDR ]\n" \
+	"\t\t\t[ label STRING ] [ scope SCOPE-ID ]\n" \
+	"\t\t\tSCOPE-ID := [ host | link | global | NUMBER ]"
 
 #ifndef CONFIG_FEATURE_IPCALC_FANCY
 #define ipcalc_trivial_usage \
@@ -1332,9 +1332,9 @@
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
 #define iplink_full_usage \
 	"iplink set DEVICE { up | down | arp { on | off } |\n" \
-	"                     dynamic { on | off } |\n" \
-	"                     mtu MTU }\n" \
-	"iplink show [ DEVICE ]"
+	"\t\t\tdynamic { on | off } |\n" \
+	"\t\t\tmtu MTU }\n" \
+	"\tiplink show [ DEVICE ]"
 
 #define iproute_trivial_usage \
 	"{ list | flush | { add | del | change | append |\n" \
@@ -1342,10 +1342,10 @@
 #define iproute_full_usage \
 	"iproute { list | flush } SELECTOR\n" \
 	"iproute get ADDRESS [ from ADDRESS iif STRING ]\n" \
-	"                     [ oif STRING ]  [ tos TOS ]\n" \
-	"iproute { add | del | change | append | replace | monitor } ROUTE\n" \
-	"SELECTOR := [ root PREFIX ] [ match PREFIX ] [ proto RTPROTO ]\n" \
-	"ROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]"
+	"\t\t\t[ oif STRING ]  [ tos TOS ]\n" \
+	"\tiproute { add | del | change | append | replace | monitor } ROUTE\n" \
+	"\t\t\tSELECTOR := [ root PREFIX ] [ match PREFIX ] [ proto RTPROTO ]\n" \
+	"\t\t\tROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]"
 
 #define iptunnel_trivial_usage \
 	"{ add | change | del | show } [ NAME ]\n" \
@@ -1353,9 +1353,9 @@
 	"\t\t[ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
 #define iptunnel_full_usage \
 	"iptunnel { add | change | del | show } [ NAME ]\n" \
-	"          [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
-	"          [ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
-	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]"
+	"\t\t\t[ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
+	"\t\t\t[ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
+	"\t\t\t[ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]"
 
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"
@@ -1501,8 +1501,9 @@
 #else
   #define USAGE_AUTOWIDTH(a)
 #endif
+
 #define ls_trivial_usage \
-	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h") USAGE_NOT_HUMAN_READABLE("") "k" USAGE_SELINUX("K", "") "] [filenames...]"
+	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h") USAGE_NOT_HUMAN_READABLE("") "k" USAGE_SELINUX("K") "] [filenames...]"
 #define ls_full_usage \
 	"List directory contents\n\n" \
 	"Options:\n" \
@@ -1531,8 +1532,9 @@
 	"\t-x\tlist entries by lines instead of by columns\n" \
 	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
 	USAGE_HUMAN_READABLE( \
-	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	USAGE_SELINUX("\t-k\tprint security context\n\t-K\tprint security context in long format\n", ""))
+	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n") \
+	USAGE_SELINUX("\t-k\tprint security context\n") \
+	USAGE_SELINUX("\t-K\tprint security context in long format\n")
 
 #define lsmod_trivial_usage \
 	""
@@ -1944,12 +1946,18 @@
 	"$ printf "Val=%d\\n" 5\n" \
 	"Val=5\n"
 
+#ifdef CONFIG_SELINUX
+#define USAGE_NONSELINUX(a)
+#else
+#define USAGE_NONSELINUX(a) a
+#endif
+
 #define ps_trivial_usage \
 	""
 #define ps_full_usage \
 	"Report process status\n" \
-	USAGE_SELINUX("\nOptions:\n\t-c\tshow SE Linux context", \
-		"\nThis version of ps accepts no options.")
+	USAGE_NONSELINUX("\n\tThis version of ps accepts no options.") \
+	USAGE_SELINUX("\nOptions:\n\t-c\tshow SE Linux context")
 
 #define ps_example_usage \
 	"$ ps\n" \
@@ -2172,7 +2180,7 @@
 	USAGE_NOT_FANCY_SLEEP("Pause for N seconds.") \
 	USAGE_FANCY_SLEEP( \
 	"Pause for a time equal to the total of the args given, where each arg can\n" \
-	"have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
+	"\t\thave an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
 #define sleep_example_usage \
 	"$ sleep 2\n" \
 	"[2 second delay results]\n" \
@@ -2559,8 +2567,8 @@
 	"hello world\n"
 
 #define traceroute_trivial_usage \
-	"[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n\
-	[-s src_addr] [-t tos] [-w wait] host [data size]"
+	"[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n"\
+	"\t[-s src_addr] [-t tos] [-w wait] host [data size]"
 #define traceroute_full_usage \
 	"trace the route ip packets follow going to \"host\"\n" \
 	"Options:\n" \
@@ -2803,7 +2811,7 @@
 
 #define wget_trivial_usage \
 	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n" \
-	"\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
+	"\t\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
 #define wget_full_usage \
 	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \

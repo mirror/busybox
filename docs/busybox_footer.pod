@@ -6,9 +6,17 @@ Erik Andersen <andersen@codepoet.org>
 
 =head1 AUTHORS
 
-The following people have contributed code to BusyBox whether
-they know it or not.
+The following people have contributed code to BusyBox whether they know it or
+not.  If you have written code included in BusyBox, you should probably be
+listed here so you can obtain your bit of eternal glory.  If you should be
+listed here, or the description of what you have done needs more detail, or is
+incorect, please send in an update.
 
+
+=for html <br>
+
+Emanuele Aina <emanuele.aina@tiscali.it>
+	run-parts
 
 =for html <br>
 
@@ -16,19 +24,32 @@ Erik Andersen <andersen@codepoet.org>
 
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
+    Lots of tedious effort writing these boring docs that
+    nobody is going to actually read.
 
 =for html <br>
 
-John Beppu <beppu@codepoet.org>
+Laurence Anderson <l.d.anderson@warwick.ac.uk>
 
-    du, head, nslookup, sort, tee, uniq (so Kraai could rewrite them ;-),
-    documentation
+    rpm2cpio, unzip, get_header_cpio, read_gz interface, rpm
+
+=for html <br>
+
+Jeff Angielski <jeff@theptrgroup.com>
+
+    ftpput, ftpget
 
 =for html <br>
 
 Edward Betts <edward@debian.org>
 
-    expr, hostid, logname, tty, wc, whoami, yes
+    expr, hostid, logname, whoami
+
+=for html <br>
+
+John Beppu <beppu@codepoet.org>
+
+    du, nslookup, sort
 
 =for html <br>
 
@@ -40,19 +61,45 @@ Brian Candler <B.Candler@pobox.com>
 
 Randolph Chung <tausq@debian.org>
 
-    fbset, ping, hostname, and mkfifo
+    fbset, ping, hostname
 
 =for html <br>
 
 Dave Cinege <dcinege@psychosis.com>
 
-    more(v2), makedevs, modularization, various fixes
+    more(v2), makedevs, dutmp, modularization, auto links file,
+    various fixes, Linux Router Project maintenance
+
+=for html <br>
+
+Jordan Crouse <jordan@cosmicpenguin.net>
+
+	ipcalc
+
+=for html <br>
+
+Magnus Damm <damm@opensource.se>
+
+    tftp client insmod powerpc support
 
 =for html <br>
 
 Larry Doolittle <ldoolitt@recycle.lbl.gov>
 
-    various fixes, shell rewrite
+    pristine source directory compilation, lots of patches and fixes.
+
+=for html <br>
+
+Glenn Engel <glenne@engel.org>
+
+    httpd
+
+=for html <br>
+
+Gennady Feldman <gfeldman@gena01.com>
+
+    Sysklogd (single threaded syslogd, IPC Circular buffer support,
+    logread), various fixes.
 
 =for html <br>
 
@@ -62,39 +109,52 @@ Karl M. Hegbloom <karlheg@debian.org>
 
 =for html <br>
 
-Sterling Huxley <sterling@europa.com>
-
-    vi (!!!)
-
-=for html <br>
-
 Daniel Jacobowitz <dan@debian.org>
 
     mktemp.c
 
 =for html <br>
 
-Matt Kraai <kraai@alumni.carnegiemellon.edu>
+Matt Kraai <kraai@alumni.cmu.edu>
 
-    documentation, bugfixes
+    documentation, bugfixes, test suite
+
+=for html <br>
+
+Stephan Linz <linz@li-pro.net>
+
+	ipcalc, Red Hat equivalence
 
 =for html <br>
 
 John Lombardo <john@deltanet.com>
 
-    dirname, tr
+    tr
 
 =for html <br>
 
-Glenn McGrath <bug1@netconnect.com.au>
+Glenn McGrath <bug1@optushome.com.au>
 
-    ar.c
+    ar, dpkg, dpkg-deb
+
+=for html <br>
+
+Manuel Novoa III <mjn3@codepoet.org>
+
+    cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,
+    mesg, vconfig, make_directory, parse_mode, dirname, mode_string,
+    get_last_path_component, simplify_path, and a number trivial libbb routines
+
+    also bug fixes, partial rewrites, and size optimizations in
+    ash, basename, cal, cmp, cp, df, du, echo, env, ln, logname, md5sum, mkdir,
+    mv, realpath, rm, sort, tail, touch, uname, watch, arith, human_readable,
+    interface, dutmp, ifconfig, route
 
 =for html <br>
 
 Vladimir Oleynik <dzo@simtreas.ru>
 
-    cmdedit, xargs(current), httpd(current);
+    cmdedit; xargs(current), httpd(current);
     ports: ash, crond, fdisk, inetd, stty, traceroute, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
@@ -103,7 +163,20 @@ Vladimir Oleynik <dzo@simtreas.ru>
 
 Bruce Perens <bruce@pixar.com>
 
-    Original author of BusyBox. His code is still in many apps.
+    Original author of BusyBox in 1995, 1996. Some of his code can
+    still be found hiding here and there...
+
+=for html <br>
+
+Tim Riker <Tim@Rikers.org>
+
+    bug fixes, member of fan club
+
+=for html <br>
+
+Kent Robotti <robotti@metconnect.com>
+
+    reset, tons and tons of bug reports and patches.
 
 =for html <br>
 
@@ -133,7 +206,8 @@ Linus Torvalds <torvalds@transmeta.com>
 
 Mark Whitley <markw@codepoet.org>
 
-    sed remix, bug fixes, style-guide, etc.
+    grep, sed, cut, xargs(previous),
+    style-guide, new-applet-HOWTO, bug fixes, etc.
 
 =for html <br>
 
@@ -149,10 +223,11 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =for html <br>
 
-Glenn Engel <glenne@engel.org>
+Tito Ragusa <farmatito@tiscali.it>
 
-    httpd
+	devfsd and size optimizations in strings, openvt and deallocvt.
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.14 2004/03/27 09:40:15 andersen Exp $
+# $Id: busybox_footer.pod,v 1.15 2004/04/06 17:52:02 andersen Exp $
+

@@ -14,6 +14,8 @@ Emanuele Aina <emanuele.aina@tiscali.it>
 Erik Andersen <andersen@codepoet.org>
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
+    Lots of tedious effort writing these boring docs that
+    nobody is going to actually read.
 
 Laurence Anderson <l.d.anderson@warwick.ac.uk>
     rpm2cpio, unzip, get_header_cpio, read_gz interface, rpm
