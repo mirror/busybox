@@ -224,7 +224,7 @@ static void message(int device, char *fmt, ...)
 	}
 }
 
-#define CTRLCHAR(ch)	((ch)&0x1f)
+#define CTRLCHAR(ch)	((ch)-0x40)
 
 /* Set terminal settings to reasonable defaults */
 void set_term(int fd)
@@ -242,7 +242,7 @@ void set_term(int fd)
 	tty.c_cc[VSTART] = CTRLCHAR('Q');	/* Ctrl-Q */
 	tty.c_cc[VSTOP]  = CTRLCHAR('S');	/* Ctrl-S */
 	tty.c_cc[VSUSP]  = CTRLCHAR('Z');	/* Ctrl-Z */
-	
+
 	/* use line dicipline 0 */
 	tty.c_line = 0;
 

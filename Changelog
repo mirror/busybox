@@ -29,6 +29,9 @@
 	    Matt Kraai <kraai@alumni.carnegiemellon.edu>.
 	* Reorganized signal names in kill.c for better architecture support 
 	    -- patch thanks to simon wood <simon@mungewell.uklinux.net>
+	* In 0.43, backspace and delete worked properly, but with 0.45, 
+	    it just echoed a ^? for backspace, and ^H for control-h.  This
+	    was due to a broken macro in init.c, that is now fixed.
 
 
 	 -Erik Andersen
