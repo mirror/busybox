@@ -94,78 +94,52 @@
             <ul>
 
               <p>
-              <li><b>26 October 2002 -- BusyBox 0.60.5 released</b><p> 
+              <li><b>15 July 2003 -- BusyBox 1.0.0-pre1 released</b><p> 
 
-		I am very pleased to announce that the BusyBox 0.60.5 (stable)
-		is now available for download.  This is a bugfix release for
-		the stable series to address all the problems that have turned
-		up since the last release.  Unfortunately, the previous release
-		had a few nasty bugs (i.e. init could deadlock, gunzip -c tried
-		to delete source files, cp -a wouldn't copy symlinks, and init
-		was not always providing controlling ttys when it should have).
-		I know I said that the previous release would be the end of the
-		0.60.x series.  Well, it turns out I'm a liar.  But this time I
-		mean it (just like last time ;-).  This will be the last
-		release for the 0.60.x series --  all further development work
-		will be done for the development busybox tree.  Expect the development 
-		version to have its first real release very very soon now...
-
+		The busybox development series has been under construction for
+		nearly two years now.  Which is just entirely too long...  So
+		it is with great pleasure that I announce the imminent release
+		of a new stable series.  Due to the huge number of changes
+		since the last stable release (and the usual mindless version
+		number inflation) I am branding this new stable series verison
+		1.0.x...
 		<p>
-		The <a href="downloads/Changelog.full">changelog</a> has all
-		the details.  As usual you can <a href="downloads">download busybox here</a>.
+
+		The point of "-preX" versions is to get a larger group of
+		people and vendors testing, so any problems that turn up can be
+		fixed prior to the magic 1.0.0 release (which should happen
+		later this month)...  I plan to release BusyBox 1.0.0-pre2 next
+		Monday (July 21st), and, if necessary, -pre3 on July 28th.
+		Hopefully (i.e. unless some horrible catastrophic problem turns
+		up) the final BusyBox 1.0.0 release should be ready by the end
+		of July.
+		<p>
+		
+		If you have submitted patches, and they are not in this release
+		and I have not emailed you explaining why your patch was
+		rejected, it is safe to say that I have lost your patch.  That
+		happens sometimes.  Please do <B>NOT</b> send all your patches,
+		support questions, etc, directly to Erik.  I get hundreds of
+		emails every day (which is why I end up losing patches
+		sometimes in the flood)...  The busybox mailing list is the
+		right place to send your patches, support questions, etc.
+		<p>
+
+		I would like to especially thank Vladimir Oleynik (vodz), Glenn
+		McGrath (bug1), Robert Griebl (sandman), and Manuel Novoa III
+		(mjn3) for their significant efforts and contributions that
+		have made this release possible.
+		<p>
+
+		As usual you can <a href="downloads">download busybox here</a>.
+		You don't really need to bother with the 
+		<a href="downloads/Changelog">changelog</a>, as the changes
+		vs the stable version are way too extensive to easily enumerate.
+		But you can take a look if you really want too.
+
 		<p>Have Fun!
 		<p>
 
-
-              <p>
-              <li><b>18 September 2002 -- BusyBox 0.60.4 released</b><p> 
-
-		I am very pleased to announce that the BusyBox 0.60.4
-		(stable) is now available for download.  This is primarily 
-		a bugfix release for the stable series to address all
-		the problems that have turned up since the last
-		release.  This will be the last release for the 0.60.x series.
-		I mean it this time --  all further development work will be done 
-		on the development busybox tree, which is quite solid now and
-		should soon be getting its first real release.
-
-		<p>
-		The <a href="downloads/Changelog.full">changelog</a> has all
-		the details.  As usual you can <a href="downloads">download busybox here</a>.
-		<p>Have Fun!
-		<p>
-
-
-              <p>
-              <li><b>27 April 2002 -- BusyBox 0.60.3 released</b><p> 
-
-		I am very pleased to announce that the BusyBox 0.60.3 (stable) is
-		now available for download.  This is primarily a bugfix release
-		for the stable series.  A number of problems have turned up since 
-		the last release, and this should address most of those problems.
-		This should be the last release for the 0.60.x series.  The 
-		development busybox tree has been progressing nicely, and will
-		hopefully be ready to become the next stable release.
-
-		<p>
-		The <a href="downloads/Changelog">changelog</a> has all
-		the details.  As usual you can <a href="downloads">download busybox here</a>.
-		<p>Have Fun!
-		<p>
-
-
-              <p>
-              <li><b>6 March 2002 -- busybox.net now has mirrors!</b><p> 
-
-                Busybox.net is now much more available, thanks to
-		the fine folks at <a href= "http://i-netinnovations.com/">http://i-netinnovations.com/</a>
-		who are providing hosting for busybox.net and
-		uclibc.org.  In addition, we now have two mirrors:
-		<a href= "http://busybox.linuxmagic.com/">http://busybox.linuxmagic.com/</a>
-		in Canada and 
-		<a href= "http://busybox.csservers.de/">http://busybox.csservers.de/</a>
-		in Germany.  I hope this makes things much more
-		accessible for everyone!
 
 
               <p>
@@ -230,16 +204,16 @@
               downloaded from <a href="downloads">http://www.busybox.net/downloads</a>.
 	      <p>
 
-	  BusyBox now has <b>two</b> CVS trees.  The "busybox-stable"
-	  tree contains the latest updates to the 0.60.x stable series.
-	  The "busybox" tree contains the latest development version
-	  of busybox.<br>
+	  BusyBox now has <b>two</b> CVS trees.  The "busybox-stable" tree
+	  contains the older 0.60.x stable series.  The "busybox" tree contains
+	  the latest 1.0.0-preX development version of busybox.<br>
+
             <ul>
 		  <li><a href= "downloads/snapshots/">Daily Snapshots of the the latest 
 		    stable, and the latest development CVS source trees can be found right here</a>. 
 		  <br>
 		  </li><li><a href="/cgi-bin/cvsweb/busybox/">Click here to browse the CVS 
-		      tree for the development version of BusyBox</a>
+		      tree for the 1.0.0-preX development version of BusyBox</a>
 		  </li><li><a href="/cgi-bin/cvsweb/busybox.stable/">Click here to browse
 		    the CVS tree for the stable 0.60.x version of BusyBox</a>.
 		    </li><li>Anonymous <a href="cvs_anon.html">CVS
@@ -316,8 +290,8 @@
               statically link a "Hello World" application under x86
               that only takes 4k (as opposed to 200k under GNU
               libc). It can do dynamic linking too and works nicely
-              with BusyBox to create very small embedded
-              systems.</li>
+              with BusyBox to create very small embedded Linux systems.
+	      </li>
             </ul>
           </td>
         </tr>
@@ -325,8 +299,7 @@
 	<!-- Begin Projects section -->
         <tr>
           <td bgcolor="#CCCCC0" align="center"><a name=
-          "projects"><big><b>Products/Projects Using
-          BusyBox</b></big></a></td>
+          "projects"><big><b>Products/Projects Using BusyBox</b></big></a></td>
         </tr>
 
         <tr>
@@ -336,125 +309,129 @@
             them to the web page:</p>
 
             <ul>
-              <li><a href=
-              "http://cvs.debian.org/boot-floppies/">Debian
-              installer (boot floppies) project</a></li>
+	    
 
-              <li><a href="http://redhat.com/">Red Hat 7.2
-              installer</a></li>
+              <li><a href="/cgi-bin/cvsweb/buildroot/">buildroot</a> a configurable
+	      means for building your own busybox/uClibc based system systems.
 
-              <li><a href=
+              </li><li><a href=
+              "http://cvs.debian.org/boot-floppies/">
+	      Debian installer (boot floppies) project</a>
+
+              </li><li><a href="http://redhat.com/">Red Hat 7.2
+              installer</a>
+
+              </li><li><a href=
               "http://distro.ibiblio.org/pub/Linux/distributions/slackware/source/rootdsks/">
-              Slackware Installer</a></li>
+              Slackware Installer</a>
 
-              <li><a href="http://www.gentoo.org/">Gentoo Linux install/boot CDs</a>
-              <li><a href="http://www.mandrake.com/">The Mandrake installer</a>
+              </li><li><a href="http://www.gentoo.org/">Gentoo Linux install/boot CDs</a>
+              </li><li><a href="http://www.mandrake.com/">The Mandrake installer</a>
 
-              <li><a href="http://www.linuxrouter.org/">Linux
-              Router Project</a></li>
+              </li><li><a href="http://www.linuxrouter.org/">Linux
+              Router Project</a>
 
-              <li><a href="http://linux-embedded.org/">LEM</a></li>
+              </li><li><a href="http://linux-embedded.org/">LEM</a>
 
-              <li><a href=
-              "http://www.toms.net/rb/">tomsrtbt</a></li>
+              </li><li><a href=
+              "http://www.toms.net/rb/">tomsrtbt</a>
 
-              <li><a href="http://www.stormix.com/">Stormix
-              Installer</a></li>
+              </li><li><a href="http://www.stormix.com/">Stormix
+              Installer</a>
 
-              <li><a href=
+              </li><li><a href=
               "http://www.emacinc.com/linux2_sbc.htm">EMAC Linux
-              2.0 SBC</a></li>
+              2.0 SBC</a>
 
-              <li><a href="http://www.trinux.org/">Trinux</a></li>
+              </li><li><a href="http://www.trinux.org/">Trinux</a>
 
-              <li><a href="http://oddas.sourceforge.net/">ODDAS
-              project</a></li>
+              </li><li><a href="http://oddas.sourceforge.net/">ODDAS
+              project</a>
 
-              <li><a href="http://www.kerbango.com/">The Kerbango
-              Internet Radio</a></li>
+              </li><li><a href="http://byld.sourceforge.net/">Build Your
+              Linux Disk</a>
 
-              <li><a href=
-              "http://www.linuxmagic.com/vpn/">LinuxMagic VPN
-              Firewall</a></li>
+              </li><li><a href=
+              "http://homepages.ihug.co.nz/~ichi/baslinux.html">BasicLinux</a>
 
-              <li><a href="http://byld.sourceforge.net/">Build Your
-              Linux Disk</a></li>
+              </li><li><a href=
+              "http://ibiblio.org/pub/Linux/system/recovery">Zdisk</a>
 
-              <li><a href=
-              "http://homepages.ihug.co.nz/~ichi/baslinux.html">BasicLinux</a></li>
+              </li><li><a href="http://www.adtran.com">AdTran -
+              VPN/firewall VPN Linux Distribution</a>
 
-              <li><a href=
-              "http://ibiblio.org/pub/Linux/system/recovery">Zdisk</a></li>
+              </li><li><a href="http://mkcdrec.ota.be/">mkCDrec - make
+              CD-ROM recovery</a>
 
-              <li><a href="http://www.adtran.com">AdTran -
-              VPN/firewall VPN Linux Distribution</a></li>
-
-              <li><a href="http://mkcdrec.ota.be/">mkCDrec - make
-              CD-ROM recovery</a></li>
-
-              <li><a href=
+              </li><li><a href=
               "http://recycle.lbl.gov/~ldoolitt/bse/">Linux on
-              nanoEngine</a></li>
+              nanoEngine</a>
 
-              <li><a href=
-              "http://www.zelow.no/floppyfw/">Floppyfw</a></li>
+              </li><li><a href=
+              "http://www.zelow.no/floppyfw/">Floppyfw</a>
 
-              <li><a href="http://midori.transmeta.com/">Midori
+              </li><li><a href="http://midori.transmeta.com/">Midori
               Linux</a> - <a href=
               "http://www.wired.com/news/technology/0,1282,42399,00.html">
               Article on Midori Linux</a> on <a href=
               "http://www.wired.com">Wired</a>. Quote from Erik at
               the top of <a href=
               "http://www.wired.com/news/technology/0,1282,42399-2,00.html">
-              this page</a></li>
+              this page</a>
 
-              <li><a href="http://www.ltsp.org/">Linux Terminal
-              Server Project</a></li>
+              </li><li><a href="http://www.ltsp.org/">Linux Terminal
+              Server Project</a>
 
-              <li><a href=
-              "http://www.devil-linux.org/">Devil-Linux</a></li>
+              </li><li><a href=
+              "http://www.devil-linux.org/">Devil-Linux</a>
 
-              <li><a href=
-              "http://dutnux.sourceforge.net/">DutNux</a></li>
+              </li><li><a href=
+              "http://dutnux.sourceforge.net/">DutNux</a>
 
-              <li><a href=
-              "http://www.microwerks.net/~hugo/mindi/">Mindi</a></li>
+              </li><li><a href=
+              "http://www.microwerks.net/~hugo/mindi/">Mindi</a>
 
-              <li><a href=
-              "http://www.tzi.de/~pharao90/ttylinux">ttylinux</a></li>
+              </li><li><a href=
+              "http://www.tzi.de/~pharao90/ttylinux">ttylinux</a>
 
-              <li><a href="http://www.coyotelinux.com/">Coyote Linux</a></li>
+              </li><li><a href="http://www.coyotelinux.com/">Coyote Linux</a>
 
-              <li><a href="http://www.partimage.org/">Partition
-              Image</a></li>
+              </li><li><a href="http://www.partimage.org/">Partition
+              Image</a>
 
-              <li><a href="http://www.fli4l.de/">fli4l the on(e)-disk-router</a></li>
+              </li><li><a href="http://www.fli4l.de/">fli4l the on(e)-disk-router</a>
 
-              <li><a href="http://tuxscreen.net">Tuxscreen Linux
-              Phone</a></li>
+              </li><li><a href="http://tinfoilhat.cultists.net/">Tinfoil
+              Hat Linux</a>
 
-              <li><a href="http://tinfoilhat.cultists.net/">Tinfoil
-              Hat Linux</a></li>
+              </li><li><a href="http://familiar.handhelds.org/">Familiar Linux</a> - a linux distribution for handheld computers
+              </li><li><a href="http://rescuecd.sourceforge.net/">Timo's Rescue CD Set</a>
+              </li><li><a href="http://sf.net/projects/netstation/">Netstation</a>
+              </li><li><a href="http://www.fiwix.org/">GNU/Fiwix Operating System</a>
+              </li><li><a href="http://www.softcraft.com/">Generations Linux</a>
+              </li><li><a href="http://systemimager.org/relatedprojects/">SystemImager / System Installation Suite</a>
+              </li><li><a href="http://www.bablokb.de/gendist/">GENDIST distribution generator</a>
+              </li><li><a href="http://diet-pc.sourceforge.net/">DIET-PC embedded Linux thin client distribution</a>
+              </li><li><a href="http://byzgl.sourceforge.net/">BYZantine Gnu/Linux</a>
+              </li><li><a href="http://dban.sourceforge.net/">Darik's Boot and Nuke</a>
+              </li><li><a href="http://www.timesys.com/">TimeSys real-time Linux</a>
+              </li><li><a href="http://movix.sf.net/">MoviX</a> -- boots from CD and automatically plays every video file on the CD
+              </li><li><a href="http://katamaran.sourceforge.net">katamaran</a>Linux, X11, xfce windowmanager, based on BusyBox
+              </li><li><a href="http://www.sourceforge.net/projects/simplygnustep"></a>Prometheus SimplyGNUstep
+              </li><li><a href="http://www.renyi.hu/~ekho/lowlife/">lowlife</a>A documentation project on how to make your own uClibc-based systems and floppy.
+              </li><li><a href="http://metadistros.hispalinux.es/">Metadistros</a>a project to allow you easily make Live-CD distributions.
+              </li><li><a href="http://salvare.sourceforge.net/">Salvare</a>More Linux than tomsrtbt but less than Knoppix, aims to provide a useful workstation as well as a rescue disk.
+              </li><li><a href="http://thinstation.sourceforge.net/">thinstation</a>convert standard PCs into full-featured diskless thinclients.
 
-              <li><a href="http://zaurus.sourceforge.net/">Sharp Zaurus
-	      PDA</a></li>
-
-              <li><a href="http://familiar.handhelds.org/">Familiar Linux</a> - a linux distribution for handheld computers</li>
-              <li><a href="http://rescuecd.sourceforge.net/">Timo's Rescue CD Set</a>
-              <li><a href="http://sf.net/projects/netstation/">Netstation</a>
-              <li><a href="http://www.isilver-inc.com/">I-Silver Linux appliance servers</a>
-              <li><a href="http://www.fiwix.org/">GNU/Fiwix Operating System</a>
-              <li><a href="http://www.cyclades.com/">Cyclades-TS and other Cyclades products</a>
-              <li><a href="http://www.softcraft.com/">Generations Linux</a>
-              <li><a href="http://systemimager.org/relatedprojects/">SystemImager / System Installation Suite</a>
-              <li><a href="http://www.bablokb.de/gendist/">GENDIST distribution generator</a>
-              <li><a href="http://diet-pc.sourceforge.net/">DIET-PC embedded Linux thin client distribution</a>
-              <li><a href="http://byzgl.sourceforge.net/">BYZantine Gnu/Linux</a>
-              <li><a href="http://dban.sourceforge.net/">Darik's Boot and Nuke</a>
-              <li><a href="http://www.timesys.com/">TimeSys real-time Linux</a>
-              <li><a href="http://movix.sf.net/">MoviX</a> -- boots from CD and automatically plays every video file on the CD
-              <li><a href="http://katamaran.sourceforge.net"></a>Linux, X11, xfce windowmanager, based on BusyBox
-              <li><a href="http://www.sourceforge.net/projects/simplygnustep"></a>Prometheus SimplyGNUstep
+              </li><li><a href="http://tuxscreen.net">Tuxscreen Linux Phone</a>
+              </li><li><a href="http://www.kerbango.com/">The Kerbango Internet Radio</a>
+              </li><li><a href= "http://www.linuxmagic.com/vpn/">LinuxMagic VPN Firewall</a>
+              </li><li><a href="http://www.isilver-inc.com/">I-Silver Linux appliance servers</a>
+              </li><li><a href="http://zaurus.sourceforge.net/">Sharp Zaurus PDA</a>
+              </li><li><a href="http://www.cyclades.com/">Cyclades-TS and other Cyclades products</a>
+              </li><li><a href="http://www.buffalo-technology.com/products/wireless/wbr-g54.htm">Buffalo WBR-G54 wireless router</a>
+              </li><li><a href="http://catalog.belkin.com/IWCatProductPage.process?Merchant_Id=&Section_Id=201522&pcount=&Product_Id=136493">Belkin 54g Wireless DSL/Cable Gateway Router</a>
+              </li><li><a href="http://www.linksys.com/products/product.asp?prid=508">Linksys WRT54G - Wireless-G Broadband Router</a>
 
 
             </ul>
