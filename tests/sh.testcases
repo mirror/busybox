@@ -69,12 +69,12 @@ rm -f fish
 TMP=fish && >$TMP
 ls fish
 
-# ash, lash, and hush do not create fish; bash and ksh do.
+# ash, lash, and hush do not create wish; bash and ksh do.
 # Thanks to Tapani Tarvainen <tt@mit.jyu.fi> for this stress test.
 unset TMP
-rm -f fish
-TMP=fish >$TMP
-ls fish
+rm -f wish
+TMP=wish >$TMP
+ls wish
 
 # The following example shows that hush's parser is
 # not _really_ Bourne compatible
@@ -86,4 +86,4 @@ PATH=$PATH:.
 echo $a
 
 # assuming the shell wasn't too buggy, clean up the mess
-rm -f a=b fish foo
+rm -f a=b wish fish foo
