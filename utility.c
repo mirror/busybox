@@ -1058,6 +1058,7 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 	const char *retryText;
 	int ch;
 	int found;
+	int len;
 
 	retryPat = NULL;
 	retryText = NULL;
@@ -1084,13 +1085,17 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 				if (*text == ch)
 					found = TRUE;
 			}
-			if (found == FALSE)
-				continue;
+			len=strlen(text);
+			if (found == FALSE && len!=0) {
+				return FALSE;
+			}
 			if (found == TRUE) {
-				//printf("Got a match.  pattern='%s'  text='%s'\n", pattern, text);
-				if (retryPat || retryText) {
-					pattern = retryPat;
-					text = ++retryText;
+				if (strlen(pattern)==0 && len==1) {
+					return TRUE;
+				}
+				if (len!=0) {
+					text++;
+					continue;
 				}
 			}
 

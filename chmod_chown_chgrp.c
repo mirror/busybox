@@ -48,7 +48,7 @@ static const char chgrp_usage[] = "chgrp [OPTION]... GROUP FILE...\n\n"
 
 	"\nOptions:\n\t-R\tchange files and directories recursively\n";
 static const char chown_usage[] =
-	"chown [OPTION]...  OWNER[.[GROUP] FILE...\n\n"
+	"chown [OPTION]...  OWNER[<.|:>[GROUP] FILE...\n\n"
 	"Change the owner and/or group of each FILE to OWNER and/or GROUP.\n"
 
 	"\nOptions:\n\t-R\tchange files and directories recursively\n";
@@ -140,6 +140,8 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 				goto bad_group;
 		} else {
 			groupName = strchr(*argv, '.');
+			if (groupName == NULL)
+				groupName = strchr(*argv, ':');
 			if (groupName) {
 				*groupName++ = '\0';
 				gid = strtoul(groupName, &p, 10);
@@ -169,7 +171,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 		fatalError( "%s: too few arguments\n", invocationName);
 	}
 	while (argc-- > 1) {
-		if (recursiveAction (*(++argv), recursiveFlag, TRUE, FALSE, 
+		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 
 					fileAction, fileAction, NULL) == FALSE)
 			exit(FALSE);
 	}
