@@ -401,23 +401,9 @@
 #endif
 //
 #ifdef BB_DPKG_DEB
-	#ifndef BB_AR
-		#define BB_AR
-	#endif
 	#ifndef BB_TAR
 		#define BB_TAR
 	#endif 
-	#ifndef BB_FEATURE_TAR_GZIP
-		#define BB_FEATURE_TAR_GZIP
-	#endif
-#endif
-//
-#ifdef BB_TAR
-	#ifdef BB_FEATURE_TAR_GZIP
-		#ifndef BB_GUNZIP
-			#define BB_GUNZIP
-		#endif
-	#endif
 #endif
 //
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
