@@ -59,6 +59,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 	return ptr;
 }
 #endif
+#endif /* DMALLOC */
 
 #ifdef L_xstrdup
 extern char * bb_xstrdup (const char *s) {
@@ -75,7 +76,6 @@ extern char * bb_xstrdup (const char *s) {
 	return t;
 }
 #endif
-#endif /* DMALLOC */
 
 #ifdef L_xstrndup
 extern char * bb_xstrndup (const char *s, int n) {
