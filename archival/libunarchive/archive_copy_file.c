@@ -31,7 +31,8 @@ extern void archive_copy_file(const archive_handle_t *archive_handle, const int 
 		} else {
 			size = chunksize;
 		}
-		archive_xread_all(archive_handle, buffer, size);
+//		archive_xread_all(archive_handle, buffer, size);
+		size = archive_xread(archive_handle, buffer, size);
 
 		if (write(dst_fd, buffer, size) != size) {
 			error_msg_and_die ("Short write");
