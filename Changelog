@@ -1,8 +1,8 @@
 0.34
-	* ls -l now displays lnik names outside the current directory,
+	* ls -l now displays link names outside the current directory,
 	    Patch thanks to Eric Delaunay
 	* init now properly handles sparc serial consoles and does a
-	    better job of finding the real consol device rather than using
+	    better job of finding the real console device rather than using
 	    /dev/console which doesn't support job control. Patch also
 	    thanks to Eric Delaunay.
 	* more started to read from stdin after the last file was finished, and 
