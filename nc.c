@@ -111,6 +111,8 @@ int nc_main(int argc, char **argv)
 						exit(0);
 					ofd = fileno(stdout);
 				} else {
+					if (nread == 0)
+						shutdown(sfd, 1);
 					ofd = sfd;
 				}
 
