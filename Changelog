@@ -1,7 +1,7 @@
 0.47pre
 
 	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
-	* added 'renice' command -- thanks to Dave Cinege <dcinege@psychosis.com>
+	* added 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
 	* 'make install' now creates relative symlinks, and added a new
 	    'make install-hardlinks' target to (tada) install hardlinks.
 	* syslogd can now log messages to a remote host -- patch thanks
@@ -13,7 +13,10 @@
 	    Sterling Huxley <sterling@europa.com>
 	* lsmod now uses the query_module syscall, rather then /proc
 	* Added 'rdate' command from Sterling Huxley <sterling@europa.com>
-	* Added 'getopt' command from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
+	* Added 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
+	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
+	    wouldn't work (since it thought -r was an option).  Doh!
+
 
 
 	 -Erik Andersen
