@@ -30,7 +30,7 @@ LIBBB_SRC:= \
 	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
 	full_write.c get_last_path_component.c get_line_from_file.c get_ug_id.c \
-	get_terminal_width_height.c herror_msg.c herror_msg_and_die.c \
+	get_terminal_width_height.c hash_fd.c herror_msg.c herror_msg_and_die.c \
 	human_readable.c inet_common.c inode_hash.c interface.c isdirectory.c \
 	kernel_version.c last_char_is.c llist_add_to.c login.c loop.c \
 	make_directory.c mode_string.c module_syscalls.c mtab.c mtab_file.c \

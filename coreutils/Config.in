@@ -373,14 +373,6 @@ config CONFIG_SHA1SUM
 	help
 	  Compute and check SHA1 message digest
 
-config CONFIG_FEATURE_SHA1SUM_CHECK
-	bool "  Enable -c and -w options"
-	default n
-	depends on CONFIG_SHA1SUM
-	help
-	  Enabling the -c and -w options allows files to be checked
-	  against pre-calculated hash values.
-
 config CONFIG_SLEEP
 	bool "sleep (single integer arg with no suffix)"
 	default n
@@ -590,5 +582,16 @@ config CONFIG_FEATURE_HUMAN_READABLE
 	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
 	help
 	  Allow df, du, and ls to have human readable output.
+
+comment "Common options for md5sum, sha1sum"
+    depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
+
+config CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
+	bool "  Enable -c and -w options"
+	default n
+	depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
+	help
+	  Enabling the -c and -w options allows files to be checked
+	  against pre-calculated hash values.
 
 endmenu

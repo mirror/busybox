@@ -473,4 +473,10 @@ extern void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
 extern void get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
+
+#define HASH_SHA1	1
+#define HASH_MD5	2
+extern int hash_fd(int fd, const off_t size, const uint8_t hash_algo, uint8_t *hashval);
+
+
 #endif /* __LIBCONFIG_H__ */
