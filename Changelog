@@ -8,6 +8,8 @@
 	    state the real root device name)
 	* merged some redundant code from mtab.c/df.c into utility.c
 
+	 -Erik Andersen
+
 0.32
 	* More changes -- many thanks to Lineo for paying me to work on
 	    busybox.  If you have any problems please let me know ASAP
