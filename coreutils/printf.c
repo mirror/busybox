@@ -411,7 +411,7 @@ static unsigned long xstrtoul(char *arg)
 	assert(arg!=NULL);
 
 	errno = 0;
-	result = strtoul(arg, &endptr, 10);
+	result = strtoul(arg, &endptr, 0);
 	if (errno != 0 || *endptr!='\0' || endptr==arg)
 		fprintf(stderr, "%s", arg);
 	//errno = errno_save;
@@ -427,7 +427,7 @@ static long xstrtol(char *arg)
 	assert(arg!=NULL);
 
 	errno = 0;
-	result = strtoul(arg, &endptr, 10);
+	result = strtoul(arg, &endptr, 0);
 	if (errno != 0 || *endptr!='\0' || endptr==arg)
 		fprintf(stderr, "%s", arg);
 	//errno = errno_save;
