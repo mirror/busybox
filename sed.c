@@ -36,11 +36,9 @@
 	Unsupported features:
 
 	 - transliteration (y/source-chars/dest-chars/) (use 'tr')
-	 - no support for characters other than the '/' character for regex matches
 	 - no pattern space hold space storing / swapping (x, etc.)
 	 - no labels / branching (: label, b, t, and friends)
 	 - and lots, lots more.
-
 */
 
 #include <stdio.h>
@@ -63,6 +61,7 @@ struct sed_cmd {
 
 
 	/* GENERAL FIELDS */
+	char delimiter;	    /* The delimiter used to separate regexps */
 
 	/* address storage */
 	int beg_line; /* 'sed 1p'   0 == no begining line, apply commands to all lines */
@@ -128,64 +127,17 @@ static void destroy_cmd_strs()
 }
 #endif
 
-#if 0
-/*
- * trim_str - trims leading and trailing space from a string
- * 
- * Note: This returns a malloc'ed string so you must store and free it
- * XXX: This should be in the utility.c file.
- * XXX: This is now obsolete. Maybe it belongs nowhere.
- */
-static char *trim_str(const char *str)
-{
-	int i;
-	char *retstr = strdup(str);
-
-	/* trim leading whitespace */
-	memmove(retstr, &retstr[strspn(retstr, " \n\t\v")], strlen(retstr));
-
-	/* trim trailing whitespace */
-	i = strlen(retstr) - 1;
-	while (isspace(retstr[i]))
-		i--;
-	retstr[++i] = 0;
-
-	/* Aside: 
-	 *
-	 * you know, a strrspn() would really be nice cuz then we could say:
-	 * 
-	 * retstr[strrspn(retstr, " \n\t\v") + 1] = 0;
-	 */
-	
-	return retstr;
-}
-#endif
-
-#if 0
-/*
- * strrspn - works just like strspn() but goes from right to left instead of
- * left to right
- */
-static size_t strrspn(const char *s, const char *accept)
-{
-	size_t i = strlen(s);
-
-	while (strchr(accept, s[--i]))
-		;
-
-	return i;
-}
-#endif
 
 /*
- * index_of_next_unescaped_slash - walks left to right through a string
- * beginning at a specified index and returns the index of the next forward
- * slash ('/') not preceeded by a backslash ('\').
+ * index_of_next_unescaped_regexp_delim - walks left to right through a string
+ * beginning at a specified index and returns the index of the next regular
+ * expression delimiter (typically a forward * slash ('/')) not preceeded by 
+ * a backslash ('\').
  */
-static int index_of_next_unescaped_slash(const char *str, int idx)
+static int index_of_next_unescaped_regexp_delim(struct sed_cmd *sed_cmd, const char *str, int idx)
 {
 	for ( ; str[idx]; idx++) {
-		if (str[idx] == '/' && str[idx-1] != '\\')
+		if (str[idx] == sed_cmd->delimiter && str[idx-1] != '\\')
 			return idx;
 	}
 
@@ -196,7 +148,7 @@ static int index_of_next_unescaped_slash(const char *str, int idx)
 /*
  * returns the index in the string just past where the address ends.
  */
-static int get_address(const char *str, int *line, regex_t **regex)
+static int get_address(struct sed_cmd *sed_cmd, const char *str, int *line, regex_t **regex)
 {
 	char *my_str = strdup(str);
 	int idx = 0;
@@ -213,7 +165,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		idx++;
 	}
 	else if (my_str[idx] == '/') {
-		idx = index_of_next_unescaped_slash(my_str, ++idx);
+		idx = index_of_next_unescaped_regexp_delim(sed_cmd, my_str, ++idx);
 		if (idx == -1)
 			error_msg_and_die("unterminated match expression\n");
 		my_str[idx] = '\0';
@@ -256,13 +208,16 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	 *    (all three of the '/' slashes are mandatory)
 	 */
 
-	/* verify that the 's' is followed by a 'slash' */
-	if (substr[++idx] != '/')
+	/* verify that the 's' is followed by something.  That something
+	 * (typically a 'slash') is now our regexp delimiter... */
+	if (!substr[++idx])
 		error_msg_and_die("bad format in substitution expression\n");
+	else
+	    sed_cmd->delimiter=substr[idx];
 
 	/* save the match string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_slash(substr, ++idx);
+	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression\n");
 	match = strdup_substr(substr, oldidx, idx);
@@ -281,7 +236,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 
 	/* save the replacement string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_slash(substr, ++idx);
+	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression\n");
 	sed_cmd->replace = strdup_substr(substr, oldidx, idx);
@@ -401,11 +356,11 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 	/* first part (if present) is an address: either a number or a /regex/ */
 	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
-		idx = get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
 	if (cmdstr[idx] == ',')
-		idx += get_address(&cmdstr[++idx], &sed_cmd->end_line, &sed_cmd->end_match);
+		idx += get_address(sed_cmd, &cmdstr[++idx], &sed_cmd->end_line, &sed_cmd->end_match);
 
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
