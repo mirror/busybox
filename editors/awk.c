@@ -1554,7 +1554,7 @@ static void handle_special(var *v) {
 			memcpy(b+len, s, l);
 			len += l;
 		}
-		b[len] = '\0';
+		if (b) b[len] = '\0';
 		setvar_p(V[F0], b);
 		is_f0_split = TRUE;
 
@@ -2551,6 +2551,7 @@ static int awk_exit(int r) {
 
 	if (! exiting) {
 		exiting = TRUE;
+		nextrec = FALSE;
 		evaluate(endseq.first, &tv);
 	}
 
