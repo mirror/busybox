@@ -494,17 +494,14 @@ static void doSyslogd (void)
 	alarm (MarkInterval);
 
 	/* Create the syslog file so realpath() can work. */
-	close (open (_PATH_LOG, O_RDWR | O_CREAT, 0644));
-	if (realpath (_PATH_LOG, lfile) == NULL)
-		perror_msg_and_die ("Could not resolve path to " _PATH_LOG);
-
-	unlink (lfile);
+	if (realpath (_PATH_LOG, lfile) != NULL)
+		unlink (lfile);
 
 	memset (&sunx, 0, sizeof (sunx));
 	sunx.sun_family = AF_UNIX;
 	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
 	if ((sock_fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0)
-		perror_msg_and_die ("Couldn't obtain descriptor for socket " _PATH_LOG);
+		perror_msg_and_die ("Couldn't get file descriptor for socket " _PATH_LOG);
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
 	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) || (listen (sock_fd, 5)))
