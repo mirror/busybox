@@ -153,10 +153,11 @@ else
     VPATH = .:$(BB_SRC_DIR)
     CONFIG_LIST = $(addsuffix /Config.h,$(subst :, ,$(VPATH)))
     CONFIG_H    = $(word 1,$(shell ls -f -1 $(CONFIG_LIST) 2>/dev/null))
-    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH))) $(CROSS_CFLAGS)
+    CFLAGS += -I- $(patsubst %,-I%,$(subst :, ,$(VPATH)))
 endif
 
 OBJECTS   = $(shell $(BB_SRC_DIR)/busybox.sh $(CONFIG_H) $(BB_SRC_DIR)) busybox.o messages.o usage.o utility.o
+CFLAGS    += $(CROSS_CFLAGS)
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
