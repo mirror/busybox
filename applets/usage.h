@@ -272,9 +272,14 @@
 	"\t-d\toutput will be in DOS format"
 
 #define dpkg_trivial_usage \
-	"[-i|-r|--unpack|--configure] my.deb"
+	"-i package_file\n"
+	"[-CPru] package_name"
 #define dpkg_full_usage \
-	"WORK IN PROGRESS, only useful for debian-installer"
+	"\t-i\tInstall the package\n" \
+	"\t-C\tConfigure an unpackaged package\n" \
+	"\t-P\tPurge all files of a package\n" \
+	"\t-r\tRemove all but the configuration files for a package\n" \
+	"\t-u\tUnpack a package, but dont configure it\n"
 
 #define dpkg_deb_trivial_usage \
 	"[-cefItxX] FILE [argument]"
