@@ -345,6 +345,7 @@ extern const char *applet_name;
 extern void usage(const char *usage) __attribute__ ((noreturn));
 extern void errorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatalError(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
+extern void fatalPerror(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);

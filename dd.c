@@ -116,8 +116,7 @@ extern int dd_main(int argc, char **argv)
 		 * here anyways... */
 
 		/* free(buf); */
-		perror(inFile);
-		exit(FALSE);
+		fatalPerror("%s", inFile);
 	}
 
 	if (outFile == NULL)
@@ -132,8 +131,7 @@ extern int dd_main(int argc, char **argv)
 
 		/* close(inFd);
 		   free(buf); */
-		perror(outFile);
-		exit(FALSE);
+		fatalPerror("%s", outFile);
 	}
 
 	lseek(inFd, (off_t) (skipBlocks * blockSize), SEEK_SET);

@@ -109,6 +109,23 @@ extern void fatalError(const char *s, ...)
 	exit(EXIT_FAILURE);
 }
 
+extern void fatalPerror(const char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
+	if (s && *s) {
+		vfprintf(stderr, s, p);
+		fputs(": ", stderr);
+	}
+	fprintf(stderr, "%s\n", strerror(errno));
+	va_end(p);
+	fflush(stderr);
+	exit(EXIT_FAILURE);
+}
+
 #if defined BB_INIT
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
