@@ -42,7 +42,7 @@ DODMALLOC = false
 
 # If you are running a cross compiler, you may want to set this
 # to something more interesting...
-CROSS =
+CROSS = #powerpc-linux-
 CC = $(CROSS)gcc
 STRIPTOOL = $(CROSS)strip
 
@@ -83,12 +83,13 @@ else
     ifeq ($(DOSTATIC),true)
 	LDFLAGS += --static
 	#
-	#use '-ffunction-sections -fdata-sections' and '--gc-sections' if they work
-	#to try and strip out any unused junk.  Doesn't do much for me, but you may
-	#want to give it a shot...
+	#use '-ffunction-sections -fdata-sections' and '--gc-sections' (if they 
+	# work) to try and strip out any unused junk.  Doesn't do much for me, 
+	# but you may want to give it a shot...
 	#
 	#ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
-	#	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) --gc-sections -v >/dev/null && echo 1),1)
+	#	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) \
+	#			--gc-sections -v >/dev/null && echo 1),1)
 	#	CFLAGS += -ffunction-sections -fdata-sections
 	#	LDFLAGS += --gc-sections
 	#endif
@@ -106,7 +107,8 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links doc
+
+all: loop.h busybox busybox.links doc
 
 doc: olddoc
 
@@ -154,7 +156,7 @@ docs/busybox/busybox.html: docs/busybox.sgml
 
 
 
-busybox: $(OBJECTS)
+busybox: $(OBJECTS) 
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
 
@@ -163,6 +165,11 @@ busybox.links: busybox.def.h
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
+
+utility.o: 
+
+loop.h:
+	@./mk_loop_h.sh
 
 test tests:
 	cd tests && $(MAKE) all

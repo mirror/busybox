@@ -53,11 +53,6 @@
 #include <sys/ioctl.h>
 #include <sys/utsname.h>		/* for uname(2) */
 
-#if defined BB_FEATURE_MOUNT_LOOP
-#include <fcntl.h>
-#include <linux/loop.h> /* Pull in loop device support */
-#endif
-
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
  * list of available filesystems used for the -t auto option */ 
 #if defined BB_FEATURE_USE_PROCFS && defined BB_FEATURE_USE_DEVPS_PATCH
@@ -1459,7 +1454,11 @@ extern int vdprintf(int d, const char *format, va_list ap)
 }
 #endif							/* BB_SYSLOGD */
 
+
 #if defined BB_FEATURE_MOUNT_LOOP
+#include <fcntl.h>
+#include "loop.h" /* Pull in loop device support */
+
 extern int del_loop(const char *device)
 {
 	int fd;
