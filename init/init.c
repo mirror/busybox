@@ -45,17 +45,17 @@
 //#define DEBUG_INIT
 
 #define CONSOLE         "/dev/console"	/* Logical system console */
-#define VT_PRIMARY      "/dev/tty0"	/* Virtual console master */
-#define VT_SECONDARY    "/dev/tty1"	/* Virtual console master */
-#define VT_LOG          "/dev/tty2"	/* Virtual console master */
+#define VT_PRIMARY      "/dev/tty0"	/* Primary virtual console */
+#define VT_SECONDARY    "/dev/tty1"	/* Virtual console */
+#define VT_LOG          "/dev/tty2"	/* Virtual console */
+#define SERIAL_CON0     "/dev/ttyS0"    /* Primary serial console */
+#define SERIAL_CON1     "/dev/ttyS1"    /* Serial console */
 #define SHELL           "/bin/sh"	/* Default shell */
-//#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
-#define INITSCRIPT      "/tmp/foo.sh"
+#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
-static char *console = CONSOLE;
-//static char *first_terminal = "/dev/tty1";
-static char *second_terminal = "/dev/tty2";
+static char *console = VT_PRIMARY;
+static char *second_terminal = VT_SECONDARY;
 static char *log = "/dev/tty3";
 
 
@@ -114,7 +114,7 @@ void set_term( int fd)
     /* input modes */
     tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
 
-    /* use lineo dicipline 0 */
+    /* use line dicipline 0 */
     tty.c_line = 0;
 
     /* output modes */
@@ -129,14 +129,18 @@ void set_term( int fd)
     tcsetattr(fd, TCSANOW, &tty);
 }
 
+/* How much memory does this machine have? */
 static int mem_total()
 {
     char s[80];
-    char *p;
+    char *p = "/proc/meminfo";
     FILE *f;
     const char pattern[] = "MemTotal:";
 
-    f = fopen("/proc/meminfo", "r");
+    if ((f = fopen(p, "r")) < 0) {
+	message(log, "Error opening %s: %s\n", p, strerror( errno));
+	return -1;
+    }
     while (NULL != fgets(s, 79, f)) {
 	p = strstr(s, pattern);
 	if (NULL != p) {
@@ -147,60 +151,53 @@ static int mem_total()
     return -1;
 }
 
-static void set_free_pages()
-{
-    char s[80];
-    FILE *f;
-
-    f = fopen("/proc/sys/vm/freepages", "r");
-    fgets(s, 79, f);
-    if (atoi(s) < 32) {
-	fclose(f);
-	f = fopen("/proc/sys/vm/freepages", "w");
-	fprintf(f, "30\t40\t50\n");
-	message(log, "\nIncreased /proc/sys/vm/freepages values to 30/40/50\n");
-    }
-    fclose(f);
-}
-
-
 static void console_init()
 {
     int fd;
-    struct stat statbuf;
     int tried_devcons = 0;
-    int tried_vtmaster = 0;
+    int tried_vtprimary = 0;
     char *s;
 
-    if ((s = getenv("CONSOLE")) != NULL)
+    if ((s = getenv("CONSOLE")) != NULL) {
 	console = s;
-    else {
-	console = CONSOLE;
-	tried_devcons++;
+/* Apparently the sparc does wierd things... */
+#if defined (__sparc__)
+	if (strncmp( s, "/dev/tty", 8 )==0) {
+	    switch( s[8]) {
+		case 'a':
+		    s=SERIAL_CON0;
+		    break;
+		case 'b':
+		    s=SERIAL_CON1;
+	    }
+	}
+#endif
+    } else {
+	console = VT_PRIMARY;
+	tried_vtprimary++;
     }
 
-    if ( stat(CONSOLE, &statbuf) && S_ISLNK(statbuf.st_mode)) {
-	fprintf(stderr, "Yikes! /dev/console does not exist or is a symlink.\n");
-	message(log, "Yikes! /dev/console does not exist or is a symlink.\n");
-    }
     while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
+	/* Can't open selected console -- try vt1 */
+	if (!tried_vtprimary) {
+	    tried_vtprimary++;
+	    console = VT_PRIMARY;
+	    continue;
+	}
+	/* Can't open selected console -- try /dev/console */
 	if (!tried_devcons) {
 	    tried_devcons++;
 	    console = CONSOLE;
 	    continue;
 	}
-	if (!tried_vtmaster) {
-	    tried_vtmaster++;
-	    console = VT_PRIMARY;
-	    continue;
-	}
 	break;
     }
     if (fd < 0)
+	/* Perhaps we should panic here? */
 	console = "/dev/null";
     else
 	close(fd);
-    message(log, "console=%s\n", console);
+    message(log, "console=%s\n", console );
 }
 
 static int waitfor(int pid)
@@ -221,7 +218,7 @@ static pid_t run(const char * const* command,
 {
     int fd;
     pid_t pid;
-    const char * const* cmd = command;
+    const char * const* cmd = command+1;
     static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
 
@@ -262,7 +259,7 @@ static pid_t run(const char * const* command,
 	}
 
 	/* Log the process name and args */
-	message(log, "Executing pid(%d): '", getpid());
+	message(log, "Starting pid(%d): '", getpid());
 	while ( *cmd) message(log, "%s ", *cmd++);
 	message(log, "'\r\n");
 	
@@ -270,10 +267,37 @@ static pid_t run(const char * const* command,
 	 * so nothing further in init.c should be run. */
 	execvp(*command, (char**)command+1);
 
-	message(log, "Bummer, could not execute '%s'\n", command);
+	message(log, "Bummer, could not run '%s'\n", command);
 	exit(-1);
     }
     return pid;
+}
+
+/* Make sure there is enough memory to do something useful. *
+ * Calls swapon if needed so be sure /proc is mounted. */
+static void check_memory()
+{
+    struct stat statbuf;
+    const char* const swap_on_cmd[] = 
+	    { "/bin/swapon", "swapon", "-a", 0};
+    const char *no_memory =
+	    "Sorry, your computer does not have enough memory.\r\n";
+
+    if (mem_total() > 3500)
+	return;
+
+    if (stat("/etc/fstab", &statbuf) == 0) {
+	/* Try to turn on swap */
+	waitfor(run(swap_on_cmd, log, FALSE));
+	if (mem_total() < 3500)
+	    goto goodnight;
+    } else
+	goto goodnight;
+    return;
+
+goodnight:
+	message(console, "%s", no_memory);
+	while (1) sleep(1);
 }
 
 static void shutdown_system(void)
@@ -333,14 +357,13 @@ static void reboot_signal(int sig)
 extern int init_main(int argc, char **argv)
 {
     int run_rc = TRUE;
-    int wait_for_enter = FALSE;
+    int wait_for_enter = TRUE;
     pid_t pid1 = 0;
     pid_t pid2 = 0;
     struct stat statbuf;
-    const char* const swap_on_cmd[] = { "/bin/swapon", "swapon", "-a", 0};
     const char* const init_commands[] = { INITSCRIPT, INITSCRIPT, 0};
     const char* const shell_commands[] = { SHELL, "-" SHELL, 0};
-    const char* const* tty0_commands = init_commands;
+    const char* const* tty0_commands = shell_commands;
     const char* const* tty1_commands = shell_commands;
 #ifdef DEBUG_INIT
     char *hello_msg_format =
@@ -349,9 +372,15 @@ extern int init_main(int argc, char **argv)
     char *hello_msg_format =
 	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
 #endif
-    const char *no_memory =
-	"Sorry, your computer does not have enough memory.\r\n";
 
+    
+    /* Check if we are supposed to be in single user mode */
+    if ( argc > 1 && (!strcmp(argv[1], "single") || 
+		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
+	run_rc = FALSE;
+    }
+
+    
     /* Set up sig handlers  -- be sure to
      * clear all of these in run() */
     signal(SIGUSR1, halt_signal);
@@ -364,6 +393,7 @@ extern int init_main(int argc, char **argv)
 #ifndef DEBUG_INIT
     reboot(RB_DISABLE_CAD);
 #endif 
+
     /* Figure out where the default console should be */
     console_init();
 
@@ -375,9 +405,9 @@ extern int init_main(int argc, char **argv)
     setsid();
 
     /* Make sure PATH is set to something sane */
-    if (getenv("PATH") == NULL)
-	putenv(PATH_DEFAULT);
+    putenv(PATH_DEFAULT);
 
+   
     /* Hello world */
 #ifndef DEBUG_INIT
     message(log, hello_msg_format, BB_VER, BB_BT);
@@ -397,43 +427,16 @@ extern int init_main(int argc, char **argv)
 	message(console, "Mounting /proc: failed!\n");
     }
 
-    /* Make sure there is enough memory to do something useful */
-    set_free_pages();
-    if (mem_total() < 3500) {
-	int retval;
-	retval = stat("/etc/fstab", &statbuf);
-	if (retval) {
-	    message(console, "%s", no_memory);
-	    while (1) {
-		sleep(1);
-	    }
-	} else {
-	    /* Try to turn on swap */
-	    waitfor(run(swap_on_cmd, log, FALSE));
-	    if (mem_total() < 2000) {
-		message(console, "%s", no_memory);
-		while (1) {
-		    sleep(1);
-		}
-	    }
-	}
-    }
+    /* Make sure there is enough memory to do something useful. */
+    check_memory();
 
-    /* Check if we are supposed to be in single user mode */
-    if ( argc > 1 && (!strcmp(argv[1], "single") || 
-		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
-	run_rc = FALSE;
-	wait_for_enter = TRUE;
-	tty0_commands = shell_commands;
-	tty1_commands = shell_commands;
-    }
 
     /* Make sure an init script exists before trying to run it */
-    if (run_rc == TRUE && stat(INITSCRIPT, &statbuf)) {
-	wait_for_enter = TRUE;
-	tty0_commands = shell_commands;
-	tty1_commands = shell_commands;
+    if (run_rc == TRUE && stat(INITSCRIPT, &statbuf)==0) {
+	wait_for_enter = FALSE;
+	tty0_commands = init_commands;
     }
+
 
     /* Ok, now launch the rc script and/or prepare to 
      * start up some VTs if somebody hits enter... 
@@ -452,9 +455,14 @@ extern int init_main(int argc, char **argv)
 	if (wpid > 0 ) {
 	    message(log, "pid %d exited, status=%x.\n", wpid, status);
 	}
-	/* Don't respawn an init script if it exits */
-	if (run_rc == FALSE && wpid == pid1) {
+	if (wpid == pid1) {
 	    pid1 = 0;
+	    if (run_rc == TRUE) {
+		/* Don't respawn init script if it exits. */
+		run_rc=FALSE;
+		wait_for_enter=TRUE;
+		tty0_commands=shell_commands;
+	    }
 	}
 	if (wpid == pid2) {
 	    pid2 = 0;

@@ -32,8 +32,8 @@ for i in $h ; do
 	mkdir -p $RPM_BUILD_ROOT/`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\1/g' `
 	(cd $RPM_BUILD_ROOT/bin ; ln -s ln `echo $i | sed -e 's/\(^.*\/\)\(.*\)/\2/g' ` ); 
 done 
-rm -f $RPM_BUILD_ROOT/bin/ln
-install -m 755 busybox $RPM_BUILD_ROOT/bin/ln
+rm -f $RPM_BUILD_ROOT/bin/busybox
+install -m 755 busybox $RPM_BUILD_ROOT/bin/busybox
 
 %Clean
 rm -rf $RPM_BUILD_ROOT
