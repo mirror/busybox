@@ -112,4 +112,9 @@ extern void BZ2_bzReadOpen(int fd, void *unused, int nUnused);
 extern void BZ2_bzReadClose(void);
 extern unsigned char uncompressStream(int src_fd, int dst_fd);
 
+extern ssize_t read_gz(int fd, void *buf, size_t count);
+extern void GZ_gzReadOpen(int fd, void *unused, int nUnused);
+extern void GZ_gzReadClose(void);
+extern int inflate(int in, int out);
+
 #endif
