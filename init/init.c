@@ -28,51 +28,50 @@
 */
 
 #include "internal.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <unistd.h>
+#include <asm/types.h>
 #include <errno.h>
-#include <signal.h>
-#include <termios.h>
+#include <linux/serial.h>		/* for serial_struct */
+#include <linux/version.h>
 #include <paths.h>
-#include <sys/types.h>
-#include <sys/fcntl.h>
-#include <sys/wait.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/kdaemon.h>
 #include <sys/mount.h>
 #include <sys/reboot.h>
-#include <sys/kdaemon.h>
-#include <sys/sysmacros.h>
-#include <asm/types.h>
-#include <linux/serial.h>		/* for serial_struct */
-#include <sys/vt.h>				/* for vt_stat */
-#include <sys/ioctl.h>
 #include <sys/sysinfo.h>		/* For check_free_memory() */
-#include <linux/version.h>
 #ifdef BB_SYSLOGD
 #include <sys/syslog.h>
 #endif
+#include <sys/sysmacros.h>
+#include <sys/types.h>
+#include <sys/vt.h>				/* for vt_stat */
+#include <sys/wait.h>
+#include <termios.h>
+#include <unistd.h>
 
 #ifndef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 
 
-#define VT_PRIMARY      "/dev/tty1"	/* Primary virtual console */
-#define VT_SECONDARY    "/dev/tty2"	/* Virtual console */
-#define VT_LOG          "/dev/tty3"	/* Virtual console */
-#define SERIAL_CON0     "/dev/ttyS0"	/* Primary serial console */
-#define SERIAL_CON1     "/dev/ttyS1"	/* Serial console */
-#define SHELL           "/bin/sh"	/* Default shell */
-#define INITTAB         "/etc/inittab"	/* inittab file location */
+#define VT_PRIMARY   "/dev/tty1"     /* Primary virtual console */
+#define VT_SECONDARY "/dev/tty2"     /* Virtual console */
+#define VT_LOG       "/dev/tty3"     /* Virtual console */
+#define SERIAL_CON0  "/dev/ttyS0"    /* Primary serial console */
+#define SERIAL_CON1  "/dev/ttyS1"    /* Serial console */
+#define SHELL        "/bin/sh"	     /* Default shell */
+#define INITTAB      "/etc/inittab"  /* inittab file location */
 #ifndef INIT_SCRIPT
-#define INIT_SCRIPT	"/etc/init.d/rcS"	/* Default sysinit script. */
+#define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
 #endif
 
-#define LOG             0x1
-#define CONSOLE         0x2
+#define LOG     0x1
+#define CONSOLE 0x2
 
 /* Allowed init action types */
 typedef enum {
@@ -84,7 +83,7 @@ typedef enum {
 	CTRLALTDEL
 } initActionEnum;
 
-/* And now a list of the actions we support in the version of init */
+/* A mapping between "inittab" action name strings and action type codes. */
 typedef struct initActionType {
 	const char *name;
 	initActionEnum action;
@@ -100,7 +99,7 @@ static const struct initActionType actions[] = {
 	{0}
 };
 
-/* Set up a linked list of initactions, to be read from inittab */
+/* Set up a linked list of initActions, to be read from inittab */
 typedef struct initActionTag initAction;
 struct initActionTag {
 	pid_t pid;
@@ -113,16 +112,17 @@ initAction *initActionList = NULL;
 
 
 static char *secondConsole = VT_SECONDARY;
-static char *log = VT_LOG;
-static int kernelVersion = 0;
-static char termType[32] = "TERM=linux";
-static char console[32] = _PATH_CONSOLE;
+static char *log           = VT_LOG;
+static int  kernelVersion  = 0;
+static char termType[32]   = "TERM=linux";
+static char console[32]    = _PATH_CONSOLE;
+
 static void delete_initAction(initAction * action);
 
 
-/* print a message to the specified device:
- * device may be bitwise-or'd from LOG | CONSOLE */
-void message(int device, char *fmt, ...)
+/* Print a message to the specified device.
+ * Device may be bitwise-or'd from LOG | CONSOLE */
+static void message(int device, char *fmt, ...)
 {
 	va_list arguments;
 	int fd;
@@ -235,8 +235,7 @@ static int check_free_memory()
 		return -1;
 	}
 
-	return(info.freeram/1024);
-
+	return((info.totalram+info.totalswap)/1024);
 }
 
 static void console_init()
@@ -738,7 +737,7 @@ void parse_inittab(void)
 			++p;
 		}
 
-		/* Now peal off the process field from the end
+		/* Now peel off the process field from the end
 		 * of the string */
 		q = strrchr(p, ':');
 		if (q == NULL || *(q + 1) == '\0') {
@@ -749,7 +748,7 @@ void parse_inittab(void)
 			++q;
 		}
 
-		/* Now peal off the action field */
+		/* Now peel off the action field */
 		r = strrchr(p, ':');
 		if (r == NULL || *(r + 1) == '\0') {
 			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
@@ -788,7 +787,7 @@ void parse_inittab(void)
 		}
 	}
 	return;
-#endif
+#endif /* BB_FEATURE_USE_INITTAB */
 }
 
 
