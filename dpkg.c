@@ -1420,6 +1420,8 @@ extern int dpkg_main(int argc, char **argv)
 					 * is written to the status file*/
 					status_node->status = search_name_hashtable("install reinstreq not-installed");
 					status_hashtable[status_num] = status_node;
+				} else {
+					status_hashtable[status_num]->status = search_name_hashtable("install reinstreq installed");
 				}
 			}
 		}
