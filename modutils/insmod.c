@@ -3,7 +3,7 @@
  * Mini insmod implementation for busybox
  *
  * This version of insmod supports x86, ARM, SH3/4/5, powerpc, m68k,
- * MIPS, and v850e.
+ * MIPS, v850e, and H8/300.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * and Ron Alder <alder@lineo.com>
@@ -17,6 +17,9 @@
  * Nicolas Ferre <nicolas.ferre@alcove.fr> to support ARM7TDMI.  Only
  * very minor changes required to also work with StrongArm and presumably
  * all ARM based systems.
+ *
+ * Yoshinori Sato <ysato@users.sourceforge.jp> 19-May-2004.
+ *   added Renesas H8/300 support.
  *
  * Paul Mundt <lethal@linux-sh.org> 08-Aug-2003.
  *   Integrated support for sh64 (SH-5), from preliminary modutils
@@ -248,6 +251,17 @@ extern int insmod_ng_main( int argc, char **argv);
 #define ELFCLASSM	ELFCLASS32
 #endif
 
+#if defined(__H8300H__) || defined(__H8300S__)
+#define CONFIG_USE_SINGLE
+
+#define MATCH_MACHINE(x) (x == EM_H8_300)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+
+#define ELFCLASSM	ELFCLASS32
+#define SYMBOL_PREFIX	"_"
+#endif
+
 #ifndef SHT_RELM
 #error Sorry, but insmod.c does not yet support this architecture...
 #endif
@@ -282,7 +296,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.117 2004/04/14 17:51:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.118 2004/05/26 11:38:46 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -503,7 +517,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.117 2004/04/14 17:51:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.118 2004/05/26 11:38:46 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1320,6 +1334,36 @@ arch_apply_relocation(struct obj_file *f,
 			 * should not use whats in *loc at all
 			 */
 			*loc = v;
+			break;
+#endif
+
+#elif defined(__H8300H__) || defined(__H8300S__)
+	        case R_H8_DIR24R8:
+			loc = (ElfW(Addr) *)((ElfW(Addr))loc - 1);
+			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
+			break;
+	        case R_H8_DIR24A8:
+			*loc += v;
+			break;
+ 	        case R_H8_DIR32:
+	        case R_H8_DIR32A16:
+			*loc += v;
+			break;
+	        case R_H8_PCREL16:
+			v -= dot + 2;
+			if ((Elf32_Sword)v > 0x7fff || 
+			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
+				ret = obj_reloc_overflow;
+			else 
+				*(unsigned short *)loc = v;
+			break;
+	        case R_H8_PCREL8:
+			v -= dot + 1;
+			if ((Elf32_Sword)v > 0x7f || 
+			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
+				ret = obj_reloc_overflow;
+			else 
+				*(unsigned char *)loc = v;
 			break;
 #endif
 
