@@ -1074,16 +1074,14 @@ extern int gunzip_main(int argc, char **argv)
 	int opt = 0;
 	int delete_old_file = FALSE;
 
-#ifdef BB_ZCAT
 	/* if called as zcat */
 	if (strcmp(applet_name, "zcat") == 0) {
 		if (argc != 2) {
 			show_usage();
 		}
+		optind = 1;
 		flags |= (gunzip_force | gunzip_to_stdout);
-	} else
-#endif
-	if (strcmp(applet_name, "gunzip") == 0) {
+	} else {
 		/* workout flags as regular gunzip */
 		/* set default flags */
 		if (argc == 1) {
