@@ -306,7 +306,7 @@ sed -e '/test/s/dangerous/PELIGROSO/' testcases
 sh -c "echo a b c"
 sh -c ">"
 sh -c "a"
-#sh sh.testcases
+sh sh.testcases
 
 
 # sleep - can't test: produces no output

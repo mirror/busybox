@@ -1,4 +1,19 @@
 # try running this with bash, ksh, ash, and hush.
+
+# simple quoting rules.
+echo a  b
+echo "a  b"
+echo a "" b
+echo a '' b
+echo hello?
+echo "hello?"
+echo t* hello
+echo t\* hello
+
+# quick and painless exit for lash
+if false; then true; exit; fi
+
+# fairly simple command substitution
 echo `echo -e foo\\\necho bar`
 
 echo THIS IS A TEST >foo
@@ -13,7 +28,13 @@ if false; then tr 'A-Z' 'a-z'; else echo bar4; fi <foo
 if true || false; then echo foo; else echo bar5; fi
 if true && false; then echo bar6; else echo foo; fi
 
-# ash, lash, and hush do not create fish; bash and ksh do.  Tough.
+# fairly simple example of hush expanding variables too early
+unset TMP
+rm -f fish
+TMP=fish && >$TMP
+ls fish
+
+# ash, lash, and hush do not create fish; bash and ksh do.
 # Thanks to Tapani Tarvainen <tt@mit.jyu.fi> for this stress test.
 unset TMP
 rm -f fish
