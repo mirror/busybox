@@ -71,6 +71,9 @@
 #ifdef CONFIG_BUNZIP2
 	APPLET(bzcat, bunzip2_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_CAL
+	APPLET(cal, cal_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN)
 #endif

@@ -63,6 +63,14 @@
 #define bzcat_full_usage \
 	"Uncompress to stdout."
 
+#define cal_trivial_usage \
+       "[-jy] [[month] year]"
+#define cal_full_usage \
+       "Display a calendar.\n" \
+       "\nOptions:\n" \
+       "\t-j\tUse julian dates.\n" \
+       "\t-y\tDisplay the entire year."
+
 #define cat_trivial_usage \
 	"[FILE]..."
 #define cat_full_usage \
