@@ -499,7 +499,7 @@ static void conv_u(PR * pr, u_char * p)
 	/* od used nl, not lf */
 	if (*p <= 0x1f) {
 		*pr->cchar = 's';
-		printf(pr->fmt, list[4 * (int)(*p)]);
+		printf(pr->fmt, list + (4 * (int)*p));
 	} else if (*p == 0x7f) {
 		*pr->cchar = 's';
 		printf(pr->fmt, "del");
