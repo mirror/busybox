@@ -270,6 +270,7 @@ extern const char * const can_not_create_raw_socket;
 # define SC_1 "/dev/tts/1"
 # define VC_FORMAT "/dev/vc/%d"
 # define SC_FORMAT "/dev/tts/%d"
+# define LOOP_FORMAT "/dev/loop/%d"
 #else
 # define CURRENT_VC "/dev/tty0"
 # define VC_1 "/dev/tty1"
@@ -281,6 +282,7 @@ extern const char * const can_not_create_raw_socket;
 # define SC_1 "/dev/ttyS1"
 # define VC_FORMAT "/dev/tty%d"
 # define SC_FORMAT "/dev/ttyS%d"
+# define LOOP_FORMAT "/dev/loop%d"
 #endif
 
 /* The following devices are the same on devfs and non-devfs systems.  */

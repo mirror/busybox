@@ -95,7 +95,7 @@ extern char *find_unused_loop_device(void)
 	struct loop_info loopinfo;
 
 	for (i = 0; i <= 7; i++) {
-		sprintf(dev, "/dev/loop%d", i);
+		sprintf(dev, LOOP_FORMAT, i);
 		if (stat(dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
 			if ((fd = open(dev, O_RDONLY)) >= 0) {
 				if (ioctl(fd, LOOP_GET_STATUS, &loopinfo) != 0) {
