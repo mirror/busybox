@@ -1,4 +1,4 @@
-/* 
+/*
  * nameif.c - Naming Interfaces based on MAC address for busybox.
  *
  * Writen 2000 by Andi Kleen.
@@ -38,7 +38,7 @@
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
-/* Octets in one ethernet addr, from <linux/if_ether.h>	 */
+/* Octets in one ethernet addr, from <linux/if_ether.h> */
 #define ETH_ALEN	6
 
 #ifndef ifr_newname
@@ -52,18 +52,22 @@ typedef struct mactable_s {
 	struct ether_addr *mac;
 } mactable_t;
 
-static void serror(const char use_syslog, const char *s, ...)
+static unsigned char use_syslog;
+
+static void serror(const char *s, ...) __attribute__ ((noreturn));
+
+static void serror(const char *s, ...)
 {
 	va_list ap;
 
 	va_start(ap, s);
 
 	if (use_syslog) {
-		openlog("nameif", 0, LOG_LOCAL0);
-		syslog(LOG_ERR, s, ap);
+		openlog(applet_name, 0, LOG_LOCAL0);
+		vsyslog(LOG_ERR, s, ap);
 		closelog();
 	} else {
-		vfprintf(stderr, s, ap);
+		verror_msg(s, ap);
 		putc('\n', stderr);
 	}
 
@@ -73,14 +77,14 @@ static void serror(const char use_syslog, const char *s, ...)
 }
 
 /* Check ascii str_macaddr, convert and copy to *mac */
-struct ether_addr *cc_macaddr(char *str_macaddr, unsigned char use_syslog)
+struct ether_addr *cc_macaddr(char *str_macaddr)
 {
 	struct ether_addr *lmac, *mac;
 
 	lmac = ether_aton(str_macaddr);
 	if (lmac == NULL)
-		serror(use_syslog, "cannot parse MAC %s", str_macaddr);
-	mac = xcalloc(1, ETH_ALEN);
+		serror("cannot parse MAC %s", str_macaddr);
+	mac = xmalloc(ETH_ALEN);
 	memcpy(mac, lmac, ETH_ALEN);
 
 	return mac;
@@ -90,13 +94,12 @@ int nameif_main(int argc, char **argv)
 {
 	mactable_t *clist = NULL;
 	FILE *ifh;
-	char *fname = "/etc/mactab";
+	const char *fname = "/etc/mactab";
 	char *line;
-	unsigned char use_syslog = 0;
-	int ctl_sk = -1;
+	int ctl_sk;
 	int opt;
 	int if_index = 1;
-	mactable_t *ch = NULL;
+	mactable_t *ch;
 
 	static struct option opts[] = {
 		{"syslog", 0, NULL, 's'},
@@ -121,23 +124,18 @@ int nameif_main(int argc, char **argv)
 		show_usage();
 
 	if (optind < argc) {
-		while (optind < argc) {
+		char **a = argv + optind;
 
-			if (strlen(argv[optind]) > IF_NAMESIZE)
-				serror(use_syslog, "interface name `%s' too long",
-					   argv[optind]);
-			optind++;
+		while (*a) {
 
+			if (strlen(*a) > IF_NAMESIZE)
+				serror("interface name `%s' too long", *a);
 			ch = xcalloc(1, sizeof(mactable_t));
-			ch->next = NULL;
-			ch->prev = NULL;
-			ch->ifname = strdup(argv[optind - 1]);
-			ch->mac = cc_macaddr(argv[optind], use_syslog);
-			optind++;
+			ch->ifname = xstrdup(*a++);
+			ch->mac = cc_macaddr(*a++);
 			if (clist)
-				clist->prev = ch->next;
+				clist->prev = ch;
 			ch->next = clist;
-			ch->prev = clist;
 			clist = ch;
 		}
 	} else {
@@ -145,24 +143,22 @@ int nameif_main(int argc, char **argv)
 
 		while ((line = get_line_from_file(ifh)) != NULL) {
 			char *line_ptr;
-			unsigned short name_length;
+			size_t name_length;
 
 			line_ptr = line + strspn(line, " \t");
 			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n'))
 				continue;
 			name_length = strcspn(line_ptr, " \t");
-			if (name_length > IF_NAMESIZE)
-				serror(use_syslog, "interface name `%s' too long",
-					   argv[optind]);
 			ch = xcalloc(1, sizeof(mactable_t));
-			ch->next = NULL;
-			ch->prev = NULL;
-			ch->ifname = strndup(line_ptr, name_length);
+			ch->ifname = xstrndup(line_ptr, name_length);
+			if (name_length > IF_NAMESIZE)
+			    serror("interface name `%s' too long",
+					   ch->ifname);
 			line_ptr += name_length;
 			line_ptr += strspn(line_ptr, " \t");
 			name_length = strspn(line_ptr, "0123456789ABCDEFabcdef:");
 			line_ptr[name_length] = '\0';
-			ch->mac = cc_macaddr(line_ptr, use_syslog);
+			ch->mac = cc_macaddr(line_ptr);
 			if (clist)
 				clist->prev = ch;
 			ch->next = clist;
@@ -173,7 +169,7 @@ int nameif_main(int argc, char **argv)
 	}
 
 	if ((ctl_sk = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
-		serror(use_syslog, "socket: %s", strerror(errno));
+		serror("socket: %m");
 
 	while (clist) {
 		struct ifreq ifr;
@@ -201,8 +197,8 @@ int nameif_main(int argc, char **argv)
 
 		strcpy(ifr.ifr_newname, ch->ifname);
 		if (ioctl(ctl_sk, SIOCSIFNAME, &ifr) < 0)
-			serror(use_syslog, "cannot change ifname %s to %s: %s",
-				   ifr.ifr_name, ch->ifname, strerror(errno));
+			serror("cannot change ifname %s to %s: %m",
+				   ifr.ifr_name, ch->ifname);
 
 		/* Remove list entry of renamed interface */
 		if (ch->prev != NULL) {
@@ -212,13 +208,11 @@ int nameif_main(int argc, char **argv)
 		}
 		if (ch->next != NULL)
 			(ch->next)->prev = ch->prev;
+#ifdef CONFIG_FEATURE_CLEAN_UP
+		free(ch->ifname);
+		free(ch->mac);
 		free(ch);
-	}
-
-	while (clist) {
-		ch = clist;
-		clist = clist->next;
-		free(ch);
+#endif
 	}
 
 	return 0;
