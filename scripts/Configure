@@ -122,7 +122,7 @@ function rndval () {
 #       help variable
 #
 function help () {
-  if [ -f Documentation/Configure.help ]
+  if [ -f docs/Configure.help ]
   then
      #first escape regexp special characters in the argument:
      var=$(echo "$1"|sed 's/[][\/.^$*]/\\&/g')
@@ -135,7 +135,7 @@ ${var}:\\
 			/^[^ 	]/q
 			/<file:\\([^>]*\\)>/s//\\1/g
 			p
-		    }" Documentation/Configure.help)
+		    }" docs/Configure.help)
      if [ -z "$text" ]
      then
 	  echo; echo "  Sorry, no help available for this option yet.";echo
@@ -144,7 +144,7 @@ ${var}:\\
      fi
   else
      echo;
-     echo "  Can't access the file Documentation/Configure.help which"
+     echo "  Can't access the file docs/Configure.help which"
      echo "  should contain the help texts."
      echo
   fi
