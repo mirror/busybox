@@ -48,39 +48,30 @@ static const char dpkgcidir[] = "/var/lib/dpkg/tmp.ci/";
 static const char infodir[] = "/var/lib/dpkg/info/";
 static const char udpkg_quiet[] = "UDPKG_QUIET";
 
-//static const int status_wantstart	= 0;
-//static const int status_wantunknown	= (1 << 0);
-static const int status_wantinstall	= (1 << 1);
-//static const int status_wanthold	= (1 << 2);
-//static const int status_wantdeinstall	= (1 << 3);
-//static const int status_wantpurge	= (1 << 4);
-static const int status_wantmask	= 31;
+//static const int status_want_unknown	= 1;
+static const int status_want_install	= 2;
+//static const int status_want_hold	= 3;
+//static const int status_want_deinstall	= 4;
+//static const int status_want_purge	= 5;
 
-//static const int status_flagstart	= 5;
-static const int status_flagok	= (1 << 5);	/* 32 */
-//static const int status_flagreinstreq	= (1 << 6); 
-//static const int status_flaghold	= (1 << 7);
-//static const int status_flagholdreinstreq	= (1 << 8);
-static const int status_flagmask	= 480;
+static const int status_flag_ok	= 1;
+//static const int status_flag_reinstreq = 2; 
+//static const int status_flag_hold	= 3;
+//static const int status_flag_holdreinstreq = 4;
 
-//static const int status_statusstart	= 9;
-//static const int status_statusnoninstalled	= (1 << 9); /* 512 */
-static const int status_statusunpacked	= (1 << 10);
-static const int status_statushalfconfigured	= (1 << 11); 
-static const int status_statusinstalled	= (1 << 12);
-static const int status_statushalfinstalled	= (1 << 13);
-//static const int status_statusconfigfiles	= (1 << 14);
-//static const int status_statuspostinstfailed	= (1 << 15);
-//static const int status_statusremovalfailed	= (1 << 16);
-static const int status_statusmask =  130560; /* i assume status_statusinstalled is supposed to be included */
+//static const int status_statusnoninstalled = 1;
+static const int status_status_unpacked	= 2;
+static const int status_status_halfconfigured = 3; 
+static const int status_status_installed	= 4;
+static const int status_status_halfinstalled	= 5;
+//static const int status_statusconfigfiles	= 6;
+//static const int status_statuspostinstfailed	= 7;
+//static const int status_statusremovalfailed	= 8;
 
-static const char *statuswords[][10] = {
-	{ (char *) 0, "unknown", "install", "hold", "deinstall", "purge", 0 },
-	{ (char *) 5, "ok", "reinstreq", "hold", "hold-reinstreq", 0 },
-	{ (char *) 9, "not-installed", "unpacked", "half-configured",
-		"installed", "half-installed", "config-files",
-		"post-inst-failed", "removal-failed", 0 }
-};
+static const char *status_words_want[] = { "unknown", "install", "hold", "deinstall", "purge", 0 };
+static const char *status_words_flag[] = { "ok", "reinstreq", "hold", "hold-reinstreq", 0 };
+static const char *status_words_status[] = { "not-installed", "unpacked", "half-configured", "installed", 
+		"half-installed", "config-files", "post-inst-failed", "removal-failed", 0 };
 
 static const int color_white	= 0;
 static const int color_grey	= 1;
@@ -95,7 +86,9 @@ typedef struct package_s {
 	char *provides;
 	char *description;
 	int installer_menu_item;
-	unsigned long status;
+	unsigned char status_want;
+	unsigned char status_flag;
+	unsigned char status_status;
 	char color; /* for topo-sort */
 	struct package_s *requiredfor[DEPENDSMAX]; 
 	unsigned short requiredcount;
@@ -271,10 +264,9 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 		while (dependsvec[i] != 0) {
 			/* Check for dependencies; first look for installed packages */
 			dependpkg.package = dependsvec[i];
-			if ((found = tfind(&dependpkg, &status, package_compare)) == 0 ||
-			    ((chk = *(package_t **)found) &&
-			     (chk->status & (status_flagok | status_statusinstalled)) != 
-			      (status_flagok | status_statusinstalled))) {
+			if (((found = tfind(&dependpkg, &status, package_compare)) == 0) ||
+			    ((chk = *(package_t **)found) && (chk->status_flag & status_flag_ok) &&
+				(chk->status_status & status_status_installed))) {
 
 				/* if it fails, we look through the list of packages we are going to 
 				 * install */
@@ -318,58 +310,21 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
  *    replacing any pre-existing entries. when a merge happens, status info 
  *    read using the status_read function is written back to the status file
  */
-static unsigned long status_parse(const char *line)
+static unsigned char status_parse(const char *line, const char **status_words)
 {
-	char *p;
-	int i, j;
-	unsigned long l = 0;
+	unsigned char status_num;
+	int i = 0;
 
-	for (i = 0; i < 3; i++) {
-		if ((p = strchr(line, ' ')) != NULL) {
-			*p = 0;
+	while (status_words[i] != 0) {
+		if (strncmp(line, status_words[i], strlen(status_words[i])) == 0) {
+			status_num = (char)i;
+			return(status_num);
 		}
-		j = 1;
-		while (statuswords[i][j] != 0) {
-			if (strcmp(line, statuswords[i][j]) == 0) {
-				l |= (1 << ((int)statuswords[i][0] + j - 1));
-				break;
-			}
-			j++;
-		}
-		/* parse error */
-		if (statuswords[i][j] == 0) {
-			return 0;
-		}
-		line = p+1;
+		i++;
 	}
-
-	return l;
-}
-
-static const char *status_print(unsigned long flags)
-{
-	/* this function returns a static buffer... */
-	static char buf[256];
-	int i, j;
-
-	buf[0] = 0;
-	for (i = 0; i < 3; i++) {
-		j = 1;
-		while (statuswords[i][j] != 0) {
-			if ((flags & (1 << ((int)statuswords[i][0] + j - 1))) != 0)	{
-				strcat(buf, statuswords[i][j]);
-				if (i < 2) strcat(buf, " ");
-				break;
-			}
-			j++;
-		}
-		if (statuswords[i][j] == 0) {
-			fprintf(stderr, "corrupted status flag!!\n");
-			return NULL;
-		}
-	}
-
-	return buf;
+	/* parse error */
+	error_msg("Invalid status word");
+	return(0);
 }
 
 /*
@@ -385,24 +340,30 @@ static int control_read(FILE *file, package_t *p)
 
 		if (strlen(line) == 0) {
 			break;
-		} else
-			if (strstr(line, "Package: ") == line) {
+		}
+		else if (strstr(line, "Package: ") == line) {
 				p->package = xstrdup(line + 9);
-		} else
-			if (strstr(line, "Status: ") == line) {
-				p->status = status_parse(line + 8);
-		} else
-			if (strstr(line, "Depends: ") == line) {
+		}
+		else if (strstr(line, "Status: ") == line) {
+				char *word_pointer;
+				word_pointer = strchr(line, ' ') + 1;
+				p->status_want = status_parse(word_pointer, status_words_want);
+				word_pointer = strchr(word_pointer, ' ') + 1;
+				p->status_flag = status_parse(word_pointer, status_words_flag);
+				word_pointer = strchr(word_pointer, ' ') + 1;
+				p->status_status = status_parse(word_pointer, status_words_status);
+		}
+		else if (strstr(line, "Depends: ") == line) {
 				p->depends = xstrdup(line + 9);
-		} else
-			if (strstr(line, "Provides: ") == line) {
+		}
+		else if (strstr(line, "Provides: ") == line) {
 				p->provides = xstrdup(line + 10);
-		} else
-			if (strstr(line, "Description: ") == line) {
+		}
+		else if (strstr(line, "Description: ") == line) {
 				p->description = xstrdup(line + 13);
 		/* This is specific to the Debian Installer. Ifdef? */
-		} else
-			if (strstr(line, "installer-menu-item: ") == line) {
+		}
+		else if (strstr(line, "installer-menu-item: ") == line) {
 				p->installer_menu_item = atoi(line + 21);
 		}
 		/* TODO: localized descriptions */
@@ -417,13 +378,12 @@ static void *status_read(void)
 	void *status = 0;
 	package_t *m = 0, *p = 0, *t = 0;
 
-	if ((f = fopen(statusfile, "r")) == NULL) {
-		perror_msg(statusfile);
-		return 0;
-	}
-
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Reading database...)\n");
+	}
+
+	if ((f = fopen(statusfile, "r")) == NULL) {
+		return(NULL);
 	}
 
 	while (!feof(f)) {
@@ -445,22 +405,22 @@ static void *status_read(void)
 				 */
 				p = (package_t *)xcalloc(1, sizeof(package_t));
 				p->package = xstrdup(m->provides);
-
 				t = *(package_t **)tsearch(p, &status, package_compare);
 				if (t != p) {
 					free(p->package);
 					free(p);
-				}
-				else {
+				} else {
 					/*
 					 * Pseudo package status is the
 					 * same as the status of the
 					 * package providing it 
 					 * FIXME: (not quite right, if 2
 					 * packages of different statuses
-					 * provide it).
-					 */
-					t->status = m->status;
+				 	 * provide it).
+				 	 */
+					t->status_want = m->status_want;
+					t->status_flag = m->status_flag;
+					t->status_status = m->status_status;
 				}
 			}
 		}
@@ -485,6 +445,7 @@ static int status_merge(void *status, package_t *pkgs)
 	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Updating database...)\n");
 	}
+
 	/*
 	 * Dont use wfopen here, handle errors ourself
 	 */
@@ -517,8 +478,10 @@ static int status_merge(void *status, package_t *pkgs)
 				continue;
 			}
 			if (strstr(line, "Status: ") == line && statpkg != 0) {
-				snprintf(line, sizeof(line), "Status: %s",
-					status_print(statpkg->status));
+				snprintf(line, sizeof(line), "Status: %s %s %s",
+					status_words_want[statpkg->status_want - 1], 
+					status_words_flag[statpkg->status_flag - 1], 
+					status_words_status[statpkg->status_status - 1]);
 			}
 			fputs(line, fout);
 			fputc('\n', fout);
@@ -529,8 +492,11 @@ static int status_merge(void *status, package_t *pkgs)
 
 	// Print out packages we processed.
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
-		fprintf(fout, "Package: %s\nStatus: %s\n", 
-			pkg->package, status_print(pkg->status));
+		fprintf(fout, "Package: %s\nStatus: %s %s %s\n", 
+			pkg->package, status_words_want[pkg->status_want - 1],
+				status_words_flag[pkg->status_flag - 1],
+				status_words_status[pkg->status_status - 1]);
+
 		if (pkg->depends)
 			fprintf(fout, "Depends: %s\n", pkg->depends);
 		if (pkg->provides)
@@ -548,10 +514,11 @@ static int status_merge(void *status, package_t *pkgs)
 	 */
 	if (rename(statusfile, bak_statusfile) == -1) {
 		struct stat stat_buf;	
-		error_msg("Couldnt create backup status file");
 		if (stat(statusfile, &stat_buf) == 0) {
+			error_msg("Couldnt create backup status file");
 			return(EXIT_FAILURE);
 		}
+		error_msg("No status file found, creating new one");
 	}
 
 	if (rename(new_statusfile, statusfile) == -1) {
@@ -578,18 +545,18 @@ static int dpkg_doconfigure(package_t *pkg)
 	char buf[1024];
 
 	DPRINTF("Configuring %s\n", pkg->package);
-	pkg->status &= status_statusmask;
+	pkg->status_status = 0;
 	snprintf(postinst, sizeof(postinst), "%s%s.postinst", infodir, pkg->package);
 
 	if (is_file(postinst)) {
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
 		if ((r = do_system(buf)) != 0) {
 			fprintf(stderr, "postinst exited with status %d\n", r);
-			pkg->status |= status_statushalfconfigured;
+			pkg->status_status = status_status_halfconfigured;
 			return 1;
 		}
 	}
-	pkg->status |= status_statusinstalled;
+	pkg->status_status = status_status_installed;
 	
 	return 0;
 }
@@ -597,6 +564,7 @@ static int dpkg_doconfigure(package_t *pkg)
 static int dpkg_dounpack(package_t *pkg)
 {
 	int r = 0, i;
+	int status = TRUE;
 	char *cwd;
 	char *src_file = NULL;
 	char *dst_file = NULL;
@@ -630,12 +598,14 @@ static int dpkg_dounpack(package_t *pkg)
 		if (lstat(src_file, &src_stat_buf) == 0) {
 			if ((src_fd = open(src_file, O_RDONLY)) != -1) {
 			 	if ((dst_fd = open(dst_file, O_WRONLY | O_CREAT, 0644)) == -1) {
+					status = FALSE;
 					perror_msg("Opening %s", dst_file);
 				}
 				copy_file_chunk(src_fd, dst_fd, src_stat_buf.st_size);
 				close(src_fd);
 				close(dst_fd);
 			} else {
+				status = FALSE;
 				error_msg("couldnt open [%s]\n", src_file);
 			}
 		}
@@ -652,17 +622,15 @@ static int dpkg_dounpack(package_t *pkg)
 	deb_extract(dpkg_deb_list, NULL, pkg->file);
 */
 
-	pkg->status &= status_wantmask;
-	pkg->status |= status_wantinstall;
-	pkg->status &= status_flagmask;
-	pkg->status |= status_flagok;
-	pkg->status &= status_statusmask;
-
-	if (r == 0) {
-		pkg->status |= status_statusunpacked;
+	pkg->status_want = status_want_install;
+	pkg->status_flag = status_flag_ok;
+ 
+	if (status == TRUE) {
+		pkg->status_status = status_status_unpacked;
 	} else {
-		pkg->status |= status_statushalfinstalled;
+		pkg->status_status = status_status_halfinstalled;
 	}
+
 	chdir(cwd);
 	return r;
 }
@@ -781,19 +749,18 @@ static int dpkg_install(package_t *pkgs, void *status)
 	
 	/* Stage 3: install */
 	for (p = ordered; p != 0; p = p->next) {
-		p->status &= status_wantmask;
-		p->status |= status_wantinstall;
+		p->status_want = status_want_install;
 
 		/* for now the flag is always set to ok... this is probably
 		 * not what we want
 		 */
-		p->status &= status_flagmask;
-		p->status |= status_flagok;
+		p->status_flag = status_flag_ok;
 
 		DPRINTF("Installing %s\n", p->package);
 		if (dpkg_dounpack(p) != 0) {
 			perror_msg(p->file);
 		}
+
 		if (dpkg_doconfigure(p) != 0) {
 			perror_msg(p->file);
 		}
