@@ -82,9 +82,13 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef BB_LOCALE_SUPPORT 
+#ifdef BB_INIT
 	if(getpid()!=1)	/* Do not set locale for `init' */
+#endif
+	{
 		setlocale(LC_ALL, "");
+	}
 #endif
 
 	run_applet_by_name(applet_name, argc, argv);
