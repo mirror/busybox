@@ -31,7 +31,7 @@
 
 typedef struct ar_headers_s {
 	char *name;
-	size_t size;
+	off_t size;
 	uid_t uid;
 	gid_t gid;
 	mode_t mode;
@@ -90,7 +90,7 @@ extern ar_headers_t get_ar_headers(int srcFd)
 			/* dont worry about adding the last '\n', we dont need it now */
 		}
 		
-		entry->size = (size_t) atoi(raw_ar_header.size);
+		entry->size = (off_t) atoi(raw_ar_header.size);
 		/* long filenames have '/' as the first character */
 		if (raw_ar_header.name[0] == '/') {
 			if (raw_ar_header.name[1] == '/') {
@@ -211,7 +211,7 @@ extern int ar_main(int argc, char **argv)
 		}
 		if ((funct & extract_to_file) || (funct & extract_to_stdout)) {
 			lseek(srcFd, extract_list->offset, SEEK_SET);
-			copy_file_chunk(srcFd, dstFd, (size_t) extract_list->size);			
+			copy_file_chunk(srcFd, dstFd, (off_t) extract_list->size);			
 		}
 		if (funct & verbose) {
 			printf("%s %d/%d %8d %s ", mode_string(extract_list->mode), 

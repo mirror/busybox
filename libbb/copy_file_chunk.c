@@ -32,9 +32,9 @@
 /*
  * Copy chunksize bytes between two file descriptors
  */
-int copy_file_chunk(int srcfd, int dstfd, size_t chunksize)
+int copy_file_chunk(int srcfd, int dstfd, off_t chunksize)
 {
-        size_t size;
+        off_t size;
         char buffer[BUFSIZ]; /* BUFSIZ is declared in stdio.h */
 
         while (chunksize > 0) {
