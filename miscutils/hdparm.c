@@ -1238,7 +1238,7 @@ static int verbose = 0, get_identity = 0, get_geom = 0, noisy = 1, quiet = 0;
 static int flagcount = 0, do_flush = 0, is_scsi_hd = 0, is_xt_hd = 0;
 static int do_ctimings, do_timings = 0;
 
-static unsigned long set_readahead= 0, get_readahead= 0, readahead= 0;
+static unsigned long set_readahead= 0, get_readahead= 0, bbreadahead= 0;
 static unsigned long set_readonly = 0, get_readonly = 0, readonly = 0;
 static unsigned long set_unmask   = 0, get_unmask   = 0, unmask   = 0;
 static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;     
@@ -1948,8 +1948,8 @@ static void process_dev (char *devname)
 
 	if (set_readahead)
 	{
-		if_printf(get_readahead," setting fs readahead to %ld\n", readahead);
-		bb_ioctl(fd, BLKRASET,(int *)readahead,"BLKRASET");
+		if_printf(get_readahead," setting fs readahead to %ld\n", bbreadahead);
+		bb_ioctl(fd, BLKRASET,(int *)bbreadahead,"BLKRASET");
 	}
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	if (unregister_hwif)
@@ -2839,7 +2839,7 @@ error:
 						while (isdigit(*p))
 						{
 							set_readahead = 1;
-							readahead = (readahead * 10) + (*p++ - '0');
+							bbreadahead = (bbreadahead * 10) + (*p++ - '0');
 						}
 						break;
 					case 'B':
