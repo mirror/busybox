@@ -26,6 +26,10 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+/* From gunzip.c */
+extern int gz_open(FILE *compressed_file, int *pid);
+extern void gz_close(int gunzip_pid);
+
 typedef struct ar_headers_s {
 	char *name;
 	size_t size;
@@ -60,6 +64,8 @@ extern int deb_extract(int optflags, const char *dir_name, const char *deb_filen
 	int extract_to_stdout = FALSE;
 	int srcFd = 0;
 	int status;
+	pid_t pid;
+	FILE *comp_file = NULL;
 
 	if (dpkg_deb_contents == (dpkg_deb_contents & optflags)) {
 		strcpy(ar_filename, "data.tar.gz");
@@ -99,7 +105,11 @@ extern int deb_extract(int optflags, const char *dir_name, const char *deb_filen
 		ar_headers = ar_headers->next;
 	}
 	lseek(srcFd, ar_headers->offset, SEEK_SET);
-	srcFd = tar_unzip_init(srcFd);
+	/* Uncompress the file */
+	comp_file = fdopen(srcFd, "r");
+	if ((srcFd = gz_open(comp_file, &pid)) == EXIT_FAILURE) {
+	    error_msg_and_die("Couldnt unzip file");
+	}
 	if ( dir_name != NULL) { 
 		if (is_directory(dir_name, TRUE, NULL)==FALSE) {
 			mkdir(dir_name, 0755);
@@ -108,7 +118,11 @@ extern int deb_extract(int optflags, const char *dir_name, const char *deb_filen
 			error_msg_and_die("Cannot change to dir %s", dir_name);
 		}
 	}
-	status = readTarFile(srcFd, extract_flag, list_flag, extract_to_stdout, verbose_flag, NULL, extract_list);
+	status = readTarFile(srcFd, extract_flag, list_flag, 
+		extract_to_stdout, verbose_flag, NULL, extract_list);
+	close(srcFd);
+	gz_close(pid);
+	fclose(comp_file);
 
 	return status;
 }
