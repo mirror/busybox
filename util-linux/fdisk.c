@@ -26,12 +26,7 @@
 #include <setjmp.h>
 #include <assert.h>             /* assert */
 #include <getopt.h>
-
 #include <endian.h>
-#define u_char  unsigned char
-#include <scsi/scsi.h>          /* SCSI_IOCTL_GET_IDLUN */
-#undef u_char
-
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/sysmacros.h>     /* major */
@@ -92,6 +87,10 @@
 
 #define cround(n)       (display_in_cyl_units ? ((n)/units_per_sector)+1 : (n))
 #define scround(x)      (((x)+units_per_sector-1)/units_per_sector)
+
+#ifdef CONFIG_FEATURE_SUN_LABEL
+#define SCSI_IOCTL_GET_IDLUN 0x5382
+#endif
 
 
 #if defined(CONFIG_LFS) || defined(FDISK_SUPPORT_LARGE_DISKS) || defined(__alpha__) || defined(__ia64__) || defined(__s390x__)
@@ -203,7 +202,7 @@ struct partition {
 	unsigned char end_cyl;          /* end cylinder */
 	unsigned char start4[4];        /* starting sector counting from 0 */
 	unsigned char size4[4];         /* nr of sectors in partition */
-};
+} __attribute__((__packed__));
 
 enum failure {
 	ioctl_error, unable_to_open, unable_to_read, unable_to_seek,
