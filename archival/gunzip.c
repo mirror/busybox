@@ -659,7 +659,7 @@ int gunzip_main(int argc, char **argv)
 		if (*argv == '\0')
 			usage(gunzip_usage);
 		if (strlen(*argv) > MAX_PATH_LEN) {
-			fprintf(stderr, name_too_long, "gunzip");
+			errorMsg(name_too_long);
 			exit(WARNING);
 		}
 		strcpy(ifname, *argv);
@@ -698,7 +698,7 @@ int gunzip_main(int argc, char **argv)
 
 		/* And get to work */
 		if (strlen(ifname) > MAX_PATH_LEN - 4) {
-			fprintf(stderr, name_too_long, "gunzip");
+			errorMsg(name_too_long);
 			exit(WARNING);
 		}
 		strcpy(ofname, ifname);
@@ -780,8 +780,7 @@ int in;							/* input file descriptor */
 
 		method = (int) get_byte();
 		if (method != DEFLATED) {
-			fprintf(stderr,
-					"unknown method %d -- get newer version of gzip\n",
+			errorMsg("unknown method %d -- get newer version of gzip\n",
 					method);
 			exit_code = ERROR;
 			return -1;

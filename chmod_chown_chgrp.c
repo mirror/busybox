@@ -123,7 +123,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 					recursiveFlag = TRUE;
 					break;
 				default:
-					fprintf(stderr, invalid_option, applet_name, **argv);
+					errorMsg(invalid_option, **argv);
 					usage(appUsage);
 			}
 		}
@@ -131,7 +131,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	}
 
 	if (argc == 0 || *argv == NULL) {
-		fprintf(stderr, too_few_args, applet_name);
+		errorMsg(too_few_args);
 		usage(appUsage);
 	}
 
@@ -176,7 +176,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
 	/* Ok, ready to do the deed now */
 	if (argc <= 1) {
-		fatalError( "too few arguments\n");
+		fatalError(too_few_args);
 	}
 	while (argc-- > 1) {
 		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 

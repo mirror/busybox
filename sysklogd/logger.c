@@ -96,7 +96,7 @@ static int pencode(char *s)
 		*s = '\0';
 		fac = decode(save, facilitynames);
 		if (fac < 0) {
-			fprintf(stderr, "unknown facility name: %s\n", save);
+			errorMsg("unknown facility name: %s\n", save);
 			exit(FALSE);
 		}
 		*s++ = '.';
@@ -105,7 +105,7 @@ static int pencode(char *s)
 	}
 	lev = decode(s, prioritynames);
 	if (lev < 0) {
-		fprintf(stderr, "unknown priority name: %s\n", save);
+		errorMsg("unknown priority name: %s\n", save);
 		exit(FALSE);
 	}
 	return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));
@@ -166,7 +166,7 @@ extern int logger_main(int argc, char **argv)
 		if (argc >= 1) {
 			message = *argv;
 		} else {
-			fprintf(stderr, "No message\n");
+			errorMsg("No message\n");
 			exit(FALSE);
 		}
 	}

@@ -81,7 +81,7 @@ extern int mt_main(int argc, char **argv)
 	}
 
 	if (code->name == 0) {
-		fprintf(stderr, "mt: unrecognized opcode %s.\n", argv[1]);
+		errorMsg("unrecognized opcode %s.\n", argv[1]);
 		exit (FALSE);
 	}
 

@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.15 2000/07/11 17:52:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.16 2000/07/14 01:51:25 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.15 2000/07/11 17:52:22 andersen Exp $"
+#ident "$Id: insmod.c,v 1.16 2000/07/14 01:51:25 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -938,7 +938,7 @@ struct obj_symbol *obj_add_symbol(struct obj_file *f, const char *name,
 				/* Don't report an error if the symbol is coming from
 				   the kernel or some external module.  */
 				if (secidx <= SHN_HIRESERVE)
-					fprintf(stderr, "%s multiply defined\n", name);
+					errorMsg("%s multiply defined\n", name);
 				return sym;
 			}
 		}
@@ -1201,7 +1201,7 @@ old_process_module_arguments(struct obj_file *f, int argc, char **argv)
 
 		/* Also check that the parameter was not resolved from the kernel.  */
 		if (sym == NULL || sym->secidx > SHN_HIRESERVE) {
-			fprintf(stderr, "symbol for parameter %s not found\n", p);
+			errorMsg("symbol for parameter %s not found\n", p);
 			return 0;
 		}
 
@@ -1214,7 +1214,7 @@ old_process_module_arguments(struct obj_file *f, int argc, char **argv)
 			str = alloca(strlen(q));
 			for (r = str, q++; *q != '"'; ++q, ++r) {
 				if (*q == '\0') {
-					fprintf(stderr, "improperly terminated string argument for %s\n", p);
+					errorMsg("improperly terminated string argument for %s\n", p);
 					return 0;
 				} else if (*q == '\\')
 					switch (*++q) {
@@ -1567,7 +1567,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 		p = get_modinfo_value(f, key);
 		key += 5;
 		if (p == NULL) {
-			fprintf(stderr, "invalid parameter %s\n", key);
+			errorMsg("invalid parameter %s\n", key);
 			return 0;
 		}
 
@@ -1575,7 +1575,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 
 		/* Also check that the parameter was not resolved from the kernel.  */
 		if (sym == NULL || sym->secidx > SHN_HIRESERVE) {
-			fprintf(stderr, "symbol for parameter %s not found\n", key);
+			errorMsg("symbol for parameter %s not found\n", key);
 			return 0;
 		}
 
@@ -1603,8 +1603,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					str = alloca(strlen(q));
 					for (r = str, q++; *q != '"'; ++q, ++r) {
 						if (*q == '\0') {
-							fprintf(stderr,
-									"improperly terminated string argument for %s\n",
+							errorMsg("improperly terminated string argument for %s\n",
 									key);
 							return 0;
 						} else if (*q == '\\')
@@ -1698,8 +1697,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					/* Get the size of each member */
 					/* Probably we should do that outside the loop ? */
 					if (!isdigit(*(p + 1))) {
-						fprintf(stderr,
-								"parameter type 'c' for %s must be followed by"
+						errorMsg("parameter type 'c' for %s must be followed by"
 								" the maximum size\n", key);
 						return 0;
 					}
@@ -1707,8 +1705,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 
 					/* Check length */
 					if (strlen(str) >= charssize) {
-						fprintf(stderr,
-								"string too long for %s (max %ld)\n", key,
+						errorMsg("string too long for %s (max %ld)\n", key,
 								charssize - 1);
 						return 0;
 					}
@@ -1737,8 +1734,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					break;
 
 				default:
-					fprintf(stderr, "unknown parameter type '%c' for %s\n",
-							*p, key);
+					errorMsg("unknown parameter type '%c' for %s\n", *p, key);
 					return 0;
 				}
 			}
@@ -1757,22 +1753,21 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 
 			case ',':
 				if (++n > max) {
-					fprintf(stderr, "too many values for %s (max %d)\n",
-							key, max);
+					errorMsg("too many values for %s (max %d)\n", key, max);
 					return 0;
 				}
 				++q;
 				break;
 
 			default:
-				fprintf(stderr, "invalid argument syntax for %s\n", key);
+				errorMsg("invalid argument syntax for %s\n", key);
 				return 0;
 			}
 		}
 
 	  end_of_arg:
 		if (n < min) {
-			fprintf(stderr, "too few values for %s (min %d)\n", key, min);
+			errorMsg("too few values for %s (min %d)\n", key, min);
 			return 0;
 		}
 
@@ -2157,7 +2152,7 @@ int obj_check_undefineds(struct obj_file *f)
 					sym->secidx = SHN_ABS;
 					sym->value = 0;
 				} else {
-					fprintf(stderr, "unresolved symbol %s\n", sym->name);
+					errorMsg("unresolved symbol %s\n", sym->name);
 					ret = 0;
 				}
 			}
@@ -2380,11 +2375,11 @@ int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 				errmsg = "Unhandled relocation";
 			  bad_reloc:
 				if (extsym) {
-					fprintf(stderr, "%s of type %ld for %s\n", errmsg,
+					errorMsg("%s of type %ld for %s\n", errmsg,
 							(long) ELFW(R_TYPE) (rel->r_info),
 							strtab + extsym->st_name);
 				} else {
-					fprintf(stderr, "%s of type %ld\n", errmsg,
+					errorMsg("%s of type %ld\n", errmsg,
 							(long) ELFW(R_TYPE) (rel->r_info));
 				}
 				ret = 0;
@@ -2469,25 +2464,25 @@ struct obj_file *obj_load(FILE * fp)
 		|| f->header.e_ident[EI_MAG1] != ELFMAG1
 		|| f->header.e_ident[EI_MAG2] != ELFMAG2
 		|| f->header.e_ident[EI_MAG3] != ELFMAG3) {
-		fprintf(stderr, "not an ELF file\n");
+		errorMsg("not an ELF file\n");
 		return NULL;
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM
 		|| f->header.e_ident[EI_DATA] != ELFDATAM
 		|| f->header.e_ident[EI_VERSION] != EV_CURRENT
 		|| !MATCH_MACHINE(f->header.e_machine)) {
-		fprintf(stderr, "ELF file not for this architecture\n");
+		errorMsg("ELF file not for this architecture\n");
 		return NULL;
 	}
 	if (f->header.e_type != ET_REL) {
-		fprintf(stderr, "ELF file not a relocatable object\n");
+		errorMsg("ELF file not a relocatable object\n");
 		return NULL;
 	}
 
 	/* Read the section headers.  */
 
 	if (f->header.e_shentsize != sizeof(ElfW(Shdr))) {
-		fprintf(stderr, "section header size mismatch: %lu != %lu\n",
+		errorMsg("section header size mismatch: %lu != %lu\n",
 				(unsigned long) f->header.e_shentsize,
 				(unsigned long) sizeof(ElfW(Shdr)));
 		return NULL;
@@ -2540,13 +2535,11 @@ struct obj_file *obj_load(FILE * fp)
 
 #if SHT_RELM == SHT_REL
 		case SHT_RELA:
-			fprintf(stderr,
-					"RELA relocations not supported on this architecture\n");
+			errorMsg("RELA relocations not supported on this architecture\n");
 			return NULL;
 #else
 		case SHT_REL:
-			fprintf(stderr,
-					"REL relocations not supported on this architecture\n");
+			errorMsg("REL relocations not supported on this architecture\n");
 			return NULL;
 #endif
 
@@ -2559,7 +2552,7 @@ struct obj_file *obj_load(FILE * fp)
 				break;
 			}
 
-			fprintf(stderr, "can't handle sections of type %ld\n",
+			errorMsg("can't handle sections of type %ld\n",
 					(long) sec->header.sh_type);
 			return NULL;
 		}
@@ -2588,7 +2581,7 @@ struct obj_file *obj_load(FILE * fp)
 				ElfW(Sym) * sym;
 
 				if (sec->header.sh_entsize != sizeof(ElfW(Sym))) {
-					fprintf(stderr, "symbol size mismatch: %lu != %lu\n",
+					errorMsg("symbol size mismatch: %lu != %lu\n",
 							(unsigned long) sec->header.sh_entsize,
 							(unsigned long) sizeof(ElfW(Sym)));
 					return NULL;
@@ -2620,8 +2613,7 @@ struct obj_file *obj_load(FILE * fp)
 
 		case SHT_RELM:
 			if (sec->header.sh_entsize != sizeof(ElfW(RelM))) {
-				fprintf(stderr,
-						"relocation entry size mismatch: %lu != %lu\n",
+				errorMsg("relocation entry size mismatch: %lu != %lu\n",
 						(unsigned long) sec->header.sh_entsize,
 						(unsigned long) sizeof(ElfW(RelM)));
 				return NULL;
@@ -2754,20 +2746,20 @@ extern int insmod_main( int argc, char **argv)
 	} else {
 		m_version = old_get_module_version(f, m_strversion);
 		if (m_version == -1) {
-			fprintf(stderr,
-					"couldn't find the kernel version the module was compiled for\n");
+			errorMsg("couldn't find the kernel version the module was "
+					"compiled for\n");
 			goto out;
 		}
 	}
 
 	if (strncmp(k_strversion, m_strversion, STRVERSIONLEN) != 0) {
 		if (flag_force_load) {
-			fprintf(stderr, "Warning: kernel-module version mismatch\n"
+			errorMsg("Warning: kernel-module version mismatch\n"
 					"\t%s was compiled for kernel version %s\n"
 					"\twhile this kernel is version %s\n",
 					m_filename, m_strversion, k_strversion);
 		} else {
-			fprintf(stderr, "kernel-module version mismatch\n"
+			errorMsg("kernel-module version mismatch\n"
 					"\t%s was compiled for kernel version %s\n"
 					"\twhile this kernel is version %s.\n",
 					m_filename, m_strversion, k_strversion);
@@ -2785,7 +2777,7 @@ extern int insmod_main( int argc, char **argv)
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
 #else
-		fprintf(stderr, "Not configured to support new kernels\n");
+		errorMsg("Not configured to support new kernels\n");
 		goto out;
 #endif
 	} else {
@@ -2794,7 +2786,7 @@ extern int insmod_main( int argc, char **argv)
 			goto out;
 		k_crcs = old_is_kernel_checksummed();
 #else
-		fprintf(stderr, "Not configured to support old kernels\n");
+		errorMsg("Not configured to support old kernels\n");
 		goto out;
 #endif
 	}
@@ -2851,11 +2843,10 @@ extern int insmod_main( int argc, char **argv)
 	case 0:
 		break;
 	case EEXIST:
-		fprintf(stderr, "A module named %s already exists\n", m_name);
+		errorMsg("A module named %s already exists\n", m_name);
 		goto out;
 	case ENOMEM:
-		fprintf(stderr,
-				"Can't allocate kernel memory for module; needed %lu bytes\n",
+		errorMsg("Can't allocate kernel memory for module; needed %lu bytes\n",
 				m_size);
 		goto out;
 	default:

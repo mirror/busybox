@@ -392,7 +392,7 @@ static char *busybox_fullpath()
 	if (len != -1) {
 		path[len] = 0;
 	} else {
-		fprintf(stderr, "busybox : %s : %s\n", proc, strerror(errno));
+		errorMsg("%s: %s\n", proc, strerror(errno));
 		return NULL;
 	}
 	return strdup(path);
@@ -422,7 +422,7 @@ static int install_links(const char *busybox, int use_symbolic_links)
 		puts(command);
 #endif
 		if (rc) {
-			fprintf(stderr,"busybox : %s : %s\n", command, strerror(errno));
+			errorMsg("%s: %s\n", command, strerror(errno));
 		}
 	}
 	return rc;
@@ -438,6 +438,7 @@ int main(int argc, char **argv)
 {
 	char				*s;
 	const struct BB_applet	*a		= applets;
+	applet_name = "busybox";
 
 #ifdef BB_FEATURE_INSTALLER	
 	/* 

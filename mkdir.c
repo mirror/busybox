@@ -62,7 +62,7 @@ extern int mkdir_main(int argc, char **argv)
 				/* Find the specified modes */
 				mode = 0;
 				if (parse_mode(*(++argv), &mode) == FALSE) {
-					fprintf(stderr, "Unknown mode: %s\n", *argv);
+					errorMsg("Unknown mode: %s\n", *argv);
 					exit FALSE;
 				}
 				/* Set the umask for this process so it doesn't 
@@ -91,13 +91,13 @@ extern int mkdir_main(int argc, char **argv)
 		char buf[BUFSIZ + 1];
 
 		if (strlen(*argv) > BUFSIZ - 1) {
-			fprintf(stderr, name_too_long, "mkdir");
+			errorMsg(name_too_long);
 			exit FALSE;
 		}
 		strcpy(buf, *argv);
 		status = stat(buf, &statBuf);
 		if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
-			fprintf(stderr, "%s: File exists\n", buf);
+			errorMsg("%s: File exists\n", buf);
 			exit FALSE;
 		}
 		if (parentFlag == TRUE) {

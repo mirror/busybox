@@ -263,7 +263,7 @@ static unsigned long req_nr_inodes = 0;
  */
 static volatile void die(char *str)
 {
-	fprintf(stderr, "%s: %s\n", applet_name, str);
+	errorMsg("%s\n", str);
 	exit(8);
 }
 
@@ -814,8 +814,8 @@ extern int mkfs_minix_main(int argc, char **argv)
 #ifdef HAVE_MINIX2
 						version2 = 1;
 #else
-						fprintf(stderr, "%s: not compiled with minix v2 support\n",
-								applet_name, device_name);
+						errorMsg("%s: not compiled with minix v2 support\n",
+								device_name);
 						exit(-1);
 #endif
 						break;

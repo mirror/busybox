@@ -58,7 +58,7 @@ int dumpkmap_main(int argc, char **argv)
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
-		fprintf(stderr, "Error opening /dev/tty0: %s\n", strerror(errno));
+		errorMsg("Error opening /dev/tty0: %s\n", strerror(errno));
 		return 1;
 	}
 
@@ -86,7 +86,7 @@ int dumpkmap_main(int argc, char **argv)
 				ke.kb_table = i;
 				if (ioctl(fd, KDGKBENT, &ke) < 0) {
 				
-					fprintf(stderr, "ioctl returned: %s, %s, %s, %xqq\n",strerror(errno),(char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
+					errorMsg("ioctl returned: %s, %s, %s, %xqq\n",strerror(errno),(char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
 					}
 				else {
 					write(1,&ke.kb_value,2);	

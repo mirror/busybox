@@ -89,8 +89,7 @@ static void name_too_long__exit (void) __attribute__((noreturn));
 static
 void name_too_long__exit (void)
 {
-	fprintf(stderr, name_too_long, applet_name);
-	exit(FALSE);
+	fatalError(name_too_long);
 }
 
 static void
@@ -124,14 +123,14 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (srcDirFlag == TRUE) {
 		if (recursiveFlag == FALSE) {
-			fprintf(stderr, omitting_directory, applet_name, baseSrcName);
+			errorMsg(omitting_directory, baseSrcName);
 			return TRUE;
 		}
 		srcBasename = (strstr(fileName, baseSrcName)
 					   + strlen(baseSrcName));
 
 		if (destLen + strlen(srcBasename) > BUFSIZ) {
-			fprintf(stderr, name_too_long, applet_name);
+			errorMsg(name_too_long);
 			return FALSE;
 		}
 		strcat(destName, srcBasename);
@@ -145,8 +144,8 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 	if (mv_Action_first_time && (dz_i == is_mv)) {
 		mv_Action_first_time = errno = 0;
 		if (rename(fileName, destName) < 0 && errno != EXDEV) {
-			fprintf(stderr, "%s: rename(%s, %s): %s\n",
-					applet_name, fileName, destName, strerror(errno));
+			errorMsg("rename(%s, %s): %s\n", fileName, destName, 
+					strerror(errno));
 			goto do_copyFile;	/* Try anyway... */
 		}
 		else if (errno == EXDEV)
@@ -158,8 +157,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 	if (preserveFlag == TRUE && statbuf->st_nlink > 1) {
 		if (is_in_ino_dev_hashtable(statbuf, &name)) {
 			if (link(name, destName) < 0) {
-				fprintf(stderr, "%s: link(%s, %s): %s\n",
-						applet_name, name, destName, strerror(errno));
+				errorMsg("link(%s, %s): %s\n", name, destName, strerror(errno));
 				return FALSE;
 			}
 			return TRUE;
@@ -178,11 +176,11 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (S_ISDIR(statbuf->st_mode)) {
 		if (rmdir(fileName) < 0) {
-			fprintf(stderr, "%s: rmdir(%s): %s\n", applet_name, fileName, strerror(errno));
+			errorMsg("rmdir(%s): %s\n", fileName, strerror(errno));
 			status = FALSE;
 		}
 	} else if (unlink(fileName) < 0) {
-		fprintf(stderr, "%s: unlink(%s): %s\n", applet_name, fileName, strerror(errno));
+		errorMsg("unlink(%s): %s\n", fileName, strerror(errno));
 		status = FALSE;
 	}
 	return status;
@@ -236,7 +234,7 @@ extern int cp_mv_main(int argc, char **argv)
 	
 
 	if (strlen(argv[argc - 1]) > BUFSIZ) {
-		fprintf(stderr, name_too_long, "cp");
+		errorMsg(name_too_long);
 		goto exit_false;
 	}
 	strcpy(baseDestName, argv[argc - 1]);
@@ -246,7 +244,7 @@ extern int cp_mv_main(int argc, char **argv)
 
 	destDirFlag = isDirectory(baseDestName, TRUE, &destStatBuf);
 	if ((argc > 3) && destDirFlag == FALSE) {
-		fprintf(stderr, not_a_directory, "cp", baseDestName);
+		errorMsg(not_a_directory, baseDestName);
 		goto exit_false;
 	}
 
@@ -272,29 +270,28 @@ extern int cp_mv_main(int argc, char **argv)
 			char		*pushd, *d, *p;
 
 			if ((pushd = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				fprintf(stderr, "%s: getcwd(): %s\n", applet_name, strerror(errno));
+				errorMsg("getcwd(): %s\n", strerror(errno));
 				continue;
 			}
 			if (chdir(baseDestName) < 0) {
-				fprintf(stderr, "%s: chdir(%s): %s\n", applet_name, baseSrcName, strerror(errno));
+				errorMsg("chdir(%s): %s\n", baseSrcName, strerror(errno));
 				continue;
 			}
 			if ((d = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				fprintf(stderr, "%s: getcwd(): %s\n", applet_name, strerror(errno));
+				errorMsg("getcwd(): %s\n", strerror(errno));
 				continue;
 			}
 			while (!state && *d != '\0') {
 				if (stat(d, &sb) < 0) {	/* stat not lstat - always dereference targets */
-					fprintf(stderr, "%s: stat(%s) :%s\n", applet_name, d, strerror(errno));
+					errorMsg("stat(%s): %s\n", d, strerror(errno));
 					state = -1;
 					continue;
 				}
 				if ((sb.st_ino == srcStatBuf.st_ino) &&
 					(sb.st_dev == srcStatBuf.st_dev)) {
-					fprintf(stderr,
-							"%s: Cannot %s `%s' "
-							"into a subdirectory of itself, `%s/%s'\n",
-							applet_name, applet_name, baseSrcName, baseDestName, baseSrcName);
+					errorMsg("Cannot %s `%s' into a subdirectory of itself, "
+							"`%s/%s'\n", applet_name, baseSrcName,
+							baseDestName, baseSrcName);
 					state = -1;
 					continue;
 				}
@@ -303,7 +300,7 @@ extern int cp_mv_main(int argc, char **argv)
 				}
 			}
 			if (chdir(pushd) < 0) {
-				fprintf(stderr, "%s: chdir(%s): %s\n", applet_name, pushd, strerror(errno));
+				errorMsg("chdir(%s): %s\n", pushd, strerror(errno));
 				free(pushd);
 				free(d);
 				continue;

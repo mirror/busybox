@@ -86,26 +86,26 @@ extern int dd_main(int argc, char **argv)
 		else if (strncmp("count", *argv, 5) == 0) {
 			count = getNum((strchr(*argv, '=')) + 1);
 			if (count <= 0) {
-				fprintf(stderr, "Bad count value %s\n", *argv);
+				errorMsg("Bad count value %s\n", *argv);
 				goto usage;
 			}
 		} else if (strncmp(*argv, "bs", 2) == 0) {
 			blockSize = getNum((strchr(*argv, '=')) + 1);
 			if (blockSize <= 0) {
-				fprintf(stderr, "Bad block size value %s\n", *argv);
+				errorMsg("Bad block size value %s\n", *argv);
 				goto usage;
 			}
 		} else if (strncmp(*argv, "skip", 4) == 0) {
 			skipBlocks = getNum((strchr(*argv, '=')) + 1);
 			if (skipBlocks <= 0) {
-				fprintf(stderr, "Bad skip value %s\n", *argv);
+				errorMsg("Bad skip value %s\n", *argv);
 				goto usage;
 			}
 
 		} else if (strncmp(*argv, "seek", 4) == 0) {
 			seekBlocks = getNum((strchr(*argv, '=')) + 1);
 			if (seekBlocks <= 0) {
-				fprintf(stderr, "Bad seek value %s\n", *argv);
+				errorMsg("Bad seek value %s\n", *argv);
 				goto usage;
 			}
 

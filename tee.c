@@ -104,7 +104,7 @@ int tee_main(int argc, char **argv)
 	/* init FILE pointers */
 	FileList = calloc(FL_MAX, sizeof(FILE*));
 	if (!FileList) {
-		fprintf(stderr, "tee: %s\n", strerror(errno));
+		errorMsg("%s\n", strerror(errno));
 		exit(1);
 	}
 	FL_end = 0;
@@ -133,4 +133,4 @@ int tee_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: tee.c,v 1.11 2000/06/19 17:25:40 andersen Exp $ */
+/* $Id: tee.c,v 1.12 2000/07/14 01:51:25 kraai Exp $ */

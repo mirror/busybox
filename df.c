@@ -82,7 +82,7 @@ extern int df_main(int argc, char **argv)
 		}
 		while (argc > 1) {
 			if ((mountEntry = findMountPoint(argv[1], mtab_file)) == 0) {
-				fprintf(stderr, "%s: can't find mount point.\n", argv[1]);
+				errorMsg("%s: can't find mount point.\n", argv[1]);
 				exit(FALSE);
 			}
 			status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);

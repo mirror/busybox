@@ -207,12 +207,12 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 
 	if (!jobList->head) {
 		if (!cmd->progs[0].argv[1] || cmd->progs[0].argv[2]) {
-			fprintf(stderr, "%s: exactly one argument is expected\n",
+			errorMsg("%s: exactly one argument is expected\n",
 					cmd->progs[0].argv[0]);
 			return FALSE;
 		}
 		if (sscanf(cmd->progs[0].argv[1], "%%%d", &jobNum) != 1) {
-			fprintf(stderr, "%s: bad argument '%s'\n",
+			errorMsg("%s: bad argument '%s'\n",
 					cmd->progs[0].argv[0], cmd->progs[0].argv[1]);
 			return FALSE;
 			for (job = jobList->head; job; job = job->next) {
@@ -226,7 +226,7 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 	}
 
 	if (!job) {
-		fprintf(stderr, "%s: unknown job %d\n",
+		errorMsg("%s: unknown job %d\n",
 				cmd->progs[0].argv[0], jobNum);
 		return FALSE;
 	}
@@ -519,7 +519,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 
 	rc = glob(prog->argv[argc - 1], flags, NULL, &prog->globResult);
 	if (rc == GLOB_NOSPACE) {
-		fprintf(stderr, "out of space during glob operation\n");
+		errorMsg("out of space during glob operation\n");
 		return;
 	} else if (rc == GLOB_NOMATCH ||
 			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
@@ -607,7 +607,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			if (*src == '\\') {
 				src++;
 				if (!*src) {
-					fprintf(stderr, "character expected after \\\n");
+					errorMsg("character expected after \\\n");
 					freeJob(job);
 					return 1;
 				}
@@ -686,7 +686,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					chptr++;
 
 				if (!*chptr) {
-					fprintf(stderr, "file name expected after %c\n", *src);
+					errorMsg("file name expected after %c\n", *src);
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -705,7 +705,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				if (*prog->argv[argc])
 					argc++;
 				if (!argc) {
-					fprintf(stderr, "empty command in pipe1.\n");
+					errorMsg("empty command in pipe1\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -731,7 +731,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					src++;
 
 				if (!*src) {
-					fprintf(stderr, "empty command in pipe2\n");
+					errorMsg("empty command in pipe2\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -750,7 +750,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			case '\\':
 				src++;
 				if (!*src) {
-					fprintf(stderr, "character expected after \\\n");
+					errorMsg("character expected after \\\n");
 					freeJob(job);
 					return 1;
 				}
@@ -965,7 +965,7 @@ static int setupRedirections(struct childProgram *prog)
 		if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-			fprintf(stderr, "error opening %s: %s\n", redir->filename,
+			errorMsg("error opening %s: %s\n", redir->filename,
 					strerror(errno));
 			return 1;
 		}

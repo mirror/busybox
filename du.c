@@ -108,7 +108,7 @@ static long du(char *filename)
 			}
 
 			if (len + strlen(name) + 1 > BUFSIZ) {
-				fprintf(stderr, name_too_long, "du");
+				errorMsg(name_too_long);
 				du_depth--;
 				return 0;
 			}
@@ -158,7 +158,7 @@ int du_main(int argc, char **argv)
 				usage(du_usage);
 				break;
 			default:
-				fprintf(stderr, "du: invalid option -- %c\n", opt);
+				errorMsg("invalid option -- %c\n", opt);
 				usage(du_usage);
 			}
 		} else {
@@ -184,7 +184,7 @@ int du_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: du.c,v 1.20 2000/06/19 17:25:39 andersen Exp $ */
+/* $Id: du.c,v 1.21 2000/07/14 01:51:25 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

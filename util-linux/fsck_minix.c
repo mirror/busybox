@@ -311,7 +311,7 @@ static void show_usage(void)
 
 static void die(const char *str)
 {
-	fprintf(stderr, "%s: %s\n", applet_name, str);
+	errorMsg("%s\n", str);
 	leave(8);
 }
 

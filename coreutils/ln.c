@@ -23,7 +23,6 @@
 
 #include "internal.h"
 #define BB_DECLARE_EXTERN
-#define bb_need_name_too_long
 #define bb_need_not_a_directory
 #include "messages.c"
 
@@ -92,7 +91,7 @@ extern int ln_main(int argc, char **argv)
 
 	linkIntoDirFlag = isDirectory(linkName, followLinks, NULL);
 	if ((argc >= 3) && linkIntoDirFlag == FALSE) {
-		fprintf(stderr, not_a_directory, "ln", linkName);
+		errorMsg(not_a_directory, linkName);
 		exit FALSE;
 	}
 

@@ -56,7 +56,7 @@ extern int loadfont_main(int argc, char **argv)
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
-		fprintf(stderr, "Error opening /dev/tty0: %s\n", strerror(errno));
+		errorMsg("Error opening /dev/tty0: %s\n", strerror(errno));
 		return( FALSE);
 	}
 	loadnewfont(fd);
@@ -72,7 +72,7 @@ static void do_loadfont(int fd, char *inbuf, int unit, int fontsize)
 	memset(buf, 0, sizeof(buf));
 
 	if (unit < 1 || unit > 32) {
-		fprintf(stderr, "Bad character size %d\n", unit);
+		errorMsg("Bad character size %d\n", unit);
 		exit(1);
 	}
 
@@ -112,7 +112,7 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	up = (struct unipair *) malloc(maxct * sizeof(struct unipair));
 
 	if (!up) {
-		fprintf(stderr, "Out of memory?\n");
+		errorMsg("Out of memory?\n");
 		exit(1);
 	}
 	for (glyph = 0; glyph < fontsize; glyph++) {
@@ -137,8 +137,8 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	if (ioctl(fd, PIO_UNIMAPCLR, &advice)) {
 #ifdef ENOIOCTLCMD
 		if (errno == ENOIOCTLCMD) {
-			fprintf(stderr, "It seems this kernel is older than 1.1.92\n");
-			fprintf(stderr, "No Unicode mapping table loaded.\n");
+			errorMsg("It seems this kernel is older than 1.1.92\n");
+			errorMsg("No Unicode mapping table loaded.\n");
 		} else
 #endif
 			perror("PIO_UNIMAPCLR");
@@ -198,13 +198,13 @@ static void loadnewfont(int fd)
 			goto no_psf;
 
 		if (psfhdr.mode > PSF_MAXMODE) {
-			fprintf(stderr, "Unsupported psf file mode\n");
+			errorMsg("Unsupported psf file mode\n");
 			exit(1);
 		}
 		fontsize = ((psfhdr.mode & PSF_MODE512) ? 512 : 256);
 #if !defined( PIO_FONTX ) || defined( __sparc__ )
 		if (fontsize != 256) {
-			fprintf(stderr, "Only fontsize 256 supported\n");
+			errorMsg("Only fontsize 256 supported\n");
 			exit(1);
 		}
 #endif
@@ -214,7 +214,7 @@ static void loadnewfont(int fd)
 
 		head = head0 + fontsize * unit;
 		if (head > inputlth || (!hastable && head != inputlth)) {
-			fprintf(stderr, "Input file: bad length\n");
+			errorMsg("Input file: bad length\n");
 			exit(1);
 		}
 		do_loadfont(fd, inbuf + head0, unit, fontsize);
@@ -231,7 +231,7 @@ static void loadnewfont(int fd)
 	} else {
 		/* bare font */
 		if (inputlth & 0377) {
-			fprintf(stderr, "Bad input file size\n");
+			errorMsg("Bad input file size\n");
 			exit(1);
 		}
 		offset = 0;

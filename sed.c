@@ -207,8 +207,8 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		idx++; /* so it points to the next character after the last '/' */
 	}
 	else {
-		fprintf(stderr, "sed.c:get_address: no address found in string\n");
-		fprintf(stderr, "\t(you probably didn't check the string you passed me)\n");
+		errorMsg("get_address: no address found in string\n"
+				"\t(you probably didn't check the string you passed me)\n");
 		idx = -1;
 	}
 
@@ -612,7 +612,7 @@ extern int sed_main(int argc, char **argv)
 		for (i = optind; i < argc; i++) {
 			file = fopen(argv[i], "r");
 			if (file == NULL) {
-				fprintf(stderr, "sed: %s: %s\n", argv[i], strerror(errno));
+				errorMsg("%s: %s\n", argv[i], strerror(errno));
 			} else {
 				process_file(file);
 				fclose(file);

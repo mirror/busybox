@@ -157,15 +157,15 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
-				fprintf(stderr, "Could not find a spare loop device\n");
+				errorMsg("Could not find a spare loop device\n");
 				return (FALSE);
 			}
 			if (set_loop(specialfile, lofile, 0, &loro)) {
-				fprintf(stderr, "Could not setup loop device\n");
+				errorMsg("Could not setup loop device\n");
 				return (FALSE);
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
-				fprintf(stderr, "WARNING: loop device is read-only\n");
+				errorMsg("WARNING: loop device is read-only\n");
 				flags &= ~MS_RDONLY;
 			}
 		}
@@ -329,7 +329,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 	if (status == FALSE) {
 		if (whineOnErrors == TRUE) {
-			fprintf(stderr, "Mounting %s on %s failed: %s\n",
+			errorMsg("Mounting %s on %s failed: %s\n",
 					blockDevice, directory, strerror(errno));
 		}
 		return (FALSE);

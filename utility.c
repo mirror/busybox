@@ -299,7 +299,7 @@ copyFile(const char *srcName, const char *destName,
 
 	if ((srcStatBuf.st_dev == dstStatBuf.st_dev) &&
 		(srcStatBuf.st_ino == dstStatBuf.st_ino)) {
-		fprintf(stderr, "Copying file \"%s\" to itself\n", srcName);
+		errorMsg("Copying file \"%s\" to itself\n", srcName);
 		return FALSE;
 	}
 
@@ -630,7 +630,7 @@ int recursiveAction(const char *fileName,
 				continue;
 			}
 			if (strlen(fileName) + strlen(next->d_name) + 1 > BUFSIZ) {
-				fprintf(stderr, name_too_long, "ftw");
+				errorMsg(name_too_long);
 				return FALSE;
 			}
 			memset(nextFile, 0, sizeof(nextFile));
@@ -995,8 +995,7 @@ int get_console_fd(char *tty_name)
 		if (is_a_console(fd))
 			return fd;
 
-	fprintf(stderr,
-			"Couldnt get a file descriptor referring to the console\n");
+	errorMsg("Couldnt get a file descriptor referring to the console\n");
 	return -1;					/* total failure */
 }
 

@@ -263,7 +263,7 @@ int sort_main(int argc, char **argv)
 				break;
 #endif
 			default:
-				fprintf(stderr, "sort: invalid option -- %c\n", opt);
+				errorMsg("invalid option -- %c\n", opt);
 				usage(sort_usage);
 			}
 		} else {
@@ -304,4 +304,4 @@ int sort_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: sort.c,v 1.18 2000/06/28 22:15:26 markw Exp $ */
+/* $Id: sort.c,v 1.19 2000/07/14 01:51:25 kraai Exp $ */

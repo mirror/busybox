@@ -48,13 +48,13 @@
 
 
 #if defined bb_need_name_too_long || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
+	BB_DEF_MESSAGE(name_too_long, "file name too long\n")
 #endif
 #if defined bb_need_omitting_directory || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(omitting_directory, "%s: %s: omitting directory\n")
+	BB_DEF_MESSAGE(omitting_directory, "%s: omitting directory\n")
 #endif
 #if defined bb_need_not_a_directory || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(not_a_directory, "%s: %s: not a directory\n")
+	BB_DEF_MESSAGE(not_a_directory, "%s: not a directory\n")
 #endif
 #if defined bb_need_memory_exhausted || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(memory_exhausted, "memory exhausted\n")
@@ -63,7 +63,7 @@
 	BB_DEF_MESSAGE(invalid_date, "invalid date `%s'\n")
 #endif
 #if defined bb_need_invalid_option || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(invalid_option, "%s: invalid option -- %c\n")
+	BB_DEF_MESSAGE(invalid_option, "invalid option -- %c\n")
 #endif
 #if defined bb_need_io_error || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(io_error, "%s: input/output error -- %s\n")
@@ -75,7 +75,7 @@
 	BB_DEF_MESSAGE(write_error, "Write Error\n")
 #endif
 #if defined bb_need_too_few_args || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(too_few_args, "%s: too few arguments\n")
+	BB_DEF_MESSAGE(too_few_args, "too few arguments\n")
 #endif
 
 

@@ -41,6 +41,6 @@ extern int logname_main(int argc, char **argv)
 		puts(user);
 		exit(TRUE);
 	}
-	fprintf(stderr, "no login name\n");
+	errorMsg("no login name\n");
 	return(FALSE);
 }

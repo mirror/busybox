@@ -84,13 +84,13 @@ void cut(void);
 void warn(int warn_number, char *option)
 {
 	static char *warn_msg[] = {
-		"%s: Option -%s allowed only with -f\n",
-		"%s: -%s overrides earlier option\n",
-		"%s: -%s not allowed in current mode\n",
-		"%s: Cannot open %s\n"
+		"Option -%s allowed only with -f\n",
+		"-%s overrides earlier option\n",
+		"-%s not allowed in current mode\n",
+		"Cannot open %s\n"
 	};
 
-	fprintf(stderr, warn_msg[warn_number], applet_name, option);
+	errorMsg(warn_msg[warn_number], option);
 	exit_status = warn_number + 1;
 
 }
@@ -98,15 +98,15 @@ void warn(int warn_number, char *option)
 void cuterror(int err)
 {
 	static char *err_mes[] = {
-		"%s: syntax error\n",
-		"%s: position must be >0\n",
-		"%s: line longer than BUFSIZ\n",
-		"%s: range must not decrease from left to right\n",
-		"%s: MAX_FIELD exceeded\n",
-		"%s: MAX_ARGS exceeded\n"
+		"syntax error\n",
+		"position must be >0\n",
+		"line longer than BUFSIZ\n",
+		"range must not decrease from left to right\n",
+		"MAX_FIELD exceeded\n",
+		"MAX_ARGS exceeded\n"
 	};
 
-	fprintf(stderr, err_mes[err - 101], applet_name);
+	errorMsg(err_mes[err - 101]);
 	exit(err);
 }
 

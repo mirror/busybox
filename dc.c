@@ -22,7 +22,7 @@ static unsigned int pointer;
 static void push(double a)
 {
 	if (pointer >= (sizeof(stack) / sizeof(*stack))) {
-		fprintf(stderr, "dc: stack overflow\n");
+		errorMsg("stack overflow\n");
 		exit(-1);
 	} else
 		stack[pointer++] = a;
@@ -31,7 +31,7 @@ static void push(double a)
 static double pop()
 {
 	if (pointer == 0) {
-		fprintf(stderr, "dc: stack underflow\n");
+		errorMsg("stack underflow\n");
 		exit(-1);
 	}
 	return stack[--pointer];
@@ -132,7 +132,7 @@ static void stack_machine(const char *argument)
 		}
 		o++;
 	}
-	fprintf(stderr, "dc: %s: syntax error.\n", argument);
+	errorMsg("%s: syntax error.\n", argument);
 	exit(-1);
 }
 

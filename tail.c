@@ -375,7 +375,7 @@ extern int tail_main(int argc, char **argv)
 				usage(tail_usage);
 			default:
 				if ((n_units = atoi(&argv[i][1])) < 1) {
-					fprintf(stderr, "tail: invalid option -- %c\n", opt);
+					errorMsg("invalid option -- %c\n", opt);
 					usage(tail_usage);
 				}
 			}
@@ -386,8 +386,7 @@ extern int tail_main(int argc, char **argv)
 
 	if (i + 1 < argc) {
 		if (forever) {
-			fprintf(stderr,
-					"tail: option -f is invalid with multiple files\n");
+			errorMsg("option -f is invalid with multiple files\n");
 			usage(tail_usage);
 		}
 		print_headers = 1;

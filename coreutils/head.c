@@ -75,7 +75,7 @@ int head_main(int argc, char **argv)
 			case 'h':
 				usage(head_usage);
 			default:
-				fprintf(stderr, "head: invalid option -- %c\n", opt);
+				errorMsg("invalid option -- %c\n", opt);
 				usage(head_usage);
 			}
 		} else {
@@ -95,8 +95,7 @@ int head_main(int argc, char **argv)
 
 			src = fopen(argv[i], "r");
 			if (!src) {
-				fprintf(stderr, "head: %s: %s\n", argv[i],
-						strerror(errno));
+				errorMsg("%s: %s\n", argv[i], strerror(errno));
 			} else {
 				/* emulating GNU behaviour */
 				if (need_headers) {
@@ -112,4 +111,4 @@ int head_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: head.c,v 1.11 2000/06/19 17:25:39 andersen Exp $ */
+/* $Id: head.c,v 1.12 2000/07/14 01:51:25 kraai Exp $ */

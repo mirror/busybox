@@ -127,11 +127,11 @@ set_file_pointers(int schema, FILE ** in, FILE ** out, char **argv)
 		break;
 	}
 	if (*in == NULL) {
-		fprintf(stderr, "uniq: %s: %s\n", argv[0], strerror(errno));
+		errorMsg("%s: %s\n", argv[0], strerror(errno));
 		return errno;
 	}
 	if (*out == NULL) {
-		fprintf(stderr, "uniq: %s: %s\n", argv[1], strerror(errno));
+		errorMsg("%s: %s\n", argv[1], strerror(errno));
 		return errno;
 	}
 	return 0;
@@ -187,4 +187,4 @@ int uniq_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: uniq.c,v 1.11 2000/06/19 17:25:40 andersen Exp $ */
+/* $Id: uniq.c,v 1.12 2000/07/14 01:51:25 kraai Exp $ */

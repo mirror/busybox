@@ -312,8 +312,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	msock = fsock = -1;
 	mclient = NULL;
 	if (strlen(spec) >= sizeof(hostdir)) {
-		fprintf(stderr, _("mount: "
-			"excessively long host:dir argument\n"));
+		errorMsg("excessively long host:dir argument\n");
 		goto fail;
 	}
 	strcpy(hostdir, spec);
@@ -325,12 +324,10 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		   until they can be fully supported. (mack@sgi.com) */
 		if ((s = strchr(hostdir, ','))) {
 			*s = '\0';
-			fprintf(stderr, _("mount: warning: "
-				"multiple hostnames not supported\n"));
+			errorMsg("warning: multiple hostnames not supported\n");
 		}
 	} else {
-		fprintf(stderr, _("mount: "
-			"directory to mount not in host:dir format\n"));
+		errorMsg("directory to mount not in host:dir format\n");
 		goto fail;
 	}
 
@@ -340,13 +337,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 	{
 		if ((hp = gethostbyname(hostname)) == NULL) {
-			fprintf(stderr, _("mount: can't get address for %s\n"),
-				hostname);
+			errorMsg("can't get address for %s\n", hostname);
 			goto fail;
 		} else {
 			if (hp->h_length > sizeof(struct in_addr)) {
-				fprintf(stderr,
-					_("mount: got bad hp->h_length\n"));
+				errorMsg("got bad hp->h_length\n");
 				hp->h_length = sizeof(struct in_addr);
 			}
 			memcpy(&server_addr.sin_addr,
@@ -363,8 +358,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (!old_opts)
 		old_opts = "";
 	if (strlen(old_opts) + strlen(s) + 10 >= sizeof(new_opts)) {
-		fprintf(stderr, _("mount: "
-			"excessively long option argument\n"));
+		errorMsg("excessively long option argument\n");
 		goto fail;
 	}
 	sprintf(new_opts, "%s%saddr=%s",
@@ -524,11 +518,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
 #endif
 	if (nfsvers > MAX_NFSPROT) {
-		fprintf(stderr, "NFSv%d not supported!\n", nfsvers);
+		errorMsg("NFSv%d not supported!\n", nfsvers);
 		return 0;
 	}
 	if (mountvers > MAX_NFSPROT) {
-		fprintf(stderr, "NFSv%d not supported!\n", nfsvers);
+		errorMsg("NFSv%d not supported!\n", nfsvers);
 		return 0;
 	}
 	if (nfsvers && !mountvers)
@@ -588,13 +582,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	    mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
 	  } else {
 		  if ((hp = gethostbyname(mounthost)) == NULL) {
-			  fprintf(stderr, _("mount: can't get address for %s\n"),
-				  hostname);
+			  errorMsg("can't get address for %s\n", hostname);
 			  goto fail;
 		  } else {
 			  if (hp->h_length > sizeof(struct in_addr)) {
-				  fprintf(stderr,
-					  _("mount: got bad hp->h_length?\n"));
+				  errorMsg("got bad hp->h_length?\n");
 				  hp->h_length = sizeof(struct in_addr);
 			  }
 			  mount_server_addr.sin_family = AF_INET;
@@ -729,8 +721,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	if (nfsvers == 2) {
 		if (status.nfsv2.fhs_status != 0) {
-			fprintf(stderr,
-				"mount: %s:%s failed, reason given by server: %s\n",
+			errorMsg("%s:%s failed, reason given by server: %s\n",
 				hostname, dirname,
 				nfs_strerror(status.nfsv2.fhs_status));
 			goto fail;
@@ -748,8 +739,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #if NFS_MOUNT_VERSION >= 4
 		fhandle3 *fhandle;
 		if (status.nfsv3.fhs_status != 0) {
-			fprintf(stderr,
-				"mount: %s:%s failed, reason given by server: %s\n",
+			errorMsg("%s:%s failed, reason given by server: %s\n",
 				hostname, dirname,
 				nfs_strerror(status.nfsv3.fhs_status));
 			goto fail;

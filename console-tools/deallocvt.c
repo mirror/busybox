@@ -39,14 +39,12 @@ int deallocvt_main(int argc, char *argv[])
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
-				fprintf(stderr, "%s: 0: illegal VT number\n", applet_name);
+				errorMsg("0: illegal VT number\n");
 			else if (num == 1)
-				fprintf(stderr, "%s: VT 1 cannot be deallocated\n",
-						applet_name);
+				errorMsg("VT 1 cannot be deallocated\n");
 			else if (ioctl(fd, VT_DISALLOCATE, num)) {
 				perror("VT_DISALLOCATE");
-				fprintf(stderr, "%s: could not deallocate console %d\n",
-						applet_name, num);
+				errorMsg("could not deallocate console %d\n", num);
 				exit( FALSE);
 			}
 		}

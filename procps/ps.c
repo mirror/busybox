@@ -97,20 +97,20 @@ static void parse_proc_status(char *S, proc_t * P)
 	if (tmp)
 		sscanf(tmp, "Pid:\t%d\n" "PPid:\t%d\n", &P->pid, &P->ppid);
 	else
-		fprintf(stderr, "Internal error!\n");
+		errorMsg("Internal error!\n");
 
 	/* For busybox, ignoring effective, saved, etc */
 	tmp = strstr(S, "Uid:");
 	if (tmp)
 		sscanf(tmp, "Uid:\t%d", &P->ruid);
 	else
-		fprintf(stderr, "Internal error!\n");
+		errorMsg("Internal error!\n");
 
 	tmp = strstr(S, "Gid:");
 	if (tmp)
 		sscanf(tmp, "Gid:\t%d", &P->rgid);
 	else
-		fprintf(stderr, "Internal error!\n");
+		errorMsg("Internal error!\n");
 
 }
 

@@ -165,7 +165,7 @@ extern int grep_main(int argc, char **argv)
 			file = fopen(cur_file, "r");
 			if (file == NULL) {
 				if (!suppress_err_msgs)
-					fprintf(stderr, "grep: %s: %s\n", cur_file, strerror(errno));
+					errorMsg("%s: %s\n", cur_file, strerror(errno));
 			} else {
 				grep_file(file);
 				fclose(file);

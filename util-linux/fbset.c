@@ -387,7 +387,7 @@ extern int fbset_main(int argc, char **argv)
 		PERROR("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
-			fprintf(stderr, "Unknown video mode `%s'\n", mode);
+			errorMsg("Unknown video mode `%s'\n", mode);
 			exit(1);
 		}
 	}
