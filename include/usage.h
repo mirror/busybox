@@ -977,6 +977,11 @@
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
 	"\t-x\tdo not export externs"
 
+#define ip_trivial_usage \
+	"not written yet"
+#define ip_full_usage \
+	"not written yet"
+
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"
 #define kill_full_usage \

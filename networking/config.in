@@ -22,6 +22,13 @@ if [ "$CONFIG_IFUPDOWN" = "y" ]; then
     bool '  Enable support for IPv6 (requires ip command)' CONFIG_FEATURE_IFUPDOWN_IPV6
     bool '  Enable support for IPX (requires ipx_interface command)' CONFIG_FEATURE_IFUPDOWN_IPX
 fi
+bool 'ip'	    CONFIG_IP
+if [ "$CONFIG_IP" = "y" ]; then
+    bool '  address'		CONFIG_FEATURE_IP_ADDRESS
+    bool '  link'		CONFIG_FEATURE_IP_LINK
+    bool '  route'		CONFIG_FEATURE_IP_ROUTE
+    bool '  tunnel'		CONFIG_FEATURE_IP_TUNNEL
+fi
 bool 'nc'	    CONFIG_NC
 bool 'netstat'	    CONFIG_NETSTAT
 bool 'nslookup'	    CONFIG_NSLOOKUP
