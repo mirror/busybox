@@ -48,6 +48,18 @@ static const int SWAPOFF_APP = 1;
 static int swap_enable_disable(const char *device)
 {
 	int status;
+	struct stat st;
+
+	if (stat(device, &st) < 0) {
+		perror_msg_and_die("cannot stat %s");
+	}
+
+	/* test for holes */
+	if (S_ISREG(st.st_mode)) {
+		if (st.st_blocks * 512 < st.st_size) {
+			error_msg_and_die("swap file has holes");
+		}
+	}
 
 	if (whichApp == SWAPON_APP)
 		status = swapon(device, 0);
