@@ -143,6 +143,9 @@ int find_main(int argc, char **argv)
 	for (i = firstopt; i < argc; i++) {
 		if (strcmp(argv[i], "-follow") == 0)
 			dereference = TRUE;
+		else if (strcmp(argv[i], "-print") == 0) {
+			;
+			}
 		else if (strcmp(argv[i], "-name") == 0) {
 			if (++i == argc)
 				error_msg_and_die("option `-name' requires an argument");

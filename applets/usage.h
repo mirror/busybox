@@ -429,6 +429,7 @@
 	"\nEXPRESSION may consist of:\n" \
 	"\t-follow\t\tDereference symbolic links.\n" \
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN." \
+	"\t-print\t\tPrint (default and assumed).\n" \
 	USAGE_FIND_TYPE( \
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)" \
 ) USAGE_FIND_PERM( \
