@@ -39,8 +39,9 @@ Supported architectures:
 
 Supported libcs:
 
-   glibc-2.0.x, glibc-2.1.x, Linux-libc5, uClibc.  People are looking at
-   newlib and diet-libc, but consider them unsupported, untested, or worse.
+   glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, Linux-libc5, uClibc.  People
+   are looking at newlib and diet-libc, but consider them unsupported,
+   untested, or worse.
 
 Supported kernels:
 
