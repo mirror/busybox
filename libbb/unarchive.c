@@ -230,35 +230,36 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 
 #ifdef L_unarchive
 char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers)(FILE *),
-	const int extract_function, const char *prefix, char **extract_names)
+	const int extract_function, const char *prefix, char **include_name, char **exclude_name)
 {
 	file_header_t *file_entry;
-	int extract_flag;
+	int extract_flag = TRUE;
 	int i;
 	char *buffer = NULL;
 
 	archive_offset = 0;
 	while ((file_entry = get_headers(src_stream)) != NULL) {
-		extract_flag = TRUE;
-		if (extract_names != NULL) {
-			int found_flag = FALSE;
-			for(i = 0; extract_names[i] != 0; i++) {
-				if (fnmatch(extract_names[i], file_entry->name, FNM_LEADING_DIR) == 0) {
-					found_flag = TRUE;
+
+		if (include_name != NULL) {
+			extract_flag = FALSE;
+			for(i = 0; include_name[i] != 0; i++) {
+				if (fnmatch(include_name[i], file_entry->name, FNM_LEADING_DIR) == 0) {
+					extract_flag = TRUE;
 					break;
 				}
 			}
-			if (extract_function & extract_exclude_list) {
-				if (found_flag == TRUE) {
+		} else {
+			extract_flag = TRUE;
+		}
+
+		/* If the file entry is in the exclude list dont extract it */
+		if (exclude_name != NULL) {
+			for(i = 0; exclude_name[i] != 0; i++) {
+				if (fnmatch(exclude_name[i], file_entry->name, FNM_LEADING_DIR) == 0) {
 					extract_flag = FALSE;
-				}
-			} else {
-				/* If its not found in the include list dont extract it */
-				if (found_flag == FALSE) {
-					extract_flag = FALSE;
+					break;
 				}
 			}
-
 		}
 
 		if (extract_flag == TRUE) {
@@ -607,7 +608,7 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 			/* open a stream of decompressed data */
 			uncompressed_stream = gz_open(deb_stream, &gunzip_pid);
 			archive_offset = 0;
-			output_buffer = unarchive(uncompressed_stream, out_stream, get_header_tar, extract_function, prefix, file_list);
+			output_buffer = unarchive(uncompressed_stream, out_stream, get_header_tar, extract_function, prefix, file_list, NULL);
 		}
 		seek_sub_file(deb_stream, ar_header->size);
 		free(ar_header->name);

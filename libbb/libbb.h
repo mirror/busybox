@@ -245,8 +245,8 @@ enum extract_functions_e {
 	extract_quiet = 2048,
 	extract_exclude_list = 4096
 };
-char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_header)(FILE *),
-	const int extract_function, const char *prefix, char **extract_names);
+char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers)(FILE *),
+	const int extract_function, const char *prefix, char **include_name, char **exclude_name);
 char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename);
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);

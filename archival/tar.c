@@ -580,15 +580,10 @@ int tar_main(int argc, char **argv)
 		untar_extract = 32
 	};
 
-#ifdef BB_FEATURE_TAR_EXCLUDE
-	char **exclude_list = NULL;
-	int exclude_list_count = 0;
-#endif
-
 	FILE *src_stream = NULL;
 	FILE *uncompressed_stream = NULL;
 	char **include_list = NULL;
-	char **the_real_list = NULL;
+	char **exclude_list = NULL;
 	char *src_filename = NULL;
 	char *dst_prefix = NULL;
 	char *file_list_name = NULL;
@@ -597,6 +592,7 @@ int tar_main(int argc, char **argv)
 	unsigned short untar_funct_required = 0;
 	unsigned short extract_function = 0;
 	int include_list_count = 0;
+	int exclude_list_count = 0;
 	int gunzip_pid;
 	int gz_fd = 0;
 
@@ -691,25 +687,6 @@ int tar_main(int argc, char **argv)
 		optind++;
 	}
 
-	/* By default the include list is the list we act on */
-	the_real_list = include_list;
-
-#ifdef BB_FEATURE_TAR_EXCLUDE
-	if (exclude_list != NULL) {
-		if (include_list == NULL) {
-			/* the_real_list is an exclude list */
-			extract_function |= extract_exclude_list;
-			the_real_list = exclude_list;
-		} else {
-			/* Both an exclude and include file list was present,
-			 * its an exclude from include list only.
-			 * Remove excluded files from the include list
-			 */
-			the_real_list = list_and_not_list(include_list, exclude_list);
-		}
-	}
-#endif
-
 	if (extract_function & (extract_list | extract_all_to_fs)) {
 		if (dst_prefix == NULL) {
 			dst_prefix = xstrdup("./");
@@ -730,7 +707,7 @@ int tar_main(int argc, char **argv)
 			uncompressed_stream = src_stream;
 		
 		/* extract or list archive */
-		unarchive(uncompressed_stream, stdout, &get_header_tar, extract_function, dst_prefix, the_real_list);
+		unarchive(uncompressed_stream, stdout, &get_header_tar, extract_function, dst_prefix, include_list, exclude_list);
 		fclose(uncompressed_stream);
 	}
 #ifdef BB_FEATURE_TAR_CREATE
@@ -746,7 +723,7 @@ int tar_main(int argc, char **argv)
 		if (extract_function & extract_verbose_list) {
 			verboseFlag = TRUE;
 		}
-		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], the_real_list);
+		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], include_list);
 	}
 #endif // BB_FEATURE_TAR_CREATE
 
