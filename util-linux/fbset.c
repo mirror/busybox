@@ -158,7 +158,73 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					continue;	/* almost, but not quite */
 				while (!feof(f)) {
 					fgets(buf, sizeof(buf), f);
-					if (!strstr(buf, "endmode"))
+
+                    if ((p = strstr(buf, "geometry "))) {
+                        p += 9;
+
+                        sscanf(p, "%d %d %d %d %d", 
+                                &(base->xres), &(base->yres), 
+                                &(base->xres_virtual), &(base->yres_virtual), 
+                                &(base->bits_per_pixel));
+                    } else if ((p = strstr(buf, "timings "))) {
+                        p += 8;
+                        
+                        sscanf(p, "%d %d %d %d %d %d %d",
+                                &(base->pixclock),
+                                &(base->left_margin), &(base->right_margin),
+                                &(base->upper_margin), &(base->lower_margin),
+                                &(base->hsync_len), &(base->vsync_len));
+                    } else if ((p = strstr(buf, "laced "))) {
+                        p += 6;
+
+                        if (strstr(buf, "false")) {
+                            base->vmode &= ~FB_VMODE_INTERLACED;
+                        } else {
+                            base->vmode |= FB_VMODE_INTERLACED;
+                        }
+                    } else if ((p = strstr(buf, "double "))) {
+                        p += 7;
+
+                        if (strstr(buf, "false")) {
+                            base->vmode &= ~FB_VMODE_DOUBLE;
+                        } else {
+                            base->vmode |= FB_VMODE_DOUBLE;
+                        }
+                    } else if ((p = strstr(buf, "vsync "))) {
+                        p += 6;
+
+                        if (strstr(buf, "low")) {
+                            base->sync &= ~FB_SYNC_VERT_HIGH_ACT;
+                        } else {
+                            base->sync |= FB_SYNC_VERT_HIGH_ACT;
+                        }
+                    } else if ((p = strstr(buf, "hsync "))) {
+                        p += 6;
+
+                        if (strstr(buf, "low")) {
+                            base->sync &= ~FB_SYNC_HOR_HIGH_ACT;
+                        } else {
+                            base->sync |= FB_SYNC_HOR_HIGH_ACT;
+                        }
+                    } else if ((p = strstr(buf, "csync "))) {
+                        p += 6;
+
+                        if (strstr(buf, "low")) {
+                            base->sync &= ~FB_SYNC_COMP_HIGH_ACT;
+                        } else {
+                            base->sync |= FB_SYNC_COMP_HIGH_ACT;
+                        }
+                    } else if ((p = strstr(buf, "extsync "))) {
+                        p += 8;
+
+                        if (strstr(buf, "false")) {
+                            base->sync &= ~FB_SYNC_EXT;
+                        } else {
+                            base->sync |= FB_SYNC_EXT;
+                        }
+                    }
+                    
+					if (strstr(buf, "endmode"))
 						return 1;
 				}
 			}
