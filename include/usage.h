@@ -25,20 +25,23 @@
 	"[OPTION]... GROUP FILE..."
 #define chgrp_full_usage \
 	"Change the group membership of each FILE to GROUP.\n" \
-	"\nOptions:\n\t-R\tChanges files and directories recursively."
+	"\nOptions:\n" \
+	"\t-R\tChanges files and directories recursively."
 
 #define chmod_trivial_usage \
 	"[-R] MODE[,MODE]... FILE..."
 #define chmod_full_usage \
-	"Each MODE is one or more of the letters ugoa, one of the symbols +-= and\n" \
-	"one or more of the letters rwxst.\n\n" \
-	"Options:\n\t-R\tChanges files and directories recursively."
+	"Each MODE is one or more of the letters ugoa, one of the\n" \
+	"symbols +-= and one or more of the letters rwxst.\n\n" \
+	"Options:\n" \
+	"\t-R\tChanges files and directories recursively."
 
 #define chown_trivial_usage \
 	"[OPTION]...  OWNER[<.|:>[GROUP] FILE..."
 #define chown_full_usage \
 	"Change the owner and/or group of each FILE to OWNER and/or GROUP.\n" \
-	"\nOptions:\n\t-R\tChanges files and directories recursively."
+	"\nOptions:\n" \
+	"\t-R\tChanges files and directories recursively."
 
 #define chroot_trivial_usage \
 	"NEWROOT [COMMAND...]"
@@ -87,7 +90,8 @@
 	"[OPTION]... [+FORMAT]\n"
 #define date_full_usage \
 	"Displays the current time in the given FORMAT, or sets the system date.\n" \
-	"\nOptions:\n\t-R\t\tOutputs RFC-822 compliant date string\n" \
+	"\nOptions:\n" \
+	\t-R\t\tOutputs RFC-822 compliant date string\n" \
 	"\t-d STRING\tdisplay time described by STRING, not `now'\n" \
 	"\t-s\t\tSets time described by STRING\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"
@@ -100,7 +104,8 @@
 	"i.e. 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16"
 
 #define dd_trivial_usage \
-	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N] [conv=notrunc|sync]"
+	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]\n" \
+	"[seek=N] [conv=notrunc|sync]"
 #define dd_full_usage \
 	"Copy a file, converting and formatting according to options\n\n" \
 	"\tif=FILE\tread from FILE instead of stdin\n" \
@@ -127,13 +132,11 @@
   #define USAGE_HUMAN_READABLE(a,b) b
 #endif
 #define df_trivial_usage \
-	"[-" \
-	USAGE_HUMAN_READABLE("hm", "") \
-	"k] [filesystem ...]\n"
+	"[-" USAGE_HUMAN_READABLE("hm", "") "k] [filesystem ...]"
 #define df_full_usage \
 	"Print the filesystem space used and space available.\n\n" \
 	"Options:\n" \
-USAGE_HUMAN_READABLE( \
+	USAGE_HUMAN_READABLE( \
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
 	"\t-k\tprint sizes in kilobytes(default)", \
@@ -154,9 +157,15 @@ USAGE_HUMAN_READABLE( \
 	"\t-s SIZE\t\tUse a buffer of size SIZE"
 
 #define dos2unix_trivial_usage \
-	"< dosfile > unixfile"
+	"[option] [file]"
 #define dos2unix_full_usage \
-	"Converts a text file from dos format to unix format."
+	"Converts a text file to/from dos format to unix format.\n\n" \
+	"Options:\n" \
+	"\t-u\toutput will be in UNIX format\n" \
+	"\t-d\toutput will be in DOS format\n\n" \
+	"- when no option is given then input format will be automaticaly detected\n" \
+	"  and converted to the oposite format on output\n" \
+	"- when no file is given, then stdin is used as input and stdout as output"
 
 #define dpkg_trivial_usage \
 	"[-i|-r|--unpack|--configure] my.deb"
@@ -182,13 +191,12 @@ USAGE_HUMAN_READABLE( \
 	"Options:\n" \
 	"\t-l\tcount sizes many times if hard linked\n" \
 	"\t-s\tdisplay only a total for each argument" \
-USAGE_HUMAN_READABLE( \
+	USAGE_HUMAN_READABLE( \
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
 	"\t-k\tprint sizes in kilobytes(default)" \
 	, \
-	"\n\t-k\tprint sizes in kilobytes(compatability)" \
-	)
+	"\n\t-k\tprint sizes in kilobytes(compatability)")
 
 #define dumpkmap_trivial_usage \
 	"> keymap"
@@ -276,7 +284,7 @@ USAGE_HUMAN_READABLE( \
 	"\nEXPRESSION may consist of:\n" \
 	"\t-follow\t\tDereference symbolic links.\n" \
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN." \
-USAGE_FIND_TYPE( \
+	USAGE_FIND_TYPE( \
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)" \
 ) USAGE_FIND_PERM( \
 	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\t\tor exactly (NNN)" \
@@ -361,7 +369,8 @@ USAGE_FIND_TYPE( \
 	"Print first 10 lines of each FILE to standard output.\n" \
 	"With more than one FILE, precede each with a header giving the\n" \
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n" \
-	"Options:\n" "\t-n NUM\t\tPrint first NUM lines instead of first 10"
+	"Options:\n" \
+	"\t-n NUM\t\tPrint first NUM lines instead of first 10"
 
 #define hostid_trivial_usage \
 	""
@@ -401,7 +410,7 @@ USAGE_FIND_TYPE( \
 	"Options:\n" \
 	"\t[[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n" \
 	"\t[netmask <address>]  [dstaddr <address>]  [tunnel <adress>]\n" \
-USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
+	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
 	"\t[hw ether <address>]  [metric <NN>]  [mtu <NN>]\n" \
 	"\t[[-]trailers]  [[-]arp]  [[-]allmulti]\n" \
 	"\t[multicast]  [[-]promisc]\n" \
@@ -429,13 +438,15 @@ USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
 	"[-signal] process-id [process-id ...]"
 #define kill_full_usage \
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"\
-	"Options:\n" "\t-l\tList all signal names and numbers."
+	"Options:\n" \ 
+	"\t-l\tList all signal names and numbers."
 
 #define killall_trivial_usage \
 	"[-signal] process-name [process-name ...]"
 #define killall_full_usage \
 	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"\
-	"Options:\n" "\t-l\tList all signal names and numbers."
+	"Options:\n" \
+	"\t-l\tList all signal names and numbers."
 
 #define length_trivial_usage \
 	"STRING"
@@ -513,14 +524,7 @@ USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
   #define USAGE_AUTOWIDTH(a)
 #endif
 #define ls_trivial_usage \
-	"[-1Aa" USAGE_LS_TIMESTAMPS("c") \
-	"Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" \
-	USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") \
-	USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") \
-	"s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") \
-	USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" \
-	USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h", "") \
-	"k] [filenames...]"
+	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h", "") "k] [filenames...]"
 #define ls_full_usage \
 	"List directory contents\n\n" \
 	"Options:\n" \
@@ -528,59 +532,30 @@ USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
 	"\t-A\tdo not list implied . and ..\n" \
 	"\t-a\tdo not hide entries starting with .\n" \
 	"\t-C\tlist entries by columns\n" \
-USAGE_LS_TIMESTAMPS( \
-	"\t-c\twith -l: show ctime (the time of last\n" \
-	"\t\tmodification of file status information)\n" \
-	) \
+	USAGE_LS_TIMESTAMPS("\t-c\twith -l: show ctime\n") \
 	"\t-d\tlist directory entries instead of contents\n" \
-USAGE_LS_TIMESTAMPS( \
-	"\t-e\tlist both full date and full time\n" \
-	) \
-USAGE_LS_FILETYPES( \
-	"\t-F\tappend indicator (one of */=@|) to entries\n" \
-	) \
+	USAGE_LS_TIMESTAMPS("\t-e\tlist both full date and full time\n") \
+	USAGE_LS_FILETYPES("\t-F\tappend indicator (one of */=@|) to entries\n") \
 	"\t-i\tlist the i-node for each file\n" \
 	"\t-l\tuse a long listing format\n" \
 	"\t-n\tlist numeric UIDs and GIDs instead of names\n" \
-USAGE_LS_FILETYPES( \
-	"\t-p\tappend indicator (one of /=@|) to entries\n" \
-	) \
-USAGE_LS_FOLLOWLINKS( \
-	"\t-L\tlist entries pointed to by symbolic links\n" \
-	) \
-USAGE_LS_RECURSIVE( \
-	"\t-R\tlist subdirectories recursively\n" \
-	) \
-USAGE_LS_SORTFILES( \
-	"\t-r\tsort the listing in reverse order\n" \
-	"\t-S\tsort the listing by file size\n" \
-	) \
+	USAGE_LS_FILETYPES("\t-p\tappend indicator (one of /=@|) to entries\n") \
+	USAGE_LS_FOLLOWLINKS("\t-L\tlist entries pointed to by symbolic links\n") \
+	USAGE_LS_RECURSIVE("\t-R\tlist subdirectories recursively\n") \
+	USAGE_LS_SORTFILES("\t-r\tsort the listing in reverse order\n") \
+	USAGE_LS_SORTFILES("\t-S\tsort the listing by file size\n") \
 	"\t-s\tlist the size of each file, in blocks\n" \
-USAGE_AUTOWIDTH( \
-	"\t-T NUM\tassume Tabstop every NUM columns\n" \
-	) \
-USAGE_LS_TIMESTAMPS( \
-	"\t-t\twith -l: show modification time (the time of last\n" \
-	"\t\tchange of the file)\n" \
-	"\t-u\twith -l: show access time (the time of last\n" \
-	"\t\taccess of the file)\n" \
-	) \
-USAGE_LS_SORTFILES( \
-	"\t-v\tsort the listing by version\n" \
-	) \
-USAGE_AUTOWIDTH( \
-	"\t-w NUM\tassume the terminal is NUM columns wide\n" \
-	) \
+	USAGE_AUTOWIDTH("\t-T NUM\tassume Tabstop every NUM columns\n") \
+	USAGE_LS_TIMESTAMPS("\t-t\twith -l: show modification time\n") \
+	USAGE_LS_TIMESTAMPS("\t-u\twith -l: show access time\n") \
+	USAGE_LS_SORTFILES("\t-v\tsort the listing by version\n") \
+	USAGE_AUTOWIDTH("\t-w NUM\tassume the terminal is NUM columns wide\n") \
 	"\t-x\tlist entries by lines instead of by columns\n" \
-USAGE_LS_SORTFILES( \
-	"\t-X\tsort the listing by extension\n" \
-	) \
-USAGE_HUMAN_READABLE( \
+	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
+	USAGE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	"\t-k\tprint sizes in kilobytes(default)" \
-	, \
-	"\t-k\tprint sizes in kilobytes(compatability)" \
-	) \
+	"\t-k\tprint sizes in kilobytes(default)" , \
+	"\t-k\tprint sizes in kilobytes(compatability)") 
 
 #define lsmod_trivial_usage \
 	""
@@ -603,7 +578,8 @@ USAGE_HUMAN_READABLE( \
 	"\tmakedevs /dev/hda b 3 0 0 8 s    ->  hda,hda1-hda8"
 
 #define md5sum_trivial_usage \
-	"[OPTION] [FILE]...\nor:    md5sum [OPTION] -c [FILE]"
+	"[OPTION] [FILE]...\n" \
+	"or: md5sum [OPTION] -c [FILE]"
 #define md5sum_full_usage \
 	"Print or check MD5 checksums.\n\n" \
 	"Options:\n" \
@@ -657,7 +633,8 @@ USAGE_HUMAN_READABLE( \
 	"[-c] [-v0|-v1] device [block-count]"
 #define mkswap_full_usage \
 	"Prepare a disk partition to be used as a swap partition.\n\n" \
-	"Options:\n" "\t-c\t\tCheck for read-ability.\n" \
+	"Options:\n" \
+	"\t-c\t\tCheck for read-ability.\n" \
 	"\t-v0\t\tMake version 0 swap [max 128 Megs].\n" \
 	"\t-v1\t\tMake version 1 swap [big!] (default for kernels > 2.1.117).\n" \
 	"\tblock-count\tNumber of block to use (default is entire partition)."
@@ -689,7 +666,7 @@ USAGE_HUMAN_READABLE( \
 	"Mount a filesystem\n\n" \
 	"Flags:\n"  \
 	"\t-a:\t\tMount all filesystems in fstab.\n" \
-USAGE_MTAB( \
+	USAGE_MTAB( \
 	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n" \
 	"\t-n:\t\tDon't write a mount table entry.\n" \
 	) \
@@ -703,7 +680,7 @@ USAGE_MTAB( \
 	"\tatime/noatime:\tEnable / disable updates to inode access times.\n" \
 	"\tdev/nodev:\tAllow use of special device files / disallow them.\n" \
 	"\texec/noexec:\tAllow use of executable files / disallow them.\n" \
-USAGE_MOUNT_LOOP( \
+	USAGE_MOUNT_LOOP( \
 	"\tloop:\t\tMounts a file via loop device.\n" \
 	) \
 	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n" \
@@ -723,7 +700,8 @@ USAGE_MOUNT_LOOP( \
 	"setpart tell unload unlock weof wset"
 
 #define mv_trivial_usage \
-	"SOURCE DEST\n   or: mv SOURCE... DIRECTORY"
+	"SOURCE DEST\n" \
+	"or: mv SOURCE... DIRECTORY"
 #define mv_full_usage \
 	"Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY."
 
@@ -862,7 +840,8 @@ USAGE_MOUNT_LOOP( \
 	"and KEYCODE is given in decimal"
 
 #define sh_trivial_usage \
-	"[FILE]...\n   or: sh -c command [args]..."
+	"[FILE]...\n" \
+	"or: sh -c command [args]..."
 #define sh_full_usage \
 	"lash: The BusyBox command interpreter (shell)."
 
@@ -930,9 +909,9 @@ USAGE_MOUNT_LOOP( \
 	"Options:\n" \
 	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
-USAGE_KLOGD("\t-K\t\tDo not start up the klogd process\n") \
+	USAGE_KLOGD("\t-K\t\tDo not start up the klogd process\n") \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
-USAGE_REMOTE_LOG( \
+	USAGE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\t\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally as well as network logging (default is network only)")
 
@@ -949,10 +928,10 @@ USAGE_REMOTE_LOG( \
 	"With more than one FILE, precede each with a header giving the\n" \
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n" \
 	"Options:\n" \
-USAGE_UNSIMPLE_TAIL("\t-c N[kbm]\toutput the last N bytes\n") \
+	USAGE_UNSIMPLE_TAIL("\t-c N[kbm]\toutput the last N bytes\n") \
 	"\t-n N[kbm]\tprint last N lines instead of last 10\n" \
 	"\t-f\t\toutput data as the file grows" \
-USAGE_UNSIMPLE_TAIL( \
+	USAGE_UNSIMPLE_TAIL( \
 	"\n\t-q\t\tnever output headers giving file names\n" \
 	"\t-s SEC\t\twait SEC seconds between reads with -f\n" \
 	"\t-v\t\talways output headers giving file names\n\n" \
@@ -978,13 +957,13 @@ USAGE_UNSIMPLE_TAIL( \
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \
 	"Main operation mode:\n" \
-USAGE_TAR_CREATE("\tc\t\tcreate\n") \
+	USAGE_TAR_CREATE("\tc\t\tcreate\n") \
 	"\tx\t\textract\n" \
 	"\tt\t\tlist\n" \
 	"\nFile selection:\n" \
 	"\tf\t\tname of tarfile or \"-\" for stdin\n" \
 	"\tO\t\textract to stdout\n" \
-USAGE_TAR_EXCLUDE( \
+	USAGE_TAR_EXCLUDE( \
 	"\texclude\t\tfile to exclude\n" \
 	 "\tX\t\tfile with names to exclude\n" \
 	) \
@@ -995,7 +974,8 @@ USAGE_TAR_EXCLUDE( \
 	"[OPTION]... [FILE]..."
 #define tee_full_usage \
 	"Copy standard input to each FILE, and also to standard output.\n\n" \
-	"Options:\n" "\t-a\tappend to the given FILEs, do not overwrite"
+	"Options:\n" \
+	"\t-a\tappend to the given FILEs, do not overwrite"
 
 #define telnet_trivial_usage \
 	"host [port]"
@@ -1048,11 +1028,10 @@ USAGE_TAR_EXCLUDE( \
 #define umount_full_usage \
 	"Unmount file systems\n" \
 	"\nFlags:\n" "\t-a:\tUnmount all file systems" \
-USAGE_MTAB(" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries") \
+	USAGE_MTAB(" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries") \
 	"\n\t-r:\tTry to remount devices as read-only if mount is busy" \
-USAGE_MOUNT_FORCE("\n\t-f:\tForce filesystem umount (i.e. unreachable NFS server)") \
-USAGE_MOUNT_LOOP("\n\t-l:\tDo not free loop device (if a loop device has been used)" \
-	)
+	USAGE_MOUNT_FORCE("\n\t-f:\tForce filesystem umount (i.e. unreachable NFS server)") \
+	USAGE_MOUNT_LOOP("\n\t-l:\tDo not free loop device (if a loop device has been used)")
 
 #define uname_trivial_usage \
 	"[OPTION]..."
@@ -1078,9 +1057,9 @@ USAGE_MOUNT_LOOP("\n\t-l:\tDo not free loop device (if a loop device has been us
 	"\t-u\tonly print unique lines"
 
 #define unix2dos_trivial_usage \
-	"< unixfile > dosfile"
+	"[option] [file]"
 #define unix2dos_full_usage \
-	"Converts a text file from unix format to dos format."
+	"See 'dos2unix --help' for help!"
 
 #define update_trivial_usage \
 	"[options]"
