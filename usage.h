@@ -255,10 +255,10 @@
 #define dos2unix_full_usage \
 	"Converts FILE from dos format to unix format.  When no option\n" \
 	"is given, the input is converted to the opposite output format.\n" \
-	"When no file is given, uses stdin for input and stdout for output." \
+	"When no file is given, uses stdin for input and stdout for output.\n\n" \
 	"Options:\n" \
 	"\t-u\toutput will be in UNIX format\n" \
-	"\t-d\toutput will be in DOS format\n\n" \
+	"\t-d\toutput will be in DOS format"
 
 #define dpkg_trivial_usage \
 	"[-i|-r|--unpack|--configure] my.deb"
@@ -1649,10 +1649,10 @@
 #define unix2dos_full_usage \
 	"Converts FILE from unix format to dos format.  When no option\n" \
 	"is given, the input is converted to the opposite output format.\n" \
-	"When no file is given, uses stdin for input and stdout for output." \
+	"When no file is given, uses stdin for input and stdout for output.\n" \
 	"Options:\n" \
 	"\t-u\toutput will be in UNIX format\n" \
-	"\t-d\toutput will be in DOS format\n\n" \
+	"\t-d\toutput will be in DOS format"
 
 #define update_trivial_usage \
 	"[options]"
