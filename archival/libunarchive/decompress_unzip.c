@@ -81,17 +81,17 @@ static unsigned long *crc_table;
 static unsigned long crc;	/* shift register contents */
 
 /* Return codes from gzip */
-static const int ERROR = 1;
+#define ERROR 1
 
 /*
  * window size--must be a power of two, and
  *  at least 32K for zip's deflate method
  */
-static const int WSIZE = 0x8000;
+#define WSIZE 0x8000
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
-static const int BMAX = 16;	/* maximum bit length of any code (16 for explode) */
-static const int N_MAX = 288;	/* maximum number of codes in any set */
+#define BMAX 16	/* maximum bit length of any code (16 for explode) */
+#define N_MAX 288	/* maximum number of codes in any set */
 
 static long bytes_out;	/* number of output bytes */
 static unsigned long outcnt;	/* bytes in output buffer */
