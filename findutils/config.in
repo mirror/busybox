@@ -11,6 +11,7 @@ if [ "$CONFIG_FIND" = "y" ] ; then
     bool '  Enable modified time matching (-mtime) option' CONFIG_FEATURE_FIND_MTIME
     bool '  Enable permissions matching (-perm) option' CONFIG_FEATURE_FIND_PERM
     bool '  Enable filetype matching (-type) option' CONFIG_FEATURE_FIND_TYPE
+    bool '  Enable stay in filesystem (-xdev) option' CONFIG_FEATURE_FIND_XDEV
 fi
 bool 'grep'	    CONFIG_GREP
 if [ "$CONFIG_GREP" = "y" ] ; then

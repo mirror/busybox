@@ -51,6 +51,12 @@ static char mtime_char;
 static int mtime_days;
 #endif
 
+#ifdef CONFIG_FEATURE_FIND_XDEV
+static dev_t *xdev_dev;
+static int xdev_count = 0;
+#endif
+
+
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (pattern != NULL) {
@@ -88,6 +94,22 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 			goto no_match;
 	}
 #endif
+#ifdef CONFIG_FEATURE_FIND_XDEV
+	if (xdev_count) {
+		int i;
+		for (i=0; i<xdev_count; i++) {
+			if (xdev_dev[i] == statbuf-> st_dev)
+				break;
+		}
+		if (i == xdev_count) {
+			if(S_ISDIR(statbuf->st_mode))
+				return SKIP;
+			else
+				goto no_match;
+		}
+	}
+#endif
+
 	puts(fileName);
 no_match:
 	return (TRUE);
@@ -179,6 +201,27 @@ int find_main(int argc, char **argv)
 				error_msg_and_die("invalid argument `%s' to `-mtime'", argv[i]);
 			if ((mtime_char = argv[i][0]) == '-')
 				mtime_days = -mtime_days;
+#endif
+#ifdef CONFIG_FEATURE_FIND_XDEV
+		} else if (strcmp(argv[i], "-xdev") == 0) {
+			struct stat stbuf;
+
+			xdev_count = ( firstopt - 1 ) ? ( firstopt - 1 ) : 1;
+			xdev_dev = xmalloc ( xdev_count * sizeof( dev_t ));
+
+			if ( firstopt == 1 ) {
+				if ( stat ( ".", &stbuf ) < 0 )
+					error_msg_and_die("could not stat '.'" );
+				xdev_dev [0] = stbuf. st_dev;
+			}
+			else {
+			
+				for (i = 1; i < firstopt; i++) {
+					if ( stat ( argv [i], &stbuf ) < 0 )
+						error_msg_and_die("could not stat '%s'", argv [i] );
+					xdev_dev [i-1] = stbuf. st_dev;
+				}
+			}						
 #endif
 		} else
 			show_usage();
