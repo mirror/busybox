@@ -24,6 +24,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int dos2unix_main( int argc, char **argv ) {
  	int c;
