@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 	int c, len;
 	struct dhcpMessage packet;
 	struct in_addr temp_addr;
-	time_t now;
+	long now;
 	int max_fd;
 	int sig;
 
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		tv.tv_sec = timeout - time(0);
+		tv.tv_sec = timeout - uptime();
 		tv.tv_usec = 0;
 
 		if (listen_mode != LISTEN_NONE && fd < 0) {
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 		} else retval = 0; /* If we already timed out, fall through */
 
-		now = time(0);
+		now = uptime();
 		if (retval == 0) {
 			/* timeout dropped to zero */
 			switch (state) {
