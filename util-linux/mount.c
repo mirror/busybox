@@ -120,7 +120,7 @@ static const struct mount_options mount_options[] = {
 static int
 do_mount(char *specialfile, char *dir, char *filesystemtype,
 		 long flags, void *string_flags, int useMtab, int fakeIt,
-		 char *mtab_opts)
+		 char *mtab_opts, int mount_all)
 {
 	int status = 0;
 #if defined BB_FEATURE_MOUNT_LOOP
@@ -149,10 +149,13 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		}
 #endif
 		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
-		if (errno == EROFS) {
+		if (status < 0 && errno == EROFS) {
 			error_msg("%s is write-protected, mounting read-only", specialfile);
 			status = mount(specialfile, dir, filesystemtype, flags |= MS_RDONLY, string_flags);
 		}
+		/* Don't whine about already mounted filesystems when mounting all. */
+		if (status < 0 && errno == EBUSY && mount_all)
+			return TRUE;
 	}
 
 
@@ -233,7 +236,7 @@ parse_mount_options(char *options, int *flags, char *strflags)
 extern int
 mount_one(char *blockDevice, char *directory, char *filesystemType,
 		  unsigned long flags, char *string_flags, int useMtab, int fakeIt,
-		  char *mtab_opts, int whineOnErrors)
+		  char *mtab_opts, int whineOnErrors, int mount_all)
 {
 	int status = 0;
 
@@ -256,7 +259,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 			if (!*noauto_fstype) {
 				status = do_mount(blockDevice, directory, filesystemType,
 					flags | MS_MGC_VAL, string_flags,
-					useMtab, fakeIt, mtab_opts);
+					useMtab, fakeIt, mtab_opts, mount_all);
 				if (status == TRUE)
 					break;
 			}
@@ -264,7 +267,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	} else {
 		status = do_mount(blockDevice, directory, filesystemType,
 				flags | MS_MGC_VAL, string_flags, useMtab,
-				fakeIt, mtab_opts);
+				fakeIt, mtab_opts, mount_all);
 	}
 
 	if (status == FALSE) {
@@ -450,7 +453,7 @@ singlemount:
 			}
 #endif
 			if (!mount_one(device, directory, filesystemType, flags,
-					string_flags, useMtab, fakeIt, extra_opts, TRUE))
+					string_flags, useMtab, fakeIt, extra_opts, TRUE, all))
 				rc = EXIT_FAILURE;
 				
 			if (all == FALSE)
