@@ -67,7 +67,7 @@ binary-indep:
 # We have nothing to do by default.
 
 # Build architecture-dependent files here.
-binary-arch: busybox busybox-static clean
+binary-arch: busybox busybox-static
 
 busybox: install
 	@echo "--- Building: $@"
