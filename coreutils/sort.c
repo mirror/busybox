@@ -32,22 +32,25 @@ static const char sort_usage[] =
 "Usage: sort [OPTION]... [FILE]...\n\n"
 ;
 
-/* structs ________________________________________________________________ */
+/* typedefs _______________________________________________________________ */
 
 /* line node */
-typedef struct {
-    char	*data;	    /* line data */
-    struct Line *next;	    /* pointer to next line node */
+typedef struct Line {
+    char        *data;      /* line data */
+    struct Line *next;      /* pointer to next line node */
 } Line;
 
 /* singly-linked list of lines */
 typedef struct {
-    int		len;	    /* number of Lines */
-    Line	*sorted;    /* array fed to qsort */
+    int         len;        /* number of Lines */
+    Line        **sorted;   /* array fed to qsort */
 
-    Line	*head;	    /* head of List */
-    Line	*current    /* current Line */
+    Line        *head;      /* head of List */
+    Line        *current;   /* current Line */
 } List;
+
+/* comparison function */
+typedef int (Compare)(const void *, const void *);
 
 
 /* methods ________________________________________________________________ */
@@ -105,10 +108,16 @@ line_release(Line *self)
 /* Comparison */
 
 static int
-compare_ascii(const void *, const void *);
+compare_ascii(const void *a, const void *b)
+{
+    return 0;
+}
 
 static int
-compare_numeric(const void *, const void *);
+compare_numeric(const void *a, const void *b)
+{
+    return 0;
+}
 
 
 /* List */
@@ -125,7 +134,7 @@ list_init(List *self)
 }
 
 /* for simplicity, the List gains ownership of the line */
-static void
+static List *
 list_insert(List *self, Line *line)
 {
     if (line == NULL) { return NULL; }
@@ -137,26 +146,54 @@ list_insert(List *self, Line *line)
 
     /* all subsequent insertions */
     } else {
-	self->current->next = line;
+	/* <?> the following cast shouldn't be necessary */
+	self->current->next = line; 
 	self->current       = line;
     }
     self->len++;
     return self;
 }
 
-/* */
+/* order the list according to compare() */
 static List *
-list_sort(List *self);
+list_sort(List *self, Compare *compare)
+{
+    int	    i;
+    Line    *line;
+
+    /* mallocate array of Line*s */
+    self->sorted = (Line **) malloc(self->len * sizeof(Line*));
+    if (self->sorted == NULL) { return NULL; }
+
+    /* fill array w/ List's contents */
+    i = 0;
+    line = self->head;
+    while (line) {
+	self->sorted[i++] = line;
+	line = line->next;
+    }
+
+    /* apply qsort */
+    qsort(self->sorted, sizeof(Line*), self->len, compare);
+    return self;
+}
 
 /* precondition:  list must be sorted */
 static List *
 list_writeToFile(List *self, FILE* dst)
 {
+    int i;
+    Line **line = self->sorted;
+
     if (self->sorted == NULL) { return NULL; }
+    for (i = 0; i < self->len; i++) {
+	fprintf(dst, "%s", line[i]->data);
+    }
+    return self;
 }
 
 /* deallocate */
-static List *
+static void
 list_release(List *self)
 {
     Line *i;
@@ -166,9 +203,8 @@ list_release(List *self)
     while (i) {
 	die = i;
 	i = die->next;
-	line_delete(die);
+	line_release(die);
     }
-    return self; /* bad poetry? */
 }
 
 
@@ -182,8 +218,10 @@ list_release(List *self)
 int 
 sort_main(int argc, char **argv)
 {
-    int i;
-    char opt;
+    int	    i;
+    char    opt;
+    List    list;
+    Line    *l;
 
     /* default behaviour */
 
@@ -204,9 +242,17 @@ sort_main(int argc, char **argv)
 	}
     }
 
+    /* initialize list */
+    list_init(&list);
+
     /* go through remaining args (if any) */
     if (i >= argc) {
-
+	while ( (l = line_newFromFile(stdin))) {
+	    list_insert(&list, l);
+	}
+	list_sort(&list, compare_ascii);
+	list_writeToFile(&list, stdout);
+	list_release(&list);
     } else {
 	for ( ; i < argc; i++) {
 	}
@@ -215,4 +261,9 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.3 1999/12/22 17:57:31 beppu Exp $ */
+/* $Id: sort.c,v 1.4 1999/12/22 22:24:52 beppu Exp $ */
+/* $Log: sort.c,v $
+ * Revision 1.4  1999/12/22 22:24:52  beppu
+ * 	the base is nearly done.
+ * 	need to implement various comparison functions, now.
+ * */
