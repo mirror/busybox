@@ -231,7 +231,7 @@ void reset_ino_dev_hashtable(void)
 
 #endif /* BB_CP_MV || BB_DU */
 
-#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN) || defined (BB_AR)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
@@ -433,7 +433,7 @@ copyFile(const char *srcName, const char *destName,
 
 
 
-#if defined BB_TAR || defined BB_LS
+#if defined BB_TAR || defined BB_LS ||defined BB_AR
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
@@ -692,7 +692,7 @@ int recursiveAction(const char *fileName,
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR)
+#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_AR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
@@ -727,7 +727,7 @@ extern int createPath(const char *name, int mode)
 
 
 #if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR) \
- || defined (BB_MKFIFO) || defined (BB_MKNOD)
+ || defined (BB_MKFIFO) || defined (BB_MKNOD) || defined (BB_AR)
 /* [ugoa]{+|-|=}[rwxst] */
 
 
