@@ -604,27 +604,28 @@ address_family_t addr_inet = {
 
 #endif	/* ifdef CONFIG_FEATURE_IFUPDOWN_IPV4 */
 
-static char *next_word(char *buf, char *word, int maxlen)
+static char *next_word(char **buf)
 {
-	if (!buf)
+	unsigned short length;
+	char *word;
+
+	if ((buf == NULL) || (*buf == NULL) || (**buf == '\0')) {
 		return NULL;
-	if (!*buf)
-		return NULL;
-
-	while (!isspace(*buf) && *buf) {
-		if (maxlen-- > 1)
-			*word++ = *buf;
-		buf++;
-	}
-	if (maxlen > 0) {
-		*word = '\0';
 	}
 
-	while (isspace(*buf) && *buf) {
-		buf++;
-	}
+	/* Skip over leading whitespace */
+	word = *buf + strspn(*buf, " \t\n");
 
-	return buf;
+	/* Find the length of this word */
+	length = strcspn(word, " \t\n");
+	if (length == 0) {
+		return(NULL);
+	}
+	*buf = word + length;
+	**buf = '\0';
+	(*buf)++;
+
+	return word;
 }
 
 static address_family_t *get_address_family(address_family_t *af[], char *name)
@@ -675,44 +676,34 @@ static const llist_t *find_list_string(const llist_t *list, const char *string)
 
 static interfaces_file_t *read_interfaces(char *filename)
 {
-	interface_defn_t *currif = NULL;
-	interfaces_file_t *defn;
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	mapping_defn_t *currmap = NULL;
 #endif
+	interface_defn_t *currif = NULL;
+	interfaces_file_t *defn;
 	FILE *f;
-	char firstword[80];
-	char *buf = NULL;
-	char *rest;
-//	int line;
+	char *firstword;
+	char *buf;
 
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
 	defn = xmalloc(sizeof(interfaces_file_t));
-//	defn->max_autointerfaces = defn->n_autointerfaces = 0;
 	defn->autointerfaces = NULL;
 	defn->mappings = NULL;
 	defn->ifaces = NULL;
-	f = fopen(filename, "r");
-	if (f == NULL) {
-		return NULL;
-	}
+
+	f = xfopen(filename, "r");
 
 	while ((buf = get_line_from_file(f)) != NULL) {
-		char *end;
+		char *buf_ptr = buf;
 
+		/* Ignore comments */
 		if (buf[0] == '#') {
 			continue;
 		}
-		end = last_char_is(buf, '\n');
-		if (end) {
-			*end = '\0';
-		}
-		while ((end = last_char_is(buf, ' ')) != NULL) {
-			*end = '\0';
-		}
-		rest = next_word(buf, firstword, 80);
-		if (rest == NULL) {
+
+		firstword = next_word(&buf_ptr);
+		if (firstword == NULL) {
 			continue;	/* blank line */
 		}
 
@@ -723,7 +714,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 			currmap->n_matches = 0;
 			currmap->match = NULL;
 
-			while ((rest = next_word(rest, firstword, 80))) {
+			while ((firstword = next_word(&buf_ptr)) != NULL) {
 				if (currmap->max_matches == currmap->n_matches) {
 					currmap->max_matches = currmap->max_matches * 2 + 1;
 					currmap->match = xrealloc(currmap->match, sizeof(currmap->match) * currmap->max_matches);
@@ -747,9 +738,9 @@ static interfaces_file_t *read_interfaces(char *filename)
 			currently_processing = MAPPING;
 		} else if (strcmp(firstword, "iface") == 0) {
 			{
-				char iface_name[80];
-				char address_family_name[80];
-				char method_name[80];
+				char *iface_name;
+				char *address_family_name;
+				char *method_name;
 				address_family_t *addr_fams[] = {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV4
 					&addr_inet,
@@ -764,17 +755,16 @@ static interfaces_file_t *read_interfaces(char *filename)
 				};
 
 				currif = xmalloc(sizeof(interface_defn_t));
+				iface_name = next_word(&buf_ptr);
+				address_family_name = next_word(&buf_ptr);
+				method_name = next_word(&buf_ptr);
 
-				rest = next_word(rest, iface_name, 80);
-				rest = next_word(rest, address_family_name, 80);
-				rest = next_word(rest, method_name, 80);
-
-				if (rest == NULL) {
+				if (buf_ptr == NULL) {
 					error_msg("too few parameters for line \"%s\"", buf);
 					return NULL;
 				}
 
-				if (rest[0] != '\0') {
+				if (buf_ptr[0] != '\0') {
 					error_msg("too many parameters \"%s\"", buf);
 					return NULL;
 				}
@@ -816,7 +806,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 			}
 			currently_processing = IFACE;
 		} else if (strcmp(firstword, "auto") == 0) {
-			while ((rest = next_word(rest, firstword, 80))) {
+			while ((firstword = next_word(&buf_ptr)) != NULL) {
 
 				/* Check the interface isnt already listed */
 				if (find_list_string(defn->autointerfaces, firstword)) {
@@ -833,7 +823,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 			{
 				int i;
 
-				if (xstrlen(rest) == 0) {
+				if (xstrlen(buf_ptr) == 0) {
 					error_msg("option with empty value \"%s\"", buf);
 					return NULL;
 				}
@@ -858,7 +848,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 					currif->option = opt;
 				}
 				currif->option[currif->n_options].name = xstrdup(firstword);
-				currif->option[currif->n_options].value = xstrdup(rest);
+				currif->option[currif->n_options].value = xstrdup(next_word(&buf_ptr));
 				if (!currif->option[currif->n_options].name) {
 					perror(filename);
 					return NULL;
@@ -876,14 +866,14 @@ static interfaces_file_t *read_interfaces(char *filename)
 						error_msg("duplicate script in mapping \"%s\"", buf);
 						return NULL;
 					} else {
-						currmap->script = xstrdup(rest);
+						currmap->script = xstrdup(next_word(&buf_ptr));
 					}
 				} else if (strcmp(firstword, "map") == 0) {
 					if (currmap->max_mappings == currmap->n_mappings) {
 						currmap->max_mappings = currmap->max_mappings * 2 + 1;
 						currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
 					}
-					currmap->mapping[currmap->n_mappings] = xstrdup(rest);
+					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
 					currmap->n_mappings++;
 				} else {
 					error_msg("misplaced option \"%s\"", buf);
@@ -897,10 +887,10 @@ static interfaces_file_t *read_interfaces(char *filename)
 				return NULL;
 			}
 		}
+		free(buf);
 	}
 	if (ferror(f) != 0) {
-		perror_msg("%s", filename);
-		return NULL;
+		perror_msg_and_die("%s", filename);
 	}
 	fclose(f);
 
@@ -1230,9 +1220,6 @@ extern int ifupdown_main(int argc, char **argv)
 	}			
 
 	defn = read_interfaces(interfaces);
-	if (!defn) {
-		error_msg_and_die("couldn't read interfaces file \"%s\"", interfaces);
-	}
 
 	if (no_act) {
 		state_fp = fopen(statefile, "r");
