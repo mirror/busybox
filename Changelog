@@ -1,3 +1,11 @@
+0.34
+	* ls -l now displays lnik names outside the current directory,
+	    Patch thanks to Eric Delaunay
+	* init now properly handles sparc serial consoles and does a
+	    better job of finding the real consol device rather than using
+	    /dev/console which doesn't support job control. Patch also
+	    thanks to Eric Delaunay.
+
 0.33
 	* Fixed a bug where init could hang instead of rebooting.
 	* Removed some debugging noise from init.c

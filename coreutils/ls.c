@@ -206,7 +206,7 @@ static char append_char(mode_t mode)
  **
  **/
 
-static void list_single(const char *name, struct stat *info)
+static void list_single(const char *name, struct stat *info, const char *fullname)
 {
 	char scratch[PATH_MAX];
 	short len = strlen(name);
@@ -297,12 +297,12 @@ static void list_single(const char *name, struct stat *info)
 		wr(name, len);
 		if (S_ISLNK(mode)) {
 			wr(" -> ", 4);
-			len = readlink(name, scratch, sizeof scratch);
+			len = readlink(fullname, scratch, sizeof scratch);
 			if (len > 0) fwrite(scratch, 1, len, stdout);
 #ifdef FEATURE_FILETYPECHAR
 			/* show type of destination */
 			if (opts & DISP_FTYPE) {
-				if (!stat(name, info)) {
+				if (!stat(fullname, info)) {
 					append = append_char(info->st_mode);
 					if (append)
 						fputc(append, stdout);
@@ -372,7 +372,7 @@ static int list_item(const char *name)
 	
 	if (!S_ISDIR(info.st_mode) || 
 	    (opts & DIR_NOLIST)) {
-		list_single(name, &info);
+		list_single(name, &info, name);
 		return 0;
 	}
 
@@ -424,7 +424,7 @@ static int list_item(const char *name)
 		strcpy(fnend, entry->d_name);
 		if (lstat(fullname, &info))
 			goto direrr; /* (shouldn't fail) */
-		list_single(entry->d_name, &info);
+		list_single(entry->d_name, &info, fullname);
 	}
 	closedir(dir);
 	return 0;

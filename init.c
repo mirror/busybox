@@ -88,8 +88,14 @@ void message(int device, char *fmt, ...)
 
     /* Take full control of the log tty, and never close it.
      * It's mine, all mine!  Muhahahaha! */
-    if (log_fd==-1) {
-	if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
+    if (log_fd < 0) {
+	if (log == NULL) {
+	/* don't even try to log, because there is no such console */
+	log_fd = -2;
+	/* log to main console instead */
+	device = CONSOLE;
+    }
+    else if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
 	    log_fd=-1;
 	    fprintf(stderr, "Bummer, can't write to log on %s!\r\n", log);
 	    fflush(stderr);
@@ -97,7 +103,7 @@ void message(int device, char *fmt, ...)
 	}
     }
 
-    if ( (device & LOG) && (log_fd != -1) ) {
+    if ( (device & LOG) && (log_fd >= 0) ) {
 	va_start(arguments, fmt);
 	vdprintf(log_fd, fmt, arguments);
 	va_end(arguments);
@@ -180,25 +186,40 @@ static void console_init()
     int fd;
     int tried_devcons = 0;
     int tried_vtprimary = 0;
+    struct serial_struct sr;
     char *s;
 
     if ((s = getenv("CONSOLE")) != NULL) {
 	console = s;
-/* Apparently the sparc does wierd things... */
+    }
 #if defined (__sparc__)
-	if (strncmp( s, "/dev/tty", 8 )==0) {
-	    switch( s[8]) {
-		case 'a':
-		    s=SERIAL_CON0;
-		    break;
-		case 'b':
-		    s=SERIAL_CON1;
-	    }
-	}
+    /* sparc kernel supports console=tty[ab] parameter which is also 
+     * passed to init, so catch it here */
+    else if ((s = getenv("console")) != NULL) {
+	/* remap tty[ab] to /dev/ttyS[01] */
+	if (strcmp( s, "ttya" )==0)
+	    console = SERIAL_CON0;
+	else if (strcmp( s, "ttyb" )==0)
+	    console = SERIAL_CON1;
+    }
 #endif
-    } else {
-	console = VT_CONSOLE;
-	tried_devcons++;
+    else {
+	struct vt_stat vt;
+	static char the_console[13];
+
+	console = the_console;
+	/* 2.2 kernels: identify the real console backend and try to use it */
+	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
+	    /* this is a serial console */
+	    snprintf( the_console, sizeof the_console, "/dev/ttyS%d", sr.line );
+	}
+	else if (ioctl(0, VT_GETSTATE, &vt) == 0) {
+	    /* this is linux virtual tty */
+	    snprintf( the_console, sizeof the_console, "/dev/tty%d", vt.v_active );
+	} else {
+	    console = VT_CONSOLE;
+	    tried_devcons++;
+	}
     }
 
     while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
@@ -219,8 +240,15 @@ static void console_init()
     if (fd < 0)
 	/* Perhaps we should panic here? */
 	console = "/dev/null";
-    else
+    else {
+	/* check for serial console and disable logging to tty3 & running a
+	* shell to tty2 */
+	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
+	    log = NULL;
+	    second_console = NULL;
+	}
 	close(fd);
+    }
     message(LOG, "console=%s\n", console );
 }
 
@@ -472,7 +500,7 @@ extern int init_main(int argc, char **argv)
 	if (pid1 == 0 && tty0_commands) {
 	    pid1 = run(tty0_commands, console, wait_for_enter);
 	}
-	if (pid2 == 0 && tty1_commands) {
+	if (pid2 == 0 && tty1_commands && second_console) {
 	    pid2 = run(tty1_commands, second_console, TRUE);
 	}
 	wpid = wait(&status);
