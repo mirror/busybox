@@ -196,19 +196,41 @@ config CONFIG_IFUPDOWN
 	  "ifconfig" and "route" or the "ip" command, either via busybox or via
 	  standalone utilities.
 
-# I really should force these to be enabled
-#    && CONFIG_IP && CONFIG_FEATURE_IP_ADDRESS && CONFIG_FEATURE_IP_LINK && CONFIG_FEATURE_IP_ROUTE
-# but then people could not use the full-blown iproute2 program...
 config CONFIG_FEATURE_IFUPDOWN_IP
 	bool "  Use ip applet"
 	default n
 	depends on CONFIG_IFUPDOWN 
 	help
-	  Use the iproute "ip" command to implement "ifupdown".  You will
-	  probably want to also enable CONFIG_IP, CONFIG_FEATURE_IP_ADDRESS,
-	  CONFIG_FEATURE_IP_LINK, and CONFIG_FEATURE_IP_ROUTE.  Of course
-	  if you wanted to use the full-blown iproute2 program you could
-	  leave the the busybox CONFIG_IP* options disabled.
+	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
+	  than the default of using the older 'ifconfig' and 'route' utilities.
+
+config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
+	bool "  Use busybox ip applet"
+	default y
+	depends on CONFIG_FEATURE_IFUPDOWN_IP
+	select CONFIG_IP
+	select CONFIG_FEATURE_IP_ADDRESS
+	select CONFIG_FEATURE_IP_LINK
+	select CONFIG_FEATURE_IP_ROUTE
+	help
+	  Use the busybox iproute "ip" applet to implement "ifupdown".
+
+	  If leave this disabled, you must install the full-blown iproute2
+	  utility or the  "ifup" and "ifdown" applets will not work.
+
+config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
+	bool "  Use busybox ifconfig and route applets"
+	default y
+	depends on CONFIG_IFUPDOWN && !CONFIG_FEATURE_IFUPDOWN_IP
+	select CONFIG_IFCONFIG
+	select CONFIG_ROUTE
+	help
+	  Use the busybox iproute "ifconfig" and "route" applets to 
+	  implement the "ifup" and "ifdown" utilities.
+
+	  If leave this disabled, you must install the full-blown ifconfig
+	  and route utilities, or the  "ifup" and "ifdown" applets will not 
+	  work.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV4
 	bool "  Enable support for IPv4"
