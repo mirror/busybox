@@ -138,24 +138,20 @@ enum TarFileType {
 typedef enum TarFileType TarFileType;
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static inline void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr, dev_t dev,
-								   ino_t ino, short linkCount,
-								   const char *name)
+static inline void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr,
+					struct stat *statbuf,
+					const char *name)
 {
 	/* Note: hlInfoHeadPtr can never be NULL! */
 	HardLinkInfo *hlInfo;
 
-	hlInfo =
-		(HardLinkInfo *) xmalloc(sizeof(HardLinkInfo) + strlen(name) + 1);
-	if (hlInfo) {
-		hlInfo->next = *hlInfoHeadPtr;
-		*hlInfoHeadPtr = hlInfo;
-		hlInfo->dev = dev;
-		hlInfo->ino = ino;
-		hlInfo->linkCount = linkCount;
-		strcpy(hlInfo->name, name);
-	}
-	return;
+	hlInfo = (HardLinkInfo *) xmalloc(sizeof(HardLinkInfo) + strlen(name));
+	hlInfo->next = *hlInfoHeadPtr;
+	*hlInfoHeadPtr = hlInfo;
+	hlInfo->dev = statbuf->st_dev;
+	hlInfo->ino = statbuf->st_ino;
+	hlInfo->linkCount = statbuf->st_nlink;
+	strcpy(hlInfo->name, name);
 }
 
 static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
@@ -176,11 +172,10 @@ static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
 }
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static inline HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, dev_t dev,
-											 ino_t ino)
+static inline HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbuf)
 {
 	while (hlInfo) {
-		if ((ino == hlInfo->ino) && (dev == hlInfo->dev))
+		if ((statbuf->st_ino == hlInfo->ino) && (statbuf->st_dev == hlInfo->dev))
 			break;
 		hlInfo = hlInfo->next;
 	}
@@ -366,11 +361,9 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	 */
 	tbInfo->hlInfo = NULL;
 	if (statbuf->st_nlink > 1) {
-		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf->st_dev,
-										  statbuf->st_ino);
+		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf);
 		if (tbInfo->hlInfo == NULL)
-			addHardLinkInfo(&tbInfo->hlInfoHead, statbuf->st_dev,
-							statbuf->st_ino, statbuf->st_nlink, fileName);
+			addHardLinkInfo(&tbInfo->hlInfoHead, statbuf, fileName);
 	}
 
 	/* It is against the rules to archive a socket */
@@ -460,6 +453,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	int gzipDataPipe[2] = { -1, -1 };
 	int gzipStatusPipe[2] = { -1, -1 };
 	pid_t gzipPid = 0;
+	volatile int vfork_exec_errno = 0;
 #endif
 
 	int errorFlag = FALSE;
@@ -495,13 +489,19 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	if (gzip) {
-		if (socketpair(AF_UNIX, SOCK_STREAM, 0, gzipDataPipe) < 0
-			|| pipe(gzipStatusPipe) < 0)
+		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0) {
 			perror_msg_and_die("Failed to create gzip pipe");
+		}
 
 		signal(SIGPIPE, SIG_IGN);	/* we only want EPIPE on errors */
 
-		gzipPid = fork();
+# if __GNUC__
+			/* Avoid vfork clobbering */
+			(void) &include;
+			(void) &errorFlag;
+# endif
+ 
+		gzipPid = vfork();
 
 		if (gzipPid == 0) {
 			dup2(gzipDataPipe[0], 0);
@@ -514,10 +514,9 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows sucess */
 
 			execl("/bin/gzip", "gzip", "-f", 0);
+			vfork_exec_errno = errno;
 
-			write(gzipStatusPipe[1], "", 1);
 			close(gzipStatusPipe[1]);
-
 			exit(-1);
 		} else if (gzipPid > 0) {
 			close(gzipDataPipe[0]);
@@ -528,9 +527,10 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 				int n = read(gzipStatusPipe[0], &buf, 1);
 
-				if (n == 1)
-					error_msg_and_die("Could not exec gzip process");	/* socket was not closed => error */
-				else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
+				if (n == 0 && vfork_exec_errno != 0) {
+					errno = vfork_exec_errno;
+					perror_msg_and_die("Could not exec gzip process");
+				} else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
 					continue;	/* try it again */
 				break;
 			}
@@ -538,7 +538,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 
 			tbInfo.tarFd = gzipDataPipe[1];
 		} else {
-			perror_msg_and_die("Failed to fork gzip process");
+			perror_msg_and_die("Failed to vfork gzip process");
 		}
 	}
 #endif
@@ -603,7 +603,7 @@ int tar_main(int argc, char **argv)
 	archive_handle_t *tar_handle;
 	int opt;
 	char *base_dir = NULL;
-	char *tar_filename = "-";
+	const char *tar_filename = "-";
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	unsigned char tar_create = FALSE;
