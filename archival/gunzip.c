@@ -102,6 +102,7 @@ extern int gunzip_main(int argc, char **argv)
 			break;
 		case 'q':
 			error_msg("-q option not supported, ignored");
+			break;
 		case 'h':
 		default:
 			show_usage(); /* exit's inside usage */
