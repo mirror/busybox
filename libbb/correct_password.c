@@ -66,10 +66,10 @@ int correct_password ( const struct passwd *pw )
 	if ( correct == 0 || correct[0] == '\0' )
 		return 1;
 
-	unencrypted = getpass ( "Password: " );
+	unencrypted = bb_askpass ( 0, "Password: " );
 	if ( !unencrypted )
 	{
-		fputs ( "getpass: cannot open /dev/tty\n", stderr );
+		fputs ( "cannot open /dev/tty\n", stderr );
 		return 0;
 	}
 	encrypted = crypt ( unencrypted, correct );

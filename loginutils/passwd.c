@@ -332,7 +332,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	time_t start, now;
 
 	if (!amroot && crypt_passwd[0]) {
-		if (!(clear = getpass("Old password:"))) {
+		if (!(clear = bb_askpass(0, "Old password:"))) {
 			/* return -1; */
 			return 1;
 		}
@@ -356,7 +356,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	} else {
 		orig[0] = '\0';
 	}
-	if (! (cp=getpass("Enter the new password (minimum of 5, maximum of 8 characters)\n"
+	if (! (cp=bb_askpass(0, "Enter the new password (minimum of 5, maximum of 8 characters)\n"
 					  "Please use a combination of upper and lower case letters and numbers.\n"
 					  "Enter new password: ")))
 	{
@@ -375,7 +375,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 			return 1;
 		}
 	}
-	if (!(cp = getpass("Re-enter new password: "))) {
+	if (!(cp = bb_askpass(0, "Re-enter new password: "))) {
 		bzero(orig, sizeof orig);
 		/* return -1; */
 		return 1;

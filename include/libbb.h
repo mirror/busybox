@@ -233,6 +233,7 @@ extern long my_getgrnam(const char *name);
 extern char * my_getpwuid(char *name, long uid);
 extern char * my_getgrgid(char *group, long gid);
 extern long my_getpwnamegid(const char *name);
+extern char *bb_askpass(int timeout, const char * prompt);
 
 extern int device_open(const char *device, int mode);
 

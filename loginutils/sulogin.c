@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <termios.h>
 #include <unistd.h>
 #include <utmp.h>
 #include <sys/resource.h>
@@ -55,7 +54,6 @@ extern int sulogin_main(int argc, char **argv)
 	const char *name = "root";
 	int timeout = 0;
 	static char pass[BUFSIZ];
-	struct termios termio;
 	struct passwd pwent;
 	struct passwd *pwd;
 	time_t start, now;
@@ -64,28 +62,6 @@ extern int sulogin_main(int argc, char **argv)
 	struct spwd *spwd = NULL;
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
 
-	tcgetattr(0, &termio);
-	/* set control chars */
-	termio.c_cc[VINTR]  = 3;	/* C-c */
-	termio.c_cc[VQUIT]  = 28;	/* C-\ */
-	termio.c_cc[VERASE] = 127; /* C-? */
-	termio.c_cc[VKILL]  = 21;	/* C-u */
-	termio.c_cc[VEOF]   = 4;	/* C-d */
-	termio.c_cc[VSTART] = 17;	/* C-q */
-	termio.c_cc[VSTOP]  = 19;	/* C-s */
-	termio.c_cc[VSUSP]  = 26;	/* C-z */
-	/* use line dicipline 0 */
-	termio.c_line = 0;
-	/* Make it be sane */
-	termio.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-	termio.c_cflag |= CREAD|HUPCL|CLOCAL;
-	/* input modes */
-	termio.c_iflag = ICRNL | IXON | IXOFF;
-	/* output modes */
-	termio.c_oflag = OPOST | ONLCR;
-	/* local modes */
-	termio.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
-	tcsetattr(0, TCSANOW, &termio);
 	openlog("sulogin", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 	if (argc > 1) {
 		if (strncmp(argv[1], "-t", 2) == 0) {
@@ -132,7 +108,6 @@ extern int sulogin_main(int argc, char **argv)
 
 
 	signal(SIGALRM, catchalarm);
-	alarm(timeout);
 	if (!(pwd = getpwnam(name))) {
 		syslog(LOG_WARNING, "No password entry for `root'\n");
 		bb_error_msg_and_die("No password entry for `root'\n");
@@ -150,7 +125,7 @@ extern int sulogin_main(int argc, char **argv)
 	}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
 	while (1) {
-		cp = getpass(SULOGIN_PROMPT);
+		cp = bb_askpass(timeout, SULOGIN_PROMPT);
 		if (!cp || !*cp) {
 			puts("\n");
 			fflush(stdout);
@@ -174,7 +149,6 @@ extern int sulogin_main(int argc, char **argv)
 		syslog(LOG_WARNING, "Incorrect root password\n");
 	}
 	bzero(pass, strlen(pass));
-	alarm(0);
 	signal(SIGALRM, SIG_DFL);
 	puts("Entering System Maintenance Mode\n");
 	fflush(stdout);
