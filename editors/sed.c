@@ -104,7 +104,7 @@ typedef struct sed_cmd_s {
 } sed_cmd_t;
 
 /* globals */
-static sed_cmd_t *sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
+static sed_cmd_t **sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
 static int ncmds = 0; /* number of sed commands */
 
 /*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
@@ -120,19 +120,19 @@ static void destroy_cmd_strs(void)
 	/* destroy all the elements in the array */
 	while (--ncmds >= 0) {
 
-		if (sed_cmds[ncmds].beg_match) {
-			regfree(sed_cmds[ncmds].beg_match);
-			free(sed_cmds[ncmds].beg_match);
+		if (sed_cmds[ncmds]->beg_match) {
+			regfree(sed_cmds[ncmds]->beg_match);
+			free(sed_cmds[ncmds]->beg_match);
 		}
-		if (sed_cmds[ncmds].end_match) {
-			regfree(sed_cmds[ncmds].end_match);
-			free(sed_cmds[ncmds].end_match);
+		if (sed_cmds[ncmds]->end_match) {
+			regfree(sed_cmds[ncmds]->end_match);
+			free(sed_cmds[ncmds]->end_match);
 		}
-		if (sed_cmds[ncmds].sub_match) {
-			regfree(sed_cmds[ncmds].sub_match);
-			free(sed_cmds[ncmds].sub_match);
+		if (sed_cmds[ncmds]->sub_match) {
+			regfree(sed_cmds[ncmds]->sub_match);
+			free(sed_cmds[ncmds]->sub_match);
 		}
-		free(sed_cmds[ncmds].replace);
+		free(sed_cmds[ncmds]->replace);
 	}
 
 	/* destroy the array */
@@ -382,8 +382,6 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
 
 static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
-	int idx = 0;
-
 	/* parse the command
 	 * format is: [addr][,addr]cmd
 	 *            |----||-----||-|
@@ -391,29 +389,29 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	 */
 
 	/* first part (if present) is an address: either a '$', a number or a /regex/ */
-	idx = get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+	cmdstr += get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
-	if (cmdstr[idx] == ',') {
+	if (*cmdstr == ',') {
 		int tmp_idx;
-		idx++;
-		tmp_idx = get_address(&sed_cmd->delimiter, &cmdstr[idx], &sed_cmd->end_line, &sed_cmd->end_match);
+		cmdstr++;
+		tmp_idx = get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
 		if (tmp_idx == 0) {
 			error_msg_and_die("get_address: no address found in string\n"
 				"\t(you probably didn't check the string you passed me)");
 		}
-		idx += tmp_idx;
+		cmdstr += tmp_idx;
 	}
 
 	/* skip whitespace before the command */
-	while (isspace(cmdstr[idx]))
-		idx++;
+	while (isspace(*cmdstr))
+		cmdstr++;
 
 	/* there my be the inversion flag between part2 and part3 */
 	sed_cmd->invert = 0;
-	if (cmdstr[idx] == '!') {
+	if (*cmdstr == '!') {
 		sed_cmd->invert = 1;
-		idx++;
+		cmdstr++;
 
 #ifdef SED_FEATURE_STRICT_CHECKING
 		/* According to the spec
@@ -421,48 +419,49 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 		 * and conforming applications shall not follow a '!' character
 		 * with <blank>s.
 		 */
-		if (isblank(cmdstr[idx]) {
+		if (isblank(*cmdstr) {
 			error_msg_and_die("blank follows '!'");
 		}
 #else 
 		/* skip whitespace before the command */
-		while (isspace(cmdstr[idx]))
-			idx++;
+		while (isspace(*cmdstr))
+			cmdstr++;
 #endif
 	}
 
 	/* last part (mandatory) will be a command */
-	if (cmdstr[idx] == '\0')
+	if (*cmdstr == '\0')
 		error_msg_and_die("missing command");
-	sed_cmd->cmd = cmdstr[idx];
+
+	sed_cmd->cmd = *cmdstr;
 
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
 	if (strchr("pd=", sed_cmd->cmd)) {
-		idx++;
+		cmdstr++;
 	}
 	/* handle (s)ubstitution command */
 	else if (sed_cmd->cmd == 's') {
-		idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
+		cmdstr += parse_subst_cmd(sed_cmd, cmdstr);
 	}
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", sed_cmd->cmd)) {
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
 			error_msg_and_die("only a beginning address can be specified for edit commands");
-		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
+		cmdstr += parse_edit_cmd(sed_cmd, cmdstr);
 	}
 	/* handle file cmds: (r)ead */
 	else if (sed_cmd->cmd == 'r') {
 		if (sed_cmd->end_line || sed_cmd->end_match)
 			error_msg_and_die("Command only uses one address");
-		idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
+		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
 	else {
 		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
 	/* give back whatever's left over */
-	return (char *)&cmdstr[idx];
+	return(cmdstr);
 }
 
 static void add_cmd_str(const char * const cmdstr)
@@ -483,11 +482,11 @@ static void add_cmd_str(const char * const cmdstr)
 			continue;
 		}
 		/* grow the array */
-		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t) * (++ncmds));
+		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t *) * (++ncmds));
 		/* zero new element */
-		memset(&sed_cmds[ncmds-1], 0, sizeof(sed_cmd_t));
+		sed_cmds[ncmds-1] = xcalloc(1, sizeof(sed_cmd_t));
 		/* load command string into new array element, get remainder */
-		mystr = parse_cmd_str(&sed_cmds[ncmds-1], mystr);
+		mystr = parse_cmd_str(sed_cmds[ncmds-1], mystr);
 
 	} while (mystr && strlen(mystr));
 }
@@ -676,7 +675,7 @@ static void process_file(FILE *file)
 
 		/* for every line, go through all the commands */
 		for (i = 0; i < ncmds; i++) {
-			sed_cmd_t *sed_cmd = &sed_cmds[i];
+			sed_cmd_t *sed_cmd = sed_cmds[i];
 			int deleted = 0;
 
 			/*
@@ -745,7 +744,7 @@ static void process_file(FILE *file)
 						 * (this is quite possibly the second printing) */
 						if (sed_cmd->sub_p)
 							altered |= do_subst_command(sed_cmd, &line);
-						if (altered && (i+1 >= ncmds || sed_cmds[i+1].cmd != 's'))
+						if (altered && (i+1 >= ncmds || sed_cmds[i+1]->cmd != 's'))
 							puts(line);
 
 						break;
