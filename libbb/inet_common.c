@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.3 2002/07/03 11:46:36 andersen Exp $
+ * Version:     $Id: inet_common.c,v 1.4 2002/11/26 02:35:15 bug1 Exp $
  *
  */
 
@@ -17,7 +17,7 @@
 #include "libbb.h"
 
 #ifdef DEBUG
-#include <resolv.h>
+# include <resolv.h>
 #endif
 
 
@@ -178,7 +178,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
     return (0);
 }
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 
 int INET6_resolve(char *name, struct sockaddr_in6 *sin6)
 {
@@ -199,7 +199,7 @@ int INET6_resolve(char *name, struct sockaddr_in6 *sin6)
 }
 
 #ifndef IN6_IS_ADDR_UNSPECIFIED
-#define IN6_IS_ADDR_UNSPECIFIED(a) \
+# define IN6_IS_ADDR_UNSPECIFIED(a) \
         (((__u32 *) (a))[0] == 0 && ((__u32 *) (a))[1] == 0 && \
          ((__u32 *) (a))[2] == 0 && ((__u32 *) (a))[3] == 0)
 #endif

@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 int create_icmp6_socket(void)
 {
 	struct protoent *proto;

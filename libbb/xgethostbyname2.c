@@ -24,7 +24,7 @@
 #include "libbb.h"
 
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 struct hostent *xgethostbyname2(const char *name, int af)
 {
 	struct hostent *retval;

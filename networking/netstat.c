@@ -131,7 +131,7 @@ static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int 
 {
 	char *port_name;
 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	if (addr->sa_family == AF_INET6) {
 		INET6_rresolve(ip_port, size, (struct sockaddr_in6 *)addr,
 					   (numeric&NETSTAT_NUMERIC) ? 0x0fff : 0);
@@ -156,7 +156,7 @@ static void tcp_do_one(int lnr, const char *line)
 	const char *state_str;
 	char more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
 	char addr6[INET6_ADDRSTRLEN];
 	struct in6_addr in6;
@@ -176,7 +176,7 @@ static void tcp_do_one(int lnr, const char *line)
 				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 		sscanf(local_addr, "%08X%08X%08X%08X",
 			   &in6.s6_addr32[0], &in6.s6_addr32[1],
 			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
@@ -226,7 +226,7 @@ static void udp_do_one(int lnr, const char *line)
 	char local_addr[64], rem_addr[64];
 	char *state_str, more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
 	char addr6[INET6_ADDRSTRLEN];
 	struct in6_addr in6;
@@ -246,7 +246,7 @@ static void udp_do_one(int lnr, const char *line)
 				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
         /* Demangle what the kernel gives us */
 		sscanf(local_addr, "%08X%08X%08X%08X",
 			   &in6.s6_addr32[0], &in6.s6_addr32[1],
@@ -288,8 +288,8 @@ static void udp_do_one(int lnr, const char *line)
 			break;
 	}
 
-#if CONFIG_FEATURE_IPV6
-#define notnull(A) (((A.sin6_family == AF_INET6) &&            \
+#ifdef CONFIG_FEATURE_IPV6
+# define notnull(A) (((A.sin6_family == AF_INET6) &&            \
 					 ((A.sin6_addr.s6_addr32[0]) ||            \
 					  (A.sin6_addr.s6_addr32[1]) ||            \
 					  (A.sin6_addr.s6_addr32[2]) ||            \
@@ -297,7 +297,7 @@ static void udp_do_one(int lnr, const char *line)
 					((A.sin6_family == AF_INET) &&             \
 					 ((struct sockaddr_in *) &A)->sin_addr.s_addr))
 #else
-#define notnull(A) (A.sin_addr.s_addr)
+# define notnull(A) (A.sin_addr.s_addr)
 #endif
 	if ((notnull(remaddr) && (flags&NETSTAT_CONNECTED)) ||
 		(!notnull(remaddr) && (flags&NETSTAT_LISTENING)))
@@ -321,7 +321,7 @@ static void raw_do_one(int lnr, const char *line)
 	char local_addr[64], rem_addr[64];
 	char *state_str, more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
 	char addr6[INET6_ADDRSTRLEN];
 	struct in6_addr in6;
@@ -341,7 +341,7 @@ static void raw_do_one(int lnr, const char *line)
 				 &txq, &rxq, &timer_run, &time_len, &retr, &uid, &timeout, &inode, more);
 
 	if (strlen(local_addr) > 8) {
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 		sscanf(local_addr, "%08X%08X%08X%08X",
 			   &in6.s6_addr32[0], &in6.s6_addr32[1],
 			   &in6.s6_addr32[2], &in6.s6_addr32[3]);
@@ -370,8 +370,8 @@ static void raw_do_one(int lnr, const char *line)
 	}
 	state_str=itoa(state);
 
-#if CONFIG_FEATURE_IPV6
-#define notnull(A) (((A.sin6_family == AF_INET6) &&            \
+#ifdef CONFIG_FEATURE_IPV6
+# define notnull(A) (((A.sin6_family == AF_INET6) &&            \
 					 ((A.sin6_addr.s6_addr32[0]) ||            \
 					  (A.sin6_addr.s6_addr32[1]) ||            \
 					  (A.sin6_addr.s6_addr32[2]) ||            \
@@ -379,7 +379,7 @@ static void raw_do_one(int lnr, const char *line)
 					((A.sin6_family == AF_INET) &&             \
 					 ((struct sockaddr_in *) &A)->sin_addr.s_addr))
 #else
-#define notnull(A) (A.sin_addr.s_addr)
+# define notnull(A) (A.sin_addr.s_addr)
 #endif
 	if ((notnull(remaddr) && (flags&NETSTAT_CONNECTED)) ||
 		(!notnull(remaddr) && (flags&NETSTAT_LISTENING)))
@@ -559,12 +559,12 @@ int netstat_main(int argc, char **argv)
 	int opt;
 	int new_flags=0;
 	int showroute = 0, extended = 0; 
-#if CONFIG_FEATURE_IPV6
+#ifdef CONFIG_FEATURE_IPV6
 	int inet=1;
 	int inet6=1;
 #else
-#define inet 1
-#define inet6 0
+# define inet 1
+# define inet6 0
 #endif
 	while ((opt = getopt(argc, argv, "laenrtuwx")) != -1)
 		switch (opt) {
