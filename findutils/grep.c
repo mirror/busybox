@@ -104,9 +104,15 @@ static void grep_file(FILE *file)
 				exit(0);
 			}
 
-			/* otherwise, keep track of matches and print the matched line */
+			/* keep track of matches */
 			nmatches++;
-			if (print_match_counts==0 && print_files_with_matches==0) {
+
+			/* if we're just printing filenames, we stop after the first match */
+			if (print_files_with_matches)
+				break;
+
+			/* print the matched line */
+			if (print_match_counts == 0) {
 #ifdef BB_FEATURE_GREP_CONTEXT
 				int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
@@ -162,14 +168,17 @@ static void grep_file(FILE *file)
 
 
 	/* special-case file post-processing for options where we don't print line
-	 * matches, just filenames */
+	 * matches, just filenames and possibly match counts */
 
-	/* grep -cl or just grep -c: print filename:count, even if count is zero */
+	/* grep -c: print [filename:]count, even if count is zero */
 	if (print_match_counts) {
-		printf("%s:%d\n", cur_file, nmatches);
+		if (print_filename)
+			printf("%s:", cur_file);
+		printf("%d\n", nmatches);
 	}
-	/* just grep -l: print just the filename, but only if we grepped the line in the file  */
-	else if (print_files_with_matches && !print_match_counts && nmatches > 0) {
+
+	/* grep -l: print just the filename, but only if we grepped the line in the file  */
+	if (print_files_with_matches && nmatches > 0) {
 		puts(cur_file);
 	}
 
