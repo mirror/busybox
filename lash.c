@@ -854,10 +854,9 @@ static int get_command(FILE * source, char *command)
 		** atexit() handlers and other unwanted stuff to our
 		** child processes (rob@sysgo.de)
 		*/
-		cmdedit_init();
 		cmdedit_read_input(prompt_str, command);
-		free(prompt_str);
 		cmdedit_terminate();
+		free(prompt_str);
 		return 0;
 #else
 		fputs(prompt_str, stdout);

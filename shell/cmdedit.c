@@ -30,7 +30,7 @@
  */
 
 
-#define TEST
+//#define TEST
 
 
 #ifndef TEST
@@ -555,6 +555,9 @@ static void clean_up_and_die(int sig)
 static void cmdedit_setwidth(int w, int redraw_flg)
 {
 	cmdedit_termw = cmdedit_prmt_len + 2;
+	if (w <= cmdedit_termw) {
+		cmdedit_termw = cmdedit_termw % w;
+	}
 	if (w > cmdedit_termw) {
 
 		cmdedit_termw = w;
@@ -567,10 +570,7 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 			redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), len - cursor);
 			fflush(stdout);
 		}
-	} else {
-		error_msg("\n*** Error: minimum screen width is %d",
-				  cmdedit_termw);
-	}
+	} 
 }
 
 extern void cmdedit_init(void)
@@ -1234,9 +1234,10 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	setTermSettings(inputFd, (void *) &new_settings);
 	handlers_sets |= SET_RESET_TERM;
 
-	cmdedit_init();
 	/* Print out the command prompt */
 	parse_prompt(prompt);
+	/* Now initialize things */
+	cmdedit_init();
 
 	while (1) {
 
