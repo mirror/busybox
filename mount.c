@@ -119,7 +119,9 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		 char *mtab_opts)
 {
 	int status = 0;
+#if defined BB_FEATURE_MOUNT_LOOP
 	char *lofile = NULL;
+#endif
 
 	if (fakeIt == FALSE)
 	{
