@@ -47,10 +47,15 @@ int chroot_main(int argc, char **argv)
 		prog = *argv;
 		execvp(*argv, argv);
 	} else {
+#ifndef BB_SH
 		prog = getenv("SHELL");
 		if (!prog)
 			prog = "/bin/sh";
 		execlp(prog, prog, NULL);
+#else
+		shell_main(argc, argv);
+		exit (0);
+#endif
 	}
 	fatalError("cannot execute %s: %s\n", prog, strerror(errno));
 

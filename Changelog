@@ -1,5 +1,6 @@
 0.47pre
 
+	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
 	* added 'renice' command -- thanks to Dave Cinege <dcinege@psychosis.com>
 	* 'make install' now creates relative symlinks, and added a new
 	    'make install-hardlinks' target to (tada) install hardlinks.
