@@ -149,43 +149,6 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		char** excludeList);
 #endif
 
-#ifdef BB_FEATURE_TAR_GZIP
-/* Signal handler for when child gzip process dies...  */
-static void child_died()
-{
-	fflush(stdout);
-	fflush(stderr);
-	exit(EXIT_FAILURE);
-}
-
-extern int tar_unzip_init(int tarFd)
-{
-	int child_pid;
-	static int unzip_pipe[2];
-	/* Cope if child dies... Otherwise we block forever in read()... */
-	signal(SIGCHLD, child_died);
-
-	if (pipe(unzip_pipe)!=0)
-		error_msg_and_die("pipe error");
-
-	if ( (child_pid = fork()) == -1)
-		error_msg_and_die("fork failure");
-
-	if (child_pid==0) {
-		/* child process */
-		close(unzip_pipe[0]);
-//		gunzip_init();
-		unzip(tarFd, unzip_pipe[1]);
-		exit(EXIT_SUCCESS);
-	}
-	else {
-		/* return fd of uncompressed data to parent process */
-		close(unzip_pipe[1]);
-		return(unzip_pipe[0]);
-	}
-}
-#endif
-
 #if defined BB_FEATURE_TAR_EXCLUDE
 static struct option longopts[] = {
 	{ "exclude", 1, NULL, 'e' },
