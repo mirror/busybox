@@ -3,7 +3,7 @@
  * hdparm implementation for busybox
  *
  *
- * Copyright (C) [2003] by [Matteo Croce] <pinnolo@tin.it>
+ * Copyright (C) [2003] by [Matteo Croce] <3297627799@wind.it>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
