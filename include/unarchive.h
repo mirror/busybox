@@ -1,4 +1,5 @@
-#include <stdio.h>	// for off_t
+#include <stdio.h>	// for FILE
+#include <unistd.h>	// for off_t
 
 enum extract_functions_e {
 	extract_verbose_list = 1,
