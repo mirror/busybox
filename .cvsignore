@@ -1,5 +1,5 @@
 busybox
 busybox.links
 _install
-applet_source_list
 .config
+.menuconfig.log
