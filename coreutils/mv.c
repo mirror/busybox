@@ -30,7 +30,7 @@
 
 #include "busybox.h"
 
-static int flags = CP_RECUR | CP_PRESERVE_STATUS | CP_PRESERVE_SYMLINKS;
+static int flags;
 
 static int remove_file(const char *path, struct stat *statbuf, void *junk)
 {
@@ -88,8 +88,8 @@ static int manual_rename(const char *source, const char *dest)
 		}
 	}
 
-	if (copy_file(source, dest,
-				CP_RECUR | CP_PRESERVE_STATUS | CP_PRESERVE_SYMLINKS) < 0)
+	if (copy_file(source, dest, FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS |
+			FILEUTILS_PRESERVE_SYMLINKS) < 0)
 		return -1;
 
 	if (!recursive_action(source, TRUE, FALSE, TRUE, remove_file,
@@ -112,9 +112,9 @@ static int move_file(const char *source, const char *dest)
 		dest_exists = 0;
 	}
 
-	if (dest_exists && !(flags & CP_FORCE) &&
+	if (dest_exists && !(flags & FILEUTILS_FORCE) &&
 			((access(dest, W_OK) < 0 && isatty(0)) ||
-			 (flags & CP_INTERACTIVE))) {
+			 (flags & FILEUTILS_INTERACTIVE))) {
 		fprintf(stderr, "mv: overwrite `%s'? ", dest);
 		if (!ask_confirmation())
 			return 0;
@@ -140,12 +140,12 @@ extern int mv_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "fi")) != -1)
 		switch (opt) {
 		case 'f':
-			flags &= ~CP_INTERACTIVE;
-			flags |= CP_FORCE;
+			flags &= ~FILEUTILS_INTERACTIVE;
+			flags |= FILEUTILS_FORCE;
 			break;
 		case 'i':
-			flags &= ~CP_FORCE;
-			flags |= CP_INTERACTIVE;
+			flags &= ~FILEUTILS_FORCE;
+			flags |= FILEUTILS_INTERACTIVE;
 			break;
 		default:
 			show_usage();

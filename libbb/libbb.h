@@ -255,11 +255,11 @@ extern int gz_open(FILE *compressed_file, int *pid);
 /* extern int convert(char *fn, int ConvType); */
 
 enum {
-	CP_PRESERVE_STATUS = 1,
-	CP_PRESERVE_SYMLINKS = 2,
-	CP_RECUR = 4,
-	CP_FORCE = 8,
-	CP_INTERACTIVE = 16
+	FILEUTILS_PRESERVE_STATUS = 1,
+	FILEUTILS_PRESERVE_SYMLINKS = 2,
+	FILEUTILS_RECUR = 4,
+	FILEUTILS_FORCE = 8,
+	FILEUTILS_INTERACTIVE = 16
 };
 
 extern const char *applet_name;

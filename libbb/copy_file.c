@@ -39,8 +39,9 @@ int copy_file(const char *source, const char *dest, int flags)
 	int dest_exists = 1;
 	int status = 0;
 
-	if (((flags & CP_PRESERVE_SYMLINKS) && lstat(source, &source_stat) < 0) ||
-			(!(flags & CP_PRESERVE_SYMLINKS) &&
+	if (((flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+			lstat(source, &source_stat) < 0) ||
+			(!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
 			 stat(source, &source_stat) < 0)) {
 		perror_msg("%s", source);
 		return -1;
@@ -64,7 +65,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		DIR *dp;
 		struct dirent *d;
 
-		if (!(flags & CP_RECUR)) {
+		if (!(flags & FILEUTILS_RECUR)) {
 			error_msg("%s: omitting directory", source);
 			return -1;
 		}
@@ -80,7 +81,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			saved_umask = umask(0);
 
 			mode = source_stat.st_mode;
-			if (!(flags & CP_PRESERVE_STATUS))
+			if (!(flags & FILEUTILS_PRESERVE_STATUS))
 				mode = source_stat.st_mode & ~saved_umask;
 			mode |= S_IRWXU;
 
@@ -125,14 +126,14 @@ int copy_file(const char *source, const char *dest, int flags)
 		FILE *sfp, *dfp;
 
 		if (dest_exists) {
-			if (flags & CP_INTERACTIVE) {
+			if (flags & FILEUTILS_INTERACTIVE) {
 				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
 				if (!ask_confirmation())
 					return 0;
 			}
 
 			if ((dfp = fopen(dest, "w")) == NULL) {
-				if (!(flags & CP_FORCE)) {
+				if (!(flags & FILEUTILS_FORCE)) {
 					perror_msg("unable to open `%s'", dest);
 					return -1;
 				}
@@ -187,7 +188,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		saved_umask = umask(0);
 
 		mode = source_stat.st_mode;
-		if (!(flags & CP_PRESERVE_STATUS))
+		if (!(flags & FILEUTILS_PRESERVE_STATUS))
 			mode = source_stat.st_mode & ~saved_umask;
 		mode |= S_IRWXU;
 
@@ -213,7 +214,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-		if (flags & CP_PRESERVE_STATUS)
+		if (flags & FILEUTILS_PRESERVE_STATUS)
 			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
 				perror_msg("unable to preserve ownership of `%s'", dest);
 #endif
@@ -225,7 +226,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 end:
 
-	if (flags & CP_PRESERVE_STATUS) {
+	if (flags & FILEUTILS_PRESERVE_STATUS) {
 		struct utimbuf times;
 
 		times.actime = source_stat.st_atime;

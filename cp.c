@@ -42,22 +42,22 @@ extern int cp_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "adfipR")) != -1)
 		switch (opt) {
 		case 'a':
-			flags |= CP_PRESERVE_STATUS | CP_RECUR;
+			flags |= FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR;
 			/* fallthrough */
 		case 'd':
-			flags |= CP_PRESERVE_SYMLINKS;
+			flags |= FILEUTILS_PRESERVE_SYMLINKS;
 			break;
 		case 'f':
-			flags |= CP_FORCE;
+			flags |= FILEUTILS_FORCE;
 			break;
 		case 'i':
-			flags |= CP_INTERACTIVE;
+			flags |= FILEUTILS_INTERACTIVE;
 			break;
 		case 'p':
-			flags |= CP_PRESERVE_STATUS;
+			flags |= FILEUTILS_PRESERVE_STATUS;
 			break;
 		case 'R':
-			flags |= CP_RECUR;
+			flags |= FILEUTILS_RECUR;
 			break;
 		default:
 			show_usage();
@@ -73,9 +73,9 @@ extern int cp_main(int argc, char **argv)
 		int source_exists = 1;
 		int dest_exists = 1;
 
-		if (((flags & CP_PRESERVE_SYMLINKS) &&
+		if (((flags & FILEUTILS_PRESERVE_SYMLINKS) &&
 				lstat(argv[optind], &source_stat) < 0) ||
-				(!(flags & CP_PRESERVE_SYMLINKS) &&
+				(!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
 				 stat(argv[optind], &source_stat))) {
 			if (errno != ENOENT)
 				perror_msg_and_die("unable to stat `%s'", argv[optind]);
@@ -93,7 +93,7 @@ extern int cp_main(int argc, char **argv)
 				(!dest_exists || !S_ISDIR(dest_stat.st_mode))) ||
 				/* ...recursing, the first is a directory, and the
 				 * second doesn't exist, then... */
-				((flags & CP_RECUR) && S_ISDIR(source_stat.st_mode) &&
+				((flags & FILEUTILS_RECUR) && S_ISDIR(source_stat.st_mode) &&
 				 !dest_exists)) {
 			/* ...do a simple copy.  */
 			if (copy_file(argv[optind], argv[optind + 1], flags) < 0)
