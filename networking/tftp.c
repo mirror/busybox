@@ -294,7 +294,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #ifdef CONFIG_FEATURE_TFTP_DEBUG
 			fprintf(stderr, "sending %u bytes\n", len);
 			for (cp = buf; cp < &buf[len]; cp++)
-				fprintf(stderr, "%02x ", *cp);
+				fprintf(stderr, "%02x ", (unsigned char)*cp);
 			fprintf(stderr, "\n");
 #endif
 			if (sendto(socketfd, buf, len, 0,
