@@ -28,6 +28,7 @@
  */
 
 #include "internal.h"
+#include <getopt.h>
 
 static const char gunzip_usage[] =
 	"gunzip [OPTION]... FILE\n"

@@ -86,6 +86,7 @@
  * enforced (but it's not much fun on a character device :-). 
  */
 
+#include <linux/fs.h>
 #include "internal.h"
 #include <stdio.h>
 #include <errno.h>
@@ -98,8 +99,6 @@
 #include <mntent.h>
 #include <sys/stat.h>
 #include <sys/param.h>
-
-#include <linux/fs.h>
 #include <linux/minix_fs.h>
 
 #ifdef MINIX2_SUPER_MAGIC2

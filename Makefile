@@ -33,7 +33,8 @@ DOSTATIC = false
 
 # To compile vs an alternative libc, you may need to use/adjust
 # the following lines to meet your needs.  This is how I did it...
-#CFLAGS+=-nostdinc -I/home/andersen/CVS/uC-libc/include -I/usr/include/linux
+#GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
+#CFLAGS+=-nostdinc -fno-builtin -I/home/andersen/CVS/uC-libc/include -I$(GCCINCDIR)
 #LDFLAGS+=-nostdlib
 #LIBRARIES = /home/andersen/CVS/uC-libc/libc.a
 

@@ -23,7 +23,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <linux/fs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -31,6 +30,9 @@
 #include <errno.h>
 #include "internal.h"
 
+
+/* From linux/fs.h */
+#define BLKFLSBUF  _IO(0x12,97)	/* flush buffer cache */
 
 
 static const char freeramdisk_usage[] =
