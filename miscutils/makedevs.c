@@ -17,57 +17,51 @@
 
 int makedevs_main(int argc, char **argv)
 {
-	dev_t dev = 0;
-	mode_t mode = 0;
-	char *basedev, *type, devname[255], buf[255];
-	int major, Sminor, S, E, sbase;
+	mode_t mode;
+	char *basedev, *type, *nodname, buf[255];
+	int major, Sminor, S, E;
 
 	if (argc < 7 || *argv[1]=='-')
 		show_usage();
 
 	basedev = argv[1];
 	type = argv[2];
-	major = atoi(argv[3]);
+	major = atoi(argv[3]) << 8;  /* correcting param to mknod() */
 	Sminor = atoi(argv[4]);
 	S = atoi(argv[5]);
 	E = atoi(argv[6]);
-	sbase = argc == 8 ? 1 : 0;
+	nodname = argc == 8 ? basedev : buf;
+
+	mode = 0660;
 
 	switch (type[0]) {
 	case 'c':
-		mode = S_IFCHR;
+		mode |= S_IFCHR;
 		break;
 	case 'b':
-		mode = S_IFBLK;
+		mode |= S_IFBLK;
 		break;
 	case 'f':
-		mode = S_IFIFO;
+		mode |= S_IFIFO;
 		break;
 	default:
 		show_usage();
 	}
-	mode |= 0660;
 
 	while (S <= E) {
+		int sz;
 
-		if (type[0] != 'f')
-			dev = (major << 8) | Sminor;
-		safe_strncpy(devname, basedev, sizeof(devname));
+		sz = snprintf(buf, sizeof(buf), "%s%d", basedev, S);
+		if(sz<0 || sz>=sizeof(buf))  /* libc different */
+			error_msg_and_die("%s too large", basedev);
 
-		if (sbase == 0) {
-			int len;
-			len = strlen(devname);
-			if (S > 10000 || len > (sizeof(devname)-6))
-				error_msg_and_die("%s: number too large", buf);
-			sprintf(buf, "%d", S);
-			strcat(devname, buf);
-		} else {
-			sbase = 0;
-		}
+	/* if mode != S_IFCHR and != S_IFBLK third param in mknod() ignored */
 
-		if (mknod(devname, mode, dev))
-			printf("Failed to create: %s\n", devname);
+		if (mknod(nodname, mode, major | Sminor))
+			error_msg("Failed to create: %s", nodname);
 
+		if (nodname == basedev) /* ex. /dev/hda - to /dev/hda1 ... */
+			nodname = buf;
 		S++;
 		Sminor++;
 	}
