@@ -144,7 +144,7 @@ config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 	  Use a blocksize of (1K) instead of the default 512b.
 
 config CONFIG_ECHO
-	bool "echo (basic SUSv3 version taking no options"
+	bool "echo (basic SUSv3 version taking no options)"
 	default n
 	help
 	  echo is used to print a specified string to stdout.
