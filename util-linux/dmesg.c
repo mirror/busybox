@@ -44,10 +44,15 @@ int dmesg_main( int argc, char** argv )
    int  level = 0;
    int  lastc;
    int  cmd = 3;
+   int stopDoingThat;
+
+   argc--;
+   argv++;
 
     /* Parse any options */
     while (argc && **argv == '-') {
-	while (*++(*argv))
+	stopDoingThat = FALSE;
+	while (stopDoingThat == FALSE && *++(*argv)) {
 	    switch (**argv) {
 	    case 'c':
 		cmd = 4;
@@ -57,19 +62,22 @@ int dmesg_main( int argc, char** argv )
 		if (--argc == 0)
 		    goto end;
 		level = atoi (*(++argv));
-		--argc;
-		++argv;
+		if (--argc > 0)
+		    ++argv;
+		stopDoingThat = TRUE;
 		break;
 	    case 's':
 		if (--argc == 0)
 		    goto end;
 		bufsize = atoi (*(++argv));
-		--argc;
-		++argv;
+		if (--argc > 0)
+		    ++argv;
+		stopDoingThat = TRUE;
 		break;
 	    default:
 		goto end;
 	    }
+	}
     }
    
    if (argc > 1) {

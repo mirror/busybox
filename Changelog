@@ -17,6 +17,11 @@
 	    them so they should now work as expected.  
 	* New app: loadacm contributed by Peter Novodvorsky <petya@logic.ru>
 	    for loading application character maps for working with Unicode fonts.
+	* sed now supports addresses (numeric or regexp, with negation) and 
+	    has an append command, thanks to Marco Pantaleoni <panta@prosa.it>
+	* Fixed dmesg.  It wasn't parsing its options (-n or -s) properly.  
+	* Some cosmetic fixes to ls output formatting to make it behave more
+	    like GNU ls.
 	    
 
 	-Erik Andersen

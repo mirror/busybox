@@ -193,11 +193,13 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		fputs(" ", stdout);
 #ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			scratch[0]='\0';
+			memset ( scratch, 0, sizeof (scratch));
 			my_getpwuid( scratch, info->st_uid);
-			scratch[8]='\0';
-			if (*scratch)
-				wr(scratch,8);
+			if (*scratch) {
+			    fputs(scratch, stdout);
+			    if ( strlen( scratch) <= 8 )
+				wr("         ", 8-strlen( scratch));
+			}
 			else {
 				writenum((long) info->st_uid,(short)8);
 				fputs(" ", stdout);
@@ -208,20 +210,21 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		    writenum((long) info->st_uid,(short)8);
 		    fputs(" ", stdout);
 		}
-		tab(16);
 #ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			scratch[0]='\0';
+			memset ( scratch, 0, sizeof (scratch));
 			my_getgrgid( scratch, info->st_gid);
-			scratch[8]='\0';
-			if (*scratch)
-				wr(scratch,8);
+			if (*scratch) {
+			    fputs(scratch, stdout);
+			    if ( strlen( scratch) <= 8 )
+				wr("         ", 8-strlen( scratch));
+			}
 			else 
-				writenum((long) info->st_gid,(short)8);
+			    writenum((long) info->st_gid,(short)8);
 		} else
 #endif
 		writenum((long) info->st_gid,(short)8);
-		tab(17);
+		//tab(26);
 		if (S_ISBLK(mode) || S_ISCHR(mode)) {
 			writenum((long)MAJOR(info->st_rdev),(short)3);
 			fputs(", ", stdout);
@@ -230,6 +233,7 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		else
 			writenum((long)info->st_size,(short)8);
 		fputs(" ", stdout);
+		//tab(32);
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 		{
 			time_t cal;
