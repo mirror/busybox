@@ -198,7 +198,7 @@ unsigned long ls_disp_hr = KILOBYTE;
 #		define getTermSettings(fd,argp) tcgetattr(fd, argp);
 #	endif
 
-FILE *cin;
+static FILE *cin;
 
 static struct termios initial_settings, new_settings;
 
