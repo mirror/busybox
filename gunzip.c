@@ -581,10 +581,7 @@ int gunzip_main(int argc, char **argv)
 	char ofname[MAX_PATH_LEN + 1];	/* output file name */
 
 	if (strcmp(applet_name, "zcat") == 0) {
-		tostdout = 1;
-		if (argc == 1) {
-			fromstdin = 1;
-		}
+		force = 1;
 	}
 
 	/* Parse any options */
@@ -608,8 +605,11 @@ int gunzip_main(int argc, char **argv)
 			}
 		}
 	}
-	if (argc <= 0)
+
+	if (argc <= 0) {
+		tostdout = 1;
 		fromstdin = 1;
+	}
 
 	if (isatty(fileno(stdin)) && fromstdin==1 && force==0)
 		fatalError( "data not read from terminal. Use -f to force it.\n");
