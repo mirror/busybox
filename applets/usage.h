@@ -127,19 +127,21 @@
 
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-  #define USAGE_HUMAN_READABLE(a,b) a
+  #define USAGE_HUMAN_READABLE(a) a
+  #define USAGE_NOT_HUMAN_READABLE(a)
 #else
-  #define USAGE_HUMAN_READABLE(a,b) b
+  #define USAGE_HUMAN_READABLE(a) 
+  #define USAGE_NOT_HUMAN_READABLE(a) a
 #endif
 #define df_trivial_usage \
-	"[-" USAGE_HUMAN_READABLE("hm", "") "k] [filesystem ...]"
+	"[-" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [filesystem ...]"
 #define df_full_usage \
 	"Print the filesystem space used and space available.\n\n" \
 	"Options:\n" \
 	USAGE_HUMAN_READABLE( \
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
-	"\t-k\tprint sizes in kilobytes(default)", \
+	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
 	"\n\t-k\tprint sizes in kilobytes(compatability)")
 
 #define dirname_trivial_usage \
@@ -184,7 +186,7 @@
 	"\t-X\tVerbose extract"
 
 #define du_trivial_usage \
-	"[-ls" USAGE_HUMAN_READABLE("hm", "") "k] [FILE]..."
+	"[-ls" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILE]..."
 #define du_full_usage \
 	"Summarizes disk space used for each FILE and/or directory.\n" \
 	"Disk space is printed in units of 1024 bytes.\n\n" \
@@ -194,8 +196,7 @@
 	USAGE_HUMAN_READABLE( \
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
-	"\t-k\tprint sizes in kilobytes(default)" \
-	, \
+	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
 	"\n\t-k\tprint sizes in kilobytes(compatability)")
 
 #define dumpkmap_trivial_usage \
@@ -524,7 +525,7 @@
   #define USAGE_AUTOWIDTH(a)
 #endif
 #define ls_trivial_usage \
-	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h", "") "k] [filenames...]"
+	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h") USAGE_NOT_HUMAN_READABLE("") "k] [filenames...]"
 #define ls_full_usage \
 	"List directory contents\n\n" \
 	"Options:\n" \
@@ -554,7 +555,7 @@
 	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
 	USAGE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	"\t-k\tprint sizes in kilobytes(default)" , \
+	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
 	"\t-k\tprint sizes in kilobytes(compatability)") 
 
 #define lsmod_trivial_usage \
