@@ -267,27 +267,23 @@ static volatile void die(char *str)
 	exit(8);
 }
 
+const char mkfs_minix_usage[] =
+	"mkfs.minix [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nMake a MINIX filesystem.\n\n"
+	"Options:\n"
+	"\t-c\t\tCheck the device for bad blocks\n"
+	"\t-n [14|30]\tSpecify the maximum length of filenames\n"
+	"\t-i INODES\tSpecify the number of inodes for the filesystem\n"
+	"\t-l FILENAME\tRead the bad blocks list from FILENAME\n"
+	"\t-v\t\tMake a Minix version 2 filesystem\n\n"
+#endif
+	;
+
 static volatile void show_usage() __attribute__ ((noreturn));
 static volatile void show_usage()
 {
-	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
-			BB_VER, BB_BT);
-	fprintf(stderr,
-			"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n",
-			applet_name);
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	fprintf(stderr, "\nMake a MINIX filesystem.\n\n");
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "\t-c\t\tCheck the device for bad blocks\n");
-	fprintf(stderr,
-			"\t-n [14|30]\tSpecify the maximum length of filenames\n");
-	fprintf(stderr,
-			"\t-i INODES\tSpecify the number of inodes for the filesystem\n");
-	fprintf(stderr,
-			"\t-l FILENAME\tRead the bad blocks list from FILENAME\n");
-	fprintf(stderr, "\t-v\t\tMake a Minix version 2 filesystem\n\n");
-#endif
-	exit(16);
+	usage(mkfs_minix_usage);
 }
 
 /*

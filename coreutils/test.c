@@ -178,6 +178,15 @@ static int test_eaccess();
 static int is_a_group_member();
 static void initialize_group_array();
 
+const char test_usage[] =
+	"test EXPRESSION\n"
+	"or   [ EXPRESSION ]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nChecks file types and compares values returning an exit\n"
+	"code determined by the value of EXPRESSION.\n"
+#endif
+	;
+
 extern int
 test_main(int argc, char** argv)
 {
@@ -188,15 +197,8 @@ test_main(int argc, char** argv)
 			fatalError("missing ]\n");
 		argv[argc] = NULL;
 	}
-	if (strcmp(argv[1], dash_dash_help) == 0) {
-		usage("test EXPRESSION\n"
-			  "or   [ EXPRESSION ]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nChecks file types and compares values returning an exit\n"
-				"code determined by the value of EXPRESSION.\n"
-#endif
-				);
-	}
+	if (strcmp(argv[1], dash_dash_help) == 0)
+		usage(test_usage);
 
 	/* Implement special cases from POSIX.2, section 4.62.4 */
 	switch (argc) {

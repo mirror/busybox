@@ -15,18 +15,19 @@
 #define VT_ACTIVATE     0x5606  /* make vt active */
 #define VT_WAITACTIVE   0x5607  /* wait for vt active */
 
+const char chvt_usage[] =
+	"chvt N\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nChanges the foreground virtual terminal to /dev/ttyN\n"
+#endif
+	;
 
 int chvt_main(int argc, char **argv)
 {
 	int fd, num;
 
-	if ((argc != 2) || (**(argv + 1) == '-')) {
-		usage ("chvt N\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nChanges the foreground virtual terminal to /dev/ttyN\n"
-#endif
-				);
-	}
+	if ((argc != 2) || (**(argv + 1) == '-'))
+		usage (chvt_usage);
 	fd = get_console_fd("/dev/console");
 	num = atoi(argv[1]);
 	if (ioctl(fd, VT_ACTIVATE, num)) {

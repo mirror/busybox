@@ -288,25 +288,24 @@ static void leave(int status)
 	exit(status);
 }
 
+const char fsck_minix_usage[] =
+	"Usage: fsck.minix [-larvsmf] /dev/name\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPerforms a consistency check for MINIX filesystems.\n\n"
+	"Options:\n"
+	"\t-l\tLists all filenames\n"
+	"\t-r\tPerform interactive repairs\n"
+	"\t-a\tPerform automatic repairs\n"
+	"\t-v\tverbose\n"
+	"\t-s\tOutputs super-block information\n"
+	"\t-m\tActivates MINIX-like \"mode not cleared\" warnings\n"
+	"\t-f\tForce file system check.\n\n"
+#endif
+	;
+
 static void show_usage(void)
 {
-	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
-			BB_VER, BB_BT);
-	fprintf(stderr, "Usage: %s [-larvsmf] /dev/name\n", applet_name);
-#ifndef BB_FEATURE_TRIVIAL_HELP
-	fprintf(stderr,
-			"\nPerforms a consistency check for MINIX filesystems.\n\n");
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "\t-l\tLists all filenames\n");
-	fprintf(stderr, "\t-r\tPerform interactive repairs\n");
-	fprintf(stderr, "\t-a\tPerform automatic repairs\n");
-	fprintf(stderr, "\t-v\tverbose\n");
-	fprintf(stderr, "\t-s\tOutputs super-block information\n");
-	fprintf(stderr,
-			"\t-m\tActivates MINIX-like \"mode not cleared\" warnings\n");
-	fprintf(stderr, "\t-f\tForce file system check.\n\n");
-#endif
-	leave(16);
+	usage(fsck_minix_usage);
 }
 
 static void die(const char *str)

@@ -26,17 +26,17 @@
 #include <stdio.h>
 #include <errno.h>
 
+const char rmdir_usage[] =
+	"rmdir [OPTION]... DIRECTORY...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nRemove the DIRECTORY(ies), if they are empty.\n"
+#endif
+	;
 
 extern int rmdir_main(int argc, char **argv)
 {
-	if (argc == 1 || **(argv + 1) == '-') {
-		usage
-			("rmdir [OPTION]... DIRECTORY...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-			 "\nRemove the DIRECTORY(ies), if they are empty.\n"
-#endif
-			 );
-	}
+	if (argc == 1 || **(argv + 1) == '-')
+		usage(rmdir_usage);
 
 	while (--argc > 0) {
 		if (rmdir(*(++argv)) == -1) {

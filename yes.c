@@ -23,17 +23,19 @@
 #include "internal.h"
 #include <stdio.h>
 
+const char yes_usage[] =
+	"yes [OPTION]... [STRING]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nRepeatedly outputs a line with all specified STRING(s), or `y'.\n"
+#endif
+	;
+
 extern int yes_main(int argc, char **argv)
 {
 	int i;
 
-	if (argc >= 2 && *argv[1] == '-') {
-		usage("yes [OPTION]... [STRING]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nRepeatedly outputs a line with all specified STRING(s), or `y'.\n"
-#endif
-				);
-	}
+	if (argc >= 2 && *argv[1] == '-')
+		usage(yes_usage);
 
 	if (argc == 1) {
 		while (1)

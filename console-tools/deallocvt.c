@@ -13,19 +13,19 @@
 /* From <linux/vt.h> */
 #define VT_DISALLOCATE  0x5608  /* free memory associated to vt */
 
+const char deallocvt_usage[] =
+	"deallocvt N\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	 "\nDeallocate unused virtual terminal /dev/ttyN\n"
+#endif
+	 ;
 
 int deallocvt_main(int argc, char *argv[])
 {
 	int fd, num, i;
 
-	if ((argc != 2) || (**(argv + 1) == '-')) {
-		usage
-			("deallocvt N\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-			 "\nDeallocate unused virtual terminal /dev/ttyN\n"
-#endif
-			 );
-	}
+	if ((argc != 2) || (**(argv + 1) == '-'))
+		usage(deallocvt_usage);
 
 	fd = get_console_fd("/dev/console");
 

@@ -206,6 +206,19 @@ void cut()
 	}
 }
 
+const char cut_usage[] =
+	"cut [OPTION]... [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrints selected fields from each input FILE to standard output.\n\n"
+	"Options:\n"
+	"\t-b LIST\tOutput only bytes from LIST\n"
+	"\t-c LIST\tOutput only characters from LIST\n"
+	"\t-d CHAR\tUse CHAR instead of tab as the field delimiter\n"
+	"\t-s\tOnly output Lines if the include DELIM\n"
+	"\t-f N\tPrint only these fields\n"
+	"\t-n\tIgnored\n"
+#endif
+	;
 
 int cut_main(int argc, char **argv)
 {
@@ -213,18 +226,7 @@ int cut_main(int argc, char **argv)
 	int numberFilenames = 0;
 
 	if (argc == 1 || strcmp(argv[1], dash_dash_help)==0)
-		usage( "cut [OPTION]... [FILE]...\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nPrints selected fields from each input FILE to standard output.\n\n"
-				"Options:\n"
-				"\t-b LIST\tOutput only bytes from LIST\n"
-				"\t-c LIST\tOutput only characters from LIST\n"
-				"\t-d CHAR\tUse CHAR instead of tab as the field delimiter\n"
-				"\t-s\tOnly output Lines if the include DELIM\n"
-				"\t-f N\tPrint only these fields\n"
-				"\t-n\tIgnored\n"
-#endif
-				);
+		usage(cut_usage);
 
 	while (i < argc) {
 		if (argv[i][0] == '-') {

@@ -25,6 +25,12 @@
 #include <stdio.h>
 #include <errno.h>
 
+const char free_usage[] =
+	"free\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nDisplays the amount of free and used system memory\n"
+#endif
+	;
 
 extern int free_main(int argc, char **argv)
 {
@@ -53,14 +59,8 @@ extern int free_main(int argc, char **argv)
 		info.sharedram*=info.mem_unit;
 		info.bufferram*=info.mem_unit;
 	}
-	if (argc > 1 && **(argv + 1) == '-') {
-		usage("free\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nDisplays the amount of free and used system memory\n"
-#endif
-				);
-	}
-
+	if (argc > 1 && **(argv + 1) == '-')
+		usage(free_usage);
 
 	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free", 
 			"shared", "buffers");

@@ -26,6 +26,12 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
+const char which_usage[] =
+	"which [COMMAND ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nLocates a COMMAND.\n"
+#endif
+	;
 
 extern int which_main(int argc, char **argv)
 {
@@ -34,13 +40,8 @@ extern int which_main(int argc, char **argv)
 	struct stat filestat;
 	int count = 0;
 
-	if (argc <= 1 || **(argv + 1) == '-') {
-		usage("which [COMMAND ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nLocates a COMMAND.\n"
-#endif
-			 );
-	}
+	if (argc <= 1 || **(argv + 1) == '-')
+		usage(which_usage);
 	argc--;
 
 	path_list = getenv("PATH");

@@ -114,6 +114,13 @@ static void parse_proc_status(char *S, proc_t * P)
 
 }
 
+const char ps_usage[] =
+	"ps\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nReport process status\n"
+	"\nThis version of ps accepts no options.\n"
+#endif
+	;
 
 extern int ps_main(int argc, char **argv)
 {
@@ -134,14 +141,8 @@ extern int ps_main(int argc, char **argv)
 
 
 
-	if (argc > 1 && strcmp(argv[1], dash_dash_help) == 0) {
-		usage ("ps\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nReport process status\n"
-				"\nThis version of ps accepts no options.\n"
-#endif
-				);
-	}
+	if (argc > 1 && strcmp(argv[1], dash_dash_help) == 0)
+		usage(ps_usage);
 
 	dir = opendir("/proc");
 	if (!dir)
@@ -223,7 +224,7 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 	if (argc > 1 && **(argv + 1) == '-') 
-		usage("ps-devps\n\nReport process status\n\nThis version of ps accepts no options.\n\n");
+		usage(ps_usage);
 
 	/* open device */ 
 	fd = open(device, O_RDONLY);
