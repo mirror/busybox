@@ -67,7 +67,7 @@ static void serror_msg_and_die(const char use_syslog, const char *s, ...)
 	}
 
 	va_end(ap);
-
+	
 	exit(EXIT_FAILURE);
 }
 
@@ -121,7 +121,7 @@ int nameif_main(int argc, char **argv)
 			ch = xcalloc(1, sizeof(mactable_t));
 			ch->ifname = strdup(argv[optind - 1]);
 			ch->mac = xcalloc(1, ETH_ALEN);
-			memcpy(ch->mac, &mac, ETH_ALEN);
+			memcpy(ch->mac, mac, ETH_ALEN);
 			optind++;
 			if (clist)
 				clist->pprev = &ch->next;
@@ -186,7 +186,8 @@ int nameif_main(int argc, char **argv)
 		memset(&ifr, 0, sizeof(struct ifreq));
 		strncpy(ifr.ifr_name, line_ptr, iface_name_length);
 		if (ioctl(ctl_sk, SIOCGIFHWADDR, &ifr) < 0) {
-			serror_msg_and_die(use_syslog, "cannot change name of %s to %s: %s", ifr.ifr_name, ch->ifname, strerror(errno));
+//			serror_msg(use_syslog, "cannot read hardware address of %s: %s", ifr.ifr_name, strerror(errno));
+			continue;
 		}
 		for (ch = clist; ch; ch = ch->next)
 			if (!memcmp(ch->mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN))
@@ -194,6 +195,7 @@ int nameif_main(int argc, char **argv)
 		if (ch == NULL) {
 			continue;
 		}
+
 		strcpy(ifr.ifr_newname, ch->ifname);
 
 		if (ioctl(ctl_sk, SIOCSIFNAME, &ifr) < 0) {;
