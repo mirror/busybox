@@ -576,10 +576,6 @@ static int readTarFile(int tarFd, int extractFlag, int listFlag,
 	TarHeader rawHeader;
 	TarInfo header;
 
-	/* Set the umask for this process so it doesn't 
-	 * screw up permission setting for us later. */
-	umask(0);
-
 	/* Read the tar file, and iterate over it one file at a time */
 	while ( (status = full_read(tarFd, (char*)&rawHeader, TAR_BLOCK_SIZE)) == TAR_BLOCK_SIZE ) {
 
@@ -1108,10 +1104,6 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		error_msg_and_die(io_error, tarName, strerror(errno)); 
-
-	/* Set the umask for this process so it doesn't 
-	 * screw up permission setting for us later. */
-	umask(0);
 
 	/* Read the directory/files and iterate over them one at a time */
 	while (*argv != NULL) {
