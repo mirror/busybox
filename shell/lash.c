@@ -1064,7 +1064,7 @@ static int expand_arguments(char *command)
 		if (var) {
 			int subst_len = strlen(var);
 			char *next_dst;
-			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?")) == NULL) {
+			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) == NULL) {
 				next_dst = dst;
 			}
 			src = (char*)xrealloc(src, strlen(src) - strlen(next_dst)+strlen(var)+1);
@@ -1078,7 +1078,7 @@ static int expand_arguments(char *command)
 		} else {
 			/* Seems we got an un-expandable variable.  So delete it. */
 			char *next_dst;
-			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?")) != NULL) {
+			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?.")) != NULL) {
 				/* Move stuff to the end of the string to accommodate filling 
 				 * the created gap with the new stuff */
 				memmove(dst, next_dst,  next_dst-dst); 
