@@ -607,23 +607,3 @@ illustrates emphasizing logical blocks:
 		/* clean up */
 		free(line);
 	}
-
-
-Testing Guidelines
-~~~~~~~~~~~~~~~~~~
-
-It's considered good form to test your new feature before you submit a patch
-to the mailing list, and especially before you commit a change to CVS. Here
-are some guidelines on testing your changes.
-
- - Always test busybox applets against GNU counterparts and make sure the
-   behavior / output is identical between the two.
-
- - Try several different permutations and combinations of the features you're
-   adding and make sure they all work. (Make sure one feature does not
-   interfere with another, etc.)
-
- - Make sure you test compiling against the source both with the feature
-   turned on and turned off in Config.h and make sure busybox compiles cleanly
-   both ways.
-
