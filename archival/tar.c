@@ -472,7 +472,8 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 		tbInfo.tarFd = fileno(stdout);
 		tbInfo.verboseFlag = verboseFlag ? 2 : 0;
 	} else {
-		tbInfo.tarFd = open(tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		unlink(tarName);
+		tbInfo.tarFd = open(tarName, O_WRONLY | O_CREAT | O_EXCL, 0644);
 		tbInfo.verboseFlag = verboseFlag ? 1 : 0;
 	}
 
