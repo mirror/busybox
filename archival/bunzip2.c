@@ -1,4 +1,5 @@
 /* Modified for busybox by Glenn McGrath <bug1@optushome.com.au> */
+/* Added support output to stdout by Thomas Lundquist <thomasez@zelow.no> */ 
 /*--
   This file is a part of bzip2 and/or libbzip2, a program and
   library for lossless, block-sorting data compression.
@@ -56,6 +57,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 #include <busybox.h>
 
 //#define TRUE 1
@@ -2316,15 +2318,38 @@ errhandler_io:
 
 int bunzip2_main(int argc, char **argv)
 {
+	const int bunzip_to_stdout = 1;
+	int flags = 0;
+	int opt = 0;
+
 	FILE *src_stream;
 	FILE *dst_stream;
 	char *save_name;
 	char *save_name_ptr;
-	if (argc != 2) {
+
+	/* if called as bzcat */
+	if (strcmp(applet_name, "bzcat") == 0)
+		flags |= bunzip_to_stdout;
+
+	while ((opt = getopt(argc, argv, "ch")) != -1) {
+		switch (opt) {
+		case 'c':
+			flags |= bunzip_to_stdout;
+			break;
+		case 'h':
+		default:
+			show_usage(); /* exit's inside usage */
+		}
+	}
+
+	save_name = xstrdup(argv[optind]);
+		
+	if (save_name == NULL) {
 		show_usage();
 	}
-	src_stream = xfopen(argv[1], "r");
-	save_name = xstrdup(argv[1]);
+
+	src_stream = xfopen(argv[optind], "r");
+
 	save_name_ptr = strrchr(save_name, '.');
 	if (save_name_ptr == NULL) {
 		return(FALSE);
@@ -2333,7 +2358,12 @@ int bunzip2_main(int argc, char **argv)
 		error_msg("Invalid extension, expected .bz2");
 	}
 	*save_name_ptr = '\0';	
-	dst_stream = xfopen(save_name, "w");
+
+	if (flags & bunzip_to_stdout) {
+		dst_stream = stdout;
+	} else {
+		dst_stream = xfopen(save_name, "w");
+	}
 	uncompressStream(src_stream, dst_stream);
 
 	return(TRUE);

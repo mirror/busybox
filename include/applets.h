@@ -68,6 +68,9 @@
 	APPLET(bunzip2, bunzip2_main, _BB_DIR_USR_BIN)
 #endif
 	APPLET_NOUSAGE("busybox", busybox_main, _BB_DIR_BIN)
+#ifdef CONFIG_BUNZIP2
+	APPLET(bzcat, bunzip2_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN)
 #endif

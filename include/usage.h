@@ -52,10 +52,16 @@
 	"bar"
 
 #define bunzip2_trivial_usage \
-	"FILE"
+	"[-c] FILE"
 #define bunzip2_full_usage \
 	"Uncompress FILE to current directory, stripping its .bz2 extension.\n"\
+	" -c output to stdout\n"\
 	" -k is assumed" 
+
+#define bzcat_trivial_usage \
+	"FILE"
+#define bzcat_full_usage \
+	"Uncompress to stdout."
 
 #define cat_trivial_usage \
 	"[FILE]..."
