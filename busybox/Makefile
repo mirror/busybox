@@ -279,7 +279,7 @@ CFLAGS += $(CFLAGS_EXTRA)
 all: applet_source_list busybox busybox.links doc
 
 applet_source_list: busybox.sh Config.h
-	(echo -n "APPLET_SOURCES := "; BB_SRC_DIR=$(BB_SRC_DIR) $(SHELL) $^) > $@
+	(echo -n "APPLET_SOURCES := "; CC="$(CC)" BB_SRC_DIR="$(BB_SRC_DIR)" $(SHELL) $^) > $@
 
 doc: olddoc
 
