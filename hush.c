@@ -469,7 +469,10 @@ static int builtin_export(struct child_prog *child)
 	if (child->argv[1] == NULL) {
 		return (builtin_env(child));
 	}
-	res = putenv(child->argv[1]);
+	/* FIXME -- I leak memory.  This will be
+	 * fixed up properly when we add local
+	 * variable support -- I hope */
+	res = putenv(strdup(child->argv[1]));
 	if (res)
 		fprintf(stderr, "export: %s\n", strerror(errno));
 	return (res);
