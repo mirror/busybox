@@ -2,7 +2,6 @@
 /*
  * Mini copy_file implementation for busybox
  *
- *
  * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify

@@ -2,10 +2,9 @@
 /*
  * Mini reset implementation for busybox
  *
- *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- *        and Kent Robotti <robotti@metconnect.com>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Written by Erik Andersen and Kent Robotti <robotti@metconnect.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

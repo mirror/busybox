@@ -109,7 +109,7 @@ order, or else it will break the binary-search lookup algorithm in busybox.c
 and the Gods of BusyBox smite you. Yea, verily:
 
 	/* all programs above here are alphabetically "less than" 'mu' */
-	#ifdef BB_MU
+	#ifdef CONFIG_MU
 		APPLET("mu", mu_main, _BB_DIR_USR_BIN, mu_usage)
 	#endif
 	/* all programs below here are alphabetically "greater than" 'mu' */
@@ -117,7 +117,7 @@ and the Gods of BusyBox smite you. Yea, verily:
 
 Finally, add a define for your applet to Config.h:
 
-	#define BB_MU
+	#define CONFIG_MU
 
 
 Documentation

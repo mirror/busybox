@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999,2000,2001 Erik Andersen <andersee@debian.org>
+# Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,19 @@
 PROG      := busybox
 VERSION   := 0.61.pre
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
-export VERSION
+TOPDIR    := ${shell /bin/pwd}
+HOSTCC    := gcc
+HOSTCFLAGS:= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
+
+
+# What OS are you compiling busybox for?  This allows you to include
+# OS specific things, syscall overrides, etc.
+TARGET_OS := linux
 
 # With a modern GNU make(1) (highly recommended, that's what all the
 # developers use), all of the following configuration values can be
 # overridden at the command line.  For example:
-#   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+#   make CROSS=powerpc-linux- CONFIG_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
 
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
@@ -38,18 +45,6 @@ DOSTATIC = false
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 DODEBUG = false
-
-# Setting this to `true' will cause busybox to directly use the system's
-# password and group functions.  Assuming you use GNU libc, when this is
-# `true', you will need to install the /etc/nsswitch.conf configuration file
-# and the required libnss_* libraries. This generally makes your embedded
-# system quite a bit larger... If you leave this off, busybox will directly use
-# the /etc/password, /etc/group files (and your system will be smaller, and I
-# will get fewer emails asking about how glibc NSS works).  Enabling this adds
-# just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs).
-# Note that if you want hostname resolution to work with glibc, you still need
-# the libnss_* libraries.  
-USE_SYSTEM_PWD_GRP = true
 
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
 # which is an excellent public domain mem leak and malloc problem
@@ -72,17 +67,24 @@ DOEFENCE  = false
 # larger than 2GB!
 DOLFS = false
 
-# If you have a "pristine" source directory, point BB_SRC_DIR to it.
+# If you have a "pristine" source directory, point CONFIG_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
 # <busybox@opensource.lineo.com> if you do or don't like it so far.
-BB_SRC_DIR =
+CONFIG_SRC_DIR =
 
-# If you are running a cross compiler, you may want to set this
-# to something more interesting, like "powerpc-linux-".
+# If you are running a cross compiler, you may want to set CROSS
+# to something more interesting, like "arm-linux-".
 CROSS =
-CC = $(CROSS)gcc
-AR = $(CROSS)ar
-STRIPTOOL = $(CROSS)strip
+CC              = $(CROSS)gcc
+AR              = $(CROSS)ar
+AS              = $(CROSS)as
+LD              = $(CROSS)ld
+NM              = $(CROSS)nm
+STRIP           = $(CROSS)strip
+CPP             = $(CC) -E
+MAKEFILES       = $(TOPDIR)/.config
+export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
+
 
 # To compile vs uClibc, just use the compiler wrapper built by uClibc...
 # Everything should compile and work as expected these days...
@@ -107,10 +109,11 @@ STRIPTOOL = $(CROSS)strip
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION := $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
-    then echo "-Os"; else echo "-O2" ; fi)
+OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
+	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
+CFLAGS = -I $(TOPDIR)/include -I $(TOPDIR)/busybox
 ARFLAGS = -r
 
 #
@@ -142,25 +145,14 @@ endif
 ifeq ($(strip $(DODEBUG)),true)
     CFLAGS  += $(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS += -Wl,-warn-common
-    STRIP    =
+    STRIPCMD    =
 else
     CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
     LDFLAGS += -s -Wl,-warn-common
-    STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
+    STRIPCMD    = $(STRIP) --remove-section=.note --remove-section=.comment $(PROG)
 endif
 ifeq ($(strip $(DOSTATIC)),true)
     LDFLAGS += --static
-    #
-    #use '-ffunction-sections -fdata-sections' and '--gc-sections' (if they 
-    # work) to try and strip out any unused junk.  Doesn't do much for me, 
-    # but you may want to give it a shot...
-    #
-    #ifeq ($(shell $(CC) -ffunction-sections -fdata-sections -S \
-    #	-o /dev/null -xc /dev/null 2>/dev/null && $(LD) \
-    #			--gc-sections -v >/dev/null && echo 1),1)
-    #	CFLAGS += -ffunction-sections -fdata-sections
-    #	LDFLAGS += --gc-sections
-    #endif
 endif
 
 ifndef $(PREFIX)
@@ -169,105 +161,19 @@ endif
 
 # Additional complications due to support for pristine source dir.
 # Include files in the build directory should take precedence over
-# the copy in BB_SRC_DIR, both during the compilation phase and the
+# the copy in CONFIG_SRC_DIR, both during the compilation phase and the
 # shell script that finds the list of object files.
 # Work in progress by <ldoolitt@recycle.lbl.gov>.
 #
-ifneq ($(strip $(BB_SRC_DIR)),)
-    VPATH = $(BB_SRC_DIR)
+ifneq ($(strip $(CONFIG_SRC_DIR)),)
+    VPATH = $(CONFIG_SRC_DIR)
 endif
-#ifneq ($(strip $(VPATH)),)
-#    CFLAGS += -I- -I. $(patsubst %,-I%,$(subst :, ,$(VPATH)))
-#endif
-
-# We need to set APPLET_SOURCES to something like
-#   $(shell busybox.sh Config.h)
-# but in a manner that works with VPATH and BB_SRC_DIR.
-# Possible ways to approach this:
-#
-#   1. Explicitly search through .:$(VPATH) for busybox.sh and config.h,
-#      then $(shell $(BUSYBOX_SH) $(CONFIG_H) $(BB_SRC_DIR))
-#
-#   2. Explicity search through .:$(VPATH) for slist.mk,
-#      then $(shell $(MAKE) -f $(SLIST_MK) VPATH=$(VPATH) BB_SRC_DIR=$(BB_SRC_DIR))
-#
-#   3. Create slist.mk in this directory, with commands embedded in
-#      a $(shell ...) command, and $(MAKE) it immediately.
-#
-#   4. Use a real rule within this makefile to create a file that sets 
-#      APPLET_SOURCE_LIST, then include that file.  Has complications
-#      with the first trip through the makefile (before processing the
-#      include) trying to do too much, and a spurious warning the first
-#      time make is run.
-#
-# This is option 3:
-#
-#APPLET_SOURCES = $(shell \
-#   echo -e 'all: busybox.sh Config.h\n\t@ $$(SHELL) $$^ $$(BB_SRC_DIR)' >slist.mk; \
-#   make -f slist.mk VPATH=$(VPATH) BB_SRC_DIR=$(BB_SRC_DIR) \
-#)
-# And option 4:
--include applet_source_list
 
 OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
-CFLAGS    += -DBB_VER='"$(VERSION)"'
-CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
-ifdef BB_INIT_SCRIPT
-    CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
+ifdef CONFIG_INIT_SCRIPT
+    CFLAGS += -DINIT_SCRIPT='"$(CONFIG_INIT_SCRIPT)"'
 endif
-
-ifneq ($(strip $(USE_SYSTEM_PWD_GRP)),true)
-    PWD_GRP	= pwd_grp
-    PWD_GRP_DIR = $(BB_SRC_DIR:=/)$(PWD_GRP)
-    PWD_LIB     = libpwd.a
-    PWD_CSRC=__getpwent.c pwent.c getpwnam.c getpwuid.c putpwent.c getpw.c \
-	    fgetpwent.c __getgrent.c grent.c getgrnam.c getgrgid.c fgetgrent.c \
-	    initgroups.c setgroups.c
-    PWD_OBJS=$(patsubst %.c,$(PWD_GRP)/%.o, $(PWD_CSRC))
-ifneq ($(strip $(BB_SRC_DIR)),)
-    PWD_CFLAGS = -I- -I.
-endif
-    PWD_CFLAGS += -I$(PWD_GRP_DIR)
-else
-    CFLAGS    += -DUSE_SYSTEM_PWD_GRP
-endif
-    
-LIBBB	  = libbb
-LIBBB_LIB = libbb.a
-LIBBB_CSRC= ask_confirmation.c chomp.c concat_path_file.c copy_file.c \
-copy_file_chunk.c libc5.c device_open.c error_msg.c \
-error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
-find_root_device.c full_read.c full_write.c get_console.c \
-get_last_path_component.c get_line_from_file.c gz_open.c human_readable.c \
-isdirectory.c kernel_version.c loop.c mode_string.c module_syscalls.c mtab.c \
-mtab_file.c my_getgrnam.c my_getgrgid.c my_getpwnam.c my_getpwnamegid.c \
-my_getpwuid.c parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
-print_file.c process_escape_sequence.c read_package_field.c recursive_action.c \
-safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
-trim.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
-xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
-copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
-dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c \
-simplify_path.c
-LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
-ifeq ($(strip $(BB_SRC_DIR)),)
-    LIBBB_CFLAGS += -I$(LIBBB)
-else
-    LIBBB_CFLAGS = -I- -I. -I./$(LIBBB) -I$(BB_SRC_DIR)/$(LIBBB) -I$(BB_SRC_DIR)
-endif
-
-LIBBB_MSRC=libbb/messages.c
-LIBBB_MESSAGES= full_version name_too_long omitting_directory not_a_directory \
-memory_exhausted invalid_date invalid_option io_error dash_dash_help \
-write_error too_few_args name_longer_than_foo unknown can_not_create_raw_socket
-LIBBB_MOBJ=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_MESSAGES))
-
-LIBBB_ARCSRC=libbb/unarchive.c
-LIBBB_ARCOBJ= archive_offset seek_sub_file extract_archive unarchive \
-get_header_ar get_header_cpio get_header_tar deb_extract
-LIBBB_AROBJS=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_ARCOBJ))
-
 
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
@@ -275,19 +181,57 @@ CFLAGS += $(CFLAGS_EXTRA)
 
 .EXPORT_ALL_VARIABLES:
 
-all: applet_source_list busybox busybox.links doc
+all:    do-it-all
 
-applet_source_list: busybox.sh Config.h
-	(echo -n "APPLET_SOURCES := "; CC="$(CC)" BB_SRC_DIR="$(BB_SRC_DIR)" $(SHELL) $^) > $@
+#
+# Make "config" the default target if there is no configuration file or
+# "depend" the target if there is no top-level dependency information.
+ifeq (.config,$(wildcard .config))
+include .config
+ifeq (.depend,$(wildcard .depend))
+include .depend 
+do-it-all:      busybox busybox.links doc
+else
+CONFIGURATION = depend
+do-it-all:      depend
+endif
+else
+CONFIGURATION = menuconfig
+do-it-all:      menuconfig
+endif
 
+SUBDIRS =applets archival console-tools editors fileutils findutils init \
+	miscutils modutils networking pwd_grp shell shellutils sysklogd \
+	textutils tinylogin util-linux libbb
+
+bbsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
+
+$(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
+	$(MAKE) CFLAGS="$(CFLAGS)" -C $(patsubst _dir_%, %, $@)
+
+busybox: bbsubdirs
+	$(CC) $(LDFLAGS) -o $@ $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
+	$(STRIPCMD)
+
+busybox.links: applets/busybox.mkll
+	- $(SHELL) $^ >$@
+
+install: applets/install.sh busybox busybox.links
+	$(SHELL) $< $(PREFIX)
+
+install-hardlinks: applets/install.sh busybox busybox.links
+	$(SHELL) $< $(PREFIX) --hardlinks
+
+
+# Documentation Targets
 doc: olddoc
 
 # Old Docs...
 olddoc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
-docs/busybox.pod : docs/busybox_header.pod usage.h docs/busybox_footer.pod
+docs/busybox.pod : docs/busybox_header.pod applets/usage.h docs/busybox_footer.pod
 	- ( cat docs/busybox_header.pod; \
-	    docs/autodocifier.pl usage.h; \
+	    docs/autodocifier.pl applets/usage.h; \
 	    cat docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
@@ -340,85 +284,88 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	- mkdir -p docs
 	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
 
+# The nifty new buildsystem stuff
+scripts/mkdep: scripts/mkdep.c
+	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
 
-busybox: $(PWD_LIB) $(LIBBB_LIB) $(OBJECTS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBBB_LIB) $(PWD_LIB) $(LIBRARIES)
-	$(STRIP)
+scripts/split-include: scripts/split-include.c
+	$(HOSTCC) $(HOSTCFLAGS) -o scripts/split-include scripts/split-include.c
 
-# Without VPATH, rule expands to "/bin/sh busybox.mkll Config.h applets.h"
-# but with VPATH, some or all of those file names are resolved to the
-# directories in which they live.
-busybox.links: busybox.mkll Config.h applets.h
-	- $(SHELL) $^ >$@
+dep-files: scripts/mkdep #archdep
+	rm -f .depend .hdepend
+	scripts/mkdep -I $(TOPDIR)/include -- `find $(TOPDIR) -name \*.c -print` >> .depend
+	scripts/mkdep -I $(TOPDIR)/include -- `find $(TOPDIR) -name \*.h -print` >> .hdepend
+	$(MAKE) $(patsubst %,_sfdep_%,$(SUBDIRS)) _FASTDEP_ALL_SUB_DIRS="$(SUBDIRS)"
 
-nfsmount.o cmdedit.o: %.o: %.h
-ash.o hush.o lash.o msh.o: cmdedit.h
-$(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
-ifeq ($(strip $(BB_SRC_DIR)),)
-	$(CC) $(CFLAGS) -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+depend dep: dep-files
+	@ echo -e "\n\nNow run 'make' to build BusyBox\n\n"
+
+CONFIG_SHELL := ${shell if [ -x "$$BASH" ]; then echo $$BASH; \
+	else if [ -x /bin/bash ]; then echo /bin/bash; \
+	else echo sh; fi ; fi}
+
+include/config/MARKER: scripts/split-include include/config.h
+	scripts/split-include include/config.h include/config
+	@ touch include/config/MARKER
+
+menuconfig:
+	$(MAKE) -C scripts/lxdialog all
+	$(CONFIG_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
+
+config:
+	$(CONFIG_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
+
+oldconfig:
+	$(CONFIG_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
+
+
+ifdef CONFIGURATION
+..$(CONFIGURATION):
+	@echo
+	@echo "You have a bad or nonexistent" .$(CONFIGURATION) ": running 'make" $(CONFIGURATION)"'"
+	@echo
+	$(MAKE) $(CONFIGURATION)
+	@echo
+	@echo "Successful. Try re-making (ignore the error that follows)"
+	@echo
+	exit 1
+
+dummy:
+
 else
-	$(CC) $(CFLAGS) -I- -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+
+dummy:
+
 endif
 
-$(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
-	- mkdir -p $(PWD_GRP)
-	$(CC) $(CFLAGS) $(PWD_CFLAGS) -c $< -o $*.o
+include Rules.mak
 
-$(LIBBB_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile libbb/libbb.h
-	- mkdir -p $(LIBBB)
-	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -c $< -o $*.o
-
-$(LIBBB_MOBJ): $(LIBBB_MSRC)
-	- mkdir -p $(LIBBB)
-	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
-
-$(LIBBB_AROBJS): $(LIBBB_ARCSRC)
-	- mkdir -p $(LIBBB)
-	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
-
-libpwd.a: $(PWD_OBJS)
-	$(AR) $(ARFLAGS) $@ $^
-
-libbb.a:  $(LIBBB_MOBJ) $(LIBBB_AROBJS) $(LIBBB_OBJS)
-	$(AR) $(ARFLAGS) $@ $^
-
-usage.o: usage.h
-
-libbb/loop.o: libbb/loop.h
-
-libbb/loop.h: mk_loop_h.sh
-	@ $(SHELL) $< > $@
-
+# Testing...
 test tests:
 	# old way of doing it
 	#cd tests && $(MAKE) all
 	# new way of doing it
 	cd tests && ./tester.sh
 
+# Cleanup
 clean:
-	- cd tests && $(MAKE) clean
+	- $(MAKE) -C tests clean
+	- $(MAKE) -C scripts/lxdialog clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
-	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
-	- rm -f multibuild.log Config.h.orig *.gdb *.elf
-	- rm -rf docs/busybox _install libpwd.a libbb.a pod2htm*
-	- rm -f busybox.links libbb/loop.h *~ slist.mk core applet_source_list
+	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html \
+	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
+	- rm -f busybox.links libbb/loop.h .config.old .hdepend
+	- rm -f scripts/split-include scripts/mkdep .*config.log
+	- rm -rf include/config include/config.h
+	- find -name .\*.flags -o -name .depend -exec rm -f {} \;
 	- find -name \*.o -exec rm -f {} \;
+	- find -name \*.a -exec rm -f {} \;
 
 distclean: clean
-	- rm -f busybox applet_source_list
+	- rm -f busybox 
 	- cd tests && $(MAKE) distclean
-
-install: install.sh busybox busybox.links
-	$(SHELL) $< $(PREFIX)
-
-install-hardlinks: install.sh busybox busybox.links
-	$(SHELL) $< $(PREFIX) --hardlinks
-
-debug_pristine:
-	@ echo VPATH=\"$(VPATH)\"
-	@ echo OBJECTS=\"$(OBJECTS)\"
 
 dist release: distclean doc
 	cd ..;					\
@@ -436,6 +383,8 @@ dist release: distclean doc
 		-exec rm -f {} \;  ;            \
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
+
+
 
 .PHONY: tags
 tags:

@@ -2,8 +2,8 @@
 /*
  * Mini df implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  * based on original code by (I think) Bruce Perens <bruce@pixar.com>.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include "busybox.h"
 
 extern const char mtab_file[];	/* Defined in utility.c */
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 static unsigned long df_disp_hr = KILOBYTE; 
 #endif
 
@@ -61,7 +61,7 @@ static int do_df(char *device, const char *mount_point)
 			if(device==NULL)
 				return FALSE;
 		}
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 		printf("%-20s %9s ", device,
 				make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
 
@@ -92,13 +92,13 @@ extern int df_main(int argc, char **argv)
 	char disp_units_hdr[80] = "1k-blocks"; /* default display is kilobytes */
 
 	while ((opt = getopt(argc, argv, "k"
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 	"hm"
 #endif
 )) > 0)
 	{
 		switch (opt) {
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 			case 'h':
 				df_disp_hr = 0;
 				strcpy(disp_units_hdr, "     Size");

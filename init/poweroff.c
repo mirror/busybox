@@ -26,7 +26,7 @@
 
 extern int poweroff_main(int argc, char **argv)
 {
-#ifdef BB_FEATURE_LINUXRC
+#ifdef CONFIG_FEATURE_INITRD
 	/* don't assume init's pid == 1 */
 	pid_t *pid = find_pid_by_name("init");
 	if (!pid || *pid<=0) {

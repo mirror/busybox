@@ -137,7 +137,7 @@ static int local_bind(int port);
 /* Some globals */
 static int one = 1;
 
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
 static char *ttype;
 #endif
 
@@ -326,7 +326,7 @@ static void putiac1(byte c)
 }
 #endif
 
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
 static void putiac_subopt(byte c, char *str)
 {
 	int	len = strlen(str) + 6;   // ( 2 + 1 + 1 + strlen + 2 )
@@ -453,7 +453,7 @@ static inline void to_sga()
 	return;
 }
 
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
 static inline void to_ttype()
 {
 	/* Tell server we will (or won't) do TTYPE */
@@ -473,7 +473,7 @@ static void telopt(byte c)
 	{
 	case TELOPT_ECHO:		to_echo(c);		break;
 	case TELOPT_SGA:		to_sga(c);		break;
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
 	case TELOPT_TTYPE:		to_ttype(c);	break;
 #endif
 	default:				to_notsup(c);	break;
@@ -492,7 +492,7 @@ static int subneg(byte c)
 	case TS_SUB1:
 		if (c == IAC)
 			G.telstate = TS_SUB2;
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
 		else
 		if (c == TELOPT_TTYPE)
 			putiac_subopt(TELOPT_TTYPE,ttype);
@@ -537,7 +537,7 @@ extern int telnet_main(int argc, char** argv)
 	int maxfd;
 #endif	
 
-#ifdef BB_FEATURE_TELNET_TTYPE
+#ifdef CONFIG_FEATURE_TELNET_TTYPE
     ttype = getenv("TERM");
 #endif
 

@@ -251,7 +251,7 @@ a command.  I<REQUIRED>
 =item B<full>
 
 This should contain descriptions of each option.  This will also
-be displayed along with the trivial help if BB_FEATURE_TRIVIAL_HELP
+be displayed along with the trivial help if CONFIG_FEATURE_TRIVIAL_HELP
 is disabled.  I<REQUIRED>
 
 =item B<notes>
@@ -284,4 +284,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.21 2001/04/17 17:09:34 beppu Exp $
+# $Id: autodocifier.pl,v 1.22 2001/10/24 04:59:20 andersen Exp $

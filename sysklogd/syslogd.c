@@ -2,8 +2,8 @@
 /*
  * Mini syslogd implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * Copyright (C) 2000 by Karl M. Hegbloom <karlheg@debian.org>
  *
@@ -65,7 +65,7 @@ static int MarkInterval = 20 * 60;
 /* localhost's name */
 static char LocalHostName[32];
 
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
 #include <netinet/in.h>
 /* udp socket for logging to remote host */
 static int remotefd = -1;
@@ -79,7 +79,7 @@ static int local_logging = FALSE;
 #endif
 
 /* circular buffer variables/structures */
-#ifdef BB_FEATURE_IPC_SYSLOG
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
 
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -269,7 +269,7 @@ static void message (char *fmt, ...)
 	fl.l_start  = 0;
 	fl.l_len    = 1;
 
-#ifdef BB_FEATURE_IPC_SYSLOG
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
 	if ((circular_logging == TRUE) && (buf != NULL)){
 			char b[1024];
 			va_start (arguments, fmt);
@@ -339,7 +339,7 @@ static void logMessage (int pri, char *msg)
 
 	/* todo: supress duplicates */
 
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* send message to remote logger */
 	if ( -1 != remotefd){
 static const int IOV_COUNT = 2;
@@ -372,7 +372,7 @@ static void quit_signal(int sig)
 {
 	logMessage(LOG_SYSLOG | LOG_INFO, "System log daemon exiting.");
 	unlink(lfile);
-#ifdef BB_FEATURE_IPC_SYSLOG
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
 	ipcsyslog_cleanup();
 #endif
 
@@ -392,7 +392,7 @@ static void domark(int sig)
 #define BUFSIZE 1023
 static int serveConnection (int conn)
 {
-	RESERVE_BB_BUFFER(tmpbuf, BUFSIZE + 1);
+	RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZE + 1);
 	int    n_read;
 	char *p = tmpbuf;
 
@@ -433,12 +433,12 @@ static int serveConnection (int conn)
 		/* Now log it */
 		logMessage (pri, line);
 	}
-	RELEASE_BB_BUFFER (tmpbuf);
+	RELEASE_CONFIG_BUFFER (tmpbuf);
 	return n_read;
 }
 
 
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
 static void init_RemoteLog (void){
 
   struct sockaddr_in remoteaddr;
@@ -512,13 +512,13 @@ static void doSyslogd (void)
 	FD_ZERO (&fds);
 	FD_SET (sock_fd, &fds);
 
-#ifdef BB_FEATURE_IPC_SYSLOG
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
 	if (circular_logging == TRUE ){
 	   ipcsyslog_init();
 	}
 #endif
 
-        #ifdef BB_FEATURE_REMOTE_LOG
+        #ifdef CONFIG_FEATURE_REMOTE_LOG
         if (doRemoteLog == TRUE){
           init_RemoteLog();
         }
@@ -585,7 +585,7 @@ extern int syslogd_main(int argc, char **argv)
 			case 'O':
 				logFilePath = strdup(optarg);
 				break;
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
 			case 'R':
 				RemoteHost = strdup(optarg);
 				if ( (p = strchr(RemoteHost, ':'))){
@@ -598,7 +598,7 @@ extern int syslogd_main(int argc, char **argv)
 				local_logging = TRUE;
 				break;
 #endif
-#ifdef BB_FEATURE_IPC_SYSLOG
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
 			case 'C':
 				circular_logging = TRUE;
 				break;
@@ -608,7 +608,7 @@ extern int syslogd_main(int argc, char **argv)
 		}
 	}
 
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* If they have not specified remote logging, then log locally */
 	if (doRemoteLog == FALSE)
 		local_logging = TRUE;

@@ -9,8 +9,8 @@
  * ground up.  It still has remnents of the old code lying about, but it is
  * very different now (i.e., cleaner, less global variables, etc.)
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * Based in part in the tar implementation in sash
  *  Copyright (c) 1999 by David I. Bell
@@ -49,7 +49,7 @@
 #include <errno.h>
 #include "busybox.h"
 
-#ifdef BB_FEATURE_TAR_CREATE
+#ifdef CONFIG_FEATURE_TAR_CREATE
 
 /* Tar file constants  */
 # define TAR_MAGIC          "ustar"        /* ustar and a null */
@@ -395,11 +395,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	if (header_name[0] == '\0')
 		return TRUE;
 
-# if defined BB_FEATURE_TAR_EXCLUDE
+# if defined CONFIG_FEATURE_TAR_EXCLUDE
 	if (exclude_file(tbInfo->excludeList, header_name)) {
 		return SKIP;
 	}
-# endif //BB_FEATURE_TAR_EXCLUDE
+# endif //CONFIG_FEATURE_TAR_EXCLUDE
 
 	if (writeTarHeader(tbInfo, header_name, fileName, statbuf)==FALSE) {
 		return( FALSE);
@@ -527,7 +527,7 @@ void append_file_list_to_list(char *filename, char ***name_list, int *num_of_ent
 	fclose(src_stream);
 }
 
-#ifdef BB_FEATURE_TAR_EXCLUDE
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
 /*
  * Create a list of names that are in the include list AND NOT in the exclude lists
  */
@@ -626,7 +626,7 @@ int tar_main(int argc, char **argv)
 
 		/* These are optional */
 		/* Exclude or Include files listed in <filename>*/
-#ifdef BB_FEATURE_TAR_EXCLUDE
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
 		case 'X':
 			append_file_list_to_list(optarg, &exclude_list, &exclude_list_count);
 			break;
@@ -660,7 +660,7 @@ int tar_main(int argc, char **argv)
 			}
 			extract_function |= extract_list;
 			break;
-#ifdef BB_FEATURE_TAR_GZIP
+#ifdef CONFIG_FEATURE_TAR_GZIP
 		case 'z':
 			untar_funct |= untar_unzip;
 			break;
@@ -698,43 +698,43 @@ int tar_main(int argc, char **argv)
 		} else {
 			src_stream = stdin;
 		}
-#ifdef BB_FEATURE_TAR_GZIP
+#ifdef CONFIG_FEATURE_TAR_GZIP
 		/* Get a binary tree of all the tar file headers */
 		if (untar_funct & untar_unzip) {
 			uncompressed_stream = gz_open(src_stream, &gunzip_pid);
 		} else
-#endif // BB_FEATURE_TAR_GZIP
+#endif // CONFIG_FEATURE_TAR_GZIP
 			uncompressed_stream = src_stream;
 		
 		/* extract or list archive */
 		unarchive(uncompressed_stream, stdout, &get_header_tar, extract_function, dst_prefix, include_list, exclude_list);
 		fclose(uncompressed_stream);
 	}
-#ifdef BB_FEATURE_TAR_CREATE
+#ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
 	else if (untar_funct & untar_create) {
 		int verboseFlag = FALSE;
 
-#ifdef BB_FEATURE_TAR_GZIP
+#ifdef CONFIG_FEATURE_TAR_GZIP
 		if (untar_funct && untar_unzip) {
 			error_msg_and_die("Creation of compressed tarfile not internally support by tar, pipe to busybox gunzip");
 		}
-#endif // BB_FEATURE_TAR_GZIP
+#endif // CONFIG_FEATURE_TAR_GZIP
 		if (extract_function & extract_verbose_list) {
 			verboseFlag = TRUE;
 		}
 		writeTarFile(src_filename, verboseFlag, &argv[argc - 1], include_list);
 	}
-#endif // BB_FEATURE_TAR_CREATE
+#endif // CONFIG_FEATURE_TAR_CREATE
 
 	/* Cleanups */
-#ifdef BB_FEATURE_TAR_GZIP
+#ifdef CONFIG_FEATURE_TAR_GZIP
 	if (untar_funct & untar_unzip) {
 		fclose(src_stream);
 		close(gz_fd);
 		gz_close(gunzip_pid);
 	}
-#endif // BB_FEATURE_TAR_GZIP
+#endif // CONFIG_FEATURE_TAR_GZIP
 	if (src_filename) {
 		free(src_filename);
 	}

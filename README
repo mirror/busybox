@@ -82,7 +82,7 @@ top of ash.c as well, so check those out if you want to tweak things.
 Getting help:
 
 When you find you need help, you can check out the BusyBox mailing list
-archives at http://opensource.lineo.com/lists/busybox/ or even join
+archives at http://oss.lineo.com/lists/busybox/ or even join
 the mailing list if you are interested.
 
 ----------------
@@ -130,23 +130,18 @@ Source for the latest released version can always be downloaded from
 CVS:
 
 BusyBox now has its own publicly browsable CVS tree at:
-    http://opensource.lineo.com/cgi-bin/cvsweb/busybox/
+    http://oss.lineo.com/cgi-bin/cvsweb/busybox/
 
 Anonymous CVS access is available.  For instructions, check out:
-    http://opensource.lineo.com/cvs_anon.html
+    http://oss.lineo.com/cvs_anon.html
 
 For those that are actively contributing there is even CVS write access:
-    http://opensource.lineo.com/cvs_write.html
+    http://oss.lineo.com/cvs_write.html
 
 ----------------
 
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 
-	<andersen@lineo.com>
+	<andersen@codepoet.org>
 	<andersee@debian.org>
-	<andersee@codepoet.org>
-
-<blatant plug>
-Many thanks to go to Lineo for paying me to work on busybox. 
-</blatant plug>
 

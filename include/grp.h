@@ -1,5 +1,5 @@
-#ifndef	__BB_GRP_H
-#define	__BB_GRP_H
+#ifndef	__CONFIG_GRP_H
+#define	__CONFIG_GRP_H
 
 #if defined USE_SYSTEM_PWD_GRP
 #include <grp.h>
@@ -33,5 +33,5 @@ extern int initgroups __P ((__const char * user, gid_t gid));
 extern struct group * __getgrent __P ((int grp_fd));
 
 #endif /* USE_SYSTEM_PWD_GRP */
-#endif /* __BB_GRP_H */
+#endif /* __CONFIG_GRP_H */
 

@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.12 2001/08/10 06:02:23 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.13 2001/10/24 04:59:56 andersen Exp $
  *
  */
 
@@ -44,7 +44,7 @@
 #include <linux/if_ether.h>
 #include "busybox.h"
 
-#ifdef BB_FEATURE_IFCONFIG_SLIP
+#ifdef CONFIG_FEATURE_IFCONFIG_SLIP
 #include <linux/if_slip.h>
 #endif
 
@@ -173,7 +173,7 @@ static const struct arg1opt Arg1Opt[] = {
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
 	{"SIOCSIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask)},
 	{"SIOCSIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr)},
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 	{"SIOCSIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr)},
 #endif
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
@@ -183,7 +183,7 @@ static const struct arg1opt Arg1Opt[] = {
 #ifdef SIOCSOUTFILL
 	{"SIOCSOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data)},
 #endif
-#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start)},
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr)},
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
@@ -199,7 +199,7 @@ static const struct options OptArray[] = {
 	{"dstaddr",      N_ARG,         ARG_DSTADDR,     0},
 	{"netmask",      N_ARG,         ARG_NETMASK,     0},
 	{"broadcast",    N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST},
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 	{"hw",           N_ARG,         ARG_HW,          0},
 #endif
 	{"pointopoint",  N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
@@ -209,7 +209,7 @@ static const struct options OptArray[] = {
 #ifdef SIOCSOUTFILL
 	{"outfill",      N_ARG,         ARG_OUTFILL,     0},
 #endif
-#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	{"mem_start",    N_ARG,         ARG_MEM_START,   0},
 	{"io_addr",      N_ARG,         ARG_IO_ADDR,     0},
 	{"irq",          N_ARG,         ARG_IRQ,         0},
@@ -229,11 +229,11 @@ static const struct options OptArray[] = {
  * A couple of prototypes.
  */
 
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 static int in_ether(char *bufp, struct sockaddr *sap);
 #endif
 
-#ifdef BB_FEATURE_IFCONFIG_STATUS
+#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
 extern int interface_opt_a;
 extern int display_interfaces(char *ifname);
 #endif
@@ -246,7 +246,7 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 	struct sockaddr sa;
 #endif
 	const struct arg1opt *a1op;
@@ -266,7 +266,7 @@ int ifconfig_main(int argc, char **argv)
 	++argv;
 	--argc;
 
-#ifdef BB_FEATURE_IFCONFIG_STATUS
+#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
 	if ((argc > 0) && (strcmp(*argv,"-a") == 0)) {
 		interface_opt_a = 1;
 		--argc;
@@ -275,7 +275,7 @@ int ifconfig_main(int argc, char **argv)
 #endif
 
 	if(argc <= 1) {
-#ifdef BB_FEATURE_IFCONFIG_STATUS
+#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argc ? *argv : NULL);
 #else
 		error_msg_and_die( "ifconfig was not compiled with interface status display support.");
@@ -333,7 +333,7 @@ int ifconfig_main(int argc, char **argv)
 			HOSTNAME:
 				did_flags |= (mask & A_NETMASK);
 				if (mask & A_CAST_HOST_COPY) {
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 					if (mask & A_CAST_RESOLVE) {
 #endif
 						safe_strncpy(host, *argv, (sizeof host));
@@ -348,7 +348,7 @@ int ifconfig_main(int argc, char **argv)
 							continue;
 						}
 						p = (char *) &sai;
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 					} else { /* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
 						if (strcmp("ether", *argv) || (*++argv == NULL)) {
@@ -368,7 +368,7 @@ int ifconfig_main(int argc, char **argv)
 				} else {
 					unsigned int i = strtoul(*argv,NULL,0);
 					p = ((char *)(&ifr)) + a1op->ifr_offset;
-#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 					if (mask & A_MAP_TYPE) {
 						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0) {
 							++goterr;
@@ -446,7 +446,7 @@ int ifconfig_main(int argc, char **argv)
 	return goterr;
 }
 
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
 /* Input an Ethernet address and convert to binary. */
 static int
 in_ether(char *bufp, struct sockaddr *sap)

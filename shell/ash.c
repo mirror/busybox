@@ -265,7 +265,7 @@ union align {
 #define ALIGN(nbytes)   (((nbytes) + sizeof(union align) - 1) & ~(sizeof(union align) - 1))
 #endif
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
 static void change_lc_all(const char *value);
 static void change_lc_ctype(const char *value);
@@ -1218,7 +1218,7 @@ static struct var vpath;
 static struct var vps1;
 static struct var vps2;
 static struct var voptind;
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 static struct var vlc_all;
 static struct var vlc_ctype;
 #endif
@@ -1261,7 +1261,7 @@ static const struct varinit varinit[] = {
 	  NULL },
 	{ &voptind,     VSTRFIXED|VTEXTFIXED,           "OPTIND=1",
 	  getoptsreset },
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 	{ &vlc_all,     VSTRFIXED|VTEXTFIXED|VUNSET,    "LC_ALL=",
 	  change_lc_all },
 	{ &vlc_ctype,   VSTRFIXED|VTEXTFIXED|VUNSET,    "LC_CTYPE=",
@@ -1556,7 +1556,7 @@ static int hashcmd (int, char **);
 static int helpcmd (int, char **);
 static int jobscmd (int, char **);
 static int localcmd (int, char **);
-#ifndef BB_PWD
+#ifndef CONFIG_PWD
 static int pwdcmd (int, char **);
 #endif
 static int readcmd (int, char **);
@@ -1582,7 +1582,7 @@ static int typecmd (int, char **);
 static int getoptscmd (int, char **);
 #endif
 
-#ifndef BB_TRUE_FALSE
+#ifndef CONFIG_TRUE_FALSE
 static int true_main (int, char **);
 static int false_main (int, char **);
 #endif
@@ -1653,7 +1653,7 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_REGULAR    "let", letcmd },
 #endif
 	{ BUILTIN_ASSIGN    "local", localcmd },
-#ifndef BB_PWD
+#ifndef CONFIG_PWD
 	{ BUILTIN_NOSPEC    "pwd", pwdcmd },
 #endif
 	{ BUILTIN_REGULAR   "read", readcmd },
@@ -1938,7 +1938,7 @@ updatepwd(const char *dir)
 }
 
 
-#ifndef BB_PWD
+#ifndef CONFIG_PWD
 static int
 pwdcmd(argc, argv)
 	int argc;
@@ -3182,7 +3182,7 @@ returncmd(argc, argv)
 }
 
 
-#ifndef BB_TRUE_FALSE
+#ifndef CONFIG_TRUE_FALSE
 static int
 false_main(argc, argv)
 	int argc;
@@ -3224,7 +3224,7 @@ setinteractive(int on)
 	is_interactive = on;
 	if (do_banner==0 && is_interactive) {
 		/* Looks like they want an interactive shell */
-#ifndef BB_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
 		printf( "\n\n" BB_BANNER " Built-in shell (ash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
@@ -3535,11 +3535,11 @@ tryexec(char *cmd, char **argv, char **envp)
 {
 	int e;
 
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = cmd;
 	char** argv_l=argv;
 	int argc_l;
-#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	name = get_last_path_component(name);
 #endif
 	argv_l=envp;
@@ -3766,7 +3766,7 @@ static int helpcmd(int argc, char** argv)
 			col = 0;
 		}
 	}
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	{
 		extern const struct BB_applet applets[];
 		extern const size_t NUM_APPLETS;
@@ -6023,7 +6023,7 @@ reset(void) {
  * This file implements the input routines used by the parser.
  */
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 static const char * cmdedit_prompt;
 static inline void putprompt(const char *s) {
     cmdedit_prompt = s;
@@ -6090,7 +6090,7 @@ preadfd(void)
     parsenextc = buf;
 
 retry:
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 	{
 	    if (!iflag || parsefile->fd)
 		    nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
@@ -7718,7 +7718,7 @@ ash_main(argc, argv)
 	EXECCMD = find_builtin("exec");
 	EVALCMD = find_builtin("eval");
 
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	unsetenv("PS1");
 	unsetenv("PS2");
 #endif
@@ -9331,7 +9331,7 @@ getoptsreset(const char *value)
 	shellparam.optoff = -1;
 }
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 static void change_lc_all(const char *value)
 {
 	if(value != 0 && *value != 0)
@@ -12730,7 +12730,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.28 2001/10/19 00:22:22 andersen Exp $
+ * $Id: ash.c,v 1.29 2001/10/24 05:00:16 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

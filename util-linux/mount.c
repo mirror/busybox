@@ -52,7 +52,7 @@
 #include <mntent.h>
 #include <ctype.h>
 #include "busybox.h"
-#if defined BB_FEATURE_USE_DEVPS_PATCH
+#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
 #	include <linux/devmtab.h> /* For Erik's nifty devmtab device driver */
 #endif
 
@@ -74,7 +74,7 @@ enum {
 };
 
 
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
 #include <sys/ioctl.h>
 static int use_loop = FALSE;
@@ -123,13 +123,13 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		 char *mtab_opts, int mount_all)
 {
 	int status = 0;
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 	char *lofile = NULL;
 #endif
 
 	if (fakeIt == FALSE)
 	{
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 		if (use_loop==TRUE) {
 			int loro = flags & MS_RDONLY;
 			
@@ -162,7 +162,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	/* If the mount was sucessful, do anything needed, then return TRUE */
 	if (status == 0 || fakeIt==TRUE) {
 
-#if defined BB_FEATURE_MTAB_SUPPORT
+#if defined CONFIG_FEATURE_MTAB_SUPPORT
 		if (useMtab == TRUE) {
 			erase_mtab(specialfile);	// Clean any stale entries
 			write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
@@ -172,7 +172,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 	}
 
 	/* Bummer.  mount failed.  Clean up */
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 	if (lofile != NULL) {
 		del_loop(specialfile);
 	}
@@ -209,7 +209,7 @@ parse_mount_options(char *options, int *flags, char *strflags)
 			}
 			f++;
 		}
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 		if (gotone == FALSE && !strcasecmp("loop", options)) {	/* loop device support */
 			use_loop = TRUE;
 			gotone = TRUE;
@@ -240,7 +240,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 {
 	int status = 0;
 
-#if defined BB_FEATURE_USE_DEVPS_PATCH
+#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
 	if (strcmp(filesystemType, "auto") == 0) {
 		static const char *noauto_array[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", "devfs", "usbdevfs", 0 };
 		const char **noauto_fstype;
@@ -310,7 +310,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 void show_mounts(void)
 {
-#if defined BB_FEATURE_USE_DEVPS_PATCH
+#if defined CONFIG_FEATURE_USE_DEVPS_PATCH
 	int fd, i, numfilesystems;
 	char device[] = "/dev/mtab";
 	struct k_mntent *mntentlist;
@@ -337,7 +337,7 @@ void show_mounts(void)
 				mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
 				mntentlist[i].mnt_passno);
 	}
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	/* Don't bother to close files or free memory.  Exit 
 	 * does that automagically, so we can save a few bytes */
 	free( mntentlist);
@@ -357,7 +357,7 @@ void show_mounts(void)
 			}
 			printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
 				   m->mnt_type, m->mnt_opts);
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 			if(blockDevice != m->mnt_fsname)
 				free(blockDevice);
 #endif
@@ -408,7 +408,7 @@ extern int mount_main(int argc, char **argv)
 		case 'f':
 			fakeIt = TRUE;
 			break;
-#ifdef BB_FEATURE_MTAB_SUPPORT
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
 		case 'n':
 			useMtab = FALSE;
 			break;
@@ -467,7 +467,7 @@ extern int mount_main(int argc, char **argv)
 singlemount:			
 			string_flags = strdup(string_flags);
 			rc = EXIT_SUCCESS;
-#ifdef BB_NFSMOUNT
+#ifdef CONFIG_NFSMOUNT
 			if (strchr(device, ':') != NULL)
 				filesystemType = "nfs";
 			if (strcmp(filesystemType, "nfs") == 0) {

@@ -2,9 +2,8 @@
 /*
  * Mini chroot implementation for busybox
  *
- *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +47,7 @@ int chroot_main(int argc, char **argv)
 		prog = *argv;
 		execvp(*argv, argv);
 	} else {
-#if defined shell_main && defined BB_FEATURE_SH_STANDALONE_SHELL
+#if defined shell_main && defined CONFIG_FEATURE_SH_STANDALONE_SHELL
 		char shell[] = "/bin/sh";
 		char *shell_argv[2] = { shell, NULL };
 		applet_name = shell;

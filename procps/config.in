@@ -1,0 +1,17 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'Process Utilities'
+
+bool 'free'	    CONFIG_FREE
+bool 'kill'	    CONFIG_KILL
+bool 'pidof'	    CONFIG_PIDOF
+bool 'ps'	    CONFIG_PS
+bool 'renice'	    CONFIG_RENICE
+bool 'uptime'	    CONFIG_UPTIME
+
+endmenu
+

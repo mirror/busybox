@@ -2,9 +2,8 @@
 /*
  * Mini umount implementation for busybox
  *
- *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,13 +56,13 @@ static struct _mtab_entry_t *mtab_cache = NULL;
 
 
 
-#if defined BB_FEATURE_MOUNT_FORCE
+#if defined CONFIG_FEATURE_MOUNT_FORCE
 static int doForce = FALSE;
 #endif
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 static int freeLoop = TRUE;
 #endif
-#if defined BB_FEATURE_MTAB_SUPPORT
+#if defined CONFIG_FEATURE_MTAB_SUPPORT
 static int useMtab = TRUE;
 #endif
 static int umountAll = FALSE;
@@ -112,7 +111,7 @@ static char *mtab_getinfo(const char *match, const char which)
 			if (which == MTAB_GETMOUNTPT) {
 				return cur->mountpt;
 			} else {
-#if !defined BB_FEATURE_MTAB_SUPPORT
+#if !defined CONFIG_FEATURE_MTAB_SUPPORT
 				if (strcmp(cur->device, "/dev/root") == 0) {
 					/* Adjusts device to be the real root device,
 					 * or leaves device alone if it can't find it */
@@ -151,7 +150,7 @@ static char *mtab_first(void **iter)
 
 /* Don't bother to clean up, since exit() does that 
  * automagically, so we can save a few bytes */
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 static void mtab_free(void)
 {
 	struct _mtab_entry_t *this, *next;
@@ -179,12 +178,12 @@ static int do_umount(const char *name)
 
 	status = umount(name);
 
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 	if (freeLoop == TRUE && blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
 		/* this was a loop device, delete it */
 		del_loop(blockDevice);
 #endif
-#if defined BB_FEATURE_MOUNT_FORCE
+#if defined CONFIG_FEATURE_MOUNT_FORCE
 	if (status != 0 && doForce == TRUE) {
 		status = umount2(blockDevice, MNT_FORCE);
 		if (status != 0) {
@@ -202,7 +201,7 @@ static int do_umount(const char *name)
 		}
 	}
 	if (status == 0) {
-#if defined BB_FEATURE_MTAB_SUPPORT
+#if defined CONFIG_FEATURE_MTAB_SUPPORT
 		if (useMtab == TRUE)
 			erase_mtab(name);
 #endif
@@ -246,7 +245,7 @@ extern int umount_main(int argc, char **argv)
 	if (argc < 2) {
 		show_usage();
 	}
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	atexit(mtab_free);
 #endif
 
@@ -257,17 +256,17 @@ extern int umount_main(int argc, char **argv)
 			case 'a':
 				umountAll = TRUE;
 				break;
-#if defined BB_FEATURE_MOUNT_LOOP
+#if defined CONFIG_FEATURE_MOUNT_LOOP
 			case 'l':
 				freeLoop = FALSE;
 				break;
 #endif
-#ifdef BB_FEATURE_MTAB_SUPPORT
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
 			case 'n':
 				useMtab = FALSE;
 				break;
 #endif
-#ifdef BB_FEATURE_MOUNT_FORCE
+#ifdef CONFIG_FEATURE_MOUNT_FORCE
 			case 'f':
 				doForce = TRUE;
 				break;

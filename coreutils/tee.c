@@ -2,8 +2,7 @@
 /*
  * Mini tee implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Matt Kraai <kraai@alumni.carnegiemellon.edu>
+ * Copyright (C) 2000,2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -62,9 +62,9 @@
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
-#undef BB_FEATURE_TRACEROUTE_VERBOSE
-//#define BB_FEATURE_TRACEROUTE_VERBOSE
-#undef BB_FEATURE_TRACEROUTE_SO_DEBUG   /* not in documentation man */
+#undef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+//#define CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#undef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG   /* not in documentation man */
 
 #include <stdio.h>
 #include <errno.h>
@@ -213,7 +213,7 @@ static int max_ttl = 30;
 static u_short ident;
 static u_short port = 32768+666;       /* start udp dest port # for probe packets */
 
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 static int verbose;
 #endif
 static int waittime = 5;               /* time to wait for response (in seconds) */
@@ -269,7 +269,7 @@ print(u_char *buf, int cc, struct sockaddr_in *from)
 	cc -= hlen;
 
 	inetname(from);
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose)
 		printf (" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));
 #endif
@@ -319,7 +319,7 @@ wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer)
 	return(cc);
 }
 
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 /*
  * Convert an ICMP "type" field to a printable string.
  */
@@ -353,7 +353,7 @@ packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
 	ip = (struct ip *) buf;
 	hlen = ip->ip_hl << 2;
 	if (cc < hlen + ICMP_MINLEN) {
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 		if (verbose)
 			printf("packet too short (%d bytes) from %s\n", cc,
 				inet_ntoa(from->sin_addr));
@@ -376,7 +376,7 @@ packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
 		    up->dest == htons(port+seq))
 			return (type == ICMP_TIMXCEED? -1 : code+1);
 	}
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
 		int i;
 		u_long *lp = (u_long *)&icp->icmp_ip;
@@ -430,7 +430,7 @@ send_probe(int seq, int ttl)
 
 
 int
-#ifndef BB_TRACEROUTE
+#ifndef CONFIG_TRACEROUTE
 main(argc, argv)
 #else
 traceroute_main(argc, argv)
@@ -454,7 +454,7 @@ traceroute_main(argc, argv)
 	while ((ch = getopt(argc, argv, "dm:np:q:rs:t:w:v")) != EOF)
 		switch(ch) {
 		case 'd':
-#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
+#ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 			options |= SO_DEBUG;
 #endif
 			break;
@@ -492,7 +492,7 @@ traceroute_main(argc, argv)
 				error_msg_and_die("tos must be 0 to 255.");
 			break;
 		case 'v':
-#ifdef BB_FEATURE_TRACEROUTE_VERBOSE
+#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 			verbose++;
 #endif
 			break;
@@ -537,7 +537,7 @@ traceroute_main(argc, argv)
 
 	s = create_icmp_socket();
 
-#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
+#ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
 		(void) setsockopt(s, SOL_SOCKET, SO_DEBUG,
 				  (char *)&on, sizeof(on));
@@ -555,7 +555,7 @@ traceroute_main(argc, argv)
 		       sizeof(on)) < 0)
 		perror_msg_and_die("IP_HDRINCL");
 #endif IP_HDRINCL
-#ifdef BB_FEATURE_TRACEROUTE_SO_DEBUG
+#ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (options & SO_DEBUG)
 		(void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
 				  (char *)&on, sizeof(on));

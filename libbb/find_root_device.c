@@ -1,8 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (C) 2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Utility routines.
  *
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  * Patched by a bunch of people.  Feel free to acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,7 +19,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
  */
 
 #include <stdio.h>

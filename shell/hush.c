@@ -113,7 +113,8 @@
 #define applet_name "hush"
 #include "standalone.h"
 #define hush_main main
-#undef BB_FEATURE_SH_FANCY_PROMPT
+#undef CONFIG_FEATURE_SH_FANCY_PROMPT
+#define BB_BANNER
 #endif
 
 typedef enum {
@@ -836,7 +837,7 @@ static int static_peek(struct in_str *i)
 
 static inline void cmdedit_set_initial_prompt(void)
 {
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
@@ -848,7 +849,7 @@ static inline void cmdedit_set_initial_prompt(void)
 static inline void setup_prompt_string(int promptmode, char **prompt_str)
 {
 	debug_printf("setup_prompt_string %d ",promptmode);
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 1) {
 		if (PS1)
@@ -871,7 +872,7 @@ static void get_user_input(struct in_str *i)
 	static char the_command[BUFSIZ];
 
 	setup_prompt_string(i->promptmode, &prompt_str);
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 	/*
 	 ** enable command line editing only while a command line
 	 ** is actually being read; otherwise, we'll end up bequeathing
@@ -1085,18 +1086,18 @@ static void pseudo_exec(struct child_prog *child)
 		 * really dislike relying on /proc for things.  We could exec ourself
 		 * from global_argv[0], but if we are in a chroot, we may not be able
 		 * to find ourself... */ 
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 		{
 			int argc_l;
 			char** argv_l=child->argv;
 			char *name = child->argv[0];
 
-#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 			/* Following discussions from November 2000 on the busybox mailing
 			 * list, the default configuration, (without
 			 * get_last_path_component()) lets the user force use of an
 			 * external command by specifying the full (with slashes) filename.
-			 * If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then applets
+			 * If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then applets
 			 * _aways_ override external commands, so if you want to run
 			 * /bin/cat, it will use BusyBox cat even if /bin/cat exists on the
 			 * filesystem and is _not_ busybox.  Some systems may want this,
@@ -2586,7 +2587,7 @@ int hush_main(int argc, char **argv)
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 	cmdedit_set_initial_prompt();
 #else
 	PS1 = NULL;
@@ -2655,7 +2656,7 @@ int hush_main(int argc, char **argv)
 	debug_printf("\ninteractive=%d\n", interactive);
 	if (interactive) {
 		/* Looks like they want an interactive shell */
-#ifndef BB_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
 		printf( "\n\n" BB_BANNER " hush - the humble shell v0.01 (testing)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
@@ -2673,7 +2674,7 @@ int hush_main(int argc, char **argv)
 	input = xfopen(argv[optind], "r");
 	opt = parse_file_outer(input);
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	fclose(input);
 	if (cwd && cwd != unknown)
 		free((char*)cwd);

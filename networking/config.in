@@ -1,0 +1,21 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'Networking Utilities'
+
+bool 'hostname'	    CONFIG_HOSTNAME
+bool 'ifconfig'	    CONFIG_IFCONFIG
+bool 'nc'	    CONFIG_NC
+bool 'nslookup'	    CONFIG_NSLOOKUP
+bool 'ping'	    CONFIG_PING
+bool 'route'	    CONFIG_ROUTE
+bool 'telnet'	    CONFIG_TELNET
+bool 'tftp'	    CONFIG_TFTP
+bool 'traceroute'   CONFIG_TRACEROUTE
+bool 'wget'	    CONFIG_WGET
+
+endmenu
+

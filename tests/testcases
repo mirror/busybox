@@ -199,7 +199,7 @@ id -un
 
 
 # ifconfig
-# requires BB_FEATURE_IFCONFIG_STATUS
+# requires CONFIG_FEATURE_IFCONFIG_STATUS
 ifconfig
 #ifconfig -a
 #ifconfig eth0

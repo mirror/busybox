@@ -44,7 +44,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 +/*
 + * linux/drivers/char/devmtab.c
 + * 
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + *
 + * May be copied or modified under the terms of the GNU General Public License.
 + * See linux/COPYING for more information.
@@ -343,7 +343,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 +/*
 + * linux/drivers/char/devps.c
 + * 
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + *
 + * May be copied or modified under the terms of the GNU General Public License.
 + * See linux/COPYING for more information.
@@ -900,7 +900,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 + * devmtab tester
 + *
 + *
-+ * Copyright (C) 2000 by Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -1020,7 +1020,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 + * Mini ps implementation for use with the Linux devps driver
 + *
 + *
-+ * Copyright (C) 2000 by Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -1311,7 +1311,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 +/*
 + * -- <linux/devmtab.h>
 + *  
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + * 
 + * May be copied or modified under the terms of the GNU General Public License.
 + * See linux/COPYING for more information.
@@ -1369,7 +1369,7 @@ diff -urN --exclude=.version --exclude=.config* --exclude=.*depend linux-2.2.18-
 +/*
 + * -- <linux/devps.h>
 + *  
-+ * Copyright (C) 2000 Erik Andersen <andersee@debian.org>
++ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 + * 
 + * May be copied or modified under the terms of the GNU General Public License.
 + * See linux/COPYING for more information.

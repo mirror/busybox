@@ -1231,7 +1231,7 @@ int gzip_main(int argc, char **argv)
 			break;
 		case 'q':
 			break;
-#ifdef BB_GUNZIP
+#ifdef CONFIG_GUNZIP
 		case 'd':
 			optind = 1;
 			return gunzip_main(argc, argv);

@@ -2,8 +2,8 @@
 /*
  * lash -- the BusyBox Lame-Ass SHell
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * Based in part on ladsh.c by Michael K. Johnson and Erik W. Troan, which is
  * under the following liberal license: "We have placed this source code in the
@@ -25,8 +25,10 @@
  *
  */
 
-/* This shell's parsing engine is officially at a dead-end.
- * Future work shell work should be done using hush.c
+/* This shell's parsing engine is officially at a dead-end.  Future
+ * work shell work should be done using hush, msh, or ash.  This is
+ * still a very useful, small shell -- it just don't need any more
+ * features beyond what it already has...
  */
 
 //For debugging/development on the shell only...
@@ -48,7 +50,7 @@
 #include "busybox.h"
 #include "cmdedit.h"
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
 #endif
 
@@ -390,12 +392,12 @@ static int builtin_export(struct child_prog *child)
 	res = putenv(v);
 	if (res)
 		fprintf(stderr, "export: %m\n");
-#ifdef BB_FEATURE_SH_FANCY_PROMPT
+#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 	if (strncmp(v, "PS1=", 4)==0)
 		PS1 = getenv("PS1");
 #endif
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 	if(strncmp(v, "LC_ALL=", 7)==0)
 		setlocale(LC_ALL, getenv("LC_ALL"));
 	if(strncmp(v, "LC_CTYPE=", 9)==0)
@@ -661,7 +663,7 @@ static void restore_redirects(int squirrel[])
 
 static inline void cmdedit_set_initial_prompt(void)
 {
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
@@ -672,7 +674,7 @@ static inline void cmdedit_set_initial_prompt(void)
 
 static inline void setup_prompt_string(char **prompt_str)
 {
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (shell_context == 0) {
 		if (PS1)
@@ -706,7 +708,7 @@ static int get_command(FILE * source, char *command)
 	if (source == stdin) {
 		setup_prompt_string(&prompt_str);
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 		/*
 		** enable command line editing only while a command line
 		** is actually being read; otherwise, we'll end up bequeathing
@@ -1201,7 +1203,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 static int pseudo_exec(struct child_prog *child)
 {
 	struct built_in_command *x;
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name;
 #endif
 
@@ -1223,7 +1225,7 @@ static int pseudo_exec(struct child_prog *child)
 			exit (x->function(child));
 		}
 	}
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	/* Check if the command matches any busybox internal
 	 * commands ("applets") here.  Following discussions from
 	 * November 2000 on busybox@opensource.lineo.com, don't use
@@ -1237,8 +1239,8 @@ static int pseudo_exec(struct child_prog *child)
 	 */
 	name = child->argv[0];
 
-#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
-	/* If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then
+#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
+	/* If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then
 	 * if you run /bin/cat, it will use BusyBox cat even if 
 	 * /bin/cat exists on the filesystem and is _not_ busybox.
 	 * Some systems want this, others do not.  Choose wisely.  :-)
@@ -1504,7 +1506,7 @@ static int busy_loop(FILE * input)
 }
 
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 void free_memory(void)
 {
 	if (cwd && cwd!=unknown) {
@@ -1611,7 +1613,7 @@ int lash_main(int argc_l, char **argv_l)
 	if (interactive==TRUE) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
-#ifndef BB_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
 		printf( "\n\n" BB_BANNER " Built-in shell (lash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
@@ -1626,11 +1628,11 @@ int lash_main(int argc_l, char **argv_l)
 	if (!cwd)
 		cwd = unknown;
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	atexit(free_memory);
 #endif
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 	cmdedit_set_initial_prompt();
 #else
 	PS1 = NULL;

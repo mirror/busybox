@@ -1,0 +1,23 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+mainmenu_name "BusyBox Configuration"
+
+
+source archival/config.in
+source console-tools/config.in
+source editors/config.in
+source fileutils/config.in
+source findutils/config.in
+source init/config.in
+source miscutils/config.in
+source modutils/config.in
+source networking/config.in
+source procps/config.in
+source shell/config.in
+source shellutils/config.in
+source sysklogd/config.in
+source textutils/config.in
+source util-linux/config.in
+

@@ -2,9 +2,9 @@
 /*
  * Mini find implementation for busybox
  *
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  * Reworked by David Douthitt <n9ubh@callsign.net> and
  *  Matt Kraai <kraai@alumni.carnegiemellon.edu>.
  *
@@ -37,16 +37,16 @@
 
 static char *pattern;
 
-#ifdef BB_FEATURE_FIND_TYPE
+#ifdef CONFIG_FEATURE_FIND_TYPE
 static int type_mask = 0;
 #endif
 
-#ifdef BB_FEATURE_FIND_PERM
+#ifdef CONFIG_FEATURE_FIND_PERM
 static char perm_char = 0;
 static int perm_mask = 0;
 #endif
 
-#ifdef BB_FEATURE_FIND_MTIME
+#ifdef CONFIG_FEATURE_FIND_MTIME
 static char mtime_char;
 static int mtime_days;
 #endif
@@ -63,13 +63,13 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		if (!(fnmatch(pattern, tmp, FNM_PERIOD) == 0))
 			goto no_match;
 	}
-#ifdef BB_FEATURE_FIND_TYPE
+#ifdef CONFIG_FEATURE_FIND_TYPE
 	if (type_mask != 0) {
 		if (!((statbuf->st_mode & S_IFMT) == type_mask))
 			goto no_match;
 	}
 #endif
-#ifdef BB_FEATURE_FIND_PERM
+#ifdef CONFIG_FEATURE_FIND_PERM
 	if (perm_mask != 0) {
 		if (!((isdigit(perm_char) && (statbuf->st_mode & 07777) == perm_mask) ||
 			 (perm_char == '-' && (statbuf->st_mode & perm_mask) == perm_mask) ||
@@ -77,7 +77,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 			goto no_match;
 	}
 #endif
-#ifdef BB_FEATURE_FIND_MTIME
+#ifdef CONFIG_FEATURE_FIND_MTIME
 	if (mtime_days != 0) {
 		time_t file_age = time(NULL) - statbuf->st_mtime;
 		time_t mtime_secs = mtime_days * 24 * 60 * 60;
@@ -93,7 +93,7 @@ no_match:
 	return (TRUE);
 }
 
-#ifdef BB_FEATURE_FIND_TYPE
+#ifdef CONFIG_FEATURE_FIND_TYPE
 static int find_type(char *type)
 {
 	int mask = 0;
@@ -150,13 +150,13 @@ int find_main(int argc, char **argv)
 			if (++i == argc)
 				error_msg_and_die("option `-name' requires an argument");
 			pattern = argv[i];
-#ifdef BB_FEATURE_FIND_TYPE
+#ifdef CONFIG_FEATURE_FIND_TYPE
 		} else if (strcmp(argv[i], "-type") == 0) {
 			if (++i == argc)
 				error_msg_and_die("option `-type' requires an argument");
 			type_mask = find_type(argv[i]);
 #endif
-#ifdef BB_FEATURE_FIND_PERM
+#ifdef CONFIG_FEATURE_FIND_PERM
 		} else if (strcmp(argv[i], "-perm") == 0) {
 			char *end;
 			if (++i == argc)
@@ -169,7 +169,7 @@ int find_main(int argc, char **argv)
 			if ((perm_char = argv[i][0]) == '-')
 				perm_mask = -perm_mask;
 #endif
-#ifdef BB_FEATURE_FIND_MTIME
+#ifdef CONFIG_FEATURE_FIND_MTIME
 		} else if (strcmp(argv[i], "-mtime") == 0) {
 			char *end;
 			if (++i == argc)

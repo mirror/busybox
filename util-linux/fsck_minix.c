@@ -191,7 +191,7 @@ static const int ROOT_INO = 1;
 
 #define UPPER(size,n) ((size+((n)-1))/(n))
 #define INODE_SIZE (sizeof(struct minix_inode))
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 #define INODE_SIZE2 (sizeof(struct minix2_inode))
 #define INODE_BLOCKS UPPER(INODES, (version2 ? MINIX2_INODES_PER_BLOCK \
 				    : MINIX_INODES_PER_BLOCK))
@@ -232,7 +232,7 @@ static char super_block_buffer[BLOCK_SIZE];
 
 #define Super (*(struct minix_super_block *)super_block_buffer)
 #define INODES ((unsigned long)Super.s_ninodes)
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 #define ZONES ((unsigned long)(version2 ? Super.s_zones : Super.s_nzones))
 #else
 #define ZONES ((unsigned long)(Super.s_nzones))
@@ -252,7 +252,7 @@ static unsigned char *inode_count = NULL;
 static unsigned char *zone_count = NULL;
 
 static void recursive_check(unsigned int ino);
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void recursive_check2(unsigned int ino);
 #endif
 
@@ -408,7 +408,7 @@ static int check_zone_nr(unsigned short *nr, int *corrected)
 	return 0;
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static int check_zone_nr2(unsigned int *nr, int *corrected)
 {
 	if (!*nr)
@@ -515,7 +515,7 @@ static int map_block(struct minix_inode *inode, unsigned int blknr)
 	return result;
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static int map_block2(struct minix2_inode *inode, unsigned int blknr)
 {
 	unsigned int ind[BLOCK_SIZE >> 2];
@@ -613,7 +613,7 @@ static void get_dirsize(void)
 	char blk[BLOCK_SIZE];
 	int size;
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (version2)
 		block = Inode2[ROOT_INO].i_zone[0];
 	else
@@ -644,7 +644,7 @@ static void read_superblock(void)
 		namelen = 30;
 		dirsize = 32;
 		version2 = 0;
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	} else if (MAGIC == MINIX2_SUPER_MAGIC) {
 		namelen = 14;
 		dirsize = 16;
@@ -742,7 +742,7 @@ static struct minix_inode *get_inode(unsigned int nr)
 	return inode;
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static struct minix2_inode *get_inode2(unsigned int nr)
 {
 	struct minix2_inode *inode;
@@ -798,7 +798,7 @@ static void check_root(void)
 		die("root inode isn't a directory");
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void check_root2(void)
 {
 	struct minix2_inode *inode = Inode2 + ROOT_INO;
@@ -841,7 +841,7 @@ static int add_zone(unsigned short *znr, int *corrected)
 	return block;
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static int add_zone2(unsigned int *znr, int *corrected)
 {
 	int result;
@@ -892,7 +892,7 @@ static void add_zone_ind(unsigned short *znr, int *corrected)
 		write_block(block, blk);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void add_zone_ind2(unsigned int *znr, int *corrected)
 {
 	static char blk[BLOCK_SIZE];
@@ -926,7 +926,7 @@ static void add_zone_dind(unsigned short *znr, int *corrected)
 		write_block(block, blk);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void add_zone_dind2(unsigned int *znr, int *corrected)
 {
 	static char blk[BLOCK_SIZE];
@@ -977,7 +977,7 @@ static void check_zones(unsigned int i)
 	add_zone_dind(8 + inode->i_zone, &changed);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void check_zones2(unsigned int i)
 {
 	struct minix2_inode *inode;
@@ -1062,7 +1062,7 @@ static void check_file(struct minix_inode *dir, unsigned int offset)
 	return;
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void check_file2(struct minix2_inode *dir, unsigned int offset)
 {
 	static char blk[BLOCK_SIZE];
@@ -1143,7 +1143,7 @@ static void recursive_check(unsigned int ino)
 		check_file(dir, offset);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void recursive_check2(unsigned int ino)
 {
 	struct minix2_inode *dir;
@@ -1221,7 +1221,7 @@ static void check_counts(void)
 	}
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void check_counts2(void)
 {
 	int i;
@@ -1283,7 +1283,7 @@ static void check(void)
 	check_counts();
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void check2(void)
 {
 	memset(inode_count, 0, (INODES + 1) * sizeof(*inode_count));
@@ -1305,7 +1305,7 @@ static void alloc_name_list(void)
 		name_list[i] = xmalloc(sizeof(char) * BUFSIZ + 1);
 }
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 /* execute this atexit() to deallocate name_list[] */
 /* piptigger was here */
 static void free_name_list(void)
@@ -1330,7 +1330,7 @@ extern int fsck_minix_main(int argc, char **argv)
 	int retcode = 0;
 
 	alloc_name_list();
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	/* Don't bother to free memory.  Exit does
 	 * that automagically, so we can save a few bytes */
 	atexit(free_name_list);
@@ -1338,7 +1338,7 @@ extern int fsck_minix_main(int argc, char **argv)
 
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad inode size");
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad v2 inode size");
 #endif
@@ -1422,7 +1422,7 @@ extern int fsck_minix_main(int argc, char **argv)
 		tcsetattr(0, TCSANOW, &tmp);
 		termios_set = 1;
 	}
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (version2) {
 		check_root2();
 		check2();

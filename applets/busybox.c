@@ -5,14 +5,14 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "busybox.h"
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
 #endif
 
 int been_there_done_that = 0; /* Also used in applets.c */
 const char *applet_name;
 
-#ifdef BB_FEATURE_INSTALLER
+#ifdef CONFIG_FEATURE_INSTALLER
 /* 
  * directory table
  *		this should be consistent w/ the enum, busybox.h::Location,
@@ -63,7 +63,7 @@ static void install_links(const char *busybox, int use_symbolic_links)
 	}
 }
 
-#endif /* BB_FEATURE_INSTALLER */
+#endif /* CONFIG_FEATURE_INSTALLER */
 
 int main(int argc, char **argv)
 {
@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 			applet_name = s;
 	}
 
-#ifdef BB_LOCALE_SUPPORT 
-#ifdef BB_INIT
+#ifdef CONFIG_LOCALE_SUPPORT 
+#ifdef CONFIG_INIT
 	if(getpid()!=1)	/* Do not set locale for `init' */
 #endif
 	{
@@ -97,7 +97,7 @@ int busybox_main(int argc, char **argv)
 {
 	int col = 0, len, i;
 
-#ifdef BB_FEATURE_INSTALLER	
+#ifdef CONFIG_FEATURE_INSTALLER	
 	/* 
 	 * This style of argument parsing doesn't scale well 
 	 * in the event that busybox starts wanting more --options.
@@ -125,7 +125,7 @@ int busybox_main(int argc, char **argv)
 		}
 		return rc;
 	}
-#endif /* BB_FEATURE_INSTALLER */
+#endif /* CONFIG_FEATURE_INSTALLER */
 
 	argc--;
 

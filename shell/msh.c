@@ -681,7 +681,7 @@ static void * brktop;
 static void * brkaddr;
 
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 static char * current_prompt;
 #endif
 
@@ -732,7 +732,7 @@ extern int msh_main(int argc, char **argv)
 		setval(ifs, " \t\n");
 
 	prompt = lookup("PS1");
-#ifdef BB_FEATURE_SH_FANCY_PROMPT
+#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 	if (prompt->value == null)
 #endif
 		setval(prompt, "$ ");
@@ -741,7 +741,7 @@ extern int msh_main(int argc, char **argv)
 		prompt->status &= ~EXPORT;
 	}
 	cprompt = lookup("PS2");
-#ifdef BB_FEATURE_SH_FANCY_PROMPT
+#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 	if (cprompt->value == null)
 #endif
 		setval(cprompt, "> ");
@@ -801,7 +801,7 @@ extern int msh_main(int argc, char **argv)
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
-#ifndef BB_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
 			printf( "\n\n" BB_BANNER " Built-in shell (msh)\n");
 			printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
@@ -835,7 +835,7 @@ extern int msh_main(int argc, char **argv)
 
 	for (;;) {
 		if (interactive && e.iop <= iostack) {
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 			current_prompt=prompt->value;
 #else
 			prs(prompt->value);
@@ -2171,7 +2171,7 @@ loop:
 		startl = 1;
 		if (multiline || cf & CONTIN) {
 			if (interactive && e.iop <= iostack) {
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 			current_prompt=cprompt->value;
 #else
 			prs(cprompt->value);
@@ -2224,7 +2224,7 @@ register int c, c1;
 			return(YYERRCODE);
 		}
 		if (interactive && c == '\n' && e.iop <= iostack) {
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 		    current_prompt=cprompt->value;
 #else
 		    prs(cprompt->value);
@@ -2838,9 +2838,9 @@ char *c, **v, **envp;
 	register char *sp, *tp;
 	int eacces = 0, asis = 0;
 
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = c;
-#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	name = get_last_path_component(name);
 #endif
 	optind = 1;
@@ -2960,7 +2960,7 @@ static int dohelp()
 			col = 0;
 		}
 	}
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	{
 		int i;
 		const struct BB_applet *applet;
@@ -4256,7 +4256,7 @@ readc()
 			if (multiline)
 			    return e.iop->prev = 0;
 			if (interactive && e.iop == iostack+1) {
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 			    current_prompt=prompt->value;
 #else
 			    prs(prompt->value);
@@ -4462,7 +4462,7 @@ register struct ioarg *ap;
 	  return *bp->bufp++ & 0177;
 	}
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 	if (interactive) {
 	    static char mycommand[BUFSIZ];
 	    static int position = 0, size = 0;
@@ -4721,7 +4721,7 @@ int ec;
 		e.iobase = e.iop;
 		for (;;) {
 		    if (interactive && e.iop <= iostack) {
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 			    current_prompt=cprompt->value;
 #else
 			    prs(cprompt->value);

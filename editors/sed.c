@@ -1,8 +1,8 @@
 /*
  * sed.c - very minimalist version of sed
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
+ * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
+ * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,7 +104,7 @@ static int ncmds = 0; /* number of sed commands */
 
 /*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_cmd_strs()
 {
 	if (sed_cmds == NULL)
@@ -791,7 +791,7 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt;
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1)
 		perror_msg_and_die("atexit");

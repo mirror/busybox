@@ -46,7 +46,7 @@
 
 #include "busybox.h"
 
-//#define BB_FEATURE_TFTP_DEBUG
+//#define CONFIG_FEATURE_TFTP_DEBUG
 
 #define TFTP_BLOCKSIZE_DEFAULT 512 /* according to RFC 1350, don't change */
 #define TFTP_TIMEOUT 5             /* seconds */
@@ -74,7 +74,7 @@ static const char *tftp_error_msg[] = {
 const int tftp_cmd_get = 1;
 const int tftp_cmd_put = 2;
 
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 
 static int tftp_blocksize_check(int blocksize, int bufsize)  
 {
@@ -158,11 +158,11 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	int timeout = bb_tftp_num_retries;
 	int block_nr = 1;
 
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 	int want_option_ack = 0;
 #endif
 
-	RESERVE_BB_BUFFER(buf, tftp_bufsize + 4); /* Opcode + Block # + Data */
+	RESERVE_CONFIG_BUFFER(buf, tftp_bufsize + 4); /* Opcode + Block # + Data */
 
 	tftp_bufsize += 4;
 
@@ -230,7 +230,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			memcpy(cp, "octet", 6);
 			cp += 6;
 
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 
 			len = tftp_bufsize - 4; /* data block size */
 
@@ -290,7 +290,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 			len = cp - buf;
 
-#ifdef BB_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_FEATURE_TFTP_DEBUG
 			printf("sending %u bytes\n", len);
 			for (cp = buf; cp < &buf[len]; cp++)
 				printf("%02x ", *cp);
@@ -367,7 +367,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 		opcode = ntohs(*((unsigned short *) buf));
 		tmp = ntohs(*((unsigned short *) &buf[2]));
 
-#ifdef BB_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_FEATURE_TFTP_DEBUG
 		printf("received %d bytes: %04x %04x\n", len, opcode, tmp);
 #endif
 
@@ -390,7 +390,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			break;
 		}
 
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 		if (want_option_ack) {
 
 			 want_option_ack = 0;
@@ -416,7 +416,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 						 else {
 				                         opcode = TFTP_ACK;
 						 }
-#ifdef BB_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_FEATURE_TFTP_DEBUG
 						 printf("using blksize %u\n");
 #endif
 					         tftp_bufsize = foo + 4;
@@ -470,10 +470,10 @@ static inline int tftp(const int cmd, const struct hostent *host,
 		}
 	}
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	close(socketfd);
 
-        RELEASE_BB_BUFFER(buf);
+        RELEASE_CONFIG_BUFFER(buf);
 #endif
 
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -494,19 +494,19 @@ int tftp_main(int argc, char **argv)
 
 	/* figure out what to pass to getopt */
 
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 #define BS "b:"
 #else
 #define BS
 #endif
 
-#ifdef BB_FEATURE_TFTP_GET
+#ifdef CONFIG_FEATURE_TFTP_GET
 #define GET "g"
 #else
 #define GET 
 #endif
 
-#ifdef BB_FEATURE_TFTP_PUT
+#ifdef CONFIG_FEATURE_TFTP_PUT
 #define PUT "p"
 #else
 #define PUT 
@@ -514,7 +514,7 @@ int tftp_main(int argc, char **argv)
 
 	while ((opt = getopt(argc, argv, BS GET PUT "l:r:")) != -1) {
 		switch (opt) {
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 		case 'b':
 			blocksize = atoi(optarg);
 			if (!tftp_blocksize_check(blocksize, 0)) {
@@ -522,13 +522,13 @@ int tftp_main(int argc, char **argv)
 			}
 			break;
 #endif
-#ifdef BB_FEATURE_TFTP_GET
+#ifdef CONFIG_FEATURE_TFTP_GET
 		case 'g':
 			cmd = tftp_cmd_get;
 			flags = O_WRONLY | O_CREAT;
 			break;
 #endif
-#ifdef BB_FEATURE_TFTP_PUT
+#ifdef CONFIG_FEATURE_TFTP_PUT
 		case 'p':
 			cmd = tftp_cmd_put;
 			flags = O_RDONLY;
@@ -558,7 +558,7 @@ int tftp_main(int argc, char **argv)
 		port = atoi(argv[optind + 1]);
 	}
 
-#ifdef BB_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_FEATURE_TFTP_DEBUG
 	printf("using server \"%s\", remotefile \"%s\", "
 		"localfile \"%s\".\n",
 		inet_ntoa(*((struct in_addr *) host->h_addr)),
@@ -567,7 +567,7 @@ int tftp_main(int argc, char **argv)
 
 	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	close(fd);
 #endif
 	return(result);

@@ -2,8 +2,8 @@
 /*
  * Mini uptime implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 /* This version of uptime doesn't display the number of users on the system,
  * since busybox init doesn't mess with utmp.  For folks using utmp that are
  * just dying to have # of users reported, feel free to write it as some type
- * of BB_FEATURE_UTMP_SUPPORT #define
+ * of CONFIG_FEATURE_UTMP_SUPPORT #define
  */
 
 /* getopt not needed */

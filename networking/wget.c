@@ -60,7 +60,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 /* Globals (can be accessed from signal handlers */
 static off_t filesize = 0;		/* content-length of the file */
 static int chunked = 0;			/* chunked transfer encoding */
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
 static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
@@ -126,7 +126,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 	error_msg_and_die(s); }
 
 
-#ifdef BB_FEATURE_WGET_AUTHENTICATION
+#ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
 /*
  *  Base64-encode character string
  *  oops... isn't something similar in uuencode.c?
@@ -245,20 +245,20 @@ int wget_main(int argc, char **argv)
 	/* Guess an output filename */
 	if (!fname_out) {
 		fname_out = 
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 			curfile = 
 #endif
 			get_last_path_component(target.path);
 		if (fname_out==NULL || strlen(fname_out)<1) {
 			fname_out = 
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 				curfile = 
 #endif
 				"index.html";
 		}
 		if (dir_prefix != NULL)
 			fname_out = concat_path_file(dir_prefix, fname_out);
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	} else {
 		curfile = get_last_path_component(fname_out);
 #endif
@@ -316,7 +316,7 @@ int wget_main(int argc, char **argv)
 
 			fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", target.host);
 
-#ifdef BB_FEATURE_WGET_AUTHENTICATION
+#ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
 				fprintf(sfp, "Authorization: Basic %s\r\n",
 					base64enc(target.user, buf, sizeof(buf)));
@@ -475,14 +475,14 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 		fgets(buf, sizeof(buf), dfp);
 		filesize = strtol(buf, (char **) NULL, 16);
 	}
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
 #endif
 	do {
 		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
 		safe_fwrite(buf, 1, n, output);
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
 #endif
 		if (got_clen)
@@ -499,7 +499,7 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 	if (n == 0 && ferror(dfp))
 		perror_msg_and_die("network read error");
 	} while (chunked);
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 	if (quiet_flag==FALSE)
 		progressmeter(1);
 #endif
@@ -645,7 +645,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 	return atoi(buf);
 }
 
-#ifdef BB_FEATURE_WGET_STATUSBAR
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 /* Stuff below is from BSD rcp util.c, as added to openshh. 
  * Original copyright notice is retained at the end of this file.
  * 
@@ -782,7 +782,7 @@ progressmeter(int flag)
 }
 #endif
 
-/* Original copyright notice which applies to the BB_FEATURE_WGET_STATUSBAR stuff,
+/* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
  * much of which was blatently stolen from openssh.  */
  
 /*-
@@ -817,7 +817,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.45 2001/07/19 22:28:01 andersen Exp $
+ *	$Id: wget.c,v 1.46 2001/10/24 04:59:56 andersen Exp $
  */
 
 

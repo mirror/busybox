@@ -37,7 +37,7 @@
 
 static FILE *cin;
 
-#ifdef BB_FEATURE_USE_TERMIOS
+#ifdef CONFIG_FEATURE_USE_TERMIOS
 #include <termios.h>
 #define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
 #define getTermSettings(fd,argp) tcgetattr(fd, argp);
@@ -54,7 +54,7 @@ static void gotsig(int sig)
 	putchar('\n');
 	exit(EXIT_FAILURE);
 }
-#endif /* BB_FEATURE_USE_TERMIOS */
+#endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 
 static int terminal_width = 79;	/* not 80 in case terminal has linefold bug */
@@ -69,7 +69,7 @@ extern int more_main(int argc, char **argv)
 	FILE *file;
 	int len, page_height;
 
-#if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
+#if defined CONFIG_FEATURE_AUTOWIDTH && defined CONFIG_FEATURE_USE_TERMIOS
 	struct winsize win = { 0, 0, 0, 0 };
 #endif
 
@@ -83,7 +83,7 @@ extern int more_main(int argc, char **argv)
 		if (!cin)
 			cin = xfopen(CONSOLE_DEV, "r");
 		please_display_more_prompt = 0;
-#ifdef BB_FEATURE_USE_TERMIOS
+#ifdef CONFIG_FEATURE_USE_TERMIOS
 		getTermSettings(fileno(cin), &initial_settings);
 		new_settings = initial_settings;
 		new_settings.c_lflag &= ~ICANON;
@@ -114,7 +114,7 @@ extern int more_main(int argc, char **argv)
 		if(please_display_more_prompt>0)
 			please_display_more_prompt = 0;
 
-#if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
+#if defined CONFIG_FEATURE_AUTOWIDTH && defined CONFIG_FEATURE_USE_TERMIOS
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_row > 4)
 			terminal_height = win.ws_row - 2;
@@ -147,7 +147,7 @@ extern int more_main(int argc, char **argv)
 				 * to get input from the user.
 				 */
 				input = getc(cin);
-#ifndef BB_FEATURE_USE_TERMIOS
+#ifndef CONFIG_FEATURE_USE_TERMIOS
 				printf("\033[A"); /* up cursor */
 #endif
 				/* Erase the "More" message */

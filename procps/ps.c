@@ -2,15 +2,8 @@
 /*
  * Mini ps implementation(s) for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.  
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- *
- *
- * This contains _two_ implementations of ps for Linux.  One uses the
- * traditional /proc virtual filesystem, and the other use the devps kernel
- * driver (written by Erik Andersen to avoid using /proc thereby saving 100k+).
- *
- *
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen  
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -25,7 +18,12 @@
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ */
+
+/*
+ * This contains _two_ implementations of ps for Linux.  One uses the
+ * traditional /proc virtual filesystem, and the other use the devps kernel
+ * driver (written by Erik Andersen to avoid using /proc thereby saving 100k+).
  */
 
 #include <stdio.h>
@@ -44,7 +42,7 @@ static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefo
 
 
 
-#if ! defined BB_FEATURE_USE_DEVPS_PATCH
+#if ! defined CONFIG_FEATURE_USE_DEVPS_PATCH
 
 /* The following is the first ps implementation --
  * the one using the /proc virtual filesystem.
@@ -114,7 +112,7 @@ extern int ps_main(int argc, char **argv)
 	char path[32], sbuf[512];
 	char uidName[9];
 	int len, i, c;
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
 #else
@@ -127,7 +125,7 @@ extern int ps_main(int argc, char **argv)
 	if (!dir)
 		error_msg_and_die("Can't open /proc");
 
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_col > 0)
 			terminal_width = win.ws_col - 1;
@@ -169,7 +167,7 @@ extern int ps_main(int argc, char **argv)
 }
 
 
-#else /* BB_FEATURE_USE_DEVPS_PATCH */
+#else /* CONFIG_FEATURE_USE_DEVPS_PATCH */
 
 
 /* The following is the second ps implementation --
@@ -187,7 +185,7 @@ extern int ps_main(int argc, char **argv)
 	pid_t* pid_array = NULL;
 	struct pid_info info;
 	char uidName[9];
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
 #else
@@ -217,7 +215,7 @@ extern int ps_main(int argc, char **argv)
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
 		perror_msg_and_die("\nDEVPS_GET_PID_LIST");
 
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_col > 0)
 			terminal_width = win.ws_col - 1;
@@ -262,5 +260,5 @@ extern int ps_main(int argc, char **argv)
 	exit (0);
 }
 
-#endif /* BB_FEATURE_USE_DEVPS_PATCH */
+#endif /* CONFIG_FEATURE_USE_DEVPS_PATCH */
 

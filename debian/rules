@@ -28,8 +28,8 @@ debian/build-stamp-busybox:
 	mkdir -p $(bbbd)
 	cp Makefile $(bbbd)
 	cp debian/Config.h-deb $(bbbd)/Config.h
-	-(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" applet_source_list)
-	(cd $(bbbd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	-(cd $(bbbd); $(MAKE) "CONFIG_SRC_DIR=../../" applet_source_list)
+	(cd $(bbbd); $(MAKE) USE_SYSTEM_PWD_GRP=false "CONFIG_SRC_DIR=../../")
 	touch debian/build-stamp-busybox
 
 install: build
@@ -39,7 +39,7 @@ install: build
 	dh_installdirs
 	# Do not run 'make install', since we do not want all the symlinks. 
 	# This just installes the busybox binary...
-	#(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bb)" install)
+	#(cd $(bbbd); $(MAKE) "CONFIG_SRC_DIR=../../" "PREFIX=../../$(bb)" install)
 	mkdir -p $(bb)/bin/
 	cp $(bbbd)/busybox $(bb)/bin/busybox
 	mkdir -p $(bb)/usr/share/doc/busybox/busybox.lineo.com
@@ -54,7 +54,7 @@ debian/build-stamp-busybox-static:
 	mkdir -p $(bbsbd)
 	cp Makefile $(bbsbd)
 	cp debian/Config.h-static $(bbsbd)/Config.h
-	(cd $(bbsbd); $(MAKE) DOSTATIC=true USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	(cd $(bbsbd); $(MAKE) DOSTATIC=true USE_SYSTEM_PWD_GRP=false "CONFIG_SRC_DIR=../../")
 	touch debian/build-stamp-busybox-static
 
 install-static: build
@@ -64,7 +64,7 @@ install-static: build
 	dh_installdirs
 	# Do not run 'make install', since we do not want all the symlinks. 
 	# This just installes the busybox binary...
-	#(cd $(bbsbd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bbs)" install)
+	#(cd $(bbsbd); $(MAKE) "CONFIG_SRC_DIR=../../" "PREFIX=../../$(bbs)" install)
 	mkdir -p $(bbs)/bin/
 	cp $(bbsbd)/busybox $(bbs)/bin/busybox
 	mkdir -p $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com
@@ -94,7 +94,7 @@ debian/build-stamp-busybox-udeb:
 	mkdir -p $(bbubd)
 	cp Makefile $(bbubd)
 	cp debian/Config.h-udeb $(bbubd)/Config.h
-	(cd $(bbubd); $(MAKE) USE_SYSTEM_PWD_GRP=false "BB_SRC_DIR=../../")
+	(cd $(bbubd); $(MAKE) USE_SYSTEM_PWD_GRP=false "CONFIG_SRC_DIR=../../")
 	touch debian/build-stamp-busybox-udeb
 
 install-udeb: build
@@ -102,7 +102,7 @@ install-udeb: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	(cd $(bbubd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bbu)" install)
+	(cd $(bbubd); $(MAKE) "CONFIG_SRC_DIR=../../" "PREFIX=../../$(bbu)" install)
 	mkdir -p $(bbu)/usr/share/man/man1/
 	cp $(bbubd)/docs/BusyBox.1 $(bbu)/usr/share/man/man1/busybox.1
 

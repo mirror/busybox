@@ -21,8 +21,8 @@
  * Permission has been granted to redistribute this code under the GPL.
  *
  */
-#ifndef	__LIBBB_H__
-#define	__LIBBB_H__    1
+#ifndef	__LIBCONFIG_H__
+#define	__LIBCONFIG_H__    1
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -32,14 +32,10 @@
 #include <netdb.h>
 
 #ifdef DMALLOC
-#include "dmalloc.h"
+#include <dmalloc.h>
 #endif
 
 #include <features.h>
-
-#ifndef _BB_INTERNAL_H_
-#include "../busybox.h"
-#endif
 
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
@@ -295,7 +291,7 @@ extern const char * const name_longer_than_foo;
 extern const char * const unknown;
 extern const char * const can_not_create_raw_socket;
 
-#ifdef BB_FEATURE_DEVFS
+#ifdef CONFIG_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"
 # define VC_1 "/dev/vc/1"
 # define VC_2 "/dev/vc/2"
@@ -323,4 +319,4 @@ extern const char * const can_not_create_raw_socket;
 #define CURRENT_TTY "/dev/tty"
 #define CONSOLE_DEV "/dev/console"
 
-#endif /* __LIBBB_H__ */
+#endif /* __LIBCONFIG_H__ */

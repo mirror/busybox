@@ -1,9 +1,9 @@
 /*
  * Mini xargs implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- * Remixed by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Remixed by Mark Whitley <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ int xargs_main(int argc, char **argv)
 		free(file_to_act_on);
 	}
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	free(cmd_to_be_executed);
 #endif
 

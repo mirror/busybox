@@ -1,9 +1,21 @@
 /*
+ * stolen from net-tools-1.59 and stripped down for busybox by 
+ *			Erik Andersen <andersee@debian.org>
+ *
+ * Heavily modified by Manuel Novoa III       Mar 12, 2001
+ *
+ * Pruned unused code using KEEP_UNUSED define.
+ * Added print_bytes_scaled function to reduce code size.
+ * Added some (potentially) missing defines.
+ * Improved display support for -a and for a named interface.
+ *
+ * -----------------------------------------------------------
+ *
  * ifconfig   This file contains an implementation of the command
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.4 2001/07/19 22:28:02 andersen Exp $
+ * Version:     $Id: interface.c,v 1.5 2001/10/24 04:59:38 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -22,17 +34,6 @@
  *          10/1998  - Andi Kleen. Use interface list primitives.       
  *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu 
  *			(default AF was wrong)
- * stolen from net-tools-1.59 and stripped down for busybox by 
- *			Erik Andersen <andersee@debian.org>
- */
-
-/*
- * Heavily modified by Manuel Novoa III       Mar 12, 2001
- *
- * Pruned unused code using KEEP_UNUSED define.
- * Added print_bytes_scaled function to reduce code size.
- * Added some (potentially) missing defines.
- * Improved display support for -a and for a named interface.
  */
 
 /* #define KEEP_UNUSED */

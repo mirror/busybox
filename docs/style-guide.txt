@@ -252,7 +252,7 @@ files, you can do the following in the busybox directory:
 If you want to convert all the non-K&R vars in your file all at once, follow
 these steps:
 
- - In the busybox directory type 'scripts/mk2knr.pl files-to-convert'. This
+ - In the busybox directory type 'examples/mk2knr.pl files-to-convert'. This
    does not do the actual conversion, rather, it generates a script called
    'convertme.pl' that shows what will be converted, giving you a chance to
    review the changes beforehand.
@@ -269,7 +269,7 @@ these steps:
  
 Please be aware of changes that have cascading effects into other files. For
 example, if you're changing the name of something in, say utility.c, you
-should probably run 'scripts/mk2knr.pl utility.c' at first, but when you run
+should probably run 'examples/mk2knr.pl utility.c' at first, but when you run
 the 'convertme.pl' script you should run it on _all_ files like so:
 './convertme.pl *.[ch]'.
 
@@ -343,7 +343,7 @@ used in the code.
 		ret = my_func(bar, baz);
 		if (!ret)
 			return -1;
-		#ifdef BB_FEATURE_FUNKY
+		#ifdef CONFIG_FEATURE_FUNKY
 			maybe_do_funky_stuff(bar, baz);
 		#endif
 
@@ -351,7 +351,7 @@ used in the code.
 
 	(in .h header file)
 
-		#ifdef BB_FEATURE_FUNKY
+		#ifdef CONFIG_FEATURE_FUNKY
 		static inline void maybe_do_funky_stuff (int bar, int baz)
 		{
 			/* lotsa code in here */
@@ -487,7 +487,7 @@ very limited stack space (e.g., uCLinux).
 A macro is declared in busybox.h that implements compile-time selection
 between xmalloc() and stack creation, so you can code the line in question as
 
-		RESERVE_BB_BUFFER(buffer, BUFSIZ);
+		RESERVE_CONFIG_BUFFER(buffer, BUFSIZ);
 
 and the right thing will happen, based on your configuration.
 

@@ -1,0 +1,71 @@
+lxdialog-hostcflags += -DLOCALE 
+lxdialog-libs = -lncurses
+
+ifeq (/usr/include/ncurses/ncurses.h, $(wildcard /usr/include/ncurses/ncurses.h))
+        lxdialog-hostcflags += -I/usr/include/ncurses -DCURSES_LOC="<ncurses.h>"
+else
+ifeq (/usr/include/ncurses/curses.h, $(wildcard /usr/include/ncurses/curses.h))
+        lxdialog-hostcflags += -I/usr/include/ncurses -DCURSES_LOC="<ncurses/curses.h>"
+else
+ifeq (/usr/include/ncurses.h, $(wildcard /usr/include/ncurses.h))
+        lxdialog-hostcflags += -DCURSES_LOC="<ncurses.h>"
+else
+	lxdialog-hostcflags += -DCURSES_LOC="<curses.h>"
+endif
+endif
+endif
+
+$(tmp_config)lxdialog-ncurses: 
+	@mkdir -p $(lxdialog-objtree)
+	@( \
+	  cd $(lxdialog-objtree) && \
+	  echo "main() {}" > lxtemp.c && \
+	  if $(HOSTCC) -lncurses lxtemp.c ; then \
+		rm -f lxtemp.c a.out && \
+		mkdir -p $(@D) && \
+		touch $@; \
+	  else \
+		rm -f lxtemp.c; \
+		echo -e "\007" ;\
+		echo ">> Unable to find the Ncurses libraries." ;\
+		echo ">>" ;\
+		echo ">> You must have Ncurses installed in order" ;\
+		echo ">> to use 'make menuconfig'" ;\
+		echo ;\
+		exit 1 ;\
+	  fi ; \
+	)
+
+lxdialog-objs   := $(lxdialog-objtree)checklist.o $(lxdialog-objtree)menubox.o \
+                   $(lxdialog-objtree)textbox.o $(lxdialog-objtree)yesno.o \
+                   $(lxdialog-objtree)inputbox.o $(lxdialog-objtree)util.o \
+                   $(lxdialog-objtree)lxdialog.o $(lxdialog-objtree)msgbox.o
+
+$(lxdialog-objtree)checklist.o: $(lxdialog-srctree)checklist.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)menubox.o: $(lxdialog-srctree)menubox.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)textbox.o: $(lxdialog-srctree)textbox.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)yesno.o: $(lxdialog-srctree)yesno.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)inputbox.o: $(lxdialog-srctree)inputbox.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)util.o: $(lxdialog-srctree)util.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)lxdialog.o: $(lxdialog-srctree)lxdialog.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)msgbox.o: $(lxdialog-srctree)msgbox.c $(tmp_config)lxdialog-ncurses
+	$(HOSTCC) $(HOSTCFLAGS) $(lxdialog-hostcflags) -c -o $@ $<
+
+$(lxdialog-objtree)lxdialog: $(lxdialog-objs)
+	$(HOSTCC) -o $@ $(lxdialog-objs) $(lxdialog-libs)
+
+MRPROPER		+= $(lxdialog-objtree)lxdialog

@@ -65,7 +65,7 @@ enum {
 #include <sys/ioctl.h>
 #include "busybox.h"
 
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 #include <time.h>
 #endif
 
@@ -108,7 +108,7 @@ STYLE_COLUMNS = 3		/* fill columns */
 #define DISP_RECURSIVE	(1<<4)	/* show directory and everything below it */
 #define DISP_ROWS		(1<<5)	/* print across rows */
 
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 /* how will the files be sorted */
 static const int SORT_FORWARD = 0;		/* sort in reverse order */
 static const int SORT_REVERSE = 1;		/* sort in reverse order */
@@ -122,7 +122,7 @@ static const int SORT_EXT = 8;		/* sort by file name extension */
 static const int SORT_DIR = 9;		/* sort by file or directory */
 #endif
 
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 /* which of the three times will be used */
 static const int TIME_MOD = 0;
 static const int TIME_CHANGE = 1;
@@ -142,7 +142,7 @@ static const int SPLIT_SUBDIR = 2;
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 #define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
 #endif
 
@@ -164,19 +164,19 @@ static int list_single(struct dnode *);
 static unsigned int disp_opts;
 static unsigned int style_fmt;
 static unsigned int list_fmt;
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 static unsigned int sort_opts;
 static unsigned int sort_order;
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 static unsigned int time_fmt;
 #endif
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
+#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 static unsigned int follow_links=FALSE;
 #endif
 
 static unsigned short column = 0;
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 static unsigned short terminal_width = TERMINAL_WIDTH;
 static unsigned short column_width = COLUMN_WIDTH;
 static unsigned short tabstops = COLUMN_GAP;
@@ -186,13 +186,13 @@ static unsigned short column_width = COLUMN_WIDTH;
 
 static int status = EXIT_SUCCESS;
 
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 static unsigned long ls_disp_hr = 0;
 #endif
 
 static int my_stat(struct dnode *cur)
 {
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
+#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 	if (follow_links == TRUE) {
 		if (stat(cur->fullname, &cur->dstat)) {
 			perror_msg("%s", cur->fullname);
@@ -222,7 +222,7 @@ static void newline(void)
 }
 
 /*----------------------------------------------------------------------*/
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 static char append_char(mode_t mode)
 {
 	if ( !(list_fmt & LIST_FILETYPE))
@@ -304,7 +304,7 @@ static struct dnode **dnalloc(int num)
 	return(p);
 }
 
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 static void dfree(struct dnode **dnp)
 {
 	struct dnode *cur, *next;
@@ -361,7 +361,7 @@ static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 }
 
 /*----------------------------------------------------------------------*/
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 static int sortcmp(struct dnode *d1, struct dnode *d2)
 {
 	int cmp, dif;
@@ -426,13 +426,13 @@ static void shellsort(struct dnode **dn, int size)
 static void showfiles(struct dnode **dn, int nfiles)
 {
 	int i, ncols, nrows, row, nc;
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	int len;
 #endif
 
 	if(dn==NULL || nfiles < 1) return;
 
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	/* find the longest file name-  use that as the column width */
 	column_width= 0;
 	for (i=0; i<nfiles; i++) {
@@ -488,7 +488,7 @@ static void showdirs(struct dnode **dn, int ndirs)
 {
 	int i, nfiles;
 	struct dnode **subdnp;
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 	int dndirs;
 	struct dnode **dnd;
 #endif
@@ -503,17 +503,17 @@ static void showdirs(struct dnode **dn, int ndirs)
 		nfiles= countfiles(subdnp);
 		if (nfiles > 0) {
 			/* list all files at this level */
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 			shellsort(subdnp, nfiles);
 #endif
 			showfiles(subdnp, nfiles);
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 			if (disp_opts & DISP_RECURSIVE) {
 				/* recursive- list the sub-dirs */
 				dnd= splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
 				dndirs= countsubdirs(subdnp, nfiles);
 				if (dndirs > 0) {
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 					shellsort(dnd, dndirs);
 #endif
 					showdirs(dnd, dndirs);
@@ -582,26 +582,26 @@ static int list_single(struct dnode *dn)
 {
 	int i;
 	char scratch[BUFSIZ + 1];
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 	char *filetime;
 	time_t ttime, age;
 #endif
-#if defined (BB_FEATURE_LS_FILETYPES)
+#if defined (CONFIG_FEATURE_LS_FILETYPES)
 	struct stat info;
 #endif
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 	char append;
 #endif
 
 	if (dn==NULL || dn->fullname==NULL) return(0);
 
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 	ttime= dn->dstat.st_mtime;      /* the default time */
 	if (time_fmt & TIME_ACCESS) ttime= dn->dstat.st_atime;
 	if (time_fmt & TIME_CHANGE) ttime= dn->dstat.st_ctime;
 	filetime= ctime(&ttime);
 #endif
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 	append = append_char(dn->dstat.st_mode);
 #endif
 
@@ -612,7 +612,7 @@ static int list_single(struct dnode *dn)
 				column += 8;
 				break;
 			case LIST_BLOCKS:
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 				fprintf(stdout, "%6s ", make_human_readable_str(dn->dstat.st_blocks>>1, 
 							KILOBYTE, (ls_disp_hr==TRUE)? 0: KILOBYTE));
 #else
@@ -633,7 +633,7 @@ static int list_single(struct dnode *dn)
 				column += 10;
 				break;
 			case LIST_ID_NAME:
-#ifdef BB_FEATURE_LS_USERNAME
+#ifdef CONFIG_FEATURE_LS_USERNAME
 				my_getpwuid(scratch, dn->dstat.st_uid);
 				printf("%-8.8s ", scratch);
 				my_getgrgid(scratch, dn->dstat.st_gid);
@@ -650,7 +650,7 @@ static int list_single(struct dnode *dn)
 				if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
 					printf("%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 					if (ls_disp_hr==TRUE) {
 						fprintf(stdout, "%8s ", make_human_readable_str(dn->dstat.st_size, 1, 0));
 					} else 
@@ -665,7 +665,7 @@ static int list_single(struct dnode *dn)
 				}
 				column += 10;
 				break;
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 			case LIST_FULLTIME:
 			case LIST_DATE_TIME:
 				if (list_fmt & LIST_FULLTIME) {
@@ -693,7 +693,7 @@ static int list_single(struct dnode *dn)
 					char *lpath = xreadlink(dn->fullname);
 					if (lpath) {
 						printf(" -> %s", lpath);
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 						if (!stat(dn->fullname, &info)) {
 							append = append_char(info.st_mode);
 						}
@@ -703,7 +703,7 @@ static int list_single(struct dnode *dn)
 					}
 				}
 				break;
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 			case LIST_FILETYPE:
 				if (append != '\0') {
 					printf("%1c", append);
@@ -727,21 +727,21 @@ extern int ls_main(int argc, char **argv)
 	int opt;
 	int oi, ac;
 	char **av;
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 #endif
 
 	disp_opts= DISP_NORMAL;
 	style_fmt= STYLE_AUTO;
 	list_fmt=  LIST_SHORT;
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 	sort_opts= SORT_NAME;
 	sort_order=	SORT_FORWARD;
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 	time_fmt= TIME_MOD;
 #endif
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	ioctl(fileno(stdout), TIOCGWINSZ, &win);
 	if (win.ws_row > 4)
 		column_width = win.ws_row - 2;
@@ -752,25 +752,25 @@ extern int ls_main(int argc, char **argv)
 
 	/* process options */
 	while ((opt = getopt(argc, argv, "1AaCdgilnsx"
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 "T:w:"
 #endif
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 "Fp"
 #endif
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 "R"
 #endif
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 "rSvX"
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 "cetu"
 #endif
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
+#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 "L"
 #endif
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 "h"
 #endif
 "k")) > 0) {
@@ -785,54 +785,54 @@ extern int ls_main(int argc, char **argv)
 			case 'l':
 				style_fmt = STYLE_LONG;
 				list_fmt |= LIST_LONG;
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 				ls_disp_hr = FALSE;
 #endif
 			break;
 			case 'n': list_fmt |= LIST_ID_NUMERIC; break;
 			case 's': list_fmt |= LIST_BLOCKS; break;
 			case 'x': disp_opts = DISP_ROWS; break;
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
 			case 'F': list_fmt |= LIST_FILETYPE | LIST_EXEC; break;
 			case 'p': list_fmt |= LIST_FILETYPE; break;
 #endif
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 			case 'R': disp_opts |= DISP_RECURSIVE; break;
 #endif
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 			case 'r': sort_order |= SORT_REVERSE; break;
 			case 'S': sort_opts= SORT_SIZE; break;
 			case 'v': sort_opts= SORT_VERSION; break;
 			case 'X': sort_opts= SORT_EXT; break;
 #endif
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 			case 'e': list_fmt |= LIST_FULLTIME; break;
 			case 'c':
 				time_fmt = TIME_CHANGE;
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 				sort_opts= SORT_CTIME;
 #endif
 				break;
 			case 'u':
 				time_fmt = TIME_ACCESS;
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 				sort_opts= SORT_ATIME;
 #endif
 				break;
 			case 't':
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 				sort_opts= SORT_MTIME;
 #endif
 				break;
 #endif
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
+#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 			case 'L': follow_links= TRUE; break;
 #endif
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 			case 'T': tabstops= atoi(optarg); break;
 			case 'w': terminal_width= atoi(optarg); break;
 #endif
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 			case 'h': ls_disp_hr = TRUE; break;
 #endif
 			case 'k': break;
@@ -842,17 +842,17 @@ extern int ls_main(int argc, char **argv)
 	}
 
 	/* sort out which command line options take precedence */
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
 	if (disp_opts & DISP_NOLIST)
 		disp_opts &= ~DISP_RECURSIVE;   /* no recurse if listing only dir */
 #endif
-#if defined (BB_FEATURE_LS_TIMESTAMPS) && defined (BB_FEATURE_LS_SORTFILES)
+#if defined (CONFIG_FEATURE_LS_TIMESTAMPS) && defined (CONFIG_FEATURE_LS_SORTFILES)
 	if (time_fmt & TIME_CHANGE) sort_opts= SORT_CTIME;
 	if (time_fmt & TIME_ACCESS) sort_opts= SORT_ATIME;
 #endif
 	if (style_fmt != STYLE_LONG)
 			list_fmt &= ~LIST_ID_NUMERIC;  /* numeric uid only for long list */
-#ifdef BB_FEATURE_LS_USERNAME
+#ifdef CONFIG_FEATURE_LS_USERNAME
 	if (style_fmt == STYLE_LONG && (list_fmt & LIST_ID_NUMERIC))
 			list_fmt &= ~LIST_ID_NAME;  /* don't list names if numeric uid */
 #endif
@@ -908,7 +908,7 @@ extern int ls_main(int argc, char **argv)
 
 
 	if (disp_opts & DISP_NOLIST) {
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 		shellsort(dnp, nfiles);
 #endif
 		if (nfiles > 0) showfiles(dnp, nfiles);
@@ -918,13 +918,13 @@ extern int ls_main(int argc, char **argv)
 		dndirs= countdirs(dnp, nfiles);
 		dnfiles= nfiles - dndirs;
 		if (dnfiles > 0) {
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 			shellsort(dnf, dnfiles);
 #endif
 			showfiles(dnf, dnfiles);
 		}
 		if (dndirs > 0) {
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 			shellsort(dnd, dndirs);
 #endif
 			showdirs(dnd, dndirs);

@@ -84,8 +84,8 @@ int uuencode_main(int argc, char **argv)
 {
 	const int src_buf_size = 60;	// This *MUST* be a multiple of 3
 	const int dst_buf_size = 4 * ((src_buf_size + 2) / 3);
-	RESERVE_BB_BUFFER(src_buf, src_buf_size + 1);
-	RESERVE_BB_BUFFER(dst_buf, dst_buf_size + 1);
+	RESERVE_CONFIG_BUFFER(src_buf, src_buf_size + 1);
+	RESERVE_CONFIG_BUFFER(dst_buf, dst_buf_size + 1);
 	struct stat stat_buf;
 	FILE *src_stream = stdin;
 	char *tbl = tbl_std;

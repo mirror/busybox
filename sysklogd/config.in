@@ -1,0 +1,16 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'System Logging Utilities'
+
+bool 'klogd'	    CONFIG_KLOGD
+bool 'logger'	    CONFIG_LOGGER
+bool 'logread'	    CONFIG_LOGREAD
+bool 'syslogd'	    CONFIG_SYSLOGD
+
+
+endmenu
+

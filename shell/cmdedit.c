@@ -43,7 +43,7 @@
 
 #include "busybox.h"
 
-#ifdef BB_LOCALE_SUPPORT
+#ifdef CONFIG_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
 #else
 #define Isprint(c) ( (c) >= ' ' && (c) != ((unsigned char)'\233') )
@@ -55,32 +55,32 @@
 
 #else
 
-#define BB_FEATURE_COMMAND_EDITING
-#define BB_FEATURE_COMMAND_TAB_COMPLETION
-#define BB_FEATURE_COMMAND_USERNAME_COMPLETION
-#define BB_FEATURE_NONPRINTABLE_INVERSE_PUT
-#define BB_FEATURE_CLEAN_UP
+#define CONFIG_FEATURE_COMMAND_EDITING
+#define CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+#define CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+#define CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
+#define CONFIG_FEATURE_CLEAN_UP
 
 #define D(x)  x
 
 #endif							/* TEST */
 
-#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 #include <dirent.h>
 #include <sys/stat.h>
 #endif
 
-#ifdef BB_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
 
-#ifndef BB_FEATURE_COMMAND_TAB_COMPLETION
-#undef  BB_FEATURE_COMMAND_USERNAME_COMPLETION
+#ifndef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+#undef  CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 #endif
 
-#if defined(BB_FEATURE_COMMAND_USERNAME_COMPLETION) || defined(BB_FEATURE_SH_FANCY_PROMPT)
-#define BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#if defined(CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION) || defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
+#define CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #endif
 
-#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #       ifndef TEST
 #               include "pwd_grp/pwd.h"
 #       else
@@ -136,33 +136,33 @@ static int cursor;		/* required global for signal handler */
 static int len;			/* --- "" - - "" - -"- --""-- --""--- */
 static char *command_ps;	/* --- "" - - "" - -"- --""-- --""--- */
 static
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	const
 #endif
 char *cmdedit_prompt;		/* --- "" - - "" - -"- --""-- --""--- */
 
-#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 static char *user_buf = "";
 static char *home_pwd_buf = "";
 static int my_euid;
 #endif
 
-#ifdef BB_FEATURE_SH_FANCY_PROMPT
+#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 static char *hostname_buf = "";
 static int num_ok_lines = 1;
 #endif
 
 
-#ifdef  BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef  CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 
-#ifndef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifndef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 static int my_euid;
 #endif
 
 static int my_uid;
 static int my_gid;
 
-#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
+#endif	/* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
 /* It seems that libc5 doesn't know what a sighandler_t is... */
 #if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
@@ -207,7 +207,7 @@ static void cmdedit_reset_term(void)
 		handlers_sets &= ~SET_WCHG_HANDLERS;
 	}
 	fflush(stdout);
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	if (his_front) {
 		struct history *n;
 
@@ -230,7 +230,7 @@ static void cmdedit_set_out_char(int next_char)
 
 	if (c == 0)
 		c = ' ';	/* destroy end char? */
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 	if (!Isprint(c)) {	/* Inverse put non-printable characters */
 		if (c >= 128)
 			c -= 128;
@@ -321,7 +321,7 @@ static void put_prompt(void)
 	cmdedit_y = 0;                  /* new quasireal y */
 }
 
-#ifndef BB_FEATURE_SH_FANCY_PROMPT
+#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 static void parse_prompt(const char *prmt_ptr)
 {
 	cmdedit_prompt = prmt_ptr;
@@ -359,7 +359,7 @@ static void parse_prompt(const char *prmt_ptr)
 				break;
 			  c = *prmt_ptr++;
 			  switch (c) {
-#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 			  case 'u':
 				pbuf = user_buf;
 				break;
@@ -382,7 +382,7 @@ static void parse_prompt(const char *prmt_ptr)
 			  case '$':
 				c = my_euid == 0 ? '#' : '$';
 				break;
-#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 			  case 'w':
 				pbuf = pwd_buf;
 				l = strlen(home_pwd_buf);
@@ -526,7 +526,7 @@ static void cmdedit_init(void)
 	}
 
 	if ((handlers_sets & SET_ATEXIT) == 0) {
-#ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 		struct passwd *entry;
 
 		my_euid = geteuid();
@@ -537,20 +537,20 @@ static void cmdedit_init(void)
 		}
 #endif
 
-#ifdef  BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef  CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 
-#ifndef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
+#ifndef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 		my_euid = geteuid();
 #endif
 		my_uid = getuid();
 		my_gid = getgid();
-#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
+#endif	/* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 		handlers_sets |= SET_ATEXIT;
 		atexit(cmdedit_reset_term);	/* be sure to do this only once */
 	}
 }
 
-#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 
 static int is_execute(const struct stat *st)
 {
@@ -561,7 +561,7 @@ static int is_execute(const struct stat *st)
 	return FALSE;
 }
 
-#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 
 static char **username_tab_completion(char *ud, int *num_matches)
 {
@@ -623,7 +623,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 		return (matches);
 	}
 }
-#endif	/* BB_FEATURE_COMMAND_USERNAME_COMPLETION */
+#endif	/* CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION */
 
 enum {
 	FIND_EXE_ONLY = 0,
@@ -720,7 +720,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 		strcpy(dirbuf, command);
 		/* set dir only */
 		dirbuf[(pfind - command) + 1] = 0;
-#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')	/* ~/... or ~user/... */
 			username_tab_completion(dirbuf, 0);
 #endif
@@ -826,12 +826,12 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 			collapse_pos(j, j + 1);
 			int_buf[j] |= QUOT;
 			i++;
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 			if (matchBuf[i] == '\t')	/* algorithm equivalent */
 				int_buf[j] = ' ' | QUOT;
 #endif
 		}
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 		else if (matchBuf[i] == '\t')
 			int_buf[j] = ' ';
 #endif
@@ -1000,7 +1000,7 @@ static void input_tab(int *lastWasTab)
 		/* Free up any memory already allocated */
 		input_tab(0);
 
-#ifdef BB_FEATURE_COMMAND_USERNAME_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word,
 		 * then try completing this word as a username. */
 
@@ -1119,7 +1119,7 @@ static void input_tab(int *lastWasTab)
 		}
 	}
 }
-#endif	/* BB_FEATURE_COMMAND_TAB_COMPLETION */
+#endif	/* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
 static void get_previous_history(struct history **hp, struct history *p)
 {
@@ -1232,7 +1232,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
 prepare_to_die:
-#if !defined(BB_ASH)
+#if !defined(CONFIG_ASH)
 				printf("exit");
 				goto_new_line();
 				/* cmdedit_reset_term() called in atexit */
@@ -1259,7 +1259,7 @@ prepare_to_die:
 			input_backspace();
 			break;
 		case '\t':
-#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 			input_tab(&lastWasTab);
 #endif
 			break;
@@ -1299,7 +1299,7 @@ prepare_to_die:
 					goto prepare_to_die;
 			}
 			switch (c) {
-#ifdef BB_FEATURE_COMMAND_TAB_COMPLETION
+#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 			case '\t':			/* Alt-Tab */
 
 				input_tab(&lastWasTab);
@@ -1367,7 +1367,7 @@ prepare_to_die:
 		}
 
 		default:	/* If it's regular input, do the normal thing */
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 			/* Control-V -- Add non-printable symbol */
 			if (c == 22) {
 				if (safe_read(0, &c, 1) < 1)
@@ -1457,7 +1457,7 @@ prepare_to_die:
 				history_counter++;
 			}
 		}
-#if defined(BB_FEATURE_SH_FANCY_PROMPT)
+#if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 		num_ok_lines++;
 #endif
 	}
@@ -1465,10 +1465,10 @@ prepare_to_die:
 	command[len++] = '\n';		/* set '\n' */
 	command[len] = 0;
 	}
-#if defined(BB_FEATURE_CLEAN_UP) && defined(BB_FEATURE_COMMAND_TAB_COMPLETION)
+#if defined(CONFIG_FEATURE_CLEAN_UP) && defined(CONFIG_FEATURE_COMMAND_TAB_COMPLETION)
 	input_tab(0);				/* strong free */
 #endif
-#if defined(BB_FEATURE_SH_FANCY_PROMPT)
+#if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 	free(cmdedit_prompt);
 #endif
 	cmdedit_reset_term();
@@ -1477,7 +1477,7 @@ prepare_to_die:
 
 
 
-#endif	/* BB_FEATURE_COMMAND_EDITING */
+#endif	/* CONFIG_FEATURE_COMMAND_EDITING */
 
 
 #ifdef TEST
@@ -1485,7 +1485,7 @@ prepare_to_die:
 const char *applet_name = "debug stuff usage";
 const char *memory_exhausted = "Memory exhausted";
 
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #include <locale.h>
 #endif
 
@@ -1493,7 +1493,7 @@ int main(int argc, char **argv)
 {
 	char buff[BUFSIZ];
 	char *prompt =
-#if defined(BB_FEATURE_SH_FANCY_PROMPT)
+#if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:\
 \\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] \
 \\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";
@@ -1501,7 +1501,7 @@ int main(int argc, char **argv)
 		"% ";
 #endif
 
-#ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
+#ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 	setlocale(LC_ALL, "");
 #endif
 	while(1) {

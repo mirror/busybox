@@ -11,14 +11,14 @@
 
 $logfile = "multifeat.log";
 
-# How to handle all the BB_APPLET lines
+# How to handle all the CONFIG_APPLET lines
 # (most thorough testing occurs when you call it with the -all switch)
 if ($ARGV[0] eq "-all" ) { shift(@ARGV); $choice="all"; }
 if ($ARGV[0] eq "-none") { shift(@ARGV); $choice="none"; }
 # neither means, leave that part of Config.h alone
 
 # Support building from pristine source
-$make_opt = "-f $ARGV[0]/Makefile BB_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
+$make_opt = "-f $ARGV[0]/Makefile CONFIG_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
 
 # Move the config file to a safe place
 -e "Config.h.orig" || 0==system("mv -f Config.h Config.h.orig") || die;
@@ -42,7 +42,7 @@ while (<C>) {
 		}
 	}
 	elsif ($in_features) {
-		if (/^\/*#define BB_FEATURE_([A-Z0-9_]*)/) {
+		if (/^\/*#define CONFIG_FEATURE_([A-Z0-9_]*)/) {
 			push @features, $1;
 		}
 		if (/End of Features List/) {
@@ -60,7 +60,7 @@ $failed_tests=0;
 for $f (@features) {
 	# print "Testing build with feature $f ...\n";
 	open (O, ">Config.h") || die;
-	print O $header, "#define BB_FEATURE_$f\n", $trailer;
+	print O $header, "#define CONFIG_FEATURE_$f\n", $trailer;
 	close O;
 	system("echo -e '\n***\n$f\n***' >>$logfile");
 	# With a fast computer and 1-second resolution on file timestamps, this

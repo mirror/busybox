@@ -56,7 +56,7 @@ enum {
 	CMD_INFO = 12,
 	CMD_CHANGE = 13,
 
-#ifdef BB_FEATURE_FBSET_FANCY
+#ifdef CONFIG_FEATURE_FBSET_FANCY
 	CMD_XRES = 100,
 	CMD_YRES = 101,
 	CMD_VXRES = 102,
@@ -149,7 +149,7 @@ static struct cmdoptions_t {
 	"-laced", 1, CMD_LACED}, {
 	"-double", 1, CMD_DOUBLE}, {
 	"-n", 0, CMD_CHANGE}, {
-#ifdef BB_FEATURE_FBSET_FANCY
+#ifdef CONFIG_FEATURE_FBSET_FANCY
 	"-all", 0, CMD_ALL}, {
 	"-xres", 1, CMD_XRES}, {
 	"-yres", 1, CMD_YRES}, {
@@ -177,7 +177,7 @@ static struct cmdoptions_t {
 	0, 0, 0}
 };
 
-#ifdef BB_FEATURE_FBSET_READMODE
+#ifdef CONFIG_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
 static const int FB_VMODE_INTERLACED = 1;	/* interlaced	*/
 static const int FB_VMODE_DOUBLE = 2;	/* double scan */
@@ -189,7 +189,7 @@ static const int FB_SYNC_COMP_HIGH_ACT = 8;	/* composite sync high active   */
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
-#ifdef BB_FEATURE_FBSET_READMODE
+#ifdef CONFIG_FEATURE_FBSET_READMODE
 	FILE *f;
 	char buf[256];
 	char *p = buf;
@@ -313,7 +313,7 @@ static void showmode(struct fb_var_screeninfo *v)
 					 v->vsync_len);
 	}
 	printf("\nmode \"%ux%u-%u\"\n", v->xres, v->yres, (int) (vrate + 0.5));
-#ifdef BB_FEATURE_FBSET_FANCY
+#ifdef CONFIG_FEATURE_FBSET_FANCY
 	printf("\t# D: %.3f MHz, H: %.3f kHz, V: %.3f Hz\n", drate / 1e6,
 		   hrate / 1e3, vrate);
 #endif
@@ -377,7 +377,7 @@ extern int fbset_main(int argc, char **argv)
                 case CMD_CHANGE:
                     g_options |= OPT_CHANGE;
                     break;
-#ifdef BB_FEATURE_FBSET_FANCY
+#ifdef CONFIG_FEATURE_FBSET_FANCY
 				case CMD_XRES:
 					varset.xres = strtoul(argv[1], 0, 0);
 					break;

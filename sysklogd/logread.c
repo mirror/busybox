@@ -38,7 +38,7 @@
 #if __GNU_LIBRARY__ < 5
 #error Sorry.  Looks like you are using libc5.  
 #error libc5 shm support isnt good enough.
-#error Please disable BB_FEATURE_IPC_SYSLOG 
+#error Please disable CONFIG_FEATURE_IPC_SYSLOG 
 #endif	
 
 

@@ -24,7 +24,7 @@
 #ifndef	_BB_INTERNAL_H_
 #define	_BB_INTERNAL_H_    1
 
-#include "Config.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -34,7 +34,7 @@
 #define BB_BANNER "BusyBox v" BB_VER " (" BB_BT ")"
 
 #ifdef DMALLOC
-#include "dmalloc.h"
+#include <dmalloc.h>
 #endif
 
 #include <features.h>
@@ -66,19 +66,19 @@ extern const struct BB_applet applets[];
 #include "applets.h"
 #undef PROTOTYPES
 
-#ifdef BB_FEATURE_BUFFERS_GO_ON_STACK
-#define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
-#define RESERVE_BB_UBUFFER(buffer,len) unsigned char buffer[len]
-#define RELEASE_BB_BUFFER(buffer)      ((void)0)
+#ifdef CONFIG_FEATURE_BUFFERS_GO_ON_STACK
+#define RESERVE_CONFIG_BUFFER(buffer,len)           char buffer[len]
+#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char buffer[len]
+#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
 #else
-#ifdef BB_FEATURE_BUFFERS_GO_IN_BSS
-#define RESERVE_BB_BUFFER(buffer,len)  static          char buffer[len]
-#define RESERVE_BB_UBUFFER(buffer,len) static unsigned char buffer[len]
-#define RELEASE_BB_BUFFER(buffer)      ((void)0)
+#ifdef CONFIG_FEATURE_BUFFERS_GO_IN_BSS
+#define RESERVE_CONFIG_BUFFER(buffer,len)  static          char buffer[len]
+#define RESERVE_CONFIG_UBUFFER(buffer,len) static unsigned char buffer[len]
+#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
 #else
-#define RESERVE_BB_BUFFER(buffer,len)           char *buffer=xmalloc(len)
-#define RESERVE_BB_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
-#define RELEASE_BB_BUFFER(buffer)      free (buffer)
+#define RESERVE_CONFIG_BUFFER(buffer,len)           char *buffer=xmalloc(len)
+#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
+#define RELEASE_CONFIG_BUFFER(buffer)      free (buffer)
 #endif
 #endif
 
@@ -99,7 +99,7 @@ extern const struct BB_applet applets[];
 
 
 /* Pull in the utility routines from libbb */
-#include "libbb/libbb.h"
+#include "libbb.h"
 
 
 

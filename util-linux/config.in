@@ -1,0 +1,27 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'Linux System Utilities'
+
+
+bool 'dmesg'		    CONFIG_DMESG
+bool 'fbset'		    CONFIG_FBSET
+bool 'fdflush'		    CONFIG_FDFLUSH
+bool 'freeramdisk'	    CONFIG_FREERAMDISK
+bool 'fsck_minix'	    CONFIG_FSCK_MINIX
+bool 'getopt'		    CONFIG_GETOPT
+bool 'mkfs_minix'	    CONFIG_MKFS_MINIX
+bool 'mkswap'		    CONFIG_MKSWAP
+bool 'more'		    CONFIG_MORE
+bool 'mount'		    CONFIG_MOUNT
+bool 'nfsmount'		    CONFIG_NFSMOUNT
+bool 'pivot_root'	    CONFIG_PIVOT_ROOT
+bool 'rdate'		    CONFIG_RDATE
+bool 'swaponoff'	    CONFIG_SWAPONOFF
+bool 'umount'		    CONFIG_UMOUNT
+
+endmenu
+

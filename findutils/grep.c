@@ -1,8 +1,8 @@
 /*
  * Mini grep implementation for busybox using libc regex.
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
+ * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
+ * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org> 
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,13 +42,13 @@ static int invert_search      = 0;
 static int suppress_err_msgs  = 0;
 static int print_files_with_matches  = 0;
 
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 extern char *optarg; /* in getopt.h */
 static int lines_before      = 0;
 static int lines_after       = 0;
 static char **before_buf     = NULL;
 static int last_line_printed = 0;
-#endif /* BB_FEATURE_GREP_CONTEXT */
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */
 
 /* globals used internally */
 static regex_t *regexes = NULL; /* growable array of compiled regular expressions */
@@ -59,7 +59,7 @@ static char *cur_file = NULL; /* the current file we are reading */
 
 static void print_line(const char *line, int linenum, char decoration)
 {
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 	/* possibly print the little '--' seperator */
 	if ((lines_before || lines_after) && last_line_printed &&
 			last_line_printed < linenum - 1) {
@@ -82,11 +82,11 @@ static void grep_file(FILE *file)
 	int linenum = 0;
 	int nmatches = 0;
 	int i;
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 	int print_n_lines_after = 0;
 	int curpos = 0; /* track where we are in the circular 'before' buffer */
 	int idx = 0; /* used for iteration through the circular buffer */
-#endif /* BB_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
 
 	while ((line = get_line_from_file(file)) != NULL) {
 		chomp(line);
@@ -116,7 +116,7 @@ static void grep_file(FILE *file)
 
 				/* print the matched line */
 				if (print_match_counts == 0) {
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 					int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
 					/* if we were told to print 'before' lines and there is at least
@@ -145,11 +145,11 @@ static void grep_file(FILE *file)
 
 					/* make a note that we need to print 'after' lines */
 					print_n_lines_after = lines_after;
-#endif /* BB_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
 					print_line(line, linenum, ':');
 				}
 			}
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 			else { /* no match */
 				/* Add the line to the circular 'before' buffer */
 				if(lines_before) {
@@ -165,7 +165,7 @@ static void grep_file(FILE *file)
 				print_line(line, linenum, '-');
 				print_n_lines_after--;
 			}
-#endif /* BB_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
 		} /* for */
 		free(line);
 	}
@@ -215,7 +215,7 @@ static void	load_regexes_from_file(const char *filename)
 }
 
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_regexes()
 {
 	if (regexes == NULL)
@@ -233,11 +233,11 @@ static void destroy_regexes()
 extern int grep_main(int argc, char **argv)
 {
 	int opt;
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 	char *junk;
 #endif
 
-#ifdef BB_FEATURE_CLEAN_UP
+#ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_regexes) == -1)
 		perror_msg_and_die("atexit");
@@ -245,7 +245,7 @@ extern int grep_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "iHhlnqvsce:f:"
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 "A:B:C:"
 #endif
 )) > 0) {
@@ -283,7 +283,7 @@ extern int grep_main(int argc, char **argv)
 			case 'f':
 				load_regexes_from_file(optarg);
 				break;
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 			case 'A':
 				lines_after = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
@@ -301,7 +301,7 @@ extern int grep_main(int argc, char **argv)
 					error_msg_and_die("invalid context length argument");
 				before_buf = (char **)calloc(lines_before, sizeof(char *));
 				break;
-#endif /* BB_FEATURE_GREP_CONTEXT */
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */
 			default:
 				show_usage();
 		}
@@ -321,7 +321,7 @@ extern int grep_main(int argc, char **argv)
 	/* sanity checks */
 	if (print_match_counts || be_quiet || print_files_with_matches) {
 		print_line_num = 0;
-#ifdef BB_FEATURE_GREP_CONTEXT
+#ifdef CONFIG_FEATURE_GREP_CONTEXT
 		lines_before = 0;
 		lines_after = 0;
 #endif

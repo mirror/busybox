@@ -155,11 +155,11 @@ extern int tr_main(int argc, char **argv)
 	int output_length=0, input_length;
 	int idx = 1;
 	int i;
-	RESERVE_BB_BUFFER(output, BUFSIZ);
-	RESERVE_BB_BUFFER(input,  BUFSIZ);
-	RESERVE_BB_UBUFFER(vector, ASCII+1);
-	RESERVE_BB_BUFFER(invec,  ASCII+1);
-	RESERVE_BB_BUFFER(outvec, ASCII+1);
+	RESERVE_CONFIG_BUFFER(output, BUFSIZ);
+	RESERVE_CONFIG_BUFFER(input,  BUFSIZ);
+	RESERVE_CONFIG_UBUFFER(vector, ASCII+1);
+	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
+	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
 
 	/* ... but make them available globally */
 	poutput = output;

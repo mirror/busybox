@@ -10,7 +10,7 @@
 BUSYBOX=../busybox
 TESTCASES=testcases
 LOGFILE=tester.log
-BB_OUT=bb.out
+CONFIG_OUT=bb.out
 GNU_OUT=gnu.out
 SETUP=""
 CLEANUP=""
@@ -25,7 +25,7 @@ do
 		p) BUSYBOX=$OPTARG; ;;
 		t) TESTCASES=$OPTARG; ;;
 		l) LOGFILE=$OPTARG; ;;
-#		b) BB_OUT=$OPTARG; ;;
+#		b) CONFIG_OUT=$OPTARG; ;;
 #		g) GNU_OUT=$OPTARG; ;;
 		s) SETUP=$OPTARG; ;;
 		c) CLEANUP=$OPTARG; ;;
@@ -59,7 +59,7 @@ then
 	echo "BUSYBOX=$BUSYBOX"
 	echo "TESTCASES=$TESTCASES"
 	echo "LOGFILE=$LOGFILE"
-	echo "BB_OUT=$BB_OUT"
+	echo "CONFIG_OUT=$CONFIG_OUT"
 	echo "GNU_OUT=$GNU_OUT"
 	echo "SETUP=$SETUP"
 	echo "CLEANUP=$CLEANUP"
@@ -129,14 +129,14 @@ do
 
 				# execute line using busybox programs
 				[ $DEBUG -ge 2 ] && echo "testing: $line" | tee -a $LOGFILE
-				sh -c "$line" > $BB_OUT
+				sh -c "$line" > $CONFIG_OUT
 
 				# see if they match
-				diff -q $BB_OUT $GNU_OUT > /dev/null
+				diff -q $CONFIG_OUT $GNU_OUT > /dev/null
 				if [ $? -eq 1 ]
 				then
 					[ $DEBUG -ge 1 ] && echo "FAILED: $line" | tee -a $LOGFILE
-					diff -u $BB_OUT $GNU_OUT >> $LOGFILE 
+					diff -u $CONFIG_OUT $GNU_OUT >> $LOGFILE 
 				fi
 			fi
 		fi
@@ -147,7 +147,7 @@ done
 
 
 # do normal cleanup
-[ "$KEEPTMPFILES" = "no" ] && rm -f $BB_OUT $GNU_OUT
+[ "$KEEPTMPFILES" = "no" ] && rm -f $CONFIG_OUT $GNU_OUT
 
 
 # do extra cleanup (if any)

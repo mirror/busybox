@@ -17,15 +17,14 @@ Copyright 1998 Dave Cinege <dcinege@psychosis.com>
 mini-gzip(gzip), mini-netcat(mnc)
 Copyright 1998 Charles P. Wright <cpwright@villagenet.com>
 
-Tons of new stuff as noted in header files
-Copyright (C) 1999,2000,2001 by Lineo, inc. and written by 
-Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
-
+Tons of new stuff as noted in header files 
+Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen and Erik Andersen
+Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
 
 
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 
-	<andersen@lineo.com>
+	<andersen@codepoet.org>
 	<andersee@debian.org>
 
 

@@ -43,7 +43,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "busybox.h"
-#ifdef BB_SYSLOGD
+#ifdef CONFIG_SYSLOGD
 # include <sys/syslog.h>
 #endif
 
@@ -96,7 +96,7 @@ static const int RB_AUTOBOOT = 0x01234567;
 #endif
 
 
-#if defined BB_FEATURE_INIT_COREDUMPS
+#if defined CONFIG_FEATURE_INIT_COREDUMPS
 /*
  * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called 
  * before processes are spawned to set core file size as unlimited.
@@ -194,7 +194,7 @@ static void message(int device, char *fmt, ...)
 	va_list arguments;
 	int fd;
 
-#ifdef BB_SYSLOGD
+#ifdef CONFIG_SYSLOGD
 
 	/* Log the message to syslogd */
 	if (device & LOG) {
@@ -546,7 +546,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 				getpid(), terminal, command);
 #endif
 
-#if defined BB_FEATURE_INIT_COREDUMPS
+#if defined CONFIG_FEATURE_INIT_COREDUMPS
 		if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
 			struct rlimit limit;
 			limit.rlim_cur = RLIM_INFINITY;
@@ -701,7 +701,7 @@ static void ctrlaltdel_signal(int sig)
 static void new_initAction(initActionEnum action, char *process, char *cons)
 {
 	initAction *newAction;
-#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+#ifdef CONFIG_FEATURE_INIT_NORMAL_ORDER
 	initAction *a;
 #endif
 
@@ -723,7 +723,7 @@ static void new_initAction(initActionEnum action, char *process, char *cons)
 		message(LOG | CONSOLE, "Memory allocation failure\n");
 		loop_forever();
 	}
-#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+#ifdef CONFIG_FEATURE_INIT_NORMAL_ORDER
 	for (a = initActionList; a && a->nextPtr; a = a->nextPtr) ;
 	if (a) {
 		a->nextPtr = newAction;
@@ -759,16 +759,16 @@ static void delete_initAction(initAction * action)
 	}
 }
 
-/* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
+/* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
  * actions(i.e., runs INIT_SCRIPT and then starts a pair 
- * of "askfirst" shells).  If BB_FEATURE_USE_INITTAB 
+ * of "askfirst" shells).  If CONFIG_FEATURE_USE_INITTAB 
  * _is_ defined, but /etc/inittab is missing, this 
  * results in the same set of default behaviors.
  * */
 static void parse_inittab(void)
 {
-#ifdef BB_FEATURE_USE_INITTAB
+#ifdef CONFIG_FEATURE_USE_INITTAB
 	FILE *file;
 	char buf[256], lineAsRead[256], tmpConsole[256];
 	char *id, *runlev, *action, *process, *eol;
@@ -782,7 +782,7 @@ static void parse_inittab(void)
 #endif
 		/* Reboot on Ctrl-Alt-Del */
 		new_initAction(CTRLALTDEL, "/sbin/reboot", console);
-#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+#ifdef CONFIG_FEATURE_INIT_NORMAL_ORDER
 		/* Umount all filesystems on halt/reboot */
 		new_initAction(SHUTDOWN, "/bin/umount -a -r", console);
 		/* Swapoff on halt/reboot */
@@ -808,7 +808,7 @@ static void parse_inittab(void)
 		new_initAction(SYSINIT, INIT_SCRIPT, console);
 
 		return;
-#ifdef BB_FEATURE_USE_INITTAB
+#ifdef CONFIG_FEATURE_USE_INITTAB
 	}
 
 	while (fgets(buf, 255, file) != NULL) {
@@ -880,7 +880,7 @@ static void parse_inittab(void)
 		}
 	}
 	return;
-#endif /* BB_FEATURE_USE_INITTAB */
+#endif /* CONFIG_FEATURE_USE_INITTAB */
 }
 
 
@@ -894,7 +894,7 @@ extern int init_main(int argc, char **argv)
 #ifndef DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1
-#ifdef BB_FEATURE_LINUXRC
+#ifdef CONFIG_FEATURE_INITRD
 			&& strstr(applet_name, "linuxrc") == NULL
 #endif
 	                  )
@@ -933,14 +933,14 @@ extern int init_main(int argc, char **argv)
 	/* Hello world */
 #ifndef DEBUG_INIT
 	message(
-#if ! defined BB_FEATURE_EXTRA_QUIET
+#if ! defined CONFIG_FEATURE_EXTRA_QUIET
 			CONSOLE|
 #endif
 			LOG,
 			"init started:  %s\r\n", full_version);
 #else
 	message(
-#if ! defined BB_FEATURE_EXTRA_QUIET
+#if ! defined CONFIG_FEATURE_EXTRA_QUIET
 			CONSOLE|
 #endif
 			LOG,
@@ -966,7 +966,7 @@ extern int init_main(int argc, char **argv)
 	} else {
 		/* Not in single user mode -- see what inittab says */
 
-		/* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
+		/* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
 		 * then parse_inittab() simply adds in some default
 		 * actions(i.e., runs INIT_SCRIPT and then starts a pair 
 		 * of "askfirst" shells */

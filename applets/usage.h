@@ -247,7 +247,7 @@
 #define deluser_full_usage \
 	 "Deletes user USER from the system"
 
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
   #define USAGE_HUMAN_READABLE(a) a
   #define USAGE_NOT_HUMAN_READABLE(a)
 #else
@@ -464,17 +464,17 @@
 #define fdflush_full_usage \
 	"Forces floppy disk drive to detect disk change"
 
-#ifdef BB_FEATURE_FIND_TYPE
+#ifdef CONFIG_FEATURE_FIND_TYPE
   #define USAGE_FIND_TYPE(a) a
 #else
   #define USAGE_FIND_TYPE(a)
 #endif
-#ifdef BB_FEATURE_FIND_PERM
+#ifdef CONFIG_FEATURE_FIND_PERM
   #define USAGE_FIND_PERM(a) a
 #else
   #define USAGE_FIND_PERM(a)
 #endif
-#ifdef BB_FEATURE_FIND_MTIME
+#ifdef CONFIG_FEATURE_FIND_MTIME
   #define USAGE_FIND_MTIME(a) a
 #else
   #define USAGE_FIND_MTIME(a)
@@ -678,22 +678,22 @@
 	"$ id\n" \
 	"uid=1000(andersen) gid=1000(andersen)\n"
 
-#ifdef BB_FEATURE_IFCONFIG_SLIP
+#ifdef CONFIG_FEATURE_IFCONFIG_SLIP
   #define USAGE_SIOCSKEEPALIVE(a) a
 #else
   #define USAGE_SIOCSKEEPALIVE(a)
 #endif
-#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
   #define USAGE_IFCONFIG_MII(a) a
 #else
   #define USAGE_IFCONFIG_MII(a)
 #endif
-#ifdef BB_FEATURE_IFCONFIG_HW
+#ifdef CONFIG_FEATURE_IFCONFIG_HW
   #define USAGE_IFCONFIG_HW(a) a
 #else
   #define USAGE_IFCONFIG_HW(a)
 #endif
-#ifdef BB_FEATURE_IFCONFIG_STATUS
+#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
   #define USAGE_IFCONFIG_OPT_A(a) a
 #else
   #define USAGE_IFCONFIG_OPT_A(a)
@@ -950,32 +950,32 @@
 #define logread_full_usage \
         "Shows the messages from syslogd (using circular buffer)."
 
-#ifdef BB_FEATURE_LS_TIMESTAMPS
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
   #define USAGE_LS_TIMESTAMPS(a) a
 #else
   #define USAGE_LS_TIMESTAMPS(a)
 #endif
-#ifdef BB_FEATURE_LS_FILETYPES
+#ifdef CONFIG_FEATURE_LS_FILETYPES
   #define USAGE_LS_FILETYPES(a) a
 #else
   #define USAGE_LS_FILETYPES(a)
 #endif
-#ifdef BB_FEATURE_LS_FOLLOWLINKS
+#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
   #define USAGE_LS_FOLLOWLINKS(a) a
 #else
   #define USAGE_LS_FOLLOWLINKS(a)
 #endif
-#ifdef BB_FEATURE_LS_RECURSIVE
+#ifdef CONFIG_FEATURE_LS_RECURSIVE
   #define USAGE_LS_RECURSIVE(a) a
 #else
   #define USAGE_LS_RECURSIVE(a)
 #endif
-#ifdef BB_FEATURE_LS_SORTFILES
+#ifdef CONFIG_FEATURE_LS_SORTFILES
   #define USAGE_LS_SORTFILES(a) a
 #else
   #define USAGE_LS_SORTFILES(a)
 #endif
-#ifdef BB_FEATURE_AUTOWIDTH
+#ifdef CONFIG_FEATURE_AUTOWIDTH
   #define USAGE_AUTOWIDTH(a) a
 #else
   #define USAGE_AUTOWIDTH(a)
@@ -1145,12 +1145,12 @@
 #define more_example_usage \
 	"$ dmesg | more\n" 
 
-#ifdef BB_FEATURE_MOUNT_LOOP
+#ifdef CONFIG_FEATURE_MOUNT_LOOP
   #define USAGE_MOUNT_LOOP(a) a
 #else
   #define USAGE_MOUNT_LOOP(a)
 #endif
-#ifdef BB_FEATURE_MTAB_SUPPORT
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
   #define USAGE_MTAB(a) a
 #else
   #define USAGE_MTAB(a)
@@ -1245,7 +1245,7 @@
 	"$ pidof init\n" \
 	"1\n"
 
-#ifndef BB_FEATURE_FANCY_PING
+#ifndef CONFIG_FEATURE_FANCY_PING
 #define ping_trivial_usage "host"
 #define ping_full_usage    "Send ICMP ECHO_REQUEST packets to network hosts"
 #else
@@ -1431,12 +1431,12 @@
 	"[2 second delay results]\n"
 
 
-#ifdef BB_FEATURE_SORT_UNIQUE
+#ifdef CONFIG_FEATURE_SORT_UNIQUE
   #define USAGE_SORT_UNIQUE(a) a
 #else
   #define USAGE_SORT_UNIQUE(a)
 #endif
-#ifdef BB_FEATURE_SORT_REVERSE
+#ifdef CONFIG_FEATURE_SORT_REVERSE
   #define USAGE_SORT_REVERSE(a) a
 #else
   #define USAGE_SORT_REVERSE(a)
@@ -1503,7 +1503,7 @@
 	"Write all buffered filesystem blocks to disk."
 
 
-#ifdef BB_FEATURE_REMOTE_LOG
+#ifdef CONFIG_FEATURE_REMOTE_LOG
   #define USAGE_REMOTE_LOG(a) a
 #else
   #define USAGE_REMOTE_LOG(a)
@@ -1525,7 +1525,7 @@
 	"$ syslogd -R 192.168.1.1:601\n"
 
 
-#ifndef BB_FEATURE_FANCY_TAIL
+#ifndef CONFIG_FEATURE_FANCY_TAIL
   #define USAGE_UNSIMPLE_TAIL(a)
 #else
   #define USAGE_UNSIMPLE_TAIL(a) a
@@ -1550,12 +1550,12 @@
 	"$ tail -n 1 /etc/resolv.conf\n" \
 	"nameserver 10.0.0.1\n"
 
-#ifdef BB_FEATURE_TAR_CREATE
+#ifdef CONFIG_FEATURE_TAR_CREATE
   #define USAGE_TAR_CREATE(a) a
 #else
   #define USAGE_TAR_CREATE(a)
 #endif
-#ifdef BB_FEATURE_TAR_EXCLUDE
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
   #define USAGE_TAR_EXCLUDE(a) a
 #else
   #define USAGE_TAR_EXCLUDE(a)
@@ -1619,17 +1619,17 @@
 	"$ echo $?\n" \
 	"1\n"
 
-#ifdef BB_FEATURE_TFTP_GET
+#ifdef CONFIG_FEATURE_TFTP_GET
   #define USAGE_TFTP_GET(a) a
 #else
   #define USAGE_TFTP_GET(a)
 #endif
-#ifdef BB_FEATURE_TFTP_PUT
+#ifdef CONFIG_FEATURE_TFTP_PUT
   #define USAGE_TFTP_PUT(a) a
 #else
   #define USAGE_TFTP_PUT(a)
 #endif
-#ifdef BB_FEATURE_TFTP_BLOCKSIZE
+#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
   #define USAGE_TFTP_BS(a) a
 #else
   #define USAGE_TFTP_BS(a)
@@ -1719,7 +1719,7 @@
 	"$ tty\n" \
 	"/dev/tty2\n"
 
-#ifdef BB_FEATURE_MOUNT_FORCE
+#ifdef CONFIG_FEATURE_MOUNT_FORCE
   #define USAGE_MOUNT_FORCE(a) a
 #else
   #define USAGE_MOUNT_FORCE(a)

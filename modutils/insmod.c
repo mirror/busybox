@@ -5,9 +5,8 @@
  * This version of insmod supports x86, ARM, SH3/4, powerpc, m68k, 
  * and MIPS.
  *
- *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>
+ * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
+ * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
  * and Ron Alder <alder@lineo.com>
  *
  * Modified by Bryan Rittmeyer <bryan@ixiacom.com> to support SH4
@@ -22,7 +21,7 @@
  *   PowerPC specific code stolen from modutils-2.3.16, 
  *   written by Paul Mackerras, Copyright 1996, 1997 Linux International.
  *   I've only tested the code on mpc8xx platforms in big-endian mode.
- *   Did some cleanup and added BB_USE_xxx_ENTRIES...
+ *   Did some cleanup and added CONFIG_USE_xxx_ENTRIES...
  *
  * Quinn Jensen <jensenq@lineo.com> added MIPS support 23-Feb-2001.
  *   based on modutils-2.4.2
@@ -66,39 +65,39 @@
 #include <sys/utsname.h>
 #include "busybox.h"
 
-#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
-# undef BB_FEATURE_OLD_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+# undef CONFIG_FEATURE_OLD_MODULE_INTERFACE
 # define new_sys_init_module	init_module
 #else
 # define old_sys_init_module	init_module
 #endif
 
-#ifdef BB_FEATURE_INSMOD_LOADINKMEM
+#ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
 #define LOADBITS 0	
 #else
 #define LOADBITS 1
 #endif
 
 #if defined(__powerpc__)
-#define BB_USE_PLT_ENTRIES
-#define BB_PLT_ENTRY_SIZE 16
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 16
 #endif
 
 #if defined(__arm__)
-#define BB_USE_PLT_ENTRIES
-#define BB_PLT_ENTRY_SIZE 8
-#define BB_USE_GOT_ENTRIES
-#define BB_GOT_ENTRY_SIZE 8
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 8
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 8
 #endif
 
 #if defined(__sh__)
-#define BB_USE_GOT_ENTRIES
-#define BB_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
 #endif
 
 #if defined(__i386__)
-#define BB_USE_GOT_ENTRIES
-#define BB_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
 #endif
 
 #if defined(__mips__)
@@ -134,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.73 2001/08/22 05:41:57 andersen Exp $"
+#ident "$Id: insmod.c,v 1.74 2001/10/24 04:59:54 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -267,7 +266,7 @@ struct new_module
   unsigned tgt_long persist_end;
   unsigned tgt_long can_unload;
   unsigned tgt_long runsize;
-#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
   const char *kallsyms_start;     /* All symbols for kernel debugging */
   const char *kallsyms_end;
   const char *archdata_start;     /* arch specific data for module */
@@ -351,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.73 2001/08/22 05:41:57 andersen Exp $"
+#ident "$Id: insmod.c,v 1.74 2001/10/24 04:59:54 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -551,7 +550,7 @@ static struct obj_symbol *obj_find_symbol (struct obj_file *f,
 static ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
 				  struct obj_symbol *sym);
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 static void obj_set_symbol_compare(struct obj_file *f,
 			    int (*cmp)(const char *, const char *),
 			    unsigned long (*hash)(const char *));
@@ -643,7 +642,7 @@ static int flag_export = 1;
 
 
 
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 struct arch_plt_entry
 {
   int offset;
@@ -652,7 +651,7 @@ struct arch_plt_entry
 };
 #endif
 
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 struct arch_got_entry {
 	int offset;
 	unsigned offset_done:1;
@@ -671,10 +670,10 @@ struct mips_hi16
 
 struct arch_file {
 	struct obj_file root;
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	struct obj_section *plt;
 #endif
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	struct obj_section *got;
 #endif
 #if defined(__mips__)
@@ -684,10 +683,10 @@ struct arch_file {
 
 struct arch_symbol {
 	struct obj_symbol root;
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	struct arch_plt_entry pltent;
 #endif
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	struct arch_got_entry gotent;
 #endif
 };
@@ -746,10 +745,10 @@ static struct obj_file *arch_new_file(void)
 	struct arch_file *f;
 	f = xmalloc(sizeof(*f));
 
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	f->plt = NULL;
 #endif
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	f->got = NULL;
 #endif
 #if defined(__mips__)
@@ -769,10 +768,10 @@ static struct obj_symbol *arch_new_symbol(void)
 	struct arch_symbol *sym;
 	sym = xmalloc(sizeof(*sym));
 
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	memset(&sym->pltent, 0, sizeof(sym->pltent));
 #endif
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	memset(&sym->gotent, 0, sizeof(sym->gotent));
 #endif
 
@@ -793,10 +792,10 @@ arch_apply_relocation(struct obj_file *f,
 
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
 #endif
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
 	struct arch_plt_entry *pe;
 	unsigned long *ip;
@@ -984,7 +983,7 @@ arch_apply_relocation(struct obj_file *f,
 #elif defined(__i386__)
 #endif
 
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 
 #if defined(__arm__)
     case R_ARM_PC24:
@@ -1037,7 +1036,7 @@ arch_apply_relocation(struct obj_file *f,
       *loc = (*loc & ~0x03fffffc) | (v & 0x03fffffc);
 #endif
       break;
-#endif /* BB_USE_PLT_ENTRIES */
+#endif /* CONFIG_USE_PLT_ENTRIES */
 
 #if defined(__arm__)
 #elif defined(__sh__)
@@ -1072,7 +1071,7 @@ arch_apply_relocation(struct obj_file *f,
     	break;
 #endif
 
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 
 #if !defined(__68k__)
 #if defined(__sh__)
@@ -1130,7 +1129,7 @@ arch_apply_relocation(struct obj_file *f,
 		break;
 #endif // __mc68000__
 
-#endif /* BB_USE_GOT_ENTRIES */
+#endif /* CONFIG_USE_GOT_ENTRIES */
 
 	default:
         printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
@@ -1143,13 +1142,13 @@ arch_apply_relocation(struct obj_file *f,
 
 static int arch_create_got(struct obj_file *f)
 {
-#if defined(BB_USE_GOT_ENTRIES) || defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
 	struct arch_file *ifile = (struct arch_file *) f;
 	int i;
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	int got_offset = 0, gotneeded = 0;
 #endif
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	int plt_offset = 0, pltneeded = 0;
 #endif
     struct obj_section *relsec, *symsec, *strsec;
@@ -1226,18 +1225,18 @@ static int arch_create_got(struct obj_file *f)
 				name = f->sections[extsym->st_shndx]->name;
 			}
 			intsym = (struct arch_symbol *) obj_find_symbol(f, name);
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 			if (!intsym->gotent.offset_done) {
 				intsym->gotent.offset_done = 1;
 				intsym->gotent.offset = got_offset;
-				got_offset += BB_GOT_ENTRY_SIZE;
+				got_offset += CONFIG_GOT_ENTRY_SIZE;
 			}
 #endif
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 			if (pltneeded && intsym->pltent.allocated == 0) {
 				intsym->pltent.allocated = 1;
 				intsym->pltent.offset = plt_offset;
-				plt_offset += BB_PLT_ENTRY_SIZE;
+				plt_offset += CONFIG_PLT_ENTRY_SIZE;
 				intsym->pltent.inited = 0;
 				pltneeded = 0;
 			}
@@ -1245,7 +1244,7 @@ static int arch_create_got(struct obj_file *f)
 			}
 		}
 
-#if defined(BB_USE_GOT_ENTRIES)
+#if defined(CONFIG_USE_GOT_ENTRIES)
 	if (got_offset) {
 		struct obj_section* myrelsec = obj_find_section(f, ".got");
 
@@ -1253,7 +1252,7 @@ static int arch_create_got(struct obj_file *f)
 			obj_extend_section(myrelsec, got_offset);
 		} else {
 			myrelsec = obj_create_alloced_section(f, ".got", 
-							    BB_GOT_ENTRY_SIZE,
+							    CONFIG_GOT_ENTRY_SIZE,
 							    got_offset);
 			assert(myrelsec);
 		}
@@ -1262,10 +1261,10 @@ static int arch_create_got(struct obj_file *f)
 	}
 #endif
 
-#if defined(BB_USE_PLT_ENTRIES)
+#if defined(CONFIG_USE_PLT_ENTRIES)
 	if (plt_offset)
 		ifile->plt = obj_create_alloced_section(f, ".plt", 
-							BB_PLT_ENTRY_SIZE, 
+							CONFIG_PLT_ENTRY_SIZE, 
 							plt_offset);
 #endif
 #endif
@@ -1304,7 +1303,7 @@ static unsigned long obj_elf_hash(const char *name)
 	return obj_elf_hash_n(name, strlen(name));
 }
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 /* String comparison for non-co-versioned kernel and module.  */
 
 static int ncv_strcmp(const char *a, const char *b)
@@ -1356,7 +1355,7 @@ obj_set_symbol_compare(struct obj_file *f,
 	}
 }
 
-#endif							/* BB_FEATURE_INSMOD_VERSION_CHECKING */
+#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 static struct obj_symbol *
 obj_add_symbol(struct obj_file *f, const char *name,
@@ -1787,7 +1786,7 @@ old_process_module_arguments(struct obj_file *f, int argc, char **argv)
 	return 1;
 }
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 static int old_is_module_checksummed(struct obj_file *f)
 {
 	return obj_find_symbol(f, "Using_Versions") != NULL;
@@ -1821,9 +1820,9 @@ old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 	return a << 16 | b << 8 | c;
 }
 
-#endif   /* BB_FEATURE_INSMOD_VERSION_CHECKING */
+#endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
-#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_OLD_MODULE_INTERFACE
 
 /* Fetch all the symbols and divvy them up as appropriate for the modules.  */
 
@@ -2033,7 +2032,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 #define old_create_mod_use_count(x) TRUE
 #define old_init_module(x, y, z) TRUE
 
-#endif							/* BB_FEATURE_OLD_MODULE_INTERFACE */
+#endif							/* CONFIG_FEATURE_OLD_MODULE_INTERFACE */
 
 
 
@@ -2273,7 +2272,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 	return 1;
 }
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 static int new_is_module_checksummed(struct obj_file *f)
 {
 	const char *p = get_modinfo_value(f, "using_checksums");
@@ -2309,10 +2308,10 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 	return a << 16 | b << 8 | c;
 }
 
-#endif   /* BB_FEATURE_INSMOD_VERSION_CHECKING */
+#endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 
-#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 
 /* Fetch the loaded modules, and all currently exported symbols.  */
 
@@ -2601,7 +2600,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 #define new_create_module_ksymtab(x)
 #define query_module(v, w, x, y, z) -1
 
-#endif							/* BB_FEATURE_NEW_MODULE_INTERFACE */
+#endif							/* CONFIG_FEATURE_NEW_MODULE_INTERFACE */
 
 
 /*======================================================================*/
@@ -3155,7 +3154,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 	return f;
 }
 
-#ifdef BB_FEATURE_INSMOD_LOADINKMEM
+#ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
 /*
  * load the unloaded sections directly into the memory allocated by
  * kernel for the module
@@ -3222,7 +3221,7 @@ extern int insmod_main( int argc, char **argv)
 	char m_name[FILENAME_MAX + 1] = "\0";
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	struct utsname uts_info;
 	char m_strversion[STRVERSIONLEN];
 	int m_version;
@@ -3335,7 +3334,7 @@ extern int insmod_main( int argc, char **argv)
 	else
 		m_has_modinfo = 1;
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
 
 	if (uname(&uts_info) < 0)
@@ -3366,12 +3365,12 @@ extern int insmod_main( int argc, char **argv)
 		}
 	}
 	k_crcs = 0;
-#endif							/* BB_FEATURE_INSMOD_VERSION_CHECKING */
+#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 	k_new_syscalls = !query_module(NULL, 0, NULL, 0, NULL);
 
 	if (k_new_syscalls) {
-#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
 		if (!new_get_kernel_symbols())
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
@@ -3380,7 +3379,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 #endif
 	} else {
-#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_OLD_MODULE_INTERFACE
 		if (!old_get_kernel_symbols(m_name))
 			goto out;
 		k_crcs = old_is_kernel_checksummed();
@@ -3390,7 +3389,7 @@ extern int insmod_main( int argc, char **argv)
 #endif
 	}
 
-#ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	if (m_has_modinfo)
 		m_crcs = new_is_module_checksummed(f);
 	else
@@ -3398,7 +3397,7 @@ extern int insmod_main( int argc, char **argv)
 
 	if (m_crcs != k_crcs)
 		obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
-#endif							/* BB_FEATURE_INSMOD_VERSION_CHECKING */
+#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 	/* Let the module know about the kernel symbols.  */
 	add_kernel_symbols(f);

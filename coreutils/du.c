@@ -2,9 +2,8 @@
 /*
  * Mini du implementation for busybox
  *
- *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by John Beppu <beppu@lineo.com>
+ * Copyright (C) 1999,2000,2001 by Lineo, inc. and John Beppu
+ * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +32,7 @@
 #include "busybox.h"
 
 
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 static unsigned long disp_hr = KILOBYTE;
 #endif
 
@@ -46,7 +45,7 @@ static Display *print;
 
 static void print_normal(long size, char *filename)
 {
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 	printf("%s\t%s\n", make_human_readable_str(size<<10, 1, disp_hr), filename);
 #else
 	printf("%ld\t%s\n", size, filename);
@@ -207,7 +206,7 @@ int du_main(int argc, char **argv)
 
 	/* parse argv[] */
 	while ((c = getopt(argc, argv, "sl"
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 "hm"
 #endif
 "k")) != EOF) {
@@ -218,7 +217,7 @@ int du_main(int argc, char **argv)
 			case 'l':
 					count_hardlinks = 1;
 					break;
-#ifdef BB_FEATURE_HUMAN_READABLE
+#ifdef CONFIG_FEATURE_HUMAN_READABLE
 			case 'h': disp_hr = 0;        break;
 			case 'm': disp_hr = MEGABYTE; break;
 #endif
@@ -247,7 +246,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.50 2001/06/30 17:54:20 andersen Exp $ */
+/* $Id: du.c,v 1.51 2001/10/24 04:59:27 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -180,7 +180,7 @@ struct minix_dir_entry {
 
 #define UPPER(size,n) (((size)+((n)-1))/(n))
 #define INODE_SIZE (sizeof(struct minix_inode))
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 #define INODE_SIZE2 (sizeof(struct minix2_inode))
 #define INODE_BLOCKS UPPER(INODES, (version2 ? MINIX2_INODES_PER_BLOCK \
 				    : MINIX_INODES_PER_BLOCK))
@@ -208,7 +208,7 @@ static char root_block[BLOCK_SIZE] = "\0";
 static char *inode_buffer = NULL;
 
 #define Inode (((struct minix_inode *) inode_buffer)-1)
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 #endif
 static char super_block_buffer[BLOCK_SIZE];
@@ -216,7 +216,7 @@ static char boot_block_buffer[512];
 
 #define Super (*(struct minix_super_block *)super_block_buffer)
 #define INODES ((unsigned long)Super.s_ninodes)
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 #define ZONES ((unsigned long)(version2 ? Super.s_zones : Super.s_nzones))
 #else
 #define ZONES ((unsigned long)(Super.s_nzones))
@@ -436,7 +436,7 @@ static void make_bad_inode(void)
 		write_block(dind, (char *) dind_block);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void make_bad_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_BAD_INO];
@@ -509,7 +509,7 @@ static void make_root_inode(void)
 	write_block(inode->i_zone[0], root_block);
 }
 
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 static void make_root_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_ROOT_INO];
@@ -550,7 +550,7 @@ static void setup_tables(void)
 	else
 		inodes = req_nr_inodes;
 	/* Round up inode count to fill block size */
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (version2)
 		inodes = ((inodes + MINIX2_INODES_PER_BLOCK - 1) &
 				  ~(MINIX2_INODES_PER_BLOCK - 1));
@@ -699,7 +699,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		error_msg_and_die("bad inode size");
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
 		error_msg_and_die("bad inode size");
 #endif
@@ -764,7 +764,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 							break;
 						}
 					case 'v':
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 						version2 = 1;
 #else
 						error_msg("%s: not compiled with minix v2 support",
@@ -796,7 +796,7 @@ goodbye:
 	if (!device_name || BLOCKS < 10) {
 		show_usage();
 	}
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (version2) {
 		if (namelen == 14)
 			magic = MINIX2_SUPER_MAGIC;
@@ -830,7 +830,7 @@ goodbye:
 		check_blocks();
 	else if (listfile)
 		get_list_blocks(listfile);
-#ifdef BB_FEATURE_MINIX2
+#ifdef CONFIG_FEATURE_MINIX2
 	if (version2) {
 		make_root_inode2();
 		make_bad_inode2();

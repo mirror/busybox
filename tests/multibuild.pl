@@ -12,13 +12,13 @@
 
 $logfile = "multibuild.log";
 
-# How to handle all the BB_FEATURE_FOO lines
+# How to handle all the CONFIG_FEATURE_FOO lines
 if ($ARGV[0] eq "-all" ) { shift(@ARGV); $choice="all"; }
 if ($ARGV[0] eq "-none") { shift(@ARGV); $choice="none"; }
 # neither means, leave that part of Config.h alone
 
 # Support building from pristine source
-$make_opt = "-f $ARGV[0]/Makefile BB_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
+$make_opt = "-f $ARGV[0]/Makefile CONFIG_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
 
 # Move the config file to a safe place
 -e "Config.h.orig" || 0==system("mv -f Config.h Config.h.orig") || die;
@@ -38,7 +38,7 @@ while (<C>) {
 		$trailer .= $_;
 	} else {
 		$in_trailer=1 if /End of Applications List/;
-		if (/^\/*#define BB_([A-Z0-9_]*)/) {
+		if (/^\/*#define CONFIG_([A-Z0-9_]*)/) {
 			push @apps, $1;
 		}
 	}
@@ -50,7 +50,7 @@ $failed_tests=0;
 for $a (@apps) {
 	# print "Testing build of applet $a ...\n";
 	open (O, ">Config.h") || die;
-	print O "#define BB_$a\n", $trailer;
+	print O "#define CONFIG_$a\n", $trailer;
 	close O;
 	system("echo -e '\n***\n$a\n***' >>$logfile");
 	# With a fast computer and 1-second resolution on file timestamps, this

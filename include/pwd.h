@@ -1,5 +1,5 @@
-#ifndef	__BB_PWD_H
-#define	__BB_PWD_H
+#ifndef	__CONFIG_PWD_H
+#define	__CONFIG_PWD_H
 
 #if defined USE_SYSTEM_PWD_GRP
 #include <pwd.h>
@@ -36,5 +36,5 @@ extern struct passwd * getpwnam __P ((__const char *));
 extern struct passwd * __getpwent __P ((__const int passwd_fd));
 
 #endif /* USE_SYSTEM_PWD_GRP */
-#endif /* __BB_PWD_H  */
+#endif /* __CONFIG_PWD_H  */
 

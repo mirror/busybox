@@ -40,7 +40,7 @@ extern int kill_main(int argc, char **argv)
 	int whichApp, sig = SIGTERM;
 	const char *name;
 
-#ifdef BB_KILLALL
+#ifdef CONFIG_KILLALL
 	/* Figure out what we are trying to do here */
 	whichApp = (strcmp(applet_name, "killall") == 0)? KILLALL : KILL; 
 #else
@@ -108,7 +108,7 @@ extern int kill_main(int argc, char **argv)
 			argv++;
 		}
 	} 
-#ifdef BB_KILLALL
+#ifdef CONFIG_KILLALL
 	else {
 		int all_found = TRUE;
 		pid_t myPid=getpid();

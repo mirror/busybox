@@ -3,7 +3,7 @@
 # @(#) mk2knr.pl - generates a perl script that converts lexemes to K&R-style
 #
 # How to use this script:
-#  - In the busybox directory type 'scripts/mk2knr.pl files-you-want-to-convert'
+#  - In the busybox directory type 'examples/mk2knr.pl files-to-convert'
 #  - Review the 'convertme.pl' script generated and remove / edit any of the
 #    substitutions in there (please especially check for false positives)
 #  - Type './convertme.pl same-files-as-before'

@@ -43,10 +43,10 @@ int sort_main(int argc, char **argv)
 	char *line, **lines = NULL;
 	int i, opt, nlines = 0;
 	int (*compare)(const void *, const void *) = compare_ascii;
-#ifdef BB_FEATURE_SORT_REVERSE
+#ifdef CONFIG_FEATURE_SORT_REVERSE
 	int reverse = FALSE;
 #endif
-#ifdef BB_FEATURE_SORT_UNIQUE
+#ifdef CONFIG_FEATURE_SORT_UNIQUE
 	int unique = FALSE;
 #endif
 
@@ -55,12 +55,12 @@ int sort_main(int argc, char **argv)
 			case 'n':
 				compare = compare_numeric;
 				break;
-#ifdef BB_FEATURE_SORT_REVERSE
+#ifdef CONFIG_FEATURE_SORT_REVERSE
 			case 'r':
 				reverse = TRUE;
 				break;
 #endif
-#ifdef BB_FEATURE_SORT_UNIQUE
+#ifdef CONFIG_FEATURE_SORT_UNIQUE
 			case 'u':
 				unique = TRUE;
 				break;
@@ -88,17 +88,17 @@ int sort_main(int argc, char **argv)
 	qsort(lines, nlines, sizeof(char *), compare);
 
 	/* print it */
-#ifdef BB_FEATURE_SORT_REVERSE
+#ifdef CONFIG_FEATURE_SORT_REVERSE
 	if (reverse) {
 		for (i = --nlines; 0 <= i; i--)
-#ifdef BB_FEATURE_SORT_UNIQUE
+#ifdef CONFIG_FEATURE_SORT_UNIQUE
 			if((!unique) || (i == nlines) || (strcmp(lines[i + 1], lines[i])))
 #endif
 				puts(lines[i]);
 	} else
 #endif
 		for (i = 0; i < nlines; i++)
-#ifdef BB_FEATURE_SORT_UNIQUE
+#ifdef CONFIG_FEATURE_SORT_UNIQUE
 			if((!unique) || (!i) || (strcmp(lines[i - 1], lines[i])))
 #endif
 				puts(lines[i]);

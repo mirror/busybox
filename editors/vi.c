@@ -19,13 +19,13 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.15 2001/08/02 05:26:41 andersen Exp $";
+	"$Id: vi.c,v 1.16 2001/10/24 04:59:23 andersen Exp $";
 
 /*
  * To compile for standalone use:
  *	gcc -Wall -Os -s -DSTANDALONE -o vi vi.c
  *	  or
- *	gcc -Wall -Os -s -DSTANDALONE -DBB_FEATURE_VI_CRASHME -o vi vi.c		# include testing features
+ *	gcc -Wall -Os -s -DSTANDALONE -DCONFIG_FEATURE_VI_CRASHME -o vi vi.c		# include testing features
  *	strip vi
  */
 
@@ -48,21 +48,21 @@ static const char vi_Version[] =
 //----  Feature --------------  Bytes to immplement
 #ifdef STANDALONE
 #define vi_main			main
-#define BB_FEATURE_VI_COLON	// 4288
-#define BB_FEATURE_VI_YANKMARK	// 1408
-#define BB_FEATURE_VI_SEARCH	// 1088
-#define BB_FEATURE_VI_USE_SIGNALS	// 1056
-#define BB_FEATURE_VI_DOT_CMD	//  576
-#define BB_FEATURE_VI_READONLY	//  128
-#define BB_FEATURE_VI_SETOPTS	//  576
-#define BB_FEATURE_VI_SET	//  224
-#define BB_FEATURE_VI_WIN_RESIZE	//  256  WIN_RESIZE
+#define CONFIG_FEATURE_VI_COLON	// 4288
+#define CONFIG_FEATURE_VI_YANKMARK	// 1408
+#define CONFIG_FEATURE_VI_SEARCH	// 1088
+#define CONFIG_FEATURE_VI_USE_SIGNALS	// 1056
+#define CONFIG_FEATURE_VI_DOT_CMD	//  576
+#define CONFIG_FEATURE_VI_READONLY	//  128
+#define CONFIG_FEATURE_VI_SETOPTS	//  576
+#define CONFIG_FEATURE_VI_SET	//  224
+#define CONFIG_FEATURE_VI_WIN_RESIZE	//  256  WIN_RESIZE
 // To test editor using CRASHME:
 //    vi -C filename
 // To stop testing, wait until all to text[] is deleted, or
 //    Ctrl-Z and kill -9 %1
 // while in the editor Ctrl-T will toggle the crashme function on and off.
-//#define BB_FEATURE_VI_CRASHME		// randomly pick commands to execute
+//#define CONFIG_FEATURE_VI_CRASHME		// randomly pick commands to execute
 #endif							/* STANDALONE */
 
 #include <stdio.h>
@@ -161,40 +161,40 @@ static Byte *dot;		// where all the action takes place
 static int tabstop;
 static struct termios term_orig, term_vi;	// remember what the cooked mode was
 
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 static int last_row;		// where the cursor was last moved to
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 static jmp_buf restart;		// catch_sig()
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 static struct winsize winsize;	// remember the window size
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
-#ifdef BB_FEATURE_VI_DOT_CMD
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 static int adding2q;		// are we currently adding user input to q
 static Byte *last_modifying_cmd;	// last modifying cmd for "."
 static Byte *ioq, *ioq_start;	// pointer to string for get_one_char to "read"
-#endif							/* BB_FEATURE_VI_DOT_CMD */
-#if	defined(BB_FEATURE_VI_DOT_CMD) || defined(BB_FEATURE_VI_YANKMARK)
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
+#if	defined(CONFIG_FEATURE_VI_DOT_CMD) || defined(CONFIG_FEATURE_VI_YANKMARK)
 static Byte *modifying_cmds;	// cmds that modify text[]
-#endif							/* BB_FEATURE_VI_DOT_CMD || BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_READONLY
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD || CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_READONLY
 static int vi_readonly, readonly;
-#endif							/* BB_FEATURE_VI_READONLY */
-#ifdef BB_FEATURE_VI_SETOPTS
+#endif							/* CONFIG_FEATURE_VI_READONLY */
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 static int autoindent;
 static int showmatch;
 static int ignorecase;
-#endif							/* BB_FEATURE_VI_SETOPTS */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 static Byte *reg[28];		// named register a-z, "D", and "U" 0-25,26,27
 static int YDreg, Ureg;		// default delete register and orig line for "U"
 static Byte *mark[28];		// user marks points somewhere in text[]-  a-z and previous context ''
 static Byte *context_start, *context_end;
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_SEARCH
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_SEARCH
 static Byte *last_search_pattern;	// last pattern from a '/' or '?' search
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 
 
 static void edit_file(Byte *);	// edit one file
@@ -259,59 +259,59 @@ static void redraw(int);	// force a full screen refresh
 static void format_line(Byte*, Byte*, int);
 static void refresh(int);	// update the terminal from screen[]
 
-#ifdef BB_FEATURE_VI_SEARCH
+#ifdef CONFIG_FEATURE_VI_SEARCH
 static Byte *char_search(Byte *, Byte *, int, int);	// search for pattern starting at p
 static int mycmp(Byte *, Byte *, int);	// string cmp based in "ignorecase"
-#endif							/* BB_FEATURE_VI_SEARCH */
-#ifdef BB_FEATURE_VI_COLON
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
+#ifdef CONFIG_FEATURE_VI_COLON
 static void Hit_Return(void);
 static Byte *get_one_address(Byte *, int *);	// get colon addr, if present
 static Byte *get_address(Byte *, int *, int *);	// get two colon addrs, if present
 static void colon(Byte *);	// execute the "colon" mode cmds
-#endif							/* BB_FEATURE_VI_COLON */
+#endif							/* CONFIG_FEATURE_VI_COLON */
 static Byte *get_input_line(Byte *);	// get input line- use "status line"
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 static void winch_sig(int);	// catch window size changes
 static void suspend_sig(int);	// catch ctrl-Z
 static void alarm_sig(int);	// catch alarm time-outs
 static void catch_sig(int);	// catch ctrl-C
 static void core_sig(int);	// catch a core dump signal
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
-#ifdef BB_FEATURE_VI_DOT_CMD
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 static void start_new_cmd_q(Byte);	// new queue for command
 static void end_cmd_q();	// stop saving input chars
-#else							/* BB_FEATURE_VI_DOT_CMD */
+#else							/* CONFIG_FEATURE_VI_DOT_CMD */
 #define end_cmd_q()
-#endif							/* BB_FEATURE_VI_DOT_CMD */
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 static void window_size_get(int);	// find out what size the window is
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
-#ifdef BB_FEATURE_VI_SETOPTS
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 static void showmatching(Byte *);	// show the matching pair ()  []  {}
-#endif							/* BB_FEATURE_VI_SETOPTS */
-#if defined(BB_FEATURE_VI_YANKMARK) || defined(BB_FEATURE_VI_COLON) || defined(BB_FEATURE_VI_CRASHME)
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_COLON) || defined(CONFIG_FEATURE_VI_CRASHME)
 static Byte *string_insert(Byte *, Byte *);	// insert the string at 'p'
-#endif							/* BB_FEATURE_VI_YANKMARK || BB_FEATURE_VI_COLON || BB_FEATURE_VI_CRASHME */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_YANKMARK || CONFIG_FEATURE_VI_COLON || CONFIG_FEATURE_VI_CRASHME */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 static Byte *text_yank(Byte *, Byte *, int);	// save copy of "p" into a register
 static Byte what_reg(void);		// what is letter of current YDreg
 static void check_context(Byte);	// remember context for '' command
 static Byte *swap_context(Byte *);	// goto new context for '' command
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_CRASHME
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_CRASHME
 static void crash_dummy();
 static void crash_test();
 static int crashme = 0;
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 
 extern int vi_main(int argc, char **argv)
 {
 	int c;
 
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	int i;
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
 	CMrc= "\033[%d;%dH";	// Terminal Crusor motion ESC sequence
 	CMup= "\033[A";		// move cursor up one line, same col
@@ -321,46 +321,46 @@ extern int vi_main(int argc, char **argv)
 	SOs = "\033[7m";	// Terminal standout mode on
 	SOn = "\033[0m";	// Terminal standout mode off
 	bell= "\007";		// Terminal bell sequence
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 	(void) srand((long) getpid());
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 	status_buffer = (Byte *) malloc(200);	// hold messages to user
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 	vi_readonly = readonly = FALSE;
 	if (strncmp(argv[0], "view", 4) == 0) {
 		readonly = TRUE;
 		vi_readonly = TRUE;
 	}
-#endif							/* BB_FEATURE_VI_READONLY */
-#ifdef BB_FEATURE_VI_SETOPTS
+#endif							/* CONFIG_FEATURE_VI_READONLY */
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 	autoindent = 1;
 	ignorecase = 1;
 	showmatch = 1;
-#endif							/* BB_FEATURE_VI_SETOPTS */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	for (i = 0; i < 28; i++) {
 		reg[i] = 0;
 	}					// init the yank regs
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_DOT_CMD
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 	modifying_cmds = (Byte *) "aAcCdDiIJoOpPrRsxX<>~";	// cmds modifying text[]
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 
 	//  1-  process $HOME/.exrc file
 	//  2-  process EXINIT variable from environment
 	//  3-  process command line args
 	while ((c = getopt(argc, argv, "hCR")) != -1) {
 		switch (c) {
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 		case 'C':
 			crashme = 1;
 			break;
-#endif							/* BB_FEATURE_VI_CRASHME */
-#ifdef BB_FEATURE_VI_READONLY
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
+#ifdef CONFIG_FEATURE_VI_READONLY
 		case 'R':		// Read-only flag
 			readonly = TRUE;
 			break;
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			//case 'r':	// recover flag-  ignore- we don't use tmp file
 			//case 'x':	// encryption flag- ignore
 			//case 'c':	// execute command first
@@ -399,21 +399,21 @@ static void edit_file(Byte * fn)
 	char c;
 	int cnt, size, ch;
 
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	char *msg;
 	int sig;
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	static Byte *cur_line;
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
 	rawmode();
 	rows = 24;
 	columns = 80;
 	ch= -1;
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 	window_size_get(0);
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 	new_screen(rows, columns);	// get memory for virtual screen
 
 	cnt = file_size(fn);	// file size
@@ -427,14 +427,14 @@ static void edit_file(Byte * fn)
 		(void) char_insert(text, '\n');	// start empty buf with dummy line
 	}
 	file_modified = FALSE;
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	YDreg = 26;			// default Yank/Delete reg
 	Ureg = 27;			// hold orig line for "U" cmd
 	for (cnt = 0; cnt < 28; cnt++) {
 		mark[cnt] = 0;
 	}					// init the marks
 	mark[26] = mark[27] = text;	// init "previous context"
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
 	err_method = 1;		// flash
 	last_forward_char = last_input_char = '\0';
@@ -442,7 +442,7 @@ static void edit_file(Byte * fn)
 	ccol = 0;
 	edit_status();
 
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	signal(SIGHUP, catch_sig);
 	signal(SIGINT, catch_sig);
 	signal(SIGALRM, alarm_sig);
@@ -481,7 +481,7 @@ static void edit_file(Byte * fn)
 		psbs("-- caught signal %d %s--", sig, msg);
 		screenbegin = dot = text;
 	}
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 
 	editing = 1;
 	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
@@ -489,20 +489,20 @@ static void edit_file(Byte * fn)
 	tabstop = 8;
 	offset = 0;			// no horizontal offset
 	c = '\0';
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 	if (last_modifying_cmd != 0)
 		free(last_modifying_cmd);
 	if (ioq_start != NULL)
 		free(ioq_start);
 	ioq = ioq_start = last_modifying_cmd = 0;
 	adding2q = 0;
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	redraw(FALSE);			// dont force every col re-draw
 	show_status_line();
 
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 		if (crashme > 0) {
 			if ((end - text) > 1) {
 				crash_dummy();	// generate a random command
@@ -513,23 +513,23 @@ static void edit_file(Byte * fn)
 				refresh(FALSE);
 			}
 		}
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 		last_input_char = c = get_one_char();	// get a cmd from user
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 		// save a copy of the current line- for the 'U" command
 		if (begin_line(dot) != cur_line) {
 			cur_line = begin_line(dot);
 			text_yank(begin_line(dot), end_line(dot), Ureg);
 		}
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_DOT_CMD
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 		// These are commands that change text[].
 		// Remember the input for the "." command
 		if (!adding2q && ioq_start == 0
 			&& strchr((char *) modifying_cmds, c) != NULL) {
 			start_new_cmd_q(c);
 		}
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 		do_cmd(c);		// execute the user command
 		//
 		// poll to see if there is input already waiting. if we are
@@ -540,10 +540,10 @@ static void edit_file(Byte * fn)
 			refresh(FALSE);
 			show_status_line();
 		}
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 		if (crashme > 0)
 			crash_test();	// test editor variables
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 	}
 	//-------------------------------------------------------------------
 
@@ -554,7 +554,7 @@ static void edit_file(Byte * fn)
 
 static Byte readbuffer[BUFSIZ];
 
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 static int totalcmds = 0;
 static int Mp = 85;		// Movement command Probability
 static int Np = 90;		// Non-movement command Probability
@@ -756,7 +756,7 @@ static void crash_test()
 	}
 	return;
 }
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 //---------------------------------------------------------------------
 //----- the Ascii Chart -----------------------------------------------
@@ -822,11 +822,11 @@ static void do_cmd(Byte c)
 		//case 0x10:	// dle
 		//case 0x11:	// dc1
 		//case 0x13:	// dc3
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 	case 0x14:			// dc4  ctrl-T
 		crashme = (crashme == 0) ? 1 : 0;
 		break;
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 		//case 0x16:	// syn
 		//case 0x17:	// etb
 		//case 0x18:	// can
@@ -873,14 +873,14 @@ static void do_cmd(Byte c)
 	case VI_K_PAGEUP:	// Cursor Key Page Up
 		dot_scroll(rows - 2, -1);
 		break;
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	case 0x03:			// ctrl-C   interrupt
 		longjmp(restart, 1);
 		break;
 	case 26:			// ctrl-Z suspend
 		suspend_sig(SIGTSTP);
 		break;
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 	case 4:			// ctrl-D  scroll down half screen
 		dot_scroll((rows - 2) / 2, 1);
 		break;
@@ -949,7 +949,7 @@ static void do_cmd(Byte c)
 		}				// repeat cnt
 		dot_right();
 		break;
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	case '"':			// "- name a register to use for Delete/Yank
 		c1 = get_one_char();
 		c1 = tolower(c1);
@@ -1031,7 +1031,7 @@ static void do_cmd(Byte c)
 			dot_skip_over_ws();
 		}
 		break;
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 	case '$':			// $- goto end of line
 	case VI_K_END:		// Cursor Key End
 		if (cmdcnt-- > 1) {
@@ -1080,7 +1080,7 @@ static void do_cmd(Byte c)
 		dot_prev();
 		dot_skip_over_ws();
 		break;
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 	case '.':			// .- repeat the last modifying command
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
@@ -1088,8 +1088,8 @@ static void do_cmd(Byte c)
 			ioq = ioq_start = (Byte *) strdup((char *) last_modifying_cmd);
 		}
 		break;
-#endif							/* BB_FEATURE_VI_DOT_CMD */
-#ifdef BB_FEATURE_VI_SEARCH
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
+#ifdef CONFIG_FEATURE_VI_SEARCH
 	case '?':			// /- search for a pattern
 	case '/':			// /- search for a pattern
 		buf[0] = c;
@@ -1175,7 +1175,7 @@ static void do_cmd(Byte c)
 			dot = next_line(q);	// move to next blank line
 		}
 		break;
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 	case '0':			// 0- goto begining of line
 	case '1':			// 1- 
 	case '2':			// 2- 
@@ -1194,9 +1194,9 @@ static void do_cmd(Byte c)
 		break;
 	case ':':			// :- the colon mode commands
 		p = get_input_line((Byte *) ":");	// get input line- use "status line"
-#ifdef BB_FEATURE_VI_COLON
+#ifdef CONFIG_FEATURE_VI_COLON
 		colon(p);		// execute the command
-#else							/* BB_FEATURE_VI_COLON */
+#else							/* CONFIG_FEATURE_VI_COLON */
 		if (*p == ':')
 			p++;				// move past the ':'
 		cnt = strlen((char *) p);
@@ -1225,7 +1225,7 @@ static void do_cmd(Byte c)
 		} else {		// unrecognised cmd
 			ni((Byte *) p);
 		}
-#endif							/* BB_FEATURE_VI_COLON */
+#endif							/* CONFIG_FEATURE_VI_COLON */
 		break;
 	case '<':			// <- Left  shift something
 	case '>':			// >- Right shift something
@@ -1289,10 +1289,10 @@ static void do_cmd(Byte c)
 		dot = yank_delete(save_dot, dot, 0, YANKDEL);	// delete to e-o-l
 		if (c == 'C')
 			goto dc_i;	// start inserting
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 		if (c == 'D')
 			end_cmd_q();	// stop adding to q
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 		break;
 	case 'G':		// G- goto to a line number (default= E-O-F)
 		dot = end - 1;				// assume E-O-F
@@ -1396,10 +1396,10 @@ static void do_cmd(Byte c)
 			break;
 		}
 		if (file_modified == TRUE
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 			&& vi_readonly == FALSE
 			&& readonly == FALSE
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			) {
 			cnt = file_write(cfn, text, end - 1);
 			if (cnt == (end - 1 - text + 1)) {
@@ -1435,15 +1435,15 @@ static void do_cmd(Byte c)
 		break;
 	case 'c':			// c- change something
 	case 'd':			// d- delete something
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	case 'y':			// y- yank   something
 	case 'Y':			// Y- Yank a line
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 		yf = YANKDEL;	// assume either "c" or "d"
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 		c1 = 'y';
 		if (c != 'Y')
 			c1 = get_one_char();	// get the type of thing to delete
@@ -1490,7 +1490,7 @@ static void do_cmd(Byte c)
 			if (c == 'd') {
 				strcpy((char *) buf, "Delete");
 			}
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 			if (c == 'y' || c == 'Y') {
 				strcpy((char *) buf, "Yank");
 			}
@@ -1502,7 +1502,7 @@ static void do_cmd(Byte c)
 			}
 			psb("%s %d lines (%d chars) using [%c]",
 				buf, cnt, strlen((char *) reg[YDreg]), what_reg());
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 			end_cmd_q();	// stop adding to q
 		}
 		break;
@@ -1601,9 +1601,9 @@ static void do_cmd(Byte c)
 	if (dot != end) {
 		dot = bound_dot(dot);	// make sure "dot" is valid
 	}
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	check_context(c);	// update the current context
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
 	if (!isdigit(c))
 		cmdcnt = 0;		// cmd was not a number, reset cmdcnt
@@ -1614,25 +1614,25 @@ static void do_cmd(Byte c)
 }
 
 //----- The Colon commands -------------------------------------
-#ifdef BB_FEATURE_VI_COLON
+#ifdef CONFIG_FEATURE_VI_COLON
 static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 {
 	int st;
 	Byte *q;
 
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	Byte c;
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_SEARCH
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_SEARCH
 	Byte *pat, buf[BUFSIZ];
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 
 	*addr = -1;			// assume no addr
 	if (*p == '.') {	// the current line
 		p++;
 		q = begin_line(dot);
 		*addr = count_lines(text, q);
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	} else if (*p == '\'') {	// is this a mark addr
 		p++;
 		c = tolower(*p);
@@ -1645,8 +1645,8 @@ static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 				*addr = count_lines(text, q);	// count lines
 			}
 		}
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_SEARCH
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_SEARCH
 	} else if (*p == '/') {	// a search pattern
 		q = buf;
 		for (p++; *p; p++) {
@@ -1663,7 +1663,7 @@ static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 			*addr = count_lines(text, q);
 		}
 		free(pat);
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 	} else if (*p == '$') {	// the last line in file
 		p++;
 		q = begin_line(end - 1);
@@ -1871,7 +1871,7 @@ static void colon(Byte * buf)
 			ch= 1;
 		}
 		file_modified = FALSE;
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
 			reg[Ureg]= 0;
@@ -1883,18 +1883,18 @@ static void colon(Byte * buf)
 		for (li = 0; li < 28; li++) {
 			mark[li] = 0;
 		}				// init the marks
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 		// how many lines in text[]?
 		li = count_lines(text, end - 1);
 		psb("\"%s\"%s"
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 			"%s"
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			" %dL, %dC", cfn,
 			(sr < 0 ? " [New file]" : ""),
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 			((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			li, ch);
 	} else if (strncasecmp((char *) cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
@@ -1940,9 +1940,9 @@ static void colon(Byte * buf)
 			if (c > '~')
 				standout_end();
 		}
-#ifdef BB_FEATURE_VI_SET
+#ifdef CONFIG_FEATURE_VI_SET
 	  vc2:
-#endif							/* BB_FEATURE_VI_SET */
+#endif							/* CONFIG_FEATURE_VI_SET */
 		Hit_Return();
 	} else if ((strncasecmp((char *) cmd, "quit", i) == 0) ||	// Quit
 			   (strncasecmp((char *) cmd, "next", i) == 0)) {	// edit next file
@@ -1982,11 +1982,11 @@ static void colon(Byte * buf)
 		// read after current line- unless user said ":0r foo"
 		if (b != 0)
 			q = next_line(q);
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		l= readonly;			// remember current files' status
 #endif
 		ch = file_insert(fn, q, file_size(fn));
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		readonly= l;
 #endif
 		if (ch < 0)
@@ -1994,13 +1994,13 @@ static void colon(Byte * buf)
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
 		psb("\"%s\""
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 			"%s"
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			" %dL, %dC", fn,
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 			((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 			li, ch);
 		if (ch > 0) {
 			// if the insert is before "dot" then we need to update
@@ -2016,7 +2016,7 @@ static void colon(Byte * buf)
 			optind = fn_start - 1;
 			editing = 0;
 		}
-#ifdef BB_FEATURE_VI_SET
+#ifdef CONFIG_FEATURE_VI_SET
 	} else if (strncasecmp((char *) cmd, "set", i) == 0) {	// set or clear features
 		i = 0;			// offset into args
 		if (strlen((char *) args) == 0) {
@@ -2024,7 +2024,7 @@ static void colon(Byte * buf)
 			place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 			clear_to_eol();	// clear the line
 			printf("----------------------------------------\r\n");
-#ifdef BB_FEATURE_VI_SETOPTS
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 			if (!autoindent)
 				printf("no");
 			printf("autoindent ");
@@ -2038,13 +2038,13 @@ static void colon(Byte * buf)
 				printf("no");
 			printf("showmatch ");
 			printf("tabstop=%d ", tabstop);
-#endif							/* BB_FEATURE_VI_SETOPTS */
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
 			printf("\r\n");
 			goto vc2;
 		}
 		if (strncasecmp((char *) args, "no", 2) == 0)
 			i = 2;		// ":set noautoindent"
-#ifdef BB_FEATURE_VI_SETOPTS
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 		if (strncasecmp((char *) args + i, "autoindent", 10) == 0 ||
 			strncasecmp((char *) args + i, "ai", 2) == 0) {
 			autoindent = (i == 2) ? 0 : 1;
@@ -2066,9 +2066,9 @@ static void colon(Byte * buf)
 			if (ch > 0 && ch < columns - 1)
 				tabstop = ch;
 		}
-#endif							/* BB_FEATURE_VI_SETOPTS */
-#endif							/* BB_FEATURE_VI_SET */
-#ifdef BB_FEATURE_VI_SEARCH
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+#endif							/* CONFIG_FEATURE_VI_SET */
+#ifdef CONFIG_FEATURE_VI_SEARCH
 	} else if (strncasecmp((char *) cmd, "s", 1) == 0) {	// substitute a pattern with a replacement pattern
 		Byte *ls, *F, *R;
 		int gflag;
@@ -2115,7 +2115,7 @@ static void colon(Byte * buf)
 			}
 			q = next_line(ls);
 		}
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 	} else if (strncasecmp((char *) cmd, "version", i) == 0) {	// show software version
 		psb("%s", vi_Version);
 	} else if ((strncasecmp((char *) cmd, "write", i) == 0) ||	// write text to file
@@ -2124,12 +2124,12 @@ static void colon(Byte * buf)
 		if (strlen((char *) args) > 0) {
 			fn = args;
 		}
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		if ((vi_readonly == TRUE || readonly == TRUE) && useforce == FALSE) {
 			psbs("\"%s\" File is read only", fn);
 			goto vc3;
 		}
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 		// how many lines in text[]?
 		li = count_lines(q, r);
 		ch = r - q + 1;
@@ -2153,10 +2153,10 @@ static void colon(Byte * buf)
 		if (cmd[1] == 'q' && l == ch) {
 			editing = 0;
 		}
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 	  vc3:;
-#endif							/* BB_FEATURE_VI_READONLY */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_READONLY */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	} else if (strncasecmp((char *) cmd, "yank", i) == 0) {	// yank lines
 		if (b < 0) {	// no addr given- use defaults
 			q = begin_line(dot);	// assume .,. for the range
@@ -2166,7 +2166,7 @@ static void colon(Byte * buf)
 		li = count_lines(q, r);
 		psb("Yank %d lines (%d chars) into [%c]",
 			li, strlen((char *) reg[YDreg]), what_reg());
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 	} else {
 		// cmd unknown
 		ni((Byte *) cmd);
@@ -2174,7 +2174,7 @@ static void colon(Byte * buf)
   vc1:
 	dot = bound_dot(dot);	// make sure "dot" is valid
 	return;
-#ifdef BB_FEATURE_VI_SEARCH
+#ifdef CONFIG_FEATURE_VI_SEARCH
 colon_s_fail:
 	psb(":s expression missing delimiters");
 	return;
@@ -2193,7 +2193,7 @@ static void Hit_Return(void)
 		;
 	redraw(TRUE);		// force redraw all
 }
-#endif							/* BB_FEATURE_VI_COLON */
+#endif							/* CONFIG_FEATURE_VI_COLON */
 
 //----- Synchronize the cursor to Dot --------------------------
 static void sync_cursor(Byte * d, int *row, int *col)
@@ -2518,17 +2518,17 @@ static Byte *new_text(int size)
 	return (text);
 }
 
-#ifdef BB_FEATURE_VI_SEARCH
+#ifdef CONFIG_FEATURE_VI_SEARCH
 static int mycmp(Byte * s1, Byte * s2, int len)
 {
 	int i;
 
 	i = strncmp((char *) s1, (char *) s2, len);
-#ifdef BB_FEATURE_VI_SETOPTS
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 	if (ignorecase) {
 		i = strncasecmp((char *) s1, (char *) s2, len);
 	}
-#endif							/* BB_FEATURE_VI_SETOPTS */
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
 	return (i);
 }
 
@@ -2623,7 +2623,7 @@ static Byte *char_search(Byte * p, Byte * pat, int dir, int range)	// search for
 	return (p);
 #endif							/*REGEX_SEARCH */
 }
-#endif							/* BB_FEATURE_VI_SEARCH */
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
 
 static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 {
@@ -2648,7 +2648,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 			// also rmove char from last_modifying_cmd
 			if (strlen((char *) last_modifying_cmd) > 0) {
 				Byte *q;
@@ -2657,7 +2657,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 				q[strlen((char *) q) - 1] = '\0';	// erase BS
 				q[strlen((char *) q) - 1] = '\0';	// erase prev char
 			}
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 		}
 	} else {
 		// insert a char into text[]
@@ -2667,7 +2667,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 			c = '\n';	// translate \r to \n
 		sp = p;			// remember addr of insert
 		p = stupid_insert(p, c);	// insert the char
-#ifdef BB_FEATURE_VI_SETOPTS
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 		if (showmatch && strchr(")]}", *sp) != NULL) {
 			showmatching(sp);
 		}
@@ -2679,7 +2679,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 				p = stupid_insert(p, *q);	// insert the char
 			}
 		}
-#endif							/* BB_FEATURE_VI_SETOPTS */
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
 	}
 	return (p);
 }
@@ -2844,7 +2844,7 @@ static Byte *find_pair(Byte * p, Byte c)
 	return (q);
 }
 
-#ifdef BB_FEATURE_VI_SETOPTS
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 // show the matching char of a pair,  ()  []  {}
 static void showmatching(Byte * p)
 {
@@ -2864,7 +2864,7 @@ static void showmatching(Byte * p)
 		refresh(FALSE);
 	}
 }
-#endif							/* BB_FEATURE_VI_SETOPTS */
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
 
 //  open a hole in text[]
 static Byte *text_hole_make(Byte * p, int size)	// at "p", make a 'size' byte hole
@@ -2951,9 +2951,9 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 		}
 	}
 	p = start;
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	text_yank(start, stop, YDreg);
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 	if (yf == YANKDEL) {
 		p = text_hole_delete(start, stop);
 	}					// delete lines
@@ -2963,33 +2963,33 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 static void show_help(void)
 {
 	puts("These features are available:"
-#ifdef BB_FEATURE_VI_SEARCH
+#ifdef CONFIG_FEATURE_VI_SEARCH
 	"\n\tPattern searches with / and ?"
-#endif							/* BB_FEATURE_VI_SEARCH */
-#ifdef BB_FEATURE_VI_DOT_CMD
+#endif							/* CONFIG_FEATURE_VI_SEARCH */
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 	"\n\tLast command repeat with \'.\'"
-#endif							/* BB_FEATURE_VI_DOT_CMD */
-#ifdef BB_FEATURE_VI_YANKMARK
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	"\n\tLine marking with  'x"
 	"\n\tNamed buffers with  \"x"
-#endif							/* BB_FEATURE_VI_YANKMARK */
-#ifdef BB_FEATURE_VI_READONLY
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
+#ifdef CONFIG_FEATURE_VI_READONLY
 	"\n\tReadonly if vi is called as \"view\""
 	"\n\tReadonly with -R command line arg"
-#endif							/* BB_FEATURE_VI_READONLY */
-#ifdef BB_FEATURE_VI_SET
+#endif							/* CONFIG_FEATURE_VI_READONLY */
+#ifdef CONFIG_FEATURE_VI_SET
 	"\n\tSome colon mode commands with \':\'"
-#endif							/* BB_FEATURE_VI_SET */
-#ifdef BB_FEATURE_VI_SETOPTS
+#endif							/* CONFIG_FEATURE_VI_SET */
+#ifdef CONFIG_FEATURE_VI_SETOPTS
 	"\n\tSettable options with \":set\""
-#endif							/* BB_FEATURE_VI_SETOPTS */
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#endif							/* CONFIG_FEATURE_VI_SETOPTS */
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	"\n\tSignal catching- ^C"
 	"\n\tJob suspend and resume with ^Z"
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 	"\n\tAdapt to window re-sizes"
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 	);
 }
 
@@ -3021,7 +3021,7 @@ static void print_literal(Byte * buf, Byte * s) // copy s to buf, convert unprin
 	}
 }
 
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 static void start_new_cmd_q(Byte c)
 {
 	// release old cmd
@@ -3041,15 +3041,15 @@ static void start_new_cmd_q(Byte c)
 
 static void end_cmd_q()
 {
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	YDreg = 26;			// go back to default Yank/Delete reg
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 	adding2q = 0;
 	return;
 }
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 
-#if defined(BB_FEATURE_VI_YANKMARK) || defined(BB_FEATURE_VI_COLON) || defined(BB_FEATURE_VI_CRASHME)
+#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_COLON) || defined(CONFIG_FEATURE_VI_CRASHME)
 static Byte *string_insert(Byte * p, Byte * s) // insert the string at 'p'
 {
 	int cnt, i;
@@ -3061,14 +3061,14 @@ static Byte *string_insert(Byte * p, Byte * s) // insert the string at 'p'
 		if (*s == '\n')
 			cnt++;
 	}
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 	psb("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 	return (p);
 }
-#endif							/* BB_FEATURE_VI_YANKMARK || BB_FEATURE_VI_COLON || BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK || CONFIG_FEATURE_VI_COLON || CONFIG_FEATURE_VI_CRASHME */
 
-#ifdef BB_FEATURE_VI_YANKMARK
+#ifdef CONFIG_FEATURE_VI_YANKMARK
 static Byte *text_yank(Byte * p, Byte * q, int dest)	// copy text into a register
 {
 	Byte *t;
@@ -3142,7 +3142,7 @@ static Byte *swap_context(Byte * p) // goto new context for '' command make this
 	}
 	return (p);
 }
-#endif							/* BB_FEATURE_VI_YANKMARK */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
 static int isblnk(Byte c) // is the char a blank or tab
 {
@@ -3170,7 +3170,7 @@ static void cookmode(void)
 	tcsetattr(0, TCSANOW, &term_orig);
 }
 
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 //----- See what the window size currently is --------------------
 static void window_size_get(int sig)
 {
@@ -3191,16 +3191,16 @@ static void window_size_get(int sig)
 	rows = (int) winsize.ws_row;
 	columns = (int) winsize.ws_col;
 }
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 
 //----- Come here when we get a window resize signal ---------
-#ifdef BB_FEATURE_VI_USE_SIGNALS
+#ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 static void winch_sig(int sig)
 {
 	signal(SIGWINCH, winch_sig);
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 	window_size_get(0);
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 	new_screen(rows, columns);	// get memory for virtual screen
 	redraw(TRUE);		// re-draw the screen
 }
@@ -3263,7 +3263,7 @@ static void core_sig(int sig)
 
 	longjmp(restart, sig);
 }
-#endif							/* BB_FEATURE_VI_USE_SIGNALS */
+#endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 
 static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 {
@@ -3396,7 +3396,7 @@ static Byte get_one_char()
 {
 	static Byte c;
 
-#ifdef BB_FEATURE_VI_DOT_CMD
+#ifdef CONFIG_FEATURE_VI_DOT_CMD
 	// ! adding2q  && ioq == 0  read()
 	// ! adding2q  && ioq != 0  *ioq
 	// adding2q         *last_modifying_cmd= read()
@@ -3424,9 +3424,9 @@ static Byte get_one_char()
 			last_modifying_cmd[strlen((char *) last_modifying_cmd)] = c;
 		}
 	}
-#else							/* BB_FEATURE_VI_DOT_CMD */
+#else							/* CONFIG_FEATURE_VI_DOT_CMD */
 	c = readit();		// get the users input
-#endif							/* BB_FEATURE_VI_DOT_CMD */
+#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	return (c);			// return the char, where ever it came from
 }
 
@@ -3489,9 +3489,9 @@ static int file_insert(Byte * fn, Byte * p, int size)
 	int fd, cnt;
 
 	cnt = -1;
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 	readonly = FALSE;
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 	if (fn == 0 || strlen((char*) fn) <= 0) {
 		psbs("No filename given");
 		goto fi0;
@@ -3511,13 +3511,13 @@ static int file_insert(Byte * fn, Byte * p, int size)
 	}
 
 	// see if we can open the file
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 	if (vi_readonly == TRUE) goto fi1;		// do not try write-mode
 #endif
 	fd = open((char *) fn, O_RDWR);			// assume read & write
 	if (fd < 0) {
 		// could not open for writing- maybe file is read only
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
   fi1:
 #endif
 		fd = open((char *) fn, O_RDONLY);	// try read-only
@@ -3525,10 +3525,10 @@ static int file_insert(Byte * fn, Byte * p, int size)
 			psbs("\"%s\" %s", fn, "could not open file");
 			goto fi0;
 		}
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		// got the file- read-only
 		readonly = TRUE;
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 	}
 	p = text_hole_make(p, size);
 	cnt = read(fd, p, size);
@@ -3591,12 +3591,12 @@ static void place_cursor(int row, int col, int opti)
 	char cm1[BUFSIZ];
 	char *cm;
 	int l;
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	char cm2[BUFSIZ];
 	Byte *screenp;
 	// char cm3[BUFSIZ];
 	int Rrow= last_row;
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 	
 	memset(cm1, '\0', BUFSIZ - 1);  // clear the buffer
 
@@ -3610,7 +3610,7 @@ static void place_cursor(int row, int col, int opti)
 	cm= cm1;
 	if (opti == FALSE) goto pc0;
 
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	//----- find the minimum # of chars to move cursor -------------
 	//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
 	memset(cm2, '\0', BUFSIZ - 1);  // clear the buffer
@@ -3643,7 +3643,7 @@ static void place_cursor(int row, int col, int opti)
 	}  /* else if (strlen(cm3) < strlen(cm)) {
 		cm= cm3;
 	} */
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
   pc0:
 	l= strlen(cm);
 	if (l) write(1, cm, l);			// move the cursor
@@ -3690,10 +3690,10 @@ static void beep()
 
 static void indicate_error(char c)
 {
-#ifdef BB_FEATURE_VI_CRASHME
+#ifdef CONFIG_FEATURE_VI_CRASHME
 	if (crashme > 0)
 		return;			// generate a random command
-#endif							/* BB_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_CRASHME */
 	if (err_method == 0) {
 		beep();
 	} else {
@@ -3777,14 +3777,14 @@ static void edit_status(void)	// show file status on status line
 		percent = 100;
 	}
 	psb("\"%s\""
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		"%s"
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 		"%s line %d of %d --%d%%--",
 		(cfn != 0 ? (char *) cfn : "No file"),
-#ifdef BB_FEATURE_VI_READONLY
+#ifdef CONFIG_FEATURE_VI_READONLY
 		((vi_readonly == TRUE || readonly == TRUE) ? " [Read only]" : ""),
-#endif							/* BB_FEATURE_VI_READONLY */
+#endif							/* CONFIG_FEATURE_VI_READONLY */
 		(file_modified == TRUE ? " [modified]" : ""),
 		cur, tot, percent);
 }
@@ -3847,13 +3847,13 @@ static void refresh(int full_screen)
 	int li, changed;
 	Byte buf[MAX_SCR_COLS];
 	Byte *tp, *sp;		// pointer into text[] and screen[]
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	int last_li= -2;				// last line that changed- for optimizing cursor movement
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 
-#ifdef BB_FEATURE_VI_WIN_RESIZE
+#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
 	window_size_get(0);
-#endif							/* BB_FEATURE_VI_WIN_RESIZE */
+#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 	sync_cursor(dot, &crow, &ccol);	// where cursor will be (on "dot")
 	tp = screenbegin;	// index into text[] of top line
 
@@ -3916,31 +3916,31 @@ static void refresh(int full_screen)
 				// to handle offsets correctly
 				place_cursor(li, cs, FALSE);
 			} else {
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 				// if this just the next line
 				//  try to optimize cursor movement
 				//  otherwise, use standard ESC sequence
 				place_cursor(li, cs, li == (last_li+1) ? TRUE : FALSE);
 				last_li= li;
-#else							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#else							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 				place_cursor(li, cs, FALSE);	// use standard ESC sequence
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 			}
 
 			// write line out to terminal
 			write(1, sp+cs, ce-cs+1);
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 			last_row = li;
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 		}
 	}
 
-#ifdef BB_FEATURE_VI_OPTIMIZE_CURSOR
+#ifdef CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
 	place_cursor(crow, ccol, (crow == last_row) ? TRUE : FALSE);
 	last_row = crow;
 #else
 	place_cursor(crow, ccol, FALSE);
-#endif							/* BB_FEATURE_VI_OPTIMIZE_CURSOR */
+#endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 	
 	if (offset != old_offset)
 		old_offset = offset;

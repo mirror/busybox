@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.46 2001/07/17 01:12:36 andersen Exp $
+ * $Id: ping.c,v 1.47 2001/10/24 04:59:56 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -174,7 +174,7 @@ static int in_cksum(unsigned short *buf, int sz)
 }
 
 /* simple version */
-#ifndef BB_FEATURE_FANCY_PING
+#ifndef CONFIG_FEATURE_FANCY_PING
 static char *hostname = NULL;
 
 static void noresp(int ign)
@@ -247,7 +247,7 @@ extern int ping_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-#else /* ! BB_FEATURE_FANCY_PING */
+#else /* ! CONFIG_FEATURE_FANCY_PING */
 /* full(er) version */
 static char *hostname = NULL;
 static struct sockaddr_in pingaddr;
@@ -516,7 +516,7 @@ extern int ping_main(int argc, char **argv)
 	ping(*argv);
 	return EXIT_SUCCESS;
 }
-#endif /* ! BB_FEATURE_FANCY_PING */
+#endif /* ! CONFIG_FEATURE_FANCY_PING */
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.

@@ -1,0 +1,12 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu_option next_comment
+comment 'Editors'
+
+bool 'sed'	    CONFIG_SED
+bool 'vi'	    CONFIG_VI
+endmenu
+
