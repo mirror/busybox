@@ -819,8 +819,6 @@ int md5sum_main(int argc,
        if (string == NULL)
          string = (char **) xmalloc ((argc - 1) * sizeof (char *));
 
-       if (optarg == NULL)
-         optarg = "";
        string[n_strings++] = optarg;
        break;
      }
