@@ -1,14 +1,18 @@
 0.50
 	* Erik Andersen -- added ifconfig interface status reporting 
 	* Erik Andersen -- Debian packaging updates
-	* Erik Andersen -- lash environment variable expansion updated
+	* Erik Andersen -- lash environment variable expansion rewritten,
+	    with lots of help/fixes/testing from Larry Doolittle.
 	* Erik Andersen -- Fix use of busybox with dmalloc debugging lib
 	* Erik Andersen -- fixed ls behavior for broken or very narrow terminals.
-	* Erik Andersen -- if umount2 or pivot_root are not available,
-	    stub them out.
+	* Erik Andersen -- stub umount2 and pivot_root if they are not available.
+	* Erik Andersen -- libc5 fixes
+	* Erik Andersen -- make init work with devfsd
+	* Erik Andersen -- fixed df for nfs and dos where blksize = 512
 	* Erik Andersen -- Make sure libpwd.a is linked _last_ so it 
 	    overrides the system pwd/grp 
-	* Vladimir N. Oleynik -- new stty applet 
+	* Christophe Boyanique -- added an optional egrep alias for grep.
+	* Christophe Boyanique -- added optional 'rm -i' support.
 	* Kenneth Chalmers and Erik Andersen -- fixed ln so it
 	    behaves when given no arguments (prints usage) and when
 	    given just one arg (tries to make a link in the cwd).
@@ -16,8 +20,6 @@
 	* Magnus Damm -- powerpc support for busybox insmod.
 	* David Douthitt -- fixed a build error in df.c when 
 	    BB_FEATURE_HUMAN_READABLE was disabled
-	* Vladimir Oleynik -- saved 128 bytes by moving error checking 
-	    for several my_* functions into utility.c
 	* John Beppu -- wrote autodocifier.pl, which will be used to auto-
 	    generate the documentation from the source code, making life
 	    much simpler for all.
@@ -27,8 +29,14 @@
 	* Larry Doolittle -- rewrote ifconfig to make it smaller 
 	* Larry Doolittle and Erik Andersen -- cleanups to pristine source
 	* Larry Doolittle -- many bugfixes resulting from regression testing
+	* Gennady Feldman -- split syslogd.c into syslogd and klogd
+	* Gennady Feldman -- make syslogd single threaded -- no more forking
+	* Jeff Garzik -- getopt-ified rmmod.
+	* Jeff Garzik -- glibc 2.2 warning cleanups
+	* Jeff Garzik -- namespace pollution cleanup (staticified variables).
 	* Erik Gustavsson <cyrano@algonet.se> -- allow env variables set on the
 	    kernel command line to be inherited into init and its children.
+	* Erik Habbinga -- fixed an uninitialized substitution delimiter in sed.
 	* Chris Jaeger -- Makefile cleanup to make option setting less error-prone
 	* Chris Jaeger <cjaeger@ensim.com> -- Carefully check NFS_MOUNT_VERSION
 	    depending on what kernel is being used.
@@ -46,22 +54,32 @@
 	* Matt Kraai -- added find_applet_by_name and saved some memory thereby
 	* Matt Kraai -- added chomp to reduce redundant code elsewhere
 	* Matt Kraai -- Removed trailing \n chars from error_msg{,_and_die} messages. 
+	* John Lombardo -- fixed OOM in insmod.
 	* Glenn McGrath -- bypass /proc in mount, now uses sysfs. 
 	* Glenn McGrath -- several updates to dpkg and dpkg-deb. 
 	* Manuel Novoa III -- several size optimizations: parse_mode, 
 	    process_escape_sequence, format, and get_kernel_revision. 
+	* Manuel Novoa III -- rewrote ifconfig again to make it smaller still 
+	* Manuel Novoa III -- added ifconfig -a, updated interface reporting
 	* Vladimir N. Oleynik -- Fixed a bug where init set PATH incorrectly 
 	* Vladimir N. Oleynik -- cleanups to route, cmdedit, mkdir, 
 	    mkfs_minix, mkswap, chmod_chown_chgrp and utility.c
 	* Vladimir N. Oleynik -- many fixes to cmdedit. so tab completion
-	    is now working and general editing is much improved.
+	    is now working and general editing is much improved, and to
+	    improve complex prompt handling.
 	* Vladimir N. Oleynik -- added route status reporting.
 	* Vladimir N. Oleynik -- fixed wget to use xfopen
+	* Vladimir N. Oleynik -- new stty applet 
+	* Vladimir N. Oleynik -- fixed find, it used to stop on perm errors.
+	* Vladimir N. Oleynik -- locale forced to posix for scripts 
+	* Vladimir N. Oleynik -- saved 128 bytes by moving error checking 
+	    for several my_* functions into utility.c
 	* Bjorn Wesen -- new ifconfig and route applet (taken from 
 	    work done by Axis Communications).
 	* Mark Whitley -- Added a 'How to contribute to Busybox' doc
 	    and updated the style guide.
 	* Mark Whitley -- implemented grep -A, -B, and -C
+	* Mark Whitley -- overhauled the test suite.
 
 
 	 -Erik Andersen, not yet released
