@@ -36,7 +36,7 @@ extern int cp_main(int argc, char **argv)
 {
 	int status = 0;
 	int opt;
-	int flags = 0;
+	int flags = FILEUTILS_DEREFERENCE;
 	int i;
 
 	while ((opt = getopt(argc, argv, "adfipR")) != -1)
@@ -45,7 +45,7 @@ extern int cp_main(int argc, char **argv)
 			flags |= FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR;
 			/* fallthrough */
 		case 'd':
-			flags |= FILEUTILS_PRESERVE_SYMLINKS;
+			flags &= ~FILEUTILS_DEREFERENCE;
 			break;
 		case 'f':
 			flags |= FILEUTILS_FORCE;
@@ -73,9 +73,9 @@ extern int cp_main(int argc, char **argv)
 		int source_exists = 1;
 		int dest_exists = 1;
 
-		if (((flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+		if ((!(flags & FILEUTILS_DEREFERENCE) &&
 				lstat(argv[optind], &source_stat) < 0) ||
-				(!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+				((flags & FILEUTILS_DEREFERENCE) &&
 				 stat(argv[optind], &source_stat))) {
 			if (errno != ENOENT)
 				perror_msg_and_die("unable to stat `%s'", argv[optind]);

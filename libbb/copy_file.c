@@ -40,9 +40,9 @@ int copy_file(const char *source, const char *dest, int flags)
 	int dest_exists = 1;
 	int status = 0;
 
-	if (((flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+	if ((!(flags & FILEUTILS_DEREFERENCE) &&
 			lstat(source, &source_stat) < 0) ||
-			(!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+			((flags & FILEUTILS_DEREFERENCE) &&
 			 stat(source, &source_stat) < 0)) {
 		perror_msg("%s", source);
 		return -1;

@@ -74,8 +74,8 @@ static int manual_rename(const char *source, const char *dest)
 		}
 	}
 
-	if (copy_file(source, dest, FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS |
-			FILEUTILS_PRESERVE_SYMLINKS) < 0)
+	if (copy_file(source, dest,
+			FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS) < 0)
 		return -1;
 
 	if (remove_file(source, FILEUTILS_RECUR | FILEUTILS_FORCE) < 0)
