@@ -765,6 +765,7 @@ When FILE is '-', reads standard input.  Implies B<-c>.
 Options:
 
         -c      Write output to standard output instead of FILE.gz
+        -d      decompress
 
 Example:
 
@@ -2292,4 +2293,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.82 2000/12/11 19:39:25 andersen Exp $
+# $Id: busybox.pod,v 1.83 2000/12/13 17:59:37 andersen Exp $

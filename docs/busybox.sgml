@@ -1297,6 +1297,7 @@
 		<para>
 		<screen>
 			-c	Write output to standard output
+			-d      decompress
 		</screen>
 		</para>
 

@@ -432,6 +432,7 @@ const char gzip_usage[] =
 	"When FILE is '-', reads standard input.  Implies -c.\n\n"
 	"Options:\n"
 	"\t-c\tWrite output to standard output instead of FILE.gz\n"
+	"\t-d\tdecompress\n"
 #endif
 	;
 #endif
