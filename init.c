@@ -40,6 +40,9 @@
 #include <linux/serial.h>	/* for serial_struct */
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
+#ifdef BB_SYSLOGD
+#include <sys/syslog.h>
+#endif
 
 #define DEV_CONSOLE      "/dev/console"	/* Logical system console */
 #define VT_PRIMARY      "/dev/tty1"	/* Primary virtual console */
@@ -83,8 +86,20 @@ int device_open(char *device, int mode)
 void message(int device, char *fmt, ...)
 {
     int fd;
-    static int log_fd=-1;
     va_list arguments;
+#ifdef BB_SYSLOGD
+
+    /* Log the message to syslogd */
+    if (device & LOG ) {
+	char msg[1024];
+	va_start(arguments, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, arguments);
+	va_end(arguments);
+	syslog(LOG_DAEMON|LOG_NOTICE, msg);
+    }
+
+#else
+    static int log_fd=-1;
 
     /* Take full control of the log tty, and never close it.
      * It's mine, all mine!  Muhahahaha! */
@@ -102,12 +117,13 @@ void message(int device, char *fmt, ...)
 	    return;
 	}
     }
-
     if ( (device & LOG) && (log_fd >= 0) ) {
 	va_start(arguments, fmt);
 	vdprintf(log_fd, fmt, arguments);
 	va_end(arguments);
     }
+#endif
+
     if (device & CONSOLE) {
 	/* Always send console messages to /dev/console so people will see them. */
 	if ((fd = device_open(DEV_CONSOLE, O_WRONLY|O_NOCTTY|O_NDELAY)) >= 0) {
@@ -433,8 +449,9 @@ extern int init_main(int argc, char **argv)
     const char* const shell_command[] = { SHELL, "-" SHELL, 0};
     const char* const* tty0_command = shell_command;
     const char* const* tty1_command = shell_command;
-#ifdef BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS
-    const char* const rc_exit_command[] = BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS;
+#ifdef BB_INIT_CMD_IF_RC_SCRIPT_EXITS
+    const char* const rc_exit_command[] = { "BB_INIT_CMD_IF_RC_SCRIPT_EXITS", 
+					    "BB_INIT_CMD_IF_RC_SCRIPT_EXITS", 0 };
 #endif
 
 #ifdef DEBUG_INIT
@@ -536,7 +553,7 @@ extern int init_main(int argc, char **argv)
 	    if (run_rc == FALSE) {
 		pid1 = 0;
 	    }
-#ifdef BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS
+#ifdef BB_INIT_CMD_IF_RC_SCRIPT_EXITS
 	    else {
 		pid1 = 0;
 		run_rc=FALSE;
