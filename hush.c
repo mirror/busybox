@@ -1090,7 +1090,9 @@ static void pseudo_exec(struct child_prog *child)
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(child->argv[0], x->cmd) == 0 ) {
 				debug_printf("builtin exec %s\n", child->argv[0]);
-				_exit(x->function(child));
+				rcode = x->function(child);
+				fflush(stdout);
+				_exit(rcode);
 			}
 		}
 
