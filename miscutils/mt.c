@@ -35,7 +35,7 @@ static const struct mt_opcodes opcodes[] = {
 	{"ras3", MTRAS3},
 	{"reset", MTRESET},
 	{"retension", MTRETEN},
-	{"rew", MTREW},
+	{"rewind", MTREW},
 	{"seek", MTSEEK},
 	{"setblk", MTSETBLK},
 	{"setdensity", MTSETDENSITY},
