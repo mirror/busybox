@@ -86,6 +86,10 @@
 	    - added "skip" and "seek" to dd.
 	* swapoff -a was not working.  Now it is.
 	* init did not cleanly unmount filesystems on reboot.  Now it does.
+	* "sed -ne s/foo/bar/" worked but "sed -n -e s/foo/bar/" didn't.
+	    Now both work.
+	* Some architectures (PowerPc) assume chars are unsigned, so they could
+	    not distinguish between EOF and '\0xFF' in sed.  Sed now uses ints.
 
 
 	-Erik Andersen

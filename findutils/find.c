@@ -39,13 +39,7 @@ static const char find_usage[] = "find [PATH...] [EXPRESSION]\n\n"
 	"\nEXPRESSION may consist of:\n"
 	"\t-follow\n\t\tDereference symbolic links.\n"
 	"\t-name PATTERN\n\t\tFile name (with leading directories removed) matches PATTERN.\n"
-	"\t-print\n\t\tprint the full file name followed by a newline to stdout.\n\n"
-#if defined BB_REGEXP
-	"This version of find matches full regular expresions.\n";
-#else
-	"This version of find matches strings (not regular expresions).\n";
-#endif
-
+	"\t-print\n\t\tprint the full file name followed by a newline to stdout.\n";
 
 
 static int fileAction(const char *fileName, struct stat *statbuf)
