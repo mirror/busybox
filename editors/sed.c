@@ -34,7 +34,10 @@
   resulting sed_cmd_t structures are appended to a linked list
   (sed_cmd_head/sed_cmd_tail).
 
-  process_file() does actual sedding, reading data lines from an input FILE *
+  add_input_file() adds a FILE * to the list of input files.  We need to
+  know them all ahead of time to find the last line for the $ match.
+
+  process_files() does actual sedding, reading data lines from each input FILE *
   (which could be stdin) and applying the sed command list (sed_cmd_head) to
   each of the resulting lines.
 
@@ -116,6 +119,9 @@ static int be_quiet, in_place, regex_type;
 FILE *nonstdout;
 char *outname,*hold_space;
 
+/* List of input files */
+int input_file_count,current_input_file;
+FILE **input_file_list;
 
 static const char bad_format_in_subst[] =
 	"bad format in substitution expression";
@@ -171,6 +177,9 @@ static void free_and_close_stuff(void)
 	}
 
 	if(hold_space) free(hold_space);
+
+    while(current_input_file<input_file_count)
+		fclose(input_file_list[current_input_file++]);
 }
 #endif
 
@@ -565,6 +574,8 @@ void add_cmd(char *cmdstr)
 	}
 }
 
+/* Append to a string, reallocating memory as necessary. */
+
 struct pipeline {
 	char *buf;	/* Space to hold string */
 	int idx;	/* Space used */
@@ -718,20 +729,29 @@ static void flush_append(void)
 	append_head=append_tail=NULL;
 }
 
-/* Get next line of input, flushing append buffer and noting if we hit EOF
- * without a newline on the last line.
- */
-static char *get_next_line(FILE * file, int *no_newline)
+void add_input_file(FILE *file)
 {
-	char *temp;
+	input_file_list=xrealloc(input_file_list,(input_file_count+1)*sizeof(FILE *));
+	input_file_list[input_file_count++]=file;
+}
+
+/* Get next line of input from input_file_list, flushing append buffer and
+ * noting if we ran out of files without a newline on the last line we read.
+ */
+static char *get_next_line(int *no_newline)
+{
+	char *temp=NULL;
 	int len;
 
 	flush_append();
-	temp=bb_get_line_from_file(file);
-	if(temp) {
-		len=strlen(temp);
-		if(len && temp[len-1]=='\n') temp[len-1]=0;
-		else *no_newline=1;
+	while(current_input_file<input_file_count) {
+		temp=bb_get_line_from_file(input_file_list[current_input_file]);
+		if(temp) {
+			len=strlen(temp);
+			*no_newline=!(len && temp[len-1]=='\n');
+			if(!*no_newline) temp[len-1]=0;
+			break;
+		} else fclose(input_file_list[current_input_file++]);
 	}
 
 	return temp;
@@ -757,15 +777,15 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 
 #define sed_puts(s,n) missing_newline=puts_maybe_newline(s,nonstdout,missing_newline,n)
 
-static void process_file(FILE *file)
+static void process_files(void)
 {
 	char *pattern_space, *next_line;
-	static int linenum = 0, missing_newline=0;
+	int linenum = 0, missing_newline=0;
 	int no_newline,next_no_newline=0;
 
-	next_line = get_next_line(file,&next_no_newline);
+	next_line = get_next_line(&next_no_newline);
 
-	/* go through every line in the file */
+	/* go through every line in each file */
 	for(;;) {
 		sed_cmd_t *sed_cmd;
 		int substituted=0;
@@ -775,7 +795,7 @@ static void process_file(FILE *file)
 		no_newline=next_no_newline;
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
-		next_line = get_next_line(file,&next_no_newline);
+		next_line = get_next_line(&next_no_newline);
 		linenum++;
 restart:
 		/* for every line, go through all the commands */
@@ -944,7 +964,7 @@ restart:
 							free(pattern_space);
 							pattern_space = next_line;
 							no_newline=next_no_newline;
-							next_line = get_next_line(file,&next_no_newline);
+							next_line = get_next_line(&next_no_newline);
 							linenum++;
 							break;
 						}
@@ -974,7 +994,7 @@ restart:
 							pattern_space[len]='\n';
 							strcpy(pattern_space+len+1, next_line);
 							no_newline=next_no_newline;
-							next_line = get_next_line(file,&next_no_newline);
+							next_line = get_next_line(&next_no_newline);
 							linenum++;
 						}
 						break;
@@ -1150,8 +1170,7 @@ extern int sed_main(int argc, char **argv)
 		}
 	}
 
-	/* if we didn't get a pattern from a -e and no command file was specified,
-	 * argv[optind] should be the pattern. no pattern, no worky */
+	/* if we didn't get a pattern from -e or -f, use argv[optind] */
 	if(getpat) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
@@ -1172,14 +1191,16 @@ extern int sed_main(int argc, char **argv)
 			fprintf(stderr,"sed: Filename required for -i\n");
 			exit(1);
 		}
-		process_file(stdin);
+		add_input_file(stdin);
+		process_files();
 	} else {
 		int i;
 		FILE *file;
 
 		for (i = optind; i < argc; i++) {
 			if(!strcmp(argv[i], "-") && !in_place) {
-				process_file(stdin);
+				add_input_file(stdin);
+				process_files();
 			} else {
 				file = bb_wfopen(argv[i], "r");
 				if (file) {
@@ -1187,30 +1208,27 @@ extern int sed_main(int argc, char **argv)
 						struct stat statbuf;
 						outname=bb_xstrndup(argv[i],strlen(argv[i])+6);
 						strcat(outname,"XXXXXX");
-						/* Set permissions of output file */
-						fstat(fileno(file),&statbuf);
 						mkstemp(outname);
 						nonstdout=bb_wfopen(outname,"w");
 						/* Set permissions of output file */
 						fstat(fileno(file),&statbuf);
 						fchmod(fileno(nonstdout),statbuf.st_mode);
 						atexit(cleanup_outname);
-					}
-					process_file(file);
-					fclose(file);
-					if(in_place) {
+						add_input_file(file);
+						process_files();
 						fclose(nonstdout);
 						nonstdout=stdout;
 						unlink(argv[i]);
 						rename(outname,argv[i]);
 						free(outname);
 						outname=0;
-					}
+					} else add_input_file(file);
 				} else {
 					status = EXIT_FAILURE;
 				}
 			}
 		}
+		if(input_file_count>current_input_file) process_files();
 	}
 
 	return status;
