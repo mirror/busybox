@@ -294,11 +294,19 @@ route
 
 # rpmunpack
 
-# sed - we can do some one-liners here; probably needs it's own input file
+# sed - we can do some one-liners here, some testing is a little
+# difficult to do in just this space (like a,i,c cmds).
+
+# test ^$ matching
 echo foo | sed -ne '/^$/p'
+echo -e "foo\\n\\nbar" | sed -ne '/^$/p'
+
 sed -e '/test$/d' testcases
 sed -e '/^echo/d' testcases
 sed -e '/test/s/dangerous/PELIGROSO/' testcases
+sed -ne '1,/getopt/p' ../pwd.c
+sed -e '/getopt/r ../pwd.c' ../sed.c
+
 
 # setkeycodes
 
