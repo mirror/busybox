@@ -7,17 +7,17 @@ an editor such as "elvis-tiny" or "ae", and you have a working system.
 Busybox was begun to support the Debian Rescue/Install disks, but it
 also makes an excellent environment for any small or embedded system.
 
-As of version 0.20 there is a version number. : ) Also as of version
-0.20, BB is now modularized to easily allow you to build of only the
-BB parts you need, thereby reducing binary size. To turn off unwanted
-Busybox components, simply edit the file busybox.def.h and comment out
-the parts you do not need using C++ style (//) comments.
+As of version 0.20 there is a version number. : ) Also as of version 0.20, BB
+is now modularized to easily allow you to build only the BB parts you need,
+thereby reducing binary size. To turn off unwanted Busybox components, simply
+edit the file busybox.def.h and comment out the parts you do not need using C++
+style (//) comments.
 
 After the build is complete a busybox.links file is generated which is
 then used by 'make install' to create symlinks to the busybox binary
 for all compiled in functions.  By default, 'make install' will place
 the symlink forest into `pwd`/_install unless you have defined the 
-PREFIX environment variable.
+PREFIX environment variable (i.e. make PREFIX="/tmp/foo" install)
 
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 

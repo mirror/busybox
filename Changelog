@@ -59,7 +59,7 @@
 	    the common error handling saves a few bytes.  Thanks to 
 	    Bob Tinsley <bob@earthrise.demon.co.uk> for the patch.
 	* Fix "+" parsing bug in date, from "Merle F. McClelland" <mfm@cts.com>.
-	    
+	* BusyBox's bss size has been majorly reduced (was 384668, is now 28740).
 
 
 	-Erik Andersen

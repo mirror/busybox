@@ -1,16 +1,42 @@
 /* vi: set sw=4 ts=4: */
-/* gzip.c -- this is a stripped down version of gzip I put into busybox, it does
- * only standard in to standard out with -9 compression.  It also requires the
- * zcat module for some important functions.  
+/*
+ * Gzip implementation for busybox
  *
- * Charles P. Wright <cpw@unix.asb.com>
+ * Based on GNU gzip Copyright (C) 1992-1993 Jean-loup Gailly.
+ *
+ * Originally adjusted for busybox by Charles P. Wright <cpw@unix.asb.com>
+ *		"this is a stripped down version of gzip I put into busybox, it does
+ *		only standard in to standard out with -9 compression.  It also requires
+ *		the zcat module for some important functions."
+ *
+ * Adjusted further by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * to support files as well as stdin/stdout, and to generally behave itself wrt
+ * command line handling.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
-#include "internal.h"
-#ifdef BB_GZIP
 
-//#ifndef BB_ZCAT
-//#error you need zcat to have gzip support!
-//#endif
+#include "internal.h"
+
+/* These defines are very important for BusyBox.  Without these,
+ * huge chunks of ram are pre-allocated making the BusyBox bss 
+ * size Freaking Huge(tm), which is a bad thing.*/
+#define SMALL_MEM
+#define DYN_ALLOC
+
 
 static const char gzip_usage[] =
 	"gzip [OPTION]... FILE\n\n"
@@ -21,42 +47,12 @@ static const char gzip_usage[] =
 	"\t-c\tWrite output to standard output instead of FILE.gz\n";
 
 
-/* gzip.h -- common declarations for all gzip modules
- * Copyright (C) 1992-1993 Jean-loup Gailly.
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-#if defined(__STDC__) || defined(PROTO)
-#  define OF(args)  args
-#else
-#  define OF(args)  ()
-#endif
-
-#ifdef __STDC__
-typedef void *voidp;
-#else
-typedef char *voidp;
-#endif
-
 /* I don't like nested includes, but the string and io functions are used
  * too often
  */
 #include <stdio.h>
-#if !defined(NO_STRING_H) || defined(STDC_HEADERS)
-#  include <string.h>
-#  if !defined(STDC_HEADERS) && !defined(NO_MEMORY_H) && !defined(__GNUC__)
-#    include <memory.h>
-#  endif
-#  define memzero(s, n)     memset ((voidp)(s), 0, (n))
-#else
-#  include <strings.h>
-#  define strchr            index
-#  define strrchr           rindex
-#  define memcpy(d, s, n)   bcopy((s), (d), (n))
-#  define memcmp(s1, s2, n) bcmp((s1), (s2), (n))
-#  define memzero(s, n)     bzero((s), (n))
-#endif
+#include <string.h>
+#define memzero(s, n)     memset ((void *)(s), 0, (n))
 
 #ifndef RETSIGTYPE
 #  define RETSIGTYPE void
@@ -121,13 +117,13 @@ extern int method;				/* compression method */
 #endif
 
 #ifdef DYN_ALLOC
-#  define EXTERN(type, array)  extern type * near array
-#  define DECLARE(type, array, size)  type * near array
+#  define EXTERN(type, array)  extern type * array
+#  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
-      array = (type*)fcalloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
+      array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
       if (array == NULL) errorMsg("insufficient memory"); \
    }
-#  define FREE(array) {if (array != NULL) fcfree(array), array=NULL;}
+#  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
 #  define EXTERN(type, array)  extern type array[]
 #  define DECLARE(type, array, size)  type array[size]
@@ -284,55 +280,55 @@ extern int save_orig_name;		/* set if original name must be saved */
 
 
 	/* in zip.c: */
-extern int zip OF((int in, int out));
-extern int file_read OF((char *buf, unsigned size));
+extern int zip (int in, int out);
+extern int file_read (char *buf, unsigned size);
 
 	/* in unzip.c */
-extern int unzip OF((int in, int out));
-extern int check_zipfile OF((int in));
+extern int unzip (int in, int out);
+extern int check_zipfile (int in);
 
 	/* in unpack.c */
-extern int unpack OF((int in, int out));
+extern int unpack (int in, int out);
 
 	/* in unlzh.c */
-extern int unlzh OF((int in, int out));
+extern int unlzh (int in, int out);
 
 	/* in gzip.c */
-RETSIGTYPE abort_gzip OF((void));
+RETSIGTYPE abort_gzip (void);
 
 		/* in deflate.c */
-void lm_init OF((ush * flags));
-ulg deflate OF((void));
+void lm_init (ush * flags);
+ulg deflate (void);
 
 		/* in trees.c */
-void ct_init OF((ush * attr, int *method));
-int ct_tally OF((int dist, int lc));
-ulg flush_block OF((char *buf, ulg stored_len, int eof));
+void ct_init (ush * attr, int *method);
+int ct_tally (int dist, int lc);
+ulg flush_block (char *buf, ulg stored_len, int eof);
 
 		/* in bits.c */
-void bi_init OF((file_t zipfile));
-void send_bits OF((int value, int length));
-unsigned bi_reverse OF((unsigned value, int length));
-void bi_windup OF((void));
-void copy_block OF((char *buf, unsigned len, int header));
-extern int (*read_buf) OF((char *buf, unsigned size));
+void bi_init (file_t zipfile);
+void send_bits (int value, int length);
+unsigned bi_reverse (unsigned value, int length);
+void bi_windup (void);
+void copy_block (char *buf, unsigned len, int header);
+extern int (*read_buf) (char *buf, unsigned size);
 
 	/* in util.c: */
-extern int copy OF((int in, int out));
-extern ulg updcrc OF((uch * s, unsigned n));
-extern void clear_bufs OF((void));
-extern int fill_inbuf OF((int eof_ok));
-extern void flush_outbuf OF((void));
-extern void flush_window OF((void));
-extern void write_buf OF((int fd, voidp buf, unsigned cnt));
-extern char *strlwr OF((char *s));
-extern char *add_envopt OF((int *argcp, char ***argvp, char *env));
-extern void read_error OF((void));
-extern void write_error OF((void));
-extern void display_ratio OF((long num, long den, FILE * file));
+extern int copy (int in, int out);
+extern ulg updcrc (uch * s, unsigned n);
+extern void clear_bufs (void);
+extern int fill_inbuf (int eof_ok);
+extern void flush_outbuf (void);
+extern void flush_window (void);
+extern void write_buf (int fd, void * buf, unsigned cnt);
+extern char *strlwr (char *s);
+extern char *add_envopt (int *argcp, char ***argvp, char *env);
+extern void read_error (void);
+extern void write_error (void);
+extern void display_ratio (long num, long den, FILE * file);
 
 	/* in inflate.c */
-extern int inflate OF((void));
+extern int inflate (void);
 
 /* lzw.h -- define the lzw functions.
  * Copyright (C) 1992-1993 Jean-loup Gailly.
@@ -795,7 +791,7 @@ local int bi_valid;
  * are always zero.
  */
 
-int (*read_buf) OF((char *buf, unsigned size));
+int (*read_buf) (char *buf, unsigned size);
 
 /* Current input function. Set to mem_read for in-memory compression */
 
@@ -1148,16 +1144,16 @@ local config configuration_table =
 /* ===========================================================================
  *  Prototypes for local functions.
  */
-local void fill_window OF((void));
+local void fill_window (void);
 
-int longest_match OF((IPos cur_match));
+int longest_match (IPos cur_match);
 
 #ifdef ASMV
-void match_init OF((void));		/* asm code initialization */
+void match_init (void);		/* asm code initialization */
 #endif
 
 #ifdef DEBUG
-local void check_match OF((IPos start, IPos match, int length));
+local void check_match (IPos start, IPos match, int length);
 #endif
 
 /* ===========================================================================
@@ -1708,7 +1704,7 @@ struct utimbuf {
 #  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #endif
 
-typedef RETSIGTYPE(*sig_type) OF((int));
+typedef RETSIGTYPE(*sig_type) (int);
 
 #ifndef	O_BINARY
 #  define  O_BINARY  0			/* creation mode for open() */
@@ -1743,7 +1739,7 @@ typedef RETSIGTYPE(*sig_type) OF((int));
 
 #ifdef NO_OFF_T
 typedef long off_t;
-off_t lseek OF((int fd, off_t offset, int whence));
+off_t lseek (int fd, off_t offset, int whence);
 #endif
 
 /* Separator for file name parts (see shorten_name()) */
@@ -2246,17 +2242,17 @@ extern unsigned near strstart;	/* window offset of current string */
  * Local (static) routines in this file.
  */
 
-local void init_block OF((void));
-local void pqdownheap OF((ct_data near * tree, int k));
-local void gen_bitlen OF((tree_desc near * desc));
-local void gen_codes OF((ct_data near * tree, int max_code));
-local void build_tree OF((tree_desc near * desc));
-local void scan_tree OF((ct_data near * tree, int max_code));
-local void send_tree OF((ct_data near * tree, int max_code));
-local int build_bl_tree OF((void));
-local void send_all_trees OF((int lcodes, int dcodes, int blcodes));
-local void compress_block OF((ct_data near * ltree, ct_data near * dtree));
-local void set_file_type OF((void));
+local void init_block (void);
+local void pqdownheap (ct_data near * tree, int k);
+local void gen_bitlen (tree_desc near * desc);
+local void gen_codes (ct_data near * tree, int max_code);
+local void build_tree (tree_desc near * desc);
+local void scan_tree (ct_data near * tree, int max_code);
+local void send_tree (ct_data near * tree, int max_code);
+local int build_bl_tree (void);
+local void send_all_trees (int lcodes, int dcodes, int blcodes);
+local void compress_block (ct_data near * ltree, ct_data near * dtree);
+local void set_file_type (void);
 
 
 #ifndef DEBUG
@@ -3161,12 +3157,8 @@ char *s;
 
 /* Provide missing strspn and strcspn functions. */
 
-#  ifndef __STDC__
-#    define const
-#  endif
-
-int strspn OF((const char *s, const char *accept));
-int strcspn OF((const char *s, const char *reject));
+int strspn (const char *s, const char *accept);
+int strcspn (const char *s, const char *reject);
 
 /* ========================================================================
  * Return the length of the maximum initial segment
@@ -3398,4 +3390,3 @@ unsigned size;
 	isize += (ulg) len;
 	return (int) len;
 }
-#endif

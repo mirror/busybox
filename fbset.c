@@ -228,10 +228,11 @@ static void fbset_usage(void)
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 			BB_VER, BB_BT);
 #endif
-	fprintf(stderr, "Usage: fbset [options] [mode]\n");
-	fprintf(stderr, "\tThe following options are recognized:\n");
+	fprintf(stderr, "Usage: fbset [options] [mode]\n\n");
+	fprintf(stderr, "Show and modify frame buffer device settings\n\n");
+	fprintf(stderr, "The following options are recognized:\n");
 	for (i = 0; g_cmdoptions[i].name; i++)
-		fprintf(stderr, "\t\t%s\n", g_cmdoptions[i].name);
+		fprintf(stderr, "\t%s\n", g_cmdoptions[i].name);
 	exit(-1);
 }
 

@@ -1,10 +1,12 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Termios command line History and Editting for NetBSD sh (ash)
+ * Termios command line History and Editting, originally 
+ * intended for NetBSD sh (ash)
  * Copyright (c) 1999
  *      Main code:            Adam Rogoyski <rogoyski@cs.utexas.edu> 
  *      Etc:                  Dave Cinege <dcinege@psychosis.com>
- *      Adjusted for busybox: Erik Andersen <andersee@debian.org>
+ *  Majorly adjusted/re-written for busybox:
+ *                            Erik Andersen <andersee@debian.org>
  *
  * You may use this code as you wish, so long as the original author(s)
  * are attributed in any redistributions of the source code.
@@ -69,13 +71,14 @@ struct history {
 void
 cmdedit_setwidth(int w)
 {
-    if (w > 20) {
+	if (w > 20) {
 		cmdedit_termw = w;
 		cmdedit_scroll = w / 3;
-    } else {
+	} else {
 		errorMsg("\n*** Error: minimum screen width is 21\n");
-    }
+	}
 }
+
 
 void cmdedit_reset_term(void)
 {
@@ -339,60 +342,7 @@ void get_next_history(struct history **hp, char* command)
 	free((*hp)->s);
 	(*hp)->s = strdup(command);
 	*hp = (*hp)->n;
-
-	cmdedit_redraw( NULL, hp->s, -2, -2); 
 }
-
-#if 0
-/* prompt : if !=NULL, print the prompt
- * command: the command line to be displayed
- * where  : where to display changes from.
- *          -1 for no change, -2 for new line
- * cursor : desired location for the cursor.
- *          -1 for Beginning of line.
- *          -2 for End of Line, 
- */
-static void
-cmdedit_redraw(char* prompt, char* command, int where, int cursor)
-{
-	static char* last_command;
-	int cmdedit_width;
-
-	if (where == -2) {
-		/* Rewrite the prompt and clean up static variables */
-		xwrite(outputFd, "\n", 1);
-		if (prompt) {
-			strcpy(last_command, prompt);
-			xwrite(outputFd, prompt, strlen(prompt));
-		} else {
-			last_command[0] = '\0';
-			xwrite(outputFd, "# ", 2);
-		}
-		cmdedit_width = cmdedit_termw - cmdedit_strlen(prompt);
-	} else if (strcmp(command, last_command) != 0) {
-		strcpy(last_command, prompt);
-	}
-
-	/* erase old command from command line */
-	len = strlen(command)-strlen(last_command);
-	while (len>0)
-		input_backspace(command, outputFd, &cursor, &len);
-	input_home(outputFd, &cursor);
-
-	/* Rewrite the command */
-	xwrite(outputFd, command+where, len);
-
-	/* Put the where it is supposed to be */
-	for (cursor=len; cursor > where; cursor--)
-		xwrite(outputFd, "\b", 1);
-
-	/* write new command */
-	strcpy(command, hp->s);
-	len = strlen(hp->s);
-	xwrite(outputFd, command+where, len);
-	cursor = len;
-}
-#endif
 
 /*
  * This function is used to grab a character buffer

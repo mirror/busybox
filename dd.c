@@ -2,13 +2,13 @@
 /*
  * Mini dd implementation for busybox
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999, 2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- * based in part on code taken from sash. 
  *
- * Copyright (c) 1999 by David I. Bell
- * Permission is granted to use, distribute, or modify this source,
- * provided that this copyright notice remains intact.
+ * Based in part on code taken from sash. 
+ *   Copyright (c) 1999 by David I. Bell
+ *   Permission is granted to use, distribute, or modify this source,
+ *   provided that this copyright notice remains intact.
  *
  * Permission to distribute this code under the GPL has been granted.
  *

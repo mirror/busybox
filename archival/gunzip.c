@@ -1,13 +1,33 @@
 /* vi: set sw=4 ts=4: */
-/* zcat : stripped version based on gzip sources
-   Sven Rudolph <sr1@inf.tu-dresden.de>
-   */
+/*
+ * Gzip implementation for busybox
+ *
+ * Based on GNU gzip Copyright (C) 1992-1993 Jean-loup Gailly.
+ *
+ * Originally adjusted for busybox by Sven Rudolph <sr1@inf.tu-dresden.de>
+ * based on gzip sources
+ *
+ * Adjusted further by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * to support files as well as stdin/stdout, and to generally behave itself wrt
+ * command line handling.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
 
 #include "internal.h"
-#define bb_need_name_too_long
-#define BB_DECLARE_EXTERN
-#include "messages.c"
-
 static const char gunzip_usage[] =
 	"gunzip [OPTION]... FILE\n\n"
 	"Uncompress FILE (or standard input if FILE is '-').\n\n"
@@ -15,6 +35,18 @@ static const char gunzip_usage[] =
 
 	"\t-c\tWrite output to standard output\n"
 	"\t-t\tTest compressed file integrity\n";
+
+	
+	/* These defines are very important for BusyBox.  Without these,
+ * huge chunks of ram are pre-allocated making the BusyBox bss 
+ * size Freaking Huge(tm), which is a bad thing.*/
+#define SMALL_MEM
+#define DYN_ALLOC
+
+#define bb_need_name_too_long
+#define BB_DECLARE_EXTERN
+#include "messages.c"
+
 
 /* gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
  * Copyright (C) 1992-1993 Jean-loup Gailly
@@ -89,25 +121,6 @@ static char *license_msg[] = {
 #define get_char() get_byte()
 #define put_char(c) put_byte(c)
 
-/* #include "gzip.h" */
-
-/* gzip.h -- common declarations for all gzip modules
- * Copyright (C) 1992-1993 Jean-loup Gailly.
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-#if defined(__STDC__) || defined(PROTO)
-#  define OF(args)  args
-#else
-#  define OF(args)  ()
-#endif
-
-#ifdef __STDC__
-typedef void *voidp;
-#else
-typedef char *voidp;
-#endif
 
 /* I don't like nested includes, but the string and io functions are used
  * too often
@@ -118,7 +131,7 @@ typedef char *voidp;
 #  if !defined(STDC_HEADERS) && !defined(NO_MEMORY_H) && !defined(__GNUC__)
 #    include <memory.h>
 #  endif
-#  define memzero(s, n)     memset ((voidp)(s), 0, (n))
+#  define memzero(s, n)     memset ((void *)(s), 0, (n))
 #else
 #  include <strings.h>
 #  define strchr            index
@@ -329,49 +342,46 @@ extern int save_orig_name;		/* set if original name must be saved */
 #define WARN(msg) {fprintf msg ; \
 		   if (exit_code == OK) exit_code = WARNING;}
 
-#define do_exit(c) exit(c)
-
-
 	/* in unzip.c */
-extern int unzip OF((int in, int out));
+extern int unzip (int in, int out);
 
 	/* in gzip.c */
-RETSIGTYPE abort_gzip OF((void));
+RETSIGTYPE abort_gzip (void);
 
 		/* in deflate.c */
-void lm_init OF((int pack_level, ush * flags));
-ulg deflate OF((void));
+void lm_init (int pack_level, ush * flags);
+ulg deflate (void);
 
 		/* in trees.c */
-void ct_init OF((ush * attr, int *method));
-int ct_tally OF((int dist, int lc));
-ulg flush_block OF((char *buf, ulg stored_len, int eof));
+void ct_init (ush * attr, int *method);
+int ct_tally (int dist, int lc);
+ulg flush_block (char *buf, ulg stored_len, int eof);
 
 		/* in bits.c */
-void bi_init OF((file_t zipfile));
-void send_bits OF((int value, int length));
-unsigned bi_reverse OF((unsigned value, int length));
-void bi_windup OF((void));
-void copy_block OF((char *buf, unsigned len, int header));
-extern int (*read_buf) OF((char *buf, unsigned size));
+void bi_init (file_t zipfile);
+void send_bits (int value, int length);
+unsigned bi_reverse (unsigned value, int length);
+void bi_windup (void);
+void copy_block (char *buf, unsigned len, int header);
+extern int (*read_buf) (char *buf, unsigned size);
 
 	/* in util.c: */
-extern int copy OF((int in, int out));
-extern ulg updcrc OF((uch * s, unsigned n));
-extern void clear_bufs OF((void));
-extern int fill_inbuf OF((int eof_ok));
-extern void flush_outbuf OF((void));
-extern void flush_window OF((void));
-extern void write_buf OF((int fd, voidp buf, unsigned cnt));
+extern int copy (int in, int out);
+extern ulg updcrc (uch * s, unsigned n);
+extern void clear_bufs (void);
+extern int fill_inbuf (int eof_ok);
+extern void flush_outbuf (void);
+extern void flush_window (void);
+extern void write_buf (int fd, void * buf, unsigned cnt);
 
 #ifndef __linux__
-extern char *basename OF((char *fname));
+extern char *basename (char *fname);
 #endif							/* not __linux__ */
-extern void read_error OF((void));
-extern void write_error OF((void));
+extern void read_error (void);
+extern void write_error (void);
 
 	/* in inflate.c */
-extern int inflate OF((void));
+extern int inflate (void);
 
 /* #include "lzw.h" */
 
@@ -415,8 +425,8 @@ extern int inflate OF((void));
 extern int maxbits;				/* max bits per code for LZW */
 extern int block_mode;			/* block compress mode -C compatible with 2.0 */
 
-extern int lzw OF((int in, int out));
-extern int unlzw OF((int in, int out));
+extern int lzw (int in, int out);
+extern int unlzw (int in, int out);
 
 
 /* #include "revision.h" */
@@ -605,7 +615,7 @@ typedef struct direct dir_type;
 #if !defined(S_ISREG) && defined(S_IFREG)
 #  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #endif
-typedef RETSIGTYPE(*sig_type) OF((int));
+typedef RETSIGTYPE(*sig_type) (int);
 
 #ifndef	O_BINARY
 #  define  O_BINARY  0			/* creation mode for open() */
@@ -644,7 +654,7 @@ typedef RETSIGTYPE(*sig_type) OF((int));
 
 #ifdef NO_OFF_T
 typedef long off_t;
-off_t lseek OF((int fd, off_t offset, int whence));
+off_t lseek (int fd, off_t offset, int whence);
 #endif
 
 
@@ -687,7 +697,7 @@ long header_bytes;				/* number of bytes in gzip header */
 
 /* local functions */
 
-local int get_method OF((int in));
+local int get_method (int in);
 
 #define strequ(s1, s2) (strcmp((s1),(s2)) == 0)
 
@@ -773,7 +783,7 @@ int gunzip_main(int argc, char **argv)
 			usage(gunzip_usage);
 		if (strlen(*argv) > MAX_PATH_LEN) {
 			fprintf(stderr, name_too_long, "gunzip");
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		strcpy(ifname, *argv);
 
@@ -781,13 +791,13 @@ int gunzip_main(int argc, char **argv)
 		inFileNum = open(ifname, O_RDONLY);
 		if (inFileNum < 0) {
 			perror(ifname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		/* Get the time stamp on the input file. */
 		result = stat(ifname, &statBuf);
 		if (result < 0) {
 			perror(ifname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		ifile_size = statBuf.st_size;
 	}
@@ -812,7 +822,7 @@ int gunzip_main(int argc, char **argv)
 		/* And get to work */
 		if (strlen(ifname) > MAX_PATH_LEN - 4) {
 			fprintf(stderr, name_too_long, "gunzip");
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		strcpy(ofname, ifname);
 		pos = strstr(ofname, ".gz");
@@ -836,7 +846,7 @@ int gunzip_main(int argc, char **argv)
 #endif
 		if (outFileNum < 0) {
 			perror(ofname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		/* Set permissions on the file */
 		fchmod(outFileNum, statBuf.st_mode);
@@ -860,7 +870,7 @@ int gunzip_main(int argc, char **argv)
 			exit(FALSE);
 		}
 	}
-	do_exit(exit_code);
+	exit(exit_code);
 }
 
 
@@ -953,7 +963,7 @@ int in;							/* input file descriptor */
  */
 RETSIGTYPE abort_gzip()
 {
-	do_exit(ERROR);
+	exit(ERROR);
 }
 
 /* unzip.c -- decompress files in gzip or pkzip format.
@@ -1027,7 +1037,7 @@ int in, out;					/* input and output file descriptors */
 	ofd = out;
 	method = get_method(ifd);
 	if (method < 0) {
-		do_exit(exit_code);		/* error message already emitted */
+		exit(exit_code);		/* error message already emitted */
 	}
 
 	updcrc(NULL, 0);			/* initialize crc */
@@ -1218,7 +1228,7 @@ void flush_window()
  */
 void write_buf(fd, buf, cnt)
 int fd;
-voidp buf;
+void * buf;
 unsigned cnt;
 {
 	unsigned n;
@@ -1228,7 +1238,7 @@ unsigned cnt;
 			write_error();
 		}
 		cnt -= n;
-		buf = (voidp) ((char *) buf + n);
+		buf = (void *) ((char *) buf + n);
 	}
 }
 
@@ -1240,8 +1250,8 @@ unsigned cnt;
 #    define const
 #  endif
 
-int strspn OF((const char *s, const char *accept));
-int strcspn OF((const char *s, const char *reject));
+int strspn (const char *s, const char *accept);
+int strcspn (const char *s, const char *reject);
 
 /* ========================================================================
  * Return the length of the maximum initial segment
@@ -1493,15 +1503,15 @@ struct huft {
 
 
 /* Function prototypes */
-int huft_build OF((unsigned *, unsigned, unsigned, ush *, ush *,
-				   struct huft **, int *));
-int huft_free OF((struct huft *));
-int inflate_codes OF((struct huft *, struct huft *, int, int));
-int inflate_stored OF((void));
-int inflate_fixed OF((void));
-int inflate_dynamic OF((void));
-int inflate_block OF((int *));
-int inflate OF((void));
+int huft_build (unsigned *, unsigned, unsigned, ush *, ush *,
+				   struct huft **, int *);
+int huft_free (struct huft *);
+int inflate_codes (struct huft *, struct huft *, int, int);
+int inflate_stored (void);
+int inflate_fixed (void);
+int inflate_dynamic (void);
+int inflate_block (int *);
+int inflate (void);
 
 
 /* The inflate algorithm uses a sliding 32K byte window on the uncompressed

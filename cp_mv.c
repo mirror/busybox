@@ -37,7 +37,7 @@
 #include <utime.h>
 #include <dirent.h>
 #include <sys/param.h>
-#include <setjmp.h>				/* Ok to use this since `ash' does, therefore it's in the libc subset already. */
+#include <setjmp.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>

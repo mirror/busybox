@@ -3,7 +3,7 @@
  * Mini du implementation for busybox
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -182,7 +182,7 @@ int du_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: du.c,v 1.16 2000/03/04 21:19:32 erik Exp $ */
+/* $Id: du.c,v 1.17 2000/04/13 01:18:56 erik Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -1,8 +1,8 @@
-List of the authors of code contained in busybox.
+List of the authors of code contained in BusyBox.
 
-If you should be listed here, or the description of 
-what you have done needs more detail, or is incorect, 
-_please_ let me know.
+If you have code in BusyBox, you should be listed here.  If you should be
+listed, or the description of what you have done needs more detail, or is
+incorect, _please_ let me know.
 
  -Erik
 
@@ -16,7 +16,7 @@ Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.
 
 John Beppu <beppu@lineo.com>
-    du, head, tee
+    du, head, nslookup, sort, tee, uniq
 
 Brian Candler <B.Candler@pobox.com>
     tiny-ls(ls)

@@ -471,8 +471,10 @@ static void check_memory()
 		return;
 
 	if (stat("/etc/fstab", &statBuf) == 0) {
+		/* swapon -a requires /proc typically */
+		waitfor("mount proc /proc -t proc", console, FALSE);
 		/* Try to turn on swap */
-		system("/sbin/swapon -a");
+		waitfor("swapon -a", console, FALSE);
 		if (check_free_memory() < 1000)
 			goto goodnight;
 	} else

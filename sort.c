@@ -3,7 +3,7 @@
  * Mini sort implementation for busybox
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -320,4 +320,4 @@ int sort_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: sort.c,v 1.12 2000/03/04 21:19:32 erik Exp $ */
+/* $Id: sort.c,v 1.13 2000/04/13 01:18:56 erik Exp $ */

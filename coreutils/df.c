@@ -2,7 +2,7 @@
 /*
  * Mini df implementation for busybox
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  * based on original code by (I think) Bruce Perens <bruce@pixar.com>.
  *
@@ -28,9 +28,8 @@
 #include <sys/stat.h>
 #include <sys/vfs.h>
 
-static const char df_usage[] = "df [filesystem ...]\n"
-
-	"\n" "\tPrint the filesystem space used and space available.\n";
+static const char df_usage[] = "df [filesystem ...]\n\n"
+	"Print the filesystem space used and space available.\n";
 
 extern const char mtab_file[];	/* Defined in utility.c */
 
@@ -76,6 +75,9 @@ extern int df_main(int argc, char **argv)
 		struct mntent *mountEntry;
 		int status;
 
+		if (**(argv + 1) == '-') {
+			usage(df_usage);
+		}
 		while (argc > 1) {
 			if ((mountEntry = findMountPoint(argv[1], mtab_file)) == 0) {
 				fprintf(stderr, "%s: can't find mount point.\n", argv[1]);

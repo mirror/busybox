@@ -353,8 +353,8 @@ void saveoldmap(int fd, char *omfil)
 unicode utf8_to_ucs2(char *buf)
 {
 	int utf_count = 0;
-	long utf_char;
-	unicode tc;
+	long utf_char = 0;
+	unicode tc = 0;
 	unsigned char c;
 
 	do {

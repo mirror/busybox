@@ -13,34 +13,35 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <errno.h>
 #include <utmp.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_io_error
+#include "messages.c"
 
 static const char dutmp_usage[] = "dutmp\n"
 	"\n"
-
 	"\tDump file or stdin utmp file format to stdout, pipe delimited.\n"
 	"\tdutmp /var/run/utmp\n";
 
 extern int dutmp_main(int argc, char **argv)
 {
 
-	FILE *f = stdin;
+	FILE *f;
 	struct utmp ut;
 
-	if ((argc < 2) || (**(argv + 1) == '-')) {
+	if (argc<2) {
+		f = stdin;
+	} else if (*argv[1] == '-' ) {
 		usage(dutmp_usage);
-	}
-
-	if (**(++argv) == 0) {
-		f = fopen(*(++argv), "r");
-		if (f < 0) {
-			perror(*argv);
-			exit(FALSE);
+	} else  {
+		f = fopen(argv[1], "r");
+		if (f == NULL) {
+			fatalError(io_error, argv[1], strerror(errno));
 		}
 	}
 
-	while (fread(&ut, 1, sizeof(struct utmp), f)) {
-		// printf("%d:%d:%s:%s:%s:%s:%d:%d:%ld:%ld:%ld:%x\n", 
+	while (fread(&ut, sizeof(struct utmp), 1, f)) {
 		printf("%d|%d|%s|%s|%s|%s|%d|%d|%ld|%ld|%ld|%x\n",
 			   ut.ut_type, ut.ut_pid, ut.ut_line,
 			   ut.ut_id, ut.ut_user, ut.ut_host,

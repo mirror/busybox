@@ -3,7 +3,7 @@
  * Mini head implementation for busybox
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by John Beppu <beppu@lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -109,4 +109,4 @@ int head_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: head.c,v 1.8 2000/02/08 19:58:47 erik Exp $ */
+/* $Id: head.c,v 1.9 2000/04/13 01:18:56 erik Exp $ */

@@ -2,7 +2,6 @@
 /*
  * Mini nslookup implementation for busybox
  *
- *
  * Copyright (C) 2000 by Lineo, inc.
  * Written by John Beppu <beppu@lineo.com>
  *
@@ -174,4 +173,4 @@ int nslookup_main(int argc, char **argv)
 	return 0;
 }
 
-/* $Id: nslookup.c,v 1.5 2000/02/18 21:34:17 erik Exp $ */
+/* $Id: nslookup.c,v 1.6 2000/04/13 01:18:56 erik Exp $ */

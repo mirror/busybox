@@ -2,9 +2,9 @@
 /*
  * Mini tar implementation for busybox 
  *
- * Note, that as of BusyBox 0.43 tar has been completely rewritten from the
- * ground up.  It still has remnents of the old code lying about, but it pretty
- * different (i.e. cleaner, less global variables, etc)
+ * Note, that as of BusyBox-0.43, tar has been completely rewritten from the
+ * ground up.  It still has remnents of the old code lying about, but it is
+ * very different now (i.e. cleaner, less global variables, etc)
  *
  * Copyright (C) 2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>

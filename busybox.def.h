@@ -7,7 +7,7 @@
 //
 //
 // BusyBox Applications
-//#define BB_BASENAME
+#define BB_BASENAME
 #define BB_CAT
 #define BB_CHMOD_CHOWN_CHGRP
 #define BB_CHROOT
@@ -20,21 +20,21 @@
 #define BB_DF
 #define BB_DIRNAME
 #define BB_DMESG
-//#define BB_DUTMP
+#define BB_DUTMP
 #define BB_DU
 #define BB_ECHO
-//#define BB_FBSET
-//#define BB_FDFLUSH
+#define BB_FBSET
+#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FREE
-//#define BB_FREERAMDISK
-//#define BB_FSCK_MINIX
+#define BB_FREERAMDISK
+#define BB_FSCK_MINIX
 #define BB_GREP
 #define BB_GUNZIP
 #define BB_GZIP
 //#define BB_HALT
 #define BB_HEAD
-//#define BB_HOSTID
+#define BB_HOSTID
 #define BB_HOSTNAME
 #define BB_INIT
 // Don't bother turning BB_INSMOD on.  It doesn't work.
@@ -42,39 +42,39 @@
 #define BB_KILL
 #define BB_KILLALL
 #define BB_KLOGD
-//#define BB_LENGTH
+#define BB_LENGTH
 #define BB_LN
-//#define BB_LOADACM
-//#define BB_LOADFONT
-//#define BB_LOADKMAP
-//#define BB_LOGGER
+#define BB_LOADACM
+#define BB_LOADFONT
+#define BB_LOADKMAP
+#define BB_LOGGER
 #define BB_LOGNAME
 #define BB_LS
-//#define BB_LSMOD
-//#define BB_MAKEDEVS
-//#define BB_MKFS_MINIX
-//#define BB_MATH
+#define BB_LSMOD
+#define BB_MAKEDEVS
+#define BB_MKFS_MINIX
+#define BB_MATH
 #define BB_MKDIR
-//#define BB_MKFIFO
+#define BB_MKFIFO
 #define BB_MKNOD
 #define BB_MKSWAP
-//#define BB_MNC
+#define BB_MNC
 #define BB_MORE
 #define BB_MOUNT
-//#define BB_NFSMOUNT
-//#define BB_MT
+#define BB_NFSMOUNT
+#define BB_MT
 #define BB_NSLOOKUP
 #define BB_PING
-#define BB_POWEROFF
-//#define BB_PRINTF
+//#define BB_POWEROFF
+#define BB_PRINTF
 #define BB_PS
 #define BB_PWD
-#define BB_REBOOT
+//#define BB_REBOOT
 #define BB_RM
 #define BB_RMDIR
-//#define BB_RMMOD
+#define BB_RMMOD
 #define BB_SED
-//#define BB_SFDISK
+#define BB_SFDISK
 #define BB_SH
 #define BB_SLEEP
 #define BB_SORT
@@ -86,7 +86,7 @@
 #define BB_TEE
 #define BB_TEST
 // Don't turn BB_TELNET on.  It doesn't work.
-#define BB_TELNET
+//#define BB_TELNET
 #define BB_TOUCH
 #define BB_TR
 #define BB_TRUE_FALSE
@@ -111,7 +111,7 @@
 //
 //
 // Turn this on to use Erik's very cool devps, devmtab, 
-// etc. kernel drivers, thereby eliminating the need for 
+// etc kernel drivers, thereby eliminating the need for 
 // the /proc filesystem and thereby saving lots and lots 
 // memory for more important things.
 // You can't use this and USE_PROCFS at the same time...
@@ -153,7 +153,7 @@
 //Enable init being called as /linuxrc
 //#define BB_FEATURE_LINUXRC
 //
-//Have init enable core dumping for child processed (for debugging only) 
+//Have init enable core dumping for child processes (for debugging only) 
 //#define BB_FEATURE_INIT_COREDUMPS
 //
 // Allow init to permenently chroot, and umount the old root fs
@@ -181,19 +181,20 @@
 #define BB_FEATURE_TAR_CREATE
 //
 // Enable support for "--exclude" for excluding files
-//#define BB_FEATURE_TAR_EXCLUDE
+#define BB_FEATURE_TAR_EXCLUDE
 //
 //// Enable reverse sort
-//#define BB_FEATURE_SORT_REVERSE
+#define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell
-//#define BB_FEATURE_SH_COMMAND_EDITING
+#define BB_FEATURE_SH_COMMAND_EDITING
 //
-// Enable tab completion in the shell (not yet working very well)
+// Enable tab completion in the shell (not yet 
+// working very well -- so don't turn this on)
 //#define BB_FEATURE_SH_TAB_COMPLETION
 //
 //Turn on extra fbset options
-//#define BB_FEATURE_FBSET_FANCY
+#define BB_FEATURE_FBSET_FANCY
 //
 //
 // End of Features List

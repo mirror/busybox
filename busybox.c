@@ -234,9 +234,6 @@ static const struct Applet applets[] = {
 	{"sh", shell_main, _BB_DIR_BIN},
 #endif
 #ifdef BB_SFDISK
-	{"fdisk", sfdisk_main, _BB_DIR_SBIN},
-#ifdef BB_SFDISK
-#endif
 	{"sfdisk", sfdisk_main, _BB_DIR_SBIN},
 #endif
 #ifdef BB_SLEEP
@@ -382,8 +379,9 @@ int busybox_main(int argc, char **argv)
 		fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
 		fprintf(stderr, "   or: [function] [arguments]...\n\n");
 		fprintf(stderr,
-				"\tMost people will create a link to busybox for each function\n"
-				"\tname, and busybox will act like whatever you invoke it as.\n");
+				"\tBusyBox is a multi-call binary that combines many common Unix utilities into a\n"
+				"\tsingle executable.  Most people will create a link to busybox for each function\n"
+				"\tthey wish to use, and BusyBox will act like whatever it was invoked as.\n");
 		fprintf(stderr, "\nCurrently defined functions:\n");
 
 		while (a->name != 0) {
