@@ -989,10 +989,14 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 
 		for (j = 0; j < package_hashtable[deb_file[i]->package]->num_of_edges; j++) {
 			const edge_t *package_edge = package_node->edge[j];
-			const unsigned int package_num = search_package_hashtable(package_edge->name,
-				package_edge->version, package_edge->operator);
+			unsigned int package_num;
 
+			package_num = search_package_hashtable(package_edge->name, package_edge->version, package_edge->operator);
+			if (package_hashtable[package_num] == NULL) {
+				error_msg_and_die("Dependency checking failed for package %s\nNOTE: This may be due to busybox dpkg's inability to handle the Provides field, you may avoid dependency checking using the -F option ", name_hashtable[package_edge->name]);
+			}
 			status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
+
 			state_status = get_status(status_num, 3);
 			state_want = get_status(status_num, 1);
 			switch (package_edge->type) {
