@@ -51,7 +51,7 @@ extern int rmmod_main(int argc, char **argv)
 	while (*(++(*argv))) {
 	    switch (**argv) {
 	    case 'a':
-		/* Unload _all_ modules via NULL delete_module() call */
+		/* Unload _all_ unused modules via NULL delete_module() call */
 		if (delete_module(NULL)) {
 		    perror("rmmod");
 		    exit( FALSE);
