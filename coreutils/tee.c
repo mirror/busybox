@@ -89,6 +89,7 @@ int tee_main(int argc, char **argv)
 #endif
 
 #else
+	setvbuf(stdout, NULL, _IONBF, 0);
 	while ((c = getchar()) != EOF) {
 		for (p=files ; *p ; p++) {
 			putc(c, *p);
