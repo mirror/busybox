@@ -2,35 +2,49 @@
 
 =head1 NAME
 
-busybox - I am BusyBox of Borg.  Unix will be assimilated.
+BusyBox - The Swiss Army Knife of Embedded Linux
 
-=head1 SYNOPSIS
+=head1 SYNTAX
 
- busybox <function> [arguments...]  # or
+ BusyBox <function> [arguments...]  # or
 
  <function> [arguments...]	    # if symlinked
 
 =head1 DESCRIPTION
 
-BusyBox is a multi-call binary that combines many common Unix utilities into a
-single executable.  Most people will create a link to busybox for each function
-they wish to use, and BusyBox will act like whatever it was invoked as.  For
-example,
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
+tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
+or emdedded system.  While the number of options for the utilities BusyBox
+provides have generally been reduced, the provided options behave very much
+like they do in their full featured GNU cousins.  
 
-	ln -s ./busybox ls
+BusyBox has been written with size-optimization and limited resources in mind.
+It is also extremely modular so you can easily include or exclude commands (or
+features) at compile time.  This makes it easy to customize your embedded
+systems.  To create a working system, just add a kernel, a shell (such as ash),
+and an editor (such as elvis-tiny or ae).
+
+=head1 USAGE
+
+When you create a link to BusyBox for the function you wish to use, when BusyBox
+is called using that link it will behave as if the command itself has been invoked.
+
+For example, entering
+
+	ln -s ./BusyBox ls
 	./ls
 
 will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
-into busybox).  You can also invoke BusyBox by providing it the command to run
-on the command line.  For example,
+into BusyBox).  
 
-	./busybox ls
+You can also invoke BusyBox by issuing the command as an argument on the
+command line.  For example, entering
+
+	./BusyBox ls
 
 will also cause BusyBox to behave as 'ls'. 
-
-BusyBox has been written with size-optimization in mind.  It is very easy to
-include or exclude the commands (or features) you want installed.  BusyBox
-tries to make itself useful to small systems with limited resources.
 
 =head1 COMMON OPTIONS
 
@@ -57,7 +71,7 @@ uptime, usleep, wc, whoami, yes, zcat, [
 
 Usage: basename [file ...]
 
-Strips directory and suffix from filenames. 
+Strips directory path and suffixes from FILE(s). 
 
 Example: 
 
@@ -70,9 +84,9 @@ Example:
 
 =item cat  
 
-Usage: cat [file ...]
+Usage: cat [FILE ...]
 
-Concatenates files and prints them to the standard output.
+Concatenates FILE(s) and prints them to the standard output.
 
 Example:
 
@@ -105,48 +119,48 @@ Example:
 
 Usage: chmod [B<-R>] MODE[,MODE]... FILE...
 
-Changes file access permissions for the specified file(s) or directory(s).
+Changes file access permissions for the specified FILE(s) (or directories).
 Each MODE is defined by combining the letters for WHO has access to the file,
 an OPERATOR for selecting how the permissions should be changed, and a
-PERISSION for the file(s) or directory(s).
+PERISSION for FILE(s) (or directories).
 
-WHO may be chosen from:
+WHO may be chosen from
 
-	u	the User who owns the file
-	g	users in the file's Group
+	u	User who owns the file
+	g	Users in the file's Group
 	o	Other users not in the file's group
 	a	All users
 
-OPERATOR may be chosen from:
+OPERATOR may be chosen from
 
-	+	add a permission
-	-	remove a permission
-	=	assign a permission
+	+	Add a permission
+	-	Remove a permission
+	=	Assign a permission
  
-PERMISSION may be chosen from:
+PERMISSION may be chosen from
 
-	r	Read	
+	r	Read
 	w	Write
-	x	eXecute (or access for directories)
+	x	Execute (or access for directories)
 	s	Set user (or group) ID bit
-	t	sTickey bit (for directories prevents removing files by non-owners)
+	t	Stickey bit (for directories prevents removing files by non-owners)
 
-Alternately, permissions may be set numerically where the first three
-numbers are calculated by adding the octal values:
+Alternately, permissions can be set numerically where the first three
+numbers are calculated by adding the octal values, such as
 
 	4	Read
 	2	Write
-	1	eXecute
+	1	Execute
 
-An optional fourth digit may also be used to specify
+An optional fourth digit can also be used to specify
 
 	4	Set user ID
 	2	Set group ID
-	1	sTickey bit
+	1	Stickey bit
 
 Options:
 
-	-R	change files and directories recursively.
+	-R	Change files and directories recursively.
  
 Example:
 
@@ -163,13 +177,13 @@ Example:
 
 =item chown
 
-Usage: chown [OPTION]...  OWNER[.[GROUP] FILE...
+Usage: chown [OPTION]...  OWNER[<.|:>[GROUP] FILE...
 
 Changes the owner and/or group of each FILE to OWNER and/or GROUP.
 
 Options:
 
-	-R	change files and directories recursively
+	-R	Changes files and directories recursively
 
 Example:
 
@@ -193,7 +207,7 @@ Run COMMAND with root directory set to NEWROOT.
 Example:
 
 	$ ls -l /bin/ls
-	lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -> /busybox
+	lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -> /BusyBox
 	$ mount /dev/hdc1 /mnt -t minix
 	$ chroot /mnt
 	$ ls -l /bin/ls
@@ -211,7 +225,7 @@ Clears the screen.
 
 Usage: chvt N
 
-Change foreground virtual terminal to /dev/ttyN
+Changes the foreground virtual terminal to /dev/ttyN
 
 -------------------------------
 
@@ -221,12 +235,12 @@ Usage: cp [OPTION]... SOURCE DEST
 
    or: cp [OPTION]... SOURCE... DIRECTORY
 
-Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
+Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
 
-        -a      same as -dpR
-        -d      preserve links
-        -p      preserve file attributes if possable
-        -R      copy directories recursively
+        -a      Same as -dpR
+        -d      Preserves links
+        -p      Preserves file attributes if possable
+        -R      Copies directories recursively
 
 -------------------------------
 
@@ -236,13 +250,12 @@ Usage: date [OPTION]... [+FORMAT]
 
   or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]
 
-Display the current time in the given FORMAT, or set the system date.
+Displays the current time in the given FORMAT, or sets the system date.
 
 Options:
-
-	-R              output RFC-822 compliant date string
-	-s              set time described by STRING
-	-u              print or set Coordinated Universal Time
+        -R      Outputs RFC-822 compliant date string
+        -s      Sets time described by STRING
+        -u      Prints or sets Coordinated Universal Time
 
 Example:
 
@@ -329,7 +342,7 @@ Options:
 
 Example:
 
-	$ ./busybox du
+	$ ./BusyBox du
 	16      ./CVS
 	12      ./kernel-patches/CVS
 	80      ./kernel-patches
@@ -554,11 +567,11 @@ Options:
 
 Example:
 
-	$ ls -la /tmp/busybox*
-	-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/busybox-0.43.tar.gz
-	$ gunzip /tmp/busybox-0.43.tar.gz
-	$ ls -la /tmp/busybox*
-	-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox-0.43.tar
+	$ ls -la /tmp/BusyBox*
+	-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz
+	$ gunzip /tmp/BusyBox-0.43.tar.gz
+	$ ls -la /tmp/BusyBox*
+	-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
 
 -------------------------------
 
@@ -575,11 +588,11 @@ Options:
 
 Example:
 
-	$ ls -la /tmp/busybox*
-	-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox-0.43.tar
-	$ gzip /tmp/busybox-0.43.tar
-	$ ls -la /tmp/busybox*
-	-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox-0.43.tar.gz
+	$ ls -la /tmp/BusyBox*
+	-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
+	$ gzip /tmp/BusyBox-0.43.tar
+	$ ls -la /tmp/BusyBox*
+	-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/BusyBox-0.43.tar.gz
 
 
 -------------------------------
@@ -799,9 +812,9 @@ Options:
  
 Example:
 
-    $ ln -s busybox /tmp/ls
-    [andersen@debian busybox]$ ls -l /tmp/ls
-    lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> busybox*
+    $ ln -s BusyBox /tmp/ls
+    [andersen@debian BusyBox]$ ls -l /tmp/ls
+    lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*
 
 -------------------------------
 
@@ -1803,4 +1816,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.19 2000/04/19 05:15:12 erik Exp $
+# $Id: busybox.pod,v 1.20 2000/04/21 01:23:36 erik Exp $
