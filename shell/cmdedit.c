@@ -43,6 +43,8 @@
 
 #include "busybox.h"
 
+#include "../shell/cmdedit.h"
+
 #ifdef CONFIG_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
 #else
@@ -609,14 +611,20 @@ enum {
 	FIND_FILE_ONLY = 2,
 };
 
+#ifdef CONFIG_ASH
+const char *cmdedit_path_lookup;
+#else
+#define cmdedit_path_lookup getenv("PATH")
+#endif
+
 static int path_parse(char ***p, int flags)
 {
 	int npth;
-	char *tmp;
-	char *pth;
+	const char *tmp;
+	const char *pth;
 
 	/* if not setenv PATH variable, to search cur dir "." */
-	if (flags != FIND_EXE_ONLY || (pth = getenv("PATH")) == 0 ||
+	if (flags != FIND_EXE_ONLY || (pth = cmdedit_path_lookup) == 0 ||
 		/* PATH=<empty> or PATH=:<empty> */
 		*pth == 0 || (*pth == ':' && *(pth + 1) == 0)) {
 		return 1;

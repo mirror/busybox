@@ -4117,6 +4117,9 @@ changepath(const char *newval)
 		firstchange = 0;
 	clearcmdentry(firstchange);
 	builtinloc = idx_bltin;
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
+	cmdedit_path_lookup = newval;
+#endif
 }
 
 
