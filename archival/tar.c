@@ -717,6 +717,7 @@ int tar_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
 		if (tar_handle->reject) {
+			printf("Reject list\n");
 			tar_handle->filter = filter_accept_reject_list;
 		} else
 #endif	/* CONFIG_FEATURE_TAR_EXCLUDE */
@@ -762,6 +763,11 @@ int tar_main(int argc, char **argv)
 			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
 	}
 
+	/* Skip through list */
+	while (tar_handle->accept) {
+		error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
+		tar_handle->accept = tar_handle->accept->link;
+	}
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	if (tar_handle->src_fd != fileno(stdin)) {
 		close(tar_handle->src_fd);
