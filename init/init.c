@@ -93,7 +93,7 @@
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
-_syscall2(int, bdflush, int, func, int, data);
+static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
 

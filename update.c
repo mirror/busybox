@@ -28,11 +28,13 @@
 #include <sys/param.h>
 #include <sys/syslog.h>
 
+
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
 #else
-_syscall2(int, bdflush, int, func, int, data);
+static _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
+
 
 static char update_usage[] =
 	"update [options]\n"
@@ -109,7 +111,7 @@ extern int update_main(int argc, char **argv)
 			}
 		}
 	}
-	exit( TRUE);
+	return( TRUE);
 }
 
 /*

@@ -42,11 +42,9 @@
 #include <sys/param.h>
 #include <linux/unistd.h>
 
-#ifndef socklen_t
-typedef unsigned int socklen_t;
-#endif
-
 #if __GNU_LIBRARY__ < 5
+
+typedef unsigned int socklen_t;
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
