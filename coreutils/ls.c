@@ -531,7 +531,7 @@ int list_single(struct dnode *dn)
 	char *filetime;
 	time_t ttime, age;
 #endif
-#if defined (BB_FEATURE_LS_FILETYPES) || defined (BB_FEATURE_LS_USERNAME)
+#if defined (BB_FEATURE_LS_FILETYPES)
 	struct stat info;
 #endif
 #ifdef BB_FEATURE_LS_FILETYPES
@@ -574,28 +574,19 @@ int list_single(struct dnode *dn)
 				break;
 			case LIST_ID_NAME:
 #ifdef BB_FEATURE_LS_USERNAME
-				{
-					memset(&info, 0, sizeof(struct stat));
-					memset(scratch, 0, sizeof(scratch));
-					if (!stat(dn->fullname, &info)) {
-						my_getpwuid(scratch, info.st_uid);
-					}
-					if (*scratch) {
-						fprintf(stdout, "%-8.8s ", scratch);
-					} else {
-						fprintf(stdout, "%-8d ", dn->dstat.st_uid);
-					}
-					memset(scratch, 0, sizeof(scratch));
-					if (info.st_ctime != 0) {
-						my_getgrgid(scratch, info.st_gid);
-					}
-					if (*scratch) {
-						fprintf(stdout, "%-8.8s", scratch);
-					} else {
-						fprintf(stdout, "%-8d", dn->dstat.st_gid);
-					}
+				memset(scratch, 0, sizeof(scratch));
+				my_getpwuid(scratch, dn->dstat.st_uid);
+				if (*scratch)
+					fprintf(stdout, "%-8.8s ", scratch);
+				else
+					fprintf(stdout, "%-8d ", dn->dstat.st_uid);
+				memset(scratch, 0, sizeof(scratch));
+				my_getgrgid(scratch, dn->dstat.st_gid);
+				if (*scratch)
+					fprintf(stdout, "%-8.8s", scratch);
+				else
+					fprintf(stdout, "%-8d", dn->dstat.st_gid);
 				column += 17;
-				}
 				break;
 #endif
 			case LIST_ID_NUMERIC:
