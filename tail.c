@@ -1,65 +1,30 @@
 /* vi: set sw=4 ts=4: */
-/* tail -- output the last part of file(s)
-   Copyright (C) 89, 90, 91, 95, 1996 Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
-   Original version by Paul Rubin <phr@ocf.berkeley.edu>.
-   Extensions by David MacKenzie <djm@gnu.ai.mit.edu>.
-   tail -f for multiple files by Ian Lance Taylor <ian@airs.com>.  
-
-   Rewrote the option parser, removed locales support,
-   and generally busyboxed, Erik Andersen <andersen@lineo.com>
-
-   Removed superfluous options and associated code ("-c", "-n", "-q").
-   Removed "tail -f" support for multiple files.
-   Both changes by Friedrich Vedder <fwv@myrtle.lahn.de>.
-
-   Compleate Rewrite to correctly support "-NUM", "+NUM", and "-s" by
-   E.Allen Soard (esp@espsw.net).
-
+/*
+ * Mini tail implementation for busybox
+ *
+ *
+ * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
-#include <sys/types.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <getopt.h>
+
 #include "busybox.h"
 
-#define STDIN "standard input"
-#define LINES 0
-#define BYTES 1
-
-static int n_files = 0;
-static char **files = NULL;
-static char * buffer;
-static ssize_t bytes_read=0;
-static ssize_t bs;
-static ssize_t filelocation=0;
-static char pip;
-
-#ifdef BB_FEATURE_SIMPLE_TAIL
-static const char unit_type=LINES;
-#else
-static char unit_type=LINES;
-static char verbose = 0;
-#endif
-
-static off_t units=0;
+#include <sys/types.h>
+#include <fcntl.h>
 
 static struct suffix_mult tail_suffixes[] = {
 	{ "b", 512 },
@@ -68,232 +33,217 @@ static struct suffix_mult tail_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static int tail_stream(int fd)
-{
-	ssize_t startpoint;
-	ssize_t endpoint=0;
-	ssize_t count=0;
-	ssize_t filesize=0;
-	int direction=1;
-
-	filelocation=0;
-	startpoint=bs=BUFSIZ;
-
-	filesize=lseek(fd, -1, SEEK_END)+1;
-	pip=(filesize<=0);
-
-	if(units>=0)
-		lseek(fd,0,SEEK_SET);
-	else {
-		direction=-1;
-		count=1;
-	}
-	while(units != 0) {
-		if (pip) {
-			char * line;
-			ssize_t f_size=0;
-
-			bs=BUFSIZ;
-			line=xmalloc(bs);
-			while(1) {
-				bytes_read=read(fd,line,bs);
-				if(bytes_read<=0)
-					break;
-				buffer=xrealloc(buffer,f_size+bytes_read);
-				memcpy(&buffer[f_size],line,bytes_read);
-				filelocation=f_size+=bytes_read;
-			}
-			bs=f_size;
-			if(direction<0)
-				bs--;
-			if (line)
-				free(line);
-		} else {
-			filelocation = lseek(fd, 0, SEEK_CUR);
-			if(direction<0) {
-				if(filelocation<bs)
-					bs=filelocation;
-				filelocation = lseek(fd, -bs, SEEK_CUR);
-			}
-			bytes_read = read(fd, buffer, bs);
-			if (bytes_read <= 0)
-				break;
-			bs=bytes_read;
-		}
-		startpoint=bs;
-		if(direction>0) {
-			endpoint=startpoint;
-			startpoint=0;
-		}
-		for(;startpoint!=endpoint;startpoint+=direction) {
 #ifndef BB_FEATURE_SIMPLE_TAIL
-			if(unit_type==BYTES)
-				count++;
-			else
+static struct suffix_mult null_suffixes[] = {
+	{ NULL, 0 }
+};
 #endif
-				if(buffer[startpoint-1]=='\n')
-					count++;
-			if (!pip)
-				filelocation=lseek(fd,0,SEEK_CUR);
-			if(count==units*direction)
-				break;
-		}
-		if((count==units*direction) | pip)
-			break;
-		if(direction<0){
-			filelocation = lseek(fd, -bytes_read, SEEK_CUR);
-			if(filelocation==0)
-				break;
-		}
-	}
-	if(pip && (direction<0))
-		bs++;
-	bytes_read=bs-startpoint;
-	memcpy(&buffer[0],&buffer[startpoint],bytes_read);
 
-	return 0;
+#define BYTES 0
+#define LINES 1
+
+static char *tailbuf;
+static int taillen;
+static int newline;
+
+void tailbuf_append(char *buf, int len)
+{
+	tailbuf = xrealloc(tailbuf, taillen + len);
+	memcpy(tailbuf + taillen, buf, len);
+	taillen += len;
 }
 
-void add_file(char *name)
+void tailbuf_trunc()
 {
-	++n_files;
-	files = xrealloc(files, n_files);
-	files[n_files - 1] = (char *) xmalloc(strlen(name) + 1);
-	strcpy(files[n_files - 1], name);
+	char *s;
+	s = memchr(tailbuf, '\n', taillen);
+	memmove(tailbuf, s + 1, taillen - ((s + 1) - tailbuf));
+	taillen -= (s + 1) - tailbuf;
+	newline = 0;
 }
 
 int tail_main(int argc, char **argv)
 {
-	int show_headers = 1;
-	int test;
-	int opt;
-	char follow=0;
-	int sleep_int=1;
-	int *fd;
+	int from_top = 0, units = LINES, count = 10, sleep_period = 1;
+	int show_headers = 0, hide_headers = 0, follow = 0;
+	int *fds, nfiles = 0, status = EXIT_SUCCESS, nread, nwrite, seen = 0;
+	char *s, *start, *end, buf[BUFSIZ];
+	int i, opt;
 
-	opterr = 0;
-	
-	while ((opt=getopt(argc,argv,"c:fhn:s:q:v")) >0) {
-
+	while ((opt = getopt(argc, argv, "c:fhn:q:s:v")) > 0) {
 		switch (opt) {
+			case 'f':
+				follow = 1;
+				break;
 #ifndef BB_FEATURE_SIMPLE_TAIL
-		case 'q':
-			show_headers = 0;
-			break;
-		case 's':
-			sleep_int = atoi(optarg);
-			if(sleep_int<1)
-				sleep_int=1;
-			break;
-		case 'v':
-			verbose = 1;
-			break;
-		case 'c':
-			unit_type = BYTES;
-			/* FALLS THROUGH */
+			case 'c':
+				units = BYTES;
+				/* FALLS THROUGH */
 #endif
-		case 'n':
-			test = parse_number(optarg, tail_suffixes);
-			if (test) {
+			case 'n':
+				count = parse_number(optarg, tail_suffixes);
+				if (count < 0)
+					count = -count;
 				if (optarg[0] == '+')
-					units = test;
-				else
-					units = -(test+1);
-			} else
-				usage(tail_usage);
-			break;
-		case 'f':
-			follow = 1;
-			break;
-		default:
-			usage(tail_usage);
-		}
-	}
-	while (optind <= argc) {
-		if(optind==argc) {
-			if (n_files==0)
-				add_file(STDIN);
-			else
+					from_top = 1;
 				break;
-		}else {
-			if (!strcmp(argv[optind], "-")) {
-				add_file(STDIN);
-			} else {
-				add_file(argv[optind]);
-			}
-			optind++;
-		}
-	}
-	if(units==0)
-		units=-11;
-	if(units>0)
-		units--;
-	fd=xmalloc(sizeof(int)*n_files);
-	if (n_files == 1)
 #ifndef BB_FEATURE_SIMPLE_TAIL
-		if (!verbose)
-#endif
-			show_headers = 0;
-	buffer=xmalloc(BUFSIZ);
-	for (test = 0; test < n_files; test++) {
-		if (show_headers)
-			printf("==> %s <==\n", files[test]);
-		if (!strcmp(files[test], STDIN))
-			fd[test] = 0;
-		else
-			fd[test] = open(files[test], O_RDONLY);
-		if (fd[test] == -1)
-			error_msg_and_die("Unable to open file %s.\n", files[test]);
-		tail_stream(fd[test]);
-
-		bs=BUFSIZ;
-		while (1) {
-			if((filelocation>0 || pip)){
-				write(1,buffer,bytes_read);
-			}
-			bytes_read = read(fd[test], buffer, bs);
-			filelocation+=bytes_read;
-			if (bytes_read <= 0) {
+			case 'q':
+				hide_headers = 1;
 				break;
-			}
-			usleep(sleep_int * 1000);
+			case 's':
+				sleep_period = parse_number(optarg, null_suffixes);
+				break;
+			case 'v':
+				show_headers = 1;
+				break;
+#endif
+			default:
+				usage(tail_usage);
 		}
-		if(n_files>1)
-			printf("\n");
 	}
-	while(1){
-		for (test = 0; test < n_files; test++) {
-			if(!follow){
-				close(fd[test]);
-				continue;
+
+	/* open all the files */
+	fds = (int *)xmalloc(sizeof(int) * (argc - optind + 1));
+	if (argc == optind) {
+		fds[nfiles++] = STDIN_FILENO;
+		argv[optind] = "standard input";
+	} else {
+		for (i = optind; i < argc; i++) {
+			if (strcmp(argv[i], "-") == 0) {
+				fds[nfiles++] = STDIN_FILENO;
+				argv[i] = "standard input";
+			} else if ((fds[nfiles++] = open(argv[i], O_RDONLY)) < 0) {
+				perror_msg("%s", argv[i]);
+				status = EXIT_FAILURE;
+			}
+		}
+	}
+	
+#ifndef BB_FEATURE_SIMPLE_TAIL
+	/* tail the files */
+	if (!from_top && units == BYTES)
+		tailbuf = xmalloc(count);
+#endif
+
+	for (i = 0; i < nfiles; i++) {
+		if (fds[i] == -1)
+			continue;
+		seen = 0;
+		if (show_headers || (!hide_headers && nfiles > 1))
+			printf("%s==> %s <==\n", i == 0 ? "" : "\n", argv[optind + i]);
+		while ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0) {
+			if (from_top) {
+#ifndef BB_FEATURE_SIMPLE_TAIL
+				if (units == BYTES) {
+					if (count - 1 <= seen)
+						nwrite = nread;
+					else if (count - 1 <= seen + nread)
+						nwrite = nread + seen - (count - 1);
+					else
+						nwrite = 0;
+					seen += nread;
+				} else {
+#else
+				{
+#endif
+					if (count - 1 <= seen)
+						nwrite = nread;
+					else {
+						nwrite = 0;
+						for (s = memchr(buf, '\n', nread); s != NULL;
+								s = memchr(s+1, '\n', nread - (s + 1 - buf))) {
+							if (count - 1 <= ++seen) {
+								nwrite = nread - (s + 1 - buf);
+								break;
+							}
+						}
+					}
+				}
+				if (full_write(STDOUT_FILENO, buf + nread - nwrite,
+							nwrite) < 0) {
+					perror_msg("write");
+					status = EXIT_FAILURE;
+					break;
+				}
 			} else {
-				sleep(sleep_int);
-				bytes_read = read(fd[test], buffer, bs);
-				if(bytes_read>0) {
-					if (show_headers)
-						printf("==> %s <==\n", files[test]);
-					write(1,buffer,bytes_read);
-					if(n_files>1)
-						printf("\n");
+#ifndef BB_FEATURE_SIMPLE_TAIL
+				if (units == BYTES) {
+					if (nread < count) {
+						memmove(tailbuf, tailbuf + nread, count - nread);
+						memcpy(tailbuf + count - nread, buf, nread);
+					} else {
+						memcpy(tailbuf, buf + nread - count, count);
+					}
+					seen += nread;
+				} else {
+#else
+				{
+#endif
+					for (start = buf, end = memchr(buf, '\n', nread);
+							end != NULL; start = end+1,
+							end = memchr(start, '\n', nread - (start - buf))) {
+						if (newline && count <= seen)
+							tailbuf_trunc();
+						tailbuf_append(start, end - start + 1);
+						seen++;
+						newline = 1;
+					}
+					if (newline && count <= seen && nread - (start - buf) > 0)
+						tailbuf_trunc();
+					tailbuf_append(start, nread - (start - buf));
 				}
 			}
 		}
-		if(!follow)
-			break;
-	}
-	if (fd)
-		free(fd);
-	if (buffer)
-		free(buffer);
-	if(files)
-		free(files);
-	return 0;
-}
 
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+		if (nread < 0) {
+			perror_msg("read");
+			status = EXIT_FAILURE;
+		}
+
+#ifndef BB_FEATURE_SIMPLE_TAIL
+		if (!from_top && units == BYTES) {
+			if (count < seen)
+				seen = count;
+			if (full_write(STDOUT_FILENO, tailbuf + count - seen, seen) < 0) {
+				perror_msg("write");
+				status = EXIT_FAILURE;
+			}
+		}
+#endif
+
+		if (!from_top && units == LINES) {
+			if (full_write(STDOUT_FILENO, tailbuf, taillen) < 0) {
+				perror_msg("write");
+				status = EXIT_FAILURE;
+			}
+		}
+
+		taillen = 0;
+	}
+
+	while (follow) {
+		sleep(sleep_period);
+
+		for (i = 0; i < nfiles; i++) {
+			if (fds[i] == -1)
+				continue;
+
+			if ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0) {
+				if (show_headers || (!hide_headers && nfiles > 1))
+					printf("\n==> %s <==\n", argv[optind + i]);
+
+				do {
+					full_write(STDOUT_FILENO, buf, nread);
+				} while ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0);
+			}
+
+			if (nread < 0) {
+				perror_msg("read");
+				status = EXIT_FAILURE;
+			}
+		}
+	}
+
+	return status;
+}
