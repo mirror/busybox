@@ -37,15 +37,30 @@ extern int free_main(int argc, char **argv)
 	if (info.mem_unit==0) {
 		info.mem_unit=1;
 	}
-	info.mem_unit*=1024;
-	
-	/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
-	info.totalram/=info.mem_unit;
-	info.freeram/=info.mem_unit;
-	info.totalswap/=info.mem_unit;
-	info.freeswap/=info.mem_unit;
-	info.sharedram/=info.mem_unit;
-	info.bufferram/=info.mem_unit;
+	if ( info.mem_unit == 1 ) {
+		info.mem_unit=1024;
+
+		/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
+		info.totalram/=info.mem_unit;
+		info.freeram/=info.mem_unit;
+#ifndef __uClinux__
+		info.totalswap/=info.mem_unit;
+		info.freeswap/=info.mem_unit;
+#endif
+		info.sharedram/=info.mem_unit;
+		info.bufferram/=info.mem_unit;
+	} else {
+		info.mem_unit/=1024;
+		/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
+		info.totalram*=info.mem_unit;
+		info.freeram*=info.mem_unit;
+#ifndef __uClinux__
+		info.totalswap*=info.mem_unit;
+		info.freeswap*=info.mem_unit;
+#endif
+		info.sharedram*=info.mem_unit;
+		info.bufferram*=info.mem_unit;
+	}
 
 	if (argc > 1 && **(argv + 1) == '-')
 		show_usage();
@@ -57,13 +72,14 @@ extern int free_main(int argc, char **argv)
 			info.totalram-info.freeram, info.freeram, 
 			info.sharedram, info.bufferram);
 
+#ifndef __uClinux__
 	printf("%6s%13ld%13ld%13ld\n", "Swap:", info.totalswap,
 			info.totalswap-info.freeswap, info.freeswap);
 
 	printf("%6s%13ld%13ld%13ld\n", "Total:", info.totalram+info.totalswap,
 			(info.totalram-info.freeram)+(info.totalswap-info.freeswap),
 			info.freeram+info.freeswap);
+#endif
 	return EXIT_SUCCESS;
 }
-
 
