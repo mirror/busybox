@@ -197,8 +197,7 @@
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
 // Enable support for mounting remote NFS volumes
-// (This does not yet work with Linux 2.[34].x kernels)
-#define BB_FEATURE_NFSMOUNT
+//#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
 // (i.e. in case of an unreachable NFS system).
