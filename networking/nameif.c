@@ -36,7 +36,7 @@
 #include "busybox.h"
 
 /* take from linux/sockios.h */
-#define SIOCSIFNAME	0x8923		/* set interface name */
+#define SIOCSIFNAME	0x8923	/* set interface name */
 
 /* Octets in one ethernet addr, from <linux/if_ether.h> */
 #define ETH_ALEN	6
@@ -101,13 +101,8 @@ int nameif_main(int argc, char **argv)
 	int if_index = 1;
 	mactable_t *ch;
 
-	static struct option opts[] = {
-		{"syslog", 0, NULL, 's'},
-		{"configfile", 1, NULL, 'c'},
-		{NULL},
-	};
 
-	while ((opt = getopt_long(argc, argv, "c:s", opts, NULL)) != -1) {
+	while ((opt = getopt(argc, argv, "c:s")) != -1) {
 		switch (opt) {
 		case 'c':
 			fname = optarg;
@@ -152,8 +147,7 @@ int nameif_main(int argc, char **argv)
 			ch = xcalloc(1, sizeof(mactable_t));
 			ch->ifname = xstrndup(line_ptr, name_length);
 			if (name_length > IF_NAMESIZE)
-			    serror("interface name `%s' too long",
-					   ch->ifname);
+				serror("interface name `%s' too long", ch->ifname);
 			line_ptr += name_length;
 			line_ptr += strspn(line_ptr, " \t");
 			name_length = strspn(line_ptr, "0123456789ABCDEFabcdef:");
