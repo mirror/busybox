@@ -39,6 +39,16 @@
 
 #include "config.h"
 
+#include "pwd.h"
+#include "grp.h"
+#ifdef CONFIG_FEATURE_SHADOWPASSWDS
+#include "shadow_.h"
+#endif
+#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
+# include "sha1.h"
+#endif
+
+
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
 typedef unsigned int socklen_t;
@@ -260,6 +270,15 @@ extern const char * const too_few_args;
 extern const char * const name_longer_than_foo;
 extern const char * const unknown;
 extern const char * const can_not_create_raw_socket;
+extern const char * const nologin_file;
+extern const char * const passwd_file;
+extern const char * const shadow_file;
+extern const char * const gshadow_file;
+extern const char * const group_file;
+extern const char * const securetty_file;
+extern const char * const motd_file;
+extern const char * const issue_file;
+extern const char * const _path_login;
 
 #ifdef CONFIG_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"
@@ -298,5 +317,16 @@ void reset_ino_dev_hashtable(void);
 /* Stupid gcc always includes its own builtin strlen()... */
 extern size_t xstrlen(const char *string);
 #define strlen(x)   xstrlen(x)
+
+
+#define FAIL_DELAY    3
+extern void change_identity ( const struct passwd *pw );
+extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args );
+extern int restricted_shell ( const char *shell );
+extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
+extern int correct_password ( const struct passwd *pw );
+extern char *pw_encrypt(const char *clear, const char *salt);
+extern struct spwd *pwd_to_spwd(const struct passwd *pw);
+extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
 #endif /* __LIBCONFIG_H__ */

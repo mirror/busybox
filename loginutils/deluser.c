@@ -28,10 +28,6 @@
 #include <string.h>
 #include "busybox.h"
 
-#define PASSWD_FILE     "/etc/passwd"
-#define GROUP_FILE      "/etc/group"
-#define SHADOW_FILE		"/etc/shadow"
-#define GSHADOW_FILE	"/etc/gshadow"
 
 
 /* where to start and stop deletion */
@@ -123,11 +119,11 @@ int delgroup_main(int argc, char **argv)
 		show_usage();
 	} else {
 
-		failure = del_line_matching(argv[1], GROUP_FILE);
+		failure = del_line_matching(argv[1], group_file);
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		if (access(GSHADOW_FILE, W_OK) == 0) {
+		if (access(gshadow_file, W_OK) == 0) {
 			/* EDR the |= works if the error is not 0, so he had it wrong */
-			failure |= del_line_matching(argv[1], GSHADOW_FILE);
+			failure |= del_line_matching(argv[1], gshadow_file);
 		}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
 		/* if (!successful) { */
@@ -149,35 +145,35 @@ int deluser_main(int argc, char **argv)
 		show_usage();
 	} else {
 
-		failure = del_line_matching(argv[1], PASSWD_FILE);
+		failure = del_line_matching(argv[1], passwd_file);
 		/* if (!successful) { */
 		if (failure) {
 			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], PASSWD_FILE);
+							  argv[1], passwd_file);
 		}
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		failure = del_line_matching(argv[1], SHADOW_FILE);
+		failure = del_line_matching(argv[1], shadow_file);
 		/* if (!successful) { */
 		if (failure) {
 			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], SHADOW_FILE);
+							  argv[1], shadow_file);
 		}
-		failure = del_line_matching(argv[1], GSHADOW_FILE);
+		failure = del_line_matching(argv[1], gshadow_file);
 		/* if (!successful) { */
 		if (failure) {
 			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], GSHADOW_FILE);
+							  argv[1], gshadow_file);
 		}
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
-		failure = del_line_matching(argv[1], GROUP_FILE);
+		failure = del_line_matching(argv[1], group_file);
 		/* if (!successful) { */
 		if (failure) {
 			error_msg_and_die("%s: User could not be removed from %s\n",
-							  argv[1], GROUP_FILE);
+							  argv[1], group_file);
 		}
 
 	}
 	return (EXIT_SUCCESS);
 }
 
-/* $Id: deluser.c,v 1.1 2002/06/04 20:45:05 sandman Exp $ */
+/* $Id: deluser.c,v 1.2 2002/06/23 04:24:24 andersen Exp $ */

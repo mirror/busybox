@@ -28,8 +28,6 @@
  * SUCH DAMAGE.
  */
 
-#include "busybox.h"
-
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -37,97 +35,18 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <ctype.h>
+#include "libbb.h"
 
-#include "pwd.h"
-#include "grp.h"
 
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-#include "shadow.h"
-#endif
 
 #define DEFAULT_LOGIN_PATH      "/bin:/usr/bin"
 #define DEFAULT_ROOT_LOGIN_PATH "/usr/sbin:/bin:/usr/bin:/sbin"
 
-
 static void xsetenv ( const char *key, const char *value )
 {
-	if ( setenv ( key, value, 1 ))
-		error_msg_and_die ( "out of memory" );
+	    if ( setenv ( key, value, 1 ))
+			        error_msg_and_die ( "out of memory" );
 }
-
-/* Become the user and group(s) specified by PW.  */
-
-void change_identity ( const struct passwd *pw )
-{
-	if ( initgroups ( pw-> pw_name, pw-> pw_gid ) == -1 )
-		perror_msg_and_die ( "cannot set groups" );
-	endgrent ( );
-
-	if ( setgid ( pw-> pw_gid ))
-		perror_msg_and_die ( "cannot set group id" );
-	if ( setuid ( pw->pw_uid ))
-		perror_msg_and_die ( "cannot set user id" );
-}
-
-/* Run SHELL, or DEFAULT_SHELL if SHELL is empty.
-   If COMMAND is nonzero, pass it to the shell with the -c option.
-   If ADDITIONAL_ARGS is nonzero, pass it to the shell as more
-   arguments.  */
-
-void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args )
-{
-	const char **args;
-	int argno = 1;
-	int additional_args_cnt = 0;
-	
-	for ( args = additional_args; args && *args; args++ )
-		additional_args_cnt++;
-
-	if ( additional_args )
-		args = (const char **) xmalloc (sizeof (char *) * ( 4  + additional_args_cnt ));
-	else
-		args = (const char **) xmalloc (sizeof (char *) * 4 );
-		
-	args [0] = get_last_path_component ( xstrdup ( shell ));
-	
-	if ( loginshell ) {
-		char *args0 = xmalloc ( xstrlen ( args [0] ) + 2 );
-		args0 [0] = '-';
-		strcpy ( args0 + 1, args [0] );
-		args [0] = args0;
-	}
-    
-	if ( command ) {
-		args [argno++] = "-c";
-		args [argno++] = command;
-	}
-	if ( additional_args ) {
-		for ( ; *additional_args; ++additional_args )
-			args [argno++] = *additional_args;
-	}
-	args [argno] = 0;
-	execv ( shell, (char **) args );
-	perror_msg_and_die ( "cannot run %s", shell );
-}
-
-/* Return 1 if SHELL is a restricted shell (one not returned by
-   getusershell), else 0, meaning it is a standard shell.  */
-
-int restricted_shell ( const char *shell )
-{
-	char *line;
-
-	setusershell ( );
-	while (( line = getusershell ( ))) {
-		if (( *line != '#' ) && ( strcmp ( line, shell ) == 0 ))
-			break;
-	}
-	endusershell ( );
-	return line ? 0 : 1;
-}
-
-/* Update `environ' for the new shell based on PW, with SHELL being
-   the value for the SHELL environment variable.  */
 
 void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw )
 {
@@ -172,38 +91,3 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 	}
 }
 
-/* Ask the user for a password.
-   Return 1 if the user gives the correct password for entry PW,
-   0 if not.  Return 1 without asking for a password if run by UID 0
-   or if PW has an empty password.  */
-
-int correct_password ( const struct passwd *pw )
-{
-	char *unencrypted, *encrypted, *correct;
-	
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	if (( strcmp ( pw-> pw_passwd, "x" ) == 0 ) || ( strcmp ( pw-> pw_passwd, "*" ) == 0 )) {
-		struct spwd *sp = getspnam ( pw-> pw_name );
-		
-		if ( !sp )
-			error_msg_and_die ( "no valid shadow password" );
-		
-		correct = sp-> sp_pwdp;
-	}
-	else
-#endif
-    	correct = pw-> pw_passwd;
-
-	if ( correct == 0 || correct[0] == '\0' )
-		return 1;
-
-	unencrypted = getpass ( "Password: " );
-	if ( !unencrypted )
-	{
-		fputs ( "getpass: cannot open /dev/tty\n", stderr );
-		return 0;
-	}
-	encrypted = crypt ( unencrypted, correct );
-	memset ( unencrypted, 0, xstrlen ( unencrypted ));
-	return ( strcmp ( encrypted, correct ) == 0 ) ? 1 : 0;
-}

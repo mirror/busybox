@@ -1321,6 +1321,24 @@
 	"Write an unambiguous representation, octal bytes by default, of FILE\n"\
 	"to standard output.  With no FILE, or when FILE is -, read standard input."
 
+#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
+  #define PASSWORD_ALG_TYPES(a) a
+#else   
+  #define PASSWORD_ALG_TYPES(a)
+#endif
+#define passwd_trivial_usage \
+	"[OPTION] [name]"
+#define passwd_full_usage \
+	"CChange a user password. If no name is specified,\n" \
+	"changes the password for the current user.\n" \
+	"Options:\n" \
+	"\t-a\tDefine which algorithm shall be used for the password.\n" \
+	"\t\t\t(Choices: des, md5" \
+	CONFIG_FEATURE_SHA1_PASSWORDS(", sha1") \
+	")\n\t-d\tDelete the password for the specified user account.\n" \
+	"\t-l\tLocks (disables) the specified user account.\n" \
+	"\t-u\tUnlocks (re-enables) the specified user account.";
+
 #define pidof_trivial_usage \
 	"process-name [process-name ...]"
 #define pidof_full_usage \
@@ -1585,6 +1603,15 @@
 	"Change user id or become root.\n" \
 	"Options:\n" \
 	"\t-p\tPreserve environment"
+
+#define sulogin_trivial_usage \
+	"[OPTION]... [tty-device]"
+#define sulogin_full_usage \
+	"Single user login\n" \
+	"Options:\n" \
+	"\t-f\tDo not authenticate (user already authenticated)\n" \
+	"\t-h\tName of the remote host for this login.\n" \
+	"\t-p\tPreserve environment."
 
 #define swapoff_trivial_usage \
 	"[OPTION] [DEVICE]"
@@ -1955,6 +1982,13 @@
 	"edit FILE.\n\n" \
 	"Options:\n" \
 	"\t-R\tRead-only- do not write to the file." 
+
+#define vlock_trivial_usage \
+	"[OPTIONS]"
+#define vlock_full_usage \
+	"Lock a virtual terminal.  A password is required to unlock\n" \
+	"Options:\n" \
+	"\t-a\tLock all VTs"
 
 #define watchdog_trivial_usage \
 	"DEV"

@@ -34,17 +34,21 @@ LIBBB_SRC:= \
 	my_getpwuid.c parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
 	print_file.c process_escape_sequence.c read_package_field.c recursive_action.c \
 	safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
-	trim.c unzip.c uncompress.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
+	trim.c unzip.c uncompress.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c \
 	xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
 	copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
 	dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c \
-	simplify_path.c inet_common.c inode_hash.c
+	simplify_path.c inet_common.c inode_hash.c obscure.c pwd2spwd.c xfuncs.c \
+	correct_password.c change_identity.c setup_environment.c run_shell.c \
+	pw_encrypt.c restricted_shell.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 
 LIBBB_MSRC:=$(LIBBB_DIR)messages.c
 LIBBB_MOBJ:=full_version.o name_too_long.o omitting_directory.o not_a_directory.o \
 	memory_exhausted.o invalid_date.o invalid_option.o io_error.o dash_dash_help.o \
-	write_error.o too_few_args.o name_longer_than_foo.o unknown.o can_not_create_raw_socket.o
+	write_error.o too_few_args.o name_longer_than_foo.o unknown.o can_not_create_raw_socket.o \
+	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o securetty_file.o \
+	motd_file.o
 LIBBB_MOBJS=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ))
 
 libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)

@@ -66,3 +66,39 @@
 #ifdef L_can_not_create_raw_socket
 	const char * const can_not_create_raw_socket = "can`t create raw socket";
 #endif
+
+#ifdef L_passwd_file
+#define PASSWD_FILE        "/etc/passwd"
+const char * const passwd_file = PASSWD_FILE;
+#endif
+
+#ifdef L_shadow_file
+#define SHADOW_FILE        "/etc/shadow"
+const char * const shadow_file = SHADOW_FILE;
+#endif
+
+#ifdef L_group_file
+#define GROUP_FILE         "/etc/group"
+const char * const group_file = GROUP_FILE;
+#endif
+
+#ifdef L_gshadow_file
+#define GSHADOW_FILE       "/etc/gshadow"
+const char * const gshadow_file = GSHADOW_FILE;
+#endif
+
+#ifdef L_nologin_file
+#define NOLOGIN_FILE       "/etc/nologin"
+const char * const nologin_file = NOLOGIN_FILE;
+#endif
+
+#ifdef L_securetty_file
+#define SECURETTY_FILE     "/etc/securetty"
+const char * const securetty_file = SECURETTY_FILE;
+#endif
+
+#ifdef L_motd_file
+#define MOTD_FILE          "/etc/motd"
+const char * const motd_file = MOTD_FILE;
+#endif
+

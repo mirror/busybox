@@ -335,6 +335,9 @@
 #ifdef CONFIG_OD
 	APPLET(od, od_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_PASSWD
+	APPLET(passwd, passwd_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
+#endif
 #ifdef CONFIG_PIDOF
 	APPLET(pidof, pidof_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -418,6 +421,9 @@
 #endif
 #ifdef CONFIG_SU
 	APPLET(su, su_main, _BB_DIR_BIN, _BB_SUID_ALWAYS)
+#endif
+#ifdef CONFIG_SULOGIN
+	APPLET(sulogin, sulogin_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_SWAPONOFF
 	APPLET(swapoff, swap_on_off_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
@@ -504,6 +510,9 @@
 #endif
 #ifdef CONFIG_VI
 	APPLET(vi, vi_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_VLOCK
+	APPLET(vlock, vlock_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
 #endif
 #ifdef CONFIG_WATCHDOG
 	APPLET(watchdog, watchdog_main, _BB_DIR_SBIN, _BB_SUID_NEVER)

@@ -35,9 +35,6 @@
 #include "pwd.h"
 #include "grp.h"
 
-#define GROUP_FILE      "/etc/group"
-#define SHADOW_FILE		"/etc/gshadow"
-
 
 /* structs __________________________ */
 
@@ -92,7 +89,7 @@ static int addgroup(const char *filename, char *group, gid_t gid)
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	FILE *etc_gshadow;
-	char *gshadow = SHADOW_FILE;
+	char *gshadow = shadow_file;
 #endif
 
 	struct group gr;
@@ -162,7 +159,7 @@ int addgroup_main(int argc, char **argv)
 	}
 
 	/* werk */
-	return addgroup(GROUP_FILE, group, gid);
+	return addgroup(group_file, group, gid);
 }
 
-/* $Id: addgroup.c,v 1.1 2002/06/04 20:45:05 sandman Exp $ */
+/* $Id: addgroup.c,v 1.2 2002/06/23 04:24:24 andersen Exp $ */

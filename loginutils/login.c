@@ -14,16 +14,9 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <time.h>
+
 #include "busybox.h"
 
-#include "pwd.h"
-#include "grp.h"
-
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-#include "shadow.h"
-#endif
-
-#include "tinylogin.h"
 
 // import from utmp.c
 static void checkutmp(int picky);
@@ -35,12 +28,7 @@ extern char *pw_encrypt(const char *clear, const char *salt);
 
 // login defines
 #define TIMEOUT       60
-#define FAIL_DELAY    3
 #define EMPTY_USERNAME_COUNT    10
-#define MOTD_FILE     "/etc/motd"
-#define NOLOGIN_FILE  "/etc/nologin"
-#define SECURETTY_FILE "/etc/securetty"
-
 #define USERNAME_SIZE 32
 
 /* Stuff global to this file */
@@ -81,7 +69,9 @@ extern int login_main(int argc, char **argv)
 	int failed;
 	int count=0;
 	struct passwd *pw, pw_copy;
-
+#ifdef CONFIG_WHEEL_GROUP
+	struct group *grp;
+#endif
 	int opt_preserve = 0;
 	int opt_fflag = 0;
 	char *opt_host = 0;
@@ -283,11 +273,11 @@ static int login_prompt ( char *buf_name )
 
 static int check_nologin ( int amroot )
 {
-	if ( access ( NOLOGIN_FILE, F_OK ) == 0 ) {
+	if ( access ( nologin_file, F_OK ) == 0 ) {
 		FILE *fp;
 		int c;
 
-		if (( fp = fopen ( NOLOGIN_FILE, "r" ))) {
+		if (( fp = fopen ( nologin_file, "r" ))) {
 			while (( c = getc ( fp )) != EOF )
 				putchar (( c == '\n' ) ? '\r' : c );
 
@@ -312,7 +302,7 @@ static int check_tty ( const char *tty )
 	int i;
 	char buf[BUFSIZ];
 
-	if (( fp = fopen ( SECURETTY_FILE, "r" ))) {
+	if (( fp = fopen ( securetty_file, "r" ))) {
 		while ( fgets ( buf, sizeof( buf ) - 1, fp )) {
 			for ( i = xstrlen( buf ) - 1; i >= 0; --i ) {
 				if ( !isspace ( buf[i] ))
@@ -358,7 +348,7 @@ static void motd ( )
 	FILE *fp;
 	register int c;
 
-	if (( fp = fopen ( MOTD_FILE, "r" ))) {
+	if (( fp = fopen ( motd_file, "r" ))) {
 		while (( c = getc ( fp )) != EOF ) 
 			putchar ( c );		
 		fclose ( fp );
@@ -428,23 +418,6 @@ static void checkutmp(int picky)
 		time(&utent.ut_time);
 	}
 }
-
-#if __GNU_LIBRARY__ < 5
-/*
- * Some systems already have updwtmp() and possibly updwtmpx().  Others
- * don't, so we re-implement these functions if necessary.  --marekm
- */
-static void updwtmp(const char *filename, const struct utmp *ut)
-{
-	int fd;
-
-	fd = open(filename, O_APPEND | O_WRONLY, 0);
-	if (fd >= 0) {
-		write(fd, (const char *) ut, sizeof(*ut));
-		close(fd);
-	}
-}
-#endif
 
 /*
  * setutmp - put a USER_PROCESS entry in the utmp file

@@ -11,6 +11,24 @@
 
 #if __GNU_LIBRARY__ < 5
 
+/*
+ * Some systems already have updwtmp().  Some don't...  This is
+ * the updwtmp() implementation from uClibc, Copyright 2002 by
+ * Erik Andersen <andersee@debian.org> 
+ */
+extern void updwtmp(const char *wtmp_file, const struct utmp *lutmp)
+{
+	int fd;
+
+	fd = open(wtmp_file, O_APPEND | O_WRONLY, 0);
+	if (fd >= 0) {
+		if (lockf(fd, F_LOCK, 0)==0) {
+			write(fd, (const char *) lutmp, sizeof(struct utmp));
+			lockf(fd, F_ULOCK, 0);
+			close(fd);
+		}
+	}
+}
 
 /* Copyright (C) 1991 Free Software Foundation, Inc.
 This file is part of the GNU C Library.

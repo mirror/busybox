@@ -7,19 +7,22 @@ mainmenu_option next_comment
 comment 'Login/Password Management Utilities'
 
 
-bool 'addgroup'		    CONFIG_ADDGROUP
-bool 'adduser'		    CONFIG_ADDUSER
-bool 'deluser'		    CONFIG_DELUSER
-bool 'delgroup'		    CONFIG_DELUSER
-bool 'getty'		    CONFIG_GETTY
+bool 'addgroup'			CONFIG_ADDGROUP
+bool 'adduser'			CONFIG_ADDUSER
+bool 'deluser'			CONFIG_DELUSER
+bool 'delgroup'			CONFIG_DELUSER
+bool 'getty'			CONFIG_GETTY
 bool 'login'			CONFIG_LOGIN
 if [ "$CONFIG_LOGIN" = "y" ]; then
 	bool '  Support for /etc/securetty'		CONFIG_FEATURE_SECURETTY
 fi
-bool 'su'				CONFIG_SU
+bool 'passwd'			CONFIG_PASSWD
+bool 'su'			CONFIG_SU
 if [ "$CONFIG_ADDUSER" = "y" -o "$CONFIG_DELUSER" = "y" -o "$CONFIG_LOGIN" = "y" -o "$CONFIG_SU" = "y" ]; then
-    bool 'Support for shadow passwords'		CONFIG_FEATURE_SHADOWPASSWDS
+    bool '  Support for shadow passwords'		CONFIG_FEATURE_SHADOWPASSWDS
 fi
+bool 'sulogin'			CONFIG_SULOGIN
+bool 'vlock'			CONFIG_VLOCK
 
 endmenu
 

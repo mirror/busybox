@@ -1,7 +1,5 @@
 /* vi: set sw=4 ts=4: */
 
-#include "busybox.h"
-
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -18,10 +16,7 @@
 #include <ctype.h>
 #include <time.h>
 
-#include "pwd.h"
-#include "grp.h"
-
-#include "tinylogin.h"
+#include "busybox.h"
 
 
 
@@ -161,7 +156,7 @@ int su_main ( int argc, char **argv )
 
 	change_identity ( pw );	
 	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );
-	run_shell ( opt_shell, opt_loginshell, opt_command, opt_args );
+	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args );
 	
 	return EXIT_FAILURE;
 }
