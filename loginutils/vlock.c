@@ -41,11 +41,13 @@
 #include "busybox.h"
 
 static struct passwd *pw;
-static struct spwd *spw;
 static struct vt_mode ovtm;
 static struct termios oterm;
 static int vfd;
 static int o_lock_all = 0;
+
+#ifdef CONFIG_FEATURE_SHADOWPASSWDS
+static struct spwd *spw;
 
 /* getspuid - get a shadow entry by uid */
 struct spwd *getspuid(uid_t uid)
@@ -64,6 +66,7 @@ struct spwd *getspuid(uid_t uid)
 	endspent();
 	return (sp);
 }
+#endif
 
 static void release_vt(int signo)
 {
