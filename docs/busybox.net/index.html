@@ -61,9 +61,8 @@ BusyBox is licensed under the
 
 <h3> Screenshot </h3>
 
-<p> Because everybody loves screenshots, a <a href="screenshot.html">
-screenshot</a> of BusyBox is now available <a href="screenshot.html"> right
-here</a>
+<p> Because everybody loves screenshots, a screenshot of BusyBox 
+is now available <a href="screenshot.html"> right here</a>
 
 <H3>Mailing List Information</h3>
 BusyBox now has a <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a>!
@@ -81,6 +80,28 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 
 <ul>
+
+    <li> <b>15 March 2001 -- BusyBox 0.50 released</b>
+    <br>
+
+	     This release adds several new applets including ifconfig, route, pivot_root, stty,
+	     and tftp, and also fixes tons of bugs.  Tab completion in the
+	     shell is now working very well, and the shell's environment variable
+	     expansion was fixed.   Tons of other things were fixed or made
+	     smaller.  For a fairly complete overview, see the 
+	     <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a>.
+	     <p>
+	     lash (the busybox shell) is still with us, fixed up a bit so it
+	     now behaves itself quite nicely.  It really is quite usable as
+	     long as you don't expect it to provide Bourne shell grammer.
+	     Standard things like pipes, redirects, command line editing, and
+	     environment variable expansion work great.  But we have found that
+	     this shell, while very usable, does not provide an extensible
+	     framework for adding in full Bourne shell behavior.  So the first order of
+	     business as we begin working on the next BusyBox release will be to merge in the new shell
+	     currently in progress at 
+	     <a href="http://doolittle.faludi.com/~larry/parser.html">Larry Doolittle's website</a>.   
+
 
     <li> <b>27 January 2001 -- BusyBox 0.49 released</b>
     <br>
@@ -173,11 +194,9 @@ Current documentation for BusyBox includes:
 		have spent a <em>lot</em> of time updating these docs and trying to 
 		make them fairly comprehensive.  If you find any errors (factual, 
 		grammatical, whatever) please let me know.
-    <li> <a href="ftp://oss.lineo.com/busybox/BusyBox.pdf">BusyBox.pdf</a>.
-		This is basically the same document, but in pdf format.
     <li> <a href="ftp://oss.lineo.com/busybox/README">README</a>.
 		This is the README file included in the busybox source release.
-    <li> <a href="http://bugs.lineo.com/db/pa/lbusybox.html">BusyBoxBugs</a>.
+    <li> <a href="http://bugs.lineo.com/db/pa/lbusybox.html">BusyBox Bugs</a>.
 		Need to report a bug?  Need to check if a bug has been filed?
     <li> If you need more help, the BusyBox
     <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a> is
@@ -206,6 +225,17 @@ Current documentation for BusyBox includes:
 
     <li>  <A HREF="http://freshmeat.net/projects/busybox/">
     Freshmeat AppIndex record for BusyBox</A>
+    <p>
+    <li><a href="http://tinylogin.lineo.com/">TinyLogin</a>
+        is a nice embedded tool for handling authentication, changing passwords,
+	and similar tasks which nicely complements BusyBox.
+    <p>
+
+    <li><a href="http://cvs.uclinux.org/uClibc.html">uCLibc</a>
+	is a C library for embedded systems.  You can actually statically link
+	a "Hello World" application under x86 that only takes 4k (as opposed to
+	200k under GNU libc).  It can do dynamic linking too and works nicely with
+	BusyBox. to create very small embedded systems.
     <p>
 
     <li> <a href="http://opensource.lineo.com/software.html">Other cool embedded software</a>.
@@ -249,9 +279,9 @@ listed in the order I happen to add them to the web page:
     <li> <a href="http://ibiblio.org/pub/Linux/system/recovery">Zdisk</a>
     <li> <a href="http://www.adtran.com">AdTran - VPN/firewall VPN Linux Distribution</a> 
     <li> <a href="http://mkcdrec.ota.be/">mkCDrec - make CD-ROM recovery</a>
-	<li> <a href="http://recycle.lbl.gov/~ldoolitt/bse/">Linux on nanoEngine</a>
-	<li> <a href="http://www.zelow.no/floppyfw/"> Floppyfw</a>
-	<li> <a href="http://midori.transmeta.com/"> Midori Linux</a>
+    <li> <a href="http://recycle.lbl.gov/~ldoolitt/bse/">Linux on nanoEngine</a>
+    <li> <a href="http://www.zelow.no/floppyfw/"> Floppyfw</a>
+    <li> <a href="http://midori.transmeta.com/"> Midori Linux</a>
 
 </ul>
 
