@@ -322,7 +322,12 @@ functions, (or *maybe* macros), which are used in the code.
 
 	(in .h header file)
 
-		#ifndef BB_FEATURE_FUNKY
+		#ifdef BB_FEATURE_FUNKY
+		static inline void maybe_do_funky_stuff (int bar, int baz)
+		{
+			/* lotsa code in here */
+		}
+		#else
 		static inline void maybe_do_funky_stuff (int bar, int baz) {}
 		#endif
 
@@ -334,7 +339,7 @@ functions, (or *maybe* macros), which are used in the code.
 		maybe_do_funky_stuff(bar, baz);
 
 The great thing about this approach is that the compiler will optimize away
-the "no-op" case when the feature is turned off.
+the "no-op" case (the empty function) when the feature is turned off.
 
 Note also the use of the word 'maybe' in the function name to indicate
 conditional execution.
@@ -448,11 +453,14 @@ assigning them to a global pointer thusly:
 
 This last approach has some advantages (low code size, space not used until
 it's needed), but can be a problem in some low resource machines that have
-very limited stack space (e.g., uCLinux).  busybox.h declares a macro that
-implements compile-time selection between xmalloc() and stack creation, so
-you can code the line in question as
+very limited stack space (e.g., uCLinux).
+
+A macro is declared in busybox.h that implements compile-time selection
+between xmalloc() and stack creation, so you can code the line in question as
+
 		RESERVE_BB_BUFFER(buffer, BUFSIZ);
-and the right thing will happen, based on the customer's configuration.
+
+and the right thing will happen, based on your configuration.
 
 
 
@@ -608,8 +616,8 @@ It's considered good form to test your new feature before you submit a patch
 to the mailing list, and especially before you commit a change to CVS. Here
 are some guildlines on testing your changes.
 
- - Always test busybox grep against GNU grep and make sure the behavior /
-   output is identical between the two.
+ - Always test busybox applets against GNU counterparts and make sure the
+   behavior / output is identical between the two.
 
  - Try several different permutations and combinations of the features you're
    adding and make sure they all work. (Make sure one feature does not
