@@ -58,76 +58,60 @@ struct signal_name {
 };
 
 const struct signal_name signames[] = {
+	/* Everything, order not important */
 	{"HUP", SIGHUP},
 	{"INT", SIGINT},
 	{"QUIT", SIGQUIT},
 	{"ILL", SIGILL},
 	{"TRAP", SIGTRAP},
 	{"ABRT", SIGABRT},
-#ifndef __alpha__
-	{"IOT", SIGIOT},
-#endif
-#if defined(__sparc__) || defined(__alpha__)
-	{"EMT", SIGEMT},
-#else
-	{"BUS", SIGBUS},
-#endif
 	{"FPE", SIGFPE},
 	{"KILL", SIGKILL},
-#if defined(__sparc__) || defined(__alpha__)
-	{"BUS", SIGBUS},
-#else
-	{"USR1", SIGUSR1},
-#endif
 	{"SEGV", SIGSEGV},
-#if defined(__sparc__) || defined(__alpha__)
-	{"SYS", SIGSYS},
-#else
-	{"USR2", SIGUSR2},
-#endif
 	{"PIPE", SIGPIPE},
 	{"ALRM", SIGALRM},
 	{"TERM", SIGTERM},
-#if defined(__sparc__) || defined(__alpha__)
-	{"URG", SIGURG},
-	{"STOP", SIGSTOP},
-	{"TSTP", SIGTSTP},
-	{"CONT", SIGCONT},
-	{"CHLD", SIGCHLD},
-	{"TTIN", SIGTTIN},
-	{"TTOU", SIGTTOU},
-	{"IO", SIGIO},
-# ifndef __alpha__
-	{"POLL", SIGIO},
-# endif
-	{"XCPU", SIGXCPU},
-	{"XFSZ", SIGXFSZ},
-	{"VTALRM", SIGVTALRM},
-	{"PROF", SIGPROF},
-	{"WINCH", SIGWINCH},
-# ifdef __alpha__
-	{"INFO", SIGINFO},
-# else
-	{"LOST", SIGLOST},
-# endif
+	{"BUS", SIGBUS},
 	{"USR1", SIGUSR1},
 	{"USR2", SIGUSR2},
-#else
-	{"STKFLT", SIGSTKFLT},
-	{"CHLD", SIGCHLD},
-	{"CONT", SIGCONT},
 	{"STOP", SIGSTOP},
-	{"TSTP", SIGTSTP},
+	{"CONT", SIGCONT},
 	{"TTIN", SIGTTIN},
 	{"TTOU", SIGTTOU},
-	{"URG", SIGURG},
+	{"IO", SIGIO},
+	{"TSTP", SIGTSTP},
+	{"CHLD", SIGCHLD},
 	{"XCPU", SIGXCPU},
 	{"XFSZ", SIGXFSZ},
-	{"VTALRM", SIGVTALRM},
 	{"PROF", SIGPROF},
 	{"WINCH", SIGWINCH},
-	{"IO", SIGIO},
+	{"URG", SIGURG},
+	{"VTALRM", SIGVTALRM},
+#ifndef __alpha__
+	/* everything except alpha */
+	{"IOT", SIGIOT},
 	{"POLL", SIGPOLL},
+#endif
+#if defined(__sparc__) || defined(__alpha__) || defined(__mips__)
+	/* everthing except intel */
+	{"EMT", SIGEMT},
+	{"SYS", SIGSYS},
+# ifdef __alpha__
+		/* alpha only */
+		{"LOST", SIGLOST},
+#endif
+#ifdef __sparc__
+		/* space only */
+		{"INFO", SIGINFO},
+#endif
+#ifdef __mips__
+		/* mips only */
+		{"CLD", SIGCLD},
+		{"PWR", SIGPWR},
+#endif
+#else
+	/* intel only */
+	{"STKFLT", SIGSTKFLT},
 	{"PWR", SIGPWR},
 	{"UNUSED", SIGUNUSED},
 #endif
