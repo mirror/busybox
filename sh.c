@@ -18,7 +18,7 @@
  *
  */
 
-#include "busybox.h"
+#include "Config.h"
 
 /* This is to make testing things a bit simpler (to avoid
  * a full recompile) till we get the new build system in place */
