@@ -7,6 +7,9 @@
 
 # Maintainer: Larry Doolittle <ldoolitt@recycle.lbl.gov>
 
+export LC_ALL=POSIX
+export LC_CTYPE=POSIX
+
 CONFIG_H=${1:-Config.h}
 APPLETS_H=${2:-applets.h}
 gcc -E -DMAKE_LINKS -include $CONFIG_H $APPLETS_H |

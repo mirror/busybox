@@ -1,5 +1,8 @@
 #!/bin/sh
 
+export LC_ALL=POSIX
+export LC_CTYPE=POSIX
+
 prefix=$1
 if [ "$prefix" = "" ]; then
     echo "No installation directory, aborting."

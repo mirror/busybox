@@ -10,6 +10,9 @@
 #
 # If you use a ? in your path name, you lose, see sed command below.
 
+export LC_ALL=POSIX
+export LC_CTYPE=POSIX
+
 DIR=${0%%/pristine_setup.sh}
 if [ ! -d $DIR ]; then
   echo "unexpected problem: $DIR is not a directory.  Aborting pristine setup"
