@@ -80,11 +80,12 @@ extern int ar_main(int argc, char **argv)
 	archive_handle_t *archive_handle;
 	int opt;
 
+#ifndef CONFIG_DPKG_DEB
+	char magic[8];
+#endif
 #if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
 	archive_handle = init_handle();
 #else
-	char magic[8];
-
 	archive_handle = xcalloc(1, sizeof(archive_handle_t));
 	archive_handle->filter = filter_accept_all;
 	archive_handle->action_data = data_skip;
