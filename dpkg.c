@@ -506,60 +506,59 @@ unsigned int fill_package_struct(char *control_buffer)
 {
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
 
-	char **field_name = xmalloc(sizeof(char *));
-	char **field_value = xmalloc(sizeof(char *));
+	char *field_name;
+	char *field_value;
 	int field_start = 0;
 	int num = -1;
 	int buffer_length = strlen(control_buffer);
 
 	new_node->version = search_name_hashtable("unknown");
 	while (field_start < buffer_length) {
-		field_start += read_package_field(&control_buffer[field_start], field_name, field_value);
+		field_start += read_package_field(&control_buffer[field_start],
+				&field_name, &field_value);
 
-		if (*field_name == NULL) {
+		if (field_name == NULL) {
 			goto fill_package_struct_cleanup; // Oh no, the dreaded goto statement !!
 		}
 
-		if (strcmp(*field_name, "Package") == 0) {
-			new_node->name = search_name_hashtable(*field_value);
+		if (strcmp(field_name, "Package") == 0) {
+			new_node->name = search_name_hashtable(field_value);
 		}
-		else if (strcmp(*field_name, "Version") == 0) {
-			new_node->version = search_name_hashtable(*field_value);
+		else if (strcmp(field_name, "Version") == 0) {
+			new_node->version = search_name_hashtable(field_value);
 		}
-		else if (strcmp(*field_name, "Pre-Depends") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_PRE_DEPENDS);
+		else if (strcmp(field_name, "Pre-Depends") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_PRE_DEPENDS);
 		}
-		else if (strcmp(*field_name, "Depends") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_DEPENDS);
+		else if (strcmp(field_name, "Depends") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_DEPENDS);
 		}
-		else if (strcmp(*field_name, "Replaces") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_REPLACES);
+		else if (strcmp(field_name, "Replaces") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_REPLACES);
 		}
-		else if (strcmp(*field_name, "Provides") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_PROVIDES);
+		else if (strcmp(field_name, "Provides") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_PROVIDES);
 		}
-		else if (strcmp(*field_name, "Conflicts") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_CONFLICTS);
+		else if (strcmp(field_name, "Conflicts") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_CONFLICTS);
 		}
-		else if (strcmp(*field_name, "Suggests") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_SUGGESTS);
+		else if (strcmp(field_name, "Suggests") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_SUGGESTS);
 		}
-		else if (strcmp(*field_name, "Recommends") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_RECOMMENDS);
+		else if (strcmp(field_name, "Recommends") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_RECOMMENDS);
 		}
-		else if (strcmp(*field_name, "Enhances") == 0) {
-			add_split_dependencies(new_node, *field_value, EDGE_ENHANCES);
+		else if (strcmp(field_name, "Enhances") == 0) {
+			add_split_dependencies(new_node, field_value, EDGE_ENHANCES);
 		}
 fill_package_struct_cleanup:
-		if (*field_name) {
-			free(*field_name);
+		if (field_name) {
+			free(field_name);
 		}
-		if (*field_value) {
-			free(*field_value);
+		if (field_value) {
+			free(field_value);
 		}
 	}
-	free(field_name);
-	free(field_value);
 
 	if (new_node->version == search_name_hashtable("unknown")) {
 		free_package(new_node);
