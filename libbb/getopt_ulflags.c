@@ -88,8 +88,6 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
   t_complementaly *on_off;
   va_list p;
 
-  memset(&complementaly, 0, sizeof(complementaly));
-
   va_start (p, applet_opts);
 
   /* skip GNU extension */
@@ -103,7 +101,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	if(c >= (sizeof(flags)*8))
 		break;
 	on_off->opt = *s;
-	on_off->switch_on |= (1 << c);
+	on_off->switch_on = (1 << c);
 	on_off->list_flg = 0;
 	on_off->switch_off = 0;
 	on_off->incongruously = 0;
