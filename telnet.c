@@ -595,7 +595,7 @@ static struct in_addr getserver(char * host)
 	struct hostent * he;
 	if ((he = gethostbyname(host)) == NULL)
 	{
-		fatalError("%s: Unkonwn host\n", host);
+		fatalError("%s: Unknown host\n", host);
 	}
 	memcpy(&addr, he->h_addr, sizeof addr);
 
