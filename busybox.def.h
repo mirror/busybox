@@ -24,6 +24,7 @@
 #define BB_DEALLOCVT
 #define BB_GREP
 //#define BB_HALT
+#define BB_HEAD
 #define BB_HOSTNAME
 #define BB_INIT
 #define BB_KILL

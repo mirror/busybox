@@ -74,6 +74,7 @@ extern int find_main(int argc, char** argv);
 extern int free_main(int argc, char** argv);
 extern int grep_main(int argc, char** argv);
 extern int halt_main(int argc, char** argv);
+extern int head_main(int argc, char** argv);
 extern int hostname_main(int argc, char** argv);
 extern int init_main(int argc, char** argv);
 extern int kill_main(int argc, char** argv);

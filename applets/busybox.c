@@ -75,6 +75,9 @@ static const struct Applet applets[] = {
 #ifdef BB_HALT			//sbin
     {"halt", halt_main},
 #endif
+#ifdef BB_HEAD			//bin
+    {"head", head_main},
+#endif
 #ifdef BB_HOSTNAME              //bin
     {"hostname", hostname_main},
 #endif
