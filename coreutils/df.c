@@ -42,7 +42,7 @@ static int df(char *device, const char *mountPoint)
 
     if (statfs(mountPoint, &s) != 0) {
 	perror(mountPoint);
-	return 1;
+	return FALSE;
     }
 
     if (s.f_blocks > 0) {
@@ -64,7 +64,7 @@ static int df(char *device, const char *mountPoint)
 
     }
 
-    return 0;
+    return TRUE;
 }
 
 extern int df_main(int argc, char **argv)
@@ -83,15 +83,15 @@ extern int df_main(int argc, char **argv)
 	    if ((mountEntry = findMountPoint(argv[1], mtab_file)) ==
 		0) {
 		fprintf(stderr, "%s: can't find mount point.\n", argv[1]);
-		return 1;
+		exit( FALSE);
 	    }
 	    status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
 	    if (status != 0)
-		return status;
+		exit( status);
 	    argc--;
 	    argv++;
 	}
-	return 0;
+	exit( TRUE);
     } else {
 	FILE *mountTable;
 	struct mntent *mountEntry;
@@ -105,10 +105,10 @@ extern int df_main(int argc, char **argv)
 	while ((mountEntry = getmntent(mountTable))) {
 	    int status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
 	    if (status)
-		return status;
+		exit( status);
 	}
 	endmntent(mountTable);
     }
 
-    return 0;
+    exit( TRUE);
 }

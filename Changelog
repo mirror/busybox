@@ -1,11 +1,21 @@
 0.35
+	* gzip now obeys the principle of least surprise and acts like god intended 
+	    (i.e. it accepts a file name, answers --help, and obeys the '-c' flag 
+	    and only then outputs to stdout).
+	* Fixed more.c to compile autowidth on sparc and set initial winsize 
+	    to 0,0 in case the TIOCGWINSZ ioctl fails.  Fix thanks to Eric Delaunay.
 	* Fixed tar so it now works as expected (it had TRUE/FALSE backwards)
 	* tar now accepts --help
 	* chmod, chown, and chgrp usage now works
-	* General usage cleanups in most apps
+	* General usage (i.e. --help) cleanups for most apps
 	* umount now parses options correctly
+	* tar can now unpack tarballs containing device special files, 
+	    sockets, and fifos (though it can't pack them up) thanks 
+	    to Matt Porter.  Creating archives containing these is still
+	    left to the interested student.
+	* fixed up the license in more.c to properly point to Bruce Perens.
 
-	-Erik Andersen
+	-Erik Andersen, Nov  11, 1999
 
 0.34
 	* ls -l now displays link names outside the current directory,
@@ -27,7 +37,7 @@
 	* ls -l now bypasses libc6 nss when displaying user/group names.
 	    Now uses my_getpwuid and my_getgrgid.
 
-	 -Erik Andersen
+	 -Erik Andersen, Nov  8, 1999
 
 0.33
 	* Fixed a bug where init could hang instead of rebooting.
@@ -39,7 +49,7 @@
 	    state the real root device name)
 	* merged some redundant code from mtab.c/df.c into utility.c
 
-	 -Erik Andersen
+	 -Erik Andersen, Nov  5, 1999
 
 0.32
 	* More changes -- many thanks to Lineo for paying me to work on
@@ -68,7 +78,7 @@
 	    as the name suggests.  Fix thanks to Matt Porter <porter@debian.org>.
 
 
-	 -Erik Andersen
+	 -Erik Andersen, Nov  4, 1999
 
 0.31
 	* I added a changelog for version 0.30. 
@@ -83,7 +93,7 @@
 	    it wasn't supported before GNU libc 2.1, and some folks use
 	    glibc 2.0.7 since it is much smaller than that latest and greatest.
 
-	 -Erik Andersen
+	 -Erik Andersen, Oct 21, 1999
 
 0.30
 	Major changes -- lots of stuff rewritten. Many thanks to Lineo for
@@ -152,7 +162,11 @@
 		    * sfdisk -- Added from util-linux (minus internationalization and such).
 	    * Probably some other changes that I forgot to document...
 
-	 -Erik Andersen
+	 -Erik Andersen, Oct 20, 1999
+
+0.29	
+	This version was a messy pre-alpha.  stay away or it will bite you.
+	 -Erik Andersen, Sep 24, 1999
 	
 0.28	
 	mini-netcat (mnc) rewritten.

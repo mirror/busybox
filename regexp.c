@@ -504,7 +504,7 @@ extern regexp *regcomp(char* text)
 	int		token;
 	int		peek;
 	char		*build;
-	regexp		*re;
+	regexp		*re; // Ignore compiler whining.  If we longjmp, we don't use re anymore.
 
 
 	/* prepare for error handling */

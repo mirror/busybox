@@ -17,7 +17,7 @@
 //#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FSCK_MINIX
-#define BB_MKFS_MINIX
+//#define BB_MKFS_MINIX
 #define BB_CHVT
 #define BB_DEALLOCVT
 #define BB_GREP

@@ -1,5 +1,5 @@
 Name: busybox
-Version: 0.33
+Version: 0.35
 Release: 1
 Group: System/Utilities
 Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.
@@ -7,7 +7,7 @@ Copyright: GPL
 Packager : Erik Andersen <andersen@lineo.com>
 Conflicts: fileutils grep shellutils
 Buildroot: /tmp/%{Name}-%{Version}
-Source: busybox-%{Version}.tar.gz
+Source: %{Name}-%{Version}.tar.gz
 
 %Description
 BusyBox is a suite of "tiny" Unix utilities in a multi-call binary. It
@@ -18,7 +18,7 @@ is makes an excellent environment for a "rescue" disk or any small or
 embedded system.
 
 %Prep
-%setup -q -n busybox
+%setup -q -n %{Name}-%{Version}
 
 %Build
 make

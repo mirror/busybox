@@ -17,7 +17,7 @@
 
 
 PROG=busybox
-VERSION=0.34
+VERSION=0.35
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
@@ -58,14 +58,14 @@ OBJECTS=$(shell ./busybox.sh)
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
 
-all: busybox links
+all: busybox busybox.links
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJECTS) $(LIBRARIES)
 	$(STRIP)
 
-links:
-	- ./busybox.mkll | sort >busybox.links
+busybox.links:
+	- ./busybox.mkll | sort >$@
 	
 clean:
 	- rm -f $(PROG) busybox.links *~ *.o core 
@@ -79,4 +79,10 @@ $(OBJECTS):  busybox.def.h internal.h Makefile
 
 install:    $(PROG)
 	install.sh $(BINDIR)
+
+whichversion:
+	@echo $(VERSION)
+
+release: distclean
+	(cd .. ; cp -a busybox busybox-$(VERSION); tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
 

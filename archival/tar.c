@@ -10,6 +10,9 @@
  * Modified for busybox by Erik Andersen <andersee@debian.org>
  * Adjusted to grok stdin/stdout options.
  *
+ * Modified to handle device special files by Matt Porter
+ * <porter@debian.org>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -34,6 +37,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <time.h>
+#include <sys/types.h>
 
 
 static const char tar_usage[] =
@@ -377,12 +381,15 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     int uid;
     int gid;
     int checkSum;
+    int major;
+    int minor;
     long size;
     time_t mtime;
     const char *name;
     int cc;
     int hardLink;
     int softLink;
+    int devFileFlag;
 
     /* 
      * If the block is completely empty, then this is the end of the
@@ -411,6 +418,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     size = getOctal (hp->size, sizeof (hp->size));
     mtime = getOctal (hp->mtime, sizeof (hp->mtime));
     checkSum = getOctal (hp->checkSum, sizeof (hp->checkSum));
+    major = getOctal (hp->devMajor, sizeof (hp->devMajor));
+    minor = getOctal (hp->devMinor, sizeof (hp->devMinor));
 
     if ((mode < 0) || (uid < 0) || (gid < 0) || (size < 0)) {
 	if (badHeader==FALSE)
@@ -423,6 +432,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 
     badHeader = FALSE;
     skipFileFlag = FALSE;
+    devFileFlag = FALSE;
 
     /* 
      * Check for the file modes.
@@ -434,12 +444,10 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 		(hp->typeFlag == TAR_TYPE_SOFT_LINK - '0'));
 
     /* 
-     * Check for a directory or a regular file.
+     * Check for a directory.
      */
     if (name[strlen (name) - 1] == '/')
 	mode |= S_IFDIR;
-    else if ((mode & S_IFMT) == 0)
-	mode |= S_IFREG;
 
     /* 
      * Check for absolute paths in the file.
@@ -462,7 +470,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      * If not, then set up to skip it.
      */
     if (wantFileName (name, fileCount, fileTable) == FALSE) {
-	if (!hardLink && !softLink && S_ISREG (mode)) {
+	if ( !hardLink && !softLink && (S_ISREG (mode) || S_ISCHR (mode)
+		    || S_ISBLK (mode) || S_ISSOCK(mode) || S_ISFIFO(mode) ) ) {
 	    inHeader = (size == 0)? TRUE : FALSE;
 	    dataCc = size;
 	}
@@ -487,7 +496,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	    printf (" (link to \"%s\")", hp->linkName);
 	else if (softLink)
 	    printf (" (symlink to \"%s\")", hp->linkName);
-	else if (S_ISREG (mode)) {
+	else if (S_ISREG (mode) || S_ISCHR (mode) || S_ISBLK (mode) || 
+		S_ISSOCK(mode) || S_ISFIFO(mode) ) {
 	    inHeader = (size == 0)? TRUE : FALSE;
 	    dataCc = size;
 	}
@@ -543,8 +553,17 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      */
     if (tostdoutFlag == TRUE)
 	outFd = STDOUT;
-    else
-	outFd = open (name, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    else {
+	if ( S_ISCHR(mode) || S_ISBLK(mode) || S_ISSOCK(mode) ) {
+	    devFileFlag = TRUE;
+	    outFd = mknod (name, mode, makedev(major, minor) );
+	}
+	else if (S_ISFIFO(mode) ) {
+	    outFd = mkfifo(name, mode);
+	} else {
+	    outFd = open (name, O_WRONLY | O_CREAT | O_TRUNC, mode);
+	}
+    }
 
     if (outFd < 0) {
 	perror (name);
@@ -555,7 +574,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     /* 
      * If the file is empty, then that's all we need to do.
      */
-    if (size == 0 && tostdoutFlag == FALSE) {
+    if (size == 0 && (tostdoutFlag == FALSE) && (devFileFlag == FALSE)) {
 	(void) close (outFd);
 	outFd = -1;
     }
@@ -735,12 +754,16 @@ static void saveFile (const char *fileName, int seeLinks)
 
 	return;
     }
-
     if (S_ISREG (mode)) {
 	saveRegularFile (fileName, &statbuf);
 
 	return;
     }
+    
+    /* Some day add support for tarring these up... but not today. :) */
+//  if (S_ISLNK(mode) || S_ISFIFO(mode) || S_ISBLK(mode) || S_ISCHR (mode) ) {
+//	fprintf (stderr, "%s: This version of tar can't store this type of file\n", fileName);
+//  }
 
     /* 
      * The file is a strange type of file, ignore it.

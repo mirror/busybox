@@ -12,10 +12,11 @@
 //#endif
 
 static const char gzip_usage[] =
-    "gzip [OPTION]... [FILE]...\n\n"
-    "Compress FILEs with maximum compression.\n\n"
+    "gzip [OPTION]... FILE\n\n"
+    "Compress FILE with maximum compression.\n"
+    "When FILE is -, reads standard input.  Implies -c.\n\n"
     "Options:\n"
-    "\t-c\tWrite output on standard output\n";
+    "\t-c\tWrite output to standard output instead of FILE.gz\n";
 
 
 /* gzip.h -- common declarations for all gzip modules
@@ -1731,7 +1732,6 @@ DECLARE(uch, window, 2L*WSIZE);
 
 int ascii = 0;        /* convert end-of-lines to local OS conventions */
 int decompress = 0;   /* decompress (-d) */
-int tostdout = 0;     /* uncompress to stdout (-c) */
 int no_name = -1;     /* don't save or restore the original file name */
 int no_time = -1;     /* don't save or restore the original file time */
 int foreground;       /* set if program run in foreground */
@@ -1770,13 +1770,25 @@ unsigned outcnt;           /* bytes in output buffer */
 //    char **argv;
 int gzip_main(int argc, char ** argv)
 {
-
+    int result;
     int inFileNum;
     int outFileNum;
+    struct stat statBuf;
+    char* delFileName; 
+    int tostdout = 0;
+    int fromstdin = 0;
+
+    if (argc==1)
+	usage(gzip_usage);
 
     /* Parse any options */
     while (--argc > 0 && **(++argv) == '-') {
+	if (*((*argv)+1) == '\0') {
+	    fromstdin = 1;
+	    tostdout = 1;
+	}
 	while (*(++(*argv))) {
+	    fprintf(stderr, "**argv='%c'\n", **argv);
 	    switch (**argv) {
 	    case 'c':
 		tostdout = 1;
@@ -1817,18 +1829,40 @@ int gzip_main(int argc, char ** argv)
     ALLOC(ush, tab_prefix1, 1L<<(BITS-1));
 #endif
 
+    if (fromstdin==1) {
+	strcpy(ofname, "stdin");
+
+	inFileNum=fileno(stdin);
+	time_stamp = 0; /* time unknown by default */
+	ifile_size = -1L; /* convention for unknown size */
+    } else {
+	/* Open up the input file */
+	if (*argv=='\0')
+	    usage(gzip_usage);
+	strncpy(ifname, *argv, MAX_PATH_LEN);
+
+	/* Open input fille */
+	inFileNum=open( ifname, O_RDONLY);
+	if (inFileNum < 0) {
+	    perror(ifname);
+	    do_exit(WARNING);
+	}
+	/* Get the time stamp on the input file. */
+	result = stat(ifname, &statBuf);
+	if (result < 0) {
+	    perror(ifname);
+	    do_exit(WARNING);
+	}
+	time_stamp = statBuf.st_ctime;
+	ifile_size = statBuf.st_size;
+    }
+
+
     if (tostdout==1) {
 	/* And get to work */
-	SET_BINARY_MODE(fileno(stdout));
-	strcpy(ifname, "stdin");
 	strcpy(ofname, "stdout");
-	inFileNum=fileno(stdin);
 	outFileNum=fileno(stdout);
-
-	/* Get the time stamp on the input file. */
-	time_stamp = 0; /* time unknown by default */
-
-	ifile_size = -1L; /* convention for unknown size */
+	SET_BINARY_MODE(fileno(stdout));
 
 	clear_bufs(); /* clear input and output buffers */
 	part_nb = 0;
@@ -1837,44 +1871,39 @@ int gzip_main(int argc, char ** argv)
 	zip(inFileNum, outFileNum);
 
     } else {
-	int result;
-	struct stat statBuf;
 
 	/* And get to work */
-	if (*argv=='\0')
-	    usage(gzip_usage);
-	strncpy(ifname, *argv, MAX_PATH_LEN);
-	strncpy(ofname, *argv, MAX_PATH_LEN-4);
+	strncpy(ofname, ifname, MAX_PATH_LEN-4);
 	strcat(ofname, ".gz");
 
-	inFileNum=open( ifname, O_RDONLY);
-	if (inFileNum < 0) {
-	    perror(ifname);
-	    do_exit(WARNING);
-	}
-	result = stat(ifname, &statBuf);
-	if (result < 0) {
-	    perror(ifname);
-	    do_exit(WARNING);
-	}
 
-	outFileNum=open( ofname, O_RDONLY);
+	/* Open output fille */
+	outFileNum=open( ofname, O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW);
 	if (outFileNum < 0) {
 	    perror(ofname);
 	    do_exit(WARNING);
 	}
 	SET_BINARY_MODE(outFileNum);
-
-	/* Get the time stamp on the input file. */
-	time_stamp = statBuf.st_ctime; /* time unknown by default */
-
-	ifile_size = statBuf.st_size; /* convention for unknown size */
+	/* Set permissions on the file */
+	fchmod(outFileNum, statBuf.st_mode);
 
 	clear_bufs(); /* clear input and output buffers */
 	part_nb = 0;
 
 	/* Actually do the compression/decompression. */
-	zip(inFileNum, outFileNum);
+	result=zip(inFileNum, outFileNum);
+	close( outFileNum);
+	close( inFileNum);
+	/* Delete the original file */
+	if (result == OK)
+	    delFileName=ifname;
+	else
+	    delFileName=ofname;
+
+	if (unlink (delFileName) < 0) {
+	    perror (delFileName);
+	    exit( FALSE);
+	}
     }
 
     do_exit(exit_code);
@@ -3197,6 +3226,7 @@ int zip(in, out)
     outcnt = 0;
 
     /* Write the header to the gzip file. See algorithm.doc for the format */
+
 
     method = DEFLATED;
     put_byte(GZIP_MAGIC[0]); /* magic header */

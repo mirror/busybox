@@ -2,10 +2,11 @@
  * Mini more implementation for busybox
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
- * Blended by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- * based on the original more implementation and code from the Debian 
- * boot-floppies team.
+ * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
+ *
+ * Latest version blended together by Erik Andersen <andersen@lineo.com>,
+ * based on the original more implementation by Bruce, and code from the 
+ * Debian boot-floppies team.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +69,7 @@ static const char more_usage[] = "more [file ...]\n";
 #define TERMINAL_HEIGHT	24
 
 
-#if defined BB_FEATURE_AUTOWIDTH && ! defined USE_OLD_TERMIO
+#if defined BB_FEATURE_AUTOWIDTH
 static int terminal_width = 0, terminal_height = 0;
 #else
 #define terminal_width	TERMINAL_WIDTH
@@ -84,7 +85,7 @@ extern int more_main(int argc, char **argv)
     struct stat st;	
     FILE *file;
 #ifdef BB_FEATURE_AUTOWIDTH
-    struct winsize win;
+    struct winsize win = {0,0};
 #endif
 
     argc--;
