@@ -3331,11 +3331,19 @@ void (*f)();
 int key;
 {
 	if (*wp != NULL) {
-		for (; *wp != NULL; wp++)
+		for (; *wp != NULL; wp++) {
+			if (isassign(*wp)) {
+				char *cp;
+				assign(*wp, COPYV);
+				for (cp = *wp; *cp != '='; cp++)
+					;
+				*cp = '\0';
+			}
 			if (checkname(*wp))
 				(*f)(lookup(*wp));
 			else
 				badid(*wp);
+		}
 	} else
 		putvlist(key, 1);
 }
