@@ -29,21 +29,51 @@
 
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/time.h>
 #include "busybox.h"
 
+static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
 // if fn is NULL then input is stdin and output is stdout
-static int convert(char *fn, int ConvType) {
-	int c;
-	char *tempFn = NULL;
+static int convert(char *fn, int ConvType) 
+{
+	int c, fd;
+	struct timeval tv;
+	char tempFn[BUFSIZ];
+	static uint64_t value=0;
 	FILE *in = stdin, *out = stdout;
 
 	if (fn != NULL) {
-		if ((in = wfopen(fn, "r")) == NULL) {
+		if ((in = wfopen(fn, "rw")) == NULL) {
 			return -1;
 		}
-		if ((out = tmpfile()) == NULL) {
-			perror_msg(NULL);
-			return -2;
+		strcpy(tempFn, fn);
+		c = strlen(tempFn);
+		tempFn[c] = '.';
+		while(1) {
+		    if (c >=BUFSIZ)
+			error_msg_and_die("unique name not found");
+		    /* Get some semi random stuff to try and make a
+		     * random filename based (and in the same dir as)
+		     * the input file... */
+		    gettimeofday (&tv, NULL);
+		    value += ((uint64_t) tv.tv_usec << 16) ^ tv.tv_sec ^ getpid ();
+		    tempFn[++c] = letters[value % 62];
+		    tempFn[c+1] = '\0';
+		    value /= 62;
+
+		    if ((fd = open(tempFn, O_RDWR | O_CREAT | O_EXCL, 0600)) < 0 ) {
+			continue;
+		    }
+		    out = fdopen(fd, "w+");
+		    if (!out) {
+			close(fd);
+			remove(tempFn);
+			continue;
+		    }
+		    break;
 		}
 	}
 
@@ -51,6 +81,7 @@ static int convert(char *fn, int ConvType) {
 		if (c == '\r') {
 			if ((ConvType == CT_UNIX2DOS) && (fn != NULL)) {
 				// file is alredy in DOS format so it is not necessery to touch it
+				remove(tempFn);
 				if (fclose(in) < 0 || fclose(out) < 0) {
 					perror_msg(NULL);
 					return -2;
@@ -64,6 +95,7 @@ static int convert(char *fn, int ConvType) {
 		if (c == '\n') {
 			if ((ConvType == CT_DOS2UNIX) && (fn != NULL)) {
 				// file is alredy in UNIX format so it is not necessery to touch it
+				remove(tempFn);
 				if ((fclose(in) < 0) || (fclose(out) < 0)) {
 					perror_msg(NULL);
 					return -2;
@@ -95,28 +127,34 @@ static int convert(char *fn, int ConvType) {
 	}
 
 	if (fn != NULL) {
-	    if (fclose(in) < 0 || fclose(out) < 0 || 
-		    (in = fopen(tempFn, "r")) == NULL || (out = fopen(fn, "w")) == NULL) {
-			perror_msg(NULL);
-			return -2;
+	    if (fclose(in) < 0 || fclose(out) < 0) {
+		perror_msg(NULL);
+		remove(tempFn);
+		return -2;
 	    }
 
-	    while ((c = fgetc(in)) != EOF) {
-			fputc(c, out);
-		}
-
-	    if ((fclose(in) < 0) || (fclose(out) < 0)) {
-			perror_msg(NULL);
-			return -2;
+	    /* Assume they are both on the same filesystem */
+	    if (rename(tempFn, fn) < 0) {
+		perror_msg("unable to rename '%s' as '%s'", tempFn, fn);
+		return -1;
 	    }
 	}
 
 	return 0;
 }
 
-int dos2unix_main(int argc, char *argv[]) {
+int dos2unix_main(int argc, char *argv[]) 
+{
 	int ConvType = CT_AUTO;
 	int o;
+
+	//See if we are supposed to be doing dos2unix or unix2dos 
+	if (argv[0][0]=='d') {
+	    ConvType = CT_DOS2UNIX;
+	}
+	if (argv[0][0]=='u') {
+	    ConvType = CT_UNIX2DOS;
+	}
 
 	// process parameters
 	while ((o = getopt(argc, argv, "du")) != EOF) {
