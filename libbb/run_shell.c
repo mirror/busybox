@@ -52,10 +52,7 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	for ( args = additional_args; args && *args; args++ )
 		additional_args_cnt++;
 
-	if ( additional_args )
 		args = (const char **) xmalloc (sizeof (char *) * ( 4  + additional_args_cnt ));
-	else
-		args = (const char **) xmalloc (sizeof (char *) * 4 );
 		
 	args [0] = bb_get_last_path_component ( bb_xstrdup ( shell ));
 	
@@ -77,4 +74,3 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	execv ( shell, (char **) args );
 	bb_perror_msg_and_die ( "cannot run %s", shell );
 }
-

@@ -103,11 +103,9 @@ int recursive_action(const char *fileName,
 		while ((next = readdir(dir)) != NULL) {
 			char *nextFile;
 
-			if ((strcmp(next->d_name, "..") == 0)
-					|| (strcmp(next->d_name, ".") == 0)) {
+			nextFile = concat_subpath_file(fileName, next->d_name);
+			if(nextFile == NULL)
 				continue;
-			}
-			nextFile = concat_path_file(fileName, next->d_name);
 			if (! recursive_action(nextFile, TRUE, followLinks, depthFirst,
 						fileAction, dirAction, userData)) {
 				status = FALSE;

@@ -79,11 +79,9 @@ extern int remove_file(const char *path, int flags)
 		while ((d = readdir(dp)) != NULL) {
 			char *new_path;
 
-			if (strcmp(d->d_name, ".") == 0 ||
-					strcmp(d->d_name, "..") == 0)
+			new_path = concat_subpath_file(path, d->d_name);
+			if(new_path == NULL)
 				continue;
-
-			new_path = concat_path_file(path, d->d_name);
 			if (remove_file(new_path, flags) < 0)
 				status = -1;
 			free(new_path);

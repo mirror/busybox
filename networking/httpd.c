@@ -60,8 +60,7 @@
  * .au:audio/basic   # additional mime type for audio.au files
  * 
  * A/D may be as a/d or allow/deny - first char case unsensitive
- * Deny IP rules take precedence over allow rules.  Any IP rules after D:* are
- * ignored.
+ * Deny IP rules take precedence over allow rules.
  * 
  * 
  * The Deny/Allow IP logic:
@@ -123,7 +122,7 @@
 #include "busybox.h"
 
 
-static const char httpdVersion[] = "busybox httpd/1.26 18-May-2003";
+static const char httpdVersion[] = "busybox httpd/1.27 25-May-2003";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
@@ -234,6 +233,7 @@ typedef struct
   time_t last_mod;
 
   Htaccess *ip_a_d;             /* config allow/deny lines */
+  int flg_deny_all;
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   Htaccess *auth;               /* config user:password lines */
 #endif
@@ -452,16 +452,21 @@ static void parse_conf(const char *path, int flag)
 	/* test for empty or strange line */
 	if (c == NULL || *c == 0)
 	    continue;
-	if(*c == '*')
-	    *c = 0;   /* Allow all */
 	p0 = buf;
-	if((*p0 == 'i') || (*p0 == 'I'))
-		*p0 = 'A'; // version 1.1/1.2 compatibility for ip:
-	if(*p0 == 'a')
-	    *p0 = 'A';
 	if(*p0 == 'd')
 	    *p0 = 'D';
-	if(*p0 != 'A' && *p0 != 'D'
+	if(*c == '*') {
+	    if(*p0 == 'D') {
+		/* memorize deny all */
+		config->flg_deny_all++;
+	    }
+	    /* skip default other "word:*" config lines */
+	    continue;
+	}
+
+	if(*p0 == 'a')
+	    *p0 = 'A';
+	else if(*p0 != 'D'
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	   && *p0 != '/'
 #endif
@@ -471,17 +476,8 @@ static void parse_conf(const char *path, int flag)
 	  )
 	       continue;
 
-	if(*p0 == 'A' && *c == 0) {
-	    /* skip default A:* */
-	    continue;
-	}
-	p0 = buf;
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	if(*p0 == '/') {
-	    if(*c == 0) {
-		/* skip /path:* */
-		continue;
-	    }
 	    /* make full path from httpd root / curent_path / config_line_path */
 	    cf = flag == SUBDIR_PARSE ? path : "";
 	    p0 = malloc(strlen(cf) + (c - buf) + 2 + strlen(c));
@@ -532,12 +528,12 @@ static void parse_conf(const char *path, int flag)
 		free(p0);
 #endif
 	    if(*cf == 'A' || *cf == 'D') {
-		if(*cf == 'D' && *c) {
+		if(*cf == 'D') {
 			/* Deny:form_IP move top */
 			cur->next = config->ip_a_d;
 			config->ip_a_d = cur;
 		} else {
-			/* add to bottom current IP config line */
+			/* add to bottom A:form_IP config line */
 			Htaccess *prev_IP = config->ip_a_d;
 
 			if(prev_IP == NULL) {
@@ -573,12 +569,11 @@ static void parse_conf(const char *path, int flag)
 			cur->next = hti;
 			if(prev_hti != hti) {
 			    prev_hti->next = cur;
-			    break;
 			} else {
 			    /* insert as top */
 			    config->auth = cur;
-			    break;
 			}
+			break;
 		    }
 		    if(prev_hti != hti)
 			    prev_hti = prev_hti->next;
@@ -695,18 +690,16 @@ static void addEnv(const char *name_before_underline,
 			const char *name_after_underline, const char *value)
 {
   char *s;
+  const char *underline;
 
   if (config->envCount >= ENVSIZE)
 	return;
   if (!value)
 	value = "";
-  s = malloc(strlen(name_before_underline) + strlen(name_after_underline) +
-			strlen(value) + 3);
-  if (s) {
-    const char *underline = *name_after_underline ? "_" : "";
-
-    sprintf(s,"%s%s%s=%s", name_before_underline, underline,
+  underline = *name_after_underline ? "_" : "";
+  asprintf(&s, "%s%s%s=%s", name_before_underline, underline,
 					name_after_underline, value);
+  if(s) {
     config->envp[config->envCount++] = s;
     config->envp[config->envCount] = 0;
   }
@@ -764,11 +757,11 @@ static void addEnvCgi(const char *pargs)
 	*args++ = 0;
     addEnv("CGI", name, decodeString(value, 1));
     if (*namelist) strcat(namelist, " ");
-    strcat(namelist,name);
+    strcat(namelist, name);
   }
   free(memargs);
   if (namelist) {
-    addEnv("CGI","ARGLIST_",namelist);
+    addEnv("CGI", "ARGLIST_", namelist);
     free(namelist);
   }
 }
@@ -1337,6 +1330,8 @@ static int checkPerm(const char *path, const char *request)
 	}
     }   /* for */
 
+    if(ipaddr)
+	return config->flg_deny_all;
     return prev == NULL;
 }
 
@@ -1359,7 +1354,7 @@ static int checkPermIP(const char *request)
     }
 
     /* if uncofigured, return 1 - access from all */
-    return 1;
+    return config->flg_deny_all;
 }
 #define checkPerm(null, request) checkPermIP(request)
 #endif  /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
@@ -1788,9 +1783,7 @@ int httpd_main(int argc, char *argv[])
       config->debugHttpd = 1;
       break;
     case 'p':
-      config->port = atoi(optarg);
-      if(config->port <= 0 || config->port > 0xffff)
-	bb_error_msg_and_die("invalid %s for -p", optarg);
+      config->port = bb_xgetlarg(optarg, 10, 1, 0xffff);
       break;
 #endif
     case 'd':
@@ -1854,10 +1847,11 @@ int httpd_main(int argc, char *argv[])
 #ifdef TEST
   if (numTestArgs)
   {
-	  if (strcmp(testArgs[0],"ip") == 0) testArgs[0] = 0;
+	  int result;
+	  if (strcmp(testArgs[0], "ip") == 0) testArgs[0] = 0;
 	  if (numTestArgs > 2)
 	    parse_conf(testArgs[2], SUBDIR_PARSE);
-	  int result = printf("%d\n",checkPerm(testArgs[0],testArgs[1]));
+	  result = printf("%d\n", checkPerm(testArgs[0], testArgs[1]));
 	  return result;
   }
 #endif

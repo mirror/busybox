@@ -17,26 +17,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- * $Id: login.c,v 1.3 2003/05/13 13:28:25 bug1 Exp $
+ * Optimize and correcting OCRNL by Vladimir Oleynik <dzo@simtreas.ru>
  */
 
+#include <sys/param.h>  /* MAXHOSTNAMELEN */
 #include <stdio.h>
 #include <unistd.h>
-#include "busybox.h"
+#include "libbb.h"
 
 #include <sys/utsname.h>
 #include <time.h>
 
 #define LOGIN " login: "
 
-static char fmtstr_d[] = { "%A, %d %B %Y" };
-static char fmtstr_t[] = { "%H:%M:%S" };
+static const char fmtstr_d[] = "%A, %d %B %Y";
+static const char fmtstr_t[] = "%H:%M:%S";
 
 void print_login_issue(const char *issue_file, const char *tty)
 {
 	FILE *fd;
 	int c;
 	char buf[256];
+	const char *outbuf;
 	time_t t;
 	struct utsname uts;
 
@@ -47,73 +49,75 @@ void print_login_issue(const char *issue_file, const char *tty)
 
 	if ((fd = fopen(issue_file, "r"))) {
 		while ((c = fgetc(fd)) != EOF) {
+			outbuf = buf;
+			buf[0] = c;
+			if(c == '\n') {
+				buf[1] = '\r';
+				buf[2] = 0;
+			} else {
+				buf[1] = 0;
+			}
 			if (c == '\\' || c == '%') {
 				c = fgetc(fd);
-
 				switch (c) {
 					case 's':
-						fputs(uts.sysname, stdout);
+						outbuf = uts.sysname;
 						break;
 
 					case 'n':
-						fputs(uts.nodename, stdout);
+						outbuf = uts.nodename;
 						break;
 
 					case 'r':
-						fputs(uts.release, stdout);
+						outbuf = uts.release;
 						break;
 
 					case 'v':
-						fputs(uts.version, stdout);
+						outbuf = uts.version;
 						break;
 
 					case 'm':
-						fputs(uts.machine, stdout);
+						outbuf = uts.machine;
 						break;
 
 					case 'D':
 					case 'o':
 						getdomainname(buf, sizeof(buf));
 						buf[sizeof(buf) - 1] = '\0';
-						fputs(buf, stdout);
 						break;
 
 					case 'd':
 						strftime(buf, sizeof(buf), fmtstr_d, localtime(&t));
-						fputs(buf, stdout);
 						break;
 
 					case 't':
 						strftime(buf, sizeof(buf), fmtstr_t, localtime(&t));
-						fputs(buf, stdout);
 						break;
 
 					case 'h':
-						gethostname(buf, sizeof(buf));
-						fputs(buf, stdout);
+						gethostname(buf, sizeof(buf) - 1);
 						break;
 
 					case 'l':
-						printf("%s", tty);
+						outbuf = tty;
 						break;
 
 					default:
-						putchar(c);
+						buf[0] = c;
 				}
-			} else
-				putchar(c);
+		}
+			fputs(outbuf, stdout);
 		}
 
-		puts("");	/* start a new line */
-		fflush(stdout);
-
 		fclose(fd);
+
+		fflush(stdout);
 	}
 }
 
 void print_login_prompt(void)
 {
-	char buf[MAXHOSTNAMELEN];
+	char buf[MAXHOSTNAMELEN+1];
 
 	gethostname(buf, MAXHOSTNAMELEN);
 	fputs(buf, stdout);

@@ -48,7 +48,7 @@ LIBBB_SRC:= \
 	fclose_nonstdin.c fflush_stdout_and_exit.c getopt_ulflags.c \
 	default_error_retval.c wfopen_input.c speed_table.c \
 	perror_nomsg_and_die.c perror_nomsg.c skip_whitespace.c \
-	warn_ignoring_args.c
+	warn_ignoring_args.c concat_subpath_file.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 

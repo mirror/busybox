@@ -272,6 +272,7 @@ int klogctl(int type, char * b, int len);
 char *xgetcwd(char *cwd);
 char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
+char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
 extern long arith (const char *startbuf, int *errcode);

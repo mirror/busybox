@@ -3,7 +3,7 @@
  * Copyright (C) 1992, 1996 Free Software Foundation, Inc.
  * Written by David MacKenzie <djm@gnu.ai.mit.edu>.
  *
- * Special function for busybox written by Vladimir Oleynik <vodz@usa.net>
+ * Special function for busybox written by Vladimir Oleynik <dzo@simtreas.ru>
 */
 
 #include <stdlib.h>

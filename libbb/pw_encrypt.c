@@ -39,10 +39,7 @@ extern char *pw_encrypt(const char *clear, const char *salt)
 	/* if crypt (a nonstandard crypt) returns a string too large,
 	   truncate it so we don't overrun buffers and hope there is
 	   enough security in what's left */
-	if (strlen(cp) > sizeof(cipher)-1) {
-		cp[sizeof(cipher)-1] = 0;
-	}
-	strcpy(cipher, cp);
+	safe_strncpy(cipher, cp, sizeof(cipher));
 	return cipher;
 }
 

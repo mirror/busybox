@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.23 2003/03/19 09:12:38 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.24 2003/05/26 14:06:01 bug1 Exp $
  *
  */
 
@@ -296,7 +296,7 @@ int ifconfig_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 	unsigned int mask;
 	unsigned int did_flags;
-	in_addr_t sai_hostname, sai_netmask;
+	unsigned int sai_hostname, sai_netmask;
 #else
 	unsigned char mask;
 	unsigned char did_flags;

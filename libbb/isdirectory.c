@@ -20,8 +20,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 #include "libbb.h"
 
@@ -32,11 +30,11 @@
 int is_directory(const char *fileName, const int followLinks, struct stat *statBuf)
 {
 	int status;
-	int didMalloc = 0;
+	struct stat astatBuf;
 
 	if (statBuf == NULL) {
-	    statBuf = (struct stat *)xmalloc(sizeof(struct stat));
-	    ++didMalloc;
+	    /* set from auto stack buffer */
+	    statBuf = &astatBuf;
 	}
 
 	if (followLinks)
@@ -49,10 +47,6 @@ int is_directory(const char *fileName, const int followLinks, struct stat *statB
 	}
 	else status = TRUE;
 
-	if (didMalloc) {
-	    free(statBuf);
-	    statBuf = NULL;
-	}
 	return status;
 }
 

@@ -144,10 +144,9 @@ static long du(char *filename)
 		while ((entry = readdir(dir))) {
 			char *name = entry->d_name;
 
-			if ((name[0] == '.') && (!name[1] || (name[1] == '.' && !name[2]))) {
+			newfile = concat_subpath_file(filename, name);
+			if(newfile == NULL)
 				continue;
-			}
-			newfile = concat_path_file(filename, name);
 			++du_depth;
 			sum += du(newfile);
 			--du_depth;

@@ -49,12 +49,9 @@ extern char *find_real_root_device_name(const char* name)
 		else {
 			while((entry = readdir(dir)) != NULL) {
 
-				/* Must skip ".." since that is "/", and so we 
-				 * would get a false positive on ".."  */
-				if (strcmp(entry->d_name, "..") == 0)
+				fileName = concat_subpath_file("/dev", entry->d_name);
+				if(fileName == NULL)
 					continue;
-
-				fileName = concat_path_file("/dev", entry->d_name);
 
 				/* Some char devices have the same dev_t as block
 				 * devices, so make sure this is a block device */

@@ -58,6 +58,7 @@ config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	  authentication on a per url basis.
 
 
+if !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "  Enable support reload global config file after hup signaled"
 	default n
@@ -75,6 +76,7 @@ config CONFIG_FEATURE_HTTPD_SETUID
 	  rather than defaulting to the user that starts the server.
 	  Use of this option requires special privilegies to change to a
 	  different user.
+endif
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	bool "  Enable support load from config file mime types"
@@ -91,6 +93,7 @@ config CONFIG_FEATURE_HTTPD_CGI
 	help
 	  This option allows scripts and executables to be invoked
   	  when specific urls are requested.
+
 config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 	bool "  Enable support set eviroment REMOTE_PORT variable for CGI"
 	default n
@@ -110,15 +113,6 @@ config CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
 	  result in a script having the environment variable CGI_foo set
 	  to 'bar'.  In addition, this option sets a variable that
 	  lists all the argument names.  e.g. CGI_VARNAMES_="name1 name2".
-
-config CONFIG_FEATURE_HTTPD_DECODE_URL_STR
-	bool "  Enable the -d option for shell script CGI simplification"
-	default y
-	depends on CONFIG_HTTPD
-	help
-	  After set,  this option enables support for decoding of
-	  url-encoded form arguments via the -d option.  Output goes to
-	  stdout. For example, httpd -d "Hello%20World" produces "Hello World".
 
 config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 	bool "  Enable the -e option for shell script CGI simplification."
@@ -474,7 +468,7 @@ config CONFIG_FEATURE_TFTP_BLOCKSIZE
 
 config CONFIG_FEATURE_TFTP_DEBUG
 	bool "  Enable debug"
-	default y
+	default n
 	depends on CONFIG_TFTP
 	help
 	  Please submit a patch to add help text for this item.
@@ -487,14 +481,14 @@ config CONFIG_TRACEROUTE
 
 config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	bool "  Enable verbose output"
-	default y
+	default n
 	depends on CONFIG_TRACEROUTE
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	bool "  Enable SO_DEBUG option"
-	default y
+	default n
 	depends on CONFIG_TRACEROUTE
 	help
 	  Please submit a patch to add help text for this item.

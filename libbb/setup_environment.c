@@ -45,13 +45,13 @@
 static void xsetenv ( const char *key, const char *value )
 {
 	    if ( setenv ( key, value, 1 ))
-			        bb_error_msg_and_die ( "out of memory" );
+				bb_error_msg_and_die (bb_msg_memory_exhausted);
 }
 
 void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw )
 {
 	if ( loginshell ) {
-		char *term;
+		const char *term;
 	
 		/* Change the current working directory to be the home directory
 		 * of the user.  It is a fatal error for this process to be unable

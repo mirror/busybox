@@ -105,11 +105,9 @@ int copy_file(const char *source, const char *dest, int flags)
 		while ((d = readdir(dp)) != NULL) {
 			char *new_source, *new_dest;
 
-			if (strcmp(d->d_name, ".") == 0 ||
-					strcmp(d->d_name, "..") == 0)
+			new_source = concat_subpath_file(source, d->d_name);
+			if(new_source == NULL)
 				continue;
-
-			new_source = concat_path_file(source, d->d_name);
 			new_dest = concat_path_file(dest, d->d_name);
 			if (copy_file(new_source, new_dest, flags) < 0)
 				status = -1;
