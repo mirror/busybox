@@ -81,7 +81,7 @@ static struct swap_header_v1 {
 	unsigned int badpages[1];
 } *p;
 
-static void init_signature_page(void)
+static inline void init_signature_page(void)
 {
 	pagesize = getpagesize();
 
@@ -94,7 +94,7 @@ static void init_signature_page(void)
 	p = (struct swap_header_v1 *) signature_page;
 }
 
-static void write_signature(char *sig)
+static inline void write_signature(char *sig)
 {
 	char *sp = (char *) signature_page;
 
@@ -147,7 +147,7 @@ It is roughly 2GB on i386, PPC, m68k, ARM, 1GB on sparc, 512MB on mips,
 
 #define MAX_BADPAGES	((pagesize-1024-128*sizeof(int)-10)/sizeof(int))
 
-static void bit_set(unsigned int *addr, unsigned int nr)
+static inline void bit_set(unsigned int *addr, unsigned int nr)
 {
 	unsigned int r, m;
 
@@ -179,7 +179,7 @@ static void page_ok(int page)
 		bit_set(signature_page, page);
 }
 
-static void page_bad(int page)
+static inline void page_bad(int page)
 {
 	if (version == 0)
 		bit_test_and_clear(signature_page, page);

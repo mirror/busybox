@@ -119,7 +119,7 @@ extern int ln_main(int argc, char **argv)
 			status = EXIT_FAILURE;
 		optind++;
 	}
-	exit(status);
+	return status;
 }
 
 /*

@@ -20,5 +20,11 @@ if [ "$CONFIG_INSMOD" = "y" ]; then
     bool 'Support image in kernel memory optimization (uClinux only)'		CONFIG_FEATURE_INSMOD_LOADINKMEM
 fi
 
+if [ "$CONFIG_LSMOD" = "y" ]; then
+	if [ "$CONFIG_FEATURE_NEW_MODULE_INTERFACE" = "y" ]; then
+		bool 'Support lsmod query_module interface (add 638 bytes)'     CONFIG_FEATURE_QUERY_MODULE_INTERFACE
+	fi
+fi
+
 endmenu
 

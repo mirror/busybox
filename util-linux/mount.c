@@ -469,9 +469,8 @@ singlemount:
 			string_flags = xstrdup(string_flags);
 			rc = EXIT_SUCCESS;
 #ifdef CONFIG_NFSMOUNT
-			if (strchr(device, ':') != NULL)
+			if (strchr(device, ':') != NULL) {
 				filesystemType = "nfs";
-			if (strcmp(filesystemType, "nfs") == 0) {
 				if (nfsmount (device, directory, &flags, &extra_opts,
 							&string_flags, 1)) {
 					perror_msg("nfsmount failed");

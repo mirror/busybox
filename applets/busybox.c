@@ -18,12 +18,15 @@ const char *applet_name;
  *		this should be consistent w/ the enum, busybox.h::Location,
  *		or else...
  */
-static char* install_dir[] = {
-	"/",
-	"/bin",
-	"/sbin",
-	"/usr/bin",
-	"/usr/sbin",
+static const char usr_bin [] ="/usr/bin";
+static const char usr_sbin[] ="/usr/sbin";
+
+static const char* const install_dir[] = {
+	&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
+	&usr_bin [4], /* "/bin" */
+	&usr_sbin[4], /* "/sbin" */
+	usr_bin,
+	usr_sbin
 };
 
 /* abstract link() */
@@ -35,7 +38,7 @@ typedef int (*__link_f)(const char *, const char *);
  *		malloc'd string w/ full pathname of busybox's location
  *		NULL on failure
  */
-static char *busybox_fullpath(void)
+static inline char *busybox_fullpath(void)
 {
 	return xreadlink("/proc/self/exe");
 }
