@@ -34,71 +34,67 @@
 #endif
 #include "libbb.h"
 
-#if defined(__ia64__)
 int sysfs( int option, unsigned int fs_index, char * buf)
 {
 	return(syscall(__NR_sysfs, option, fs_index, buf));
 }
-#else
-_syscall3(int, sysfs, int, option, unsigned int, fs_index, char *, buf);
-#endif
 
+int pivot_root(const char * new_root,const char * put_old)
+{
 #ifndef __NR_pivot_root
 #warning This kernel does not support the pivot_root syscall
 #warning -> The pivot_root system call is being stubbed out...
-int pivot_root(const char * new_root,const char * put_old)
-{
-	/* BusyBox was compiled against a kernel that did not support
-	 *  the pivot_root system call.  To make this application work,
-	 *  you will need to recompile with a kernel supporting the
-	 *  pivot_root system call.
-	 */
-	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-		"with a kernel supporting the pivot_root system call. -Erik\n");
-	errno=ENOSYS;
-	return -1;
-}
+    /* BusyBox was compiled against a kernel that did not support
+     *  the pivot_root system call.  To make this application work,
+     *  you will need to recompile with a kernel supporting the
+     *  pivot_root system call.
+     */
+    bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	    "BusyBox with a kernel supporting the pivot_root system call.\n");
+    errno=ENOSYS;
+    return -1;
 #else
-#  if defined(__ia64__)
-	int pivot_root(const char * new_root,const char * put_old)
-	{
-		return(syscall(__NR_pivot_root, new_root, put_old));
-	}
-#  else
-    _syscall2(int,pivot_root,const char *,new_root,const char *,put_old);
-#  endif
+    return(syscall(__NR_pivot_root, new_root, put_old));
 #endif
-
+}
 
 
 
 #if __GNU_LIBRARY__ < 5 || ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
+
 /* These syscalls are not included as part of libc5 */
-_syscall2(int, bdflush, int, func, int, data);
+int bdflush(int func, int data)
+{
+    return(syscall(__NR_bdflush, func, data));
+}
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
-  _syscall3(int, klogctl, int, type, char *, b, int, len);
+int klogctl(int type, char *b, int len)
+{
+    return(syscall(__NR_klogctl, type, b, len));
+}
 #endif
 
-#ifndef __NR_umount2
-# warning This kernel does not support the umount2 syscall
-# warning -> The umount2 system call is being stubbed out...
+
 int umount2(const char * special_file, int flags)
 {
-	/* BusyBox was compiled against a kernel that did not support
-	 *  the umount2 system call.  To make this application work,
-	 *  you will need to recompile with a kernel supporting the
-	 *  umount2 system call.
-	 */
-	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-		"with a kernel supporting the umount2 system call. -Erik\n");
-	errno=ENOSYS;
-	return -1;
-}
-# else
-_syscall2(int, umount2, const char *, special_file, int, flags);
+#ifndef __NR_pivot_root
+#warning This kernel does not support the umount2 syscall
+#warning -> The umount2 system call is being stubbed out...
+    /* BusyBox was compiled against a kernel that did not support
+     *  the umount2 system call.  To make this application work,
+     *  you will need to recompile with a kernel supporting the
+     *  umount2 system call.
+     */
+    bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	    "BusyBox with a kernel supporting the umount2 system call.\n");
+    errno=ENOSYS;
+    return -1;
+#else
+    return(syscall(__NR_umount2, special_file, flags));
 #endif
+}
 
 
 #endif /* __GNU_LIBRARY__ < 5 */

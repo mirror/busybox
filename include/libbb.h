@@ -66,6 +66,19 @@ extern int daemon (int nochdir, int noclose);
 char *strtok_r(char *s, const char *delim, char **ptrptr);
 #endif	
 
+/* Convenience macros to test the version of gcc. */
+#if defined __GNUC__ && defined __GNUC_MINOR__
+# define __GNUC_PREREQ(maj, min) \
+        ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+# define __GNUC_PREREQ(maj, min) 0
+#endif
+
+/* __restrict is known in EGCS 1.2 and above. */
+#if !__GNUC_PREREQ (2,92)
+# define __restrict     /* Ignore */
+#endif
+
 /* Some useful definitions */
 #define FALSE   ((int) 0)
 #define TRUE    ((int) 1)

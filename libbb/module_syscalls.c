@@ -37,42 +37,47 @@
 
 #if __GNU_LIBRARY__ < 5 || ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
 /* These syscalls are not included as part of libc5 */
-_syscall1(int, delete_module, const char *, name);
-_syscall1(int, get_kernel_syms, __ptr_t, ks);
+int delete_module(const char *name)
+{
+    return(syscall(__NR_delete_module, name));
+}
+int get_kernel_syms(__ptr_t ks)
+{
+    return(syscall(__NR_get_kernel_syms, ks));
+}
 
 /* This may have 5 arguments (for old 2.0 kernels) or 2 arguments
  * (for 2.2 and 2.4 kernels).  Use the greatest common denominator,
  * and let the kernel cope with whatever it gets.  Its good at that. */
-_syscall5(int, init_module, void *, first, void *, second, void *, third,
-		void *, fourth, void *, fifth);
+int init_module(void *first, void *second, void *third, void *fourth, void *fifth)
+{
+    return(syscall(__NR_init_module, first, second, third, fourth, fifth));
+}
 
+int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret)
+{
 #ifndef __NR_query_module
 #warning This kernel does not support the query_module syscall
 #warning -> The query_module system call is being stubbed out...
-int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret)
-{
-	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-		"with a kernel supporting the query_module system call. -Erik\n");
-	errno=ENOSYS;
-	return -1;
-}
+    bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	    "BusyBox with a kernel supporting the query_module system call.\n");
+    errno=ENOSYS;
+    return -1;
 #else
-_syscall5(int, query_module, const char *, name, int, which,
-		void *, buf, size_t, bufsize, size_t*, ret);
+    return(syscall(__NR_query_module, name, which, buf, bufsize, ret));
 #endif
+}
 
 /* Jump through hoops to fixup error return codes */
-#define __NR___create_module  __NR_create_module
-static inline _syscall2(long, __create_module, const char *, name, size_t, size)
 unsigned long create_module(const char *name, size_t size)
 {
-	long ret = __create_module(name, size);
+    long ret = syscall(__NR_create_module, name, size);
 
-	if (ret == -1 && errno > 125) {
-		ret = -errno;
-		errno = 0;
-	}
-	return ret;
+    if (ret == -1 && errno > 125) {
+	ret = -errno;
+	errno = 0;
+    }
+    return ret;
 }
 
 #endif /* __GNU_LIBRARY__ < 5 */
