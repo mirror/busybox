@@ -887,7 +887,7 @@ extern int init_main(int argc, char **argv)
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
 	signal(SIGUSR1, halt_signal);
-	signal(SIGUSR2, reboot_signal);
+	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, reboot_signal);
 	signal(SIGTERM, reboot_signal);
 #if defined BB_FEATURE_INIT_CHROOT
