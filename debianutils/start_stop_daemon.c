@@ -22,6 +22,7 @@
 
 static int start = 0;
 static int stop = 0;
+static int fork_before_exec = 0;
 static int signal_nr = 15;
 static int user_id = -1;
 static const char *userspec = NULL;
@@ -55,7 +56,7 @@ parse_options(int argc, char * const *argv)
 	int c;
 
 	for (;;) {
-	    c = getopt (argc, argv, "a:n:s:u:x:KS");
+	    c = getopt (argc, argv, "a:n:s:u:x:KSb");
 		if (c == EOF)
 			break;
 		switch (c) {
@@ -80,6 +81,9 @@ parse_options(int argc, char * const *argv)
 			break;
 		case 'x':
 			execname = optarg;
+			break;
+		case 'b':
+			fork_before_exec = 1;
 			break;
 		default:
 			show_usage();
@@ -255,6 +259,11 @@ start_stop_daemon_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 	*--argv = startas;
+	if (fork_before_exec) {
+		if (daemon(0, 0) == -1)
+			perror_msg_and_die ("unable to fork");
+	}
+	setsid();
 	execv(startas, argv);
 	perror_msg_and_die ("unable to start %s", startas);
 }
