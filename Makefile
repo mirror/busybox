@@ -147,7 +147,7 @@ uninstall: busybox.links
 	rm -f $(PREFIX)/bin/busybox
 	for i in `cat busybox.links` ; do rm -f $(PREFIX)$$i; done
 
-install-hardlinks: applets/install.sh busybox busybox.links
+install-hardlinks: $(top_srcdir)/applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
 check: busybox
