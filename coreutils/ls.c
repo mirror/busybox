@@ -827,10 +827,8 @@ extern int ls_main(int argc, char **argv)
 #endif
 #ifdef BB_FEATURE_HUMAN_READABLE
 			case 'h': ls_disp_hr = 0; break;
-			case 'k': ls_disp_hr = KILOBYTE; break;
-#else
-			case 'k': break;
 #endif
+			case 'k': break;
 			default:
 				goto print_usage_message;
 		}

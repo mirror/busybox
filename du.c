@@ -158,10 +158,8 @@ int du_main(int argc, char **argv)
 #ifdef BB_FEATURE_HUMAN_READABLE
 			case 'h': du_disp_hr = 0;        break;
 			case 'm': du_disp_hr = MEGABYTE; break;
-			case 'k': du_disp_hr = KILOBYTE; break;
-#else
-			case 'k': break;
 #endif
+			case 'k': break;
 			default:
 					show_usage();
 			}
@@ -187,7 +185,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.38 2001/02/20 06:14:07 andersen Exp $ */
+/* $Id: du.c,v 1.39 2001/03/06 23:14:43 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
