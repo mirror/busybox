@@ -2,11 +2,14 @@
 /*
  * Mini insmod implementation for busybox
  *
- * This version of insmod supports x86, ARM, SH3/4/5, powerpc, m68k,
+ * This version of insmod supports x86, x86_64, ARM, SH3/4/5, powerpc, m68k,
  * MIPS, v850e, and H8/300.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * and Ron Alder <alder@lineo.com>
+ *
+ * Rodney Radford <rradford@mindspring.com> 17-Aug-2004.
+ *   Added x86_64 support.
  *
  * Miles Bader <miles@gnu.org> added NEC V850E support.
  *
@@ -146,6 +149,13 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFCLASSM	ELFCLASS32
+#endif
+
+#if defined(__x86_64__)
+#define MATCH_MACHINE(x) (x == EM_X86_64)
+#define SHT_RELM	SHT_REL
+#define Elf64_RelM	Elf64_Rel
+#define ELFCLASSM	ELFCLASS64
 #endif
 
 #if defined(__mc68000__)
@@ -290,7 +300,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.122 2004/07/20 15:43:57 sandman Exp $"
+#ident "$Id: insmod.c,v 1.123 2004/08/19 19:17:30 andersen Exp $"
 
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
@@ -448,7 +458,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.122 2004/07/20 15:43:57 sandman Exp $"
+#ident "$Id: insmod.c,v 1.123 2004/08/19 19:17:30 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
