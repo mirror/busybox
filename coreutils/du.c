@@ -76,7 +76,6 @@ static long du(char *filename)
 {
 	struct stat statbuf;
 	long sum;
-	int len;
 
 	if ((lstat(filename, &statbuf)) != 0) {
 		perror_msg("%s", filename);
@@ -95,6 +94,7 @@ static long du(char *filename)
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
 		struct dirent *entry;
+		char *newfile;
 
 		dir = opendir(filename);
 		if (!dir) {
@@ -102,12 +102,11 @@ static long du(char *filename)
 			return 0;
 		}
 
-		len = strlen(filename);
-		if (filename[len - 1] == '/')
-			filename[--len] = '\0';
+		newfile = last_char_is(filename, '/');
+		if (newfile)
+			*newfile = '\0';
 
 		while ((entry = readdir(dir))) {
-			char *newfile;
 			char *name = entry->d_name;
 
 			if ((strcmp(name, "..") == 0)
@@ -188,7 +187,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.46 2001/05/03 04:45:40 kraai Exp $ */
+/* $Id: du.c,v 1.47 2001/05/07 22:49:43 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
