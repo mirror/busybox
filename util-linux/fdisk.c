@@ -870,7 +870,7 @@ static int _llseek (unsigned int, unsigned long,
 
 static _syscall5(int,_llseek,unsigned int,f_d,unsigned long,offset_high,
 		 unsigned long, offset_low,fdisk_loff_t *,result,
-		 unsigned int, origin)
+		 unsigned int, origin);
 
 static fdisk_loff_t my_llseek (unsigned int f_d, fdisk_loff_t offset,
 		unsigned int origin)
