@@ -129,9 +129,6 @@ static inline void sem_down(int semid)
 		perror_msg_and_die("semop[SMwdn]");
 }
 
-#define MAXLINE         1024            /* maximum line length */
-
-
 void ipcsyslog_cleanup(void){
 	printf("Exiting Syslogd!\n");
 	if (shmid != -1)
@@ -474,6 +471,8 @@ static void init_RemoteLog (void){
 
 }
 #endif
+
+#define MAXLINE         1024            /* maximum line length */
 
 static void doSyslogd (void) __attribute__ ((noreturn));
 static void doSyslogd (void)
