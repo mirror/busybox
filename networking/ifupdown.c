@@ -1,12 +1,14 @@
 /*
  *  ifupdown for busybox
- *  Based on ifupdown by Anthony Towns
+ *  Copyright (c) 2002 Glenn McGrath <bug1@optushome.com.au>
+ *
+ *  Based on ifupdown v 0.6.4 by Anthony Towns
  *  Copyright (c) 1999 Anthony Towns <aj@azure.humbug.org.au>
  *
  *  Changes to upstream version
- *  Remove checks for kernel version, assume kernel version 2.2.0 or better
+ *  Remove checks for kernel version, assume kernel version 2.2.0 or better.
  *  Lines in the interfaces file cannot wrap.
- *  The default state file is moved to /var/run/ifstate
+ *  To adhere to the FHS, the default state file is /var/run/ifstate.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,10 +41,11 @@
 #include <unistd.h>
 
 #include "libbb.h"
-//#include "busybox.h"
-//#include "config.h"
 
-#define IFUPDOWN_VERSION "0.6.4"
+#define MAX_OPT_DEPTH 10
+#define EUNBALBRACK 10001
+#define EUNDEFVAR   10002
+#define EUNBALPER   10000
 
 typedef struct interface_defn_s interface_defn_t;
 
@@ -95,22 +98,13 @@ struct interface_defn_s {
 };
 
 typedef struct interfaces_file_s {
-	int max_autointerfaces;
-	int n_autointerfaces;
-	char **autointerfaces;
-
+	llist_t *autointerfaces;
 	interface_defn_t *ifaces;
 	mapping_defn_t *mappings;
 } interfaces_file_t;
 
-#define MAX_OPT_DEPTH 10
-#define EUNBALBRACK 10001
-#define EUNDEFVAR   10002
-#define MAX_VARNAME    32
-#define EUNBALPER   10000
-
-static int no_act = 0;
-static int verbose = 0;
+static char no_act = 0;
+static char verbose = 0;
 static char **environ = NULL;
 
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
@@ -608,6 +602,17 @@ static int duplicate_if(interface_defn_t *ifa, interface_defn_t *ifb)
 	return(1);
 }
 
+static const llist_t *find_list_string(const llist_t *list, const char *string)
+{
+	while (list) {
+		if (strcmp(list->data, string) == 0) {
+			return(list);
+		}
+		list = list->link;
+	}
+	return(NULL);
+}
+
 static interfaces_file_t *read_interfaces(char *filename)
 {
 	interface_defn_t *currif = NULL;
@@ -624,7 +629,7 @@ static interfaces_file_t *read_interfaces(char *filename)
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
 	defn = xmalloc(sizeof(interfaces_file_t));
-	defn->max_autointerfaces = defn->n_autointerfaces = 0;
+//	defn->max_autointerfaces = defn->n_autointerfaces = 0;
 	defn->autointerfaces = NULL;
 	defn->mappings = NULL;
 	defn->ifaces = NULL;
@@ -752,26 +757,14 @@ static interfaces_file_t *read_interfaces(char *filename)
 			currently_processing = IFACE;
 		} else if (strcmp(firstword, "auto") == 0) {
 			while ((rest = next_word(rest, firstword, 80))) {
-				int i;
 
-				for (i = 0; i < defn->n_autointerfaces; i++) {
-					if (strcmp(firstword, defn->autointerfaces[i]) == 0) {
-						perror_msg("interface declared auto twice \"%s\"", buf);
-						return NULL;
-					}
+				/* Check the interface isnt already listed */
+				if (find_list_string(defn->autointerfaces, firstword)) {
+					perror_msg_and_die("interface declared auto twice \"%s\"", buf);
 				}
 
-				if (defn->n_autointerfaces == defn->max_autointerfaces) {
-					char **tmp;
-
-					defn->max_autointerfaces *= 2;
-					defn->max_autointerfaces++;
-					tmp = xrealloc(defn->autointerfaces, sizeof(*tmp) * defn->max_autointerfaces);
-					defn->autointerfaces = tmp;
-				}
-
-				defn->autointerfaces[defn->n_autointerfaces] = xstrdup(firstword);
-				defn->n_autointerfaces++;
+				/* Add the interface to the list */
+				defn->autointerfaces = llist_add_to(defn->autointerfaces, strdup(firstword));
 			}
 			currently_processing = NONE;
 		} else {
@@ -1095,29 +1088,19 @@ static int run_mapping(char *physical, char *logical, int len, mapping_defn_t * 
 }
 #endif /* CONFIG_FEATURE_IFUPDOWN_IPV6 */
 
-static int lookfor_iface(char **ifaces, int n_ifaces, char *iface)
+static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
-	int i;
+	unsigned short iface_len = xstrlen(iface);
+	llist_t *search = state_list;
 
-	for (i = 0; i < n_ifaces; i++) {
-		if (strncmp(iface, ifaces[i], xstrlen(iface)) == 0) {
-			if (ifaces[i][xstrlen(iface)] == '=') {
-				return i;
-			}
+	while (search) {
+		if ((strncmp(search->data, iface, iface_len) == 0) &&
+			(search->data[iface_len] == '=')) {
+			return(search);
 		}
+		search = search->link;
 	}
-
-	return(-1);
-}
-
-static void add_to_state(char ***ifaces, int *n_ifaces, int *max_ifaces, char *new_iface)
-{
-	if (*max_ifaces == *n_ifaces) {
-		*max_ifaces = (*max_ifaces * 2) + 1;
-		*ifaces = xrealloc(*ifaces, sizeof(**ifaces) * *max_ifaces);
-	}
-
-	(*ifaces)[(*n_ifaces)++] = new_iface;
+	return(NULL);
 }
 
 extern int ifupdown_main(int argc, char **argv)
@@ -1125,19 +1108,16 @@ extern int ifupdown_main(int argc, char **argv)
 	int (*cmds) (interface_defn_t *) = NULL;
 	interfaces_file_t *defn;
 	FILE *state_fp = NULL;
-	char **target_iface = NULL;
-	char **state = NULL;	/* list of iface=liface */
+	llist_t *state_list = NULL;
+	llist_t *target_list = NULL;
 	char *interfaces = "/etc/network/interfaces";
-	char *statefile = "/var/run/ifstate";
+	const char *statefile = "/var/run/ifstate";
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	int run_mappings = 1;
 #endif
 	int do_all = 0;
 	int force = 0;
-	int n_target_ifaces = 0;
-	int n_state = 0;
-	int max_state = 0;
 	int i;
 
 	if (applet_name[2] == 'u') {
@@ -1195,11 +1175,13 @@ extern int ifupdown_main(int argc, char **argv)
 		error_msg_and_die("couldn't read interfaces file \"%s\"", interfaces);
 	}
 
-	state_fp = fopen(statefile, no_act ? "r" : "a+");
-	if (state_fp == NULL && !no_act) {
-		perror_msg_and_die("failed to open statefile %s", statefile);
+	if (no_act) {
+		state_fp = fopen(statefile, "r");
+	} else {
+		state_fp = xfopen(statefile, "a+");
 	}
 
+	/* Read the previous state from the state file */
 	if (state_fp != NULL) {
 		char *start;
 		while ((start = get_line_from_file(state_fp)) != NULL) {
@@ -1207,61 +1189,65 @@ extern int ifupdown_main(int argc, char **argv)
 			/* We should only need to check for a single character */
 			end_ptr = start + strcspn(start, " \t\n");
 			*end_ptr = '\0';
-			add_to_state(&state, &n_state, &max_state, start);
+			state_list = llist_add_to(state_list, start);
 		}
 	}
 
+	/* Create a list of interfaces to work on */
 	if (do_all) {
 		if (cmds == iface_up) {
-			target_iface = defn->autointerfaces;
-			n_target_ifaces = defn->n_autointerfaces;
+			target_list = defn->autointerfaces;
 		} else if (cmds == iface_down) {
-			target_iface = state;
-			n_target_ifaces = n_state;
+			const llist_t *list = state_list;
+			while (list) {
+				target_list = llist_add_to(target_list, strdup(list->data));
+				list = list->link;
+			}
 		}
 	} else {
-		target_iface = argv + optind;
-		n_target_ifaces = argc - optind;
+		target_list = llist_add_to(target_list, argv[optind]);
 	}
 
 
-	for (i = 0; i < n_target_ifaces; i++) {
+	/* Update the interfaces */
+	while (target_list) {
 		interface_defn_t *currif;
-		char iface[80];
-		char liface[80];
+		char *iface;
+		char *liface;
 		char *pch;
 		int okay = 0;
 
-		strncpy(iface, target_iface[i], sizeof(iface));
-		iface[sizeof(iface) - 1] = '\0';
+		iface = strdup(target_list->data);
+		target_list = target_list->link;
 
-		if ((pch = strchr(iface, '='))) {
+		pch = strchr(iface, '=');
+		if (pch) {
 			*pch = '\0';
-			strncpy(liface, pch + 1, sizeof(liface));
-			liface[sizeof(liface) - 1] = '\0';
+			liface = strdup(pch + 1);
 		} else {
-			strncpy(liface, iface, sizeof(liface));
-			liface[sizeof(liface) - 1] = '\0';
+			liface = strdup(iface);
 		}
+
 		if (!force) {
-			int already_up = lookfor_iface(state, n_state, iface);;
+			const llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
 				/* ifup */
-				if (already_up != -1) {
+				if (iface_state) {
 					error_msg("interface %s already configured", iface);
 					continue;
 				}
 			} else {
 				/* ifdown */
-				if (already_up == -1) {
+				if (iface_state == NULL) {
 					error_msg("interface %s not configured", iface);
 					continue;
 				}
-				strncpy(liface, strchr(state[already_up], '=') + 1, 80);
-				liface[79] = 0;
+				pch = strchr(iface_state->data, '=');
+				liface = strdup(pch + 1);
 			}
 		}
+
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 		if ((cmds == iface_up) && run_mappings) {
 			mapping_defn_t *currmap;
@@ -1286,13 +1272,13 @@ extern int ifupdown_main(int argc, char **argv)
 				char *oldiface = currif->iface;
 
 				okay = 1;
-
 				currif->iface = iface;
 
 				if (verbose) {
 					error_msg("Configuring interface %s=%s (%s)", iface, liface, currif->address_family->name);
 				}
 
+				/* Call the cmds function pointer, does either iface_up() or iface_down() */
 				if (cmds(currif) == -1) {
 					printf
 						("Don't seem to be have all the variables for %s/%s.\n",
@@ -1306,39 +1292,54 @@ extern int ifupdown_main(int argc, char **argv)
 		if (!okay && !force) {
 			error_msg("Ignoring unknown interface %s=%s.", iface, liface);
 		} else {
-			int already_up = lookfor_iface(state, n_state, iface);
+			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
 				char *newiface = xmalloc(xstrlen(iface) + 1 + xstrlen(liface) + 1);
 				sprintf(newiface, "%s=%s", iface, liface);
-				if (already_up == -1) {
-					add_to_state(&state, &n_state, &max_state, newiface);
+				if (iface_state == NULL) {
+					state_list = llist_add_to(state_list, newiface);
 				} else {
-					free(state[already_up]);
-					state[already_up] = newiface;
+					free(iface_state->data);
+					iface_state->data = newiface;
 				}
 			} else if (cmds == iface_down) {
-				if (already_up != -1) {
-					state[already_up] = state[--n_state];
+				/* Remove an interface from the linked list */
+				if (iface_state) {
+					/* This needs to be done better */
+					free(iface_state->data);
+					free(iface_state->link);
+					if (iface_state->link) {
+						iface_state->data = iface_state->link->data;
+						iface_state->link = iface_state->link->link;
+					} else {
+						iface_state->data = NULL;
+						iface_state->link = NULL;
+					}						
 				}
 			}
-		}
-		if (state_fp != NULL && !no_act) {
-			unsigned short j;
-
-			if (ftruncate(fileno(state_fp), 0) < 0) {
-				error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
-			}
-
-			rewind(state_fp);
-			for (j = 0; j < n_state; j++) {
-				fputs(state[i], state_fp);
-				fputc('\n', state_fp);
-			}
-			fflush(state_fp);
 		}
 	}
 
+	/* Actually write the new state */
+	if (state_fp != NULL && !no_act) {
+		if (ftruncate(fileno(state_fp), 0) < 0) {
+			error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
+		}
+
+		rewind(state_fp);
+
+		while (state_list) {
+			if (state_list->data) {
+				fputs(state_list->data, state_fp);
+				fputc('\n', state_fp);
+			}
+			state_list = state_list->link;
+		}
+		fflush(state_fp);
+	}
+
+	/* Cleanup */
 	if (state_fp != NULL) {
 		fclose(state_fp);
 		state_fp = NULL;
