@@ -12,7 +12,7 @@
 #define BB_CHROOT
 #define BB_CHVT
 #define BB_CLEAR
-#define BB_CP
+#define BB_CP_MV
 #define BB_DATE
 #define BB_DD
 #define BB_DEALLOCVT
@@ -59,7 +59,6 @@
 #define BB_NFSMOUNT
 //#define BB_MT
 //#define BB_MTAB
-#define BB_MV
 #define BB_NSLOOKUP
 #define BB_PING
 #define BB_POWEROFF
