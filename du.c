@@ -111,11 +111,11 @@ du_main(int argc, char **argv)
 	int sum;
 	for ( ; i < argc; i++) {
 	    sum = du(argv[i]) >> 1;
-	    if (sum) printf("%-7d %s\n", du(argv[i]) >> 1, argv[i]);
+	    if (sum) printf("%-7d %s\n", sum, argv[i]);
 	}
     }
 
     exit(0);
 }
 
-/* $Id: du.c,v 1.4 1999/12/10 07:40:08 beppu Exp $ */
+/* $Id: du.c,v 1.5 1999/12/10 15:23:47 beppu Exp $ */
