@@ -73,7 +73,7 @@ extern int rmmod_main(int argc, char **argv)
 	}
 
 	if (optind == argc)
-			bb_show_usage();
+		bb_show_usage();
 
 	for (n = optind; n < argc; n++) {
 		if (syscall(__NR_delete_module, argv[n], flags) < 0) {
