@@ -39,6 +39,56 @@ config CONFIG_DUTMP
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_HDPARM
+	bool "hdparm"
+	default n
+	help
+	  Get/Set hard drive parameters.  Primarily intended for ATA
+	  drives.  Adds about 13k (or around 30k if you enable the 
+	  CONFIG_FEATURE_HDPARM_GET_IDENTITY option)....
+
+config CONFIG_FEATURE_HDPARM_GET_IDENTITY
+	bool "  Support obtaining detailed information directly from drives" 
+	default y
+	depends on CONFIG_HDPARM
+	help
+	  Enables the -I and -Istdin options to obtain detailed information
+	  directly from drives about their capabilities and supported ATA
+	  feature set.  Enabling this option will add about 16k...
+
+config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
+	bool "  Register an IDE interface (DANGEROUS)" 
+	default n
+	depends on CONFIG_HDPARM
+	help
+	  Enables the 'hdparm -R' option to register an IDE interface.
+	  This is dangerous stuff, so you should probably say N.
+
+config CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
+	bool "  Un-register an IDE interface (DANGEROUS)" 
+	default n
+	depends on CONFIG_HDPARM
+	help
+	  Enables the 'hdparm -U' option to un-register an IDE interface.
+	  This is dangerous stuff, so you should probably say N.
+
+config CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
+	bool "  perform device reset (DANGEROUS)" 
+	default n
+	depends on CONFIG_HDPARM
+	help
+	  Enables the 'hdparm -w' option to perform a device reset.
+	  This is dangerous stuff, so you should probably say N.
+
+config CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
+	bool "  tristate device for hotswap (DANGEROUS)" 
+	default n
+	depends on CONFIG_HDPARM
+	help
+	  Enables the 'hdparm -x' option to tristate device for hotswap,
+	  and the '-b' option to get/set bus state.  This is dangerous
+	  stuff, so you should probably say N.
+
 config CONFIG_MAKEDEVS
 	bool "makedevs"
 	default n

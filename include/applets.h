@@ -241,6 +241,9 @@
 #ifdef CONFIG_HALT
 	APPLET(halt, halt_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_HDPARM
+	APPLET(hdparm, hdparm_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_HEAD
 	APPLET(head, head_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
