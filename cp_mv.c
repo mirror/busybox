@@ -229,7 +229,7 @@ extern int cp_mv_main(int argc, char **argv)
 		goto exit_false;
 
 	destDirFlag = isDirectory(baseDestName, TRUE, &destStatBuf);
-	if ((argc > 3) && destDirFlag == FALSE) {
+	if (argc - optind > 2 && destDirFlag == FALSE) {
 		errorMsg(not_a_directory, baseDestName);
 		goto exit_false;
 	}
