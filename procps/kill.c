@@ -132,15 +132,17 @@ do_it_now:
 				if (quiet==0)
 					error_msg( "%s: no process killed", *argv);
 				} else {
-			    for(; *pidList!=0; pidList++) {
-				if (*pidList==myPid)
-					continue;
-				if (kill(*pidList, sig) != 0) {
-					errors++;
-					if (quiet==0)
-						perror_msg( "Could not kill pid '%d'", *pidList);
+					long *pl;
+
+					for(pl = pidList; *pl !=0 ; pl++) {
+						if (*pl==myPid)
+							continue;
+						if (kill(*pl, sig) != 0) {
+							errors++;
+							if (quiet==0)
+								perror_msg( "Could not kill pid '%d'", *pl);
+						}
 					}
-				}
 			}
 			free(pidList);
 			argv++;

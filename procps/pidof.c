@@ -52,11 +52,12 @@ extern int pidof_main(int argc, char **argv)
 
 	/* Looks like everything is set to go. */
 	while(optind < argc) {
-		long* pidList;
+		long *pidList;
+		long *pl;
 
 		pidList = find_pid_by_name(argv[optind]);
-		for(; *pidList > 0; pidList++) {
-			printf("%s%ld", (n++ ? " " : ""), (long)*pidList);
+		for(pl = pidList; *pl > 0; pl++) {
+			printf("%s%ld", (n++ ? " " : ""), *pl);
 			fail = 0;
 			if (single_flag)
 				break;
