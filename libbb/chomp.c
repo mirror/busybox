@@ -32,13 +32,10 @@
 
 void chomp(char *s)
 {
-	size_t len = strlen(s);
-
-	if (len == 0)
-		return;
-
-	if (s[len-1] == '\n')
-		s[len-1] = '\0';
+	char *lc = (char *)last_char_is(s, '\n');
+	
+	if(lc)
+		*lc = 0;
 }
 
 
