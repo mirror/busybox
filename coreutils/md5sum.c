@@ -434,7 +434,7 @@ static void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ct
 		temp += FI(B,C,D);
 	}
 	temp += cwp[(int)(*pp++)] + *pc++;
-	temp = CYCLIC (temp, ps[i&3]);
+	CYCLIC (temp, ps[i&3]);
 	temp += B;
 	A = D; D = C; C = B; B = temp;
     }
@@ -443,7 +443,7 @@ static void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ct
 
     for ( i = 0 ; i < 16 ; i++ ) {
 	temp = A + FF(B,C,D) + cwp[(int)(*pp++)] + *pc++;
-	temp = CYCLIC (temp, ps[i&3]);
+	CYCLIC (temp, ps[i&3]);
 	temp += B;
 	A = D; D = C; C = B; B = temp;
     }
@@ -451,21 +451,21 @@ static void md5_process_block(const void *buffer, size_t len, struct md5_ctx *ct
     ps += 4;
     for ( i = 0 ; i < 16 ; i++ ) {
 	temp = A + FG(B,C,D) + cwp[(int)(*pp++)] + *pc++;
-	temp = CYCLIC (temp, ps[i&3]);
+	CYCLIC (temp, ps[i&3]);
 	temp += B;
 	A = D; D = C; C = B; B = temp;
     }
     ps += 4;
     for ( i = 0 ; i < 16 ; i++ ) {
 	temp = A + FH(B,C,D) + cwp[(int)(*pp++)] + *pc++;
-	temp = CYCLIC (temp, ps[i&3]);
+	CYCLIC (temp, ps[i&3]);
 	temp += B;
 	A = D; D = C; C = B; B = temp;
     }
     ps += 4;
     for ( i = 0 ; i < 16 ; i++ ) {
 	temp = A + FI(B,C,D) + cwp[(int)(*pp++)] + *pc++;
-	temp = CYCLIC (temp, ps[i&3]);
+	CYCLIC (temp, ps[i&3]);
 	temp += B;
 	A = D; D = C; C = B; B = temp;
     }

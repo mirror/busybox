@@ -97,3 +97,4 @@ file_header_t *get_header_tar(FILE *tar_stream)
 
 	return(tar_entry);
 }
+

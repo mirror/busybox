@@ -11129,7 +11129,7 @@ redirect(union node *redir, int flags)
 {
 	union node *n;
 	struct redirtab *sv = NULL;
-	int i;
+	int i = EMPTY;
 	int fd;
 	int newfd;
 	int try;
@@ -12440,7 +12440,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.54 2002/07/04 00:19:46 andersen Exp $
+ * $Id: ash.c,v 1.55 2002/07/11 11:11:51 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

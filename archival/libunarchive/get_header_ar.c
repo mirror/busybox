@@ -104,3 +104,4 @@ file_header_t *get_header_ar(FILE *src_stream)
 
 	return(typed);
 }
+

@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <signal.h>
 #include <arpa/telnet.h>
 #include <sys/types.h>

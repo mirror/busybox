@@ -134,3 +134,4 @@ file_header_t *get_header_cpio(FILE *src_stream)
 	}
 	return(cpio_entry);
 }
+
