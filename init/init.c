@@ -726,7 +726,6 @@ extern int init_main(int argc, char **argv)
 
     /* Now run everything that needs to be run */
 
-    message(LOG|CONSOLE, "Running SYSINIT\n");
     /* First run the sysinit command */
     for( a=initActionList ; a; a=a->nextPtr) {
 	if (a->action == SYSINIT) {
