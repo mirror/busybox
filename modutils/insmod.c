@@ -3,11 +3,13 @@
  * Mini insmod implementation for busybox
  *
  * This version of insmod supports x86, ARM, SH3/4, powerpc, m68k, 
- * and MIPS.
+ * MIPS, and v850e.
  *
  * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 1999,2000,2001,2002 by Erik Andersen <andersee@debian.org>
  * and Ron Alder <alder@lineo.com>
+ *
+ * Modified by Miles Bader <miles@gnu.org> to support the NEC V850E.
  *
  * Modified by Bryan Rittmeyer <bryan@ixiacom.com> to support SH4
  * and (theoretically) SH3. I have only tested SH4 in little endian mode.
@@ -104,6 +106,11 @@
 // neither used
 #endif
 
+#if defined (__v850e__)
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 8
+#endif
+
 //----------------------------------------------------------------------------
 //--------modutils module.h, lines 45-242
 //----------------------------------------------------------------------------
@@ -133,7 +140,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.78 2001/12/29 04:15:13 andersen Exp $"
+#ident "$Id: insmod.c,v 1.79 2002/04/01 09:34:25 miles Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +357,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.78 2001/12/29 04:15:13 andersen Exp $"
+#ident "$Id: insmod.c,v 1.79 2002/04/01 09:34:25 miles Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -448,6 +455,19 @@ static const int MODUTILS_OBJ_H = 1;
 #define MATCH_MACHINE(x)	(x == EM_68K)
 #define SHT_RELM			SHT_RELA
 #define Elf32_RelM			Elf32_Rela
+
+#elif defined (__v850e__)
+
+#ifndef EM_CYGNUS_V850	/* grumble */
+#define EM_CYGNUS_V850 		0x9080
+#endif
+
+#define MATCH_MACHINE(x)	((x) == EM_V850 || (x) == EM_CYGNUS_V850)
+#define SHT_RELM		SHT_RELA
+#define Elf32_RelM		Elf32_Rela
+#define ELFDATAM		ELFDATA2LSB
+
+#define SYMBOL_PREFIX	"_"
 
 #else
 #error Sorry, but insmod.c does not yet support this architecture...
@@ -626,6 +646,12 @@ static int arch_init_module (struct obj_file *f, struct new_module *);
 
 
 
+/* SPFX is always a string, so it can be concatenated to string constants.  */
+#ifdef SYMBOL_PREFIX
+#define SPFX	SYMBOL_PREFIX
+#else
+#define SPFX 	""
+#endif
 
 
 #define _PATH_MODULES	"/lib/modules"
@@ -828,9 +854,22 @@ arch_apply_relocation(struct obj_file *f,
 	case R_PPC_NONE:
 #elif defined(__mips__)
 	case R_MIPS_NONE:
+#elif defined (__v850e__)
+	case R_V850_NONE:
 #endif
 		break;
 
+#if defined (__v850e__)
+	case R_V850_32:
+		/* We write two shorts instead of a long because even
+		   32-bit insns only need half-word alignment, but
+		   32-bit data needs to be long-word aligned.  */
+		v += ((unsigned short *)loc)[0];
+		v += ((unsigned short *)loc)[1] << 16;
+		((unsigned short *)loc)[0] = v & 0xffff;
+		((unsigned short *)loc)[1] = (v >> 16) & 0xffff;
+		break;
+#else /* !__v850e__ */
 #if defined(__sh__)
 	case R_SH_DIR32:
 #elif defined(__arm__)
@@ -846,6 +885,8 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 		*loc += v;
 		break;
+#endif /* __v850e__ */
+
 #if defined(__mc68000__)
     case R_68K_8:
 		if (v > 0xff)
@@ -1001,6 +1042,9 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(__powerpc__)
 	case R_PPC_REL24:
 #endif
+#if defined (__v850e__)
+	case R_V850_22_PCREL:
+#endif
       /* find the plt entry and initialize it if necessary */
       assert(isym != NULL);
 
@@ -1021,18 +1065,33 @@ arch_apply_relocation(struct obj_file *f,
 	  ip[2] = 0x7d6903a6;			      /* mtctr r11 */
 	  ip[3] = 0x4e800420;			      /* bctr */
 #endif
+#if defined (__v850e__)
+		/* We have to trash a register, so we assume that any control
+		   transfer more than 21-bits away must be a function call
+		   (so we can use a call-clobbered register).  */
+		ip[0] = 0x0621 + ((v & 0xffff) << 16);   /* mov sym, r1 ... */
+		ip[1] = ((v >> 16) & 0xffff) + 0x610000; /* ...; jmp r1 */
+#endif
 	  	pe->inited = 1;
 	  }
 
       /* relative distance to target */
       v -= dot;
       /* if the target is too far away.... */
-      if ((int)v < -0x02000000 || (int)v >= 0x02000000) {
-	    /* go via the plt */
-	    v = plt + pe->offset - dot;
-	  }
+#if defined (__arm__) || defined (__powerpc__)
+      if ((int)v < -0x02000000 || (int)v >= 0x02000000)
+#elif defined (__v850e__)
+      if ((Elf32_Sword)v > 0x1fffff || (Elf32_Sword)v < (Elf32_Sword)-0x200000)
+#endif
+	      /* go via the plt */
+	      v = plt + pe->offset - dot;
+
+#if defined (__v850e__)
+      if (v & 1)
+#else
       if (v & 3)
-	    ret = obj_reloc_dangerous;
+#endif
+	      ret = obj_reloc_dangerous;
 
       /* merge the offset into the instruction. */
 #if defined(__arm__)
@@ -1044,6 +1103,17 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(__powerpc__)
       *loc = (*loc & ~0x03fffffc) | (v & 0x03fffffc);
 #endif
+#if defined (__v850e__)
+      /* We write two shorts instead of a long because even 32-bit insns
+	 only need half-word alignment, but the 32-bit data write needs
+	 to be long-word aligned.  */
+      ((unsigned short *)loc)[0] =
+	      (*(unsigned short *)loc & 0xffc0) /* opcode + reg */
+	      | ((v >> 16) & 0x3f);             /* offs high part */
+      ((unsigned short *)loc)[1] =
+	      (v & 0xffff);                    /* offs low part */
+#endif
+
       break;
 #endif /* CONFIG_USE_PLT_ENTRIES */
 
@@ -1203,6 +1273,12 @@ static int arch_create_got(struct obj_file *f)
 				break;
 #endif
 
+#if defined (__v850e__)
+			case R_V850_22_PCREL:
+				pltneeded = 1;
+				break;
+#endif
+
 #if defined(__arm__)
 			case R_ARM_PC24:
 			case R_ARM_PLT32:
@@ -1250,8 +1326,8 @@ static int arch_create_got(struct obj_file *f)
 				pltneeded = 0;
 			}
 #endif
-			}
 		}
+	}
 
 #if defined(CONFIG_USE_GOT_ENTRIES)
 	if (got_offset) {
@@ -1610,19 +1686,45 @@ add_symbols_from(
 	struct new_module_symbol *s;
 	size_t i;
 	int used = 0;
+#ifdef SYMBOL_PREFIX
+	char *name_buf = 0;
+	size_t name_alloced_size = 0;
+#endif
 
 	for (i = 0, s = syms; i < nsyms; ++i, ++s) {
-
-		/* Only add symbols that are already marked external.  If we
-		   override locals we may cause problems for argument initialization.
-		   We will also create a false dependency on the module.  */
+		/* Only add symbols that are already marked external.
+		   If we override locals we may cause problems for
+		   argument initialization.  We will also create a false
+		   dependency on the module.  */
 		struct obj_symbol *sym;
+		char *name = (char *)s->name;
 
-		sym = obj_find_symbol(f, (char *) s->name);
-		if (sym && !ELFW(ST_BIND) (sym->info) == STB_LOCAL) {
-			sym = obj_add_symbol(f, (char *) s->name, -1,
-								 ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
-								 idx, s->value, 0);
+#ifdef SYMBOL_PREFIX
+		/* Prepend SYMBOL_PREFIX to the symbol's name (the
+		   kernel exports `C names', but module object files
+		   reference `linker names').  */
+		size_t extra = sizeof SYMBOL_PREFIX;
+		size_t name_size = strlen (name) + extra;
+		if (name_size > name_alloced_size) {
+			name_alloced_size = name_size * 2;
+			name_buf = alloca (name_alloced_size);
+		}
+		strcpy (name_buf, SYMBOL_PREFIX);
+		strcpy (name_buf + extra - 1, name);
+		name = name_buf;
+#endif /* SYMBOL_PREFIX */
+
+		sym = obj_find_symbol(f, name);
+		if (sym && !(ELFW(ST_BIND) (sym->info) == STB_LOCAL)) {
+#ifdef SYMBOL_PREFIX
+			/* Put NAME_BUF into more permanent storage.  */
+			name = xmalloc (name_size);
+			strcpy (name, name_buf);
+#endif
+			sym = obj_add_symbol(f, name, -1,
+					     ELFW(ST_INFO) (STB_GLOBAL,
+							    STT_NOTYPE),
+					     idx, s->value, 0);
 			/* Did our symbol just get installed?  If so, mark the
 			   module as "used".  */
 			if (sym->secidx == idx)
@@ -2012,9 +2114,9 @@ old_init_module(const char *m_name, struct obj_file *f,
 	/* Fill in routines.  */
 
 	routines.init =
-		obj_symbol_final_value(f, obj_find_symbol(f, "init_module"));
+		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "init_module"));
 	routines.cleanup =
-		obj_symbol_final_value(f, obj_find_symbol(f, "cleanup_module"));
+		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "cleanup_module"));
 
 	/* Whew!  All of the initialization is complete.  Collect the final
 	   module image and give it to the kernel.  */
@@ -2053,7 +2155,7 @@ static int
 new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 {
 	while (argc > 0) {
-		char *p, *q, *key;
+		char *p, *q, *key, *sym_name;
 		struct obj_symbol *sym;
 		char *contents, *loc;
 		int min, max, n;
@@ -2076,7 +2178,14 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 			return 0;
 		}
 
-		sym = obj_find_symbol(f, key);
+#ifdef SYMBOL_PREFIX
+		sym_name = alloca (strlen (key) + sizeof SYMBOL_PREFIX);
+		strcpy (sym_name, SYMBOL_PREFIX);
+		strcat (sym_name, key);
+#else
+		sym_name = key;
+#endif
+		sym = obj_find_symbol(f, sym_name);
 
 		/* Also check that the parameter was not resolved from the kernel.  */
 		if (sym == NULL || sym->secidx > SHN_HIRESERVE) {
@@ -2440,9 +2549,9 @@ static int new_create_this_module(struct obj_file *f, const char *m_name)
 										   sizeof(struct new_module));
 	memset(sec->contents, 0, sizeof(struct new_module));
 
-	obj_add_symbol(f, "__this_module", -1,
-				   ELFW(ST_INFO) (STB_LOCAL, STT_OBJECT), sec->idx, 0,
-				   sizeof(struct new_module));
+	obj_add_symbol(f, SPFX "__this_module", -1,
+		       ELFW(ST_INFO) (STB_LOCAL, STT_OBJECT), sec->idx, 0,
+		       sizeof(struct new_module));
 
 	obj_string_patch(f, sec->idx, offsetof(struct new_module, name),
 					 m_name);
@@ -2468,7 +2577,7 @@ static int new_create_module_ksymtab(struct obj_file *f)
 		if (!sec)
 			return 0;
 
-		tm = obj_find_symbol(f, "__this_module");
+		tm = obj_find_symbol(f, SPFX "__this_module");
 		dep = (struct new_module_ref *) sec->contents;
 		for (i = 0; i < n_ext_modules; ++i)
 			if (ext_modules[i].used) {
@@ -2554,9 +2663,9 @@ new_init_module(const char *m_name, struct obj_file *f,
 	}
 
 	module->init =
-		obj_symbol_final_value(f, obj_find_symbol(f, "init_module"));
+		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "init_module"));
 	module->cleanup =
-		obj_symbol_final_value(f, obj_find_symbol(f, "cleanup_module"));
+		obj_symbol_final_value(f, obj_find_symbol(f, SPFX "cleanup_module"));
 
 	sec = obj_find_section(f, "__ex_table");
 	if (sec) {
@@ -3201,9 +3310,9 @@ static int obj_load_progbits(FILE * fp, struct obj_file* f, char* imagebase)
 static void hide_special_symbols(struct obj_file *f)
 {
 	static const char *const specials[] = {
-		"cleanup_module",
-		"init_module",
-		"kernel_version",
+		SPFX "cleanup_module",
+		SPFX "init_module",
+		SPFX "kernel_version",
 		NULL
 	};
 
