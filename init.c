@@ -891,7 +891,7 @@ extern int init_main(int argc, char **argv)
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1
 #ifdef BB_FEATURE_LINUXRC
-			&& strstr(argv[0], "linuxrc") == NULL
+			&& strstr(applet_name, "linuxrc") == NULL
 #endif
 	                  )
 	{

@@ -34,7 +34,6 @@ _syscall1(int, swapoff, const char *, path);
 
 
 static int whichApp;
-static const char *appName;
 
 static const char swapoff_usage[] =
 	"swapoff [OPTION] [device]\n"
@@ -69,7 +68,7 @@ static void swap_enable_disable(char *device)
 		status = swapoff(device);
 
 	if (status != 0) {
-		perror(appName);
+		perror(applet_name);
 		exit(FALSE);
 	}
 }
@@ -95,12 +94,9 @@ static void do_em_all()
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	if (strcmp(*argv, "swapon") == 0) {
-		appName = *argv;
+	if (strcmp(applet_name, "swapon") == 0) {
 		whichApp = SWAPON_APP;
-
 	} else {
-		appName = *argv;
 		whichApp = SWAPOFF_APP;
 	}
 

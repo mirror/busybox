@@ -125,8 +125,7 @@ extern int kill_main(int argc, char **argv)
 
 #ifdef BB_KILLALL
 	/* Figure out what we are trying to do here */
-	whichApp = (strcmp(*argv, "killall") == 0)? 
-		KILLALL : KILL; 
+	whichApp = (strcmp(applet_name, "killall") == 0)? KILLALL : KILL; 
 	appUsage = (whichApp == KILLALL)?  killall_usage : kill_usage;
 #else
 	whichApp = KILL;

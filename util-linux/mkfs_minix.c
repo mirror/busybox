@@ -202,7 +202,6 @@ struct minix_dir_entry {
 
 #define BITS_PER_BLOCK (BLOCK_SIZE<<3)
 
-static char *program_name = "mkfs";
 static char *device_name = NULL;
 static int DEV = -1;
 static long BLOCKS = 0;
@@ -264,7 +263,7 @@ static unsigned long req_nr_inodes = 0;
  */
 static volatile void die(char *str)
 {
-	fprintf(stderr, "%s: %s\n", program_name, str);
+	fprintf(stderr, "%s: %s\n", applet_name, str);
 	exit(8);
 }
 
@@ -275,7 +274,7 @@ static volatile void show_usage()
 			BB_VER, BB_BT);
 	fprintf(stderr,
 			"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n",
-			program_name);
+			applet_name);
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	fprintf(stderr, "\nMake a MINIX filesystem.\n\n");
 	fprintf(stderr, "Options:\n");
@@ -745,8 +744,6 @@ extern int mkfs_minix_main(int argc, char **argv)
 	char *listfile = NULL;
 	int stopIt=FALSE;
 
-	if (argc && *argv)
-		program_name = *argv;
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad inode size");
 #ifdef HAVE_MINIX2
@@ -818,7 +815,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 						version2 = 1;
 #else
 						fprintf(stderr, "%s: not compiled with minix v2 support\n",
-								program_name, device_name);
+								applet_name, device_name);
 						exit(-1);
 #endif
 						break;

@@ -183,7 +183,7 @@ test_main(int argc, char** argv)
 {
 	int	res;
 
-	if (strcmp(argv[0], "[") == 0) {
+	if (strcmp(applet_name, "[") == 0) {
 		if (strcmp(argv[--argc], "]"))
 			fatalError("missing ]\n");
 		argv[argc] = NULL;

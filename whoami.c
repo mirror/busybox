@@ -43,7 +43,7 @@ extern int whoami_main(int argc, char **argv)
 		puts(user);
 		exit(TRUE);
 	}
-	fprintf(stderr, "%s: cannot find username for UID %u\n", argv[0],
+	fprintf(stderr, "%s: cannot find username for UID %u\n", applet_name,
 			(unsigned) uid);
 	return(FALSE);
 }

@@ -219,7 +219,6 @@ struct minix_dir_entry {
 
 #define BITS_PER_BLOCK (BLOCK_SIZE<<3)
 
-static char *program_name = "fsck.minix";
 static char *program_version = "1.2 - 11/11/96";
 static char *device_name = NULL;
 static int IN;
@@ -293,7 +292,7 @@ static void show_usage(void)
 {
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 			BB_VER, BB_BT);
-	fprintf(stderr, "Usage: %s [-larvsmf] /dev/name\n", program_name);
+	fprintf(stderr, "Usage: %s [-larvsmf] /dev/name\n", applet_name);
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	fprintf(stderr,
 			"\nPerforms a consistency check for MINIX filesystems.\n\n");
@@ -312,7 +311,7 @@ static void show_usage(void)
 
 static void die(const char *str)
 {
-	fprintf(stderr, "%s: %s\n", program_name, str);
+	fprintf(stderr, "%s: %s\n", applet_name, str);
 	leave(8);
 }
 
@@ -1367,8 +1366,6 @@ extern int fsck_minix_main(int argc, char **argv)
 	 * that automagically, so we can save a few bytes */
 	//atexit(free_name_list);
 
-	if (argc && *argv)
-		program_name = *argv;
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad inode size");
 #ifdef HAVE_MINIX2
@@ -1432,7 +1429,7 @@ extern int fsck_minix_main(int argc, char **argv)
 	 * flags and whether or not the -f switch was specified on the 
 	 * command line.
 	 */
-	printf("%s, %s\n", program_name, program_version);
+	printf("%s, %s\n", applet_name, program_version);
 	if (!(Super.s_state & MINIX_ERROR_FS) &&
 		(Super.s_state & MINIX_VALID_FS) && !force) {
 		if (repair)

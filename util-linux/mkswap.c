@@ -69,7 +69,6 @@ static const char mkswap_usage[] =
 #define BLKGETSIZE _IO(0x12,96)
 #endif
 
-static char *program_name = "mkswap";
 static char *device_name = NULL;
 static int DEV = -1;
 static long PAGES = 0;
@@ -205,7 +204,7 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 
 void die(const char *str)
 {
-	fprintf(stderr, "%s: %s\n", program_name, str);
+	fprintf(stderr, "%s: %s\n", applet_name, str);
 	exit(FALSE);
 }
 
@@ -316,9 +315,6 @@ int mkswap_main(int argc, char **argv)
 	int offset;
 	int force = 0;
 
-	if (argc && *argv)
-		program_name = *argv;
-
 	init_signature_page();		/* get pagesize */
 
 	while (argc-- > 1) {
@@ -350,7 +346,7 @@ int mkswap_main(int argc, char **argv)
 	}
 	if (!device_name) {
 		fprintf(stderr,
-				"%s: error: Nowhere to set up swap on?\n", program_name);
+				"%s: error: Nowhere to set up swap on?\n", applet_name);
 		usage(mkswap_usage);
 	}
 	sz = get_size(device_name);
@@ -360,7 +356,7 @@ int mkswap_main(int argc, char **argv)
 		fprintf(stderr,
 				"%s: error: "
 				"size %ld is larger than device size %d\n",
-				program_name,
+				applet_name,
 				PAGES * (pagesize / 1024), sz * (pagesize / 1024));
 		exit(FALSE);
 	}
@@ -377,13 +373,13 @@ int mkswap_main(int argc, char **argv)
 	}
 	if (version != 0 && version != 1) {
 		fprintf(stderr, "%s: error: unknown version %d\n",
-				program_name, version);
+				applet_name, version);
 		usage(mkswap_usage);
 	}
 	if (PAGES < 10) {
 		fprintf(stderr,
 				"%s: error: swap area needs to be at least %ldkB\n",
-				program_name, (long) (10 * pagesize / 1024));
+				applet_name, (long) (10 * pagesize / 1024));
 		usage(mkswap_usage);
 	}
 #if 0
@@ -402,7 +398,7 @@ int mkswap_main(int argc, char **argv)
 	if (PAGES > maxpages) {
 		PAGES = maxpages;
 		fprintf(stderr, "%s: warning: truncating swap area to %ldkB\n",
-				program_name, PAGES * pagesize / 1024);
+				applet_name, PAGES * pagesize / 1024);
 	}
 
 	DEV = open(device_name, O_RDWR);
@@ -432,7 +428,7 @@ int mkswap_main(int argc, char **argv)
 %s: Device '%s' contains a valid Sun disklabel.\n\
 This probably means creating v0 swap would destroy your partition table\n\
 No swap created. If you really want to create swap v0 on that device, use\n\
-the -f option to force it.\n", program_name, device_name);
+the -f option to force it.\n", applet_name, device_name);
 				exit(FALSE);
 			}
 		}

@@ -40,7 +40,7 @@ extern int rmdir_main(int argc, char **argv)
 
 	while (--argc > 0) {
 		if (rmdir(*(++argv)) == -1) {
-			fprintf(stderr, "%s: %s\n", *argv, strerror(errno));
+			fprintf(stderr, "%s: %s\n", applet_name, strerror(errno));
 			exit(FALSE);
 		}
 	}
