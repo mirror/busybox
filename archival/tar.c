@@ -687,7 +687,7 @@ int tar_main(int argc, char **argv)
 	}
 #endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-	if(opt & TAR_OPT_GZIP) {
+	if(opt & TAR_OPT_BZIP2) {
 			get_header_ptr = get_header_tar_bz2;
 	}
 #endif
