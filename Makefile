@@ -20,9 +20,7 @@
 
 PROG      := busybox
 VERSION   := 0.43
-BUILDTIME := $(shell TZ=GMT date "+%Y%m%d-%H%M")
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
-BUILDTIME := $(shell TZ=UTC date --utc -R)
 
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
