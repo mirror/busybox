@@ -38,8 +38,9 @@
 #include <ctype.h>
 
 static const char sed_usage[] =
-	"sed [-n] -e script [file...]\n\n"
-	"Allowed sed scripts come in the following form:\n"
+	"sed [-n] -e script [file...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nAllowed sed scripts come in the following form:\n"
 	"\t'ADDR [!] COMMAND'\n\n"
 	"\twhere address ADDR can be:\n"
 	"\t  NUMBER    Match specified line number\n"
@@ -58,8 +59,10 @@ static const char sed_usage[] =
 #if defined BB_REGEXP
 	"This version of sed matches full regular expresions.\n";
 #else
-	"This version of sed matches strings (not full regular expresions).\n";
+	"This version of sed matches strings (not full regular expresions).\n"
 #endif
+#endif
+	;
 
 /* Flags & variables */
 

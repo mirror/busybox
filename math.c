@@ -7,10 +7,13 @@
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 
-static const char math_usage[] = "math expression ...\n\n"
-		"This is a Tiny RPN calculator that understands the\n"
+static const char math_usage[] = "math expression ...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+		"\nThis is a Tiny RPN calculator that understands the\n"
 		"following operations: +, -, /, *, and, or, not, eor.\n"
-		"i.e. 'math 2 2 add' -> 4, and 'math 8 8 \\* 2 2 + /' -> 16\n";
+		"i.e. 'math 2 2 add' -> 4, and 'math 8 8 \\* 2 2 + /' -> 16\n"
+#endif
+		;
 
 static double stack[100];
 static unsigned int pointer;

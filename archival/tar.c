@@ -60,8 +60,9 @@ static const char tar_usage[] =
 #if defined BB_FEATURE_TAR_EXCLUDE
 	"[--exclude File] "
 #endif
-	"[-f tarFile] [FILE] ...\n\n"
-	"Create, extract, or list files from a tar file.  Note that\n"
+	"[-f tarFile] [FILE] ...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nCreate, extract, or list files from a tar file.  Note that\n"
 	"this version of tar treats hard links as separate files.\n\n"
 	"Main operation mode:\n"
 #ifdef BB_FEATURE_TAR_CREATE
@@ -77,6 +78,7 @@ static const char tar_usage[] =
 #endif
 	"\nInformative output:\n"
 	"\tv\t\tverbosely list files processed\n"
+#endif
 	;
 
 /* Tar file constants  */

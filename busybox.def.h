@@ -14,6 +14,7 @@
 #define BB_CHVT
 #define BB_CLEAR
 #define BB_CP_MV
+#define BB_CUT
 #define BB_DATE
 #define BB_DD
 #define BB_DEALLOCVT
@@ -60,7 +61,7 @@
 #define BB_MKNOD
 #define BB_MKSWAP
 #define BB_MKTEMP
-#define BB_MNC
+#define BB_NC
 #define BB_MORE
 #define BB_MOUNT
 #define BB_MT
@@ -134,7 +135,7 @@
 //
 // This compiles out everything but the most 
 // trivial --help usage information (i.e. reduces binary size)
-//#define BB_FEATURE_TRIVIAL_HELP
+#define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
 //#define BB_FEATURE_USE_TERMIOS

@@ -29,12 +29,14 @@
 #include <dirent.h>
 #include <errno.h>
 
-static const char *rm_usage = "rm [OPTION]... FILE...\n\n"
-	"Remove (unlink) the FILE(s).\n\n"
+static const char *rm_usage = "rm [OPTION]... FILE...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nRemove (unlink) the FILE(s).\n\n"
 	"Options:\n"
-
 	"\t-f\t\tremove existing destinations, never prompt\n"
-	"\t-r or -R\tremove the contents of directories recursively\n";
+	"\t-r or -R\tremove the contents of directories recursively\n"
+#endif
+	;
 
 
 static int recursiveFlag = FALSE;

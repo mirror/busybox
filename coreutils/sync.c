@@ -27,7 +27,11 @@
 extern int sync_main(int argc, char **argv)
 {
 	if (argc > 1 && **(argv + 1) == '-') {
-		usage("sync\n\nWrite all buffered filesystem blocks to disk.\n");
+		usage("sync\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nWrite all buffered filesystem blocks to disk.\n"
+#endif
+				);
 	}
 	exit(sync());
 }

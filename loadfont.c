@@ -30,8 +30,11 @@
 #define PSF_MAXMODE    0x03
 #define PSF_SEPARATOR  0xFFFF
 
-static const char loadfont_usage[] = "loadfont\n\n"
-	"Loads a console font from standard input.\n";
+static const char loadfont_usage[] = "loadfont\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"Loads a console font from standard input.\n"
+#endif
+	;
 
 struct psf_header {
 	unsigned char magic1, magic2;	/* Magic number */

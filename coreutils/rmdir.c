@@ -31,7 +31,11 @@ extern int rmdir_main(int argc, char **argv)
 {
 	if (argc == 1 || **(argv + 1) == '-') {
 		usage
-			("rmdir [OPTION]... DIRECTORY...\n\nRemove the DIRECTORY(ies), if they are empty.\n");
+			("rmdir [OPTION]... DIRECTORY...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+			 "\nRemove the DIRECTORY(ies), if they are empty.\n"
+#endif
+			 );
 	}
 
 	while (--argc > 0) {

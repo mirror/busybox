@@ -47,6 +47,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_help
+#include "messages.c"
 
 
 #define XWRITE(fd, buffer, n_bytes)					\
@@ -70,15 +73,18 @@ static int forever;
 static int print_headers;
 
 const char tail_usage[] =
-	"tail [OPTION] [FILE]...\n\n"
-	"Print last 10 lines of each FILE to standard output.\n"
+	"tail [OPTION] [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint last 10 lines of each FILE to standard output.\n"
 	"With more than one FILE, precede each with a header giving the\n"
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n"
 	"Options:\n"
 	"\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
 
 	"\t-f\t\tOutput data as the file grows.  This version\n"
-	"\t\t\tof 'tail -f' supports only one file at a time.\n";
+	"\t\t\tof 'tail -f' supports only one file at a time.\n"
+#endif
+	;
 
 
 static void write_header(const char *filename)
@@ -512,9 +518,9 @@ char *program_name;
 static int have_read_stdin;
 
 
-static const char tail_usage[] = "tail [OPTION]... [FILE]...\n\
-\n\
-Print last 10 lines of each FILE to standard output.\n\
+static const char tail_usage[] = "tail [OPTION]... [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+"\nPrint last 10 lines of each FILE to standard output.\n\
 With more than one FILE, precede each with a header giving the file name.\n\
 With no FILE, or when FILE is -, read standard input.\n\
 \n\
@@ -523,11 +529,12 @@ With no FILE, or when FILE is -, read standard input.\n\
   -n=N            output the last N lines, instead of last 10\n\
   -q              never output headers giving file names\n\
   -v              always output headers giving file names\n\
-  --help          display this help and exit\n\
 \n\
 If the first character of N (bytes or lines) is a `+', output begins with \n\
 the Nth item from the start of each file, otherwise, print the last N items\n\
-in the file.  N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).\n\n";
+in the file.  N bytes may be suffixed by k (x1024), b (x512), or m (1024^2).\n"
+#endif
+;
 
 static void write_header(const char *filename, const char *comment)
 {

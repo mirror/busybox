@@ -28,13 +28,17 @@
  */
 
 #include "internal.h"
+
 static const char gunzip_usage[] =
-	"gunzip [OPTION]... FILE\n\n"
-	"Uncompress FILE (or standard input if FILE is '-').\n\n"
+	"gunzip [OPTION]... FILE\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nUncompress FILE (or standard input if FILE is '-').\n\n"
 	"Options:\n"
 
 	"\t-c\tWrite output to standard output\n"
-	"\t-t\tTest compressed file integrity\n";
+	"\t-t\tTest compressed file integrity\n"
+#endif
+	;
 
 	
 	/* These defines are very important for BusyBox.  Without these,
@@ -43,8 +47,9 @@ static const char gunzip_usage[] =
 #define SMALL_MEM
 #define DYN_ALLOC
 
-#define bb_need_name_too_long
 #define BB_DECLARE_EXTERN
+#define bb_need_memory_exhausted
+#define bb_need_name_too_long
 #include "messages.c"
 
 
@@ -206,7 +211,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) errorMsg("insufficient memory"); \
+      if (array == NULL) errorMsg(memory_exhausted, "gunzip"); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -1053,7 +1058,7 @@ int in, out;					/* input and output file descriptors */
 		int res = inflate();
 
 		if (res == 3) {
-			errorMsg("out of memory");
+			errorMsg(memory_exhausted, "gunzip");
 		} else if (res != 0) {
 			errorMsg("invalid compressed data--format violated");
 		}

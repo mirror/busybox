@@ -27,11 +27,13 @@
 #include <stdio.h>
 
 static const char tee_usage[] =
-	"tee [OPTION]... [FILE]...\n\n"
-	"Copy standard input to each FILE, and also to standard output.\n\n"
+	"tee [OPTION]... [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nCopy standard input to each FILE, and also to standard output.\n\n"
 	"Options:\n" "\t-a\tappend to the given FILEs, do not overwrite\n"
 #if 0
 	"\t-i\tignore interrupt signals\n"
+#endif
 #endif
 ;
 
@@ -131,4 +133,4 @@ int tee_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: tee.c,v 1.9 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: tee.c,v 1.10 2000/05/12 19:41:47 erik Exp $ */

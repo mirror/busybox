@@ -36,6 +36,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_help
+#include "messages.c"
 
 
 #if ! defined BB_FEATURE_USE_DEVPS_PATCH
@@ -128,8 +131,13 @@ extern int ps_main(int argc, char **argv)
 
 
 
-	if (argc > 1 && strcmp(argv[1], "--help") == 0) {
-		usage ("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
+	if (argc > 1 && strcmp(argv[1], dash_dash_help) == 0) {
+		usage ("ps\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nReport process status\n"
+				"\nThis version of ps accepts no options.\n"
+#endif
+				);
 	}
 
 	dir = opendir("/proc");

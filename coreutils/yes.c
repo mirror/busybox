@@ -28,8 +28,11 @@ extern int yes_main(int argc, char **argv)
 	int i;
 
 	if (argc >=1 && *argv[1]=='-') {
-		usage("yes [OPTION]... [STRING]...\n\n"
-				"Repeatedly outputs a line with all specified STRING(s), or `y'.\n");
+		usage("yes [OPTION]... [STRING]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nRepeatedly outputs a line with all specified STRING(s), or `y'.\n"
+#endif
+				);
 	}
 
 	if (argc == 1) {

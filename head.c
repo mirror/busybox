@@ -27,12 +27,15 @@
 #include <stdio.h>
 
 const char head_usage[] =
-	"head [OPTION] [FILE]...\n\n"
-	"Print first 10 lines of each FILE to standard output.\n"
+	"head [OPTION] [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint first 10 lines of each FILE to standard output.\n"
 	"With more than one FILE, precede each with a header giving the\n"
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n"
 
-	"Options:\n" "\t-n NUM\t\tPrint first NUM lines instead of first 10\n";
+	"Options:\n" "\t-n NUM\t\tPrint first NUM lines instead of first 10\n"
+#endif
+	;
 
 int head(int len, FILE * src)
 {
@@ -109,4 +112,4 @@ int head_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: head.c,v 1.9 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: head.c,v 1.10 2000/05/12 19:41:47 erik Exp $ */

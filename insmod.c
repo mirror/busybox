@@ -70,12 +70,15 @@ _syscall2(unsigned long, create_module, const char *, name, size_t, size)
 static char m_filename[BUFSIZ + 1] = "\0";
 static char m_fullName[BUFSIZ + 1] = "\0";
 static const char insmod_usage[] =
-	"insmod [OPTION]... MODULE [symbol=value]...\n\n"
-	"Loads the specified kernel modules into the kernel.\n\n"
+	"insmod [OPTION]... MODULE [symbol=value]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nLoads the specified kernel modules into the kernel.\n\n"
 	"Options:\n"
 
 	"\t-f\tForce module to load into the wrong kernel version.\n"
-	"\t-k\tMake module autoclean-able.\n";
+	"\t-k\tMake module autoclean-able.\n"
+#endif
+	;
 
 
 static int findNamedModule(const char *fileName, struct stat *statbuf)

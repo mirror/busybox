@@ -64,8 +64,9 @@ static int MarkInterval = 20 * 60;
 static char LocalHostName[32];
 
 static const char syslogd_usage[] =
-	"syslogd [OPTION]...\n\n"
-	"Linux system and kernel (provides klogd) logging utility.\n"
+	"syslogd [OPTION]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nLinux system and kernel (provides klogd) logging utility.\n"
 	"Note that this version of syslogd/klogd ignores /etc/syslog.conf.\n\n"
 	"Options:\n"
 	"\t-m\tChange the mark timestamp interval. default=20min. 0=off\n"
@@ -73,7 +74,9 @@ static const char syslogd_usage[] =
 #ifdef BB_KLOGD
 	"\t-K\tDo not start up the klogd process (by default syslogd spawns klogd).\n"
 #endif
-	"\t-O\tSpecify an alternate log file.  default=/var/log/messages\n";
+	"\t-O\tSpecify an alternate log file.  default=/var/log/messages\n"
+#endif
+	;
 
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */

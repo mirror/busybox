@@ -65,6 +65,9 @@ static const struct Applet applets[] = {
 #ifdef BB_CP_MV
 	{"cp", cp_mv_main, _BB_DIR_BIN},
 #endif
+#ifdef BB_CUT
+	{"cut", cut_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_DATE
 	{"date", date_main, _BB_DIR_BIN},
 #endif
@@ -203,8 +206,8 @@ static const struct Applet applets[] = {
 #ifdef BB_MKTEMP
 	{"mktemp", mktemp_main, _BB_DIR_BIN},
 #endif
-#ifdef BB_MNC
-	{"mnc", mnc_main, _BB_DIR_USR_BIN},
+#ifdef BB_NC
+	{"nc", nc_main, _BB_DIR_USR_BIN},
 #endif
 #ifdef BB_MORE
 	{"more", more_main, _BB_DIR_BIN},

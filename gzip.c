@@ -30,6 +30,9 @@
  */
 
 #include "internal.h"
+#define BB_DECLARE_EXTERN
+#define bb_need_memory_exhausted
+#include "messages.c"
 
 /* These defines are very important for BusyBox.  Without these,
  * huge chunks of ram are pre-allocated making the BusyBox bss 
@@ -39,12 +42,15 @@
 
 
 static const char gzip_usage[] =
-	"gzip [OPTION]... FILE\n\n"
-	"Compress FILE with maximum compression.\n"
+	"gzip [OPTION]... FILE\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nCompress FILE with maximum compression.\n"
 	"When FILE is '-', reads standard input.  Implies -c.\n\n"
 
 	"Options:\n"
-	"\t-c\tWrite output to standard output instead of FILE.gz\n";
+	"\t-c\tWrite output to standard output instead of FILE.gz\n"
+#endif
+	;
 
 
 /* I don't like nested includes, but the string and io functions are used
@@ -121,7 +127,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) errorMsg("insufficient memory"); \
+      if (array == NULL) errorMsg(memory_exhausted, "gzip"); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -1778,7 +1784,6 @@ int part_nb;					/* number of parts in .gz file */
 long time_stamp;				/* original time stamp (modification time) */
 long ifile_size;				/* input file size, -1 for devices (debug only) */
 char *env;						/* contents of GZIP env variable */
-char **args = NULL;				/* argv pointer if GZIP env variable defined */
 char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
 int z_len;						/* strlen(z_suffix) */
 
@@ -3248,7 +3253,7 @@ char *env;						/* name of environment variable */
 	nargv = (char **) calloc(*argcp + 1, sizeof(char *));
 
 	if (nargv == NULL)
-		errorMsg("out of memory");
+		errorMsg(memory_exhausted, "gzip");
 	oargv = *argvp;
 	*argvp = nargv;
 

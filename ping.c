@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.14 2000/04/25 23:24:55 erik Exp $
+ * $Id: ping.c,v 1.15 2000/05/12 19:41:47 erik Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -90,7 +90,11 @@ static int in_cksum(unsigned short *buf, int sz)
 
 /* simple version */
 #ifdef BB_SIMPLE_PING
-static const char *ping_usage = "ping host\n\n";
+static const char *ping_usage = "ping host\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nSend ICMP ECHO_REQUEST packets to network hosts\n"
+#endif
+	;
 
 static char *hostname = NULL;
 
@@ -179,12 +183,15 @@ extern int ping_main(int argc, char **argv)
 
 #else
 /* full(er) version */
-static const char *ping_usage = "ping [OPTION]... host\n\n"
-	"Send ICMP ECHO_REQUEST packets to network hosts.\n\n"
+static const char *ping_usage = "ping [OPTION]... host\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nSend ICMP ECHO_REQUEST packets to network hosts.\n\n"
 	"Options:\n"
 	"\t-c COUNT\tSend only COUNT pings.\n"
 	"\t-q\t\tQuiet mode, only displays output at start\n"
-	"\t\t\tand when finished.\n"; 
+	"\t\t\tand when finished.\n"
+#endif
+	;
 
 static char *hostname = NULL;
 static struct sockaddr_in pingaddr;

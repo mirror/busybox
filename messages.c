@@ -26,6 +26,13 @@
  *  Perhaps this will make it simpler to internationalize also, and
  *  may make the binary slightly smaller.
  */
+
+// TO use, do something like this
+//
+//#define BB_DECLARE_EXTERN
+//#define bb_need_memory_exhausted
+//#include "messages.c"
+//
 #ifndef _BB_MESSAGES_C
 #define _BB_MESSAGES_C
 
@@ -59,4 +66,9 @@ BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
 #if defined bb_need_io_error || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(io_error, "%s: input/output error -- %s\n")
 #endif
+#if defined bb_need_help || ! defined BB_DECLARE_EXTERN
+	BB_DEF_MESSAGE(dash_dash_help, "--help")
+#endif
+
 #endif							/* _BB_MESSAGES_C */
+

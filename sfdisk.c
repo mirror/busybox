@@ -54,10 +54,14 @@
 #include <linux/hdreg.h>		/* HDIO_GETGEO */
 #include <linux/fs.h>			/* BLKGETSIZE */
 
+#define BB_DECLARE_EXTERN
+#define bb_need_memory_exhausted
+#include "messages.c"
 
 static const char sfdisk_usage[] =
 	"sfdisk [options] device ...\n"
-	"device: something like /dev/hda or /dev/sda\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\ndevice: something like /dev/hda or /dev/sda\n"
 	"useful options:\n"
 	"    -s [or --show-size]: list size of a partition\n"
 	"    -c [or --id]:        print or change partition Id\n"
@@ -86,7 +90,9 @@ static const char sfdisk_usage[] =
 	"    -S# [or --sectors #]:  set the number of sectors to use\n"
 
 	"You can disable all consistency checking with:\n"
-	"    -f  [or --force]:      do what I say, even if it is stupid\n";
+	"    -f  [or --force]:      do what I say, even if it is stupid\n"
+#endif
+	;
 
 
 
@@ -421,7 +427,7 @@ static int restore_sectors(char *dev)
 		return 0;
 	}
 	if (!(ss = (char *) malloc(statbuf.st_size))) {
-		errorMsg("out of memory?\n");
+		errorMsg(memory_exhausted, "sfdisk");
 		return 0;
 	}
 	fdin = open(restore_sector_file, O_RDONLY);

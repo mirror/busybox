@@ -179,9 +179,10 @@ static volatile void show_usage()
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 			BB_VER, BB_BT);
 	fprintf(stderr,
-			"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n\n",
+			"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n",
 			program_name);
-	fprintf(stderr, "Make a MINIX filesystem.\n\n");
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	fprintf(stderr, "\nMake a MINIX filesystem.\n\n");
 	fprintf(stderr, "OPTIONS:\n");
 	fprintf(stderr, "\t-c\t\tCheck the device for bad blocks\n");
 	fprintf(stderr,
@@ -191,6 +192,7 @@ static volatile void show_usage()
 	fprintf(stderr,
 			"\t-l FILENAME\tRead the bad blocks list from FILENAME\n");
 	fprintf(stderr, "\t-v\t\tMake a Minix version 2 filesystem\n\n");
+#endif
 	exit(16);
 }
 

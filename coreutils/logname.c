@@ -23,9 +23,11 @@
 #include "internal.h"
 #include <stdio.h>
 
-static const char logname_usage[] = "logname\n\n"
-
-	"Print the name of the current user.\n";
+static const char logname_usage[] = "logname\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint the name of the current user.\n"
+#endif
+	;
 
 extern int logname_main(int argc, char **argv)
 {

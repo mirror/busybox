@@ -34,7 +34,11 @@ extern int fdflush_main(int argc, char **argv)
 	int fd;
 
 	if (argc <= 1 || **(++argv) == '-') {
-		usage("fdflush device\n\nForce floppy disk drive to detect disk change\n");
+		usage("fdflush DEVICE\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nForces floppy disk drive to detect disk change\n"
+#endif
+				);
 	}
 
 	fd = open(*argv, 0);

@@ -449,7 +449,9 @@ static const char ls_usage[] = "ls [-1a"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"F"
 #endif
-	"] [filenames...]\n\n"
+	"] [filenames...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nList directory contents\n\n"
 	"Options:\n"
 	"\t-a\tdo not hide entries starting with .\n"
 #ifdef BB_FEATURE_LS_TIMESTAMPS
@@ -474,6 +476,7 @@ static const char ls_usage[] = "ls [-1a"
 	"\t-C\tlist entries by columns\n"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"\t-F\tappend indicator (one of */=@|) to entries\n"
+#endif
 #endif
 	;
 

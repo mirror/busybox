@@ -24,15 +24,14 @@
 #include "internal.h"
 #include <stdio.h>
 #include <dirent.h>
+#include <errno.h>
 
 extern int pwd_main(int argc, char **argv)
 {
 	char buf[BUFSIZ + 1];
 
-	if (getcwd(buf, sizeof(buf)) == NULL) {
-		perror("get working directory");
-		exit(FALSE);
-	}
+	if (getcwd(buf, sizeof(buf)) == NULL)
+		fatalError("pwd: %s", strerror(errno));
 
 	printf("%s\n", buf);
 	exit(TRUE);

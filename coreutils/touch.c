@@ -31,9 +31,11 @@
 #include <errno.h>
 
 
-static const char touch_usage[] = "touch [-c] file [file ...]\n\n"
-
-	"Update the last-modified date on the given file[s].\n";
+static const char touch_usage[] = "touch [-c] file [file ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nUpdate the last-modified date on the given file[s].\n"
+#endif
+	;
 
 
 

@@ -1,5 +1,5 @@
 /*
- * $Id: telnet.c,v 1.2 2000/05/01 19:10:52 erik Exp $
+ * $Id: telnet.c,v 1.3 2000/05/12 19:41:47 erik Exp $
  * Mini telnet implementation for busybox
  *
  * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
@@ -46,7 +46,12 @@
 
 static int STDIN = 0;
 static int STDOUT = 1;
-static const char *telnet_usage = "telnet host [port]\n\n";
+static const char *telnet_usage = "telnet host [port]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nProvides interactive communication with another\n"
+	"networked host using the TELNET protocol\n"
+#endif
+	;
 static struct termios saved_tc;
 static unsigned char options[NTELOPTS];
 static char tr_state = 0; /* telnet send and receive state */

@@ -488,7 +488,7 @@ Example:
 
 Usage: free
 
-Displays the amount of free and used memory in the system.
+Displays the amount of free and used system memory.
 
 Example:
 
@@ -504,7 +504,7 @@ Example:
 
 Usage: freeramdisk DEVICE
 
-Free all memory used by the specified ramdisk.
+Frees all memory used by the specified ramdisk.
 
 Example:
 
@@ -799,9 +799,9 @@ Example:
 
 =item length
 
-Usage: length string
+Usage: length STRING
 
-Prints out the length of the specified string.
+Prints out the length of the specified STRING.
 
 Example:
 
@@ -1120,7 +1120,7 @@ Flags:
 	-t fs-type:     Specify the filesystem type.
 	-w:             Mount for reading and writing (default).
 
-Options for use with the "-o" flag:
+Options for use with the "B<-o>" flag:
 
 	async/sync:     Writes are asynchronous / synchronous.
 	atime/noatime:  Enable / disable updates to inode access times.
@@ -1881,4 +1881,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.29 2000/05/10 05:00:31 erik Exp $
+# $Id: busybox.pod,v 1.30 2000/05/12 19:41:47 erik Exp $

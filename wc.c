@@ -23,15 +23,18 @@
 #include "internal.h"
 #include <stdio.h>
 
-static const char wc_usage[] = "wc [OPTION]... [FILE]...\n\n"
-	"Print line, word, and byte counts for each FILE, and a total line if\n"
+static const char wc_usage[] = "wc [OPTION]... [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint line, word, and byte counts for each FILE, and a total line if\n"
 	"more than one FILE is specified.  With no FILE, read standard input.\n\n"
 	"Options:\n"
 	"\t-c\tprint the byte counts\n"
 	"\t-l\tprint the newline counts\n"
 
 	"\t-L\tprint the length of the longest line\n"
-	"\t-w\tprint the word counts\n";
+	"\t-w\tprint the word counts\n"
+#endif
+	;
 
 static int total_lines, total_words, total_chars, max_length;
 static int print_lines, print_words, print_chars, print_length;

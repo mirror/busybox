@@ -105,9 +105,9 @@ struct cmdoptions_t {
 	"-vsync", 1, CMD_VSYNC}, {
 	"-laced", 1, CMD_LACED}, {
 	"-double", 1, CMD_DOUBLE}, {
-	"--help", 0, CMD_HELP}, {
+	"-help", 0, CMD_HELP}, {
 #ifdef BB_FEATURE_FBSET_FANCY
-	"--help", 0, CMD_HELP}, {
+	"-help", 0, CMD_HELP}, {
 	"-all", 0, CMD_ALL}, {
 	"-xres", 1, CMD_XRES}, {
 	"-yres", 1, CMD_YRES}, {
@@ -115,7 +115,7 @@ struct cmdoptions_t {
 	"-vyres", 1, CMD_VYRES}, {
 	"-depth", 1, CMD_DEPTH}, {
 	"-match", 0, CMD_MATCH}, {
-	"--geometry", 5, CMD_GEOMETRY}, {
+	"-geometry", 5, CMD_GEOMETRY}, {
 	"-pixclock", 1, CMD_PIXCLOCK}, {
 	"-left", 1, CMD_LEFT}, {
 	"-right", 1, CMD_RIGHT}, {
@@ -123,7 +123,7 @@ struct cmdoptions_t {
 	"-lower", 1, CMD_LOWER}, {
 	"-hslen", 1, CMD_HSLEN}, {
 	"-vslen", 1, CMD_VSLEN}, {
-	"--timings", 7, CMD_TIMING}, {
+	"-timings", 7, CMD_TIMING}, {
 	"-csync", 1, CMD_CSYNC}, {
 	"-gsync", 1, CMD_GSYNC}, {
 	"-extsync", 1, CMD_EXTSYNC}, {
@@ -221,17 +221,21 @@ static void showmode(struct fb_var_screeninfo *v)
 
 static void fbset_usage(void)
 {
+#ifndef BB_FEATURE_TRIVIAL_HELP
 	int i;
+#endif
 
 #ifndef STANDALONE
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
 			BB_VER, BB_BT);
 #endif
-	fprintf(stderr, "Usage: fbset [options] [mode]\n\n");
-	fprintf(stderr, "Show and modify frame buffer device settings\n\n");
+	fprintf(stderr, "Usage: fbset [options] [mode]\n");
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	fprintf(stderr, "\nShows and modifies frame buffer device settings\n\n");
 	fprintf(stderr, "The following options are recognized:\n");
 	for (i = 0; g_cmdoptions[i].name; i++)
 		fprintf(stderr, "\t%s\n", g_cmdoptions[i].name);
+#endif
 	exit(-1);
 }
 

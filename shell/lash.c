@@ -127,8 +127,11 @@ static struct builtInCommand bltins[] = {
 
 static const char shell_usage[] =
 
-	"sh [FILE]...\n\n" "The BusyBox command interpreter (shell).\n\n";
-
+	"sh [FILE]...\n" 
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nlash: The BusyBox command interpreter (shell).\n\n"
+#endif
+	;
 
 static char cwd[1024];
 static char *prompt = "# ";

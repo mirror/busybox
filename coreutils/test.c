@@ -39,6 +39,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_help
+#include "messages.c"
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;
@@ -185,11 +188,14 @@ test_main(int argc, char** argv)
 			fatalError("missing ]");
 		argv[argc] = NULL;
 	}
-	if (strcmp(argv[1], "--help") == 0) {
+	if (strcmp(argv[1], dash_dash_help) == 0) {
 		usage("test EXPRESSION\n"
-			  "or   [ EXPRESSION ]\n\n"
-				"Checks file types and compares values returning an exit\n"
-				"code determined by the value of EXPRESSION.\n");
+			  "or   [ EXPRESSION ]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+				"\nChecks file types and compares values returning an exit\n"
+				"code determined by the value of EXPRESSION.\n"
+#endif
+				);
 	}
 
 	/* Implement special cases from POSIX.2, section 4.62.4 */

@@ -64,10 +64,12 @@ static int use_loop = FALSE;
 
 extern const char mtab_file[];	/* Defined in utility.c */
 
-static const char mount_usage[] = "\tmount [flags]\n"
-	"\tmount [flags] device directory [-o options,more-options]\n"
-	"\n" "Flags:\n" 
-	"\t-a:\t\tMount all file systems in fstab.\n"
+static const char mount_usage[] = 
+	"mount [flags] device directory [-o options,more-options]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nMount a filesystem\n\n"
+	"Flags:\n" 
+	"\t-a:\t\tMount all filesystems in fstab.\n"
 #ifdef BB_MTAB
 	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
 	"\t-n:\t\tDon't write a mount table entry.\n"
@@ -88,8 +90,10 @@ static const char mount_usage[] = "\tmount [flags]\n"
 	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n"
 	"\tremount:\tRe-mount a currently-mounted filesystem, changing its flags.\n"
 	"\tro/rw:\t\tMount for read-only / read-write.\n"
-	"There are EVEN MORE flags that are specific to each filesystem.\n"
-	"You'll have to see the written documentation for those.\n";
+	"\nThere are EVEN MORE flags that are specific to each filesystem.\n"
+	"You'll have to see the written documentation for those.\n"
+#endif
+	;
 
 
 struct mount_options {
@@ -451,7 +455,7 @@ extern int mount_main(int argc, char **argv)
 			fatalError( "\nCannot read /etc/fstab: %s\n", strerror (errno));
 
 		while ((m = getmntent(f)) != NULL) {
-			// If the file system isn't noauto, 
+			// If the filesystem isn't noauto, 
 			// and isn't swap or nfs, then mount it
 			if ((!strstr(m->mnt_opts, "noauto")) &&
 				(!strstr(m->mnt_type, "swap")) &&

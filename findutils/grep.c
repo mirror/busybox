@@ -41,8 +41,9 @@
 #include <ctype.h>
 
 static const char grep_usage[] =
-	"grep [OPTIONS]... PATTERN [FILE]...\n\n"
-	"Search for PATTERN in each FILE or standard input.\n\n"
+	"grep [OPTIONS]... PATTERN [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nSearch for PATTERN in each FILE or standard input.\n\n"
 	"OPTIONS:\n"
 	"\t-h\tsuppress the prefixing filename on output\n"
 	"\t-i\tignore case distinctions\n"
@@ -52,8 +53,10 @@ static const char grep_usage[] =
 #if defined BB_REGEXP
 	"This version of grep matches full regular expresions.\n";
 #else
-	"This version of grep matches strings (not regular expresions).\n";
+	"This version of grep matches strings (not regular expresions).\n"
 #endif
+#endif
+	;
 
 static int match = FALSE, beQuiet = FALSE;
 

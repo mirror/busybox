@@ -30,8 +30,15 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_help
+#include "messages.c"
 
-static const char more_usage[] = "more [file ...]\n";
+static const char more_usage[] = "more [FILE ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nMore is a filter for viewing FILE one screenful at a time.\n"
+#endif
+	;
 
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS
@@ -92,7 +99,7 @@ extern int more_main(int argc, char **argv)
 	argv++;
 
 	if (argc > 0
-		&& (strcmp(*argv, "--help") == 0 || strcmp(*argv, "-h") == 0)) {
+		&& (strcmp(*argv, dash_dash_help) == 0 || strcmp(*argv, "-h") == 0)) {
 		usage(more_usage);
 	}
 	do {

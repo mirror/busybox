@@ -30,8 +30,10 @@
 
 
 static const char umount_usage[] =
-	"umount [flags] filesystem|directory\n\n"
-	"Flags:\n" "\t-a:\tUnmount all file systems"
+	"umount [flags] filesystem|directory\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"Unmount file systems\n"
+	"\nFlags:\n" "\t-a:\tUnmount all file systems"
 #ifdef BB_MTAB
 	" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries\n"
 #else
@@ -43,6 +45,7 @@ static const char umount_usage[] =
 #endif
 #if defined BB_FEATURE_MOUNT_LOOP
 	"\t-l:\tDo not free loop device (if a loop device has been used)\n"
+#endif
 #endif
 ;
 

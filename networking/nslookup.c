@@ -41,7 +41,11 @@
  |  + find out how the real nslookup gets the default name server
  */
 
-static const char nslookup_usage[] = "nslookup [HOST]\n\nQueries the nameserver for the IP address of the given HOST\n";
+static const char nslookup_usage[] = "nslookup [HOST]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nQueries the nameserver for the IP address of the given HOST\n"
+#endif
+;
 
 
 /* I have to see how the real nslookup does this.
@@ -173,4 +177,4 @@ int nslookup_main(int argc, char **argv)
 	exit( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.8 2000/05/02 00:07:56 erik Exp $ */
+/* $Id: nslookup.c,v 1.9 2000/05/12 19:41:47 erik Exp $ */
