@@ -1,116 +1,115 @@
-/* minix xargs - Make and execute commands	     
- * Author: Ian Nicholls:  1 Mar 90 */
-
+/* vi: set sw=4 ts=4: */
 /*
- * xargs  - Accept words from stdin until, combined with the arguments
- *	    given on the command line, just fit into the command line limit.
- *	    Then, execute the result.
- * 		e.g.    ls | xargs compress
- *			find . -name '*.s' -print | xargs ar qv libc.a
+ * Mini xargs implementation for busybox
  *
- * flags: -t		Print the command just before it is run
- *	  -l len	Use len as maximum line length (default 490, max 1023)
- *	  -e ending	Append ending to the command before executing it.
+ * Copyright (C) 2000 by Lineo, inc.
+ * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
- * Exits with:	0  No errors.
- *		1  If any system(3) call returns a nonzero status.
- *		2  Usage error
- *		3  Line length too short to contain some single argument.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
- * Examples:	xargs ar qv libc.a < liborder		# Create a new libc.a
- *		find . -name '*.s' -print | xargs rm	# Remove all .s files
- *		find . -type f ! -name '*.Z' \		# Compress old files.
- *		       -atime +60 -print  | xargs compress -v
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- * Bugs:  If the command contains unquoted wildflags, then the system(3) call
- *		call may expand this to larger than the maximum line size.
- *	  The command is not executed if nothing was read from stdin.
- *	  xargs may give up too easily when the command returns nonzero.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
-#define USAGE "usage: xargs [-t] [-l len] [-e endargs] command [args...]\n"
 
-#include <errno.h>
+#include "internal.h"
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <getopt.h>
 
-#ifndef MAX_ARGLINE
-# define MAX_ARGLINE 1023
-#endif
-#ifndef min
-# define min(a,b) ((a) < (b) ? (a) : (b))
-#endif
 
-char outlin[MAX_ARGLINE];
-char inlin[MAX_ARGLINE];
-char startlin[MAX_ARGLINE];
-char *ending = NULL;
-char traceflag = 0;
-
-int xargs_main(int ac, char **av)
+int xargs_main(int argc, char **argv)
 {
-   int outlen, inlen, startlen, endlen=0, i;
-   char errflg = 0;
-   int maxlin = MAX_ARGLINE;
+	char *in_from_stdin = NULL;
+	char *args_from_cmdline = NULL;
+	char *cmd_to_be_executed = NULL;
+	char traceflag = 0;
+	int len_args_from_cmdline, len_cmd_to_be_executed, len, opt;
 
-   while ((i = getopt(ac, av, "tl:e:")) != EOF)
-       switch (i) {
-	   case 't': traceflag = 1;	  break;
-	   case 'l': maxlin = min(MAX_ARGLINE, atoi(optarg)); break;
-	   case 'e': ending = optarg;	  break;
-	   case '?': errflg++;		  break;
-       }
-   if (errflg)	{
-       fprintf(stderr, USAGE);
-       exit(2);
-   }
+	while ((opt = getopt(argc, argv, "t")) != EOF) {
+		switch (opt) {
+		case 't':
+			traceflag=1;
+			break;
+		default:
+			fatalError(xargs_usage);
+		}
+	}
 
-   startlin[0] = 0;
-   if (optind == ac) {
-       strcat(startlin, "echo ");
-   }
-   else for ( ; optind < ac; optind++) {
-       strcat(startlin, av[optind]);
-       strcat(startlin, " ");
-   }
-   startlen = strlen(startlin);
-   if (ending) endlen = strlen(ending);
-   maxlin = maxlin - 1 - endlen;	/* Pre-compute */
+	/* Store the command and arguments to be executed (from the command line) */
+	if (optind == argc) {
+		len_args_from_cmdline = 6;
+		args_from_cmdline = xmalloc(len_args_from_cmdline);
+		strcat(args_from_cmdline, "echo ");
+	} else {
+		opt=strlen(argv[optind]);
+		len_args_from_cmdline = (opt > 10)? opt : 10;
+		args_from_cmdline = xcalloc(len_args_from_cmdline, sizeof(char));
+		for (; optind < argc; optind++) {
+			if (strlen(argv[optind]) + strlen(args_from_cmdline) >
+				len_args_from_cmdline) {
+				len_args_from_cmdline += strlen(argv[optind]);
+				args_from_cmdline =
+					xrealloc(args_from_cmdline,
+							 len_args_from_cmdline+1);
+			}
+			strcat(args_from_cmdline, argv[optind]);
+			strcat(args_from_cmdline, " ");
+		}
+	}
 
-   strcpy(outlin, startlin);
-   outlen = startlen;
+	/* Set up some space for the command to be executed to be held in */
+	len_cmd_to_be_executed=10;
+	cmd_to_be_executed = xcalloc(len_cmd_to_be_executed, sizeof(char));
+	strcpy(cmd_to_be_executed, args_from_cmdline);
+	strcat(cmd_to_be_executed, " ");
 
-   while (gets(inlin) != NULL) {
-       inlen = strlen(inlin);
-       if (maxlin <= (outlen + inlen)) {
-	   if (outlen == startlen) {
-	       fprintf(stderr, "%s: Line length too short to process '%s'\n",
-		       av[0], inlin);
-	       exit(3);
-	   }
-	   if (ending) strcat(outlin, ending);
-	   if (traceflag) fputs(outlin,stderr);
-	   errno = 0;
-	   if (0 != system(outlin)) {
-	       if (errno != 0) perror("xargs");
-	       exit(1);
-	   }
-	   strcpy(outlin, startlin);
-	   outlen = startlen;
-       }
-       strcat(outlin, inlin);
-       strcat(outlin, " ");
-       outlen = outlen + inlen + 1;
-   }
-   if (outlen != startlen) {
-       if (ending) strcat(outlin, ending);
-       if (traceflag) fputs(outlin,stderr);
-       errno = 0;
-       if (0 != system(outlin)) {
-	   if (errno != 0) perror("xargs");
-	   exit(1);
-       }
-   }    
-   return 0;
+	/* Now, read in one line at a time from stdin, and run command+args on it */
+	in_from_stdin = get_line_from_file(stdin);
+	for (;in_from_stdin!=NULL;) {
+		len = strlen(in_from_stdin) + len_args_from_cmdline;
+		if ( len > len_cmd_to_be_executed ) {
+			len_cmd_to_be_executed=len+3;
+			cmd_to_be_executed=xrealloc(cmd_to_be_executed, len_cmd_to_be_executed);
+		}
+		strcat(cmd_to_be_executed, in_from_stdin);
+		strcat(cmd_to_be_executed+strlen(cmd_to_be_executed)-2, " ");
+		strcat(cmd_to_be_executed, " ");
+	
+		free(in_from_stdin);
+		in_from_stdin = get_line_from_file(stdin);
+	}
+
+	if (traceflag==1)
+		fputs(cmd_to_be_executed, stderr);
+
+	if ((system(cmd_to_be_executed) != 0) && (errno != 0))
+		fatalError("%s", strerror(errno));
+
+
+#ifdef BB_FEATURE_CLEAN_UP
+	free(args_from_cmdline);
+	free(cmd_to_be_executed);
+#endif
+
+	return 0;
 }
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
+
