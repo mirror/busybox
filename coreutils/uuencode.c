@@ -59,7 +59,7 @@ static const char tbl_std[65] = {
  * buffer of at least 1+BASE64_LENGTH(length) bytes.
  * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
  */
-static void uuencode (const char *s, const char *store, const int length, const char *tbl)
+static void uuencode (const unsigned char *s, const char *store, const int length, const char *tbl)
 {
 	int i;
 	unsigned char *p = (unsigned char *)store;

@@ -119,7 +119,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
  *  oops... isn't something similar in uuencode.c?
  *  It would be better to use already existing code
  */
-char *base64enc(char *p, char *buf, int len) {
+char *base64enc(unsigned char *p, char *buf, int len) {
 
         char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
                     "0123456789+/";
@@ -837,7 +837,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.66 2004/01/17 23:07:14 bug1 Exp $
+ *	$Id: wget.c,v 1.67 2004/01/26 07:17:30 andersen Exp $
  */
 
 
