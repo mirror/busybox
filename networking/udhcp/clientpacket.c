@@ -90,9 +90,9 @@ static void add_requests(struct dhcpMessage *packet)
 	int i, len = 0;
 
 	packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
-	for (i = 0; options[i].code; i++)
-		if (options[i].flags & OPTION_REQ)
-			packet->options[end + OPT_DATA + len++] = options[i].code;
+	for (i = 0; dhcp_options[i].code; i++)
+		if (dhcp_options[i].flags & OPTION_REQ)
+			packet->options[end + OPT_DATA + len++] = dhcp_options[i].code;
 	packet->options[end + OPT_LEN] = len;
 	packet->options[end + OPT_DATA + len] = DHCP_END;
 

@@ -160,8 +160,8 @@ static char **fill_envp(struct dhcpMessage *packet)
 	if (packet == NULL)
 		num_options = 0;
 	else {
-		for (i = 0; options[i].code; i++)
-			if (get_option(packet, options[i].code))
+		for (i = 0; dhcp_options[i].code; i++)
+			if (get_option(packet, dhcp_options[i].code))
 				num_options++;
 		if (packet->siaddr) num_options++;
 		if ((temp = get_option(packet, DHCP_OPTION_OVER)))
@@ -184,14 +184,15 @@ static char **fill_envp(struct dhcpMessage *packet)
 	asprintip(&envp[j++], "ip=", (unsigned char *) &packet->yiaddr);
 
 
-	for (i = 0; options[i].code; i++) {
-		if (!(temp = get_option(packet, options[i].code)))
+	for (i = 0; dhcp_options[i].code; i++) {
+		if (!(temp = get_option(packet, dhcp_options[i].code)))
 			continue;
-		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2], options[i].flags & TYPE_MASK) + strlen(options[i].name) + 2);
-		fill_options(envp[j++], temp, &options[i]);
+		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2],
+			dhcp_options[i].flags & TYPE_MASK) + strlen(dhcp_options[i].name) + 2);
+		fill_options(envp[j++], temp, &dhcp_options[i]);
 
 		/* Fill in a subnet bits option for things like /24 */
-		if (options[i].code == DHCP_SUBNET) {
+		if (dhcp_options[i].code == DHCP_SUBNET) {
 			memcpy(&subnet, temp, 4);
 			asprintf(&envp[j++], "mask=%d", mton(&subnet));
 		}

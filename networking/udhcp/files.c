@@ -82,7 +82,7 @@ static int read_opt(const char *const_line, void *arg)
 	
     if ((opt = strtok(strcpy(line, const_line), " \t="))) {
 		
-	for (option = options; option->code; option++)
+	for (option = dhcp_options; option->code; option++)
 		if (!strcasecmp(option->name, opt))
 			break;
 	
