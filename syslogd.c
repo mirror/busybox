@@ -393,7 +393,9 @@ static int serveConnection (int conn)
 	RESERVE_BB_BUFFER(tmpbuf, BUFSIZE + 1);
 	int    n_read;
 
-	while ((n_read = read (conn, tmpbuf, BUFSIZE )) > 0) {
+	n_read = read (conn, tmpbuf, BUFSIZE );
+
+	if (n_read > 0) {
 
 		int           pri = (LOG_USER | LOG_NOTICE);
 		char          line[ BUFSIZE + 1 ];
@@ -427,7 +429,7 @@ static int serveConnection (int conn)
 		/* Now log it */
 		logMessage (pri, line);
 	}
-	return (0);
+	return n_read;
 }
 
 
@@ -439,7 +441,7 @@ static void init_RemoteLog (void){
   int len = sizeof(remoteaddr);
 
   bzero(&remoteaddr, len);
-  
+
   remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (remotefd < 0) {
@@ -548,11 +550,12 @@ static void doSyslogd (void)
 
 					FD_SET(conn, &fds);
 					//printf("conn: %i, set_size: %i\n",conn,FD_SETSIZE);
-			  	} else {		
+			  	} else {
 					//printf("Serving connection: %i\n",fd);
-					serveConnection (fd);
-					close (fd);
-					FD_CLR(fd, &fds);
+					  if ( serveConnection(fd) <= 0 ) {
+					    close (fd);
+					    FD_CLR(fd, &fds);
+            }
 				} /* fd == sock_fd */
 			}/* FD_ISSET() */
 		}/* for */
@@ -593,7 +596,7 @@ extern int syslogd_main(int argc, char **argv)
 				if ( (p = strchr(RemoteHost, ':'))){
 					RemotePort = atoi(p+1);
 					*p = '\0';
-				}          
+				}
 				doRemoteLog = TRUE;
 				break;
 			case 'L':
