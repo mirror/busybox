@@ -3,7 +3,7 @@
  * Mini ar implementation for busybox 
  *
  * Copyright (C) 2000 by Glenn McGrath
- * Written by Glenn McGrath <bug1@netconnect.com.au> 1 June 2000
+ * Written by Glenn McGrath <bug1@optushome.com.au> 1 June 2000
  * 		
  * Based in part on BusyBox tar, Debian dpkg-deb and GNU ar.
  *
@@ -21,317 +21,138 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Last modified 20 September 2000
  */
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <ctype.h>
-#include <time.h>
-#include <utime.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <malloc.h>
 #include "busybox.h"
 
-#define BLOCK_SIZE 60
-#define PRESERVE_DATE 1	/* preserve original dates */
-#define VERBOSE       2	/* be verbose */
-#define DISPLAY       4	/* display contents */
-#define EXT_TO_FILE   8	/* extract contents of archive */
-#define EXT_TO_STDOUT 16	/* extract to stdout */
-#define RECURSIVE     32  	 
+typedef struct ar_headers_s {
+	char *name;
+	size_t size;
+	uid_t uid;
+	gid_t gid;
+	mode_t mode;
+	time_t mtime;
+	off_t offset;
+	struct ar_headers_s *next;
+} ar_headers_t;
 
-#define MAX_NAME_LENGTH 100
-
-//#define BB_DECLARE_EXTERN
-//#define bb_need_io_error
-//#include "messages.c"
-
-//#define BB_AR_EXPERIMENTAL_UNTAR
-
-#if defined BB_AR_EXPERIMENTAL_UNTAR
-typedef struct rawTarHeader {
-        char name[100];               /*   0-99 */
-        char mode[8];                 /* 100-107 */
-        char uid[8];                  /* 108-115 */
-        char gid[8];                  /* 116-123 */
-        char size[12];                /* 124-135 */
-        char mtime[12];               /* 136-147 */
-        char chksum[8];               /* 148-155 */
-        char typeflag;                /* 156-156 */
-        char linkname[100];           /* 157-256 */
-        char magic[6];                /* 257-262 */
-        char version[2];              /* 263-264 */
-        char uname[32];               /* 265-296 */
-        char gname[32];               /* 297-328 */
-        char devmajor[8];             /* 329-336 */
-        char devminor[8];             /* 337-344 */
-        char prefix[155];             /* 345-499 */
-        char padding[12];             /* 500-512 */
-} rawTarHeader_t;
-#endif
-
-typedef struct rawArHeader {    /* Byte Offset */
-        char name[16];          /*  0-15 */
-        char date[12];          /* 16-27 */
-        char uid[6], gid[6];    /* 28-39 */
-        char mode[8];           /* 40-47 */
-        char size[10];          /* 48-57 */
-        char fmag[2];           /* 58-59 */
-} rawArHeader_t;
-
-typedef struct headerL {
-	char name[MAX_NAME_LENGTH];
-        size_t size;
-        uid_t uid;
-        gid_t gid;
-        mode_t mode;
-        time_t mtime;
-        off_t offset;
-	struct headerL *next;
-} headerL_t;
-
-#if defined BB_AR_EXPERIMENTAL_UNTAR
 /*
- * identify Tar header (magic field) and reset srcFd to entry position
+ * return the headerL_t struct for the filename descriptor
  */
-static int checkTarMagic(int srcFd)
+static ar_headers_t get_headers(int srcFd)
 {
-        off_t headerStart;
-        char magic[6];
+	typedef struct raw_ar_header_s {	/* Byte Offset */
+		char name[16];	/*  0-15 */
+		char date[12];	/* 16-27 */
+		char uid[6];	
+		char gid[6];	/* 28-39 */
+		char mode[8];	/* 40-47 */
+		char size[10];	/* 48-57 */
+		char fmag[2];	/* 58-59 */
+	} raw_ar_header_t;
+	raw_ar_header_t raw_ar_header;
 
-        headerStart = lseek(srcFd, 0, SEEK_CUR);
-        lseek(srcFd, (off_t) 257, SEEK_CUR);
-        full_read(srcFd, magic, 6);
-        lseek(srcFd, headerStart, SEEK_SET);
-        if (strncmp(magic, "ustar", 5)!=0)
-                return(FALSE);
-        return(TRUE);
-}
-
-
-static int readTarHeader(int srcFd, headerL_t *current)
-{
-     	rawTarHeader_t rawTarHeader;
-        unsigned char *temp = (unsigned char *) &rawTarHeader;
-        long sum = 0;
-        int i;
-	off_t initialOffset;
-
-        initialOffset = lseek(srcFd, 0, SEEK_CUR);
-        if (full_read(srcFd, (char *) &rawTarHeader, 512) != 512) {
-                lseek(srcFd, initialOffset, SEEK_SET);
-                return(FALSE);
-        }
-        for (i =  0; i < 148 ; i++)
-        sum += temp[i];
-        sum += ' ' * 8;
-        for (i =  156; i < 512 ; i++)
-                sum += temp[i];
-        if (sum!= strtol(rawTarHeader.chksum, NULL, 8))
-		return(FALSE);
-  	sscanf(rawTarHeader.name, "%s", current->name);
-        current->size = strtol(rawTarHeader.size, NULL, 8);
-        current->uid = strtol(rawTarHeader.uid, NULL, 8);
-        current->gid = strtol(rawTarHeader.gid, NULL, 8);
-        current->mode = strtol(rawTarHeader.mode, NULL, 8);
-        current->mtime = strtol(rawTarHeader.mtime, NULL, 8);
-        current->offset = lseek(srcFd, 0 , SEEK_CUR);
-
-        current->next = (headerL_t *) xmalloc(sizeof(headerL_t));
-        current = current->next;
-     	return(TRUE);
-}
-#endif
-
-/*
- * identify Ar header (magic) and reset srcFd to entry position
- */
-static int checkArMagic(int srcFd)
-{
-        off_t headerStart;
-        char arMagic[8];
-
-        headerStart = lseek(srcFd, 0, SEEK_CUR);
-        if (full_read(srcFd, arMagic, 8) != 8) {
-                error_msg("fatal error\n");
-                return (FALSE);
-        }
-        lseek(srcFd, headerStart, SEEK_SET);
-
-        if (strncmp(arMagic,"!<arch>",7) != 0)
-                return(FALSE);
-        return(TRUE);
-}
-
-/*
- * get, check and correct the converted header
- */ 
-static int readArEntry(int srcFd, headerL_t *entry)
-{
-	size_t nameLength;
-        rawArHeader_t rawArHeader;
-        off_t   initialOffset;
-
-        initialOffset = lseek(srcFd, 0, SEEK_CUR);
-        if (full_read(srcFd, (char *) &rawArHeader, 60) != 60) {
-                lseek(srcFd, initialOffset, SEEK_SET);
-                return(FALSE);
-        }
-        if ((rawArHeader.fmag[0]!='`') || (rawArHeader.fmag[1]!='\n')) {
-                lseek(srcFd, initialOffset, SEEK_SET);
-                return(FALSE);
-        }
-
-        strncpy(entry->name, rawArHeader.name, 16);
-        nameLength=strcspn(entry->name, " \\");
-        entry->name[nameLength]='\0';
-        parse_mode(rawArHeader.mode, &entry->mode);
-        entry->mtime = atoi(rawArHeader.date);
-        entry->uid = atoi(rawArHeader.uid);
-        entry->gid = atoi(rawArHeader.gid);
-        entry->size = (size_t) atoi(rawArHeader.size);
-        entry->offset = initialOffset + (off_t) 60;
-
-	nameLength = strcspn(entry->name, "/");
+	ar_headers_t *head, *entry;
+	char ar_magic[8];
+	char *long_name=NULL;
 	
-	/* handle GNU style short filenames, strip trailing '/' */
-	if (nameLength > 0)
-		entry->name[nameLength]='\0';
+	head = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+	entry = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
 	
-	/* handle GNU style long filenames */ 
-	if (nameLength == 0) {
-		/* escape from recursive call */
-		if (entry->name[1]=='0') 
-			return(TRUE);
+	/* check ar magic */
+	if (full_read(srcFd, ar_magic, 8) != 8)
+		error_msg_and_die("cannot read magic\n");
+	if (strncmp(ar_magic,"!<arch>",7) != 0)
+		error_msg_and_die("invalid magic\n");
 
-		/* the data section contains the real filename */
-		if (entry->name[1]=='/') {
-			char tempName[MAX_NAME_LENGTH];
-
-			if (entry->size > MAX_NAME_LENGTH)
-				entry->size = MAX_NAME_LENGTH;
-			full_read(srcFd, tempName, entry->size);
-			tempName[entry->size-3]='\0';
-			
-			/* read the second header for this entry */
-			/* be carefull, this is recursive */
-			if (readArEntry(srcFd, entry)==FALSE)
-				return(FALSE);
+	while (full_read(srcFd, (char *) &raw_ar_header, 60)==60) {
+		/* check the end of header markers are valid */
+		if ((raw_ar_header.fmag[0]!='`') || (raw_ar_header.fmag[1]!='\n')) {
+			char newline[1];
+			if (raw_ar_header.fmag[1]!='`') {
+				break;
+			}
+			/* some version of ar, have an extra '\n' after each entry */
+			read(srcFd, newline, 1);
+			if (newline[0]!='\n') {
+				break;
+			}
+			/* fix up the header, we started reading 1 byte too early due to a '\n' */
+			memmove((char *) &raw_ar_header, (char *)&raw_ar_header+1, 59);
+			/* dont worry about adding the last '\n', we dont need it now */
+		}
 		
-			if ((entry->name[0]='/') && (entry->name[1]='0'))
-				strcpy(entry->name, tempName);
+		entry->size = (size_t) atoi(raw_ar_header.size);
+		/* long filenames have '/' as the first character */
+		if (raw_ar_header.name[0] == '/') {
+			if (raw_ar_header.name[1] == '/') {
+				/* multiple long filenames are stored as data in one entry */
+				long_name = (char *) xrealloc(long_name, entry->size);
+				full_read(srcFd, long_name, entry->size);
+				continue;
+			}
 			else {
-				error_msg("Invalid long filename\n");
-				return(FALSE);
+				/* The number after the '/' indicates the offset in the ar data section
+					(saved in variable long_name) that conatains the real filename */
+				const int long_name_offset = (int) atoi((char *) &raw_ar_header.name[1]);
+				entry->name = xmalloc(strlen(&long_name[long_name_offset]));
+				strcpy(entry->name, &long_name[long_name_offset]);
 			}
 		}
-	}
-	return(TRUE);	
-}
-
-/*
- * return the headerL_t struct for the specified filename
- */
-static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
-{
-#if defined BB_AR_EXPERIMENTAL_UNTAR
-        int tar=FALSE;
-#endif
-	int ar=FALSE;
-	headerL_t *list;
-	off_t initialOffset;
-
-	list = (headerL_t *) xmalloc(sizeof(headerL_t));
-	initialOffset=lseek(srcFd, 0, SEEK_CUR);
-	if (checkArMagic(srcFd)==TRUE) 
-		ar=TRUE;
-
-#if defined BB_AR_EXPERIMENTAL_UNTAR
-	if (checkTarMagic(srcFd)==TRUE)
-		tar=TRUE;
-
-        if (tar==TRUE) {
-                while(readTarHeader(srcFd, list)==TRUE) {
-			off_t tarOffset;
-                        list->next = (headerL_t *) xmalloc(sizeof(headerL_t));
-                        *list->next = *head;
-                        *head = *list;
-
-                        /* recursive check for sub-archives */
-                        if ((funct & RECURSIVE) == RECURSIVE)
-                                head = getHeaders(srcFd, head, funct);
-                        tarOffset = (off_t) head->size/512;
-                        if ( head->size % 512 > 0)
-                                tarOffset++;
-                        tarOffset=tarOffset*512;
-                        lseek(srcFd, head->offset + tarOffset, SEEK_SET);
-                }
-        }
-#endif
-
-        if (ar==TRUE) {
-		lseek(srcFd, 8, SEEK_CUR); 
-        	while(1) {
-			if (readArEntry(srcFd, list) == FALSE) {
-				lseek(srcFd, ++initialOffset, SEEK_CUR); 
-				if (readArEntry(srcFd, list) == FALSE)
-					return(head);
-			}
-			list->next = (headerL_t *) xmalloc(sizeof(headerL_t));
-        		*list->next = *head;
-			*head = *list;
-			/* recursive check for sub-archives */
-			if (funct & RECURSIVE)  
-		        	head = getHeaders(srcFd, head, funct);
-			lseek(srcFd, head->offset + head->size, SEEK_SET);
+		else {
+			/* short filenames */
+			entry->name = xmalloc(16);
+			strncpy(entry->name, raw_ar_header.name, 16);
 		}
-	}
-        return(head);
-}
+		entry->name[strcspn(entry->name, " /")]='\0';
 
-/*
- * find an entry in the linked list matching the filename
- */
-static headerL_t *findEntry(headerL_t *head, const char *filename)
-{
-	while(head->next != NULL) {
-		if (strcmp(filename, head->name)==0) 
-			return(head);
-		head=head->next;
+		/* convert the rest of the now valid char header to its typed struct */	
+		parse_mode(raw_ar_header.mode, &entry->mode);
+		entry->mtime = atoi(raw_ar_header.date);
+		entry->uid = atoi(raw_ar_header.uid);
+		entry->gid = atoi(raw_ar_header.gid);
+		entry->offset = lseek(srcFd, 0, SEEK_CUR);
+
+		/* add this entries header to our combined list */
+		entry->next = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+		*entry->next = *head;
+		*head = *entry;
+		lseek(srcFd, (off_t) entry->size, SEEK_CUR);
 	}
-	return(NULL);
+	return(*head);
 }
 
 extern int ar_main(int argc, char **argv)
 {
-        int funct = 0, opt=0;
-	int srcFd=0, dstFd=0;
- 	headerL_t *header, *entry, *extractList;
+	const int preserve_date = 1;	/* preserve original dates */
+	const int verbose = 2;		/* be verbose */
+	const int display = 4;		/* display contents */
+	const int extract_to_file = 8;	/* extract contents of archive */
+	const int extract_to_stdout = 16;	/* extract to stdout */
 
-	while ((opt = getopt(argc, argv, "ovtpxR")) != -1) {
+	int funct = 0, opt=0;
+	int srcFd=0, dstFd=0;
+
+	ar_headers_t head, *extract_list=NULL;
+
+	extract_list = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+
+	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
 		switch (opt) {
 		case 'o':
-			funct |= PRESERVE_DATE;
+			funct |= preserve_date;
 			break;
 		case 'v':
-			funct |= VERBOSE;
+			funct |= verbose;
 			break;
 		case 't':
-			funct |= DISPLAY;
-			break;
-		case 'x':
-			funct |= EXT_TO_FILE;
+			funct |= display;
 			break;
 		case 'p':
-			funct |= EXT_TO_STDOUT;
+			funct |= extract_to_stdout;
 			break;
-		case 'R':
-			funct |= RECURSIVE;
+		case 'x':
+			funct |= extract_to_file;
 			break;
 		default:
 			usage(ar_usage);
@@ -345,47 +166,54 @@ extern int ar_main(int argc, char **argv)
 	if ( (srcFd = open(argv[optind], O_RDONLY)) < 0)
 		error_msg_and_die("Cannot read %s\n", argv[optind]);
 
- 	optind++;	
-	entry = (headerL_t *) xmalloc(sizeof(headerL_t));
-	header = (headerL_t *) xmalloc(sizeof(headerL_t));
-	extractList = (headerL_t *) xmalloc(sizeof(headerL_t));	
+	optind++;	
+	head = get_headers(srcFd);
 
-	header = getHeaders(srcFd, header, funct);
 	/* find files to extract or display */
-	if (optind<argc) {
-		/* only handle specified files */
-		while(optind < argc) { 
-			if ( (entry = findEntry(header, argv[optind])) != NULL) {
-	                        entry->next = (headerL_t *) xmalloc(sizeof(headerL_t));
-                        	*entry->next = *extractList;
-                        	*extractList = *entry;
+	/* search through argv and build extract list */
+	for (;optind<argc; optind++) {
+		ar_headers_t *ar_entry;
+		ar_entry = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+		ar_entry = &head;
+		while (ar_entry->next != NULL) {
+			if (strcmp(argv[optind], ar_entry->name) == 0) {
+				ar_headers_t *tmp;
+				tmp = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));
+				*tmp = *extract_list;
+				*extract_list = *ar_entry;
+				extract_list->next = tmp;
+				break;					
 			}
-			optind++;
-		}	
+			ar_entry=ar_entry->next;
+		}
 	}
-	else  
-		extractList = header;
+
+	/* if individual files not found extract all files */	
+	if (extract_list->next==NULL) {
+		extract_list = &head;
+	}
 	
-        while(extractList->next != NULL) {	
-		if (funct & EXT_TO_FILE) {
- 			if (is_directory(extractList->name, TRUE, NULL)==FALSE)
-				create_path(extractList->name, 0666);
-			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
-			lseek(srcFd, extractList->offset, SEEK_SET);
-        		copy_file_chunk(srcFd, dstFd, (size_t) extractList->size);
+	/* find files to extract or display */	
+	while (extract_list->next != NULL) {
+		if (funct & extract_to_file) {
+			dstFd = open(extract_list->name, O_WRONLY | O_CREAT, extract_list->mode);				
 		}
-		if (funct & EXT_TO_STDOUT) {	
-                   	lseek(srcFd, extractList->offset, SEEK_SET);
-                        copy_file_chunk(srcFd, fileno(stdout), (size_t) extractList->size);
+		else if (funct & extract_to_stdout) {
+			dstFd = fileno(stdout);
 		}
-		if ( (funct & DISPLAY) || (funct & VERBOSE)) {
-			if (funct & VERBOSE)
-				printf("%s %d/%d %8d %s ", mode_string(extractList->mode), 
-					extractList->uid, extractList->gid,
-					extractList->size, time_string(extractList->mtime));
-		        printf("%s\n", extractList->name);
+		if ((funct & extract_to_file) || (funct & extract_to_stdout)) {
+			lseek(srcFd, extract_list->offset, SEEK_SET);
+			copy_file_chunk(srcFd, dstFd, (size_t) extract_list->size);			
 		}
-		extractList=extractList->next;
+		if (funct & verbose) {
+			printf("%s %d/%d %8d %s ", mode_string(extract_list->mode), 
+				extract_list->uid, extract_list->gid,
+				extract_list->size, time_string(extract_list->mtime));
+		}
+		if ((funct & display) || (funct & verbose)){
+			printf("%s\n", extract_list->name);
+		}
+		extract_list=extract_list->next;
 	}
 	return EXIT_SUCCESS;
 }
