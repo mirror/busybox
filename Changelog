@@ -3,6 +3,9 @@
 	* Bjorn Wesen -- new ifconfig and route applet (taken from 
 	    work done be Axis Communications).
 	* Vladimir N. Oleynik -- new stty applet 
+	* Kenneth Chalmers and Erik Andersen -- fixed ln so it
+	    behaves when given no arguments (prints usage) and when
+	    given just one arg (tries to make a link in the cwd).
 
 	<lots of other things -- fixme>
 
