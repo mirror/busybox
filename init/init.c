@@ -84,10 +84,11 @@ struct serial_struct {
 #define RB_DISABLE_CAD  0
 #define RB_POWER_OFF    0x4321fedc
 #define RB_AUTOBOOT     0x01234567
-#if defined(__GLIBC__)
+#if defined(__GLIBC__) || defined (__UCLIBC__)
 #include <sys/reboot.h>
   #define init_reboot(magic) reboot(magic)
 #else
+  extern int reboot __P ((int __howto));
   #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
 #endif
 #endif
