@@ -123,7 +123,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.57 2001/04/05 07:33:10 andersen Exp $"
+#ident "$Id: insmod.c,v 1.58 2001/04/24 21:41:41 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -329,7 +329,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.57 2001/04/05 07:33:10 andersen Exp $"
+#ident "$Id: insmod.c,v 1.58 2001/04/24 21:41:41 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -715,7 +715,7 @@ static int findNamedModule(const char *fileName, struct stat *statbuf,
 			tmp++;
 		if (check_wildcard_match(tmp, fullName) == TRUE) {
 			/* Stop searching if we find a match */
-			memcpy(m_filename, fileName, strlen(fileName)+1);
+			safe_strncpy(m_filename, fileName, sizeof(m_filename));
 			return (FALSE);
 		}
 	}
@@ -1786,7 +1786,7 @@ static int old_get_kernel_symbols(const char *m_name)
 	int nks, nms, nmod, i;
 
 	nks = get_kernel_syms(NULL);
-	if (nks < 0) {
+	if (nks <= 0) {
 		perror_msg("get_kernel_syms: %s", m_name);
 		return 0;
 	}
@@ -3163,7 +3163,8 @@ extern int insmod_main( int argc, char **argv)
 
 	if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o')
 		len -= 2;
-	strncpy(m_fullName, tmp, len);
+	memcpy(m_fullName, tmp, len);
+	m_fullName[len]='\0';
 	if (*m_name == '\0') {
 		strcpy(m_name, m_fullName);
 	}
@@ -3185,7 +3186,7 @@ extern int insmod_main( int argc, char **argv)
 		} else
 			error_msg_and_die("No module named '%s' found in '%s'", m_fullName, _PATH_MODULES);
 	} else
-		memcpy(m_filename, argv[optind], strlen(argv[optind]));
+		safe_strncpy(m_filename, argv[optind], sizeof(m_filename));
 
 
 	if ((f = obj_load(fp)) == NULL)
