@@ -54,8 +54,7 @@ extern int which_main(int argc, char **argv)
 		found = 0;
 		for (i = 0; i < count; i++) {
 			char *buf;
-			buf = concat_path_file(buf, path_n);
-			buf = concat_path_file(buf, *argv);
+			buf = concat_path_file(path_n, *argv);
 			if (stat (buf, &filestat) == 0
 			    && filestat.st_mode & S_IXUSR)
 			{
@@ -63,6 +62,7 @@ extern int which_main(int argc, char **argv)
 				found = 1;
 				break;
 			}
+			free(buf);
 			path_n += (strlen(path_n) + 1);
 		}
 		if (!found)
