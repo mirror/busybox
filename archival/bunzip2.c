@@ -52,7 +52,7 @@ int bunzip2_main(int argc, char **argv)
 		/* Open input file */
 		src_fd = bb_xopen(compressed_name, O_RDONLY);
 	} else {
-		src_fd = fileno(stdin);
+		src_fd = STDIN_FILENO;
 		opt |= BUNZIP2_OPT_STDOUT;
 	}
 
@@ -62,7 +62,7 @@ int bunzip2_main(int argc, char **argv)
 	}
 
 	if (opt & BUNZIP2_OPT_STDOUT) {
-		dst_fd = fileno(stdout);
+		dst_fd = STDOUT_FILENO;
 	} else {
 		int len = strlen(compressed_name) - 4;
 		if (strcmp(compressed_name + len, ".bz2") != 0) {

@@ -186,7 +186,7 @@ static void cmdedit_reset_term(void)
 {
 	if ((handlers_sets & SET_RESET_TERM) != 0) {
 /* sparc and other have broken termios support: use old termio handling. */
-		setTermSettings(fileno(stdin), (void *) &initial_settings);
+		setTermSettings(STDIN_FILENO, (void *) &initial_settings);
 		handlers_sets &= ~SET_RESET_TERM;
 	}
 	if ((handlers_sets & SET_WCHG_HANDLERS) != 0) {

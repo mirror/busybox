@@ -46,7 +46,7 @@ extern int uncompress_main(int argc, char **argv)
 		int dst_fd;
 
 		if (strcmp(compressed_file, "-") == 0) {
-			src_fd = fileno(stdin);
+			src_fd = STDIN_FILENO;
 			flags |= GUNZIP_TO_STDOUT;
 		} else {
 			src_fd = bb_xopen(compressed_file, O_RDONLY);
@@ -60,7 +60,7 @@ extern int uncompress_main(int argc, char **argv)
 
 		/* Set output filename and number */
 		if (flags & GUNZIP_TO_STDOUT) {
-			dst_fd = fileno(stdout);
+			dst_fd = STDOUT_FILENO;
 		} else {
 			struct stat stat_buf;
 			char *extension;
@@ -96,10 +96,10 @@ extern int uncompress_main(int argc, char **argv)
 			delete_path = uncompressed_file;
 		}
 
-		if (dst_fd != fileno(stdout)) {
+		if (dst_fd != STDOUT_FILENO) {
 			close(dst_fd);
 		}
-		if (src_fd != fileno(stdin)) {
+		if (src_fd != STDIN_FILENO) {
 			close(src_fd);
 		}
 

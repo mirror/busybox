@@ -308,7 +308,7 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	if (tbInfo->verboseFlag) {
 		FILE *vbFd = stdout;
 
-		if (tbInfo->tarFd == fileno(stdout))	/* If the archive goes to stdout, verbose to stderr */
+		if (tbInfo->tarFd == STDOUT_FILENO)	/* If the archive goes to stdout, verbose to stderr */
 			vbFd = stderr;
 
 		fprintf(vbFd, "%s\n", header.name);
@@ -883,7 +883,7 @@ int tar_main(int argc, char **argv)
 	}
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	if (tar_handle->src_fd != fileno(stdin)) {
+	if (tar_handle->src_fd != STDIN_FILENO) {
 		close(tar_handle->src_fd);
 	}
 #endif /* CONFIG_FEATURE_CLEAN_UP */

@@ -311,7 +311,7 @@ static void do_skip(char *fname, int statok)
 	struct stat sbuf;
 
 	if (statok) {
-		if (fstat(fileno(stdin), &sbuf)) {
+		if (fstat(STDIN_FILENO, &sbuf)) {
 			bb_perror_msg_and_die("%s", fname);
 		}
 		if ((!(S_ISCHR(sbuf.st_mode) ||

@@ -98,7 +98,7 @@ extern int gunzip_main(int argc, char **argv)
 		optind++;
 
 		if (old_path == NULL || strcmp(old_path, "-") == 0) {
-			src_fd = fileno(stdin);
+			src_fd = STDIN_FILENO;
 			opt |= GUNZIP_OPT_STDOUT;
 		} else {
 			src_fd = bb_xopen(old_path, O_RDONLY);
@@ -119,7 +119,7 @@ extern int gunzip_main(int argc, char **argv)
 		if (opt & GUNZIP_OPT_TEST) {
 			dst_fd = bb_xopen("/dev/null", O_WRONLY);	/* why does test use filenum 2 ? */
 		} else if (opt & GUNZIP_OPT_STDOUT) {
-			dst_fd = fileno(stdout);
+			dst_fd = STDOUT_FILENO;
 		} else {
 			char *extension;
 
@@ -178,10 +178,10 @@ extern int gunzip_main(int argc, char **argv)
 			delete_path = new_path;
 		}
 
-		if (dst_fd != fileno(stdout)) {
+		if (dst_fd != STDOUT_FILENO) {
 			close(dst_fd);
 		}
-		if (src_fd != fileno(stdin)) {
+		if (src_fd != STDIN_FILENO) {
 			close(src_fd);
 		}
 

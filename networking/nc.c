@@ -79,7 +79,7 @@ int nc_main(int argc, char **argv)
 #ifdef GAPING_SECURITY_HOLE
 	if (pr00gie) {
 		/* won't need stdin */
-		close (fileno(stdin));      
+		close (STDIN_FILENO);      
 	}
 #endif /* GAPING_SECURITY_HOLE */
 

@@ -576,7 +576,7 @@ int tftp_main(int argc, char **argv)
 	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	if (!(fd == fileno(stdout) || fd == fileno(stdin))) {
+	if (!(fd == STDOUT_FILENO || fd == STDIN_FILENO)) {
 	    close(fd);
 	}
 #endif

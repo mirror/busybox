@@ -135,7 +135,7 @@ extern int unzip_main(int argc, char **argv)
 	}
 
 	if (*argv[optind] == '-') {
-		archive_handle->src_fd = fileno(stdin);
+		archive_handle->src_fd = STDIN_FILENO;
 		archive_handle->seek = seek_by_char;
 	} else {
 		archive_handle->src_fd = bb_xopen(argv[optind++], O_RDONLY);

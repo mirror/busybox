@@ -76,7 +76,7 @@ extern int more_main(int argc, char **argv)
 
 
 	/* not use inputing from terminal if usage: more > outfile */
-	if(isatty(fileno(stdout))) {
+	if(isatty(STDOUT_FILENO)) {
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
 			cin = bb_xfopen(CONSOLE_DEV, "r");

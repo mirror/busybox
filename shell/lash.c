@@ -1668,7 +1668,7 @@ int lash_main(int argc_l, char **argv_l)
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
 	if (argv[optind]==NULL && input==stdin &&
-			isatty(fileno(stdin)) && isatty(fileno(stdout))) {
+			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		interactive=TRUE;
 	}
 	setup_job_control();

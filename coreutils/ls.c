@@ -982,13 +982,13 @@ extern int ls_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width.  */
-	get_terminal_width_height(fileno(stdout), &terminal_width, NULL);
+	get_terminal_width_height(STDOUT_FILENO, &terminal_width, NULL);
 	/* Go one less... */
 	terminal_width--;
 #endif
 
 #ifdef CONFIG_FEATURE_LS_COLOR
-	if (isatty(fileno(stdout)))
+	if (isatty(STDOUT_FILENO))
 		show_color = 1;
 #endif
 
@@ -1060,9 +1060,9 @@ extern int ls_main(int argc, char **argv)
 	if ((all_fmt & STYLE_MASK) == STYLE_AUTO)
 #if STYLE_AUTO != 0
 		all_fmt = (all_fmt & ~STYLE_MASK)
-				| (isatty(fileno(stdout)) ? STYLE_COLUMNS : STYLE_SINGLE);
+				| (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
 #else
-		all_fmt |= (isatty(fileno(stdout)) ? STYLE_COLUMNS : STYLE_SINGLE);
+		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
 #endif
 
 	/*

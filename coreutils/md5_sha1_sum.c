@@ -55,7 +55,7 @@ static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
 	int src_fd;
 
 	if (strcmp(filename, "-") == 0) {
-		src_fd = fileno(stdin);
+		src_fd = STDIN_FILENO;
 	} else {
 		src_fd = open(filename, O_RDONLY);
 	}

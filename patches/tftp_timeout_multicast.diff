@@ -1031,7 +1031,7 @@ diff -u -r1.25 tftp.c
 +	result = tftp(cmd, host, remotefile, fd, port, &option);
 
  #ifdef CONFIG_FEATURE_CLEAN_UP
- 	if (!(fd == fileno(stdout) || fd == fileno(stdin))) {
+ 	if (!(fd == STDOUT_FILENO || fd == STDIN_FILENO)) {
 @@ -582,3 +980,18 @@
  #endif
  	return(result);

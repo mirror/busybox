@@ -154,7 +154,7 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
-		fd_local = fileno(stdout);
+		fd_local = STDOUT_FILENO;
 		do_continue = 0;
 	}
 
@@ -230,7 +230,7 @@ static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 
 	/* get the local file */
 	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
-		fd_local = fileno(stdin);
+		fd_local = STDIN_FILENO;
 	} else {
 		fd_local = bb_xopen(local_path, O_RDONLY);
 		fstat(fd_local, &sbuf);
