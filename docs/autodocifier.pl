@@ -47,7 +47,7 @@ sub pod_for_usage {
 	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
 
 	my $full = 
-		join("\n"
+		join("\n",
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
 		split("\n", $usage->{full}));
 
@@ -179,4 +179,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.4 2001/02/23 03:12:45 beppu Exp $
+# $Id: autodocifier.pl,v 1.5 2001/02/23 13:04:39 beppu Exp $
