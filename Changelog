@@ -1,12 +1,17 @@
 0.44
 	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
 	    help messages (i.e --help).  Saves 17k over a full compile.
-	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
-	* Added setkeycodes, for those that have wierd keyboard buttons.
 	* Added cut and tr from minix, since due to the license change, 
 	    we can now use minix code.  Minix tr saves 4k. 
+	* insmod now works.  It costs 29k, but imagine an initrd with a 
+	    staticly linked busybox containing only insmod and sh, a few /dev 
+	    entries, and a kernel module or two...  It doesn't get smaller
+	    then this folks (I pity the fool that writes insmod in asm ;-).
+	    Many kudos go to Ron Alder <alder@lineo.com> for finishing this off!!!
 	* Added a mini ar archive utility, especially written for BusyBox by 
 	    Glenn McGrath <bug1@netconnect.com.au>
+	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
+	* Added setkeycodes, for those that have wierd keyboard buttons.
         * Added 'grep -v' option (inverted search) and updated 
 	    docs accordingly.  -beppu
 	* Wrote which

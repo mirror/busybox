@@ -40,8 +40,7 @@
 #define BB_HOSTNAME
 #define BB_ID
 #define BB_INIT
-// Don't bother turning BB_INSMOD on.  It doesn't work yet.
-//#define BB_INSMOD
+#define BB_INSMOD
 #define BB_KILL
 #define BB_KILLALL
 #define BB_KLOGD
@@ -219,6 +218,15 @@
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
 //
+// You must enable one or both of these features
+// Support installing modules from pre 2.1 kernels
+//#define BB_FEATURE_INSMOD_OLD_KERNEL
+// Support installing modules from kernel versions after 2.1.18
+#define BB_FEATURE_INSMOD_NEW_KERNEL
+//
+// Support module version checking
+//#define BB_FEATURE_INSMOD_VERSION_CHECKING
+//
 //
 // End of Features List
 //
@@ -269,5 +277,11 @@
 #if defined BB_FEATURE_SH_COMMAND_EDITING
 #ifndef BB_FEATURE_USE_TERMIOS
 #define BB_FEATURE_USE_TERMIOS
+#endif
+#endif
+//
+#if defined BB_INSMOD
+#ifndef BB_FEATURE_INSMOD_OLD_KERNEL
+#define BB_FEATURE_INSMOD_NEW_KERNEL
 #endif
 #endif

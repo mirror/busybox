@@ -33,8 +33,8 @@
  || defined (BB_INSMOD)
 /* same conditions as recursiveAction */
 #define bb_need_name_too_long
-#define bb_need_memory_exhausted
 #endif
+#define bb_need_memory_exhausted
 #define BB_DECLARE_EXTERN
 #include "messages.c"
 
@@ -1056,7 +1056,7 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle,
 #endif							/* ! BB_REGEXP && (BB_GREP || BB_SED) */
 
 
-#if defined BB_FIND
+#if defined BB_FIND || defined BB_INSMOD
 /*
  * Routine to see if a text string is matched by a wildcard pattern.
  * Returns TRUE if the text is matched, or FALSE if it is not matched
@@ -1156,7 +1156,7 @@ extern int check_wildcard_match(const char *text, const char *pattern)
 
 	return TRUE;
 }
-#endif							/* BB_FIND */
+#endif                            /* BB_FIND || BB_INSMOD */
 
 
 
