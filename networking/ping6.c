@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.4 2003/03/19 09:12:38 mjn3 Exp $
+ * $Id: ping6.c,v 1.5 2003/05/22 07:10:22 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -77,6 +77,8 @@ static void ping(const char *host);
 
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING6
+static struct hostent *h;
+
 void noresp(int ign)
 {
 	printf("No response from %s\n", h->h_name);
@@ -85,7 +87,6 @@ void noresp(int ign)
 
 static void ping(const char *host)
 {
-	struct hostent *h;
 	struct sockaddr_in6 pingaddr;
 	struct icmp6_hdr *pkt;
 	int pingsock, c;
