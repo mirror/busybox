@@ -628,9 +628,9 @@
 	"-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n"
 
 #define gzip_trivial_usage \
-	"[OPTION]... [FILE]"
+	"[OPTION]... [FILE]..."
 #define gzip_full_usage \
-	"Compress FILE with maximum compression.\n" \
+	"Compress FILE(s) with maximum compression.\n" \
 	"When FILE is '-' or unspecified, reads standard input.  Implies -c.\n\n" \
 	"Options:\n" \
 	"\t-c\tWrite output to standard output instead of FILE.gz\n" \

@@ -317,8 +317,6 @@ static long ifile_size;				/* input file size, -1 for devices (debug only) */
 static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
 static int z_len;						/* strlen(z_suffix) */
 
-static char ifname[MAX_PATH_LEN];		/* input file name */
-static char ofname[MAX_PATH_LEN];		/* output file name */
 static int ifd;						/* input file descriptor */
 static int ofd;						/* output file descriptor */
 static unsigned insize;				/* valid bytes in inbuf */
@@ -1214,7 +1212,6 @@ int gzip_main(int argc, char **argv)
 	struct stat statBuf;
 	char *delFileName;
 	int tostdout = 0;
-	int fromstdin = 0;
 	int force = 0;
 	int opt;
 
@@ -1241,16 +1238,6 @@ int gzip_main(int argc, char **argv)
 			show_usage();
 		}
 	}
-	if ((optind == argc) || (strcmp(argv[optind], "-") == 0)) {
-		fromstdin = 1;
-		tostdout = 1;
-	}
-
-	if (argc - optind > 1)
-		show_usage ();
-
-	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
-		error_msg_and_die( "compressed data not written to terminal. Use -f to force it.");
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
@@ -1277,70 +1264,78 @@ int gzip_main(int argc, char **argv)
 	ALLOC(uch, window, 2L * WSIZE);
 	ALLOC(ush, tab_prefix, 1L << BITS);
 
-	if (fromstdin == 1) {
-		strcpy(ofname, "stdin");
+	clear_bufs();
+	part_nb = 0;
 
-		inFileNum = fileno(stdin);
-		time_stamp = 0;			/* time unknown by default */
-		ifile_size = -1L;		/* convention for unknown size */
+	if (optind == argc) {
+		time_stamp = 0;
+		ifile_size = -1L;
+		zip(STDIN_FILENO, STDOUT_FILENO);
 	} else {
-		/* Open up the input file */
-		strncpy(ifname, argv[optind], MAX_PATH_LEN);
+		int i;
 
-		/* Open input file */
-		inFileNum = open(ifname, O_RDONLY);
-		if (inFileNum < 0 || stat(ifname, &statBuf) < 0)
-			perror_msg_and_die("%s", ifname);
-		/* Get the time stamp on the input file. */
-		time_stamp = statBuf.st_ctime;
-		ifile_size = statBuf.st_size;
-	}
+		for (i = optind; i < argc; i++) {
+			char *path = NULL;
 
+			if (strcmp(argv[i], "-") == 0) {
+				time_stamp = 0;
+				ifile_size = -1L;
+				inFileNum = STDIN_FILENO;
+				outFileNum = STDOUT_FILENO;
+			} else {
+				inFileNum = open(argv[i], O_RDONLY);
+				if (inFileNum < 0 || fstat (inFileNum, &statBuf) < 0)
+					perror_msg_and_die("%s", argv[i]);
+				time_stamp = statBuf.st_ctime;
+				ifile_size = statBuf.st_size;
 
-	if (tostdout == 1) {
-		/* And get to work */
-		strcpy(ofname, "stdout");
-		outFileNum = fileno(stdout);
+				if (!tostdout) {
+					path = xmalloc(strlen(argv[i]) + 4);
+					strcpy(path, argv[i]);
+					strcat(path, ".gz");
 
-		clear_bufs();			/* clear input and output buffers */
-		part_nb = 0;
-
-		/* Actually do the compression/decompression. */
-		zip(inFileNum, outFileNum);
-
-	} else {
-
-		/* And get to work */
-		strncpy(ofname, ifname, MAX_PATH_LEN - 4);
-		strcat(ofname, ".gz");
-
-
-		/* Open output fille */
+					/* Open output file */
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-		outFileNum = open(ofname, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
+					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
 #else
-		outFileNum = open(ofname, O_RDWR | O_CREAT | O_EXCL);
+					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
 #endif
-		if (outFileNum < 0)
-			perror_msg_and_die("%s", ofname);
-		/* Set permissions on the file */
-		fchmod(outFileNum, statBuf.st_mode);
+					if (outFileNum < 0) {
+						perror_msg("%s", path);
+						free(path);
+						continue;
+					}
 
-		clear_bufs();			/* clear input and output buffers */
-		part_nb = 0;
+					/* Set permissions on the file */
+					fchmod(outFileNum, statBuf.st_mode);
+				} else
+					outFileNum = STDOUT_FILENO;
+			}
 
-		/* Actually do the compression/decompression. */
-		result = zip(inFileNum, outFileNum);
-		close(outFileNum);
-		close(inFileNum);
-		/* Delete the original file */
-		if (result == OK)
-			delFileName = ifname;
-		else
-			delFileName = ofname;
+			if (path == NULL && force == 0) {
+				perror_msg("compressed data not written to a terminal. Use -f to force compression.");
+				free(path);
+				continue;
+			}
 
-		if (unlink(delFileName) < 0)
-			perror_msg_and_die("%s", delFileName);
+			result = zip(inFileNum, outFileNum);
+
+			if (path != NULL) {
+				close (inFileNum);
+				close (outFileNum);
+
+				/* Delete the original file */
+				if (result == OK)
+					delFileName = argv[i];
+				else
+					delFileName = path;
+
+				if (unlink(delFileName) < 0)
+					perror_msg("%s", delFileName);
+			}
+
+			free(path);
+		}
 	}
 
 	return(exit_code);
