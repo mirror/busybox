@@ -61,6 +61,9 @@
 #ifdef CONFIG_ASH
 	APPLET_NOUSAGE("ash", ash_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_AWK
+	APPLET(awk, awk_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_BASENAME
 	APPLET(basename, basename_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

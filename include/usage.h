@@ -38,6 +38,14 @@
 	"\t-x\t\textract\n" \
 	"\t-v\t\tverbosely list files processed\n"
 
+#define	awk_trivial_usage \
+	"[-v var=val][-F sep] { -f progname | 'programtext' } [FILE ...]"
+#define	awk_full_usage \
+	"Options:\n" \
+	"\t-v var=val\tassign value 'val' to variable 'var'\n" \
+	"\t-F sep\t\tuse 'sep' as field separator\n" \
+	"\t-f progname\tread program source from file 'progname'\n"
+
 #define basename_trivial_usage \
 	"FILE [SUFFIX]"
 #define basename_full_usage \
