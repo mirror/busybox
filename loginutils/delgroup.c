@@ -29,11 +29,11 @@
 #include "busybox.h"
 
 
+#if ! defined CONFIG_DELUSER
 #include "delline.c"
+#endif
 
-static const char deluser_format[]="%s: User could not be removed from %s";
-
-int deluser_main(int argc, char **argv)
+int delgroup_main(int argc, char **argv)
 {
 	/* int successful; */
 	int failure;
@@ -42,27 +42,19 @@ int deluser_main(int argc, char **argv)
 		bb_show_usage();
 	} else {
 
-		failure = del_line_matching(argv[1], bb_path_passwd_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_passwd_file);
-		}
+		failure = del_line_matching(argv[1], bb_path_group_file);
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		failure = del_line_matching(argv[1], bb_path_shadow_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_shadow_file);
-		}
-		failure = del_line_matching(argv[1], bb_path_gshadow_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_gshadow_file);
+		if (access(bb_path_gshadow_file, W_OK) == 0) {
+			/* EDR the |= works if the error is not 0, so he had it wrong */
+			failure |= del_line_matching(argv[1], bb_path_gshadow_file);
 		}
 #endif
-		failure = del_line_matching(argv[1], bb_path_group_file);
 		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_group_file);
+			bb_error_msg_and_die("%s: Group could not be removed\n", argv[1]);
 		}
 
 	}
 	return (EXIT_SUCCESS);
 }
 
-/* $Id: deluser.c,v 1.4 2003/07/14 20:20:45 andersen Exp $ */
+/* $Id: delgroup.c,v 1.1 2003/07/14 20:20:45 andersen Exp $ */
