@@ -1176,10 +1176,43 @@ void clear_bufs(void)
 	bytes_in = bytes_out = 0L;
 }
 
+/* ===========================================================================
+ * Initialize gunzip buffers and signals
+ */
+static int gunzip_init()
+{
+	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
+	if (foreground) {
+		(void) signal(SIGINT, (sig_type) abort_gzip);
+	}
+#ifdef SIGTERM
+	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
+		(void) signal(SIGTERM, (sig_type) abort_gzip);
+	}
+#endif
+#ifdef SIGHUP
+	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
+		(void) signal(SIGHUP, (sig_type) abort_gzip);
+	}
+#endif
+
+	/* Allocate all global buffers (for DYN_ALLOC option) */
+	inbuf = xmalloc((size_t)((INBUFSIZ+INBUF_EXTRA+1L)*sizeof(uch)));
+	outbuf = xmalloc((size_t)((OUTBUFSIZ+OUTBUF_EXTRA+1L)*sizeof(uch)));
+	d_buf = xmalloc((size_t)((DIST_BUFSIZE+1L)*sizeof(ush)));
+	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(uch)));
+	tab_prefix0 = xmalloc((size_t)(((1L<<(BITS-1))+1L)*sizeof(ush)));	
+	tab_prefix1 = xmalloc((size_t)(((1L<<(BITS-1))+1L)*sizeof(ush)));
+	
+	clear_bufs();			/* clear input and output buffers */
+	part_nb = 0;
+	return(EXIT_SUCCESS);	
+}
+
+
 /* ======================================================================== */
 int gunzip_main(int argc, char **argv)
 {
-	int file_count;				/* number of files to precess */
 	int tostdout = 0;
 	int fromstdin = 0;
 	int result;
@@ -1229,31 +1262,7 @@ int gunzip_main(int argc, char **argv)
 	if (isatty(fileno(stdout)) && tostdout==1 && force==0)
 		error_msg_and_die( "data not written to terminal. Use -f to force it.\n");
 
-
-	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
-	if (foreground) {
-		(void) signal(SIGINT, (sig_type) abort_gzip);
-	}
-#ifdef SIGTERM
-	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGTERM, (sig_type) abort_gzip);
-	}
-#endif
-#ifdef SIGHUP
-	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGHUP, (sig_type) abort_gzip);
-	}
-#endif
-
-	file_count = argc - optind;
-
-	/* Allocate all global buffers (for DYN_ALLOC option) */
-	inbuf = xmalloc((size_t)((INBUFSIZ+INBUF_EXTRA+1L)*sizeof(uch)));
-	outbuf = xmalloc((size_t)((OUTBUFSIZ+OUTBUF_EXTRA+1L)*sizeof(uch)));
-	d_buf = xmalloc((size_t)((DIST_BUFSIZE+1L)*sizeof(ush)));
-	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(uch)));
-	tab_prefix0 = xmalloc((size_t)(((1L<<(BITS-1))+1L)*sizeof(ush)));	
-	tab_prefix1 = xmalloc((size_t)(((1L<<(BITS-1))+1L)*sizeof(ush)));	
+	gunzip_init();
 
 	if (fromstdin == 1) {
 		strcpy(ofname, "stdin");
@@ -1289,9 +1298,6 @@ int gunzip_main(int argc, char **argv)
 		/* And get to work */
 		strcpy(ofname, "stdout");
 		outFileNum = fileno(stdout);
-
-		clear_bufs();			/* clear input and output buffers */
-		part_nb = 0;
 
 		/* Actually do the compression/decompression. */
 		unzip(inFileNum, outFileNum);
@@ -1333,9 +1339,6 @@ int gunzip_main(int argc, char **argv)
 		}
 		/* Set permissions on the file */
 		fchmod(outFileNum, statBuf.st_mode);
-
-		clear_bufs();			/* clear input and output buffers */
-		part_nb = 0;
 
 		/* Actually do the compression/decompression. */
 		result = unzip(inFileNum, outFileNum);
