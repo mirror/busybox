@@ -37,16 +37,17 @@ Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
 
 =for html <br>
 
+John Beppu <beppu@lineo.com>
+
+    du, head, nslookup, sort, tee, uniq (so Kraai could rewrite them ;-),
+    documentation
+
+=for html <br>
+
 Edward Betts <edward@debian.org>
 
     expr, hostid, logname, tty, wc, whoami, yes
  
-=for html <br>
-
-John Beppu <beppu@lineo.com>
-
-    du, head, nslookup, sort, tee, uniq
-
 =for html <br>
 
 Brian Candler <B.Candler@pobox.com>
@@ -68,9 +69,21 @@ Dave Cinege <dcinege@psychosis.com>
 
 =for html <br>
 
+Larry Doolittle <ldoolitt@recycle.lbl.gov>
+
+    various fixes, shell rewrite
+
+=for html <br>
+
 Karl M. Hegbloom <karlheg@debian.org>
 
     cp_mv.c, the test suite, various fixes to utility.c, &c.
+
+=for html <br>
+
+Sterling Huxley <sterling@europa.com>
+
+    vi (!!!)
 
 =for html <br>
 
@@ -153,4 +166,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.3 2001/04/09 23:27:51 kraai Exp $
+# $Id: busybox_footer.pod,v 1.4 2001/04/17 17:09:34 beppu Exp $

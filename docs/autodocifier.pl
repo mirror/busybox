@@ -62,12 +62,12 @@ sub pod_for_usage {
 	}
 	my $full = join("\n", @f1);
 
-	# prepare notes if they exists
+	# prepare notes if they exist
 	my $notes = (defined $usage->{notes})
 		? "$usage->{notes}\n\n"
 		: "";
 
-	# prepare example if one exists
+	# prepare examples if they exist
 	my $example = (defined $usage->{example})
 		?  
 			"Example:\n\n" .
@@ -107,6 +107,7 @@ sub sgml_for_usage {
 # {
 #     trivial => "...",
 #     full    => "...",
+#     notes   => "...",
 #     example => "...",
 # }
 my %docs;
@@ -176,7 +177,13 @@ autodocifier.pl - generate docs for busybox based on usage.h
 
 =head1 SYNOPSIS
 
-autodocifier.pl usage.h > something
+autodocifier.pl [OPTION]... [FILE]...
+
+Example:
+
+    ( cat docs/busybox_header.pod; \
+      docs/autodocifier.pl usage.h; \
+      cat docs/busybox_footer.pod ) > docs/busybox.pod
 
 =head1 DESCRIPTION
 
@@ -186,7 +193,8 @@ Currently, the same content has to be duplicated in 3 places in
 slightly different formats -- F<usage.h>, F<docs/busybox.pod>, and
 F<docs/busybox.sgml>.  This is tedious, so Perl has come to the rescue.
 
-This script was based on a script by Erik Andersen (andersen@lineo.com).
+This script was based on a script by Erik Andersen <andersen@lineo.com>
+which was in turn based on a script by Mark Whitley <markw@lineo.com>
 
 =head1 OPTIONS
 
@@ -219,7 +227,7 @@ The following is an example of some data this script might parse.
     #define length_full_usage \
             "Prints out the length of the specified STRING."
     #define length_example_usage \
-            "$ length "Hello"\n" \
+            "$ length Hello\n" \
             "5\n"
 
 Each entry is a cpp macro that defines a string.  The macros are
@@ -249,13 +257,14 @@ is disabled.  I<REQUIRED>
 =item B<notes>
 
 This is documentation that is intended to go in the POD or SGML, but
-not be output when a B<-h> is given to a command.  To see an example
+not be printed when a B<-h> is given to a command.  To see an example
 of notes being used, see init_notes_usage.  I<OPTIONAL>
 
 =item B<example>
 
 This should be an example of how the command is acutally used.
-I<OPTIONAL>
+This will not be printed when a B<-h> is given to a command -- it
+is inteded only for the POD or SGML documentation.  I<OPTIONAL>
 
 =back
 
@@ -275,4 +284,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.20 2001/04/10 00:00:05 kraai Exp $
+# $Id: autodocifier.pl,v 1.21 2001/04/17 17:09:34 beppu Exp $

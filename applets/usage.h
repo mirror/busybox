@@ -338,7 +338,7 @@
 #define echo_example_usage \
 	"$ echo "Erik is cool"\n" \
 	"Erik is cool\n" \
-	"$  echo -e "Erik\nis\ncool"\n" \
+	"$  echo -e "Erik\\nis\\ncool"\n" \
 	"Erik\n" \
 	"is\n" \
 	"cool\n" \
@@ -439,7 +439,7 @@
 	"the current directory; default EXPRESSION is '-print'\n" \
 	"\nEXPRESSION may consist of:\n" \
 	"\t-follow\t\tDereference symbolic links.\n" \
-	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN." \
+	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN.\n" \
 	"\t-print\t\tPrint (default and assumed).\n" \
 	USAGE_FIND_TYPE( \
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)" \
@@ -822,7 +822,7 @@
 #define length_full_usage \
 	"Prints out the length of the specified STRING."
 #define length_example_usage \
-	"$ length "Hello"\n" \
+	"$ length Hello\n" \
 	"5\n"
 
 #define ln_trivial_usage \
@@ -1204,7 +1204,7 @@
 	"Formats and prints ARGUMENT(s) according to FORMAT,\n" \
 	"Where FORMAT controls the output exactly as in C printf."
 #define printf_example_usage \
-	"$ printf "Val=%d\n" 5\n" \
+	"$ printf "Val=%d\\n" 5\n" \
 	"Val=5\n" 
 
 #define ps_trivial_usage \
@@ -1366,7 +1366,7 @@
 #define sort_full_usage \
 	"Sorts lines of text in the specified files"
 #define sort_example_usage \
-	"$ echo -e "e\nf\nb\nd\nc\na" | sort\n" \
+	"$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
 	"a\n" \
 	"b\n" \
 	"c\n" \
@@ -1543,7 +1543,7 @@
         USAGE_TFTP_PUT(	\
 	"\tput\tPut local file SOURCE to server DEST.\n" \
 	) \
-	"\nWhen nameing a server, use the syntax \"server:file\"."
+	"\nWhen naming a server, use the syntax \"server:file\"."
 
 #define touch_trivial_usage \
 	"[-c] file [file ...]"
@@ -1599,11 +1599,11 @@
 	"[flags] filesystem|directory"
 #define umount_full_usage \
 	"Unmount file systems\n" \
-	"\nFlags:\n" "\t-a:\tUnmount all file systems" \
-	USAGE_MTAB(" in /etc/mtab\n\t-n:\tDon't erase /etc/mtab entries") \
-	"\n\t-r:\tTry to remount devices as read-only if mount is busy" \
-	USAGE_MOUNT_FORCE("\n\t-f:\tForce filesystem umount (i.e. unreachable NFS server)") \
-	USAGE_MOUNT_LOOP("\n\t-l:\tDo not free loop device (if a loop device has been used)")
+	"\nFlags:\n" "\t-a\tUnmount all file systems" \
+	USAGE_MTAB(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
+	"\n\t-r\tTry to remount devices as read-only if mount is busy" \
+	USAGE_MOUNT_FORCE("\n\t-f\tForce filesystem umount (i.e. unreachable NFS server)") \
+	USAGE_MOUNT_LOOP("\n\t-l\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
 	"$ umount /dev/hdc1 \n"
 
@@ -1633,7 +1633,7 @@
 	"\t-d\tonly print duplicate lines\n" \
 	"\t-u\tonly print unique lines"
 #define uniq_example_usage \
-	"$ echo -e "a\na\nb\nc\nc\na" | sort | uniq\n" \
+	"$ echo -e \"a\\na\\nb\\nc\\nc\\na\" | sort | uniq\n" \
 	"a\n" \
 	"b\n" \
 	"c\n"

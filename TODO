@@ -12,7 +12,7 @@ around to it some time. If you have any good ideas, please let me know.
 
 * The busybox shell, lash, is really too weak for serious use, although it is
     possible to run many simple systems with it.  BusyBox 0.49 was supposed to
-    have a new shell, updated to understand full Bourne grammer.  Well, that
+    have a new shell, updated to understand full Bourne grammar.  Well, that
     simply didn't happen in time for the release.  A rewrite is in progress
     that will result in a new shell that understands the full Bourne grammar.
     This new shell is being championed by Larry Doolittle
@@ -54,5 +54,9 @@ and then start with the biggest things and make them smaller...
 -----------------------
 
  du.c probably ought to have an -x switch like GNU du does...
+
+-----------------------
+
+xargs could use a -l option
 
 ------------------------------------------------------------------

@@ -441,15 +441,17 @@ WORK IN PROGRESS, only usefull for debian-installer
 
 =item B<dpkg_deb>
 
-dpkg_deb [B<-cexX>] file directory
+dpkg_deb [B<-cefItxX>] file [argument]
 
 Perform actions on debian packages (.debs)
 
 Options:
 
-	-c	List contents of filesystem tree (verbose)
-	-l	List contents of filesystem tree (.list format)
-	-e	Extract control files to directory
+	-c	List contents of filesystem tree
+	-e	Extract control files to [argument] directory
+	-f	Display control field name starting with [argument]
+	-I	Display the control filenamed [argument]
+	-t	Extract filesystem tree to stdout in tar format
 	-x	Exctract packages filesystem tree to directory
 	-X	Verbose extract
 
@@ -538,9 +540,7 @@ Example:
 
 	$ echo "Erik is cool"
 	Erik is cool
-	$  echo -e "Erik
-	is
-	cool"
+	$  echo -e "Erik\nis\ncool"
 	Erik
 	is
 	cool
@@ -658,7 +658,8 @@ the current directory; default EXPRESSION is 'B<-print>'
 EXPRESSION may consist of:
 
 	-follow		Dereference symbolic links.
-	-name PATTERN	File name (leading directories removed) matches PATTERN.	-print		Print (default and assumed).
+	-name PATTERN	File name (leading directories removed) matches PATTERN.
+	-print		Print (default and assumed).
 
 	-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)
 	-perm PERMS	Permissions match any of (+NNN); all of (-NNN);
@@ -1610,8 +1611,7 @@ Where FORMAT controls the output exactly as in C printf.
 
 Example:
 
-	$ printf "Val=%d
-	" 5
+	$ printf "Val=%d\n" 5
 	Val=5
 
 -------------------------------
@@ -1840,12 +1840,7 @@ Sorts lines of text in the specified files
 
 Example:
 
-	$ echo -e "e
-	f
-	b
-	d
-	c
-	a" | sort
+	$ echo -e "e\nf\nb\nd\nc\na" | sort
 	a
 	b
 	c
@@ -2046,7 +2041,7 @@ Commands:
 	get	Get file from server SOURCE and store to local DEST.
 	put	Put local file SOURCE to server DEST.
 
-When nameing a server, use the syntax "server:file".
+When naming a server, use the syntax "server:file".
 
 -------------------------------
 
@@ -2129,11 +2124,11 @@ Unmount file systems
 
 Flags:
 
-	-a:	Unmount all file systems in /etc/mtab
-	-n:	Don't erase /etc/mtab entries
-	-r:	Try to remount devices as read-only if mount is busy
-	-f:	Force filesystem umount (i.e. unreachable NFS server)
-	-l:	Do not free loop device (if a loop device has been used)
+	-a	Unmount all file systems in /etc/mtab
+	-n	Don't erase /etc/mtab entries
+	-r	Try to remount devices as read-only if mount is busy
+	-f	Force filesystem umount (i.e. unreachable NFS server)
+	-l	Do not free loop device (if a loop device has been used)
 
 Example:
 
@@ -2179,12 +2174,7 @@ Options:
 
 Example:
 
-	$ echo -e "a
-	a
-	b
-	c
-	c
-	a" | sort | uniq
+	$ echo -e "a\na\nb\nc\nc\na" | sort | uniq
 	a
 	b
 	c
@@ -2537,4 +2527,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.100 2001/04/10 18:17:05 andersen Exp $
+# $Id: busybox.pod,v 1.101 2001/04/17 17:09:34 beppu Exp $
