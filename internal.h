@@ -164,8 +164,8 @@ extern int yes_main(int argc, char** argv);
 
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
-extern void errorMsg(const char *s, ...);
-extern void fatalError(const char *s, ...) __attribute__ ((noreturn));
+extern void errorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void fatalError(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);

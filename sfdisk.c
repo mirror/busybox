@@ -208,6 +208,7 @@ static int opt_list = 0;
 static char *save_sector_file = NULL;
 static char *restore_sector_file = NULL;
 
+static void warn(char *s, ...) __attribute__ ((format (printf, 1, 2)));
 static void warn(char *s, ...)
 {
 	va_list p;
@@ -250,7 +251,7 @@ static int sseek(char *dev, unsigned int fd, unsigned long s)
 	if ((out = lseek(fd, in, SEEK_SET)) != in) {
 #endif
 		perror("llseek");
-		errorMsg("seek error on %s - cannot seek to %lu\n", dev, s, FALSE);
+		errorMsg("seek error on %s - cannot seek to %lu\n", dev, s);
 		return 0;
 	}
 
@@ -393,7 +394,7 @@ static int save_sectors(char *dev, int fdin)
 			}
 			if (write(fdout, ss, sizeof(ss)) != sizeof(ss)) {
 				perror("write");
-				errorMsg("write error on %s\n"), save_sector_file;
+				errorMsg("write error on %s\n", save_sector_file);
 				return 0;
 			}
 		}
@@ -432,14 +433,14 @@ static int restore_sectors(char *dev)
 	}
 	if (read(fdin, ss, statbuf.st_size) != statbuf.st_size) {
 		perror("read");
-		errorMsg("error reading %s\n"), restore_sector_file;
+		errorMsg("error reading %s\n", restore_sector_file);
 		return 0;
 	}
 
 	fdout = open(dev, O_WRONLY);
 	if (fdout < 0) {
 		perror(dev);
-		errorMsg("cannot open device %s for writing\n"), dev;
+		errorMsg("cannot open device %s for writing\n", dev);
 		return 0;
 	}
 
@@ -517,7 +518,7 @@ static void get_cylindersize(char *dev, int fd, int silent)
 	if (ioctl_ok) {
 		if (g.start && !force) {
 			warn
-				("Warning: start=%d - this looks like a partition rather than\n"
+				("Warning: start=%ld - this looks like a partition rather than\n"
 				 "the entire disk. Using fdisk on it is probably meaningless.\n"
 				 "[Use the --force option if you really want this]\n",
 				 g.start);
@@ -537,7 +538,7 @@ static void get_cylindersize(char *dev, int fd, int silent)
 			printf("Disk %s: cannot get geometry\n", dev);
 	if (B.sectors > 63)
 		warn
-			("Warning: unlikely number of sectors (%d - usually at most 63\n"
+			("Warning: unlikely number of sectors (%ld - usually at most 63\n"
 			 "This will give problems with all software that uses C/H/S addressing.\n",
 			 B.sectors);
 	if (!silent)
@@ -626,17 +627,17 @@ static int chs_ok(chs a, char *v, char *w)
 		return 1;
 	if (B.heads && aa.h >= B.heads) {
 		warn("%s of partition %s has impossible value for head: "
-			 "%d (should be in 0-%d)\n", w, v, aa.h, B.heads - 1);
+			 "%ld (should be in 0-%ld)\n", w, v, aa.h, B.heads - 1);
 		ret = 0;
 	}
 	if (B.sectors && (aa.s == 0 || aa.s > B.sectors)) {
 		warn("%s of partition %s has impossible value for sector: "
-			 "%d (should be in 1-%d)\n", w, v, aa.s, B.sectors);
+			 "%ld (should be in 1-%ld)\n", w, v, aa.s, B.sectors);
 		ret = 0;
 	}
 	if (B.cylinders && aa.c >= B.cylinders) {
 		warn("%s of partition %s has impossible value for cylinders: "
-			 "%d (should be in 0-%d)\n", w, v, aa.c, B.cylinders - 1);
+			 "%ld (should be in 0-%ld)\n", w, v, aa.c, B.cylinders - 1);
 		ret = 0;
 	}
 	return ret;
@@ -881,7 +882,7 @@ static int asc_to_index(char *pnam, struct disk_desc *z)
 		pno = linux_to_index(pnum, z);
 	}
 	if (!(pno >= 0 && pno < z->partno))
-		fatalError("%s: no such partition\n"), pnam;
+		fatalError("%s: no such partition\n", pnam);
 	return pno;
 }
 
@@ -1211,7 +1212,7 @@ static int partitions_ok(struct disk_desc *z)
 		if (!partno)
 			fatalError("no partition table present.\n");
 		else
-			fatalError("strange, only %d partitions defined.\n"), partno;
+			fatalError("strange, only %d partitions defined.\n", partno);
 		return 0;
 	}
 
@@ -1240,8 +1241,8 @@ static int partitions_ok(struct disk_desc *z)
 				q = p->ep;
 				if (p->start < q->start
 					|| p->start + p->size > q->start + q->size) {
-					warn("Warning: partition %s "), PNO(p);
-					warn("is not contained in partition %s\n"), PNO(q);
+					warn("Warning: partition %s ", PNO(p));
+					warn("is not contained in partition %s\n", PNO(q));
 					return 0;
 				}
 			}
@@ -1252,8 +1253,8 @@ static int partitions_ok(struct disk_desc *z)
 			for (q = p + 1; q < partitions + partno; q++)
 				if (q->size && !is_extended(q->p.sys_type))
 					if (!((p->start > q->start) ? disj(q, p) : disj(p, q))) {
-						warn("Warning: partitions %s "), PNO(p);
-						warn("and %s overlap\n"), PNO(q);
+						warn("Warning: partitions %s ", PNO(p));
+						warn("and %s overlap\n", PNO(q));
 						return 0;
 					}
 
@@ -1661,7 +1662,7 @@ static int write_partitions(char *dev, int fd, struct disk_desc *z)
 		}
 	}
 	if (!write_sectors(dev, fd)) {
-		errorMsg("Failed writing the partition on %s\n"), dev;
+		errorMsg("Failed writing the partition on %s\n", dev);
 		return 0;
 	}
 	return 1;
@@ -1791,7 +1792,7 @@ read_stdin(unsigned char **fields, unsigned char *line, int fieldssize,
 				goto nxtfld;
 			}
 		}
-		fatalError("unrecognized input: %s\n"), ip;
+		fatalError("unrecognized input: %s\n", ip);
 	}
 
 	/* split line into fields */
@@ -2651,7 +2652,7 @@ static void do_list(char *dev, int silent)
 
 	if (verify) {
 		if (partitions_ok(z))
-			warn("%s: OK\n"), dev;
+			warn("%s: OK\n", dev);
 		else
 			exit_status = 1;
 	}
@@ -2687,7 +2688,7 @@ static void do_size(char *dev, int silent)
 	if (ioctl(fd, BLKGETSIZE, &size)) {
 		if (!silent) {
 			perror(dev);
-			fatalError("BLKGETSIZE ioctl failed for %s\n"), dev;
+			fatalError("BLKGETSIZE ioctl failed for %s\n", dev);
 		}
 		return;
 	}
@@ -2865,7 +2866,7 @@ static void do_change_id(char *dev, char *pnam, char *id)
 	}
 	i = strtoul(id, NULL, 16);
 	if (i > 255)
-		fatalError("Bad Id %x\n"), i;
+		fatalError("Bad Id %lx\n", i);
 	z->partitions[pno].p.sys_type = i;
 
 	if (write_partitions(dev, fd, z))
@@ -2897,10 +2898,10 @@ static void do_fdisk(char *dev)
 
 	if (stat(dev, &statbuf) < 0) {
 		perror(dev);
-		fatalError("Fatal error: cannot find %s\n"), dev;
+		fatalError("Fatal error: cannot find %s\n", dev);
 	}
 	if (!S_ISBLK(statbuf.st_mode)) {
-		warn("Warning: %s is not a block device\n"), dev;
+		warn("Warning: %s is not a block device\n", dev);
 		no_reread = 1;
 	}
 	fd = my_open(dev, !no_write, 0);
@@ -2930,7 +2931,7 @@ static void do_fdisk(char *dev)
 	out_partitions(dev, z);
 
 	if (one_only && (one_only_pno = linux_to_index(one_only, z)) < 0)
-		fatalError("Partition %d does not exist, cannot change it\n"), one_only;
+		fatalError("Partition %d does not exist, cannot change it\n", one_only);
 
 	z = &newp;
 

@@ -75,6 +75,8 @@ static const char syslogd_usage[] =
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
 static void message(char *fmt, ...)
+		   __attribute__ ((format (printf, 1, 2)));
+static void message(char *fmt, ...)
 {
 	int fd;
 	va_list arguments;

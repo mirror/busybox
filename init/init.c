@@ -136,6 +136,8 @@ static void delete_initAction(initAction * action);
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
 static void message(int device, char *fmt, ...)
+		   __attribute__ ((format (printf, 2, 3)));
+static void message(int device, char *fmt, ...)
 {
 	va_list arguments;
 	int fd;
