@@ -12583,17 +12583,34 @@ readcmd(int argc, char **argv)
 	char *prompt;
 	const char *ifs;
 	char *p;
+#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+	fd_set set;
+	int timeout;
+	struct timeval timeout_struct;
+	struct termios tty, old_tty;
+#endif
 	int startword;
 	int status;
 	int i;
 
 	rflag = 0;
 	prompt = NULL;
-	while ((i = nextopt("p:r")) != '\0') {
+#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+	timeout = 0;
+
+	while ((i = nextopt("p:rt:")) != '\0')
+#else
+	while ((i = nextopt("p:r")) != '\0')
+#endif
+	{
 		if (i == 'p')
 			prompt = optionarg;
-		else
+		else if (i == 'r')
 			rflag = 1;
+#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+		else
+			timeout = atoi(optionarg);
+#endif
 	}
 	if (prompt && isatty(0)) {
 		out2str(prompt);
@@ -12602,11 +12619,54 @@ readcmd(int argc, char **argv)
 		error("arg count");
 	if ((ifs = bltinlookup("IFS")) == NULL)
 		ifs = defifs;
+#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+	c = 0;
+#endif
 	status = 0;
 	startword = 1;
 	backslash = 0;
+
 	STARTSTACKSTR(p);
-	for (;;) {
+#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+	if (timeout > 0) {
+		tcgetattr(0, &tty);
+		old_tty = tty;
+
+		/* cfmakeraw(...) disables too much; we just do this instead. */
+		tty.c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+		tcsetattr(0, TCSANOW, &tty);
+
+		FD_ZERO (&set);
+		FD_SET (0, &set);
+
+		timeout_struct.tv_sec = timeout;
+		timeout_struct.tv_usec = 0;
+
+		i = select (FD_SETSIZE, &set, NULL, NULL, &timeout_struct);
+		if(i == 1)
+		{
+			read(0, &c, 1);
+			if(c == '\n' || c == 4) /* Handle newlines and EOF */
+				i = 0; /* Don't read further... */
+			else
+				STPUTC(c, p); /* Keep reading... */
+		}
+		tcsetattr(0, TCSANOW, &old_tty);
+
+		/* Echo the character so the user knows it was read...
+		   Yes, this can be done by setting the ECHO flag, but that
+		   echoes ^D and other control characters at this state */
+		if(c != 0)
+			write(1, &c, 1);
+
+	} else
+		i = 1;
+
+	for (;i == 1;)
+#else
+	for (;;)
+#endif
+	{
 		if (read(0, &c, 1) != 1) {
 			status = 1;
 			break;

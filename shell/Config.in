@@ -53,6 +53,17 @@ config CONFIG_ASH_JOB_CONTROL
 	help
 	  Enable job control in the ash shell.
 
+config CONFIG_ASH_TIMEOUT
+        bool "  Enable read timeout support."
+        default n
+        depends on CONFIG_ASH_JOB_CONTROL
+        help
+          This option provides read -t <seconds> support.
+
+	  read builtin which allows the function to pass control back 
+	  if no character input is read from the terminal within a set
+	  number of seconds.
+
 config CONFIG_ASH_ALIAS
 	bool "  Enable alias support"
 	default y
