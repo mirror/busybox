@@ -126,14 +126,6 @@ static void destroy_cmd_strs()
 	sed_cmds = NULL;
 }
 
-static void exit_sed(int retcode, const char *message)
-{
-	destroy_cmd_strs();
-	if (message)
-		fputs(message, stderr);
-	exit(retcode);
-}
-
 /*
  * trim_str - trims leading and trailing space from a string
  * 
@@ -204,12 +196,12 @@ static int get_address(const char *str, int *line, regex_t **regex)
 	else if (my_str[idx] == '/') {
 		idx = index_of_next_unescaped_slash(idx, my_str);
 		if (idx == -1)
-			exit_sed(1, "sed: unterminated match expression\n");
+			fatalError("sed: unterminated match expression\n");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		if (bb_regcomp(*regex, my_str+1, REG_NEWLINE) != 0) {
 			free(my_str);
-			exit_sed(1, NULL);
+			exit(1);
 		}
 	}
 	else {
@@ -251,9 +243,9 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
-		exit_sed(1, "sed: missing command\n");
+		fatalError("sed: missing command\n");
 	if (!strchr("pds", cmdstr[idx])) /* <-- XXX add new commands here */
-		exit_sed(1, "sed: invalid command\n");
+		fatalError("sed: invalid command\n");
 	sed_cmd->cmd = cmdstr[idx];
 	/* special-case handling for 's' */
 	if (sed_cmd->cmd == 's') {
@@ -267,20 +259,20 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 		/* verify that we have an 's' followed by a 'slash' */
 		if (cmdstr[++idx] != '/')
-			exit_sed(1, "sed: bad format in substitution expression\n");
+			fatalError("sed: bad format in substitution expression\n");
 
 		/* save the match string */
 		oldidx = idx+1;
 		idx = index_of_next_unescaped_slash(idx, cmdstr);
 		if (idx == -1)
-			exit_sed(1, "sed: bad format in substitution expression\n");
+			fatalError("sed: bad format in substitution expression\n");
 		match = strdup_substr(cmdstr, oldidx, idx);
 
 		/* save the replacement string */
 		oldidx = idx+1;
 		idx = index_of_next_unescaped_slash(idx, cmdstr);
 		if (idx == -1)
-			exit_sed(1, "sed: bad format in substitution expression\n");
+			fatalError("sed: bad format in substitution expression\n");
 		sed_cmd->replace = strdup_substr(cmdstr, oldidx, idx);
 
 		/* process the flags */
@@ -293,7 +285,7 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 				cflags |= REG_ICASE;
 				break;
 			default:
-				exit_sed(1, "sed: bad option in substitution expression\n");
+				fatalError("sed: bad option in substitution expression\n");
 			}
 		}
 			
@@ -301,7 +293,7 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 		sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
 		if (bb_regcomp(sed_cmd->sub_match, match, cflags) != 0) {
 			free(match);
-			exit_sed(1, NULL);
+			exit(1);
 		}
 		free(match);
 	}
@@ -333,7 +325,7 @@ static void load_cmd_file(char *filename)
 
 	cmdfile = fopen(filename, "r");
 	if (cmdfile == NULL)
-		exit_sed(1, strerror(errno));
+		fatalError(strerror(errno));
 
 	while ((line = get_line_from_file(cmdfile)) != NULL) {
 		line[strlen(line)-1] = 0; /* eat newline */
@@ -464,9 +456,15 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt;
 
-    /* do special-case option parsing */
+	/* do special-case option parsing */
 	if (argv[1] && (strcmp(argv[1], "--help") == 0))
 		usage(sed_usage);
+
+	/* destroy command strings on exit */
+	if (atexit(destroy_cmd_strs) == -1) {
+		perror("sed");
+		exit(1);
+	}
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {
@@ -522,8 +520,5 @@ extern int sed_main(int argc, char **argv)
 		}
 	}
 	
-	exit_sed(0, NULL);
-
-	/* not reached */
 	return 0;
 }
