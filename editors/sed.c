@@ -722,9 +722,8 @@ static void print_subst_w_backrefs(const char *line, const char *replace,
 		 * fortunately, regmatch[0] contains the indicies to the whole matched
 		 * expression (kinda seems like it was designed for just such a
 		 * purpose...) */
-		else if (replace[i] == '&' && replace[i - 1] != '\\') {
+		else if (replace[i] == '&') {
 			int j;
-
 			for (j = regmatch[0].rm_so; j < regmatch[0].rm_eo; j++)
 				pipeputc(line[j]);
 		}
