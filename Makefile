@@ -212,7 +212,7 @@ bbsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 $(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
 	$(MAKE) CFLAGS="$(CFLAGS)" -C $(patsubst _dir_%, %, $@)
 
-busybox: config.h depend bbsubdirs
+busybox: config.h dep-files bbsubdirs
 	$(CC) $(LDFLAGS) -o $@ applets/busybox.o $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
 	$(STRIPCMD)
 
@@ -295,7 +295,7 @@ scripts/split-include: scripts/split-include.c
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/split-include scripts/split-include.c
 
 dep-files: scripts/mkdep
-	if [ ! -f .depend ] ; then \
+	@if [ ! -f .depend ] ; then \
 		rm -f .depend .hdepend; \
 		mkdir -p $(TOPDIR)/include/config; \
 		scripts/mkdep -I $(TOPDIR)/include -- \

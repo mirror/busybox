@@ -15,32 +15,24 @@ choice 'Choose your default shell' \
 
 if [ "$CONFIG_FEATURE_SH_IS_ASH" = "y" ] ; then
 	define_bool CONFIG_ASH	y
-	comment 'ash'
-else
-	bool 'ash'	    CONFIG_ASH
 fi
-
+	
 if [ "$CONFIG_FEATURE_SH_IS_HUSH" = "y" ] ; then
 	define_bool CONFIG_HUSH	y
-	comment 'hush'
-else
-	bool 'hush'	    CONFIG_HUSH
 fi
 
 if [ "$CONFIG_FEATURE_SH_IS_LASH" = "y" ] ; then
 	define_bool CONFIG_LASH	y
-	comment 'lash'
-else
-	bool 'lash'	    CONFIG_LASH
 fi
 
 if [ "$CONFIG_FEATURE_SH_IS_MSH" = "y" ] ; then
 	define_bool CONFIG_MSH	y
-	comment 'msh'
-else
-	bool 'msh'	    CONFIG_MSH
 fi
 
+bool 'ash'	    CONFIG_ASH
+bool 'hush'	    CONFIG_HUSH
+bool 'lash'	    CONFIG_LASH
+bool 'msh'	    CONFIG_MSH
 
 comment 'Bourne Shell Options'
 bool 'command line editing'		CONFIG_FEATURE_COMMAND_EDITING
