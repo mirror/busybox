@@ -25,15 +25,7 @@ make
 
 %Install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/bin
-h=`cat busybox.links`
-
-for i in $h ; do
-	mkdir -p $RPM_BUILD_ROOT/`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\1/g' `
-	(cd $RPM_BUILD_ROOT/bin ; ln -s busybox `echo $i | sed -e 's/\(^.*\/\)\(.*\)/\2/g' ` ); 
-done 
-rm -f $RPM_BUILD_ROOT/bin/busybox
-install -m 755 busybox $RPM_BUILD_ROOT/bin/busybox
+make PREFIX=$RPM_BUILD_ROOT install
 
 %Clean
 rm -rf $RPM_BUILD_ROOT

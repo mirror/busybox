@@ -48,10 +48,9 @@ else
     
 endif
 
-ifndef $(prefix)
-    prefix=`pwd`
+ifndef $(PREFIX)
+    PREFIX=`pwd`/busybox_install
 endif
-BINDIR=$(prefix)
 
 LIBRARIES=
 OBJECTS=$(shell ./busybox.sh)
@@ -69,6 +68,7 @@ busybox.links:
 	
 clean:
 	- rm -f $(PROG) busybox.links *~ *.o core 
+	- rm -rf busybox_install
 
 distclean: clean
 	- rm -f $(PROG)
@@ -77,8 +77,8 @@ force:
 
 $(OBJECTS):  busybox.def.h internal.h Makefile
 
-install:    $(PROG)
-	install.sh $(BINDIR)
+install: busybox
+	install.sh $(PREFIX)
 
 whichversion:
 	@echo $(VERSION)
