@@ -293,8 +293,8 @@
 #ifdef BB_FEATURE_LINUXRC
 #ifndef BB_INIT
 #define BB_INIT
-#define BB_LINUXRC
 #endif
+#define BB_LINUXRC
 #endif
 //
 #ifdef BB_GZIP
