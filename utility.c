@@ -1815,7 +1815,7 @@ const char *make_human_readable_str(unsigned long val, unsigned long hr)
 }
 #endif
 
-#if defined(BB_GREP) || defined(BB_HOSTNAME) || defined(BB_SED) || defined(BB_TAR) || defined(BB_WGET) || defined(BB_XARGS)
+#if defined(BB_GREP) || defined(BB_HOSTNAME) || defined(BB_SED) || defined(BB_TAR) || defined(BB_WGET) || defined(BB_XARGS) || defined(BB_SH)
 void chomp(char *s)
 {
 	size_t len = strlen(s);

@@ -54,7 +54,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <glob.h>
+#include <wordexp.h>
 #include <signal.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -96,8 +96,6 @@ struct child_prog {
 	char **argv;				/* program name and arguments */
 	int num_redirects;			/* elements in redirection array */
 	struct redir_struct *redirects;	/* I/O redirects */
-	glob_t glob_result;			/* result of parameter globbing */
-	int free_glob;				/* should we globfree(&glob_result)? */
 	int is_stopped;				/* is the program currently running? */
 	struct job *family;			/* pointer back to the child's parent job */
 };
@@ -209,9 +207,9 @@ static int argc;
 static char **argv;
 static struct close_me *close_me_head;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-static int last_bg_pid=-1;
-static int last_return_code=-1;
-static int show_x_trace=FALSE;
+static int last_bg_pid;
+static int last_return_code;
+static int show_x_trace;
 #endif
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 static char syntax_err[]="syntax error near unexpected token";
@@ -650,8 +648,6 @@ static void free_job(struct job *cmd)
 		free(cmd->progs[i].argv);
 		if (cmd->progs[i].redirects)
 			free(cmd->progs[i].redirects);
-		if (cmd->progs[i].free_glob)
-			globfree(&cmd->progs[i].glob_result);
 	}
 	free(cmd->progs);
 	if (cmd->text)
@@ -875,7 +871,7 @@ static int get_command(FILE * source, char *command)
 	}
 
 	/* remove trailing newline */
-	command[strlen(command) - 1] = '\0';
+	chomp(command);
 
 	return 0;
 }
@@ -900,40 +896,62 @@ static char* itoa(register int i)
 		*--b = '-';
 	return b;
 }
+#endif	
+
+static int expand_arguments(char *command)
+{
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+	wordexp_t wrdexp;
+	char *src, *dst, *var;
+	int i=0, length, total_length=0, retval;
 #endif
 
-static void expand_argument(struct child_prog *prog, int *argcPtr,
-							 int *argv_alloced_ptr)
-{
-	int argc_l = *argcPtr;
-	int argv_alloced = *argv_alloced_ptr;
-	int rc;
-	int flags;
-	int i;
-	char *src, *dst, *var;
+	/* get rid of the terminating \n */
+	chomp(command);
 
-	if (argc_l > 1) {				/* cmd->glob_result is already initialized */
-		flags = GLOB_APPEND;
-		i = prog->glob_result.gl_pathc;
-	} else {
-		prog->free_glob = 1;
-		flags = 0;
-		i = 0;
-	}
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-	/* do shell variable substitution */
-	src = prog->argv[argc_l - 1];
+
+	/* This first part uses wordexp() which is a wonderful C lib 
+	 * function which expands nearly everything.  */ 
+	
+	retval = wordexp (command, &wrdexp, 0);
+	
+	if (retval == WRDE_NOSPACE) {
+		/* Mem may have been allocated... */
+		wordfree (&wrdexp);
+		error_msg("out of space during expansion");
+		return FALSE;
+	}
+	if (retval < 0) {
+		/* Some other error.  */
+		error_msg("syntax error");
+		return FALSE;
+	}
+	
+	/* Convert from char** (one word per string) to a simple char*,
+	 * but don't overflow command which is BUFSIZ in length */
+	*command = '\0';
+	while (i < wrdexp.we_wordc && total_length < BUFSIZ) {
+		length=strlen(wrdexp.we_wordv[i])+1;
+		if (BUFSIZ-total_length-length <= 0) {
+			error_msg("out of space during expansion");
+			return FALSE;
+		}
+		strcat(command+total_length, wrdexp.we_wordv[i++]);
+		strcat(command+total_length, " ");
+		total_length+=length;
+	}
+	wordfree (&wrdexp);
+	
+	
+	/* Now do the shell variable substitutions which 
+	 * wordexp can't do for us, namely $? and $! */
+	src = command;
 	while((dst = strchr(src,'$')) != NULL){
 		if (!(var = getenv(dst + 1))) {
 			switch(*(dst+1)) {
 				case '?':
 					var = itoa(last_return_code);
-					break;
-				case '$':
-					var = itoa(getpid());
-					break;
-				case '#':
-					var = itoa(argc-1);
 					break;
 				case '!':
 					if (last_bg_pid==-1)
@@ -941,84 +959,39 @@ static void expand_argument(struct child_prog *prog, int *argcPtr,
 					else
 						var = itoa(last_bg_pid);
 					break;
+#if 0
+				/* Everything else like $$, $#, $[0-9], etcshould all be 
+				 * expanded by wordexp(), so we can skip that stuff here */
+				case '$':
+				case '#':
 				case '0':case '1':case '2':case '3':case '4':
 				case '5':case '6':case '7':case '8':case '9':
-					{
-						int index=*(dst + 1)-48;
-						if (index >= argc) {
-							var='\0';
-						} else {
-							var = argv[index];
-						}
-					}
 					break;
+#endif	
 			}
 		}
 		if (var) {
-			int offset = dst-src;
-#warning I have a memory leak which needs to be plugged somehow
-			src = (char*)xmalloc(strlen(src)-strlen(dst)+strlen(var)+1);
-			strncpy(src, prog->argv[argc_l -1], offset); 
-			safe_strncpy(src+offset, var, strlen(var)+1); 
-			/* If there are any remaining $ variables in the src string, put them back */
-			if ((dst = strchr(prog->argv[argc_l -1]+offset+1,'$')) != NULL) {
-				offset=strlen(src);
-				safe_strncpy(src+strlen(src), dst, strlen(dst)+1);
+			int subst_len = strlen(var);
+			char *next_dst;
+			if ((next_dst=strpbrk(dst+1, " \t~`!$^&*()=|\\{}[];\"'<>?")) == NULL) {
+				next_dst = dst;
 			}
-			prog->argv[argc_l -1] = src;
-		} else {
-			memset(dst, 0, strlen(src)-strlen(dst)); 
+			src = (char*)xrealloc(src, strlen(src) - strlen(next_dst)+strlen(var)+1);
+			/* Move stuff to the end of the string to accommodate filling 
+			 * the created gap with the new stuff */
+			memmove(dst+subst_len, next_dst+1, subst_len); 
+			/* Now copy in the new stuff */
+			strncpy(dst, var, subst_len);
 		}
+		src = dst;
+		src++;
 	}
-#endif
 
-	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
-		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->glob_result);
-		if (rc == GLOB_NOSPACE) {
-			error_msg("out of space during glob operation");
-			return;
-		} else if (rc == GLOB_NOMATCH ||
-			   (!rc && (prog->glob_result.gl_pathc - i) == 1 &&
-				strcmp(prog->argv[argc_l - 1],
-						prog->glob_result.gl_pathv[i]) == 0)) {
-			/* we need to remove whatever \ quoting is still present */
-			src = dst = prog->argv[argc_l - 1];
-			while (*src) {
-				if (*src == '\\') {
-					src++; 
-					*dst++ = process_escape_sequence(&src);
-				} else { 
-					*dst++ = *src;
-					src++;
-				}
-			}
-			*dst = '\0';
-		} else if (!rc) {
-			argv_alloced += (prog->glob_result.gl_pathc - i);
-			prog->argv = xrealloc(prog->argv, argv_alloced * sizeof(*prog->argv));
-			memcpy(prog->argv + (argc_l - 1), prog->glob_result.gl_pathv + i,
-				   sizeof(*(prog->argv)) * (prog->glob_result.gl_pathc - i));
-			argc_l += (prog->glob_result.gl_pathc - i - 1);
-		}
-	}else{
-	 		src = dst = prog->argv[argc_l - 1];
-			while (*src) {
-				if (*src == '\\') {
-					src++; 
-					*dst++ = process_escape_sequence(&src);
-				} else { 
-					*dst++ = *src;
-					src++;
-				}
-			}
-			*dst = '\0';
-			
-			prog->glob_result.gl_pathc=0;
-			if (flags==0)
-				prog->glob_result.gl_pathv=NULL;
-	}
-	*argv_alloced_ptr = argv_alloced;
-	*argcPtr = argc_l;
+
+
+
+#endif	
+	return TRUE;
 }
 
 /* Return cmd->num_progs as 0 if no command is present (e.g. an empty
@@ -1066,7 +1039,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	prog = job->progs;
 	prog->num_redirects = 0;
 	prog->redirects = NULL;
-	prog->free_glob = 0;
 	prog->is_stopped = 0;
 	prog->family = job;
 
@@ -1106,7 +1078,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 										  sizeof(*prog->argv) *
 										  argv_alloced);
 				}
-				expand_argument(prog, &argc_l, &argv_alloced);
 				prog->argv[argc_l] = buf;
 			}
 		} else
@@ -1139,7 +1110,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 					if (*chptr && *prog->argv[argc_l]) {
 						buf++, argc_l++;
-						expand_argument(prog, &argc_l, &argv_alloced);
 						prog->argv[argc_l] = buf;
 					}
 				}
@@ -1200,7 +1170,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				prog = job->progs + (job->num_progs - 1);
 				prog->num_redirects = 0;
 				prog->redirects = NULL;
-				prog->free_glob = 0;
 				prog->is_stopped = 0;
 				prog->family = job;
 				argc_l = 0;
@@ -1356,7 +1325,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 	if (*prog->argv[argc_l]) {
 		argc_l++;
-		expand_argument(prog, &argc_l, &argv_alloced);
 	}
 	if (!argc_l) {
 		free_job(job);
@@ -1624,6 +1592,13 @@ static int busy_loop(FILE * input)
 				next_command = command;
 			}
 
+			if (expand_arguments(next_command) == FALSE) {
+				free(command);
+				command = (char *) xcalloc(BUFSIZ, sizeof(char));
+				next_command = NULL;
+				continue;
+			}
+
 			if (!parse_command(&next_command, &newjob, &inbg) &&
 				newjob.num_progs) {
 				int pipefds[2] = {-1,-1};
@@ -1723,8 +1698,8 @@ int shell_main(int argc_l, char **argv_l)
 	job_list.head = NULL;
 	job_list.fg = NULL;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-	last_bg_pid=-1;
-	last_return_code=-1;
+	last_bg_pid=1;
+	last_return_code=1;
 	show_x_trace=FALSE;
 #endif
 
