@@ -90,7 +90,12 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
   va_start (p, applet_opts);
 
-  for (s = applet_opts; *s; s++) {
+  /* skip GNU extension */
+  s = applet_opts;
+  if(*s == '+' || *s == '-')
+	s++;
+
+  for (; *s; s++) {
 	c++;
 	while (s[1] == ':') {
 	    /* check GNU extension "o::" - optional arg */
@@ -99,7 +104,12 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
   }
   complementaly = xcalloc (c + 1, sizeof (t_complementaly));
   c = 0;
-  for (s = applet_opts; *s; s++) {
+  /* skip GNU extension */
+  s = applet_opts;
+  if(*s == '+' || *s == '-')
+	s++;
+
+  for (; *s; s++) {
 	complementaly->opt = *s;
 	complementaly->switch_on |= (1 << c);
 	c++;

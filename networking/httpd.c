@@ -1452,7 +1452,9 @@ static int checkPerm(const char *path, const char *request)
 		}
 #endif
 		if (strcmp(p, request) == 0) {
+#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
 set_remoteuser_var:
+#endif
 		    config->remoteuser = strdup(request);
 		    if(config->remoteuser)
 			config->remoteuser[(u - request)] = 0;
