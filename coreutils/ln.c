@@ -92,13 +92,7 @@ extern int ln_main(int argc, char **argv)
 
 	linkName = argv[argc - 1];
 
-	if (strlen(linkName) > BUFSIZ) {
-		fprintf(stderr, name_too_long, "ln");
-		exit FALSE;
-	}
-
-	linkIntoDirFlag = isDirectory(linkName, TRUE, NULL);
-
+	linkIntoDirFlag = isDirectory(linkName, followLinks, NULL);
 	if ((argc >= 3) && linkIntoDirFlag == FALSE) {
 		fprintf(stderr, not_a_directory, "ln", linkName);
 		exit FALSE;
@@ -108,27 +102,8 @@ extern int ln_main(int argc, char **argv)
 		dirName = linkName;
 
 	while (argc-- >= 2) {
-#if 0
-		char srcName[BUFSIZ + 1];
-		int nChars;
-#endif
 		int status;
 
-		if (strlen(*argv) > BUFSIZ) {
-			fprintf(stderr, name_too_long, "ln");
-			exit FALSE;
-		}
-
-#if 0
-		if (followLinks == FALSE) {
-			strcpy(srcName, *argv);
-		} else {
-			/* Warning!  This can silently truncate if > BUFSIZ, but
-			   I don't think that there can be one > BUFSIZ anyway. */
-			nChars = readlink(*argv, srcName, BUFSIZ);
-			srcName[nChars] = '\0';
-		}
-#endif
 		if (linkIntoDirFlag == TRUE) {
 			char *baseName = get_last_path_component(*argv);
 			linkName = (char *)malloc(strlen(dirName)+strlen(baseName)+2);
@@ -155,7 +130,7 @@ extern int ln_main(int argc, char **argv)
 			exit FALSE;
 		}
 
-		if (linkIntoDirFlag)
+		if (linkIntoDirFlag == TRUE)
 			free(linkName);
 
 		argv++;
