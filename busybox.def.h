@@ -51,7 +51,7 @@
 //#define BB_LOGGER
 #define BB_LOGNAME
 #define BB_LS
-#define BB_LSMOD
+//#define BB_LSMOD
 //#define BB_MAKEDEVS
 #define BB_MKFS_MINIX
 //#define BB_MATH

@@ -25,13 +25,16 @@
 #include <stdio.h>
 
 
-//#if ! defined BB_FEATURE_USE_PROCFS
-//#error Sorry, I depend on the /proc filesystem right now.
-//#endif
-
 extern int lsmod_main(int argc, char **argv)
 {
+#if defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
+	char *cmd[] = { "cat", "/dev/modules", "\0" };
+#else
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
 	char *cmd[] = { "cat", "/proc/modules", "\0" };
+#endif
 
 	exit(cat_main(3, cmd));
 }
