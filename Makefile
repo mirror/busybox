@@ -157,14 +157,13 @@ docs/BusyBox.txt: docs/busybox.pod
 	@echo
 	@echo BusyBox Documentation
 	@echo
-	- mkdir -p docs
-	- (cd $(BB_SRC_DIR); pod2text docs/busybox.pod) > docs/BusyBox.txt
+	-mkdir -p docs
+	-pod2text $(BB_SRC_DIR)/docs/busybox.pod > docs/BusyBox.txt
 
 docs/BusyBox.1: docs/busybox.pod
 	- mkdir -p docs
-	- (cd $(BB_SRC_DIR); pod2man --center=BusyBox \
-		--release="version $(VERSION)" \
-		docs/busybox.pod ) > docs/BusyBox.1
+	- pod2man --center=BusyBox --release="version $(VERSION)" \
+		$(BB_SRC_DIR)/docs/busybox.pod > docs/BusyBox.1
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 	-@ rm -f docs/BusyBox.html
@@ -172,8 +171,8 @@ docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
 
 docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.lineo.com
-	- (cd $(BB_SRC_DIR); pod2html --noindex docs/busybox.pod ) \
-		> docs/busybox.lineo.com/BusyBox.html
+	-  pod2html --noindex $(BB_SRC_DIR)/docs/busybox.pod > \
+	    docs/busybox.lineo.com/BusyBox.html
 	-@ rm -f pod2html*
 
 
