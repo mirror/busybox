@@ -745,7 +745,7 @@ void parse_inittab(void)
 #ifdef BB_FEATURE_USE_INITTAB
 	FILE *file;
 	char buf[256], lineAsRead[256], tmpConsole[256];
-	char *p, *q, *r, *s;
+	char *id, *runlev, *action, *process, *eol;
 	const struct initActionType *a = actions;
 	int foundIt;
 
@@ -772,64 +772,69 @@ void parse_inittab(void)
 
 	while (fgets(buf, 255, file) != NULL) {
 		foundIt = FALSE;
-		for (p = buf; *p == ' ' || *p == '\t'; p++);
-		if (*p == '#' || *p == '\n')
+		/* Skip leading spaces */
+		for (id = buf; *id == ' ' || *id == '\t'; id++);
+
+		/* Skip the line if it's a comment */
+		if (*id == '#' || *id == '\n')
 			continue;
 
 		/* Trim the trailing \n */
-		q = strrchr(p, '\n');
-		if (q != NULL)
-			*q = '\0';
+		eol = strrchr(id, '\n');
+		if (eol != NULL)
+			*eol = '\0';
 
 		/* Keep a copy around for posterity's sake (and error msgs) */
 		strcpy(lineAsRead, buf);
 
-		/* Grab the ID field */
-		s = p;
-		p = strchr(p, ':');
-		if (p != NULL || *(p + 1) != '\0') {
-			*p = '\0';
-			++p;
-		}
-
-		/* Now peel off the process field from the end
-		 * of the string */
-		q = strrchr(p, ':');
-		if (q == NULL || *(q + 1) == '\0') {
+		/* Separate the ID field from the runlevels */
+		runlev = strchr(id, ':');
+		if (runlev == NULL || *(runlev + 1) == '\0') {
 			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
 			continue;
 		} else {
-			*q = '\0';
-			++q;
+			*runlev = '\0';
+			++runlev;
 		}
 
-		/* Now peel off the action field */
-		r = strrchr(p, ':');
-		if (r == NULL || *(r + 1) == '\0') {
+		/* Separate the runlevels from the action */
+		action = strchr(runlev, ':');
+		if (action == NULL || *(action + 1) == '\0') {
 			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
 			continue;
 		} else {
-			++r;
+			*action = '\0';
+			++action;
+		}
+
+		/* Separate the action from the process */
+		process = strchr(action, ':');
+		if (process == NULL || *(process + 1) == '\0') {
+			message(LOG | CONSOLE, "Bad inittab entry: %s\n", lineAsRead);
+			continue;
+		} else {
+			*process = '\0';
+			++process;
 		}
 
 		/* Ok, now process it */
 		a = actions;
 		while (a->name != 0) {
-			if (strcmp(a->name, r) == 0) {
-				if (*s != '\0') {
+			if (strcmp(a->name, action) == 0) {
+				if (*id != '\0') {
 					struct stat statBuf;
 
 					strcpy(tmpConsole, "/dev/");
-					strncat(tmpConsole, s, 200);
+					strncat(tmpConsole, id, 200);
 					if (stat(tmpConsole, &statBuf) != 0) {
 						message(LOG | CONSOLE,
 								"device '%s' does not exist.  Did you read the directions?\n",
 								tmpConsole);
 						break;
 					}
-					s = tmpConsole;
+					id = tmpConsole;
 				}
-				new_initAction(a->action, q, s);
+				new_initAction(a->action, process, id);
 				foundIt = TRUE;
 			}
 			a++;
