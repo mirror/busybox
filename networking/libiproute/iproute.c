@@ -808,7 +808,7 @@ static int iproute_get(int argc, char **argv)
 int do_iproute(int argc, char **argv)
 {
 	const char *ip_route_commands[] = { "add", "append", "change", "chg",
-		"delete", "get", "list", "show", "prepend", "replace", "test", "flush", 0 };
+		"delete", "del", "get", "list", "show", "prepend", "replace", "test", "flush", 0 };
 	unsigned short command_num = 6;
 	unsigned int flags = 0;
 	int cmd = RTM_NEWROUTE;
@@ -828,20 +828,21 @@ int do_iproute(int argc, char **argv)
 			flags = NLM_F_REPLACE;
 			break;
 		case 4: /* delete */
+		case 5: /* del */
 			cmd = RTM_DELROUTE;
 			break;
-		case 5: /* get */
+		case 6: /* get */
 			return iproute_get(argc-1, argv+1);
-		case 6: /* list */
-		case 7: /* show */
+		case 7: /* list */
+		case 8: /* show */
 			return iproute_list_or_flush(argc-1, argv+1, 0);
-		case 8: /* prepend */
+		case 9: /* prepend */
 			flags = NLM_F_CREATE;
-		case 9: /* replace */
+		case 10: /* replace */
 			flags = NLM_F_CREATE|NLM_F_REPLACE;
-		case 10: /* test */
+		case 11: /* test */
 			flags = NLM_F_EXCL;
-		case 11: /* flush */
+		case 12: /* flush */
 			return iproute_list_or_flush(argc-1, argv+1, 1);
 		default:
 			bb_error_msg_and_die("Unknown command %s", *argv);
