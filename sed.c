@@ -132,11 +132,13 @@ static void destroy_cmd_strs()
 }
 #endif
 
+#if 0
 /*
  * trim_str - trims leading and trailing space from a string
  * 
  * Note: This returns a malloc'ed string so you must store and free it
  * XXX: This should be in the utility.c file.
+ * XXX: This is now obsolete. Maybe it belongs nowhere.
  */
 static char *trim_str(const char *str)
 {
@@ -156,11 +158,28 @@ static char *trim_str(const char *str)
 	 *
 	 * you know, a strrspn() would really be nice cuz then we could say:
 	 * 
-	 * retstr[strlen(retstr) - strrspn(retstr, " \n\t\v") + 1] = 0;
+	 * retstr[strrspn(retstr, " \n\t\v") + 1] = 0;
 	 */
 	
 	return retstr;
 }
+#endif
+
+#if 0
+/*
+ * strrspn - works just like strspn() but goes from right to left instead of
+ * left to right
+ */
+static size_t strrspn(const char *s, const char *accept)
+{
+	size_t i = strlen(s);
+
+	while (strchr(accept, s[--i]))
+		;
+
+	return i;
+}
+#endif
 
 /*
  * index_of_unescaped_slash - walks left to right through a string beginning
@@ -225,7 +244,7 @@ static char *strdup_substr(const char *str, int start, int end)
 	return newstr;
 }
 
-static void parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
+static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 {
 	int oldidx, cflags = REG_NEWLINE;
 	char *match;
@@ -261,24 +280,31 @@ static void parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	/* process the flags */
 	while (substr[++idx]) {
 		switch (substr[idx]) {
-		case 'g':
-			sed_cmd->sub_g = 1;
-			break;
-		case 'I':
-			cflags |= REG_ICASE;
-			break;
-		default:
-			fatalError("bad option in substitution expression\n");
+			case 'g':
+				sed_cmd->sub_g = 1;
+				break;
+			case 'I':
+				cflags |= REG_ICASE;
+				break;
+			default:
+				/* any whitespace or semicolon trailing after a s/// is ok */
+				if (strchr("; \t\v\n\r", substr[idx]))
+					goto out;
+				/* else */
+				fatalError("bad option in substitution expression\n");
 		}
 	}
-		
+
+out:	
 	/* compile the regex */
 	sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
 	xregcomp(sed_cmd->sub_match, match, cflags);
 	free(match);
+
+	return idx;
 }
 
-static void parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
+static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 {
 	int idx = 0;
 	char *ptr; /* shorthand */
@@ -322,7 +348,7 @@ static void parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 			if (!ptr[idx]) {
 				ptr[idx] = '\n';
 				ptr[idx+1] = 0;
-				return;
+				return idx;
 			}
 		}
 		/* move the newline over the '\' before it (effectively eats the '\') */
@@ -332,9 +358,11 @@ static void parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 		if (ptr[idx] == '\r')
 			ptr[idx] = '\n';
 	}
+
+	return idx;
 }
 
-static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
+static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 {
 	int idx = 0;
 
@@ -343,6 +371,7 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	 *            |----||-----||-|
 	 *            part1 part2  part3
 	 */
+
 
 	/* first part (if present) is an address: either a number or a /regex/ */
 	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
@@ -360,33 +389,45 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	sed_cmd->cmd = cmdstr[idx];
 
 	/* special-case handling for (s)ubstitution */
-	if (sed_cmd->cmd == 's')
-		parse_subst_cmd(sed_cmd, &cmdstr[idx]);
-	
+	if (sed_cmd->cmd == 's') {
+		idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
+	}
 	/* special-case handling for (a)ppend, (i)nsert, and (c)hange */
-	if (strchr("aic", cmdstr[idx])) {
+	else if (strchr("aic", cmdstr[idx])) {
 		if (sed_cmd->end_line || sed_cmd->end_match)
 			fatalError("only a beginning address can be specified for edit commands\n");
-		parse_edit_cmd(sed_cmd, &cmdstr[idx]);
+		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
 	}
+
+	/* give back whatever's left over */
+	return (char *)&cmdstr[++idx];
 }
 
 static void add_cmd_str(const char *cmdstr)
 {
-	char *my_cmdstr = trim_str(cmdstr);
+	char *mystr = (char *)cmdstr;
 
-	/* if this is a comment, don't even bother */
-	if (my_cmdstr[0] == '#') {
-		free(my_cmdstr);
-		return;
-	}
+	do {
 
-	/* grow the array */
-	sed_cmds = realloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
-	/* zero new element */
-	memset(&sed_cmds[ncmds-1], 0, sizeof(struct sed_cmd));
-	/* load command string into new array element */
-	parse_cmd_str(&sed_cmds[ncmds-1], my_cmdstr);
+		/* trim leading whitespace and semicolons */
+		memmove(mystr, &mystr[strspn(mystr, "; \n\r\t\v")], strlen(mystr));
+		/* if we ate the whole thing, that means there was just trailing
+		 * whitespace or a final semicolon. either way, get out */
+		if (strlen(mystr) == 0)
+			return;
+		/* if this is a comment, jump past it and keep going */
+		if (mystr[0] == '#') {
+			mystr = strpbrk(mystr, ";\n\r");
+			continue;
+		}
+		/* grow the array */
+		sed_cmds = realloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
+		/* zero new element */
+		memset(&sed_cmds[ncmds-1], 0, sizeof(struct sed_cmd));
+		/* load command string into new array element, get remainder */
+		mystr = parse_cmd_str(&sed_cmds[ncmds-1], mystr);
+
+	} while (mystr);
 }
 
 
