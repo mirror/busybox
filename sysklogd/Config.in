@@ -20,6 +20,14 @@ config CONFIG_SYSLOGD
 	  wrong.  And something almost always will go wrong if
 	  you wait long enough....
 
+config CONFIG_FEATURE_ROTATE_LOGFILE
+	bool "  Rotate message files"
+	default n
+	depends on CONFIG_SYSLOGD
+	help
+	  This enables syslogd to rotate the message files
+	  on his own. No need to use an external rotatescript.
+
 config CONFIG_FEATURE_REMOTE_LOG
 	bool "  Remote Log support"
 	default n

@@ -2214,6 +2214,11 @@
 	"Write all buffered filesystem blocks to disk."
 
 
+#ifdef CONFIG_FEATURE_ROTATE_LOGFILE
+	#define USAGE_ROTATE_LOGFILE(a) a
+#else
+	#define USAGE_ROTATE_LOGFILE(a) 
+#endif
 #ifdef CONFIG_FEATURE_REMOTE_LOG
   #define USAGE_REMOTE_LOG(a) a
 #else
@@ -2234,6 +2239,9 @@
 	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
+	USAGE_ROTATE_LOGFILE( \
+	"\n\t-s SIZE\t\tMax size (KB) bevor rotate (default=200KB, 0=off)\n" \
+	"\t-b NUM\t\tNumber of rotated log files (default=1, 0=purge log)") \
 	USAGE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally and via network logging (default is network only)") \
