@@ -1500,6 +1500,6 @@ extern int dpkg_main(int argc, char **argv)
 		}
 	}
 
-	return(EXIT_FAILURE);
+	return(EXIT_SUCCESS);
 }
 
