@@ -1225,6 +1225,17 @@
 	"quit\n" \
 	"221 foobar closing connection\n" 
 
+#define netstat_trivial_usage \
+	"[-lantuwx]"
+#define netstat_full_usage \
+	"-l display listening server sockets\n" \
+	"-a display all sockets (default: connected)\n" \
+	"-n don't resolve names\n" \
+	"-t tcp sockets\n" \
+	"-u udp sockets\n" \
+	"-w raw sockets\n" \
+	"-x unix sockets\n"
+
 #define nslookup_trivial_usage \
 	"[HOST] [SERVER]"
 #define nslookup_full_usage \

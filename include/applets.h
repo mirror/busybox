@@ -311,6 +311,9 @@
 #ifdef CONFIG_NC
 	APPLET(nc, nc_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_NETSTAT
+	APPLET(netstat, netstat_main, _BB_DIR_BIN)
+#endif
 #ifdef CONFIG_NSLOOKUP
 	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN)
 #endif

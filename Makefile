@@ -230,9 +230,9 @@ doc: olddoc
 # Old Docs...
 olddoc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
-docs/busybox.pod : docs/busybox_header.pod applets/usage.h docs/busybox_footer.pod
+docs/busybox.pod : docs/busybox_header.pod include/usage.h docs/busybox_footer.pod
 	- ( cat docs/busybox_header.pod; \
-	    docs/autodocifier.pl applets/usage.h; \
+	    docs/autodocifier.pl include/usage.h; \
 	    cat docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
