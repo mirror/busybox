@@ -1,5 +1,6 @@
 0.44
-	* Now compiles vs libc5 (which can save lots of space for embedded systems).
+	* Now compiles vs libc5 (which can save lots of space for 
+	    embedded systems).
 	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
 	    help messages (i.e --help).  Saves 17k over a full compile.
 	* Added cut and tr from minix, since due to the license change, 
@@ -8,7 +9,7 @@
 	    staticly linked busybox containing only insmod and sh, a few /dev 
 	    entries, and a kernel module or two...  It doesn't get smaller
 	    then this folks (I pity the fool that writes insmod in asm ;-).
-	    Many kudos go to Ron Alder <alder@lineo.com> for finishing this off!!!
+	    Many kudos go to Ron Alder <alder@lineo.com> for finishing this off!
 	* Added a mini ar archive utility, especially written for BusyBox by 
 	    Glenn McGrath <bug1@netconnect.com.au>
 	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
@@ -18,8 +19,8 @@
         * Added 'grep -v' option (inverted search) and updated 
 	    docs accordingly.  -beppu
 	* Wrote which
-	* Replaced the telnet implementation with one written by Tomi Ollila <too@iki.fi>
-	    It works great and costs 3k.
+	* Replaced the telnet implementation with one written by 
+	    Tomi Ollila <too@iki.fi> It works great and costs 3k.
 	* BusyBox sh (lash) now supports being used as a standalone shell.  When
 	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
 	    be invoked as shell internals.  Best used when compiling staticly 
