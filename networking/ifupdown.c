@@ -1044,24 +1044,22 @@ static int check(char *str) {
 
 static int iface_up(struct interface_defn_t *iface)
 {
-	int result;
 	if (!iface->method->up(iface,check)) return -1;
 	set_environ(iface, "start");
-	result = execute_all(iface, doit, "pre-up");
-	result += iface->method->up(iface, doit);
-	result += execute_all(iface, doit, "up");
-	return(result);
+	if (!execute_all(iface, doit, "pre-up")) return 0;
+	if (!iface->method->up(iface, doit)) return 0;
+	if (!execute_all(iface, doit, "up")) return 0;
+	return 1;
 }
 
 static int iface_down(struct interface_defn_t *iface)
 {
-	int result;
 	if (!iface->method->down(iface,check)) return -1;
 	set_environ(iface, "stop");
-	result = execute_all(iface, doit, "down");
-	result += iface->method->down(iface, doit);
-	result += execute_all(iface, doit, "post-down");
-	return(result);
+	if (!execute_all(iface, doit, "down")) return 0;
+	if (!iface->method->down(iface, doit)) return 0;
+	if (!execute_all(iface, doit, "post-down")) return 0;
+	return 1;
 }
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
