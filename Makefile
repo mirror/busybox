@@ -134,7 +134,7 @@ scripts/split-include: scripts/split-include.c
 		`find . -name \*.h -print` >> .hdepend;
 	$(MAKE) $(patsubst %,_sfdep_%,$(DIRS)) _FASTDEP_ALL_SUB_DIRS="$(DIRS)" ;
 
-depend dep .depend: include/config.h .depend
+depend dep: include/config.h .depend
 
 include/config/MARKER: depend scripts/split-include
 	scripts/split-include include/config.h include/config
