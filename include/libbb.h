@@ -52,11 +52,6 @@
 # include "sha1.h"
 #endif
 
-/* Compatability with ANSI C */
-#ifndef inline
-# define inline
-#endif
-
 /* Convenience macros to test the version of gcc. */
 #if defined __GNUC__ && defined __GNUC_MINOR__
 # define __GNUC_PREREQ(maj, min) \
