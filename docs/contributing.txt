@@ -73,7 +73,7 @@ Areas Where You Can Help
 ------------------------
 
 Busybox can always use improvement! If you're looking for ways to help, there
-there are a variety of areas where you could help.
+are a variety of areas where you could help.
 
 
 What Busybox Doesn't Need
@@ -214,7 +214,7 @@ These are dirty jobs, but somebody's gotta do 'em.
    is very Perl-specific, but the advice given in here applies equally well to
    C.
 
- - C library funciton use audits: Verifying that functions are being used
+ - C library function use audits: Verifying that functions are being used
    properly (called with the right args), replacing unsafe library functions
    with safer versions, making sure return codes are being checked, etc.
 
