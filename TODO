@@ -10,6 +10,8 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------
 
+* mknod --help segfaults
+
 * Allow tar to create archives with sockets, devices, and other special files
 * Make insmod actually work
 * init clearly needs to support some type of minimalist /etc/inittab. I
