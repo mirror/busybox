@@ -35,8 +35,7 @@ extern int whoami_main(int argc, char **argv)
 	if (argc > 1)
 		show_usage();
 
-	my_getpwuid(user, uid);
-	if (*user) {
+	if (my_getpwuid(user, uid)) {
 		puts(user);
 		return EXIT_SUCCESS;
 	}

@@ -244,12 +244,10 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 			TAR_MAGIC_LEN + TAR_VERSION_LEN);
 
 	/* Enter the user and group names (default to root if it fails) */
-	my_getpwuid(header.uname, statbuf->st_uid);
-	if (!*header.uname)
+	if (my_getpwuid(header.uname, statbuf->st_uid) == NULL)
 		strcpy(header.uname, "root");
-	my_getgrgid(header.gname, statbuf->st_gid);
-	if (!*header.uname)
-		strcpy(header.uname, "root");
+	if (my_getgrgid(header.gname, statbuf->st_gid) == NULL)
+		strcpy(header.gname, "root");
 
 	if (tbInfo->hlInfo) {
 		/* This is a hard link */

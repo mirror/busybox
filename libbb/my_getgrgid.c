@@ -27,15 +27,17 @@
 
 
 /* gets a groupname given a gid */
-void my_getgrgid(char *group, long gid)
+char * my_getgrgid(char *group, long gid)
 {
 	struct group *mygroup;
 
 	mygroup  = getgrgid(gid);
-	if (mygroup==NULL)
-		sprintf(group, "%-8ld ", (long)gid);
-	else
-		strcpy(group, mygroup->gr_name);
+	if (mygroup==NULL) {
+		sprintf(group, "%ld", gid);
+		return NULL;
+	} else {
+		return strcpy(group, mygroup->gr_name);
+	}
 }
 
 

@@ -150,8 +150,6 @@ extern int ps_main(int argc, char **argv)
 
 		/* Make some adjustments as needed */
 		my_getpwuid(uidName, p.ruid);
-		if (*uidName == '\0')
-			sprintf(uidName, "%d", p.ruid);
 
 		sprintf(path, "/proc/%s/cmdline", entry->d_name);
 		file = fopen(path, "r");
@@ -243,8 +241,6 @@ extern int ps_main(int argc, char **argv)
 	    
 		/* Make some adjustments as needed */
 		my_getpwuid(uidName, info.euid);
-		if (*uidName == '\0')
-			sprintf(uidName, "%ld", info.euid);
 
 		if(p.vmsize == 0)
 			len = printf("%5d %-8s        %c    ", p.pid, uidName, p.state);

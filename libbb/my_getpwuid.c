@@ -28,15 +28,17 @@
 
 
 /* gets a username given a uid */
-void my_getpwuid(char *name, long uid)
+char * my_getpwuid(char *name, long uid)
 {
 	struct passwd *myuser;
 
 	myuser  = getpwuid(uid);
-	if (myuser==NULL)
-		sprintf(name, "%-8ld ", (long)uid);
-	else
-		strcpy(name, myuser->pw_name);
+	if (myuser==NULL) {
+		sprintf(name, "%ld", (long)uid);
+		return NULL;
+	} else {
+		return strcpy(name, myuser->pw_name);
+	}
 }
 
 /* END CODE */

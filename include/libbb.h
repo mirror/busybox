@@ -165,8 +165,8 @@ extern unsigned long parse_number(const char *numstr,
  * increases target size and is often not needed embedded systems.  */
 extern long my_getpwnam(const char *name);
 extern long my_getgrnam(const char *name);
-extern void my_getpwuid(char *name, long uid);
-extern void my_getgrgid(char *group, long gid);
+extern char * my_getpwuid(char *name, long uid);
+extern char * my_getgrgid(char *group, long gid);
 extern long my_getpwnamegid(const char *name);
 
 extern int device_open(char *device, int mode);

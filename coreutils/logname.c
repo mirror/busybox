@@ -32,8 +32,7 @@ extern int logname_main(int argc, char **argv)
 	if (argc > 1)
 		show_usage();
 
-	my_getpwuid(user, geteuid());
-	if (*user) {
+	if (my_getpwuid(user, geteuid())) {
 		puts(user);
 		return EXIT_SUCCESS;
 	}

@@ -68,8 +68,7 @@ extern int id_main(int argc, char **argv)
 			my_getgrgid(group, getegid());
 		}
 	} else {
-		strncpy(user, argv[optind], 8);
-		user[8] = '\0';
+		safe_strncpy(user, argv[optind], sizeof(user));
 	    gid = my_getpwnamegid(user);
 		my_getgrgid(group, gid);
 	}
@@ -78,12 +77,12 @@ extern int id_main(int argc, char **argv)
 	grnam=my_getgrnam(group);
 
 	if (no_group) {
-		if(name_not_number && user)
+		if(name_not_number)
 			puts(user);
 		else
 			printf("%ld\n", pwnam);
 	} else if (no_user) {
-		if(name_not_number && group)
+		if(name_not_number)
 			puts(group);
 		else
 			printf("%ld\n", grnam);

@@ -121,7 +121,7 @@ extern int logger_main(int argc, char **argv)
 				pri = pencode(optarg);
 				break;
 			case 't':
-				strncpy(name, optarg, sizeof(name));
+				safe_strncpy(name, optarg, sizeof(name));
 				break;
 			default:
 				show_usage();
@@ -144,7 +144,7 @@ extern int logger_main(int argc, char **argv)
 		} while (c != EOF);
 	} else {
 		len = 1; /* for the '\0' */
-		message=xcalloc(1, 1);
+		message = xcalloc(1, 1);
 		for (i = optind; i < argc; i++) {
 			len += strlen(argv[i]);
 			len += 1;  /* for the space between the args */
@@ -152,7 +152,7 @@ extern int logger_main(int argc, char **argv)
 			strcat(message, argv[i]);
 			strcat(message, " ");
 		}
-		message[strlen(message)-1] = '\0';
+		message[strlen(message) - 2] = '\0';
 		syslog(pri, "%s", message);
 	}
 
