@@ -735,20 +735,20 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 	} else {
 #if NFS_MOUNT_VERSION >= 4
-		fhandle3 *fhandle;
+		fhandle3 *my_fhandle;
 		if (status.nfsv3.fhs_status != 0) {
 			error_msg("%s:%s failed, reason given by server: %s",
 				hostname, dirname,
 				nfs_strerror(status.nfsv3.fhs_status));
 			goto fail;
 		}
-		fhandle = &status.nfsv3.mountres3_u.mountinfo.fhandle;
+		my_fhandle = &status.nfsv3.mountres3_u.mountinfo.fhandle;
 		memset(data.old_root.data, 0, NFS_FHSIZE);
 		memset(&data.root, 0, sizeof(data.root));
-		data.root.size = fhandle->fhandle3_len;
+		data.root.size = my_fhandle->fhandle3_len;
 		memcpy(data.root.data,
-		       (char *) fhandle->fhandle3_val,
-		       fhandle->fhandle3_len);
+		       (char *) my_fhandle->fhandle3_val,
+		       my_fhandle->fhandle3_len);
 
 		data.flags |= NFS_MOUNT_VER3;
 #endif

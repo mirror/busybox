@@ -370,7 +370,7 @@ unsigned n;				/* number of bytes in s[] */
 	register ulg c;				/* temporary variable */
 	static unsigned long crc_32_tab[256];
 	if (crc_table_empty) {
-		unsigned long c;      /* crc shift register */
+		unsigned long csr;      /* crc shift register */
 		unsigned long e;      /* polynomial exclusive-or pattern */
 		int i;                /* counter for all possible eight bit values */
 		int k;                /* byte being shifted into crc apparatus */
@@ -386,13 +386,13 @@ unsigned n;				/* number of bytes in s[] */
 		/* Compute and print table of CRC's, five per line */
 		crc_32_tab[0] = 0x00000000L;
 		for (i = 1; i < 256; i++) {
-			c = i;
+			csr = i;
  		   /* The idea to initialize the register with the byte instead of
 		     * zero was stolen from Haruhiko Okumura's ar002
 		     */
 			for (k = 8; k; k--)
-				c = c & 1 ? (c >> 1) ^ e : c >> 1;
-			crc_32_tab[i]=c;
+				csr = csr & 1 ? (csr >> 1) ^ e : csr >> 1;
+			crc_32_tab[i]=csr;
 		}
 	}
 

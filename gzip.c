@@ -294,7 +294,7 @@ void lm_init (ush * flags);
 ulg deflate (void);
 
 		/* in trees.c */
-void ct_init (ush * attr, int *method);
+void ct_init (ush * attr, int *methodp);
 int ct_tally (int dist, int lc);
 ulg flush_block (char *buf, ulg stored_len, int eof);
 
@@ -3299,7 +3299,7 @@ long header_bytes;				/* number of bytes in gzip header */
 int zip(in, out)
 int in, out;					/* input and output file descriptors */
 {
-	uch flags = 0;				/* general purpose bit flags */
+	uch my_flags = 0;				/* general purpose bit flags */
 	ush attr = 0;				/* ascii/binary flag */
 	ush deflate_flags = 0;		/* pkzip -es, -en or -ex equivalent */
 
@@ -3315,7 +3315,7 @@ int in, out;					/* input and output file descriptors */
 	put_byte(GZIP_MAGIC[1]);
 	put_byte(DEFLATED);			/* compression method */
 
-	put_byte(flags);			/* general flags */
+	put_byte(my_flags);			/* general flags */
 	put_long(time_stamp);
 
 	/* Write deflated file to zip file */
