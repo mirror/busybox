@@ -44,14 +44,26 @@ sub pod_for_usage {
 	my $name  = shift;
 	my $usage = shift;
 
+	# make options bold
 	my $trivial = $usage->{trivial};
 	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
-
-	my $full = 
-		join("\n",
+	my @f1;
+	my @f0 = 
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
-		split("\n", $usage->{full}));
+		split("\n", $usage->{full});
 
+	# add "\n" prior to certain lines to make indented
+	# lines look right
+	my $len = @f0;
+	for (my $i = 0; $i < $len; $i++) {
+		push @f1, $f0[$i];
+		if (($i+1) != $len && $f0[$i] !~ /^\s/ && $f0[$i+1] =~ /^\s/) {
+			next if ($f0[$i] =~ /^$/);
+			push(@f1, "") unless ($f0[$i+1] =~ /^\s*$/s);
+		}
+	}
+
+	my $full = join("\n", @f1);
 	return
 		"-------------------------------\n".
 		"\n".
@@ -180,4 +192,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.7 2001/02/23 16:16:08 beppu Exp $
+# $Id: autodocifier.pl,v 1.8 2001/02/23 17:41:41 beppu Exp $
