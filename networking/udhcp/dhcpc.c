@@ -77,7 +77,7 @@ struct client_config_t client_config = {
 };
 
 #ifndef BB_VER
-static void show_usage(void)
+static void __attribute__ ((noreturn)) show_usage(void)
 {
 	printf(
 "Usage: udhcpc [OPTIONS]\n\n"
@@ -99,6 +99,8 @@ static void show_usage(void)
 	);
 	exit(0);
 }
+#else
+extern void show_usage(void) __attribute__ ((noreturn));
 #endif
 
 
