@@ -320,7 +320,7 @@ const unsigned int BZ2_crc32Table[256] = {
    0xbcb4666dL, 0xb8757bdaL, 0xb5365d03L, 0xb1f740b4L
 };
 
-void bz_rand_udp_mask(DState *s)
+static void bz_rand_udp_mask(DState *s)
 {
 	if (s->rNToGo == 0) {
 		s->rNToGo = BZ2_rNums[s->rTPos];
@@ -342,7 +342,7 @@ static unsigned char myfeof(FILE *f)
 	return(FALSE);
 }
 
-void BZ2_hbCreateDecodeTables(int *limit, int *base, int *perm, unsigned char *length, int minLen, int maxLen, int alphaSize )
+static void BZ2_hbCreateDecodeTables(int *limit, int *base, int *perm, unsigned char *length, int minLen, int maxLen, int alphaSize )
 {
 	int pp, i, j, vec;
 
@@ -403,7 +403,7 @@ static int get_bits(DState *s, int *vvv, char nnn)
 	return(TRUE);
 }
 
-int bz_get_fast(DState *s)
+static int bz_get_fast(DState *s)
 {
 	int cccc;
 	s->tPos = s->tt[s->tPos];
@@ -413,7 +413,7 @@ int bz_get_fast(DState *s)
 }
 
 /*---------------------------------------------------*/
-int BZ2_decompress(DState *s)
+static inline int BZ2_decompress(DState *s)
 {
 	int uc = 0;
 	int	retVal;
@@ -1295,7 +1295,7 @@ save_state_and_return:
 }
 
 //int BZ2_bzDecompressInit(bz_stream* strm, int verbosity_level, int small)
-int BZ2_bzDecompressInit(bz_stream* strm)
+static inline int BZ2_bzDecompressInit(bz_stream* strm)
 {
 	DState* s;
 
@@ -1315,7 +1315,7 @@ int BZ2_bzDecompressInit(bz_stream* strm)
 	return BZ_OK;
 }
 
-void bz_seterr(int eee, int *bzerror, bzFile **bzf)
+static void bz_seterr(int eee, int *bzerror, bzFile **bzf)
 {
 	if (bzerror != NULL) {
 		*bzerror = eee;
@@ -1549,7 +1549,7 @@ return_notr:
 		/* end save */
 	}
 }
-
+static inline
 int BZ2_bzDecompress(bz_stream *strm)
 {
 	DState* s;
@@ -1590,7 +1590,7 @@ int BZ2_bzDecompress(bz_stream *strm)
 	return(0);  /*NOTREACHED*/
 }
 
-int BZ2_bzRead(int *bzerror, void *b, void *buf, int len)
+static inline int BZ2_bzRead(int *bzerror, void *b, void *buf, int len)
 {
 	int n, ret;
 	bzFile *bzf = (bzFile*)b;
@@ -1646,7 +1646,7 @@ int BZ2_bzRead(int *bzerror, void *b, void *buf, int len)
 	return(0); /*not reached*/
 }
 
-void *BZ2_bzReadOpen(int *bzerror, FILE *f, void *unused, int nUnused)
+static inline void *BZ2_bzReadOpen(int *bzerror, FILE *f, void *unused, int nUnused)
 {
 	bzFile *bzf = xmalloc(sizeof(bzFile));
 	int ret;
@@ -1676,7 +1676,7 @@ void *BZ2_bzReadOpen(int *bzerror, FILE *f, void *unused, int nUnused)
 	return bzf;   
 }
 
-static unsigned char uncompressStream(FILE *zStream, FILE *stream)
+static inline unsigned char uncompressStream(FILE *zStream, FILE *stream)
 {
 	unsigned char unused[BZ_MAX_UNUSED];
 	unsigned char *unusedTmp;
