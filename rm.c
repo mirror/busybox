@@ -112,7 +112,7 @@ extern int rm_main(int argc, char **argv)
 		}
 	}
 	
-	if ((argc-optind) < 1 && forceFlag == FALSE) {
+	if (argc == optind && forceFlag == FALSE) {
 		show_usage();
 	}
 #ifdef BB_FEATURE_RM_INTERACTIVE
