@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.37 2004/07/20 06:44:46 andersen Exp $";
+	"$Id: vi.c,v 1.38 2004/08/19 19:15:06 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -507,7 +507,6 @@ static void edit_file(Byte * fn)
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	redraw(FALSE);			// dont force every col re-draw
 	show_status_line();
-	fflush(stdout);
 
 	//------This is the main Vi cmd handling loop -----------------------
 	while (editing > 0) {
@@ -676,7 +675,7 @@ static void colon(Byte * buf)
 	Byte c, *orig_buf, *buf1, *q, *r;
 	Byte *fn, cmd[BUFSIZ], args[BUFSIZ];
 	int i, l, li, ch, st, b, e;
-	int useforce, forced;
+	int useforce = FALSE, forced = FALSE;
 	struct stat st_buf;
 
 	// :3154	// if (-e line 3154) goto it  else stay put
@@ -693,7 +692,6 @@ static void colon(Byte * buf)
 	// :s/find/replace/ // substitute pattern "find" with "replace"
 	// :!<cmd>	// run <cmd> then return
 	//
-	forced = useforce = FALSE;
 
 	if (strlen((char *) buf) <= 0)
 		goto vc1;
@@ -2661,6 +2659,7 @@ static void show_status_line(void)
 	static int last_cksum;
 	int l, cnt, cksum;
 
+	edit_status();
 	cnt = strlen((char *) status_buffer);
 	for (cksum= l= 0; l < cnt; l++) { cksum += (int)(status_buffer[l]); }
 	// don't write the status line unless it changes
@@ -2671,6 +2670,7 @@ static void show_status_line(void)
 		clear_to_eol();
 		place_cursor(crow, ccol, FALSE);	// put cursor back in correct place
 	}
+	fflush(stdout);
 }
 
 //----- format the status buffer, the bottom line of screen ------
