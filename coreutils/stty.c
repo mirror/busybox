@@ -572,14 +572,34 @@ extern int main(int argc, char **argv)
 
 	speed_was_set = 0;
 	require_set_attr = 0;
-	k = optind;
-	while (k < argc) {
+	k = 0;
+	while (++k < argc) {
 		int match_found = 0;
 		int reversed = 0;
 		int i;
 
 		if (argv[k][0] == '-') {
+			char *find_dev_opt;
+
 			++argv[k];
+
+     /* Handle "-a", "-ag", "-aF/dev/foo", "-aF /dev/foo", etc.
+	Find the options that have been parsed.  This is really
+	gross, but it's needed because stty SETTINGS look like options to
+	getopt(), so we need to work around things in a really horrible
+	way.  If any new options are ever added to stty, the short option
+	MUST NOT be a letter which is the first letter of one of the
+	possible stty settings.
+     */
+			find_dev_opt = strchr(argv[k], 'F'); /* find -*F* */
+			if(find_dev_opt) {
+				if(find_dev_opt[1]==0)  /* -*F   /dev/foo */
+					k++;            /* skip  /dev/foo */
+				continue;   /* else -*F/dev/foo - no skip */
+			}
+			if(argv[k][0]=='a' || argv[k][0]=='g')
+				continue;
+			/* Is not options - is reverse params */
 			reversed = 1;
 		}
 		for (i = 0; i < NUM_mode_info; ++i)
@@ -661,7 +681,6 @@ extern int main(int argc, char **argv)
 			} else
 				error_msg_and_die("invalid argument `%s'", argv[k]);
 		}
-		k++;
 	}
 
 	if (require_set_attr) {
