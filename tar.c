@@ -403,7 +403,7 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( FALSE);
 	}
 	/* make the final component, just in case it was
-	 * omitted by create_path() (which will skip the
+	 * omitted by make_directory() (which will skip the
 	 * directory if it doesn't have a terminating '/') */
 	if (mkdir(header->name, header->mode) < 0 && errno != EEXIST) {
 		perror_msg("%s", header->name);

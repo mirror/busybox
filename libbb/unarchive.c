@@ -139,8 +139,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				}
 				break;
 			case S_IFDIR:
-				/* Use create_path instead of mkdir incase prefix path
-				 * hasnt been created */
+				/* Use make_directory instead of mkdir in case prefix path hasn't been created */
 				if (function & extract_create_dirs) {
 					if (make_directory(full_name, file_entry->mode, FILEUTILS_RECUR) < 0) {
 						return NULL;
