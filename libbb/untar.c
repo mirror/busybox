@@ -103,7 +103,8 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 			next_header_offset += (512 - size % 512);
 		}
 
-		/* If an exclude list is specified check current file against list 
+		/* If an exclude list is specified check current file against list */
+#if 0
 		if (*exclude_list != NULL) {
 			i = 0;
 			while (exclude_list[i] != 0) {
@@ -115,8 +116,8 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 		if (exclude_list[i] != 0) {
 				continue;
 			}
-		} */
-
+		}
+#endif
 		if (untar_function & (extract_contents | extract_verbose_extract | extract_contents_to_file)) {
 			fprintf(output, "%s\n", raw_tar_header.name);
 		}
@@ -152,7 +153,7 @@ extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function,
 									strcat(file_name, ".");
 									strcat(file_name, file_extension);
 
-									full_name = concat_path_file(strndup(dir, strlen(dir) - strlen(strrchr(dir, '/'))), file_name);
+									full_name = concat_path_file(xstrndup(dir, strlen(dir) - strlen(strrchr(dir, '/'))), file_name);
 								} else {
 									full_name = xstrdup(dir);
 								}
