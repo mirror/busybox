@@ -596,6 +596,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	    chmod(outName, mode);
 	    return;
 	}
+	return;
     }
 
     /* 

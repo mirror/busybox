@@ -131,6 +131,7 @@ copyFile( const char *srcName, const char *destName,
     struct stat dstStatBuf;
     struct utimbuf times;
 
+    /* Grab the source file's stats */
     if (followLinks == FALSE)
 	result = stat(srcName, &srcStatBuf);
     else 
@@ -140,6 +141,7 @@ copyFile( const char *srcName, const char *destName,
 	return FALSE;
     }
 
+    /* Grab the dest file's stats */
     if (followLinks == FALSE)
 	result = stat(destName, &dstStatBuf);
     else 
@@ -223,18 +225,18 @@ copyFile( const char *srcName, const char *destName,
     }
 
     if (setModes == TRUE) {
-	//fprintf(stderr, "Setting permissions for %s\n", destName);
-	chmod(destName, srcStatBuf.st_mode);
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-	if (followLinks == FALSE)
-	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-	else
-#endif
+	if (! S_ISLNK(srcStatBuf.st_mode)) {
 	    chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
-
+	    /* Never chmod a symlink; it follows the link */
+	    chmod(destName, srcStatBuf.st_mode);
+	}
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+	else { 
+	    lchown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid);
+	}
+#endif
 	times.actime = srcStatBuf.st_atime;
 	times.modtime = srcStatBuf.st_mtime;
-
 	utime(destName, &times);
     }
 
@@ -414,6 +416,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	status = lstat(fileName, &statbuf);
 
     if (status < 0) {
+	fprintf(stderr, "status=%d followLinks=%d TRUE=%d\n", status, followLinks, TRUE);
 	perror(fileName);
 	return (FALSE);
     }
@@ -515,14 +518,11 @@ extern int createPath (const char *name, int mode)
 	cp = strchr (cp + 1, '/');
 	*cpOld = '\0';
 	retVal = mkdir (buf, cp ? 0777 : mode);
-	*cpOld = '/';
-    }
-    /* Return the result from the final directory, as that
-     * is the one that counts */
-    if( retVal!=0) {
-	if ( errno!=EEXIST) {
+	if (retVal != 0 && errno != EEXIST) {
+	    perror( buf);
 	    return( FALSE);
 	}
+	*cpOld = '/';
     }
     return( TRUE);
 }

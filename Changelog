@@ -25,7 +25,8 @@
 	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
 	* Cosmetic fix to busybox.c (Don't print a comma at the
 	    end of line if there are no more application names).
-	* Fixed a stupid bug in "head" option handling ("head -n" would segfault).
+	* Fixed a stupid bug in "head" option handling ("head -n" 
+	    would segfault).
 	* Moved commonly used functions "xmalloc()" and "exit()"
 	    to utility.c (with proper #ifdef's).
 	* Created a tiny tail implementation, removing -c, -q, -v, and making
@@ -37,7 +38,10 @@
 	* Fixed mount and umount.  Previously they could leak loop device 
 	    allocations, causing the system to quickly run out.  Fix for umount
 	    by Ben Collins <bcollins@debian.org>, and mount was fixed by me.
-	* ls formatting on 8 char user names fixed by Randolph Chung <tausq@debian.org>.
+	* ls formatting on eight charactor user names fixed by 
+	    Randolph Chung <tausq@debian.org>.
+	* cp could, when copying symlinks, change permissions of the
+	    files pointed to by the symlinks.
 
 
 	-Erik Andersen
