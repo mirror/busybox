@@ -1830,7 +1830,8 @@ static void setpwd(const char *val, int setold)
 		getpwd();
 	else
 		curdir = simplify_path(val);
-	free(cated);
+	if (cated)
+		free(cated);
 	INTON;
 	setvar("PWD", curdir, VEXPORT);
 }
