@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.71 2001/08/06 14:18:08 kraai Exp $"
+#ident "$Id: insmod.c,v 1.72 2001/08/22 05:26:08 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.71 2001/08/06 14:18:08 kraai Exp $"
+#ident "$Id: insmod.c,v 1.72 2001/08/22 05:26:08 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3160,9 +3160,8 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
  * kernel for the module
  */
 
-static int obj_load_progbits(FILE * fp, struct obj_file* f)
+static int obj_load_progbits(FILE * fp, struct obj_file* f, char* imagebase)
 {
-	char* imagebase = (char*) f->imagebase;
 	ElfW(Addr) base = f->baseaddr;
 	struct obj_section* sec;
 	
@@ -3178,7 +3177,7 @@ static int obj_load_progbits(FILE * fp, struct obj_file* f)
 		sec->contents = imagebase + (sec->header.sh_addr - base);
 		fseek(fp, sec->header.sh_offset, SEEK_SET);
 		if (fread(sec->contents, sec->header.sh_size, 1, fp) != 1) {
-			errorMsg("error reading ELF section data: %s\n", strerror(errno));
+			error_msg("error reading ELF section data: %s\n", strerror(errno));
 			return 0;
 		}
 
@@ -3458,9 +3457,7 @@ extern int insmod_main( int argc, char **argv)
 	 * the PROGBITS section was not loaded by the obj_load
 	 * now we can load them directly into the kernel memory
 	 */
-	//	f->imagebase = (char*) m_addr;
-	f->imagebase = (ElfW(Addr)) m_addr;
-	if (!obj_load_progbits(fp, f)) {
+	if (!obj_load_progbits(fp, f, (char*)m_addr)) {
 		delete_module(m_name);
 		goto out;
 	}
