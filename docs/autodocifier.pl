@@ -21,8 +21,9 @@ sub continuation {
 # regex && eval away unwanted strings from documentation
 sub beautify {
 	my $text = shift;
-	$text =~ s/USAGE_\w+\([\s]*?(".*?").*?\)/$1/sg;
-	$text =~ s/"[\s]*"//sg;
+        $text =~ s/USAGE_NOT\w+\(.*?"\s*\)//sxg;
+	$text =~ s/USAGE_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
+	$text =~ s/"\s*"//sg;
 	my @line = split("\n", $text);
 	$text = join('',
 		map { eval }
@@ -35,6 +36,8 @@ sub beautify {
 		}
 		@line
 	);
+        print STDERR "-- d\n";
+        print STDERR $text;
 	return $text;
 }
 
@@ -179,4 +182,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.5 2001/02/23 13:04:39 beppu Exp $
+# $Id: autodocifier.pl,v 1.6 2001/02/23 16:15:34 beppu Exp $
