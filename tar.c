@@ -611,12 +611,14 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			fprintf(vbFd, "%s\n", header.name);
 		}
 			
-		if (verboseFlag == TRUE && listFlag == TRUE) {
+		if (listFlag == TRUE) {
 			printf("%s", header.name);
-			if (header.type==LNKTYPE)	/* If this is a link, say so */
-				printf(" link to %s", header.linkname);
-			else if (header.type==SYMTYPE)
-				printf(" -> %s", header.linkname);
+			if (verboseFlag == TRUE) {
+				if (header.type==LNKTYPE)	/* If this is a link, say so */
+					printf(" link to %s", header.linkname);
+				else if (header.type==SYMTYPE)
+					printf(" -> %s", header.linkname);
+			}
 			printf("\n");
 		}
 
