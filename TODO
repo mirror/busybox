@@ -18,7 +18,6 @@ around to it some time. If you have any good ideas, please let me know.
 Possible apps to include some time:
 
 * hwclock
-* start-stop-daemon
 * group/commonize strings, remove dups (for i18n, l10n)
 
 -----------
