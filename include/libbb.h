@@ -230,6 +230,7 @@ extern unsigned long bb_xparse_number(const char *numstr,
  * increases target size and is often not needed embedded systems.  */
 extern long my_getpwnam(const char *name);
 extern long my_getgrnam(const char *name);
+extern char * my_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
 extern char * my_getpwuid(char *name, long uid, int bufsize);
 extern char * my_getgrgid(char *group, long gid, int bufsize);
 extern char *bb_askpass(int timeout, const char * prompt);

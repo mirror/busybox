@@ -22,48 +22,28 @@
   /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
-  * if bufsize is > 0 char *group cannot be set to NULL
-  *                   on success groupname is written on static allocated buffer
-  *                   on failure gid as string is written to buffer and NULL is returned
-  * if bufsize is = 0 char *group can be set to NULL
-  *                   on success groupname is returned 
-  *                   on failure NULL is returned
-  * if bufsize is < 0 char *group can be set to NULL
-  *                   on success groupname is returned
-  *                   on failure an error message is printed and the program exits   
+  * if bufsize is > 0 char *group cannot be set to NULL.
+  *                   On success groupname is written on static allocated buffer group
+  *                   (and a pointer to it is returned).
+  *                   On failure gid as string is written to static allocated buffer 
+  *                   group and NULL is returned.
+  * if bufsize is = 0 char *group can be set to NULL.
+  *                   On success groupname is returned. 
+  *                   On failure NULL is returned.
+  * if bufsize is < 0 char *group can be set to NULL.
+  *                   On success groupname is returned.
+  *                   On failure an error message is printed and the program exits.   
   */
   
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
 #include "libbb.h"
-#include "pwd_.h"
 #include "grp_.h"
-
 
 /* gets a groupname given a gid */
 char * my_getgrgid(char *group, long gid, int bufsize)
 {
-	struct group *mygroup;
+	struct group *mygroup = getgrgid(gid);
 
-	mygroup  = getgrgid(gid);
-	if (mygroup==NULL) {
-		if(bufsize > 0) {
-			assert(group != NULL);
-			snprintf(group, bufsize, "%ld", (long)gid);
-		}
-		if( bufsize < 0 ) {
-			bb_error_msg_and_die("unknown gid %ld", (long)gid);
-		} 
-		return NULL;
-	} else {
-		if(bufsize > 0)
-		{
-			assert(group != NULL);
-			return safe_strncpy(group, mygroup->gr_name, bufsize);
-		}
-		return mygroup->gr_name;
-	}
+	return  my_getug(group, (mygroup) ? mygroup->gr_name : (char *)mygroup, gid, bufsize, 'g');
 }
 
 

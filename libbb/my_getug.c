@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2004 by Tito Ragusa <farmatito@tiscali.it>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,31 +19,39 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
- /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
-  * flexible :
+ /* 
   *
-  * if bufsize is > 0 char *user can not be set to NULL.
-  *                   On success username is written on static allocated buffer name 
+  * if bufsize is > 0 char *idname can not be set to NULL.
+  *                   On success idname is written on static allocated buffer 
   *                   (and a pointer to it is returned).
-  *                   On failure uid as string is written to static allocated buffer name
+  *                   On failure uid or gid as string is written to static allocated buffer
   *                   and NULL is returned.
-  * if bufsize is = 0 char *user can be set to NULL.
-  *                   On success username is returned. 
+  * if bufsize is = 0 char *idname can be set to NULL.
+  *                   On success idname is returned. 
   *                   On failure NULL is returned.
-  * if bufsize is < 0 char *user can be set to NULL
-  *                   On success username is returned.
+  * if bufsize is < 0 char *idname can be set to NULL.
+  *                   On success idname is returned.
   *                   On failure an error message is printed and the program exits.   
   */
   
+#include <stdio.h>
+#include <assert.h>
 #include "libbb.h"
-#include "pwd_.h"
 
-/* gets a username given a uid */
-char * my_getpwuid(char *name, long uid, int bufsize)
+
+/* internal function for my_getpwuid and my_getgrgid */
+char * my_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
 {
-	struct passwd *myuser = getpwuid(uid);
-
-	return  my_getug(name, (myuser) ? myuser->pw_name : (char *)myuser , uid, bufsize, 'u');
+	if(bufsize > 0 ) {
+		assert(buffer!=NULL);
+		if(idname) {
+			return safe_strncpy(buffer, idname, bufsize);
+		}
+		snprintf(buffer, bufsize, "%ld", id);
+	} else if(bufsize < 0 && !idname) {
+		bb_error_msg_and_die("unknown %cid %ld", prefix, id); 
+	}
+	return idname;
 }
 
 /* END CODE */

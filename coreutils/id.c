@@ -26,12 +26,9 @@
  */
 
 #include "busybox.h"
-#include "grp_.h"
 #include "pwd_.h"
 #include <stdio.h>
 #include <unistd.h>
-#include <getopt.h>
-#include <string.h>
 #include <sys/types.h>
 
 #ifdef CONFIG_SELINUX
@@ -44,21 +41,26 @@
 #define JUST_USER         4
 #define JUST_GROUP        8
 
-void printf_full(unsigned int id, char *arg, char prefix)
+static short printf_full(unsigned int id, const char *arg, const char prefix)
 {	
-	printf("%cid=%u",prefix, id);
-	if(arg)
-		printf("(%s) ", arg);
+	const char *fmt = "%cid=%u";
+	short status=EXIT_FAILURE;
+	
+	if(arg) {
+		fmt = "%cid=%u(%s)";
+		status=EXIT_SUCCESS;
+	}
+	bb_printf(fmt, prefix, id, arg);
+	return status;
 }
 
 extern int id_main(int argc, char **argv)
 {
 	struct passwd *p;
-	char *user;
-	char *group;
 	uid_t uid;
 	gid_t gid;
-	int flags;
+	unsigned long flags;
+	short status;
 #ifdef CONFIG_SELINUX
 	int is_flask_enabled_flag = is_flask_enabled();
 #endif
@@ -67,8 +69,9 @@ extern int id_main(int argc, char **argv)
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
 	if ((flags & 0x80000000UL)
-	 /* Don't allow -n -r -nr */
+	/* Don't allow -n -r -nr */
 	|| (flags <= 3 && flags > 0) 
+	/* Don't allow more than one username */
 	|| (argc > optind + 1))
 		bb_show_usage();
 	
@@ -80,54 +83,45 @@ extern int id_main(int argc, char **argv)
 		gid = getgid();
 	}
 	
-	if(argv[optind])
-	{
-
+	if(argv[optind]) {
 		p=getpwnam(argv[optind]);
-		/* this is needed because it exits on failure */
+		/* my_getpwnam is needed because it exits on failure */
 		uid = my_getpwnam(argv[optind]);
 		gid = p->pw_gid;
 		/* in this case PRINT_REAL is the same */ 
 	}
-	
-	user=my_getpwuid(NULL, uid, (flags & JUST_USER) ? -1 : 0);
 
-	if(flags & JUST_USER)
-	{
-		gid=uid;
-		group=user;
-		goto PRINT; 
-	}
-	
-	group=my_getgrgid(NULL, gid, (flags & JUST_GROUP) ? -1 : 0);
-
-	if(flags & JUST_GROUP) 
-	{
-PRINT:		
-		if(flags & NAME_NOT_NUMBER)
-			puts(group);
-		else
-			printf ("%u\n", gid);
+	if(flags & (JUST_GROUP | JUST_USER)) {
+		/* JUST_GROUP and JUST_USER are mutually exclusive */
+		if(flags & NAME_NOT_NUMBER) {
+			/* my_getpwuid and my_getgrgid exit on failure so puts cannot segfault */
+			puts((flags & JUST_USER) ? my_getpwuid(NULL, uid, -1 ) : my_getgrgid(NULL, gid, -1 ));
+		} else {
+			bb_printf("%u\n",(flags & JUST_USER) ? uid : gid);
+		}
+		/* exit */ 
 		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
-	
+
 	/* Print full info like GNU id */
-	printf_full(uid, user, 'u');
-	printf_full(gid, group, 'g');
+	/* my_getpwuid doesn't exit on failure here */
+	status=printf_full(uid, my_getpwuid(NULL, uid, 0), 'u');
+	putchar(' ');
+	/* my_getgrgid doesn't exit on failure here */
+	status|=printf_full(gid, my_getgrgid(NULL, gid, 0), 'g');
 #ifdef CONFIG_SELINUX
-	if(is_flask_enabled_flag)
-	{
+	if(is_flask_enabled_flag) {
 		security_id_t mysid = getsecsid();
 		char context[80];
 		int len = sizeof(context);
 		context[0] = '\0';
 		if(security_sid_to_context(mysid, context, &len))
 			strcpy(context, "unknown");
-		printf("context=%s", context);
+		bb_printf(" context=%s", context);
 	}
 #endif
-	puts("");
-	bb_fflush_stdout_and_exit((user && group) ? EXIT_SUCCESS : EXIT_FAILURE);
+	putchar('\n');
+	bb_fflush_stdout_and_exit(status);
 }
 
 /* END CODE */
