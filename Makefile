@@ -22,7 +22,7 @@
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig clean distclean \
-	release tags  
+	release tags
 
 ifndef TOPDIR
 TOPDIR=$(CURDIR)/
