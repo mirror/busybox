@@ -45,24 +45,25 @@
  *      fancy forms of Parameter Expansion
  *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
- *      reserved words: case, esac, function
+ *      reserved words: case, esac, select, function
  *      Here Documents ( << word )
  *      Functions
  * Major bugs:
  *      job handling woefully incomplete and buggy
  *      reserved word execution woefully incomplete and buggy
  * to-do:
- *      port selected bugfixes from post-0.49 busybox lash
- *      finish implementing reserved words
+ *      port selected bugfixes from post-0.49 busybox lash - done?
+ *      finish implementing reserved words: for, while, until, do, done
+ *      change { and } from special chars to reserved words
+ *      builtins: break, continue, eval, return, set, trap, ulimit
+ *      test magic exec
  *      handle children going into background
  *      clean up recognition of null pipes
  *      have builtin_exec set flag to avoid restore_redirects
- *      figure out if "echo foo}" is fixable
  *      check setting of global_argc and global_argv
  *      control-C handling, probably with longjmp
  *      VAR=value prefix for simple commands
  *      follow IFS rules more precisely, including update semantics
- *      write builtin_eval, builtin_ulimit, builtin_umask
  *      figure out what to do with backslash-newline
  *      explain why we use signal instead of sigaction
  *      propagate syntax errors, die on resource errors?
@@ -97,6 +98,7 @@
 #include <fcntl.h>
 #include <getopt.h>    /* should be pretty obvious */
 
+#include <sys/stat.h>  /* ulimit */
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -323,9 +325,9 @@ static int builtin_pwd(struct child_prog *child);
 static int builtin_read(struct child_prog *child);
 static int builtin_shift(struct child_prog *child);
 static int builtin_source(struct child_prog *child);
-static int builtin_ulimit(struct child_prog *child);
 static int builtin_umask(struct child_prog *child);
 static int builtin_unset(struct child_prog *child);
+static int builtin_not_written(struct child_prog *child);
 /*   o_string manipulation: */
 static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
@@ -390,8 +392,11 @@ static void free_pipe(struct pipe *pi);
  * still be set at the end. */
 static struct built_in_command bltins[] = {
 	{"bg", "Resume a job in the background", builtin_fg_bg},
+	{"break", "Exit for, while or until loop", builtin_not_written},
 	{"cd", "Change working directory", builtin_cd},
+	{"continue", "Continue for, while or until loop", builtin_not_written},
 	{"env", "Print all environment variables", builtin_env},
+	{"eval", "Construct and run shell command", builtin_not_written},
 	{"exec", "Exec command, replacing this shell with the exec'd process", builtin_exec},
 	{"exit", "Exit from shell()", builtin_exit},
 	{"export", "Set environment variable", builtin_export},
@@ -399,8 +404,11 @@ static struct built_in_command bltins[] = {
 	{"jobs", "Lists the active jobs", builtin_jobs},
 	{"pwd", "Print current directory", builtin_pwd},
 	{"read", "Input environment variable", builtin_read},
+	{"return", "Return from a function", builtin_not_written},
+	{"set", "Set/unset shell options", builtin_not_written},
 	{"shift", "Shift positional parameters", builtin_shift},
-	{"ulimit","Controls resource limits", builtin_ulimit},
+	{"trap", "Trap signals", builtin_not_written},
+	{"ulimit","Controls resource limits", builtin_not_written},
 	{"umask","Sets file creation mask", builtin_umask},
 	{"unset", "Unset environment variable", builtin_unset},
 	{".", "Source-in and run commands in a file", builtin_source},
@@ -640,16 +648,21 @@ static int builtin_source(struct child_prog *child)
 	return (status);
 }
 
-static int builtin_ulimit(struct child_prog *child)
-{
-	printf("builtin_ulimit not written\n");
-	return EXIT_FAILURE;
-}
-
 static int builtin_umask(struct child_prog *child)
 {
-	printf("builtin_umask not written\n");
-	return EXIT_FAILURE;
+	mode_t new_umask;
+	const char *arg = child->argv[1];
+	char *end;
+	if (arg) {
+		new_umask=strtoul(arg, &end, 8);
+		if (*end!='\0' || end == arg) {
+			return EXIT_FAILURE;
+		}
+	} else {
+		printf("%.3o\n", (unsigned int) (new_umask=umask(0)));
+	}
+	umask(new_umask);
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'unset VAR' handler */
@@ -661,6 +674,12 @@ static int builtin_unset(struct child_prog *child)
 	}
 	unsetenv(child->argv[1]);
 	return EXIT_SUCCESS;
+}
+
+static int builtin_not_written(struct child_prog *child)
+{
+	printf("builtin_%s not written\n",child->argv[0]);
+	return EXIT_FAILURE;
 }
 
 static int b_check_space(o_string *o, int len)
@@ -926,8 +945,12 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			if (squirrel && redir->fd < 3) {
 				squirrel[redir->fd] = dup(redir->fd);
 			}
-			dup2(openfd, redir->fd);
-			close(openfd);
+			if (openfd == -3) {
+				close(openfd);
+			} else {
+				dup2(openfd, redir->fd);
+				close(openfd);
+			}
 		}
 	}
 	return 0;
@@ -1216,6 +1239,11 @@ static int run_pipe_real(struct pipe *pi)
 			if (strcmp(child->argv[0], x->cmd) == 0 ) {
 				int squirrel[] = {-1, -1, -1};
 				int rcode;
+				if (x->function == builtin_exec && child->argv[1]==NULL) {
+					debug_printf("magic exec\n");
+					setup_redirects(child,NULL);
+					return EXIT_SUCCESS;
+				}
 				debug_printf("builtin inline %s\n", child->argv[0]);
 				/* XXX setup_redirects acts on file descriptors, not FILEs.
 				 * This is perfect for work that comes after exec().
@@ -1569,7 +1597,8 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	if (redir->dup == -2) return 1;  /* syntax error */
 	if (redir->dup != -1) {
 		/* Erik had a check here that the file descriptor in question
-		 * is legit; I postpone that to "run time" */
+		 * is legit; I postpone that to "run time"
+		 * A "-" representation of "close me" shows up as a -3 here */
 		debug_printf("Duplicating redirect '%d>&%d'\n", redir->fd, redir->dup);
 	} else {
 		/* We do _not_ try to open the file that src points to,
@@ -1775,10 +1804,16 @@ static int redirect_dup_num(struct in_str *input)
 	if (ch != '&') return -1;
 
 	b_getch(input);  /* get the & */
-	while (ch=b_peek(input),isdigit(ch)) {
+	ch=b_peek(input);
+	if (ch == '-') {
+		b_getch(input);
+		return -3;  /* "-" represents "close me" */
+	}
+	while (isdigit(ch)) {
 		d = d*10+(ch-'0');
 		ok=1;
 		b_getch(input);
+		ch = b_peek(input);
 	}
 	if (ok) return d;
 
