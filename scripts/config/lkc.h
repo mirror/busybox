@@ -21,12 +21,14 @@ extern "C" {
 #include "lkc_proto.h"
 #undef P
 
-void symbol_end(char *help);
+#define SRCTREE "srctree"
+
 int zconfparse(void);
 void zconfdump(FILE *out);
 
 extern int zconfdebug;
 void zconf_starthelp(void);
+FILE *zconf_fopen(const char *name);
 void zconf_initscan(const char *name);
 void zconf_nextfile(const char *name);
 int zconf_lineno(void);
@@ -47,9 +49,11 @@ void menu_add_menu(void);
 void menu_end_menu(void);
 void menu_add_entry(struct symbol *sym);
 void menu_end_entry(void);
-struct property *create_prop(enum prop_type type);
 void menu_add_dep(struct expr *dep);
-struct property *menu_add_prop(int token, char *prompt, struct symbol *def, struct expr *dep);
+struct property *menu_add_prop(enum prop_type type, char *prompt, struct expr *expr, struct expr *dep);
+void menu_add_prompt(enum prop_type type, char *prompt, struct expr *dep);
+void menu_add_expr(enum prop_type type, struct expr *expr, struct expr *dep);
+void menu_add_symbol(enum prop_type type, struct symbol *sym, struct expr *dep);
 void menu_finalize(struct menu *parent);
 void menu_set_type(int type);
 struct file *file_lookup(const char *name);
@@ -61,16 +65,20 @@ extern struct menu *current_menu;
 /* symbol.c */
 void sym_init(void);
 void sym_clear_all_valid(void);
+void sym_set_changed(struct symbol *sym);
+struct symbol *sym_check_deps(struct symbol *sym);
+struct property *prop_alloc(enum prop_type type, struct symbol *sym);
+struct symbol *prop_get_symbol(struct property *prop);
 
 static inline tristate sym_get_tristate_value(struct symbol *sym)
 {
-	return S_TRI(sym->curr);
+	return sym->curr.tri;
 }
 
 
 static inline struct symbol *sym_get_choice_value(struct symbol *sym)
 {
-	return (struct symbol *)S_VAL(sym->curr);
+	return (struct symbol *)sym->curr.val;
 }
 
 static inline bool sym_set_choice_value(struct symbol *ch, struct symbol *chval)
@@ -95,7 +103,6 @@ static inline bool sym_is_optional(struct symbol *sym)
 
 static inline bool sym_has_value(struct symbol *sym)
 {
-	//return S_VAL(sym->def) != NULL;
 	return sym->flags & SYMBOL_NEW ? false : true;
 }
 

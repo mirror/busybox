@@ -7,7 +7,7 @@ menu "Another Bourne-like Shell"
 
 choice
 	prompt "Choose your default shell"
-	default "none"
+	default CONFIG_FEATURE_SH_IS_NONE
 	help
 	  Choose a shell. The ash shell is the most bash compatible
 	  and full featured.

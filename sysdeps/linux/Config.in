@@ -13,7 +13,7 @@ menu "General Configuration"
 
 choice
 	prompt "Buffer allocation policy"
-	default "Allocate with Malloc"
+	default CONFIG_FEATURE_BUFFERS_USE_MALLOC
 	help
 	  There are 3 ways BusyBox can handle buffer allocations:
 	  - Use malloc. This costs code size for the call to xmalloc.

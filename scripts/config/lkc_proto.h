@@ -5,7 +5,7 @@ P(conf_read,int,(const char *name));
 P(conf_write,int,(const char *name));
 
 /* menu.c */
-extern struct menu rootmenu;
+P(rootmenu,struct menu,);
 
 P(menu_is_visible,bool,(struct menu *menu));
 P(menu_get_prompt,const char *,(struct menu *menu));
@@ -14,17 +14,18 @@ P(menu_get_parent_menu,struct menu *,(struct menu *menu));
 
 /* symbol.c */
 P(symbol_hash,struct symbol *,[SYMBOL_HASHSIZE]);
-extern int sym_change_count;
+P(sym_change_count,int,);
 
 P(sym_lookup,struct symbol *,(const char *name, int isconst));
 P(sym_find,struct symbol *,(const char *name));
-P(sym_type_name,const char *,(int type));
+P(sym_type_name,const char *,(enum symbol_type type));
 P(sym_calc_value,void,(struct symbol *sym));
-P(sym_get_type,int,(struct symbol *sym));
+P(sym_get_type,enum symbol_type,(struct symbol *sym));
 P(sym_tristate_within_range,bool,(struct symbol *sym,tristate tri));
 P(sym_set_tristate_value,bool,(struct symbol *sym,tristate tri));
 P(sym_toggle_tristate_value,tristate,(struct symbol *sym));
 P(sym_string_valid,bool,(struct symbol *sym, const char *newval));
+P(sym_string_within_range,bool,(struct symbol *sym, const char *str));
 P(sym_set_string_value,bool,(struct symbol *sym, const char *newval));
 P(sym_is_changable,bool,(struct symbol *sym));
 P(sym_get_choice_prop,struct property *,(struct symbol *sym));

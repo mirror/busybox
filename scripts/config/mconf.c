@@ -28,6 +28,7 @@
 #define LKC_DIRECT_LINK
 #include "lkc.h"
 
+static char menu_backtitle[128];
 static const char menu_instructions[] =
 	"Arrow keys navigate the menu.  "
 	"<Enter> selects submenus --->.  "
@@ -65,7 +66,7 @@ load_config_help[] =
 	"configurations available on a single machine.\n"
 	"\n"
 	"If you have saved a previous configuration in a file other than the\n"
-	"BusyBox default, entering the name of the file here will allow you\n"
+	"BusyBox's default, entering the name of the file here will allow you\n"
 	"to modify that configuration.\n"
 	"\n"
 	"If you are uncertain, then you have probably never used alternate\n"
@@ -120,6 +121,7 @@ static void show_readme(void);
 static void init_wsize(void)
 {
 	struct winsize ws;
+	char *env;
 
 	if (ioctl(1, TIOCGWINSZ, &ws) == -1) {
 		rows = 24;
@@ -127,6 +129,20 @@ static void init_wsize(void)
 	} else {
 		rows = ws.ws_row;
 		cols = ws.ws_col;
+		if (!rows) {
+			env = getenv("LINES");
+			if (env)
+				rows = atoi(env);
+			if (!rows)
+				rows = 24;
+		}
+		if (!cols) {
+			env = getenv("COLUMNS");
+			if (env)
+				cols = atoi(env);
+			if (!cols)
+				cols = 80;
+		}
 	}
 
 	if (rows < 19 || cols < 80) {
@@ -226,9 +242,7 @@ static void build_conf(struct menu *menu)
 						menu->data ? "-->" : "++>",
 						indent + 1, ' ', prompt);
 				} else {
-					if (menu->parent != &rootmenu)
-						cprint_name("   %*c", indent + 1, ' ');
-					cprint_name("%s  --->", prompt);
+					cprint_name("   %*c%s  --->", indent + 1, ' ', prompt);
 				}
 
 				if (single_menu_mode && menu->data)
@@ -303,7 +317,10 @@ static void build_conf(struct menu *menu)
 			switch (type) {
 			case S_BOOLEAN:
 				cprint_tag("t%p", menu);
-				cprint_name("[%c]", val == no ? ' ' : '*');
+				if (sym_is_changable(sym))
+					cprint_name("[%c]", val == no ? ' ' : '*');
+				else
+					cprint_name("---");
 				break;
 			case S_TRISTATE:
 				cprint_tag("t%p", menu);
@@ -312,7 +329,10 @@ static void build_conf(struct menu *menu)
 				case mod: ch = 'M'; break;
 				default:  ch = ' '; break;
 				}
-				cprint_name("<%c>", ch);
+				if (sym_is_changable(sym))
+					cprint_name("<%c>", ch);
+				else
+					cprint_name("---");
 				break;
 			default:
 				cprint_tag("s%p", menu);
@@ -321,12 +341,18 @@ static void build_conf(struct menu *menu)
 				if (tmp < 0)
 					tmp = 0;
 				cprint_name("%*c%s%s", tmp, ' ', menu_get_prompt(menu),
-					sym_has_value(sym) ? "" : " (NEW)");
+					(sym_has_value(sym) || !sym_is_changable(sym)) ?
+					"" : " (NEW)");
 				goto conf_childs;
 			}
 		}
 		cprint_name("%*c%s%s", indent + 1, ' ', menu_get_prompt(menu),
-			sym_has_value(sym) ? "" : " (NEW)");
+			(sym_has_value(sym) || !sym_is_changable(sym)) ?
+			"" : " (NEW)");
+		if (menu->prompt->type == P_MENU) {
+			cprint_name("  --->");
+			return;
+		}
 	}
 
 conf_childs:
@@ -390,13 +416,15 @@ static void conf(struct menu *menu)
 			switch (type) {
 			case 'm':
 				if (single_menu_mode)
-					submenu->data = (submenu->data)? NULL : (void *)1;
+					submenu->data = (void *) (long) !submenu->data;
 				else
 					conf(submenu);
 				break;
 			case 't':
 				if (sym_is_choice(sym) && sym_get_tristate_value(sym) == yes)
 					conf_choice(submenu);
+				else if (submenu->prompt->type == P_MENU)
+					conf(submenu);
 				break;
 			case 's':
 				conf_string(submenu);
@@ -602,7 +630,6 @@ static void conf_cleanup(void)
 {
 	tcsetattr(1, TCSAFLUSH, &ios_org);
 	unlink(".help.tmp");
-	unlink("lxdialog.scrltmp");
 }
 
 static void winch_handler(int sig)
@@ -638,10 +665,9 @@ int main(int ac, char **av)
 	conf_parse(av[1]);
 	conf_read(NULL);
 
-	backtitle = malloc(128);
 	sym = sym_lookup("VERSION", 0);
 	sym_calc_value(sym);
-	snprintf(backtitle, 128, "BusyBox v%s Configuration",
+	snprintf(menu_backtitle, 128, "BusyBox v%s Configuration",
 		sym_get_string_value(sym));
 
 	mode = getenv("MENUCONFIG_MODE");
