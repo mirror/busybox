@@ -1909,7 +1909,7 @@ int shell_main(int argc_l, char **argv_l)
 	if (interactive==TRUE) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
-		printf( "\n\nBusyBox v%s (%s) Built-in shell (lash)\n", BB_VER, BB_BT);
+		printf( "\n\n" BB_BANNER " Built-in shell (lash)\n");
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 	} else if (local_pending_command==NULL) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
