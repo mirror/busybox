@@ -475,9 +475,11 @@ static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 		int length;
 
 		cmdstr += strspn(cmdstr, " ");
-		length = strcspn(cmdstr, "; \n");
-		sed_cmd->label = strndup(cmdstr, length);
-		cmdstr += length;
+		length = strcspn(cmdstr, semicolon_whitespace);
+		if (length) {
+			sed_cmd->label = strndup(cmdstr, length);
+			cmdstr += length;
+		}
 	}
 	/* translation command */
 	else if (sed_cmd->cmd == 'y') {
@@ -771,13 +773,11 @@ static sed_cmd_t *branch_to(const char *label)
 	sed_cmd_t *sed_cmd;
 
 	for (sed_cmd = sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
-		if ((sed_cmd->label) && (strcmp(sed_cmd->label, label) == 0)) {
-			break;
+		if ((sed_cmd->cmd == ':') && (sed_cmd->label) && (strcmp(sed_cmd->label, label) == 0)) {
+			return (sed_cmd);
 		}
 	}
-
-	/* If no match returns last command */
-	return (sed_cmd);
+	bb_error_msg_and_die("Can't find label for jump to `%s'", label);
 }
 
 static void process_file(FILE * file)
@@ -998,12 +998,17 @@ static void process_file(FILE * file)
 						linenum++;
 					}
 					break;
-				case 'b':
-					sed_cmd = branch_to(sed_cmd->label);
-					break;
 				case 't':
-					if (substituted) {
-						sed_cmd = branch_to(sed_cmd->label);
+					if (substituted)
+						/* Fall through */
+				case 'b':
+					{
+						if (sed_cmd->label == NULL) {
+							/* Jump to end of script */
+							deleted = 1;
+						} else {
+							sed_cmd = branch_to(sed_cmd->label);
+						}
 					}
 					break;
 				case 'y':{
