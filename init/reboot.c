@@ -29,3 +29,11 @@ extern int reboot_main(int argc, char **argv)
 	/* don't assume init's pid == 1 */
 	exit(kill(findInitPid(), SIGINT));
 }
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

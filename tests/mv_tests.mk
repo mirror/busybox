@@ -1,14 +1,19 @@
+# mv_tests.mk - Set of tests cases for busybox mv
+# -------------
+# Copyright (C) 2000 Karl M. Hegbloom <karlheg@debian.org> GPL
+#
 
 # GNU `mv'
 GMV = /bin/mv
 # BusyBox `mv'
 BMV = $(shell pwd)/mv
 
-.PHONY: mv_clean
+all:: mv_tests
+clean:: mv_clean
+
 mv_clean:
 	rm -rf mv_tests mv_*.{gnu,bb} mv
 
-.PHONY: mv_tests
 mv_tests: mv_clean mv
 	@echo;
 	@echo "No output from diff means busybox mv is functioning properly.";
@@ -45,7 +50,7 @@ mv_tests: mv_clean mv
 	@echo;
 	rm -f mv_tests/{afile,newname};
 
-	@echo; echo;
+	@echo; echo ------------------------------;
 	cd mv_tests;				\
 	 echo A file > afile;			\
 	 ln -s afile symlink;			\
@@ -72,7 +77,7 @@ mv_tests: mv_clean mv
 	@echo;
 	rm -rf mv_tests/*;
 
-	@echo; echo;
+	@echo; echo ------------------------------;
 	cd mv_tests;				\
 	 echo A file > afile;			\
 	 ln -s afile symlink;			\
@@ -85,7 +90,7 @@ mv_tests: mv_clean mv
 	@echo;
 	rm -rf mv_tests/*
 
-	@echo; echo;
+	@echo; echo ------------------------------;
 	cd mv_tests;				\
 	 echo A file > afile;			\
 	 ln -s afile symlink;			\
@@ -101,7 +106,7 @@ mv_tests: mv_clean mv
 	@echo;
 	rm -rf mv_tests/*;
 
-	@echo; echo;
+	@echo; echo ------------------------------;
 	cd mv_tests;				\
 	 mkdir dir{a,b};			\
 	 echo A file > dira/afile;		\
@@ -135,3 +140,27 @@ mv_tests: mv_clean mv
 	# false;
 	@echo;
 	rm -rf mv_tests/dir{a,b};
+
+	@echo; echo ------------------------------;
+	@echo There should be an error message about cannot mv a dir to a subdir of itself.
+	cd mv_tests;				\
+	 touch a b c;				\
+	 mkdir adir;				\
+	 ls -lR . > ../mv_a_star_adir.gnu;	\
+	 ${GMV} * adir;				\
+	 ls -lR . >> ../mv_a_star_adir.gnu;
+
+	@echo
+	@echo There should be an error message about cannot mv a dir to a subdir of itself.
+	cd mv_tests;				\
+	 rm -rf adir;				\
+	 mkdir adir;				\
+	 ls -lR . > ../mv_a_star_adir.bb;	\
+	 ${BMV} * adir;			\
+	 ls -lR . >> ../mv_a_star_adir.bb;
+
+	@echo;
+	diff -u mv_a_star_adir.gnu mv_a_star_adir.bb;
+
+	@echo;
+	rm -rf mv_test/*;

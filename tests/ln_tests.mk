@@ -1,14 +1,19 @@
+# ln_tests.mk - Set of tests for busybox ln
+# -------------
+# Copyright (C) 2000 Karl M. Hegbloom <karlheg@debian.org> GPL
+#
 
 # GNU `ln'
 GLN = /bin/ln
 # BusyBox `ln'
 BLN = $(shell pwd)/ln
 
-.PHONY: ln_clean
+all:: ln_tests
+clean:: ln_clean
+
 ln_clean:
 	rm -rf ln_tests ln_*.{gnu,bb} ln
 
-.PHONY: ln_tests
 ln_tests: ln_clean ln
 	@echo;
 	@echo "No output from diff means busybox ln is functioning properly.";

@@ -53,12 +53,6 @@ Hmm.  Needs to be carefully thought out.
 -----------------------
 
 
-
-Some known bugs, todo items, etc...
-
------------------------
-
-
 -rw-r--r-- 1000/1000      4398 2000-01-06 21:55 uniq.c
 -rw-r--r-- 1000/1000      1568 1999-10-20 18:08 update.c
 -rw-r----- 0/1000         1168 2000-01-29 21:03 update.o
@@ -115,4 +109,22 @@ So far I had not considered it.  Basically, you wish to have
 messages from the embedded box logged to a remote network
 syslog box, right?  I can see that this would be useful.
 I'll add this to the TODO list,
+
+
+-----------------------
+
+
+ In utility.c:copyFile: It uses followLinks for both source and
+ destination files... is that right for `mv'?  Will need to revisit
+ the GNU, freeBSD, and MINIX versions for this... Should read the
+ Unix98 and POSIX specs also.
+
+-----------------------
+
+ I think that the add_inode &c in utility.c needs to also stow the
+ st_dev field, and that du.c should NOT call `reset_inode_list'
+ because there can be hard links from inside one argv/ to inside
+ another argv/.  du.c probably ought to have an -x switch like GNU du
+ does also...
+
 

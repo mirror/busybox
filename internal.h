@@ -154,6 +154,17 @@ const char *modeString(int mode);
 const char *timeString(time_t timeVal);
 int isDirectory(const char *name, const int followLinks, struct stat *statBuf);
 int isDevice(const char *name);
+
+typedef struct ino_dev_hash_bucket_struct {
+  struct ino_dev_hash_bucket_struct *next;
+  ino_t ino;
+  dev_t dev;
+  char name[1];
+} ino_dev_hashtable_bucket_t;
+int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
+void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
+void reset_ino_dev_hashtable(void);
+
 int copyFile(const char *srcName, const char *destName, int setModes,
 	        int followLinks);
 char *buildName(const char *dirName, const char *fileName);

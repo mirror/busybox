@@ -18,6 +18,20 @@
 	    free).  Use of /proc (or not) is policy that should be set up in 
 	    /etc/fstab (or in hardcoded scripts), not in init.
 	* Fixed rebooting when init runs as an initrd.
+	* Fixes and updates from Karl M. Hegbloom  <karlheg@debian.org>
+	    - update.c rewritten to look more like update-2.11
+	    - moveed the inode hash out of du.c and into utility.c to make 
+		it a common resource that can be used by other apps.
+	    - cp_mv.c now checks inodes to see if a source and dest are
+		the same, and prints an error (instead of endlessly looping).
+	    - mv now attempts to do a rename, and will fall back to doing
+		a copy only if the rename fails.
+	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	    - Fixes to sort.  Removed "-g", fixed and added "-r"
+	    - Fixes to the makefile for handling "strip"
+	* An initial telnet implementation was added by 
+	    Randolph Chung <tausq@debian.org>.
+
 
 	-Erik Andersen
 

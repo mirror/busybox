@@ -29,7 +29,18 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char sort_usage[] = "sort [OPTION]... [FILE]...\n\n";
+static const char sort_usage[] = "sort [-n]"
+#ifdef BB_FEATURE_SORT_REVERSE
+" [-r]"
+#endif
+" [FILE]...\n\n";
+
+#ifdef BB_FEATURE_SORT_REVERSE
+#define APPLY_REVERSE(x) (reverse ? -(x) : (x))
+static int reverse = 0;
+#else
+#define APPLY_REVERSE(x) (x)
+#endif
 
 /* typedefs _______________________________________________________________ */
 
@@ -120,7 +131,7 @@ static int compare_ascii(const void *a, const void *b)
 	y = *doh;
 
 	// fprintf(stdout, "> %p: %s< %p: %s", x, x->data, y, y->data);
-	return strcmp(x->data, y->data);
+	return APPLY_REVERSE(strcmp(x->data, y->data));
 }
 
 /* numeric order */
@@ -138,7 +149,7 @@ static int compare_numeric(const void *a, const void *b)
 	xint = strtoul(x->data, NULL, 10);
 	yint = strtoul(y->data, NULL, 10);
 
-	return (xint - yint);
+	return APPLY_REVERSE(xint - yint);
 }
 
 
@@ -254,20 +265,19 @@ int sort_main(int argc, char **argv)
 		if (argv[i][0] == '-') {
 			opt = argv[i][1];
 			switch (opt) {
-			case 'g':
-				/* what's the diff between -g && -n? */
-				compare = compare_numeric;
-				break;
 			case 'h':
 				usage(sort_usage);
 				break;
 			case 'n':
-				/* what's the diff between -g && -n? */
+				/* numeric comparison */
 				compare = compare_numeric;
 				break;
+#ifdef BB_FEATURE_SORT_REVERSE
 			case 'r':
 				/* reverse */
+				reverse = 1;
 				break;
+#endif
 			default:
 				fprintf(stderr, "sort: invalid option -- %c\n", opt);
 				usage(sort_usage);
@@ -310,4 +320,4 @@ int sort_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: sort.c,v 1.11 2000/02/08 19:58:47 erik Exp $ */
+/* $Id: sort.c,v 1.12 2000/03/04 21:19:32 erik Exp $ */

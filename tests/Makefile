@@ -1,16 +1,21 @@
-all test_all: message_header cp_tests mv_tests ln_tests
+# busybox/tests/Makefile - Run through all defined tests.
+# ------------------------
+# Copyright (C) 2000  Karl M. Hegbloom <karlheg@debian.org>  GPL
 
-clean: cp_clean mv_clean ln_clean
+all:: message_header
 
 message_header:
 	@echo
-	@echo If tests faile due to differences in timestamps in commands that are not set
-	@echo to preserve timestamps, just run the tests again.
+	@echo BusyBox Test Suite.
 	@echo
 
-include cp_tests.mk
-include mv_tests.mk
-include ln_tests.mk
+clean::
+
+distclean: clean
+
+.PHONY: all clean distclean message_header
+
+include $(wildcard *_tests.mk)
 
 BBL := $(shell pushd .. >/dev/null &&		\
 	         ${MAKE} busybox.links >/dev/null && \
@@ -21,8 +26,6 @@ BBL := $(shell pushd .. >/dev/null &&		\
 ../busybox:
 	cd .. && ${MAKE} busybox
 
-$(BBL): ../busybox
+${BBL}: ../busybox
 	rm -f $@
 	ln ../busybox $@
-
-.PHONY: all test_all message_header

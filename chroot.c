@@ -65,3 +65,12 @@ int chroot_main(int argc, char **argv)
 			*argv, strerror(errno));
 	exit(FALSE);
 }
+
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

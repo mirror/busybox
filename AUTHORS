@@ -37,4 +37,5 @@ Charles P. Wright <cpwright@villagenet.com>
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
-
+Karl M. Hegbloom <karlheg@debian.org>
+    cp_mv.c, the test suite, various fixes to utility.c, &c.

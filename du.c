@@ -36,16 +36,6 @@
 
 typedef void (Display) (long, char *);
 
-typedef struct inode_type {
-	struct inode_type *next;
-	ino_t ino;
-} INODETYPE;
-
-#define HASH_SIZE	311		/* Should be prime */
-#define hash_inode(i)	((i) % HASH_SIZE)
-
-static INODETYPE *inode_hash_list[HASH_SIZE];
-
 static const char du_usage[] =
 	"du [OPTION]... [FILE]...\n\n"
 	"Summarize disk space used for each FILE and/or directory.\n"
@@ -68,52 +58,6 @@ static void print_summary(long size, char *filename)
 {
 	if (du_depth == 1) {
 		print_normal(size, filename);
-	}
-}
-
-/* Return 1 if inode is in inode hash list, else return 0 */
-static int is_in_list(const ino_t ino)
-{
-	INODETYPE *inode;
-
-	inode = inode_hash_list[hash_inode(ino)];
-	while (inode != NULL) {
-		if (inode->ino == ino)
-			return 1;
-		inode = inode->next;
-	}
-
-	return 0;
-}
-
-/* Add inode to inode hash list */
-static void add_inode(const ino_t ino)
-{
-	int i;
-	INODETYPE *inode;
-    
-	i = hash_inode(ino);
-	inode = malloc(sizeof(INODETYPE));
-	if (inode == NULL)
-		fatalError("du: Not enough memory.");
-
-	inode->ino = ino;
-	inode->next = inode_hash_list[i];
-	inode_hash_list[i] = inode;
-}
-
-/* Clear inode hash list */
-static void reset_inode_list(void)
-{
-	int i;
-	INODETYPE *inode;
-
-	for (i = 0; i < HASH_SIZE; i++) {
-		while (inode_hash_list[i] != NULL) {
-			inode = inode_hash_list[i]->next;
-			free(inode_hash_list[i]);
-			inode_hash_list[i] = inode;
-		}
 	}
 }
 
@@ -175,13 +119,13 @@ static long du(char *filename)
 	}
 	else if (statbuf.st_nlink > 1 && !count_hardlinks) {
 		/* Add files with hard links only once */
-		if (is_in_list(statbuf.st_ino)) {
+		if (is_in_ino_dev_hashtable(&statbuf, NULL)) {
 			sum = 0L;
 			if (du_depth == 1)
 				print(sum, filename);
 		}
 		else {
-			add_inode(statbuf.st_ino);
+			add_to_ino_dev_hashtable(&statbuf, NULL);
 		}
 	}
 	du_depth--;
@@ -231,11 +175,18 @@ int du_main(int argc, char **argv)
 			if (sum && isDirectory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
 			}
-			reset_inode_list();
+			reset_ino_dev_hashtable();
 		}
 	}
 
 	exit(0);
 }
 
-/* $Id: du.c,v 1.15 2000/02/21 17:27:17 erik Exp $ */
+/* $Id: du.c,v 1.16 2000/03/04 21:19:32 erik Exp $ */
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

@@ -300,14 +300,16 @@ static const struct Applet applets[] = {
 
 int main(int argc, char **argv)
 {
-	char *s = argv[0];
-	char *name = argv[0];
-	const struct Applet *a = applets;
+	char				*s		= argv[0];
+	char				*name	= argv[0];
+	const struct Applet	*a		= applets;
 
 	while (*s != '\0') {
 		if (*s++ == '/')
 			name = s;
 	}
+
+	*argv = name;
 
 	while (a->name != 0) {
 		if (strcmp(name, a->name) == 0) {
@@ -341,7 +343,7 @@ int busybox_main(int argc, char **argv)
 		fprintf(stderr, "Usage: busybox [function] [arguments]...\n");
 		fprintf(stderr, "   or: [function] [arguments]...\n\n");
 		fprintf(stderr,
-				"\tMost people will create a symlink to busybox for each\n"
+				"\tMost people will create a link to busybox for each\n"
 				"\tfunction name, and busybox will act like whatever you invoke it as.\n");
 		fprintf(stderr, "\nCurrently defined functions:\n");
 
@@ -362,3 +364,11 @@ int busybox_main(int argc, char **argv)
 		return (main(argc, argv));
 	}
 }
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

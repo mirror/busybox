@@ -181,3 +181,11 @@ int chmod_chown_chgrp_main(int argc, char **argv)
   bad_group:
 	fatalError( "%s: unknown group name: %s\n", invocationName, groupName);
 }
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

@@ -122,7 +122,76 @@ int get_kernel_revision()
 }
 #endif							/* BB_INIT || BB_PS */
 
+#if defined (BB_CP_MV) || defined (BB_DU)
 
+#define HASH_SIZE	311		/* Should be prime */
+#define hash_inode(i)	((i) % HASH_SIZE)
+
+static ino_dev_hashtable_bucket_t *ino_dev_hashtable[HASH_SIZE];
+
+/*
+ * Return 1 if statbuf->st_ino && statbuf->st_dev are recorded in
+ * `ino_dev_hashtable', else return 0
+ *
+ * If NAME is a non-NULL pointer to a character pointer, and there is
+ * a match, then set *NAME to the value of the name slot in that
+ * bucket.
+ */
+int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name)
+{
+	ino_dev_hashtable_bucket_t *bucket;
+
+	bucket = ino_dev_hashtable[hash_inode(statbuf->st_ino)];
+	while (bucket != NULL) {
+	  if ((bucket->ino == statbuf->st_ino) &&
+		  (bucket->dev == statbuf->st_dev))
+	  {
+		if (name) *name = bucket->name;
+		return 1;
+	  }
+	  bucket = bucket->next;
+	}
+	return 0;
+}
+
+/* Add statbuf to statbuf hash table */
+void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
+{
+	int i;
+	size_t s;
+	ino_dev_hashtable_bucket_t *bucket;
+    
+	i = hash_inode(statbuf->st_ino);
+	s = name ? strlen(name) : 0;
+	bucket = malloc(sizeof(ino_dev_hashtable_bucket_t) + s);
+	if (bucket == NULL)
+		fatalError("Not enough memory.");
+	bucket->ino = statbuf->st_ino;
+	bucket->dev = statbuf->st_dev;
+	if (name)
+		strcpy(bucket->name, name);
+	else
+		bucket->name[0] = '\0';
+	bucket->next = ino_dev_hashtable[i];
+	ino_dev_hashtable[i] = bucket;
+}
+
+/* Clear statbuf hash table */
+void reset_ino_dev_hashtable(void)
+{
+	int i;
+	ino_dev_hashtable_bucket_t *bucket;
+
+	for (i = 0; i < HASH_SIZE; i++) {
+		while (ino_dev_hashtable[i] != NULL) {
+			bucket = ino_dev_hashtable[i]->next;
+			free(ino_dev_hashtable[i]);
+			ino_dev_hashtable[i] = bucket;
+		}
+	}
+}
+
+#endif /* BB_CP_MV || BB_DU */
 
 #if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
 /*
@@ -161,7 +230,7 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 /*
  * Copy one file to another, while possibly preserving its modes, times,
  * and modes.  Returns TRUE if successful, or FALSE on a failure with an
- * error message output.  (Failure is not indicted if the attributes cannot
+ * error message output.  (Failure is not indicated if the attributes cannot
  * be set.)
  *  -Erik Andersen
  */
@@ -1335,6 +1404,11 @@ extern void whine_if_fstab_is_missing()
 }
 #endif
 
-
-
 /* END CODE */
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

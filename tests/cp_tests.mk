@@ -1,18 +1,23 @@
-# This is a -*- makefile -*-
+# cp_tests.mk - Set of test cases for busybox cp
+# -------------
+# Copyright (C) 2000 Karl M. Hegbloom <karlheg@debian.org> GPL
+#
 
 # GNU `cp'
 GCP = /bin/cp
 # BusyBox `cp'
 BCP = $(shell pwd)/cp
 
-.PHONY: cp_clean
-cp_clean:
-	rm -rf cp_tests cp_*.{gnu,bb} cp
+all:: cp_tests
+clean:: cp_clean
 
-.PHONY: cp_tests
+cp_clean:
+	- rm -rf cp_tests cp_*.{gnu,bb} cp
+
 cp_tests: cp_clean cp
 	@echo;
 	@echo "No output from diff means busybox cp is functioning properly.";
+	@echo "Some tests might show timestamp differences that are Ok.";
 
 	@echo;
 	${BCP} || true;
@@ -20,7 +25,8 @@ cp_tests: cp_clean cp
 	@echo;
 	mkdir cp_tests;
 
-	@echo;
+	# Copy a file to a copy of the file
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file > afile;			\
 	 ls -l afile > ../cp_afile_afilecopy.gnu; \
@@ -28,7 +34,7 @@ cp_tests: cp_clean cp
 	 ls -l afile afilecopy >> ../cp_afile_afilecopy.gnu;
 
 	@echo;
-	rm -f cp_tests/afile*;
+	rm -rf cp_tests/*;
 
 	@echo;
 	cd cp_tests;				\
@@ -38,118 +44,135 @@ cp_tests: cp_clean cp
 	 ls -l afile afilecopy >> ../cp_afile_afilecopy.bb;
 
 	@echo;
-	diff -u cp_afile_afilecopy.gnu cp_afile_afilecopy.bb;
+	@echo Might show timestamp differences.
+	-diff -u cp_afile_afilecopy.gnu cp_afile_afilecopy.bb;
 
 	@echo;
-	rm -f cp_tests/afile*;
+	rm -rf cp_tests/*;
 
-	@echo; echo;
+	# Copy a file pointed to by a symlink
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
-	 mkdir there there1;			\
-	 cd there;				\
-	  ln -s ../afile .;
+	 mkdir here there;			\
+	 echo A file > afile;			\
+	 cd here;				\
+	  ln -s ../afile .;			\
+
+	@echo;
+	cd cp_tests;				\
+	 ls -lR . > ../cp_symlink.gnu;		\
+	 ${GCP} here/afile there;		\
+	 ls -lR . >> ../cp_symlink.gnu;
+
+	@echo;
+	rm -rf cp_tests/there/*;
+
+	sleep 1;
+
+	@echo;
+	cd cp_tests;				\
+	 ls -lR . > ../cp_symlink.bb;		\
+	 ${BCP} here/afile there;		\
+	 ls -lR . >> ../cp_symlink.bb;
+
+	@echo;
+	@echo Will show timestamp difference.
+	-diff -u cp_symlink.gnu cp_symlink.bb;
+
+	@echo;
+	rm -rf cp_tests/*
+
+	# Copy a symlink, useing the -a switch.
+	@echo; echo ------------------------------;
+	cd cp_tests;				\
+	 echo A file > afile;			\
+	 mkdir here there;			\
+	 cd here;				\
+	  ln -s ../afile .
+
+	cd cp_test;				\
+	 ls -lR . > ../cp_a_symlink.gnu;	\
+	 ${GCP} -a here/afile there;		\
+	 ls -lR . >> ../cp_a_symlink.gnu;
+
+	@echo;
+	rm -f cp_tests/there/*;
+
+	sleep 1;
 
 	@echo;
 	cd cp_tests;				\
 	 echo A file > afile;			\
-	 ls -l afile > ../cp_symlink.gnu;	\
-	 ${GCP} there/afile there1/;		\
-	 ls -l afile there/afile there1/afile >> ../cp_symlink.gnu;
-
-	@echo;
-	rm -f cp_tests/afile cp_tests/there1/afile;
-
-	@echo;
-	cd cp_tests;				\
-	 echo A file > afile;			\
-	 ls -l afile > ../cp_symlink.bb;	\
-	 ${BCP} there/afile there1/;		\
-	 ls -l afile there/afile there1/afile >> ../cp_symlink.bb;
-
-	@echo;
-	diff -u cp_symlink.gnu cp_symlink.bb;
-
-	@echo;
-	rm -f cp_tests/afile cp_tests/there1/afile;
-
-	@echo; echo;
-	cd cp_tests;				\
-	 echo A file > afile;			\
-	 ls -l afile > ../cp_a_symlink.gnu;	\
-	 ${GCP} -a there/afile there1/;		\
-	 ls -l afile there/afile there1/afile >> ../cp_a_symlink.gnu;
-
-	@echo;
-	rm -f cp_tests/afile cp_tests/there1/afile;
-
-	@echo;
-	cd cp_tests;				\
-	 echo A file > afile;			\
-	 ls -l afile > ../cp_a_symlink.bb;	\
-	 ${BCP} -a there/afile there1/;		\
-	 ls -l afile there/afile there1/afile >> ../cp_a_symlink.bb;
+	 ls -lR . > ../cp_a_symlink.bb;		\
+	 ${BCP} -a here/afile there;		\
+	 ls -lR . >> ../cp_a_symlink.bb;
 
 	@echo;
 	diff -u cp_a_symlink.gnu cp_a_symlink.bb;
 
 	@echo;
-	rm -f cp_tests/afile
-	rm -rf cp_tests/there{,1};
+	rm -f cp_tests/*;
 
-	@echo; echo;
+	# Copy a directory into another directory with the -a switch
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
-	 echo A file > there/afile;		\
-	 mkdir there/adir;			\
-	 touch there/adir/afileinadir;		\
-	 ln -s $(shell pwd) there/alink;
+	 mkdir here there;			\
+	 echo A file > here/afile;		\
+	 mkdir here/adir;			\
+	 touch here/adir/afileinadir;		\
+	 ln -s $$(pwd) here/alink;
 
 	@echo;
 	cd cp_tests;				\
-	 ${GCP} -a there/ there1/;		\
-	 ls -lR there/ there1/ > ../cp_a_dir_dir.gnu;
+	 ls -lR . > ../cp_a_dir_dir.gnu;	\
+	 ${GCP} -a here/ there/;		\
+	 ls -lR . >> ../cp_a_dir_dir.gnu;
 
 	@echo;
-	rm -rf cp_tests/there1;
+	rm -rf cp_tests/there/*;
+
+	sleep 1;
 
 	@echo;
 	cd cp_tests;				\
-	 ${BCP} -a there/ there1/;		\
-	 ls -lR there/ there1/ > ../cp_a_dir_dir.bb;
+	 ls -lR . > ../cp_a_dir_dir.bb;		\
+	 ${BCP} -a here/ there/;		\
+	 ls -lR . >> ../cp_a_dir_dir.bb;
 
 	@echo;
 	diff -u cp_a_dir_dir.gnu cp_a_dir_dir.bb;
 
 	@echo;
-	rm -rf cp_tests/there1/;
+	rm -rf cp_tests/*;
 
-	@echo; echo;
+	# Copy a set of files to a directory.
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
 	 ln -s afile1 symlink1;			\
-	 mkdir there1;				\
-	 ${GCP} afile1 afile2 symlink1 there1/;	\
+	 mkdir there;
+
+	cd cp_tests;				\
+	 ${GCP} afile1 afile2 symlink1 there/;	\
 	 ls -lR > ../cp_files_dir.gnu;
 
 	@echo;
-	rm -rf cp_tests/{afile{1,2},symlink1,there1};
+	rm -rf cp_tests/there/*;
 
 	@echo;
 	cd cp_tests;				\
-	 echo A file number one > afile1;	\
-	 echo A file number two, blah. > afile2; \
-	 ln -s afile1 symlink1;			\
-	 mkdir there1;				\
-	 ${BCP} afile1 afile2 symlink1 there1/;	\
+	 ${BCP} afile1 afile2 symlink1 there/;	\
 	 ls -lR > ../cp_files_dir.bb;
 
 	@echo;
 	diff -u cp_files_dir.gnu cp_files_dir.bb;
 
 	@echo;
-	rm -rf cp_tests/{afile{1,2},symlink1,there1};
+	rm -rf cp_tests/*;
 
-	@echo; echo;
+	# Copy a set of files to a directory with the -d switch.
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -176,7 +199,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	@echo; echo;
+	# Copy a set of files to a directory with the -p switch.
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -205,7 +229,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	@echo; echo;
+	# Copy a set of files to a directory with -p and -d switches.
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -234,7 +259,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	@echo; echo;
+	# Copy a directory into another directory with the -a switch.
+	@echo; echo ------------------------------;
 	cd cp_tests;				\
 	 mkdir dir{a,b};			\
 	 echo A file > dira/afile;		\
@@ -246,7 +272,6 @@ cp_tests: cp_clean cp
 	 ${GCP} -a dira dirb;			\
 	 ls -lR . >> ../cp_a_dira_dirb.gnu;
 
-	# false;
 	@echo;
 	rm -rf cp_tests/dir{a,b};
 
@@ -265,6 +290,31 @@ cp_tests: cp_clean cp
 	@echo;
 	diff -u cp_a_dira_dirb.gnu cp_a_dira_dirb.bb;
 
-	# false;
 	@echo;
 	rm -rf cp_tests/dir{a,b};
+
+	# Copy a directory to another directory, without the -a switch.
+	@echo; echo ------------------------------;
+	@echo There should be an error message about cannot cp a dir to a subdir of itself.
+	cd cp_tests;				\
+	 touch a b c;				\
+	 mkdir adir;				\
+	 ls -lR . > ../cp_a_star_adir.gnu;	\
+	 ${GCP} -a * adir;			\
+	 ls -lR . >> ../cp_a_star_adir.gnu;
+
+	@echo
+	@echo There should be an error message about cannot cp a dir to a subdir of itself.
+	cd cp_tests;				\
+	 rm -rf adir;				\
+	 mkdir adir;				\
+	 ls -lR . > ../cp_a_star_adir.bb;	\
+	 ${BCP} -a * adir;			\
+	 ls -lR . >> ../cp_a_star_adir.bb;
+
+	@echo;
+	diff -u cp_a_star_adir.gnu cp_a_star_adir.bb;
+
+	@echo;
+	rm -rf cp_tests;
+	@echo; echo Done.

@@ -242,6 +242,7 @@ static void console_init()
 	int fd;
 	int tried_devcons = 0;
 	int tried_vtprimary = 0;
+	struct vt_stat vt;
 	struct serial_struct sr;
 	char *s;
 
@@ -264,8 +265,6 @@ static void console_init()
 	}
 #endif
 	else {
-		struct vt_stat vt;
-
 		/* 2.2 kernels: identify the real console backend and try to use it */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 			/* this is a serial console */
@@ -951,3 +950,11 @@ extern int init_main(int argc, char **argv)
 		sleep(1);
 	}
 }
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/

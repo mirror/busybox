@@ -1,9 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini update implementation for busybox
+ * Mini update implementation for busybox; much pasted from update-2.11
  *
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
+ * Copyright (c) 1996, 1997, 1999 Torsten Poulin.
+ * Copyright (c) 2000 by Karl M. Hegbloom <karlheg@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +25,8 @@
 
 #include "internal.h"
 #include <linux/unistd.h>
+#include <sys/param.h>
+#include <sys/syslog.h>
 
 #if defined(__GLIBC__)
 #include <sys/kdaemon.h>
@@ -30,37 +34,79 @@
 _syscall2(int, bdflush, int, func, int, data);
 #endif							/* __GLIBC__ */
 
+static char update_usage[] =
+	"update [options]\n"
+	"  -S\tforce use of sync(2) instead of flushing\n"
+	"  -s SECS\tcall sync this often (default 30)\n"
+	"  -f SECS\tflush some buffers this often (default 5)\n";
+
+static unsigned int sync_duration = 30;
+static unsigned int flush_duration = 5;
+static int use_sync = 0;
+
 extern int update_main(int argc, char **argv)
 {
-	/*
-	 * Update is actually two daemons, bdflush and update.
-	 */
 	int pid;
+
+	while (**argv == '-') {
+		while (*++(*argv)) {
+			switch (**argv) {
+			case 'S':
+				use_sync = 1;
+				break;
+			case 's':
+				if (--argc < 1) usage(update_usage);
+				sync_duration = atoi(*(++argv));
+				break;
+			case 'f':
+				if (--argc < 1) usage(update_usage);
+				flush_duration = atoi(*(++argv));
+				break;
+			}
+		}
+		argc--;
+		argv++;
+	}
 
 	pid = fork();
 	if (pid < 0)
-		return pid;
+		exit(FALSE);
 	else if (pid == 0) {
+		/* Become a proper daemon */
+		setsid();
+		chdir("/");
+		for (pid = 0; pid < OPEN_MAX; pid++) close(pid);
+
 		/*
 		 * This is no longer necessary since 1.3.5x, but it will harmlessly
 		 * exit if that is the case.
 		 */
-		strcpy(argv[0], "bdflush (update)");
-		argv[1] = 0;
-		argv[2] = 0;
-		bdflush(1, 0);
-		_exit(0);
-	}
-	pid = fork();
-	if (pid < 0)
-		return pid;
-	else if (pid == 0) {
-		argv[0] = "update";
+		argv[0] = "bdflush (update)";
+		argv[1] = NULL;
+		argv[2] = NULL;
 		for (;;) {
-			sync();
-			sleep(30);
+			if (use_sync) {
+				sleep(sync_duration);
+				sync();
+			} else {
+				sleep(flush_duration);
+				if (bdflush(1, 0) < 0) {
+					openlog("update", LOG_CONS, LOG_DAEMON);
+					syslog(LOG_INFO,
+						   "This kernel does not need update(8). Exiting.");
+					closelog();
+					exit(TRUE);
+				}
+			}
 		}
 	}
-
-	return 0;
+	return TRUE;
 }
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
