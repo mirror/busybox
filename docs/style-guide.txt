@@ -175,6 +175,23 @@ The following are simple coding guidelines that should be followed:
    (Side Note: we might want to use a single file instead of two, food for
    thought).
 
+ - There's a right way and a wrong way to test for sting equivalence with
+   strcmp:
+
+	The wrong way:
+
+	if (!strcmp(string, "foo")) {
+		...
+
+	The right way:
+
+	if (strcmp(string, "foo") == 0){
+		...
+
+	The use of the "equals" (==) operator in the latter example makes it much
+	more obvious that you are testing for equivalence. The former example with
+	the "not" (!) operator makes it look like you are testing for an error.
+
  - Do not use old-style function declarations that declare variable types
    between the parameter list and opening bracket. Example:
 
