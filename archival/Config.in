@@ -177,13 +177,13 @@ config CONFIG_FEATURE_TAR_BZIP2
 	  If you enable this option you'll be able to extract
 	  archives compressed with bzip2.
 
-config CONFIG_FEATURE_TAR_EXCLUDE
-	bool "  Enable -X and --exclude options (exclude files)"
+config CONFIG_FEATURE_TAR_FROM
+	bool "  Enable -X (exclude from) and -T (include from) options)"
 	default n
 	depends on CONFIG_TAR
 	help
 	  If you enable this option you'll be able to specify
-	  a list of files to exclude from an archive.
+	  a list of files to include or exclude from an archive.
 
 config CONFIG_FEATURE_TAR_GZIP
 	bool "  Enable -z option"
@@ -217,6 +217,13 @@ config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	help
 	  With this option busybox supports GNU long filenames and 
 	  linknames.
+
+config CONFIG_FEATURE_TAR_LONG_OPTIONS
+	bool "  Enable long options"
+	default n
+	depends on CONFIG_TAR
+	help
+		Enable use of long options, increases size by about 400 Bytes
 
 config CONFIG_UNCOMPRESS
 	bool "uncompress"

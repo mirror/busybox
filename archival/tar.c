@@ -317,13 +317,9 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	return (TRUE);
 }
 
-# if defined CONFIG_FEATURE_TAR_EXCLUDE
+# ifdef CONFIG_FEATURE_TAR_FROM
 static inline int exclude_file(const llist_t *excluded_files, const char *file)
 {
-	if (excluded_files == NULL) {
-		return 0;
-	}
-
 	while (excluded_files) {
 		if (excluded_files->data[0] == '/') {
 			if (fnmatch(excluded_files->data, file,
@@ -344,7 +340,7 @@ static inline int exclude_file(const llist_t *excluded_files, const char *file)
 
 	return 0;
 }
-#endif
+# endif
 
 static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 							  void *userData)
@@ -400,11 +396,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	if (header_name[0] == '\0')
 		return TRUE;
 
-# if defined CONFIG_FEATURE_TAR_EXCLUDE
+# ifdef CONFIG_FEATURE_TAR_FROM
 	if (exclude_file(tbInfo->excludeList, header_name)) {
 		return SKIP;
 	}
-# endif							/* CONFIG_FEATURE_TAR_EXCLUDE */
+# endif							/* CONFIG_FEATURE_TAR_FROM */
 
 	if (writeTarHeader(tbInfo, header_name, fileName, statbuf) == FALSE) {
 		return (FALSE);
@@ -555,7 +551,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 }
 #endif							/* tar_create */
 
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
+#ifdef CONFIG_FEATURE_TAR_FROM
 static llist_t *append_file_list_to_list(llist_t *list)
 {
 	FILE *src_stream;
@@ -598,31 +594,105 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 }
 #endif
 
-static const char tar_options[]="ctxjT:X:C:f:OpvzkZ";
+#define CTX_TEST	(1 << 0)
+#define CTX_EXTRACT	(1 << 1)
+#define TAR_OPT_BASEDIR  (1 << 2)
+#define TAR_OPT_TARNAME  (1 << 3)
+#define TAR_OPT_2STDOUT  (1 << 4)
+#define TAR_OPT_P        (1 << 5)
+#define TAR_OPT_VERBOSE  (1 << 6)
+#define TAR_OPT_KEEP_OLD	(1 << 7)
 
-#define CTX_CREATE	1
-#define CTX_TEST	2
-#define CTX_EXTRACT	4
-#define TAR_OPT_BZIP2    8
-#define TAR_OPT_INCLUDE  16
-#define TAR_OPT_EXCLUDE  32
-#define TAR_OPT_BASEDIR  64
-#define TAR_OPT_ARNAME   128
-#define TAR_OPT_2STDOUT  256
-#define TAR_OPT_P        512
-#define TAR_OPT_VERBOSE  1024
-#define TAR_OPT_GZIP     2048
-#define TAR_OPT_KEEP_OLD	4096
-#define TAR_OPT_UNCOMPRESS	8192
+#ifdef CONFIG_FEATURE_TAR_CREATE
+# define CTX_CREATE	(1 << 8)
+# define TAR_OPT_STR_CREATE	"c"
+# define TAR_OPT_FLAG_CREATE	1
+#else
+//# define CTX_CREATE	0
+# define TAR_OPT_STR_CREATE	""
+# define TAR_OPT_FLAG_CREATE	0
+#endif
+
+#ifdef CONFIG_FEATURE_TAR_BZIP2
+# define TAR_OPT_BZIP2	(1 << (8 + TAR_OPT_FLAG_CREATE)) 
+# define TAR_OPT_STR_BZIP2	"j"
+# define TAR_OPT_FLAG_BZIP2	1
+#else
+# define TAR_OPT_STR_BZIP2	""
+# define TAR_OPT_FLAG_BZIP2	0
+#endif
+
+#ifdef CONFIG_FEATURE_TAR_FROM
+# define TAR_OPT_FROM_FILE	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2))
+# define TAR_OPT_EXCLUDE_FROM	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + 1))
+# define TAR_OPT_STR_FROM	"T:X:"
+# define TAR_OPT_FLAG_FROM	2
+#else
+# define TAR_OPT_STR_FROM	""
+# define TAR_OPT_FLAG_FROM	0
+#endif
+
+#ifdef CONFIG_FEATURE_TAR_GZIP
+# define TAR_OPT_GZIP	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + TAR_OPT_FLAG_FROM))
+# define TAR_OPT_STR_GZIP	"z"
+# define TAR_OPT_FLAG_GZIP	1
+#else
+# define TAR_OPT_STR_GZIP	""
+# define TAR_OPT_FLAG_GZIP	0
+#endif
+
+#ifdef CONFIG_FEATURE_TAR_COMPRESS
+# define TAR_OPT_UNCOMPRESS	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + TAR_OPT_FLAG_FROM + TAR_OPT_FLAG_GZIP))
+# define TAR_OPT_STR_COMPRESS	"Z"
+#else 
+# define TAR_OPT_STR_COMPRESS	""
+#endif
+
+static const char tar_options[]="txC:f:Opvk" \
+	TAR_OPT_STR_CREATE \
+	TAR_OPT_STR_BZIP2 \
+	TAR_OPT_STR_FROM \
+	TAR_OPT_STR_GZIP \
+	TAR_OPT_STR_COMPRESS;
+
+#ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
+static const struct option tar_long_options[] = {
+	{ "list",			0,	NULL,	't' },
+	{ "extract",		0,	NULL,	'x' },
+	{ "directory",		1,	NULL,	'C' },
+	{ "file",			1,	NULL,	'f'	},
+	{ "to-stdout",		0,	NULL,	'O' },
+	{ "same-permissions",	0,	NULL,	'p' },
+	{ "verbose",		0,	NULL,	'v' },
+	{ "keep-old",		0,	NULL,	'k' },
+# ifdef CONFIG_FEATURE_TAR_CREATE
+	{ "create",			0,	NULL,	'c' },
+# endif
+# ifdef CONFIG_FEATURE_TAR_BZIP2
+	{ "bzip2",			0,	NULL,	'j' },
+# endif
+# ifdef CONFIG_FEATURE_TAR_FROM
+	{ "from-file",		1,	NULL,	'T' },
+	{ "exclude-from",	1,	NULL,	'X' },
+# endif
+# ifdef CONFIG_FEATURE_TAR_GZIP
+	{ "gzip",			0,	NULL,	'z' },
+# endif
+# ifdef CONFIG_FEATURE_TAR_COMPRESS
+	{ "compress",		0,	NULL,	'Z' },
+# endif
+	{ 0,                 0, 0, 0 }
+};
+#endif
 
 int tar_main(int argc, char **argv)
 {
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;
 	archive_handle_t *tar_handle;
-	int opt;
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
-	unsigned char ctx_flag = 0;
+	unsigned long opt;
+	unsigned long ctx_flag = 0;
 
 	if (argc < 2) {
 		bb_show_usage();
@@ -640,17 +710,29 @@ int tar_main(int argc, char **argv)
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
-	bb_opt_complementaly = "c~tx:t~cx:x~ct:X*";
+	bb_opt_complementaly = "c~tx:t~cx:x~ct:X*:T*";
+#ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
+	bb_applet_long_options = tar_long_options;
+#endif
+
 	opt = bb_getopt_ulflags(argc, argv, tar_options,
-				NULL,   /* T: arg is ignored by default
-					    a list is an include list */
-				&(tar_handle->reject),
 				&base_dir,      /* Change to dir <optarg> */
-				&tar_filename); /* archive filename */
+				&tar_filename /* archive filename */
+#ifdef CONFIG_FEATURE_TAR_FROM
+				, NULL,
+				&(tar_handle->reject)
+#endif
+				);
+
 	/* Check one and only one context option was given */
-	if(opt & 0x80000000UL)
+	if(opt & 0x80000000UL) {
 		bb_show_usage();
+	}
+#ifdef CONFIG_FEATURE_TAR_CREATE
 	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
+#else
+	ctx_flag = opt & (CTX_TEST | CTX_EXTRACT);
+#endif
 	if (ctx_flag == 0) {
 		bb_show_usage();
 	}
@@ -683,34 +765,27 @@ int tar_main(int argc, char **argv)
 		tar_handle->flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
 	}
 
-	if(opt & TAR_OPT_GZIP) {
 #ifdef CONFIG_FEATURE_TAR_GZIP
+	if(opt & TAR_OPT_GZIP) {
 		get_header_ptr = get_header_tar_gz;
-#else
-		bb_show_usage();
-#endif
 	}
-	if(opt & TAR_OPT_BZIP2) {
+#endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
+	if(opt & TAR_OPT_BZIP2) {
 		get_header_ptr = get_header_tar_bz2;
-#else
-		bb_show_usage();
-#endif
 	}
-	if(opt & TAR_OPT_UNCOMPRESS) {
+#endif
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
+	if(opt & TAR_OPT_UNCOMPRESS) {
 		get_header_ptr = get_header_tar_Z;
-#else
-		bb_show_usage();
-#endif
 	}
-	if(opt & TAR_OPT_EXCLUDE) {
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
+#endif
+#ifdef CONFIG_FEATURE_TAR_FROM
+	if(opt & TAR_OPT_EXCLUDE_FROM) {
 		tar_handle->reject = append_file_list_to_list(tar_handle->reject);
-#else
-		bb_show_usage();
-#endif
 	}
+#endif
+
 	/* Check if we are reading from stdin */
 	if ((argv[optind]) && (*argv[optind] == '-')) {
 		/* Default is to read from stdin, so just skip to next arg */
@@ -720,8 +795,7 @@ int tar_main(int argc, char **argv)
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, seperate function ? */
 	while (optind < argc) {
-		char *filename_ptr;
-		filename_ptr = last_char_is(argv[optind], '/');
+		char *filename_ptr = last_char_is(argv[optind], '/');
 		if (filename_ptr) {
 			*filename_ptr = '\0';
 		}
@@ -739,7 +813,7 @@ int tar_main(int argc, char **argv)
 		int flags;
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
-		if (ctx_flag == CTX_CREATE) {
+		if (opt & CTX_CREATE) {
 			/* Make sure there is at least one file to tar up.  */
 			if (tar_handle->accept == NULL) {
 				bb_error_msg_and_die("Cowardly refusing to create an empty archive");
@@ -768,7 +842,7 @@ int tar_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
-	if (ctx_flag == CTX_CREATE) {
+	if (opt & CTX_CREATE) {
 		int verboseFlag = FALSE;
 		int gzipFlag = FALSE;
 

@@ -2362,7 +2362,7 @@
 
 #define tar_trivial_usage \
 	"-[" USAGE_TAR_CREATE("c") USAGE_TAR_GZIP("z") USAGE_TAR_BZIP2("j") USAGE_TAR_COMPRESS("Z") "xtvO] " \
-	USAGE_TAR_EXCLUDE("[--exclude FILE] [-X FILE]") \
+	USAGE_TAR_EXCLUDE("[-X FILE]") \
 	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \

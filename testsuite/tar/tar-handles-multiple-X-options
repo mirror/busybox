@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_FEATURE_TAR_FROM
+# FEATURE: CONFIG_FEATURE_TAR_CREATE
 touch foo
 touch bar
 tar cf foo.tar foo bar
