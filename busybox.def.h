@@ -42,8 +42,7 @@
 #define BB_RM
 #define BB_RMDIR
 #define BB_SLEEP
-////#define BB_SWAPOFF
-//#define BB_SWAPON
+#define BB_SWAPONOFF
 #define BB_SYNC
 #define BB_TAR
 #define BB_TOUCH

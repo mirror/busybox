@@ -132,11 +132,9 @@ static const struct Applet applets[] = {
 #ifdef BB_TAR			//bin
     {"tar", tar_main},
 #endif
-#ifdef BB_SWAPOFF		//sbin
-    {"swapoff", monadic_main},
-#endif
-#ifdef BB_SWAPON		//sbin
-    {"swapon", monadic_main},
+#ifdef BB_SWAPONOFF		//sbin
+    {"swapon", swap_on_off_main},
+    {"swapoff", swap_on_off_main},
 #endif
 #ifdef BB_SYNC			//bin
     {"sync", sync_main},
@@ -148,7 +146,7 @@ static const struct Applet applets[] = {
     {"true", true_main},
 #endif
 #ifdef BB_UMOUNT		//bin
-    {"umount", umount_main},
+    {"umount",  umount_main},
 #endif
 #ifdef BB_UPDATE		//sbin
     {"update", update_main},
