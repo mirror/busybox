@@ -2415,11 +2415,26 @@
 	"$ cat /tmp/foo\n" \
 	"Hello\n"
 
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+#define telnet_trivial_usage \
+	"[-a] [-l USER] HOST [PORT]"
+#define telnet_full_usage \
+	"Telnet is used to establish interactive communication with another\n" \
+	"computer over a network using the TELNET protocol.\n\n" \
+	"Options:\n" \
+	"\t-a\t\tAttempt an automatic login with the USER variable.\n" \
+	"\t-l USER\t\tAttempt an automatic login with the USER argument.\n" \
+	"\tHOST\t\tThe official name, alias or the IP address of the\n" \
+	"\t\t\tremote host.\n" \
+	"\tPORT\t\tThe remote port number to connect to. If it is not\n" \
+	"\t\t\tspecified, the default telnet (23) port is used.\n"
+#else
 #define telnet_trivial_usage \
 	"HOST [PORT]"
 #define telnet_full_usage \
 	"Telnet is used to establish interactive communication with another\n"\
 	"computer over a network using the TELNET protocol."
+#endif
 
 #ifdef CONFIG_FEATURE_TELNETD_INETD
 #define telnetd_trivial_usage \

@@ -28,6 +28,8 @@
  * Modified 2000/06/13 for inclusion into BusyBox by Erik Andersen <andersen@codepoet.org>
  * Modified 2001/05/07 to add ability to pass TTYPE to remote host by Jim McQuillan
  * <jam@ltsp.org>
+ * Modified 2004/02/11 to add ability to pass the USER variable to remote host
+ * by Fernando Silveira <swrh@gmx.net>
  *
  */
 
@@ -127,6 +129,10 @@ static int one = 1;
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
 static char *ttype;
+#endif
+
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+static char *autologin;
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
@@ -355,6 +361,34 @@ static void putiac_subopt(byte c, char *str)
 }
 #endif
 
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+static void putiac_subopt_autologin(void)
+{
+	int len = strlen(autologin) + 6;	// (2 + 1 + 1 + strlen + 2)
+	char *user = "USER";
+
+	if (G.iaclen + len > IACBUFSIZE)
+		iacflush();
+
+	putiac(IAC);
+	putiac(SB);
+	putiac(TELOPT_NEW_ENVIRON);
+	putiac(TELQUAL_IS);
+	putiac(NEW_ENV_VAR);
+
+	while(*user)
+		putiac(*user++);
+
+	putiac(NEW_ENV_VALUE);
+
+	while(*autologin)
+		putiac(*autologin++);
+
+	putiac(IAC);
+	putiac(SE);
+}
+#endif
+
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static void putiac_naws(byte c, int x, int y)
 {
@@ -495,6 +529,20 @@ static inline void to_ttype(void)
 }
 #endif
 
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+static inline void to_new_environ(void)
+{
+	/* Tell server we will (or will not) do AUTOLOGIN */
+
+	if (autologin)
+		putiac2(WILL, TELOPT_NEW_ENVIRON);
+	else
+		putiac2(WONT, TELOPT_NEW_ENVIRON);
+
+	return;
+}
+#endif
+
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static inline void to_naws(void)
 { 
@@ -512,6 +560,9 @@ static void telopt(byte c)
 		case TELOPT_SGA:		to_sga();	break;
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
 		case TELOPT_TTYPE:		to_ttype();break;
+#endif
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+		case TELOPT_NEW_ENVIRON:	to_new_environ();	break;
 #endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 		case TELOPT_NAWS:		to_naws();
@@ -539,6 +590,11 @@ static int subneg(byte c)
 		else
 		if (c == TELOPT_TTYPE)
 			putiac_subopt(TELOPT_TTYPE,ttype);
+#endif
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+		else
+		if (c == TELOPT_NEW_ENVIRON)
+			putiac_subopt_autologin();
 #endif
 		break;
 	case TS_SUB2:
@@ -579,6 +635,10 @@ extern int telnet_main(int argc, char** argv)
 	int maxfd;
 #endif	
 
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+	int opt;
+#endif
+
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	get_terminal_width_height(0, &win_width, &win_height);
 #endif
@@ -598,8 +658,33 @@ extern int telnet_main(int argc, char** argv)
 	if (argc < 2)
 		bb_show_usage();
 	
+#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
+	autologin = NULL;
+	while ((opt = getopt(argc, argv, "al:")) != EOF) {
+		switch (opt) {
+			case 'l':
+				autologin = bb_xstrdup(optarg);
+				break;
+			case 'a':
+				autologin = getenv("USER");
+				break;
+			case '?':
+				bb_show_usage();
+				break;
+		}
+	}
+	if (optind < argc) {
+		bb_lookup_host(&s_in, argv[optind++]);
+		s_in.sin_port = bb_lookup_port((optind < argc) ? argv[optind++] :
+				"telnet", "tcp", 23);
+		if (optind < argc)
+			bb_show_usage();
+	} else
+		bb_show_usage();
+#else
 	bb_lookup_host(&s_in, argv[1]);
 	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", "tcp", 23);
+#endif
 	
 	G.netfd = xconnect(&s_in);
 

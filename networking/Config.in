@@ -479,6 +479,16 @@ config CONFIG_FEATURE_TELNET_TTYPE
 	  remote host you are connecting to.  This is useful to make sure that
 	  things like ANSI colors and other control sequences behave.
 
+config CONFIG_FEATURE_TELNET_AUTOLOGIN
+	bool "  Pass USER type to remote host"
+	default y
+	depends on CONFIG_TELNET
+	help
+	  Setting this option will forward the USER environment variable to the
+	  remote host you are connecting to. This is useful when you need to
+	  log into a machine without telling the username (autologin). This
+	  option enables `-a' and `-l USER' arguments.
+
 config CONFIG_TELNETD
 	bool "telnetd"
 	default n
