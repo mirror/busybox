@@ -448,14 +448,13 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			 * be allowed to start a shell or whatever an init script 
 			 * specifies.
 			 */
-			char c;
 #ifdef DEBUG_INIT
 			pid_t shell_pgid = getpid();
 			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
 					command, shell_pgid, terminal);
 #endif
 			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
-			read(fileno(stdin), &c, 1);
+			getc(stdin);
 		}
 
 #ifdef DEBUG_INIT
