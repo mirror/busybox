@@ -31,9 +31,33 @@
 #include <asm/unistd.h>
 #include "libbb.h"
 
-#define __NR_new_sys_init_module  __NR_init_module
-_syscall2(int, new_sys_init_module, const char *, name,
-		  const struct new_module *, info);
+
+struct old_module_ref
+{
+  unsigned long module;		/* kernel addresses */
+  unsigned long next;
+};
+
+struct old_module_symbol
+{
+  unsigned long addr;
+  unsigned long name;
+};
+
+struct old_symbol_table
+{
+  int size;			/* total, including string table!!! */
+  int n_symbols;
+  int n_refs;
+  struct old_module_symbol symbol[0]; /* actual size defined by n_symbols */
+  struct old_module_ref ref[0];	/* actual size defined by n_refs */
+};
+
+struct old_mod_routines
+{
+  unsigned long init;
+  unsigned long cleanup;
+};
 
 #define __NR_old_sys_init_module  __NR_init_module
 _syscall5(int, old_sys_init_module, const char *, name, char *, code,

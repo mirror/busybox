@@ -117,7 +117,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.55 2001/04/05 06:08:14 andersen Exp $"
+#ident "$Id: insmod.c,v 1.56 2001/04/05 06:24:27 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -267,7 +267,7 @@ static const int NEW_MOD_AUTOCLEAN = 4;
 static const int NEW_MOD_VISITED = 8;
 static const int NEW_MOD_USED_ONCE = 16;
 
-int new_sys_init_module(const char *name, const struct new_module *);
+int init_module(const char *name, const struct new_module *);
 int query_module(const char *name, int which, void *buf, size_t bufsize,
 		 size_t *ret);
 
@@ -323,7 +323,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.55 2001/04/05 06:08:14 andersen Exp $"
+#ident "$Id: insmod.c,v 1.56 2001/04/05 06:24:27 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2515,7 +2515,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 	image = xmalloc(m_size);
 	obj_create_image(f, image);
 
-	ret = new_sys_init_module(m_name, (struct new_module *) image);
+	ret = init_module(m_name, (struct new_module *) image);
 	if (ret)
 		perror_msg("init_module: %s", m_name);
 
