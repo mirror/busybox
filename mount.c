@@ -485,7 +485,7 @@ singlemount:
 					fatalError("nfsmount failed: %s\n", strerror(errno));	
 					rc = FALSE;
 				}
-			} else
+			}
 #endif
 			rc = mount_one(device, directory, filesystemType, flags,
 				string_flags, useMtab, fakeIt, extra_opts, TRUE);
