@@ -34,8 +34,8 @@
 #include <sys/time.h>
 #include "busybox.h"
 
-/* Teach libc5 what a uint64_t is */
-#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
+/* Teach older glibc and libc5 what a uint64_t is */
+#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 3)
 typedef unsigned long int       uint64_t;
 #endif
 
