@@ -10,6 +10,9 @@
 	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
 	    <konst@voshod.com>.
 	* Implemented sort. -beppu
+	* Fixed tar SGID and SUID bug.  Seems that chown(2) clears S_ISUID and 
+	    S_ISGID, even when chown is called as root.  I changed the ordering 
+	    of chown and chmod so SGID and SUID file permissions don't get munged.
 
 	-Erik Andersen
 
