@@ -71,7 +71,7 @@ file_header_t *get_header_tar(FILE *tar_stream)
 	}
 
 	/* If there is no filename its an empty header, skip it */
-	if (xstrlen(tar.formated.name) == 0) {
+	if (tar.formated.name[0] == 0) {
 		return(NULL);
 	}
 
@@ -90,7 +90,11 @@ file_header_t *get_header_tar(FILE *tar_stream)
 
 	/* convert to type'ed variables */
 	tar_entry = xcalloc(1, sizeof(file_header_t));
-	tar_entry->name = xstrdup(tar.formated.name);
+	if (tar.formated.prefix[0] == 0) {
+		tar_entry->name = xstrdup(tar.formated.name);
+	} else {
+		tar_entry->name = concat_path_file(tar.formated.prefix, tar.formated.name);
+	}
 
 	tar_entry->mode = strtol(tar.formated.mode, NULL, 8);
 #ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
