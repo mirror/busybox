@@ -109,6 +109,22 @@ extern void fatalError(const char *s, ...)
 	exit(EXIT_FAILURE);
 }
 
+extern void perrorMsg(const char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
+	if (s && *s) {
+		vfprintf(stderr, s, p);
+		fputs(": ", stderr);
+	}
+	fprintf(stderr, "%s\n", strerror(errno));
+	va_end(p);
+	fflush(stderr);
+}
+
 extern void fatalPerror(const char *s, ...)
 {
 	va_list p;
