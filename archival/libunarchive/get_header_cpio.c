@@ -88,7 +88,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
 		dummy, &inode, (unsigned int*)&file_header->mode, 
 		(unsigned int*)&file_header->uid, (unsigned int*)&file_header->gid,
-		&nlink, &file_header->mtime, &file_header->size,
+		&nlink, &file_header->mtime, (unsigned long*)&file_header->size,
 		dummy, &major, &minor, &namesize, dummy);
 
 	file_header->name = (char *) xmalloc(namesize + 1);
