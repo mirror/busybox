@@ -164,6 +164,7 @@ config CONFIG_IPCALC
 config CONFIG_FEATURE_IPCALC_FANCY
 	bool "  Fancy IPCALC, more options, adds 300 bytes"
 	default y
+	depends on CONFIG_IPCALC
 	help
 	  Please submit a patch to add help text for this item.
 
@@ -251,6 +252,7 @@ config CONFIG_TELNET
 config CONFIG_FEATURE_TELNET_TTYPE
 	bool "  Pass TERM type to remote host"
 	default y
+	depends on CONFIG_TELNET
 	help
 	  Please submit a patch to add help text for this item.
 
