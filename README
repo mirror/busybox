@@ -1,26 +1,26 @@
 Please see the LICENSE file for copyright information.
 
-Busybox is a multicall binary used to provide a minimal subset of 
-POSIX style commands and specialized functions.
+BusyBox is a suite of "tiny" Unix utilities in a multi-call binary. It
+provides a pretty complete POSIX environment in a very small package.
+Just add a kernel, "ash" (Keith Almquists tiny Bourne shell clone), and
+an editor such as "elvis-tiny" or "ae", and you have a working system.
+Busybox was begun to support the Debian Rescue/Install disks, but it
+also makes an excellent environment for any small or embedded system.
 
-It is geared toward the very small, i.e. boot floppies, embedded-
-systems, etc. Specifically it is used in the Debian Rescue/Install
-system (which caused the original busybox to be made), the Linux Router
-Project, and others.
+As of version 0.20 there is a version number. : ) Also as of version
+0.20, BB is now modularized to easily allow you to build of only the
+BB parts you need, thereby reducing binary size. To turn off unwanted
+Busybox components, simply edit the file busybox.def.h and comment out
+the parts you do not need using C++ style (//) comments.
 
-As of version 0.20 there is a version number. : )
-Also as of version 0.20, BB is modularized to allow an easy build of
-only the BB parts you need, to reduce binary size.
+After the build is complete a busybox.links file is generated which is
+then used by 'make install' to create symlinks to the busybox binary
+for all compiled in functions.  By default, 'make install' will place
+the symlink forest into `pwd`/busybox_install unless you have defined
+the PREFIX environment variable.
 
-Edit the file busybox.def.h and comment out the parts you do not need
-using C++ comments (//)
+Please feed suggestions, bug reports, insults, and bribes back to:
+	Erik Andersen 
+	<andersen@lineo.com>
+	<andersee@deban.org>
 
-After the build is complete a busybox.links file is generated to allow
-you to easily make the sym/hard links to the busybox binary.
-
-Note the modular system is Makefile based, and purposely very
-simplistic. It does no dependency checking. That is left for you
-to figure out by trial and error.
-
-Please feed patches back to:
-	Erik Andersen <andersee@deban.org>

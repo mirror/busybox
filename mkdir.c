@@ -34,7 +34,7 @@ static const char mkdir_usage[] = "Usage: mkdir [OPTION] DIRECTORY...\n\n"
 
 
 static int parentFlag = FALSE;
-static mode_t mode = 777;
+static mode_t mode = 0777;
 
 
 extern int mkdir_main(int argc, char **argv)

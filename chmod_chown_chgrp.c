@@ -31,7 +31,7 @@ static uid_t uid=-1;
 static gid_t gid=-1;
 static int whichApp;
 static char* invocationName=NULL;
-static mode_t mode=0644;
+static char* theMode=NULL;
 
 
 #define CHGRP_APP   1
@@ -61,7 +61,12 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 	    }
 	    break;
 	case CHMOD_APP:
-	    if (chmod(fileName, mode) == 0)
+	    /* Parse the specified modes */
+	    if ( parse_mode(theMode, &(statbuf->st_mode)) == FALSE ) {
+		fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, theMode);
+		exit( FALSE);
+	    }
+	    if (chmod(fileName, statbuf->st_mode) == 0)
 		return( TRUE);
 	    break;
     }
@@ -100,12 +105,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     }
     
     if ( whichApp == CHMOD_APP ) {
-	/* Find the specified modes */
-	mode = 0;
-	if ( parse_mode(*argv, &mode) == FALSE ) {
-	    fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, *argv);
-	    exit( FALSE);
-	}
+	theMode=*argv;
     } else {
 
 	/* Find the selected group */

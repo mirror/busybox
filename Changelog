@@ -1,13 +1,12 @@
 0.36
 	* fixed dd so it properly defaults to stdin and stdout when no 
 	    if= and of= are set (fix thanks to Eric Delaunay).
-	* Don't try to close the file descriptor of a pipe. (fix also from
+	* Don't try to close the file descriptor of a pipein tar. (fix also from
 	    Eric Delaunay).
 	* Made createPath be quiet (again thanks to Eric Delaunay).
 	* If BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS is defined, then whatever
 	    command you define it as will be run if the init script exits.
-	* Made createPath be quiet (again thanks to Eric Delaunay).
-	* Updated to install.sh to make it more robust (thanks to Adam Di Carlo)
+	* Updated install.sh to make it more robust (thanks to Adam Di Carlo)
 	* NFS support added to mount by Eric Delaunay.  It costs 10k when compiled
 	    in, but that is still a big win for those that use NFS.
 	* Made 'rm -f' be silent for non-existant files (thanks to Eric Delaunay).
@@ -15,9 +14,17 @@
 	    and acts as god intended gunzip and zcat to act.  They answer --help and
 	    obey the '-c' flag.
 	* Fixed a bug in mv which caused it to not move files when the destination
-	    was a directory name.
+	    was a directory.
+	* Fixed a decimal-instead-of-octal bug causing mkdir to make directories
+	    with very wrong permissions.
+	* chmod would overwrite file permissions instead of modifying them.
+	    Now it properly modifies permissions.
+	* Init now sends warnings destined for the console to /dev/console to ensure
+	    they show up on whatever the active console it.  Otherwise important
+	    messages (for example that the system is rebooting) were not seen when
+	    switched to a different VT.
 
-	-Erik Andersen
+	-Erik Andersen, Nov 17, 1999
 	
 0.35
 	* gzip now obeys the principle of least surprise and acts like god intended 

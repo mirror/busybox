@@ -17,7 +17,7 @@
 
 
 PROG=busybox
-VERSION=0.35
+VERSION=0.36
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
@@ -107,6 +107,9 @@ install: busybox
 whichversion:
 	@echo $(VERSION)
 
+
+dist: release
+
 release: distclean
-	(cd .. ; cp -a busybox busybox-$(VERSION); tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
+	(cd .. ; rm -rf busybox-$(VERSION) ; cp -a busybox busybox-$(VERSION); rm -rf busybox-$(VERSION)/CVS busybox-$(VERSION)/.cvsignore ; tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
 
