@@ -614,7 +614,7 @@ Testing Guidelines
 
 It's considered good form to test your new feature before you submit a patch
 to the mailing list, and especially before you commit a change to CVS. Here
-are some guildlines on testing your changes.
+are some guidelines on testing your changes.
 
  - Always test busybox applets against GNU counterparts and make sure the
    behavior / output is identical between the two.
