@@ -60,7 +60,7 @@ extern int mkfifo_main(int argc, char **argv)
 		argc--;
 		argv++;
 	}
-	if (argc < 1)
+	if (argc < 1 || *argv[0] == '-')
 		usage(mkfifo_usage);
 	if (mkfifo(*argv, mode) < 0) {
 		perror("mkfifo");
