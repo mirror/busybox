@@ -41,33 +41,70 @@
  *
  * The server can also be invoked as a url arg decoder and html text encoder
  * as follows:
- *  foo=`httpd -d $foo`             # decode "Hello%20World" as "Hello World"
+ *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
  *  bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
+ * Note that url encoding for arguments is not the same as html encoding for
+ * presenation.  -d decodes a url-encoded argument while -e encodes in html
+ * for page display.
  *
  * httpd.conf has the following format:
+ * 
+ * A:172.20.         # Allow any address that begins with 172.20
+ * A:10.10.          # Allow any address that begins with 10.10.
+ * A:10.20           # Allow any address that previous set and 10.200-209.X.X
+ * A:127.0.0.1       # Allow local loopback connections
+ * D:*               # Deny from other IP connections
+ * /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
+ * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
+ * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
+ * .au:audio/basic   # additional mime type for audio.au files
+ * 
+ * A/D may be as a/d or allow/deny - first char case unsensitive
+ * Deny IP rules take precedence over allow rules.  Any IP rules after D:* are
+ * ignored.
+ * 
+ * 
+ * The Deny/Allow IP logic:
+ * 
+ *  - Default is to allow all.  No addresses are denied unless
+ * 	   denied with a D: rule.
+ *  - Order of Deny/Allow rules is significant
+ *  - Deny rules take precedence over allow rules.
+ *  - If a deny all rule (D:*) is used it acts as a catch-all for unmatched
+ * 	 addresses.
+ *  - Specification of Allow all (A:*) is a no-op
+ * 
+ * Example:
+ *   1. Allow only specified addresses
+ *     A:172.20.         # Allow any address that begins with 172.20
+ *     A:10.10.          # Allow any address that begins with 10.10.
+ *     A:10.10           # Allow any address that previous set and 10.100-109.X.X
+ *     A:127.0.0.1       # Allow local loopback connections
+ *     D:*               # Deny from other IP connections
+ * 
+ *   2. Only deny specified addresses
+ *     D:1.2.3.        # deny from 1.2.3.0 - 1.2.3.255
+ *     D:2.3.4.        # deny from 2.3.4.0 - 2.3.4.255
+ *     A:*             # (optional line added for clarity)
+ * 
+ * If a sub directory contains a config file it is parsed and merged with
+ * any existing settings as if it was appended to the original configuration
+ * except that all previous IP config rules are discarded.
+ *
+ * subdir paths are relative to the containing subdir and thus cannot
+ * affect the parent rules.
+ *
+ * Note that since the sub dir is parsed in the forked thread servicing the
+ * subdir http request, any merge is discarded when the process exits.  As a
+ * result, the subdir settings only have a lifetime of a single request.
+ *
+ * 
+ * If -c is not set, an attempt will be made to open the default 
+ * root configuration file.  If -c is set and the file is not found, the
+ * server exits with an error.
+ * 
+*/
 
-A:172.20.         # Allow any address that begins with 172.20
-A:10.10.          # Allow any address that begins with 10.10.
-A:10.10           # Allow any address that previous set and 10.100-109.X.X
-A:127.0.0.1       # Allow local loopback connections
-D:*               # Deny from other IP connections
-/cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
-/adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
-/adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
-.au:audio/basic   # additional mime type for audio.au files
-
-A/D may be as a/d or allow/deny - first char case unsensitive parsed only.
-
-Each subdir can have config file.
-You can set less IP allow from subdir config.
-Password protection from subdir config can rewriten previous sets for
-current or/and next subpathes.
-For protect as user:pass current subdir and subpathes set from subdir config:
-/:user:pass
-/subpath:user2:pass2
-
- If -c don`t setted, used httpd root config, else httpd root config skiped.
- */
 
 #include <stdio.h>
 #include <ctype.h>         /* for isspace           */
@@ -86,10 +123,10 @@ For protect as user:pass current subdir and subpathes set from subdir config:
 #include "busybox.h"
 
 
-static const char httpdVersion[] = "busybox httpd/1.25 10-May-2003";
+static const char httpdVersion[] = "busybox httpd/1.26 18-May-2003";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
-static const char home[] = "/www";
+static const char home[] = "./";
 
 // Note: bussybox xfuncs are not used because we want the server to keep running
 //       if something bad happens due to a malformed user request.
@@ -160,7 +197,7 @@ void bb_show_usage(void)
 
 /* CGI environ size */
 #ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
-#define ENVSIZE 50    /* set max 35 CGI_variable */
+#define ENVSIZE 70    /* set max CGI variable */
 #else
 #define ENVSIZE 15    /* minimal requires */
 #endif
@@ -325,7 +362,31 @@ static void free_config_lines(Htaccess **pprev)
 #define SUBDIR_PARSE         1
 #define SIGNALED_PARSE       2
 #define FIND_FROM_HTTPD_ROOT 3
-
+/****************************************************************************
+ *
+ > $Function: parse_conf()
+ *
+ * $Description: parse configuration file into in-memory linked list.
+ * 
+ * The first non-white character is examined to determine if the config line
+ * is one of the following:
+ *    .ext:mime/type   # new mime type not compiled into httpd
+ *    [adAD]:from      # ip address allow/deny, * for wildcard
+ *    /path:user:pass  # username/password
+ *
+ * Any previous IP rules are discarded.
+ * If the flag argument is not SUBDIR_PARSE then all /path and mime rules
+ * are also discarded.  That is, previous settings are retained if flag is
+ * SUBDIR_PARSE.
+ *
+ * $Parameters:
+ *      (const char *) path . . null for ip address checks, path for password
+ *                              checks.
+ *      (int) flag  . . . . . . the source of the parse request.
+ *
+ * $Return: (None) 
+ *
+ ****************************************************************************/
 static void parse_conf(const char *path, int flag)
 {
     FILE *f;
@@ -335,17 +396,18 @@ static void parse_conf(const char *path, int flag)
 #endif
 
     const char *cf = config->configFile;
-    char buf[80];
+    char buf[160];
     char *p0 = NULL;
     char *c, *p;
 
-    /* free previous setuped */
+    /* free previous ip setup if present */
     free_config_lines(&config->ip_a_d);
+    /* retain previous auth and mime config only for subdir parse */
     if(flag != SUBDIR_PARSE) {
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	free_config_lines(&config->auth)
 #endif
-	;   /* syntax confuse */
+	;   /* appease compiler warnings if option is not set */
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	free_config_lines(&config->mime_a);
 #endif
@@ -363,7 +425,7 @@ static void parse_conf(const char *path, int flag)
 
     while((f = fopen(cf, "r")) == NULL) {
 	if(flag != FIRST_PARSE) {
-	    /* config file not found */
+	    /* config file not found, no changes to config */
 	    return;
 	}
 	if(config->configFile)      /* if -c option given */
@@ -376,7 +438,7 @@ static void parse_conf(const char *path, int flag)
     prev = config->auth;
 #endif
     /* This could stand some work */
-    while ( (p0 = fgets(buf, 80, f)) != NULL) {
+    while ( (p0 = fgets(buf, sizeof(buf), f)) != NULL) {
 	c = NULL;
 	for(p = p0; *p0 != 0 && *p0 != '#'; p0++) {
 		if(!isspace(*p0)) {
@@ -393,18 +455,20 @@ static void parse_conf(const char *path, int flag)
 	if(*c == '*')
 	    *c = 0;   /* Allow all */
 	p0 = buf;
+	if((*p0 == 'i') || (*p0 == 'I'))
+		*p0 = 'A'; // version 1.1/1.2 compatibility for ip:
 	if(*p0 == 'a')
 	    *p0 = 'A';
 	if(*p0 == 'd')
 	    *p0 = 'D';
 	if(*p0 != 'A' && *p0 != 'D'
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-				    && *p0 != '/'
+	   && *p0 != '/'
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-					&& *p0 != '.'
+	   && *p0 != '.'
 #endif
-						       )
+	  )
 	       continue;
 
 	if(*p0 == 'A' && *c == 0) {
@@ -681,9 +745,12 @@ static void addEnvCgi(const char *pargs)
 {
   char *args;
   char *memargs;
+  char *namelist; /* space separated list of arg names */
   if (pargs==0) return;
 
   /* args are a list of name=value&name2=value2 sequences */
+  namelist = (char *) malloc(strlen(pargs));
+  if (namelist) namelist[0]=0;
   memargs = args = strdup(pargs);
   while (args && *args) {
     const char *name = args;
@@ -696,8 +763,14 @@ static void addEnvCgi(const char *pargs)
     if (args)
 	*args++ = 0;
     addEnv("CGI", name, decodeString(value, 1));
+    if (*namelist) strcat(namelist, " ");
+    strcat(namelist,name);
   }
   free(memargs);
+  if (namelist) {
+    addEnv("CGI","ARGLIST_",namelist);
+    free(namelist);
+  }
 }
 #endif /* CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV */
 
@@ -1050,10 +1123,11 @@ static int sendCgi(const char *url,
 	    if(script) {
 		*script = '\0';
 		if(chdir(realpath_buff) == 0) {
-		    *script = '/';
-      // now run the program.  If it fails, use _exit() so no destructors
-      // get called and make a mess.
-		    execve(realpath_buff, argp, config->envp);
+		  *script = '/';
+		  // now run the program.  If it fails,
+		  // use _exit() so no destructors
+		  // get called and make a mess.
+		  execve(realpath_buff, argp, config->envp);
 		}
 	    }
       }
@@ -1605,6 +1679,9 @@ static int miniHttpd(int server)
 		exit(0);
 	}
 	close(s);
+#ifdef TEST
+	return 0;  // exit after processing one request
+#endif
       }
     }
   } // while (1)
@@ -1655,6 +1732,10 @@ int httpd_main(int argc, char *argv[])
 #endif
 {
   const char *home_httpd = home;
+#ifdef TEST
+  const char *testArgs[5];
+  int numTestArgs=0;
+#endif
 
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   int server;
@@ -1689,6 +1770,9 @@ int httpd_main(int argc, char *argv[])
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
 		"u:"
+#endif
+#ifdef TEST
+		"t:"
 #endif
     );
     if (c == EOF) break;
@@ -1735,6 +1819,11 @@ int httpd_main(int argc, char *argv[])
       }
       break;
 #endif
+#ifdef TEST
+    case 't':
+      testArgs[numTestArgs++]=optarg;
+      break;
+#endif
     default:
       bb_error_msg("%s", httpdVersion);
       bb_show_usage();
@@ -1760,6 +1849,17 @@ int httpd_main(int argc, char *argv[])
   sighup_handler(0);
 #else
   parse_conf(default_path_httpd_conf, FIRST_PARSE);
+#endif
+
+#ifdef TEST
+  if (numTestArgs)
+  {
+	  if (strcmp(testArgs[0],"ip") == 0) testArgs[0] = 0;
+	  if (numTestArgs > 2)
+	    parse_conf(testArgs[2], SUBDIR_PARSE);
+	  int result = printf("%d\n",checkPerm(testArgs[0],testArgs[1]));
+	  return result;
+  }
 #endif
 
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
