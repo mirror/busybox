@@ -18,6 +18,7 @@
 	* Glenn McGrath -- Restructure unarchiving code to make more code
 	    common to the ar, cpio, dpkg, dpkg-deb applets.
 	    tar applet hasnt been assimilated yet.
+	* Matt Kraai -- Rewrote cp, dirname, mkdir, mv, and rm.
 
 
 	-Erik Andersen, not yet released
