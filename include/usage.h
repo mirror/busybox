@@ -571,6 +571,13 @@
 #define fdflush_full_usage \
 	"Forces floppy disk drive to detect disk change"
 
+#define fdformat_trivial_usage \
+	"[-n] DEVICE"
+#define fdformat_full_usage \
+	"Low-level formats a floppy disk\n\n" \
+	"Options:\n" \
+	"\t-n\tDon't verify after format"
+
 #define fdisk_trivial_usage \
 	"[-l] [-v] [-b SSZ] [-u] DISK"
 #define fdisk_full_usage \

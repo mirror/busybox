@@ -193,6 +193,9 @@
 #ifdef CONFIG_FDFLUSH
 	APPLET(fdflush, fdflush_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_FDFORMAT
+	APPLET(fdformat, fdformat_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_FDISK
 	APPLET(fdisk, fdisk_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

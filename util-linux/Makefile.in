@@ -26,6 +26,7 @@ UTILLINUX-:=
 UTILLINUX-$(CONFIG_DMESG)		+= dmesg.o
 UTILLINUX-$(CONFIG_FBSET)		+= fbset.o
 UTILLINUX-$(CONFIG_FDFLUSH)		+= fdflush.o
+UTILLINUX-$(CONFIG_FDFORMAT)		+= fdformat.o
 UTILLINUX-$(CONFIG_FDISK)               += fdisk.o
 UTILLINUX-$(CONFIG_FREERAMDISK)	+= freeramdisk.o
 UTILLINUX-$(CONFIG_FSCK_MINIX)	+= fsck_minix.o

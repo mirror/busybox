@@ -59,6 +59,12 @@ config CONFIG_FDFLUSH
 	  you change a disk.  Most people have working hardware and can safely
 	  say leave this disabled.
 
+config CONFIG_FDFORMAT
+	bool "fdformat"
+	default n
+	help
+	  Fdformat is used to low-level format a floppy disk.
+
 config CONFIG_FDISK
 	bool "fdisk"
 	default n
