@@ -49,14 +49,14 @@ extern void check_trailer_gzip(int src_fd)
 
 	/* Validate decompression - crc */
 	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
-		error_msg("invalid compressed data--crc error");
+		error_msg_and_die("invalid compressed data--crc error");
 	}
 
 	/* Validate decompression - size */
 	if (gunzip_bytes_out != 
 		(gunzip_in_buffer[4] | (gunzip_in_buffer[5] << 8) |
 		(gunzip_in_buffer[6] << 16) | (gunzip_in_buffer[7] << 24))) {
-		error_msg("invalid compressed data--length error");
+		error_msg_and_die("invalid compressed data--length error");
 	}
 
 }
