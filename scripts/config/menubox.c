@@ -311,8 +311,8 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 
                     scroll--;
 
-                    print_item (menu, items[scroll * 2]->name, 0, FALSE,
-                               (items[scroll * 2]->tag[0] != ':'));
+                    print_item (menu, items[scroll]->name, 0, FALSE,
+                               (items[scroll]->tag[0] != ':'));
 		} else
 		    choice = MAX(choice - 1, 0);
 
@@ -343,8 +343,8 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
                     if (scroll > 0) {
                 	wscrl (menu, -1);
                 	scroll--;
-                	print_item (menu, items[scroll * 2]->name, 0, FALSE,
-                	(items[scroll * 2]->tag[0] != ':'));
+                	print_item (menu, items[scroll]->name, 0, FALSE,
+                	(items[scroll]->tag[0] != ':'));
                     } else {
                         if (choice > 0)
                             choice--;
