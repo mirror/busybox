@@ -32,7 +32,7 @@
 #include <utime.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <ctype.h>
 
 /* volatile so gcc knows this is the enod of the line */
 volatile void usage(const char *usage)
@@ -558,13 +558,17 @@ extern void createPath (const char *name, int mode)
 
 
 #if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR)
-/* [ugoa]{+|-|=}[rwxstl] */
-extern int parse_mode( const char* s, mode_t* theMode)
+/* [ugoa]{+|-|=}[rwxst] */
+
+
+
+extern int 
+parse_mode( const char* s, mode_t* theMode)
 {
-	mode_t or;
-	mode_t and;
+	mode_t andMode = S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+	mode_t orMode = 0;
 	mode_t	mode = 0;
-	mode_t	groups = S_ISVTX;
+	mode_t	groups = 0;
 	char	type;
 	char	c;
 
@@ -572,7 +576,7 @@ extern int parse_mode( const char* s, mode_t* theMode)
 		for ( ; ; ) {
 			switch ( c = *s++ ) {
 			case '\0':
-				return (FALSE);
+				return -1;
 			case 'u':
 				groups |= S_ISUID|S_IRWXU;
 				continue;
@@ -589,13 +593,15 @@ extern int parse_mode( const char* s, mode_t* theMode)
 			case '=':
 			case '-':
 				type = c;
-				if ( groups == S_ISVTX ) /* The default is "all" */
+				if ( groups == 0 ) /* The default is "all" */
 					groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
 				break;
 			default:
-				if ( c >= '0' && c <= '7' && mode == 0 && groups == S_ISVTX ) {
-					and = 0;
-					or = strtol(--s, 0, 010);
+				if ( isdigit(c) && c >= '0' && c <= '7' && mode == 0 && groups == 0 ) {
+					andMode = 0;
+					orMode = strtol(--s, NULL, 8);
+					*theMode &= andMode;
+					*theMode |= orMode;
 					return (TRUE);
 				}
 				else
@@ -621,28 +627,34 @@ extern int parse_mode( const char* s, mode_t* theMode)
 				mode |= S_IXGRP|S_ISUID|S_ISGID;
 				continue;
 			case 't':
-				mode |= S_ISVTX;
+				mode |= 0;
 				continue;
 			default:
-				return (FALSE);
+				*theMode &= andMode;
+				*theMode |= orMode;
+				return( TRUE);
 			}
 			break;
 		}
 		switch ( type ) {
 		case '=':
-			and &= ~(groups);
+			andMode &= ~(groups);
 			/* fall through */
 		case '+':
-			or |= mode & groups;
+			orMode |= mode & groups;
 			break;
 		case '-':
-			and &= ~(mode & groups);
-			or &= and;
+			andMode &= ~(mode & groups);
+			orMode &= andMode;
 			break;
 		}
 	} while ( c == ',' );
+	*theMode &= andMode;
+	*theMode |= orMode;
 	return (TRUE);
 }
+
+
 #endif
 
 

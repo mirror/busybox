@@ -25,8 +25,8 @@
 #include "internal.h"
 
 
-static int uid=-1;
-static int gid=0;
+static uid_t uid=-1;
+static gid_t gid=-1;
 static int whichApp;
 static char* invocationName=NULL;
 static mode_t mode=0644;
@@ -48,18 +48,70 @@ static const char chmod_usage[] = "[-R] MODE[,MODE]... FILE...\n"
  "\t-R\tchange files and directories recursively.\n";
 
 
+uid_t my_getid(const char *filename, const char *name) 
+{
+	FILE *stream;
+	char *rname, *start, *end, buf[128];
+	uid_t rid;
+
+	stream=fopen(filename,"r");
+
+	while (fgets (buf, 128, stream) != NULL) {
+		if (buf[0] == '#')
+			continue;
+
+		start = buf;
+		end = strchr (start, ':');
+		if (end == NULL)
+			continue;
+		*end = '\0';
+		rname = start;
+
+		start = end + 1;
+		end = strchr (start, ':');
+		if (end == NULL)
+			continue;
+
+		start = end + 1;
+		rid = (uid_t) strtol (start, &end, 10);
+		if (end == start)
+			continue;
+
+		if (name) {
+		    if (0 == strcmp(rname, name))
+			return( rid);
+		}
+	}
+	fclose(stream);
+	return (-1);
+}
+
+uid_t 
+my_getpwnam(char *name) 
+{
+    return my_getid("/etc/passwd", name);
+}
+
+gid_t 
+my_getgrnam(char *name) 
+{
+    return my_getid("/etc/group", name);
+}
 
 static int fileAction(const char *fileName, struct stat* statbuf)
 {
     switch (whichApp) {
 	case CHGRP_APP:
 	case CHOWN_APP:
-	    if (chown(fileName, ((whichApp==CHOWN_APP)? uid: statbuf->st_uid), gid) < 0)
+	    if (chown(fileName, (whichApp==CHOWN_APP)? uid : statbuf->st_uid, 
+			(gid==-1)? statbuf->st_gid : gid) == 0) {
 		return( TRUE);
+	    }
+	    break;
 	case CHMOD_APP:
-	    fprintf(stderr, "%s, %d\n", fileName, mode);
-	    if (chmod(fileName, mode))
+	    if (chmod(fileName, mode) == 0)
 		return( TRUE);
+	    break;
     }
     perror(fileName);
     return( FALSE);
@@ -67,8 +119,6 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 
 int chmod_chown_chgrp_main(int argc, char **argv)
 {
-    struct group *grp;
-    struct passwd *pwd;
     int recursiveFlag=FALSE;
     char *groupName;
 
@@ -104,31 +154,33 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	    fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, *argv);
 	    exit( FALSE);
 	}
-	//mode &= andWithMode;
-	fprintf(stderr, "mode %d\n", mode);
     } else {
 
 	/* Find the selected group */
-	groupName = strchr(*argv, '.');
-	if ( whichApp==TRUE && groupName )
-	    *groupName++ = '\0';
-	else
+	if ( whichApp==CHGRP_APP && groupName ) {
 	    groupName = *argv;
-	grp = getgrnam(groupName);
-	if (grp == NULL) {
-	    fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
-	    exit( FALSE);
+	    gid = my_getgrnam(groupName);
+	    if (gid == -1)
+		goto bad_group;
+	} else {
+	    groupName = strchr(*argv, '.');
+	    if (groupName) {
+		*groupName++ = '\0';
+		gid = my_getgrnam(groupName);
+		if (gid == -1)
+		    goto bad_group;
+	    } else
+		gid = -1;
 	}
-	gid = grp->gr_gid;
+
 
 	/* Find the selected user (if appropriate)  */
-	if (whichApp==TRUE) {
-	    pwd = getpwnam(*argv);
-	    if (pwd == NULL) {
+	if (whichApp==CHOWN_APP) {
+	    uid = my_getpwnam(*argv);
+	    if (uid == -1) {
 		fprintf(stderr, "%s: Unknown user name: %s\n", invocationName, *argv);
 		exit( FALSE);
 	    }
-	    uid = pwd->pw_uid;
 	}
     }
     
@@ -142,173 +194,10 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	    exit( FALSE);
     }
     exit(TRUE);
+
+bad_group:
+    fprintf(stderr, "%s: Unknown group name: %s\n", invocationName, groupName);
+    exit( FALSE);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-#ifdef fooo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "internal.h"
-#include <pwd.h>
-#include <grp.h>
-#include <string.h>
-#include <stdio.h>
-
-int my_getid(const char *filename, const char *name, uid_t *id) 
-{
-	FILE *stream;
-	uid_t rid;
-	char *rname, *start, *end, buf[128];
-
-	stream=fopen(filename,"r");
-
-	while (fgets (buf, 128, stream) != NULL) {
-		if (buf[0] == '#')
-			continue;
-
-		start = buf;
-		end = strchr (start, ':');
-		if (end == NULL)
-			continue;
-		*end = '\0';
-		rname = start;
-
-		start = end + 1;
-		end = strchr (start, ':');
-		if (end == NULL)
-			continue;
-
-		start = end + 1;
-		rid = (uid_t) strtol (start, &end, 10);
-		if (end == start)
-			continue;
-
-		if (name) {
-			if (0 == strcmp(rname, name)) {
-				*id=rid;
-				return 0;
-			}
-		} else {
-			if ( *id == rid )
-				return 0;
-		}
-	}
-	fclose(stream);
-	return -1;
-}
-
-int 
-my_getpwuid(uid_t *uid) 
-{
-	return my_getid("/etc/passwd", NULL, uid);
-}
-
-int 
-my_getpwnam(char *name, uid_t *uid) 
-{
-	return my_getid("/etc/passwd", name, uid);
-}
-
-int 
-my_getgrgid(gid_t *gid) 
-{
-	return my_getid("/etc/group", NULL, gid);
-}
-
-int 
-my_getgrnam(char *name, gid_t *gid) 
-{
-	return my_getid("/etc/group", name, gid);
-}
-
-const char	chown_usage[] = "chown [-R] user-name file [file ...]\n"
-"\n\tThe group list is kept in the file /etc/groups.\n\n"
-"\t-R:\tRecursively change the mode of all files and directories\n"
-"\t\tunder the argument directory.";
-
-int
-parse_user_name(const char * s, struct FileInfo * i)
-{
-	char *				dot = strchr(s, '.');
-	char * end = NULL;
-	uid_t id = 0;
-
-	if (! dot )
-		dot = strchr(s, ':');
-
-	if ( dot )
-		*dot = '\0';
-
-	if ( my_getpwnam(s,&id) == -1 ) {
-		id = strtol(s,&end,10);
-		if ((*end != '\0') || ( my_getpwuid(&id) == -1 )) {
-			fprintf(stderr, "%s: no such user.\n", s);
-			return 1;
-		}
-	}
-	i->userID = id;
-
-	if ( dot ) {
-		if ( my_getgrnam(++dot,&id) == -1 ) {
-			id = strtol(dot,&end,10);
-			if ((*end != '\0') || ( my_getgrgid(&id) == -1 )) {
-				fprintf(stderr, "%s: no such group.\n", dot);
-				return 1;
-			}
-		}
-		i->groupID = id;
-		i->changeGroupID = 1;
-	}
-	return 0;
-}
-
-extern int
-chown_main(struct FileInfo * i, int argc, char * * argv)
-{
-	int					status;
-
-	while ( argc >= 3 && strcmp("-R", argv[1]) == 0 ) {
-		i->recursive = 1;
-		argc--;
-		argv++;
-	}
-
-	if ( (status = parse_user_name(argv[1], i)) != 0 )
-		return status;
-
-	argv++;
-	argc--;
-
-	i->changeUserID = 1;
-	i->complainInPostProcess = 1;
-
-	return monadic_main(i, argc, argv);
-}
-
-
-
-
-#endif

@@ -5,7 +5,7 @@ BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
 # Leave this off for production use.
-#DODEBUG=true
+DODEBUG=true
 
 #This will choke on a non-debian system
 ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
@@ -19,7 +19,7 @@ ifeq ($(DODEBUG),true)
 else
     CFLAGS=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS= -s
-    STRIP= strip --remove-section=.note --remove-section=.comment
+    STRIP= strip --remove-section=.note --remove-section=.comment $(PROG)
 endif
 
 ifndef $(prefix)
@@ -36,7 +36,7 @@ all: busybox links
 
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJECTS) $(LIBRARIES)
-	$(STRIP) $(PROG)
+	$(STRIP)
 
 links:
 	- ./busybox.mkll | sort >busybox.links
