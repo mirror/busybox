@@ -4,6 +4,7 @@
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
  * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  * Copyright (C) 2002  Matt Kraai
+ * Copyright (C) 2003 by Glenn McGrath <bug1@optushome.com.au>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +32,9 @@
 	 - file commands: (r)ead
 	 - backreferences in substitution expressions (\1, \2...\9)
 	 - grouped commands: {cmd1;cmd2}
+	 - transliteration (y/source-chars/dest-chars/)
+	 - pattern space hold space storing / swapping (g, h, x)
+	 - labels / branching (: label, b, t)
 
 	 (Note: Specifying an address (range) to match is *optional*; commands
 	 default to the whole pattern space if no specific address match was
@@ -38,10 +42,12 @@
 
 	Unsupported features:
 
-	 - transliteration (y/source-chars/dest-chars/) (use 'tr')
-	 - no pattern space hold space storing / swapping (x, etc.)
-	 - no labels / branching (: label, b, t, and friends)
+	 - GNU extensions
 	 - and lots, lots more.
+
+	Bugs:
+	
+	 - Cant subst globally using ^ or $ in regex, eg. "aah" | sed 's/^a/b/g'
 
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
@@ -54,19 +60,6 @@
 #include <ctype.h>		/* for isspace() */
 #include <stdlib.h>
 #include "busybox.h"
-
-/* the spec says label must be at least 8 chars, behavious is unspecified if more than 8 chars */
-#define SED_LABEL_LENGTH	8
-
-/* externs */
-extern void xregcomp(regex_t * preg, const char *regex, int cflags);
-extern int optind;		/* in unistd.h */
-extern char *optarg;	/* ditto */
-
-/* options */
-static int be_quiet = 0;
-static const char bad_format_in_subst[] =
-	"bad format in substitution expression";
 
 typedef struct sed_cmd_s {
 	/* Order by alignment requirements */
@@ -109,14 +102,25 @@ typedef struct sed_cmd_s {
 	int invert;			/* the '!' after the address */
 
 	/* Branch commands */
-	char label[SED_LABEL_LENGTH + 1];
+	char *label;
 
 	/* next command in list (sequential list of specified commands) */
-	struct sed_cmd_s *linear;
+	struct sed_cmd_s *next;
 
 } sed_cmd_t;
 
+
+/* externs */
+extern void xregcomp(regex_t * preg, const char *regex, int cflags);
+extern int optind;		/* in unistd.h */
+extern char *optarg;	/* ditto */
+
 /* globals */
+/* options */
+static int be_quiet = 0;
+static const char bad_format_in_subst[] =
+	"bad format in substitution expression";
+
 /* linked list of sed commands */
 static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
@@ -126,13 +130,14 @@ static int in_block = 0;
 const char *const semicolon_whitespace = "; \n\r\t\v\0";
 static regex_t *previous_regex_ptr = NULL;
 
+
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_cmd_strs(void)
 {
-	sed_cmd_t *sed_cmd = sed_cmd_head.linear;
+	sed_cmd_t *sed_cmd = sed_cmd_head.next;
 
 	while (sed_cmd) {
-		sed_cmd_t *sed_cmd_next = sed_cmd->linear;
+		sed_cmd_t *sed_cmd_next = sed_cmd->next;
 
 		if (sed_cmd->beg_match) {
 			regfree(sed_cmd->beg_match);
@@ -445,7 +450,7 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr)
 /*
  *  Process the commands arguments
  */
-static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
+static char *parse_cmd_str(sed_cmd_t *sed_cmd, char *cmdstr)
 {
 	/* handle (s)ubstitution command */
 	if (sed_cmd->cmd == 's') {
@@ -469,11 +474,8 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 		int length;
 
 		cmdstr += strspn(cmdstr, " ");
-		length = strcspn(cmdstr, "; ");
-		if (length > SED_LABEL_LENGTH) {
-			length = SED_LABEL_LENGTH;
-		}
-		strncpy(sed_cmd->label, cmdstr, length);
+		length = strcspn(cmdstr, "; \n");
+		sed_cmd->label = strndup(cmdstr, length);
 		cmdstr += length;
 	}
 	/* translation command */
@@ -595,8 +597,8 @@ static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
 	cmdstr = parse_cmd_str(sed_cmd, cmdstr);
 
 	/* Add the command to the command array */
-	sed_cmd_tail->linear = sed_cmd;
-	sed_cmd_tail = sed_cmd_tail->linear;
+	sed_cmd_tail->next = sed_cmd;
+	sed_cmd_tail = sed_cmd_tail->next;
 
 	return (cmdstr);
 }
@@ -805,9 +807,8 @@ static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 static sed_cmd_t *branch_to(const char *label)
 {
 	sed_cmd_t *sed_cmd;
-
-	for (sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
-		if (strcmp(sed_cmd->label, label) == 0) {
+	for (sed_cmd = sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
+		if ((sed_cmd->label) && (strcmp(sed_cmd->label, label) == 0)) {
 			break;
 		}
 	}
@@ -844,8 +845,8 @@ static void process_file(FILE * file)
 		force_print = 0;
 
 		/* for every line, go through all the commands */
-		for (sed_cmd = sed_cmd_head.linear; sed_cmd;
-			 sed_cmd = sed_cmd->linear) {
+		for (sed_cmd = sed_cmd_head.next; sed_cmd;
+			 sed_cmd = sed_cmd->next) {
 			int deleted = 0;
 
 			/*
@@ -952,8 +953,8 @@ static void process_file(FILE * file)
 					}
 #endif
 					altered |= substituted;
-					if (!be_quiet && altered && ((sed_cmd->linear == NULL)
-												 || (sed_cmd->linear->cmd !=
+					if (!be_quiet && altered && ((sed_cmd->next == NULL)
+												 || (sed_cmd->next->cmd !=
 													 's'))) {
 						force_print = 1;
 					}
@@ -1160,7 +1161,7 @@ extern int sed_main(int argc, char **argv)
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
-	if (sed_cmd_head.linear == NULL) {
+	if (sed_cmd_head.next == NULL) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else {
