@@ -159,7 +159,7 @@ int wget_main(int argc, char **argv)
 {
 	int n, try=5, status;
 	int port;
-	char *proxy;
+	char *proxy = 0;
 	char *dir_prefix=NULL;
 	char *s, buf[512];
 	struct stat sbuf;
@@ -177,6 +177,7 @@ int wget_main(int argc, char **argv)
 	int got_clen = 0;			/* got content-length: from server	*/
 	FILE *output;				/* socket to web server				*/
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
+	int noproxy = 0;            /* Use proxies if env vars are set  */
 
 #define LONG_HEADER	1
 	struct option long_options[] = {
@@ -184,12 +185,13 @@ int wget_main(int argc, char **argv)
 		{ "quiet",		0, NULL, 'q' },
 		{ "output-document",	1, NULL, 'O' },
 		{ "header",		1, &which_long_opt, LONG_HEADER },
+		{ "proxy",		1, NULL, 'Y' },
 		{ 0,			0, 0, 0 }
 	};
 	/*
 	 * Crack command line.
 	 */
-	while ((n = getopt_long(argc, argv, "cqO:P:", long_options, &option_index)) != EOF) {
+	while ((n = getopt_long(argc, argv, "cqO:P:Y:", long_options, &option_index)) != EOF) {
 		switch (n) {
 		case 'c':
 			++do_continue;
@@ -206,6 +208,10 @@ int wget_main(int argc, char **argv)
 			 * case below  - tausq@debian.org
 			 */
 			fname_out = optarg;
+			break;
+		case 'Y':
+			if (strcmp(optarg, "off") == 0)
+				noproxy=1;	
 			break;
 		case 0:
 			switch (which_long_opt) {
@@ -238,9 +244,11 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Use the proxy if necessary.
 	 */
-	proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
-	if (proxy)
-		parse_url(xstrdup(proxy), &server);
+	if (!noproxy) {
+		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
+		if (proxy)
+			parse_url(xstrdup(proxy), &server);
+	}
 	
 	/* Guess an output filename */
 	if (!fname_out) {
@@ -818,7 +826,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.48 2002/04/17 15:33:24 kraai Exp $
+ *	$Id: wget.c,v 1.49 2002/05/14 23:36:45 sandman Exp $
  */
 
 

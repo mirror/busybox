@@ -1960,14 +1960,15 @@
 	"     31      46    1365 /etc/passwd\n" 
 
 #define wget_trivial_usage \
-	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n\t[--header 'header: value'] [-P DIR] url"
+	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
 #define wget_full_usage \
 	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \
 	"\t-c\tcontinue retrieval of aborted transfers\n" \
 	"\t-q\tquiet mode - do not print\n" \
 	"\t-P\tSet directory prefix to DIR\n" \
-	"\t-O\tsave to filename ('-' for stdout)"
+	"\t-O\tsave to filename ('-' for stdout)\n" \
+	"\t-Y\tuse proxy ('on' or 'off')"
 
 #define which_trivial_usage \
 	"[COMMAND ...]"
