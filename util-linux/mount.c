@@ -345,7 +345,7 @@ static void show_mounts(char *onlytype)
 			if (strcmp(blockDevice, "rootfs") == 0) {
 				continue;
 			} else if (strcmp(blockDevice, "/dev/root") == 0) {
-				blockDevice = find_real_root_device_name(blockDevice);
+				blockDevice = find_real_root_device_name();
 			}
 			if (!onlytype || (strcmp(m->mnt_type, onlytype) == 0)) {
 				printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,

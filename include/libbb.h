@@ -134,7 +134,7 @@ extern void write_mtab(char* blockDevice, char* directory,
 					   char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern long *find_pid_by_name( const char* pidName);
-extern char *find_real_root_device_name(const char* name);
+extern char *find_real_root_device_name(void);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size);

@@ -27,7 +27,7 @@
 
 
 
-extern char *find_real_root_device_name(const char* name)
+extern char *find_real_root_device_name(void)
 {
 	DIR *dir;
 	struct dirent *entry;
@@ -54,7 +54,11 @@ extern char *find_real_root_device_name(const char* name)
 				 * would get a false positive on ".."  */
 				if (myname[0] == '.' && myname[1] == '.' && !myname[2])
 					continue;
-
+#ifdef CONFIG_FEATURE_DEVFS
+				/* if there is a link named /dev/root skip that too */
+				if (strcmp(myname, "root")==0)
+					continue;
+#endif
 				fileName = concat_path_file("/dev", myname);
 
 				/* Some char devices have the same dev_t as block

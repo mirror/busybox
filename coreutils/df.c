@@ -130,7 +130,7 @@ extern int df_main(int argc, char **argv)
 			} else if (strcmp(device, "/dev/root") == 0) {
 				/* Adjusts device to be the real root device,
 				* or leaves device alone if it can't find it */
-				if ((device = find_real_root_device_name(device)) == NULL) {
+				if ((device = find_real_root_device_name()) == NULL) {
 					goto SET_ERROR;
 				}
 			}
