@@ -714,6 +714,7 @@ static void process_file(FILE *file)
 	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
+	int force_print;
 
 	line = bb_get_chomped_line_from_file(file);
 	if (line == NULL) {
@@ -731,6 +732,7 @@ static void process_file(FILE *file)
 
 		linenum++;
 		altered = 0;
+		force_print = 0;
 
 		/* for every line, go through all the commands */
 		for (sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
@@ -797,7 +799,7 @@ static void process_file(FILE *file)
 						substituted = do_subst_command(sed_cmd, &line);
 						altered |= substituted;
 						if (!be_quiet && altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's'))) {
-							puts(line);
+							force_print = 1;
 						}
 
 						/* we also print the line if we were given the 'p' flag
@@ -908,9 +910,9 @@ static void process_file(FILE *file)
 		/* we will print the line unless we were told to be quiet or if the
 		 * line was altered (via a 'd'elete or 's'ubstitution), in which case
 		 * the altered line was already printed */
-		if (!be_quiet && !altered)
+		if ((!be_quiet && !altered) || force_print){
 			puts(line);
-
+		}
 		free(line);
 		line = next_line;
 	} while (line);
