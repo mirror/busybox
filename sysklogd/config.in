@@ -8,9 +8,14 @@ comment 'System Logging Utilities'
 
 bool 'klogd'	    CONFIG_KLOGD
 bool 'logger'	    CONFIG_LOGGER
-bool 'logread'	    CONFIG_LOGREAD
 bool 'syslogd'	    CONFIG_SYSLOGD
-
+if [ "$CONFIG_SYSLOGD" = "y" ] ; then
+	bool ' Remote Log support ' CONFIG_FEATURE_REMOTE_LOG
+	bool ' Circular Buffer support ' CONFIG_FEATURE_IPC_SYSLOG
+	if [ "$CONFIG_FEATURE_IPC_SYSLOG" = "y" ] ; then
+		bool '  logread ' CONFIG_LOGREAD
+	fi 
+fi
 
 endmenu
 
