@@ -33,6 +33,8 @@
  * One function can handle multiple operators all of equal precedence,
  * provided they all associate ((x op x) op x). */
 
+/* no getopt needed */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

@@ -27,6 +27,8 @@
  * of BB_FEATURE_UTMP_SUPPORT #define
  */
 
+/* getopt not needed */
+
 
 #include <stdio.h>
 #include <time.h>

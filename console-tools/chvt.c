@@ -4,6 +4,9 @@
  *
  * busyboxed by Erik Andersen
  */
+
+/* getopt not needed */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
