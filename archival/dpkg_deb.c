@@ -155,5 +155,6 @@ extern int dpkg_deb_main(int argc, char **argv)
 		}
 	}
 	status = readTarFile(srcFd, extract_flag, list_flag, extract_to_stdout, verbose_flag, NULL, extract_list);
+	close (srcFd);
 	return(EXIT_SUCCESS);
 }
