@@ -34,13 +34,6 @@
 #define bb_need_write_error
 #include "messages.c"
 
-#ifdef TRUE
-#undef TRUE
-#undef FALSE
-#define TRUE	1
-#define FALSE	0
-#endif
-
 #define ASCII		0377
 
 /* some glabals shared across this file */
