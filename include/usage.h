@@ -1971,9 +1971,11 @@
 	"Returns the absolute pathnames of given argument."
 
 #define reboot_trivial_usage \
-	""
+	"[-d<delay>]"
 #define reboot_full_usage \
-	"Reboot the system."
+	"Reboot the system.\n" \
+	"Options:\n" \
+	"\t-d\t\tdelay interval for rebooting.\n"
 
 #define renice_trivial_usage \
 	"priority pid [pid ...]"
