@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- * Remixed by Mark Whitley <markw@lineo.com>, <markw@enol.com>
+ * Remixed by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

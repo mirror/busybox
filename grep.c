@@ -2,7 +2,7 @@
  * Mini grep implementation for busybox using libc regex.
  *
  * Copyright (C) 1999,2000 by Lineo, inc.
- * Written by Mark Whitley <markw@lineo.com>, <markw@enol.com>
+ * Written by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
