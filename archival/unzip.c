@@ -20,6 +20,10 @@
  *
  */
 
+/* For reference to format see http://www.pkware.com/support/appnote.html */
+
+/* TODO Endian issues, exclude, should we accept input from stdin ? */
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -28,67 +32,213 @@
 #include "unarchive.h"
 #include "busybox.h"
 
+#define ZIP_FILEHEADER_MAGIC	0x04034b50
+#define ZIP_CDS_MAGIC			0x02014b50
+#define ZIP_CDS_END_MAGIC		0x06054b50
+#define ZIP_DD_MAGIC			0x08074b50
+
+extern unsigned int gunzip_crc;
+extern unsigned int gunzip_bytes_out;
+
+static void header_list_unzip(const file_header_t *file_header)
+{
+	printf("  inflating: %s\n", file_header->name);
+}
+
+static void header_verbose_list_unzip(const file_header_t *file_header)
+{
+	unsigned int dostime = (unsigned int) file_header->mtime;
+
+	/* can printf arguments cut of the decade component ? */
+	unsigned short year = 1980 + ((dostime & 0xfe000000) >> 25);
+	while (year >= 100) {
+		year -= 100;
+	}
+
+	printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
+		(unsigned int) file_header->size,
+		(dostime & 0x01e00000) >> 21,
+		(dostime & 0x001f0000) >> 16,
+		year,
+		(dostime & 0x0000f800) >> 11,
+		(dostime & 0x000007e0) >> 5,
+		file_header->name);
+}
+
 extern int unzip_main(int argc, char **argv)
 {
-	FILE *src_stream;
-	int extract_function = extract_all_to_fs | extract_create_leading_dirs;
-	char **extract_names = NULL;
-	char **exclude_names = NULL;
-	int opt = 0;
-	int num_of_entries = 0;
-	int exclude = 0;
-	char *outdir = "./";
-	FILE *msgout = stdout;
+	union {
+		unsigned char raw[26];
+		struct {
+			unsigned short version;	/* 0-1 */
+			unsigned short flags;	/* 2-3 */
+			unsigned short method;	/* 4-5 */
+			unsigned short modtime;	/* 6-7 */
+			unsigned short moddate;	/* 8-9 */
+			unsigned int crc32 __attribute__ ((packed));		/* 10-13 */
+			unsigned int cmpsize __attribute__ ((packed));;	/* 14-17 */
+			unsigned int ucmpsize __attribute__ ((packed));;	/* 18-21 */
+			unsigned short filename_len;		/* 22-23 */
+			unsigned short extra_len;		/* 24-25 */
+		} formated __attribute__ ((packed));
+	} zip_header;
 
-	while ((opt = getopt(argc, argv, "lnopqxd:")) != -1) {
+	archive_handle_t *archive_handle;
+	unsigned int total_size = 0;
+	unsigned int total_entries = 0;
+	char *base_dir = NULL;
+	int opt = 0;
+
+	/* Initialise */
+	archive_handle = init_handle();
+	archive_handle->action_data = NULL;
+	archive_handle->action_header = header_list_unzip;
+
+	while ((opt = getopt(argc, argv, "lnopqd:")) != -1) {
 		switch (opt) {
-			case 'l':
-				extract_function |= extract_verbose_list;
-				extract_function ^= extract_all_to_fs;
+			case 'l':	/* list */
+				archive_handle->action_header = header_verbose_list_unzip;
+				archive_handle->action_data = data_skip;
 				break;
-			case 'n':
+			case 'n':	/* never overwright existing files */
 				break;
 			case 'o':
-				extract_function |= extract_unconditional;
+				archive_handle->flags = ARCHIVE_EXTRACT_UNCONDITIONAL;
 				break;
-			case 'p':
-				extract_function |= extract_to_stdout;
-				extract_function ^= extract_all_to_fs;
-				/* FALLTHROUGH */
-			case 'q':
-				msgout = xfopen("/dev/null", "w");
+			case 'p':	/* extract files to stdout */
+				archive_handle->action_data = data_extract_to_stdout;
 				break;
-			case 'd':
-				outdir = xstrdup(optarg);
-				strcat(outdir, "/");
+			case 'q':	/* Extract files quietly */
+				archive_handle->action_header = header_skip;
 				break;
-			case 'x':
-				exclude = 1;
+			case 'd':	/* Extract files to specified base directory*/
+				base_dir = optarg;
 				break;
+#if 0
+			case 'x':	/* Exclude the specified files */
+				archive_handle->filter = filter_accept_reject_list;
+				break;
+#endif
+			default:
+				show_usage();
 		}
 	}
 
-	if (optind == argc) {
+	if (argc == optind) {
 		show_usage();
 	}
 
-	if (*argv[optind] == '-') src_stream = stdin;
-	else src_stream = xfopen(argv[optind++], "r");
+	printf("Archive:  %s\n", argv[optind]);
+	if (archive_handle->action_header == header_verbose_list_unzip) {
+		printf("  Length     Date   Time    Name\n");
+		printf(" --------    ----   ----    ----\n");
+	}
+
+	if (*argv[optind] == '-') {
+		archive_handle->src_fd = fileno(stdin);
+		} else {
+		archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
+		}
+
+	if ((base_dir) && (chdir(base_dir))) {
+		perror_msg_and_die("Couldnt chdir");
+		}
 
 	while (optind < argc) {
-		if (exclude) {
-			exclude_names = xrealloc(exclude_names, sizeof(char *) * (num_of_entries + 2));
-			exclude_names[num_of_entries] = xstrdup(argv[optind]);
-		} else {
-			extract_names = xrealloc(extract_names, sizeof(char *) * (num_of_entries + 2));
-			extract_names[num_of_entries] = xstrdup(argv[optind]);
-		}
-		num_of_entries++;
-		if (exclude) exclude_names[num_of_entries] = NULL;
-		else extract_names[num_of_entries] = NULL;
+		archive_handle->filter = filter_accept_list;
+		archive_handle->accept = add_to_list(archive_handle->accept, argv[optind]);
 		optind++;
 	}
 
-	unarchive(src_stream, msgout, &get_header_zip, extract_function, outdir, extract_names, exclude_names);
-	return EXIT_SUCCESS;
+	while (1) {
+		unsigned int magic;
+		int dst_fd;
+
+		/* TODO Endian issues */
+		xread_all(archive_handle->src_fd, &magic, 4);
+		archive_handle->offset += 4;
+
+		if (magic == ZIP_CDS_MAGIC) {
+			break;
+		}
+		else if (magic != ZIP_FILEHEADER_MAGIC) {
+			error_msg_and_die("Invlaide zip magic");
+		}
+
+		/* Read the file header */
+		xread_all(archive_handle->src_fd, zip_header.raw, 26);
+		archive_handle->offset += 26;
+		archive_handle->file_header->mode = S_IFREG | 0777;
+
+		if (zip_header.formated.method != 8) {
+			error_msg_and_die("Unsupported compression method %d\n", zip_header.formated.method);
+		}
+
+		/* Read filename */
+		archive_handle->file_header->name = xmalloc(zip_header.formated.filename_len + 1);
+		xread_all(archive_handle->src_fd, archive_handle->file_header->name, zip_header.formated.filename_len);
+		archive_handle->offset += zip_header.formated.filename_len;
+		archive_handle->file_header->name[zip_header.formated.filename_len] = '\0';
+
+		/* Skip extra header bits */
+		archive_handle->file_header->size = zip_header.formated.extra_len;
+		data_skip(archive_handle);
+		archive_handle->offset += zip_header.formated.extra_len;
+
+		/* Handle directories */
+		archive_handle->file_header->mode = S_IFREG | 0777;
+		if (last_char_is(archive_handle->file_header->name, '/')) {
+			archive_handle->file_header->mode ^= S_IFREG;
+			archive_handle->file_header->mode |= S_IFDIR;
+		}
+
+		/* Data section */
+		archive_handle->file_header->size = zip_header.formated.cmpsize;
+		if (archive_handle->action_data) {
+			archive_handle->action_data(archive_handle);
+		} else {
+			dst_fd = xopen(archive_handle->file_header->name, O_WRONLY | O_CREAT);
+			inflate(archive_handle->src_fd, dst_fd);
+			close(dst_fd);
+			chmod(archive_handle->file_header->name, archive_handle->file_header->mode);
+
+			/* Validate decompression - crc */
+			if (zip_header.formated.crc32 != (gunzip_crc ^ 0xffffffffL)) {
+				error_msg("Invalid compressed data--crc error");
+			}
+
+			/* Validate decompression - size */
+			if (gunzip_bytes_out != zip_header.formated.ucmpsize) {
+				error_msg("Invalid compressed data--length error");
+			}
+		}
+
+		/* local file descriptor section */
+		archive_handle->offset += zip_header.formated.cmpsize;
+		/* This ISNT unix time */
+		archive_handle->file_header->mtime = zip_header.formated.modtime | (zip_header.formated.moddate << 16);
+		archive_handle->file_header->size = zip_header.formated.ucmpsize;
+		total_size += archive_handle->file_header->size;
+		total_entries++;
+
+		archive_handle->action_header(archive_handle->file_header);
+
+		/* Data descriptor section */
+		if (zip_header.formated.flags & 4) {
+			/* skip over duplicate crc, compressed size and uncompressed size */
+			unsigned short i;
+			for (i = 0; i != 12; i++) {
+				xread_char(archive_handle->src_fd);
+			}
+			archive_handle->offset += 12;
+		}
+	}
+	/* Central directory section */
+
+	if (archive_handle->action_header == header_verbose_list_unzip) {
+		printf(" --------                   -------\n");
+		printf("%9d                   %d files\n", total_size, total_entries);
+	}
+
+	return(EXIT_SUCCESS);
 }

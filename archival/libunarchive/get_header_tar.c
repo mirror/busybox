@@ -20,8 +20,9 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-file_header_t *get_header_tar(FILE * tar_stream)
+extern char get_header_tar(archive_handle_t *archive_handle)
 {
+	file_header_t *file_header = archive_handle->file_header;
 	union {
 		unsigned char raw[512];
 		struct {
@@ -44,20 +45,22 @@ file_header_t *get_header_tar(FILE * tar_stream)
 			char padding[12];	/* 500-512 */
 		} formated;
 	} tar;
-	file_header_t *tar_entry = NULL;
 	long sum = 0;
 	long i;
 
-	if (archive_offset % 512 != 0) {
-		seek_sub_file(tar_stream, 512 - (archive_offset % 512));
-	}
+	/* Align header */
+	archive_handle->offset += data_align(archive_handle->src_fd, archive_handle->offset, 512);
 
-	if (fread(tar.raw, 1, 512, tar_stream) != 512) {
-		/* Unfortunatly its common for tar files to have all sorts of
-		 * trailing garbage, fail silently */
-		return (NULL);
+	if (xread_all_eof(archive_handle->src_fd, tar.raw, 512) == 0) {
+		/* End of file */
+		return(EXIT_FAILURE);
 	}
-	archive_offset += 512;
+	archive_handle->offset += 512;
+
+	/* If there is no filename its an empty header */
+	if (tar.formated.name[0] == 0) {
+		return(EXIT_SUCCESS);
+	}
 
 	/* Check header has valid magic, "ustar" is for the proper tar
 	 * 0's are for the old tar format
@@ -66,100 +69,102 @@ file_header_t *get_header_tar(FILE * tar_stream)
 #ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
 		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
 #endif
-			return (NULL);
-	}
-
-	/* If there is no filename its an empty header, skip it */
-	if (tar.formated.name[0] == 0) {
-		return (NULL);
+			error_msg_and_die("Invalid tar magic");
 	}
 
 	/* Do checksum on headers */
-	for (i = 0; i < 148; i++) {
+	for (i =  0; i < 148 ; i++) {
 		sum += tar.raw[i];
 	}
 	sum += ' ' * 8;
-	for (i = 156; i < 512; i++) {
+	for (i =  156; i < 512 ; i++) {
 		sum += tar.raw[i];
 	}
 	if (sum != strtol(tar.formated.chksum, NULL, 8)) {
 		error_msg("Invalid tar header checksum");
-		return (NULL);
+		return(EXIT_FAILURE);
 	}
 
 	/* convert to type'ed variables */
-	tar_entry = xcalloc(1, sizeof(file_header_t));
 	if (tar.formated.prefix[0] == 0) {
-		tar_entry->name = xstrdup(tar.formated.name);
+		file_header->name = strdup(tar.formated.name);
 	} else {
-		tar_entry->name =
-			concat_path_file(tar.formated.prefix, tar.formated.name);
+		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
-
-	tar_entry->mode = strtol(tar.formated.mode, NULL, 8);
-	tar_entry->uid = strtol(tar.formated.uid, NULL, 8);
-	tar_entry->gid = strtol(tar.formated.gid, NULL, 8);
-	tar_entry->size = strtol(tar.formated.size, NULL, 8);
-	tar_entry->mtime = strtol(tar.formated.mtime, NULL, 8);
-	tar_entry->link_name =
-		strlen(tar.formated.linkname) ? xstrdup(tar.formated.linkname) : NULL;
-	tar_entry->device =
-		(dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
+	file_header->mode = strtol(tar.formated.mode, NULL, 8);
+	file_header->uid = strtol(tar.formated.uid, NULL, 8);
+	file_header->gid = strtol(tar.formated.gid, NULL, 8);
+	file_header->size = strtol(tar.formated.size, NULL, 8);
+	file_header->mtime = strtol(tar.formated.mtime, NULL, 8);
+	file_header->link_name = (tar.formated.linkname[0] != '\0') ? 
+	    xstrdup(tar.formated.linkname) : NULL;
+	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
 #if defined CONFIG_FEATURE_TAR_OLD_FORMAT || defined CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
 # ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
 	case 0:
-		tar_entry->mode |= S_IFREG;
+		file_header->mode |= S_IFREG;
 		break;
 	case 1:
-		error_msg("internal hard link not handled\n");
+		error_msg("Internal hard link not supported");
 		break;
 	case 2:
-		tar_entry->mode |= S_IFLNK;
+		file_header->mode |= S_IFLNK;
 		break;
 	case 3:
-		tar_entry->mode |= S_IFCHR;
+		file_header->mode |= S_IFCHR;
 		break;
 	case 4:
-		tar_entry->mode |= S_IFBLK;
+		file_header->mode |= S_IFBLK;
 		break;
 	case 5:
-		tar_entry->mode |= S_IFDIR;
+		file_header->mode |= S_IFDIR;
 		break;
 	case 6:
-		tar_entry->mode |= S_IFIFO;
+		file_header->mode |= S_IFIFO;
 		break;
 # endif
 # ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
 	case 'L': {
 			char *longname;
 
-			longname = xmalloc(tar_entry->size + 1);
-			fread(longname, 1, tar_entry->size, tar_stream);
-			archive_offset += tar_entry->size;
-			longname[tar_entry->size] = '\0';
+			longname = xmalloc(file_header->size + 1);
+			xread_all(archive_handle->src_fd, longname, file_header->size);
+			longname[file_header->size] = '\0';
+			archive_handle->offset += file_header->size;
 
-			tar_entry = get_header_tar(tar_stream);
-			tar_entry->name = longname;
+			get_header_tar(archive_handle);
+			file_header->name = longname;
 			break;
 		}
 	case 'K': {
-			char *longname;
+			char *linkname;
 
-			longname = xmalloc(tar_entry->size + 1);
-			fread(longname, 1, tar_entry->size, tar_stream);
-			archive_offset += tar_entry->size;
-			longname[tar_entry->size] = '\0';
+			linkname = xmalloc(file_header->size + 1);
+			xread_all(archive_handle->src_fd, linkname, file_header->size);
+			linkname[file_header->size] = '\0';
+			archive_handle->offset += file_header->size;
 
-			tar_entry = get_header_tar(tar_stream);
-			tar_entry->link_name = longname;
+			get_header_tar(archive_handle);
+			file_header->name = linkname;
 			break;
 		}
 # endif
 	}
 #endif
 
-	return (tar_entry);
+	if (archive_handle->filter(archive_handle->accept, archive_handle->reject, archive_handle->file_header->name) == EXIT_SUCCESS) {
+		archive_handle->action_header(archive_handle->file_header);
+		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
+		archive_handle->action_data(archive_handle);
+	} else {
+		data_skip(archive_handle);			
+	}
+	archive_handle->offset += file_header->size;
+
+	return(EXIT_SUCCESS);
 }
+

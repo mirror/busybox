@@ -7,7 +7,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
@@ -21,12 +21,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-extern void seek_sub_file(const int src_fd, const unsigned int amount)
+extern void data_skip(archive_handle_t *archive_handle)
 {
-	if ((lseek(src_fd, amount, SEEK_CUR) == -1) && (errno == ESPIPE)) {
-		unsigned int i;
-		for (i = 0; i < amount; i++) {
-			xread_char(src_fd);
-		}
-	}
+	seek_sub_file(archive_handle->src_fd, archive_handle->file_header->size);
 }

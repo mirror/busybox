@@ -1,21 +1,19 @@
-#include <stdio.h>		/* for FILE */
-#include <unistd.h>		/* for off_t */
+#ifndef	__UNARCHIVE_H__
+#define	__UNARCHIVE_H__
 
-enum extract_functions_e {
-	extract_verbose_list = 1,
-	extract_list = 2,
-	extract_one_to_buffer = 4,
-	extract_to_stdout = 8,
-	extract_all_to_fs = 16,
-	extract_preserve_date = 32,
-	extract_data_tar_gz = 64,
-	extract_control_tar_gz = 128,
-	extract_unzip_only = 256,
-	extract_unconditional = 512,
-	extract_create_leading_dirs = 1024,
-	extract_quiet = 2048,
-	extract_exclude_list = 4096
-};
+#define ARCHIVE_PRESERVE_DATE	1
+#define ARCHIVE_CREATE_LEADING_DIRS		2
+#define ARCHIVE_EXTRACT_UNCONDITIONAL	4
+#define ARCHIVE_EXTRACT_QUIET	8
+
+#include <sys/types.h>
+
+typedef struct gunzip_s {
+	unsigned short buffer_count;
+	unsigned char *buffer;
+	unsigned int crc;
+	unsigned int count;
+} gunzip_t;
 
 typedef struct file_headers_s {
 	char *name;
@@ -26,23 +24,70 @@ typedef struct file_headers_s {
 	mode_t mode;
 	time_t mtime;
 	dev_t device;
-	int (*extract_func) (FILE *, FILE *);
 } file_header_t;
 
-file_header_t *get_header_ar(FILE * in_file);
-file_header_t *get_header_cpio(FILE * src_stream);
-file_header_t *get_header_tar(FILE * tar_stream);
-file_header_t *get_header_zip(FILE * zip_stream);
+typedef struct llist_s {
+	const char *data;
+	const struct llist_s *link;
+} llist_t;
 
-void seek_sub_file(FILE * src_stream, const int count);
+typedef struct archive_handle_s {
+	/* define if the header and data compenent should processed */
+	char (*filter)(const llist_t *, const llist_t *, const char *);
+	const llist_t *accept;
+	const llist_t *reject;
 
-extern off_t archive_offset;
+	/* Contains the processed header entry */
+	file_header_t *file_header;
 
-char *unarchive(FILE * src_stream, FILE * out_stream,
-				file_header_t * (*get_headers) (FILE *),
-				const int extract_function, const char *prefix,
-				char **include_name, char **exclude_name);
+	/* process the header component, e.g. tar -t */
+	void (*action_header)(const file_header_t *);
 
-char *deb_extract(const char *package_filename, FILE * out_stream,
-				  const int extract_function, const char *prefix,
-				  const char *filename);
+	/* process the data componenet, e.g. extract to filesystem */
+	void (*action_data)(struct archive_handle_s *);
+	char (*action_data_subarchive)(struct archive_handle_s *);
+
+	/* Contains the handle to a sub archive */
+	struct archive_handle_s *sub_archive;
+
+	/* The raw stream as read from disk or stdin */
+	int src_fd;
+
+	/* Count the number of bytes processed */
+	off_t offset;
+
+	/* Misc. stuff */
+	unsigned char flags;
+
+} archive_handle_t;
+
+extern archive_handle_t *init_handle(void);
+
+extern char filter_accept_all(const llist_t *accept_list, const llist_t *reject_list, const char *key);
+extern char filter_accept_list(const llist_t *accept_list, const llist_t *reject_list, const char *key);
+extern char filter_accept_reject_list(const llist_t *accept_list, const llist_t *reject_list, const char *key);
+
+extern void unpack_ar_archive(archive_handle_t *ar_archive);
+
+extern void data_gunzip(archive_handle_t *archive_handle);
+extern void data_skip(archive_handle_t *archive_handle);
+extern void data_extract_all(archive_handle_t *archive_handle);
+extern void data_extract_to_stdout(archive_handle_t *archive_handle);
+
+extern void header_skip(const file_header_t *file_header);
+extern void header_list(const file_header_t *file_header);
+extern void header_verbose_list(const file_header_t *file_header);
+
+extern void check_header_gzip(int src_fd);
+extern void check_trailer_gzip(int src_fd);
+
+extern char get_header_ar(archive_handle_t *archive_handle);
+extern char get_header_tar(archive_handle_t *archive_handle);
+extern char get_header_tar_gz(archive_handle_t *archive_handle);
+
+//extern void seek_sub_file(int src_fd, unsigned int amount);
+extern const unsigned short data_align(const int src_fd, const unsigned int offset, const unsigned short align_to);
+extern const llist_t *add_to_list(const llist_t *old_head, const char *new_item);
+extern int copy_file_chunk_fd(int src_fd, int dst_fd, unsigned long long chunksize);
+
+#endif

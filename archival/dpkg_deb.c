@@ -13,119 +13,100 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <getopt.h>
 #include "unarchive.h"
 #include "busybox.h"
 
 extern int dpkg_deb_main(int argc, char **argv)
 {
-	char *prefix = NULL;
-	char *filename = NULL;
-	char *output_buffer = NULL;
+	archive_handle_t *ar_archive;
+	archive_handle_t *tar_gz_archive;
 	int opt = 0;
-	int arg_type = 0;
-	int deb_extract_funct = extract_create_leading_dirs | extract_unconditional;	
+#ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+	const llist_t *control_tar_gz_llist = add_to_list(NULL, "control.tar.gz");
+#endif
+#ifndef CONFIG_AR
+	char magic[7];
+#endif
 	
-	const int arg_type_prefix = 1;
-	const int arg_type_field = 2;
-	const int arg_type_filename = 4;
-//	const int arg_type_un_ar_gz = 8;
+	/* a .deb file is an ar archive that contain three files,
+	 * data.tar.gz, control.tar.gz and debian
+	 */
+	
+	/* Setup the tar archive handle */
+	tar_gz_archive = init_handle();
 
-	while ((opt = getopt(argc, argv, "ceftXxI")) != -1) {
+	/* Setup an ar archive handle that refers to the gzip sub archive */	
+	ar_archive = init_handle();
+	ar_archive->action_data_subarchive = get_header_tar_gz;
+	ar_archive->sub_archive = tar_gz_archive;
+	ar_archive->filter = filter_accept_list;
+	ar_archive->accept = add_to_list(NULL, "data.tar.gz");
+
+#ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+	while ((opt = getopt(argc, argv, "cefXx")) != -1) {
+#else
+	while ((opt = getopt(argc, argv, "x")) != -1) {
+#endif
 		switch (opt) {
+#ifndef CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 			case 'c':
-				deb_extract_funct |= extract_data_tar_gz;
-				deb_extract_funct |= extract_verbose_list;
+				tar_gz_archive->action_header = header_verbose_list;
 				break;
 			case 'e':
-				arg_type = arg_type_prefix;
-				deb_extract_funct |= extract_control_tar_gz;
-				deb_extract_funct |= extract_all_to_fs;
+				ar_archive->accept = control_tar_gz_llist;
+				tar_gz_archive->action_data = data_extract_all;
 				break;
 			case 'f':
-				arg_type = arg_type_field;
-				deb_extract_funct |= extract_control_tar_gz;
-				deb_extract_funct |= extract_one_to_buffer;
-				filename = xstrdup("./control");
-				break;
-			case 't': /* --fsys-tarfile, i just made up this short name */
-				/* Integrate the functionality needed with some code from ar.c */
-				error_msg_and_die("Option disabled");
-//				arg_type = arg_type_un_ar_gz;
+				/* Print the entire control file
+				 * it should accept a second argument which specifies a 
+				 * specific field to print */
+				ar_archive->accept = control_tar_gz_llist;
+				tar_gz_archive->accept = add_to_list(NULL, "./control");;
+				tar_gz_archive->filter = filter_accept_list;
+				tar_gz_archive->action_data = data_extract_to_stdout;
 				break;
 			case 'X':
-				arg_type = arg_type_prefix;
-				deb_extract_funct |= extract_data_tar_gz;
-				deb_extract_funct |= extract_all_to_fs;
-				deb_extract_funct |= extract_list;
+				tar_gz_archive->action_header = header_list;
+#endif
 			case 'x':
-				arg_type = arg_type_prefix;
-				deb_extract_funct |= extract_data_tar_gz;
-				deb_extract_funct |= extract_all_to_fs;
-				break;
-			case 'I':
-				arg_type = arg_type_filename;
-				deb_extract_funct |= extract_control_tar_gz;
-				deb_extract_funct |= extract_one_to_buffer;
+				tar_gz_archive->action_data = data_extract_all;
 				break;
 			default:
 				show_usage();
 		}
 	}
 
-	if (optind == argc)  {
+	if (optind + 2 < argc)  {
 		show_usage();
 	}
 
+	tar_gz_archive->src_fd = ar_archive->src_fd = xopen(argv[optind++], O_RDONLY);
+
 	/* Workout where to extract the files */
-	if (arg_type == arg_type_prefix) {
-		/* argument is a dir name */
-		if ((optind + 1) == argc ) {
-			prefix = xstrdup("./DEBIAN/");
-		} else {
-			prefix = (char *) xmalloc(strlen(argv[optind + 1]) + 2);
-			strcpy(prefix, argv[optind + 1]);
-			/* Make sure the directory has a trailing '/' */
-			if (last_char_is(prefix, '/') == NULL) {
-				strcat(prefix, "/");
-			}
-		}
-		mkdir(prefix, 0777);
-	}
+	/* 2nd argument is a dir name */
+	mkdir(argv[optind], 0777);
+	chdir(argv[optind]);
 
-	if (arg_type == arg_type_filename) {
-		if ((optind + 1) != argc) {
-			filename = xstrdup(argv[optind + 1]);
-		} else {
-			error_msg_and_die("-I currently requires a filename to be specified");
-		}
+#ifdef CONFIG_AR
+	unpack_ar_archive(ar_archive);
+#else
+	xread_all(ar_archive->src_fd, magic, 7);
+	if (strncmp(magic, "!<arch>", 7) != 0) {
+		error_msg_and_die("Invalid ar magic");
 	}
+	ar_archive->offset += 7;
 
-	output_buffer = deb_extract(argv[optind], stdout, deb_extract_funct, prefix, filename);
+	while (get_header_ar(ar_archive) == EXIT_SUCCESS);
+#endif
 
-	if ((arg_type == arg_type_filename) && (output_buffer != NULL)) {
-		puts(output_buffer);
-	}
-	else if (arg_type == arg_type_field) {
-		char *field = NULL;
-		char *name;
-		char *value;
-		int field_start = 0;
-
-		while (1) {
-			field_start += read_package_field(&output_buffer[field_start], &name, &value);
-			if (name == NULL) {
-				break;
-			}
-			if (strcmp(name, argv[optind + 1]) == 0) {
-				puts(value);
-			}
-			free(field);
-		}
-	}
+	/* Cleanup */
+	close (ar_archive->src_fd);
 
 	return(EXIT_SUCCESS);
 }
+

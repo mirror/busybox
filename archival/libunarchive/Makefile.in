@@ -22,14 +22,41 @@ ifndef $(LIBUNARCHIVE_DIR)
 LIBUNARCHIVE_DIR:=$(TOPDIR)archival/libunarchive/
 endif
 
-LIBUNARCHIVE-y:=unarchive.o seek_sub_file.o
-LIBUNARCHIVE-$(CONFIG_DPKG) += deb_extract.o get_header_ar.o get_header_tar.o
-LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += deb_extract.o get_header_ar.o get_header_tar.o
-LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o
-LIBUNARCHIVE-$(CONFIG_CPIO) += get_header_cpio.o
-LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += get_header_cpio.o
-LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
-LIBUNARCHIVE-$(CONFIG_UNZIP) += get_header_zip.o
+LIBUNARCHIVE-y:= \
+\
+	data_skip.o \
+	data_extract_all.o \
+	data_extract_to_stdout.o \
+\
+	filter_accept_all.o \
+	filter_accept_list.o \
+	filter_accept_reject_list.o \
+\
+	get_header_ar.o \
+	get_header_tar.o \
+	get_header_tar_gz.o \
+\
+	header_skip.o \
+	header_list.o \
+	header_verbose_list.o \
+\
+	add_to_list.o \
+	check_header_gzip.o \
+	check_trailer_gzip.o \
+	copy_file_chunk_fd.o \
+	data_align.o \
+	init_handle.o \
+	seek_sub_file.o \
+	unpack_ar_archive.o \
+
+LIBUNARCHIVE-$(CONFIG_DPKG) += 
+LIBUNARCHIVE-$(CONFIG_DPKG_DEB) += 
+LIBUNARCHIVE-$(CONFIG_AR) += 
+LIBUNARCHIVE-$(CONFIG_CPIO) += 
+LIBUNARCHIVE-$(CONFIG_GUNZIP) += 
+LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += 
+LIBUNARCHIVE-$(CONFIG_TAR) += 
+LIBUNARCHIVE-$(CONFIG_UNZIP) += 
 
 libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
 

@@ -19,10 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "libbb.h"
 
 
@@ -83,6 +86,59 @@ FILE *xfopen(const char *path, const char *mode)
 	if ((fp = fopen(path, mode)) == NULL)
 		perror_msg_and_die("%s", path);
 	return fp;
+}
+
+extern int xopen(const char *pathname, int flags)
+{
+	int ret;
+	
+	ret = open(pathname, flags);
+	if (ret == -1) {
+		perror_msg_and_die("%s", pathname);
+	}
+	return ret;
+}
+
+extern ssize_t xread(int fd, void *buf, size_t count)
+{
+	ssize_t size;
+
+	size = read(fd, buf, count);
+	if (size == -1) {
+		perror_msg_and_die("Read error");
+	}
+	return(size);
+}
+
+extern void xread_all(int fd, void *buf, size_t count)
+{
+	ssize_t size;
+
+	size = xread(fd, buf, count);
+	if (size != count) {
+		error_msg_and_die("Short read");
+	}
+	return;
+}
+
+extern ssize_t xread_all_eof(int fd, void *buf, size_t count)
+{
+	ssize_t size;
+
+	size = xread(fd, buf, count);
+	if ((size != 0) && (size != count)) {
+		error_msg_and_die("Short read");
+	}
+	return(size);
+}
+
+extern unsigned char xread_char(int fd)
+{
+	char tmp;
+	
+	xread_all(fd, &tmp, 1);
+
+	return(tmp);	
 }
 
 /* Stupid gcc always includes its own builtin strlen()... */

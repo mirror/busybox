@@ -13,20 +13,22 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-
-#include <sys/types.h>
-#include <errno.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
+#include <getopt.h>
 #include "unarchive.h"
-#include "libbb.h"
+#include "busybox.h"
 
-extern void seek_sub_file(const int src_fd, const unsigned int amount)
+extern void unpack_ar_archive(archive_handle_t *ar_archive)
 {
-	if ((lseek(src_fd, amount, SEEK_CUR) == -1) && (errno == ESPIPE)) {
-		unsigned int i;
-		for (i = 0; i < amount; i++) {
-			xread_char(src_fd);
-		}
+	char magic[7];
+
+	xread_all(ar_archive->src_fd, magic, 7);
+	if (strncmp(magic, "!<arch>", 7) != 0) {
+		error_msg_and_die("Invalid ar magic");
 	}
+	ar_archive->offset += 7;
+
+	while (get_header_ar(ar_archive) == EXIT_SUCCESS);
 }

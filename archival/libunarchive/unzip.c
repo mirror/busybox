@@ -65,40 +65,11 @@ static char *license_msg[] = {
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "config.h"
-#include "libbb.h"
-
-#ifdef CONFIG_FEATURE_UNCOMPRESS
-int uncompress(FILE * in, FILE * out);
-#endif
-
-static FILE *in_file, *out_file;
-
-/* these are freed by gz_close */
-static unsigned char *window;
-static unsigned long *crc_table;
-
-static unsigned long crc;	/* shift register contents */
-
-/* Return codes from gzip */
-#define ERROR 1
-
-/*
- * window size--must be a power of two, and
- *  at least 32K for zip's deflate method
- */
-#define WSIZE 0x8000
-
-/* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
-#define BMAX 16	/* maximum bit length of any code (16 for explode) */
-#define N_MAX 288	/* maximum number of codes in any set */
-
-static long bytes_out;	/* number of output bytes */
-static unsigned long outcnt;	/* bytes in output buffer */
-
-static unsigned hufts;	/* track memory usage */
-static unsigned long bb;	/* bit buffer */
-static unsigned bk;		/* bits in bit buffer */
+#include "busybox.h"
+#include "unarchive.h"
 
 typedef struct huft_s {
 	unsigned char e;	/* number of extra bits or operation */
@@ -109,70 +80,111 @@ typedef struct huft_s {
 	} v;
 } huft_t;
 
+static int gunzip_src_fd;
+static int gunzip_dst_fd;
+unsigned int gunzip_bytes_out;	/* number of output bytes */
+static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
+
+/* This is used to sanify any unused bits from the bitbuffer 
+ * so they arent skipped when reading trailers (trailing headers) */
+unsigned char gunzip_in_buffer_count;
+unsigned char *gunzip_in_buffer;
+
+/* gunzip_window size--must be a power of two, and
+ *  at least 32K for zip's deflate method */
+static const int gunzip_wsize = 0x8000;
+
+static unsigned char *gunzip_window;
+static unsigned int *gunzip_crc_table;
+unsigned int gunzip_crc;
+
+/* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
+#define BMAX 16	/* maximum bit length of any code (16 for explode) */
+#define N_MAX 288	/* maximum number of codes in any set */
+
+static unsigned int gunzip_hufts;	/* track memory usage */
+static unsigned int gunzip_bb;	/* bit buffer */
+static unsigned char gunzip_bk;	/* bits in bit buffer */
+
 static const unsigned short mask_bits[] = {
-	0x0000,
-	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
+	0x0000, 0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-/* static int error_number = 0; */
-/* ========================================================================
- * Signal and error handler.
- */
+/* Copy lengths for literal codes 257..285 */
+static const unsigned short cplens[] = {
+	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59,
+		67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+};
+
+/* note: see note #13 above about the 258 in this list. */
+/* Extra bits for literal codes 257..285 */
+static const unsigned char cplext[] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5,
+		5, 5, 5, 0, 99, 99
+};						/* 99==invalid */
+
+/* Copy offsets for distance codes 0..29 */
+static const unsigned short cpdist[] = {
+	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513,
+		769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577
+};
+
+/* Extra bits for distance codes */
+static const unsigned char cpdext[] = {
+	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10,
+		11, 11, 12, 12, 13, 13
+};
+
+/* Tables for deflate from PKZIP's appnote.txt. */
+/* Order of the bit length code lengths */
+static const unsigned char border[] = {
+	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+};
+
+static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current, const unsigned int required)
+{
+	while (*current < required) {
+		bitbuffer |= ((unsigned int) xread_char(gunzip_src_fd)) << *current;
+		*current += 8;
+	}
+
+	return(bitbuffer);
+}
 
 static void abort_gzip(void)
 {
 	error_msg("gzip aborted\n");
-	exit(ERROR);
+	exit(-1);
 }
 
-static void make_crc_table(void)
+static void make_gunzip_crc_table(void)
 {
-	const unsigned long poly = 0xedb88320;	/* polynomial exclusive-or pattern */
+	const unsigned int poly = 0xedb88320;	/* polynomial exclusive-or pattern */
 	unsigned short i;	/* counter for all possible eight bit values */
 
 	/* initial shift register value */
-	crc = 0xffffffffL;
-	crc_table = (unsigned long *) malloc(256 * sizeof(unsigned long));
+	gunzip_crc = 0xffffffffL;
+	gunzip_crc_table = (unsigned int *) malloc(256 * sizeof(unsigned int));
 
 	/* Compute and print table of CRC's, five per line */
 	for (i = 0; i < 256; i++) {
-		unsigned long table_entry;	/* crc shift register */
-		char k;			/* byte being shifted into crc apparatus */
+		unsigned int table_entry;	/* crc shift register */
+		unsigned char k;	/* byte being shifted into crc apparatus */
 
 		table_entry = i;
 		/* The idea to initialize the register with the byte instead of
 		   * zero was stolen from Haruhiko Okumura's ar002
 		 */
 		for (k = 8; k; k--) {
-			table_entry =
-				table_entry & 1 ? (table_entry >> 1) ^ poly : table_entry >>
-				1;
-		}
-		crc_table[i] = table_entry;
+			if (table_entry & 1) {
+				table_entry = (table_entry >> 1) ^ poly;
+			} else {
+				table_entry >>= 1;
 	}
-}
-
-/* ===========================================================================
- * Write the output window window[0..outcnt-1] and update crc and bytes_out.
- * (Used for the decompressed data only.)
- */
-static void flush_window(void)
-{
-	int n;
-
-	if (outcnt == 0)
-		return;
-
-	for (n = 0; n < outcnt; n++) {
-		crc = crc_table[((int) crc ^ (window[n])) & 0xff] ^ (crc >> 8);
 	}
-
-	if (fwrite(window, 1, outcnt, out_file) != outcnt) {
-		error_msg_and_die("Couldnt write");
+		gunzip_crc_table[i] = table_entry;
 	}
-	bytes_out += (unsigned long) outcnt;
-	outcnt = 0;
 }
 
 /*
@@ -183,7 +195,8 @@ static void flush_window(void)
  */
 static int huft_free(huft_t * t)
 {
-	huft_t *p, *q;
+	huft_t *p;
+	huft_t *q;
 
 	/* Go through linked list, freeing from the malloced (t[-1]) address. */
 	p = t;
@@ -194,8 +207,6 @@ static int huft_free(huft_t * t)
 	}
 	return 0;
 }
-
-typedef unsigned char extra_bits_t;
 
 /* Given a list of code lengths and a maximum table size, make a set of
  * tables to decode that set of codes.  Return zero on success, one if
@@ -213,7 +224,7 @@ typedef unsigned char extra_bits_t;
  */
 static int huft_build(unsigned int *b, const unsigned int n,
 					  const unsigned int s, const unsigned short *d,
-					  const extra_bits_t * e, huft_t ** t, int *m)
+					  const unsigned char *e, huft_t ** t, int *m)
 {
 	unsigned a;			/* counter for codes of length k */
 	unsigned c[BMAX + 1];	/* bit length count table */
@@ -251,26 +262,35 @@ static int huft_build(unsigned int *b, const unsigned int n,
 
 	/* Find minimum and maximum length, bound *m by those */
 	l = *m;
-	for (j = 1; j <= BMAX; j++)
-		if (c[j])
+	for (j = 1; j <= BMAX; j++) {
+		if (c[j]) {
 			break;
+		}
+	}
 	k = j;				/* minimum code length */
-	if ((unsigned) l < j)
+	if ((unsigned) l < j) {
 		l = j;
-	for (i = BMAX; i; i--)
-		if (c[i])
+	}
+	for (i = BMAX; i; i--) {
+		if (c[i]) {
 			break;
+		}
+	}
 	g = i;				/* maximum code length */
-	if ((unsigned) l > i)
+	if ((unsigned) l > i) {
 		l = i;
+	}
 	*m = l;
 
 	/* Adjust last length count to fill out codes, if needed */
-	for (y = 1 << j; j < i; j++, y <<= 1)
-		if ((y -= c[j]) < 0)
+	for (y = 1 << j; j < i; j++, y <<= 1) {
+		if ((y -= c[j]) < 0) {
 			return 2;	/* bad input: more codes than bits */
-	if ((y -= c[i]) < 0)
+		}
+	}
+	if ((y -= c[i]) < 0) {
 		return 2;
+	}
 	c[i] += y;
 
 	/* Generate starting offsets into the value table for each length */
@@ -285,8 +305,9 @@ static int huft_build(unsigned int *b, const unsigned int n,
 	p = b;
 	i = 0;
 	do {
-		if ((j = *p++) != 0)
+		if ((j = *p++) != 0) {
 			v[x[j]++] = i;
+		}
 	} while (++i < n);
 
 	/* Generate the Huffman codes and for each, make the table entries */
@@ -314,8 +335,9 @@ static int huft_build(unsigned int *b, const unsigned int n,
 					f -= a + 1;	/* deduct codes from patterns left */
 					xp = c + k;
 					while (++j < z) {	/* try smaller tables up to z bits */
-						if ((f <<= 1) <= *++xp)
+						if ((f <<= 1) <= *++xp) {
 							break;	/* enough codes to use up j bits */
+						}
 						f -= *xp;	/* else deduct codes from patterns */
 					}
 				}
@@ -324,7 +346,7 @@ static int huft_build(unsigned int *b, const unsigned int n,
 				/* allocate and link in new table */
 				q = (huft_t *) xmalloc((z + 1) * sizeof(huft_t));
 
-				hufts += z + 1;	/* track memory usage */
+				gunzip_hufts += z + 1;	/* track memory usage */
 				*t = q + 1;	/* link to list for huft_free() */
 				*(t = &(q->v.t)) = NULL;
 				u[h] = ++q;	/* table starts after link */
@@ -342,9 +364,9 @@ static int huft_build(unsigned int *b, const unsigned int n,
 
 			/* set up table entry in r */
 			r.b = (unsigned char) (k - w);
-			if (p >= v + n)
+			if (p >= v + n) {
 				r.e = 99;	/* out of values--invalid code */
-			else if (*p < s) {
+			} else if (*p < s) {
 				r.e = (unsigned char) (*p < 256 ? 16 : 15);	/* 256 is end-of-block code */
 				r.v.n = (unsigned short) (*p);	/* simple code is just the value */
 				p++;	/* one compiler does not like *p++ */
@@ -355,12 +377,14 @@ static int huft_build(unsigned int *b, const unsigned int n,
 
 			/* fill code-like entries with r */
 			f = 1 << (k - w);
-			for (j = i >> w; j < z; j += f)
+			for (j = i >> w; j < z; j += f) {
 				q[j] = r;
+			}
 
 			/* backwards increment the k-bit code i */
-			for (j = 1 << (k - 1); i & j; j >>= 1)
+			for (j = 1 << (k - 1); i & j; j >>= 1) {
 				i ^= j;
+			}
 			i ^= j;
 
 			/* backup over finished tables */
@@ -374,6 +398,25 @@ static int huft_build(unsigned int *b, const unsigned int n,
 	return y != 0 && g != 1;
 }
 
+/* ===========================================================================
+ * Write the output gunzip_window gunzip_window[0..gunzip_outbuf_count-1] and update crc and gunzip_bytes_out.
+ * (Used for the decompressed data only.)
+ */
+static void flush_gunzip_window(void)
+{
+	int n;
+
+	for (n = 0; n < gunzip_outbuf_count; n++) {
+		gunzip_crc = gunzip_crc_table[((int) gunzip_crc ^ (gunzip_window[n])) & 0xff] ^ (gunzip_crc >> 8);
+	}
+
+	if (write(gunzip_dst_fd, gunzip_window, gunzip_outbuf_count) != gunzip_outbuf_count) {
+		error_msg_and_die("Couldnt write");
+	}
+	gunzip_bytes_out += gunzip_outbuf_count;
+	gunzip_outbuf_count = 0;
+}
+
 /*
  * inflate (decompress) the codes in a deflated (compressed) block.
  * Return an error code or zero if it all goes ok.
@@ -381,32 +424,26 @@ static int huft_build(unsigned int *b, const unsigned int n,
  * tl, td: literal/length and distance decoder tables
  * bl, bd: number of bits decoded by tl[] and td[]
  */
-static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
+static int inflate_codes(huft_t * tl, huft_t * td, const unsigned int bl, const unsigned int bd)
 {
-	register unsigned long e;	/* table entry flag/number of extra bits */
-	unsigned long n, d;	/* length and index for copy */
-	unsigned long w;	/* current window position */
+	unsigned int e;	/* table entry flag/number of extra bits */
+	unsigned int n, d;	/* length and index for copy */
+	unsigned int w;	/* current gunzip_window position */
 	huft_t *t;			/* pointer to table entry */
-	unsigned ml, md;	/* masks for bl and bd bits */
-	register unsigned long b;	/* bit buffer */
-	register unsigned k;	/* number of bits in bit buffer */
-	register int input_char;
+	unsigned int ml, md;	/* masks for bl and bd bits */
+	unsigned int b;	/* bit buffer */
+	unsigned int k;			/* number of bits in bit buffer */
 
 	/* make local copies of globals */
-	b = bb;				/* initialize bit buffer */
-	k = bk;
-	w = outcnt;			/* initialize window position */
+	b = gunzip_bb;				/* initialize bit buffer */
+	k = gunzip_bk;
+	w = gunzip_outbuf_count;			/* initialize gunzip_window position */
 
 	/* inflate the coded data */
 	ml = mask_bits[bl];	/* precompute masks for speed */
 	md = mask_bits[bd];
-	for (;;) {			/* do until end of block */
-		while (k < (unsigned) bl) {
- 			input_char = fgetc(in_file);
- 			if (input_char == EOF) return 1;
- 			b |= ((unsigned long)input_char) << k;
-			k += 8;
-		}
+	while (1) {			/* do until end of block */
+		b = fill_bitbuffer(b, &k, bl);
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
 			do {
 				if (e == 99) {
@@ -415,20 +452,16 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 				b >>= t->b;
 				k -= t->b;
 				e -= 16;
-				while (k < e) {
-					input_char = fgetc(in_file);
-					if (input_char == EOF) return 1;
-					b |= ((unsigned long)input_char) << k;
-					k += 8;
-				}
+				b = fill_bitbuffer(b, &k, e);
 			} while ((e =
 					  (t = t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
 		b >>= t->b;
 		k -= t->b;
 		if (e == 16) {	/* then it's a literal */
-			window[w++] = (unsigned char) t->v.n;
-			if (w == WSIZE) {
-				outcnt = (w), flush_window();
+			gunzip_window[w++] = (unsigned char) t->v.n;
+			if (w == gunzip_wsize) {
+				gunzip_outbuf_count = (w);
+				flush_gunzip_window();
 				w = 0;
 			}
 		} else {		/* it's an EOB or a length */
@@ -439,24 +472,13 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 			}
 
 			/* get length of block to copy */
-			while (k < e) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b |= ((unsigned long)input_char) << k;
-				k += 8;
-			}
+			b = fill_bitbuffer(b, &k, e);
 			n = t->v.n + ((unsigned) b & mask_bits[e]);
 			b >>= e;
 			k -= e;
 
 			/* decode distance of block to copy */
-			while (k < (unsigned) bd) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b |= ((unsigned long)input_char) << k;
-				k += 8;
-			}
-
+			b = fill_bitbuffer(b, &k, bd);
 			if ((e = (t = td + ((unsigned) b & md))->e) > 16)
 				do {
 					if (e == 99)
@@ -464,23 +486,13 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 					b >>= t->b;
 					k -= t->b;
 					e -= 16;
-					while (k < e) {
-						input_char = fgetc(in_file);
-						if (input_char == EOF) return 1;
-						b |= ((unsigned long)input_char) << k;
-						k += 8;
-					}
+					b = fill_bitbuffer(b, &k, e);
 				} while ((e =
 						  (t =
 						   t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
 			b >>= t->b;
 			k -= t->b;
-			while (k < e) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b |= ((unsigned long)input_char) << k;
-				k += 8;
-			}
+			b = fill_bitbuffer(b, &k, e);
 			d = w - t->v.n - ((unsigned) b & mask_bits[e]);
 			b >>= e;
 			k -= e;
@@ -489,59 +501,37 @@ static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 			do {
 				n -= (e =
 					  (e =
-					   WSIZE - ((d &= WSIZE - 1) > w ? d : w)) > n ? n : e);
-#if !defined(NOMEMCPY) && !defined(DEBUG)
+					   gunzip_wsize - ((d &= gunzip_wsize - 1) > w ? d : w)) > n ? n : e);
+			   /* copy to new buffer to prevent possible overwrite */
 				if (w - d >= e) {	/* (this test assumes unsigned comparison) */
-					memcpy(window + w, window + d, e);
+					memcpy(gunzip_window + w, gunzip_window + d, e);
 					w += e;
 					d += e;
-				} else	/* do it slow to avoid memcpy() overlap */
-#endif							/* !NOMEMCPY */
+				} else {
+				   /* do it slow to avoid memcpy() overlap */
+				   /* !NOMEMCPY */
 					do {
-						window[w++] = window[d++];
+						gunzip_window[w++] = gunzip_window[d++];
 					} while (--e);
-				if (w == WSIZE) {
-					outcnt = (w), flush_window();
+				}
+				if (w == gunzip_wsize) {
+					gunzip_outbuf_count = (w);
+					flush_gunzip_window();
 					w = 0;
 				}
+
 			} while (n);
 		}
 	}
 
 	/* restore the globals from the locals */
-	outcnt = w;			/* restore global window pointer */
-	bb = b;				/* restore global bit buffer */
-	bk = k;
+	gunzip_outbuf_count = w;			/* restore global gunzip_window pointer */
+	gunzip_bb = b;				/* restore global bit buffer */
+	gunzip_bk = k;
 
 	/* done */
 	return 0;
 }
-
-static const unsigned short cplens[] = {	/* Copy lengths for literal codes 257..285 */
-	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
-};
-
-/* note: see note #13 above about the 258 in this list. */
-static const extra_bits_t cplext[] = {	/* Extra bits for literal codes 257..285 */
-	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
-};						/* 99==invalid */
-static const unsigned short cpdist[] = {	/* Copy offsets for distance codes 0..29 */
-	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
-	257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-	8193, 12289, 16385, 24577
-};
-static const extra_bits_t cpdext[] = {	/* Extra bits for distance codes */
-	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-	12, 12, 13, 13
-};
-
-/* Tables for deflate from PKZIP's appnote.txt. */
-static const extra_bits_t border[] = {	/* Order of the bit length code lengths */
-	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-};
 
 /*
  * decompress an inflated block
@@ -552,53 +542,43 @@ static const extra_bits_t border[] = {	/* Order of the bit length code lengths *
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
-	register unsigned long b;	/* bit buffer */
-	register unsigned k;	/* number of bits in bit buffer */
-	int input_char;
+	register unsigned int b;	/* bit buffer */
+	unsigned int k;	/* number of bits in bit buffer */
 
 	/* make local bit buffer */
-	b = bb;
-	k = bk;
+
+	b = gunzip_bb;
+	k = gunzip_bk;
 
 	/* read in last block bit */
-	while (k < 1) {
-		input_char = fgetc(in_file);
-		if (input_char == EOF) return 1;
-		b |= ((unsigned long)input_char) << k;
-		k += 8;
-	}
+	b = fill_bitbuffer(b, &k, 1);
 	*e = (int) b & 1;
 	b >>= 1;
 	k -= 1;
 
 	/* read in block type */
-	while (k < 2) {
-		input_char = fgetc(in_file);
-		if (input_char == EOF) return 1;
-		b |= ((unsigned long)input_char) << k;
-		k += 8;
-	}
+	b = fill_bitbuffer(b, &k, 2);
 	t = (unsigned) b & 3;
 	b >>= 2;
 	k -= 2;
 
 	/* restore the global bit buffer */
-	bb = b;
-	bk = k;
+	gunzip_bb = b;
+	gunzip_bk = k;
 
 	/* inflate that block type */
 	switch (t) {
 	case 0:			/* Inflate stored */
 	{
-		unsigned long n;	/* number of bytes in block */
-		unsigned long w;	/* current window position */
-		register unsigned long b_stored;	/* bit buffer */
-		register unsigned long k_stored;	/* number of bits in bit buffer */
+		unsigned int n;	/* number of bytes in block */
+		unsigned int w;	/* current gunzip_window position */
+		unsigned int b_stored;	/* bit buffer */
+		unsigned int k_stored;	/* number of bits in bit buffer */
 
 		/* make local copies of globals */
-		b_stored = bb;	/* initialize bit buffer */
-		k_stored = bk;
-		w = outcnt;		/* initialize window position */
+		b_stored = gunzip_bb;	/* initialize bit buffer */
+		k_stored = gunzip_bk;
+		w = gunzip_outbuf_count;		/* initialize gunzip_window position */
 
 		/* go to byte boundary */
 		n = k_stored & 7;
@@ -606,21 +586,12 @@ static int inflate_block(int *e)
 		k_stored -= n;
 
 		/* get the length and its complement */
-		while (k_stored < 16) {
-			input_char = fgetc(in_file);
-			if (input_char == EOF) return 1;
-			b_stored |= ((unsigned long)input_char) << k_stored;
-			k_stored += 8;
-		}
+		b_stored = fill_bitbuffer(b_stored, &k_stored, 16);
 		n = ((unsigned) b_stored & 0xffff);
 		b_stored >>= 16;
 		k_stored -= 16;
-		while (k_stored < 16) {
-			input_char = fgetc(in_file);
-			if (input_char == EOF) return 1;
-			b_stored |= ((unsigned long)input_char) << k_stored;
-			k_stored += 8;
-		}
+
+		b_stored = fill_bitbuffer(b_stored, &k_stored, 16);
 		if (n != (unsigned) ((~b_stored) & 0xffff)) {
 			return 1;	/* error in compressed data */
 		}
@@ -629,15 +600,11 @@ static int inflate_block(int *e)
 
 		/* read and output the compressed data */
 		while (n--) {
-			while (k_stored < 8) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b_stored |= ((unsigned long)input_char) << k_stored;
-				k_stored += 8;
-			}
-			window[w++] = (unsigned char) b_stored;
-			if (w == (unsigned long) WSIZE) {
-				outcnt = (w), flush_window();
+			b_stored = fill_bitbuffer(b_stored, &k_stored, 8);
+			gunzip_window[w++] = (unsigned char) b_stored;
+			if (w == (unsigned int) gunzip_wsize) {
+				gunzip_outbuf_count = (w);
+				flush_gunzip_window();
 				w = 0;
 			}
 			b_stored >>= 8;
@@ -645,9 +612,9 @@ static int inflate_block(int *e)
 		}
 
 		/* restore the globals from the locals */
-		outcnt = w;		/* restore global window pointer */
-		bb = b_stored;	/* restore global bit buffer */
-		bk = k_stored;
+		gunzip_outbuf_count = w;		/* restore global gunzip_window pointer */
+		gunzip_bb = b_stored;	/* restore global bit buffer */
+		gunzip_bk = k_stored;
 		return 0;
 	}
 	case 1:			/* Inflate fixed 
@@ -659,8 +626,8 @@ static int inflate_block(int *e)
 		int i;			/* temporary variable */
 		huft_t *tl;		/* literal/length code table */
 		huft_t *td;		/* distance code table */
-		int bl;			/* lookup bits for tl */
-		int bd;			/* lookup bits for td */
+		unsigned int bl;			/* lookup bits for tl */
+		unsigned int bd;			/* lookup bits for td */
 		unsigned int l[288];	/* length list for huft_build */
 
 		/* set up literal table */
@@ -692,8 +659,9 @@ static int inflate_block(int *e)
 		}
 
 		/* decompress until an end-of-block code */
-		if (inflate_codes(tl, td, bl, bd))
+		if (inflate_codes(tl, td, bl, bd)) {
 			return 1;
+		}
 
 		/* free the decoding tables, return */
 		huft_free(tl);
@@ -705,53 +673,41 @@ static int inflate_block(int *e)
 		const int dbits = 6;	/* bits in base distance lookup table */
 		const int lbits = 9;	/* bits in base literal/length lookup table */
 
-		int i;			/* temporary variables */
-		unsigned j;
-		unsigned l;		/* last length */
-		unsigned m;		/* mask for bit lengths table */
-		unsigned n;		/* number of lengths to get */
 		huft_t *tl;		/* literal/length code table */
 		huft_t *td;		/* distance code table */
-		int bl;			/* lookup bits for tl */
-		int bd;			/* lookup bits for td */
-		unsigned nb;	/* number of bit length codes */
-		unsigned nl;	/* number of literal/length codes */
-		unsigned nd;	/* number of distance codes */
+		unsigned int i;			/* temporary variables */
+		unsigned int j;
+		unsigned int l;		/* last length */
+		unsigned int m;		/* mask for bit lengths table */
+		unsigned int n;		/* number of lengths to get */
+		unsigned int bl;			/* lookup bits for tl */
+		unsigned int bd;			/* lookup bits for td */
+		unsigned int nb;	/* number of bit length codes */
+		unsigned int nl;	/* number of literal/length codes */
+		unsigned int nd;	/* number of distance codes */
 
-		unsigned ll[286 + 30];	/* literal/length and distance code lengths */
-		register unsigned long b_dynamic;	/* bit buffer */
-		register unsigned k_dynamic;	/* number of bits in bit buffer */
+		unsigned int ll[286 + 30];	/* literal/length and distance code lengths */
+		unsigned int b_dynamic;	/* bit buffer */
+		unsigned int k_dynamic;	/* number of bits in bit buffer */
 
 		/* make local bit buffer */
-		b_dynamic = bb;
-		k_dynamic = bk;
+		b_dynamic = gunzip_bb;
+		k_dynamic = gunzip_bk;
 
 		/* read in table lengths */
-		while (k_dynamic < 5) {
-			input_char = fgetc(in_file);
-			if (input_char == EOF) return 1;
-			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-			k_dynamic += 8;
-		}
-		nl = 257 + ((unsigned) b_dynamic & 0x1f);	/* number of literal/length codes */
+		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 5);
+		nl = 257 + ((unsigned int) b_dynamic & 0x1f);	/* number of literal/length codes */
+
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
-		while (k_dynamic < 5) {
-			input_char = fgetc(in_file);
-			if (input_char == EOF) return 1;
-			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-			k_dynamic += 8;
-		}
-		nd = 1 + ((unsigned) b_dynamic & 0x1f);	/* number of distance codes */
+		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 5);
+		nd = 1 + ((unsigned int) b_dynamic & 0x1f);	/* number of distance codes */
+
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
-		while (k_dynamic < 4) {
-			input_char = fgetc(in_file);
-			if (input_char == EOF) return 1;
-			b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-			k_dynamic += 8;
-		}
-		nb = 4 + ((unsigned) b_dynamic & 0xf);	/* number of bit length codes */
+		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 4);
+		nb = 4 + ((unsigned int) b_dynamic & 0xf);	/* number of bit length codes */
+
 		b_dynamic >>= 4;
 		k_dynamic -= 4;
 		if (nl > 286 || nd > 30) {
@@ -760,13 +716,8 @@ static int inflate_block(int *e)
 
 		/* read in bit-length-code lengths */
 		for (j = 0; j < nb; j++) {
-			while (k_dynamic < 3) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-				k_dynamic += 8;
-			}
-			ll[border[j]] = (unsigned) b_dynamic & 7;
+			b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 3);
+			ll[border[j]] = (unsigned int) b_dynamic & 7;
 			b_dynamic >>= 3;
 			k_dynamic -= 3;
 		}
@@ -776,7 +727,8 @@ static int inflate_block(int *e)
 
 		/* build decoding table for trees--single level, 7 bit lookup */
 		bl = 7;
-		if ((i = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl)) != 0) {
+		i = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
+		if (i != 0) {
 			if (i == 1) {
 				huft_free(tl);
 			}
@@ -787,46 +739,31 @@ static int inflate_block(int *e)
 		n = nl + nd;
 		m = mask_bits[bl];
 		i = l = 0;
-		while ((unsigned) i < n) {
-			while (k_dynamic < (unsigned) bl) {
-				input_char = fgetc(in_file);
-				if (input_char == EOF) return 1;
-				b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-				k_dynamic += 8;
-			}
-			j = (td = tl + ((unsigned) b_dynamic & m))->b;
+		while ((unsigned int) i < n) {
+			b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, (unsigned int)bl);
+			j = (td = tl + ((unsigned int) b_dynamic & m))->b;
 			b_dynamic >>= j;
 			k_dynamic -= j;
 			j = td->v.n;
 			if (j < 16) {	/* length of code in bits (0..15) */
 				ll[i++] = l = j;	/* save last length in l */
 			} else if (j == 16) {	/* repeat last length 3 to 6 times */
-				while (k_dynamic < 2) {
-					input_char = fgetc(in_file);
-					if (input_char == EOF) return 1;
-					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-					k_dynamic += 8;
-				}
-				j = 3 + ((unsigned) b_dynamic & 3);
+				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 2);
+				j = 3 + ((unsigned int) b_dynamic & 3);
 				b_dynamic >>= 2;
 				k_dynamic -= 2;
-				if ((unsigned) i + j > n) {
+				if ((unsigned int) i + j > n) {
 					return 1;
 				}
 				while (j--) {
 					ll[i++] = l;
 				}
 			} else if (j == 17) {	/* 3 to 10 zero length codes */
-				while (k_dynamic < 3) {
-					input_char = fgetc(in_file);
-					if (input_char == EOF) return 1;
-					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-					k_dynamic += 8;
-				}
-				j = 3 + ((unsigned) b_dynamic & 7);
+				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 3);
+				j = 3 + ((unsigned int) b_dynamic & 7);
 				b_dynamic >>= 3;
 				k_dynamic -= 3;
-				if ((unsigned) i + j > n) {
+				if ((unsigned int) i + j > n) {
 					return 1;
 				}
 				while (j--) {
@@ -834,16 +771,11 @@ static int inflate_block(int *e)
 				}
 				l = 0;
 			} else {	/* j == 18: 11 to 138 zero length codes */
-				while (k_dynamic < 7) {
-					input_char = fgetc(in_file);
-					if (input_char == EOF) return 1;
-					b_dynamic |= ((unsigned long)input_char) << k_dynamic;
-					k_dynamic += 8;
-				}
-				j = 11 + ((unsigned) b_dynamic & 0x7f);
+				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 7);
+				j = 11 + ((unsigned int) b_dynamic & 0x7f);
 				b_dynamic >>= 7;
 				k_dynamic -= 7;
-				if ((unsigned) i + j > n) {
+				if ((unsigned int) i + j > n) {
 					return 1;
 				}
 				while (j--) {
@@ -857,22 +789,24 @@ static int inflate_block(int *e)
 		huft_free(tl);
 
 		/* restore the global bit buffer */
-		bb = b_dynamic;
-		bk = k_dynamic;
+		gunzip_bb = b_dynamic;
+		gunzip_bk = k_dynamic;
 
 		/* build the decoding tables for literal/length and distance codes */
 		bl = lbits;
+
 		if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
 			if (i == 1) {
-				error_msg("Incomplete literal tree");
+				error_msg_and_die("Incomplete literal tree");
 				huft_free(tl);
 			}
 			return i;	/* incomplete code set */
 		}
+
 		bd = dbits;
 		if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
 			if (i == 1) {
-				error_msg("incomplete distance tree");
+				error_msg_and_die("incomplete distance tree");
 				huft_free(td);
 			}
 			huft_free(tl);
@@ -880,8 +814,9 @@ static int inflate_block(int *e)
 		}
 
 		/* decompress until an end-of-block code */
-		if (inflate_codes(tl, td, bl, bd))
+		if (inflate_codes(tl, td, bl, bd)) {
 			return 1;
+		}
 
 		/* free the decoding tables, return */
 		huft_free(tl);
@@ -890,6 +825,7 @@ static int inflate_block(int *e)
 	}
 	default:
 		/* bad block type */
+		error_msg("bad block type %d\n", t);
 		return 2;
 	}
 }
@@ -897,72 +833,24 @@ static int inflate_block(int *e)
 /*
  * decompress an inflated entry
  *
- * GLOBAL VARIABLES: outcnt, bk, bb, hufts, inptr
+ * GLOBAL VARIABLES: gunzip_outbuf_count, bk, gunzip_bb, hufts, inptr
  */
-extern int inflate(FILE * in, FILE * out)
+extern int inflate(int in, int out)
 {
+	typedef void (*sig_type) (int);
 	int e;				/* last block flag */
 	int r;				/* result code */
 	unsigned h = 0;		/* maximum struct huft's malloc'ed */
 
-	/* initialize window, bit buffer */
-	outcnt = 0;
-	bk = 0;
-	bb = 0;
-
-	in_file = in;
-	out_file = out;
-
 	/* Allocate all global buffers (for DYN_ALLOC option) */
-	window = xmalloc((size_t) (((2L * WSIZE) + 1L) * sizeof(unsigned char)));
-	bytes_out = 0L;
+	gunzip_window = xmalloc(0x8000);
+	gunzip_outbuf_count = 0;
+	gunzip_bytes_out = 0;
 
-	/* Create the crc table */
-	make_crc_table();
+	gunzip_src_fd = in;
+	gunzip_dst_fd = out;
 
-	/* decompress until the last block */
-	do {
-		hufts = 0;
-		if ((r = inflate_block(&e)) != 0) {
-			return r;
-		}
-		if (hufts > h) {
-			h = hufts;
-		}
-	} while (!e);
-
-	/* Undo too much lookahead. The next read will be byte aligned so we
-	 * can discard unused bits in the last meaningful byte.
-	 */
-	while (bk >= 8) {
-		bk -= 8;
-		ungetc((bb << bk), in_file);
-	}
-
-	/* flush out window */
-	flush_window();
-	free(window);
-	free(crc_table);
-
-	/* return success */
-	return 0;
-}
-
-/* ===========================================================================
- * Unzip in to out.  This routine works on gzip files only.
- *
- * IN assertions: the buffer inbuf contains already the beginning of
- *   the compressed data, from offsets inptr to insize-1 included.
- *   The magic header has already been checked. The output buffer is cleared.
- * in, out: input and output file descriptors
- */
-extern int unzip(FILE * l_in_file, FILE * l_out_file)
-{
-	unsigned char buf[8];	/* extended local header */
-	unsigned char flags;	/* compression flags */
-	typedef void (*sig_type) (int);
-	unsigned short i;
-	unsigned char magic[2];
+	gunzip_in_buffer = malloc(8);
 
 	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
@@ -973,97 +861,44 @@ extern int unzip(FILE * l_in_file, FILE * l_out_file)
 	}
 #endif
 
-	magic[0] = fgetc(l_in_file);
-	magic[1] = fgetc(l_in_file);
+	/* initialize gunzip_window, bit buffer */
+	gunzip_bk = 0;
+	gunzip_bb = 0;
 
-#ifdef CONFIG_FEATURE_UNCOMPRESS
-	/* Magic header for compress files, 1F 9d = \037\235 */
-	if ((magic[0] == 0x1F) && (magic[1] == 0x9d)) {
-		return uncompress(l_in_file, l_out_file);
+	/* Create the crc table */
+	make_gunzip_crc_table();
+
+	/* decompress until the last block */
+	do {
+		gunzip_hufts = 0;
+		r = inflate_block(&e);
+		if (r != 0) {
+			error_msg_and_die("inflate error %d", r);
+			return r;
 	}
-#endif
-
-	/* Magic header for gzip files, 1F 8B = \037\213 */
-	if ((magic[0] != 0x1F) || (magic[1] != 0x8b)) {
-		error_msg("Invalid gzip magic");
-		return EXIT_FAILURE;
+		if (gunzip_hufts > h) {
+			h = gunzip_hufts;
 	}
+	} while (!e);
 
-	/* Check the compression method */
-	if (fgetc(l_in_file) != 8) /* also catches EOF */ {
-		error_msg("Unknown compression method");
-		return (-1);
-	}
+	/* write any buffered uncompressed data */
+	flush_gunzip_window();
+	free(gunzip_window);
 
-	flags = (unsigned char) fgetc(l_in_file);
+	/* Cleanup */
+	free(gunzip_crc_table);
 
-	/* Ignore time stamp(4), extra flags(1), OS type(1) */
-	for (i = 0; i < 6; i++) {
-		fgetc(l_in_file);
-	}
-
-	if (flags & 0x04) {
-		/* bit 2 set: extra field present */
-		const unsigned short extra =
-			fgetc(l_in_file) + (fgetc(l_in_file) << 8);
-		if (feof(in_file)) return 1;
-		for (i = 0; i < extra; i++) {
-			fgetc(l_in_file);
-		}
-	}
-
-	/* Discard original name if any */
-	if (flags & 0x08) {
-		/* bit 3 set: original file name present */
-		while (fgetc(l_in_file) != 0 && !feof(l_in_file));	/* null */
+	/* Store unused bytes in a global buffer so calling applets can access it */
+	gunzip_in_buffer_count = 0;
+	if (gunzip_bk >= 8) {
+		/* Undo too much lookahead. The next read will be byte aligned
+		 * so we can discard unused bits in the last meaningful byte. */
+		gunzip_in_buffer[gunzip_in_buffer_count] = gunzip_bb & 0xff;
+		gunzip_in_buffer_count++;
+		gunzip_bb >>= 8;
+		gunzip_bk -= 8;
 	}
 
-	/* Discard file comment if any */
-	if (flags & 0x10) {
-		/* bit 4 set: file comment present */
-		while (fgetc(l_in_file) != 0 && !feof(l_in_file));	/* null */
-	}
-
-	/* Decompress */
-	if (inflate(l_in_file, l_out_file) != 0) {
-		error_msg("invalid compressed data--format violated");
-	}
-
-	/* Get the crc and original length
-	 * crc32  (see algorithm.doc)
-	 * uncompressed input size modulo 2^32
-	 */
-	fread(buf, 1, 8, l_in_file);
-
-	/* Validate decompression - crc */
-	if ((unsigned int) ((buf[0] | (buf[1] << 8)) |
-						((buf[2] | (buf[3] << 8)) << 16)) !=
-		(crc ^ 0xffffffffL)) {
-		error_msg("invalid compressed data--crc error");
-	}
-	/* Validate decompression - size */
-	if (((buf[4] | (buf[5] << 8)) | ((buf[6] | (buf[7] << 8)) << 16)) !=
-		(unsigned long) bytes_out) {
-		error_msg("invalid compressed data--length error");
-	}
-
+	/* return success */
 	return 0;
-}
-
-/*
- * This needs access to global variables window and crc_table, so its not in its own file.
- */
-extern void gz_close(int gunzip_pid)
-{
-	if (kill(gunzip_pid, SIGTERM) == -1) {
-		error_msg_and_die
-			("***  Couldnt kill old gunzip process *** aborting");
-	}
-
-	if (waitpid(gunzip_pid, NULL, 0) == -1) {
-		printf("Couldnt wait ?");
-	}
-
-	free(window);
-	free(crc_table);
 }

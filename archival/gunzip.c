@@ -64,7 +64,12 @@ static char *license_msg[] = {
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "busybox.h"
+#include "unarchive.h"
 
 const char gunzip_to_stdout = 1;
 const char gunzip_force = 2;
@@ -100,23 +105,20 @@ extern int gunzip_main(int argc, char **argv)
 	}
 
 	do {
-		FILE *in_file, *out_file;
 		struct stat stat_buf;
 		const char *old_path = argv[optind];
 		const char *delete_path = NULL;
 		char *new_path = NULL;
+		int src_fd;
+		int dst_fd;
 
 		optind++;
 
 		if (old_path == NULL || strcmp(old_path, "-") == 0) {
-			in_file = stdin;
+			src_fd = fileno(stdin);
 			flags |= gunzip_to_stdout;
 		} else {
-			in_file = wfopen(old_path, "r");
-			if (in_file == NULL) {
-				status = EXIT_FAILURE;
-				break;
-			}
+			src_fd = xopen(old_path, O_RDONLY);
 
 			/* Get the time stamp on the input file. */
 			if (stat(old_path, &stat_buf) < 0) {
@@ -125,16 +127,16 @@ extern int gunzip_main(int argc, char **argv)
 		}
 
 		/* Check that the input is sane.  */
-		if (isatty(fileno(in_file)) && ((flags & gunzip_force) == 0)) {
+		if (isatty(src_fd) && ((flags & gunzip_force) == 0)) {
 			error_msg_and_die
 				("compressed data not read from terminal.  Use -f to force it.");
 		}
 
 		/* Set output filename and number */
 		if (flags & gunzip_test) {
-			out_file = xfopen("/dev/null", "w");	/* why does test use filenum 2 ? */
+			dst_fd = xopen("/dev/null", O_WRONLY);	/* why does test use filenum 2 ? */
 		} else if (flags & gunzip_to_stdout) {
-			out_file = stdout;
+			dst_fd = fileno(stdout);
 		} else {
 			char *extension;
 
@@ -151,7 +153,7 @@ extern int gunzip_main(int argc, char **argv)
 			}
 
 			/* Open output file */
-			out_file = xfopen(new_path, "w");
+			dst_fd = xopen(new_path, O_WRONLY | O_CREAT);
 
 			/* Set permissions on the file */
 			chmod(new_path, stat_buf.st_mode);
@@ -161,16 +163,22 @@ extern int gunzip_main(int argc, char **argv)
 		}
 
 		/* do the decompression, and cleanup */
-		if ((unzip(in_file, out_file) != 0) && (new_path)) {
+		check_header_gzip(src_fd);
+		if (inflate(src_fd, dst_fd) != 0) {
+			error_msg("Error inflating");
+		}
+		check_trailer_gzip(src_fd);
+
+		if ((status != EXIT_SUCCESS) && (new_path)) {
 			/* Unzip failed, remove new path instead of old path */
 			delete_path = new_path;
 		}
 
-		if (out_file != stdout) {
-			fclose(out_file);
+		if (dst_fd != fileno(stdout)) {
+			close(dst_fd);
 		}
-		if (in_file != stdin) {
-			fclose(in_file);
+		if (src_fd != fileno(stdin)) {
+			close(src_fd);
 		}
 
 		/* delete_path will be NULL if in test mode or from stdin */

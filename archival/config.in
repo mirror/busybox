@@ -7,10 +7,16 @@ mainmenu_option next_comment
 comment 'Archival Utilities'
 
 bool 'ar'	    CONFIG_AR
+if [ "$CONFIG_AR" = "y" ] ; then
+    bool '  Enable support for long filenames (not need for debs)'	CONFIG_FEATURE_AR_LONG_FILENAMES
+fi
 bool 'bunzip2'	    CONFIG_BUNZIP2
 bool 'cpio'	    CONFIG_CPIO
 bool 'dpkg'	    CONFIG_DPKG
 bool 'dpkg_deb'	    CONFIG_DPKG_DEB
+if [ "$CONFIG_DPKG_DEB" = "y" ] ; then
+    bool '  -x support only'	CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+fi
 bool 'gunzip'	    CONFIG_GUNZIP
 bool 'gzip'	    CONFIG_GZIP
 bool 'rpm2cpio'     CONFIG_RPM2CPIO

@@ -48,10 +48,6 @@
 # include "sha1.h"
 #endif
 
-/* Compatability with ANSI C */
-#ifndef inline
-# define inline
-#endif
 
 #if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
 /* libc5 doesn't define socklen_t */
@@ -74,6 +70,9 @@ char *strtok_r(char *s, const char *delim, char **ptrptr);
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
+static inline int is_decimal(int ch) { return ((ch >= '0') && (ch <= '9')); }
+static inline int is_octal(int ch)   { return ((ch >= '0') && (ch <= '7')); }
+
 /* Macros for min/max.  */
 #ifndef MIN
 #define	MIN(a,b) (((a)<(b))?(a):(b))
@@ -82,8 +81,6 @@ char *strtok_r(char *s, const char *delim, char **ptrptr);
 #ifndef MAX
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
-
-
 
 extern void show_usage(void) __attribute__ ((noreturn));
 extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -228,10 +225,7 @@ extern long arith (const char *startbuf, int *errcode);
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 char *fgets_str(FILE *file, const char *terminating_string);
 
-extern int inflate(FILE *in, FILE *out);
-extern int unzip(FILE *l_in_file, FILE *l_out_file);
-extern void gz_close(int gunzip_pid);
-extern FILE *gz_open(FILE *compressed_file, int *pid);
+extern int inflate(int in, int out);
 
 extern struct hostent *xgethostbyname(const char *name);
 extern struct hostent *xgethostbyname2(const char *name, int af);
@@ -334,5 +328,12 @@ extern int correct_password ( const struct passwd *pw );
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
+
+//extern int xopen(const char *pathname, int flags, mode_t mode);
+extern int xopen(const char *pathname, int flags);
+extern ssize_t xread(int fd, void *buf, size_t count);
+extern ssize_t xread_all_eof(int fd, void *buf, size_t count);
+extern void xread_all(int fd, void *buf, size_t count);
+extern unsigned char xread_char(int fd);
 
 #endif /* __LIBCONFIG_H__ */

@@ -17,12 +17,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "unarchive.h"
 #include "libbb.h"
 
-file_header_t *get_header_ar(FILE *src_stream)
+extern char get_header_ar(archive_handle_t *archive_handle)
 {
-	file_header_t *typed;
+	file_header_t *typed = archive_handle->file_header;
 	union {
 		char raw[60];
 	 	struct {
@@ -35,72 +36,87 @@ file_header_t *get_header_ar(FILE *src_stream)
  			char magic[2];
  		} formated;
 	} ar;
+#ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
 	static char *ar_long_names;
+	static unsigned int ar_long_name_size;
+#endif
 
-	if (fread(ar.raw, 1, 60, src_stream) != 60) {
-		return(NULL);
+	/* dont use xread as we want to handle the error ourself */
+	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
+		/* End Of File */
+		return(EXIT_FAILURE);
+		}
+
+	/* Some ar entries have a trailing '\n' after the previous data entry */
+	if (ar.raw[0] == '\n') {
+		/* fix up the header, we started reading 1 byte too early */
+		memmove(ar.raw, &ar.raw[1], 59);
+		ar.raw[59] = xread_char(archive_handle->src_fd);
+		archive_handle->offset++;
 	}
-	archive_offset += 60;
+	archive_handle->offset += 60;
+		
 	/* align the headers based on the header magic */
 	if ((ar.formated.magic[0] != '`') || (ar.formated.magic[1] != '\n')) {
-		/* some version of ar, have an extra '\n' after each data entry,
-		 * this puts the next header out by 1 */
-		if (ar.formated.magic[1] != '`') {
-			error_msg("Invalid magic");
-			return(NULL);
-		}
-		/* read the next char out of what would be the data section,
-		 * if its a '\n' then it is a valid header offset by 1*/
-		archive_offset++;
-		if (fgetc(src_stream) != '\n') {
-			error_msg("Invalid magic");
-			return(NULL);
-		}
-		/* fix up the header, we started reading 1 byte too early */
-		/* raw_header[60] wont be '\n' as it should, but it doesnt matter */
-		memmove(ar.raw, &ar.raw[1], 59);
+		error_msg_and_die("Invalid ar header");
 	}
-		
-	typed = (file_header_t *) xcalloc(1, sizeof(file_header_t));
 
-	typed->size = (size_t) atoi(ar.formated.size);
+	typed->mode = strtol(ar.formated.mode, NULL, 8);
+	typed->mtime = atoi(ar.formated.date);
+	typed->uid = atoi(ar.formated.uid);
+	typed->gid = atoi(ar.formated.gid);
+	typed->size = atoi(ar.formated.size);
+
 	/* long filenames have '/' as the first character */
 	if (ar.formated.name[0] == '/') {
+#ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
 		if (ar.formated.name[1] == '/') {
 			/* If the second char is a '/' then this entries data section
 			 * stores long filename for multiple entries, they are stored
 			 * in static variable long_names for use in future entries */
-			ar_long_names = (char *) xrealloc(ar_long_names, typed->size);
-			fread(ar_long_names, 1, typed->size, src_stream);
-			archive_offset += typed->size;
+			ar_long_name_size = typed->size;
+			ar_long_names = xmalloc(ar_long_name_size);
+			xread_all(archive_handle->src_fd, ar_long_names, ar_long_name_size);
+			archive_handle->offset += ar_long_name_size;
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
-			return (get_header_ar(src_stream)); /* Return next header */
+			return (get_header_ar(archive_handle)); /* Return next header */
 		} else if (ar.formated.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
-			seek_sub_file(src_stream, typed->size);
-			return (get_header_ar(src_stream)); /* Return next header */
+			data_skip(archive_handle);
+			return (get_header_ar(archive_handle)); /* Return next header */
 		} else {
 			/* The number after the '/' indicates the offset in the ar data section
 			(saved in variable long_name) that conatains the real filename */
-			if (!ar_long_names) {
-				error_msg("Cannot resolve long file name");
-				return (NULL);
+			const unsigned int long_offset = atoi(&ar.formated.name[1]);
+			if (long_offset >= ar_long_name_size) {
+				error_msg_and_die("Cant resolve long filename");
 			}
-			typed->name = xstrdup(ar_long_names + atoi(&ar.formated.name[1]));
+			typed->name = xstrdup(ar_long_names + long_offset);
 		}
+#else
+		error_msg_and_die("long filenames not supported");
+#endif
 	} else {
 		/* short filenames */
                typed->name = xstrndup(ar.formated.name, 16);
 	}
-	typed->name[strcspn(typed->name, " /")]='\0';
 
-	/* convert the rest of the now valid char header to its typed struct */	
-	parse_mode(ar.formated.mode, &typed->mode);
-	typed->mtime = atoi(ar.formated.date);
-	typed->uid = atoi(ar.formated.uid);
-	typed->gid = atoi(ar.formated.gid);
+	typed->name[strcspn(typed->name, " /")] = '\0';
 
-	return(typed);
+	if (archive_handle->filter(archive_handle->accept, archive_handle->reject, typed->name) == EXIT_SUCCESS) {
+		archive_handle->action_header(typed);
+		if (archive_handle->sub_archive) {
+			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS);
+		} else {
+			archive_handle->action_data(archive_handle);
+		}
+	} else {
+		data_skip(archive_handle);			
+	}
+
+	archive_handle->offset += typed->size + 1;
+
+	return(EXIT_SUCCESS);
 }
 

@@ -18,10 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-#include "busybox.h"
+#include <sys/types.h>
 #include <netinet/in.h> /* For ntohl & htonl function */
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
+#include "busybox.h"
+#include "unarchive.h"
 
 #define RPM_MAGIC "\355\253\356\333"
 #define RPM_HEADER_MAGIC "\216\255\350"
@@ -45,46 +48,54 @@ struct rpm_header {
 	u_int32_t size; /* Size of store (4 bytes) */
 };
 
-void skip_header(FILE *rpmfile)
+void skip_header(int rpm_fd)
 {
 	struct rpm_header header;
 
-	fread(&header, sizeof(struct rpm_header), 1, rpmfile);
-	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC, 3) != 0) error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
-	if (header.version != 1) error_msg_and_die("Unsupported RPM header version"); /* This program only supports v1 headers */
+	xread_all(rpm_fd, &header, sizeof(struct rpm_header));
+	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC, 3) != 0) {
+		error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
+	}
+	if (header.version != 1) {
+		error_msg_and_die("Unsupported RPM header version"); /* This program only supports v1 headers */
+	}
 	header.entries = ntohl(header.entries);
 	header.size = ntohl(header.size);
-	fseek (rpmfile, 16 * header.entries, SEEK_CUR); /* Seek past index entries */
-	fseek (rpmfile, header.size, SEEK_CUR); /* Seek past store */
+	lseek (rpm_fd, 16 * header.entries, SEEK_CUR); /* Seek past index entries */
+	lseek (rpm_fd, header.size, SEEK_CUR); /* Seek past store */
 }
 
 /* No getopt required */
 extern int rpm2cpio_main(int argc, char **argv)
 {
 	struct rpm_lead lead;
-	int gunzip_pid;
-	FILE *rpmfile, *cpiofile;
+	int rpm_fd;
 
 	if (argc == 1) {
-		rpmfile = stdin;
+		rpm_fd = fileno(stdin);
 	} else {
-		rpmfile = xfopen(argv[1], "r");
-		/* set the buffer size */
-		setvbuf(rpmfile, NULL, _IOFBF, 0x8000);
+		rpm_fd = xopen(argv[1], O_RDONLY);
 	}
 
-	fread (&lead, sizeof(struct rpm_lead), 1, rpmfile);
-	if (strncmp((char *) &lead.magic, RPM_MAGIC, 4) != 0) error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
+	xread_all(rpm_fd, &lead, sizeof(struct rpm_lead));
+	if (strncmp((char *) &lead.magic, RPM_MAGIC, 4) != 0) {
+		error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
+	}
+
 	/* Skip the signature header */
-	skip_header(rpmfile);
-	fseek(rpmfile, (8 - (ftell(rpmfile) % 8)) % 8, SEEK_CUR); /* Pad to 8 byte boundary */
+	skip_header(rpm_fd);
+	data_align(rpm_fd, lseek(rpm_fd, 0, SEEK_CUR), 8);
+
 	/* Skip the main header */
-	skip_header(rpmfile);
+	skip_header(rpm_fd);
 
-	cpiofile = gz_open(rpmfile, &gunzip_pid);
+	check_header_gzip(rpm_fd);
+	if (inflate(rpm_fd, fileno(stdout)) != 0) {
+		error_msg("Error inflating");
+	}
+	check_trailer_gzip(rpm_fd);
 
-	copyfd(fileno(cpiofile), fileno(stdout));
-	gz_close(gunzip_pid);
-	fclose(rpmfile);
+	close(rpm_fd);
+
 	return 0;
 }

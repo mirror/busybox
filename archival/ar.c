@@ -21,41 +21,100 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
+ * There is no signle standard to adhere to so ar may not portable
+ * between different systems
+ * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
+#include <sys/types.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <utime.h>
+#include <unistd.h>
 #include <getopt.h>
 #include "unarchive.h"
 #include "busybox.h"
 
+static void header_verbose_list_ar(const file_header_t *file_header)
+{
+	const char *mode = mode_string(file_header->mode);
+	char *mtime;
+
+	mtime = ctime(&file_header->mtime);
+	mtime[16] = ' ';
+	memmove(&mtime[17], &mtime[20], 4);
+	mtime[21] = '\0';
+	printf("%s %d/%d%7d %s %s\n", &mode[1], file_header->uid, file_header->gid, (int) file_header->size, &mtime[4], file_header->name);
+}
+
+#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
+/* This is simpler than data_extract_all */
+static void data_extract_regular_file(archive_handle_t *archive_handle)
+{
+	file_header_t *file_header;
+	int dst_fd;
+
+	file_header = archive_handle->file_header;
+	dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT);
+	copy_file_chunk_fd(archive_handle->src_fd, dst_fd, file_header->size);
+	close(dst_fd);
+
+	chmod(file_header->name, file_header->mode);
+	chown(file_header->name, file_header->uid, file_header->gid);
+
+	if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
+		struct utimbuf t;
+		t.actime = t.modtime = file_header->mtime;
+		utime(file_header->name, &t);
+	}
+
+	return;
+}
+#endif
+
 extern int ar_main(int argc, char **argv)
 {
-	FILE *src_stream = NULL;
-	char **extract_names = NULL;
-	char ar_magic[8];
-	int extract_function =  extract_unconditional;
+	archive_handle_t *archive_handle;
 	int opt;
-	int num_of_entries = 0;
-	extern off_t archive_offset;
 
-	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
+#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
+	archive_handle = init_handle();
+#else
+	char magic[8];
+
+	archive_handle = xcalloc(1, sizeof(archive_handle_t));
+	archive_handle->filter = filter_accept_all;
+	archive_handle->action_data = data_skip;
+	archive_handle->action_header = header_skip;
+	archive_handle->file_header =xmalloc(sizeof(file_header_t));
+#endif
+
+	while ((opt = getopt(argc, argv, "covtpxX")) != -1) {
 		switch (opt) {
-		case 'o':
-			extract_function |= extract_preserve_date;
+		case 'p':	/* print */
+			archive_handle->action_data = data_extract_to_stdout;
 			break;
-		case 'v':
-			extract_function |= extract_verbose_list;
+		case 't':	/* list contents */
+			archive_handle->action_header = header_list;
 			break;
-		case 't':
-			extract_function |= extract_list;
+		case 'X':
+			archive_handle->action_header = header_verbose_list_ar;
+		case 'x':	/* extract */
+#if defined CONFIG_TAR | defined CONFIG_DPKG_DEB | defined CONFIG_CPIO
+			archive_handle->action_data = data_extract_all;
+#else
+			archive_handle->action_data = data_extract_regular_file;
+#endif
 			break;
-		case 'p':
-			extract_function |= extract_to_stdout;
+		/* Modifiers */
+		case 'o':	/* preserve original dates */
+			archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
 			break;
-		case 'x':
-			extract_function |= extract_all_to_fs;
+		case 'v':	/* verbose */
+			archive_handle->action_header = header_verbose_list_ar;
 			break;
 		default:
 			show_usage();
@@ -67,24 +126,26 @@ extern int ar_main(int argc, char **argv)
 		show_usage();
 	}
 
-	src_stream = xfopen(argv[optind++], "r");
+	archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
 
-	/* check ar magic */
-	fread(ar_magic, 1, 8, src_stream);
-	archive_offset = 8;
-	if (strncmp(ar_magic,"!<arch>",7) != 0) {
-		error_msg_and_die("invalid magic");
-	}
-
-	/* Create a list of files to extract */
+	/* TODO: This is the same as in tar, seperate function ? */
 	while (optind < argc) {
-		extract_names = xrealloc(extract_names, sizeof(char *) * (num_of_entries + 2));
-		extract_names[num_of_entries] = xstrdup(argv[optind]);
-		num_of_entries++;
-		extract_names[num_of_entries] = NULL;
+		archive_handle->filter = filter_accept_list;
+		archive_handle->accept = add_to_list(archive_handle->accept, argv[optind]);
 		optind++;
 	}
 
-	unarchive(src_stream, stdout, &get_header_ar, extract_function, "./", extract_names, NULL);
+#if defined CONFIG_DPKG_DEB
+	unpack_ar_archive(archive_handle);
+#else
+	xread_all(archive_handle->src_fd, magic, 7);
+	if (strncmp(magic, "!<arch>", 7) != 0) {
+		error_msg_and_die("Invalid ar magic");
+	}
+	archive_handle->offset += 7;
+
+	while (get_header_ar(archive_handle) == EXIT_SUCCESS);
+#endif
+
 	return EXIT_SUCCESS;
 }
