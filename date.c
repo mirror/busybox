@@ -160,26 +160,27 @@ int date_main(int argc, char **argv)
 	/* Interpret command line args */
 	while ((c = getopt(argc, argv, "Rs:ud:")) != EOF) {
 		switch (c) {
-		case 'R':
-			rfc822 = 1;
-			break;
-		case 's':
-			set_time = 1;
-			if ((date_str != NULL) || ((date_str = optarg) == NULL))
+			case 'R':
+				rfc822 = 1;
+				break;
+			case 's':
+				set_time = 1;
+				if ((date_str != NULL) || ((date_str = optarg) == NULL)) {
+					usage(date_usage);
+				}
+				break;
+			case 'u':
+				utc = 1;
+				if (putenv("TZ=UTC0") != 0)
+					fatalError(memory_exhausted);
+				break;
+			case 'd':
+				use_arg = 1;
+				if ((date_str != NULL) || ((date_str = optarg) == NULL))
+					usage(date_usage);
+				break;
+			default:
 				usage(date_usage);
-			break;
-		case 'u':
-			utc = 1;
-			if (putenv("TZ=UTC0") != 0) 
-				fatalError(memory_exhausted);
-			break;
-		case 'd':
-			use_arg = 1;
-			if ((date_str != NULL) || ((date_str = optarg) == NULL))
-				usage(date_usage);
-			break;
-		default:
-			usage(date_usage);
 		}
 	}
 
@@ -188,9 +189,13 @@ int date_main(int argc, char **argv)
 	else if (date_str == NULL) {
 		set_time = 1;
 		date_str = argv[optind];
-	} else {
+	} 
+#if 0
+	else {
+		errorMsg("date_str='%s'  date_fmt='%s'\n", date_str, date_fmt);
 		usage(date_usage);
 	}
+#endif
 
 	/* Now we have parsed all the information except the date format
 	   which depends on whether the clock is being set or read */
@@ -217,11 +222,15 @@ int date_main(int argc, char **argv)
 		tm = mktime(&tm_time);
 		if (tm < 0)
 			fatalError(invalid_date, date_str); 
+		if ( utc ) {
+			if (putenv("TZ=UTC0") != 0)
+				fatalError(memory_exhausted);
+		}
 
 		/* if setting time, set it */
 		if (set_time) {
 			if (stime(&tm) < 0) {
-				fatalError("can't set date.\n");
+				perrorMsg("cannot set date");
 			}
 		}
 	}

@@ -1152,7 +1152,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-	struct BB_applet search_applet, *applet = applets;
+	struct BB_applet search_applet, *applet;
 #endif
 
 	nextin = 0, nextout = 1;

@@ -371,5 +371,5 @@ const struct BB_applet applets[] = {
 };
 
 /* The -1 arises because of the {0,NULL,0,NULL} entry above. */
-#define NUM_APPLETS (sizeof (applets) / sizeof (struct BB_applet) - 1)
+size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 
