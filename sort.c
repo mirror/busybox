@@ -146,7 +146,6 @@ list_insert(List *self, Line *line)
 
     /* all subsequent insertions */
     } else {
-	/* <?> the following cast shouldn't be necessary */
 	self->current->next = line; 
 	self->current       = line;
     }
@@ -261,9 +260,10 @@ sort_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: sort.c,v 1.4 1999/12/22 22:24:52 beppu Exp $ */
-/* $Log: sort.c,v $
- * Revision 1.4  1999/12/22 22:24:52  beppu
- * 	the base is nearly done.
- * 	need to implement various comparison functions, now.
- * */
+/* $Id: sort.c,v 1.5 1999/12/22 22:27:01 beppu Exp $ */
+/* 
+ * $Log: sort.c,v $
+ * Revision 1.5  1999/12/22 22:27:01  beppu
+ * playing w/ $Log$
+ *
+ */
