@@ -687,7 +687,7 @@ static void out2fmt (const char *, ...)
     __attribute__((__format__(__printf__,1,2)));
 static int xwrite (int, const char *, int);
 
-static void outstr (const char *p, FILE *file) { fputs(p, file); }
+#define outstr(p,file) fputs(p, file)
 static void out1str(const char *p) { outstr(p, stdout); }
 static void out2str(const char *p) { outstr(p, stderr); }
 
@@ -12785,7 +12785,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.18 2001/08/10 15:22:35 andersen Exp $
+ * $Id: ash.c,v 1.19 2001/08/10 18:42:04 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
