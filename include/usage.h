@@ -1536,6 +1536,7 @@
 #define lsmod_full_usage \
 	"List the currently loaded kernel modules."
 
+#ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
 #define makedevs_trivial_usage \
 	"NAME TYPE MAJOR MINOR FIRST LAST [s]"
 #define makedevs_full_usage \
@@ -1555,6 +1556,18 @@
 	"[creates ttyS2-ttyS63]\n" \
 	"# makedevs /dev/hda b 3 0 0 8 s\n" \
 	"[creates hda,hda1-hda8]\n"
+#endif
+
+#ifdef CONFIG_FEATURE_MAKEDEVS_TABLE
+#define makedevs_trivial_usage \
+	"[-r rootdir] [device_table]"
+#define makedevs_full_usage \
+	"Creates a batch of special files as specified in a device table\n" \
+	"The device table has one line per device group, each group is of\n" \
+	"the format\n" \
+	"\ttype mode user group major minor start increment count\n" \
+	"a '-' may be used for blank entries\n"
+#endif
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
 #define USAGE_MD5_SHA1_SUM_CHECK(a) a
