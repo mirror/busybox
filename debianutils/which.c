@@ -26,10 +26,19 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+static int file_exists(char *file)
+{
+	struct stat filestat;
+
+	if (stat(file, &filestat) == 0 && filestat.st_mode & S_IXUSR)
+		return 1;
+	else
+		return 0;
+}
+	
 extern int which_main(int argc, char **argv)
 {
 	char *path_list, *path_n;
-	struct stat filestat;
 	int i, count=1, found, status = EXIT_SUCCESS;
 
 	if (argc <= 1 || **(argv + 1) == '-')
@@ -52,18 +61,27 @@ extern int which_main(int argc, char **argv)
 		path_n = path_list;
 		argv++;
 		found = 0;
-		for (i = 0; i < count; i++) {
-			char *buf;
-			buf = concat_path_file(path_n, *argv);
-			if (stat (buf, &filestat) == 0
-			    && filestat.st_mode & S_IXUSR)
-			{
-				puts(buf);
-				found = 1;
-				break;
+		char *buf;
+
+		/*
+		 * Check if we were given the full path, first.
+		 * Otherwise see if the file exists in our $PATH.
+		 */
+		buf = *argv;
+		if (file_exists(buf)) {
+			puts(buf);
+			found = 1;
+		} else {
+			for (i = 0; i < count; i++) {
+				buf = concat_path_file(path_n, *argv);
+				if (file_exists(buf)) {
+					puts(buf);
+					found = 1;
+					break;
+				}
+				free(buf);
+				path_n += (strlen(path_n) + 1);
 			}
-			free(buf);
-			path_n += (strlen(path_n) + 1);
 		}
 		if (!found)
 			status = EXIT_FAILURE;
