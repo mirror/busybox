@@ -13,6 +13,7 @@
 
 	* Vladimir Oleynik, Manuel Novoa III, Aaron Lehmann
 	    -- a whole bunch of ash size optimizations
+	    -- Fix for ash leading redirections (i.e. '2>/dev/null ls rubbish')
 	* Rodney Brown  <RDBrown@mira.net> 
 	    -- Optimized gzip.c, shrinking it be ~1.5k
 	* Matt Kraai
@@ -20,8 +21,8 @@
 	    -- Fix `-/bin/sh' invocation (closes: #1209).
 	    -- Fix ash exec (noted by Arne Bernin).
 	* Magick
-	    -- maked init run inittab command's in inittab order (
-		(i.e. FIFO instead of LIFO).
+	    -- made init run inittab command's in the order they show up
+		in the inittab file (FIFO instead of LIFO).
 
 
 	 -Erik Andersen, --not yet released--
