@@ -1453,6 +1453,19 @@
 #define mv_example_usage \
 	"$ mv /tmp/foo /bin/bar\n" 
 
+#define nameif_trivial_usage \
+	"[OPTIONS] [{IFNAME MACADDR}]"
+#define nameif_full_usage \
+		"Nameif renaming network interface while it in the down state.\n\n" \
+		"Options:\n" \
+		"\t-c FILE\t\tUse another configuration file (default is /etc/mactab)\n" \
+		"\t-s\t\tUse syslog (LOCAL0 facility).\n" \
+		"\tIFNAME MACADDR\tnew_interface_name interface_mac_address\n" 
+#define nameif_example_usage \
+		"$ nameif -s dmz0 00:A0:C9:8C:F6:3F\n" \
+		" or\n" \
+		"$ nameif -c /etc/my_mactab_file\n" \
+
 #define nc_trivial_usage \
 	"[OPTIONS] [IP] [port]" 
 #define nc_full_usage \

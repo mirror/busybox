@@ -192,6 +192,20 @@ config CONFIG_IPTUNNEL
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_NAMEIF
+	bool "nameif"
+	default n
+	help
+	  nameif used to rename network interface by its MAC address.
+	  Renamed interfaces MUST be in the down state.
+	  It is possible to use file (default: /etc/mactab)
+	  with list of new interface names and MACs.
+	  Maximum interface name length: IF_NAMESIZE = 16
+	  File fields are sepatated by space or tab.
+	  File format:
+	  # Comment
+	  new_interface_name	XX:XX:XX:XX:XX:XX
+
 config CONFIG_NC
 	bool "nc"
 	default n

@@ -368,6 +368,9 @@
 #ifdef CONFIG_MV
 	APPLET(mv, mv_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_NAMEIF
+	APPLET(nameif, nameif_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_NC
 	APPLET(nc, nc_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
