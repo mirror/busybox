@@ -1937,6 +1937,19 @@ Example:
 
 -------------------------------
 
+=item which
+
+Usage: which [COMMAND ...]
+
+Locates a COMMAND.
+
+Example:
+
+	$ which login
+	/bin/login
+
+-------------------------------
+
 =item whoami
 
 Usage: whoami
@@ -2048,4 +2061,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.49 2000/06/21 21:38:00 proski Exp $
+# $Id: busybox.pod,v 1.50 2000/06/21 21:43:24 proski Exp $
