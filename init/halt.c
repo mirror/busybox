@@ -28,7 +28,10 @@ extern int halt_main(int argc, char **argv)
 {
 #ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
-	return(kill(*(find_pid_by_name("init")), SIGUSR1));
+	pid_t *pid = find_pid_by_name("init");
+	if (!pid || *pid<=0)
+		error_msg_and_die("no process killed");
+	return(kill(*pid, SIGUSR1));
 #else
 	return(kill(1, SIGUSR1));
 #endif
