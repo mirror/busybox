@@ -159,13 +159,10 @@ struct init_action {
 
 /* Static variables */
 static struct init_action *init_action_list = NULL;
-static char *secondConsole = VC_2;
-static char *thirdConsole  = VC_3;
-static char *fourthConsole = VC_4;
-static char *log           = VC_5;
 static int  kernelVersion  = 0;
 static char termType[32]   = "TERM=linux";
 static char console[32]    = _PATH_CONSOLE;
+static char *log           = VC_5;
 static sig_atomic_t got_cont = 0;
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
@@ -223,15 +220,9 @@ static void message(int device, char *fmt, ...)
 	/* Take full control of the log tty, and never close it.
 	 * It's mine, all mine!  Muhahahaha! */
 	if (log_fd < 0) {
-		if (log == NULL) {
-			/* don't even try to log, because there is no such console */
-			log_fd = -2;
-			/* log to main console instead */
-			device = CONSOLE;
-		} else if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
+		if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
 			log_fd = -2;
 			fprintf(stderr, "Bummer, can't write to log on %s!\n", log);
-			log = NULL;
 			device = CONSOLE;
 		}
 	}
@@ -381,19 +372,12 @@ static void console_init(void)
 		/* Perhaps we should panic here? */
 		safe_strncpy(console, "/dev/null", sizeof(console));
 	} else {
-		/* check for serial console and disable logging to tty5 & 
-		 * running a shell to tty2-4 */
+		/* check for serial console */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
-			log = NULL;
-			secondConsole = NULL;
-			thirdConsole = NULL;
-			fourthConsole = NULL;
 			/* Force the TERM setting to vt102 for serial console --
-			 * iff TERM is set to linux (the default) */
+			 * if TERM is set to linux (the default) */
 			if (strcmp( termType, "TERM=linux" ) == 0)
 				safe_strncpy(termType, "TERM=vt102", sizeof(termType));
-			message(LOG | CONSOLE,
-					"\rserial console detected.  Disabling virtual terminals.\n");
 		}
 		close(fd);
 	}
@@ -802,9 +786,7 @@ static void halt_signal(int sig)
 			/* Seems the s390 console is Wierd(tm). */
 			"\rThe system is halted. You may reboot now.\n"
 #else
-			/* secondConsole is NULL for a serial console */
-			"\rThe system is halted. Press %s or turn off power\n",
-			(secondConsole == NULL)? "Reset" : "CTRL-ALT-DEL"
+			"\rThe system is halted. Press Reset or turn off power\n"
 #endif
 		   );
 	sync();
@@ -865,12 +847,8 @@ static void new_init_action(int action, char *command, char *cons)
 	if (*cons == '\0')
 		cons = console;
 
-	/* If BusyBox detects that a serial console is in use, then entries
-	 * not refering to the console or null devices will _not_ be run.
-	 * The exception to this rule is the null device.
-	 */
-	if (secondConsole == NULL && strcmp(cons, console)
-		&& strcmp(cons, "/dev/null"))
+	/* do not run entries if console device is not available */
+	if (access(cons, R_OK|W_OK))
 		return;
 	if (strcmp(cons, "/dev/null") == 0 && (action & ASKFIRST))
 		return;
@@ -944,17 +922,11 @@ static void parse_inittab(void)
 #endif
 		/* Prepare to restart init when a HUP is received */
 		new_init_action(RESTART, "/sbin/init", console);
-		/* Askfirst shell on tty1 */
+		/* Askfirst shell on tty1-4 */
 		new_init_action(ASKFIRST, LOGIN_SHELL, console);
-		/* Askfirst shell on tty2 */
-		if (secondConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, secondConsole);
-		/* Askfirst shell on tty3 */
-		if (thirdConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, thirdConsole);
-		/* Askfirst shell on tty4 */
-		if (fourthConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, fourthConsole);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_2);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_3);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_4);
 		/* sysinit */
 		new_init_action(SYSINIT, INIT_SCRIPT, console);
 
@@ -1113,12 +1085,9 @@ extern int init_main(int argc, char **argv)
 	if (argc > 1 && (!strcmp(argv[1], "single") ||
 					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
 		/* Ask first then start a shell on tty2-4 */
-		if (secondConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, secondConsole);
-		if (thirdConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, thirdConsole);
-		if (fourthConsole != NULL)
-			new_init_action(ASKFIRST, LOGIN_SHELL, fourthConsole);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_2);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_3);
+		new_init_action(ASKFIRST, LOGIN_SHELL, VC_4);
 		/* Start a shell on tty1 */
 		new_init_action(RESPAWN, LOGIN_SHELL, console);
 	} else {

@@ -33,7 +33,8 @@
 		uClibc, fix route crashe 'route add', fix warnings compile
 		networking and pwd_grp applets
 	* Tim Riker <Tim@Rikers.org>
-		-- fix and shrink uuencode
+	    -- fix and shrink uuencode
+	    -- allow tty* in inittab if exist, serial console is not the issue
 
 	 -Erik Andersen, --not yet released--
 
