@@ -170,7 +170,7 @@ static void cmdedit_setwidth(int w, int redraw_flg);
 static void win_changed(int nsig)
 {
 	struct winsize win = { 0, 0, 0, 0 };
-	static __sighandler_t previous_SIGWINCH_handler;	/* for reset */
+	static sighandler_t previous_SIGWINCH_handler;	/* for reset */
 
 	/*   emulate      || signal call */
 	if (nsig == -SIGWINCH || nsig == SIGWINCH) {

@@ -61,6 +61,7 @@ enum {
 #include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <termios.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
 

@@ -351,7 +351,7 @@ busybox.links: busybox.mkll Config.h applets.h
 nfsmount.o cmdedit.o: %.o: %.h
 sh.o: cmdedit.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
-	$(CC) -I- $(CFLAGS) -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
+	$(CC) $(CFLAGS) -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
 
 $(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
 	- mkdir -p $(PWD_GRP)

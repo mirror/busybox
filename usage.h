@@ -1084,6 +1084,13 @@
 	"$ ls -la /tmp/temp.mWiLjM\n" \
 	"-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n" 
 
+#define modprobe_trivial_usage \
+	"[FILE ...]"
+#define modprobe_full_usage \
+	"Used for hight level module loading and unloading."
+#define modprobe_example_usage \
+	"$ modprobe cdrom\n" 
+
 #define more_trivial_usage \
 	"[FILE ...]"
 #define more_full_usage \

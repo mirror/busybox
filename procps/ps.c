@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
+#include <termios.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
 

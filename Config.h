@@ -75,11 +75,12 @@
 #define BB_MKNOD
 #define BB_MKSWAP
 //#define BB_MKTEMP
-//#define BB_NC
+#define BB_MODPROBE
 #define BB_MORE
 #define BB_MOUNT
 //#define BB_MT
 #define BB_MV
+//#define BB_NC
 //#define BB_NSLOOKUP
 //#define BB_PING
 //#define BB_PIVOT_ROOT

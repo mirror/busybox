@@ -263,6 +263,9 @@
 #ifdef BB_MKTEMP
 	APPLET(mktemp, mktemp_main, _BB_DIR_BIN)
 #endif
+#ifdef BB_MODPROBE
+	APPLET(modprobe, modprobe_main, _BB_DIR_SBIN)
+#endif
 #ifdef BB_MORE
 	APPLET(more, more_main, _BB_DIR_BIN)
 #endif

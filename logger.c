@@ -36,17 +36,18 @@
 #include <sys/syslog.h>
 
 #else
-/* We have to do this since the header file defines static
- * structures.  Argh.... bad libc, bad, bad...
- */
 #include <sys/syslog.h>
-
-typedef struct _code {
-	char *c_name;
-	int c_val;
-} CODE;
-extern CODE prioritynames[];
-extern CODE facilitynames[];
+#  ifndef __dietlibc__
+	/* We have to do this since the header file defines static
+	 * structures.  Argh.... bad libc, bad, bad...
+	 */
+	typedef struct _code {
+		char *c_name;
+		int c_val;
+	} CODE;
+	extern CODE prioritynames[];
+	extern CODE facilitynames[];
+#  endif
 #endif
 
 /* Decode a symbolic name to a numeric value 

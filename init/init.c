@@ -84,7 +84,7 @@ static const int RB_DISABLE_CAD = 0;
 static const int RB_AUTOBOOT = 0x01234567;
 #endif
 
-#if __GNU_LIBRARY__ > 5
+#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__) 
   #include <sys/reboot.h>
   #define init_reboot(magic) reboot(magic)
 #else
