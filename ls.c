@@ -637,7 +637,7 @@ static int list_single(struct dnode *dn)
 				my_getpwuid(scratch, dn->dstat.st_uid);
 				printf("%-8.8s ", scratch);
 				my_getgrgid(scratch, dn->dstat.st_gid);
-				printf("%-8.8s ", scratch);
+				printf("%-8.8s", scratch);
 				column += 17;
 				break;
 #endif
