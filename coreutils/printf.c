@@ -405,48 +405,24 @@ print_direc(char *start, size_t length, int field_width, int precision,
 static unsigned long xstrtoul(char *arg)
 {
 	unsigned long result;
-	char *endptr;
-	//int errno_save = errno;
-
-	assert(arg!=NULL);
-
-	errno = 0;
-	result = strtoul(arg, &endptr, 0);
-	if (errno != 0 || *endptr!='\0' || endptr==arg)
+	if (safe_strtoul(arg, &result))
 		fprintf(stderr, "%s", arg);
-	//errno = errno_save;
 	return result;
 }
 
 static long xstrtol(char *arg)
 {
 	long result;
-	char *endptr;
-	//int errno_save = errno;
-
-	assert(arg!=NULL);
-
-	errno = 0;
-	result = strtoul(arg, &endptr, 0);
-	if (errno != 0 || *endptr!='\0' || endptr==arg)
+	if (safe_strtol(arg, &result))
 		fprintf(stderr, "%s", arg);
-	//errno = errno_save;
 	return result;
 }
 
 static double xstrtod(char *arg)
 {
 	double result;
-	char *endptr;
-	//int errno_save = errno;
-
-	assert(arg!=NULL);
-
-	errno = 0;
-	result = strtod(arg, &endptr);
-	if (errno != 0 || *endptr!='\0' || endptr==arg)
+	if (safe_strtod(arg, &result))
 		fprintf(stderr, "%s", arg);
-	//errno = errno_save;
 	return result;
 }
 

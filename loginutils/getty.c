@@ -955,22 +955,15 @@ static int caps_lock(const char *s)
 /* bcode - convert speed string to speed code; return 0 on failure */
 static int bcode(const char *s)
 {
-#if 0
-	struct Speedtab *sp;
-	long speed = atol(s);
-
-	for (sp = speedtab; sp->speed; sp++)
-		if (sp->speed == speed)
-			return (sp->code);
-	return (0);
-#else
 	int r;
-
-	if ((r = bb_value_to_baud(atol(s))) > 0) {
+	unsigned long value;
+	if (safe_strtoul(s, &value)) {
+		return -1;
+	}
+	if ((r = bb_value_to_baud(value)) > 0) {
 		return r;
 	}
 	return 0;
-#endif
 }
 
 /* error - report errors to console or syslog; only understands %s and %m */

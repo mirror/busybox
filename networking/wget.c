@@ -385,7 +385,11 @@ read_response:
 			 */
 			while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
 				if (strcasecmp(buf, "content-length") == 0) {
-					filesize = atol(s);
+					unsigned long value;
+					if (safe_strtoul(s, &value)) {
+						close_delete_and_die("content-length %s is garbage", s);
+					}
+					filesize = value;
 					got_clen = 1;
 					continue;
 				}
@@ -452,7 +456,11 @@ read_response:
 		 * Querying file size
 		 */
 		if (ftpcmd("SIZE /", target.path, sfp, buf) == 213) {
-			filesize = atol(buf+4);
+			unsigned long value;
+			if (safe_strtoul(buf+4, &value)) {
+				close_delete_and_die("SIZE value is garbage");
+			}
+			filesize = value;
 			got_clen = 1;
 		}
 		
@@ -838,7 +846,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.69 2004/02/22 00:27:34 bug1 Exp $
+ *	$Id: wget.c,v 1.70 2004/03/06 22:11:44 andersen Exp $
  */
 
 

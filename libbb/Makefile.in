@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,17 +72,21 @@ LIBBB_MSRC3:=$(LIBBB_DIR)xgetularg.c
 LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
 	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
 
+LIBBB_MSRC4:=$(LIBBB_DIR)/safe_strtol.c
+LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
+
 LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
 LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
 LIBBB_MOBJS2=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ2))
 LIBBB_MOBJS3=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ3))
+LIBBB_MOBJS4=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ4))
 
 libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
 
 $(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
-	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3)
+	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
 	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
-		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) 
+		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
 
 $(LIBBB_MOBJS0): $(LIBBB_MSRC0)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
@@ -94,5 +98,8 @@ $(LIBBB_MOBJS2): $(LIBBB_MSRC2)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 
 $(LIBBB_MOBJS3): $(LIBBB_MSRC3)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS4): $(LIBBB_MSRC4)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 

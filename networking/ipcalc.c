@@ -119,8 +119,7 @@ int ipcalc_main(int argc, char **argv)
                         if (*prefixstr) {
 				unsigned int msk;
 
-                                netprefix = atol(prefixstr);
-                                if (netprefix > 32) {
+								if (safe_strtoul(prefixstr, &netprefix) || netprefix > 32) {
                                         IPCALC_MSG(bb_error_msg_and_die("bad IP prefix: %s\n", prefixstr),
                                                 exit(EXIT_FAILURE));
                                 }

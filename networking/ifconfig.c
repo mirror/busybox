@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.27 2003/11/14 03:04:08 andersen Exp $
+ * $Id: ifconfig.c,v 1.28 2004/03/06 22:11:44 andersen Exp $
  *
  */
 
@@ -394,8 +394,9 @@ int ifconfig_main(int argc, char **argv)
 						safe_strncpy(host, *argv, (sizeof host));
 #ifdef CONFIG_FEATURE_IPV6
 						if ((prefix = strchr(host, '/'))) {
-							prefix_len = atol(prefix + 1);
-							if ((prefix_len < 0) || (prefix_len > 128)) {
+							if (safe_strtoi(prefix + 1, &prefix_len) ||
+								(prefix_len < 0) || (prefix_len > 128))
+							{
 								++goterr;
 								goto LOOP;
 							}

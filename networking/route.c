@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.22 2003/03/19 09:12:39 mjn3 Exp $
+ * $Id: route.c,v 1.23 2004/03/06 22:11:44 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -351,8 +351,7 @@ static int INET6_setroute(int action, int options, char **args)
 		memset(&sa6, 0, sizeof(sa6));
 	} else {
 		if ((cp = strchr(target, '/'))) {
-			prefix_len = atol(cp + 1);
-			if ((prefix_len < 0) || (prefix_len > 128))
+			if (safe_strtod(cp + 1, &prefix_len) || (prefix_len < 0) || (prefix_len > 128))
 				bb_show_usage();
 			*cp = 0;
 		} else {
