@@ -1,42 +1,69 @@
-0.53pre
+0.53
 
     Critical Bugfixes:
-	* Matt Kraai -- Fixed wget output file opening (wget failed in 0.52).
-	* Matt Kraai -- Fixed a memory leak in syslogd (found by Adam Slattery).
+	* Matt Kraai 
+	    -- Fixed wget output file opening (wget failed in 0.52).
+	    -- Fixed a memory leak in syslogd (found by Adam Slattery).
+	* Vladimir Oleynik, Matt Kraai, Erik Andersen
+	    -- several nasty bugs in ash and msh.  msh could not assign
+		any variables and had debug code still enabled.  ash
+		had several compile errors (depending on selected options)
+		and variable assignment problems as well.
 
     New Applets:
-	* Vladimir Oleynik -- traceroute
 	* David McCullough <davidm@lineo.com> -- modprobe
+	* Vladimir Oleynik -- traceroute
+
+    New Scripts:
+	* David Schleef, Erik Andersen, Stuart Hughes -- depmod.pl
+	    This is a replacement for the depmod program from the modutils 
+	    package, but is fully cross platform and is designed to run on 
+	    your host system (not on the target).
 
     Other Changes:
-	* Vladimir Oleynik 
-	    -- Fixed tr to support 'tr a-z A-Z' syntax,
-	    -- Many ash corrections, optimizations, and cleanups.
-	    -- optimizations for traceroute and md5sum
-	    -- cmdedit updates and API change
-	    -- Namespace cleanup (i.e. adding 'static' private function calls)
-	    -- added "stopped jobs" warning to ash on exit
-	* Glenn McGrath 
-	    -- dpkg rewrite.  Should now be compatable with the real dpkg, 
-		but needs more testing.
-	    -- Updates to archiving tools (gunzip/gzip/cpio/ar/etc) 
-	    -- Rewrote uuencode, will allow base64 encoding to be used by wget
-	* Erik Andersen -- fixed busybox.spec so it should now work on
-	    properly on redhat systems
+	* Erik Andersen 
+	    -- various little things
+	    -- fixed busybox.spec so it should now work on redhat systems
+	    -- fixed dos2unix and unix2dos so they should work once again
+	    -- Adjustments to make busybox more uClinux friendly.  Busybox
+		should now work on uClinux systems without needing and source
+		code changes (applets that won't work on uClinux systems are 
+		now automagicaly disabled).
+	* Jim Gleason <jimg@lineo.com>
+	    -- Fixed for sed, where it failed to preserve whether or not the 
+		line was previously altered when running a subst command.
 	* Matt Kraai 
 	    -- Made tar read 20 512byte blocks at a time (like GNU tar)
 	    -- Allow msh.c assignments with the export and readonly commands.
 	    -- Added BB_FEATURE_DEVFS to enable devfs device names.
 	    -- Fixed ping compile problem, size reduction
-	* Aaron Lehmann -- slimmed down md5sum 
-	* David McCullough and Erik Andersen -- make busybox more uClinux
-	    friendly.  Busybox _should_ now work on uClinux systems without
-	    needing and source code changes (applets that won't work on
-	    uClinux systems are now automagicaly disabled).
+	    -- Better devfs support
+	    -- Don't save/restore vi readonly flag if vi is compiled read-only.
+	    -- Reworked rdate option handling (is now smaller).
+	* Aaron Lehmann 
+	    -- slimmed down md5sum 
+	    -- contributed a nice new (hand written, not lex/yacc) Posix math 
+		support for ash, which is once again a full posix shell.
 	* Felix von Leitner <leitner@convergence.de> -- patches to make busybox 
 	    work with dietlibc.
+	* David McCullough
+	    -- Adjustments to make busybox more uClinux friendly
+	* Glenn McGrath 
+	    -- Fixed gzip so when a filename is '-' it will use stdin/stdout
+	    -- dpkg rewrite.  Should now be compatable with the real dpkg, 
+		but needs more testing.
+	    -- Updates to archiving tools (gunzip/gzip/cpio/ar/etc) 
+	    -- Rewrote uuencode, will allow base64 encoding to be used by wget
+	* Vladimir Oleynik 
+	    -- Fixed tr to support 'tr a-z A-Z' syntax,
+	    -- Many ash corrections, optimizations, and cleanups.
+	    -- optimizations for traceroute, md5sum, chown, ping
+	    -- cmdedit updates and API change
+	    -- Namespace cleanup (i.e. adding 'static' private function calls)
+	    -- added "stopped jobs" warning to ash on exit
 
-	 -Not Yet Released
+
+	 -Erik Andersen, 31 July 2001
 
 
 
