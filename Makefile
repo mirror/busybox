@@ -317,7 +317,10 @@ loop.h: mk_loop_h.sh
 	@ $(SHELL) $< > $@
 
 test tests:
-	cd tests && $(MAKE) all
+	# old way of doing it
+	#cd tests && $(MAKE) all
+	# new way of doing it
+	cd tests && ./tester.sh
 
 clean:
 	- cd tests && $(MAKE) clean
