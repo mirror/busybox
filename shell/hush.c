@@ -213,7 +213,6 @@ struct pipe {
 	int job_context;			/* bitmask defining current context */
 	pipe_style followup;		/* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
 	reserved_style r_mode;		/* supports if, for, while, until */
-	struct jobset *job_list;
 };
 
 struct jobset {
@@ -244,7 +243,7 @@ static int fake_mode=0;
 static int interactive=0;
 static struct close_me *close_me_head = NULL;
 static char *cwd;
-/* static struct jobset job_list = { NULL, NULL }; */
+static struct jobset *job_list;
 static unsigned int last_bg_pid=0;
 static char *PS1;
 static char *PS2 = "> ";
@@ -377,6 +376,11 @@ static int parse_stream(o_string *dest, struct p_context *ctx, struct in_str *in
 static int parse_stream_outer(struct in_str *inp);
 static int parse_string_outer(const char *s);
 static int parse_file_outer(FILE *f);
+/*   job management: */
+static void checkjobs();
+static void insert_bg_job(struct pipe *pi);
+static void remove_bg_job(struct pipe *pi);
+static void free_pipe(struct pipe *pi);
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -481,7 +485,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 
-	for (job = child->family->job_list->head; job; job = job->next) {
+	for (job = job_list->head; job; job = job->next) {
 		if (job->jobid == jobNum) {
 			break;
 		}
@@ -498,7 +502,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
 			perror_msg("tcsetpgrp"); 
-		child->family->job_list->fg = job;
+		job_list->fg = job;
 	}
 
 	/* Restart the processes in the job */
@@ -533,7 +537,7 @@ static int builtin_jobs(struct child_prog *child)
 	struct pipe *job;
 	char *status_string;
 
-	for (job = child->family->job_list->head; job; job = job->next) {
+	for (job = job_list->head; job; job = job->next) {
 		if (job->running_progs == job->stopped_progs)
 			status_string = "Stopped";
 		else
@@ -1031,6 +1035,121 @@ static void pseudo_exec(struct child_prog *child)
 	}
 }
 
+static void insert_bg_job(struct pipe *pi)
+{
+	struct pipe *thejob;
+
+	/* Linear search for the ID of the job to use */
+	pi->jobid = 1;
+	for (thejob = job_list->head; thejob; thejob = thejob->next)
+		if (thejob->jobid >= pi->jobid)
+			pi->jobid = thejob->jobid + 1;
+
+	/* add thejob to the list of running jobs */
+	if (!job_list->head) {
+		thejob = job_list->head = xmalloc(sizeof(*thejob));
+	} else {
+		for (thejob = job_list->head; thejob->next; thejob = thejob->next) /* nothing */;
+		thejob->next = xmalloc(sizeof(*thejob));
+		thejob = thejob->next;
+	}
+
+	/* physically copy the struct job */
+	*thejob = *pi;   
+	thejob->next = NULL;
+	thejob->running_progs = thejob->num_progs;
+	thejob->stopped_progs = 0;
+
+	/* we don't wait for background thejobs to return -- append it 
+	   to the list of backgrounded thejobs and leave it alone */
+	printf("[%d] %d\n", pi->jobid, pi->pgrp);
+	last_bg_pid = pi->pgrp;
+}
+
+/* remove a backgrounded job from a jobset */
+static void remove_bg_job(struct pipe *pi)
+{
+	struct pipe *prev_pipe;
+
+	free_pipe(pi);
+	if (pi == job_list->head) {
+		job_list->head = pi->next;
+	} else {
+		prev_pipe = job_list->head;
+		while (prev_pipe->next != pi)
+			prev_pipe = prev_pipe->next;
+		prev_pipe->next = pi->next;
+	}
+
+	free(pi);
+}
+
+/* free up all memory from a pipe */
+static void free_pipe(struct pipe *pi)
+{
+	int i;
+
+	for (i = 0; i < pi->num_progs; i++) {
+		free(pi->progs[i].argv);
+		if (pi->progs[i].redirects)
+			free(pi->progs[i].redirects);
+	}
+	if (pi->progs)
+		free(pi->progs);
+	if (pi->text)
+		free(pi->text);
+	if (pi->cmdbuf)
+		free(pi->cmdbuf);
+	memset(pi, 0, sizeof(struct pipe));
+}
+
+/* Checks to see if any background processes have exited -- if they 
+   have, figure out why and see if a job has completed */
+static void checkjobs()
+{
+	int status;
+	int prognum = 0;
+	struct pipe *pi;
+	pid_t childpid;
+
+	while ((childpid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
+		for (pi = job_list->head; pi; pi = pi->next) {
+			prognum = 0;
+			while (prognum < pi->num_progs &&
+				   pi->progs[prognum].pid != childpid) prognum++;
+			if (prognum < pi->num_progs)
+				break;
+		}
+
+		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+			/* child exited */
+			pi->running_progs--;
+			pi->progs[prognum].pid = 0;
+
+			if (!pi->running_progs) {
+				printf(JOB_STATUS_FORMAT, pi->jobid, "Done", pi->text);
+				remove_bg_job(pi);
+			}
+		} else {
+			/* child stopped */
+			pi->stopped_progs++;
+			pi->progs[prognum].is_stopped = 1;
+
+			if (pi->stopped_progs == pi->num_progs) {
+				printf(JOB_STATUS_FORMAT, pi->jobid, "Stopped",
+						pi->text);
+			}
+		}
+	}
+
+	/* move the shell to the foreground */
+	if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
+		perror_msg("tcsetpgrp"); 
+
+	if (childpid == -1 && errno != ECHILD)
+		perror_msg("waitpid");
+}
+
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See pipe_wait().
  *
@@ -1106,6 +1225,8 @@ static int run_pipe_real(struct pipe *pi)
 
 		/* XXX test for failed fork()? */
 		if (!(child->pid = fork())) {
+			signal(SIGTTOU, SIG_DFL);
+			
 			close_all();
 
 			if (nextin != 0) {
@@ -1174,22 +1295,25 @@ static int run_list_real(struct pipe *pi)
 			/* XXX check bash's behavior with nontrivial pipes */
 			/* XXX compute jobid */
 			/* XXX what does bash do with attempts to background builtins? */
+#if 0
 			printf("[%d] %d\n", pi->jobid, pi->pgrp);
 			last_bg_pid = pi->pgrp;
+#endif	
+			insert_bg_job(pi);
 			rcode = EXIT_SUCCESS;
 		} else {
 			if (interactive) {
 				/* move the new process group into the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
-				signal(SIGTTIN, SIG_IGN);
-				signal(SIGTTOU, SIG_IGN);
+				//signal(SIGTTIN, SIG_IGN);
+				//signal(SIGTTOU, SIG_IGN);
 				if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
 				rcode = pipe_wait(pi);
 				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
-				signal(SIGTTIN, SIG_DFL);
-				signal(SIGTTOU, SIG_DFL);
+				//signal(SIGTTIN, SIG_DFL);
+				//signal(SIGTTOU, SIG_DFL);
 			} else {
 				rcode = pipe_wait(pi);
 			}
@@ -1202,6 +1326,7 @@ static int run_list_real(struct pipe *pi)
 			skip_more_in_this_rmode=rmode;
 			/* return rcode; */ /* XXX broken if list is part of if/then/else */
 	}
+	checkjobs();
 	return rcode;
 }
 
@@ -1298,7 +1423,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	int cnt, pathc;
 	const char *s;
 	char *dest;
-	for (cnt=1, s=src; s && *s; s++) {
+	for (cnt=1, s=src; *s; s++) {
 		if (*s == '\\') s++;
 		cnt++;
 	}
@@ -1315,7 +1440,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	if (pglob->gl_pathv == NULL) return GLOB_NOSPACE;
 	pglob->gl_pathv[pathc-1]=dest;
 	pglob->gl_pathv[pathc]=NULL;
-	for (s=src; s && *s; s++, dest++) {
+	for (s=src; *s; s++, dest++) {
 		if (*s == '\\') s++;
 		*dest = *s;
 	}
@@ -1482,8 +1607,6 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
 	struct reserved_combo *r;
-	if (dest->data == NULL)
-		return 0;
 	for (r=reserved_list;
 #define NRES sizeof(reserved_list)/sizeof(struct reserved_combo)
 		r<reserved_list+NRES; r++) {
@@ -2080,12 +2203,18 @@ int shell_main(int argc, char **argv)
 {
 	int opt;
 	FILE *input;
+	struct jobset joblist_end = { NULL, NULL };
+	job_list = &joblist_end;
 
 	last_return_code=EXIT_SUCCESS;
 
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;
 	global_argv = argv;
+
+	/* don't pay any attention to this signal; it just confuses 
+	   things and isn't really meant for shells anyway */
+	signal(SIGTTOU, SIG_IGN);
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
