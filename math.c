@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
 #include "internal.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -131,14 +132,58 @@ static void stack_machine(const char *argument)
 	exit(-1);
 }
 
+/* return pointer to next token in buffer and set *buffer to one char
+ * past the end of the above mentioned token 
+ */
+static char *get_token(char **buffer)
+{
+	char *start   = NULL;
+	char *current = *buffer;
+
+	while (isspace(*current)) { current++; }
+	if (*current != 0) {
+		start = current;
+		while (!isspace(*current) && current != 0) { current++; }
+		*buffer = current;
+	}
+	return start;
+}
+
+/* In Perl one might say, scalar m|\s*(\S+)\s*|g */
+static int number_of_tokens(char *buffer)
+{
+	int   i = 0;
+	char *b = buffer;
+	while (get_token(&b)) { i++; }
+	return i;
+}
+
 int math_main(int argc, char **argv)
 {
-	if (argc <= 1 || *argv[1]=='-')
-		usage(math_usage);
-	while (argc >= 2) {
-		stack_machine(argv[1]);
-		argv++;
-		argc--;
+	/* take stuff from stdin if no args are given */
+	if (argc <= 1) {
+		int i, len;
+		char *line   = NULL;
+		char *cursor = NULL;
+		char *token  = NULL;
+		while ((line = cstring_lineFromFile(stdin))) {
+			cursor = line;
+			len = number_of_tokens(line);
+			for (i = 0; i < len; i++) {
+				token = get_token(&cursor);
+				*cursor++ = 0;
+				stack_machine(token);
+			}
+			free(line);
+		}
+	} else {
+		if (*argv[1]=='-')
+			usage(math_usage);
+		while (argc >= 2) {
+			stack_machine(argv[1]);
+			argv++;
+			argc--;
+		}
 	}
 	stack_machine(0);
 	exit( TRUE);
