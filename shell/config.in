@@ -52,6 +52,8 @@ comment 'Bourne Shell Options'
 bool 'command line editing'		CONFIG_FEATURE_COMMAND_EDITING
 bool 'tab completion'			CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 bool 'username completion'		CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+int  'history size'             CONFIG_FEATURE_COMMAND_HISTORY  15
+bool 'history saving (currently only ash)'         CONFIG_FEATURE_COMMAND_SAVEHISTORY
 bool 'Standalone shell'			CONFIG_FEATURE_SH_STANDALONE_SHELL
 bool 'Standalone shell -- applets always win'	CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 bool 'Fancy shell prompts'	CONFIG_FEATURE_SH_FANCY_PROMPT

@@ -7356,6 +7356,10 @@ int ash_main(int argc, char **argv)
 
 	if (sflag || minusc == NULL) {
 	  state4:			/* XXX ??? - why isn't this before the "if" statement */
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	    if ( iflag )
+	    	load_history ( ".ash_history" );
+#endif
 		cmdloop(1);
 	}
 #if PROFILE
@@ -7546,6 +7550,11 @@ static int exitcmd(int argc, char **argv)
 {
 	if (stoppedjobs())
 		return 0;
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	if ( iflag )
+		save_history ( ".ash_history" );
+#endif			
+		
 	if (argc > 1)
 		exitstatus = number(argv[1]);
 	else

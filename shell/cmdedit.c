@@ -90,7 +90,12 @@
 
 
 /* Maximum length of the linked list for the command line history */
-#define MAX_HISTORY 15
+#ifndef CONFIG_FEATURE_COMMAND_HISTORY
+#define MAX_HISTORY   15
+#else
+#define MAX_HISTORY   CONFIG_FEATURE_COMMAND_HISTORY
+#endif
+
 #if MAX_HISTORY < 1
 #warning cmdedit: You set MAX_HISTORY < 1. The history algorithm switched off.
 #else
@@ -1125,6 +1130,55 @@ static int get_next_history(void)
 		return 0;
 	}
 }
+
+
+extern void load_history ( char *fromfile )
+{
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	FILE *fp;
+
+	// cleanup old
+	while ( n_history ) {
+		if ( history [n_history - 1] )
+			free ( history [n_history - 1] );
+		n_history--;
+	}
+
+	if (( fp = fopen ( fromfile, "r" ))) {
+		char buffer [256];
+		int i, l;
+	
+		for ( i = 0; i < MAX_HISTORY; i++ ) {
+			if ( !fgets ( buffer, sizeof( buffer ) - 1, fp ))
+				break;
+			l = xstrlen	( buffer );
+			if ( l && buffer [l - 1] == '\n' )
+				buffer [l - 1] = 0;
+			history [n_history++] = xstrdup ( buffer );
+		}
+		fclose ( fp );
+	}
+	cur_history = n_history;
+#endif
+}
+
+extern void save_history ( char *tofile )
+{
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	FILE *fp = fopen ( tofile, "w" );
+	
+	if ( fp ) {
+		int i;
+		
+		for ( i = 0; i < n_history; i++ ) {
+			fputs ( history [i], fp );
+			fputc ( '\n', fp );
+		}
+		fclose ( fp );
+	}
+#endif
+}
+
 #endif
 
 enum {
