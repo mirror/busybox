@@ -29,7 +29,7 @@
 
 extern int renice_main(int argc, char **argv)
 {
-	int prio, err = 0;
+	int prio, status = EXIT_SUCCESS;
 	
 	if (argc < 3)	usage(renice_usage);
 		
@@ -44,10 +44,10 @@ extern int renice_main(int argc, char **argv)
 		if (setpriority(PRIO_PROCESS, ps, prio) == 0) {
 			printf("%d: old priority %d, new priority %d\n", ps, oldp, prio );
 		} else {
-			fprintf(stderr, "renice: %d: setpriority: ", ps);
-			perror("");
-			err = 1;
+			perrorMsg("%d: setpriority", ps);
+			status = EXIT_FAILURE;
 		}
 	}
-	exit(err);
+
+	return status;
 }
