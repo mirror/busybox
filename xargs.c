@@ -45,7 +45,7 @@ int xargs_main(int argc, char **argv)
 	/* Store the command to be executed (taken from the command line) */
 	if (argc == 1) {
 		/* default behavior is to echo all the filenames */
-		cmd_to_be_executed = strdup("/bin/echo ");
+		cmd_to_be_executed = xstrdup("/bin/echo ");
 	} else {
 		/* concatenate all the arguments passed to xargs together */
 		int i;
