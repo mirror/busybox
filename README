@@ -2,44 +2,40 @@ Please see the LICENSE file for details on copying and usage.
 
 BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
-you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
-tar, etc. BusyBox provides a fairly complete POSIX environment for any small or
-embedded system. The utilities in BusyBox generally have fewer options than
-their full featured GNU cousins; however, the options that are included provide
-the expected functionality and behave very much like their GNU counterparts.
-
-BusyBox was originally written to support the Debian Rescue/Install disks, but
-it also makes an excellent environment for any small or embedded system.
+you usually find in GNU coreutils, util-linux, etc. The utilities in BusyBox
+generally have fewer options than their full-featured GNU cousins; however, the
+options that are included provide the expected functionality and behave very
+much like their GNU counterparts. BusyBox provides a fairly complete POSIX
+environment for any small or embedded system.
 
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
-systems. To create a working system, just add /dev, /etc, and a kernel.
+systems. To create a working system, just add /dev, /etc, and a Linux kernel.
 
-As of version 0.20 there is now a version number. : ) Also as of version 0.20,
-BusyBox is now modularized to easily allow you to build only the components you
-need, thereby reducing binary size. Run 'make config' or 'make menuconfig'
-for select the functionality that you wish to enable.
+BusyBox is extremely configurable.  This allows you to include only the
+components you need, thereby reducing binary size. Run 'make config' or
+'make menuconfig' for select the functionality that you wish to enable.
 
 After the build is complete, a busybox.links file is generated.  This is
-used by 'make install' to create symlinks to the busybox binary for all
+used by 'make install' to create symlinks to the BusyBox binary for all
 compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e., 'make PREFIX=/tmp/foo install')
 
-If you wish to install hardlinks, rather than symlinks, you can use
-'make install-hardlinks' instead.
+If you wish to install hard links, rather than symlinks, you can use
+'make PREFIX=/tmp/foo install-hardlinks' instead.
 
 ----------------
 
 Supported architectures:
 
-   Busybox in general will build on any architecture supported by gcc.  It has
+   BusyBox in general will build on any architecture supported by gcc.  It has
    a few specialized features added for __sparc__ and __alpha__.  insmod
    functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k,
    MIPS, cris, and v850e.
 
-Supported libcs:
+Supported C Libraries:
 
    glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, glibc-2.3.x, uClibc.  People
    are looking at newlib and diet-libc, but consider them unsupported,
@@ -66,7 +62,7 @@ the mailing list if you are interested.
 
 Bugs:
 
-If you find bugs, please submit a detailed bug report to the busybox mailing
+If you find bugs, please submit a detailed bug report to the BusyBox mailing
 list at busybox@mail.busybox.net.  A well-written bug report should include a
 transcript of a shell session that demonstrates the bad behavior and enables
 anyone else to duplicate the bug on their own machine. The following is such
@@ -76,21 +72,21 @@ an example:
     From: diligent@testing.linux.org
     Subject: /bin/date doesn't work
 
-    Package: busybox
+    Package: BusyBox
     Version: 1.00
 
-    When I execute Busybox 'date' it produces unexpected results.
+    When I execute BusyBox 'date' it produces unexpected results.
     With GNU date I get the following output:
 
 	$ date
-	Wed Mar 21 14:19:41 MST 2001
+	Sat Mar 27 14:19:41 MST 2004
 
     But when I use BusyBox date I get this instead:
 
 	$ date
-	llegal instruction
+	illegal instruction
 
-    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder,
+    I am using Debian unstable, kernel version 2.4.25-vrs2 on a Netwinder,
     and the latest uClibc from CVS.  Thanks for the wonderful program!
 
 	-Diligent
@@ -101,7 +97,7 @@ reports lacking such detail may never be fixed...  Thanks for understanding.
 
 ----------------
 
-FTP:
+Downloads:
 
 Source for the latest released version, as well as daily snapshots, can always
 be downloaded from
@@ -124,6 +120,5 @@ For those that are actively contributing there is even CVS write access:
 
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen
-	<andersen@codepoet.org>
 	<andersen@codepoet.org>
 

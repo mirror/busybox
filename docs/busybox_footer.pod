@@ -1,23 +1,5 @@
 =back
 
-=head1 LIBC NSS
-
-GNU Libc uses the Name Service Switch (NSS) to configure the behavior of the C
-library for the local environment, and to configure how it reads system data,
-such as passwords and group information.  BusyBox has made it Policy that it
-will never use NSS, and will never use and libc calls that make use of NSS.
-This allows you to run an embedded system without the need for installing an
-/etc/nsswitch.conf file and without and /lib/libnss_* libraries installed.
-
-If you are using a system that is using a remote LDAP server for authentication
-via GNU libc NSS, and you want to use BusyBox, then you will need to adjust the
-BusyBox source.  Chances are though, that if you have enough space to install
-of that stuff on your system, then you probably want the full GNU utilities.
-
-=head1 SEE ALSO
-
-textutils(1), shellutils(1), etc...
-
 =head1 MAINTAINER
 
 Erik Andersen <andersen@codepoet.org>
@@ -173,4 +155,4 @@ Glenn Engel <glenne@engel.org>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.13 2004/03/13 08:32:14 andersen Exp $
+# $Id: busybox_footer.pod,v 1.14 2004/03/27 09:40:15 andersen Exp $
