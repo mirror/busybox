@@ -7,8 +7,8 @@ Standards-Version: 3.2.1.0
 Package: busybox
 Architecture: any
 Depends: ${shlibs:Depends}
-Conflicts: 
-Replaces: 
+Conflicts: busybox-static
+Replaces: busybox-static 
 Section: utils
 Description: Tiny utilities for small and embedded systems. 
  BusyBox combines tiny versions of many common UNIX utilities into a single
@@ -27,6 +27,8 @@ Description: Tiny utilities for small and embedded systems.
 Package: busybox-static
 Architecture: any
 Depends: ${shlibs:Depends}
+Conflicts: busybox
+Replaces: busybox
 Section: shells
 Description: Provides a stand alone rescue shell with tons of builtin utilities. 
  BusyBox combines tiny versions of many common UNIX utilities into a single

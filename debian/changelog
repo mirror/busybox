@@ -5,6 +5,7 @@ busybox (0.50pre-1) unstable; urgency=low
   * init compiles with DEBUG_INIT enabled (closes: #85794)
   * md5sum no longer displays filename when reading stdin (closes: #81283)
   * lsmod, rmmod, and insmod are no longer enabled (closes: #85642)
+  * busybox and buxybox-static now conflict/replace each other (closes: #80421)
   * Not yet released.
   * See changelog for details.
 
