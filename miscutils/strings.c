@@ -50,7 +50,7 @@ int strings_main(int argc, char **argv)
 	minlen = -1;
 	while ((ch = getopt(argc, argv, "an:of")) > 0)
 		switch(ch) {
-			case '-':
+			case 'a':
 				break;
 			case 'f':
 				fflg = 1;
@@ -86,6 +86,7 @@ int strings_main(int argc, char **argv)
 		foff = 0;
 
 		for (cnt = 0; (ch = getchar()) != EOF;) {
+			foff++;
 			if (ISSTR(ch)) {
 				if (!cnt)
 					C = bfr;
@@ -95,7 +96,7 @@ int strings_main(int argc, char **argv)
 				if (fflg)
 					printf("%s:", file);
 				if (oflg)
-					printf("%07ld %s", (long)(foff - minlen), (char *)bfr);
+					printf("%7ld %s", (long)(foff - minlen), (char *)bfr);
 				else
 					printf("%s", bfr);
 				while ((ch = getchar()) != EOF && ISSTR(ch))
