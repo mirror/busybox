@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.1 2001/04/19 16:55:27 andersen Exp $
+ * Version:     $Id: interface.c,v 1.2 2001/05/05 03:19:12 bug1 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -36,8 +36,6 @@
  */
 
 /* #define KEEP_UNUSED */
-
-#include "libbb.h"
 
 /* 
  * 
@@ -80,6 +78,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
+#include "libbb.h"
 
 #define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
