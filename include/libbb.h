@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <termios.h>
+#include <stdint.h>
 
 #include <netdb.h>
 
