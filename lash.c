@@ -797,9 +797,13 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 			/* we need to remove whatever \ quoting is still present */
 			src = dst = prog->argv[argc_l - 1];
 			while (*src) {
-				if (*src != '\\')
+				if (*src == '\\') {
+					src++; 
+					*dst++ = process_escape_sequence(&src);
+				} else { 
 					*dst++ = *src;
-				src++;
+					src++;
+				}
 			}
 			*dst = '\0';
 		} else if (!rc) {
@@ -812,11 +816,16 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 	}else{
 	 		src = dst = prog->argv[argc_l - 1];
 			while (*src) {
-				if (*src != '\\')
+				if (*src == '\\') {
+					src++; 
+					*dst++ = process_escape_sequence(&src);
+				} else { 
 					*dst++ = *src;
-				src++;
+					src++;
+				}
 			}
 			*dst = '\0';
+			
 			prog->globResult.gl_pathc=0;
 			if (flags==0)
 				prog->globResult.gl_pathv=NULL;
