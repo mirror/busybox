@@ -440,8 +440,8 @@ extern int mount_main(int argc, char **argv)
 			device = strdup(m->mnt_fsname);
 			directory = strdup(m->mnt_dir);
 			filesystemType = strdup(m->mnt_type);
-			string_flags = strdup(string_flags);
 singlemount:			
+			string_flags = strdup(string_flags);
 			rc = EXIT_SUCCESS;
 #ifdef BB_NFSMOUNT
 			if (strchr(device, ':') != NULL)
