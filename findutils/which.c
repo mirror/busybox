@@ -38,15 +38,16 @@ extern int which_main(int argc, char **argv)
 	argc--;
 
 	path_list = getenv("PATH");
-	if (!path_list)
-		path_list = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin";
-
-	/* Replace colons with zeros in path_parsed and count them */
-	for(i=strlen(path_list); i > 0; i--) 
-		if (path_list[i]==':') {
-			path_list[i]=0;
-			count++;
-		}
+	if (path_list != NULL) {
+		for(i=strlen(path_list); i > 0; i--)
+			if (path_list[i]==':') {
+				path_list[i]=0;
+				count++;
+			}
+	} else {
+		path_list = "/bin\0/sbin\0/usr/bin\0/usr/sbin\0/usr/local/bin";
+		count = 5;
+	}
 
 	while(argc-- > 0) { 
 		path_n = path_list;
