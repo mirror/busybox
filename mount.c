@@ -334,12 +334,14 @@ void show_mounts()
 
 extern int mount_main(int argc, char **argv)
 {
+	struct stat statbuf;
 	char string_flags_buf[1024] = "";
 	char *string_flags = string_flags_buf;
 	char *extra_opts = string_flags_buf;
 	int flags = 0;
 	char *filesystemType = "auto";
-	char device[PATH_MAX], directory[PATH_MAX];
+	char *device = xmalloc(PATH_MAX);
+	char *directory = xmalloc(PATH_MAX);
 	int all = FALSE;
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
@@ -382,19 +384,23 @@ extern int mount_main(int argc, char **argv)
 		show_mounts();
 
 	if (optind < argc) {
-		/* Don't canonicalize NFS devices.  */
-		if (strchr(argv[optind], ':') != NULL)
+		/* if device is a filename get its real path */
+		if ((strchr(argv[optind], ':') == NULL) &&
+			(stat(argv[optind], &statbuf) == 0)) {
+			realpath(argv[optind], device);
+		} else {
 			safe_strncpy(device, argv[optind], PATH_MAX);
-		else if (realpath(argv[optind], device) == NULL)
-			perror_msg_and_die("%s", device);
+		}
 	}
 
-	if (optind + 1 < argc)
-		if (realpath(argv[optind + 1], directory) == NULL)
-			perror_msg_and_die("%s", directory);
-
+	if (optind + 1 < argc) {
+		if (realpath(argv[optind + 1], directory) == NULL) {
+			perror_msg_and_die("Invalid directory %s", directory);
+		}
+	}
+	
 	if (all == TRUE || optind + 1 == argc) {
-		struct mntent *m;
+		struct mntent *m = NULL;
 		FILE *f = setmntent("/etc/fstab", "r");
 		fstabmount = TRUE;
 
