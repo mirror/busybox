@@ -30,7 +30,8 @@
 	 - edit commands: (a)ppend, (i)nsert, (c)hange
 	 - file commands: (r)ead
 	 - backreferences in substitution expressions (\1, \2...\9)
-	 
+	 - grouped commands: {cmd1;cmd2}
+
 	 (Note: Specifying an address (range) to match is *optional*; commands
 	 default to the whole pattern space if no specific address match was
 	 requested.)
@@ -226,7 +227,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 
 	/* verify that the 's' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
-	if (!substr[++idx])
+	if (substr[idx] == '\0')
 		error_msg_and_die("bad format in substitution expression");
 	else
 	    sed_cmd->delimiter=substr[idx];
@@ -287,11 +288,6 @@ out:
 	return idx;
 }
 
-static void move_back(char *str, int offset)
-{
-	memmove(str, str + offset, strlen(str + offset) + 1);
-}
-
 static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 {
 	int i, j;
@@ -317,15 +313,15 @@ static int parse_edit_cmd(sed_cmd_t *sed_cmd, const char *editstr)
 	 * is a-ok.
 	 *
 	 */
-
-	if (editstr[1] != '\\' || (editstr[2] != '\n' && editstr[2] != '\r'))
+	if ((*editstr != '\\') || ((editstr[1] != '\n') && (editstr[1] != '\r'))) {
 		error_msg_and_die("bad format in edit expression");
+	}
 
 	/* store the edit line text */
-	sed_cmd->editline = xmalloc(strlen(&editstr[3]) + 2);
-	for (i = 3, j = 0; editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL;
+	sed_cmd->editline = xmalloc(strlen(&editstr[2]) + 2);
+	for (i = 2, j = 0; editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL;
 			i++, j++) {
-		if (editstr[i] == '\\' && strchr("\n\r", editstr[i+1]) != NULL) {
+		if ((editstr[i] == '\\') && strchr("\n\r", editstr[i+1]) != NULL) {
 			sed_cmd->editline[j] = '\n';
 			i++;
 		} else
@@ -382,59 +378,6 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr)
 
 static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
-	/* parse the command
-	 * format is: [addr][,addr]cmd
-	 *            |----||-----||-|
-	 *            part1 part2  part3
-	 */
-
-	/* first part (if present) is an address: either a '$', a number or a /regex/ */
-	cmdstr += get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
-
-	/* second part (if present) will begin with a comma */
-	if (*cmdstr == ',') {
-		int tmp_idx;
-		cmdstr++;
-		tmp_idx = get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
-		if (tmp_idx == 0) {
-			error_msg_and_die("get_address: no address found in string\n"
-				"\t(you probably didn't check the string you passed me)");
-		}
-		cmdstr += tmp_idx;
-	}
-
-	/* skip whitespace before the command */
-	while (isspace(*cmdstr))
-		cmdstr++;
-
-	/* there my be the inversion flag between part2 and part3 */
-	sed_cmd->invert = 0;
-	if (*cmdstr == '!') {
-		sed_cmd->invert = 1;
-		cmdstr++;
-
-#ifdef SED_FEATURE_STRICT_CHECKING
-		/* According to the spec
-		 * It is unspecified whether <blank>s can follow a '!' character,
-		 * and conforming applications shall not follow a '!' character
-		 * with <blank>s.
-		 */
-		if (isblank(*cmdstr) {
-			error_msg_and_die("blank follows '!'");
-		}
-#else 
-		/* skip whitespace before the command */
-		while (isspace(*cmdstr))
-			cmdstr++;
-#endif
-	}
-
-	/* last part (mandatory) will be a command */
-	if (*cmdstr == '\0')
-		error_msg_and_die("missing command");
-
-	sed_cmd->cmd = *cmdstr;
-
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
 	if (strchr("pd=", sed_cmd->cmd)) {
@@ -456,6 +399,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 			error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr);
 	}
+	/* handle grouped commands */
 	else {
 		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
@@ -464,31 +408,105 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	return(cmdstr);
 }
 
-static void add_cmd_str(const char * const cmdstr)
+static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 {
-	char *mystr = (char *)cmdstr;
+	
+	/* Skip over leading whitespace and semicolons */
+	cmdstr += strspn(cmdstr, semicolon_whitespace);
 
-	do {
+	/* if we ate the whole thing, that means there was just trailing
+	 * whitespace or a final / no-op semicolon. either way, get out */
+	if (*cmdstr == '\0') {
+		return(NULL);
+	}
 
-		/* trim leading whitespace and semicolons */
-		move_back(mystr, strspn(mystr, semicolon_whitespace));
-		/* if we ate the whole thing, that means there was just trailing
-		 * whitespace or a final / no-op semicolon. either way, get out */
-		if (strlen(mystr) == 0)
-			return;
-		/* if this is a comment, jump past it and keep going */
-		if (mystr[0] == '#') {
-			mystr = strpbrk(mystr, "\n\r");
-			continue;
+	/* if this is a comment, jump past it and keep going */
+	if (*cmdstr == '#') {
+		return(strpbrk(cmdstr, "\n\r"));
+	}
+
+	/* parse the command
+	 * format is: [addr][,addr]cmd
+	 *            |----||-----||-|
+	 *            part1 part2  part3
+	 */
+
+	/* first part (if present) is an address: either a '$', a number or a /regex/ */
+	cmdstr += get_address(&(sed_cmd->delimiter), cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+
+	/* second part (if present) will begin with a comma */
+	if (*cmdstr == ',') {
+		int idx;
+		cmdstr++;
+		idx = get_address(&(sed_cmd->delimiter), cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
+		if (idx == 0) {
+			error_msg_and_die("get_address: no address found in string\n"
+				"\t(you probably didn't check the string you passed me)");
 		}
-		/* grow the array */
-		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t *) * (++ncmds));
-		/* zero new element */
-		sed_cmds[ncmds-1] = xcalloc(1, sizeof(sed_cmd_t));
-		/* load command string into new array element, get remainder */
-		mystr = parse_cmd_str(sed_cmds[ncmds-1], mystr);
+		cmdstr += idx;
+	}
 
-	} while (mystr && strlen(mystr));
+	/* skip whitespace before the command */
+	while (isspace(*cmdstr)) {
+		cmdstr++;
+	}
+
+	/* there my be the inversion flag between part2 and part3 */
+	if (*cmdstr == '!') {
+		sed_cmd->invert = 1;
+		cmdstr++;
+
+#ifdef SED_FEATURE_STRICT_CHECKING
+		/* According to the spec
+		 * It is unspecified whether <blank>s can follow a '!' character,
+		 * and conforming applications shall not follow a '!' character
+		 * with <blank>s.
+		 */
+		if (isblank(cmdstr[idx]) {
+			error_msg_and_die("blank follows '!'");
+		}
+#else 
+		/* skip whitespace before the command */
+		while (isspace(*cmdstr)) {
+			cmdstr++;
+		}
+#endif
+
+	}
+
+	/* last part (mandatory) will be a command */
+	if (*cmdstr == '\0')
+		error_msg_and_die("missing command");
+
+	sed_cmd->cmd = *cmdstr;
+	cmdstr++;
+
+	if (sed_cmd->cmd == '{') {
+		do {
+			char *end_ptr = strpbrk(cmdstr, ";}");
+			*end_ptr = '\0';
+			add_cmd(sed_cmd, cmdstr);
+			cmdstr = end_ptr + 1;
+		} while (*cmdstr != '\0');
+	} else {
+
+		cmdstr = parse_cmd_str(sed_cmd, cmdstr);
+
+		/* Add the command to the command array */
+		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t) * (++ncmds));
+		sed_cmds[ncmds-1] = xmalloc(sizeof(sed_cmd_t));
+		memcpy(sed_cmds[ncmds-1], sed_cmd, sizeof(sed_cmd_t));
+	}
+	return(cmdstr);
+}
+
+static void add_cmd_str(char *cmdstr)
+{
+	do {
+		sed_cmd_t *sed_cmd;
+		sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
+		cmdstr = add_cmd(sed_cmd, cmdstr);
+	} while (cmdstr && strlen(cmdstr));
 }
 
 
@@ -867,7 +885,6 @@ extern int sed_main(int argc, char **argv)
 			optind++;
 		}
 	}
-
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
