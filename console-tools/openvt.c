@@ -3,6 +3,7 @@
  *  openvt.c - open a vt to run a command.
  *
  *  busyboxed by Quy Tonthat <quy@signal3.com>
+ *  hacked by Tito <farmatito@tiscali.it>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,8 +40,7 @@ int openvt_main(int argc, char **argv)
 	int fd;
 	int vtno;
 	char vtname[sizeof VTNAME + 2];
-	char * cmd = NULL;
-	char * cmd_args = NULL;
+
 
 	if (argc < 3)
         bb_show_usage();
@@ -56,9 +56,8 @@ int openvt_main(int argc, char **argv)
 
 	sprintf(vtname, VTNAME, vtno);
 
-	cmd = argv[2];
-	cmd_args = xmalloc(80);
-	cmd_args[0] = '\0';
+	argv+=2;
+	argc-=2;
 
 	if((pid = fork()) == 0) {
 		/* leave current vt */
@@ -83,8 +82,7 @@ int openvt_main(int argc, char **argv)
 		dup(fd);
 		dup(fd);
 
-		execvp(cmd, &argv[2]);
-		/*execlp(cmd, cmd_args);*/
+		execvp(argv[0], argv);
 		_exit(1);
 	}
 	return EXIT_SUCCESS;
