@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini mkdir implementation for busybox
  *
@@ -28,14 +29,15 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <sys/param.h>		/* for PATH_MAX */
+#include <sys/param.h>			/* for PATH_MAX */
 
 static const char mkdir_usage[] =
-"mkdir [OPTION] DIRECTORY...\n\n"
-"Create the DIRECTORY(ies), if they do not already exist\n\n"
-"Options:\n"
-"\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"
-"\t-p\tno error if existing, make parent directories as needed\n";
+	"mkdir [OPTION] DIRECTORY...\n\n"
+	"Create the DIRECTORY(ies), if they do not already exist\n\n"
+	"Options:\n"
+
+	"\t-m\tset permission mode (as in chmod), not rwxrwxrwx - umask\n"
+	"\t-p\tno error if existing, make parent directories as needed\n";
 
 
 static int parentFlag = FALSE;
@@ -44,71 +46,70 @@ static mode_t mode = 0777;
 
 extern int mkdir_main(int argc, char **argv)
 {
-    int i = FALSE;
-    argc--;
-    argv++;
+	int i = FALSE;
 
-    /* Parse any options */
-    while (argc > 0 && **argv == '-') {
-	while (i == FALSE && *++(*argv)) {
-	    switch (**argv) {
-	    case 'm':
-		if (--argc == 0)
-		    usage( mkdir_usage);
-		/* Find the specified modes */
-		mode = 0;
-		if (parse_mode(*(++argv), &mode) == FALSE ) {
-		    fprintf(stderr, "Unknown mode: %s\n", *argv);
-		    exit FALSE;
+	argc--;
+	argv++;
+
+	/* Parse any options */
+	while (argc > 0 && **argv == '-') {
+		while (i == FALSE && *++(*argv)) {
+			switch (**argv) {
+			case 'm':
+				if (--argc == 0)
+					usage(mkdir_usage);
+				/* Find the specified modes */
+				mode = 0;
+				if (parse_mode(*(++argv), &mode) == FALSE) {
+					fprintf(stderr, "Unknown mode: %s\n", *argv);
+					exit FALSE;
+				}
+				/* Set the umask for this process so it doesn't 
+				 * screw up whatever the user just entered. */
+				umask(0);
+				i = TRUE;
+				break;
+			case 'p':
+				parentFlag = TRUE;
+				break;
+			default:
+				usage(mkdir_usage);
+			}
 		}
-		/* Set the umask for this process so it doesn't 
-		 * screw up whatever the user just entered. */
-		umask(0);
-		i = TRUE;
-		break;
-	    case 'p':
-		parentFlag = TRUE;
-		break;
-	    default:
-		usage( mkdir_usage);
-	    }
+		argc--;
+		argv++;
 	}
-	argc--;
-	argv++;
-    }
 
-    if (argc < 1) {
-	usage( mkdir_usage);
-    }
+	if (argc < 1) {
+		usage(mkdir_usage);
+	}
 
-    while (argc > 0) {
-	int status;
-	struct stat statBuf;
-	char buf[PATH_MAX + 1];
-	if (strlen(*argv) > PATH_MAX - 1) {
-	    fprintf(stderr, name_too_long, "mkdir");
-	    exit FALSE;
+	while (argc > 0) {
+		int status;
+		struct stat statBuf;
+		char buf[PATH_MAX + 1];
+
+		if (strlen(*argv) > PATH_MAX - 1) {
+			fprintf(stderr, name_too_long, "mkdir");
+			exit FALSE;
+		}
+		strcpy(buf, *argv);
+		status = stat(buf, &statBuf);
+		if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
+			fprintf(stderr, "%s: File exists\n", buf);
+			exit FALSE;
+		}
+		if (parentFlag == TRUE) {
+			strcat(buf, "/");
+			createPath(buf, mode);
+		} else {
+			if (mkdir(buf, mode) != 0 && parentFlag == FALSE) {
+				perror(buf);
+				exit FALSE;
+			}
+		}
+		argc--;
+		argv++;
 	}
-	strcpy (buf, *argv);
-	status = stat(buf, &statBuf);
-	if (parentFlag == FALSE && status != -1 && errno != ENOENT) {
-	    fprintf(stderr, "%s: File exists\n", buf);
-	    exit FALSE;
-	}
-	if (parentFlag == TRUE) {
-	    strcat( buf, "/");
-	    createPath(buf, mode);
-	}
-	else { 
-	    if (mkdir (buf, mode) != 0 && parentFlag == FALSE) {
-		perror(buf);
-		exit FALSE;
-	    }
-	}
-	argc--;
-	argv++;
-    }
-    exit TRUE;
+	exit TRUE;
 }
-
-

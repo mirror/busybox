@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Copyright (C) 2000 by BitterSweet Enterprises, LLC.
  * Written by Karl M. Hegbloom <karlheg@debian.org>
@@ -40,25 +41,19 @@
 #if defined bb_need_name_too_long || ! defined BB_DECLARE_EXTERN
 BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
 #endif
-
 #if defined bb_need_omitting_directory || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(omitting_directory, "%s: %s: omitting directory\n")
+	BB_DEF_MESSAGE(omitting_directory, "%s: %s: omitting directory\n")
 #endif
-
 #if defined bb_need_not_a_directory || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(not_a_directory, "%s: %s: not a directory\n")
+	BB_DEF_MESSAGE(not_a_directory, "%s: %s: not a directory\n")
 #endif
-
 #if defined bb_need_memory_exhausted || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(memory_exhausted, "%s: memory exhausted\n")
+	BB_DEF_MESSAGE(memory_exhausted, "%s: memory exhausted\n")
 #endif
-
 #if defined bb_need_invalid_date || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(invalid_date, "%s: invalid date `%s'\n")
+	BB_DEF_MESSAGE(invalid_date, "%s: invalid date `%s'\n")
 #endif
-
 #if defined bb_need_invalid_option || ! defined BB_DECLARE_EXTERN
-BB_DEF_MESSAGE(invalid_option, "%s: invalid option -- %c\n")
+	BB_DEF_MESSAGE(invalid_option, "%s: invalid option -- %c\n")
 #endif
-
-#endif /* _BB_MESSAGES_C */
+#endif							/* _BB_MESSAGES_C */

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini rmdir implementation for busybox
  *
@@ -28,15 +29,16 @@
 
 extern int rmdir_main(int argc, char **argv)
 {
-    if ( argc==1 || **(argv+1) == '-' ) {
-	usage( "rmdir [OPTION]... DIRECTORY...\n\nRemove the DIRECTORY(ies), if they are empty.\n");
-    }
-
-    while (--argc > 0) {
-	if ( rmdir(*(++argv)) == -1 ) {
-	    fprintf(stderr, "%s: %s\n", *argv, strerror(errno));
-	    exit(FALSE);
+	if (argc == 1 || **(argv + 1) == '-') {
+		usage
+			("rmdir [OPTION]... DIRECTORY...\n\nRemove the DIRECTORY(ies), if they are empty.\n");
 	}
-    }
-    exit(TRUE);
+
+	while (--argc > 0) {
+		if (rmdir(*(++argv)) == -1) {
+			fprintf(stderr, "%s: %s\n", *argv, strerror(errno));
+			exit(FALSE);
+		}
+	}
+	exit(TRUE);
 }

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini chroot implementation for busybox
  *
@@ -28,39 +29,39 @@
 
 
 static const char chroot_usage[] = "chroot NEWROOT [COMMAND...]\n\n"
-"Run COMMAND with root directory set to NEWROOT.\n";
+
+	"Run COMMAND with root directory set to NEWROOT.\n";
 
 
 
 int chroot_main(int argc, char **argv)
 {
-    if ( (argc < 2) || (**(argv+1) == '-') ) {
-	usage( chroot_usage);
-    }
-    argc--;
-    argv++;
+	if ((argc < 2) || (**(argv + 1) == '-')) {
+		usage(chroot_usage);
+	}
+	argc--;
+	argv++;
 
-    if (chroot (*argv) || (chdir ("/"))) {
-	fprintf(stderr, "chroot: cannot change root directory to %s: %s\n",
-		*argv, strerror(errno));
-	exit( FALSE);
-    }
+	if (chroot(*argv) || (chdir("/"))) {
+		fprintf(stderr, "chroot: cannot change root directory to %s: %s\n",
+				*argv, strerror(errno));
+		exit(FALSE);
+	}
 
-    argc--;
-    argv++;
-    if (argc >= 1) {
-	fprintf(stderr, "command: %s\n", *argv);
-	execvp (*argv, argv);
-    }
-    else {
-	char *prog;
-	prog = getenv ("SHELL");
-	if (!prog)
-	    prog = "/bin/sh";
-	execlp (prog, prog, NULL);
-    }
-    fprintf(stderr, "chroot: cannot execute %s: %s\n",
-		*argv, strerror(errno));
-    exit( FALSE);
+	argc--;
+	argv++;
+	if (argc >= 1) {
+		fprintf(stderr, "command: %s\n", *argv);
+		execvp(*argv, argv);
+	} else {
+		char *prog;
+
+		prog = getenv("SHELL");
+		if (!prog)
+			prog = "/bin/sh";
+		execlp(prog, prog, NULL);
+	}
+	fprintf(stderr, "chroot: cannot execute %s: %s\n",
+			*argv, strerror(errno));
+	exit(FALSE);
 }
-

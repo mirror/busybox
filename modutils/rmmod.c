@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini rmmod implementation for busybox
  *
@@ -33,41 +34,41 @@ _syscall1(int, delete_module, const char *, name)
 
 
 static const char rmmod_usage[] =
-    "rmmod [OPTION]... [MODULE]...\n\n"
-    "Unloads the specified kernel modules from the kernel.\n\n"
-    "Options:\n"
-    "\t-a\tTry to remove all unused kernel modules.\n";
+	"rmmod [OPTION]... [MODULE]...\n\n"
+	"Unloads the specified kernel modules from the kernel.\n\n"
+
+	"Options:\n" "\t-a\tTry to remove all unused kernel modules.\n";
 
 
 
 extern int rmmod_main(int argc, char **argv)
 {
-    if (argc<=1) {
-	usage(rmmod_usage);
-    }
-
-    /* Parse any options */
-    while (--argc > 0 && **(++argv) == '-') {
-	while (*(++(*argv))) {
-	    switch (**argv) {
-	    case 'a':
-		/* Unload _all_ unused modules via NULL delete_module() call */
-		if (delete_module(NULL)) {
-		    perror("rmmod");
-		    exit( FALSE);
-		}
-		exit( TRUE);
-	    default:
+	if (argc <= 1) {
 		usage(rmmod_usage);
-	    }
 	}
-    }
 
-    while (argc-- > 0 ) {
-	if (delete_module(*argv) < 0) {
-	    perror(*argv);
+	/* Parse any options */
+	while (--argc > 0 && **(++argv) == '-') {
+		while (*(++(*argv))) {
+			switch (**argv) {
+			case 'a':
+				/* Unload _all_ unused modules via NULL delete_module() call */
+				if (delete_module(NULL)) {
+					perror("rmmod");
+					exit(FALSE);
+				}
+				exit(TRUE);
+			default:
+				usage(rmmod_usage);
+			}
+		}
 	}
-	argv++;
-    }
-    exit( TRUE);
+
+	while (argc-- > 0) {
+		if (delete_module(*argv) < 0) {
+			perror(*argv);
+		}
+		argv++;
+	}
+	exit(TRUE);
 }

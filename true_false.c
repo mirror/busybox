@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini true/false implementation for busybox
  *
@@ -24,15 +25,12 @@
 #include "internal.h"
 
 
-extern int
-true_main(int argc, char** argv)
+extern int true_main(int argc, char **argv)
 {
-	exit( TRUE);
+	exit(TRUE);
 }
 
-extern int
-false_main(int argc, char** argv)
+extern int false_main(int argc, char **argv)
 {
-	exit( FALSE);
+	exit(FALSE);
 }
-

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini df implementation for busybox
  *
@@ -29,81 +30,81 @@
 #include <fstab.h>
 
 static const char df_usage[] = "df [filesystem ...]\n"
-    "\n" "\tPrint the filesystem space used and space available.\n";
 
-extern const char mtab_file[]; /* Defined in utility.c */
+	"\n" "\tPrint the filesystem space used and space available.\n";
+
+extern const char mtab_file[];	/* Defined in utility.c */
 
 static int df(char *device, const char *mountPoint)
 {
-    struct statfs s;
-    long blocks_used;
-    long blocks_percent_used;
-    struct fstab* fstabItem;
+	struct statfs s;
+	long blocks_used;
+	long blocks_percent_used;
+	struct fstab *fstabItem;
 
-    if (statfs(mountPoint, &s) != 0) {
-	perror(mountPoint);
-	return FALSE;
-    }
-
-    if (s.f_blocks > 0) {
-	blocks_used = s.f_blocks - s.f_bfree;
-	blocks_percent_used = (long)
-	    (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
-	/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
-	if (strcmp (device, "/dev/root") == 0) {
-	    fstabItem = getfsfile ("/");
-	    if (fstabItem != NULL)
-		device = fstabItem->fs_spec;
+	if (statfs(mountPoint, &s) != 0) {
+		perror(mountPoint);
+		return FALSE;
 	}
-	printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
-	       device,
-	       (long) (s.f_blocks * (s.f_bsize / 1024.0)),
-	       (long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / 1024.0)),
-	       (long) (s.f_bavail * (s.f_bsize / 1024.0)),
-	       blocks_percent_used, mountPoint);
 
-    }
+	if (s.f_blocks > 0) {
+		blocks_used = s.f_blocks - s.f_bfree;
+		blocks_percent_used = (long)
+			(blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
+		/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
+		if (strcmp(device, "/dev/root") == 0) {
+			fstabItem = getfsfile("/");
+			if (fstabItem != NULL)
+				device = fstabItem->fs_spec;
+		}
+		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
+			   device,
+			   (long) (s.f_blocks * (s.f_bsize / 1024.0)),
+			   (long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / 1024.0)),
+			   (long) (s.f_bavail * (s.f_bsize / 1024.0)),
+			   blocks_percent_used, mountPoint);
 
-    return TRUE;
+	}
+
+	return TRUE;
 }
 
 extern int df_main(int argc, char **argv)
 {
-    printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
-	   "1k-blocks", "Used", "Available", "Use%", "Mounted on");
+	printf("%-20s %-14s %s %s %s %s\n", "Filesystem",
+		   "1k-blocks", "Used", "Available", "Use%", "Mounted on");
 
-    if (argc > 1) {
-	struct mntent *mountEntry;
-	int status;
+	if (argc > 1) {
+		struct mntent *mountEntry;
+		int status;
 
-	while (argc > 1) {
-	    if ((mountEntry = findMountPoint(argv[1], mtab_file)) ==
-		0) {
-		fprintf(stderr, "%s: can't find mount point.\n", argv[1]);
-		exit( FALSE);
-	    }
-	    status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
-	    if (status != 0)
-		exit( status);
-	    argc--;
-	    argv++;
+		while (argc > 1) {
+			if ((mountEntry = findMountPoint(argv[1], mtab_file)) == 0) {
+				fprintf(stderr, "%s: can't find mount point.\n", argv[1]);
+				exit(FALSE);
+			}
+			status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
+			if (status != 0)
+				exit(status);
+			argc--;
+			argv++;
+		}
+		exit(TRUE);
+	} else {
+		FILE *mountTable;
+		struct mntent *mountEntry;
+
+		mountTable = setmntent(mtab_file, "r");
+		if (mountTable == 0) {
+			perror(mtab_file);
+			exit(FALSE);
+		}
+
+		while ((mountEntry = getmntent(mountTable))) {
+			df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
+		}
+		endmntent(mountTable);
 	}
-	exit( TRUE);
-    } else {
-	FILE *mountTable;
-	struct mntent *mountEntry;
 
-	mountTable = setmntent(mtab_file, "r");
-	if (mountTable == 0) {
-	    perror(mtab_file);
-	    exit(FALSE);
-	}
-
-	while ((mountEntry = getmntent(mountTable))) {
-	    df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
-	}
-	endmntent(mountTable);
-    }
-
-    exit( TRUE);
+	exit(TRUE);
 }

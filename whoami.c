@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini whoami implementation for busybox
  *
@@ -24,21 +25,25 @@
 #include <pwd.h>
 
 static const char whoami_usage[] = "whoami\n\n"
-"Print the user name associated with the current effective user id.\n"
-"Same as id -un.\n";
+	"Print the user name associated with the current effective user id.\n"
 
-extern int whoami_main(int argc, char **argv) {
+	"Same as id -un.\n";
+
+extern int whoami_main(int argc, char **argv)
+{
 	struct passwd *pw;
 	uid_t uid;
 
-	if (argc > 1) usage (whoami_usage);
+	if (argc > 1)
+		usage(whoami_usage);
 
-	uid = geteuid ();
-	pw = getpwuid (uid);
+	uid = geteuid();
+	pw = getpwuid(uid);
 	if (pw) {
-		puts (pw->pw_name);
-		exit (TRUE);
-    	}
-	fprintf (stderr, "%s: cannot find username for UID %u\n", argv[0], (unsigned) uid);
-	exit (FALSE);
+		puts(pw->pw_name);
+		exit(TRUE);
+	}
+	fprintf(stderr, "%s: cannot find username for UID %u\n", argv[0],
+			(unsigned) uid);
+	exit(FALSE);
 }

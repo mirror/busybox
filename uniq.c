@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini uniq implementation for busybox
  *
@@ -27,119 +28,116 @@
 #include <errno.h>
 
 static const char uniq_usage[] =
-"uniq [OPTION]... [INPUT [OUTPUT]]\n"
-"Discard all but one of successive identical lines from INPUT (or\n"
-"standard input), writing to OUTPUT (or standard output).\n"
-"\n"
-"\t-h\tdisplay this help and exit\n"
-"\n"
-"A field is a run of whitespace, then non-whitespace characters.\n"
-"Fields are skipped before chars.\n"
-;
+	"uniq [OPTION]... [INPUT [OUTPUT]]\n"
+	"Discard all but one of successive identical lines from INPUT (or\n"
+	"standard input), writing to OUTPUT (or standard output).\n"
+	"\n"
+	"\t-h\tdisplay this help and exit\n"
+
+	"\n"
+	"A field is a run of whitespace, then non-whitespace characters.\n"
+	"Fields are skipped before chars.\n";
 
 /* max chars in line */
 #define UNIQ_MAX 4096
 
-typedef void (Print)(FILE *, const char *);
+typedef void (Print) (FILE *, const char *);
 
-typedef int (Decide)(const char *, const char *);
+typedef int (Decide) (const char *, const char *);
 
 /* container for two lines to be compared */
 typedef struct {
-    char    *a;
-    char    *b;
-    int	    recurrence;
-    FILE    *in;
-    FILE    *out;
-    void    *func;
+	char *a;
+	char *b;
+	int recurrence;
+	FILE *in;
+	FILE *out;
+	void *func;
 } Subject;
 
 /* set up all the variables of a uniq operation */
-static Subject *
-subject_init(Subject *self, FILE *in, FILE *out, void *func)
+static Subject *subject_init(Subject * self, FILE * in, FILE * out,
+							 void *func)
 {
-    self->a    = NULL;
-    self->b    = NULL;
-    self->in   = in;
-    self->out  = out;
-    self->func = func;
-    self->recurrence = 0;
-    return self;
+	self->a = NULL;
+	self->b = NULL;
+	self->in = in;
+	self->out = out;
+	self->func = func;
+	self->recurrence = 0;
+	return self;
 }
 
 /* point a and b to the appropriate lines;
  * count the recurrences (if any) of a string;
  */
-static Subject *
-subject_next(Subject *self)
+static Subject *subject_next(Subject * self)
 {
-    /* tmp line holders */
-    static char line[2][UNIQ_MAX];
-    static int  alternator = 0;
+	/* tmp line holders */
+	static char line[2][UNIQ_MAX];
+	static int alternator = 0;
 
-    if (fgets(line[alternator], UNIQ_MAX, self->in)) {
+	if (fgets(line[alternator], UNIQ_MAX, self->in)) {
+		self->a = self->b;
+		self->b = line[alternator];
+		alternator ^= 1;
+		return self;
+	}
+
+	return NULL;
+}
+
+static Subject *subject_last(Subject * self)
+{
 	self->a = self->b;
-	self->b = line[alternator];
-	alternator ^= 1;
+	self->b = NULL;
 	return self;
-    }
-
-    return NULL;
 }
 
-static Subject *
-subject_last(Subject *self)
+static Subject *subject_study(Subject * self)
 {
-    self->a = self->b;
-    self->b = NULL;
-    return self;
-}
-
-static Subject *
-subject_study(Subject *self)
-{
-    if (self->a == NULL) {
+	if (self->a == NULL) {
+		return self;
+	}
+	if (self->b == NULL) {
+		fprintf(self->out, "%s", self->a);
+		return self;
+	}
+	if (strcmp(self->a, self->b) == 0) {
+		self->recurrence++;
+	} else {
+		fprintf(self->out, "%s", self->a);
+		self->recurrence = 0;
+	}
 	return self;
-    }
-    if (self->b == NULL) {
-	fprintf(self->out, "%s", self->a);
-	return self;
-    }
-    if (strcmp(self->a, self->b) == 0) {
-	self->recurrence++;
-    } else {
-	fprintf(self->out, "%s", self->a);
-	self->recurrence = 0;
-    }
-    return self;
 }
 
 static int
-set_file_pointers(int schema, FILE **in, FILE **out, char **argv)
+set_file_pointers(int schema, FILE ** in, FILE ** out, char **argv)
 {
-    switch (schema) {
+	switch (schema) {
 	case 0:
-	    *in = stdin;
-	    *out = stdout;
-	    break;
+		*in = stdin;
+		*out = stdout;
+		break;
 	case 1:
-	    *in = fopen(argv[0], "r");
-	    *out = stdout;
-	    break;
+		*in = fopen(argv[0], "r");
+		*out = stdout;
+		break;
 	case 2:
-	    *in = fopen(argv[0], "r");
-	    *out = fopen(argv[1], "w");
-	    break;
-    }
-    if (*in == NULL) {
-	fprintf(stderr, "uniq: %s: %s\n", argv[0], strerror(errno));
-	return errno;
-    }
-    if (*out == NULL) {
-	fprintf(stderr, "uniq: %s: %s\n", argv[1], strerror(errno));
-	return errno;
-    }
-    return 0;
+		*in = fopen(argv[0], "r");
+		*out = fopen(argv[1], "w");
+		break;
+	}
+	if (*in == NULL) {
+		fprintf(stderr, "uniq: %s: %s\n", argv[0], strerror(errno));
+		return errno;
+	}
+	if (*out == NULL) {
+		fprintf(stderr, "uniq: %s: %s\n", argv[1], strerror(errno));
+		return errno;
+	}
+	return 0;
 }
 
 
@@ -152,45 +150,44 @@ set_file_pointers(int schema, FILE **in, FILE **out, char **argv)
 /* it seems like GNU/uniq only takes one or two files as an option */
 
 /* ________________________________________________________________________ */
-int
-uniq_main(int argc, char **argv)
+int uniq_main(int argc, char **argv)
 {
-    int	    i;
-    char    opt;
-    FILE    *in, *out;
-    Subject s;
+	int i;
+	char opt;
+	FILE *in, *out;
+	Subject s;
 
-    /* parse argv[] */
-    for (i = 1; i < argc; i++) {
-	if (argv[i][0] == '-') {
-	    opt = argv[i][1];
-	    switch (opt) {
-		case '-':
-		case 'h':
-		    usage(uniq_usage);
-		default:
-		    usage(uniq_usage);
-	    }
-	} else {
-	    break;
+	/* parse argv[] */
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			opt = argv[i][1];
+			switch (opt) {
+			case '-':
+			case 'h':
+				usage(uniq_usage);
+			default:
+				usage(uniq_usage);
+			}
+		} else {
+			break;
+		}
 	}
-    }
 
-    /* 0 src: stdin; dst: stdout */
-    /* 1 src: file;  dst: stdout */
-    /* 2 src: file;  dst: file   */
-    if (set_file_pointers((argc - 1), &in, &out, &argv[i])) {
-	exit(1);
-    }
+	/* 0 src: stdin; dst: stdout */
+	/* 1 src: file;  dst: stdout */
+	/* 2 src: file;  dst: file   */
+	if (set_file_pointers((argc - 1), &in, &out, &argv[i])) {
+		exit(1);
+	}
 
-    subject_init(&s, in, out, NULL);
-    while (subject_next(&s)) { 
+	subject_init(&s, in, out, NULL);
+	while (subject_next(&s)) {
+		subject_study(&s);
+	}
+	subject_last(&s);
 	subject_study(&s);
-    }
-    subject_last(&s);
-    subject_study(&s);
 
-    exit(0);
+	exit(0);
 }
 
-/* $Id: uniq.c,v 1.6 2000/02/07 05:29:42 erik Exp $ */
+/* $Id: uniq.c,v 1.7 2000/02/08 19:58:47 erik Exp $ */

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini touch implementation for busybox
  *
@@ -31,56 +32,50 @@
 
 
 static const char touch_usage[] = "touch [-c] file [file ...]\n\n"
-"Update the last-modified date on the given file[s].\n";
+
+	"Update the last-modified date on the given file[s].\n";
 
 
 
-extern int 
-touch_main(int argc, char **argv)
+extern int touch_main(int argc, char **argv)
 {
-    int fd;
-    int create=TRUE;
+	int fd;
+	int create = TRUE;
 
-    if (argc < 2) {
-	usage( touch_usage);
-    }
-    argc--;
-    argv++;
-
-    /* Parse options */
-    while (**argv == '-') {
-	while (*++(*argv)) switch (**argv) {
-	    case 'c':
-		create = FALSE;
-		break;
-	    default:
-		usage( touch_usage);
-		exit( FALSE);
+	if (argc < 2) {
+		usage(touch_usage);
 	}
 	argc--;
 	argv++;
-    }
 
-    fd = open (*argv, (create==FALSE)? O_RDWR : O_RDWR | O_CREAT, 0644);
-    if (fd < 0 ) {
-	if (create==FALSE && errno == ENOENT)
-	    exit( TRUE);
-	else {
-	    perror("touch");
-	    exit( FALSE);
+	/* Parse options */
+	while (**argv == '-') {
+		while (*++(*argv))
+			switch (**argv) {
+			case 'c':
+				create = FALSE;
+				break;
+			default:
+				usage(touch_usage);
+				exit(FALSE);
+			}
+		argc--;
+		argv++;
 	}
-    }
-    close( fd);
-    if (utime (*argv, NULL)) {
-	perror("touch");
-	exit( FALSE);
-    }
-    else
-	exit( TRUE);
+
+	fd = open(*argv, (create == FALSE) ? O_RDWR : O_RDWR | O_CREAT, 0644);
+	if (fd < 0) {
+		if (create == FALSE && errno == ENOENT)
+			exit(TRUE);
+		else {
+			perror("touch");
+			exit(FALSE);
+		}
+	}
+	close(fd);
+	if (utime(*argv, NULL)) {
+		perror("touch");
+		exit(FALSE);
+	} else
+		exit(TRUE);
 }
-
-
-
-
-
-

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini pwd implementation for busybox
  *
@@ -25,16 +26,15 @@
 #include <dirent.h>
 #include <sys/param.h>
 
-extern int
-pwd_main(int argc, char * * argv)
+extern int pwd_main(int argc, char **argv)
 {
-	char		buf[PATH_MAX + 1];
+	char buf[PATH_MAX + 1];
 
-	if ( getcwd(buf, sizeof(buf)) == NULL ) {
+	if (getcwd(buf, sizeof(buf)) == NULL) {
 		perror("get working directory");
-		exit( FALSE);
+		exit(FALSE);
 	}
 
 	printf("%s\n", buf);
-	exit( TRUE);
+	exit(TRUE);
 }

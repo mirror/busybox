@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini sleep implementation for busybox
  *
@@ -23,19 +24,17 @@
 #include "internal.h"
 #include <stdio.h>
 
-const char	sleep_usage[] = "sleep N\n\n"
-"Pause for N seconds.\n";
+const char sleep_usage[] = "sleep N\n\n" "Pause for N seconds.\n";
 
-extern int
-sleep_main(int argc, char * * argv)
+extern int sleep_main(int argc, char **argv)
 {
-        if ( (argc < 2) || (**(argv+1) == '-') ) {
-	    usage( sleep_usage );
+	if ((argc < 2) || (**(argv + 1) == '-')) {
+		usage(sleep_usage);
 	}
 
-	if ( sleep(atoi(*(++argv))) != 0 ) {
-		perror( "sleep");
-		exit (FALSE);
+	if (sleep(atoi(*(++argv))) != 0) {
+		perror("sleep");
+		exit(FALSE);
 	} else
-		exit (TRUE);
+		exit(TRUE);
 }

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini logname implementation for busybox
  *
@@ -23,18 +24,21 @@
 #include <stdio.h>
 
 static const char logname_usage[] = "logname\n\n"
-"Print the name of the current user.\n";
 
-extern int logname_main(int argc, char **argv) {
+	"Print the name of the current user.\n";
+
+extern int logname_main(int argc, char **argv)
+{
 	char *cp;
 
-	if (argc > 1) usage (logname_usage);
+	if (argc > 1)
+		usage(logname_usage);
 
-	cp = getlogin ();
+	cp = getlogin();
 	if (cp) {
-		puts (cp);
-		exit (TRUE);
-    	}
-	fprintf (stderr, "%s: no login name\n", argv[0]);
-	exit (FALSE);
+		puts(cp);
+		exit(TRUE);
+	}
+	fprintf(stderr, "%s: no login name\n", argv[0]);
+	exit(FALSE);
 }

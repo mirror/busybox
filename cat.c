@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini Cat implementation for busybox
  *
@@ -24,36 +25,37 @@
 #include <stdio.h>
 
 
-static void print_file( FILE *file) 
+static void print_file(FILE * file)
 {
-    int c;
-    while ((c = getc(file)) != EOF)
-	putc(c, stdout);
-    fclose(file);
-    fflush(stdout);
+	int c;
+
+	while ((c = getc(file)) != EOF)
+		putc(c, stdout);
+	fclose(file);
+	fflush(stdout);
 }
 
 extern int cat_main(int argc, char **argv)
 {
-    FILE *file;
+	FILE *file;
 
-    if (argc==1) {
-	print_file( stdin);
-	exit( TRUE);
-    }
-
-    if ( **(argv+1) == '-' ) {
-	usage ("cat [file ...]\n");
-    }
-    argc--;
-
-    while (argc-- > 0 && *(argv++) != '\0' && strlen(*argv) ) {
-	file = fopen(*argv, "r");
-	if (file == NULL) {
-	    perror(*argv);
-	    exit(FALSE);
+	if (argc == 1) {
+		print_file(stdin);
+		exit(TRUE);
 	}
-	print_file( file);
-    }
-    exit(TRUE);
+
+	if (**(argv + 1) == '-') {
+		usage("cat [file ...]\n");
+	}
+	argc--;
+
+	while (argc-- > 0 && *(argv++) != '\0' && strlen(*argv)) {
+		file = fopen(*argv, "r");
+		if (file == NULL) {
+			perror(*argv);
+			exit(FALSE);
+		}
+		print_file(file);
+	}
+	exit(TRUE);
 }

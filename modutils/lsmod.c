@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini lsmod implementation for busybox
  *
@@ -30,6 +31,7 @@
 
 extern int lsmod_main(int argc, char **argv)
 {
-    char* cmd[] = { "cat", "/proc/modules", "\0" };
-    exit(cat_main( 3, cmd));
+	char *cmd[] = { "cat", "/proc/modules", "\0" };
+
+	exit(cat_main(3, cmd));
 }

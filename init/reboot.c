@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini reboot implementation for busybox
  *
@@ -23,9 +24,8 @@
 #include "internal.h"
 #include <signal.h>
 
-extern int
-reboot_main(int argc, char ** argv)
+extern int reboot_main(int argc, char **argv)
 {
-    /* don't assume init's pid == 1 */
-    exit( kill(findInitPid(), SIGINT));
+	/* don't assume init's pid == 1 */
+	exit(kill(findInitPid(), SIGINT));
 }

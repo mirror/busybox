@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 // This file defines the feature set to be compiled into busybox.
 // When you turn things off here, they won't be compiled in at all.
 //

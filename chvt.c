@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * chvt.c - aeb - 940227 - Change virtual terminal
  *
@@ -13,24 +14,23 @@
 
 extern int getfd(void);
 
-int
-chvt_main(int argc, char** argv) 
+int chvt_main(int argc, char **argv)
 {
-    int fd, num;
+	int fd, num;
 
-    if ( ( argc != 2) || (**(argv+1) == '-' ) ) {
-	usage ("chvt N\n\nChange foreground virtual terminal to /dev/ttyN\n");
-    }
-    fd = get_console_fd("/dev/console");
-    num = atoi(argv[1]);
-    if (ioctl(fd,VT_ACTIVATE,num)) {
-	perror("VT_ACTIVATE");
-	exit(FALSE);
-    }
-    if (ioctl(fd,VT_WAITACTIVE,num)) {
-	perror("VT_WAITACTIVE");
-	exit(FALSE);
-    }
-    exit( TRUE);
+	if ((argc != 2) || (**(argv + 1) == '-')) {
+		usage
+			("chvt N\n\nChange foreground virtual terminal to /dev/ttyN\n");
+	}
+	fd = get_console_fd("/dev/console");
+	num = atoi(argv[1]);
+	if (ioctl(fd, VT_ACTIVATE, num)) {
+		perror("VT_ACTIVATE");
+		exit(FALSE);
+	}
+	if (ioctl(fd, VT_WAITACTIVE, num)) {
+		perror("VT_WAITACTIVE");
+		exit(FALSE);
+	}
+	exit(TRUE);
 }
-

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * tiny-ls.c version 0.1.0: A minimalist 'ls'
  * Copyright (C) 1996 Brian Candler <B.Candler@pobox.com>
@@ -40,18 +41,18 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-#define TERMINAL_WIDTH	80	/* use 79 if your terminal has linefold bug */
-#define	COLUMN_WIDTH	14	/* default if AUTOWIDTH not defined */
-#define COLUMN_GAP	2	/* includes the file type char, if present */
+#define TERMINAL_WIDTH	80		/* use 79 if your terminal has linefold bug */
+#define	COLUMN_WIDTH	14		/* default if AUTOWIDTH not defined */
+#define COLUMN_GAP	2			/* includes the file type char, if present */
 #define HAS_REWINDDIR
 
 /************************************************************************/
 
 #include "internal.h"
 #if !defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-# include <linux/types.h> 
+# include <linux/types.h>
 #else
-# include <sys/types.h> 
+# include <sys/types.h>
 #endif
 #include <sys/stat.h>
 #include <stdio.h>
@@ -75,28 +76,28 @@
 #endif
 
 #define FMT_AUTO	0
-#define FMT_LONG	1	/* one record per line, extended info */
-#define FMT_SINGLE	2	/* one record per line */
-#define FMT_ROWS	3	/* print across rows */
-#define FMT_COLUMNS	3	/* fill columns (same, since we don't sort) */
+#define FMT_LONG	1			/* one record per line, extended info */
+#define FMT_SINGLE	2			/* one record per line */
+#define FMT_ROWS	3			/* print across rows */
+#define FMT_COLUMNS	3			/* fill columns (same, since we don't sort) */
 
 #define TIME_MOD	0
 #define TIME_CHANGE	1
 #define TIME_ACCESS	2
 
-#define DISP_FTYPE	1	/* show character for file type */
-#define DISP_EXEC	2	/* show '*' if regular executable file */
-#define DISP_HIDDEN	4	/* show files starting . (except . and ..) */
-#define DISP_DOT	8	/* show . and .. */
-#define DISP_NUMERIC	16	/* numeric uid and gid */
-#define DISP_FULLTIME	32	/* show extended time display */
-#define DIR_NOLIST	64	/* show directory as itself, not contents */
-#define DISP_DIRNAME	128	/* show directory name (for internal use) */
-#define DIR_RECURSE	256	/* -R (not yet implemented) */
+#define DISP_FTYPE	1			/* show character for file type */
+#define DISP_EXEC	2			/* show '*' if regular executable file */
+#define DISP_HIDDEN	4			/* show files starting . (except . and ..) */
+#define DISP_DOT	8			/* show . and .. */
+#define DISP_NUMERIC	16		/* numeric uid and gid */
+#define DISP_FULLTIME	32		/* show extended time display */
+#define DIR_NOLIST	64			/* show directory as itself, not contents */
+#define DISP_DIRNAME	128		/* show directory name (for internal use) */
+#define DIR_RECURSE	256			/* -R (not yet implemented) */
 
-static unsigned char	display_fmt = FMT_AUTO;
-static unsigned short	opts = 0;
-static unsigned short	column = 0;
+static unsigned char display_fmt = FMT_AUTO;
+static unsigned short opts = 0;
+static unsigned short column = 0;
 
 #ifdef BB_FEATURE_AUTOWIDTH
 static unsigned short terminal_width = 0, column_width = 0;
@@ -113,13 +114,14 @@ static unsigned char time_fmt = TIME_MOD;
 
 static void writenum(long val, short minwidth)
 {
-	char	scratch[128];
+	char scratch[128];
 
 	char *p = scratch + sizeof(scratch);
 	short len = 0;
 	short neg = (val < 0);
-	
-	if (neg) val = -val;
+
+	if (neg)
+		val = -val;
 	do
 		*--p = (val % 10) + '0', len++, val /= 10;
 	while (val);
@@ -142,8 +144,9 @@ static void newline(void)
 static void tab(short col)
 {
 	static const char spaces[] = "                ";
-	#define nspaces ((sizeof spaces)-1)	/* null terminator! */
-	
+
+#define nspaces ((sizeof spaces)-1)	/* null terminator! */
+
 	short n = col - column;
 
 	if (n > 0) {
@@ -155,7 +158,7 @@ static void tab(short col)
 		/* must be 1...(sizeof spaces) left */
 		wr(spaces, n);
 	}
-	#undef nspaces
+#undef nspaces
 }
 
 #ifdef BB_FEATURE_LS_FILETYPES
@@ -163,8 +166,8 @@ static char append_char(mode_t mode)
 {
 	if (!(opts & DISP_FTYPE))
 		return '\0';
-	if ((opts & DISP_EXEC) && S_ISREG(mode) && (mode & (S_IXUSR|S_IXGRP|S_IXOTH)))
-		return '*';
+	if ((opts & DISP_EXEC) && S_ISREG(mode)
+		&& (mode & (S_IXUSR | S_IXGRP | S_IXOTH))) return '*';
 	return APPCHAR(mode);
 }
 #endif
@@ -176,89 +179,93 @@ static char append_char(mode_t mode)
  **
  **/
 
-static void list_single(const char *name, struct stat *info, const char *fullname)
+static void list_single(const char *name, struct stat *info,
+						const char *fullname)
 {
 	char scratch[PATH_MAX + 1];
 	short len = strlen(name);
+
 #ifdef BB_FEATURE_LS_FILETYPES
 	char append = append_char(info->st_mode);
 #endif
-	
+
 	if (display_fmt == FMT_LONG) {
-		mode_t mode = info->st_mode; 
+		mode_t mode = info->st_mode;
+
 		newline();
 		wr(modeString(mode), 10);
-		column=10;
-		writenum((long)info->st_nlink,(short)5);
+		column = 10;
+		writenum((long) info->st_nlink, (short) 5);
 		fputs(" ", stdout);
 #ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			memset ( scratch, 0, sizeof (scratch));
-			my_getpwuid( scratch, info->st_uid);
+			memset(scratch, 0, sizeof(scratch));
+			my_getpwuid(scratch, info->st_uid);
 			if (*scratch) {
-			    fputs(scratch, stdout);
-			    if ( strlen( scratch) <= 8 )
-				wr("          ", 9-strlen( scratch));
-			}
-			else {
-				writenum((long) info->st_uid,(short)8);
+				fputs(scratch, stdout);
+				if (strlen(scratch) <= 8)
+					wr("          ", 9 - strlen(scratch));
+			} else {
+				writenum((long) info->st_uid, (short) 8);
 				fputs(" ", stdout);
 			}
 		} else
 #endif
 		{
-		    writenum((long) info->st_uid,(short)8);
-		    fputs(" ", stdout);
+			writenum((long) info->st_uid, (short) 8);
+			fputs(" ", stdout);
 		}
 #ifdef BB_FEATURE_LS_USERNAME
 		if (!(opts & DISP_NUMERIC)) {
-			memset ( scratch, 0, sizeof (scratch));
-			my_getgrgid( scratch, info->st_gid);
+			memset(scratch, 0, sizeof(scratch));
+			my_getgrgid(scratch, info->st_gid);
 			if (*scratch) {
-			    fputs(scratch, stdout);
-			    if ( strlen( scratch) <= 8 )
-				wr("         ", 8-strlen( scratch));
-			}
-			else 
-			    writenum((long) info->st_gid,(short)8);
+				fputs(scratch, stdout);
+				if (strlen(scratch) <= 8)
+					wr("         ", 8 - strlen(scratch));
+			} else
+				writenum((long) info->st_gid, (short) 8);
 		} else
 #endif
-		writenum((long) info->st_gid,(short)8);
+			writenum((long) info->st_gid, (short) 8);
 		//tab(26);
 		if (S_ISBLK(mode) || S_ISCHR(mode)) {
-			writenum((long)MAJOR(info->st_rdev),(short)3);
+			writenum((long) MAJOR(info->st_rdev), (short) 3);
 			fputs(", ", stdout);
-			writenum((long)MINOR(info->st_rdev),(short)3);
-		}
-		else
-			writenum((long)info->st_size,(short)8);
+			writenum((long) MINOR(info->st_rdev), (short) 3);
+		} else
+			writenum((long) info->st_size, (short) 8);
 		fputs(" ", stdout);
 		//tab(32);
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 		{
 			time_t cal;
 			char *string;
-			
-			switch(time_fmt) {
+
+			switch (time_fmt) {
 			case TIME_CHANGE:
-				cal=info->st_ctime; break;
+				cal = info->st_ctime;
+				break;
 			case TIME_ACCESS:
-				cal=info->st_atime; break;
+				cal = info->st_atime;
+				break;
 			default:
-				cal=info->st_mtime; break;
+				cal = info->st_mtime;
+				break;
 			}
-			string=ctime(&cal);
+			string = ctime(&cal);
 			if (opts & DISP_FULLTIME)
-				wr(string,24);
+				wr(string, 24);
 			else {
 				time_t age = time(NULL) - cal;
-				wr(string+4,7);	/* mmm_dd_ */
-				if(age < 3600L*24*365/2 && age > -15*60)
+
+				wr(string + 4, 7);	/* mmm_dd_ */
+				if (age < 3600L * 24 * 365 / 2 && age > -15 * 60)
 					/* hh:mm if less than 6 months old */
-					wr(string+11,5);
+					wr(string + 11, 5);
 				else
 					/* _yyyy otherwise */
-					wr(string+19,5);
+					wr(string + 19, 5);
 			}
 			wr(" ", 1);
 		}
@@ -269,7 +276,8 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 		if (S_ISLNK(mode)) {
 			wr(" -> ", 4);
 			len = readlink(fullname, scratch, sizeof scratch);
-			if (len > 0) fwrite(scratch, 1, len, stdout);
+			if (len > 0)
+				fwrite(scratch, 1, len, stdout);
 #ifdef BB_FEATURE_LS_FILETYPES
 			/* show type of destination */
 			if (opts & DISP_FTYPE) {
@@ -287,18 +295,17 @@ static void list_single(const char *name, struct stat *info, const char *fullnam
 #endif
 	} else {
 		static short nexttab = 0;
-		
+
 		/* sort out column alignment */
-		if (column == 0)
-			; /* nothing to do */
+		if (column == 0);		/* nothing to do */
 		else if (display_fmt == FMT_SINGLE)
 			newline();
 		else {
 			if (nexttab + column_width > terminal_width
 #ifndef BB_FEATURE_AUTOWIDTH
-			|| nexttab + len >= terminal_width
+				|| nexttab + len >= terminal_width
 #endif
-			)
+				)
 				newline();
 			else
 				tab(nexttab);
@@ -336,32 +343,33 @@ static int list_item(const char *name)
 	struct stat info;
 	DIR *dir;
 	struct dirent *entry;
-	char fullname[MAXNAMLEN+1], *fnend;
-	
+	char fullname[MAXNAMLEN + 1], *fnend;
+
 	if (lstat(name, &info))
 		goto listerr;
-	
-	if (!S_ISDIR(info.st_mode) || 
-	    (opts & DIR_NOLIST)) {
+
+	if (!S_ISDIR(info.st_mode) || (opts & DIR_NOLIST)) {
 		list_single(name, &info, name);
 		return 0;
 	}
 
 	/* Otherwise, it's a directory we want to list the contents of */
 
-	if (opts & DISP_DIRNAME) {   /* identify the directory */
+	if (opts & DISP_DIRNAME) {	/* identify the directory */
 		if (column)
 			wr("\n\n", 2), column = 0;
 		wr(name, strlen(name));
 		wr(":\n", 2);
 	}
-	
+
 	dir = opendir(name);
-	if (!dir) goto listerr;
+	if (!dir)
+		goto listerr;
 #ifdef BB_FEATURE_AUTOWIDTH
 	column_width = 0;
 	while ((entry = readdir(dir)) != NULL) {
 		short w = strlen(entry->d_name);
+
 		if (column_width < w)
 			column_width = w;
 	}
@@ -370,39 +378,40 @@ static int list_item(const char *name)
 #else
 	closedir(dir);
 	dir = opendir(name);
-	if (!dir) goto listerr;
+	if (!dir)
+		goto listerr;
 #endif
 #endif
 
 	/* List the contents */
-	
-	strcpy(fullname,name);	/* *** ignore '.' by itself */
-	fnend=fullname+strlen(fullname);
+
+	strcpy(fullname, name);		/* *** ignore '.' by itself */
+	fnend = fullname + strlen(fullname);
 	if (fnend[-1] != '/')
 		*fnend++ = '/';
-	
+
 	while ((entry = readdir(dir)) != NULL) {
-		const char *en=entry->d_name;
+		const char *en = entry->d_name;
+
 		if (en[0] == '.') {
-			if (!en[1] || (en[1] == '.' && !en[2])) { /* . or .. */
+			if (!en[1] || (en[1] == '.' && !en[2])) {	/* . or .. */
 				if (!(opts & DISP_DOT))
 					continue;
-			}
-			else if (!(opts & DISP_HIDDEN))
+			} else if (!(opts & DISP_HIDDEN))
 				continue;
 		}
 		/* FIXME: avoid stat if not required */
 		strcpy(fnend, entry->d_name);
 		if (lstat(fullname, &info))
-			goto direrr; /* (shouldn't fail) */
+			goto direrr;		/* (shouldn't fail) */
 		list_single(entry->d_name, &info, fullname);
 	}
 	closedir(dir);
 	return 0;
 
-direrr:
-	closedir(dir);	
-listerr:
+  direrr:
+	closedir(dir);
+  listerr:
 	newline();
 	perror(name);
 	return 1;
@@ -432,50 +441,79 @@ static const char ls_usage[] = "ls [-1a"
 #endif
 	"] [filenames...]\n";
 
-extern int
-ls_main(int argc, char * * argv)
+extern int ls_main(int argc, char **argv)
 {
-	int argi=1, i;
-	
+	int argi = 1, i;
+
 	/* process options */
 	while (argi < argc && argv[argi][0] == '-') {
 		const char *p = &argv[argi][1];
-		
-		if (!*p) goto print_usage_message;	/* "-" by itself not allowed */
+
+		if (!*p)
+			goto print_usage_message;	/* "-" by itself not allowed */
 		if (*p == '-') {
-			if (!p[1]) {	/* "--" forces end of options */
+			if (!p[1]) {		/* "--" forces end of options */
 				argi++;
 				break;
 			}
 			/* it's a long option name - we don't support them */
 			goto print_usage_message;
 		}
-		
+
 		while (*p)
 			switch (*p++) {
-			case 'l':	display_fmt = FMT_LONG; break;
-			case '1':	display_fmt = FMT_SINGLE; break;
-			case 'x':	display_fmt = FMT_ROWS; break;
-			case 'C':	display_fmt = FMT_COLUMNS; break;
+			case 'l':
+				display_fmt = FMT_LONG;
+				break;
+			case '1':
+				display_fmt = FMT_SINGLE;
+				break;
+			case 'x':
+				display_fmt = FMT_ROWS;
+				break;
+			case 'C':
+				display_fmt = FMT_COLUMNS;
+				break;
 #ifdef BB_FEATURE_LS_FILETYPES
-			case 'p':	opts |= DISP_FTYPE; break;
-			case 'F':	opts |= DISP_FTYPE|DISP_EXEC; break;
+			case 'p':
+				opts |= DISP_FTYPE;
+				break;
+			case 'F':
+				opts |= DISP_FTYPE | DISP_EXEC;
+				break;
 #endif
-			case 'A':	opts |= DISP_HIDDEN; break;
-			case 'a':	opts |= DISP_HIDDEN|DISP_DOT; break;
-			case 'n':	opts |= DISP_NUMERIC; break;
-			case 'd':	opts |= DIR_NOLIST; break;
+			case 'A':
+				opts |= DISP_HIDDEN;
+				break;
+			case 'a':
+				opts |= DISP_HIDDEN | DISP_DOT;
+				break;
+			case 'n':
+				opts |= DISP_NUMERIC;
+				break;
+			case 'd':
+				opts |= DIR_NOLIST;
+				break;
 #ifdef FEATURE_RECURSIVE
-			case 'R':	opts |= DIR_RECURSE; break;
+			case 'R':
+				opts |= DIR_RECURSE;
+				break;
 #endif
 #ifdef BB_FEATURE_LS_TIMESTAMPS
-			case 'u':	time_fmt = TIME_ACCESS; break;
-			case 'c':	time_fmt = TIME_CHANGE; break;
-			case 'e':	opts |= DISP_FULLTIME; break;
+			case 'u':
+				time_fmt = TIME_ACCESS;
+				break;
+			case 'c':
+				time_fmt = TIME_CHANGE;
+				break;
+			case 'e':
+				opts |= DISP_FULLTIME;
+				break;
 #endif
-			default:	goto print_usage_message;
+			default:
+				goto print_usage_message;
 			}
-		
+
 		argi++;
 	}
 
@@ -483,29 +521,30 @@ ls_main(int argc, char * * argv)
 	if (display_fmt == FMT_AUTO)
 		display_fmt = isatty(fileno(stdout)) ? FMT_COLUMNS : FMT_SINGLE;
 	if (argi < argc - 1)
-		opts |= DISP_DIRNAME; /* 2 or more items? label directories */
+		opts |= DISP_DIRNAME;	/* 2 or more items? label directories */
 #ifdef BB_FEATURE_AUTOWIDTH
 	/* could add a -w option and/or TIOCGWINSZ call */
-	if (terminal_width < 1) terminal_width = TERMINAL_WIDTH;
-	
+	if (terminal_width < 1)
+		terminal_width = TERMINAL_WIDTH;
+
 	for (i = argi; i < argc; i++) {
 		int len = strlen(argv[i]);
+
 		if (column_width < len)
 			column_width = len;
 	}
 #endif
 
 	/* process files specified, or current directory if none */
-	i=0;
+	i = 0;
 	if (argi == argc)
 		i = list_item(".");
 	while (argi < argc)
 		i |= list_item(argv[argi++]);
 	newline();
-	exit( i);
+	exit(i);
 
-print_usage_message:
-	usage (ls_usage);
-	exit( FALSE);
+  print_usage_message:
+	usage(ls_usage);
+	exit(FALSE);
 }
-

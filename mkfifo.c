@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini mkfifo implementation for busybox
  *
@@ -26,36 +27,43 @@
 #include <errno.h>
 
 static const char mkfifo_usage[] = "mkfifo [OPTIONS] name\n\n"
-"Create the named fifo\n\n"
-"Options:\n"
-"\t-m\tcreate the fifo with the specified mode; default = a=rw-umask\n";
+	"Create the named fifo\n\n"
+
+	"Options:\n"
+	"\t-m\tcreate the fifo with the specified mode; default = a=rw-umask\n";
 
 extern int mkfifo_main(int argc, char **argv)
 {
-    char *thisarg;
-    mode_t mode = 0666;
-    argc--;
-    argv++;
+	char *thisarg;
+	mode_t mode = 0666;
 
-    /* Parse any options */
-    while (argc > 1) {
-       if (**argv != '-') usage(mkfifo_usage);
-       thisarg = *argv; thisarg++;
-       switch (*thisarg) {
-	    case 'm':
-	        argc--; argv++;
-	        parse_mode(*argv, &mode);
-		break;
-	    default:
-		usage (mkfifo_usage);
-	    }
-	argc--;	argv++;
-    }
-    if (argc < 1) usage (mkfifo_usage);
-    if (mkfifo(*argv, mode) < 0) {
-        perror("mkfifo");
-        exit(255);
-    } else {
-        exit(TRUE);
-    }
+	argc--;
+	argv++;
+
+	/* Parse any options */
+	while (argc > 1) {
+		if (**argv != '-')
+			usage(mkfifo_usage);
+		thisarg = *argv;
+		thisarg++;
+		switch (*thisarg) {
+		case 'm':
+			argc--;
+			argv++;
+			parse_mode(*argv, &mode);
+			break;
+		default:
+			usage(mkfifo_usage);
+		}
+		argc--;
+		argv++;
+	}
+	if (argc < 1)
+		usage(mkfifo_usage);
+	if (mkfifo(*argv, mode) < 0) {
+		perror("mkfifo");
+		exit(255);
+	} else {
+		exit(TRUE);
+	}
 }

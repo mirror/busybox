@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini yes implementation for busybox
  *
@@ -22,19 +23,22 @@
 #include "internal.h"
 #include <stdio.h>
 
-extern int yes_main(int argc, char **argv) {
+extern int yes_main(int argc, char **argv)
+{
 	int i;
+
 	if (argc == 1)
 		while (1)
-			if (puts ("y") == EOF) {
-				perror ("yes");
+			if (puts("y") == EOF) {
+				perror("yes");
 				exit(FALSE);
 			}
 
 	while (1)
 		for (i = 1; i < argc; i++)
-			if (fputs (argv[i], stdout) == EOF || putchar (i == argc - 1 ? '\n' : ' ') == EOF) {
-				perror ("yes");
+			if (fputs(argv[i], stdout) == EOF
+				|| putchar(i == argc - 1 ? '\n' : ' ') == EOF) {
+				perror("yes");
 				exit(FALSE);
 			}
 	exit(TRUE);

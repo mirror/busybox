@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* uname -- print system information
    Copyright (C) 1989-1999 Free Software Foundation, Inc.
 
@@ -41,16 +42,17 @@
 
 
 static const char uname_usage[] =
-    "uname [OPTION]...\n\n"
-    "Print certain system information.  With no OPTION, same as -s.\n\n"
-    "Options:\n"
-    "\t-a\tprint all information\n"
-    "\t-m\tthe machine (hardware) type\n"
-    "\t-n\tprint the machine's network node hostname\n"
-    "\t-r\tprint the operating system release\n"
-    "\t-s\tprint the operating system name\n"
-    "\t-p\tprint the host processor type\n"
-    "\t-v\tprint the operating system version\n";
+	"uname [OPTION]...\n\n"
+	"Print certain system information.  With no OPTION, same as -s.\n\n"
+	"Options:\n"
+	"\t-a\tprint all information\n"
+	"\t-m\tthe machine (hardware) type\n"
+	"\t-n\tprint the machine's network node hostname\n"
+	"\t-r\tprint the operating system release\n"
+	"\t-s\tprint the operating system name\n"
+
+	"\t-p\tprint the host processor type\n"
+	"\t-v\tprint the operating system version\n";
 
 
 static void print_element(unsigned int mask, char *element);
@@ -80,77 +82,78 @@ static unsigned char toprint;
 
 int uname_main(int argc, char **argv)
 {
-    struct utsname name;
-    char processor[256];
+	struct utsname name;
+	char processor[256];
+
 #if defined(__sparc__) && defined(__linux__)
-    char *fake_sparc = getenv("FAKE_SPARC");
+	char *fake_sparc = getenv("FAKE_SPARC");
 #endif
 
-    toprint = 0;
+	toprint = 0;
 
-    /* Parse any options */
-    //fprintf(stderr, "argc=%d, argv=%s\n", argc, *argv);
-    while (--argc > 0 && **(++argv) == '-') {
-	while (*(++(*argv))) {
-	    switch (**argv) {
-	    case 's':
-		toprint |= PRINT_SYSNAME;
-		break;
-	    case 'n':
-		toprint |= PRINT_NODENAME;
-		break;
-	    case 'r':
-		toprint |= PRINT_RELEASE;
-		break;
-	    case 'v':
-		toprint |= PRINT_VERSION;
-		break;
-	    case 'm':
-		toprint |= PRINT_MACHINE;
-		break;
-	    case 'p':
-		toprint |= PRINT_PROCESSOR;
-		break;
-	    case 'a':
-		toprint = (PRINT_SYSNAME | PRINT_NODENAME | PRINT_RELEASE |
-			   PRINT_PROCESSOR | PRINT_VERSION |
-			   PRINT_MACHINE);
-		break;
-	    default:
-		usage(uname_usage);
-	    }
+	/* Parse any options */
+	//fprintf(stderr, "argc=%d, argv=%s\n", argc, *argv);
+	while (--argc > 0 && **(++argv) == '-') {
+		while (*(++(*argv))) {
+			switch (**argv) {
+			case 's':
+				toprint |= PRINT_SYSNAME;
+				break;
+			case 'n':
+				toprint |= PRINT_NODENAME;
+				break;
+			case 'r':
+				toprint |= PRINT_RELEASE;
+				break;
+			case 'v':
+				toprint |= PRINT_VERSION;
+				break;
+			case 'm':
+				toprint |= PRINT_MACHINE;
+				break;
+			case 'p':
+				toprint |= PRINT_PROCESSOR;
+				break;
+			case 'a':
+				toprint = (PRINT_SYSNAME | PRINT_NODENAME | PRINT_RELEASE |
+						   PRINT_PROCESSOR | PRINT_VERSION |
+						   PRINT_MACHINE);
+				break;
+			default:
+				usage(uname_usage);
+			}
+		}
 	}
-    }
 
-    if (toprint == 0)
-	toprint = PRINT_SYSNAME;
+	if (toprint == 0)
+		toprint = PRINT_SYSNAME;
 
-    if (uname(&name) == -1)
-	perror("cannot get system name");
+	if (uname(&name) == -1)
+		perror("cannot get system name");
 
 #if defined (HAVE_SYSINFO) && defined (SI_ARCHITECTURE)
-    if (sysinfo(SI_ARCHITECTURE, processor, sizeof(processor)) == -1)
-	perror("cannot get processor type");
+	if (sysinfo(SI_ARCHITECTURE, processor, sizeof(processor)) == -1)
+		perror("cannot get processor type");
 }
 
 #else
-    strcpy(processor, "unknown");
+	strcpy(processor, "unknown");
 #endif
 
 #if defined(__sparc__) && defined(__linux__)
-    if (fake_sparc != NULL
-	&& (fake_sparc[0] == 'y'
-	    || fake_sparc[0] == 'Y')) strcpy(name.machine, "sparc");
+	if (fake_sparc != NULL
+		&& (fake_sparc[0] == 'y'
+			|| fake_sparc[0] == 'Y')) strcpy(name.machine, "sparc");
 #endif
 
-    print_element(PRINT_SYSNAME, name.sysname);
-    print_element(PRINT_NODENAME, name.nodename);
-    print_element(PRINT_RELEASE, name.release);
-    print_element(PRINT_VERSION, name.version);
-    print_element(PRINT_MACHINE, name.machine);
-    print_element(PRINT_PROCESSOR, processor);
+	print_element(PRINT_SYSNAME, name.sysname);
+	print_element(PRINT_NODENAME, name.nodename);
+	print_element(PRINT_RELEASE, name.release);
+	print_element(PRINT_VERSION, name.version);
+	print_element(PRINT_MACHINE, name.machine);
+	print_element(PRINT_PROCESSOR, processor);
 
-    exit(TRUE);
+	exit(TRUE);
 }
 
 /* If the name element set in MASK is selected for printing in `toprint',
@@ -159,8 +162,8 @@ int uname_main(int argc, char **argv)
 
 static void print_element(unsigned int mask, char *element)
 {
-    if (toprint & mask) {
-	toprint &= ~mask;
-	printf("%s%c", element, toprint ? ' ' : '\n');
-    }
+	if (toprint & mask) {
+		toprint &= ~mask;
+		printf("%s%c", element, toprint ? ' ' : '\n');
+	}
 }

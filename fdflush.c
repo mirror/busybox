@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini fdflush implementation for busybox
  *
@@ -29,24 +30,25 @@
 
 extern int fdflush_main(int argc, char **argv)
 {
-    int	value;
-    int	fd;
-    if ( argc <= 1 || **(argv++) == '-' ) {
-	usage( "fdflush device\n");
-    }
+	int value;
+	int fd;
 
-    fd = open(*argv, 0);
-    if ( fd < 0 ) {
-	perror(*argv);
-	exit(FALSE);
-    }
+	if (argc <= 1 || **(argv++) == '-') {
+		usage("fdflush device\n");
+	}
 
-    value = ioctl(fd, FDFLUSH, 0);
-    close(fd);
+	fd = open(*argv, 0);
+	if (fd < 0) {
+		perror(*argv);
+		exit(FALSE);
+	}
 
-    if ( value ) {
-	perror(*argv);
-	exit(FALSE);
-    }
-    exit (TRUE);
+	value = ioctl(fd, FDFLUSH, 0);
+	close(fd);
+
+	if (value) {
+		perror(*argv);
+		exit(FALSE);
+	}
+	exit(TRUE);
 }

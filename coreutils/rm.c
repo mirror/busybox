@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini rm implementation for busybox
  *
@@ -28,11 +29,12 @@
 #include <dirent.h>
 #include <errno.h>
 
-static const char* rm_usage = "rm [OPTION]... FILE...\n\n"
-"Remove (unlink) the FILE(s).\n\n"
-"Options:\n"
-"\t-f\t\tremove existing destinations, never prompt\n"
-"\t-r or -R\tremove the contents of directories recursively\n";
+static const char *rm_usage = "rm [OPTION]... FILE...\n\n"
+	"Remove (unlink) the FILE(s).\n\n"
+	"Options:\n"
+
+	"\t-f\t\tremove existing destinations, never prompt\n"
+	"\t-r or -R\tremove the contents of directories recursively\n";
 
 
 static int recursiveFlag = FALSE;
@@ -40,63 +42,63 @@ static int forceFlag = FALSE;
 static const char *srcName;
 
 
-static int fileAction(const char *fileName, struct stat* statbuf)
+static int fileAction(const char *fileName, struct stat *statbuf)
 {
-    if (unlink( fileName) < 0 ) {
-	perror( fileName);
-	return ( FALSE);
-    }
-    return ( TRUE);
+	if (unlink(fileName) < 0) {
+		perror(fileName);
+		return (FALSE);
+	}
+	return (TRUE);
 }
 
-static int dirAction(const char *fileName, struct stat* statbuf)
+static int dirAction(const char *fileName, struct stat *statbuf)
 {
-    if (rmdir( fileName) < 0 ) {
-	perror( fileName);
-	return ( FALSE);
-    }
-    return ( TRUE);
+	if (rmdir(fileName) < 0) {
+		perror(fileName);
+		return (FALSE);
+	}
+	return (TRUE);
 }
 
 extern int rm_main(int argc, char **argv)
 {
-    struct stat statbuf;
+	struct stat statbuf;
 
-    if (argc < 2) {
-	usage( rm_usage);
-    }
-    argc--;
-    argv++;
-
-    /* Parse any options */
-    while (**argv == '-') {
-	while (*++(*argv))
-	    switch (**argv) {
-	    case 'R':
-	    case 'r':
-		recursiveFlag = TRUE;
-		break;
-	    case 'f':
-		forceFlag = TRUE;
-		break;
-	    default:
-		usage( rm_usage);
-	    }
+	if (argc < 2) {
+		usage(rm_usage);
+	}
 	argc--;
 	argv++;
-    }
 
-    while (argc-- > 0) {
-	srcName = *(argv++);
-	if (forceFlag == TRUE && lstat(srcName, &statbuf) != 0 && errno == ENOENT) {
-	    /* do not reports errors for non-existent files if -f, just skip them */
+	/* Parse any options */
+	while (**argv == '-') {
+		while (*++(*argv))
+			switch (**argv) {
+			case 'R':
+			case 'r':
+				recursiveFlag = TRUE;
+				break;
+			case 'f':
+				forceFlag = TRUE;
+				break;
+			default:
+				usage(rm_usage);
+			}
+		argc--;
+		argv++;
 	}
-	else {
-	    if (recursiveAction( srcName, recursiveFlag, FALSE, 
-			TRUE, fileAction, dirAction) == FALSE) {
-		exit( FALSE);
-	    }
+
+	while (argc-- > 0) {
+		srcName = *(argv++);
+		if (forceFlag == TRUE && lstat(srcName, &statbuf) != 0
+			&& errno == ENOENT) {
+			/* do not reports errors for non-existent files if -f, just skip them */
+		} else {
+			if (recursiveAction(srcName, recursiveFlag, FALSE,
+								TRUE, fileAction, dirAction) == FALSE) {
+				exit(FALSE);
+			}
+		}
 	}
-    }
-    exit( TRUE);
+	exit(TRUE);
 }

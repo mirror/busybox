@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* dmesg.c -- Print out the contents of the kernel ring buffer
  * Created: Sat Oct  9 16:19:47 1993
  * Revised: Thu Oct 28 21:52:17 1993 by faith@cs.unc.edu
@@ -24,8 +25,8 @@
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
-  static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
-#else /* __alpha__ */
+static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
+#else							/* __alpha__ */
 #define klogctl syslog
 #endif
 
@@ -35,90 +36,91 @@
 
 static const char dmesg_usage[] = "dmesg [-c] [-n level] [-s bufsize]\n";
 
-int dmesg_main( int argc, char** argv )
+int dmesg_main(int argc, char **argv)
 {
-   char *buf;
-   int	bufsize=8196;
-   int  i;
-   int  n;
-   int  level = 0;
-   int  lastc;
-   int  cmd = 3;
-   int stopDoingThat;
+	char *buf;
+	int bufsize = 8196;
+	int i;
+	int n;
+	int level = 0;
+	int lastc;
+	int cmd = 3;
+	int stopDoingThat;
 
-   argc--;
-   argv++;
+	argc--;
+	argv++;
 
-    /* Parse any options */
-    while (argc && **argv == '-') {
-	stopDoingThat = FALSE;
-	while (stopDoingThat == FALSE && *++(*argv)) {
-	    switch (**argv) {
-	    case 'c':
-		cmd = 4;
-		break;
-	    case 'n':
-		cmd = 8;
-		if (--argc == 0)
-		    goto end;
-		level = atoi (*(++argv));
-		if (--argc > 0)
-		    ++argv;
-		stopDoingThat = TRUE;
-		break;
-	    case 's':
-		if (--argc == 0)
-		    goto end;
-		bufsize = atoi (*(++argv));
-		if (--argc > 0)
-		    ++argv;
-		stopDoingThat = TRUE;
-		break;
-	    default:
-		goto end;
-	    }
+	/* Parse any options */
+	while (argc && **argv == '-') {
+		stopDoingThat = FALSE;
+		while (stopDoingThat == FALSE && *++(*argv)) {
+			switch (**argv) {
+			case 'c':
+				cmd = 4;
+				break;
+			case 'n':
+				cmd = 8;
+				if (--argc == 0)
+					goto end;
+				level = atoi(*(++argv));
+				if (--argc > 0)
+					++argv;
+				stopDoingThat = TRUE;
+				break;
+			case 's':
+				if (--argc == 0)
+					goto end;
+				bufsize = atoi(*(++argv));
+				if (--argc > 0)
+					++argv;
+				stopDoingThat = TRUE;
+				break;
+			default:
+				goto end;
+			}
+		}
 	}
-    }
-   
-   if (argc > 1) {
-	goto end;
-   }
 
-   if (cmd == 8) {
-      n = klogctl( cmd, NULL, level );
-      if (n < 0) {
-	  goto klogctl_error;
-      }
-      exit( TRUE );
-   }
+	if (argc > 1) {
+		goto end;
+	}
 
-   if (bufsize < 4096) bufsize = 4096;
-   buf = (char*)malloc(bufsize);
-   n = klogctl( cmd, buf, bufsize );
-   if (n < 0) {
-       goto klogctl_error;
-   }
+	if (cmd == 8) {
+		n = klogctl(cmd, NULL, level);
+		if (n < 0) {
+			goto klogctl_error;
+		}
+		exit(TRUE);
+	}
 
-   lastc = '\n';
-   for (i = 0; i < n; i++) {
-      if ((i == 0 || buf[i - 1] == '\n') && buf[i] == '<') {
-	 i++;
-	 while (buf[i] >= '0' && buf[i] <= '9')
-	    i++;
-	 if (buf[i] == '>')
-	    i++;
-      }
-      lastc = buf[i];
-      putchar( lastc );
-   }
-   if (lastc != '\n')
-      putchar( '\n' );
-   exit( TRUE);
-end:
-    usage( dmesg_usage);
-    exit (FALSE);
-klogctl_error:
-    perror( "klogctl" );
-    exit( FALSE );
+	if (bufsize < 4096)
+		bufsize = 4096;
+	buf = (char *) malloc(bufsize);
+	n = klogctl(cmd, buf, bufsize);
+	if (n < 0) {
+		goto klogctl_error;
+	}
+
+	lastc = '\n';
+	for (i = 0; i < n; i++) {
+		if ((i == 0 || buf[i - 1] == '\n') && buf[i] == '<') {
+			i++;
+			while (buf[i] >= '0' && buf[i] <= '9')
+				i++;
+			if (buf[i] == '>')
+				i++;
+		}
+		lastc = buf[i];
+		putchar(lastc);
+	}
+	if (lastc != '\n')
+		putchar('\n');
+	exit(TRUE);
+  end:
+	usage(dmesg_usage);
+	exit(FALSE);
+  klogctl_error:
+	perror("klogctl");
+	exit(FALSE);
 
 }

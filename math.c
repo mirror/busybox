@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #include "internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,126 +9,114 @@
 
 static const char math_usage[] = "math expression ...";
 
-static double		stack[100];
-static unsigned int	pointer;
+static double stack[100];
+static unsigned int pointer;
 
-static void
-push(double a)
+static void push(double a)
 {
-	if ( pointer >= (sizeof(stack) / sizeof(*stack)) ) {
+	if (pointer >= (sizeof(stack) / sizeof(*stack))) {
 		fprintf(stderr, "math: stack overflow\n");
 		exit(-1);
-	}
-	else
+	} else
 		stack[pointer++] = a;
 }
 
-static double
-pop()
+static double pop()
 {
-	if ( pointer == 0 ) {
+	if (pointer == 0) {
 		fprintf(stderr, "math: stack underflow\n");
 		exit(-1);
 	}
 	return stack[--pointer];
 }
 
-static void
-add()
+static void add()
 {
 	push(pop() + pop());
 }
 
-static void
-sub()
+static void sub()
 {
-	double	subtrahend = pop();
+	double subtrahend = pop();
 
 	push(pop() - subtrahend);
 }
 
-static void
-mul()
+static void mul()
 {
 	push(pop() * pop());
 }
 
-static void
-divide()
+static void divide()
 {
-	double	divisor = pop();
+	double divisor = pop();
+
 	push(pop() / divisor);
 }
 
-static void
-and()
+static void and()
 {
-	push((unsigned int)pop() & (unsigned int)pop());
+	push((unsigned int) pop() & (unsigned int) pop());
 }
 
-static void
-or()
+static void or()
 {
-	push((unsigned int)pop() | (unsigned int)pop());
+	push((unsigned int) pop() | (unsigned int) pop());
 }
 
-static void
-eor()
+static void eor()
 {
-	push((unsigned int)pop() ^ (unsigned int)pop());
+	push((unsigned int) pop() ^ (unsigned int) pop());
 }
 
-static void
-not()
+static void not()
 {
-	push(~(unsigned int)pop());
+	push(~(unsigned int) pop());
 }
 
-static void
-print()
+static void print()
 {
 	printf("%g\n", pop());
 }
 
 struct op {
-	const char *	name;
-	void			(*function)();
+	const char *name;
+	void (*function) ();
 };
 
-static const struct op	operators[] = {
-	{	"add",	add	},
-	{	"and",	and	},
-	{	"div",	divide	},
-	{	"eor",	eor	},
-	{	"mul",	mul	},
-	{	"not",	not	},
-	{	"or",	or	},
-	{	"sub",	sub	},
-	{	0,		0	}
+static const struct op operators[] = {
+	{"add", add},
+	{"and", and},
+	{"div", divide},
+	{"eor", eor},
+	{"mul", mul},
+	{"not", not},
+	{"or", or},
+	{"sub", sub},
+	{0, 0}
 };
 
-static void
-stack_machine(const char * argument)
+static void stack_machine(const char *argument)
 {
-	char *				endPointer = 0;
-	double				d;
-	const struct op *	o = operators;
+	char *endPointer = 0;
+	double d;
+	const struct op *o = operators;
 
-	if ( argument == 0 ) {
+	if (argument == 0) {
 		print();
 		return;
 	}
 
 	d = strtod(argument, &endPointer);
 
-	if ( endPointer != argument ) {
+	if (endPointer != argument) {
 		push(d);
 		return;
 	}
 
-	while ( o->name != 0 ) {
-		if ( strcmp(o->name, argument) == 0 ) {
-			(*(o->function))();
+	while (o->name != 0) {
+		if (strcmp(o->name, argument) == 0) {
+			(*(o->function)) ();
 			return;
 		}
 		o++;
@@ -136,10 +125,9 @@ stack_machine(const char * argument)
 	exit(-1);
 }
 
-int
-math_main(int argc, char * * argv)
+int math_main(int argc, char **argv)
 {
-	while ( argc >= 2 ) {
+	while (argc >= 2) {
 		stack_machine(argv[1]);
 		argv++;
 		argc--;

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini clear implementation for busybox
  *
@@ -25,9 +26,8 @@
 #include <stdio.h>
 
 
-extern int
-clear_main(int argc, char** argv)
+extern int clear_main(int argc, char **argv)
 {
 	printf("\033[H\033[J");
-	exit( TRUE);
+	exit(TRUE);
 }

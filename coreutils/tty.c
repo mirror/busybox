@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini tty implementation for busybox
  *
@@ -24,19 +25,23 @@
 #include <sys/types.h>
 
 static const char tty_usage[] = "tty\n\n"
-"Print the file name of the terminal connected to standard input.\n"
-"\t-s\tprint nothing, only return an exit status\n";
+	"Print the file name of the terminal connected to standard input.\n"
 
-extern int tty_main(int argc, char **argv) {
+	"\t-s\tprint nothing, only return an exit status\n";
+
+extern int tty_main(int argc, char **argv)
+{
 	char *tty;
 
 	if (argc > 1) {
-		if (argv[1][0] != '-' || argv[1][1] != 's') usage (tty_usage);
+		if (argv[1][0] != '-' || argv[1][1] != 's')
+			usage(tty_usage);
+	} else {
+		tty = ttyname(0);
+		if (tty)
+			puts(tty);
+		else
+			puts("not a tty");
 	}
-	else {
-		tty = ttyname (0);
-		if (tty) puts (tty);
-		else puts ("not a tty");
-	}
-	exit (isatty (0) ? TRUE : FALSE);
+	exit(isatty(0) ? TRUE : FALSE);
 }

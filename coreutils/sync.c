@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini sync implementation for busybox
  *
@@ -23,12 +24,10 @@
 #include "internal.h"
 #include <stdio.h>
 
-extern int
-sync_main(int argc, char * * argv)
+extern int sync_main(int argc, char **argv)
 {
-    if ( argc>1 && **(argv+1) == '-' ) {
-	usage( "sync\n\nWrite all buffered filesystem blocks to disk.\n");
-    }
-    exit( sync());
+	if (argc > 1 && **(argv + 1) == '-') {
+		usage("sync\n\nWrite all buffered filesystem blocks to disk.\n");
+	}
+	exit(sync());
 }
-

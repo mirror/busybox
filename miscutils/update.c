@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini update implementation for busybox
  *
@@ -27,20 +28,19 @@
 #include <sys/kdaemon.h>
 #else
 _syscall2(int, bdflush, int, func, int, data);
-#endif /* __GLIBC__ */
+#endif							/* __GLIBC__ */
 
-extern int
-update_main(int argc, char** argv)
+extern int update_main(int argc, char **argv)
 {
 	/*
 	 * Update is actually two daemons, bdflush and update.
 	 */
-	int	pid;
+	int pid;
 
 	pid = fork();
-	if ( pid < 0 )
+	if (pid < 0)
 		return pid;
-	else if ( pid == 0 ) {
+	else if (pid == 0) {
 		/*
 		 * This is no longer necessary since 1.3.5x, but it will harmlessly
 		 * exit if that is the case.
@@ -52,11 +52,11 @@ update_main(int argc, char** argv)
 		_exit(0);
 	}
 	pid = fork();
-	if ( pid < 0 )
+	if (pid < 0)
 		return pid;
-	else if ( pid == 0 ) {
+	else if (pid == 0) {
 		argv[0] = "update";
-		for ( ; ; ) {
+		for (;;) {
 			sync();
 			sleep(30);
 		}

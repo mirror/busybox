@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini hostid implementation for busybox
  *
@@ -22,7 +23,8 @@
 #include "internal.h"
 #include <stdio.h>
 
-extern int hostid_main(int argc, char **argv) {
-	printf ("%lx\n", gethostid());
-	exit( TRUE);
+extern int hostid_main(int argc, char **argv)
+{
+	printf("%lx\n", gethostid());
+	exit(TRUE);
 }

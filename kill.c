@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini kill implementation for busybox
  *
@@ -29,188 +30,188 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static const char* kill_usage = "kill [-signal] process-id [process-id ...]\n\n"
-"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
-"Options:\n"
-"\t-l\tList all signal names and numbers.\n\n";
+static const char *kill_usage =
+	"kill [-signal] process-id [process-id ...]\n\n"
+	"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
+	"Options:\n" "\t-l\tList all signal names and numbers.\n\n";
 
 
 struct signal_name {
-    const char *name;
-    int number;
+	const char *name;
+	int number;
 };
 
 const struct signal_name signames[] = {
-    {"HUP", SIGHUP},
-    {"INT", SIGINT},
-    {"QUIT", SIGQUIT},
-    {"ILL", SIGILL},
-    {"TRAP", SIGTRAP},
-    {"ABRT", SIGABRT},
+	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL},
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
 #ifndef __alpha__
-    {"IOT", SIGIOT},
+	{"IOT", SIGIOT},
 #endif
 #if defined(__sparc__) || defined(__alpha__)
-    {"EMT", SIGEMT},
+	{"EMT", SIGEMT},
 #else
-    {"BUS", SIGBUS},
+	{"BUS", SIGBUS},
 #endif
-    {"FPE", SIGFPE},
-    {"KILL", SIGKILL},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
 #if defined(__sparc__) || defined(__alpha__)
-    {"BUS", SIGBUS},
+	{"BUS", SIGBUS},
 #else
-    {"USR1", SIGUSR1},
+	{"USR1", SIGUSR1},
 #endif
-    {"SEGV", SIGSEGV},
+	{"SEGV", SIGSEGV},
 #if defined(__sparc__) || defined(__alpha__)
-    {"SYS", SIGSYS},
+	{"SYS", SIGSYS},
 #else
-    {"USR2", SIGUSR2},
+	{"USR2", SIGUSR2},
 #endif
-    {"PIPE", SIGPIPE},
-    {"ALRM", SIGALRM},
-    {"TERM", SIGTERM},
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
 #if defined(__sparc__) || defined(__alpha__)
-    {"URG", SIGURG},
-    {"STOP", SIGSTOP},
-    {"TSTP", SIGTSTP},
-    {"CONT", SIGCONT},
-    {"CHLD", SIGCHLD},
-    {"TTIN", SIGTTIN},
-    {"TTOU", SIGTTOU},
-    {"IO", SIGIO},
+	{"URG", SIGURG},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP},
+	{"CONT", SIGCONT},
+	{"CHLD", SIGCHLD},
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"IO", SIGIO},
 # ifndef __alpha__
-    {"POLL", SIGIO},
+	{"POLL", SIGIO},
 # endif
-    {"XCPU", SIGXCPU},
-    {"XFSZ", SIGXFSZ},
-    {"VTALRM", SIGVTALRM},
-    {"PROF", SIGPROF},
-    {"WINCH", SIGWINCH},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH},
 # ifdef __alpha__
-    {"INFO", SIGINFO},
+	{"INFO", SIGINFO},
 # else
-    {"LOST", SIGLOST},
+	{"LOST", SIGLOST},
 # endif
-    {"USR1", SIGUSR1},
-    {"USR2", SIGUSR2},
+	{"USR1", SIGUSR1},
+	{"USR2", SIGUSR2},
 #else
-    {"STKFLT", SIGSTKFLT},
-    {"CHLD", SIGCHLD},
-    {"CONT", SIGCONT},
-    {"STOP", SIGSTOP},
-    {"TSTP", SIGTSTP},
-    {"TTIN", SIGTTIN},
-    {"TTOU", SIGTTOU},
-    {"URG", SIGURG},
-    {"XCPU", SIGXCPU},
-    {"XFSZ", SIGXFSZ},
-    {"VTALRM", SIGVTALRM},
-    {"PROF", SIGPROF},
-    {"WINCH", SIGWINCH},
-    {"IO", SIGIO},
-    {"POLL", SIGPOLL},
-    {"PWR", SIGPWR},
-    {"UNUSED", SIGUNUSED},
+	{"STKFLT", SIGSTKFLT},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP},
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH},
+	{"IO", SIGIO},
+	{"POLL", SIGPOLL},
+	{"PWR", SIGPWR},
+	{"UNUSED", SIGUNUSED},
 #endif
-    {0, 0}
+	{0, 0}
 };
 
-extern int kill_main (int argc, char **argv)
+extern int kill_main(int argc, char **argv)
 {
-    int sig = SIGTERM;
-    
-    argc--;
-    argv++;
-    /* Parse any options */
-    if (argc < 1) 
-	usage(kill_usage);
+	int sig = SIGTERM;
 
-    while (argc > 0 && **argv == '-') {
-	while (*++(*argv)) {
-	    switch (**argv) {
-	    case 'l': 
-		{
-		    int col=0;
-		    const struct signal_name *s = signames;
-
-		    while (s->name != 0) {
-			col+=fprintf(stderr, "%2d) %-8s", s->number, (s++)->name);
-			if (col>60) {
-			    fprintf(stderr, "\n");
-			    col=0;
-			}
-		    }
-		    fprintf(stderr, "\n\n");
-		    exit( TRUE);
-		}
-		break;
-	    case '-':
-		usage(kill_usage);
-	    default:
-		{
-		    if (isdigit( **argv)) {
-			sig = atoi (*argv);
-			if (sig < 0 || sig >= NSIG)
-			    goto end;
-			else {
-			    argc--;
-			    argv++;
-			    goto do_it_now;
-			}
-		    }
-		    else {
-			const struct signal_name *s = signames;
-			while (s->name != 0) {
-			    if (strcasecmp (s->name, *argv) == 0) {
-				sig = s->number;
-				argc--;
-				argv++;
-				goto do_it_now;
-			    }
-			    s++;
-			}
-			if (s->name == 0)
-			    goto end;
-		    }
-		}
-	    }
 	argc--;
 	argv++;
+	/* Parse any options */
+	if (argc < 1)
+		usage(kill_usage);
+
+	while (argc > 0 && **argv == '-') {
+		while (*++(*argv)) {
+			switch (**argv) {
+			case 'l':
+				{
+					int col = 0;
+					const struct signal_name *s = signames;
+
+					while (s->name != 0) {
+						col +=
+							fprintf(stderr, "%2d) %-8s", s->number,
+									(s++)->name);
+						if (col > 60) {
+							fprintf(stderr, "\n");
+							col = 0;
+						}
+					}
+					fprintf(stderr, "\n\n");
+					exit(TRUE);
+				}
+				break;
+			case '-':
+				usage(kill_usage);
+			default:
+				{
+					if (isdigit(**argv)) {
+						sig = atoi(*argv);
+						if (sig < 0 || sig >= NSIG)
+							goto end;
+						else {
+							argc--;
+							argv++;
+							goto do_it_now;
+						}
+					} else {
+						const struct signal_name *s = signames;
+
+						while (s->name != 0) {
+							if (strcasecmp(s->name, *argv) == 0) {
+								sig = s->number;
+								argc--;
+								argv++;
+								goto do_it_now;
+							}
+							s++;
+						}
+						if (s->name == 0)
+							goto end;
+					}
+				}
+			}
+			argc--;
+			argv++;
+		}
 	}
-    }
 
-do_it_now:
+  do_it_now:
 
-    while (--argc >= 0) {
-        int pid;
-	struct stat statbuf;
-	char pidpath[20]="/proc/";
-	
-        if (! isdigit( **argv)) {
-            fprintf(stderr, "bad PID: %s\n", *argv);
-            exit( FALSE);
-        }
-        pid = atoi (*argv);
-	snprintf(pidpath, 20, "/proc/%s/stat", *argv);
-	if (stat( pidpath, &statbuf)!=0) {
-            fprintf(stderr, "kill: (%d) - No such pid\n", pid);
-            exit( FALSE);
+	while (--argc >= 0) {
+		int pid;
+		struct stat statbuf;
+		char pidpath[20] = "/proc/";
+
+		if (!isdigit(**argv)) {
+			fprintf(stderr, "bad PID: %s\n", *argv);
+			exit(FALSE);
+		}
+		pid = atoi(*argv);
+		snprintf(pidpath, 20, "/proc/%s/stat", *argv);
+		if (stat(pidpath, &statbuf) != 0) {
+			fprintf(stderr, "kill: (%d) - No such pid\n", pid);
+			exit(FALSE);
+		}
+		fprintf(stderr, "sig = %d\n", sig);
+		if (kill(pid, sig) != 0) {
+			perror(*argv);
+			exit(FALSE);
+		}
+		argv++;
 	}
-	fprintf(stderr, "sig = %d\n", sig);
-        if (kill (pid, sig) != 0) {
-            perror (*argv);
-            exit ( FALSE);
-        }
-	argv++;
-    }
-    exit ( TRUE);
+	exit(TRUE);
 
 
-end:
-    fprintf(stderr, "bad signal name: %s\n", *argv);
-    exit (TRUE);
+  end:
+	fprintf(stderr, "bad signal name: %s\n", *argv);
+	exit(TRUE);
 }
-
-

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* regexp.c */
 
 #include "internal.h"
@@ -17,44 +18,47 @@
  */
 extern int find_match(char *haystack, char *needle, int ignoreCase)
 {
-    int status;
-    struct regexp*  re;
-    re = regcomp( needle);
-    status = regexec(re, haystack, FALSE, ignoreCase);
-    free( re);
-    return( status);
+	int status;
+	struct regexp *re;
+
+	re = regcomp(needle);
+	status = regexec(re, haystack, FALSE, ignoreCase);
+	free(re);
+	return (status);
 }
 
 #if defined BB_SED
 /* This performs substitutions after a regexp match has been found.  
  * The new string is returned.  It is malloc'ed, and do must be freed. */
-extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
+extern int replace_match(char *haystack, char *needle, char *newNeedle,
+						 int ignoreCase)
 {
-    int status;
-    struct regexp*  re;
-    char *s, buf[BUF_SIZE], *d = buf;
+	int status;
+	struct regexp *re;
+	char *s, buf[BUF_SIZE], *d = buf;
 
-    re = regcomp( needle);
-    status = regexec(re, haystack, FALSE, ignoreCase);
-    if (status==TRUE) {
-	s=haystack;
+	re = regcomp(needle);
+	status = regexec(re, haystack, FALSE, ignoreCase);
+	if (status == TRUE) {
+		s = haystack;
 
-	do {
-	    /* copy stuff from before the match */
-	    while (s < re->startp[0])
-		*d++ = *s++;
-	    /* substitute for the matched part */
-	    regsub(re, newNeedle, d);
-	    s = re->endp[0];
-	    d += strlen(d);
-	} while (regexec(re, s, FALSE, ignoreCase) == TRUE);
-	 /* copy stuff from after the match */
-	while ( (*d++ = *s++) ) {}
-	d[0] = '\0';
-	strcpy(haystack, buf);
-    }
-    free( re);
-    return( status);
+		do {
+			/* copy stuff from before the match */
+			while (s < re->startp[0])
+				*d++ = *s++;
+			/* substitute for the matched part */
+			regsub(re, newNeedle, d);
+			s = re->endp[0];
+			d += strlen(d);
+		} while (regexec(re, s, FALSE, ignoreCase) == TRUE);
+		/* copy stuff from after the match */
+		while ((*d++ = *s++)) {
+		}
+		d[0] = '\0';
+		strcpy(haystack, buf);
+	}
+	free(re);
+	return (status);
 }
 #endif
 
@@ -97,9 +101,10 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
 
 
 
-static char *previous;	/* the previous regexp, used when null regexp is given */
+static char *previous;			/* the previous regexp, used when null regexp is given */
+
 #if defined BB_SED
-static char *previous1;	/* a copy of the text from the previous substitution for regsub()*/
+static char *previous1;			/* a copy of the text from the previous substitution for regsub() */
 #endif
 
 
@@ -116,27 +121,28 @@ static char *previous1;	/* a copy of the text from the previous substitution for
 #define GET_META(s)	(*(s) == META ? INT_META(*++(s)) : *s)
 
 /* These are the internal codes used for each type of meta-character */
-#define M_BEGLINE	256		/* internal code for ^ */
-#define M_ENDLINE	257		/* internal code for $ */
-#define M_BEGWORD	258		/* internal code for \< */
-#define M_ENDWORD	259		/* internal code for \> */
-#define M_ANY		260		/* internal code for . */
-#define M_SPLAT		261		/* internal code for * */
-#define M_PLUS		262		/* internal code for \+ */
-#define M_QMARK		263		/* internal code for \? */
+#define M_BEGLINE	256			/* internal code for ^ */
+#define M_ENDLINE	257			/* internal code for $ */
+#define M_BEGWORD	258			/* internal code for \< */
+#define M_ENDWORD	259			/* internal code for \> */
+#define M_ANY		260			/* internal code for . */
+#define M_SPLAT		261			/* internal code for * */
+#define M_PLUS		262			/* internal code for \+ */
+#define M_QMARK		263			/* internal code for \? */
 #define M_CLASS(n)	(264+(n))	/* internal code for [] */
 #define M_START(n)	(274+(n))	/* internal code for \( */
 #define M_END(n)	(284+(n))	/* internal code for \) */
 
 /* These are used during compilation */
-static int	class_cnt;	/* used to assign class IDs */
-static int	start_cnt;	/* used to assign start IDs */
-static int	end_stk[NSUBEXP];/* used to assign end IDs */
-static int	end_sp;
-static char	*retext;	/* points to the text being compiled */
+static int class_cnt;			/* used to assign class IDs */
+static int start_cnt;			/* used to assign start IDs */
+static int end_stk[NSUBEXP];	/* used to assign end IDs */
+static int end_sp;
+static char *retext;			/* points to the text being compiled */
 
 /* error-handling stuff */
-jmp_buf	errorhandler;
+jmp_buf errorhandler;
+
 #define FAIL(why)  do {fprintf(stderr, why); longjmp(errorhandler, 1);} while (0)
 
 
@@ -145,68 +151,56 @@ jmp_buf	errorhandler;
 /* This function builds a bitmap for a particular class */
 /* text -- start of the class */
 /* bmap -- the bitmap */
-static char *makeclass(char* text, char* bmap)
+static char *makeclass(char *text, char *bmap)
 {
-	int		i;
-	int		complement = 0;
+	int i;
+	int complement = 0;
 
 
 	/* zero the bitmap */
-	for (i = 0; bmap && i < 32; i++)
-	{
+	for (i = 0; bmap && i < 32; i++) {
 		bmap[i] = 0;
 	}
 
 	/* see if we're going to complement this class */
-	if (*text == '^')
-	{
+	if (*text == '^') {
 		text++;
 		complement = 1;
 	}
 
 	/* add in the characters */
-	while (*text && *text != ']')
-	{
+	while (*text && *text != ']') {
 		/* is this a span of characters? */
-		if (text[1] == '-' && text[2])
-		{
+		if (text[1] == '-' && text[2]) {
 			/* spans can't be backwards */
-			if (text[0] > text[2])
-			{
+			if (text[0] > text[2]) {
 				FAIL("Backwards span in []");
 			}
 
 			/* add each character in the span to the bitmap */
-			for (i = text[0]; bmap && i <= text[2]; i++)
-			{
+			for (i = text[0]; bmap && i <= text[2]; i++) {
 				bmap[i >> 3] |= (1 << (i & 7));
 			}
 
 			/* move past this span */
 			text += 3;
-		}
-		else
-		{
+		} else {
 			/* add this single character to the span */
 			i = *text++;
-			if (bmap)
-			{
+			if (bmap) {
 				bmap[i >> 3] |= (1 << (i & 7));
 			}
 		}
 	}
 
 	/* make sure the closing ] is missing */
-	if (*text++ != ']')
-	{
+	if (*text++ != ']') {
 		FAIL("] missing");
 	}
 
 	/* if we're supposed to complement this class, then do so */
-	if (complement && bmap)
-	{
-		for (i = 0; i < 32; i++)
-		{
+	if (complement && bmap) {
+		for (i = 0; i < 32; i++) {
 			bmap[i] = ~bmap[i];
 		}
 	}
@@ -223,105 +217,92 @@ static char *makeclass(char* text, char* bmap)
  * character-class text is skipped.
  */
 static int gettoken(sptr, re)
-	char	**sptr;
-	regexp	*re;
+char **sptr;
+regexp *re;
 {
-	int	c;
+	int c;
 
 	c = **sptr;
 	++*sptr;
-	if (c == '\\')
-	{
+	if (c == '\\') {
 		c = **sptr;
 		++*sptr;
-		switch (c)
-		{
-		  case '<':
+		switch (c) {
+		case '<':
 			return M_BEGWORD;
 
-		  case '>':
+		case '>':
 			return M_ENDWORD;
 
-		  case '(':
-			if (start_cnt >= NSUBEXP)
-			{
+		case '(':
+			if (start_cnt >= NSUBEXP) {
 				FAIL("Too many \\(s");
 			}
 			end_stk[end_sp++] = start_cnt;
 			return M_START(start_cnt++);
 
-		  case ')':
-			if (end_sp <= 0)
-			{
+		case ')':
+			if (end_sp <= 0) {
 				FAIL("Mismatched \\)");
 			}
 			return M_END(end_stk[--end_sp]);
 
-		  case '*':
+		case '*':
 			return M_SPLAT;
 
-		  case '.':
+		case '.':
 			return M_ANY;
 
-		  case '+':
+		case '+':
 			return M_PLUS;
 
-		  case '?':
+		case '?':
 			return M_QMARK;
 
-		  default:
+		default:
 			return c;
 		}
-	}
-	else {
-		switch (c)
-		{
-		  case '^':
-			if (*sptr == retext + 1)
-			{
+	} else {
+		switch (c) {
+		case '^':
+			if (*sptr == retext + 1) {
 				return M_BEGLINE;
 			}
 			return c;
 
-		  case '$':
-			if (!**sptr)
-			{
+		case '$':
+			if (!**sptr) {
 				return M_ENDLINE;
 			}
 			return c;
 
-		  case '.':
+		case '.':
 			return M_ANY;
 
-		  case '*':
+		case '*':
 			return M_SPLAT;
 
-		  case '[':
+		case '[':
 			/* make sure we don't have too many classes */
-			if (class_cnt >= 10)
-			{
+			if (class_cnt >= 10) {
 				FAIL("Too many []s");
 			}
 
 			/* process the character list for this class */
-			if (re)
-			{
+			if (re) {
 				/* generate the bitmap for this class */
 				*sptr = makeclass(*sptr, re->program + 1 + 32 * class_cnt);
-			}
-			else
-			{
+			} else {
 				/* skip to end of the class */
-				*sptr = makeclass(*sptr, (char *)0);
+				*sptr = makeclass(*sptr, (char *) 0);
 			}
 			return M_CLASS(class_cnt++);
 
-		  default:
+		default:
 			return c;
 		}
 	}
-	/*NOTREACHED*/
-}
+ /*NOTREACHED*/}
 
 
 
@@ -331,28 +312,22 @@ static int gettoken(sptr, re)
  * about catching syntax errors; that is done in a later pass.
  */
 static unsigned calcsize(text)
-	char		*text;
+char *text;
 {
-	unsigned	size;
-	int		token;
+	unsigned size;
+	int token;
 
 	retext = text;
 	class_cnt = 0;
 	start_cnt = 1;
 	end_sp = 0;
 	size = 5;
-	while ((token = gettoken(&text, (regexp *)0)) != 0)
-	{
-		if (IS_CLASS(token))
-		{
+	while ((token = gettoken(&text, (regexp *) 0)) != 0) {
+		if (IS_CLASS(token)) {
 			size += 34;
-		}
-		else if (IS_META(token))
-		{
+		} else if (IS_META(token)) {
 			size += 2;
-		}
-		else
-		{
+		} else {
 			size++;
 		}
 	}
@@ -369,26 +344,23 @@ static unsigned calcsize(text)
  * known to represent a single character.  It returns 0 if they match, or
  * 1 if they don't.
  */
-static int match1(regexp* re, char ch, int token, int ignoreCase)
+static int match1(regexp * re, char ch, int token, int ignoreCase)
 {
-	if (!ch)
-	{
+	if (!ch) {
 		/* the end of a line can't match any RE of width 1 */
 		return 1;
 	}
-	if (token == M_ANY)
-	{
+	if (token == M_ANY) {
 		return 0;
-	}
-	else if (IS_CLASS(token))
-	{
-		if (re->program[1 + 32 * (token - M_CLASS(0)) + (ch >> 3)] & (1 << (ch & 7)))
+	} else if (IS_CLASS(token)) {
+		if (re->
+			program[1 + 32 * (token - M_CLASS(0)) +
+					(ch >> 3)] & (1 << (ch & 7)))
 			return 0;
 	}
 //fprintf(stderr, "match1: ch='%c' token='%c': ", ch, token);
 	if (ch == token
-		|| (ignoreCase==TRUE && tolower(ch) == tolower(token)))
-	{
+		|| (ignoreCase == TRUE && tolower(ch) == tolower(token))) {
 //fprintf(stderr, "match\n");
 		return 0;
 	}
@@ -406,65 +378,63 @@ static int match1(regexp* re, char ch, int token, int ignoreCase)
 /* str  -- the string */
 /* prog -- a portion of re->program, an compiled RE */
 /* here -- a portion of str, the string to compare it to */
-static int match(regexp* re, char* str, char* prog, char* here, int ignoreCase)
+static int match(regexp * re, char *str, char *prog, char *here,
+				 int ignoreCase)
 {
-	int		token;
-	int		nmatched;
-	int		closure;
+	int token;
+	int nmatched;
+	int closure;
 
-	for (token = GET_META(prog); !IS_CLOSURE(token); prog++, token = GET_META(prog))
-	{
-		switch (token)
-		{
-		/*case M_BEGLINE: can't happen; re->bol is used instead */
-		  case M_ENDLINE:
+	for (token = GET_META(prog); !IS_CLOSURE(token);
+		 prog++, token = GET_META(prog)) {
+		switch (token) {
+			/*case M_BEGLINE: can't happen; re->bol is used instead */
+		case M_ENDLINE:
 			if (*here)
 				return 1;
 			break;
 
-		  case M_BEGWORD:
+		case M_BEGWORD:
 			if (here != str &&
-			   (here[-1] == '_' ||
-			     (isascii(here[-1]) && isalnum(here[-1]))))
-				return 1;
+				(here[-1] == '_' ||
+				 (isascii(here[-1]) && isalnum(here[-1])))) return 1;
 			break;
 
-		  case M_ENDWORD:
+		case M_ENDWORD:
 			if ((here[0] == '_' || isascii(here[0])) && isalnum(here[0]))
 				return 1;
 			break;
 
-		  case M_START(0):
-		  case M_START(1):
-		  case M_START(2):
-		  case M_START(3):
-		  case M_START(4):
-		  case M_START(5):
-		  case M_START(6):
-		  case M_START(7):
-		  case M_START(8):
-		  case M_START(9):
-			re->startp[token - M_START(0)] = (char *)here;
+		case M_START(0):
+		case M_START(1):
+		case M_START(2):
+		case M_START(3):
+		case M_START(4):
+		case M_START(5):
+		case M_START(6):
+		case M_START(7):
+		case M_START(8):
+		case M_START(9):
+			re->startp[token - M_START(0)] = (char *) here;
 			break;
 
-		  case M_END(0):
-		  case M_END(1):
-		  case M_END(2):
-		  case M_END(3):
-		  case M_END(4):
-		  case M_END(5):
-		  case M_END(6):
-		  case M_END(7):
-		  case M_END(8):
-		  case M_END(9):
-			re->endp[token - M_END(0)] = (char *)here;
-			if (token == M_END(0))
-			{
+		case M_END(0):
+		case M_END(1):
+		case M_END(2):
+		case M_END(3):
+		case M_END(4):
+		case M_END(5):
+		case M_END(6):
+		case M_END(7):
+		case M_END(8):
+		case M_END(9):
+			re->endp[token - M_END(0)] = (char *) here;
+			if (token == M_END(0)) {
 				return 0;
 			}
 			break;
 
-		  default: /* literal, M_CLASS(n), or M_ANY */
+		default:				/* literal, M_CLASS(n), or M_ANY */
 			if (match1(re, *here, token, ignoreCase) != 0)
 				return 1;
 			here++;
@@ -482,14 +452,12 @@ static int match(regexp* re, char* str, char* prog, char* here, int ignoreCase)
 
 	/* step 2: see how many times we can match that token against the string */
 	for (nmatched = 0;
-	     (closure != M_QMARK || nmatched < 1) && *here && match1(re, *here, token, ignoreCase) == 0;
-	     nmatched++, here++)
-	{
+		 (closure != M_QMARK || nmatched < 1) && *here
+		 && match1(re, *here, token, ignoreCase) == 0; nmatched++, here++) {
 	}
 
 	/* step 3: try to match the remainder, and back off if it doesn't */
-	while (nmatched >= 0 && match(re, str, prog, here, ignoreCase) != 0)
-	{
+	while (nmatched >= 0 && match(re, str, prog, here, ignoreCase) != 0) {
 		nmatched--;
 		here--;
 	}
@@ -502,41 +470,36 @@ static int match(regexp* re, char* str, char* prog, char* here, int ignoreCase)
 
 
 /* This function compiles a regexp. */
-extern regexp *regcomp(char* text)
+extern regexp *regcomp(char *text)
 {
-	int		needfirst;
-	unsigned	size;
-	int		token;
-	int		peek;
-	char		*build;
-	regexp		*re; // Ignore compiler whining.  If we longjmp, we don't use re anymore.
+	int needfirst;
+	unsigned size;
+	int token;
+	int peek;
+	char *build;
+	regexp *re;					// Ignore compiler whining.  If we longjmp, we don't use re anymore.
 
 
 	/* prepare for error handling */
-	re = (regexp *)0;
-	if (setjmp(errorhandler))
-	{
-		if (re)
-		{
+	re = (regexp *) 0;
+	if (setjmp(errorhandler)) {
+		if (re) {
 			free(re);
 		}
-		return (regexp *)0;
+		return (regexp *) 0;
 	}
 
 	/* if an empty regexp string was given, use the previous one */
-	if (*text == 0)
-	{
-		if (!previous)
-		{
+	if (*text == 0) {
+		if (!previous) {
 			FAIL("No previous RE");
 		}
 		text = previous;
-	}
-	else /* non-empty regexp given, so remember it */
-	{
+	} else {					/* non-empty regexp given, so remember it */
+
 		if (previous)
 			free(previous);
-		previous = (char *)malloc((unsigned)(strlen(text) + 1));
+		previous = (char *) malloc((unsigned) (strlen(text) + 1));
 		if (previous)
 			strcpy(previous, text);
 	}
@@ -547,19 +510,17 @@ extern regexp *regcomp(char* text)
 	end_sp = 0;
 	retext = text;
 	size = calcsize(text) + sizeof(regexp);
-	re = (regexp *)malloc((unsigned)size);
+	re = (regexp *) malloc((unsigned) size);
 
-	if (!re)
-	{
+	if (!re) {
 		FAIL("Not enough memory for this RE");
 	}
 
 	/* compile it */
 	build = &re->program[1 + 32 * class_cnt];
 	re->program[0] = class_cnt;
-	for (token = 0; token < NSUBEXP; token++)
-	{
-		re->startp[token] = re->endp[token] = (char *)0;
+	for (token = 0; token < NSUBEXP; token++) {
+		re->startp[token] = re->endp[token] = (char *) 0;
 	}
 	re->first = 0;
 	re->bol = 0;
@@ -570,76 +531,60 @@ extern regexp *regcomp(char* text)
 	end_sp = 0;
 	retext = text;
 	for (token = M_START(0), peek = gettoken(&text, re);
-	     token;
-	     token = peek, peek = gettoken(&text, re))
-	{
+		 token; token = peek, peek = gettoken(&text, re)) {
 		/* special processing for the closure operator */
-		if (IS_CLOSURE(peek))
-		{
+		if (IS_CLOSURE(peek)) {
 			/* detect misuse of closure operator */
-			if (IS_START(token))
-			{
+			if (IS_START(token)) {
 				FAIL("* or \\+ or \\? follows nothing");
 			}
-			else if (IS_META(token) && token != M_ANY && !IS_CLASS(token))
-			{
-				FAIL("* or \\+ or \\? can only follow a normal character or . or []");
+				else if (IS_META(token) && token != M_ANY
+						 && !IS_CLASS(token)) {
+				FAIL
+					("* or \\+ or \\? can only follow a normal character or . or []");
 			}
 
 			/* it is okay -- make it prefix instead of postfix */
 			ADD_META(build, peek);
 
 			/* take care of "needfirst" - is this the first char? */
-			if (needfirst && peek == M_PLUS && !IS_META(token))
-			{
+			if (needfirst && peek == M_PLUS && !IS_META(token)) {
 				re->first = token;
 			}
 			needfirst = 0;
 
 			/* we used "peek" -- need to refill it */
 			peek = gettoken(&text, re);
-			if (IS_CLOSURE(peek))
-			{
+			if (IS_CLOSURE(peek)) {
 				FAIL("* or \\+ or \\? doubled up");
 			}
-		}
-		else if (!IS_META(token))
-		{
+		} else if (!IS_META(token)) {
 			/* normal char is NOT argument of closure */
-			if (needfirst)
-			{
+			if (needfirst) {
 				re->first = token;
 				needfirst = 0;
 			}
 			re->minlen++;
-		}
-		else if (token == M_ANY || IS_CLASS(token))
-		{
+		} else if (token == M_ANY || IS_CLASS(token)) {
 			/* . or [] is NOT argument of closure */
 			needfirst = 0;
 			re->minlen++;
 		}
 
 		/* the "token" character is not closure -- process it normally */
-		if (token == M_BEGLINE)
-		{
+		if (token == M_BEGLINE) {
 			/* set the BOL flag instead of storing M_BEGLINE */
 			re->bol = 1;
-		}
-		else if (IS_META(token))
-		{
+		} else if (IS_META(token)) {
 			ADD_META(build, token);
-		}
-		else
-		{
+		} else {
 			*build++ = token;
 		}
 	}
 
 	/* end it with a \) which MUST MATCH the opening \( */
 	ADD_META(build, M_END(0));
-	if (end_sp > 0)
-	{
+	if (end_sp > 0) {
 		FAIL("Not enough \\)s");
 	}
 
@@ -654,15 +599,14 @@ extern regexp *regcomp(char* text)
 /* str -- the string to search through */
 /* bol -- does str start at the beginning of a line? (boolean) */
 /* ignoreCase -- ignoreCase or not */
-extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase)
+extern int regexec(struct regexp *re, char *str, int bol, int ignoreCase)
 {
-	char	*prog;	/* the entry point of re->program */
-	int	len;	/* length of the string */
-	char	*here;
+	char *prog;					/* the entry point of re->program */
+	int len;					/* length of the string */
+	char *here;
 
 	/* if must start at the beginning of a line, and this isn't, then fail */
-	if (re->bol && bol==TRUE)
-	{
+	if (re->bol && bol == TRUE) {
 		return FALSE;
 	}
 
@@ -670,35 +614,26 @@ extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase)
 	prog = re->program + 1 + 32 * re->program[0];
 
 	/* search for the RE in the string */
-	if (re->bol)
-	{
+	if (re->bol) {
 		/* must occur at BOL */
-		if ((re->first
-			&& match1(re, *(char *)str, re->first, ignoreCase))/* wrong first letter? */
-		 || len < re->minlen			/* not long enough? */
-		 || match(re, (char *)str, prog, str, ignoreCase))	/* doesn't match? */
-			return FALSE;			/* THEN FAIL! */
-	}
-	else if (ignoreCase == FALSE)
-	{
+		if ((re->first && match1(re, *(char *) str, re->first, ignoreCase))	/* wrong first letter? */
+			||len < re->minlen	/* not long enough? */
+			|| match(re, (char *) str, prog, str, ignoreCase))	/* doesn't match? */
+			return FALSE;		/* THEN FAIL! */
+	} else if (ignoreCase == FALSE) {
 		/* can occur anywhere in the line, noignorecase */
-		for (here = (char *)str;
-		     (re->first && re->first != *here)
-			|| match(re, (char *)str, prog, here, ignoreCase);
-		     here++, len--)
-		{
+		for (here = (char *) str; (re->first && re->first != *here)
+			 || match(re, (char *) str, prog, here, ignoreCase);
+			 here++, len--) {
 			if (len < re->minlen)
 				return FALSE;
 		}
-	}
-	else
-	{
+	} else {
 		/* can occur anywhere in the line, ignorecase */
-		for (here = (char *)str;
-		     (re->first && match1(re, *here, (int)re->first, ignoreCase))
-			|| match(re, (char *)str, prog, here, ignoreCase);
-		     here++, len--)
-		{
+		for (here = (char *) str;
+			 (re->first && match1(re, *here, (int) re->first, ignoreCase))
+			 || match(re, (char *) str, prog, here, ignoreCase);
+			 here++, len--) {
 			if (len < re->minlen)
 				return FALSE;
 		}
@@ -713,82 +648,72 @@ extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase)
 
 #if defined BB_SED
 /* This performs substitutions after a regexp match has been found.  */
-extern void regsub(regexp* re, char* src, char* dst)
+extern void regsub(regexp * re, char *src, char *dst)
 {
-	char	*cpy;
-	char	*end;
-	char	c;
-	char		*start;
-	int		mod;
+	char *cpy;
+	char *end;
+	char c;
+	char *start;
+	int mod;
 
 	mod = 0;
 
 	start = src;
-	while ((c = *src++) != '\0')
-	{
+	while ((c = *src++) != '\0') {
 		/* recognize any meta characters */
-		if (c == '&')
-		{
+		if (c == '&') {
 			cpy = re->startp[0];
 			end = re->endp[0];
-		}
-		else if (c == '~')
-		{
+		} else if (c == '~') {
 			cpy = previous1;
 			if (cpy)
 				end = cpy + strlen(cpy);
-		}
-		else
-		if (c == '\\')
-		{
+		} else if (c == '\\') {
 			c = *src++;
-			switch (c)
-			{
-			  case '0':
-			  case '1':
-			  case '2':
-			  case '3':
-			  case '4':
-			  case '5':
-			  case '6':
-			  case '7':
-			  case '8':
-			  case '9':
+			switch (c) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
 				/* \0 thru \9 mean "copy subexpression" */
 				c -= '0';
-				cpy = re->startp[(int)c];
-				end = re->endp[(int)c];
+				cpy = re->startp[(int) c];
+				end = re->endp[(int) c];
 				break;
-			  case 'U':
-			  case 'u':
-			  case 'L':
-			  case 'l':
+			case 'U':
+			case 'u':
+			case 'L':
+			case 'l':
 				/* \U and \L mean "convert to upper/lowercase" */
 				mod = c;
 				continue;
 
-			  case 'E':
-			  case 'e':
+			case 'E':
+			case 'e':
 				/* \E ends the \U or \L */
 				mod = 0;
 				continue;
-			  case '&':
+			case '&':
 				/* "\&" means "original text" */
 				*dst++ = c;
 				continue;
 
-			  case '~':
+			case '~':
 				/* "\~" means "previous text, if any" */
 				*dst++ = c;
 				continue;
-			  default:
+			default:
 				/* ordinary char preceded by backslash */
 				*dst++ = c;
 				continue;
 			}
-		}
-		else
-		{
+		} else {
 			/* ordinary character, so just copy it */
 			*dst++ = c;
 			continue;
@@ -804,46 +729,37 @@ extern void regsub(regexp* re, char* src, char* dst)
 			continue;
 
 		/* copy over a portion of the original */
-		while (cpy < end)
-		{
-			switch (mod)
-			{
-			  case 'U':
-			  case 'u':
+		while (cpy < end) {
+			switch (mod) {
+			case 'U':
+			case 'u':
 				/* convert to uppercase */
-				if (isascii(*cpy) && islower(*cpy))
-				{
+				if (isascii(*cpy) && islower(*cpy)) {
 					*dst++ = toupper(*cpy);
 					cpy++;
-				}
-				else
-				{
+				} else {
 					*dst++ = *cpy++;
 				}
 				break;
 
-			  case 'L':
-			  case 'l':
+			case 'L':
+			case 'l':
 				/* convert to lowercase */
-				if (isascii(*cpy) && isupper(*cpy))
-				{
+				if (isascii(*cpy) && isupper(*cpy)) {
 					*dst++ = tolower(*cpy);
 					cpy++;
-				}
-				else
-				{
+				} else {
 					*dst++ = *cpy++;
 				}
 				break;
 
-			  default:
+			default:
 				/* copy without any conversion */
 				*dst++ = *cpy++;
 			}
 
 			/* \u and \l end automatically after the first char */
-			if (mod && (mod == 'u' || mod == 'l'))
-			{
+			if (mod && (mod == 'u' || mod == 'l')) {
 				mod = 0;
 			}
 		}
@@ -853,12 +769,10 @@ extern void regsub(regexp* re, char* src, char* dst)
 	/* remember what text we inserted this time */
 	if (previous1)
 		free(previous1);
-	previous1 = (char *)malloc((unsigned)(strlen(start) + 1));
+	previous1 = (char *) malloc((unsigned) (strlen(start) + 1));
 	if (previous1)
 		strcpy(previous1, start);
 }
 #endif
 
-#endif /* BB_REGEXP */
-
-
+#endif							/* BB_REGEXP */

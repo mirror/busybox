@@ -1,4 +1,4 @@
-
+/* vi: set sw=4 ts=4: */
 /*
  * Busybox main internal header file
  *
@@ -218,7 +218,7 @@ static inline int setbit(char * addr,unsigned int nr)
 {
   int __res = bit(addr, nr);
   addr[nr >> 3] |= (1<<(nr & 7));
-  return __res != 0; \
+  return __res != 0;
 }
 
 static inline int clrbit(char * addr,unsigned int nr)

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*  mnc: mini-netcat - built from the ground up for LRP
     Copyright (C) 1998  Charles P. Wright
 
@@ -39,101 +40,92 @@
 
 #define BUFSIZE 100
 
-static const char mnc_usage[] = 
-"mnc [IP] [port]\n\n"
-"mini-netcat opens a pipe to IP:port\n";
+static const char mnc_usage[] =
 
-int
-mnc_main(int argc, char **argv)
+	"mnc [IP] [port]\n\n" "mini-netcat opens a pipe to IP:port\n";
+
+int mnc_main(int argc, char **argv)
 {
-        int sfd;
-        int result;
-        int len;
-        char ch[BUFSIZE];
-        
-        struct sockaddr_in address;
-        struct hostent *hostinfo;
+	int sfd;
+	int result;
+	int len;
+	char ch[BUFSIZE];
 
-        fd_set readfds, testfds;
+	struct sockaddr_in address;
+	struct hostent *hostinfo;
 
-	if (argc<=1 || **(argv+1) == '-' ) {
-	    usage( mnc_usage);
+	fd_set readfds, testfds;
+
+	if (argc <= 1 || **(argv + 1) == '-') {
+		usage(mnc_usage);
 	}
 	argc--;
 	argv++;
 
-        sfd = socket(AF_INET, SOCK_STREAM, 0);
+	sfd = socket(AF_INET, SOCK_STREAM, 0);
 
-        hostinfo = (struct hostent *) gethostbyname(*argv);
+	hostinfo = (struct hostent *) gethostbyname(*argv);
 
-        if (!hostinfo)
-        {
-                exit(1);
-        }
+	if (!hostinfo) {
+		exit(1);
+	}
 
-        address.sin_family = AF_INET;
-        address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-        address.sin_port = htons(atoi(*(++argv)));
+	address.sin_family = AF_INET;
+	address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
+	address.sin_port = htons(atoi(*(++argv)));
 
-        len = sizeof(address);
+	len = sizeof(address);
 
-        result = connect(sfd, (struct sockaddr *)&address, len);
+	result = connect(sfd, (struct sockaddr *) &address, len);
 
-        if (result < 0) 
-        {
-                exit(2);
-        }
+	if (result < 0) {
+		exit(2);
+	}
 
-        FD_ZERO(&readfds);
-        FD_SET(sfd, &readfds);
-        FD_SET(fileno(stdin), &readfds);
+	FD_ZERO(&readfds);
+	FD_SET(sfd, &readfds);
+	FD_SET(fileno(stdin), &readfds);
 
-        while(1)
-        {
-                int fd;
+	while (1) {
+		int fd;
 		int ofd;
-                int nread;
+		int nread;
 
-                testfds = readfds;
+		testfds = readfds;
 
-                result = select(FD_SETSIZE, &testfds, (fd_set *) NULL, (fd_set *) NULL, (struct timeval *) 0);
+		result =
+			select(FD_SETSIZE, &testfds, (fd_set *) NULL, (fd_set *) NULL,
+				   (struct timeval *) 0);
 
-                if(result < 1) 
-                {
-                        exit(3);
-                }
+		if (result < 1) {
+			exit(3);
+		}
 
-                for(fd = 0; fd < FD_SETSIZE; fd++)
-                {
-                        if(FD_ISSET(fd,&testfds))
-                        {
+		for (fd = 0; fd < FD_SETSIZE; fd++) {
+			if (FD_ISSET(fd, &testfds)) {
 				int trn = 0;
 				int rn;
 
-                                ioctl(fd, FIONREAD, &nread);
+				ioctl(fd, FIONREAD, &nread);
 
-                                if(fd == sfd)
-                                {
-                                	if (nread == 0)
-                                        	exit(0);
+				if (fd == sfd) {
+					if (nread == 0)
+						exit(0);
 					ofd = fileno(stdout);
-				}
-				else
-				{
+				} else {
 					ofd = sfd;
 				}
 
 
 
-				do
-				{
+				do {
 					rn = (BUFSIZE < nread - trn) ? BUFSIZE : nread - trn;
 					trn += rn;
-                                       	read(fd, ch, rn);
-                                      	write(ofd, ch, rn);
+					read(fd, ch, rn);
+					write(ofd, ch, rn);
 				}
 				while (trn < nread);
 			}
-                }
-        }
+		}
+	}
 }

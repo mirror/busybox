@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini logger implementation for busybox
  *
@@ -39,21 +40,22 @@
  */
 #include <sys/syslog.h>
 typedef struct _code {
-    char    *c_name;
-    int     c_val;
+	char *c_name;
+	int c_val;
 } CODE;
 extern CODE prioritynames[];
 extern CODE facilitynames[];
 #endif
 
 static const char logger_usage[] =
-    "logger [OPTION]... [MESSAGE]\n\n"
-    "Write MESSAGE to the system log.  If MESSAGE is '-', log stdin.\n\n"
-    "Options:\n"
-    "\t-s\tLog to stderr as well as the system log.\n"
-    "\t-t\tLog using the specified tag (defaults to user name).\n"
-    "\t-p\tEnter the message with the specified priority.\n"
-    "\t\tThis may be numerical or a ``facility.level'' pair.\n";
+	"logger [OPTION]... [MESSAGE]\n\n"
+	"Write MESSAGE to the system log.  If MESSAGE is '-', log stdin.\n\n"
+	"Options:\n"
+	"\t-s\tLog to stderr as well as the system log.\n"
+	"\t-t\tLog using the specified tag (defaults to user name).\n"
+
+	"\t-p\tEnter the message with the specified priority.\n"
+	"\t\tThis may be numerical or a ``facility.level'' pair.\n";
 
 
 /* Decode a symbolic name to a numeric value 
@@ -61,20 +63,19 @@ static const char logger_usage[] =
  * Copyright (c) 1983, 1993
  * The Regents of the University of California.  All rights reserved.
  */
-static int 
-decode(char* name, CODE* codetab)
+static int decode(char *name, CODE * codetab)
 {
-    CODE *c;
+	CODE *c;
 
-    if (isdigit(*name))
-	return (atoi(name));
-    for (c = codetab; c->c_name; c++) {
-	if (!strcasecmp(name, c->c_name)) {
-		return (c->c_val);
+	if (isdigit(*name))
+		return (atoi(name));
+	for (c = codetab; c->c_name; c++) {
+		if (!strcasecmp(name, c->c_name)) {
+			return (c->c_val);
+		}
 	}
-    }
 
-    return (-1);
+	return (-1);
 }
 
 /* Decode a symbolic name to a numeric value 
@@ -82,96 +83,94 @@ decode(char* name, CODE* codetab)
  * Copyright (c) 1983, 1993
  * The Regents of the University of California.  All rights reserved.
  */
-static int 
-pencode(char* s)
+static int pencode(char *s)
 {
-    char *save;
-    int lev, fac=LOG_USER;
+	char *save;
+	int lev, fac = LOG_USER;
 
-    for (save = s; *s && *s != '.'; ++s);
-    if (*s) {
-	*s = '\0';
-	fac = decode(save, facilitynames);
-	if (fac < 0) {
-	    fprintf(stderr, "unknown facility name: %s\n", save);
-	    exit( FALSE);
+	for (save = s; *s && *s != '.'; ++s);
+	if (*s) {
+		*s = '\0';
+		fac = decode(save, facilitynames);
+		if (fac < 0) {
+			fprintf(stderr, "unknown facility name: %s\n", save);
+			exit(FALSE);
+		}
+		*s++ = '.';
+	} else {
+		s = save;
 	}
-	*s++ = '.';
-    }
-    else {
-	s = save;
-    }
-    lev = decode(s, prioritynames);
-    if (lev < 0) {
-	fprintf(stderr, "unknown priority name: %s\n", save);
-	exit( FALSE);
-    }
-    return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));
+	lev = decode(s, prioritynames);
+	if (lev < 0) {
+		fprintf(stderr, "unknown priority name: %s\n", save);
+		exit(FALSE);
+	}
+	return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));
 }
 
 
 extern int logger_main(int argc, char **argv)
 {
-    int pri = LOG_USER|LOG_NOTICE;
-    int option = 0;
-    int fromStdinFlag=FALSE;
-    int stopLookingAtMeLikeThat=FALSE;
-    char *message, buf[1024], name[128];
-    
-    /* Fill out the name string early (may be overwritten later */
-    my_getpwuid(name, geteuid());
+	int pri = LOG_USER | LOG_NOTICE;
+	int option = 0;
+	int fromStdinFlag = FALSE;
+	int stopLookingAtMeLikeThat = FALSE;
+	char *message, buf[1024], name[128];
 
-    /* Parse any options */
-    while (--argc > 0 && **(++argv) == '-') {
-	if (*((*argv)+1) == '\0') {
-	    fromStdinFlag=TRUE;
-	}
-	stopLookingAtMeLikeThat=FALSE;
-	while (*(++(*argv)) && stopLookingAtMeLikeThat==FALSE) {
-	    switch (**argv) {
-	    case 's':
-		option |= LOG_PERROR;
-		break;
-	    case 'p':
-		if (--argc == 0) {
-		    usage(logger_usage);
-		}
-		pri = pencode(*(++argv));
-		stopLookingAtMeLikeThat=TRUE;
-		break;
-	    case 't':
-		if (--argc == 0) {
-		    usage(logger_usage);
-		}
-		strncpy(name, *(++argv), sizeof(name));
-		stopLookingAtMeLikeThat=TRUE;
-		break;
-	    default:
-		usage(logger_usage);
-	    }
-	}
-    }
+	/* Fill out the name string early (may be overwritten later */
+	my_getpwuid(name, geteuid());
 
-    if (fromStdinFlag==TRUE) {
-	/* read from stdin */
-	int c, i=0;
-	while ((c = getc(stdin)) != EOF && i<sizeof(buf)) {
-	    buf[i++]=c;
+	/* Parse any options */
+	while (--argc > 0 && **(++argv) == '-') {
+		if (*((*argv) + 1) == '\0') {
+			fromStdinFlag = TRUE;
+		}
+		stopLookingAtMeLikeThat = FALSE;
+		while (*(++(*argv)) && stopLookingAtMeLikeThat == FALSE) {
+			switch (**argv) {
+			case 's':
+				option |= LOG_PERROR;
+				break;
+			case 'p':
+				if (--argc == 0) {
+					usage(logger_usage);
+				}
+				pri = pencode(*(++argv));
+				stopLookingAtMeLikeThat = TRUE;
+				break;
+			case 't':
+				if (--argc == 0) {
+					usage(logger_usage);
+				}
+				strncpy(name, *(++argv), sizeof(name));
+				stopLookingAtMeLikeThat = TRUE;
+				break;
+			default:
+				usage(logger_usage);
+			}
+		}
 	}
-	message=buf;
-    } else {
-	if (argc>=1) {
-		message = *argv;
+
+	if (fromStdinFlag == TRUE) {
+		/* read from stdin */
+		int c, i = 0;
+
+		while ((c = getc(stdin)) != EOF && i < sizeof(buf)) {
+			buf[i++] = c;
+		}
+		message = buf;
 	} else {
-	    fprintf(stderr, "No message\n");
-	    exit( FALSE);
+		if (argc >= 1) {
+			message = *argv;
+		} else {
+			fprintf(stderr, "No message\n");
+			exit(FALSE);
+		}
 	}
-    }
 
-    openlog( name, option, (pri | LOG_FACMASK)); 
-    syslog( pri, message);
-    closelog();
+	openlog(name, option, (pri | LOG_FACMASK));
+	syslog(pri, message);
+	closelog();
 
-    exit( TRUE);
+	exit(TRUE);
 }
-
