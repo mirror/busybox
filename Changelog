@@ -1,3 +1,19 @@
+0.53pre
+
+    Critical Bugfixes:
+	* None yet
+
+    New Applets:
+	* None yet
+
+    Other Changes:
+	* Vladimir Oleynik -- Fixed tr to support 'tr a-z A-Z' syntax.
+	
+
+	 -Not Yet Released
+
+
+
 0.52
 	
     Critical Bugfixes:

@@ -54,7 +54,7 @@ static void convert()
 		if (in_index == read_chars) {
 			if ((read_chars = read(0, (char *) pinput, BUFSIZ)) <= 0) {
 				if (write(1, (char *) poutput, out_index) != out_index)
-					write(2, write_error, strlen(write_error));
+					error_msg("%s", write_error);
 				exit(0);
 			}
 			in_index = 0;
@@ -67,10 +67,8 @@ static void convert()
 			continue;
 		poutput[out_index++] = last = coded;
 		if (out_index == BUFSIZ) {
-			if (write(1, (char *) poutput, out_index) != out_index) {
-				write(2, write_error, strlen(write_error));
-				exit(1);
-			}
+			if (write(1, (char *) poutput, out_index) != out_index)
+				error_msg_and_die("%s", write_error);
 			out_index = 0;
 		}
 	}
@@ -105,6 +103,16 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 		if (*arg == '\\') {
 			arg++;
 			*buffer++ = process_escape_sequence(&arg);
+		} else if (*(arg+1) == '-') {
+			ac = *(arg+2);
+			if(ac == 0) {
+				*buffer++ = *arg++;
+				continue;
+			}
+			i = *arg;
+			while (i <= ac)
+				*buffer++ = i++;
+			arg += 3; /* Skip the assumed a-z */
 		} else if (*arg == '[') {
 			arg++;
 			i = *arg++;
