@@ -308,7 +308,7 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 
 
 busybox: $(PWD_LIB) $(LIBBB_LIB) $(OBJECTS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBRARIES) $(PWD_LIB) $(LIBBB_LIB)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(PWD_LIB) $(LIBBB_LIB) $(LIBRARIES)
 	$(STRIP)
 
 # Without VPATH, rule expands to "/bin/sh busybox.mkll Config.h applets.h"
