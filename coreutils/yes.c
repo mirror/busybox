@@ -34,7 +34,7 @@ extern int yes_main(int argc, char **argv)
 		while (1)
 			if (puts("y") == EOF) {
 				perror("yes");
-				exit(FALSE);
+				return EXIT_FAILURE;
 			}
 	}
 
@@ -43,7 +43,8 @@ extern int yes_main(int argc, char **argv)
 			if (fputs(argv[i], stdout) == EOF
 				|| putchar(i == argc - 1 ? '\n' : ' ') == EOF) {
 				perror("yes");
-				exit(FALSE);
+				return EXIT_FAILURE;
 			}
-	exit(TRUE);
+
+	return EXIT_SUCCESS;
 }
