@@ -19,11 +19,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * Continue reading from file until the terminating string is encountered.
- * Return data as string.
- * e.g. fgets_str(file, "\n"); will read till end of file
- */
+#include "libbb.h"
+
+/* Read up to (and including) TERMINATING_STRING from FILE and return it.
+ * Return NULL on EOF.  */
 
 char *fgets_str(FILE *file, const char *terminating_string)
 {
@@ -37,12 +36,13 @@ char *fgets_str(FILE *file, const char *terminating_string)
 	while (1) {
 		ch = fgetc(file);
 		if (ch == EOF) {
-			break;
+			free(linebuf);
+			return NULL;
 		}
 
 		/* grow the line buffer as necessary */
 		while (idx > linebufsz - 2) {
-			linebuf = realloc(linebuf, linebufsz += 1000); /* GROWBY */
+			linebuf = xrealloc(linebuf, linebufsz += 1000);
 		}
 
 		linebuf[idx] = ch;
@@ -54,9 +54,6 @@ char *fgets_str(FILE *file, const char *terminating_string)
 			idx -= term_length;
 			break;
 		}
-	}
-	if (idx == 0) {
-		return NULL;
 	}
 	linebuf[idx] = '\0';
 	return(linebuf);
