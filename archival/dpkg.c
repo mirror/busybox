@@ -2,6 +2,7 @@
  *  Mini dpkg implementation for busybox.
  *  This is not meant as a replacemnt for dpkg
  *
+ *  Written By Glenn McGrath with the help of others
  *  Copyright (C) 2001 by Glenn McGrath
  * 		
  *  Started life as a busybox implementation of udpkg
@@ -1281,7 +1282,7 @@ void unpack_package(deb_file_t *deb_file)
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
 	info_prefix = (char *) xmalloc(sizeof(package_name) + 20 + 4 + 1);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
-	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs), info_prefix, NULL);
+	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs | extract_unconditional), info_prefix, NULL);
 
 	/* Run the preinst prior to extracting */
 	return_value = run_package_script(package_name, "preinst");
@@ -1294,7 +1295,7 @@ void unpack_package(deb_file_t *deb_file)
 	}	
 
 	/* Extract data.tar.gz to the root directory */
-	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_data_tar_gz | extract_all_to_fs), "/", NULL);
+	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_data_tar_gz | extract_all_to_fs | extract_unconditional), "/", NULL);
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
