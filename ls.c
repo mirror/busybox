@@ -173,6 +173,8 @@ static unsigned short tabstops = 8;
 #define column_width    COLUMN_WIDTH
 #endif
 
+static int status = EXIT_SUCCESS;
+
 static void newline(void)
 {
     if (column > 0) {
@@ -459,6 +461,7 @@ struct dnode **list_dir(char *path)
 	dir = opendir(path);
 	if (dir == NULL) {
 		errorMsg("%s: %s\n", path, strerror(errno));
+		status = EXIT_FAILURE;
 		return(NULL);	/* could not open the dir */
 	}
 	while ((entry = readdir(dir)) != NULL) {
@@ -477,6 +480,7 @@ struct dnode **list_dir(char *path)
 		if (follow_links == TRUE) {
 			if (stat(cur->fullname, &cur->dstat)) {
 				errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+				status = EXIT_FAILURE;
 				free(cur->fullname);
 				free(cur);
 				continue;
@@ -485,6 +489,7 @@ struct dnode **list_dir(char *path)
 #endif
 		if (lstat(cur->fullname, &cur->dstat)) {   /* get file stat info into node */
 			errorMsg("%s: %s\n", cur->fullname, strerror(errno));
+			status = EXIT_FAILURE;
 			free(cur->fullname);
 			free(cur);
 			continue;
@@ -791,6 +796,7 @@ extern int ls_main(int argc, char **argv)
 		if (follow_links == TRUE) {
 			if (stat(av[oi], &cur->dstat)) {
 				errorMsg("%s: %s\n", av[oi], strerror(errno));
+				status = EXIT_FAILURE;
 				free(cur->fullname);
 				free(cur);
 				continue;
@@ -799,6 +805,7 @@ extern int ls_main(int argc, char **argv)
 #endif
 		if (lstat(av[oi], &cur->dstat)) {  /* get file info into node */
 			errorMsg("%s: %s\n", av[oi], strerror(errno));
+			status = EXIT_FAILURE;
 			free(cur->fullname);
 			free(cur);
 			continue;
@@ -842,7 +849,7 @@ extern int ls_main(int argc, char **argv)
 		}
 	}
 
-	return(0);
+	return(status);
 
   print_usage_message:
 	usage(ls_usage);
