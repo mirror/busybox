@@ -196,6 +196,9 @@
 #ifdef CONFIG_FDISK
 	APPLET(fdisk, fdisk_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#if defined(CONFIG_FEATURE_GREP_FGREP_ALIAS)
+	APPLET_NOUSAGE("fgrep", grep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_FIND
 	APPLET(find, find_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

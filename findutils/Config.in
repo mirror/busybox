@@ -67,6 +67,15 @@ config CONFIG_FEATURE_GREP_EGREP_ALIAS
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_GREP_FGREP_ALIAS
+	bool "  Alias fgrep to grep -f"
+	default y
+	depends on CONFIG_GREP
+	help
+          fgrep sees the search pattern as a normal sting rather than
+	  regular expressions.
+	  grep -f is always builtin, this just creates the fgrep alias.
+
 config CONFIG_FEATURE_GREP_CONTEXT
 	bool "  Enable before and after context flags (-A, -B and -C)"
 	default y
