@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.19 2003/08/02 00:04:18 mjn3 Exp $
+ * Version:     $Id: interface.c,v 1.20 2003/08/29 11:34:08 bug1 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -51,12 +51,6 @@
 #undef HAVE_AFECONET
 #undef HAVE_AFASH
 
-#ifdef CONFIG_FEATURE_IPV6
-# define HAVE_AFINET6 1
-#else
-# undef HAVE_AFINET6
-#endif
-
 /* 
  * 
  * Device Hardware types.
@@ -81,6 +75,12 @@
 #include <net/if_arp.h>
 #include "libbb.h"
 
+#ifdef CONFIG_FEATURE_IPV6
+# define HAVE_AFINET6 1
+#else
+# undef HAVE_AFINET6
+#endif
+
 #define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
@@ -100,7 +100,7 @@
 
 struct in6_ifreq {
 	struct in6_addr ifr6_addr;
-	__u32 ifr6_prefixlen;
+	uint32_t ifr6_prefixlen;
 	unsigned int ifr6_ifindex;
 };
 
