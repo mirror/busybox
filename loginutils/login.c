@@ -479,7 +479,7 @@ static void setutmp(const char *name, const char *line)
 	pututline(&utent);
 	endutent();
 	if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
-		creat(_PATH_WTMP, O_RDWR);
+		creat(_PATH_WTMP, 0664);
 	}
 	updwtmp(_PATH_WTMP, &utent);
 }
