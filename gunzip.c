@@ -1291,12 +1291,6 @@ const char *reject;
 /* ========================================================================
  * Error handlers.
  */
-void warn(a, b)
-char *a, *b;					/* message strings juxtaposed in output */
-{
-	WARN((stderr, "warning: %s%s\n", a, b));
-}
-
 void read_error()
 {
 	fprintf(stderr, "\n");

@@ -184,19 +184,45 @@ char** username_completion_matches(char* command, int *num_matches)
 	fprintf(stderr, "\nin username_completion_matches\n");
 	return (matches);
 }
+
+#include <dirent.h>
 char** find_path_executable_n_cwd_matches(char* command, int *num_matches)
 {
+	char *dirName;
 	char **matches = (char **) NULL;
-	matches = malloc(sizeof(char*)*100);
+	DIR *dir;
+	struct dirent *next;
+			
+	matches = malloc( sizeof(char*)*50);
 
-	matches[0] = malloc(sizeof(char)*50);
-	matches[1] = malloc(sizeof(char)*50);
+	/* Stick a wildcard onto the command, for later use */
+	strcat( command, "*");
 
-	sprintf(matches[0], "Hello");
-	sprintf(matches[1], "Howdy");
-	*num_matches=2;
+	/* Now wall the current directory */
+	dirName = get_current_dir_name();
+	dir = opendir(dirName);
+	if (!dir) {
+		/* Don't print an error, just shut up and return */
+		*num_matches=0;
+		return (matches);
+	}
+	while ((next = readdir(dir)) != NULL) {
 
-//	fprintf(stderr, "\nin find_path_executable_n_cwd_matches\n");
+		/* Some quick sanity checks */
+		if ((strcmp(next->d_name, "..") == 0)
+			|| (strcmp(next->d_name, ".") == 0)) {
+			continue;
+		} 
+		/* See if this matches */
+		if (check_wildcard_match(next->d_name, command) == TRUE) {
+			/* Cool, found a match.  Add it to the list */
+			matches[*num_matches] = malloc(strlen(next->d_name)+1);
+			strcpy( matches[*num_matches], next->d_name);
+			++*num_matches;
+			//matches = realloc( matches, sizeof(char*)*(*num_matches));
+		}
+	}
+
 	return (matches);
 }
 
@@ -319,11 +345,11 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 					/* For now, we will not bother with trying to distinguish
 					 * whether the cursor is in/at a command extression -- we
 					 * will always try all possable matches.  If you don't like
-					 * that, feel free to fix it.
+					 * that then feel free to fix it.
 					 */
 					
 					/* Make a local copy of the string -- up 
-					 * to the the position of the cursor */
+					 * to the position of the cursor */
 					matchBuf = (char *) calloc(BUFSIZ, sizeof(char));
 					strncpy(matchBuf, parsenextc, cursor);
 					tmp=matchBuf;
@@ -346,59 +372,58 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 						matches = (char **) NULL;
 					}
 
-					/* If the word starts in `~', and there is no slash in the word, 
+					/* If the word starts with `~' and there is no slash in the word, 
 					 * then try completing this word as a username. */
+
+					/* FIXME -- this check is broken! */
 					if (*tmp == '~' && !strchr(tmp, '/'))
 						matches = username_completion_matches(tmp, &num_matches);
 
-					/* Try to match any executable in our patch, and everything 
-					 * in the current working directory that matches.
-					 */
+					/* Try to match any executable in our path and everything 
+					 * in the current working directory that matches.  */
 					if (!matches)
 						matches = find_path_executable_n_cwd_matches(tmp, &num_matches);
+
+					/* Don't leak memory */
+					free( matchBuf);
+
+					/* Did we find exactly one match? */
+					if (matches && num_matches==1) {
+						/* write out the matched command */
+						strncpy(parsenextc+pos, matches[0]+pos, strlen(matches[0])-pos);
+						len=strlen(parsenextc);
+						cursor=len;
+						xwrite(outputFd, matches[0]+pos, strlen(matches[0])-pos);
+						break;
+					}
 				} else {
+					/* Ok -- the last char was a TAB.  Since they
+					 * just hit TAB again, print a list of all the
+					 * available choices... */
 					if ( matches && num_matches>0 ) {
 						int i, col;
 						
-						fprintf(stderr, "\nTabbing...\n");
-						
-						/* Make a list of the matches */
-						col += xwrite(outputFd, "\n", 1);
+						/* Go to the next line */
+						xwrite(outputFd, "\n", 1);
+						/* Print the list of matches */
 						for (i=0,col=0; i<num_matches; i++) {
-							col += xwrite(outputFd, prompt, strlen(matches[i]));
+							char foo[17];
+							sprintf(foo, "%-14s  ", matches[i]);
+							col += xwrite(outputFd, foo, strlen(foo));
 							if (col > 60 && matches[i+1] != NULL) {
 								xwrite(outputFd, "\n", 1);
 								col = 0;
 							}
 						}
+						/* Go to the next line */
 						xwrite(outputFd, "\n", 1);
-
-						len+=strlen(prompt);
-						fprintf(stderr, "len=%d\n", len);
-						
-						/* Move to the beginning of the line */
-						input_home(outputFd, &len);
-
-						/* erase everything */
-						for (j = 0; j < len; j++)
-							xwrite(outputFd, " ", 1);
-
-						/* return to begining of line */
-						input_home(outputFd, &cursor);
-
-						/* Rewrite the prompt) */
+						/* Rewrite the prompt */
 						xwrite(outputFd, prompt, strlen(prompt));
-
 						/* Rewrite the command */
-						len = strlen(parsenextc);
 						xwrite(outputFd, parsenextc, len);
-
-						/* Move back to where the cursor used to be */
-						for (cursor=pos; cursor > 0; cursor--)
+						/* Put the cursor back to where it used to be */
+						for (cursor=len; cursor > pos; cursor--)
 							xwrite(outputFd, "\b", 1);
-						cursor = pos;
-
-						//fprintf(stderr, "\nprompt='%s'\n", prompt);
 					}
 				}
 				break;
@@ -451,7 +476,6 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 						/* return to begining of line */
 						for (; cursor > 0; cursor--)
 							xwrite(outputFd, "\b", 1);
-						xwrite(outputFd, parsenextc, len);
 
 						/* erase old command */
 						for (j = 0; j < len; j++)
@@ -462,6 +486,7 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 							xwrite(outputFd, "\b", 1);
 
 						memset(parsenextc, 0, BUFSIZ);
+						len = strlen(parsenextc);
 						/* write new command */
 						strcpy(parsenextc, hp->s);
 						len = strlen(hp->s);

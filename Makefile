@@ -30,7 +30,7 @@ DODEBUG = false
 # If you want a static binary, turn this on.  I can't think
 # of many situations where anybody would ever want it static, 
 # but...
-DOSTATIC = false
+DOSTATIC = true
 
 # This will choke on a non-debian system
 ARCH =`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
