@@ -366,8 +366,9 @@ static pid_t run(char* command,
 	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
 	    exit(1);
 	}
-	dup(fd);
-	dup(fd);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
 	tcsetpgrp (0, getpgrp());
 	set_term(0);
 
