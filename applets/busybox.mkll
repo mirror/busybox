@@ -4,8 +4,7 @@
 DF="busybox.def.h"
 MF="busybox.c"
 
-#LIST="$(sed -n '/^#define/{s/^#define BB_FEATURE_.*//g;s/^#define //p;}' $DF)"
-LIST="$(gcc -E -dM $DF | sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/\1/gp;' | sort)"
+LIST="$(gcc -E -dM $DF | sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/BB_\1/gp;' | sort)"
 
 for def in ${LIST}; do
 	i=`sed -n '/^#ifdef \<'$def'\>.*/,/^#endif/{ s/.*\"\(.*\)\".*\(_BB_DIR_[A-Z_]*\).*$/\2\/\1/gp; }' $MF`
