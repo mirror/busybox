@@ -24,14 +24,6 @@
  */
 
 
-/* Stupid libc doesn't have a reliable way for use to know 
- * that libc5 is being used.   Assume this is good enough */ 
-#if ! defined __GLIBC__ || ! defined __UCLIBC__
-#error Sorry.  Looks like you are using libc5.  
-#error libc5 shm support isnt good enough.
-#error Please disable BB_FEATURE_IPC_SYSLOG 
-#endif	
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +34,15 @@
 #include <signal.h>
 #include <setjmp.h>
 #include "busybox.h"
+
+/* Stupid libc doesn't have a reliable way for use to know 
+ * that libc5 is being used.   Assume this is good enough */ 
+#if ! defined __GLIBC__ && ! defined __UCLIBC__
+#error Sorry.  Looks like you are using libc5.  
+#error libc5 shm support isnt good enough.
+#error Please disable BB_FEATURE_IPC_SYSLOG 
+#endif	
+
 
 static const long KEY_ID = 0x414e4547; /*"GENA"*/
 
