@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * wget - retrieve a file using HTTP
+ * wget - retrieve a file using HTTP or FTP
  *
  * Chip Rosenthal Covad Communications <chip@laserlink.net>
  *
@@ -47,9 +47,18 @@
   } while (0)
 #endif	
 
-static void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path);
+struct host_info {
+	char *host;
+	int port;
+	char *path;
+	int is_ftp;
+	char *user;
+};
+
+static void parse_url(char *url, struct host_info *h);
 static FILE *open_socket(char *host, int port);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
+static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 static void progressmeter(int flag);
 
 /* Globals (can be accessed from signal handlers */
@@ -70,16 +79,52 @@ static void close_and_delete_outfile(FILE* output, char *fname_out, int do_conti
 	}
 }
 
+#define close_delete_and_die(s...) { \
+	close_and_delete_outfile(output, fname_out, do_continue); \
+	error_msg_and_die(s); }
+
+
+#ifdef BB_FEATURE_WGET_AUTHENTICATION
+/*
+ *  Base64-encode character string
+ *  oops... isn't something similar in uuencode.c?
+ *  It would be better to use already existing code
+ */
+char *base64enc(char *p, char *buf, int len) {
+
+        char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                    "0123456789+/";
+		char *s = buf;
+
+        while(*p) {
+				if (s >= buf+len-4)
+					error_msg_and_die("buffer overflow");
+                *(s++) = al[(*p >> 2) & 0x3F];
+                *(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
+                *s = *(s+1) = '=';
+                *(s+2) = 0;
+                if (! *(++p)) break;
+                *(s++) = al[((*p << 2) & 0x3C) | ((*(p+1) >> 6) & 0x03)];
+                if (! *(++p)) break;
+                *(s++) = al[*(p++) & 0x3F];
+        }
+
+		return buf;
+}
+#endif
+
 int wget_main(int argc, char **argv)
 {
-	int n;
-	char *proxy, *proxy_host;
-	int uri_port, proxy_port;
+	int n, try=5, status;
+	int port;
+	char *proxy;
 	char *s, buf[512];
 	struct stat sbuf;
 
-	FILE *sfp;					/* socket to web server				*/
-	char *uri_host, *uri_path;	/* parsed from command line url		*/
+	struct host_info server, target;
+
+	FILE *sfp = NULL;			/* socket to web/ftp server			*/
+	FILE *dfp = NULL;			/* socket to ftp server (data)		*/
 	char *fname_out = NULL;		/* where to direct output (-O)		*/
 	int do_continue = 0;		/* continue a prev transfer (-c)	*/
 	long beg_range = 0L;		/*   range at which continue begins	*/
@@ -113,21 +158,16 @@ int wget_main(int argc, char **argv)
 	if (argc - optind != 1)
 			show_usage();
 
+	parse_url(argv[optind], &target);
+	server.host = target.host;
+	server.port = target.port;
+
 	/*
 	 * Use the proxy if necessary.
 	 */
-	if ((proxy = getenv("http_proxy")) != NULL) {
-		proxy = xstrdup(proxy);
-		parse_url(proxy, &proxy_host, &proxy_port, &uri_path);
-		parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
-	} else {
-		/*
-		 * Parse url into components.
-		 */
-		parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
-		proxy_host=uri_host;
-		proxy_port=uri_port;
-	}
+	proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
+	if (proxy)
+		parse_url(xstrdup(proxy), &server);
 	
 	/* Guess an output filename */
 	if (!fname_out) {
@@ -135,7 +175,7 @@ int wget_main(int argc, char **argv)
 #ifdef BB_FEATURE_WGET_STATUSBAR
 			curfile = 
 #endif
-			get_last_path_component(uri_path);
+			get_last_path_component(target.path);
 		if (fname_out==NULL || strlen(fname_out)<1) {
 			fname_out = 
 #ifdef BB_FEATURE_WGET_STATUSBAR
@@ -145,24 +185,12 @@ int wget_main(int argc, char **argv)
 		}
 #ifdef BB_FEATURE_WGET_STATUSBAR
 	} else {
-		curfile=argv[optind];
+		curfile = get_last_path_component(fname_out);
 #endif
 	}
 	if (do_continue && !fname_out)
 		error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
 
-
-	/*
-	 * Open socket to server.
-	 */
-	sfp = open_socket(proxy_host, proxy_port);
-
-	/* Make the assumption that if the file already exists
-	 * on disk that the intention is to continue downloading
-	 * a previously aborted download  -Erik */
-	if (stat(fname_out, &sbuf) == 0) {
-		++do_continue;
-	}
 
 	/*
 	 * Open the output file stream.
@@ -185,67 +213,185 @@ int wget_main(int argc, char **argv)
 			do_continue = 0;
 	}
 
-	/*
-	 * Send HTTP request.
-	 */
-	fprintf(sfp, "GET http://%s:%d/%s HTTP/1.1\r\n", 
-			uri_host, uri_port, uri_path);
-	fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", uri_host);
+	if (proxy || !target.is_ftp) {
+		/*
+		 *  HTTP session
+		 */
+		do {
+			if (! --try)
+				close_delete_and_die("too many redirections");
 
-	if (do_continue)
-		fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
-	fprintf(sfp,"Connection: close\r\n\r\n");
+			/*
+			 * Open socket to http server
+			 */
+			if (sfp) fclose(sfp);
+			sfp = open_socket(server.host, server.port);
+			
+			/*
+			 * Send HTTP request.
+			 */
+			if (proxy) {
+				fprintf(sfp, "GET %stp://%s:%d/%s HTTP/1.0\r\n", 
+					target.is_ftp ? "f" : "ht", target.host,
+					target.port, target.path);
+			} else {
+				fprintf(sfp, "GET /%s HTTP/1.0\r\n", target.path);
+			}
 
-	/*
-	 * Retrieve HTTP response line and check for "200" status code.
-	 */
-	if (fgets(buf, sizeof(buf), sfp) == NULL) {
-		close_and_delete_outfile(output, fname_out, do_continue);
-		error_msg_and_die("no response from server");
-	}
-	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
-		;
-	for ( ; isspace(*s) ; ++s)
-		;
-	switch (atoi(s)) {
-		case 0:
-		case 200:
-			break;
-		case 206:
+			fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", target.host);
+
+#ifdef BB_FEATURE_WGET_AUTHENTICATION
+			if (target.user) {
+				fprintf(sfp, "Authorization: Basic %s\r\n",
+					base64enc(target.user, buf, sizeof(buf)));
+			}
+			if (proxy && server.user) {
+				fprintf(sfp, "Proxy-Authorization: Basic %s\r\n",
+					base64enc(server.user, buf, sizeof(buf)));
+			}
+#endif
+
 			if (do_continue)
+				fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
+			fprintf(sfp,"Connection: close\r\n\r\n");
+
+			/*
+		 	* Retrieve HTTP response line and check for "200" status code.
+		 	*/
+			if (fgets(buf, sizeof(buf), sfp) == NULL)
+				close_delete_and_die("no response from server");
+				
+			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
+			;
+			for ( ; isspace(*s) ; ++s)
+			;
+			switch (status = atoi(s)) {
+				case 0:
+				case 200:
+					if (do_continue && output != stdout)
+						output = freopen(fname_out, "w", output);
+					do_continue = 0;
+					break;
+				case 300:	/* redirection */
+				case 301:
+				case 302:
+				case 303:
+					break;
+				case 206:
+					if (do_continue)
+						break;
+					/*FALLTHRU*/
+				default:
+					chomp(buf);
+					close_delete_and_die("server returned error %d: %s", atoi(s), buf);
+			}
+		
+			/*
+			 * Retrieve HTTP headers.
+			 */
+			while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
+				if (strcasecmp(buf, "content-length") == 0) {
+					filesize = atol(s);
+					got_clen = 1;
+					continue;
+				}
+				if (strcasecmp(buf, "transfer-encoding") == 0)
+					close_delete_and_die("server wants to do %s transfer encoding", s);
+
+				if (strcasecmp(buf, "location") == 0) {
+					if (s[0] == '/')
+						target.path = xstrdup(s+1);
+					else {
+						parse_url(xstrdup(s), &target);
+						if (!proxy) {
+							server.host = target.host;
+							server.port = target.port;
+						}
+					}
+				}
+			}
+		} while(status >= 300);
+		
+		dfp = sfp;
+	}
+	else
+	{
+		/*
+		 *  FTP session
+		 */
+		if (! target.user)
+			target.user = xstrdup("anonymous:busybox@");
+
+		sfp = open_socket(server.host, server.port);
+		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
+			close_delete_and_die("%s", buf+4);
+
+		/* 
+		 * Splitting username:password pair,
+		 * trying to log in
+		 */
+		s = strchr(target.user, ':');
+		if (s)
+			*(s++) = '\0';
+		switch(ftpcmd("USER ", target.user, sfp, buf)) {
+			case 230:
 				break;
-			/*FALLTHRU*/
-		default:
-			close_and_delete_outfile(output, fname_out, do_continue);
-			chomp(buf);
-			error_msg_and_die("server returned error %d: %s", atoi(s), buf);
-	}
-
-	/*
-	 * Retrieve HTTP headers.
-	 */
-	while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
-		if (strcasecmp(buf, "content-length") == 0) {
-			filesize = atol(s);
+			case 331:
+				if (ftpcmd("PASS ", s, sfp, buf) == 230)
+					break;
+				/* FALLTHRU (failed login) */
+			default:
+				close_delete_and_die("ftp login: %s", buf+4);
+		}
+		
+		ftpcmd("CDUP", NULL, sfp, buf);
+		ftpcmd("TYPE I", NULL, sfp, buf);
+		
+		/*
+		 * Querying file size
+		 */
+		if (ftpcmd("SIZE /", target.path, sfp, buf) == 213) {
+			filesize = atol(buf+4);
 			got_clen = 1;
-			continue;
 		}
-		if (strcasecmp(buf, "transfer-encoding") == 0) {
-			close_and_delete_outfile(output, fname_out, do_continue);
-			error_msg_and_die("server wants to do %s transfer encoding", s);
-			continue;
+		
+		/*
+		 * Entering passive mode
+		 */
+		if (ftpcmd("PASV", NULL, sfp, buf) !=  227)
+			close_delete_and_die("PASV: %s", buf+4);
+		s = strrchr(buf, ',');
+		*s = 0;
+		port = atoi(s+1);
+		s = strrchr(buf, ',');
+		port += atoi(s+1) * 256;
+		dfp = open_socket(server.host, port);
+
+		if (do_continue) {
+			sprintf(buf, "REST %ld", beg_range);
+			if (ftpcmd(buf, NULL, sfp, buf) != 350) {
+				if (output != stdout)
+					output = freopen(fname_out, "w", output);
+				do_continue = 0;
+			} else
+				filesize -= beg_range;
 		}
+		
+		if (ftpcmd("RETR /", target.path, sfp, buf) > 150)
+			close_delete_and_die("RETR: %s", buf+4);
+
 	}
 
+
 	/*
-	 * Retrieve HTTP body.
+	 * Retrieve file
 	 */
 #ifdef BB_FEATURE_WGET_STATUSBAR
 	statbytes=0;
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
 #endif
-	while (filesize > 0 && (n = fread(buf, 1, sizeof(buf), sfp)) > 0) {
+	while ((filesize > 0 || !got_clen) && (n = fread(buf, 1, sizeof(buf), dfp)) > 0) {
 		fwrite(buf, 1, n, output);
 #ifdef BB_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
@@ -255,37 +401,57 @@ int wget_main(int argc, char **argv)
 		if (got_clen)
 			filesize -= n;
 	}
-	if (n == 0 && ferror(sfp))
+
+	if (n == 0 && ferror(dfp))
 		perror_msg_and_die("network read error");
 
-	exit(0);
+	if (!proxy && target.is_ftp) {
+		fclose(dfp);
+		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
+			error_msg_and_die("ftp error: %s", buf+4);
+		ftpcmd("QUIT", NULL, sfp, buf);
+	}
+
+	exit(EXIT_SUCCESS);
 }
 
 
-void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
+void parse_url(char *url, struct host_info *h)
 {
-	char *cp, *sp;
+	char *cp, *sp, *up;
 
-	*uri_port = 80;
+	if (strncmp(url, "http://", 7) == 0) {
+		h->port = 80;
+		h->host = url + 7;
+		h->is_ftp = 0;
+	} else if (strncmp(url, "ftp://", 6) == 0) {
+		h->port = 21;
+		h->host = url + 6;
+		h->is_ftp = 1;
+	} else
+		error_msg_and_die("not an http or ftp url: %s", url);
 
-	if (strncmp(url, "http://", 7) != 0)
-		error_msg_and_die("not an http url: %s", url);
-
-	*uri_host = url + 7;
-
-	cp = strchr(*uri_host, ':');
-	sp = strchr(*uri_host, '/');
-
-	if (cp != NULL && (sp == NULL || cp < sp)) {
-		*cp++ = '\0';
-		*uri_port = atoi(cp);
-	}
-
+	sp = strchr(h->host, '/');
 	if (sp != NULL) {
 		*sp++ = '\0';
-		*uri_path = sp;
+		h->path = sp;
 	} else
-		*uri_path = "";
+		h->path = "";
+
+	up = strrchr(h->host, '@');
+	if (up != NULL) {
+		h->user = h->host;
+		*up++ = '\0';
+		h->host = up;
+	} else
+		h->user = NULL;
+
+	cp = strchr(h->host, ':');
+	if (cp != NULL) {
+		*cp++ = '\0';
+		h->port = atoi(cp);
+	}
+
 }
 
 
@@ -362,6 +528,25 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 		;
 	*istrunc = 1;
 	return hdrval;
+}
+
+static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
+{
+	char *p;
+	
+	if (s1) {
+		if (!s2) s2="";
+		fprintf(fp, "%s%s\n", s1, s2);
+		fflush(fp);
+	}
+	
+	do {
+		p = fgets(buf, 510, fp);
+		if (!p)
+			perror_msg_and_die("fgets()");
+	} while (! isdigit(buf[0]) || buf[3] != ' ');
+	
+	return atoi(buf);
 }
 
 #ifdef BB_FEATURE_WGET_STATUSBAR
@@ -534,7 +719,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.30 2001/03/21 07:34:26 andersen Exp $
+ *	$Id: wget.c,v 1.31 2001/04/05 21:45:53 andersen Exp $
  */
 
 

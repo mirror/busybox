@@ -1718,9 +1718,10 @@
 #define wget_trivial_usage \
 	"[-c] [-O file] url"
 #define wget_full_usage \
-	"wget retrieves files via HTTP\n\n" \
+	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \
 	"\t-c\tcontinue retrieval of aborted transfers\n" \
+	"\t-q\tquiet mode - do not print\n" \
 	"\t-O\tsave to filename ('-' for stdout)"
 
 #define which_trivial_usage \

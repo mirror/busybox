@@ -308,6 +308,9 @@
 // Enable a nifty progress meter in wget (adds just under 2k)
 #define BB_FEATURE_WGET_STATUSBAR
 //
+// Enable HTTP authentication in wget
+#define BB_FEATURE_WGET_AUTHENTICATION
+//
 // Clean up all memory before exiting -- usually not needed
 // as the OS can clean up...  Don't enable this unless you
 // have a really good reason for cleaning things up manually.

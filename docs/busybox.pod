@@ -2346,11 +2346,12 @@ Example:
 
 wget [B<-c>] [B<-O> file] url
 
-wget retrieves files via HTTP
+wget retrieves files via HTTP or FTP
 
 Options:
 
 	-c	continue retrieval of aborted transfers
+	-q	quiet mode - do not print
 	-O	save to filename ('-' for stdout)
 
 -------------------------------
@@ -2552,4 +2553,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.95 2001/04/05 20:03:33 beppu Exp $
+# $Id: busybox.pod,v 1.96 2001/04/05 21:45:54 andersen Exp $
