@@ -1,0 +1,8 @@
+1) Check Config.h and adjust if you need a different functionality than
+   defined by default.
+
+2) Check the Makefile
+
+3) make
+
+4) make install
