@@ -517,11 +517,13 @@ void update_utmp(line)
 char *line;
 {
 	struct utmp ut;
-	time_t t;
 	int mypid = getpid();
 	long time();
 	long lseek();
+#ifndef __UCLIBC__
+	time_t t;
 	struct utmp *utp;
+#endif
 
 #if ! (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1))
 	struct flock lock;
@@ -536,7 +538,7 @@ char *line;
 	 * entry in the utmp file.
 	 */
 
-#ifdef __linux__
+#ifndef __UCLIBC__
 	utmpname(_PATH_UTMP);
 	setutent();
 	while ((utp = getutent())
@@ -571,8 +573,8 @@ char *line;
 	{
 		int ut_fd;
 
-		if ((ut_fd = open(UTMP_FILE, 2)) < 0) {
-			error("%s: open for update: %m"), UTMP_FILE;
+		if ((ut_fd = open(_PATH_WTMP, 2)) < 0) {
+			error("%s: open for update: %m"), _PATH_WTMP;
 		} else {
 			long ut_size = sizeof(ut);	/* avoid nonsense */
 
