@@ -142,7 +142,7 @@ static const int SPLIT_SUBDIR = 2;
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-#ifdef CONFIG_FEATURE_LS_FILETYPES
+#if defined(CONFIG_FEATURE_LS_FILETYPES) || defined(CONFIG_FEATURE_LS_COLOR)
 #define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
 #endif
 /* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
@@ -255,7 +255,7 @@ static char bgcolor(mode_t mode)
 #endif
 
 /*----------------------------------------------------------------------*/
-#ifdef CONFIG_FEATURE_LS_FILETYPES
+#if defined(CONFIG_FEATURE_LS_FILETYPES) || defined(CONFIG_FEATURE_LS_COLOR)
 static char append_char(mode_t mode)
 {
 	if ( !(list_fmt & LIST_FILETYPE))
@@ -616,10 +616,8 @@ static int list_single(struct dnode *dn)
 	char *filetime;
 	time_t ttime, age;
 #endif
-#if defined (CONFIG_FEATURE_LS_FILETYPES)
+#if defined(CONFIG_FEATURE_LS_FILETYPES) || defined(CONFIG_FEATURE_LS_COLOR)
 	struct stat info;
-#endif
-#ifdef CONFIG_FEATURE_LS_FILETYPES
 	char append;
 #endif
 
