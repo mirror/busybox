@@ -441,6 +441,19 @@ static void parse_prompt(const char *prmt_ptr)
 				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, pwd_buf);
 				continue;
 #endif	
+			case 'W':
+				if (pwd_buf[0] == 0) {
+					char *z;
+					
+					getcwd(pwd_buf, PATH_MAX);
+					z = strrchr(pwd_buf,'/');
+					if ( (z != NULL) && (z != pwd_buf) ) {
+						z++;
+						strcpy(pwd_buf,z);
+					}
+				}
+				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, pwd_buf);
+				continue;
 			case '!':
 				snprintf(buf, sizeof(buf), "%d", num_ok_lines);
 				add_to_prompt(&prmt_mem_ptr, &alm, &prmt_len, buf);
