@@ -28,7 +28,11 @@
 
 int dmesg_main(int argc, char **argv)
 {
-	char *buf;
+	char *buf
+#ifdef CONFIG_FEATURE_CLEAN_UP
+		= NULL
+#endif
+		;
 	int bufsize = 8196;
 	int i, n;
 	int level = 0;
