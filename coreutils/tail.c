@@ -69,12 +69,27 @@ int tail_main(int argc, char **argv)
 	char *s, *start, *end, buf[BUFSIZ];
 	int i, opt;
 
-	if (( argc >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
-		count = atoi ( &argv [1][1] );
-		optind = 2;
+	if (argc >= 2) {
+		int line_num;
+		switch (argv[1][0]) {
+			case '+':
+				from_top = 1;
+				/* FALLS THROUGH */
+			case '-':
+				line_num = atoi(&argv[1][1]);
+				if (line_num != 0) {
+					optind = 2;
+					count = line_num;
+				}
+				break;
+		}
 	}
 
-	while ((opt = getopt(argc, argv, "c:fhn:q:s:v")) > 0) {
+#ifdef CONFIG_FEATURE_FANCY_TAIL
+	while ((opt = getopt(argc, argv, "c:fn:q:s:v")) > 0) {
+#else
+	while ((opt = getopt(argc, argv, "fn:")) > 0) {
+#endif
 		switch (opt) {
 			case 'f':
 				follow = 1;
