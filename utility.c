@@ -1606,7 +1606,7 @@ extern char *get_line_from_file(FILE *file)
 		if (ch == EOF)
 			break;
 		/* grow the line buffer as necessary */
-		if (idx > linebufsz-2)
+		while (idx > linebufsz-2)
 			linebuf = xrealloc(linebuf, linebufsz += GROWBY);
 		linebuf[idx++] = (char)ch;
 		if ((char)ch == '\n')
