@@ -22,6 +22,7 @@
 	    -- Fix ash exec (noted by Arne Bernin).
 	    -- Fix tar segfault when include list is empty and exclude list is
 	       not.
+	    -- Fix sed s/$/@/ handling (noted by Joshua Hudson).
 	* Magick
 	    -- made init run inittab command's in the order they show up
 		in the inittab file (FIFO instead of LIFO).
