@@ -219,29 +219,6 @@ static void warn(char *s, ...)
 	va_end(p);
 }
 
-static void error(char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	fflush(stdout);
-	fprintf(stderr, "\n" PROGNAME ": ");
-	vfprintf(stderr, s, p);
-	va_end(p);
-}
-
-static void fatal(char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	fflush(stdout);
-	fprintf(stderr, "\n" PROGNAME ": ");
-	vfprintf(stderr, s, p);
-	va_end(p);
-	exit(1);
-}
-
 /*
  *  A. About seeking
  */
@@ -273,12 +250,12 @@ static int sseek(char *dev, unsigned int fd, unsigned long s)
 	if ((out = lseek(fd, in, SEEK_SET)) != in) {
 #endif
 		perror("llseek");
-		error("seek error on %s - cannot seek to %lu\n", dev, s);
+		errorMsg("seek error on %s - cannot seek to %lu\n", dev, s, FALSE);
 		return 0;
 	}
 
 	if (in != out) {
-		error("seek error: wanted 0x%08x%08x, got 0x%08x%08x\n",
+		errorMsg("seek error: wanted 0x%08x%08x, got 0x%08x%08x\n",
 			  (uint) (in >> 32), (uint) (in & 0xffffffff),
 			  (uint) (out >> 32), (uint) (out & 0xffffffff));
 		return 0;
@@ -324,11 +301,11 @@ static struct sector *get_sector(char *dev, int fd, unsigned long sno)
 		return 0;
 
 	if (!(s = (struct sector *) malloc(sizeof(struct sector))))
-		fatal("out of memory - giving up\n");
+		fatalError("out of memory - giving up\n");
 
 	if (read(fd, s->data, sizeof(s->data)) != sizeof(s->data)) {
 		perror("read");
-		error("read error on %s - cannot read sector %lu\n", dev, sno);
+		errorMsg("read error on %s - cannot read sector %lu\n", dev, sno);
 		free(s);
 		return 0;
 	}
@@ -344,7 +321,7 @@ static struct sector *get_sector(char *dev, int fd, unsigned long sno)
 static int msdos_signature(struct sector *s)
 {
 	if (*(unsigned short *) (s->data + 0x1fe) != 0xaa55) {
-		error("ERROR: sector %lu does not have an msdos signature\n",
+		errorMsg("ERROR: sector %lu does not have an msdos signature\n",
 			  s->sectornumber);
 		return 0;
 	}
@@ -361,7 +338,7 @@ static int write_sectors(char *dev, int fd)
 				return 0;
 			if (write(fd, s->data, sizeof(s->data)) != sizeof(s->data)) {
 				perror("write");
-				error("write error on %s - cannot write sector %lu\n",
+				errorMsg("write error on %s - cannot write sector %lu\n",
 					  dev, s->sectornumber);
 				return 0;
 			}
@@ -399,7 +376,7 @@ static int save_sectors(char *dev, int fdin)
 	fdout = open(save_sector_file, O_WRONLY | O_CREAT, 0444);
 	if (fdout < 0) {
 		perror(save_sector_file);
-		error("cannot open partition sector save file (%s)\n",
+		errorMsg("cannot open partition sector save file (%s)\n",
 			  save_sector_file);
 		return 0;
 	}
@@ -411,13 +388,13 @@ static int save_sectors(char *dev, int fdin)
 				return 0;
 			if (read(fdin, ss + 4, 512) != 512) {
 				perror("read");
-				error("read error on %s - cannot read sector %lu\n",
+				errorMsg("read error on %s - cannot read sector %lu\n",
 					  dev, s->sectornumber);
 				return 0;
 			}
 			if (write(fdout, ss, sizeof(ss)) != sizeof(ss)) {
 				perror("write");
-				error("write error on %s\n"), save_sector_file;
+				errorMsg("write error on %s\n"), save_sector_file;
 				return 0;
 			}
 		}
@@ -435,35 +412,35 @@ static int restore_sectors(char *dev)
 
 	if (stat(restore_sector_file, &statbuf) < 0) {
 		perror(restore_sector_file);
-		error("cannot stat partition restore file (%s)\n",
+		errorMsg("cannot stat partition restore file (%s)\n",
 			  restore_sector_file);
 		return 0;
 	}
 	if (statbuf.st_size % 516) {
-		error("partition restore file has wrong size - not restoring\n");
+		errorMsg("partition restore file has wrong size - not restoring\n");
 		return 0;
 	}
 	if (!(ss = (char *) malloc(statbuf.st_size))) {
-		error("out of memory?\n");
+		errorMsg("out of memory?\n");
 		return 0;
 	}
 	fdin = open(restore_sector_file, O_RDONLY);
 	if (fdin < 0) {
 		perror(restore_sector_file);
-		error("cannot open partition restore file (%s)\n",
+		errorMsg("cannot open partition restore file (%s)\n",
 			  restore_sector_file);
 		return 0;
 	}
 	if (read(fdin, ss, statbuf.st_size) != statbuf.st_size) {
 		perror("read");
-		error("error reading %s\n"), restore_sector_file;
+		errorMsg("error reading %s\n"), restore_sector_file;
 		return 0;
 	}
 
 	fdout = open(dev, O_WRONLY);
 	if (fdout < 0) {
 		perror(dev);
-		error("cannot open device %s for writing\n"), dev;
+		errorMsg("cannot open device %s for writing\n"), dev;
 		return 0;
 	}
 
@@ -475,7 +452,7 @@ static int restore_sectors(char *dev)
 			return 0;
 		if (write(fdout, ss + 4, 512) != 512) {
 			perror(dev);
-			error("error writing sector %lu on %s\n", sno, dev);
+			errorMsg("error writing sector %lu on %s\n", sno, dev);
 			return 0;
 		}
 		ss += 516;
@@ -905,7 +882,7 @@ static int asc_to_index(char *pnam, struct disk_desc *z)
 		pno = linux_to_index(pnum, z);
 	}
 	if (!(pno >= 0 && pno < z->partno))
-		fatal("%s: no such partition\n"), pnam;
+		fatalError("%s: no such partition\n"), pnam;
 	return pno;
 }
 
@@ -1233,9 +1210,9 @@ static int partitions_ok(struct disk_desc *z)
 	/* Have at least 4 partitions been defined? */
 	if (partno < 4) {
 		if (!partno)
-			fatal("no partition table present.\n");
+			fatalError("no partition table present.\n");
 		else
-			fatal("strange, only %d partitions defined.\n"), partno;
+			fatalError("strange, only %d partitions defined.\n"), partno;
 		return 0;
 	}
 
@@ -1680,12 +1657,12 @@ static int write_partitions(char *dev, int fd, struct disk_desc *z)
 	}
 	if (save_sector_file) {
 		if (!save_sectors(dev, fd)) {
-			fatal("Failed saving the old sectors - aborting\n");
+			fatalError("Failed saving the old sectors - aborting\n");
 			return 0;
 		}
 	}
 	if (!write_sectors(dev, fd)) {
-		error("Failed writing the partition on %s\n"), dev;
+		errorMsg("Failed writing the partition on %s\n"), dev;
 		return 0;
 	}
 	return 1;
@@ -1765,7 +1742,7 @@ read_stdin(unsigned char **fields, unsigned char *line, int fieldssize,
 		return RD_EOF;
 	}
 	if (!(lp = index(lp, '\n')))
-		fatal("long or incomplete input line - quitting\n");
+		fatalError("long or incomplete input line - quitting\n");
 	*lp = 0;
 
 	/* remove comments, if any */
@@ -1801,21 +1778,21 @@ read_stdin(unsigned char **fields, unsigned char *line, int fieldssize,
 					while (isalnum(*ip))	/* 0x07FF */
 						ip++;
 				} else
-					fatal("input error: `=' expected after %s field\n",
+					fatalError("input error: `=' expected after %s field\n",
 						  d->fldname);
 				if (fno <= d->fldno)
 					fno = d->fldno + 1;
 				if (*ip == 0)
 					return fno;
 				if (*ip != ',' && *ip != ';')
-					fatal
+					fatalError
 						("input error: unexpected character %c after %s field\n",
 						 *ip, d->fldname);
 				*ip = 0;
 				goto nxtfld;
 			}
 		}
-		fatal("unrecognized input: %s\n"), ip;
+		fatalError("unrecognized input: %s\n"), ip;
 	}
 
 	/* split line into fields */
@@ -2251,7 +2228,7 @@ read_partition(char *dev, int interactive, int pno, struct part_desc *ep,
 
 	while (!(i = read_line(pno, ep, dev, interactive, z)))
 		if (!interactive)
-			fatal("bad input\n");
+			fatalError("bad input\n");
 	if (i < 0) {
 		p->ep = ep;
 		return 0;
@@ -2612,19 +2589,19 @@ extern int sfdisk_main(int argc, char **argv)
 	}
 	if (do_id) {
 		if ((do_id & PRINT_ID) != 0 && optind != argc - 2)
-			fatal("usage: sfdisk --print-id device partition-number\n");
+			fatalError("usage: sfdisk --print-id device partition-number\n");
 		else if ((do_id & CHANGE_ID) != 0 && optind != argc - 3)
-			fatal
+			fatalError
 				("usage: sfdisk --change-id device partition-number Id\n");
 		else if (optind != argc - 3 && optind != argc - 2)
-			fatal("usage: sfdisk --id device partition-number [Id]\n");
+			fatalError("usage: sfdisk --id device partition-number [Id]\n");
 		do_change_id(argv[optind], argv[optind + 1],
 					 (optind == argc - 2) ? 0 : argv[optind + 2]);
 		exit(exit_status);
 	}
 
 	if (optind != argc - 1)
-		fatal("can specify only one device (except with -l or -s)\n");
+		fatalError("can specify only one device (except with -l or -s)\n");
 	dev = argv[optind];
 
 	if (opt_reread)
@@ -2649,7 +2626,7 @@ static int my_open(char *dev, int rw, int silent)
 	fd = open(dev, mode);
 	if (fd < 0 && !silent) {
 		perror(dev);
-		fatal("cannot open %s %s\n", dev,
+		fatalError("cannot open %s %s\n", dev,
 			  rw ? "read-write" : "for reading");
 	}
 	return fd;
@@ -2711,7 +2688,7 @@ static void do_size(char *dev, int silent)
 	if (ioctl(fd, BLKGETSIZE, &size)) {
 		if (!silent) {
 			perror(dev);
-			fatal("BLKGETSIZE ioctl failed for %s\n"), dev;
+			fatalError("BLKGETSIZE ioctl failed for %s\n"), dev;
 		}
 		return;
 	}
@@ -2831,7 +2808,7 @@ static void set_unhidden(struct disk_desc *z, char *pnam)
 	if (id == 0x11 || id == 0x14 || id == 0x16 || id == 0x17)
 		id -= 0x10;
 	else
-		fatal("partition %s has id %x and is not hidden\n", pnam, id);
+		fatalError("partition %s has id %x and is not hidden\n", pnam, id);
 	z->partitions[pno].p.sys_type = id;
 }
 
@@ -2889,7 +2866,7 @@ static void do_change_id(char *dev, char *pnam, char *id)
 	}
 	i = strtoul(id, NULL, 16);
 	if (i > 255)
-		fatal("Bad Id %x\n"), i;
+		fatalError("Bad Id %x\n"), i;
 	z->partitions[pno].p.sys_type = i;
 
 	if (write_partitions(dev, fd, z))
@@ -2921,7 +2898,7 @@ static void do_fdisk(char *dev)
 
 	if (stat(dev, &statbuf) < 0) {
 		perror(dev);
-		fatal("Fatal error: cannot find %s\n"), dev;
+		fatalError("Fatal error: cannot find %s\n"), dev;
 	}
 	if (!S_ISBLK(statbuf.st_mode)) {
 		warn("Warning: %s is not a block device\n"), dev;
@@ -2954,7 +2931,7 @@ static void do_fdisk(char *dev)
 	out_partitions(dev, z);
 
 	if (one_only && (one_only_pno = linux_to_index(one_only, z)) < 0)
-		fatal("Partition %d does not exist, cannot change it\n"), one_only;
+		fatalError("Partition %d does not exist, cannot change it\n"), one_only;
 
 	z = &newp;
 
@@ -2967,7 +2944,7 @@ static void do_fdisk(char *dev)
 
 		if (!partitions_ok(z) && !force) {
 			if (!interactive)
-				fatal("I don't like these partitions - nothing changed.\n"
+				fatalError("I don't like these partitions - nothing changed.\n"
 					  "(If you really want this, use the --force option.)\n");
 			else
 				printf
@@ -2985,7 +2962,7 @@ static void do_fdisk(char *dev)
 			if (c == EOF)
 				printf("\nsfdisk: premature end of input\n");
 			if (c == EOF || answer == 'q' || answer == 'Q') {
-				fatal("Quitting - nothing changed\n");
+				fatalError("Quitting - nothing changed\n");
 			} else if (answer == 'n' || answer == 'N') {
 				continue;
 			} else if (answer == 'y' || answer == 'Y') {

@@ -144,9 +144,13 @@ extern int whoami_main(int argc, char** argv);
 extern int yes_main(int argc, char** argv);
 
 
+extern void usage(const char *usage) __attribute__ ((noreturn));
+extern void errorMsg(char *s, ...);
+extern void fatalError(char *s, ...) __attribute__ ((noreturn));
+
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);
-int isDirectory(const char *name, const int followLinks);
+int isDirectory(const char *name, const int followLinks, struct stat *statBuf);
 int isDevice(const char *name);
 int copyFile(const char *srcName, const char *destName, int setModes,
 	        int followLinks);
@@ -164,7 +168,6 @@ const char* timeString(time_t timeVal);
 
 extern int createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
-extern void usage(const char *usage) __attribute__ ((noreturn));
 
 extern uid_t my_getpwnam(char *name);
 extern gid_t my_getgrnam(char *name); 
@@ -184,6 +187,7 @@ extern char *mtab_getinfo(const char *match, const char which);
 extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
+extern void *xmalloc (size_t size);
 #if defined BB_INIT || defined BB_SYSLOGD
 extern int device_open(char *device, int mode);
 #endif
@@ -195,10 +199,6 @@ extern int set_loop(const char *device, const char *file, int offset, int *loopr
 extern char *find_unused_loop_device (void);
 #endif
 
-#if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
-extern void *xmalloc (size_t size);
-extern void error(char *msg);
-#endif
 
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap);

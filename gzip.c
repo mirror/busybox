@@ -125,7 +125,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * near array
 #  define ALLOC(type, array, size) { \
       array = (type*)fcalloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) error("insufficient memory"); \
+      if (array == NULL) errorMsg("insufficient memory"); \
    }
 #  define FREE(array) {if (array != NULL) fcfree(array), array=NULL;}
 #else
@@ -262,7 +262,7 @@ extern int save_orig_name;		/* set if original name must be saved */
 
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) error(msg);}
+#  define Assert(cond,msg) {if(!(cond)) errorMsg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
 #  define Tracevv(x) {if (verbose>1) fprintf x ;}
@@ -327,8 +327,6 @@ extern void flush_window OF((void));
 extern void write_buf OF((int fd, voidp buf, unsigned cnt));
 extern char *strlwr OF((char *s));
 extern char *add_envopt OF((int *argcp, char ***argvp, char *env));
-extern void error OF((char *m));
-extern void warn OF((char *a, char *b));
 extern void read_error OF((void));
 extern void write_error OF((void));
 extern void display_ratio OF((long num, long den, FILE * file));
@@ -1396,7 +1394,7 @@ int length;
 			   (char *) window + start, length) != EQUAL) {
 		fprintf(stderr,
 				" start %d, match %d, length %d\n", start, match, length);
-		error("invalid match");
+		errorMsg("invalid match");
 	}
 	if (verbose > 1) {
 		fprintf(stderr, "\\[%d,%d]", start - match, length);
@@ -2916,7 +2914,7 @@ int eof;						/* true if this is the last block for a file */
 #endif
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
-			error("block vanished");
+			errorMsg("block vanished");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		compressed_len = stored_len << 3;
@@ -3099,7 +3097,7 @@ local void set_file_type()
 		bin_freq += dyn_ltree[n++].Freq;
 	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
-		warn("-l used on binary file", "");
+		errorMsg("-l used on binary file", "");
 	}
 }
 
@@ -3259,13 +3257,13 @@ char *env;						/* name of environment variable */
 	nargv = (char **) calloc(*argcp + 1, sizeof(char *));
 
 	if (nargv == NULL)
-		error("out of memory");
+		errorMsg("out of memory");
 	oargv = *argvp;
 	*argvp = nargv;
 
 	/* Copy the program name first */
 	if (oargc-- < 0)
-		error("argc<=0");
+		errorMsg("argc<=0");
 	*(nargv++) = *(oargv++);
 
 	/* Then copy the environment args */

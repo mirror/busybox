@@ -1,5 +1,8 @@
 # Makefile for busybox
 #
+# Copyright (C) 1999-2000 Erik Andersen <andersee@debian.org>
+# Copyright (C) 2000 Karl M. Hegbloom <karlheg@debian.org>
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -15,13 +18,13 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-PROG      := busybox
+# PROG      := busybox
 VERSION   := 0.42
 BUILDTIME := $(shell TZ=GMT date "+%Y%m%d-%H%M")
 
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
-# eg: `make DODEBUG=true'
+# eg: `make DODEBUG=true tests'
 DODEBUG = false
 
 # If you want a static binary, turn this on.  I can't think
@@ -60,15 +63,21 @@ else
     OPTIMIZATION = -O2
 endif
 
+# Allow alternative stripping tools to be used...
+ifndef $(STRIPTOOL)
+    STRIPTOOL = strip
+endif
+
+
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
     CFLAGS += -Wall -g -D_GNU_SOURCE
-    STRIP   =
     LDFLAGS =
+    STRIP   =
 else
     CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS  = -s
-    STRIP    = strip --remove-section=.note --remove-section=.comment $(PROG)
+    STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment
     #Only staticly link when _not_ debugging 
     ifeq ($(DOSTATIC),true)
 	LDFLAGS += --static
@@ -84,33 +93,43 @@ OBJECTS   = $(shell ./busybox.sh) messages.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 ifdef BB_INIT_SCRIPT
-    CFLAGS += -DINIT_SCRIPT=${BB_INIT_SCRIPT}
+    CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
 all: busybox busybox.links
+.PHONY: all
 
 busybox: $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $(PROG) $(OBJECTS) $(LIBRARIES)
-	$(STRIP)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
+	$(STRIP) $@
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
+regexp.o nfsmount.o: %.o: %.h
+$(OBJECTS): %.o: busybox.def.h internal.h  %.c
+
+.PHONY: test tests
+test tests:
+	cd tests && $(MAKE) all
+
+.PHONY: clean
 clean:
-	- rm -f $(PROG) busybox.links *~ *.o core 
+	- rm -f busybox.links *~ *.o core
 	- rm -rf _install
+	- cd tests && $(MAKE) clean
 
+.PHONY: distclean
 distclean: clean
-	- rm -f $(PROG)
+	- rm -f busybox
+	- cd tests && $(MAKE) distclean
 
-$(OBJECTS): %.o: %.c busybox.def.h internal.h Makefile messages.c 
-
+.PHONY: install
 install: busybox busybox.links
 	./install.sh $(PREFIX)
 
-dist: release
-
-release: distclean
+.PHONY: dist release
+dist release: distclean
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\

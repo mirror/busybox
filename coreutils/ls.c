@@ -29,10 +29,10 @@
  * it more portable.
  *
  * KNOWN BUGS:
- * 1. messy output if you mix files and directories on the command line
- * 2. ls -l of a directory doesn't give "total <blocks>" header
- * 3. ls of a symlink to a directory doesn't list directory contents
- * 4. hidden files can make column width too large
+ * 1. ls -l of a directory doesn't give "total <blocks>" header
+ * 2. ls of a symlink to a directory doesn't list directory contents
+ * 3. hidden files can make column width too large
+ *
  * NON-OPTIMAL BEHAVIOUR:
  * 1. autowidth reads directories twice
  * 2. if you do a short directory listing without filetype characters
@@ -100,7 +100,9 @@ static unsigned short opts = 0;
 static unsigned short column = 0;
 
 #ifdef BB_FEATURE_AUTOWIDTH
-static unsigned short terminal_width = 0, column_width = 0;
+static unsigned short terminal_width = 0;
+static unsigned short column_width = 0;
+static unsigned short toplevel_column_width = 0;
 #else
 #define terminal_width	TERMINAL_WIDTH
 #define column_width	COLUMN_WIDTH
@@ -349,6 +351,9 @@ static int list_item(const char *name)
 		goto listerr;
 
 	if (!S_ISDIR(info.st_mode) || (opts & DIR_NOLIST)) {
+#ifdef BB_FEATURE_AUTOWIDTH
+		column_width = toplevel_column_width;
+#endif
 		list_single(name, &info, name);
 		return 0;
 	}
@@ -407,6 +412,15 @@ static int list_item(const char *name)
 		list_single(entry->d_name, &info, fullname);
 	}
 	closedir(dir);
+
+	if (opts & DISP_DIRNAME) {      /* separate the directory */
+		if (column) {
+			wr("\n", 1);
+		}
+		wr("\n", 1);
+		column = 0;
+	}
+
 	return 0;
 
   direrr:
@@ -530,8 +544,8 @@ extern int ls_main(int argc, char **argv)
 	for (i = argi; i < argc; i++) {
 		int len = strlen(argv[i]);
 
-		if (column_width < len)
-			column_width = len;
+		if (toplevel_column_width < len)
+			toplevel_column_width = len;
 	}
 #endif
 

@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
 #include "internal.h"
+
 /* This file contains _two_ implementations of tail.  One is
  * a bit more full featured, but costs 6k.  The other (i.e. the
  * SIMPLE_TAIL one) is less capable, but is good enough for about
@@ -51,7 +52,7 @@
 #define XWRITE(fd, buffer, n_bytes)					\
   do {									\
       if (n_bytes > 0 && fwrite ((buffer), 1, (n_bytes), stdout) == 0)	\
-	  error("write error");					\
+	  errorMsg("write error");					\
   } while (0)
 
 /* Number of items to tail.  */
@@ -117,7 +118,7 @@ file_lines(const char *filename, int fd, long int n_lines, off_t pos)
 	lseek(fd, pos, SEEK_SET);
 	bytes_read = fullRead(fd, buffer, bytes_read);
 	if (bytes_read == -1)
-		error("read error");
+		errorMsg("read error");
 
 	/* Count the incomplete line on files that don't end with a newline.  */
 	if (bytes_read && buffer[bytes_read - 1] != '\n')
@@ -147,7 +148,7 @@ file_lines(const char *filename, int fd, long int n_lines, off_t pos)
 	}
 	while ((bytes_read = fullRead(fd, buffer, BUFSIZ)) > 0);
 	if (bytes_read == -1)
-		error("read error");
+		errorMsg("read error");
 
 	return 0;
 }
@@ -209,7 +210,7 @@ static int pipe_lines(const char *filename, int fd, long int n_lines)
 		}
 	}
 	if (tmp->nbytes == -1)
-		error("read error");
+		errorMsg("read error");
 
 	free((char *) tmp);
 
@@ -272,7 +273,7 @@ static long dump_remainder(const char *filename, int fd)
 		total += bytes_read;
 	}
 	if (bytes_read == -1)
-		error("read error");
+		errorMsg("read error");
 	if (forever) {
 		fflush(stdout);
 		sleep(1);
@@ -294,7 +295,7 @@ static int tail_lines(const char *filename, int fd, long int n_lines)
 		write_header(filename);
 
 	if (fstat(fd, &stats))
-		error("fstat error");
+		errorMsg("fstat error");
 
 	/* Use file_lines only if FD refers to a regular file with
 	   its file pointer positioned at beginning of file.  */
@@ -329,7 +330,7 @@ static int tail_file(const char *filename, off_t n_units)
 		/* Not standard input.  */
 		fd = open(filename, O_RDONLY);
 		if (fd == -1)
-			error("open error");
+			errorMsg("open error");
 
 		errors = tail_lines(filename, fd, (long) n_units);
 		close(fd);

@@ -81,9 +81,7 @@ static int fileAction(const char *fileName, struct stat *statbuf)
 	case CHMOD_APP:
 		/* Parse the specified modes */
 		if (parse_mode(theMode, &(statbuf->st_mode)) == FALSE) {
-			fprintf(stderr, "%s: unknown mode: %s\n", invocationName,
-					theMode);
-			exit(FALSE);
+			fatalError( "%s: unknown mode: %s\n", invocationName, theMode);
 		}
 		if (chmod(fileName, statbuf->st_mode) == 0)
 			return (TRUE);
@@ -101,14 +99,13 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	const char *appUsage;
 
 	whichApp =
-		(strcmp(*argv, "chown") ==
-		 0) ? CHOWN_APP : (strcmp(*argv,
-								  "chmod") == 0) ? CHMOD_APP : CHGRP_APP;
+		(strcmp(*argv, "chown") == 0)? 
+			CHOWN_APP : (strcmp(*argv, "chmod") == 0)? 
+				CHMOD_APP : CHGRP_APP;
 
 	appUsage =
-		(whichApp == CHOWN_APP) ? chown_usage : (whichApp ==
-												 CHMOD_APP) ? chmod_usage :
-		chgrp_usage;
+		(whichApp == CHOWN_APP)? 
+			chown_usage : (whichApp == CHMOD_APP) ? chmod_usage : chgrp_usage;
 
 	if (argc < 2)
 		usage(appUsage);
@@ -163,17 +160,15 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			if (*argv == p)
 				uid = my_getpwnam(*argv);
 			if (uid == -1) {
-				fprintf(stderr, "%s: unknown user name: %s\n",
+				fatalError( "%s: unknown user name: %s\n", 
 						invocationName, *argv);
-				exit(FALSE);
 			}
 		}
 	}
 
 	/* Ok, ready to do the deed now */
 	if (argc <= 1) {
-		fprintf(stderr, "%s: too few arguments\n", invocationName);
-		exit(FALSE);
+		fatalError( "%s: too few arguments\n", invocationName);
 	}
 	while (argc-- > 1) {
 		if (recursiveAction
@@ -184,7 +179,5 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	exit(TRUE);
 
   bad_group:
-	fprintf(stderr, "%s: unknown group name: %s\n", invocationName,
-			groupName);
-	exit(FALSE);
+	fatalError( "%s: unknown group name: %s\n", invocationName, groupName);
 }

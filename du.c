@@ -72,6 +72,10 @@ static long du(char *filename)
 	du_depth++;
 	sum = statbuf.st_blocks;
 
+	/* Don't add in stuff pointed to by links */
+	if (S_ISLNK(statbuf.st_mode)) {
+		return 0;
+	}
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
 		struct dirent *entry;
@@ -140,7 +144,7 @@ int du_main(int argc, char **argv)
 
 		for (; i < argc; i++) {
 			sum = du(argv[i]);
-			if ((sum) && (isDirectory(argv[i], FALSE))) {
+			if ((sum) && (isDirectory(argv[i], FALSE, NULL))) {
 				print_normal(sum, argv[i]);
 			}
 		}
@@ -149,4 +153,4 @@ int du_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: du.c,v 1.11 2000/02/08 19:58:47 erik Exp $ */
+/* $Id: du.c,v 1.12 2000/02/11 21:55:04 erik Exp $ */

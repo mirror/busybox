@@ -69,10 +69,12 @@ extern int cp_mv_main(int argc, char **argv)
 
 	const char *baseSrcName;
 	int srcDirFlag;
+	struct stat srcStatBuf;
 
 	char baseDestName[PATH_MAX + 1];
 	size_t baseDestLen;
 	int destDirFlag;
+	struct stat destStatBuf;
 
 	void fill_baseDest_buf(char *_buf, size_t * _buflen) {
 		const char *srcBasename;
@@ -91,7 +93,6 @@ extern int cp_mv_main(int argc, char **argv)
 	}
 
 	int fileAction(const char *fileName, struct stat *statbuf) {
-		__label__ return_false;
 		char destName[PATH_MAX + 1];
 		size_t destLen;
 		const char *srcBasename;
@@ -109,7 +110,7 @@ extern int cp_mv_main(int argc, char **argv)
 
 			if (destLen + strlen(srcBasename) > PATH_MAX) {
 				fprintf(stderr, name_too_long, "cp");
-				goto return_false;
+				return FALSE;
 			}
 			strcat(destName, srcBasename);
 		} else if (destDirFlag == TRUE) {
@@ -118,9 +119,6 @@ extern int cp_mv_main(int argc, char **argv)
 			srcBasename = baseSrcName;
 		}
 		return copyFile(fileName, destName, preserveFlag, followLinks);
-
-	  return_false:
-		return FALSE;
 	}
 
 	int rmfileAction(const char *fileName, struct stat *statbuf) {
@@ -180,7 +178,6 @@ extern int cp_mv_main(int argc, char **argv)
 			argv++;
 		}
 	} else {					/* (dz_i == is_mv) */
-
 		recursiveFlag = preserveFlag = TRUE;
 		followLinks = FALSE;
 	}
@@ -194,7 +191,7 @@ extern int cp_mv_main(int argc, char **argv)
 	if (baseDestLen == 0)
 		goto exit_false;
 
-	destDirFlag = isDirectory(baseDestName, TRUE);
+	destDirFlag = isDirectory(baseDestName, TRUE, &destStatBuf);
 	if ((argc > 3) && destDirFlag == FALSE) {
 		fprintf(stderr, not_a_directory, "cp", baseDestName);
 		goto exit_false;
@@ -212,11 +209,18 @@ extern int cp_mv_main(int argc, char **argv)
 		if (srcLen == 0)
 			continue;
 
-		srcDirFlag = isDirectory(baseSrcName, followLinks);
+		srcDirFlag = isDirectory(baseSrcName, followLinks, &srcStatBuf);
 
 		if ((flags_memo = (recursiveFlag == TRUE &&
 						   srcDirFlag == TRUE && destDirFlag == TRUE))) {
-			fill_baseDest_buf(&baseDestName[0], &baseDestLen);
+				if ((destStatBuf.st_ino == srcStatBuf.st_ino) &&
+					(destStatBuf.st_rdev == srcStatBuf.st_rdev)) {
+						fprintf(stderr,
+								"%s: Cannot %s `%s' into a subdirectory of itself, `%s/%s'\n",
+								dz, dz, baseSrcName, baseDestName, baseSrcName);
+						continue;
+				}
+				fill_baseDest_buf(baseDestName, &baseDestLen);
 		}
 		if (recursiveAction(baseSrcName,
 							recursiveFlag, followLinks, FALSE,
@@ -242,6 +246,6 @@ extern int cp_mv_main(int argc, char **argv)
 }
 
 // Local Variables:
-// c-file-style: "k&r"
-// c-basic-offset: 4
+// c-file-style: "linux"
+// tab-width: 4
 // End:

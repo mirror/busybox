@@ -10,10 +10,6 @@ around to it some time. If you have any good ideas, please let me know.
     separate package (named perhaps tiny-netkit?).  This currently includes 
     hostid, hostname, mnc, and ping.
 
-* init's waitfor() calls wait() which can catch and ignore the wrong pid 
-    exiting.  That other process is then not restarted.
-
-
 
  -Erik
 
@@ -22,7 +18,7 @@ around to it some time. If you have any good ideas, please let me know.
 * Allow tar to create archives with sockets, devices, and other special files
 * Make insmod actually work
 * dnsdomainname
-* traceroute/nslookup/netstat
+* traceroute/netstat
 * rdate
 * hwclock
 * killall

@@ -77,6 +77,30 @@ extern void usage(const char *usage)
 	exit FALSE;
 }
 
+extern void errorMsg(char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	fflush(stdout);
+	fprintf(stderr, "\n");
+	vfprintf(stderr, s, p);
+	fprintf(stderr, "\n");
+	va_end(p);
+}
+
+extern void fatalError(char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	fflush(stdout);
+	fprintf(stderr, "\n");
+	vfprintf(stderr, s, p);
+	fprintf(stderr, "\n");
+	va_end(p);
+	exit( FALSE);
+}
 
 #if defined (BB_INIT) || defined (BB_PS)
 
@@ -110,21 +134,31 @@ int get_kernel_revision()
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
  */
-int isDirectory(const char *fileName, const int followLinks)
+int isDirectory(const char *fileName, const int followLinks, struct stat *statBuf)
 {
-	struct stat statBuf;
 	int status;
+	int didMalloc = 0;
+
+	if (statBuf == NULL) {
+	    statBuf = (struct stat *)xmalloc(sizeof(struct stat));
+	    ++didMalloc;
+	}
 
 	if (followLinks == TRUE)
-		status = stat(fileName, &statBuf);
+		status = stat(fileName, statBuf);
 	else
-		status = lstat(fileName, &statBuf);
+		status = lstat(fileName, statBuf);
 
-	if (status < 0)
-		return FALSE;
-	if (S_ISDIR(statBuf.st_mode))
-		return TRUE;
-	return FALSE;
+	if (status < 0 || !(S_ISDIR(statBuf->st_mode))) {
+	    status = FALSE;
+	}
+	else status = TRUE;
+
+	if (didMalloc) {
+	    free(statBuf);
+	    statBuf = NULL;
+	}
+	return status;
 }
 #endif
 
@@ -1189,16 +1223,11 @@ extern void *xmalloc(size_t size)
 	void *cp = malloc(size);
 
 	if (cp == NULL) {
-		error("out of memory");
+		errorMsg("out of memory");
 	}
 	return cp;
 }
 
-extern void error(char *msg)
-{
-	fprintf(stderr, "\n%s\n", msg);
-	exit(1);
-}
 #endif							/* BB_GUNZIP || BB_GZIP || BB_PRINTF || BB_TAIL */
 
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)

@@ -194,7 +194,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) error("insufficient memory"); \
+      if (array == NULL) errorMsg("insufficient memory"); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -311,7 +311,7 @@ extern int save_orig_name;		/* set if original name must be saved */
 
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) error(msg);}
+#  define Assert(cond,msg) {if(!(cond)) errorMsg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
 #  define Tracevv(x) {if (verbose>1) fprintf x ;}
@@ -367,8 +367,6 @@ extern void write_buf OF((int fd, voidp buf, unsigned cnt));
 #ifndef __linux__
 extern char *basename OF((char *fname));
 #endif							/* not __linux__ */
-extern void error OF((char *m));
-extern void warn OF((char *a, char *b));
 extern void read_error OF((void));
 extern void write_error OF((void));
 
@@ -1045,13 +1043,13 @@ int in, out;					/* input and output file descriptors */
 		int res = inflate();
 
 		if (res == 3) {
-			error("out of memory");
+			errorMsg("out of memory");
 		} else if (res != 0) {
-			error("invalid compressed data--format violated");
+			errorMsg("invalid compressed data--format violated");
 		}
 
 	} else {
-		error("internal error, invalid method");
+		errorMsg("internal error, invalid method");
 	}
 
 	/* Get the crc and original length */
@@ -1080,10 +1078,10 @@ int in, out;					/* input and output file descriptors */
 
 	/* Validate decompression */
 	if (orig_crc != updcrc(outbuf, 0)) {
-		error("invalid compressed data--crc error");
+		errorMsg("invalid compressed data--crc error");
 	}
 	if (orig_len != (ulg) bytes_out) {
-		error("invalid compressed data--length error");
+		errorMsg("invalid compressed data--length error");
 	}
 
 	/* Check if there are more entries in a pkzip file */

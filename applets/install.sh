@@ -2,7 +2,7 @@
 
 set -e
 
-if [ "$1" == "" ]; then
+if [ "$1" = "" ]; then
     echo "No installation directory, aborting."
     exit 1;
 fi

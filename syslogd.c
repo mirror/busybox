@@ -110,17 +110,19 @@ static void logMessage(int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
-	static char res[20];
+	static char res[20] = "";
 	CODE *c_pri, *c_fac;
 
-	for (c_fac = facilitynames;
-		 c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
-	for (c_pri = prioritynames;
-		 c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
-	if (*c_fac->c_name == '\0' || *c_pri->c_name == '\0')
-		snprintf(res, sizeof(res), "<%d>", pri);
-	else
-		snprintf(res, sizeof(res), "%s.%s", c_fac->c_name, c_pri->c_name);
+	if (pri != 0) {
+		for (c_fac = facilitynames;
+			 c_fac->c_name && !(c_fac->c_val == LOG_FAC(pri) << 3); c_fac++);
+		for (c_pri = prioritynames;
+			 c_pri->c_name && !(c_pri->c_val == LOG_PRI(pri)); c_pri++);
+		if (*c_fac->c_name == '\0' || *c_pri->c_name == '\0')
+			snprintf(res, sizeof(res), "<%d>", pri);
+		else
+			snprintf(res, sizeof(res), "%s.%s", c_fac->c_name, c_pri->c_name);
+	}
 
 	if (strlen(msg) < 16 || msg[3] != ' ' || msg[6] != ' ' ||
 		msg[9] != ':' || msg[12] != ':' || msg[15] != ' ') {
@@ -141,15 +143,9 @@ static void logMessage(int pri, char *msg)
 
 static void quit_signal(int sig)
 {
-	logMessage(LOG_SYSLOG | LOG_INFO, "System log daemon exiting.");
+	logMessage(0, "System log daemon exiting.");
 	unlink(_PATH_LOG);
 	exit(TRUE);
-}
-
-static void restart_signal(int sig)
-{
-	/* pretend to restart */
-	logMessage(LOG_SYSLOG | LOG_INFO, "syslogd restarting");
 }
 
 static void domark(int sig)
@@ -173,8 +169,8 @@ static void doSyslogd(void)
 	signal(SIGINT, quit_signal);
 	signal(SIGTERM, quit_signal);
 	signal(SIGQUIT, quit_signal);
-	signal(SIGHUP, restart_signal);
 	signal(SIGALRM, domark);
+	signal(SIGHUP, SIG_IGN);
 	alarm(MarkInterval);
 
 	/* Remove any preexisting socket/file */
@@ -201,8 +197,7 @@ static void doSyslogd(void)
 		exit(FALSE);
 	}
 
-	logMessage(LOG_SYSLOG | LOG_INFO, "syslogd started: "
-			   "BusyBox v" BB_VER " (" BB_BT ")");
+	logMessage(0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
 
 
 	while ((conn = accept(fd, (struct sockaddr *) &sunx,
@@ -251,7 +246,7 @@ static void klogd_signal(int sig)
 {
 	ksyslog(7, NULL, 0);
 	ksyslog(0, 0, 0);
-	logMessage(LOG_SYSLOG | LOG_INFO, "Kernel log daemon exiting.");
+	logMessage(0, "Kernel log daemon exiting.");
 	exit(TRUE);
 }
 
@@ -265,8 +260,8 @@ static void doKlogd(void)
 	signal(SIGINT, klogd_signal);
 	signal(SIGKILL, klogd_signal);
 	signal(SIGTERM, klogd_signal);
-	signal(SIGHUP, klogd_signal);
-	logMessage(LOG_SYSLOG | LOG_INFO, "klogd started: "
+	signal(SIGHUP, SIG_IGN);
+	logMessage(0, "klogd started: "
 			   "BusyBox v" BB_VER " (" BB_BT ")");
 
 	ksyslog(1, NULL, 0);

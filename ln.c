@@ -84,7 +84,7 @@ extern int ln_main(int argc, char **argv)
 		exit FALSE;
 	}
 
-	linkIntoDirFlag = isDirectory(linkName, TRUE);
+	linkIntoDirFlag = isDirectory(linkName, TRUE, NULL);
 
 	if ((argc > 3) && !linkIntoDirFlag) {
 		fprintf(stderr, not_a_directory, "ln", linkName);
