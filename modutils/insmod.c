@@ -234,7 +234,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.92 2002/11/28 11:27:27 aaronl Exp $"
+#ident "$Id: insmod.c,v 1.93 2003/01/23 04:48:34 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -455,7 +455,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.92 2002/11/28 11:27:27 aaronl Exp $"
+#ident "$Id: insmod.c,v 1.93 2003/01/23 04:48:34 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2654,6 +2654,37 @@ static int new_create_this_module(struct obj_file *f, const char *m_name)
 	return 1;
 }
 
+#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+/* add an entry to the __ksymtab section, creating it if necessary */
+static void new_add_ksymtab(struct obj_file *f, struct obj_symbol *sym)
+{
+	struct obj_section *sec;
+	ElfW(Addr) ofs;
+
+	/* ensure __ksymtab is allocated, EXPORT_NOSYMBOLS creates a non-alloc section.
+	 * If __ksymtab is defined but not marked alloc, x out the first character
+	 * (no obj_delete routine) and create a new __ksymtab with the correct
+	 * characteristics.
+	 */
+	sec = obj_find_section(f, "__ksymtab");
+	if (sec && !(sec->header.sh_flags & SHF_ALLOC)) {
+		*((char *)(sec->name)) = 'x';	/* override const */
+		sec = NULL;
+	}
+	if (!sec)
+		sec = obj_create_alloced_section(f, "__ksymtab",
+						 tgt_sizeof_void_p, 0);
+	if (!sec)
+		return;
+	sec->header.sh_flags |= SHF_ALLOC;
+	sec->header.sh_addralign = tgt_sizeof_void_p;	/* Empty section might
+							   be byte-aligned */
+	ofs = sec->header.sh_size;
+	obj_symbol_patch(f, sec->idx, ofs, sym);
+	obj_string_patch(f, sec->idx, ofs + tgt_sizeof_void_p, sym->name);
+	obj_extend_section(sec, 2 * tgt_sizeof_char_p);
+}
+#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
 static int new_create_module_ksymtab(struct obj_file *f)
 {
@@ -2811,6 +2842,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 
 #define new_init_module(x, y, z) TRUE
 #define new_create_this_module(x, y) 0
+#define new_add_ksymtab(x, y) -1
 #define new_create_module_ksymtab(x)
 #define query_module(v, w, x, y, z) -1
 
@@ -3538,6 +3570,142 @@ static void check_tainted_module(struct obj_file *f, char *m_name)
 #define check_tainted_module(x, y) do { } while(0);
 #endif /* CONFIG_FEATURE_CHECK_TAINTED_MODULE */
 
+#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+/* add module source, timestamp, kernel version and a symbol for the
+ * start of some sections.  this info is used by ksymoops to do better
+ * debugging.
+ */
+static int
+get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
+{
+#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+  if (get_modinfo_value(f, "kernel_version") == NULL)
+    return old_get_module_version(f, str);
+  else
+    return new_get_module_version(f, str);
+#else  /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+    strncpy(str, "???", sizeof(str));
+    return -1;
+#endif /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+}
+
+/* add module source, timestamp, kernel version and a symbol for the
+ * start of some sections.  this info is used by ksymoops to do better
+ * debugging.
+ */
+static void 
+add_ksymoops_symbols(struct obj_file *f, const char *filename,
+				 const char *m_name)
+{
+	static const char symprefix[] = "__insmod_";
+	struct obj_section *sec;
+	struct obj_symbol *sym;
+	char *name, *absolute_filename;
+	char str[STRVERSIONLEN], real[PATH_MAX];
+	int i, l, lm_name, lfilename, use_ksymtab, version;
+	struct stat statbuf;
+
+	static const char *section_names[] = {
+		".text",
+		".rodata",
+		".data",
+		".bss"
+		".sbss"
+	};
+
+	if (realpath(filename, real)) {
+		absolute_filename = xstrdup(real);
+	}
+	else {
+		int save_errno = errno;
+		error_msg("cannot get realpath for %s", filename);
+		errno = save_errno;
+		perror("");
+		absolute_filename = xstrdup(filename);
+	}
+
+	lm_name = strlen(m_name);
+	lfilename = strlen(absolute_filename);
+
+	/* add to ksymtab if it already exists or there is no ksymtab and other symbols
+	 * are not to be exported.  otherwise leave ksymtab alone for now, the
+	 * "export all symbols" compatibility code will export these symbols later.
+	 */
+	use_ksymtab =  obj_find_section(f, "__ksymtab") || !flag_export;
+
+	if ((sec = obj_find_section(f, ".this"))) {
+		/* tag the module header with the object name, last modified
+		 * timestamp and module version.  worst case for module version
+		 * is 0xffffff, decimal 16777215.  putting all three fields in
+		 * one symbol is less readable but saves kernel space.
+		 */
+		l = sizeof(symprefix)+			/* "__insmod_" */
+		    lm_name+				/* module name */
+		    2+					/* "_O" */
+		    lfilename+				/* object filename */
+		    2+					/* "_M" */
+		    2*sizeof(statbuf.st_mtime)+		/* mtime in hex */
+		    2+					/* "_V" */
+		    8+					/* version in dec */
+		    1;					/* nul */
+		name = xmalloc(l);
+		if (stat(absolute_filename, &statbuf) != 0)
+			statbuf.st_mtime = 0;
+		version = get_module_version(f, str);	/* -1 if not found */
+		snprintf(name, l, "%s%s_O%s_M%0*lX_V%d",
+			 symprefix, m_name, absolute_filename,
+			 (int)(2*sizeof(statbuf.st_mtime)), statbuf.st_mtime,
+			 version);
+		sym = obj_add_symbol(f, name, -1,
+				     ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+				     sec->idx, sec->header.sh_addr, 0);
+		if (use_ksymtab)
+		    new_add_ksymtab(f, sym);
+	}
+	free(absolute_filename);
+#ifdef _NOT_SUPPORTED_
+	/* record where the persistent data is going, same address as previous symbol */
+
+	if (f->persist) {
+		l = sizeof(symprefix)+		/* "__insmod_" */
+			lm_name+		/* module name */
+			2+			/* "_P" */
+			strlen(f->persist)+	/* data store */
+			1;			/* nul */
+		name = xmalloc(l);
+		snprintf(name, l, "%s%s_P%s",
+			 symprefix, m_name, f->persist);
+		sym = obj_add_symbol(f, name, -1, ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+				     sec->idx, sec->header.sh_addr, 0);
+		if (use_ksymtab)
+		    new_add_ksymtab(f, sym);
+	}
+#endif /* _NOT_SUPPORTED_ */
+	/* tag the desired sections if size is non-zero */
+
+	for (i = 0; i < sizeof(section_names)/sizeof(section_names[0]); ++i) {
+		if ((sec = obj_find_section(f, section_names[i])) &&
+		    sec->header.sh_size) {
+			l = sizeof(symprefix)+		/* "__insmod_" */
+				lm_name+		/* module name */
+				2+			/* "_S" */
+				strlen(sec->name)+	/* section name */
+				2+			/* "_L" */
+				8+			/* length in dec */
+				1;			/* nul */
+			name = xmalloc(l);
+			snprintf(name, l, "%s%s_S%s_L%ld",
+				 symprefix, m_name, sec->name,
+				 (long)sec->header.sh_size);
+			sym = obj_add_symbol(f, name, -1, ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+					     sec->idx, sec->header.sh_addr, 0);
+			if (use_ksymtab)
+			    new_add_ksymtab(f, sym);
+		}
+	}
+}
+#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
+
 extern int insmod_main( int argc, char **argv)
 {
 	int opt;
@@ -3787,6 +3955,10 @@ extern int insmod_main( int argc, char **argv)
 
 	arch_create_got(f);
 	hide_special_symbols(f);
+
+#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+	add_ksymoops_symbols(f, m_filename, m_name);
+#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
 	if (k_new_syscalls)
 		new_create_module_ksymtab(f);

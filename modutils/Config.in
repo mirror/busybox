@@ -40,6 +40,17 @@ config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+	bool "  Add module symbols to kernel symbol table"
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  By adding module symbols to the kernel symbol table, Oops messages 
+	  occuring within kernel modules can be properly debugged.  By enabling
+	  this feature, module symbols will always be added to the kernel symbol 
+	  table for properly debugging support.  If you are not interested in
+	  Oops messages from kernel modules, say N.
+
 config CONFIG_FEATURE_INSMOD_LOADINKMEM
 	bool "  In kernel memory optimization (uClinux only)"
 	default n
