@@ -125,7 +125,7 @@ ARFLAGS = -r
 
 ifeq ($(strip $(DOLFS)),true)
     # For large file summit support
-    CFLAGS+=-D_FILE_OFFSET_BITS=64
+    CFLAGS+=-D_FILE_OFFSET_BITS=64 -D__USE_FILE_OFFSET64
 endif
 ifeq ($(strip $(DODMALLOC)),true)
     # For testing mem leaks with dmalloc
