@@ -534,6 +534,7 @@ static int iproute_get(int argc, char **argv)
 	char  *odev = NULL;
 	int connected = 0;
 	int from_ok = 0;
+	const char *options[] = { "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
 
 	memset(&req, 0, sizeof(req));
 
@@ -552,40 +553,53 @@ static int iproute_get(int argc, char **argv)
 	req.r.rtm_tos = 0;
 	
 	while (argc > 0) {
-		if (matches(*argv, "from") == 0) {
-			inet_prefix addr;
-			NEXT_ARG();
-			from_ok = 1;
-			get_prefix(&addr, *argv, req.r.rtm_family);
-			if (req.r.rtm_family == AF_UNSPEC)
-				req.r.rtm_family = addr.family;
-			if (addr.bytelen)
-				addattr_l(&req.n, sizeof(req), RTA_SRC, &addr.data, addr.bytelen);
-			req.r.rtm_src_len = addr.bitlen;
-		} else if (matches(*argv, "iif") == 0) {
-			NEXT_ARG();
-			idev = *argv;
-		} else if (matches(*argv, "oif") == 0 ||
-			   strcmp(*argv, "dev") == 0) {
-			NEXT_ARG();
-			odev = *argv;
-		} else if (matches(*argv, "notify") == 0) {
-			req.r.rtm_flags |= RTM_F_NOTIFY;
-		} else if (matches(*argv, "connected") == 0) {
-			connected = 1;
-		} else {
-			inet_prefix addr;
-			if (strcmp(*argv, "to") == 0) {
+		switch (compare_string_array(options, *argv)) {
+			case 0: /* from */
+			{
+				inet_prefix addr;
 				NEXT_ARG();
+				from_ok = 1;
+				get_prefix(&addr, *argv, req.r.rtm_family);
+				if (req.r.rtm_family == AF_UNSPEC) {
+					req.r.rtm_family = addr.family;
+				}
+				if (addr.bytelen) {
+					addattr_l(&req.n, sizeof(req), RTA_SRC, &addr.data, addr.bytelen);
+				}
+				req.r.rtm_src_len = addr.bitlen;
+				break;
 			}
-			get_prefix(&addr, *argv, req.r.rtm_family);
-			if (req.r.rtm_family == AF_UNSPEC)
-				req.r.rtm_family = addr.family;
-			if (addr.bytelen)
-				addattr_l(&req.n, sizeof(req), RTA_DST, &addr.data, addr.bytelen);
-			req.r.rtm_dst_len = addr.bitlen;
+			case 1: /* iif */
+				NEXT_ARG();
+				idev = *argv;
+				break;
+			case 2: /* oif */
+			case 3: /* dev */
+				NEXT_ARG();
+				odev = *argv;
+				break;
+			case 4: /* notify */
+				req.r.rtm_flags |= RTM_F_NOTIFY;
+				break;
+			case 5: /* connected */
+				connected = 1;
+				break;
+			case 6: /* to */
+				NEXT_ARG();
+			default:
+			{
+				inet_prefix addr;
+				get_prefix(&addr, *argv, req.r.rtm_family);
+				if (req.r.rtm_family == AF_UNSPEC) {
+					req.r.rtm_family = addr.family;
+				}
+				if (addr.bytelen) {
+					addattr_l(&req.n, sizeof(req), RTA_DST, &addr.data, addr.bytelen);
+				}
+				req.r.rtm_dst_len = addr.bitlen;
+			}
+			argc--; argv++;
 		}
-		argc--; argv++;
 	}
 
 	if (req.r.rtm_dst_len == 0) {
