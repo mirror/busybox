@@ -97,6 +97,17 @@ config CONFIG_ASH_OPTIMIZE_FOR_SIZE
 	help
 	  Compile ash for reduced size at price of speed.
 
+config CONFIG_ASH_RANDOM_SUPPORT
+	bool "  Enable pseudorandom generator and variable $RANDOM"
+	default n
+	depends on CONFIG_ASH
+	help
+	  Enable pseudorandom generator and dynamic variable "$RANDOM".
+	  Each read of "$RANDOM" will generate a new pseudorandom value.
+	  You can reset the generator by using a specified start value.
+	  After "unset RANDOM" then generator will switch off and this
+	  variable will no longer have special treatment.
+
 config CONFIG_HUSH
 	bool "hush"
 	default n

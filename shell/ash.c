@@ -33,12 +33,14 @@
  * rewrite arith.y to micro stack based cryptic algorithm by
  * Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
  *
- * Modified by Vladimir Oleynik <dzo@simtreas.ru> (c) 2001-2003 to be
- * used in busybox and size optimizations,
- * support locale, rewrited arith (see notes to this)
- *
  * Modified by Paul Mundt <lethal@linux-sh.org> (c) 2004 to support
  * dynamic variables.
+ *
+ * Modified by Vladimir Oleynik <dzo@simtreas.ru> (c) 2001-2004 to be
+ * used in busybox and size optimizations,
+ * rewrote arith (see notes to this), added locale support,
+ * rewrote dynamic variables.
+ *
  */
 
 
@@ -1447,6 +1449,14 @@ static void unsetfunc(const char *);
 static int dash_arith(const char *);
 #endif
 
+#ifdef CONFIG_ASH_RANDOM_SUPPORT
+static unsigned long rseed;
+static void change_random(const char *);
+# ifndef DYNAMIC_VAR
+#  define DYNAMIC_VAR
+# endif
+#endif
+
 /*      $NetBSD: init.h,v 1.9 2002/11/24 22:35:40 christos Exp $        */
 
 static void reset(void);
@@ -1467,19 +1477,18 @@ static void reset(void);
 #define VNOFUNC         0x40    /* don't call the callback function */
 #define VNOSET          0x80    /* do not set variable - just readonly test */
 #define VNOSAVE         0x100   /* when text is on the heap before setvareq */
-#define VDYNAMIC		0x200	/* dynamic variable */
-
+#ifdef DYNAMIC_VAR
+# define VDYNAMIC        0x200   /* dynamic variable */
+# else
+# define VDYNAMIC        0
+#endif
 
 struct var {
 	struct var *next;               /* next entry in hash list */
 	int flags;                      /* flags are defined above */
 	const char *text;               /* name=value */
-	void (*func)(const char *);
-					/* function to be called when  */
+	void (*func)(const char *);     /* function to be called when  */
 					/* the variable gets set/unset */
-	char *(*lookup_func)(const char *);
-					/* function to be called when  */
-					/* the variable is read (if dynamic) */
 };
 
 struct localvar {
@@ -1506,8 +1515,6 @@ static void change_lc_all(const char *value);
 static void change_lc_ctype(const char *value);
 #endif
 
-static char *get_random(const char *);
-static void change_random(const char *);
 
 #define VTABSIZE 39
 
@@ -1522,32 +1529,33 @@ static const char defifs[] = " \t\n";
 
 static struct var varinit[] = {
 #ifdef IFS_BROKEN
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defifsvar,      0 },
 #else
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "IFS\0",        0 },
 #endif
 
 #ifdef CONFIG_ASH_MAIL
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail, 0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAIL\0",       changemail },
+	{ 0,    VSTRFIXED|VTEXTFIXED|VUNSET,    "MAILPATH\0",   changemail },
 #endif
 
-	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath, 0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0,			0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0, 			0 },
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0,			0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           defpathvar,     changepath },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS1=$ ",       0          },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS2=> ",       0          },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "PS4=+ ",       0          },
 #ifdef CONFIG_ASH_GETOPTS
-	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset, 0 },
+	{ 0,    VSTRFIXED|VTEXTFIXED,           "OPTIND=1",     getoptsreset },
+#endif
+#ifdef CONFIG_ASH_RANDOM_SUPPORT
+	{0, VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM\0", change_random },
 #endif
 #ifdef CONFIG_LOCALE_SUPPORT
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL=", change_lc_all, 0},
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE=", change_lc_ctype, 0},
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0", change_lc_all },
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0", change_lc_ctype },
 #endif
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE=", NULL, 0},
+	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0", NULL },
 #endif
-	{0, VSTRFIXED | VTEXTFIXED | VUNSET | VDYNAMIC, "RANDOM\0",
-		change_random, get_random},
 };
 
 #define vifs varinit[0]
@@ -1562,7 +1570,11 @@ static struct var varinit[] = {
 #define vps2 (&vps1)[1]
 #define vps4 (&vps2)[1]
 #define voptind (&vps4)[1]
-
+#ifdef CONFIG_ASH_GETOPTS
+#define vrandom (&voptind)[1]
+#else
+#define vrandom (&vps4)[1]
+#endif
 #define defpath (defpathvar + 5)
 
 /*
@@ -1630,12 +1642,11 @@ extern char **environ;
 static void outstr(const char *, FILE *);
 static void outcslow(int, FILE *);
 static void flushall(void);
-static void flushout(FILE *);
+static void flusherr(void);
 static int  out1fmt(const char *, ...)
     __attribute__((__format__(__printf__,1,2)));
 static int fmtstr(char *, size_t, const char *, ...)
     __attribute__((__format__(__printf__,3,4)));
-static void xwrite(int, const void *, size_t);
 
 static int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
 
@@ -1648,7 +1659,7 @@ static void out1str(const char *p)
 static void out2str(const char *p)
 {
 	outstr(p, stderr);
-	flushout(stderr);
+	flusherr();
 }
 
 /*
@@ -3287,7 +3298,7 @@ evalcommand(union node *cmd, int flags)
 			}
 			sp = arglist.list;
 		}
-		xwrite(preverrout_fd, "\n", 1);
+		bb_full_write(preverrout_fd, "\n", 1);
 	}
 
 	cmd_is_exec = 0;
@@ -3304,7 +3315,7 @@ evalcommand(union node *cmd, int flags)
 			find_command(argv[0], &cmdentry, cmd_flag, path);
 			if (cmdentry.cmdtype == CMDUNKNOWN) {
 				status = 127;
-				flushout(stderr);
+				flusherr();
 				goto bail;
 			}
 
@@ -4571,7 +4582,7 @@ expandhere(union node *arg, int fd)
 {
 	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, 0);
-	xwrite(fd, stackblock(), expdest - (char *)stackblock());
+	bb_full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
 
 
@@ -7905,6 +7916,10 @@ ash_main(int argc, char **argv)
 	trputs("Shell args:  ");  trargs(argv);
 #endif
 	rootpid = getpid();
+
+#ifdef CONFIG_ASH_RANDOM_SUPPORT
+	rseed = rootpid + ((time_t)time((time_t *)0));
+#endif
 	rootshell = 1;
 	init();
 	setstackmark(&smark);
@@ -8365,7 +8380,7 @@ growstackstr(void)
 {
 	size_t len = stackblocksize();
 	if (herefd >= 0 && len >= 1024) {
-		xwrite(herefd, stackblock(), len);
+		bb_full_write(herefd, stackblock(), len);
 		return stackblock();
 	}
 	growstackblock();
@@ -9030,21 +9045,26 @@ static void change_lc_ctype(const char *value)
 
 #endif
 
+#ifdef CONFIG_ASH_RANDOM_SUPPORT
 /* Roughly copied from bash.. */
-static unsigned long rseed = 1;
-static char *get_random(const char *var)
-{
-	char buf[255];
-	rseed = (rseed + getpid() + ((time_t)time((time_t *)0)));
-	rseed = rseed * 1103515245 + 12345;
-	sprintf(buf, "%d", (unsigned int)((rseed >> 16 & 32767)));
-	return bb_xstrdup(buf);
-}
-
 static void change_random(const char *value)
 {
-	rseed = strtoul(value, (char **)NULL, 10);
+	if(value == NULL) {
+		/* "get", generate */
+		char buf[16];
+
+		rseed = rseed * 1103515245 + 12345;
+		sprintf(buf, "%d", (unsigned int)((rseed & 32767)));
+		/* set without recursion */
+		setvar(vrandom.text, buf, VNOFUNC);
+		vrandom.flags &= ~VNOFUNC;
+	} else {
+		/* set/reset */
+		rseed = strtoul(value, (char **)NULL, 10);
+	}
 }
+#endif
+
 
 #ifdef CONFIG_ASH_GETOPTS
 static int
@@ -9234,10 +9254,10 @@ flushall(void)
 }
 
 void
-flushout(FILE *dest)
+flusherr(void)
 {
 	INTOFF;
-	fflush(dest);
+	fflush(stderr);
 	INTON;
 }
 
@@ -9280,20 +9300,6 @@ fmtstr(char *outbuf, size_t length, const char *fmt, ...)
 	return ret;
 }
 
-
-/*
- * Version of write which resumes after a signal is caught.
- */
-
-static void
-xwrite(int fd, const void *p, size_t n)
-{
-	ssize_t i;
-
-	do {
-		i = bb_full_write(fd, p, n);
-	} while (i < 0 && errno == EINTR);
-}
 
 
 /*      $NetBSD: parser.c,v 1.54 2002/11/24 22:35:42 christos Exp $     */
@@ -10951,7 +10957,7 @@ openhere(union node *redir)
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
 		if (len <= PIPESIZE) {
-			xwrite(pip[1], redir->nhere.doc->narg.text, len);
+			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
 			goto out;
 		}
 	}
@@ -10965,7 +10971,7 @@ openhere(union node *redir)
 #endif
 		signal(SIGPIPE, SIG_DFL);
 		if (redir->type == NHERE)
-			xwrite(pip[1], redir->nhere.doc->narg.text, len);
+			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
 		else
 			expandhere(redir->nhere.doc, pip[1]);
 		_exit(0);
@@ -11998,10 +12004,13 @@ setvareq(char *s, int flags)
 	flags |= (VEXPORT & (((unsigned) (1 - aflag)) - 1));
 	vp = *findvar(vpp, s);
 	if (vp) {
-		if (vp->flags & VREADONLY) {
+		if ((vp->flags & (VREADONLY|VDYNAMIC)) == VREADONLY) {
+			const char *n;
+
 			if (flags & VNOSAVE)
 				free(s);
-			error("%.*s: is read only", strchrnul(s, '=') - s, s);
+			n = vp->text;
+			error("%.*s: is read only", strchrnul(n, '=') - n, n);
 		}
 
 		if (flags & VNOSET)
@@ -12058,19 +12067,20 @@ lookupvar(const char *name)
 {
 	struct var *v;
 
-	if ((v = *findvar(hashvar(name), name)) && !(v->flags & (VUNSET|VDYNAMIC))) {
-		return strchrnul(v->text, '=') + 1;
-	}
-
+	if ((v = *findvar(hashvar(name), name))) {
+#ifdef DYNAMIC_VAR
 	/*
 	 * Dynamic variables are implemented roughly the same way they are
 	 * in bash. Namely, they're "special" so long as they aren't unset.
 	 * As soon as they're unset, they're no longer dynamic, and dynamic
 	 * lookup will no longer happen at that point. -- PFM.
 	 */
-	if (v && ((v->flags & VDYNAMIC)))
-		if (v->lookup_func)
-			return v->lookup_func(name);
+		if((v->flags & VDYNAMIC))
+			(*v->func)(NULL);
+#endif
+		if(!(v->flags & VUNSET))
+			return strchrnul(v->text, '=') + 1;
+	}
 
 	return NULL;
 }
@@ -12346,8 +12356,9 @@ unsetvar(const char *s)
 		retval = 1;
 		if (flags & VREADONLY)
 			goto out;
-		if (flags & VDYNAMIC)
-			vp->flags &= ~VDYNAMIC;
+#ifdef DYNAMIC_VAR
+		vp->flags &= ~VDYNAMIC;
+#endif
 		if (flags & VUNSET)
 			goto ok;
 		if ((flags & VSTRFIXED) == 0) {
