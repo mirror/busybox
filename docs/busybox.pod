@@ -506,7 +506,7 @@ Example:
 
 -------------------------------
 
-=item echo
+=item expr
 
 
 Usage: expr EXPRESSION
@@ -2261,4 +2261,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.75 2000/10/12 22:30:31 andersen Exp $
+# $Id: busybox.pod,v 1.76 2000/11/14 21:28:09 andersen Exp $
