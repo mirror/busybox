@@ -241,31 +241,28 @@ int wget_main(int argc, char **argv)
 
 void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 {
-	char *s, *h;
-	static char *defaultpath = "/";
+	char *cp, *sp;
 
 	*uri_port = 80;
 
 	if (strncmp(url, "http://", 7) != 0)
 		error_msg_and_die("not an http url: %s\n", url);
 
-	/* pull the host portion to the front of the buffer */
-	for (s = url, h = url+7 ; *h != '/' && *h != 0; ++h) {
-		if (*h == ':') {
-			*uri_port = atoi(h+1);
-			*h = '\0';
-		}
-		*s++ = *h;
+	*uri_host = url + 7;
+
+	cp = strchr(*uri_host, ':');
+	sp = strchr(*uri_host, '/');
+
+	if (cp != NULL && (sp == NULL || cp < sp)) {
+		*cp++ = '\0';
+		*uri_port = atoi(cp);
 	}
-	*s = '\0';
 
-	if (*h == 0) h = defaultpath;
-
-	*uri_host = url;
-	*uri_path = h;
-
-	if (!strcmp( *uri_host, *uri_path))
-		*uri_path = defaultpath;
+	if (sp != NULL) {
+		*sp++ = '\0';
+		*uri_path = sp;
+	} else
+		*uri_path = "";
 }
 
 
@@ -514,7 +511,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.14 2000/12/18 03:08:29 kraai Exp $
+ *	$Id: wget.c,v 1.15 2001/01/03 16:15:15 kraai Exp $
  */
 
 
