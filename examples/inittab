@@ -78,6 +78,6 @@ tty6::respawn:/sbin/getty 38400 tty6
 #ttyS2::respawn:/sbin/getty -x0 -s 57600 ttyS2
 
 # Stuff to do before rebooting
-::ctrlaltdel:/bin/umount -a -r > /dev/null 2>&1
-::ctrlaltdel:/sbin/swapoff -a > /dev/null 2>&1
+::ctrlaltdel:/bin/umount -a -r
+::ctrlaltdel:/sbin/swapoff -a
 
