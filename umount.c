@@ -28,14 +28,6 @@
 #include <fstab.h>
 #include <errno.h>
 
-#if defined BB_FEATURE_MOUNT_LOOP
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/loop.h>
-
-static int del_loop(const char *device);
-#endif
-
 static const char umount_usage[] = 
 "umount [flags] filesystem|directory\n\n"
 "Flags:\n"
@@ -52,43 +44,34 @@ static int useMtab = TRUE;
 static int umountAll = FALSE;
 extern const char mtab_file[]; /* Defined in utility.c */
 
+#define MIN(x,y) (x > y ? x : y)
+
 static int 
 do_umount(const char* name, int useMtab)
 {
     int status;
+    struct mntent *m;
+    FILE *mountTable;
+    const char *blockDevice = NULL;
 
-#if defined BB_FEATURE_MOUNT_LOOP
-    /* check to see if this is a loop device */
-    struct stat fst;
-    char dev[20];
-    const char *oldname = NULL;
-    int i;
-    
-    if (stat(name, &fst)) {
-	fprintf(stderr, "umount: %s: %s\n", name, strerror(errno));
-	exit(1);
-    }
-    for (i = 0 ; i <= 7 ; i++) {
-	struct stat lst;
-	sprintf(dev, "/dev/loop%d", i);
-	if (stat(dev, &lst))
-	    continue;
-	if (lst.st_dev == fst.st_dev) {
-	    oldname = name;
-	    name = dev;
-	    break;
+    if ((mountTable = setmntent (mtab_file, "r"))) {
+	while ((m = getmntent (mountTable)) != 0) {
+	    if (strncmp(m->mnt_dir, name,
+			MIN(strlen(m->mnt_dir),strlen(name))) == 0)
+		blockDevice = m->mnt_fsname;
+	    else if (strcmp(m->mnt_fsname, name) == 0) {
+		blockDevice = name;
+		name = m->mnt_dir;
+	    }
 	}
     }
-#endif
 
     status = umount(name);
 
 #if defined BB_FEATURE_MOUNT_LOOP
-    if (!strncmp("/dev/loop", name, 9)) { /* this was a loop device, delete it */
-	del_loop(name);
-	if (oldname != NULL)
-	    name = oldname;
-    }
+    if (blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
+	/* this was a loop device, delete it */
+	del_loop(blockDevice);
 #endif
 #if defined BB_MTAB
     if ( status == 0 ) {
@@ -178,20 +161,3 @@ umount_main(int argc, char** argv)
     }
 }
 
-#if defined BB_FEATURE_MOUNT_LOOP
-static int del_loop(const char *device)
-{
-	int fd;
-
-	if ((fd = open(device, O_RDONLY)) < 0) {
-		perror(device);
-		exit(1);
-	}
-	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
-		perror("ioctl: LOOP_CLR_FD");
-		exit(1);
-	}
-	close(fd);
-	return(0);
-}
-#endif

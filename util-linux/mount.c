@@ -127,11 +127,11 @@ do_mount(char* specialfile, char* dir, char* filesystemtype,
 	    specialfile = find_unused_loop_device();
 	    if (specialfile == NULL) {
 		fprintf(stderr, "Could not find a spare loop device\n");
-		exit(1);
+		return( FALSE);
 	    }
 	    if (set_loop (specialfile, lofile, 0, &loro)) {
 		fprintf(stderr, "Could not setup loop device\n");
-		exit(1);
+		return( FALSE);
 	    }
 	    if (!(flags & MS_RDONLY) && loro) { /* loop is ro, but wanted rw */
 		fprintf(stderr, "WARNING: loop device is read-only\n");
@@ -141,15 +141,26 @@ do_mount(char* specialfile, char* dir, char* filesystemtype,
 #endif
 	status=mount(specialfile, dir, filesystemtype, flags, string_flags);
     }
-#if defined BB_MTAB
+
+
+    /* If the mount was sucessful, do anything needed, then return TRUE */
     if (status == 0) {
-	if (useMtab==TRUE)
+
+#if defined BB_MTAB
+	if (useMtab==TRUE) {
 	    write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
-	return 0;
-    }
-    else
+	}
 #endif
-	return(status);
+	return( TRUE);
+    }
+
+    /* Bummer.  mount failed.  Clean up */
+#if defined BB_FEATURE_MOUNT_LOOP
+    if (specialfile != NULL) {
+	del_loop(specialfile);
+    }
+#endif
+    return( FALSE);
 }
 
 
@@ -165,6 +176,75 @@ extern void whine_if_fstab_is_missing()
 }
 #endif
 
+
+#if defined BB_FEATURE_MOUNT_LOOP
+static int set_loop(const char *device, const char *file, int offset, int *loopro)
+{
+	struct loop_info loopinfo;
+	int	fd, ffd, mode;
+	
+	mode = *loopro ? O_RDONLY : O_RDWR;
+	if ((ffd = open (file, mode)) < 0 && !*loopro
+	    && (errno != EROFS || (ffd = open (file, mode = O_RDONLY)) < 0)) {
+	  perror (file);
+	  return 1;
+	}
+	if ((fd = open (device, mode)) < 0) {
+	  close(ffd);
+	  perror (device);
+	  return 1;
+	}
+	*loopro = (mode == O_RDONLY);
+
+	memset(&loopinfo, 0, sizeof(loopinfo));
+	strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
+	loopinfo.lo_name[LO_NAME_SIZE-1] = 0;
+
+	loopinfo.lo_offset = offset;
+
+	loopinfo.lo_encrypt_key_size = 0;
+	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
+		perror("ioctl: LOOP_SET_FD");
+		close(fd);
+		close(ffd);
+		return 1;
+	}
+	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
+		(void) ioctl(fd, LOOP_CLR_FD, 0);
+		perror("ioctl: LOOP_SET_STATUS");
+		close(fd);
+		close(ffd);
+		return 1;
+	}
+	close(fd);
+	close(ffd);
+	return 0;
+}
+
+char *find_unused_loop_device (void)
+{
+	char dev[20];
+	int i, fd;
+	struct stat statbuf;
+	struct loop_info loopinfo;
+
+	for(i = 0; i <= 7; i++) {
+	    sprintf(dev, "/dev/loop%d", i);
+	    if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
+		if ((fd = open (dev, O_RDONLY)) >= 0) {
+		    if(ioctl (fd, LOOP_GET_STATUS, &loopinfo) == -1) {
+			if (errno == ENXIO) { /* probably free */
+			    close (fd);
+			    return strdup(dev);
+			}
+		    }
+		    close (fd);
+		}
+	    }
+	}
+        return NULL;
+}
+#endif /* BB_FEATURE_MOUNT_LOOP */
 
 /* Seperate standard mount options from the nonstandard string options */
 static void
@@ -240,7 +320,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		status = do_mount (blockDevice, directory, filesystemType,
 				flags | MS_MGC_VAL, string_flags, useMtab, 
 				fakeIt, mtab_opts);
-		if (status == 0)
+		if (status == TRUE)
 		    break;
 	    }
 	}
@@ -253,7 +333,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 			fakeIt, mtab_opts);
     }
 
-    if (status) {
+    if (status==FALSE) {
 	fprintf (stderr, "Mounting %s on %s failed: %s\n",
 		 blockDevice, directory, strerror(errno));
 	return (FALSE);
@@ -400,70 +480,3 @@ goodbye:
     usage( mount_usage);
 }
 
-#if defined BB_FEATURE_MOUNT_LOOP
-static int set_loop(const char *device, const char *file, int offset, int *loopro)
-{
-	struct loop_info loopinfo;
-	int	fd, ffd, mode;
-	
-	mode = *loopro ? O_RDONLY : O_RDWR;
-	if ((ffd = open (file, mode)) < 0 && !*loopro
-	    && (errno != EROFS || (ffd = open (file, mode = O_RDONLY)) < 0)) {
-	  perror (file);
-	  return 1;
-	}
-	if ((fd = open (device, mode)) < 0) {
-	  close(ffd);
-	  perror (device);
-	  return 1;
-	}
-	*loopro = (mode == O_RDONLY);
-
-	memset(&loopinfo, 0, sizeof(loopinfo));
-	strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
-	loopinfo.lo_name[LO_NAME_SIZE-1] = 0;
-
-	loopinfo.lo_offset = offset;
-
-	loopinfo.lo_encrypt_key_size = 0;
-	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
-		perror("ioctl: LOOP_SET_FD");
-		close(fd);
-		close(ffd);
-		return 1;
-	}
-	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
-		(void) ioctl(fd, LOOP_CLR_FD, 0);
-		perror("ioctl: LOOP_SET_STATUS");
-		close(fd);
-		close(ffd);
-		return 1;
-	}
-	close(fd);
-	close(ffd);
-	return 0;
-}
-
-char *find_unused_loop_device (void)
-{
-	char dev[20];
-	int i, fd;
-	struct stat statbuf;
-	struct loop_info loopinfo;
-
-	for(i = 0; i <= 7; i++) {
-		sprintf(dev, "/dev/loop%d", i);
-		if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
-			if ((fd = open (dev, O_RDONLY)) >= 0) {
-				if(ioctl (fd, LOOP_GET_STATUS, &loopinfo) == -1 &&
-				   errno == ENXIO) { /* probably free */
-					close (fd);
-					return strdup(dev);
-				}
-				close (fd);
-			}
-		}
-	}
-        return NULL;
-}
-#endif /* BB_FEATURE_MOUNT_LOOP */

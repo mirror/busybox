@@ -359,6 +359,7 @@ static pid_t run(char* command,
 	signal(SIGUSR2, SIG_DFL);
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
 
 	if ((fd = device_open(terminal, O_RDWR)) < 0) {
 	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
@@ -458,6 +459,9 @@ goodnight:
 #ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
+    /* first disable our SIGHUP signal */
+    signal(SIGHUP, SIG_DFL);
+    
     /* Allow Ctrl-Alt-Del to reboot system. */
     reboot(RB_ENABLE_CAD);
     message(CONSOLE, "\r\nThe system is going down NOW !!\r\n");

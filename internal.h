@@ -175,6 +175,10 @@ extern int check_wildcard_match(const char* text, const char* pattern);
 extern long getNum (const char *cp);
 extern pid_t findInitPid();
 
+#if defined BB_FEATURE_MOUNT_LOOP
+extern int del_loop(const char *device);
+#endif
+
 #if defined BB_GUNZIP || defined BB_GZIP || defined BB_PRINTF || defined BB_TAIL
 extern void *xmalloc (size_t size);
 extern void error(char *msg);

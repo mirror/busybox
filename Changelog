@@ -32,6 +32,11 @@
 	    tail -f work only with a single file.  This reduced tail 
 	    from 6k to 2.4k.  The bigger/more featured tail can still be
 	    had by disabling BB_FEATURE_SIMPLE_TAIL in dusybox.defs.h
+	* Ping now falls back to doing the right thing if /etc/protocols
+	    turns up missing.
+	* Fixed mount and umount.  Previously they could leak loop device 
+	    allocations, causing the system to quickly run out.  Fix for umount
+	    by Ben Collins <bcollins@debian.org>, and mount was fixed by me.
 
 
 	-Erik Andersen

@@ -36,6 +36,13 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#if defined BB_FEATURE_MOUNT_LOOP
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/loop.h>
+#endif
+
+
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
 #  if defined BB_FEATURE_USE_PROCFS
 const char mtab_file[] = "/proc/mounts";
@@ -1143,6 +1150,24 @@ extern int vdprintf(int d, const char *format, va_list ap)
 
     len = vsprintf(buf, format, ap);
     return write(d, buf, len);
+}
+#endif
+
+#if defined BB_FEATURE_MOUNT_LOOP
+extern int del_loop(const char *device)
+{
+    int fd;
+
+    if ((fd = open(device, O_RDONLY)) < 0) {
+	perror(device);
+	return( FALSE);
+    }
+    if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
+	perror("ioctl: LOOP_CLR_FD");
+	return( FALSE);
+    }
+    close(fd);
+    return( TRUE);
 }
 #endif
 

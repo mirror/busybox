@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.6 1999/12/11 08:41:28 andersen Exp $
+ * $Id: ping.c,v 1.7 2000/01/26 20:06:48 erik Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -319,10 +319,11 @@ static void ping(char *host)
     int sockopt;
     
     if (!(proto = getprotobyname("icmp"))) {
-        fprintf(stderr, "ping: unknown protocol icmp\n");
-	exit(1);
+	/* getprotobyname failed, so just silently force 
+	 * proto->p_proto to have the correct value for "icmp" */
+	proto->p_proto = 1;
     }
-    if ((pingsock = socket(AF_INET, SOCK_RAW, proto->p_proto)) < 0) {
+    if ((pingsock = socket(AF_INET, SOCK_RAW, proto->p_proto)) < 0) { /* 1 == ICMP */
 	if (errno == EPERM) {
 	    fprintf(stderr, "ping: permission denied. (are you root?)\n");
 	} else {
