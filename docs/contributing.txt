@@ -332,6 +332,12 @@ Detailed instructions on how to submit a bug to the tracking system are at:
 
 	http://bugs.lineo.com/Reporting.html
 
+If you have a patch that will fix and close a reported bug, please send a
+message to [bugnumber]@bugs.lineo.com with your patch attached. It will catch
+people's attention if you have a subject line like the following:
+
+	[PATCH INCLUDED] - Fix attached, please apply and close this bug
+
 
 
 Improving Your Chances of Patch Acceptance
@@ -390,6 +396,15 @@ on the mailing list.
 We've made strident efforts to put a useful "collaboration" infrastructure in
 place in the form of mailing lists, the bug tracking system, and CVS. Please
 use these resources.
+
+
+Send Patches to the Bug Tracking System
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This was mentioned above in the "Making Sure Your Patch Doesn't Get Lost"
+section, but it is worth mentioning again. A patch sent to the mailing list
+might be unnoticed and forgotten. A patch sent to the bug tracking system will
+be stored and closely connected to the bug it fixes.
 
 
 Be Polite
