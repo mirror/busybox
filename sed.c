@@ -361,8 +361,11 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 		parse_subst_cmd(sed_cmd, &cmdstr[idx]);
 	
 	/* special-case handling for (a)ppend, (i)nsert, and (c)hange */
-	if (strchr("aic", cmdstr[idx]))
+	if (strchr("aic", cmdstr[idx])) {
+		if (sed_cmd->end_line || sed_cmd->end_match)
+			fatalError("only a beginning address can be specified for edit commands\n");
 		parse_edit_cmd(sed_cmd, &cmdstr[idx]);
+	}
 }
 
 static void add_cmd_str(const char *cmdstr)
