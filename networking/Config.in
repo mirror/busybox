@@ -111,18 +111,6 @@ config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 	  Use of this option can assist scripts in generating
 	  references that contain a unique port number.
 
-config CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
-	bool "  Enable setting of CGI_varname=value environment vars for CGI"
-	default n
-	depends on CONFIG_FEATURE_HTTPD_CGI
-	help
-	  This option parses POST or GET arguments from a form and
-	  sets environment variables with their value.  This simplifies
-	  and speeds up CGI scripts.  A form argument of foo=bar would
-	  result in a script having the environment variable CGI_foo set
-	  to 'bar'.  In addition, this option sets a variable that
-	  lists all the argument names.  e.g. CGI_VARNAMES_="name1 name2".
-
 config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 	bool "  Enable the -e option for shell script CGI simplification."
 	default y
