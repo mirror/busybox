@@ -88,7 +88,6 @@ int run_parts_main(int argc, char **argv)
 			 * Called once for every argument. */
 			args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
 			args[argcount++] = optarg;
-			args[argcount] = 0;
 			break;
 		default:
 			show_usage();
@@ -101,5 +100,7 @@ int run_parts_main(int argc, char **argv)
 	}
 
 	args[0] = argv[optind];
+	args[argcount] = 0;
+
 	return(run_parts(args, test_mode));
 }
