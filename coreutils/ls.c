@@ -186,7 +186,7 @@ static unsigned short column_width = COLUMN_WIDTH;
 static int status = EXIT_SUCCESS;
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-unsigned long ls_disp_hr = KILOBYTE;
+unsigned long ls_disp_hr = 0;
 #endif
 
 static int my_stat(struct dnode *cur)
@@ -610,7 +610,7 @@ int list_single(struct dnode *dn)
 				break;
 			case LIST_BLOCKS:
 #ifdef BB_FEATURE_HUMAN_READABLE
-				fprintf(stdout, "%5s ", format(dn->dstat.st_blocks>>1, 1));
+				fprintf(stdout, "%5s ", format(dn->dstat.st_blocks>>1, (ls_disp_hr==TRUE)? 0: 1));
 #else
 #if _FILE_OFFSET_BITS == 64
 				printf("%4lld ", dn->dstat.st_blocks>>1);
@@ -647,7 +647,7 @@ int list_single(struct dnode *dn)
 					printf("%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
 #ifdef BB_FEATURE_HUMAN_READABLE
-					fprintf(stdout, "%9s ", format(dn->dstat.st_size, ls_disp_hr));
+					fprintf(stdout, "%9s ", format(dn->dstat.st_size, (ls_disp_hr==TRUE)? 0: 1));
 #else
 #if _FILE_OFFSET_BITS == 64
 					printf("%9lld ", dn->dstat.st_size>>1);
@@ -779,7 +779,7 @@ extern int ls_main(int argc, char **argv)
 				style_fmt = STYLE_LONG;
 				list_fmt |= LIST_LONG;
 #ifdef BB_FEATURE_HUMAN_READABLE
-				ls_disp_hr = 1;
+				ls_disp_hr = FALSE;
 #endif
 			break;
 			case 'n': list_fmt |= LIST_ID_NUMERIC; break;
@@ -826,7 +826,7 @@ extern int ls_main(int argc, char **argv)
 			case 'w': terminal_width= atoi(optarg); break;
 #endif
 #ifdef BB_FEATURE_HUMAN_READABLE
-			case 'h': ls_disp_hr = 0; break;
+			case 'h': ls_disp_hr = TRUE; break;
 #endif
 			case 'k': break;
 			default:
