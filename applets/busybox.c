@@ -81,14 +81,6 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 #endif /* BB_FEATURE_INSTALLER */
 
-static int applet_name_compare(const void *x, const void *y)
-{
-	const struct BB_applet *applet1 = x;
-	const struct BB_applet *applet2 = y;
-
-	return strcmp(applet1->name, applet2->name);
-}
-
 int main(int argc, char **argv)
 {
 	struct BB_applet search_applet, *applet;

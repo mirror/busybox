@@ -235,11 +235,11 @@
 #define BB_FEATURE_SH_STANDALONE_SHELL
 //
 //When this is enabled, busybox shell builtins can be called using full path
-//names.  This causes builtins (which includes every single busybox command
-//when you enable BB_FEATURE_SH_STANDALONE_SHELL) to override real commands on
-//the filesystem.  When this is enabled, if you run /bin/cat, it will use
-//BusyBox cat even if /bin/cat exists on the filesystem and is _not_ busybox.
-//Some systems want this, others do not.  Choose wisely.  :-)
+//names.  This causes builtins (i.e. every single busybox command) to override
+//real commands on the filesystem.  For example, if you run run /bin/cat, it
+//will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
+//busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
+//only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
 //BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
 //
 // Enable tab completion in the shell (not yet 

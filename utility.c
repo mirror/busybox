@@ -1775,6 +1775,14 @@ FILE *xfopen(const char *path, const char *mode)
 }
 #endif
 
+int applet_name_compare(const void *x, const void *y)
+{
+	const struct BB_applet *applet1 = x;
+	const struct BB_applet *applet2 = y;
+
+	return strcmp(applet1->name, applet2->name);
+}
+
 /* END CODE */
 /*
 Local Variables:

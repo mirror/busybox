@@ -108,6 +108,8 @@ struct BB_applet {
 /* From busybox.c */
 extern const struct BB_applet applets[];
 
+extern int applet_name_compare(const void *x, const void *y);
+
 extern int ar_main(int argc, char **argv);
 extern int basename_main(int argc, char **argv);
 extern int bogomips_main(int argc, char **argv);

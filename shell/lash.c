@@ -1152,7 +1152,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-	const struct BB_applet *a = applets;
+	struct BB_applet search_applet, *applet = applets;
 #endif
 
 	nextin = 0, nextout = 1;
@@ -1214,40 +1214,44 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 				}
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-			/* Check if the command matches any busybox internal commands here */
-			while (a->name != 0) {
+			/* Check if the command matches any busybox internal
+			 * commands ("applets") here.  Following discussions from
+			 * November 2000 on busybox@opensource.lineo.com, don't use
+			 * get_last_path_component().  This way explicit (with
+			 * slashes) filenames will never be interpreted as an
+			 * applet, just like with builtins.  This way the user can
+			 * override an applet with an explicit filename reference.
+			 * The only downside to this change is that an explicit
+			 * /bin/foo invocation fill fork and exec /bin/foo, even if
+			 * /bin/foo is a symlink to busybox.
+			 */
+			search_applet.name = newJob->progs[i].argv[0];
+
 #ifdef BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
-				if (strcmp(get_last_path_component(newJob->progs[i].argv[0]),
-							a->name) == 0) 
-#else
-					/* Check if the command matches any busybox internal
-					 * commands ("applets") here.  Following discussions from
-					 * November 2000 on busybox@opensource.lineo.com, don't use
-					 * get_last_path_component().  This way explicit (with
-					 * slashes) filenames will never be interpreted as an
-					 * applet, just like with builtins.  This way the user can
-					 * override an applet with an explicit filename reference.
-					 * The only downside to this change is that an explicit
-					 * /bin/foo invocation fill fork and exec /bin/foo, even if
-					 * /bin/foo is a symlink to busybox.
-					*/
-				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) 
+			/* If you enable BB_FEATURE_SH_BUILTINS_ALWAYS_WIN, then
+			 * if you run /bin/cat, it will use BusyBox cat even if 
+			 * /bin/cat exists on the filesystem and is _not_ busybox.
+			 * Some systems want this, others do not.  Choose wisely.  :-)
+			 */
+			search_applet.name = get_last_path_component(search_applet.name);
 #endif
-				{
-					int argc_l;
-					char** argv=newJob->progs[i].argv;
-					for(argc_l=0;*argv!=NULL; argv++, argc_l++);
-					applet_name=a->name;
-					optind = 1;
-					exit((*(a->main)) (argc_l, newJob->progs[i].argv));
-				}
-				a++;
+
+			/* Do a binary search to find the applet entry given the name. */
+			applet = bsearch(&search_applet, applets, NUM_APPLETS,
+					sizeof(struct BB_applet), applet_name_compare);
+			if (applet != NULL) {
+				int argc_l;
+				char** argv=newJob->progs[i].argv;
+				for(argc_l=0;*argv!=NULL; argv++, argc_l++);
+				applet_name=applet->name;
+				optind = 1;
+				exit((*(applet->main)) (argc_l, newJob->progs[i].argv));
 			}
 #endif
 
 			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
 			fatalError("%s: %s\n", newJob->progs[i].argv[0],
-					   strerror(errno));
+					strerror(errno));
 		}
 		if (outPipe[1]!=-1) {
 			close(outPipe[1]);
