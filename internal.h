@@ -334,7 +334,6 @@ int recursiveAction(const char *fileName, int recurse, int followLinks, int dept
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  void* userData);
-const char* timeString(time_t timeVal);
 
 extern int createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
@@ -373,10 +372,8 @@ extern void my_getpwuid(char *name, long uid);
 extern void my_getgrgid(char *group, long gid);
 extern long my_getpwnamegid(char *name);
 
-
-#if defined BB_INIT || defined BB_SYSLOGD
 extern int device_open(char *device, int mode);
-#endif
+
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device);
 extern int set_loop(const char *device, const char *file, int offset, int *loopro);

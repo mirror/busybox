@@ -29,8 +29,10 @@
 #if defined (BB_CHMOD_CHOWN_CHGRP) \
  || defined (BB_CP_MV)		   \
  || defined (BB_FIND)		   \
+ || defined (BB_INSMOD)		   \
  || defined (BB_LS)		   \
- || defined (BB_INSMOD)
+ || defined (BB_RM)		   \
+ || defined (BB_TAR)
 /* same conditions as recursiveAction */
 #define bb_need_name_too_long
 #endif
@@ -223,7 +225,7 @@ void reset_ino_dev_hashtable(void)
 
 #endif /* BB_CP_MV || BB_DU */
 
-#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN) || defined (BB_AR)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
@@ -456,7 +458,7 @@ const char *modeString(int mode)
 #endif							/* BB_TAR || BB_LS */
 
 
-#if defined BB_TAR
+#if defined BB_TAR || defined BB_AR
 /*
  * Return the standard ls-like time string from a time_t
  * This is static and so is overwritten on each call.
@@ -483,7 +485,7 @@ const char *timeString(time_t timeVal)
 }
 #endif							/* BB_TAR */
 
-#if defined BB_TAR || defined BB_CP_MV
+#if defined BB_TAR || defined BB_CP_MV || defined BB_AR
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -512,7 +514,7 @@ int fullWrite(int fd, const char *buf, int len)
 #endif							/* BB_TAR || BB_CP_MV */
 
 
-#if defined BB_TAR || defined BB_TAIL
+#if defined BB_TAR || defined BB_TAIL || defined BB_AR
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -549,6 +551,7 @@ int fullRead(int fd, char *buf, int len)
  || defined (BB_CP_MV)			\
  || defined (BB_FIND)			\
  || defined (BB_INSMOD)			\
+ || defined (BB_LS)				\
  || defined (BB_RM)				\
  || defined (BB_TAR)
 
@@ -668,7 +671,7 @@ int recursiveAction(const char *fileName,
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR)
+#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_AR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
@@ -702,7 +705,8 @@ extern int createPath(const char *name, int mode)
 
 
 
-#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR)
+#if defined (BB_CHMOD_CHOWN_CHGRP) || defined (BB_MKDIR) \
+ || defined (BB_MKFIFO) || defined (BB_MKNOD)
 /* [ugoa]{+|-|=}[rwxst] */
 
 
@@ -799,13 +803,16 @@ extern int parse_mode(const char *s, mode_t * theMode)
 }
 
 
-#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_MKDIR */
+#endif
+/* BB_CHMOD_CHOWN_CHGRP || BB_MKDIR || BB_MKFIFO || BB_MKNOD */
 
 
 
 
 
-#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS || defined BB_TAR || defined BB_ID 
+#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS \
+ || defined BB_TAR || defined BB_ID || defined BB_LOGGER \
+ || defined BB_LOGNAME || defined BB_WHOAMI
 
 /* This parses entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox, since we want to avoid using the glibc NSS stuff, which
@@ -912,7 +919,9 @@ long my_getpwnamegid(char *name)
 	return gid;
 }
 
-#endif /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR || BB_ID */ 
+#endif
+ /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR \
+ || BB_ID || BB_LOGGER || BB_LOGNAME || BB_WHOAMI */
 
 
 #if (defined BB_CHVT) || (defined BB_DEALLOCVT) || (defined BB_SETKEYCODES)
@@ -1277,7 +1286,7 @@ extern long getNum(const char *cp)
 #endif							/* BB_DD || BB_TAIL */
 
 
-#if defined BB_INIT || defined BB_SYSLOGD
+#if defined BB_INIT || defined BB_SYSLOGD || defined BB_AR
 /* try to open up the specified device */
 extern int device_open(char *device, int mode)
 {
