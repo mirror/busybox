@@ -80,58 +80,38 @@ extern int gunzip_main(int argc, char **argv)
 	char *delete_file_name = NULL;
 
 	const int gunzip_to_stdout = 1;
-	const int gunzip_from_stdin = 2;
-	const int gunzip_force = 4;
-	const int gunzip_test = 8;
+	const int gunzip_force = 2;
+	const int gunzip_test = 4;
 
 	int flags = 0;
 	int opt = 0;
 	int delete_old_file = FALSE;
 
 	/* if called as zcat */
-	if (strcmp(applet_name, "zcat") == 0) {
-		if (argc > 2) {
-			show_usage();
-		}
-		else if (argc == 2) {
-			/* a filename was specified */
-			flags |= (gunzip_to_stdout | gunzip_force);
-			optind = 1;
-		} else {
-			/* read from stdin, this gets caught below as argv[optind] will be NULL */
-			optind = argc;
-		}
-	} else {
-		/* workout flags as regular gunzip */
-		while ((opt = getopt(argc, argv, "ctfh")) != -1) {
-			switch (opt) {
-			case 'c':
-				flags |= gunzip_to_stdout;
-				break;
-			case 'f':
-				flags |= gunzip_force;
-				break;
-			case 't':
-				flags |= gunzip_test;
-				break;
-			case 'h':
-			default:
-				show_usage(); /* exit's inside usage */
-			}
-		}
-	}
+	if (strcmp(applet_name, "zcat") == 0)
+		flags |= gunzip_to_stdout;
 
-	/* no filename specified so it must be reading from stdin to stdout */
-	if (argv[optind] == NULL) {
-		flags |= (gunzip_from_stdin |gunzip_to_stdout |gunzip_force);
+	while ((opt = getopt(argc, argv, "ctfh")) != -1) {
+		switch (opt) {
+		case 'c':
+			flags |= gunzip_to_stdout;
+			break;
+		case 'f':
+			flags |= gunzip_force;
+			break;
+		case 't':
+			flags |= gunzip_test;
+			break;
+		case 'h':
+		default:
+			show_usage(); /* exit's inside usage */
+		}
 	}
 
 	/* Set input filename and number */
-	if (flags & gunzip_from_stdin) {
+	if (argv[optind] == NULL) {
+		flags |= gunzip_to_stdout;
 		in_file = stdin;
-		if ((flags & gunzip_force) == 0) {
-			error_msg_and_die("data not written to terminal. Use -f to force it.");
-		}
 	} else {
 		if_name = strdup(argv[optind]);
 		/* Open input file */
@@ -139,19 +119,19 @@ extern int gunzip_main(int argc, char **argv)
 
 		/* Get the time stamp on the input file. */
 		if (stat(if_name, &stat_buf) < 0) {
-			error_msg_and_die("Couldnt stat file %s",if_name);
+			error_msg_and_die("Couldn't stat file %s", if_name);
 		}
 	}
 
+	/* Check that the input is sane.  */
+	if (isatty(fileno(in_file)) && (flags & gunzip_force) == 0)
+		error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
+
 	/* Set output filename and number */
-	if (flags & gunzip_to_stdout) {
-		out_file = stdout;
-		/* whats the best way to do this with streams ? */
-		if (isatty(fileno(out_file)) && ((flags & gunzip_force) == 0)) {
-			error_msg_and_die("data not written to terminal. Use -f to force it.");
-		}
-	} else if (flags & gunzip_test) {
+	if (flags & gunzip_test) {
 		out_file = xfopen("/dev/null", "w"); /* why does test use filenum 2 ? */
+	} else if (flags & gunzip_to_stdout) {
+		out_file = stdout;
 	} else {
 		char *extension;
 		int length = strlen(if_name);
