@@ -420,9 +420,6 @@ static pid_t run(char *command, char *terminal, int get_enter)
 	while ((environ[j]) && (i < MAXENV)) {
 		if (strncmp(environ[j], "TERM=", 5))
 			environment[i++] = environ[j];
-		else {
-			snprintf(termType, sizeof(termType) - 1, environ[j]);
-		}
 		j++;
 	}
 
