@@ -29,7 +29,7 @@
 #define BB_FREE
 //#define BB_FREERAMDISK
 //#define BB_FSCK_MINIX
-//#define BB_GREP
+#define BB_GREP
 #define BB_GUNZIP
 #define BB_GZIP
 //#define BB_HALT

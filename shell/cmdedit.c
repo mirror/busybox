@@ -281,6 +281,14 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 		if ((ret = read(inputFd, &c, 1)) < 1)
 			return ret;
 
+		fprintf(stderr, "\n\nkey=%d (%c)\n\n", c, c);
+		/* Go to the next line */
+		xwrite(outputFd, "\n", 1);
+		/* Rewrite the prompt */
+		xwrite(outputFd, prompt, strlen(prompt));
+		/* Rewrite the command */
+		xwrite(outputFd, parsenextc, len);
+
 		switch (c) {
 		case 1:
 			/* Control-a -- Beginning of line */
@@ -514,10 +522,17 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 							len--;
 						}
 						break;
+
+					//case '5': case '6': /* pgup/pgdown */
+
+					case '7':
+						/* rxvt home */
 					case '1':
 						/* Home (Ctrl-A) */
 						input_home(outputFd, &cursor);
 						break;
+					case '8':
+						/* rxvt END */
 					case '4':
 						/* End (Ctrl-E) */
 						input_end(outputFd, &cursor, len);

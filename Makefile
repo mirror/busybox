@@ -27,9 +27,7 @@ BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 # eg: `make DODEBUG=true tests'
 DODEBUG = false
 
-# If you want a static binary, turn this on.  I can't think
-# of many situations where anybody would ever want it static, 
-# but...
+# If you want a static binary, turn this on.
 DOSTATIC = false
 
 # This will choke on a non-debian system
