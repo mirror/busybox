@@ -52,6 +52,8 @@ char bb_process_escape_sequence(const char **ptr)
 			r = n * 16 + hextobin(*q);
 		} else if (isodigit(*q)) {
 			r = n * 8 + octtobin(*q);
+		} else {
+			break;
 		}
 		if (r <= UCHAR_MAX) {
 			n = r;
