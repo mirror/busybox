@@ -242,5 +242,5 @@ end:
 			perror_msg("unable to preserve permissions of `%s'", dest);
 	}
 
-	return 0;
+	return status;
 }
