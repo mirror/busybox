@@ -118,7 +118,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	argv++;
 
 	/* Parse options */
-	while (**argv == '-') {
+	while (argc && (**argv == '-')) {
 		while (*++(*argv))
 			switch (**argv) {
 			case 'R':
