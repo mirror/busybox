@@ -1388,15 +1388,14 @@ extern char * xstrndup (const char *s, int n) {
 	if (s == NULL)
 		error_msg_and_die("xstrndup bug");
 
-	t = xmalloc(n+1);
-	strncpy(t,s,n);
-	t[n] = 0;
-
-	return t;
+	t = xmalloc(++n);
+	
+	return safe_strncpy(t,s,n);
 }
 #endif
 
-#if defined BB_IFCONFIG || defined BB_ROUTE
+#if defined BB_IFCONFIG || defined BB_ROUTE || defined BB_NFSMOUNT || \
+    defined BB_FEATURE_MOUNT_LOOP
 /* Like strncpy but make sure the resulting string is always 0 terminated. */  
 extern char * safe_strncpy(char *dst, const char *src, size_t size)
 {   
@@ -1457,8 +1456,7 @@ extern int set_loop(const char *device, const char *file, int offset,
 	*loopro = (mode == O_RDONLY);
 
 	memset(&loopinfo, 0, sizeof(loopinfo));
-	strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
-	loopinfo.lo_name[LO_NAME_SIZE - 1] = 0;
+	safe_strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
 
 	loopinfo.lo_offset = offset;
 
@@ -1695,7 +1693,7 @@ FILE *wfopen(const char *path, const char *mode)
 #if defined BB_HOSTNAME || defined BB_LOADACM || defined BB_MORE \
  || defined BB_SED || defined BB_SH || defined BB_TAR || defined BB_UNIQ \
  || defined BB_WC || defined BB_CMP || defined BB_SORT || defined BB_WGET \
- || defined BB_MOUNT
+ || defined BB_MOUNT || defined BB_ROUTE
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
@@ -1745,15 +1743,21 @@ unsigned long parse_number(const char *numstr,
 	if (numstr == end)
 		error_msg_and_die("invalid number `%s'", numstr);
 	while (end[0] != '\0') {
-		for (sm = suffixes; sm->suffix != NULL; sm++) {
-			len = strlen(sm->suffix);
-			if (strncmp(sm->suffix, end, len) == 0) {
-				ret *= sm->mult;
-				end += len;
-				break;
-			}
+		sm = suffixes;
+		while ( sm != 0 ) {
+			if(sm->suffix) {
+				len = strlen(sm->suffix);
+				if (strncmp(sm->suffix, end, len) == 0) {
+					ret *= sm->mult;
+					end += len;
+					break;
+				}
+			sm++;
+			
+			} else
+				sm = 0;
 		}
-		if (sm->suffix == NULL)
+		if (sm == 0)
 			error_msg_and_die("invalid number `%s'", numstr);
 	}
 	return ret;
