@@ -1,5 +1,7 @@
 0.42
 
+	* changed fsck_minix.c to reduce its .bss size significantly
+	  -beppu -piptigger
         * Fairly massive restructuring of umount.c to deal with remounting 
 	  busy devices read-only. Adds a -r option to control that; it is 
 	  optionally compiled in with BB_FEATURE_REMOUNT
