@@ -239,11 +239,15 @@ int wget_main(int argc, char **argv)
 
 	/* Guess an output filename */
 	if (!fname_out) {
-		fname_out =
+		// Dirty hack. Needed because bb_get_last_path_component
+		// will destroy trailing / by storing '\0' in last byte!
+		if(target.path[strlen(target.path)-1]!='/') {
+			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
-			curfile =
+				curfile =
 #endif
-			bb_get_last_path_component(target.path);
+				bb_get_last_path_component(target.path);
+		}
 		if (fname_out==NULL || strlen(fname_out)<1) {
 			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
@@ -850,7 +854,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.74 2004/04/14 17:51:24 andersen Exp $
+ *	$Id: wget.c,v 1.75 2004/10/08 08:27:40 andersen Exp $
  */
 
 
