@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.21 2002/04/26 07:41:22 timr Exp $";
+	"$Id: vi.c,v 1.22 2002/07/31 21:22:21 sandman Exp $";
 
 /*
  * To compile for standalone use:
@@ -1225,11 +1225,12 @@ key_cmd_mode:
 				editing = 0;
 			}
 		} else if (strncasecmp((char *) p, "write", cnt) == 0 ||
-				   strncasecmp((char *) p, "wq", cnt) == 0) {
+				   strncasecmp((char *) p, "wq", cnt) == 0 ||
+				   strncasecmp((char *) p, "x", cnt) == 0) {
 			cnt = file_write(cfn, text, end - 1);
 			file_modified = FALSE;
 			psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
-			if (p[1] == 'q') {
+			if (p[0] == 'x' || p[1] == 'q') {
 				editing = 0;
 			}
 		} else if (strncasecmp((char *) p, "file", cnt) == 0 ) {
@@ -2134,7 +2135,8 @@ static void colon(Byte * buf)
 	} else if (strncasecmp((char *) cmd, "version", i) == 0) {	// show software version
 		psb("%s", vi_Version);
 	} else if ((strncasecmp((char *) cmd, "write", i) == 0) ||	// write text to file
-			   (strncasecmp((char *) cmd, "wq", i) == 0)) {	// write text to file
+			   (strncasecmp((char *) cmd, "wq", i) == 0) ||
+			   (strncasecmp((char *) cmd, "x", i) == 0)) {
 		// is there a file name to write to?
 		if (strlen((char *) args) > 0) {
 			fn = args;
@@ -2165,7 +2167,7 @@ static void colon(Byte * buf)
 		psb("\"%s\" %dL, %dC", fn, li, l);
 		if (q == text && r == end - 1 && l == ch)
 			file_modified = FALSE;
-		if (cmd[1] == 'q' && l == ch) {
+		if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
 			editing = 0;
 		}
 #ifdef CONFIG_FEATURE_VI_READONLY
