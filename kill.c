@@ -26,8 +26,14 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-const char kill_usage[] = "kill [-signal] process-id [process-id ...]\n";
+static const char* kill_usage = "kill [-signal] process-id [process-id ...]\n\n"
+"Send a signal (default is SIGTERM) to the specified process(es).\n\n"
+"Options:\n"
+"\t-l\tList all signal names and numbers.\n\n";
+
 
 struct signal_name {
     const char *name;
@@ -114,42 +120,92 @@ const struct signal_name signames[] = {
 extern int kill_main (int argc, char **argv)
 {
     int sig = SIGTERM;
+    
+    argc--;
+    argv++;
+    /* Parse any options */
+    if (argc < 1) 
+	usage(kill_usage);
 
-    if ( argc < 2 )
-	usage (kill_usage);
+    while (argc > 0 && **argv == '-') {
+	while (*++(*argv)) {
+	    switch (**argv) {
+	    case 'l': 
+		{
+		    int col=0;
+		    const struct signal_name *s = signames;
 
-    if ( **(argv+1) == '-' ) {
-	if (isdigit( *(*(++argv)+1) )) {
-	    sig = atoi (*argv);
-	    if (sig < 0 || sig >= NSIG)
-		goto end;
-	}
-	else {
-	    const struct signal_name *s = signames;
-	    while (s->name != 0) {
-		if (strcasecmp (s->name, *argv+1) == 0) {
-		    sig = s->number;
-		    break;
+		    while (s->name != 0) {
+			col+=fprintf(stderr, "%2d) %-8s", s->number, (s++)->name);
+			if (col>60) {
+			    fprintf(stderr, "\n");
+			    col=0;
+			}
+		    }
+		    fprintf(stderr, "\n\n");
+		    exit( TRUE);
 		}
-		s++;
+		break;
+	    case '-':
+		usage(kill_usage);
+	    default:
+		{
+		    if (isdigit( **argv)) {
+			sig = atoi (*argv);
+			if (sig < 0 || sig >= NSIG)
+			    goto end;
+			else {
+			    argc--;
+			    argv++;
+			    goto do_it_now;
+			}
+		    }
+		    else {
+			const struct signal_name *s = signames;
+			while (s->name != 0) {
+			    if (strcasecmp (s->name, *argv) == 0) {
+				sig = s->number;
+				argc--;
+				argv++;
+				goto do_it_now;
+			    }
+			    s++;
+			}
+			if (s->name == 0)
+			    goto end;
+		    }
+		}
 	    }
-	    if (s->name == 0)
-		goto end;
+	argc--;
+	argv++;
 	}
     }
 
-    while (--argc > 1) {
-	int pid;
-	if (! isdigit( **(++argv))) {
-	    fprintf(stderr, "bad PID: %s\n", *argv);
-	    exit( FALSE);
+do_it_now:
+
+    while (argc >= 1) {
+        int pid;
+	struct stat statbuf;
+	char pidpath[20]="/proc/";
+	
+        if (! isdigit( **argv)) {
+            fprintf(stderr, "bad PID: %s\n", *argv);
+            exit( FALSE);
+        }
+        pid = atoi (*argv);
+	snprintf(pidpath, 20, "/proc/%s/stat", *argv);
+	if (stat( pidpath, &statbuf)!=0) {
+            fprintf(stderr, "kill: (%d) - No such pid\n", pid);
+            exit( FALSE);
 	}
-	pid = atoi (*argv);
-	if (kill (pid, sig) != 0) {
-	    perror (*argv);
-	    exit ( FALSE);
-	}
+        if (kill (pid, sig) != 0) {
+            perror (*argv);
+            exit ( FALSE);
+        }
+	argv++;
     }
+    exit ( TRUE);
+
 
 end:
     fprintf(stderr, "bad signal name: %s\n", *argv);

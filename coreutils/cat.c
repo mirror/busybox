@@ -46,10 +46,9 @@ extern int cat_main(int argc, char **argv)
 	usage ("cat [file ...]\n");
     }
     argc--;
-    argv++;
 
-    while (argc-- > 0) {
-	file = fopen(*(argv++), "r");
+    while (argc-- > 0 && *(argv++) != '\0' && strlen(*argv) ) {
+	file = fopen(*argv, "r");
 	if (file == NULL) {
 	    perror(*argv);
 	    exit(FALSE);

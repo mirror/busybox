@@ -1,9 +1,14 @@
-0.38 
+0.39 
 	* New Apps: ping and hostname contributed by Randolph Chung
-	    <tausq@debian.org>
+	    <tausq@debian.org>.  2 items off the TODO list!
+	* I wrote free (just calls "cat /proc/meminfo").
 	* on reboot, init called 'umount -a -n', which caused errors
 	    when BB_MTAB was not enabled.  Changed to 'umount -a',
 	    which does the right thing.
+	* init will now try to run /sbin/getty if it is present (for easy
+	    integration with the about-to-be-released tinylogin.)
+	* kill now behaves itself properly, added 'kill -l' to list signals
+	* Began to add tail, butit doesn't work yet.
 
 	-Erik Andrsen
 

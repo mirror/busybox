@@ -27,6 +27,9 @@ static const struct Applet applets[] = {
 #ifdef BB_CLEAR			//usr/bin
     {"clear", clear_main},
 #endif
+#ifdef BB_CHVT			//usr/bin
+    {"chvt", chvt_main},
+#endif
 #ifdef BB_CP			//bin
     {"cp", cp_main},
 #endif
@@ -51,8 +54,8 @@ static const struct Applet applets[] = {
 #ifdef BB_FIND			//usr/bin
     {"find", find_main},
 #endif
-#ifdef BB_CHVT			//usr/bin
-    {"chvt", chvt_main},
+#ifdef BB_FREE			//usr/bin
+    {"free", free_main},
 #endif
 #ifdef BB_DEALLOCVT			//usr/bin
     {"deallocvt", deallocvt_main},
@@ -169,6 +172,9 @@ static const struct Applet applets[] = {
 #ifdef BB_SWAPONOFF		//sbin
     {"swapon", swap_on_off_main},
     {"swapoff", swap_on_off_main},
+#endif
+#ifdef BB_TAIL			//usr/bin
+    {"tail", tail_main},
 #endif
 #ifdef BB_TAR			//bin
     {"tar", tar_main},

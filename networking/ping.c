@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.3 1999/12/08 04:23:30 andersen Exp $
+ * $Id: ping.c,v 1.4 1999/12/08 23:19:36 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -63,6 +63,7 @@
 #define	TST(bit)	(A(bit) & B(bit))
 
 static const char* ping_usage = "ping [OPTION]... host\n\n"
+"Send ICMP ECHO_REQUEST packets to network hosts.\n\n"
 "Options:\n"
 "\t-q\t\tQuiet mode, only displays output at start and when finished.\n"
 "\t-c COUNT\tSend only COUNT pings.\n";

@@ -16,6 +16,7 @@
 //#define BB_DUTMP
 //#define BB_FDFLUSH
 #define BB_FIND
+#define BB_FREE
 #define BB_FSCK_MINIX
 #define BB_MKFS_MINIX
 #define BB_CHVT
@@ -58,6 +59,7 @@
 #define BB_SYNC
 #define BB_SYSLOGD
 #define BB_TAR
+#define BB_TAIL
 #define BB_TOUCH
 #define BB_TRUE_FALSE
 #define BB_UMOUNT
@@ -76,7 +78,7 @@
 // pretty/useful).
 //
 //
-// enable a second console on VT2 in init
+// enable a second console on TTY2 in init
 #define BB_FEATURE_INIT_SECOND_CONSOLE
 // enable features that use the /proc filesystem
 #define BB_FEATURE_USE_PROCFS

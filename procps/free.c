@@ -1,5 +1,5 @@
 /*
- * Mini Cat implementation for busybox
+ * Mini free implementation for busybox
  *
  * Copyright (C) 1999 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
@@ -24,36 +24,12 @@
 #include <stdio.h>
 
 
-static void print_file( FILE *file) 
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
+
+extern int free_main(int argc, char **argv)
 {
-    int c;
-    while ((c = getc(file)) != EOF)
-	putc(c, stdout);
-    fclose(file);
-    fflush(stdout);
-}
-
-extern int cat_main(int argc, char **argv)
-{
-    FILE *file;
-
-    if (argc==1) {
-	print_file( stdin);
-	exit( TRUE);
-    }
-
-    if ( **(argv+1) == '-' ) {
-	usage ("cat [file ...]\n");
-    }
-    argc--;
-
-    while (argc-- > 0 && *(argv++) != '\0' && strlen(*argv) ) {
-	file = fopen(*argv, "r");
-	if (file == NULL) {
-	    perror(*argv);
-	    exit(FALSE);
-	}
-	print_file( file);
-    }
-    exit(TRUE);
+    char* cmd[] = { "cat", "/proc/meminfo", "\0" };
+    exit(cat_main( 3, cmd));
 }

@@ -19,7 +19,6 @@ around to it some time. If you have any good ideas, please let me know.
 * rdate
 * hwclock
 * login/getty
-* free
 * killall
 * tee
 * stty

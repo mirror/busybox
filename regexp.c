@@ -98,7 +98,9 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
 
 
 static char *previous;	/* the previous regexp, used when null regexp is given */
+#if defined BB_SED
 static char *previous1;	/* a copy of the text from the previous substitution for regsub()*/
+#endif
 
 
 /* These are used to classify or recognize meta-characters */

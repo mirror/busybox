@@ -49,7 +49,6 @@ const char mtab_file[] = "/etc/mtab";
 #endif
 
 
-/* volatile so gcc knows this is the end of the line */
 extern void usage(const char *usage)
 {
     fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n", BB_VER, BB_BT);
