@@ -5,6 +5,8 @@
 
 mainmenu "BusyBox Configuration"
 
+menu "General Configuration"
+
 choice
 	prompt "Buffer allocation policy"
 	default "Allocate with Malloc"
