@@ -328,7 +328,7 @@ static void console_init()
 	}
 
 	if ((s = getenv("CONSOLE")) != NULL) {
-		snprintf(console, sizeof(console) - 1, "%s", s);
+		safe_strncpy(console, s, sizeof(console));
 	}
 #if #cpu(sparc)
 	/* sparc kernel supports console=tty[ab] parameter which is also 
@@ -336,9 +336,9 @@ static void console_init()
 	else if ((s = getenv("console")) != NULL) {
 		/* remap tty[ab] to /dev/ttyS[01] */
 		if (strcmp(s, "ttya") == 0)
-			snprintf(console, sizeof(console) - 1, "%s", SERIAL_CON0);
+			safe_strncpy(console, SERIAL_CON0, sizeof(console));
 		else if (strcmp(s, "ttyb") == 0)
-			snprintf(console, sizeof(console) - 1, "%s", SERIAL_CON1);
+			safe_strncpy(console, SERIAL_CON1, sizeof(console));
 	}
 #endif
 	else {
@@ -351,7 +351,7 @@ static void console_init()
 			snprintf(console, sizeof(console) - 1, "/dev/tty%d",
 					 vt.v_active);
 		} else {
-			snprintf(console, sizeof(console) - 1, "%s", _PATH_CONSOLE);
+			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
 			tried_devcons++;
 		}
 	}
@@ -360,20 +360,20 @@ static void console_init()
 		/* Can't open selected console -- try /dev/console */
 		if (!tried_devcons) {
 			tried_devcons++;
-			snprintf(console, sizeof(console) - 1, "%s", _PATH_CONSOLE);
+			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
 			continue;
 		}
 		/* Can't open selected console -- try vt1 */
 		if (!tried_vtprimary) {
 			tried_vtprimary++;
-			snprintf(console, sizeof(console) - 1, "%s", VT_PRIMARY);
+			safe_strncpy(console, VT_PRIMARY, sizeof(console));
 			continue;
 		}
 		break;
 	}
 	if (fd < 0) {
 		/* Perhaps we should panic here? */
-		snprintf(console, sizeof(console) - 1, "/dev/null");
+		safe_strncpy(console, "/dev/null", sizeof(console));
 	} else {
 		/* check for serial console and disable logging to tty5 & running a
 		   * shell to tty2-4 */
@@ -385,7 +385,7 @@ static void console_init()
 			/* Force the TERM setting to vt102 for serial console --
 			 * iff TERM is set to linux (the default) */
 			if (strcmp( termType, "TERM=linux" ) == 0)
-				snprintf(termType, sizeof(termType) - 1, "TERM=vt102");
+				safe_strncpy(termType, "TERM=vt102", sizeof(termType));
 			message(LOG | CONSOLE,
 					"serial console detected.  Disabling virtual terminals.\r\n");
 		}
