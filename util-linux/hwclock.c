@@ -21,18 +21,18 @@
 */
 
 
+#include <sys/ioctl.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <sys/time.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 #include <time.h>
-#include <sys/ioctl.h>
+#include <unistd.h>
 #include "busybox.h"
-
 
 /* Copied from linux/rtc.h to eliminate the kernel dependancy */
 struct linux_rtc_time {
@@ -47,10 +47,8 @@ struct linux_rtc_time {
 	int tm_isdst;
 };
                                     
-
 #define RTC_SET_TIME   _IOW('p', 0x0a, struct linux_rtc_time) /* Set RTC time    */
 #define RTC_RD_TIME    _IOR('p', 0x09, struct linux_rtc_time) /* Read RTC time   */
-
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 # ifndef _GNU_SOURCE
@@ -58,17 +56,7 @@ struct linux_rtc_time {
 # endif
 #endif
 
-#include <getopt.h>
-
-
-enum OpMode {
-	SHOW,
-	SYSTOHC,
-	HCTOSYS
-};
-
-
-time_t read_rtc ( int utc )
+static time_t read_rtc(int utc)
 {
 	int rtc;
 	struct tm tm;
@@ -104,7 +92,7 @@ time_t read_rtc ( int utc )
 	return t;
 }
 
-void write_rtc ( time_t t, int utc )
+static void write_rtc(time_t t, int utc)
 {
 	int rtc;
 	struct tm tm;
@@ -123,7 +111,7 @@ void write_rtc ( time_t t, int utc )
 	close ( rtc );
 }
 
-int show_clock ( int utc )
+static int show_clock(int utc)
 {
 	struct tm *ptm;
 	time_t t;
@@ -142,7 +130,7 @@ int show_clock ( int utc )
 	return 0;
 }
 
-int to_sys_clock ( int utc )
+static int to_sys_clock(int utc)
 {
 	struct timeval tv = { 0, 0 };
 	const struct timezone tz = { timezone/60 - 60*daylight, 0 };
@@ -155,7 +143,7 @@ int to_sys_clock ( int utc )
 	return 0;
 }
 
-int from_sys_clock ( int utc )
+static int from_sys_clock(int utc)
 {
 	struct timeval tv = { 0, 0 };
 	struct timezone tz = { 0, 0 };
@@ -168,7 +156,7 @@ int from_sys_clock ( int utc )
 }
 
 
-int check_utc ( void )
+static int check_utc(void)
 {
 	int utc = 0;
 	FILE *f = fopen ( "/var/lib/hwclock/adjtime", "r" );
@@ -194,63 +182,48 @@ int check_utc ( void )
 	return utc;
 }
 
+#define HWCLOCK_OPT_LOCALTIME	1
+#define HWCLOCK_OPT_UTC      	8
+#define HWCLOCK_OPT_SHOW     	2
+#define HWCLOCK_OPT_HCTOSYS  	4
+#define HWCLOCK_OPT_SYSTOHC  	16
+
 extern int hwclock_main ( int argc, char **argv )
 {
-	int	opt;
-	enum OpMode mode = SHOW;
+	unsigned long opt;
 	int utc = 0;
-	int utc_arg = 0;
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
-	struct option long_options[] = {
-		{ "show",      0, 0, 'r' },
-		{ "utc",       0, 0, 'u' },
+static const struct option hwclock_long_options[] = {
 		{ "localtime", 0, 0, 'l' },
+		{ "utc",       0, 0, 'u' },
+		{ "show",      0, 0, 'r' },
 		{ "hctosys",   0, 0, 's' },
 		{ "systohc",   0, 0, 'w' },
 		{ 0,           0, 0, 0 }
 	};
-	
-	while (( opt = getopt_long ( argc, argv, "rwsul", long_options, 0 )) != EOF ) {
-#else
-	while (( opt = getopt ( argc, argv, "rwsul" )) != EOF ) {
+	bb_applet_long_options = hwclock_long_options;
 #endif
-		switch ( opt ) {
-		case 'r': 
-			mode = SHOW; 
-			break;
-		case 'w': 
-			mode = SYSTOHC;
-			break;
-		case 's': 
-			mode = HCTOSYS;
-			break;
-		case 'u': 
-			utc = 1;
-			utc_arg = 1;
-			break;
-		case 'l': // -l is not supported by the normal hwclock (only --localtime)
-			utc = 0;
-			utc_arg = 1;
-			break;
-		default:
-			bb_show_usage();
-			break;
-		}
+
+	bb_opt_complementaly = "r~ws:w~rs:s~wr";
+	opt = bb_getopt_ulflags(argc, argv, "lursw");
+	/* Check only one mode was given */
+	if(opt & 0x80000000UL) {
+		bb_show_usage();
 	}
 
-	if ( !utc_arg )
-		utc = check_utc ( );
-	
-	switch ( mode ) {
-	case SYSTOHC:
-		return from_sys_clock ( utc );
+	/* If -u or -l wasnt give check if we are using utc */
+	if ((opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME)) == 0) {
+		utc = check_utc();
+	}
 
-	case HCTOSYS:
+	if (opt & HWCLOCK_OPT_HCTOSYS) {
 		return to_sys_clock ( utc );
-
-	case SHOW:
-	default:
+	}
+	else if (opt & HWCLOCK_OPT_SYSTOHC) {
+		return from_sys_clock ( utc );
+	} else {
+		/* default HWCLOCK_OPT_SHOW */
 		return show_clock ( utc );	
-	}	
+	}
 }
