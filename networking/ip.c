@@ -93,17 +93,17 @@ int ip_main(int argc, char **argv)
 		}
 #endif
 #ifdef CONFIG_FEATURE_IP_ROUTE
-		else if (matches(argv[1], "route") == 0) {
+		if (matches(argv[1], "route") == 0) {
 			ret = do_iproute(argc-2, argv+2);
 		}
 #endif
 #ifdef CONFIG_FEATURE_IP_LINK
-		else if (matches(argv[1], "link") == 0) {
+		if (matches(argv[1], "link") == 0) {
 			ret = do_iplink(argc-2, argv+2);
 		}
 #endif
 #ifdef CONFIG_FEATURE_IP_TUNNEL
-		else if (matches(argv[1], "tunnel") == 0 || strcmp(argv[1], "tunl") == 0) {
+		if (matches(argv[1], "tunnel") == 0 || strcmp(argv[1], "tunl") == 0) {
 			ret = do_iptunnel(argc-2, argv+2);
 		}
 #endif
