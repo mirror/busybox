@@ -46,6 +46,7 @@ all: busybox busybox.links doc
 # In this section, we need .config
 -include .config.cmd
 include $(patsubst %,%/Makefile.in, $(DIRS))
+-include $(TOPDIR).depend
 
 busybox: .depend include/config.h $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
@@ -138,9 +139,9 @@ scripts/split-include: scripts/split-include.c
 	mkdir -p include/config;
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
 	scripts/mkdep -I include -- \
-		`find . -name \*.c -print` >> .depend;
+		`find -name \*.c -print | sed -e "s,^./,,"` >> .depend;
 	scripts/mkdep -I include -- \
-		`find . -name \*.h -print` >> .hdepend;
+		`find -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
 
 depend dep: include/config.h .depend
 
