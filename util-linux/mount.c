@@ -43,26 +43,40 @@
 #include <string.h>
 #include <stdio.h>
 #include <mntent.h>
-#include <sys/mount.h>
 #include <ctype.h>
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h>
 #endif
 
-/* 2.0.x. kernels don't know about MS_NODIRATIME */
-#ifndef MS_NODIRATIME
+
+#define MS_MGC_VAL		0xc0ed0000 /* Magic number indicatng "new" flags */
+#define MS_RDONLY        1      /* Mount read-only */
+#define MS_NOSUID        2      /* Ignore suid and sgid bits */
+#define MS_NODEV         4      /* Disallow access to device special files */
+#define MS_NOEXEC        8      /* Disallow program execution */
+#define MS_SYNCHRONOUS  16      /* Writes are synced at once */
+#define MS_REMOUNT      32      /* Alter flags of a mounted FS */
+#define MS_MANDLOCK     64      /* Allow mandatory locks on an FS */
+#define S_QUOTA         128     /* Quota initialized for file/directory/symlink */
+#define S_APPEND        256     /* Append-only file */
+#define S_IMMUTABLE     512     /* Immutable file */
+#define MS_NOATIME      1024    /* Do not update access times. */
 #define MS_NODIRATIME   2048    /* Do not update directory access times */
-#endif
 
 
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
 #include <sys/ioctl.h>
-
-
 static int use_loop = FALSE;
 #endif
+
+extern int mount (__const char *__special_file, __const char *__dir,
+			__const char *__fstype, unsigned long int __rwflag,
+			__const void *__data);
+extern int umount (__const char *__special_file);
+extern int umount2 (__const char *__special_file, int __flags);
+
 
 extern const char mtab_file[];	/* Defined in utility.c */
 

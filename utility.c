@@ -80,7 +80,6 @@ const char mtab_file[] = "/dev/mtab";
 #  endif
 #endif
 
-
 extern void usage(const char *usage)
 {
 	fprintf(stderr, "BusyBox v%s (%s) multi-call binary -- GPL2\n\n",
@@ -138,6 +137,22 @@ extern int get_kernel_revision(void)
 #include <linux/unistd.h>
 _syscall1(int, sysinfo, struct sysinfo *, info);
 #endif                                                 /* BB_INIT */
+
+#if defined BB_MOUNT || defined BB_UMOUNT
+#include <sys/syscall.h>
+#include <linux/unistd.h>
+
+#ifndef __NR_umount2
+#define __NR_umount2           52
+#endif
+
+/* Include our own version of <sys/mount.h>, since libc5 doesn't
+ * know about umount2 */
+extern _syscall1(int, umount, const char *, special_file);
+extern _syscall2(int, umount2, const char *, special_file, int, flags);
+extern _syscall5(int, mount, const char *, special_file, const char *, dir,
+		const char *, fstype, unsigned long int, rwflag, const void *, data);
+#endif
 
 
 
