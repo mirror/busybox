@@ -23,14 +23,10 @@ int chvt_main(int argc, char **argv)
 		usage (chvt_usage);
 	fd = get_console_fd("/dev/console");
 	num = atoi(argv[1]);
-	if (ioctl(fd, VT_ACTIVATE, num)) {
-		perror("VT_ACTIVATE");
-		return EXIT_FAILURE;
-	}
-	if (ioctl(fd, VT_WAITACTIVE, num)) {
-		perror("VT_WAITACTIVE");
-		return EXIT_FAILURE;
-	}
+	if (ioctl(fd, VT_ACTIVATE, num))
+		perror_msg_and_die("VT_ACTIVATE");
+	if (ioctl(fd, VT_WAITACTIVE, num))
+		perror_msg_and_die("VT_WAITACTIVE");
 	return EXIT_SUCCESS;
 }
 
