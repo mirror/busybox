@@ -71,37 +71,20 @@ static char *license_msg[] = {
 #include "busybox.h"
 #include "unarchive.h"
 
-const char gunzip_to_stdout = 1;
-const char gunzip_force = 2;
-const char gunzip_test = 4;
+#define GUNZIP_OPT_STDOUT	1
+#define GUNZIP_OPT_FORCE	2
+#define GUNZIP_OPT_TEST		4
+#define GUNZIP_OPT_DECOMPRESS	8
 
 extern int gunzip_main(int argc, char **argv)
 {
 	char status = EXIT_SUCCESS;
-	char flags = 0;
-	int opt;
+	unsigned long opt;
 
+	opt = bb_getopt_ulflags(argc, argv, "cftd");
 	/* if called as zcat */
 	if (strcmp(bb_applet_name, "zcat") == 0) {
-		flags |= gunzip_to_stdout;
-	}
-
-	while ((opt = getopt(argc, argv, "ctfhd")) != -1) {
-		switch (opt) {
-		case 'c':
-			flags |= gunzip_to_stdout;
-			break;
-		case 'f':
-			flags |= gunzip_force;
-			break;
-		case 't':
-			flags |= gunzip_test;
-			break;
-		case 'd':		/* Used to convert gzip to gunzip. */
-			break;
-		default:
-			bb_show_usage();	/* exit's inside usage */
-		}
+		opt |= GUNZIP_OPT_STDOUT;
 	}
 
 	do {
@@ -116,7 +99,7 @@ extern int gunzip_main(int argc, char **argv)
 
 		if (old_path == NULL || strcmp(old_path, "-") == 0) {
 			src_fd = fileno(stdin);
-			flags |= gunzip_to_stdout;
+			opt |= GUNZIP_OPT_STDOUT;
 		} else {
 			src_fd = bb_xopen(old_path, O_RDONLY);
 
@@ -127,15 +110,15 @@ extern int gunzip_main(int argc, char **argv)
 		}
 
 		/* Check that the input is sane.  */
-		if (isatty(src_fd) && ((flags & gunzip_force) == 0)) {
+		if (isatty(src_fd) && ((opt & GUNZIP_OPT_FORCE) == 0)) {
 			bb_error_msg_and_die
 				("compressed data not read from terminal.  Use -f to force it.");
 		}
 
 		/* Set output filename and number */
-		if (flags & gunzip_test) {
+		if (opt & GUNZIP_OPT_TEST) {
 			dst_fd = bb_xopen("/dev/null", O_WRONLY);	/* why does test use filenum 2 ? */
-		} else if (flags & gunzip_to_stdout) {
+		} else if (opt & GUNZIP_OPT_STDOUT) {
 			dst_fd = fileno(stdout);
 		} else {
 			char *extension;
