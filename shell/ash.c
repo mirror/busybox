@@ -5214,7 +5214,7 @@ static char *expdir;
 
 
 static void
-expandmeta(struct strlist str, int flag)
+expandmeta(struct strlist *str, int flag)
 {
 	char *p;
 	struct strlist **savelastp;
@@ -12481,7 +12481,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.38 2001/12/20 23:13:19 kraai Exp $
+ * $Id: ash.c,v 1.39 2001/12/21 11:22:26 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
