@@ -83,7 +83,17 @@ save_config_help[] =
 	"configuration options you have selected at that time.\n"
 	"\n"
 	"If you are uncertain what all this means then you should probably\n"
-	"leave this blank.\n"
+	"leave this blank.\n",
+top_menu_help[] =
+	"\n"
+	"Use the Up/Down arrow keys (cursor keys) to highlight the item\n"
+	"you wish to change or submenu wish to select and press <Enter>.\n"
+	"Submenus are designated by \"--->\".\n"
+	"\n"
+	"Shortcut: Press the option's highlighted letter (hotkey).\n"
+	"\n"
+	"You may also use the <PAGE UP> and <PAGE DOWN> keys to scroll\n"
+	"unseen options into view.\n"
 ;
 
 static char filename[PATH_MAX+1] = ".config";
@@ -468,8 +478,7 @@ static void show_help(struct menu *menu)
 
 static void show_readme(void)
 {
-	while (dialog_textbox(NULL, "scripts/README.Menuconfig", rows, cols) < 0)
-		;
+	show_helptext("Help", top_menu_help);
 }
 
 static void conf_choice(struct menu *menu)
