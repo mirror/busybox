@@ -6,7 +6,6 @@
  *
  */
 
-#include "inet_common.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -58,7 +57,7 @@ int xconnect(const char *host, const char *port)
 	struct sockaddr_in s_addr;
 	int s = socket(AF_INET, SOCK_STREAM, 0);
 	struct servent *tserv;
-	int port_nr=atoi(port);
+	int port_nr=htons(atoi(port));
 	struct hostent * he;
 
 	if (port_nr==0 && (tserv = getservbyname(port, "tcp")) != NULL)
@@ -66,7 +65,7 @@ int xconnect(const char *host, const char *port)
 
 	memset(&s_addr, 0, sizeof(struct sockaddr_in));
 	s_addr.sin_family = AF_INET;
-	s_addr.sin_port = htons(port_nr);
+	s_addr.sin_port = port_nr;
 
 	he = xgethostbyname(host);
 	memcpy(&s_addr.sin_addr, he->h_addr, sizeof s_addr.sin_addr);
