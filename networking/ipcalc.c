@@ -22,15 +22,22 @@
 
 #define IPCALC_MSG(CMD,ALTCMD) if (mode & SILENT) {ALTCMD;} else {CMD;}
 
+#define CLASS_A_NETMASK	ntohl(0xFF000000)
+#define CLASS_B_NETMASK	ntohl(0xFFFF0000)
+#define CLASS_C_NETMASK	ntohl(0xFFFFFF00)
+
 static unsigned long get_netmask(unsigned long ipaddr)
 {
-	if (ipaddr & 0xC0) {
-		return 0x00FFFFFF;	/* Class C */
-	}
-	if (ipaddr & 0x10) {
-		return 0x0000FFFF;	/* Class B */
-	}
-	return 0x000000FF;	/* Class A */
+	ipaddr = htonl(ipaddr);
+
+	if ((ipaddr & 0xC0000000) == 0xC0000000)
+		return CLASS_C_NETMASK;
+	else if ((ipaddr & 0x80000000) == 0x80000000)
+		return CLASS_B_NETMASK;
+	else if ((ipaddr & 0x80000000) == 0)
+		return CLASS_A_NETMASK;
+	else
+		return 0;
 }
 
 #define NETMASK   0x01
