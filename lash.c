@@ -1665,8 +1665,6 @@ static int busy_loop(FILE * input)
 #ifdef BB_FEATURE_CLEAN_UP
 void free_memory(void)
 {
-	if (prompt_str)
-		free(prompt_str);
 	if (cwd)
 		free(cwd);
 	if (local_pending_command)
