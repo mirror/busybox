@@ -54,6 +54,14 @@ Enable devfs support
 CONFIG_FEATURE_DEVFS
   Enable if you want BusyBox to work with devfs.
 
+Enable devfs support
+CONFIG_FEATURE_DEVPTS
+  Enable if you want BusyBox to use Unix98 PTY support. If enabled,
+  busybox will use /dev/ptmx for the master side of the pseudoterminal
+  and /dev/pts/<number> for the slave side.  Otherwise, BSD style
+  /dev/ttyp<number> will be used. To use this option, you should have
+  devpts or devfs mounted.
+
 Clean up all memory before exiting
 CONFIG_FEATURE_CLEAN_UP
   As a size optimization, busybox by default does not cleanup memory

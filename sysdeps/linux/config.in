@@ -14,6 +14,11 @@ bool 'Show verbose applet usage messages'				CONFIG_FEATURE_VERBOSE_USAGE
 bool 'Support --install [-s] to install applet links at runtime' 	CONFIG_FEATURE_INSTALLER
 bool 'Enable locale support (system needs locale for this to work)'	CONFIG_LOCALE_SUPPORT
 bool 'Support for devfs'						CONFIG_FEATURE_DEVFS
+if [ "$CONFIG_FEATURE_DEVFS" = "y" ]; then
+  define_bool CONFIG_FEATURE_DEVPTS	y
+else
+  bool '  Support for Unix98 PTY filesystem'				CONFIG_FEATURE_DEVPTS
+fi
 bool 'Clean up all memory before exiting (usually not needed)'		CONFIG_FEATURE_CLEAN_UP
 bool 'Support for SUID/SGID handling'  					CONFIG_FEATURE_SUID
 if [ "$CONFIG_FEATURE_SUID" = "y" ]; then

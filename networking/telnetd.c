@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.1 2002/09/30 20:52:04 andersen Exp $
+/* $Id: telnetd.c,v 1.2 2002/11/10 22:26:19 bug1 Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -156,7 +156,7 @@ static int
 getpty(char *line)
 {
 	int p;
-#ifdef HAVE_DEVPTS_FS
+#ifdef CONFIG_FEATURE_DEVPTS
 	p = open("/dev/ptmx", 2);
 	if (p > 0) {
 		grantpt(p);
@@ -185,7 +185,7 @@ getpty(char *line)
 			}
 		}
 	}
-#endif /* HAVE_DEVPTS_FS */
+#endif /* CONFIG_FEATURE_DEVPTS */
 	return -1;
 }
 
