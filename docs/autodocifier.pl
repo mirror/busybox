@@ -44,7 +44,7 @@ sub pod_for_usage {
 	my $usage = shift;
 
 	my $trivial = $usage->{trivial};
-	$trivial !~ /^\s/ && $trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
+	$trivial =~s/(?<!\w)(-\w+)/B<$1>/sxg;
 
 	my @full = 
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
@@ -70,8 +70,9 @@ sub sgml_for_usage {
 	"FIXME";
 }
 
-# the keys are applet names, and the values will contain
-# hashrefs of the form:
+# the keys are applet names, and 
+# the values will contain hashrefs of the form:
+#
 # {
 #     trivial => "...",
 #     full    => "...",
@@ -100,7 +101,6 @@ if (defined $opt{help}) {
 	exit 1;
 }
 
-#
 # collect documenation into %docs
 foreach (@ARGV) {
 	open(USAGE, $_) || die("$0: $!");
@@ -180,4 +180,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.2 2001/02/23 02:33:28 beppu Exp $
+# $Id: autodocifier.pl,v 1.3 2001/02/23 02:54:31 beppu Exp $
