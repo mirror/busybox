@@ -28,26 +28,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <stdlib.h>
 #include "libbb.h"
 
 
 
-extern int find_real_root_device_name(char* name)
+extern char *find_real_root_device_name(const char* name)
 {
 	DIR *dir;
 	struct dirent *entry;
 	struct stat statBuf, rootStat;
-	char fileName[BUFSIZ];
+	char *fileName;
 
 	if (stat("/", &rootStat) != 0) {
 		error_msg("could not stat '/'");
-		return( FALSE);
+		return NULL;
 	}
 
 	dir = opendir("/dev");
 	if (!dir) {
 		error_msg("could not open '/dev'");
-		return( FALSE);
+		return NULL;
 	}
 
 	while((entry = readdir(dir)) != NULL) {
@@ -57,21 +58,20 @@ extern int find_real_root_device_name(char* name)
 		if (strcmp(entry->d_name, "..") == 0)
 			continue;
 
-		snprintf( fileName, strlen(name)+1, "/dev/%s", entry->d_name);
+		fileName = concat_path_file("/dev/", entry->d_name);
 
-		if (stat(fileName, &statBuf) != 0)
-			continue;
 		/* Some char devices have the same dev_t as block
 		 * devices, so make sure this is a block device */
-		if (! S_ISBLK(statBuf.st_mode))
-			continue;
-		if (statBuf.st_rdev == rootStat.st_rdev) {
-			strcpy(name, fileName); 
-			return ( TRUE);
+		if (stat(fileName, &statBuf) == 0 && 
+				S_ISBLK(statBuf.st_mode)!=0 &&
+				statBuf.st_rdev == rootStat.st_rdev) {
+			return fileName; 
 		}
+		free(fileName);
 	}
+	closedir(dir);
 
-	return( FALSE);
+	return NULL;
 }
 
 

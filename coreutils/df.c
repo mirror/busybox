@@ -60,7 +60,9 @@ static int do_df(char *device, const char *mount_point)
 		if (strcmp(device, "/dev/root") == 0) {
 			/* Adjusts device to be the real root device,
 			 * or leaves device alone if it can't find it */
-			find_real_root_device_name( device);
+			device = find_real_root_device_name(device);
+			if(device==NULL)
+				return FALSE;
 		}
 #ifdef BB_FEATURE_HUMAN_READABLE
 		switch (df_disp_hr) {

@@ -32,7 +32,7 @@
 
 void chomp(char *s)
 {
-	char *lc = (char *)last_char_is(s, '\n');
+	char *lc = last_char_is(s, '\n');
 	
 	if(lc)
 		*lc = 0;

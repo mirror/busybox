@@ -74,7 +74,7 @@ extern const char mtab_file[];	/* Defined in utility.c */
  * TODO: Perhaps switch to using Glibc's getmntent_r
  *        -Erik
  */
-void mtab_read(void)
+static void mtab_read(void)
 {
 	struct _mtab_entry_t *entry = NULL;
 	struct mntent *e;
@@ -97,7 +97,7 @@ void mtab_read(void)
 	endmntent(fp);
 }
 
-char *mtab_getinfo(const char *match, const char which)
+static char *mtab_getinfo(const char *match, const char which)
 {
 	struct _mtab_entry_t *cur = mtab_cache;
 
@@ -111,8 +111,7 @@ char *mtab_getinfo(const char *match, const char which)
 				if (strcmp(cur->device, "/dev/root") == 0) {
 					/* Adjusts device to be the real root device,
 					 * or leaves device alone if it can't find it */
-					find_real_root_device_name( cur->device);
-					return ( cur->device);
+					cur->device = find_real_root_device_name(cur->device);
 				}
 #endif
 				return cur->device;
@@ -123,18 +122,7 @@ char *mtab_getinfo(const char *match, const char which)
 	return NULL;
 }
 
-char *mtab_first(void **iter)
-{
-	struct _mtab_entry_t *mtab_iter;
-
-	if (!iter)
-		return NULL;
-	mtab_iter = mtab_cache;
-	*iter = (void *) mtab_iter;
-	return mtab_next(iter);
-}
-
-char *mtab_next(void **iter)
+static char *mtab_next(void **iter)
 {
 	char *mp;
 
@@ -145,10 +133,21 @@ char *mtab_next(void **iter)
 	return mp;
 }
 
+static char *mtab_first(void **iter)
+{
+	struct _mtab_entry_t *mtab_iter;
+
+	if (!iter)
+		return NULL;
+	mtab_iter = mtab_cache;
+	*iter = (void *) mtab_iter;
+	return mtab_next(iter);
+}
+
 /* Don't bother to clean up, since exit() does that 
  * automagically, so we can save a few bytes */
 #ifdef BB_FEATURE_CLEAN_UP
-void mtab_free(void)
+static void mtab_free(void)
 {
 	struct _mtab_entry_t *this, *next;
 

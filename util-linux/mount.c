@@ -319,10 +319,14 @@ void show_mounts()
 		while ((m = getmntent(mountTable)) != 0) {
 			char *blockDevice = m->mnt_fsname;
 			if (strcmp(blockDevice, "/dev/root") == 0) {
-				find_real_root_device_name( blockDevice);
+				blockDevice = find_real_root_device_name(blockDevice);
 			}
 			printf("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
 				   m->mnt_type, m->mnt_opts);
+#ifdef BB_FEATURE_CLEAN_UP
+			if(blockDevice != m->mnt_fsname)
+				free(blockDevice);
+#endif
 		}
 		endmntent(mountTable);
 	} else {

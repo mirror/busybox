@@ -123,13 +123,9 @@ extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
-extern void mtab_read(void);
-extern char *mtab_first(void **iter);
-extern char *mtab_next(void **iter);
-extern char *mtab_getinfo(const char *match, const char which);
 extern long atoi_w_units (const char *cp);
 extern pid_t* find_pid_by_name( char* pidName);
-extern int find_real_root_device_name(char* name);
+extern char *find_real_root_device_name(const char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);
 extern int print_file_by_name(char *filename);
@@ -218,7 +214,7 @@ int klogctl(int type, char * b, int len);
 char *xgetcwd(char *cwd);
 char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
-char *last_char_is(char *s, int c);
+char *last_char_is(const char *s, int c);
 
 typedef struct ar_headers_s {
 	char *name;
