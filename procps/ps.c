@@ -49,14 +49,12 @@ static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefo
  */
 
 typedef struct proc_s {
-	char
-	 cmd[16];					/* basename of executable file in call to exec(2) */
-	int
-	 ruid,						/* real only (sorry) */
-	 pid,						/* process id */
-	 ppid;						/* pid of parent process */
-	char
-	 state;						/* single-char code for process state (S=sleeping) */
+	char cmd[16];					/* basename of executable file in call to exec(2) */
+	int ruid;						/* real only (sorry) */
+	int pid;						/* process id */
+	int ppid;						/* pid of parent process */
+	char state;						/* single-char code for process state (S=sleeping) */
+	unsigned int vmsize;			/* size of process as far as the vm is concerned */
 } proc_t;
 
 
@@ -87,6 +85,8 @@ static void parse_proc_status(char *S, proc_t * P)
 	tmp = strstr(S, "State");
 	sscanf(tmp, "State:\t%c", &P->state);
 
+	P->pid = 0;
+	P->ppid = 0;
 	tmp = strstr(S, "Pid:");
 	if (tmp)
 		sscanf(tmp, "Pid:\t%d\n" "PPid:\t%d\n", &P->pid, &P->ppid);
@@ -94,13 +94,21 @@ static void parse_proc_status(char *S, proc_t * P)
 		error_msg("Internal error!");
 
 	/* For busybox, ignoring effective, saved, etc. */
+	P->ruid = 0;
 	tmp = strstr(S, "Uid:");
 	if (tmp)
 		sscanf(tmp, "Uid:\t%d", &P->ruid);
 	else
 		error_msg("Internal error!");
-
-
+	
+	P->vmsize = 0;
+	tmp = strstr(S, "VmSize:");
+	if (tmp)
+		sscanf(tmp, "VmSize:\t%d", &P->vmsize);
+#if 0
+	else
+		error_msg("Internal error!");
+#endif
 }
 
 extern int ps_main(int argc, char **argv)
@@ -131,7 +139,7 @@ extern int ps_main(int argc, char **argv)
 			terminal_width = win.ws_col - 1;
 #endif
 
-	printf("  PID  Uid     Stat Command\n");
+	printf("  PID  Uid     VmSize Stat Command\n");
 	while ((entry = readdir(dir)) != NULL) {
 		if (!isdigit(*entry->d_name))
 			continue;
@@ -150,7 +158,10 @@ extern int ps_main(int argc, char **argv)
 		if (file == NULL)
 			continue;
 		i = 0;
-		len = printf("%5d %-8s %c    ", p.pid, uidName, p.state);
+		if(p.vmsize == 0)
+			len = printf("%5d %-8s        %c    ", p.pid, uidName, p.state);
+		else
+			len = printf("%5d %-8s %6d %c    ", p.pid, uidName, p.vmsize, p.state);
 		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
 			i++;
 			if (c == '\0')
@@ -235,8 +246,10 @@ extern int ps_main(int argc, char **argv)
 		if (*uidName == '\0')
 			sprintf(uidName, "%ld", info.euid);
 
-		len = printf("%5d %-8s %c    ", info.pid, uidName, info.state);
-
+		if(p.vmsize == 0)
+			len = printf("%5d %-8s        %c    ", p.pid, uidName, p.state);
+		else
+			len = printf("%5d %-8s %6d %c    ", p.pid, uidName, p.vmsize, p.state);
 		if (strlen(info.command_line) > 1) {
 			for( j=0; j<(sizeof(info.command_line)-1) && j < (terminal_width-len); j++) {
 				if (*(info.command_line+j) == '\0' && *(info.command_line+j+1) != '\0') {
