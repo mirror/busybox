@@ -400,6 +400,10 @@ static pid_t run(char *command, char *terminal, int get_enter)
 	char buf[255];
 	static const char press_enter[] =
 
+#ifdef CUSTOMIZED_BANNER
+#include CUSTOMIZED_BANNER
+#endif
+
 		"\nPlease press Enter to activate this console. ";
 	char *environment[] = {
 		"HOME=/",
@@ -656,6 +660,10 @@ static void reboot_signal(int sig)
 }
 
 #if defined BB_FEATURE_INIT_CHROOT
+
+#warning BB_FEATURE_INIT_CHROOT is out of date and should be rewritten to us
+#warning pivot root instead.  Do not even bother till this work is done...
+#warning You have been warned.
 
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
