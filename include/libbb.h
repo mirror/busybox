@@ -121,6 +121,7 @@ int recursive_action(const char *fileName, int recurse, int followLinks, int dep
 	  void* userData);
 
 extern int parse_mode( const char* s, mode_t* theMode);
+extern long bb_xgetlarg(char *arg, int base, long lower, long upper);
 
 extern int get_kernel_revision(void);
 
