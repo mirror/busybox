@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.1 2002/07/03 11:46:34 andersen Exp $
+ * $Id: ping6.c,v 1.2 2002/11/26 03:03:41 bug1 Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -161,9 +161,9 @@ static int myid, options;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
-#if CONFIG_FEATURE_FANCY_PING
+# ifdef CONFIG_FEATURE_FANCY_PING
 extern 
-#endif
+# endif
 	struct hostent *hostent;
 
 static void sendping(int);
