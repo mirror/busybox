@@ -774,9 +774,9 @@ static int get_command(FILE * source, char *command)
 		return 1;
 	}
 
-	prompt_str = setup_prompt_string(shell_context);
-	
 	if (source == stdin) {
+		prompt_str = setup_prompt_string(shell_context);
+	
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		/*
 		** enable command line editing only while a command line
