@@ -1,7 +1,10 @@
 
 VERSION=0.29alpha1
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
-DODEBUG=true
+
+# Comment out the following to make a debuggable build
+# Leave this off for production use.
+#DODEBUG=true
 
 #This will choke on a non-debian system
 ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`

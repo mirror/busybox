@@ -49,10 +49,10 @@ const char more_usage[] = "[file ...]";
 
 extern int more_main(int argc, char **argv)
 {
-    int c, lines=0, input;
+    int c, lines=0, input=0;
     int next_page=0, rows = 24;
 #ifdef BB_MORE_TERM
-    int cols;
+    int cols=79;
     struct winsize win;
 #endif
     struct stat st;	
