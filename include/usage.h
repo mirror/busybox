@@ -1156,7 +1156,7 @@
 "\n" \
 "	<id>:<runlevels>:<action>:<process>\n" \
 "\n" \
-"	<id>: \n" \
+"	<id>:\n" \
 "\n" \
 "		WARNING: This field has a non-traditional meaning for BusyBox init!\n" \
 "		The id field is used by BusyBox init to specify the controlling tty for\n" \
@@ -1169,13 +1169,13 @@
 "		will be run.  BusyBox init does nothing with utmp.  We don't need no\n" \
 "		stinkin' utmp.\n" \
 "\n" \
-"	<runlevels>: \n" \
+"	<runlevels>:\n" \
 "\n" \
 "		The runlevels field is completely ignored.\n" \
 "\n" \
-"	<action>: \n" \
+"	<action>:\n" \
 "\n" \
-"		Valid actions include: sysinit, respawn, askfirst, wait, \n" \
+"		Valid actions include: sysinit, respawn, askfirst, wait,\n" \
 "		once, restart, ctrlaltdel, and shutdown.\n" \
 "\n" \
 "		The available actions can be classified into two groups: actions\n" \
@@ -1209,13 +1209,13 @@
 "			respawn, except that before running the specified process it\n" \
 "			displays the line "Please press Enter to activate this console."\n" \
 "			and then waits for the user to press enter before starting the\n" \
-"			specified process.  \n" \
+"			specified process.\n" \
 "\n" \
 "		Unrecognized actions (like initdefault) will cause init to emit an\n" \
 "		error message, and then go along with its business.  All actions are\n" \
 "		run in the order they appear in /etc/inittab.\n" \
 "\n" \
-"	<process>: \n" \
+"	<process>:\n" \
 "\n" \
 "		Specifies the process to be executed and it's command line.\n" \
 "\n" \
@@ -1651,7 +1651,7 @@
 	"\tc or u:\tMake a character (un-buffered) device.\n" \
 	"\tp:\tMake a named pipe. MAJOR and MINOR are ignored for named pipes."
 #define mknod_example_usage \
-	"$ mknod /dev/fd0 b 2 0 \n" \
+	"$ mknod /dev/fd0 b 2 0\n" \
 	"$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
@@ -2212,18 +2212,20 @@
 	"f\n"
 
 #define start_stop_daemon_trivial_usage \
-	"[OPTIONS]"
+	"[OPTIONS] [-S|--start|-K|--stop] ... [-- arguments...]\n"
 #define start_stop_daemon_full_usage \
-	"Program to start and stop services.\n"\
-	"Options:\n" \
-	"-S\t\t\tstart\n"\
-	"-K\t\t\tstop\n"\
-	"-b\t\t\tforce process into background (daemonize)\n"\
-	"-x <executable>\t\tprogram to start/check if it is running\n"\
-	"-u <username>|<uid>\tstop this user's processes\n"\
-	"-n <process-name>\tstop processes with this name\n"\
-	"-s <signal>\t\tsignal to send (default 15)\n"\
-	"-a <pathname>\t\tprogram to start (default <executable>)\n"
+	"Program to start and stop services."\
+	"\n\nOptions:"\
+	"\n\t-S|--start\t\t\tstart"\
+	"\n\t-K|--stop\t\t\tstop"\
+	"\n\t-a|--startas <pathname>\t\tstart the process specified by pathname"\
+	"\n\t-b|--background\t\t\tforce process into background"\
+	"\n\t-u|--user <username>|<uid>\tstop this user's processes"\
+	"\n\t-x|--exec <executable>\t\tprogram to start/check if it is running"\
+	"\n\t-n|--name <process-name>\tstop processes with this name"\
+	"\n\t-p|--pidfile <pid-file>\t\tsave or load pid using a pid-file"\
+	"\n\t-q|--quiet\t\t\tbe quiet" \
+	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)\n"
 
 #define strings_trivial_usage \
     "[-afo] [-n length] [file ... ]"
@@ -2478,7 +2480,7 @@
 	"$ echo $?\n" \
 	"1\n" \
 	"$ test 1 -eq 1\n" \
-	"$ echo $? \n" \
+	"$ echo $?\n" \
 	"0\n" \
 	"$ [ -d /etc ]\n" \
 	"$ echo $?\n" \
@@ -2750,12 +2752,12 @@
 	"COMMAND [OPTIONS] ..."
 
 #define vconfig_full_usage \
-"Usage: add             [interface-name] [vlan_id] \n" \
-"       rem             [vlan-name] \n" \
-"       set_flag        [interface-name] [flag-num]       [0 | 1] \n" \
-"       set_egress_map  [vlan-name]      [skb_priority]   [vlan_qos] \n" \
-"       set_ingress_map [vlan-name]      [skb_priority]   [vlan_qos] \n" \
-"       set_name_type   [name-type] \n"
+"Usage: add             [interface-name] [vlan_id]\n" \
+"       rem             [vlan-name]\n" \
+"       set_flag        [interface-name] [flag-num]       [0 | 1]\n" \
+"       set_egress_map  [vlan-name]      [skb_priority]   [vlan_qos]\n" \
+"       set_ingress_map [vlan-name]      [skb_priority]   [vlan_qos]\n" \
+"       set_name_type   [name-type]\n"
 
 #define vi_trivial_usage \
 	"[OPTION] [FILE]..."

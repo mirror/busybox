@@ -23,21 +23,23 @@
 
 static int signal_nr = 15;
 static int user_id = -1;
+static int quiet = 0;
 static char *userspec = NULL;
 static char *cmdname = NULL;
 static char *execname = NULL;
+static char *pidfile = NULL;
 
-typedef struct pid_list {
+struct pid_list {
 	struct pid_list *next;
-	int pid;
-} pid_list;
+	pid_t pid;
+};
 
-static pid_list *found = NULL;
+static struct pid_list *found = NULL;
 
 static inline void
-push(int pid)
+push(pid_t pid)
 {
-	pid_list *p;
+	struct pid_list *p;
 
 	p = xmalloc(sizeof(*p));
 	p->next = found;
@@ -46,21 +48,19 @@ push(int pid)
 }
 
 static int
-pid_is_exec(int pid, const char *exec)
+pid_is_exec(pid_t pid, const char *name)
 {
-	char buf[PATH_MAX];
-	FILE *fp;
+	char buf[32];
+	struct stat sb, exec_stat;
 
-	sprintf(buf, "/proc/%d/cmdline", pid);
-	fp = fopen(buf, "r");
-	if (fp && fgets (buf, sizeof (buf), fp) ) {
-		fclose(fp);
-	    if (strncmp (buf, exec, strlen(exec)) == 0)
-		return 1;
-	}
-	return 0;
+	if (name && stat(name, &exec_stat))
+		bb_perror_msg_and_die("stat %s", name);
+
+	sprintf(buf, "/proc/%d/exe", pid);
+	if (stat(buf, &sb) != 0)
+		return 0;
+	return (sb.st_dev == exec_stat.st_dev && sb.st_ino == exec_stat.st_ino);
 }
-
 
 static int
 pid_is_user(int pid, int uid)
@@ -74,9 +74,8 @@ pid_is_user(int pid, int uid)
 	return (sb.st_uid == uid);
 }
 
-
 static int
-pid_is_cmd(int pid, const char *name)
+pid_is_cmd(pid_t pid, const char *name)
 {
 	char buf[32];
 	FILE *f;
@@ -116,9 +115,24 @@ check(int pid)
 }
 
 
+static void
+do_pidfile(const char *name)
+{
+	FILE *f;
+	pid_t pid;
+
+	f = fopen(name, "r");
+	if (f) {
+		if (fscanf(f, "%d", &pid) == 1)
+			check(pid);
+		fclose(f);
+	} else if (errno != ENOENT)
+		bb_perror_msg_and_die("open pidfile %s", name);
+
+}
 
 static void
-do_procfs(void)
+do_procinit(void)
 {
 	DIR *procdir;
 	struct dirent *entry;
@@ -145,8 +159,13 @@ static void
 do_stop(void)
 {
 	char what[1024];
-	pid_list *p;
+	struct pid_list *p;
 	int killed = 0;
+
+	if (pidfile)
+		do_pidfile(pidfile);
+	else
+		do_procinit();
 
 	if (cmdname)
 		strcpy(what, cmdname);
@@ -158,7 +177,8 @@ do_stop(void)
 		bb_error_msg_and_die ("internal error, please report");
 
 	if (!found) {
-		printf("no %s found; none killed.\n", what);
+		if (!quiet)
+			printf("no %s found; none killed.\n", what);
 		return;
 	}
 	for (p = found; p; p = p->next) {
@@ -169,7 +189,7 @@ do_stop(void)
 			bb_perror_msg("warning: failed to kill %d:", p->pid);
 		}
 	}
-	if (killed) {
+	if (!quiet && killed) {
 		printf("stopped %s (pid", what);
 		for (p = found; p; p = p->next)
 			if(p->pid < 0)
@@ -183,17 +203,20 @@ static const struct option ssd_long_options[] = {
 	{ "stop",		0,		NULL,		'K' },
 	{ "start",		0,		NULL,		'S' },
 	{ "background",	0,		NULL,		'b' },
+	{ "quiet",		0,		NULL,		'q' },
 	{ "startas",	1,		NULL,		'a' },
 	{ "name",		1,		NULL,		'n' },
 	{ "signal",		1,		NULL,		's' },
 	{ "user",		1,		NULL,		'u' },
 	{ "exec",		1,		NULL,		'x' },
+	{ "pidfile",	1,		NULL,		'p' },
 	{ 0,			0,		0,			0 }
 };
 
 #define SSD_CTX_STOP	1
 #define SSD_CTX_START	2
 #define SSD_OPT_BACKGROUND	4
+#define SSD_OPT_QUIET	8
 
 int
 start_stop_daemon_main(int argc, char **argv)
@@ -205,8 +228,8 @@ start_stop_daemon_main(int argc, char **argv)
 	bb_applet_long_options = ssd_long_options;
 
 	bb_opt_complementaly = "K~S:S~K";
-	opt = bb_getopt_ulflags(argc, argv, "KSba:n:s:u:x:", 
-			&startas, &cmdname, &signame, &userspec, &execname);
+	opt = bb_getopt_ulflags(argc, argv, "KSbqa:n:s:u:x:p:",
+			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
 	/* Check one and only one context option was given */
 	if ((opt & 0x80000000UL) || (opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
@@ -232,7 +255,7 @@ start_stop_daemon_main(int argc, char **argv)
 	if (userspec && sscanf(userspec, "%d", &user_id) != 1)
 		user_id = my_getpwnam(userspec);
 
-	do_procfs();
+	do_procinit();
 
 	if (opt & SSD_CTX_STOP) {
 		do_stop();
@@ -240,7 +263,8 @@ start_stop_daemon_main(int argc, char **argv)
 	}
 
 	if (found) {
-		printf("%s already running.\n%d\n", execname ,found->pid);
+		if (!quiet)
+			printf("%s already running.\n%d\n", execname ,found->pid);
 		return EXIT_SUCCESS;
 	}
 	*--argv = startas;
