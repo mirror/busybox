@@ -1,0 +1,2 @@
+echo -e '\0foo' >foo
+busybox grep foo foo
