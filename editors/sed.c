@@ -914,7 +914,6 @@ static void process_file(FILE * file)
 #endif
 					/* we print the pattern_space once, unless we were told to be quiet */
 					substituted |= do_subst_command(sed_cmd, &pattern_space);
-
 #ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
 					/* undo HACK: escape newlines twice so regex can match them */
 					{
@@ -930,10 +929,10 @@ static void process_file(FILE * file)
 							|| (sed_cmd->next->cmd != 's'))) {
 						force_print = 1;
 					}
-
 					/* we also print the line if we were given the 'p' flag
 					 * (this is quite possibly the second printing) */
-					if ((sed_cmd->sub_p) && altered) {
+//					if ((sed_cmd->sub_p) && (!altered || substituted)) {
+					if ((sed_cmd->sub_p) && (altered || substituted)) {
 						puts(pattern_space);
 					}
 					break;
