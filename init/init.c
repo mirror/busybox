@@ -1011,6 +1011,7 @@ static void parse_inittab(void)
 			message(LOG | CONSOLE, "\rBad inittab entry: %s\n", lineAsRead);
 		}
 	}
+	fclose(file);
 	return;
 #endif /* CONFIG_FEATURE_USE_INITTAB */
 }
