@@ -7,24 +7,21 @@
  */
 extern char *read_package_field(const char *package_buffer)
 {
-	char *field = NULL;
 	int field_length = 0;	
 	int buffer_length = 0;
 
-	buffer_length = strlen(package_buffer);
-
-	while ((field = strchr(&package_buffer[field_length], '\n')) != NULL) {
-		field_length = buffer_length - strlen(field);
-		if (package_buffer[field_length + 1] != ' ') {
-			break;
-		} else {
-			field_length++;
-		}		
-	}
-	if (field_length == 0) {
+	if (package_buffer == NULL) {
 		return(NULL);
-	} else {
-		return(xstrndup(package_buffer, field_length));
 	}
+	buffer_length = strlen(package_buffer);
+	field_length = strcspn(package_buffer, "\n");
+	while (field_length < buffer_length) {
+		if (package_buffer[field_length + 1] != ' ') {
+			return(xstrndup(package_buffer, field_length));
+		}
+		field_length++;
+		field_length += strcspn(&package_buffer[field_length], "\n");
+	}
+	return(xstrdup(package_buffer));
 }
 
