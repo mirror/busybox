@@ -12,6 +12,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ *  FIXME: Better checking required in oldcompatability mode, 
+ *  the file db.1.85.tar.gz from sleepycat.com has trailing garbage
+ *  GNU tar can handle it, busybox tar reports invalid tar header. 
  */
 
 #include <stdio.h>
@@ -106,14 +110,6 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
 	}
 
-	{	/* Strip trailing '/' in directories */
-		char *tmp = last_char_is(file_header->name, '/');
-		if (tmp) {
-			*tmp = '\0';
-		}
-	}
-
-
 	file_header->mode = strtol(tar.formated.mode, NULL, 8);
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
 	file_header->gid = strtol(tar.formated.gid, NULL, 8);
@@ -126,12 +122,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 
 	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
-# ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
+#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	case 0:
 	case '0':
 		if (last_char_is(file_header->name, '/')) {
+			printf("directory\n");
 			file_header->mode |= S_IFDIR;
 		} else {
+			printf("regular file\n");
 			file_header->mode |= S_IFREG;
 		}
 		break;
@@ -150,12 +148,12 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case '6':
 		file_header->mode |= S_IFIFO;
 		break;
-# endif
+#endif
 	/* hard links are detected as regular files with 0 size and a link name */
 	case '1':
 		file_header->mode &= (S_IFREG | 07777);
 		break;
-# ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
+#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, longname, file_header->size);
@@ -179,7 +177,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	case 'S':
 	case 'V':
 		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
-# endif
+#endif
+	}
+	{	/* Strip trailing '/' in directories */
+		/* Must be done after mode is set as '/' is used to check if its a directory */
+		char *tmp = last_char_is(file_header->name, '/');
+		if (tmp) {
+			*tmp = '\0';
+		}
 	}
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
