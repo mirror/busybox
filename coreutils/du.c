@@ -156,7 +156,7 @@ int du_main(int argc, char **argv)
 		for (i=optind; i < argc; i++) {
 			if ((sum = du(argv[i])) == 0)
 				status = EXIT_FAILURE;
-			if (sum && is_directory(argv[i], FALSE, NULL)) {
+			if (is_directory(argv[i], FALSE, NULL)==FALSE) {
 				print_normal(sum, argv[i]);
 			}
 			reset_ino_dev_hashtable();
@@ -166,7 +166,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.29 2000/12/07 19:56:48 markw Exp $ */
+/* $Id: du.c,v 1.30 2000/12/09 17:07:12 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
