@@ -395,7 +395,7 @@ extern int mount_main(int argc, char **argv)
 
 	if (optind + 1 < argc) {
 		if (realpath(argv[optind + 1], directory) == NULL) {
-			perror_msg_and_die("Invalid directory %s", directory);
+			perror_msg_and_die("%s", directory);
 		}
 	}
 	
