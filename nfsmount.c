@@ -262,7 +262,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	char hostdir[1024];
 	CLIENT *mclient;
 	char *hostname;
-	char *dirname;
+	char *pathname;
 	char *old_opts;
 	char *mounthost=NULL;
 	char new_opts[1024];
@@ -316,7 +316,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	strcpy(hostdir, spec);
 	if ((s = strchr(hostdir, ':'))) {
 		hostname = hostdir;
-		dirname = s + 1;
+		pathname = s + 1;
 		*s = '\0';
 		/* Ignore all but first hostname in replicated mounts
 		   until they can be fully supported. (mack@sgi.com) */
@@ -662,7 +662,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			mclient = 0;
 			}
 			if (mclient) {
-				/* try to mount hostname:dirname */
+				/* try to mount hostname:pathname */
 				mclient->cl_auth = authunix_create_default();
 
 			/* make pointers in xdr_mountres3 NULL so
@@ -673,14 +673,14 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			if (pm_mnt->pm_vers == 3)
 				clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
 						      (xdrproc_t) xdr_dirpath,
-						      (caddr_t) &dirname,
+						      (caddr_t) &pathname,
 						      (xdrproc_t) xdr_mountres3,
 						      (caddr_t) &status,
 					total_timeout);
 			else
 				clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
 						      (xdrproc_t) xdr_dirpath,
-						      (caddr_t) &dirname,
+						      (caddr_t) &pathname,
 						      (xdrproc_t) xdr_fhstatus,
 						      (caddr_t) &status,
 						      total_timeout);
@@ -720,7 +720,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (nfsvers == 2) {
 		if (status.nfsv2.fhs_status != 0) {
 			error_msg("%s:%s failed, reason given by server: %s",
-				hostname, dirname,
+				hostname, pathname,
 				nfs_strerror(status.nfsv2.fhs_status));
 			goto fail;
 		}
@@ -738,7 +738,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		fhandle3 *my_fhandle;
 		if (status.nfsv3.fhs_status != 0) {
 			error_msg("%s:%s failed, reason given by server: %s",
-				hostname, dirname,
+				hostname, pathname,
 				nfs_strerror(status.nfsv3.fhs_status));
 			goto fail;
 		}
