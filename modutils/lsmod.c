@@ -41,6 +41,32 @@
 
 
 
+#define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
+#define TAINT_PROPRIETORY_MODULE        (1<<0)
+#define TAINT_FORCED_MODULE             (1<<1)
+#define TAINT_UNSAFE_SMP                (1<<2)
+
+void check_tainted(void) 
+{
+	int tainted;
+	FILE *f;
+
+	tainted = 0;
+	if ((f = fopen(TAINT_FILENAME, "r"))) {
+		fscanf(f, "%d", &tainted);
+		fclose(f);
+	}
+	if (f && tainted) {
+		printf("    Tainted: %c%c%c",
+				tainted & TAINT_PROPRIETORY_MODULE      ? 'P' : 'G',
+				tainted & TAINT_FORCED_MODULE           ? 'F' : ' ',
+				tainted & TAINT_UNSAFE_SMP              ? 'S' : ' ');
+	}
+	else {
+		printf("    Not tainted");
+	}
+}
+
 #ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 
 struct module_info
@@ -99,7 +125,10 @@ extern int lsmod_main(int argc, char **argv)
 	}
 
 	deps = xmalloc(depsize = 256);
-	printf("Module                  Size  Used by\n");
+	printf("Module                  Size  Used by");
+	check_tainted();
+	printf("\n");
+
 	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
 		if (query_module(mn, QM_INFO, &info, sizeof(info), &count)) {
 			if (errno == ENOENT) {
@@ -149,7 +178,8 @@ extern int lsmod_main(int argc, char **argv)
 	int fd, i;
 	char line[128];
 
-	puts("Module                  Size  Used by");
+	printf("Module                  Size  Used by");
+	check_tainted();
 	fflush(stdout);
 
 	if ((fd = open("/proc/modules", O_RDONLY)) >= 0 ) {

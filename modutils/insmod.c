@@ -71,6 +71,7 @@
 #include <assert.h>
 #include <string.h>
 #include <getopt.h>
+#include <fcntl.h>
 #include <sys/utsname.h>
 #include "busybox.h"
 
@@ -233,7 +234,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.89 2002/07/21 17:33:26 sandman Exp $"
+#ident "$Id: insmod.c,v 1.90 2002/09/16 05:30:24 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +455,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.89 2002/07/21 17:33:26 sandman Exp $"
+#ident "$Id: insmod.c,v 1.90 2002/09/16 05:30:24 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3421,7 +3422,117 @@ static void hide_special_symbols(struct obj_file *f)
 				ELFW(ST_INFO) (STB_LOCAL, ELFW(ST_TYPE) (sym->info));
 }
 
+static int obj_gpl_license(struct obj_file *f, const char **license)
+{
+	struct obj_section *sec;
+	/* This list must match *exactly* the list of allowable licenses in
+	 * linux/include/linux/module.h.  Checking for leading "GPL" will not
+	 * work, somebody will use "GPL sucks, this is proprietary".
+	 */
+	static const char *gpl_licenses[] = {
+		"GPL",
+		"GPL v2",
+		"GPL and additional rights",
+		"Dual BSD/GPL",
+		"Dual MPL/GPL",
+	};
 
+	if ((sec = obj_find_section(f, ".modinfo"))) {
+		const char *value, *ptr, *endptr;
+		ptr = sec->contents;
+		endptr = ptr + sec->header.sh_size;
+		while (ptr < endptr) {
+			if ((value = strchr(ptr, '=')) && strncmp(ptr, "license", value-ptr) == 0) {
+				int i;
+				if (license)
+					*license = value+1;
+				for (i = 0; i < sizeof(gpl_licenses)/sizeof(gpl_licenses[0]); ++i) {
+					if (strcmp(value+1, gpl_licenses[i]) == 0)
+						return(0);
+				}
+				return(2);
+			}
+			if (strchr(ptr, '\0'))
+				ptr = strchr(ptr, '\0') + 1;
+			else
+				ptr = endptr;
+		}
+	}
+	return(1);
+}
+
+#define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
+#define TAINT_PROPRIETORY_MODULE        (1<<0)
+#define TAINT_FORCED_MODULE             (1<<1)
+#define TAINT_UNSAFE_SMP                (1<<2)
+#define TAINT_URL						"http://www.tux.org/lkml/#export-tainted"
+
+static void set_tainted(struct obj_file *f, int fd, char *m_name, 
+		int kernel_has_tainted, int taint, const char *text1, const char *text2)
+{
+	char buf[80];
+	int oldval;
+	static int first = 1;
+	if (fd < 0 && !kernel_has_tainted)
+		return;		/* New modutils on old kernel */
+	printf("Warning: loading %s will taint the kernel: %s%s\n",
+			m_name, text1, text2);
+	if (first) {
+		printf("  See %s for information about tainted modules\n", TAINT_URL);
+		first = 0;
+	}
+	if (fd >= 0) {
+		read(fd, buf, sizeof(buf)-1);
+		buf[sizeof(buf)-1] = '\0';
+		oldval = strtoul(buf, NULL, 10);
+		sprintf(buf, "%d\n", oldval | taint);
+		write(fd, buf, strlen(buf));
+	}
+}
+
+/* Check if loading this module will taint the kernel. */
+static void check_tainted_module(struct obj_file *f, char *m_name)
+{
+	static const char tainted_file[] = TAINT_FILENAME;
+	int fd, kernel_has_tainted;
+	const char *ptr;
+
+	kernel_has_tainted = 1;
+	if ((fd = open(tainted_file, O_RDWR)) < 0) {
+		if (errno == ENOENT)
+			kernel_has_tainted = 0;
+		else if (errno == EACCES)
+			kernel_has_tainted = 1;
+		else {
+			perror(tainted_file);
+			kernel_has_tainted = 0;
+		}
+	}
+
+	switch (obj_gpl_license(f, &ptr)) {
+		case 0:
+			break;
+		case 1:
+			set_tainted(f, fd, m_name, kernel_has_tainted, TAINT_PROPRIETORY_MODULE, "no license", "");
+			break;
+		case 2:
+			/* The module has a non-GPL license so we pretend that the
+			 * kernel always has a taint flag to get a warning even on
+			 * kernels without the proc flag.
+			 */
+			set_tainted(f, fd, m_name, 1, TAINT_PROPRIETORY_MODULE, "non-GPL license - ", ptr);
+			break;
+		default:
+			set_tainted(f, fd, m_name, 1, TAINT_PROPRIETORY_MODULE, "Unexpected return from obj_gpl_license", "");
+			break;
+	}
+
+	if (flag_force_load)
+		set_tainted(f, fd, m_name, 1, TAINT_FORCED_MODULE, "forced load", "");
+
+	if (fd >= 0)
+		close(fd);
+}
 
 extern int insmod_main( int argc, char **argv)
 {
@@ -3657,6 +3768,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 	}
 	obj_allocate_commons(f);
+	check_tainted_module(f, m_name);
 
 	/* done with the module name, on to the optional var=value arguments */
 	++optind;
