@@ -51,7 +51,7 @@ int dumpkmap_main(int argc, char **argv)
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
 		errorMsg("Error opening /dev/tty0: %s\n", strerror(errno));
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	write(1, magic, 7);
@@ -88,5 +88,5 @@ int dumpkmap_main(int argc, char **argv)
 		}
 	}
 	close(fd);
-	return 0;
+	return EXIT_SUCCESS;
 }

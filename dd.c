@@ -174,7 +174,7 @@ extern int dd_main(int argc, char **argv)
 		   (inTotal % blockSize) != 0);
 	printf("%ld+%d records out\n", (long) (outTotal / blockSize),
 		   (outTotal % blockSize) != 0);
-	exit(TRUE);
+	return EXIT_SUCCESS;
   usage:
 
 	usage(dd_usage);

@@ -568,7 +568,7 @@ extern int syslogd_main(int argc, char **argv)
 		doSyslogd();
 	}
 
-	return(TRUE);
+	return EXIT_SUCCESS;
 }
 
 /*

@@ -183,7 +183,7 @@ extern int ps_main(int argc, char **argv)
 		fprintf(stdout, "\n");
 	}
 	closedir(dir);
-	return(TRUE);
+	return EXIT_SUCCESS;
 }
 
 

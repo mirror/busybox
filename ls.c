@@ -878,5 +878,4 @@ extern int ls_main(int argc, char **argv)
 
   print_usage_message:
 	usage(ls_usage);
-	return(FALSE);
 }

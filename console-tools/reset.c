@@ -29,6 +29,6 @@
 extern int reset_main(int argc, char **argv)
 {
        printf("\033c");
-       return(TRUE);
+       return EXIT_SUCCESS;
 }
 

@@ -902,22 +902,22 @@ int md5sum_main(int argc,
 
   if (file_type_specified && do_check) {
     errorMsg("the -b and -t options are meaningless when verifying checksums\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
   if (n_strings > 0 && do_check) {
     errorMsg("the -g and -c options are mutually exclusive\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
   if (status_only && !do_check) {
     errorMsg("the -s option is meaningful only when verifying checksums\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
   if (warn && !do_check) {
     errorMsg("the -w option is meaningful only when verifying checksums\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
   if (n_strings > 0) {
@@ -925,7 +925,7 @@ int md5sum_main(int argc,
 
     if (optind < argc) {
       errorMsg("no files may be specified when using -g\n");
-      exit FALSE;
+	  return EXIT_FAILURE;
     }
     for (i = 0; i < n_strings; ++i) {
       size_t cnt;
@@ -992,13 +992,16 @@ int md5sum_main(int argc,
 
   if (fclose (stdout) == EOF) {
     errorMsg("write error\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
   if (have_read_stdin && fclose (stdin) == EOF) {
     errorMsg("standard input\n");
-    exit FALSE;
+	return EXIT_FAILURE;
   }
 
-  exit (err == 0 ? TRUE : FALSE);
+  if (err == 0)
+	  return EXIT_SUCCESS;
+  else
+	  return EXIT_FAILURE;
 }

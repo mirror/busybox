@@ -34,7 +34,7 @@ _syscall1(int, delete_module, const char *, name)
 
 extern int rmmod_main(int argc, char **argv)
 {
-	int ret = TRUE;
+	int ret = EXIT_SUCCESS;
 	if (argc <= 1) {
 		usage(rmmod_usage);
 	}
@@ -47,9 +47,9 @@ extern int rmmod_main(int argc, char **argv)
 				/* Unload _all_ unused modules via NULL delete_module() call */
 				if (delete_module(NULL)) {
 					perror("rmmod");
-					exit(FALSE);
+					return EXIT_FAILURE;
 				}
-				exit(TRUE);
+				return EXIT_SUCCESS;
 			default:
 				usage(rmmod_usage);
 			}
@@ -59,7 +59,7 @@ extern int rmmod_main(int argc, char **argv)
 	while (argc-- > 0) {
 		if (delete_module(*argv) < 0) {
 			perror(*argv);
-			ret=FALSE;
+			ret = EXIT_FAILURE;
 		}
 		argv++;
 	}

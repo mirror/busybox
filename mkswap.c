@@ -176,7 +176,7 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 void die(const char *str)
 {
 	errorMsg("%s\n", str);
-	exit(FALSE);
+	exit(EXIT_FAILURE);
 }
 
 void page_ok(int page)
@@ -325,7 +325,7 @@ int mkswap_main(int argc, char **argv)
 	} else if (PAGES > sz && !force) {
 		errorMsg("error: size %ld is larger than device size %d\n",
 				PAGES * (pagesize / 1024), sz * (pagesize / 1024));
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
 
 	if (version == -1) {
@@ -369,7 +369,7 @@ int mkswap_main(int argc, char **argv)
 	DEV = open(device_name, O_RDWR);
 	if (DEV < 0 || fstat(DEV, &statbuf) < 0) {
 		perror(device_name);
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
@@ -393,7 +393,7 @@ int mkswap_main(int argc, char **argv)
 "This probably means creating v0 swap would destroy your partition table\n"
 "No swap created. If you really want to create swap v0 on that device, use\n"
 "the -f option to force it.\n", device_name);
-				exit(FALSE);
+				return EXIT_FAILURE;
 			}
 		}
 	}
@@ -429,5 +429,5 @@ int mkswap_main(int argc, char **argv)
 	 */
 	if (fsync(DEV))
 		die("fsync failed");
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

@@ -28,7 +28,7 @@ printf("erik: A\n");
 		/* deallocate all unused consoles */
 		if (ioctl(fd, VT_DISALLOCATE, 0)) {
 			perror("VT_DISALLOCATE");
-			exit( FALSE);
+			return EXIT_FAILURE;
 		}
 	} else
 printf("erik: B\n");
@@ -44,5 +44,5 @@ printf("erik: B\n");
 			}
 		}
 printf("erik: C\n");
-	return( TRUE);
+	return EXIT_SUCCESS;
 }

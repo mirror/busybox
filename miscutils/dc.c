@@ -13,19 +13,15 @@ static unsigned int pointer;
 
 static void push(double a)
 {
-	if (pointer >= (sizeof(stack) / sizeof(*stack))) {
-		errorMsg("stack overflow\n");
-		exit(-1);
-	} else
-		stack[pointer++] = a;
+	if (pointer >= (sizeof(stack) / sizeof(*stack)))
+		fatalError("stack overflow\n");
+	stack[pointer++] = a;
 }
 
 static double pop()
 {
-	if (pointer == 0) {
-		errorMsg("stack underflow\n");
-		exit(-1);
-	}
+	if (pointer == 0)
+		fatalError("stack underflow\n");
 	return stack[--pointer];
 }
 
@@ -124,8 +120,7 @@ static void stack_machine(const char *argument)
 		}
 		o++;
 	}
-	errorMsg("%s: syntax error.\n", argument);
-	exit(-1);
+	fatalError("%s: syntax error.\n", argument);
 }
 
 /* return pointer to next token in buffer and set *buffer to one char
@@ -182,5 +177,5 @@ int dc_main(int argc, char **argv)
 		}
 	}
 	stack_machine(0);
-	return( TRUE);
+	return EXIT_SUCCESS;
 }

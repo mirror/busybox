@@ -434,7 +434,7 @@ extern int fbset_main(int argc, char **argv)
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
 			errorMsg("Unknown video mode `%s'\n", mode);
-			exit(1);
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -446,5 +446,5 @@ extern int fbset_main(int argc, char **argv)
 	/* Don't close the file, as exiting will take care of that */
 	/* close(fh); */
 
-	return (TRUE);
+	return EXIT_SUCCESS;
 }

@@ -62,5 +62,5 @@ extern int dutmp_main(int argc, char **argv)
 		ut.ut_addr);
 	}
 #endif
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

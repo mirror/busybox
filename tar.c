@@ -156,6 +156,7 @@ extern int tar_main(int argc, char **argv)
 	int tostdoutFlag = FALSE;
 	int firstOpt = TRUE;
 	int stopIt;
+	int status;
 																		   
 
 	if (argc <= 1)
@@ -227,15 +228,20 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, verboseFlag, argv, excludeList));
+		status = writeTarFile(tarName, verboseFlag, argv, excludeList);
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
 		if (*argv)
 			extractList = argv;
-		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag,
-					verboseFlag, extractList, excludeList));
+		status = readTarFile(tarName, extractFlag, listFlag, tostdoutFlag,
+					verboseFlag, extractList, excludeList);
 	}
+
+	if (status == TRUE)
+		return EXIT_SUCCESS;
+	else
+		return EXIT_FAILURE;
 
   flagError:
 	fatalError( "Exactly one of 'c', 'x' or 't' must be specified\n");

@@ -232,7 +232,7 @@ int date_main(int argc, char **argv)
 	} else if (*date_fmt == '\0') {
 		/* Imitate what GNU 'date' does with NO format string! */
 		printf("\n");
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	}
 
 	/* Handle special conversions */
@@ -246,5 +246,5 @@ int date_main(int argc, char **argv)
 	strftime(t_buff, 200, date_fmt, &tm_time);
 	printf("%s\n", t_buff);
 
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

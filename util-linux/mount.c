@@ -330,7 +330,7 @@ extern int mount_main(int argc, char **argv)
 	int fakeIt = FALSE;
 	int useMtab = TRUE;
 	int i;
-	int rc = FALSE;
+	int rc = EXIT_FAILURE;
 	int fstabmount = FALSE;	
 
 #if defined BB_FEATURE_USE_DEVPS_PATCH
@@ -367,7 +367,7 @@ extern int mount_main(int argc, char **argv)
 		free( mntentlist);
 		close(fd);
 #endif
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	}
 #else
 	if (argc == 1) {
@@ -388,7 +388,7 @@ extern int mount_main(int argc, char **argv)
 		} else {
 			perror(mtab_file);
 		}
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	}
 #endif
 
@@ -489,7 +489,7 @@ singlemount:
 					&extra_opts, &string_flags, 1);
 				if ( rc != 0) {
 					fatalError("nfsmount failed: %s\n", strerror(errno));	
-					rc = FALSE;
+					rc = EXIT_FAILURE;
 				}
 			}
 #endif
@@ -499,7 +499,7 @@ singlemount:
 			if (all == FALSE)
 				break;
 
-			rc = TRUE;	// Always return 0 for 'all'
+			rc = EXIT_SUCCESS;	// Always return 0 for 'all'
 		}
 		if (fstabmount == TRUE)
 			endmntent(f);
@@ -512,8 +512,6 @@ singlemount:
 	
 	goto singlemount;
 	
-	exit(FALSE);
-
 goodbye:
 	usage(mount_usage);
 }

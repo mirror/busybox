@@ -158,7 +158,7 @@ extern int kill_main(int argc, char **argv)
 						}
 					}
 					fprintf(stderr, "\n\n");
-					exit(TRUE);
+					return EXIT_SUCCESS;
 				}
 				break;
 			case '-':
@@ -236,11 +236,12 @@ extern int kill_main(int argc, char **argv)
 			 * upon exit, so we can save a byte or two */
 			argv++;
 		}
-		exit (all_found);
+		if (all_found == FALSE)
+			return EXIT_FAILURE;
 	}
 #endif
 
-	exit(TRUE);
+	return EXIT_SUCCESS;
 
 
   end:

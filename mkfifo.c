@@ -55,7 +55,7 @@ extern int mkfifo_main(int argc, char **argv)
 		usage(mkfifo_usage);
 	if (mkfifo(*argv, mode) < 0) {
 		perror("mkfifo");
-		exit(255);
+		return EXIT_FAILURE;
 	}
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

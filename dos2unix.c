@@ -41,5 +41,5 @@ int dos2unix_main( int argc, char **argv ) {
                 putchar(c);
                 c = getchar();
 	} 
-	return 0;
+	return EXIT_SUCCESS;
 }

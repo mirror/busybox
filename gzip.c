@@ -1930,7 +1930,7 @@ int gzip_main(int argc, char **argv)
 
 		if (unlink(delFileName) < 0) {
 			perror(delFileName);
-			exit(FALSE);
+			exit(EXIT_FAILURE);
 		}
 	}
 

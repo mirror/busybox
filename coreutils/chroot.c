@@ -54,7 +54,7 @@ int chroot_main(int argc, char **argv)
 		execlp(prog, prog, NULL);
 #else
 		shell_main(argc, argv);
-		exit (0);
+		return EXIT_SUCCESS;
 #endif
 	}
 	fatalError("cannot execute %s: %s\n", prog, strerror(errno));

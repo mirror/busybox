@@ -85,6 +85,6 @@ int mknod_main(int argc, char **argv)
 
 	if (mknod(argv[0], mode, dev) != 0)
 		fatalError("%s: %s\n", argv[0], strerror(errno));
-	return (TRUE);
+	return EXIT_SUCCESS;
 }
 

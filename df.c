@@ -79,12 +79,12 @@ extern int df_main(int argc, char **argv)
 				exit(FALSE);
 			}
 			status = df(mountEntry->mnt_fsname, mountEntry->mnt_dir);
-			if (status != 0)
-				exit(status);
+			if (status != TRUE)
+				return EXIT_FAILURE;
 			argc--;
 			argv++;
 		}
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	} else {
 		FILE *mountTable;
 		struct mntent *mountEntry;
@@ -92,7 +92,7 @@ extern int df_main(int argc, char **argv)
 		mountTable = setmntent(mtab_file, "r");
 		if (mountTable == 0) {
 			perror(mtab_file);
-			exit(FALSE);
+			return EXIT_FAILURE;
 		}
 
 		while ((mountEntry = getmntent(mountTable))) {
@@ -101,7 +101,7 @@ extern int df_main(int argc, char **argv)
 		endmntent(mountTable);
 	}
 
-	return(TRUE);
+	return EXIT_FAILURE;
 }
 
 /*

@@ -1350,7 +1350,7 @@ int gunzip_main(int argc, char **argv)
 
 		if (delInputFile == 1 && unlink(delFileName) < 0) {
 			perror(delFileName);
-			exit(FALSE);
+			return EXIT_FAILURE;
 		}
 	}
 	return(exit_code);

@@ -45,5 +45,5 @@ extern int basename_main(int argc, char **argv)
 			s[m-n] = '\0';
 	}
 	printf("%s\n", s);
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

@@ -25,13 +25,13 @@ int chvt_main(int argc, char **argv)
 	num = atoi(argv[1]);
 	if (ioctl(fd, VT_ACTIVATE, num)) {
 		perror("VT_ACTIVATE");
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
 	if (ioctl(fd, VT_WAITACTIVE, num)) {
 		perror("VT_WAITACTIVE");
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
-	return(TRUE);
+	return EXIT_SUCCESS;
 }
 
 

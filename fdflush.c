@@ -40,7 +40,7 @@ extern int fdflush_main(int argc, char **argv)
 	fd = open(*argv, 0);
 	if (fd < 0) {
 		perror(*argv);
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
 
 	value = ioctl(fd, FDFLUSH, 0);
@@ -50,7 +50,7 @@ extern int fdflush_main(int argc, char **argv)
 
 	if (value) {
 		perror(*argv);
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

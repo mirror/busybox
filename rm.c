@@ -102,9 +102,9 @@ extern int rm_main(int argc, char **argv)
 		} else {
 			if (recursiveAction(srcName, recursiveFlag, FALSE,
 								TRUE, fileAction, dirAction, NULL) == FALSE) {
-				exit(FALSE);
+				return EXIT_FAILURE;
 			}
 		}
 	}
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

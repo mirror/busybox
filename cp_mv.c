@@ -316,9 +316,9 @@ extern int cp_mv_main(int argc, char **argv)
 		if (flags_memo)
 			*(baseDestName + baseDestLen) = '\0';
 	}
-	return( TRUE);
+	return EXIT_SUCCESS;
  exit_false:
-	return( FALSE);
+	return EXIT_FAILURE;
 }
 
 /*

@@ -54,7 +54,7 @@ int cmp_main(int argc, char **argv)
 			else
 				printf("%s %s differ: char %d, line %d\n", filename1, filename2,
 						char_pos, line_pos);
-			return 1;
+			return EXIT_FAILURE;
 		}
 		char_pos++;
 		if (c1 == '\n')

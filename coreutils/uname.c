@@ -138,7 +138,7 @@ int uname_main(int argc, char **argv)
 	print_element(PRINT_MACHINE, name.machine);
 	print_element(PRINT_PROCESSOR, processor);
 
-	return(TRUE);
+	return EXIT_SUCCESS;
 }
 
 /* If the name element set in MASK is selected for printing in `toprint',

@@ -101,7 +101,6 @@ int rdate_main(int argc, char **argv)
 			default:
 			case 'H':
 				usage(rdate_usage);
-				return(FALSE);
 				break;
 			case 's':
 				setdate++;
@@ -117,11 +116,10 @@ int rdate_main(int argc, char **argv)
 
 	if (optind == argc) {
 		usage(rdate_usage);
-		return(FALSE);
 	}
 
 	if ((time= askremotedate(argv[optind])) == (time_t)-1) {
-		return(FALSE);
+		return EXIT_FAILURE;
 	}
 	if (setdate) {
 		if (stime(&time) < 0)
@@ -131,5 +129,5 @@ int rdate_main(int argc, char **argv)
 		fprintf(stdout, "%s", ctime(&time));
 	}
 
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

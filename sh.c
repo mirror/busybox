@@ -217,11 +217,11 @@ static int builtin_cd(struct job *cmd, struct jobSet *junk)
 		newdir = cmd->progs[0].argv[1];
 	if (chdir(newdir)) {
 		printf("cd: %s: %s\n", newdir, strerror(errno));
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 	getcwd(cwd, sizeof(char)*MAX_LINE);
 
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'env' handler */
@@ -245,14 +245,14 @@ static int builtin_exec(struct job *cmd, struct jobSet *junk)
 		fatalError("Exec to %s failed: %s\n", cmd->progs[0].argv[0],
 				strerror(errno));
 	}
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'exit' handler */
 static int builtin_exit(struct job *cmd, struct jobSet *junk)
 {
 	if (!cmd->progs[0].argv[1] == 1)
-		exit TRUE;
+		exit(EXIT_SUCCESS);
 
 	exit (atoi(cmd->progs[0].argv[1]));
 }
@@ -267,12 +267,12 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 		if (!cmd->progs[0].argv[1] || cmd->progs[0].argv[2]) {
 			errorMsg("%s: exactly one argument is expected\n",
 					cmd->progs[0].argv[0]);
-			return FALSE;
+			return EXIT_FAILURE;
 		}
 		if (sscanf(cmd->progs[0].argv[1], "%%%d", &jobNum) != 1) {
 			errorMsg("%s: bad argument '%s'\n",
 					cmd->progs[0].argv[0], cmd->progs[0].argv[1]);
-			return FALSE;
+			return EXIT_FAILURE;
 			for (job = jobList->head; job; job = job->next) {
 				if (job->jobId == jobNum) {
 					break;
@@ -286,7 +286,7 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 	if (!job) {
 		errorMsg("%s: unknown job %d\n",
 				cmd->progs[0].argv[0], jobNum);
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 
 	if (*cmd->progs[0].argv[0] == 'f') {
@@ -305,7 +305,7 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 
 	job->stoppedProgs = 0;
 
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'help' handler */
@@ -326,7 +326,7 @@ static int builtin_help(struct job *dummy, struct jobSet *junk)
 		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
 	}
 	fprintf(stdout, "\n\n");
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'jobs' handler */
@@ -343,7 +343,7 @@ static int builtin_jobs(struct job *dummy, struct jobSet *jobList)
 
 		printf(JOB_STATUS_FORMAT, job->jobId, statusString, job->text);
 	}
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 
@@ -352,7 +352,7 @@ static int builtin_pwd(struct job *dummy, struct jobSet *junk)
 {
 	getcwd(cwd, sizeof(char)*MAX_LINE);
 	fprintf(stdout, "%s\n", cwd);
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'export VAR=value' handler */
@@ -437,11 +437,11 @@ static int builtin_then(struct job *cmd, struct jobSet *junk)
 
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
 		errorMsg("unexpected token `then'\n");
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 	/* If the if result was FALSE, skip the 'then' stuff */
 	if (cmd->jobContext & IF_FALSE_CONTEXT) {
-		return TRUE;
+		return EXIT_SUCCESS;
 	}
 
 	cmd->jobContext |= THEN_EXP_CONTEXT;
@@ -464,11 +464,11 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
 		errorMsg("unexpected token `else'\n");
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 	/* If the if result was TRUE, skip the 'else' stuff */
 	if (cmd->jobContext & IF_TRUE_CONTEXT) {
-		return TRUE;
+		return EXIT_SUCCESS;
 	}
 
 	cmd->jobContext |= ELSE_EXP_CONTEXT;
@@ -488,12 +488,12 @@ static int builtin_fi(struct job *cmd, struct jobSet *junk)
 {
 	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
 		errorMsg("unexpected token `fi'\n");
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 	/* Clear out the if and then context bits */
 	cmd->jobContext &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
 	debug_printf(stderr, "Hit an fi   -- jobContext=%d\n", cmd->jobContext);
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 #endif
 
@@ -504,13 +504,13 @@ static int builtin_source(struct job *cmd, struct jobSet *junk)
 	int status;
 
 	if (!cmd->progs[0].argv[1] == 1)
-		return FALSE;
+		return EXIT_FAILURE;
 
 	input = fopen(cmd->progs[0].argv[1], "r");
 	if (!input) {
 		fprintf(stdout, "Couldn't open file '%s'\n",
 				cmd->progs[0].argv[1]);
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 
 	/* Now run the file */
@@ -524,10 +524,10 @@ static int builtin_unset(struct job *cmd, struct jobSet *junk)
 {
 	if (!cmd->progs[0].argv[1] == 1) {
 		fprintf(stdout, "unset: parameter required.\n");
-		return FALSE;
+		return EXIT_FAILURE;
 	}
 	unsetenv(cmd->progs[0].argv[1]);
-	return TRUE;
+	return EXIT_SUCCESS;
 }
 
 /* free up all memory from a job */

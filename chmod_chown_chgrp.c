@@ -161,9 +161,9 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	while (argc-- > 1) {
 		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 
 					fileAction, fileAction, NULL) == FALSE)
-			exit(FALSE);
+			return EXIT_FAILURE;
 	}
-	exit(TRUE);
+	return EXIT_SUCCESS;
 
   bad_group:
 	fatalError( "unknown group name: %s\n", groupName);

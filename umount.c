@@ -273,11 +273,14 @@ extern int umount_main(int argc, char **argv)
 
 	mtab_read();
 	if (umountAll == TRUE) {
-		exit(umount_all(useMtab));
+		if (umount_all(useMtab) == TRUE)
+			return EXIT_SUCCESS;
+		else
+			return EXIT_FAILURE;
 	}
 	if (do_umount(*argv, useMtab) == 0)
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	perror("umount");
-	return(FALSE);
+	return EXIT_FAILURE;
 }
 

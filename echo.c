@@ -107,7 +107,7 @@ just_echo:
 		putchar('\n');
 	fflush(stdout);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 /*-

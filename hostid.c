@@ -26,5 +26,5 @@
 extern int hostid_main(int argc, char **argv)
 {
 	printf("%lx\n", gethostid());
-	return(TRUE);
+	return EXIT_SUCCESS;
 }

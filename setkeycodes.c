@@ -68,5 +68,5 @@ setkeycodes_main(int argc, char** argv)
 	argc -= 2;
 	argv += 2;
     }
-    return( TRUE);
+	return EXIT_SUCCESS;
 }

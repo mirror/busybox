@@ -387,5 +387,5 @@ extern int ar_main(int argc, char **argv)
 		}
 		extractList=extractList->next;
 	}
-	return (TRUE);
+	return EXIT_SUCCESS;
 }

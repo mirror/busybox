@@ -77,7 +77,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.28 2000/10/23 18:03:46 kraai Exp $"
+#ident "$Id: insmod.c,v 1.29 2000/12/01 02:55:13 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -283,7 +283,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.28 2000/10/23 18:03:46 kraai Exp $"
+#ident "$Id: insmod.c,v 1.29 2000/12/01 02:55:13 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2769,7 +2769,7 @@ extern int insmod_main( int argc, char **argv)
 	FILE *fp;
 	struct obj_file *f;
 	char m_name[BUFSIZ + 1] = "\0";
-	int exit_status = FALSE;
+	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
 #ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
 	int k_version;
@@ -2833,7 +2833,7 @@ extern int insmod_main( int argc, char **argv)
 				|| ((fp = fopen(m_filename, "r")) == NULL)) 
 			{
 				errorMsg("No module named '%s' found in '%s'\n", m_fullName, _PATH_MODULES);
-				exit(FALSE);
+				return EXIT_FAILURE;
 			}
 		} else
 			fatalError("No module named '%s' found in '%s'\n", m_fullName, _PATH_MODULES);
@@ -2843,7 +2843,7 @@ extern int insmod_main( int argc, char **argv)
 
 	if ((f = obj_load(fp)) == NULL) {
 		perror("Could not load the module\n");
-		exit(FALSE);
+		return EXIT_FAILURE;
 	}
 
 	if (get_modinfo_value(f, "kernel_version") == NULL)
@@ -2981,7 +2981,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 	}
 
-	exit_status = TRUE;
+	exit_status = EXIT_SUCCESS;
 
 out:
 	fclose(fp);

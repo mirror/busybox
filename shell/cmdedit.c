@@ -135,7 +135,7 @@ void clean_up_and_die(int sig)
 	cmdedit_reset_term();
 	fprintf(stdout, "\n");
 	if (sig!=SIGINT)
-		exit(TRUE);
+		exit(EXIT_SUCCESS);
 }
 
 /* Go to HOME position */

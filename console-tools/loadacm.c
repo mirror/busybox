@@ -40,17 +40,17 @@ int loadacm_main(int argc, char **argv)
 	fd = open("/dev/tty", O_RDWR);
 	if (fd < 0) {
 		errorMsg("Error opening /dev/tty1: %s\n", strerror(errno));
-		return( FALSE);
+		return EXIT_FAILURE;
 	}
 
 	if (screen_map_load(fd, stdin)) {
 		errorMsg("Error loading acm: %s\n", strerror(errno));
-		return( FALSE);
+		return EXIT_FAILURE;
 	}
 
 	write(fd, "\033(K", 3);
 
-	return( TRUE);
+	return EXIT_SUCCESS;
 }
 
 int screen_map_load(int fd, FILE * fp)

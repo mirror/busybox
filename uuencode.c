@@ -179,7 +179,7 @@ int uuencode_main (int argc,
     /* Optional first argument is input file.  */
     if (!freopen (argv[optind], "r", stdin) || fstat (fileno (stdin), &sb)) {
       errorMsg("%s: %s\n", argv[optind], strerror(errno));
-      exit FALSE;
+      return EXIT_FAILURE;
     }
     mode = sb.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
     optind++;
@@ -200,9 +200,9 @@ int uuencode_main (int argc,
   printf(trans_ptr == uu_std ? "end\n" : "====\n");
   if (ferror (stdout)) {
     errorMsg("Write error\n");
-    exit FALSE;
+    return EXIT_FAILURE;
   }
-  return( TRUE);
+  return EXIT_SUCCESS;
 }
 
 /* Copyright (c) 1983 Regents of the University of California.
