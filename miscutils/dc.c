@@ -44,11 +44,25 @@ static void mul(void)
 	push(pop() * pop());
 }
 
+static void power(void)
+{
+	double topower = pop();
+
+	push(pow(pop(), topower));
+}
+
 static void divide(void)
 {
 	double divisor = pop();
 
 	push(pop() / divisor);
+}
+
+static void mod(void)
+{
+	unsigned int d = pop();
+
+	push((unsigned int) pop() % d);
 }
 
 static void and(void)
@@ -119,10 +133,16 @@ static const struct op operators[] = {
 	{"mul", mul},
 	{"/",   divide},
 	{"div", divide},
+	{"**",  power},
+	{"exp", power},
+	{"pow", power},
+	{"%",   mod},
+	{"mod", mod},
 	{"and", and},
 	{"or",  or},
 	{"not", not},
 	{"eor", eor},
+	{"xor", eor},
 	{"p", print_no_pop},
 	{"f", print_stack_no_pop},
 	{"o", set_output_base},

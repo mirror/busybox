@@ -280,8 +280,10 @@
 	"expression ..."
 #define dc_full_usage \
 	"This is a Tiny RPN calculator that understands the\n" \
-	"following operations: +, -, /, *, and, or, not, eor.\n" \
-	"i.e., 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16" \
+	"following operations: +, add, -, sub, *, mul, /, div, %, mod, "\
+	"**, exp, and, or, not, eor.\n" \
+	"For example: 'dc 2 2 add' -> 4, and 'dc 8 8 \\* 2 2 + /' -> 16.\n" \
+	"\nOptions:\n" \
 	"p - Prints the value on the top of the stack, without altering the stack.\n" \
 	"f - Prints the entire contents of the stack without altering anything.\n" \
 	"o - Pops the value off the top of the stack and uses it to set the output radix.\n" \
