@@ -151,7 +151,7 @@ ifeq ($(strip $(DODEBUG)),true)
 else
     CFLAGS  += $(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE
     LDFLAGS += -s -Wl,-warn-common
-    STRIPCMD    = $(STRIP) --remove-section=.note --remove-section=.comment $(PROG)
+    STRIPCMD    = $(STRIP) --remove-section=.note --remove-section=.comment
 endif
 ifeq ($(strip $(DOSTATIC)),true)
     LDFLAGS += --static
@@ -214,7 +214,7 @@ $(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
 
 busybox: config.h dep-files bbsubdirs
 	$(CC) $(LDFLAGS) -o $@ applets/busybox.o $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
-	$(STRIPCMD)
+	$(STRIPCMD) $(PROG)
 
 busybox.links: applets/busybox.mkll
 	- $(SHELL) $^ >$@
