@@ -33,21 +33,32 @@ static const char mkdir_usage[] = "Usage: mkdir [OPTION] DIRECTORY...\n"
 
 
 static int parentFlag = FALSE;
-static int permFlag = FALSE;
-static mode_t mode = 0777;
+static mode_t mode = 777;
 
 
 extern int mkdir_main(int argc, char **argv)
 {
+    int i=FALSE;
     argc--;
     argv++;
 
     /* Parse any options */
-    while (argc > 1 && **argv == '-') {
-	while (*++(*argv))
+    while (argc > 0 && **argv == '-') {
+	while (i==FALSE && *++(*argv)) {
 	    switch (**argv) {
 	    case 'm':
-		permFlag = TRUE;
+		if (--argc == 0)
+		    usage( mkdir_usage);
+		/* Find the specified modes */
+		mode = 0;
+		if ( parse_mode(*(++argv), &mode) == FALSE ) {
+		    fprintf(stderr, "Unknown mode: %s\n", *argv);
+		    exit( FALSE);
+		}
+		/* Set the umask for this process so it doesn't 
+		 * screw up whatever the user just entered. */
+		umask(0);
+		i=TRUE;
 		break;
 	    case 'p':
 		parentFlag = TRUE;
@@ -55,6 +66,7 @@ extern int mkdir_main(int argc, char **argv)
 	    default:
 		usage( mkdir_usage);
 	    }
+	}
 	argc--;
 	argv++;
     }
@@ -64,11 +76,13 @@ extern int mkdir_main(int argc, char **argv)
 	usage( mkdir_usage);
     }
 
-    while (--argc > 0) {
+    while (argc > 0) {
+	int status;
 	struct stat statBuf;
-	if (stat(*(++argv), &statBuf) != ENOENT) {
+	status=stat(*argv, &statBuf);
+	if (status != -1 && status != ENOENT ) {
 	    fprintf(stderr, "%s: File exists\n", *argv);
-	    return( FALSE);
+	    exit( FALSE);
 	}
 	if (parentFlag == TRUE)
 	    createPath(*argv, mode);
@@ -78,6 +92,8 @@ extern int mkdir_main(int argc, char **argv)
 		exit( FALSE);
 	    }
 	}
+	argc--;
+	argv++;
     }
     exit( TRUE);
 }

@@ -101,7 +101,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     
     if ( whichApp == CHMOD_APP ) {
 	/* Find the specified modes */
-	mode &= S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+	mode = ( 0 & (S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO));
 	if ( parse_mode(*argv, &mode) == FALSE ) {
 	    fprintf(stderr, "%s: Unknown mode: %s\n", invocationName, *argv);
 	    exit( FALSE);

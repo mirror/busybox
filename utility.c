@@ -540,11 +540,9 @@ parse_mode( const char* s, mode_t* theMode)
 					groups |= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
 				break;
 			default:
-				if ( isdigit(c) && c >= '0' && c <= '7' && mode == 0 && groups == 0 ) {
-					andMode = 0;
-					orMode = strtol(--s, NULL, 8);
-					*theMode &= andMode;
-					*theMode |= orMode;
+				if ( isdigit(c) && c >= '0' && c <= '7' && 
+						mode == 0 && groups == 0 ) {
+					*theMode = strtol(--s, NULL, 8);
 					return (TRUE);
 				}
 				else

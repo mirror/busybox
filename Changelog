@@ -1,3 +1,6 @@
+0.32
+	* Fixed mkdir -m option so that it works.
+
 0.31
 	* I added a changelog for version 0.30. 
 	* adjusted find internals to make it smaller, and removed 
