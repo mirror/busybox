@@ -345,6 +345,7 @@ void reset_ino_dev_hashtable(void);
 
 int copyFile(const char *srcName, const char *destName,
 		 int setModes, int followLinks, int forceFlag);
+int copySubFile(int srcFd, int dstFd, size_t remaining);
 char *buildName(const char *dirName, const char *fileName);
 int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);

@@ -44,7 +44,6 @@ extern int dd_main(int argc, char **argv)
 {
 	char *inFile = NULL;
 	char *outFile = NULL;
-	char *cp;
 	int inFd;
 	int outFd;
 	int inCc = 0;
@@ -135,42 +134,14 @@ extern int dd_main(int argc, char **argv)
 
 	lseek(inFd, skipBlocks * blockSize, SEEK_SET);
 	lseek(outFd, seekBlocks * blockSize, SEEK_SET);
-	//
-	//TODO: Convert to using fullRead & fullWrite
-	// from utility.c
-	//  -Erik
-	while (outTotal < count * blockSize) {
-		inCc = read(inFd, buf, blockSize);
-		if (inCc < 0) {
-			perror(inFile);
-			goto cleanup;
-		} else if (inCc == 0) {
-			goto cleanup;
-		}
-		intotal += inCc;
-		cp = buf;
 
-		while (intotal > outTotal) {
-			if (outTotal + inCc > count * blockSize)
-				inCc = count * blockSize - outTotal;
-			outCc = write(outFd, cp, inCc);
-			if (outCc < 0) {
-				perror(outFile);
-				goto cleanup;
-			} else if (outCc == 0) {
-				goto cleanup;
-			}
+	while ((inCc = read(inFd, buf, sizeof(buf))) > 0) {
+		intotal +=inCc;
+		if ((outCc = fullWrite(outFd, buf, inCc)) < 0)
+			break;
+		outTotal += outCc;
+        }
 
-			inCc -= outCc;
-			cp += outCc;
-			outTotal += outCc;
-		}
-	}
-
-	if (inCc < 0)
-		perror(inFile);
-
-  cleanup:
 	/* Note that we are not freeing memory or closing
 	 * files here, to save a few bytes. */
 #ifdef BB_FEATURE_CLEAN_UP

@@ -2,15 +2,15 @@
 
 #if defined BB_AR
 const char ar_usage[] =
-	"ar [optxvV] archive [filenames] \n"
+	"ar [[-ov] -tpv archive] filenames \n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nExtract or list files from an ar archive.\n\n"
 	"Options:\n"
-	"\to\t\tpreserve original dates\n"
-	"\tp\t\textract to stdout\n"
-	"\tt\t\tlist\n"
-	"\tx\t\textract\n"
-	"\tv\t\tverbosely list files processed\n"
+	"\t-o\t\tpreserve original dates\n"
+	"\t-p\t\textract to stdout\n"
+	"\t-t\t\tlist\n"
+	"\t-x\t\textract\n"
+	"\t-v\t\tverbosely list files processed\n"
 #endif
 	;
 #endif

@@ -231,7 +231,7 @@ void reset_ino_dev_hashtable(void)
 
 #endif /* BB_CP_MV || BB_DU */
 
-#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN) || defined (BB_AR)
+#if defined (BB_CP_MV) || defined (BB_DU) || defined (BB_LN)
 /*
  * Return TRUE if a fileName is a directory.
  * Nonexistant files return FALSE.
@@ -264,6 +264,29 @@ int isDirectory(const char *fileName, const int followLinks, struct stat *statBu
 }
 #endif
 
+#if defined (BB_AR)
+/*
+ * Copy readSize bytes between two file descriptors
+ */
+int copySubFile(int srcFd, int dstFd, size_t remaining)
+{
+        size_t size;
+        char buffer[BUFSIZ];
+
+        while (remaining > 0) {
+                if (remaining > BUFSIZ)
+                        size = BUFSIZ;
+                else
+                        size = remaining;
+                if (fullWrite(dstFd, buffer, fullRead(srcFd, buffer, size)) < size)
+                        return(FALSE);
+                remaining -= size;
+        }
+        return (TRUE);
+}
+#endif
+
+
 #if defined (BB_CP_MV)
 /*
  * Copy one file to another, while possibly preserving its modes, times, and
@@ -277,9 +300,7 @@ copyFile(const char *srcName, const char *destName,
 {
 	int rfd;
 	int wfd;
-	int rcc;
 	int status;
-	char buf[BUF_SIZE];
 	struct stat srcStatBuf;
 	struct stat dstStatBuf;
 	struct utimbuf times;
@@ -364,8 +385,7 @@ copyFile(const char *srcName, const char *destName,
 			return FALSE;
 		}
 
-		wfd =
-			open(destName, O_WRONLY | O_CREAT | O_TRUNC,
+	 	wfd = open(destName, O_WRONLY | O_CREAT | O_TRUNC,
 				 srcStatBuf.st_mode);
 		if (wfd < 0) {
 			perror(destName);
@@ -373,14 +393,9 @@ copyFile(const char *srcName, const char *destName,
 			return FALSE;
 		}
 
-		while ((rcc = read(rfd, buf, sizeof(buf))) > 0) {
-			if (fullWrite(wfd, buf, rcc) < 0)
-				goto error_exit;
-		}
-		if (rcc < 0) {
-			goto error_exit;
-		}
-
+		if (copySubFile(rfd, wfd, srcStatBuf.st_size)==FALSE)
+			goto error_exit;	
+		
 		close(rfd);
 		if (close(wfd) < 0) {
 			return FALSE;
@@ -677,7 +692,7 @@ int recursiveAction(const char *fileName,
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_AR)
+#if defined (BB_TAR) || defined (BB_MKDIR)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
@@ -1292,7 +1307,7 @@ extern long getNum(const char *cp)
 #endif							/* BB_DD || BB_TAIL */
 
 
-#if defined BB_INIT || defined BB_SYSLOGD || defined BB_AR
+#if defined BB_INIT || defined BB_SYSLOGD 
 /* try to open up the specified device */
 extern int device_open(char *device, int mode)
 {
