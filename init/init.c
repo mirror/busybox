@@ -459,9 +459,8 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			 * specifies.
 			 */
 #ifdef DEBUG_INIT
-			pid_t shell_pgid = getpid();
 			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
-					command, shell_pgid, terminal);
+					command, getpid(), terminal);
 #endif
 			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 			getc(stdin);
@@ -470,7 +469,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 #ifdef DEBUG_INIT
 		/* Log the process name and args */
 		message(LOG, "Starting pid %d, console %s: '%s'\r\n",
-				shell_pgid, terminal, command);
+				getpid(), terminal, command);
 #endif
 
 		/* See if any special /bin/sh requiring characters are present */
