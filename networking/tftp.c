@@ -475,7 +475,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	close(socketfd);
 
-        RELEASE_CONFIG_BUFFER(buf);
+        free(buf);
 #endif
 
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
