@@ -36,7 +36,7 @@
 static long uid;
 static long gid;
 
-static int (*chown_func)() = chown;
+static int (*chown_func)(const char *, __uid_t, __gid_t) = chown;
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
