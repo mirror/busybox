@@ -41,8 +41,6 @@
 #include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
 
-#define DEBUG_INIT
-
 #define CONSOLE         "/dev/console"	/* Logical system console */
 #define VT_PRIMARY      "/dev/tty0"	/* Virtual console master */
 #define VT_SECONDARY    "/dev/tty1"	/* Virtual console master */
@@ -272,7 +270,6 @@ static pid_t run(const char * const* command,
 }
 
 
-#ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
     const char* const swap_off_cmd[] = { "/bin/swapoff", "-a", 0};
@@ -318,12 +315,9 @@ static void reboot_signal(int sig)
     exit(0);
 }
 
-#endif
-
 extern int init_main(int argc, char **argv)
 {
     int run_rc = TRUE;
-    pid_t pid = 0;
     pid_t pid1 = 0;
     pid_t pid2 = 0;
     struct stat statbuf;
@@ -333,13 +327,10 @@ extern int init_main(int argc, char **argv)
     const char* const* tty0_commands = init_commands;
     const char* const* tty1_commands = shell_commands;
     char *hello_msg_format =
-	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
+	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
     const char *no_memory =
 	"Sorry, your computer does not have enough memory.\r\n";
 
-    pid = getpid();
-
-#ifndef DEBUG_INIT
     /* Set up sig handlers */
     signal(SIGUSR1, halt_signal);
     signal(SIGSEGV, halt_signal);
@@ -353,7 +344,6 @@ extern int init_main(int argc, char **argv)
     /* Turn off rebooting via CTL-ALT-DEL -- we get a 
      * SIGINT on CAD so we can shut things down gracefully... */
     reboot(RB_DISABLE_CAD);
-#endif
     
     /* Figure out where the default console should be */
     console_init();
@@ -370,8 +360,8 @@ extern int init_main(int argc, char **argv)
 	putenv(PATH_DEFAULT);
 
     /* Hello world */
-    message(log, hello_msg_format, pid, BB_VER, BB_BT);
-    fprintf(stderr, hello_msg_format, pid, BB_VER, BB_BT);
+    message(log, hello_msg_format, BB_VER, BB_BT);
+    fprintf(stderr, hello_msg_format, BB_VER, BB_BT);
 
     
     /* Mount /proc */
@@ -385,7 +375,7 @@ extern int init_main(int argc, char **argv)
 
     /* Make sure there is enough memory to do something useful */
     set_free_pages();
-    if (mem_total() < 2000) {
+    if (mem_total() < 3500) {
 	int retval;
 	retval = stat("/etc/fstab", &statbuf);
 	if (retval) {

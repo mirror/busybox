@@ -142,6 +142,9 @@ static const struct Applet applets[] = {
     {"fdisk", sfdisk_main},
     {"sfdisk", sfdisk_main},
 #endif
+#ifdef BB_SED			//bin
+    {"sed", sed_main},
+#endif
 #ifdef BB_SLEEP			//bin
     {"sleep", sleep_main},
 #endif

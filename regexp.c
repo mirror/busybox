@@ -25,6 +25,28 @@ extern int find_match(char *haystack, char *needle, int ignoreCase)
     return( status);
 }
 
+/* This performs substitutions after a regexp match has been found.  
+ * The new string is returned.  It is malloc'ed, and do must be freed. */
+extern char* replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase)
+{
+    int status;
+    char* newHaystack;
+    struct regexp*  re;
+    newHaystack = (char *)malloc((unsigned)(strlen(haystack) -
+		strlen(needle) + strlen(newNeedle));
+    re = regcomp( needle);
+    status = regexec(re, haystack, FALSE, ignoreCase);
+
+    return( newHaystack)
+}
+
+
+extern void regsub(regexp* re, char* src, char* dst)
+
+    free( re);
+    return( status);
+}
+
 
 /* code swiped from elvis-tiny 1.4 (a clone of vi) and adjusted to 
  * suit the needs of busybox by Erik Andersen.

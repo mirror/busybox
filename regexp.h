@@ -43,6 +43,7 @@ extern int regexec(struct regexp* re, char* str, int bol, int ignoreCase);
 extern void regsub(struct regexp* re, char* src, char* dst);
 
 extern int find_match(char *haystack, char *needle, int ignoreCase);
+extern int replace_match(char *haystack, char *needle, char *newNeedle, int ignoreCase);
 
 #endif
 
