@@ -18,7 +18,7 @@
 #include <arpa/inet.h>
 #include "libbb.h"
 
-int bb_getport(char *port)
+int bb_getport(const char *port)
 {
 	int port_nr;
 	char *endptr;
@@ -41,7 +41,7 @@ int bb_getport(char *port)
 	return port_nr;
 }
 
-void bb_lookup_host(struct sockaddr_in *s_in, char *host, char *port)
+void bb_lookup_host(struct sockaddr_in *s_in, const char *host, const char *port)
 {
 	struct hostent *he;
 

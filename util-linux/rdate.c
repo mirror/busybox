@@ -47,7 +47,7 @@ static void socket_timeout(int sig)
 static time_t askremotedate(const char *host)
 {
 	unsigned long int nett, localt;
-	struct sockaddr_in addr s_in;
+	struct sockaddr_in s_in;
 	int fd;
 
 	bb_lookup_host(&s_in, host, "time");
@@ -56,7 +56,7 @@ static time_t askremotedate(const char *host)
 	alarm(10);
 	signal(SIGALRM, socket_timeout);
 
-	fd = xconnect(s_in);
+	fd = xconnect(&s_in);
 
 	if (safe_read(fd, (void *)&nett, 4) != 4)    /* read time from server */
 		bb_error_msg_and_die("%s did not send the complete time", host);

@@ -43,6 +43,8 @@
 
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "busybox.h"
 
@@ -51,6 +53,7 @@ typedef struct ftp_host_info_s {
 	char *port;
 	char *user;
 	char *password;
+	struct sockaddr_in *s_in;
 } ftp_host_info_t;
 
 static char verbose_flag;
@@ -97,10 +100,9 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 	return atoi(buf);
 }
 
-static int xconnect_ftpdata(const char *target_host, const char *buf)
+static int xconnect_ftpdata(ftp_host_info_t *server, const char *buf)
 {
 	char *buf_ptr;
-	char data_port[6];
 	unsigned short port_num;
 
 	buf_ptr = strrchr(buf, ',');
@@ -111,8 +113,8 @@ static int xconnect_ftpdata(const char *target_host, const char *buf)
 	*buf_ptr = '\0';
 	port_num += atoi(buf_ptr + 1) * 256;
 
-	sprintf(data_port, "%d", port_num);
-	return(xconnect(target_host, data_port));
+	server->s_in->sin_port=htons(port_num);
+	return(xconnect(server->s_in));
 }
 
 static FILE *ftp_login(ftp_host_info_t *server)
@@ -122,7 +124,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	int control_fd;
 
 	/* Connect to the command socket */
-	control_fd = xconnect(server->host, server->port);
+	control_fd = xconnect(server->s_in);
 	control_stream = fdopen(control_fd, "r+");
 	if (control_stream == NULL) {
 		bb_perror_msg_and_die("Couldnt open control stream");
@@ -151,7 +153,8 @@ static FILE *ftp_login(ftp_host_info_t *server)
 }
 
 #ifdef CONFIG_FTPGET
-static int ftp_recieve(FILE *control_stream, const char *host, const char *local_path, char *server_path)
+static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream, 
+		const char *local_path, char *server_path)
 {
 	char *filename;
 	char *local_file;
@@ -168,7 +171,7 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 	if (ftpcmd("PASV", NULL, control_stream, buf) != 227) {
 		bb_error_msg_and_die("PASV error: %s", buf + 4);
 	}
-	fd_data = xconnect_ftpdata(host, buf);
+	fd_data = xconnect_ftpdata(server, buf);
 
 	if (ftpcmd("SIZE ", server_path, control_stream, buf) == 213) {
 		filesize = atol(buf + 4);
@@ -223,7 +226,8 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 #endif
 
 #ifdef CONFIG_FTPPUT
-static int ftp_send(FILE *control_stream, const char *host, const char *server_path, char *local_path)
+static int ftp_send(ftp_host_info_t *server, FILE *control_stream, 
+		const char *server_path, char *local_path)
 {
 	struct stat sbuf;
 	char buf[512];
@@ -235,7 +239,7 @@ static int ftp_send(FILE *control_stream, const char *host, const char *server_p
 	if (ftpcmd("PASV", NULL, control_stream, buf) != 227) {
 		bb_error_msg_and_die("PASV error: %s", buf + 4);
 	}
-	fd_data = xconnect_ftpdata(host, buf);
+	fd_data = xconnect_ftpdata(server, buf);
 
 	if (ftpcmd("CWD ", server_path, control_stream, buf) != 250) {
 		bb_error_msg_and_die("CWD error: %s", buf + 4);
@@ -291,11 +295,12 @@ int ftpgetput_main(int argc, char **argv)
 
 	/* socket to ftp server */
 	FILE *control_stream;
+	struct sockaddr_in s_in;
 
 	/* continue a prev transfer (-c) */
 	ftp_host_info_t *server;
 
-	int (*ftp_action)(FILE *, const char *, const char *, char *) = NULL;
+	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
 
 	struct option long_options[] = {
 		{"username", 1, NULL, 'u'},
@@ -324,6 +329,7 @@ int ftpgetput_main(int argc, char **argv)
 	/* 
 	 * Decipher the command line 
 	 */
+	server->port = "21";
 	while ((opt = getopt_long(argc, argv, "u:p:P:cv", long_options, &option_index)) != EOF) {
 		switch(opt) {
 		case 'c':
@@ -353,11 +359,21 @@ int ftpgetput_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	/*  Connect/Setup/Configure the FTP session */
+	/* We want to do exactly _one_ DNS lookup, since some
+	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
+	 * and we want to connect to only one IP... */
+	server->s_in = &s_in;
 	server->host = argv[optind];
+	bb_lookup_host(&s_in, server->host, NULL);
+	if (verbose_flag) {
+		fprintf(stdout, "Connecting to %s[%s]:%s\n",
+				server->host, inet_ntoa(s_in.sin_addr), server->port);
+	}
+
+	/*  Connect/Setup/Configure the FTP session */
 	control_stream = ftp_login(server);
 
-	return(ftp_action(control_stream, argv[optind], argv[optind + 1], argv[optind + 2]));
+	return(ftp_action(server, control_stream, argv[optind + 1], argv[optind + 2]));
 }
 
 /*
