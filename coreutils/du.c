@@ -154,7 +154,7 @@ int du_main(int argc, char **argv)
 		long sum;
 
 		for (i=optind; i < argc; i++) {
-			if (du(argv[i]) == 0)
+			if ((sum = du(argv[i])) == 0)
 				status = EXIT_FAILURE;
 			if (sum && isDirectory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
@@ -166,7 +166,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.27 2000/12/06 15:55:23 kraai Exp $ */
+/* $Id: du.c,v 1.28 2000/12/06 15:56:31 kraai Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
