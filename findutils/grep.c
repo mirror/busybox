@@ -221,8 +221,8 @@ static void destroy_regexes()
 
 	/* destroy all the elments in the array */
 	while (--nregexes >= 0) {
-		regfree(regexes[nregexes]);
-		free(regexes[nregexes]);
+		regfree(&regexes[nregexes]);
+		free(&regexes[nregexes]);
 	}
 }
 #endif
