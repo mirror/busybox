@@ -356,17 +356,17 @@ dist release: distclean doc
 	find busybox-$(VERSION)/ -type d	\
 				 -name CVS	\
 				 -print		\
-		-exec rm -rf {} \;              \
+		-exec rm -rf {} \; ;            \
 						\
 	find busybox-$(VERSION)/ -type f	\
 				 -name .cvsignore \
 				 -print		\
-		-exec rm -f {}  \;              \
+		-exec rm -f {}  \; ;            \
 						\
 	find busybox-$(VERSION)/ -type f	\
 				 -name .\#*	\
 				 -print		\
-		-exec rm -f {} \;               \
+		-exec rm -f {} \;  ;            \
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
 
