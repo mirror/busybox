@@ -104,28 +104,7 @@ Currently defined functions include:
 	vconfig, vi, vlock, watch, watchdog, wc, wget, which, who, whoami, xargs,
 	yes, zcat
 
-=head1 LIBC NSS
-
-GNU Libc (glibc) uses the Name Service Switch (NSS) to configure the behavior
-of the C library for the local environment, and to configure how it reads
-system data, such as passwords and group information.  This is implemented
-using an /etc/nsswitch.conf configuration file, and using one or more of the
-/lib/libnss_* libraries.  BusyBox tries to avoid using any libc calls that make
-use of NSS.  Some applets however, such as login and su, will use libc functions
-that require NSS.
-
-If you enable CONFIG_USE_BB_PWD_GRP, BusyBox will use internal functions to
-directly access the /etc/passwd, /etc/group, and /etc/shadow files without
-using NSS.  This may allow you to run your system without the need for
-installing any of the NSS configuration files and libraries.
-
-When used with glibc, the BusyBox 'networking' applets will similarly require
-that you install at least some of the glibc NSS stuff (in particular,
-/etc/nsswitch.conf, /lib/libnss_dns*, /lib/libnss_files*, and /lib/libresolv*).
-
-Shameless Plug: As an alternative, one could use a C library such as uClibc.  In
-addition to making your system significantly smaller, uClibc does not require the
-use of any NSS support files or libraries.
+=head1 COMMAND DESCRIPTIONS
 
 =over 4
 
