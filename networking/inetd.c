@@ -134,10 +134,6 @@
 #define _PATH_INETDCONF "/etc/inetd.conf"
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
-#ifndef MIN
-#define MIN(a, b)       ((a) < (b) ? (a) : (b))
-#endif
-
 #define TOOMANY         40              /* don't start more than TOOMANY */
 #define CNT_INTVL       60              /* servers in CNT_INTVL sec. */
 #define RETRYTIME       (60*10)         /* retry after bind or server fail */
@@ -270,10 +266,7 @@ static const struct biltin biltins[] = {
 };
 #endif  /* INETD_FEATURE_ENABLED */
 
-#define NUMINT  (sizeof(intab) / sizeof(struct inent))
 static const char *CONFIG = _PATH_INETDCONF;
-
-#define BCOPY(s, d, z) memcpy(d, s, z)
 
 static void
 syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
@@ -519,7 +512,7 @@ bump_nofile(void)
 		syslog(LOG_ERR, "getrlimit: %m");
 		return -1;
 	}
-	rl.rlim_cur = MIN(rl.rlim_max, rl.rlim_cur + FD_CHUNK);
+	rl.rlim_cur = rl.rlim_max < (rl.rlim_cur + FD_CHUNK) ? rl.rlim_max : (rl.rlim_cur + FD_CHUNK);
 	if (rl.rlim_cur <= rlim_ofile_cur) {
 		syslog(LOG_ERR,
 #if _FILE_OFFSET_BITS == 64
@@ -1142,10 +1135,10 @@ chargen_stream(int s, struct servtab *sep)
 	text[LINESIZ + 1] = '\n';
 	for (rs = ring;;) {
 		if ((len = endring - rs) >= LINESIZ)
-			BCOPY(rs, text, LINESIZ);
+			memcpy(rs, text, LINESIZ);
 		else {
-			BCOPY(rs, text, len);
-			BCOPY(ring, text + len, LINESIZ - len);
+			memcpy(rs, text, len);
+			memcpy(ring, text + len, LINESIZ - len);
 		}
 		if (++rs == endring)
 			rs = ring;
@@ -1176,10 +1169,10 @@ chargen_dg(int s, struct servtab *sep)
 		return;
 
 	if ((len = endring - rs) >= LINESIZ)
-		BCOPY(rs, text, LINESIZ);
+		memcpy(rs, text, LINESIZ);
 	else {
-		BCOPY(rs, text, len);
-		BCOPY(ring, text + len, LINESIZ - len);
+		memcpy(rs, text, len);
+		memcpy(ring, text + len, LINESIZ - len);
 	}
 	if (++rs == endring)
 		rs = ring;
