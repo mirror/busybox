@@ -72,12 +72,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #include <endian.h>
 #include <arpa/inet.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
+
 
 
 #define MAXPACKET       65535   /* max ip packet size */
