@@ -36,7 +36,6 @@
 static unsigned long uid = -1;
 static unsigned long gid = -1;
 static int whichApp;
-static char *invocationName = NULL;
 static char *theMode = NULL;
 
 
@@ -88,7 +87,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	case CHMOD_APP:
 		/* Parse the specified modes */
 		if (parse_mode(theMode, &(statbuf->st_mode)) == FALSE) {
-			fatalError( "%s: unknown mode: %s\n", invocationName, theMode);
+			fatalError( "%s: unknown mode: %s\n", applet_name, theMode);
 		}
 		if (chmod(fileName, statbuf->st_mode) == 0)
 			return (TRUE);
@@ -105,8 +104,8 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	char *p=NULL;
 	const char *appUsage;
 
-	whichApp = (strcmp(*argv, "chown") == 0)? 
-			CHOWN_APP : (strcmp(*argv, "chmod") == 0)? 
+	whichApp = (strcmp(applet_name, "chown") == 0)? 
+			CHOWN_APP : (strcmp(applet_name, "chmod") == 0)? 
 				CHMOD_APP : CHGRP_APP;
 
 	appUsage = (whichApp == CHOWN_APP)? 
@@ -114,7 +113,6 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 
 	if (argc < 2)
 		usage(appUsage);
-	invocationName = *argv;
 	argv++;
 
 	/* Parse options */
@@ -125,7 +123,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 					recursiveFlag = TRUE;
 					break;
 				default:
-					fprintf(stderr, invalid_option, invocationName, **argv);
+					fprintf(stderr, invalid_option, applet_name, **argv);
 					usage(appUsage);
 			}
 		}
@@ -133,7 +131,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	}
 
 	if (argc == 0 || *argv == NULL) {
-		fprintf(stderr, too_few_args, invocationName);
+		fprintf(stderr, too_few_args, applet_name);
 		usage(appUsage);
 	}
 
@@ -172,14 +170,14 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 				uid = my_getpwnam(*argv);
 			if (uid == -1) {
 				fatalError( "%s: unknown user name: %s\n", 
-						invocationName, *argv);
+						applet_name, *argv);
 			}
 		}
 	}
 
 	/* Ok, ready to do the deed now */
 	if (argc <= 1) {
-		fatalError( "%s: too few arguments\n", invocationName);
+		fatalError( "%s: too few arguments\n", applet_name);
 	}
 	while (argc-- > 1) {
 		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 
@@ -189,7 +187,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	exit(TRUE);
 
   bad_group:
-	fatalError( "%s: unknown group name: %s\n", invocationName, groupName);
+	fatalError( "%s: unknown group name: %s\n", applet_name, groupName);
 }
 
 /*

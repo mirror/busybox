@@ -14,8 +14,6 @@
 #define VT_DISALLOCATE  0x5608  /* free memory associated to vt */
 
 
-char *progname;
-
 int deallocvt_main(int argc, char *argv[])
 {
 	int fd, num, i;
@@ -29,8 +27,6 @@ int deallocvt_main(int argc, char *argv[])
 			 );
 	}
 
-	progname = argv[0];
-
 	fd = get_console_fd("/dev/console");
 
 	if (argc == 1) {
@@ -43,14 +39,14 @@ int deallocvt_main(int argc, char *argv[])
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
-				fprintf(stderr, "%s: 0: illegal VT number\n", progname);
+				fprintf(stderr, "%s: 0: illegal VT number\n", applet_name);
 			else if (num == 1)
 				fprintf(stderr, "%s: VT 1 cannot be deallocated\n",
-						progname);
+						applet_name);
 			else if (ioctl(fd, VT_DISALLOCATE, num)) {
 				perror("VT_DISALLOCATE");
 				fprintf(stderr, "%s: could not deallocate console %d\n",
-						progname, num);
+						applet_name, num);
 				exit( FALSE);
 			}
 		}

@@ -71,7 +71,6 @@ int num_args;
 int mode;						/* 0 = dump stdin to stdout, 1=-f, 2=-c   */
 char delim = '\t';				/* default delimiting character   */
 FILE *fd;
-char *name;
 char line[BUFSIZ];
 int exit_status;
 int option = 0;                                     /* for -s option */
@@ -91,7 +90,7 @@ void warn(int warn_number, char *option)
 		"%s: Cannot open %s\n"
 	};
 
-	fprintf(stderr, warn_msg[warn_number], name, option);
+	fprintf(stderr, warn_msg[warn_number], applet_name, option);
 	exit_status = warn_number + 1;
 
 }
@@ -107,7 +106,7 @@ void cuterror(int err)
 		"%s: MAX_ARGS exceeded\n"
 	};
 
-	fprintf(stderr, err_mes[err - 101], name);
+	fprintf(stderr, err_mes[err - 101], applet_name);
 	exit(err);
 }
 
@@ -212,8 +211,6 @@ int cut_main(int argc, char **argv)
 {
 	int i = 1;
 	int numberFilenames = 0;
-
-	name = argv[0];
 
 	if (argc == 1 || strcmp(argv[1], dash_dash_help)==0)
 		usage( "cut [OPTION]... [FILE]...\n"

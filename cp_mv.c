@@ -45,7 +45,6 @@
 #define is_cp 0
 #define is_mv 1
 static int         dz_i;		/* index into cp_mv_usage */
-static const char *dz;			/* dollar zero, .bss */
 static const char *cp_mv_usage[] =	/* .rodata */
 {
 	"cp [OPTION]... SOURCE DEST\n"
@@ -89,7 +88,7 @@ static void name_too_long__exit (void) __attribute__((noreturn));
 static
 void name_too_long__exit (void)
 {
-	fprintf(stderr, name_too_long, dz);
+	fprintf(stderr, name_too_long, applet_name);
 	exit(FALSE);
 }
 
@@ -124,14 +123,14 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (srcDirFlag == TRUE) {
 		if (recursiveFlag == FALSE) {
-			fprintf(stderr, omitting_directory, dz, baseSrcName);
+			fprintf(stderr, omitting_directory, applet_name, baseSrcName);
 			return TRUE;
 		}
 		srcBasename = (strstr(fileName, baseSrcName)
 					   + strlen(baseSrcName));
 
 		if (destLen + strlen(srcBasename) > BUFSIZ) {
-			fprintf(stderr, name_too_long, dz);
+			fprintf(stderr, name_too_long, applet_name);
 			return FALSE;
 		}
 		strcat(destName, srcBasename);
@@ -146,7 +145,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 		mv_Action_first_time = errno = 0;
 		if (rename(fileName, destName) < 0 && errno != EXDEV) {
 			fprintf(stderr, "%s: rename(%s, %s): %s\n",
-					dz, fileName, destName, strerror(errno));
+					applet_name, fileName, destName, strerror(errno));
 			goto do_copyFile;	/* Try anyway... */
 		}
 		else if (errno == EXDEV)
@@ -159,7 +158,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 		if (is_in_ino_dev_hashtable(statbuf, &name)) {
 			if (link(name, destName) < 0) {
 				fprintf(stderr, "%s: link(%s, %s): %s\n",
-						dz, name, destName, strerror(errno));
+						applet_name, name, destName, strerror(errno));
 				return FALSE;
 			}
 			return TRUE;
@@ -178,11 +177,11 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 	if (S_ISDIR(statbuf->st_mode)) {
 		if (rmdir(fileName) < 0) {
-			fprintf(stderr, "%s: rmdir(%s): %s\n", dz, fileName, strerror(errno));
+			fprintf(stderr, "%s: rmdir(%s): %s\n", applet_name, fileName, strerror(errno));
 			status = FALSE;
 		}
 	} else if (unlink(fileName) < 0) {
-		fprintf(stderr, "%s: unlink(%s): %s\n", dz, fileName, strerror(errno));
+		fprintf(stderr, "%s: unlink(%s): %s\n", applet_name, fileName, strerror(errno));
 		status = FALSE;
 	}
 	return status;
@@ -190,8 +189,7 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int cp_mv_main(int argc, char **argv)
 {
-	dz = *argv;					/* already basename'd by busybox.c:main */
-	if (*dz == 'c' && *(dz + 1) == 'p')
+	if (*applet_name == 'c' && *(applet_name + 1) == 'p')
 		dz_i = is_cp;
 	else
 		dz_i = is_mv;
@@ -276,20 +274,20 @@ extern int cp_mv_main(int argc, char **argv)
 			char		*pushd, *d, *p;
 
 			if ((pushd = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				fprintf(stderr, "%s: getcwd(): %s\n", dz, strerror(errno));
+				fprintf(stderr, "%s: getcwd(): %s\n", applet_name, strerror(errno));
 				continue;
 			}
 			if (chdir(baseDestName) < 0) {
-				fprintf(stderr, "%s: chdir(%s): %s\n", dz, baseSrcName, strerror(errno));
+				fprintf(stderr, "%s: chdir(%s): %s\n", applet_name, baseSrcName, strerror(errno));
 				continue;
 			}
 			if ((d = getcwd(NULL, BUFSIZ + 1)) == NULL) {
-				fprintf(stderr, "%s: getcwd(): %s\n", dz, strerror(errno));
+				fprintf(stderr, "%s: getcwd(): %s\n", applet_name, strerror(errno));
 				continue;
 			}
 			while (!state && *d != '\0') {
 				if (stat(d, &sb) < 0) {	/* stat not lstat - always dereference targets */
-					fprintf(stderr, "%s: stat(%s) :%s\n", dz, d, strerror(errno));
+					fprintf(stderr, "%s: stat(%s) :%s\n", applet_name, d, strerror(errno));
 					state = -1;
 					continue;
 				}
@@ -298,7 +296,7 @@ extern int cp_mv_main(int argc, char **argv)
 					fprintf(stderr,
 							"%s: Cannot %s `%s' "
 							"into a subdirectory of itself, `%s/%s'\n",
-							dz, dz, baseSrcName, baseDestName, baseSrcName);
+							applet_name, applet_name, baseSrcName, baseDestName, baseSrcName);
 					state = -1;
 					continue;
 				}
@@ -307,7 +305,7 @@ extern int cp_mv_main(int argc, char **argv)
 				}
 			}
 			if (chdir(pushd) < 0) {
-				fprintf(stderr, "%s: chdir(%s): %s\n", dz, pushd, strerror(errno));
+				fprintf(stderr, "%s: chdir(%s): %s\n", applet_name, pushd, strerror(errno));
 				free(pushd);
 				free(d);
 				continue;
