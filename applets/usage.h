@@ -501,10 +501,10 @@ find_usage_index
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)"
 #endif
 #ifdef BB_FEATURE_FIND_PERM
-	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\tor exactly (NNN)"
+	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\t\tor exactly (NNN)"
 #endif
 #ifdef BB_FEATURE_FIND_MTIME
-	"\n\t-mtime TIME\tModified time is greater than (+N); less than (-N);\n\t\tor exactly (N) days"
+	"\n\t-mtime TIME\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) days"
 #endif
 #endif
 #endif
