@@ -96,7 +96,7 @@ extern _IO_ssize_t getline __P ((char **, size_t *, FILE *));
 
 #include <stdio.h>
 
-#if defined HAVE_LIMITS_H || _LIBC
+#if defined HAVE_LIMITS_H || defined _LIBC
 # include <limits.h>
 #endif
 

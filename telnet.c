@@ -49,7 +49,7 @@
 #define DOTRACE 1
 #endif
 
-#if DOTRACE
+#ifdef DOTRACE
 #include <arpa/inet.h> /* for inet_ntoa()... */
 #define TRACE(x, y) do { if (x) printf y; } while (0)
 #else
