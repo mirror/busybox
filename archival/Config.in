@@ -210,13 +210,6 @@ config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	  With this option busybox supports GNU long filenames and 
 	  linknames.
 
-config CONFIG_FEATURE_UNARCHIVE_TAPE
-	bool "  Enable tape drive support"
-	default n
-	depends on CONFIG_TAR || CONFIG_CPIO
-	help
-	  I dont think this is needed anymore.
-
 config CONFIG_UNCOMPRESS
 	bool "uncompress"
 	default n
@@ -233,5 +226,15 @@ config CONFIG_UNZIP
 	  (with no options) is to extract the archive into the
 	  current directory. Use the `-d' option to extract to a
 	  directory of your choice.
+
+comment "Common options for cpio and tar"
+	depends on CONFIG_CPIO || CONFIG_TAR
+
+config CONFIG_FEATURE_UNARCHIVE_TAPE
+	bool "  Enable tape drive support"
+	default n
+	depends on CONFIG_CPIO || CONFIG_TAR
+	help
+	  I don't think this is needed anymore.
 
 endmenu
