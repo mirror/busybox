@@ -126,8 +126,6 @@ int main(int argc, char **argv)
 			applet_name = s;
 	}
 
-	*argv = (char*)applet_name;
-
 #ifdef BB_SH
 	/* Add in a special case hack -- whenever **argv == '-'
 	 * (i.e. '-su' or '-sh') always invoke the shell */
@@ -153,10 +151,12 @@ int main(int argc, char **argv)
 int busybox_main(int argc, char **argv)
 {
 	int col = 0;
+	int ps_index;
+	char *index, *index2;
 
 	argc--;
-	argv++;
 
+	/* If we've already been here once, exit now */
 	if (been_there_done_that == 1 || argc < 1) {
 		const struct BB_applet *a = applets;
 
@@ -181,8 +181,29 @@ int busybox_main(int argc, char **argv)
 		fprintf(stderr, "\n\n");
 		exit(-1);
 	}
-	/* If we've already been here once, exit now */
+
+	/* Flag that we've been here already */
 	been_there_done_that = 1;
+	
+	/* We do not want the word "busybox" to show up in ps, so we move
+	 * everything in argv around to fake ps into showing what we want it to
+	 * show.  Since we are only shrinking the string, we don't need to move 
+	 * __environ or any of that tedious stuff... */
+	ps_index = 0;
+	index=*argv;
+	index2=argv[argc];
+	index2+=strlen(argv[argc]);
+	while(ps_index < argc) { 
+		argv[ps_index]=index;
+		memmove(index, argv[ps_index+1], strlen(argv[ps_index+1])+1);
+		index+=(strlen(index));
+		*index='\0';
+		index++;
+		ps_index++;
+	}
+	while(index<=index2)
+		*index++='\0';
+
 	return (main(argc, argv));
 }
 
