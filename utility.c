@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <sys/param.h>			/* for PATH_MAX */
+#include <sys/utsname.h>		/* for uname(2) */
 
 #if defined BB_FEATURE_MOUNT_LOOP
 #include <fcntl.h>
@@ -103,26 +104,20 @@ extern void fatalError(char *s, ...)
 }
 
 #if defined (BB_INIT) || defined (BB_PS)
-
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *	if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
  */
 int get_kernel_revision()
 {
-	FILE *file;
+	struct utsname name;
 	int major = 0, minor = 0, patch = 0;
 
-	file = fopen("/proc/sys/kernel/osrelease", "r");
-	if (file == NULL) {
-		/* bummer, /proc must not be mounted... */
+	if (uname(&name) == -1) {
+		perror("cannot get system information");
 		return (0);
 	}
-	fscanf(file, "%d.%d.%d", &major, &minor, &patch);
-	fclose(file);
+	sscanf(name.version, "%d.%d.%d", &major, &minor, &patch);
 	return major * 65536 + minor * 256 + patch;
 }
 #endif							/* BB_INIT || BB_PS */

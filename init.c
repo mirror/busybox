@@ -49,13 +49,10 @@
 #include <linux/serial.h>		/* for serial_struct */
 #include <sys/vt.h>				/* for vt_stat */
 #include <sys/ioctl.h>
+#include <sys/sysinfo.h>		/* For check_free_memory() */
 #include <linux/version.h>
 #ifdef BB_SYSLOGD
 #include <sys/syslog.h>
-#endif
-
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
 #endif
 
 #ifndef KERNEL_VERSION
@@ -226,25 +223,18 @@ void set_term(int fd)
 }
 
 /* How much memory does this machine have? */
-static int mem_total()
+static int check_free_memory()
 {
-	char s[80];
-	char *p = "/proc/meminfo";
-	FILE *f;
-	const char pattern[] = "MemTotal:";
+	struct sysinfo info;
 
-	if ((f = fopen(p, "r")) < 0) {
-		message(LOG, "Error opening %s: %s\n", p, strerror(errno));
+	sysinfo(&info);
+	if (sysinfo(&info) != 0) {
+		message(LOG, "Error checking free memory: %s\n", strerror(errno));
 		return -1;
 	}
-	while (NULL != fgets(s, 79, f)) {
-		p = strstr(s, pattern);
-		if (NULL != p) {
-			fclose(f);
-			return (atoi(p + strlen(pattern)));
-		}
-	}
-	return -1;
+
+	return(info.freeram/1024);
+
 }
 
 static void console_init()
@@ -454,13 +444,13 @@ static void check_memory()
 {
 	struct stat statBuf;
 
-	if (mem_total() > 3500)
+	if (check_free_memory() > 1000)
 		return;
 
 	if (stat("/etc/fstab", &statBuf) == 0) {
 		/* Try to turn on swap */
 		system("/sbin/swapon -a");
-		if (mem_total() < 3500)
+		if (check_free_memory() < 1000)
 			goto goodnight;
 	} else
 		goto goodnight;
@@ -555,6 +545,11 @@ static void reboot_signal(int sig)
 }
 
 #if defined BB_FEATURE_INIT_CHROOT
+
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
+
 static void check_chroot(int sig)
 {
 	char *argv_init[2] = { "init", NULL, };
@@ -852,13 +847,6 @@ extern int init_main(int argc, char **argv)
 			getpid(), BB_VER, BB_BT);
 #endif
 
-
-	/* Mount /proc */
-	if (mount("proc", "/proc", "proc", 0, 0) == 0) {
-		message(LOG, "Mounting /proc: done.\n");
-		kernelVersion = get_kernel_revision();
-	} else
-		message(LOG | CONSOLE, "Mounting /proc: failed!\n");
 
 	/* Make sure there is enough memory to do something useful. */
 	check_memory();
