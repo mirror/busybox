@@ -223,9 +223,10 @@ static void destroy_regexes()
 
 	/* destroy all the elments in the array */
 	while (--nregexes >= 0) {
-		regfree(&regexes[nregexes]);
+		regfree(regexes[nregexes]);
 	}
-	free(regexes);
+	if (regexes)
+	    free(regexes);
 }
 #endif
 
@@ -239,8 +240,7 @@ extern int grep_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
-	if (atexit(destroy_regexes) == -1)
-		perror_msg_and_die("atexit");
+	atexit(destroy_regexes);
 #endif
 
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
