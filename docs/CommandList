@@ -515,11 +515,14 @@ ________________________________________________________________________________
 
 
 
-mknod   (Segmentation Fault when executing this command)	
+mknod NAME TYPE MAJOR MINOR
 
-	(No embedix information available for this command.)
+Make block or character special files.
 
-
+TYPEs include:
+        b:      Make a block (buffered) device.
+        c or u: Make a character (un-buffered) device.
+        p:      Make a named pipe. Major and minor are ignored for named pipes.
 
 
 

@@ -33,10 +33,11 @@ ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 
 GCCMAJVERSION=$(shell $(CC) --version | sed -n "s/^\([^\.]*\).*/\1/p" )
 GCCMINVERSION=$(shell $(CC) --version | sed -n "s/^[^\.]*\.\([^\.]*\)[\.].*/\1/p" )
+GCCEGCS=$(shell $(CC) --version | sed -n "s/.*\(egcs\).*/\1/p" )
 
 GCCSUPPORTSOPTSIZE=$(shell \
 if ( test $(GCCMAJVERSION) -eq 2 ) ; then \
-    if ( test $(GCCMINVERSION) -ge 91 ) ; then \
+    if ( test $(GCCMINVERSION) -ge 66 ) ; then \
 	echo "true"; \
     else \
 	echo "false"; \
@@ -49,11 +50,26 @@ else \
     fi; \
 fi; )
 
+GCCISEGCS=$(shell \
+if ( test "x$(GCCEGCS)" == "xegcs" ) ; then \
+		echo "true"; \
+	else \
+		echo "false"; \
+	fi; )
+
+EGCSEXTREMEFLAGS = -m386 -mcpu=i386 -march=i386 -malign-jumps=1 -malign-loops=1 -malign-functions=1
+GCCEXTREMEFLAGS  = -m386 -malign-jumps=1 -malign-loops=1 -malign-functions=1
+
+ifeq ($(GCCISEGCS), true)
+	EXTREMEFLAGS = $(EGCSEXTREMEFLAGS)
+else
+	EXTREMEFLAGS = $(GCCEXTREMEFLAGS)
+endif
 
 ifeq ($(GCCSUPPORTSOPTSIZE), true)
-    OPTIMIZATION=-Os
+	OPTIMIZATION=-Os $(EXTREMEFLAGS)
 else
-    OPTIMIZATION=-O2
+	OPTIMIZATION=-O2 $(EXTREMEFLAGS)
 endif
 
 # -D_GNU_SOURCE is needed because environ is used in init.c

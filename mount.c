@@ -24,10 +24,12 @@
  * 1999-04-17	Dave Cinege...Rewrote -t auto. Fixed ro mtab.
  *
  * 1999-10-07	Erik Andersen <andersen@lineo.com>, <andersee@debian.org>.
- *              Rewrote of a lot of code. Removed mtab usage (I plan on
+ *              Rewrite of a lot of code. Removed mtab usage (I plan on
  *              putting it back as a compile-time option some time), 
  *              major adjustments to option parsing, and some serious 
  *              dieting all around.
+ *
+ * 1999-11-06	mtab suppport is back - andersee
  *
  * 2000-01-12   Ben Collins <bcollins@debian.org>, Borrowed utils-linux's
  *              mount to add loop support.

@@ -6,6 +6,11 @@ around to it some time. If you have any good ideas, please let me know.
 * login/sulogin/passwd/getty/etc are part of tinylogin, and so are not
     needed or wanted in busybox (or else I'd have to link in libcrypt).
 
+* Networking apps are probably going to be split out some time soon into a
+    separate package (named perhaps tiny-netkit?).  This currently includes 
+    hostid, hostname, mnc, and ping.
+
+
  -Erik
 
 -----------

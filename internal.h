@@ -54,7 +54,6 @@ struct Applet {
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_main(int argc, char** argv);
-extern int more_main(int argc, char** argv);
 extern int cp_main(int argc, char** argv);
 extern int chmod_chown_chgrp_main(int argc, char** argv);
 extern int chroot_main(int argc, char** argv);
@@ -75,17 +74,23 @@ extern int fsck_minix_main(int argc, char **argv);
 extern int find_main(int argc, char** argv);
 extern int free_main(int argc, char** argv);
 extern int grep_main(int argc, char** argv);
+extern int gunzip_main (int argc, char** argv);
+extern int gzip_main(int argc, char** argv);
 extern int halt_main(int argc, char** argv);
 extern int head_main(int argc, char** argv);
+extern int hostid_main(int argc, char** argv);
 extern int hostname_main(int argc, char** argv);
 extern int init_main(int argc, char** argv);
 extern int insmod_main(int argc, char** argv);
 extern int kill_main(int argc, char** argv);
 extern int length_main(int argc, char** argv);
 extern int ln_main(int argc, char** argv);
+extern int loadacm_main(int argc, char** argv);
 extern int loadfont_main(int argc, char** argv);
 extern int loadkmap_main(int argc, char** argv);
 extern int losetup_main(int argc, char** argv);
+extern int logger_main(int argc, char **argv);
+extern int logname_main(int argc, char **argv);
 extern int ls_main(int argc, char** argv);
 extern int lsmod_main(int argc, char** argv);
 extern int makedevs_main(int argc, char** argv);
@@ -96,6 +101,7 @@ extern int mkfs_minix_main(int argc, char **argv);
 extern int mknod_main(int argc, char** argv);
 extern int mkswap_main(int argc, char** argv);
 extern int mnc_main(int argc, char** argv);
+extern int more_main(int argc, char** argv);
 extern int mount_main(int argc, char** argv);
 extern int mt_main(int argc, char** argv);
 extern int mv_main(int argc, char** argv);
@@ -108,31 +114,28 @@ extern int reboot_main(int argc, char** argv);
 extern int rm_main(int argc, char** argv);
 extern int rmdir_main(int argc, char **argv);
 extern int rmmod_main(int argc, char** argv);
-extern int scan_partitions_main(int argc, char** argv);
-extern int sh_main(int argc, char** argv);
-extern int sfdisk_main(int argc, char** argv);
 extern int sed_main(int argc, char** argv);
+extern int sfdisk_main(int argc, char** argv);
 extern int sleep_main(int argc, char** argv);
 extern int sort_main(int argc, char** argv);
 extern int swap_on_off_main(int argc, char** argv);
 extern int sync_main(int argc, char** argv);
 extern int syslogd_main(int argc, char **argv);
-extern int logger_main(int argc, char **argv);
-extern int tar_main(int argc, char** argv);
 extern int tail_main(int argc, char** argv);
+extern int tar_main(int argc, char** argv);
 extern int tee_main(int argc, char** argv);
 extern int touch_main(int argc, char** argv);
-extern int tput_main(int argc, char** argv);
 extern int true_main(int argc, char** argv);
+extern int tput_main(int argc, char** argv);
 extern int tryopen_main(int argc, char** argv);
-extern int wc_main(int argc, char** argv);
+extern int tty_main(int argc, char** argv);
 extern int umount_main(int argc, char** argv);
+extern int uname_main(int argc, char** argv);
 extern int uniq_main(int argc, char** argv);
 extern int update_main(int argc, char** argv);
-extern int uname_main(int argc, char** argv);
-extern int gunzip_main (int argc, char** argv);
-extern int gzip_main(int argc, char** argv);
-extern int loadacm_main(int argc, char** argv);
+extern int wc_main(int argc, char** argv);
+extern int whoami_main(int argc, char** argv);
+extern int yes_main(int argc, char** argv);
 
 
 const char *modeString(int mode);
@@ -203,6 +206,11 @@ static inline int clrbit(char * addr,unsigned int nr)
 
 #endif /* inline bitops junk */
 
+
+#ifndef RB_POWER_OFF
+/* Stop system and switch power off if possable.  */
+#define RB_POWER_OFF   0x4321fedc
+#endif
 
 
 #endif /* _INTERNAL_H_ */

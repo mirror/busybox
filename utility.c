@@ -317,7 +317,9 @@ const char *timeString(time_t timeVal)
 
     return buf;
 }
+#endif
 
+#if defined BB_TAR || defined BB_CP || defined BB_MV
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.

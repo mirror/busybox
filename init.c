@@ -106,11 +106,11 @@ struct initActionTag {
 initAction* initActionList = NULL;
 
 
-static char *console = _PATH_CONSOLE;
 static char *secondConsole = VT_SECONDARY;
 static char *log = VT_LOG;
 static int kernelVersion = 0;
-static char *termType = NULL;
+static char termType[32] = "TERM=ansi";
+static char console[32] = _PATH_CONSOLE;
 
 
 /* try to open up the specified device */
@@ -258,41 +258,37 @@ static void console_init()
     struct serial_struct sr;
     char *s;
 
-    if ((s = getenv("CONSOLE")) != NULL) {
-	termType = s;
-    } else {
-	termType = "TERM=vt100";
+    if ((s = getenv("TERM")) != NULL) {
+	snprintf(termType,sizeof(termType)-1,"TERM=%s",s);
     }
 
     if ((s = getenv("CONSOLE")) != NULL) {
-	console = s;
+	snprintf(console, sizeof(console)-1, "%s",s);
     }
 #if #cpu(sparc)
     /* sparc kernel supports console=tty[ab] parameter which is also 
      * passed to init, so catch it here */
-    else if ((s = getenv("console")) != NULL) {
+    else if ((s = getenv("console")) != NULL) {*/
 	/* remap tty[ab] to /dev/ttyS[01] */
 	if (strcmp( s, "ttya" )==0)
-	    console = SERIAL_CON0;
+	    snprintf(console, sizeof(console)-1, "%s", SERIAL_CON0);
 	else if (strcmp( s, "ttyb" )==0)
-	    console = SERIAL_CON1;
+	    snprintf(console, sizeof(console)-1, "%s", SERIAL_CON1);
     }
 #endif
     else {
 	struct vt_stat vt;
-	static char the_console[13];
 
-	console = the_console;
 	/* 2.2 kernels: identify the real console backend and try to use it */
 	if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
 	    /* this is a serial console */
-	    snprintf( the_console, sizeof the_console, "/dev/ttyS%d", sr.line );
+	    snprintf(console, sizeof(console)-1, "/dev/ttyS%d", sr.line);
 	}
 	else if (ioctl(0, VT_GETSTATE, &vt) == 0) {
 	    /* this is linux virtual tty */
-	    snprintf( the_console, sizeof the_console, "/dev/tty%d", vt.v_active );
+	    snprintf(console, sizeof(console)-1, "/dev/tty%d", vt.v_active);
 	} else {
-	    console = _PATH_CONSOLE;
+	    snprintf(console, sizeof(console)-1, "%s", _PATH_CONSOLE);
 	    tried_devcons++;
 	}
     }
@@ -301,25 +297,25 @@ static void console_init()
 	/* Can't open selected console -- try /dev/console */
 	if (!tried_devcons) {
 	    tried_devcons++;
-	    console = _PATH_CONSOLE;
+	    snprintf(console, sizeof(console)-1, "%s", _PATH_CONSOLE);
 	    continue;
 	}
 	/* Can't open selected console -- try vt1 */
 	if (!tried_vtprimary) {
 	    tried_vtprimary++;
-	    console = VT_PRIMARY;
+	    snprintf(console, sizeof(console)-1, "%s", VT_PRIMARY);
 	    continue;
 	}
 	break;
     }
-    if (fd < 0)
+    if (fd < 0) {
 	/* Perhaps we should panic here? */
-	console = "/dev/null";
-    else {
+	snprintf(console, sizeof(console)-1, "/dev/null");
+    } else {
 	/* check for serial console and disable logging to tty3 & running a
 	* shell to tty2 */
 	if (ioctl(0,TIOCGSERIAL,&sr) == 0) {
-	    message(LOG|CONSOLE, "serial console detected.  Disabling virtual terminals.\r\n", console );
+	    message(LOG|CONSOLE, "serial console detected.  Disabling virtual terminals.\r\n" );
 	    log = NULL;
 	    secondConsole = NULL;
 	}
@@ -337,15 +333,14 @@ static pid_t run(char* command,
     char* cmd[255];
     static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
-    static char * environment[] = {
+    char* environment[] = {
 	"HOME=/",
 	"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
 	"SHELL=/bin/sh",
-	0,
+	termType,
 	"USER=root",
 	0
     };
-    environment[3]=termType;
 
 
     if ((pid = fork()) == 0) {
@@ -389,24 +384,23 @@ static pid_t run(char* command,
 	}
 
 	/* Log the process name and args */
-	message(LOG|CONSOLE, "Starting pid %d, console %s: '", 
+	message(LOG, "Starting pid %d, console %s: '", 
 		shell_pgid, terminal, command);
 
 	/* Convert command (char*) into cmd (char**, one word per string) */
 	for (tmpCmd=command, i=0; (tmpCmd=strsep(&command, " \t")) != NULL;) {
 	    if (*tmpCmd != '\0') {
 		cmd[i] = tmpCmd;
-		message(LOG|CONSOLE, "%s ", tmpCmd);
+		message(LOG, "%s ", tmpCmd);
 		tmpCmd++;
 		i++;
 	    }
 	}
 	cmd[i] = NULL;
-	message(LOG|CONSOLE, "'\r\n");
+	message(LOG, "'\r\n");
 
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
-	//execvp(cmd[0], cmd);
 	execve(cmd[0], cmd, environment);
 
 	/* We're still here?  Some error happened. */
@@ -541,8 +535,8 @@ void new_initAction (initActionEnum action,
     } else
 	strncpy(newAction->console, console, 255);
     newAction->pid = 0;
-    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
-	    newAction->process, newAction->action, newAction->console);
+//    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
+//	    newAction->process, newAction->action, newAction->console);
 }
 
 void delete_initAction (initAction *action)
@@ -673,6 +667,9 @@ extern int init_main(int argc, char **argv)
 	usage( "init\n\nInit is the parent of all processes.\n\n"
 		"This version of init is designed to be run only by the kernel\n");
     }
+    /* Fix up argv[0] to be certain we claim to be init */
+    strncpy(argv[0], "init", strlen(argv[0]));
+
     /* Set up sig handlers  -- be sure to
      * clear all of these in run() */
     signal(SIGUSR1, halt_signal);

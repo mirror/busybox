@@ -3,8 +3,18 @@
 #include <string.h>
 #include <errno.h>
 
+#ifndef BB_INIT
+#undef BB_FEATURE_LINUXRC
+#endif
+
 static int been_there_done_that = 0;
 
+/* It has been alledged that doing such things can
+ * help reduce binary size when staticly linking,
+ * of course with glibc, this is unlikely as long
+ * as we use things like printf -- perhaps a printf
+ * replacement may be in order 
+ */
 #if 0
 void exit (int status) __attribute__ ((noreturn));
 void exit (int status) { _exit(status); };
@@ -90,6 +100,9 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_HEAD			//bin
     {"head", head_main},
+#endif
+#ifdef BB_HOSTID                //usr/bin
+    {"hostid", hostid_main},
 #endif
 #ifdef BB_HOSTNAME              //bin
     {"hostname", hostname_main},
@@ -209,6 +222,9 @@ static const struct Applet applets[] = {
 #ifdef BB_LOGGER		//usr/bin
     {"logger", logger_main},
 #endif
+#ifdef BB_LOGNAME		//usr/bin
+    {"logname", logname_main},
+#endif
 #ifdef BB_SWAPONOFF		//sbin
     {"swapon", swap_on_off_main},
     {"swapoff", swap_on_off_main},
@@ -229,8 +245,8 @@ static const struct Applet applets[] = {
     {"true", true_main},
     {"false", false_main},
 #endif
-#ifdef BB_WC			//usr/bin
-    {"wc",  wc_main},
+#ifdef BB_TTY			//usr/bin
+    {"tty", tty_main},
 #endif
 #ifdef BB_UNAME			//bin
     {"uname",  uname_main},
@@ -243,6 +259,15 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_UPDATE		//sbin
     {"update", update_main},
+#endif
+#ifdef BB_WC			//usr/bin
+    {"wc",  wc_main},
+#endif
+#ifdef BB_WHOAMI		//usr/bin
+    {"whoami",  whoami_main},
+#endif
+#ifdef BB_YES			//usr/bin
+    {"yes",  yes_main},
 #endif
 #ifdef BB_GUNZIP		//bin
     {"zcat", gunzip_main},
