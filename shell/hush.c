@@ -1298,7 +1298,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	int cnt, pathc;
 	const char *s;
 	char *dest;
-	for (cnt=1, s=src; *s; s++) {
+	for (cnt=1, s=src; s && *s; s++) {
 		if (*s == '\\') s++;
 		cnt++;
 	}
@@ -1315,7 +1315,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	if (pglob->gl_pathv == NULL) return GLOB_NOSPACE;
 	pglob->gl_pathv[pathc-1]=dest;
 	pglob->gl_pathv[pathc]=NULL;
-	for (s=src; *s; s++, dest++) {
+	for (s=src; s && *s; s++, dest++) {
 		if (*s == '\\') s++;
 		*dest = *s;
 	}
@@ -1482,6 +1482,8 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
 	struct reserved_combo *r;
+	if (dest->data == NULL)
+		return 0;
 	for (r=reserved_list;
 #define NRES sizeof(reserved_list)/sizeof(struct reserved_combo)
 		r<reserved_list+NRES; r++) {
