@@ -117,6 +117,8 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 		file_header->link_name[file_header->size] = '\0';
 		archive_handle->offset += file_header->size;
 		file_header->size = 0; /* Stop possible seeks in future */
+	} else {
+		file_header->link_name = NULL;
 	}
 	if (nlink > 1 && !S_ISDIR(file_header->mode)) {
 		if (file_header->size == 0) { /* Put file on a linked list for later */
@@ -151,5 +153,8 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	}
 
 	archive_handle->offset += file_header->size;
+
+	free(file_header->link_name);
+
 	return (EXIT_SUCCESS);
 }
