@@ -403,6 +403,9 @@ dist release: distclean doc
 
 
 
-.PHONY: tags
+.PHONY: tags check
 tags:
 	ctags -R .
+
+check: busybox
+	cd testsuite && ./runtest
