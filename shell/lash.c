@@ -135,6 +135,7 @@ static void mark_open(int fd);
 static void mark_closed(int fd);
 static void close_all(void);
 static void checkjobs(struct jobset *job_list);
+static void remove_job(struct jobset *j_list, struct job *job);
 static int get_command(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
@@ -181,6 +182,8 @@ static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
 static struct close_me *close_me_head;
+static int last_return_code;
+static int last_bg_pid;
 static unsigned int last_jobid;
 static int shell_terminal;
 static pid_t shell_pgrp;
@@ -313,8 +316,12 @@ static int builtin_fg_bg(struct child_prog *child)
 
 	job->stopped_progs = 0;
 
-	if (kill(- job->pgrp, SIGCONT) < 0)
+	if ( (i=kill(- job->pgrp, SIGCONT)) < 0) {
+		if (i == ESRCH) {
+			remove_job(&job_list, job);
+		}
 		perror_msg("kill (SIGCONT)");
+	}
 
 	return EXIT_SUCCESS;
 }
@@ -536,6 +543,11 @@ static void remove_job(struct jobset *j_list, struct job *job)
 		prevjob->next = job->next;
 	}
 
+	if (j_list->head)
+		last_jobid = j_list->head->jobid;
+	else
+		last_jobid = 0;
+
 	free(job);
 }
 
@@ -576,10 +588,15 @@ static void checkjobs(struct jobset *j_list)
 			job->stopped_progs++;
 			job->progs[prognum].is_stopped = 1;
 
+#if 0
+			/* Printing this stuff is a pain, since it tends to
+			 * overwrite the prompt an inconveinient moments.  So
+			 * don't do that.  */
 			if (job->stopped_progs == job->num_progs) {
 				printf(JOB_STATUS_FORMAT, job->jobid, "Stopped",
 					   job->text);
 			}
+#endif	
 		}
 	}
 
@@ -714,14 +731,78 @@ static int get_command(FILE * source, char *command)
 	return 0;
 }
 
+static char* itoa(register int i)
+{
+	static char a[7]; /* Max 7 ints */
+	register char *b = a + sizeof(a) - 1;
+	int   sign = (i < 0);
+
+	if (sign)
+		i = -i;
+	*b = 0;
+	do
+	{
+		*--b = '0' + (i % 10);
+		i /= 10;
+	}
+	while (i);
+	if (sign)
+		*--b = '-';
+	return b;
+}
+
+char * strsep_space( char *string, int * ix)
+{
+	char *token, *begin;
+
+	begin = string;
+
+	/* Short circuit the trivial case */
+	if ( !string || ! string[*ix])
+		return NULL;
+
+	/* Find the end of the token. */
+	while( string && string[*ix] && !isspace(string[*ix]) ) {
+		(*ix)++;
+	}
+
+	/* Find the end of any whitespace trailing behind 
+	 * the token and let that be part of the token */
+	while( string && string[*ix] && isspace(string[*ix]) ) {
+		(*ix)++;
+	}
+
+	if (! string && *ix==0) {
+		/* Nothing useful was found */
+		return NULL;
+	}
+
+	token = xmalloc(*ix+1);
+	token[*ix] = '\0';
+	strncpy(token, string,  *ix); 
+
+	return token;
+}
 
 static int expand_arguments(char *command)
 {
-	int ix = 0;
+	int total_length=0, length, i, retval, ix = 0;
+	expand_t expand_result;
+	char *tmpcmd, *cmd, *cmd_copy;
+	char *src, *dst, *var;
+	const char *out_of_space = "out of space during expansion";
+	int flags = GLOB_NOCHECK
+#ifdef GLOB_BRACE
+		| GLOB_BRACE
+#endif	
+#ifdef GLOB_TILDE
+		| GLOB_TILDE
+#endif	
+		;
 
 	/* get rid of the terminating \n */
 	chomp(command);
-	
+
 	/* Fix up escape sequences to be the Real Thing(tm) */
 	while( command && command[ix]) {
 		if (command[ix] == '\\') {
@@ -730,6 +811,139 @@ static int expand_arguments(char *command)
 			memmove(command+ix + 1, tmp, strlen(tmp)+1);
 		}
 		ix++;
+	}
+	/* Use glob and then fixup environment variables and such */
+
+	/* It turns out that glob is very stupid.  We have to feed it one word at a
+	 * time since it can't cope with a full string.  Here we convert command
+	 * (char*) into cmd (char**, one word per string) */
+
+	/* We need a clean copy, so strsep can mess up the copy while
+	 * we write stuff into the original (in a minute) */
+	cmd = cmd_copy = strdup(command);
+	*command = '\0';
+	for (ix = 0, tmpcmd = cmd; 
+			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
+		if (*tmpcmd == '\0')
+			break;
+		/* we need to trim() the result for glob! */
+		trim(tmpcmd);
+		retval = glob(tmpcmd, flags, NULL, &expand_result);
+		free(tmpcmd); /* Free mem allocated by strsep_space */
+		if (retval == GLOB_NOSPACE) {
+			/* Mem may have been allocated... */
+			globfree (&expand_result);
+			error_msg(out_of_space);
+			return FALSE;
+		} else if (retval != 0) {
+			/* Some other error.  GLOB_NOMATCH shouldn't
+			 * happen because of the GLOB_NOCHECK flag in 
+			 * the glob call. */
+			error_msg("syntax error");
+			return FALSE;
+		} else {
+			/* Convert from char** (one word per string) to a simple char*,
+			 * but don't overflow command which is BUFSIZ in length */
+			for (i=0; i < expand_result.gl_pathc; i++) {
+				length=strlen(expand_result.gl_pathv[i]);
+				if (total_length+length+1 >= BUFSIZ) {
+					error_msg(out_of_space);
+					return FALSE;
+				}
+				strcat(command+total_length, " ");
+				total_length+=1;
+				strcat(command+total_length, expand_result.gl_pathv[i]);
+				total_length+=length;
+			}
+			globfree (&expand_result);
+		}
+	}
+	free(cmd_copy);
+	trim(command);
+
+	/* Now do the shell variable substitutions which 
+	 * wordexp can't do for us, namely $? and $! */
+	src = command;
+	while((dst = strchr(src,'$')) != NULL){
+		var = NULL;
+		switch(*(dst+1)) {
+			case '?':
+				var = itoa(last_return_code);
+				break;
+			case '!':
+				if (last_bg_pid==-1)
+					*(var)='\0';
+				else
+					var = itoa(last_bg_pid);
+				break;
+				/* Everything else like $$, $#, $[0-9], etc. should all be
+				 * expanded by wordexp(), so we can in theory skip that stuff
+				 * here, but just to be on the safe side (i.e., since uClibc
+				 * wordexp doesn't do this stuff yet), lets leave it in for
+				 * now. */
+			case '$':
+				var = itoa(getpid());
+				break;
+			case '#':
+				var = itoa(argc-1);
+				break;
+			case '0':case '1':case '2':case '3':case '4':
+			case '5':case '6':case '7':case '8':case '9':
+				{
+					int ixx=*(dst + 1)-48;
+					if (ixx >= argc) {
+						var='\0';
+					} else {
+						var = argv[ixx];
+					}
+				}
+				break;
+
+		}
+		if (var) {
+			/* a single character construction was found, and 
+			 * already handled in the case statement */
+			src=dst+2;
+		} else {
+			/* Looks like an environment variable */
+			char delim_hold;
+			int num_skip_chars=0;
+			int dstlen = strlen(dst);
+			/* Is this a ${foo} type variable? */
+			if (dstlen >=2 && *(dst+1) == '{') {
+				src=strchr(dst+1, '}');
+				num_skip_chars=1;
+			} else {
+				src=dst+1;
+				while(isalnum(*src) || *src=='_') src++;
+			}
+			if (src == NULL) {
+				src = dst+dstlen;
+			}
+			delim_hold=*src;
+			*src='\0';  /* temporary */
+			var = getenv(dst + 1 + num_skip_chars);
+			*src=delim_hold;
+			src += num_skip_chars;
+		}
+		if (var == NULL) {
+			/* Seems we got an un-expandable variable.  So delete it. */
+			var = "";
+		}
+		{
+			int subst_len = strlen(var);
+			int trail_len = strlen(src);
+			if (dst+subst_len+trail_len >= command+BUFSIZ) {
+				error_msg(out_of_space);
+				return FALSE;
+			}
+			/* Move stuff to the end of the string to accommodate
+			 * filling the created gap with the new stuff */
+			memmove(dst+subst_len, src, trail_len+1);
+			/* Now copy in the new stuff */
+			memcpy(dst, var, subst_len);
+			src = dst+subst_len;
+		}
 	}
 
 	return TRUE;
@@ -1078,6 +1292,7 @@ static void insert_job(struct job *newjob, int inbg)
 		printf("[%d] %d\n", thejob->jobid,
 			   newjob->progs[newjob->num_progs - 1].pid);
 		last_jobid = newjob->jobid;
+		last_bg_pid=newjob->progs[newjob->num_progs - 1].pid;
 	} else {
 		newjob->job_list->fg = thejob;
 
@@ -1250,6 +1465,8 @@ static int busy_loop(FILE * input)
 				job_list.fg->running_progs--;
 				job_list.fg->progs[i].pid = 0;
 
+				last_return_code=WEXITSTATUS(status);
+
 				if (!job_list.fg->running_progs) {
 					/* child exited */
 					remove_job(&job_list, job_list.fg);
@@ -1322,10 +1539,9 @@ static void setup_job_control()
 	signal(SIGCHLD, SIG_IGN);
 
 	/* Put ourselves in our own process group.  */
+	setsid();
 	shell_pgrp = getpid ();
-	if (setpgid (shell_pgrp, shell_pgrp) < 0) {
-		perror_msg_and_die("Couldn't put the shell in its own process group");
-	}
+	setpgid (shell_pgrp, shell_pgrp);
 
 	/* Grab control of the terminal.  */
 	tcsetpgrp(shell_terminal, shell_pgrp);
@@ -1345,13 +1561,12 @@ int shell_main(int argc_l, char **argv_l)
 	close_me_head = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
+	last_return_code=1;
 
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *prof_input;
 		prof_input = fopen("/etc/profile", "r");
-		if (!prof_input) {
-			printf( "Couldn't open file '/etc/profile'\n");
-		} else {
+		if (prof_input) {
 			int tmp_fd = fileno(prof_input);
 			mark_open(tmp_fd);	
 			/* Now run the file */
@@ -1418,4 +1633,3 @@ int shell_main(int argc_l, char **argv_l)
 	
 	return (busy_loop(input));
 }
-
