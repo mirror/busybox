@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.34 2004/03/15 08:28:32 andersen Exp $";
+	"$Id: vi.c,v 1.35 2004/03/31 11:12:51 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -375,6 +375,7 @@ extern int vi_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_VI_READONLY
 		case 'R':		// Read-only flag
 			readonly = TRUE;
+			vi_readonly = TRUE;
 			break;
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			//case 'r':	// recover flag-  ignore- we don't use tmp file
