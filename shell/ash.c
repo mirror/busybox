@@ -11914,6 +11914,7 @@ exitshell(void)
 		evalstring(p);
 	}
 	flushall();
+	setjobctl(0);
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
 	if (iflag && rootshell) {
 		const char *hp = lookupvar("HISTFILE");
