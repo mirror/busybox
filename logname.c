@@ -29,16 +29,16 @@ static const char logname_usage[] = "logname\n\n"
 
 extern int logname_main(int argc, char **argv)
 {
-	char *cp;
+	char *user = xmalloc(9);
 
 	if (argc > 1)
 		usage(logname_usage);
 
-	cp = getlogin();
-	if (cp) {
-		puts(cp);
+	my_getpwuid(user, geteuid());
+	if (user) {
+		puts(user);
 		exit(TRUE);
 	}
-	fprintf(stderr, "%s: no login name\n", argv[0]);
+	fprintf(stderr, "no login name\n");
 	exit(FALSE);
 }

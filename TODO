@@ -44,6 +44,8 @@ It would be a very nice thing to reduce this list to an absolute minimum, and
 then create a microLibc to provide these functions.  There is no good reason
 for GNU libc to be so big.  I'm sure it can be a lot better.
 
+(BTW, this is more informative if BB_FEATURE_NFSMOUNT is turned off...)
+
 
 -----------------------
 
