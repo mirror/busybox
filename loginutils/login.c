@@ -86,12 +86,9 @@ extern int login_main(int argc, char **argv)
 	username[0]=0;
 	amroot = ( getuid ( ) == 0 );
 	signal ( SIGALRM, alarm_handler );
+	alarm ( TIMEOUT );
+	alarmstarted = 1;
 	
-	if (( argc > 1 ) && ( TIMEOUT > 0 )) {
-		alarm ( TIMEOUT );
-		alarmstarted = 1;
-	}
-
 	while (( flag = getopt(argc, argv, "f:h:p")) != EOF ) {
 		switch ( flag ) {
 		case 'p':
