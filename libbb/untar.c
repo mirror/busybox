@@ -52,18 +52,16 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 	size_t size;
 	mode_t mode;
 
-//	signal(SIGCHLD, child_died);
-
 	while (fread((char *) &raw_tar_header, 1, 512, src_tar_file) == 512) {
 		long sum = 0;
-		char *dir;
+		char *dir = NULL;
 
 		uncompressed_count += 512;
 
 		/* Check header has valid magic */
 		if (strncmp(raw_tar_header.magic, "ustar", 5) != 0) {
 			/* Put this pack after TODO (check child still alive) is done */
-//			error_msg("Invalid tar magic");
+			error_msg("Invalid tar magic");
 			break;
 		}
 
@@ -111,11 +109,16 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 
 		}
 */
-		/* extract files */
-		dir = xmalloc(strlen(raw_tar_header.name) + strlen(base_path) + 2);
+		if (untar_function & (extract_verbose_extract | extract_contents)) {
+			printf("%s\n", raw_tar_header.name);
+		}
 
-		sprintf(dir, "%s/%s", base_path, raw_tar_header.name);
-		create_path(dir, 0777);
+		/* extract files */
+		if (base_path != NULL) {
+			dir = xmalloc(strlen(raw_tar_header.name) + strlen(base_path) + 2);
+			sprintf(dir, "%s/%s", base_path, raw_tar_header.name);
+			create_path(dir, 0777);
+		}
 		switch (raw_tar_header.typeflag ) {
 			case '0':
 			case '\0':
@@ -124,8 +127,6 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				 */
 				if (raw_tar_header.name[strlen(raw_tar_header.name)-1] != '/') {
 					switch (untar_function) {
-						case (extract_verbose_extract):
-							printf("%s\n", raw_tar_header.name);
 						case (extract_extract): {
 								FILE *dst_file = wfopen(dir, "w");
 								copy_file_chunk(src_tar_file, dst_file, size);
@@ -143,17 +144,12 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 					break;
 				}
 			case '5':
-				switch (untar_function) {
-					case (extract_verbose_extract):
-						printf("%s\n", raw_tar_header.name);
-					case  (extract_extract):
-						if (create_path(dir, mode) != TRUE) {
-							free(dir);
-							perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
-							return(EXIT_FAILURE);
-						}
-						break;
-					default:
+				if (untar_function & (extract_extract | extract_verbose_extract)) {
+					if (create_path(dir, mode) != TRUE) {
+						free(dir);
+						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
+						return(EXIT_FAILURE);
+					}
 				}
 				break;
 			case '1':
@@ -185,7 +181,7 @@ extern int untar(FILE *src_tar_file, int untar_function, char *base_path)
 				free(dir);
 				return(EXIT_FAILURE);
 		}
-		free(dir);
+//		free(dir);
 	}
 	return(EXIT_SUCCESS);
 }
