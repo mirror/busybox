@@ -1164,7 +1164,6 @@ const char tail_usage[] =
 	"\t-c=N[kbm]\toutput the last N bytes\n"
 #endif
 	"\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
-	"\t\t\tAlso can be -NUM or +NUM.\n"
 	"\t-f\t\tOutput data as the file grows.\n"
 #ifndef BB_FEATURE_SIMPLE_TAIL
 	"\t-q\t\tnever output headers giving file names\n"

@@ -61,7 +61,7 @@ static char verbose = 0;
 
 static off_t units=0;
 
-int tail_stream(int fd)
+static int tail_stream(int fd)
 {
 	ssize_t startpoint;
 	ssize_t endpoint=0;
@@ -155,18 +155,6 @@ void add_file(char *name)
 	strcpy(files[n_files - 1], name);
 }
 
-void checknumbers(const char* name)
-{
-	int test=atoi(name);
-	if(test){
-		units=test;
-		if(units<0)
-			units=units-1;
-	} else {
-		fatalError("Unrecognised number '%s'\n", name);
-	}
-}
-
 int tail_main(int argc, char **argv)
 {
 	int show_headers = 1;
@@ -178,14 +166,9 @@ int tail_main(int argc, char **argv)
 
 	opterr = 0;
 	
-	while ((opt=getopt(argc,argv,"c:fhn:s:q:v123456789+")) >0) {
+	while ((opt=getopt(argc,argv,"c:fhn:s:q:v")) >0) {
 
 		switch (opt) {
-			case '1':case '2':case '3':case '4':case '5':
-			case '6':case '7':case '8':case '9':case '0':
-				checknumbers(argv[optind-1]);
-				break;
-
 #ifndef BB_FEATURE_SIMPLE_TAIL
 		case 'c':
 			unit_type = BYTES;
@@ -253,10 +236,7 @@ int tail_main(int argc, char **argv)
 			else
 				break;
 		}else {
-			if (*argv[optind] == '+') {
-				checknumbers(argv[optind]);
-			}
-			else if (!strcmp(argv[optind], "-")) {
+			if (!strcmp(argv[optind], "-")) {
 				add_file(STDIN);
 			} else {
 				add_file(argv[optind]);
