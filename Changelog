@@ -2,6 +2,10 @@
 	* usage() now printf the BusyBox version.  This will help folks
 	    realize that they are not in Kansas anymore.
 	* Fixed mkdir -m option so that it works.
+	* kill segfaulted w/o any arguments.  Now it doesn't do that.
+	* kill wasn't properly accepting signal names.  It does now.
+
+	 -Erik Andersen
 
 0.31
 	* I added a changelog for version 0.30. 
@@ -16,6 +20,7 @@
 	    it wasn't supported before GNU libc 2.1, and some folks use
 	    glibc 2.0.7 since it is much smaller than that latest and greatest.
 
+	 -Erik Andersen
 
 0.30
 	Major changes -- lots of stuff rewritten. Many thanks to Lineo for

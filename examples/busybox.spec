@@ -11,11 +11,11 @@ Source: busybox-0.29a1.tar.gz
 
 %Description
 BusyBox is a suite of "tiny" Unix utilities in a multi-call binary. It
-provides a pretty complete environment that fits on a floppy or in a
-ROM. Just add "ash" (Keith Almquists tiny Bourne shell clone) and "ae",
-and a kernel and you have a full system. This is used on the Debian
-install disk and in an internet router, and it makes a good environment
-for a "rescue" disk or any small or embedded system.
+provides a pretty complete POSIX environment in a very small package.
+Just add a kernel, "ash" (Keith Almquists tiny Bourne shell clone), and
+an editor such as "elvis-tiny" or "ae", and you have a full system. This
+is makes an excellent environment for a "rescue" disk or any small or
+embedded system.
 
 %Prep
 %setup -q -n busybox

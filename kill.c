@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 const char kill_usage[] = "kill [-signal] process-id [process-id ...]\n";
 
@@ -112,47 +113,47 @@ const struct signal_name signames[] = {
 
 extern int kill_main (int argc, char **argv)
 {
-    int had_error = 0;
     int sig = SIGTERM;
 
+    if ( argc < 2 )
+	usage (kill_usage);
 
-
-    if (argv[1][0] == '-') {
-	if (argv[1][1] >= '0' && argv[1][1] <= '9') {
-	    sig = atoi (&argv[1][1]);
+    if ( **(argv+1) == '-' ) {
+	if (isdigit( *(*(++argv)+1) )) {
+	    sig = atoi (*argv);
 	    if (sig < 0 || sig >= NSIG)
 		goto end;
-	} else {
+	}
+	else {
 	    const struct signal_name *s = signames;
-	    for (;;) {
-		if (strcmp (s->name, &argv[1][1]) == 0) {
+	    while (s->name != 0) {
+		if (strcasecmp (s->name, *argv+1) == 0) {
 		    sig = s->number;
 		    break;
 		}
 		s++;
-		if (s->name == 0)
-		    goto end;
 	    }
+	    if (s->name == 0)
+		goto end;
 	}
-	argv++;
-	argc--;
+    }
 
-    }
-    while (argc > 1) {
+    while (--argc > 1) {
 	int pid;
-	if (argv[1][0] < '0' || argv[1][0] > '9')
-	    goto end;
-	pid = atoi (argv[1]);
-	if (kill (pid, sig) != 0) {
-	    had_error = 1;
-	    perror (argv[1]);
+	if (! isdigit( **(++argv))) {
+	    fprintf(stderr, "bad PID: %s\n", *argv);
+	    exit( FALSE);
 	}
-	argv++;
-	argc--;
+	pid = atoi (*argv);
+	if (kill (pid, sig) != 0) {
+	    perror (*argv);
+	    exit ( FALSE);
+	}
     }
-    if (had_error) {
+
 end:
-	usage (kill_usage);
-    }
+    fprintf(stderr, "bad signal name: %s\n", *argv);
     exit (TRUE);
 }
+
+

@@ -22,7 +22,11 @@ BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
 # Leave this off for production use.
-#DODEBUG=true
+DODEBUG=false
+# If you want a static binary, turn this on.  I can't think
+# of many situations where anybody would ever want it static, 
+# but...
+DOSTATIC=false
 
 #This will choke on a non-debian system
 ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
@@ -37,6 +41,11 @@ else
     CFLAGS=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS= -s
     STRIP= strip --remove-section=.note --remove-section=.comment $(PROG)
+    #Only staticly link when _not_ debugging 
+    ifeq ($(DOSTATIC),true)
+	LDFLAGS+= --static
+    endif
+    
 endif
 
 ifndef $(prefix)
