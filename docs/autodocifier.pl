@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 
-# collect lines continued with a '\' into an array 
+# collect lines continued with a '\' into an array
 sub continuation {
 	my $fh = shift;
 	my @line;
@@ -26,7 +26,7 @@ sub beautify {
 	$text =~ s/"\s*"//sg;
 	my @line = split("\n", $text);
 	$text = join('',
-		map { 
+		map {
 			s/^\s*"//;
 			s/"\s*$//;
 			s/%/%%/g;
@@ -42,10 +42,17 @@ sub pod_for_usage {
 	my $name  = shift;
 	my $usage = shift;
 
+	# Sigh.  Fixup the known odd-name applets.
+	$name =~ s/dpkg_deb/dpkg-deb/g;
+	$name =~ s/fsck_minix/fsck.minix/g;
+	$name =~ s/mkfs_minix/mkfs.minix/g;
+	$name =~ s/run_parts/run-parts/g;
+	$name =~ s/start_stop_daemon/start-stop-daemon/g;
+
 	# make options bold
 	my $trivial = $usage->{trivial};
 	$trivial =~ s/(?<!\w)(-\w+)/B<$1>/sxg;
-	my @f0 = 
+	my @f0 =
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
 		split("\n", $usage->{full});
 
@@ -69,22 +76,19 @@ sub pod_for_usage {
 
 	# prepare examples if they exist
 	my $example = (defined $usage->{example})
-		?  
+		?
 			"Example:\n\n" .
-			join ("\n", 
-			map  { "\t$_" } 
+			join ("\n",
+			map  { "\t$_" }
 			split("\n", $usage->{example})) . "\n\n"
 		: "";
 
 	return
 		"=item B<$name>".
-		"\n\n"  .
-		"$name $trivial".
-		"\n\n"  .
-		$full   .
-		"\n\n"  .
-		$notes  .
-		$example.
+		"\n\n$name $trivial\n\n".
+		"$full\n\n"   .
+		"$notes"  .
+		"$example" .
 		"-------------------------------".
 		"\n\n"
 	;
@@ -101,7 +105,7 @@ sub sgml_for_usage {
 	;
 }
 
-# the keys are applet names, and 
+# the keys are applet names, and
 # the values will contain hashrefs of the form:
 #
 # {
@@ -288,4 +292,4 @@ John BEPPU <b@ax9.org>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.24 2003/07/14 21:20:48 andersen Exp $
+# $Id: autodocifier.pl,v 1.25 2004/03/13 08:32:14 andersen Exp $

@@ -47,7 +47,7 @@ John Beppu <beppu@codepoet.org>
 Edward Betts <edward@debian.org>
 
     expr, hostid, logname, tty, wc, whoami, yes
- 
+
 =for html <br>
 
 Brian Candler <B.Candler@pobox.com>
@@ -62,10 +62,9 @@ Randolph Chung <tausq@debian.org>
 
 =for html <br>
 
-Dave Cinege <dcinege@psychosis.com>	
+Dave Cinege <dcinege@psychosis.com>
 
-    more(v2), makedevs, dutmp, modularization, auto links file, 
-    various fixes, Linux Router Project maintenance
+    more(v2), makedevs, modularization, various fixes
 
 =for html <br>
 
@@ -99,7 +98,7 @@ Matt Kraai <kraai@alumni.carnegiemellon.edu>
 
 =for html <br>
 
-John Lombardo <john@deltanet.com>	
+John Lombardo <john@deltanet.com>
 
     dirname, tr
 
@@ -174,4 +173,4 @@ Glenn Engel <glenne@engel.org>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.12 2003/07/14 21:20:48 andersen Exp $
+# $Id: busybox_footer.pod,v 1.13 2004/03/13 08:32:14 andersen Exp $
