@@ -3,6 +3,8 @@
 	* Fixed a _horrible_ bug where 'tar -tvf' could unlink
 	    local files!!!  Fix thanks to Marius Groeger <mgroeger@sysgo.de>
 	* Fixed a nasty bug in tar when could mess up saved symlinks.
+	* Fixed tar creation support when reading from stdin ('tar -cf - . ') 
+	    thanks to Daniel Quinlan <quinlan@transmeta.com>
 	* Updates to handle Linux 2.4.0 kernels (kludged around the
 	    "none" entries in /proc/mounts, added a hack to make sysinfo
 	    work with both old and new kernels).
