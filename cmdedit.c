@@ -54,6 +54,9 @@
 #include <sys/stat.h>
 #endif
 
+#include "pwd_grp/pwd.h"
+
+
 static const int MAX_HISTORY = 15;		/* Maximum length of the linked list for the command line history */
 
 enum {

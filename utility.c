@@ -63,25 +63,15 @@
 
 /* Busybox mount uses either /proc/filesystems or /dev/mtab to get the 
  * list of available filesystems used for the -t auto option */ 
-#if defined BB_FEATURE_USE_PROCFS && defined BB_FEATURE_USE_DEVPS_PATCH
-//#error Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again.
-#error "Sorry, but busybox can't use both /proc and /dev/ps at the same time -- Pick one and try again."
-#endif
-
-
 #if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
 #  if defined BB_MTAB
 const char mtab_file[] = "/etc/mtab";
 #  else
-#    if defined BB_FEATURE_USE_PROCFS
-const char mtab_file[] = "/proc/mounts";
-#    else
 #      if defined BB_FEATURE_USE_DEVPS_PATCH
 const char mtab_file[] = "/dev/mtab";
 #    else
-#        error With (BB_MOUNT||BB_UMOUNT||BB_DF) defined, you must define either BB_MTAB or ( BB_FEATURE_USE_PROCFS | BB_FEATURE_USE_DEVPS_PATCH)
+const char mtab_file[] = "/proc/mounts";
 #    endif
-#  endif
 #  endif
 #endif
 
@@ -1271,9 +1261,6 @@ extern pid_t* find_pid_by_name( char* pidName)
 	return pidList;
 }
 #else		/* BB_FEATURE_USE_DEVPS_PATCH */
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
 
 /* find_pid_by_name()
  *  
@@ -1634,7 +1621,7 @@ char process_escape_sequence(char **ptr)
 #endif
 
 #if defined BB_BASENAME || defined BB_LN || defined BB_SH || defined BB_INIT || \
-	defined BB_FEATURE_USE_PROCFS || defined BB_WGET
+	! defined BB_FEATURE_USE_DEVPS_PATCH || defined BB_WGET
 char *get_last_path_component(char *path)
 {
 	char *s=path+strlen(path)-1;
@@ -1681,7 +1668,8 @@ FILE *wfopen(const char *path, const char *mode)
 
 #if defined BB_HOSTNAME || defined BB_LOADACM || defined BB_MORE \
  || defined BB_SED || defined BB_SH || defined BB_TAR || defined BB_UNIQ \
- || defined BB_WC || defined BB_CMP || defined BB_SORT || defined BB_WGET
+ || defined BB_WC || defined BB_CMP || defined BB_SORT || defined BB_WGET \
+ || defined BB_MOUNT
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;

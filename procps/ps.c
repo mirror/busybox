@@ -52,10 +52,6 @@ static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefo
  * the one using the /proc virtual filesystem.
  */
 
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
-
 typedef struct proc_s {
 	char
 	 cmd[16];					/* basename of executable file in call to exec(2) */

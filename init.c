@@ -666,10 +666,6 @@ static void reboot_signal(int sig)
 #warning pivot root instead.  Do not even bother till this work is done...
 #warning You have been warned.
 
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
-
 static void check_chroot(int sig)
 {
 	char *argv_init[2] = { "init", NULL, };

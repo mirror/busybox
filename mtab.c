@@ -21,12 +21,8 @@ void erase_mtab(const char *name)
 
 	/* Check if reading the mtab file failed */
 	if (mountTable == 0
-#if ! defined BB_FEATURE_USE_PROCFS
-		) {
-#else
-		/* Bummer.  fall back on trying the /proc filesystem */
-		&& (mountTable = setmntent("/proc/mounts", "r")) == 0) {
-#endif
+			/* Bummer.  fall back on trying the /proc filesystem */
+			&& (mountTable = setmntent("/proc/mounts", "r")) == 0) {
 		perror_msg("%s", mtab_file);
 		return;
 	}
@@ -74,14 +70,12 @@ void write_mtab(char *blockDevice, char *directory,
 		if (length > 1 && directory[length - 1] == '/')
 			directory[length - 1] = '\0';
 
-#ifdef BB_FEATURE_USE_PROCFS
 		if (filesystemType == 0) {
 			struct mntent *p = find_mount_point(blockDevice, "/proc/mounts");
 
 			if (p && p->mnt_type)
 				filesystemType = p->mnt_type;
 		}
-#endif
 		m.mnt_fsname = blockDevice;
 		m.mnt_dir = directory;
 		m.mnt_type = filesystemType ? filesystemType : "default";

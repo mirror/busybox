@@ -5,8 +5,17 @@
 # properly on its own.  The most likely problems this will
 # flush out are those involving preprocessor instructions in
 # utility.c.
+#
+# TODO: some time it might be nice to list absolute and 
+# differential object sizes for each option...
+#
 
 $logfile = "multibuild.log";
+
+# How to handle all the BB_FEATURE_FOO lines
+if ($ARGV[0] eq "-all" ) { shift(@ARGV); $choice="all"; }
+if ($ARGV[0] eq "-none") { shift(@ARGV); $choice="none"; }
+# neither means, leave that part of Config.h alone
 
 # Support building from pristine source
 $make_opt = "-f $ARGV[0]/Makefile BB_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
@@ -21,6 +30,11 @@ unlink($logfile);
 open(C,"<Config.h.orig") || die;
 while (<C>) {
 	if ($in_trailer) {
+		if (!$in_olympus) {
+			s/^\/\/#/#/ if ($choice eq "all" && !/USE_DEVPS_PATCH/);
+			s/^#/\/\/#/ if ($choice eq "none");
+		}
+		$in_olympus=1 if /End of Features List/;
 		$trailer .= $_;
 	} else {
 		$in_trailer=1 if /End of Applications List/;
@@ -32,6 +46,7 @@ while (<C>) {
 close C;
 
 # Do the real work ...
+$failed_tests=0;
 for $a (@apps) {
 	# print "Testing build of applet $a ...\n";
 	open (O, ">Config.h") || die;
@@ -40,12 +55,17 @@ for $a (@apps) {
 	system("echo -e '\n***\n$a\n***' >>$logfile");
 	# todo: figure out why the "rm -f *.o" is needed
 	$result{$a} = system("rm -f *.o; make $make_opt busybox >>$logfile 2>&1");
-	$flag = $result{$a} ? "FAIL" : "OK";
-	print "Applet $a: $flag\n";
+	$flag = $result{$a} ? "FAILED!!!" : "ok";
+	printf("Applet %-20s: %s\n", $a, $flag);
+	$total_tests++;
+	$failed_tests++ if $flag eq "FAILED!!!";
+	# pause long enough to let user stop us with a ^C
+	select(undef, undef, undef, 0.05);
 }
 
 # Clean up our mess
 system("mv -f Config.h.orig Config.h");
 
+print "$total_tests applets tested, $failed_tests failures\n";
 print "See $logfile for details.\n";
 

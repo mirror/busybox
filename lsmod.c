@@ -130,10 +130,6 @@ extern int lsmod_main(int argc, char **argv)
 
 #else /*BB_FEATURE_OLD_MODULE_INTERFACE*/
 
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
-
 extern int lsmod_main(int argc, char **argv)
 {
 	int fd, i;

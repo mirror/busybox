@@ -232,13 +232,9 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 {
 	int status = 0;
 
-#if defined BB_FEATURE_USE_PROCFS
 	char buf[255];
 	if (strcmp(filesystemType, "auto") == 0) {
-		FILE *f = fopen("/proc/filesystems", "r");
-
-		if (f == NULL)
-			return (FALSE);
+		FILE *f = xfopen("/proc/filesystems", "r");
 
 		while (fgets(buf, sizeof(buf), f) != NULL) {
 			filesystemType = buf;
@@ -261,7 +257,6 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		}
 		fclose(f);
 	} else
-#endif
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 	if (strcmp(filesystemType, "auto") == 0) {
 		int fd, i, numfilesystems;

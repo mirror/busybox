@@ -248,7 +248,6 @@ busybox.links: Config.h applets.h
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
-	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 utility.o: loop.h
 
@@ -265,7 +264,7 @@ clean:
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
-	- rm -f Config.h.ORG bb.def.h busybox.REGRESS.sh.results bb.OptionsAndFeatures
+	- rm -f multibuild.log Config.h.orig
 	- rm -rf docs/busybox _install
 	- rm -f busybox.links loop.h *~ *.o core
 

@@ -1371,7 +1371,7 @@ static int pseudo_exec(struct child_prog *child)
 	struct built_in_command *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	struct BB_applet *applet;
-	const char *name;
+	char *name;
 #endif
 
 	/* Check if the command matches any of the non-forking builtins.
