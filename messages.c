@@ -48,8 +48,7 @@
 
 
 #if defined bb_need_full_version || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(full_version,
-	 "BusyBox v" BB_VER " (" BB_BT ") multi-call binary")
+	BB_DEF_MESSAGE(full_version, BB_BANNER " multi-call binary")
 #endif
 #if defined bb_need_name_too_long || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(name_too_long, "file name too long")

@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define BB_BANNER "BusyBox v" BB_VER " (" BB_BT ")"
+
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif

@@ -528,7 +528,7 @@ static void doSyslogd (void)
         }
         #endif
 
-	logMessage (0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
+	logMessage (0, "syslogd started: " BB_BANNER);
 
 	for (;;) {
 

@@ -19,7 +19,7 @@
 
 PROG      := busybox
 VERSION   := 0.51
-BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
+BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
 # With a modern GNU make(1) (highly recommended, that's what all the

@@ -76,7 +76,7 @@ static void doKlogd (void)
 	/* "Open the log. Currently a NOP." */
 	klogctl(1, NULL, 0);
 
-	syslog_msg(LOG_DAEMON, 0, "klogd started: BusyBox v" BB_VER " (" BB_BT ")");
+	syslog_msg(LOG_DAEMON, 0, "klogd started: " BB_BANNER);
 
 	while (1) {
 		/* Use kernel syscalls */
