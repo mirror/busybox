@@ -626,14 +626,6 @@ int tar_main(int argc, char **argv)
 	tar_handle->src_fd = fileno(stdin);
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS;
 
-	/* Prepend '-' to the first argument if required */
-	if (argv[1][0] != '-') {
-		char *tmp = xmalloc(strlen(argv[1]) + 2);
-
-		tmp[0] = '-';
-		strcpy(tmp + 1, argv[1]);
-		argv[1] = tmp;
-	}
 	while ((opt = getopt(argc, argv, "ctxT:X:C:f:Opvz")) != -1) {
 		switch (opt) {
 			/* One and only one of these is required */
@@ -704,6 +696,10 @@ int tar_main(int argc, char **argv)
 		}
 	}
 
+	if (*argv[optind] == '-') {
+		optind++;
+	}
+
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, seperate function ? */
 	while (optind < argc) {
@@ -750,7 +746,9 @@ int tar_main(int argc, char **argv)
 			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	close(tar_handle->src_fd);
+	if (tar_handle->src_fd != fileno(stdin)) {
+		close(tar_handle->src_fd);
+	}
 #endif
 
 	return(EXIT_SUCCESS);
