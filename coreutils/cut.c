@@ -1,11 +1,8 @@
-/* vi: set sw=4 ts=4: */
 /*
- * cut implementation for busybox
+ * cut.c - minimalist version of cut
  *
- * Copyright (c) Michael J. Holme
- *
- * This version of cut is adapted from Minix cut and was modified 
- * by Erik Andersen <andersee@debian.org> to be used in busybox.
+ * Copyright (C) 1999,2000 by Lineo, inc.
+ * Written by Mark Whitley <markw@lineo.com>, <markw@enol.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,351 +17,217 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * 
- * Original copyright notice is retained at the end of this file.
+ *
  */
 
-#include "internal.h"
-#include <sys/types.h>
-#include <ctype.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
-#define BB_DECLARE_EXTERN
-#define bb_need_help
-#include "messages.c"
-
-#define MAX_FIELD	80			/* Pointers to the beginning of each field
-								   * are stored in columns[], if a line holds
-								   * more than MAX_FIELD columns the array
-								   * boundary is exceed. But unlikely at 80 */
-
-#define MAX_ARGS	32			/* Maximum number of fields following -f or
-								   * -c switches                                                      */
-int args[MAX_ARGS * 2];
-int num_args;
-
-/* Lots of new defines, should easen maintainance...			*/
-#define DUMP_STDIN	0			/* define for mode: no options   */
-#define OPTIONF		1			/* define for mode: option -f    */
-#define OPTIONC		2			/* define for mode: option -c    */
-#define OPTIONB		3			/* define for mode: option -b    */
-#define NOTSET		0			/* option not selected       */
-#define SET			1			/* option selected       */
-#define OPTIONS		1			/*define option -s */
-/* Defines for the warnings						*/
-#define DELIMITER_NOT_APPLICABLE	0
-#define OVERRIDING_PREVIOUS_MODE	1
-#define OPTION_NOT_APPLICABLE		2
-#define UNKNOWN_OPTION			3
-#define FILE_NOT_READABLE		4
-/* Defines for the fatal errors						*/
-#define SYNTAX_ERROR				101
-#define POSITION_ERROR				102
-#define LINE_TO_LONG_ERROR			103
-#define RANGE_ERROR					104
-#define MAX_FIELDS_EXEEDED_ERROR	105
-#define MAX_ARGS_EXEEDED_ERROR		106
+#include <stdlib.h>
+#include <unistd.h> /* getopt */
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
+#include "internal.h"
 
 
-int mode;						/* 0 = dump stdin to stdout, 1=-f, 2=-c   */
-char delim = '\t';				/* default delimiting character   */
-FILE *fd;
-char line[BUFSIZ];
-int exit_status;
-int option = 0;                                     /* for -s option */
-
-int cut_main(int argc, char **argv);
-void warn(int warn_number, char *option);
-void cuterror(int err);
-void get_args(void);
-void cut(void);
-
-void warn(int warn_number, char *option)
-{
-	static char *warn_msg[] = {
-		"Option -%s allowed only with -f\n",
-		"-%s overrides earlier option\n",
-		"-%s not allowed in current mode\n",
-		"Cannot open %s\n"
-	};
-
-	errorMsg(warn_msg[warn_number], option);
-	exit_status = warn_number + 1;
-
-}
-
-void cuterror(int err)
-{
-	static char *err_mes[] = {
-		"syntax error\n",
-		"position must be >0\n",
-		"line longer than BUFSIZ\n",
-		"range must not decrease from left to right\n",
-		"MAX_FIELD exceeded\n",
-		"MAX_ARGS exceeded\n"
-	};
-
-	errorMsg(err_mes[err - 101]);
-	exit(err);
-}
+/* globals from other files */
+extern int optind;
+extern char *optarg;
 
 
-void get_args()
-{
-	int i = 0;
-	int arg_ptr = 0;
-	int flag;
+/* globals in this file only */
+static char part = 0; /* (b)yte, (c)har, (f)ields */
+static int startpos = 1;
+static int endpos = -1;
+static char delim = '\t'; /* delimiter, default is tab */
+static unsigned int supress_non_delimited_lines = 0;
 
-	num_args = 0;
-	do {
-		if (num_args == MAX_ARGS)
-			cuterror(MAX_ARGS_EXEEDED_ERROR);
-		if (!isdigit(line[i]) && line[i] != '-')
-			cuterror(SYNTAX_ERROR);
-
-		args[arg_ptr] = 1;
-		args[arg_ptr + 1] = BUFSIZ;
-		flag = 1;
-
-		while (line[i] != ',' && line[i] != 0) {
-			if (isdigit(line[i])) {
-				args[arg_ptr] = 0;
-				while (isdigit(line[i]))
-					args[arg_ptr] = 10 * args[arg_ptr] + line[i++] - '0';
-				if (!args[arg_ptr])
-					cuterror(POSITION_ERROR);
-				arg_ptr++;
-			}
-			if (line[i] == '-') {
-				arg_ptr |= 1;
-				i++;
-				flag = 0;
-			}
-		}
-		if (flag && arg_ptr & 1)
-			args[arg_ptr] = args[arg_ptr - 1];
-		if (args[num_args * 2] > args[num_args * 2 + 1])
-			cuterror(RANGE_ERROR);
-		num_args++;
-		arg_ptr = num_args * 2;
-	}
-	while (line[i++]);
-}
-
-
-void cut()
-{
-	int i, j, length, maxcol=0;
-	char *columns[MAX_FIELD];
-
-	while (fgets(line, BUFSIZ, fd)) {
-	        maxcol=0;
-	        length = strlen(line) - 1;
-		*(line + length) = 0;
-		switch (mode) {
-		case DUMP_STDIN:
-			printf("%s", line);
-			break;
-		case OPTIONF:
-			columns[maxcol++] = line;
-			for (i = 0; i < length; i++) {
-				if (*(line + i) == delim) {
-					*(line + i) = 0;
-					if (maxcol == MAX_FIELD)
-						cuterror(MAX_FIELDS_EXEEDED_ERROR);
-					columns[maxcol] = line + i + 1;
-					maxcol++;
-				}
-			}
-			if (maxcol != 1) { 
-				for (i = 0; i < num_args; i++) {
-					for (j = args[i * 2]; j <= args[i * 2 + 1]; j++)
-						if (j <= maxcol) {
-							 
-							printf("%s", columns[j - 1]);
-						       
-							if (i != num_args - 1 || j != args[i * 2 + 1])
-								putchar(delim);
-						}
-				}
-			} else if (option != OPTIONS) {
-			  printf("%s",line);
-			}
-			break;
-		case OPTIONC:
-			for (i = 0; i < num_args; i++) {
-				for (j = args[i * 2];
-					 j <= (args[i * 2 + 1] >
-						   length ? length : args[i * 2 + 1]); j++)
-					putchar(*(line + j - 1));
-			}
-		}
-		if (maxcol != 1)
-			putchar('\n');
-	}
-}
-
-int cut_main(int argc, char **argv)
-{
-	int i = 1;
-	int numberFilenames = 0;
-
-	while (i < argc) {
-		if (argv[i][0] == '-') {
-			switch (argv[i++][1]) {
-			case 'd':
-				if (mode == OPTIONC || mode == OPTIONB)
-					warn(DELIMITER_NOT_APPLICABLE, "d");
-				if (argc > i)
-					delim = argv[i++][0];
-				else
-					cuterror(SYNTAX_ERROR);
-				break;
-			case 'f':
-				sprintf(line, "%s", argv[i++]);
-				if (mode == OPTIONC || mode == OPTIONB)
-					warn(OVERRIDING_PREVIOUS_MODE, "f");
-				mode = OPTIONF;
-				break;
-			case 'b':
-				sprintf(line, "%s", argv[i++]);
-				if (mode == OPTIONF || mode == OPTIONC)
-					warn(OVERRIDING_PREVIOUS_MODE, "b");
-				mode = OPTIONB;
-				break;
-			case 'c':
-				sprintf(line, "%s", argv[i++]);
-				if (mode == OPTIONF || mode == OPTIONB)
-					warn(OVERRIDING_PREVIOUS_MODE, "c");
-				mode = OPTIONC;
-				break;
-			case 's':
-			        option = OPTIONS;
-		
-				break;
-			case '\0':			/* - means: read from stdin      */
-				numberFilenames++;
-				break;
-			case 'n':			/* needed for Posix, but no effect here  */
-				if (mode != OPTIONB)
-					warn(OPTION_NOT_APPLICABLE, "n");
-				break;
-			default:
-				warn(UNKNOWN_OPTION, &(argv[i - 1][1]));
-			}
-		} else {
-			i++;
-			numberFilenames++;
-		}
-	}
-
-/* Here follow the checks, if the selected options are reasonable.	*/
-	if (mode == OPTIONB)		/* since in Minix char := byte       */
-		mode = OPTIONC;
-	
-	if (mode != OPTIONF && option == OPTIONS)
-	        warn(DELIMITER_NOT_APPLICABLE,"s");
-	get_args();
-	if (numberFilenames != 0) {
-		i = 1;
-		while (i < argc) {
-			if (argv[i][0] == '-') {
-				switch (argv[i][1]) {
-				case 'f':
-				case 'c':
-				case 'b':
-				case 'd':
-					i += 2;
-					break;
-				case 'n':
-				case 'i':
-				case 's':
-					i++;
-					break;
-				case '\0':
-					fd = stdin;
-					i++;
-					cut();
-					break;
-				default:
-					i++;
-				}
-			} else {
-				if ((fd = fopen(argv[i++], "r")) == NULL) {
-					warn(FILE_NOT_READABLE, argv[i - 1]);
-				} else {
-					cut();
-					fclose(fd);
-				}
-			}
-		}
-	} else {
-		fd = stdin;
-		cut();
-	}
-
-	return(exit_status);
-}
-
-/* cut - extract columns from a file or stdin. 	Author: Michael J. Holme
- *
- *	Copyright 1989, Michael John Holme, All rights reserved.
- *	This code may be freely distributed, provided that this notice
- *	remains intact.
- *
- *	V1.1: 6th September 1989
- *
- *	Bugs, criticisms, etc,
- *      c/o Mark Powell
- *          JANET sq79@uk.ac.liv
- *          ARPA  sq79%liv.ac.uk@nsfnet-relay.ac.uk
- *          UUCP  ...!mcvax!ukc!liv.ac.uk!sq79
- *-------------------------------------------------------------------------
- *	Changed for POSIX1003.2/Draft10 conformance
- *	Thomas Brupbacher (tobr@mw.lpc.ethz.ch), September 1990.
- *	Changes:
- *	    - separation of error messages ( stderr) and output (stdout).
- *	    - support for -b and -n (no effect, -b acts as -c)
- *	    - support for -s
- *-------------------------------------------------------------------------
- */
 
 /*
- * Copyright (c) 1987,1997, Prentice Hall
- * All rights reserved.
- * 
- * Redistribution and use of the MINIX operating system in source and
- * binary forms, with or without modification, are permitted provided
- * that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
- * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following
- * disclaimer in the documentation and/or other materials provided
- * with the distribution.
- * 
- * Neither the name of Prentice Hall nor the names of the software
- * authors or contributors may be used to endorse or promote
- * products derived from this software without specific prior
- * written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND
- * CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL PRENTICE HALL OR ANY AUTHORS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
+ * decompose_list() - parses a list and puts values into startpos and endpos.
+ * valid list formats: N, N-, N-M, -M 
  */
+static void decompose_list(const char *list)
+{
+	unsigned int nminus = 0;
+	char *ptr;
+
+	/* the list must contain only digits and no more than one minus sign */
+	for (ptr = (char *)list; *ptr; ptr++) {
+		if (!isdigit(*ptr) && *ptr != '-') {
+			fatalError("invalid byte or field list\n");
+		}
+		if (*ptr == '-') {
+			nminus++;
+			if (nminus > 1) {
+				fatalError("invalid byte or field list\n");
+			}
+		}
+	}
+
+	/* handle single value 'N' case */
+	if (nminus == 0) {
+		startpos = strtol(list, &ptr, 10);
+		if (startpos == 0) {
+			fatalError("missing list of fields\n");
+		}
+		endpos = startpos;
+	}
+	/* handle multi-value cases */
+	else if (nminus == 1) {
+		/* handle 'N-' case */
+		if (list[strlen(list) - 1] == '-') {
+			startpos = strtol(list, &ptr, 10);
+		}
+		/* handle '-M' case */
+		else if (list[0] == '-') {
+			endpos = strtol(&list[1], NULL, 10);
+		}
+		/* handle 'N-M' case */
+		else {
+			startpos = strtol(list, &ptr, 10);
+			endpos = strtol(ptr+1, &ptr, 10);
+		}
+
+		/* a sanity check */
+		if (startpos == 0) {
+			startpos = 1;
+		}
+	}
+}
 
 
+/*
+ * snippy-snip
+ */
+static void cut_file(FILE *file)
+{
+	char *line;
+
+	/* go through every line in the file */
+	for (line = NULL; (line = get_line_from_file(file)) != NULL; free(line)) {
+
+		/* cut based on chars/bytes */
+		if (part == 'c' || part == 'b') {
+			int i;
+			/* a valid end position has been specified */
+			if (endpos > 0) {
+				for (i = startpos-1; i < endpos; i++) {
+					fputc(line[i], stdout);
+				}
+				fputc('\n', stdout);
+			}
+			/* otherwise, just go to the end of the line */
+			else {
+				for (i = startpos-1; line[i]; i++) {
+					fputc(line[i], stdout);
+				}
+			}
+		} 
+		/* cut based on fields */
+		else if (part == 'f') {
+			char *ptr;
+			char *start = line;
+			unsigned int delims_hit = 0;
+
+			for (ptr = line; (ptr = strchr(ptr, delim)) != NULL; ptr++) {
+				delims_hit++;
+				if (delims_hit == (startpos - 1)) {
+					start = ptr+1;
+				}
+				if (delims_hit == endpos) {
+					break;
+				}
+			}
+			/* we didn't hit any delimeters */
+			if (delims_hit == 0 && !supress_non_delimited_lines) {
+				fputs(line, stdout);
+			}
+			/* we =did= hit some delimiters */
+			else if (delims_hit > 0) {
+				/* we have a fixed end point */
+				if (ptr) {
+					while (start < ptr) {
+						fputc(*start, stdout);
+						start++;
+					}
+					fputc('\n', stdout);
+				}
+				/* or we're just going til the end of the line */
+				else {
+					while (*start) {
+						fputc(*start, stdout);
+						start++;
+					}
+				}
+			}
+		}
+	}
+}
+
+extern int cut_main(int argc, char **argv)
+{
+	int opt;
+
+	while ((opt = getopt(argc, argv, "b:c:d:f:ns")) > 0) {
+		switch (opt) {
+			case 'b':
+			case 'c':
+			case 'f':
+				/* make sure they didn't ask for two types of lists */
+				if (part != 0) {
+					fatalError("only one type of list may be specified");
+				}
+				part = (char)opt;
+				decompose_list(optarg);
+				break;
+			case 'd':
+				if (strlen(optarg) > 1) {
+					fatalError("the delimiter must be a single character\n");
+				}
+				delim = optarg[0];
+				break;
+			case 'n':
+				/* no-op */
+				break;
+			case 's':
+				supress_non_delimited_lines++;
+				break;
+		}
+	}
+
+	if (part == 0) {
+		fatalError("you must specify a list of bytes, characters, or fields\n");
+	}
+
+	if (supress_non_delimited_lines && part != 'f') {
+		fatalError("suppressing non-delimited lines makes sense
+	only when operating on fields\n");
+	}
+
+	if (delim != '\t' && part != 'f') {
+		fatalError("a delimiter may be specified only when operating on fields\n");
+	}
+
+	/* argv[(optind)..(argc-1)] should be names of file to process. If no
+	 * files were specified or '-' was specified, take input from stdin.
+	 * Otherwise, we process all the files specified. */
+	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
+		cut_file(stdin);
+	}
+	else {
+		int i;
+		FILE *file;
+		for (i = optind; i < argc; i++) {
+			file = fopen(argv[i], "r");
+			if (file == NULL) {
+				/* errorMsg("%s: %s\n", argv[i], strerror(errno)); */
+				fprintf(stderr, "%s: %s\n", argv[i], strerror(errno));
+			} else {
+				cut_file(file);
+				fclose(file);
+			}
+		}
+	}
+
+	return 0;
+}
