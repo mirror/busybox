@@ -234,9 +234,6 @@ int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 	char  *d = NULL;
 	int gw_ok = 0;
 	int dst_ok = 0;
-	//int nhs_ok = 0;
-	//int scope_ok = 0;
-	//int table_ok = 0;
 	int proto_ok = 0;
 	int type_ok = 0;
 
@@ -324,6 +321,20 @@ int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 
 	if (rtnl_open(&rth, 0) < 0)
 		exit(1);
+
+	if (d)  {
+		int idx;
+
+		ll_init_map(&rth);
+
+		if (d) {
+			if ((idx = ll_name_to_index(d)) == 0) {
+				fprintf(stderr, "Cannot find device \"%s\"\n", d);
+				return -1;
+			}
+			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
+		}
+	}
 
 	if (mxrta->rta_len > RTA_LENGTH(0)) {
 		if (mxlock)
