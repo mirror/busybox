@@ -35,6 +35,10 @@ Magnus Damm <damm@opensource.se>
 Larry Doolittle <ldoolitt@recycle.lbl.gov>
     pristine source directory compilation, lots of patches and fixes.
 
+Gennady Feldman <gfeldman@cachier.com>
+    Sysklogd (single threaded syslogd, IPC Circular buffer support,
+    logread), various fixes.
+
 Karl M. Hegbloom <karlheg@debian.org>
     cp_mv.c, the test suite, various fixes to utility.c, &c.
 
