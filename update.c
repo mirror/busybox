@@ -72,7 +72,12 @@ extern int update_main(int argc, char **argv)
 		/* Become a proper daemon */
 		setsid();
 		chdir("/");
+#ifdef OPEN_MAX
 		for (pid = 0; pid < OPEN_MAX; pid++) close(pid);
+#else
+		/* glibc 2.1.92 requires using sysconf(_SC_OPEN_MAX) */
+		for (pid = 0; pid < sysconf(_SC_OPEN_MAX); pid++) close(pid);
+#endif
 
 		/*
 		 * This is no longer necessary since 1.3.5x, but it will harmlessly
