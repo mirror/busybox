@@ -212,9 +212,19 @@ char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-void *get_header_ar(FILE *in_file);
-void *get_header_cpio(FILE *src_stream);
-void *get_header_tar(FILE *tar_stream);
+typedef struct file_headers_s {
+	char *name;
+	char *link_name;
+	off_t size;
+	uid_t uid;
+	gid_t gid;
+	mode_t mode;
+	time_t mtime;
+	dev_t device;
+} file_header_t;
+file_header_t *get_header_ar(FILE *in_file);
+file_header_t *get_header_cpio(FILE *src_stream);
+file_header_t *get_header_tar(FILE *tar_stream);
 
 enum extract_functions_e {
 	extract_verbose_list = 1,
@@ -229,7 +239,7 @@ enum extract_functions_e {
 	extract_unconditional = 512,
 	extract_create_leading_dirs = 1024
 };
-char *unarchive(FILE *src_stream, void *(*get_header)(FILE *),
+char *unarchive(FILE *src_stream, file_header_t *(*get_header)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names);
 char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename);

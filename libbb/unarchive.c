@@ -27,18 +27,6 @@
 #include <utime.h>
 #include "libbb.h"
 
-typedef struct file_headers_s {
-	char *name;
-	char *link_name;
-	off_t size;
-	uid_t uid;
-	gid_t gid;
-	mode_t mode;
-	time_t mtime;
-	dev_t device;
-} file_header_t;
-
-
 extern void seek_sub_file(FILE *src_stream, const int count);
 extern char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *file_entry,
  const int function, const char *prefix);
@@ -223,7 +211,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 #endif
 
 #ifdef L_unarchive
-char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
+char *unarchive(FILE *src_stream, file_header_t *(*get_headers)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names)
 {
 	file_header_t *file_entry;
@@ -232,7 +220,7 @@ char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 	char *buffer = NULL;
 
 	archive_offset = 0;
-	while ((file_entry = (file_header_t *) get_headers(src_stream)) != NULL) {
+	while ((file_entry = get_headers(src_stream)) != NULL) {
 		found = FALSE;
 		if (extract_names[0] != NULL) {
 			for(i = 0; extract_names[i] != 0; i++) {
@@ -253,7 +241,7 @@ char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 #endif
 
 #ifdef L_get_header_ar
-void *get_header_ar(FILE *src_stream)
+file_header_t *get_header_ar(FILE *src_stream)
 {
 	file_header_t *typed;
 	union {
@@ -347,7 +335,7 @@ struct hardlinks {
 	struct hardlinks *next;
 };
 
-void *get_header_cpio(FILE *src_stream)
+file_header_t *get_header_cpio(FILE *src_stream)
 {
 	file_header_t *cpio_entry = NULL;
 	char cpio_header[110];
@@ -457,7 +445,7 @@ void *get_header_cpio(FILE *src_stream)
 #endif
 
 #ifdef L_get_header_tar
-void *get_header_tar(FILE *tar_stream)
+file_header_t *get_header_tar(FILE *tar_stream)
 {
 	union {
 		unsigned char raw[512];
@@ -525,7 +513,8 @@ void *get_header_tar(FILE *tar_stream)
 	tar_entry->gid   = strtol(tar.formated.gid, NULL, 8);
 	tar_entry->size  = strtol(tar.formated.size, NULL, 8);
 	tar_entry->mtime = strtol(tar.formated.mtime, NULL, 8);
-	tar_entry->link_name  = strlen(tar.formated.linkname) ? xstrdup(tar.formated.linkname) : NULL;
+	tar_entry->link_name  = strlen(tar.formated.linkname) ? 
+	    xstrdup(tar.formated.linkname) : NULL;
 	tar_entry->device = (strtol(tar.formated.devmajor, NULL, 8) << 8) +
 		strtol(tar.formated.devminor, NULL, 8);
 
@@ -534,8 +523,8 @@ void *get_header_tar(FILE *tar_stream)
 #endif
 
 #ifdef L_deb_extract
-char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
-	const char *prefix, const char *filename)
+char *deb_extract(const char *package_filename, FILE *out_stream, 
+	const int extract_function, const char *prefix, const char *filename)
 {
 	FILE *deb_stream;
 	FILE *uncompressed_stream = NULL;
