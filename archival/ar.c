@@ -39,7 +39,7 @@ typedef struct ar_headers_s {
 /*
  * return the headerL_t struct for the filename descriptor
  */
-static ar_headers_t get_headers(int srcFd)
+extern ar_headers_t get_headers(int srcFd)
 {
 	typedef struct raw_ar_header_s {	/* Byte Offset */
 		char name[16];	/*  0-15 */

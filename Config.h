@@ -25,6 +25,7 @@
 #define BB_DIRNAME
 #define BB_DMESG
 #define BB_DOS2UNIX
+#define BB_DPKG_DEB
 #define BB_DUTMP
 #define BB_DU
 #define BB_DUMPKMAP
@@ -324,6 +325,18 @@
 #ifdef BB_GZIP
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
+#endif
+#endif
+//
+#ifdef BB_DPKG_DEB
+#ifndef BB_AR
+#define BB_AR
+#endif
+#ifndef BB_TAR
+#define BB_TAR
+#endif 
+#ifndef BB_FEATURE_TAR_GZIP
+#define BB_FEATURE_TAR_GZIP
 #endif
 #endif
 //

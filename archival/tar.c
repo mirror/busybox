@@ -134,7 +134,7 @@ struct TarInfo
 typedef struct TarInfo TarInfo;
 
 /* Local procedures to restore files from a tar file.  */
-static int readTarFile(int tarFd, int extractFlag, int listFlag, 
+extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, char** extractList,
 		char** excludeList);
 
@@ -153,7 +153,7 @@ void child_died()
 	exit(EXIT_FAILURE);
 }
 
-static int tar_unzip_init(int tarFd)
+extern int tar_unzip_init(int tarFd)
 {
 	int child_pid;
 	static int unzip_pipe[2];

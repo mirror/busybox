@@ -1,5 +1,6 @@
 0.49pre
-	 
+
+	* Glenn McGrath -- new 'dpkg-deb' command 
 	* me -- md5sum was broken.  Now fixed.
 	* Matt Kraai -- new sort.c
 

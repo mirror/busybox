@@ -228,6 +228,20 @@ const char dos2unix_usage[] =
 	;
 #endif
 
+#if defined BB_DPKG_DEB
+const char dpkg_deb_usage[] =
+        "dpkg-deb [-cexX] file directory"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"Perform actions on debian packages (.debs)\n"
+	"Options:\n"
+	"\t-c\tList contents of filesystem tree\n"
+	"\t-e\tExtract control files to directory\n"	
+	"\t-x\tExctract packages filesystem tree to directory\n"
+	"\t-X\tVerbose extract\n"
+#endif
+	;
+#endif
+
 #if defined BB_DU
 const char du_usage[] =
 	"du [OPTION]... [FILE]...\n"
