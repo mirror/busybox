@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.34 2000/12/22 01:48:07 kraai Exp $"
+#ident "$Id: insmod.c,v 1.35 2001/01/04 02:00:17 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.34 2000/12/22 01:48:07 kraai Exp $"
+#ident "$Id: insmod.c,v 1.35 2001/01/04 02:00:17 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1704,7 +1704,8 @@ old_init_module(const char *m_name, struct obj_file *f,
 						ksym->name =
 							(unsigned long) str - (unsigned long) symtab;
 
-						str = strcpy(str, sym->name) + 1;
+						strcpy(str, sym->name);
+						str += strlen(sym->name) + 1;
 						ksym++;
 					}
 			}
