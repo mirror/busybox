@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include "busybox.h"
 
 int mknod_main(int argc, char **argv)
@@ -35,7 +36,7 @@ int mknod_main(int argc, char **argv)
 	char *thisarg;
 	mode_t mode = 0;
 	mode_t perm = 0666;
-	dev_t dev = 0;
+	dev_t dev = (dev_t) 0;
 
 	argc--;
 	argv++;
@@ -72,7 +73,7 @@ int mknod_main(int argc, char **argv)
 		break;
 	case 'p':
 		mode = S_IFIFO;
-		if (argc!=2) {
+		if (argc != 2) {
 			show_usage();
 		}
 		break;
@@ -81,7 +82,7 @@ int mknod_main(int argc, char **argv)
 	}
 
 	if (mode == S_IFCHR || mode == S_IFBLK) {
-		dev = (atoi(argv[2]) << 8) | atoi(argv[3]);
+		dev = (dev_t) ((atoi(argv[2]) << 8) | atoi(argv[3]));
 	}
 
 	mode |= perm;
@@ -90,4 +91,3 @@ int mknod_main(int argc, char **argv)
 		perror_msg_and_die("%s", argv[0]);
 	return EXIT_SUCCESS;
 }
-
