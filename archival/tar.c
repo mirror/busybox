@@ -714,7 +714,7 @@ int tar_main(int argc, char **argv)
 		int verboseFlag = FALSE;
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
-		if (untar_funct && untar_unzip) {
+		if (untar_funct & untar_unzip) {
 			error_msg_and_die("Creation of compressed tarfile not internally support by tar, pipe to busybox gunzip");
 		}
 #endif // CONFIG_FEATURE_TAR_GZIP
