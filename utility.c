@@ -1343,6 +1343,7 @@ extern pid_t* findPidByName( char* pidName)
 		FILE *status;
 		char filename[256];
 		char buffer[256];
+		char* p;
 
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
@@ -1357,7 +1358,8 @@ extern pid_t* findPidByName( char* pidName)
 		fgets(buffer, 256, status);
 		fclose(status);
 
-		if ((strstr(buffer, pidName) != NULL)) {
+		if (((p=strstr(buffer, pidName)) != NULL)
+				&& (strncmp(p, pidName, strlen(pidName)) != 0)) {
 			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
 			if (pidList==NULL)
 				fatalError("out of memory\n");
