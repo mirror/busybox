@@ -51,10 +51,6 @@
 #include <ctype.h> /* for isspace() */
 #include "busybox.h"
 
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
-
 /* externs */
 extern int optind; /* in unistd.h */
 extern char *optarg; /* ditto */
