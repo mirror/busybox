@@ -353,14 +353,11 @@ static int match1(regexp * re, char ch, int token, int ignoreCase)
 	if (token == M_ANY) {
 		return 0;
 	} else if (IS_CLASS(token)) {
-		if (re->
-			program[1 + 32 * (token - M_CLASS(0)) +
-					(ch >> 3)] & (1 << (ch & 7)))
+		if (re->program[1 + 32 * (token - M_CLASS(0)) + (ch >> 3)] & (1 << (ch & 7)))
 			return 0;
 	}
 //fprintf(stderr, "match1: ch='%c' token='%c': ", ch, token);
-	if (ch == token
-		|| (ignoreCase == TRUE && tolower(ch) == tolower(token))) {
+	if (ch == token || (ignoreCase == TRUE && tolower(ch) == tolower(token))) {
 //fprintf(stderr, "match\n");
 		return 0;
 	}
@@ -532,16 +529,15 @@ extern regexp *regcomp(char *text)
 	retext = text;
 	for (token = M_START(0), peek = gettoken(&text, re);
 		 token; token = peek, peek = gettoken(&text, re)) {
+
 		/* special processing for the closure operator */
 		if (IS_CLOSURE(peek)) {
+
 			/* detect misuse of closure operator */
 			if (IS_START(token)) {
 				FAIL("* or \\+ or \\? follows nothing");
-			}
-				else if (IS_META(token) && token != M_ANY
-						 && !IS_CLASS(token)) {
-				FAIL
-					("* or \\+ or \\? can only follow a normal character or . or []");
+			} else if (IS_META(token) && token != M_ANY && !IS_CLASS(token)) {
+				FAIL("* or \\+ or \\? can only follow a normal character or . or []");
 			}
 
 			/* it is okay -- make it prefix instead of postfix */
