@@ -94,7 +94,7 @@ int initgroups(__const char *user, gid_t gid)
 	while ((group = __getgrent(grp_fd)) != NULL)
 #endif
 	{
-		if (group->gr_gid != gid);
+		if (group->gr_gid != gid)
 		{
 			tmp_mem = group->gr_mem;
 			while (*tmp_mem != NULL) {
