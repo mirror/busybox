@@ -342,13 +342,13 @@ int conf_write(const char *name)
 					if (out_h)
 						fprintf(out_h, "#undef %s\n", sym->name);
 					break;
-#if 0
 				case mod:
+#if 0
 					fprintf(out, "%s=m\n", sym->name);
 					if (out_h)
 						fprintf(out_h, "#define %s_MODULE 1\n", sym->name);
-					break;
 #endif
+					break;
 				case yes:
 					fprintf(out, "%s=y\n", sym->name);
 					if (out_h)
