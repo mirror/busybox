@@ -35,7 +35,7 @@
 
 #else
 /* We have to do this since the header file defines static
- * structues.  Argh.... bad libc, bad, bad...
+ * structures.  Argh.... bad libc, bad, bad...
  */
 #include <sys/syslog.h>
 typedef struct _code {

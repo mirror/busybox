@@ -86,7 +86,7 @@ int dmesg_main(int argc, char **argv)
 
 	lastc = '\n';
 	for (i = 0; i < n; i++) {
-		if ((i == 0 || buf[i - 1] == '\n') && buf[i] == '<') {
+		if (lastc == '\n' && buf[i] == '<') {
 			i++;
 			while (buf[i] >= '0' && buf[i] <= '9')
 				i++;
