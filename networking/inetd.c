@@ -290,8 +290,9 @@ static char *skip(char **cpp)
 	char *cp = *cpp;
 	char *start;
 
-	if (*cpp == NULL)
-		return ((char *)0);
+	if ((cpp == NULL) || (*cpp == NULL) || (**cpp == 0)) {
+		return (NULL);
+	}
 
 again:
 	while (*cp == ' ' || *cp == '\t')
@@ -332,17 +333,23 @@ static struct servtab *getconfigent(void)
 	static struct servtab serv;
 	struct servtab *sep = &serv;
 	int argc;
-	char *cp, *arg;
-
+	char *cp = NULL;
+	char *arg;
 more:
-	while ((cp = bb_get_chomped_line_from_file(fconfig)) && *cp == '#');
-	if (cp == NULL)
-		return ((struct servtab *)0);
+	do {
+		if (feof(fconfig)) {
+			return ((struct servtab *)0);
+		}
+		free(cp);
+		cp = bb_get_chomped_line_from_file(fconfig);
+	} while ((cp == NULL) || (*cp == '#'));
+
 	memset((char *)sep, 0, sizeof *sep);
 	sep->se_service = newstr(skip(&cp));
 	arg = skip(&cp);
-	if (arg == NULL)
+	if (arg == NULL) {
 		goto more;
+	}
 
 	if (strcmp(arg, "stream") == 0)
 		sep->se_socktype = SOCK_STREAM;
@@ -369,8 +376,9 @@ more:
 		}
 	}
 	arg = skip(&cp);
-	if (arg == NULL)
+	if (arg == NULL) {
 		goto more;
+	}
 	{
 		char    *s = strchr(arg, '.');
 		if (s) {
@@ -390,10 +398,12 @@ more:
 #ifdef INETD_FEATURE_ENABLED
 		const struct biltin *bi;
 
-		for (bi = biltins; bi->bi_service; bi++)
-			if (bi->bi_socktype == sep->se_socktype &&
-			    strcmp(bi->bi_service, sep->se_service) == 0)
+		for (bi = biltins; bi->bi_service; bi++) {
+			if ((bi->bi_socktype == sep->se_socktype) &&
+			    (strcmp(bi->bi_service, sep->se_service) == 0)) {
 				break;
+			}
+		}
 		if (bi->bi_service == 0) {
 			syslog(LOG_ERR, "internal service %s unknown",
 				sep->se_service);
@@ -406,18 +416,22 @@ more:
 				sep->se_service);
 			goto more;
 #endif
-	} else
-#ifdef INETD_FEATURE_ENABLED
-	sep->se_bi = NULL
-#endif
-		;
-	argc = 0;
-	for (arg = skip(&cp); cp; arg = skip(&cp)) {
-		if (argc < MAXARGV)
-			sep->se_argv[argc++] = newstr(arg);
 	}
-	while (argc <= MAXARGV)
+#ifdef INETD_FEATURE_ENABLED
+	else {
+		sep->se_bi = NULL;
+	}
+#endif
+	argc = 0;
+	for (arg = skip(&cp); cp && arg; arg = skip(&cp)) {
+		if (argc < MAXARGV) {
+			sep->se_argv[argc++] = newstr(arg);
+		}
+	}
+	while (argc <= MAXARGV) {
 		sep->se_argv[argc++] = NULL;
+	}
+
 	return (sep);
 }
 
