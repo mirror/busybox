@@ -787,8 +787,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		*dst = '\0';
 	} else if (!rc) {
 		argcAlloced += (prog->globResult.gl_pathc - i);
-		prog->argv =
-			realloc(prog->argv, argcAlloced * sizeof(*prog->argv));
+		prog->argv = xrealloc(prog->argv, argcAlloced * sizeof(*prog->argv));
 		memcpy(prog->argv + (argc_l - 1), prog->globResult.gl_pathv + i,
 			   sizeof(*(prog->argv)) * (prog->globResult.gl_pathc - i));
 		argc_l += (prog->globResult.gl_pathc - i - 1);
@@ -837,7 +836,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 	   Getting clean memory relieves us of the task of NULL 
 	   terminating things and makes the rest of this look a bit 
 	   cleaner (though it is, admittedly, a tad less efficient) */
-	job->cmdBuf = command = calloc(2*strlen(*commandPtr) + 1, sizeof(char));
+	job->cmdBuf = command = xcalloc(2*strlen(*commandPtr) + 1, sizeof(char));
 	job->text = NULL;
 
 	prog = job->progs;
@@ -876,9 +875,9 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				/* +1 here leaves room for the NULL which ends argv */
 				if ((argc_l + 1) == argvAlloced) {
 					argvAlloced += 5;
-					prog->argv = realloc(prog->argv,
-										 sizeof(*prog->argv) *
-										 argvAlloced);
+					prog->argv = xrealloc(prog->argv,
+										  sizeof(*prog->argv) *
+										  argvAlloced);
 				}
 				globLastArgument(prog, &argc_l, &argvAlloced);
 				prog->argv[argc_l] = buf;
@@ -900,9 +899,9 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			case '>':			/* redirections */
 			case '<':
 				i = prog->numRedirections++;
-				prog->redirections = realloc(prog->redirections,
-											 sizeof(*prog->redirections) *
-											 (i + 1));
+				prog->redirections = xrealloc(prog->redirections,
+											  sizeof(*prog->redirections) *
+											  (i + 1));
 
 				prog->redirections[i].fd = -1;
 				if (buf != prog->argv[argc_l]) {
@@ -969,8 +968,8 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 				/* and start the next */
 				job->numProgs++;
-				job->progs = realloc(job->progs,
-									 sizeof(*job->progs) * job->numProgs);
+				job->progs = xrealloc(job->progs,
+									  sizeof(*job->progs) * job->numProgs);
 				prog = job->progs + (job->numProgs - 1);
 				prog->numRedirections = 0;
 				prog->redirections = NULL;
@@ -1058,7 +1057,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					while ( (size=fullRead(pipefd[0], charptr1, BUFSIZ-1)) >0) {
 						int newSize=src - *commandPtr + size + 1 + strlen(charptr2);
 						if (newSize > BUFSIZ) {
-							*commandPtr=realloc(*commandPtr, src - *commandPtr + 
+							*commandPtr=xrealloc(*commandPtr, src - *commandPtr + 
 									size + 1 + strlen(charptr2));
 						}
 						memcpy(src, charptr1, size); 
@@ -1231,10 +1230,10 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 	/* add the theJob to the list of running jobs */
 	if (!jobList->head) {
-		theJob = jobList->head = malloc(sizeof(*theJob));
+		theJob = jobList->head = xmalloc(sizeof(*theJob));
 	} else {
 		for (theJob = jobList->head; theJob->next; theJob = theJob->next);
-		theJob->next = malloc(sizeof(*theJob));
+		theJob->next = xmalloc(sizeof(*theJob));
 		theJob = theJob->next;
 	}
 
@@ -1277,7 +1276,7 @@ static int busy_loop(FILE * input)
 	/* save current owner of TTY so we can restore it on exit */
 	parent_pgrp = tcgetpgrp(0);
 
-	command = (char *) calloc(BUFSIZ, sizeof(char));
+	command = (char *) xcalloc(BUFSIZ, sizeof(char));
 
 	/* don't pay any attention to this signal; it just confuses 
 	   things and isn't really meant for shells anyway */
@@ -1303,7 +1302,7 @@ static int busy_loop(FILE * input)
 			}
 			else {
 				free(command);
-				command = (char *) calloc(BUFSIZ, sizeof(char));
+				command = (char *) xcalloc(BUFSIZ, sizeof(char));
 				nextCommand = NULL;
 			}
 		} else {
