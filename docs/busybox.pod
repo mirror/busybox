@@ -827,7 +827,7 @@ Options:
 	-s              Short
 	-i              Addresses for the hostname
 	-d              DNS domain name
-	-F FILE         Use the contents of FILE to specify the hostname
+	-F, --file FILE Use the contents of FILE to specify the hostname
 
 Example:
 
@@ -2261,4 +2261,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.74 2000/09/26 22:20:06 andersen Exp $
+# $Id: busybox.pod,v 1.75 2000/10/12 22:30:31 andersen Exp $

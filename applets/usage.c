@@ -458,7 +458,7 @@ const char hostname_usage[] =
 
 	"\t-i\t\tAddresses for the hostname\n"
 	"\t-d\t\tDNS domain name\n"
-	"\t-F FILE\t\tUse the contents of FILE to specify the hostname\n"
+	"\t-F, --file FILE\tUse the contents of FILE to specify the hostname\n"
 #endif
 	;
 #endif

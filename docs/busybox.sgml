@@ -1397,10 +1397,10 @@
 
 		<para>
 		<screen>
-			-s	Short
-			-i	Addresses for the hostname
-			-d	DNS domain name
-			-F FILE	Use the contents of FILE to specify the hostname
+			-s		Short
+			-i		Addresses for the hostname
+			-d		DNS domain name
+			-F, --file FILE Use the contents of FILE to specify the hostname
 		</screen>
 		</para>
 
