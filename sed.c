@@ -340,6 +340,47 @@ static void load_cmd_file(char *filename)
 	}
 }
 
+static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
+{
+	int altered = 0;
+
+	/* we only substitute if the substitution 'search' expression matches */
+	if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == 0) {
+		regmatch_t regmatch;
+		int i;
+		char *ptr = (char *)line;
+
+		while (*ptr) {
+			/* if we can match the search string... */
+			if (regexec(sed_cmd->sub_match, ptr, 1, &regmatch, 0) == 0) {
+				/* print everything before the match, */
+				for (i = 0; i < regmatch.rm_so; i++)
+					fputc(ptr[i], stdout);
+				/* then print the substitution in its place */
+				fputs(sed_cmd->replace, stdout);
+				/* then advance past the match */
+				ptr += regmatch.rm_eo;
+				/* and let the calling function know that something
+				 * has been changed */
+				altered++;
+
+				/* if we're not doing this globally... */
+				if (!sed_cmd->sub_g)
+					break;
+			}
+			/* if we COULD NOT match the search string (meaning we've gone past
+			 * all previous instances), get out */
+			else
+				break;
+		}
+
+		/* is there anything left to print? */
+		if (*ptr) 
+			fputs(ptr, stdout);
+	}
+
+	return altered;
+}
 
 static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line) 
 {
@@ -355,43 +396,8 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 			altered++;
 			break;
 
-		case 's': /* oo, a fun one :-) */
-
-			/* we only substitute if the substitution 'search' expression matches */
-			if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == 0) {
-				regmatch_t regmatch;
-				int i;
-				char *ptr = (char *)line;
-
-				while (*ptr) {
-					/* if we can match the search string... */
-					if (regexec(sed_cmd->sub_match, ptr, 1, &regmatch, 0) == 0) {
-						/* print everything before the match, */
-						for (i = 0; i < regmatch.rm_so; i++)
-							fputc(ptr[i], stdout);
-						/* then print the substitution in its place */
-						fputs(sed_cmd->replace, stdout);
-						/* then advance past the match */
-						ptr += regmatch.rm_eo;
-						/* and let the calling function know that something
-						 * has been changed */
-						altered++;
-
-						/* if we're not doing this globally... */
-						if (!sed_cmd->sub_g)
-							break;
-					}
-					/* if we COULD NOT match the search string (meaning we've gone past
-					 * all previous instances), get out */
-					else
-						break;
-				}
-
-				/* is there anything left to print? */
-				if (*ptr) 
-					fputs(ptr, stdout);
-			}
-
+		case 's':
+			altered = do_subst_command(sed_cmd, line);
 			break;
 	}
 
