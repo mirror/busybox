@@ -93,13 +93,6 @@
 #endif
 
 
-#if defined(CONFIG_LFS) || defined(__alpha__) || defined(__ia64__) || defined(__s390x__)
-typedef long long fdisk_loff_t;
-#else
-typedef long fdisk_loff_t;
-#endif
-
-
 /* including <linux/hdreg.h> also fails */
 struct hd_geometry {
       unsigned char heads;
@@ -1372,7 +1365,7 @@ xbsd_write_bootstrap (void)
   sector = get_start_sect(xbsd_part);
 #endif
 
-  if (lseek (fd, (fdisk_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
+  if (lseek (fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (BSD_BBSIZE != write (fd, disklabelbuffer, BSD_BBSIZE))
     fdisk_fatal (unable_to_write);
@@ -1540,7 +1533,7 @@ xbsd_readlabel (struct partition *p, struct xbsd_disklabel *d)
 	sector = 0;
 #endif
 
-	if (lseek (fd, (fdisk_loff_t) sector * SECTOR_SIZE, SEEK_SET) == -1)
+	if (lseek (fd, sector * SECTOR_SIZE, SEEK_SET) == -1)
 		fdisk_fatal (unable_to_seek);
 	if (BSD_BBSIZE != read (fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal (unable_to_read);
@@ -1586,12 +1579,12 @@ xbsd_writelabel (struct partition *p, struct xbsd_disklabel *d)
 
 #if defined (__alpha__) && BSD_LABELSECTOR == 0
   alpha_bootblock_checksum (disklabelbuffer);
-  if (lseek (fd, (fdisk_loff_t) 0, SEEK_SET) == -1)
+  if (lseek (fd, 0, SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (BSD_BBSIZE != write (fd, disklabelbuffer, BSD_BBSIZE))
     fdisk_fatal (unable_to_write);
 #else
-  if (lseek (fd, (fdisk_loff_t) sector * SECTOR_SIZE + BSD_LABELOFFSET,
+  if (lseek (fd, sector * SECTOR_SIZE + BSD_LABELOFFSET,
 		   SEEK_SET) == -1)
     fdisk_fatal (unable_to_seek);
   if (sizeof (struct xbsd_disklabel) != write (fd, d, sizeof (struct xbsd_disklabel)))
@@ -3401,8 +3394,8 @@ static void fdisk_fatal(enum failure why) {
 
 static void
 seek_sector(uint secno) {
-	fdisk_loff_t offset = (fdisk_loff_t) secno * sector_size;
-	if (lseek(fd, offset, SEEK_SET) == (fdisk_loff_t) -1)
+	off_t offset = secno * sector_size;
+	if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
 		fdisk_fatal(unable_to_seek);
 }
 
