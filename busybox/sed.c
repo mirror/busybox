@@ -490,7 +490,7 @@ static void load_cmd_file(char *filename)
 	}
 }
 
-static void print_subst_w_backrefs(const char *line, const char *replace, regmatch_t *regmatch)
+static void print_subst_w_backrefs(const char *line, const char *replace, regmatch_t *regmatch, int matches)
 {
 	int i;
 
@@ -506,8 +506,9 @@ static void print_subst_w_backrefs(const char *line, const char *replace, regmat
 			tmpstr[1] = 0;
 			backref = atoi(tmpstr);
 			/* print out the text held in regmatch[backref] */
-			for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo; j++)
-				fputc(line[j], stdout);
+			if (backref <= matches && regmatch[backref].rm_so != -1)
+				for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo; j++)
+					fputc(line[j], stdout);
 		}
 
 		/* if we find a backslash escaped character, print the character */
@@ -555,7 +556,8 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 			fputc(hackline[i], stdout);
 
 		/* then print the substitution string */
-		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch);
+		print_subst_w_backrefs(hackline, sed_cmd->replace, regmatch,
+				sed_cmd->num_backrefs);
 
 		/* advance past the match */
 		hackline += regmatch[0].rm_eo;
