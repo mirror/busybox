@@ -395,7 +395,7 @@
 #endif
 //
 #if defined BB_INSMOD || defined BB_LSMOD
-#ifndef BB_FEATURE_NEW_MODULE_INTERFACE
+#if ! defined BB_FEATURE_NEW_MODULE_INTERFACE && ! defined BB_FEATURE_OLD_MODULE_INTERFACE
 #define BB_FEATURE_NEW_MODULE_INTERFACE
 #endif
 #endif
