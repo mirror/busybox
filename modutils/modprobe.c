@@ -37,7 +37,8 @@ struct mod_list_t {
 };
 
 
-static struct dep_t *depend = 0;
+static struct dep_t *depend;
+static int autoclean, show_only, quiet, do_syslog, verbose;
 
 
 static struct dep_t *build_dep ( void )
@@ -52,6 +53,11 @@ static struct dep_t *build_dep ( void )
 	
 	if ( uname ( &un ))
 		return 0;
+		
+	// check for buffer overflow in following code
+	if ( xstrlen ( un. release ) > ( sizeof( buffer ) - 64 ))
+		return 0;
+				
 	strcpy ( filename, "/lib/modules/" );
 	strcat ( filename, un. release );
 	strcat ( filename, "/modules.dep" );
@@ -160,7 +166,7 @@ static struct dep_t *build_dep ( void )
 }
 
 
-static int mod_process ( struct mod_list_t *list, int do_insert, int autoclean, int quiet, int do_syslog, int show_only, int verbose )
+static int mod_process ( struct mod_list_t *list, int do_insert )
 {
 	char lcmd [256];
 	int rc = 0;
@@ -196,8 +202,6 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	if (( mod [lm-2] == '.' ) && ( mod [lm-1] == 'o' ))
 		mod [lm-2] = 0;
 
-	//printf ( "check_dep: %s\n", mod );
-
 	// search for duplicates
 	for ( find = *head; find; find = find-> m_next ) {
 		if ( !strcmp ( mod, find-> m_module )) {
@@ -212,8 +216,6 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 				find-> m_next-> m_prev = find-> m_prev;
 			else
 				*tail = find-> m_prev;
-					
-			//printf ( "DUP\n" );
 					
 			break; // there can be only one duplicate
 		}				
@@ -247,7 +249,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 
 
 
-static int mod_insert ( char *mod, int argc, char **argv, int autoclean, int quiet, int do_syslog, int show_only, int verbose )
+static int mod_insert ( char *mod, int argc, char **argv )
 {
 	struct mod_list_t *tail = 0;
 	struct mod_list_t *head = 0; 	
@@ -258,10 +260,14 @@ static int mod_insert ( char *mod, int argc, char **argv, int autoclean, int qui
 	
 	if ( head && tail ) {
 		int i;
+		int l = 0;
 	
 		// append module args
-		head-> m_module = xmalloc ( 256 );
-		strcpy ( head-> m_module, mod );
+		l = xstrlen ( mod );
+		for ( i = 0; i < argc; i++ ) 
+			l += ( xstrlen ( argv [i] ) + 1 );
+		
+		head-> m_module = xstrndup ( mod, l );
 		
 		for ( i = 0; i < argc; i++ ) {
 			strcat ( head-> m_module, " " );
@@ -269,7 +275,7 @@ static int mod_insert ( char *mod, int argc, char **argv, int autoclean, int qui
 		}
 
 		// process tail ---> head
-		rc |= mod_process ( tail, 1, autoclean, quiet, do_syslog, show_only, verbose );
+		rc |= mod_process ( tail, 1 );
 	}
 	else
 		rc = 1;
@@ -277,7 +283,7 @@ static int mod_insert ( char *mod, int argc, char **argv, int autoclean, int qui
 	return rc;
 }
 
-static void mod_remove ( char *mod, int do_syslog, int show_only, int verbose )
+static void mod_remove ( char *mod )
 {
 	static struct mod_list_t rm_a_dummy = { "-a", 0, 0 }; 
 	
@@ -289,37 +295,34 @@ static void mod_remove ( char *mod, int do_syslog, int show_only, int verbose )
 	else  // autoclean
 		head = tail = &rm_a_dummy;
 	
-	if ( head && tail ) {
-		// process head ---> tail
-		mod_process ( head, 0, 0, 0, do_syslog, show_only, verbose );
-	}
+	if ( head && tail )
+		mod_process ( head, 0 );  // process head ---> tail
 }
 
 
 
 extern int modprobe_main(int argc, char** argv)
 {
-	int	ch, rc = 0;
-	int	loadall = 0, showconfig = 0, debug = 0, autoclean = 0, list = 0;
-	int	show_only = 0, quiet = 0, remove_opt = 0, do_syslog = 0, verbose = 0;
-	char	*load_type = NULL, *config = NULL;
+	int	opt;
+	int remove_opt = 0;
 
-	while ((ch = getopt(argc, argv, "acdklnqrst:vVC:")) != -1)
-		switch(ch) {
-		case 'a':
-			loadall++;
+	autoclean = show_only = quiet = do_syslog = verbose = 0;
+
+	while ((opt = getopt(argc, argv, "acdklnqrst:vVC:")) != -1) {
+		switch(opt) {
+		case 'c': // no config used
+		case 'l': // no pattern matching
+			return EXIT_SUCCESS;
 			break;
-		case 'c':
-			showconfig++;
-			break;
-		case 'd':
-			debug++;
+		case 'C': // no config used
+		case 't': // no pattern matching
+			error_msg_and_die("-t and -C not supported");
+
+		case 'a': // ignore
+		case 'd': // ignore
 			break;
 		case 'k':
 			autoclean++;
-			break;
-		case 'l':
-			list++;
 			break;
 		case 'n':
 			show_only++;
@@ -333,55 +336,34 @@ extern int modprobe_main(int argc, char** argv)
 		case 's':
 			do_syslog++;
 			break;
-		case 't':
-			load_type = optarg;
-			break;
 		case 'v':
 			verbose++;
-			break;
-		case 'C':
-			config = optarg;
 			break;
 		case 'V':
 		default:
 			show_usage();
 			break;
 		}
-
-	if (load_type || config) {
-		fprintf(stderr, "-t and -C not supported\n");
-		exit(EXIT_FAILURE);
 	}
-
-	if (showconfig)
-		exit(EXIT_SUCCESS);
-	
-	if (list)
-		exit(EXIT_SUCCESS);
 	
 	depend = build_dep ( );	
 
-	if ( !depend ) {
-		fprintf (stderr, "could not parse modules.dep\n" );
-		exit (EXIT_FAILURE);
-	}
+	if ( !depend ) 
+		error_msg_and_die ( "could not parse modules.dep\n" );
 	
 	if (remove_opt) {
 		do {
-			mod_remove ( optind < argc ? argv [optind] : 0, do_syslog, show_only, verbose );
+			mod_remove ( optind < argc ? argv [optind] : 0 );
 		} while ( ++optind < argc );
 		
-		exit(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	}
 
-	if (optind >= argc) {
-		fprintf(stderr, "No module or pattern provided\n");
-		exit(EXIT_FAILURE);
-	}
+	if (optind >= argc) 
+		error_msg_and_die ( "No module or pattern provided\n" );
 	
-	rc = mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1, autoclean, quiet, do_syslog, show_only, verbose );
-
-	exit(rc ? EXIT_FAILURE : EXIT_SUCCESS);
+	return mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1 ) ? \
+	       EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 
