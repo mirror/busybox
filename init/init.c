@@ -484,14 +484,10 @@ static pid_t run(struct init_action *a)
 	if ((pid = fork()) == 0) 
 	{
 		/* Clean up */
-		ioctl(0, TIOCNOTTY, 0);
 		close(0);
 		close(1);
 		close(2);
 		sigprocmask(SIG_SETMASK, &omask, NULL);
-
-		/* Create a new session and make ourself the process group leader */
-		setsid();
 
 		/* Reset signal handlers that were set by the parent process */
 		signal(SIGUSR1, SIG_DFL);
@@ -503,6 +499,11 @@ static pid_t run(struct init_action *a)
 		signal(SIGSTOP, SIG_DFL);
 		signal(SIGTSTP, SIG_DFL);
 
+		/* Create a new session and make ourself the process
+		 * group leader for non-interactive jobs */
+		if ((a->action & (RESPAWN))==0)
+			setsid();
+
 		/* Open the new terminal device */
 		if ((fd = device_open(a->terminal, O_RDWR|O_NOCTTY)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
@@ -513,19 +514,26 @@ static pid_t run(struct init_action *a)
 			message(LOG | CONSOLE, "\rBummer, can't open %s\n", a->terminal);
 			_exit(1);
 		}
+
+		/* Non-interactive jobs should not get a controling tty */
+		if ((a->action & (RESPAWN))==0)
+			(void)ioctl(fd, TIOCSCTTY, 0);
+
 		/* Make sure the terminal will act fairly normal for us */
 		set_term(0);
+		/* Setup stdin, stdout, stderr for the new process so 
+		 * they point to the supplied terminal */
+		dup(fd);
+		dup(fd);
 
-		/* If the init Action requires up to wait, then force the
+		/* For interactive jobs, create a new session 
+		 * and become the process group leader */
+		if ((a->action & (RESPAWN)))
+			setsid();
+
+		/* If the init Action requires us to wait, then force the
 		 * supplied terminal to be the controlling tty. */
-		if (a->action & (SYSINIT|WAIT|CTRLALTDEL|SHUTDOWN|RESTART|ASKFIRST)) {
-
-			/* Take over the controlling tty */
-			ioctl(fd, TIOCSCTTY, 1);
-			/* Setup stdin, stdout, stderr for the new process so 
-			 * they point to the supplied terminal */
-			dup(fd);
-			dup(fd);
+		if (a->action & (SYSINIT|WAIT|CTRLALTDEL|SHUTDOWN|RESTART)) {
 
 			/* Now fork off another process to just hang around */
 			if ((pid = fork()) < 0) {
@@ -542,13 +550,11 @@ static pid_t run(struct init_action *a)
 				signal(SIGCHLD, SIG_DFL);
 
 				/* Wait for child to exit */
-				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid) {
-					if (tmp_pid < 0 && errno == ECHILD)
-						break;
-				}
+				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid)
+					;
 
 				/* See if stealing the controlling tty back is necessary */
-				pgrp = tcgetpgrp(tmp_pid);
+				pgrp = tcgetpgrp(fd);
 				if (pgrp != getpid())
 					_exit(0);
 
@@ -570,9 +576,6 @@ static pid_t run(struct init_action *a)
 			}
 
 			/* Now fall though to actually execute things */
-		} else {
-			dup(fd);
-			dup(fd);
 		}
 
 		/* See if any special /bin/sh requiring characters are present */
@@ -1079,15 +1082,19 @@ extern int init_main(int argc, char **argv)
 	/* Figure out what kernel this is running */
 	kernelVersion = get_kernel_revision();
 
+	/* Figure out where the default console should be */
+	console_init();
+
 	/* Close whatever files are open, and reset the console. */
 	close(0);
 	close(1);
 	close(2);
 
-	/* Figure out where the default console should be */
-	console_init();
-
+	if(device_open(console, O_RDWR|O_NOCTTY)==0) {
 	set_term(0);
+		close(0);
+	}
+
 	chdir("/");
 	setsid();
 
