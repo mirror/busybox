@@ -1,7 +1,7 @@
 Source: busybox-cvs
 Priority: optional
 Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
-Uploaders: Erik Andersen <andersee@debian.org>, Bastian Blank <waldi@debian.org>, Tollef Fog Heen <tfheen@debian.org>
+Uploaders: Erik Andersen <andersee@debian.org>, Bastian Blank <waldi@debian.org>, Tollef Fog Heen <tfheen@debian.org>, Glenn McGrath <bug1@debian.org>
 Build-Depends: debhelper (>= 2.1.18)
 Standards-Version: 3.5.7.0
 

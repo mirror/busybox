@@ -1,3 +1,17 @@
+busybox-cvs (0.60.99.cvs20030104-2) unstable; urgency=low
+
+  * floppy-retriever needs the cut command in the udeb 
+
+ -- Glenn McGrath <bug1@debian.org>  Sat,  4 Jan 2003 17:13:05 +1100
+
+busybox-cvs (0.60.99.cvs20030104-1) unstable; urgency=low
+
+  * new cvs version
+  * Include new applets in the static package
+  * Include ash in the udeb
+
+ -- Glenn McGrath <bug1@debian.org>  Sat,  4 Jan 2003 13:39:04 +1100
+
 busybox-cvs (0.60.99.cvs20021214-1) unstable; urgency=low
 
   * new cvs version
