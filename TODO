@@ -3,14 +3,14 @@ is listed here doesn't mean that it is going to be added to busybox,
 or that doing so is even a good idea. It just means that I _might_ get
 around to it some time. If you have any good ideas, please let me know.
 
-* login/sulogin/passwd/getty/etc are part of tinylogin, and so are not
-    needed or wanted in busybox (or else I'd have to link to libcrypt).
+* login/sulogin/passwd/etc are part of tinylogin.  We are in the
+    process of merging these applications into busybox, since the 
+    new build system allows us to add Libraries (i.e. libcrypt),
+    when certain applets are enabled.
 
 * We _were_ going to split networking apps into a new package called 
     netkit-tiny.  Per discussions on the mailing list, this isn't going
     to happen.  False alarm.  Sorry about the confusion.  
-
-* Add ^L clear to shell
 
  -Erik
 
