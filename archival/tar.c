@@ -459,7 +459,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		error_msg_and_die("Cowardly refusing to create an empty archive");
 
 	/* Open the tar file for writing.  */
-	if (tarName == NULL || !strcmp(tarName, "-"))
+	if (tarName == NULL)
 		tbInfo.tarFd = fileno(stdout);
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -573,14 +573,12 @@ char **list_and_not_list(char **include_list, char **exclude_list)
 int tar_main(int argc, char **argv)
 {
 	enum untar_funct_e {
-		/* These are optional */
-		untar_from_file = 1,
-		untar_from_stdin = 2,
-		untar_unzip = 4,
+		/* This is optional */
+		untar_unzip = 1,
 		/* Require one and only one of these */
-		untar_list = 8,
-		untar_create = 16,
-		untar_extract = 32
+		untar_list = 2,
+		untar_create = 4,
+		untar_extract = 8
 	};
 
 	FILE *src_stream = NULL;
@@ -649,10 +647,8 @@ int tar_main(int argc, char **argv)
 			break;
 		case 'f':	// archive filename
 			if (strcmp(optarg, "-") == 0) {
-				// Untar from stdin to stdout
-				untar_funct |= untar_from_stdin;
+				src_filename = NULL;
 			} else {
-				untar_funct |= untar_from_file;
 				src_filename = xstrdup(optarg);
 			}
 			break;
@@ -694,17 +690,13 @@ int tar_main(int argc, char **argv)
 		optind++;
 	}
 
-	if (src_filename == NULL) {
-		extract_function |= extract_to_stdout;
-	}
-
 	if (extract_function & (extract_list | extract_all_to_fs)) {
 		if (dst_prefix == NULL) {
 			dst_prefix = xstrdup("./");
 		}
 
 		/* Setup the source of the tar data */
-		if (untar_funct & untar_from_file) {
+		if (src_filename != NULL) {
 			src_stream = xfopen(src_filename, "r");
 		} else {
 			src_stream = stdin;
