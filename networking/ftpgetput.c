@@ -266,7 +266,7 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 #endif
 
 #ifdef CONFIG_FTPPUT
-static int ftp_send(FILE *control_stream, const char *host, const char *local_path, char *server_path)
+static int ftp_send(FILE *control_stream, const char *host, const char *server_path, char *local_path)
 {
 	struct stat sbuf;
 	char buf[512];
