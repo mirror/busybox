@@ -62,7 +62,9 @@
 #define SERIAL_CON1     "/dev/ttyS1"    /* Serial console */
 #define GETTY           "/sbin/getty"	/* Default location of getty */
 #define SHELL           "/bin/sh"	/* Default shell */
-#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
+#ifndef BB_INIT_SCRIPT
+#define BB_INIT_SCRIPT	"/etc/init.d/rcS"	/* Initscript. */
+#endif
 
 #define LOG             0x1
 #define CONSOLE         0x2
@@ -455,7 +457,7 @@ extern int init_main(int argc, char **argv)
     struct stat statbuf;
     char which_vt1[30];
     char which_vt2[30];
-    const char* const rc_script_command[] = { INITSCRIPT, INITSCRIPT, 0};
+    const char* const rc_script_command[] = { BB_INIT_SCRIPT, BB_INIT_SCRIPT, 0};
     const char* const getty1_command[] = { GETTY, GETTY, "38400", which_vt1, 0};
     const char* const getty2_command[] = { GETTY, GETTY, "38400", which_vt2, 0};
     const char* const shell_command[] = { SHELL, "-" SHELL, 0};
@@ -537,7 +539,7 @@ extern int init_main(int argc, char **argv)
     }
 
     /* Make sure an init script exists before trying to run it */
-    if (single==FALSE && stat(INITSCRIPT, &statbuf)==0) {
+    if (single==FALSE && stat(BB_INIT_SCRIPT, &statbuf)==0) {
 	run_rc = TRUE;
 	wait_for_enter_tty1 = FALSE;
 	tty1_command = rc_script_command;
