@@ -114,6 +114,9 @@ static const struct Applet applets[] = {
 #ifdef BB_MKDIR			//bin
     {"mkdir", mkdir_main},
 #endif
+#ifdef BB_MKFIFO		//usr/bin
+    {"mkfifo", mkfifo_main},
+#endif
 #ifdef BB_MKNOD			//bin
     {"mknod", mknod_main},
 #endif

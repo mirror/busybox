@@ -38,6 +38,7 @@
 //#define BB_MAKEDEVS
 //#define BB_MATH
 #define BB_MKDIR
+//#define BB_MKFIFO
 #define BB_MKNOD
 #define BB_MKSWAP
 //#define BB_MNC
@@ -99,3 +100,5 @@
 #define BB_FEATURE_LS_TIMESTAMPS
 // enable ls -p and -F
 #define BB_FEATURE_LS_FILETYPES	
+// simplified ping
+//#define BB_SIMPLE_PING

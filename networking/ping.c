@@ -1,5 +1,5 @@
 /*
- * $Id: ping.c,v 1.5 1999/12/09 06:11:36 andersen Exp $
+ * $Id: ping.c,v 1.6 1999/12/11 08:41:28 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -63,28 +63,7 @@
 #define	CLR(bit)	(A(bit) &= (~B(bit)))
 #define	TST(bit)	(A(bit) & B(bit))
 
-static const char* ping_usage = "ping [OPTION]... host\n\n"
-"Send ICMP ECHO_REQUEST packets to network hosts.\n\n"
-"Options:\n"
-"\t-q\t\tQuiet mode, only displays output at start and when finished.\n"
-"\t-c COUNT\tSend only COUNT pings.\n";
-
-static char *hostname = NULL;
-static struct sockaddr_in pingaddr;
-static int pingsock = -1;
-static long ntransmitted = 0, nreceived = 0, nrepeats = 0, pingcount = 0;
-static int myid = 0, options = 0;
-static unsigned long tmin = ULONG_MAX, tmax = 0, tsum = 0;
-static char rcvd_tbl[MAX_DUP_CHK / 8];
-
-static void pingstats(int);
-static void sendping(int);
-static void unpack(char *, int, struct sockaddr_in *);
-static void ping(char *);
-static int in_cksum(unsigned short *, int);
-
-/**************************************************************************/
-
+/* common routines */
 static int in_cksum(unsigned short *buf, int sz)
 {
     int nleft = sz;
@@ -107,6 +86,114 @@ static int in_cksum(unsigned short *buf, int sz)
     ans = ~sum;
     return(ans);
 }   
+
+/* simple version */
+#ifdef BB_SIMPLE_PING
+static const char* ping_usage = "ping host\n\n";
+
+static char* hostname = NULL;
+
+static void noresp(int ign)
+{
+    printf("No response from %s\n", hostname);
+    exit(0);
+}
+
+static int ping(const char *host)
+{
+    struct hostent *h;
+    struct sockaddr_in pingaddr;
+    struct icmp *pkt;
+    int pingsock, c;
+    char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
+    
+    if ((pingsock = socket(AF_INET, SOCK_RAW, 1)) < 0) { /* 1 == ICMP */
+        perror("ping");
+	exit(1);
+    }
+
+    /* drop root privs if running setuid */
+    setuid(getuid());
+    
+    memset(&pingaddr, 0, sizeof(struct sockaddr_in));
+    pingaddr.sin_family = AF_INET;
+    if (!(h = gethostbyname(host))) {
+        fprintf(stderr, "ping: unknown host %s\n", host);
+        exit(1);
+    }	
+    memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
+    hostname = h->h_name;
+
+    pkt = (struct icmp *)packet;
+    memset(pkt, 0, sizeof(packet));    
+    pkt->icmp_type = ICMP_ECHO;    
+    pkt->icmp_cksum = in_cksum((unsigned short *)pkt, sizeof(packet));
+   
+    c = sendto(pingsock, packet, sizeof(packet), 0, 
+	       (struct sockaddr *)&pingaddr, sizeof(struct sockaddr_in));
+
+    if (c < 0 || c != sizeof(packet)) {
+        if (c < 0) perror("ping");
+        fprintf(stderr, "ping: write incomplete\n");
+	exit(1);
+    }
+
+    signal(SIGALRM, noresp);
+    alarm(5); /* give the host 5000ms to respond */
+    /* listen for replies */
+    while (1) {
+        struct sockaddr_in from;
+	size_t fromlen = sizeof(from);
+
+        if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,
+                          (struct sockaddr *)&from, &fromlen)) < 0) {
+            if (errno == EINTR) continue;
+	    perror("ping");
+	    continue;
+	}
+        if (c >= 76) { /* ip + icmp */
+            struct iphdr *iphdr = (struct iphdr *)packet;
+	    pkt = (struct icmp *)(packet + (iphdr->ihl << 2)); /* skip ip hdr */
+	    if (pkt->icmp_type == ICMP_ECHOREPLY) break;
+        }	   
+    }
+    printf("%s is alive!\n", hostname);
+    return(TRUE);
+}
+
+extern int ping_main(int argc, char **argv)
+{
+    argc--;
+    argv++;
+    if (argc < 1) usage(ping_usage);
+    ping(*argv);
+    exit(TRUE);
+}
+
+#else 
+/* full(er) version */
+static const char* ping_usage = "ping [OPTION]... host\n\n"
+"Send ICMP ECHO_REQUEST packets to network hosts.\n\n"
+"Options:\n"
+"\t-q\t\tQuiet mode, only displays output at start and when finished.\n"
+"\t-c COUNT\tSend only COUNT pings.\n";
+
+static char *hostname = NULL;
+static struct sockaddr_in pingaddr;
+static int pingsock = -1;
+
+static long ntransmitted = 0, nreceived = 0, nrepeats = 0, pingcount = 0;
+static int myid = 0, options = 0;
+static unsigned long tmin = ULONG_MAX, tmax = 0, tsum = 0;
+static char rcvd_tbl[MAX_DUP_CHK / 8];
+
+static void sendping(int);
+static void pingstats(int);
+static void unpack(char *, int, struct sockaddr_in *);
+
+static void ping(char *);
+
+/**************************************************************************/
 
 static void pingstats(int ign) {
     signal(SIGINT, SIG_IGN);
@@ -249,24 +336,20 @@ static void ping(char *host)
     
     memset(&pingaddr, 0, sizeof(struct sockaddr_in));
     pingaddr.sin_family = AF_INET;
-    if (inet_aton(host, &pingaddr.sin_addr)) {
-        hostname = host;
-    } else {    
-        if (!(h = gethostbyname(host))) {
-            fprintf(stderr, "ping: unknown host %s\n", host);
-	    exit(1);
-        }
-
-	if (h->h_addrtype != AF_INET) {
-	    fprintf(stderr, "ping: unknown address type; only AF_INET is currently supported.\n");
-	    exit(1);
-	}
-	
-	pingaddr.sin_family = AF_INET; /* h->h_addrtype */
-        memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr)); 
-        strncpy(buf, h->h_name, sizeof(buf)-1);
-	hostname = buf;
+    if (!(h = gethostbyname(host))) {
+        fprintf(stderr, "ping: unknown host %s\n", host);
+        exit(1);
     }
+
+    if (h->h_addrtype != AF_INET) {
+        fprintf(stderr, "ping: unknown address type; only AF_INET is currently supported.\n");
+        exit(1);
+    }
+	
+    pingaddr.sin_family = AF_INET; /* h->h_addrtype */
+    memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr)); 
+    strncpy(buf, h->h_name, sizeof(buf)-1);
+    hostname = buf;
 
     /* enable broadcast pings */
     sockopt = 1;
@@ -331,6 +414,7 @@ extern int ping_main(int argc, char **argv)
     ping(*argv);
     exit(TRUE);
 }
+#endif
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.
@@ -367,5 +451,3 @@ extern int ping_main(int argc, char **argv)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-

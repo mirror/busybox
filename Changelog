@@ -1,6 +1,6 @@
 0.39 
-	* New Apps: ping and hostname contributed by Randolph Chung
-	    <tausq@debian.org>.  2 items off the TODO list!
+	* New Apps: ping, hostname, and mkfifo contributed by Randolph Chung
+	    <tausq@debian.org>.  3 items off the TODO list!
 	* I wrote free (just calls "cat /proc/meminfo").
 	* Added tail, based on tail from GNU textutils-1.19, but adjusted
 	    to suit my evil purposes.  Costs 6k.  I'll make it smaller sometime.
