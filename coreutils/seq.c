@@ -36,7 +36,7 @@ extern int seq_main(int argc, char **argv)
 	}
 	last = atof(argv[argc - 1]);
 
-	for (i = first; ((first < last) ? (i <= last): (i >= last));i += increment) {
+	for (i = first; ((first <= last) ? (i <= last): (i >= last));i += increment) {
 		printf("%g\n", i);
 	}
 
