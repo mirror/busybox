@@ -143,7 +143,7 @@ const struct BB_applet applets[] = {
 	{"length", length_main, _BB_DIR_USR_BIN, length_usage},
 #endif
 #ifdef BB_LINUXRC
-	{"linuxrc", init_main, _BB_DIR_ROOT, init_usage},
+	{"linuxrc", init_main, _BB_DIR_ROOT, NULL},
 #endif
 #ifdef BB_LN
 	{"ln", ln_main, _BB_DIR_BIN, ln_usage},
