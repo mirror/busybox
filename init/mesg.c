@@ -32,7 +32,7 @@ extern int mesg_main(int argc, char *argv[])
 {
 	struct stat sb;
 	char *tty;
-	char c;
+	char c = 0;
 
 	if ((--argc == 0)
 		|| ((argc == 1) && (((c = **++argv) == 'y') || (c == 'n')))) {
