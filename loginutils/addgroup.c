@@ -132,27 +132,20 @@ static int addgroup(const char *filename, char *group, gid_t gid)
  * ________________________________________________________________________ */
 int addgroup_main(int argc, char **argv)
 {
-	int opt;
 	char *group;
 	gid_t gid = 0;
 
-	/* get remaining args */
-	while ((opt = getopt (argc, argv, "g:")) != -1)
-		switch (opt) {
-			case 'g':
-				gid = strtol(optarg, NULL, 10);
-				break;
-			default:
-				show_usage();
-				break;
-		}
-
-	if (optind >= argc) {
+	if (argc < 2) {
 		show_usage();
-	} else {
-		group = argv[optind];
 	}
 
+	if (strncmp(argv[1], "-g", 2) == 0) {
+		gid = strtol(argv[2], NULL, 10);
+		group = argv[2];
+	} else {
+		show_usage();
+	}
+	
 	if (geteuid() != 0) {
 		error_msg_and_die
 			("Only root may add a group to the system.");
@@ -162,4 +155,4 @@ int addgroup_main(int argc, char **argv)
 	return addgroup(group_file, group, gid);
 }
 
-/* $Id: addgroup.c,v 1.5 2002/08/06 20:39:23 mjn3 Exp $ */
+/* $Id: addgroup.c,v 1.6 2002/11/14 11:10:14 andersen Exp $ */
