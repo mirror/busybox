@@ -69,13 +69,16 @@ extern const struct BB_applet applets[];
 #ifdef BB_FEATURE_BUFFERS_GO_ON_STACK
 #define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char buffer[len]
+#define RELEASE_BB_BUFFER(buffer)      ((void)0)
 #else
 #ifdef BB_FEATURE_BUFFERS_GO_IN_BSS
 #define RESERVE_BB_BUFFER(buffer,len)  static          char buffer[len]
 #define RESERVE_BB_UBUFFER(buffer,len) static unsigned char buffer[len]
+#define RELEASE_BB_BUFFER(buffer)      ((void)0)
 #else
 #define RESERVE_BB_BUFFER(buffer,len)           char *buffer=xmalloc(len)
 #define RESERVE_BB_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
+#define RELEASE_BB_BUFFER(buffer)      free (buffer)
 #endif
 #endif
 

@@ -431,6 +431,7 @@ static int serveConnection (int conn)
 		/* Now log it */
 		logMessage (pri, line);
 	}
+	RELEASE_BB_BUFFER (tmpbuf);
 	return n_read;
 }
 
