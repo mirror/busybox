@@ -43,8 +43,8 @@ Matt Kraai <kraai@alumni.carnegiemellon.edu>
 John Lombardo <john@deltanet.com>	
     dirname, tr
 
-Glenn McGrath <bug1@netconnect.com.au>
-    ar.c
+Glenn McGrath <bug1@optushome.com.au>
+    ar, dpkg, dpkg-deb
 
 Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.
