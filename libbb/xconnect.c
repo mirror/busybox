@@ -27,9 +27,15 @@ unsigned short bb_lookup_port(const char *port, unsigned short default_port)
 {
 	unsigned short port_nr = htons(default_port);
 	if (port) {
-	char *endptr;
-		long port_long = strtol(port, &endptr, 10);
+		char *endptr;
+		int old_errno;
+		long port_long;
 
+		/* Since this is a lib function, we're not allowed to reset errno to 0.
+		 * Doing so could break an app that is deferring checking of errno. */
+		old_errno = errno;
+		errno = 0;
+		port_long = strtol(port, &endptr, 10);
 		if (errno != 0 || *endptr!='\0' || endptr==port || port_long < 0 || port_long > 65535) {
 			struct servent *tserv = getservbyname(port, "tcp");
 			if (tserv) {
@@ -38,6 +44,7 @@ unsigned short bb_lookup_port(const char *port, unsigned short default_port)
 	} else {
 			port_nr = htons(port_long);
 		}
+		errno = old_errno;
 	}
 	return port_nr;
 }
