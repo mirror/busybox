@@ -31,55 +31,60 @@
 #include "unarchive.h"
 #include "busybox.h"
 
+#define CPIO_OPT_EXTRACT           	0x01
+#define CPIO_OPT_TEST              	0x02
+#define CPIO_OPT_UNCONDITIONAL     	0x04
+#define CPIO_OPT_VERBOSE           	0x08
+#define CPIO_OPT_FILE              	0x10
+#define CPIO_OPT_CREATE_LEADING_DIR	0x20
+#define CPIO_OPT_PRESERVE_MTIME    	0x40
+
 extern int cpio_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
-	int opt;
+	char *cpio_filename = NULL;
+	unsigned long opt;
 
 	/* Initialise */
 	archive_handle = init_handle();
 	archive_handle->src_fd = fileno(stdin);
 	archive_handle->seek = seek_by_char;
 	archive_handle->flags = ARCHIVE_EXTRACT_NEWER | ARCHIVE_PRESERVE_DATE;
-	
-	while ((opt = getopt(argc, argv, "idmuvtF:")) != -1) {
-		switch (opt) {
-		case 'i': /* extract */
-			archive_handle->action_data = data_extract_all;
-			break;
-		case 'd': /* create _leading_ directories */
-			archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
-			break;
-#if 0
-		case 'm': /* preserve modification time */
-			archive_handle->flags |= ARCHIVE_PRESERVE_DATE;
-			break;
-#endif
-		case 'v': /* verbosly list files */
-			if (archive_handle->action_header == header_list) {
-				archive_handle->action_header = header_verbose_list;
-			} else {
-				archive_handle->action_header = header_list;
-			}
-			break;
-		case 'u': /* unconditional */
-			archive_handle->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
-			archive_handle->flags &= ~ARCHIVE_EXTRACT_NEWER;
-			break;
-		case 't': /* list files */
-			if (archive_handle->action_header == header_list) {
-				archive_handle->action_header = header_verbose_list;
-			} else {
-				archive_handle->action_header = header_list;
-			}
-			break;
-		case 'F':
-			archive_handle->src_fd = bb_xopen(optarg, O_RDONLY);
-			archive_handle->seek = seek_by_jump;
-			break;
-		default:
-			bb_show_usage();
+
+	opt = bb_getopt_ulflags(argc, argv, "ituvF:dm", &cpio_filename);
+
+	/* One of either extract or test options must be given */
+	if ((opt & (CPIO_OPT_TEST | CPIO_OPT_EXTRACT)) == 0) {
+		bb_show_usage();
+	}
+
+	if (opt & CPIO_OPT_TEST) {
+		/* if both extract and test option are given, ignore extract option */
+		if (opt & CPIO_OPT_EXTRACT) {
+			opt &= ~CPIO_OPT_EXTRACT;
+		}		
+		archive_handle->action_header = header_list;
+	}
+	if (opt & CPIO_OPT_EXTRACT) {
+		archive_handle->action_data = data_extract_all;
+	}
+	if (opt & CPIO_OPT_UNCONDITIONAL) {
+		archive_handle->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
+		archive_handle->flags &= ~ARCHIVE_EXTRACT_NEWER;
+	}
+	if (opt & CPIO_OPT_VERBOSE) {
+		if (archive_handle->action_header == header_list) {
+			archive_handle->action_header = header_verbose_list;
+		} else {
+			archive_handle->action_header = header_list;
 		}
+	}
+	if (cpio_filename) {	/* CPIO_OPT_FILE */
+		archive_handle->src_fd = bb_xopen(cpio_filename, O_RDONLY);
+		archive_handle->seek = seek_by_jump;
+	}
+	if (opt & CPIO_OPT_CREATE_LEADING_DIR) {
+		archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
 	}
 
 	while (optind < argc) {
