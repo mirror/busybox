@@ -158,8 +158,8 @@
 // enable ls -p and -F
 #define BB_FEATURE_LS_FILETYPES
 //
-// sort the file names
-#define BB_FEATURE_LS_SORTFILES
+// sort the file names (still a bit buggy)
+//#define BB_FEATURE_LS_SORTFILES
 //
 // enable ls -R
 #define BB_FEATURE_LS_RECURSIVE
