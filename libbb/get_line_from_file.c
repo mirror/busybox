@@ -44,7 +44,8 @@ static char *private_get_line_from_file(FILE *file, int c)
 			linebuf = xrealloc(linebuf, linebufsz += GROWBY);
 		}
 		linebuf[idx++] = (char)ch;
-		if (ch == '\n' || ch == '\0') {
+		if (!ch) return linebuf;
+		if (c<2 && ch == '\n') {
 			if (c) {
 				--idx;
 			}
@@ -69,6 +70,11 @@ extern char *bb_get_line_from_file(FILE *file)
 extern char *bb_get_chomped_line_from_file(FILE *file)
 {
 	return private_get_line_from_file(file, 1);
+}
+
+extern char *bb_get_chunk_from_file(FILE *file)
+{
+	return private_get_line_from_file(file, 2);
 }
 
 

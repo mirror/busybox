@@ -2193,24 +2193,40 @@
 	USAGE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
 	"[98528 second delay results]\n")
 
-#ifdef CONFIG_FEATURE_SORT_UNIQUE
-  #define USAGE_SORT_UNIQUE(a) a
+#ifdef CONFIG_SORT_BIG
+  #define USAGE_SORT_BIG(a) a
 #else
-  #define USAGE_SORT_UNIQUE(a)
+  #define USAGE_SORT_BIG(a)
 #endif
-#ifdef CONFIG_FEATURE_SORT_REVERSE
-  #define USAGE_SORT_REVERSE(a) a
-#else
-  #define USAGE_SORT_REVERSE(a)
-#endif
+
+
 #define sort_trivial_usage \
-	"[-n" USAGE_SORT_REVERSE("r") USAGE_SORT_UNIQUE("u") "] [FILE]..."
+	"[-nru" USAGE_SORT_BIG("gMcszbdfimSTokt] [-o outfile] [-k start[.offset][opts][,end[.offset][opts]] [-t char") "] [FILE]..."
 #define sort_full_usage \
 	"Sorts lines of text in the specified files\n\n"\
 	"Options:\n" \
-	USAGE_SORT_UNIQUE("\t-u\tsuppress duplicate lines\n") \
-	USAGE_SORT_REVERSE("\t-r\tsort in reverse order\n") \
-	"\t-n\tsort numerics"
+	USAGE_SORT_BIG( \
+		"\t-b\tignore leading blanks\n" \
+		"\t-c\tcheck whether input is sorted\n" \
+		"\t-d\tdictionary order (blank or alphanumeric only)\n" \
+		"\t-f\tignore case\n" \
+		"\t-g\tgeneral numerical sort\n" \
+		"\t-i\tignore unprintable characters\n" \
+		"\t-k\tspecify sort key\n" \
+		"\t-M\tsort month\n" \
+	) \
+	"\t-n\tsort numbers\n" \
+	USAGE_SORT_BIG( \
+		"\t-o\toutput to file\n" \
+		"\t-k\tsort by key\n" \
+		"\t-t\tuse key separator other than whitespace\n" \
+	) \
+	"\t-r\treverse sort order\n" \
+	USAGE_SORT_BIG("\t-s\tstable (don't sort ties alphabetically)\n") \
+	"\t-u\tsuppress duplicate lines" \
+	USAGE_SORT_BIG("\n\t-z\tinput terminated by nulls, not newlines\n") \
+	USAGE_SORT_BIG("\t-mST\tignored for GNU compatability") \
+	""
 #define sort_example_usage \
 	"$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
 	"a\n" \
@@ -2218,7 +2234,15 @@
 	"c\n" \
 	"d\n" \
 	"e\n" \
-	"f\n"
+	"f\n" \
+	USAGE_SORT_BIG( \
+		"$ echo -e \"c 3\\nb 2\\nd 2\" | $SORT -k 2,2n -k 1,1r\n" \
+		"d 2\n" \
+		"b 2\n" \
+		"c 3\n" \
+	) \
+	""
+	
 
 #define start_stop_daemon_trivial_usage \
 	"[OPTIONS] [--start|--stop] ... [-- arguments...]\n"

@@ -137,6 +137,7 @@ extern long *find_pid_by_name( const char* pidName);
 extern char *find_real_root_device_name(void);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
+extern char *bb_get_chunk_from_file(FILE *file);
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size);
 extern int bb_copyfd_eof(int fd1, int fd2);
 extern void  bb_xprint_and_close_file(FILE *file);
