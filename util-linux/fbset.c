@@ -42,7 +42,6 @@ static const int OPT_INFO     = (1 << 1);
 static const int OPT_READMODE = (1 << 2);
 
 enum {
-	CMD_HELP = 0,
 	CMD_FB = 1,
 	CMD_DB = 2,
 	CMD_GEOMETRY = 3,
@@ -138,7 +137,6 @@ static struct cmdoptions_t {
 	unsigned char code;
 } g_cmdoptions[] = {
 	{
-	"-h", 0, CMD_HELP}, {
 	"-fb", 1, CMD_FB}, {
 	"-db", 1, CMD_DB}, {
 	"-a", 0, CMD_ALL}, {
@@ -150,10 +148,8 @@ static struct cmdoptions_t {
 	"-vsync", 1, CMD_VSYNC}, {
 	"-laced", 1, CMD_LACED}, {
 	"-double", 1, CMD_DOUBLE}, {
-	"-help", 0, CMD_HELP}, {
 	"-n", 0, CMD_CHANGE}, {
 #ifdef BB_FEATURE_FBSET_FANCY
-	"-help", 0, CMD_HELP}, {
 	"-all", 0, CMD_ALL}, {
 	"-xres", 1, CMD_XRES}, {
 	"-yres", 1, CMD_YRES}, {
@@ -356,8 +352,6 @@ extern int fbset_main(int argc, char **argv)
 				if (argc - 1 < g_cmdoptions[i].param_count)
 					show_usage();
 				switch (g_cmdoptions[i].code) {
-				case CMD_HELP:
-					show_usage();
 				case CMD_FB:
 					fbdev = argv[1];
 					break;

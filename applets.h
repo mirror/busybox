@@ -135,7 +135,7 @@
 	APPLET(false, false_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_FBSET
-	APPLET_NOUSAGE("fbset", fbset_main, _BB_DIR_USR_SBIN)
+	APPLET(fbset, fbset_main, _BB_DIR_USR_SBIN)
 #endif
 #ifdef BB_FDFLUSH
 	APPLET(fdflush, fdflush_main, _BB_DIR_BIN)

@@ -62,6 +62,11 @@ sub pod_for_usage {
 	}
 	my $full = join("\n", @f1);
 
+	# prepare notes if they exists
+	my $notes = (defined $usage->{notes})
+		? "$usage->{notes}\n\n"
+		: "";
+
 	# prepare example if one exists
 	my $example = (defined $usage->{example})
 		? "Example:\n\n$usage->{example}\n\n"
@@ -74,6 +79,7 @@ sub pod_for_usage {
 		"\n\n"  .
 		$full   .
 		"\n\n"  .
+		$notes  .
 		$example.
 		"-------------------------------".
 		"\n\n"
@@ -216,4 +222,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.14 2001/03/06 19:25:25 beppu Exp $
+# $Id: autodocifier.pl,v 1.15 2001/03/15 18:14:25 andersen Exp $
