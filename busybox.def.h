@@ -22,6 +22,7 @@
 #define BB_DEALLOCVT
 #define BB_GREP
 //#define BB_HALT
+#define BB_HOSTNAME
 #define BB_INIT
 #define BB_KILL
 //#define BB_LENGTH
@@ -42,6 +43,7 @@
 //#define BB_MT
 //#define BB_MTAB
 #define BB_MV
+#define BB_PING
 //#define BB_PRINTF
 #define BB_PS
 #define BB_PWD

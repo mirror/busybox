@@ -151,19 +151,11 @@ void message(int device, char *fmt, ...)
 void set_term( int fd)
 {
     struct termios tty;
-#if 0
-    static const char control_characters[] = {
-	'\003', '\034', '\177', '\030', '\004', '\0',
-	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
-	'\017', '\027', '\026', '\0'
-	};
-#else	
     static const char control_characters[] = {
 	'\003', '\034', '\177', '\025', '\004', '\0',
 	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
 	'\017', '\027', '\026', '\0'
 	};
-#endif
 
     tcgetattr(fd, &tty);
 
@@ -386,7 +378,7 @@ goodnight:
 static void shutdown_system(void)
 {
     const char* const swap_off_cmd[] = { "swapoff", "swapoff", "-a", 0};
-    const char* const umount_cmd[] = { "umount", "umount", "-a", "-n", 0};
+    const char* const umount_cmd[] = { "umount", "umount", "-a", 0};
 
 #ifndef DEBUG_INIT
     /* Allow Ctrl-Alt-Del to reboot system. */

@@ -69,6 +69,9 @@ static const struct Applet applets[] = {
 #ifdef BB_HALT			//sbin
     {"halt", halt_main},
 #endif
+#ifdef BB_HOSTNAME              //bin
+    {"hostname", hostname_main},
+#endif
 #ifdef BB_INIT			//sbin
     {"init", init_main},
 #endif
@@ -122,6 +125,9 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_MV			//bin
     {"mv", mv_main},
+#endif
+#ifdef BB_PING                  //bin
+    {"ping", ping_main},
 #endif
 #ifdef BB_PRINTF		//usr/bin
     {"printf", printf_main},

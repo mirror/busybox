@@ -14,8 +14,8 @@ around to it some time. If you have any good ideas, please let me know.
 * poweroff
 * du
 * mkfifo
-* hostname/dnsdomainname
-* ping/traceroute/nslookup/netstat
+* dnsdomainname
+* traceroute/nslookup/netstat
 * rdate
 * hwclock
 * login/getty

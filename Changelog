@@ -1,3 +1,12 @@
+0.38 
+	* New Apps: ping and hostname contributed by Randolph Chung
+	    <tausq@debian.org>
+	* on reboot, init called 'umount -a -n', which caused errors
+	    when BB_MTAB was not enabled.  Changed to 'umount -a',
+	    which does the right thing.
+
+	-Erik Andrsen
+
 0.38
 	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
 	    file existed.
