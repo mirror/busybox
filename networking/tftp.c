@@ -528,7 +528,7 @@ int tftp_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_TFTP_GET
 		case 'g':
 			cmd = tftp_cmd_get;
-			flags = O_WRONLY | O_CREAT;
+			flags = O_WRONLY | O_CREAT | O_TRUNC;
 			break;
 #endif
 #ifdef CONFIG_FEATURE_TFTP_PUT
