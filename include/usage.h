@@ -1088,10 +1088,11 @@
 	"$ killall apache\n" 
 
 #define klogd_trivial_usage \
-	"-n"
+	"[-c n] [-n]"
 #define klogd_full_usage \
 	"Kernel logger.\n"\
 	"Options:\n"\
+	"\t-c n\tSets the default log level of console messages to n.\n"\
 	"\t-n\tRun as a foreground process."
 
 #define length_trivial_usage \
