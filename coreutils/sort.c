@@ -99,13 +99,13 @@ static Line *line_release(Line * self)
 /* ascii order */
 static int compare_ascii(const void *a, const void *b)
 {
-	Line **doh;
+	Line **val;
 	Line *x, *y;
 
-	doh = (Line **) a;
-	x = *doh;
-	doh = (Line **) b;
-	y = *doh;
+	val = (Line **) a;
+	x = *val;
+	val = (Line **) b;
+	y = *val;
 
 	// fprintf(stdout, "> %p: %s< %p: %s", x, x->data, y, y->data);
 	return APPLY_REVERSE(strcmp(x->data, y->data));
@@ -114,14 +114,14 @@ static int compare_ascii(const void *a, const void *b)
 /* numeric order */
 static int compare_numeric(const void *a, const void *b)
 {
-	Line **doh;
+	Line **val;
 	Line *x, *y;
 	int xint, yint;
 
-	doh = (Line **) a;
-	x = *doh;
-	doh = (Line **) b;
-	y = *doh;
+	val = (Line **) a;
+	x = *val;
+	val = (Line **) b;
+	y = *val;
 
 	xint = strtoul(x->data, NULL, 10);
 	yint = strtoul(y->data, NULL, 10);
@@ -255,19 +255,16 @@ int sort_main(int argc, char **argv)
 		}
 	}
 
-	/* this could be factored better */
-
-	/* work w/ stdin */
 	if (i >= argc) {
+
+        /* work w/ stdin */
 		while ((l = line_newFromFile(stdin))) {
 			list_insert(&list, l);
 		}
-		list_sort(&list, compare);
-		list_writeToFile(&list, stdout);
-		list_release(&list);
+
+	} else {
 
 		/* work w/ what's left in argv[] */
-	} else {
 		FILE *src;
 
 		for (; i < argc; i++) {
@@ -280,12 +277,13 @@ int sort_main(int argc, char **argv)
 			}
 			fclose(src);
 		}
-		list_sort(&list, compare);
-		list_writeToFile(&list, stdout);
-		list_release(&list);
+
 	}
+    list_sort(&list, compare);
+    list_writeToFile(&list, stdout);
+    list_release(&list);
 
 	return(0);
 }
 
-/* $Id: sort.c,v 1.22 2000/09/25 21:45:58 andersen Exp $ */
+/* $Id: sort.c,v 1.23 2000/09/28 17:49:59 beppu Exp $ */
