@@ -364,9 +364,6 @@ extern void flush_outbuf (void);
 static void flush_window (void);
 extern void write_buf (int fd, void * buf, unsigned cnt);
 
-#ifndef __linux__
-static char *basename (char *fname);
-#endif							/* not __linux__ */
 void read_error_msg (void);
 void write_error_msg (void);
 
