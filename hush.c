@@ -780,7 +780,7 @@ static inline void setup_prompt_string(int promptmode, char **prompt_str)
 static void get_user_input(struct in_str *i)
 {
 	char *prompt_str;
-	static char the_command[MAX_LINE];
+	static char the_command[BUFSIZ];
 
 	setup_prompt_string(i->promptmode, &prompt_str);
 #ifdef BB_FEATURE_COMMAND_EDITING
