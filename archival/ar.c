@@ -216,7 +216,7 @@ extern int ar_main(int argc, char **argv)
 		if (funct & verbose) {
 			printf("%s %d/%d %8d %s ", mode_string(extract_list->mode), 
 				extract_list->uid, extract_list->gid,
-				extract_list->size, time_string(extract_list->mtime));
+				(int) extract_list->size, time_string(extract_list->mtime));
 		}
 		if ((funct & display) || (funct & verbose)){
 			printf("%s\n", extract_list->name);
