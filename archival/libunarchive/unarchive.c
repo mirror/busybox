@@ -21,8 +21,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <utime.h>
+#include <sys/wait.h>
+#include <signal.h>
 #include "unarchive.h"
-#include "libbb.h"
+#include "busybox.h"
 
 /* Extract the data postioned at src_stream to either filesystem, stdout or 
  * buffer depending on the value of 'function' which is defined in libbb.h 
@@ -202,7 +204,22 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 	int extract_flag = TRUE;
 	int i;
 	char *buffer = NULL;
+#ifdef CONFIG_FEATURE_UNARCHIVE_TAPE
+	int pid, tape_pipe[2];
 
+	if (pipe(tape_pipe) != 0) error_msg_and_die("Can't create pipe\n");
+	if ((pid = fork()) == -1) error_msg_and_die("Fork failed\n");
+	if (pid==0) { /* child process */
+	    close(tape_pipe[0]); /* We don't wan't to read from the pipe */
+	    copyfd(fileno(src_stream), tape_pipe[1]);
+	    close(tape_pipe[1]); /* Send EOF */
+	    exit(0);
+	    /* notreached */
+	}
+	close(tape_pipe[1]); /* Don't want to write down the pipe */
+	fclose(src_stream);
+	src_stream = fdopen(tape_pipe[0], "r");
+#endif
 	archive_offset = 0;
 	while ((file_entry = get_headers(src_stream)) != NULL) {
 
@@ -238,5 +255,9 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 		free(file_entry->link_name);
 		free(file_entry);
 	}
+#ifdef CONFIG_FEATURE_UNARCHIVE_TAPE
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+#endif
 	return(buffer);
 }
