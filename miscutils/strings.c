@@ -67,7 +67,7 @@ int strings_main(int argc, char **argv)
 	i=0;
 
 	string=xmalloc(n+1);
-	/*string[n]='\0';*/
+	string[n]='\0';
 	n-=1;
 
 	if(argc==0)
@@ -77,7 +77,7 @@ int strings_main(int argc, char **argv)
 		goto pipe;
 	}
 
-	for(  ;*argv!=NULL;*argv++)
+	for( ;*argv!=NULL && argc>0;argv++)
 	{
 		if((file=bb_wfopen(*argv,"r")))
 		{
