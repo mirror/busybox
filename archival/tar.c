@@ -183,7 +183,7 @@ extern int tar_main(int argc, char **argv)
 		usage(tar_usage);
 
 	/* Parse any options */
-	while (--argc > 0 && (**(++argv) != '\0')) {
+	while (--argc > 0 && **(++argv) == '-') {
 		stopIt=FALSE;
 		while (stopIt==FALSE && *(++(*argv))) {
 			switch (**argv) {
