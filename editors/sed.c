@@ -118,30 +118,27 @@ const char * const semicolon_whitespace = "; \n\r\t\v\0";
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void destroy_cmd_strs(void)
 {
-	if (sed_cmds == NULL)
-		return;
+	sed_cmd_t *sed_cmd = sed_cmd_head.linear;
 
-	/* destroy all the elements in the array */
-	while (--ncmds >= 0) {
+	while (sed_cmd) {
+		sed_cmd_t *sed_cmd_next = sed_cmd->linear;
 
-		if (sed_cmds[ncmds]->beg_match) {
-			regfree(sed_cmds[ncmds]->beg_match);
-			free(sed_cmds[ncmds]->beg_match);
+		if (sed_cmd->beg_match) {
+			regfree(sed_cmd->beg_match);
+			free(sed_cmd->beg_match);
 		}
-		if (sed_cmds[ncmds]->end_match) {
-			regfree(sed_cmds[ncmds]->end_match);
-			free(sed_cmds[ncmds]->end_match);
+		if (sed_cmd->end_match) {
+			regfree(sed_cmd->end_match);
+			free(sed_cmd->end_match);
 		}
-		if (sed_cmds[ncmds]->sub_match) {
-			regfree(sed_cmds[ncmds]->sub_match);
-			free(sed_cmds[ncmds]->sub_match);
+		if (sed_cmd->sub_match) {
+			regfree(sed_cmd->sub_match);
+			free(sed_cmd->sub_match);
 		}
-		free(sed_cmds[ncmds]->replace);
+		free(sed_cmd->replace);
+		free(sed_cmd);
+		sed_cmd = sed_cmd_next;
 	}
-
-	/* destroy the array */
-	free(sed_cmds);
-	sed_cmds = NULL;
 }
 #endif
 
