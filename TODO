@@ -1,11 +1,8 @@
 TODO list for busybox in no particular order. Just because something
 is listed here doesn't mean that it is going to be added to busybox,
-or that doing so is even a good idea. It just means that I _might_ get
-around to it some time. If you have any good ideas, please let me know.
-
-* We _were_ going to split networking apps into a new package called 
-    netkit-tiny.  Per discussions on the mailing list, this isn't going
-    to happen.  False alarm.  Sorry about the confusion.  
+or that doing so is even a good idea. It just means that we _might_ get
+around to it some time. If you have any good ideas, please send them
+on in...
 
  -Erik
 
