@@ -273,7 +273,7 @@ all: applet_source_list busybox busybox.links doc
 sh.c:
 	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 
-applet_source_list: sh.c busybox.sh Config.h
+applet_source_list: busybox.sh Config.h sh.c
 	(echo -n "APPLET_SOURCES := "; BB_SRC_DIR=$(BB_SRC_DIR) $(SHELL) $^) > $@
 
 doc: olddoc
