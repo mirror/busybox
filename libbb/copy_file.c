@@ -242,7 +242,9 @@ int copy_file(const char *source, const char *dest, int flags)
 	}
 
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
-	add_to_ino_dev_hashtable(&source_stat, dest);
+	if (! S_ISDIR(source_stat.st_mode)) {
+		add_to_ino_dev_hashtable(&source_stat, dest);
+	}
 #endif
 
 end:
