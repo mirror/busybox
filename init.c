@@ -660,94 +660,6 @@ static void reboot_signal(int sig)
 	exit(0);
 }
 
-#if defined BB_FEATURE_INIT_CHROOT
-
-#warning BB_FEATURE_INIT_CHROOT is out of date and should be rewritten to us
-#warning pivot root instead.  Do not even bother till this work is done...
-#warning You have been warned.
-
-static void check_chroot(int sig)
-{
-	char *argv_init[2] = { "init", NULL, };
-	char *envp_init[3] = { "HOME=/", "TERM=linux", NULL, };
-	char rootpath[256], *tc;
-	int fd;
-
-	if ((fd = open("/proc/sys/kernel/init-chroot", O_RDONLY)) == -1) {
-		message(CONSOLE,
-				"SIGHUP recived, but could not open proc file\r\n");
-		sleep(2);
-		return;
-	}
-	if (read(fd, rootpath, sizeof(rootpath)) == -1) {
-		message(CONSOLE,
-				"SIGHUP recived, but could not read proc file\r\n");
-		sleep(2);
-		return;
-	}
-	close(fd);
-
-	if (rootpath[0] == '\0') {
-		message(CONSOLE,
-				"SIGHUP recived, but new root is not valid: %s\r\n",
-				rootpath);
-		sleep(2);
-		return;
-	}
-
-	tc = strrchr(rootpath, '\n');
-	*tc = '\0';
-
-	/* Ok, making it this far means we commit */
-	message(CONSOLE, "Please stand by, changing root to `%s'.\r\n",
-			rootpath);
-
-	/* kill all other programs first */
-	message(CONSOLE, "Sending SIGTERM to all processes.\r\n");
-	kill(-1, SIGTERM);
-	sleep(2);
-	sync();
-
-	message(CONSOLE, "Sending SIGKILL to all processes.\r\n");
-	kill(-1, SIGKILL);
-	sleep(2);
-	sync();
-
-	/* ok, we don't need /proc anymore. we also assume that the signaling
-	 * process left the rest of the filesystems alone for us */
-	umount("/proc");
-
-	/* Ok, now we chroot. Hopefully we only have two things mounted, the
-	 * new chroot'd mount point, and the old "/" mount. s,
-	 * we go ahead and unmount the old "/". This should trigger the kernel
-	 * to set things up the Right Way(tm). */
-
-	if (!chroot(rootpath))
-		umount("/dev/root");
-
-	/* If the chroot fails, we are already too far to turn back, so we
-	 * continue and hope that executing init below will revive the system */
-
-	/* close all of our descriptors and open new ones */
-	close(0);
-	close(1);
-	close(2);
-	open("/dev/console", O_RDWR, 0);
-	dup(0);
-	dup(0);
-
-	message(CONSOLE, "Executing real init...\r\n");
-	/* execute init in the (hopefully) new root */
-	execve("/sbin/init", argv_init, envp_init);
-
-	message(CONSOLE,
-			"ERROR: Could not exec new init. Press %s to reboot.\r\n",
-			(secondConsole == NULL)	/* serial console */
-			? "Reset" : "CTRL-ALT-DEL");
-	return;
-}
-#endif							/* BB_FEATURE_INIT_CHROOT */
-
 #endif							/* ! DEBUG_INIT */
 
 void new_initAction(initActionEnum action, char *process, char *cons)
@@ -945,9 +857,6 @@ extern int init_main(int argc, char **argv)
 	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, reboot_signal);
 	signal(SIGTERM, reboot_signal);
-#if defined BB_FEATURE_INIT_CHROOT
-	signal(SIGHUP, check_chroot);
-#endif
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
 	 * SIGINT on CAD so we can shut things down gracefully... */
