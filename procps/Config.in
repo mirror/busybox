@@ -72,5 +72,11 @@ config CONFIG_UPTIME
 	  the system has been running, how many users are currently logged
 	  on, and the system load averages for the past 1, 5, and 15 minutes.
 
+config CONFIG_SYSCTL
+	bool "sysctl"
+	default n
+	help
+	  sysctl - configure kernel parameters at runtime
+
 endmenu
 
