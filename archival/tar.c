@@ -459,7 +459,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 		error_msg_and_die("Cowardly refusing to create an empty archive");
 
 	/* Open the tar file for writing.  */
-	if (!strcmp(tarName, "-"))
+	if (tarName == NULL || !strcmp(tarName, "-"))
 		tbInfo.tarFd = fileno(stdout);
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -692,6 +692,10 @@ int tar_main(int argc, char **argv)
 	while (optind < argc) {
 		append_file_to_list(argv[optind], &include_list, &include_list_count);
 		optind++;
+	}
+
+	if (src_filename == NULL) {
+		extract_function |= extract_to_stdout;
 	}
 
 	if (extract_function & (extract_list | extract_all_to_fs)) {
