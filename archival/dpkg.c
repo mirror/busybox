@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -116,7 +117,6 @@ static int package_compare(const void *p1, const void *p2)
 }
 
 #ifdef DODEPENDS
-#include <ctype.h>
 
 static char **depends_split(const char *dependsstr)
 {
