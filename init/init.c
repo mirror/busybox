@@ -230,7 +230,7 @@ static void message(int device, char *fmt, ...)
 	if (log_fd < 0) {
 		if ((log_fd = device_open(log, O_RDWR | O_NDELAY)) < 0) {
 			log_fd = -2;
-			fprintf(stderr, "Bummer, can't write to log on %s!\n", log);
+			error_msg("Bummer, can't write to log on %s!", log);
 			device = CONSOLE;
 		} else {
 			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
@@ -253,7 +253,7 @@ static void message(int device, char *fmt, ...)
 			va_end(arguments);
 			close(fd);
 		} else {
-			fprintf(stderr, "Bummer, can't print: ");
+			error_msg("Bummer, can't print: ");
 			va_start(arguments, fmt);
 			vfprintf(stderr, fmt, arguments);
 			va_end(arguments);
