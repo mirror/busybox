@@ -48,11 +48,8 @@ int openvt_main(int argc, char **argv)
 	if (!isdigit(argv[1][0]))
 	        bb_show_usage();
 
-	vtno = (int) atol(argv[1]);
-
-	/* if (vtno <= 0 || vtno > 63) */
-	if (vtno <= 0 || vtno > 12)
-		bb_error_msg_and_die("Illegal vt number (%d)", vtno);	  
+	/* check for Illegal vt number */
+	vtno=bb_xgetlarg(argv[1], 10, 1, 12);
 
 	sprintf(vtname, VTNAME, vtno);
 
@@ -73,8 +70,7 @@ int openvt_main(int argc, char **argv)
 		close(0);			/* so that new vt becomes stdin */
 
 		/* and grab new one */
-		if ((fd = open(vtname, O_RDWR)) == -1)
-			bb_perror_msg_and_die("could not open %s", vtname);	  
+		fd = bb_xopen(vtname, O_RDWR);
 
 		/* Reassign stdout and sterr */
 		close(1);

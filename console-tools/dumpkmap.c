@@ -51,11 +51,7 @@ int dumpkmap_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	fd = open(CURRENT_VC, O_RDWR);
-	if (fd < 0) {
-		bb_perror_msg("Error opening " CURRENT_VC);
-		return EXIT_FAILURE;
-	}
+	fd=bb_xopen(CURRENT_VC, O_RDWR);
 
 	write(1, magic, 7);
 

@@ -37,10 +37,7 @@ int loadacm_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	fd = open(CURRENT_VC, O_RDWR);
-	if (fd < 0) {
-		bb_perror_msg_and_die("Error opening " CURRENT_VC);
-	}
+	fd = bb_xopen(CURRENT_VC, O_RDWR);
 
 	if (screen_map_load(fd, stdin)) {
 		bb_perror_msg_and_die("Error loading acm");
