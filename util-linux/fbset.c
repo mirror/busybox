@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
 
@@ -85,49 +86,48 @@ static unsigned int g_options = 0;
 /* Stuff stolen from the kernel's fb.h */
 static const int FBIOGET_VSCREENINFO = 0x4600;
 static const int FBIOPUT_VSCREENINFO = 0x4601;
-#define __u32			u_int32_t
 struct fb_bitfield {
-	__u32 offset;			/* beginning of bitfield	*/
-	__u32 length;			/* length of bitfield		*/
-	__u32 msb_right;		/* != 0 : Most significant bit is */ 
+	uint32_t offset;			/* beginning of bitfield	*/
+	uint32_t length;			/* length of bitfield		*/
+	uint32_t msb_right;		/* != 0 : Most significant bit is */ 
 					/* right */ 
 };
 struct fb_var_screeninfo {
-	__u32 xres;			/* visible resolution		*/
-	__u32 yres;
-	__u32 xres_virtual;		/* virtual resolution		*/
-	__u32 yres_virtual;
-	__u32 xoffset;			/* offset from virtual to visible */
-	__u32 yoffset;			/* resolution			*/
+	uint32_t xres;			/* visible resolution		*/
+	uint32_t yres;
+	uint32_t xres_virtual;		/* virtual resolution		*/
+	uint32_t yres_virtual;
+	uint32_t xoffset;			/* offset from virtual to visible */
+	uint32_t yoffset;			/* resolution			*/
 
-	__u32 bits_per_pixel;		/* guess what			*/
-	__u32 grayscale;		/* != 0 Graylevels instead of colors */
+	uint32_t bits_per_pixel;		/* guess what			*/
+	uint32_t grayscale;		/* != 0 Graylevels instead of colors */
 
 	struct fb_bitfield red;		/* bitfield in fb mem if true color, */
 	struct fb_bitfield green;	/* else only length is significant */
 	struct fb_bitfield blue;
 	struct fb_bitfield transp;	/* transparency			*/	
 
-	__u32 nonstd;			/* != 0 Non standard pixel format */
+	uint32_t nonstd;			/* != 0 Non standard pixel format */
 
-	__u32 activate;			/* see FB_ACTIVATE_*		*/
+	uint32_t activate;			/* see FB_ACTIVATE_*		*/
 
-	__u32 height;			/* height of picture in mm    */
-	__u32 width;			/* width of picture in mm     */
+	uint32_t height;			/* height of picture in mm    */
+	uint32_t width;			/* width of picture in mm     */
 
-	__u32 accel_flags;		/* acceleration flags (hints)	*/
+	uint32_t accel_flags;		/* acceleration flags (hints)	*/
 
 	/* Timing: All values in pixclocks, except pixclock (of course) */
-	__u32 pixclock;			/* pixel clock in ps (pico seconds) */
-	__u32 left_margin;		/* time from sync to picture	*/
-	__u32 right_margin;		/* time from picture to sync	*/
-	__u32 upper_margin;		/* time from sync to picture	*/
-	__u32 lower_margin;
-	__u32 hsync_len;		/* length of horizontal sync	*/
-	__u32 vsync_len;		/* length of vertical sync	*/
-	__u32 sync;			/* see FB_SYNC_*		*/
-	__u32 vmode;			/* see FB_VMODE_*		*/
-	__u32 reserved[6];		/* Reserved for future compatibility */
+	uint32_t pixclock;			/* pixel clock in ps (pico seconds) */
+	uint32_t left_margin;		/* time from sync to picture	*/
+	uint32_t right_margin;		/* time from picture to sync	*/
+	uint32_t upper_margin;		/* time from sync to picture	*/
+	uint32_t lower_margin;
+	uint32_t hsync_len;		/* length of horizontal sync	*/
+	uint32_t vsync_len;		/* length of vertical sync	*/
+	uint32_t sync;			/* see FB_SYNC_*		*/
+	uint32_t vmode;			/* see FB_VMODE_*		*/
+	uint32_t reserved[6];		/* Reserved for future compatibility */
 };
 
 
