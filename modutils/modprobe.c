@@ -470,6 +470,11 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 			return;
 	}
 
+	if ( !path ) {
+		bb_error_msg ("module %s not found.", mod);
+		return;
+	}
+
 	// search for duplicates
 	for ( find = *head; find; find = find-> m_next ) {
 		if ( !strcmp ( mod, find-> m_name )) {
