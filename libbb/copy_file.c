@@ -55,7 +55,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		dest_exists = 0;
 	}
 
-	if (dest_exists && source_stat.st_rdev == dest_stat.st_rdev &&
+	if (dest_exists && source_stat.st_dev == dest_stat.st_dev &&
 			source_stat.st_ino == dest_stat.st_ino) {
 		error_msg("`%s' and `%s' are the same file", source, dest);
 		return -1;
