@@ -304,8 +304,10 @@
 // Nothing beyond this point should ever be touched by 
 // mere mortals so leave this stuff alone.
 //
+#if defined BB_MOUNT || defined BB_UMOUNT || defined BB_DF
 #ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
 #define BB_MTAB
+#endif
 #endif
 //
 #if defined BB_FEATURE_SH_COMMAND_EDITING && defined BB_SH
