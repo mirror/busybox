@@ -230,7 +230,7 @@ Changes the foreground virtual terminal to /dev/ttyN
 
 =item B<clear>
 
-clear 
+clear 	
 
 Clear screen.
 
@@ -275,9 +275,9 @@ Options:
 
 Example:
 
-	$ echo Hello world | cut -f 1 -d ' '
+	$ echo "Hello world" | cut -f 1 -d ' '
 	Hello
-	$ echo Hello world | cut -f 2 -d ' '
+	$ echo "Hello world" | cut -f 2 -d ' '
 	world
 
 -------------------------------
@@ -370,7 +370,7 @@ Options:
 
 	-h	print sizes in human readable format (e.g., 1K 243M 2G )
 	-m	print sizes in megabytes
-	-k	print sizes in kilobytes(default) 
+	-k	print sizes in kilobytes(default)
 
 Example:
 
@@ -472,7 +472,7 @@ Options:
 	-s	display only a total for each argument
 	-h	print sizes in human readable format (e.g., 1K 243M 2G )
 	-m	print sizes in megabytes
-	-k	print sizes in kilobytes(default) 
+	-k	print sizes in kilobytes(default)
 
 Example:
 
@@ -536,17 +536,17 @@ Options:
 
 Example:
 
-	$ echo Erik is cool
+	$ echo "Erik is cool"
 	Erik is cool
-	$  echo -e Erik
+	$  echo -e "Erik
 	is
-	cool
+	cool"
 	Erik
 	is
 	cool
-	$ echo Erik
+	$ echo "Erik
 	is
-	cool
+	cool"
 	Erik
 	is
 	cool
@@ -609,7 +609,7 @@ of characters matched or 0.
 
 =item B<false>
 
-false 
+false 	
 
 Return an exit code of FALSE (1).
 
@@ -630,7 +630,7 @@ Show and modify frame buffer settings
 Example:
 
 	$ fbset
-	mode 1024x768-76
+	mode "1024x768-76"
 		# D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz
 		geometry 1024 768 1024 768 16
 		timings 12714 128 32 16 4 128 4
@@ -675,7 +675,7 @@ Example:
 
 =item B<free>
 
-free 
+free 	
 
 Displays the amount of free and used system memory
 
@@ -686,7 +686,6 @@ Example:
 	  Mem:       257628       248724         8904        59644        93124
 	 Swap:       128516         8404       120112
 	Total:       386144       257128       129016
-	 
 
 -------------------------------
 
@@ -715,7 +714,7 @@ Options:
 	-a	Perform automatic repairs
 	-v	verbose
 	-s	Outputs super-block information
-	-m	Activates MINIX-like mode not cleared warnings
+	-m	Activates MINIX-like "mode not cleared" warnings
 	-f	Force file system check.
 
 -------------------------------
@@ -741,20 +740,20 @@ Example:
 	$ cat getopt.test
 	#!/bin/sh
 	GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
-	       -n 'example.busybox' -- $@`
+	       -n 'example.busybox' -- "$@"`
 	if [ $? != 0 ] ; then  exit 1 ; fi
-	eval set -- $GETOPT
+	eval set -- "$GETOPT"
 	while true ; do
 	 case $1 in
-	   -a|--a-long) echo Option a ; shift ;;
-	   -b|--b-long) echo Option b, argument `$2' ; shift 2 ;;
+	   -a|--a-long) echo "Option a" ; shift ;;
+	   -b|--b-long) echo "Option b, argument `$2'" ; shift 2 ;;
 	   -c|--c-long)
-	     case $2 in
-	       \) echo Option c, no argument; shift 2 ;;
-	       *)  echo Option c, argument `$2' ; shift 2 ;;
+	     case "$2" in
+	       "") echo "Option c, no argument"; shift 2 ;;
+	       *)  echo "Option c, argument `$2'" ; shift 2 ;;
 	     esac ;;
 	   --) shift ; break ;;
-	   *) echo Internal error! ; exit 1 ;;
+	   *) echo "Internal error!" ; exit 1 ;;
 	 esac
 	done
 
@@ -830,7 +829,7 @@ Example:
 
 =item B<halt>
 
-halt 
+halt 	
 
 Halt the system.
 
@@ -858,7 +857,7 @@ Example:
 
 =item B<hostid>
 
-hostid 
+hostid 	
 
 Print out a unique 32-bit identifier for the machine.
 
@@ -926,7 +925,7 @@ Options:
 
 =item B<init>
 
-init 
+init 	
 
 Init is the parent of all processes.
 
@@ -960,7 +959,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 		WARNING: This field has a non-traditional meaning for BusyBox init!
 		The id field is used by BusyBox init to specify the controlling tty for
 		the specified process to run on.  The contents of this field are
-		appended to /dev/ and used as-is.  There is no need for this field to
+		appended to "/dev/" and used as-is.  There is no need for this field to
 		be unique, although if it isn't you may have strange results.  If this
 		field is left blank, the controlling tty is set to the console.  Also
 		note that if BusyBox detects that a serial console is in use, then only
@@ -1003,7 +1002,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 			it.  Unlike sysvinit, BusyBox init does not stop processes from
 			respawning out of control.  The 'askfirst' actions acts just like
 			respawn, except that before running the specified process it
-			displays the line Please press Enter to activate this console.
+			displays the line "Please press Enter to activate this console."
 			and then waits for the user to press enter before starting the
 			specified process.  
 
@@ -1023,9 +1022,9 @@ Example /etc/inittab file:
 	
 	# /bin/sh invocations on selected ttys
 	#
-	# Start an askfirst shell on the console (whatever that may be)
+	# Start an "askfirst" shell on the console (whatever that may be)
 	::askfirst:-/bin/sh
-	# Start an askfirst shell on /dev/tty2-4
+	# Start an "askfirst" shell on /dev/tty2-4
 	tty2::askfirst:-/bin/sh
 	tty3::askfirst:-/bin/sh
 	tty4::askfirst:-/bin/sh
@@ -1104,7 +1103,6 @@ Options:
 Example:
 
 	$ killall apache
-	 
 
 -------------------------------
 
@@ -1127,7 +1125,7 @@ Prints out the length of the specified STRING.
 
 Example:
 
-	$ length Hello
+	$ length "Hello"
 	5
 
 -------------------------------
@@ -1151,7 +1149,6 @@ Example:
 	$ ln -s BusyBox /tmp/ls
 	$ ls -l /tmp/ls
 	lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*
-	 
 
 -------------------------------
 
@@ -1164,7 +1161,6 @@ Loads an acm from standard input.
 Example:
 
 	$ loadacm < /etc/i18n/acmname
-	 
 
 -------------------------------
 
@@ -1177,7 +1173,6 @@ Loads a console font from standard input.
 Example:
 
 	$ loadfont < /etc/i18n/fontname
-	 
 
 -------------------------------
 
@@ -1190,7 +1185,6 @@ Loads a binary keyboard translation table from standard input.
 Example:
 
 	$ loadkmap < /etc/i18n/lang-keymap
-	 
 
 -------------------------------
 
@@ -1209,14 +1203,13 @@ Options:
 
 Example:
 
-	$ logger hello
-	 
+	$ logger "hello"
 
 -------------------------------
 
 =item B<logname>
 
-logname 
+logname 	
 
 Print the name of the current user.
 
@@ -1224,13 +1217,12 @@ Example:
 
 	$ logname
 	root
-	 
 
 -------------------------------
 
 =item B<logread>
 
-logread 
+logread         
 
 Shows the messages from syslogd (using circular buffer).
 
@@ -1269,13 +1261,13 @@ Options:
 	-x	list entries by lines instead of by columns
 	-X	sort the listing by extension
 	-h	print sizes in human readable format (e.g., 1K 243M 2G )
-	-k	print sizes in kilobytes(default)  
+	-k	print sizes in kilobytes(default)
 
 -------------------------------
 
 =item B<lsmod>
 
-lsmod 
+lsmod 	
 
 List the currently loaded kernel modules.
 
@@ -1308,7 +1300,6 @@ Example:
 	[creates ttyS2-ttyS63]
 	$ makedevs /dev/hda b 3 0 0 8 s
 	[creates hda,hda1-hda8]
-	 
 
 -------------------------------
 
@@ -1364,7 +1355,6 @@ Example:
 	$ mkdir /tmp/foo/bar/baz
 	/tmp/foo/bar/baz: No such file or directory
 	$ mkdir -p /tmp/foo/bar/baz
-	 
 
 -------------------------------
 
@@ -1416,7 +1406,6 @@ Example:
 
 	$ mknod /dev/fd0 b 2 0 
 	$ mknod -m 644 /tmp/pipe p
-	 
 
 -------------------------------
 
@@ -1449,7 +1438,6 @@ Example:
 	/tmp/temp.mWiLjM
 	$ ls -la /tmp/temp.mWiLjM
 	-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM
-	 
 
 -------------------------------
 
@@ -1462,7 +1450,6 @@ More is a filter for viewing FILE one screenful at a time.
 Example:
 
 	$ dmesg | more
-	 
 
 -------------------------------
 
@@ -1475,14 +1462,14 @@ Mount a filesystem
 Flags:
 
 	-a:		Mount all filesystems in fstab.
-	-f:		Fake Add entry to mount table but don't mount it.
+	-f:		"Fake" Add entry to mount table but don't mount it.
 	-n:		Don't write a mount table entry.
 	-o option:	One of many filesystem options, listed below.
 	-r:		Mount the filesystem read-only.
 	-t fs-type:	Specify the filesystem type.
 	-w:		Mount for reading and writing (default).
 
-Options for use with the B<-o> flag:
+Options for use with the "B<-o>" flag:
 
 	async/sync:	Writes are asynchronous / synchronous.
 	atime/noatime:	Enable / disable updates to inode access times.
@@ -1504,7 +1491,6 @@ Example:
 	devpts on /dev/pts type devpts (rw)
 	$ mount /dev/fd0 /mnt -t msdos -o ro
 	$ mount /tmp/diskimage /opt -t ext2 -o loop
-	 
 
 -------------------------------
 
@@ -1533,13 +1519,12 @@ Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
 Example:
 
 	$ mv /tmp/foo /bin/bar
-	 
 
 -------------------------------
 
 =item B<nc>
 
-nc [IP] [port] 
+nc [IP] [port]
 
 Netcat opens a pipe to IP:port
 
@@ -1553,7 +1538,6 @@ Example:
 	214     NOOP QUIT RSET HELP
 	quit
 	221 foobar closing connection
-	 
 
 -------------------------------
 
@@ -1571,7 +1555,6 @@ Example:
 	
 	Name:       debian
 	Address:    127.0.0.1
-	 
 
 -------------------------------
 
@@ -1597,7 +1580,6 @@ Example:
 	--- debian ping statistics ---
 	1 packets transmitted, 1 packets received, 0% packet loss
 	round-trip min/avg/max = 20.1/20.1/20.1 ms
-	 
 
 -------------------------------
 
@@ -1612,7 +1594,7 @@ the new root file system.
 
 =item B<poweroff>
 
-poweroff 
+poweroff 	
 
 Halt the system and request that the kernel shut off the power.
 
@@ -1627,16 +1609,15 @@ Where FORMAT controls the output exactly as in C printf.
 
 Example:
 
-	$ printf Val=%d
-	 5
+	$ printf "Val=%d
+	" 5
 	Val=5
-	 
 
 -------------------------------
 
 =item B<ps>
 
-ps 
+ps 	
 
 Report process status
 
@@ -1660,7 +1641,7 @@ Example:
 
 =item B<pwd>
 
-pwd 
+pwd 	
 
 Print the full filename of the current working directory.
 
@@ -1686,7 +1667,7 @@ Options:
 
 =item B<readlink>
 
-readlink 
+readlink 	
 
 Read a symbolic link.
 
@@ -1694,7 +1675,7 @@ Read a symbolic link.
 
 =item B<reboot>
 
-reboot 
+reboot 	
 
 Reboot the system.
 
@@ -1712,7 +1693,7 @@ from 20 (the process runs only when nothing else is running) to 0
 
 =item B<reset>
 
-reset 
+reset 	
 
 Resets the screen.
 
@@ -1798,7 +1779,7 @@ files; if no input files are specified, then the standard input is read.
 
 Example:
 
-	$ echo foo | sed -e 's/f[a-zA-Z]o/bar/g'
+	$ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'
 	bar
 
 -------------------------------
@@ -1831,7 +1812,7 @@ This command does not yet have proper documentation.
 Use lash just as you would use any other shell.  It properly handles pipes,
 redirects, job control, can be used as the shell for scripts, and has a
 sufficient set of builtins to do what is needed.  It does not (yet) support
-Bourne Shell syntax.  If you need things like if-then-else, while, and such
+Bourne Shell syntax.  If you need things like "if-then-else", "while", and such
 use ash or bash.  If you just need a very simple and extremely small shell,
 this will do the job.
 
@@ -1858,12 +1839,12 @@ Sorts lines of text in the specified files
 
 Example:
 
-	$ echo -e e
+	$ echo -e "e
 	f
 	b
 	d
 	c
-	a | sort
+	a" | sort
 	a
 	b
 	c
@@ -1915,7 +1896,7 @@ Options:
 
 =item B<sync>
 
-sync 
+sync 	
 
 Write all buffered filesystem blocks to disk.
 
@@ -1985,7 +1966,7 @@ Main operation mode:
 
 File selection:
 
-	f		name of tarfile or - for stdin
+	f		name of tarfile or "-" for stdin
 	O		extract to stdout
 	exclude		file to exclude
 	X		file with names to exclude
@@ -2013,7 +1994,7 @@ Options:
 
 Example:
 
-	$ echo Hello | tee /tmp/foo
+	$ echo "Hello" | tee /tmp/foo
 	$ cat /tmp/foo
 	Hello
 
@@ -2057,14 +2038,14 @@ Example:
 
 tftp command SOURCE DEST
 
-Transfers a file from/to a tftp server using octet mode.
+Transfers a file from/to a tftp server using "octet" mode.
 
 Commands:
 
 	get	Get file from server SOURCE and store to local DEST.
 	put	Put local file SOURCE to server DEST.
 
-When nameing a server, use the syntax server:file.
+When nameing a server, use the syntax "server:file".
 
 -------------------------------
 
@@ -2085,7 +2066,6 @@ Example:
 	$ touch /tmp/foo
 	$ ls -l /tmp/foo
 	-rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo
-	 
 
 -------------------------------
 
@@ -2104,15 +2084,14 @@ Options:
 
 Example:
 
-	$ echo gdkkn vnqkc | tr [a-y] [b-z]
+	$ echo "gdkkn vnqkc" | tr [a-y] [b-z]
 	hello world
-	 
 
 -------------------------------
 
 =item B<true>
 
-true 
+true 	
 
 Return an exit code of TRUE (0).
 
@@ -2126,7 +2105,7 @@ Example:
 
 =item B<tty>
 
-tty 
+tty 	
 
 Print the file name of the terminal connected to standard input.
 
@@ -2181,7 +2160,6 @@ Example:
 
 	$ uname -a
 	Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
-	 
 
 -------------------------------
 
@@ -2200,12 +2178,12 @@ Options:
 
 Example:
 
-	$ echo -e a
+	$ echo -e "a
 	a
 	b
 	c
 	c
-	a | sort | uniq
+	a" | sort | uniq
 	a
 	b
 	c
@@ -2236,7 +2214,7 @@ Options:
 
 =item B<uptime>
 
-uptime 
+uptime 	
 
 Display the time since the last boot.
 
@@ -2244,13 +2222,12 @@ Example:
 
 	$ uptime
 	  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00
-	 
 
 -------------------------------
 
 =item B<usleep>
 
-usleep N 
+usleep N
 
 Pause for N microseconds.
 
@@ -2269,14 +2246,13 @@ Uudecode a file that is uuencoded.
 
 Options:
 
-	-o FILE	direct output to FILE 
+	-o FILE	direct output to FILE
 
 Example:
 
 	$ uudecode -o busybox busybox.uu
 	$ ls -l busybox
 	-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
-	 
 
 -------------------------------
 
@@ -2308,7 +2284,7 @@ edit FILE.
 
 Options:
 
-	-R	Read-only- do not write to the file. 
+	-R	Read-only- do not write to the file.
 
 -------------------------------
 
@@ -2338,7 +2314,6 @@ Example:
 
 	$ wc /etc/passwd
 	     31      46    1365 /etc/passwd
-	 
 
 -------------------------------
 
@@ -2371,7 +2346,7 @@ Example:
 
 =item B<whoami>
 
-whoami 
+whoami 	
 
 Prints the user name associated with the current effective user id.
 
@@ -2387,7 +2362,6 @@ Example:
 
 	$ ls | xargs gzip
 	$ find . -name '*.c' -print | xargs rm
-	 
 
 -------------------------------
 
@@ -2562,4 +2536,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.98 2001/04/09 23:27:51 kraai Exp $
+# $Id: busybox.pod,v 1.99 2001/04/10 00:00:05 kraai Exp $

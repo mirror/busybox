@@ -27,8 +27,8 @@ sub beautify {
 	my @line = split("\n", $text);
 	$text = join('',
 		map { 
-			s/^\s*//;
-			s/"//g;
+			s/^\s*"//;
+			s/"\s*$//;
 			s/%/%%/g;
 			s/\$/\\\$/g;
 			eval qq[ sprintf(qq{$_}) ]
@@ -275,4 +275,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.19 2001/04/05 20:03:33 beppu Exp $
+# $Id: autodocifier.pl,v 1.20 2001/04/10 00:00:05 kraai Exp $
