@@ -69,6 +69,11 @@ Daniel Jacobowitz <dan@debian.org>
 Matt Kraai <kraai@alumni.cmu.edu>
     documentation, bugfixes, test suite
 
+Rob Landley <rob@landley.net>
+    sed (major rewrite in 2003, and I now maintain the thing).
+    bunzip2 (complete from-scratch rewrite, then mjn3 optimized the result.)
+    I've patched lots of other applets, but don't maintain 'em.
+
 Stephan Linz <linz@li-pro.net>
     ipcalc, Red Hat equivalence
 
