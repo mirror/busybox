@@ -7,6 +7,7 @@
 
 #include "libbb_udhcp.h"
 #include "leases.h"
+#include "version.h"
 
 /************************************/
 /* Defaults _you_ may want to tweak */

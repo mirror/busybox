@@ -15,7 +15,7 @@
 #endif
 
 #define COMBINED_BINARY
-#define VERSION "0.9.8-pre"
+#include "version.h"
 
 #else /* ! BB_VER */
 
