@@ -274,7 +274,7 @@ sh_link:
 	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 
 applet_source_list: sh_link busybox.sh Config.h
-	@(echo -n "APPLET_SOURCES := "; $(SHELL) busybox.sh Config.h $(BB_SRC_DIR)) > $@
+	(echo -n "APPLET_SOURCES := "; $(SHELL) $(filter-out sh_link, $^) $(BB_SRC_DIR)) > $@
 
 doc: olddoc
 
