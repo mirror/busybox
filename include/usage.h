@@ -733,6 +733,8 @@
 	"\t-L\t\tLocal line, so do not do carrier detect.\n" \
 	"\t-m\t\tGet baud rate from modem's CONNECT status message.\n" \
 	"\t-w\t\tWait for a CR or LF before sending /etc/issue.\n" \
+	"\t-n\t\tDo not prompt the user for a login name.\n" \
+	"\t-f issue_file\tDisplay issue_file instead of /etc/issue.\n" \
 	"\t-l login_app\tInvoke login_app instead of /bin/login.\n" \
 	"\t-t timeout\tTerminate after timeout if no username is read.\n" \
 	"\t-I initstring\tSets the init string to send before anything else.\n" \
