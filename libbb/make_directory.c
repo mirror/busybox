@@ -3,6 +3,10 @@
  * Mini make_directory implementation for busybox
  *
  * Copyright (C) 2001  Matt Kraai.
+ * 
+ * Rewriten in 2002
+ * Copyright (C) 2002 Glenn McGrath
+ * Copyright (C) 2002 Vladimir N. Oleynik
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,37 +39,25 @@
 
 int make_directory (char *path, long mode, int flags)
 {
-	if (!(flags & FILEUTILS_RECUR)) {
-		if (mkdir (path, 0777) < 0) {
-			perror_msg ("Cannot create directory `%s'", path);
-			return -1;
-		}
+	int ret;
 
-		if (mode != -1 && chmod (path, mode) < 0) {
-			perror_msg ("Cannot set permissions of directory `%s'", path);
-			return -1;
-		}
-	} else {
-		struct stat st;
-
-		if (stat (path, &st) < 0 && errno == ENOENT) {
-			int status;
-			char *buf, *parent;
-			mode_t mask;
-
-			mask = umask (0);
-			umask (mask);
-
-			buf = xstrdup (path);
-			parent = dirname (buf);
-			status = make_directory (parent, (0777 & ~mask) | 0300,
-					FILEUTILS_RECUR);
-			free (buf);
-
-			if (status < 0 || make_directory (path, mode, 0) < 0)
-				return -1;
+	/* Calling apps probably should use 0777 instead of -1
+	 * then we dont need this condition
+	 */
+	if (mode == -1) {
+		mode = 0777;
+	}
+	if (flags == FILEUTILS_RECUR) {
+		char *pp = strrchr(path, '/');
+		if (pp) {
+			*pp = '\0';
+			make_directory(path, mode, flags);
+			*pp = '/';
 		}
 	}
-
-	return 0;
+	ret = mkdir(path, mode);
+	if ( (ret == -1) && (errno != EEXIST) ) {
+		perror_msg("Cannot create directory %s", path);
+	}
+	return ret;
 }
