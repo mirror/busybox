@@ -21,6 +21,8 @@
  *
  */
 
+/* getopt not needed */
+
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
