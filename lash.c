@@ -150,9 +150,9 @@ static char *cwd = NULL;
 static char *local_pending_command = NULL;
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
-void win_changed(int sig)
+void win_changed(int junk)
 {
-	struct winsize win = { 0, 0 };
+	struct winsize win = { 0, 0, 0, 0 };
 	ioctl(0, TIOCGWINSZ, &win);
 	if (win.ws_col > 0) {
 		cmdedit_setwidth( win.ws_col - 1);
@@ -251,7 +251,7 @@ static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct job *cmd, struct jobSet *junk)
+static int builtin_help(struct job *dummy, struct jobSet *junk)
 {
 	struct builtInCommand *x;
 

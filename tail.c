@@ -104,7 +104,7 @@ static void write_header(const char *filename)
    Return 0 if successful, 1 if an error occurred.  */
 
 static int
-file_lines(const char *filename, int fd, long int n_lines, off_t pos)
+file_lines(int fd, long int n_lines, off_t pos)
 {
 	char buffer[BUFSIZ];
 	int bytes_read;
@@ -164,7 +164,7 @@ file_lines(const char *filename, int fd, long int n_lines, off_t pos)
    Buffer the text as a linked list of LBUFFERs, adding them as needed.
    Return 0 if successful, 1 if an error occured.  */
 
-static int pipe_lines(const char *filename, int fd, long int n_lines)
+static int pipe_lines(int fd, long int n_lines)
 {
 	struct linebuffer {
 		int nbytes, nlines;
@@ -266,7 +266,7 @@ static int pipe_lines(const char *filename, int fd, long int n_lines)
    If `forever' is nonzero, keep reading from the end of the file
    until killed.  Return the number of bytes read from the file.  */
 
-static long dump_remainder(const char *filename, int fd)
+static long dump_remainder(int fd)
 {
 	char buffer[BUFSIZ];
 	int bytes_read;
@@ -312,11 +312,11 @@ static int tail_lines(const char *filename, int fd, long int n_lines)
 	if (S_ISREG(stats.st_mode)
 		&& lseek(fd, (off_t) 0, SEEK_CUR) == (off_t) 0) {
 		length = lseek(fd, (off_t) 0, SEEK_END);
-		if (length != 0 && file_lines(filename, fd, n_lines, length))
+		if (length != 0 && file_lines(fd, n_lines, length))
 			return 1;
-		dump_remainder(filename, fd);
+		dump_remainder(fd);
 	} else
-		return pipe_lines(filename, fd, n_lines);
+		return pipe_lines(fd, n_lines);
 
 	return 0;
 }
@@ -616,7 +616,7 @@ file_lines(const char *filename, int fd, long int n_lines, off_t pos)
    Buffer the text as a linked list of LBUFFERs, adding them as needed.
    Return 0 if successful, 1 if an error occured.  */
 
-static int pipe_lines(const char *filename, int fd, long int n_lines)
+static int pipe_lines(int fd, long int n_lines)
 {
 	struct linebuffer {
 		int nbytes, nlines;
@@ -850,7 +850,7 @@ static int start_lines(const char *filename, int fd, long int n_lines)
    If `forever' is nonzero, keep reading from the end of the file
    until killed.  Return the number of bytes read from the file.  */
 
-static long dump_remainder(const char *filename, int fd)
+static long dump_remainder(int fd)
 {
 	char buffer[BUFSIZ];
 	int bytes_read;
@@ -925,7 +925,7 @@ static void tail_forever(char **names, int nfiles)
 					write_header(names[i], NULL);
 				last = i;
 			}
-			file_sizes[i] += dump_remainder(names[i], file_descs[i]);
+			file_sizes[i] += dump_remainder(file_descs[i]);
 		}
 
 		/* If none of the files changed size, sleep.  */
@@ -955,7 +955,7 @@ static int tail_bytes(const char *filename, int fd, off_t n_bytes)
 			lseek(fd, n_bytes, SEEK_CUR);
 		else if (start_bytes(filename, fd, n_bytes))
 			return 1;
-		dump_remainder(filename, fd);
+		dump_remainder(fd);
 	} else {
 		if (S_ISREG(stats.st_mode)) {
 			off_t current_pos, end_pos;
@@ -1021,9 +1021,9 @@ static int tail_lines(const char *filename, int fd, long int n_lines)
 			length = lseek(fd, (off_t) 0, SEEK_END);
 			if (length != 0 && file_lines(filename, fd, n_lines, length))
 				return 1;
-			dump_remainder(filename, fd);
+			dump_remainder(fd);
 		} else
-			return pipe_lines(filename, fd, n_lines);
+			return pipe_lines(fd, n_lines);
 	}
 	return 0;
 }

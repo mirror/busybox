@@ -820,12 +820,12 @@ extern int parse_mode(const char *s, mode_t * theMode)
  * This uses buf as storage to hold things.
  * 
  */
-unsigned long my_getid(const char *filename, char *name, unsigned long id, unsigned long *gid)
+unsigned long my_getid(const char *filename, char *name, long id, long *gid)
 {
 	FILE *file;
 	char *rname, *start, *end, buf[128];
-	unsigned long rid;
-	unsigned long rgid = 0;
+	long rid;
+	long rgid = 0;
 
 	file = fopen(filename, "r");
 	if (file == NULL) {
@@ -881,33 +881,33 @@ unsigned long my_getid(const char *filename, char *name, unsigned long id, unsig
 }
 
 /* returns a uid given a username */
-unsigned long my_getpwnam(char *name)
+long my_getpwnam(char *name)
 {
 	return my_getid("/etc/passwd", name, -1, NULL);
 }
 
 /* returns a gid given a group name */
-unsigned long my_getgrnam(char *name)
+long my_getgrnam(char *name)
 {
 	return my_getid("/etc/group", name, -1, NULL);
 }
 
 /* gets a username given a uid */
-void my_getpwuid(char *name, unsigned long uid)
+void my_getpwuid(char *name, long uid)
 {
 	my_getid("/etc/passwd", name, uid, NULL);
 }
 
 /* gets a groupname given a gid */
-void my_getgrgid(char *group, unsigned long gid)
+void my_getgrgid(char *group, long gid)
 {
 	my_getid("/etc/group", group, gid, NULL);
 }
 
 /* gets a gid given a user name */
-unsigned long my_getpwnamegid(char *name)
+long my_getpwnamegid(char *name)
 {
-	unsigned long gid;
+	long gid;
 	my_getid("/etc/passwd", name, -1, &gid);
 	return gid;
 }

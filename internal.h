@@ -275,11 +275,11 @@ extern char *xstrndup (const char *s, int n);
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
  * increases target size and is often not needed embedded systems.  */
-extern unsigned long my_getpwnam(char *name);
-extern unsigned long my_getgrnam(char *name);
-extern void my_getpwuid(char *name, unsigned long uid);
-extern void my_getgrgid(char *group, unsigned long gid);
-extern unsigned long my_getpwnamegid(char *name);
+extern long my_getpwnam(char *name);
+extern long my_getgrnam(char *name);
+extern void my_getpwuid(char *name, long uid);
+extern void my_getgrgid(char *group, long gid);
+extern long my_getpwnamegid(char *name);
 
 
 #if defined BB_INIT || defined BB_SYSLOGD

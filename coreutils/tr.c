@@ -140,10 +140,10 @@ static unsigned int expand(char *arg, register unsigned char *buffer)
 	return (buffer - buffer_start);
 }
 
-static int complement(unsigned char *buffer, unsigned int buffer_len)
+static int complement(unsigned char *buffer, int buffer_len)
 {
 	register short i, j, index;
-	unsigned char conv[ASCII + 2];
+	char conv[ASCII + 2];
 
 	index = 0;
 	for (i = 0; i <= ASCII; i++) {
@@ -160,9 +160,9 @@ static int complement(unsigned char *buffer, unsigned int buffer_len)
 extern int tr_main(int argc, char **argv)
 {
 	register unsigned char *ptr;
-	unsigned int output_length=0, input_length;
+	int output_length=0, input_length;
 	int index = 1;
-	short i;
+	int i;
 
 	if (argc > 1 && argv[index][0] == '-') {
 		for (ptr = (unsigned char *) &argv[index][1]; *ptr; ptr++) {

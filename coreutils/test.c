@@ -372,7 +372,7 @@ filstat(nm, mode)
 	enum token mode;
 {
 	struct stat s;
-	int i;
+	unsigned int i;
 
 	if (mode == FILSYM) {
 #ifdef S_IFLNK
@@ -535,7 +535,7 @@ char *path;
 int mode;
 {
 	struct stat st;
-	int euid = geteuid();
+	unsigned int euid = geteuid();
 
 	if (stat (path, &st) < 0)
 		return (-1);
