@@ -26,28 +26,42 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "busybox.h"
 
 int cmp_main(int argc, char **argv)
 {
 	FILE *fp1 = NULL, *fp2 = stdin;
-	char *filename1 = argv[1], *filename2 = "-";
-	int c1, c2, char_pos = 1, line_pos = 1;
+	char *filename1, *filename2 = "-";
+	int c, c1, c2, char_pos = 1, line_pos = 1, silent = FALSE;
 
-	/* parse argv[] */
-	if (argc < 2 || 3 < argc)
-		show_usage();
+	while ((c = getopt(argc, argv, "s")) != EOF) {
+		switch (c) {
+			case 's':
+				silent = TRUE;
+				break;
+			default:
+				show_usage();
+		}
+	}
 
-	fp1 = xfopen(argv[1], "r");
-	if (argv[2] != NULL) {
-		fp2 = xfopen(argv[2], "r");
-		filename2 = argv[2];
+	filename1 = argv[optind];
+	switch (argc - optind) {
+		case 2:
+			fp2 = xfopen(filename2 = argv[optind + 1], "r");
+		case 1:
+			fp1 = xfopen(filename1, "r");
+			break;
+		default:
+			show_usage();
 	}
 
 	do {
 		c1 = fgetc(fp1);
 		c2 = fgetc(fp2);
 		if (c1 != c2) {
+			if (silent)
+				return EXIT_FAILURE;
 			if (c1 == EOF)
 				printf("EOF on %s\n", filename1);
 			else if (c2 == EOF)

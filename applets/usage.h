@@ -115,6 +115,7 @@
 #define cmp_trivial_usage \
 	"FILE1 [FILE2]"
 #define cmp_full_usage \
+	"\t-s\tquiet mode - do not print\n" \
 	"Compare files."
 
 #define cp_trivial_usage \
