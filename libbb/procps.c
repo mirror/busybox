@@ -105,8 +105,8 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 
 		curstatus.rss <<= (PAGE_SHIFT - 10);     /* 2**10 = 1kb */
 
-		sprintf(status, "/proc/%d/cmdline", pid);
 		if(save_user_arg0) {
+			sprintf(status, "/proc/%d/cmdline", pid);
 			if((fp = fopen(status, "r")) == NULL)
 				continue;
 			if((n=fread(buf, 1, sizeof(buf)-1, fp)) > 0) {
