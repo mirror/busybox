@@ -18,9 +18,10 @@ around to it some time. If you have any good ideas, please let me know.
 
 Bugs that need fixing:
 
- - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
-    is not on.
- - fix 'cp' (or test suite script) so that it passes the test suite.
+ - 'ln -n' has been disabled for this release, till we can fix a memory
+    corruption bug.
+ - fix 'cp' (or test suite script) so that it passes the last item in
+    the test suite.
  - ps dirent race bug (need to stat the file before attempting chdir)
  - Make 'ln -s /tmp/file .' work the way GNU ln does (i.e. makes a link to 
     /tmp/file in the current directory, rather then trying and failing to create
