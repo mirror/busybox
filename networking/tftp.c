@@ -305,7 +305,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			}
 
 
-			if (finished) {
+			if (finished && (opcode == TFTP_ACK)) {
 				break;
 			}
 
@@ -346,11 +346,10 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			case 0:
 				bb_error_msg("timeout");
 
+				timeout--;
 				if (timeout == 0) {
 					len = -1;
 					bb_error_msg("last timeout");
-				} else {
-					timeout--;
 				}
 				break;
 
