@@ -55,7 +55,7 @@
 #define __LOG_FILE "/var/log/messages"
 
 /* Path to the unix socket */
-static char lfile[BUFSIZ] = "";
+static char lfile[BUFSIZ];
 
 static char *logFilePath = __LOG_FILE;
 
