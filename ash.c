@@ -58,7 +58,7 @@
 /* Getopts is used by shell procedures to parse positional parameters.
  * You probably want to leave this disabled, and use the busybox getopt
  * applet if you want to do this sort of thing.  There are some scripts
- * out there that use it, so if you need it, enable it.  Most people will
+ * out there that use it, so it you need it, enable.  Most people will
  * leave this disabled.  This adds 1k on an x86 system. */
 #undef ASH_GETOPTS
 
@@ -81,6 +81,7 @@
 #undef GLOB_BROKEN
 
 #include <assert.h>
+#include <stddef.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -142,13 +143,6 @@
 #define CSPCL 13                /* these terminate a word */
 #define CIGN 14                 /* character should be ignored */
 
-/* Syntax classes for is_ functions */
-#define ISDIGIT 01              /* a digit */
-#define ISUPPER 02              /* an upper case letter */
-#define ISLOWER 04              /* a lower case letter */
-#define ISUNDER 010             /* an underscore */
-#define ISSPECL 020             /* the name of a special parameter */
-
 #define SYNBASE 130
 #define PEOF -130
 
@@ -156,18 +150,18 @@
 
 #define TEOF 0
 #define TNL 1
-#define TSEMI 2
-#define TBACKGND 3
-#define TAND 4
-#define TOR 5
-#define TPIPE 6
-#define TLP 7
-#define TRP 8
-#define TENDCASE 9
-#define TENDBQUOTE 10
-#define TREDIR 11
-#define TWORD 12
-#define TASSIGN 13
+#define TREDIR 2
+#define TWORD 3
+#define TASSIGN 4
+#define TSEMI 5
+#define TBACKGND 6
+#define TAND 7
+#define TOR 8
+#define TPIPE 9
+#define TLP 10
+#define TRP 11
+#define TENDCASE 12
+#define TENDBQUOTE 13
 #define TNOT 14
 #define TCASE 15
 #define TDO 16
@@ -186,10 +180,6 @@
 #define TEND 29
 
 
-#define BASESYNTAX (basesyntax + SYNBASE)
-#define DQSYNTAX (dqsyntax + SYNBASE)
-#define SQSYNTAX (sqsyntax + SYNBASE)
-#define ARISYNTAX (arisyntax + SYNBASE)
 
 /* control characters in argument strings */
 #define CTLESC '\201'
@@ -202,11 +192,19 @@
 #define CTLENDARI '\207'
 #define CTLQUOTEMARK '\210'
 
+
 #define is_digit(c)     ((c)>='0' && (c)<='9')
-#define is_alpha(c)     (((c) < CTLESC || (c) > CTLENDARI) && isalpha((unsigned char) (c)))
 #define is_name(c)      (((c) < CTLESC || (c) > CTLENDARI) && ((c) == '_' || isalpha((unsigned char) (c))))
 #define is_in_name(c)   (((c) < CTLESC || (c) > CTLENDARI) && ((c) == '_' || isalnum((unsigned char) (c))))
-#define is_special(c)   ((is_type+SYNBASE)[c] & (ISSPECL|ISDIGIT))
+
+/*
+ * is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
+ * (assuming ascii char codes, as the original implementation did)
+ */
+#define is_special(c) \
+    ( (((unsigned int)c) - 33 < 32) \
+			 && ((0xc1ff920dUL >> (((unsigned int)c) - 33)) & 1))
+
 #define digit_val(c)    ((c) - '0')
 
 
@@ -688,6 +686,7 @@ static void out2fmt (const char *, ...)
 static int xwrite (int, const char *, int);
 
 #define outstr(p,file) fputs(p, file)
+static void outstr (const char *p, FILE *file) { fputs(p, file); }
 static void out1str(const char *p) { outstr(p, stdout); }
 static void out2str(const char *p) { outstr(p, stderr); }
 
@@ -697,439 +696,398 @@ static void out2str(const char *p) { outstr(p, stderr); }
 static void out2c(int c)           { putc(c, stderr); }
 #endif
 
-/* syntax table used when not in quotes */
-static const char basesyntax[257] = {
-      CENDFILE,   CSPCL,   CWORD,   CCTL,
-      CCTL,    CCTL,    CCTL,    CCTL,
-      CCTL,    CCTL,    CCTL,    CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CSPCL,
-      CNL,     CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CSPCL,   CWORD,
-      CDQUOTE, CWORD,   CVAR,    CWORD,
-      CSPCL,   CSQUOTE, CSPCL,   CSPCL,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CSPCL,   CSPCL,   CWORD,
-      CSPCL,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CBACK,   CWORD,
-      CWORD,   CWORD,   CBQUOTE, CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CSPCL,   CENDVAR,
-      CWORD
+
+#ifdef ASH_OPTIMIZE_FOR_SIZE
+#define USE_SIT_FUNCTION
+#endif
+
+/* number syntax index */
+#define  BASESYNTAX  0                  /* not in quotes */
+#define  DQSYNTAX    1                  /* in double quotes */
+#define  SQSYNTAX    2                  /* in single quotes */
+#define  ARISYNTAX   3                  /* in arithmetic */
+
+static const char S_I_T[][4] = {
+  /*  0 */  { CSPCL,    CIGN,      CIGN,      CIGN     },   /* PEOA */
+  /*  1 */  { CSPCL,    CWORD,     CWORD,     CWORD    },   /* ' ' */
+  /*  2 */  { CNL,      CNL,       CNL,       CNL      },   /* \n */
+  /*  3 */  { CWORD,    CCTL,      CCTL,      CWORD    },   /* !*-/:=?[]~ */
+  /*  4 */  { CDQUOTE,  CENDQUOTE, CWORD,     CDQUOTE  },   /* '"' */
+  /*  5 */  { CVAR,     CVAR,      CWORD,     CVAR     },   /* $ */
+  /*  6 */  { CSQUOTE,  CWORD,     CENDQUOTE, CSQUOTE  },   /* "'" */
+  /*  7 */  { CSPCL,    CWORD,     CWORD,     CLP      },   /* ( */
+  /*  8 */  { CSPCL,    CWORD,     CWORD,     CRP      },   /* ) */
+  /*  9 */  { CBACK,    CBACK,     CCTL,      CBACK    },   /* \ */
+  /* 10 */  { CBQUOTE,  CBQUOTE,   CWORD,     CBQUOTE  },   /* ` */
+  /* 11 */  { CENDVAR,  CENDVAR,   CWORD,     CENDVAR  },   /* } */
+#ifndef USE_SIT_FUNCTION
+  /* 12 */  { CENDFILE, CENDFILE,  CENDFILE,  CENDFILE },   /* PEOF */
+  /* 13 */  { CWORD,    CWORD,     CWORD,     CWORD    },   /* 0-9A-Za-z */
+  /* 14 */  { CCTL,     CCTL,      CCTL,      CCTL     }    /* CTLESC ... */
+#endif
 };
 
-/* syntax table used when in double quotes */
-static const char dqsyntax[257] = {
-      CENDFILE,   CIGN,    CWORD,   CCTL,
-      CCTL,    CCTL,    CCTL,    CCTL,
-      CCTL,    CCTL,    CCTL,    CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CNL,     CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CCTL,
-      CENDQUOTE,CWORD,  CVAR,    CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CCTL,    CWORD,   CWORD,   CCTL,
-      CWORD,   CCTL,    CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CCTL,    CWORD,   CWORD,   CCTL,
-      CWORD,   CCTL,    CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CCTL,    CBACK,   CCTL,
-      CWORD,   CWORD,   CBQUOTE, CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CENDVAR,
-      CCTL
+#ifdef USE_SIT_FUNCTION
+
+#define U_C(c) ((unsigned char)(c))
+
+static int SIT(int c, int syntax)
+{
+	static const char spec_symbls[]="\t\n !\"$&'()*-/:;<=>?[\\]`|}~";
+	static const char syntax_index_table [] = {
+				1, 2, 1, 3, 4, 5, 1, 6, /* "\t\n !\"$&'" */
+				7, 8, 3, 3, 3, 3, 1, 1, /* "()*-/:;<" */
+				3, 1, 3, 3, 9, 3,10, 1, /* "=>?[\\]`|" */
+				11,3 }; /* "}~" */
+	const char *s;
+	int indx;
+
+	if(c==PEOF)             /* 2^8+2 */
+		return CENDFILE;
+	if(c==PEOA)             /* 2^8+1 */
+		indx = 0;
+	 else if(U_C(c)>=U_C(CTLESC) && U_C(c)<=U_C(CTLQUOTEMARK))
+		return CCTL;
+	 else {
+		s = strchr(spec_symbls, c);
+		if(s==0)
+			return CWORD;
+		indx = syntax_index_table[(s-spec_symbls)];
+	}
+	return S_I_T[indx][syntax];
+}
+
+#else  /* USE_SIT_FUNCTION */
+
+#define SIT(c, syntax) S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax]
+
+#define CSPCL_CIGN_CIGN_CIGN                           0
+#define CSPCL_CWORD_CWORD_CWORD                        1
+#define CNL_CNL_CNL_CNL                                2
+#define CWORD_CCTL_CCTL_CWORD                          3
+#define CDQUOTE_CENDQUOTE_CWORD_CDQUOTE                4
+#define CVAR_CVAR_CWORD_CVAR                           5
+#define CSQUOTE_CWORD_CENDQUOTE_CSQUOTE                6
+#define CSPCL_CWORD_CWORD_CLP                          7
+#define CSPCL_CWORD_CWORD_CRP                          8
+#define CBACK_CBACK_CCTL_CBACK                         9
+#define CBQUOTE_CBQUOTE_CWORD_CBQUOTE                 10
+#define CENDVAR_CENDVAR_CWORD_CENDVAR                 11
+#define CENDFILE_CENDFILE_CENDFILE_CENDFILE           12
+#define CWORD_CWORD_CWORD_CWORD                       13
+#define CCTL_CCTL_CCTL_CCTL                           14
+
+static const char syntax_index_table[258] = {
+		 /* BASESYNTAX_DQSYNTAX_SQSYNTAX_ARISYNTAX */
+  /*   0  -130 PEOF */  CENDFILE_CENDFILE_CENDFILE_CENDFILE,
+  /*   1  -129 PEOA */  CSPCL_CIGN_CIGN_CIGN,
+  /*   2  -128 0xff */  CWORD_CWORD_CWORD_CWORD,
+  /*   3  -127      */  CCTL_CCTL_CCTL_CCTL,    /* CTLQUOTEMARK */
+  /*   4  -126      */  CCTL_CCTL_CCTL_CCTL,
+  /*   5  -125      */  CCTL_CCTL_CCTL_CCTL,
+  /*   6  -124      */  CCTL_CCTL_CCTL_CCTL,
+  /*   7  -123      */  CCTL_CCTL_CCTL_CCTL,
+  /*   8  -122      */  CCTL_CCTL_CCTL_CCTL,
+  /*   9  -121      */  CCTL_CCTL_CCTL_CCTL,
+  /*  10  -120      */  CCTL_CCTL_CCTL_CCTL,    /* CTLESC */
+  /*  11  -119      */  CWORD_CWORD_CWORD_CWORD,
+  /*  12  -118      */  CWORD_CWORD_CWORD_CWORD,
+  /*  13  -117      */  CWORD_CWORD_CWORD_CWORD,
+  /*  14  -116      */  CWORD_CWORD_CWORD_CWORD,
+  /*  15  -115      */  CWORD_CWORD_CWORD_CWORD,
+  /*  16  -114      */  CWORD_CWORD_CWORD_CWORD,
+  /*  17  -113      */  CWORD_CWORD_CWORD_CWORD,
+  /*  18  -112      */  CWORD_CWORD_CWORD_CWORD,
+  /*  19  -111      */  CWORD_CWORD_CWORD_CWORD,
+  /*  20  -110      */  CWORD_CWORD_CWORD_CWORD,
+  /*  21  -109      */  CWORD_CWORD_CWORD_CWORD,
+  /*  22  -108      */  CWORD_CWORD_CWORD_CWORD,
+  /*  23  -107      */  CWORD_CWORD_CWORD_CWORD,
+  /*  24  -106      */  CWORD_CWORD_CWORD_CWORD,
+  /*  25  -105      */  CWORD_CWORD_CWORD_CWORD,
+  /*  26  -104      */  CWORD_CWORD_CWORD_CWORD,
+  /*  27  -103      */  CWORD_CWORD_CWORD_CWORD,
+  /*  28  -102      */  CWORD_CWORD_CWORD_CWORD,
+  /*  29  -101      */  CWORD_CWORD_CWORD_CWORD,
+  /*  30  -100      */  CWORD_CWORD_CWORD_CWORD,
+  /*  31   -99      */  CWORD_CWORD_CWORD_CWORD,
+  /*  32   -98      */  CWORD_CWORD_CWORD_CWORD,
+  /*  33   -97      */  CWORD_CWORD_CWORD_CWORD,
+  /*  34   -96      */  CWORD_CWORD_CWORD_CWORD,
+  /*  35   -95      */  CWORD_CWORD_CWORD_CWORD,
+  /*  36   -94      */  CWORD_CWORD_CWORD_CWORD,
+  /*  37   -93      */  CWORD_CWORD_CWORD_CWORD,
+  /*  38   -92      */  CWORD_CWORD_CWORD_CWORD,
+  /*  39   -91      */  CWORD_CWORD_CWORD_CWORD,
+  /*  40   -90      */  CWORD_CWORD_CWORD_CWORD,
+  /*  41   -89      */  CWORD_CWORD_CWORD_CWORD,
+  /*  42   -88      */  CWORD_CWORD_CWORD_CWORD,
+  /*  43   -87      */  CWORD_CWORD_CWORD_CWORD,
+  /*  44   -86      */  CWORD_CWORD_CWORD_CWORD,
+  /*  45   -85      */  CWORD_CWORD_CWORD_CWORD,
+  /*  46   -84      */  CWORD_CWORD_CWORD_CWORD,
+  /*  47   -83      */  CWORD_CWORD_CWORD_CWORD,
+  /*  48   -82      */  CWORD_CWORD_CWORD_CWORD,
+  /*  49   -81      */  CWORD_CWORD_CWORD_CWORD,
+  /*  50   -80      */  CWORD_CWORD_CWORD_CWORD,
+  /*  51   -79      */  CWORD_CWORD_CWORD_CWORD,
+  /*  52   -78      */  CWORD_CWORD_CWORD_CWORD,
+  /*  53   -77      */  CWORD_CWORD_CWORD_CWORD,
+  /*  54   -76      */  CWORD_CWORD_CWORD_CWORD,
+  /*  55   -75      */  CWORD_CWORD_CWORD_CWORD,
+  /*  56   -74      */  CWORD_CWORD_CWORD_CWORD,
+  /*  57   -73      */  CWORD_CWORD_CWORD_CWORD,
+  /*  58   -72      */  CWORD_CWORD_CWORD_CWORD,
+  /*  59   -71      */  CWORD_CWORD_CWORD_CWORD,
+  /*  60   -70      */  CWORD_CWORD_CWORD_CWORD,
+  /*  61   -69      */  CWORD_CWORD_CWORD_CWORD,
+  /*  62   -68      */  CWORD_CWORD_CWORD_CWORD,
+  /*  63   -67      */  CWORD_CWORD_CWORD_CWORD,
+  /*  64   -66      */  CWORD_CWORD_CWORD_CWORD,
+  /*  65   -65      */  CWORD_CWORD_CWORD_CWORD,
+  /*  66   -64      */  CWORD_CWORD_CWORD_CWORD,
+  /*  67   -63      */  CWORD_CWORD_CWORD_CWORD,
+  /*  68   -62      */  CWORD_CWORD_CWORD_CWORD,
+  /*  69   -61      */  CWORD_CWORD_CWORD_CWORD,
+  /*  70   -60      */  CWORD_CWORD_CWORD_CWORD,
+  /*  71   -59      */  CWORD_CWORD_CWORD_CWORD,
+  /*  72   -58      */  CWORD_CWORD_CWORD_CWORD,
+  /*  73   -57      */  CWORD_CWORD_CWORD_CWORD,
+  /*  74   -56      */  CWORD_CWORD_CWORD_CWORD,
+  /*  75   -55      */  CWORD_CWORD_CWORD_CWORD,
+  /*  76   -54      */  CWORD_CWORD_CWORD_CWORD,
+  /*  77   -53      */  CWORD_CWORD_CWORD_CWORD,
+  /*  78   -52      */  CWORD_CWORD_CWORD_CWORD,
+  /*  79   -51      */  CWORD_CWORD_CWORD_CWORD,
+  /*  80   -50      */  CWORD_CWORD_CWORD_CWORD,
+  /*  81   -49      */  CWORD_CWORD_CWORD_CWORD,
+  /*  82   -48      */  CWORD_CWORD_CWORD_CWORD,
+  /*  83   -47      */  CWORD_CWORD_CWORD_CWORD,
+  /*  84   -46      */  CWORD_CWORD_CWORD_CWORD,
+  /*  85   -45      */  CWORD_CWORD_CWORD_CWORD,
+  /*  86   -44      */  CWORD_CWORD_CWORD_CWORD,
+  /*  87   -43      */  CWORD_CWORD_CWORD_CWORD,
+  /*  88   -42      */  CWORD_CWORD_CWORD_CWORD,
+  /*  89   -41      */  CWORD_CWORD_CWORD_CWORD,
+  /*  90   -40      */  CWORD_CWORD_CWORD_CWORD,
+  /*  91   -39      */  CWORD_CWORD_CWORD_CWORD,
+  /*  92   -38      */  CWORD_CWORD_CWORD_CWORD,
+  /*  93   -37      */  CWORD_CWORD_CWORD_CWORD,
+  /*  94   -36      */  CWORD_CWORD_CWORD_CWORD,
+  /*  95   -35      */  CWORD_CWORD_CWORD_CWORD,
+  /*  96   -34      */  CWORD_CWORD_CWORD_CWORD,
+  /*  97   -33      */  CWORD_CWORD_CWORD_CWORD,
+  /*  98   -32      */  CWORD_CWORD_CWORD_CWORD,
+  /*  99   -31      */  CWORD_CWORD_CWORD_CWORD,
+  /* 100   -30      */  CWORD_CWORD_CWORD_CWORD,
+  /* 101   -29      */  CWORD_CWORD_CWORD_CWORD,
+  /* 102   -28      */  CWORD_CWORD_CWORD_CWORD,
+  /* 103   -27      */  CWORD_CWORD_CWORD_CWORD,
+  /* 104   -26      */  CWORD_CWORD_CWORD_CWORD,
+  /* 105   -25      */  CWORD_CWORD_CWORD_CWORD,
+  /* 106   -24      */  CWORD_CWORD_CWORD_CWORD,
+  /* 107   -23      */  CWORD_CWORD_CWORD_CWORD,
+  /* 108   -22      */  CWORD_CWORD_CWORD_CWORD,
+  /* 109   -21      */  CWORD_CWORD_CWORD_CWORD,
+  /* 110   -20      */  CWORD_CWORD_CWORD_CWORD,
+  /* 111   -19      */  CWORD_CWORD_CWORD_CWORD,
+  /* 112   -18      */  CWORD_CWORD_CWORD_CWORD,
+  /* 113   -17      */  CWORD_CWORD_CWORD_CWORD,
+  /* 114   -16      */  CWORD_CWORD_CWORD_CWORD,
+  /* 115   -15      */  CWORD_CWORD_CWORD_CWORD,
+  /* 116   -14      */  CWORD_CWORD_CWORD_CWORD,
+  /* 117   -13      */  CWORD_CWORD_CWORD_CWORD,
+  /* 118   -12      */  CWORD_CWORD_CWORD_CWORD,
+  /* 119   -11      */  CWORD_CWORD_CWORD_CWORD,
+  /* 120   -10      */  CWORD_CWORD_CWORD_CWORD,
+  /* 121    -9      */  CWORD_CWORD_CWORD_CWORD,
+  /* 122    -8      */  CWORD_CWORD_CWORD_CWORD,
+  /* 123    -7      */  CWORD_CWORD_CWORD_CWORD,
+  /* 124    -6      */  CWORD_CWORD_CWORD_CWORD,
+  /* 125    -5      */  CWORD_CWORD_CWORD_CWORD,
+  /* 126    -4      */  CWORD_CWORD_CWORD_CWORD,
+  /* 127    -3      */  CWORD_CWORD_CWORD_CWORD,
+  /* 128    -2      */  CWORD_CWORD_CWORD_CWORD,
+  /* 129    -1      */  CWORD_CWORD_CWORD_CWORD,
+  /* 130     0      */  CWORD_CWORD_CWORD_CWORD,
+  /* 131     1      */  CWORD_CWORD_CWORD_CWORD,
+  /* 132     2      */  CWORD_CWORD_CWORD_CWORD,
+  /* 133     3      */  CWORD_CWORD_CWORD_CWORD,
+  /* 134     4      */  CWORD_CWORD_CWORD_CWORD,
+  /* 135     5      */  CWORD_CWORD_CWORD_CWORD,
+  /* 136     6      */  CWORD_CWORD_CWORD_CWORD,
+  /* 137     7      */  CWORD_CWORD_CWORD_CWORD,
+  /* 138     8      */  CWORD_CWORD_CWORD_CWORD,
+  /* 139     9 "\t" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 140    10 "\n" */  CNL_CNL_CNL_CNL,
+  /* 141    11      */  CWORD_CWORD_CWORD_CWORD,
+  /* 142    12      */  CWORD_CWORD_CWORD_CWORD,
+  /* 143    13      */  CWORD_CWORD_CWORD_CWORD,
+  /* 144    14      */  CWORD_CWORD_CWORD_CWORD,
+  /* 145    15      */  CWORD_CWORD_CWORD_CWORD,
+  /* 146    16      */  CWORD_CWORD_CWORD_CWORD,
+  /* 147    17      */  CWORD_CWORD_CWORD_CWORD,
+  /* 148    18      */  CWORD_CWORD_CWORD_CWORD,
+  /* 149    19      */  CWORD_CWORD_CWORD_CWORD,
+  /* 150    20      */  CWORD_CWORD_CWORD_CWORD,
+  /* 151    21      */  CWORD_CWORD_CWORD_CWORD,
+  /* 152    22      */  CWORD_CWORD_CWORD_CWORD,
+  /* 153    23      */  CWORD_CWORD_CWORD_CWORD,
+  /* 154    24      */  CWORD_CWORD_CWORD_CWORD,
+  /* 155    25      */  CWORD_CWORD_CWORD_CWORD,
+  /* 156    26      */  CWORD_CWORD_CWORD_CWORD,
+  /* 157    27      */  CWORD_CWORD_CWORD_CWORD,
+  /* 158    28      */  CWORD_CWORD_CWORD_CWORD,
+  /* 159    29      */  CWORD_CWORD_CWORD_CWORD,
+  /* 160    30      */  CWORD_CWORD_CWORD_CWORD,
+  /* 161    31      */  CWORD_CWORD_CWORD_CWORD,
+  /* 162    32  " " */  CSPCL_CWORD_CWORD_CWORD,
+  /* 163    33  "!" */  CWORD_CCTL_CCTL_CWORD,
+  /* 164    34  """ */  CDQUOTE_CENDQUOTE_CWORD_CDQUOTE,
+  /* 165    35  "#" */  CWORD_CWORD_CWORD_CWORD,
+  /* 166    36  "$" */  CVAR_CVAR_CWORD_CVAR,
+  /* 167    37  "%" */  CWORD_CWORD_CWORD_CWORD,
+  /* 168    38  "&" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 169    39  "'" */  CSQUOTE_CWORD_CENDQUOTE_CSQUOTE,
+  /* 170    40  "(" */  CSPCL_CWORD_CWORD_CLP,
+  /* 171    41  ")" */  CSPCL_CWORD_CWORD_CRP,
+  /* 172    42  "*" */  CWORD_CCTL_CCTL_CWORD,
+  /* 173    43  "+" */  CWORD_CWORD_CWORD_CWORD,
+  /* 174    44  "," */  CWORD_CWORD_CWORD_CWORD,
+  /* 175    45  "-" */  CWORD_CCTL_CCTL_CWORD,
+  /* 176    46  "." */  CWORD_CWORD_CWORD_CWORD,
+  /* 177    47  "/" */  CWORD_CCTL_CCTL_CWORD,
+  /* 178    48  "0" */  CWORD_CWORD_CWORD_CWORD,
+  /* 179    49  "1" */  CWORD_CWORD_CWORD_CWORD,
+  /* 180    50  "2" */  CWORD_CWORD_CWORD_CWORD,
+  /* 181    51  "3" */  CWORD_CWORD_CWORD_CWORD,
+  /* 182    52  "4" */  CWORD_CWORD_CWORD_CWORD,
+  /* 183    53  "5" */  CWORD_CWORD_CWORD_CWORD,
+  /* 184    54  "6" */  CWORD_CWORD_CWORD_CWORD,
+  /* 185    55  "7" */  CWORD_CWORD_CWORD_CWORD,
+  /* 186    56  "8" */  CWORD_CWORD_CWORD_CWORD,
+  /* 187    57  "9" */  CWORD_CWORD_CWORD_CWORD,
+  /* 188    58  ":" */  CWORD_CCTL_CCTL_CWORD,
+  /* 189    59  ";" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 190    60  "<" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 191    61  "=" */  CWORD_CCTL_CCTL_CWORD,
+  /* 192    62  ">" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 193    63  "?" */  CWORD_CCTL_CCTL_CWORD,
+  /* 194    64  "@" */  CWORD_CWORD_CWORD_CWORD,
+  /* 195    65  "A" */  CWORD_CWORD_CWORD_CWORD,
+  /* 196    66  "B" */  CWORD_CWORD_CWORD_CWORD,
+  /* 197    67  "C" */  CWORD_CWORD_CWORD_CWORD,
+  /* 198    68  "D" */  CWORD_CWORD_CWORD_CWORD,
+  /* 199    69  "E" */  CWORD_CWORD_CWORD_CWORD,
+  /* 200    70  "F" */  CWORD_CWORD_CWORD_CWORD,
+  /* 201    71  "G" */  CWORD_CWORD_CWORD_CWORD,
+  /* 202    72  "H" */  CWORD_CWORD_CWORD_CWORD,
+  /* 203    73  "I" */  CWORD_CWORD_CWORD_CWORD,
+  /* 204    74  "J" */  CWORD_CWORD_CWORD_CWORD,
+  /* 205    75  "K" */  CWORD_CWORD_CWORD_CWORD,
+  /* 206    76  "L" */  CWORD_CWORD_CWORD_CWORD,
+  /* 207    77  "M" */  CWORD_CWORD_CWORD_CWORD,
+  /* 208    78  "N" */  CWORD_CWORD_CWORD_CWORD,
+  /* 209    79  "O" */  CWORD_CWORD_CWORD_CWORD,
+  /* 210    80  "P" */  CWORD_CWORD_CWORD_CWORD,
+  /* 211    81  "Q" */  CWORD_CWORD_CWORD_CWORD,
+  /* 212    82  "R" */  CWORD_CWORD_CWORD_CWORD,
+  /* 213    83  "S" */  CWORD_CWORD_CWORD_CWORD,
+  /* 214    84  "T" */  CWORD_CWORD_CWORD_CWORD,
+  /* 215    85  "U" */  CWORD_CWORD_CWORD_CWORD,
+  /* 216    86  "V" */  CWORD_CWORD_CWORD_CWORD,
+  /* 217    87  "W" */  CWORD_CWORD_CWORD_CWORD,
+  /* 218    88  "X" */  CWORD_CWORD_CWORD_CWORD,
+  /* 219    89  "Y" */  CWORD_CWORD_CWORD_CWORD,
+  /* 220    90  "Z" */  CWORD_CWORD_CWORD_CWORD,
+  /* 221    91  "[" */  CWORD_CCTL_CCTL_CWORD,
+  /* 222    92  "\" */  CBACK_CBACK_CCTL_CBACK,
+  /* 223    93  "]" */  CWORD_CCTL_CCTL_CWORD,
+  /* 224    94  "^" */  CWORD_CWORD_CWORD_CWORD,
+  /* 225    95  "_" */  CWORD_CWORD_CWORD_CWORD,
+  /* 226    96  "`" */  CBQUOTE_CBQUOTE_CWORD_CBQUOTE,
+  /* 227    97  "a" */  CWORD_CWORD_CWORD_CWORD,
+  /* 228    98  "b" */  CWORD_CWORD_CWORD_CWORD,
+  /* 229    99  "c" */  CWORD_CWORD_CWORD_CWORD,
+  /* 230   100  "d" */  CWORD_CWORD_CWORD_CWORD,
+  /* 231   101  "e" */  CWORD_CWORD_CWORD_CWORD,
+  /* 232   102  "f" */  CWORD_CWORD_CWORD_CWORD,
+  /* 233   103  "g" */  CWORD_CWORD_CWORD_CWORD,
+  /* 234   104  "h" */  CWORD_CWORD_CWORD_CWORD,
+  /* 235   105  "i" */  CWORD_CWORD_CWORD_CWORD,
+  /* 236   106  "j" */  CWORD_CWORD_CWORD_CWORD,
+  /* 237   107  "k" */  CWORD_CWORD_CWORD_CWORD,
+  /* 238   108  "l" */  CWORD_CWORD_CWORD_CWORD,
+  /* 239   109  "m" */  CWORD_CWORD_CWORD_CWORD,
+  /* 240   110  "n" */  CWORD_CWORD_CWORD_CWORD,
+  /* 241   111  "o" */  CWORD_CWORD_CWORD_CWORD,
+  /* 242   112  "p" */  CWORD_CWORD_CWORD_CWORD,
+  /* 243   113  "q" */  CWORD_CWORD_CWORD_CWORD,
+  /* 244   114  "r" */  CWORD_CWORD_CWORD_CWORD,
+  /* 245   115  "s" */  CWORD_CWORD_CWORD_CWORD,
+  /* 246   116  "t" */  CWORD_CWORD_CWORD_CWORD,
+  /* 247   117  "u" */  CWORD_CWORD_CWORD_CWORD,
+  /* 248   118  "v" */  CWORD_CWORD_CWORD_CWORD,
+  /* 249   119  "w" */  CWORD_CWORD_CWORD_CWORD,
+  /* 250   120  "x" */  CWORD_CWORD_CWORD_CWORD,
+  /* 251   121  "y" */  CWORD_CWORD_CWORD_CWORD,
+  /* 252   122  "z" */  CWORD_CWORD_CWORD_CWORD,
+  /* 253   123  "{" */  CWORD_CWORD_CWORD_CWORD,
+  /* 254   124  "|" */  CSPCL_CWORD_CWORD_CWORD,
+  /* 255   125  "}" */  CENDVAR_CENDVAR_CWORD_CENDVAR,
+  /* 256   126  "~" */  CWORD_CCTL_CCTL_CWORD,
+  /* 257   127      */  CWORD_CWORD_CWORD_CWORD,
 };
 
-/* syntax table used when in single quotes */
-static const char sqsyntax[257] = {
-      CENDFILE,   CIGN,    CWORD,   CCTL,
-      CCTL,    CCTL,    CCTL,    CCTL,
-      CCTL,    CCTL,    CCTL,    CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CNL,     CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CCTL,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CENDQUOTE,CWORD,  CWORD,
-      CCTL,    CWORD,   CWORD,   CCTL,
-      CWORD,   CCTL,    CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CCTL,    CWORD,   CWORD,   CCTL,
-      CWORD,   CCTL,    CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CCTL,    CCTL,    CCTL,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CCTL
-};
+#endif  /* USE_SIT_FUNCTION */
 
-/* syntax table used when in arithmetic */
-static const char arisyntax[257] = {
-      CENDFILE,   CIGN,    CWORD,   CCTL,
-      CCTL,    CCTL,    CCTL,    CCTL,
-      CCTL,    CCTL,    CCTL,    CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CNL,     CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CDQUOTE, CWORD,   CVAR,    CWORD,
-      CWORD,   CSQUOTE, CLP,     CRP,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CBACK,   CWORD,
-      CWORD,   CWORD,   CBQUOTE, CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CWORD,
-      CWORD,   CWORD,   CWORD,   CENDVAR,
-      CWORD
-};
 
-/* character classification table */
-static const char is_type[257] = {
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       0,
-      0,       0,       0,       ISSPECL,
-      0,       ISSPECL, ISSPECL, 0,
-      0,       0,       0,       0,
-      ISSPECL, 0,       0,       ISSPECL,
-      0,       0,       ISDIGIT, ISDIGIT,
-      ISDIGIT, ISDIGIT, ISDIGIT, ISDIGIT,
-      ISDIGIT, ISDIGIT, ISDIGIT, ISDIGIT,
-      0,       0,       0,       0,
-      0,       ISSPECL, ISSPECL, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, ISUPPER, ISUPPER, ISUPPER,
-      ISUPPER, 0,       0,       0,
-      0,       ISUNDER, 0,       ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, ISLOWER, ISLOWER, ISLOWER,
-      ISLOWER, 0,       0,       0,
-      0
-};
-
-/* Array indicating which tokens mark the end of a list */
-static const char tokendlist[] = {
-	1,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	1,
-	1,
-	1,
-	0,
-	0,
-	0,
-	0,
-	0,
-	1,
-	1,
-	1,
-	1,
-	1,
-	1,
-	0,
-	0,
-	0,
-	1,
-	0,
-	0,
-	0,
-	1,
-};
-
-static const char *const tokname[] = {
-	"end of file",
-	"newline",
-	"\";\"",
-	"\"&\"",
-	"\"&&\"",
-	"\"||\"",
-	"\"|\"",
-	"\"(\"",
-	"\")\"",
-	"\";;\"",
-	"\"`\"",
-	"redirection",
-	"word",
-	"assignment",
-	"\"!\"",
-	"\"case\"",
-	"\"do\"",
-	"\"done\"",
-	"\"elif\"",
-	"\"else\"",
-	"\"esac\"",
-	"\"fi\"",
-	"\"for\"",
-	"\"if\"",
-	"\"in\"",
-	"\"then\"",
-	"\"until\"",
-	"\"while\"",
-	"\"{\"",
-	"\"}\"",
-};
-
+/* first char is indicating which tokens mark the end of a list */
+static const char *const tokname_array[] = {
+	"\1end of file",
+	"\0newline",
+	"\0redirection",
+	"\0word",
+	"\0assignment",
+	"\0;",
+	"\0&",
+	"\0&&",
+	"\0||",
+	"\0|",
+	"\0(",
+	"\1)",
+	"\1;;",
+	"\1`",
 #define KWDOFFSET 14
-
-static const char *const parsekwd[] = {
-	"!",
-	"case",
-	"do",
-	"done",
-	"elif",
-	"else",
-	"esac",
-	"fi",
-	"for",
-	"if",
-	"in",
-	"then",
-	"until",
-	"while",
-	"{",
-	"}"
+	/* the following are keywords */
+	"\0!",
+	"\0case",
+	"\1do",
+	"\1done",
+	"\1elif",
+	"\1else",
+	"\1esac",
+	"\1fi",
+	"\0for",
+	"\0if",
+	"\0in",
+	"\1then",
+	"\0until",
+	"\0while",
+	"\0{",
+	"\1}",
 };
 
+static const char *tokname(int tok)
+{
+	static char buf[16];
+
+	if(tok>=TSEMI)
+		buf[0] = '"';
+	sprintf(buf+(tok>=TSEMI), "%s%c",
+			tokname_array[tok]+1, (tok>=TSEMI ? '"' : 0));
+	return buf;
+}
 
 static int plinno = 1;          /* input line number */
 
@@ -1562,8 +1520,8 @@ __lookupalias(const char *name) {
 
 #ifdef ASH_MATH_SUPPORT
 /* The generated file arith.c has been replaced with a custom hand
- * written implementation written by Aaron Lehmann <aaronl@vitelus.com>.  
- * This is now part of libbb, so that it can be used by all the shells 
+ * written implementation written by Aaron Lehmann <aaronl@vitelus.com>.
+ * This is now part of libbb, so that it can be used by all the shells
  * in busybox. */
 #define ARITH_NUM 257
 #define ARITH_LPAREN 258
@@ -1744,7 +1702,7 @@ static const struct builtincmd builtincmds[] = {
 };
 #define NUMBUILTINS  (sizeof (builtincmds) / sizeof (struct builtincmd) )
 
-static const struct builtincmd *DOTCMD = &builtincmds[0];
+#define DOTCMD &builtincmds[0]
 static struct builtincmd *BLTINCMD;
 static struct builtincmd *EXECCMD;
 static struct builtincmd *EVALCMD;
@@ -2165,7 +2123,7 @@ exverror(int cond, const char *msg, va_list ap)
 }
 
 
-static void 
+static void
 error(const char *msg, ...)
 {
 	va_list ap;
@@ -3690,7 +3648,7 @@ padvance(const char **path, const char *name)
 static int
 pstrcmp(const void *a, const void *b)
 {
-	return strcmp((const char *) a, *(const char *const *) b);
+	return strcmp((const char *) a, (*(const char *const *) b) + 1);
 }
 
 /*
@@ -3700,8 +3658,9 @@ pstrcmp(const void *a, const void *b)
 static const char *const *
 findkwd(const char *s)
 {
-	return  bsearch(s, parsekwd, sizeof(parsekwd) / sizeof(const char *),
-			sizeof(const char *), pstrcmp);
+	return  bsearch(s, tokname_array + KWDOFFSET,
+					(sizeof(tokname_array)/sizeof(const char *)) - KWDOFFSET,
+					sizeof(const char *), pstrcmp);
 }
 
 
@@ -4228,7 +4187,7 @@ delete_cmd_entry() {
 
 
 
-static const short nodesize[26] = {
+static const unsigned char nodesize[26] = {
       ALIGN(sizeof (struct nbinary)),
       ALIGN(sizeof (struct ncmd)),
       ALIGN(sizeof (struct npipe)),
@@ -4412,7 +4371,7 @@ static char *exptilde (char *, int);
 static void expbackq (union node *, int, int);
 static int subevalvar (char *, char *, int, int, int, int, int);
 static int varisset (char *, int);
-static void strtodest (const char *, const char *, int);
+static void strtodest (const char *, int, int);
 static void varvalue (char *, int, int);
 static void recordregion (int, int, int);
 static void removerecordregions (int);
@@ -4916,7 +4875,7 @@ expbackq(cmd, quoted, flag)
 	struct nodelist *volatile saveargbackq;
 	char lastc;
 	int startloc = dest - stackblock();
-	char const *syntax = quoted? DQSYNTAX : BASESYNTAX;
+	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
 	volatile int saveherefd;
 	int quotes = flag & (EXP_FULL | EXP_CASE);
 	struct jmploc jmploc;
@@ -4973,7 +4932,7 @@ err1:
 		}
 		lastc = *p++;
 		if (lastc != '\0') {
-			if (quotes && syntax[(int)lastc] == CCTL)
+			if (quotes && SIT(lastc, syntax) == CCTL)
 				STPUTC(CTLESC, dest);
 			STPUTC(lastc, dest);
 		}
@@ -5174,13 +5133,10 @@ varisset(name, nulok)
  */
 
 static void
-strtodest(p, syntax, quotes)
-	const char *p;
-	const char *syntax;
-	int quotes;
+strtodest(const char *p, int syntax, int quotes)
 {
 	while (*p) {
-		if (quotes && syntax[(int) *p] == CCTL)
+		if (quotes && SIT(*p,syntax) == CCTL)
 			STPUTC(CTLESC, expdest);
 		STPUTC(*p++, expdest);
 	}
@@ -5191,10 +5147,7 @@ strtodest(p, syntax, quotes)
  */
 
 static void
-varvalue(name, quoted, flags)
-	char *name;
-	int quoted;
-	int flags;
+varvalue(char *name, int quoted, int flags)
 {
 	int num;
 	char *p;
@@ -5202,7 +5155,7 @@ varvalue(name, quoted, flags)
 	int sep;
 	int sepq = 0;
 	char **ap;
-	char const *syntax;
+	int syntax;
 	int allow_split = flags & EXP_FULL;
 	int quotes = flags & (EXP_FULL | EXP_CASE);
 
@@ -5237,7 +5190,7 @@ numvar:
 	case '*':
 		sep = ifsset() ? ifsval()[0] : ' ';
 		if (quotes) {
-			sepq = syntax[(int) sep] == CCTL;
+			sepq = SIT(sep,syntax) == CCTL;
 		}
 param:
 		for (ap = shellparam.p ; (p = *ap++) != NULL ; ) {
@@ -5572,7 +5525,7 @@ expmeta(enddir, name)
 					break;
 				}
 			}
-		} else if (*p == '!' && p[1] == '!'     && (p == name || p[-1] == '/')) {
+		} else if (*p == '!' && p[1] == '!' && (p == name || p[-1] == '/')) {
 			metaflag = 1;
 		} else if (*p == '\0')
 			break;
@@ -7341,7 +7294,216 @@ cmdputs(const char *s)
 	cmdnextc = q;
 }
 
+//#define CMDTXT_TABLE
+#ifdef CMDTXT_TABLE
+/*
+ * To collect a lot of redundant code in cmdtxt() case statements, we
+ * implement a mini language here.  Each type of node struct has an
+ * associated instruction sequence that operates on its members via
+ * their offsets.  The instruction are pack in unsigned chars with
+ * format   IIDDDDDE   where the bits are
+ *   I : part of the instruction opcode, which are
+ *       00 : member is a pointer to another node -- process it recursively
+ *       40 : member is a pointer to a char string -- output it
+ *       80 : output the string whose index is stored in the data field
+ *       CC : flag signaling that this case needs external processing
+ *   D : data - either the (shifted) index of a fixed string to output or
+ *              the actual offset of the member to operate on in the struct
+ *              (since we assume bit 0 is set, the offset is not shifted)
+ *   E : flag signaling end of instruction sequence
+ *
+ * WARNING: In order to handle larger offsets for 64bit archs, this code
+ *          assumes that no offset can be an odd number and stores the
+ *          end-of-instructions flag in bit 0.
+ */
 
+#define CMDTXT_NOMORE      0x01 /* NOTE: no offset should be odd */
+#define CMDTXT_CHARPTR     0x40
+#define CMDTXT_STRING      0x80
+#define CMDTXT_SPECIAL     0xC0
+#define CMDTXT_OFFSETMASK  0x3E
+
+static const char * const cmdtxt_strings[] = {
+ /* 0     1    2    3       4       5      6          7     */
+	"; ", "(", ")", " && ", " || ", "if ", "; then ", "...",
+ /* 8         9        10       11        12      13       */
+    "while ", "; do ", "; done", "until ", "for ", " in ...",
+ /* 14       15     16        17     */
+	"case ", "???", "() ...", "<<..."
+};
+
+static const char * const redir_strings[] = {
+	">", "<", "<>", ">>", ">|", ">&", "<&"
+};
+
+static const unsigned char cmdtxt_ops[] = {
+#define CMDTXT_NSEMI    0
+	offsetof(union node, nbinary.ch1),
+	0|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch2)|CMDTXT_NOMORE,
+#define CMDTXT_NCMD     (CMDTXT_NSEMI + 3)
+#define CMDTXT_NPIPE    (CMDTXT_NCMD)
+#define  CMDTXT_NCASE    (CMDTXT_NCMD)
+#define  CMDTXT_NTO      (CMDTXT_NCMD)
+#define  CMDTXT_NFROM    (CMDTXT_NCMD)
+#define  CMDTXT_NFROMTO  (CMDTXT_NCMD)
+#define  CMDTXT_NAPPEND  (CMDTXT_NCMD)
+#define  CMDTXT_NTOOV    (CMDTXT_NCMD)
+#define  CMDTXT_NTOFD    (CMDTXT_NCMD)
+#define  CMDTXT_NFROMFD  (CMDTXT_NCMD)
+	CMDTXT_SPECIAL,
+#define CMDTXT_NREDIR   (CMDTXT_NPIPE + 1)
+#define CMDTXT_NBACKGND (CMDTXT_NREDIR)
+	offsetof(union node, nredir.n)|CMDTXT_NOMORE,
+#define CMDTXT_NSUBSHELL (CMDTXT_NBACKGND + 1)
+	(1*2)|CMDTXT_STRING,
+	offsetof(union node, nredir.n),
+	(2*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NAND     (CMDTXT_NSUBSHELL + 3)
+	offsetof(union node, nbinary.ch1),
+	(3*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch2)|CMDTXT_NOMORE,
+#define CMDTXT_NOR      (CMDTXT_NAND + 3)
+	offsetof(union node, nbinary.ch1),
+	(4*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch2)|CMDTXT_NOMORE,
+#define CMDTXT_NIF      (CMDTXT_NOR + 3)
+	(5*2)|CMDTXT_STRING,
+	offsetof(union node, nif.test),
+	(6*2)|CMDTXT_STRING,
+	offsetof(union node, nif.ifpart),
+	(7*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NWHILE   (CMDTXT_NIF + 5)
+	(8*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch1),
+	(9*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch2),
+	(10*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NUNTIL   (CMDTXT_NWHILE + 5)
+	(11*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch1),
+	(9*2)|CMDTXT_STRING,
+	offsetof(union node, nbinary.ch2),
+	(10*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NFOR     (CMDTXT_NUNTIL + 5)
+	(12*2)|CMDTXT_STRING,
+	offsetof(union node, nfor.var)|CMDTXT_CHARPTR,
+	(13*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NCLIST   (CMDTXT_NFOR + 3) /* TODO: IS THIS CORRECT??? */
+#define  CMDTXT_NNOT     (CMDTXT_NCLIST)        /* TODO: IS THIS CORRECT??? */
+	(15*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NDEFUN   (CMDTXT_NCLIST + 1)
+	offsetof(union node, narg.text)|CMDTXT_CHARPTR,
+	(16*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+#define CMDTXT_NARG     (CMDTXT_NDEFUN + 2)
+	offsetof(union node, narg.text)|CMDTXT_CHARPTR|CMDTXT_NOMORE,
+#define CMDTXT_NHERE    (CMDTXT_NARG + 1)
+#define CMDTXT_NXHERE   (CMDTXT_NHERE)
+	(17*2)|CMDTXT_STRING|CMDTXT_NOMORE,
+};
+
+#if CMDTXT_NXHERE != 36
+#error CMDTXT_NXHERE
+#endif
+
+static const unsigned char cmdtxt_ops_index[26] = {
+	CMDTXT_NSEMI,
+	CMDTXT_NCMD,
+	CMDTXT_NPIPE,
+	CMDTXT_NREDIR,
+	CMDTXT_NBACKGND,
+	CMDTXT_NSUBSHELL,
+	CMDTXT_NAND,
+	CMDTXT_NOR,
+	CMDTXT_NIF,
+	CMDTXT_NWHILE,
+	CMDTXT_NUNTIL,
+	CMDTXT_NFOR,
+	CMDTXT_NCASE,
+	CMDTXT_NCLIST,
+	CMDTXT_NDEFUN,
+	CMDTXT_NARG,
+	CMDTXT_NTO,
+	CMDTXT_NFROM,
+	CMDTXT_NFROMTO,
+	CMDTXT_NAPPEND,
+	CMDTXT_NTOOV,
+	CMDTXT_NTOFD,
+	CMDTXT_NFROMFD,
+	CMDTXT_NHERE,
+	CMDTXT_NXHERE,
+	CMDTXT_NNOT,
+};
+
+static void
+cmdtxt(const union node *n)
+{
+	const char *p;
+
+	if (n == NULL)
+		return;
+
+	p = cmdtxt_ops + (int) cmdtxt_ops_index[n->type];
+	if ((*p & CMDTXT_SPECIAL) != CMDTXT_SPECIAL) { /* normal case */
+		do {
+			if (*p & CMDTXT_STRING) { /* output fixed string */
+				cmdputs(cmdtxt_strings[((int)(*p & CMDTXT_OFFSETMASK) >> 1)]);
+			} else if (*p & CMDTXT_CHARPTR) { /* output dynamic string */
+				cmdputs(((const char *) n) + ((int)(*p & CMDTXT_OFFSETMASK)));
+			} else {                        /* output field */
+				cmdtxt((const union node *)
+					   (((const char *) n) + ((int)(*p & CMDTXT_OFFSETMASK))));
+			}
+		} while (!(*p++ & CMDTXT_NOMORE));
+	} else if (n->type == NCMD) {
+		union node *np;
+		for (np = n->ncmd.args ; np ; np = np->narg.next) {
+			cmdtxt(np);
+			if (np->narg.next)
+				cmdputs(spcstr);
+		}
+		for (np = n->ncmd.redirect ; np ; np = np->nfile.next) {
+			cmdputs(spcstr);
+			cmdtxt(np);
+		}
+	} else if (n->type == NPIPE) {
+		struct nodelist *lp;
+		for (lp = n->npipe.cmdlist ; lp ; lp = lp->next) {
+			cmdtxt(lp->n);
+			if (lp->next)
+				cmdputs(" | ");
+		}
+	} else if (n->type == NCASE) {
+		cmdputs(cmdtxt_strings[14]);
+		cmdputs(n->ncase.expr->narg.text);
+		cmdputs(cmdtxt_strings[13]);
+	} else {
+#if (NTO != 16) || (NFROM != 17) || (NFROMTO != 18) || (NAPPEND != 19) || (NTOOV != 20) || (NTOFD != 21) || (NFROMFD != 22)
+#error Assumption violated regarding range and ordering of NTO ... NFROMFD!
+#endif
+		char s[2];
+
+#ifdef DEBUG
+		assert((n->type >= NTO) && (n->type <= NFROMFD));
+#endif
+
+		p = redir_strings[n->type - NTO];
+		if (n->nfile.fd != ('>' == *p)) {
+			s[0] = n->nfile.fd + '0';
+			s[1] = '\0';
+			cmdputs(s);
+		}
+		cmdputs(p);
+		if (n->type >= NTOFD) {
+			s[0] = n->ndup.dupfd + '0';
+			s[1] = '\0';
+			cmdputs(s);
+		} else {
+			cmdtxt(n->nfile.fname);
+		}
+	}
+}
+#else  /* CMDTXT_TABLE */
 static void
 cmdtxt(const union node *n)
 {
@@ -7469,7 +7631,7 @@ redir:
 		break;
 	}
 }
-
+#endif
 
 static char *
 commandtext(const union node *n)
@@ -7602,27 +7764,17 @@ ash_main(argc, argv)
 		 * exception EXSHELLPROC to clean up before executing
 		 * the shell procedure.
 		 */
-		switch (exception) {
-		case EXSHELLPROC:
+		if (exception == EXSHELLPROC) {
 			rootpid = getpid();
 			rootshell = 1;
 			minusc = NULL;
 			state = 3;
-			break;
-
-		case EXEXEC:
-			exitstatus = exerrno;
-			break;
-
-		case EXERROR:
-			exitstatus = 2;
-			break;
-
-		default:
-			break;
-		}
-
-		if (exception != EXSHELLPROC) {
+		} else {
+			if (exception == EXEXEC) {
+				exitstatus = exerrno;
+			} else if (exception == EXERROR) {
+				exitstatus = 2;
+			}
 		    if (state == 0 || iflag == 0 || ! rootshell)
 			    exitshell(exitstatus);
 		}
@@ -7673,14 +7825,14 @@ state2:
 state3:
 	state = 4;
 	if (sflag == 0 || minusc) {
-		static int sigs[] =  {
+		static const char sigs[] =  {
 		    SIGINT, SIGQUIT, SIGHUP,
 #ifdef SIGTSTP
 		    SIGTSTP,
 #endif
 		    SIGPIPE
 		};
-#define SIGSSIZE (sizeof(sigs)/sizeof(sigs[0]))
+#define SIGSSIZE ((sizeof(sigs)/sizeof(sigs[0])) - 1) /* trailing nul */
 		int i;
 
 		for (i = 0; i < SIGSSIZE; i++)
@@ -7764,8 +7916,8 @@ read_profile(name)
 	const char *name;
 {
 	int fd;
-	int xflag_set = 0;
-	int vflag_set = 0;
+	int xflag_save;
+	int vflag_save;
 
 	INTOFF;
 	if ((fd = open(name, O_RDONLY)) >= 0)
@@ -7774,19 +7926,15 @@ read_profile(name)
 	if (fd < 0)
 		return;
 	/* -q turns off -x and -v just when executing init files */
+	/* Note: Might do a little redundant work, but reduces code size. */
+	xflag_save = xflag;
+	vflag_save = vflag;
 	if (qflag)  {
-	    if (xflag)
-		    xflag = 0, xflag_set = 1;
-	    if (vflag)
-		    vflag = 0, vflag_set = 1;
+		vflag = xflag = 0;
 	}
 	cmdloop(0);
-	if (qflag)  {
-	    if (xflag_set)
-		    xflag = 1;
-	    if (vflag_set)
-		    vflag = 1;
-	}
+	xflag = xflag_save;
+	vflag = vflag_save;
 	popfile();
 }
 
@@ -8089,11 +8237,6 @@ ungrabstackstr(char *s, char *p)
 
 #undef rflag
 
-//#ifdef __GLIBC__
-static mode_t getmode(const void *, mode_t);
-static void *setmode(const char *);
-//#endif
-
 #if !defined(__GLIBC__) || __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
 typedef long rlim_t;
 #endif
@@ -8108,9 +8251,7 @@ typedef long rlim_t;
  */
 
 static int
-readcmd(argc, argv)
-	int argc;
-	char **argv;
+readcmd(int argc, char **argv)
 {
 	char **ap;
 	int backslash;
@@ -8132,7 +8273,7 @@ readcmd(argc, argv)
 			rflag = 1;
 	}
 	if (prompt && isatty(0)) {
-		putprompt(prompt);
+		out2str(prompt);     /* read without cmdedit */
 		flushall();
 	}
 	if (*(ap = argptr) == NULL)
@@ -8199,8 +8340,16 @@ umaskcmd(argc, argv)
 	int argc;
 	char **argv;
 {
+	static const char permuser[3] = "ugo";
+	static const char permmode[3] = "rwx";
+	static const short int permmask[] = {
+		S_IRUSR, S_IWUSR, S_IXUSR,
+		S_IRGRP, S_IWGRP, S_IXGRP,
+		S_IROTH, S_IWOTH, S_IXOTH
+	};
+
 	char *ap;
-	int mask;
+	mode_t mask;
 	int i;
 	int symbolic_mode = 0;
 
@@ -8215,36 +8364,21 @@ umaskcmd(argc, argv)
 
 	if ((ap = *argptr) == NULL) {
 		if (symbolic_mode) {
-			char u[4], g[4], o[4];
-
-			i = 0;
-			if ((mask & S_IRUSR) == 0)
-				u[i++] = 'r';
-			if ((mask & S_IWUSR) == 0)
-				u[i++] = 'w';
-			if ((mask & S_IXUSR) == 0)
-				u[i++] = 'x';
-			u[i] = '\0';
-
-			i = 0;
-			if ((mask & S_IRGRP) == 0)
-				g[i++] = 'r';
-			if ((mask & S_IWGRP) == 0)
-				g[i++] = 'w';
-			if ((mask & S_IXGRP) == 0)
-				g[i++] = 'x';
-			g[i] = '\0';
-
-			i = 0;
-			if ((mask & S_IROTH) == 0)
-				o[i++] = 'r';
-			if ((mask & S_IWOTH) == 0)
-				o[i++] = 'w';
-			if ((mask & S_IXOTH) == 0)
-				o[i++] = 'x';
-			o[i] = '\0';
-
-			printf("u=%s,g=%s,o=%s\n", u, g, o);
+			char buf[18];
+			char *p = buf;
+			for (i=0 ; i<3 ; i++) {
+				int j;
+				*p++ = permuser[i];
+				*p++ = '=';
+				for (j=0 ; j<3 ; j++) {
+					if ((mask & permmask[3*i+j]) == 0) {
+						*p++ = permmode[j];
+					}
+				}
+				*p++ = ',';
+			}
+			*--p = 0;
+			puts(buf);
 		} else {
 			printf("%.4o\n", mask);
 		}
@@ -8258,17 +8392,10 @@ umaskcmd(argc, argv)
 			} while (*++ap != '\0');
 			umask(mask);
 		} else {
-			void *set;
-
-			INTOFF;
-			if ((set = setmode(ap)) != 0) {
-				mask = getmode(set, ~mask & 0777);
-				ckfree(set);
-			}
-			INTON;
-			if (!set)
+			mask = ~mask & 0777;
+			if (parse_mode(ap, &mask) == FALSE) {
 				error("Illegal mode: %s", ap);
-
+			}
 			umask(~mask & 0777);
 		}
 	}
@@ -8287,46 +8414,45 @@ umaskcmd(argc, argv)
 
 struct limits {
 	const char *name;
-	int     cmd;
-	int     factor; /* multiply by to get rlim_{cur,max} values */
-	char    option;
+	short   cmd;
+	short   factor; /* multiply by to get rlim_{cur,max} values */
 };
 
 static const struct limits limits[] = {
 #ifdef RLIMIT_CPU
-	{ "time(seconds)",              RLIMIT_CPU,        1, 't' },
+	{ "time(seconds)",             RLIMIT_CPU,        1 },
 #endif
 #ifdef RLIMIT_FSIZE
-	{ "file(blocks)",               RLIMIT_FSIZE,    512, 'f' },
+	{ "file(blocks)",              RLIMIT_FSIZE,    512 },
 #endif
 #ifdef RLIMIT_DATA
-	{ "data(kbytes)",               RLIMIT_DATA,    1024, 'd' },
+	{ "data(kbytes)",              RLIMIT_DATA,    1024 },
 #endif
 #ifdef RLIMIT_STACK
-	{ "stack(kbytes)",              RLIMIT_STACK,   1024, 's' },
+	{ "stack(kbytes)",             RLIMIT_STACK,   1024 },
 #endif
 #ifdef  RLIMIT_CORE
-	{ "coredump(blocks)",           RLIMIT_CORE,     512, 'c' },
+	{ "coredump(blocks)",          RLIMIT_CORE,     512 },
 #endif
 #ifdef RLIMIT_RSS
-	{ "memory(kbytes)",             RLIMIT_RSS,     1024, 'm' },
+	{ "memory(kbytes)",            RLIMIT_RSS,     1024 },
 #endif
 #ifdef RLIMIT_MEMLOCK
-	{ "locked memory(kbytes)",      RLIMIT_MEMLOCK, 1024, 'l' },
+	{ "locked memory(kbytes)",     RLIMIT_MEMLOCK, 1024 },
 #endif
 #ifdef RLIMIT_NPROC
-	{ "process(processes)",         RLIMIT_NPROC,      1, 'p' },
+	{ "process(processes)",        RLIMIT_NPROC,      1 },
 #endif
 #ifdef RLIMIT_NOFILE
-	{ "nofiles(descriptors)",       RLIMIT_NOFILE,     1, 'n' },
+	{ "nofiles(descriptors)",      RLIMIT_NOFILE,     1 },
 #endif
 #ifdef RLIMIT_VMEM
-	{ "vmemory(kbytes)",            RLIMIT_VMEM,    1024, 'v' },
+	{ "vmemory(kbytes)",           RLIMIT_VMEM,    1024 },
 #endif
 #ifdef RLIMIT_SWAP
-	{ "swap(kbytes)",               RLIMIT_SWAP,    1024, 'w' },
+	{ "swap(kbytes)",              RLIMIT_SWAP,    1024 },
 #endif
-	{ (char *) 0,                   0,                 0,  '\0' }
+	{ NULL,                         0,                 0 }
 };
 
 static int
@@ -8334,6 +8460,7 @@ ulimitcmd(argc, argv)
 	int argc;
 	char **argv;
 {
+	static const char unlimited_string[] = "unlimited";
 	int     c;
 	rlim_t val = 0;
 	enum { SOFT = 0x1, HARD = 0x2 }
@@ -8344,25 +8471,59 @@ ulimitcmd(argc, argv)
 	struct rlimit   limit;
 
 	what = 'f';
-	while ((optc = nextopt("HSatfdsmcnpl")) != '\0')
-		switch (optc) {
-		case 'H':
+
+	while ((optc = nextopt("HSa"
+#ifdef RLIMIT_CPU
+	"t"
+#endif
+#ifdef RLIMIT_FSIZE
+	"f"
+#endif
+#ifdef RLIMIT_DATA
+	"d"
+#endif
+#ifdef RLIMIT_STACK
+	"s"
+#endif
+#ifdef  RLIMIT_CORE
+	"c"
+#endif
+#ifdef RLIMIT_RSS
+	"m"
+#endif
+#ifdef RLIMIT_MEMLOCK
+	"l"
+#endif
+#ifdef RLIMIT_NPROC
+	"p"
+#endif
+#ifdef RLIMIT_NOFILE
+	"n"
+#endif
+#ifdef RLIMIT_VMEM
+	"v"
+#endif
+#ifdef RLIMIT_SWAP
+	"w"
+#endif
+					)) != '\0') {
+		if (optc == 'H') {
 			how = HARD;
-			break;
-		case 'S':
+		} else if (optc == 'S') {
 			how = SOFT;
-			break;
-		case 'a':
+		} else if (optc == 'a') {
 			all = 1;
-			break;
-		default:
+		} else {
 			what = optc;
 		}
+	}
 
-	for (l = limits; l->name && l->option != what; l++)
-		;
-	if (!l->name)
-		error("internal error (%c)", what);
+	for (l = limits; l->name; l++) {
+		if(l->name[0] == what)
+			break;
+		if(l->name[1]=='w' && what=='w')
+			break;
+	}
 
 	set = *argptr ? 1 : 0;
 	if (set) {
@@ -8370,7 +8531,7 @@ ulimitcmd(argc, argv)
 
 		if (all || argptr[1])
 			error("too many arguments");
-		if (strcmp(p, "unlimited") == 0)
+		if (strcmp(p, unlimited_string) == 0)
 			val = RLIM_INFINITY;
 		else {
 			val = (rlim_t) 0;
@@ -8386,48 +8547,42 @@ ulimitcmd(argc, argv)
 			val *= l->factor;
 		}
 	}
+
 	if (all) {
 		for (l = limits; l->name; l++) {
+			printf("%-20s ", l->name);
 			getrlimit(l->cmd, &limit);
+		OUTPUT_LIMIT:
 			if (how & SOFT)
 				val = limit.rlim_cur;
 			else if (how & HARD)
 				val = limit.rlim_max;
 
-			printf("%-20s ", l->name);
 			if (val == RLIM_INFINITY)
-				printf("unlimited\n");
+				puts(unlimited_string);
 			else
 			{
 				val /= l->factor;
 				printf("%lld\n", (long long) val);
 			}
+			if (!all) {
+				break;
+			}
 		}
 		return 0;
 	}
 
-	getrlimit(l->cmd, &limit);
-	if (set) {
-		if (how & HARD)
-			limit.rlim_max = val;
-		if (how & SOFT)
-			limit.rlim_cur = val;
-		if (setrlimit(l->cmd, &limit) < 0)
-			error("error setting limit (%m)");
-	} else {
-		if (how & SOFT)
-			val = limit.rlim_cur;
-		else if (how & HARD)
-			val = limit.rlim_max;
-
-		if (val == RLIM_INFINITY)
-			printf("unlimited\n");
-		else
-		{
-			val /= l->factor;
-			printf("%lld\n", (long long) val);
-		}
+	if (!set) {
+		goto OUTPUT_LIMIT;
 	}
+
+	getrlimit(l->cmd, &limit);
+	if (how & HARD)
+		limit.rlim_max = val;
+	if (how & SOFT)
+		limit.rlim_cur = val;
+	if (setrlimit(l->cmd, &limit) < 0)
+		error("error setting limit (%m)");
 	return 0;
 }
 /*
@@ -8499,16 +8654,7 @@ single_quote(const char *s) {
 		len2 = strspn(s + len1, "'");
 
 		len1p = len1 ? len1 + 2 : len1;
-		switch (len2) {
-		case 0:
-			len2p = 0;
-			break;
-		case 1:
-			len2p = 2;
-			break;
-		default:
-			len2p = len2 + 2;
-		}
+		len2p = len2 + ((len2 < 2) ? len2 : 2);
 
 		CHECKSTRSPACE(len1p + len2p + 1, p);
 
@@ -8520,20 +8666,16 @@ single_quote(const char *s) {
 			s += len1;
 		}
 
-		switch (len2) {
-		case 0:
-			break;
-		case 1:
-			*q++ = '\\';
-			*q = '\'';
-			s++;
-			break;
-		default:
+		if (len2 > 1) {
 			*q = '"';
 			q += 1 + len2;
 			memcpy(q + 1, s, len2);
 			*q = '"';
 			s += len2;
+		} else if (len2 == 1) {
+			*q++ = '\\';
+			*q = '\'';
+			s++;
 		}
 
 		STADJUST(len1p + len2p, p);
@@ -8565,95 +8707,156 @@ static void sizenodelist (const struct nodelist *);
 static struct nodelist *copynodelist (const struct nodelist *);
 static char *nodesavestr (const char *);
 
-static void
-calcsize(const union node *n)
+//#define CALCSIZE_TABLE
+//#define COPYNODE_TABLE
+#if defined(CALCSIZE_TABLE) || defined(COPYNODE_TABLE)
+/*
+ * To collect a lot of redundant code in case statements for copynode()
+ * and calcsize(), we implement a mini language here.  Each type of node
+ * struct has an associated instruction sequence that operates on its
+ * members via their offsets.  The instruction are pack in unsigned chars
+ * with format   IIDDDDDE   where the bits are
+ *   I : part of the instruction opcode, which are
+ *       00 : member is a pointer to another node
+ *       40 : member is an integer
+ *       80 : member is a pointer to a nodelist
+ *       CC : member is a pointer to a char string
+ *   D : data - the actual offset of the member to operate on in the struct
+ *              (since we assume bit 0 is set, it is not shifted)
+ *   E : flag signaling end of instruction sequence
+ *
+ * WARNING: In order to handle larger offsets for 64bit archs, this code
+ *          assumes that no offset can be an odd number and stores the
+ *          end-of-instructions flag in bit 0.
+ */
+
+#define NODE_INTEGER    0x40
+#define NODE_NODELIST   0x80
+#define NODE_CHARPTR    0xC0
+#define NODE_NOMORE             0x01    /* Note: no offset should be odd (aligned)*/
+#define NODE_MBRMASK    0xC0
+#define NODE_OFFSETMASK 0x3E
+
+static const unsigned char copynode_ops[35] = {
+#define COPYNODE_OPS0   0
+	offsetof(union node, nbinary.ch2),
+	offsetof(union node, nbinary.ch1)|NODE_NOMORE,
+#define COPYNODE_OPS1   (COPYNODE_OPS0 + 2)
+	offsetof(union node, ncmd.redirect),
+	offsetof(union node, ncmd.args),
+	offsetof(union node, ncmd.assign),
+	offsetof(union node, ncmd.backgnd)|NODE_INTEGER|NODE_NOMORE,
+#define COPYNODE_OPS2   (COPYNODE_OPS1 + 4)
+	offsetof(union node, npipe.cmdlist)|NODE_NODELIST,
+	offsetof(union node, npipe.backgnd)|NODE_INTEGER|NODE_NOMORE,
+#define COPYNODE_OPS3   (COPYNODE_OPS2 + 2)
+	offsetof(union node, nredir.redirect),
+	offsetof(union node, nredir.n)|NODE_NOMORE,
+#define COPYNODE_OPS4   (COPYNODE_OPS3 + 2)
+	offsetof(union node, nif.elsepart),
+	offsetof(union node, nif.ifpart),
+	offsetof(union node, nif.test)|NODE_NOMORE,
+#define COPYNODE_OPS5   (COPYNODE_OPS4 + 3)
+	offsetof(union node, nfor.var)|NODE_CHARPTR,
+	offsetof(union node, nfor.body),
+	offsetof(union node, nfor.args)|NODE_NOMORE,
+#define COPYNODE_OPS6   (COPYNODE_OPS5 + 3)
+	offsetof(union node, ncase.cases),
+	offsetof(union node, ncase.expr)|NODE_NOMORE,
+#define COPYNODE_OPS7   (COPYNODE_OPS6 + 2)
+	offsetof(union node, nclist.body),
+	offsetof(union node, nclist.pattern),
+	offsetof(union node, nclist.next)|NODE_NOMORE,
+#define COPYNODE_OPS8   (COPYNODE_OPS7 + 3)
+	offsetof(union node, narg.backquote)|NODE_NODELIST,
+	offsetof(union node, narg.text)|NODE_CHARPTR,
+	offsetof(union node, narg.next)|NODE_NOMORE,
+#define COPYNODE_OPS9   (COPYNODE_OPS8 + 3)
+	offsetof(union node, nfile.fname),
+	offsetof(union node, nfile.fd)|NODE_INTEGER,
+	offsetof(union node, nfile.next)|NODE_NOMORE,
+#define COPYNODE_OPS10   (COPYNODE_OPS9 + 3)
+	offsetof(union node, ndup.vname),
+	offsetof(union node, ndup.dupfd)|NODE_INTEGER,
+	offsetof(union node, ndup.fd)|NODE_INTEGER,
+	offsetof(union node, ndup.next)|NODE_NOMORE,
+#define COPYNODE_OPS11   (COPYNODE_OPS10 + 4)
+	offsetof(union node, nhere.doc),
+	offsetof(union node, nhere.fd)|NODE_INTEGER,
+	offsetof(union node, nhere.next)|NODE_NOMORE,
+#define COPYNODE_OPS12   (COPYNODE_OPS11 + 3)
+	offsetof(union node, nnot.com)|NODE_NOMORE,
+};
+
+#if COPYNODE_OPS12 != 34
+#error COPYNODE_OPS12 is incorrect
+#endif
+
+static const unsigned char copynode_ops_index[26] = {
+	COPYNODE_OPS0, /* NSEMI */
+	COPYNODE_OPS1, /* NCMD */
+	COPYNODE_OPS2, /* NPIPE */
+	COPYNODE_OPS3, /* NREDIR */
+	COPYNODE_OPS3, /* NBACKGND */
+	COPYNODE_OPS3, /* NSUBSHELL */
+	COPYNODE_OPS0, /* NAND */
+	COPYNODE_OPS0, /* NOR */
+	COPYNODE_OPS4, /* NIF */
+	COPYNODE_OPS0, /* NWHILE */
+	COPYNODE_OPS0, /* NUNTIL */
+	COPYNODE_OPS5, /* NFOR */
+	COPYNODE_OPS6, /* NCASE */
+	COPYNODE_OPS7, /* NCLIST */
+	COPYNODE_OPS8, /* NDEFUN */
+	COPYNODE_OPS8, /* NARG */
+	COPYNODE_OPS9, /* NTO */
+	COPYNODE_OPS9, /* NFROM */
+	COPYNODE_OPS9, /* NFROMTO */
+	COPYNODE_OPS9, /* NAPPEND */
+	COPYNODE_OPS9, /* NTOOV */
+	COPYNODE_OPS10, /* NTOFD */
+	COPYNODE_OPS10, /* NFROMFD */
+	COPYNODE_OPS11, /* NHERE */
+	COPYNODE_OPS11, /* NXHERE */
+	COPYNODE_OPS12, /* NNOT */
+};
+
+#if NODE_CHARPTR != NODE_MBRMASK
+#error NODE_CHARPTR != NODE_MBRMASK!!!
+#endif
+#endif /* defined(CALCSIZE_TABLE) || defined(COPYNODE_TABLE) */
+
+#ifdef COPYNODE_TABLE
+static union node *
+copynode(const union node *n)
 {
+      union node *new;
+	  const unsigned char *p;
+
       if (n == NULL)
-	    return;
-      funcblocksize += nodesize[n->type];
-      switch (n->type) {
-      case NSEMI:
-      case NAND:
-      case NOR:
-      case NWHILE:
-      case NUNTIL:
-	    calcsize(n->nbinary.ch2);
-	    calcsize(n->nbinary.ch1);
-	    break;
-      case NCMD:
-	    calcsize(n->ncmd.redirect);
-	    calcsize(n->ncmd.args);
-	    calcsize(n->ncmd.assign);
-	    break;
-      case NPIPE:
-	    sizenodelist(n->npipe.cmdlist);
-	    break;
-      case NREDIR:
-      case NBACKGND:
-      case NSUBSHELL:
-	    calcsize(n->nredir.redirect);
-	    calcsize(n->nredir.n);
-	    break;
-      case NIF:
-	    calcsize(n->nif.elsepart);
-	    calcsize(n->nif.ifpart);
-	    calcsize(n->nif.test);
-	    break;
-      case NFOR:
-	    funcstringsize += strlen(n->nfor.var) + 1;
-	    calcsize(n->nfor.body);
-	    calcsize(n->nfor.args);
-	    break;
-      case NCASE:
-	    calcsize(n->ncase.cases);
-	    calcsize(n->ncase.expr);
-	    break;
-      case NCLIST:
-	    calcsize(n->nclist.body);
-	    calcsize(n->nclist.pattern);
-	    calcsize(n->nclist.next);
-	    break;
-      case NDEFUN:
-      case NARG:
-	    sizenodelist(n->narg.backquote);
-	    funcstringsize += strlen(n->narg.text) + 1;
-	    calcsize(n->narg.next);
-	    break;
-      case NTO:
-      case NFROM:
-      case NFROMTO:
-      case NAPPEND:
-      case NTOOV:
-	    calcsize(n->nfile.fname);
-	    calcsize(n->nfile.next);
-	    break;
-      case NTOFD:
-      case NFROMFD:
-	    calcsize(n->ndup.vname);
-	    calcsize(n->ndup.next);
-	    break;
-      case NHERE:
-      case NXHERE:
-	    calcsize(n->nhere.doc);
-	    calcsize(n->nhere.next);
-	    break;
-      case NNOT:
-	    calcsize(n->nnot.com);
-	    break;
-      };
+	    return NULL;
+      new = funcblock;
+      new->type = n->type;
+      funcblock = (char *) funcblock + (int) nodesize[n->type];
+	  p = copynode_ops + (int) copynode_ops_index[n->type];
+	  do {
+		  char *nn = ((char *) new) + ((int)(*p & NODE_OFFSETMASK));
+		  const char *no = ((const char *) n) + ((int)(*p & NODE_OFFSETMASK));
+
+		  if (!(*p & NODE_MBRMASK)) { /* standard node */
+			  (union node *) nn = copynode((const union node *) no);
+		  } else if ((*p & NODE_MBRMASK) == NODE_CHARPTR) { /* string */
+			  nn = nodesavestr(no);
+		  } else if (*p & NODE_NODELIST) { /* nodelist */
+			  (struct nodelist *) nn
+				  = copynodelist((const struct nodelist *) no);
+		  } else {                              /* integer */
+			  *((int *) nn) = *((int *) no);
+		  }
+	  } while (!(*p++ & NODE_NOMORE));
+      return new;
 }
-
-static void
-sizenodelist(const struct nodelist *lp)
-{
-	while (lp) {
-		funcblocksize += ALIGN(sizeof(struct nodelist));
-		calcsize(lp->n);
-		lp = lp->next;
-	}
-}
-
-
+#else  /* COPYNODE_TABLE */
 static union node *
 copynode(const union node *n)
 {
@@ -8741,6 +8944,120 @@ copynode(const union node *n)
       };
       new->type = n->type;
       return new;
+}
+#endif /* COPYNODE_TABLE */
+
+#ifdef CALCSIZE_TABLE
+static void
+calcsize(const union node *n)
+{
+	  const unsigned char *p;
+
+      if (n == NULL)
+	    return;
+      funcblocksize += (int) nodesize[n->type];
+
+	  p = copynode_ops + (int) copynode_ops_index[n->type];
+	  do {
+		  const char *no = ((const char *) n) + ((int)(*p & NODE_OFFSETMASK));
+
+		  if (!(*p & NODE_MBRMASK)) { /* standard node */
+			  calcsize((const union node *) no);
+		  } else if ((*p & NODE_MBRMASK) == NODE_CHARPTR) { /* string */
+			  funcstringsize += strlen(no) + 1;
+		  } else if (*p & NODE_NODELIST) { /* nodelist */
+			  sizenodelist((const struct nodelist *) no);
+		  }
+	  } while (!(*p++ & NODE_NOMORE));
+}
+#else  /* CALCSIZE_TABLE */
+static void
+calcsize(const union node *n)
+{
+      if (n == NULL)
+	    return;
+      funcblocksize += nodesize[n->type];
+      switch (n->type) {
+      case NSEMI:
+      case NAND:
+      case NOR:
+      case NWHILE:
+      case NUNTIL:
+	    calcsize(n->nbinary.ch2);
+	    calcsize(n->nbinary.ch1);
+	    break;
+      case NCMD:
+	    calcsize(n->ncmd.redirect);
+	    calcsize(n->ncmd.args);
+	    calcsize(n->ncmd.assign);
+	    break;
+      case NPIPE:
+	    sizenodelist(n->npipe.cmdlist);
+	    break;
+      case NREDIR:
+      case NBACKGND:
+      case NSUBSHELL:
+	    calcsize(n->nredir.redirect);
+	    calcsize(n->nredir.n);
+	    break;
+      case NIF:
+	    calcsize(n->nif.elsepart);
+	    calcsize(n->nif.ifpart);
+	    calcsize(n->nif.test);
+	    break;
+      case NFOR:
+	    funcstringsize += strlen(n->nfor.var) + 1;
+	    calcsize(n->nfor.body);
+	    calcsize(n->nfor.args);
+	    break;
+      case NCASE:
+	    calcsize(n->ncase.cases);
+	    calcsize(n->ncase.expr);
+	    break;
+      case NCLIST:
+	    calcsize(n->nclist.body);
+	    calcsize(n->nclist.pattern);
+	    calcsize(n->nclist.next);
+	    break;
+      case NDEFUN:
+      case NARG:
+	    sizenodelist(n->narg.backquote);
+	    funcstringsize += strlen(n->narg.text) + 1;
+	    calcsize(n->narg.next);
+	    break;
+      case NTO:
+      case NFROM:
+      case NFROMTO:
+      case NAPPEND:
+      case NTOOV:
+	    calcsize(n->nfile.fname);
+	    calcsize(n->nfile.next);
+	    break;
+      case NTOFD:
+      case NFROMFD:
+	    calcsize(n->ndup.vname);
+	    calcsize(n->ndup.next);
+	    break;
+      case NHERE:
+      case NXHERE:
+	    calcsize(n->nhere.doc);
+	    calcsize(n->nhere.next);
+	    break;
+      case NNOT:
+	    calcsize(n->nnot.com);
+	    break;
+      };
+}
+#endif /* CALCSIZE_TABLE */
+
+static void
+sizenodelist(const struct nodelist *lp)
+{
+	while (lp) {
+		funcblocksize += ALIGN(sizeof(struct nodelist));
+		calcsize(lp->n);
+		lp = lp->next;
+	}
 }
 
 
@@ -9346,10 +9663,10 @@ static union node *command (void);
 static union node *simplecmd (void);
 static void parsefname (void);
 static void parseheredoc (void);
-static int peektoken (void);
+static char peektoken (void);
 static int readtoken (void);
 static int xxreadtoken (void);
-static int readtoken1 (int, char const *, char *, int);
+static int readtoken1 (int, int, const char *, int);
 static int noexpand (char *);
 static void synexpect (int) __attribute__((noreturn));
 static void synerror (const char *) __attribute__((noreturn));
@@ -9391,7 +9708,7 @@ list(nlflag)
 	int tok;
 
 	checkkwd = 2;
-	if (nlflag == 0 && tokendlist[peektoken()])
+	if (nlflag == 0 && peektoken())
 		return NULL;
 	n1 = NULL;
 	for (;;) {
@@ -9434,7 +9751,7 @@ list(nlflag)
 				tokpushback++;
 			}
 			checkkwd = 2;
-			if (tokendlist[peektoken()])
+			if (peektoken())
 				return n1;
 			break;
 		case TEOF:
@@ -9572,7 +9889,7 @@ command() {
 		n1->type = (lasttoken == TWHILE)? NWHILE : NUNTIL;
 		n1->nbinary.ch1 = list(0);
 		if ((got=readtoken()) != TDO) {
-TRACE(("expecting DO got %s %s\n", tokname[got], got == TWORD ? wordtext : ""));
+TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 			synexpect(TDO);
 		}
 		n1->nbinary.ch2 = list(0);
@@ -9901,13 +10218,13 @@ parseheredoc() {
 	}
 }
 
-static int
+static char
 peektoken() {
 	int t;
 
 	t = readtoken();
 	tokpushback++;
-	return (t);
+	return tokname_array[t][0];
 }
 
 static int
@@ -9954,8 +10271,8 @@ top:
 			const char *const *pp;
 
 			if ((pp = findkwd(wordtext))) {
-				lasttoken = t = pp - parsekwd + KWDOFFSET;
-				TRACE(("keyword %s recognized\n", tokname[t]));
+				lasttoken = t = pp - tokname_array;
+				TRACE(("keyword %s recognized\n", tokname(t)));
 				goto out;
 			}
 		}
@@ -9983,9 +10300,9 @@ top:
 out:
 #ifdef DEBUG
 	if (!alreadyseen)
-	    TRACE(("token %s %s\n", tokname[t], t == TWORD || t == TASSIGN ? wordtext : ""));
+	    TRACE(("token %s %s\n", tokname(t), t == TWORD || t == TASSIGN ? wordtext : ""));
 	else
-	    TRACE(("reread token %s %s\n", tokname[t], t == TWORD || t == TASSIGN ? wordtext : ""));
+	    TRACE(("reread token %s %s\n", tokname(t), t == TWORD || t == TASSIGN ? wordtext : ""));
 #endif
 	return (t);
 }
@@ -10103,12 +10420,8 @@ breakloop:
 #define PARSEARITH()    {goto parsearith; parsearith_return:;}
 
 static int
-readtoken1(firstc, syntax, eofmark, striptabs)
-	int firstc;
-	char const *syntax;
-	char *eofmark;
-	int striptabs;
-	{
+readtoken1(int firstc, int syntax, const char *eofmark, int striptabs)
+{
 	int c = firstc;
 	char *out;
 	int len;
@@ -10121,7 +10434,7 @@ readtoken1(firstc, syntax, eofmark, striptabs)
 	int parenlevel; /* levels of parens in arithmetic */
 	int dqvarnest;  /* levels of variables expansion within double quotes */
 	int oldstyle;
-	char const *prevsyntax; /* syntax before arithmetic */
+	int prevsyntax; /* syntax before arithmetic */
 #if __GNUC__
 	/* Avoid longjmp clobbering */
 	(void) &out;
@@ -10152,7 +10465,7 @@ readtoken1(firstc, syntax, eofmark, striptabs)
 		CHECKEND();     /* set c to PEOF if at end of here document */
 		for (;;) {      /* until end of line or end of word */
 			CHECKSTRSPACE(3, out);  /* permit 3 calls to USTPUTC */
-			switch(syntax[c]) {
+			switch(SIT(c,syntax)) {
 			case CNL:       /* '\n' */
 				if (syntax == BASESYNTAX)
 					goto endword;   /* exit outer loop */
@@ -10187,7 +10500,7 @@ readtoken1(firstc, syntax, eofmark, striptabs)
 					if (dblquote && c != '\\' && c != '`' && c != '$'
 							 && (c != '"' || eofmark != NULL))
 						USTPUTC('\\', out);
-					if (SQSYNTAX[c] == CCTL)
+					if (SIT(c,SQSYNTAX) == CCTL)
 						USTPUTC(CTLESC, out);
 					else if (eofmark == NULL)
 						USTPUTC(CTLQUOTEMARK, out);
@@ -10338,7 +10651,7 @@ checkend: {
 		}
 		if (c == *eofmark) {
 			if (pfgets(line, sizeof line) != NULL) {
-				char *p, *q;
+				const char *p, *q;
 
 				p = line;
 				for (q = eofmark + 1 ; *q && *p == *q ; p++, q++);
@@ -10728,7 +11041,7 @@ noexpand(text)
 			continue;
 		if (c == CTLESC)
 			p++;
-		else if (BASESYNTAX[(int)c] == CCTL)
+		else if (SIT(c,BASESYNTAX) == CCTL)
 			return 0;
 	}
 	return 1;
@@ -10767,13 +11080,11 @@ synexpect(token)
 	int token;
 {
 	char msg[64];
+	int l;
 
-	if (token >= 0) {
-		snprintf(msg, 64, "%s unexpected (expecting %s)",
-			tokname[lasttoken], tokname[token]);
-	} else {
-		snprintf(msg, 64, "%s unexpected", tokname[lasttoken]);
-	}
+	l = sprintf(msg, "%s unexpected", tokname(lasttoken));
+	if (token >= 0)
+		sprintf(msg+l, " (expecting %s)", tokname(token));
 	synerror(msg);
 	/* NOTREACHED */
 }
@@ -11162,435 +11473,6 @@ dup_as_newfd(from, to)
 	return newfd;
 }
 
-/*#ifdef __weak_alias
-__weak_alias(getmode,_getmode)
-__weak_alias(setmode,_setmode)
-#endif*/
-
-#ifndef S_ISTXT
-#if defined(__GLIBC__) && __GLIBC__ >= 2
-#define S_ISTXT __S_ISVTX
-#else
-#define S_ISTXT S_ISVTX
-#endif
-#endif
-
-#define SET_LEN 6               /* initial # of bitcmd struct to malloc */
-#define SET_LEN_INCR 4          /* # of bitcmd structs to add as needed */
-
-typedef struct bitcmd {
-	char    cmd;
-	char    cmd2;
-	mode_t  bits;
-} BITCMD;
-
-#define CMD2_CLR        0x01
-#define CMD2_SET        0x02
-#define CMD2_GBITS      0x04
-#define CMD2_OBITS      0x08
-#define CMD2_UBITS      0x10
-
-static BITCMD   *addcmd (BITCMD *, int, int, int, u_int);
-static void      compress_mode (BITCMD *);
-#ifdef SETMODE_DEBUG
-static void      dumpmode (BITCMD *);
-#endif
-
-/*
- * Given the old mode and an array of bitcmd structures, apply the operations
- * described in the bitcmd structures to the old mode, and return the new mode.
- * Note that there is no '=' command; a strict assignment is just a '-' (clear
- * bits) followed by a '+' (set bits).
- */
-static mode_t
-getmode(bbox, omode)
-	const void *bbox;
-	mode_t omode;
-{
-	const BITCMD *set;
-	mode_t clrval, newmode, value;
-
-	_DIAGASSERT(bbox != NULL);
-
-	set = (const BITCMD *)bbox;
-	newmode = omode;
-	for (value = 0;; set++)
-		switch(set->cmd) {
-		/*
-		 * When copying the user, group or other bits around, we "know"
-		 * where the bits are in the mode so that we can do shifts to
-		 * copy them around.  If we don't use shifts, it gets real
-		 * grundgy with lots of single bit checks and bit sets.
-		 */
-		case 'u':
-			value = (newmode & S_IRWXU) >> 6;
-			goto common;
-
-		case 'g':
-			value = (newmode & S_IRWXG) >> 3;
-			goto common;
-
-		case 'o':
-			value = newmode & S_IRWXO;
-common:                 if (set->cmd2 & CMD2_CLR) {
-				clrval =
-				    (set->cmd2 & CMD2_SET) ?  S_IRWXO : value;
-				if (set->cmd2 & CMD2_UBITS)
-					newmode &= ~((clrval<<6) & set->bits);
-				if (set->cmd2 & CMD2_GBITS)
-					newmode &= ~((clrval<<3) & set->bits);
-				if (set->cmd2 & CMD2_OBITS)
-					newmode &= ~(clrval & set->bits);
-			}
-			if (set->cmd2 & CMD2_SET) {
-				if (set->cmd2 & CMD2_UBITS)
-					newmode |= (value<<6) & set->bits;
-				if (set->cmd2 & CMD2_GBITS)
-					newmode |= (value<<3) & set->bits;
-				if (set->cmd2 & CMD2_OBITS)
-					newmode |= value & set->bits;
-			}
-			break;
-
-		case '+':
-			newmode |= set->bits;
-			break;
-
-		case '-':
-			newmode &= ~set->bits;
-			break;
-
-		case 'X':
-			if (omode & (S_IFDIR|S_IXUSR|S_IXGRP|S_IXOTH))
-				newmode |= set->bits;
-			break;
-
-		case '\0':
-		default:
-#ifdef SETMODE_DEBUG
-			(void)printf("getmode:%04o -> %04o\n", omode, newmode);
-#endif
-			return (newmode);
-		}
-}
-
-#define ADDCMD(a, b, c, d) do {                                         \
-	if (set >= endset) {                                            \
-		BITCMD *newset;                                         \
-		setlen += SET_LEN_INCR;                                 \
-		newset = realloc(saveset, sizeof(BITCMD) * setlen);     \
-		if (newset == NULL) {                                   \
-			free(saveset);                                  \
-			return (NULL);                                  \
-		}                                                       \
-		set = newset + (set - saveset);                         \
-		saveset = newset;                                       \
-		endset = newset + (setlen - 2);                         \
-	}                                                               \
-	set = addcmd(set, (a), (b), (c), (d));                          \
-} while (/*CONSTCOND*/0)
-
-#define STANDARD_BITS   (S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO)
-
-static void *
-setmode(p)
-	const char *p;
-{
-	int perm, who;
-	char op, *ep;
-	BITCMD *set, *saveset, *endset;
-	sigset_t mysigset, sigoset;
-	mode_t mask;
-	int equalopdone = 0;    /* pacify gcc */
-	int permXbits, setlen;
-
-	if (!*p)
-		return (NULL);
-
-	/*
-	 * Get a copy of the mask for the permissions that are mask relative.
-	 * Flip the bits, we want what's not set.  Since it's possible that
-	 * the caller is opening files inside a signal handler, protect them
-	 * as best we can.
-	 */
-	sigfillset(&mysigset);
-	(void)sigprocmask(SIG_BLOCK, &mysigset, &sigoset);
-	(void)umask(mask = umask(0));
-	mask = ~mask;
-	(void)sigprocmask(SIG_SETMASK, &sigoset, NULL);
-
-	setlen = SET_LEN + 2;
-
-	if ((set = malloc((u_int)(sizeof(BITCMD) * setlen))) == NULL)
-		return (NULL);
-	saveset = set;
-	endset = set + (setlen - 2);
-
-	/*
-	 * If an absolute number, get it and return; disallow non-octal digits
-	 * or illegal bits.
-	 */
-	if (is_digit((unsigned char)*p)) {
-		perm = (mode_t)strtol(p, &ep, 8);
-		if (*ep || perm & ~(STANDARD_BITS|S_ISTXT)) {
-			free(saveset);
-			return (NULL);
-		}
-		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
-		set->cmd = 0;
-		return (saveset);
-	}
-
-	/*
-	 * Build list of structures to set/clear/copy bits as described by
-	 * each clause of the symbolic mode.
-	 */
-	for (;;) {
-		/* First, find out which bits might be modified. */
-		for (who = 0;; ++p) {
-			switch (*p) {
-			case 'a':
-				who |= STANDARD_BITS;
-				break;
-			case 'u':
-				who |= S_ISUID|S_IRWXU;
-				break;
-			case 'g':
-				who |= S_ISGID|S_IRWXG;
-				break;
-			case 'o':
-				who |= S_IRWXO;
-				break;
-			default:
-				goto getop;
-			}
-		}
-
-getop:          if ((op = *p++) != '+' && op != '-' && op != '=') {
-			free(saveset);
-			return (NULL);
-		}
-		if (op == '=')
-			equalopdone = 0;
-
-		who &= ~S_ISTXT;
-		for (perm = 0, permXbits = 0;; ++p) {
-			switch (*p) {
-			case 'r':
-				perm |= S_IRUSR|S_IRGRP|S_IROTH;
-				break;
-			case 's':
-				/*
-				 * If specific bits where requested and
-				 * only "other" bits ignore set-id.
-				 */
-				if (who == 0 || (who & ~S_IRWXO))
-					perm |= S_ISUID|S_ISGID;
-				break;
-			case 't':
-				/*
-				 * If specific bits where requested and
-				 * only "other" bits ignore set-id.
-				 */
-				if (who == 0 || (who & ~S_IRWXO)) {
-					who |= S_ISTXT;
-					perm |= S_ISTXT;
-				}
-				break;
-			case 'w':
-				perm |= S_IWUSR|S_IWGRP|S_IWOTH;
-				break;
-			case 'X':
-				permXbits = S_IXUSR|S_IXGRP|S_IXOTH;
-				break;
-			case 'x':
-				perm |= S_IXUSR|S_IXGRP|S_IXOTH;
-				break;
-			case 'u':
-			case 'g':
-			case 'o':
-				/*
-				 * When ever we hit 'u', 'g', or 'o', we have
-				 * to flush out any partial mode that we have,
-				 * and then do the copying of the mode bits.
-				 */
-				if (perm) {
-					ADDCMD(op, who, perm, mask);
-					perm = 0;
-				}
-				if (op == '=')
-					equalopdone = 1;
-				if (op == '+' && permXbits) {
-					ADDCMD('X', who, permXbits, mask);
-					permXbits = 0;
-				}
-				ADDCMD(*p, who, op, mask);
-				break;
-
-			default:
-				/*
-				 * Add any permissions that we haven't already
-				 * done.
-				 */
-				if (perm || (op == '=' && !equalopdone)) {
-					if (op == '=')
-						equalopdone = 1;
-					ADDCMD(op, who, perm, mask);
-					perm = 0;
-				}
-				if (permXbits) {
-					ADDCMD('X', who, permXbits, mask);
-					permXbits = 0;
-				}
-				goto apply;
-			}
-		}
-
-apply:          if (!*p)
-			break;
-		if (*p != ',')
-			goto getop;
-		++p;
-	}
-	set->cmd = 0;
-#ifdef SETMODE_DEBUG
-	(void)printf("Before compress_mode()\n");
-	dumpmode(saveset);
-#endif
-	compress_mode(saveset);
-#ifdef SETMODE_DEBUG
-	(void)printf("After compress_mode()\n");
-	dumpmode(saveset);
-#endif
-	return (saveset);
-}
-
-static BITCMD *
-addcmd(set, op, who, oparg, mask)
-	BITCMD *set;
-	int oparg, who;
-	int op;
-	u_int mask;
-{
-
-	_DIAGASSERT(set != NULL);
-
-	switch (op) {
-	case '=':
-		set->cmd = '-';
-		set->bits = who ? who : STANDARD_BITS;
-		set++;
-
-		op = '+';
-		/* FALLTHROUGH */
-	case '+':
-	case '-':
-	case 'X':
-		set->cmd = op;
-		set->bits = (who ? who : mask) & oparg;
-		break;
-
-	case 'u':
-	case 'g':
-	case 'o':
-		set->cmd = op;
-		if (who) {
-			set->cmd2 = ((who & S_IRUSR) ? CMD2_UBITS : 0) |
-				    ((who & S_IRGRP) ? CMD2_GBITS : 0) |
-				    ((who & S_IROTH) ? CMD2_OBITS : 0);
-			set->bits = (mode_t)~0;
-		} else {
-			set->cmd2 = CMD2_UBITS | CMD2_GBITS | CMD2_OBITS;
-			set->bits = mask;
-		}
-
-		if (oparg == '+')
-			set->cmd2 |= CMD2_SET;
-		else if (oparg == '-')
-			set->cmd2 |= CMD2_CLR;
-		else if (oparg == '=')
-			set->cmd2 |= CMD2_SET|CMD2_CLR;
-		break;
-	}
-	return (set + 1);
-}
-
-#ifdef SETMODE_DEBUG
-static void
-dumpmode(set)
-	BITCMD *set;
-{
-
-	_DIAGASSERT(set != NULL);
-
-	for (; set->cmd; ++set)
-		(void)printf("cmd: '%c' bits %04o%s%s%s%s%s%s\n",
-		    set->cmd, set->bits, set->cmd2 ? " cmd2:" : "",
-		    set->cmd2 & CMD2_CLR ? " CLR" : "",
-		    set->cmd2 & CMD2_SET ? " SET" : "",
-		    set->cmd2 & CMD2_UBITS ? " UBITS" : "",
-		    set->cmd2 & CMD2_GBITS ? " GBITS" : "",
-		    set->cmd2 & CMD2_OBITS ? " OBITS" : "");
-}
-#endif
-
-/*
- * Given an array of bitcmd structures, compress by compacting consecutive
- * '+', '-' and 'X' commands into at most 3 commands, one of each.  The 'u',
- * 'g' and 'o' commands continue to be separate.  They could probably be
- * compacted, but it's not worth the effort.
- */
-static void
-compress_mode(set)
-	BITCMD *set;
-{
-	BITCMD *nset;
-	int setbits, clrbits, Xbits, op;
-
-	_DIAGASSERT(set != NULL);
-
-	for (nset = set;;) {
-		/* Copy over any 'u', 'g' and 'o' commands. */
-		while ((op = nset->cmd) != '+' && op != '-' && op != 'X') {
-			*set++ = *nset++;
-			if (!op)
-				return;
-		}
-
-		for (setbits = clrbits = Xbits = 0;; nset++) {
-			if ((op = nset->cmd) == '-') {
-				clrbits |= nset->bits;
-				setbits &= ~nset->bits;
-				Xbits &= ~nset->bits;
-			} else if (op == '+') {
-				setbits |= nset->bits;
-				clrbits &= ~nset->bits;
-				Xbits &= ~nset->bits;
-			} else if (op == 'X')
-				Xbits |= nset->bits & ~setbits;
-			else
-				break;
-		}
-		if (clrbits) {
-			set->cmd = '-';
-			set->cmd2 = 0;
-			set->bits = clrbits;
-			set++;
-		}
-		if (setbits) {
-			set->cmd = '+';
-			set->cmd2 = 0;
-			set->bits = setbits;
-			set++;
-		}
-		if (Xbits) {
-			set->cmd = 'X';
-			set->cmd2 = 0;
-			set->bits = Xbits;
-			set++;
-		}
-	}
-}
 #ifdef DEBUG
 static void shtree (union node *, int, char *, FILE*);
 static void shcmd (union node *, FILE *);
@@ -11683,6 +11565,16 @@ shcmd(cmd, fp)
 	for (np = cmd->ncmd.redirect ; np ; np = np->nfile.next) {
 		if (! first)
 			putchar(' ');
+#if 1
+		s = "*error*";
+		dftfd = 0;
+		if ((np->nfile.type <= NFROMFD) && (np->nfile.type >= NTO)) {
+			s = redir_strings[np->nfile.type - NTO];
+			if (*s == '>') {
+				dftfd = 1;
+			}
+		}
+#else
 		switch (np->nfile.type) {
 			case NTO:       s = ">";  dftfd = 1; break;
 			case NAPPEND:   s = ">>"; dftfd = 1; break;
@@ -11693,6 +11585,7 @@ shcmd(cmd, fp)
 			case NFROMTO:   s = "<>"; dftfd = 0; break;
 			default:        s = "*error*"; dftfd = 0; break;
 		}
+#endif
 		if (np->nfile.fd != dftfd)
 			fprintf(fp, "%d", np->nfile.fd);
 		fputs(s, fp);
@@ -12094,16 +11987,8 @@ setsignal(int signo)
 	}
 	if (*t == S_HARD_IGN || *t == action)
 		return;
-	switch (action) {
-	case S_CATCH:
-		act.sa_handler = onsig;
-		break;
-	case S_IGN:
-		act.sa_handler = SIG_IGN;
-		break;
-	default:
-		act.sa_handler = SIG_DFL;
-	}
+	act.sa_handler = ((action == S_CATCH) ? onsig
+					  : ((action == S_IGN) ? SIG_IGN : SIG_DFL));
 	*t = action;
 	act.sa_flags = 0;
 	sigemptyset(&act.sa_mask);
@@ -12785,7 +12670,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.19 2001/08/10 18:42:04 andersen Exp $
+ * $Id: ash.c,v 1.20 2001/08/10 19:36:07 mjn3 Exp $
  */
 static int timescmd (int argc, char **argv)
 {
