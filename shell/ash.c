@@ -5954,33 +5954,6 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 static void pushfile(void);
 
 /*
- * Read a line from the script.
- */
-
-static inline char *
-pfgets(char *line, int len)
-{
-	char *p = line;
-	int nleft = len;
-	int c;
-
-	while (--nleft > 0) {
-		c = pgetc2();
-		if (c == PEOF) {
-			if (p == line)
-				return NULL;
-			break;
-		}
-		*p++ = c;
-		if (c == '\n')
-			break;
-	}
-	*p = '\0';
-	return line;
-}
-
-
-/*
  * Read a character from the script, returning PEOF on end of file.
  * Nul characters in the input are silently discarded.
  */
@@ -6023,6 +5996,33 @@ static inline int pgetc2(void)
 	return pgetc_macro();
 }
 #endif
+
+/*
+ * Read a line from the script.
+ */
+
+static inline char *
+pfgets(char *line, int len)
+{
+	char *p = line;
+	int nleft = len;
+	int c;
+
+	while (--nleft > 0) {
+		c = pgetc2();
+		if (c == PEOF) {
+			if (p == line)
+				return NULL;
+			break;
+		}
+		*p++ = c;
+		if (c == '\n')
+			break;
+	}
+	*p = '\0';
+	return line;
+}
+
 
 
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
