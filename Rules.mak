@@ -52,6 +52,9 @@ TARGET_OS=linux
 HOSTCC    = gcc
 HOSTCFLAGS= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
+# Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc. 
+LC_ALL:= C
+
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATION.
