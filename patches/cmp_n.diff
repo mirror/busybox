@@ -1,0 +1,377 @@
+Index: coreutils/Config.in
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/Config.in,v
+retrieving revision 1.24
+diff -u -r1.24 Config.in
+--- a/coreutils/Config.in	15 Mar 2004 08:28:19 -0000	1.24
++++ b/coreutils/Config.in	31 Mar 2004 11:51:17 -0000
+@@ -59,6 +59,21 @@
+ 	  cmp is used to compare two files and returns the result
+ 	  to standard output.
+ 
++config CONFIG_FEATURE_CMP_SKIP
++	bool "  Enable optional arguments SKIP1 and SKIP2"
++	default n
++	depends on CONFIG_CMP
++	help
++	  SKIP1 and SKIP2 specify how many bytes to ignore
++	  at the start of each file.
++
++config CONFIG_FEATURE_CMP_LIMIT
++	bool "  Enable limit of inputs"
++	default n
++	depends on CONFIG_CMP
++	help
++	  Enable cmp option (-n).
++
+ config CONFIG_CP
+ 	bool "cp"
+ 	default n
+Index: coreutils/cmp.c
+===================================================================
+RCS file: /var/cvs/busybox/coreutils/cmp.c,v
+retrieving revision 1.9
+diff -u -r1.9 cmp.c
+--- a/coreutils/cmp.c	19 Mar 2003 09:11:32 -0000	1.9
++++ b/coreutils/cmp.c	31 Mar 2004 11:51:17 -0000
+@@ -39,6 +39,12 @@
+ #include <unistd.h>
+ #include "busybox.h"
+ 
++#ifdef CONFIG_FEATURE_CMP_SKIP
++#define MAX_OPTIONAL_ARGS	3
++#else
++#define MAX_OPTIONAL_ARGS	1
++#endif
++
+ static FILE *cmp_xfopen_input(const char *filename)
+ {
+ 	FILE *fp;
+@@ -58,12 +64,57 @@
+ static const char fmt_l_opt[] = "%.0s%.0s%d %3o %3o\n";	/* nicer gnu format */
+ #endif
+ 
+-static const char opt_chars[] = "sl";
++#ifdef CONFIG_FEATURE_CMP_LIMIT
++#define OPTCHR_LIMIT	"n:"
++#define OPTARG_LIMIT	,&limit_str
++#else
++#define OPTCHR_LIMIT
++#define OPTARG_LIMIT
++#endif
++
++static const char opt_chars[] = "sl" OPTCHR_LIMIT;
+ 
+ enum {
+ 	OPT_s = 1,
+-	OPT_l = 2
++	OPT_l = 2,
++	OPT_n = 4
++};
++
++#ifdef CONFIG_LFS
++#define SUFFIX_STRUCT		suffix_mult64
++#define PARSE_FUNC		bb_xgetllarg10_sfx
++#else
++#define SUFFIX_STRUCT		suffix_mult
++#define PARSE_FUNC		bb_xgetlarg10_sfx
++#endif
++
++#if defined(CONFIG_FEATURE_CMP_SKIP) || defined(CONFIG_FEATURE_CMP_LIMIT)
++static const struct SUFFIX_STRUCT suffixes[] = {
++	{ "k", 1UL << 10 },
++	{ "M", 1UL << 20 },
++	{ "G", 1UL << 30 },
++#ifdef CONFIG_LFS
++	{ "T", 1ULL << 40 },
++	{ "P", 1ULL << 50 },
++	{ "E", 1ULL << 60 },
++#endif
++	{ NULL, 0 }
+ };
++#endif
++
++#ifdef CONFIG_FEATURE_CMP_SKIP
++static void skip_input(FILE *fp, off_t skip, const char *filename)
++{
++	if (skip > 0 && fseeko(fp, skip, SEEK_CUR) != 0) {
++		while (skip-- > 0) {
++			if (getc(fp) == EOF) {
++				bb_xferror(fp, filename);
++				break;
++			}
++		}
++	}
++}
++#endif
+ 
+ int cmp_main(int argc, char **argv)
+ {
+@@ -73,12 +124,26 @@
+ 	int c1, c2, char_pos, line_pos;
+ 	int opt_flags;
+ 	int exit_val = 0;
++#ifdef CONFIG_FEATURE_CMP_SKIP
++	off_t skip1 = 0, skip2 = 0;
++#endif
++#ifdef CONFIG_FEATURE_CMP_LIMIT
++	off_t limit = -1;
++	char *limit_str;
++#endif
+ 
+ 	bb_default_error_retval = 2;	/* 1 is returned if files are different. */
+ 
+-	opt_flags = bb_getopt_ulflags(argc, argv, opt_chars);
++	opt_flags = bb_getopt_ulflags(argc, argv, opt_chars OPTARG_LIMIT);
+ 
+-	if ((opt_flags == 3) || (((unsigned int)(--argc - optind)) > 1)) {
++#ifdef CONFIG_FEATURE_CMP_LIMIT
++	if (opt_flags & OPT_n) {
++		limit = PARSE_FUNC(limit_str, suffixes);
++		opt_flags &= 3;
++	}
++#endif
++
++	if ((opt_flags == 3) || (((unsigned int)(--argc - optind)) > MAX_OPTIONAL_ARGS)) {
+ 		bb_show_usage();
+ 	}
+ 
+@@ -87,6 +152,13 @@
+ 	filename2 = "-";
+ 	if (*++argv) {
+ 		filename2 = *argv;
++#ifdef CONFIG_FEATURE_CMP_SKIP
++		if (*++argv) {
++			skip1 = PARSE_FUNC(*argv, suffixes);
++			if (*++argv)
++				skip2 = PARSE_FUNC(*argv, suffixes);
++		}
++#endif
+ 	}
+ 	fp2 = cmp_xfopen_input(filename2);
+ 
+@@ -98,6 +170,11 @@
+ 		return 0;
+ 	}
+ 
++#ifdef CONFIG_FEATURE_CMP_SKIP
++	skip_input(fp1, skip1, filename1);
++	skip_input(fp2, skip2, filename2);
++#endif
++
+ 	fmt = fmt_differ;
+ 	if (opt_flags == OPT_l) {
+ 		fmt = fmt_l_opt;
+@@ -106,6 +183,10 @@
+ 	char_pos = 0;
+ 	line_pos = 1;
+ 	do {
++#ifdef CONFIG_FEATURE_CMP_LIMIT
++		if (limit-- == 0)
++			break;
++#endif
+ 		c1 = getc(fp1);
+ 		c2 = getc(fp2);
+ 		++char_pos;
+Index: include/usage.h
+===================================================================
+RCS file: /var/cvs/busybox/include/usage.h,v
+retrieving revision 1.198
+diff -u -r1.198 usage.h
+--- a/include/usage.h	29 Mar 2004 08:20:08 -0000	1.198
++++ b/include/usage.h	31 Mar 2004 11:51:17 -0000
+@@ -186,14 +186,29 @@
+ #define clear_full_usage \
+ 	"Clear screen."
+ 
++#ifdef CONFIG_FEATURE_CMP_SKIP
++#define USAGE_CMP_SKIP(a) a
++#else
++#define USAGE_CMP_SKIP(a)
++#endif
++
++#ifdef CONFIG_FEATURE_CMP_LIMIT
++#define USAGE_CMP_LIMIT(a) a
++#else
++#define USAGE_CMP_LIMIT(a)
++#endif
++
+ #define cmp_trivial_usage \
+-	"[OPTION]... FILE1 [FILE2]"
++	"[OPTION]... FILE1 [FILE2" USAGE_CMP_SKIP(" [SKIP1 [SKIP2]]") "]"
+ #define cmp_full_usage \
+-	"Compare files.\n\n" \
++	"Compare files.\n" \
++	USAGE_CMP_SKIP("SKIP1 and SKIP2 are the number of bytes to skip in each file.\n") \
++	"\n" \
+ 	"Options:\n" \
+-	"\t-l\tWrite the byte numbers (decimal) and values (octal)\n" \
+-	"\t\t  for all differing bytes.\n" \
+-	"\t-s\tquiet mode - do not print"
++	"\t-l\t\tWrite the byte numbers (decimal) and values (octal)\n" \
++	"\t\t\t  for all differing bytes.\n" \
++	USAGE_CMP_LIMIT("\t-n LIMIT\tCompare at most LIMIT bytes.\n") \
++	"\t-s\t\tquiet mode - do not print"
+ 
+ #define cp_trivial_usage \
+ 	"[OPTION]... SOURCE DEST"
+Index: include/libbb.h
+===================================================================
+RCS file: /var/cvs/busybox/include/libbb.h,v
+retrieving revision 1.129
+diff -u -r1.129 libbb.h
+--- a/include/libbb.h	15 Mar 2004 08:28:38 -0000	1.129
++++ b/include/libbb.h	31 Mar 2004 11:51:17 -0000
+@@ -217,6 +217,21 @@
+ 								const struct suffix_mult *suffixes);
+ extern long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes);
+ 
++struct suffix_mult64 {
++	const char *suffix;
++	unsigned long long mult;
++};
++
++extern unsigned long long bb_xgetullarg_bnd_sfx(const char *arg, int base,
++										  unsigned long long lower,
++										  unsigned long long upper,
++										  const struct suffix_mult64 *suffixes);
++
++extern long long bb_xgetllarg_bnd_sfx(const char *arg, int base,
++								long long lower,
++								long long upper,
++								const struct suffix_mult64 *suffixes);
++extern long long bb_xgetllarg10_sfx(const char *arg, const struct suffix_mult64 *suffixes);
+ 
+ //#warning pitchable now?
+ extern unsigned long bb_xparse_number(const char *numstr,
+Index: libbb/Makefile.in
+===================================================================
+RCS file: /var/cvs/busybox/libbb/Makefile.in,v
+retrieving revision 1.34
+diff -u -r1.34 Makefile.in
+--- a/libbb/Makefile.in	6 Mar 2004 22:11:45 -0000	1.34
++++ b/libbb/Makefile.in	31 Mar 2004 11:51:17 -0000
+@@ -70,7 +70,8 @@
+ 
+ LIBBB_MSRC3:=$(LIBBB_DIR)xgetularg.c
+ LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
+-	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
++	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o \
++	xgetullarg_bnd_sfx.o xgetllarg_bnd_sfx.o xgetllarg10_sfx.o
+ 
+ LIBBB_MSRC4:=$(LIBBB_DIR)/safe_strtol.c
+ LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
+Index: libbb/xgetularg.c
+===================================================================
+RCS file: /var/cvs/busybox/libbb/xgetularg.c,v
+retrieving revision 1.2
+diff -u -r1.2 xgetularg.c
+--- a/libbb/xgetularg.c	15 Mar 2004 08:28:44 -0000	1.2
++++ b/libbb/xgetularg.c	31 Mar 2004 11:51:17 -0000
+@@ -158,3 +158,106 @@
+ 	return bb_xgetularg10_bnd(arg, 0, ULONG_MAX);
+ }
+ #endif
++
++#ifdef L_xgetullarg_bnd_sfx
++extern
++unsigned long long bb_xgetullarg_bnd_sfx(const char *arg, int base,
++								   unsigned long long lower,
++								   unsigned long long upper,
++								   const struct suffix_mult64 *suffixes)
++{
++	unsigned long long r;
++	int old_errno;
++	char *e;
++
++	assert(arg);
++
++	/* Disallow '-' and any leading whitespace.  Speed isn't critical here
++	 * since we're parsing commandline args.  So make sure we get the
++	 * actual isspace function rather than a larger macro implementaion. */
++	if ((*arg == '-') || (isspace)(*arg)) {
++		bb_show_usage();
++	}
++
++	/* Since this is a lib function, we're not allowed to reset errno to 0.
++	 * Doing so could break an app that is deferring checking of errno.
++	 * So, save the old value so that we can restore it if successful. */
++	old_errno = errno;
++	errno = 0;
++	r = strtoull(arg, &e, base);
++	/* Do the initial validity check.  Note: The standards do not
++	 * guarantee that errno is set if no digits were found.  So we
++	 * must test for this explicitly. */
++	if (errno || (arg == e)) {	/* error or no digits */
++		bb_show_usage();
++	}
++	errno = old_errno;	/* Ok.  So restore errno. */
++
++	/* Do optional suffix parsing.  Allow 'empty' suffix tables.
++	 * Note that we also all nul suffixes with associated multipliers,
++	 * to allow for scaling of the arg by some default multiplier. */
++
++	if (suffixes) {
++		while (suffixes->suffix) {
++			if (strcmp(suffixes->suffix, e) == 0) {
++				if (ULONG_LONG_MAX / suffixes->mult < r) {	/* Overflow! */
++					bb_show_usage();
++				}
++				++e;
++				r *= suffixes->mult;
++				break;
++ 			}
++			++suffixes;
++		}
++	}
++
++	/* Finally, check for illegal trailing chars and range limits. */
++	/* Note: although we allow leading space (via stroul), trailing space
++	 * is an error.  It would be easy enough to allow though if desired. */
++	if (*e || (r < lower) || (r > upper)) {
++		bb_show_usage();
++	}
++
++	return r;
++}
++#endif
++
++#ifdef L_xgetllarg_bnd_sfx
++extern
++long long bb_xgetllarg_bnd_sfx(const char *arg, int base,
++						 long long lower,
++						 long long upper,
++						 const struct suffix_mult64 *suffixes)
++{
++	unsigned long long u = LONG_LONG_MAX;
++	long long r;
++	const char *p = arg;
++
++	if ((*p == '-') && (p[1] != '+')) {
++		++p;
++#if LONG_LONG_MAX == (-(LONG_LONG_MIN + 1))
++		++u;	/* two's complement */
++#endif
++	}
++
++	r = bb_xgetullarg_bnd_sfx(p, base, 0, u, suffixes);
++
++	if (*arg == '-') {
++		r = -r;
++	}
++
++	if ((r < lower) || (r > upper)) {
++		bb_show_usage();
++	}
++
++	return r;
++}
++#endif
++
++#ifdef L_xgetllarg10_sfx
++extern
++long long bb_xgetllarg10_sfx(const char *arg, const struct suffix_mult64 *suffixes)
++{
++	return bb_xgetllarg_bnd_sfx(arg, 10, LONG_LONG_MIN, LONG_LONG_MAX, suffixes);
++}
++#endif
