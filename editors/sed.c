@@ -112,9 +112,9 @@ typedef struct sed_cmd_s {
 
 /* globals */
 /* options */
-static int be_quiet = 0, in_place=0, regex_type=0;
+static int be_quiet, in_place, regex_type;
 FILE *nonstdout;
-char *outname;
+char *outname,*hold_space;
 
 
 static const char bad_format_in_subst[] =
@@ -122,7 +122,7 @@ static const char bad_format_in_subst[] =
 const char *const semicolon_whitespace = "; \n\r\t\v";
 
 regmatch_t regmatch[10];
-static regex_t *previous_regex_ptr = NULL;
+static regex_t *previous_regex_ptr;
 
 /* linked list of sed commands */
 static sed_cmd_t sed_cmd_head;
@@ -169,6 +169,8 @@ static void free_and_close_stuff(void)
 		free(sed_cmd);
 		sed_cmd = sed_cmd_next;
 	}
+
+	if(hold_space) free(hold_space);
 }
 #endif
 
@@ -757,7 +759,7 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 
 static void process_file(FILE *file)
 {
-	char *pattern_space, *next_line, *hold_space=NULL;
+	char *pattern_space, *next_line;
 	static int linenum = 0, missing_newline=0;
 	int no_newline,next_no_newline=0;
 
@@ -908,7 +910,7 @@ restart:
 					/* Cut and paste text (replace) */
 					case 'c':
 						/* Only triggers on last line of a matching range. */
-						if (!sed_cmd->in_match) sed_puts(sed_cmd->string,1);
+						if (!sed_cmd->in_match) sed_puts(sed_cmd->string,0);
 						goto discard_line;
 
 					/* Read file, append contents to output */
@@ -1007,10 +1009,7 @@ restart:
 					}
 					case 'g':	/* Replace pattern space with hold space */
 						free(pattern_space);
-						if (hold_space) {
-							pattern_space = strdup(hold_space);
-							no_newline=0;
-						}
+						pattern_space = strdup(hold_space ? hold_space : "");
 						break;
 					case 'G':	/* Append newline and hold space to pattern space */
 					{
@@ -1096,9 +1095,7 @@ static void add_cmd_block(char *cmdstr)
 
 extern int sed_main(int argc, char **argv)
 {
-	int status = EXIT_SUCCESS;
-	int opt;
-	uint8_t getpat = 1;
+	int status = EXIT_SUCCESS, opt, getpat = 1;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
