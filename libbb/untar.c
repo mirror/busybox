@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern int untar(FILE *src_tar_file, const int untar_function, const char *argument)
+extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, const char *argument)
 {
 	typedef struct raw_tar_header {
         char name[100];               /*   0-99 */
@@ -103,13 +103,12 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 		}
 
 		if (untar_function & (extract_contents | extract_verbose_extract)) {
-			printf("%s\n", raw_tar_header.name);
+			fprintf(output, "%s\n", raw_tar_header.name);
 		}
 
 		/* extract files */
 		if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
-			dir = xmalloc(strlen(raw_tar_header.name) + strlen(argument) + 2);
-			sprintf(dir, "%s/%s", argument, raw_tar_header.name);
+			dir = concat_path_file(argument, raw_tar_header.name);
 			create_path(dir, 0777);
 		}
 
@@ -120,33 +119,27 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 				 * supposed to be a directory, and fall through
 				 */
 				if (raw_tar_header.name[strlen(raw_tar_header.name)-1] != '/') {
-					if (untar_function & (extract_extract | extract_verbose_extract | extract_control)) {
-						FILE *dst_file = wfopen(dir, "w");
-						copy_file_chunk(src_tar_file, dst_file, (unsigned long long) size);
-						uncompressed_count += size;
-						fclose(dst_file);
-					}
-					else if (untar_function & extract_info) {
-						if (strstr(raw_tar_header.name, argument) != NULL) {
-							copy_file_chunk(src_tar_file, stdout, (unsigned long long) size);
-							uncompressed_count += size;
-						}
-					}
-					else if (untar_function & extract_field) {
-						if (strstr(raw_tar_header.name, "./control") != NULL) {
-							char *line;
-							while ((line = get_line_from_file(src_tar_file)) != NULL) {
-								uncompressed_count += strlen(line);
-								if (argument == NULL) {
-									printf("%s",line);
-								}
-								else if (strncmp(line, argument, strlen(argument)) == 0) {
-									char *file_ptr;
-									file_ptr = strstr(line, ": ");
-									printf("%s", file_ptr + 2);
-								}
- 							}
-						}
+					switch (untar_function) {
+						case (extract_extract):
+						case (extract_verbose_extract):
+						case (extract_control): {
+								FILE *dst_file = wfopen(dir, "w");
+								copy_file_chunk(src_tar_file, dst_file, (unsigned long long) size);
+								uncompressed_count += size;
+								fclose(dst_file);
+							}
+							break;
+						case (extract_info):
+							if (strstr(raw_tar_header.name, argument) != NULL) {
+								copy_file_chunk(src_tar_file, stdout, (unsigned long long) size);
+								uncompressed_count += size;
+							}
+							break;
+						case (extract_field):
+							if (strstr(raw_tar_header.name, "control") != NULL) {
+								return(read_text_file_to_buffer(src_tar_file));
+							}
+							break;
 					}
 					break;
 				}
@@ -155,7 +148,7 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 					if (create_path(dir, mode) != TRUE) {
 						free(dir);
 						perror_msg("%s: Cannot mkdir", raw_tar_header.name); 
-						return(EXIT_FAILURE);
+						return NULL;
 					}
 				}
 				break;
@@ -164,7 +157,7 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 					if (link(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create hard link to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
-						return(EXIT_FAILURE);
+						return NULL;
 					}
 				}
 				break;
@@ -173,7 +166,7 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 					if (symlink(raw_tar_header.linkname, raw_tar_header.name) < 0) {
 						free(dir);
 						perror_msg("%s: Cannot create symlink to '%s'", raw_tar_header.name, raw_tar_header.linkname); 
-						return(EXIT_FAILURE);
+						return NULL;
 					}
 				}
 				break;
@@ -186,7 +179,7 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 			default:
 				error_msg("Unknown file type '%c' in tar file", raw_tar_header.typeflag);
 				free(dir);
-				return(EXIT_FAILURE);
+				return NULL;
 		}
 
 		/*
@@ -201,5 +194,5 @@ extern int untar(FILE *src_tar_file, const int untar_function, const char *argum
 
 //		free(dir);
 	}
-	return(EXIT_SUCCESS);
+	return NULL;
 }

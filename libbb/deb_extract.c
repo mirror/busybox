@@ -75,11 +75,24 @@ extern int deb_extract(const char *package_filename, int function, char *argumen
 	if (function & extract_fsys_tarfile) {
 		copy_file_chunk(uncompressed_file, stdout, -1);
 	} else {
-		untar(uncompressed_file, function, argument);
+		char *output_buffer = NULL;
+		output_buffer = untar(uncompressed_file, stdout, function, argument);
+		if (function & extract_field) {
+			char *field = NULL;
+			int field_length = 0;
+			int field_start = 0;
+			while ((field = read_package_field(&output_buffer[field_start])) != NULL) {
+				field_length = strlen(field);
+				field_start += (field_length + 1);
+				if (strstr(field, argument) == field) {
+					printf("%s\n", field + strlen(argument) + 2);
+				}
+				free(field);
+			}
+		}
 	}
-	/* we are deliberately terminating the child so we can safely ignore this */
-	gz_close(gunzip_pid);
 
+	gz_close(gunzip_pid);
 	fclose(deb_file);
 	fclose(uncompressed_file);
 	free(ared_file);

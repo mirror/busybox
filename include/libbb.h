@@ -239,7 +239,9 @@ typedef enum extract_function_e {
 	extract_field = 128
 } extract_function_t;
 extern int deb_extract(const char *package_filename, int function, char *target_dir);
-extern int untar(FILE *src_tar_file, const int untar_function, const char *argument);
+extern char *untar(FILE *src_tar_file, FILE *output, const int untar_function, const char *argument);
+extern char *read_text_file_to_buffer(FILE *src_file);
+extern char *read_package_field(const char *package_buffer);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
