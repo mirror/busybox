@@ -101,11 +101,6 @@
        "\t-j\tUse julian dates.\n" \
        "\t-y\tDisplay the entire year."
 
-#define cart_trivial_usage \
-	"blah"
-#define cart_full_usage \
-	"blah blah"
-
 #define cat_trivial_usage \
 	"[-u] [FILE]..."
 #define cat_full_usage \
