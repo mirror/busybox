@@ -203,17 +203,81 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
 			S_ISSOCK(source_stat.st_mode)) {
+
+		if (dest_exists) {
+			if (flags & FILEUTILS_INTERACTIVE) {
+				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
+				if (!ask_confirmation())
+					return 0;
+			}
+
+			if (!(flags & FILEUTILS_FORCE)) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			if (unlink(dest) < 0) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			dest_exists = 0;
+		}
+
 		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
 			perror_msg("unable to create `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISFIFO(source_stat.st_mode)) {
+
+		if (dest_exists) {
+			if (flags & FILEUTILS_INTERACTIVE) {
+				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
+				if (!ask_confirmation())
+					return 0;
+			}
+
+			if (!(flags & FILEUTILS_FORCE)) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			if (unlink(dest) < 0) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			dest_exists = 0;
+		}
+
 		if (mkfifo(dest, source_stat.st_mode) < 0) {
 			perror_msg("cannot create fifo `%s'", dest);
 			return -1;
 		}
 	} else if (S_ISLNK(source_stat.st_mode)) {
-		char *lpath = xreadlink(source);
+		char *lpath;
+
+		if (dest_exists) {
+			if (flags & FILEUTILS_INTERACTIVE) {
+				fprintf(stderr, "%s: overwrite `%s'? ", applet_name, dest);
+				if (!ask_confirmation())
+					return 0;
+			}
+
+			if (!(flags & FILEUTILS_FORCE)) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			if (unlink(dest) < 0) {
+				perror_msg("unable to remove `%s'", dest);
+				return -1;
+			}
+
+			dest_exists = 0;
+		}
+
+		lpath = xreadlink(source);
 		if (symlink(lpath, dest) < 0) {
 			perror_msg("cannot create symlink `%s'", dest);
 			return -1;
