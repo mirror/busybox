@@ -46,16 +46,16 @@ static time_t askremotedate(const char *host)
 	int fd;
 
 	h = xgethostbyname(host);         /* get the IP addr */
+	memcpy(&s_in.sin_addr, h->h_addr, sizeof(s_in.sin_addr));
 
-	if ((tserv = getservbyname("time", "tcp")) == NULL)   /* find port # */
-		perror_msg_and_die("time");
+	s_in.sin_port = htons(37);		  /* find port # */
+	if ((tserv = getservbyname("time", "tcp")) != NULL)
+		s_in.sin_port = tserv->s_port;
+
+	s_in.sin_family = AF_INET;
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)    /* get net connection */
 		perror_msg_and_die("socket");
-
-	memcpy(&s_in.sin_addr, h->h_addr, sizeof(s_in.sin_addr));
-	s_in.sin_port= tserv->s_port;
-	s_in.sin_family = AF_INET;
 
 	if (connect(fd, (struct sockaddr *)&s_in, sizeof(s_in)) < 0)      /* connect to time server */
 		perror_msg_and_die("%s", host);
