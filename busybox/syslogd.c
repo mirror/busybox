@@ -394,16 +394,17 @@ static int serveConnection (int conn)
 {
 	RESERVE_BB_BUFFER(tmpbuf, BUFSIZE + 1);
 	int    n_read;
+	char *p = tmpbuf;
 
 	n_read = read (conn, tmpbuf, BUFSIZE );
 
-	if (n_read > 0) {
+	while (p < tmpbuf + n_read) {
 
 		int           pri = (LOG_USER | LOG_NOTICE);
 		char          line[ BUFSIZE + 1 ];
 		unsigned char c;
 
-		char *p = tmpbuf, *q = line;
+		char *q = line;
 
 		tmpbuf[ n_read - 1 ] = '\0';
 
@@ -428,6 +429,7 @@ static int serveConnection (int conn)
 			p++;
 		}
 		*q = '\0';
+		p++;
 		/* Now log it */
 		logMessage (pri, line);
 	}
