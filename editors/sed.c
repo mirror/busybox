@@ -101,14 +101,17 @@ typedef struct sed_cmd_s {
 	char cmd; /* p,d,s (add more at your leisure :-) */
 
 	/* inversion flag */
-	int invert;         /* the '!' after the address */ 
+	int invert;         /* the '!' after the address */
+
+	/* next command in list (sequential list of specified commands) */
+	struct sed_cmd_s *linear;
+
 } sed_cmd_t;
 
 /* globals */
-static sed_cmd_t **sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
-static int ncmds = 0; /* number of sed commands */
-
-/*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
+/* linked list of sed commands */
+static sed_cmd_t sed_cmd_head;
+static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
 
 const char * const semicolon_whitespace = "; \n\r\t\v\0";
 
@@ -485,19 +488,26 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 
 	if (sed_cmd->cmd == '{') {
 		do {
+			sed_cmd_t *sed_cmd_new;
 			char *end_ptr = strpbrk(cmdstr, ";}");
+
 			*end_ptr = '\0';
-			add_cmd(sed_cmd, cmdstr);
+			sed_cmd_new = xcalloc(1, sizeof(sed_cmd_t));
+			sed_cmd_new->beg_match = sed_cmd->beg_match;
+			sed_cmd_new->end_match = sed_cmd->end_match;
+			sed_cmd_new->beg_line = sed_cmd->beg_line;
+			sed_cmd_new->end_line = sed_cmd->end_line;
+			sed_cmd_new->invert = sed_cmd->invert;
+
+			add_cmd(sed_cmd_new, cmdstr);
 			cmdstr = end_ptr + 1;
 		} while (*cmdstr != '\0');
 	} else {
-
 		cmdstr = parse_cmd_str(sed_cmd, cmdstr);
 
 		/* Add the command to the command array */
-		sed_cmds = xrealloc(sed_cmds, sizeof(sed_cmd_t) * (++ncmds));
-		sed_cmds[ncmds-1] = xmalloc(sizeof(sed_cmd_t));
-		memcpy(sed_cmds[ncmds-1], sed_cmd, sizeof(sed_cmd_t));
+		sed_cmd_tail->linear = sed_cmd;
+		sed_cmd_tail = sed_cmd_tail->linear;
 	}
 	return(cmdstr);
 }
@@ -677,7 +687,6 @@ static void process_file(FILE *file)
 	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
-	int i;
 
 	line = bb_get_chomped_line_from_file(file);
 	if (line == NULL) {
@@ -687,6 +696,7 @@ static void process_file(FILE *file)
 	/* go through every line in the file */
 	do {
 		char *next_line;
+		sed_cmd_t *sed_cmd;
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
 		next_line = bb_get_chomped_line_from_file(file);
@@ -695,8 +705,7 @@ static void process_file(FILE *file)
 		altered = 0;
 
 		/* for every line, go through all the commands */
-		for (i = 0; i < ncmds; i++) {
-			sed_cmd_t *sed_cmd = sed_cmds[i];
+		for (sed_cmd = sed_cmd_head.linear; sed_cmd; sed_cmd = sed_cmd->linear) {
 			int deleted = 0;
 
 			/*
@@ -770,7 +779,7 @@ static void process_file(FILE *file)
 						 * (this is quite possibly the second printing) */
 						if (sed_cmd->sub_p)
 							altered |= do_subst_command(sed_cmd, &line);
-						if (altered && (i+1 >= ncmds || sed_cmds[i+1]->cmd != 's'))
+						if (altered && ((sed_cmd->linear == NULL) || (sed_cmd->linear->cmd != 's')))
 							puts(line);
 
 						break;
@@ -900,7 +909,7 @@ extern int sed_main(int argc, char **argv)
 
 	/* if we didn't get a pattern from a -e and no command file was specified,
 	 * argv[optind] should be the pattern. no pattern, no worky */
-	if (ncmds == 0) {
+	if (sed_cmd_head.linear == NULL) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else {
