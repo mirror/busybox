@@ -1,13 +1,67 @@
 0.50
-	* Evin Robertson -- new pivot_root applet 
-	* Bjorn Wesen -- new ifconfig and route applet (taken from 
-	    work done be Axis Communications).
+	* Erik Andersen -- added ifconfig interface status reporting 
+	* Erik Andersen -- Debian packaging updates
+	* Erik Andersen -- lash environment variable expansion updated
+	* Erik Andersen -- Fix use of busybox with dmalloc debugging lib
+	* Erik Andersen -- fixed ls behavior for broken or very narrow terminals.
+	* Erik Andersen -- if umount2 or pivot_root are not available,
+	    stub them out.
+	* Erik Andersen -- Make sure libpwd.a is linked _last_ so it 
+	    overrides the system pwd/grp 
 	* Vladimir N. Oleynik -- new stty applet 
 	* Kenneth Chalmers and Erik Andersen -- fixed ln so it
 	    behaves when given no arguments (prints usage) and when
 	    given just one arg (tries to make a link in the cwd).
-
-	<lots of other things -- fixme>
+	* Magnus Damm -- added a tftp applet  
+	* Magnus Damm -- powerpc support for busybox insmod.
+	* David Douthitt -- fixed a build error in df.c when 
+	    BB_FEATURE_HUMAN_READABLE was disabled
+	* Vladimir Oleynik -- saved 128 bytes by moving error checking 
+	    for several my_* functions into utility.c
+	* John Beppu -- wrote autodocifier.pl, which will be used to auto-
+	    generate the documentation from the source code, making life
+	    much simpler for all.
+	* Magnus Damm <damm@opensource.se> -- Fixed an 'inner scope var
+	    masking outer scope var with same name' bug that prevented 
+	    the loopback device from being unmounted if mount() failed.
+	* Larry Doolittle -- rewrote ifconfig to make it smaller 
+	* Larry Doolittle and Erik Andersen -- cleanups to pristine source
+	* Larry Doolittle -- many bugfixes resulting from regression testing
+	* Erik Gustavsson <cyrano@algonet.se> -- allow env variables set on the
+	    kernel command line to be inherited into init and its children.
+	* Chris Jaeger -- Makefile cleanup to make option setting less error-prone
+	* Chris Jaeger <cjaeger@ensim.com> -- Carefully check NFS_MOUNT_VERSION
+	    depending on what kernel is being used.
+	* Quinn Jensen <jensenq@lineo.com> -- MIPS support for busybox insmod.
+	* Evin Robertson -- new pivot_root applet 
+	* Kent Robotti -- usage message cleanups
+	* Kent Robotti -- reworked dos2unix/unix2dos
+	* Evin Robertson and Manuel Novoa III -- reworked how usage messages 
+	    are stored to save several k of space.
+	* Matt Kraai -- Keep trying if an NFS mount fails 
+	* Matt Kraai -- fixed insmod so it won't try to insmod directories.
+	* Matt Kraai -- added nc listening support
+	* Matt Kraai and David Douthitt -- reworked fine to support -type, 
+	    -perm, -mtime, and other improvements.
+	* Matt Kraai -- added find_applet_by_name and saved some memory thereby
+	* Matt Kraai -- added chomp to reduce redundant code elsewhere
+	* Matt Kraai -- Removed trailing \n chars from error_msg{,_and_die} messages. 
+	* Glenn McGrath -- bypass /proc in mount, now uses sysfs. 
+	* Glenn McGrath -- several updates to dpkg and dpkg-deb. 
+	* Manuel Novoa III -- several size optimizations: parse_mode, 
+	    process_escape_sequence, format, and get_kernel_revision. 
+	* Vladimir N. Oleynik -- Fixed a bug where init set PATH incorrectly 
+	* Vladimir N. Oleynik -- cleanups to route, cmdedit, mkdir, 
+	    mkfs_minix, mkswap, chmod_chown_chgrp and utility.c
+	* Vladimir N. Oleynik -- many fixes to cmdedit. so tab completion
+	    is now working and general editing is much improved.
+	* Vladimir N. Oleynik -- added route status reporting.
+	* Vladimir N. Oleynik -- fixed wget to use xfopen
+	* Bjorn Wesen -- new ifconfig and route applet (taken from 
+	    work done by Axis Communications).
+	* Mark Whitley -- Added a 'How to contribute to Busybox' doc
+	    and updated the style guide.
+	* Mark Whitley -- implemented grep -A, -B, and -C
 
 
 	 -Erik Andersen, not yet released
