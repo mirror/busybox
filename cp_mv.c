@@ -41,6 +41,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <getopt.h>
 
 #define is_cp 0
 #define is_mv 1
@@ -189,21 +190,21 @@ rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int cp_mv_main(int argc, char **argv)
 {
+	int i;
+	char c;
+
 	if (*applet_name == 'c' && *(applet_name + 1) == 'p')
 		dz_i = is_cp;
 	else
 		dz_i = is_mv;
 	if (argc < 3)
 		usage(cp_mv_usage[dz_i]);
-	argc--;
-	argv++;
 
 	if (dz_i == is_cp) {
 		recursiveFlag = preserveFlag = forceFlag = FALSE;
 		followLinks = TRUE;
-		while (*argv && **argv == '-') {
-			while (*++(*argv)) {
-				switch (**argv) {
+		while ((c = getopt(argc, argv, "adpRf")) != EOF) {
+				switch (c) {
 				case 'a':
 					followLinks = FALSE;
 					preserveFlag = TRUE;
@@ -224,11 +225,8 @@ extern int cp_mv_main(int argc, char **argv)
 				default:
 					usage(cp_mv_usage[is_cp]);
 				}
-			}
-			argc--;
-			argv++;
 		}
-		if (argc < 2) {
+		if ((argc - optind) < 2) {
 			usage(cp_mv_usage[dz_i]);
 		}
 	} else {					/* (dz_i == is_mv) */
@@ -252,12 +250,12 @@ extern int cp_mv_main(int argc, char **argv)
 		goto exit_false;
 	}
 
-	while (argc-- > 1) {
+	for (i = optind; i < (argc-1); i++) {
 		size_t srcLen;
 		volatile int flags_memo;
 		int	   status;
 
-		baseSrcName = *(argv++);
+		baseSrcName=argv[i];
 
 		if ((srcLen = strlen(baseSrcName)) > BUFSIZ)
 			name_too_long__exit();
