@@ -310,7 +310,7 @@ static void set_term(int fd)
 
 /* How much memory does this machine have?
    Units are kBytes to avoid overflow on 4GB machines */
-static int check_free_memory(void)
+static unsigned int check_free_memory(void)
 {
 	struct sysinfo info;
 	unsigned int result, u, s = 10;
@@ -330,10 +330,11 @@ static int check_free_memory(void)
 		s--;
 	}
 	result = (info.totalram >> s) + (info.totalswap >> s);
-	result = result * u;
-	if (result < 0)
-		result = INT_MAX;
-	return result;
+	if ((unsigned long long) (result * u) > UINT_MAX) {
+		return(UINT_MAX);
+	} else {
+		return(result * u);
+	}
 }
 
 static void console_init(void)
