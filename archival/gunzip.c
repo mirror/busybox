@@ -7,9 +7,9 @@
  * Originally adjusted for busybox by Sven Rudolph <sr1@inf.tu-dresden.de>
  * based on gzip sources
  *
- * Adjusted further by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- * to support files as well as stdin/stdout, and to generally behave itself wrt
- * command line handling.
+ * Adjusted further by Erik Andersen <andersee@debian.org> to support files as
+ * well as stdin/stdout, and to generally behave itself wrt command line
+ * handling.
  *
  * General cleanup to better adhere to the style guide and make use of standard
  * busybox functions by Glenn McGrath <bug1@optushome.com.au>
