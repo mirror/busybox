@@ -31,126 +31,78 @@
 
 /* Busyboxed by Erik Andersen */
 
+/* Further size reductions by Glenn McGrath and Manuel Novoa III. */
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-
-#if defined (HAVE_SYSINFO) && defined (HAVE_SYS_SYSTEMINFO_H)
-# include <sys/systeminfo.h>
-#endif
+#include <getopt.h>
 #include "busybox.h"
 
-static void print_element(unsigned int mask, char *element);
+typedef struct {
+	struct utsname name;
+	char processor[8];			/* for "unknown" */
+} uname_info_t;
 
-/* Values that are bitwise or'd into `toprint'. */
-/* Operating system name. */
-static const int PRINT_SYSNAME = 1;
-
-/* Node name on a communications network. */
-static const int PRINT_NODENAME = 2;
-
-/* Operating system release. */
-static const int PRINT_RELEASE = 4;
-
-/* Operating system version. */
-static const int PRINT_VERSION = 8;
-
-/* Machine hardware name. */
-static const int PRINT_MACHINE = 16;
-
- /* Host processor type. */
-static const int PRINT_PROCESSOR = 32;
-
-/* Mask indicating which elements of the name to print. */
-static unsigned char toprint;
-
+static const char options[] = "snrvmpa";
+static const char flags[] = "\x01\x02\x04\x08\x10\x20\x3f";
+static const unsigned short int utsname_offset[] = {
+	offsetof(uname_info_t,name.sysname),
+	offsetof(uname_info_t,name.nodename),
+	offsetof(uname_info_t,name.release),
+	offsetof(uname_info_t,name.version),
+	offsetof(uname_info_t,name.machine),
+	offsetof(uname_info_t,processor)
+};
 
 int uname_main(int argc, char **argv)
 {
-	struct utsname name;
-	char processor[256];
+	uname_info_t uname_info;
 
 #if defined(__sparc__) && defined(__linux__)
 	char *fake_sparc = getenv("FAKE_SPARC");
 #endif
 
-	toprint = 0;
+	const unsigned short int *delta;
+	int opt;
+	char toprint = 0;
 
-	/* Parse any options */
-	//fprintf(stderr, "argc=%d, argv=%s\n", argc, *argv);
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*(++(*argv))) {
-			switch (**argv) {
-			case 's':
-				toprint |= PRINT_SYSNAME;
-				break;
-			case 'n':
-				toprint |= PRINT_NODENAME;
-				break;
-			case 'r':
-				toprint |= PRINT_RELEASE;
-				break;
-			case 'v':
-				toprint |= PRINT_VERSION;
-				break;
-			case 'm':
-				toprint |= PRINT_MACHINE;
-				break;
-			case 'p':
-				toprint |= PRINT_PROCESSOR;
-				break;
-			case 'a':
-				toprint = (PRINT_SYSNAME | PRINT_NODENAME | PRINT_RELEASE |
-						   PRINT_PROCESSOR | PRINT_VERSION |
-						   PRINT_MACHINE);
-				break;
-			default:
-				show_usage();
-			}
+	while ((opt = getopt(argc, argv, options)) != -1) {
+		const char *p = strchr(options,opt);
+		if (p == NULL) {
+			show_usage();
+		}
+		toprint |= flags[(int)(p-options)];
+	}
+
+	if (toprint == 0) {
+		toprint = flags[0];		/* sysname */
+	}
+
+	if (uname(&uname_info.name) == -1) {
+		error_msg_and_die("cannot get system name");
+	}
+
+#if defined(__sparc__) && defined(__linux__)
+	if ((fake_sparc != NULL)
+		&& ((fake_sparc[0] == 'y')
+			|| (fake_sparc[0] == 'Y'))) {
+		strcpy(uname_info.name.machine, "sparc");
+	}
+#endif
+
+	strcpy(uname_info.processor, "unknown");
+
+	for (delta=utsname_offset ; toprint ; delta++, toprint >>= 1) {
+		if (toprint & 1) {
+			printf("%s ", ((char *)(&uname_info)) + *delta );
 		}
 	}
 
-	if (toprint == 0)
-		toprint = PRINT_SYSNAME;
-
-	if (uname(&name) == -1)
-		perror_msg("cannot get system name");
-
-#if defined (HAVE_SYSINFO) && defined (SI_ARCHITECTURE)
-	if (sysinfo(SI_ARCHITECTURE, processor, sizeof(processor)) == -1)
-		perror_msg("cannot get processor type");
-}
-
-#else
-	strcpy(processor, "unknown");
-#endif
-
-#if defined(__sparc__) && defined(__linux__)
-	if (fake_sparc != NULL
-		&& (fake_sparc[0] == 'y'
-			|| fake_sparc[0] == 'Y')) strcpy(name.machine, "sparc");
-#endif
-
-	print_element(PRINT_SYSNAME, name.sysname);
-	print_element(PRINT_NODENAME, name.nodename);
-	print_element(PRINT_RELEASE, name.release);
-	print_element(PRINT_VERSION, name.version);
-	print_element(PRINT_MACHINE, name.machine);
-	print_element(PRINT_PROCESSOR, processor);
+	putchar('\n');
 
 	return EXIT_SUCCESS;
-}
-
-/* If the name element set in MASK is selected for printing in `toprint',
-   print ELEMENT; then print a space unless it is the last element to
-   be printed, in which case print a newline. */
-
-static void print_element(unsigned int mask, char *element)
-{
-	if (toprint & mask) {
-		toprint &= ~mask;
-		printf("%s%c", element, toprint ? ' ' : '\n');
-	}
 }
