@@ -370,14 +370,16 @@ void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len)
 
 void get_previous_history(struct history **hp, char* command)
 {
-	free((*hp)->s);
+	if ((*hp)->s)
+		free((*hp)->s);
 	(*hp)->s = strdup(command);
 	*hp = (*hp)->p;
 }
 
 void get_next_history(struct history **hp, char* command)
 {
-	free((*hp)->s);
+	if ((*hp)->s)
+		free((*hp)->s);
 	(*hp)->s = strdup(command);
 	*hp = (*hp)->n;
 }
@@ -654,7 +656,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 		struct history *h = his_end;
 
 		if (!h) {
-			/* No previous history */
+			/* No previous history -- this memory is never freed */
 			h = his_front = malloc(sizeof(struct history));
 			h->n = malloc(sizeof(struct history));
 
@@ -666,7 +668,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			his_end = h->n;
 			history_counter++;
 		} else {
-			/* Add a new history command */
+			/* Add a new history command -- this memory is never freed */
 			h->n = malloc(sizeof(struct history));
 
 			h->n->p = h;
