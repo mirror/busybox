@@ -365,6 +365,7 @@ const char halt_usage[] =
 	"\nHalt the system.\n"
 #endif
 	;
+#endif
 
 #if defined BB_HEAD
 const char head_usage[] =
