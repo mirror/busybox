@@ -1556,9 +1556,7 @@ static int hashcmd (int, char **);
 static int helpcmd (int, char **);
 static int jobscmd (int, char **);
 static int localcmd (int, char **);
-#ifndef CONFIG_PWD
 static int pwdcmd (int, char **);
-#endif
 static int readcmd (int, char **);
 static int returncmd (int, char **);
 static int setcmd (int, char **);
@@ -1653,9 +1651,7 @@ static const struct builtincmd builtincmds[] = {
 	{ BUILTIN_REGULAR    "let", letcmd },
 #endif
 	{ BUILTIN_ASSIGN    "local", localcmd },
-#ifndef CONFIG_PWD
 	{ BUILTIN_NOSPEC    "pwd", pwdcmd },
-#endif
 	{ BUILTIN_REGULAR   "read", readcmd },
 	{ BUILTIN_SPEC_ASSG "readonly", exportcmd },
 	{ BUILTIN_SPECIAL   "return", returncmd },
@@ -1736,7 +1732,6 @@ static int forkshell (struct job *, const union node *, int);
 static int waitforjob (struct job *);
 
 static int docd (char *, int);
-static char *getcomponent (void);
 static void updatepwd (const char *);
 static void getpwd (void);
 
@@ -1744,7 +1739,6 @@ static char *padvance (const char **, const char *);
 
 static char nullstr[1];         /* zero length string */
 static char *curdir = nullstr;          /* current working directory */
-static char *cdcomppath;
 
 static int
 cdcmd(argc, argv)
@@ -1801,89 +1795,20 @@ cdcmd(argc, argv)
  */
 
 static int
-docd(dest, print)
-	char *dest;
-	int print;
+docd(char *dest, int print)
 {
-	char *p;
-	char *q;
-	char *component;
-	struct stat statb;
-	int first;
-	int badstat;
-
 	TRACE(("docd(\"%s\", %d) called\n", dest, print));
-
-	/*
-	 *  Check each component of the path. If we find a symlink or
-	 *  something we can't stat, clear curdir to force a getcwd()
-	 *  next time we get the value of the current directory.
-	 */
-	badstat = 0;
-	cdcomppath = sstrdup(dest);
-	STARTSTACKSTR(p);
-	if (*dest == '/') {
-		STPUTC('/', p);
-		cdcomppath++;
-	}
-	first = 1;
-	while ((q = getcomponent()) != NULL) {
-		if (q[0] == '\0' || (q[0] == '.' && q[1] == '\0'))
-			continue;
-		if (! first)
-			STPUTC('/', p);
-		first = 0;
-		component = q;
-		while (*q)
-			STPUTC(*q++, p);
-		if (equal(component, ".."))
-			continue;
-		STACKSTRNUL(p);
-		if ((lstat(stackblock(), &statb) < 0)
-		    || (S_ISLNK(statb.st_mode)))  {
-			/* print = 1; */
-			badstat = 1;
-			break;
-		}
-	}
-
 	INTOFF;
 	if (chdir(dest) < 0) {
 		INTON;
 		return -1;
 	}
-	updatepwd(badstat ? NULL : dest);
+	updatepwd(dest);
 	INTON;
 	if (print && iflag)
 		printf(snlfmt, curdir);
 	return 0;
 }
-
-
-/*
- * Get the next component of the path name pointed to by cdcomppath.
- * This routine overwrites the string pointed to by cdcomppath.
- */
-
-static char *
-getcomponent() {
-	char *p;
-	char *start;
-
-	if ((p = cdcomppath) == NULL)
-		return NULL;
-	start = cdcomppath;
-	while (*p != '/' && *p != '\0')
-		p++;
-	if (*p == '\0') {
-		cdcomppath = NULL;
-	} else {
-		*p++ = '\0';
-		cdcomppath = p;
-	}
-	return start;
-}
-
 
 
 /*
@@ -1897,62 +1822,25 @@ static void hashcd (void);
 static void
 updatepwd(const char *dir)
 {
-	char *new;
-	char *p;
-	size_t len;
-
 	hashcd();                               /* update command hash table */
 
-	/*
-	 * If our argument is NULL, we don't know the current directory
-	 * any more because we traversed a symbolic link or something
-	 * we couldn't stat().
-	 */
+	/* If our argument is NULL, we don't know the current directory */
 	if (dir == NULL || curdir == nullstr)  {
 		setpwd(0, 1);
 		return;
 	}
-	len = strlen(dir);
-	cdcomppath = sstrdup(dir);
-	STARTSTACKSTR(new);
-	if (*dir != '/') {
-		p = curdir;
-		while (*p)
-			STPUTC(*p++, new);
-		if (p[-1] == '/')
-			STUNPUTC(new);
-	}
-	while ((p = getcomponent()) != NULL) {
-		if (equal(p, "..")) {
-			while (new > stackblock() && (STUNPUTC(new), *new) != '/');
-		} else if (*p != '\0' && ! equal(p, ".")) {
-			STPUTC('/', new);
-			while (*p)
-				STPUTC(*p++, new);
-		}
-	}
-	if (new == stackblock())
-		STPUTC('/', new);
-	STACKSTRNUL(new);
-	setpwd(stackblock(), 1);
+	setpwd(dir, 1);
 }
 
 
-#ifndef CONFIG_PWD
 static int
-pwdcmd(argc, argv)
-	int argc;
-	char **argv;
+pwdcmd(int argc, char **argv)
 {
 	printf(snlfmt, curdir);
 	return 0;
 }
-#endif
 
-/*
- * Find out what the current directory is. If we already know the current
- * directory, this routine returns immediately.
- */
+/* Ask system the current directory */
 static void
 getpwd(void)
 {
@@ -1964,19 +1852,22 @@ getpwd(void)
 static void
 setpwd(const char *val, int setold)
 {
+	char *cated = NULL;
+
 	if (setold) {
 		setvar("OLDPWD", curdir, VEXPORT);
 	}
 	INTOFF;
 	if (curdir != nullstr) {
+		if(val!=NULL && *val != '/')
+			val = cated = concat_path_file(curdir, val);
 		free(curdir);
-		curdir = nullstr;
 	}
-	if (!val) {
+	if (!val)
 		getpwd();
-	} else {
-		curdir = savestr(val);
-	}
+	 else
+		curdir = simplify_path(val);
+	free(cated);
 	INTON;
 	setvar("PWD", curdir, VEXPORT);
 }
@@ -5950,6 +5841,7 @@ init(void) {
 
       /* from cd.c: */
       {
+	      curdir = nullstr;
 	      setpwd(0, 0);
       }
 
@@ -7939,7 +7831,6 @@ readcmdfile(const char *name)
  * search for the file, which is necessary to find sub-commands.
  */
 
-
 static inline char *
 find_dot_file(char *mybasename)
 {
@@ -9633,7 +9524,7 @@ static union node *list (int);
 static union node *andor (void);
 static union node *pipeline (void);
 static union node *command (void);
-static union node *simplecmd (void);
+static union node *simplecmd(union node **rpp, union node *redir);
 static void parsefname (void);
 static void parseheredoc (void);
 static char peektoken (void);
@@ -9816,7 +9707,7 @@ pipeline() {
 
 
 static union node *
-command() {
+command(void) {
 	union node *n1, *n2;
 	union node *ap, **app;
 	union node *cp, **cpp;
@@ -10005,7 +9896,7 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 			synexpect(-1);
 	case TWORD:
 		tokpushback++;
-		n1 = simplecmd();
+		n1 = simplecmd(rpp, redir);
 		return n1;
 	default:
 		synexpect(-1);
@@ -10035,18 +9926,25 @@ TRACE(("expecting DO got %s %s\n", tokname(got), got == TWORD ? wordtext : ""));
 
 
 static union node *
-simplecmd() {
+simplecmd(union node **rpp, union node *redir) {
 	union node *args, **app;
 	union node *n = NULL;
 	union node *vars, **vpp;
-	union node **rpp, *redir;
+	union node **orig_rpp;
 
 	args = NULL;
 	app = &args;
 	vars = NULL;
 	vpp = &vars;
-	redir = NULL;
+
+	/* If we don't have any redirections already, then we must reset
+	  rpp to be the address of the local redir variable.  */
+	if (redir == 0)
 	rpp = &redir;
+	/* We save the incoming value, because we need this for shell
+	  functions.  There can not be a redirect or an argument between
+	  the function name and the open parenthesis.  */
+	orig_rpp = rpp;
 
 	checkalias = 2;
 	for (;;) {
@@ -10073,7 +9971,7 @@ simplecmd() {
 		case TLP:
 			if (
 				args && app == &args->narg.next &&
-				!vars && !redir
+				!vars && rpp == orig_rpp
 			) {
 				/* We have a function */
 				if (readtoken() != TRP)
@@ -10458,7 +10356,6 @@ breakloop:
 #undef RETURN
 }
 #endif
-
 
 /*
  * If eofmark is NULL, read a word or a redirection symbol.  If eofmark
@@ -12730,7 +12627,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.29 2001/10/24 05:00:16 andersen Exp $
+ * $Id: ash.c,v 1.30 2001/10/24 08:01:06 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
