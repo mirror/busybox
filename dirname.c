@@ -37,7 +37,7 @@ extern int dirname_main(int argc, char **argv)
 	argv++;
 
 	s=*argv+strlen(*argv)-1;
-	while (s != *argv && *s == '/') {
+	while (s > *argv && *s == '/') {
 		*s-- = '\0';
 	}
 	s = strrchr(*argv, '/');
