@@ -1283,10 +1283,15 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 		case 3:
 			/* Control-c -- stop gathering input */
 			goto_new_line();
+#ifndef CONFIG_ASH
 			command[0] = 0;
 			len = 0;
 			lastWasTab = FALSE;
 			put_prompt();
+#else
+			len = 0;
+			break_out = -1; /* for control traps */
+#endif
 			break;
 		case 4:
 			/* Control-d -- Delete one character, or exit
@@ -1299,7 +1304,7 @@ prepare_to_die:
 				/* cmdedit_reset_term() called in atexit */
 				exit(EXIT_SUCCESS);
 #else
-				break_out = -1; /* for control stoped jobs */
+				len = break_out = -1; /* for control stoped jobs */
 				break;
 #endif
 			} else {
@@ -1493,7 +1498,7 @@ rewrite_line:
 	/* cleanup may be saved current command line */
 	free(history[MAX_HISTORY]);
 	history[MAX_HISTORY] = 0;
-	if (len) {                                      /* no put empty line */
+	if (len> 0) {                                      /* no put empty line */
 		int i = n_history;
 			/* After max history, remove the oldest command */
 		if (i >= MAX_HISTORY) {
@@ -1510,7 +1515,7 @@ rewrite_line:
 	}
 #else  /* MAX_HISTORY < 1 */
 #if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
-	if (len) {              /* no put empty line */
+	if (len > 0) {              /* no put empty line */
 		num_ok_lines++;
 	}
 #endif

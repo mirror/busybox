@@ -3476,10 +3476,17 @@ funcdone:
 }
 
 
+static inline int
+goodname(const char *p)
+{
+	return !*endofname(p);
+}
+
 /*
  * Search for a command.  This is called before we fork so that the
  * location of the command will be available in the parent as well as
- * the child.
+ * the child.  The check for "goodname" is an overly conservative
+ * check that the name will not be subject to expansion.
  */
 
 static void
@@ -3488,7 +3495,9 @@ prehash(union node *n)
 	struct cmdentry entry;
 
 	if (n->type == NCMD && n->ncmd.args)
-		find_command(n->ncmd.args->narg.text, &entry, 0, pathval());
+		if (goodname(n->ncmd.args->narg.text))
+			find_command(n->ncmd.args->narg.text, &entry, 0,
+				     pathval());
 }
 
 
@@ -6020,7 +6029,12 @@ retry:
 		nr = cmdedit_read_input((char *) cmdedit_prompt, buf);
 		if(nr == 0) {
 			/* Ctrl+C presend */
-			raise(SIGINT);
+			if(trap[SIGINT]) {
+				buf[0] = '\n';
+				buf[1] = 0;
+				raise(SIGINT);
+				return 1;
+			}
 			goto retry;
 		}
 		if(nr < 0) {
@@ -7425,6 +7439,8 @@ cmdtxt(union node *n)
 	const char *p;
 	char s[2];
 
+	if (!n)
+		return;
 	switch (n->type) {
 	default:
 #if DEBUG
@@ -9295,11 +9311,6 @@ static void synerror(const char *) __attribute__((__noreturn__));
 static void setprompt(int);
 
 
-static inline int
-goodname(const char *p)
-{
-	return !*endofname(p);
-}
 
 static inline int
 isassignment(const char *p)
@@ -10755,7 +10766,7 @@ noexpand(char *text)
  * more letters, underscores, and digits).
  */
 
-char *
+static char *
 endofname(const char *name)
 {
 	char *p;
@@ -11835,12 +11846,13 @@ exitshell(void)
 	struct jmploc loc;
 	char *p;
 	int status;
+	int jmp;
 
+	jmp = setjmp(loc.loc);
 	status = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
-	if (setjmp(loc.loc)) {
+	if (jmp)
 		goto out;
-	}
 	handler = &loc;
 	if ((p = trap[0]) != NULL && *p != '\0') {
 		trap[0] = NULL;
@@ -12713,7 +12725,41 @@ ulimitcmd(int argc, char **argv)
 	struct rlimit   limit;
 
 	what = 'f';
-	while ((optc = nextopt("HSatfdsmcnplvw")) != '\0')
+	while ((optc = nextopt("HSa"
+#ifdef RLIMIT_CPU
+				"t"
+#endif
+#ifdef RLIMIT_FSIZE
+				"f"
+#endif
+#ifdef RLIMIT_DATA
+				"d"
+#endif
+#ifdef RLIMIT_STACK
+				"s"
+#endif
+#ifdef RLIMIT_CORE
+				"c"
+#endif
+#ifdef RLIMIT_RSS
+				"m"
+#endif
+#ifdef RLIMIT_MEMLOCK
+				"l"
+#endif
+#ifdef RLIMIT_NPROC
+				"p"
+#endif
+#ifdef RLIMIT_NOFILE
+				"n"
+#endif
+#ifdef RLIMIT_AS
+				"v"
+#endif
+#ifdef RLIMIT_LOCKS
+				"w"
+#endif
+						)) != '\0')
 		switch (optc) {
 		case 'H':
 			how = HARD;
