@@ -335,10 +335,10 @@ extern int init_main(int argc, char **argv)
     const char* const* tty1_commands = shell_commands;
 #ifndef DEBUG_INIT
     char *hello_msg_format =
-	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
+	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
 #else
     char *hello_msg_format =
-	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
+	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
 #endif
     const char *no_memory =
 	"Sorry, your computer does not have enough memory.\r\n";
