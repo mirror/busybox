@@ -22,6 +22,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -106,8 +107,13 @@ int dd_main(int argc, char **argv)
 			perror_msg_and_die("%s", outfile);
 
 		if (seek && trunc) {
-			if (ftruncate(ofd, seek * bs) < 0)
-				perror_msg_and_die("%s", outfile);
+			if (ftruncate(ofd, seek * bs) < 0) {
+				struct stat st;
+
+				if (fstat (ofd, &st) < 0 || S_ISREG (st.st_mode) ||
+						S_ISDIR (st.st_mode))
+					perror_msg_and_die("%s", outfile);
+			}
 		}
 	} else {
 		ofd = STDOUT_FILENO;
