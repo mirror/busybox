@@ -2,6 +2,7 @@
 #include "busybox.h"
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -15,8 +16,6 @@
 #include "messages.c"
 
 static int been_there_done_that = 0;
-
-
 const char *applet_name;
 
 #ifdef BB_FEATURE_INSTALLER
@@ -70,12 +69,12 @@ static void install_links(const char *busybox, int use_symbolic_links)
 	int i;
 	int rc;
 
-	if (use_symbolic_links) Link = symlink;
+	if (use_symbolic_links) 
+		Link = symlink;
 
 	for (i = 0; applets[i].name != NULL; i++) {
 		sprintf ( command, "%s/%s", 
-				install_dir[applets[i].location], 
-				applets[i].name);
+				install_dir[applets[i].location], applets[i].name);
 		rc = Link(busybox, command);
 
 		if (rc) {
@@ -190,7 +189,7 @@ int busybox_main(int argc, char **argv)
 
 	/* Fix up the argv pointers */
 	len = argv[1] - argv[0];
-	memmove(argv, argv+1, sizeof(char *) * (argc + 1));
+	memmove(argv, argv + 1, sizeof(char *) * (argc + 1));
 	for (i = 0; i < argc; i++)
 		argv[i] -= len;
 
