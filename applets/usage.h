@@ -1376,11 +1376,6 @@
 #define rpm2cpio_full_usage \
 	"Outputs a cpio archive of the rpm file."
 
-#define rpmunpack_trivial_usage \
-	"< package.rpm | gunzip | cpio -idmuv"
-#define rpmunpack_full_usage \
-	"Extracts an rpm archive."
-	
 #define sed_trivial_usage \
 	"[-nef] pattern [files...]"
 #define sed_full_usage \

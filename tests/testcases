@@ -294,8 +294,6 @@ route
 
 # rpm2cpio
 
-# rpmunpack
-
 # sed - we can do some one-liners here, some testing is a little
 # difficult to do in just this space (like a,i,c cmds).
 
