@@ -85,7 +85,7 @@ int chown_main(int argc, char **argv)
 	}
 
 	/* Ok, ready to do the deed now */
-	while (optind++ < argc) {
+	while (optind++ < argc-1) {
 		if (recursive_action (argv[optind], recursiveFlag, FALSE, FALSE, 
 					fileAction, fileAction, NULL) == FALSE) {
 			return EXIT_FAILURE;
