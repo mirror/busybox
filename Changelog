@@ -1,7 +1,8 @@
 0.46
 
 	* Fixed a _horrible_ bug where 'tar -tvf' could unlink
-	    local files!!!  Fix thanks to Marius Groeger <mgroeger@sysgo.de>
+	    local files that matched tarball contents!!!  Fix thanks 
+	    to Marius Groeger <mgroeger@sysgo.de>
 	* Fixed a nasty bug in tar when could mess up saved symlinks.
 	* Fixed tar creation support when reading from stdin ('tar -cf - . ') 
 	    thanks to Daniel Quinlan <quinlan@transmeta.com>
@@ -31,7 +32,9 @@
 		Merged common escape seq. code from tr and echo into utility.c.
 	    - Major work in updating/cleaning up the docs, and getting the
 		new SGML based docs into shape.
+	    - cleanup of ar.c
 	    - BusyBox should now poweroff when asked to do so.
+	    - Fixed 'ln -n' and 'ln -s' so they both work properly.
 	* Reorganized signal names in kill.c for better architecture support 
 	    -- patch thanks to simon wood <simon@mungewell.uklinux.net>
 	* In 0.43, backspace and delete worked properly, but with 0.45, 
