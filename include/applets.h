@@ -464,6 +464,9 @@
 #ifdef CONFIG_TELNET
 	APPLET(telnet, telnet_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_TELNETD
+	APPLET(telnetd, telnetd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_TEST
 	APPLET(test, test_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

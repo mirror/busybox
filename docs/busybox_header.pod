@@ -55,20 +55,20 @@ terse runtime description of their behavior.
 
 Currently defined functions include:
 
-   addgroup, adduser, adjtimex, ar, basename, busybox, cat,  chgrp,  chmod,
-chown, chroot, chvt, clear, cmp, cp, cpio, cut, date,  dc,  dd,  deallocvt,
-deluser, df, dirname, dmesg, dos2unix, dpkg, dpkg-deb, du, dumpkmap, dutmp,
-echo, expr, false, fbset, fdflush,  find,  free,  freeramdisk,  fsck.minix,
-getopt, getty, grep,  gunzip,  gzip,  halt,  head,  hostid,  hostname,  id,
-ifconfig,  init,  insmod,  kill,  killall,  klogd,  length,  ln,   loadacm,
-loadfont, loadkmap, logger, logname, ls, lsmod,  makedevs,  md5sum,  mkdir,
-mkfifo, mkfs.minix,  mknod,  mkswap,  mktemp,  more,  mount,  mt,  mv,  nc,
-nslookup, ping, pivot_root, poweroff, printf,  ps,  pwd,  rdate,  readlink,
-reboot, renice, reset, rm, rmdir, rmmod, route, rpm2cpio, sed, setkeycodes,
-sh, sleep, sort, stty, swapoff, swapon,  sync,  syslogd,  tail,  tar,  tee,
-telnet, test, tftp, touch, tr, true, tty, umount,  uname,  uniq,  unix2dos,
-update, uptime, usleep, uudecode,  uuencode,  watchdog,  wc,  wget,  which,
-whoami, xargs, yes, zcat, [
+   addgroup, adduser, adjtimex, ar, awk,  basename,  busybox,  cat,  chgrp,
+chmod, chown, chroot, chvt, clear,  cmp,  cp,  cpio,  cut,  date,  dc,  dd,
+deallocvt, deluser, df,  dirname,  dmesg,  dos2unix,  dpkg,  dpkg-deb,  du,
+dumpkmap,  dutmp,  echo,  expr,  false,   fbset,   fdflush,   find,   free,
+freeramdisk, fsck.minix, getopt, getty, grep,  gunzip,  gzip,  halt,  head,
+hostid, hostname, id, ifconfig, init, insmod, kill, killall, klogd, length,
+ln, loadacm, loadfont, loadkmap,  logger,  logname,  ls,  lsmod,  makedevs,
+md5sum, mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount,  mt,
+mv, nc, netstat, nslookup, ping, pivot_root,  poweroff,  printf,  ps,  pwd,
+rdate, readlink, reboot, renice, reset, rm, rmdir, rmmod, route,  rpm2cpio,
+sed, setkeycodes, sh, sleep, sort, stty, swapoff,  swapon,  sync,  syslogd,
+tail, tar, tee, telnet, telnetd, test, tftp, time, top,  touch,  tr,  true,
+tty, umount, uname,  uniq,  unix2dos,  update,  uptime,  usleep,  uudecode,
+uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
 
 =over 4
 

@@ -55,7 +55,8 @@ Glenn McGrath <bug1@optushome.com.au>
     ar, dpkg, dpkg-deb
 
 Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit; ports: ash, stty, traceroute; locale, various fixes
+    cmdedit; ports: ash, stty, traceroute, telnetd, top;
+    locale, various fixes
     and irreconcilable critic of everything not perfect.
 
 Bruce Perens <bruce@pixar.com>

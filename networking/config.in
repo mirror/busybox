@@ -34,6 +34,7 @@ bool 'telnet'	    CONFIG_TELNET
 if [ "$CONFIG_TELNET" = "y" ]; then
     bool '  Pass TERM type to remote host'		CONFIG_FEATURE_TELNET_TTYPE
 fi
+bool 'telnetd'      CONFIG_TELNETD
 bool 'tftp'	    CONFIG_TFTP
 if [ "$CONFIG_TFTP" = "y" ]; then
     bool '  Enable "get" command'			CONFIG_FEATURE_TFTP_GET
