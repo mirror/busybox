@@ -216,7 +216,8 @@ clean:
 	- rm -f busybox busybox.links libbb/loop.h .config.old .hdepend
 	- rm -f scripts/split-include scripts/mkdep .*config.log
 	- rm -rf include/config include/config.h
-	- find -name .\*.flags -o -name .depend -exec rm -f {} \;
+	- find -name .\*.flags -exec rm -f {} \;   
+	- find -name .depend -exec rm -f {} \;
 	- find -name \*.o -exec rm -f {} \;
 	- find -name \*.a -exec rm -f {} \;
 
