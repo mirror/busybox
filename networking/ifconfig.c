@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.8 2001/03/12 09:57:59 mjn3 Exp $
+ * $Id: ifconfig.c,v 1.9 2001/03/15 20:48:45 andersen Exp $
  *
  */
 
@@ -278,7 +278,7 @@ int ifconfig_main(int argc, char **argv)
 #ifdef BB_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argc ? *argv : NULL);
 #else
-		show_usage();
+		error_msg_and_die( "ifconfig was not compiled with interface status display support.");
 #endif
 	}
 
