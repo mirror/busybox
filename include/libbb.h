@@ -473,7 +473,8 @@ extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
-extern void vfork_daemon_rexec(int argc, char **argv, char *foreground_opt);
+extern void vfork_daemon_rexec(int nochdir, int noclose,
+		int argc, char **argv, char *foreground_opt);
 extern void get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
