@@ -26,7 +26,9 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 
+#define sysinfo kernel_sysinfo
 #include <linux/if_arp.h>
+#undef sysinfo
 #include <linux/if_tunnel.h>
 
 #include "rt_names.h"
