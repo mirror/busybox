@@ -73,8 +73,7 @@ extern int ln_main(int argc, char **argv)
 			free(src_name);
 			src_name = src;
 		}
-
-		if (stat(*argv, &statbuf)) {
+		if (!(flag & LN_SYMLINK) && stat(*argv, &statbuf)) {
 			bb_perror_msg(*argv);
 			status = EXIT_FAILURE;
 			free(src_name);
@@ -101,13 +100,3 @@ extern int ln_main(int argc, char **argv)
 
 	return status;
 }
-
-
-
-
-
-
-
-
-
-
