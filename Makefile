@@ -39,7 +39,7 @@ all: busybox busybox.links #doc
 -include .config.cmd
 include $(patsubst %,%/Makefile.in, $(DIRS))
 
-busybox: depend $(libraries-y)
+busybox: .depend $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ $(libraries-y) $(LIBRARIES)
 	$(STRIPCMD) $@
 
@@ -203,7 +203,6 @@ check: busybox
 
 clean:
 	- $(MAKE) -C tests clean
-	- $(MAKE) -C scripts/config clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
@@ -218,6 +217,7 @@ clean:
 	- find . -name \*.a -exec rm -f {} \;
 
 distclean: clean
+	- $(MAKE) -C scripts/config clean
 	rm -f .config .config.old .config.cmd
 
 release: distclean #doc
