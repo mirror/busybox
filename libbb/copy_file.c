@@ -123,7 +123,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
-		FILE *sfp, *dfp=NULL;
+		int src_fd;
+		int dst_fd;
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
 		char *link_name;
 
@@ -137,30 +138,32 @@ int copy_file(const char *source, const char *dest, int flags)
 			return 0;
 		}
 #endif
-
-		if ((sfp = bb_wfopen(source, "r")) == NULL) {
-			return -1;
+		src_fd = open(source, O_RDONLY);
+		if (src_fd == -1) {
+			bb_perror_msg("unable to open `%s'", source);
+			return(-1);
 		}
 
 		if (dest_exists) {
 			if (flags & FILEUTILS_INTERACTIVE) {
-				fprintf(stderr, "%s: overwrite `%s'? ", bb_applet_name, dest);
+				bb_error_msg("overwrite `%s'? ", dest);
 				if (!bb_ask_confirmation()) {
-					fclose (sfp);
+					close (src_fd);
 					return 0;
 				}
 			}
 
-			if ((dfp = fopen(dest, "w")) == NULL) {
+			dst_fd = open(dest, O_WRONLY);
+			if (dst_fd == -1) {
 				if (!(flags & FILEUTILS_FORCE)) {
 					bb_perror_msg("unable to open `%s'", dest);
-					fclose (sfp);
+					close(src_fd);
 					return -1;
 				}
 
 				if (unlink(dest) < 0) {
 					bb_perror_msg("unable to remove `%s'", dest);
-					fclose (sfp);
+					close(src_fd);
 					return -1;
 				}
 
@@ -169,27 +172,23 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 		if (!dest_exists) {
-			int fd;
-
-			if ((fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode)) < 0 ||
-					(dfp = fdopen(fd, "w")) == NULL) {
-				if (fd >= 0)
-					close(fd);
+			dst_fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode);
+			if (dst_fd == -1) {
 				bb_perror_msg("unable to open `%s'", dest);
-				fclose (sfp);
-				return -1;
+				close(src_fd);
+				return(-1);
 			}
 		}
 
-		if (bb_copyfd_eof(fileno(sfp), fileno(dfp)) == -1)
+		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
 			status = -1;
 
-		if (fclose(dfp) < 0) {
+		if (close(dst_fd) < 0) {
 			bb_perror_msg("unable to close `%s'", dest);
 			status = -1;
 		}
 
-		if (fclose(sfp) < 0) {
+		if (close(src_fd) < 0) {
 			bb_perror_msg("unable to close `%s'", source);
 			status = -1;
 		}
