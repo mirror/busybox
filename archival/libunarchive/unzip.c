@@ -997,7 +997,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	fread(buf, 1, 8, in_file);
 
 	/* Validate decompression - crc */
-	if (((buf[0] | (buf[1] << 8)) |((buf[2] | (buf[3] << 8)) << 16)) != (crc ^ 0xffffffffL)) {
+	if ((unsigned int)((buf[0] | (buf[1] << 8)) |((buf[2] | (buf[3] << 8)) << 16)) != (crc ^ 0xffffffffL)) {
 		error_msg("invalid compressed data--crc error");
 	}
 	/* Validate decompression - size */
