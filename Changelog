@@ -6,6 +6,10 @@
 	* Several options are now moved into busybox.defs.h
 	* Now 'rm -R' and 'rm -r' both work.
 	* dd now properly handles input beyond 1 block from stdin.
+	* Fixed a bug where tar unpacked everything a directories. Moved some code 
+	    from createPath into mkdir where it belonged, thereby making tar work properly.
+	* Fixed an off-by-one bug in cat.  Given a list of file it wouldn't cat out the
+	    last file in the list.
 
 	-Erik Andrsen
 

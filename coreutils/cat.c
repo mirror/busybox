@@ -49,14 +49,12 @@ extern int cat_main(int argc, char **argv)
     argv++;
 
     while (argc-- > 0) {
-	file = fopen(*argv, "r");
+	file = fopen(*(argv++), "r");
 	if (file == NULL) {
 	    perror(*argv);
 	    exit(FALSE);
 	}
 	print_file( file);
-	argc--;
-	argv++;
     }
     exit(TRUE);
 }
