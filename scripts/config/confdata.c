@@ -52,7 +52,7 @@ static char *conf_expand_value(const char *in)
 char *conf_get_default_confname(void)
 {
 	struct stat buf;
-	static char fullname[4096+1];
+	static char fullname[PATH_MAX+1];
 	char *env, *name;
 
 	name = conf_expand_value(conf_defname);

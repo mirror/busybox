@@ -26,6 +26,7 @@ enum {
 	set_no,
 	set_random
 } input_mode = ask_all;
+char *defconfig_file;
 
 static int indent = 1;
 static int valid_stdin = 1;
@@ -174,7 +175,7 @@ int conf_string(struct menu *menu)
 			break;
 		case '?':
 			/* print help */
-			if (line[1] == 0) {
+			if (line[1] == '\n') {
 				help = nohelp_text;
 				if (menu->sym->help)
 					help = menu->sym->help;
@@ -483,11 +484,12 @@ static void check_conf(struct menu *menu)
 
 int main(int ac, char **av)
 {
+	int i = 1;
 	const char *name;
 	struct stat tmpstat;
 
-	if (ac > 1 && av[1][0] == '-') {
-		switch (av[1][1]) {
+	if (ac > i && av[i][0] == '-') {
+		switch (av[i++][1]) {
 		case 'o':
 			input_mode = ask_new;
 			break;
@@ -497,6 +499,15 @@ int main(int ac, char **av)
 			break;
 		case 'd':
 			input_mode = set_default;
+			break;
+		case 'D':
+			input_mode = set_default;
+			defconfig_file = av[i++];
+			if (!defconfig_file) {
+				printf("%s: No default config file specified\n",
+					av[0]);
+				exit(1);
+			}
 			break;
 		case 'n':
 			input_mode = set_no;
@@ -516,18 +527,21 @@ int main(int ac, char **av)
 			printf("%s [-o|-s] config\n", av[0]);
 			exit(0);
 		}
-		name = av[2];
-	} else
-		name = av[1];
+	}
+  	name = av[i];
+	if (!name) {
+		printf("%s: configuration file missing\n", av[0]);
+	}
 	conf_parse(name);
 	//zconfdump(stdout);
 	switch (input_mode) {
 	case set_default:
-		name = conf_get_default_confname();
-		if (conf_read(name)) {
+		if (!defconfig_file)
+			defconfig_file = conf_get_default_confname();
+		if (conf_read(defconfig_file)) {
 			printf("***\n"
 				"*** Can't find default configuration \"%s\"!\n"
-				"***\n", name);
+				"***\n", defconfig_file);
 			exit(1);
 		}
 		break;
@@ -536,8 +550,8 @@ int main(int ac, char **av)
 			printf("***\n"
 				"*** You have not yet configured BusyBox!\n"
 				"***\n"
-				"*** Please run some configurator (e.g. \"make config\" or\n"
-				"*** \"make oldconfig\" or \"make menuconfig\").\n"
+				"*** Please run some configurator (e.g. \"make oldconfig\" or\n"
+				"*** \"make menuconfig\" or \"make config\").\n"
 				"***\n");
 			exit(1);
 		}
@@ -561,6 +575,9 @@ int main(int ac, char **av)
 		conf_cnt = 0;
 		check_conf(&rootmenu);
 	} while (conf_cnt);
-	conf_write(NULL);
+	if (conf_write(NULL)) {
+		fprintf(stderr, "\n*** Error during writing of the BusyBox configuration.\n\n");
+		return 1;
+	}
 	return 0;
 }
