@@ -564,54 +564,46 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				continue;
 			}
 		}
-		/* Special treatment if the list (-t) flag is on */
-		if (verboseFlag == TRUE && extractFlag == FALSE) {
-			int len, len1;
-			char buf[35];
-			struct tm *tm = localtime (&(header.mtime));
 
-			len=printf("%s ", modeString(header.mode));
-			memset(buf, 0, 8*sizeof(char));
-			my_getpwuid(buf, header.uid);
-			if (! *buf)
-				len+=printf("%d", header.uid);
-			else
-				len+=printf("%s", buf);
-			memset(buf, 0, 8*sizeof(char));
-			my_getgrgid(buf, header.gid);
-			if (! *buf)
-				len+=printf("/%-d ", header.gid);
-			else
-				len+=printf("/%-s ", buf);
-
-			if (header.type==CHRTYPE || header.type==BLKTYPE) {
-				len1=snprintf(buf, sizeof(buf), "%ld,%-ld ", 
-						header.devmajor, header.devminor);
-			} else {
-				len1=snprintf(buf, sizeof(buf), "%lu ", (long)header.size);
-			}
-			/* Jump through some hoops to make the columns match up */
-			for(;(len+len1)<31;len++)
-				printf(" ");
-			printf(buf);
-
-			/* Use ISO 8610 time format */
-			if (tm) { 
-				printf ("%04d-%02d-%02d %02d:%02d:%02d ", 
-						tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, 
-						tm->tm_hour, tm->tm_min, tm->tm_sec);
-			}
-		}
-		/* List contents if we are supposed to do that */
-		if (verboseFlag == TRUE && listFlag != TRUE) {
-			/* Now the normal listing */
-			FILE *vbFd = stdout;
-			if (tostdoutFlag == TRUE)	// If the archive goes to stdout, verbose to stderr
-				vbFd = stderr;
-			fprintf(vbFd, "%s\n", header.name);
-		}
-			
 		if (listFlag == TRUE) {
+			/* Special treatment if the list (-t) flag is on */
+			if (verboseFlag == TRUE) {
+				int len, len1;
+				char buf[35];
+				struct tm *tm = localtime (&(header.mtime));
+
+				len=printf("%s ", modeString(header.mode));
+				memset(buf, 0, 8*sizeof(char));
+				my_getpwuid(buf, header.uid);
+				if (! *buf)
+					len+=printf("%d", header.uid);
+				else
+					len+=printf("%s", buf);
+				memset(buf, 0, 8*sizeof(char));
+				my_getgrgid(buf, header.gid);
+				if (! *buf)
+					len+=printf("/%-d ", header.gid);
+				else
+					len+=printf("/%-s ", buf);
+
+				if (header.type==CHRTYPE || header.type==BLKTYPE) {
+					len1=snprintf(buf, sizeof(buf), "%ld,%-ld ", 
+							header.devmajor, header.devminor);
+				} else {
+					len1=snprintf(buf, sizeof(buf), "%lu ", (long)header.size);
+				}
+				/* Jump through some hoops to make the columns match up */
+				for(;(len+len1)<31;len++)
+					printf(" ");
+				printf(buf);
+
+				/* Use ISO 8610 time format */
+				if (tm) { 
+					printf ("%04d-%02d-%02d %02d:%02d:%02d ", 
+							tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, 
+							tm->tm_hour, tm->tm_min, tm->tm_sec);
+				}
+			}
 			printf("%s", header.name);
 			if (verboseFlag == TRUE) {
 				if (header.type==LNKTYPE)	/* If this is a link, say so */
@@ -622,6 +614,15 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			printf("\n");
 		}
 
+		/* List contents if we are supposed to do that */
+		if (verboseFlag == TRUE && extractFlag == TRUE) {
+			/* Now the normal listing */
+			FILE *vbFd = stdout;
+			if (tostdoutFlag == TRUE)	// If the archive goes to stdout, verbose to stderr
+				vbFd = stderr;
+			fprintf(vbFd, "%s\n", header.name);
+		}
+			
 		/* Remove files if we would overwrite them */
 		if (extractFlag == TRUE && tostdoutFlag == FALSE)
 			unlink(header.name);
