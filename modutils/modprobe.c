@@ -1,9 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * really dumb modprobe implementation for busybox
- * Copyright (C) 2001 Lineo, davidm@lineo.com
- *
- * dependency specific stuff completly rewritten and
+ * Modprobe written from scratch for BusyBox
  * copyright (c) 2002 by Robert Griebl, griebl@gmx.de
  *
  */
@@ -22,6 +19,7 @@
 
 struct dep_t {
 	char *  m_module;
+	char *  m_options;
 	
 	int     m_isalias  : 1;
 	int     m_reserved : 15;
@@ -34,6 +32,7 @@ struct dep_t {
 
 struct mod_list_t {
 	char *  m_module;
+	char *  m_options;
 	
 	struct mod_list_t * m_prev;
 	struct mod_list_t * m_next;
@@ -43,6 +42,24 @@ struct mod_list_t {
 static struct dep_t *depend;
 static int autoclean, show_only, quiet, do_syslog, verbose;
 
+int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
+{
+	char *tag, *value;
+
+	while ( isspace ( *buffer ))
+		buffer++;			
+	tag = value = buffer;
+	while ( !isspace ( *value ))
+		value++;
+	*value++ = 0;
+	while ( isspace ( *value ))
+		value++;
+
+	*ptag = tag;
+	*pvalue = value;
+	
+	return xstrlen( tag ) && xstrlen( value );
+}
 
 /* Jump through hoops to simulate how fgets() grabs just one line at a
  * time... Don't use any stdio since modprobe gets called from a kernel
@@ -141,6 +158,7 @@ static struct dep_t *build_dep ( void )
 					current = current-> m_next;
 				}
 				current-> m_module  = mod;
+				current-> m_options = 0;
 				current-> m_isalias = 0;
 				current-> m_depcnt  = 0;
 				current-> m_deparr  = 0;
@@ -230,41 +248,49 @@ static struct dep_t *build_dep ( void )
 			if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
 				char *alias, *mod;
 
-				alias = buffer + 6;
+				if ( parse_tag_value ( buffer + 6, &alias, &mod )) {
+					// fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
 				
-				while ( isspace ( *alias ))
-					alias++;			
-				mod = alias;					
-				while ( !isspace ( *mod ))
-					mod++;
-				*mod = 0;
-				mod++;
-				while ( isspace ( *mod ))
-					mod++;
-										
-//					fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
-				
-				if ( !current ) {
-					first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+					if ( !current ) {
+						first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+					}
+					else {
+						current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+						current = current-> m_next;
+					}
+					current-> m_module  = xstrdup ( alias );
+					current-> m_isalias = 1;
+					
+					if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
+						current-> m_depcnt = 0;
+						current-> m_deparr = 0;
+					}
+					else {
+						current-> m_depcnt  = 1;
+						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
+						current-> m_deparr[0] = xstrdup ( mod );
+					}
+					current-> m_next    = 0;					
 				}
-				else {
-					current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
-					current = current-> m_next;
-				}
-				current-> m_module  = xstrdup ( alias );
-				current-> m_isalias = 1;
-				
-				if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
-					current-> m_depcnt = 0;
-					current-> m_deparr = 0;
-				}
-				else {
-					current-> m_depcnt  = 1;
-					current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
-					current-> m_deparr[0] = xstrdup ( mod );
-				}
-				current-> m_next    = 0;					
 			}				
+			else if (( strncmp ( buffer, "options", 7 ) == 0 ) && isspace ( buffer [7] )) { 
+				char *mod, *opt;
+				
+				if ( parse_tag_value ( buffer + 8, &mod, &opt )) {
+					struct dep_t *dt;
+	
+					for ( dt = first; dt; dt = dt-> m_next ) {
+						if ( strcmp ( dt-> m_module, mod ) == 0 ) 
+							break;
+					}
+					if ( dt ) {
+						dt-> m_options = xrealloc ( dt-> m_options, xstrlen( opt ) + 1 );
+						strcpy ( dt-> m_options, opt );
+						
+						// fprintf ( stderr, "OPTION: '%s' -> '%s'\n", dt-> m_module, dt-> m_options );
+					}
+				}
+			}
 		}
 	}
 	close ( fd );
@@ -283,7 +309,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 
 	while ( list ) {
 		if ( do_insert )
-			snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s 2>/dev/null", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module );
+			snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s 2>/dev/null", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module, list-> m_options ? list-> m_options : "" );
 		else
 			snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s 2>/dev/null", do_syslog ? "-s" : "", list-> m_module );
 		
@@ -301,7 +327,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 {
 	struct mod_list_t *find;
 	struct dep_t *dt;
-
+	char *opt = 0;
 	int lm;
 
 	// remove .o extension
@@ -311,16 +337,31 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 
 	// check dependencies
 	for ( dt = depend; dt; dt = dt-> m_next ) {
-		if ( strcmp ( dt-> m_module, mod ) == 0 ) 
+		if ( strcmp ( dt-> m_module, mod ) == 0 ) {
+			opt = dt-> m_options;
 			break;
+		}
 	}
+	
 	// resolve alias names
-	if ( dt && dt-> m_isalias ) {
-		if ( dt-> m_depcnt == 1 )
-			check_dep ( dt-> m_deparr [0], head, tail );
-		printf ( "Got alias: %s -> %s\n", mod, dt-> m_deparr [0] );
-			
-		return;
+	while ( dt && dt-> m_isalias ) {
+		if ( dt-> m_depcnt == 1 ) {
+			struct dep_t *adt;
+		
+			for ( adt = depend; adt; adt = adt-> m_next ) {
+				if ( strcmp ( adt-> m_module, dt-> m_deparr [0] ) == 0 ) {
+					if ( !opt )
+						opt = adt-> m_options;
+					break;
+				}
+			}
+			if ( !adt )
+				return;
+			else
+				dt = adt;
+		}
+		else
+			return;			
 	}
 	
 	// search for duplicates
@@ -345,6 +386,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	if ( !find ) { // did not find a duplicate
 		find = (struct mod_list_t *) xmalloc ( sizeof(struct mod_list_t));		
 		find-> m_module = mod;
+		find-> m_options = opt;
 	}
 
 	// enqueue at tail	
@@ -377,21 +419,23 @@ static int mod_insert ( char *mod, int argc, char **argv )
 	check_dep ( mod, &head, &tail );
 	
 	if ( head && tail ) {
-		int i;
-		int l = 0;
+		if ( argc ) {
+			int i;		
+			int l = 0;
 	
-		// append module args
-		l = xstrlen ( head-> m_module );
-		for ( i = 0; i < argc; i++ ) 
-			l += ( xstrlen ( argv [i] ) + 1 );
+			// append module args
+			for ( i = 0; i < argc; i++ ) 
+				l += ( xstrlen ( argv [i] ) + 1 );
 		
-		head-> m_module = xrealloc ( head-> m_module, l + 1 );
+			head-> m_options = xrealloc ( head-> m_options, l + 1 );
+			head-> m_options [0] = 0;
 		
-		for ( i = 0; i < argc; i++ ) {
-			strcat ( head-> m_module, " " );
-			strcat ( head-> m_module, argv [i] );
+			for ( i = 0; i < argc; i++ ) {
+				strcat ( head-> m_options, argv [i] );
+				strcat ( head-> m_options, " " );
+			}
 		}
-
+		
 		// process tail ---> head
 		rc |= mod_process ( tail, 1 );
 	}
