@@ -22,9 +22,8 @@
 
 #include <arpa/inet.h>
 
-#define sysinfo kernel_sysinfo
-#include <linux/if_arp.h>
-#undef sysinfo
+#include <net/if.h>
+#include <net/if_arp.h>
 
 #include "rt_names.h"
 #include "utils.h"
