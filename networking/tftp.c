@@ -549,7 +549,7 @@ int tftp_main(int argc, char **argv)
 		show_usage();
 	}
 	if(localfile && strcmp(localfile, "-") == 0) {
-	    fd = fileno((cmd==tftp_cmd_get)? stdin : stdout);
+	    fd = fileno((cmd==tftp_cmd_get)? stdout : stdin);
 	}
 	if(localfile == NULL)
 	    localfile = remotefile;
