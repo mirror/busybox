@@ -1039,7 +1039,9 @@ static unsigned long set_readahead= 0, get_readahead= 0, readahead= 0;
 static unsigned long set_readonly = 0, get_readonly = 0, readonly = 0;
 static unsigned long set_unmask   = 0, get_unmask   = 0, unmask   = 0;     
 static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;     
+#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 static unsigned long set_dma      = 0, get_dma      = 0, dma      = 0;
+#endif
 static unsigned long set_dma_q	  = 0, get_dma_q    = 0, dma_q	  = 0;
 static unsigned long set_nowerr   = 0, get_nowerr   = 0, nowerr   = 0;
 static unsigned long set_keep     = 0, get_keep     = 0, keep     = 0;
