@@ -279,7 +279,7 @@ Options:
 		-b LIST Output only bytes from LIST
 		-c LIST Output only characters from LIST
 		-d CHAR Use CHAR instead of tab as the field delimiter
-		-s      Only output Lines if the include DELIM
+		-s      Output only the lines containing delimiter
 		-f N    Print only these fields
 		-n      Ignored
 
@@ -2034,4 +2034,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.57 2000/07/20 23:41:24 andersen Exp $
+# $Id: busybox.pod,v 1.58 2000/07/21 15:10:57 proski Exp $

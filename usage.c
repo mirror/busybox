@@ -117,7 +117,7 @@ const char cut_usage[] =
 	"\t-b LIST\tOutput only bytes from LIST\n"
 	"\t-c LIST\tOutput only characters from LIST\n"
 	"\t-d CHAR\tUse CHAR instead of tab as the field delimiter\n"
-	"\t-s\tOnly output Lines if the include DELIM\n"
+	"\t-s\tOutput only the lines containing delimiter\n"
 	"\t-f N\tPrint only these fields\n"
 	"\t-n\tIgnored\n"
 #endif

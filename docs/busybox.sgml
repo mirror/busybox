@@ -507,7 +507,7 @@
 				-b LIST Output only bytes from LIST
 				-c LIST Output only characters from LIST
 				-d CHAR Use CHAR instead of tab as the field delimiter
-				-s      Only output Lines if the include DELIM
+				-s      Output only the lines containing delimiter
 				-f N    Print only these fields
 				-n      Ignored
 		</screen>
