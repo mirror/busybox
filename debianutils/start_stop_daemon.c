@@ -21,15 +21,11 @@
 #include "busybox.h"
 #include "pwd_.h"
 
-static int start = 0;
-static int stop = 0;
-static int fork_before_exec = 0;
 static int signal_nr = 15;
 static int user_id = -1;
 static char *userspec = NULL;
 static char *cmdname = NULL;
 static char *execname = NULL;
-static char *startas = NULL;
 
 typedef struct pid_list {
 	struct pid_list *next;
@@ -195,27 +191,32 @@ static const struct option ssd_long_options[] = {
 	{ 0,			0,		0,			0 }
 };
 
+#define SSD_CTX_STOP	1
+#define SSD_CTX_START	2
+#define SSD_OPT_BACKGROUND	4
+
 int
 start_stop_daemon_main(int argc, char **argv)
 {
-	int flags;
+	unsigned long opt;
 	char *signame = NULL;
+	char *startas = NULL;
+
 	bb_applet_long_options = ssd_long_options;
 
-	flags = bb_getopt_ulflags(argc, argv, "KSba:n:s:u:x:", 
+	bb_opt_complementaly = "K~S";
+	opt = bb_getopt_ulflags(argc, argv, "KSba:n:s:u:x:", 
 			&startas, &cmdname, &signame, &userspec, &execname);
 
-	/* Be sneaky and avoid branching */
-	stop = (flags & 1);
-	start = (flags & 2);
-	fork_before_exec = (flags & 4);
+	/* Check one and only one context option was given */
+	if ((opt & 0x80000000UL) ||
+		(opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
+		bb_show_usage();
+	}
 
 	if (signame) {
 		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
 	}
-
-	if (start == stop)
-		bb_error_msg_and_die ("need exactly one of -S or -K");
 
 	if (!execname && !userspec)
 		bb_error_msg_and_die ("need at least one of -x or -u");
@@ -223,7 +224,7 @@ start_stop_daemon_main(int argc, char **argv)
 	if (!startas)
 		startas = execname;
 
-	if (start && !startas)
+	if ((opt & SSD_CTX_START) && !startas)
 		bb_error_msg_and_die ("-S needs -x or -a");
 
 	argc -= optind;
@@ -234,7 +235,7 @@ start_stop_daemon_main(int argc, char **argv)
 
 	do_procfs();
 
-	if (stop) {
+	if (opt & SSD_CTX_STOP) {
 		do_stop();
 		return EXIT_SUCCESS;
 	}
@@ -244,7 +245,7 @@ start_stop_daemon_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 	*--argv = startas;
-	if (fork_before_exec) {
+	if (opt & SSD_OPT_BACKGROUND) {
 		if (daemon(0, 0) == -1)
 			bb_perror_msg_and_die ("unable to fork");
 	}
@@ -252,4 +253,3 @@ start_stop_daemon_main(int argc, char **argv)
 	execv(startas, argv);
 	bb_perror_msg_and_die ("unable to start %s", startas);
 }
-
