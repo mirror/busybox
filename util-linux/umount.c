@@ -238,7 +238,7 @@ static int umount_all(void)
 
 extern int umount_main(int argc, char **argv)
 {
-	char path[PATH_MAX];
+	char path[PATH_MAX], result = 0;
 
 	if (argc < 2) {
 		bb_show_usage();
@@ -286,10 +286,13 @@ extern int umount_main(int argc, char **argv)
 		else
 			return EXIT_FAILURE;
 	}
-	if (realpath(*argv, path) == NULL)
-		bb_perror_msg_and_die("%s", path);
-	if (do_umount(path))
-		return EXIT_SUCCESS;
-	bb_perror_msg_and_die("%s", *argv);
-}
 
+	do {
+		if (realpath(*argv, path) != NULL)
+			if (do_umount(path))
+				continue;
+		bb_perror_msg("%s", path);
+		result++;
+	} while (--argc > 0 && ++argv);
+	return result;
+}

@@ -3441,7 +3441,7 @@
 	    <title>umount</title>
 
 		<para>
-		Usage: umount [OPTION]... DEVICE|DIRECTORY
+		Usage: umount [OPTION]... DEVICE|DIRECTORY [...]
 		</para>
 
 		<para>
