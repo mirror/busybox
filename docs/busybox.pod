@@ -166,7 +166,7 @@ Example:
 Usage: chown [OPTION]...  OWNER[.[GROUP] FILE...
 
 Changes the owner and/or group of each FILE to OWNER and/or GROUP.
- 
+
 Options:
 
 	-R	change files and directories recursively
@@ -1778,4 +1778,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.14 2000/04/17 16:44:46 erik Exp $
+# $Id: busybox.pod,v 1.15 2000/04/17 17:46:46 beppu Exp $
