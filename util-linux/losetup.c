@@ -50,6 +50,7 @@ losetup_main (int argc, char **argv)
       || (!delete && optind + 2 != argc))
     bb_show_usage();
 
+  opt = 0;
   if (delete)
     return del_loop (argv[optind]) ? EXIT_SUCCESS : EXIT_FAILURE;
   else
