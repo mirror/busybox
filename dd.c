@@ -57,8 +57,8 @@ static const char dd_usage[] =
 
 extern int dd_main(int argc, char **argv)
 {
-	const char *inFile = NULL;
-	const char *outFile = NULL;
+	char *inFile = NULL;
+	char *outFile = NULL;
 	char *cp;
 	int inFd;
 	int outFd;

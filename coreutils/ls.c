@@ -90,6 +90,11 @@
 #define DISP_DIRNAME	128		/* show directory name (for internal use) */
 #define DIR_RECURSE	256			/* -R (not yet implemented) */
 
+#ifndef MAJOR
+#define MAJOR(dev) (((dev)>>8)&0xff)
+#define MINOR(dev) ((dev)&0xff)
+#endif
+
 static unsigned char display_fmt = FMT_AUTO;
 static unsigned short opts = 0;
 static unsigned short column = 0;

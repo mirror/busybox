@@ -56,4 +56,7 @@ BB_DEF_MESSAGE(name_too_long, "%s: file name too long\n")
 #if defined bb_need_invalid_option || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(invalid_option, "%s: invalid option -- %c\n")
 #endif
+#if defined bb_need_io_error || ! defined BB_DECLARE_EXTERN
+	BB_DEF_MESSAGE(io_error, "%s: input/output error -- %s\n")
+#endif
 #endif							/* _BB_MESSAGES_C */

@@ -89,7 +89,7 @@ extern void usage(const char *usage)
 	exit FALSE;
 }
 
-extern void errorMsg(char *s, ...)
+extern void errorMsg(const char *s, ...)
 {
 	va_list p;
 
@@ -100,7 +100,7 @@ extern void errorMsg(char *s, ...)
 	fflush(stderr);
 }
 
-extern void fatalError(char *s, ...)
+extern void fatalError(const char *s, ...)
 {
 	va_list p;
 
@@ -117,7 +117,7 @@ extern void fatalError(char *s, ...)
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
  */
-int get_kernel_revision()
+extern int get_kernel_revision(void)
 {
 	struct utsname name;
 	int major = 0, minor = 0, patch = 0;

@@ -47,11 +47,6 @@
 #define EXPAND_ALLOC    1024
 
 
-#ifndef MAJOR
-#define MAJOR(dev) (((dev)>>8)&0xff)
-#define MINOR(dev) ((dev)&0xff)
-#endif
-
 #define isBlank(ch)     (((ch) == ' ') || ((ch) == '\t'))
 #define isDecimal(ch)   (((ch) >= '0') && ((ch) <= '9'))
 #define isOctal(ch)     (((ch) >= '0') && ((ch) <= '7'))
@@ -168,8 +163,8 @@ extern int yes_main(int argc, char** argv);
 
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
-extern void errorMsg(char *s, ...);
-extern void fatalError(char *s, ...) __attribute__ ((noreturn));
+extern void errorMsg(const char *s, ...);
+extern void fatalError(const char *s, ...) __attribute__ ((noreturn));
 
 const char *modeString(int mode);
 const char *timeString(time_t timeVal);
@@ -203,6 +198,7 @@ const char* timeString(time_t timeVal);
 extern int createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 
+extern int get_kernel_revision(void);
 extern uid_t my_getpwnam(char *name);
 extern gid_t my_getgrnam(char *name); 
 extern void my_getpwuid(char* name, uid_t uid);
