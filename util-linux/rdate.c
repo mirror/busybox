@@ -48,7 +48,7 @@ static time_t askremotedate(const char *host)
 
 	fd = xconnect(host, port);
 
-	if (read(fd, (void *)&nett, 4) != 4)    /* read time from server */
+	if (safe_read(fd, (void *)&nett, 4) != 4)    /* read time from server */
 		bb_error_msg_and_die("%s did not send the complete time", host);
 
 	close(fd);

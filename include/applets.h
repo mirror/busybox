@@ -458,7 +458,7 @@
 	APPLET(pwd, pwd_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_RDATE
-	APPLET(rdate, rdate_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+	APPLET(rdate, rdate_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_READLINK
 	APPLET(readlink, readlink_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)

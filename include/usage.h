@@ -1898,7 +1898,7 @@
 	"/root\n"
 
 #define rdate_trivial_usage \
-	"[OPTION] HOST"
+	"[-sp] HOST"
 #define rdate_full_usage \
 	"Get and possibly set the system date and time from a remote HOST.\n\n" \
 	"Options:\n" \
