@@ -154,7 +154,7 @@ extern int gunzip_main(int argc, char **argv)
 			out_file = xfopen(new_path, "w");
 
 			/* Set permissions on the file */
-			chmod(old_path, stat_buf.st_mode);
+			chmod(new_path, stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
 			delete_path = old_path;
