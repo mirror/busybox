@@ -39,8 +39,8 @@ static struct suffix_mult null_suffixes[] = {
 };
 #endif
 
-#define BYTES 0
-#define LINES 1
+static const int BYTES = 0;
+static const int LINES = 1;
 
 static char *tailbuf;
 static int taillen;
