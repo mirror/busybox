@@ -870,8 +870,8 @@ static fdisk_loff_t my_llseek (unsigned int f_d, fdisk_loff_t offset,
 	fdisk_loff_t result;
 	int retval;
 
-	retval = syscall(__NR__llseek, f_d, ((unsigned long long) offset) >> 32,
-			((unsigned long long) offset) & 0xffffffff,
+	retval = syscall(__NR__llseek, f_d, (unsigned long)(((unsigned long long) offset) >> 32),
+			(unsigned long)(((unsigned long long) offset) & 0xffffffff),
 			&result, origin);
 	return (retval == -1 ? (fdisk_loff_t) retval : result);
 }
