@@ -22,7 +22,7 @@ ifndef $(LIBIPROUTE_DIR)
 LIBIPROUTE_DIR:=$(TOPDIR)networking/libiproute/
 endif
 
-LIBIPROUTE-y:= \
+LIBIPROUTE-$(CONFIG_IP) += \
 	ipaddress.o \
 	iplink.o \
 	iproute.o \
