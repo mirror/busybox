@@ -47,12 +47,17 @@ int head_main(int argc, char **argv)
 	FILE *fp;
 	int need_headers, opt, len = 10, status = EXIT_SUCCESS;
 
+	if (( argc >= 2 ) && ( strlen ( argv [1] ) >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
+		len = atoi ( &argv [1][1] );
+		optind = 2;
+	}
+
 	/* parse argv[] */
 	while ((opt = getopt(argc, argv, "n:")) > 0) {
 		switch (opt) {
 		case 'n':
 			len = atoi(optarg);
-			if (len >= 1)
+			if (len >= 0)
 				break;
 			/* fallthrough */
 		default:

@@ -68,6 +68,11 @@ int tail_main(int argc, char **argv)
 	char *s, *start, *end, buf[BUFSIZ];
 	int i, opt;
 
+	if (( argc >= 2 ) && ( strlen ( argv [1] ) >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
+		count = atoi ( &argv [1][1] );
+		optind = 2;
+	}
+
 	while ((opt = getopt(argc, argv, "c:fhn:q:s:v")) > 0) {
 		switch (opt) {
 			case 'f':
