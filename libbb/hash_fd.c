@@ -106,13 +106,13 @@
     e = d; d = c; c = rotl32(b, 30); b = t
 
 /* type to hold the SHA1 context  */
-typedef struct sha1_ctx_s {
+struct sha1_ctx_t {
 	uint32_t count[2];
 	uint32_t hash[5];
 	uint32_t wbuf[16];
-} sha1_ctx_t;
+};
 
-static void sha1_compile(sha1_ctx_t *ctx)
+static void sha1_compile(struct sha1_ctx_t *ctx)
 {
 	uint32_t w[80], i, a, b, c, d, e, t;
 
@@ -154,7 +154,7 @@ static void sha1_compile(sha1_ctx_t *ctx)
 	ctx->hash[4] += e;
 }
 
-static void sha1_begin(sha1_ctx_t *ctx)
+static void sha1_begin(struct sha1_ctx_t *ctx)
 {
 	ctx->count[0] = ctx->count[1] = 0;
 	ctx->hash[0] = 0x67452301;
@@ -168,7 +168,7 @@ static void sha1_begin(sha1_ctx_t *ctx)
 /* hash_compile function as required.                                       */
 static void sha1_hash(const void *data, size_t len, void *ctx_v)
 {
-	sha1_ctx_t *ctx = (sha1_ctx_t *) ctx_v;
+	struct sha1_ctx_t *ctx = (struct sha1_ctx_t *) ctx_v;
 	uint32_t pos = (uint32_t) (ctx->count[0] & SHA1_MASK);
 	uint32_t freeb = SHA1_BLOCK_SIZE - pos;
 	const unsigned char *sp = data;
@@ -197,7 +197,7 @@ static uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
 static uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
 # endif /* __BYTE_ORDER */
 
-void sha1_end(unsigned char hval[], sha1_ctx_t *ctx)
+void sha1_end(unsigned char hval[], struct sha1_ctx_t *ctx)
 {
 	uint32_t i, cnt = (uint32_t) (ctx->count[0] & SHA1_MASK);
 
@@ -288,24 +288,21 @@ void sha1_end(unsigned char hval[], sha1_ctx_t *ctx)
 static const unsigned char fillbuf[64] = { 0x80, 0 /* , 0, 0, ...  */  };
 # endif	/* MD5SUM_SIZE_VS_SPEED == 0 */
 
-typedef u_int32_t md5_uint32;
-
 /* Structure to save state of computation between the single steps.  */
-typedef struct md5_ctx_s {
-	md5_uint32 A;
-	md5_uint32 B;
-	md5_uint32 C;
-	md5_uint32 D;
-
-	md5_uint32 total[2];
-	md5_uint32 buflen;
+struct md5_ctx_t {
+	uint32_t A;
+	uint32_t B;
+	uint32_t C;
+	uint32_t D;
+	uint32_t total[2];
+	uint32_t buflen;
 	char buffer[128];
-} md5_ctx_t;
+};
 
 /* Initialize structure containing state of computation.
  * (RFC 1321, 3.3: Step 3)
  */
-static void md5_begin(md5_ctx_t *ctx)
+static void md5_begin(struct md5_ctx_t *ctx)
 {
 	ctx->A = 0x67452301;
 	ctx->B = 0xefcdab89;
@@ -331,15 +328,15 @@ static void md5_begin(md5_ctx_t *ctx)
  * starting at BUFFER.
  * It is necessary that LEN is a multiple of 64!!!
  */
-static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
+static void md5_hash_block(const void *buffer, size_t len, struct md5_ctx_t *ctx)
 {
-	md5_uint32 correct_words[16];
-	const md5_uint32 *words = buffer;
-	size_t nwords = len / sizeof(md5_uint32);
-	const md5_uint32 *endp = words + nwords;
+	uint32_t correct_words[16];
+	const uint32_t *words = buffer;
+	size_t nwords = len / sizeof(uint32_t);
+	const uint32_t *endp = words + nwords;
 
 # if MD5SUM_SIZE_VS_SPEED > 0
-	static const md5_uint32 C_array[] = {
+	static const uint32_t C_array[] = {
 		/* round 1 */
 		0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
 		0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -381,10 +378,10 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 #  endif	/* MD5SUM_SIZE_VS_SPEED > 1 */
 # endif
 
-	md5_uint32 A = ctx->A;
-	md5_uint32 B = ctx->B;
-	md5_uint32 C = ctx->C;
-	md5_uint32 D = ctx->D;
+	uint32_t A = ctx->A;
+	uint32_t B = ctx->B;
+	uint32_t C = ctx->C;
+	uint32_t D = ctx->D;
 
 	/* First increment the byte count.  RFC 1321 specifies the possible
 	   length of the file up to 2^64 bits.  Here we only compute the
@@ -396,20 +393,20 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 	/* Process all bytes in the buffer with 64 bytes in each round of
 	   the loop.  */
 	while (words < endp) {
-		md5_uint32 *cwp = correct_words;
-		md5_uint32 A_save = A;
-		md5_uint32 B_save = B;
-		md5_uint32 C_save = C;
-		md5_uint32 D_save = D;
+		uint32_t *cwp = correct_words;
+		uint32_t A_save = A;
+		uint32_t B_save = B;
+		uint32_t C_save = C;
+		uint32_t D_save = D;
 
 # if MD5SUM_SIZE_VS_SPEED > 1
 #  define CYCLIC(w, s) (w = (w << s) | (w >> (32 - s)))
 
-		const md5_uint32 *pc;
+		const uint32_t *pc;
 		const char *pp;
 		const char *ps;
 		int i;
-		md5_uint32 temp;
+		uint32_t temp;
 
 		for (i = 0; i < 16; i++) {
 			cwp[i] = SWAP(words[i]);
@@ -523,7 +520,7 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 		 */
 
 #  if MD5SUM_SIZE_VS_SPEED == 1
-		const md5_uint32 *pc;
+		const uint32_t *pc;
 		const char *pp;
 		int i;
 #  endif	/* MD5SUM_SIZE_VS_SPEED */
@@ -672,7 +669,7 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
  * It is NOT required that LEN is a multiple of 64.
  */
 
-static void md5_hash_bytes(const void *buffer, size_t len, md5_ctx_t *ctx)
+static void md5_hash_bytes(const void *buffer, size_t len, struct md5_ctx_t *ctx)
 {
 	/* When we already have some bits in our internal buffer concatenate
 	   both inputs first.  */
@@ -726,10 +723,10 @@ static void md5_hash(const void *buffer, size_t length, void *md5_ctx)
  * IMPORTANT: On some systems it is required that RESBUF is correctly
  * aligned for a 32 bits value.
  */
-static void *md5_end(void *resbuf, md5_ctx_t *ctx)
+static void *md5_end(void *resbuf, struct md5_ctx_t *ctx)
 {
 	/* Take yet unprocessed bytes into account.  */
-	md5_uint32 bytes = ctx->buflen;
+	uint32_t bytes = ctx->buflen;
 	size_t pad;
 
 	/* Now count remaining bytes.  */
@@ -746,8 +743,8 @@ static void *md5_end(void *resbuf, md5_ctx_t *ctx)
 # endif	/* MD5SUM_SIZE_VS_SPEED > 0 */
 
 	/* Put the 64-bit file length in *bits* at the end of the buffer.  */
-	*(md5_uint32 *) & ctx->buffer[bytes + pad] = SWAP(ctx->total[0] << 3);
-	*(md5_uint32 *) & ctx->buffer[bytes + pad + 4] =
+	*(uint32_t *) & ctx->buffer[bytes + pad] = SWAP(ctx->total[0] << 3);
+	*(uint32_t *) & ctx->buffer[bytes + pad + 4] =
 		SWAP(((ctx->total[1] << 3) | (ctx->total[0] >> 29)));
 
 	/* Process last bytes.  */
@@ -760,10 +757,10 @@ static void *md5_end(void *resbuf, md5_ctx_t *ctx)
 	 * IMPORTANT: On some systems it is required that RESBUF is correctly
 	 * aligned for a 32 bits value.
 	 */
-	((md5_uint32 *) resbuf)[0] = SWAP(ctx->A);
-	((md5_uint32 *) resbuf)[1] = SWAP(ctx->B);
-	((md5_uint32 *) resbuf)[2] = SWAP(ctx->C);
-	((md5_uint32 *) resbuf)[3] = SWAP(ctx->D);
+	((uint32_t *) resbuf)[0] = SWAP(ctx->A);
+	((uint32_t *) resbuf)[1] = SWAP(ctx->B);
+	((uint32_t *) resbuf)[2] = SWAP(ctx->C);
+	((uint32_t *) resbuf)[3] = SWAP(ctx->D);
 
 	return resbuf;
 }
@@ -784,10 +781,10 @@ extern int hash_fd(int src_fd, const size_t size, const uint8_t hash_algo,
 	void *cx = NULL;
 
 #ifdef CONFIG_SHA1SUM
-	sha1_ctx_t sha1_cx;
+	struct sha1_ctx_t sha1_cx;
 #endif
 #ifdef CONFIG_MD5SUM
-	md5_ctx_t md5_cx;
+	struct md5_ctx_t md5_cx;
 #endif
 
 
