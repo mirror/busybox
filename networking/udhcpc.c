@@ -168,7 +168,7 @@ enum {
 				printf("\n"); \
 				syslog(level, str, ## args); } while(0)
 # define OPEN_LOG(name) openlog(name, 0, 0)
-#define CLOSE_LOG() closelog()
+# define CLOSE_LOG() closelog()
 #else
 # define LOG_EMERG	"EMERGENCY!"
 # define LOG_ALERT	"ALERT!"
@@ -178,8 +178,8 @@ enum {
 # define LOG_INFO	"info"
 # define LOG_DEBUG	"debug"
 # define LOG(level, str, args...) do { printf("%s, " str "\n", level, ## args); } while(0)
-# define OPEN_LOG(name) do {;} while(0)
-#define CLOSE_LOG() do {;} while(0)
+# define OPEN_LOG(name)
+# define CLOSE_LOG()
 #endif
 
 #ifdef DEBUG
@@ -187,7 +187,7 @@ enum {
 # define DEBUG(level, str, args...) LOG(level, str, ## args)
 # define DEBUGGING
 #else
-# define DEBUG(level, str, args...) do {;} while(0)
+# define DEBUG(level, str, args...)
 #endif
 
 struct dhcpMessage {
