@@ -1532,7 +1532,7 @@ void free_memory(void)
 /* Make sure we have a controlling tty.  If we get started under a job
  * aware app (like bash for example), make sure we are now in charge so
  * we don't fight over who gets the foreground */
-static void setup_job_control()
+static void setup_job_control(void)
 {
 	int status;
 	
