@@ -56,6 +56,9 @@ busybox.links: applets/busybox.mkll
 install: applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX)
 
+uninstall: busybox busybox.links
+	for i in `cat busybox.links` ; do rm -f $$PREFIX$$i; done
+
 install-hardlinks: applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
