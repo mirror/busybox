@@ -229,7 +229,7 @@ void write_leases(void)
 	unsigned int i;
 	char buf[255];
 	time_t curr = time(0);
-	unsigned long lease_time;
+	unsigned long tmp_time;
 	
 	if (!(fp = fopen(server_config.lease_file, "w"))) {
 		LOG(LOG_ERR, "Unable to open %s for writing", server_config.lease_file);
@@ -237,17 +237,21 @@ void write_leases(void)
 	}
 	
 	for (i = 0; i < server_config.max_leases; i++) {
-		struct dhcpOfferedAddr lease;
 		if (leases[i].yiaddr != 0) {
+
+			/* screw with the time in the struct, for easier writing */
+			tmp_time = leases[i].expires;
+
 			if (server_config.remaining) {
 				if (lease_expired(&(leases[i])))
-					lease_time = 0;
-				else lease_time = leases[i].expires - curr;
-			} else lease_time = leases[i].expires;
-			lease.expires = htonl(lease_time);
-			memcpy(lease.chaddr, leases[i].chaddr, 16);
-			lease.yiaddr = leases[i].yiaddr;
-			fwrite(leases, sizeof(lease), 1, fp);
+					leases[i].expires = 0;
+				else leases[i].expires -= curr;
+			} /* else stick with the time we got */
+			leases[i].expires = htonl(leases[i].expires);
+			fwrite(leases[i], sizeof(sturct dhcpOfferedAddr), 1, fp);
+
+			/* Then restore it when done. */
+			leases[i].expires = tmp_time;
 		}
 	}
 	fclose(fp);
