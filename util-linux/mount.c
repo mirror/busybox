@@ -381,9 +381,13 @@ extern int mount_main(int argc, char **argv)
 	if (!all && optind == argc)
 		show_mounts();
 
-	if (optind < argc)
-		if (realpath(argv[optind], device) == NULL)
+	if (optind < argc) {
+		/* Don't canonicalize NFS devices.  */
+		if (strchr(argv[optind], ':') != NULL)
+			safe_strncpy(device, argv[optind], PATH_MAX);
+		else if (realpath(argv[optind], device) == NULL)
 			perror_msg_and_die("%s", device);
+	}
 
 	if (optind + 1 < argc)
 		if (realpath(argv[optind + 1], directory) == NULL)
@@ -444,7 +448,7 @@ singlemount:
 		if (fstabmount == TRUE)
 			endmntent(f);
 			
-		if (all == FALSE && fstabmount == TRUE && optind + 1 == argc)
+		if (all == FALSE && fstabmount == TRUE && m == NULL)
 			fprintf(stderr, "Can't find %s in /etc/fstab\n", device);
 	
 		return rc;
