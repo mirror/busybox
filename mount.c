@@ -132,12 +132,10 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 			specialfile = find_unused_loop_device();
 			if (specialfile == NULL) {
-				error_msg("Could not find a spare loop device\n");
-				return (FALSE);
+				error_msg_and_die("Could not find a spare loop device\n");
 			}
 			if (set_loop(specialfile, lofile, 0, &loro)) {
-				error_msg("Could not setup loop device\n");
-				return (FALSE);
+				error_msg_and_die("Could not setup loop device\n");
 			}
 			if (!(flags & MS_RDONLY) && loro) {	/* loop is ro, but wanted rw */
 				error_msg("WARNING: loop device is read-only\n");
@@ -481,6 +479,7 @@ extern int mount_main(int argc, char **argv)
 			directory = strdup(m->mnt_dir);
 			filesystemType = strdup(m->mnt_type);
 singlemount:			
+			rc = EXIT_SUCCESS;
 #ifdef BB_NFSMOUNT
 			if (strchr(device, ':') != NULL)
 				filesystemType = "nfs";
@@ -499,8 +498,6 @@ singlemount:
 				
 			if (all == FALSE)
 				break;
-
-			rc = EXIT_SUCCESS;	// Always return 0 for 'all'
 		}
 		if (fstabmount == TRUE)
 			endmntent(f);
