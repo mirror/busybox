@@ -227,6 +227,14 @@ struct close_me {
 	struct close_me *next;
 };
 
+struct variables {
+	char *name;
+	char *value;
+	int flg_export;
+	int flg_read_only;
+	struct variables *next;
+};
+
 /* globals, connect us to the outside world
  * the first three support $?, $#, and $1 */
 char **global_argv;
@@ -248,13 +256,14 @@ static const char *cwd;
 static struct jobset *job_list;
 static unsigned int last_bg_pid;
 static char *PS1;
-static char *PS2;
-static char **__shell_local_env;
+static char PS2[] = "> ";
+
+struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
+
+struct variables *top_vars = &shell_ver;
 
 #define B_CHUNK (100)
 #define B_NOSPAC 1
-#define MAX_LINE 256       /* for cwd */
-#define MAX_READ 256       /* for builtin_read */
 
 typedef struct {
 	char *data;
@@ -303,12 +312,12 @@ static void debug_printf(const char *format, ...)
 	va_end(args);
 }
 #else
-static void debug_printf(const char *format, ...) { }
+static inline void debug_printf(const char *format, ...) { }
 #endif
 #define final_printf debug_printf
 
-void __syntax(char *file, int line) {
-	fprintf(stderr,"syntax error %s:%d\n",file,line);
+static void __syntax(char *file, int line) {
+	error_msg("syntax error %s:%d", file, line);
 }
 #define syntax() __syntax(__FILE__, __LINE__)
 
@@ -362,7 +371,6 @@ static int globhack(const char *src, int flags, glob_t *pglob);
 static int glob_needed(const char *s);
 static int xglob(o_string *dest, int flags, glob_t *pglob);
 /*   variable assignment: */
-static int set_local_var(const char *s);
 static int is_assignment(const char *s);
 /*   data structure manipulation: */
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style, struct in_str *input);
@@ -390,8 +398,8 @@ static void remove_bg_job(struct pipe *pi);
 static void free_pipe(struct pipe *pi);
 /*     local variable support */
 static char *get_local_var(const char *var);
-static int   set_local_var(const char *s);
 static void  unset_local_var(const char *name);
+static int set_local_var(const char *s, int flg_export);
 
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -427,6 +435,17 @@ static struct built_in_command bltins[] = {
 	{NULL, NULL, NULL}
 };
 
+static const char *set_cwd(void)
+{
+	if(cwd==unknown)
+		cwd = NULL;     /* xgetcwd(arg) called free(arg) */
+	cwd = xgetcwd((char *)cwd);
+	if (!cwd)
+		cwd = unknown;
+	return cwd;
+}
+
+
 /* built-in 'cd <path>' handler */
 static int builtin_cd(struct child_prog *child)
 {
@@ -439,9 +458,7 @@ static int builtin_cd(struct child_prog *child)
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	cwd = xgetcwd((char *)cwd);
-	if (!cwd)
-		cwd = unknown;
+	set_cwd();
 	return EXIT_SUCCESS;
 }
 
@@ -477,43 +494,48 @@ static int builtin_exit(struct child_prog *child)
 /* built-in 'export VAR=value' handler */
 static int builtin_export(struct child_prog *child)
 {
-	int res;
-	char *value, *name = child->argv[1];
+	int res = 0;
+	char *name = child->argv[1];
 
 	if (name == NULL) {
 		return (builtin_env(child));
 	}
 
-	value = strchr(name, '=');
-	if (!value) {
-		/* They are exporting something without an =VALUE.
-		 * Assume this is a local shell variable they are exporting */
-		name = get_local_var(name);
-		if (! name ) { 
-			error_msg("export failed");
-			return (EXIT_FAILURE);
-		}
-		/* FIXME -- I leak memory!!!!! */
-		value = malloc(strlen(child->argv[1]) + strlen(name) + 2);
-		sprintf(value, "%s=%s", child->argv[1], name);
-	} else {
-		/* Bourne shells always put exported variables into the 
-		 * local shell variable list.  Do that first... */
-		set_local_var(name);
-		/* FIXME -- I leak memory!!!!! */
-		value = strdup(name);
-	}
+	name = strdup(name);
 
-	/* FIXME -- I leak memory!!!!!
-	 * It seems most putenv implementations place the very char* pointer
-	 * we pass in directly into the environ array, so the memory holding
-	 * this string has to be persistant.  We can't even use the memory for
-	 * the local shell variable list, since where that memory is keeps 
-	 * changing due to reallocs... */
-	res = putenv(value);
-	if (res)
+	if(name) {
+	    char *value = strchr(name, '=');
+
+	if (!value) {
+		char *tmp;
+		/* They are exporting something without an =VALUE */
+
+		value = get_local_var(name);
+		if (value) {
+			size_t ln = strlen(name);
+
+			tmp = realloc(name, ln+strlen(value)+2);
+			if(tmp==NULL)
+				res = -1;
+			else {
+				sprintf(tmp+ln, "=%s", value);
+				name = tmp;
+			}
+		} else {
+			/* bash not put error and set error code
+			   if exporting not defined variable */
+			res = 1;
+		}
+	    }
+	}
+	if (res<0)
 		perror_msg("export");
-	return (res);
+	else if(res==0)
+		res = set_local_var(name, 1);
+	else
+		res = 0;
+	free(name);
+	return res;
 }
 
 /* built-in 'fg' and 'bg' handler */
@@ -605,66 +627,52 @@ static int builtin_jobs(struct child_prog *child)
 /* built-in 'pwd' handler */
 static int builtin_pwd(struct child_prog *dummy)
 {
-	cwd = xgetcwd((char *)cwd);
-	if (!cwd)
-		cwd = unknown;
-	puts(cwd);
+	puts(set_cwd());
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'read VAR' handler */
 static int builtin_read(struct child_prog *child)
 {
-	int res = 0, len, newlen;
-	char *s;
-	char string[MAX_READ];
+	int res;
 
 	if (child->argv[1]) {
-		/* argument (VAR) given: put "VAR=" into buffer */
-		strcpy(string, child->argv[1]);
-		len = strlen(string);
-		string[len++] = '=';
-		string[len]   = '\0';
-		/* XXX would it be better to go through in_str? */
-		fgets(&string[len], sizeof(string) - len, stdin);	/* read string */
-		newlen = strlen(string);
-		if(newlen > len)
-			string[--newlen] = '\0';	/* chomp trailing newline */
-		/*
-		** string should now contain "VAR=<value>"
-		** copy it (putenv() won't do that, so we must make sure
-		** the string resides in a static buffer!)
-		*/
-		res = -1;
-		if((s = strdup(string)))
-			res = putenv(s);
-		if (res)
-			fprintf(stderr, "read: %s\n", strerror(errno));
-	}
-	else
-		fgets(string, sizeof(string), stdin);
+		char string[BUFSIZ];
+		char *var = 0;
 
-	return (res);
+		string[0] = 0;  /* for correct work if stdin have "only EOF" */
+		/* read string */
+		fgets(string, sizeof(string), stdin);
+		chomp(string);
+		var = malloc(strlen(child->argv[1])+strlen(string)+2);
+		if(var) {
+			sprintf(var, "%s=%s", child->argv[1], string);
+			res = set_local_var(var, 0);
+		} else
+		res = -1;
+		if (res)
+			fprintf(stderr, "read: %m\n");
+		free(var);      /* not move up - saved errno */
+		return res;
+	} else {
+		do res=getchar(); while(res!='\n' && res!=EOF);
+		return 0;
+	}
 }
 
 /* built-in 'set VAR=value' handler */
 static int builtin_set(struct child_prog *child)
 {
-	int res;
 	char *temp = child->argv[1];
+	struct variables *e;
 
-	if (child->argv[1] == NULL) {
-		char **e = __shell_local_env;
-		if (e == NULL) return EXIT_FAILURE;
-		for (; *e; e++) {
-			puts(*e);
-		}
+	if (temp == NULL)
+		for(e = top_vars; e; e=e->next)
+			printf("%s=%s\n", e->name, e->value);
+	else
+		set_local_var(temp, 0);
+
 		return EXIT_SUCCESS;
-	}
-	res = set_local_var(temp);
-	if (res)
-		fprintf(stderr, "set: %s\n", strerror(errno));
-	return (res);
 }
 
 
@@ -697,7 +705,7 @@ static int builtin_source(struct child_prog *child)
 	/* XXX search through $PATH is missing */
 	input = fopen(child->argv[1], "r");
 	if (!input) {
-		fprintf(stderr, "Couldn't open file '%s'\n", child->argv[1]);
+		error_msg("Couldn't open file '%s'", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -732,11 +740,7 @@ static int builtin_umask(struct child_prog *child)
 /* built-in 'unset VAR' handler */
 static int builtin_unset(struct child_prog *child)
 {
-	if (child->argv[1] == NULL) {
-		fprintf(stderr, "unset: parameter required.\n");
-		return EXIT_FAILURE;
-	}
-	unsetenv(child->argv[1]);
+	/* bash returned already true */
 	unset_local_var(child->argv[1]);
 	return EXIT_SUCCESS;
 }
@@ -998,8 +1002,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
 			   bash and ash both lose it as well (though zsh doesn't!) */
-				fprintf(stderr,"error opening %s: %s\n", redir->word.gl_pathv[0],
-					strerror(errno));
+				perror_msg("error opening %s", redir->word.gl_pathv[0]);
 				return 1;
 			}
 		} else {
@@ -1160,10 +1163,9 @@ static void insert_bg_job(struct pipe *pi)
 	/* physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
 	thejob->next = NULL;
-	//thejob->num_progs = 0;
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
-	thejob->text = xmalloc(MAX_LINE);
+	thejob->text = xmalloc(BUFSIZ); /* cmdedit buffer size */
 
 	//if (pi->progs[0] && pi->progs[0].argv && pi->progs[0].argv[0])
 	{
@@ -1327,7 +1329,7 @@ static int run_pipe_real(struct pipe *pi)
 		if (i!=0 && child->argv[i]==NULL) {
 			/* assignments, but no command: set the local environment */
 			for (i=0; child->argv[i]!=NULL; i++) {
-				set_local_var(child->argv[i]);
+				set_local_var(child->argv[i], 0);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
@@ -1646,12 +1648,10 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 		gr = globhack(dest->data, flags, pglob);
 		debug_printf("globhack returned %d\n",gr);
 	}
-	if (gr == GLOB_NOSPACE) {
-		fprintf(stderr,"out of memory during glob\n");
-		exit(1);
-	}
+	if (gr == GLOB_NOSPACE)
+		error_msg_and_die("out of memory during glob");
 	if (gr != 0) { /* GLOB_ABORTED ? */
-		fprintf(stderr,"glob(3) error %d\n",gr);
+		error_msg("glob(3) error %d",gr);
 	}
 	/* globprint(glob_target); */
 	return gr;
@@ -1660,129 +1660,113 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 /* This is used to get/check local shell variables */
 static char *get_local_var(const char *s)
 {
-	char **p;
-	int len;
+	struct variables *cur;
 
 	if (!s)
 		return NULL;
-	if (!__shell_local_env)
-		return NULL;
-	len = strlen(s);
-
-	for (p = __shell_local_env; *p; p++) {
-		if (memcmp(s, *p, len) == 0 && (*p)[len] == '=') {
-			return *p + len + 1;
-		}
-	}
+	for (cur = top_vars; cur; cur=cur->next)
+		if(strcmp(cur->name, s)==0)
+			return cur->value;
 	return NULL;
 }
 
-/* This is used to set local shell variables */
-static int set_local_var(const char *s)
+/* This is used to set local shell variables
+   flg_export==0 if only local (not exporting) variable
+   flg_export==1 if "new" exporting environ
+   flg_export>1  if current startup environ (not call putenv()) */
+static int set_local_var(const char *s, int flg_export)
 {
-	char **ep;
-	char *tmp,*name, *value;
-	size_t size;
-	size_t namelen;
-	size_t vallen;
+	char *name, *value;
 	int result=0;
+	struct variables *cur;
+	char *newval = 0;
 
-	name=tmp=strdup(s);
+	name=strdup(s);
 
 	/* Assume when we enter this function that we are already in
 	 * NAME=VALUE format.  So the first order of business is to
 	 * split 's' on the '=' into 'name' and 'value' */ 
 	value = strchr(name, '=');
-	if (!value) {
+	if (value==0 || (newval = strdup(value+1))==0) {
 		result = -1;
-		goto done_already;
-	}
-	*value='\0';
-	++value;
+	} else {
+		*value++ = 0;
 
-	namelen = strlen (name);
-	vallen = strlen (value);
-
-	/* Now see how many local environment entries we have, and check
-	 * if we match an existing environment entry (so we can overwrite it) */
-	size = 0;
-	for (ep = __shell_local_env; ep && *ep != NULL; ++ep) {
-		if (!memcmp (*ep, name, namelen) && (*ep)[namelen] == '=')
+		for(cur = top_vars; cur; cur = cur->next)
+			if(strcmp(cur->name, name)==0)
 			break;
-		else
-			++size;
-	}
 
-	if (ep == NULL || *ep == NULL) {
-		static char **last_environ = NULL;
-		char **new_environ = (char **) malloc((size + 2) * sizeof(char *));
-		if (new_environ == NULL) {
+		if(cur) {
+			if(strcmp(cur->value, value)==0) {
+				result = cur->flg_export == flg_export;
+			} else {
+				if(cur->flg_read_only) {
 			result = -1;
-			goto done_already;
+					error_msg("%s: readonly variable", name);
+				} else {
+					free(cur->value);
+					cur->value = newval;
+					newval = 0; /* protect free */
 		}
-		memcpy((__ptr_t) new_environ, (__ptr_t) __shell_local_env, 
-				size * sizeof(char *));
-
-		new_environ[size] = malloc (namelen + 1 + vallen + 1);
-		if (new_environ[size] == NULL) {
-			free (new_environ);
-			errno=ENOMEM;
-			result = -1;
-			goto done_already;
-		}
-		memcpy (new_environ[size], name, namelen);
-		new_environ[size][namelen] = '=';
-		memcpy (&new_environ[size][namelen + 1], value, vallen + 1);
-
-		new_environ[size + 1] = NULL;
-
-		if (last_environ != NULL)
-			free ((__ptr_t) last_environ);
-		last_environ = new_environ;
-		__shell_local_env = new_environ;
 	}
-	else {
-		size_t len = strlen (*ep);
-		if (len < namelen + 1 + vallen) {
-			char *new = malloc (namelen + 1 + vallen + 1);
-			if (new == NULL) {
+		} else {
+			cur = malloc(sizeof(struct variables));
+			if(cur==0) {
 				result = -1;
-				goto done_already;
+			} else {
+				cur->name = strdup(name);
+				if(cur->name == 0) {
+					free(cur);
+				result = -1;
+				} else {
+					struct variables *bottom = top_vars;
+
+					cur->value = newval;
+					newval = 0;     /* protect free */
+					cur->next = 0;
+					cur->flg_export = flg_export;
+					cur->flg_read_only = 0;
+					while(bottom->next) bottom=bottom->next;
+					bottom->next = cur;
 			}
-			*ep = new;
-			memcpy (*ep, name, namelen);
-			(*ep)[namelen] = '=';
 		}
-		memcpy (&(*ep)[namelen + 1], value, vallen + 1);
+	}
 	}
 
-	/* One last little detail...  If this variable is already
-	 * in the environment we must set it there as well... */
-	tmp = getenv(name);
-	if (tmp) { 
-		/* FIXME -- I leak memory!!!!! */
-		putenv(strdup(s));
-	}
-
-done_already:
+	if((result==0 && flg_export==1) || (result>0 && cur->flg_export>0)) {
+		*(value-1) = '=';
+		result = putenv(name);
+	} else {
 	free(name);
+		if(result>0)            /* equivalent to previous set */
+			result = 0;
+	}
+	free(newval);
 	return result;
 }
 
 static void unset_local_var(const char *name)
 {
-	char **ep, **dp;
-	size_t namelen;
+	struct variables *cur;
 
-	if (!name)
+	if (name) {
+		for (cur = top_vars; cur; cur=cur->next)
+			if(strcmp(cur->name, name)==0)
+				break;
+		if(cur!=0) {
+			struct variables *next = top_vars;
+			if(cur==next)
 		return;
-	namelen = strlen(name);
-	for (dp = ep = __shell_local_env; ep && *ep != NULL; ++ep) {
-		if (memcmp (*ep, name, namelen)==0 && (*ep)[namelen] == '=') {
-			*dp = *ep;
-			++dp;
-			*ep = NULL;
-			break;
+			else {
+				if(cur->flg_export)
+					unsetenv(cur->name);
+				free(cur->name);
+				free(cur->value);
+				while (next->next != cur)
+					next = next->next;
+				next->next = cur->next;
+			}
+			free(cur);
 		}
 	}
 }
@@ -1963,7 +1947,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 	if (ctx->pending_redirect) {
 		ctx->pending_redirect=NULL;
 		if (glob_target->gl_pathc != 1) {
-			fprintf(stderr, "ambiguous redirect\n");
+			error_msg("ambiguous redirect");
 			return 1;
 		}
 	} else {
@@ -2049,7 +2033,7 @@ static int redirect_dup_num(struct in_str *input)
 	}
 	if (ok) return d;
 
-	fprintf(stderr, "ambiguous redirect\n");
+	error_msg("ambiguous redirect");
 	return -2;
 }
 
@@ -2261,7 +2245,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 		case '-':
 		case '_':
 			/* still unhandled, but should be eventually */
-			fprintf(stderr,"unhandled syntax: $%c\n",ch);
+			error_msg("unhandled syntax: $%c",ch);
 			return 1;
 			break;
 		default:
@@ -2505,16 +2489,14 @@ int shell_main(int argc, char **argv)
 	int opt;
 	FILE *input;
 	struct jobset joblist_end = { NULL, NULL };
+	char **e = environ;
 
-	/* (re?) initialize globals */
-	ifs=NULL;
-	fake_mode=0;
-	interactive=0;
-	close_me_head = NULL;
+	/* initialize globals */
+	if (e) {
+		for (; *e; e++)
+			set_local_var(*e, 2);   /* without call putenv() */
+	}
 	job_list = &joblist_end;
-	last_bg_pid=0;
-	PS2 = "> ";
-	__shell_local_env = 0;
 
 	last_return_code=EXIT_SUCCESS;
 
@@ -2581,9 +2563,13 @@ int shell_main(int argc, char **argv)
 				fake_mode++;
 				break;
 			default:
+#ifndef BB_VER
 				fprintf(stderr, "Usage: sh [FILE]...\n"
 						"   or: sh -c command [args]...\n\n");
 				exit(EXIT_FAILURE);
+#else
+				show_usage();
+#endif
 		}
 	}
 	/* A shell is interactive if the `-i' flag was given, or if all of
