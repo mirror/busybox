@@ -80,7 +80,7 @@ Manuel Novoa III <mjn3@codepoet.org>
     also bug fixes, partial rewrites, and size optimizations in
     ash, basename, cal, cmp, cp, df, du, echo, env, ln, logname, md5sum, mkdir,
     mv, realpath, rm, sort, tail, touch, uname, watch, arith, human_readable,
-    interface, dutmp, ifconfig
+    interface, dutmp, ifconfig, route
 
 Vladimir Oleynik <dzo@simtreas.ru>
     cmdedit; xargs(current), httpd(current);
