@@ -1,7 +1,7 @@
 #!/bin/sh
 # Sample udhcpc renew script
 
-RESOLV_CONF="/etc/resolv.conf"
+RESOLV_CONF="/etc/udhcpc/resolv.conf"
 
 [ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
 [ -n "$subnet" ] && NETMASK="netmask $subnet"

@@ -1,0 +1,46 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2002 Erik Andersen <andersee@debian.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+UDHCP_AR:=udhcp.a
+ifndef $(UDHCP_DIR)
+UDHCP_DIR:=$(TOPDIR)networking/udhcp/
+endif
+
+#ok, so I forgot how to do an or, but this is a quick and dirty hack
+ifeq ($(CONFIG_UDHCPC), y)
+CONFIG_UDHCP_SHARED=y
+else
+ifeq ($(CONFIG_UDHCPD), y)
+CONFIG_UDHCP_SHARED=y
+else
+CONFIG_UDHCP_SHARED=n
+endif
+endif
+
+UDHCP-y:=
+UDHCP-$(CONFIG_UDHCP_SHARED)	+= options.o socket.o packet.o pidfile.o
+UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.o clientpacket.o script.o
+UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.o arpping.o files.o leases.o serverpacket.o
+UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.o
+
+libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
+
+$(UDHCP_DIR)$(UDHCP_AR): $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
+	$(AR) -ro $@ $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
+

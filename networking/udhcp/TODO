@@ -1,0 +1,17 @@
+TODO
+----
++ make failure of reading functions revert to previous value, not the default
++ sanity code for option[OPT_LEN]
++ fix aliasing (ie: eth0:0)
++ DONE: Make sure get_raw_packet only accepts packets on the specified interface
++ better standard linux distro support
++ DONE: make config file a command line option for server
++ IMPLEMENTED: make forking a command line option
++ make sure packet generation works on a wide varitey of arches
++ Interoperability testing
++ Hooks within the DHCP server
++ Additional bootp support in client/server
++ Make serverid option in server configurable
++ DONE: cause client to generate DHCP_VENDOR option
++ Possibly add failure message to DHCP NAK
++ Possibly log DHCP NAK failure message in client

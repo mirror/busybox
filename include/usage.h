@@ -385,6 +385,14 @@
 #define dumpkmap_example_usage \
 	"$ dumpkmap > keymap\n"
 
+#define dumpleases_trivial_usage \
+	"[-r|-a] [-f LEASEFILE]"
+#define dumpleases_full_usage \
+	"Usage: dumpleases -f <file> -[r|a]\n" \
+	"\t-f,\t--file=FILENAME\tLeases file to load\n" \
+	"\t-r,\t--remaining\tInterepret lease times as time remaing\n" \
+	"\t-a,\t--absolute\tInterepret lease times as expire time\n"
+
 #define dutmp_trivial_usage \
 	"[FILE]"
 #define dutmp_full_usage \
@@ -1945,12 +1953,14 @@
 	"/dev/tty2\n"
 
 #define udhcpc_trivial_usage \
-	"[-fqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p file] [-r IP] [-s script]"
+	"[-fbnqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
-	"\tUsage: udhcpcd [OPTIONS]\n" \
+	"\tUsage: udhcpc [OPTIONS]\n" \
 	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
+	"\t-h,\t                   \tAlias for -h\n" \
 	"\t-f,\t--foreground\tDo not fork after getting lease\n" \
+	"\t-b,\t--background\tFork to background if lease cannot be immediately negotiated.\n" \
 	"\t-i,\t--interface=INTERFACE\tInterface to use (default: eth0)\n" \
 	"\t-n,\t--now\tExit with failure if lease cannot be immediately negotiated.\n" \
 	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
@@ -1958,6 +1968,12 @@
 	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
 	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
 	"\t-v,\t--version\tDisplay version"
+
+#define udhcpd_trivial_usage \
+	"[configfile]\n" \
+
+#define udhcpd_full_usage \
+	"\tUsage: udhcpd [configfile]\n"
 
 #ifdef CONFIG_FEATURE_MOUNT_FORCE
   #define USAGE_MOUNT_FORCE(a) a

@@ -152,6 +152,9 @@
 #ifdef CONFIG_DUMPKMAP
 	APPLET(dumpkmap, dumpkmap_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_DUMPLEASES
+        APPLET(dumpleases, dumpleases_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_DUTMP
 	APPLET(dutmp, dutmp_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
@@ -495,7 +498,10 @@
 	APPLET(tty, tty_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UDHCPC
-	APPLET(udhcpc, udhcpc_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+	APPLET(udhcpc, udhcpc_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_UDHCPD
+        APPLET(udhcpd, udhcpd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UMOUNT
 	APPLET(umount, umount_main, _BB_DIR_BIN, _BB_SUID_NEVER)
