@@ -116,7 +116,7 @@ static void init_signature_page()
 	if (pagesize != PAGE_SIZE)
 		fprintf(stderr, "Assuming pages of size %d\n", pagesize);
 #endif
-	signature_page = (int *) malloc(pagesize);
+	signature_page = (int *) xmalloc(pagesize);
 	memset(signature_page, 0, pagesize);
 	p = (struct swap_header_v1 *) signature_page;
 }
@@ -230,9 +230,7 @@ void check_blocks(void)
 	int do_seek = 1;
 	char *buffer;
 
-	buffer = malloc(pagesize);
-	if (!buffer)
-		die("Out of memory");
+	buffer = xmalloc(pagesize);
 	current_page = 0;
 	while (current_page < PAGES) {
 		if (!check) {

@@ -603,23 +603,13 @@ static void read_superblock(void)
 
 static void read_tables(void)
 {
-	inode_map = malloc(IMAPS * BLOCK_SIZE);
-	if (!inode_map)
-		die("Unable to allocate buffer for inode map");
-	zone_map = malloc(ZMAPS * BLOCK_SIZE);
-	if (!inode_map)
-		die("Unable to allocate buffer for zone map");
+	inode_map = xmalloc(IMAPS * BLOCK_SIZE);
+	zone_map = xmalloc(ZMAPS * BLOCK_SIZE);
 	memset(inode_map, 0, sizeof(inode_map));
 	memset(zone_map, 0, sizeof(zone_map));
-	inode_buffer = malloc(INODE_BUFFER_SIZE);
-	if (!inode_buffer)
-		die("Unable to allocate buffer for inodes");
-	inode_count = malloc(INODES + 1);
-	if (!inode_count)
-		die("Unable to allocate buffer for inode count");
-	zone_count = malloc(ZONES);
-	if (!zone_count)
-		die("Unable to allocate buffer for zone count");
+	inode_buffer = xmalloc(INODE_BUFFER_SIZE);
+	inode_count = xmalloc(INODES + 1);
+	zone_count = xmalloc(ZONES);
 	if (IMAPS * BLOCK_SIZE != read(IN, inode_map, IMAPS * BLOCK_SIZE))
 		die("Unable to read inode map");
 	if (ZMAPS * BLOCK_SIZE != read(IN, zone_map, ZMAPS * BLOCK_SIZE))
@@ -1247,18 +1237,9 @@ static void alloc_name_list(void)
 {
 	int i;
 
-	name_list = malloc(sizeof(char *) * MAX_DEPTH);
-	if (!name_list) { 
-		fprintf(stderr,"fsck_minix: name_list: %s\n", strerror(errno));
-		exit(1); 
-	}
-	for (i = 0; i < MAX_DEPTH; i++) {
-		name_list[i] = malloc(sizeof(char) * PATH_MAX + 1);
-		if (!name_list[i]) {
-			fprintf(stderr,"fsck_minix: name_list: %s\n", strerror(errno));
-			exit(1); 
-		}
-	}
+	name_list = xmalloc(sizeof(char *) * MAX_DEPTH);
+	for (i = 0; i < MAX_DEPTH; i++)
+		name_list[i] = xmalloc(sizeof(char) * PATH_MAX + 1);
 }
 
 /* execute this atexit() to deallocate name_list[] */

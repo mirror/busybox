@@ -114,11 +114,7 @@ extern int dd_main(int argc, char **argv)
 		argv++;
 	}
 
-	buf = malloc(blockSize);
-	if (buf == NULL) {
-		fprintf(stderr, "Cannot allocate buffer\n");
-		exit(FALSE);
-	}
+	buf = xmalloc(blockSize);
 
 	intotal = 0;
 	outTotal = 0;

@@ -44,7 +44,7 @@ static char sccsid[] = "@(#)tr.c	8.2 (Berkeley) 5/4/95";
 #endif
 static const char rcsid[] =
 
-	"$Id: tr.c,v 1.1 2000/03/05 08:07:00 erik Exp $";
+	"$Id: tr.c,v 1.2 2000/03/21 22:32:57 erik Exp $";
 #endif							/* not lint */
 #endif							/* #if 0 */
 
@@ -433,8 +433,7 @@ STR *s;
 														"unknown class %s",
 														s->str);
 
-	if ((cp->set = p = malloc((NCHARS + 1) * sizeof(int))) == NULL)
-		errx(1, "malloc");
+	cp->set = p = xmalloc((NCHARS + 1) * sizeof(int));
 	bzero(p, (NCHARS + 1) * sizeof(int));
 
 	for (cnt = 0, func = cp->func; cnt < NCHARS; ++cnt)

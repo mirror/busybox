@@ -95,7 +95,7 @@ int dmesg_main(int argc, char **argv)
 
 	if (bufsize < 4096)
 		bufsize = 4096;
-	buf = (char *) malloc(bufsize);
+	buf = (char *) xmalloc(bufsize);
 	n = klogctl(cmd, buf, bufsize);
 	if (n < 0) {
 		goto klogctl_error;

@@ -172,9 +172,7 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
     
 	i = hash_inode(statbuf->st_ino);
 	s = name ? strlen(name) : 0;
-	bucket = malloc(sizeof(ino_dev_hashtable_bucket_t) + s);
-	if (bucket == NULL)
-		fatalError("Not enough memory.");
+	bucket = xmalloc(sizeof(ino_dev_hashtable_bucket_t) + s);
 	bucket->ino = statbuf->st_ino;
 	bucket->dev = statbuf->st_dev;
 	if (name)
@@ -1003,7 +1001,7 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle,
 	if (strcmp(needle, newNeedle) == 0)
 		return FALSE;
 
-	oldhayStack = (char *) malloc((unsigned) (strlen(haystack)));
+	oldhayStack = (char *) xmalloc((unsigned) (strlen(haystack)));
 	while (where != NULL) {
 		foundOne++;
 		strcpy(oldhayStack, haystack);
@@ -1364,21 +1362,15 @@ extern pid_t findPidByName( char* pidName)
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */
 #endif							/* BB_KILLALL || ( BB_FEATURE_LINUXRC && ( BB_HALT || BB_REBOOT || BB_POWEROFF )) */
 
-#if defined BB_GUNZIP \
- || defined BB_GZIP   \
- || defined BB_PRINTF \
- || defined BB_TAIL
+/* this should really be farmed out to libbusybox.a */
 extern void *xmalloc(size_t size)
 {
 	void *cp = malloc(size);
 
-	if (cp == NULL) {
-		errorMsg("out of memory");
-	}
+	if (cp == NULL)
+		fatalError("out of memory");
 	return cp;
 }
-
-#endif							/* BB_GUNZIP || BB_GZIP || BB_PRINTF || BB_TAIL */
 
 #if (__GLIBC__ < 2) && (defined BB_SYSLOGD || defined BB_INIT)
 extern int vdprintf(int d, const char *format, va_list ap)

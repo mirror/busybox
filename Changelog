@@ -52,6 +52,9 @@
 	    to match the terminal (defaults to width=79 when this is off).
 	* Fixed mount'ing loop devices when the filesystem type was not 
 	    specified.  It used to revert to non-loop after the first try.
+	* all mallocs now use xmalloc (and so are OOM error safe), and
+	    the common error handling saves a few bytes.  Thanks to 
+	    Bob Tinsley <bob@earthrise.demon.co.uk> for the patch.
 
 
 	-Erik Andersen

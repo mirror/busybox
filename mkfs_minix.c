@@ -530,19 +530,15 @@ static void setup_tables(void)
 		die("unable to allocate buffers for maps");
 	}
 	FIRSTZONE = NORM_FIRSTZONE;
-	inode_map = malloc(IMAPS * BLOCK_SIZE);
-	zone_map = malloc(ZMAPS * BLOCK_SIZE);
-	if (!inode_map || !zone_map)
-		die("unable to allocate buffers for maps");
+	inode_map = xmalloc(IMAPS * BLOCK_SIZE);
+	zone_map = xmalloc(ZMAPS * BLOCK_SIZE);
 	memset(inode_map, 0xff, IMAPS * BLOCK_SIZE);
 	memset(zone_map, 0xff, ZMAPS * BLOCK_SIZE);
 	for (i = FIRSTZONE; i < ZONES; i++)
 		unmark_zone(i);
 	for (i = MINIX_ROOT_INO; i <= INODES; i++)
 		unmark_inode(i);
-	inode_buffer = malloc(INODE_BUFFER_SIZE);
-	if (!inode_buffer)
-		die("unable to allocate buffer for inodes");
+	inode_buffer = xmalloc(INODE_BUFFER_SIZE);
 	memset(inode_buffer, 0, INODE_BUFFER_SIZE);
 	printf("%ld inodes\n", INODES);
 	printf("%ld blocks\n", ZONES);

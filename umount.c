@@ -89,8 +89,7 @@ void mtab_read(void)
 		return;
 	}
 	while ((e = getmntent(fp))) {
-		entry = malloc(sizeof(struct _mtab_entry_t));
-
+		entry = xmalloc(sizeof(struct _mtab_entry_t));
 		entry->device = strdup(e->mnt_fsname);
 		entry->mountpt = strdup(e->mnt_dir);
 		entry->next = mtab_cache;

@@ -300,8 +300,7 @@ static struct sector *get_sector(char *dev, int fd, unsigned long sno)
 	if (!sseek(dev, fd, sno))
 		return 0;
 
-	if (!(s = (struct sector *) malloc(sizeof(struct sector))))
-		fatalError("out of memory - giving up\n");
+	s = (struct sector *) xmalloc(sizeof(struct sector));
 
 	if (read(fd, s->data, sizeof(s->data)) != sizeof(s->data)) {
 		perror("read");
