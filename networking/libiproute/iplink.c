@@ -35,7 +35,7 @@
 
 static int on_off(char *msg)
 {
-	fprintf(stderr, "Error: argument of \"%s\" must be \"on\" or \"off\"\n", msg);
+	error_msg("Error: argument of \"%s\" must be \"on\" or \"off\"", msg);
 	return -1;
 }
 
@@ -204,7 +204,7 @@ static int parse_address(char *dev, int hatype, int halen, char *lla, struct ifr
 	if (alen < 0)
 		return -1;
 	if (alen != halen) {
-		fprintf(stderr, "Wrong address (%s) length: expected %d bytes\n", lla, halen);
+		error_msg("Wrong address (%s) length: expected %d bytes", lla, halen);
 		return -1;
 	}
 	return 0; 
@@ -286,7 +286,7 @@ static int do_set(int argc, char **argv)
 	}
 
 	if (!dev) {
-		fprintf(stderr, "Not enough of information: \"dev\" argument is required.\n");
+		error_msg("Not enough of information: \"dev\" argument is required.");
 		exit(-1);
 	}
 
@@ -344,6 +344,6 @@ int do_iplink(int argc, char **argv)
 	} else
 		return ipaddr_list_link(0, NULL);
 
-	fprintf(stderr, "Command \"%s\" is unknown, try \"ip link help\".\n", *argv);
+	error_msg("Command \"%s\" is unknown, try \"ip link help\".", *argv);
 	exit(-1);
 }

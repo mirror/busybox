@@ -78,7 +78,7 @@ int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	}
 	len -= NLMSG_LENGTH(sizeof(*r));
 	if (len < 0) {
-		fprintf(stderr, "BUG: wrong nlmsg len %d\n", len);
+		error_msg("wrong nlmsg len %d", len);
 		return -1;
 	}
 
@@ -329,7 +329,7 @@ int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 
 		if (d) {
 			if ((idx = ll_name_to_index(d)) == 0) {
-				fprintf(stderr, "Cannot find device \"%s\"\n", d);
+				error_msg("Cannot find device \"%s\"", d);
 				return -1;
 			}
 			addattr32(&req.n, sizeof(req), RTA_OIF, idx);
@@ -452,7 +452,7 @@ static int iproute_list(int argc, char **argv)
 
 		if (id) {
 			if ((idx = ll_name_to_index(id)) == 0) {
-				fprintf(stderr, "Cannot find device \"%s\"\n", id);
+				error_msg("Cannot find device \"%s\"", id);
 				return -1;
 			}
 			filter.iif = idx;
@@ -460,8 +460,7 @@ static int iproute_list(int argc, char **argv)
 		}
 		if (od) {
 			if ((idx = ll_name_to_index(od)) == 0) {
-				fprintf(stderr, "Cannot find device \"%s\"\n", od);
-				return -1;
+				error_msg("Cannot find device \"%s\"", od);
 			}
 			filter.oif = idx;
 			filter.oifmask = -1;
@@ -470,19 +469,16 @@ static int iproute_list(int argc, char **argv)
 
 	if (filter.tb != -1) {
 		if (rtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE) < 0) {
-			perror("Cannot send dump request");
-			exit(1);
+			perror_msg_and_die("Cannot send dump request");
 		}
 	} else {
 		if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
-			perror("Cannot send dump request");
-			exit(1);
+			perror_msg_and_die("Cannot send dump request");
 		}
 	}
 
 	if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-		fprintf(stderr, "Dump terminated\n");
-		exit(1);
+		error_msg_and_die"Dump terminated");
 	}
 
 	exit(0);
