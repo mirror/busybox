@@ -97,7 +97,7 @@ typedef struct initActionTag initAction;
 struct initActionTag {
     pid_t pid;
     char process[256];
-    char *console;
+    char console[256];
     initAction *nextPtr;
     initActionEnum action;
 };
@@ -496,9 +496,16 @@ static void reboot_signal(int sig)
 #endif
 
 void new_initAction (const struct initActionType *a, 
-	char* process, char* console)
+	char* process, char* cons)
 {
     initAction* newAction;
+
+    /* If BusyBox detects that a serial console is in use, 
+     * then entries containing non-empty id fields will _not_ be run.
+     */
+    if (second_console != NULL && *cons != '\0')
+	return;
+
     newAction = calloc ((size_t)(1), sizeof(initAction));
     if (!newAction) {
 	fprintf(stderr, "Memory allocation failure\n");
@@ -508,7 +515,10 @@ void new_initAction (const struct initActionType *a,
     initActionList = newAction;
     strncpy( newAction->process, process, 255);
     newAction->action = a->action;
-    newAction->console = console;
+    if (*cons != '\0')
+	strncpy(newAction->console, cons, 255);
+    else
+	strncpy(newAction->console, console, 255);
     newAction->pid = 0;
 }
 
@@ -524,11 +534,19 @@ void delete_initAction (initAction *action)
     }
 }
 
+/* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
+ * then parse_inittab() simply adds in some default
+ * actions(i.e runs INIT_SCRIPT and then starts a pair 
+ * of "askfirst" shells.  If BB_FEATURE_USE_INITTAB 
+ * _is_ defined, but /etc/inittab is missing == same
+ * default behavior.
+ * */
 void parse_inittab(void) 
 {
+#ifdef BB_FEATURE_USE_INITTAB
     FILE* file;
-    char buf[256];
-    char *p, *q, *r;
+    char buf[256], buf1[256];
+    char *p, *q, *r, *s;
     const struct initActionType *a = actions;
     int foundIt;
 
@@ -536,7 +554,7 @@ void parse_inittab(void)
     file = fopen(INITTAB, "r");
     if (file == NULL) {
 	/* No inittab file -- set up some default behavior */
-
+#endif
 	/* Askfirst shell on tty1 */
 	new_initAction( &(actions[3]), SHELL, console );
 	/* Askfirst shell on tty2 */
@@ -546,6 +564,7 @@ void parse_inittab(void)
 	new_initAction( &(actions[0]), INIT_SCRIPT, console );
 
 	return;
+#ifdef BB_FEATURE_USE_INITTAB
     }
 
     while ( fgets(buf, 255, file) != NULL) {
@@ -558,15 +577,22 @@ void parse_inittab(void)
 	if (q != NULL)
 	    *q='\0';
 
-	/* Skip past the ID field and the runlevel 
-	 * field (both are ignored) */
+	/* Keep a copy around for posterity's sake (and error msgs) */
+	strcpy(buf1, buf);
+
+	/* Grab the ID field */
+	s=p;
 	p = strchr( p, ':');
+	if ( p != NULL || *(p+1) != '\0' ) {
+	    *p='\0';
+	    ++p;
+	}
 
 	/* Now peal off the process field from the end
 	 * of the string */
 	q = strrchr( p, ':');
 	if ( q == NULL || *(q+1) == '\0' ) {
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf);
+	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
 	    continue;
 	} else {
 	    *q='\0';
@@ -576,7 +602,7 @@ void parse_inittab(void)
 	/* Now peal off the action field */
 	r = strrchr( p, ':');
 	if ( r == NULL || *(r+1) == '\0') {
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf);
+	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
 	    continue;
 	} else {
 	    ++r;
@@ -586,7 +612,7 @@ void parse_inittab(void)
 	a = actions;
 	while (a->name != 0) {
 	    if (strcmp(a->name, r) == 0) {
-		new_initAction( a, q, NULL);
+		new_initAction( a, q, s);
 		foundIt=TRUE;
 	    }
 	    a++;
@@ -595,12 +621,12 @@ void parse_inittab(void)
 	    continue;
 	else {
 	    /* Choke on an unknown action */
-	    fprintf(stderr, "Bad inittab entry: %s\n", buf);
+	    fprintf(stderr, "Bad inittab entry: %s\n", buf1);
 	}
     }
     return;
+#endif
 }
-
 
 extern int init_main(int argc, char **argv)
 {
@@ -675,6 +701,11 @@ extern int init_main(int argc, char **argv)
 	new_initAction( &(actions[3]), SHELL, console);
     } else {
 	/* Not in single user mode -- see what inittab says */
+
+	/* NOTE that if BB_FEATURE_USE_INITTAB is NOT defined,
+	 * then parse_inittab() simply adds in some default
+	 * actions(i.e runs INIT_SCRIPT and then starts a pair 
+	 * of "askfirst" shells */
 	parse_inittab();
     }
 
