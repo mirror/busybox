@@ -1,4 +1,3 @@
-#error Foo
 /* vi: set sw=4 ts=4: */
 /*
  * Mini more implementation for busybox
