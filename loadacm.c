@@ -149,7 +149,7 @@ static int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
 	int tmp_is_unicode;			/* tmp for is_unicode calculation */
 	int i;						/* loop index - result holder */
 	int ret_code = 0;			/* return code */
-	sigset_t sigset, old_sigset;
+	sigset_t acmsigset, old_sigset;
 
 	assert(is_unicode);
 
@@ -163,9 +163,9 @@ static int uni_screen_map_read_ascii(FILE * fp, unicode buf[], int *is_unicode)
 		buf[i] = 0xfffd;
 
 	/* block SIGCHLD */
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGCHLD);
-	sigprocmask(SIG_BLOCK, &sigset, &old_sigset);
+	sigemptyset(&acmsigset);
+	sigaddset(&acmsigset, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &acmsigset, &old_sigset);
 
 	do {
 		if (NULL == fgets(buffer, sizeof(buffer), fp)) {
