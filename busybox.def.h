@@ -154,6 +154,9 @@
 // enable ls -p and -F
 #define BB_FEATURE_LS_FILETYPES
 //
+// enable ls -R
+#define BB_FEATURE_LS_RECURSIVE
+//
 // Change ping implementation -- simplified, featureless, but really small.
 //#define BB_SIMPLE_PING
 //

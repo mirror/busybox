@@ -83,7 +83,7 @@ static void do_em_all()
 		exit(FALSE);
 	}
 	while ((m = getmntent(f)) != NULL) {
-		if (!strstr(m->mnt_type, MNTTYPE_SWAP)) {
+		if (strcmp(m->mnt_type, MNTTYPE_SWAP)==0) {
 			swap_enable_disable(m->mnt_fsname);
 		}
 	}

@@ -154,8 +154,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 			}
 		}
 #endif
-		status =
-			mount(specialfile, dir, filesystemtype, flags, string_flags);
+		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
 	}
 
 
@@ -176,6 +175,11 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		del_loop(specialfile);
 	}
 #endif
+
+	if (errno == EPERM) {
+		fatalError("mount: permission denied. Are you root?\n");
+	}
+
 	return (FALSE);
 }
 
@@ -307,7 +311,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 						  fakeIt, mtab_opts);
 	}
 
-	if (status == FALSE && whineOnErrors == TRUE) {
+	if (status == FALSE) {
 		if (whineOnErrors == TRUE) {
 			fprintf(stderr, "Mounting %s on %s failed: %s\n",
 					blockDevice, directory, strerror(errno));
@@ -458,24 +462,19 @@ extern int mount_main(int argc, char **argv)
 			// If the filesystem isn't noauto, 
 			// and isn't swap or nfs, then mount it
 			if ((!strstr(m->mnt_opts, "noauto")) &&
-				(!strstr(m->mnt_type, "swap")) &&
-				(!strstr(m->mnt_type, "nfs"))) {
+					(!strstr(m->mnt_type, "swap")) &&
+					(!strstr(m->mnt_type, "nfs"))) {
 				flags = 0;
 				*string_flags = '\0';
 				parse_mount_options(m->mnt_opts, &flags, string_flags);
-				/* If the directory is /, try to remount
-				 * with the options specified in fstab */
-				if (m->mnt_dir[0] == '/' && m->mnt_dir[1] == '\0') {
-					flags |= MS_REMOUNT;
-				}
 				if (mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
-						  flags, string_flags, useMtab, fakeIt,
-						  extra_opts, FALSE)) 
+							flags, string_flags, useMtab, fakeIt,
+							extra_opts, FALSE)==FALSE) 
 				{
 					/* Try again, but this time try a remount */
 					mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
-							  flags|MS_REMOUNT, string_flags, useMtab, fakeIt,
-							  extra_opts, TRUE);
+							flags|MS_REMOUNT, string_flags, useMtab, fakeIt,
+							extra_opts, TRUE);
 				}
 			}
 		}

@@ -956,7 +956,7 @@ Example:
 
 =item ls
 
-Usage: ls [B<-1acdelnpuxACF>] [filenames...]
+Usage: ls [B<-1acdelnpuxACFR>] [filenames...]
 
 Options:
 
@@ -974,6 +974,7 @@ Options:
 	-A	do not list implied . and ..
 	-C	list entries by columns
 	-F	append indicator (one of */=@|) to entries
+	-R  list subdirectories recursively
 
 -------------------------------
 
@@ -1947,4 +1948,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.35 2000/06/06 16:15:23 andersen Exp $
+# $Id: busybox.pod,v 1.36 2000/06/07 17:28:53 andersen Exp $
