@@ -2,7 +2,7 @@
 /*
  * Mini logger implementation for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc.
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify

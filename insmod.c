@@ -2,7 +2,7 @@
 /*
  * Mini insmod implementation for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc.
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>
  * and Ron Alder <alder@lineo.com>
  *
@@ -81,7 +81,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.43 2001/01/27 08:24:37 andersen Exp $"
+#ident "$Id: insmod.c,v 1.44 2001/01/27 09:33:38 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -287,7 +287,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.43 2001/01/27 08:24:37 andersen Exp $"
+#ident "$Id: insmod.c,v 1.44 2001/01/27 09:33:38 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 

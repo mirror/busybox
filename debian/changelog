@@ -1,8 +1,8 @@
-busybox (0.49pre-1) unstable; urgency=low
+busybox (0.49-1) unstable; urgency=low
 
-  * Not released yet....
+  * Lots more source updates and bug fixes.  See changelog for details.
 
- -- Erik Andersen <andersee@debian.org>  Wed, 20 Jan 2000 08:00:07 -0700
+ -- Erik Andersen <andersee@debian.org>  Sat, 27 Jan 2001 01:45:53 -0700
 
 busybox (0.48-1) unstable; urgency=low
 

@@ -2,8 +2,8 @@
 /*
  * Mini ps implementation(s) for busybox
  *
- * Copyright (C) 1999,2000 by Lineo, inc.  Written by Erik Andersen
- * <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.  
+ * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  *
  * This contains _two_ implementations of ps for Linux.  One uses the

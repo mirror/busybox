@@ -3,7 +3,7 @@
  * Mini `cp' and `mv' implementation for BusyBox.
  *
  *
- * Copyright (C) 1999 by Lineo, inc.
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  * Copyright (C) 2000 by BitterSweet Enterprises, LLC. (GPL)

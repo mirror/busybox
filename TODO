@@ -8,7 +8,16 @@ around to it some time. If you have any good ideas, please let me know.
 
 * We _were_ going to split networking apps into a new package called 
     netkit-tiny.  Per discussions on the mailing list, this isn't going
-    to happen.  False alarm.  Sorry about the confusion.
+    to happen.  False alarm.  Sorry about the confusion.  
+
+* The busybox shell, lash, is really too weak for serious use, although it is
+    possible to run simple systems with it.  BusyBox 0.49 was supposed to have
+    a new shell, updated to understand full Bourne grammer.  Well, that simply
+    didn't happen in time for the release.  A rewrite is in progress that will
+    result in a new shell that understands the full Bourne grammar.  This new
+    shell is being championed by Larry Doolittle <ldoolitt@recycle.lbl.gov>, and
+    could use your help.  Please see the work in progress at
+	http://doolittle.faludi.com/~larry/parser.html
 
  -Erik
 
@@ -22,12 +31,6 @@ Possible apps to include some time:
 
 -----------------------
 
-The Busybox lash shell needs to be taught Bourne shell grammer.  This
-is planned for the next release of Busybox.  Look out ash, we are coming
-for you...
-
------------------------
-
 Running the following:
 
     rm -f busybox && make LDFLAGS+=-nostdlib 2>&1 | \
@@ -37,23 +40,6 @@ reveals the list of all external (i.e. libc) things that BusyBox depends on.
 It would be a very nice thing to reduce this list to an absolute minimum, to
 reduce the footprint of busybox, especially when staticly linking with
 libraries such as uClibc.
-
------------------------
-
-Currently, busybox bypasses libc NSS.  Some folks might want that,
-so perhaps adding in the option to choose whether to go to libc for
-things like getpwnam() or whether to use the busybox version might 
-be nice.
-
------------------------
-
-Most wanted list:
-
-    [andersen@slag busybox]$ grep -l getgroups *.[ch]
-    test.c
-
-Policy violation.  getgroups uses libc nss, which is unlikely
-to be present in an embedded system.
 
 -----------------------
 

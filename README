@@ -11,8 +11,9 @@ the expected functionality and behave very much like their GNU counterparts.
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
 features) at compile time. This makes it easy to customize your embedded
-systems. To create a working system, just add a kernel and an editor (such as
-e3 (http://www.sax.de/~adlibiti) or elvis-tiny).
+systems. To create a working system, just add /dev, a kernel, and an editor,
+such as nano, e3, or elvis-tiny.  For a really minimal system, you can even use
+the busybox shell (not Bourne compatible, but very small and quite usable).
 
 BusyBox was originally written to support the Debian Rescue/Install disks, but
 it also makes an excellent environment for any small or embedded system.
@@ -27,7 +28,7 @@ After the build is complete, a busybox.links file is generated.  This is
 used by 'make install' to create symlinks to the busybox binary for all
 compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
-variable (i.e., make PREFIX="/tmp/foo" install)
+variable (i.e., 'make PREFIX=/tmp/foo install')
 
 ----------------
     

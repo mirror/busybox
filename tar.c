@@ -6,7 +6,7 @@
  * ground up.  It still has remnents of the old code lying about, but it is
  * very different now (i.e. cleaner, less global variables, etc)
  *
- * Copyright (C) 2000 by Lineo, inc.
+ * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
  * Based in part in the tar implementation in sash

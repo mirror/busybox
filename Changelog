@@ -1,10 +1,15 @@
-0.49pre
+0.49
 
 	* Matt Kraai -- new sort.c
+	* Matt Kraai -- new tail.c
 	* Glenn McGrath -- new 'dpkg-deb' applet
 	* Glenn McGrath -- new ar code
+	* spoon -- new watchdog applet
+	* Vladimir N. Oleynik <dzo@simtreas.ru> -- fixed cmdedit.c so now 
+	    scrolling and tab completion in lash work properly.  Also several
+	    byte saving optimizations.
 	* Erik Andersen -- disabled many less commonly used applets by default
-	* ?? -- more thrashing about to get clean perror_msg usage
+	* Mark Whitley -- more thrashing about to get clean perror_msg usage
 	* Matt Kraai -- new command line munging
 	* Larry Doolittle -- keep some locales from messing up busybox.sh
 	* Matt Kraai -- cleaned up dd and tail with new parse_number routine
@@ -35,10 +40,18 @@
 	* Mark Whitley -- Updates to style guide
 	* Mark Whitley -- Big cleanup in utility.c: style guide compliance,
 	    de-macro-ifying some variables and functions
-	* Matt Kraai -- new tail.c
+	* Erik Andersen -- ls now honors BB_FEATURE_AUTOWIDTH so it can find
+	    the width and height of the console.
+	* Erik Andersen -- insmod now ignores -L and accepts the -o option.
+	* Erik Andersen -- updates so you can now select from the Makefile
+	    whether or not to use the system's passwd and group functions.
+	    Since most systems use GNU libc, this can save you from having to
+	    install the /etc/nsswitch.conf configuration file and the required
+	    libnss_* libraries.  Adds 1.5k.  You can now, also, disable this, 
+	    causing busybox to use the system's pwd.h and grp.h functions.
 
 
-	 -Erik Andersen, <not released yet>
+	 -Erik Andersen, 27 January 2001
 
 0.48
 

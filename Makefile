@@ -1,7 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999-2000 Erik Andersen <andersee@debian.org>
-# Copyright (C) 2000 Karl M. Hegbloom <karlheg@debian.org>
+# Copyright (C) 1999,2000,2001 Erik Andersen <andersee@debian.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.49pre
+VERSION   := 0.49
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 

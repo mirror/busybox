@@ -38,17 +38,17 @@
 BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
 you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
-tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
-or embedded system.  The utilities in BusyBox generally have fewer options than
-their full-featured GNU cousins; however, the options that are included provide 
+tar, etc. BusyBox provides a fairly complete POSIX environment for any small or
+embedded system. The utilities in BusyBox generally have fewer options than
+their full featured GNU cousins; however, the options that are included provide
 the expected functionality and behave very much like their GNU counterparts.
 <p>
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
-features) at compile time.  This makes it easy to customize your embedded
-systems.  To create a working system, just add a kernel, a shell (such as ash),
-and an editor (such as elvis-tiny or ae).  For a really minimal system, just
-the the busybox shell (not a POSIX shell, but very small and quite usable).
+features) at compile time. This makes it easy to customize your embedded
+systems. To create a working system, just add /dev, a kernel, and an editor,
+such as nano, e3, or elvis-tiny.  For a really minimal system, you can even use
+the busybox shell (not Bourne compatible, but very small and quite usable).
 <p>
 
 BusyBox is now maintained by 
@@ -60,7 +60,7 @@ BusyBox is licensed under the
 <a href="http://www.gnu.org/copyleft/gpl.html">GNU GENERAL PUBLIC LICENSE</a>
 <p>
 
-<H3>NEW!</h3>
+<H3>Mailing List Information</h3>
 BusyBox now has a <a href="http://opensource.lineo.com/lists/busybox/">mailing list</a>!
 To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo/busybox">this page</a>.
 
@@ -76,6 +76,30 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 <TR><TD BGCOLOR="#eeeee0">
 
 <ul>
+
+    <p> <li> <b>27 January 2001 -- BusyBox 0.49 released</b>
+    <br>
+
+	     Several new applets, lots of bug fixes, cleanups, and many smaller 
+	     things made nicer.  Several cleanups and improvements to the shell.
+	     For a list of the most interesting changes 
+	     you might want to look at the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a>. 
+	     <p>
+	     Special thanks go out to Matt Kraai and Larry Doolittle for all their
+	     work on this release, and for keeping on top of things while I've been 
+	     out of town.
+	     <p>
+	     <em>Special Note</em><br>
+
+	     BusyBox 0.49 was supposed to have replaced lash, the BusyBox
+	     shell, with a new shell that understands full Bourne shell/Posix shell grammer.
+	     Well, that simply didn't happen in time for this release.  A new
+	     shell that will eventually replace lash is already under
+	     construction.  This new shell is being developed by Larry
+	     Doolittle, and could use all of our help.  Please see the work in
+	     progress on <a href="http://doolittle.faludi.com/~larry/parser.html">Larry's website</a> 
+	     and help out if you can.  This shell will be included in the next 
+	     release of BusyBox.
 
     <p> <li> <b>13 December 2000 -- BusyBox 0.48 released</b>
     <br>
@@ -94,19 +118,6 @@ To subscribe, go and visit <a href="http://opensource.lineo.com/mailman/listinfo
 	     <p>
 	     Many thanks go out to the many many people that have contributed to 
 	     this release, especially Matt Kraai, Larry Doolittle, and Kent Robotti.
-
-
-    <p> <li> <b>26 September 2000 -- BusyBox 0.47 released</b>
-    <br>
-
-	     This release fixes lots of bugs (including an ugly bug in 0.46
-	     syslogd that could fork-bomb your system).  Added several new
-	     apps: rdate, wget, getopt, dos2unix, unix2dos, reset, unrpm, 
-	     renice, xargs, and expr.  syslogd now supports network logging.
-	     There are the usual tar updates.  Most apps now use getopt for
-	     more correct option parsing.
-	     See the <a href="ftp://oss.lineo.com/busybox/Changelog">changelog</a> 
-	     for complete details.
 
 
     <p> <li> <b>Old News</b>
