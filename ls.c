@@ -610,7 +610,7 @@ static int list_single(struct dnode *dn)
 				break;
 			case LIST_BLOCKS:
 #ifdef BB_FEATURE_HUMAN_READABLE
-				fprintf(stdout, "%4s ", make_human_readable_str(dn->dstat.st_blocks>>1, 
+				fprintf(stdout, "%6s ", make_human_readable_str(dn->dstat.st_blocks>>1, 
 							KILOBYTE, (ls_disp_hr==TRUE)? 0: KILOBYTE));
 #else
 #if _FILE_OFFSET_BITS == 64
