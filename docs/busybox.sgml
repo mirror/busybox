@@ -146,7 +146,7 @@
 		halt, hdparm, head, hexdump, hostid, hostname, httpd, hush, hwclock, 
 		id, ifconfig, ifdown, ifup, inetd, init, insmod, ip, ipcalc, iplink,
 		iproute, iptunnel, kill, killall, klogd, lash, length, linuxrc,
-		ln, loadacm, loadfont, loadkmap, logger, login, logname, logread,
+		ln, loadfont, loadkmap, logger, login, logname, logread,
 		losetup, ls, lsmod, makedevs, md5sum, mesg, minit, mkdir, mkfifo,
 		mkfs.minix, mknod, mkswap, mktemp, modprobe, more, mount, msh,
 		msvc, mt, mv, nameif, nc, netstat, nslookup, od, openvt, passwd,
@@ -1847,28 +1847,6 @@
 			$ ln -s BusyBox /tmp/ls
 			$ ls -l /tmp/ls
 			lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -&gt; BusyBox*
-		</screen>
-		</para>
-	</sect1>
-
-	<sect1 id="loadacm">
-	    <title>loadacm</title>
-
-		<para>
-		Usage: loadacm
-		</para>
-
-		<para>
-		Load an acm from stdin.
-		</para>
-
-		<para>
-		Example:
-		</para>
-
-		<para>
-		<screen>
-			$ loadacm &lt; /etc/i18n/acmname
 		</screen>
 		</para>
 	</sect1>

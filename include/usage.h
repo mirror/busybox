@@ -1407,13 +1407,6 @@
 	"$ ls -l /tmp/ls\n" \
 	"lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n" 
 
-#define loadacm_trivial_usage \
-	"< mapfile"
-#define loadacm_full_usage \
-	"Loads an acm from standard input."
-#define loadacm_example_usage \
-	"$ loadacm < /etc/i18n/acmname\n" 
-
 #define loadfont_trivial_usage \
 	"< font"
 #define loadfont_full_usage \
