@@ -16,6 +16,7 @@ if [ "$CONFIG_IFCONFIG" = "y" ]; then
     bool '  Set the broadcast automatically'					CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 fi
 bool 'nc'	    CONFIG_NC
+bool 'netstat'	    CONFIG_NETSTAT
 bool 'nslookup'	    CONFIG_NSLOOKUP
 bool 'ping'	    CONFIG_PING
 if [ "$CONFIG_PING" = "y" ]; then

@@ -28,6 +28,7 @@ obj-            :=
 obj-$(CONFIG_HOSTNAME)		+= hostname.o
 obj-$(CONFIG_IFCONFIG)		+= ifconfig.o
 obj-$(CONFIG_NC)		+= nc.o
+obj-$(CONFIG_NETSTAT)		+= netstat.o
 obj-$(CONFIG_NSLOOKUP)		+= nslookup.o
 obj-$(CONFIG_PING)		+= ping.o
 obj-$(CONFIG_ROUTE)		+= route.o
