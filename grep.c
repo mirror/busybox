@@ -35,6 +35,7 @@ extern int errno;  /* for use with strerror() */
 static int ignore_case       = 0;
 static int print_filename    = 0;
 static int print_line_num    = 0;
+static int print_count_only  = 0;
 static int be_quiet          = 0;
 static int invert_search     = 0;
 static int suppress_err_msgs = 0;
@@ -75,14 +76,29 @@ static void grep_file(FILE *file)
 
 			nmatches++;
 
-			print_matched_line(line, linenum);
+			if (!print_count_only)
+				print_matched_line(line, linenum);
 
 		} else if (ret == REG_NOMATCH && invert_search) {
-			print_matched_line(line, linenum);
+
+			nmatches++;
+			
+			if (!print_count_only)
+				print_matched_line(line, linenum);
 		}
 
 		free(line);
 	}
+
+	/* special-case post processing */
+	if (print_count_only) {
+		if (print_filename)
+			printf("%s:", cur_file);
+		printf("%i\n", nmatches);
+	}
+
+	/* reset number of matches found to zero */
+	nmatches = 0;
 }
 
 extern int grep_main(int argc, char **argv)
@@ -95,7 +111,7 @@ extern int grep_main(int argc, char **argv)
 		usage(grep_usage);
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "iHhnqvs")) > 0) {
+	while ((opt = getopt(argc, argv, "iHhnqvsc")) > 0) {
 		switch (opt) {
 			case 'i':
 				ignore_case++;
@@ -117,6 +133,9 @@ extern int grep_main(int argc, char **argv)
 				break;
 			case 's':
 				suppress_err_msgs++;
+				break;
+			case 'c':
+				print_count_only++;
 				break;
 		}
 	}
