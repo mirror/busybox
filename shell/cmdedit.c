@@ -177,6 +177,8 @@ void input_backspace(int outputFd, int *cursor, int *len)
 	}
 }
 
+#ifdef BB_FEATURE_SH_TAB_COMPLETION
+
 char** username_completion_matches(char* command, int *num_matches)
 {
 	char **matches = (char **) NULL;
@@ -225,6 +227,7 @@ char** find_path_executable_n_cwd_matches(char* command, int *num_matches)
 
 	return (matches);
 }
+#endif
 
 /*
  * This function is used to grab a character buffer
@@ -340,6 +343,7 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 			}
 			break;
 		case '\t':
+#ifdef BB_FEATURE_SH_TAB_COMPLETION
 			{
 				/* Do TAB completion */
 				static int num_matches=0;
@@ -436,6 +440,9 @@ extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd,
 				}
 				break;
 			}
+#else
+			break;
+#endif
 		case '\b':
 		case DEL:
 			/* Backspace */
