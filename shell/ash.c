@@ -2996,6 +2996,8 @@ breakcmd(int argc, char **argv)
 {
 	int n = argc > 1 ? number(argv[1]) : 1;
 
+	if (n <= 0)
+		error("Illegal number: %s", argv[1]);
 	if (n > loopnest)
 		n = loopnest;
 	if (n > 0) {
@@ -12479,7 +12481,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.40 2001/12/31 06:00:57 aaronl Exp $
+ * $Id: ash.c,v 1.41 2001/12/31 06:03:12 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
