@@ -55,6 +55,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <assert.h>
 #include "busybox.h"
 
 
@@ -105,14 +106,10 @@ static int print_esc __P((char *escstart));
 static int print_formatted __P((char *format, int argc, char **argv));
 static long xstrtol __P((char *s));
 static unsigned long xstrtoul __P((char *s));
-static void print_direc
-__P(
-
-	(char *start, size_t length, int field_width, int precision,
-	 char *argument));
+static void print_direc __P( (char *start, size_t length, 
+			int field_width, int precision, char *argument));
 static void print_esc_char __P((int c));
 static void print_esc_string __P((char *str));
-static void verify __P((char *s, char *end));
 
 /* The value to return to the calling program.  */
 static int exit_status;
@@ -405,51 +402,51 @@ print_direc(char *start, size_t length, int field_width, int precision,
 	free(p);
 }
 
-static unsigned long xstrtoul(char *s)
+static unsigned long xstrtoul(char *arg)
 {
-	char *end;
-	unsigned long val;
+	unsigned long result;
+	char *endptr;
+	//int errno_save = errno;
+
+	assert(arg!=NULL);
 
 	errno = 0;
-	val = strtoul(s, &end, 0);
-	verify(s, end);
-	return val;
+	result = strtoul(arg, &endptr, 10);
+	if (errno != 0 || *endptr!='\0' || endptr==arg)
+		fprintf(stderr, "%s", arg);
+	//errno = errno_save;
+	return result;
 }
 
-static long xstrtol(char *s)
+static long xstrtol(char *arg)
 {
-	char *end;
-	long val;
+	long result;
+	char *endptr;
+	//int errno_save = errno;
+
+	assert(arg!=NULL);
 
 	errno = 0;
-	val = strtol(s, &end, 0);
-	verify(s, end);
-	return val;
+	result = strtoul(arg, &endptr, 10);
+	if (errno != 0 || *endptr!='\0' || endptr==arg)
+		fprintf(stderr, "%s", arg);
+	//errno = errno_save;
+	return result;
 }
 
-static double xstrtod(char *s)
+static double xstrtod(char *arg)
 {
-	char *end;
-	double val;
+	double result;
+	char *endptr;
+	//int errno_save = errno;
+
+	assert(arg!=NULL);
 
 	errno = 0;
-	val = strtod(s, &end);
-	verify(s, end);
-	return val;
+	result = strtod(arg, &endptr);
+	if (errno != 0 || *endptr!='\0' || endptr==arg)
+		fprintf(stderr, "%s", arg);
+	//errno = errno_save;
+	return result;
 }
 
-static void verify(char *s, char *end)
-{
-	if (errno) {
-		fprintf(stderr, "%s", s);
-		exit_status = 1;
-	} else if (*end) {
-		/*
-		   if (s == end)
-		   fprintf(stderr, "%s: expected numeric", s);
-		   else
-		   fprintf(stderr, "%s: not completely converted", s);
-		 */
-		exit_status = 1;
-	}
-}
