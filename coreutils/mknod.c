@@ -46,7 +46,7 @@ extern int mknod_main(int argc, char **argv)
 		mode |= modes_cubp[(int)(name[4])];
 
 		dev = 0;
-		if ((*name != 'p') && ((argc -= 2) == 0)) {
+		if ((*name != 'p') && ((argc -= 2) == 2)) {
 			dev = (bb_xgetularg10_bnd(argv[2], 0, 255) << 8)
 				+ bb_xgetularg10_bnd(argv[3], 0, 255);
 		}
