@@ -274,7 +274,7 @@ sh.c:
 	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 
 applet_source_list: sh.c busybox.sh Config.h
-	(echo -n "APPLET_SOURCES := "; $(SHELL) $(filter-out sh.c, $^) $(BB_SRC_DIR)) > $@
+	(echo -n "APPLET_SOURCES := "; BB_SRC_DIR=$(BB_SRC_DIR) $(SHELL) $^) > $@
 
 doc: olddoc
 
