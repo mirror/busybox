@@ -669,17 +669,22 @@ static void close_all()
 static void free_job(struct job *cmd)
 {
 	int i;
+	struct jobset *keep;
 
 	for (i = 0; i < cmd->num_progs; i++) {
 		free(cmd->progs[i].argv);
 		if (cmd->progs[i].redirects)
 			free(cmd->progs[i].redirects);
 	}
-	free(cmd->progs);
+	if (cmd->progs)
+		free(cmd->progs);
 	if (cmd->text)
 		free(cmd->text);
-	free(cmd->cmdbuf);
+	if (cmd->cmdbuf)
+		free(cmd->cmdbuf);
+	keep = cmd->job_list;
 	memset(cmd, 0, sizeof(struct job));
+	cmd->job_list = keep;
 }
 
 /* remove a job from the job_list */
@@ -1296,7 +1301,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					chptr++;
 
 				if (!*chptr) {
-					error_msg("file name expected after %c", *src);
+					error_msg("file name expected after %c", *(src-1));
 					free_job(job);
 					job->num_progs=0;
 					return 1;
