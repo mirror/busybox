@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.17 2000/06/19 18:51:53 andersen Exp $
+ * $Id: ping.c,v 1.18 2000/07/06 23:10:29 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -173,7 +173,7 @@ static int in_cksum(unsigned short *buf, int sz)
 }
 
 /* simple version */
-#ifdef BB_SIMPLE_PING
+#ifdef BB_FEATURE_SIMPLE_PING
 static const char *ping_usage = "ping host\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nSend ICMP ECHO_REQUEST packets to network hosts\n"
@@ -265,7 +265,7 @@ extern int ping_main(int argc, char **argv)
 	exit(TRUE);
 }
 
-#else /* ! BB_SIMPLE_PING */
+#else /* ! BB_FEATURE_SIMPLE_PING */
 /* full(er) version */
 static const char *ping_usage = "ping [OPTION]... host\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
@@ -561,7 +561,7 @@ extern int ping_main(int argc, char **argv)
 	ping(*argv);
 	return(TRUE);
 }
-#endif /* ! BB_SIMPLE_PING */
+#endif /* ! BB_FEATURE_SIMPLE_PING */
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.

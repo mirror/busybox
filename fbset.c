@@ -140,7 +140,7 @@ struct cmdoptions_t {
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
-#ifdef BB_FBSET_READMODE
+#ifdef BB_FEATURE_FBSET_READMODE
 	FILE *f;
 	char buf[256];
 	char *p = buf;

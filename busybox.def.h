@@ -44,7 +44,6 @@
 #define BB_INSMOD
 #define BB_KILL
 #define BB_KILLALL
-#define BB_KLOGD
 #define BB_LENGTH
 #define BB_LN
 #define BB_LOADACM
@@ -55,7 +54,7 @@
 #define BB_LS
 #define BB_LSMOD
 #define BB_MAKEDEVS
-//#define BB_MD5SUM
+#define BB_MD5SUM
 #define BB_MKDIR
 #define BB_MKFIFO
 #define BB_MKFS_MINIX
@@ -159,7 +158,7 @@
 #define BB_FEATURE_LS_RECURSIVE
 //
 // Change ping implementation -- simplified, featureless, but really small.
-//#define BB_SIMPLE_PING
+//#define BB_FEATURE_SIMPLE_PING
 //
 // Make init use a simplified /etc/inittab file (recommended).
 #define BB_FEATURE_USE_INITTAB
@@ -177,6 +176,9 @@
 //
 //Make sure nothing is printed to the console on boot
 #define BB_FEATURE_EXTRA_QUIET
+//
+//Should syslogd also provide klogd support?
+#define BB_FEATURE_KLOGD
 //
 //Simple tail implementation (2k vs 6k for the full one).  Still
 //provides 'tail -f' support -- but for only one file at a time.
@@ -219,6 +221,9 @@
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
+//
+//Turn on fbset readmode support
+//#define BB_FEATURE_FBSET_READMODE
 //
 // You must enable one or both of these features
 // Support installing modules from pre 2.1 kernels
