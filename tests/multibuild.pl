@@ -19,7 +19,6 @@ if ($ARGV[0] eq "-none") { shift(@ARGV); $choice="none"; }
 
 # Support building from pristine source
 $make_opt = "-f $ARGV[0]/Makefile BB_SRC_DIR=$ARGV[0]" if ($ARGV[0] ne "");
-make_opt .= " CROSS=arm-linux-";
 
 # Move the config file to a safe place
 -e "Config.h.orig" || 0==system("mv -f Config.h Config.h.orig") || die;
