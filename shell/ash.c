@@ -6683,10 +6683,10 @@ sprint_status(char *s, int status, int sigonly)
 	col = 0;
 	st = WEXITSTATUS(status);
 	if (!WIFEXITED(status)) {
-		st = WSTOPSIG(status);
+		st = WTERMSIG(status);
 #if JOBS
-		if (!WIFSTOPPED(status))
-			st = WTERMSIG(status);
+		if (WIFSTOPPED(status))
+			st = WSTOPSIG(status);
 #endif
 		if (sigonly) {
 			if (st == SIGINT || st == SIGPIPE)
