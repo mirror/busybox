@@ -69,6 +69,7 @@ The paramaters for enviromental variables are as follows:
 	$1		- What action the script should perform
 	interface	- The interface this was obtained on
 	ip		- The obtained IP
+	mask		- The number of bits in the netmask (ie: 24)
 	siaddr		- The bootp next server option
 	sname		- The bootp server name option
 	boot_file	- The bootp boot file option

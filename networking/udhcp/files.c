@@ -38,7 +38,7 @@ static int read_str(char *line, void *arg)
 {
 	char **dest = arg;
 	
-	free(*dest);
+	if (*dest) free(*dest);
 	*dest = strdup(line);
 	
 	return 1;

@@ -28,7 +28,7 @@ struct lease_t {
 	u_int32_t expires;
 };
 
-#ifdef COMBINED_BINARY	
+#ifdef BB_VER
 int dumpleases_main(int argc, char *argv[])
 #else
 int main(int argc, char *argv[])

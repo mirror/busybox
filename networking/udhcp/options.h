@@ -4,8 +4,6 @@
 
 #include "packet.h"
 
-#include "config.h"
-
 #define TYPE_MASK	0x0F
 
 enum {
@@ -22,7 +20,6 @@ enum {
 
 #define OPTION_REQ	0x10 /* have the client request this option */
 #define OPTION_LIST	0x20 /* There can be a list of 1 or more of these */
-#define OPTION_PREFIX	0x40 /* ip wants a prefix instead of a ip for subnet */
 
 struct dhcp_option {
 	char name[10];

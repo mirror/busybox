@@ -37,8 +37,6 @@
 #include "options.h"
 #include "debug.h"
 
-#include "config.h"
-
 /* get a rough idea of how long an option will be (rounding up...) */
 static int max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
@@ -60,41 +58,22 @@ static int upper_length(int length, struct dhcp_option *option)
 }
 
 
-static int sprintip(char *dest, char *pre, unsigned char *ip) {
-	return sprintf(dest, "%s%d.%d.%d.%d ", pre, ip[0], ip[1], ip[2], ip[3]);
-}
-
-#ifdef CONFIG_FEATURE_UDHCPC_IP
-/* convert a netmask (255.255.255.0) into the length (24) */
-static int inet_ntom (const char *src, short *dst)
+static int sprintip(char *dest, char *pre, unsigned char *ip)
 {
-	in_addr_t mask, num;
-
-	mask = ntohl(*(unsigned int *)src);
-
-	for (num = mask; num & 1; num >>= 1);
-
-	if (num != 0 && mask != 0)
-	{
-		for (num = ~mask; num & 1; num >>= 1);
-		if (num)
-			return 0;
-	}
-
-	for (num = 0; mask; mask <<= 1)
-		num++;
-
-	*dst = num;
-
-	return 1;
+	return sprintf(dest, "%s%d.%d.%d.%d", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
-static int sprintprefix(char *dest, char *pre, unsigned char *ip) {
-	short sdest = 0;
-	inet_ntom(ip, &sdest);
-	return sprintf(dest, "%s%hd ", pre, sdest);
+
+/* really simple implementation, just count the bits */
+static int mton(struct in_addr *mask)
+{
+	int i;
+	/* note: mask will always be in network byte order, so
+	 * there are no endian issues */
+	for (i = 31; i >= 0 && !((mask->s_addr >> i) & 1); i--);
+	return i + 1;
 }
-#endif
+
 
 /* Fill dest with the text of option 'option'. */
 static void fill_options(char *dest, unsigned char *option, struct dhcp_option *type_p)
@@ -117,41 +96,30 @@ static void fill_options(char *dest, unsigned char *option, struct dhcp_option *
 			*(dest++) = '/';
 			option += 4;
 			optlen = 4;
-#ifndef CONFIG_FEATURE_UDHCPC_IP
 		case OPTION_IP:	/* Works regardless of host byte order. */
-#endif
 			dest += sprintip(dest, "", option);
  			break;
-#ifdef CONFIG_FEATURE_UDHCPC_IP
- 		case OPTION_IP:	/* Works regardless of host byte order. */
-			if (type_p->flags & OPTION_PREFIX) {
-				dest += sprintprefix(dest, "", option);
-			} else {
-				dest += sprintip(dest, "", option);
-			}
- 			break;
-#endif
 		case OPTION_BOOLEAN:
-			dest += sprintf(dest, *option ? "yes " : "no ");
+			dest += sprintf(dest, *option ? "yes" : "no");
 			break;
 		case OPTION_U8:
-			dest += sprintf(dest, "%u ", *option);
+			dest += sprintf(dest, "%u", *option);
 			break;
 		case OPTION_U16:
 			memcpy(&val_u16, option, 2);
-			dest += sprintf(dest, "%u ", ntohs(val_u16));
+			dest += sprintf(dest, "%u", ntohs(val_u16));
 			break;
 		case OPTION_S16:
 			memcpy(&val_s16, option, 2);
-			dest += sprintf(dest, "%d ", ntohs(val_s16));
+			dest += sprintf(dest, "%d", ntohs(val_s16));
 			break;
 		case OPTION_U32:
 			memcpy(&val_u32, option, 4);
-			dest += sprintf(dest, "%lu ", (unsigned long) ntohl(val_u32));
+			dest += sprintf(dest, "%lu", (unsigned long) ntohl(val_u32));
 			break;
 		case OPTION_S32:
 			memcpy(&val_s32, option, 4);
-			dest += sprintf(dest, "%ld ", (long) ntohl(val_s32));
+			dest += sprintf(dest, "%ld", (long) ntohl(val_s32));
 			break;
 		case OPTION_STRING:
 			memcpy(dest, option, len);
@@ -161,6 +129,7 @@ static void fill_options(char *dest, unsigned char *option, struct dhcp_option *
 		option += optlen;
 		len -= optlen;
 		if (len <= 0) break;
+		dest += sprintf(dest, " ");
 	}
 }
 
@@ -186,6 +155,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	int i, j;
 	char **envp;
 	unsigned char *temp;
+	struct in_addr subnet;
 	char over = 0;
 
 	if (packet == NULL)
@@ -202,23 +172,32 @@ static char **fill_envp(struct dhcpMessage *packet)
 	}
 	
 	envp = xmalloc((num_options + 5) * sizeof(char *));
-	envp[0] = xmalloc(sizeof("interface=") + strlen(client_config.interface));
+	j = 0;
+	envp[j++] = xmalloc(sizeof("interface=") + strlen(client_config.interface));
 	sprintf(envp[0], "interface=%s", client_config.interface);
-	envp[1] = find_env("PATH", "PATH=/bin:/usr/bin:/sbin:/usr/sbin");
-	envp[2] = find_env("HOME", "HOME=/");
+	envp[j++] = find_env("PATH", "PATH=/bin:/usr/bin:/sbin:/usr/sbin");
+	envp[j++] = find_env("HOME", "HOME=/");
 
 	if (packet == NULL) {
-		envp[3] = NULL;
+		envp[j++] = NULL;
 		return envp;
 	}
 
-	envp[3] = xmalloc(sizeof("ip=255.255.255.255"));
-	sprintip(envp[3], "ip=", (unsigned char *) &packet->yiaddr);
-	for (i = 0, j = 4; options[i].code; i++) {
-		if ((temp = get_option(packet, options[i].code))) {
-			envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2], &options[i]) + strlen(options[i].name) + 2);
-			fill_options(envp[j], temp, &options[i]);
-			j++;
+	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
+	sprintip(envp[j++], "ip=", (unsigned char *) &packet->yiaddr);
+
+
+	for (i = 0; options[i].code; i++) {
+		if (!(temp = get_option(packet, options[i].code)))
+			continue;
+		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2], &options[i]) + strlen(options[i].name) + 2);
+		fill_options(envp[j++], temp, &options[i]);
+
+		/* Fill in a subnet bits option for things like /24 */
+		if (options[i].code == DHCP_SUBNET) {
+			envp[j] = xmalloc(sizeof("mask=32"));
+			memcpy(&subnet, temp, 4);
+			sprintf(envp[j++], "mask=%d", mton(&subnet));
 		}
 	}
 	if (packet->siaddr) {
