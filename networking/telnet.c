@@ -46,6 +46,10 @@
 #include <netdb.h>
 #include "busybox.h"
 
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+#   include <sys/ioctl.h>
+#endif
+
 #if 0
 static const int DOTRACE = 1;
 #endif
@@ -140,6 +144,10 @@ static int one = 1;
 static char *ttype;
 #endif
 
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+static int win_width, win_height;
+#endif
+
 static void doexit(int ev)
 {
 	cookmode();
@@ -202,22 +210,38 @@ static void handlenetoutput(int len)
 	 *	stream  like writing twice every sequence of FF:s (thus doing
 	 *	many write()s. But I think interactive telnet application does
 	 *	not need to be 100% 8-bit clean, so changing every 0xff:s to
-	 *	0x7f:s */
+	 *	0x7f:s
+	 *
+	 *	2002-mar-21, Przemyslaw Czerpak (druzus@polbox.com)
+	 *	I don't agree.
+	 *	first - I cannot use programs like sz/rz
+	 *	second - the 0x0D is sent as one character and if the next
+	 *	         char is 0x0A then it's eaten by a server side.
+	 *	third - whay doy you have to make 'many write()s'?
+	 *	        I don't understand.
+	 *	So I implemented it. It's realy useful for me. I hope that
+	 *	others people will find it interesting to.
+	 */
 
-	int i;
+	int i, j;
 	byte * p = G.buf;
+	byte outbuf[4*DATABUFSIZE];
 
-	for (i = len; i > 0; i--, p++)
+	for (i = len, j = 0; i > 0; i--, p++)
 	{
 		if (*p == 0x1d)
 		{
 			conescape();
 			return;
 		}
+		outbuf[j++] = *p;
 		if (*p == 0xff)
-			*p = 0x7f;
+		    outbuf[j++] = 0xff;
+		else if (*p == 0x0d)
+		    outbuf[j++] = 0x00;
 	}
-	write(G.netfd, G.buf, len);
+	if (j > 0 )
+	    write(G.netfd, outbuf, j);
 }
 
 
@@ -346,6 +370,26 @@ static void putiac_subopt(byte c, char *str)
 }
 #endif
 
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+static void putiac_naws(byte c, int x, int y)
+{
+	if (G.iaclen + 9 > IACBUFSIZE)
+		iacflush();
+
+	putiac(IAC);
+	putiac(SB);
+	putiac(c);
+
+	putiac((x >> 8) & 0xff);
+	putiac(x & 0xff);
+	putiac((y >> 8) & 0xff);
+	putiac(y & 0xff);
+
+	putiac(IAC);
+	putiac(SE);
+}
+#endif
+
 /* void putiacstring (subneg strings) */
 
 /* ******************************* */
@@ -466,23 +510,37 @@ static inline void to_ttype(void)
 }
 #endif
 
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+static inline void to_naws()
+{ 
+	/* Tell server we will do NAWS */
+	putiac2(WILL, TELOPT_NAWS);
+	return;
+}         
+#endif
+
 static void telopt(byte c)
 {
 	switch (c)
 	{
-	case TELOPT_ECHO:               to_echo();             break;
-	case TELOPT_SGA:                to_sga();              break;
+		case TELOPT_ECHO:		to_echo(c);	break;
+		case TELOPT_SGA:		to_sga(c);	break;
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-	case TELOPT_TTYPE:              to_ttype();    break;
+		case TELOPT_TTYPE:		to_ttype(c);break;
 #endif
-	default:				to_notsup(c);	break;
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+		case TELOPT_NAWS:		to_naws(c);
+								putiac_naws(c, win_width, win_height);
+								break;
+#endif
+		default:			to_notsup(c);	break;
 	}
 }
 
 
 /* ******************************* */
 
-/* subnegotiation -- ignore all (except TTYPE) */
+/* subnegotiation -- ignore all (except TTYPE,NAWS) */
 
 static int subneg(byte c)
 {
@@ -535,6 +593,14 @@ extern int telnet_main(int argc, char** argv)
 	fd_set readfds;
 	int maxfd;
 #endif	
+
+#ifdef CONFIG_FEATURE_AUTOWIDTH
+    struct winsize winp;
+    if( ioctl(0, TIOCGWINSZ, &winp) == 0 ) {
+	win_width  = winp.ws_col;
+	win_height = winp.ws_row;
+    }
+#endif
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
     ttype = getenv("TERM");
