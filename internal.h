@@ -33,7 +33,9 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <mntent.h>
+#if ! defined(__GLIBC__)
 #include <asm/string.h>
+#endif
 
 
 /* Some useful definitions */
