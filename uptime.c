@@ -46,6 +46,9 @@ extern int uptime_main(int argc, char **argv)
 	struct tm *current_time;
 	time_t current_secs;
 
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+		usage(uptime_usage);
+
 	time(&current_secs);
 	current_time = localtime(&current_secs);
 

@@ -28,6 +28,9 @@
 
 extern int clear_main(int argc, char **argv)
 {
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+		usage(clear_usage);
+
 	printf("\033[H\033[J");
 	return(TRUE);
 }

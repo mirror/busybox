@@ -27,10 +27,16 @@
 
 extern int true_main(int argc, char **argv)
 {
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+		usage(true_usage);
+
 	return(TRUE);
 }
 
 extern int false_main(int argc, char **argv)
 {
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+		usage(false_usage);
+
 	return(FALSE);
 }

@@ -83,6 +83,15 @@ const char chvt_usage[] =
 	;
 #endif
 
+#if defined BB_CLEAR
+const char clear_usage[] =
+	"clear\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nClear screen.\n"
+#endif
+	;
+#endif
+
 #if defined BB_CP_MV
 const char cp_usage[] =
 	"cp [OPTION]... SOURCE DEST\n"
@@ -241,6 +250,15 @@ const char echo_usage[] =
 	;
 #endif
 
+#if defined BB_TRUE_FALSE
+const char false_usage[] =
+	"false\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nReturn an exit code of FALSE (1).\n"
+#endif
+	;
+#endif
+
 #if defined BB_FDFLUSH
 const char fdflush_usage[] =
 	"fdflush DEVICE\n"
@@ -340,6 +358,14 @@ const char gzip_usage[] =
 	;
 #endif
 
+#if defined BB_HALT
+const char halt_usage[] =
+	"halt\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nHalt the system.\n"
+#endif
+	;
+
 #if defined BB_HEAD
 const char head_usage[] =
 	"head [OPTION] [FILE]...\n"
@@ -349,6 +375,15 @@ const char head_usage[] =
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n"
 
 	"Options:\n" "\t-n NUM\t\tPrint first NUM lines instead of first 10\n"
+#endif
+	;
+#endif
+
+#if defined BB_HOSTID
+const char hostid_usage[] =
+	"hostid\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint out a unique 32-bit identifier for the machine.\n"
 #endif
 	;
 #endif
@@ -545,6 +580,15 @@ const char ls_usage[] =
 #ifdef BB_FEATURE_LS_RECURSIVE
 	"\t-R\tlist subdirectories recursively\n"
 #endif
+#endif
+	;
+#endif
+
+#if defined BB_LSMOD
+const char lsmod_usage[] =
+	"lsmod\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nList the currently loaded kernel modules.\n"
 #endif
 	;
 #endif
@@ -767,6 +811,15 @@ const char ping_usage[] =
 #endif
 #endif
 
+#if defined BB_POWEROFF
+const char poweroff_usage[] =
+	"poweroff\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nHalt the system and request that the kernel shut off the power.\n"
+#endif
+	;
+#endif
+
 #if defined BB_PRINTF
 const char printf_usage[] =
 	"printf FORMAT [ARGUMENT...]\n"
@@ -783,6 +836,24 @@ const char ps_usage[] =
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nReport process status\n"
 	"\nThis version of ps accepts no options.\n"
+#endif
+	;
+#endif
+
+#if defined BB_PWD
+const char pwd_usage[] =
+	"pwd\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nPrint the full filename of the current working directory.\n"
+#endif
+	;
+#endif
+
+#if defined BB_REBOOT
+const char reboot_usage[] =
+	"reboot\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nReboot the system.\n"
 #endif
 	;
 #endif
@@ -1055,6 +1126,15 @@ const char tr_usage[] =
 	;
 #endif
 
+#if defined BB_TRUE_FALSE
+const char true_usage[] =
+	"true\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nReturn an exit code of TRUE (0).\n"
+#endif
+	;
+#endif
+
 #if defined BB_TTY
 const char tty_usage[] =
 	"tty\n"
@@ -1125,6 +1205,15 @@ const char update_usage[] =
 	"\t-S\tforce use of sync(2) instead of flushing\n"
 	"\t-s SECS\tcall sync this often (default 30)\n"
 	"\t-f SECS\tflush some buffers this often (default 5)\n"
+#endif
+	;
+#endif
+
+#if defined BB_UPTIME
+const char uptime_usage[] =
+	"uptime\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nDisplay the time since the last boot.\n"
 #endif
 	;
 #endif

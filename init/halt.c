@@ -26,6 +26,9 @@
 
 extern int halt_main(int argc, char **argv)
 {
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+		usage(halt_usage);
+
 #ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
 	return(kill(*(findPidByName("init")), SIGUSR1));
