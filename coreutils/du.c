@@ -4,6 +4,7 @@
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
+ * Copyright (C) 2002  Edward Betts <edward@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +41,8 @@ typedef void (Display) (long, char *);
 
 static int du_depth = 0;
 static int count_hardlinks = 0;
+static int one_file_system = 0;
+static dev_t dir_dev = 0;
 
 static Display *print;
 
@@ -69,6 +72,10 @@ static long du(char *filename)
 		perror_msg("%s", filename);
 		return 0;
 	}
+	if (du_depth == 0)
+		dir_dev = statbuf.st_dev;
+	else if (one_file_system && dir_dev != statbuf.st_dev)
+		return 0;
 
 	du_depth++;
 	sum = (statbuf.st_blocks >> 1);
@@ -133,7 +140,7 @@ int du_main(int argc, char **argv)
 	print = print_normal;
 
 	/* parse argv[] */
-	while ((c = getopt(argc, argv, "sl"
+	while ((c = getopt(argc, argv, "slx"
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 "hm"
 #endif
@@ -144,6 +151,9 @@ int du_main(int argc, char **argv)
 					break;
 			case 'l':
 					count_hardlinks = 1;
+					break;
+			case 'x':
+					one_file_system = 1;
 					break;
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 			case 'h': disp_hr = 0;        break;
@@ -174,7 +184,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.52 2001/12/17 15:26:25 kraai Exp $ */
+/* $Id: du.c,v 1.53 2002/04/06 23:16:44 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

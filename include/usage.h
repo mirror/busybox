@@ -343,7 +343,7 @@
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
 #define du_trivial_usage \
-	"[-ls" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILE]..."
+	"[-lsx" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILE]..."
 #define du_full_usage \
 	"Summarizes disk space used for each FILE and/or directory.\n" \
 	"Disk space is printed in units of 1024 bytes.\n\n" \
@@ -353,6 +353,7 @@
 	USAGE_HUMAN_READABLE( \
 	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
 	"\t-m\tprint sizes in megabytes\n" \
+	"\t-x\tskip directories on different filesystems\n" \
 	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
 	"\n\t-k\tprint sizes in kilobytes(compatibility)")
 #define du_example_usage \
