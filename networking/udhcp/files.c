@@ -9,7 +9,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
+#include <netdb.h>
 
+#include "debug.h"
 #include "dhcpd.h"
 #include "files.h"
 #include "options.h"
