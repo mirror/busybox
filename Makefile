@@ -29,7 +29,7 @@ include Rules.mak
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
-	sysklogd util-linux libbb libpwdgrp coreutils/libcoreutils
+	sysklogd util-linux libpwdgrp coreutils/libcoreutils libbb
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)
 CFLAGS += -I/usr/include/selinux
