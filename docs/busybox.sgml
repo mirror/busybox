@@ -2788,7 +2788,7 @@
 
 		<para>
 		<screen>
-			-a	Try to remove all unused kernel modules
+			-a	Remove all unused modules (recursively)
 		</screen>
 		</para>
 

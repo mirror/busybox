@@ -34,14 +34,30 @@ extern int delete_module(const char * name);
 extern int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;
+	size_t nmod = 0; /* number of modules */
+	size_t pnmod = -1; /* previous number of modules */
+	void *buf; /* hold the module names which we ignore but must get */
+	size_t bufsize = 0;
 
 	/* Parse command line. */
 	while ((n = getopt(argc, argv, "a")) != EOF) {
 		switch (n) {
 			case 'a':
 				/* Unload _all_ unused modules via NULL delete_module() call */
-				if (delete_module(NULL))
-					perror_msg_and_die("rmmod");
+				/* until the number of modules does not change */
+				buf = xmalloc(bufsize = 256);
+				while (nmod != pnmod) {
+					if (delete_module(NULL))
+						perror_msg_and_die("rmmod");
+					pnmod = nmod;
+					/* 1 == QM_MODULES */
+					if (my_query_module(NULL, 1, &buf, &bufsize, &nmod)) {
+						perror_msg_and_die("QM_MODULES");
+					}
+				}
+#ifdef CONFIG_FEATURE_CLEAN_UP
+				free(buf);
+#endif
 				return EXIT_SUCCESS;
 			default:
 				show_usage();

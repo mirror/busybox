@@ -1722,7 +1722,7 @@
 #define rmmod_full_usage \
 	"Unloads the specified kernel modules from the kernel.\n\n" \
 	"Options:\n" \
-	"\t-a\tTry to remove all unused kernel modules."
+	"\t-a\tRemove all unused modules (recursively)"
 #define rmmod_example_usage \
 	"$ rmmod tulip\n"
 

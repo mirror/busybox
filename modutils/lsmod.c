@@ -98,23 +98,6 @@ static const int NEW_MOD_VISITED = 8;
 static const int NEW_MOD_USED_ONCE = 16;
 static const int NEW_MOD_INITIALIZING = 64;
 
-static int my_query_module(const char *name, int which, void **buf,
-		size_t *bufsize, size_t *ret)
-{
-	int my_ret;
-
-	my_ret = query_module(name, which, *buf, *bufsize, ret);
-
-	if (my_ret == -1 && errno == ENOSPC) {
-		*buf = xrealloc(*buf, *ret);
-		*bufsize = *ret;
-
-		my_ret = query_module(name, which, *buf, *bufsize, ret);
-	}
-
-	return my_ret;
-}
-
 extern int lsmod_main(int argc, char **argv)
 {
 	struct module_info info;
