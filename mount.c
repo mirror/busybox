@@ -231,7 +231,7 @@ parse_mount_options(char *options, int *flags, char *strflags)
 	}
 }
 
-static int
+extern int
 mount_one(char *blockDevice, char *directory, char *filesystemType,
 		  unsigned long flags, char *string_flags, int useMtab, int fakeIt,
 		  char *mtab_opts, int whineOnErrors)
@@ -239,8 +239,8 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	int status = 0;
 
 	if (strcmp(filesystemType, "auto") == 0) {
-		static const char *strings[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", 0 };
-		const char** nodevfss;
+		static const char *noauto_array[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", "devfs", 0 };
+		const char **noauto_fstype;
 		const int num_of_filesystems = sysfs(3, 0, 0);
 		char buf[255];
 		int i=0;
@@ -249,12 +249,12 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 		while(i < num_of_filesystems) {
 			sysfs(2, i++, filesystemType);
-			for (nodevfss = strings; *nodevfss; nodevfss++) {
-				if (!strcmp(filesystemType, *nodevfss)) {
+			for (noauto_fstype = noauto_array; *noauto_fstype; noauto_fstype++) {
+				if (!strcmp(filesystemType, *noauto_fstype)) {
 					break;
 				}
 			}
-			if (!*nodevfss) {
+			if (!*noauto_fstype) {
 				status = do_mount(blockDevice, directory, filesystemType,
 					flags | MS_MGC_VAL, string_flags,
 					useMtab, fakeIt, mtab_opts);
