@@ -156,39 +156,38 @@ void add_file(char *name)
 	strcpy(files[n_files - 1], name);
 }
 
+void checknumbers(const char* name)
+{
+	int test=atoi(name);
+	if(test){
+		units=test;
+		if(units<0)
+			units=units-1;
+	} else {
+		fatalError("Unrecognised number '%s'\n", name);
+	}
+}
 
 int tail_main(int argc, char **argv)
 {
 	int show_headers = 1;
 	int test;
 	int opt;
-	int optc=0;
-	char **optv=NULL;
 	char follow=0;
 	int sleep_int=1;
 	int *fd;
 
 	opterr = 0;
 	
-	for(opt=0;opt<argc;opt++){
-		test=atoi(argv[opt]);
-		if(test){
-			units=test;
-			if(units<0)
-				units=units-1;
-		}else{
-			optc++;
-			optv = realloc(optv, optc);
-			optv[optc - 1] = (char *) malloc(strlen(argv[opt]) + 1);
-			strcpy(optv[optc - 1], argv[opt]);
-		}
-	}
-	while ((opt=getopt(optc,optv,"c:fhn:s:q:v")) >0) {
+	while ((opt=getopt(argc,argv,"c:fhn:s:q:v123456789+")) >0) {
 
 		switch (opt) {
+			case '1':case '2':case '3':case '4':case '5':
+			case '6':case '7':case '8':case '9':case '0':
+				checknumbers(argv[optind-1]);
+				break;
 
 #ifndef BB_FEATURE_SIMPLE_TAIL
-
 		case 'c':
 			unit_type = BYTES;
 			test = atoi(optarg);
@@ -248,17 +247,21 @@ int tail_main(int argc, char **argv)
 			usage(tail_usage);
 		}
 	}
-	while (optind <= optc) {
-		if(optind==optc) {
+	while (optind <= argc) {
+		if(optind==argc) {
 			if (n_files==0)
 				add_file(STDIN);
 			else
 				break;
 		}else {
-			if (!strcmp(optv[optind], "-"))
+			if (*argv[optind] == '+') {
+				checknumbers(argv[optind]);
+			}
+			else if (!strcmp(argv[optind], "-")) {
 				add_file(STDIN);
-			else
-				add_file(optv[optind]);
+			} else {
+				add_file(argv[optind]);
+			}
 			optind++;
 		}
 	}
@@ -325,8 +328,6 @@ int tail_main(int argc, char **argv)
 		free(buffer);
 	if(files)
 		free(files);
-	if(optv)
-		free(optv);
 	return 0;
 }
 
