@@ -85,6 +85,11 @@ static void grep_file(FILE *file)
 
 		}
 		else if (ret == REG_NOMATCH && invert_search) {
+			if (be_quiet) {
+				regfree(&regex);
+				exit(0);
+			}
+
 			nmatches++;
 			print_matched_line(line, linenum);
 		}
