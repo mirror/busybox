@@ -6695,17 +6695,9 @@ forkshell(struct job *jp, const union node *n, int mode)
 			setsignal(SIGTSTP);
 			setsignal(SIGTTOU);
 		} else if (mode == FORK_BG) {
-			ignoresig(SIGINT);
-			ignoresig(SIGQUIT);
-			if ((jp == NULL || jp->nprocs == 0) &&
-			    ! fd0_redirected_p ()) {
-				close(0);
-				if (open(devnull, O_RDONLY) != 0)
-					error(nullerr, devnull);
-			}
-		}
 #else
 		if (mode == FORK_BG) {
+#endif
 			ignoresig(SIGINT);
 			ignoresig(SIGQUIT);
 			if ((jp == NULL || jp->nprocs == 0) &&
@@ -6715,7 +6707,6 @@ forkshell(struct job *jp, const union node *n, int mode)
 					error(nullerr, devnull);
 			}
 		}
-#endif
 		for (i = njobs, p = jobtab ; --i >= 0 ; p++)
 			if (p->used)
 				freejob(p);
@@ -12479,7 +12470,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.42 2001/12/31 06:07:57 aaronl Exp $
+ * $Id: ash.c,v 1.43 2001/12/31 06:12:48 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
