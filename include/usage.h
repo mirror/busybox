@@ -707,6 +707,7 @@
 "		Specifies the process to be executed and it's command line.\n" \
 "\n" \
 "Example /etc/inittab file:\n" \
+"\n" \
 "	# This is run first except when booting in single-user mode.\n" \
 "	#\n" \
 "	::sysinit:/etc/init.d/rcS\n" \
