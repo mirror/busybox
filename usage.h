@@ -1303,13 +1303,12 @@
 	"Extracts an rpm archive."
 
 #define sed_trivial_usage \
-	"[-Vhnef] pattern [files...]"
+	"[-nef] pattern [files...]"
 #define sed_full_usage \
 	"Options:\n" \
 	"\t-n\t\tsuppress automatic printing of pattern space\n" \
 	"\t-e script\tadd the script to the commands to be executed\n" \
 	"\t-f scriptfile\tadd the contents of script-file to the commands to be executed\n" \
-	"\t-h\t\tdisplay this help message\n" \
 	"\n" \
 	"If no -e or -f is given, the first non-option argument is taken as the\n" \
 	"sed script to interpret. All remaining arguments are names of input\n" \
