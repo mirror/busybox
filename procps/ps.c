@@ -44,82 +44,10 @@ static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefo
 
 #if ! defined CONFIG_FEATURE_USE_DEVPS_PATCH
 
-/* The following is the first ps implementation --
- * the one using the /proc virtual filesystem.
- */
-
-typedef struct proc_s {
-	char cmd[16];					/* basename of executable file in call to exec(2) */
-	int ruid;						/* real only (sorry) */
-	int pid;						/* process id */
-	int ppid;						/* pid of parent process */
-	char state;						/* single-char code for process state (S=sleeping) */
-	unsigned int vmsize;			/* size of process as far as the vm is concerned */
-} proc_t;
-
-
-
-static int file2str(char *filename, char *ret, int cap)
-{
-	int fd, num_read;
-
-	if ((fd = open(filename, O_RDONLY, 0)) == -1)
-		return -1;
-	if ((num_read = read(fd, ret, cap - 1)) <= 0)
-		return -1;
-	ret[num_read] = 0;
-	close(fd);
-	return num_read;
-}
-
-
-static void parse_proc_status(char *S, proc_t * P)
-{
-	char *tmp;
-
-	memset(P->cmd, 0, sizeof P->cmd);
-	sscanf(S, "Name:\t%15c", P->cmd);
-	tmp = strchr(P->cmd, '\n');
-	if (tmp)
-		*tmp = '\0';
-	tmp = strstr(S, "State");
-	sscanf(tmp, "State:\t%c", &P->state);
-
-	P->pid = 0;
-	P->ppid = 0;
-	tmp = strstr(S, "Pid:");
-	if (tmp)
-		sscanf(tmp, "Pid:\t%d\n" "PPid:\t%d\n", &P->pid, &P->ppid);
-	else
-		error_msg("Internal error!");
-
-	/* For busybox, ignoring effective, saved, etc. */
-	P->ruid = 0;
-	tmp = strstr(S, "Uid:");
-	if (tmp)
-		sscanf(tmp, "Uid:\t%d", &P->ruid);
-	else
-		error_msg("Internal error!");
-	
-	P->vmsize = 0;
-	tmp = strstr(S, "VmSize:");
-	if (tmp)
-		sscanf(tmp, "VmSize:\t%d", &P->vmsize);
-#if 0
-	else
-		error_msg("Internal error!");
-#endif
-}
-
 extern int ps_main(int argc, char **argv)
 {
-	proc_t p;
-	DIR *dir;
-	FILE *file;
-	struct dirent *entry;
-	char path[32], sbuf[512];
-	char uidName[9];
-	int len, i, c;
+	procps_status_t * p;
+	int i, len;
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
@@ -128,11 +56,6 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 
-
-	dir = opendir("/proc");
-	if (!dir)
-		error_msg_and_die("Can't open /proc");
-
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
 		if (win.ws_col > 0)
@@ -140,38 +63,31 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 	printf("  PID  Uid     VmSize Stat Command\n");
-	while ((entry = readdir(dir)) != NULL) {
-		if (!isdigit(*entry->d_name))
-			continue;
-		sprintf(path, "/proc/%s/status", entry->d_name);
-		if ((file2str(path, sbuf, sizeof sbuf)) != -1) {
-			parse_proc_status(sbuf, &p);
-		}
+	while ((p = procps_scan(1)) != 0) {
+		char *namecmd = p->cmd;
 
-		/* Make some adjustments as needed */
-		my_getpwuid(uidName, p.ruid);
-
-		sprintf(path, "/proc/%s/cmdline", entry->d_name);
-		file = fopen(path, "r");
-		if (file == NULL)
-			continue;
-		i = 0;
-		if(p.vmsize == 0)
-			len = printf("%5d %-8s        %c    ", p.pid, uidName, p.state);
+		if(p->rss == 0)
+			len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
 		else
-			len = printf("%5d %-8s %6d %c    ", p.pid, uidName, p.vmsize, p.state);
-		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
-			i++;
-			if (c == '\0')
-				c = ' ';
-			putc(c, stdout);
+			len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
+		i = terminal_width-len;
+
+		if(namecmd != 0 && namecmd[0] != 0) {
+			if(i < 0)
+		i = 0;
+			if(strlen(namecmd) > i)
+				namecmd[i] = 0;
+			printf("%s\n", namecmd);
+		} else {
+			namecmd = p->short_cmd;
+			if(i < 2)
+				i = 2;
+			if(strlen(namecmd) > (i-2))
+				namecmd[i-2] = 0;
+			printf("[%s]\n", namecmd);
 		}
-		fclose(file);
-		if (i == 0)
-			printf("[%s]", p.cmd);
-		putchar('\n');
+		free(p->cmd);
 	}
-	closedir(dir);
 	return EXIT_SUCCESS;
 }
 

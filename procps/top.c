@@ -31,10 +31,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
 /* get page info */
 #include <asm/page.h>
 #include "busybox.h"
@@ -49,30 +47,13 @@
 #endif
 
 
-typedef struct {
-	int pid;
-	char user[9];
-	char state[4];
-	unsigned long rss;
-	int ppid;
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
-	unsigned pcpu;
-	unsigned long stime, utime;
-#endif
-	char *cmd;
+typedef int (*cmp_t)(procps_status_t *P, procps_status_t *Q);
 
-	/* basename of executable file in call to exec(2),
-		size from kernel headers */
-	char short_cmd[16];
-} status_t;
-
-typedef int (*cmp_t)(status_t *P, status_t *Q);
-
-static status_t *top;   /* Hehe */
+static procps_status_t *top;   /* Hehe */
 static int ntop;
 
 
-static int pid_sort (status_t *P, status_t *Q)
+static int pid_sort (procps_status_t *P, procps_status_t *Q)
 {
     int p = P->pid;
     int q = Q->pid;
@@ -82,7 +63,7 @@ static int pid_sort (status_t *P, status_t *Q)
     return 0;
 }
 
-static int mem_sort (status_t *P, status_t *Q)
+static int mem_sort (procps_status_t *P, procps_status_t *Q)
 {
     long p = P->rss;
     long q = Q->rss;
@@ -97,7 +78,7 @@ static int mem_sort (status_t *P, status_t *Q)
 #define sort_depth 3
 static cmp_t sort_function[sort_depth];
 
-static int pcpu_sort (status_t *P, status_t *Q)
+static int pcpu_sort (procps_status_t *P, procps_status_t *Q)
 {
     int p = P->pcpu;
     int q = Q->pcpu;
@@ -107,7 +88,7 @@ static int pcpu_sort (status_t *P, status_t *Q)
     return 0;
 }
 
-static int time_sort (status_t *P, status_t *Q)
+static int time_sort (procps_status_t *P, procps_status_t *Q)
 {
     long p = P->stime;
     long q = Q->stime;
@@ -253,7 +234,7 @@ static void do_stats(void)
     struct timezone timez;
     float elapsed_time;
 
-    status_t *cur;
+    procps_status_t *cur;
     int total_time, i, n;
     static int prev_count;
     int systime, usrtime, pid;
@@ -317,7 +298,7 @@ static void do_stats(void)
     save_history = memcpy(xmalloc(sizeof(struct save_hist)*n), New_save_hist,
 						sizeof(struct save_hist)*n);
     prev_count = n;
-    qsort(top, n, sizeof(status_t), (void*)mult_lvl_cmp);
+    qsort(top, n, sizeof(procps_status_t), (void*)mult_lvl_cmp);
 }
 #else
 static cmp_t sort_function;
@@ -370,7 +351,7 @@ static unsigned long display_generic(void)
 /* display process statuses */
 static void display_status(int count, int col)
 {
-	status_t *s = top;
+	procps_status_t *s = top;
 	char rss_str_buf[8];
 	unsigned long total_memory = display_generic();
 	
@@ -382,7 +363,7 @@ static void display_status(int count, int col)
 #endif
 
 	while (count--) {
-		char *namecmd = s->cmd;
+		char *namecmd = s->short_cmd;
 		int pmem;
 
 		pmem = 1000.0 * s->rss / total_memory;
@@ -402,130 +383,17 @@ static void display_status(int count, int col)
 			s->pcpu/10, s->pcpu%10,
 #endif
 			pmem/10, pmem%10);
-		if(namecmd != 0 && namecmd[0] != 0) {
 			if(strlen(namecmd) > col)
 				namecmd[col] = 0;
 			printf("%s\n", namecmd);
-			} else {
-			namecmd = s->short_cmd;
-			if(strlen(namecmd) > (col-2))
-				namecmd[col-2] = 0;
-			printf("[%s]\n", namecmd);
-			}
 		s++;
-		}
-}
-
-/* returns true for file names which are PID dirs
- * (i.e. start with number)
- */
-static int filter_pids(const struct dirent *dir)
-{
-	char *name = dir->d_name;
-	int n;
-	char status[20];
-	char buf[1024];
-	FILE *fp;
-	status_t curstatus;
-	int pid;
-	long tasknice;
-	struct stat sb;
-
-	if (!(*name >= '0' && *name <= '9'))
-		return 0;
-	if(stat(name, &sb))
-		return 0;
-
-	memset(&curstatus, 0, sizeof(status_t));
-	pid = atoi(name);
-	curstatus.pid = pid;
-	
-	my_getpwuid(curstatus.user, sb.st_uid);
-
-	sprintf(status, "%d/stat", pid);
-	if((fp = fopen(status, "r")) == NULL)
-		return 0;
-	name = fgets(buf, sizeof(buf), fp);
-			fclose(fp);
-	if(name == NULL)
-		return 0;
-	name = strrchr(buf, ')'); /* split into "PID (cmd" and "<rest>" */
-	if(name == 0 || name[1] != ' ')
-		return 0;
-	*name = 0;
-	sscanf(buf, "%*s (%15c", curstatus.short_cmd);
-	n = sscanf(name+2,
-	 "%c %d "
-	 "%*s %*s %*s %*s "     /* pgrp, session, tty, tpgid */
-	 "%*s %*s %*s %*s %*s " /* flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
-	 "%lu %lu "
-#else
-	 "%*s %*s "
-#endif
-	 "%*s %*s %*s "         /* cutime, cstime, priority */
-	 "%ld "
-	 "%*s %*s %*s "         /* timeout, it_real_value, start_time */
-	 "%*s "                 /* vsize */
-	 "%ld",
-	 curstatus.state, &curstatus.ppid,
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
-	&curstatus.utime, &curstatus.stime,
-#endif
-	&tasknice,
-	&curstatus.rss);
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
-	if(n != 6)
-#else
-	if(n != 4)
-#endif
-		return 0;
-
-	if (curstatus.rss == 0 && curstatus.state[0] != 'Z')
-		curstatus.state[1] = 'W';
-	 else
-		curstatus.state[1] = ' ';
-	if (tasknice < 0)
-		curstatus.state[2] = '<';
-	 else if (tasknice > 0)
-		curstatus.state[2] = 'N';
-	 else
-		curstatus.state[2] = ' ';
-
-	curstatus.rss <<= (PAGE_SHIFT - 10);     /* 2**10 = 1kb */
-
-	sprintf(status, "%d/cmdline", pid);
-	if((fp = fopen(status, "r")) == NULL)
-		return 0;
-	if(fgets(buf, sizeof(buf), fp) != NULL) {
-	     name = strchr(buf, '\n');
-	     if(name != NULL)
-		*name = 0;
-	     if(buf[0])
-		curstatus.cmd = strdup(buf); /* if NULL it work true also */
-		}
-		fclose(fp);
-		
-	n = ntop;
-	top = xrealloc(top, (++ntop)*sizeof(status_t));
-	memcpy(top + n, &curstatus, sizeof(status_t));
-	return 1;
-}
-
-
-static struct dirent **namelist;
-
-static void clearmems(void) {
-	int i;
-
-	for(i = 0; i < ntop; i++) {
-		free(top[i].cmd);
-		free(namelist[i]);
 	}
+}
+
+static void clearmems(void)
+{
 	free(top);
-	free(namelist);
 	top = 0;
-	namelist = 0;
 	ntop = 0;
 }
 
@@ -591,7 +459,7 @@ int top_main(int argc, char **argv)
 #else
 	col = 35;
 #endif
-	/* change to proc */
+	/* change to /proc */
 	if (chdir("/proc") < 0) {
 		perror_msg_and_die("chdir('/proc')");
 	}
@@ -631,7 +499,15 @@ int top_main(int argc, char **argv)
 #endif
 	while (1) {
 		/* read process IDs & status for all the processes */
-		if (scandir(".", &namelist, filter_pids, 0) < 0) {
+		procps_status_t * p;
+
+		while ((p = procps_scan(0)) != 0) {
+			int n = ntop;
+
+			top = xrealloc(top, (++ntop)*sizeof(procps_status_t));
+			memcpy(top + n, p, sizeof(procps_status_t));
+		}
+		if (ntop == 0) {
 		perror_msg_and_die("scandir('/proc')");
 	}
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
@@ -644,7 +520,7 @@ int top_main(int argc, char **argv)
 	}
 		do_stats();
 #else
-		qsort(top, ntop, sizeof(status_t), (void*)sort_function);
+		qsort(top, ntop, sizeof(procps_status_t), (void*)sort_function);
 #endif
 		opt = lines;
 		if (opt > ntop) {

@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <dirent.h>
 #include <stdlib.h>
 #include "libbb.h"
 
@@ -40,7 +39,7 @@
  *
  *  Returns a list of all matching PIDs
  */
-extern long* find_pid_by_name( char* pidName)
+extern long* find_pid_by_name( const char* pidName)
 {
 	int fd, i, j;
 	char device[] = "/dev/ps";
@@ -112,61 +111,28 @@ extern long* find_pid_by_name( char* pidName)
 
 /* find_pid_by_name()
  *  
+ *  Modified by Vladimir Oleynik for use with libbb/procps.c
  *  This finds the pid of the specified process.
  *  Currently, it's implemented by rummaging through 
  *  the proc filesystem.
  *
  *  Returns a list of all matching PIDs
  */
-extern long* find_pid_by_name( char* pidName)
+extern long* find_pid_by_name( const char* pidName)
 {
-	DIR *dir;
-	struct dirent *next;
-	long* pidList=NULL;
+	long* pidList;
 	int i=0;
+	procps_status_t * p;
 
-	dir = opendir("/proc");
-	if (!dir)
-		perror_msg_and_die("Cannot open /proc");
-	
-	while ((next = readdir(dir)) != NULL) {
-		FILE *status;
-		char filename[READ_BUF_SIZE];
-		char buffer[READ_BUF_SIZE];
-		char name[READ_BUF_SIZE];
-
-		/* Must skip ".." since that is outside /proc */
-		if (strcmp(next->d_name, "..") == 0)
-			continue;
-
-		/* If it isn't a number, we don't want it */
-		if (!isdigit(*next->d_name))
-			continue;
-
-		sprintf(filename, "/proc/%s/status", next->d_name);
-		if (! (status = fopen(filename, "r")) ) {
-			continue;
-		}
-		if (fgets(buffer, READ_BUF_SIZE-1, status) == NULL) {
-			fclose(status);
-			continue;
-		}
-		fclose(status);
-
-		/* Buffer should contain a string like "Name:   binary_name" */
-		sscanf(buffer, "%*s %s", name);
-		if (strcmp(name, pidName) == 0) {
+	pidList = xmalloc(sizeof(long));
+	while ((p = procps_scan(0)) != 0) {
+		if (strcmp(p->short_cmd, pidName) == 0) {
 			pidList=xrealloc( pidList, sizeof(long) * (i+2));
-			pidList[i++]=strtol(next->d_name, NULL, 0);
+			pidList[i++]=p->pid;
 		}
 	}
 
-	if (pidList) {
-		pidList[i]=0;
-	} else {
-		pidList=xrealloc( pidList, sizeof(long));
-		pidList[0]=-1;
-	}
+	pidList[i] = i==0 ? -1 : 0;
 	return pidList;
 }
 #endif							/* CONFIG_FEATURE_USE_DEVPS_PATCH */

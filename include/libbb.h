@@ -127,7 +127,7 @@ extern void write_mtab(char* blockDevice, char* directory,
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern long atoi_w_units (const char *cp);
-extern long* find_pid_by_name( char* pidName);
+extern long* find_pid_by_name( const char* pidName);
 extern char *find_real_root_device_name(const char* name);
 extern char *get_line_from_file(FILE *file);
 extern void print_file(FILE *file);
@@ -336,5 +336,24 @@ extern ssize_t xread(int fd, void *buf, size_t count);
 extern ssize_t xread_all_eof(int fd, void *buf, size_t count);
 extern void xread_all(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
+
+typedef struct {
+	int pid;
+	char user[9];
+	char state[4];
+	unsigned long rss;
+	int ppid;
+#ifdef FEATURE_CPU_USAGE_PERCENTAGE
+	unsigned pcpu;
+	unsigned long stime, utime;
+#endif
+	char *cmd;
+
+	/* basename of executable file in call to exec(2),
+		size from kernel headers */
+	char short_cmd[16];
+} procps_status_t;
+
+extern procps_status_t * procps_scan(int save_user_arg0);
 
 #endif /* __LIBCONFIG_H__ */

@@ -54,21 +54,16 @@ extern int pidof_main(int argc, char **argv)
 	while(optind < argc) {
 		long* pidList;
 
-		pidList = find_pid_by_name( argv[optind]);
-		if (!pidList || *pidList<=0) {
-			break;
-		}
-
-		for(; pidList && *pidList!=0; pidList++) {
+		pidList = find_pid_by_name(argv[optind]);
+		for(; *pidList > 0; pidList++) {
 			printf("%s%ld", (n++ ? " " : ""), (long)*pidList);
 			fail = 0;
 			if (single_flag)
 				break;
 		}
-		/* Note that we don't bother to free the memory
-		 * allocated in find_pid_by_name().  It will be freed
-		 * upon exit, so we can save a byte or two */
+		free(pidList);
 		optind++;
+
 	}
 	printf("\n");
 

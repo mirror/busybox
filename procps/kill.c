@@ -127,7 +127,7 @@ do_it_now:
 			long* pidList;
 
 			pidList = find_pid_by_name(*argv);
-			if (!pidList || *pidList<=0) {
+			if (*pidList <= 0) {
 				errors++;
 				if (quiet==0)
 					error_msg( "%s: no process killed", *argv);
@@ -142,9 +142,7 @@ do_it_now:
 					}
 				}
 			}
-			/* Note that we don't bother to free the memory
-			 * allocated in find_pid_by_name().  It will be freed
-			 * upon exit, so we can save a byte or two */
+			free(pidList);
 			argv++;
 		}
 	}
