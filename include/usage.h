@@ -1087,7 +1087,7 @@
   #define USAGE_MTAB(a)
 #endif
 #define mount_trivial_usage \
-	"[flags] device directory [-o options,more-options]"
+	"[flags] device node [-o options,more-options]"
 #define mount_full_usage \
 	"Mount a filesystem\n\n" \
 	"Flags:\n"  \
@@ -1112,6 +1112,7 @@
 	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n" \
 	"\tremount:\tRe-mount a mounted filesystem, changing its flags.\n" \
 	"\tro/rw:\t\tMount for read-only / read-write.\n" \
+	"\tbind:\t\tUse the linux 2.4.x \"bind\" feature.\n" \
 	"\nThere are EVEN MORE flags that are specific to each filesystem.\n" \
 	"You'll have to see the written documentation for those."
 #define mount_example_usage \

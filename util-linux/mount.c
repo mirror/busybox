@@ -70,6 +70,7 @@ enum {
 	S_IMMUTABLE = 512,     /* Immutable file */
 	MS_NOATIME = 1024,    /* Do not update access times. */
 	MS_NODIRATIME = 2048,    /* Do not update directory access times */
+	MS_BIND = 4096,    /* Use the new linux 2.4.x "mount --bind" feature */
 };
 
 
@@ -112,6 +113,7 @@ static const struct mount_options mount_options[] = {
 	{"rw", ~MS_RDONLY, 0},
 	{"suid", ~MS_NOSUID, 0},
 	{"sync", ~0, MS_SYNCHRONOUS},
+	{"bind", ~0, MS_BIND},
 	{0, 0, 0}
 };
 
