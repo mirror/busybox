@@ -15,15 +15,6 @@
 #define PROC_PARTITIONS "/proc/partitions"
 
 #include <features.h>
-/* Force fdisk to transparently remap 32-bit interfaces
- * to instead really use 64 bit interfaces, at least for
- * glibc and uClibc... */
-#ifndef __USE_FILE_OFFSET64
-# ifdef FDISK_SUPPORT_LARGE_DISKS
-#   define __USE_FILE_OFFSET64    1
-# endif
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>           /* stat */
 #include <ctype.h>
