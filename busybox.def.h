@@ -17,7 +17,7 @@
 //#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FSCK_MINIX
-//#define BB_MKFS_MINIX
+#define BB_MKFS_MINIX
 #define BB_CHVT
 #define BB_DEALLOCVT
 #define BB_GREP
@@ -34,7 +34,7 @@
 #define BB_MKDIR
 #define BB_MKNOD
 #define BB_MKSWAP
-//#define BB_MNC
+#define BB_MNC
 #define BB_MORE
 #define BB_MOUNT
 //#define BB_MT
@@ -54,7 +54,7 @@
 #define BB_SYNC
 #define BB_TAR
 #define BB_TOUCH
-//#define BB_TRUE_FALSE  // Supplied by ash
+#define BB_TRUE_FALSE
 #define BB_UMOUNT
 #define BB_UPDATE
 #define BB_UNAME

@@ -1,3 +1,15 @@
+0.36
+	* fixed dd so it properly defaults to stdin and stdout when no 
+	    if= and of= are set (fix thanks to Eric Delaunay).
+	* Don't try to close the file descriptor of a pipe. (fix also from
+	    Eric Delaunay).
+	* Made createPath be quiet (again thanks to Eric Delaunay).
+	* If BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS is defined, then whatever
+	    command you define it as will be run if the init script exits.
+	* Made createPath be quiet (again thanks to Eric Delaunay).
+
+	-Erik Andersen
+	
 0.35
 	* gzip now obeys the principle of least surprise and acts like god intended 
 	    (i.e. it accepts a file name, answers --help, and obeys the '-c' flag 

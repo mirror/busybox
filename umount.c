@@ -124,7 +124,7 @@ umount_main(int argc, char** argv)
     }
 
 
-    if(umountAll) {
+    if(umountAll==TRUE) {
 	exit(umount_all(useMtab));
     }
     if ( do_umount(*argv,useMtab) == 0 )

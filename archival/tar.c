@@ -559,6 +559,7 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	    outFd = mknod (name, mode, makedev(major, minor) );
 	}
 	else if (S_ISFIFO(mode) ) {
+	    devFileFlag = TRUE;
 	    outFd = mkfifo(name, mode);
 	} else {
 	    outFd = open (name, O_WRONLY | O_CREAT | O_TRUNC, mode);

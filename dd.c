@@ -152,8 +152,6 @@ extern int dd_main (int argc, char **argv)
 	argc--;
 	argv++;
     }
-    if ( inFile == NULL || outFile == NULL)
-	goto usage;
 
     buf = malloc (blockSize);
     if (buf == NULL) {

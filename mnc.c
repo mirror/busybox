@@ -40,8 +40,8 @@
 #define BUFSIZE 100
 
 static const char mnc_usage[] = 
-"mini-netcat 0.0.3 -- Open pipe to IP:port\n"
-"\tmnc [IP] [port]\n";
+"mnc [IP] [port]\n\n"
+"mini-netcat opens a pipe to IP:port\n";
 
 int
 mnc_main(int argc, char **argv)
@@ -56,9 +56,15 @@ mnc_main(int argc, char **argv)
 
         fd_set readfds, testfds;
 
+	if (argc<=1 || **(argv+1) == '-' ) {
+	    usage( mnc_usage);
+	}
+	argc--;
+	argv++;
+
         sfd = socket(AF_INET, SOCK_STREAM, 0);
 
-        hostinfo = (struct hostent *) gethostbyname(argv[1]);
+        hostinfo = (struct hostent *) gethostbyname(*argv);
 
         if (!hostinfo)
         {
@@ -67,7 +73,7 @@ mnc_main(int argc, char **argv)
 
         address.sin_family = AF_INET;
         address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-        address.sin_port = htons(atoi(argv[2]));
+        address.sin_port = htons(atoi(*(++argv)));
 
         len = sizeof(address);
 

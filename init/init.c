@@ -417,10 +417,14 @@ extern int init_main(int argc, char **argv)
     pid_t pid1 = 0;
     pid_t pid2 = 0;
     struct stat statbuf;
-    const char* const init_commands[] = { INITSCRIPT, INITSCRIPT, 0};
-    const char* const shell_commands[] = { SHELL, "-" SHELL, 0};
-    const char* const* tty0_commands = shell_commands;
-    const char* const* tty1_commands = shell_commands;
+    const char* const rc_script_command[] = { INITSCRIPT, INITSCRIPT, 0};
+    const char* const shell_command[] = { SHELL, "-" SHELL, 0};
+    const char* const* tty0_command = shell_command;
+    const char* const* tty1_command = shell_command;
+#ifdef BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS
+    const char* const rc_exit_command[] = BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS;
+#endif
+
 #ifdef DEBUG_INIT
     char *hello_msg_format =
 	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
@@ -493,7 +497,7 @@ extern int init_main(int argc, char **argv)
     /* Make sure an init script exists before trying to run it */
     if (run_rc == TRUE && stat(INITSCRIPT, &statbuf)==0) {
 	wait_for_enter = FALSE;
-	tty0_commands = init_commands;
+	tty0_command = rc_script_command;
     }
 
 
@@ -504,11 +508,11 @@ extern int init_main(int argc, char **argv)
 	pid_t wpid;
 	int status;
 
-	if (pid1 == 0 && tty0_commands) {
-	    pid1 = run(tty0_commands, console, wait_for_enter);
+	if (pid1 == 0 && tty0_command) {
+	    pid1 = run(tty0_command, console, wait_for_enter);
 	}
-	if (pid2 == 0 && tty1_commands && second_console) {
-	    pid2 = run(tty1_commands, second_console, TRUE);
+	if (pid2 == 0 && tty1_command && second_console) {
+	    pid2 = run(tty1_command, second_console, TRUE);
 	}
 	wpid = wait(&status);
 	if (wpid > 0 ) {
@@ -518,13 +522,13 @@ extern int init_main(int argc, char **argv)
 	if (wpid == pid1) {
 	    if (run_rc == FALSE) {
 		pid1 = 0;
-	    } 
-#if 0
-/* Turn this on to start a shell on the console if the init script exits.... */
+	    }
+#ifdef BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS
 	    else {
+		pid1 = 0;
 		run_rc=FALSE;
 		wait_for_enter=TRUE;
-		tty0_commands=shell_commands;
+		tty0_command=rc_exit_command;
 	    }
 #endif
 	}

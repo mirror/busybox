@@ -135,7 +135,7 @@ static char	*retext;	/* points to the text being compiled */
 
 /* error-handling stuff */
 jmp_buf	errorhandler;
-#define FAIL(why)	fprintf(stderr, why); longjmp(errorhandler, 1)
+#define FAIL(why)  do {fprintf(stderr, why); longjmp(errorhandler, 1);} while (0)
 
 
 

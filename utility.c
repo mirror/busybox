@@ -488,12 +488,8 @@ extern void createPath (const char *name, int mode)
     while (cp) {
 	cpOld = cp;
 	cp = strchr (cp + 1, '/');
-
 	*cpOld = '\0';
-
-	if (mkdir (buf, cp ? 0777 : mode) == 0)
-	    printf ("Directory \"%s\" created\n", buf);
-
+	mkdir (buf, cp ? 0777 : mode);
 	*cpOld = '/';
     }
 }
