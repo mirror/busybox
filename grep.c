@@ -37,11 +37,11 @@ extern void xregcomp(regex_t *preg, const char *regex, int cflags); /* in busybo
 static int ignore_case       = 0;
 static int print_filename    = 0;
 static int print_line_num    = 0;
-static int print_count_only  = 0;
+static int print_match_counts  = 0;
 static int be_quiet          = 0;
 static int invert_search     = 0;
 static int suppress_err_msgs = 0;
-static int files_that_match  = 0;
+static int print_files_with_matches  = 0;
 
 #ifdef BB_FEATURE_GREP_CONTEXT
 extern char *optarg; /* in getopt.h */
@@ -106,7 +106,7 @@ static void grep_file(FILE *file)
 
 			/* otherwise, keep track of matches and print the matched line */
 			nmatches++;
-			if (print_count_only==0 && files_that_match==0) {
+			if (print_match_counts==0 && print_files_with_matches==0) {
 #ifdef BB_FEATURE_GREP_CONTEXT
 				int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
@@ -160,19 +160,19 @@ static void grep_file(FILE *file)
 		free(line);
 	}
 
-	/* special-case post processing */
-	if (files_that_match) {
-	    if (nmatches > 0) {
-		printf("%s", cur_file);
-		if (nmatches)
-		    printf(":%d", nmatches);
-		printf("\n");
-	    }
-	} else if (print_count_only) {
-		if (print_filename)
-			printf("%s:", cur_file);
-		printf("%i\n", nmatches);
-	} 
+
+	/* special-case file post-processing for options where we don't print line
+	 * matches, just filenames */
+
+	/* grep -cl or just grep -c: print filename:count, even if count is zero */
+	if (print_match_counts) {
+		printf("%s:%d\n", cur_file, nmatches);
+	}
+	/* just grep -l: print just the filename, but only if we grepped the line in the file  */
+	else if (print_files_with_matches && !print_match_counts && nmatches > 0) {
+		printf("%s\n", cur_file);
+	}
+
 
 	/* remember if we matched */
 	if (nmatches != 0)
@@ -198,7 +198,7 @@ extern int grep_main(int argc, char **argv)
 				ignore_case++;
 				break;
 			case 'l':
-				files_that_match++;
+				print_files_with_matches++;
 				break;
 			case 'H':
 				print_filename++;
@@ -219,7 +219,7 @@ extern int grep_main(int argc, char **argv)
 				suppress_err_msgs++;
 				break;
 			case 'c':
-				print_count_only++;
+				print_match_counts++;
 				break;
 #ifdef BB_FEATURE_GREP_CONTEXT
 			case 'A':
@@ -250,7 +250,7 @@ extern int grep_main(int argc, char **argv)
 		show_usage();
 
 	/* sanity check */
-	if (print_count_only || be_quiet || files_that_match) {
+	if (print_match_counts || be_quiet || print_files_with_matches) {
 		print_line_num = 0;
 #ifdef BB_FEATURE_GREP_CONTEXT
 		lines_before = 0;
