@@ -244,7 +244,8 @@ extern int grep_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-	if (strcmp (basename (argv[0]), "egrep") == 0)
+	junk = get_last_path_component(argv[0]);
+	if (junk && strcmp(junk, "egrep") == 0)
 		reflags |= REG_EXTENDED;
 #endif
 
