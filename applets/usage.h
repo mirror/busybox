@@ -522,6 +522,7 @@
 	"\t-H\tprefix output lines with filename where match was found\n" \
 	"\t-h\tsuppress the prefixing filename on output\n" \
 	"\t-i\tignore case distinctions\n" \
+	"\t-l\tlist names of files that match\n" \
 	"\t-n\tprint line number with output lines\n" \
 	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n" \
 	"\t-v\tselect non-matching lines\n" \

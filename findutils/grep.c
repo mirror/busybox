@@ -41,6 +41,7 @@ static int print_count_only  = 0;
 static int be_quiet          = 0;
 static int invert_search     = 0;
 static int suppress_err_msgs = 0;
+static int files_that_match  = 0;
 
 #ifdef BB_FEATURE_GREP_CONTEXT
 extern char *optarg; /* in getopt.h */
@@ -105,7 +106,7 @@ static void grep_file(FILE *file)
 
 			/* otherwise, keep track of matches and print the matched line */
 			nmatches++;
-			if (!print_count_only) {
+			if (print_count_only==0 && files_that_match==0) {
 #ifdef BB_FEATURE_GREP_CONTEXT
 				int prevpos = (curpos == 0) ? lines_before - 1 : curpos - 1;
 
@@ -163,11 +164,18 @@ static void grep_file(FILE *file)
 	}
 
 	/* special-case post processing */
-	if (print_count_only) {
+	if (files_that_match) {
+	    if (nmatches > 0) {
+		printf("%s", cur_file);
+		if (nmatches)
+		    printf(":%d", nmatches);
+		printf("\n");
+	    }
+	} else if (print_count_only) {
 		if (print_filename)
 			printf("%s:", cur_file);
 		printf("%i\n", nmatches);
-	}
+	} 
 
 	/* remember if we matched */
 	if (nmatches != 0)
@@ -183,7 +191,7 @@ extern int grep_main(int argc, char **argv)
 #endif
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "iHhnqvsc"
+	while ((opt = getopt(argc, argv, "iHhlnqvsc"
 #ifdef BB_FEATURE_GREP_CONTEXT
 "A:B:C:"
 #endif
@@ -191,6 +199,9 @@ extern int grep_main(int argc, char **argv)
 		switch (opt) {
 			case 'i':
 				ignore_case++;
+				break;
+			case 'l':
+				files_that_match++;
 				break;
 			case 'H':
 				print_filename++;
@@ -242,7 +253,7 @@ extern int grep_main(int argc, char **argv)
 		show_usage();
 
 	/* sanity check */
-	if (print_count_only || be_quiet) {
+	if (print_count_only || be_quiet || files_that_match) {
 		print_line_num = 0;
 #ifdef BB_FEATURE_GREP_CONTEXT
 		lines_before = 0;
