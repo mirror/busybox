@@ -27,7 +27,7 @@
 	    defaults to "ansi" for serial consoles.
 	* Fixed a bug in handling the CONSOLE env. variable for serial consoles.
 
-	-Erik Andersen
+	-Erik Andersen, Jan 15, 2000
 
 0.40
 	* New Apps: sort, uniq. -beppu
