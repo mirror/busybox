@@ -78,7 +78,6 @@ config FDISK_SUPPORT_LARGE_DISKS
 	bool "  support over 4GB disks"
 	default y
 	depends on CONFIG_FDISK
-	select CONFIG_LFS
 	help
 	  Enable this option to support large disks > 4GB.
 
