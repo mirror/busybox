@@ -502,10 +502,24 @@ void free_package(common_node_t *node)
 	}
 }
 
+/* returns the array number of the string */
+static unsigned short compare_string_array(const char *string_array[], const char *key)
+{
+	unsigned short i;
+
+	for (i = 0; string_array[i] != 0; i++) {
+		if (strcmp(string_array[i], key) == 0) {
+			break;
+		}
+	}
+	return(i);
+}
+
 unsigned int fill_package_struct(char *control_buffer)
 {
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
-
+	const char *field_names[] = { "Package", "Version", "Pre-Depends", "Depends",
+		"Replaces", "Provides", "Conflicts", "Suggests", "Recommends", "Enhances", 0};
 	char *field_name;
 	char *field_value;
 	int field_start = 0;
@@ -514,42 +528,47 @@ unsigned int fill_package_struct(char *control_buffer)
 
 	new_node->version = search_name_hashtable("unknown");
 	while (field_start < buffer_length) {
+		unsigned short field_num;
+
 		field_start += read_package_field(&control_buffer[field_start],
 				&field_name, &field_value);
 
 		if (field_name == NULL) {
-			goto fill_package_struct_cleanup; // Oh no, the dreaded goto statement !!
+			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement ! */
 		}
 
-		if (strcmp(field_name, "Package") == 0) {
-			new_node->name = search_name_hashtable(field_value);
-		}
-		else if (strcmp(field_name, "Version") == 0) {
-			new_node->version = search_name_hashtable(field_value);
-		}
-		else if (strcmp(field_name, "Pre-Depends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_PRE_DEPENDS);
-		}
-		else if (strcmp(field_name, "Depends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_DEPENDS);
-		}
-		else if (strcmp(field_name, "Replaces") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_REPLACES);
-		}
-		else if (strcmp(field_name, "Provides") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_PROVIDES);
-		}
-		else if (strcmp(field_name, "Conflicts") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_CONFLICTS);
-		}
-		else if (strcmp(field_name, "Suggests") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_SUGGESTS);
-		}
-		else if (strcmp(field_name, "Recommends") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_RECOMMENDS);
-		}
-		else if (strcmp(field_name, "Enhances") == 0) {
-			add_split_dependencies(new_node, field_value, EDGE_ENHANCES);
+		field_num = compare_string_array(field_names, field_name);		
+		switch(field_num) {
+			case 0: /* Package */
+				new_node->name = search_name_hashtable(field_value);
+				break;
+			case 1: /* Version */
+				new_node->version = search_name_hashtable(field_value);
+				break;
+			case 2: /* Pre-Depends */
+				add_split_dependencies(new_node, field_value, EDGE_PRE_DEPENDS);
+				break;
+			case 3: /* Depends */
+				add_split_dependencies(new_node, field_value, EDGE_DEPENDS);
+				break;
+			case 4: /* Replaces */
+				add_split_dependencies(new_node, field_value, EDGE_REPLACES);
+				break;
+			case 5: /* Provides */
+				add_split_dependencies(new_node, field_value, EDGE_PROVIDES);
+				break;
+			case 6: /* Conflicts */
+				add_split_dependencies(new_node, field_value, EDGE_CONFLICTS);
+				break;
+			case 7: /* Suggests */
+				add_split_dependencies(new_node, field_value, EDGE_SUGGESTS);
+				break;
+			case 8: /* Recommends */
+				add_split_dependencies(new_node, field_value, EDGE_RECOMMENDS);
+				break;
+			case 9: /* Enhances */
+				add_split_dependencies(new_node, field_value, EDGE_ENHANCES);
+				break;
 		}
 fill_package_struct_cleanup:
 		if (field_name) {
