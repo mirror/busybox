@@ -29,6 +29,37 @@ compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e. make PREFIX="/tmp/foo" install)
 
+----------------
+Getting help:
+When you find you need help, you can check out the BusyBox mailing list
+archives at http://opensource.lineo.com/lists/busybox/ or even join
+the mailing list if you are interested.
+
+----------------
+Bugs:
+If you find bugs, follow the instructions at http://bugs.lineo.com/Reporting.html
+and submit a bug report.  This way, we can be sure nothing falls through the 
+cracks...
+
+----------------
+FTP:
+Source for the latest released version can always be downloaded from 
+    ftp://ftp.lineo.com/pub/busybox. 
+
+----------------
+CVS:
+BusyBox now has its own publically browsable CVS tree at:
+    http://opensource.lineo.com/cgi-bin/cvsweb/busybox/
+
+Anonymous CVS access is available.  For instructions, check out:
+    http://opensource.lineo.com/cvs_anon.html
+
+For those that are actively contributing there is even CVS write access:
+    http://opensource.lineo.com/cvs_write.html
+
+
+----------------
+
 Please feed suggestions, bug reports, insults, and bribes back to:
 	Erik Andersen 
 	<andersen@lineo.com>
