@@ -600,9 +600,9 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 			printf("\n");
 		}
 
-		/* Remove any clutter lying in our way */
-		if (extractFlag == TRUE)	/* .. but only if we are extracting (as */
-			unlink( header.name);	/* opposed to listing) (rob@sysgo.de)   */
+		/* Remove files if we would overwrite them */
+		if (extractFlag == TRUE && tostdOut == FALSE)
+			unlink(header.name);
 
 		/* If we got here, we can be certain we have a legitimate 
 		 * header to work with.  So work with it.  */
