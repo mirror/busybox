@@ -173,19 +173,19 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 }
 
 
-void die(const char *str)
+static void die(const char *str)
 {
 	error_msg("%s\n", str);
 	exit(EXIT_FAILURE);
 }
 
-void page_ok(int page)
+static void page_ok(int page)
 {
 	if (version == 0)
 		bit_set(signature_page, page);
 }
 
-void page_bad(int page)
+static void page_bad(int page)
 {
 	if (version == 0)
 		bit_test_and_clear(signature_page, page);
@@ -197,7 +197,7 @@ void page_bad(int page)
 	badpages++;
 }
 
-void check_blocks(void)
+static void check_blocks(void)
 {
 	unsigned int current_page;
 	int do_seek = 1;
