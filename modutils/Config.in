@@ -21,16 +21,16 @@ config CONFIG_FEATURE_2_2_MODULES
 config CONFIG_FEATURE_2_4_MODULES
 	bool "  Support version 2.1.x to 2.4.x Linux kernels"
 	default y
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && !CONFIG_FEATURE_2_6_MODULES
 	help
-	  Support module loading for newer (post 2.1) Linux kernels.
+	  Support module loading for 2.2.x and 2.4.x Linux kernels.
 
 config CONFIG_FEATURE_2_6_MODULES
 	bool "  Support version 2.6.x Linux kernels"
 	default n
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && !CONFIG_FEATURE_2_4_MODULES
 	help
-	  Support module loading for newer (post 2.1) Linux kernels.
+	  Support module loading for 2.6.x Linux kernels.
 
 config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	bool "  Module version checking"

@@ -182,7 +182,7 @@ static struct dep_t *build_dep ( void )
 					if (( *(col-2) == '.' ) && ( *(col-1) == 'o' ))
 						ext = 2;
 
-				mod = bb_xstrndup ( mods, col - mods - ext );
+				mod = bb_xstrndup ( buffer, col - buffer );
 
 				if ( !current ) {
 					first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
@@ -354,6 +354,28 @@ static struct dep_t *build_dep ( void )
 	return first;
 }
 
+/* check if /lib/modules/bar/foo.ko belongs to module foo */
+/* return 1 = found, 0 = not found                        */
+static int mod_strcmp ( const char *mod_path, const char *mod_name )
+{
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+#define MODULE_EXTENSION	".ko"
+#define MOD_EXTENSION_LEN	3
+#else
+#define MODULE_EXTENSION	".o"
+#define MOD_EXTENSION_LEN	2
+#endif
+	if ((strstr (mod_path, mod_name) ==
+				(mod_path + strlen(mod_path) -
+				 strlen(mod_name) - MOD_EXTENSION_LEN))
+			&& (!strcmp(mod_path + strlen(mod_path) -
+					MOD_EXTENSION_LEN, MODULE_EXTENSION)))
+	{
+      return 1;
+	}
+  return 0;
+}
+
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
 static int already_loaded (const char *name)
 {
@@ -370,7 +392,7 @@ static int already_loaded (const char *name)
 		p = strchr (buffer, ' ');
 		if (p) {
 			*p = 0;
-			if (strcmp (name, buffer) == 0) {
+			if (mod_strcmp (name, buffer)) {
 				close (fd);
 				return 1;
 			}
@@ -434,7 +456,8 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 
 	// check dependencies
 	for ( dt = depend; dt; dt = dt-> m_next ) {
-		if ( strcmp ( dt-> m_module, mod ) == 0 ) {
+		if ( mod_strcmp ( dt-> m_module, mod )) {
+			mod = dt-> m_module;
 			opt = dt-> m_options;
 			break;
 		}
