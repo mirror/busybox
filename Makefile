@@ -201,7 +201,7 @@ check: busybox
 
 clean:
 	- $(MAKE) -C tests clean
-	- $(MAKE) -C scripts/lxdialog clean
+	- $(MAKE) -C scripts clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
