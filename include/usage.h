@@ -2039,13 +2039,21 @@
 #define rmmod_example_usage \
 	"$ rmmod tulip\n"
 
+#ifdef CONFIG_FEATURE_IPV6
+  #define USAGE_ROUTE_IPV6(a) a
+#else
+  #define USAGE_ROUTE_IPV6(a) "\t"
+#endif
+
+
 #define route_trivial_usage \
-	"[{add|del|flush}]"
+	"[{add|del|delete}]"
 #define route_full_usage \
 	"Edit the kernel's routing tables.\n\n" \
 	"Options:\n" \
-	"\t-n\tDont resolve names.\n" \
-	"\t-e\tDisplay other/more information"
+	"\t-n\t\tDont resolve names.\n" \
+	"\t-e\t\tDisplay other/more information.\n" \
+	"\t-A inet" USAGE_ROUTE_IPV6("{6}") "\tSelect address family."
 
 #define rpm_trivial_usage \
 	"-i -q[ildc]p package.rpm"

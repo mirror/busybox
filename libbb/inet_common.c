@@ -4,7 +4,7 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.7 2003/07/14 21:20:55 andersen Exp $
+ * Version:     $Id: inet_common.c,v 1.8 2004/03/10 07:42:38 mjn3 Exp $
  *
  */
 
@@ -186,7 +186,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 
 #ifdef CONFIG_FEATURE_IPV6
 
-int INET6_resolve(char *name, struct sockaddr_in6 *sin6)
+int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 {
 	struct addrinfo req, *ai;
 	int s;
