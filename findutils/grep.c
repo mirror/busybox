@@ -216,14 +216,14 @@ static void	load_regexes_from_file(const char *filename)
 
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-static void destroy_regexes()
+static void destroy_regexes(void)
 {
 	if (regexes == NULL)
 		return;
 
 	/* destroy all the elments in the array */
 	while (--nregexes >= 0) {
-		regfree(regexes[nregexes]);
+		regfree(&(regexes[nregexes]));
 	}
 	if (regexes)
 	    free(regexes);
