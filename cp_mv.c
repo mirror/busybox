@@ -203,37 +203,42 @@ extern int cp_mv_main(int argc, char **argv)
 	if (dz_i == is_cp) {
 		recursiveFlag = preserveFlag = forceFlag = FALSE;
 		followLinks = TRUE;
-		while (**argv == '-') {
-			while (*++(*argv)) {
-				switch (**argv) {
-				case 'a':
-					followLinks = FALSE;
-					preserveFlag = TRUE;
-					recursiveFlag = TRUE;
-					break;
-				case 'd':
-					followLinks = FALSE;
-					break;
-				case 'p':
-					preserveFlag = TRUE;
-					break;
-				case 'R':
-					recursiveFlag = TRUE;
-					break;
-				case 'f':
-					forceFlag = TRUE;
-					break;
-				default:
-					usage(cp_mv_usage[is_cp]);
+		while (--argc >= 0 && *argv && **argv) {
+			while (**argv == '-') {
+				while (*++(*argv)) {
+					switch (**argv) {
+					case 'a':
+						followLinks = FALSE;
+						preserveFlag = TRUE;
+						recursiveFlag = TRUE;
+						break;
+					case 'd':
+						followLinks = FALSE;
+						break;
+					case 'p':
+						preserveFlag = TRUE;
+						break;
+					case 'R':
+						recursiveFlag = TRUE;
+						break;
+					case 'f':
+						forceFlag = TRUE;
+						break;
+					default:
+						usage(cp_mv_usage[is_cp]);
+					}
 				}
 			}
-			argc--;
 			argv++;
+		}
+		if (argc < 1) {
+			fatalError("cp: missing file argument\n");
 		}
 	} else {					/* (dz_i == is_mv) */
 		recursiveFlag = preserveFlag = TRUE;
 		followLinks = FALSE;
 	}
+	
 
 	if (strlen(argv[argc - 1]) > BUFSIZ) {
 		fprintf(stderr, name_too_long, "cp");

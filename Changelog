@@ -50,6 +50,11 @@
 	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
 	* Fixed a segfault in yes when no args were given -- Pavel Roskin.
 	* Simplified freeramdisk and added argument checking -- Pavel Roskin. 
+	* Fixed segfault caused by "touch -c"
+	* Fixed segfault caused by "rm -f"
+	* Fixed segfault caused by "ln -s -s" and similar abuses.
+	* Fixed segfault caused by "cp -a -a" and similar abuses.
+	* Implemented "rm -- <foo>"
 	* "which" rewritten to use stat(). Fixes to improve its compatability
 	    with traditional implementations -- Pavel Roskin.
 	* More doc updates

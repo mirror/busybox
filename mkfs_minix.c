@@ -188,7 +188,7 @@ static volatile void show_usage()
 	fprintf(stderr,
 			"\t-n [14|30]\tSpecify the maximum length of filenames\n");
 	fprintf(stderr,
-			"\t-i\t\tSpecify the number of inodes for the filesystem\n");
+			"\t-i INODES\tSpecify the number of inodes for the filesystem\n");
 	fprintf(stderr,
 			"\t-l FILENAME\tRead the bad blocks list from FILENAME\n");
 	fprintf(stderr, "\t-v\t\tMake a Minix version 2 filesystem\n\n");

@@ -26,12 +26,6 @@ Bugs that need fixing before the 0.44 release goes out the door:
 	chmod -R
 	chown -R
 	chgrp -R
-	cp -a -a
-	ln -s -s
-	rm -f
-	rm -f -
-	rm -- -
-	touch -c
   - I believe that swaponoff may also be also broken (check it).
   - It used to be that BusyBox tar would happily overwrite existing files on
       an extraction.  However, as of 0.42, BusyBox tar simply dies as soon as an 

@@ -31,7 +31,8 @@
 
 static const char *rm_usage = "rm [OPTION]... FILE...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nRemove (unlink) the FILE(s).\n\n"
+	"\nRemove (unlink) the FILE(s).  You may use '--' to\n"
+	"indicate that all following arguments are non-options.\n\n"
 	"Options:\n"
 	"\t-f\t\tremove existing destinations, never prompt\n"
 	"\t-r or -R\tremove the contents of directories recursively\n"
@@ -64,29 +65,33 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int rm_main(int argc, char **argv)
 {
+	int stopIt=FALSE;
 	struct stat statbuf;
 
 	if (argc < 2) {
 		usage(rm_usage);
 	}
-	argc--;
 	argv++;
 
 	/* Parse any options */
-	while (**argv == '-') {
-		while (*++(*argv))
-			switch (**argv) {
-			case 'R':
-			case 'r':
-				recursiveFlag = TRUE;
-				break;
-			case 'f':
-				forceFlag = TRUE;
-				break;
-			default:
-				usage(rm_usage);
-			}
-		argc--;
+	while (--argc >= 0 && *argv && **argv && stopIt==FALSE) {
+		while (**argv == '-') {
+			while (*++(*argv))
+				switch (**argv) {
+					case 'R':
+					case 'r':
+						recursiveFlag = TRUE;
+						break;
+					case 'f':
+						forceFlag = TRUE;
+						break;
+					case '-':
+						stopIt = TRUE;
+						break;
+					default:
+						usage(rm_usage);
+				}
+		}
 		argv++;
 	}
 

@@ -59,23 +59,28 @@ extern int ln_main(int argc, char **argv)
 	argv++;
 
 	/* Parse any options */
-	while (**argv == '-') {
-		while (*++(*argv))
-			switch (**argv) {
-			case 's':
-				symlinkFlag = TRUE;
-				break;
-			case 'f':
-				removeoldFlag = TRUE;
-				break;
-			case 'n':
-				followLinks = FALSE;
-				break;
-			default:
-				usage(ln_usage);
-			}
-		argc--;
+	while (--argc >= 0 && *argv && **argv) {
+		while (**argv == '-') {
+			while (*++(*argv))
+				switch (**argv) {
+					case 's':
+						symlinkFlag = TRUE;
+						break;
+					case 'f':
+						removeoldFlag = TRUE;
+						break;
+					case 'n':
+						followLinks = FALSE;
+						break;
+					default:
+						usage(ln_usage);
+				}
+		}
 		argv++;
+	}
+
+	if (argc < 1) {
+		fatalError("ln: missing file argument\n");
 	}
 
 	linkName = argv[argc - 1];
