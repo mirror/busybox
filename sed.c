@@ -27,6 +27,7 @@
 	 - address matching: num|/matchstr/[,num|/matchstr/|$]command
 	 - commands: (p)rint, (d)elete, (s)ubstitue (with g & I flags)
 	 - edit commands: (a)ppend, (i)nsert, (c)hange
+	 - backreferences in substitution expressions (\1, \2...\9)
 	 
 	 (Note: Specifying an address (range) to match is *optional*; commands
 	 default to the whole pattern space if no specific address match was
@@ -73,6 +74,9 @@ struct sed_cmd {
 	/* substitution command specific fields */
 	regex_t *sub_match; /* sed -e 's/sub_match/replace/' */
 	char *replace; /* sed -e 's/sub_match/replace/' XXX: who will hold the \1 \2 \3s? */
+	unsigned int num_backrefs:4; /* how many back references (\1..\9) */
+			/* Note:  GNU/POSIX sed does not save more than nine backrefs, so
+			 * we only use 4 bits to hold the number */
 	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
 
 	/* edit command (a,i,c) speicific field */
@@ -166,19 +170,19 @@ static size_t strrspn(const char *s, const char *accept)
 #endif
 
 /*
- * index_of_unescaped_slash - walks left to right through a string beginning
- * at a specified index and returns the index of the next unescaped slash.
+ * index_of_next_unescaped_slash - walks left to right through a string
+ * beginning at a specified index and returns the index of the next forward
+ * slash ('/') not preceeded by a backslash ('\').
  */
 static int index_of_next_unescaped_slash(const char *str, int idx)
 {
-	do {
-		idx++;
-		/* test if we've hit the end */
-		if (str[idx] == 0)
-			return -1;
-	} while (str[idx] != '/' && str[idx - 1] != '\\');
+	for ( ; str[idx]; idx++) {
+		if (str[idx] == '/' && str[idx-1] != '\\')
+			return idx;
+	}
 
-	return idx;
+	/* if we make it to here, we've hit the end of the string */
+	return -1;
 }
 
 /*
@@ -201,7 +205,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 		idx++;
 	}
 	else if (my_str[idx] == '/') {
-		idx = index_of_next_unescaped_slash(my_str, idx);
+		idx = index_of_next_unescaped_slash(my_str, ++idx);
 		if (idx == -1)
 			fatalError("unterminated match expression\n");
 		my_str[idx] = '\0';
@@ -233,6 +237,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	int oldidx, cflags = REG_NEWLINE;
 	char *match;
 	int idx = 0;
+	int j;
 
 	/*
 	 * the string that gets passed to this function should look like this:
@@ -249,14 +254,26 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 
 	/* save the match string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_slash(substr, idx);
+	idx = index_of_next_unescaped_slash(substr, ++idx);
 	if (idx == -1)
 		fatalError("bad format in substitution expression\n");
 	match = strdup_substr(substr, oldidx, idx);
 
+	/* determine the number of back references in the match string */
+	/* Note: we compute this here rather than in the do_subst_command()
+	 * function to save processor time, at the expense of a little more memory
+	 * (4 bits) per sed_cmd */
+	
+	/* sed_cmd->num_backrefs = 0; */ /* XXX: not needed? --apparently not */ 
+	for (j = 0; match[j]; j++) {
+		/* GNU/POSIX sed does not save more than nine backrefs */
+		if (match[j] == '\\' && match[j+1] == '(' && sed_cmd->num_backrefs < 9)
+			sed_cmd->num_backrefs++;
+	}
+
 	/* save the replacement string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_slash(substr, idx);
+	idx = index_of_next_unescaped_slash(substr, ++idx);
 	if (idx == -1)
 		fatalError("bad format in substitution expression\n");
 	sed_cmd->replace = strdup_substr(substr, oldidx, idx);
@@ -280,7 +297,7 @@ static int parse_subst_cmd(struct sed_cmd *sed_cmd, const char *substr)
 	}
 
 out:	
-	/* compile the regex */
+	/* compile the match string into a regex */
 	sed_cmd->sub_match = (regex_t *)xmalloc(sizeof(regex_t));
 	xregcomp(sed_cmd->sub_match, match, cflags);
 	free(match);
@@ -460,26 +477,64 @@ static void load_cmd_file(char *filename)
 	}
 }
 
+static void print_subst_w_backrefs(const char *line, const char *replace, regmatch_t *regmatch)
+{
+	int i;
+
+	/* go through the replacement string */
+	for (i = 0; replace[i]; i++) {
+		/* if we find a backreference (\1, \2, etc.) print the backref'ed * text */
+		if (replace[i] == '\\' && isdigit(replace[i+1])) {
+			int j;
+			char tmpstr[2];
+			int backref;
+			++i; /* i now indexes the backref number, instead of the leading slash */
+			tmpstr[0] = replace[i];
+			tmpstr[1] = 0;
+			backref = atoi(tmpstr);
+			/* print out the text held in regmatch[backref] */
+			for (j = regmatch[backref].rm_so; j < regmatch[backref].rm_eo; j++)
+				fputc(line[j], stdout);
+		}
+
+		/* if we find an unescaped '&' print out the whole matched text.
+		 * fortunately, regmatch[0] contains the indicies to the whole matched
+		 * expression (kinda seems like it was designed for just such a
+		 * purpose...) */
+		else if (replace[i] == '&' && replace[i-1] != '\\') {
+			int j;
+			for (j = regmatch[0].rm_so; j < regmatch[0].rm_eo; j++)
+				fputc(line[j], stdout);
+		}
+		/* nothing special, just print this char of the replacement string to stdout */
+		else
+			fputc(replace[i], stdout);
+	}
+}
+
 static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 {
 	int altered = 0;
 
 	/* we only substitute if the substitution 'search' expression matches */
 	if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == 0) {
-		regmatch_t regmatch;
+		regmatch_t *regmatch = xmalloc(sizeof(regmatch_t) * (sed_cmd->num_backrefs+1));
 		int i;
 		char *ptr = (char *)line;
 
 		while (*ptr) {
 			/* if we can match the search string... */
-			if (regexec(sed_cmd->sub_match, ptr, 1, &regmatch, 0) == 0) {
+			if (regexec(sed_cmd->sub_match, ptr, sed_cmd->num_backrefs+1, regmatch, 0) == 0) {
 				/* print everything before the match, */
-				for (i = 0; i < regmatch.rm_so; i++)
+				for (i = 0; i < regmatch[0].rm_so; i++)
 					fputc(ptr[i], stdout);
+
 				/* then print the substitution in its place */
-				fputs(sed_cmd->replace, stdout);
+				print_subst_w_backrefs(ptr, sed_cmd->replace, regmatch);
+
 				/* then advance past the match */
-				ptr += regmatch.rm_eo;
+				ptr += regmatch[0].rm_eo;
+
 				/* and flag that something has changed */
 				altered++;
 
@@ -496,6 +551,9 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, const char *line)
 		/* is there anything left to print? */
 		if (*ptr) 
 			fputs(ptr, stdout);
+
+		/* cleanup */
+		free(regmatch);
 	}
 
 	return altered;
