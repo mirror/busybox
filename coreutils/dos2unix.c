@@ -34,6 +34,11 @@
 #include <sys/time.h>
 #include "busybox.h"
 
+/* Teach libc5 what a uint64_t is */
+#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
+typedef unsigned long int       uint64_t;
+#endif
+
 static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 // if fn is NULL then input is stdin and output is stdout

@@ -235,7 +235,7 @@ endif
 LIBBB	  = libbb
 LIBBB_LIB = libbb.a
 LIBBB_CSRC= ask_confirmation.c chomp.c concat_path_file.c copy_file.c \
-copy_file_chunk.c daemon.c device_open.c error_msg.c \
+copy_file_chunk.c libc5.c device_open.c error_msg.c \
 error_msg_and_die.c fgets_str.c find_mount_point.c find_pid_by_name.c \
 find_root_device.c full_read.c full_write.c get_console.c \
 get_last_path_component.c get_line_from_file.c gz_open.c human_readable.c \

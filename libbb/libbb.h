@@ -46,6 +46,8 @@
 typedef unsigned int socklen_t;
 /* libc5 doesn't implement BSD 4.4 daemon() */
 extern int daemon (int nochdir, int noclose);
+/* libc5 doesn't implement strtok_r */
+char *strtok_r(char *s, const char *delim, char **ptrptr);
 #endif	
 
 /* Some useful definitions */
