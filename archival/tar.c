@@ -476,26 +476,6 @@ tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 	return( TRUE);
 }
 
-/* Read an octal value in a field of the specified width, with optional
- * spaces on both sides of the number and with an optional null character
- * at the end.  Returns -1 on an illegal format.  */
-static long getOctal(const char *cp, int size)
-{
-	long val = 0;
-
-	for(;(size > 0) && (*cp == ' '); cp++, size--);
-	if ((size == 0) || !is_octal(*cp))
-		return -1;
-	for(; (size > 0) && is_octal(*cp); size--) {
-		val = val * 8 + *cp++ - '0';
-	}
-	for (;(size > 0) && (*cp == ' '); cp++, size--);
-	if ((size > 0) && *cp)
-		return -1;
-	return val;
-}
-
-
 /* Parse the tar header and fill in the nice struct with the details */
 static int
 readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
@@ -518,16 +498,16 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 		}
 	}
 
-	header->mode  = getOctal(rawHeader->mode, sizeof(rawHeader->mode));
-	header->uid   =  getOctal(rawHeader->uid, sizeof(rawHeader->uid));
-	header->gid   =  getOctal(rawHeader->gid, sizeof(rawHeader->gid));
-	header->size  = getOctal(rawHeader->size, sizeof(rawHeader->size));
-	header->mtime = getOctal(rawHeader->mtime, sizeof(rawHeader->mtime));
-	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
+	header->mode  = strtol(rawHeader->mode, NULL, 8);
+	header->uid   = strtol(rawHeader->uid, NULL, 8);
+	header->gid   = strtol(rawHeader->gid, NULL, 8);
+	header->size  = strtol(rawHeader->size, NULL, 8);
+	header->mtime = strtol(rawHeader->mtime, NULL, 8);
+	chksum = strtol(rawHeader->chksum, NULL, 8);
 	header->type  = rawHeader->typeflag;
 	header->linkname  = rawHeader->linkname;
-	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
-	header->devminor  = getOctal(rawHeader->devminor, sizeof(rawHeader->devminor));
+	header->devmajor  = strtol(rawHeader->devmajor, NULL, 8);
+	header->devminor  = strtol(rawHeader->devminor, NULL, 8);
 
 	/* Check the checksum */
 	for (i = sizeof(*rawHeader); i-- != 0;) {
