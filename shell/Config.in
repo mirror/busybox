@@ -137,40 +137,12 @@ config CONFIG_MSH
 comment "Bourne Shell Options"
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
 
-config CONFIG_FEATURE_COMMAND_EDITING
-	bool "command line editing"
+config CONFIG_FEATURE_SH_EXTRA_QUIET
+	bool "Hide message on interactive shell startup"
 	default n
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
 	help
-	  Enable command editing in shell.
-
-config CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	bool "  history saving"
-	default n
-	depends on CONFIG_ASH
-	help
-	  Enable history saving in ash shell.
-
-config CONFIG_FEATURE_COMMAND_TAB_COMPLETION
-	bool "tab completion"
-	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
-	help
-	  Enable tab completion in shell.
-
-config CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
-	bool "username completion"
-	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
-	help
-	  Enable username completion in shell.
-
-config CONFIG_FEATURE_COMMAND_HISTORY
-	int "history size"
-	default 15
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
-	help
-	  Specify command history size in shell.
+	  Remove the busybox introduction when starting a shell.
 
 config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	bool "Standalone shell"
@@ -188,20 +160,47 @@ config CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	  Use a command builtin to the shell over one with the same name,
 	  that may be on the system.
 
+config CONFIG_FEATURE_COMMAND_EDITING
+	bool "command line editing"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Enable command editing in shell.
+
+config CONFIG_FEATURE_COMMAND_HISTORY
+	int "history size"
+	default 15
+	depends on CONFIG_FEATURE_COMMAND_EDITING
+	help
+	  Specify command history size in shell.
+
+config CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	bool "history saving"
+	default n
+	depends on CONFIG_ASH && CONFIG_FEATURE_COMMAND_EDITING
+	help
+	  Enable history saving in ash shell.
+
+config CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+	bool "tab completion"
+	default n
+	depends on CONFIG_FEATURE_COMMAND_EDITING
+	help
+	  Enable tab completion in shell.
+
+config CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+	bool "username completion"
+	default n
+	depends on CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+	help
+	  Enable username completion in shell.
+
 config CONFIG_FEATURE_SH_FANCY_PROMPT
 	bool "Fancy shell prompts"
 	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on CONFIG_FEATURE_COMMAND_EDITING
 	help
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and also using escape codes.
 
-config CONFIG_FEATURE_SH_EXTRA_QUIET
-	bool "Hide message on interactive shell startup"
-	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
-	help
-	  Remove the busybox introduction when starting a shell.
-
 endmenu
-

@@ -49,11 +49,7 @@
 #define Isprint(c) ( (c) >= ' ' && (c) != ((unsigned char)'\233') )
 #endif
 
-#ifndef TEST
-
-#define D(x)
-
-#else
+#ifdef TEST
 
 /* pretect redefined for test */
 #undef CONFIG_FEATURE_COMMAND_EDITING
@@ -68,8 +64,6 @@
 #define CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #define CONFIG_FEATURE_CLEAN_UP
 
-#define D(x)  x
-
 #endif                                                  /* TEST */
 
 #ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
@@ -78,10 +72,6 @@
 #endif
 
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
-
-#ifndef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
-#undef  CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
-#endif
 
 #if defined(CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION) || defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 #define CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
