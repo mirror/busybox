@@ -4,12 +4,16 @@
 DF="busybox.def.h"
 MF="busybox.c"
 
-LIST="$(sed -n '/^#define/{s/^#define //p;}' $DF)"
+LIST="$(sed -n '/^#define/{s/^#define BB_FEATURE_.*//g;s/^#define //p;}' $DF)"
 
 for def in ${LIST}; do
-	i=`sed -n 's/^#ifdef \<'$def'\>.*\/\/\(.*$\)/\/\1\//gp' $MF`
-	j=`sed -n '/^#ifdef \<'$def'\>.*/,/^#endif/{ s/.*\"\(.*\)\".*/\1/gp; }' $MF`
-	for k in $j; do
-	    echo $i$k
-	done
+	i=`sed -n '/^#ifdef \<'$def'\>.*/,/^#endif/{ s/.*\"\(.*\)\".*\(_BB_DIR_[A-Z_]*\).*$/\2\/\1/gp; }' $MF`
+	for j in $i; do 
+		if [ -z $j ] ; then 
+			continue;
+		fi;
+		echo $j | sed -e 's/_BB_DIR_ROOT//g;s/_BB_DIR_BIN/\/bin/g;' \
+		    -e 's/_BB_DIR_SBIN/\/sbin/g;s/_BB_DIR_USR_BIN/\/usr\/bin/g;' \
+		    -e 's/_BB_DIR_USR_SBIN/\/usr\/sbin/g;'
+	done;
 done

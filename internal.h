@@ -51,10 +51,18 @@
 #define isOctal(ch)     (((ch) >= '0') && ((ch) <= '7'))
 #define isWildCard(ch)  (((ch) == '*') || ((ch) == '?') || ((ch) == '['))
 
+enum Location {
+	_BB_DIR_ROOT = 0,
+	_BB_DIR_BIN,
+	_BB_DIR_SBIN,
+	_BB_DIR_USR_BIN,
+	_BB_DIR_USR_SBIN
+};
 
 struct Applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
+	enum	Location	location;
 };
 
 extern int basename_main(int argc, char **argv);
@@ -74,6 +82,7 @@ extern int df_main(int argc, char** argv);
 extern int dmesg_main(int argc, char** argv);
 extern int du_main(int argc, char** argv);
 extern int dutmp_main(int argc, char** argv);
+extern int echo_main(int argc, char** argv);
 extern int false_main(int argc, char** argv);
 extern int fbset_main(int argc, char** argv);
 extern int fdisk_main(int argc, char** argv);
@@ -134,6 +143,7 @@ extern int syslogd_main(int argc, char **argv);
 extern int tail_main(int argc, char** argv);
 extern int tar_main(int argc, char** argv);
 extern int tee_main(int argc, char** argv);
+extern int test_main(int argc, char** argv);
 extern int telnet_main(int argc, char** argv);
 extern int touch_main(int argc, char** argv);
 extern int tr_main(int argc, char** argv);

@@ -1,4 +1,8 @@
 0.43
+	* Busybox now includes a shell!  It currently costs 7.5 k (plus an
+	    additional 2.5 k if you compile in command line editing).  Handles
+	    job control, has the usual set of builtins, and does everything
+	    except for handling programming statements (if, while, etc...)
 	* Busybox can now work perfectly when /proc is disabled, thereby 
 	    saving a bunch of memory (kernel /proc support is not thin).  This
 	    is done by making use of some nice kernel patches I wrote up to
@@ -11,6 +15,7 @@
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
 	    and then adjusted a bit by me.
 	* Added tr and dirname from John Lombardo <john@deltanet.com> 
+	* Added echo and test (from me).
 	* tar wouldn't create directory entries that don't end in '/',
 	    now it does (thanks to Avery Pennarun <apenwarr@worldvisions.ca>)
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
