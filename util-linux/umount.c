@@ -24,9 +24,22 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/mount.h>
+//#include <sys/mount.h>
 #include <mntent.h>
 #include <errno.h>
+#include <linux/unistd.h>
+
+
+/* Include our own version of sys/mount.h, since libc5 doesn't
+ * know about umount2 */
+static _syscall1(int, umount, const char *, special_file);
+static _syscall2(int, umount2, const char *, special_file, int, flags);
+static _syscall5(int, mount, const char *, special_file, const char *, dir,
+		const char *, fstype, unsigned long int, rwflag, const void *, data);
+#define MNT_FORCE		1
+#define MS_MGC_VAL		0xc0ed0000		/* Magic flag number to indicate "new" flags */
+#define MS_REMOUNT		32				/* Alter flags of a mounted FS.  */
+#define MS_RDONLY		1				/* Mount read-only.  */
 
 
 static const char umount_usage[] =
@@ -286,9 +299,7 @@ extern int umount_main(int argc, char **argv)
 	}
 	if (do_umount(*argv, useMtab) == 0)
 		exit(TRUE);
-	else {
-		perror("umount");
-		exit(FALSE);
-	}
+	perror("umount");
+	return(FALSE);
 }
 
