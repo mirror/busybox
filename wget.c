@@ -195,7 +195,7 @@ int wget_main(int argc, char **argv)
 			++do_continue;
 			break;
 		case 'P':
-			dir_prefix = optarg;	
+			dir_prefix = optarg;
 			break;
 		case 'q':
 			quiet_flag = TRUE;
@@ -256,6 +256,8 @@ int wget_main(int argc, char **argv)
 #endif
 				"index.html";
 		}
+		if (dir_prefix != NULL)
+			fname_out = concat_path_file(dir_prefix, fname_out);
 #ifdef BB_FEATURE_WGET_STATUSBAR
 	} else {
 		curfile = get_last_path_component(fname_out);
@@ -272,8 +274,6 @@ int wget_main(int argc, char **argv)
 		output = stdout;
 		quiet_flag = TRUE;
 	} else {
-		if (dir_prefix != NULL)
-			fname_out = concat_path_file(dir_prefix, fname_out);
 		output = xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
 
@@ -817,7 +817,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.43 2001/07/19 17:29:38 kraai Exp $
+ *	$Id: wget.c,v 1.44 2001/07/19 19:13:55 kraai Exp $
  */
 
 
