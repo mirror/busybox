@@ -61,6 +61,8 @@ static const struct option runparts_long_options[] = {
 	{ 0,			0,		0,			0 }
 };
 
+extern char **environ;
+
 /* run_parts_main */
 /* Process options */
 int run_parts_main(int argc, char **argv)
@@ -108,5 +110,5 @@ int run_parts_main(int argc, char **argv)
 	args[0] = argv[optind];
 	args[argcount] = 0;
 
-	return(run_parts(args, test_mode));
+	return(run_parts(args, test_mode, environ));
 }

@@ -47,7 +47,7 @@ static int valid_name(const struct dirent *d)
  * test_mode = 2 means to fail siliently on missing directories
  */
 
-extern int run_parts(char **args, const unsigned char test_mode)
+extern int run_parts(char **args, const unsigned char test_mode, char **env)
 {
 	struct dirent **namelist = 0;
 	struct stat st;
@@ -92,7 +92,7 @@ extern int run_parts(char **args, const unsigned char test_mode)
 					bb_perror_msg_and_die("failed to fork");
 				} else if (!pid) {
 					args[0] = filename;
-					execv(filename, args);
+					execve(filename, args, env);
 					exec_errno = errno;
 					_exit(1);
 				}

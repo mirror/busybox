@@ -405,7 +405,7 @@ extern void run_shell ( const char *shell, int loginshell, const char *command, 
 	, security_id_t sid
 #endif
 );
-extern int run_parts(char **args, const unsigned char test_mode);
+extern int run_parts(char **args, const unsigned char test_mode, char **env);
 extern int restricted_shell ( const char *shell );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
 extern int correct_password ( const struct passwd *pw );
