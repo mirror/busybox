@@ -612,7 +612,7 @@ static int create_socket()
 
 static void setup_sockaddr_in(struct sockaddr_in * addr, int port)
 {
-	memset(addr, 0, sizeof addr);
+	memset(addr, 0, sizeof(struct sockaddr_in));
 	addr->sin_family = AF_INET;
 	addr->sin_port = htons(port);
 }
