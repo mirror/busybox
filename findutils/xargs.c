@@ -27,6 +27,7 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#include <ctype.h>
 
 
 int xargs_main(int argc, char **argv)
@@ -78,27 +79,49 @@ int xargs_main(int argc, char **argv)
 	len_cmd_to_be_executed=10;
 	cmd_to_be_executed = xcalloc(len_cmd_to_be_executed, sizeof(char));
 	strcpy(cmd_to_be_executed, args_from_cmdline);
-	strcat(cmd_to_be_executed, " ");
+	strcat(cmd_to_be_executed, " \"");
 
 	/* Now, read in one line at a time from stdin, and run command+args on it */
 	in_from_stdin = get_line_from_file(stdin);
 	for (;in_from_stdin!=NULL;) {
 		char *tmp;
-		len = strlen(in_from_stdin) + len_args_from_cmdline;
+		opt = strlen(in_from_stdin);
+		len = opt + len_args_from_cmdline;
 		len_cmd_to_be_executed+=len+3;
 		cmd_to_be_executed=xrealloc(cmd_to_be_executed, len_cmd_to_be_executed);
-
-		/* Strip out any \n's, so we just get one command to run */
-		while( (tmp = strchr(in_from_stdin, '\n')) != NULL )
+			
+		/* Strip out the final \n */
+		in_from_stdin[opt-1]=' ';
+		
+		/* Replace any tabs with spaces */
+		while( (tmp = strchr(in_from_stdin, '\t')) != NULL )
 			*tmp=' ';
 
-		strcat(cmd_to_be_executed, in_from_stdin);
+		/* Strip out any extra intra-word spaces */
+		while( (tmp = strstr(in_from_stdin, "  ")) != NULL ) {
+			opt = strlen(in_from_stdin);
+			memmove(tmp, tmp+1, opt-(tmp-in_from_stdin));
+		}
+
+		/* trim trailing whitespace */
+		opt = strlen(in_from_stdin) - 1;
+		while (isspace(in_from_stdin[opt]))
+			opt--;
+		in_from_stdin[++opt] = 0;
+
+		/* Strip out any leading whitespace */
+		tmp=in_from_stdin;
+		while(isspace(*tmp))
+			tmp++;
+
+		strcat(cmd_to_be_executed, tmp);
 		strcat(cmd_to_be_executed, " ");
 	
 		free(in_from_stdin);
 		in_from_stdin = get_line_from_file(stdin);
 	}
 
+	strcat(cmd_to_be_executed, "\"");
 	if (traceflag==1)
 		fputs(cmd_to_be_executed, stderr);
 
