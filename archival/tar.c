@@ -141,41 +141,11 @@ typedef struct TarInfo TarInfo;
 static const unsigned long TarChecksumOffset = (const unsigned long)&(((TarHeader *)0)->chksum);
 
 
-/*
- * Static data.
- */
-static int inHeader;			// <- check me
-static int badHeader;
-static int skipFileFlag;
-static int warnedRoot;
-static int eofFlag;
-static long dataCc;
-static int outFd;
-static const char *outName;
-
-static int mode;
-static int uid;
-static int gid;
-static time_t mtime;
-
-/*
- * Static data associated with the tar file.
- */
-static int tarFd;
-static dev_t tarDev;
-static ino_t tarInode;
-
-
-/*
- * Local procedures to restore files from a tar file.
- */
+/* Local procedures to restore files from a tar file.  */
 static int readTarFile(const char* tarName, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag);
-static void readData(const char *cp, int count);
 static long getOctal(const char *cp, int len);
 static int parseTarHeader(struct TarHeader *rawHeader, struct TarInfo *header);
-static int wantFileName(const char *fileName,
-						int argc, char **argv);
 
 #ifdef BB_FEATURE_TAR_CREATE
 /*
@@ -286,8 +256,33 @@ extern int tar_main(int argc, char **argv)
 static void
 tarExtractRegularFile(TarInfo *header, int extractFlag, int listFlag, int tostdoutFlag, int verboseFlag)
 {
-
+	return;
 }
+				
+static void
+tarExtractDirectory(TarInfo *header, int extractFlag, int listFlag, int tostdoutFlag, int verboseFlag)
+{
+	return;
+}
+
+static void
+tarExtractHardLink(TarInfo *header, int extractFlag, int listFlag, int tostdoutFlag, int verboseFlag)
+{
+	return;
+}
+
+static void
+tarExtractSymLink(TarInfo *header, int extractFlag, int listFlag, int tostdoutFlag, int verboseFlag)
+{
+	return;
+}
+
+static void
+tarExtractSpecial(TarInfo *header, int extractFlag, int listFlag, int tostdoutFlag, int verboseFlag)
+{
+	return;
+}
+
 
 
 /*
@@ -327,6 +322,25 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		}
 		if ( *(header.name) == '\0' )
 				goto endgame;
+	
+		if (extractFlag == FALSE) {
+			if (verboseFlag == TRUE) {
+				printf("%s %3d/%-d ", modeString(header.mode), header.uid, header.gid);
+				if (header.type==CHRTYPE || header.type==BLKTYPE)
+					printf("%4d,%4d %s ", MAJOR(header.device), 
+							MINOR(header.device), timeString(header.mtime));
+				else
+					printf("%9ld %s ", header.size, timeString(header.mtime));
+			}
+			printf("%s", header.name);
+
+			if (header.type==LNKTYPE)
+				printf(" (link to \"%s\")", hp->linkName);
+			else if (header.type==SYMTYPE)
+				printf(" (symlink to \"%s\")", hp->linkName);
+			printf("\n");
+			continue;
+		}
 
 		/* If we got here, we can be certain we have a legitimate 
 		 * header to work with.  So work with it.  */
@@ -339,22 +353,20 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 					tarExtractRegularFile(&header, extractFlag, listFlag, tostdoutFlag, verboseFlag);
 					break;
 				}
-#if 0
-			case Directory:
+			case DIRTYPE:
 				tarExtractDirectory( &header, extractFlag, listFlag, tostdoutFlag, verboseFlag);
 				break;
-			case HardLink:
+			case LNKTYPE:
 				tarExtractHardLink( &header, extractFlag, listFlag, tostdoutFlag, verboseFlag);
 				break;
-			case SymbolicLink:
+			case SYMTYPE:
 				tarExtractSymLink( &header, extractFlag, listFlag, tostdoutFlag, verboseFlag);
 				break;
-			case CharacterDevice:
-			case BlockDevice:
-			case FIFO:
+			case CHRTYPE:
+			case BLKTYPE:
+			case FIFOTYPE:
 				tarExtractSpecial( &header, extractFlag, listFlag, tostdoutFlag, verboseFlag);
 				break;
-#endif
 			default:
 				close( tarFd);
 				return( FALSE);
@@ -405,7 +417,9 @@ static long getOctal(const char *cp, int size)
 static int
 parseTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 {
-	long major, minor, chksum, sum;
+	int i;
+	long chksum, sum;
+	unsigned char *s = (unsigned char *)rawHeader;
 
 	header->name  = rawHeader->name;
 	header->mode  = getOctal(rawHeader->mode, sizeof(rawHeader->mode));
@@ -423,10 +437,10 @@ parseTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 	sum = ' ' * sizeof(rawHeader->chksum);
 	for ( i = TarChecksumOffset; i > 0; i-- )
 		sum += *s++;
-	s += sizeof(h->chksum);       
-	for ( i = (512 - TarChecksumOffset - sizeof(h->chksum)); i > 0; i-- )
+	s += sizeof(rawHeader->chksum);       
+	for ( i = (512 - TarChecksumOffset - sizeof(rawHeader->chksum)); i > 0; i-- )
 		sum += *s++;
-	if (sum == checksum )
+	if (sum == chksum )
 		return ( TRUE);
 	return( FALSE);
 }
