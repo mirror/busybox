@@ -82,7 +82,7 @@ static void base64_encode (const char *s, const char *store, const int length, c
 
 int uuencode_main(int argc, char **argv)
 {
-	const int src_buf_size = BUFSIZ;	// This *MUST* be a multiple of 3
+	const int src_buf_size = 600;	// This *MUST* be a multiple of 3
 	const int dst_buf_size = 4 * ((src_buf_size + 2) / 3);
 	RESERVE_BB_BUFFER(src_buf, src_buf_size + 1);
 	RESERVE_BB_BUFFER(dst_buf, dst_buf_size + 1);
