@@ -370,6 +370,7 @@ config CONFIG_SHA1SUM
 config CONFIG_FEATURE_SHA1SUM_CHECK
 	bool "  Enable -c and -w options"
 	default n
+	depends on CONFIG_FEATURE_SHA1SUM_CHECK
 	help
 	  Enabling the -c and -w options allow files to be checked
 	  against pre-calculated hash values.
