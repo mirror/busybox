@@ -8,7 +8,7 @@ show_result ()
 	local testcase=$2
 	local status=0
 
-	if [ $resolution = UPASS -o $resolution = FAIL ]; then
+	if [ $resolution = XPASS -o $resolution = FAIL ]; then
 		status=1
 	fi
 
@@ -25,7 +25,6 @@ run_applet_testcase ()
 	local testcase=$2
 
 	local status=0
-	local U=
 	local X=
 
 	local uc_applet=$(echo $applet | tr a-z A-Z)
@@ -46,7 +45,6 @@ run_applet_testcase ()
 	fi
 
 	if grep -q "^# XFAIL$" $testcase; then
-		U=U
 		X=X
 	fi
 
@@ -54,7 +52,7 @@ run_applet_testcase ()
 	pushd tmp >/dev/null
 
 	if . ../$testcase >/dev/null 2>&1; then
-		show_result ${U}PASS $testname
+		show_result ${X}PASS $testname
 		status=$!
 	else
 		show_result ${X}FAIL $testname
