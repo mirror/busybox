@@ -967,15 +967,19 @@ extern int ls_main(int argc, char **argv)
 			if (flags & STYLE_MASK_TRIGGER) {
 				all_fmt &= ~STYLE_MASK;
 			}
+#ifdef CONFIG_FEATURE_LS_SORTFILES
 			if (flags & SORT_MASK_TRIGGER) {
 				all_fmt &= ~SORT_MASK;
 			}
+#endif
 			if (flags & DISP_MASK_TRIGGER) {
 				all_fmt &= ~DISP_MASK;
 			}
+#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 			if (flags & TIME_MASK_TRIGGER) {
 				all_fmt &= ~TIME_MASK;
 			}
+#endif
 			if (flags & LIST_CONTEXT) {
 				all_fmt |= STYLE_SINGLE;
 			}
