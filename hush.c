@@ -2556,9 +2556,7 @@ static void setup_job_control()
 
 	/* Put ourselves in our own process group.  */
 	shell_pgrp = getpid ();
-	if (setpgid (shell_pgrp, shell_pgrp) < 0) {
-		perror_msg_and_die("Couldn't put the shell in its own process group");
-	}
+	setpgid (shell_pgrp, shell_pgrp);
 
 	/* Grab control of the terminal.  */
 	tcsetpgrp(shell_terminal, shell_pgrp);
@@ -2607,11 +2605,12 @@ int shell_main(int argc, char **argv)
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
-		input = xfopen("/etc/profile", "r");
-		mark_open(fileno(input));
-		parse_file_outer(input);
-		mark_closed(fileno(input));
-		fclose(input);
+		if ((input = fopen("/etc/profile", "r")) != NULL) {
+			mark_open(fileno(input));
+			parse_file_outer(input);
+			mark_closed(fileno(input));
+			fclose(input);
+		}
 	}
 	input=stdin;
 	
