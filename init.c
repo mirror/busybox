@@ -42,14 +42,15 @@
 #include <sys/ioctl.h>
 
 /* Turn this on to debug init so it won't reboot when killed */
-#define DEBUG_INIT
+//#define DEBUG_INIT
 
 #define CONSOLE         "/dev/console"	/* Logical system console */
 #define VT_PRIMARY      "/dev/tty0"	/* Virtual console master */
 #define VT_SECONDARY    "/dev/tty1"	/* Virtual console master */
 #define VT_LOG          "/dev/tty2"	/* Virtual console master */
 #define SHELL           "/bin/sh"	/* Default shell */
-#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
+//#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
+#define INITSCRIPT      "/tmp/foo.sh"
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
 static char *console = CONSOLE;
@@ -218,8 +219,9 @@ static int waitfor(int pid)
 static pid_t run(const char * const* command, 
 	char *terminal, int get_enter)
 {
-    int i, f;
+    int fd;
     pid_t pid;
+    const char * const* cmd = command;
     static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
 
@@ -230,13 +232,22 @@ static pid_t run(const char * const* command,
 	close(2);
 	setsid();
 
-	f=open(terminal, O_RDWR);
-	dup(f);
-	dup(f);
+	/* Reset signal handlers set for parent process */
+	signal(SIGUSR1, SIG_DFL);
+	signal(SIGUSR2, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+
+	if ((fd = device_open(terminal, O_RDWR)) < 0) {
+	    message(log, "Bummer, can't open %s\r\n", terminal);
+	    exit(-1);
+	}
+	dup(fd);
+	dup(fd);
 	tcsetpgrp(0, getpgrp());
 	set_term(0);
 
-	if (get_enter) {
+	if (get_enter==TRUE) {
 	    /*
 	     * Save memory by not exec-ing anything large (like a shell)
 	     * before the user wants it. This is critical if swap is not
@@ -251,51 +262,45 @@ static pid_t run(const char * const* command,
 	}
 
 	/* Log the process name and args */
-
+	message(log, "Executing pid(%d): '", getpid());
+	while ( *cmd) message(log, "%s ", *cmd++);
+	message(log, "'\r\n");
+	
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
-	message(log, "Executing '%s', pid(%d)\r\n", *command, getpid());
 	execvp(*command, (char**)command+1);
 
-	message(log, "Hmm.  Trying as a script.\r\n");
-	/* If shell scripts are not executed, force the issue */
-	if (errno == ENOEXEC) {
-	    char * args[16];
-	    args[0] = SHELL;
-	    args[1] = "-c";
-	    args[2] = "exec";
-	    for( i=0 ; i<16 && command[i]; i++)
-		args[3+i] = (char*)command[i];
-	    args[i] = NULL;
-	    execvp(*args, (char**)args+1);
-	}
-	message(log, "Could not execute '%s'\n", command);
+	message(log, "Bummer, could not execute '%s'\n", command);
 	exit(-1);
     }
     return pid;
 }
 
-#ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
-    const char* const swap_off_cmd[] = { "/bin/swapoff", "-a", 0};
-    const char* const umount_cmd[] = { "/bin/umount", "-a", "-n", 0};
+    const char* const swap_off_cmd[] = { "swapoff", "swapoff", "-a", 0};
+    const char* const umount_cmd[] = { "umount", "umount", "-a", "-n", 0};
 
     message(console, "The system is going down NOW !!\r\n");
     sync();
+#ifndef DEBUG_INIT
     /* Allow Ctrl-Alt-Del to reboot system. */
     reboot(RB_ENABLE_CAD);
-
+#endif
     /* Send signals to every process _except_ pid 1 */
     message(console, "Sending SIGHUP to all processes.\r\n");
+#ifndef DEBUG_INIT
     kill(-1, SIGHUP);
+#endif
     sleep(2);
     sync();
     message(console, "Sending SIGKILL to all processes.\r\n");
+#ifndef DEBUG_INIT
     kill(-1, SIGKILL);
+#endif
     sleep(1);
-    waitfor(run( swap_off_cmd, console, 0));
-    waitfor(run( umount_cmd, console, 0));
+    waitfor(run( swap_off_cmd, log, FALSE));
+    waitfor(run( umount_cmd, log, FALSE));
     sync();
     if (get_kernel_revision() <= 2 * 65536 + 2 * 256 + 11) {
 	/* Removed  bdflush call, kupdate in kernels >2.2.11 */
@@ -309,7 +314,9 @@ static void halt_signal(int sig)
     shutdown_system();
     message(console,
 	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
+#ifndef DEBUG_INIT
     reboot(RB_POWER_OFF);
+#endif
     exit(0);
 }
 
@@ -317,45 +324,44 @@ static void reboot_signal(int sig)
 {
     shutdown_system();
     message(console, "Please stand by while rebooting the system.\r\n");
+#ifndef DEBUG_INIT
     reboot(RB_AUTOBOOT);
+#endif
     exit(0);
 }
-#endif
 
 extern int init_main(int argc, char **argv)
 {
     int run_rc = TRUE;
+    int wait_for_enter = FALSE;
     pid_t pid1 = 0;
     pid_t pid2 = 0;
     struct stat statbuf;
-    const char* const swap_on_cmd[] = { "/bin/swapon", " -a ", 0};
-    const char* const init_commands[] = { SHELL, " -c", " exec ", INITSCRIPT, 0};
-    const char* const shell_commands[] = { SHELL, " -", 0};
+    const char* const swap_on_cmd[] = { "/bin/swapon", "swapon", "-a", 0};
+    const char* const init_commands[] = { INITSCRIPT, INITSCRIPT, 0};
+    const char* const shell_commands[] = { SHELL, "-" SHELL, 0};
     const char* const* tty0_commands = init_commands;
     const char* const* tty1_commands = shell_commands;
-#ifndef DEBUG_INIT
-    char *hello_msg_format =
-	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
-#else
+#ifdef DEBUG_INIT
     char *hello_msg_format =
 	"init(%d) started:  BusyBox v%s (%s) multi-call binary\r\n";
+#else
+    char *hello_msg_format =
+	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
 #endif
     const char *no_memory =
 	"Sorry, your computer does not have enough memory.\r\n";
 
-#ifndef DEBUG_INIT
-    /* Set up sig handlers */
+    /* Set up sig handlers  -- be sure to
+     * clear all of these in run() */
     signal(SIGUSR1, halt_signal);
-    signal(SIGSEGV, halt_signal);
-    signal(SIGPWR, halt_signal);
-    signal(SIGALRM, halt_signal);
-    signal(SIGHUP, halt_signal);
     signal(SIGUSR2, reboot_signal);
     signal(SIGINT, reboot_signal);
     signal(SIGTERM, reboot_signal);
 
     /* Turn off rebooting via CTL-ALT-DEL -- we get a 
      * SIGINT on CAD so we can shut things down gracefully... */
+#ifndef DEBUG_INIT
     reboot(RB_DISABLE_CAD);
 #endif 
     /* Figure out where the default console should be */
@@ -383,7 +389,7 @@ extern int init_main(int argc, char **argv)
 
     
     /* Mount /proc */
-    if (mount("/proc", "/proc", "proc", 0, 0) == 0) {
+    if (mount ("proc", "/proc", "proc", 0, 0) == 0) {
 	message(log, "Mounting /proc: done.\n");
 	message(console, "Mounting /proc: done.\n");
     } else {
@@ -403,7 +409,7 @@ extern int init_main(int argc, char **argv)
 	    }
 	} else {
 	    /* Try to turn on swap */
-	    waitfor(run(swap_on_cmd, console, 0));
+	    waitfor(run(swap_on_cmd, log, FALSE));
 	    if (mem_total() < 2000) {
 		message(console, "%s", no_memory);
 		while (1) {
@@ -417,12 +423,14 @@ extern int init_main(int argc, char **argv)
     if ( argc > 1 && (!strcmp(argv[1], "single") || 
 		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
 	run_rc = FALSE;
+	wait_for_enter = TRUE;
 	tty0_commands = shell_commands;
 	tty1_commands = shell_commands;
     }
 
     /* Make sure an init script exists before trying to run it */
     if (run_rc == TRUE && stat(INITSCRIPT, &statbuf)) {
+	wait_for_enter = TRUE;
 	tty0_commands = shell_commands;
 	tty1_commands = shell_commands;
     }
@@ -435,10 +443,10 @@ extern int init_main(int argc, char **argv)
 	int status;
 
 	if (pid1 == 0 && tty0_commands) {
-	    pid1 = run(tty0_commands, console, 1);
+	    pid1 = run(tty0_commands, console, wait_for_enter);
 	}
 	if (pid2 == 0 && tty1_commands) {
-	    pid2 = run(tty1_commands, second_terminal, 1);
+	    pid2 = run(tty1_commands, second_terminal, TRUE);
 	}
 	wpid = wait(&status);
 	if (wpid > 0 ) {

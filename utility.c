@@ -60,7 +60,7 @@ get_kernel_revision()
 
   file = fopen(filename,"r");
   if (file == NULL) {
-    perror(filename);
+    /* bummer, /proc must not be mounted... */
     return( 0);
   }
   fscanf(file,"%d.%d.%d",&major,&minor,&patch);

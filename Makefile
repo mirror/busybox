@@ -17,12 +17,12 @@
 
 
 PROG=busybox
-VERSION=0.31
+VERSION=0.32
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
 # Leave this off for production use.
-DODEBUG=true
+DODEBUG=false
 # If you want a static binary, turn this on.  I can't think
 # of many situations where anybody would ever want it static, 
 # but...
@@ -34,7 +34,7 @@ ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS=-Wall -g -D_GNU_SOURCE
+    CFLAGS=-Wall -g -D_GNU_SOURCE -DDEBUG_INIT
     STRIP=
     LDFLAGS=
 else
