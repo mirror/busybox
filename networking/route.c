@@ -15,11 +15,10 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.7 2001/02/20 06:14:08 andersen Exp $
+ * $Id: route.c,v 1.8 2001/03/07 06:33:01 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
- * busybox style adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
- * displayroute() format now matches net-tools-1.57/lib/inet_gr.c line 173.
+ * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
  */
 
 #include <sys/types.h>
@@ -394,7 +393,7 @@ void displayroutes(void)
 					inet_ntoa(dest)));
 			strcpy(sgw,    (gw.s_addr==0   ? "*"       :
 					inet_ntoa(gw)));
-			printf("%-15s %-15s %-15s %-5s %-6d %-2d %7d %s\n",
+			printf("%-16s%-16s%-16s%-6s%-6d %-2d %7d %s\n",
 				sdest, sgw,
 				inet_ntoa(mask),
 				flags, metric, ref, use, buff);
@@ -412,7 +411,7 @@ int route_main(int argc, char **argv)
 
 	if (*argv == NULL) {
 		displayroutes();
-		exit(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	} else {
 		/* check verb */
 		if (strcmp(*argv, "add")==0)
