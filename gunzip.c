@@ -125,14 +125,13 @@ unsigned short mask_bits[] = {
 //static int error_number = 0;
 /* ========================================================================
  * Signal and error handler.
+ */
  
 static void abort_gzip()
 {
 	error_msg("gzip aborted\n");
-//	exit(ERROR);
-	return;
+	exit(ERROR);
 }
-*/
 
 static void make_crc_table()
 {
@@ -918,7 +917,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	in_file = l_in_file;
 	out_file = l_out_file;
 
-/*	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
+	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
 	}
 #ifdef SIGTERM
@@ -931,7 +930,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 		(void) signal(SIGHUP, (sig_type) abort_gzip);
 	}
 #endif
-*/
+
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(unsigned char)));
 	outcnt = 0;
@@ -1022,7 +1021,6 @@ extern int gz_open(FILE *compressed_file, int *pid)
 {
 	int unzip_pipe[2];
 
-//	signal(SIGCHLD, abort_gzip);
 	if (pipe(unzip_pipe)!=0) {
 		error_msg("pipe error");
 		return(EXIT_FAILURE);

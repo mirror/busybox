@@ -292,12 +292,13 @@ extern int tar_main(int argc, char **argv)
 		status = readTarFile(tarFd, extractFlag, listFlag, tostdoutFlag,
 					verboseFlag, extractList, excludeList);
 		close(tarFd);
-	}
-
 #ifdef BB_FEATURE_TAR_GZIP	
-	gz_close(pid);
-	fclose(comp_file);
+		if (unzipFlag == TRUE) {
+			gz_close(pid);
+			fclose(comp_file);
+		}
 #endif			
+	}
 
 	if (status == TRUE)
 		return EXIT_SUCCESS;
