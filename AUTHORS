@@ -15,6 +15,9 @@ Erik Andersen <andersen@codepoet.org>, <andersee@debian.org>
     Tons of new stuff, major rewrite of most of the
     core apps, tons of new apps as noted in header files.
 
+Laurence Anderson <l.d.anderson@warwick.ac.uk>
+    rpm2cpio, unzip, get_header_cpio, read_gz interface
+
 Edward Betts <edward@debian.org>
     expr, hostid, logname, tty, wc, whoami, yes
  
