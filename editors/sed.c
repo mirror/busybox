@@ -659,6 +659,7 @@ static void process_file(FILE *file)
 					/* we are currently within the beginning & ending address range */
 					still_in_range
 			   ) {
+				int deleted = 0;
 
 				/*
 				 * actual sedding
@@ -671,6 +672,7 @@ static void process_file(FILE *file)
 
 					case 'd':
 						altered++;
+						deleted = 1;
 						break;
 
 					case 's':
@@ -772,6 +774,9 @@ static void process_file(FILE *file)
 				else {
 					still_in_range = 1;
 				}
+
+				if (deleted)
+					break;
 			}
 		}
 
