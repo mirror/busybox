@@ -902,7 +902,7 @@ unsigned long my_getpwnamegid(char *name)
 #endif /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR || BB_ID */ 
 
 
-#if (defined BB_CHVT) || (defined BB_DEALLOCVT)
+#if (defined BB_CHVT) || (defined BB_DEALLOCVT) || (defined BB_SETKEYCODES)
 
 
 #include <linux/kd.h>
@@ -987,7 +987,7 @@ int get_console_fd(char *tty_name)
 }
 
 
-#endif							/* BB_CHVT || BB_DEALLOCVT */
+#endif							/* BB_CHVT || BB_DEALLOCVT || BB_SETKEYCODES */
 
 
 #if !defined BB_REGEXP && (defined BB_GREP || defined BB_SED)
@@ -1328,7 +1328,7 @@ extern pid_t* findPidByName( char* pidName)
 		fatalError( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 
 	/* Now search for a match */
-	for (i=1; i<pid_array[0] ; i++) {
+	for (i=1, j=0; i<pid_array[0] ; i++) {
 		char* p;
 		struct pid_info info;
 
