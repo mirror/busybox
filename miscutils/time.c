@@ -489,8 +489,8 @@ extern int time_main (int argc, char **argv)
 	bb_show_usage();
 
     run_command (argv, &res);
-    summarize (stdout, output_format, argv, &res);
-    fflush (stdout);
+    summarize (stderr, output_format, argv, &res);
+    fflush (stderr);
 
     if (WIFSTOPPED (res.waitstatus))
 	exit (WSTOPSIG (res.waitstatus));
