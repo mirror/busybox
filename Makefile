@@ -88,7 +88,17 @@ STRIPTOOL = $(CROSS)strip
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
+#
+# If you are using Red Hat 6.x with the compatible RPMs (for developing under
+# Red Hat 5.x and glibc 2.0) uncomment the following.  Be sure to read about
+# using the compatible RPMs (compat-*) at http://www.redhat.com !
+#LIBCDIR=/usr/i386-glibc20-linux
+#
+# The following is used for libc5 (if you install altgcc and libc5-altdev
+# on a Debian system).  
 #LIBCDIR=/usr/i486-linuxlibc1
+#
+# For other libraries, you are on your own...
 #LDFLAGS+=-nostdlib
 #LIBRARIES = $(LIBCDIR)/lib/libc.a -lgcc
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
