@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/sysinfo.h>
 
 #define TRUE			1
 #define FALSE			0

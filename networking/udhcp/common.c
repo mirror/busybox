@@ -41,7 +41,6 @@ long uptime(void)
 {
 	struct sysinfo info;
 	sysinfo(&info);
-	printf("uptime %ld\n", (long)info.uptime);
 	return info.uptime;
 }
 
