@@ -81,7 +81,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.46 2001/02/14 21:23:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.47 2001/02/15 19:07:43 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -287,7 +287,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.46 2001/02/14 21:23:06 andersen Exp $"
+#ident "$Id: insmod.c,v 1.47 2001/02/15 19:07:43 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2880,6 +2880,7 @@ extern int insmod_main( int argc, char **argv)
 	ElfW(Addr) m_addr;
 	FILE *fp;
 	struct obj_file *f;
+	struct stat st;
 	char m_name[BUFSIZ + 1] = "\0";
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
@@ -2941,7 +2942,8 @@ extern int insmod_main( int argc, char **argv)
 	strcat(m_fullName, ".o");
 
 	/* Get a filedesc for the module */
-	if ((fp = fopen(argv[optind], "r")) == NULL) {
+	if (stat(argv[optind], &st) < 0 || !S_ISREG(st.st_mode) ||
+			(fp = fopen(argv[optind], "r")) == NULL) {
 		/* Hmpf.  Could not open it. Search through _PATH_MODULES to find a module named m_name */
 		if (recursive_action(_PATH_MODULES, TRUE, FALSE, FALSE,
 							findNamedModule, 0, m_fullName) == FALSE) 
