@@ -544,20 +544,21 @@ static void sync_and_sleep(int i)
 	sleep(i);
 }
 
-static void check_if_min_and_set_val(uint16_t a, uint16_t b)
+static uint16_t check_if_min_and_set_val(uint16_t a, uint16_t b)
 {
 	if( a < b)
 		a = b;
+	return a;
 }
 
-static void check_if_maj_and_set_val(uint16_t a, uint16_t b)
+static uint16_t check_if_maj_and_set_val(uint16_t a, uint16_t b)
 {
 	if( a > b)
 		a = b;
+	return a;
 }
 
-static
-unsigned long int set_flag(char *p, char max)
+static unsigned long int set_flag(char *p, char max)
 {
 	if (*p >= '0' && *p <=  max )
 		return 1;
@@ -728,7 +729,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 	{
 		if(val[MINOR] && (val[MINOR] <= MINOR_MAX))
 		{
-			check_if_min_and_set_val( like_std, 3);
+			like_std=check_if_min_and_set_val(like_std, 3);
 			std = actual_ver[val[MINOR]];
 			if_printf(std,"\n\tUsed: %s ",minor_str[val[MINOR]]);
 
@@ -751,17 +752,17 @@ static void identify (uint16_t *id_supplied, const char *devname)
 						like_std = ii;
 						kk = like_std >4 ? like_std-4: 0;
 					}
-					check_if_maj_and_set_val(min_std, ii);
+					min_std=check_if_maj_and_set_val(min_std, ii);
 				}
 				jj <<= 1;
 			}
-			check_if_min_and_set_val( like_std, 3);
+			like_std=check_if_min_and_set_val(like_std, 3);
 		}
 		/* Figure out what standard the device is using if it hasn't told
 		 * us.  If we know the std, check if the device is using any of
 		 * the words from the next level up.  It happens.
 		 */
-		check_if_min_and_set_val( like_std, std);
+		like_std=check_if_min_and_set_val(like_std, std);
 
 		if(((std == 5) || (!std && (like_std < 6))) &&
 			((((val[CMDS_SUPP_1] & VALID) == VALID_VAL) &&
@@ -2104,8 +2105,8 @@ static void process_dev (char *devname)
 	{
 		unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
 		no_scsi();
-		check_if_min_and_set_val(apmmode,1);
-		check_if_maj_and_set_val(apmmode,255);
+		apmmode=check_if_min_and_set_val(apmmode,1);
+		apmmode=check_if_maj_and_set_val(apmmode,255);
 		if_printf(get_apmmode," setting APM level to");
 		if (apmmode==255)
 		{
@@ -2521,12 +2522,16 @@ static int identify_from_stdin (void)
 }
 #endif
 
+static void missing_arg(int arg, char c, char* add)
+{
+	if (!arg)
+		bb_error_msg("-%c: missing value %s", c, (add!=NULL)? add :"");
+}
+
 /* our main() routine: */
 int hdparm_main(int argc, char **argv)
 {
-	const char * const bb_msg_missing_value ="missing value";
 	char c, *p;
-	/*int neg;*/
 
 	++argv;
 	if (!--argc)
@@ -2638,8 +2643,7 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isalnum(**argv))
 							p = *argv++, --argc;
 						p=GET_NUMBER(p,&set_standby,&standby_requested);
-						if (!set_standby)
-							bb_error_msg("-S: %s", bb_msg_missing_value);
+						missing_arg(set_standby, c, NULL);
 						break;
 
 					case 'D':
@@ -2648,8 +2652,7 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isalnum(**argv))
 							p = *argv++, --argc;
 						p=GET_NUMBER(p,&set_defects,&defects);
-						if (!set_defects)
-							bb_error_msg("-D: %s", bb_msg_missing_value);
+						missing_arg(set_defects, c, NULL);
 						break;
 					case 'P':
 						get_prefetch = noisy;
@@ -2657,8 +2660,7 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isalnum(**argv))
 							p = *argv++, --argc;
 						p=GET_NUMBER(p,&set_prefetch,&prefetch);
-						if (!set_prefetch)
-							bb_error_msg("-P: %s", bb_msg_missing_value);
+						missing_arg(set_prefetch, c, NULL);
 						break;
 
 					case 'X':
@@ -2667,8 +2669,7 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isalnum(**argv))
 							p = *argv++, --argc;
 						p=GET_STRING(p,&set_xfermode,&xfermode_requested);
-						if (!set_xfermode)
-							bb_error_msg("-X: %s", bb_msg_missing_value);
+						missing_arg(set_xfermode, c, NULL);
 						break;
 
 					case 'K':
@@ -2679,7 +2680,7 @@ int hdparm_main(int argc, char **argv)
 						if((set_dkeep = set_flag(p,'1'))==1)
 							dkeep  = *p++ - '0';
 						else
-							bb_error_msg("-K: %s (0/1)", bb_msg_missing_value);
+							goto missing_arg_error;
 						break;
 
 					case 'A':
@@ -2690,7 +2691,7 @@ int hdparm_main(int argc, char **argv)
 						if((set_lookahead = set_flag(p,'1'))==1)
 							lookahead  = *p++ - '0';
 						else
-							bb_error_msg("-A: %s (0/1)", bb_msg_missing_value);
+							goto missing_arg_error;
 						break;
 
 					case 'L':
@@ -2701,7 +2702,7 @@ int hdparm_main(int argc, char **argv)
 						if((set_doorlock = set_flag(p,'1'))==1)
 							doorlock  = *p++ - '0';
 						else
-							bb_error_msg("-L: %s (0/1)", bb_msg_missing_value);
+							goto missing_arg_error;
 						break;
 
 					case 'W':
@@ -2712,7 +2713,8 @@ int hdparm_main(int argc, char **argv)
 						if((set_wcache = set_flag(p,'1'))==1)
 							wcache  = *p++ - '0';
 						else
-							bb_error_msg("-W: %s (0/1)", bb_msg_missing_value);
+missing_arg_error:
+							missing_arg(1, c, "(0/1)");
 						break;
 
 					case 'C':
@@ -2755,7 +2757,7 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isdigit(**argv))
 							p = *argv++, --argc;
 						if(! p)
-							goto error; /* "expected hwif_nr" */
+							goto expected_hwif_error; /* "expected hwif_nr" */
 
 						sscanf(p++, "%i", &hwif);
 
@@ -2767,21 +2769,21 @@ int hdparm_main(int argc, char **argv)
 						if (!*p && argc && isdigit(**argv))
 							p = *argv++, --argc;
 						if(! p)
-							goto error; /* "expected hwif_data" */
+							goto expected_hwif_error; /* "expected hwif_data" */
 
 						sscanf(p++, "%i", &hwif_data);
 
 						if (argc && isdigit(**argv))
 							p = *argv++, --argc;
 						else
-							goto error; /* "expected hwif_ctrl" */
+							goto expected_hwif_error; /* "expected hwif_ctrl" */
 
 						sscanf(p, "%i", &hwif_ctrl);
 
 						if (argc && isdigit(**argv))
 							p = *argv++, --argc;
 						else
-error:
+expected_hwif_error:
 							bb_error_msg_and_die("expected hwif value"); /* "expected hwif_irq" */
 
 						sscanf(p, "%i", &hwif_irq);
@@ -2818,7 +2820,7 @@ error:
 						if((perform_tristate = set_flag(p,'1'))==1)
 							tristate  = *p++ - '0';
 						else
-							bb_error_msg("-x: %s (0/1)", bb_msg_missing_value);
+							missing_arg(1, c, "(0/1)");
 						break;
 
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
@@ -2835,8 +2837,7 @@ error:
 						if (!*p && argc && isalnum(**argv))
 							p = *argv++, --argc;
 						p=GET_NUMBER(p,&set_apmmode,&apmmode);
-						if (!set_apmmode)
-							bb_error_msg("-B: %s (1-255)", bb_msg_missing_value);
+						missing_arg(set_apmmode, c, "(1-255)");
 						break;
 					case 't':
 						do_timings = 1;
