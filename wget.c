@@ -52,6 +52,7 @@ int wget_main(int argc, char **argv)
 {
 	FILE *sfp;					/* socket to web server				*/
 	char *uri_host, *uri_path;	/* parsed from command line url		*/
+	char *proxy;
 	int uri_port;
 	char *s, buf[512];
 	int n;
@@ -101,10 +102,20 @@ int wget_main(int argc, char **argv)
 
 	if (do_continue && !fname_out)
 		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
+
 	/*
-	 * Parse url into components.
+	 * Use the proxy if necessary.
 	 */
-	parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
+	if ((proxy = getenv("http_proxy")) != NULL) {
+		proxy = xstrdup(proxy);
+		parse_url(proxy, &uri_host, &uri_port, &uri_path);
+		uri_path = argv[optind];
+	} else {
+		/*
+		 * Parse url into components.
+		 */
+		parse_url(argv[optind], &uri_host, &uri_port, &uri_path);
+	}
 
 	/*
 	 * Open socket to server.
@@ -475,7 +486,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.10 2000/12/07 19:56:48 markw Exp $
+ *	$Id: wget.c,v 1.11 2000/12/07 22:42:11 andersen Exp $
  */
 
 

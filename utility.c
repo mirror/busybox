@@ -611,7 +611,7 @@ int full_read(int fd, char *buf, int len)
  * location, and do something (something specified
  * by the fileAction and dirAction function pointers).
  *
- * Unfortunatly, while nftw(3) could replace this and reduce 
+ * Unfortunately, while nftw(3) could replace this and reduce 
  * code size a bit, nftw() wasn't supported before GNU libc 2.1, 
  * and so isn't sufficiently portable to take over since glibc2.1
  * is so stinking huge.
@@ -1444,7 +1444,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 }
 #endif
 
-#if defined BB_FEATURE_NFSMOUNT || defined BB_SH || defined BB_LS
+#if defined BB_FEATURE_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET
 # ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
