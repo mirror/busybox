@@ -52,7 +52,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Section: debian-installer
 Conflicts: busybox-udeb
-Enhances: busybox-cvs-net-udeb
+Enhances: busybox-cvs-floppy-udeb
 Priority: extra
 Description: Tiny utilities for the debian-installer
  BusyBox combines tiny versions of many common UNIX utilities into a single
@@ -67,13 +67,13 @@ Description: Tiny utilities for the debian-installer
  on the debian-installer, this package is not for you.  Installing this 
  on your Debian system is a very, very bad idea.  You have been warned.
 
-Package: busybox-cvs-net-udeb
+Package: busybox-cvs-floppy-udeb
 Architecture: i386
 Depends: ${shlibs:Depends}
 Section: debian-installer
 Conflicts: busybox-udeb
 Priority: extra
-Description: Tiny utilities for the debian-installer network images
+Description: Tiny utilities for the debian-installer floppy images
  BusyBox combines tiny versions of many common UNIX utilities into a single
  small executable. It provides minimalist replacements for the most common
  utilities you would usually find on your desktop system (i.e., ls, cp, mv,

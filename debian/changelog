@@ -1,3 +1,73 @@
+busybox-cvs (20031212-3) unstable; urgency=low
+
+  * debian/config-udeb-linux:
+    - Enable freeramdisk. (closes: #225360)
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 30 Dec 2003 22:36:50 +0100
+
+busybox-cvs (20031212-2) unstable; urgency=low
+
+  * debian/config-udeb:
+    - Enable freeramdisk
+  * archival/libunarchive/data_extract_to_stdout.c:
+    - Don't extract to much (upstream).
+  * archival/libunarchive/data_extract_all.c:
+    - Don't set permissions on symlinks (upstream).
+  * editors/sed.c:
+    - Fix (upstream). (closes: #224676)
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 23 Dec 2003 16:59:13 +0100
+
+busybox-cvs (20031212-1) unstable; urgency=low
+
+  * new cvs version
+    - fixes IOR in fdisk. (closes: #223773)
+  * debian/config*
+    - update
+    - remove mtab support from mount in busybox-static. (closes: #222386)
+    - enable progress bar for wget. (closes: #223770)
+  * modutils/obj/obj_s390{,x}.c
+    - fix abi change, R_390_GOTOFF -> R_390_GOTOFF32. (closes: #216528)
+  * acknowledge nmu. (closes: #216950, #216756, #215169, #215613)
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 12 Dec 2003 21:19:41 +0100
+
+busybox-cvs (20030926-2.1) unstable; urgency=low
+
+  * NMU
+  * Remove /sbin/init from the udebs, while still leaving init support
+    compiled in. rootskel takes over providing init, but then calls bb init.
+    Remove linuxrc support from the udebs entirely. Closes: #216756
+  * config-floppy-udeb-linux: add minimal find, grep. Closes: #215169
+  * net-udeb-linux-i386: add loopback mount support. Closes: #215613
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 21 Oct 2003 12:47:52 -0400
+
+busybox-cvs (20030926-2) unstable; urgency=low
+
+  * debian/config-floppy-udeb-linux
+    - update for new floppy images (closes: #212986, #214102)
+
+ -- Bastian Blank <waldi@debian.org>  Thu, 09 Oct 2003 12:25:49 +0200
+
+busybox-cvs (20030926-1) unstable; urgency=low
+
+  * new cvs version
+  * Makefile
+    - fix libpwdgrp link (upstream) (closes: #211675)
+  * Rules.mak.in
+    - fix optimization (closes: #212485)
+  * debian/config*
+    - update
+  * debian/config*udeb*
+    - move linux-i386 to linux (enable modutils on any linux arch)
+    - rename net to floppy
+    - enable wget status bar (closes: #211457)
+  * init/init.c
+    - workaround race conditions (closes: #212764)
+
+ -- Bastian Blank <waldi@debian.org>  Fri, 26 Sep 2003 15:10:14 +0200
+
 busybox-cvs (0.60.99.cvs20030819-3) unstable; urgency=low
 
   * shell/ash.c
@@ -8,7 +78,7 @@ busybox-cvs (0.60.99.cvs20030819-3) unstable; urgency=low
 busybox-cvs (0.60.99.cvs20030819-2) unstable; urgency=low
 
   * Fix configure permisions
-  * Set source Section to embedded 
+  * Set source Section to embedded
 
  -- Glenn McGrath <bug1@debian.org>  Mon, 25 Aug 2003 06:33:19 +0000
 
@@ -406,3 +476,4 @@ busybox (0.45-1) unstable; urgency=low
     (i.e. when libc gets screwed up.)
 
  -- Erik Andersen <andersee@debian.org>  Tue, 27 Jun 2000 12:26:41 -0600
+

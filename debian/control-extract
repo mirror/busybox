@@ -1,0 +1,2 @@
+#!/bin/sh
+awk "BEGIN { i = 0; } { if (/^Package: $2/) i = 1; if (/^\s*\$/) i = 0; if (/$1:/ && i) print }" < debian/control | sed -e "s,^$1: ,,"
