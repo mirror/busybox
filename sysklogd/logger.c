@@ -105,8 +105,8 @@ extern int logger_main(int argc, char **argv)
 {
 	int pri = LOG_USER | LOG_NOTICE;
 	int option = 0;
-	int c, i, len, opt;
-	char *message=NULL, buf[1024], name[128];
+	int c, i, opt;
+	char buf[1024], name[128];
 
 	/* Fill out the name string early (may be overwritten later) */
 	my_getpwuid(name, geteuid());
@@ -143,16 +143,21 @@ extern int logger_main(int argc, char **argv)
 			}
 		} while (c != EOF);
 	} else {
-		len = 1; /* for the '\0' */
-		message = xcalloc(1, 1);
-		for (i = optind; i < argc; i++) {
-			len += strlen(argv[i]);
-			len += 1;  /* for the space between the args */
+		char *message = NULL;
+		int len = argc - optind; /* for the space between the args
+					    and  '\0' */
+		opt = len;
+		argv += optind;
+		for (i = 0; i < opt; i++) {
+			len += strlen(*argv);
 			message = xrealloc(message, len);
-			strcat(message, argv[i]);
+			if(!i)
+				message[0] = 0;
+			 else
 			strcat(message, " ");
+			strcat(message, *argv);
+			argv++;
 		}
-		message[strlen(message) - 2] = '\0';
 		syslog(pri, "%s", message);
 	}
 
