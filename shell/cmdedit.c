@@ -1263,14 +1263,18 @@ prepare_to_die:
 			input_tab(&lastWasTab);
 #endif
 			break;
-		case 12:
-			/* Control-l -- clear screen
-			 * if the len=0 and no chars in edit line */
-			if (len == 0) {
-				printf("\033[H\033[J");
-				put_prompt();
-			} else {
-				beep();
+		case 11:
+			/* Control-k -- clear to end of line */  
+			*(command + cursor) = 0;
+			len = cursor;
+			redraw(cmdedit_y, 0);
+			break;
+		case 12: 
+			{
+				/* Control-l -- clear screen */
+				int old_cursor = cursor;
+				printf("\033[H");
+				redraw(0, len-old_cursor);
 			}
 			break;
 		case 14:
