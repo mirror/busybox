@@ -123,7 +123,11 @@ extern int more_main(int argc, char **argv)
 				lines = 0;
 				len = fprintf(stdout, "--More-- ");
 				if (file != stdin) {
+#if _FILE_OFFSET_BITS == 64
+					len += fprintf(stdout, "(%d%% of %lld bytes)",
+#else
 					len += fprintf(stdout, "(%d%% of %ld bytes)",
+#endif
 								   (int) (100 *
 										  ((double) ftell(file) /
 										   (double) st.st_size)),

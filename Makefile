@@ -40,6 +40,16 @@ DODEBUG = false
 # Do not enable this for production builds...
 DODMALLOC = false
 
+# If you want large file summit support, turn this on.
+# This has no effect if you don't have a kernel with lfs
+# support, and a system with libc-2.1.3 or later.
+# Some of the programs that can benefit from lfs support
+# are dd, gzip, mount, tar, and mkfs_minix.
+# LFS allows you to use the above programs for files
+# larger than 2GB!
+DOLFS = false
+
+
 # If you are running a cross compiler, you may want to set this
 # to something more interesting...
 CROSS = #powerpc-linux-
@@ -63,6 +73,10 @@ OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&
 
 WARNINGS = -Wall
 
+ifeq ($(DOLFS),true)
+    # For large file summit support
+    CFLAGS+=-D_FILE_OFFSET_BITS=64
+endif
 ifeq ($(DODMALLOC),true)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC

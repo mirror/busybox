@@ -532,7 +532,11 @@ int list_single(struct dnode *dn)
 				column += 8;
 				break;
 			case LIST_BLOCKS:
+#if _FILE_OFFSET_BITS == 64
+				fprintf(stdout, "%4lld ", dn->dstat.st_blocks>>1);
+#else
 				fprintf(stdout, "%4ld ", dn->dstat.st_blocks>>1);
+#endif
 				column += 5;
 				break;
 			case LIST_MODEBITS:
@@ -578,7 +582,11 @@ int list_single(struct dnode *dn)
 				if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
 					fprintf(stdout, "%4d, %3d ", (int)MAJOR(dn->dstat.st_rdev), (int)MINOR(dn->dstat.st_rdev));
 				} else {
+#if _FILE_OFFSET_BITS == 64
+					fprintf(stdout, "%9lld ", dn->dstat.st_size);
+#else
 					fprintf(stdout, "%9ld ", dn->dstat.st_size);
+#endif
 				}
 				column += 10;
 				break;
