@@ -533,7 +533,7 @@ void parse_url(char *url, struct host_info *h)
 		*sp++ = '\0';
 		h->path = sp;
 	} else
-		h->path = "";
+		h->path = xstrdup("");
 
 	up = strrchr(h->host, '@');
 	if (up != NULL) {
@@ -817,7 +817,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.46 2001/10/24 04:59:56 andersen Exp $
+ *	$Id: wget.c,v 1.47 2002/03/19 15:22:40 kraai Exp $
  */
 
 
