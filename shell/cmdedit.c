@@ -1007,12 +1007,14 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 	/* skip first not quoted '\'' or '"' */
 	for (i = 0; int_buf[i] == '\'' || int_buf[i] == '"'; i++);
 	/* collapse quote or unquote // or /~ */
-	while ((int_buf[i] & ~QUOT) == '/' && (
-										   (int_buf[i + 1] & ~QUOT) == '/'
-										   || (int_buf[i + 1] & ~QUOT) ==
-										   '~')) i++;
-	if (i)
+	while ((int_buf[i] & ~QUOT) == '/' && 
+			((int_buf[i + 1] & ~QUOT) == '/'
+			 || (int_buf[i + 1] & ~QUOT) == '~')) {
+		i++;
+	}
+	if (i) {
 		collapse_pos(0, i);
+	}
 
 	/* set only match and destroy quotes */
 	j = 0;
