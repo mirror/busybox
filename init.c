@@ -599,7 +599,8 @@ static void check_memory()
 static void run_lastAction(void)
 {
 	initAction *a, *tmp;
-	for (a = tmp = initActionList; a; a = tmp = tmp->nextPtr) {
+	for (a = initActionList; a; a = tmp) {
+		tmp = a->nextPtr;
 		if (a->action == CTRLALTDEL) {
 			waitfor(a->process, a->console, FALSE);
 			delete_initAction(a);
@@ -938,7 +939,8 @@ extern int init_main(int argc, char **argv)
 	/* Now run everything that needs to be run */
 
 	/* First run the sysinit command */
-	for (a = tmp = initActionList; a; a = tmp = tmp->nextPtr) {
+	for (a = initActionList; a; a = tmp) {
+		tmp = a->nextPtr;
 		if (a->action == SYSINIT) {
 			waitfor(a->process, a->console, FALSE);
 			/* Now remove the "sysinit" entry from the list */
@@ -946,7 +948,8 @@ extern int init_main(int argc, char **argv)
 		}
 	}
 	/* Next run anything that wants to block */
-	for (a = tmp = initActionList; a; a = tmp = tmp->nextPtr) {
+	for (a = initActionList; a; a = tmp) {
+		tmp = a->nextPtr;
 		if (a->action == WAIT) {
 			waitfor(a->process, a->console, FALSE);
 			/* Now remove the "wait" entry from the list */
@@ -954,7 +957,8 @@ extern int init_main(int argc, char **argv)
 		}
 	}
 	/* Next run anything to be run only once */
-	for (a = tmp = initActionList; a; a = tmp = tmp->nextPtr) {
+	for (a = initActionList; a; a = tmp) {
+		tmp = a->nextPtr;
 		if (a->action == ONCE) {
 			run(a->process, a->console, FALSE);
 			/* Now remove the "once" entry from the list */
