@@ -31,11 +31,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "busybox.h"
+
 #ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
 #endif
-
-#include "busybox.h"
 
 #define	THURSDAY		4		/* for reformation */
 #define	SATURDAY 		6		/* 1 Jan 1 was a Saturday */
