@@ -43,7 +43,8 @@ extern int ln_main(int argc, char **argv)
 	int flag;
 	char *last;
 	char *src_name;
-	const char *src;
+	char *src;
+	struct stat statbuf;
 	int (*link_func)(const char *, const char *);
 
 	flag = bb_getopt_ulflags(argc, argv, "sfn");
@@ -61,7 +62,7 @@ extern int ln_main(int argc, char **argv)
 	}
 
 	do {
-		src_name = 0;
+		src_name = NULL;
 		src = last;
 
 		if (is_directory(src,
@@ -70,7 +71,14 @@ extern int ln_main(int argc, char **argv)
 			src_name = bb_xstrdup(*argv);
 			src = concat_path_file(src, bb_get_last_path_component(src_name));
 			free(src_name);
-			src_name = (char *)src;
+			src_name = src;
+		}
+
+		if (stat(*argv, &statbuf)) {
+			bb_perror_msg(*argv);
+			status = EXIT_FAILURE;
+			free(src_name);
+			continue;
 		}
 
 		if (flag & LN_FORCE) {
@@ -84,7 +92,7 @@ extern int ln_main(int argc, char **argv)
 		
 		if (link_func(*argv, src) != 0) {
 			bb_perror_msg(src);
-			status = EXIT_FAILURE;;
+			status = EXIT_FAILURE;
 		}
 
 		free(src_name);
