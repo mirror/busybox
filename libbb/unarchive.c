@@ -242,7 +242,7 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 		if (extract_names != NULL) {
 			int found_flag = FALSE;
 			for(i = 0; extract_names[i] != 0; i++) {
-				if (strcmp(extract_names[i], file_entry->name) == 0) {
+				if (fnmatch(extract_names[i], file_entry->name, 0) == 0) {
 					found_flag = TRUE;
 					break;
 				}
