@@ -171,7 +171,7 @@ Consult Existing Sources
 For a quick listing of "needs work" spots in the sources, cd into the Busybox
 directory and run the following:
 
-	for i in TODO FIXME XXX; do grep $i *.[ch]; done
+	for i in TODO FIXME XXX; do find -name '*.[ch]'|xargs grep $i; done
 
 This will show all of the trouble spots or 'questionable' code. Pick a spot,
 any spot, these are all invitations for you to contribute.
@@ -199,16 +199,16 @@ Janitorial Work
 
 These are dirty jobs, but somebody's gotta do 'em.
 
- - Converting applets to use getopt() for option processing. Type 'grep -L
-   getopt *.c' to get a listing of the applets that currently don't use
-   getopt. If a .c file processes no options, it should have a line that
+ - Converting applets to use getopt() for option processing. Type 'find -name
+   '*.c'|grep -L getopt' to get a listing of the applets that currently don't
+   use getopt. If a .c file processes no options, it should have a line that
    reads: /* no options, no getopt */ somewhere in the file.
 
  - Replace any "naked" calls to malloc, calloc, realloc, str[n]dup, fopen with
-   the x* equivalents found in utility.c.
+   the x* equivalents found in libbb/xfuncs.c.
 
  - Security audits:
-   http://www.securityfocus.com/frames/?content=/forums/secprog/secure-programming.html
+   http://www.securityfocus.com/popups/forums/secprog/intro.shtml
 
  - Synthetic code removal: http://www.perl.com/pub/2000/06/commify.html - This
    is very Perl-specific, but the advice given in here applies equally well to
@@ -231,7 +231,7 @@ These are dirty jobs, but somebody's gotta do 'em.
 
  - "Ten Commandments" compliance: (this is a "maybe", certainly not as
    important as any of the previous items.)
-    http://web.onetelnet.ch/~twolf/tw/c/ten_commandments.html
+    http://www.lysator.liu.se/c/ten-commandments.html   
 
 Other useful links:
 
