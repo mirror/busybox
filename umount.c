@@ -28,6 +28,14 @@
 #include <fstab.h>
 #include <errno.h>
 
+#if defined BB_FEATURE_MOUNT_LOOP
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/loop.h>
+
+static int del_loop(const char *device);
+#endif
+
 static const char umount_usage[] = 
 "Usage: umount [flags] filesystem|directory\n\n"
 "Flags:\n"
@@ -44,23 +52,54 @@ static int useMtab = TRUE;
 static int umountAll = FALSE;
 extern const char mtab_file[]; /* Defined in utility.c */
 
-#if ! defined BB_MTAB
-#define do_umount( blockDevice, useMtab) umount( blockDevice)
-#else
 static int 
 do_umount(const char* name, int useMtab)
 {
-    int status = umount(name);
+    int status;
 
+#if defined BB_FEATURE_MOUNT_LOOP
+    /* check to see if this is a loop device */
+    struct stat fst;
+    char dev[20];
+    const char *oldname = NULL;
+    int i;
+    
+    if (stat(name, &fst)) {
+	fprintf(stderr, "umount: %s: %s\n", name, strerror(errno));
+	exit(1);
+    }
+    for (i = 0 ; i <= 7 ; i++) {
+	struct stat lst;
+	sprintf(dev, "/dev/loop%d", i);
+	if (stat(dev, &lst))
+	    continue;
+	if (lst.st_dev == fst.st_dev) {
+	    oldname = name;
+	    name = dev;
+	    break;
+	}
+    }
+#endif
+
+    status = umount(name);
+
+#if defined BB_FEATURE_MOUNT_LOOP
+    if (!strncmp("/dev/loop", name, 9)) { /* this was a loop device, delete it */
+	del_loop(name);
+	if (oldname != NULL)
+	    name = oldname;
+    }
+#endif
+#if defined BB_MTAB
     if ( status == 0 ) {
 	if ( useMtab==TRUE )
 	    erase_mtab(name);
 	return 0;
     }
-    else 
-	return( status);
-}
+    else
 #endif
+	return(status);
+}
 
 static int
 umount_all(int useMtab)
@@ -135,7 +174,24 @@ umount_main(int argc, char** argv)
 	exit (TRUE);
     else {
 	perror("umount");
-	exit( FALSE);
+	exit(FALSE);
     }
 }
 
+#if defined BB_FEATURE_MOUNT_LOOP
+static int del_loop(const char *device)
+{
+	int fd;
+
+	if ((fd = open(device, O_RDONLY)) < 0) {
+		perror(device);
+		exit(1);
+	}
+	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
+		perror("ioctl: LOOP_CLR_FD");
+		exit(1);
+	}
+	close(fd);
+	return(0);
+}
+#endif

@@ -28,7 +28,10 @@
  *              putting it back as a compile-time option some time), 
  *              major adjustments to option parsing, and some serious 
  *              dieting all around.
-*/
+ *
+ * 2000-01-12   Ben Collins <bcollins@debian.org>, Borrowed utils-linux's
+ *              mount to add loop support.
+ */
 
 #include "internal.h"
 #include <stdlib.h>
@@ -40,6 +43,17 @@
 #include <sys/mount.h>
 #include <ctype.h>
 #include <fstab.h>
+
+#if defined BB_FEATURE_MOUNT_LOOP
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/loop.h>
+
+static int set_loop(const char *device, const char *file, int offset, int *loopro);
+static char *find_unused_loop_device (void);
+
+static int use_loop = 0;
+#endif
 
 extern const char mtab_file[]; /* Defined in utility.c */
 
@@ -61,6 +75,9 @@ static const char mount_usage[] = "\tmount [flags]\n"
     "\tasync / sync:\tWrites are asynchronous / synchronous.\n"
     "\tdev / nodev:\tAllow use of special device files / disallow them.\n"
     "\texec / noexec:\tAllow use of executable files / disallow them.\n"
+#if defined BB_FEATURE_MOUNT_LOOP
+    "\tloop: Mounts a file via loop device.\n"
+#endif
     "\tsuid / nosuid:\tAllow set-user-id-root programs / disallow them.\n"
     "\tremount: Re-mount a currently-mounted filesystem, changing its flags.\n"
     "\tro / rw: Mount for read-only / read-write.\n"
@@ -91,28 +108,48 @@ static const struct mount_options mount_options[] = {
     {0, 0, 0}
 };
 
-#if ! defined BB_MTAB
-#define do_mount(specialfile, dir, filesystemtype, flags, string_flags, useMtab, fakeIt, mtab_opts) \
-	mount(specialfile, dir, filesystemtype, flags, string_flags)
-#else
 static int
 do_mount(char* specialfile, char* dir, char* filesystemtype, 
 	long flags, void* string_flags, int useMtab, int fakeIt, char* mtab_opts)
 {
     int status=0;
 
+#if defined BB_MTAB
     if (fakeIt==FALSE)
+#endif
+    {
+#if defined BB_FEATURE_MOUNT_LOOP
+	if (use_loop) {
+	    int loro = flags & MS_RDONLY;
+	    char *lofile = specialfile;
+	    specialfile = find_unused_loop_device();
+	    if (specialfile == NULL) {
+		fprintf(stderr, "Could not find a spare loop device\n");
+		exit(1);
+	    }
+	    if (set_loop (specialfile, lofile, 0, &loro)) {
+		fprintf(stderr, "Could not setup loop device\n");
+		exit(1);
+	    }
+	    if (!(flags & MS_RDONLY) && loro) { /* loop is ro, but wanted rw */
+		fprintf(stderr, "WARNING: loop device is read-only\n");
+		flags &= ~MS_RDONLY;
+	    }
+	}
+#endif
 	status=mount(specialfile, dir, filesystemtype, flags, string_flags);
-
-    if ( status == 0 ) {
-	if ( useMtab==TRUE )
+    }
+#if defined BB_MTAB
+    if (status == 0) {
+	if (useMtab==TRUE)
 	    write_mtab(specialfile, dir, filesystemtype, flags, mtab_opts);
 	return 0;
     }
-    else 
-	return( status);
-}
+    else
 #endif
+	return(status);
+}
+
 
 
 #if defined BB_MTAB
@@ -148,16 +185,20 @@ parse_mount_options ( char *options, unsigned long *flags, char *strflags)
 	    }
 	    f++;
 	}
+#if defined BB_FEATURE_MOUNT_LOOP
+	if (gotone==FALSE && !strcasecmp ("loop", options)) { /* loop device support */
+	    use_loop = 1;
+	    gotone=TRUE;
+	}
+#endif
 	if (*strflags && strflags!= '\0' && gotone==FALSE) {
 	    char *temp=strflags;
 	    temp += strlen (strflags);
 	    *temp++ = ',';
 	    *temp++ = '\0';
 	}
-	if (gotone==FALSE) {
+	if (gotone==FALSE)
 	    strcat (strflags, options);
-	    gotone=FALSE;
-	}
 	if (comma) {
 	    *comma = ',';
 	    options = ++comma;
@@ -356,3 +397,73 @@ extern int mount_main (int argc, char **argv)
 goodbye:
     usage( mount_usage);
 }
+
+#if defined BB_FEATURE_MOUNT_LOOP
+static int set_loop(const char *device, const char *file, int offset, int *loopro)
+{
+	struct loop_info loopinfo;
+	int	fd, ffd, mode;
+	
+	mode = *loopro ? O_RDONLY : O_RDWR;
+	if ((ffd = open (file, mode)) < 0 && !*loopro
+	    && (errno != EROFS || (ffd = open (file, mode = O_RDONLY)) < 0)) {
+	  perror (file);
+	  return 1;
+	}
+	if ((fd = open (device, mode)) < 0) {
+	  close(ffd);
+	  perror (device);
+	  return 1;
+	}
+	*loopro = (mode == O_RDONLY);
+
+	memset(&loopinfo, 0, sizeof(loopinfo));
+	strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
+	loopinfo.lo_name[LO_NAME_SIZE-1] = 0;
+
+	loopinfo.lo_offset = offset;
+
+	loopinfo.lo_encrypt_key_size = 0;
+	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
+		perror("ioctl: LOOP_SET_FD");
+		exit(1);
+	}
+	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
+		(void) ioctl(fd, LOOP_CLR_FD, 0);
+		perror("ioctl: LOOP_SET_STATUS");
+		exit(1);
+	}
+	close(fd);
+	close(ffd);
+	return 0;
+}
+
+static char *find_unused_loop_device (void)
+{
+    char dev[20];
+    int i, fd, somedev = 0, someloop = 0;
+    struct stat statbuf;
+    struct loop_info loopinfo;
+
+    for(i = 0; i < 256; i++) {
+      sprintf(dev, "/dev/loop%d", i);
+      if (stat (dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
+	somedev++;
+	fd = open (dev, O_RDONLY);
+	if (fd >= 0) {
+	  if(ioctl (fd, LOOP_GET_STATUS, &loopinfo) == 0)
+	    someloop++; /* in use */
+	  else if (errno == ENXIO) {
+	    close (fd);
+	    return strdup(dev); /* probably free */
+	  }
+	  close (fd);
+        }
+	continue;
+      }
+      if (i >= 7)
+	break;
+    }
+    return NULL;
+}
+#endif /* BB_FEATURE_MOUNT_LOOP */

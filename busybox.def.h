@@ -103,20 +103,31 @@
 // enable features that use the /proc filesystem (apps that 
 // break without this will tell you on compile)...
 #define BB_FEATURE_USE_PROCFS
+//
 // Use termios to manipulate the screen ('more' is prettier with this on)
 #define BB_FEATURE_USE_TERMIOS
+//
 // calculate terminal & column widths (for more and ls)
 #define BB_FEATURE_AUTOWIDTH
+//
 // show username/groupnames (bypasses libc6 NSS) for ls
 #define BB_FEATURE_LS_USERNAME	
+//
 // show file timestamps in ls
 #define BB_FEATURE_LS_TIMESTAMPS
+//
 // enable ls -p and -F
 #define BB_FEATURE_LS_FILETYPES	
+//
 // Change ping implementation -- simplified, featureless, but really small.
 //#define BB_SIMPLE_PING
+////
 // Make init use a simplified /etc/inittab file (recommended).
 #define BB_FEATURE_USE_INITTAB
+//
 //Enable init being called as /linuxrc
 #define BB_FEATURE_LINUXRC
+//
+// Enable support for loop devices in mount
+#define BB_FEATURE_MOUNT_LOOP
 //

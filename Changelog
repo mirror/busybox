@@ -10,6 +10,9 @@
 	* mkdir -p would print an error when asked to mkdir an existing dir
 	    with no interveining subdirectories.
 	* Fixed "syslogd -O" so that it works.
+	* Added -o loop option for mount, and support in umount for loop
+	  devices. Support is toggled by MOUNT_LOOP feature -- Ben Collins
+	  <bcollins@debian.org>
 
 	-Erik Andersen
 
