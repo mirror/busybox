@@ -324,7 +324,7 @@ static char *build_row(char *p, int *dp)
 	do {
 		if ((day = *dp++) != SPACE) {
 			if (julian) {
-				*++p;
+				++p;
 				if (day >= 100) {
 					*p = '0';
 					p[-1] = (day / 100) + '0';
