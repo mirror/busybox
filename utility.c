@@ -289,7 +289,7 @@ int is_directory(const char *fileName, const int followLinks, struct stat *statB
 }
 #endif
 
-#if defined (BB_AR) || defined BB_CP_MV
+#if defined BB_AR || defined BB_CP_MV
 /*
  * Copy chunksize bytes between two file descriptors
  */
@@ -525,7 +525,7 @@ const char *time_string(time_t timeVal)
 }
 #endif /* BB_TAR || BB_AR */
 
-#if defined BB_DD || defined BB_NC || defined BB_TAIL || defined BB_TAR
+#if defined BB_DD || defined BB_NC || defined BB_TAIL || defined BB_TAR || defined BB_AR || defined BB_CP_MV
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -1666,7 +1666,8 @@ char process_escape_sequence(char **ptr)
 }
 #endif
 
-#if defined BB_BASENAME || defined BB_LN || defined BB_SH || defined BB_INIT || defined BB_FEATURE_USE_PROCFS
+#if defined BB_BASENAME || defined BB_LN || defined BB_SH || defined BB_INIT || \
+	defined BB_FEATURE_USE_PROCFS || defined BB_WGET
 char *get_last_path_component(char *path)
 {
 	char *s=path+strlen(path)-1;
