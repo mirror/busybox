@@ -56,13 +56,19 @@ typedef struct ftp_host_info_s {
 static char verbose_flag;
 static char do_continue = 0;
 
-/* If chunksize == 0 read till end of file */
-static int copyfd_chunk(int fd1, int fd2, off_t chunksize)
+static int copyfd_chunk(int fd1, int fd2, const off_t chunksize)
 {
 	size_t nread;
 	size_t nwritten;
 	size_t size;
+	size_t remaining;
 	char buffer[BUFSIZ];
+
+	if (chunksize) {
+		remaining = chunksize;
+	} else {
+		remaining = -1;
+	}
 
 	do {
 		if ((chunksize > BUFSIZ) || (chunksize == 0)) {
@@ -73,7 +79,7 @@ static int copyfd_chunk(int fd1, int fd2, off_t chunksize)
 
 		nread = safe_read(fd1, buffer, size);
 
-		if (nread < 0) {
+		if (nread <= 0) {
 			if (chunksize) {
 				perror_msg_and_die("read error");
 			} else {
@@ -88,10 +94,9 @@ static int copyfd_chunk(int fd1, int fd2, off_t chunksize)
 		}
 
 		if (chunksize) {
-			chunksize -= nwritten;
+			remaining -= nwritten;
 		}
-
-	} while (chunksize);
+	} while (remaining != 0);
 
 	return 0;
 }
