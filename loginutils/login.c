@@ -22,19 +22,14 @@
 // import from utmp.c
 static void checkutmp(int picky);
 static void setutmp(const char *name, const char *line);
+/* Stuff global to this file */
+struct utmp utent;
 #endif
-
-// import from encrypt.c
-extern char *pw_encrypt(const char *clear, const char *salt);
-
 
 // login defines
 #define TIMEOUT       60
 #define EMPTY_USERNAME_COUNT    10
 #define USERNAME_SIZE 32
-
-/* Stuff global to this file */
-struct utmp utent;
 
 
 static int check_nologin ( int amroot );
@@ -131,12 +126,15 @@ extern int login_main(int argc, char **argv)
 	else
 		safe_strncpy ( tty, "UNKNOWN", sizeof( tty ));
 
+#ifdef CONFIG_FEATURE_U_W_TMP
 	if ( amroot )
 		memset ( utent.ut_host, 0, sizeof utent.ut_host );
+#endif
 	
 	if ( opt_host ) {
+#ifdef CONFIG_FEATURE_U_W_TMP
 		safe_strncpy ( utent.ut_host, opt_host, sizeof( utent. ut_host ));
-		
+#endif
 		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s' from `%.200s'", tty, opt_host );
 	}
 	else

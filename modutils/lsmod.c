@@ -40,13 +40,15 @@
 #include "busybox.h"
 
 
-
+#ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+static inline void check_tainted(void) { printf("\n"); }
+#else
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
 #define TAINT_PROPRIETORY_MODULE        (1<<0)
 #define TAINT_FORCED_MODULE             (1<<1)
 #define TAINT_UNSAFE_SMP                (1<<2)
 
-void check_tainted(void) 
+static void check_tainted(void)
 {
 	int tainted;
 	FILE *f;
@@ -66,6 +68,7 @@ void check_tainted(void)
 		printf("    Not tainted\n");
 	}
 }
+#endif
 
 #ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 
@@ -111,6 +114,7 @@ static int my_query_module(const char *name, int which, void **buf,
 
 	return my_ret;
 }
+#endif
 
 extern int lsmod_main(int argc, char **argv)
 {
@@ -170,26 +174,16 @@ extern int lsmod_main(int argc, char **argv)
 	return( 0);
 }
 
-#else /*CONFIG_FEATURE_OLD_MODULE_INTERFACE*/
+#else /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */
 
 extern int lsmod_main(int argc, char **argv)
 {
-	int fd, i;
-	char line[128];
-
 	printf("Module                  Size  Used by");
 	check_tainted();
-	fflush(stdout);
 
-	if ((fd = open("/proc/modules", O_RDONLY)) >= 0 ) {
-		while ((i = read(fd, line, sizeof(line))) > 0) {
-			write(fileno(stdout), line, i);
-		}
-		close(fd);
-		return 0;
-	}
-	perror_msg_and_die("/proc/modules");
+	if(print_file_by_name("/proc/modules") == FALSE)
 	return 1;
+	return 0;
 }
 
-#endif /*CONFIG_FEATURE_OLD_MODULE_INTERFACE*/
+#endif /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */

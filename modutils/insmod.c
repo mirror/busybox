@@ -234,7 +234,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.90 2002/09/16 05:30:24 andersen Exp $"
+#ident "$Id: insmod.c,v 1.91 2002/10/10 04:20:21 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -455,7 +455,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.90 2002/09/16 05:30:24 andersen Exp $"
+#ident "$Id: insmod.c,v 1.91 2002/10/10 04:20:21 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3422,6 +3422,7 @@ static void hide_special_symbols(struct obj_file *f)
 				ELFW(ST_INFO) (STB_LOCAL, ELFW(ST_TYPE) (sym->info));
 }
 
+#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license)
 {
 	struct obj_section *sec;
@@ -3533,6 +3534,9 @@ static void check_tainted_module(struct obj_file *f, char *m_name)
 	if (fd >= 0)
 		close(fd);
 }
+#else /* CONFIG_FEATURE_CHECK_TAINTED_MODULE */
+#define check_tainted_module(x, y) do { } while(0);
+#endif /* CONFIG_FEATURE_CHECK_TAINTED_MODULE */
 
 extern int insmod_main( int argc, char **argv)
 {

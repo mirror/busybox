@@ -44,7 +44,7 @@
  * can't be a palindrome - like `R A D A R' or `M A D A M'
  */
 
-static int palindrome(const char *old, const char *newval)
+static int palindrome(const char *newval)
 {
 	int i, j;
 
@@ -79,24 +79,25 @@ static int similiar(const char *old, const char *newval)
  * a nice mix of characters.
  */
 
-static int simple(const char *old, const char *newval)
+static int simple(const char *newval)
 {
 	int digits = 0;
 	int uppers = 0;
 	int lowers = 0;
 	int others = 0;
+	int c;
 	int size;
 	int i;
 
-	for (i = 0; newval[i]; i++) {
-		if (isdigit(newval[i]))
-			digits++;
-		else if (isupper(newval[i]))
-			uppers++;
-		else if (islower(newval[i]))
-			lowers++;
+	for (i = 0; (c = *newval++) != 0; i++) {
+		if (isdigit(c))
+			digits = c;
+		else if (isupper(c))
+			uppers = c;
+		else if (islower(c))
+			lowers = c;
 		else
-			others++;
+			others = c;
 	}
 
 	/*
@@ -129,49 +130,50 @@ static char *str_lower(char *string)
 	return string;
 }
 
-static char *password_check(const char *old, const char *newval, const struct passwd *pwdp)
+static const char *
+password_check(const char *old, const char *newval, const struct passwd *pwdp)
 {
-	char *msg = NULL;
-	char *oldmono, *newmono, *wrapped;
+	const char *msg;
+	char *newmono, *wrapped;
+	int lenwrap;
 
 	if (strcmp(newval, old) == 0)
 		return "no change";
+	if (simple(newval))
+		return "too simple";
 
+	msg = NULL;
 	newmono = str_lower(xstrdup(newval));
-	oldmono = str_lower(xstrdup(old));
-	wrapped = (char *) xmalloc(strlen(oldmono) * 2 + 1);
-	strcpy(wrapped, oldmono);
-	strcat(wrapped, oldmono);
+	lenwrap = strlen(old) * 2 + 1;
+	wrapped = (char *) xmalloc(lenwrap);
+	str_lower(strcpy(wrapped, old));
 
-	if (palindrome(oldmono, newmono))
+	if (palindrome(newmono))
 		msg = "a palindrome";
 
-	if (!msg && strcmp(oldmono, newmono) == 0)
+	else if (strcmp(wrapped, newmono) == 0)
 		msg = "case changes only";
 
-	if (!msg && similiar(oldmono, newmono))
+	else if (similiar(wrapped, newmono))
 		msg = "too similiar";
 
-	if (!msg && simple(old, newval))
-		msg = "too simple";
-
-	if (!msg && strstr(wrapped, newmono))
+	else if (strstr(strcat(wrapped, wrapped), newmono))
 		msg = "rotated";
 
 	bzero(newmono, strlen(newmono));
-	bzero(oldmono, strlen(oldmono));
-	bzero(wrapped, strlen(wrapped));
+	bzero(wrapped, lenwrap);
 	free(newmono);
-	free(oldmono);
 	free(wrapped);
 
 	return msg;
 }
 
-static char *obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
+static const char *
+obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
 {
 	int maxlen, oldlen, newlen;
-	char *new1, *old1, *msg;
+	char *new1, *old1;
+	const char *msg;
 
 	oldlen = strlen(old);
 	newlen = strlen(newval);
@@ -233,7 +235,7 @@ static char *obscure_msg(const char *old, const char *newval, const struct passw
 
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp)
 {
-	char *msg = obscure_msg(old, newval, pwdp);
+	const char *msg = obscure_msg(old, newval, pwdp);
 
 	/*  if (msg) { */
 	if (msg != NULL) {

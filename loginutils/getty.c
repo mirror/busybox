@@ -388,34 +388,20 @@ static void parse_args(int argc, char **argv, struct options *op)
 		switch (c) {
 		case 'I':
 			if (!(op->initstring = strdup(optarg)))
-				error("can't malloc initstring");
+				error(memory_exhausted);
 				
 			{
-				char ch, *p, *q;
-				int i;
+				const char *p;
+				char *q;
 
 				/* copy optarg into op->initstring decoding \ddd
 				   octal codes into chars */
 				q = op->initstring;
 				p = optarg;
 				while (*p) {
-					if (*p == '\\') {	/* know \\ means \ */
+					if (*p == '\\') {
 						p++;
-						if (*p == '\\') {
-							ch = '\\';
-							p++;
-						} else {	/* handle \000 - \177 */
-							ch = 0;
-							for (i = 1; i <= 3; i++) {
-								if (*p >= '0' && *p <= '7') {
-									ch <<= 3;
-									ch += *p - '0';
-									p++;
-								} else
-									break;
-							}
-						}
-						*q++ = ch;
+						*q++ = process_escape_sequence(&p);
 					} else {
 						*q++ = *p++;
 					}

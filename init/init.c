@@ -660,8 +660,7 @@ static pid_t run(struct init_action *a)
 		execve(cmdpath, cmd, environment);
 
 		/* We're still here?  Some error happened. */
-		message(LOG | CONSOLE, "\rBummer, could not run '%s': %s\n", cmdpath,
-				strerror(errno));
+		message(LOG | CONSOLE, "\rBummer, could not run '%s': %m\n", cmdpath);
 		_exit(-1);
 	}
 	sigprocmask(SIG_SETMASK, &omask, NULL);
@@ -785,8 +784,8 @@ static void exec_signal(int sig)
 			message(CONSOLE | LOG, "\rTrying to re-exec %s\n", a->command);
 			execl(a->command, a->command, NULL);
 
-			message(CONSOLE | LOG, "\rexec of '%s' failed: %s\n",
-					a->command, strerror(errno));
+			message(CONSOLE | LOG, "\rexec of '%s' failed: %m\n",
+					a->command);
 			sync();
 			sleep(2);
 			init_reboot(RB_HALT_SYSTEM);

@@ -45,7 +45,7 @@
 	const char * const invalid_option = "invalid option -- %c";
 #endif
 #ifdef L_io_error
-	const char * const io_error = "%s: input/output error -- %s";
+	const char * const io_error = "%s: input/output error -- %m";
 #endif
 #ifdef L_dash_dash_help
 	const char * const dash_dash_help = "--help";

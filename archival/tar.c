@@ -302,7 +302,7 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	if ((size =
 		 full_write(tbInfo->tarFd, (char *) &header,
 					sizeof(struct TarHeader))) < 0) {
-		error_msg(io_error, real_name, strerror(errno));
+		error_msg(io_error, real_name);
 		return (FALSE);
 	}
 	/* Pad the header up to the tar block size */
@@ -426,7 +426,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
-			error_msg("%s: Cannot open: %s", fileName, strerror(errno));
+			perror_msg("%s: Cannot open", fileName);
 			return (FALSE);
 		}
 
@@ -434,13 +434,13 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		while ((size = full_read(inputFileFd, buffer, sizeof(buffer))) > 0) {
 			if (full_write(tbInfo->tarFd, buffer, size) != size) {
 				/* Output file seems to have a problem */
-				error_msg(io_error, fileName, strerror(errno));
+				error_msg(io_error, fileName);
 				return (FALSE);
 			}
 			readSize += size;
 		}
 		if (size == -1) {
-			error_msg(io_error, fileName, strerror(errno));
+			error_msg(io_error, fileName);
 			return (FALSE);
 		}
 		/* Pad the file up to the tar block size */
@@ -483,7 +483,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	}
 
 	if (tbInfo.tarFd < 0) {
-		perror_msg("Error opening '%s'", tarName);
+		perror_msg("%s: Cannot open", tarName);
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return (FALSE);
 	}
@@ -491,7 +491,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
-		error_msg_and_die(io_error, tarName, strerror(errno));
+		error_msg_and_die(io_error, tarName);
 
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	if (gzip) {

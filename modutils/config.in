@@ -29,5 +29,9 @@ if [ "$CONFIG_LSMOD" = "y" ]; then
 	fi
 fi
 
+if [ "$CONFIG_INSMOD" = "y" -o "$CONFIG_LSMOD" = "y" ]; then
+	bool 'Support tainted module checking with new kernels'  CONFIG_FEATURE_CHECK_TAINTED_MODULE
+fi
+
 endmenu
 
