@@ -14,6 +14,7 @@
 #define BB_CHROOT
 #define BB_CHVT
 #define BB_CLEAR
+#define BB_CMP
 #define BB_CP_MV
 #define BB_CUT
 #define BB_DATE
@@ -76,6 +77,7 @@
 #define BB_PS
 #define BB_PWD
 #define BB_RDATE
+#define BB_READLINK
 #define BB_REBOOT
 #define BB_RENICE
 #define BB_RESET

@@ -93,6 +93,15 @@ const char clear_usage[] =
 	;
 #endif
 
+#if defined BB_CMP
+const char cmp_usage[] =
+	"cmp FILE1 [FILE2]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nCompare files.\n"
+#endif
+	;
+#endif
+
 #if defined BB_CP_MV
 const char cp_usage[] =
 	"cp [OPTION]... SOURCE DEST\n"
@@ -959,6 +968,15 @@ const char rdate_usage[] =
 	;
 #endif
 
+#if defined BB_READLINK
+const char readlink_usage[] =
+	"readlink\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nRead a symbolic link.\n"
+#endif
+	;
+#endif
+
 #if defined BB_REBOOT
 const char reboot_usage[] =
 	"reboot\n"
@@ -967,7 +985,6 @@ const char reboot_usage[] =
 #endif
 	;
 #endif
-
 	
 #if defined BB_RENICE
 const char renice_usage[] =

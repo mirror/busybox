@@ -40,6 +40,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_CHVT
 	{"chvt", chvt_main, _BB_DIR_USR_BIN, chvt_usage},
 #endif
+#ifdef BB_CMP
+	{"cmp", cmp_main, _BB_DIR_USR_BIN, cmp_usage},
+#endif
 #ifdef BB_CP_MV
 	{"cp", cp_mv_main, _BB_DIR_BIN, cp_usage},
 #endif
@@ -234,6 +237,9 @@ const struct BB_applet applets[] = {
 #endif
 #ifdef BB_RDATE
 	{"rdate", rdate_main, _BB_DIR_USR_BIN, rdate_usage},
+#endif
+#ifdef BB_READLINK
+	{"readlink", readlink_main, _BB_DIR_USR_BIN, readlink_usage},
 #endif
 #ifdef BB_REBOOT
 	{"reboot", reboot_main, _BB_DIR_SBIN, reboot_usage},
