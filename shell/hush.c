@@ -45,14 +45,12 @@
  *      fancy forms of Parameter Expansion
  *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
- *      reserved words: if, then, elif, else, fi, while, until, for,
- *                      do, done, case
+ *      reserved words: case, esac, function
  *      Here Documents ( << word )
  *      Functions
  * Major bugs:
  *      job handling woefully incomplete and buggy
  *      reserved word execution woefully incomplete and buggy
- *      incomplete reserved word sequence doesn't request more lines of input
  * to-do:
  *      port selected bugfixes from post-0.49 busybox lash
  *      finish implementing reserved words
@@ -73,7 +71,6 @@
  *      more testing, especially quoting rules and redirection
  *      maybe change map[] to use 2-bit entries
  *      (eventually) remove all the printf's
- *      more integration with BusyBox: prompts, cmdedit, applets
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +102,7 @@
 #include <signal.h>
 
 /* #include <dmalloc.h> */
-/* #define DEBUG_SHELL */
+#define DEBUG_SHELL
 
 #ifdef BB_VER
 #include "busybox.h"
@@ -977,6 +974,42 @@ static void pseudo_exec(struct child_prog *child)
 				exit(x->function(child));
 			}
 		}
+
+		/* Check if the command matches any busybox internal commands
+		 * ("applets") here.  
+		 * FIXME: This feature is not 100% safe, since
+		 * BusyBox is not fully reentrant, so we have no guarantee the things
+		 * from the .bss are still zeroed, or that things from .data are still
+		 * at their defaults.  We could exec ourself from /proc/self/exe, but I
+		 * really dislike relying on /proc for things.  We could exec ourself
+		 * from global_argv[0], but if we are in a chroot, we may not be able
+		 * to find ourself... */ 
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+		{
+			int argc_l;
+			char** argv_l=child->argv;
+			char *name = child->argv[0];
+
+#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+			/* Following discussions from November 2000 on the busybox mailing
+			 * list, the default configuration, (without
+			 * get_last_path_component()) lets the user force use of an
+			 * external command by specifying the full (with slashes) filename.
+			 * If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then applets
+			 * _aways_ override external commands, so if you want to run
+			 * /bin/cat, it will use BusyBox cat even if /bin/cat exists on the
+			 * filesystem and is _not_ busybox.  Some systems may want this,
+			 * most do not.  */
+			name = get_last_path_component(name);
+#endif
+			/* Count argc for use in a second... */
+			for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
+			optind = 1;
+			debug_printf("running applet %s\n", name);
+			run_applet_by_name(name, argc_l, child->argv);
+			exit(1);
+		}
+#endif
 		debug_printf("exec of %s\n",child->argv[0]);
 		execvp(child->argv[0],child->argv);
 		perror("execvp");
@@ -1842,14 +1875,13 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			ch,ch,m,dest->quote);
 		if (m==0 || ((m==1 || m==2) && dest->quote)) {
 			b_addqchr(dest, ch, dest->quote);
-		} else if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
-			debug_printf("leaving parse_stream\n");
-			return 0;
-		} else if (m==2 && !dest->quote) {  /* IFS */
-			done_word(dest, ctx);
-			if (ch=='\n') done_pipe(ctx,PIPE_SEQ);
+		} else {
+			if (m==2) {  /* unquoted IFS */
+				done_word(dest, ctx);
+				if (ch=='\n') done_pipe(ctx,PIPE_SEQ);
+			}
 			if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
-				debug_printf("leaving parse_stream (stupid duplication)\n");
+				debug_printf("leaving parse_stream\n");
 				return 0;
 			}
 #if 0
@@ -1860,7 +1892,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 				initialize_context(ctx);
 			}
 #endif
-		} else switch (ch) {
+			if (m!=2) switch (ch) {
 		case '#':
 			if (dest->length == 0 && !dest->quote) {
 				while(ch=b_peek(input),ch!=EOF && ch!='\n') { b_getch(input); }
@@ -1962,6 +1994,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 		default:
 			syntax();   /* this is really an internal logic error */
 			return 1;
+			}
 		}
 	}
 	/* complain if quote?  No, maybe we just finished a command substitution
