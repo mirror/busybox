@@ -1305,29 +1305,23 @@
 	"\t\t\t[ label STRING ] [ scope SCOPE-ID ]\n" \
 	"\t\t\tSCOPE-ID := [ host | link | global | NUMBER ]"
 
-#ifndef CONFIG_FEATURE_IPCALC_FANCY
-#define ipcalc_trivial_usage \
-	"[--broadcast] [--netmask] [--network] ipaddr <netmask>"
-
-#define ipcalc_full_usage \
-	"Calculate IP network settings from a IP address\n\n" \
-	"Options:\n" \
-	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
-	"\t-n\t--netmask\tDisplay default netmask for IP.\n" \
-	"\t-w\t--network\tDisplay calculated network address."
+#ifdef CONFIG_FEATURE_IPCALC_FANCY
+  #define XUSAGE_IPCALC_FANCY(a) a
 #else
+  #define XUSAGE_IPCALC_FANCY(a)
+#endif
 #define ipcalc_trivial_usage \
-	"[OPTION]... ipaddr <netmask>"
-
+	"[OPTION]... <ADDRESS>[[/]<NETMASK>] [NETMASK]"
 #define ipcalc_full_usage \
 	"Calculate IP network settings from a IP address\n\n" \
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address.\n" \
-	"\t-n\t--netmask\tDisplay default netmask for IP.\n" \
-	"\t-w\t--network\tDisplay calculated network address.\n" \
+	"\t-n\t--network\tDisplay calculated network address.\n" \
+	"\t-m\t--netmask\tDisplay default netmask for IP." \
+	XUSAGE_IPCALC_FANCY(\
+	"\n\t-p\t--prefix\tDisplay the prefix for IP/NETMASK." \
 	"\t-h\t--hostname\tDisplay first resolved host name.\n" \
-	"\t-s\t--silent\tDon't ever display error messages."
-#endif
+	"\t-s\t--silent\tDon't ever display error messages.")
 
 #define iplink_trivial_usage \
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
