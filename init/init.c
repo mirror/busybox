@@ -203,9 +203,7 @@ static void message(int device, char *fmt, ...)
 		va_start(arguments, fmt);
 		vsnprintf(msg, sizeof(msg), fmt, arguments);
 		va_end(arguments);
-		openlog(applet_name, 0, LOG_USER);
-		syslog(LOG_USER|LOG_INFO, msg);
-		closelog();
+		syslog_msg(LOG_USER, LOG_USER|LOG_INFO, msg);
 	}
 #else
 	static int log_fd = -1;
@@ -703,6 +701,9 @@ static void ctrlaltdel_signal(int sig)
 static void new_initAction(initActionEnum action, char *process, char *cons)
 {
 	initAction *newAction;
+#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+	initAction *a;
+#endif
 
 	if (*cons == '\0')
 		cons = console;
@@ -714,14 +715,25 @@ static void new_initAction(initActionEnum action, char *process, char *cons)
 	if (secondConsole == NULL && strcmp(cons, console)
 		&& strcmp(cons, "/dev/null"))
 		return;
+	if (strcmp(cons, "/dev/null") == 0 && action == ASKFIRST)
+		return;
 
 	newAction = calloc((size_t) (1), sizeof(initAction));
 	if (!newAction) {
 		message(LOG | CONSOLE, "Memory allocation failure\n");
 		loop_forever();
 	}
+#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+	for (a = initActionList; a && a->nextPtr; a = a->nextPtr) ;
+	if (a) {
+		a->nextPtr = newAction;
+	} else {
+		initActionList = newAction;
+	}
+#else
 	newAction->nextPtr = initActionList;
 	initActionList = newAction;
+#endif
 	strncpy(newAction->process, process, 255);
 	newAction->action = action;
 	strncpy(newAction->console, cons, 255);
@@ -770,10 +782,17 @@ static void parse_inittab(void)
 #endif
 		/* Reboot on Ctrl-Alt-Del */
 		new_initAction(CTRLALTDEL, "/sbin/reboot", console);
+#ifdef BB_FEATURE_INIT_NORMAL_ORDER
+		/* Umount all filesystems on halt/reboot */
+		new_initAction(SHUTDOWN, "/bin/umount -a -r", console);
+		/* Swapoff on halt/reboot */
+		new_initAction(SHUTDOWN, "/sbin/swapoff -a", console);
+#else
 		/* Swapoff on halt/reboot */
 		new_initAction(SHUTDOWN, "/sbin/swapoff -a", console);
 		/* Umount all filesystems on halt/reboot */
 		new_initAction(SHUTDOWN, "/bin/umount -a -r", console);
+#endif
 		/* Askfirst shell on tty1 */
 		new_initAction(ASKFIRST, LOGIN_SHELL, console);
 		/* Askfirst shell on tty2 */
@@ -960,23 +979,9 @@ extern int init_main(int argc, char **argv)
 	/* Now run everything that needs to be run */
 
 	/* First run the sysinit command */
-	for (a = initActionList; a; a = tmp) {
-		tmp = a->nextPtr;
-		if (a->action == SYSINIT) {
-			waitfor(a->process, a->console, FALSE);
-			/* Now remove the "sysinit" entry from the list */
-			delete_initAction(a);
-		}
-	}
+	run_actions(SYSINIT);
 	/* Next run anything that wants to block */
-	for (a = initActionList; a; a = tmp) {
-		tmp = a->nextPtr;
-		if (a->action == WAIT) {
-			waitfor(a->process, a->console, FALSE);
-			/* Now remove the "wait" entry from the list */
-			delete_initAction(a);
-		}
-	}
+	run_actions(WAIT);
 	/* Next run anything to be run only once */
 	for (a = initActionList; a; a = tmp) {
 		tmp = a->nextPtr;

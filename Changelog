@@ -19,6 +19,9 @@
 	    -- Fix sed s/[/]// handling (closes: #1208).
 	    -- Fix `-/bin/sh' invocation (closes: #1209).
 	    -- Fix ash exec (noted by Arne Bernin).
+	* Magick
+	    -- maked init run inittab command's in inittab order (
+		(i.e. FIFO instead of LIFO).
 
 
 	 -Erik Andersen, --not yet released--
