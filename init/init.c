@@ -52,6 +52,7 @@
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
 static char *console = CONSOLE;
+static char *first_terminal = "/dev/tty1";
 static char *second_terminal = "/dev/tty2";
 static char *log = "/dev/tty3";
 
@@ -87,8 +88,13 @@ void message(char *device, char *fmt, ...)
 	vdprintf(fd, fmt, arguments);
 	va_end(arguments);
 	close(fd);
-    } else
-	vprintf(fmt, arguments);
+    } else {
+	fprintf(stderr, "Bummer, can't print: ");
+	va_start(arguments, fmt);
+	vfprintf(stderr, fmt, arguments);
+	fflush(stderr);
+	va_end(arguments);
+    }
 }
 
 /* Set terminal settings to reasonable defaults */
@@ -164,6 +170,7 @@ static void set_free_pages()
 static void console_init()
 {
     int fd;
+    struct stat statbuf;
     int tried_devcons = 0;
     int tried_vtmaster = 0;
     char *s;
@@ -173,6 +180,10 @@ static void console_init()
     else {
 	console = CONSOLE;
 	tried_devcons++;
+    }
+
+    if ( stat(CONSOLE, &statbuf) && S_ISLNK(statbuf.st_mode)) {
+	fprintf(stderr, "/dev/console does not exist, or is a symlink.\n");
     }
     while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
 	if (!tried_devcons) {
@@ -191,6 +202,7 @@ static void console_init()
 	console = "/dev/null";
     else
 	close(fd);
+    fprintf(stderr, "console=%s\n", console);
 }
 
 static int waitfor(int pid)
@@ -204,6 +216,7 @@ static int waitfor(int pid)
     }
     return wpid;
 }
+
 
 static int run(const char *command, char *terminal, int get_enter)
 {
@@ -248,13 +261,21 @@ static int run(const char *command, char *terminal, int get_enter)
 	close(2);
 	setsid();
 
-	if ((f = device_open(terminal, O_RDWR | O_NOCTTY)) < 0) {
-	    message(log, "open(%s) failed: %s\n", terminal, strerror(errno));
+#if 1
+	//if ((f = device_open(terminal, O_RDWR | O_NOCTTY)) < 0) {
+	if ((f = device_open(terminal, O_RDWR )) < 0) {
+	    message(log, "open(%s) failed: %s\n", 
+		    terminal, strerror(errno));
 	    return -1;
 	}
 	dup(f);
 	dup(f);
-	tcsetpgrp(0, getpgrp());
+#else
+	open(terminal, O_RDWR);
+	dup(0);
+	dup(0);
+	//tcsetpgrp(0, getpgrp());
+#endif
 	set_term();
 
 	if (get_enter) {
@@ -273,11 +294,11 @@ static int run(const char *command, char *terminal, int get_enter)
 	}
 
 	/* Log the process name and args */
-	message(console, "Executing ");
-	message(console, "'%s'\r\n", command);
+	message(console, "Executing '%s'\r\n", command);
+	message(log, "Executing '%s'\r\n", command);
 
-	/* Now run it.  This should take over the PID, so nothing 
-	 * further in init.c should be run by this PID. */
+	/* Now run it.  This program should take over this PID, 
+	 * so nothing further in init.c should be run. */
 	execvp(args[1], args + 1);
 
 	message(console, "Hmm.  Trying as a script.\r\n");
@@ -297,6 +318,7 @@ static int run(const char *command, char *terminal, int get_enter)
     }
     return pid;
 }
+
 
 #ifndef DEBUG_INIT
 static void shutdown_system(void)
@@ -350,8 +372,8 @@ extern int init_main(int argc, char **argv)
     int pid1 = 0;
     int pid2 = 0;
     struct stat statbuf;
-    const char *init_commands = SHELL "-c exec " INITSCRIPT;
-    const char *shell_commands = SHELL;
+    const char *init_commands = SHELL " -c exec " INITSCRIPT;
+    const char *shell_commands = SHELL " -";
     const char *tty0_commands = init_commands;
     const char *tty1_commands = shell_commands;
     char *hello_msg_format =
@@ -397,10 +419,11 @@ extern int init_main(int argc, char **argv)
 
     /* Mount /proc */
     if (mount("/proc", "/proc", "proc", 0, 0)) {
-	message(log, "Mounting /proc: failed!\n");
 	message(console, "Mounting /proc: failed!\r\n");
+	message(log, "Mounting /proc: failed!\n");
     } else {
 	message(console, "Mounting /proc: done.\r\n");
+	message(log, "Mounting /proc: done.\n");
     }
 
     /* Make sure there is enough memory to do something useful */
@@ -430,7 +453,7 @@ extern int init_main(int argc, char **argv)
 		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
 	run_rc = FALSE;
 	tty0_commands = shell_commands;
-	tty1_commands = 0;
+	tty1_commands = shell_commands;
     }
 
     /* Make sure an init script exists before trying to run it */
@@ -447,13 +470,13 @@ extern int init_main(int argc, char **argv)
 	int status;
 
 	if (pid1 == 0 && tty0_commands) {
-	    pid1 = run(tty0_commands, console, 1);
+	    pid1 = run(tty0_commands, first_terminal, 1);
 	}
 	if (pid2 == 0 && tty1_commands) {
 	    pid2 = run(tty1_commands, second_terminal, 1);
 	}
 	wpid = wait(&status);
-	if (wpid > 0 && wpid != pid1) {
+	if (wpid > 0 ) {
 	    message(log, "pid %d exited, status=%x.\n", wpid, status);
 	}
 	/* Don't respawn an init script if it exits */
