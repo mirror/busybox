@@ -60,6 +60,10 @@ static const int COLUMN_GAP = 2;			/* includes the file type char, if present */
 #endif
 #include <string.h>
 
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+
 #ifndef NAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)
 #define MINOR(dev) ((dev)&0xff)
@@ -180,6 +184,31 @@ static int status = EXIT_SUCCESS;
 #ifdef BB_FEATURE_HUMAN_READABLE
 unsigned long ls_disp_hr = KILOBYTE;
 #endif
+
+/* sparc termios is broken -- use old termio handling. */
+#ifdef BB_FEATURE_USE_TERMIOS
+#	if #cpu(sparc)
+#		include <termio.h>
+#		define termios termio
+#		define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
+#		define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
+#	else
+#		include <termios.h>
+#		define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#		define getTermSettings(fd,argp) tcgetattr(fd, argp);
+#	endif
+
+FILE *cin;
+
+static struct termios initial_settings, new_settings;
+
+static void gotsig(int sig)
+{
+	setTermSettings(fileno(cin), &initial_settings);
+	putchar('\n');
+	exit(EXIT_FAILURE);
+}
+#endif /* BB_FEATURE_USE_TERMIOS */
 
 static int my_stat(struct dnode *cur)
 {
@@ -707,6 +736,9 @@ extern int ls_main(int argc, char **argv)
 	int opt;
 	int oi, ac;
 	char **av;
+#if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
+	struct winsize win = { 0, 0, 0, 0 };
+#endif
 
 	disp_opts= DISP_NORMAL;
 	style_fmt= STYLE_AUTO;
@@ -719,10 +751,34 @@ extern int ls_main(int argc, char **argv)
 	time_fmt= TIME_MOD;
 #endif
 #ifdef BB_FEATURE_AUTOWIDTH
+#ifdef BB_FEATURE_USE_TERMIOS
+		cin = fopen("/dev/tty", "r");
+		if (!cin)
+			cin = fopen("/dev/console", "r");
+		getTermSettings(fileno(cin), &initial_settings);
+		new_settings = initial_settings;
+		new_settings.c_cc[VMIN] = 1;
+		new_settings.c_cc[VTIME] = 0;
+		new_settings.c_lflag &= ~ICANON;
+		new_settings.c_lflag &= ~ECHO;
+		setTermSettings(fileno(cin), &new_settings);
+
+		ioctl(fileno(stdout), TIOCGWINSZ, &win);
+		if (win.ws_row > 4)
+			column_width = win.ws_row - 2;
+		if (win.ws_col > 0)
+			terminal_width = win.ws_col - 1;
+
+		(void) signal(SIGINT, gotsig);
+		(void) signal(SIGQUIT, gotsig);
+		(void) signal(SIGTERM, gotsig);
+#else
+
 	terminal_width = TERMINAL_WIDTH;
 	column_width = COLUMN_WIDTH;
-	tabstops = 8;
 #endif
+#endif
+	tabstops = 8;
 	nfiles=0;
 
 	/* process options */
@@ -908,6 +964,9 @@ extern int ls_main(int argc, char **argv)
 		}
 	}
 
+#ifdef BB_FEATURE_USE_TERMIOS
+	gotsig(0);
+#endif
 	return(status);
 
   print_usage_message:
