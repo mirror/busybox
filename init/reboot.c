@@ -26,5 +26,6 @@
 extern int
 reboot_main(int argc, char ** argv)
 {
-	exit( kill(1, SIGUSR2));
+	/* don't assume init's pid == 1 */
+	exit( kill(findInitPid(), SIGUSR2));
 }

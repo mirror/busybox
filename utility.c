@@ -1068,14 +1068,39 @@ extern long getNum (const char *cp)
 }
 #endif
 
+#if 1
+/* findInitPid()
+ *  
+ *  This finds the pid of init (which is not always 1).
+ *  Currently, it's implemented by rummaging through the proc filesystem.
+ *
+ *  [return]
+ *  0	    failure
+ *  pid	    when init's pid is found.
+ */
+extern pid_t
+findInitPid()
+{
+    pid_t   init_pid;
+    char    filename[256];
+    char    buffer[256];
+
+    /* no need to opendir ;) */
+    for (init_pid = 1; init_pid < 65536; init_pid++) {
+	FILE	*status;
+
+	sprintf(filename, "/proc/%d/status", init_pid);
+	status = fopen(filename, "r");
+	if (!status) { continue; }
+	fgets(buffer, 256, status);
+	fclose(status);
+
+	if ( (strcmp(&buffer[6], "init\n") == 0)) {
+	    return init_pid;
+	}
+    }
+    return 0;
+}
+#endif
 
 /* END CODE */
-
-
-
-
-
-
-
-
-
