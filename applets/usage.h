@@ -237,14 +237,16 @@
 	"\tARG1 *  ARG2	arithmetic product of ARG1 and ARG2\n" \
 	"\tARG1 /  ARG2	arithmetic quotient of ARG1 divided by ARG2\n" \
 	"\tARG1 %  ARG2	arithmetic remainder of ARG1 divided by ARG2\n" \
-	"\tSTRING : REGEXP			anchored pattern match of REGEXP in STRING\n" \
-	"\tmatch STRING REGEXP		same as STRING : REGEXP\n" \
-	"\tsubstr STRING POS LENGTH	substring of STRING, POS counted from 1\n" \
-	"\tindex STRING CHARS		index in STRING where any CHARS is found, or 0\n" \
-	"\tlength STRING			length of STRING\n" \
-	"\tquote TOKEN			interpret TOKEN as a string, even if it is a \n" \
-	"\t				keyword like `match' or an operator like `/'\n" \
-	"\t( EXPRESSION )			value of EXPRESSION\n\n" \
+	"\tSTRING : REGEXP             anchored pattern match of REGEXP in STRING\n" \
+	"\tmatch STRING REGEXP         same as STRING : REGEXP\n" \
+	"\tsubstr STRING POS LENGTH    substring of STRING, POS counted from 1\n" \
+	"\tindex STRING CHARS          index in STRING where any CHARS is found,\n" \
+	"\t                            or 0\n" \
+	"\tlength STRING               length of STRING\n" \
+	"\tquote TOKEN                 interpret TOKEN as a string, even if\n" \
+	"\t                            it is a keyword like `match' or an\n" \
+	"\t                            operator like `/'\n" \
+	"\t( EXPRESSION )              value of EXPRESSION\n\n" \
 	"Beware that many operators need to be escaped or quoted for shells.\n" \
 	"Comparisons are arithmetic if both ARGs are numbers, else\n" \
 	"lexicographical.  Pattern matches return the string matched between \n" \
