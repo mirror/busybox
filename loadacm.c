@@ -140,10 +140,9 @@ int screen_map_load(int fd, FILE * fp)
 			perror("PIO_SCRNMAP ioctl"), exit(1);
 		else
 			return 0;
-	} else {
-		fprintf(stderr, "Error parsing symbolic map\n");
-		exit(1);
 	}
+	fprintf(stderr, "Error parsing symbolic map\n");
+	return(1);
 }
 
 

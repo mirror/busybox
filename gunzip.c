@@ -746,7 +746,7 @@ int gunzip_main(int argc, char **argv)
 			exit(FALSE);
 		}
 	}
-	exit(exit_code);
+	return(exit_code);
 }
 
 

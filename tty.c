@@ -46,5 +46,5 @@ extern int tty_main(int argc, char **argv)
 		else
 			puts("not a tty");
 	}
-	exit(isatty(0) ? TRUE : FALSE);
+	return(isatty(0) ? TRUE : FALSE);
 }

@@ -282,8 +282,6 @@ extern int save_orig_name;		/* set if original name must be saved */
 #define WARN(msg) {if (!quiet) fprintf msg ; \
 		   if (exit_code == OK) exit_code = WARNING;}
 
-#define do_exit(c) exit(c)
-
 
 	/* in zip.c: */
 extern int zip (int in, int out);
@@ -1883,13 +1881,13 @@ int gzip_main(int argc, char **argv)
 		inFileNum = open(ifname, O_RDONLY);
 		if (inFileNum < 0) {
 			perror(ifname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		/* Get the time stamp on the input file. */
 		result = stat(ifname, &statBuf);
 		if (result < 0) {
 			perror(ifname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		time_stamp = statBuf.st_ctime;
 		ifile_size = statBuf.st_size;
@@ -1923,7 +1921,7 @@ int gzip_main(int argc, char **argv)
 #endif
 		if (outFileNum < 0) {
 			perror(ofname);
-			do_exit(WARNING);
+			exit(WARNING);
 		}
 		SET_BINARY_MODE(outFileNum);
 		/* Set permissions on the file */
@@ -1948,7 +1946,7 @@ int gzip_main(int argc, char **argv)
 		}
 	}
 
-	do_exit(exit_code);
+	return(exit_code);
 }
 
 /* trees.c -- output deflated data using Huffman coding

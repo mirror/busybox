@@ -75,5 +75,5 @@ extern int rmmod_main(int argc, char **argv)
 		}
 		argv++;
 	}
-	exit(TRUE);
+	return(TRUE);
 }

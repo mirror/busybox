@@ -101,8 +101,8 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 int chmod_chown_chgrp_main(int argc, char **argv)
 {
 	int recursiveFlag = FALSE;
-	char *groupName;
-	char *p;
+	char *groupName=NULL;
+	char *p=NULL;
 	const char *appUsage;
 
 	whichApp = (strcmp(*argv, "chown") == 0)? 

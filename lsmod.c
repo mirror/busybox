@@ -36,5 +36,5 @@ extern int lsmod_main(int argc, char **argv)
 	char *cmd[] = { "cat", "/proc/modules", "\0" };
 #endif
 
-	exit(cat_main(3, cmd));
+	return(cat_main(3, cmd));
 }

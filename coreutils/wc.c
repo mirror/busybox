@@ -166,5 +166,5 @@ int wc_main(int argc, char **argv)
 		print_counts(total_lines, total_words, total_chars,
 					 max_length, "total");
 	}
-	exit(TRUE);
+	return(TRUE);
 }

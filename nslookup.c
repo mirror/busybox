@@ -174,7 +174,7 @@ int nslookup_main(int argc, char **argv)
 		host = gethostbyname(argv[1]);
 	}
 	hostent_fprint(host, stdout);
-	exit( TRUE);
+	return( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.9 2000/05/12 19:41:47 erik Exp $ */
+/* $Id: nslookup.c,v 1.10 2000/06/19 17:25:40 andersen Exp $ */

@@ -221,5 +221,5 @@ extern int more_main(int argc, char **argv)
 #ifdef BB_FEATURE_USE_TERMIOS
 	gotsig(0);
 #endif
-	exit(TRUE);
+	return(TRUE);
 }

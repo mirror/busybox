@@ -108,7 +108,7 @@ extern int df_main(int argc, char **argv)
 		endmntent(mountTable);
 	}
 
-	exit(TRUE);
+	return(TRUE);
 }
 
 /*

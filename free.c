@@ -59,5 +59,5 @@ extern int free_main(int argc, char **argv)
 	printf("%6s%13ld%13ld%13ld\n", "Total:", info.totalram+info.totalswap,
 			(info.totalram-info.freeram)+(info.totalswap-info.freeswap),
 			info.freeram+info.freeswap);
-	exit(TRUE);
+	return(TRUE);
 }

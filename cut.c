@@ -307,7 +307,7 @@ int cut_main(int argc, char **argv)
 		cut();
 	}
 
-	exit(exit_status);
+	return(exit_status);
 }
 
 /* cut - extract columns from a file or stdin. 	Author: Michael J. Holme

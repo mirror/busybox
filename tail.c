@@ -400,7 +400,7 @@ extern int tail_main(int argc, char **argv)
 			exit_status |= tail_file(argv[i], n_units);
 	}
 
-	exit(exit_status == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+	return(exit_status == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 

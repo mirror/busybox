@@ -109,7 +109,7 @@ int head_main(int argc, char **argv)
 			}
 		}
 	}
-	exit(0);
+	return(0);
 }
 
-/* $Id: head.c,v 1.10 2000/05/12 19:41:47 erik Exp $ */
+/* $Id: head.c,v 1.11 2000/06/19 17:25:39 andersen Exp $ */

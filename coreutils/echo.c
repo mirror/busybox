@@ -96,7 +96,7 @@ echo_main(int argc, char** argv)
 	if (! nflag)
 		putchar('\n');
 	fflush(stdout);
-	exit( 0);
+	return( 0);
 }
 
 /*-

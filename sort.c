@@ -301,7 +301,7 @@ int sort_main(int argc, char **argv)
 		list_release(&list);
 	}
 
-	exit(0);
+	return(0);
 }
 
-/* $Id: sort.c,v 1.16 2000/05/12 19:41:47 erik Exp $ */
+/* $Id: sort.c,v 1.17 2000/06/19 17:25:40 andersen Exp $ */

@@ -329,5 +329,5 @@ extern int fbset_main(int argc, char **argv)
 	/* Don't close the file, as exiting will take care of that */
 	/* close(fh); */
 
-	exit (TRUE);
+	return (TRUE);
 }

@@ -235,7 +235,7 @@ test_main(int argc, char** argv)
 	if (*t_wp != NULL && *++t_wp != NULL)
 		syntax(*t_wp, "unknown operand");
 
-	exit( res);
+	return( res);
 }
 
 static void

@@ -89,7 +89,7 @@ extern int id_main(int argc, char **argv)
 			   my_getpwnam(user), user, my_getgrnam(group), group);
 	
 
-	exit(0);
+	return(0);
 }
 
 

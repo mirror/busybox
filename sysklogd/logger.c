@@ -118,7 +118,7 @@ extern int logger_main(int argc, char **argv)
 	int option = 0;
 	int fromStdinFlag = FALSE;
 	int stopLookingAtMeLikeThat = FALSE;
-	char *message, buf[1024], name[128];
+	char *message=NULL, buf[1024], name[128];
 
 	/* Fill out the name string early (may be overwritten later */
 	my_getpwuid(name, geteuid());
@@ -175,5 +175,5 @@ extern int logger_main(int argc, char **argv)
 	syslog(pri, message);
 	closelog();
 
-	exit(TRUE);
+	return(TRUE);
 }

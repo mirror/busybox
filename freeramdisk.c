@@ -58,7 +58,7 @@ freeramdisk_main(int argc, char **argv)
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
 	/* close(f); */
-	exit(TRUE);
+	return(TRUE);
 }
 
 /*

@@ -39,5 +39,5 @@ extern int mktemp_main(int argc, char **argv)
 	if(mkstemp(argv[argc-1]) < 0)
 			exit(FALSE);
 	(void) puts(argv[argc-1]);
-	exit(TRUE);
+	return(TRUE);
 }

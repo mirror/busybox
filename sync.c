@@ -33,5 +33,5 @@ extern int sync_main(int argc, char **argv)
 #endif
 				);
 	}
-	exit(sync());
+	return(sync());
 }

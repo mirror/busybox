@@ -42,5 +42,5 @@ extern int logname_main(int argc, char **argv)
 		exit(TRUE);
 	}
 	fprintf(stderr, "no login name\n");
-	exit(FALSE);
+	return(FALSE);
 }

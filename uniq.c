@@ -184,7 +184,7 @@ int uniq_main(int argc, char **argv)
 	subject_last(&s);
 	subject_study(&s);
 
-	exit(0);
+	return(0);
 }
 
-/* $Id: uniq.c,v 1.10 2000/05/12 19:41:47 erik Exp $ */
+/* $Id: uniq.c,v 1.11 2000/06/19 17:25:40 andersen Exp $ */

@@ -34,5 +34,5 @@ extern int pwd_main(int argc, char **argv)
 		fatalError("pwd: %s\n", strerror(errno));
 
 	printf("%s\n", buf);
-	exit(TRUE);
+	return(TRUE);
 }

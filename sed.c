@@ -352,7 +352,7 @@ extern int sed_main(int argc, char **argv)
 			fclose(fp);
 		}
 	}
-	exit(TRUE);
+	return(TRUE);
 }
 
 

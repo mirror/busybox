@@ -39,6 +39,6 @@ extern int sleep_main(int argc, char **argv)
 	if (sleep(atoi(*(++argv))) != 0) {
 		perror("sleep");
 		exit(FALSE);
-	} else
-		exit(TRUE);
+	}
+	return(TRUE);
 }

@@ -90,7 +90,7 @@ static
 void name_too_long__exit (void)
 {
 	fprintf(stderr, name_too_long, dz);
-	exit FALSE;
+	exit(FALSE);
 }
 
 static void
@@ -333,10 +333,9 @@ extern int cp_mv_main(int argc, char **argv)
 		if (flags_memo)
 			*(baseDestName + baseDestLen) = '\0';
 	}
-// exit_true:
-	exit TRUE;
+	return( TRUE);
  exit_false:
-	exit FALSE;
+	return( FALSE);
 }
 
 /*

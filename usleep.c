@@ -38,5 +38,5 @@ extern int usleep_main(int argc, char **argv)
 	}
 
 	usleep(atoi(*(++argv)));	/* return void */
-	exit(TRUE);
+	return(TRUE);
 }

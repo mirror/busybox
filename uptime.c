@@ -69,5 +69,5 @@ extern int uptime_main(int argc, char **argv)
 			LOAD_INT(info.loads[1]), LOAD_FRAC(info.loads[1]), 
 			LOAD_INT(info.loads[2]), LOAD_FRAC(info.loads[2]));
 
-	exit(TRUE);
+	return(TRUE);
 }

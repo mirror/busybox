@@ -101,5 +101,5 @@ extern int mt_main(int argc, char **argv)
 		exit (FALSE);
 	}
 
-	exit (TRUE);
+	return (TRUE);
 }

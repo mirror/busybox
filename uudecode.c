@@ -346,5 +346,5 @@ int uudecode_main (int argc,
     }
     while (optind < argc);
   }
-  exit(exit_status);
+  return(exit_status);
 }

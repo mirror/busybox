@@ -181,10 +181,10 @@ int du_main(int argc, char **argv)
 		}
 	}
 
-	exit(0);
+	return(0);
 }
 
-/* $Id: du.c,v 1.19 2000/05/10 05:05:45 erik Exp $ */
+/* $Id: du.c,v 1.20 2000/06/19 17:25:39 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -188,8 +188,7 @@ static int shell_exit(struct job *cmd, struct jobSet *junk)
 	if (!cmd->progs[0].argv[1] == 1)
 		exit TRUE;
 
-	else
-		exit(atoi(cmd->progs[0].argv[1]));
+	return(atoi(cmd->progs[0].argv[1]));
 }
 
 /* built-in 'fg' and 'bg' handler */

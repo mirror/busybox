@@ -33,7 +33,7 @@ int chvt_main(int argc, char **argv)
 		perror("VT_WAITACTIVE");
 		exit(FALSE);
 	}
-	exit(TRUE);
+	return(TRUE);
 }
 
 

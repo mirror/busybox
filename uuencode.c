@@ -240,5 +240,5 @@ int uuencode_main (int argc,
     errorMsg("Write error\n");
     exit FALSE;
   }
-  exit TRUE;
+  return( TRUE);
 }

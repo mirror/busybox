@@ -112,5 +112,5 @@ extern int rm_main(int argc, char **argv)
 			}
 		}
 	}
-	exit(TRUE);
+	return(TRUE);
 }

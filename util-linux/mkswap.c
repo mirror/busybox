@@ -469,5 +469,5 @@ the -f option to force it.\n", program_name, device_name);
 	 */
 	if (fsync(DEV))
 		die("fsync failed");
-	exit(TRUE);
+	return(TRUE);
 }

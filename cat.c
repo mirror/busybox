@@ -61,7 +61,7 @@ extern int cat_main(int argc, char **argv)
 		}
 		print_file(file);
 	}
-	exit(TRUE);
+	return(TRUE);
 }
 
 /*

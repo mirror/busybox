@@ -112,5 +112,5 @@ extern int mkdir_main(int argc, char **argv)
 		argc--;
 		argv++;
 	}
-	exit TRUE;
+	return( TRUE);
 }

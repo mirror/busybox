@@ -34,7 +34,7 @@ int deallocvt_main(int argc, char *argv[])
 		/* deallocate all unused consoles */
 		if (ioctl(fd, VT_DISALLOCATE, 0)) {
 			perror("VT_DISALLOCATE");
-			exit(1);
+			exit( FALSE);
 		}
 	} else
 		for (i = 1; i < argc; i++) {
@@ -48,8 +48,8 @@ int deallocvt_main(int argc, char *argv[])
 				perror("VT_DISALLOCATE");
 				fprintf(stderr, "%s: could not deallocate console %d\n",
 						progname, num);
-				exit(1);
+				exit( FALSE);
 			}
 		}
-	exit(0);
+	return( TRUE);
 }

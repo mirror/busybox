@@ -45,5 +45,5 @@ extern int whoami_main(int argc, char **argv)
 	}
 	fprintf(stderr, "%s: cannot find username for UID %u\n", argv[0],
 			(unsigned) uid);
-	exit(FALSE);
+	return(FALSE);
 }

@@ -186,5 +186,5 @@ int math_main(int argc, char **argv)
 		}
 	}
 	stack_machine(0);
-	exit( TRUE);
+	return( TRUE);
 }

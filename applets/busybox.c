@@ -374,18 +374,11 @@ int main(int argc, char **argv)
 
 	while (a->name != 0) {
 		if (strcmp(name, a->name) == 0) {
-			int status;
-
-			status = ((*(a->main)) (argc, argv));
-			if (status < 0) {
-				fprintf(stderr, "%s: %s\n", a->name, strerror(errno));
-			}
-			fprintf(stderr, "\n");
-			exit(status);
+			exit(((*(a->main)) (argc, argv)));
 		}
 		a++;
 	}
-	exit(busybox_main(argc, argv));
+	return(busybox_main(argc, argv));
 }
 
 
@@ -419,11 +412,10 @@ int busybox_main(int argc, char **argv)
 		}
 		fprintf(stderr, "\n\n");
 		exit(-1);
-	} else {
-		/* If we've already been here once, exit now */
-		been_there_done_that = 1;
-		return (main(argc, argv));
 	}
+	/* If we've already been here once, exit now */
+	been_there_done_that = 1;
+	return (main(argc, argv));
 }
 
 /*

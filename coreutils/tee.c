@@ -130,7 +130,7 @@ int tee_main(int argc, char **argv)
 	/* Don't bother to close files  Exit does that 
 	 * automagically, so we can save a few bytes */
 	/* free(FileList); */
-	exit(0);
+	return(0);
 }
 
-/* $Id: tee.c,v 1.10 2000/05/12 19:41:47 erik Exp $ */
+/* $Id: tee.c,v 1.11 2000/06/19 17:25:40 andersen Exp $ */

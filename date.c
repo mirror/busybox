@@ -273,6 +273,5 @@ int date_main(int argc, char **argv)
 	strftime(t_buff, 200, date_fmt, &tm_time);
 	printf("%s\n", t_buff);
 
-	exit(TRUE);
-
+	return(TRUE);
 }

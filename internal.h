@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <mntent.h>
+#include <asm/string.h>
 
 
 /* Some useful definitions */

@@ -128,6 +128,5 @@ int dmesg_main(int argc, char **argv)
 	exit(FALSE);
   klogctl_error:
 	perror("klogctl");
-	exit(FALSE);
-
+	return(FALSE);
 }

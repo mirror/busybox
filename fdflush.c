@@ -56,5 +56,5 @@ extern int fdflush_main(int argc, char **argv)
 		perror(*argv);
 		exit(FALSE);
 	}
-	exit(TRUE);
+	return(TRUE);
 }

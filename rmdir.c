@@ -44,5 +44,5 @@ extern int rmdir_main(int argc, char **argv)
 			exit(FALSE);
 		}
 	}
-	exit(TRUE);
+	return(TRUE);
 }

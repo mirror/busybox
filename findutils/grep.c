@@ -163,7 +163,7 @@ extern int grep_main(int argc, char **argv)
 			fclose(fp);
 		}
 	}
-	exit(match);
+	return(match);
 }
 
 
