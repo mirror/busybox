@@ -33,30 +33,56 @@
  * output error checking.
  */
 
+/*
+ * Modified by Vladimir Oleynik <andersen@codepoet.org> (C) 2003
+ * - corretion "-" option usage
+ * - multiple "-u unsetenv" support
+ * - GNU long option support
+ * - save errno after exec failed before bb_perror_msg()
+ */
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "busybox.h"
+
+
+static const struct option env_long_options[] = {
+	{ "ignore-environment", 0, NULL, 'i' },
+	{ "unset", 1, NULL, 'u' },
+	{ 0, 0, 0, 0 }
+};
 
 extern int env_main(int argc, char** argv)
 {
 	char **ep, *p;
 	char *cleanenv[1] = { NULL };
 	unsigned long opt;
+	llist_t *unset_env;
+	extern char **environ;
 
-	opt = bb_getopt_ulflags(argc, argv, "iu:", &p);
-	if(opt & 1)
-			environ = cleanenv;
-	if(opt & 2)
-		unsetenv(p);
+	bb_opt_complementaly = "u*";
+	bb_applet_long_options = env_long_options;
+
+	opt = bb_getopt_ulflags(argc, argv, "+iu:", &unset_env);
 
 	argv += optind;
-
 	if (*argv && (argv[0][0] == '-') && !argv[0][1]) {
-		environ = cleanenv;
+		opt |= 1;
 		++argv;
+	}
+
+	if(opt & 1)
+		environ = cleanenv;
+	else if(opt & 2) {
+		while(unset_env) {
+			unsetenv(unset_env->data);
+			unset_env = unset_env->link;
+		}
 	}
 
 	while (*argv && ((p = strchr(*argv, '=')) != NULL)) {
@@ -67,9 +93,12 @@ extern int env_main(int argc, char** argv)
 	}
 
 	if (*argv) {
+		int er;
+
 		execvp(*argv, argv);
-		bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
-		return (errno == ENOENT) ? 127 : 126;	/* SUSv3-mandated exit codes. */
+		er = errno;
+		bb_perror_msg("%s", *argv);     /* Avoid multibyte problems. */
+		return (er == ENOENT) ? 127 : 126;   /* SUSv3-mandated exit codes. */
 	}
 
 	for (ep = environ; *ep; ep++) {
@@ -81,7 +110,7 @@ extern int env_main(int argc, char** argv)
 
 /*
  * Copyright (c) 1988, 1993, 1994
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -92,8 +121,8 @@ extern int env_main(int argc, char** argv)
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
- *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
  *
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
