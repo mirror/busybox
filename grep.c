@@ -54,9 +54,9 @@ static const char grep_usage[] =
 	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n"
 	"\t-v\tselect non-matching lines\n\n"
 #if defined BB_REGEXP
-	"This version of grep matches full regular expresions.\n";
+	"This version of grep matches full regular expressions.\n";
 #else
-	"This version of grep matches strings (not regular expresions).\n"
+	"This version of grep matches strings (not regular expressions).\n"
 #endif
 #endif
 	;

@@ -57,9 +57,9 @@ static const char sed_usage[] =
 	"-e\tadd the script to the commands to be executed\n"
 	"-n\tsuppress automatic printing of pattern space\n\n"
 #if defined BB_REGEXP
-	"This version of sed matches full regular expresions.\n";
+	"This version of sed matches full regular expressions.\n";
 #else
-	"This version of sed matches strings (not full regular expresions).\n"
+	"This version of sed matches strings (not full regular expressions).\n"
 #endif
 #endif
 	;

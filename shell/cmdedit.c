@@ -272,7 +272,7 @@ void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len)
 
 		/* For now, we will not bother with trying to distinguish
 		 * whether the cursor is in/at a command extression -- we
-		 * will always try all possable matches.  If you don't like
+		 * will always try all possible matches.  If you don't like
 		 * that then feel free to fix it.
 		 */
 

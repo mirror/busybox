@@ -289,7 +289,7 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 #endif
 
 #ifndef RB_POWER_OFF
-/* Stop system and switch power off if possable.  */
+/* Stop system and switch power off if possible.  */
 #define RB_POWER_OFF   0x4321fedc
 #endif
 
