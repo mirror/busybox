@@ -1524,9 +1524,15 @@ void free_memory(void)
  * we don't fight over who gets the foreground */
 static void setup_job_control()
 {
+	int status;
+	
 	/* Loop until we are in the foreground.  */
-	while (tcgetpgrp (shell_terminal) != (shell_pgrp = getpgrp ()))
+	while ((status = tcgetpgrp (shell_terminal)) >= 0) {
+		if (status == (shell_pgrp = getpgrp ())) {
+			break;
+		}
 		kill (- shell_pgrp, SIGTTIN);
+	}
 
 	/* Ignore interactive and job-control signals.  */
 	signal(SIGINT, SIG_IGN);
