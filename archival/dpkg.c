@@ -1311,30 +1311,28 @@ void purge_package(const unsigned int package_num)
 	set_status(status_num, "not-installed", 3);
 }
 
-static archive_handle_t *deb_extract(const char *filename, const char *ar_name,
+static archive_handle_t *deb_extract(const char *filename, const llist_t *accept_list,
 	const char *tar_gz_name, char *prefix, void (*deb_action_data)(struct archive_handle_s *))
 {
 	archive_handle_t *ar_archive;
-	archive_handle_t *tar_gz_archive;
+	archive_handle_t *tar_archive;
 
 	/* Setup the tar archive handle */
-	tar_gz_archive = init_handle();
-	tar_gz_archive->filter = filter_accept_reject_list;
-	tar_gz_archive->action_data = deb_action_data;
-	tar_gz_archive->buffer = prefix;
+	tar_archive = init_handle();
+	tar_archive->filter = filter_accept_reject_list;
+	tar_archive->action_data = deb_action_data;
+	tar_archive->buffer = prefix;
 	if (tar_gz_name) {
-		tar_gz_archive->accept = add_to_list(NULL, tar_gz_name);
+		tar_archive->accept = add_to_list(NULL, tar_gz_name);
 	}
 
 	/* Setup an ar archive handle that refers to the gzip sub archive */	
 	ar_archive = init_handle();
-	ar_archive->action_data_subarchive = get_header_tar_gz;
-	ar_archive->sub_archive = tar_gz_archive;
-	ar_archive->filter = filter_accept_reject_list;
-	ar_archive->accept = add_to_list(NULL, ar_name);
+	ar_archive->sub_archive = tar_archive;
+	ar_archive->filter = filter_accept_list_reassign;
+	ar_archive->accept = accept_list;
 
-	tar_gz_archive->src_fd = ar_archive->src_fd = xopen(filename, O_RDONLY);
-
+	tar_archive->src_fd = ar_archive->src_fd = xopen(filename, O_RDONLY);
 	unpack_ar_archive(ar_archive);
 	close(ar_archive->src_fd);
 
@@ -1363,6 +1361,18 @@ static void unpack_package(deb_file_t *deb_file)
 	char *info_prefix;
 	archive_handle_t *archive_handle;
 	FILE *out_stream;
+	const llist_t *control_list = NULL;
+	const llist_t *data_list = NULL;
+
+#ifdef CONFIG_FEATURE_DEB_TAR_GZ
+	data_list = add_to_list(NULL, "data.tar.gz");
+	control_list = add_to_list(NULL, "control.tar.gz");
+#endif
+
+#ifdef CONFIG_FEATURE_DEB_TAR_BZ2
+	data_list = add_to_list(data_list, "data.tar.bz2");
+	control_list = add_to_list(control_list, "control.tar.bz2");
+#endif
 
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
@@ -1379,7 +1389,7 @@ static void unpack_package(deb_file_t *deb_file)
 	info_prefix = (char *) xmalloc(strlen(package_name) + 20 + 4 + 2);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
 
-	deb_extract(deb_file->filename, "control.tar.gz", NULL, info_prefix, data_extract_all_prefix);
+	deb_extract(deb_file->filename, control_list, NULL, info_prefix, data_extract_all_prefix);
 	/* Run the preinst prior to extracting */
 	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
@@ -1387,7 +1397,7 @@ static void unpack_package(deb_file_t *deb_file)
 	}	
 
 	/* Extract data.tar.gz to the root directory */
-	archive_handle = deb_extract(deb_file->filename, "data.tar.gz", NULL, NULL, data_extract_all);
+	archive_handle = deb_extract(deb_file->filename, data_list, NULL, NULL, data_extract_all);
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
@@ -1491,8 +1501,16 @@ int dpkg_main(int argc, char **argv)
 		deb_file[deb_count] = (deb_file_t *) xmalloc(sizeof(deb_file_t));
 		if (dpkg_opt & dpkg_opt_filename) {
 			archive_handle_t *archive_handle;
+			const llist_t *control_list = NULL;
+
+#ifdef CONFIG_FEATURE_DEB_TAR_GZ
+			control_list = add_to_list(NULL, "control.tar.gz");
+#endif
+#ifdef CONFIG_FEATURE_DEB_TAR_BZ2
+			control_list = add_to_list(control_list, "control.tar.bz2");
+#endif
 			deb_file[deb_count]->filename = xstrdup(argv[optind]);
-			archive_handle = deb_extract(argv[optind], "control.tar.gz", "./control", NULL, data_extract_to_buffer);
+			archive_handle = deb_extract(argv[optind], control_list, "./control", NULL, data_extract_to_buffer);
 			deb_file[deb_count]->control_file = archive_handle->buffer;
 			if (deb_file[deb_count]->control_file == NULL) {
 				error_msg_and_die("Couldnt extract control file");
