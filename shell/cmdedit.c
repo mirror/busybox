@@ -1297,6 +1297,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* Control-d -- Delete one character, or exit
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
+					errno = 0;
 prepare_to_die:
 #if !defined(CONFIG_ASH)
 				printf("exit");

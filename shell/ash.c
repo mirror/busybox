@@ -6062,7 +6062,7 @@ retry:
 			}
 			goto retry;
 		}
-		if(nr < 0) {
+		if(nr < 0 && errno == 0) {
 			/* Ctrl+D presend */
 			nr = 0;
 		}
