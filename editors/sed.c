@@ -414,6 +414,10 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	 *            part1 part2  part3
 	 */
 
+	/* skip initial whitespace */
+	while (isspace(cmdstr[idx]))
+		idx++;
+
 	/* first part (if present) is an address: either a number or a /regex/ */
 	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
 		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
@@ -421,6 +425,10 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	/* second part (if present) will begin with a comma */
 	if (cmdstr[idx] == ',')
 		idx += get_address(sed_cmd, &cmdstr[++idx], &sed_cmd->end_line, &sed_cmd->end_match);
+
+	/* skip whitespace before the command */
+	while (isspace(cmdstr[idx]))
+		idx++;
 
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
