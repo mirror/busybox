@@ -292,7 +292,7 @@
 #ifdef CONFIG_IP
 	APPLET(ip, ip_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_IPADDRESS
+#ifdef CONFIG_IPADDR
 	APPLET(ipaddr, ipaddr_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_IPCALC
