@@ -361,21 +361,20 @@ static struct dep_t *build_dep ( void )
 /* return 1 = found, 0 = not found                        */
 static int mod_strcmp ( const char *mod_path, const char *mod_name )
 {
-#if defined(CONFIG_FEATURE_2_6_MODULES)
-#define MODULE_EXTENSION	".ko"
-#define MOD_EXTENSION_LEN	3
-#else
-#define MODULE_EXTENSION	".o"
-#define MOD_EXTENSION_LEN	2
-#endif
 	/* last path component */
 	const char *last_comp = strrchr (mod_path, '/'); 
+	const char *mod_ext = ".o";
+
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	if ( k_version > 4 )
+		mod_ext = ".ko";
+#endif
 
 	return (strncmp(last_comp ? last_comp + 1 : mod_path,
 					 mod_name,
 					 strlen(mod_name)) == 0 ) &&
 		   (strcmp(mod_path + strlen(mod_path) -
-					MOD_EXTENSION_LEN, MODULE_EXTENSION) == 0);
+					strlen(mod_ext), mod_ext) == 0);
 }
 
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
