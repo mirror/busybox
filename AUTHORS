@@ -28,6 +28,10 @@ Dave Cinege <dcinege@psychosis.com>
     more(v2), makedevs, dutmp, modularization, auto links file, 
     various fixes, Linux Router Project maintenance
 
+Magnus Damm <damm@opensource.se>
+    tftp client
+    insmod powerpc support
+
 Larry Doolittle <ldoolitt@recycle.lbl.gov>
     pristine source directory compilation, lots of patches and fixes.
 
@@ -46,8 +50,15 @@ John Lombardo <john@deltanet.com>
 Glenn McGrath <bug1@optushome.com.au>
     ar, dpkg, dpkg-deb
 
+Vladimir Oleynik <dzo@simtreas.ru>
+    cmdedit; ports: ash, stty, traceroute; locale, various fixes
+    and irreconcilable critic of everything not perfect.
+
 Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.
+
+Tim Riker <Tim@Rikers.org>
+    bug fixes, member of fan club
 
 Kent Robotti <robotti@metconnect.com>
     reset, tons and tons of bug reports and patchs.
@@ -73,9 +84,3 @@ Charles P. Wright <cpwright@villagenet.com>
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
-Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit; ports: ash, stty, traceroute; locale, various fixes
-    and irreconcilable critic of everything not perfect.
-
-Tim Riker <Tim@Rikers.org>
-    bug fixes, member of fan club
