@@ -550,6 +550,29 @@ static int parselleft;                  /* copy of parsefile->lleft */
 
 /* next character in input buffer */
 static char *parsenextc;                /* copy of parsefile->nextc */
+
+struct strpush {
+	struct strpush *prev;   /* preceding string on stack */
+	char *prevstring;
+	int prevnleft;
+#ifdef CONFIG_ASH_ALIAS
+	struct alias *ap;       /* if push was associated with an alias */
+#endif
+	char *string;           /* remember the string since it may change */
+};
+
+struct parsefile {
+	struct parsefile *prev; /* preceding file on stack */
+	int linno;              /* current line */
+	int fd;                 /* file descriptor (or -1 if string) */
+	int nleft;              /* number of chars left in this line */
+	int lleft;              /* number of chars left in this buffer */
+	char *nextc;            /* next char in buffer */
+	char *buf;              /* input buffer */
+	struct strpush *strpush; /* for pushing strings at this level */
+	struct strpush basestrpush; /* so pushing one is fast */
+};
+
 static struct parsefile basepf;         /* top level input file */
 static char basebuf[IBUFSIZ];           /* buffer for top level input file */
 static struct parsefile *parsefile = &basepf;  /* current input file */
@@ -1572,28 +1595,6 @@ static inline int varequal(const char *a, const char *b) {
 
 
 static int loopnest;            /* current loop nesting level */
-
-struct strpush {
-	struct strpush *prev;   /* preceding string on stack */
-	char *prevstring;
-	int prevnleft;
-#ifdef CONFIG_ASH_ALIAS
-	struct alias *ap;       /* if push was associated with an alias */
-#endif
-	char *string;           /* remember the string since it may change */
-};
-
-struct parsefile {
-	struct parsefile *prev; /* preceding file on stack */
-	int linno;              /* current line */
-	int fd;                 /* file descriptor (or -1 if string) */
-	int nleft;              /* number of chars left in this line */
-	int lleft;              /* number of chars left in this buffer */
-	char *nextc;            /* next char in buffer */
-	char *buf;              /* input buffer */
-	struct strpush *strpush; /* for pushing strings at this level */
-	struct strpush basestrpush; /* so pushing one is fast */
-};
 
 /*
  * The parsefile structure pointed to by the global variable parsefile
