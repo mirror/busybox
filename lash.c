@@ -631,7 +631,6 @@ static void mark_closed(int fd)
 
 static void close_all()
 {
-	int i=0;
 	struct close_me *c, *tmp;
 	for (c=close_me_head; c; c=tmp) {
 		close(c->fd);
