@@ -46,7 +46,7 @@ struct linux_rtc_time {
 	int tm_yday;
 	int tm_isdst;
 };
-                                    
+                
 #define RTC_SET_TIME   _IOW('p', 0x0a, struct linux_rtc_time) /* Set RTC time    */
 #define RTC_RD_TIME    _IOR('p', 0x09, struct linux_rtc_time) /* Read RTC time   */
 
@@ -71,17 +71,17 @@ static time_t read_rtc(int utc)
 	if ( ioctl ( rtc, RTC_RD_TIME, &tm ) < 0 )
 		bb_perror_msg_and_die ( "Could not read time from RTC" );
 	tm. tm_isdst = -1; // not known
-	
+
 	close ( rtc );
 
-	if ( utc ) {	
+	if ( utc ) {
 		oldtz = getenv ( "TZ" );
 		setenv ( "TZ", "UTC 0", 1 );
 		tzset ( );
 	}
-	
+
 	t = mktime ( &tm );
-	
+
 	if ( utc ) {
 		if ( oldtz )
 			setenv ( "TZ", oldtz, 1 );
@@ -101,13 +101,13 @@ static void write_rtc(time_t t, int utc)
 		if (( rtc = open ( "/dev/misc/rtc", O_WRONLY )) < 0 )
 			bb_perror_msg_and_die ( "Could not access RTC" );
 	}
- 	
+
 	tm = *( utc ? gmtime ( &t ) : localtime ( &t ));
 	tm. tm_isdst = 0;
- 	
+
 	if ( ioctl ( rtc, RTC_SET_TIME, &tm ) < 0 )
 		bb_perror_msg_and_die ( "Could not set the RTC time" );
-	
+
 	close ( rtc );
 }
 
@@ -117,16 +117,16 @@ static int show_clock(int utc)
 	time_t t;
 	char buffer [64];
 
-	t = read_rtc ( utc );		
+	t = read_rtc ( utc );
 	ptm = localtime ( &t );  /* Sets 'tzname[]' */
-	
+
 	safe_strncpy ( buffer, ctime ( &t ), sizeof( buffer ));
 	if ( buffer [0] )
 		buffer [bb_strlen ( buffer ) - 1] = 0;
-	
+
 	//printf ( "%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : ( ptm-> tm_isdst ? tzname [1] : tzname [0] ));
 	printf ( "%s  %.6f seconds\n", buffer, 0.0 );
-	
+
 	return 0;
 }
 
@@ -134,7 +134,7 @@ static int to_sys_clock(int utc)
 {
 	struct timeval tv = { 0, 0 };
 	const struct timezone tz = { timezone/60 - 60*daylight, 0 };
-	
+
 	tv. tv_sec = read_rtc ( utc );
 
 	if ( settimeofday ( &tv, &tz ))
@@ -160,18 +160,18 @@ static int check_utc(void)
 {
 	int utc = 0;
 	FILE *f = fopen ( "/var/lib/hwclock/adjtime", "r" );
-	
+
 	if ( f ) {
 		char buffer [128];
-	
+
 		while ( fgets ( buffer, sizeof( buffer ), f )) {
 			int len = bb_strlen ( buffer );
-			
+
 			while ( len && isspace ( buffer [len - 1] ))
 				len--;
-				
+
 			buffer [len] = 0;
-		
+
 			if ( strncmp ( buffer, "UTC", 3 ) == 0 ) {
 				utc = 1;
 				break;
@@ -224,6 +224,6 @@ static const struct option hwclock_long_options[] = {
 		return from_sys_clock ( utc );
 	} else {
 		/* default HWCLOCK_OPT_SHOW */
-		return show_clock ( utc );	
+		return show_clock ( utc );
 	}
 }

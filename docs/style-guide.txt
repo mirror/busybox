@@ -266,7 +266,7 @@ these steps:
    conversion.
 
  - Compile and see if everything still works.
- 
+
 Please be aware of changes that have cascading effects into other files. For
 example, if you're changing the name of something in, say utility.c, you
 should probably run 'examples/mk2knr.pl utility.c' at first, but when you run
@@ -293,13 +293,13 @@ Use 'const <type> var' for declaring constants.
 		#define var 80
 
 	Do this instead, when the variable is in a header file and will be used in
-	several source files: 
+	several source files:
 
-		const int var = 80; 
+		const int var = 80;
 
 	Or do this when the variable is used only in a single source file:
 
-		static const int var = 80; 
+		static const int var = 80;
 
 Declaring variables as '[static] const' gives variables an actual type and
 makes the compiler do type checking for you; the preprocessor does _no_ type
@@ -336,7 +336,7 @@ The Folly of #ifdef
 Code cluttered with ifdefs is difficult to read and maintain. Don't do it.
 Instead, put your ifdefs at the top of your .c file (or in a header), and
 conditionally define 'static inline' functions, (or *maybe* macros), which are
-used in the code.  
+used in the code.
 
 	Don't do this:
 
@@ -650,7 +650,7 @@ line in the midst of your #includes:
 And a code block similar to the following near the top of your applet_main()
 routine:
 
-    while ((opt = getopt(argc, argv, "abc")) > 0) { 
+    while ((opt = getopt(argc, argv, "abc")) > 0) {
             switch (opt) {
             case 'a':
                 do_a_opt = 1;

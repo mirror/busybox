@@ -54,7 +54,7 @@ static const int DOTRACE = 1;
 #include <arpa/inet.h> /* for inet_ntoa()... */
 #define TRACE(x, y) do { if (x) printf y; } while (0)
 #else
-#define TRACE(x, y) 
+#define TRACE(x, y)
 #endif
 
 #if 0
@@ -99,8 +99,8 @@ static struct Globalvars {
 	/* buffer to handle telnet negotiations */
 	char    iacbuf[IACBUFSIZE];
 	short	iaclen; /* could even use byte */
-	struct termios termios_def;	
-	struct termios termios_raw;	
+	struct termios termios_def;
+	struct termios termios_raw;
 } G;
 
 #define xUSE_GLOBALVAR_PTR /* xUSE... -> don't use :D (makes smaller code) */
@@ -143,7 +143,7 @@ static void doexit(int ev)
 {
 	cookmode();
 	exit(ev);
-}	
+}
 
 static void conescape(void)
 {
@@ -190,10 +190,10 @@ static void conescape(void)
 
 	if (G.gotsig)
 		cookmode();
-	
+
  rrturn:
 	G.gotsig = 0;
-	
+
 }
 static void handlenetoutput(int len)
 {
@@ -442,7 +442,7 @@ static void will_charmode(void)
 	G.charmode = CHM_TRY;
 	G.telflags |= (UF_ECHO | UF_SGA);
 	setConMode();
-  
+
 	putiac2(DO, TELOPT_ECHO);
 	putiac2(DO, TELOPT_SGA);
 	iacflush();
@@ -472,7 +472,7 @@ static inline void to_echo(void)
 	/* if server requests ECHO, don't agree */
 	if      (G.telwish == DO) {	putiac2(WONT, TELOPT_ECHO);	return; }
 	else if (G.telwish == DONT)	return;
-  
+
 	if (G.telflags & UF_ECHO)
 	{
 		if (G.telwish == WILL)
@@ -506,7 +506,7 @@ static inline void to_sga(void)
 	else
 		if (G.telwish == WONT)
 			return;
-  
+
 	if ((G.telflags ^= UF_SGA) & UF_SGA) /* toggle */
 		putiac2(DO, TELOPT_SGA);
 	else
@@ -545,11 +545,11 @@ static inline void to_new_environ(void)
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static inline void to_naws(void)
-{ 
+{
 	/* Tell server we will do NAWS */
 	putiac2(WILL, TELOPT_NAWS);
 	return;
-}         
+}
 #endif
 
 static void telopt(byte c)
@@ -617,7 +617,7 @@ static void fgotsig(int sig)
 static void rawmode(void)
 {
 	tcsetattr(0, TCSADRAIN, &G.termios_raw);
-}	
+}
 
 static void cookmode(void)
 {
@@ -630,10 +630,10 @@ extern int telnet_main(int argc, char** argv)
 	struct sockaddr_in s_in;
 #ifdef USE_POLL
 	struct pollfd ufds[2];
-#else	
+#else
 	fd_set readfds;
 	int maxfd;
-#endif	
+#endif
 
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
 	int opt;
@@ -651,13 +651,13 @@ extern int telnet_main(int argc, char** argv)
 
 	if (tcgetattr(0, &G.termios_def) < 0)
 		exit(1);
-	
+
 	G.termios_raw = G.termios_def;
 	cfmakeraw(&G.termios_raw);
-	
+
 	if (argc < 2)
 		bb_show_usage();
-	
+
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
 	autologin = NULL;
 	while ((opt = getopt(argc, argv, "al:")) != EOF) {
@@ -685,7 +685,7 @@ extern int telnet_main(int argc, char** argv)
 	bb_lookup_host(&s_in, argv[1]);
 	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", "tcp", 23);
 #endif
-	
+
 	G.netfd = xconnect(&s_in);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
@@ -695,22 +695,22 @@ extern int telnet_main(int argc, char** argv)
 #ifdef USE_POLL
 	ufds[0].fd = 0; ufds[1].fd = G.netfd;
 	ufds[0].events = ufds[1].events = POLLIN;
-#else	
+#else
 	FD_ZERO(&readfds);
 	FD_SET(0, &readfds);
 	FD_SET(G.netfd, &readfds);
 	maxfd = G.netfd + 1;
 #endif
-	
+
 	while (1)
 	{
 #ifndef USE_POLL
 		fd_set rfds = readfds;
-		
+
 		switch (select(maxfd, &rfds, NULL, NULL, NULL))
 #else
 		switch (poll(ufds, 2, -1))
-#endif			
+#endif
 		{
 		case 0:
 			/* timeout */
@@ -725,9 +725,9 @@ extern int telnet_main(int argc, char** argv)
 
 #ifdef USE_POLL
 			if (ufds[0].revents) /* well, should check POLLIN, but ... */
-#else				
+#else
 			if (FD_ISSET(0, &rfds))
-#endif				
+#endif
 			{
 				len = read(0, G.buf, DATABUFSIZE);
 
@@ -735,15 +735,15 @@ extern int telnet_main(int argc, char** argv)
 					doexit(0);
 
 				TRACE(0, ("Read con: %d\n", len));
-				
+
 				handlenetoutput(len);
 			}
 
 #ifdef USE_POLL
 			if (ufds[1].revents) /* well, should check POLLIN, but ... */
-#else				
+#else
 			if (FD_ISSET(G.netfd, &rfds))
-#endif				
+#endif
 			{
 				len = read(G.netfd, G.buf, DATABUFSIZE);
 

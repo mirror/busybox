@@ -2,7 +2,7 @@
 /*
  * Mini chmod implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Reworked by (C) 2002 Vladimir Oleynik <dzo@simtreas.ru>
  *  to correctly parse '-rwxgoa'

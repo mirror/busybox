@@ -46,7 +46,7 @@
 #include <stdarg.h>
 #include "libbb.h"
 
-#if defined(__UCLIBC__) 
+#if defined(__UCLIBC__)
 
 # if defined(__FLAG_ERROR)
 /* Using my newer stdio implementation.  Unlocked macros are:

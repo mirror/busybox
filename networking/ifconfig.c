@@ -6,7 +6,7 @@
  * Bjorn Wesen, Axis Communications AB
  *
  *
- * Authors of the original ifconfig was:      
+ * Authors of the original ifconfig was:
  *              Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *
  * This program is free software; you can redistribute it
@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.28 2004/03/06 22:11:44 andersen Exp $
+ * $Id: ifconfig.c,v 1.29 2004/03/15 08:28:48 andersen Exp $
  *
  */
 
@@ -510,7 +510,7 @@ int ifconfig_main(int argc, char **argv)
 					 * a - at the end, since it's deleted already! - Roman
 					 *
 					 * Should really use regex.h here, not sure though how well
-					 * it'll go with the cross-platform support etc. 
+					 * it'll go with the cross-platform support etc.
 					 */
 					char *ptr;
 					short int found_colon = 0;

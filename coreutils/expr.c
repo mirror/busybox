@@ -5,7 +5,7 @@
  * based on GNU expr Mike Parker.
  * Copyright (C) 86, 1991-1997, 1999 Free Software Foundation, Inc.
  *
- * Busybox modifications 
+ * Busybox modifications
  * Copyright (c) 2000  Edward Betts <edward@debian.org>.
  * Aug 2003  Vladimir Oleynik - reduced 464 bytes.
  *

@@ -2,7 +2,7 @@
 /*
  * Mini cpio implementation for busybox
  *
- * Copyright (C) 2001 by Glenn McGrath 
+ * Copyright (C) 2001 by Glenn McGrath
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ extern int cpio_main(int argc, char **argv)
 		/* if both extract and test option are given, ignore extract option */
 		if (opt & CPIO_OPT_EXTRACT) {
 			opt &= ~CPIO_OPT_EXTRACT;
-		}		
+		}
 		archive_handle->action_header = header_list;
 	}
 	if (opt & CPIO_OPT_EXTRACT) {

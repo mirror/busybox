@@ -9,8 +9,8 @@
  *		only standard in to standard out with -9 compression.  It also requires
  *		the zcat module for some important functions."
  *
- * Adjusted further by Erik Andersen <andersen@codepoet.org> to support 
- * files as well as stdin/stdout, and to generally behave itself wrt 
+ * Adjusted further by Erik Andersen <andersen@codepoet.org> to support
+ * files as well as stdin/stdout, and to generally behave itself wrt
  * command line handling.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,7 +30,7 @@
  */
 
 /* These defines are very important for BusyBox.  Without these,
- * huge chunks of ram are pre-allocated making the BusyBox bss 
+ * huge chunks of ram are pre-allocated making the BusyBox bss
  * size Freaking Huge(tm), which is a bad thing.*/
 #define SMALL_MEM
 #define DYN_ALLOC

@@ -378,7 +378,7 @@ static unsigned long tokeninfo[] = {
 };
 
 /* internal variable names and their initial values       */
-/* asterisk marks SPECIAL vars; $ is just no-named Field0 */ 
+/* asterisk marks SPECIAL vars; $ is just no-named Field0 */
 enum {
 	CONVFMT=0,	OFMT,		FS,			OFS,
 	ORS,		RS,			RT,			FILENAME,
@@ -390,7 +390,7 @@ enum {
 
 static char * vNames =
 	"CONVFMT\0"	"OFMT\0"	"FS\0*"		"OFS\0"
-	"ORS\0"		"RS\0*"		"RT\0"		"FILENAME\0"	
+	"ORS\0"		"RS\0*"		"RT\0"		"FILENAME\0"
 	"SUBSEP\0"	"ARGIND\0"	"ARGC\0"	"ARGV\0"
 	"ERRNO\0"	"FNR\0"
 	"NR\0"		"NF\0*"		"IGNORECASE\0*"
@@ -486,7 +486,7 @@ static unsigned int hashidx(char *name) {
 static xhash *hash_init(void) {
 
 	xhash *newhash;
-	
+
 	newhash = (xhash *)xcalloc(1, sizeof(xhash));
 	newhash->csize = FIRST_PRIME;
 	newhash->items = (hash_item **)xcalloc(newhash->csize, sizeof(hash_item *));
@@ -1053,7 +1053,7 @@ static node *parse_expr(unsigned long iexp) {
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
-			while ( ((t.info & PRIMASK) > (vn->a.n->info & PRIMASK2)) || 
+			while ( ((t.info & PRIMASK) > (vn->a.n->info & PRIMASK2)) ||
 			  ((t.info == vn->info) && ((t.info & OPCLSMASK) == OC_COLON)) )
 				vn = vn->a.n;
 			if ((t.info & OPCLSMASK) == OC_TERNARY)
@@ -1085,7 +1085,7 @@ static node *parse_expr(unsigned long iexp) {
 			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
 			if (tc & (TC_OPERAND | TC_REGEXP)) {
 				xtc = TC_UOPPRE | TC_BINOP | TC_OPERAND | iexp;
-				/* one should be very careful with switch on tclass - 
+				/* one should be very careful with switch on tclass -
 				 * only simple tclasses should be used! */
 				switch (tc) {
 				  case TC_VARIABLE:
@@ -1103,7 +1103,7 @@ static node *parse_expr(unsigned long iexp) {
 					}
 					xtc = TC_UOPPOST | TC_UOPPRE | TC_BINOP | TC_OPERAND | iexp;
 					break;
-				  	
+				
 				  case TC_NUMBER:
 				  case TC_STRING:
 					cn->info = OC_VAR;
@@ -1763,7 +1763,7 @@ static char *awk_printf(node *n) {
 		s = f;
 		while (*f && (*f != '%' || *(++f) == '%'))
 			f++;
-		while (*f && !isalpha(*f)) 
+		while (*f && !isalpha(*f))
 			f++;
 
 		incr = (f - s) + MAXVARFMT;

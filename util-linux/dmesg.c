@@ -10,8 +10,8 @@
  * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
  * - added Native Language Support
  *
- * from util-linux -- adapted for busybox by 
- * Erik Andersen <andersen@codepoet.org>. I ripped out Native Language 
+ * from util-linux -- adapted for busybox by
+ * Erik Andersen <andersen@codepoet.org>. I ripped out Native Language
  * Support, replaced getopt, added some gotos for redundant stuff.
  *
  * Audited and cleaned up on 7 March 2003 to reduce size of

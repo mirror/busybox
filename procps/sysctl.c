@@ -17,7 +17,7 @@
  *		- added -p <preload> to preload values from a file
  *	v1.01.1
  *		- busybox applet aware by <solar@gentoo.org>
- * 
+ *
  */
 
 #include <stdio.h>
@@ -70,7 +70,7 @@ static void dwrite_str(int fd, const char *buf)
 }
 
 /*
- *    sysctl_main()... 
+ *    sysctl_main()...
  */
 int sysctl_main(int argc, char **argv)
 {
@@ -126,7 +126,7 @@ int sysctl_main(int argc, char **argv)
 
 
 /*
- *     sysctl_preload_file 
+ *     sysctl_preload_file
  *	preload the sysctl's from a conf file
  *           - we parse the file and then reform it (strip out whitespace)
  */
@@ -250,7 +250,7 @@ int sysctl_write_setting(const char *setting, int output)
 
 
 /*
- *     Read a sysctl setting 
+ *     Read a sysctl setting
  *
  */
 int sysctl_read_setting(const char *setting, int output)
@@ -304,7 +304,7 @@ int sysctl_read_setting(const char *setting, int output)
 
 
 /*
- *     Display all the sysctl settings 
+ *     Display all the sysctl settings
  *
  */
 int sysctl_display_all(const char *path, int output, int show_table)

@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.10 2004/02/22 09:45:57 bug1 Exp $
+/* $Id: telnetd.c,v 1.11 2004/03/15 08:28:53 andersen Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -49,7 +49,7 @@
 
 #define BUFSIZE 4000
 
-static const char *loginpath 
+static const char *loginpath
 #ifdef CONFIG_LOGIN
  = "/bin/login";
 #else
@@ -540,7 +540,7 @@ telnetd_main(int argc, char **argv)
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 			struct tsession *next = ts->next; /* in case we free ts. */
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
-			
+
 			if (ts->size1 && FD_ISSET(ts->ptyfd, &wrfdset)) {
 				int num_totty;
 				char *ptr;

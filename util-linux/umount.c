@@ -2,7 +2,7 @@
 /*
  * Mini umount implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-/* Teach libc5 about realpath -- it includes it but the 
+/* Teach libc5 about realpath -- it includes it but the
  * prototype is missing... */
 #if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
 extern char *realpath(const char *path, char *resolved_path);
@@ -148,7 +148,7 @@ static char *mtab_first(void **iter)
 	return mtab_next(iter);
 }
 
-/* Don't bother to clean up, since exit() does that 
+/* Don't bother to clean up, since exit() does that
  * automagically, so we can save a few bytes */
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void mtab_free(void)

@@ -2,7 +2,7 @@
 <book id="BusyBoxDocumentation">
  <bookinfo>
   <title>BusyBox - The Swiss Army Knife of Embedded Linux</title>
-  
+
   <legalnotice>
    <para>
      This documentation is free software; you can redistribute
@@ -11,21 +11,21 @@
      version 2 of the License, or (at your option) any later
      version.
    </para>
-      
+
    <para>
      This program is distributed in the hope that it will be
      useful, but WITHOUT ANY WARRANTY; without even the implied
      warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
      See the GNU General Public License for more details.
    </para>
-      
+
    <para>
      You should have received a copy of the GNU General Public
      License along with this program; if not, write to the Free
      Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
      MA 02111-1307 USA
    </para>
-      
+
    <para>
      For more details see the file COPYING in the source
      distribution of Linux.
@@ -45,7 +45,7 @@
 	for any small or embedded system. The utilities in BusyBox generally have
 	fewer options than their full-featured GNU cousins; however, the options
 	that are included provide the expected functionality and behave very much
-	like their GNU counterparts. 
+	like their GNU counterparts.
 	</para>
 
 	<para>
@@ -97,7 +97,7 @@
 
 	    <para>
 	    will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
-	    into BusyBox). 
+	    into BusyBox).
 	    </para>
 
 	    <para>
@@ -112,7 +112,7 @@
 	    </para>
 
 	    <para>
-	    will also cause BusyBox to behave as 'ls'. 
+	    will also cause BusyBox to behave as 'ls'.
 	    </para>
 
 	</sect1>
@@ -121,8 +121,8 @@
 	    <title>Common options</title>
 
 	    <para>
-	    Most BusyBox commands support the <emphasis>--help</emphasis> option to provide 
-	    a terse runtime description of their behavior. 
+	    Most BusyBox commands support the <emphasis>--help</emphasis> option to provide
+	    a terse runtime description of their behavior.
 	    </para>
 	</sect1>
   </chapter>
@@ -143,7 +143,7 @@
 		dpkg-deb, du, dumpkmap, dumpleases, dutmp, echo, egrep, env, expr,
 		false, fbset, fdflush, fdformat, fgrep, find, fold, free, freeramdisk,
 		fsck.minix, ftpget, ftpput, getopt, getty, grep, gunzip, gzip,
-		halt, hdparm, head, hexdump, hostid, hostname, httpd, hush, hwclock, 
+		halt, hdparm, head, hexdump, hostid, hostname, httpd, hush, hwclock,
 		id, ifconfig, ifdown, ifup, inetd, init, insmod, ip, ipcalc, iplink,
 		iproute, iptunnel, kill, killall, klogd, lash, length, linuxrc,
 		ln, loadfont, loadkmap, logger, login, logname, logread,
@@ -156,7 +156,7 @@
 		sha1sum, sleep, sort, start-stop-daemon, strings, stty, su, sulogin,
 		swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, telnetd,
 		test, tftp, time, top, touch, tr, traceroute, true, tty, udhcpc,
-		udhcpd, umount, uname, uncompress, uniq, unix2dos, unzip, 
+		udhcpd, umount, uname, uncompress, uniq, unix2dos, unzip,
 		uptime, usleep, uudecode, uuencode, vconfig, vi, vlock, watch,
 		watchdog, wc, wget, which, who, whoami, xargs, yes, zcat, [
 
@@ -382,7 +382,7 @@
 		</screen>
 		</para>
 	</sect1>
-	
+
 	<sect1 id="chown">
 	    <title>chown</title>
 		<para>
@@ -706,7 +706,7 @@
 		</screen>
 		</para>
 	</sect1>
-	
+
 	<sect1 id="dirname">
 	    <title>dirname</title>
 
@@ -773,24 +773,24 @@
 	    <title>dpkg-deb</title>
 
 		<para>
-		Usage: dpkg-deb [OPTION] archive [directory] 
+		Usage: dpkg-deb [OPTION] archive [directory]
 		</para>
 
 		<para>
-		Debian package archive (.deb) manipulation tool	
+		Debian package archive (.deb) manipulation tool
 		</para>
 
 		<para>
 		Options:
 		</para>
-		
+
 		<para>
 		<screen>
-			-c	List the contents of the filesystem tree archive portion of the package 
+			-c	List the contents of the filesystem tree archive portion of the package
 			-e	Extracts the control information files from a package archive into the specified directory.
 				If  no  directory  is specified then a subdirectory DEBIAN in the current directory is used.
 			-x	Silently extracts the filesystem tree from a package archive into the specified directory.
-			-X	Extracts the filesystem tree from a package archive into the specified directory, listing the files as it goes.	
+			-X	Extracts the filesystem tree from a package archive into the specified directory, listing the files as it goes.
 			If required the specified directory (but not its parents) will be created.
 		</screen>
 		<para>
@@ -1193,7 +1193,7 @@
 		</screen>
 		</para>
 	</sect1>
-	
+
 	<sect1 id="getopt">
 	    <title>getopt</title>
 
@@ -1426,7 +1426,7 @@
 		<para>
 		Prints out a unique 32-bit identifier for the current
 		machine. The 32-bit identifier is intended to be unique
-		among all UNIX systems in existence. 
+		among all UNIX systems in existence.
 		</para>
 	</sect1>
 
@@ -1592,7 +1592,7 @@
 
 
 			<para>
-			Valid actions include: sysinit, respawn, askfirst, wait, 
+			Valid actions include: sysinit, respawn, askfirst, wait,
 			once, and ctrlaltdel.
 			</para>
 
@@ -1631,7 +1631,7 @@
 			respawn, except that before running the specified process it
 			displays the line "Please press Enter to activate this console."
 			and then waits for the user to press enter before starting the
-			specified process.  
+			specified process.
 			</para>
 
 			<para>
@@ -1994,7 +1994,7 @@
 		</para>
 
 		<para>
-		
+
 		</para>
 
 		<para>
@@ -2266,7 +2266,7 @@
 
 		<para>
 		<screen>
-			$ mknod /dev/fd0 b 2 0 
+			$ mknod /dev/fd0 b 2 0
 			$ mknod -m 644 /tmp/pipe p
 		</screen>
 		</para>
@@ -2822,19 +2822,19 @@
 
     <sect1 id="run-parts">
 	<title>run-parts</title>
-	
+
 		<para>
 		Usage: run-parts [-t] [-a ARG] [-u MASK] DIRECTORY
 		</para>
-	
+
 		<para>
 		Run a bunch of scripts in a directory.
 		</para>
-	
+
 		<para>
 		Options:
 		</para>
-	
+
 		<para>
 		<screen>
 			-t       Test only. It only print the file to be executed,
@@ -2844,9 +2844,9 @@
 		</screen>
 		</para>
 	</sect1>
-	
 
-	
+
+
 	<sect1 id="sed">
 	    <title>sed</title>
 
@@ -2962,7 +2962,7 @@
 		</para>
 
 		<para>
-		This command does not yet have proper documentation.  
+		This command does not yet have proper documentation.
 		</para>
 
 		<para>
@@ -3182,7 +3182,7 @@
 		</para>
 
 		<para>
-		
+
 		</para>
 
 		<para>
@@ -3445,7 +3445,7 @@
 		</para>
 
 		<para>
-		
+
 		</para>
 
 		<para>
@@ -3467,7 +3467,7 @@
 
 		<para>
 		<screen>
-			$ umount /dev/hdc1 
+			$ umount /dev/hdc1
 		</screen>
 		</para>
 	</sect1>
@@ -3549,7 +3549,7 @@
 		</screen>
 		</para>
 	</sect1>
-	
+
 	<sect1 id="unix2dos">
 	    <title>unix2dos</title>
 
@@ -3869,7 +3869,7 @@
 		</para>
 
 		<para>
-		Uncompress FILE (or stdin if FILE is '-') to stdout.  
+		Uncompress FILE (or stdin if FILE is '-') to stdout.
 		</para>
 
 		<para>
@@ -3938,7 +3938,7 @@
     <title>AUTHORS</title>
 
 	<para>
-	The following people have made significant contributions to 
+	The following people have made significant contributions to
 	BusyBox -- whether they know it or not.
 	</para>
 
@@ -3963,7 +3963,7 @@
 	</para>
 
 	<para>
-	Dave Cinege &lt;dcinege@psychosis.com&gt;	
+	Dave Cinege &lt;dcinege@psychosis.com&gt;
 	</para>
 
 	<para>
@@ -3979,7 +3979,7 @@
 	</para>
 
 	<para>
-	John Lombardo &lt;john@deltanet.com&gt;	
+	John Lombardo &lt;john@deltanet.com&gt;
 	</para>
 
 	<para>

@@ -315,7 +315,7 @@ static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 		if (S_ISDIR(dn[i]->dstat.st_mode)
 			&& (notsubdirs
 				|| ((dn[i]->name[0] != '.')
-					|| (dn[i]->name[1] 
+					|| (dn[i]->name[1]
 						&& ((dn[i]->name[1] != '.')
 							|| dn[i]->name[2])))))
 			dirs++;
@@ -1055,7 +1055,7 @@ extern int ls_main(int argc, char **argv)
 	if ((all_fmt & STYLE_MASK) == STYLE_LONG && (all_fmt & LIST_ID_NUMERIC))
 		all_fmt &= ~LIST_ID_NAME;	/* don't list names if numeric uid */
 #endif
-			
+
 	/* choose a display format */
 	if ((all_fmt & STYLE_MASK) == STYLE_AUTO)
 #if STYLE_AUTO != 0

@@ -13,8 +13,8 @@
  *      representations (say, powers of 1024) and manipulating coefficients.
  *      The base ten "bytes" output could be handled similarly.
  *
- *   2) This routine always outputs a decimal point and a tenths digit when 
- *      display_unit != 0.  Hence, it isn't uncommon for the returned string 
+ *   2) This routine always outputs a decimal point and a tenths digit when
+ *      display_unit != 0.  Hence, it isn't uncommon for the returned string
  *      to have a length of 5 or 6.
  *
  *      It might be nice to add a flag to indicate no decimal digits in
@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include "libbb.h"
 
-const char *make_human_readable_str(unsigned long long size, 
+const char *make_human_readable_str(unsigned long long size,
 	unsigned long block_size, unsigned long display_unit)
 {
 	/* The code will adjust for additional (appended) units. */
@@ -37,7 +37,7 @@ const char *make_human_readable_str(unsigned long long size,
 	static const char fmt_tenths[] = "%Lu.%d%c";
 
 	static char str[21];		/* Sufficient for 64 bit unsigned integers. */
-	
+
 	unsigned long long val;
 	int frac;
 	const char *u;

@@ -38,7 +38,7 @@ config CONFIG_VI
 	default n
 	help
 	  'vi' is a text editor.  More specifically, it is the One True
-	  text editor <grin>.  It does, however, have a rather steep 
+	  text editor <grin>.  It does, however, have a rather steep
 	  learning curve.  If you are not already comfortable with 'vi'
 	  you may wish to use something else.
 

@@ -48,7 +48,7 @@ static const struct option install_long_options[] = {
 	{ "owner",	0,	NULL,	'o' },
 	{ 0,	0,	0,	0 }
 };
-	
+
 extern int install_main(int argc, char **argv)
 {
 	struct stat statbuf;
@@ -116,7 +116,7 @@ extern int install_main(int argc, char **argv)
 		}
 		return(ret);
 	}
-	
+
 	cp_mv_stat2(argv[argc - 1], &statbuf, lstat);
 	for (i = optind; i < argc - 1; i++) {
 		unsigned char *dest;
@@ -137,15 +137,15 @@ extern int install_main(int argc, char **argv)
 		/* Set the user and group id */
 		if (lchown(dest, uid, gid) == -1) {
 			bb_perror_msg("cannot change ownership of %s", dest);
-			ret = EXIT_FAILURE;			
+			ret = EXIT_FAILURE;
 		}
 		if (flags & INSTALL_OPT_STRIP) {
 			if (execlp("strip", "strip", dest, NULL) == -1) {
 				bb_error_msg("strip failed");
-				ret = EXIT_FAILURE;			
+				ret = EXIT_FAILURE;
 			}
 		}
 	}
-	
+
 	return(ret);
 }

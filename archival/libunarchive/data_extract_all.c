@@ -37,7 +37,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		char *name = bb_xstrdup(file_header->name);
 		bb_make_directory (dirname(name), 0777, FILEUTILS_RECUR);
 		free(name);
-	}                  
+	}
 
 	/* Check if the file already exists */
 	if (archive_handle->flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
@@ -66,7 +66,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 		}
 	}
 
-	/* Handle hard links seperately 
+	/* Handle hard links seperately
 	 * We identified hard links as regular files of size 0 with a symlink */
 	if (S_ISREG(file_header->mode) && (file_header->link_name) && (file_header->size == 0)) {
 		/* hard link */

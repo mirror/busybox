@@ -124,10 +124,10 @@ struct server_config_t {
 	uint32_t siaddr;		/* next server bootp option */
 	char *sname;			/* bootp server name */
 	char *boot_file;		/* bootp boot file option */
-};	
+};
 
 extern struct server_config_t server_config;
 extern struct dhcpOfferedAddr *leases;
-		
+
 
 #endif

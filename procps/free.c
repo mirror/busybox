@@ -2,7 +2,7 @@
 /*
  * Mini free implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,11 +64,11 @@ extern int free_main(int argc, char **argv)
 	if (argc > 1 && **(argv + 1) == '-')
 		bb_show_usage();
 
-	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free", 
+	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free",
 			"shared", "buffers");
 
-	printf("%6s%13ld%13ld%13ld%13ld%13ld\n", "Mem:", info.totalram, 
-			info.totalram-info.freeram, info.freeram, 
+	printf("%6s%13ld%13ld%13ld%13ld%13ld\n", "Mem:", info.totalram,
+			info.totalram-info.freeram, info.freeram,
 			info.sharedram, info.bufferram);
 
 #ifndef __uClinux__

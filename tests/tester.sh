@@ -87,7 +87,7 @@ unalias -a	# gets rid of aliases that might create different output
 
 
 # do extra setup (if any)
-if [ ! -z "$SETUP" ] 
+if [ ! -z "$SETUP" ]
 then
 	[ $DEBUG -ge 2 ] && echo "running setup commands in $SETUP"
 	source $SETUP
@@ -136,7 +136,7 @@ do
 				if [ $? -eq 1 ]
 				then
 					[ $DEBUG -ge 1 ] && echo "FAILED: $line" | tee -a $LOGFILE
-					diff -u $CONFIG_OUT $GNU_OUT >> $LOGFILE 
+					diff -u $CONFIG_OUT $GNU_OUT >> $LOGFILE
 				fi
 			fi
 		fi
@@ -151,7 +151,7 @@ done
 
 
 # do extra cleanup (if any)
-if [ ! -z "$CLEANUP" ] 
+if [ ! -z "$CLEANUP" ]
 then
 	[ $DEBUG -ge 2 ] && echo "running cleanup commands in $CLEANUP"
 	source $CLEANUP

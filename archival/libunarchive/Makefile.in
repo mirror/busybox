@@ -1,6 +1,6 @@
 # Makefile for busybox
 #
-# Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ DPKG_FILES:= \
 	get_header_tar.o \
 	filter_accept_list_reassign.o
 
-LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o unpack_ar_archive.o 
+LIBUNARCHIVE-$(CONFIG_AR) += get_header_ar.o unpack_ar_archive.o
 LIBUNARCHIVE-$(CONFIG_BUNZIP2) += decompress_bunzip2.o
 LIBUNARCHIVE-$(CONFIG_CPIO) += get_header_cpio.o
 LIBUNARCHIVE-$(CONFIG_DPKG) += $(DPKG_FILES)
@@ -64,7 +64,7 @@ LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_GZ) += $(GUNZIP_FILES) get_header_tar_gz.o
 LIBUNARCHIVE-$(CONFIG_FEATURE_DEB_TAR_BZ2) += decompress_bunzip2.o get_header_tar_bz2.o
 LIBUNARCHIVE-$(CONFIG_GUNZIP) += $(GUNZIP_FILES)
 LIBUNARCHIVE-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS) += uncompress.o
-LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o 
+LIBUNARCHIVE-$(CONFIG_RPM2CPIO) += $(GUNZIP_FILES) get_header_cpio.o
 LIBUNARCHIVE-$(CONFIG_RPM) += $(GUNZIP_FILES) get_header_cpio.o
 LIBUNARCHIVE-$(CONFIG_TAR) += get_header_tar.o
 LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_BZIP2) += decompress_bunzip2.o get_header_tar_bz2.o

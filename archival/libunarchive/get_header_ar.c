@@ -113,7 +113,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 			archive_handle->action_data(archive_handle);
 		}
 	} else {
-		data_skip(archive_handle);			
+		data_skip(archive_handle);
 	}
 
 	archive_handle->offset += typed->size;

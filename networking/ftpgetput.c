@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
- * ftpget 
- *  
+ * ftpget
+ *
  * Mini implementation of FTP to retrieve a remote file.
  *
  * Copyright (C) 2002 Jeff Angielski, The PTR Group <jeff@theptrgroup.com>
@@ -131,7 +131,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 }
 
 #ifdef CONFIG_FTPGET
-static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream, 
+static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path)
 {
 	char buf[512];
@@ -203,13 +203,13 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 		bb_error_msg_and_die("ftp error: %s", buf + 4);
 	}
 	ftpcmd("QUIT", NULL, control_stream, buf);
-	
+
 	return(EXIT_SUCCESS);
 }
 #endif
 
 #ifdef CONFIG_FTPPUT
-static int ftp_send(ftp_host_info_t *server, FILE *control_stream, 
+static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 		const char *server_path, char *local_path)
 {
 	struct stat sbuf;
@@ -329,8 +329,8 @@ int ftpgetput_main(int argc, char **argv)
 	server->password = "busybox@";
 	verbose_flag = 0;
 
-	/* 
-	 * Decipher the command line 
+	/*
+	 * Decipher the command line
 	 */
 	bb_applet_long_options = ftpgetput_long_options;
 	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);

@@ -66,7 +66,7 @@ extern int rmdir_main(int argc, char **argv)
 			}
 			break;
 		} while (1);
-		
+
 	} while (*++argv);
 
 	return status;

@@ -111,7 +111,7 @@ extern int run_parts(char **args, const unsigned char test_mode, char **env)
 					exitstatus = 1;
 				}
 			}
-		} 
+		}
 		else if (!S_ISDIR(st.st_mode)) {
 			bb_error_msg("component %s is not an executable plain file", filename);
 			exitstatus = 1;
@@ -121,6 +121,6 @@ extern int run_parts(char **args, const unsigned char test_mode, char **env)
 		free(filename);
 	}
 	free(namelist);
-	
+
 	return(exitstatus);
 }

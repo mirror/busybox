@@ -40,9 +40,9 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 	int fd;
 	char **vfork_args;
 	int a = 0;
-	
+
 	setsid();
-	
+
 	if (!nochdir)
 		chdir("/");
 
@@ -73,6 +73,6 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 		bb_perror_msg_and_die("vfork");
 	default: /* parent */
 		exit(0);
-	}	
+	}
 }
 #endif /* uClinux */

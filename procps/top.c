@@ -7,11 +7,11 @@
  * This reads the PIDs of all processes and their status and shows
  * the status of processes (first ones that fit to screen) at given
  * intervals.
- * 
+ *
  * NOTES:
  * - At startup this changes to /proc, all the reads are then
  *   relative to that.
- * 
+ *
  * (C) Eero Tamminen <oak at welho dot com>
  *
  * Rewroted by Vladimir Oleynik (C) 2002 <dzo@simtreas.ru>
@@ -332,7 +332,7 @@ static unsigned long display_generic(void)
 		fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
 		   &total, &used, &mfree, &shared, &buffers, &cached);
 	} else {
-		/* 
+		/*
 		 * Revert to manual parsing, which incidentally already has the
 		 * sizes in kilobytes. This should be safe for both 2.4 and
 		 * 2.6.
@@ -341,7 +341,7 @@ static unsigned long display_generic(void)
 
 		fscanf(fp, "MemFree: %lu %s\n", &mfree, buf);
 
-		/* 
+		/*
 		 * MemShared: is no longer present in 2.6. Report this as 0,
 		 * to maintain consistent behavior with normal procps.
 		 */
@@ -354,7 +354,7 @@ static unsigned long display_generic(void)
 		used = total - mfree;
 	}
 	fclose(fp);
-	
+
 	/* read load average */
 	fp = bb_xfopen("loadavg", "r");
 	if (fscanf(fp, "%f %f %f", &avg1, &avg2, &avg3) != 3) {
@@ -371,7 +371,7 @@ static unsigned long display_generic(void)
 		cached /= 1024;
 		total /= 1024;
 	}
-		
+
 	/* output memory info and load average */
 	/* clear screen & go to top */
 	printf("\e[H\e[J" "Mem: "
@@ -390,7 +390,7 @@ static void display_status(int count, int col)
 	procps_status_t *s = top;
 	char rss_str_buf[8];
 	unsigned long total_memory = display_generic();
-	
+
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
 	/* what info of the processes is shown */
 	printf("\n\e[7m  PID USER     STATUS   RSS  PPID %%CPU %%MEM COMMAND\e[0m\n");
@@ -404,7 +404,7 @@ static void display_status(int count, int col)
 
 		pmem = 1000.0 * s->rss / total_memory;
 		if (pmem > 999) pmem = 999;
-	
+
 		if(s->rss > 10*1024)
 			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
 		else
@@ -450,7 +450,7 @@ static void reset_term(void)
 #endif
 #endif /* CONFIG_FEATURE_CLEAN_UP */
 }
-	
+
 static void sig_catcher (int sig)
 {
 	reset_term();
@@ -609,6 +609,6 @@ int top_main(int argc, char **argv)
 #endif                                  /* CONFIG_FEATURE_USE_TERMIOS */
 		clearmems();
 	}
-	
+
 	return EXIT_SUCCESS;
 }

@@ -1,5 +1,5 @@
 /*
- * stolen from net-tools-1.59 and stripped down for busybox by 
+ * stolen from net-tools-1.59 and stripped down for busybox by
  *			Erik Andersen <andersen@codepoet.org>
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.20 2003/08/29 11:34:08 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.21 2004/03/15 08:28:42 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -31,17 +31,17 @@
  *
  * {1.34} - 19980630 - Arnaldo Carvalho de Melo <acme@conectiva.com.br>
  *                     - gettext instead of catgets for i18n
- *          10/1998  - Andi Kleen. Use interface list primitives.       
- *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu 
+ *          10/1998  - Andi Kleen. Use interface list primitives.
+ *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu
  *			(default AF was wrong)
  */
 
 /* #define KEEP_UNUSED */
 
-/* 
- * 
+/*
+ *
  * Protocol Families.
- * 
+ *
  */
 #define HAVE_AFINET 1
 #undef HAVE_AFIPX
@@ -51,10 +51,10 @@
 #undef HAVE_AFECONET
 #undef HAVE_AFASH
 
-/* 
- * 
+/*
+ *
  * Device Hardware types.
- * 
+ *
  */
 #define HAVE_HWETHER	1
 #define HAVE_HWPPP	1
@@ -1822,7 +1822,7 @@ static void ife_print(struct interface *ptr)
 		hw = get_hwntype(-1);
 
 	printf(_("%-9.9s Link encap:%s  "), ptr->name, _(hw->title));
-	/* For some hardware types (eg Ash, ATM) we don't print the 
+	/* For some hardware types (eg Ash, ATM) we don't print the
 	   hardware address if it's null.  */
 	if (hw->print != NULL && (!(hw_null_address(hw, ptr->hwaddr) &&
 								hw->suppress_null_addr)))
@@ -2011,7 +2011,7 @@ static void ife_print(struct interface *ptr)
 		printf("          ");
 		if (ptr->map.irq)
 			printf(_("Interrupt:%d "), ptr->map.irq);
-		if (ptr->map.base_addr >= 0x100)	/* Only print devices using it for 
+		if (ptr->map.base_addr >= 0x100)	/* Only print devices using it for
 											   I/O maps */
 			printf(_("Base address:0x%lx "),
 				   (unsigned long) ptr->map.base_addr);

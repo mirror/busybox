@@ -71,7 +71,7 @@ config CONFIG_FDISK
 	help
 	  The fdisk utility is used to divide hard disks into one or more
 	  logical disks, which are generally called partitions.  This utility
-	  can be used to list and edit the set of partitions or BSD style 
+	  can be used to list and edit the set of partitions or BSD style
 	  'disk slices' that are defined on a hard drive.
 
 if !CONFIG_LFS
@@ -84,7 +84,7 @@ config FDISK_SUPPORT_LARGE_DISKS
 endif
 
 config CONFIG_FEATURE_FDISK_WRITABLE
-	bool "  Write support" 
+	bool "  Write support"
 	default y
 	depends on CONFIG_FDISK
 	help
@@ -95,7 +95,7 @@ config CONFIG_FEATURE_FDISK_WRITABLE
 config CONFIG_FEATURE_AIX_LABEL
 	bool "  Support AIX disklabels"
 	default n
-	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE  
+	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change AIX disklabels.
 	  Most people can safely leave this option disabled.
@@ -111,7 +111,7 @@ config CONFIG_FEATURE_SGI_LABEL
 config CONFIG_FEATURE_SUN_LABEL
 	bool "  Support SUN disklabels"
 	default n
- 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE	
+ 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change SUN disklabels.
 	  Most people can safely leave this option disabled.
@@ -267,7 +267,7 @@ config CONFIG_RDATE
 	bool "rdate"
 	default n
 	help
-	  The rdate utility allows you to synchronize the date and time of your 
+	  The rdate utility allows you to synchronize the date and time of your
 	  system clock with the date and time of a remote networked system using
 	  the RFC868 protocol, which is built into the inetd daemon on most
 	  systems.

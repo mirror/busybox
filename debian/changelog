@@ -100,7 +100,7 @@ busybox-cvs (0.60.99.cvs20030426-10) unstable; urgency=low
 busybox-cvs (0.60.99.cvs20030426-9) unstable; urgency=low
 
   * modutils/depmod.c
-    - fix base_dir for modules.dep 
+    - fix base_dir for modules.dep
 
  -- Bastian Blank <waldi@debian.org>  Sat, 07 Jun 2003 14:52:54 +0200
 
@@ -236,13 +236,13 @@ busybox-cvs (0.60.99.cvs20030114-1) unstable; urgency=low
 busybox-cvs (0.60.99.cvs20030105-1) unstable; urgency=low
 
   * Fix ip command build failure on ia64 (Closes: #172580
-  * Dont build with BSD partition table support in fdisk, fails on m68k 
+  * Dont build with BSD partition table support in fdisk, fails on m68k
 
  -- Glenn McGrath <bug1@home>  Sun,  5 Jan 2003 12:48:05 +1100
 
 busybox-cvs (0.60.99.cvs20030104-2) unstable; urgency=low
 
-  * floppy-retriever needs the cut command in the udeb 
+  * floppy-retriever needs the cut command in the udeb
 
  -- Glenn McGrath <bug1@debian.org>  Sat,  4 Jan 2003 17:13:05 +1100
 
@@ -380,7 +380,7 @@ busybox (1:0.51-4) unstable; urgency=low
 busybox (1:0.51-3) unstable; urgency=low
 
   * This is the "I am an idiot" release.
-  * Make cp and mv work again (closes: #97290) 
+  * Make cp and mv work again (closes: #97290)
   * Fix the version number.
 
  -- Erik Andersen <andersee@debian.org>  Sat, 12 May 2001 17:35:58 -0600
@@ -401,13 +401,13 @@ busybox (0.51-1) unstable; urgency=low
     for complete details)
   * Force USE_SYSTEM_PWD_GRP=false, so busybox bypasses
     the glibc NSS libraries. (closes: #93362)
-  * Fixed a bug in sed's address range handling (closes: #91758) 
+  * Fixed a bug in sed's address range handling (closes: #91758)
   * Removed irrelevant cruft from the bottem of debian/changelog
 
  -- Erik Andersen <andersee@debian.org>  Tue, 10 Apr 2001 14:07:29 -0600
 
 busybox (0.50-2) unstable; urgency=low
-  
+
   * Enabled freeramdisk and pivot_root in the udeb (closes: #91336)
   * Disabled lash (the busybox shell) in the udeb (closes: #91337)
   * fixed a bug in syslog, a problem with rebooting when booted as
@@ -417,7 +417,7 @@ busybox (0.50-2) unstable; urgency=low
 
 
 busybox (0.50-2) unstable; urgency=low
-  
+
   * Enabled freeramdisk and pivot_root in the udeb (closes: #91336)
   * Disabled lash (the busybox shell) in the udeb (closes: #91337)
   * fixed a bug in syslog, a problem with rebooting when booted as
@@ -446,7 +446,7 @@ busybox (0.49-1) unstable; urgency=low
 busybox (0.48-1) unstable; urgency=low
 
   * Lots more source updates and bug fixes.  See changelog for details.
-  * Now includes .udeb support for the debian-installer.  The .udeb 
+  * Now includes .udeb support for the debian-installer.  The .udeb
     probably needs some more work, but this should be a good start.
 
  -- Erik Andersen <andersee@debian.org>  Wed, 13 Dec 2000 08:36:07 -0700
@@ -465,11 +465,11 @@ busybox (0.46-1) unstable; urgency=low
 
 busybox (0.45-1) unstable; urgency=low
 
-  * First attempt at packaging BusyBox as a .deb.  This has been in 
+  * First attempt at packaging BusyBox as a .deb.  This has been in
     in the Debian boot-floppies CVS tree forever.  Hopefully, having it as a
     standalone app will make life easier for me, the debian-installer team, and
     everyone else as well...
-  * I have created a busybox-static that can be used as a rescue shell when you 
+  * I have created a busybox-static that can be used as a rescue shell when you
     hose your system.  Just invoke "busybox sh" to fir up the shell.  This has
     every app provided by busybox staically linked in.  There have been several
     times in the past that I would have loved to have this sitting on my system

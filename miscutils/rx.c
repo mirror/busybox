@@ -1,14 +1,14 @@
 /*-------------------------------------------------------------------------
  * Filename:      xmodem.c
- * Version:       $Id: rx.c,v 1.1 2003/12/20 07:30:35 bug1 Exp $
+ * Version:       $Id: rx.c,v 1.2 2004/03/15 08:28:46 andersen Exp $
  * Copyright:     Copyright (C) 2001, Hewlett-Packard Company
  * Author:        Christopher Hoover <ch@hpl.hp.com>
- * Description:   xmodem functionality for uploading of kernels 
+ * Description:   xmodem functionality for uploading of kernels
  *                and the like
  * Created at:    Thu Dec 20 01:58:08 PST 2001
  *-----------------------------------------------------------------------*/
 /*
- * xmodem.c: xmodem functionality for uploading of kernels and 
+ * xmodem.c: xmodem functionality for uploading of kernels and
  *            the like
  *
  * Copyright (C) 2001 Hewlett-Packard Laboratories
@@ -69,7 +69,7 @@ Cf:
 #define TIMEOUT_LONG 10
 #define MAXERRORS 10
 
-static inline void write_byte(int fd, char cc) { 
+static inline void write_byte(int fd, char cc) {
 	write(fd, &cc, 1);
 }
 
@@ -80,7 +80,7 @@ static inline void write_flush(int fd) {
 static inline void read_flush(int fd) {
 	tcflush(fd, TCIFLUSH);
 }
-  
+
 static int read_byte(int fd, unsigned int timeout) {
 	char buf[1];
 	int n;
@@ -312,12 +312,12 @@ int rx_main(int argc, char **argv)
 
 	if (tcgetattr(ttyfd, &tty) < 0)
 			bb_error_msg_and_die("%s: tcgetattr failed: %m\n", argv[0]);
-	
+
 	orig_tty = tty;
 
 	cfmakeraw(&tty);
 	tcsetattr(ttyfd, TCSAFLUSH, &tty);
-	
+
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = sigalrm_handler;
 	sigaction(SIGALRM, &act, 0);

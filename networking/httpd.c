@@ -44,7 +44,7 @@
  * for page display.
  *
  * httpd.conf has the following format:
- * 
+ *
  * A:172.20.         # Allow address from 172.20.0.0/16
  * A:10.0.0.0/25     # Allow any address from 10.0.0.0-10.0.0.127
  * A:10.0.0.0/255.255.255.128  # Allow any address that previous set
@@ -54,13 +54,13 @@
  * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
  * .au:audio/basic   # additional mime type for audio.au files
- * 
+ *
  * A/D may be as a/d or allow/deny - first char case unsensitive
  * Deny IP rules take precedence over allow rules.
- * 
- * 
+ *
+ *
  * The Deny/Allow IP logic:
- * 
+ *
  *  - Default is to allow all.  No addresses are denied unless
  * 	   denied with a D: rule.
  *  - Order of Deny/Allow rules is significant
@@ -68,19 +68,19 @@
  *  - If a deny all rule (D:*) is used it acts as a catch-all for unmatched
  * 	 addresses.
  *  - Specification of Allow all (A:*) is a no-op
- * 
+ *
  * Example:
  *   1. Allow only specified addresses
  *     A:172.20          # Allow any address that begins with 172.20.
  *     A:10.10.          # Allow any address that begins with 10.10.
  *     A:127.0.0.1       # Allow local loopback connections
  *     D:*               # Deny from other IP connections
- * 
+ *
  *   2. Only deny specified addresses
  *     D:1.2.3.        # deny from 1.2.3.0 - 1.2.3.255
  *     D:2.3.4.        # deny from 2.3.4.0 - 2.3.4.255
  *     A:*             # (optional line added for clarity)
- * 
+ *
  * If a sub directory contains a config file it is parsed and merged with
  * any existing settings as if it was appended to the original configuration.
  *
@@ -91,11 +91,11 @@
  * subdir http request, any merge is discarded when the process exits.  As a
  * result, the subdir settings only have a lifetime of a single request.
  *
- * 
- * If -c is not set, an attempt will be made to open the default 
+ *
+ * If -c is not set, an attempt will be made to open the default
  * root configuration file.  If -c is set and the file is not found, the
  * server exits with an error.
- * 
+ *
 */
 
 
@@ -447,7 +447,7 @@ static void free_config_lines(Htaccess **pprev)
  > $Function: parse_conf()
  *
  * $Description: parse configuration file into in-memory linked list.
- * 
+ *
  * The first non-white character is examined to determine if the config line
  * is one of the following:
  *    .ext:mime/type   # new mime type not compiled into httpd
@@ -464,7 +464,7 @@ static void free_config_lines(Htaccess **pprev)
  *                              checks.
  *      (int) flag  . . . . . . the source of the parse request.
  *
- * $Return: (None) 
+ * $Return: (None)
  *
  ****************************************************************************/
 static void parse_conf(const char *path, int flag)
@@ -1726,7 +1726,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
   /* Properly wait for remote to closed */
   FD_ZERO (&s_fd) ;
   FD_SET (a_c_w, &s_fd) ;
-      
+
   do {
     tv.tv_sec = 2 ;
     tv.tv_usec = 0 ;

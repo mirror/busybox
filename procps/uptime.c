@@ -2,7 +2,7 @@
 /*
  * Mini uptime implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,8 +53,8 @@ extern int uptime_main(int argc, char **argv)
 
 	sysinfo(&info);
 
-	printf(" %2d:%02d%s  up ", 
-			current_time->tm_hour%12 ? current_time->tm_hour%12 : 12, 
+	printf(" %2d:%02d%s  up ",
+			current_time->tm_hour%12 ? current_time->tm_hour%12 : 12,
 			current_time->tm_min, current_time->tm_hour > 11 ? "pm" : "am");
 	updays = (int) info.uptime / (60*60*24);
 	if (updays)
@@ -67,9 +67,9 @@ extern int uptime_main(int argc, char **argv)
 	else
 		printf("%d min, ", upminutes);
 
-	printf("load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n", 
-			LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]), 
-			LOAD_INT(info.loads[1]), LOAD_FRAC(info.loads[1]), 
+	printf("load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n",
+			LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]),
+			LOAD_INT(info.loads[1]), LOAD_FRAC(info.loads[1]),
 			LOAD_INT(info.loads[2]), LOAD_FRAC(info.loads[2]));
 
 	return EXIT_SUCCESS;

@@ -96,7 +96,7 @@ int main(int argc, const char * argv [])
     /* Change to output directory. */
     if (chdir(str_dir_config) != 0)
 	ERROR_EXIT(str_dir_config);
-	
+
     /* Put initial separator into target list. */
     ptarget = list_target;
     *ptarget++ = '\n';

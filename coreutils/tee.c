@@ -97,7 +97,7 @@ int tee_main(int argc, char **argv)
 	}
 #endif
 
-	/* Now we need to check for i/o errors on stdin and the various 
+	/* Now we need to check for i/o errors on stdin and the various
 	 * output files.  Since we know that the first entry in the output
 	 * file table is stdout, we can save one "if ferror" test by
 	 * setting the first entry to stdin and checking stdout error

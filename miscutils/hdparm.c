@@ -606,7 +606,7 @@ static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *
 static void print_ascii(uint16_t *p, uint8_t length) {
 	uint8_t ii;
 	char cl;
-	
+
 	/* find first non-space & print it */
 	for(ii = 0; ii< length; ii++)
 	{
@@ -1080,7 +1080,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 		if_printf(((dev == ATAPI_DEV) && (eqpt != CDROM) && (val[CAPAB_0] & DMA_IL_SUP)),
 					"\t     Interleaved DMA support\n");
 
-		if((val[WHATS_VALID] & OK_W64_70) && 
+		if((val[WHATS_VALID] & OK_W64_70) &&
 		   (val[DMA_TIME_MIN] || val[DMA_TIME_NORM]))
 		{
 			printf("\t     Cycle time:");
@@ -1241,7 +1241,7 @@ static int do_ctimings, do_timings = 0;
 static unsigned long set_readahead= 0, get_readahead= 0, bbreadahead= 0;
 static unsigned long set_readonly = 0, get_readonly = 0, readonly = 0;
 static unsigned long set_unmask   = 0, get_unmask   = 0, unmask   = 0;
-static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;     
+static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 static unsigned long set_dma      = 0, get_dma      = 0, dma      = 0;
 #endif

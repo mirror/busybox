@@ -43,7 +43,7 @@ typedef struct
 #define AF_DECnet 12
 #endif
 
-struct dn_naddr 
+struct dn_naddr
 {
         unsigned short          a_len;
         unsigned char a_addr[DN_MAXADDL];

@@ -34,7 +34,7 @@ unsigned long bb_xparse_number(const char *numstr,
 	unsigned long int r;
 	char *e;
 	int old_errno;
-	
+
 	/* Since this is a lib function, we're not allowed to reset errno to 0.
 	 * Doing so could break an app that is deferring checking of errno.
 	 * So, save the old value so that we can restore it if successful. */

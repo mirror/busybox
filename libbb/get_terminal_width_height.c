@@ -2,7 +2,7 @@
 /*
  * Determine the width and height of the terminal.
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  It is also
- * perfectly ok to have CONFIG_FEATURE_AUTOWIDTH disabled, in 
+ * perfectly ok to have CONFIG_FEATURE_AUTOWIDTH disabled, in
  * which case you will always get 80x24 */
 void get_terminal_width_height(int fd, int *width, int *height)
 {

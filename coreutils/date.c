@@ -3,7 +3,7 @@
  * Mini date implementation for busybox
  *
  * by Matthew Grant <grantma@anathoth.gen.nz>
- * 
+ *
  * iso-format handling added by Robert Griebl <griebl@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@
 #include "busybox.h"
 
 
-/* This 'date' command supports only 2 time setting formats, 
+/* This 'date' command supports only 2 time setting formats,
    all the GNU strftime stuff (its in libc, lets use it),
    setting time using UTC and displaying int, as well as
    an RFC 822 complient date output for shell scripting

@@ -101,7 +101,7 @@ config CONFIG_FEATURE_SUID_CONFIG
 	  checking /etc/busybox.conf.  The format of this file is as follows:
 
 	  <applet> = [Ssx-][Ssx-][x-] (<username>|<uid>).(<groupname>|<gid>)
-	  
+	
 	  An example might help:
 
 	  [SUID]
@@ -147,8 +147,8 @@ config CONFIG_STATIC
 	bool "Build BusyBox as a static binary (no shared libs)"
 	default n
 	help
-	  If you want to build a static BusyBox binary, which does not 
-	  use or require any shared libraries, then enable this option.  
+	  If you want to build a static BusyBox binary, which does not
+	  use or require any shared libraries, then enable this option.
 	  This can cause BusyBox to be considerably larger, so you should
 	  leave this option false unless you have a good reason (i.e.
 	  your target platform does not support shared libraries, or
@@ -158,7 +158,7 @@ config CONFIG_STATIC
 	  Most people will leave this set to 'N'.
 
 config CONFIG_LFS
-	bool "Build with Large File Support (for accessing files > 2 GB)" 
+	bool "Build with Large File Support (for accessing files > 2 GB)"
 	default n
 	help
 	  If you want to build BusyBox with large file support, then enable
@@ -180,7 +180,7 @@ config CROSS_COMPILER_PREFIX
 	default "/usr/i386-linux-uclibc/bin/i386-uclibc-"
 	depends on USING_CROSS_COMPILER
 	help
-	  If you want to build BusyBox with a cross compiler, then you 
+	  If you want to build BusyBox with a cross compiler, then you
 	  will need to set this to the cross-compiler prefix.  For example,
 	  if my cross-compiler is /usr/i386-linux-uclibc/bin/i386-uclibc-gcc
 	  then I would enter '/usr/i386-linux-uclibc/bin/i386-uclibc-' here,
@@ -240,7 +240,7 @@ config CONFIG_DEBUG
 	help
 	  Say Y here if you wish to compile BusyBox with debugging symbols.
 	  This will allow you to use a debugger to examine BusyBox internals
-	  while applets are running.  This increases the size of the binary 
+	  while applets are running.  This increases the size of the binary
 	  considerably and should only be used when doing development.
 	  If you are doing development and want to debug BusyBox, answer Y.
 
@@ -261,7 +261,7 @@ config CONFIG_DMALLOC
 	       -p check-fence -p check-heap -p check-lists -p check-blank \
 	       -p check-funcs -p realloc-copy -p allow-free-null
 
-	  This will make BusyBox be considerable larger and run slower, so 
+	  This will make BusyBox be considerable larger and run slower, so
 	  you should leave this option disabled for production use.
 
 config CONFIG_EFENCE
@@ -271,9 +271,9 @@ config CONFIG_EFENCE
 	help
 	  This enables compiling with Electric-fence support.  Electric
 	  fence is another very useful malloc debugging library which uses
-	  your computer's virtual memory hardware to detect illegal memory 
-	  accesses.  This support will make BusyBox be considerable larger 
-	  and run slower, so you should leave this option disabled unless 
+	  your computer's virtual memory hardware to detect illegal memory
+	  accesses.  This support will make BusyBox be considerable larger
+	  and run slower, so you should leave this option disabled unless
 	  you are hunting a hard to find memory problem.
 
 endmenu

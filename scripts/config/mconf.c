@@ -169,7 +169,7 @@ static void cmake(void)
 	items[item_no]->namelen = 0;
 	item_no++;
 }
-  
+
 static int cprint_name(const char *fmt, ...)
 {
 	va_list ap;
@@ -186,7 +186,7 @@ static int cprint_name(const char *fmt, ...)
 
 	return res;
 }
-  
+
 static int cprint_tag(const char *fmt, ...)
 {
 	va_list ap;
@@ -200,7 +200,7 @@ static int cprint_tag(const char *fmt, ...)
 
 	return res;
 }
-  
+
 static void cdone(void)
 {
 	int i;
@@ -675,19 +675,19 @@ int main(int ac, char **av)
 		if (!strcasecmp(mode, "single_menu"))
 			single_menu_mode = 1;
 	}
-  
+
 	tcgetattr(1, &ios_org);
 	atexit(conf_cleanup);
 	init_wsize();
 	init_dialog();
-	signal(SIGWINCH, winch_handler); 
+	signal(SIGWINCH, winch_handler);
 	conf(&rootmenu);
 	end_dialog();
 
 	/* Restart dialog to act more like when lxdialog was still separate */
 	init_dialog();
 	do {
-		stat = dialog_yesno(NULL, 
+		stat = dialog_yesno(NULL,
 				"Do you wish to save your new BusyBox configuration?", 5, 60);
 	} while (stat < 0);
 	end_dialog();

@@ -14,7 +14,7 @@ Possible apps to include some time:
 
 -----------
 
-With sysvinit, reboot, poweroff and halt all used a named pipe, 
+With sysvinit, reboot, poweroff and halt all used a named pipe,
 /dev/initctl, to communicate with the init process.  Busybox
 currently uses signals to communicate with init.  This makes
 busybox incompatible with sysvinit.  We should probably use

@@ -221,19 +221,19 @@ enum
 #define TCA_SET_OFF TCA_GRED_PARMS
 struct tc_gred_qopt
 {
-       __u32           limit;          /* HARD maximal queue length (bytes)    
+       __u32           limit;          /* HARD maximal queue length (bytes)
 */
-       __u32           qth_min;        /* Min average length threshold (bytes) 
+       __u32           qth_min;        /* Min average length threshold (bytes)
 */
-       __u32           qth_max;        /* Max average length threshold (bytes) 
+       __u32           qth_max;        /* Max average length threshold (bytes)
 */
        __u32           DP;             /* upto 2^32 DPs */
-       __u32           backlog;        
-       __u32           qave;   
-       __u32           forced; 
-       __u32           early;  
-       __u32           other;  
-       __u32           pdrop;  
+       __u32           backlog;
+       __u32           qave;
+       __u32           forced;
+       __u32           early;
+       __u32           other;
+       __u32           pdrop;
 
        unsigned char   Wlog;           /* log(W)               */
        unsigned char   Plog;           /* log(P_max/(qth_max-qth_min)) */
@@ -294,7 +294,7 @@ struct tc_htb_xstats
 	__u32 lends;
 	__u32 borrows;
 	__u32 giants;	/* too big packets (rate will not be accurate) */
-	__u32 injects;	/* how many times leaf used injected bw */	
+	__u32 injects;	/* how many times leaf used injected bw */
 	__u32 tokens;
 	__u32 ctokens;
 };

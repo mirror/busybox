@@ -181,7 +181,7 @@ int du_main(int argc, char **argv)
 #else
 		disp_k = 0;
 #endif
-	} 
+	}
 #endif
 
 	/* Note: SUSv3 specifies that -a and -s options can not be used together

@@ -6,15 +6,15 @@ diff -u -r1.40 AUTHORS
 --- a/AUTHORS	9 Oct 2003 21:19:21 -0000	1.40
 +++ b/AUTHORS	5 Mar 2004 07:23:17 -0000
 @@ -8,6 +8,9 @@
- 
+
  -----------
- 
+
 +Peter Willis <psyphreak@phreaker.net>
 +    eject
 +
  Emanuele Aina <emanuele.aina@tiscali.it>
  	run-parts
- 
+
 Index: coreutils/Config.in
 ===================================================================
 RCS file: /var/cvs/busybox/coreutils/Config.in,v
@@ -25,7 +25,7 @@ diff -u -r1.23 Config.in
 @@ -164,6 +164,13 @@
  	  a command; without options it displays the current
  	  environment.
- 
+
 +config CONFIG_EJECT
 +	bool "eject"
 +	default n
@@ -151,7 +151,7 @@ diff -u -r1.191 usage.h
 @@ -537,6 +537,13 @@
  	"\t-, -i\tstart with an empty environment\n" \
  	"\t-u\tremove variable from the environment\n"
- 
+
 +#define eject_trivial_usage \
 +	"[-t] [FILE]"
 +#define eject_full_usage \

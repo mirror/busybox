@@ -2,7 +2,7 @@
  * Mini grep implementation for busybox using libc regex.
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
- * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org> 
+ * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ static int grep_file(FILE *file)
 	int print_n_lines_after = 0;
 	int curpos = 0; /* track where we are in the circular 'before' buffer */
 	int idx = 0; /* used for iteration through the circular buffer */
-#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */
 
 	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
 		llist_t *pattern_ptr = pattern_head;
@@ -190,7 +190,7 @@ static int grep_file(FILE *file)
 
 					/* make a note that we need to print 'after' lines */
 					print_n_lines_after = lines_after;
-#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */
 					print_line(line, linenum, ':');
 				}
 			}
@@ -209,7 +209,7 @@ static int grep_file(FILE *file)
 				print_line(line, linenum, '-');
 				print_n_lines_after--;
 			}
-#endif /* CONFIG_FEATURE_GREP_CONTEXT */ 
+#endif /* CONFIG_FEATURE_GREP_CONTEXT */
 		free(line);
 	}
 

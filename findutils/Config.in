@@ -95,7 +95,7 @@ config CONFIG_XARGS
 	default n
 	help
 	  xargs is used to execute a specified command on
-	  every item from standard input.  
+	  every item from standard input.
 
 config CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
 	bool "  Enable prompt and confirmation option -p"

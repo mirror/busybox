@@ -228,7 +228,7 @@ void menu_finalize(struct menu *parent)
 				if (prop->type == P_PROMPT && prop->menu != menu) {
 					fprintf(stderr, "%s:%d:warning: choice values currently only support a single prompt\n",
 						prop->file->name, prop->lineno);
-					
+
 				}
 				if (prop->type == P_DEFAULT)
 					fprintf(stderr, "%s:%d:warning: defaults for choice values not supported\n",

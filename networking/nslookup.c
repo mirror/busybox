@@ -187,7 +187,7 @@ int nslookup_main(int argc, char **argv)
 
 	if (argc < 2 || *argv[1]=='-' || argc > 3)
 		bb_show_usage();
-	else if(argc == 3) 
+	else if(argc == 3)
 		set_default_dns(argv[2]);
 
 	server_print();
@@ -200,4 +200,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.31 2004/01/30 22:40:05 andersen Exp $ */
+/* $Id: nslookup.c,v 1.32 2004/03/15 08:28:48 andersen Exp $ */

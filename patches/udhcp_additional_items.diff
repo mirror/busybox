@@ -12,7 +12,7 @@ diff -u -r1.191 usage.h
 +	"\t-R,\t--require=NAME\tAdd NAME to request\n" \
  	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
  	"\t-v,\t--version\tDisplay version"
- 
+
 Index: networking/udhcp/README.udhcpc
 ===================================================================
 RCS file: /var/cvs/busybox/networking/udhcp/README.udhcpc,v
@@ -29,12 +29,12 @@ diff -u -r1.3 README.udhcpc
                                  /usr/share/udhcpc/default.script)
  -v, --version                   Display version
 @@ -101,6 +102,8 @@
- 
+
  additional options are easily added in options.c.
- 
+
 +By default, only a few basic items are requested. To request additional
 +items use the -R option. Example: "-R rootpath"
- 
+
  note on udhcpc's random seed
  ---------------------------
 Index: networking/udhcp/dhcpc.c
@@ -67,7 +67,7 @@ diff -u -r1.16 dhcpc.c
 -		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:s:v", arg_options, &option_index);
 +		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:R:s:v", arg_options, &option_index);
  		if (c == -1) break;
- 		
+
  		switch (c) {
 @@ -254,6 +256,11 @@
  		case 'r':
@@ -91,7 +91,7 @@ diff -u -r1.7 options.c
 @@ -57,7 +57,19 @@
  	[OPTION_S32] =		4
  };
- 
+
 -
 +/* find and mark requested item as required */
 +int require_option(char *name)
@@ -105,7 +105,7 @@ diff -u -r1.7 options.c
 +	}
 +	return 1;
 +}
-+  
++
  /* get an option with bounds checking (warning, not aligned). */
  uint8_t *get_option(struct dhcpMessage *packet, int code)
  {
@@ -119,7 +119,7 @@ diff -u -r1.5 options.h
 @@ -30,6 +30,7 @@
  extern struct dhcp_option dhcp_options[];
  extern int option_lengths[];
- 
+
 +int require_option(char *name);
  uint8_t *get_option(struct dhcpMessage *packet, int code);
  int end_option(uint8_t *optionptr);

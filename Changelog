@@ -1,171 +1,171 @@
 ---------------------
-PatchSet 3926 
+PatchSet 3926
 Date: 2004/02/09 10:01:01
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Buffalo appears to have resolved their GPL problems
 
-Members: 
-	docs/busybox.net/products.html:1.5->1.6 
-	docs/busybox.net/shame.html:1.7->1.8 
+Members:
+	docs/busybox.net/products.html:1.5->1.6
+	docs/busybox.net/shame.html:1.7->1.8
 
 ---------------------
-PatchSet 3927 
+PatchSet 3927
 Date: 2004/02/09 10:57:04
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Update URL
 
-Members: 
-	docs/busybox.net/products.html:1.6->1.7 
+Members:
+	docs/busybox.net/products.html:1.6->1.7
 
 ---------------------
-PatchSet 3928 
+PatchSet 3928
 Date: 2004/02/10 01:07:45
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Support disabling pipe and redirect support
 
-Members: 
-	shell/lash.c:1.151->1.152 
+Members:
+	shell/lash.c:1.151->1.152
 
 ---------------------
-PatchSet 3929 
+PatchSet 3929
 Date: 2004/02/10 01:28:36
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Initial effort at disabling job control as well
 
-Members: 
-	shell/lash.c:1.152->1.153 
+Members:
+	shell/lash.c:1.152->1.153
 
 ---------------------
-PatchSet 3930 
+PatchSet 3930
 Date: 2004/02/10 01:30:21
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 oops.  Leave the default feature set enbled for now...
 
-Members: 
-	shell/lash.c:1.153->1.154 
+Members:
+	shell/lash.c:1.153->1.154
 
 ---------------------
-PatchSet 3931 
+PatchSet 3931
 Date: 2004/02/13 08:09:43
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Accomodate the fact that newer libc versions may in fact not
 contain query_module and friends and more
 
-Members: 
-	libbb/module_syscalls.c:1.13->1.14 
+Members:
+	libbb/module_syscalls.c:1.13->1.14
 
 ---------------------
-PatchSet 3932 
+PatchSet 3932
 Date: 2004/02/14 21:33:39
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Avoid naming conflict with symbol in newer glibc headers
 
-Members: 
-	miscutils/hdparm.c:1.9->1.10 
+Members:
+	miscutils/hdparm.c:1.9->1.10
 
 ---------------------
-PatchSet 3933 
+PatchSet 3933
 Date: 2004/02/17 07:51:31
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 define option names to be clearer, simplify nested if statements, remove
 un-needed if statement, minor indenting change
 
-Members: 
-	coreutils/date.c:1.41->1.42 
+Members:
+	coreutils/date.c:1.41->1.42
 
 ---------------------
-PatchSet 3934 
+PatchSet 3934
 Date: 2004/02/17 07:58:04
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Woops, im getting ahead of myself, we dont have the -r (refernece)
 option yet
 
-Members: 
-	coreutils/date.c:1.42->1.43 
+Members:
+	coreutils/date.c:1.42->1.43
 
 ---------------------
-PatchSet 3935 
+PatchSet 3935
 Date: 2004/02/17 10:16:21
 Author: mjn3
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Florian Schirmer <jolt@tuxbox.org>.  When I rewrote the parser,
 I overlooked the case of someone wanting to use a valid but empty suid
 config file.
 
-Members: 
-	applets/applets.c:1.21->1.22 
+Members:
+	applets/applets.c:1.21->1.22
 
 ---------------------
-PatchSet 3936 
+PatchSet 3936
 Date: 2004/02/17 11:55:06
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Dont strip trailing '/' until _after_ i test to set if its there !
 
-Members: 
-	archival/libunarchive/get_header_tar.c:1.30->1.31 
+Members:
+	archival/libunarchive/get_header_tar.c:1.30->1.31
 
 ---------------------
-PatchSet 3937 
+PatchSet 3937
 Date: 2004/02/17 12:04:13
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Remove debugging
 
-Members: 
-	archival/libunarchive/get_header_tar.c:1.31->1.32 
+Members:
+	archival/libunarchive/get_header_tar.c:1.31->1.32
 
 ---------------------
-PatchSet 3938 
+PatchSet 3938
 Date: 2004/02/17 12:22:21
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Add the -r option, patch from Rob with some help from myself.
 
-Members: 
-	coreutils/date.c:1.43->1.44 
+Members:
+	coreutils/date.c:1.43->1.44
 
 ---------------------
-PatchSet 3939 
+PatchSet 3939
 Date: 2004/02/17 20:04:34
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Mark Lord writes:
 
@@ -179,99 +179,99 @@ Cheers
 Mark Lord
 Real-Time Remedies Inc.
 
-Members: 
-	networking/inetd.c:1.14->1.15 
+Members:
+	networking/inetd.c:1.14->1.15
 
 ---------------------
-PatchSet 3940 
+PatchSet 3940
 Date: 2004/02/17 20:08:11
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Remove the unused CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV option.
 
-Members: 
-	networking/Config.in:1.25->1.26 
+Members:
+	networking/Config.in:1.25->1.26
 
 ---------------------
-PatchSet 3941 
+PatchSet 3941
 Date: 2004/02/18 09:40:41
 Author: mjn3
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Fix vstype[] to match VS* defines.  Patch from OpenWrt by mbm.
 
-Members: 
-	shell/ash.c:1.89->1.90 
+Members:
+	shell/ash.c:1.89->1.90
 
 ---------------------
-PatchSet 3942 
+PatchSet 3942
 Date: 2004/02/18 09:54:15
 Author: landley
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Add -i option to sed, to edit files in-place.
 
-Members: 
-	editors/sed.c:1.159->1.160 
+Members:
+	editors/sed.c:1.159->1.160
 
 ---------------------
-PatchSet 3943 
+PatchSet 3943
 Date: 2004/02/18 10:14:17
 Author: mjn3
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from OpenWrt.
 
-Members: 
-	modutils/insmod.c:1.111->1.112 
+Members:
+	modutils/insmod.c:1.111->1.112
 
 ---------------------
-PatchSet 3944 
+PatchSet 3944
 Date: 2004/02/18 12:58:00
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 remove debugging
 
-Members: 
-	networking/inetd.c:1.15->1.16 
+Members:
+	networking/inetd.c:1.15->1.16
 
 ---------------------
-PatchSet 3945 
+PatchSet 3945
 Date: 2004/02/18 13:12:53
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Formatting
 
-Members: 
-	networking/inetd.c:1.16->1.17 
+Members:
+	networking/inetd.c:1.16->1.17
 
 ---------------------
-PatchSet 3946 
+PatchSet 3946
 Date: 2004/02/18 13:19:58
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Dont use same variable and struct name
 
-Members: 
-	networking/inetd.c:1.17->1.18 
+Members:
+	networking/inetd.c:1.17->1.18
 
 ---------------------
-PatchSet 3947 
+PatchSet 3947
 Date: 2004/02/19 00:44:08
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Chris Larson (kergoth) writes:
 
@@ -286,15 +286,15 @@ Will never return until we run out of open files or similar.
 Coreutils cp on the other hand will error with "cannot copy a directory,
 `out', into itself, `out'".  Patch attached.
 
-Members: 
-	libbb/copy_file.c:1.28->1.29 
+Members:
+	libbb/copy_file.c:1.28->1.29
 
 ---------------------
-PatchSet 3948 
+PatchSet 3948
 Date: 2004/02/19 01:52:29
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Chris Larson (kergoth) writes:
 
@@ -307,241 +307,241 @@ cp -a cpa cpa/cpb/cpc
 Attached what appears to be a more sane fix.  Apply on top of previous.
 Please confirm sanity.
 
-Members: 
-	libbb/copy_file.c:1.29->1.30 
+Members:
+	libbb/copy_file.c:1.29->1.30
 
 ---------------------
-PatchSet 3949 
+PatchSet 3949
 Date: 2004/02/19 08:48:30
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Add extra comments, freakout if a pax archive is encoutered.
 
-Members: 
-	archival/libunarchive/get_header_tar.c:1.32->1.33 
+Members:
+	archival/libunarchive/get_header_tar.c:1.32->1.33
 
 ---------------------
-PatchSet 3950 
+PatchSet 3950
 Date: 2004/02/20 02:25:18
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 A strict interpretation of the ustar format requires the type flag to be
 interpreted, we cannot depend on the file type being set in the mode
 field.
 
-Members: 
-	archival/libunarchive/get_header_tar.c:1.33->1.34 
+Members:
+	archival/libunarchive/get_header_tar.c:1.33->1.34
 
 ---------------------
-PatchSet 3951 
+PatchSet 3951
 Date: 2004/02/20 02:34:42
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Fix up hard links
 
-Members: 
-	archival/libunarchive/get_header_tar.c:1.34->1.35 
+Members:
+	archival/libunarchive/get_header_tar.c:1.34->1.35
 
 ---------------------
-PatchSet 3952 
+PatchSet 3952
 Date: 2004/02/20 09:55:37
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Document missing cp options
 
-Members: 
-	include/usage.h:1.187->1.188 
+Members:
+	include/usage.h:1.187->1.188
 
 ---------------------
-PatchSet 3953 
+PatchSet 3953
 Date: 2004/02/21 07:49:54
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Use return instead of exit, use == instead of & ==, left justify labels,
 adjustment of whitespace.
 
-Members: 
-	coreutils/mv.c:1.19->1.20 
+Members:
+	coreutils/mv.c:1.19->1.20
 
 ---------------------
-PatchSet 3954 
+PatchSet 3954
 Date: 2004/02/21 09:20:56
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Sometimes i get carried away with the use of function pointers, im sure
 it seemed like a good idea at the time.
 
-Members: 
-	archival/libunarchive/seek_by_char.c:1.3->1.4 
-	include/libbb.h:1.126->1.127 
-	libbb/copyfd.c:1.9->1.10 
+Members:
+	archival/libunarchive/seek_by_char.c:1.3->1.4
+	include/libbb.h:1.126->1.127
+	libbb/copyfd.c:1.9->1.10
 
 ---------------------
-PatchSet 3955 
+PatchSet 3955
 Date: 2004/02/22 00:27:34
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 No need to check proxy env variable twice, ignore proxy env variable if
 its set to 0
 
-Members: 
-	networking/wget.c:1.68->1.69 
+Members:
+	networking/wget.c:1.68->1.69
 
 ---------------------
-PatchSet 3956 
+PatchSet 3956
 Date: 2004/02/22 02:58:57
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Return 1 upon failure
 
-Members: 
-	coreutils/md5_sha1_sum.c:1.4->1.5 
+Members:
+	coreutils/md5_sha1_sum.c:1.4->1.5
 
 ---------------------
-PatchSet 3957 
+PatchSet 3957
 Date: 2004/02/22 03:33:53
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Ptch by Hideki IWAMOTO, fix a bug preventing tftp from getting or
 putting more than 0xffff blocks.
 
-Members: 
-	networking/tftp.c:1.21->1.22 
+Members:
+	networking/tftp.c:1.21->1.22
 
 ---------------------
-PatchSet 3958 
+PatchSet 3958
 Date: 2004/02/22 04:12:58
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Update usage for ftpget and ftpput
 
-Members: 
-	include/usage.h:1.188->1.189 
+Members:
+	include/usage.h:1.188->1.189
 
 ---------------------
-PatchSet 3959 
+PatchSet 3959
 Date: 2004/02/22 04:17:26
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Thomas Geulig, remove duplicate header
 
-Members: 
-	init/init_shared.c:1.3->1.4 
+Members:
+	init/init_shared.c:1.3->1.4
 
 ---------------------
-PatchSet 3960 
+PatchSet 3960
 Date: 2004/02/22 04:44:21
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Fixup braces (patch from Thomas Geulig), run through indent and manually
 adjust.
 
-Members: 
-	miscutils/crond.c:1.12->1.13 
+Members:
+	miscutils/crond.c:1.12->1.13
 
 ---------------------
-PatchSet 3961 
+PatchSet 3961
 Date: 2004/02/22 04:58:36
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 remove duplicate header declarations
 
-Members: 
-	networking/inetd.c:1.18->1.19 
+Members:
+	networking/inetd.c:1.18->1.19
 
 ---------------------
-PatchSet 3962 
+PatchSet 3962
 Date: 2004/02/22 07:20:25
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Hideki IWAMOTO, output debugging messages to stderr
 
-Members: 
-	networking/tftp.c:1.22->1.23 
+Members:
+	networking/tftp.c:1.22->1.23
 
 ---------------------
-PatchSet 3963 
+PatchSet 3963
 Date: 2004/02/22 07:38:36
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Florian Schirmer. compile fix for debug builds
 
-Members: 
-	miscutils/devfsd.c:1.7->1.8 
+Members:
+	miscutils/devfsd.c:1.7->1.8
 
 ---------------------
-PatchSet 3964 
+PatchSet 3964
 Date: 2004/02/22 08:33:37
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Use /var/lib/hwclock for adjtime, its really a state file rather than a
 config file, so it should be in /etc, FHS mentions it also.
 
-Members: 
-	util-linux/hwclock.c:1.6->1.7 
+Members:
+	util-linux/hwclock.c:1.6->1.7
 
 ---------------------
-PatchSet 3965 
+PatchSet 3965
 Date: 2004/02/22 09:11:33
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Use bb_getopt_ulflags, marginal saving, better argument checking.
 
-Members: 
-	util-linux/hwclock.c:1.7->1.8 
+Members:
+	util-linux/hwclock.c:1.7->1.8
 
 ---------------------
-PatchSet 3966 
+PatchSet 3966
 Date: 2004/02/22 09:45:57
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from James Zhu, telnetd window resizing support.
 
-Members: 
-	networking/telnetd.c:1.9->1.10 
+Members:
+	networking/telnetd.c:1.9->1.10
 
 ---------------------
-PatchSet 3967 
+PatchSet 3967
 Date: 2004/02/22 11:13:28
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Vodz. last_patch_128
 - declare applet_using as static from applets.c
@@ -549,82 +549,82 @@ Vodz. last_patch_128
    previous version cleared history after Ctrl-C
 - small spelling correction (by Friedrich Lobenstock)
 
-Members: 
-	applets/applets.c:1.22->1.23 
-	shell/cmdedit.c:1.88->1.89 
+Members:
+	applets/applets.c:1.22->1.23
+	shell/cmdedit.c:1.88->1.89
 
 ---------------------
-PatchSet 3968 
+PatchSet 3968
 Date: 2004/02/22 11:25:13
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Vodz, cleanup memory usage, send strdup error messages to
 syslog.
 
-Members: 
-	networking/inetd.c:1.19->1.20 
+Members:
+	networking/inetd.c:1.19->1.20
 
 ---------------------
-PatchSet 3969 
+PatchSet 3969
 Date: 2004/02/22 11:35:13
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Chris Larson (kergoth), to allow multiple directores to be
 unmounted at once.
 
-Members: 
-	docs/busybox.sgml:1.52->1.53 
-	util-linux/umount.c:1.62->1.63 
+Members:
+	docs/busybox.sgml:1.52->1.53
+	util-linux/umount.c:1.62->1.63
 
 ---------------------
-PatchSet 3970 
+PatchSet 3970
 Date: 2004/02/22 11:46:49
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 For the time being, revert the changes for detecting copying
 a directory into itself.  It is harder to do this correctly
 than it appears.  Not trying at all seems a better compromise
 for the time being, untill we can implement this correctly.
 
-Members: 
-	libbb/copy_file.c:1.30->1.31 
+Members:
+	libbb/copy_file.c:1.30->1.31
 
 ---------------------
-PatchSet 3971 
+PatchSet 3971
 Date: 2004/02/22 11:55:09
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Patch from Dmitry Zakharov, this line was missedfrom the last patch
 
-Members: 
-	editors/awk.c:1.5->1.6 
+Members:
+	editors/awk.c:1.5->1.6
 
 ---------------------
-PatchSet 3972 
+PatchSet 3972
 Date: 2004/02/22 12:17:33
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Fix from Paul Kortekaas for syslog -C option, size should be in kB.
 
-Members: 
-	sysklogd/syslogd.c:1.106->1.107 
+Members:
+	sysklogd/syslogd.c:1.106->1.107
 
 ---------------------
-PatchSet 3973 
+PatchSet 3973
 Date: 2004/02/22 12:25:47
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Fernando Silveira writes:
 
@@ -639,33 +639,33 @@ Hi,
 
 Thanks a lot!
 
-Members: 
-	include/usage.h:1.189->1.190 
-	networking/Config.in:1.26->1.27 
-	networking/telnet.c:1.41->1.42 
+Members:
+	include/usage.h:1.189->1.190
+	networking/Config.in:1.26->1.27
+	networking/telnet.c:1.41->1.42
 
 ---------------------
-PatchSet 3974 
+PatchSet 3974
 Date: 2004/02/22 12:27:04
 Author: andersen
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 Bump up version in preparation for -pre8
 
-Members: 
-	Rules.mak:1.27->1.28 
+Members:
+	Rules.mak:1.27->1.28
 
 ---------------------
-PatchSet 3975 
+PatchSet 3975
 Date: 2004/02/23 08:11:07
 Author: bug1
 Branch: HEAD
-Tag: (none) 
+Tag: (none)
 Log:
 bb_full_fd_action was incorrectly returning an error message causing
 major breaking.
 
-Members: 
-	libbb/copyfd.c:1.10->1.11 
+Members:
+	libbb/copyfd.c:1.10->1.11
 

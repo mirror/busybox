@@ -76,7 +76,7 @@ static char *ret_code_descript[] = {
 #else
 void usage(char *prog)
 {
-	fprintf(stderr, 
+	fprintf(stderr,
 		"Usage: %s [ -q ] [ -o offset ] [ -f frequency ] [ -p timeconstant ] [ -t tick ]\n",
 		prog);
 }
@@ -126,7 +126,7 @@ int main(int argc, char ** argv)
 	ret = adjtimex(&txc);
 
 	if (ret < 0) perror("adjtimex");
-	
+
 	if (!quiet && ret>=0) {
 		printf(
 			"    mode:         %d\n"

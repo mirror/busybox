@@ -161,7 +161,7 @@ int cal_main(int argc, char **argv)
 		int row, len, days[MAXDAYS];
 		int *dp = days;
 		char lineout[30];
-		
+
 		day_array(month, year, dp);
 		len = sprintf(lineout, "%s %d", month_names[month - 1], year);
 		bb_printf("%*s%s\n%s\n",
@@ -176,7 +176,7 @@ int cal_main(int argc, char **argv)
 		int row, which_cal, week_len, days[12][MAXDAYS];
 		int *dp;
 		char lineout[80];
-		
+
 		sprintf(lineout, "%d", year);
 		center(lineout,
 			   (WEEK_LEN * 3 + HEAD_SEP * 2)
@@ -317,7 +317,7 @@ static void blank_string(char *buf, size_t buflen)
 static char *build_row(char *p, int *dp)
 {
 	int col, val, day;
-		
+
 	memset(p, ' ', (julian + DAY_LEN) * 7);
 
 	col = 0;

@@ -14,10 +14,10 @@
 #include "libbb.h"
 
 extern char *xreadlink(const char *path)
-{                       
+{   
 	static const int GROWBY = 80; /* how large we will grow strings by */
 
-	char *buf = NULL;   
+	char *buf = NULL;
 	int bufsize = 0, readsize = 0;
 
 	do {
@@ -27,10 +27,10 @@ extern char *xreadlink(const char *path)
                    bb_perror_msg("%s", path);
 		    return NULL;
 		}
-	}           
+	}
 	while (bufsize < readsize + 1);
 
 	buf[readsize] = '\0';
 
 	return buf;
-}       
+}

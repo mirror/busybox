@@ -20,7 +20,7 @@
  *
  * This is a from-scratch implementation of fbset; but the de facto fbset
  * implementation was a good reference. fbset (original) is released under
- * the GPL, and is (c) 1995-1999 by: 
+ * the GPL, and is (c) 1995-1999 by:
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
@@ -89,8 +89,8 @@ static const int FBIOPUT_VSCREENINFO = 0x4601;
 struct fb_bitfield {
 	uint32_t offset;			/* beginning of bitfield	*/
 	uint32_t length;			/* length of bitfield		*/
-	uint32_t msb_right;		/* != 0 : Most significant bit is */ 
-					/* right */ 
+	uint32_t msb_right;		/* != 0 : Most significant bit is */
+					/* right */
 };
 struct fb_var_screeninfo {
 	uint32_t xres;			/* visible resolution		*/
@@ -106,7 +106,7 @@ struct fb_var_screeninfo {
 	struct fb_bitfield red;		/* bitfield in fb mem if true color, */
 	struct fb_bitfield green;	/* else only length is significant */
 	struct fb_bitfield blue;
-	struct fb_bitfield transp;	/* transparency			*/	
+	struct fb_bitfield transp;	/* transparency			*/
 
 	uint32_t nonstd;			/* != 0 Non standard pixel format */
 
@@ -210,13 +210,13 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
                     if ((p = strstr(buf, "geometry "))) {
                         p += 9;
 
-                        sscanf(p, "%d %d %d %d %d", 
-                                &(base->xres), &(base->yres), 
-                                &(base->xres_virtual), &(base->yres_virtual), 
+                        sscanf(p, "%d %d %d %d %d",
+                                &(base->xres), &(base->yres),
+                                &(base->xres_virtual), &(base->yres_virtual),
                                 &(base->bits_per_pixel));
                     } else if ((p = strstr(buf, "timings "))) {
                         p += 8;
-                        
+    
                         sscanf(p, "%d %d %d %d %d %d %d",
                                 &(base->pixclock),
                                 &(base->left_margin), &(base->right_margin),
@@ -271,7 +271,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
                             base->sync |= FB_SYNC_EXT;
                         }
                     }
-                    
+
 					if (strstr(buf, "endmode"))
 						return 1;
 				}

@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) many different people.  
+ * Copyright (C) many different people.
  * If you wrote this, please acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -69,7 +69,7 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name)
 	int i;
 	size_t s;
 	ino_dev_hashtable_bucket_t *bucket;
-    
+
 	i = hash_inode(statbuf->st_ino);
 	s = name ? strlen(name) : 0;
 	bucket = xmalloc(sizeof(ino_dev_hashtable_bucket_t) + s);

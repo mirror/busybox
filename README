@@ -1,5 +1,5 @@
 Please see the LICENSE file for details on copying and usage.
-    
+
 BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
 you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
@@ -27,16 +27,16 @@ compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
 variable (i.e., 'make PREFIX=/tmp/foo install')
 
-If you wish to install hardlinks, rather than symlinks, you can use 
+If you wish to install hardlinks, rather than symlinks, you can use
 'make install-hardlinks' instead.
 
 ----------------
-    
+
 Supported architectures:
 
    Busybox in general will build on any architecture supported by gcc.  It has
    a few specialized features added for __sparc__ and __alpha__.  insmod
-   functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k, 
+   functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k,
    MIPS, cris, and v850e.
 
 Supported libcs:
@@ -69,7 +69,7 @@ Bugs:
 If you find bugs, please submit a detailed bug report to the busybox mailing
 list at busybox@mail.busybox.net.  A well-written bug report should include a
 transcript of a shell session that demonstrates the bad behavior and enables
-anyone else to duplicate the bug on their own machine. The following is such 
+anyone else to duplicate the bug on their own machine. The following is such
 an example:
 
     To: busybox@mail.busybox.net
@@ -90,7 +90,7 @@ an example:
 	$ date
 	llegal instruction
 
-    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder, 
+    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder,
     and the latest uClibc from CVS.  Thanks for the wonderful program!
 
 	-Diligent
@@ -103,8 +103,8 @@ reports lacking such detail may never be fixed...  Thanks for understanding.
 
 FTP:
 
-Source for the latest released version, as well as daily snapshots, can always 
-be downloaded from 
+Source for the latest released version, as well as daily snapshots, can always
+be downloaded from
     http://busybox.net/downloads/
 
 ----------------
@@ -123,7 +123,7 @@ For those that are actively contributing there is even CVS write access:
 ----------------
 
 Please feed suggestions, bug reports, insults, and bribes back to:
-	Erik Andersen 
+	Erik Andersen
 	<andersen@codepoet.org>
 	<andersen@codepoet.org>
 

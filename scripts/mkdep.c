@@ -3,7 +3,7 @@
  * Smart CONFIG_* processing by Werner Almesberger, Michael Chastain.
  *
  * Usage: mkdep cflags -- file ...
- * 
+ *
  * Read source files and output makefile dependency lines for them.
  * I make simple dependency lines for #include <*.h> and #include "*.h".
  * I also find instances of CONFIG_FOO and generate dependencies

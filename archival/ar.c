@@ -1,10 +1,10 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini ar implementation for busybox 
+ * Mini ar implementation for busybox
  *
  * Copyright (C) 2000 by Glenn McGrath
  * Written by Glenn McGrath <bug1@optushome.com.au> 1 June 2000
- * 		
+ *
  * Based in part on BusyBox tar, Debian dpkg-deb and GNU ar.
  *
  * This program is free software; you can redistribute it and/or modify

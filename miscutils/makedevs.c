@@ -1,9 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
  * public domain -- Dave 'Kill a Cop' Cinege <dcinege@psychosis.com>
- * 
+ *
  * makedevs
- * Make ranges of device files quickly. 
+ * Make ranges of device files quickly.
  * known bugs: can't deal with alpha ranges
  */
 

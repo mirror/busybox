@@ -119,7 +119,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->gid = strtol(tar.formated.gid, NULL, 8);
 	file_header->size = strtol(tar.formated.size, NULL, 8);
 	file_header->mtime = strtol(tar.formated.mtime, NULL, 8);
-	file_header->link_name = (tar.formated.linkname[0] != '\0') ? 
+	file_header->link_name = (tar.formated.linkname[0] != '\0') ?
 	    bb_xstrdup(tar.formated.linkname) : NULL;
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
@@ -205,7 +205,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		archive_handle->action_data(archive_handle);
 		archive_handle->passed = llist_add_to(archive_handle->passed, file_header->name);
 	} else {
-		data_skip(archive_handle);			
+		data_skip(archive_handle);
 	}
 	archive_handle->offset += file_header->size;
 

@@ -51,12 +51,12 @@ struct dhcpOfferedAddr *leases;
 struct server_config_t server_config;
 
 
-#ifdef COMBINED_BINARY	
+#ifdef COMBINED_BINARY
 int udhcpd_main(int argc, char *argv[])
 #else
 int main(int argc, char *argv[])
 #endif
-{	
+{
 	fd_set rfds;
 	struct timeval tv;
 	int server_socket = -1;
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 	struct dhcpOfferedAddr *lease;
 	int max_sock;
 	unsigned long num_ips;
-	
+
 	memset(&server_config, 0, sizeof(struct server_config_t));
 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 		server_config.lease = ntohl(server_config.lease);
 	}
 	else server_config.lease = LEASE_TIME;
-	
+
 	/* Sanity check */
 	num_ips = ntohl(server_config.end) - ntohl(server_config.start);
 	if (server_config.max_leases > num_ips) {
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
 				LOG(LOG_ERR, "FATAL: couldn't create server socket, %m");
 				return 2;
-			}			
+			}
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
 		if (server_config.auto_time) {
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 			tv.tv_usec = 0;
 		}
 		if (!server_config.auto_time || tv.tv_sec > 0) {
-			retval = select(max_sock + 1, &rfds, NULL, NULL, 
+			retval = select(max_sock + 1, &rfds, NULL, NULL,
 					server_config.auto_time ? &tv : NULL);
 		} else retval = 0; /* If we already timed out, fall through */
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 			DEBUG(LOG_INFO, "error on select");
 			continue;
 		}
-		
+
 		switch (udhcp_sp_read(&rfds)) {
 		case SIGUSR1:
 			LOG(LOG_INFO, "Received a SIGUSR1");
@@ -161,17 +161,17 @@ int main(int argc, char *argv[])
 			DEBUG(LOG_ERR, "couldn't get option from packet, ignoring");
 			continue;
 		}
-		
+
 		/* ADDME: look for a static lease */
 		lease = find_lease_by_chaddr(packet.chaddr);
 		switch (state[0]) {
 		case DHCPDISCOVER:
 			DEBUG(LOG_INFO,"received DISCOVER");
-			
+
 			if (sendOffer(&packet) < 0) {
 				LOG(LOG_ERR, "send OFFER failed");
 			}
-			break;			
+			break;
  		case DHCPREQUEST:
 			DEBUG(LOG_INFO, "received REQUEST");
 
@@ -180,12 +180,12 @@ int main(int argc, char *argv[])
 
 			if (requested) memcpy(&requested_align, requested, 4);
 			if (server_id) memcpy(&server_id_align, server_id, 4);
-		
+
 			if (lease) { /*ADDME: or static lease */
 				if (server_id) {
 					/* SELECTING State */
 					DEBUG(LOG_INFO, "server_id = %08x", ntohl(server_id_align));
-					if (server_id_align == server_config.server && requested && 
+					if (server_id_align == server_config.server && requested &&
 					    requested_align == lease->yiaddr) {
 						sendACK(&packet, lease->yiaddr);
 					}
@@ -203,9 +203,9 @@ int main(int argc, char *argv[])
 							/* don't know what to do!!!! */
 							sendNAK(&packet);
 						}
-					}						
+					}
 				}
-			
+
 			/* what to do if we have no record of the client */
 			} else if (server_id) {
 				/* SELECTING State */
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 						memset(lease->chaddr, 0, 16);
 					/* make some contention for this address */
 					} else sendNAK(&packet);
-				} else if (requested_align < server_config.start || 
+				} else if (requested_align < server_config.start ||
 					   requested_align > server_config.end) {
 					sendNAK(&packet);
 				} /* else remain silent */
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
 			if (lease) {
 				memset(lease->chaddr, 0, 16);
 				lease->expires = time(0) + server_config.decline_time;
-			}			
+			}
 			break;
 		case DHCPRELEASE:
 			DEBUG(LOG_INFO,"received RELEASE");
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 		case DHCPINFORM:
 			DEBUG(LOG_INFO,"received INFORM");
 			send_inform(&packet);
-			break;	
+			break;
 		default:
 			LOG(LOG_WARNING, "unsupported DHCP message (%02x) -- ignoring", state[0]);
 		}

@@ -26,7 +26,7 @@
 /*
  *	Reassign the subarchive metadata parser based on the filename extension
  *  e.g. if its a .tar.gz modify archive_handle->sub_archive to process a .tar.gz
- *       or if its a .tar.bz2 make archive_handle->sub_archive handle that 
+ *       or if its a .tar.bz2 make archive_handle->sub_archive handle that
  */
 extern char filter_accept_list_reassign(archive_handle_t *archive_handle)
 {

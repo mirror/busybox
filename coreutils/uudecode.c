@@ -18,7 +18,7 @@
  *  Based on specification from
  *  http://www.opengroup.org/onlinepubs/007904975/utilities/uuencode.html
  *
- *  Bugs: the spec doesnt mention anything about "`\n`\n" prior to the "end" line 
+ *  Bugs: the spec doesnt mention anything about "`\n`\n" prior to the "end" line
  */
 
 
@@ -50,7 +50,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 		if (length > 60) {
 			bb_error_msg_and_die("Line too long");
 		}
-	
+
 		line_ptr++;
 		/* Tolerate an overly long line to acomadate a possible exta '`' */
 		if (strlen(line_ptr) < length) {

@@ -23,7 +23,7 @@ Jeff Angielski <jeff@theptrgroup.com>
 
 Edward Betts <edward@debian.org>
     expr, hostid, logname, whoami
- 
+
 John Beppu <beppu@codepoet.org>
     du, nslookup, sort
 
@@ -33,8 +33,8 @@ Brian Candler <B.Candler@pobox.com>
 Randolph Chung <tausq@debian.org>
     fbset, ping, hostname
 
-Dave Cinege <dcinege@psychosis.com>	
-    more(v2), makedevs, dutmp, modularization, auto links file, 
+Dave Cinege <dcinege@psychosis.com>
+    more(v2), makedevs, dutmp, modularization, auto links file,
     various fixes, Linux Router Project maintenance
 
 Jordan Crouse <jordan@cosmicpenguin.net>
@@ -66,7 +66,7 @@ Matt Kraai <kraai@alumni.cmu.edu>
 Stephan Linz <linz@li-pro.net>
 	ipcalc, Red Hat equivalence
 
-John Lombardo <john@deltanet.com>	
+John Lombardo <john@deltanet.com>
     tr
 
 Glenn McGrath <bug1@optushome.com.au>
@@ -89,7 +89,7 @@ Vladimir Oleynik <dzo@simtreas.ru>
     and irreconcilable critic of everything not perfect.
 
 Bruce Perens <bruce@pixar.com>
-    Original author of BusyBox in 1995, 1996. Some of his code can 
+    Original author of BusyBox in 1995, 1996. Some of his code can
     still be found hiding here and there...
 
 Tim Riker <Tim@Rikers.org>

@@ -10,24 +10,24 @@ diff -u -r1.5 dhcpd.c
  	int max_sock;
  	unsigned long num_ips;
 +	int daemonize = 1;
-+	
++
 +	while (strcmp(argv[1],"-f")==0 || strcmp(argv[1],"--foreground")==0) {
 +		daemonize = 0;
 +		argv++;
 +		argc--;
 +	}
- 	
+
  	memset(&server_config, 0, sizeof(struct server_config_t));
  	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
 @@ -99,9 +106,8 @@
  			   &server_config.server, server_config.arp) < 0)
  		return 1;
- 
+
 -#ifndef UDHCP_DEBUG
 -	background(server_config.pidfile); /* hold lock during fork. */
 -#endif
 +	if(daemonize)
 +		background(server_config.pidfile); /* hold lock during fork. */
- 
+
  	/* Setup the signal pipe */
  	udhcp_sp_setup();

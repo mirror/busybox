@@ -36,7 +36,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	int namesize;
 	char dummy[16];
 	int major, minor, nlink, inode;
-	
+
 	if (pending_hardlinks) { /* Deal with any pending hardlinks */
 		hardlinks_t *tmp;
 		hardlinks_t *oldtmp;
@@ -77,7 +77,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	{
 	    unsigned long tmpsize;
 	    sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
-		    dummy, &inode, (unsigned int*)&file_header->mode, 
+		    dummy, &inode, (unsigned int*)&file_header->mode,
 		    (unsigned int*)&file_header->uid, (unsigned int*)&file_header->gid,
 		    &nlink, &file_header->mtime, &tmpsize,
 		    dummy, &major, &minor, &namesize, dummy);
@@ -147,7 +147,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 		archive_handle->action_data(archive_handle);
 		archive_handle->action_header(archive_handle->file_header);
 	} else {
-		data_skip(archive_handle);			
+		data_skip(archive_handle);
 	}
 
 	archive_handle->offset += file_header->size;

@@ -57,7 +57,7 @@ extern int mt_main(int argc, char **argv)
 	struct mtop op;
 	struct mtpos position;
 	int fd, mode;
-	
+
 	if (argc < 2) {
 		bb_show_usage();
 	}

@@ -41,7 +41,7 @@ config CONFIG_ASH
 	  the most complete and most pedantically correct shell included with
 	  busybox.  This shell is actually a derivative of the Debian 'dash'
 	  shell (by Herbert Xu), which was created by porting the 'ash' shell
-	  (written by Kenneth Almquist) from NetBSD.  
+	  (written by Kenneth Almquist) from NetBSD.
 
 comment "Ash Shell Options"
 	depends on CONFIG_ASH

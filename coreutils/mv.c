@@ -75,7 +75,7 @@ extern int mv_main(int argc, char **argv)
 			goto DO_MOVE;
 		}
 	}
-	
+
 	do {
 		dest = concat_path_file(last, bb_get_last_path_component(*argv));
 
@@ -84,7 +84,7 @@ extern int mv_main(int argc, char **argv)
 		}
 
 DO_MOVE:
-		
+
 		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE) &&
 			((access(dest, W_OK) < 0 && isatty(0)) ||
 			(flags & OPT_FILEUTILS_INTERACTIVE))) {
@@ -119,7 +119,7 @@ DO_MOVE:
 						bb_perror_msg("cannot remove `%s'", dest);
 						goto RET_1;
 					}
-				}			
+				}
 				if ((copy_file(*argv, dest,
 					FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS) >= 0) &&
 					(remove_file(*argv, FILEUTILS_RECUR | FILEUTILS_FORCE) >= 0)) {
@@ -132,7 +132,7 @@ RET_1:
 RET_0:
 		if (dest != last) {
 			free((void *) dest);
-		}	
+		}
 	} while (*++argv != last);
 
 	return (status);

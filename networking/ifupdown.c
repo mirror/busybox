@@ -2,7 +2,7 @@
 /*
  *  ifupdown for busybox
  *  Copyright (c) 2002 Glenn McGrath <bug1@optushome.com.au>
- *  Copyright (c) 2003 Erik Andersen <andersen@codepoet.org>
+ *  Copyright (c) 2003-2004 Erik Andersen <andersen@codepoet.org>
  *
  *  Based on ifupdown v 0.6.4 by Anthony Towns
  *  Copyright (c) 1999 Anthony Towns <aj@azure.humbug.org.au>
@@ -56,7 +56,7 @@
 #if 0
 #define debug_noise(fmt, args...) printf(fmt, ## args)
 #else
-#define debug_noise(fmt, args...) 
+#define debug_noise(fmt, args...)
 #endif
 
 /* Forward declaration */
@@ -72,7 +72,7 @@ extern llist_t *llist_add_to_end(llist_t *list_head, char *data)
 	new_item = xmalloc(sizeof(llist_t));
 	new_item->data = data;
 	new_item->link = NULL;
-	
+
 	prev = NULL;
 	tmp = list_head;
 	while(tmp) {
@@ -80,7 +80,7 @@ extern llist_t *llist_add_to_end(llist_t *list_head, char *data)
 		tmp = tmp->link;
 	}
 	if (prev) {
-		prev->link = new_item; 
+		prev->link = new_item;
 	} else {
 		list_head = new_item;
 	}
@@ -123,7 +123,7 @@ struct variable_t
 	char *value;
 };
 
-struct interface_defn_t 
+struct interface_defn_t
 {
 	struct interface_defn_t *prev;
 	struct interface_defn_t *next;
@@ -598,7 +598,7 @@ static int wvdial_down(struct interface_defn_t *ifd, execfn *exec)
 				"-p /var/run/wvdial.%iface% -s 2", ifd, exec));
 }
 
-static struct method_t methods[] = 
+static struct method_t methods[] =
 {
 	{ "wvdial", wvdial_up, wvdial_down, },
 	{ "ppp", ppp_up, ppp_down, },
@@ -608,7 +608,7 @@ static struct method_t methods[] =
 	{ "loopback", loopback_up, loopback_down, },
 };
 
-struct address_family_t addr_inet = 
+struct address_family_t addr_inet =
 {
 	"inet",
 	sizeof(methods) / sizeof(struct method_t),
@@ -885,7 +885,7 @@ static struct interfaces_file_t *read_interfaces(char *filename)
 						perror(filename);
 						return NULL;
 					}
-					debug_noise("\t%s=%s\n", currif->option[currif->n_options].name, 
+					debug_noise("\t%s=%s\n", currif->option[currif->n_options].name,
 							currif->option[currif->n_options].value);
 					currif->n_options++;
 					break;
@@ -1031,7 +1031,7 @@ static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *o
 			}
 		}
 	}
-	
+
 	bb_xasprintf(&buf, "run-parts /etc/network/if-%s.d", opt);
 	(*exec)(buf);
 
@@ -1211,7 +1211,7 @@ extern int ifupdown_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	while ((i = getopt(argc, argv, "i:hvnamf")) != -1)
 #else
-		while ((i = getopt(argc, argv, "i:hvnaf")) != -1) 
+		while ((i = getopt(argc, argv, "i:hvnaf")) != -1)
 #endif
 		{
 			switch (i) {
@@ -1249,7 +1249,7 @@ extern int ifupdown_main(int argc, char **argv)
 		if (!do_all) {
 			bb_show_usage();
 		}
-	}			
+	}
 
 	debug_noise("reading %s file:\n", interfaces);
 	defn = read_interfaces(interfaces);
@@ -1297,8 +1297,8 @@ extern int ifupdown_main(int argc, char **argv)
 				list = list->link;
 			}
 			target_list = defn->autointerfaces;
-#endif	
-		} 
+#endif
+		}
 	} else {
 		target_list = llist_add_to_end(target_list, argv[optind]);
 	}
@@ -1413,7 +1413,7 @@ extern int ifupdown_main(int argc, char **argv)
 					} else {
 						iface_state->data = NULL;
 						iface_state->link = NULL;
-					}						
+					}
 				}
 			}
 		}

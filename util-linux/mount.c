@@ -3,7 +3,7 @@
  * Mini mount implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@
  *
  * 1999-10-07	Erik Andersen <andersen@codepoet.org>.
  *              Rewrite of a lot of code. Removed mtab usage (I plan on
- *              putting it back as a compile-time option some time), 
- *              major adjustments to option parsing, and some serious 
+ *              putting it back as a compile-time option some time),
+ *              major adjustments to option parsing, and some serious
  *              dieting all around.
  *
  * 1999-11-06	mtab suppport is back - andersee
@@ -40,8 +40,8 @@
  *		Rewrote fstab while loop and lower mount section. Can now do
  *		single mounts from fstab. Can override fstab options for single
  *		mount. Common mount_one call for single mounts and 'all'. Fixed
- *		mtab updating and stale entries. Removed 'remount' default. 
- *	
+ *		mtab updating and stale entries. Removed 'remount' default.
+ *
  */
 
 #include <limits.h>
@@ -289,7 +289,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 		}
 
 		if (read_proc && !status) {
-			
+
 			f = bb_xfopen("/proc/filesystems", "r");
 
 			while (fgets(buf, sizeof(buf), f) != NULL) {

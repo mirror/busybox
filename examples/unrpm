@@ -7,12 +7,12 @@
 usage() {
 echo "Usage: unrpm -l package.rpm            <List contents of rpm package>"
 echo "       unrpm -x package.rpm /foo/boo   <Extract rpm package to this directory,"
-echo "                                        put . for current directory>"  
+echo "                                        put . for current directory>"
 exit
 }
 
 rpm=$2
- 
+
 exist() {
 if [ "$rpm" = "" ]; then
 usage

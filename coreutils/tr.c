@@ -4,7 +4,7 @@
  *
  * Copyright (c) Michiel Huisjes
  *
- * This version of tr is adapted from Minix tr and was modified 
+ * This version of tr is adapted from Minix tr and was modified
  * by Erik Andersen <andersen@codepoet.org> to be used in busybox.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * 
+ *
  * Original copyright notice is retained at the end of this file.
  */
 
@@ -213,24 +213,24 @@ extern int tr_main(int argc, char **argv)
 /*
  * Copyright (c) 1987,1997, Prentice Hall
  * All rights reserved.
- * 
+ *
  * Redistribution and use of the MINIX operating system in source and
  * binary forms, with or without modification, are permitted provided
  * that the following conditions are met:
- * 
+ *
  * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * Redistributions in binary form must reproduce the above
  * copyright notice, this list of conditions and the following
  * disclaimer in the documentation and/or other materials provided
  * with the distribution.
- * 
+ *
  * Neither the name of Prentice Hall nor the names of the software
  * authors or contributors may be used to endorse or promote
  * products derived from this software without specific prior
  * written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND
  * CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF

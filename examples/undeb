@@ -8,12 +8,12 @@ usage() {
 echo "Usage: undeb -c package.deb            <Print control file info>"
 echo "       undeb -l package.deb            <List contents of deb package>"
 echo "       undeb -x package.deb /foo/boo   <Extract deb package to this directory,"
-echo "                                        put . for current directory>"  
+echo "                                        put . for current directory>"
 exit
 }
 
 deb=$2
- 
+
 exist() {
 if [ "$deb" = "" ]; then
 usage
@@ -30,11 +30,11 @@ exist
 type more >/dev/null 2>&1 && pager=more
 type less >/dev/null 2>&1 && pager=less
 [ "$pager" = "" ] && echo "No pager found!" && exit
-(ar -p $deb control.tar.gz | tar -xzO *control ; echo -e "\nPress enter to scroll, q to Quit!\n" ; ar -p $deb data.tar.gz | tar -tzv) | $pager 
+(ar -p $deb control.tar.gz | tar -xzO *control ; echo -e "\nPress enter to scroll, q to Quit!\n" ; ar -p $deb data.tar.gz | tar -tzv) | $pager
 exit
 elif [ "$1" = "-c" ]; then
 exist
-ar -p $deb control.tar.gz | tar -xzO *control  
+ar -p $deb control.tar.gz | tar -xzO *control
 exit
 elif [ "$1" = "-x" ]; then
 exist
@@ -44,7 +44,7 @@ elif [ ! -d "$3" ]; then
 echo "No such directory $3!"
 exit
 fi
-ar -p $deb data.tar.gz | tar -xzvpf - -C $3 || exit 
+ar -p $deb data.tar.gz | tar -xzvpf - -C $3 || exit
 echo
 echo "Extracted $deb to $3!"
 exit

@@ -50,7 +50,7 @@ extern int mknod_main(int argc, char **argv)
 			dev = (bb_xgetularg10_bnd(argv[2], 0, 255) << 8)
 				+ bb_xgetularg10_bnd(argv[3], 0, 255);
 		}
-	
+
 		if (argc == 2) {
 			name = *argv;
 			if (mknod(name, mode, dev) == 0) {

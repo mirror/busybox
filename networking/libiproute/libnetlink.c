@@ -317,7 +317,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 	}
 }
 
-int rtnl_listen(struct rtnl_handle *rtnl, 
+int rtnl_listen(struct rtnl_handle *rtnl,
 	      int (*handler)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 	      void *jarg)
 {
@@ -389,7 +389,7 @@ int rtnl_listen(struct rtnl_handle *rtnl,
 	}
 }
 
-int rtnl_from_file(FILE *rtnl, 
+int rtnl_from_file(FILE *rtnl,
 	      int (*handler)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 	      void *jarg)
 {

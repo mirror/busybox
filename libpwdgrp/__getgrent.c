@@ -1,7 +1,7 @@
 /*
  * __getgrent.c - This file is part of the libc-8086/grp package for ELKS,
  * Copyright (C) 1995, 1996 Nat Friedman <ndf@linux.mit.edu>.
- * 
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -187,7 +187,7 @@ struct group *bb_getgrent(int grp_fd)
 	}
 #else							/* !GR_SCALE_DYNAMIC */
 	free(members);
-	members = (char **) malloc((member_num + 1) * sizeof(char *));   
+	members = (char **) malloc((member_num + 1) * sizeof(char *));
 	for ( ; field_begin && *field_begin != '\0'; field_begin = ptr) {
 	    if ((ptr = strchr(field_begin, ',')) != NULL)
 		*ptr++ = '\0';

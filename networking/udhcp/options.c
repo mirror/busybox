@@ -1,8 +1,8 @@
-/* 
- * options.c -- DHCP server option packet tools 
+/*
+ * options.c -- DHCP server option packet tools
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
- 
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -64,7 +64,7 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 	int i, length;
 	uint8_t *optionptr;
 	int over = 0, done = 0, curr = OPTION_FIELD;
-	
+
 	optionptr = packet->options;
 	i = 0;
 	length = 308;
@@ -79,7 +79,7 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 				return NULL;
 			}
 			return optionptr + i + 2;
-		}			
+		}
 		switch (optionptr[i + OPT_CODE]) {
 		case DHCP_PADDING:
 			i++;
@@ -114,10 +114,10 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 
 
 /* return the position of the 'end' option (no bounds checking) */
-int end_option(uint8_t *optionptr) 
+int end_option(uint8_t *optionptr)
 {
 	int i = 0;
-	
+
 	while (optionptr[i] != DHCP_END) {
 		if (optionptr[i] == DHCP_PADDING) i++;
 		else i += optionptr[i + OPT_LEN] + 2;
@@ -131,7 +131,7 @@ int end_option(uint8_t *optionptr)
 int add_option_string(uint8_t *optionptr, uint8_t *string)
 {
 	int end = end_option(optionptr);
-	
+
 	/* end position + string length + option code/length + end option */
 	if (end + string[OPT_LEN] + 2 + 1 >= 308) {
 		LOG(LOG_ERR, "Option 0x%02x did not fit into the packet!", string[OPT_CODE]);
@@ -162,12 +162,12 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 		if (dhcp_options[i].code == code) {
 			length = option_lengths[dhcp_options[i].flags & TYPE_MASK];
 		}
-		
+
 	if (!length) {
 		DEBUG(LOG_ERR, "Could not add option 0x%02x", code);
 		return 0;
 	}
-	
+
 	option[OPT_CODE] = code;
 	option[OPT_LEN] = length;
 
@@ -202,7 +202,7 @@ void attach_option(struct option_set **opt_list, struct dhcp_option *option, cha
 		DEBUG(LOG_INFO, "Attaching option %s to existing member of list", option->name);
 		if (option->flags & OPTION_LIST) {
 			if (existing->data[OPT_LEN] + length <= 255) {
-				existing->data = realloc(existing->data, 
+				existing->data = realloc(existing->data,
 						existing->data[OPT_LEN] + length + 2);
 				memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
 				existing->data[OPT_LEN] += length;
@@ -210,19 +210,19 @@ void attach_option(struct option_set **opt_list, struct dhcp_option *option, cha
 		} /* else, ignore the new data */
 	} else {
 		DEBUG(LOG_INFO, "Attaching option %s to list", option->name);
-		
+
 		/* make a new option */
 		new = xmalloc(sizeof(struct option_set));
 		new->data = xmalloc(length + 2);
 		new->data[OPT_CODE] = option->code;
 		new->data[OPT_LEN] = length;
 		memcpy(new->data + 2, buffer, length);
-		
+
 		curr = opt_list;
 		while (*curr && (*curr)->data[OPT_CODE] < option->code)
 			curr = &(*curr)->next;
-			
+
 		new->next = *curr;
-		*curr = new;		
+		*curr = new;
 	}
 }

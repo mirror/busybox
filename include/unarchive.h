@@ -37,7 +37,7 @@ typedef struct archive_handle_s {
 
 	/* process the data component, e.g. extract to filesystem */
 	void (*action_data)(struct archive_handle_s *);
-	
+
 	/* How to process any sub archive, e.g. get_header_tar_gz */
 	char (*action_data_subarchive)(struct archive_handle_s *);
 

@@ -13,7 +13,7 @@
  *
  * General cleanup to better adhere to the style guide and make use of standard
  * busybox functions by Glenn McGrath <bug1@optushome.com.au>
- * 
+ *
  * read_gz interface + associated hacking by Laurence Anderson
  *
  * This program is free software; you can redistribute it and/or modify
@@ -148,7 +148,7 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 {
 	while (*current < required) {
 		if (bytebuffer_offset >= bytebuffer_size) {
-			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer 
+			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer
 			 * to the front of the bytebuffer, leave 4 bytes free at end of tail
 			 * so we can easily top up buffer in check_trailer_gzip() */
 			bytebuffer_size = 4 + bb_xread(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8);
@@ -193,7 +193,7 @@ static void make_gunzip_crc_table(void)
 /*
  * Free the malloc'ed tables built by huft_build(), which makes a linked
  * list of the tables it made, with the links in a dummy first entry of
- * each table. 
+ * each table.
  * t: table to free
  */
 static int huft_free(huft_t * t)
@@ -435,9 +435,9 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_b
 		md = mask_bits[bd];
 		return 0; // Don't actually do anything the first time
 	}
-	
+
 	if (resumeCopy) goto do_copy;
-	
+
 	while (1) {			/* do until end of block */
 		b = fill_bitbuffer(b, &k, bl);
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
@@ -533,7 +533,7 @@ do_copy:		do {
 	/* free the decoding tables, return */
 	huft_free(tl);
 	huft_free(td);
-	
+
 	/* done */
 	return 0;
 }
@@ -548,7 +548,7 @@ static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 		w = gunzip_outbuf_count;		/* initialize gunzip_window position */
 		return 0; // Don't do anything first time
 	}
-	
+
 	/* read and output the compressed data */
 	while (n--) {
 		b_stored = fill_bitbuffer(b_stored, &k_stored, 8);
@@ -639,7 +639,7 @@ static int inflate_block(int *e)
 		inflate_stored(n, b_stored, k_stored, 1); // Setup inflate_stored
 		return -1;
 	}
-	case 1:			/* Inflate fixed 
+	case 1:			/* Inflate fixed
 						   * decompress an inflated type 1 (fixed Huffman codes) block.  We should
 						   * either replace this with a custom decoder, or at least precompute the
 						   * Huffman tables.
@@ -682,9 +682,9 @@ static int inflate_block(int *e)
 
 		/* decompress until an end-of-block code */
 		inflate_codes(tl, td, bl, bd, 1); // Setup inflate_codes
-		
+
 		/* huft_free code moved into inflate_codes */
-		
+
 		return -2;
 	}
 	case 2:			/* Inflate dynamic */
@@ -836,7 +836,7 @@ static int inflate_block(int *e)
 		inflate_codes(tl, td, bl, bd, 1); // Setup inflate_codes
 
 		/* huft_free code moved into inflate_codes */
-		
+
 		return -2;
 	}
 	default:
@@ -859,12 +859,12 @@ static int inflate_get_next_window(void)
 	static int method = -1; // Method == -1 for stored, -2 for codes
 	static int e = 0;
 	static int needAnotherBlock = 1;
-	
+
 	gunzip_outbuf_count = 0;
 
 	while(1) {
 		int ret;
-	
+
 		if (needAnotherBlock) {
 			if(e) {
 				calculate_gunzip_crc();
@@ -875,7 +875,7 @@ static int inflate_get_next_window(void)
 			method = inflate_block(&e);
 			needAnotherBlock = 0;
 		}
-	
+
 		switch (method) {
 			case -1:	ret = inflate_stored(0,0,0,0);
 					break;
@@ -920,7 +920,7 @@ extern int inflate_unzip(int in, int out)
 	make_gunzip_crc_table();
 
 	/* Allocate space for buffer */
-	bytebuffer = xmalloc(bytebuffer_max);	
+	bytebuffer = xmalloc(bytebuffer_max);
 
 	while(1) {
 		int ret = inflate_get_next_window();
@@ -977,6 +977,6 @@ extern int inflate_gunzip(int in, int out)
 		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
 		bb_error_msg("Incorrect length");
 	}
-	
+
 	return 0;
 }

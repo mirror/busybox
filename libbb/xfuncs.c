@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ extern char * bb_xstrndup (const char *s, int n) {
 		bb_error_msg_and_die("bb_xstrndup bug");
 
 	t = xmalloc(++n);
-	
+
 	return safe_strncpy(t,s,n);
 }
 #endif
@@ -104,7 +104,7 @@ FILE *bb_xfopen(const char *path, const char *mode)
 extern int bb_xopen(const char *pathname, int flags)
 {
 	int ret;
-	
+
 	ret = open(pathname, flags, 0777);
 	if (ret == -1) {
 		bb_perror_msg_and_die("%s", pathname);
@@ -146,10 +146,10 @@ extern void bb_xread_all(int fd, void *buf, size_t count)
 extern unsigned char bb_xread_char(int fd)
 {
 	char tmp;
-	
+
 	bb_xread_all(fd, &tmp, 1);
 
-	return(tmp);	
+	return(tmp);
 }
 #endif
 

@@ -76,7 +76,7 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	inet_prefix src;
 	int host_len = -1;
 	SPRINT_BUF(b1);
-	
+
 
 	if (n->nlmsg_type != RTM_NEWROUTE && n->nlmsg_type != RTM_DELROUTE) {
 		fprintf(stderr, "Not a route: %08x %08x %08x\n",
@@ -228,7 +228,7 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 		fprintf(fp, "from 0/%u ", r->rtm_src_len);
 	}
 	if (tb[RTA_GATEWAY] && filter.rvia.bitlen != host_len) {
-		fprintf(fp, "via %s ", 
+		fprintf(fp, "via %s ",
 			format_host(r->rtm_family,
 				    RTA_PAYLOAD(tb[RTA_GATEWAY]),
 				    RTA_DATA(tb[RTA_GATEWAY]),
@@ -242,7 +242,7 @@ static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 		/* Do not use format_host(). It is our local addr
 		   and symbolic name will not be useful.
 		 */
-		fprintf(fp, " src %s ", 
+		fprintf(fp, " src %s ",
 			rt_addr_n2a(r->rtm_family,
 				    RTA_PAYLOAD(tb[RTA_PREFSRC]),
 				    RTA_DATA(tb[RTA_PREFSRC]),
@@ -665,7 +665,7 @@ static int iproute_get(int argc, char **argv)
 	req.r.rtm_src_len = 0;
 	req.r.rtm_dst_len = 0;
 	req.r.rtm_tos = 0;
-	
+
 	while (argc > 0) {
 		switch (compare_string_array(options, *argv)) {
 			case 0: /* from */

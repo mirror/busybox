@@ -7615,7 +7615,7 @@ cmdputs(const char *s)
 	int quoted = 0;
 	static const char *const vstype[16] = {
 		nullstr, "}", "-", "+", "?", "=",
-		"%", "%%", "#", "##", nullstr 
+		"%", "%%", "#", "##", nullstr
 	};
 
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);

@@ -6,7 +6,7 @@
  * Changes: Made this a standalone busybox module which uses standalone
  * 					syslog() client interface.
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Copyright (C) 2000 by Karl M. Hegbloom <karlheg@debian.org>
  *
@@ -136,7 +136,7 @@ extern int klogd_main(int argc, char **argv)
 				bb_show_usage();
 			}
 			console_log_level++;
-			
+
 			break;
 		case 'n':
 			doFork = FALSE;

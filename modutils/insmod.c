@@ -2,11 +2,10 @@
 /*
  * Mini insmod implementation for busybox
  *
- * This version of insmod supports x86, ARM, SH3/4/5, powerpc, m68k, 
+ * This version of insmod supports x86, ARM, SH3/4/5, powerpc, m68k,
  * MIPS, and v850e.
  *
- * Copyright (C) 1999,2000 by Lineo, inc. and Erik Andersen
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * and Ron Alder <alder@lineo.com>
  *
  * Miles Bader <miles@gnu.org> added NEC V850E support.
@@ -32,7 +31,7 @@
  *   These blocks should be easy maintain and sync with obj_xxx.c in modutils.
  *
  * Magnus Damm <damm@opensource.se> added PowerPC support 20-Feb-2001.
- *   PowerPC specific code stolen from modutils-2.3.16, 
+ *   PowerPC specific code stolen from modutils-2.3.16,
  *   written by Paul Mackerras, Copyright 1996, 1997 Linux International.
  *   I've only tested the code on mpc8xx platforms in big-endian mode.
  *   Did some cleanup and added CONFIG_USE_xxx_ENTRIES...
@@ -104,7 +103,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 #ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
-#define LOADBITS 0	
+#define LOADBITS 0
 #else
 #define LOADBITS 1
 #endif
@@ -152,7 +151,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #define ELFCLASSM	ELFCLASS32
 #endif
 
-#if defined(__mc68000__) 
+#if defined(__mc68000__)
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 4
 #define CONFIG_USE_SINGLE
@@ -183,7 +182,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #define CONFIG_USE_PLT_ENTRIES
 #define CONFIG_PLT_ENTRY_SIZE 16
 #define CONFIG_USE_PLT_LIST
-#define CONFIG_LIST_ARCHTYPE ElfW(Addr) 
+#define CONFIG_LIST_ARCHTYPE ElfW(Addr)
 #define CONFIG_USE_LIST
 
 #define MATCH_MACHINE(x) (x == EM_PPC)
@@ -282,7 +281,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.112 2004/02/18 10:14:17 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.113 2004/03/15 08:28:47 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -503,7 +502,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.112 2004/02/18 10:14:17 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.113 2004/03/15 08:28:47 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -680,7 +679,7 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 static void arch_create_got (struct obj_file *f);
 
 static int obj_gpl_license(struct obj_file *f, const char **license);
-	
+
 #ifdef CONFIG_FEATURE_2_4_MODULES
 static int arch_init_module (struct obj_file *f, struct new_module *);
 #endif
@@ -888,8 +887,8 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_got;
 
 		case R_ARM_GOTPC:
-			/* relative reloc, always to _GLOBAL_OFFSET_TABLE_ 
-			 * (which is .got) similar to branch, 
+			/* relative reloc, always to _GLOBAL_OFFSET_TABLE_
+			 * (which is .got) similar to branch,
 			 * but is full 32 bits relative */
 
 			assert(got);
@@ -922,7 +921,7 @@ arch_apply_relocation(struct obj_file *f,
 		case R_390_PC16DBL:
 			*(unsigned short *) loc += (v - dot) >> 1;
 			break;
-		case R_390_PC16: 
+		case R_390_PC16:
 			*(unsigned short *) loc += v - dot;
 			break;
 
@@ -933,7 +932,7 @@ arch_apply_relocation(struct obj_file *f,
 			pe = (struct arch_single_entry *) &isym->pltent;
 			assert(pe->allocated);
 			if (pe->inited == 0) {
-				ip = (unsigned long *)(ifile->plt->contents + pe->offset); 
+				ip = (unsigned long *)(ifile->plt->contents + pe->offset);
 				ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
 				ip[1] = 0x100607f1;
 				if (ELF32_R_TYPE(rel->r_info) == R_390_PLT16DBL)
@@ -984,7 +983,7 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 
 #ifndef R_390_GOTOFF32
-#define R_390_GOTOFF32 R_390_GOTOFF 
+#define R_390_GOTOFF32 R_390_GOTOFF
 #endif
 		case R_390_GOTOFF32:
 			assert(got != 0);
@@ -1052,7 +1051,7 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC8:
 			v -= dot;
-			if ((Elf32_Sword)v > 0x7f || 
+			if ((Elf32_Sword)v > 0x7f ||
 					(Elf32_Sword)v < -(Elf32_Sword)0x80) {
 				ret = obj_reloc_overflow;
 			}
@@ -1061,7 +1060,7 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC16:
 			v -= dot;
-			if ((Elf32_Sword)v > 0x7fff || 
+			if ((Elf32_Sword)v > 0x7fff ||
 					(Elf32_Sword)v < -(Elf32_Sword)0x8000) {
 				ret = obj_reloc_overflow;
 			}
@@ -1365,7 +1364,7 @@ bb_use_plt:
 			v -= dot;
 			/* if the target is too far away.... */
 #if defined (__arm__) || defined (__powerpc__)
-			if ((int)v < -0x02000000 || (int)v >= 0x02000000) 
+			if ((int)v < -0x02000000 || (int)v >= 0x02000000)
 #elif defined (__v850e__)
 				if ((Elf32_Sword)v > 0x1fffff || (Elf32_Sword)v < (Elf32_Sword)-0x200000)
 #endif
@@ -1426,7 +1425,7 @@ bb_use_got:
 }
 
 
-#if defined(CONFIG_USE_LIST) 
+#if defined(CONFIG_USE_LIST)
 
 static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 			  int offset, int size)
@@ -1453,7 +1452,7 @@ static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 
 #endif
 
-#if defined(CONFIG_USE_SINGLE) 
+#if defined(CONFIG_USE_SINGLE)
 
 static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
 			     int offset, int size)
@@ -1471,7 +1470,7 @@ static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
 
 #if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
 
-static struct obj_section *arch_xsect_init(struct obj_file *f, char *name, 
+static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
 					   int offset, int size)
 {
 	struct obj_section *myrelsec = obj_find_section(f, name);
@@ -1483,7 +1482,7 @@ static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
 	if (myrelsec) {
 		obj_extend_section(myrelsec, offset);
 	} else {
-		myrelsec = obj_create_alloced_section(f, name, 
+		myrelsec = obj_create_alloced_section(f, name,
 				size, offset);
 		assert(myrelsec);
 	}
@@ -1575,7 +1574,7 @@ static void arch_create_got(struct obj_file *f)
 
 #elif defined(__sh__)
 				case R_SH_GOT32:
-					got_allocate = 1; 
+					got_allocate = 1;
 					break;
 
 				case R_SH_GOTPC:
@@ -1602,7 +1601,7 @@ static void arch_create_got(struct obj_file *f)
 #if defined(CONFIG_USE_GOT_ENTRIES)
 			if (got_allocate) {
 				got_offset += arch_single_init(
-						rel, &intsym->gotent, 
+						rel, &intsym->gotent,
 						got_offset, CONFIG_GOT_ENTRY_SIZE);
 
 				got_needed = 1;
@@ -1610,13 +1609,13 @@ static void arch_create_got(struct obj_file *f)
 #endif
 #if defined(CONFIG_USE_PLT_ENTRIES)
 			if (plt_allocate) {
-#if defined(CONFIG_USE_PLT_LIST) 
+#if defined(CONFIG_USE_PLT_LIST)
 				plt_offset += arch_list_add(
-						rel, &intsym->pltent, 
+						rel, &intsym->pltent,
 						plt_offset, CONFIG_PLT_ENTRY_SIZE);
 #else
 				plt_offset += arch_single_init(
-						rel, &intsym->pltent, 
+						rel, &intsym->pltent,
 						plt_offset, CONFIG_PLT_ENTRY_SIZE);
 #endif
 				plt_needed = 1;
@@ -1954,7 +1953,7 @@ static struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 static void *obj_extend_section(struct obj_section *sec, unsigned long more)
 {
 	unsigned long oldsize = sec->header.sh_size;
-	if (more) { 
+	if (more) {
 		sec->contents = xrealloc(sec->contents, sec->header.sh_size += more);
 	}
 	return sec->contents + oldsize;
@@ -2363,7 +2362,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 				struct obj_symbol *sym;
 				for (sym = f->symtab[i]; sym; sym = sym->next)
 					if (ELFW(ST_BIND) (sym->info) != STB_LOCAL
-							&& sym->secidx <= SHN_HIRESERVE) 
+							&& sym->secidx <= SHN_HIRESERVE)
 					{
 						sym->ksymidx = nsyms++;
 						strsize += strlen(sym->name) + 1;
@@ -2977,7 +2976,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 	tgt_long m_addr;
 
 	sec = obj_find_section(f, ".this");
-	if (!sec || !sec->contents) { 
+	if (!sec || !sec->contents) {
 		bb_perror_msg_and_die("corrupt module %s?",m_name);
 	}
 	module = (struct new_module *) sec->contents;
@@ -3499,7 +3498,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 					sec->contents = NULL;
 					break;
 				}
-#endif			
+#endif
 			case SHT_SYMTAB:
 			case SHT_STRTAB:
 			case SHT_RELM:
@@ -3726,7 +3725,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 #define TAINT_UNSAFE_SMP                (1<<2)
 #define TAINT_URL						"http://www.tux.org/lkml/#export-tainted"
 
-static void set_tainted(struct obj_file *f, int fd, char *m_name, 
+static void set_tainted(struct obj_file *f, int fd, char *m_name,
 		int kernel_has_tainted, int taint, const char *text1, const char *text2)
 {
 	char buf[80];
@@ -3819,7 +3818,7 @@ get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
  * start of some sections.  this info is used by ksymoops to do better
  * debugging.
  */
-static void 
+static void
 add_ksymoops_symbols(struct obj_file *f, const char *filename,
 				 const char *m_name)
 {
@@ -4059,7 +4058,7 @@ extern int insmod_main( int argc, char **argv)
 #ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
 	while ((opt = getopt(argc, argv, "fkqsvxmLo:")) > 0)
 #else
-	while ((opt = getopt(argc, argv, "fkqsvxLo:")) > 0) 
+	while ((opt = getopt(argc, argv, "fkqsvxLo:")) > 0)
 #endif
 		{
 			switch (opt) {

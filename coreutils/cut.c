@@ -3,7 +3,7 @@
  * cut.c - minimalist version of cut
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Mark Whitley <markw@lineo.com>, <markw@codepoet.org>
+ * Written by Mark Whitley <markw@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ static int cmpfunc(const void *a, const void *b)
 
 /*
  * parse_lists() - parses a list and puts values into startpos and endpos.
- * valid list formats: N, N-, N-M, -M 
+ * valid list formats: N, N-, N-M, -M
  * more than one list can be seperated by commas
  */
 static void parse_lists(char *lists)
@@ -96,7 +96,7 @@ static void parse_lists(char *lists)
 			s = strtoul(ntok, &junk, 10);
 			if(*junk != '\0' || s < 0)
 				bb_error_msg_and_die("invalid byte or field list");
-			
+
 			/* account for the fact that arrays are zero based, while the user
 			 * expects the first char on the line to be char # 1 */
 			if (s != 0)
@@ -125,7 +125,7 @@ static void parse_lists(char *lists)
 		/* if there's something left to tokenize, the user past an invalid list */
 		if (ltok)
 			bb_error_msg_and_die("invalid byte or field list");
-		
+
 		/* add the new list */
 		cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
 		cut_lists[nlists-1].startpos = s;
@@ -227,7 +227,7 @@ static void cut_file_by_lines(const char *line, unsigned int linenum)
 {
 	static int c = 0;
 	static int l = -1;
-	
+
 	/* I can't initialize this above cuz the "initializer isn't
 	 * constant" *sigh* */
 	if (l == -1)

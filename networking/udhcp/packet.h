@@ -20,7 +20,7 @@ struct dhcpMessage {
 	uint8_t sname[64];
 	uint8_t file[128];
 	uint32_t cookie;
-	uint8_t options[308]; /* 312 - cookie */ 
+	uint8_t options[308]; /* 312 - cookie */
 };
 
 struct udp_dhcp_packet {

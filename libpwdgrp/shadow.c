@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright 1989 - 1994, Julianne Frances Haugh 
+ * Copyright 1989 - 1994, Julianne Frances Haugh
  *			<jockgrrl@austin.rr.com>, <jfh@austin.ibm.com>
  * All rights reserved.
  *
@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-/* TODO:  fgetspent_r.c  getspent_r.c  getspnam_r.c sgetspent_r.c 
- *		  lckpwdf  ulckpwdf 
+/* TODO:  fgetspent_r.c  getspent_r.c  getspnam_r.c sgetspent_r.c
+ *		  lckpwdf  ulckpwdf
  */
 
 #include <stdio.h>
@@ -267,7 +267,7 @@ struct spwd *fgetspent(FILE *fp)
 
 /*
  * putspent - put a (struct spwd *) into the (FILE *) you provide.
- * 
+ *
  *	this was described in shadow_.h but not implemented, so here
  *	I go.  -beppu
  *
@@ -290,7 +290,7 @@ int putspent(const struct spwd *sp, FILE *fp)
 			sp->sp_min,			/* minimum number of days between changes */
 			sp->sp_max,			/* maximum number of days between changes */
 			sp->sp_warn,		/* number of days of warning before password expires */
-			sp->sp_inact,		/* number of days after password expires until 
+			sp->sp_inact,		/* number of days after password expires until
 								   the account becomes unusable */
 			sp->sp_expire,		/* days since 1/1/70 until account expires */
 			"");

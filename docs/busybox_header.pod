@@ -18,7 +18,7 @@ you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
 tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
 or embedded system.  The utilities in BusyBox generally have fewer options than
 their full-featured GNU cousins; however, the options that are included provide
-the expected functionality and behave very much like their GNU counterparts. 
+the expected functionality and behave very much like their GNU counterparts.
 
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
@@ -37,19 +37,19 @@ For example, entering
 	./ls
 
 will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
-into BusyBox). 
+into BusyBox).
 
 You can also invoke BusyBox by issuing the command as an argument on the
 command line.  For example, entering
 
 	./BusyBox ls
 
-will also cause BusyBox to behave as 'ls'. 
+will also cause BusyBox to behave as 'ls'.
 
 =head1 COMMON OPTIONS
 
 Most BusyBox commands support the B<-h> option to provide a
-terse runtime description of their behavior. 
+terse runtime description of their behavior.
 
 =head1 COMMANDS
 

@@ -56,7 +56,7 @@ int openvt_main(int argc, char **argv)
 		if (setsid() < 0) {
 #endif
 
-			bb_perror_msg_and_die("Unable to set new session");	  
+			bb_perror_msg_and_die("Unable to set new session");	
 		}
 		close(0);			/* so that new vt becomes stdin */
 

@@ -96,12 +96,12 @@ static int xargs_exec(char *const *args)
 					return 124;
 				}
 				if (WIFSTOPPED(status)) {
-					bb_error_msg("%s: stopped by signal %d", 
+					bb_error_msg("%s: stopped by signal %d",
 						args[0], WSTOPSIG(status));
 					return 125;
 				}
 				if (WIFSIGNALED(status)) {
-					bb_error_msg("%s: terminated by signal %d", 
+					bb_error_msg("%s: terminated by signal %d",
 						args[0], WTERMSIG(status));
 					return 125;
 				}
@@ -129,7 +129,7 @@ static int eof_stdin_detected;
 		    || (c) == '\f' || (c) == '\v')
 
 #ifdef CONFIG_FEATURE_XARGS_SUPPORT_QUOTES
-static xlist_t *process_stdin(xlist_t * list_arg, 
+static xlist_t *process_stdin(xlist_t * list_arg,
 	const char *eof_str, size_t mc, char *buf)
 {
 #define NORM      0
@@ -200,7 +200,7 @@ set:
 		}
 		if (state == SPACE) {	/* word's delimiter or EOF detected */
 			if (q) {
-				bb_error_msg_and_die("unmatched %s quote", 
+				bb_error_msg_and_die("unmatched %s quote",
 					q == '\'' ? "single" : "double");
 			}
 			/* word loaded */
@@ -234,7 +234,7 @@ set:
 }
 #else
 /* The variant does not support single quotes, double quotes or backslash */
-static xlist_t *process_stdin(xlist_t * list_arg, 
+static xlist_t *process_stdin(xlist_t * list_arg,
 	const char *eof_str, size_t mc, char *buf)
 {
 
@@ -496,8 +496,8 @@ int xargs_main(int argc, char **argv)
 		read_args = process0_stdin;
 #endif
 
-	while ((list = READ_ARGS(list, eof_str, n_max_chars, max_chars)) != NULL || 
-		(opt & OPT_NO_EMPTY) == 0) 
+	while ((list = READ_ARGS(list, eof_str, n_max_chars, max_chars)) != NULL ||
+		(opt & OPT_NO_EMPTY) == 0)
 	{
 		opt |= OPT_NO_EMPTY;
 		n = 0;
@@ -574,7 +574,7 @@ const char *bb_applet_name = "debug stuff usage";
 
 void bb_show_usage(void)
 {
-	fprintf(stderr, "Usage: %s [-p] [-r] [-t] -[x] [-n max_arg] [-s max_chars]\n", 
+	fprintf(stderr, "Usage: %s [-p] [-r] [-t] -[x] [-n max_arg] [-s max_chars]\n",
 		bb_applet_name);
 	exit(1);
 }

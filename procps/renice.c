@@ -31,17 +31,17 @@
 extern int renice_main(int argc, char **argv)
 {
 	int prio, status = EXIT_SUCCESS;
-	
+
 	if (argc < 3)	bb_show_usage();
-		
+
 	prio = atoi(*++argv);
 	if (prio > 20)		prio = 20;
 	if (prio < -20)		prio = -20;
-	
+
 	while (*++argv) {
 		int ps = atoi(*argv);
 		int oldp = getpriority(PRIO_PROCESS, ps);
-		
+
 		if (setpriority(PRIO_PROCESS, ps, prio) == 0) {
 			printf("%d: old priority %d, new priority %d\n", ps, oldp, prio );
 		} else {

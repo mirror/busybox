@@ -210,7 +210,7 @@ static void tcp_do_one(int lnr, const char *line)
 		snprint_ip_port(local_addr, sizeof(local_addr),
 						(struct sockaddr *) &localaddr, local_port,
 						"tcp", flags&NETSTAT_NUMERIC);
-						
+
 		snprint_ip_port(rem_addr, sizeof(rem_addr),
 						(struct sockaddr *) &remaddr, rem_port,
 						"tcp", flags&NETSTAT_NUMERIC);
@@ -305,7 +305,7 @@ static void udp_do_one(int lnr, const char *line)
 		snprint_ip_port(local_addr, sizeof(local_addr),
 						(struct sockaddr *) &localaddr, local_port,
 						"udp", flags&NETSTAT_NUMERIC);
-						
+
 		snprint_ip_port(rem_addr, sizeof(rem_addr),
 						(struct sockaddr *) &remaddr, rem_port,
 						"udp", flags&NETSTAT_NUMERIC);
@@ -387,7 +387,7 @@ static void raw_do_one(int lnr, const char *line)
 		snprint_ip_port(local_addr, sizeof(local_addr),
 						(struct sockaddr *) &localaddr, local_port,
 						"raw", flags&NETSTAT_NUMERIC);
-						
+
 		snprint_ip_port(rem_addr, sizeof(rem_addr),
 						(struct sockaddr *) &remaddr, rem_port,
 						"raw", flags&NETSTAT_NUMERIC);
@@ -558,7 +558,7 @@ int netstat_main(int argc, char **argv)
 {
 	int opt;
 	int new_flags=0;
-	int showroute = 0, extended = 0; 
+	int showroute = 0, extended = 0;
 #ifdef CONFIG_FEATURE_IPV6
 	int inet=1;
 	int inet6=1;
@@ -600,14 +600,14 @@ int netstat_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	if ( showroute ) {
-#ifdef CONFIG_ROUTE	
+#ifdef CONFIG_ROUTE
 		displayroutes ( flags & NETSTAT_NUMERIC, !extended );
-		return 0; 
+		return 0;
 #else
 		bb_error_msg_and_die( "-r (display routing table) is not compiled in." );
 #endif
-	}	
-		
+	}
+
 	if (new_flags) {
 		flags &= ~(NETSTAT_TCP|NETSTAT_UDP|NETSTAT_RAW|NETSTAT_UNIX);
 		flags |= new_flags;

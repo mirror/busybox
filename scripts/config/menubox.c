@@ -26,7 +26,7 @@
  *
  *    *)  A bugfix for the Page-Down problem
  *
- *    *)  Formerly when I used Page Down and Page Up, the cursor would be set 
+ *    *)  Formerly when I used Page Down and Page Up, the cursor would be set
  *        to the first position in the menu box.  Now lxdialog is a bit
  *        smarter and works more like other menu systems (just have a look at
  *        it).
@@ -225,7 +225,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 
     /*
      * Find length of longest item in order to center menu.
-     * Set 'choice' to default item. 
+     * Set 'choice' to default item.
      */
     item_x = 0;
     for (i = 0; i < item_no; i++) {
@@ -294,7 +294,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 		}
 	}
 
-	if (i < max_choice || 
+	if (i < max_choice ||
             key == KEY_UP || key == KEY_DOWN ||
             key == '-' || key == '+' ||
             key == KEY_PPAGE || key == KEY_NPAGE) {

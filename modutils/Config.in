@@ -45,9 +45,9 @@ config CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	default n
 	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
-	  By adding module symbols to the kernel symbol table, Oops messages 
+	  By adding module symbols to the kernel symbol table, Oops messages
 	  occuring within kernel modules can be properly debugged.  By enabling
-	  this feature, module symbols will always be added to the kernel symbol 
+	  this feature, module symbols will always be added to the kernel symbol
 	  table for properly debugging support.  If you are not interested in
 	  Oops messages from kernel modules, say N.
 
@@ -62,7 +62,7 @@ config CONFIG_FEATURE_INSMOD_LOADINKMEM
 	  being loaded into memory.
 
 config CONFIG_FEATURE_INSMOD_LOAD_MAP
-	bool "  Enable load map (-m) option" 
+	bool "  Enable load map (-m) option"
 	default n
 	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
@@ -78,7 +78,7 @@ config CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL
 	depends on CONFIG_FEATURE_INSMOD_LOAD_MAP
 	help
 	  Without this option, -m will only output section
-	  load map.  With this option, -m will also output 
+	  load map.  With this option, -m will also output
 	  symbols load map.
 
 config CONFIG_LSMOD
@@ -100,7 +100,7 @@ config CONFIG_MODPROBE
 	bool "modprobe"
 	default n
 	help
-	  Handle the loading of modules, and their dependancies on a high 
+	  Handle the loading of modules, and their dependancies on a high
 	  level.
 
 config CONFIG_RMMOD

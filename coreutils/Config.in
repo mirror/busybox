@@ -10,7 +10,7 @@ config CONFIG_BASENAME
 	default n
 	help
 	  basename is used to strip the directory and suffix from filenames,
-	  leaving just the filename itself.  Enable this option if you wish 
+	  leaving just the filename itself.  Enable this option if you wish
 	  to enable the 'basename' utility.
 
 config CONFIG_CAL
@@ -101,7 +101,7 @@ config CONFIG_DD
 	help
 	  dd copies a file (from standard input to standard output,
 	  by default) using specific input and output blocksizes,
-	  while optionally performing conversions on it. 
+	  while optionally performing conversions on it.
 
 config CONFIG_DF
 	bool "df"
@@ -154,7 +154,7 @@ config CONFIG_FEATURE_FANCY_ECHO
 	default y
 	depends on CONFIG_ECHO
 	help
-	  This adds options (-n and -e) to echo. 
+	  This adds options (-n and -e) to echo.
 
 config CONFIG_ENV
 	bool "env"

@@ -63,10 +63,10 @@ mount -o loop,exec rootfs $TARGET_DIR # must be root
 # install uClibc
 mkdir -p $TARGET_DIR/lib
 cd $UCLIBC_DIR
-make INSTALL_DIR= 
+make INSTALL_DIR=
 cp -a libc.so* $BASE_DIR/$TARGET_DIR/lib
 cp -a uClibc*.so $BASE_DIR/$TARGET_DIR/lib
-cp -a ld.so-1/d-link/ld-linux-uclibc.so* $BASE_DIR/$TARGET_DIR/lib 
+cp -a ld.so-1/d-link/ld-linux-uclibc.so* $BASE_DIR/$TARGET_DIR/lib
 cp -a ld.so-1/libdl/libdl.so* $BASE_DIR/$TARGET_DIR/lib
 cp -a crypt/libcrypt.so* $BASE_DIR/$TARGET_DIR/lib
 cd $BASE_DIR

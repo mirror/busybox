@@ -52,7 +52,7 @@
 #define BLKSSZGET  _IO(0x12,104)   /* get block device sector size */
 
 /* Avoid conflicts with the 2.6 kernel headers, which define
- * _IOR rather differently */ 
+ * _IOR rather differently */
 #undef _IOR
 #define _IOR(type,nr,size)      _IOC(_IOC_READ,(type),(nr),sizeof(size))
 #define BLKGETSIZE64 _IOR(0x12,114,uint64_t)
@@ -4279,7 +4279,7 @@ read_int(uint low, uint dflt, uint high, uint base, char *mesg)
 
 		       while (isdigit(*++line_ptr))
 			       use_default = 0;
-	    
+	
 		       switch (*line_ptr) {
 			       case 'c':
 			       case 'C':

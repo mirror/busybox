@@ -63,7 +63,7 @@ struct vlan_ioctl_args {
 		unsigned int flag; /* Matches vlan_dev_info flags */
         } u;
 
-	short vlan_qos;   
+	short vlan_qos;
 };
 
 #define VLAN_GROUP_ARRAY_LEN 4096
@@ -110,7 +110,7 @@ static const char name_types[] = {
 	'_', 'P', 'L', 'U', 'S', '_', 'V', 'I', 'D',
 	0,
 	VLAN_NAME_TYPE_PLUS_VID_NO_PAD, 22,
-	'V', 'L', 'A', 'N', 
+	'V', 'L', 'A', 'N',
 	'_', 'P', 'L', 'U', 'S', '_', 'V', 'I', 'D',
 	'_', 'N', 'O', '_', 'P', 'A', 'D', 0,
 	VLAN_NAME_TYPE_RAW_PLUS_VID, 15,

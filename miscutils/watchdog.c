@@ -67,7 +67,7 @@ extern int watchdog_main(int argc, char **argv)
 	fd = bb_xopen(argv[argc - 1], O_WRONLY);
 
 	while (1) {
-		/* 
+		/*
 		 * Make sure we clear the counter before sleeping, as the counter value
 		 * is undefined at this point -- PFM
 		 */

@@ -49,7 +49,7 @@
  * 01.07.96  - Fixed the v2 fs stuff to use the right #defines and such
  *	       for modern libcs (janl@math.uio.no, Nicolai Langfeldt)
  *
- * 02.07.96  - Added C bit fiddling routines from rmk@ecs.soton.ac.uk 
+ * 02.07.96  - Added C bit fiddling routines from rmk@ecs.soton.ac.uk
  *             (Russell King).  He made them for ARM.  It would seem
  *	       that the ARM is powerful enough to do this in C whereas
  *             i386 and m64k must use assembly to get it fast >:-)
@@ -57,7 +57,7 @@
  *	       (janl@math.uio.no, Nicolai Langfeldt)
  *
  * 04.11.96  - Added minor fixes from Andreas Schwab to avoid compiler
- *             warnings.  Added mc68k bitops from 
+ *             warnings.  Added mc68k bitops from
  *	       Joerg Dorchain <dorchain@mpi-sb.mpg.de>.
  *
  * 06.11.96  - Added v2 code submitted by Joerg Dorchain, but written by
@@ -83,7 +83,7 @@
  *	-f force filesystem check even if filesystem marked as valid
  *
  * The device may be a block device or a image of one, but this isn't
- * enforced (but it's not much fun on a character device :-). 
+ * enforced (but it's not much fun on a character device :-).
  */
 
 #include <stdio.h>
@@ -1312,7 +1312,7 @@ static void free_name_list(void)
 {
 	int i;
 
-	if (name_list) { 
+	if (name_list) {
 		for (i = 0; i < MAX_DEPTH; i++) {
 			free(name_list[i]);
 		}
@@ -1396,7 +1396,7 @@ extern int fsck_minix_main(int argc, char **argv)
 	/*
 	 * Determine whether or not we should continue with the checking.
 	 * This is based on the status of the filesystem valid and error
-	 * flags and whether or not the -f switch was specified on the 
+	 * flags and whether or not the -f switch was specified on the
 	 * command line.
 	 */
 	printf("%s, %s\n", bb_applet_name, program_version);

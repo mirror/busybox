@@ -77,7 +77,7 @@ extern int login_main(int argc, char **argv)
 	int opt_preserve = 0;
 	int opt_fflag = 0;
 	char *opt_host = 0;
-	int alarmstarted = 0;	
+	int alarmstarted = 0;
 #ifdef CONFIG_SELINUX
 	int flask_enabled = is_flask_enabled();
 	security_id_t sid = 0, old_tty_sid, new_tty_sid;
@@ -88,7 +88,7 @@ extern int login_main(int argc, char **argv)
 	signal ( SIGALRM, alarm_handler );
 	alarm ( TIMEOUT );
 	alarmstarted = 1;
-	
+
 	while (( flag = getopt(argc, argv, "f:h:p")) != EOF ) {
 		switch ( flag ) {
 		case 'p':
@@ -104,7 +104,7 @@ extern int login_main(int argc, char **argv)
 
 			if ( !amroot ) 		/* Auth bypass only if real UID is zero */
 				bb_error_msg_and_die ( "-f permission denied" );
-			
+
 			safe_strncpy(username, optarg, USERNAME_SIZE);
 			opt_fflag = 1;
 			break;
@@ -119,7 +119,7 @@ extern int login_main(int argc, char **argv)
 	if (optind < argc)             // user from command line (getty)
 		safe_strncpy(username, argv[optind], USERNAME_SIZE);
 
-	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 )) 
+	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 ))
 		return EXIT_FAILURE;		/* Must be a terminal */
 
 #ifdef CONFIG_FEATURE_U_W_TMP
@@ -136,7 +136,7 @@ extern int login_main(int argc, char **argv)
 	if ( amroot )
 		memset ( utent.ut_host, 0, sizeof utent.ut_host );
 #endif
-	
+
 	if ( opt_host ) {
 #ifdef CONFIG_FEATURE_U_W_TMP
 		safe_strncpy ( utent.ut_host, opt_host, sizeof( utent. ut_host ));
@@ -145,7 +145,7 @@ extern int login_main(int argc, char **argv)
 	}
 	else
 		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s'", tty );
-	
+
 	setpgrp();
 
 	openlog ( "login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH );
@@ -167,14 +167,14 @@ extern int login_main(int argc, char **argv)
 			pw_copy.pw_passwd = "!";
 			opt_fflag = 0;
 			failed = 1;
-		} else 
+		} else
 			pw_copy = *pw;
 
 		pw = &pw_copy;
 
 		if (( pw-> pw_passwd [0] == '!' ) || ( pw-> pw_passwd[0] == '*' ))
 			failed = 1;
-		
+
 		if ( opt_fflag ) {
 			opt_fflag = 0;
 			goto auth_ok;
@@ -192,14 +192,14 @@ extern int login_main(int argc, char **argv)
 			goto auth_ok;
 
 		failed = 1;
-		
+
 auth_ok:
-		if ( !failed) 
+		if ( !failed)
 			break;
 
 		{ // delay next try
 			time_t start, now;
-			
+
 			time ( &start );
 			now = start;
 			while ( difftime ( now, start ) < FAIL_DELAY) {
@@ -215,7 +215,7 @@ auth_ok:
 			return EXIT_FAILURE;
 	}
 	}
-		
+
 	alarm ( 0 );
 	if ( check_nologin ( pw-> pw_uid == 0 ))
 		return EXIT_FAILURE;
@@ -253,15 +253,15 @@ auth_ok:
 		sid = 0;
 #endif
 
-	if ( *tty != '/' ) 
+	if ( *tty != '/' )
 		snprintf ( full_tty, sizeof( full_tty ) - 1, "/dev/%s", tty);
 	else
 		safe_strncpy ( full_tty, tty, sizeof( full_tty ) - 1 );
-	
-	if ( !is_my_tty ( full_tty ))  
+
+	if ( !is_my_tty ( full_tty ))
 		syslog ( LOG_ERR, "unable to determine TTY name, got %s\n", full_tty );
-		
-	/* Try these, but don't complain if they fail 
+
+	/* Try these, but don't complain if they fail
 	 * (for example when the root fs is read only) */
 	chown ( full_tty, pw-> pw_uid, pw-> pw_gid );
 	chmod ( full_tty, 0600 );
@@ -275,14 +275,14 @@ auth_ok:
 	motd ( );
 	signal ( SIGALRM, SIG_DFL );	/* default alarm signal */
 
-	if ( pw-> pw_uid == 0 ) 
+	if ( pw-> pw_uid == 0 )
 		syslog ( LOG_INFO, "root login %s\n", fromhost );
 	run_shell ( tmp, 1, 0, 0
 #ifdef CONFIG_SELINUX
 	, sid
 #endif
 	 );	/* exec the shell finally. */
-	
+
 	return EXIT_FAILURE;
 }
 
@@ -306,7 +306,7 @@ static int login_prompt ( char *buf_name )
 		for ( sp = buf; isspace ( *sp ); sp++ ) { }
 		for ( ep = sp; isgraph ( *ep ); ep++ ) { }
 
-		*ep = 0;		
+		*ep = 0;
 		safe_strncpy(buf_name, sp, USERNAME_SIZE);
 		if(buf_name[0])
 			return 1;
@@ -332,7 +332,7 @@ static int check_nologin ( int amroot )
 		}
 		if ( !amroot )
 			return 1;
-			
+
 		puts ( "\r\n[Disconnect bypassed -- root login allowed.]\r" );
 	}
 	return 0;
@@ -377,7 +377,7 @@ static int is_my_tty ( const char *tty )
 
 	if ( stat ( tty, &by_name ) || fstat ( 0, &by_fd ))
 		return 0;
-		
+
 	if ( by_name. st_rdev != by_fd. st_rdev )
 		return 0;
 	else
@@ -391,8 +391,8 @@ static void motd ( )
 	register int c;
 
 	if (( fp = fopen ( bb_path_motd_file, "r" ))) {
-		while (( c = getc ( fp )) != EOF ) 
-			putchar ( c );		
+		while (( c = getc ( fp )) != EOF )
+			putchar ( c );
 		fclose ( fp );
 	}
 }

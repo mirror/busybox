@@ -136,7 +136,7 @@ extern void if_i_am_not_root(void);
 /*
  * addgroup will take a login_name as its first parameter.
  *
- * gid 
+ * gid
  *
  * can be customized via command-line parameters.
  * ________________________________________________________________________ */
@@ -157,7 +157,7 @@ int addgroup_main(int argc, char **argv)
 	} else {
 		bb_show_usage();
 	}
-	
+
 	if (optind < argc) {
 		user = argv[optind];
 		optind++;

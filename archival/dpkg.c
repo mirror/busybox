@@ -4,7 +4,7 @@
  *
  *  Written By Glenn McGrath with the help of others
  *  Copyright (C) 2001 by Glenn McGrath
- * 		
+ *
  *  Started life as a busybox implementation of udpkg
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -54,7 +54,7 @@
  *    int's and chaos is assured, 16381 is the max prime for 14 bit field
  */
 
-/* NAME_HASH_PRIME, Stores package names and versions, 
+/* NAME_HASH_PRIME, Stores package names and versions,
  * I estimate it should be at least 50% bigger than PACKAGE_HASH_PRIME,
  * as there a lot of duplicate version numbers */
 #define NAME_HASH_PRIME 16381
@@ -150,7 +150,7 @@ void make_hash(const char *key, unsigned int *start, unsigned int *decrement, co
 		 * shift amount is mod 24 because long int is 32 bit and data
 		 * to be shifted is 8, dont want to shift data to where it has
 		 * no effect*/
-		hash_num += ((key[i] + key[i-1]) << ((key[i] * i) % 24)); 
+		hash_num += ((key[i] + key[i-1]) << ((key[i] * i) % 24));
 	}
 	*start = (unsigned int) hash_num % hash_prime;
 	*decrement = (unsigned int) 1 + (hash_num % (hash_prime - 1));
@@ -464,11 +464,11 @@ void add_split_dependencies(common_node_t *parent_node, const char *whole_line, 
 		} else {
 			or_edge = NULL;
 		}
-		
+
 		if ( or_edge ) {
 			or_edge->name = search_name_hashtable(field);
 			or_edge->version = 0; // tracks the number of altenatives
-			
+
 			add_edge_to_node(parent_node, or_edge);
 		}
 
@@ -572,7 +572,7 @@ unsigned int fill_package_struct(char *control_buffer)
 			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement ! */
 		}
 
-		field_num = compare_string_array(field_names, field_name);		
+		field_num = compare_string_array(field_names, field_name);
 		switch(field_num) {
 			case 0: /* Package */
 				new_node->name = search_name_hashtable(field_value);
@@ -697,7 +697,7 @@ const char *describe_status(int status_num) {
 			return "is marked to be removed";
 		if ( status_want == search_name_hashtable("purge") )
 			return "is marked to be purged";
-	} 
+	}
 	if ( status_want ==  search_name_hashtable("unknown") )
 		return "is in an indeterminate state";
 	if ( status_want == search_name_hashtable("install") )
@@ -957,11 +957,11 @@ void write_status_file(deb_file_t **deb_file)
 
 	/* Create a seperate backfile to dpkg */
 	if (rename("/var/lib/dpkg/status", "/var/lib/dpkg/status.udeb.bak") == -1) {
-		struct stat stat_buf;	
+		struct stat stat_buf;
 		if (stat("/var/lib/dpkg/status", &stat_buf) == 0) {
 			bb_error_msg_and_die("Couldnt create backup status file");
 		}
-		/* Its ok if renaming the status file fails becasue status 
+		/* Its ok if renaming the status file fails becasue status
 		 * file doesnt exist, maybe we are starting from scratch */
 		bb_error_msg("No status file found, creating new one");
 	}
@@ -1056,10 +1056,10 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			const edge_t *package_edge = package_node->edge[j];
 
 			if (package_edge->type == EDGE_CONFLICTS) {
-				const unsigned int package_num = 
+				const unsigned int package_num =
 					search_package_hashtable(package_edge->name,
-								 package_edge->version, 
-								 package_edge->operator);	
+								 package_edge->version,
+								 package_edge->operator);
 				int result = 0;
 				if (package_hashtable[package_num] != NULL) {
 					status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
@@ -1078,7 +1078,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			}
 		}
 		i++;
-	}	    
+	}	
 
 
 	/* Check dependendcies */
@@ -1098,7 +1098,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 
 		/* If there is no status then this package is a
 		 * virtual one provided by something else. In which
-		 * case there are no dependencies to check. 
+		 * case there are no dependencies to check.
 		 */
 		if ( status_hashtable[status_num] == NULL ) continue;
 
@@ -1125,7 +1125,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		for (j = 0; j < package_node->num_of_edges; j++) {
 			const edge_t *package_edge = package_node->edge[j];
 			unsigned int package_num;
-			       
+			
 			if ( package_edge->type == EDGE_OR_PRE_DEPENDS ||
 			     package_edge->type == EDGE_OR_DEPENDS ) { 	/* start an EDGE_OR_ list */
 				number_of_alternatives = package_edge->version;
@@ -1147,26 +1147,26 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				 * this edge is the right type.
 				 *
 				 * EDGE_DEPENDS == OR_DEPENDS -1
-				 * EDGE_PRE_DEPENDS == OR_PRE_DEPENDS -1 
+				 * EDGE_PRE_DEPENDS == OR_PRE_DEPENDS -1
 				 */
 				if ( root_of_alternatives && package_edge->type != root_of_alternatives->type - 1)
 					bb_error_msg_and_die("Fatal error. Package dependencies corrupt: %d != %d - 1 \n",
 							     package_edge->type, root_of_alternatives->type);
-				
+
 				if (package_hashtable[package_num] != NULL)
 					result = !package_satisfies_dependency(package_num, package_edge->type);
 
 				if (result) { /* check for other package which provide what we are looking for */
 					int provider = -1;
-					
+
 					while ( (provider = search_for_provides(package_edge->name, provider) ) > -1 ) {
 						if ( package_hashtable[provider] == NULL ) {
 							printf("Have a provider but no package information for it\n");
 							continue;
-						}						
+						}
 						result = !package_satisfies_dependency(provider, package_edge->type);
-						
-						if ( result == 0 ) 
+
+						if ( result == 0 )
 							break;
 					}
 				}
@@ -1176,14 +1176,14 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				if (result && number_of_alternatives == 0) {
 					if ( root_of_alternatives )
 						bb_error_msg_and_die(
-							"Package %s %sdepends on %s, " 
+							"Package %s %sdepends on %s, "
 							"which cannot be satisfied",
 							name_hashtable[package_node->name],
 							package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
 							name_hashtable[root_of_alternatives->name]);
-					else 
+					else
 						bb_error_msg_and_die(
-							"Package %s %sdepends on %s, which %s\n", 
+							"Package %s %sdepends on %s, which %s\n",
 							name_hashtable[package_node->name],
 							package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
 							name_hashtable[package_edge->name],
@@ -1192,7 +1192,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 					/* we've found a package which
 					 * satisfies the dependency,
 					 * so skip over the rest of
-					 * the alternatives. 
+					 * the alternatives.
 					 */
 					j += number_of_alternatives;
 					number_of_alternatives = 0;
@@ -1312,7 +1312,7 @@ char **all_control_list(const char *package_name)
 
 void free_array(char **array)
 {
-	
+
 	if (array) {
 		unsigned short i = 0;
 		while (array[i]) {
@@ -1325,7 +1325,7 @@ void free_array(char **array)
 
 /* This function lists information on the installed packages. It loops through
  * the status_hashtable to retrieve the info. This results in smaller code than
- * scanning the status file. The resulting list, however, is unsorted. 
+ * scanning the status file. The resulting list, however, is unsorted.
  */
 void list_packages(void)
 {
@@ -1333,7 +1333,7 @@ void list_packages(void)
 
 	printf("    Name           Version\n");
 	printf("+++-==============-==============\n");
-	
+
 	/* go through status hash, dereference package hash and finally strings */
 	for (i=0; i<STATUS_HASH_PRIME+1; i++) {
 
@@ -1342,22 +1342,22 @@ void list_packages(void)
 			const char *name_str;  /* package name */
 			const char *vers_str;  /* version */
 			char  s1, s2;          /* status abbreviations */
-			int   spccnt;          /* space count */      
+			int   spccnt;          /* space count */
 			int   j;
-			
+
 			stat_str = name_hashtable[status_hashtable[i]->status];
 			name_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->name];
 			vers_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->version];
-			
+
 			/* get abbreviation for status field 1 */
 			s1 = stat_str[0] == 'i' ? 'i' : 'r';
-			
+
 			/* get abbreviation for status field 2 */
 			for (j=0, spccnt=0; stat_str[j] && spccnt<2; j++) {
 			        if (stat_str[j] == ' ') spccnt++;
 			}
 			s2 = stat_str[j];
-			
+
 			/* print out the line formatted like Debian dpkg */
 			printf("%c%c  %-14s %s\n", s1, s2, name_str, vers_str);
 		}
@@ -1376,7 +1376,7 @@ void remove_package(const unsigned int package_num, int noisy)
 	char conffile_name[package_name_length + 30];
 	int return_value;
 
-	if ( noisy ) 
+	if ( noisy )
 		printf("Removing %s (%s) ...\n", package_name, package_version);
 
 	/* run prerm script */
@@ -1464,12 +1464,12 @@ static archive_handle_t *init_archive_deb_ar(const char *filename)
 {
 	archive_handle_t *ar_handle;
 
-	/* Setup an ar archive handle that refers to the gzip sub archive */	
+	/* Setup an ar archive handle that refers to the gzip sub archive */
 	ar_handle = init_handle();
 	ar_handle->filter = filter_accept_list_reassign;
 	ar_handle->src_fd = bb_xopen(filename, O_RDONLY);
 
-	return(ar_handle);	
+	return(ar_handle);
 }
 
 static void init_archive_deb_control(archive_handle_t *ar_handle)
@@ -1491,7 +1491,7 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 	/* Assign the tar handle as a subarchive of the ar handle */
 	ar_handle->sub_archive = tar_handle;
 
-	return;	
+	return;
 }
 
 static void init_archive_deb_data(archive_handle_t *ar_handle)
@@ -1513,7 +1513,7 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	/* Assign the tar handle as a subarchive of the ar handle */
 	ar_handle->sub_archive = tar_handle;
 
-	return;	
+	return;
 }
 
 static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *myaccept)
@@ -1586,7 +1586,7 @@ static void unpack_package(deb_file_t *deb_file)
 	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
 		bb_error_msg_and_die("subprocess pre-installation script returned error.");
-	}	
+	}
 
 	/* Extract data.tar.gz to the root directory */
 	archive_handle = init_archive_deb_ar(deb_file->filename);
@@ -1598,7 +1598,7 @@ static void unpack_package(deb_file_t *deb_file)
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
-	out_stream = bb_xfopen(info_prefix, "w");			
+	out_stream = bb_xfopen(info_prefix, "w");
 	while (archive_handle->sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
 		fputs(archive_handle->sub_archive->passed->data, out_stream);
@@ -1653,7 +1653,7 @@ int dpkg_main(int argc, char **argv)
 			case 'F': // equivalent to --force in official dpkg
 				if (strcmp(optarg, "depends") == 0) {
 					dpkg_opt |= dpkg_opt_force_ignore_depends;
-				}				
+				}
 				break;
 			case 'i':
 				dpkg_opt |= dpkg_opt_install;
@@ -1691,7 +1691,7 @@ int dpkg_main(int argc, char **argv)
 		list_packages();
 		return(EXIT_SUCCESS);
 	}
-	
+
 	/* Read arguments and store relevant info in structs */
 	while (optind < argc) {
 		/* deb_count = nb_elem - 1 and we need nb_elem + 1 to allocate terminal node [NULL pointer] */

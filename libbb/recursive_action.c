@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,12 +30,12 @@
 
 
 /*
- * Walk down all the directories under the specified 
+ * Walk down all the directories under the specified
  * location, and do something (something specified
  * by the fileAction and dirAction function pointers).
  *
- * Unfortunately, while nftw(3) could replace this and reduce 
- * code size a bit, nftw() wasn't supported before GNU libc 2.1, 
+ * Unfortunately, while nftw(3) could replace this and reduce
+ * code size a bit, nftw() wasn't supported before GNU libc 2.1,
  * and so isn't sufficiently portable to take over since glibc2.1
  * is so stinking huge.
  */

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.55 2003/07/22 08:56:51 andersen Exp $
+ * $Id: ping.c,v 1.56 2004/03/15 08:28:48 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -27,7 +27,7 @@
  *
  * This code is derived from software contributed to Berkeley by
  * Mike Muuss.
- * 
+ *
  * Original copyright notice is retained at the end of this file.
  */
 
@@ -329,7 +329,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		if (dupflag)
 			printf(" (DUP!)");
 		printf("\n");
-	} else 
+	} else
 		if (icmppkt->icmp_type != ICMP_ECHO)
 			bb_error_msg("Warning: Got ICMP %d (%s)",
 					icmppkt->icmp_type, icmp_type_name (icmppkt->icmp_type));
@@ -451,8 +451,8 @@ extern int ping_main(int argc, char **argv)
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
- *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
  *
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software

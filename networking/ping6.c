@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.5 2003/05/22 07:10:22 andersen Exp $
+ * $Id: ping6.c,v 1.6 2004/03/15 08:28:48 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -27,7 +27,7 @@
  *
  * This code is derived from software contributed to Berkeley by
  * Mike Muuss.
- * 
+ *
  * Original copyright notice is retained at the end of this file.
  *
  * This version is an adaptation of ping.c from busybox.
@@ -162,7 +162,7 @@ static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
 # ifdef CONFIG_FEATURE_FANCY_PING
-extern 
+extern
 # endif
 	struct hostent *hostent;
 
@@ -302,12 +302,12 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 			   inet_ntop(AF_INET6, (struct in_addr6 *) &pingaddr.sin6_addr,
 						 buf, sizeof(buf)),
 			   icmppkt->icmp6_seq);
-		printf(" ttl=%d time=%lu.%lu ms", hoplimit, 
+		printf(" ttl=%d time=%lu.%lu ms", hoplimit,
 			   triptime / 10, triptime % 10);
 		if (dupflag)
 			printf(" (DUP!)");
 		printf("\n");
-	} else 
+	} else
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
 			bb_error_msg("Warning: Got ICMP %d (%s)",
 					icmppkt->icmp6_type, icmp6_type_name (icmppkt->icmp6_type));
@@ -494,8 +494,8 @@ extern int ping6_main(int argc, char **argv)
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change 
- *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change> 
+ * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
+ *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
  *
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software

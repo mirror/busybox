@@ -26,7 +26,7 @@
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Rewritten to fix a number of problems and do some size optimizations.
- * Problems in the previous busybox implementation (besides bloat) included: 
+ * Problems in the previous busybox implementation (besides bloat) included:
  *  1) broken 'wc -c' optimization (read note below)
  *  2) broken handling of '-' args
  *  3) no checking of ferror on EOF returns
@@ -110,33 +110,33 @@ int wc_main(int argc, char **argv)
 	char status = EXIT_SUCCESS;
 	char in_word;
 	char print_type;
-		
+
 	print_type = bb_getopt_ulflags(argc, argv, wc_opts);
-	
+
 	if (print_type == 0) {
 		print_type = (1 << WC_LINES) | (1 << WC_WORDS) | (1 << WC_CHARS);
 	}
-	
+
 	argv += optind;
 	if (!*argv) {
 		*--argv = (char *) bb_msg_standard_input;
 	}
-	
+
 	memset(totals, 0, sizeof(totals));
-	
+
 	pcounts = counts;
-	
+
 	do {
 		++num_files;
 		if (!(fp = bb_wfopen_input(*argv))) {
 			status = EXIT_FAILURE;
 			continue;
 		}
-		
+
 		memset(counts, 0, sizeof(counts));
 		linepos = 0;
 		in_word = 0;
-		
+
 		do {
 			++counts[WC_CHARS];
 			c = getc(fp);
@@ -177,21 +177,21 @@ int wc_main(int argc, char **argv)
 			} else {
 				continue;
 			}
-			
+
 			counts[WC_WORDS] += in_word;
 			in_word = 0;
 			if (c == EOF) {
 				break;
 			}
 		} while (1);
-		
+
 		if (totals[WC_LENGTH] < counts[WC_LENGTH]) {
 			totals[WC_LENGTH] = counts[WC_LENGTH];
 		}
 		totals[WC_LENGTH] -= counts[WC_LENGTH];
-		
+
 		bb_fclose_nonstdin(fp);
-		
+
 	OUTPUT:
 		s = fmt_str + 1;			/* Skip the leading space on 1st pass. */
 		u = 0;
@@ -202,16 +202,16 @@ int wc_main(int argc, char **argv)
 			}
 			totals[u] += pcounts[u];
 		} while (++u < 4);
-		
+
 		s += 8;						/* Set the format to the empty string. */
-		
+
 		if (*argv != bb_msg_standard_input) {
 			s -= 3;					/* We have a name, so do %s conversion. */
 		}
 		bb_printf(s, *argv);
-		
+
 	} while (*++argv);
-	
+
 	/* If more than one file was processed, we want the totals.  To save some
 	 * space, we set the pcounts ptr to the totals array.  This has the side
 	 * effect of trashing the totals array after outputting it, but that's
@@ -222,6 +222,6 @@ int wc_main(int argc, char **argv)
 		pcounts = totals;
 		goto OUTPUT;
 	}
-	
+
 	bb_fflush_stdout_and_exit(status);
 }

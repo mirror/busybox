@@ -128,8 +128,8 @@ static int set_qlen(char *dev, int qlen)
 		return -1;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strcpy(ifr.ifr_name, dev); 
-	ifr.ifr_qlen = qlen; 
+	strcpy(ifr.ifr_name, dev);
+	ifr.ifr_qlen = qlen;
 	if (ioctl(s, SIOCSIFTXQLEN, &ifr) < 0) {
 		perror("SIOCSIFXQLEN");
 		close(s);
@@ -137,7 +137,7 @@ static int set_qlen(char *dev, int qlen)
 	}
 	close(s);
 
-	return 0; 
+	return 0;
 }
 
 static int set_mtu(char *dev, int mtu)
@@ -150,8 +150,8 @@ static int set_mtu(char *dev, int mtu)
 		return -1;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strcpy(ifr.ifr_name, dev); 
-	ifr.ifr_mtu = mtu; 
+	strcpy(ifr.ifr_name, dev);
+	ifr.ifr_mtu = mtu;
 	if (ioctl(s, SIOCSIFMTU, &ifr) < 0) {
 		perror("SIOCSIFMTU");
 		close(s);
@@ -159,7 +159,7 @@ static int set_mtu(char *dev, int mtu)
 	}
 	close(s);
 
-	return 0; 
+	return 0;
 }
 
 static int get_address(char *dev, int *htype)
@@ -170,7 +170,7 @@ static int get_address(char *dev, int *htype)
 	int s;
 
 	s = socket(PF_PACKET, SOCK_DGRAM, 0);
-	if (s < 0) { 
+	if (s < 0) {
 		perror("socket(PF_PACKET)");
 		return -1;
 	}
@@ -218,7 +218,7 @@ static int parse_address(char *dev, int hatype, int halen, char *lla, struct ifr
 		bb_error_msg("Wrong address (%s) length: expected %d bytes", lla, halen);
 		return -1;
 	}
-	return 0; 
+	return 0;
 }
 
 static int set_address(struct ifreq *ifr, int brd)
@@ -234,7 +234,7 @@ static int set_address(struct ifreq *ifr, int brd)
 		return -1;
 	}
 	close(s);
-	return 0; 
+	return 0;
 }
 
 
@@ -311,7 +311,7 @@ static int do_set(int argc, char **argv)
 		}
 		if (newbrd) {
 			if (parse_address(dev, htype, halen, newbrd, &ifr1) < 0)
-				return -1; 
+				return -1;
 		}
 	}
 
@@ -320,18 +320,18 @@ static int do_set(int argc, char **argv)
 			return -1;
 		dev = newname;
 	}
-	if (qlen != -1) { 
+	if (qlen != -1) {
 		if (set_qlen(dev, qlen) < 0)
-			return -1; 
+			return -1;
 	}
-	if (mtu != -1) { 
+	if (mtu != -1) {
 		if (set_mtu(dev, mtu) < 0)
-			return -1; 
+			return -1;
 	}
 	if (newaddr || newbrd) {
 		if (newbrd) {
 			if (set_address(&ifr1, 1) < 0)
-				return -1; 
+				return -1;
 		}
 		if (newaddr) {
 			if (set_address(&ifr0, 0) < 0)

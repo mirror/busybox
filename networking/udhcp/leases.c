@@ -1,5 +1,5 @@
-/* 
- * leases.c -- tools to manage DHCP leases 
+/*
+ * leases.c -- tools to manage DHCP leases
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  */
 
@@ -23,9 +23,9 @@ uint8_t blank_chaddr[] = {[0 ... 15] = 0};
 void clear_lease(uint8_t *chaddr, uint32_t yiaddr)
 {
 	unsigned int i, j;
-	
+
 	for (j = 0; j < 16 && !chaddr[j]; j++);
-	
+
 	for (i = 0; i < server_config.max_leases; i++)
 		if ((j != 16 && !memcmp(leases[i].chaddr, chaddr, 16)) ||
 		    (yiaddr && leases[i].yiaddr == yiaddr)) {
@@ -38,18 +38,18 @@ void clear_lease(uint8_t *chaddr, uint32_t yiaddr)
 struct dhcpOfferedAddr *add_lease(uint8_t *chaddr, uint32_t yiaddr, unsigned long lease)
 {
 	struct dhcpOfferedAddr *oldest;
-	
+
 	/* clean out any old ones */
 	clear_lease(chaddr, yiaddr);
-		
+
 	oldest = oldest_expired_lease();
-	
+
 	if (oldest) {
 		memcpy(oldest->chaddr, chaddr, 16);
 		oldest->yiaddr = yiaddr;
 		oldest->expires = time(0) + lease;
 	}
-	
+
 	return oldest;
 }
 
@@ -58,7 +58,7 @@ struct dhcpOfferedAddr *add_lease(uint8_t *chaddr, uint32_t yiaddr, unsigned lon
 int lease_expired(struct dhcpOfferedAddr *lease)
 {
 	return (lease->expires < (unsigned long) time(0));
-}	
+}
 
 
 /* Find the oldest expired lease, NULL if there are no expired leases */
@@ -68,14 +68,14 @@ struct dhcpOfferedAddr *oldest_expired_lease(void)
 	unsigned long oldest_lease = time(0);
 	unsigned int i;
 
-	
+
 	for (i = 0; i < server_config.max_leases; i++)
 		if (oldest_lease > leases[i].expires) {
 			oldest_lease = leases[i].expires;
 			oldest = &(leases[i]);
 		}
 	return oldest;
-		
+
 }
 
 
@@ -86,7 +86,7 @@ struct dhcpOfferedAddr *find_lease_by_chaddr(uint8_t *chaddr)
 
 	for (i = 0; i < server_config.max_leases; i++)
 		if (!memcmp(leases[i].chaddr, chaddr, 16)) return &(leases[i]);
-	
+
 	return NULL;
 }
 
@@ -98,7 +98,7 @@ struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr)
 
 	for (i = 0; i < server_config.max_leases; i++)
 		if (leases[i].yiaddr == yiaddr) return &(leases[i]);
-	
+
 	return NULL;
 }
 
@@ -120,10 +120,10 @@ static int check_ip(uint32_t addr)
 
 /* find an assignable address, it check_expired is true, we check all the expired leases as well.
  * Maybe this should try expired leases by age... */
-uint32_t find_address(int check_expired) 
+uint32_t find_address(int check_expired)
 {
 	uint32_t addr, ret;
-	struct dhcpOfferedAddr *lease = NULL;		
+	struct dhcpOfferedAddr *lease = NULL;
 
 	addr = ntohl(server_config.start); /* addr is in host order here */
 	for (;addr <= ntohl(server_config.end); addr++) {

@@ -54,20 +54,20 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	const char **args;
 	int argno = 1;
 	int additional_args_cnt = 0;
-	
+
 	for ( args = additional_args; args && *args; args++ )
 		additional_args_cnt++;
 
 		args = (const char **) xmalloc (sizeof (char *) * ( 4  + additional_args_cnt ));
-		
+
 	args [0] = bb_get_last_path_component ( bb_xstrdup ( shell ));
-	
+
 	if ( loginshell ) {
 		char *args0;
 		bb_xasprintf ( &args0, "-%s", args [0] );
 		args [0] = args0;
 	}
-    
+
 	if ( command ) {
 		args [argno++] = "-c";
 		args [argno++] = command;

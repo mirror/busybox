@@ -79,10 +79,10 @@ config CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
 	default n
 	depends on CONFIG_LOGREAD
 	help
-	  'logread' ouput to slow serial terminals can have 
+	  'logread' ouput to slow serial terminals can have
 	  side effects on syslog because of the semaphore.
-	  This option make logread to double buffer copy 
-	  from circular buffer, minimizing semaphore 
+	  This option make logread to double buffer copy
+	  from circular buffer, minimizing semaphore
 	  contention at some minor memory expense.
 
 config CONFIG_KLOGD

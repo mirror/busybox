@@ -106,7 +106,7 @@ config CONFIG_MU
 Usage String(s)
 ---------------
 
-Next, add usage information for you applet to include/usage.h. 
+Next, add usage information for you applet to include/usage.h.
 This should look like the following:
 
 	#define mu_trivial_usage \
@@ -126,8 +126,8 @@ currently exist in usage.h.)
 Header Files
 ------------
 
-Next, add an entry to include/applets.h.  Be *sure* to keep the list 
-in alphabetical order, or else it will break the binary-search lookup 
+Next, add an entry to include/applets.h.  Be *sure* to keep the list
+in alphabetical order, or else it will break the binary-search lookup
 algorithm in busybox.c and the Gods of BusyBox smite you. Yea, verily:
 
 	/* all programs above here are alphabetically "less than" 'mu' */
@@ -154,10 +154,10 @@ Adding some text to docs/Configure.help is a nice start.
 The Grand Announcement
 ----------------------
 
-Then create a diff -urN of the files you added (<appletdir/><applet>.c, 
-include/usage.c, include/applets.h, include/config.h, <appletdir>/Makefile.in, <appletdir>/config.in) 
+Then create a diff -urN of the files you added (<appletdir/><applet>.c,
+include/usage.c, include/applets.h, include/config.h, <appletdir>/Makefile.in, <appletdir>/config.in)
 and send it to the mailing list:
-busybox@busybox.net. 
+busybox@busybox.net.
 
 Sending patches as attachments is preferred, but not required.
 

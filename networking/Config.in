@@ -63,7 +63,7 @@ config CONFIG_FEATURE_HTTPD_AUTH_MD5
 	default n
 	depends on CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	help
-	  Enables basic per url authentication from /etc/httpd.conf 
+	  Enables basic per url authentication from /etc/httpd.conf
 	  using md5 passwords.
 
 
@@ -187,7 +187,7 @@ config CONFIG_IFUPDOWN
 config CONFIG_FEATURE_IFUPDOWN_IP
 	bool "  Use ip applet"
 	default n
-	depends on CONFIG_IFUPDOWN 
+	depends on CONFIG_IFUPDOWN
 	help
 	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
 	  than the default of using the older 'ifconfig' and 'route' utilities.
@@ -213,11 +213,11 @@ config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	select CONFIG_IFCONFIG
 	select CONFIG_ROUTE
 	help
-	  Use the busybox iproute "ifconfig" and "route" applets to 
+	  Use the busybox iproute "ifconfig" and "route" applets to
 	  implement the "ifup" and "ifdown" utilities.
 
 	  If leave this disabled, you must install the full-blown ifconfig
-	  and route utilities, or the  "ifup" and "ifdown" applets will not 
+	  and route utilities, or the  "ifup" and "ifdown" applets will not
 	  work.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV4
@@ -339,7 +339,7 @@ if !(CONFIG_IP && CONFIG_IPROUTE)
 		default y
 		depends on CONFIG_IP
 		help
-		  Add support for routing table management to "ip".  
+		  Add support for routing table management to "ip".
 endif
 
 if CONFIG_IP && CONFIG_IPTUNNEL

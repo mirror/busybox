@@ -77,7 +77,7 @@ static int passwd_study(const char *filename, struct passwd *p)
 	if ((p->pw_uid > max) || (p->pw_uid < min))
 		p->pw_uid = min;
 
-	/* stuff to do:  
+	/* stuff to do:
 	 * make sure login isn't taken;
 	 * find free uid and gid;
 	 */
@@ -246,7 +246,7 @@ void if_i_am_not_root(void)
  *
  * home
  * shell
- * gecos 
+ * gecos
  *
  * can be customized via command-line parameters.
  * ________________________________________________________________________ */

@@ -24,7 +24,7 @@
  *
  * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
  * - added Native Language Support
- * 
+ *
  * Modified by Olaf Kirch and Trond Myklebust for new NFS code,
  * plus NFSv3 stuff.
  */
@@ -95,7 +95,7 @@ enum nfs_stat {
 	NFSERR_BADTYPE = 10007,		/*    v3 */
 	NFSERR_JUKEBOX = 10008		/*    v3 */
 };
- 
+
 #define NFS_PROGRAM	100003
 
 
@@ -445,7 +445,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	for (opt = strtok(old_opts, ","); opt; opt = strtok(NULL, ",")) {
 		if ((opteq = strchr(opt, '='))) {
-			val = atoi(opteq + 1);	
+			val = atoi(opteq + 1);
 			*opteq = '\0';
 			if (!strcmp(opt, "rsize"))
 				data.rsize = val;
@@ -515,9 +515,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				val = 0;
 				opt += 2;
 			}
-			if (!strcmp(opt, "bg")) 
+			if (!strcmp(opt, "bg"))
 				bg = val;
-			else if (!strcmp(opt, "fg")) 
+			else if (!strcmp(opt, "fg"))
 				bg = !val;
 			else if (!strcmp(opt, "soft"))
 				soft = val;
@@ -872,7 +872,7 @@ fail:
 	if (fsock != -1)
 		close(fsock);
 	return retval;
-}	
+}
 
 /*
  * We need to translate between nfs status return values and

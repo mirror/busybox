@@ -29,7 +29,7 @@
 
 
 
-/* From <linux/kd.h> */ 
+/* From <linux/kd.h> */
 static const int KDGKBTYPE = 0x4B33;  /* get keyboard type */
 
 

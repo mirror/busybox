@@ -3,7 +3,7 @@
 
 /* uncompress for busybox -- (c) 2002 Robert Griebl
  *
- * based on the original compress42.c source 
+ * based on the original compress42.c source
  * (see disclaimer below)
  */
 

@@ -6,15 +6,15 @@ diff -u -r1.40 AUTHORS
 --- a/AUTHORS	9 Oct 2003 21:19:21 -0000	1.40
 +++ b/AUTHORS	5 Mar 2004 15:45:47 -0000
 @@ -92,6 +92,9 @@
-     Original author of BusyBox in 1995, 1996. Some of his code can 
+     Original author of BusyBox in 1995, 1996. Some of his code can
      still be found hiding here and there...
- 
+
 +John Powers <jpp@ti.com>
 +    Added multicast option (rfc2090) and timeout option (rfc2349) to tftp.
 +
  Tim Riker <Tim@Rikers.org>
      bug fixes, member of fan club
- 
+
 Index: include/usage.h
 ===================================================================
 RCS file: /var/cvs/busybox/include/usage.h,v
@@ -41,7 +41,7 @@ diff -u -r1.191 usage.h
 +#else
 +  #define USAGE_TFTP_DEBUG(a)
 +#endif
- 
+
  #define tftp_trivial_usage \
  	"[OPTION]... HOST [PORT]"
 @@ -2508,6 +2523,16 @@
@@ -71,7 +71,7 @@ diff -u -r1.27 Config.in
 @@ -522,6 +522,13 @@
  	  Add support for the GET command within the TFTP client.  This allows
  	  a client to retrieve a file from a TFTP server.
- 
+
 +config CONFIG_FEATURE_TFTP_MULTICAST
 +	bool "  Enable \"multicast\" option"
 +	default n
@@ -84,7 +84,7 @@ diff -u -r1.27 Config.in
  	default y
 @@ -531,12 +538,19 @@
  	  a client to transfer a file to a TFTP server.
- 
+
  config CONFIG_FEATURE_TFTP_BLOCKSIZE
 -	bool "  Enable \"blocksize\" command"
 +	bool "  Enable \"blksize\" option"
@@ -92,7 +92,7 @@ diff -u -r1.27 Config.in
  	depends on CONFIG_TFTP
  	help
  	  Allow the client to specify the desired block size for transfers.
- 
+
 +config CONFIG_FEATURE_TFTP_TIMEOUT
 +	bool "  Enable \"timeout\" option"
 +	default n
@@ -138,15 +138,15 @@ diff -u -r1.25 tftp.c
  /*                                                                           */
  /* Parts of the code based on:                                               */
 @@ -46,8 +61,20 @@
- 
+
  #include "busybox.h"
- 
+
 +#if defined(CONFIG_FEATURE_TFTP_BLOCKSIZE) || defined(CONFIG_FEATURE_TFTP_MULTICAST) || defined(CONFIG_FEATURE_TFTP_TIMEOUT)
 +  #define TFTP_OPTIONS
 +#endif
 +
  //#define CONFIG_FEATURE_TFTP_DEBUG
- 
+
 +#ifdef CONFIG_FEATURE_TFTP_DEBUG
 +	static void printtime(void);
 +	#define dprintf(fmt...) if (debug) {printtime(); printf(fmt);}
@@ -157,7 +157,7 @@ diff -u -r1.25 tftp.c
 +
  #define TFTP_BLOCKSIZE_DEFAULT 512 /* according to RFC 1350, don't change */
  #define TFTP_TIMEOUT 5             /* seconds */
- 
+
 @@ -68,12 +95,24 @@
  	"Illegal TFTP operation",
  	"Unknown transfer ID",
@@ -168,10 +168,10 @@ diff -u -r1.25 tftp.c
 +	"Unsupported option",
 +#endif
  };
- 
+
  const int tftp_cmd_get = 1;
  const int tftp_cmd_put = 2;
- 
+
 +
 +struct tftp_option {
 +	int multicast;
@@ -182,12 +182,12 @@ diff -u -r1.25 tftp.c
 +
 +
  #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
- 
- static int tftp_blocksize_check(int blocksize, int bufsize)  
+
+ static int tftp_blocksize_check(int blocksize, int bufsize)
 @@ -93,16 +132,158 @@
  	return blocksize;
  }
- 
+
 +#endif
 +
 +#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
@@ -332,15 +332,15 @@ diff -u -r1.25 tftp.c
 +
 +#ifdef TFTP_OPTIONS
 +
- static char *tftp_option_get(char *buf, int len, char *option)  
+ static char *tftp_option_get(char *buf, int len, char *option)
  {
 -        int opt_val = 0;
 +	int opt_val = 0;
  	int opt_found = 0;
  	int k;
--  
+-
 -	while (len > 0) {
- 
+
 +	while (len > 0) {
  	        /* Make sure the options are terminated correctly */
 -
@@ -351,7 +351,7 @@ diff -u -r1.25 tftp.c
  			if (strcasecmp(buf, option) == 0) {
  			        opt_found = 1;
  			}
--		}      
+-		}
 -		else {
 -		        if (opt_found) {
 +		} else {
@@ -361,7 +361,7 @@ diff -u -r1.25 tftp.c
  		}
 @@ -138,7 +318,8 @@
  #endif
- 
+
  static inline int tftp(const int cmd, const struct hostent *host,
 -	const char *remotefile, int localfd, const unsigned short port, int tftp_bufsize)
 +	const char *remotefile, int localfd, const unsigned short port,
@@ -376,7 +376,7 @@ diff -u -r1.25 tftp.c
 -	int timeout = bb_tftp_num_retries;
 +	int retry = bb_tftp_num_retries;
  	unsigned short block_nr = 1;
- 
+
 -#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 -	int want_option_ack = 0;
 +#ifdef CONFIG_FEATURE_TFTP_MULTICAST
@@ -393,21 +393,21 @@ diff -u -r1.25 tftp.c
 +	#define master_client 1
 +    #define ack_oack 0
  #endif
- 
+
  	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
  	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
 -	char *buf=xmalloc(tftp_bufsize + 4);
 +	char *buf=xmalloc(option->blksize + 4);
- 
+
 -	tftp_bufsize += 4;
 +	int tftp_bufsize = option->blksize + 4;
- 
+
  	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
  		bb_perror_msg("socket");
 @@ -183,15 +375,21 @@
  	memcpy(&sa.sin_addr, (struct in_addr *) host->h_addr,
  		   sizeof(sa.sin_addr));
- 
+
 -	/* build opcode */
 -
 -	if (cmd_get) {
@@ -423,48 +423,48 @@ diff -u -r1.25 tftp.c
 +		memset(mcblockmap, 0, bmsize+1);
  	}
 +#endif
- 
+
 -	if (cmd_put) {
 -		opcode = TFTP_WRQ;
 -	}
 +	/* build opcode */
 +
 +	opcode = cmd_get ? TFTP_RRQ : TFTP_WRQ;
- 
+
  	while (1) {
- 
+
 @@ -203,7 +401,7 @@
- 
+
  		cp += 2;
- 
+
 -		/* add filename and mode */
 +		/* First packet of file transfer includes file name, mode, and options */
- 
+
  		if ((cmd_get && (opcode == TFTP_RRQ)) ||
  			(cmd_put && (opcode == TFTP_WRQ))) {
 @@ -223,7 +421,7 @@
  			}
- 
+
  			if (too_long || ((&buf[tftp_bufsize - 1] - cp) < 6)) {
 -				bb_error_msg("too long remote-filename");
 +				bb_error_msg("too long: remote filename");
  				break;
  			}
- 
+
 @@ -238,8 +436,8 @@
- 
+
  			if (len != TFTP_BLOCKSIZE_DEFAULT) {
- 
+
 -			        if ((&buf[tftp_bufsize - 1] - cp) < 15) {
 -				        bb_error_msg("too long remote-filename");
 +				if ((&buf[tftp_bufsize - 1] - cp) < 15) {
 +					bb_error_msg("buffer too small for blksize option");
  					break;
  				}
- 
+
 @@ -249,16 +447,65 @@
  				cp += 8;
- 
+
  				cp += snprintf(cp, 6, "%d", len) + 1;
 +			}
 +#endif
@@ -480,7 +480,7 @@ diff -u -r1.25 tftp.c
 +				}
 +
 +				/* add "multicast" option */
- 
+
 -				want_option_ack = 1;
 +				memcpy(cp, "multicast\0", 11);
 +				cp += 11;
@@ -509,9 +509,9 @@ diff -u -r1.25 tftp.c
 +#endif
 +
  		}
- 
+
  		/* add ack and data */
- 
+
 -		if ((cmd_get && (opcode == TFTP_ACK)) ||
 -			(cmd_put && (opcode == TFTP_DATA))) {
 +#ifdef CONFIG_FEATURE_TFTP_MULTICAST
@@ -528,33 +528,33 @@ diff -u -r1.25 tftp.c
 +#endif
 +		else if ((cmd_get && opcode == TFTP_ACK) ||
 +			(cmd_put && opcode == TFTP_DATA)) {
- 
+
  			*((unsigned short *) cp) = htons(block_nr);
- 
+
 @@ -275,7 +522,7 @@
  				}
- 
+
  				if (len != (tftp_bufsize - 4)) {
 -					finished++;
 +					finished = 1;
  				}
- 
+
  				cp += len;
 @@ -283,82 +530,119 @@
  		}
- 
- 
+
+
 -		/* send packet */
 +		/* send packet and receive reply */
- 
- 
+
+
 -		timeout = bb_tftp_num_retries;  /* re-initialize */
 +		retry = bb_tftp_num_retries;  /* re-initialize */
  		do {
 -
 +			int selectrc;
  			len = cp - buf;
- 
+
 -#ifdef CONFIG_FEATURE_TFTP_DEBUG
 -			fprintf(stderr, "sending %u bytes\n", len);
 -			for (cp = buf; cp < &buf[len]; cp++)
@@ -570,7 +570,7 @@ diff -u -r1.25 tftp.c
 -
 +			/* send packet */
 +			if ((len > 2) && (! option->multicast || master_client || ack_oack)) {
- 
+
 -			if (finished && (opcode == TFTP_ACK)) {
 -				break;
 +#ifdef CONFIG_FEATURE_TFTP_DEBUG
@@ -593,17 +593,17 @@ diff -u -r1.25 tftp.c
 +					break;
 +				}
  			}
- 
+
 -			/* receive packet */
 +			/* receive reply packet */
- 
+
  			memset(&from, 0, sizeof(from));
  			fromlen = sizeof(from);
- 
+
 -			tv.tv_sec = TFTP_TIMEOUT;
 +			tv.tv_sec = option->client_timeout;
  			tv.tv_usec = 0;
- 
+
  			FD_ZERO(&rfds);
  			FD_SET(socketfd, &rfds);
 +			dprintf("set to receive from socketfd (%d)\n", socketfd);
@@ -613,7 +613,7 @@ diff -u -r1.25 tftp.c
 +				dprintf("set to receive from mcfd (%d)\n", mcfd);
 +			}
 +#endif
- 
+
 -			switch (select(FD_SETSIZE, &rfds, NULL, NULL, &tv)) {
 -			case 1:
 -				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
@@ -646,7 +646,7 @@ diff -u -r1.25 tftp.c
 +						}
 +					}
  				}
- 
+
 -				timeout = 0;
 -
 -				if (sa.sin_port == port) {
@@ -677,13 +677,13 @@ diff -u -r1.25 tftp.c
 -				/* discard the packet - treat as timeout */
 -				timeout = bb_tftp_num_retries;
 +#endif
- 
+
 -			case 0:
 +			} else if (selectrc == 0) {
 +				/* Time out */
 +				dprintf("timeout\n");
  				bb_error_msg("timeout");
- 
+
 -				timeout--;
 -				if (timeout == 0) {
 +				retry--;
@@ -700,59 +700,59 @@ diff -u -r1.25 tftp.c
  				bb_perror_msg("select");
  				len = -1;
  			}
- 
+
 -		} while (timeout && (len >= 0));
 +		} while (retry && len >= 0);
- 
+
  		if ((finished) || (len < 0)) {
  			break;
 @@ -370,9 +654,8 @@
  		opcode = ntohs(*((unsigned short *) buf));
  		tmp = ntohs(*((unsigned short *) &buf[2]));
- 
+
 -#ifdef CONFIG_FEATURE_TFTP_DEBUG
 -		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, tmp);
 -#endif
 +		dprintf("received %d bytes: %04x %04x\n", len, opcode, tmp);
 +		dprintf("master_client=%d\n", master_client);
- 
+
  		if (opcode == TFTP_ERROR) {
  			char *msg = NULL;
 @@ -393,55 +676,116 @@
  			break;
  		}
- 
+
 -#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 -		if (want_option_ack) {
 +#ifdef TFTP_OPTIONS
- 
+
 -			 want_option_ack = 0;
 +		if (opcode == TFTP_OACK) {
- 
+
 -		         if (opcode == TFTP_OACK) {
 +			/* server seems to support options */
- 
+
 -			         /* server seems to support options */
 +			char *res;
-+			
++
 +			block_nr = 0;		/* acknowledge option packet with block number 0 */
 +			opcode = cmd_put ? TFTP_DATA : TFTP_ACK;
- 
+
 -			         char *res;
- 
--				 res = tftp_option_get(&buf[2], len-2, 
+
+-				 res = tftp_option_get(&buf[2], len-2,
 -						       "blksize");
 +#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 +			res = tftp_option_get(&buf[2], len-2, "blksize");
- 
+
 -				 if (res) {
 -				         int blksize = atoi(res);
--			     
+-			
 -					 if (tftp_blocksize_check(blksize,
 -							   tftp_bufsize - 4)) {
 +			if (res) {
 +				int blksize = atoi(res);
- 
+
 -					         if (cmd_put) {
 -				                         opcode = TFTP_DATA;
 -						 }
@@ -782,10 +782,10 @@ diff -u -r1.25 tftp.c
 -				 bb_error_msg("bad server option");
 -				 break;
 -			 }
- 
+
 -			 bb_error_msg("warning: blksize not supported by server"
 -				   " - reverting to 512");
- 
+
 -			 tftp_bufsize = TFTP_BLOCKSIZE_DEFAULT + 4;
 +#ifdef CONFIG_FEATURE_TFTP_MULTICAST
 +			res = tftp_option_get(&buf[2], len-2, "multicast");
@@ -837,9 +837,9 @@ diff -u -r1.25 tftp.c
  		}
 +		else
  #endif
- 
+
  		if (cmd_get && (opcode == TFTP_DATA)) {
- 
+
 +#ifdef CONFIG_FEATURE_TFTP_MULTICAST
 +			if (option->multicast) {
 +				int bn = tmp - 1;
@@ -867,35 +867,35 @@ diff -u -r1.25 tftp.c
 +#endif
 +
  			if (tmp == block_nr) {
- 			    
+ 			
  				len = write(localfd, &buf[4], len - 4);
 @@ -452,15 +796,14 @@
  				}
- 
+
  				if (len != (tftp_bufsize - 4)) {
 -					finished++;
 +					finished = 1;
  				}
- 
+
  				opcode = TFTP_ACK;
 -				continue;
  			}
  		}
- 
+
 -		if (cmd_put && (opcode == TFTP_ACK)) {
 +		else if (cmd_put && opcode == TFTP_ACK) {
- 
+
  			if (tmp == (unsigned short)(block_nr - 1)) {
  				if (finished) {
 @@ -468,15 +811,19 @@
  				}
- 
+
  				opcode = TFTP_DATA;
 -				continue;
  			}
  		}
  	}
- 
+
  #ifdef CONFIG_FEATURE_CLEAN_UP
  	close(socketfd);
 +	free(buf);
@@ -904,10 +904,10 @@ diff -u -r1.25 tftp.c
 +	if (mcblockmap != NULL)
 +		free(mcblockmap);
 +#endif
- 
+
 -        free(buf);
  #endif
- 
+
  	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
 @@ -487,13 +834,18 @@
  	struct hostent *host = NULL;
@@ -927,13 +927,13 @@ diff -u -r1.25 tftp.c
 +		.client_timeout	= TFTP_TIMEOUT,
 +		.server_timeout	= TFTP_TIMEOUT,
 +	};
- 
+
  	/* figure out what to pass to getopt */
- 
+
 @@ -515,13 +867,45 @@
- #define PUT 
+ #define PUT
  #endif
- 
+
 -	while ((opt = getopt(argc, argv, BS GET PUT "l:r:")) != -1) {
 +#ifdef CONFIG_FEATURE_TFTP_TIMEOUT
 +#define TO "T:t:"
@@ -994,7 +994,7 @@ diff -u -r1.25 tftp.c
 +			debug = 1;
 +			break;
 +#endif
- 		case 'l': 
+ 		case 'l':
  			localfile = bb_xstrdup(optarg);
  			break;
  		case 'r':
@@ -1004,7 +1004,7 @@ diff -u -r1.25 tftp.c
 +			bb_show_usage();
  		}
  	}
- 
+
  	if ((cmd == 0) || (optind == argc)) {
  		bb_show_usage();
  	}
@@ -1018,7 +1018,7 @@ diff -u -r1.25 tftp.c
 @@ -566,14 +966,12 @@
  	host = xgethostbyname(argv[optind]);
  	port = bb_lookup_port(argv[optind + 1], "udp", 69);
- 
+
 -#ifdef CONFIG_FEATURE_TFTP_DEBUG
 -	fprintf(stderr, "using server \"%s\", remotefile \"%s\", "
 +	dprintf("using server \"%s\", remotefile \"%s\", "
@@ -1026,10 +1026,10 @@ diff -u -r1.25 tftp.c
  		inet_ntoa(*((struct in_addr *) host->h_addr)),
  		remotefile, localfile);
 -#endif
- 
+
 -	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 +	result = tftp(cmd, host, remotefile, fd, port, &option);
- 
+
  #ifdef CONFIG_FEATURE_CLEAN_UP
  	if (!(fd == fileno(stdout) || fd == fileno(stdin))) {
 @@ -582,3 +980,18 @@

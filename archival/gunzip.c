@@ -13,7 +13,7 @@
  *
  * General cleanup to better adhere to the style guide and make use of standard
  * busybox functions by Glenn McGrath <bug1@optushome.com.au>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -153,12 +153,12 @@ extern int gunzip_main(int argc, char **argv)
 		/* do the decompression, and cleanup */
 		if (bb_xread_char(src_fd) == 0x1f) {
 			unsigned char magic2;
-			
+
 			magic2 = bb_xread_char(src_fd);
 #ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 			if (magic2 == 0x9d) {
 				status = uncompress(src_fd, dst_fd);
-			} else 
+			} else
 #endif
 				if (magic2 == 0x8b) {
 					check_header_gzip(src_fd);

@@ -84,12 +84,12 @@ int su_main ( int argc, char **argv )
     }
 
 	/* get user if specified */
-	if ( optind < argc ) 
+	if ( optind < argc )
 		opt_username = argv [optind++];
 
 	if ( optind < argc )
 		opt_args = argv + optind;
-		
+
 #if defined( SYSLOG_SUCCESS ) || defined( SYSLOG_FAILURE )
 #ifdef CONFIG_FEATURE_U_W_TMP
 	/* The utmp entry (via getlogin) is probably the best way to identify
@@ -108,11 +108,11 @@ int su_main ( int argc, char **argv )
 
 	openlog ( bb_applet_name, 0, LOG_AUTH );
 #endif
-		
+
 	pw = getpwnam ( opt_username );
 	if ( !pw )
 		bb_error_msg_and_die ( "user %s does not exist", opt_username );
-		
+
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have
 	   a default shell listed.  */
@@ -145,13 +145,13 @@ int su_main ( int argc, char **argv )
 	if ( !opt_shell )
 		opt_shell = pw->pw_shell;
 
-	change_identity ( pw );	
+	change_identity ( pw );
 	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );
 	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args
 #ifdef CONFIG_SELINUX
 	, 0
 #endif
 	);
-	
+
 	return EXIT_FAILURE;
 }

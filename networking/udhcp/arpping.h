@@ -15,7 +15,7 @@ struct arpMsg {
 	u_char   h_dest[6];			/* destination ether addr */
 	u_char   h_source[6];			/* source ether addr */
 	u_short  h_proto;			/* packet type ID field */
-	
+
 	/* ARP packet */
 	uint16_t htype;				/* hardware type (must be ARPHRD_ETHER) */
 	uint16_t ptype;				/* protocol type (must be ETH_P_IP) */

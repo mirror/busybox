@@ -75,7 +75,7 @@ int loadkmap_main(int argc, char **argv)
 		}
 	}
 
-	/* Don't bother to close files.  Exit does that 
+	/* Don't bother to close files.  Exit does that
 	 * automagically, so we can save a few bytes */
 	/* close(fd); */
 	return EXIT_SUCCESS;

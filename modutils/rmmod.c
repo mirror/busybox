@@ -2,7 +2,7 @@
 /*
  * Mini rmmod implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,10 +46,10 @@ extern int rmmod_main(int argc, char **argv)
 		switch (n) {
 			case 'w':       // --wait
 				flags &= ~O_NONBLOCK;
-				break;  
+				break;
 			case 'f':       // --force
 				flags |= O_TRUNC;
-				break;  
+				break;
 			case 'a':
 				/* Unload _all_ unused modules via NULL delete_module() call */
 				/* until the number of modules does not change */

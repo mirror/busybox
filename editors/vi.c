@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.33 2004/02/06 10:36:08 andersen Exp $";
+	"$Id: vi.c,v 1.34 2004/03/15 08:28:32 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -2548,14 +2548,14 @@ static void place_cursor(int row, int col, int opti)
 	// char cm3[BUFSIZ];
 	int Rrow= last_row;
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
-	
+
 	memset(cm1, '\0', BUFSIZ - 1);  // clear the buffer
 
 	if (row < 0) row = 0;
 	if (row >= rows) row = rows - 1;
 	if (col < 0) col = 0;
 	if (col >= columns) col = columns - 1;
-	
+
 	//----- 1.  Try the standard terminal ESC sequence
 	sprintf((char *) cm1, CMrc, row + 1, col + 1);
 	cm= cm1;
@@ -2565,7 +2565,7 @@ static void place_cursor(int row, int col, int opti)
 	//----- find the minimum # of chars to move cursor -------------
 	//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
 	memset(cm2, '\0', BUFSIZ - 1);  // clear the buffer
-	
+
 	// move to the correct row
 	while (row < Rrow) {
 		// the cursor has to move up
@@ -2577,7 +2577,7 @@ static void place_cursor(int row, int col, int opti)
 		strcat(cm2, CMdown);
 		Rrow++;
 	}
-	
+
 	// now move to the correct column
 	strcat(cm2, "\r");			// start at col 0
 	// just send out orignal source char to get to correct place
@@ -2748,7 +2748,7 @@ static void format_line(Byte *dest, Byte *src, int li)
 {
 	int co;
 	Byte c;
-	
+
 	for (co= 0; co < MAX_SCR_COLS; co++) {
 		c= ' ';		// assume blank
 		if (li > 0 && co == 0) {
@@ -2899,7 +2899,7 @@ static void refresh(int full_screen)
 #else
 	place_cursor(crow, ccol, FALSE);
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
-	
+
 	if (offset != old_offset)
 		old_offset = offset;
 }
@@ -2997,29 +2997,29 @@ key_cmd_mode:
 		//case 0x1d:	// gs
 		//case 0x1e:	// rs
 		//case 0x1f:	// us
-		//case '!':	// !- 
-		//case '#':	// #- 
-		//case '&':	// &- 
-		//case '(':	// (- 
-		//case ')':	// )- 
-		//case '*':	// *- 
-		//case ',':	// ,- 
-		//case '=':	// =- 
-		//case '@':	// @- 
-		//case 'F':	// F- 
-		//case 'K':	// K- 
-		//case 'Q':	// Q- 
-		//case 'S':	// S- 
-		//case 'T':	// T- 
-		//case 'V':	// V- 
-		//case '[':	// [- 
-		//case '\\':	// \- 
-		//case ']':	// ]- 
-		//case '_':	// _- 
-		//case '`':	// `- 
-		//case 'g':	// g- 
+		//case '!':	// !-
+		//case '#':	// #-
+		//case '&':	// &-
+		//case '(':	// (-
+		//case ')':	// )-
+		//case '*':	// *-
+		//case ',':	// ,-
+		//case '=':	// =-
+		//case '@':	// @-
+		//case 'F':	// F-
+		//case 'K':	// K-
+		//case 'Q':	// Q-
+		//case 'S':	// S-
+		//case 'T':	// T-
+		//case 'V':	// V-
+		//case '[':	// [-
+		//case '\\':	// \-
+		//case ']':	// ]-
+		//case '_':	// _-
+		//case '`':	// `-
+		//case 'g':	// g-
 		//case 'u':	// u- FIXME- there is no undo
-		//case 'v':	// v- 
+		//case 'v':	// v-
 	default:			// unrecognised command
 		buf[0] = c;
 		buf[1] = '\0';
@@ -3338,15 +3338,15 @@ key_cmd_mode:
 		break;
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
 	case '0':			// 0- goto begining of line
-	case '1':			// 1- 
-	case '2':			// 2- 
-	case '3':			// 3- 
-	case '4':			// 4- 
-	case '5':			// 5- 
-	case '6':			// 6- 
-	case '7':			// 7- 
-	case '8':			// 8- 
-	case '9':			// 9- 
+	case '1':			// 1-
+	case '2':			// 2-
+	case '3':			// 3-
+	case '4':			// 4-
+	case '5':			// 5-
+	case '6':			// 6-
+	case '7':			// 7-
+	case '8':			// 8-
+	case '9':			// 9-
 		if (c == '0' && cmdcnt < 1) {
 			dot_begin();	// this was a standalone zero
 		} else {

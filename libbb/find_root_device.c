@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ extern char *find_real_root_device_name(const char* name)
 	char *fileName = NULL;
 	dev_t dev;
 
-	if (stat("/", &rootStat) != 0) 
+	if (stat("/", &rootStat) != 0)
 		bb_perror_msg("could not stat '/'");
 	else {
 		/* This check is here in case they pass in /dev name */
@@ -45,7 +45,7 @@ extern char *find_real_root_device_name(const char* name)
 			dev = rootStat.st_dev;
 
 		dir = opendir("/dev");
-		if (!dir) 
+		if (!dir)
 			bb_perror_msg("could not open '/dev'");
 		else {
 			while((entry = readdir(dir)) != NULL) {
@@ -59,9 +59,9 @@ extern char *find_real_root_device_name(const char* name)
 
 				/* Some char devices have the same dev_t as block
 				 * devices, so make sure this is a block device */
-				if (stat(fileName, &statBuf) == 0 && 
+				if (stat(fileName, &statBuf) == 0 &&
 						S_ISBLK(statBuf.st_mode)!=0 &&
-						statBuf.st_rdev == dev) 
+						statBuf.st_rdev == dev)
 					break;
 				free(fileName);
 				fileName=NULL;

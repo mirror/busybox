@@ -6,7 +6,7 @@
 # flush out are those involving preprocessor instructions in
 # utility.c.
 #
-# TODO: some time it might be nice to list absolute and 
+# TODO: some time it might be nice to list absolute and
 # differential object sizes for each option...
 #
 

@@ -75,7 +75,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
- 
+
 #define MAXPACKET       65535   /* max ip packet size */
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN  64

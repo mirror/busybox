@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini tar implementation for busybox 
+ * Mini tar implementation for busybox
  *
  * Modifed to use common extraction code used by ar, cpio, dpkg-deb, dpkg
  *  Glenn McGrath <bug1@optushome.com.au>
@@ -9,7 +9,7 @@
  * ground up.  It still has remnents of the old code lying about, but it is
  * very different now (i.e., cleaner, less global variables, etc.)
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Based in part in the tar implementation in sash
  *  Copyright (c) 1999 by David I. Bell
@@ -111,7 +111,7 @@ struct TarBallInfo {
 						   for the tarball */
 	struct stat statBuf;	/* Stat info for the tarball, letting
 							   us know the inode and device that the
-							   tarball lives, so we can avoid trying 
+							   tarball lives, so we can avoid trying
 							   to include the tarball into itself */
 	int verboseFlag;	/* Whether to print extra stuff or not */
 	const llist_t *excludeList;	/* List of files to not include */
@@ -470,7 +470,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			(void) &include;
 			(void) &errorFlag;
 # endif
- 
+
 		gzipPid = vfork();
 
 		if (gzipPid == 0) {
@@ -616,7 +616,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #endif
 
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-# define TAR_OPT_BZIP2	(1 << (8 + TAR_OPT_FLAG_CREATE)) 
+# define TAR_OPT_BZIP2	(1 << (8 + TAR_OPT_FLAG_CREATE))
 # define TAR_OPT_STR_BZIP2	"j"
 # define TAR_OPT_FLAG_BZIP2	1
 #else
@@ -646,7 +646,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
 # define TAR_OPT_UNCOMPRESS	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + TAR_OPT_FLAG_FROM + TAR_OPT_FLAG_GZIP))
 # define TAR_OPT_STR_COMPRESS	"Z"
-#else 
+#else
 # define TAR_OPT_STR_COMPRESS	""
 #endif
 
@@ -740,7 +740,7 @@ int tar_main(int argc, char **argv)
 		bb_show_usage();
 	}
 	if(ctx_flag & CTX_TEST) {
-		if ((tar_handle->action_header == header_list) || 
+		if ((tar_handle->action_header == header_list) ||
 			(tar_handle->action_header == header_verbose_list)) {
 			tar_handle->action_header = header_verbose_list;
 		} else {
@@ -756,8 +756,8 @@ int tar_main(int argc, char **argv)
 		tar_handle->action_data = data_extract_to_stdout;
 	}
 	if(opt & TAR_OPT_VERBOSE) {
-		if ((tar_handle->action_header == header_list) || 
-			(tar_handle->action_header == header_verbose_list)) 
+		if ((tar_handle->action_header == header_list) ||
+			(tar_handle->action_header == header_verbose_list))
 		{
 		tar_handle->action_header = header_verbose_list;
 		} else {
@@ -860,13 +860,13 @@ int tar_main(int argc, char **argv)
 		}
 # endif /* CONFIG_FEATURE_TAR_BZIP2 */
 
-		if ((tar_handle->action_header == header_list) || 
+		if ((tar_handle->action_header == header_list) ||
 				(tar_handle->action_header == header_verbose_list)) {
 			verboseFlag = TRUE;
 		}
 		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERNCE, tar_handle->accept,
 			tar_handle->reject, gzipFlag);
-	} else 
+	} else
 #endif /* CONFIG_FEATURE_TAR_CREATE */
 	{
 		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);

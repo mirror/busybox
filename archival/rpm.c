@@ -204,12 +204,12 @@ void extract_cpio_gz(int fd) {
 	archive_handle->flags |= ARCHIVE_CREATE_LEADING_DIRS;
 	archive_handle->src_fd = fd;
 	archive_handle->offset = 0;
-	
+
 	bb_xread_all(archive_handle->src_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}
-	check_header_gzip(archive_handle->src_fd);	
+	check_header_gzip(archive_handle->src_fd);
 	chdir("/"); // Install RPM's to root
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);

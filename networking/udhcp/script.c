@@ -1,6 +1,6 @@
 /* script.c
  *
- * Functions to call the DHCP client notification scripts 
+ * Functions to call the DHCP client notification scripts
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
@@ -157,7 +157,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		if (!(over & FILE_FIELD) && packet->file[0]) num_options++;
 		if (!(over & SNAME_FIELD) && packet->sname[0]) num_options++;
 	}
-	
+
 	envp = xcalloc(sizeof(char *), num_options + 5);
 	j = 0;
 	asprintf(&envp[j++], "interface=%s", client_config.interface);
@@ -220,13 +220,13 @@ void run_script(struct dhcpMessage *packet, const char *name)
 		return;
 	} else if (pid == 0) {
 		envp = fill_envp(packet);
-		
+
 		/* close fd's? */
-		
+
 		/* exec script */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
 		LOG(LOG_ERR, "script %s failed: %m", client_config.script);
 		exit(1);
-	}			
+	}
 }

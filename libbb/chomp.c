@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) many different people.  
+ * Copyright (C) many different people.
  * If you wrote this, please acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 void chomp(char *s)
 {
 	char *lc = last_char_is(s, '\n');
-	
+
 	if(lc)
 		*lc = 0;
 }

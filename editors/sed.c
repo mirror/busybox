@@ -209,7 +209,7 @@ static char *copy_parsing_slashn(const char *string, int len)
 /*
  * index_of_next_unescaped_regexp_delim - walks left to right through a string
  * beginning at a specified index and returns the index of the next regular
- * expression delimiter (typically a forward * slash ('/')) not preceeded by 
+ * expression delimiter (typically a forward * slash ('/')) not preceeded by
  * a backslash ('\').
  */
 static int index_of_next_unescaped_regexp_delim(const char delimiter,
@@ -294,7 +294,7 @@ static int get_address(char *my_str, int *linenum, regex_t ** regex)
 		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
 		if (next == -1)
 			bb_error_msg_and_die("unterminated match expression");
-		
+
 		temp=copy_parsing_slashn(pos,next);
 		*regex = (regex_t *) xmalloc(sizeof(regex_t));
 		xregcomp(*regex, temp, REG_NEWLINE);
@@ -372,7 +372,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 			{
 				char *temp;
 				idx+=parse_file_cmd(sed_cmd,substr+idx,&temp);
-				
+
 				break;
 			}
 			/* Ignore case (gnu exension) */

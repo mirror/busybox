@@ -4,7 +4,7 @@
  *
  * busyboxed by Evin Robertson
  * pivot_root syscall stubbed by Erik Andersen, so it will compile
- *     regardless of the kernel being used. 
+ *     regardless of the kernel being used.
  */
 #include <stdlib.h>
 #include <stdio.h>

@@ -35,7 +35,7 @@
  *
  * 30.10.94 - added support for v2 filesystem
  *	      (Andreas Schwab, schwab@issan.informatik.uni-dortmund.de)
- * 
+ *
  * 09.11.94  -	Added test to prevent overwrite of mounted fs adapted
  *		from Theodore Ts'o's (tytso@athena.mit.edu) mke2fs
  *		program.  (Daniel Quinlan, quinlan@yggdrasil.com)
@@ -56,7 +56,7 @@
  *	-v for v2 filesystem
  *
  * The device may be a block device or a image of one, but this isn't
- * enforced (but it's not much fun on a character device :-). 
+ * enforced (but it's not much fun on a character device :-).
  *
  * Modified for BusyBox by Erik Andersen <andersen@debian.org> --
  *	removed getopt based parser and added a hand rolled one.
@@ -702,7 +702,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
 		bb_error_msg_and_die("bad inode size");
 #endif
-	
+
 	/* Parse options */
 	argv++;
 	while (--argc >= 0 && *argv && **argv) {
@@ -755,7 +755,7 @@ extern int mkfs_minix_main(int argc, char **argv)
 								magic = MINIX_SUPER_MAGIC;
 							else if (i == 30)
 								magic = MINIX_SUPER_MAGIC2;
-							else 
+							else
 								bb_show_usage();
 							namelen = i;
 							dirsize = i + 2;

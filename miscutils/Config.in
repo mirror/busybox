@@ -86,11 +86,11 @@ config CONFIG_HDPARM
 	default n
 	help
 	  Get/Set hard drive parameters.  Primarily intended for ATA
-	  drives.  Adds about 13k (or around 30k if you enable the 
+	  drives.  Adds about 13k (or around 30k if you enable the
 	  CONFIG_FEATURE_HDPARM_GET_IDENTITY option)....
 
 config CONFIG_FEATURE_HDPARM_GET_IDENTITY
-	bool "  Support obtaining detailed information directly from drives" 
+	bool "  Support obtaining detailed information directly from drives"
 	default y
 	depends on CONFIG_HDPARM
 	help
@@ -99,7 +99,7 @@ config CONFIG_FEATURE_HDPARM_GET_IDENTITY
 	  feature set.  Enabling this option will add about 16k...
 
 config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-	bool "  Register an IDE interface (DANGEROUS)" 
+	bool "  Register an IDE interface (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -107,7 +107,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-	bool "  Un-register an IDE interface (DANGEROUS)" 
+	bool "  Un-register an IDE interface (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -115,7 +115,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
-	bool "  perform device reset (DANGEROUS)" 
+	bool "  perform device reset (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -123,7 +123,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-	bool "  tristate device for hotswap (DANGEROUS)" 
+	bool "  tristate device for hotswap (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help

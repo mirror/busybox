@@ -23,7 +23,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * 
+ *
  * Original copyright notice is retained at the end of this file.
  */
 
@@ -770,7 +770,7 @@ extern int msh_main(int argc, char **argv)
 					if (--argc > 0)
 						PUSHIO(aword, *++argv, iof = nlchar);
 					break;
-	
+
 				case 'q':
 					qflag = SIG_DFL;
 					break;
@@ -784,7 +784,7 @@ extern int msh_main(int argc, char **argv)
 					setval(prompt, "");
 					iof = linechar;
 					break;
-	
+
 				case 'i':
 					interactive++;
 				default:
@@ -809,7 +809,7 @@ extern int msh_main(int argc, char **argv)
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET 
+#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
 			printf( "\n\n" BB_BANNER " Built-in shell (msh)\n");
 			printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
@@ -838,7 +838,7 @@ extern int msh_main(int argc, char **argv)
 				ap++;
 			}
 		}
-	}	
+	}
 	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
 
 	for (;;) {
@@ -2303,7 +2303,7 @@ int act;
 #if __GNUC__
 	/* Avoid longjmp clobbering */
 	(void) &wp;
-#endif	
+#endif
 
 
 	if (t == NULL)
@@ -2318,7 +2318,7 @@ int act;
 	case TPAREN:
 		rv = execute(t->left, pin, pout, 0);
 		break;
-			
+
 	case TCOM:
 		{
 			int child;
@@ -2395,7 +2395,7 @@ int act;
 		} else {
 			i = -1;
 			while (*wp++ != NULL)
-				;			
+				;
 		}
 		vp = lookup(t->str);
 		while (setjmp(bc.brkpt))
@@ -2497,7 +2497,7 @@ forkexec( register struct op *t, int *pin, int *pout, int act, char **wp, int *p
 	(void) &cp;
 	(void) &resetsig;
 	(void) &owp;
-#endif	
+#endif
 
 	owp = wp;
 	resetsig = 0;
@@ -2532,7 +2532,7 @@ forkexec( register struct op *t, int *pin, int *pout, int act, char **wp, int *p
 		hintr = intr;
 		hbrklist = brklist;
 		hexecflg = execflg;
-	
+
 		i = vfork();
 		if (i != 0) {
                 	/* who wrote this crappy non vfork safe shit? */
@@ -2563,7 +2563,7 @@ forkexec( register struct op *t, int *pin, int *pout, int act, char **wp, int *p
 		(*pforked)++;
 		brklist = 0;
 		execflg = 0;
-	}	
+	}
 	if (owp != NULL)
 		while ((cp = *owp++) != NULL && assign(cp, COPYV))
 			if (shcom == NULL)
@@ -2841,7 +2841,7 @@ char *c, **v, **envp;
 #endif
 	optind = 1;
 	if (find_applet_by_name(name)) {
-		/* We have to exec here since we vforked.  Running 
+		/* We have to exec here since we vforked.  Running
 		 * run_applet_by_name() won't work and bad things
 		 * will happen. */
 		execve("/proc/self/exe", v, envp);
@@ -2964,8 +2964,8 @@ static int dohelp(struct op *t )
 		for (i=0, applet = applets; i < NUM_APPLETS; applet++, i++) {
 			if (!applet->name)
 				continue;
-		
-			col += printf("%s%s", ((col == 0) ? "\t" : " "), 
+
+			col += printf("%s%s", ((col == 0) ? "\t" : " "),
 					applet->name);
 			if (col > 60) {
 				printf("\n");
@@ -3194,7 +3194,7 @@ register struct op *t;
 				if (n == SIGINT)
 					setsig(n, onintr);
 				else
-					setsig(n, n == SIGQUIT ? SIG_IGN 
+					setsig(n, n == SIGQUIT ? SIG_IGN
 							       : SIG_DFL);
 			else
 				setsig(n, SIG_DFL);
@@ -3784,7 +3784,7 @@ int quoted;
 	/* Avoid longjmp clobbering */
 	(void) &cp;
 #endif
-	
+
 	for (cp = e.iop->argp->aword; *cp != '`'; cp++)
 		if (*cp == 0) {
 			err("no closing `");
@@ -3837,7 +3837,7 @@ int quoted;
 					err("unclosed ${\n");
 					return(0);
 				}
-				if (operator) {	
+				if (operator) {
 					src++;
 					while (*src && (*src != '}')) {
 						alt_value[alt_index++] = *src++;
@@ -3875,7 +3875,7 @@ int quoted;
 		}
 	}
 	*dest = '\0';
-	
+
 	if (openpipe(pf) < 0)
 		return(0);
 	while ((i = vfork()) == -1 && errno == EAGAIN)
@@ -3897,7 +3897,7 @@ int quoted;
 	for (j=0; j<=_NSIG; j++)
 		if (ourtrap[j] && signal(j, SIG_IGN) != SIG_IGN)
 			signal(j, SIG_DFL);
-	
+
 	dup2(pf[1], 1);
 	closepipe(pf);
 
@@ -4121,7 +4121,7 @@ register struct wdblock *wb;
 	wb->w_words[wb->w_nword++] = wd;
 	return(wb);
 }
-static 
+static
 char **
 getwords(wb)
 register struct wdblock *wb;
@@ -4557,7 +4557,7 @@ register struct ioarg *ap;
 	    c = mycommand[position];
 	    position++;
 	    return(c);
-	} else 
+	} else
 #endif
 	{
 		i = safe_read(ap->afile, &c, sizeof(c));
@@ -4858,7 +4858,7 @@ int xdoll;
 		char c;
 		char tname[30] = ".msh_XXXXXX";
 		jmp_buf ev;
-	
+
 		tf = mkstemp(tname);
 		if (tf < 0)
 			return (-1);
@@ -4917,24 +4917,24 @@ int area;
 /*
  * Copyright (c) 1987,1997, Prentice Hall
  * All rights reserved.
- * 
+ *
  * Redistribution and use of the MINIX operating system in source and
  * binary forms, with or without modification, are permitted provided
  * that the following conditions are met:
- * 
+ *
  * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * Redistributions in binary form must reproduce the above
  * copyright notice, this list of conditions and the following
  * disclaimer in the documentation and/or other materials provided
  * with the distribution.
- * 
+ *
  * Neither the name of Prentice Hall nor the names of the software
  * authors or contributors may be used to endorse or promote
  * products derived from this software without specific prior
  * written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND
  * CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF

@@ -52,13 +52,13 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 {
 	if ( loginshell ) {
 		const char *term;
-	
+
 		/* Change the current working directory to be the home directory
 		 * of the user.  It is a fatal error for this process to be unable
 		 * to change to that directory.  There is no "default" home
 		 * directory.
 		 * Some systems default to HOME=/
-		 */		 
+		 */		
 		if ( chdir ( pw-> pw_dir )) {
 			if ( chdir ( "/" )) {
 				syslog ( LOG_WARNING, "unable to cd to %s' for user %s'\n", pw-> pw_dir, pw-> pw_name );

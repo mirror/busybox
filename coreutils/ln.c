@@ -2,7 +2,7 @@
 /*
  * Mini ln implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,14 +88,14 @@ extern int ln_main(int argc, char **argv)
 		if (flag & LN_SYMLINK) {
 			link_func = symlink;
 		}
-		
+
 		if (link_func(*argv, src) != 0) {
 			bb_perror_msg(src);
 			status = EXIT_FAILURE;
 		}
 
 		free(src_name);
-		
+
 	} while ((++argv)[1]);
 
 	return status;

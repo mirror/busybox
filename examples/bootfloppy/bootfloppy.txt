@@ -38,13 +38,13 @@ Making a Root File System
 The following steps will create a root file system.
 
  - Create an empty file that you can format as a filesystem:
- 
+
 	dd if=/dev/zero of=rootfs bs=1k count=4000
 
  - Set up the rootfs file we just created to be used as a loop device (may not
-   be necessary) 
+   be necessary)
 
-	losetup /dev/loop0 rootfs 
+	losetup /dev/loop0 rootfs
 
  - Format the rootfs file with a filesystem:
 
@@ -101,15 +101,15 @@ The following steps will create the boot floppy.
 Note: You will need to have the mtools package installed beforehand.
 
  - Insert a floppy in the drive and format it with an MSDOS filesystem:
- 
+
 	mformat a:
 
 	(if the system doesn't know what device 'a:' is, look at /etc/mtools.conf)
 
  - Run syslinux on the floppy:
- 
+
 	syslinux -s /dev/fd0
-	
+
 	(the -s stands for "safe, slow, and stupid" and should work better with
 	buggy BIOSes; it can be omitted)
 

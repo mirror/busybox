@@ -423,7 +423,7 @@ static void parse_config_file(void)
 				}
 
 				/* Now get the the user/group info. */
-		 
+		
 				s = (char *) bb_skip_whitespace(e);
 
 				/* Note: We require whitespace between the mode and the

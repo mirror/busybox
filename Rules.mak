@@ -1,6 +1,6 @@
 # Rules.make for busybox
 #
-# Copyright (C) 2001-2003 Erik Andersen <andersen@codepoet.org>
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,14 +52,14 @@ TARGET_OS=linux
 HOSTCC    = gcc
 HOSTCFLAGS= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
-# Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc. 
+# Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc.
 LC_ALL:= C
 
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATION.
 CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
- 
+
 # If you have a "pristine" source directory, point BB_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
 # <busybox@busybox.net> if you do or don't like it so far.
@@ -137,7 +137,7 @@ OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer
 # by itself, instead of following it by the same half-dozen overrides
 # every time.  The stuff below, on the other hand, is probably less
 # prone to casual user adjustment.
-# 
+#
 
 ifeq ($(strip $(CONFIG_LFS)),y)
     # For large file summit support

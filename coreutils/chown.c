@@ -2,7 +2,7 @@
 /*
  * Mini chown implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,10 +84,10 @@ int chown_main(int argc, char **argv)
 	uid = get_ug_id(*argv, my_getpwnam);
 
 	++argv;
-	
+
 	/* Ok, ready to do the deed now */
 	do {
-		if (! recursive_action (*argv, (flags & FLAG_R), FALSE, FALSE, 
+		if (! recursive_action (*argv, (flags & FLAG_R), FALSE, FALSE,
 								fileAction, fileAction, NULL)) {
 			retval = EXIT_FAILURE;
 		}

@@ -11,7 +11,7 @@ void bb_xasprintf(char **string_ptr, const char *format, ...)
 {
 	va_list p;
 	int r;
-	
+
 	va_start(p, format);
 	r = vasprintf(string_ptr, format, p);
 	va_end(p);

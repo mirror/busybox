@@ -55,7 +55,7 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 		ifr.ifr_addr.sa_family = AF_INET;
 		strcpy(ifr.ifr_name, interface);
 
-		if (addr) { 
+		if (addr) {
 			if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
 				our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
 				*addr = our_ip->sin_addr.s_addr;
@@ -65,7 +65,7 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 				return -1;
 			}
 		}
-		
+
 		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
 			DEBUG(LOG_INFO, "adapter index %d", ifr.ifr_ifindex);
 			*ifindex = ifr.ifr_ifindex;
@@ -102,7 +102,7 @@ int listen_socket(uint32_t ip, int port, char *inf)
 		DEBUG(LOG_ERR, "socket call failed: %m");
 		return -1;
 	}
-	
+
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
@@ -127,6 +127,6 @@ int listen_socket(uint32_t ip, int port, char *inf)
 		close(fd);
 		return -1;
 	}
-	
+
 	return fd;
 }

@@ -3,7 +3,7 @@
  * Mini init implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Adjusted by so many folks, it's impossible to keep track.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
  *
  */
 
-/* Turn this on to disable all the dangerous 
+/* Turn this on to disable all the dangerous
    rebooting stuff when debugging.
 #define DEBUG_INIT
 */
@@ -97,7 +97,7 @@ struct serial_struct {
 
 #if defined CONFIG_FEATURE_INIT_COREDUMPS
 /*
- * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called 
+ * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called
  * before processes are spawned to set core file size as unlimited.
  * This is for debugging only.  Don't use this is production, unless
  * you want core dumps lying about....
@@ -351,7 +351,7 @@ static void console_init(void)
 	if ((s = getenv("CONSOLE")) != NULL || (s = getenv("console")) != NULL) {
 		safe_strncpy(console, s, sizeof(console));
 #if #cpu(sparc)
-	/* sparc kernel supports console=tty[ab] parameter which is also 
+	/* sparc kernel supports console=tty[ab] parameter which is also
 	 * passed to init, so catch it here */
 		/* remap tty[ab] to /dev/ttyS[01] */
 		if (strcmp(s, "ttya") == 0)
@@ -555,8 +555,8 @@ static pid_t run(const struct init_action *a)
 
 		/*
 		   Interactive shells want to see a dash in argv[0].  This
-		   typically is handled by login, argv will be setup this 
-		   way if a dash appears at the front of the command path 
+		   typically is handled by login, argv will be setup this
+		   way if a dash appears at the front of the command path
 		   (like "-/bin/sh").
 		 */
 
@@ -585,7 +585,7 @@ static pid_t run(const struct init_action *a)
 			 * before the user wants it. This is critical if swap is not
 			 * enabled and the system has low memory. Generally this will
 			 * be run on the second virtual console, and the first will
-			 * be allowed to start a shell or whatever an init script 
+			 * be allowed to start a shell or whatever an init script
 			 * specifies.
 			 */
 			messageD(LOG, "Waiting for enter to start '%s'"
@@ -610,7 +610,7 @@ static pid_t run(const struct init_action *a)
 		}
 #endif
 
-		/* Now run it.  The new program will take over this PID, 
+		/* Now run it.  The new program will take over this PID,
 		 * so nothing further in init.c should be run. */
 		execv(cmdpath, cmd);
 
@@ -672,7 +672,7 @@ static void init_reboot(unsigned long magic)
 {
 	pid_t pid;
 	/* We have to fork here, since the kernel calls do_exit(0) in
-	 * linux/kernel/sys.c, which can cause the machine to panic when 
+	 * linux/kernel/sys.c, which can cause the machine to panic when
 	 * the init process is killed.... */
 	if ((pid = fork()) == 0) {
 		reboot(magic);
@@ -866,7 +866,7 @@ static void new_init_action(int action, const char *command, const char *cons)
 	/* Append to the end of the list */
 	for (a = init_action_list; a && a->next; a = a->next) {
 		/* don't enter action if it's already in the list */
-		if ((strcmp(a->command, command) == 0) && 
+		if ((strcmp(a->command, command) == 0) &&
 		    (strcmp(a->terminal, cons) ==0)) {
 			free(new_action);
 			return;
@@ -934,9 +934,9 @@ static void check_memory(void)
 
 /* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
- * actions(i.e., runs INIT_SCRIPT and then starts a pair 
- * of "askfirst" shells).  If CONFIG_FEATURE_USE_INITTAB 
- * _is_ defined, but /etc/inittab is missing, this 
+ * actions(i.e., runs INIT_SCRIPT and then starts a pair
+ * of "askfirst" shells).  If CONFIG_FEATURE_USE_INITTAB
+ * _is_ defined, but /etc/inittab is missing, this
  * results in the same set of default behaviors.
  */
 static void parse_inittab(void)
@@ -1053,7 +1053,7 @@ static void reload_signal(int sig)
 	run_actions(RESPAWN);
         return;
 }
-                                                                                
+                                                            
 extern int init_main(int argc, char **argv)
 {
 	struct init_action *a;
@@ -1083,7 +1083,7 @@ extern int init_main(int argc, char **argv)
 	signal(SIGSTOP, stop_handler);
 	signal(SIGTSTP, stop_handler);
 
-	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
+	/* Turn off rebooting via CTL-ALT-DEL -- we get a
 	 * SIGINT on CAD so we can shut things down gracefully... */
 	init_reboot(RB_DISABLE_CAD);
 #endif
@@ -1125,7 +1125,7 @@ extern int init_main(int argc, char **argv)
 
 		/* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
 		 * then parse_inittab() simply adds in some default
-		 * actions(i.e., runs INIT_SCRIPT and then starts a pair 
+		 * actions(i.e., runs INIT_SCRIPT and then starts a pair
 		 * of "askfirst" shells */
 		parse_inittab();
 	}

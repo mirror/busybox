@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) many different people.  
+ * Copyright (C) many different people.
  * If you wrote this, please acknowledge your work.
  *
  * This program is free software; you can redistribute it and/or modify

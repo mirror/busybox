@@ -248,8 +248,8 @@ static void rewrite(FS * fs)
 			pr->cchar = pr->fmt + (p1 - fmtp);
 
 			/* DBU:[dave@cray.com] w/o this, trailing fmt text, space is lost.
-			 * Skip subsequent text and up to the next % sign and tack the 
-			 * additional text onto fmt: eg. if fmt is "%x is a HEX number", 
+			 * Skip subsequent text and up to the next % sign and tack the
+			 * additional text onto fmt: eg. if fmt is "%x is a HEX number",
 			 * we lose the " is a HEX number" part of fmt.
 			 */
 			for (p3 = p2; *p3 && *p3 != '%'; p3++);

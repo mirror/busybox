@@ -29,7 +29,7 @@
 #include "libbb.h"
 
 #ifdef L_xgetularg_bnd_sfx
-extern 
+extern
 unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 								   unsigned long lower,
 								   unsigned long upper,
@@ -61,7 +61,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 		bb_show_usage();
 	}
 	errno = old_errno;	/* Ok.  So restore errno. */
-	
+
 	/* Do optional suffix parsing.  Allow 'empty' suffix tables.
 	 * Note that we also all nul suffixes with associated multipliers,
 	 * to allow for scaling of the arg by some default multiplier. */
@@ -78,7 +78,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
  			}
 			++suffixes;
 		}
-	}		
+	}
 
 	/* Finally, check for illegal trailing chars and range limits. */
 	/* Note: although we allow leading space (via stroul), trailing space
@@ -92,7 +92,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 #endif
 
 #ifdef L_xgetlarg_bnd_sfx
-extern 
+extern
 long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 						 long lower,
 						 long upper,
@@ -124,7 +124,7 @@ long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 #endif
 
 #ifdef L_getlarg10_sfx
-extern 
+extern
 long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes)
 {
 	return bb_xgetlarg_bnd_sfx(arg, 10, LONG_MIN, LONG_MAX, suffixes);
@@ -132,7 +132,7 @@ long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes)
 #endif
 
 #ifdef L_xgetularg_bnd
-extern 
+extern
 unsigned long bb_xgetularg_bnd(const char *arg, int base,
 							   unsigned long lower,
 							   unsigned long upper)
@@ -142,7 +142,7 @@ unsigned long bb_xgetularg_bnd(const char *arg, int base,
 #endif
 
 #ifdef L_xgetularg10_bnd
-extern 
+extern
 unsigned long bb_xgetularg10_bnd(const char *arg,
 								 unsigned long lower,
 								 unsigned long upper)
@@ -152,7 +152,7 @@ unsigned long bb_xgetularg10_bnd(const char *arg,
 #endif
 
 #ifdef L_xgetularg10
-extern 
+extern
 unsigned long bb_xgetularg10(const char *arg)
 {
 	return bb_xgetularg10_bnd(arg, 0, ULONG_MAX);

@@ -1,10 +1,10 @@
-1) Run 'make config' or 'make menuconfig' and select the 
+1) Run 'make config' or 'make menuconfig' and select the
    functionality that you wish to enable.
 
 2) Run 'make dep'
 
-3) Check the Makefile for any Makefile setting you wish 
-    to adjust for your system (things like like setting 
+3) Check the Makefile for any Makefile setting you wish
+    to adjust for your system (things like like setting
     your cross compiler, adjusting optimizations, etc)
 
 4) Run 'make'

@@ -2,7 +2,7 @@
 /*
  * Mini reset implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Written by Erik Andersen and Kent Robotti <robotti@metconnect.com>
  *
  * This program is free software; you can redistribute it and/or modify

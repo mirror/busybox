@@ -25,8 +25,8 @@
  *		interface - interface to use
  * retn: 	1 addr free
  *		0 addr used
- *		-1 error 
- */  
+ *		-1 error
+ */
 
 /* FIXME: match response against chaddr */
 int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
@@ -51,7 +51,7 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 #endif
 		return -1;
 	}
-	
+
 	if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
 		LOG(LOG_ERR, "Could not setsocketopt on raw socket");
 		close(s);
@@ -71,12 +71,12 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 	memcpy(arp.sInaddr, &ip, sizeof(ip));		/* source IP address */
 	memcpy(arp.sHaddr, mac, 6);			/* source hardware address */
 	memcpy(arp.tInaddr, &yiaddr, sizeof(yiaddr));	/* target IP address */
-	
+
 	memset(&addr, 0, sizeof(addr));
 	strcpy(addr.sa_data, interface);
 	if (sendto(s, &arp, sizeof(arp), 0, &addr, sizeof(addr)) < 0)
 		rv = 0;
-	
+
 	/* wait arp reply, and check it */
 	tm.tv_usec = 0;
 	time(&prevTime);
@@ -89,8 +89,8 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 			if (errno != EINTR) rv = 0;
 		} else if (FD_ISSET(s, &fdset)) {
 			if (recv(s, &arp, sizeof(arp), 0) < 0 ) rv = 0;
-			if (arp.operation == htons(ARPOP_REPLY) && 
-			    bcmp(arp.tHaddr, mac, 6) == 0 && 
+			if (arp.operation == htons(ARPOP_REPLY) &&
+			    bcmp(arp.tHaddr, mac, 6) == 0 &&
 			    *((uint32_t *) arp.sInaddr) == yiaddr) {
 				DEBUG(LOG_INFO, "Valid arp reply receved for this address");
 				rv = 0;
@@ -101,6 +101,6 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 		time(&prevTime);
 	}
 	close(s);
-	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");	 
+	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");	
 	return rv;
 }

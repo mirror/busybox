@@ -55,7 +55,7 @@ static inline void sanitize_fds(void)
 void background(const char *pidfile)
 {
 #ifdef __uClinux__
-	LOG(LOG_ERR, "Cannot background in uclinux (yet)");	
+	LOG(LOG_ERR, "Cannot background in uclinux (yet)");
 #else /* __uClinux__ */
 	int pid_fd;
 

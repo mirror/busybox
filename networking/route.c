@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.24 2004/03/10 07:42:38 mjn3 Exp $
+ * $Id: route.c,v 1.25 2004/03/15 08:28:49 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -107,7 +107,7 @@ static const char tbl_hash_net_host[] =
 #define KW_IPVx_DYN			042
 #define KW_IPVx_REINSTATE	043
 
-static const char tbl_ipvx[] = 
+static const char tbl_ipvx[] =
 	/* 020 is the "takes an arg" bit */
 #if HAVE_NEW_ADDRT
 	"\011\020metric\0"
@@ -206,7 +206,7 @@ static void INET_setroute(int action, char **args)
 	while (*args) {
 		int k = kw_lookup(tbl_ipvx, &args);
 		const char *args_m1 = args[-1];
-		
+
 		if (k & KW_IPVx_FLAG_ONLY) {
 			rt.rt_flags |= flags_ipvx[k & 3];
 			continue;
@@ -666,7 +666,7 @@ int route_main(int argc, char **argv)
 				p[0][0] = '#';
 			}
 		}
-	}	
+	}
 
 	opt = bb_getopt_ulflags(argc, argv, "A:ne", &family);
 

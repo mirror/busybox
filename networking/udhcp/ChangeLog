@@ -39,7 +39,7 @@
   (Ted Lemon <Ted.Lemon@nominum.com>)
 + Improved (hopefully) NAKing behavior (me)
 + Added -b option (Jouni Malinen)
-+ Compute checksums correctly on big endian hosts 
++ Compute checksums correctly on big endian hosts
   (Jouni Malinen <jkmaline@cc.hut.fi>)
 
 0.9.7 (020526)

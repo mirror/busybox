@@ -64,7 +64,7 @@ Description: Tiny utilities for the debian-installer
  counterparts.
  .
  busybox-udeb is used by the debian-installer, so unless you are working
- on the debian-installer, this package is not for you.  Installing this 
+ on the debian-installer, this package is not for you.  Installing this
  on your Debian system is a very, very bad idea.  You have been warned.
 
 Package: busybox-cvs-floppy-udeb
@@ -83,6 +83,6 @@ Description: Tiny utilities for the debian-installer floppy images
  counterparts.
  .
  busybox-udeb is used by the debian-installer, so unless you are working
- on the debian-installer, this package is not for you.  Installing this 
+ on the debian-installer, this package is not for you.  Installing this
  on your Debian system is a very, very bad idea.  You have been warned.
 

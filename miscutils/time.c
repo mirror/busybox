@@ -17,7 +17,7 @@
    02111-1307, USA.  */
 
 /* Originally written by David Keppel <pardo@cs.washington.edu>.
-   Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.  
+   Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.
    Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
    */
 

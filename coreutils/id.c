@@ -47,7 +47,7 @@ extern int id_main(int argc, char **argv)
 #ifdef CONFIG_SELINUX
 	int is_flask_enabled_flag = is_flask_enabled();
 #endif
-	
+
 	flags = bb_getopt_ulflags(argc, argv, "ugrn");
 
 	if (((flags & (JUST_USER | JUST_GROUP)) == (JUST_USER | JUST_GROUP))

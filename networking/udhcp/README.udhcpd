@@ -14,7 +14,7 @@ udhcpd.leases
 
 The udhcpd.leases behavior is designed for an embedded system. The
 file is written either every auto_time seconds, or when a SIGUSR1
-is received (the auto_time timer restarts if a SIGUSR1 is received). 
+is received (the auto_time timer restarts if a SIGUSR1 is received).
 If you send a SIGTERM to udhcpd directly after a SIGUSR1, udhcpd will
 finish writing the leases file and wait for the aftermentioned script
 to be executed and finish before quiting, so you do not need to sleep
@@ -50,10 +50,10 @@ available options and comments describing them in samples/udhcpd.conf
 
 compile time options
 -------------------
-	
+
 dhcpd.h contains the other two compile time options:
-	
+
 	LEASE_TIME: The default lease time if not specified in the config
 	file.
-	
+
 	DHCPD_CONFIG_FILE: The defualt config file to use.

@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
+ * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
  * Permission has been granted to redistribute this code under the GPL.
  *
  * This program is free software; you can redistribute it and/or modify

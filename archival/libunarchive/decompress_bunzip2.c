@@ -248,7 +248,7 @@ static int get_next_block(bunzip_data *bd)
 		pp=0;
 		for(i=minLen;i<=maxLen;i++) {
 			temp[i]=limit[i]=0;
-			for(t=0;t<symCount;t++) 
+			for(t=0;t<symCount;t++)
 				if(length[t]==i) hufGroup->permute[pp++] = t;
 		}
 		/* Count symbols coded for at each bit length */

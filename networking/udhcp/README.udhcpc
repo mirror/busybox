@@ -36,20 +36,20 @@ udhcp client scripts
 
 When an event occurs, udhcpc calls the action script. udhcpc never does
 any configuration of the network interface itself, but instead relies on
-a set of scripts. The script by default is 
+a set of scripts. The script by default is
 /usr/share/udhcpc/default.script but this can be changed via the command
 line arguments. The three possible arguments to the script are:
 
 	deconfig: This argument is used when udhcpc starts, and
 	when a leases is lost. The script must put the interface in an
 	up, but deconfigured state, ie: ifconfig $interface 0.0.0.0.
-	
+
 	bound: This argument is used when udhcpc moves from an
 	unbound, to a bound state. All of the paramaters are set in
 	enviromental variables, The script should configure the interface,
-	and set any other relavent parameters (default gateway, dns server, 
+	and set any other relavent parameters (default gateway, dns server,
 	etc).
-	
+
 	renew: This argument is used when a DHCP lease is renewed. All of
 	the paramaters are set in enviromental variables. This argument is
 	used when the interface is already configured, so the IP address,
@@ -133,7 +133,7 @@ compile time options
 options.c contains a set of dhcp options for the client:
 
 	name[10]: The name of the option as it will appear in scripts
-	
+
 	flags: The type of option, as well as if it will be requested
 	by the client (OPTION_REQ)
 

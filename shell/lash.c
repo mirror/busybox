@@ -2,7 +2,7 @@
 /*
  * lash -- the BusyBox Lame-Ass SHell
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Based in part on ladsh.c by Michael K. Johnson and Erik W. Troan, which is
  * under the following liberal license: "We have placed this source code in the
@@ -927,7 +927,7 @@ static int expand_arguments(char *command)
 
 		}
 		if (var) {
-			/* a single character construction was found, and 
+			/* a single character construction was found, and
 			 * already handled in the case statement */
 			src=dst+2;
 		} else {
@@ -1093,7 +1093,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 				prog->redirects[i].fd = -1;
 				if (buf != prog->argv[argc_l]) {
-					/* the stuff before this character may be the file number 
+					/* the stuff before this character may be the file number
 					   being redirected */
 					prog->redirects[i].fd =
 						strtol(prog->argv[argc_l], &chptr, 10);

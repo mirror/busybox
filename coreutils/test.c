@@ -2,7 +2,7 @@
 /*
  * test implementation for busybox
  *
- * Copyright (c) by a whole pile of folks: 
+ * Copyright (c) by a whole pile of folks:
  *
  * 	test(1); version 7-like  --  author Erik Baalbergen
  * 	modified by Eric Gisin to be used as built-in.
@@ -10,7 +10,7 @@
  * 	(-x -c -b -p -u -g -k) plus Korn's -L -nt -ot -ef and new -S (socket).
  * 	modified by J.T. Conklin for NetBSD.
  * 	modified by Herbert Xu to be used as built-in in ash.
- * 	modified by Erik Andersen <andersen@codepoet.org> to be used 
+ * 	modified by Erik Andersen <andersen@codepoet.org> to be used
  * 	in busybox.
  *
  * This program is free software; you can redistribute it and/or modify

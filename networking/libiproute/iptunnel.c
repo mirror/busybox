@@ -354,7 +354,7 @@ static int do_add(int cmd, int argc, char **argv)
 		return do_add_ioctl(cmd, "gre0", &p);
 	case IPPROTO_IPV6:
 		return do_add_ioctl(cmd, "sit0", &p);
-	default:	
+	default:
 		bb_error_msg("cannot determine tunnel mode (ipip, gre or sit)");
 		return -1;
 	}
@@ -375,7 +375,7 @@ int do_del(int argc, char **argv)
 		return do_del_ioctl("gre0", &p);
 	case IPPROTO_IPV6:
 		return do_del_ioctl("sit0", &p);
-	default:	
+	default:
 		return do_del_ioctl(p.name, &p);
 	}
 	return -1;
@@ -506,7 +506,7 @@ static int do_show(int argc, char **argv)
 		return -1;
 
 	switch (p.iph.protocol) {
-	case IPPROTO_IPIP:	
+	case IPPROTO_IPIP:
 		err = do_get_ioctl(p.name[0] ? p.name : "tunl0", &p);
 		break;
 	case IPPROTO_GRE:

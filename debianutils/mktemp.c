@@ -40,7 +40,7 @@ extern int mktemp_main(int argc, char **argv)
 		}
 		else if (opt != 'q') {
 			bb_show_usage();
-		} 
+		}
 	}
 
 	if (optind + 1 != argc) {

@@ -46,11 +46,11 @@ config CONFIG_BUNZIP2
 	  sorting text compression algorithm, and Huffman coding.  Compression
 	  is generally considerably better than that achieved by more
 	  conventional LZ77/LZ78-based compressors, and approaches the
-	  performance of the PPM family of statistical compressors.  
-	  
+	  performance of the PPM family of statistical compressors.
+	
 	  The BusyBox bunzip2 applet is limited to de-compression only.
 	  On an x86 system, this applet adds about 11K.
-	  
+	
 	  Unless you have a specific application which requires bunzip2, you
 	  should probably say N here.
 
@@ -63,7 +63,7 @@ config CONFIG_CPIO
 	  cpio has 110 bytes of overheads for every stored file.
 
 	  This implementation of cpio can extract cpio archives created in the
-	  "newc" or "crc" format, it cannot create or modify them. 
+	  "newc" or "crc" format, it cannot create or modify them.
 
 	  Unless you have a specific application which requires cpio, you should
 	  probably say N here.
@@ -73,7 +73,7 @@ config CONFIG_DPKG
 	default n
 	help
 	  dpkg is a medium-level tool to install, build, remove and manage Debian packages.
-	  
+	
 	  This implementation of dpkg has a number of limitations, you should use the
 	  official dpkg if possible.
 
@@ -82,9 +82,9 @@ config CONFIG_DPKG_DEB
 	default n
 	help
 	  dpkg-deb packs, unpacks and provides information about Debian archives.
-	  
+	
 	  This implementation of dpkg-deb cannot pack archives.
-	  
+	
 	  Unless you have a specific application which requires dpkg-deb, you should
 	  probably say N here.
 
@@ -94,7 +94,7 @@ config CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
 	depends on CONFIG_DPKG_DEB
 	help
 	  This reduces dpkg-deb to the equivalent of "ar -p <deb> data.tar.gz | tar -zx".
-	  However it saves space as none of the extra dpkg-deb, ar or tar options are 
+	  However it saves space as none of the extra dpkg-deb, ar or tar options are
 	  needed, they are linked to internally.
 
 config CONFIG_GUNZIP
@@ -195,7 +195,7 @@ config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	default y
 	depends on CONFIG_TAR
 	help
-	  With this option busybox supports GNU long filenames and 
+	  With this option busybox supports GNU long filenames and
 	  linknames.
 
 config CONFIG_FEATURE_TAR_LONG_OPTIONS
@@ -241,7 +241,7 @@ config CONFIG_FEATURE_DEB_TAR_GZ
 	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
 	help
 	  This is the default compression method inside the debian ar file.
-	  
+	
 	  If you want compatibility with standard .deb's you should say yes here.
 
 config CONFIG_FEATURE_DEB_TAR_BZ2
@@ -251,7 +251,7 @@ config CONFIG_FEATURE_DEB_TAR_BZ2
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
 	  with bzip2 instead of gzip.
-	  
+	
 	  You only want this if you are creating your own custom debian packages that
 	  use an internal control.tar.bz2 or data.tar.bz2.
 

@@ -87,7 +87,7 @@ static void not(void)
 
 static void set_output_base(void)
 {
-	base=(unsigned char)pop();	
+	base=(unsigned char)pop();
 	if ((base != 10) && (base != 16)) {
 		fprintf(stderr, "Error: base = %d is not supported.\n", base);
 		base=10;
@@ -96,7 +96,7 @@ static void set_output_base(void)
 
 static void print_base(double print)
 {
-	if (base == 16) 
+	if (base == 16)
 		printf("%x\n", (unsigned int)print);
 	else
 	printf("%g\n", print);
@@ -178,7 +178,7 @@ static void stack_machine(const char *argument)
 }
 
 /* return pointer to next token in buffer and set *buffer to one char
- * past the end of the above mentioned token 
+ * past the end of the above mentioned token
  */
 static char *get_token(char **buffer)
 {

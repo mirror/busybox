@@ -2,7 +2,7 @@
 /*
  * Mini find implementation for busybox
  *
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Reworked by David Douthitt <n9ubh@callsign.net> and
  *  Matt Kraai <kraai@alumni.carnegiemellon.edu>.
@@ -98,7 +98,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		time_t mtime_secs = mtime_days * 24 * 60 * 60;
 		if (!((isdigit(mtime_char) && file_age >= mtime_secs &&
 						file_age < mtime_secs + 24 * 60 * 60) ||
-				(mtime_char == '+' && file_age >= mtime_secs + 24 * 60 * 60) || 
+				(mtime_char == '+' && file_age >= mtime_secs + 24 * 60 * 60) ||
 				(mtime_char == '-' && file_age < mtime_secs)))
 			goto no_match;
 	}
@@ -234,13 +234,13 @@ int find_main(int argc, char **argv)
 				xdev_dev [0] = stbuf. st_dev;
 			}
 			else {
-			
+
 				for (i = 1; i < firstopt; i++) {
 					if ( stat ( argv [i], &stbuf ) < 0 )
 						bb_error_msg_and_die("could not stat '%s'", argv [i] );
 					xdev_dev [i-1] = stbuf. st_dev;
 				}
-			}						
+			}
 #endif
 #ifdef CONFIG_FEATURE_FIND_NEWER
 		} else if (strcmp(argv[i], "-newer") == 0) {

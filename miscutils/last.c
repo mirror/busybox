@@ -2,7 +2,7 @@
 /*
  * last implementation for busybox
  *
- * Copyright (C) 2003  Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2003-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,10 +68,10 @@ extern int last_main(int argc, char **argv)
 			else if (strncmp(ut.ut_user, "runlevel", 7) == 0)
 				ut.ut_type = RUN_LVL;
 		} else {
-			if (!ut.ut_name[0] || strcmp(ut.ut_name, "LOGIN") == 0 || 
+			if (!ut.ut_name[0] || strcmp(ut.ut_name, "LOGIN") == 0 ||
 					ut.ut_name[0] == 0)
 			{
-				/* Don't bother.  This means we can't find how long 
+				/* Don't bother.  This means we can't find how long
 				 * someone was logged in for.  Oh well. */
 				continue;
 			}

@@ -38,7 +38,7 @@ CONF_OBJS =$(patsubst %.c,%.o, $(CONF_SRC))
 MCONF_OBJS=$(patsubst %.c,%.o, $(MCONF_SRC))
 SHARED_OBJS=$(patsubst %.c,%.o, $(SHARED_SRC))
 
-conf: $(CONF_OBJS) $(SHARED_OBJS) 
+conf: $(CONF_OBJS) $(SHARED_OBJS)
 	$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@
 
 mconf: $(MCONF_OBJS) $(SHARED_OBJS)
@@ -55,7 +55,7 @@ lkc_defs.h: lkc_proto.h
 
 ###
 # The following requires flex/bison
-# By default we use the _shipped versions, uncomment the 
+# By default we use the _shipped versions, uncomment the
 # following line if you are modifying the flex/bison src.
 #LKC_GENPARSER := 1
 

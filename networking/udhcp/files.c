@@ -1,8 +1,8 @@
-/* 
+/*
  * files.c -- DHCP server file manipulation *
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
- 
+
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -16,7 +16,7 @@
 #include "options.h"
 #include "common.h"
 
-/* 
+/*
  * Domain names may have 254 chars, and string options can be 254
  * chars long. However, 80 bytes will be enough for most, and won't
  * hog up memory. If you have a special application, change it
@@ -31,7 +31,7 @@ static int read_ip(const char *line, void *arg)
 	int retval = 1;
 
 	if (!inet_aton(line, addr)) {
-		if ((host = gethostbyname(line))) 
+		if ((host = gethostbyname(line)))
 			addr->s_addr = *((unsigned long *) host->h_addr_list[0]);
 		else retval = 0;
 	}
@@ -42,10 +42,10 @@ static int read_ip(const char *line, void *arg)
 static int read_str(const char *line, void *arg)
 {
 	char **dest = arg;
-	
+
 	if (*dest) free(*dest);
 	*dest = strdup(line);
-	
+
 	return 1;
 }
 
@@ -69,7 +69,7 @@ static int read_yn(const char *line, void *arg)
 	else if (!strcasecmp("no", line))
 		*dest = 0;
 	else retval = 0;
-	
+
 	return retval;
 }
 
@@ -89,11 +89,11 @@ static int read_opt(const char *const_line, void *arg)
 	/* Cheat, the only const line we'll actually get is "" */
 	line = (char *) const_line;
 	if (!(opt = strtok(line, " \t="))) return 0;
-	
+
 	for (option = dhcp_options; option->code; option++)
 		if (!strcasecmp(option->name, opt))
 			break;
-	
+
 	if (!option->code) return 0;
 
 	do {
@@ -134,17 +134,17 @@ static int read_opt(const char *const_line, void *arg)
 			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_U32:
-			*result_u32 = htonl(strtoul(val, &endptr, 0));	
+			*result_u32 = htonl(strtoul(val, &endptr, 0));
 			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_S32:
-			*result_u32 = htonl(strtol(val, &endptr, 0));	
+			*result_u32 = htonl(strtol(val, &endptr, 0));
 			retval = (endptr[0] == '\0');
 			break;
 		default:
 			break;
 		}
-		if (retval) 
+		if (retval)
 			attach_option(opt_list, option, opt, length);
 	} while (retval && option->flags & OPTION_LIST);
 	return retval;
@@ -193,7 +193,7 @@ int read_config(const char *file)
 		LOG(LOG_ERR, "unable to open config file: %s", file);
 		return 0;
 	}
-	
+
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
 		lm++;
 		if (strchr(buffer, '\n')) *(strchr(buffer, '\n')) = '\0';
@@ -203,14 +203,14 @@ int read_config(const char *file)
 		if (strchr(buffer, '#')) *(strchr(buffer, '#')) = '\0';
 
 		if (!(token = strtok(buffer, " \t"))) continue;
-		if (!(line = strtok(NULL, ""))) continue;		
-		
+		if (!(line = strtok(NULL, ""))) continue;
+
 		/* eat leading whitespace */
 		line = line + strspn(line, " \t=");
 		/* eat trailing whitespace */
 		for (i = strlen(line); i > 0 && isspace(line[i - 1]); i--);
 		line[i] = '\0';
-		
+
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
@@ -232,12 +232,12 @@ void write_leases(void)
 	char buf[255];
 	time_t curr = time(0);
 	unsigned long tmp_time;
-	
+
 	if (!(fp = fopen(server_config.lease_file, "w"))) {
 		LOG(LOG_ERR, "Unable to open %s for writing", server_config.lease_file);
 		return;
 	}
-	
+
 	for (i = 0; i < server_config.max_leases; i++) {
 		if (leases[i].yiaddr != 0) {
 
@@ -257,7 +257,7 @@ void write_leases(void)
 		}
 	}
 	fclose(fp);
-	
+
 	if (server_config.notify_file) {
 		sprintf(buf, "%s %s", server_config.notify_file, server_config.lease_file);
 		system(buf);
@@ -270,12 +270,12 @@ void read_leases(const char *file)
 	FILE *fp;
 	unsigned int i = 0;
 	struct dhcpOfferedAddr lease;
-	
+
 	if (!(fp = fopen(file, "r"))) {
 		LOG(LOG_ERR, "Unable to open %s for reading", file);
 		return;
 	}
-	
+
 	while (i < server_config.max_leases && (fread(&lease, sizeof lease, 1, fp) == 1)) {
 		/* ADDME: is it a static lease */
 		if (lease.yiaddr >= server_config.start && lease.yiaddr <= server_config.end) {
@@ -284,7 +284,7 @@ void read_leases(const char *file)
 			if (!(add_lease(lease.chaddr, lease.yiaddr, lease.expires))) {
 				LOG(LOG_WARNING, "Too many leases while loading %s\n", file);
 				break;
-			}				
+			}
 			i++;
 		}
 	}

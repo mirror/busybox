@@ -4,7 +4,7 @@
 # Copyright (c) 2001 Erik Andersen <andersen@codepoet.org>
 # Copyright (c) 2001 Stuart Hughes <stuarth@lineo.com>
 # Copyright (c) 2002 Steven J. Hill <shill@broadcom.com>
-# This program is free software; you can redistribute it and/or modify it 
+# This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 
 # TODO -- use strict mode...
@@ -54,13 +54,13 @@ if($basedir !~ m-/lib/modules-) {
     warn "WARNING: base directory does not match ..../lib/modules\n";
 }
 
-# Find the list of .o files living under $basedir 
+# Find the list of .o files living under $basedir
 #if ($verbose) { printf "Locating all modules\n"; }
 my($ofile) = "";
 my($file) = "";
 my(@liblist) = ();
-find sub { 
-	if ( -f $_  && ! -d $_ ) { 
+find sub {
+	if ( -f $_  && ! -d $_ ) {
 		$file = $File::Find::name;
 		if ( $file =~ /.o$/ ) {
 			push(@liblist, $file);
@@ -118,14 +118,14 @@ foreach $obj ( @liblist, $kernel ){
 foreach $module (keys %$dep) {
     $mod->{$module} = {};
     foreach (@{$dep->{$module}}) {
-        if( $exp->{$_} ) { 
+        if( $exp->{$_} ) {
             warn "resolved symbol $_ in file $exp->{$_}\n" if $verbose;
             next if $exp->{$_} =~ /vmlinux/;
             $mod->{$module}{$exp->{$_}} = 1;
         } else {
             warn "unresolved symbol $_ in file $module\n";
         }
-    } 
+    }
 }
 
 # resolve the dependancies for each module
@@ -222,9 +222,9 @@ Be verbose (not implemented)
 =head1 COPYRIGHT
 
 Copyright (c) 2001 David Schleef <ds@schleef.org>
-Copyright (c) 2001 Erik Andersen <andersen@lineo.com>
+Copyright (c) 2001 Erik Andersen <andersen@codepoet.org>
 Copyright (c) 2001 Stuart Hughes <stuarth@lineo.com>
-This program is free software; you can redistribute it and/or modify it 
+This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
 =head1 AUTHOR
@@ -233,5 +233,5 @@ David Schleef <ds@schleef.org>
 
 =cut
 
-# $Id: depmod.pl,v 1.3 2003/07/14 21:20:51 andersen Exp $
+# $Id: depmod.pl,v 1.4 2004/03/15 08:28:33 andersen Exp $
 

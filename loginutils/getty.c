@@ -5,13 +5,13 @@
    be here. Now read the real man-page agetty.8 instead.
 
    -f option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
-   
+
    1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
    - added Native Language Support
 
    1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
    - enable hardware flow control before displaying /etc/issue
-   
+
 */
 
 #include <stdio.h>
@@ -54,11 +54,11 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 
  /*
   * Things you may want to modify.
-  * 
+  *
   * If ISSUE is not defined, agetty will never display the contents of the
   * /etc/issue file. You will not want to spit out large "issue" files at the
   * wrong baud rate. Relevant for System V only.
-  * 
+  *
   * You may disagree with the default line-editing etc. characters defined
   * below. Note, however, that DEL cannot be used for interrupt generation
   * and for line editing at the same time.
@@ -386,7 +386,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		case 'I':
 			if (!(op->initstring = strdup(optarg)))
 				error(bb_msg_memory_exhausted);
-				
+
 			{
 				const char *p;
 				char *q;
@@ -700,9 +700,9 @@ static void auto_baud(struct termio *tp)
 	 * the DCD line, and if the computer is fast enough to set the proper
 	 * baud rate before the message has gone by. We expect a message of the
 	 * following format:
-	 * 
+	 *
 	 * <junk><number><junk>
-	 * 
+	 *
 	 * The number is interpreted as the baud rate of the incoming call. If the
 	 * modem does not tell us the baud rate within one second, we will keep
 	 * using the current baud rate. It is advisable to enable BREAK

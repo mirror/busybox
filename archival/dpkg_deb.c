@@ -41,7 +41,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	/* Setup the tar archive handle */
 	tar_archive = init_handle();
 
-	/* Setup an ar archive handle that refers to the gzip sub archive */	
+	/* Setup an ar archive handle that refers to the gzip sub archive */
 	ar_archive = init_handle();
 	ar_archive->sub_archive = tar_archive;
 	ar_archive->filter = filter_accept_list_reassign;
@@ -73,7 +73,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	}
 	if (opt & DPKG_DEB_OPT_FIELD) {
 		/* Print the entire control file
-		 * it should accept a second argument which specifies a 
+		 * it should accept a second argument which specifies a
 		 * specific field to print */
 		ar_archive->accept = control_tar_llist;
 		tar_archive->accept = llist_add_to(NULL, "./control");;

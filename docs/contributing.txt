@@ -116,7 +116,7 @@ Bug Reporting
 If you find bugs, please submit a detailed bug report to the busybox mailing
 list at busybox@busybox.net.  A well-written bug report should include a
 transcript of a shell session that demonstrates the bad behavior and enables
-anyone else to duplicate the bug on their own machine. The following is such 
+anyone else to duplicate the bug on their own machine. The following is such
 an example:
 
     To: busybox@busybox.net
@@ -137,7 +137,7 @@ an example:
 	$ date
 	llegal instruction
 
-    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder, 
+    I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder,
     and the latest uClibc from CVS.  Thanks for the wonderful program!
 
 	-Diligent
@@ -231,7 +231,7 @@ These are dirty jobs, but somebody's gotta do 'em.
 
  - "Ten Commandments" compliance: (this is a "maybe", certainly not as
    important as any of the previous items.)
-    http://www.lysator.liu.se/c/ten-commandments.html   
+    http://www.lysator.liu.se/c/ten-commandments.html
 
 Other useful links:
 

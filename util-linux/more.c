@@ -3,10 +3,10 @@
  * Mini more implementation for busybox
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
- * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Latest version blended together by Erik Andersen <andersen@codepoet.org>,
- * based on the original more implementation by Bruce, and code from the 
+ * based on the original more implementation by Bruce, and code from the
  * Debian boot-floppies team.
  *
  * Termios corrects by Vladimir Oleynik <dzo@simtreas.ru>
@@ -101,7 +101,7 @@ extern int more_main(int argc, char **argv)
 			file = bb_wfopen(*argv, "r");
 		if(file==0)
 			goto loop;
-			
+
 		st.st_size = 0;
 		fstat(fileno(file), &st);
 
@@ -158,7 +158,7 @@ extern int more_main(int argc, char **argv)
 					goto end;
 			}
 
-			/* 
+			/*
 			 * There are two input streams to worry about here:
 			 *
 			 * c     : the character we are reading from the file being "mored"
