@@ -255,7 +255,9 @@ static inline int bit(char * a,unsigned int i)
 #define mark_zone(x) (setbit(zone_map,(x)-FIRSTZONE+1))
 #define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1))
 
-static __attribute__ ((noreturn)) void show_usage()
+static void show_usage() __attribute__ ((noreturn)); 
+
+static void show_usage()
 {
 	usage(mkfs_minix_usage);
 }
