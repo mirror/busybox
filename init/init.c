@@ -847,7 +847,14 @@ static void new_init_action(int action, char *command, const char *cons)
 	}
 
 	/* Append to the end of the list */
-	for (a = init_action_list; a && a->next; a = a->next);
+	for (a = init_action_list; a && a->next; a = a->next) {
+		/* don't enter action if it's already in the list */
+		if ((strcmp(a->command, command) == 0) && 
+		    (strcmp(a->terminal, cons) ==0)) {
+			free(new_action);
+			return;
+		}
+	}
 	if (a) {
 		a->next = new_action;
 	} else {
@@ -1022,7 +1029,14 @@ static void parse_inittab(void)
 #endif							/* CONFIG_FEATURE_USE_INITTAB */
 }
 
-
+static void reload_signal(int sig)
+{
+        message(LOG, "Reloading /etc/inittab");
+        parse_inittab();
+	run_actions(RESPAWN);
+        return;
+}
+                                                                                
 extern int init_main(int argc, char **argv)
 {
 	struct init_action *a;
@@ -1119,6 +1133,9 @@ extern int init_main(int argc, char **argv)
 				"No more tasks for init -- sleeping forever.");
 		loop_forever();
 	}
+
+	/* Redefine SIGHUP to reread /etc/inittab */
+	signal(SIGHUP, reload_signal);
 
 	/* Now run the looping stuff for the rest of forever */
 	while (1) {
