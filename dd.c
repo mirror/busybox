@@ -48,6 +48,7 @@ extern int dd_main(int argc, char **argv)
 	int outFd;
 	int inCc = 0;
 	int outCc;
+	int trunc=TRUE;
 	long blockSize = 512;
 	uintmax_t skipBlocks = 0;
 	uintmax_t seekBlocks = 0;
@@ -57,6 +58,7 @@ extern int dd_main(int argc, char **argv)
 	uintmax_t totalSize;
 	uintmax_t readSize;
 	unsigned char buf[BUFSIZ];
+	char *keyword = NULL;
 
 	argc--;
 	argv++;
@@ -69,7 +71,7 @@ extern int dd_main(int argc, char **argv)
 			outFile = ((strchr(*argv, '=')) + 1);
 		else if (strncmp("count", *argv, 5) == 0) {
 			count = getNum((strchr(*argv, '=')) + 1);
-			if (count <= 0) {
+			if (count < 0) {
 				errorMsg("Bad count value %s\n", *argv);
 				goto usage;
 			}
@@ -92,7 +94,10 @@ extern int dd_main(int argc, char **argv)
 				errorMsg("Bad seek value %s\n", *argv);
 				goto usage;
 			}
-
+		} else if (strncmp(*argv, "conv", 4) == 0) {
+			keyword = (strchr(*argv, '=') + 1);
+                	if (strcmp(keyword, "notrunc") == 0) 
+				trunc=FALSE;
 		} else {
 			goto usage;
 		}
@@ -141,7 +146,9 @@ extern int dd_main(int argc, char **argv)
 			break;
 		outTotal += outCc;
         }
-
+	if (trunc == TRUE) {
+		ftruncate(outFd, lseek(outFd, 0, SEEK_CUR));
+	}
 	/* Note that we are not freeing memory or closing
 	 * files here, to save a few bytes. */
 #ifdef BB_FEATURE_CLEAN_UP
