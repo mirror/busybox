@@ -117,7 +117,7 @@ int uuencode_main(int argc, char **argv)
 			}
 			break;
 		case 1:
-			mode = umask(0666);
+			mode = 0666 & ~umask(0666);
 			break;
 		default:
 			show_usage();
