@@ -241,7 +241,7 @@ concat_path_file.c copy_file.c copy_file_chunk.c create_path.c \
 daemon.c deb_extract.c device_open.c error_msg.c error_msg_and_die.c \
 find_mount_point.c find_pid_by_name.c find_root_device.c full_read.c \
 full_write.c get_ar_headers.c get_console.c get_last_path_component.c \
-get_line_from_file.c gz_open.c human_readable.c inode_hash.c isdirectory.c \
+get_line_from_file.c gz_open.c human_readable.c isdirectory.c \
 kernel_version.c loop.c mode_string.c module_syscalls.c mtab.c mtab_file.c \
 my_getgrnam.c my_getgrgid.c my_getpwnam.c my_getpwnamegid.c my_getpwuid.c \
 parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c print_file.c \

@@ -92,16 +92,6 @@ const char *time_string(time_t timeVal);
 int is_directory(const char *name, int followLinks, struct stat *statBuf);
 int isDevice(const char *name);
 
-typedef struct ino_dev_hash_bucket_struct {
-  struct ino_dev_hash_bucket_struct *next;
-  ino_t ino;
-  dev_t dev;
-  char name[1];
-} ino_dev_hashtable_bucket_t;
-int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
-void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
-void reset_ino_dev_hashtable(void);
-
 int remove_file(const char *path, int flags);
 int copy_file(const char *source, const char *dest, int flags);
 int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize);

@@ -3,7 +3,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.2 2001/05/05 03:19:12 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.3 2001/06/01 21:47:15 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -49,6 +49,7 @@
 #undef HAVE_AFNETROM
 #undef HAVE_AFX25
 #undef HAVE_AFECONET
+#undef HAVE_AFASH
 
 /* 
  * 
@@ -83,7 +84,7 @@
 #define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
-#define KRELEASE(maj,min,patch) ((maj) * 10000 + (min)*1000 + (patch))
+#define KRELEASE(maj,min,patch) ((maj) * 65536 + (min)*256 + (patch))
 
 static int procnetdev_vsn = 1;
 
@@ -174,15 +175,31 @@ static struct aftype *aftypes[];
 #ifdef KEEP_UNUSED
 
 static int flag_unx;
+#ifdef HAVE_AFIPX
 static int flag_ipx;
+#endif
+#ifdef HAVE_AFX25
 static int flag_ax25;
+#endif
+#ifdef HAVE_AFATALK
 static int flag_ddp;
+#endif
+#ifdef HAVE_AFNETROM
 static int flag_netrom;
+#endif
 static int flag_inet;
+#ifdef HAVE_AFINET6
 static int flag_inet6;
+#endif
+#ifdef HAVE_AFECONET
 static int flag_econet;
+#endif
+#ifdef HAVE_AFX25
 static int flag_x25 = 0;
+#endif
+#ifdef HAVE_AFASH
 static int flag_ash;
+#endif
 
 
 static struct aftrans_t {
@@ -191,48 +208,68 @@ static struct aftrans_t {
     int *flag;
 } aftrans[] = {
 
+#ifdef HAVE_AFX25
     {
 	"ax25", "ax25", &flag_ax25
     },
+#endif
     {
 	"ip", "inet", &flag_inet
     },
+#ifdef HAVE_AFINET6
     {
 	"ip6", "inet6", &flag_inet6
     },
+#endif
+#ifdef HAVE_AFIPX
     {
 	"ipx", "ipx", &flag_ipx
     },
+#endif
+#ifdef HAVE_AFATALK
     {
 	"appletalk", "ddp", &flag_ddp
     },
+#endif
+#ifdef HAVE_AFNETROM
     {
 	"netrom", "netrom", &flag_netrom
     },
+#endif
     {
 	"inet", "inet", &flag_inet
     },
+#ifdef HAVE_AFINET6
     {
 	"inet6", "inet6", &flag_inet6
     },
+#endif
+#ifdef HAVE_AFATALK
     {
 	"ddp", "ddp", &flag_ddp
     },
+#endif
     {
 	"unix", "unix", &flag_unx
     },
     {
 	"tcpip", "inet", &flag_inet
     },
+#ifdef HAVE_AFECONET
     {
 	"econet", "ec", &flag_econet
     },
+#endif
+#ifdef HAVE_AFX25
     {
 	"x25", "x25", &flag_x25
     },
+#endif
+#ifdef HAVE_AFASH
     {
         "ash", "ash", &flag_ash
     },
+#endif
     {
 	0, 0, 0
     }
@@ -694,7 +731,7 @@ static int aftrans_opt(const char *arg)
 
     while (tmp1) {
 
-	tmp2 = index(tmp1, ',');
+	tmp2 = strchr(tmp1, ',');
 
 	if (tmp2)
 	    *(tmp2++) = '\0';
@@ -777,7 +814,7 @@ static struct aftype *get_aftype(const char *name)
 	    return (*afp);
 	afp++;
     }
-    if (index(name, ','))
+    if (strchr(name, ','))
 	fprintf(stderr, _("Please don't supply more than one address family.\n"));
     return (NULL);
 }
