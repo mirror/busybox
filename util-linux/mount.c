@@ -402,11 +402,11 @@ extern int mount_main(int argc, char **argv)
 		case 'f':
 			fakeIt = TRUE;
 			break;
-#ifdef CONFIG_FEATURE_MTAB_SUPPORT
 		case 'n':
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
 			useMtab = FALSE;
-			break;
 #endif
+			break;
 		case 'v':
 			break;		/* ignore -v */
 		}
