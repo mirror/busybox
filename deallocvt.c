@@ -24,14 +24,12 @@ int deallocvt_main(int argc, char *argv[])
 	fd = get_console_fd("/dev/console");
 
 	if (argc == 1) {
-printf("erik: A\n");
 		/* deallocate all unused consoles */
 		if (ioctl(fd, VT_DISALLOCATE, 0)) {
 			perror("VT_DISALLOCATE");
 			return EXIT_FAILURE;
 		}
-	} else
-printf("erik: B\n");
+	} else {
 		for (i = 1; i < argc; i++) {
 			num = atoi(argv[i]);
 			if (num == 0)
@@ -43,6 +41,7 @@ printf("erik: B\n");
 				error_msg_and_die("could not deallocate console %d\n", num);
 			}
 		}
-printf("erik: C\n");
+	}
+
 	return EXIT_SUCCESS;
 }
