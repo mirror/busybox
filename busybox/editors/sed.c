@@ -144,8 +144,21 @@ static void destroy_cmd_strs()
  */
 static int index_of_next_unescaped_regexp_delim(struct sed_cmd *sed_cmd, const char *str, int idx)
 {
+	int bracket = -1;
+	int escaped = 0;
+
 	for ( ; str[idx]; idx++) {
-		if (str[idx] == sed_cmd->delimiter && str[idx-1] != '\\')
+		if (bracket != -1) {
+			if (str[idx] == ']' && !(bracket == idx - 1 ||
+									 (bracket == idx - 2 && str[idx-1] == '^')))
+				bracket = -1;
+		} else if (escaped)
+			escaped = 0;
+		else if (str[idx] == '\\')
+			escaped = 1;
+		else if (str[idx] == '[')
+			bracket = idx;
+		else if (str[idx] == sed_cmd->delimiter)
 			return idx;
 	}
 
