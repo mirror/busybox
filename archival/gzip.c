@@ -71,7 +71,7 @@ typedef unsigned long ulg;
 #define STORED      0
 /* methods 4 to 7 reserved */
 #define DEFLATED    8
-static int method;				/* compression method */
+static int method;		/* compression method */
 
 /* To save memory for 16 bit systems, some arrays are overlaid between
  * the various modules:
@@ -88,7 +88,7 @@ static int method;				/* compression method */
 #    define INBUFSIZ  0x8000	/* input buffer size */
 #  endif
 #endif
-#define INBUF_EXTRA  64			/* required by unlzw() */
+#define INBUF_EXTRA  64	/* required by unlzw() */
 
 #ifndef	OUTBUFSIZ
 #  ifdef SMALL_MEM
@@ -97,7 +97,7 @@ static int method;				/* compression method */
 #    define OUTBUFSIZ  16384	/* output buffer size */
 #  endif
 #endif
-#define OUTBUF_EXTRA 2048		/* required by unlzw() */
+#define OUTBUF_EXTRA 2048	/* required by unlzw() */
 
 #ifndef DIST_BUFSIZE
 #  ifdef SMALL_MEM
@@ -120,17 +120,17 @@ static int method;				/* compression method */
 #endif
 
 #define tab_suffix window
-#define tab_prefix prev		/* hash link (see deflate.c) */
-#define head (prev+WSIZE)		/* hash head (see deflate.c) */
+#define tab_prefix prev	/* hash link (see deflate.c) */
+#define head (prev+WSIZE)	/* hash head (see deflate.c) */
 
-static long bytes_in;			/* number of input bytes */
+static long bytes_in;	/* number of input bytes */
 
 #define isize bytes_in
 /* for compatibility with old zip sources (to be cleaned) */
 
-typedef int file_t;				/* Do not use stdio */
+typedef int file_t;		/* Do not use stdio */
 
-#define NO_FILE  (-1)			/* in memory compression */
+#define NO_FILE  (-1)	/* in memory compression */
 
 
 #define	PACK_MAGIC     "\037\036"	/* Magic header for packed files */
@@ -140,12 +140,12 @@ typedef int file_t;				/* Do not use stdio */
 #define PKZIP_MAGIC    "\120\113\003\004"	/* Magic header for pkzip files */
 
 /* gzip flag byte */
-#define ASCII_FLAG   0x01		/* bit 0 set: file probably ascii text */
-#define CONTINUATION 0x02		/* bit 1 set: continuation of multi-part gzip file */
-#define EXTRA_FIELD  0x04		/* bit 2 set: extra field present */
-#define ORIG_NAME    0x08		/* bit 3 set: original file name present */
-#define COMMENT      0x10		/* bit 4 set: file comment present */
-#define RESERVED     0xC0		/* bit 6,7:   reserved */
+#define ASCII_FLAG   0x01	/* bit 0 set: file probably ascii text */
+#define CONTINUATION 0x02	/* bit 1 set: continuation of multi-part gzip file */
+#define EXTRA_FIELD  0x04	/* bit 2 set: extra field present */
+#define ORIG_NAME    0x08	/* bit 3 set: original file name present */
+#define COMMENT      0x10	/* bit 4 set: file comment present */
+#define RESERVED     0xC0	/* bit 6,7:   reserved */
 
 /* internal file attribute */
 #define UNKNOWN 0xffff
@@ -153,7 +153,7 @@ typedef int file_t;				/* Do not use stdio */
 #define ASCII   1
 
 #ifndef WSIZE
-#  define WSIZE 0x8000			/* window size--must be a power of two, and */
+#  define WSIZE 0x8000	/* window size--must be a power of two, and */
 #endif							/*  at least 32K for zip's deflate method */
 
 #define MIN_MATCH  3
@@ -183,8 +183,8 @@ typedef int file_t;				/* Do not use stdio */
 }
 #endif
 
-#define seekable()    0			/* force sequential output */
-#define translate_eol 0			/* no option -a yet */
+#define seekable()    0	/* force sequential output */
+#define translate_eol 0	/* no option -a yet */
 
 /* Diagnostic functions */
 #ifdef DEBUG
@@ -212,31 +212,31 @@ typedef int file_t;				/* Do not use stdio */
 
 
 	/* from zip.c: */
-static int zip (int in, int out);
-static int file_read (char *buf, unsigned size);
+static int zip(int in, int out);
+static int file_read(char *buf, unsigned size);
 
 	/* from gzip.c */
-static RETSIGTYPE abort_gzip (void);
+static RETSIGTYPE abort_gzip(void);
 
 		/* from deflate.c */
-static void lm_init (ush * flags);
-static ulg deflate (void);
+static void lm_init(ush * flags);
+static ulg deflate(void);
 
 		/* from trees.c */
-static void ct_init (ush * attr, int *methodp);
-static int ct_tally (int dist, int lc);
-static ulg flush_block (char *buf, ulg stored_len, int eof);
+static void ct_init(ush * attr, int *methodp);
+static int ct_tally(int dist, int lc);
+static ulg flush_block(char *buf, ulg stored_len, int eof);
 
 		/* from bits.c */
-static void bi_init (file_t zipfile);
-static void send_bits (int value, int length);
-static unsigned bi_reverse (unsigned value, int length);
-static void bi_windup (void);
-static void copy_block (char *buf, unsigned len, int header);
+static void bi_init(file_t zipfile);
+static void send_bits(int value, int length);
+static unsigned bi_reverse(unsigned value, int length);
+static void bi_windup(void);
+static void copy_block(char *buf, unsigned len, int header);
 static int (*read_buf) (char *buf, unsigned size);
 
 	/* from util.c: */
-static void flush_outbuf (void);
+static void flush_outbuf(void);
 
 /* lzw.h -- define the lzw functions.
  * Copyright (C) 1992-1993 Jean-loup Gailly.
@@ -251,9 +251,9 @@ static void flush_outbuf (void);
 #ifndef BITS
 #  define BITS 16
 #endif
-#define INIT_BITS 9				/* Initial number of bits per code */
+#define INIT_BITS 9		/* Initial number of bits per code */
 
-#define BIT_MASK    0x1f		/* Mask for 'number of compression bits' */
+#define BIT_MASK    0x1f	/* Mask for 'number of compression bits' */
 /* Mask 0x20 is reserved to mean a fourth header byte, and 0x40 is free.
  * It's a pity that old uncompress does not check bit 0x20. That makes
  * extension of the format actually undesirable because old compress
@@ -277,7 +277,7 @@ static void flush_outbuf (void);
 	/* Common defaults */
 
 #ifndef OS_CODE
-#  define OS_CODE  0x03			/* assume Unix */
+#  define OS_CODE  0x03	/* assume Unix */
 #endif
 
 #ifndef PATH_SEP
@@ -308,31 +308,31 @@ DECLARE(ush, tab_prefix, 1L << BITS);
 
 static int crc_table_empty = 1;
 
-static int foreground;					/* set if program run in foreground */
+static int foreground;	/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
-static int exit_code = OK;		/* program exit code */
-static int part_nb;					/* number of parts in .gz file */
-static long time_stamp;				/* original time stamp (modification time) */
-static long ifile_size;				/* input file size, -1 for devices (debug only) */
+static int exit_code = OK;	/* program exit code */
+static int part_nb;		/* number of parts in .gz file */
+static long time_stamp;	/* original time stamp (modification time) */
+static long ifile_size;	/* input file size, -1 for devices (debug only) */
 static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
-static int z_len;						/* strlen(z_suffix) */
+static int z_len;		/* strlen(z_suffix) */
 
-static int ifd;						/* input file descriptor */
-static int ofd;						/* output file descriptor */
-static unsigned insize;				/* valid bytes in inbuf */
-static unsigned outcnt;				/* bytes in output buffer */
+static int ifd;			/* input file descriptor */
+static int ofd;			/* output file descriptor */
+static unsigned insize;	/* valid bytes in inbuf */
+static unsigned outcnt;	/* bytes in output buffer */
 
 
 /* Output a 16 bit value, lsb first */
 static void put_short(ush w)
 {
-  if (outcnt < OUTBUFSIZ-2) {
-    outbuf[outcnt++] = (uch) ((w) & 0xff);
-    outbuf[outcnt++] = (uch) ((ush)(w) >> 8);
-  } else {
-    put_byte((uch)((w) & 0xff));
-    put_byte((uch)((ush)(w) >> 8));
-  }
+	if (outcnt < OUTBUFSIZ - 2) {
+		outbuf[outcnt++] = (uch) ((w) & 0xff);
+		outbuf[outcnt++] = (uch) ((ush) (w) >> 8);
+	} else {
+		put_byte((uch) ((w) & 0xff));
+		put_byte((uch) ((ush) (w) >> 8));
+	}
 }
 
 /* ========================================================================
@@ -382,27 +382,28 @@ static void write_buf(int fd, void *buf, unsigned cnt)
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
-static ulg updcrc(uch *s, unsigned n)
+static ulg updcrc(uch * s, unsigned n)
 {
 	static ulg crc = (ulg) 0xffffffffL;	/* shift register contents */
-	register ulg c;				/* temporary variable */
+	register ulg c;		/* temporary variable */
 	static unsigned long crc_32_tab[256];
+
 	if (crc_table_empty) {
-		unsigned long csr;      /* crc shift register */
+		unsigned long csr;	/* crc shift register */
 		const unsigned long e = 0xedb88320L;	/* polynomial exclusive-or pattern */
-		int i;                /* counter for all possible eight bit values */
-		int k;                /* byte being shifted into crc apparatus */
+		int i;			/* counter for all possible eight bit values */
+		int k;			/* byte being shifted into crc apparatus */
 
 		/* Compute table of CRC's. */
 		crc_32_tab[0] = 0x00000000L;
 		for (i = 1; i < 256; i++) {
 			csr = i;
- 		   /* The idea to initialize the register with the byte instead of
-		     * zero was stolen from Haruhiko Okumura's ar002
-		     */
+			/* The idea to initialize the register with the byte instead of
+			   * zero was stolen from Haruhiko Okumura's ar002
+			 */
 			for (k = 8; k; k--)
 				csr = csr & 1 ? (csr >> 1) ^ e : csr >> 1;
-			crc_32_tab[i]=csr;
+			crc_32_tab[i] = csr;
 		}
 	}
 
@@ -416,7 +417,7 @@ static ulg updcrc(uch *s, unsigned n)
 			} while (--n);
 	}
 	crc = c;
-	return c ^ 0xffffffffL;		/* (instead of ~c for 64-bit machines) */
+	return c ^ 0xffffffffL;	/* (instead of ~c for 64-bit machines) */
 }
 
 /* bits.c -- output variable-length bit strings
@@ -476,7 +477,7 @@ static ulg updcrc(uch *s, unsigned n)
  * Local data used by the "bit string" routines.
  */
 
-static file_t zfile;				/* output gzip file */
+static file_t zfile;	/* output gzip file */
 
 static unsigned short bi_buf;
 
@@ -494,7 +495,7 @@ static int bi_valid;
 /* Current input function. Set to mem_read for in-memory compression */
 
 #ifdef DEBUG
-ulg bits_sent;					/* bit length of the compressed data */
+ulg bits_sent;			/* bit length of the compressed data */
 #endif
 
 /* ===========================================================================
@@ -582,7 +583,7 @@ static void bi_windup()
  */
 static void copy_block(char *buf, unsigned len, int header)
 {
-	bi_windup();				/* align on byte boundary */
+	bi_windup();		/* align on byte boundary */
 
 	if (header) {
 		put_short((ush) len);
@@ -676,7 +677,7 @@ static void copy_block(char *buf, unsigned len, int header)
  */
 
 #ifdef SMALL_MEM
-#   define HASH_BITS  13		/* Number of bits used to hash strings */
+#   define HASH_BITS  13	/* Number of bits used to hash strings */
 #endif
 #ifdef MEDIUM_MEM
 #   define HASH_BITS  14
@@ -750,7 +751,7 @@ static long block_start;
  * negative when the window is moved backwards.
  */
 
-static unsigned ins_h;			/* hash index of string to be inserted */
+static unsigned ins_h;	/* hash index of string to be inserted */
 
 #define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
 /* Number of bits by which ins_h and del_h must be shifted at each
@@ -765,18 +766,18 @@ static unsigned int prev_length;
  * are discarded. This is used in the lazy match evaluation.
  */
 
-static unsigned strstart;			/* start of string to insert */
-static unsigned match_start;		/* start of matching string */
-static int eofile;				/* flag set at end of input file */
-static unsigned lookahead;		/* number of valid bytes ahead in window */
+static unsigned strstart;	/* start of string to insert */
+static unsigned match_start;	/* start of matching string */
+static int eofile;		/* flag set at end of input file */
+static unsigned lookahead;	/* number of valid bytes ahead in window */
 
-static const unsigned max_chain_length=4096;
+static const unsigned max_chain_length = 4096;
 
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
  */
 
-static const unsigned int max_lazy_match=258;
+static const unsigned int max_lazy_match = 258;
 
 /* Attempt to find a better match only when the current match is strictly
  * smaller than this value. This mechanism is used only for compression
@@ -788,7 +789,7 @@ static const unsigned int max_lazy_match=258;
  * max_insert_length is used only for compression levels <= 3.
  */
 
-static const unsigned good_match=32;
+static const unsigned good_match = 32;
 
 /* Use a faster search when the previous match is longer than this */
 
@@ -799,7 +800,7 @@ static const unsigned good_match=32;
  * found for specific files.
  */
 
-static const int nice_match=258;			/* Stop searching when current match exceeds this */
+static const int nice_match = 258;	/* Stop searching when current match exceeds this */
 
 /* Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
  * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
@@ -812,12 +813,12 @@ static const int nice_match=258;			/* Stop searching when current match exceeds 
 /* ===========================================================================
  *  Prototypes for local functions.
  */
-static void fill_window (void);
+static void fill_window(void);
 
-static int longest_match (IPos cur_match);
+static int longest_match(IPos cur_match);
 
 #ifdef DEBUG
-static void check_match (IPos start, IPos match, int length);
+static void check_match(IPos start, IPos match, int length);
 #endif
 
 /* ===========================================================================
@@ -844,7 +845,7 @@ static void check_match (IPos start, IPos match, int length);
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
  */
-static void lm_init(ush *flags)
+static void lm_init(ush * flags)
 {
 	register unsigned j;
 
@@ -897,11 +898,10 @@ static int longest_match(IPos cur_match)
 {
 	unsigned chain_length = max_chain_length;	/* max hash chain length */
 	register uch *scan = window + strstart;	/* current string */
-	register uch *match;		/* matched string */
-	register int len;			/* length of current match */
+	register uch *match;	/* matched string */
+	register int len;	/* length of current match */
 	int best_len = prev_length;	/* best match length so far */
 	IPos limit =
-
 		strstart > (IPos) MAX_DIST ? strstart - (IPos) MAX_DIST : NIL;
 	/* Stop when cur_match becomes <= limit. To simplify the code,
 	 * we prevent matches with the string of window index 0.
@@ -921,8 +921,7 @@ static int longest_match(IPos cur_match)
 	if (prev_length >= good_match) {
 		chain_length >>= 2;
 	}
-	Assert(strstart <= window_size - MIN_LOOKAHEAD,
-		   "insufficient lookahead");
+	Assert(strstart <= window_size - MIN_LOOKAHEAD, "insufficient lookahead");
 
 	do {
 		Assert(cur_match < strstart, "no future");
@@ -951,8 +950,7 @@ static int longest_match(IPos cur_match)
 		} while (*++scan == *++match && *++scan == *++match &&
 				 *++scan == *++match && *++scan == *++match &&
 				 *++scan == *++match && *++scan == *++match &&
-				 *++scan == *++match && *++scan == *++match &&
-				 scan < strend);
+				 *++scan == *++match && *++scan == *++match && scan < strend);
 
 		len = MAX_MATCH - (int) (strend - scan);
 		scan = strend - MAX_MATCH;
@@ -1007,7 +1005,6 @@ static void fill_window()
 {
 	register unsigned n, m;
 	unsigned more =
-
 		(unsigned) (window_size - (ulg) lookahead - (ulg) strstart);
 	/* Amount of free space at the end of the window. */
 
@@ -1027,7 +1024,7 @@ static void fill_window()
 
 		memcpy((char *) window, (char *) window + WSIZE, (unsigned) WSIZE);
 		match_start -= WSIZE;
-		strstart -= WSIZE;		/* we now have strstart >= MAX_DIST: */
+		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
 
 		block_start -= (long) WSIZE;
 
@@ -1070,9 +1067,9 @@ static void fill_window()
  */
 static ulg deflate()
 {
-	IPos hash_head;				/* head of hash chain */
-	IPos prev_match;			/* previous match */
-	int flush;					/* set if current block must be flushed */
+	IPos hash_head;		/* head of hash chain */
+	IPos prev_match;	/* previous match */
+	int flush;			/* set if current block must be flushed */
 	int match_available = 0;	/* set if previous match exists */
 	register unsigned match_length = MIN_MATCH - 1;	/* length of best match */
 
@@ -1100,8 +1097,7 @@ static ulg deflate()
 				match_length = lookahead;
 
 			/* Ignore a length 3 match if it is too distant: */
-			if (match_length == MIN_MATCH
-				&& strstart - match_start > TOO_FAR) {
+			if (match_length == MIN_MATCH && strstart - match_start > TOO_FAR) {
 				/* If prev_match is also MIN_MATCH, match_start is garbage
 				 * but we will ignore the current match anyway.
 				 */
@@ -1116,8 +1112,7 @@ static ulg deflate()
 			check_match(strstart - 1, prev_match, prev_length);
 
 			flush =
-				ct_tally(strstart - 1 - prev_match,
-						 prev_length - MIN_MATCH);
+				ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
 
 			/* Insert in hash table all strings up to the end of the match.
 			 * strstart-1 and strstart are already inserted.
@@ -1171,7 +1166,7 @@ static ulg deflate()
 	if (match_available)
 		ct_tally(0, window[strstart - 1]);
 
-	return FLUSH_BLOCK(1);		/* eof */
+	return FLUSH_BLOCK(1);	/* eof */
 }
 
 /* gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
@@ -1201,9 +1196,6 @@ typedef struct dirent dir_type;
 typedef RETSIGTYPE(*sig_type) (int);
 
 /* ======================================================================== */
-// int main (argc, argv)
-//    int argc;
-//    char **argv;
 int gzip_main(int argc, char **argv)
 {
 	int result;
@@ -1223,9 +1215,16 @@ int gzip_main(int argc, char **argv)
 		case 'f':
 			force = 1;
 			break;
-		/* Ignore 1-9 (compression level) options */
-		case '1': case '2': case '3': case '4': case '5':
-		case '6': case '7': case '8': case '9':
+			/* Ignore 1-9 (compression level) options */
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			break;
 		case 'q':
 			break;
@@ -1284,7 +1283,7 @@ int gzip_main(int argc, char **argv)
 				outFileNum = STDOUT_FILENO;
 			} else {
 				inFileNum = open(argv[i], O_RDONLY);
-				if (inFileNum < 0 || fstat (inFileNum, &statBuf) < 0)
+				if (inFileNum < 0 || fstat(inFileNum, &statBuf) < 0)
 					perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;
 				ifile_size = statBuf.st_size;
@@ -1296,7 +1295,8 @@ int gzip_main(int argc, char **argv)
 
 					/* Open output file */
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
+					outFileNum =
+						open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
 #else
 					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
 #endif
@@ -1313,7 +1313,8 @@ int gzip_main(int argc, char **argv)
 			}
 
 			if (path == NULL && isatty(outFileNum) && force == 0) {
-				error_msg("compressed data not written to a terminal. Use -f to force compression.");
+				error_msg
+					("compressed data not written to a terminal. Use -f to force compression.");
 				free(path);
 				continue;
 			}
@@ -1321,8 +1322,8 @@ int gzip_main(int argc, char **argv)
 			result = zip(inFileNum, outFileNum);
 
 			if (path != NULL) {
-				close (inFileNum);
-				close (outFileNum);
+				close(inFileNum);
+				close(outFileNum);
 
 				/* Delete the original file */
 				if (result == OK)
@@ -1338,7 +1339,7 @@ int gzip_main(int argc, char **argv)
 		}
 	}
 
-	return(exit_code);
+	return (exit_code);
 }
 
 /* trees.c -- output deflated data using Huffman coding
@@ -1427,17 +1428,19 @@ int gzip_main(int argc, char **argv)
 typedef uch extra_bits_t;
 
 /* extra bits for each length code */
-static const extra_bits_t extra_lbits[LENGTH_CODES]    
+static const extra_bits_t extra_lbits[LENGTH_CODES]
 	= { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
-		4, 4, 5, 5, 5, 5, 0 };
+	4, 4, 5, 5, 5, 5, 0
+};
 
 /* extra bits for each distance code */
-static const extra_bits_t extra_dbits[D_CODES]    
+static const extra_bits_t extra_dbits[D_CODES]
 	= { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
-		10, 10, 11, 11, 12, 12, 13, 13 };
+	10, 10, 11, 11, 12, 12, 13, 13
+};
 
 /* extra bits for each bit length code */
-static const extra_bits_t extra_blbits[BL_CODES]  
+static const extra_bits_t extra_blbits[BL_CODES]
 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
 
 #define STORED_BLOCK 0
@@ -1487,16 +1490,21 @@ static const extra_bits_t extra_blbits[BL_CODES]
 #define REPZ_3_10    17
 /* repeat a zero length 3-10 times  (3 bits of repeat count) */
 #define REPZ_11_138  18
-/* repeat a zero length 11-138 times  (7 bits of repeat count) *//* ===========================================================================
+/* repeat a zero length 11-138 times  (7 bits of repeat count) */
+
+/* ===========================================================================
  * Local data
- *//* Data structure describing a single value and its code string. */ typedef struct ct_data {
+ */
+
+/* Data structure describing a single value and its code string. */
+typedef struct ct_data {
 	union {
-		ush freq;				/* frequency count */
-		ush code;				/* bit string */
+		ush freq;		/* frequency count */
+		ush code;		/* bit string */
 	} fc;
 	union {
-		ush dad;				/* father node in Huffman tree */
-		ush len;				/* length of bit string */
+		ush dad;		/* father node in Huffman tree */
+		ush len;		/* length of bit string */
 	} dl;
 } ct_data;
 
@@ -1530,25 +1538,27 @@ static ct_data bl_tree[2 * BL_CODES + 1];
 /* Huffman tree for the bit lengths */
 
 typedef struct tree_desc {
-	ct_data *dyn_tree;		/* the dynamic tree */
+	ct_data *dyn_tree;	/* the dynamic tree */
 	ct_data *static_tree;	/* corresponding static tree or NULL */
-	const extra_bits_t *extra_bits; /* extra bits for each code or NULL */
-	int extra_base;				/* base index for extra_bits */
-	int elems;					/* max number of elements in the tree */
-	int max_length;				/* max bit length for the codes */
-	int max_code;				/* largest code with non zero frequency */
+	const extra_bits_t *extra_bits;	/* extra bits for each code or NULL */
+	int extra_base;		/* base index for extra_bits */
+	int elems;			/* max number of elements in the tree */
+	int max_length;		/* max bit length for the codes */
+	int max_code;		/* largest code with non zero frequency */
 } tree_desc;
 
 static tree_desc l_desc =
 	{ dyn_ltree, static_ltree, extra_lbits, LITERALS + 1, L_CODES,
-		MAX_BITS, 0 };
+	MAX_BITS, 0
+};
 
 static tree_desc d_desc =
 	{ dyn_dtree, static_dtree, extra_dbits, 0, D_CODES, MAX_BITS, 0 };
 
 static tree_desc bl_desc =
 	{ bl_tree, (ct_data *) 0, extra_blbits, 0, BL_CODES, MAX_BL_BITS,
-		0 };
+	0
+};
 
 
 static ush bl_count[MAX_BITS + 1];
@@ -1563,8 +1573,8 @@ static const uch bl_order[BL_CODES]
  */
 
 static int heap[2 * L_CODES + 1];	/* heap used to build the Huffman trees */
-static int heap_len;				/* number of elements in the heap */
-static int heap_max;				/* element of largest frequency */
+static int heap_len;	/* number of elements in the heap */
+static int heap_max;	/* element of largest frequency */
 
 /* The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
  * The same heap array is used to build all trees.
@@ -1604,41 +1614,41 @@ static uch flag_buf[(LIT_BUFSIZE / 8)];
  * l_buf, thus indicating the presence or absence of a distance.
  */
 
-static unsigned last_lit;		/* running index in l_buf */
-static unsigned last_dist;		/* running index in d_buf */
-static unsigned last_flags;		/* running index in flag_buf */
-static uch flags;				/* current flags not yet saved in flag_buf */
-static uch flag_bit;				/* current bit used in flags */
+static unsigned last_lit;	/* running index in l_buf */
+static unsigned last_dist;	/* running index in d_buf */
+static unsigned last_flags;	/* running index in flag_buf */
+static uch flags;		/* current flags not yet saved in flag_buf */
+static uch flag_bit;	/* current bit used in flags */
 
 /* bits are filled in flags starting at bit 0 (least significant).
  * Note: these flags are overkill in the current code since we don't
  * take advantage of DIST_BUFSIZE == LIT_BUFSIZE.
  */
 
-static ulg opt_len;				/* bit length of current block with optimal trees */
-static ulg static_len;			/* bit length of current block with static trees */
+static ulg opt_len;		/* bit length of current block with optimal trees */
+static ulg static_len;	/* bit length of current block with static trees */
 
-static ulg compressed_len;		/* total bit length of compressed file */
+static ulg compressed_len;	/* total bit length of compressed file */
 
 
-static ush *file_type;					/* pointer to UNKNOWN, BINARY or ASCII */
-static int *file_method;				/* pointer to DEFLATE or STORE */
+static ush *file_type;	/* pointer to UNKNOWN, BINARY or ASCII */
+static int *file_method;	/* pointer to DEFLATE or STORE */
 
 /* ===========================================================================
  * Local (static) routines in this file.
  */
 
-static void init_block (void);
-static void pqdownheap (ct_data * tree, int k);
-static void gen_bitlen (tree_desc * desc);
-static void gen_codes (ct_data * tree, int max_code);
-static void build_tree (tree_desc * desc);
-static void scan_tree (ct_data * tree, int max_code);
-static void send_tree (ct_data * tree, int max_code);
-static int build_bl_tree (void);
-static void send_all_trees (int lcodes, int dcodes, int blcodes);
-static void compress_block (ct_data * ltree, ct_data * dtree);
-static void set_file_type (void);
+static void init_block(void);
+static void pqdownheap(ct_data * tree, int k);
+static void gen_bitlen(tree_desc * desc);
+static void gen_codes(ct_data * tree, int max_code);
+static void build_tree(tree_desc * desc);
+static void scan_tree(ct_data * tree, int max_code);
+static void send_tree(ct_data * tree, int max_code);
+static int build_bl_tree(void);
+static void send_all_trees(int lcodes, int dcodes, int blcodes);
+static void compress_block(ct_data * ltree, ct_data * dtree);
+static void set_file_type(void);
 
 
 #ifndef DEBUG
@@ -1665,20 +1675,20 @@ static void set_file_type (void);
  * location of the internal file attribute (ascii/binary) and method
  * (DEFLATE/STORE).
  */
-static void ct_init(ush *attr, int *methodp)
+static void ct_init(ush * attr, int *methodp)
 {
-	int n;						/* iterates over tree elements */
-	int bits;					/* bit counter */
-	int length;					/* length value */
-	int code;					/* code value */
-	int dist;					/* distance index */
+	int n;				/* iterates over tree elements */
+	int bits;			/* bit counter */
+	int length;			/* length value */
+	int code;			/* code value */
+	int dist;			/* distance index */
 
 	file_type = attr;
 	file_method = methodp;
 	compressed_len = 0L;
 
 	if (static_dtree[0].Len != 0)
-		return;					/* ct_init already called */
+		return;			/* ct_init already called */
 
 	/* Initialize the mapping length (0..255) -> length code (0..28) */
 	length = 0;
@@ -1704,7 +1714,7 @@ static void ct_init(ush *attr, int *methodp)
 		}
 	}
 	Assert(dist == 256, "ct_init: dist != 256");
-	dist >>= 7;					/* from now on, all distances are divided by 128 */
+	dist >>= 7;			/* from now on, all distances are divided by 128 */
 	for (; code < D_CODES; code++) {
 		base_dist[code] = dist << 7;
 		for (n = 0; n < (1 << (extra_dbits[code] - 7)); n++) {
@@ -1746,7 +1756,7 @@ static void ct_init(ush *attr, int *methodp)
  */
 static void init_block()
 {
-	int n;						/* iterates over tree elements */
+	int n;				/* iterates over tree elements */
 
 	/* Initialize the trees. */
 	for (n = 0; n < L_CODES; n++)
@@ -1792,10 +1802,10 @@ static void init_block()
  * when the heap property is re-established (each father smaller than its
  * two sons).
  */
-static void pqdownheap(ct_data *tree, int k)
+static void pqdownheap(ct_data * tree, int k)
 {
 	int v = heap[k];
-	int j = k << 1;				/* left son of k */
+	int j = k << 1;		/* left son of k */
 
 	while (j <= heap_len) {
 		/* Set j to the smallest of the two sons: */
@@ -1826,7 +1836,7 @@ static void pqdownheap(ct_data *tree, int k)
  *     The length opt_len is updated; static_len is also updated if stree is
  *     not null.
  */
-static void gen_bitlen(tree_desc *desc)
+static void gen_bitlen(tree_desc * desc)
 {
 	ct_data *tree = desc->dyn_tree;
 	const extra_bits_t *extra = desc->extra_bits;
@@ -1834,12 +1844,12 @@ static void gen_bitlen(tree_desc *desc)
 	int max_code = desc->max_code;
 	int max_length = desc->max_length;
 	ct_data *stree = desc->static_tree;
-	int h;						/* heap index */
-	int n, m;					/* iterate over the tree elements */
-	int bits;					/* bit length */
-	int xbits;					/* extra bits */
-	ush f;						/* frequency */
-	int overflow = 0;			/* number of elements with bit length too large */
+	int h;				/* heap index */
+	int n, m;			/* iterate over the tree elements */
+	int bits;			/* bit length */
+	int xbits;			/* extra bits */
+	ush f;				/* frequency */
+	int overflow = 0;	/* number of elements with bit length too large */
 
 	for (bits = 0; bits <= MAX_BITS; bits++)
 		bl_count[bits] = 0;
@@ -1858,7 +1868,7 @@ static void gen_bitlen(tree_desc *desc)
 		/* We overwrite tree[n].Dad which is no longer needed */
 
 		if (n > max_code)
-			continue;			/* not a leaf node */
+			continue;	/* not a leaf node */
 
 		bl_count[bits]++;
 		xbits = 0;
@@ -1881,7 +1891,7 @@ static void gen_bitlen(tree_desc *desc)
 		bits = max_length - 1;
 		while (bl_count[bits] == 0)
 			bits--;
-		bl_count[bits]--;		/* move one leaf down the tree */
+		bl_count[bits]--;	/* move one leaf down the tree */
 		bl_count[bits + 1] += 2;	/* move one overflow item as its brother */
 		bl_count[max_length]--;
 		/* The brother of the overflow item also moves one step up,
@@ -1902,12 +1912,10 @@ static void gen_bitlen(tree_desc *desc)
 			if (m > max_code)
 				continue;
 			if (tree[m].Len != (unsigned) bits) {
-				Trace(
-					  (stderr, "code %d bits %d->%d\n", m, tree[m].Len,
+				Trace((stderr, "code %d bits %d->%d\n", m, tree[m].Len,
 					   bits));
 				opt_len +=
-					((long) bits -
-					 (long) tree[m].Len) * (long) tree[m].Freq;
+					((long) bits - (long) tree[m].Len) * (long) tree[m].Freq;
 				tree[m].Len = (ush) bits;
 			}
 			n--;
@@ -1923,12 +1931,12 @@ static void gen_bitlen(tree_desc *desc)
  * OUT assertion: the field code is set for all tree elements of non
  *     zero code length.
  */
-static void gen_codes(ct_data *tree, int max_code)
+static void gen_codes(ct_data * tree, int max_code)
 {
 	ush next_code[MAX_BITS + 1];	/* next code value for each bit length */
-	ush code = 0;				/* running code value */
-	int bits;					/* bit index */
-	int n;						/* code index */
+	ush code = 0;		/* running code value */
+	int bits;			/* bit index */
+	int n;				/* code index */
 
 	/* The distribution counts are first used to generate the code values
 	 * without bit reversal.
@@ -1966,14 +1974,14 @@ static void gen_codes(ct_data *tree, int max_code)
  *     and corresponding code. The length opt_len is updated; static_len is
  *     also updated if stree is not null. The field max_code is set.
  */
-static void build_tree(tree_desc *desc)
+static void build_tree(tree_desc * desc)
 {
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
 	int elems = desc->elems;
-	int n, m;					/* iterate over heap elements */
-	int max_code = -1;			/* largest code with non zero frequency */
-	int node = elems;			/* next internal node of the tree */
+	int n, m;			/* iterate over heap elements */
+	int max_code = -1;	/* largest code with non zero frequency */
+	int node = elems;	/* next internal node of the tree */
 
 	/* Construct the initial heap, with least frequent element in
 	 * heap[SMALLEST]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
@@ -2017,8 +2025,8 @@ static void build_tree(tree_desc *desc)
 	 * frequent nodes.
 	 */
 	do {
-		pqremove(tree, n);		/* n = node of least frequency */
-		m = heap[SMALLEST];		/* m = node of next least frequency */
+		pqremove(tree, n);	/* n = node of least frequency */
+		m = heap[SMALLEST];	/* m = node of next least frequency */
 
 		heap[--heap_max] = n;	/* keep the nodes sorted by frequency */
 		heap[--heap_max] = m;
@@ -2030,8 +2038,7 @@ static void build_tree(tree_desc *desc)
 #ifdef DUMP_BL_TREE
 		if (tree == bl_tree) {
 			fprintf(stderr, "\nnode %d(%d), sons %d(%d) %d(%d)",
-					node, tree[node].Freq, n, tree[n].Freq, m,
-					tree[m].Freq);
+					node, tree[node].Freq, n, tree[n].Freq, m, tree[m].Freq);
 		}
 #endif
 		/* and insert the new node in the heap */
@@ -2057,15 +2064,15 @@ static void build_tree(tree_desc *desc)
  * counts. (The contribution of the bit length codes will be added later
  * during the construction of bl_tree.)
  */
-static void scan_tree(ct_data *tree, int max_code)
+static void scan_tree(ct_data * tree, int max_code)
 {
-	int n;						/* iterates over all tree elements */
-	int prevlen = -1;			/* last emitted length */
-	int curlen;					/* length of current code */
+	int n;				/* iterates over all tree elements */
+	int prevlen = -1;	/* last emitted length */
+	int curlen;			/* length of current code */
 	int nextlen = tree[0].Len;	/* length of next code */
-	int count = 0;				/* repeat count of the current code */
-	int max_count = 7;			/* max repeat count */
-	int min_count = 4;			/* min repeat count */
+	int count = 0;		/* repeat count of the current code */
+	int max_count = 7;	/* max repeat count */
+	int min_count = 4;	/* min repeat count */
 
 	if (nextlen == 0)
 		max_count = 138, min_count = 3;
@@ -2103,15 +2110,15 @@ static void scan_tree(ct_data *tree, int max_code)
  * Send a literal or distance tree in compressed form, using the codes in
  * bl_tree.
  */
-static void send_tree(ct_data *tree, int max_code)
+static void send_tree(ct_data * tree, int max_code)
 {
-	int n;						/* iterates over all tree elements */
-	int prevlen = -1;			/* last emitted length */
-	int curlen;					/* length of current code */
+	int n;				/* iterates over all tree elements */
+	int prevlen = -1;	/* last emitted length */
+	int curlen;			/* length of current code */
 	int nextlen = tree[0].Len;	/* length of next code */
-	int count = 0;				/* repeat count of the current code */
-	int max_count = 7;			/* max repeat count */
-	int min_count = 4;			/* min repeat count */
+	int count = 0;		/* repeat count of the current code */
+	int max_count = 7;	/* max repeat count */
+	int min_count = 4;	/* min repeat count */
 
 /* tree[max_code+1].Len = -1; *//* guard already set */
 	if (nextlen == 0)
@@ -2162,7 +2169,7 @@ static void send_tree(ct_data *tree, int max_code)
  */
 static const int build_bl_tree()
 {
-	int max_blindex;			/* index of last bit length code of non zero freq */
+	int max_blindex;	/* index of last bit length code of non zero freq */
 
 	/* Determine the bit length frequencies for literal and distance trees */
 	scan_tree((ct_data *) dyn_ltree, l_desc.max_code);
@@ -2184,9 +2191,7 @@ static const int build_bl_tree()
 	}
 	/* Update opt_len to include the bit length tree and counts */
 	opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
-	Tracev(
-		   (stderr, "\ndyn trees: dyn %ld, stat %ld", opt_len,
-			static_len));
+	Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld", opt_len, static_len));
 
 	return max_blindex;
 }
@@ -2198,10 +2203,9 @@ static const int build_bl_tree()
  */
 static void send_all_trees(int lcodes, int dcodes, int blcodes)
 {
-	int rank;					/* index in bl_order */
+	int rank;			/* index in bl_order */
 
-	Assert(lcodes >= 257 && dcodes >= 1
-		   && blcodes >= 4, "not enough codes");
+	Assert(lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
 	Assert(lcodes <= L_CODES && dcodes <= D_CODES
 		   && blcodes <= BL_CODES, "too many codes");
 	Tracev((stderr, "\nbl counts: "));
@@ -2229,7 +2233,7 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 static ulg flush_block(char *buf, ulg stored_len, int eof)
 {
 	ulg opt_lenb, static_lenb;	/* opt_len and static_len in bytes */
-	int max_blindex;			/* index of last bit length code of non zero freq */
+	int max_blindex;	/* index of last bit length code of non zero freq */
 
 	flag_buf[last_flags] = flags;	/* Save the flags for the last 8 items */
 
@@ -2242,9 +2246,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", opt_len, static_len));
 
 	build_tree((tree_desc *) (&d_desc));
-	Tracev(
-		   (stderr, "\ndist data: dyn %ld, stat %ld", opt_len,
-			static_len));
+	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", opt_len, static_len));
 	/* At this point, opt_len and static_len are the total bit lengths of
 	 * the compressed block data, excluding the tree representations.
 	 */
@@ -2258,8 +2260,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	opt_lenb = (opt_len + 3 + 7) >> 3;
 	static_lenb = (static_len + 3 + 7) >> 3;
 
-	Trace(
-		  (stderr,
+	Trace((stderr,
 		   "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
 		   opt_lenb, opt_len, static_lenb, static_len, stored_len,
 		   last_lit, last_dist));
@@ -2271,8 +2272,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	 * and if the zip file can be seeked (to rewrite the local header),
 	 * the whole file is transformed into a stored file:
 	 */
-	if (stored_len <= opt_lenb && eof && compressed_len == 0L
-		&& seekable()) {
+	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
 		if (buf == (char *) 0)
 			error_msg("block vanished");
@@ -2297,15 +2297,13 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 	} else if (static_lenb == opt_lenb) {
 		send_bits((STATIC_TREES << 1) + eof, 3);
-		compress_block((ct_data *) static_ltree,
-					   (ct_data *) static_dtree);
+		compress_block((ct_data *) static_ltree, (ct_data *) static_dtree);
 		compressed_len += 3 + static_len;
 	} else {
 		send_bits((DYN_TREES << 1) + eof, 3);
 		send_all_trees(l_desc.max_code + 1, d_desc.max_code + 1,
 					   max_blindex + 1);
-		compress_block((ct_data *) dyn_ltree,
-					   (ct_data *) dyn_dtree);
+		compress_block((ct_data *) dyn_ltree, (ct_data *) dyn_dtree);
 		compressed_len += 3 + opt_len;
 	}
 	Assert(compressed_len == bits_sent, "bad compressed size");
@@ -2333,7 +2331,7 @@ static int ct_tally(int dist, int lc)
 		dyn_ltree[lc].Freq++;
 	} else {
 		/* Here, lc is the match length - MIN_MATCH */
-		dist--;					/* dist = match distance - 1 */
+		dist--;			/* dist = match distance - 1 */
 		Assert((ush) dist < (ush) MAX_DIST &&
 			   (ush) lc <= (ush) (MAX_MATCH - MIN_MATCH) &&
 			   (ush) d_code(dist) < (ush) D_CODES, "ct_tally: bad match");
@@ -2363,8 +2361,7 @@ static int ct_tally(int dist, int lc)
 				(ulg) dyn_dtree[dcode].Freq * (5L + extra_dbits[dcode]);
 		}
 		out_length >>= 3;
-		Trace(
-			  (stderr,
+		Trace((stderr,
 			   "\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
 			   last_lit, last_dist, in_length, out_length,
 			   100L - out_length * 100L / in_length));
@@ -2381,16 +2378,16 @@ static int ct_tally(int dist, int lc)
 /* ===========================================================================
  * Send the block data compressed using the given Huffman trees
  */
-static void compress_block(ct_data *ltree, ct_data *dtree)
+static void compress_block(ct_data * ltree, ct_data * dtree)
 {
-	unsigned dist;				/* distance of matched string */
-	int lc;						/* match length or unmatched char (if dist == 0) */
-	unsigned lx = 0;			/* running index in l_buf */
-	unsigned dx = 0;			/* running index in d_buf */
-	unsigned fx = 0;			/* running index in flag_buf */
-	uch flag = 0;				/* current flags */
-	unsigned code;				/* the code to send */
-	int extra;					/* number of extra bits to send */
+	unsigned dist;		/* distance of matched string */
+	int lc;				/* match length or unmatched char (if dist == 0) */
+	unsigned lx = 0;	/* running index in l_buf */
+	unsigned dx = 0;	/* running index in d_buf */
+	unsigned fx = 0;	/* running index in flag_buf */
+	uch flag = 0;		/* current flags */
+	unsigned code;		/* the code to send */
+	int extra;			/* number of extra bits to send */
 
 	if (last_lit != 0)
 		do {
@@ -2420,7 +2417,7 @@ static void compress_block(ct_data *ltree, ct_data *dtree)
 					dist -= base_dist[code];
 					send_bits(dist, extra);	/* send the extra distance bits */
 				}
-			}					/* literal or match pair ? */
+			}			/* literal or match pair ? */
 			flag >>= 1;
 		} while (lx < last_lit);
 
@@ -2458,13 +2455,13 @@ static void set_file_type()
  */
 
 
-static ulg crc;					/* crc on uncompressed file data */
-static long header_bytes;				/* number of bytes in gzip header */
+static ulg crc;			/* crc on uncompressed file data */
+static long header_bytes;	/* number of bytes in gzip header */
 
 static void put_long(ulg n)
 {
 	put_short((n) & 0xffff);
-	put_short(((ulg)(n)) >> 16);
+	put_short(((ulg) (n)) >> 16);
 }
 
 /* put_header_byte is used for the compressed output
@@ -2479,9 +2476,9 @@ static void put_long(ulg n)
  */
 static int zip(int in, int out)
 {
-	uch my_flags = 0;				/* general purpose bit flags */
-	ush attr = 0;				/* ascii/binary flag */
-	ush deflate_flags = 0;		/* pkzip -es, -en or -ex equivalent */
+	uch my_flags = 0;	/* general purpose bit flags */
+	ush attr = 0;		/* ascii/binary flag */
+	ush deflate_flags = 0;	/* pkzip -es, -en or -ex equivalent */
 
 	ifd = in;
 	ofd = out;
@@ -2491,11 +2488,11 @@ static int zip(int in, int out)
 
 
 	method = DEFLATED;
-	put_header_byte(GZIP_MAGIC[0]);     /* magic header */
+	put_header_byte(GZIP_MAGIC[0]);	/* magic header */
 	put_header_byte(GZIP_MAGIC[1]);
-	put_header_byte(DEFLATED);    /* compression method */
+	put_header_byte(DEFLATED);	/* compression method */
 
-	put_header_byte(my_flags);    /* general flags */
+	put_header_byte(my_flags);	/* general flags */
 	put_long(time_stamp);
 
 	/* Write deflated file to zip file */
@@ -2506,7 +2503,7 @@ static int zip(int in, int out)
 	lm_init(&deflate_flags);
 
 	put_byte((uch) deflate_flags);	/* extra flags */
-	put_byte(OS_CODE);			/* OS identifier */
+	put_byte(OS_CODE);	/* OS identifier */
 
 	header_bytes = (long) outcnt;
 
