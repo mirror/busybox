@@ -597,6 +597,10 @@ static const llist_t *append_file_list_to_list(const char *filename, const llist
 }
 #endif
 
+#define CTX_CREATE	1
+#define CTX_TEST	2
+#define CTX_EXTRACT	4
+
 int tar_main(int argc, char **argv)
 {
 	char (*get_header_ptr)(archive_handle_t *) = get_header_tar;
@@ -604,10 +608,7 @@ int tar_main(int argc, char **argv)
 	int opt;
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
-
-#ifdef CONFIG_FEATURE_TAR_CREATE
-	unsigned char tar_create = FALSE;
-#endif
+	unsigned char ctx_flag = 0;
 
 	if (argc < 2) {
 		show_usage();
@@ -630,10 +631,11 @@ int tar_main(int argc, char **argv)
 			/* One and only one of these is required */
 #ifdef CONFIG_FEATURE_TAR_CREATE
 		case 'c':
-			tar_create = TRUE;
+			ctx_flag |= CTX_CREATE;
 			break;
 #endif
 		case 't':
+			ctx_flag |= CTX_TEST;
 			if ((tar_handle->action_header == header_list) || 
 				(tar_handle->action_header == header_verbose_list)) {
 				tar_handle->action_header = header_verbose_list;
@@ -642,6 +644,7 @@ int tar_main(int argc, char **argv)
 			}
 			break;
 		case 'x':
+			ctx_flag |= CTX_EXTRACT;
 			tar_handle->action_data = data_extract_all;
 			break;
 
@@ -691,6 +694,11 @@ int tar_main(int argc, char **argv)
 		}
 	}
 
+	/* Check one and only one context option was given */
+	if ((ctx_flag != CTX_CREATE) && (ctx_flag != CTX_TEST) && (ctx_flag != CTX_EXTRACT)) {
+		show_usage();
+	}
+
 	/* Check if we are reading from stdin */
 	if ((argv[optind]) && (*argv[optind] == '-')) {
 		/* Default is to read from stdin, so just skip to next arg */
@@ -710,7 +718,7 @@ int tar_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
-	if (tar_create == TRUE) {
+	if (ctx_flag == CTX_CREATE) {
 		int verboseFlag = FALSE;
 		int gzipFlag = FALSE;
 
