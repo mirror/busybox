@@ -50,6 +50,8 @@
 	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
 	* Fixed a segfault in yes when no args were given -- Pavel Roskin.
 	* Simplified freeramdisk and added argument checking -- Pavel Roskin. 
+	* "which" rewritten to use stat(). Fixes to improve its compatability
+	    with traditional implementations -- Pavel Roskin.
 	* More doc updates
 
 

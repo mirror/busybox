@@ -23,15 +23,18 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/param.h>
 
 
 extern int which_main(int argc, char **argv)
 {
-	char *path_list, *test, *tmp;
-	struct dirent *next;
+	char *path_list, *test, *tmp, *path_parsed;
+	char buf[PATH_MAX];
+	struct stat filestat;
+	int count = 0;
 
-	if (**(argv + 1) == '-') {
+	if (argc <= 1 || **(argv + 1) == '-') {
 		usage("which [COMMAND ...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 				"\nLocates a COMMAND.\n"
@@ -44,21 +47,45 @@ extern int which_main(int argc, char **argv)
 	if (!path_list)
 		path_list = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin";
 
-	while(argc-- > 0 && *(argv++) != '\0' && strlen(*argv)) { 
-		for( test=path_list; (tmp=strchr(test, ':')) && (tmp+1)!=NULL; test=++tmp) {
-			DIR *dir;
-			*tmp='\0';
-			//printf("Checking directory '%s'\n", test);
-			dir = opendir(test);
-			if (!dir)
-				continue;
-			while ((next = readdir(dir)) != NULL) {
-				//printf("Checking file '%s'\n", next->d_name);
-				if ((strcmp(next->d_name, *argv) == 0)) {
-					printf("%s/%s\n", test, next->d_name);
-					exit(TRUE);
-				}
+	path_parsed = malloc (strlen(path_list) + 1);
+	strcpy (path_parsed, path_list);
+
+	/* Replace colons with zeros in path_parsed and count them */
+	count = 1;
+	test = path_parsed;
+	while (1) {
+		tmp = strchr(test, ':');
+		if (tmp == NULL)
+			break;
+		*tmp = 0;
+		test = tmp + 1;
+		count++;
+	}
+
+
+	while(argc-- > 0) { 
+		int i;
+		int found = FALSE;
+		test = path_parsed;
+		argv++;
+		for (i = 0; i < count; i++) {
+			strcpy (buf, test);
+			strcat (buf, "/");
+			strcat (buf, *argv);
+			if (stat (buf, &filestat) == 0
+			    && filestat.st_mode & S_IXUSR)
+			{
+				found = TRUE;
+				break;
 			}
+			test += (strlen(test) + 1);
+		}
+		if (found == TRUE)
+			printf ("%s\n", buf);
+		else
+		{
+			printf ("which: no %s in (%s)\n", *argv, path_list);
+			exit (FALSE);
 		}
 	}
 	exit(TRUE);
