@@ -22,35 +22,42 @@
  *
  */
 
+#include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <ctype.h>
 #include "libbb.h"
 
+#define isodigit(c) ((c) >= '0' && (c) <= '7')
+#define hextobin(c) ((c)>='a'&&(c)<='f' ? (c)-'a'+10 : (c)>='A'&&(c)<='F' ? (c)-'A'+10 : (c)-'0')
+#define octtobin(c) ((c) - '0')
 char bb_process_escape_sequence(const char **ptr)
 {
+	const char *p, *q;
+	unsigned int num_digits, r, n, hexescape;
 	static const char charmap[] = {
 		'a',  'b',  'f',  'n',  'r',  't',  'v',  '\\', 0,
 		'\a', '\b', '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
 
-	const char *p;
-	const char *q;
-	unsigned int num_digits;
-	unsigned int r;
-	unsigned int n;
-
-	n = 0;
+	n = r = hexescape = num_digits = 0;
 	q = *ptr;
 
-	num_digits = 0;
+	if (*q == 'x') {
+		hexescape++;
+		++q;
+	}
+
 	do {
-		if (((unsigned int)(*q - '0')) <= 7) {
-			r = n * 8 + (*q - '0');
-			if (r <= UCHAR_MAX) {
-				n = r;
-				++q;
-				if (++num_digits < 3) {
-					continue;
-				}
+		if (hexescape && isxdigit(*q)) {
+			r = n * 16 + hextobin(*q);
+		} else if (isodigit(*q)) {
+			r = n * 8 + octtobin(*q);
+		}
+		if (r <= UCHAR_MAX) {
+			n = r;
+			++q;
+			if (++num_digits < 3) {
+				continue;
 			}
 		}
 		break;
