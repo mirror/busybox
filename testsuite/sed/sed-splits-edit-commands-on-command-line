@@ -1,0 +1,9 @@
+echo 2 | busybox sed -e 'i\
+1
+a\
+3' > output
+cmp output - <<EOF
+1
+2
+3
+EOF

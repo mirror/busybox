@@ -3,6 +3,7 @@
  *
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
  * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
+ * Copyright (C) 2002  Matt Kraai
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -296,9 +297,7 @@ static void move_back(char *str, int offset)
 
 static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 {
-	int idx = 0;
-	int slashes_eaten = 0;
-	char *ptr; /* shorthand */
+	int i, j;
 
 	/*
 	 * the string that gets passed to this function should look like this:
@@ -326,44 +325,24 @@ static int parse_edit_cmd(struct sed_cmd *sed_cmd, const char *editstr)
 		error_msg_and_die("bad format in edit expression");
 
 	/* store the edit line text */
-	/* make editline big enough to accomodate the extra '\n' we will tack on
-	 * to the end */
 	sed_cmd->editline = xmalloc(strlen(&editstr[3]) + 2);
-	strcpy(sed_cmd->editline, &editstr[3]);
-	ptr = sed_cmd->editline;
-
-	/* now we need to go through * and: s/\\[\r\n]$/\n/g on the edit line */
-	while (ptr[idx]) {
-		while (ptr[idx] != '\\' || (ptr[idx+1] != '\n' && ptr[idx+1] != '\r')) {
-			idx++;
-			if (!ptr[idx]) {
-				goto out;
-			}
-		}
-		/* move the newline over the '\' before it (effectively eats the '\') */
-		move_back(&ptr[idx], 1);
-		slashes_eaten++;
-		/* substitue \r for \n if needed */
-		if (ptr[idx] == '\r')
-			ptr[idx] = '\n';
+	for (i = 3, j = 0; editstr[i] != '\0' && strchr("\r\n", editstr[i]) == NULL;
+			i++, j++) {
+		if (editstr[i] == '\\' && strchr("\n\r", editstr[i+1]) != NULL) {
+			sed_cmd->editline[j] = '\n';
+			i++;
+		} else
+			sed_cmd->editline[j] = editstr[i];
 	}
 
-out:
 	/* figure out if we need to add a newline */
-	if (ptr[idx-1] != '\n') {
-		ptr[idx] = '\n';
-		idx++;
-	}
+	if (sed_cmd->editline[j-1] != '\n')
+		sed_cmd->editline[j++] = '\n';
 
 	/* terminate string */
-	ptr[idx]= 0;
+	sed_cmd->editline[j] = '\0';
 
-	/* this accounts for discrepancies between the modified string and the
-	 * original string passed in to this function */
-
-	/* adjust for opening 2 chars [aic]\ */
-
-	return idx + slashes_eaten + 2;
+	return i;
 }
 
 
