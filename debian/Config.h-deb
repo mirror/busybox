@@ -56,13 +56,13 @@
 #define BB_LN
 //#define BB_LOADACM
 //#define BB_LOADFONT
-//#define BB_LOADKMAP
+#define BB_LOADKMAP
 #define BB_LOGGER
 //#define BB_LOGNAME
 #define BB_LS
 #define BB_LSMOD
 //#define BB_MAKEDEVS
-//#define BB_MD5SUM
+#define BB_MD5SUM
 #define BB_MKDIR
 //#define BB_MKFIFO
 //#define BB_MKFS_MINIX
@@ -74,7 +74,7 @@
 #define BB_MOUNT
 //#define BB_MT
 //#define BB_NSLOOKUP
-//#define BB_PING
+#define BB_PING
 //#define BB_PIVOT_ROOT
 #define BB_POWEROFF
 //#define BB_PRINTF
@@ -103,9 +103,9 @@
 #define BB_TAR
 //#define BB_TEE
 //#define BB_TEST
-//#define BB_TELNET
+#define BB_TELNET
 #define BB_TOUCH
-//#define BB_TR
+#define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
 //#define BB_UUENCODE
@@ -119,7 +119,7 @@
 //#define BB_USLEEP
 //#define BB_WATCHDOG
 #define BB_WC
-//#define BB_WGET
+#define BB_WGET
 #define BB_WHICH
 #define BB_WHOAMI
 #define BB_XARGS
