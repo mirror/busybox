@@ -6690,7 +6690,7 @@ sprint_status(char *s, int status, int sigonly)
 #endif
 			st = WTERMSIG(status);
 		if (sigonly) {
-			if (st == SIGINT)
+			if (st == SIGINT || st == SIGPIPE)
 				goto out;
 #if JOBS
 			if (WIFSTOPPED(status))
