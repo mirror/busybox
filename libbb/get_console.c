@@ -86,10 +86,6 @@ int get_console_fd(void)
 {
 	int fd;
 
-	if (-1 == (fd = open_a_console("/dev/console")))
-			return -1;
-		else
-			return fd;
 	fd = open_a_console(CURRENT_TTY);
 	if (fd >= 0)
 		return fd;
