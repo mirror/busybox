@@ -31,6 +31,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include "libbb.h"
+#include "shadow.h"
 
 /*
  * pwd_to_spwd - create entries for new spwd structure
