@@ -14,6 +14,8 @@
 	    one file descriptor per file.  Oops.
 	* Fixed rebooting from init.  I'd left some debugging code in
 	    which blocked reboots.
+	* Added a prelinary du implementation.  Some parameter parsing
+	    stuff still needs to be added.  -beppu
 
 	-Erik Andrsen
 
