@@ -95,7 +95,7 @@ typedef struct sed_cmd_s {
 			/* Note:  GNU/POSIX sed does not save more than nine backrefs, so
 			 * we only use 4 bits to hold the number */
 	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
-	unsigned int sub_p:2; /* sed -e 's/foo/bar/p' (print substitution) */
+	unsigned int sub_p:1; /* sed -e 's/foo/bar/p' (print substitution) */
 
 	/* TRANSLATE COMMAND */
 	char *translate;
@@ -267,7 +267,6 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	 *
 	 *    (all three of the '/' slashes are mandatory)
 	 */
-
 	idx = parse_regex_delim(substr, &match, &sed_cmd->replace);
 
 	/* determine the number of back references in the match string */
@@ -473,7 +472,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
-	else if (strchr("nNpPqd=", sed_cmd->cmd) == 0) {
+	else if (strchr("dghnNpPqx=", sed_cmd->cmd) == 0) {
 		bb_error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
@@ -743,10 +742,10 @@ static int do_subst_command(const sed_cmd_t *sed_cmd, char **line)
 		altered++;
 
 		/* if we're not doing this globally, get out now */
-		if (!sed_cmd->sub_g)
+		if (!sed_cmd->sub_g) {
 			break;
+		}
 	}
-
 	for (; *hackline; hackline++) pipeputc(*hackline);
 	if (thepipe.buf[thepipe.idx] == PIPE_MAGIC) thepipe.buf[thepipe.idx] = 0;
 
@@ -774,6 +773,7 @@ static sed_cmd_t *branch_to(const char *label)
 static void process_file(FILE *file)
 {
 	char *pattern_space;	/* Posix requires it be able to hold at least 8192 bytes */
+	char *hold_space = NULL;	/* Posix requires it be able to hold at least 8192 bytes */
 	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
@@ -975,6 +975,20 @@ static void process_file(FILE *file)
 							}
 						}
 						break;
+					case 'g':	/* Replace pattern space with hold space */
+						free(pattern_space);
+						pattern_space = strdup(hold_space);
+						break;	
+					case 'h':	/* Replace hold space with pattern space */
+						free(hold_space);
+						hold_space = strdup(pattern_space);
+						break;	
+					case 'x': {	/* Swap hold and pattern space */
+							char *tmp;
+							tmp = pattern_space;
+							pattern_space = hold_space;
+							hold_space = tmp;
+						}
 				}
 			}
 
