@@ -25,13 +25,20 @@
    need to be added. This version was created on Debian GNU/Linux 2.x.
    Delete, Backspace, Home, End, and the arrow keys were tested
    to work in an Xterm and console. Ctrl-A also works as Home.
-   Ctrl-E also works as End. The binary size increase is <3K.
+   Ctrl-E also works as End.
 
-   Editting will not display correctly for lines greater then the 
-   terminal width. (more then one line.) However, history will.
+
+   Editor with vertical scrolling and completion by
+   Vladimir Oleynik. vodz@usa.net (c) 2001
+
+   Small bug: not true work if terminal size (x*y symbols) less
+	      size (prompt + editor`s line + 2 symbols)
  */
 
+
+
 #include "busybox.h"
+
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 
 #include <stdio.h>
@@ -43,6 +50,13 @@
 #include <ctype.h>
 #include <signal.h>
 
+#ifdef BB_FEATURE_SH_TAB_COMPLETION
+#include <sys/stat.h>
+#endif
+
+#ifdef BB_FEATURE_USERNAME_COMPLETION
+#include <pwd.h>
+#endif
 
 static const int MAX_HISTORY = 15;		/* Maximum length of the linked list for the command line history */
 
@@ -58,7 +72,6 @@ static struct history *his_front = NULL;	/* First element in command line list *
 static struct history *his_end = NULL;	/* Last element in command line list */
 
 /* ED: sparc termios is broken: revert back to old termio handling. */
-#ifdef BB_FEATURE_USE_TERMIOS
 
 #if #cpu(sparc)
 #      include <termio.h>
@@ -79,16 +92,35 @@ static struct termios initial_settings, new_settings;
 #define	_POSIX_VDISABLE	'\0'
 #endif
 
-#endif
 
+static
+volatile int cmdedit_termw;       /* actual terminal width */
+static   int history_counter = 0; /* Number of commands in history list */
 
+static
+volatile int handlers_sets = 0;    /* Set next bites
+				     when atexit() has been called
+				     and set many "terminates" signal handlers
+				     and winchg signal handler
+				     and if the terminal needs to be reset upon exit
+				     */
+enum {
+	SET_ATEXIT        = 1,
+	SET_TERM_HANDLERS = 2,
+	SET_WCHG_HANDLERS = 4,
+	SET_RESET_TERM    = 8,
+};
 
-static int cmdedit_termw = 80;  /* actual terminal width */
-static int cmdedit_scroll = 27; /* width of EOL scrolling region */
-static int history_counter = 0;	/* Number of commands in history list */
-static int reset_term = 0;		/* Set to true if the terminal needs to be reset upon exit */
-static int exithandler_set = 0;	/* Set to true when atexit() has been called */
 	
+static   int cmdedit_x;           /* real x terminal position,
+				   require put prompt in start x position */
+static   int cmdedit_y;           /* pseudoreal y terminal position */
+static   int cmdedit_prmt_len;    /* for fast running, without duplicate calculate */
+
+static   int cursor;              /* required global for signal handler */
+static   int len;                 /* --- "" - - "" - -"- --""-- --""--- */
+static  char *command_ps;         /* --- "" - - "" - -"- --""-- --""--- */
+static const char *cmdedit_prompt;/* --- "" - - "" - -"- --""-- --""--- */
 
 /* Link into lash to reset context to 0
  * on ^C and such */
@@ -101,38 +133,43 @@ struct history {
 	struct history *n;
 };
 
-#define xwrite write
+static void cmdedit_setwidth(int w, int redraw_flg);
 
-/*
- * TODO: Someday we want to implement 'horizontal scrolling' of the
- * command-line when the user has typed more than the current width. This
- * would allow the user to see a 'window' of what he has typed.
- */
-static void cmdedit_setwidth(int w)
-{
-	if (w > 20) {
-		cmdedit_termw = w;
-		cmdedit_scroll = w / 3;
-	} else {
-		error_msg("\n*** Error: minimum screen width is 21\n");
-	}
-}
-
-static void win_changed(int junk)
+static void win_changed(int nsig)
 {
 	struct winsize win = { 0, 0, 0, 0 };
-	ioctl(0, TIOCGWINSZ, &win);
-	if (win.ws_col > 0) {
-		cmdedit_setwidth( win.ws_col - 1);
-	}
-}
+	static __sighandler_t previous_SIGWINCH_handler; /* for reset */
 
+	   /*   emulate      || signal call */
+	if(nsig == -SIGWINCH || nsig == SIGWINCH) {
+		ioctl(0, TIOCGWINSZ, &win);
+		if (win.ws_col > 0) {
+			cmdedit_setwidth( win.ws_col, nsig == SIGWINCH );
+			}
+	}
+		/* Unix not all standart in recall signal */
+
+	if(nsig == -SIGWINCH)                   /* save previous handler */
+		previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
+	else if(nsig == SIGWINCH)              /* signaled called handler */
+		signal(SIGWINCH, win_changed);  /* set for next call */
+	else                                   /* set previous handler */
+		signal(SIGWINCH, previous_SIGWINCH_handler);   /* reset */
+}
 
 static void cmdedit_reset_term(void)
 {
-	if (reset_term)
+	if((handlers_sets & SET_RESET_TERM)!=0) {
 		/* sparc and other have broken termios support: use old termio handling. */
 		setTermSettings(fileno(stdin), (void*) &initial_settings);
+		handlers_sets &= ~SET_RESET_TERM;
+	}
+	if((handlers_sets & SET_WCHG_HANDLERS)!=0) {
+		/* reset SIGWINCH handler to previous (default) */
+		win_changed(0);
+		handlers_sets &= ~SET_WCHG_HANDLERS;
+	}
+	fflush(stdout);
 #ifdef BB_FEATURE_CLEAN_UP
 	if (his_front) {
 		struct history *n;
@@ -147,169 +184,348 @@ static void cmdedit_reset_term(void)
 #endif
 }
 
-static void clean_up_and_die(int sig)
-{
-	cmdedit_reset_term();
-	printf("\n");
-	if (sig!=SIGINT)
-		exit(EXIT_SUCCESS);
+
+
+/* special for recount position for scroll and remove terminal margin effect */
+static void cmdedit_set_out_char(int c, int next_char) {
+	putchar(c);
+	if(++cmdedit_x>=cmdedit_termw) {
+		/* terminal is scrolled down */
+		cmdedit_y++;
+		cmdedit_x=0;
+
+		if(!next_char)
+			next_char = ' ';
+		/* destroy "(auto)margin" */
+		putchar(next_char);
+		putchar('\b');
+	}
+	cursor++;
 }
+
+/* Move to end line. Bonus: rewrite line from cursor without use
+   special control terminal strings, also saved size and speed! */
+static void input_end (void) {
+	while(cursor < len)
+		cmdedit_set_out_char(command_ps[cursor], 0);
+}
+
+/* Go to the next line */
+static void goto_new_line(void) {
+	input_end();
+	cmdedit_set_out_char('\n', 0);
+}
+
+
+static inline void out1str(const char *s) { fputs  (s, stdout); }
+static inline void beep   (void)          { putchar('\007');    }
 
 /* Go to HOME position */
-static void input_home(int outputFd, int *cursor)
+static void input_home(void)
 {
-	while (*cursor > 0) {
-		xwrite(outputFd, "\b", 1);
-		--*cursor;
+	while(cmdedit_y>0) {            /* up to start y */
+		out1str("\033[A");
+		cmdedit_y--;
 	}
+	putchar('\r');
+	cursor = 0;
+	out1str(cmdedit_prompt);
+	cmdedit_x = cmdedit_prmt_len;
+
 }
 
-/* Go to END position */
-static void input_end(int outputFd, int *cursor, int len)
-{
-	while (*cursor < len) {
-		xwrite(outputFd, "\033[C", 3);
-		++*cursor;
-	}
-}
+/* Move back one charactor */
+static void input_backward(void) {
+	if (cursor > 0) {
+		cursor--;
+		if(cmdedit_x!=0) {   /* no first position in terminal line */
+			putchar('\b');
+			cmdedit_x--;
+			}
+		 else {
+			out1str("\033[A");      /* up */
+			cmdedit_y--;
 
-/* Delete the char in back of the cursor */
-static void input_backspace(char* command, int outputFd, int *cursor, int *len)
-{
-	int j = 0;
-
-/* Debug crap */
-//fprintf(stderr, "\nerik: len=%d, cursor=%d, strlen(command)='%d'\n", *len, *cursor, strlen(command));
-//xwrite(outputFd, command, *len);
-//*cursor = *len;
-
-
-	if (*cursor > 0) {
-		xwrite(outputFd, "\b \b", 3);
-		--*cursor;
-		memmove(command + *cursor, command + *cursor + 1,
-				BUFSIZ - *cursor + 1);
-
-		for (j = *cursor; j < (BUFSIZ - 1); j++) {
-			if (!*(command + j))
-				break;
-			else
-				xwrite(outputFd, (command + j), 1);
-		}
-
-		xwrite(outputFd, " \b", 2);
-
-		while (j-- > *cursor)
-			xwrite(outputFd, "\b", 1);
-
-		--*len;
+			/* to end in current terminal line */
+			while(cmdedit_x<(cmdedit_termw-1)) {
+				out1str("\033[C");
+				cmdedit_x++;
+				}
+			}
 	}
 }
 
 /* Delete the char in front of the cursor */
-static void input_delete(char* command, int outputFd, int cursor, int *len)
+static void input_delete(void)
 {
-	int j = 0;
+	int j = cursor;
 
-	if (cursor == *len)
+	if (j == len)
 		return;
 	
-	memmove(command + cursor, command + cursor + 1,
-			BUFSIZ - cursor - 1);
-	for (j = cursor; j < (BUFSIZ - 1); j++) {
-		if (!*(command + j))
-			break;
-		else
-			xwrite(outputFd, (command + j), 1);
-	}
-
-	xwrite(outputFd, " \b", 2);
-
-	while (j-- > cursor)
-		xwrite(outputFd, "\b", 1);
-	--*len;
+	memmove (command_ps + j, command_ps + j + 1, BUFSIZ - j - 1);
+	len--;
+	input_end();                            /* rewtite new line */
+	cmdedit_set_out_char(' ', 0);           /* destroy end char */
+	while (j < cursor)
+		input_backward();               /* back to old pos cursor */
 }
+
+/* Delete the char in back of the cursor */
+static void input_backspace(void)
+{
+	if (cursor > 0) {
+		input_backward();
+		input_delete  ();
+	}
+}
+
 
 /* Move forward one charactor */
-static void input_forward(int outputFd, int *cursor, int len)
+static void input_forward(void)
 {
-	if (*cursor < len) {
-		xwrite(outputFd, "\033[C", 3);
-		++*cursor;
-	}
-}
-
-/* Move back one charactor */
-static void input_backward(int outputFd, int *cursor)
-{
-	if (*cursor > 0) {
-		xwrite(outputFd, "\033[D", 3);
-		--*cursor;
-	}
+    if (cursor < len)
+	cmdedit_set_out_char(command_ps[cursor], command_ps[cursor + 1]);
 }
 
 
+static void clean_up_and_die(int sig)
+{
+	goto_new_line();
+	if (sig!=SIGINT)
+		exit(EXIT_SUCCESS);  /* cmdedit_reset_term() called in atexit */
+	cmdedit_reset_term();
+}
+
+static void cmdedit_setwidth(int w, int redraw_flg)
+{
+	cmdedit_termw = cmdedit_prmt_len+2;
+	if (w > cmdedit_termw) {
+
+		cmdedit_termw = w;
+
+		if(redraw_flg) {
+			int sav_cursor = cursor;
+
+			/* set variables for new terminal size */
+			cmdedit_y = sav_cursor/w;
+			cmdedit_x = sav_cursor-cmdedit_y*w;
+
+			/* redraw */
+			input_home();
+			input_end();
+			while(sav_cursor<cursor)
+				input_backward();
+		}
+	} else {
+		error_msg("\n*** Error: minimum screen width is %d\n", cmdedit_termw);
+	}
+}
+
+extern void cmdedit_init(void)
+{
+	if((handlers_sets & SET_WCHG_HANDLERS)==0) {
+	/* emulate usage handler to set handler and call yours work */
+		win_changed(-SIGWINCH);
+		handlers_sets |= SET_WCHG_HANDLERS;
+	}
+
+	if((handlers_sets & SET_ATEXIT)==0) {
+		atexit(cmdedit_reset_term);     /* be sure to do this only once */
+		handlers_sets |= SET_ATEXIT;
+	}
+	if((handlers_sets & SET_TERM_HANDLERS)==0) {
+		signal(SIGKILL, clean_up_and_die);
+		signal(SIGINT,  clean_up_and_die);
+		signal(SIGQUIT, clean_up_and_die);
+		signal(SIGTERM, clean_up_and_die);
+		handlers_sets |= SET_TERM_HANDLERS;
+	}
+}
 
 #ifdef BB_FEATURE_SH_TAB_COMPLETION
-static char** username_tab_completion(char* command, int *num_matches)
+
+#ifdef BB_FEATURE_USERNAME_COMPLETION
+static char** username_tab_completion(char *ud, int *num_matches)
 {
+    static struct passwd *entry;
+    int                   userlen;
 	char **matches = (char **) NULL;
-	*num_matches=0;
-	fprintf(stderr, "\nin username_tab_completion\n");
+    char                 *temp;
+    int                   nm = 0;
+
+    setpwent ();
+    userlen = strlen (ud + 1);
+
+    while ((entry = getpwent ()) != NULL) {
+	/* Null usernames should result in all users as possible completions. */
+	if (!userlen || !strncmp (ud + 1, entry->pw_name, userlen)) {
+
+		temp = xmalloc (3 + strlen (entry->pw_name));
+		sprintf(temp, "~%s/", entry->pw_name);
+
+		matches = xrealloc(matches, (nm+1)*sizeof(char *));
+		matches[nm++] = temp;
+	}
+    }
+
+    endpwent ();
+    (*num_matches) = nm;
 	return (matches);
 }
+#endif
+
+enum {
+	FIND_EXE_ONLY  = 0,
+	FIND_DIR_ONLY  = 1,
+	FIND_FILE_ONLY = 2,
+};
 
 #include <dirent.h>
-static char** exe_n_cwd_tab_completion(char* command, int *num_matches)
+
+static int path_parse(char ***p, int flags)
+{
+	int  npth;
+	char *tmp;
+	char *pth;
+
+	if(flags!=FIND_EXE_ONLY || (pth=getenv("PATH"))==0) {
+	/* if not setenv PATH variable, to search cur dir "." */
+		(*p) = xmalloc(sizeof(char *));
+		(*p)[0] = xstrdup(".");
+		return 1;
+	}
+
+	tmp = pth;
+	npth=0;
+
+	for(;;) {
+		npth++; /* count words is + 1 count ':' */
+		tmp = strchr(tmp, ':');
+		if(tmp)
+			tmp++;
+		else
+			break;
+	}
+
+	*p = xmalloc(npth*sizeof(char *));
+
+	tmp = pth;
+	(*p)[0] = xstrdup(tmp);
+	npth=1;                 /* count words is + 1 count ':' */
+
+	for(;;) {
+		tmp = strchr(tmp, ':');
+		if(tmp) {
+			(*p)[0][(tmp-pth)]=0; /* ':' -> '\0'*/
+			tmp++;
+		} else
+			break;
+		(*p)[npth++] = &(*p)[0][(tmp-pth)]; /* p[next]=p[0][&'\0'+1] */
+	}
+
+	return npth;
+}
+
+static char** exe_n_cwd_tab_completion(char* command, int *num_matches, int type)
 {
 	char *dirName;
-	char **matches;
+	char             **matches = 0;
 	DIR *dir;
 	struct dirent *next;
+	char               cmd   [BUFSIZ+4];
+	char              *dirbuf;
+	char               found [BUFSIZ+4];
+	int                nm = *num_matches;
+	struct stat        st;
+	char             **paths;
+	int                npaths;
+	int                i;
+	char               full_pth[BUFSIZ+4+PATH_MAX];
+
+
+	strcpy(cmd, command); /* save for change (last '/' to '\0') */
+
+	dirName = strrchr(cmd, '/');
+	if(dirName==NULL) {
+		/* no dir, if flags==EXE_ONLY - get paths, else "." */
+		npaths = path_parse(&paths, type);
+		if(npaths==0)
+			return 0;
+	} else {
+		/* with dir */
+
+		/* save dir */
+		dirbuf = xstrdup(cmd);
+		/* set only dirname */
+		dirbuf[(dirName-cmd)+1]=0;
+
+		/* strip dirname in cmd */
+		strcpy(cmd, dirName+1);
 			
-	matches = xmalloc( sizeof(char*)*50);
+		paths = xmalloc(sizeof(char*));
+		paths[0] = dirbuf;
+		npaths = 1;      /* only 1 dir */
+	}
 
-	/* Stick a wildcard onto the command, for later use */
-	strcat( command, "*");
+	for(i=0; i < npaths; i++) {
 
-	/* Now wall the current directory */
-	dirName = get_current_dir_name();
-	dir = opendir(dirName);
+		dir = opendir(paths[i]);
 	if (!dir) {
 		/* Don't print an error, just shut up and return */
-		*num_matches=0;
 		return (matches);
 	}
 	while ((next = readdir(dir)) != NULL) {
-
-		/* Some quick sanity checks */
-		if ((strcmp(next->d_name, "..") == 0)
-			|| (strcmp(next->d_name, ".") == 0)) {
+			/* matched ? */
+			if(strncmp(next->d_name, cmd, strlen(cmd)))
+				continue;
+			/* not see .name without .match */
+			if(*next->d_name == '.' && *cmd != '.')
+				continue;
+			sprintf(full_pth, "%s/%s", paths[i], next->d_name);
+			/* hmm, remover in progress? */
+			if(stat(full_pth, &st)<0)
+					continue;
+			/* Cool, found a match. */
+			if (S_ISDIR(st.st_mode)) {
+				/* name is directory */
+				strcpy(found, next->d_name);
+				strcat(found, "/");
+				if(type==FIND_DIR_ONLY)
+					strcat(found, " ");
+			} else {
+			  /* not put found file if search only dirs for cd */
+				if(type==FIND_DIR_ONLY)
 			continue;
+				strcpy(found, next->d_name);
+				strcat(found, " ");
 		} 
-		/* See if this matches */
-		if (check_wildcard_match(next->d_name, command) == TRUE) {
-			/* Cool, found a match.  Add it to the list */
-			matches[*num_matches] = xmalloc(strlen(next->d_name)+1);
-			strcpy( matches[*num_matches], next->d_name);
-			++*num_matches;
-			//matches = realloc( matches, sizeof(char*)*(*num_matches));
+			/* Add it to the list */
+			matches = xrealloc(matches, (nm+1)*sizeof(char *));
+			matches[nm++] = xstrdup(found);
 		}
 	}
-
+	free(paths[0]); /* allocate memory only in first member */
+	free(paths);
+	*num_matches = nm;
 	return (matches);
 }
 
-static void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len, int lastWasTab)
+static void input_tab(int lastWasTab)
 {
 	/* Do TAB completion */
-	static int num_matches=0;
-	static char **matches = (char **) NULL;
-	int pos = *cursor;
+	static int    num_matches;
+	static char **matches;
+
+	char          matchBuf[BUFSIZ];
+
+	int           pos = cursor;
+	int           find_type=FIND_FILE_ONLY;
 
 
 	if (lastWasTab == FALSE) {
-		char *tmp, *tmp1, *matchBuf;
+		char *tmp, *tmp1;
+		int len_found;
 
 		/* For now, we will not bother with trying to distinguish
 		 * whether the cursor is in/at a command extression -- we
@@ -319,50 +535,80 @@ static void input_tab(char* command, char* prompt, int outputFd, int *cursor, in
 
 		/* Make a local copy of the string -- up 
 		 * to the position of the cursor */
-		matchBuf = (char *) xcalloc(BUFSIZ, sizeof(char));
-		strncpy(matchBuf, command, *cursor);
-		tmp=matchBuf;
+		memset(matchBuf, 0, BUFSIZ);
+		tmp = strncpy(matchBuf, command_ps, cursor);
 
 		/* skip past any command seperator tokens */
-		while (*tmp && (tmp1=strpbrk(tmp, ";|&{(`")) != NULL) {
-			tmp=++tmp1;
-			/* skip any leading white space */
-			while (*tmp && isspace(*tmp)) 
-				++tmp;
+		while ( (tmp1=strpbrk(tmp, ";|&{(`")) != NULL) {
+			tmp = ++tmp1;
 		}
 
 		/* skip any leading white space */
-		while (*tmp && isspace(*tmp)) 
-			++tmp;
+		while (*tmp == ' ')
+			tmp++;
+
+		if(strncmp(tmp, "cd ", 3)==0)
+			find_type = FIND_DIR_ONLY;
+		 else if(strchr(tmp, ' ')==NULL)
+			find_type = FIND_EXE_ONLY;
+
+		/* find begin curent word */
+		if( (tmp1=strrchr(tmp, ' ')) != NULL) {
+			tmp = ++tmp1;
+		}
+		strcpy(matchBuf, tmp);
 
 		/* Free up any memory already allocated */
 		if (matches) {
+			while(num_matches>0)
+				free(matches[--num_matches]);
 			free(matches);
 			matches = (char **) NULL;
 		}
 
+#ifdef BB_FEATURE_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word, 
 		 * then try completing this word as a username. */
 
-		/* FIXME -- this check is broken! */
-		if (*tmp == '~' && !strchr(tmp, '/'))
-			matches = username_tab_completion(tmp, &num_matches);
-
+		if (matchBuf[0]=='~' && strchr(matchBuf, '/')==0) {
+			matches = username_tab_completion(matchBuf, &num_matches);
+		}
+#endif
 		/* Try to match any executable in our path and everything 
 		 * in the current working directory that matches.  */
 		if (!matches)
-			matches = exe_n_cwd_tab_completion(tmp, &num_matches);
-
-		/* Don't leak memory */
-		free( matchBuf);
+			matches = exe_n_cwd_tab_completion(matchBuf, &num_matches, find_type);
 
 		/* Did we find exactly one match? */
-		if (matches && num_matches==1) {
+		if(!matches || num_matches>1) {
+			beep();
+			return;
+		}
+
+		len_found = strlen(matches[0]);
+
+		/* have space to placed match? */
+		if ( (len_found-strlen(matchBuf)+len) < BUFSIZ ) {
+
+			int recalc_pos = len;
+
+			/* before word for match */
+			command_ps[pos-strlen(matchBuf)]=0;
+
+			/* tail line */
+			strcpy(matchBuf, command_ps+pos);
+
+			/* add match */
+			strcat(command_ps, matches[0]);
+			/* add tail */
+			strcat(command_ps, matchBuf);
+
 			/* write out the matched command */
-			strncpy(command+pos, matches[0]+pos, strlen(matches[0])-pos);
-			*len=strlen(command);
-			*cursor=*len;
-			xwrite(outputFd, matches[0]+pos, strlen(matches[0])-pos);
+			len=strlen(command_ps);
+			recalc_pos = len-recalc_pos+pos;
+			input_end();    /* write */
+			while(recalc_pos<cursor)
+				input_backward();
 			return;
 		}
 	} else {
@@ -371,28 +617,28 @@ static void input_tab(char* command, char* prompt, int outputFd, int *cursor, in
 		 * available choices... */
 		if ( matches && num_matches>0 ) {
 			int i, col;
+			int sav_cursor = cursor;
 
 			/* Go to the next line */
-			xwrite(outputFd, "\n", 1);
-			/* Print the list of matches */
+			goto_new_line();
 			for (i=0,col=0; i<num_matches; i++) {
-				char foo[17];
-				sprintf(foo, "%-14s  ", matches[i]);
-				col += xwrite(outputFd, foo, strlen(foo));
+				printf("%s  ", matches[i]);
+				col += strlen(matches[i])+2;
+				col -= (col/cmdedit_termw)*cmdedit_termw;
 				if (col > 60 && matches[i+1] != NULL) {
-					xwrite(outputFd, "\n", 1);
+					putchar('\n');
 					col = 0;
 				}
 			}
-			/* Go to the next line */
-			xwrite(outputFd, "\n", 1);
-			/* Rewrite the prompt */
-			xwrite(outputFd, prompt, strlen(prompt));
-			/* Rewrite the command */
-			xwrite(outputFd, command, *len);
+			/* Go to the next line and rewrite the prompt */
+			printf("\n%s", cmdedit_prompt);
+			cmdedit_x = cmdedit_prmt_len;
+			cmdedit_y = 0;
+			cursor    = 0;
+			input_end();    /* Rewrite the command */
 			/* Put the cursor back to where it used to be */
-			for (cursor=len; *cursor > pos; cursor--)
-				xwrite(outputFd, "\b", 1);
+			while (sav_cursor < cursor)
+				input_backward();
 		}
 	}
 }
@@ -435,18 +681,19 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 {
 
 	int inputFd=fileno(stdin);
-	int outputFd=fileno(stdout);
-	int nr = 0;
-	int len = 0;
+
 	int j = 0;
-	int cursor = 0;
 	int break_out = 0;
 	int ret = 0;
 	int lastWasTab = FALSE;
 	char c = 0;
 	struct history *hp = his_end;
 
-	if (!reset_term) {
+	len = 0;
+	cursor = 0;
+	command_ps = command;
+
+	if (new_settings.c_cc[VMIN]==0) {
 		
 		getTermSettings(inputFd, (void*) &initial_settings);
 		memcpy(&new_settings, &initial_settings, sizeof(struct termios));
@@ -455,16 +702,25 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 		new_settings.c_cc[VINTR] = _POSIX_VDISABLE; /* Turn off CTRL-C, so we can trap it */
 		new_settings.c_lflag &= ~ICANON;	/* unbuffered input */
 		new_settings.c_lflag &= ~(ECHO|ECHOCTL|ECHONL); /* Turn off echoing */
-		reset_term = 1;
 	}
 	setTermSettings(inputFd, (void*) &new_settings);
+	handlers_sets |= SET_RESET_TERM;
 
 	memset(command, 0, BUFSIZ);
 
+	cmdedit_init();
+
 	/* Print out the command prompt */
-	xwrite(outputFd, prompt, strlen(prompt));
+	cmdedit_prompt = prompt;
+	cmdedit_prmt_len = strlen(prompt);
+	printf("%s", prompt);
+	cmdedit_x = cmdedit_prmt_len;   /* count real x terminal position */
+	cmdedit_y = 0;                  /* quasireal y, not true work if line > xt*yt */
+
 
 	while (1) {
+
+		fflush(stdout);         /* buffered out to fast */
 
 		if ((ret = read(inputFd, &c, 1)) < 1)
 			return;
@@ -474,16 +730,18 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 		case '\n':
 		case '\r':
 			/* Enter */
-			*(command + len++ + 1) = c;
-			xwrite(outputFd, &c, 1);
+			*(command + len) = c;
+			len++;
+			input_end ();
 			break_out = 1;
 			break;
 		case 1:
 			/* Control-a -- Beginning of line */
-			input_home(outputFd, &cursor);
+			input_home();
+			break;
 		case 2:
 			/* Control-b -- Move back one character */
-			input_backward(outputFd, &cursor);
+			input_backward();
 			break;
 		case 3:
 			/* Control-c -- stop gathering input */
@@ -492,11 +750,11 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			shell_context = 0;
 
 			/* Go to the next line */
-			xwrite(outputFd, "\n", 1);
+			goto_new_line();
 
 #if 0
 			/* Rewrite the prompt */
-			xwrite(outputFd, prompt, strlen(prompt));
+			printf("%s", prompt);
 
 			/* Reset the command string */
 			memset(command, 0, BUFSIZ);
@@ -508,29 +766,28 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			/* Control-d -- Delete one character, or exit 
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
-				xwrite(outputFd, "exit", 4);
+				printf("exit");
 				clean_up_and_die(0);
 			} else {
-				input_delete(command, outputFd, cursor, &len);
+				input_delete();
 			}
 			break;
 		case 5:
 			/* Control-e -- End of line */
-			input_end(outputFd, &cursor, len);
+			input_end();
 			break;
 		case 6:
 			/* Control-f -- Move forward one character */
-			input_forward(outputFd, &cursor, len);
+			input_forward();
 			break;
 		case '\b':
 		case DEL:
 			/* Control-h and DEL */
-			input_backspace(command, outputFd, &cursor, &len);
+			input_backspace();
 			break;
 		case '\t':
 #ifdef BB_FEATURE_SH_TAB_COMPLETION
-			input_tab(command, prompt, outputFd, &cursor,
-&len, lastWasTab);
+			input_tab(lastWasTab);
 #endif
 			break;
 		case 14:
@@ -539,7 +796,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 				get_next_history(&hp, command);
 				goto rewrite_line;
 			} else {
-				xwrite(outputFd, "\007", 1);
+				beep();
 			}
 			break;
 		case 16:
@@ -548,7 +805,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 				get_previous_history(&hp, command);
 				goto rewrite_line;
 			} else {
-				xwrite(outputFd, "\007", 1);
+				beep();
 			}
 			break;
 		case ESC:{
@@ -567,7 +824,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 							get_previous_history(&hp, command);
 							goto rewrite_line;
 						} else {
-							xwrite(outputFd, "\007", 1);
+							beep();
 						}
 						break;
 					case 'B':
@@ -576,49 +833,52 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 							get_next_history(&hp, command);
 							goto rewrite_line;
 						} else {
-							xwrite(outputFd, "\007", 1);
+							beep();
 						}
 						break;
 
 						/* Rewrite the line with the selected history item */
 					  rewrite_line:
-						/* erase old command from command line */
-						len = strlen(command)-strlen(hp->s);
-
-						while (len>cursor)
-							input_delete(command, outputFd, cursor, &len);
-						while (cursor>0)
-							input_backspace(command, outputFd, &cursor, &len);
-						input_home(outputFd, &cursor);
-						
+						/* return to begin of line */
+						input_home ();
+						/* for next memmoves without set '\0' */
+						memset (command, 0, BUFSIZ);
+						/* change command */
+						strcpy (command, hp->s);
 						/* write new command */
-						strcpy(command, hp->s);
-						len = strlen(hp->s);
-						xwrite(outputFd, command, len);
-						cursor = len;
+						for (j=0; command[j]; j++)
+							cmdedit_set_out_char(command[j], 0);
+						ret = cursor;
+						/* erase tail if required */
+						for (j = ret; j < len; j++)
+							cmdedit_set_out_char(' ', 0);
+						/* and backward cursor */
+						for (j = ret; j < len; j++)
+							input_backward();
+						len = cursor;                           /* set new len */
 						break;
 					case 'C':
 						/* Right Arrow -- Move forward one character */
-						input_forward(outputFd, &cursor, len);
+						input_forward();
 						break;
 					case 'D':
 						/* Left Arrow -- Move back one character */
-						input_backward(outputFd, &cursor);
+						input_backward();
 						break;
 					case '3':
 						/* Delete */
-						input_delete(command, outputFd, cursor, &len);
+						input_delete();
 						break;
 					case '1':
 						/* Home (Ctrl-A) */
-						input_home(outputFd, &cursor);
+						input_home();
 						break;
 					case '4':
 						/* End (Ctrl-E) */
-						input_end(outputFd, &cursor, len);
+						input_end();
 						break;
 					default:
-						xwrite(outputFd, "\007", 1);
+						beep();
 					}
 					if (c == '1' || c == '3' || c == '4')
 						if ((ret = read(inputFd, &c, 1)) < 1)
@@ -631,14 +891,14 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 					switch (c) {
 					case 'H':
 						/* Home (xterm) */
-						input_home(outputFd, &cursor);
+						input_home();
 						break;
 					case 'F':
 						/* End (xterm) */
-						input_end(outputFd, &cursor, len);
+						input_end();
 						break;
 					default:
-						xwrite(outputFd, "\007", 1);
+						beep();
 					}
 				}
 				c = 0;
@@ -658,20 +918,20 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 			if (cursor == (len - 1)) {	/* Append if at the end of the line */
 				*(command + cursor) = c;
+				cmdedit_set_out_char(c, command[cursor+1]);
 			} else {			/* Insert otherwise */
 				memmove(command + cursor + 1, command + cursor,
 						len - cursor - 1);
 
 				*(command + cursor) = c;
-
-				for (j = cursor; j < len; j++)
-					xwrite(outputFd, command + j, 1);
-				for (; j > cursor; j--)
-					xwrite(outputFd, "\033[D", 3);
+				j = cursor+1;
+				/* rewrite from cursor */
+				input_end ();
+				/* to prev x pos + 1 */
+				while(cursor > j)
+					input_backward();
 			}
 
-			cursor++;
-			xwrite(outputFd, &c, 1);
 			break;
 		}
 		if (c == '\t')
@@ -683,15 +943,18 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			break;
 	}
 
-	nr = len + 1;
-	setTermSettings(inputFd, (void *) &initial_settings);
-	reset_term = 0;
-
+	setTermSettings (inputFd, (void *) &initial_settings);
+	handlers_sets &= ~SET_RESET_TERM;
 
 	/* Handle command history log */
-	if (*(command)) {
+	if (len>1) {    /* no put empty line (only '\n') */
 
 		struct history *h = his_end;
+		char           *ss;
+
+		command[len-1] = 0;     /* destroy end '\n' */
+		ss = strdup(command);   /* duplicate without '\n' */
+		command[len-1] = '\n';  /* restore '\n' */
 
 		if (!h) {
 			/* No previous history -- this memory is never freed */
@@ -699,7 +962,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			h->n = xmalloc(sizeof(struct history));
 
 			h->p = NULL;
-			h->s = strdup(command);
+			h->s = ss;
 			h->n->p = h;
 			h->n->n = NULL;
 			h->n->s = NULL;
@@ -712,7 +975,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			h->n->p = h;
 			h->n->n = NULL;
 			h->n->s = NULL;
-			h->s = strdup(command);
+			h->s = ss;
 			his_end = h->n;
 
 			/* After max history, remove the oldest command */
@@ -733,38 +996,21 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 	return;
 }
 
-extern void cmdedit_init(void)
-{
-	win_changed(0);
-	signal(SIGWINCH, win_changed);
 
-	if(exithandler_set == 0) {
-		atexit(cmdedit_reset_term);	/* be sure to do this only once */
-		exithandler_set = 1;
-	}
-	signal(SIGKILL, clean_up_and_die);
-	signal(SIGINT, clean_up_and_die);
-	signal(SIGQUIT, clean_up_and_die);
-	signal(SIGTERM, clean_up_and_die);
-}
-
-/*
-** Undo the effects of cmdedit_init() as good as we can:
-** I am not aware of a way to revoke an atexit() handler,
-** but, fortunately, our particular handler can be made
-** a no-op by setting reset_term = 0.
-*/
+/* Undo the effects of cmdedit_init(). */
 extern void cmdedit_terminate(void)
 {
 	cmdedit_reset_term();
-	reset_term = 0;
-	signal(SIGKILL, SIG_DFL);
-	signal(SIGINT, SIG_DFL);
-	signal(SIGQUIT, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGWINCH, SIG_DFL);
+	if((handlers_sets & SET_TERM_HANDLERS)!=0) {
+		signal(SIGKILL, SIG_DFL);
+		signal(SIGINT, SIG_DFL);
+		signal(SIGQUIT, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
+		signal(SIGWINCH, SIG_DFL);
+		handlers_sets &= ~SET_TERM_HANDLERS;
+	}
 }
 
 
 
-#endif							/* BB_FEATURE_SH_COMMAND_EDITING */
+#endif	/* BB_FEATURE_SH_COMMAND_EDITING */

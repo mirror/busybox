@@ -260,7 +260,11 @@
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)
 // Only relevant if BB_SH is enabled.
-//#define BB_FEATURE_SH_TAB_COMPLETION
+#define BB_FEATURE_SH_TAB_COMPLETION
+//
+// Attempts to match usernames in a ~-prefixed path
+// XXX: Doesn't work without NSS, off by default
+//#define BB_FEATURE_USERNAME_COMPLETION  /* require NSS */
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
