@@ -49,7 +49,6 @@
 //#define DEBUG_SHELL
 
 
-#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -62,6 +61,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
+#include "busybox.h"
 #include "cmdedit.h"
 
 static const int MAX_LINE = 256;	/* size of input buffer for cwd data */
@@ -916,44 +916,57 @@ static void expand_argument(struct child_prog *prog, int *argcPtr,
 		flags = 0;
 		i = 0;
 	}
-	/* do shell variable substitution */
-	if(*prog->argv[argc_l - 1] == '$') {
-		if ((var = getenv(prog->argv[argc_l - 1] + 1))) {
-			prog->argv[argc_l - 1] = var;
-		} 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-		else {
-			switch(*(prog->argv[argc_l - 1] + 1)) {
+	/* do shell variable substitution */
+	src = prog->argv[argc_l - 1];
+	while((dst = strchr(src,'$')) != NULL){
+		if (!(var = getenv(dst + 1))) {
+			switch(*(dst+1)) {
 				case '?':
-					prog->argv[argc_l - 1] = itoa(last_return_code);
+					var = itoa(last_return_code);
 					break;
 				case '$':
-					prog->argv[argc_l - 1] = itoa(getpid());
+					var = itoa(getpid());
 					break;
 				case '#':
-					prog->argv[argc_l - 1] = itoa(argc-1);
+					var = itoa(argc-1);
 					break;
 				case '!':
 					if (last_bg_pid==-1)
-						*(prog->argv[argc_l - 1])='\0';
+						*(var)='\0';
 					else
-						prog->argv[argc_l - 1] = itoa(last_bg_pid);
+						var = itoa(last_bg_pid);
 					break;
 				case '0':case '1':case '2':case '3':case '4':
 				case '5':case '6':case '7':case '8':case '9':
 					{
-						int index=*(prog->argv[argc_l - 1] + 1)-48;
+						int index=*(dst + 1)-48;
 						if (index >= argc) {
-							*(prog->argv[argc_l - 1])='\0';
+							var='\0';
 						} else {
-							prog->argv[argc_l - 1] = argv[index];
+							var = argv[index];
 						}
 					}
 					break;
 			}
 		}
-#endif
+		if (var) {
+			int offset = dst-src;
+#warning I have a memory leak which needs to be plugged somehow
+			src = (char*)xmalloc(strlen(src)-strlen(dst)+strlen(var)+1);
+			strncpy(src, prog->argv[argc_l -1], offset); 
+			safe_strncpy(src+offset, var, strlen(var)+1); 
+			/* If there are any remaining $ variables in the src string, put them back */
+			if ((dst = strchr(prog->argv[argc_l -1]+offset+1,'$')) != NULL) {
+				offset=strlen(src);
+				safe_strncpy(src+strlen(src), dst, strlen(dst)+1);
+			}
+			prog->argv[argc_l -1] = src;
+		} else {
+			memset(dst, 0, strlen(src)-strlen(dst)); 
+		}
 	}
+#endif
 
 	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
 		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->glob_result);
