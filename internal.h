@@ -76,6 +76,7 @@ extern int init_main(int argc, char** argv);
 extern int kill_main(int argc, char** argv);
 extern int length_main(int argc, char** argv);
 extern int ln_main(int argc, char** argv);
+extern int loadfont_main(int argc, char** argv);
 extern int loadkmap_main(int argc, char** argv);
 extern int losetup_main(int argc, char** argv);
 extern int ls_main(int argc, char** argv);

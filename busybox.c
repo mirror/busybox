@@ -72,6 +72,9 @@ static const struct Applet applets[] = {
 #ifdef BB_LN			//bin
     {"ln", ln_main},
 #endif
+#ifdef BB_LOADFONT		//usr/bin
+    {"loadfont", loadfont_main},
+#endif
 #ifdef BB_LOADKMAP		//sbin
     {"loadkmap", loadkmap_main},
 #endif

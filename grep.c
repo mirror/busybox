@@ -1,17 +1,25 @@
 /*
- * Copyright (c) 1999 by David I. Bell
- * Permission is granted to use, distribute, or modify this source,
- * provided that this copyright notice remains intact.
+ * Mini grep implementation for busybox
  *
- * The "grep" command, taken from sash.
- * This provides basic file searching.
+ * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
  *
- * Permission to distribute this code under the GPL has been granted.
- * Modified for busybox by Erik Andersen <andersee@debian.org> <andersen@lineo.com>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
 
 #include "internal.h"
-
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
@@ -22,95 +30,53 @@
 
 
 const char grep_usage[] =
-    "Search the input file(s) for lines matching the given pattern.\n"
-    "\tI search stdin if no files are given.\n"
-    "\tI can't grok full regular expressions.\n"
-    "usage: grep [in] PATTERN [FILES]...\n"
-    "\ti=ignore case, n=list line numbers\n";
-
+"grep [-ihn]... PATTERN [FILE]...\n"
+"Search for PATTERN in each FILE or standard input.\n\n"
+"\t-h\tsuppress the prefixing filename on output\n"
+"\t-i\tignore case distinctions\n"
+"\t-n\tprint line number with output lines\n\n"
+"This version of grep matches strings (not full regexps).\n";
 
 
 /*
- * See if the specified word is found in the specified string.
+ * See if the specified needle is found in the specified haystack.
  */
-static int search (const char *string, const char *word, int ignoreCase)
+static int search (const char *haystack, const char *needle, int ignoreCase)
 {
-    const char *cp1;
-    const char *cp2;
-    int len;
-    int lowFirst;
-    int ch1;
-    int ch2;
 
-    len = strlen (word);
-
-    if (!ignoreCase) {
-	while (TRUE) {
-	    string = strchr (string, word[0]);
-
-	    if (string == NULL)
-		return FALSE;
-
-	    if (memcmp (string, word, len) == 0)
-		return TRUE;
-
-	    string++;
-	}
-    }
-
-    /* 
-     * Here if we need to check case independence.
-     * Do the search by lower casing both strings.
-     */
-    lowFirst = *word;
-
-    if (isupper (lowFirst))
-	lowFirst = tolower (lowFirst);
-
-    while (TRUE) {
-	while (*string && (*string != lowFirst) &&
-	       (!isupper (*string) || (tolower (*string) != lowFirst))) {
-	    string++;
-	}
-
-	if (*string == '\0')
+    if (ignoreCase == FALSE) {
+	haystack = strstr (haystack, needle);
+	if (haystack == NULL)
 	    return FALSE;
+	return TRUE;
+    } else {
+	int i;
+	char needle1[BUF_SIZE];
+	char haystack1[BUF_SIZE];
 
-	cp1 = string;
-	cp2 = word;
-
-	do {
-	    if (*cp2 == '\0')
-		return TRUE;
-
-	    ch1 = *cp1++;
-
-	    if (isupper (ch1))
-		ch1 = tolower (ch1);
-
-	    ch2 = *cp2++;
-
-	    if (isupper (ch2))
-		ch2 = tolower (ch2);
-
-	}
-	while (ch1 == ch2);
-
-	string++;
+	strncpy( haystack1, haystack, sizeof(haystack1));
+	strncpy( needle1, needle, sizeof(needle1));
+	for( i=0; i<sizeof(haystack1) && haystack1[i]; i++)
+	    haystack1[i]=tolower( haystack1[i]);
+	for( i=0; i<sizeof(needle1) && needle1[i]; i++)
+	    needle1[i]=tolower( needle1[i]);
+	haystack = strstr (haystack1, needle1);
+	if (haystack == NULL)
+	    return FALSE;
+	return TRUE;
     }
-    return (TRUE);
 }
 
 
 extern int grep_main (int argc, char **argv)
 {
     FILE *fp;
-    const char *word;
+    const char *needle;
     const char *name;
     const char *cp;
-    int tellName;
-    int ignoreCase;
-    int tellLine;
+    int tellName=TRUE;
+    int ignoreCase=FALSE;
+    int tellLine=FALSE;
     long line;
     char buf[BUF_SIZE];
 
@@ -120,8 +86,7 @@ extern int grep_main (int argc, char **argv)
     argc--;
     argv++;
     if (argc < 1) {
-	fprintf (stderr, "%s", grep_usage);
-	return 1;
+	usage(grep_usage);
     }
 
     if (**argv == '-') {
@@ -134,29 +99,28 @@ extern int grep_main (int argc, char **argv)
 		ignoreCase = TRUE;
 		break;
 
+	    case 'h':
+		tellName = FALSE;
+		break;
+
 	    case 'n':
 		tellLine = TRUE;
 		break;
 
 	    default:
-		fprintf (stderr, "Unknown option\n");
-		return 1;
+		usage(grep_usage);
 	    }
     }
 
-    word = *argv++;
+    needle = *argv++;
     argc--;
-
-    tellName = (argc > 1);
 
     while (argc-- > 0) {
 	name = *argv++;
 
 	fp = fopen (name, "r");
-
 	if (fp == NULL) {
 	    perror (name);
-
 	    continue;
 	}
 
@@ -164,17 +128,16 @@ extern int grep_main (int argc, char **argv)
 
 	while (fgets (buf, sizeof (buf), fp)) {
 	    line++;
-
 	    cp = &buf[strlen (buf) - 1];
 
 	    if (*cp != '\n')
 		fprintf (stderr, "%s: Line too long\n", name);
 
-	    if (search (buf, word, ignoreCase)) {
-		if (tellName)
+	    if (search (buf, needle, ignoreCase)==TRUE) {
+		if (tellName==TRUE)
 		    printf ("%s: ", name);
 
-		if (tellLine)
+		if (tellLine==TRUE)
 		    printf ("%ld: ", line);
 
 		fputs (buf, stdout);
@@ -186,7 +149,7 @@ extern int grep_main (int argc, char **argv)
 
 	fclose (fp);
     }
-    return 0;
+    exit( TRUE);
 }
 
 
