@@ -95,7 +95,7 @@ binary-arch: build-arch install
 	dh_builddeb -a -Nbusybox-cvs-udeb
 
 	dh_gencontrol -pbusybox-cvs-udeb -- -fdebian/files~
-	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer standard
+	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer extra
 	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb
 
 binary: binary-arch

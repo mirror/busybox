@@ -1,3 +1,34 @@
+busybox-cvs (0.60.99.cvs20021209-2) unstable; urgency=low
+
+  * cleanup scripts/config/ within make clean (closes: #172413)
+  * busybox-cvs-udeb
+    - include readlink
+  * include manpages within busybox-cvs and busybox-cvs-static
+
+ -- Bastian Blank <waldi@debian.org>  Mon, 09 Dec 2002 22:09:52 +0100
+
+busybox-cvs (0.60.99.cvs20021209-1) unstable; urgency=low
+
+  * New cvs version.
+    - fix udhcpc for use with ip.
+    - klogd supports -c.
+  * busybox-cvs-udeb
+    - set priority to extra. (closes: #172302)
+    - don't longer provide busybox-udeb.
+
+ -- Bastian Blank <waldi@debian.org>  Mon, 09 Dec 2002 16:22:03 +0100
+
+busybox-cvs (0.60.99.cvs20021203-1) unstable; urgency=low
+
+  * New packages based on busybox cvs.
+  * changes for the udeb
+    - enable ip applet with address, link and route part.
+    - enable udhcpc.
+    - disable ifconfig and route applet.
+    - disable ls color.
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 03 Dec 2002 18:51:00 +0100
+
 busybox-cvs (0.61.pre-custom1) unstable; urgency=low
 
   * This is just to make it easier to make custom debs

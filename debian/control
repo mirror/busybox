@@ -52,8 +52,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Section: debian-installer
 Conflicts: busybox-udeb
-Provides: busybox-udeb
-Priority: standard
+Priority: extra
 Description: Tiny utilities for the debian-installer
  BusyBox combines tiny versions of many common UNIX utilities into a single
  small executable. It provides minimalist replacements for the most common
