@@ -882,10 +882,12 @@ static int sendHeaders(HttpResponseNum responseNum)
 	"Date: %s\r\nConnection: close\r\n",
 	  responseNum, responseString, config->found_mime_type, timeStr);
 
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   if (responseNum == HTTP_UNAUTHORIZED) {
     len += sprintf(buf+len, "WWW-Authenticate: Basic realm=\"%s\"\r\n",
 							    config->realm);
   }
+#endif
   if (config->ContentLength != -1) {    /* file */
     strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
     len += sprintf(buf+len, "Last-Modified: %s\r\n%s %ld\r\n",
@@ -1519,7 +1521,6 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 	if(length < 0)          // closed
 		length = 0;
 	body[length] = 0;       // always null terminate for safety
-	urlArgs = body;
       }
     }
 
