@@ -80,7 +80,7 @@ static const int ERROR = 1;
 
 /*
  * window size--must be a power of two, and
- *  at least 32K for zip's deflate method 
+ *  at least 32K for zip's deflate method
  */
 static const int WSIZE = 0x8000;
 
@@ -846,7 +846,7 @@ static int inflate_block(int *e)
  *
  * GLOBAL VARIABLES: outcnt, bk, bb, hufts, inptr
  */
-static int inflate(void)
+extern int inflate(FILE *in, FILE *out)
 {
 	int e;				/* last block flag */
 	int r;				/* result code */
@@ -856,6 +856,13 @@ static int inflate(void)
 	outcnt = 0;
 	bk = 0;
 	bb = 0;
+
+	in_file = in;
+	out_file = out;
+
+	/* Allocate all global buffers (for DYN_ALLOC option) */
+	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(unsigned char)));
+	bytes_out = 0L;
 
 	/* Create the crc table */
 	make_crc_table();
@@ -881,13 +888,15 @@ static int inflate(void)
 
 	/* flush out window */
 	flush_window();
+	free(window);
+	free(crc_table);
 
 	/* return success */
 	return 0;
 }
 
 /* ===========================================================================
- * Unzip in to out.  This routine works on both gzip and pkzip files.
+ * Unzip in to out.  This routine works on gzip files only.
  *
  * IN assertions: the buffer inbuf contains already the beginning of
  *   the compressed data, from offsets inptr to insize-1 included.
@@ -900,9 +909,6 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	unsigned char flags;	/* compression flags */
 	typedef void (*sig_type) (int);
 	unsigned short i;
-
-	in_file = l_in_file;
-	out_file = l_out_file;
 
 	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
@@ -918,53 +924,48 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	}
 #endif
 
-	/* Allocate all global buffers (for DYN_ALLOC option) */
-	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(unsigned char)));
-	outcnt = 0;
-	bytes_out = 0L;
-
 	/* Magic header for gzip files, 1F 8B = \037\213 */
-	if ((fgetc(in_file) != 0x1F) || (fgetc(in_file) != 0x8b)) { 
+	if ((fgetc(l_in_file) != 0x1F) || (fgetc(l_in_file) != 0x8b)) {
 		error_msg("Invalid gzip magic");
 		return EXIT_FAILURE;
 	}
 
 	/* Check the compression method */
-	if (fgetc(in_file) != 8) {
+	if (fgetc(l_in_file) != 8) {
 		error_msg("Unknown compression method");
 		return(-1);
 	}
 
-	flags = (unsigned char) fgetc(in_file);
+	flags = (unsigned char) fgetc(l_in_file);
 
 	/* Ignore time stamp(4), extra flags(1), OS type(1) */
 	for (i = 0; i < 6; i++) {
-		fgetc(in_file);
+		fgetc(l_in_file);
 	}
 
 	if (flags & 0x04) {
 		/* bit 2 set: extra field present */
-		const unsigned short extra = fgetc(in_file) + (fgetc(in_file) << 8);
+		const unsigned short extra = fgetc(l_in_file) + (fgetc(l_in_file) << 8);
 
 		for (i = 0; i < extra; i++) {
-			fgetc(in_file);
+			fgetc(l_in_file);
 		}
 	}
 
 	/* Discard original name if any */
 	if (flags & 0x08) {
 		/* bit 3 set: original file name present */
-		while (fgetc(in_file) != 0);	/* null */
+		while (fgetc(l_in_file) != 0);	/* null */
 	}
 
 	/* Discard file comment if any */
 	if (flags & 0x10) {
 		/* bit 4 set: file comment present */
-		while (fgetc(in_file) != 0);	/* null */
+		while (fgetc(l_in_file) != 0);	/* null */
 	}
 
 	/* Decompress */
-	if (inflate() != 0) {
+	if (inflate(l_in_file, l_out_file) != 0) {
 		error_msg("invalid compressed data--format violated");
 	}
 
@@ -972,7 +973,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	 * crc32  (see algorithm.doc)
 	 * uncompressed input size modulo 2^32
 	 */
-	fread(buf, 1, 8, in_file);
+	fread(buf, 1, 8, l_in_file);
 
 	/* Validate decompression - crc */
 	if ((unsigned int)((buf[0] | (buf[1] << 8)) |((buf[2] | (buf[3] << 8)) << 16)) != (crc ^ 0xffffffffL)) {
@@ -983,14 +984,11 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 		error_msg("invalid compressed data--length error");
 	}
 
-	free(window);
-	free(crc_table);
-
 	return 0;
 }
 
 /*
- * This needs access to global variables wondow and crc_table, so its not in its own file.
+ * This needs access to global variables window and crc_table, so its not in its own file.
  */
 extern void gz_close(int gunzip_pid)
 {

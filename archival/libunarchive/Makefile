@@ -20,7 +20,7 @@
 TOPDIR   :=../..
 L_TARGET := libunarchive.a
 
-obj-y           := unarchive.o seek_sub_file.o 
+obj-y           := unarchive.o seek_sub_file.o
 obj-n           :=
 obj-            :=
 
@@ -41,11 +41,15 @@ ifeq ($(CONFIG_CPIO),y)
 endif
 
 ifeq ($(CONFIG_RPM2CPIO),y)
-	obj-y += get_header_cpio.o 
+	obj-y += get_header_cpio.o
 endif
 
 ifeq ($(CONFIG_TAR),y)
 	obj-y += get_header_tar.o
+endif
+
+ifeq ($(CONFIG_UNZIP),y)
+	obj-y += get_header_zip.o
 endif
 
 

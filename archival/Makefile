@@ -34,6 +34,7 @@ obj-$(CONFIG_GUNZIP)		+= gunzip.o
 obj-$(CONFIG_GZIP)		+= gzip.o
 obj-$(CONFIG_RPM2CPIO)		+= rpm2cpio.o
 obj-$(CONFIG_TAR)		+= tar.o
+obj-$(CONFIG_UNZIP)		+= unzip.o
 
 
 # Hand off to toplevel Rules.mak

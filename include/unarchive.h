@@ -26,11 +26,13 @@ typedef struct file_headers_s {
 	mode_t mode;
 	time_t mtime;
 	dev_t device;
+	int (*extract_func)(FILE *, FILE *);
 } file_header_t;
 
 file_header_t *get_header_ar(FILE *in_file);
 file_header_t *get_header_cpio(FILE *src_stream);
 file_header_t *get_header_tar(FILE *tar_stream);
+file_header_t *get_header_zip(FILE *zip_stream);
 
 void seek_sub_file(FILE *src_stream, const int count);
 

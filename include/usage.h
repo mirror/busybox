@@ -1851,6 +1851,19 @@
 	"\t-u\toutput will be in UNIX format\n" \
 	"\t-d\toutput will be in DOS format"
 
+#define unzip_trivial_usage \
+	"[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]"
+#define unzip_full_usage \
+	"Extracts files from ZIP archives\n" \
+	"Options:\n" \
+	"\t-l\tlist archive contents (short form)\n" \
+	"\t-n\tnever overwrite existing files (default)\n" \
+	"\t-o\toverwrite files without prompting\n" \
+	"\t-p\tsend output to stdout\n" \
+	"\t-q\tbe quiet\n" \
+	"\t-x\texclude these files\n" \
+	"\t-d\textract files into this directory"
+
 #define update_trivial_usage \
 	"[options]"
 #define update_full_usage \

@@ -20,4 +20,5 @@ if [ "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable -X and --exclude options (exclude files)'	CONFIG_FEATURE_TAR_EXCLUDE
     bool '  Enable -z option (currently only for extracting)'	CONFIG_FEATURE_TAR_GZIP
 fi
+bool 'unzip'	    CONFIG_UNZIP
 endmenu

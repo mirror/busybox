@@ -215,6 +215,7 @@ extern long arith (const char *startbuf, int *errcode);
 int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 char *fgets_str(FILE *file, const char *terminating_string);
 
+extern int inflate(FILE *in, FILE *out);
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
 extern FILE *gz_open(FILE *compressed_file, int *pid);

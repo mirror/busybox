@@ -120,7 +120,8 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 						return NULL;
 					}
 					archive_offset += file_entry->size;
-					copy_file_chunk(src_stream, dst_stream, file_entry->size);			
+					if (file_entry->extract_func) file_entry->extract_func(src_stream, dst_stream);
+					else copy_file_chunk(src_stream, dst_stream, file_entry->size);			
 					fclose(dst_stream);
 				}
 				break;

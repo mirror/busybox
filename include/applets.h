@@ -470,6 +470,9 @@
 #ifdef CONFIG_UNIX2DOS
 	APPLET(unix2dos, dos2unix_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_UNZIP
+	APPLET(unzip, unzip_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_UPDATE
 	APPLET(update, update_main, _BB_DIR_SBIN)
 #endif
