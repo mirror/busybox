@@ -44,9 +44,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_memory_exhausted
-#include "messages.c"
 
 #define memzero(s, n)     memset ((void *)(s), 0, (n))
 

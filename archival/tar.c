@@ -51,10 +51,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_io_error
-#define bb_need_name_longer_than_foo
-#include "messages.c"
 
 /* Tar file constants  */
 #ifndef MAJOR

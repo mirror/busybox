@@ -28,9 +28,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_too_few_args
-#include "messages.c"
 
 
 struct stat *theMode;

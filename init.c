@@ -43,9 +43,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "busybox.h"
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
 #ifdef BB_SYSLOGD
 # include <sys/syslog.h>
 #endif

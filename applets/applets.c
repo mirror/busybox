@@ -35,10 +35,6 @@
 #undef PROTOTYPES
 #include "applets.h"
 
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
-
 struct BB_applet *applet_using;
 
 /* The -1 arises because of the {0,NULL,0,-1} entry above. */

@@ -31,9 +31,6 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_help
-#include "messages.c"
 
 /* ED: sparc termios is broken: revert back to old termio handling. */
 #ifdef BB_FEATURE_USE_TERMIOS

@@ -264,5 +264,17 @@ enum {
 };
 
 extern const char *applet_name;
+extern const char *full_version;
+extern const char *name_too_long;
+extern const char *omitting_directory;
+extern const char *not_a_directory;
+extern const char *memory_exhausted;
+extern const char *invalid_date;
+extern const char *invalid_option;
+extern const char *io_error;
+extern const char *dash_dash_help;
+extern const char *write_error;
+extern const char *too_few_args;
+extern const char *name_longer_than_foo;
 
 #endif /* __LIBBB_H__ */

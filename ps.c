@@ -38,9 +38,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_help
-#include "messages.c"
 
 static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefold bug */
 

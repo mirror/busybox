@@ -38,9 +38,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_help
-#include "messages.c"
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;

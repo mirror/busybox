@@ -20,9 +20,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_io_error
-#include "messages.c"
 
 extern int dutmp_main(int argc, char **argv)
 {

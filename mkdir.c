@@ -26,9 +26,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "busybox.h"
-#define bb_need_name_too_long
-#define BB_DECLARE_EXTERN
-#include "messages.c"
 
 
 static int parentFlag = FALSE;

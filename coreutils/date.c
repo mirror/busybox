@@ -29,10 +29,6 @@
 #include <string.h>
 #include <getopt.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_invalid_date
-#define bb_need_memory_exhausted
-#include "messages.c"
 
 
 /* This 'date' command supports only 2 time setting formats, 

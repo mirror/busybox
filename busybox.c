@@ -5,11 +5,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "busybox.h"
-
-#define bb_need_full_version
-#define BB_DECLARE_EXTERN
-#include "messages.c"
-
 #ifdef BB_LOCALE_SUPPORT
 #include <locale.h>
 #endif

@@ -28,9 +28,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_not_a_directory
-#include "messages.c"
 
 
 static const int LN_SYMLINK = 1;

@@ -32,12 +32,6 @@
 #include <stdlib.h>	/* free() */
 #include "libbb.h"
 
-
-/* same conditions as recursive_action */
-#define bb_need_name_too_long
-#define BB_DECLARE_EXTERN
-#include "../messages.c"
-
 #undef DEBUG_RECURS_ACTION
 
 

@@ -31,9 +31,6 @@
 #include <string.h>
 #include <errno.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_name_too_long
-#include "messages.c"
 
 
 #ifdef BB_FEATURE_HUMAN_READABLE
@@ -192,7 +189,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.44 2001/04/09 22:48:11 andersen Exp $ */
+/* $Id: du.c,v 1.45 2001/04/25 05:39:18 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

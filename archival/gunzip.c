@@ -65,10 +65,6 @@ static char *license_msg[] = {
 #include <unistd.h>
 #include <getopt.h>
 #include "busybox.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_memory_exhausted
-#define bb_need_name_too_long
-#include "messages.c"
 
 extern int gunzip_main(int argc, char **argv)
 {

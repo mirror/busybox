@@ -65,10 +65,6 @@ static char *license_msg[] = {
 #include <signal.h>
 #include <stdlib.h>
 #include "libbb.h"
-#define BB_DECLARE_EXTERN
-#define bb_need_memory_exhausted
-#define bb_need_name_too_long
-#include "../messages.c"
 
 FILE *in_file, *out_file;
 

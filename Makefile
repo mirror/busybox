@@ -212,7 +212,7 @@ endif
 # And option 4:
 -include applet_source_list
 
-OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o messages.o usage.o applets.o
+OBJECTS   = $(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
@@ -249,12 +249,17 @@ recursive_action.c safe_read.c safe_strncpy.c seek_ared_file.c syscalls.c \
 syslog_msg_with_name.c time_string.c trim.c untar.c unzip.c vdprintf.c \
 verror_msg.c vperror_msg.c wfopen.c xfuncs.c xgetcwd.c xregcomp.c interface.c \
 remove_file.c
-
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB)
 ifneq ($(strip $(BB_SRC_DIR)),)
     LIBBB_CFLAGS += -I$(BB_SRC_DIR)/$(LIBBB)
 endif
+
+LIBBB_MSRC=libbb/messages.c
+LIBBB_MESSAGES= full_version name_too_long omitting_directory not_a_directory \
+memory_exhausted invalid_date invalid_option io_error dash_dash_help \
+write_error too_few_args name_longer_than_foo
+LIBBB_MOBJ=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_MESSAGES))
 
 
 # Put user-supplied flags at the end, where they
@@ -352,10 +357,13 @@ $(LIBBB_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile libbb/libbb.h
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -c $< -o $*.o
 
+$(LIBBB_MOBJ): $(LIBBB_MSRC)
+	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
+
 libpwd.a: $(PWD_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-libbb.a: $(LIBBB_OBJS)
+libbb.a:  $(LIBBB_MOBJ) $(LIBBB_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
 usage.o: usage.h

@@ -31,11 +31,6 @@
 #include <unistd.h>
 #include "libbb.h"
 
-/* same conditions as recursive_action */
-#define bb_need_memory_exhausted
-#define BB_DECLARE_EXTERN
-#include "../messages.c"
-
 
 #ifndef DMALLOC
 extern void *xmalloc(size_t size)
