@@ -703,7 +703,7 @@
 	"\t-f\tForce file system check."
 
 #define ftpget_trivial_usage \
-	"[options] remote-host local-directory remote-file"
+	"[options] remote-host local-file remote-file"
 #define ftpget_full_usage \
 	"Retrieve a remote file via FTP.\n\n" \
 	"Options:\n" \
@@ -714,7 +714,7 @@
 	"\t-P, --port             Port number to be used\n"
 
 #define ftpput_trivial_usage \
-	"[options] remote-host remote-directory local-file"
+	"[options] remote-host remote-file local-file"
 #define ftpput_full_usage \
 	"Store a local file on a remote machine via FTP.\n\n" \
 	"Options:\n" \
