@@ -3,14 +3,13 @@
 export DH_VERBOSE=1
 export DH_COMPAT=3
 
+# These wont actually do anything yet, need to hack Rules.mak
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -g
 endif
 ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	INSTALL_PROGRAM += -s
 endif
-
-binary-indep:
 
 busybox-deb:
 	dh_testdir
@@ -20,18 +19,18 @@ busybox-deb:
 	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
 	$(MAKE)
-	install -D busybox ./debian/busybox/bin/busybox
-	dh_installchangelogs Changelog -pbusybox
-	dh_installdocs -pbusybox
-	dh_strip -pbusybox
-	dh_compress -pbusybox
-	dh_fixperms -pbusybox
-	dh_installdeb -pbusybox
-	dh_shlibdeps -pbusybox
-	dh_gencontrol -pbusybox
-	dh_md5sums -pbusybox
-	dh_builddeb -pbusybox
-										
+	install -D busybox ./debian/busybox-unstable/bin/busybox
+	dh_installchangelogs Changelog -pbusybox-unstable
+	dh_installdocs -pbusybox-unstable
+	dh_strip -pbusybox-unstable
+	dh_compress -pbusybox-unstable
+	dh_fixperms -pbusybox-unstable
+	dh_installdeb -pbusybox-unstable
+	dh_shlibdeps -pbusybox-unstable
+	dh_gencontrol -pbusybox-unstable
+	dh_md5sums -pbusybox-unstable
+	dh_builddeb -pbusybox-unstable
+			
 busybox-udeb:
 	dh_testdir
 	dh_testroot
@@ -40,16 +39,16 @@ busybox-udeb:
 	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
 	$(MAKE)
-	install -D busybox ./debian/busybox-udeb/bin/busybox
-	dh_installchangelogs Changelog -pbusybox-udeb
-	dh_strip -pbusybox-udeb
-	dh_compress -pbusybox-udeb
-	dh_fixperms -pbusybox-udeb
-	dh_installdeb -pbusybox-udeb
-	dh_shlibdeps -pbusybox-udeb
-	dh_gencontrol -pbusybox-udeb
-	dh_md5sums -pbusybox-udeb
-	dh_builddeb -pbusybox-udeb
+	install -D busybox ./debian/busybox-unstable-udeb/bin/busybox
+	dh_installchangelogs Changelog -pbusybox-unstable-udeb
+	dh_strip -pbusybox-unstable-udeb
+	dh_compress -pbusybox-unstable-udeb
+	dh_fixperms -pbusybox-unstable-udeb
+	dh_installdeb -pbusybox-unstable-udeb
+	dh_shlibdeps -pbusybox-unstable-udeb
+	dh_gencontrol -pbusybox-unstable-udeb
+	dh_md5sums -pbusybox-unstable-udeb
+	dh_builddeb -pbusybox-unstable-udeb
 
 
 busybox-static:
@@ -60,17 +59,17 @@ busybox-static:
 	cp ./debian/Rules.mak.static Rules.mak
 	$(MAKE) dep
 	$(MAKE)
-	install -D busybox ./debian/busybox-static/bin/busybox
-	dh_installchangelogs Changelog -pbusybox-static
-	dh_installdocs -pbusybox-static
-	dh_strip -pbusybox-static
-	dh_compress -pbusybox-static
-	dh_fixperms -pbusybox-static
-	dh_installdeb -pbusybox-static
-	dh_shlibdeps -pbusybox-static
-	dh_gencontrol -pbusybox-static
-	dh_md5sums -pbusybox-static
-	dh_builddeb -pbusybox-static
+	install -D busybox ./debian/busybox-unstable-static/bin/busybox
+	dh_installchangelogs Changelog -pbusybox-unstable-static
+	dh_installdocs -pbusybox-unstable-static
+	dh_strip -pbusybox-unstable-static
+	dh_compress -pbusybox-unstable-static
+	dh_fixperms -pbusybox-unstable-static
+	dh_installdeb -pbusybox-unstable-static
+	dh_shlibdeps -pbusybox-unstable-static
+	dh_gencontrol -pbusybox-unstable-static
+	dh_md5sums -pbusybox-unstable-static
+	dh_builddeb -pbusybox-unstable-static
 
 binary-arch: busybox-deb busybox-udeb busybox-static
 
@@ -79,14 +78,14 @@ binary-indep:
 	dh_testroot
 	$(MAKE) clean
 	$(MAKE) newdoc
-	dh_installdocs -pbusybox-doc
-	dh_installchangelogs Changelog -pbusybox-doc
-	dh_compress -pbusybox-doc
-	dh_fixperms -pbusybox-doc
-	dh_installdeb -pbusybox-doc
-	dh_gencontrol -pbusybox-doc
-	dh_md5sums -pbusybox-doc
-	dh_builddeb -pbusybox-doc
+	dh_installdocs -pbusybox-unstable-doc
+	dh_installchangelogs Changelog -pbusybox-unstable-doc
+	dh_compress -pbusybox-unstable-doc
+	dh_fixperms -pbusybox-unstable-doc
+	dh_installdeb -pbusybox-unstable-doc
+	dh_gencontrol -pbusybox-unstable-doc
+	dh_md5sums -pbusybox-unstable-doc
+	dh_builddeb -pbusybox-unstable-doc
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure
