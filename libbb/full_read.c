@@ -37,7 +37,7 @@ ssize_t bb_full_read(int fd, void *buf, size_t len)
 	total = 0;
 
 	while (len > 0) {
-		cc = read(fd, buf, len);
+		cc = safe_read(fd, buf, len);
 
 		if (cc < 0)
 			return cc;	/* read() returns -1 on failure. */
