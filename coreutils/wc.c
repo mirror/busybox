@@ -139,7 +139,7 @@ int wc_main(int argc, char **argv)
 	}
 
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
-		wc_file(stdin, NULL);
+		wc_file(stdin, "");
 		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
