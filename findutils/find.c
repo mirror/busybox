@@ -23,7 +23,6 @@
  */
 
 #include "internal.h"
-#include "regexp.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
