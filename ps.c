@@ -132,7 +132,7 @@ extern int ps_main(int argc, char **argv)
 			terminal_width = win.ws_col - 1;
 #endif
 
-	printf("%5s  %-8s %5s %s\n", "PID", "Uid", "State", "Command");
+	printf("  PID  Uid     Stat Command\n");
 	while ((entry = readdir(dir)) != NULL) {
 		if (!isdigit(*entry->d_name))
 			continue;
@@ -151,7 +151,7 @@ extern int ps_main(int argc, char **argv)
 		if (file == NULL)
 			continue;
 		i = 0;
-		len = printf("%5d %-8s %c ", p.pid, uidName, p.state);
+		len = printf("%5d %-8s %c    ", p.pid, uidName, p.state);
 		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
 			i++;
 			if (c == '\0')
@@ -223,7 +223,7 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 	/* Print up a ps listing */
-	printf("%5s  %-8s %5s %s\n", "PID", "Uid", "State", "Command");
+	printf("  PID  Uid     Stat Command\n");
 
 	for (i=1; i<pid_array[0] ; i++) {
 	    info.pid = pid_array[i];
@@ -236,7 +236,7 @@ extern int ps_main(int argc, char **argv)
 		if (*uidName == '\0')
 			sprintf(uidName, "%ld", info.euid);
 
-		len = printf("%5d %-8s %c ", info.pid, uidName, info.state);
+		len = printf("%5d %-8s %c    ", info.pid, uidName, info.state);
 
 		if (strlen(info.command_line) > 1) {
 			for( j=0; j<(sizeof(info.command_line)-1) && j < (terminal_width-len); j++) {
