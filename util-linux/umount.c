@@ -212,18 +212,18 @@ static int umount_all(int useMtab)
 		/* Never umount /proc on a umount -a */
 		if (strstr(mountpt, "proc")!= NULL)
 			continue;
-		status = do_umount(mountpt, useMtab);
-		if (status != 0) {
+		if (!do_umount(mountpt, useMtab)) {
 			/* Don't bother retrying the umount on busy devices */
 			if (errno == EBUSY) {
 				perror_msg("%s", mountpt);
+				status = FALSE;
 				continue;
 			}
-			status = do_umount(mountpt, useMtab);
-			if (status != 0) {
+			if (!do_umount(mountpt, useMtab)) {
 				printf("Couldn't umount %s on %s: %s\n",
 					   mountpt, mtab_getinfo(mountpt, MTAB_GETDEVICE),
 					   strerror(errno));
+				status = FALSE;
 			}
 		}
 	}
