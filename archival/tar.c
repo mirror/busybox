@@ -625,7 +625,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #endif
 
 #ifdef CONFIG_FEATURE_TAR_FROM
-# define TAR_OPT_FROM_FILE	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2))
+# define TAR_OPT_INCLUDE_FROM	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2))
 # define TAR_OPT_EXCLUDE_FROM	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + 1))
 # define TAR_OPT_STR_FROM	"T:X:"
 # define TAR_OPT_FLAG_FROM	2
@@ -675,7 +675,7 @@ static const struct option tar_long_options[] = {
 	{ "bzip2",			0,	NULL,	'j' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_FROM
-	{ "from-file",		1,	NULL,	'T' },
+	{ "files-from",		1,	NULL,	'T' },
 	{ "exclude-from",	1,	NULL,	'X' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_GZIP
@@ -722,7 +722,7 @@ int tar_main(int argc, char **argv)
 				&base_dir,      /* Change to dir <optarg> */
 				&tar_filename /* archive filename */
 #ifdef CONFIG_FEATURE_TAR_FROM
-				, NULL,
+				, &(tar_handle->accept),
 				&(tar_handle->reject)
 #endif
 				);
@@ -786,6 +786,9 @@ int tar_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_TAR_FROM
 	if(opt & TAR_OPT_EXCLUDE_FROM) {
 		tar_handle->reject = append_file_list_to_list(tar_handle->reject);
+	}
+	if(opt & TAR_OPT_INCLUDE_FROM) {
+		tar_handle->accept = append_file_list_to_list(tar_handle->accept);
 	}
 #endif
 
