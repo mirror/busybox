@@ -545,6 +545,15 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	return(0);
 }
 
+static int bootp_down(struct interface_defn_t *ifd, execfn *exec)
+{
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+	return(execute("ip link set %iface% down", ifd, exec));
+#else
+	return(execute("ifconfig %iface% down", ifd, exec));
+#endif
+}
+
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result = 0;
@@ -565,15 +574,6 @@ static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
 	return( execute("bootpc [[--bootfile %bootfile%]] --dev %iface% "
 				"[[--server %server%]] [[--hwaddr %hwaddr%]] "
 				"--returniffail --serverbcast", ifd, exec));
-}
-
-static int bootp_down(struct interface_defn_t *ifd, execfn *exec)
-{
-#ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	return(execute("ip link set %iface% down", ifd, exec));
-#else
-	return(execute("ifconfig %iface% down", ifd, exec));
-#endif
 }
 
 static int ppp_up(struct interface_defn_t *ifd, execfn *exec)
