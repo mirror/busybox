@@ -60,10 +60,10 @@ dirname, dmesg, du, dutmp, echo, false, fbset, fdflush, find, free,
 freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, init, kill, killall, length, ln, loadacm, loadfont, loadkmap, logger,
 logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod, mkswap,
-mnc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps, pwd, reboot,
-rm, rmdir, rmmod, sed, sh, sfdisk, sleep, sort, sync, syslogd, swapon, swapoff,
-tail, tar, test, tee, touch, tr, true, tty, umount, uname, uniq, update,
-uptime, usleep, wc, whoami, yes, zcat, [
+mktemp, mnc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps, pwd,
+reboot, rm, rmdir, rmmod, sed, sh, sfdisk, sleep, sort, sync, syslogd, swapon,
+swapoff, tail, tar, test, tee, touch, tr, true, tty, umount, uname, uniq,
+update, uptime, usleep, wc, whoami, yes, zcat, [
 
 =over 4
 
@@ -1050,6 +1050,22 @@ Options:
 
 -------------------------------
 
+=item mktemp
+
+Usage: mktemp [-q] TEMPLATE
+
+Creates a temporary file with its name based on TEMPLATE.
+TEMPLATE is any name with six `Xs' (i.e. /tmp/temp.XXXXXX).
+
+Example:
+	
+	$ mktemp /tmp/temp.XXXXXX
+	/tmp/temp.mWiLjM
+	$ ls -la /tmp/temp.mWiLjM
+	-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM
+
+-------------------------------
+
 =item mnc
 
 Usage: mnc [IP] [port]
@@ -1817,4 +1833,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.22 2000/04/24 18:07:30 beppu Exp $
+# $Id: busybox.pod,v 1.23 2000/04/25 23:24:55 erik Exp $

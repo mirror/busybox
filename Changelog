@@ -1,6 +1,10 @@
 0.44
         * added the -v option (inverted search) to grep,
             updated docs/busybox.pod accordingly.  -beppu
+	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
+	* Fix for ping warnings from Sascha Ziemann <szi@aibon.ping.de>
+	* More doc updates
+
 
 0.43
 	* Major update to the provided documentation.

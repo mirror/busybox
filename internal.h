@@ -119,6 +119,7 @@ extern int mkfifo_main(int argc, char **argv);
 extern int mkfs_minix_main(int argc, char **argv);
 extern int mknod_main(int argc, char** argv);
 extern int mkswap_main(int argc, char** argv);
+extern int mktemp_main(int argc, char **argv);
 extern int mnc_main(int argc, char** argv);
 extern int more_main(int argc, char** argv);
 extern int mount_main(int argc, char** argv);

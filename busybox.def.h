@@ -52,12 +52,13 @@
 #define BB_LS
 #define BB_LSMOD
 #define BB_MAKEDEVS
-#define BB_MKFS_MINIX
 #define BB_MATH
 #define BB_MKDIR
 #define BB_MKFIFO
+#define BB_MKFS_MINIX
 #define BB_MKNOD
 #define BB_MKSWAP
+#define BB_MKTEMP
 #define BB_MNC
 #define BB_MORE
 #define BB_MOUNT

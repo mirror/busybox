@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.13 2000/04/21 01:26:49 erik Exp $
+ * $Id: ping.c,v 1.14 2000/04/25 23:24:55 erik Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -262,6 +262,26 @@ static void sendping(int ign)
 	}
 }
 
+static char *icmp_type_name (int id)
+{
+	switch (id) {
+	case ICMP_ECHOREPLY: 		return "Echo Reply";
+	case ICMP_DEST_UNREACH: 	return "Destination Unreachable";
+	case ICMP_SOURCE_QUENCH: 	return "Source Quench";
+	case ICMP_REDIRECT: 		return "Redirect (change route)";
+	case ICMP_ECHO: 			return "Echo Request";
+	case ICMP_TIME_EXCEEDED: 	return "Time Exceeded";
+	case ICMP_PARAMETERPROB: 	return "Parameter Problem";
+	case ICMP_TIMESTAMP: 		return "Timestamp Request";
+	case ICMP_TIMESTAMPREPLY: 	return "Timestamp Reply";
+	case ICMP_INFO_REQUEST: 	return "Information Request";
+	case ICMP_INFO_REPLY: 		return "Information Reply";
+	case ICMP_ADDRESS: 			return "Address Mask Request";
+	case ICMP_ADDRESSREPLY: 	return "Address Mask Reply";
+	default: 					return "unknown ICMP type";
+	}
+}
+
 static void unpack(char *buf, int sz, struct sockaddr_in *from)
 {
 	struct icmp *icmppkt;
@@ -282,10 +302,11 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 	sz -= hlen;
 	icmppkt = (struct icmp *) (buf + hlen);
 
+	if (icmppkt->icmp_id != myid)
+	    return;				/* not our ping */
+
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
-		if (icmppkt->icmp_id != myid)
-			return;				/* not our ping */
-		++nreceived;
+	    ++nreceived;
 		tp = (struct timeval *) icmppkt->icmp_data;
 
 		if ((tv.tv_usec -= tp->tv_usec) < 0) {
@@ -321,10 +342,11 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		if (dupflag)
 			printf(" (DUP!)");
 		printf("\n");
-	} else {
-		fprintf(stderr,
-				"Warning: unknown ICMP packet received (not echo-reply)\n");
-	}
+	} else 
+		if (icmppkt->icmp_type != ICMP_ECHO)
+			fprintf(stderr,
+					"Warning: Got ICMP %d (%s)\n",
+					icmppkt->icmp_type, icmp_type_name (icmppkt->icmp_type));
 }
 
 static void ping(char *host)

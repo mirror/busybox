@@ -197,6 +197,9 @@ static const struct Applet applets[] = {
 #ifdef BB_MKSWAP
 	{"mkswap", mkswap_main, _BB_DIR_SBIN},
 #endif
+#ifdef BB_MKTEMP
+	{"mktemp", mktemp_main, _BB_DIR_BIN},
+#endif
 #ifdef BB_MNC
 	{"mnc", mnc_main, _BB_DIR_USR_BIN},
 #endif

@@ -163,13 +163,13 @@ extern int ps_main(int argc, char **argv)
 		if (*groupName == '\0')
 			sprintf(groupName, "%d", p.rgid);
 
-		len = fprintf(stdout, "%5d %-8s %-8s %c ", p.pid, uidName, groupName,
-				p.state);
 		sprintf(path, "/proc/%s/cmdline", entry->d_name);
 		file = fopen(path, "r");
 		if (file == NULL)
-			fatalError("Can't open %s: %s\n", path, strerror(errno));
+			continue;
 		i = 0;
+		len = fprintf(stdout, "%5d %-8s %-8s %c ", p.pid, uidName, groupName,
+				p.state);
 		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
 			i++;
 			if (c == '\0')
