@@ -81,11 +81,18 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 #endif /* BB_FEATURE_INSTALLER */
 
+static int applet_name_compare(const void *x, const void *y)
+{
+	const struct BB_applet *applet1 = x;
+	const struct BB_applet *applet2 = y;
+
+	return strcmp(applet1->name, applet2->name);
+}
 
 int main(int argc, char **argv)
 {
+	struct BB_applet search_applet, *applet;
 	const char				*s;
-	int u, l; /* Lower and upper bounds for the binary search. */
 	applet_name = "busybox";
 
 #ifdef BB_FEATURE_INSTALLER	
@@ -134,31 +141,11 @@ int main(int argc, char **argv)
 #endif
 
 	/* Do a binary search to find the applet entry given the name. */
-
-	u = NUM_APPLETS - 1;
-	l = 0;
-
-	for (;;) {
-		int i = l + (u - l) / 2;
-		int j = strcmp(applet_name, applets[i].name);
-
-		if (j == 0) {
-			if (applets[i].usage && argv[1] && strcmp(argv[1], "--help") == 0)
-				usage(applets[i].usage);
-			exit(((*(applets[i].main)) (argc, argv)));
-		}
-		
-		if (u == l)
-			break;
-			
-		if (j < 0)
-			u = i - 1;
-		else
-			l = i + 1;
-
-		if (u < l)
-			break;
-	}
+	search_applet.name = applet_name;
+	applet = bsearch(&search_applet, applets, NUM_APPLETS,
+			sizeof(struct BB_applet), applet_name_compare);
+	if (applet != NULL)
+		exit((*(applet->main)) (argc, argv));
 
 	return(busybox_main(argc, argv));
 }
