@@ -186,6 +186,30 @@
 	"\tu\t\tunconditional overwrite\n" \
 	"\tF\t\tinput from file"
 	
+#define crond_trivial_usage \
+	"-d[#] -c <crondir> -f -b"
+#define crond_full_usage \
+	"\t-d [#] -l [#] -S -L logfile -f -b -c dir\n" \
+	"\t-d num\tdebug level\n" \
+	"\t-l num\tlog level (8 - default)\n" \
+	"\t-S\tlog to syslod (defualt)\n" \
+	"\t-L file\tlog to file\n" \
+	"\t-f\trun in fordeground\n" \
+	"\t-b\trun in background (default)\n" \
+	"\t-c dir\tworking dir"
+
+#define crontab_trivial_usage \
+	"crontab [-c dir] {file|-}|[-u|-l|-e|-d user]"
+#define crontab_full_usage \
+	"\tfile <opts>  replace crontab from file\n" \
+	"\t-    <opts>  replace crontab from stdin\n" \
+	"\t-u user      specify user\n" \
+	"\t-l [user]    list crontab for user\n" \
+	"\t-e [user]    edit crontab for user\n" \
+	"\t-d [user]    delete crontab for user\n" \
+	"\t-c dir       specify crontab directory"
+
+
 #define cut_trivial_usage \
 	"[OPTION]... [FILE]..."
 #define cut_full_usage \

@@ -107,6 +107,12 @@
 #ifdef CONFIG_CPIO
 	APPLET(cpio, cpio_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef BB_CROND
+	APPLET(crond, crond_main, _BB_DIR_USR_SBIN)
+#endif
+#ifdef BB_CRONTAB
+	APPLET(crontab, crontab_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef CONFIG_CUT
 	APPLET(cut, cut_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

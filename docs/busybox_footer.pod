@@ -113,7 +113,7 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 Vladimir Oleynik <dzo@simtreas.ru>
 
-    cmdedit; ports: ash, stty, traceroute, telnetd, top;
+    cmdedit; ports: ash, crond, stty, traceroute, telnetd, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 
@@ -167,4 +167,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.6 2002/09/30 20:52:08 andersen Exp $
+# $Id: busybox_footer.pod,v 1.7 2002/10/22 12:24:56 andersen Exp $

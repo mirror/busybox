@@ -7,6 +7,8 @@ mainmenu_option next_comment
 comment 'Miscellaneous Utilities'
 
 bool 'adjtimex'	    CONFIG_ADJTIMEX
+bool 'crond'        CONFIG_CROND
+bool 'crontab'      CONFIG_CRONTAB
 bool 'dc'	    CONFIG_DC
 bool 'dutmp'	    CONFIG_DUTMP
 bool 'makedevs'	    CONFIG_MAKEDEVS
