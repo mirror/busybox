@@ -1144,13 +1144,6 @@ extern int init_main(int argc, char **argv)
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
 
-	/* If there is nothing else to do, stop */
-	if (init_action_list == NULL) {
-		message(LOG | CONSOLE,
-				"No more tasks for init -- sleeping forever.");
-		loop_forever();
-	}
-
 	/* Redefine SIGHUP to reread /etc/inittab */
 	signal(SIGHUP, reload_signal);
 
@@ -1167,7 +1160,7 @@ extern int init_main(int argc, char **argv)
 
 		/* Wait for a child process to exit */
 		wpid = wait(&status);
-		while (wpid > 0) {
+		while (init_action_list && wpid > 0) {
 			/* Find out who died and clean up their corpse */
 			for (a = init_action_list; a; a = a->next) {
 				if (a->pid == wpid) {
