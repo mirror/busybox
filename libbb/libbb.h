@@ -29,6 +29,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <netdb.h>
+
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -77,6 +79,9 @@ extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))
 extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void perror_msg(const char *s, ...);
 extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
+extern void vherror_msg(const char *s, va_list p);
+extern void herror_msg(const char *s, ...);
+extern void herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
 
 /* These two are used internally -- you shouldn't need to use them */
 extern void verror_msg(const char *s, va_list p);
@@ -251,6 +256,8 @@ extern char *read_package_field(const char *package_buffer);
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
 extern int gz_open(FILE *compressed_file, int *pid);
+
+extern struct hostent *xgethostbyname(const char *name);
 
 #define CT_AUTO	0
 #define CT_UNIX2DOS	1

@@ -390,14 +390,9 @@ int tftp_main(int argc, char **argv)
 		s = xstrdup(serverstr);
 		s[cp - serverstr] = '\0';
 
-		if ((host = gethostbyname(s))) {
-			bad = 0;
-		}
+		host = xgethostbyname(s);
 
 		free(s);
-	}
-	if (bad) {
-		error_msg_and_die("bad \"server:file\" combination");
 	}
 
 	if (BB_TFTP_DEBUG) {

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.40 2001/04/09 23:52:18 andersen Exp $
+ * $Id: ping.c,v 1.41 2001/05/16 15:40:48 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -200,10 +200,7 @@ static void ping(const char *host)
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
 	pingaddr.sin_family = AF_INET;
-	if (!(h = gethostbyname(host))) {
-		error_msg("unknown host %s", host);
-		exit(1);
-	}
+	h = xgethostbyname(host);
 	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
 	hostname = h->h_name;
 
@@ -446,15 +443,9 @@ static void ping(const char *host)
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
 	pingaddr.sin_family = AF_INET;
-	if (!(h = gethostbyname(host))) {
-		error_msg("unknown host %s", host);
-		exit(1);
-	}
-
-	if (h->h_addrtype != AF_INET) {
-		error_msg("unknown address type; only AF_INET is currently supported.");
-		exit(1);
-	}
+	h = gethostbyname(host);
+	if (h->h_addrtype != AF_INET)
+		error_msg_and_die("unknown address type; only AF_INET is currently supported.");
 
 	pingaddr.sin_family = AF_INET;	/* h->h_addrtype */
 	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));

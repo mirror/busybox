@@ -91,8 +91,7 @@ int nc_main(int argc, char **argv)
 		close(sfd);
 		sfd = tmpfd;
 	} else {
-		if ((hostinfo = gethostbyname(argv[optind])) == NULL)
-			error_msg_and_die("cannot resolve %s\n", argv[optind]);
+		hostinfo = xgethostbyname(argv[optind]);
 
 		address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
 		address.sin_port = htons(atoi(argv[optind+1]));

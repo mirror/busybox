@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.27 2001/05/16 14:21:09 kraai Exp $
+ * $Id: hostname.c,v 1.28 2001/05/16 15:40:48 kraai Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -117,11 +117,7 @@ int hostname_main(int argc, char **argv)
 			s = strchr(buf, '.');
 			puts(s ? s + 1 : "");
 		} else if (opt_ip) {
-			h = gethostbyname(buf);
-			if (!h) {
-				printf("Host not found\n");
-				exit(1);
-			}
+			h = xgethostbyname(buf);
 			puts(inet_ntoa(*(struct in_addr *) (h->h_addr)));
 		} else {
 			puts(buf);

@@ -335,7 +335,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 	{
 		if ((hp = gethostbyname(hostname)) == NULL) {
-			error_msg("can't get address for %s", hostname);
+			herror_msg("%s", hostname);
 			goto fail;
 		} else {
 			if (hp->h_length > sizeof(struct in_addr)) {
@@ -580,7 +580,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	    mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
 	  } else {
 		  if ((hp = gethostbyname(mounthost)) == NULL) {
-			  error_msg("can't get address for %s", hostname);
+			  herror_msg("%s", mounthost);
 			  goto fail;
 		  } else {
 			  if (hp->h_length > sizeof(struct in_addr)) {

@@ -450,11 +450,7 @@ static void init_RemoteLog (void){
     error_msg_and_die("syslogd: cannot create socket");
   }
 
-  hostinfo = (struct hostent *) gethostbyname(RemoteHost);
-
-  if (!hostinfo) {
-    error_msg_and_die("syslogd: cannot resolve remote host name [%s]", RemoteHost);
-  }
+  hostinfo = xgethostbyname(RemoteHost);
 
   remoteaddr.sin_family = AF_INET;
   remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;

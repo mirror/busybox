@@ -556,8 +556,7 @@ FILE *open_socket(char *host, int port)
 
 	memset(&s_in, 0, sizeof(s_in));
 	s_in.sin_family = AF_INET;
-	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
-		error_msg_and_die("cannot resolve %s", host);
+	hp = xgethostbyname(host);
 	memcpy(&s_in.sin_addr, hp->h_addr_list[0], hp->h_length);
 	s_in.sin_port = htons(port);
 
@@ -813,7 +812,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.40 2001/05/15 20:11:49 andersen Exp $
+ *	$Id: wget.c,v 1.41 2001/05/16 15:40:48 kraai Exp $
  */
 
 

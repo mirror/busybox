@@ -45,8 +45,7 @@ static time_t askremotedate(const char *host)
 	unsigned long int nett, localt;
 	int fd;
 
-	if (!(h = gethostbyname(host)))         /* get the IP addr */
-		perror_msg_and_die("%s", host);
+	h = xgethostbyname(host);         /* get the IP addr */
 
 	if ((tserv = getservbyname("time", "tcp")) == NULL)   /* find port # */
 		perror_msg_and_die("%s", "time");

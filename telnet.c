@@ -644,18 +644,15 @@ static int getport(char * p)
 static struct in_addr getserver(char * host)
 {
 	struct in_addr addr;
-	
+
 	struct hostent * he;
-	if ((he = gethostbyname(host)) == NULL)
-	{
-		error_msg_and_die("%s: Unknown host", host);
-	}
+	he = xgethostbyname(host);
 	memcpy(&addr, he->h_addr, sizeof addr);
 
 	TRACE(1, ("addr: %s\n", inet_ntoa(addr)));
-	
+
 	return addr;
-}	
+}
 
 static int create_socket()
 {
