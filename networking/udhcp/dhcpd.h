@@ -63,6 +63,7 @@
 #define DHCP_T2			0x3b
 #define DHCP_VENDOR		0x3c
 #define DHCP_CLIENT_ID		0x3d
+#define DHCP_FQDN		0x51
 
 #define DHCP_END		0xFF
 

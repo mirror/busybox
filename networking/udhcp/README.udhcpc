@@ -12,7 +12,8 @@ The command line options for the udhcp client are:
 
 -c, --clientid=CLIENTID         Client identifier
 -H, --hostname=HOSTNAME         Client hostname
--h,				Alias for -H
+-h,                             Alias for -H
+-F, --fqdn=FQDN                 Client fully qualified domain name
 -f, --foreground                Do not fork after getting lease
 -b, --background                Fork to background if lease cannot be
                                 immediately negotiated.

@@ -67,6 +67,7 @@ struct client_config_t client_config = {
 	script: DEFAULT_SCRIPT,
 	clientid: NULL,
 	hostname: NULL,
+	fqdn: NULL,
 	ifindex: 0,
 	arp: "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
@@ -79,6 +80,7 @@ static void __attribute__ ((noreturn)) show_usage(void)
 "  -c, --clientid=CLIENTID         Client identifier\n"
 "  -H, --hostname=HOSTNAME         Client hostname\n"
 "  -h                              Alias for -H\n"
+"  -F, --fqdn=FQDN                 Client fully qualified domain name\n"
 "  -f, --foreground                Do not fork after getting lease\n"
 "  -b, --background                Fork to background if lease cannot be\n"
 "                                  immediately negotiated.\n"
@@ -197,7 +199,8 @@ int main(int argc, char *argv[])
 		{"foreground",	no_argument,		0, 'f'},
 		{"background",	no_argument,		0, 'b'},
 		{"hostname",	required_argument,	0, 'H'},
-		{"hostname",    required_argument,      0, 'h'},
+		{"hostname",	required_argument,	0, 'h'},
+		{"fqdn",	required_argument,	0, 'F'},
 		{"interface",	required_argument,	0, 'i'},
 		{"now", 	no_argument,		0, 'n'},
 		{"pidfile",	required_argument,	0, 'p'},
@@ -211,7 +214,7 @@ int main(int argc, char *argv[])
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:s:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:fbH:h:F:i:np:qr:s:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -238,6 +241,23 @@ int main(int argc, char *argv[])
 			client_config.hostname[OPT_CODE] = DHCP_HOST_NAME;
 			client_config.hostname[OPT_LEN] = len;
 			strncpy(client_config.hostname + 2, optarg, len);
+			break;
+		case 'F':
+			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
+			if (client_config.fqdn) free(client_config.fqdn);
+			client_config.fqdn = xmalloc(len + 5);
+			client_config.fqdn[OPT_CODE] = DHCP_FQDN;
+			client_config.fqdn[OPT_LEN] = len + 3;
+			/* Flags: 0000NEOS
+			S: 1 => Client requests Server to update A RR in DNS as well as PTR
+			O: 1 => Server indicates to client that DNS has been updated regardless
+			E: 1 => Name data is DNS format, i.e. <4>host<6>domain<4>com<0> not "host.domain.com"
+			N: 1 => Client requests Server to not update DNS
+			*/
+			client_config.fqdn[OPT_LEN + 1] = 0x1;
+			client_config.fqdn[OPT_LEN + 2] = 0;
+			client_config.fqdn[OPT_LEN + 3] = 0;
+			strncpy(client_config.fqdn + 5, optarg, len);
 			break;
 		case 'i':
 			client_config.interface =  optarg;
