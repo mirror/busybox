@@ -1,12 +1,12 @@
 #define addgroup_trivial_usage \
-	"[OPTIONS] <group_name>"
+	"[OPTIONS] group_name [user_name]"
 #define addgroup_full_usage \
 	"Adds a group to the system" \
 	"Options:\n" \
 	    "\t-g\t\tspecify gid\n"
 
 #define adduser_trivial_usage \
-	"[OPTIONS] <user_name>"
+	"[OPTIONS] user_name"
 #define adduser_full_usage \
 	"Adds a user to the system" \
 	"Options:\n" \
