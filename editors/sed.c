@@ -44,7 +44,6 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h> /* for realloc() */
 #include <unistd.h> /* for getopt() */
 #include <regex.h>
 #include <string.h> /* for strdup() */
@@ -457,7 +456,7 @@ static void add_cmd_str(const char *cmdstr)
 			continue;
 		}
 		/* grow the array */
-		sed_cmds = realloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
+		sed_cmds = xrealloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
 		/* zero new element */
 		memset(&sed_cmds[ncmds-1], 0, sizeof(struct sed_cmd));
 		/* load command string into new array element, get remainder */
@@ -481,7 +480,7 @@ static void load_cmd_file(char *filename)
 		/* if a line ends with '\' it needs the next line appended to it */
 		while (line[strlen(line)-2] == '\\' &&
 				(nextline = get_line_from_file(cmdfile)) != NULL) {
-			line = realloc(line, strlen(line) + strlen(nextline) + 1);
+			line = xrealloc(line, strlen(line) + strlen(nextline) + 1);
 			strcat(line, nextline);
 			free(nextline);
 		}

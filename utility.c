@@ -1290,7 +1290,7 @@ extern pid_t* findPidByName( char* pidName)
 	 * some new processes start up while we wait. The kernel will
 	 * just ignore any extras if we give it too many, and will trunc.
 	 * the list if we give it too few.  */
-	pid_array = (pid_t*) calloc( num_pids+10, sizeof(pid_t));
+	pid_array = (pid_t*) xcalloc( num_pids+10, sizeof(pid_t));
 	pid_array[0] = num_pids+10;
 
 	/* Now grab the pid list */
@@ -1316,9 +1316,7 @@ extern pid_t* findPidByName( char* pidName)
 
 		if ((strstr(info.command_line, pidName) != NULL)
 				&& (strlen(pidName) == strlen(info.command_line))) {
-			pidList=realloc( pidList, sizeof(pid_t) * (j+2));
-			if (pidList==NULL)
-				fatalError(memory_exhausted);
+			pidList=xrealloc( pidList, sizeof(pid_t) * (j+2));
 			pidList[j++]=info.pid;
 		}
 	}
@@ -1389,9 +1387,7 @@ extern pid_t* findPidByName( char* pidName)
 
 		if ((strstr(p, pidName) != NULL)
 				&& (strlen(pidName) == strlen(p))) {
-			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
-			if (pidList==NULL)
-				fatalError(memory_exhausted);
+			pidList=xrealloc( pidList, sizeof(pid_t) * (i+2));
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
@@ -1624,7 +1620,7 @@ extern char *get_line_from_file(FILE *file)
 			break;
 		/* grow the line buffer as necessary */
 		if (idx > linebufsz-2)
-			linebuf = realloc(linebuf, linebufsz += GROWBY);
+			linebuf = xrealloc(linebuf, linebufsz += GROWBY);
 		linebuf[idx++] = (char)ch;
 		if ((char)ch == '\n')
 			break;

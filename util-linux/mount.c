@@ -273,7 +273,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
 		if (numfilesystems<0)
 			fatalError("\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", strerror (errno));
-		fslist = (struct k_fstype *) calloc ( numfilesystems, sizeof(struct k_fstype));
+		fslist = (struct k_fstype *) xcalloc ( numfilesystems, sizeof(struct k_fstype));
 
 		/* Grab the list of available filesystems */
 		status = ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist);
@@ -343,7 +343,7 @@ extern int mount_main(int argc, char **argv)
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
 		if (numfilesystems<0)
 			fatalError( "\nDEVMTAB_COUNT_MOUNTS: %s\n", strerror (errno));
-		mntentlist = (struct k_mntent *) calloc ( numfilesystems, sizeof(struct k_mntent));
+		mntentlist = (struct k_mntent *) xcalloc ( numfilesystems, sizeof(struct k_mntent));
 		
 		/* Grab the list of mounted filesystems */
 		if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)

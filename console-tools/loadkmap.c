@@ -67,11 +67,7 @@ int loadkmap_main(int argc, char **argv)
 		exit(FALSE);
 	}
 
-	ibuff = (u_short *) malloc(ibuffsz);
-	if (!ibuff) {
-		errorMsg("Out of memory.\n");
-		exit(FALSE);
-	}
+	ibuff = (u_short *) xmalloc(ibuffsz);
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
 		if (flags[i] == 1) {

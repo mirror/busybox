@@ -555,9 +555,7 @@ static void
 initialize_group_array ()
 {
 	ngroups = getgroups(0, NULL);
-	if ((group_array = realloc(group_array, ngroups * sizeof(gid_t))) == NULL)
-		fatalError("Out of space\n");
-
+	group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
 	getgroups(ngroups, group_array);
 }
 

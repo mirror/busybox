@@ -102,12 +102,8 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	u_short unicode;
 
 	maxct = tailsz;				/* more than enough */
-	up = (struct unipair *) malloc(maxct * sizeof(struct unipair));
+	up = (struct unipair *) xmalloc(maxct * sizeof(struct unipair));
 
-	if (!up) {
-		errorMsg("Out of memory?\n");
-		exit(1);
-	}
 	for (glyph = 0; glyph < fontsize; glyph++) {
 		while (tailsz >= 2) {
 			unicode = (((u_short) inbuf[1]) << 8) + inbuf[0];

@@ -90,7 +90,7 @@ extern int ln_main(int argc, char **argv)
 
 		if (linkIntoDirFlag == TRUE) {
 			char *baseName = get_last_path_component(*argv);
-			linkName = (char *)malloc(strlen(dirName)+strlen(baseName)+2);
+			linkName = (char *)xmalloc(strlen(dirName)+strlen(baseName)+2);
 			strcpy(linkName, dirName);
 			if(dirName[strlen(dirName)-1] != '/')
 				strcat(linkName, "/");

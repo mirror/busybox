@@ -87,12 +87,12 @@ int tail_stream(int fd)
 			ssize_t f_size=0;
 
 			bs=BUFSIZ;
-			line=malloc(bs);
+			line=xmalloc(bs);
 			while(1) {
 				bytes_read=read(fd,line,bs);
 				if(bytes_read<=0)
 					break;
-				buffer=realloc(buffer,f_size+bytes_read);
+				buffer=xrealloc(buffer,f_size+bytes_read);
 				memcpy(&buffer[f_size],line,bytes_read);
 				filelocation=f_size+=bytes_read;
 			}
@@ -150,8 +150,8 @@ int tail_stream(int fd)
 void add_file(char *name)
 {
 	++n_files;
-	files = realloc(files, n_files);
-	files[n_files - 1] = (char *) malloc(strlen(name) + 1);
+	files = xrealloc(files, n_files);
+	files[n_files - 1] = (char *) xmalloc(strlen(name) + 1);
 	strcpy(files[n_files - 1], name);
 }
 
@@ -268,13 +268,13 @@ int tail_main(int argc, char **argv)
 		units=-11;
 	if(units>0)
 		units--;
-	fd=malloc(sizeof(int)*n_files);
+	fd=xmalloc(sizeof(int)*n_files);
 	if (n_files == 1)
 #ifndef BB_FEATURE_SIMPLE_TAIL
 		if (!verbose)
 #endif
 			show_headers = 0;
-	buffer=malloc(BUFSIZ);
+	buffer=xmalloc(BUFSIZ);
 	for (test = 0; test < n_files; test++) {
 		if (show_headers)
 			printf("==> %s <==\n", files[test]);

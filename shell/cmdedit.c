@@ -246,11 +246,11 @@ char** username_tab_completion(char* command, int *num_matches)
 char** exe_n_cwd_tab_completion(char* command, int *num_matches)
 {
 	char *dirName;
-	char **matches = (char **) NULL;
+	char **matches;
 	DIR *dir;
 	struct dirent *next;
 			
-	matches = malloc( sizeof(char*)*50);
+	matches = xmalloc( sizeof(char*)*50);
 
 	/* Stick a wildcard onto the command, for later use */
 	strcat( command, "*");
@@ -273,7 +273,7 @@ char** exe_n_cwd_tab_completion(char* command, int *num_matches)
 		/* See if this matches */
 		if (check_wildcard_match(next->d_name, command) == TRUE) {
 			/* Cool, found a match.  Add it to the list */
-			matches[*num_matches] = malloc(strlen(next->d_name)+1);
+			matches[*num_matches] = xmalloc(strlen(next->d_name)+1);
 			strcpy( matches[*num_matches], next->d_name);
 			++*num_matches;
 			//matches = realloc( matches, sizeof(char*)*(*num_matches));
@@ -302,7 +302,7 @@ void input_tab(char* command, char* prompt, int outputFd, int *cursor, int *len)
 
 		/* Make a local copy of the string -- up 
 		 * to the position of the cursor */
-		matchBuf = (char *) calloc(BUFSIZ, sizeof(char));
+		matchBuf = (char *) xcalloc(BUFSIZ, sizeof(char));
 		strncpy(matchBuf, command, cursor);
 		tmp=matchBuf;
 
@@ -670,8 +670,8 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 		if (!h) {
 			/* No previous history -- this memory is never freed */
-			h = his_front = malloc(sizeof(struct history));
-			h->n = malloc(sizeof(struct history));
+			h = his_front = xmalloc(sizeof(struct history));
+			h->n = xmalloc(sizeof(struct history));
 
 			h->p = NULL;
 			h->s = strdup(command);
@@ -682,7 +682,7 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			history_counter++;
 		} else {
 			/* Add a new history command -- this memory is never freed */
-			h->n = malloc(sizeof(struct history));
+			h->n = xmalloc(sizeof(struct history));
 
 			h->n->p = h;
 			h->n->n = NULL;

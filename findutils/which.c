@@ -40,7 +40,7 @@ extern int which_main(int argc, char **argv)
 	if (!path_list)
 		path_list = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin";
 
-	path_parsed = malloc (strlen(path_list) + 1);
+	path_parsed = xmalloc (strlen(path_list) + 1);
 	strcpy (path_parsed, path_list);
 
 	/* Replace colons with zeros in path_parsed and count them */

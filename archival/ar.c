@@ -246,7 +246,7 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 	headerL_t *list;
 	off_t initialOffset;
 
-        list = (headerL_t *) malloc(sizeof(headerL_t));
+	list = (headerL_t *) xmalloc(sizeof(headerL_t));
 	initialOffset=lseek(srcFd, 0, SEEK_CUR);
 	if (checkArMagic(srcFd)==TRUE) 
 		ar=TRUE;
@@ -258,7 +258,7 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
         if (tar==TRUE) {
                 while(readTarHeader(srcFd, list)==TRUE) {
 			off_t tarOffset;
-                        list->next = (headerL_t *) malloc(sizeof(headerL_t));
+                        list->next = (headerL_t *) xmalloc(sizeof(headerL_t));
                         *list->next = *head;
                         *head = *list;
 
@@ -282,7 +282,7 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 				if (readArEntry(srcFd, list) == FALSE)
 					return(head);
 			}
-			list->next = (headerL_t *) malloc(sizeof(headerL_t));
+			list->next = (headerL_t *) xmalloc(sizeof(headerL_t));
         		*list->next = *head;
 			*head = *list;
 			/* recursive check for sub-archives */
@@ -349,9 +349,9 @@ extern int ar_main(int argc, char **argv)
                 return (FALSE);
         }
  	optind++;	
-	entry = (headerL_t *) malloc(sizeof(headerL_t));
-	header = (headerL_t *) malloc(sizeof(headerL_t));
-	extractList = (headerL_t *) malloc(sizeof(headerL_t));	
+	entry = (headerL_t *) xmalloc(sizeof(headerL_t));
+	header = (headerL_t *) xmalloc(sizeof(headerL_t));
+	extractList = (headerL_t *) xmalloc(sizeof(headerL_t));	
 
 	header = getHeaders(srcFd, header, funct);
 	/* find files to extract or display */
@@ -359,7 +359,7 @@ extern int ar_main(int argc, char **argv)
 		/* only handle specified files */
 		while(optind < argc) { 
 			if ( (entry = findEntry(header, argv[optind])) != NULL) {
-	                        entry->next = (headerL_t *) malloc(sizeof(headerL_t));
+	                        entry->next = (headerL_t *) xmalloc(sizeof(headerL_t));
                         	*entry->next = *extractList;
                         	*extractList = *entry;
 			}

@@ -229,7 +229,7 @@ extern int ps_main(int argc, char **argv)
 	 * some new processes start up while we wait. The kernel will
 	 * just ignore any extras if we give it too many, and will trunc.
 	 * the list if we give it too few.  */
-	pid_array = (pid_t*) calloc( num_pids+10, sizeof(pid_t));
+	pid_array = (pid_t*) xcalloc( num_pids+10, sizeof(pid_t));
 	pid_array[0] = num_pids+10;
 
 	/* Now grab the pid list */
