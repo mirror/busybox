@@ -2,7 +2,11 @@
 # Make busybox links list file.
 
 DF="Config.h"
-MF="applets.h"
+
+MF=$1
+if [ "$MF" = "" ]; then
+    MF="applets.h"
+fi
 
 LIST="$(gcc -E -dM $DF | sed -n -e '/^.*BB_FEATURE.*$/d;s/^#define.*\<BB_\(.*\)\>/BB_\1/gp;' | sort)"
 

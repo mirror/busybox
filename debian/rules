@@ -8,14 +8,23 @@
 export DH_COMPAT=1
 
 bb=debian/tmp
+bbbd=debian/bb_builddir
 bbs=debian/busybox-static
+bbsbd=debian/bb-static_builddir
+
+#For the debian-installer .udeb package
+PACKAGE=busybox-udeb
+VERSION=$(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+ARCH=$(shell dpkg --print-architecture)
+FILENAME=$(PACKAGE)_$(VERSION)_$(ARCH).udeb
+PRIORITY=$(shell grep ^Priority: debian/control | cut -d ' ' -f 2)
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp-busybox build-stamp-busybox-static
 	-$(MAKE) clean
-	-rm -rf $(bb) $(bbs)
+	-rm -rf $(bb) $(bbbd) $(bbs) $(bbsbd)
 	dh_clean
 
 half_clean:
@@ -27,7 +36,9 @@ half_clean:
 build: build-stamp-busybox
 build-stamp-busybox:
 	dh_testdir
-	$(MAKE)
+	mkdir -p $(bbbd)
+	cp Makefile Config.h $(bbbd)
+	(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../")
 	touch build-stamp-busybox
 
 install: build
@@ -35,7 +46,7 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	$(MAKE) "PREFIX=$(bb)" install
+	(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" "PREFIX=../../$(bb)" install)
 	mkdir -p $(bb)/usr/share/man/man1
 	cp docs/BusyBox.1 $(bb)/usr/share/man/man1/busybox.1
 
@@ -67,7 +78,7 @@ binary-indep:
 # We have nothing to do by default.
 
 # Build architecture-dependent files here.
-binary-arch: busybox busybox-static
+binary-arch: busybox busybox-static busybox-udeb
 
 busybox: install
 	@echo "--- Building: $@"
@@ -87,7 +98,7 @@ busybox: install
 	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/CVS \
 	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/.cvsignore
 	#dh_undocumented      -p$@
-	dh_installchangelogs -p$@ Changelog
+	#dh_installchangelogs -p$@ Changelog
 	dh_strip             -p$@
 	dh_compress          -p$@
 	dh_fixperms          -p$@
@@ -125,6 +136,45 @@ busybox-static: do_static
 	dh_md5sums           -p$@
 	dh_builddeb          -p$@
 
+
+# Note that this builds a .udeb, which is not policy compliant or anything.
+#
+busybox-udeb: install
+	@echo "--- Building: $@"
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+	#
+	#Note that for busybox, we do not install any docs,
+	# or man apges or anything else.  This is in blatent violation of every
+	# Debian policy out there, since this package is intended to be used
+	# _only_ by the debian-installer.
+	#
+	#dh_installdocs       -p$@ docs/BusyBox.txt \
+	#	docs/BusyBox.html docs/busybox.lineo.com AUTHORS README TODO
+	#rm -rf $(bb)/usr/share/doc/busybox/busybox.lineo.com/CVS \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/.cvsignore \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/CVS \
+	#	$(bb)/usr/share/doc/busybox/busybox.lineo.com/images/.cvsignore
+	#dh_undocumented      -p$@
+	#dh_installchangelogs -p$@ Changelog
+	dh_strip             -p$@
+	dh_compress          -p$@
+	dh_fixperms          -p$@
+	dh_installdeb        -p$@
+	dh_shlibdeps         -p$@
+	#
+	#Make _very_ sure there are no docs lurking about.
+	#
+	rm -rf $(bb)/usr/share/doc
+	rm -rf $(bb)/usr/share/man
+	dh_gencontrol        -p$@
+	# Don't write your stupid guesses to debian/files.
+	#dh_gencontrol        -p$@ -- -fdebian/files~
+	# Register file manually.
+	dpkg-distaddfile $(FILENAME) debian-installer $(PRIORITY)
+	dh_md5sums           -p$@
+	dh_builddeb          -p$@ --filename=$(FILENAME)
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install

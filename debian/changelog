@@ -1,6 +1,8 @@
 busybox (0.48pre-1) unstable; urgency=low
 
-  * New version released.  See changelog for details.
+  * Non-release.
+  * See changelog for details.
+  * Now includes .udeb support for the debian-installer.
 
  -- Erik Andersen <andersee@debian.org>  Mon, 25 Sep 2000 23:00:56 -0600
 

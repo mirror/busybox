@@ -167,14 +167,14 @@ docs/BusyBox.1: docs/busybox.pod
 		docs/busybox.pod ) > docs/BusyBox.1
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
-	- rm -f docs/BusyBox.html
-	- ln -s docs/busybox.lineo.com/BusyBox.html docs/BusyBox.html
+	-@ rm -f docs/BusyBox.html
+	-@ ln -s docs/busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
 docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
-	- mkdir -p docs/busybox.lineo.com
+	-@ mkdir -p docs/busybox.lineo.com
 	- (cd $(BB_SRC_DIR); pod2html --noindex docs/busybox.pod ) \
 		> docs/busybox.lineo.com/BusyBox.html
-	- rm -f pod2html*
+	-@ rm -f pod2html*
 
 
 # New docs based on DOCBOOK SGML
@@ -210,7 +210,7 @@ busybox: $(OBJECTS)
 	$(STRIP)
 
 busybox.links: Config.h
-	-(cd $(BB_SRC_DIR); ./busybox.mkll ) | sort >$@
+	-$(BB_SRC_DIR)/busybox.mkll $(BB_SRC_DIR)applets.h | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h Makefile
@@ -237,10 +237,10 @@ distclean: clean
 	- cd tests && $(MAKE) distclean
 
 install: busybox busybox.links
-	./install.sh $(PREFIX)
+	$(BB_SRC_DIR)/install.sh $(PREFIX)
 
 install-hardlinks: busybox busybox.links
-	./install.sh $(PREFIX) --hardlinks
+	$(BB_SRC_DIR)/install.sh $(PREFIX) --hardlinks
 
 debug_pristine:
 	@ echo VPATH=\"$(VPATH)\"
