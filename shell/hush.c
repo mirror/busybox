@@ -106,7 +106,7 @@
 /* #include <dmalloc.h> */
 /* #define DEBUG_SHELL */
 
-#ifdef BB_VER
+#if 1
 #include "busybox.h"
 #include "cmdedit.h"
 #else
