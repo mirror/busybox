@@ -129,6 +129,8 @@ static inline void sem_down(int semid)
 		perror_msg_and_die("semop[SMwdn]");
 }
 
+#define MAXLINE         1024            /* maximum line length */
+
 
 void ipcsyslog_cleanup(void){
 	printf("Exiting Syslogd!\n");
@@ -398,13 +400,9 @@ static void domark(int sig)
 /* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
  * enabled, we otherwise get a "storage size isn't constant error. */
 #define BUFSIZE 1023
-static int serveConnection (int conn)
+static int serveConnection (char* tmpbuf, int n_read)
 {
-	RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZE + 1);
-	int    n_read;
 	char *p = tmpbuf;
-
-	n_read = read (conn, tmpbuf, BUFSIZE );
 
 	while (p < tmpbuf + n_read) {
 
@@ -414,8 +412,6 @@ static int serveConnection (int conn)
 		int           gotpri = 0;
 
 		char *q = line;
-
-		tmpbuf[ n_read - 1 ] = '\0';
 
 		while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
 			if ((c == '<') && !gotpri && isdigit(p[1])) {
@@ -443,7 +439,6 @@ static int serveConnection (int conn)
 		/* Now log it */
 		logMessage (pri, line);
 	}
-	RELEASE_CONFIG_BUFFER (tmpbuf);
 	return n_read;
 }
 
@@ -555,21 +550,19 @@ static void doSyslogd (void)
 				--n_ready;
 
 				if (fd == sock_fd) {
-					int   conn;
+					int   i;
+					RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZE + 1);
 
-					//printf("New Connection request.\n");
-					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
-						perror_msg_and_die ("accept error");
+					memset(tmpbuf, '\0', BUFSIZE+1);
+					if ( (i = recv(fd, tmpbuf, MAXLINE - 2, 0)) > 0) {
+						if ( serveConnection(tmpbuf, i) <= 0 ) {
+							close (fd);
+							FD_CLR(fd, &fds);
+						}
+					} else {
+						perror_msg_and_die ("UNIX socket error");
 					}
-
-					FD_SET(conn, &fds);
-					//printf("conn: %i, set_size: %i\n",conn,FD_SETSIZE);
-			  	} else {
-					//printf("Serving connection: %i\n",fd);
-					  if ( serveConnection(fd) <= 0 ) {
-					    close (fd);
-					    FD_CLR(fd, &fds);
-            }
+					RELEASE_CONFIG_BUFFER (tmpbuf);
 				} /* fd == sock_fd */
 			}/* FD_ISSET() */
 		}/* for */
