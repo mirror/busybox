@@ -36,21 +36,21 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # your compiler is broken, you should not need to specify TARGET_ARCH
 CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
 CC             = $(CROSS)gcc
-AR             := $(CROSS)ar
-AS             := $(CROSS)as
-LD             := $(CROSS)ld
-NM             := $(CROSS)nm
-STRIP          := $(CROSS)strip
-CPP            := $(CC) -E
-MAKEFILES      := $(TOPDIR).config
+AR             = $(CROSS)ar
+AS             = $(CROSS)as
+LD             = $(CROSS)ld
+NM             = $(CROSS)nm
+STRIP          = $(CROSS)strip
+CPP            = $(CC) -E
+MAKEFILES      = $(TOPDIR).config
 
 # What OS are you compiling busybox for?  This allows you to include
 # OS specific things, syscall overrides, etc.
-TARGET_OS:=linux
+TARGET_OS=linux
 
 # Select the compiler needed to build binaries for your development system
-HOSTCC    := gcc
-HOSTCFLAGS:= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
+HOSTCC    = gcc
+HOSTCFLAGS= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
@@ -60,7 +60,7 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 # If you have a "pristine" source directory, point BB_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
 # <busybox@busybox.net> if you do or don't like it so far.
-BB_SRC_DIR:=
+BB_SRC_DIR=
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -80,9 +80,9 @@ BB_SRC_DIR:=
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
-WARNINGS:=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS:=-I$(TOPDIR)include
-ARFLAGS:=-r
+WARNINGS=-Wall -Wstrict-prototypes -Wshadow
+CFLAGS=-I$(TOPDIR)include
+ARFLAGS=-r
 
 #--------------------------------------------------------
 export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
@@ -116,8 +116,8 @@ check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; 
 # for OPTIMIZATION...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION:=
-OPTIMIZATION+=${call check_gcc,-Os,-O2}
+OPTIMIZATION=
+OPTIMIZATION=${call check_gcc,-Os,-O2}
 
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
@@ -129,7 +129,7 @@ ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
 endif
-OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
+OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer
 
 #
 #--------------------------------------------------------
