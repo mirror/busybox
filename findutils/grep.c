@@ -155,7 +155,7 @@ static void grep_file(FILE *file)
 				if(lines_before) {
 					if(before_buf[curpos])
 						free(before_buf[curpos]);
-					before_buf[curpos] = strdup(line);
+					before_buf[curpos] = xstrdup(line);
 					curpos = (curpos + 1) % lines_before;
 				}
 			}
@@ -306,13 +306,13 @@ extern int grep_main(int argc, char **argv)
 				lines_before = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
 					error_msg_and_die("invalid context length argument");
-				before_buf = (char **)calloc(lines_before, sizeof(char *));
+				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
 				break;
 			case 'C':
 				lines_after = lines_before = strtoul(optarg, &junk, 10);
 				if(*junk != '\0')
 					error_msg_and_die("invalid context length argument");
-				before_buf = (char **)calloc(lines_before, sizeof(char *));
+				before_buf = (char **)xcalloc(lines_before, sizeof(char *));
 				break;
 #endif /* CONFIG_FEATURE_GREP_CONTEXT */
 			default:
