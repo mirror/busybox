@@ -699,12 +699,12 @@ static int split_3(char *s,
 
   s[i++] = '\0';
 
-  if (s[i] != ' ' && s[i++] != '*')
+  if (s[i] != ' ' && s[i] != '*')
     return FALSE;
 
   /* All characters between the type indicator and end of line are
      significant -- that includes leading and trailing white space.  */
-  *w = &s[i];
+  *w = &s[++i];
 
   if (escaped_filename) {
     /* Translate each `\n' string in the file name to a NEWLINE,
