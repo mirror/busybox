@@ -226,5 +226,5 @@ typedef struct ar_headers_s {
 	struct ar_headers_s *next;
 } ar_headers_t;
 extern ar_headers_t get_ar_headers(int srcFd);
-
+extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename);
 #endif /* __LIBBB_H__ */

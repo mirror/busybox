@@ -31,7 +31,7 @@
 #endif
 
 /* from dpkg-deb.c */
-extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename);
+
 static const int dpkg_deb_contents = 1;
 static const int dpkg_deb_control = 2;
 //	const int dpkg_deb_info = 4;

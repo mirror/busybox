@@ -14,113 +14,18 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/*
- *	Merge this applet into dpkg when dpkg becomes more stable
- */
-
-#include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
+#include <getopt.h>
 #include "busybox.h"
-
-/* From gunzip.c */
-extern int gz_open(FILE *compressed_file, int *pid);
-extern void gz_close(int gunzip_pid);
-
-extern int tar_unzip_init(int tarFd);
-extern int readTarFile(int tarFd, int extractFlag, int listFlag, 
-	int tostdoutFlag, int verboseFlag, char** extractList, char** excludeList);
-
-static const int dpkg_deb_contents = 1;
-static const int dpkg_deb_control = 2;
-//	const int dpkg_deb_info = 4;
-static const int dpkg_deb_extract = 8;
-static const int dpkg_deb_verbose_extract = 16;
-static const int dpkg_deb_list = 32;
-
-extern int deb_extract(int optflags, const char *dir_name, const char *deb_filename)
-{
-	char **extract_list = NULL;
-	ar_headers_t *ar_headers = NULL;
-	char ar_filename[15];
-	int extract_flag = FALSE;
-	int list_flag = FALSE;
-	int verbose_flag = FALSE;
-	int extract_to_stdout = FALSE;
-	int srcFd = 0;
-	int status;
-	pid_t pid;
-	FILE *comp_file = NULL;
-
-	if (dpkg_deb_contents == (dpkg_deb_contents & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		verbose_flag = TRUE;
-		list_flag = TRUE;
-	}
-	if (dpkg_deb_list == (dpkg_deb_list & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		list_flag = TRUE;
-	}
-	if (dpkg_deb_control == (dpkg_deb_control & optflags)) {
-		strcpy(ar_filename, "control.tar.gz");	
-		extract_flag = TRUE;
-	}
-	if (dpkg_deb_extract == (dpkg_deb_extract & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		extract_flag = TRUE;
-	}
-	if (dpkg_deb_verbose_extract == (dpkg_deb_verbose_extract & optflags)) {
-		strcpy(ar_filename, "data.tar.gz");
-		extract_flag = TRUE;
-		list_flag = TRUE;
-	}
-
-	ar_headers = (ar_headers_t *) xmalloc(sizeof(ar_headers_t));	
-	srcFd = open(deb_filename, O_RDONLY);
-	
-	*ar_headers = get_ar_headers(srcFd);
-	if (ar_headers->next == NULL) {
-		error_msg_and_die("Couldnt find %s in %s", ar_filename, deb_filename);
-	}
-
-	while (ar_headers->next != NULL) {
-		if (strcmp(ar_headers->name, ar_filename) == 0) {
-			break;
-		}
-		ar_headers = ar_headers->next;
-	}
-	lseek(srcFd, ar_headers->offset, SEEK_SET);
-	/* Uncompress the file */
-	comp_file = fdopen(srcFd, "r");
-	if ((srcFd = gz_open(comp_file, &pid)) == EXIT_FAILURE) {
-	    error_msg_and_die("Couldnt unzip file");
-	}
-	if ( dir_name != NULL) { 
-		if (is_directory(dir_name, TRUE, NULL)==FALSE) {
-			mkdir(dir_name, 0755);
-		}
-		if (chdir(dir_name)==-1) {
-			error_msg_and_die("Cannot change to dir %s", dir_name);
-		}
-	}
-	status = readTarFile(srcFd, extract_flag, list_flag, 
-		extract_to_stdout, verbose_flag, NULL, extract_list);
-
-	/* we are deliberately terminating the child so we can safely ignore this */
-	signal(SIGTERM, SIG_IGN);
-	gz_close(pid);
-	close(srcFd);
-	fclose(comp_file);
-
-	return status;
-}
 
 extern int dpkg_deb_main(int argc, char **argv)
 {
+	const int dpkg_deb_contents = 1;
+	const int dpkg_deb_control = 2;
+//	const int dpkg_deb_info = 4;
+	const int dpkg_deb_extract = 8;
+	const int dpkg_deb_verbose_extract = 16;
+	const int dpkg_deb_list = 32;
 	char *target_dir = NULL;
 	int opt = 0;
 	int optflag = 0;	
