@@ -32,8 +32,6 @@
 extern int watch_main(int argc, char **argv)
 {
 	const char date_argv[2][10] = { "date", "" };
-	const char clrscr[] =
-		"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
 	const int header_len = 40;
 	char header[header_len + 1];
 	int period = 2;
@@ -79,7 +77,7 @@ extern int watch_main(int argc, char **argv)
 	old_stdout = dup(1);
 
 	while (1) {
-		printf("%s%s", clrscr, header);
+		printf("\033[H\033[J%s", header);
 		date_main(1, (char **) date_argv);
 		printf("\n");
 
