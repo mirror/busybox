@@ -96,6 +96,9 @@ struct sed_cmd {
 
 	/* the command */
 	char cmd; /* p,d,s (add more at your leisure :-) */
+
+	/* inversion flag */
+	int invert;         /* the '!' after the address */ 
 };
 
 /* globals */
@@ -405,6 +408,17 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	while (isspace(cmdstr[idx]))
 		idx++;
 
+	/* there my be the inversion flag between part2 and part3 */
+	sed_cmd->invert = 0;
+	if (cmdstr[idx] == '!') {
+		sed_cmd->invert = 1;
+		idx++;
+
+		/* skip whitespace before the command */
+		while (isspace(cmdstr[idx]))
+			idx++;
+	}
+
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
 		error_msg_and_die("missing command");
@@ -642,12 +656,12 @@ static void process_file(FILE *file)
 		/* for every line, go through all the commands */
 		for (i = 0; i < ncmds; i++) {
 			struct sed_cmd *sed_cmd = &sed_cmds[i];
-
+			int deleted = 0;
 
 			/*
 			 * entry point into sedding...
 			 */
-			if (
+			int matched = (
 					/* no range necessary */
 					(sed_cmd->beg_line == 0 && sed_cmd->end_line == 0 &&
 					 sed_cmd->beg_match == NULL &&
@@ -658,8 +672,9 @@ static void process_file(FILE *file)
 					(sed_cmd->beg_match && (regexec(sed_cmd->beg_match, line, 0, NULL, 0) == 0)) ||
 					/* we are currently within the beginning & ending address range */
 					still_in_range
-			   ) {
-				int deleted = 0;
+			   );
+
+			if (sed_cmd->invert ^ matched) {
 
 				/*
 				 * actual sedding
@@ -746,13 +761,15 @@ static void process_file(FILE *file)
 								  /* else if we couldn't open the output file,
 								   * no biggie, just don't print anything */
 								  altered++;
-							  }
+						  }
 							  break;
 				}
+			}
 
-				/*
-				 * exit point from sedding...
-				 */
+			/*
+			 * exit point from sedding...
+			 */
+			if (matched) {
 				if (
 					/* this is a single-address command or... */
 					(sed_cmd->end_line == 0 && sed_cmd->end_match == NULL) || (
@@ -774,10 +791,10 @@ static void process_file(FILE *file)
 				else {
 					still_in_range = 1;
 				}
-
-				if (deleted)
-					break;
 			}
+
+			if (deleted)
+			        break;
 		}
 
 		/* we will print the line unless we were told to be quiet or if the
