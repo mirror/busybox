@@ -26,6 +26,8 @@
 #include <sys/syscall.h>
 #include "libbb.h"
 
+/* uClibc always supplies (possibly ENOSYS) versions of these functions. */
+#ifndef __UCLIBC__
 
 /* These syscalls are not included in very old glibc versions */
 int delete_module(const char *name)
@@ -100,6 +102,8 @@ unsigned long create_module(const char *name, size_t size)
 #endif
 }
 
+
+#endif /* __UCLIBC__ */
 
 /* END CODE */
 /*
