@@ -17,7 +17,7 @@ config CONFIG_CAL
 	bool "cal"
 	default n
 	help
-	 cal is used to display a montly calender.
+	  cal is used to display a montly calender.
 
 config CONFIG_CAT
 	bool "cat"
@@ -30,47 +30,47 @@ config CONFIG_CHGRP
 	bool "chgrp"
 	default n
 	help
-	 chgrp is used to change the group owership of files.
+	  chgrp is used to change the group owership of files.
 
 config CONFIG_CHMOD
 	bool "chmod"
 	default n
 	help
-	 chmod is used to change the access permission of files.
+	  chmod is used to change the access permission of files.
 
 config CONFIG_CHOWN
 	bool "chown"
 	default n
 	help
-	 chown is used too change the user and/or group ownership
-	 of files.
+	  chown is used too change the user and/or group ownership
+	  of files.
 
 config CONFIG_CHROOT
 	bool "chroot"
 	default n
 	help
-	 chroot is used to change the root directory and run a command.
-	 The default command is `/bin/sh'.
+	  chroot is used to change the root directory and run a command.
+	  The default command is `/bin/sh'.
 
 config CONFIG_CMP
 	bool "cmp"
 	default n
 	help
-	 cmp is used to compare two files and returns the result
-	 to standard output.
+	  cmp is used to compare two files and returns the result
+	  to standard output.
 
 config CONFIG_CP
 	bool "cp"
 	default n
 	help
-	 cp is used to copy files and directories.
+	  cp is used to copy files and directories.
 
 config CONFIG_CUT
 	bool "cut"
 	default n
 	help
-	 cut is used to print selected parts of lines from
-	 each file to stdout.
+	  cut is used to print selected parts of lines from
+	  each file to stdout.
 
 if CONFIG_WATCH
 	config CONFIG_DATE
@@ -99,30 +99,30 @@ config CONFIG_DD
 	bool "dd"
 	default n
 	help
-	 dd copies a file (from standard input to standard output,
-	 by default) using specific input and output blocksizes,
-	 while optionally performing conversions on it. 
+	  dd copies a file (from standard input to standard output,
+	  by default) using specific input and output blocksizes,
+	  while optionally performing conversions on it. 
 
 config CONFIG_DF
 	bool "df"
 	default n
 	help
-	 df reports the amount of disk space used and available
-	 on filesystems.
+	  df reports the amount of disk space used and available
+	  on filesystems.
 
 config CONFIG_DIRNAME
 	bool "dirname"
 	default n
 	help
-	 dirname is used to strip a non directory suffix from
-	 a file name.
+	  dirname is used to strip a non directory suffix from
+	  a file name.
 
 config CONFIG_DOS2UNIX
 	bool "dos2unix/unix2dos"
 	default n
 	help
-	 dos2unix is uses to convert a text file from DOS format to
-	 UNIX format, and vice versa.
+	  dos2unix is uses to convert a text file from DOS format to
+	  UNIX format, and vice versa.
 
 config CONFIG_UNIX2DOS
 	bool
@@ -133,43 +133,43 @@ config CONFIG_DU
 	bool "du (default blocksize of 512 bytes)"
 	default n
 	help
-	 du is used to report the amount of disk space used
-	 for specified files.
+	  du is used to report the amount of disk space used
+	  for specified files.
 
 config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 	bool "  Use a default blocksize of 1024 bytes (1K)"
 	default y
 	depends on CONFIG_DU
 	help
-	 Use a blocksize of (1K) instead of the default 512b.
+	  Use a blocksize of (1K) instead of the default 512b.
 
 config CONFIG_ECHO
 	bool "echo (basic SUSv3 version taking no options"
 	default n
 	help
-	 echo is used to print a specified string to stdout.
+	  echo is used to print a specified string to stdout.
 
 config CONFIG_FEATURE_FANCY_ECHO
 	bool "  Enable echo options (-n and -e)"
 	default y
 	depends on CONFIG_ECHO
 	help
-	 This adds options (-n and -e) to echo. 
+	  This adds options (-n and -e) to echo. 
 
 config CONFIG_ENV
 	bool "env"
 	default n
 	help
-	 env is used to set an environment variable and run
-	 a command, without options it displays the current
-	 environment.
+	  env is used to set an environment variable and run
+	  a command, without options it displays the current
+	  environment.
 
 config CONFIG_EXPR
 	bool "expr"
 	default n
 	help
-	 expr is used to calculate numbers and print the result
-	 to standard output.
+	  expr is used to calculate numbers and print the result
+	  to standard output.
 
 if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
 	config CONFIG_FALSE
@@ -189,158 +189,158 @@ config CONFIG_FOLD
 	bool "fold"
 	default n
 	help
-	 Wrap text to fit a specific width.
+	  Wrap text to fit a specific width.
 
 config CONFIG_HEAD
 	bool "head"
 	default n
 	help
-	 head is used to print the first specified number of lines
-	 from files.
+	  head is used to print the first specified number of lines
+	  from files.
 
 config CONFIG_FEATURE_FANCY_HEAD
 	bool "  Enable head options (-c, -q, and -v)"
 	default n
 	depends on CONFIG_HEAD
 	help
-	 This enables the head options (-c, -q, and -v).
+	  This enables the head options (-c, -q, and -v).
 
 config CONFIG_HOSTID
 	bool "hostid"
 	default n
 	help
-	 hostid prints the numeric identifier (in hexadecimal) for
-	 the current host.
+	  hostid prints the numeric identifier (in hexadecimal) for
+	  the current host.
 
 config CONFIG_ID
 	bool "id"
 	default n
 	help
-	 id displays the current user and group ID names.
+	  id displays the current user and group ID names.
 
 config CONFIG_LENGTH
 	bool "length"
 	default n
 	help
-	 length is used to print out the length of a specified string.
+	  length is used to print out the length of a specified string.
 
 config CONFIG_LN
 	bool "ln"
 	default n
 	help
-	 ln is used to create hard or soft links between files.
+	  ln is used to create hard or soft links between files.
 
 config CONFIG_LOGNAME
 	bool "logname"
 	default n
 	help
-	 logname is used to print the current user's login name.
+	  logname is used to print the current user's login name.
 
 config CONFIG_LS
 	bool "ls"
 	default n
 	help
-	 ls is used to list the contents of directories.
+	  ls is used to list the contents of directories.
 
 config CONFIG_FEATURE_LS_FILETYPES
 	bool "  Enable filetyping options (-p and -F)"
 	default y
 	depends on CONFIG_LS
 	help
-	 Enable the ls options (-p and -F).
+	  Enable the ls options (-p and -F).
 
 config CONFIG_FEATURE_LS_FOLLOWLINKS
 	bool "  Enable symlinks dereferencing (-L)"
 	default y
 	depends on CONFIG_LS
 	help
-	 Enable the ls option (-L).
+	  Enable the ls option (-L).
 
 config CONFIG_FEATURE_LS_RECURSIVE
 	bool "  Enable recursion (-R)"
 	default y
 	depends on CONFIG_LS
 	help
-	 Enable the ls option (-R).
+	  Enable the ls option (-R).
 
 config CONFIG_FEATURE_LS_SORTFILES
 	bool "  Sort the file names"
 	default y
 	depends on CONFIG_LS
 	help
-	 Allow ls to sort file names alphabetically.
+	  Allow ls to sort file names alphabetically.
 
 config CONFIG_FEATURE_LS_TIMESTAMPS
 	bool "  Show file timestamps"
 	default y
 	depends on CONFIG_LS
 	help
-	 Allow ls to display timestamps for files.
+	  Allow ls to display timestamps for files.
 
 config CONFIG_FEATURE_LS_USERNAME
 	bool "  Show username/groupnames"
 	default y
 	depends on CONFIG_LS
 	help
-	 Allow ls to display username/groupname for files.
+	  Allow ls to display username/groupname for files.
 
 config CONFIG_FEATURE_LS_COLOR
 	bool "  Use color to identify file types"
 	default y
 	depends on CONFIG_LS
 	help
-	 Allow ls to use color when displaying files.
+	  Allow ls to use color when displaying files.
 
 config CONFIG_MD5SUM
 	bool "md5sum"
 	default n
 	help
-	 md5sum is used to print or check MD5 checksums.
+	  md5sum is used to print or check MD5 checksums.
 
 config CONFIG_MKDIR
 	bool "mkdir"
 	default n
 	help
-	 mkdir is used to create directories with the specified names.
+	  mkdir is used to create directories with the specified names.
 
 config CONFIG_MKFIFO
 	bool "mkfifo"
 	default n
 	help
-	 mkfifo is used to create FIFOs (named pipes).
-	 The `mknod' program can also create FIFOs.
+	  mkfifo is used to create FIFOs (named pipes).
+	  The `mknod' program can also create FIFOs.
 
 config CONFIG_MKNOD
 	bool "mknod"
 	default n
 	help
-	 mknod is used to create FIFOs or block/character special
-	 files with the specified names.
+	  mknod is used to create FIFOs or block/character special
+	  files with the specified names.
 
 config CONFIG_MV
 	bool "mv"
 	default n
 	help
-	 mv is used to move or rename files or directories.
+	  mv is used to move or rename files or directories.
 
 config CONFIG_OD
 	bool "od"
 	default n
 	help
-	 od is used to dump binary files in octal and other formats.
+	  od is used to dump binary files in octal and other formats.
 
 config CONFIG_PRINTF
 	bool "printf"
 	default n
 	help
-	 printf is used to format and print specified strings.
-	 It's similar to `echo' except it has more options.
+	  printf is used to format and print specified strings.
+	  It's similar to `echo' except it has more options.
 
 config CONFIG_PWD
 	bool "pwd"
 	default n
 	help
-	 pwd is used to print the current directory.
+	  pwd is used to print the current directory.
 
 config CONFIG_REALPATH
 	bool "realpath"
@@ -353,13 +353,13 @@ config CONFIG_RM
 	bool "rm"
 	default n
 	help
-	 rm is used to remove files or directories.
+	  rm is used to remove files or directories.
 
 config CONFIG_RMDIR
 	bool "rmdir"
 	default n
 	help
-	 rmdir is used to remove empty directories.
+	  rmdir is used to remove empty directories.
 
 config CONFIG_SHA1SUM
 	bool "sha1sum"
@@ -378,76 +378,76 @@ config CONFIG_SLEEP
 	bool "sleep (single integer arg with no suffix)"
 	default n
 	help
-	 sleep is used to pause for a specified number of seconds,
+	  sleep is used to pause for a specified number of seconds,
 
 config CONFIG_FEATURE_FANCY_SLEEP
 	bool "  Enable multiple integer args and optional time suffixes"
 	default n
 	depends on CONFIG_SLEEP
 	help
-	 Allow sleep to pause for specified minutes, hours, and days.
+	  Allow sleep to pause for specified minutes, hours, and days.
 
 config CONFIG_SORT
 	bool "sort"
 	default n
 	help
-	 sort is used to sort lines of text in specified files.
+	  sort is used to sort lines of text in specified files.
 
 config CONFIG_FEATURE_SORT_REVERSE
 	bool "  Enable reverse sort"
 	default y
 	depends on CONFIG_SORT
 	help
-	 Enable the `-r' option that allows sort to sort lines of
-	 text in reverse.
+	  Enable the `-r' option that allows sort to sort lines of
+	  text in reverse.
 
 config CONFIG_FEATURE_SORT_UNIQUE
 	bool "  Enable unique sort"
 	default y
 	depends on CONFIG_SORT
 	help
-	 Enable the `-u' option that allows sort to only sort lines
-	 that are uniq. 
+	  Enable the `-u' option that allows sort to only sort lines
+	  that are uniq. 
 
 config CONFIG_STTY
 	bool "stty"
 	default n
 	help
-	 stty is used to change and print terminal line settings.
+	  stty is used to change and print terminal line settings.
 
 config CONFIG_SYNC
 	bool "sync"
 	default n
 	help
-	 sync is used to flush filesystem buffers.
+	  sync is used to flush filesystem buffers.
 
 config CONFIG_TAIL
 	bool "tail"
 	default n
 	help
-	 tail is used to print the last specified number of lines
-	 from files.
+	  tail is used to print the last specified number of lines
+	  from files.
 
 config CONFIG_FEATURE_FANCY_TAIL
 	bool "  Enable extra tail options (-c, -q, -s, and -v)"
 	default y
 	depends on CONFIG_TAIL
 	help
-	 Enable tail options (-c, -q, -s, and -v).
+	  Enable tail options (-c, -q, -s, and -v).
 
 config CONFIG_TEE
 	bool "tee"
 	default n
 	help
-	 tee is used to read from standard input and write
-	 to standard output and files.
+	  tee is used to read from standard input and write
+	  to standard output and files.
 
 config CONFIG_FEATURE_TEE_USE_BLOCK_IO
 	bool "  Enable block i/o (larger/faster) instead of byte i/o."
 	default n
 	depends on CONFIG_TEE
 	help
-	 Enable this option for a faster tee, at expense of size.
+	  Enable this option for a faster tee, at expense of size.
 
 if CONFIG_ASH || CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
 	config CONFIG_TEST
@@ -469,15 +469,15 @@ config CONFIG_TOUCH
 	bool "touch"
 	default n
 	help
-	 touch is used to create or change the access and/or
-	 modification timestamp of specified files.
+	  touch is used to create or change the access and/or
+	  modification timestamp of specified files.
 
 config CONFIG_TR
 	bool "tr"
 	default n
 	help
-	 tr is used to squeeze, and/or delete characters from standard
-	 input, writing to standard output.
+	  tr is used to squeeze, and/or delete characters from standard
+	  input, writing to standard output.
 
 if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
 	config CONFIG_TRUE
@@ -498,72 +498,72 @@ config CONFIG_TTY
 	bool "tty"
 	default n
 	help
-	 tty is used to print the name of the current terminal to
-	 standard output.
+	  tty is used to print the name of the current terminal to
+	  standard output.
 
 config CONFIG_UNAME
 	bool "uname"
 	default n
 	help
-	 uname is used to print system information.
+	  uname is used to print system information.
 
 config CONFIG_UNIQ
 	bool "uniq"
 	default n
 	help
-	 uniq is used to remove duplicate lines from a sorted file.
+	  uniq is used to remove duplicate lines from a sorted file.
 
 config CONFIG_USLEEP
 	bool "usleep"
 	default n
 	help
-	 usleep is used to pause for a specified number of microseconds.
+	  usleep is used to pause for a specified number of microseconds.
 
 config CONFIG_UUDECODE
 	bool "uudecode"
 	default n
 	help
-	 uudecode is used to decode a uuencoded file.
+	  uudecode is used to decode a uuencoded file.
 
 config CONFIG_UUENCODE
 	bool "uuencode"
 	default n
 	help
-	 uuencode is used to uuencode a file.
+	  uuencode is used to uuencode a file.
 
 config CONFIG_WATCH
 	bool "watch"
 	default n
 	help
-	 watch is used to execute a program periodically, showing
-	 output to the screen.
+	  watch is used to execute a program periodically, showing
+	  output to the screen.
 
 config CONFIG_WC
 	bool "wc"
 	default n
 	help
-	 wc is used to print the number of bytes, words, and lines,
-	 in specified files.
+	  wc is used to print the number of bytes, words, and lines,
+	  in specified files.
 
 config CONFIG_WHO
 	bool "who"
 	default n
 	help
-	 who is used to show who is logged on.
+	  who is used to show who is logged on.
 
 config CONFIG_WHOAMI
 	bool "whoami"
 	default n
 	help
-	 whoami is used to print the username of the current
-	 user id (same as id -un).
+	  whoami is used to print the username of the current
+	  user id (same as id -un).
 
 config CONFIG_YES
 	bool "yes"
 	default n
 	help
-	 yes is used to repeatedly output a specific string, or
-	 the default string `y'.
+	  yes is used to repeatedly output a specific string, or
+	  the default string `y'.
 
 comment "Common options for cp and mv"
     depends on CONFIG_CP || CONFIG_MV
@@ -573,7 +573,7 @@ config CONFIG_FEATURE_PRESERVE_HARDLINKS
 	default n
 	depends on CONFIG_CP || CONFIG_MV
 	help
-	 Allow cp and mv to preserve hard links.
+	  Allow cp and mv to preserve hard links.
 
 comment "Common options for ls and more"
     depends on CONFIG_LS || CONFIG_MORE
@@ -583,7 +583,7 @@ config CONFIG_FEATURE_AUTOWIDTH
 	default n
 	depends on CONFIG_LS || CONFIG_MORE
 	help
-	 Allow ls and more to calculate terminal and column widths.
+	  Allow ls and more to calculate terminal and column widths.
 
 comment "Common options for df, du, ls"
     depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
@@ -593,6 +593,6 @@ config CONFIG_FEATURE_HUMAN_READABLE
 	default n
 	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
 	help
-	 Allow df, du, and ls to have human readable output.
+	  Allow df, du, and ls to have human readable output.
 
 endmenu

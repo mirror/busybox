@@ -9,14 +9,16 @@ config CONFIG_AWK
 	bool "awk"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Awk is used as a pattern scanning and processing language.  This is
+	  the BusyBox implementation of that programming language.
 
 config CONFIG_FEATURE_AWK_MATH
 	bool "  Enable math functions (requires libm)"
 	default y
 	depends on CONFIG_AWK
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable math functions of the Awk programming language.
+	  NOTE: This will require libm to be present for linking.
 
 config CONFIG_PATCH
 	bool "patch"
@@ -89,7 +91,8 @@ config CONFIG_FEATURE_VI_READONLY
 	default y
 	depends on CONFIG_VI
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable the read-only command line option, which allows the user to
+	  open a file in read-only mode.
 
 config CONFIG_FEATURE_VI_SETOPTS
 	bool "  Enable set-able options, ai ic showmatch"

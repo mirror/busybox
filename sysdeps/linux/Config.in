@@ -80,11 +80,11 @@ config CONFIG_FEATURE_CLEAN_UP
 	bool "Clean up all memory before exiting (usually not needed)"
 	default n
 	help
-	As a size optimization, busybox by default does not cleanup memory
-	that is dynamically allocated or close files before exiting. This
-	saves space and is usually not needed since the OS will clean up for
-	us.  Don't enable this unless you have a really good reason to clean
-	things up manually.
+	  As a size optimization, busybox by default does not cleanup memory
+	  that is dynamically allocated or close files before exiting. This
+	  saves space and is usually not needed since the OS will clean up for
+	  us.  Don't enable this unless you have a really good reason to clean
+	  things up manually.
 
 config CONFIG_FEATURE_SUID
 	bool "Support for SUID/SGID handling"

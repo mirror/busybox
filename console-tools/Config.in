@@ -9,66 +9,66 @@ config CONFIG_CHVT
 	bool "chvt"
 	default n
 	help
-	 This program is used to change to another terminal.
-	 Example: chvt 4 (change to terminal /dev/tty4)
+	  This program is used to change to another terminal.
+	  Example: chvt 4 (change to terminal /dev/tty4)
 
 config CONFIG_CLEAR
 	bool "clear"
 	default n
 	help
-	 This program clears the terminal screen.
+	  This program clears the terminal screen.
 
 config CONFIG_DEALLOCVT
 	bool "deallocvt"
 	default n
 	help
-	 This program deallocates unused virtual consoles.
+	  This program deallocates unused virtual consoles.
 
 config CONFIG_DUMPKMAP
 	bool "dumpkmap"
 	default n
 	help
-	 This program dumps the kernel's keyboard translation table to
-	 stdout, in binary format. You can then use loadkmap to load it.
+	  This program dumps the kernel's keyboard translation table to
+	  stdout, in binary format. You can then use loadkmap to load it.
 
 config CONFIG_LOADACM
 	bool "loadacm"
 	default n
 	help
-	 This program loads an acm from standard input.
+	  This program loads an acm from standard input.
 
 config CONFIG_LOADFONT
 	bool "loadfont"
 	default n
 	help
-	 This program loads a console font from standard input.
+	  This program loads a console font from standard input.
 
 config CONFIG_LOADKMAP
 	bool "loadkmap"
 	default n
 	help
-	 This program loads a keyboard translation table from
-	 standard input.
+	  This program loads a keyboard translation table from
+	  standard input.
 
 config CONFIG_OPENVT
 	bool "openvt"
 	default n
 	help
-	 This program is used to start a command on an unused
-	 virtual terminal.
+	  This program is used to start a command on an unused
+	  virtual terminal.
 
 config CONFIG_RESET
 	bool "reset"
 	default n
 	help
-	 This program is used to reset the terminal screen, if it
-	 gets messed up.
+	  This program is used to reset the terminal screen, if it
+	  gets messed up.
 
 config CONFIG_SETKEYCODES
 	bool "setkeycodes"
 	default n
 	help
-	 This program loads entries into the kernel's scancode-to-keycode
-	 map, allowing unusual keyboards to generate usable keycodes.
+	  This program loads entries into the kernel's scancode-to-keycode
+	  map, allowing unusual keyboards to generate usable keycodes.
 
 endmenu

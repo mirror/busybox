@@ -9,25 +9,29 @@ config CONFIG_ADJTIMEX
 	bool "adjtimex"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Adjtimex reads and optionally sets adjustment parameters for
+	  the Linux clock adjustment algorithm.
 
 config CONFIG_CROND
 	bool "crond"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Crond is a background daemon that parses individual crontab
+	  files and executes commands on behalf of the users in question.
 
 config CONFIG_CRONTAB
 	bool "crontab"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Crontab manipulates the crontab for a particular user.  Only
+	  the superuser may specify a different user and/or crontab directory.
 
 config CONFIG_DC
 	bool "dc"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Dc is a reverse-polish desk calculator which supports unlimited
+	  precision arithmetic.
 
 config CONFIG_DUTMP
 	bool "dutmp"
@@ -45,19 +49,24 @@ config CONFIG_MT
 	bool "mt"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Mt is used to control tape devices.  You can use the mt utility
+	  to advance or rewind a tape past a specified number of archive
+	  files on the tape.
 
 config CONFIG_STRINGS
 	bool "strings"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Strings prints the printable character sequences for each file
+	  specified.
 
 config CONFIG_TIME
 	bool "time"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  The time command runs the specified program with the given arguments.
+	  When the command finishes, time writes a message to standard output
+	  giving timing statistics about this program run.
 
 config CONFIG_UPDATE
 	bool "update"

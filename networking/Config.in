@@ -33,7 +33,7 @@ config CONFIG_HOSTNAME
 	bool "hostname"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Show or set the system's host name
 
 config CONFIG_HTTPD
 	bool "httpd"
@@ -128,14 +128,15 @@ config CONFIG_IFCONFIG
 	bool "ifconfig"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Ifconfig is used to configure the kernel-resident network interfaces.
 
 config CONFIG_FEATURE_IFCONFIG_STATUS
 	bool "  Enable status reporting output (+7k)"
 	default y
 	depends on CONFIG_IFCONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  If ifconfig is called with no arguments it will display the status
+	  of the currently active interfaces.
 
 config CONFIG_FEATURE_IFCONFIG_SLIP
 	bool "  Enable slip-specific options \"keepalive\" and \"outfill\""
@@ -149,14 +150,17 @@ config CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	default n
 	depends on CONFIG_IFCONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow the start address for shared memory, start address for I/O,
+	  and/or the interrupt line used by the specified device.
 
 config CONFIG_FEATURE_IFCONFIG_HW
 	bool "  Enable option \"hw\" (ether only)"
 	default y
 	depends on CONFIG_IFCONFIG
 	help
-	  Please submit a patch to add help text for this item.
+	  Set the hardware address of this interface, if the device driver
+	  supports  this  operation.  Currently, we only support the 'ether'
+	  class.
 
 config CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 	bool "  Set the broadcast automatically"
@@ -169,7 +173,7 @@ config CONFIG_IFUPDOWN
 	bool "ifupdown"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Activate or deactivate the specified interface.
 
 config CONFIG_FEATURE_IFUPDOWN_IP
 	bool "  Use ip applet"
@@ -315,7 +319,8 @@ config CONFIG_IPCALC
 	bool "ipcalc"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  ipcalc takes an IP address and netmask and calculates the
+	  resulting broadcast, network, and host range.
 
 config CONFIG_FEATURE_IPCALC_FANCY
 	bool "  Fancy IPCALC, more options, adds 300 bytes"
@@ -366,13 +371,14 @@ config CONFIG_NC
 	bool "nc"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  A simple Unix utility which reads and writes data across network
+	  connections.
 
 config CONFIG_NETSTAT
 	bool "netstat"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Netstat prints information about the Linux networking  subsystem.
 
 config CONFIG_NSLOOKUP
 	bool "nslookup"
@@ -384,7 +390,8 @@ config CONFIG_PING
 	bool "ping"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
+	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
 
 config CONFIG_FEATURE_FANCY_PING
 	bool "  Enable fancy ping output"
@@ -411,7 +418,7 @@ config CONFIG_ROUTE
 	bool "route"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Route displays or manipulates the kernel's IP routing tables.
 
 config CONFIG_TELNET
 	bool "telnet"
@@ -443,28 +450,32 @@ config CONFIG_TFTP
 	bool "tftp"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  This enables the Tirvial File Transfer Protocol client program.  TFTP
+	  is usually used for simple, small transfers such as a root image
+	  for a network-enabled bootloader.
 
 config CONFIG_FEATURE_TFTP_GET
 	bool "  Enable \"get\" command"
 	default y
 	depends on CONFIG_TFTP
 	help
-	  Please submit a patch to add help text for this item.
+	  Add support for the GET command within the TFTP client.  This allows
+	  a client to retreive a file from a TFTP server.
 
 config CONFIG_FEATURE_TFTP_PUT
 	bool "  Enable \"put\" command"
 	default y
 	depends on CONFIG_TFTP
 	help
-	  Please submit a patch to add help text for this item.
+	  Add support for the PUT command within the TFTP client.  This allows
+	  a client to transfer a file to a TFTP server.
 
 config CONFIG_FEATURE_TFTP_BLOCKSIZE
 	bool "  Enable \"blocksize\" command"
 	default n
 	depends on CONFIG_TFTP
 	help
-	  Please submit a patch to add help text for this item.
+	  Allow the client to specify the desired block size for transfers.
 
 config CONFIG_FEATURE_TFTP_DEBUG
 	bool "  Enable debug"
@@ -477,7 +488,7 @@ config CONFIG_TRACEROUTE
 	bool "traceroute"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Utility to trace the route of IP packets
 
 config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	bool "  Enable verbose output"
@@ -503,21 +514,22 @@ config CONFIG_WGET
 	bool "wget"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Wget is a utility for non-interactive download of files from HTTP,
+	  HTTPS, and FTP servers.
 
 config CONFIG_FEATURE_WGET_STATUSBAR
 	bool "  Enable a nifty process meter (+2k)"
 	default y
 	depends on CONFIG_WGET
 	help
-	  Please submit a patch to add help text for this item.
+	  Enable the transfer progress bar for wget transfers.
 
 config CONFIG_FEATURE_WGET_AUTHENTICATION
 	bool "  Enable HTTP authentication"
 	default y
 	depends on CONFIG_WGET
 	help
-	  Please submit a patch to add help text for this item.
+	  Support authenticated HTTP transfers.
 
 source networking/udhcp/Config.in
 

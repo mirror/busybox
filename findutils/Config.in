@@ -86,8 +86,9 @@ config CONFIG_FEATURE_GREP_CONTEXT
 	default y
 	depends on CONFIG_GREP
 	help
-	  Enable match context in results.  This will display a number
-	  of lines preceding and/or trailing matches.
+	  Print the specified number of leading (-B) and/or trailing (-A)
+	  context surrounding our matching lines.
+	  Print the specified number of context lines (-C).
 
 config CONFIG_XARGS
 	bool "xargs"

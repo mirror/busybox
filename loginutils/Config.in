@@ -15,25 +15,25 @@ config CONFIG_ADDGROUP
 	bool "addgroup"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Utility for creating a new group account.
 
 config CONFIG_DELGROUP
 	bool "delgroup"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Utility for deleting a group account.
 
 config CONFIG_ADDUSER
 	bool "adduser"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Utility for creating a new user account.
 
 config CONFIG_DELUSER
 	bool "deluser"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Utility for deleting a user account.
 
 config CONFIG_GETTY
 	bool "getty"
@@ -45,32 +45,39 @@ config CONFIG_LOGIN
 	bool "login"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Login  is  used  when  signing onto a system.
 
 config CONFIG_FEATURE_SECURETTY
 	bool "  Support for /etc/securetty"
 	default y
 	depends on CONFIG_LOGIN
 	help
-	  Please submit a patch to add help text for this item.
+	  The  file  /etc/securetty  is used by (some versions of) login(1).  The
+	  file contains the device names of tty  lines  (one  per  line,  without
+	  leading /dev/) on which root is allowed to login.
 
 config CONFIG_PASSWD
 	bool "passwd"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Passwd  changes  passwords  for user and group accounts.  A normal user
+	  may only change the password for his/her own account,  the  super  user
+	  may  change the password for any account.  The administrator of a group
+	  may change the password for the group.
 
 config CONFIG_SU
 	bool "su"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  su is used to become another user during a login session. Invoked with-
+	  out a username, su defaults to becoming the super user.
 
 config CONFIG_SULOGIN
 	bool "sulogin"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Sulogin is invoked when the system goes into single user
+	  mode (this is done through an entry in inittab).
 
 config CONFIG_VLOCK
 	bool "vlock"

@@ -49,7 +49,7 @@ config CONFIG_HALT
 	default y
 	depends on CONFIG_INIT
 	help
-	  Stop all processes.
+	  'halt' tells the kernel to stop all processes and halt the system.
 
 config CONFIG_POWEROFF
 	bool "poweroff"

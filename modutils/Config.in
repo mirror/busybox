@@ -9,7 +9,7 @@ config CONFIG_INSMOD
 	bool "insmod"
 	default n
 	help
-	insmod is used to load specified modules in the running kernel.
+	  insmod is used to load specified modules in the running kernel.
 
 config CONFIG_FEATURE_OLD_MODULE_INTERFACE
 	bool "  Support older (pre 2.1) Linux kernels"
@@ -96,7 +96,8 @@ config CONFIG_MODPROBE
 	bool "modprobe"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  Handle the loading of modules, and their dependancies on a high 
+	  level.
 
 config CONFIG_RMMOD
 	bool "rmmod"

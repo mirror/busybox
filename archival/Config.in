@@ -120,25 +120,25 @@ config CONFIG_GUNZIP
 	bool "gunzip"
 	default n
 	help
-	 gunzip is used to decompress archives created by gzip.
-	 You can use the `-t' option to test the integrity of
-	 an archive, without decompressing it.
+	  gunzip is used to decompress archives created by gzip.
+	  You can use the `-t' option to test the integrity of
+	  an archive, without decompressing it.
 
 config CONFIG_FEATURE_GUNZIP_UNCOMPRESS
 	bool "  Uncompress support"
 	default n
 	depends on CONFIG_GUNZIP
 	help
-	 If you want gunzip to have the ability to decompress
-	 archives created by the program compress (not much
-	 used anymore).
+	  If you want gunzip to have the ability to decompress
+	  archives created by the program compress (not much
+	  used anymore).
 
 config CONFIG_GZIP
 	bool "gzip"
 	default n
 	help
-	 gzip is used to compress files.
-	 It's probably the most used UNIX compression program.
+	  gzip is used to compress files.
+	  It's probably the most used UNIX compression program.
 
 config CONFIG_RPM2CPIO
 	bool "rpm2cpio"
@@ -156,41 +156,41 @@ config CONFIG_TAR
 	bool "tar"
 	default n
 	help
-	 tar is an archiving program. It's commonly used with gzip to
-	 create compressed archives. It's probably the most used
-	 UNIX archive program.
+	  tar is an archiving program. It's commonly used with gzip to
+	  create compressed archives. It's probably the most used
+	  UNIX archive program.
 
 config CONFIG_FEATURE_TAR_CREATE
 	bool "  Enable archive creation"
 	default y
 	depends on CONFIG_TAR
 	help
-	 If you enable this option you'll be able to create
-	 tar archives using the `-c' option.
+	  If you enable this option you'll be able to create
+	  tar archives using the `-c' option.
 
 config CONFIG_FEATURE_TAR_BZIP2
 	bool "  Enable -j option to handle .tar.bz2 files"
 	default n
 	depends on CONFIG_TAR
 	help
-	 If you enable this option you'll be able to extract
-	 archives compressed with bzip2.
+	  If you enable this option you'll be able to extract
+	  archives compressed with bzip2.
 
 config CONFIG_FEATURE_TAR_EXCLUDE
 	bool "  Enable -X and --exclude options (exclude files)"
 	default n
 	depends on CONFIG_TAR
 	help
-	 If you enable this option you'll be able to specify
-	 a list of files to exclude from an archive.
+	  If you enable this option you'll be able to specify
+	  a list of files to exclude from an archive.
 
 config CONFIG_FEATURE_TAR_GZIP
 	bool "  Enable -z option"
 	default y
 	depends on CONFIG_TAR
 	help
-	 If you enable this option tar will be able to call gzip,
-	 when creating or extracting tar gziped archives.
+	  If you enable this option tar will be able to call gzip,
+	  when creating or extracting tar gziped archives.
 
 config CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	bool "  Enable support for old tar header format"
@@ -206,8 +206,8 @@ config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	default y
 	depends on CONFIG_TAR
 	help
-	 With this option busybox supports GNU long filenames and 
-	 linknames.
+	  With this option busybox supports GNU long filenames and 
+	  linknames.
 
 config CONFIG_FEATURE_UNARCHIVE_TAPE
 	bool "  Enable tape drive support"
@@ -220,17 +220,17 @@ config CONFIG_UNCOMPRESS
 	bool "uncompress"
 	default n
 	help
-	 uncompress is used to decompress archives created by compress.
-	 Not much used anymore, replaced by gzip/gunzip.
+	  uncompress is used to decompress archives created by compress.
+	  Not much used anymore, replaced by gzip/gunzip.
 
 config CONFIG_UNZIP
 	bool "unzip"
 	default n
 	help
-	 unzip will list or extract files from a ZIP archive,
-	 commonly found on DOS/WIN systems. The default behavior
-	 (with no options) is to extract the archive into the
-	 current directory. Use the `-d' option to extract to a
-	 directory of your choice.
+	  unzip will list or extract files from a ZIP archive,
+	  commonly found on DOS/WIN systems. The default behavior
+	  (with no options) is to extract the archive into the
+	  current directory. Use the `-d' option to extract to a
+	  directory of your choice.
 
 endmenu
