@@ -890,7 +890,7 @@ static int expand_arguments(char *command)
 			case '0':case '1':case '2':case '3':case '4':
 			case '5':case '6':case '7':case '8':case '9':
 				{
-					int ixx=*(dst + 1)-48;
+					int ixx=*(dst+1)-48+1;
 					if (ixx >= argc) {
 						var='\0';
 					} else {
