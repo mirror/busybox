@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
+#include <sys/param.h>
 #include "libbb.h"
 
 /* Amount to increase buffer size by in each try. */
