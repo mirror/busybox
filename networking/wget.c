@@ -295,6 +295,8 @@ int wget_main(int argc, char **argv)
 		 *  HTTP session
 		 */
 		do {
+			got_clen = chunked = 0;
+
 			if (! --try)
 				close_delete_and_die("too many redirections");
 
@@ -337,7 +339,8 @@ int wget_main(int argc, char **argv)
 			/*
 		 	* Retrieve HTTP response line and check for "200" status code.
 		 	*/
-read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
+read_response:
+			if (fgets(buf, sizeof(buf), sfp) == NULL)
 				close_delete_and_die("no response from server");
 				
 			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
@@ -816,7 +819,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.55 2003/08/28 21:55:22 bug1 Exp $
+ *	$Id: wget.c,v 1.56 2003/08/28 22:03:19 bug1 Exp $
  */
 
 
