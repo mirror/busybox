@@ -9,9 +9,9 @@ comment 'Login/Password Management Utilities'
 
 bool 'Use internal password and group functions instead of the system functions'	CONFIG_USE_BB_PWD_GRP
 bool 'addgroup'			CONFIG_ADDGROUP
+bool 'delgroup'			CONFIG_DELGROUP
 bool 'adduser'			CONFIG_ADDUSER
 bool 'deluser'			CONFIG_DELUSER
-bool 'delgroup'			CONFIG_DELUSER
 bool 'getty'			CONFIG_GETTY
 bool 'login'			CONFIG_LOGIN
 if [ "$CONFIG_LOGIN" = "y" ]; then
