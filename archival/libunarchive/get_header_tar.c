@@ -120,6 +120,10 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	file_header->device = (dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
 				 strtol(tar.formated.devminor, NULL, 8));
 
+	if (tar.formated.typeflag == '1') {
+		bb_error_msg("WARNING: Converting hard link to symlink");
+		file_header->mode |= S_IFLNK;
+	}
 #if defined CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY || defined CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	/* Fix mode, used by the old format */
 	switch (tar.formated.typeflag) {
@@ -129,7 +133,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFREG;
 		break;
 	case '1':
-		bb_error_msg("Internal hard link not supported");
+//		bb_error_msg("Internal hard link not supported");
 		break;
 	case '2':
 		file_header->mode |= S_IFLNK;
