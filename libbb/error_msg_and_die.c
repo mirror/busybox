@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void error_msg(const char *s, ...)
+extern void error_msg_and_die(const char *s, ...)
 {
 	va_list p;
 
@@ -39,6 +39,7 @@ extern void error_msg(const char *s, ...)
 	verror_msg(s, p);
 	va_end(p);
 	putc('\n', stderr);
+	exit(EXIT_FAILURE);
 }
 
 

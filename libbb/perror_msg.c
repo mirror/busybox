@@ -31,14 +31,13 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void error_msg(const char *s, ...)
+extern void perror_msg(const char *s, ...)
 {
 	va_list p;
 
 	va_start(p, s);
-	verror_msg(s, p);
+	vperror_msg(s, p);
 	va_end(p);
-	putc('\n', stderr);
 }
 
 

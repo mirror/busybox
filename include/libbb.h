@@ -68,10 +68,14 @@ static inline int is_octal(ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 
 extern void show_usage(void) __attribute__ ((noreturn));
-extern void error_msg(const char *s, ...);
-extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
+extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+extern void error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void perror_msg(const char *s, ...);
 extern void perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn));
+
+/* These two are used internally -- you shouldn't need to use them */
+extern void verror_msg(const char *s, va_list p);
+extern void vperror_msg(const char *s, va_list p);
 
 const char *mode_string(int mode);
 const char *time_string(time_t timeVal);

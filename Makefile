@@ -110,6 +110,8 @@ OPTIMIZATION := $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>
 
 WARNINGS = -Wall
 
+ARFLAGS = -r
+
 #
 #--------------------------------------------------------
 # If you're going to do a lot of builds with a non-vanilla configuration,
@@ -233,7 +235,8 @@ mode_string.c parse_mode.c parse_number.c print_file.c process_escape_sequence.c
 my_getgrgid.c my_getpwnamegid.c my_getpwuid.c my_getgrnam.c my_getpwnam.c \
 recursive_action.c safe_read.c safe_strncpy.c syscalls.c \
 syslog_msg_with_name.c time_string.c trim.c vdprintf.c wfopen.c xfuncs.c \
-xregcomp.c 
+xregcomp.c error_msg_and_die.c perror_msg.c perror_msg_and_die.c \
+verror_msg.c vperror_msg.c 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB_DIR)
 

@@ -31,14 +31,13 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void error_msg(const char *s, ...)
-{
-	va_list p;
+extern const char *applet_name;
 
-	va_start(p, s);
-	verror_msg(s, p);
-	va_end(p);
-	putc('\n', stderr);
+extern void verror_msg(const char *s, va_list p)
+{
+	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
+	vfprintf(stderr, s, p);
 }
 
 
