@@ -608,6 +608,10 @@ static void process_file(FILE *file)
 			 * entry point into sedding...
 			 */
 			if (
+					/* no range necessary */
+					(sed_cmds[i].beg_line == 0 && sed_cmds[i].end_line == 0 &&
+					 sed_cmds[i].beg_match == NULL &&
+					 sed_cmds[i].end_match == NULL) ||
 					/* this line number is the first address we're looking for */
 					(sed_cmds[i].beg_line && (sed_cmds[i].beg_line == linenum)) ||
 					/* this line matches our first address regex */
