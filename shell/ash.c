@@ -1446,7 +1446,7 @@ static void defun(char *, union node *);
 static void unsetfunc(const char *);
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
-static int dash_arith(const char *);
+static long dash_arith(const char *);
 #endif
 
 #ifdef CONFIG_ASH_RANDOM_SUPPORT
@@ -12475,7 +12475,7 @@ static int timescmd(int ac, char **av)
 }
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
-static int
+static long
 dash_arith(const char *s)
 {
 	long result;
