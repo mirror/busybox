@@ -239,17 +239,17 @@ unsigned int shell_context;  /* Used in cmdedit.c to reset the
                               * context when someone hits ^C */
 
 /* "globals" within this file */
-static char *ifs=NULL;
+static char *ifs;
 static char map[256];
-static int fake_mode=0;
-static int interactive=0;
-static struct close_me *close_me_head = NULL;
+static int fake_mode;
+static int interactive;
+static struct close_me *close_me_head;
 static const char *cwd;
 static struct jobset *job_list;
-static unsigned int last_bg_pid=0;
+static unsigned int last_bg_pid;
 static char *PS1;
-static char *PS2 = "> ";
-static char **__shell_local_env = 0;
+static char *PS2;
+static char **__shell_local_env;
 
 #define B_CHUNK (100)
 #define B_NOSPAC 1
@@ -2511,7 +2511,16 @@ int shell_main(int argc, char **argv)
 	int opt;
 	FILE *input;
 	struct jobset joblist_end = { NULL, NULL };
+
+	/* (re?) initialize globals */
+	ifs=NULL;
+	fake_mode=0;
+	interactive=0;
+	close_me_head = NULL;
 	job_list = &joblist_end;
+	last_bg_pid=0;
+	PS2 = "> ";
+	__shell_local_env = 0;
 
 	last_return_code=EXIT_SUCCESS;
 
