@@ -58,6 +58,9 @@ Gyepi Sam <gyepi@praxis-sw.com>
 Linus Torvalds <torvalds@transmeta.com>
     mkswap, fsck.minix, mkfs.minix
 
+Mark Whitley <markw@lineo.com>
+    sed remix, bug fixes, style-guide, etc.
+
 Charles P. Wright <cpwright@villagenet.com>
     gzip, mini-netcat(nc)
 

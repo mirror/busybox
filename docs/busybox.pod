@@ -2141,6 +2141,10 @@ Linus Torvalds <torvalds@transmeta.com>
 
 =for html <br>
 
+Mark Whitley <markw@lineo.com>
+
+=for html <br>
+
 Charles P. Wright <cpwright@villagenet.com>
 
 =for html <br>
@@ -2151,4 +2155,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.66 2000/09/05 17:37:48 andersen Exp $
+# $Id: busybox.pod,v 1.67 2000/09/15 08:04:42 beppu Exp $
