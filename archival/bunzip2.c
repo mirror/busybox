@@ -83,7 +83,7 @@ int bunzip2_main(int argc, char **argv)
 		dst_fd = bb_xopen(save_name, O_WRONLY | O_CREAT);
 	}
 
-	if (uncompressStream(src_fd, dst_fd)) {
+	if (uncompressStream(src_fd, dst_fd) == 0) {
 		if (!(flags & bunzip_to_stdout)) {
 			delete_name = argv[optind];
 		}
