@@ -40,7 +40,7 @@ echo_main(int argc, char** argv)
 	while (argc > 0 && *argv[0] == '-')
 	{
 		register char *temp;
-		register int index;
+		register int ix;
 
 		/*
 		 * If it appears that we are handling options, then make sure
@@ -49,9 +49,9 @@ echo_main(int argc, char** argv)
 		 */
 		temp = argv[0] + 1;
 
-		for (index = 0; temp[index]; index++)
+		for (ix = 0; temp[ix]; ix++)
 		{
-			if (strrchr("neE", temp[index]) == 0)
+			if (strrchr("neE", temp[ix]) == 0)
 				goto just_echo;
 		}
 

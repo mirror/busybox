@@ -687,16 +687,16 @@ static void free_job(struct job *cmd)
 	cmd->job_list = keep;
 }
 
-/* remove a job from the job_list */
-static void remove_job(struct jobset *job_list, struct job *job)
+/* remove a job from a jobset */
+static void remove_job(struct jobset *j_list, struct job *job)
 {
 	struct job *prevjob;
 
 	free_job(job);
-	if (job == job_list->head) {
-		job_list->head = job->next;
+	if (job == j_list->head) {
+		j_list->head = job->next;
 	} else {
-		prevjob = job_list->head;
+		prevjob = j_list->head;
 		while (prevjob->next != job)
 			prevjob = prevjob->next;
 		prevjob->next = job->next;
@@ -707,7 +707,7 @@ static void remove_job(struct jobset *job_list, struct job *job)
 
 /* Checks to see if any background processes have exited -- if they 
    have, figure out why and see if a job has completed */
-static void checkjobs(struct jobset *job_list)
+static void checkjobs(struct jobset *j_list)
 {
 	struct job *job;
 	pid_t childpid;
@@ -715,7 +715,7 @@ static void checkjobs(struct jobset *job_list)
 	int prognum = 0;
 
 	while ((childpid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
-		for (job = job_list->head; job; job = job->next) {
+		for (job = j_list->head; job; job = job->next) {
 			prognum = 0;
 			while (prognum < job->num_progs &&
 				   job->progs[prognum].pid != childpid) prognum++;
@@ -734,7 +734,7 @@ static void checkjobs(struct jobset *job_list)
 
 			if (!job->running_progs) {
 				printf(JOB_STATUS_FORMAT, job->jobid, "Done", job->text);
-				remove_job(job_list, job);
+				remove_job(j_list, job);
 			}
 		} else {
 			/* child stopped */
@@ -907,35 +907,35 @@ static char* itoa(register int i)
 #endif	
 
 #if defined BB_FEATURE_SH_ENVIRONMENT && ! defined BB_FEATURE_SH_WORDEXP
-char * strsep_space( char *string, int * index)
+char * strsep_space( char *string, int * ix)
 {
 	char *token, *begin;
 
 	begin = string;
 
 	/* Short circuit the trivial case */
-	if ( !string || ! string[*index])
+	if ( !string || ! string[*ix])
 		return NULL;
 
 	/* Find the end of the token. */
-	while( string && string[*index] && !isspace(string[*index]) ) {
-		(*index)++;
+	while( string && string[*ix] && !isspace(string[*ix]) ) {
+		(*ix)++;
 	}
 
 	/* Find the end of any whitespace trailing behind 
 	 * the token and let that be part of the token */
-	while( string && string[*index] && isspace(string[*index]) ) {
-		(*index)++;
+	while( string && string[*ix] && isspace(string[*ix]) ) {
+		(*ix)++;
 	}
 
-	if (! string && *index==0) {
+	if (! string && *ix==0) {
 		/* Nothing useful was found */
 		return NULL;
 	}
 
-	token = xmalloc(*index+1);
-	token[*index] = '\0';
-	strncpy(token, string,  *index); 
+	token = xmalloc(*ix+1);
+	token[*ix] = '\0';
+	strncpy(token, string,  *ix); 
 
 	return token;
 }
@@ -947,7 +947,7 @@ static int expand_arguments(char *command)
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 	expand_t expand_result;
 	char *src, *dst, *var;
-	int index = 0;
+	int ix = 0;
 	int i=0, length, total_length=0, retval;
 	const char *out_of_space = "out of space during expansion"; 
 #endif
@@ -956,13 +956,13 @@ static int expand_arguments(char *command)
 	chomp(command);
 	
 	/* Fix up escape sequences to be the Real Thing(tm) */
-	while( command && command[index]) {
-		if (command[index] == '\\') {
-			char *tmp = command+index+1;
-			command[index] = process_escape_sequence(  &tmp );
-			memmove(command+index + 1, tmp, strlen(tmp)+1);
+	while( command && command[ix]) {
+		if (command[ix] == '\\') {
+			char *tmp = command+ix+1;
+			command[ix] = process_escape_sequence(  &tmp );
+			memmove(command+ix + 1, tmp, strlen(tmp)+1);
 		}
-		index++;
+		ix++;
 	}
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
@@ -1025,8 +1025,8 @@ static int expand_arguments(char *command)
 		 * we write stuff into the original (in a minute) */
 		cmd = cmd_copy = strdup(command);
 		*command = '\0';
-		for (index = 0, tmpcmd = cmd; 
-				(tmpcmd = strsep_space(cmd, &index)) != NULL; cmd += index, index=0) {
+		for (ix = 0, tmpcmd = cmd; 
+				(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
 			if (*tmpcmd == '\0')
 				break;
 			retval = glob(tmpcmd, flags, NULL, &expand_result);
@@ -1096,11 +1096,11 @@ static int expand_arguments(char *command)
 			case '0':case '1':case '2':case '3':case '4':
 			case '5':case '6':case '7':case '8':case '9':
 				{
-					int index=*(dst + 1)-48;
-					if (index >= argc) {
+					int ixx=*(dst + 1)-48;
+					if (ixx >= argc) {
 						var='\0';
 					} else {
-						var = argv[index];
+						var = argv[ixx];
 					}
 				}
 				break;
@@ -1575,19 +1575,19 @@ static int pseudo_exec(struct child_prog *child)
 static void insert_job(struct job *newjob, int inbg)
 {
 	struct job *thejob;
-	struct jobset *job_list=newjob->job_list;
+	struct jobset *j_list=newjob->job_list;
 
 	/* find the ID for thejob to use */
 	newjob->jobid = 1;
-	for (thejob = job_list->head; thejob; thejob = thejob->next)
+	for (thejob = j_list->head; thejob; thejob = thejob->next)
 		if (thejob->jobid >= newjob->jobid)
 			newjob->jobid = thejob->jobid + 1;
 
 	/* add thejob to the list of running jobs */
-	if (!job_list->head) {
-		thejob = job_list->head = xmalloc(sizeof(*thejob));
+	if (!j_list->head) {
+		thejob = j_list->head = xmalloc(sizeof(*thejob));
 	} else {
-		for (thejob = job_list->head; thejob->next; thejob = thejob->next) /* nothing */;
+		for (thejob = j_list->head; thejob->next; thejob = thejob->next) /* nothing */;
 		thejob->next = xmalloc(sizeof(*thejob));
 		thejob = thejob->next;
 	}

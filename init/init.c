@@ -512,7 +512,6 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		 */
 
 		if (*cmdpath == '-') {
-			char *s;
 
 			/* skip over the dash */
 			++cmdpath;

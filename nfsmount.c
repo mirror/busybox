@@ -157,7 +157,7 @@ static const int NFS_MOUNT_NONLM = 0x0200;	/* 3 */
 #define HAVE_personality
 #define HAVE_tm_gmtoff
 
-static char *nfs_strerror(int stat);
+static char *nfs_strerror(int status);
 
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
@@ -873,16 +873,16 @@ static struct {
 	{ -1,			EIO		}
 };
 
-static char *nfs_strerror(int stat)
+static char *nfs_strerror(int status)
 {
 	int i;
 	static char buf[256];
 
 	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
-		if (nfs_errtbl[i].stat == stat)
+		if (nfs_errtbl[i].stat == status)
 			return strerror(nfs_errtbl[i].errnum);
 	}
-	sprintf(buf, _("unknown nfs status return value: %d"), stat);
+	sprintf(buf, _("unknown nfs status return value: %d"), status);
 	return buf;
 }
 

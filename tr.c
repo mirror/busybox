@@ -123,19 +123,19 @@ static unsigned int expand(char *arg, register unsigned char *buffer)
 
 static int complement(unsigned char *buffer, int buffer_len)
 {
-	register short i, j, index;
+	register short i, j, ix;
 	char conv[ASCII + 2];
 
-	index = 0;
+	ix = 0;
 	for (i = 0; i <= ASCII; i++) {
 		for (j = 0; j < buffer_len; j++)
 			if (buffer[j] == i)
 				break;
 		if (j == buffer_len)
-			conv[index++] = i & ASCII;
+			conv[ix++] = i & ASCII;
 	}
-	memcpy(buffer, conv, index);
-	return index;
+	memcpy(buffer, conv, ix);
+	return ix;
 }
 
 extern int tr_main(int argc, char **argv)

@@ -45,7 +45,7 @@ static const struct suffix_mult dd_suffixes[] = {
 
 int dd_main(int argc, char **argv)
 {
-	int i, ifd, ofd, oflag, sync = FALSE, trunc = TRUE;
+	int i, ifd, ofd, oflag, sync_flag = FALSE, trunc = TRUE;
 	size_t in_full = 0, in_part = 0, out_full = 0, out_part = 0;
 	size_t bs = 512, count = -1;
 	ssize_t n;
@@ -73,7 +73,7 @@ int dd_main(int argc, char **argv)
 					trunc = FALSE;
 					buf += 7;
 				} else if (strncmp("sync", buf, 4) == 0) {
-					sync = TRUE;
+					sync_flag = TRUE;
 					buf += 4;
 				} else {
 					error_msg_and_die("invalid conversion `%s'", argv[i]+5);
@@ -138,7 +138,7 @@ int dd_main(int argc, char **argv)
 			in_full++;
 		else
 			in_part++;
-		if (sync) {
+		if (sync_flag) {
 			memset(buf + n, '\0', bs - n);
 			n = bs;
 		}

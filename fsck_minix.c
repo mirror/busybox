@@ -1439,18 +1439,18 @@ extern int fsck_minix_main(int argc, char **argv)
 		check();
 	}
 	if (verbose) {
-		int i, free;
+		int i, free_cnt;
 
-		for (i = 1, free = 0; i <= INODES; i++)
+		for (i = 1, free_cnt = 0; i <= INODES; i++)
 			if (!inode_in_use(i))
-				free++;
-		printf("\n%6ld inodes used (%ld%%)\n", (INODES - free),
-			   100 * (INODES - free) / INODES);
-		for (i = FIRSTZONE, free = 0; i < ZONES; i++)
+				free_cnt++;
+		printf("\n%6ld inodes used (%ld%%)\n", (INODES - free_cnt),
+			   100 * (INODES - free_cnt) / INODES);
+		for (i = FIRSTZONE, free_cnt = 0; i < ZONES; i++)
 			if (!zone_in_use(i))
-				free++;
-		printf("%6ld zones used (%ld%%)\n", (ZONES - free),
-			   100 * (ZONES - free) / ZONES);
+				free_cnt++;
+		printf("%6ld zones used (%ld%%)\n", (ZONES - free_cnt),
+			   100 * (ZONES - free_cnt) / ZONES);
 		printf("\n%6d regular files\n"
 			   "%6d directories\n"
 			   "%6d character device files\n"

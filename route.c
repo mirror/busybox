@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.9 2001/03/09 21:24:12 andersen Exp $
+ * $Id: route.c,v 1.10 2001/03/21 07:34:26 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -60,18 +60,18 @@
 static int
 INET_resolve(char *name, struct sockaddr *sa)
 {
-	struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+	struct sockaddr_in *s_in = (struct sockaddr_in *)sa;
 	
-	sin->sin_family = AF_INET;
-	sin->sin_port = 0;
+	s_in->sin_family = AF_INET;
+	s_in->sin_port = 0;
 
 	/* Default is special, meaning 0.0.0.0. */
 	if (strcmp(name, "default")==0) {
-		sin->sin_addr.s_addr = INADDR_ANY;
+		s_in->sin_addr.s_addr = INADDR_ANY;
 		return 1;
 	}
 	/* Look to see if it's a dotted quad. */
-	if (inet_aton(name, &sin->sin_addr)) {
+	if (inet_aton(name, &s_in->sin_addr)) {
 		return 0;
 	}
 	/* guess not.. */

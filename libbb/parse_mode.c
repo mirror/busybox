@@ -50,8 +50,8 @@ extern int parse_mode(const char *s, mode_t * theMode)
 		S_ISVTX					/* t */
 	};
 
-	static const char group_string[] = "ugoa";
-	static const char mode_string[] = "rwxst";
+	static const char group_chars[] = "ugoa";
+	static const char mode_chars[] = "rwxst";
 
 	const char *p;
 
@@ -74,9 +74,9 @@ extern int parse_mode(const char *s, mode_t * theMode)
 		if ((c = *s++) == '\0') {
 			return -1;
 		}
-		for (p=group_string ; *p ; p++) {
+		for (p=group_chars ; *p ; p++) {
 			if (*p == c) {
-				groups |= group_set[(int)(p-group_string)];
+				groups |= group_set[(int)(p-group_chars)];
 				goto NEXT_GROUP;
 			}
 		}
@@ -101,9 +101,9 @@ extern int parse_mode(const char *s, mode_t * theMode)
 
 	NEXT_MODE:
 		if (((c = *s++) != '\0') && (c != ',')) {
-			for (p=mode_string ; *p ; p++) {
+			for (p=mode_chars ; *p ; p++) {
 				if (*p == c) {
-					mode |= mode_set[(int)(p-mode_string)];
+					mode |= mode_set[(int)(p-mode_chars)];
 					goto NEXT_MODE;
 				}
 			}

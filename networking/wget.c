@@ -291,24 +291,24 @@ void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path)
 
 FILE *open_socket(char *host, int port)
 {
-	struct sockaddr_in sin;
+	struct sockaddr_in s_in;
 	struct hostent *hp;
 	int fd;
 	FILE *fp;
 
-	memset(&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
+	memset(&s_in, 0, sizeof(s_in));
+	s_in.sin_family = AF_INET;
 	if ((hp = (struct hostent *) gethostbyname(host)) == NULL)
 		error_msg_and_die("cannot resolve %s", host);
-	memcpy(&sin.sin_addr, hp->h_addr_list[0], hp->h_length);
-	sin.sin_port = htons(port);
+	memcpy(&s_in.sin_addr, hp->h_addr_list[0], hp->h_length);
+	s_in.sin_port = htons(port);
 
 	/*
 	 * Get the server onto a stdio stream.
 	 */
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		perror_msg_and_die("socket()");
-	if (connect(fd, (struct sockaddr *) &sin, sizeof(sin)) < 0)
+	if (connect(fd, (struct sockaddr *) &s_in, sizeof(s_in)) < 0)
 		perror_msg_and_die("connect(%s)", host);
 	if ((fp = fdopen(fd, "r+")) == NULL)
 		perror_msg_and_die("fdopen()");
@@ -534,7 +534,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.29 2001/03/09 21:24:12 andersen Exp $
+ *	$Id: wget.c,v 1.30 2001/03/21 07:34:26 andersen Exp $
  */
 
 

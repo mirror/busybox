@@ -108,7 +108,7 @@ STRIPTOOL = $(CROSS)strip
 OPTIMIZATION := $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
     then echo "-Os"; else echo "-O2" ; fi)
 
-WARNINGS = -Wall
+WARNINGS = -Wall -Wshadow
 
 ARFLAGS = -r
 

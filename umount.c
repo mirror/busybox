@@ -57,7 +57,9 @@ static int doForce = FALSE;
 #if defined BB_FEATURE_MOUNT_LOOP
 static int freeLoop = TRUE;
 #endif
+#if defined BB_MTAB
 static int useMtab = TRUE;
+#endif
 static int umountAll = FALSE;
 static int doRemount = FALSE;
 extern const char mtab_file[];	/* Defined in utility.c */
@@ -162,7 +164,7 @@ void mtab_free(void)
 }
 #endif
 
-static int do_umount(const char *name, int useMtab)
+static int do_umount(const char *name)
 {
 	int status;
 	char *blockDevice = mtab_getinfo(name, MTAB_GETDEVICE);
@@ -204,7 +206,7 @@ static int do_umount(const char *name, int useMtab)
 	return (FALSE);
 }
 
-static int umount_all(int useMtab)
+static int umount_all(void)
 {
 	int status = TRUE;
 	char *mountpt;
@@ -214,14 +216,14 @@ static int umount_all(int useMtab)
 		/* Never umount /proc on a umount -a */
 		if (strstr(mountpt, "proc")!= NULL)
 			continue;
-		if (!do_umount(mountpt, useMtab)) {
+		if (!do_umount(mountpt)) {
 			/* Don't bother retrying the umount on busy devices */
 			if (errno == EBUSY) {
 				perror_msg("%s", mountpt);
 				status = FALSE;
 				continue;
 			}
-			if (!do_umount(mountpt, useMtab)) {
+			if (!do_umount(mountpt)) {
 				printf("Couldn't umount %s on %s: %s\n",
 					   mountpt, mtab_getinfo(mountpt, MTAB_GETDEVICE),
 					   strerror(errno));
@@ -275,12 +277,12 @@ extern int umount_main(int argc, char **argv)
 
 	mtab_read();
 	if (umountAll == TRUE) {
-		if (umount_all(useMtab) == TRUE)
+		if (umount_all() == TRUE)
 			return EXIT_SUCCESS;
 		else
 			return EXIT_FAILURE;
 	}
-	if (do_umount(*argv, useMtab) == TRUE)
+	if (do_umount(*argv) == TRUE)
 		return EXIT_SUCCESS;
 	perror_msg_and_die("%s", *argv);
 }

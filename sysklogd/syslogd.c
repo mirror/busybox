@@ -477,8 +477,6 @@ static void doSyslogd (void)
 	int sock_fd;
 	fd_set fds;
 
-	RESERVE_BB_BUFFER(lfile, BUFSIZ);
-
 	/* Set up signal handlers. */
 	signal (SIGINT,  quit_signal);
 	signal (SIGTERM, quit_signal);
