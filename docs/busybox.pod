@@ -2003,7 +2003,7 @@ Bruce Perens <bruce@perens.com>
 
 =for html <br>
 
-Pavel Roskin <pavel_roskin@geocities.com>
+Pavel Roskin <proski@gnu.org>
 
 =for html <br>
 
@@ -2021,4 +2021,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.42 2000/06/16 19:56:44 andersen Exp $
+# $Id: busybox.pod,v 1.43 2000/06/20 00:11:07 proski Exp $

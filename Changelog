@@ -50,11 +50,11 @@
 	* Makefile intelligence updates
 	* Changed the way init parses /etc/inittab entries to avoid problems
 	    with commands that contain colons in them.  Fix thanks to 
-	    Pavel Roskin <pavel_roskin@geocities.com>
+	    Pavel Roskin <proski@gnu.org>
 	* Fixed a warning in utility.c due to char being unsigned on Linux/PPC, 
-	    Fix thanks to Pavel Roskin <pavel_roskin@geocities.com>
+	    Fix thanks to Pavel Roskin <proski@gnu.org>
 	* Made "killall" complain (not error and exit) about processes that it 
-	    cannot find by name -- Pavel Roskin <pavel_roskin@geocities.com> 
+	    cannot find by name -- Pavel Roskin <proski@gnu.org> 
 	* Fixed more and ps to have sensible terminal width defaults, thanks 
 	    to Pavel Roskin.
 	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
@@ -116,7 +116,7 @@
 	* Added echo and test (from me).
 	* Added usleep contributed by Nicolas Pitre <nico@cam.org>
 	* BusyBox's bss size has been majorly reduced (was 384668, is now 28740).
-	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
 	    - When `tail' fails to open a file it now exits.
 	    - When `syslogd' is given the `-n' option it should still use 
 		fork() for running klogd.
@@ -141,7 +141,7 @@
 	    - mv now attempts to do a rename, and will fall back to doing
 		a copy only if the rename fails.
 	    - Syslogd now supports multiple concurrent connections
-	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
 	    - Fixes to sort.  Removed "-g", fixed and added "-r"
 	    - Fixes to the makefile for handling "strip"
 	* An initial telnet implementation was added by 
@@ -251,7 +251,7 @@
 	    Randolph Chung <tausq@debian.org>.
 	* cp could, when copying symlinks, change permissions of the
 	    files pointed to by the symlinks.
-	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
 	    - `chown' with 1 argument displayed the error incorrectly
 	    - `fdflush', `length' and `printf' crashed if run without arguments
 	    - `fdflush' tried to flush itself using *argv
