@@ -243,20 +243,23 @@ void add_longopt(const char *name,int has_arg)
  */
 void add_long_options(char *options)
 {
-        int arg_opt;
+        int arg_opt, tlen;
         char *tokptr=strtok(options,", \t\n");
         while (tokptr) {
                 arg_opt=no_argument;
-                if (strlen(tokptr) > 0) {
-                        if (tokptr[strlen(tokptr)-1] == ':') {
-                                if (tokptr[strlen(tokptr)-2] == ':') {
-                                        tokptr[strlen(tokptr)-2]='\0';
+		tlen=strlen(tokptr);
+                if (tlen > 0) {
+                        if (tokptr[tlen-1] == ':') {
+                                if (tlen > 1 && tokptr[tlen-2] == ':') {
+                                        tokptr[tlen-2]='\0';
+					tlen -= 2;
                                         arg_opt=optional_argument;
                                 } else {
-                                        tokptr[strlen(tokptr)-1]='\0';
+                                        tokptr[tlen-1]='\0';
+					tlen -= 1;
                                         arg_opt=required_argument;
                                 }
-                                if (strlen(tokptr) == 0)
+                                if (tlen == 0)
                                         error_msg("empty long option after -l or --long argument");
                         }
                         add_longopt(tokptr,arg_opt);
