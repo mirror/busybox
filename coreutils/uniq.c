@@ -23,6 +23,8 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 static const char uniq_usage[] =
 "haha\n"
@@ -105,6 +107,35 @@ subject_study(Subject *self)
     return self;
 }
 
+static int
+set_file_pointers(int schema, FILE **in, FILE **out, char **argv)
+{
+    switch (schema) {
+	case 0:
+	    *in = stdin;
+	    *out = stdout;
+	    break;
+	case 1:
+	    *in = fopen(argv[0], "r");
+	    *out = stdout;
+	    break;
+	case 2:
+	    *in = fopen(argv[0], "r");
+	    *out = fopen(argv[1], "w");
+	    break;
+    }
+    if (*in == NULL) {
+	fprintf(stderr, "uniq: %s: %s\n", argv[0], strerror(errno));
+	return errno;
+    }
+    if (*out == NULL) {
+	fprintf(stderr, "uniq: %s: %s\n", argv[1], strerror(errno));
+	return errno;
+    }
+    return 0;
+}
+
+
 /* one variable is the decision algo */
 /* another variable is the printing algo */
 
@@ -122,20 +153,6 @@ uniq_main(int argc, char **argv)
     FILE    *in, *out;
     Subject s;
 
-    /* init */
-    in  = stdin;
-    out = stdout;
-
-    subject_init(&s, in, out, NULL);
-    while (subject_next(&s)) { 
-	subject_study(&s);
-    }
-    subject_last(&s);
-    subject_study(&s);
-    exit(0);
-
-    /* XXX : finish the tedious stuff */
-
     /* parse argv[] */
     for (i = 1; i < argc; i++) {
 	if (argv[i][0] == '-') {
@@ -152,7 +169,21 @@ uniq_main(int argc, char **argv)
 	}
     }
 
+    /* 0 src: stdin; dst: stdout */
+    /* 1 src: file;  dst: stdout */
+    /* 2 src: file;  dst: file   */
+    if (set_file_pointers((argc - 1), &in, &out, &argv[i])) {
+	exit(1);
+    }
+
+    subject_init(&s, in, out, NULL);
+    while (subject_next(&s)) { 
+	subject_study(&s);
+    }
+    subject_last(&s);
+    subject_study(&s);
+
     exit(0);
 }
 
-/* $Id: uniq.c,v 1.2 2000/01/06 01:14:56 erik Exp $ */
+/* $Id: uniq.c,v 1.3 2000/01/06 23:49:21 beppu Exp $ */
