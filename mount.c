@@ -144,6 +144,10 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		}
 #endif
 		status = mount(specialfile, dir, filesystemtype, flags, string_flags);
+		if (errno == EROFS) {
+			errorMsg("%s is write-protected, mounting read-only\n", specialfile);
+			status = mount(specialfile, dir, filesystemtype, flags |= MS_RDONLY, string_flags);
+		}
 	}
 
 
