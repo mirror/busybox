@@ -871,7 +871,7 @@ long my_getpwnam(char *name)
 
 	myuser  = getpwnam(name);
 	if (myuser==NULL)
-		error_msg_and_die( "unknown username: %s\n", name);
+		return(-1);
 
 	return myuser->pw_uid;
 }
@@ -883,7 +883,7 @@ long my_getgrnam(char *name)
 
 	mygroup  = getgrnam(name);
 	if (mygroup==NULL)
-		error_msg_and_die( "unknown group: %s\n", name);
+		return(-1);
 
 	return (mygroup->gr_gid);
 }
@@ -895,9 +895,9 @@ void my_getpwuid(char *name, long uid)
 
 	myuser  = getpwuid(uid);
 	if (myuser==NULL)
-		error_msg_and_die( "unknown uid %ld\n", (long)uid);
-
-	strcpy(name, myuser->pw_name);
+		sprintf(name, "%-8ld ", (long)uid);
+	else
+		strcpy(name, myuser->pw_name);
 }
 
 /* gets a groupname given a gid */
@@ -907,9 +907,9 @@ void my_getgrgid(char *group, long gid)
 
 	mygroup  = getgrgid(gid);
 	if (mygroup==NULL)
-		error_msg_and_die( "unknown gid %ld\n", (long)gid);
-
-	strcpy(group, mygroup->gr_name);
+		sprintf(group, "%-8ld ", (long)gid);
+	else
+		strcpy(group, mygroup->gr_name);
 }
 
 #if defined BB_ID

@@ -41,9 +41,12 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-static const int TERMINAL_WIDTH = 80;		/* use 79 if your terminal has linefold bug */
-static const int COLUMN_WIDTH = 14;		/* default if AUTOWIDTH not defined */
-static const int COLUMN_GAP = 2;			/* includes the file type char, if present */
+enum {
+	TERMINAL_WIDTH = 80,		/* use 79 if terminal has linefold bug */
+	COLUMN_WIDTH = 14,			/* default if AUTOWIDTH not defined */
+	COLUMN_GAP = 2,				/* includes the file type char */
+};
+
 
 /************************************************************************/
 
@@ -173,9 +176,9 @@ static unsigned int follow_links=FALSE;
 
 static unsigned short column = 0;
 #ifdef BB_FEATURE_AUTOWIDTH
-static unsigned short terminal_width;
-static unsigned short column_width;
-static unsigned short tabstops;
+static unsigned short terminal_width = TERMINAL_WIDTH;
+static unsigned short column_width = COLUMN_WIDTH;
+static unsigned short tabstops = COLUMN_GAP;
 #else
 static unsigned short column_width = COLUMN_WIDTH;
 #endif
@@ -434,9 +437,15 @@ void showfiles(struct dnode **dn, int nfiles)
 			((list_fmt & LIST_INO) ? 8 : 0) +
 			((list_fmt & LIST_BLOCKS) ? 5 : 0)
 			;
-		if (column_width < len) column_width= len;
+		if (column_width < len) 
+			column_width= len;
 	}
-	ncols= (int)(terminal_width / (column_width + COLUMN_GAP));
+	if (column_width >= 6)
+		ncols = (int)(terminal_width / (column_width + COLUMN_GAP));
+	else {
+		ncols = 1;
+		column_width = COLUMN_WIDTH;
+	}
 #else
 	ncols= TERMINAL_WIDTH;
 #endif
@@ -447,7 +456,12 @@ void showfiles(struct dnode **dn, int nfiles)
 			break;
 	}
 
-	nrows= nfiles / ncols;
+	if (ncols > 1) {
+		nrows = nfiles / ncols;
+	} else {
+		nrows = nfiles;
+		ncols = 1;
+	}
 	if ((nrows * ncols) < nfiles) nrows++; /* round up fractionals */
 
 	if (nrows > nfiles) nrows= nfiles;
@@ -617,15 +631,9 @@ int list_single(struct dnode *dn)
 			case LIST_ID_NAME:
 #ifdef BB_FEATURE_LS_USERNAME
 				my_getpwuid(scratch, dn->dstat.st_uid);
-				if (*scratch)
-					printf("%-8.8s ", scratch);
-				else
-					printf("%-8d ", dn->dstat.st_uid);
+				printf("%-8.8s ", scratch);
 				my_getgrgid(scratch, dn->dstat.st_gid);
-				if (*scratch)
-					printf("%-8.8s", scratch);
-				else
-					printf("%-8d", dn->dstat.st_gid);
+				printf("%-8.8s", scratch);
 				column += 17;
 				break;
 #endif
