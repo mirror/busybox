@@ -3,7 +3,9 @@
 
 int     cmdedit_read_input(char* promptStr, char* command);
 
-void    load_history ( char *fromfile );
-void    save_history ( char *tofile );
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+void    load_history ( const char *fromfile );
+void    save_history ( const char *tofile );
+#endif
 
 #endif /* CMDEDIT_H */

@@ -1196,6 +1196,10 @@ static struct var vlc_all;
 static struct var vlc_ctype;
 #endif
 
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+static struct var vhistfile;
+#endif
+
 struct varinit {
 	struct var *var;
 	int flags;
@@ -1241,6 +1245,10 @@ static const struct varinit varinit[] = {
 	 change_lc_all},
 	{&vlc_ctype, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE=",
 	 change_lc_ctype},
+#endif
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	{&vhistfile, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE=",
+	 NULL},
 #endif
 	{NULL, 0, NULL,
 	 NULL}
@@ -7312,6 +7320,20 @@ int ash_main(int argc, char **argv)
 	init();
 	setstackmark(&smark);
 	procargs(argc, argv);
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	if ( iflag ) {
+		const char *hp = lookupvar("HISTFILE");
+
+		if(hp == NULL ) {
+			hp = lookupvar("HOME");
+			if(hp != NULL) {
+				char *defhp = concat_path_file(hp, ".ash_history");
+				setvar("HISTFILE", defhp, 0);
+				free(defhp);
+			}
+		}
+	}
+#endif
 	if (argv[0] && argv[0][0] == '-')
 		isloginsh = 1;
 	if (isloginsh) {
@@ -7357,8 +7379,12 @@ int ash_main(int argc, char **argv)
 	if (sflag || minusc == NULL) {
 	  state4:			/* XXX ??? - why isn't this before the "if" statement */
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	    if ( iflag )
-	    	load_history ( ".ash_history" );
+	    if ( iflag ) {
+		const char *hp = lookupvar("HISTFILE");
+
+		if(hp != NULL )
+			load_history ( hp );
+	    }
 #endif
 		cmdloop(1);
 	}
@@ -7550,10 +7576,6 @@ static int exitcmd(int argc, char **argv)
 {
 	if (stoppedjobs())
 		return 0;
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	if ( iflag )
-		save_history ( ".ash_history" );
-#endif			
 		
 	if (argc > 1)
 		exitstatus = number(argv[1]);
@@ -11615,12 +11637,22 @@ static void exitshell(int status)
 		trap[0] = NULL;
 		evalstring(p, 0);
 	}
-  l1:handler = &loc2;	/* probably unnecessary */
+l1:
+	handler = &loc2;   /* probably unnecessary */
 	flushall();
 #ifdef CONFIG_ASH_JOB_CONTROL
 	setjobctl(0);
 #endif
-  l2:_exit(status);
+#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	if (iflag && rootshell) {
+		const char *hp = lookupvar("HISTFILE");
+
+		if(hp != NULL )
+			save_history ( hp );
+	}
+#endif
+l2:
+	_exit(status);
 	/* NOTREACHED */
 }
 

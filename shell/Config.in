@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-menu "Bourne Shell"
+menu "Another Bourne-like Shell"
 
 choice
 	prompt "Choose your default shell"
@@ -95,12 +95,6 @@ config CONFIG_ASH_OPTIMIZE_FOR_SIZE
 	help
 	  Please submit a patch to add help text for this item.
 
-config CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	bool "  history saving"
-	default n
-	depends on CONFIG_ASH
-	help
-	  Please submit a patch to add help text for this item.
 
 if CONFIG_FEATURE_SH_IS_HUSH
 	config CONFIG_HUSH
@@ -155,6 +149,13 @@ config CONFIG_FEATURE_COMMAND_EDITING
 	bool "command line editing"
 	default n
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	bool "  history saving"
+	default n
+	depends on CONFIG_ASH
 	help
 	  Please submit a patch to add help text for this item.
 

@@ -1131,40 +1131,44 @@ static int get_next_history(void)
 	}
 }
 
-
-extern void load_history ( char *fromfile )
-{
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+extern void load_history ( const char *fromfile )
+{
 	FILE *fp;
+	int hi;
 
-	// cleanup old
-	while ( n_history ) {
-		if ( history [n_history - 1] )
-			free ( history [n_history - 1] );
-		n_history--;
+	/* cleanup old */
+
+	for(hi = n_history; hi > 0; ) {
+		hi--;
+		free ( history [hi] );
 	}
 
 	if (( fp = fopen ( fromfile, "r" ))) {
-		char buffer [256];
-		int i, l;
 	
-		for ( i = 0; i < MAX_HISTORY; i++ ) {
-			if ( !fgets ( buffer, sizeof( buffer ) - 1, fp ))
+		for ( hi = 0; hi < MAX_HISTORY; ) {
+			char * hl = get_line_from_file(fp);
+			int l;
+
+			if(!hl)
 				break;
-			l = xstrlen	( buffer );
-			if ( l && buffer [l - 1] == '\n' )
-				buffer [l - 1] = 0;
-			history [n_history++] = xstrdup ( buffer );
+			chomp(hl);
+			l = strlen(hl);
+			if(l >= BUFSIZ)
+				hl[BUFSIZ-1] = 0;
+			if(l == 0 || hl[0] == ' ') {
+				free(hl);
+				continue;
+			}
+			history [hi++] = hl;
 		}
 		fclose ( fp );
 	}
-	cur_history = n_history;
-#endif
+	cur_history = n_history = hi;
 }
 
-extern void save_history ( char *tofile )
+extern void save_history ( const char *tofile )
 {
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
 	FILE *fp = fopen ( tofile, "w" );
 	
 	if ( fp ) {
@@ -1176,8 +1180,8 @@ extern void save_history ( char *tofile )
 		}
 		fclose ( fp );
 	}
-#endif
 }
+#endif
 
 #endif
 
