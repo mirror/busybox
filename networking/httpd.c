@@ -1490,18 +1490,20 @@ static void handleIncoming(void)
   char *purl;
   int  blank = -1;
   char *urlArgs;
+  char *test;
+  struct stat sb;
+  int ip_allowed;
 #ifdef CONFIG_FEATURE_HTTPD_CGI
   const char *prequest = request_GET;
   long length=0;
   char *cookie = 0;
   char *content_type = 0;
 #endif
-  char *test;
-  struct stat sb;
-  int ip_allowed;
-  fd_set s_fd ;
-  struct timeval tv ;
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  fd_set s_fd;
+  struct timeval tv;
   int retval;
+#endif
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   int credentials = -1;  /* if not requred this is Ok */
