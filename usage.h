@@ -64,7 +64,7 @@
 	"Compare files."
 
 #define cp_trivial_usage \
-	"[OPTION]... SOURCE DEST\n"
+	"[OPTION]... SOURCE DEST"
 #define cp_full_usage \
 	"Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n" \
 	"\n" \
@@ -87,7 +87,7 @@
 	"\t-n\t\tIgnored"
 
 #define date_trivial_usage \
-	"[OPTION]... [+FORMAT]\n"
+	"[OPTION]... [+FORMAT]"
 #define date_full_usage \
 	"Displays the current time in the given FORMAT, or sets the system date.\n" \
 	"\nOptions:\n" \
@@ -318,7 +318,7 @@
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
 #define getopt_full_usage \
-	"\nParse command options\n" \
+	"Parse command options\n" \
 	"\t-a, --alternative		Allow long options starting with single -\n" \
 	"\t-l, --longoptions=longopts	Long options to be recognized\n" \
 	"\t-n, --name=progname		The name under which errors are reported\n" \
@@ -590,8 +590,8 @@
 	"\t-t\tread files in text mode (default)\n" \
 	"\t-g\tread a string\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
-	"\t-s,\tdon't output anything, status code shows success\n" \
-	"\t-w,\twarn about improperly formated MD5 checksum lines"
+	"\t-s\tdon't output anything, status code shows success\n" \
+	"\t-w\twarn about improperly formated MD5 checksum lines"
 
 #define mkdir_trivial_usage \
 	"[OPTION] DIRECTORY..."
@@ -762,7 +762,7 @@
 #define rdate_trivial_usage \
 	"[OPTION] HOST"
 #define rdate_full_usage \
-	"Get and possibly set the system date and time from a remote HOST.\n" \
+	"Get and possibly set the system date and time from a remote HOST.\n\n" \
 	"Options:\n" \
 	"\t-s\tSet the system date and time (default).\n" \
 	"\t-p\tPrint the date and time."
@@ -823,10 +823,11 @@
 #define sed_trivial_usage \
 	"[-Vhnef] pattern [files...]"
 #define sed_full_usage \
-	"-n\t\tsuppress automatic printing of pattern space\n" \
-	"-e script\tadd the script to the commands to be executed\n" \
-	"-f scriptfile\tadd the contents of script-file to the commands to be executed\n" \
-	"-h\t\tdisplay this help message\n" \
+	"Options:\n" \
+	"\t-n\t\tsuppress automatic printing of pattern space\n" \
+	"\t-e script\tadd the script to the commands to be executed\n" \
+	"\t-f scriptfile\tadd the contents of script-file to the commands to be executed\n" \
+	"\t-h\t\tdisplay this help message\n" \
 	"\n" \
 	"If no -e or -f is given, the first non-option argument is taken as the\n" \
 	"sed script to interpret. All remaining arguments are names of input\n" \
@@ -867,10 +868,11 @@
 #define stty_full_usage \
 	"Without arguments, prints baud rate, line discipline," \
 	"\nand deviations from stty sane." \
-	"\n -F device  open and use the specified device instead of stdin" \
-	"\n -a	  print all current settings in human-readable form. Or" \
-	"\n -g	  print in a stty-readable form" \
-	"\n [SETTING]  see in documentation"
+	"\n\nOptions:" \
+	"\n\t-F device\topen device instead of stdin" \
+	"\n\t-a\t\tprint all current settings in human-readable form" \
+	"\n\t-g\t\tprint in stty-readable form" \
+	"\n\t[SETTING]\tsee documentation"
 
 #define swapoff_trivial_usage \
 	"[OPTION] [device]"
@@ -913,7 +915,7 @@
 	USAGE_KLOGD("\t-K\t\tDo not start up the klogd process\n") \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
 	USAGE_REMOTE_LOG( \
-	"\n\t-R HOST[:PORT]\t\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n" \
+	"\n\t-R HOST[:PORT]\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally as well as network logging (default is network only)")
 
 
@@ -1096,9 +1098,9 @@
 	"\t-m\tuse base64 encoding as of RFC1521"
 
 #define watchdog_trivial_usage \
-	"dev"
+	"DEV"
 #define watchdog_full_usage \
-	"Periodically write to watchdog device \"dev\""
+	"Periodically write to watchdog device DEV"
 
 #define wc_trivial_usage \
 	"[OPTION]... [FILE]..."
