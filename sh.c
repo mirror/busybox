@@ -1003,16 +1003,6 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				returnCommand = *commandPtr + (src - *commandPtr) + 1;
 				break;
 
-			case '\\':
-				src++;
-				if (!*src) {
-					errorMsg("character expected after \\\n");
-					freeJob(job);
-					return 1;
-				}
-				if (*src == '*' || *src == '[' || *src == ']'
-					|| *src == '?') *buf++ = '\\';
-				/* fallthrough */
 #ifdef BB_FEATURE_SH_BACKTICKS
 			case '`':
 				/* Exec a backtick-ed command */
@@ -1082,6 +1072,17 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				}
 				break;
 #endif // BB_FEATURE_SH_BACKTICKS
+
+			case '\\':
+				src++;
+				if (!*src) {
+					errorMsg("character expected after \\\n");
+					freeJob(job);
+					return 1;
+				}
+				if (*src == '*' || *src == '[' || *src == ']'
+					|| *src == '?') *buf++ = '\\';
+				/* fallthrough */
 			default:
 				*buf++ = *src;
 			}
