@@ -13,11 +13,16 @@
 #include "options.h"
 #include "leases.h"
 
+#include "config.h"
 
 /* supported options are easily added here */
 struct dhcp_option options[] = {
 	/* name[10]	flags					code */
-	{"subnet",	OPTION_IP | OPTION_REQ,			0x01},
+#ifdef CONFIG_FEATURE_UDHCPC_IP
+	{"subnet",	OPTION_IP | OPTION_REQ | OPTION_PREFIX,	0x01},
+#else
+ 	{"subnet",	OPTION_IP | OPTION_REQ,			0x01},
+#endif
 	{"timezone",	OPTION_S32,				0x02},
 	{"router",	OPTION_IP | OPTION_LIST | OPTION_REQ,	0x03},
 	{"timesvr",	OPTION_IP | OPTION_LIST,		0x04},

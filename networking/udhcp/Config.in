@@ -38,5 +38,14 @@ config CONFIG_FEATURE_UDHCP_DEBUG
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_UDHCPC_IP
+	bool "  Compile udhcpc with ip support"
+	default n
+	depends on CONFIG_UDHCPC
+	help
+	  Say yes if you are using the ip command instead of route and ifconfig
+	  in your scripts to bring up the interface.
+	  This is needed as ip wants the subnet as a bitprefix not an ip value.
+
 endmenu
 

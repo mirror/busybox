@@ -37,6 +37,8 @@
 #include "options.h"
 #include "debug.h"
 
+#include "config.h"
+
 /* get a rough idea of how long an option will be (rounding up...) */
 static int max_option_length[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
@@ -62,6 +64,37 @@ static int sprintip(char *dest, char *pre, unsigned char *ip) {
 	return sprintf(dest, "%s%d.%d.%d.%d ", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
+#ifdef CONFIG_FEATURE_UDHCPC_IP
+/* convert a netmask (255.255.255.0) into the length (24) */
+static int inet_ntom (const char *src, short *dst)
+{
+	in_addr_t mask, num;
+
+	mask = ntohl(*(unsigned int *)src);
+
+	for (num = mask; num & 1; num >>= 1);
+
+	if (num != 0 && mask != 0)
+	{
+		for (num = ~mask; num & 1; num >>= 1);
+		if (num)
+			return 0;
+	}
+
+	for (num = 0; mask; mask <<= 1)
+		num++;
+
+	*dst = num;
+
+	return 1;
+}
+
+static int sprintprefix(char *dest, char *pre, unsigned char *ip) {
+	short sdest = 0;
+	inet_ntom(ip, &sdest);
+	return sprintf(dest, "%s%hd ", pre, sdest);
+}
+#endif
 
 /* Fill dest with the text of option 'option'. */
 static void fill_options(char *dest, unsigned char *option, struct dhcp_option *type_p)
@@ -84,9 +117,20 @@ static void fill_options(char *dest, unsigned char *option, struct dhcp_option *
 			*(dest++) = '/';
 			option += 4;
 			optlen = 4;
+#ifndef CONFIG_FEATURE_UDHCPC_IP
 		case OPTION_IP:	/* Works regardless of host byte order. */
+#endif
 			dest += sprintip(dest, "", option);
  			break;
+#ifdef CONFIG_FEATURE_UDHCPC_IP
+ 		case OPTION_IP:	/* Works regardless of host byte order. */
+			if (type_p->flags & OPTION_PREFIX) {
+				dest += sprintprefix(dest, "", option);
+			} else {
+				dest += sprintip(dest, "", option);
+			}
+ 			break;
+#endif
 		case OPTION_BOOLEAN:
 			dest += sprintf(dest, *option ? "yes " : "no ");
 			break;
