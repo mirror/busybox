@@ -108,20 +108,10 @@ static void cut_file(FILE *file)
 	for (line = NULL; (line = get_line_from_file(file)) != NULL; free(line)) {
 		/* cut based on chars/bytes */
 		if (part == 'c' || part == 'b') {
-			int i;
-			/* a valid end position has been specified */
-			if (endpos > 0) {
-				for (i = startpos-1; i < endpos; i++) {
-					fputc(line[i], stdout);
-				}
-				fputc('\n', stdout);
-			}
-			/* otherwise, just go to the end of the line */
-			else {
-				for (i = startpos-1; line[i]; i++) {
-					fputc(line[i], stdout);
-				}
-			}
+			chomp(line);
+			if (0 < endpos && endpos < strlen(line))
+				line[endpos] = '\0';
+			puts(line + startpos - 1);
 		} 
 		/* cut based on fields */
 		else if (part == 'f') {
