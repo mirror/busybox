@@ -30,12 +30,12 @@
 #include "busybox.h"
 
 
-struct stat *theMode;
+struct stat theMode;
 
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (chmod(fileName, theMode->st_mode) == 0)
+	if (chmod(fileName, theMode.st_mode) == 0)
 		return (TRUE);
 	perror(fileName);
 	return (FALSE);
@@ -59,7 +59,7 @@ int chmod_main(int argc, char **argv)
 
 	if (argc > optind && argc > 2 && argv[optind]) {
 		/* Parse the specified mode */
-		if (parse_mode(argv[optind], &(theMode->st_mode)) == FALSE) {
+		if (parse_mode(argv[optind], &(theMode.st_mode)) == FALSE) {
 			error_msg_and_die( "unknown mode: %s", argv[optind]);
 		}
 	} else {
