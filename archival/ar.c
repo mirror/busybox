@@ -239,7 +239,7 @@ extern int ar_main(int argc, char **argv)
 	int srcFd=0, dstFd=0;
  	headerL_t *header, *entry, *extractList;
 
-	while ((opt = getopt(argc, argv, "ovt:p:x:")) != -1) {
+	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
 		switch (opt) {
 		case 'o':
 			funct = funct | PRESERVE_DATE;
@@ -249,31 +249,29 @@ extern int ar_main(int argc, char **argv)
 			break;
 		case 't':
 			funct = funct | DISPLAY;
+			break;
 		case 'x':
-			if (opt=='x') {
-				funct = funct | EXT_TO_FILE;
-                        }
+			funct = funct | EXT_TO_FILE;
+			break;
 		case 'p':
-			if (opt=='p') {
-				funct = funct | EXT_TO_STDOUT;
-			}
-			/* following is common to 't','x' and 'p' */
-			if ( (srcFd = open(optarg, O_RDONLY)) < 0) {
-				errorMsg("Cannot read %s\n", optarg);
-				return (FALSE);
-			}
+			funct = funct | EXT_TO_STDOUT;
 			break;
 		default:
 			usage(ar_usage);
 		}
 	}
  
-        /* check options not just preserve_dates and/or verbose */  
-	if (funct < 4) {
+        /* check the src filename was specified */
+	if (optind == argc) {
                 usage(ar_usage);
                 return(FALSE);
         }
 	
+        if ( (srcFd = open(argv[optind], O_RDONLY)) < 0) {
+          	errorMsg("Cannot read %s\n", optarg);
+                return (FALSE);
+        }
+ 	optind++;	
 	entry = (headerL_t *) malloc(sizeof(headerL_t));
 	header = (headerL_t *) malloc(sizeof(headerL_t));
 	extractList = (headerL_t *) malloc(sizeof(headerL_t));	
