@@ -31,6 +31,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <resolv.h>
+#include <arpa/inet.h>
 #include "busybox.h"
 
 /*
@@ -39,18 +41,7 @@
  |
  |  [ TODO ]
  |  + find out how to use non-default name servers
- |  + find out how the real nslookup gets the default name server
  */
-
-/* I have to see how the real nslookup does this.
- * I could dig through /etc/resolv.conf, but is there a
- * better (programatic) way?
- */
-static inline void server_print(void)
-{
-	printf("Server:     %s\n", "default");
-	printf("Address:    %s\n\n", "default");
-}
 
 /* only works for IPv4 */
 static int addr_fprint(char *addr)
@@ -66,24 +57,6 @@ static int addr_fprint(char *addr)
 	split[3] = (ip & 0x000000ff);
 	printf("%d.%d.%d.%d", split[0], split[1], split[2], split[3]);
 	return 0;
-}
-
-/* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
- * into a u_int32_t
- */
-static u_int32_t str_to_addr(const char *addr)
-{
-	u_int32_t split[4];
-	u_int32_t ip;
-
-	sscanf(addr, "%d.%d.%d.%d",
-		   &split[0], &split[1], &split[2], &split[3]);
-
-	/* assuming sscanf worked */
-	ip = (split[0] << 24) |
-		(split[1] << 16) | (split[2] << 8) | (split[3]);
-
-	return htonl(ip);
 }
 
 /* takes the NULL-terminated array h_addr_list, and
@@ -116,15 +89,6 @@ static int addr_list_fprint(char **h_addr_list)
 	return 0;
 }
 
-/* gethostbyaddr wrapper */
-static struct hostent *gethostbyaddr_wrapper(const char *address)
-{
-	struct in_addr addr;
-
-	addr.s_addr = str_to_addr(address);
-	return gethostbyaddr((char *) &addr, 4, AF_INET);	/* IPv4 only for now */
-}
-
 /* print the results as nslookup would */
 static struct hostent *hostent_fprint(struct hostent *host)
 {
@@ -137,6 +101,42 @@ static struct hostent *hostent_fprint(struct hostent *host)
 	return host;
 }
 
+/* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
+ * into a u_int32_t
+ */
+static u_int32_t str_to_addr(const char *addr)
+{
+	u_int32_t split[4];
+	u_int32_t ip;
+
+	sscanf(addr, "%d.%d.%d.%d",
+		   &split[0], &split[1], &split[2], &split[3]);
+
+	/* assuming sscanf worked */
+	ip = (split[0] << 24) |
+		(split[1] << 16) | (split[2] << 8) | (split[3]);
+
+	return htonl(ip);
+}
+
+/* gethostbyaddr wrapper */
+static struct hostent *gethostbyaddr_wrapper(const char *address)
+{
+	struct in_addr addr;
+
+	addr.s_addr = str_to_addr(address);
+	return gethostbyaddr((char *) &addr, 4, AF_INET);	/* IPv4 only for now */
+}
+
+/* lookup the default nameserver and display it */
+static inline void server_print(void)
+{
+	struct sockaddr_in def = _res.nsaddr_list[0];
+	char *ip = inet_ntoa(def.sin_addr);
+
+	hostent_fprint(gethostbyaddr_wrapper(ip));
+	printf("\n");
+}
 
 /* naive function to check whether char *s is an ip address */
 static int is_ip_address(const char *s)
@@ -160,6 +160,7 @@ int nslookup_main(int argc, char **argv)
 		show_usage();
 	}
 
+	res_init();
 	server_print();
 	if (is_ip_address(argv[1])) {
 		host = gethostbyaddr_wrapper(argv[1]);
@@ -170,4 +171,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.22 2001/02/20 06:14:08 andersen Exp $ */
+/* $Id: nslookup.c,v 1.23 2001/06/12 22:21:24 andersen Exp $ */
