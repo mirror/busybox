@@ -382,7 +382,7 @@ static char *parse_cmd_str(sed_cmd_t * const sed_cmd, char *cmdstr)
 {
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("npqd=", sed_cmd->cmd)) {
+	if (strchr("nNpPqd=", sed_cmd->cmd)) {
 		cmdstr++;
 	}
 	/* handle (s)ubstitution command */
@@ -680,6 +680,7 @@ static void process_file(FILE *file)
 	if (line == NULL) {
 		return;
 	}
+	chomp(line);
 
 	/* go through every line in the file */
 	do {
@@ -688,7 +689,7 @@ static void process_file(FILE *file)
 		/* Read one line in advance so we can act on the last line, the '$' address */
 		next_line = get_line_from_file(file);
 
-		chomp(line);
+		chomp(next_line);
 		linenum++;
 		altered = 0;
 
@@ -722,10 +723,15 @@ static void process_file(FILE *file)
 					case '=':
 						printf("%d\n", linenum);
 						break;
-					case 'p':
+					case 'P': {	/* Write the current pattern space upto the first newline */
+							char *tmp = strchr(line, '\n');
+							if (tmp) {
+								*tmp = '\0';
+							}
+						}
+					case 'p':	/* Write the current pattern space to output */
 						puts(line);
 						break;
-
 					case 'd':
 						altered++;
 						deleted = 1;
@@ -808,8 +814,19 @@ static void process_file(FILE *file)
 						free(line);
 						return;
 					case 'n':	/* Read next line from input */
-						i = ncmds;
+						free(line);
+						line = next_line;
+						next_line = get_line_from_file(file);
+						chomp(next_line);
+						linenum++;
 						break;
+					case 'N':	/* Append the next line to the current line */
+						line = realloc(line, strlen(line) + strlen(next_line) + 2);
+						strcat(line, "\n");
+						strcat(line, next_line);
+						next_line = get_line_from_file(file);
+						chomp(next_line);
+						linenum++;
 				}
 			}
 
