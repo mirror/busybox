@@ -1,6 +1,7 @@
 #
 # Automatically generated make config: don't edit
 #
+HAVE_DOT_CONFIG=y
 
 #
 # General Configuration
@@ -37,6 +38,7 @@ CONFIG_GUNZIP=y
 # CONFIG_FEATURE_GUNZIP_UNCOMPRESS is not set
 # CONFIG_GZIP is not set
 # CONFIG_RPM2CPIO is not set
+# CONFIG_RPM is not set
 CONFIG_TAR=y
 # CONFIG_FEATURE_TAR_CREATE is not set
 # CONFIG_FEATURE_TAR_BZIP2 is not set
@@ -189,6 +191,8 @@ CONFIG_REBOOT=y
 # Networking Utilities
 #
 # CONFIG_FEATURE_IPV6 is not set
+# CONFIG_FTPGET is not set
+# CONFIG_FTPPUT is not set
 # CONFIG_HOSTNAME is not set
 # CONFIG_IFCONFIG is not set
 # CONFIG_IFUPDOWN is not set
@@ -202,6 +206,7 @@ CONFIG_FEATURE_IP_ROUTE=y
 # CONFIG_IPLINK is not set
 # CONFIG_IPROUTE is not set
 # CONFIG_IPTUNNEL is not set
+# CONFIG_NAMEIF is not set
 # CONFIG_NC is not set
 # CONFIG_NETSTAT is not set
 # CONFIG_NSLOOKUP is not set
@@ -224,7 +229,6 @@ CONFIG_FEATURE_WGET_STATUSBAR=y
 CONFIG_UDHCPC=y
 CONFIG_FEATURE_UDHCP_SYSLOG=y
 # CONFIG_FEATURE_UDHCP_DEBUG is not set
-CONFIG_FEATURE_UDHCPC_IP=y
 
 #
 # Process Utilities
@@ -239,7 +243,7 @@ CONFIG_PS=y
 # CONFIG_UPTIME is not set
 
 #
-# Bourne Shell
+# Another Bourne-like Shell
 #
 # CONFIG_FEATURE_SH_IS_ASH is not set
 # CONFIG_FEATURE_SH_IS_HUSH is not set
@@ -268,6 +272,7 @@ CONFIG_ID=y
 # CONFIG_LOGNAME is not set
 # CONFIG_PRINTF is not set
 CONFIG_PWD=y
+CONFIG_REALPATH=y
 # CONFIG_SLEEP is not set
 # CONFIG_STTY is not set
 # CONFIG_TEE is not set

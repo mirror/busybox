@@ -1,6 +1,7 @@
 #
 # Automatically generated make config: don't edit
 #
+HAVE_DOT_CONFIG=y
 
 #
 # General Configuration
@@ -37,6 +38,7 @@ CONFIG_GUNZIP=y
 # CONFIG_FEATURE_GUNZIP_UNCOMPRESS is not set
 CONFIG_GZIP=y
 # CONFIG_RPM2CPIO is not set
+# CONFIG_RPM is not set
 CONFIG_TAR=y
 CONFIG_FEATURE_TAR_CREATE=y
 # CONFIG_FEATURE_TAR_BZIP2 is not set
@@ -189,6 +191,8 @@ CONFIG_REBOOT=y
 # Networking Utilities
 #
 # CONFIG_FEATURE_IPV6 is not set
+# CONFIG_FTPGET is not set
+# CONFIG_FTPPUT is not set
 CONFIG_HOSTNAME=y
 CONFIG_IFCONFIG=y
 CONFIG_FEATURE_IFCONFIG_STATUS=y
@@ -203,6 +207,7 @@ CONFIG_FEATURE_IFCONFIG_HW=y
 # CONFIG_IPLINK is not set
 # CONFIG_IPROUTE is not set
 # CONFIG_IPTUNNEL is not set
+# CONFIG_NAMEIF is not set
 # CONFIG_NC is not set
 # CONFIG_NETSTAT is not set
 # CONFIG_NSLOOKUP is not set
@@ -236,7 +241,7 @@ CONFIG_PS=y
 CONFIG_UPTIME=y
 
 #
-# Bourne Shell
+# Another Bourne-like Shell
 #
 # CONFIG_FEATURE_SH_IS_ASH is not set
 # CONFIG_FEATURE_SH_IS_HUSH is not set
@@ -265,6 +270,7 @@ CONFIG_ID=y
 # CONFIG_LOGNAME is not set
 # CONFIG_PRINTF is not set
 CONFIG_PWD=y
+# CONFIG_REALPATH is not set
 CONFIG_SLEEP=y
 # CONFIG_STTY is not set
 # CONFIG_TEE is not set

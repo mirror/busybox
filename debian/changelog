@@ -1,3 +1,20 @@
+busybox-cvs (0.60.99.cvs20021214-1) unstable; urgency=low
+
+  * new cvs version
+    - udhcp merge.
+  * fix location of ip link.
+
+ -- Bastian Blank <waldi@debian.org>  Sat, 14 Dec 2002 13:52:15 +0100
+
+busybox-cvs (0.60.99.cvs20021210-1) unstable; urgency=low
+
+  * new cvs version
+    - various upstream fixes found in the last version.
+  * busybox-cvs-udeb
+    - include readlink and realpath.
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 10 Dec 2002 21:23:40 +0100
+
 busybox-cvs (0.60.99.cvs20021209-2) unstable; urgency=low
 
   * cleanup scripts/config/ within make clean (closes: #172413)
@@ -28,13 +45,6 @@ busybox-cvs (0.60.99.cvs20021203-1) unstable; urgency=low
     - disable ls color.
 
  -- Bastian Blank <waldi@debian.org>  Tue, 03 Dec 2002 18:51:00 +0100
-
-busybox-cvs (0.61.pre-custom1) unstable; urgency=low
-
-  * This is just to make it easier to make custom debs
-  * Replace this changelog before makeing offical debs
-
- -- Bastian Blank <waldi@debian.org>  Sun, 01 Dec 2002 02:02:46 +0100
 
 busybox (1:0.60.0-1) unstable; urgency=low
 
