@@ -148,7 +148,7 @@ int date_main(int argc, char **argv)
 	char *date_str = NULL;
 	char *date_fmt = NULL;
 	char *t_buff;
-	char c;
+	int c;
 	int set_time = 0;
 	int rfc822 = 0;
 	int utc = 0;

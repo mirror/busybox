@@ -34,7 +34,8 @@ static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 
 int dmesg_main(int argc, char **argv)
 {
-	char *buf, c;
+	char *buf;
+	int c;
 	int bufsize = 8196;
 	int i;
 	int n;

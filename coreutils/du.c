@@ -126,7 +126,7 @@ static long du(char *filename)
 int du_main(int argc, char **argv)
 {
 	int i;
-	char c;
+	int c;
 
 	/* default behaviour */
 	print = print_normal;
@@ -163,7 +163,7 @@ int du_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: du.c,v 1.23 2000/07/16 20:57:15 kraai Exp $ */
+/* $Id: du.c,v 1.24 2000/07/17 16:17:19 proski Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

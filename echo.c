@@ -30,7 +30,7 @@ echo_main(int argc, char** argv)
 {
 	register char **ap;
 	char *p;
-	register char c;
+	int c;
 	int nflag = 0;
 	int eflag = 0;
 
