@@ -16,6 +16,12 @@ if [ "$CONFIG_IFCONFIG" = "y" ]; then
     bool '  Enable option "hw" (ether only)'						CONFIG_FEATURE_IFCONFIG_HW 
     bool '  Set the broadcast automatically'					CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 fi
+bool 'ifupdown'	    CONFIG_IFUPDOWN
+if [ "$CONFIG_IFUPDOWN" = "y" ]; then
+    bool '  Enable support for IPv4'	CONFIG_FEATURE_IFUPDOWN_IPV4
+    bool '  Enable support for IPv6 (requires ip command)' CONFIG_FEATURE_IFUPDOWN_IPV6
+    bool '  Enable support for IPX (requires ipx_interface command)' CONFIG_FEATURE_IFUPDOWN_IPX
+fi
 bool 'nc'	    CONFIG_NC
 bool 'netstat'	    CONFIG_NETSTAT
 bool 'nslookup'	    CONFIG_NSLOOKUP

@@ -239,6 +239,12 @@
 #ifdef CONFIG_IFCONFIG
 	APPLET(ifconfig, ifconfig_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_IFUPDOWN
+	APPLET(ifdown, ifupdown_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_IFUPDOWN
+	APPLET(ifup, ifupdown_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_INIT
 	APPLET(init, init_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

@@ -807,6 +807,34 @@
 	USAGE_IFCONFIG_MII("\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]\n") \
 	"\t[up|down] ..."
 
+#define ifup_trivial_usage \
+	"<-ahinv> <ifaces...>"
+#define ifup_full_usage \
+	"Usage: ifup <options> <ifaces...>\n\n" \
+	"Options:\n" \
+	"\t-h, --help\t\tthis help\n" \
+	"\t-a, --all\t\tde/configure all interfaces automatically\n" \
+	"\t-i, --interfaces FILE\tuse FILE for interface definitions\n" \
+    "\t-n, --no-act\t\tprint out what would happen, but don't do it\n" \
+	"\t\t\t\t(note that this option doesn't disable mappings)\n" \
+    "\t-v, --verbose\t\tprint out what would happen before doing it\n" \
+	"\t--no-mappings\t\tdon't run any mappings\n" \
+	"\t--force\t\t\tforce de/configuration\n"
+
+#define ifdown_trivial_usage \
+	"<-ahinv> <ifaces...>"
+#define ifdown_full_usage \
+	"Usage: ifdown <options> <ifaces...>\n\n" \
+	"Options:\n" \
+	"\t-h, --help\t\tthis help\n" \
+	"\t-a, --all\t\tde/configure all interfaces automatically\n" \
+	"\t-i, --interfaces FILE\tuse FILE for interface definitions\n" \
+    "\t-n, --no-act\t\tprint out what would happen, but don't do it\n" \
+	"\t\t\t\t(note that this option doesn't disable mappings)\n" \
+    "\t-v, --verbose\t\tprint out what would happen before doing it\n" \
+	"\t--no-mappings\t\tdon't run any mappings\n" \
+	"\t--force\t\t\tforce de/configuration\n"
+	
 #define init_trivial_usage \
 	""
 #define init_full_usage \
