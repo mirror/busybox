@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/param.h>
-#include <linux/unistd.h>
+#include <sys/syscall.h>
 
 #if ! defined __GLIBC__ && ! defined __UCLIBC__
 

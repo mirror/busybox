@@ -52,7 +52,7 @@ static int followLinks = TRUE;
 
 extern int ln_main(int argc, char **argv)
 {
-	char *linkName, *dirName;
+	char *linkName, *dirName=NULL;
 	int linkIntoDirFlag;
 	int stopIt = FALSE;
 
