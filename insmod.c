@@ -7,11 +7,12 @@
  * and Ron Alder <alder@lineo.com>
  *
  * Modified by Bryan Rittmeyer <bryan@ixiacom.com> to support SH4
- * and (theoretically) SH3. Note that there is still no true
- * multiple architecture support. You just get SH3|SH4|i386, despite
- * the mention of ARM and m68k--which may or may not work (but
- * almost certainly do not, due to at least MATCH_MACHINE). I have
- * only tested SH4 in little endian mode.
+ * and (theoretically) SH3. I have only tested SH4 in little endian mode.
+ *
+ * Modified by Alcove, Julien Gaulmin <julien.gaulmin@alcove.fr> and
+ * Nicolas Ferre <nicolas.ferre@alcove.fr> to support ARM7TDMI.  Only
+ * very minor changes required to also work with StrongArm and presumably
+ * all ARM based systems.
  *
  * Based almost entirely on the Linux modutils-2.3.11 implementation.
  *   Copyright 1996, 1997 Linux International.
@@ -77,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.29 2000/12/01 02:55:13 kraai Exp $"
+#ident "$Id: insmod.c,v 1.30 2000/12/06 18:18:26 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -283,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.29 2000/12/01 02:55:13 kraai Exp $"
+#ident "$Id: insmod.c,v 1.30 2000/12/06 18:18:26 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -317,12 +318,17 @@ int delete_module(const char *);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 
-#else
+#elif defined(__arm__)
 
-/* presumably we can use these for anything but the SH */
+#define MATCH_MACHINE(x) (x == EM_ARM)
+#define SHT_RELM	SHT_REL
+#define Elf32_RelM	Elf32_Rel
+
+#elif defined(__i386__)
+
+/* presumably we can use these for anything but the SH and ARM*/
 /* this is the previous behavior, but it does result in
    insmod.c being broken on anything except i386 */
-
 #ifndef EM_486
 #define MATCH_MACHINE(x)  (x == EM_386)
 #else
@@ -332,6 +338,8 @@ int delete_module(const char *);
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 
+#else
+#error insmod.c no platform specified
 #endif
 
 #ifndef ElfW
@@ -531,6 +539,17 @@ int flag_export = 1;
    and we can't support anything else right now anyway. In the
    future maybe they should be #if defined'd */
 
+/* Done ;-) */
+
+#if defined(__arm__)
+struct arm_plt_entry
+{
+  int offset;
+  int allocated:1;
+  int inited:1;                /* has been set up */
+};
+#endif
+
 struct arch_got_entry {
 	int offset;
 	unsigned offset_done:1;
@@ -539,11 +558,17 @@ struct arch_got_entry {
 
 struct arch_file {
 	struct obj_file root;
+#if defined(__arm__)
+    struct obj_section *plt;
+#endif
 	struct obj_section *got;
 };
 
 struct arch_symbol {
 	struct obj_symbol root;
+#if defined(__arm__)
+    struct arm_plt_entry pltent;
+#endif
 	struct arch_got_entry gotent;
 };
 
@@ -590,6 +615,10 @@ extern int delete_module(const char *);
 
    -- Bryan Rittmeyer <bryan@ixiacom.com>                    */
 
+#ifdef BB_FEATURE_INSMOD_OLD_KERNEL
+_syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks)
+#endif
+
 #if defined(__i386__) || defined(__m68k__) || defined(__arm__)
 /* Jump through hoops to fixup error return codes */
 #define __NR__create_module  __NR_create_module
@@ -623,7 +652,7 @@ static int findNamedModule(const char *fileName, struct stat *statbuf,
 	if (fullName[0] == '\0')
 		return (FALSE);
 	else {
-		char *tmp = strrchr(fileName, '/');
+		char *tmp = strrchr((char *) fileName, '/');
 
 		if (tmp == NULL)
 			tmp = (char *) fileName;
@@ -667,18 +696,20 @@ arch_apply_relocation(struct obj_file *f,
 					  struct obj_section *targsec,
 					  struct obj_section *symsec,
 					  struct obj_symbol *sym,
-#if defined(__sh__)
-		                          Elf32_Rela * rel, Elf32_Addr v)
-#else
-					  Elf32_Rel * rel, Elf32_Addr v)
-#endif
+				      ElfW(RelM) *rel, ElfW(Addr) v)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
 	struct arch_symbol *isym = (struct arch_symbol *) sym;
 
-	Elf32_Addr *loc = (Elf32_Addr *) (targsec->contents + rel->r_offset);
-	Elf32_Addr dot = targsec->header.sh_addr + rel->r_offset;
-	Elf32_Addr got = ifile->got ? ifile->got->header.sh_addr : 0;
+	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
+	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
+	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
+#if defined(__arm__)
+	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
+
+	struct arm_plt_entry *pe;
+	unsigned long *ip;
+#endif
 
 	enum obj_reloc ret = obj_reloc_ok;
 
@@ -689,52 +720,91 @@ arch_apply_relocation(struct obj_file *f,
    and in case that ever changes */
 #if defined(__sh__)
 	case R_SH_NONE:
-#else
+#elif defined(__arm__)
+	case R_ARM_NONE:
+#elif defined(__i386__)
 	case R_386_NONE:
 #endif
 		break;
 
 #if defined(__sh__)
 	case R_SH_DIR32:
-#else
+#elif defined(__arm__)
+	case R_ARM_ABS32:
+#elif defined(__i386__)
 	case R_386_32:
 #endif
 		*loc += v;
 		break;
 
-#if defined(__sh__)
+#if defined(__arm__)
+#elif defined(__sh__)
         case R_SH_REL32:
-#else
-	case R_386_PLT32:
-	case R_386_PC32:
-#endif
 		*loc += v - dot;
 		break;
+#elif defined(__i386__)
+	case R_386_PLT32:
+	case R_386_PC32:
+		*loc += v - dot;
+		break;
+#endif
 
 #if defined(__sh__)
         case R_SH_PLT32:
                 *loc = v - dot;
                 break;
+#elif defined(__arm__)
+    case R_ARM_PC24:
+    case R_ARM_PLT32:
+      /* find the plt entry and initialize it if necessary */
+      assert(isym != NULL);
+      pe = (struct arm_plt_entry*) &isym->pltent;
+      if (! pe->inited) {
+	  	ip = (unsigned long *) (ifile->plt->contents + pe->offset);
+	  	ip[0] = 0xe51ff004;			/* ldr pc,[pc,#-4] */
+	  	ip[1] = v;				/* sym@ */
+	  	pe->inited = 1;
+	  }
+
+      /* relative distance to target */
+      v -= dot;
+      /* if the target is too far away.... */
+      if ((int)v < -0x02000000 || (int)v >= 0x02000000) {
+	    /* go via the plt */
+	    v = plt + pe->offset - dot;
+	  }
+      if (v & 3)
+	    ret = obj_reloc_dangerous;
+
+      /* Convert to words. */
+      v >>= 2;
+
+      /* merge the offset into the instruction. */
+      *loc = (*loc & ~0x00ffffff) | ((v + *loc) & 0x00ffffff);
+      break;
+#elif defined(__i386__)
 #endif
 
 
-#if defined(__sh__)
+#if defined(__arm__)
+#elif defined(__sh__)
         case R_SH_GLOB_DAT:
         case R_SH_JMP_SLOT:
                	*loc = v;
                 break;
-#else
+#elif defined(__i386__)
 	case R_386_GLOB_DAT:
 	case R_386_JMP_SLOT:
 		*loc = v;
 		break;
 #endif
 
-#if defined(__sh__)
+#if defined(__arm__)
+#elif defined(__sh__)
         case R_SH_RELATIVE:
 	        *loc += f->baseaddr + rel->r_addend;
                 break;
-#else
+#elif defined(__i386__)
         case R_386_RELATIVE:
 		*loc += f->baseaddr;
 		break;
@@ -742,41 +812,46 @@ arch_apply_relocation(struct obj_file *f,
 
 #if defined(__sh__)
         case R_SH_GOTPC:
-		assert(got != 0);
-		*loc += got - dot + rel->r_addend;;
-		break;
-#else
+#elif defined(__arm__)
+    case R_ARM_GOTPC:
+#elif defined(__i386__)
 	case R_386_GOTPC:
-		assert(got != 0);
-		*loc += got - dot;
-		break;
 #endif
+		assert(got != 0);
+#if defined(__sh__)
+		*loc += got - dot + rel->r_addend;;
+#elif defined(__i386__) || defined(__arm__)
+		*loc += got - dot;
+#endif
+		break;
 
 #if defined(__sh__)
 	case R_SH_GOT32:
- 		assert(isym != NULL);
- 		if (!isym->gotent.reloc_done) {
- 			isym->gotent.reloc_done = 1;
- 			*(Elf32_Addr *) (ifile->got->contents + isym->gotent.offset) =
- 				v;
- 		}
-		*loc += isym->gotent.offset + rel->r_addend;
- 		break;
-#else
+#elif defined(__arm__)
+    case R_ARM_GOT32:
+#elif defined(__i386__)
 	case R_386_GOT32:
+#endif
 		assert(isym != NULL);
+        /* needs an entry in the .got: set it, once */
 		if (!isym->gotent.reloc_done) {
 			isym->gotent.reloc_done = 1;
-			*(Elf32_Addr *) (ifile->got->contents + isym->gotent.offset) =
-				v;
+			*(ElfW(Addr) *) (ifile->got->contents + isym->gotent.offset) = v;
 		}
+        /* make the reloc with_respect_to_.got */
+#if defined(__sh__)
+		*loc += isym->gotent.offset + rel->r_addend;
+#elif defined(__i386__) || defined(__arm__)
 		*loc += isym->gotent.offset;
-		break;
 #endif
+		break;
 
+    /* address relative to the got */
 #if defined(__sh__)
 	case R_SH_GOTOFF:
-#else
+#elif defined(__arm__)
+    case R_ARM_GOTOFF:
+#elif defined(__i386__)
 	case R_386_GOTOFF:
 #endif
 		assert(got != 0);
@@ -784,6 +859,7 @@ arch_apply_relocation(struct obj_file *f,
 		break;
 
 	default:
+        printf("Warning: unhandled reloc %d\n",ELF32_R_TYPE(rel->r_info));
 		ret = obj_reloc_unhandled;
 		break;
 	}
@@ -794,81 +870,111 @@ arch_apply_relocation(struct obj_file *f,
 int arch_create_got(struct obj_file *f)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
-	int i, n, offset = 0, gotneeded = 0;
-
-	n = ifile->root.header.e_shnum;
-	for (i = 0; i < n; ++i) {
-		struct obj_section *relsec, *symsec, *strsec;
-#if defined(__sh__)
-		Elf32_Rela *rel, *relend;
-#else
-		Elf32_Rel *rel, *relend;
+	int i, got_offset = 0, gotneeded = 0;
+#if defined(__arm__)
+	int plt_offset = 0, pltneeded = 0;
 #endif
-		Elf32_Sym *symtab;
-		const char *strtab;
+    struct obj_section *relsec, *symsec, *strsec;
+	ElfW(RelM) *rel, *relend;
+	ElfW(Sym) *symtab, *extsym;
+	const char *strtab, *name;
+	struct arch_symbol *intsym;
 
-		relsec = ifile->root.sections[i];
-		if (relsec->header.sh_type != SHT_REL)
+	for (i = 0; i < f->header.e_shnum; ++i) {
+		relsec = f->sections[i];
+		if (relsec->header.sh_type != SHT_RELM)
 			continue;
 
-		symsec = ifile->root.sections[relsec->header.sh_link];
-		strsec = ifile->root.sections[symsec->header.sh_link];
+		symsec = f->sections[relsec->header.sh_link];
+		strsec = f->sections[symsec->header.sh_link];
 
-
-#if defined(__sh__)
-		rel = (Elf32_Rela *) relsec->contents;
-		relend = rel + (relsec->header.sh_size / sizeof(Elf32_Rela));
-#else
-		rel = (Elf32_Rel *) relsec->contents;
-		relend = rel + (relsec->header.sh_size / sizeof(Elf32_Rel));
-#endif
-		symtab = (Elf32_Sym *) symsec->contents;
+		rel = (ElfW(RelM) *) relsec->contents;
+		relend = rel + (relsec->header.sh_size / sizeof(ElfW(RelM)));
+		symtab = (ElfW(Sym) *) symsec->contents;
 		strtab = (const char *) strsec->contents;
 
 		for (; rel < relend; ++rel) {
-			Elf32_Sym *extsym;
-			struct arch_symbol *intsym;
-			const char *name;
+			extsym = &symtab[ELF32_R_SYM(rel->r_info)];
 
 			switch (ELF32_R_TYPE(rel->r_info)) {
-#if defined(__sh__)
-			case R_SH_GOTPC:
-			case R_SH_GOTOFF:
-#else
-			case R_386_GOTPC:
-			case R_386_GOTOFF:
-#endif
-				gotneeded = 1;
-			default:
-				continue;
-
-#if defined(__sh__)
+#if defined(__arm__)
+			case R_ARM_GOT32:
+#elif defined(__sh__)
 			case R_SH_GOT32:
-#else
+#elif defined(__i386__)
 			case R_386_GOT32:
 #endif
 				break;
+
+#if defined(__arm__)
+			case R_ARM_PC24:
+			case R_ARM_PLT32:
+				pltneeded = 1;
+				break;
+
+			case R_ARM_GOTPC:
+			case R_ARM_GOTOFF:
+				gotneeded = 1;
+				if (got_offset == 0)
+					got_offset = 4;
+#elif defined(__sh__)
+			case R_SH_GOTPC:
+			case R_SH_GOTOFF:
+				gotneeded = 1;
+#elif defined(__i386__)
+			case R_386_GOTPC:
+			case R_386_GOTOFF:
+				gotneeded = 1;
+#endif
+
+			default:
+				continue;
 			}
 
-			extsym = &symtab[ELF32_R_SYM(rel->r_info)];
-			if (extsym->st_name)
+			if (extsym->st_name != 0) {
 				name = strtab + extsym->st_name;
-			else
+			} else {
 				name = f->sections[extsym->st_shndx]->name;
-			intsym =
-				(struct arch_symbol *) obj_find_symbol(&ifile->root, name);
+			}
+			intsym = (struct arch_symbol *) obj_find_symbol(f, name);
 
 			if (!intsym->gotent.offset_done) {
 				intsym->gotent.offset_done = 1;
-				intsym->gotent.offset = offset;
-				offset += 4;
+				intsym->gotent.offset = got_offset;
+				got_offset += 4;
+			}
+#if defined(__arm__)
+			if (pltneeded && intsym->pltent.allocated == 0) {
+				intsym->pltent.allocated = 1;
+				intsym->pltent.offset = plt_offset;
+				plt_offset += 8;
+				intsym->pltent.inited = 0;
+				pltneeded = 0;
+			}
+#endif
 			}
 		}
+
+#if defined(__arm__)
+	if (got_offset) {
+		struct obj_section* relsec = obj_find_section(f, ".got");
+
+		if (relsec) {
+			obj_extend_section(relsec, got_offset);
+		} else {
+			relsec = obj_create_alloced_section(f, ".got", 8, got_offset);
+			assert(relsec);
+		}
+
+		ifile->got = relsec;
 	}
 
-	if (offset > 0 || gotneeded)
-		ifile->got =
-			obj_create_alloced_section(&ifile->root, ".got", 4, offset);
+	if (plt_offset)
+		ifile->plt = obj_create_alloced_section(f, ".plt", 8, plt_offset);
+#else
+	if (got_offset > 0 || gotneeded)
+		ifile->got = obj_create_alloced_section(f, ".got", 4, got_offset);
+#endif
 
 	return 1;
 }
@@ -1598,7 +1704,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 						ksym->name =
 							(unsigned long) str - (unsigned long) symtab;
 
-						str = stpcpy(str, sym->name) + 1;
+						str = strcpy(str, sym->name) + 1;
 						ksym++;
 					}
 			}
@@ -2201,8 +2307,9 @@ new_init_module(const char *m_name, struct obj_file *f,
 #define new_init_module(x, y, z) TRUE
 #define new_create_this_module(x, y) 0
 #define new_create_module_ksymtab(x)
+#define query_module(v, w, x, y, z) -1
 
-#endif							/* BB_FEATURE_INSMOD_OLD_KERNEL */
+#endif							/* BB_FEATURE_INSMOD_NEW_KERNEL */
 
 
 /*======================================================================*/
@@ -2372,8 +2479,12 @@ void obj_allocate_commons(struct obj_file *f)
 	for (i = 0; i < f->header.e_shnum; ++i) {
 		struct obj_section *s = f->sections[i];
 		if (s->header.sh_type == SHT_NOBITS) {
+			if (s->header.sh_size != 0)
 			s->contents = memset(xmalloc(s->header.sh_size),
 								 0, s->header.sh_size);
+			else
+				s->contents = NULL;
+
 			s->header.sh_type = SHT_PROGBITS;
 		}
 	}

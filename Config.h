@@ -260,6 +260,12 @@
 // Support installing modules from kernel versions after 2.1.18
 #define BB_FEATURE_INSMOD_NEW_KERNEL
 //
+// You must enable one or both of these features
+// Support modules status from pre 2.1 kernels
+//#define BB_FEATURE_LSMOD_OLD_KERNEL
+// Support modules status from kernel versions after 2.1.18
+#define BB_FEATURE_LSMOD_NEW_KERNEL
+//
 // Support module version checking
 //#define BB_FEATURE_INSMOD_VERSION_CHECKING
 //

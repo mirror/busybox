@@ -3,9 +3,12 @@
 	* Matt Kraai -- fix all usage of TRUE and FALSE so all apps now
 	    return EXIT_SUCCESS or EXIT_FAILURE to the system.
 	    Now TRUE and FALSE are set to the C standard where TRUE=1.
-	* Fixed uname problem causing the kernel version to be
+	* me -- Fixed uname problem causing the kernel version to be
 	    mis-detected (causing problems with poweroff, init,
 	    and other things).  
+	* Alcove, Julien Gaulmin <julien.gaulmin@alcove.fr> and 
+	    Nicolas Ferre <nicolas.ferre@alcove.fr> -- insmod support on ARM 
+	    and StrongArm, and suport for lsmod on older 2.0.x kernels.
 	* Kent Robotti -- Renamed unrpm to original rpmunpack, so you can use 
 	    an included shell script called unrpm as a front end to it.  There's
 	    also a shell script called undeb included for debian packages.  
