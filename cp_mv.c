@@ -105,7 +105,7 @@ fill_baseDest_buf(char *_buf, size_t * _buflen) {
 }
 
 static int
-cp_mv_Action(const char *fileName, struct stat *statbuf)
+cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 {
 	char		destName[PATH_MAX + 1];
 	size_t		destLen;
@@ -165,7 +165,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf)
 }
 
 static int
-rm_Action(const char *fileName, struct stat *statbuf)
+rm_Action(const char *fileName, struct stat *statbuf, void* junk)
 {
 	int status = TRUE;
 
@@ -310,11 +310,11 @@ extern int cp_mv_main(int argc, char **argv)
 			mv_Action_first_time = 1;
 			if (recursiveAction(baseSrcName,
 								recursiveFlag, followLinks, FALSE,
-								cp_mv_Action, cp_mv_Action) == FALSE) goto exit_false;
+								cp_mv_Action, cp_mv_Action, NULL) == FALSE) goto exit_false;
 			if (dz_i == is_mv &&
 				recursiveAction(baseSrcName,
 								recursiveFlag, followLinks, TRUE,
-								rm_Action, rm_Action) == FALSE) goto exit_false;
+								rm_Action, rm_Action, NULL) == FALSE) goto exit_false;
 		}		
 		if (flags_memo)
 			*(baseDestName + baseDestLen) = '\0';

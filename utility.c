@@ -542,9 +542,12 @@ int fullRead(int fd, char *buf, int len)
 int recursiveAction(const char *fileName,
 					int recurse, int followLinks, int depthFirst,
 					int (*fileAction) (const char *fileName,
-									   struct stat * statbuf),
+									   struct stat * statbuf,
+									   void* userData),
 					int (*dirAction) (const char *fileName,
-									  struct stat * statbuf))
+									  struct stat * statbuf,
+									  void* userData),
+					void* userData)
 {
 	int status;
 	struct stat statbuf;
@@ -569,13 +572,13 @@ int recursiveAction(const char *fileName,
 		if (fileAction == NULL)
 			return TRUE;
 		else
-			return fileAction(fileName, &statbuf);
+			return fileAction(fileName, &statbuf, userData);
 	}
 
 	if (recurse == FALSE) {
 		if (S_ISDIR(statbuf.st_mode)) {
 			if (dirAction != NULL)
-				return (dirAction(fileName, &statbuf));
+				return (dirAction(fileName, &statbuf, userData));
 			else
 				return TRUE;
 		}
@@ -590,7 +593,7 @@ int recursiveAction(const char *fileName,
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == FALSE) {
-			status = dirAction(fileName, &statbuf);
+			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
 				perror(fileName);
 				return FALSE;
@@ -610,7 +613,7 @@ int recursiveAction(const char *fileName,
 			sprintf(nextFile, "%s/%s", fileName, next->d_name);
 			status =
 				recursiveAction(nextFile, TRUE, followLinks, depthFirst,
-								fileAction, dirAction);
+								fileAction, dirAction, userData);
 			if (status < 0) {
 				closedir(dir);
 				return FALSE;
@@ -622,7 +625,7 @@ int recursiveAction(const char *fileName,
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == TRUE) {
-			status = dirAction(fileName, &statbuf);
+			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
 				perror(fileName);
 				return FALSE;
@@ -632,7 +635,7 @@ int recursiveAction(const char *fileName,
 		if (fileAction == NULL)
 			return TRUE;
 		else
-			return fileAction(fileName, &statbuf);
+			return fileAction(fileName, &statbuf, userData);
 	}
 	return TRUE;
 }
@@ -1513,19 +1516,6 @@ extern int find_real_root_device_name(char* name)
 }
 #endif
 
-
-#if defined BB_MTAB
-#define whine_if_fstab_is_missing() {}
-#else
-extern void whine_if_fstab_is_missing()
-{
-	struct stat statBuf;
-
-	if (stat("/etc/fstab", &statBuf) < 0)
-		fprintf(stderr,
-				"/etc/fstab file missing -- install one to name /dev/root.\n\n");
-}
-#endif
 
 /* END CODE */
 /*

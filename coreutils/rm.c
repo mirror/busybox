@@ -42,7 +42,7 @@ static int forceFlag = FALSE;
 static const char *srcName;
 
 
-static int fileAction(const char *fileName, struct stat *statbuf)
+static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (unlink(fileName) < 0) {
 		perror(fileName);
@@ -51,7 +51,7 @@ static int fileAction(const char *fileName, struct stat *statbuf)
 	return (TRUE);
 }
 
-static int dirAction(const char *fileName, struct stat *statbuf)
+static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (rmdir(fileName) < 0) {
 		perror(fileName);
@@ -95,7 +95,7 @@ extern int rm_main(int argc, char **argv)
 			/* do not reports errors for non-existent files if -f, just skip them */
 		} else {
 			if (recursiveAction(srcName, recursiveFlag, FALSE,
-								TRUE, fileAction, dirAction) == FALSE) {
+								TRUE, fileAction, dirAction, NULL) == FALSE) {
 				exit(FALSE);
 			}
 		}

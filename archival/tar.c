@@ -228,6 +228,7 @@ extern int tar_main(int argc, char **argv)
 
 		case 'O':
 			tostdoutFlag = TRUE;
+			tarName = "-";
 			break;
 
 		case '-':
@@ -439,7 +440,7 @@ static long getOctal(const char *cp, int size)
 
 /* Parse the tar header and fill in the nice struct with the details */
 static int
-parseTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
+readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 {
 	int i;
 	long chksum, sum;
@@ -502,7 +503,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	while ( (status = fullRead(tarFd, (char*)&rawHeader, TAR_BLOCK_SIZE)) == TAR_BLOCK_SIZE ) {
 
 		/* First, try to read the header */
-		if ( parseTarHeader(&rawHeader, &header) == FALSE ) {
+		if ( readTarHeader(&rawHeader, &header) == FALSE ) {
 			close( tarFd);
 			if ( *(header.name) == '\0' ) {
 				goto endgame;
@@ -661,25 +662,80 @@ static int putOctal (char *cp, int len, long value)
 	return TRUE;
 }
 
-static int fileAction(const char *fileName, struct stat *statbuf)
+/* Write out a tar header for the specified file */
+static int
+writeTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 {
-	fprintf(stdout, "%s\n", fileName);
+	int i;
+	long chksum, sum;
+	unsigned char *s = (unsigned char *)rawHeader;
+
+	struct TarHeader header;
+
+	strcpy(header.name, fileName); 
+	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode & 0777);
+	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
+	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
+	putOctal(header.size, sizeof(header.size), statbuf->st_size);
+	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
+
+	if (S_ISLNK(statbuf.st_mode)) {
+		header.type  = LNKTYPE;
+		// Handle SYMTYPE
+	} else if (S_ISDIR(statbuf.st_mode)) {
+		header.type  = DIRTYPE;
+	} else if (S_ISCHR(statbuf.st_mode)) {
+		header.type  = CHRTYPE;
+	} else if (S_ISBLK(statbuf.st_mode)) {
+		header.type  = BLKTYPE;
+	} else if (S_ISFIFO(statbuf.st_mode)) {
+		header.type  = FIFOTYPE;
+	} else if (S_ISSOCK(statbuf.st_mode)) {
+		header.type  = S_ISSOCK;
+	} else if (S_ISLNK(statbuf.st_mode)) {
+		header.type  = LNKTYPE;
+	} else if (S_ISLNK(statbuf.st_mode)) {
+		header.type  = REGTYPE;
+	}
+#if 0	
+	header->linkname  = rawHeader->linkname;
+	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
+	header->devminor  = getOctal(rawHeader->devminor, sizeof(rawHeader->devminor));
+
+	/* Write out the checksum */
+	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
+#endif
+
+	return ( TRUE);
+}
+
+
+static int fileAction(const char *fileName, struct stat *statbuf, void* userData)
+{
+	int *tarFd=(int*)userData;
+	dprintf(*tarFd, "%s\n", fileName);
 	return (TRUE);
 }
 
 static int writeTarFile(const char* tarName, int extractFlag, int listFlag, 
 		int tostdoutFlag, int verboseFlag, int argc, char **argv)
 {
-	int tarFd=0;
+	int tarFd=-1;
 	//int errorFlag=FALSE;
 	//TarHeader rawHeader;
 	//TarInfo header;
 	//int alreadyWarned=FALSE;
-	char *directory = ".";
 	//int skipFileFlag=FALSE;
+	struct stat tarballStat;
+	dev_t tarDev = 0;
+	ino_t tarInode = 0;
+
+	/* Make sure there is at least one file to tar up.  */
+	if (argc <= 0)
+		fatalError("tar: Cowardly refusing to create an empty archive\n");
 
 	/* Open the tar file for writing.  */
-	if (!strcmp(tarName, "-"))
+	if (tostdoutFlag == TRUE)
 		tarFd = fileno(stdout);
 	else
 		tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -687,19 +743,25 @@ static int writeTarFile(const char* tarName, int extractFlag, int listFlag,
 		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
+	/* Store the device and inode of the tarball, so we can be sure
+	 * not to try and include it into itself....  */
+	if (fstat(tarFd, &tarballStat) < 0)
+		fatalError(io_error, tarName, strerror(errno)); 
+	tarDev = tarballStat.st_dev;
+	tarInode = tarballStat.st_ino;
 
 	/* Set the umask for this process so it doesn't 
 	 * screw up permission setting for us later. */
 	umask(0);
 
 	/* Read the directory/files and iterate over them one at a time */
-	if (recursiveAction(directory, TRUE, FALSE, FALSE,
-						fileAction, fileAction) == FALSE) {
-		exit(FALSE);
+	while (argc-- > 0) {
+		if (recursiveAction(*argv++, TRUE, FALSE, FALSE,
+					fileAction, fileAction, (void*) &tarFd) == FALSE) {
+			exit(FALSE);
+		}
 	}
 
-
-	// TODO: DO STUFF HERE
 	close(tarFd);
 	return( TRUE);
 }

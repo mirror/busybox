@@ -191,8 +191,9 @@ void freeChunks(void);
 int fullWrite(int fd, const char *buf, int len);
 int fullRead(int fd, char *buf, int len);
 int recursiveAction(const char *fileName, int recurse, int followLinks, int depthFirst,
-	  int (*fileAction) (const char *fileName, struct stat* statbuf),
-	  int (*dirAction) (const char *fileName, struct stat* statbuf));
+	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
+	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
+	  void* userData);
 const char* timeString(time_t timeVal);
 
 extern int createPath (const char *name, int mode);
@@ -227,8 +228,6 @@ extern void cmdedit_init(void);
 #if defined BB_INIT || defined BB_SYSLOGD
 extern int device_open(char *device, int mode);
 #endif
-extern void whine_if_fstab_is_missing();
-
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device);
 extern int set_loop(const char *device, const char *file, int offset, int *loopro);

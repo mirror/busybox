@@ -60,7 +60,7 @@ static const char chmod_usage[] =
 	"\nOptions:\n\t-R\tchange files and directories recursively.\n";
 
 
-static int fileAction(const char *fileName, struct stat *statbuf)
+static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	switch (whichApp) {
 	case CHGRP_APP:
@@ -169,9 +169,8 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 		fatalError( "%s: too few arguments\n", invocationName);
 	}
 	while (argc-- > 1) {
-		if (recursiveAction
-			(*(++argv), recursiveFlag, TRUE, FALSE, fileAction,
-			 fileAction) == FALSE)
+		if (recursiveAction (*(++argv), recursiveFlag, TRUE, FALSE, 
+					fileAction, fileAction, NULL) == FALSE)
 			exit(FALSE);
 	}
 	exit(TRUE);

@@ -42,7 +42,7 @@ static const char find_usage[] = "find [PATH...] [EXPRESSION]\n\n"
 	"\t-print\n\t\tprint the full file name followed by a newline to stdout.\n";
 
 
-static int fileAction(const char *fileName, struct stat *statbuf)
+static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (pattern == NULL)
 		fprintf(stdout, "%s\n", fileName);
@@ -109,7 +109,7 @@ int find_main(int argc, char **argv)
 	}
 
 	if (recursiveAction(directory, TRUE, FALSE, FALSE,
-						fileAction, fileAction) == FALSE) {
+						fileAction, fileAction, NULL) == FALSE) {
 		exit(FALSE);
 	}
 
