@@ -1636,7 +1636,7 @@ extern int find_real_root_device_name(char* name)
 		if (strcmp(entry->d_name, "..") == 0)
 			continue;
 
-		sprintf( fileName, "/dev/%s", entry->d_name);
+		snprintf( fileName, strlen(name)+1, "/dev/%s", entry->d_name);
 
 		if (stat(fileName, &statBuf) != 0)
 			continue;
