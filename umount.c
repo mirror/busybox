@@ -69,7 +69,7 @@ umount_main(int argc, char * * argv)
 
     if (argc < 2) {
 	fprintf(stderr, "Usage: %s", umount_usage);
-	return(FALSE);
+	exit(FALSE);
     }
     argc--;
     argv++;
@@ -78,7 +78,7 @@ umount_main(int argc, char * * argv)
     while (**argv == '-') {
 	while (*++(*argv)) switch (**argv) {
 	    case 'a':
-		return umount_all();
+		exit ( umount_all() );
 		break;
 	    default:
 		fprintf(stderr, "Usage: %s\n", umount_usage);
@@ -86,10 +86,10 @@ umount_main(int argc, char * * argv)
 	}
     }
     if ( umount(*argv) == 0 )
-	    return (TRUE);
+	     exit (TRUE);
     else {
 	perror("umount");
-	return( FALSE);
+	exit( FALSE);
     }
 }
 

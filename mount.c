@@ -190,7 +190,7 @@ extern int mount_main (int argc, char **argv)
 	    }
 	    endmntent (mountTable);
 	}
-	return( TRUE);
+	exit( TRUE);
     }
 
 
@@ -203,7 +203,7 @@ extern int mount_main (int argc, char **argv)
 	    case 'o':
 		if (--i == 0) {
 		    fprintf (stderr, "%s\n", mount_usage);
-		    return( FALSE);
+		    exit( FALSE);
 		}
 		parse_mount_options (*(++argv), &flags, string_flags);
 		--i;
@@ -215,7 +215,7 @@ extern int mount_main (int argc, char **argv)
 	    case 't':
 		if (--i == 0) {
 		    fprintf (stderr, "%s\n", mount_usage);
-		    return( FALSE);
+		    exit( FALSE);
 		}
 		filesystemType = *(++argv);
 		--i;
@@ -231,7 +231,7 @@ extern int mount_main (int argc, char **argv)
 	    case 'h':
 	    case '-':
 		fprintf (stderr, "%s\n", mount_usage);
-		return( TRUE);
+		exit( TRUE);
 		break;
 	    }
 	} else {
@@ -241,7 +241,7 @@ extern int mount_main (int argc, char **argv)
 		directory=*argv;
 	    else {
 		fprintf (stderr, "%s\n", mount_usage);
-		return( TRUE);
+		exit( TRUE);
 	    }
 	}
 	i--;
@@ -254,7 +254,7 @@ extern int mount_main (int argc, char **argv)
 
 	if (f == NULL) {
 	    perror("/etc/fstab");
-	    return( FALSE); 
+	    exit( FALSE); 
 	}
 	while ((m = getmntent (f)) != NULL) {
 	    // If the file system isn't noauto, and isn't mounted on /, mount 
@@ -270,12 +270,12 @@ extern int mount_main (int argc, char **argv)
 	endmntent (f);
     } else {
 	if (device && directory) {
-	    return (mount_one (device, directory, filesystemType, 
+	    exit (mount_one (device, directory, filesystemType, 
 			flags, string_flags));
 	} else {
 	    fprintf (stderr, "%s\n", mount_usage);
-	    return( FALSE);
+	    exit( FALSE);
 	}
     }
-    return( TRUE);
+    exit( TRUE);
 }

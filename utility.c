@@ -58,9 +58,8 @@ int isDirectory(const char *name)
  * be set.)
  */
 int
-copyFile(
-	 const char *srcName,
-	 const char *destName, int setModes, int followLinks)
+copyFile( const char *srcName, const char *destName, 
+	 int setModes, int followLinks)
 {
     int rfd;
     int wfd;
@@ -75,7 +74,6 @@ copyFile(
 	result = stat(srcName, &srcStatBuf);
     else 
 	result = lstat(srcName, &srcStatBuf);
-
     if (result < 0) {
 	perror(srcName);
 	return FALSE;
@@ -115,7 +113,8 @@ copyFile(
 	    return (FALSE);
 	}
 	link_val[link_size] = '\0';
-	if (symlink(link_val, destName)) {
+	link_size = symlink(link_val, destName);
+	if (link_size != 0) {
 	    perror(destName);
 	    return (FALSE);
 	}
@@ -179,7 +178,6 @@ copyFile(
 
 
   error_exit:
-    //fprintf(stderr, "choking on %s\n", destName);
     perror(destName);
     close(rfd);
     close(wfd);
@@ -476,10 +474,11 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
     struct stat statbuf;
     struct dirent *next;
 
-    if (followLinks)
-	status = lstat(fileName, &statbuf);
-    else
+    if (followLinks == FALSE)
 	status = stat(fileName, &statbuf);
+    else
+	status = lstat(fileName, &statbuf);
+
     if (status < 0) {
 	perror(fileName);
 	return (FALSE);
@@ -487,16 +486,11 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 
     if (recurse == FALSE) {
 	if (S_ISDIR(statbuf.st_mode)) {
-	    if (dirAction == NULL)
-		return (TRUE);
-	    else
+	    if (dirAction != NULL)
 		return (dirAction(fileName));
-	} else {
-	    if (fileAction == NULL)
-		return (TRUE);
 	    else
-		return (fileAction(fileName));
-	}
+		return (TRUE);
+	} 
     }
 
     if (S_ISDIR(statbuf.st_mode)) {

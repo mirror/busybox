@@ -40,13 +40,14 @@ static int followLinks = FALSE;
 static int preserveFlag = FALSE;
 static const char *srcName;
 static const char *destName;
+static const char *skipName;
 
 
 static int fileAction(const char *fileName)
 {
     char newdestName[NAME_MAX];
     strcpy(newdestName, destName);
-    strcat(newdestName, fileName+(strlen(srcName)));
+    strcat(newdestName, strstr(fileName, skipName));
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
 }
 
@@ -98,10 +99,13 @@ extern int cp_main(int argc, char **argv)
 	exit (FALSE);
     }
 
-    while (argc-- >= 2) {
+    while (argc-- > 1) {
 	srcName = *(argv++);
-	exit( recursiveAction(srcName, recursiveFlag, followLinks,
-			       fileAction, fileAction));
+	skipName = strrchr(srcName, '/');
+	if (skipName) skipName++;
+	if (recursiveAction(srcName, recursiveFlag, followLinks,
+			       fileAction, fileAction) == FALSE)
+	    exit( FALSE);
     }
     exit( TRUE);
 }

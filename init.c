@@ -66,11 +66,8 @@ waitfor(int pid)
 }
 
 static int
-run(
- const char *			program
-,const char * const *	arguments
-,const char *			terminal
-,int					get_enter)
+run(const char* program, const char* const* arguments, 
+	const char* terminal, int get_enter)
 {
 	static const char	control_characters[] = {
 		'\003',
@@ -137,7 +134,8 @@ run(
 			 * before the user wants it. This is critical if swap is not
 			 * enabled and the system has low memory. Generally this will
 			 * be run on the second virtual console, and the first will
-			 * be allowed to start a shell or the installation system.
+			 * be allowed to start a shell or whatever an init script 
+			 * specifies.
 			 */
 			char	c;
 			write(1, press_enter, sizeof(press_enter) - 1);
@@ -246,26 +244,49 @@ exit_signal(int sig)
 }
 
 void
-configure_terminals( int serial_cons );
+configure_terminals( int serial_cons )
+{
+	//struct stat statbuf;
+	char *tty;
+
+	switch (serial_cons) {
+	case 1:
+		strcpy( console, "/dev/ttyS0" );
+		break;
+	case 2:
+		strcpy( console, "/dev/ttyS1" );
+		break;
+	default:
+		tty = ttyname(0);
+		if (tty) {
+			strcpy( console, tty );
+			if (!strncmp( tty, "/dev/ttyS", 9 ))
+				serial_cons=1;
+		}
+		else
+			/* falls back to /dev/tty1 if an error occurs */
+			strcpy( console, default_console );
+	}
+	if (!first_terminal)
+		first_terminal = console;
+	if (serial_cons && !strncmp(term_ptr,"TERM=linux",10))
+		term_ptr = "TERM=vt100";
+}
 
 extern int
 init_main(int argc, char * * argv)
 {
-	static const char * const	rc = "etc/rc";
-	const char *				arguments[100];
-	int							run_rc = 1;
-	int							j;
-	int							pid1 = 0;
-	int							pid2 = 0;
-	int							create_swap= -1;
-	struct stat					statbuf;
-#ifndef INCLUDE_DINSTALL
-	const char *				tty_commands[2] = { "bin/sh", "bin/sh"};
-#else
-	const char *				tty_commands[2] = { "sbin/dinstall", "bin/sh"};
-#endif
-	char						swap[20];
-	int							serial_console = 0;
+	static const char* const    rc = "etc/rc";
+	const char *		    arguments[100];
+	int			    run_rc = 1;
+	int			    j;
+	int			    pid1 = 0;
+	int			    pid2 = 0;
+	int			    create_swap= -1;
+	struct stat		    statbuf;
+	const char *		    tty_commands[2] = { "bin/sh", "bin/sh"};
+	char			    swap[20];
+	int			    serial_console = 0;
 
 	/*
 	 * If I am started as /linuxrc instead of /sbin/init, I don't have the
@@ -330,17 +351,13 @@ init_main(int argc, char * * argv)
 
 	set_free_pages();
 
-	if (mem_total() < 3500) { /* not enough memory for standard install */
+	/* not enough memory to do anything useful*/
+	if (mem_total() < 2000) { 
 	  int retval;
 	  retval= stat("/etc/swappartition",&statbuf);
 	  if (retval) {
-	    printf("
-You do not have enough RAM, hence you must boot using the Boot Disk
-for Low Memory systems.
-
-Read the instructions in the install.html file.
-");
-	    while (1) {;}
+	    printf("You do not have enough RAM, sorry.\n");
+	    while (1) { sleep(1);}
 	  } else { /* everything OK */
 	    FILE *f;
 
@@ -371,8 +388,13 @@ Read the instructions in the install.html file.
 	arguments[j] = 0;
 
 	if ( run_rc ) {
-		printf("running %s\n",rc);
+		printf("running %s with args \"",rc);
+		for ( j = 0; j < argc; j++ ) {
+			printf("%s ", arguments[j]);
+		}
+		printf("\" on console %s\n", console);
 		waitfor(run(rc, arguments, console, 0));
+		printf("done.\n");
 	}
 
 	if ( 0 == create_swap) {
@@ -392,10 +414,21 @@ Read the instructions in the install.html file.
 			/*
 			 arguments[0] = tty_commands[0];
 			 */
-			pid1 = run(tty_commands[0], arguments, first_terminal, 0);
+			    printf("running %s with args \"",tty_commands[0]);
+			    for ( j = 0; j < argc; j++ ) {
+				    printf("%s ", arguments[j]);
+			    }
+			    printf("\" on console %s\n", first_terminal);
+			pid1 = run(tty_commands[0], arguments, first_terminal, 1);
 		}
-		if ( pid2 == 0 && tty_commands[1] )
+		if ( pid2 == 0 && tty_commands[1] ) {
+			    printf("running %s with args \"",tty_commands[0]);
+			    for ( j = 0; j < argc; j++ ) {
+				    printf("%s ", arguments[j]);
+			    }
+			    printf("\" on console %s\n", first_terminal);
 			pid2 = run(tty_commands[1], arguments, second_terminal, 1);
+		}
 		wpid = wait(&status);
 		if ( wpid > 0 ) {
 			/* DEBUGGING */
@@ -409,32 +442,3 @@ Read the instructions in the install.html file.
 	}
 }
 
-void
-configure_terminals( int serial_cons )
-{
-	//struct stat statbuf;
-	char *tty;
-
-	switch (serial_cons) {
-	case 1:
-		strcpy( console, "/dev/ttyS0" );
-		break;
-	case 2:
-		strcpy( console, "/dev/ttyS1" );
-		break;
-	default:
-		tty = ttyname(0);
-		if (tty) {
-			strcpy( console, tty );
-			if (!strncmp( tty, "/dev/ttyS", 9 ))
-				serial_cons=1;
-		}
-		else
-			/* falls back to /dev/tty1 if an error occurs */
-			strcpy( console, default_console );
-	}
-	if (!first_terminal)
-		first_terminal = console;
-	if (serial_cons && !strncmp(term_ptr,"TERM=linux",10))
-		term_ptr = "TERM=vt100";
-}

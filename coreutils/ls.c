@@ -179,15 +179,13 @@ int ls_main(int argc, char **argv)
 #define FEATURE_AUTOWIDTH	/* calculate terminal & column widths */
 #define FEATURE_FILETYPECHAR	/* enable -p and -F */
 
-#undef	OP_BUF_SIZE	1024	/* leave undefined for unbuffered output */
-
 #define TERMINAL_WIDTH	80	/* use 79 if your terminal has linefold bug */
 #define	COLUMN_WIDTH	14	/* default if AUTOWIDTH not defined */
 #define COLUMN_GAP	2	/* includes the file type char, if present */
+#define HAS_REWINDDIR
 
 /************************************************************************/
 
-#define HAS_REWINDDIR
 
 #if 1 /* FIXME libc 6 */
 # include <linux/types.h> 
