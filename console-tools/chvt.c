@@ -36,12 +36,12 @@ int chvt_main(int argc, char **argv)
 {
 	int fd, num;
 
-	if ((argc != 2) || (**(argv + 1) == '-')) {
+	if (argc != 2) {
 		bb_show_usage();
 	}
 
 	fd = get_console_fd();
-	num = atoi(argv[1]);
+	num =  bb_xgetlarg(argv[1], 10, 0, INT_MAX);
 	if (ioctl(fd, VT_ACTIVATE, num)) {
 		bb_perror_msg_and_die("VT_ACTIVATE");
 	}
