@@ -13,11 +13,15 @@
  * from util-linux -- adapted for busybox by 
  * Erik Andersen <andersee@debian.org>. I ripped out Native Language 
  * Support, replaced getopt, added some gotos for redundant stuff.
+ *
+ * Audited and cleaned up on 7 March 2003 to reduce size of
+ * check error handling by Erik Andersen <andersee@debian.org>
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <errno.h>
 
 #if __GNU_LIBRARY__ < 5
 # ifdef __alpha__
@@ -32,34 +36,31 @@
 int dmesg_main(int argc, char **argv)
 {
 	char *buf;
-	int c;
 	int bufsize = 8196;
-	int i;
-	int n;
+	int i, n;
 	int level = 0;
 	int lastc;
 	int cmd = 3;
 
-	while ((c = getopt(argc, argv, "cn:s:")) != EOF) {
-		switch (c) {
-		case 'c':
-			cmd = 4;
-			break;
-		case 'n':
-			cmd = 8;
-			if (optarg == NULL)
+	while ((i = getopt(argc, argv, "cn:s:")) != EOF) {
+		switch (i) {
+			case 'c':
+				cmd = 4;
+				break;
+			case 'n':
+				cmd = 8;
+				level = bb_xgetlarg(optarg, 10, 0, 10);
+				break;
+			case 's':
+				/* I think a 512k max kernel ring buffer is big enough for
+				 * anybody, as the default is 16k...  Could be wrong though.
+				 * If so I'm sure I'll hear about it by the enraged masses*/
+				bufsize = bb_xgetlarg(optarg, 10, 4096, 512*1024);
+				break;
+			default:
 				show_usage();
-			level = atoi(optarg);
-			break;
-		case 's':
-			if (optarg == NULL)
-				show_usage();
-			bufsize = atoi(optarg);
-			break;
-		default:
-			show_usage();
 		}
-	}			
+	}
 
 	if (optind < argc) {
 		show_usage();
@@ -67,15 +68,13 @@ int dmesg_main(int argc, char **argv)
 
 	if (cmd == 8) {
 		if (klogctl(cmd, NULL, level) < 0)
-			perror_msg_and_die("klogctl");
-		return EXIT_SUCCESS;
+			goto die_the_death;
+		goto all_done;
 	}
 
-	if (bufsize < 4096)
-		bufsize = 4096;
-	buf = (char *) xmalloc(bufsize);
+	buf = xmalloc(bufsize);
 	if ((n = klogctl(cmd, buf, bufsize)) < 0)
-		perror_msg_and_die("klogctl");
+		goto die_the_death;
 
 	lastc = '\n';
 	for (i = 0; i < n; i++) {
@@ -91,5 +90,13 @@ int dmesg_main(int argc, char **argv)
 	}
 	if (lastc != '\n')
 		putchar('\n');
+all_done:
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	if (buf) {
+		free(buf);
+	}
+#endif
 	return EXIT_SUCCESS;
+die_the_death:
+	perror_msg_and_die("klogctl");
 }
