@@ -110,7 +110,7 @@ config CONFIG_FEATURE_SHADOWPASSWDS
 	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
 	help
 	  Build support for shadow password in /etc/shadow.  This file is only
-	  only readable by root and thus the encrypted passwords are no longer
+	  readable by root and thus the encrypted passwords are no longer
 	  publicly readable.
 
 config CONFIG_USE_BB_SHADOW
