@@ -370,9 +370,12 @@ static int mod_strcmp ( const char *mod_path, const char *mod_name )
 		mod_ext = ".ko";
 #endif
 
-	return (strncmp(last_comp ? last_comp + 1 : mod_path,
+	last_comp = last_comp ? last_comp + 1 : mod_path;
+
+	return (strncmp(last_comp,
 					 mod_name,
 					 strlen(mod_name)) == 0 ) &&
+		   ((strcmp(last_comp + strlen (mod_name), mod_ext) == 0) || last_comp[strlen(mod_name)] == 0) &&
 		   (strcmp(mod_path + strlen(mod_path) -
 					strlen(mod_ext), mod_ext) == 0);
 }
