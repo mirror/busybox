@@ -146,8 +146,11 @@ static char **fill_envp(struct dhcpMessage *packet)
 		num_options = 0;
 	else {
 		for (i = 0; dhcp_options[i].code; i++)
-			if (get_option(packet, dhcp_options[i].code))
+			if (get_option(packet, dhcp_options[i].code)) {
 				num_options++;
+				if (dhcp_options[i].code == DHCP_SUBNET)
+					num_options++; /* for mton */
+			}
 		if (packet->siaddr) num_options++;
 		if ((temp = get_option(packet, DHCP_OPTION_OVER)))
 			over = *temp;
@@ -194,7 +197,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		/* watch out for invalid packets */
 		packet->sname[sizeof(packet->sname) - 1] = '\0';
 		asprintf(&envp[j++], "sname=%s", packet->sname);
-	}	
+	}
 	return envp;
 }
 
