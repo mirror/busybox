@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.39 2001/01/24 23:59:50 andersen Exp $"
+#ident "$Id: insmod.c,v 1.40 2001/01/25 04:11:06 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.39 2001/01/24 23:59:50 andersen Exp $"
+#ident "$Id: insmod.c,v 1.40 2001/01/25 04:11:06 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -2889,7 +2889,7 @@ extern int insmod_main( int argc, char **argv)
 #endif
 
 	/* Parse any options */
-	while ((opt = getopt(argc, argv, "fkvxL")) > 0) {
+	while ((opt = getopt(argc, argv, "fkvxLo:")) > 0) {
 		switch (opt) {
 			case 'f':			/* force loading */
 				flag_force_load = 1;
@@ -2902,6 +2902,9 @@ extern int insmod_main( int argc, char **argv)
 				break;
 			case 'x':			/* do not export externs */
 				flag_export = 0;
+				break;
+			case 'o':			/* name the output module */
+				strncpy(m_name, optarg, BUFSIZ);
 				break;
 			case 'L':			/* Stub warning */
 				/* This is needed for compatibility with modprobe.
@@ -2928,9 +2931,11 @@ extern int insmod_main( int argc, char **argv)
 
 	if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o')
 		len -= 2;
-	memcpy(m_name, tmp, len);
-	strcpy(m_fullName, m_name);
+	strncpy(m_fullName, tmp, len);
 	strcat(m_fullName, ".o");
+	if (m_name == NULL) {
+		memcpy(m_name, tmp, len);
+	}
 
 	/* Get a filedesc for the module */
 	if ((fp = fopen(argv[optind], "r")) == NULL) {
