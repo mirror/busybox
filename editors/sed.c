@@ -399,8 +399,8 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	 *            part1 part2  part3
 	 */
 
-	/* first part (if present) is an address: either a number or a /regex/ */
-	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/' || ( cmdstr[idx] == '\\' && cmdstr[idx+1] != '\\'))
+	/* first part (if present) is an address: either a '$', a number or a /regex/ */
+	if ((cmdstr[idx] == '$') || (isdigit(cmdstr[idx])) || (cmdstr[idx] == '/') || ((cmdstr[idx] == '\\') && (cmdstr[idx+1] != '\\')))
 		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
@@ -645,14 +645,23 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, char **line)
 
 static void process_file(FILE *file)
 {
-	char *line = NULL;
+	char *line;
 	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
 	int i;
 
+	line = get_line_from_file(file);
+	if (line == NULL) {
+		return;
+	}
+
 	/* go through every line in the file */
-	while ((line = get_line_from_file(file)) != NULL) {
+	do {
+		char *next_line;
+
+		/* Read one line in advance so we can act on the last line, the '$' address */
+		next_line = get_line_from_file(file);
 
 		chomp(line);
 		linenum++;
@@ -676,7 +685,7 @@ static void process_file(FILE *file)
 					/* this line matches our first address regex */
 					(sed_cmd->beg_match && (regexec(sed_cmd->beg_match, line, 0, NULL, 0) == 0)) ||
 					/* we are currently within the beginning & ending address range */
-					still_in_range
+					still_in_range || ((sed_cmd->beg_line == -1) && (next_line == NULL))
 			   );
 
 			if (sed_cmd->invert ^ matched) {
@@ -811,7 +820,8 @@ static void process_file(FILE *file)
 			puts(line);
 
 		free(line);
-	}
+		line = next_line;
+	} while (line);
 }
 
 extern int sed_main(int argc, char **argv)
