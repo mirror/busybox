@@ -108,8 +108,7 @@ extern int logread_main(int argc, char **argv)
 	i = follow ? buf->tail : buf->head;
 
 	do {
-#undef RC_LOGREAD
-#ifdef RC_LOGREAD
+#ifdef CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
 		char *buf_data;
 		int log_len,j;
 #endif
@@ -128,7 +127,7 @@ extern int logread_main(int argc, char **argv)
 		}
 	
 		// Read Memory 
-#ifdef RC_LOGREAD
+#ifdef CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
 		log_len = buf->tail - i;
 		if (log_len < 0)
 			log_len += buf->size;
@@ -155,7 +154,7 @@ extern int logread_main(int argc, char **argv)
 		// release the lock on the log chain
 		sem_up(log_semid);
 
-#ifdef RC_LOGREAD
+#ifdef CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
 		for (j=0; j < log_len; j+=strlen(buf_data+j)+1) {
 			printf("%s", buf_data+j);
 			if (follow)

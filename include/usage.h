@@ -1458,10 +1458,12 @@
 	"root\n" 
 
 #define logread_trivial_usage \
-        ""
+	"[OPTION]..."
 
 #define logread_full_usage \
-        "Shows the messages from syslogd (using circular buffer)."
+        "Shows the messages from syslogd (using circular buffer).\n\n"
+	"Options:\n" \
+	"\t-f\t\toutput data as the log grows"
 
 #define losetup_trivial_usage \
 	"[OPTION]... LOOPDEVICE FILE\n" \
@@ -2280,7 +2282,7 @@
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally and via network logging (default is network only)") \
 	USAGE_IPC_LOG( \
-	"\n\t-C\t\tLog to a circular buffer (read the buffer using logread)")
+	"\n\t-C [size(KiB)]\tLog to a circular buffer (read the buffer using logread)")
 #define syslogd_example_usage \
 	"$ syslogd -R masterlog:514\n" \
 	"$ syslogd -R 192.168.1.1:601\n"

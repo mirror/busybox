@@ -1976,6 +1976,38 @@
 		</para>
 	</sect1>
 
+	<sect1 id="logread">
+	    <title>logread</title>
+
+		<para>
+		Usage: logread [OPTION]...
+		</para>
+
+		<para>
+		Shows the messages from syslogd (using circular buffer).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f	Output data as the log grows.
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ logread
+		</screen>
+		</para>
+	</sect1>
+
 	<sect1 id="ls">
 	    <title>ls</title>
 
@@ -3110,7 +3142,7 @@
 			-O FILE	Use an alternate log file (default=/var/log/messages)
 			-R HOST[:PORT] Log remotely to IP or hostname on PORT (default PORT=514/UDP)
 			-L      Log locally as well as network logging (default is network only)
-			-C      Log to a circular buffer. Read this buffer using 'logread'
+			-C [size(KiB)] Log to a circular buffer. Read this buffer using 'logread'
 		</screen>
 		</para>
 

@@ -56,6 +56,14 @@ config CONFIG_FEATURE_IPC_SYSLOG
 	  entire filesystem, which may cause your system to
 	  break badly.
 
+config CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE
+	int "    Circular buffer size in Kbytes (minimum 4KB)"
+	default 16
+	depends on CONFIG_FEATURE_IPC_SYSLOG
+	help
+	  This option sets the size of the circular buffer
+	  used to record system log messages.
+
 config CONFIG_LOGREAD
 	bool "  logread"
 	default y
@@ -65,6 +73,17 @@ config CONFIG_LOGREAD
 	  certainly want to enable this feature as well.  This
 	  utility will allow you to read the messages that are
 	  stored in the syslogd circular buffer.
+
+config CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
+	bool "    logread double buffering"
+	default n
+	depends on CONFIG_LOGREAD
+	help
+	  'logread' ouput to slow serial terminals can have 
+	  side effects on syslog because of the semaphore.
+	  This option make logread to double buffer copy 
+	  from circular buffer, minimizing semaphore 
+	  contention at some minor memory expense.
 
 config CONFIG_KLOGD
 	bool "klogd"

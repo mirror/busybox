@@ -94,6 +94,12 @@ static int local_logging = FALSE;
 
 /* circular buffer variables/structures */
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
+
+#if CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE < 4
+#error Sorry, you must set the syslogd buffer size to at least 4KB.
+#error Please check CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE
+#endif
+
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
@@ -114,7 +120,7 @@ static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };	// set SMwdn
 
 static int shmid = -1;	// ipc shared memory id
 static int s_semid = -1;	// ipc semaphore id
-static int data_size = 16000;	// default data size
+static int shm_size = ((CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE)*1024);	// default shm size
 static int circular_logging = FALSE;
 
 /*
@@ -156,7 +162,7 @@ void ipcsyslog_cleanup(void)
 void ipcsyslog_init(void)
 {
 	if (buf == NULL) {
-		if ((shmid = shmget(KEY_ID, data_size, IPC_CREAT | 1023)) == -1) {
+		if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1) {
 			bb_perror_msg_and_die("shmget");
 		}
 
@@ -164,7 +170,7 @@ void ipcsyslog_init(void)
 			bb_perror_msg_and_die("shmat");
 		}
 
-		buf->size = data_size - sizeof(*buf);
+		buf->size = shm_size - sizeof(*buf);
 		buf->head = buf->tail = 0;
 
 		// we'll trust the OS to set initial semval to 0 (let's hope)
@@ -654,7 +660,7 @@ extern int syslogd_main(int argc, char **argv)
 			if (optarg) {
 				int buf_size = atoi(optarg);
 				if (buf_size >= 4) {
-					data_size = buf_size;
+					shm_size = buf_size;
 				}
 			}
 			circular_logging = TRUE;
