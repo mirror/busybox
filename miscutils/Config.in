@@ -143,32 +143,10 @@ config CONFIG_MAKEDEVS
 	bool "makedevs"
 	default n
 	help
-	  'makedevs' is a utility used to create a batch of devices with
-	  one command.
-	  .
-	  There are two choices for command line behaviour, the interface
-	  as used by LEAF/Linux Router Project, or a device table file.
-	  . 
-	  'leaf' is traditionally what busybox follows, it allows multiple
-	  devices of a particluar type to be created per command.
-	  e.g. /dev/hda[0-9]
-          Device properties are passed as command line arguments.
-	  .
-	  'table' reads device properties from a file or stdin, allowing
-	  a batch of unrelated devices to be makde with one command. 
-          User/group names are allowed as an alternative to uid/gid.
-
-choice
-	prompt "Choose makedevs behaviour"
-	default CONFIG_FEATURE_MAKDEVS_TABLE
-
-config CONFIG_FEATURE_MAKEDEVS_LEAF
-        bool "leaf"
-
-config CONFIG_FEATURE_MAKEDEVS_TABLE
-	bool "table"
-
-endchoice
+	  'makedevs' is a utility used and created by the Linux Router Project.
+	  It creates a large number of device special files (/dev devices)
+	  rather quickly, and can be considerably faster then running mknod a
+	  zillion times.
 
 config CONFIG_MT
 	bool "mt"
