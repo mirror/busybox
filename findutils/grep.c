@@ -46,7 +46,7 @@ static const char grep_usage[] =
 "\t-h\tsuppress the prefixing filename on output\n"
 "\t-i\tignore case distinctions\n"
 "\t-n\tprint line number with output lines\n"
-"\t-q\tbe quiet\n\n"
+"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n\n"
 #if defined BB_REGEXP
 "This version of grep matches full regular expresions.\n";
 #else

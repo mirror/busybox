@@ -42,26 +42,36 @@ static int followLinks = FALSE;
 static int preserveFlag = FALSE;
 static const char *srcName;
 static const char *destName;
-static const char *skipName;
-static int dirFlag = FALSE;
-
+static int destDirFlag = FALSE;
+static int destExistsFlag = FALSE;
+static int srcDirFlag = FALSE;
 
 static int fileAction(const char *fileName, struct stat* statbuf)
 {
     char newdestName[NAME_MAX];
+
     strcpy(newdestName, destName);
-    if (dirFlag==TRUE) {
-	strcat(newdestName, "/");
-	if ( skipName != NULL)
-	    strcat(newdestName, strstr(fileName, skipName));
-	else
-	    strcat(newdestName, srcName);
+    if ( srcDirFlag == TRUE ) {
+	if (recursiveFlag!=TRUE ) {
+	    fprintf(stderr, "cp: %s: omitting directory\n", srcName);
+	    return( TRUE);
+	}
+	strcat(newdestName, strstr(fileName, srcName) + strlen(srcName));
+    } 
+    
+    if (destDirFlag==TRUE && srcDirFlag == FALSE) {
+	if (newdestName[strlen(newdestName)-1] != '/' ) {
+	    strcat(newdestName, "/");
+	}
+	strcat(newdestName, srcName);
     }
+    
     return (copyFile(fileName, newdestName, preserveFlag, followLinks));
 }
 
 extern int cp_main(int argc, char **argv)
 {
+    struct stat statBuf;
 
     if (argc < 3) {
 	usage (cp_usage);
@@ -96,18 +106,20 @@ extern int cp_main(int argc, char **argv)
 
 
     destName = argv[argc - 1];
-    dirFlag = isDirectory(destName);
+    if (stat(destName, &statBuf) >= 0) {
+	destExistsFlag = TRUE;
+	if (S_ISDIR(statBuf.st_mode))
+	    destDirFlag = TRUE;
+    }
 
-    if ((argc > 3) && dirFlag==FALSE) {
+    if ((argc > 3) && destDirFlag==FALSE) {
 	fprintf(stderr, "%s: not a directory\n", destName);
 	exit (FALSE);
     }
 
     while (argc-- > 1) {
 	srcName = *(argv++);
-	skipName = strrchr(srcName, '/');
-	if (skipName) 
-	    skipName++;
+	srcDirFlag = isDirectory(srcName);
 	if (recursiveAction(srcName, recursiveFlag, followLinks, FALSE,
 			       fileAction, fileAction) == FALSE) {
 	    exit( FALSE);

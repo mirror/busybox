@@ -151,7 +151,8 @@ copyFile( const char *srcName, const char *destName,
     if (S_ISDIR(srcStatBuf.st_mode)) {
 	//fprintf(stderr, "copying directory %s to %s\n", srcName, destName);
 	/* Make sure the directory is writable */
-	if (mkdir(destName, 0777777 ^ umask(0))) {
+	result = mkdir(destName, 0777777 ^ umask(0));
+	if (result < 0 && errno != EEXIST) {
 	    perror(destName);
 	    return (FALSE);
 	}
@@ -478,7 +479,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 
 
 
-#if defined (BB_TAR) || defined (BB_MKDIR)
+#if defined (BB_TAR) || defined (BB_MKDIR) || defined (BB_CP)
 /*
  * Attempt to create the directories along the specified path, except for
  * the final component.  The mode is given for the final directory only,
