@@ -806,7 +806,7 @@ unsigned long my_getid(const char *filename, char *name, unsigned long id, unsig
 
 	file = fopen(filename, "r");
 	if (file == NULL) {
-		/* Do not complain.  It is ok for /etc/password and
+		/* Do not complain.  It is ok for /etc/passwd and
 		 * friends to be missing... */
 		return (-1);
 	}
