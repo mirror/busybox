@@ -1660,7 +1660,6 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 				old->child->group = ctx->list_head;
 				*ctx = *old;   /* physical copy */
 				free(old);
-				ctx->w=RES_NONE;
 			}
 			b_reset (dest);
 			return 1;
