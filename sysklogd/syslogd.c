@@ -631,7 +631,7 @@ extern int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "m:nO:s:Sb:R:LC::")) > 0) {
+	while ((opt = getopt(argc, argv, "m:nO:s:Sb:R:LC:")) > 0) {
 		switch (opt) {
 		case 'm':
 			MarkInterval = atoi(optarg) * 60;
