@@ -148,7 +148,7 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 
 	if (ftpcmd("SIZE ", server_path, control_stream, buf) == 213) {
 		unsigned long value=filesize;
-		if (safe_strtoul(buf + 4, &filesize))
+		if (safe_strtoul(buf + 4, &value))
 			bb_error_msg_and_die("SIZE error: %s", buf + 4);
 		filesize = value;
 	}
