@@ -432,24 +432,30 @@ static void logMessage(int pri, char *msg)
 	/* todo: supress duplicates */
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-	/* send message to remote logger */
-	if (-1 == remotefd) {
-		init_RemoteLog();
-	}
+	if (doRemoteLog == TRUE) {
+		/* trying connect the socket */
+		if (-1 == remotefd) {
+			init_RemoteLog();
+		}
 
-	if (-1 != remotefd) {
-		now = 1;
-		snprintf(line, sizeof(line), "<%d> %s", pri, msg);
+		/* if we have a valid socket, send the message */
+		if (-1 != remotefd) {
+			now = 1;
+			snprintf(line, sizeof(line), "<%d> %s", pri, msg);
 
-	retry:
-    	if(( -1 == sendto(remotefd, line, strlen(line), 0, 
-						(struct sockaddr *) &remoteaddr, 
-						sizeof(remoteaddr))) && (errno == EINTR)) {
-			sleep(now);
-			now *= 2;
-			goto retry;
+		retry:
+			/* send message to remote logger */
+			if(( -1 == sendto(remotefd, line, strlen(line), 0,
+							(struct sockaddr *) &remoteaddr,
+							sizeof(remoteaddr))) && (errno == EINTR)) {
+				/* sleep now seconds and retry (with now * 2) */
+				sleep(now);
+				now *= 2;
+				goto retry;
+			}
 		}
 	}
+
 	if (local_logging == TRUE)
 #endif
 	{
