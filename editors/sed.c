@@ -148,7 +148,7 @@ static void destroy_cmd_strs(void)
  * expression delimiter (typically a forward * slash ('/')) not preceeded by 
  * a backslash ('\').
  */
-static int index_of_next_unescaped_regexp_delim(const struct sed_cmd * const sed_cmd, const char *str, int idx)
+static int index_of_next_unescaped_regexp_delim(const char delimiter, const char *str, int idx)
 {
 	int bracket = -1;
 	int escaped = 0;
@@ -165,7 +165,7 @@ static int index_of_next_unescaped_regexp_delim(const struct sed_cmd * const sed
 			escaped = 1;
 		else if (ch == '[')
 			bracket = idx;
-		else if (ch == sed_cmd->delimiter)
+		else if (ch == delimiter)
 			return idx;
 	}
 
@@ -176,46 +176,35 @@ static int index_of_next_unescaped_regexp_delim(const struct sed_cmd * const sed
 /*
  * returns the index in the string just past where the address ends.
  */
-static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, regex_t **regex)
+static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **regex)
 {
-	char *my_str = xstrdup(str);
-	int idx = 0, idx_start = 1;
-	char olddelimiter;
-	olddelimiter = sed_cmd->delimiter;
-	sed_cmd->delimiter = '/';
-
+	int idx = 0;
 	if (isdigit(my_str[idx])) {
-		do {
-			idx++;
-		} while (isdigit(my_str[idx]));
-		my_str[idx] = 0;
-		*linenum = atoi(my_str);
+		char *endstr;
+		*linenum = strtol(my_str, &endstr, 10);
+		/* endstr shouldnt ever equal NULL */
+		idx = endstr - my_str;
 	}
 	else if (my_str[idx] == '$') {
 		*linenum = -1;
 		idx++;
 	}
 	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
+		int idx_start = 1;
+
 		if (my_str[idx] == '\\') {
 			idx_start++;
-			sed_cmd-> delimiter = my_str[++idx];
+			*delimiter = my_str[++idx];
 		}
-		idx = index_of_next_unescaped_regexp_delim(sed_cmd, my_str, ++idx);
-		if (idx == -1)
+		idx = index_of_next_unescaped_regexp_delim(*delimiter, my_str, ++idx);
+		if (idx == -1) {
 			error_msg_and_die("unterminated match expression");
+		}
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		xregcomp(*regex, my_str+idx_start, REG_NEWLINE);
 		idx++; /* so it points to the next character after the last '/' */
 	}
-	else {
-		error_msg("get_address: no address found in string\n"
-				"\t(you probably didn't check the string you passed me)");
-		idx = -1;
-	}
-
-	free(my_str);
-	sed_cmd->delimiter = olddelimiter;
 	return idx;
 }
 
@@ -244,7 +233,7 @@ static int parse_subst_cmd(struct sed_cmd * const sed_cmd, const char *substr)
 
 	/* save the match string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
+	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression");
 	match = xstrndup(substr + oldidx, idx - oldidx);
@@ -263,7 +252,7 @@ static int parse_subst_cmd(struct sed_cmd * const sed_cmd, const char *substr)
 
 	/* save the replacement string */
 	oldidx = idx+1;
-	idx = index_of_next_unescaped_regexp_delim(sed_cmd, substr, ++idx);
+	idx = index_of_next_unescaped_regexp_delim(sed_cmd->delimiter, substr, ++idx);
 	if (idx == -1)
 		error_msg_and_die("bad format in substitution expression");
 	sed_cmd->replace = xstrndup(substr + oldidx, idx - oldidx);
@@ -391,7 +380,7 @@ static int parse_file_cmd(struct sed_cmd *sed_cmd, const char *filecmdstr)
 }
 
 
-static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmdstr)
+static char *parse_cmd_str(struct sed_cmd * const sed_cmd, char *cmdstr)
 {
 	int idx = 0;
 
@@ -402,13 +391,18 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	 */
 
 	/* first part (if present) is an address: either a '$', a number or a /regex/ */
-	if ((cmdstr[idx] == '$') || (isdigit(cmdstr[idx])) || (cmdstr[idx] == '/') || ((cmdstr[idx] == '\\') && (cmdstr[idx+1] != '\\')))
-		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+	idx = get_address(&sed_cmd->delimiter, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
 
 	/* second part (if present) will begin with a comma */
 	if (cmdstr[idx] == ',') {
+		int tmp_idx;
 		idx++;
-		idx += get_address(sed_cmd, &cmdstr[idx], &sed_cmd->end_line, &sed_cmd->end_match);
+		tmp_idx = get_address(&sed_cmd->delimiter, &cmdstr[idx], &sed_cmd->end_line, &sed_cmd->end_match);
+		if (tmp_idx == 0) {
+			error_msg_and_die("get_address: no address found in string\n"
+				"\t(you probably didn't check the string you passed me)");
+		}
+		idx += tmp_idx;
 	}
 
 	/* skip whitespace before the command */
