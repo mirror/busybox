@@ -33,11 +33,11 @@
 
 void trim(char *s)
 {
-	int len;
+	int len=strlen(s);
 
 	/* trim trailing whitespace */
-	while ( (len=strlen(s)) >= 1 && isspace(s[len-1]))
-		s[len-1]='\0';
+	while ( len > 0 && isspace(s[len-1]))
+		s[--len]='\0';
 
 	/* trim leading whitespace */
 	memmove(s, &s[strspn(s, " \n\r\t\v")], len);
