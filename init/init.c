@@ -715,6 +715,11 @@ static void shutdown_system(void)
 {
 	sigset_t block_signals;
 
+	/* run everything to be run at "shutdown".  This is done _prior_
+	 * to killing everything, in case people wish to use scripts to
+	 * shut things down gracefully... */
+	run_actions(SHUTDOWN);
+
 	/* first disable all our signals */
 	sigemptyset(&block_signals);
 	sigaddset(&block_signals, SIGHUP);
@@ -743,9 +748,6 @@ static void shutdown_system(void)
 	message(CONSOLE | LOG, "\rSending SIGKILL to all processes.\n");
 	kill(-1, SIGKILL);
 	sleep(1);
-
-	/* run everything to be run at "shutdown" */
-	run_actions(SHUTDOWN);
 
 	sync();
 	if (kernelVersion > 0 && kernelVersion <= KERNEL_VERSION(2, 2, 11)) {
