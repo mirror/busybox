@@ -79,8 +79,7 @@ const char mtab_file[] = "/dev/mtab";
 
 extern void usage(const char *usage)
 {
-	fprintf(stderr, "%s\n\n", full_version);
-	fprintf(stderr, "Usage: %s\n", usage);
+	fprintf(stderr, "%s\n\nUsage: %s\n", full_version, usage);
 	exit(EXIT_FAILURE);
 }
 
@@ -89,7 +88,6 @@ static void verror_msg(const char *s, va_list p)
 	fflush(stdout);
 	fprintf(stderr, "%s: ", applet_name);
 	vfprintf(stderr, s, p);
-	fflush(stderr);
 }
 
 extern void error_msg(const char *s, ...)
@@ -113,14 +111,11 @@ extern void error_msg_and_die(const char *s, ...)
 
 static void vperror_msg(const char *s, va_list p)
 {
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	if (s && *s) {
-		vfprintf(stderr, s, p);
-		fputs(": ", stderr);
-	}
-	fprintf(stderr, "%s\n", strerror(errno));
-	fflush(stderr);
+	int err=errno;
+	if(s == 0) s = "";
+	verror_msg(s, p);
+	if (*s) s = ": ";
+	fprintf(stderr, "%s%s\n", s, strerror(err));
 }
 
 extern void perror_msg(const char *s, ...)
