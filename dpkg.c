@@ -861,6 +861,7 @@ void write_status_file(deb_file_t **deb_file)
 		free(package_name);
 		free(control_buffer);
 	}
+
 	/* Write any new packages */
 	for(i = 0; deb_file[i] != NULL; i++) {
 		status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[i]->package]->name]);
@@ -1216,10 +1217,10 @@ void purge_package(const unsigned int package_num)
 
 void unpack_package(deb_file_t *deb_file)
 {
-	const unsigned int package_name_num = package_hashtable[deb_file->package]->name;
-	const char *package_name = name_hashtable[package_name_num];
+//	const unsigned int package_name_num = package_hashtable[deb_file->package]->name;
+	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const unsigned int status_num = search_status_hashtable(package_name);
-	unsigned int status_package_num;
+	const unsigned int status_package_num = status_hashtable[status_num]->status;
 
 	FILE *out_stream;
 	char *info_prefix;
@@ -1257,18 +1258,20 @@ void unpack_package(deb_file_t *deb_file)
 
 void configure_package(deb_file_t *deb_file)
 {
+	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
+	const char *package_version = name_hashtable[package_hashtable[deb_file->package]->version];
+	const int status_num = search_status_hashtable(package_name);
 	int return_value;
-	int status_num;
+
+	printf("Setting up %s (%s)\n", package_name, package_version);
 
 	/* Run the preinst prior to extracting */
-	return_value = run_package_script(name_hashtable[package_hashtable[deb_file->package]->name], "postinst");
+	return_value = run_package_script(package_name, "postinst");
 	if (return_value == -1) {
 		/* TODO: handle failure gracefully */
-		error_msg_and_die("postrm fialure.. set status to what?");
+		error_msg_and_die("postrm failure.. set status to what?");
 	}
-
 	/* Change status to reflect success */
-	status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file->package]->name]);
 	set_status(status_num, "install", 1);
 	set_status(status_num, "installed", 3);
 }
@@ -1411,7 +1414,6 @@ extern int dpkg_main(int argc, char **argv)
 			configure_package(deb_file[i]);
 		}
 	}
-
 	write_status_file(deb_file);
 
 	for (i = 0; i < NAME_HASH_PRIME; i++) {
@@ -1419,9 +1421,11 @@ extern int dpkg_main(int argc, char **argv)
 			free(name_hashtable[i]);
 		}
 	}
+
 	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
 		free_package(package_hashtable[i]);
 	}
+
 	for (i = 0; i < STATUS_HASH_PRIME; i++) {
 		if (status_hashtable[i] != NULL) {
 			free(status_hashtable[i]);
