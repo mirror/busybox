@@ -201,9 +201,9 @@ do-it-all:      menuconfig
 endif
 
 
-SUBDIRS =applets archival console-tools editors fileutils findutils init \
-	miscutils modutils networking procps pwd_grp shell shellutils \
-	sysklogd textutils util-linux libbb
+SUBDIRS =applets archival archival/libunarchive console-tools editors \
+	fileutils findutils init miscutils modutils networking procps \
+	pwd_grp shell shellutils sysklogd textutils util-linux libbb
 
 bbsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 
