@@ -474,7 +474,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 	}
 
 	/* Open the tar file for writing.  */
-	if (tarName == NULL) {
+	if (tarName == NULL || (tarName[0] == '-' && tarName[1] == '\0')) {
 		tbInfo.tarFd = fileno(stdout);
 		tbInfo.verboseFlag = verboseFlag ? 2 : 0;
 	} else {
