@@ -37,10 +37,11 @@
 
 int strings_main(int argc, char **argv)
 {
-	int n=4, c, i, opt=0, a=0, status=EXIT_SUCCESS;
+	int n=4, c, i, opt=0, status=EXIT_SUCCESS;
 	long t=0, count;
-	FILE *file;
+	FILE *file = stdin;
 	char *string=NULL;
+	const char *fmt="%s: ";
 
 	while ((i = getopt(argc, argv, "afon:")) > 0)
 		switch(i)
@@ -66,18 +67,19 @@ int strings_main(int argc, char **argv)
 	i=0;
 
 	string=xmalloc(n+1);
-	string[n]='\0';
+	/*string[n]='\0';*/
 	n-=1;
 
-	if(!argc )
+	if(argc==0)
 	{
-		file = stdin;
+		fmt="{%s}: ";
+		*argv=(char *)bb_msg_standard_input;
 		goto pipe;
 	}
 
-	for(a=0;a<argc;a++)
+	for(  ;*argv!=NULL;*argv++)
 	{
-		if((file=fopen(argv[a],"r")))
+		if((file=bb_wfopen(*argv,"r")))
 		{
 pipe:
 
@@ -93,7 +95,7 @@ pipe:
 					if(i==n)
 					{
 						if(opt == 1 || opt == 3 )
-							printf("%s: ", (!argv[a])? "{stdin}" : argv[a]);
+							printf(fmt,*argv);
 						if(opt >= 2 )
 							printf("%7lo ", t);
 						printf("%s", string);
@@ -114,12 +116,9 @@ pipe:
 			bb_fclose_nonstdin(file);
 		}
 		else
-		{
-			bb_perror_msg("%s",argv[a]);
 			status=EXIT_FAILURE;
-		}
 	}
-	free(string);
+	/*free(string);*/
 	exit(status);
 }
 
