@@ -1,3 +1,10 @@
+busybox-unstable (1:0.61.pre.custom) unstable; urgency=low
+
+  * This is just to make it easier to make custom debs
+  * Replace this changelog before makeing offical debs
+
+ -- Glenn McGrath <bug1@home>  Thu, 28 Nov 2002 10:25:43 +1100
+
 busybox (1:0.60.0-1) unstable; urgency=low
 
   * New version released.  See changelog for details.
