@@ -7,6 +7,9 @@
 	* Added in optional _real_ regular expression support (to be
 	    the basis for a future sed utility).  When compiled in, 
 	    adds 3.9k.
+	* Checked out using nftw(3) for recursive stuff, but unfortunatly
+	    it wasn't supported before GNU libc 2.1, and some folks use
+	    glibc 2.0.7 since it is much smaller than that latest and greatest.
 
 
 0.30
