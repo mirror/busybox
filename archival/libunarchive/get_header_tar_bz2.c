@@ -15,6 +15,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,18 +26,53 @@
 
 extern char get_header_tar_bz2(archive_handle_t *archive_handle)
 {
-	BZ2_bzReadOpen(archive_handle->src_fd, NULL, 0);
+	int fd_pipe[2];
+	int pid;
 
-	archive_handle->read = read_bz2;
+	/* Cant lseek over pipe's */
+	archive_handle->read = safe_read;
 	archive_handle->seek = seek_by_char;
+
+	if (pipe(fd_pipe) != 0) {
+		bb_error_msg_and_die("Can't create pipe");
+	}
+
+	pid = fork();
+	if (pid == -1) {
+		bb_error_msg_and_die("Fork failed\n");
+	}
+
+	if (pid == 0) {
+		/* child process */
+	    close(fd_pipe[0]); /* We don't wan't to read from the pipe */
+	    uncompressStream(archive_handle->src_fd, fd_pipe[1]);
+		check_trailer_gzip(archive_handle->src_fd);
+	    close(fd_pipe[1]); /* Send EOF */
+	    exit(0);
+	    /* notreached */
+	}
+	/* parent process */
+	close(fd_pipe[1]); /* Don't want to write down the pipe */
+	close(archive_handle->src_fd);
+
+	archive_handle->src_fd = fd_pipe[0];
 
 	archive_handle->offset = 0;
 	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
 
-	/* Cleanup */
-	BZ2_bzReadClose();
+	close(fd_pipe[0]);
+printf("finished\n");
+#if 0
+	if (kill(pid, SIGTERM) == -1) {
+		bb_error_msg_and_die("Couldnt kill gunzip process");
+	}
+#endif
 	
-	/* Can only do one tar.bz2 per archive */
+	/* I dont think this is needed */
+	if (waitpid(pid, NULL, 0) == -1) {
+		bb_error_msg("Couldnt wait ?");
+	}
+
+	/* Can only do one file at a time */
 	return(EXIT_FAILURE);
 }
-
