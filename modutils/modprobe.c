@@ -368,15 +368,14 @@ static int mod_strcmp ( const char *mod_path, const char *mod_name )
 #define MODULE_EXTENSION	".o"
 #define MOD_EXTENSION_LEN	2
 #endif
-	if ((strstr (mod_path, mod_name) ==
-				(mod_path + strlen(mod_path) -
-				 strlen(mod_name) - MOD_EXTENSION_LEN))
-			&& (!strcmp(mod_path + strlen(mod_path) -
-					MOD_EXTENSION_LEN, MODULE_EXTENSION)))
-	{
-      return 1;
-	}
-  return 0;
+	/* last path component */
+	const char *last_comp = strrchr (mod_path, '/'); 
+
+	return (strncmp(last_comp ? last_comp + 1 : mod_path,
+					 mod_name,
+					 strlen(mod_name)) == 0 ) &&
+		   (strcmp(mod_path + strlen(mod_path) -
+					MOD_EXTENSION_LEN, MODULE_EXTENSION) == 0);
 }
 
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
@@ -409,7 +408,7 @@ static int already_loaded (const char *name)
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
 	char lcmd [256];
-	int rc = 1;
+	int rc = 0;
 
 	while ( list ) {
 		*lcmd = '\0';
