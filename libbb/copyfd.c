@@ -19,37 +19,43 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <stdio.h>
-#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
 #include "libbb.h"
 
 
-extern void print_file(FILE *file)
+extern size_t copyfd(int fd1, int fd2)
 {
-	fflush(stdout);
-	copyfd(fileno(file), fileno(stdout));
-	fclose(file);
-}
-
-extern int print_file_by_name(char *filename)
-{
-	struct stat statBuf;
+	char buf[32768], *writebuf;
 	int status = TRUE;
+	size_t totalread = 0, bytesread, byteswritten;
 
-	if(is_directory(filename, TRUE, &statBuf)==TRUE) {
-		error_msg("%s: Is directory", filename);
-		status = FALSE;
-	} else {
-		FILE *f = wfopen(filename, "r");
-		if(f!=NULL)
-			print_file(f);
-		else
+	while(status) {
+		bytesread = read(fd1, &buf, sizeof(buf));
+		if(bytesread == -1) {
+			error_msg("read: %s", strerror(errno));
 			status = FALSE;
+			break;
+		}
+		byteswritten = 0;
+		writebuf = buf;
+		while(bytesread) {
+			byteswritten = write( fd2, &writebuf, bytesread );
+			if(byteswritten == -1) {
+				error_msg("write: %s", strerror(errno));
+				status = FALSE;
+				break;
+			}
+			bytesread -= byteswritten;
+			writebuf += byteswritten;
+		}
 	}
-
-	return status;
+	if ( status == TRUE )
+		return totalread;
+	else
+		return -1;
 }
-
 
 /* END CODE */
 /*
