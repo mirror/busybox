@@ -1990,9 +1990,6 @@ int httpd_main(int argc, char *argv[])
   if(uid > 0)
 	setuid(uid);
 # endif
-# ifdef CONFIG_FEATURE_HTTPD_CGI
-  addEnvPort("SERVER");
-# endif
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_CGI
@@ -2005,6 +2002,9 @@ int httpd_main(int argc, char *argv[])
 	if(p) {
 		setenv("PATH", p, 0);
 	}
+# ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	addEnvPort("SERVER");
+# endif
    }
 #endif
 

@@ -43,15 +43,14 @@ static unsigned long get_netmask(unsigned long ipaddr)
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
 static int get_prefix(unsigned long netmask)
 {
-        unsigned long t;
+	unsigned long msk = 0x80000000;
         int ret = 0;
 
-        for (t = 0; t < 32; t++) {
-                if (htonl(netmask) & (0x80000000 >> t)) {
-                        ret ++;
-                } else {
-                        break;
-                }
+	netmask = htonl(netmask);
+	while(msk) {
+		if (netmask & msk)
+			ret++;
+		msk >>= 1;
         }
         return ret;
 }
@@ -64,14 +63,16 @@ static int get_prefix(unsigned long netmask)
 #define HOSTNAME  0x10
 #define SILENT    0x20
 
+
 int ipcalc_main(int argc, char **argv)
 {
 	unsigned long mode;
 
-	unsigned long netmask = 0;
+	unsigned long netmask;
 	unsigned long broadcast;
 	unsigned long network;
 	unsigned long ipaddr;
+	struct in_addr a;
 
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
 	unsigned long netprefix = 0;
@@ -116,20 +117,21 @@ int ipcalc_main(int argc, char **argv)
                         *prefixstr = (char)0;
                         prefixstr++;
                         if (*prefixstr) {
+				unsigned int msk;
+
                                 netprefix = atol(prefixstr);
                                 if (netprefix > 32) {
                                         IPCALC_MSG(bb_error_msg_and_die("bad IP prefix: %s\n", prefixstr),
                                                 exit(EXIT_FAILURE));
                                 }
-                                if (netprefix) {
-                                        netmask = 0x80000000;
-                                        netprefix--;
-                                        while(netprefix) {
-                                                netmask = 0x80000000 | (netmask >> 1);
+				netmask = 0;
+				msk = 0x80000000;
+				while (netprefix > 0) {
+					netmask |= msk;
+					msk >>= 1;
                                                 netprefix--;
                                         }
                                         netmask = htonl(netmask);
-                                }
                                 /* Even if it was 0, we will signify that we have a netmask. This allows */
                                 /* for specification of default routes, etc which have a 0 netmask/prefix */
                                 have_netmask = 1;
@@ -138,34 +140,37 @@ int ipcalc_main(int argc, char **argv)
                 }
                 prefixstr++;
         }
-	ipaddr = inet_addr(ipstr);
+	ipaddr = inet_aton(ipstr, &a);
 #else
-	ipaddr = inet_addr(argv[optind]);
+	ipaddr = inet_aton(argv[optind], &a);
 #endif
 
-	if (ipaddr == INADDR_NONE) {
+	if (ipaddr == 0) {
 		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s", argv[optind]),
 				   exit(EXIT_FAILURE));
 	}
+	ipaddr = a.s_addr;
 
 	if (argc - optind == 2) {
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
-               if (have_netmask == 1) {
+	       if (have_netmask) {
                         IPCALC_MSG(bb_error_msg_and_die("Both prefix and netmask were specified, use one or the other.\n"),
                                 exit(EXIT_FAILURE));
                 }
-                have_netmask = 1;
-#endif
-                netmask = inet_addr(argv[optind + 1]);
-	}
 
-	if (ipaddr == INADDR_NONE) {
+#endif
+		netmask = inet_aton(argv[optind + 1], &a);
+		if (netmask == 0) {
 		IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s", argv[optind + 1]),
 				   exit(EXIT_FAILURE));
 	}
+		netmask = a.s_addr;
+	} else {
+#ifdef CONFIG_FEATURE_IPCALC_FANCY
 
+		if (!have_netmask)
+#endif
 	/* JHC - If the netmask wasn't provided then calculate it */
-	if (!netmask) {
 		netmask = get_netmask(ipaddr);
 	}
 
