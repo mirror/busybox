@@ -27,6 +27,9 @@
 	* Fix to tr so it recognizes standard escape sequences.  Merged common
 	    escape seq. code from tr and echo into utility.c.  Fix thanks to
 	    Matt Kraai <kraai@alumni.carnegiemellon.edu>.
+	* Reorganized signal names in kill.c for better architecture support 
+	    -- patch thanks to simon wood <simon@mungewell.uklinux.net>
+
 
 	 -Erik Andersen
 
