@@ -68,27 +68,22 @@ static char *license_msg[] = {
 
 extern int gunzip_main(int argc, char **argv)
 {
-	FILE *in_file = stdin;
-	FILE *out_file = NULL;
+	int flags = 0;
+	int opt = 0;
+	int delete_old_file, file_count;
 	struct stat stat_buf;
-
-	char *if_name = NULL;
-	char *of_name = NULL;
-	char *delete_file_name = NULL;
-
+	FILE *in_file, *out_file;
+	char *if_name, *of_name, *delete_file_name;
 	const int gunzip_to_stdout = 1;
 	const int gunzip_force = 2;
 	const int gunzip_test = 4;
-
-	int flags = 0;
-	int opt = 0;
-	int delete_old_file = FALSE;
+	const int gunzip_verbose = 8;
 
 	/* if called as zcat */
 	if (strcmp(applet_name, "zcat") == 0)
 		flags |= gunzip_to_stdout;
 
-	while ((opt = getopt(argc, argv, "ctfhdq")) != -1) {
+	while ((opt = getopt(argc, argv, "ctfhdqv")) != -1) {
 		switch (opt) {
 		case 'c':
 			flags |= gunzip_to_stdout;
@@ -98,6 +93,9 @@ extern int gunzip_main(int argc, char **argv)
 			break;
 		case 't':
 			flags |= gunzip_test;
+			break;
+		case 'v':
+			flags |= gunzip_verbose;
 			break;
 		case 'd': /* Used to convert gzip to gunzip. */
 			break;
@@ -110,74 +108,95 @@ extern int gunzip_main(int argc, char **argv)
 		}
 	}
 
-	/* Set input filename and number */
-	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
-		flags |= gunzip_to_stdout;
-	} else {
-		if_name = xstrdup(argv[optind]);
-		/* Open input file */
-		in_file = xfopen(if_name, "r");
+	file_count = argc - optind;
+	while (file_count==0 || optind < argc) {
+		in_file = stdin;
+		out_file = NULL;
+		if_name = NULL;
+		of_name = NULL;
+		delete_file_name = NULL;
+		delete_old_file = FALSE;
 
-		/* set the buffer size */
-		setvbuf(in_file, NULL, _IOFBF, 0x8000);
-
-		/* Get the time stamp on the input file. */
-		if (stat(if_name, &stat_buf) < 0) {
-			error_msg_and_die("Couldn't stat file %s", if_name);
-		}
-	}
-
-	/* Check that the input is sane.  */
-	if (isatty(fileno(in_file)) && (flags & gunzip_force) == 0)
-		error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
-
-	/* Set output filename and number */
-	if (flags & gunzip_test) {
-		out_file = xfopen("/dev/null", "w"); /* why does test use filenum 2 ? */
-	} else if (flags & gunzip_to_stdout) {
-		out_file = stdout;
-	} else {
-		char *extension;
-		int length = strlen(if_name);
-
-		delete_old_file = TRUE;
-		extension = strrchr(if_name, '.');
-		if (extension && strcmp(extension, ".gz") == 0) {
-			length -= 3;
-		} else if (extension && strcmp(extension, ".tgz") == 0) {
-			length -= 4;
+		/* Set input filename and number */
+		if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
+			flags |= gunzip_to_stdout;
+			/* Skip to the end */
+			optind = argc;
 		} else {
-			error_msg_and_die("Invalid extension");
+			if_name = strdup(argv[optind]);
+			/* Open input file */
+			in_file = xfopen(if_name, "r");
+
+			if (flags & gunzip_verbose) {
+				fprintf(stderr, "%s:\t", if_name);
+			}
+
+			/* set the buffer size */
+			setvbuf(in_file, NULL, _IOFBF, 0x8000);
+
+			/* Get the time stamp on the input file. */
+			if (stat(if_name, &stat_buf) < 0) {
+				error_msg_and_die("Couldn't stat file %s", if_name);
+			}
 		}
-		of_name = (char *) xcalloc(sizeof(char), length + 1);
-		strncpy(of_name, if_name, length);
 
-		/* Open output file */
-		out_file = xfopen(of_name, "w");
+		/* Check that the input is sane.  */
+		if (isatty(fileno(in_file)) && (flags & gunzip_force) == 0)
+			error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
 
-		/* Set permissions on the file */
-		chmod(of_name, stat_buf.st_mode);
-	}
+		/* Set output filename and number */
+		if (flags & gunzip_test) {
+			out_file = xfopen("/dev/null", "w"); /* why does test use filenum 2 ? */
+		} else if (flags & gunzip_to_stdout) {
+			out_file = stdout;
+		} else {
+			char *extension;
+			int length = strlen(if_name);
 
-	/* do the decompression, and cleanup */
-	if (unzip(in_file, out_file) == 0) {
-		/* Success, remove .gz file */
-		delete_file_name = if_name;
-	} else {
-		/* remove failed attempt */
-		delete_file_name = of_name;
-	}
+			delete_old_file = TRUE;
+			extension = strrchr(if_name, '.');
+			if (extension && strcmp(extension, ".gz") == 0) {
+				length -= 3;
+			} else if (extension && strcmp(extension, ".tgz") == 0) {
+				length -= 4;
+			} else {
+				error_msg_and_die("Invalid extension");
+			}
+			of_name = (char *) xcalloc(sizeof(char), length + 1);
+			strncpy(of_name, if_name, length);
 
-	fclose(out_file);
-	fclose(in_file);
+			/* Open output file */
+			out_file = xfopen(of_name, "w");
 
-	if (delete_old_file) {
-		if (unlink(delete_file_name) < 0) {
-			error_msg_and_die("Couldnt remove %s", delete_file_name);
+			/* Set permissions on the file */
+			chmod(of_name, stat_buf.st_mode);
 		}
-	}
 
-	free(of_name);
+		/* do the decompression, and cleanup */
+		if (unzip(in_file, out_file) == 0) {
+			/* Success, remove .gz file */
+			delete_file_name = if_name;
+			if (flags & gunzip_verbose) {
+				fprintf(stderr, "OK\n");
+			}
+		} else {
+			/* remove failed attempt */
+			delete_file_name = of_name;
+		}
+
+		fclose(out_file);
+		fclose(in_file);
+
+		if (delete_old_file == TRUE && !(flags & gunzip_test)) {
+			if (unlink(delete_file_name) < 0) {
+				error_msg_and_die("Couldnt remove %s", delete_file_name);
+			}
+		}
+
+		free(of_name);
+		optind++;
+	}      /* while () */
 
 	return(EXIT_SUCCESS);
 }
+
