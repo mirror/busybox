@@ -111,9 +111,11 @@ export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 # use '-Os' optimization if available, else use -O2
 OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
 	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
-
+GCC_STACK_BOUNDRY := ${shell if $(CC) -mpreferred-stack-boundary=2 -S -o /dev/null -xc /dev/null \
+	>/dev/null 2>&1; then echo "-mpreferred-stack-boundary=2"; else echo "" ; fi}
+OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer $(GCC_STACK_BOUNDRY)
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS = -I $(TOPDIR)/include
+CFLAGS = -I$(TOPDIR)/include
 ARFLAGS = -r
 
 #
@@ -147,7 +149,7 @@ ifeq ($(strip $(DODEBUG)),true)
     LDFLAGS += -Wl,-warn-common
     STRIPCMD    =
 else
-    CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -mpreferred-stack-boundary=2 -D_GNU_SOURCE
+    CFLAGS  += $(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE
     LDFLAGS += -s -Wl,-warn-common
     STRIPCMD    = $(STRIP) --remove-section=.note --remove-section=.comment $(PROG)
 endif
