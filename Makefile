@@ -16,7 +16,7 @@ ifeq ($(DODEBUG),true)
     STRIP=
     LDFLAGS=
 else
-    CFLAGS=-Wall -O2 -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    CFLAGS=-Wall -Os -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS= -s
     STRIP= strip --remove-section=.note --remove-section=.comment busybox
 endif

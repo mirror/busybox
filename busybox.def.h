@@ -52,4 +52,4 @@
 //#define BB_UPDATE
 #define BB_UTILITY
 #define BB_ZCAT
-#define BB_GZIP
+//#define BB_GZIP

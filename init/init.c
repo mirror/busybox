@@ -99,7 +99,7 @@ run(const char* program, const char* const* arguments,
 	};
 
 	static const char	press_enter[] =
- "Please press Enter to activate this console. ";
+ "\nPlease press Enter to activate this console. ";
 
 	int	pid;
 
@@ -388,13 +388,8 @@ init_main(int argc, char * * argv)
 	arguments[j] = 0;
 
 	if ( run_rc ) {
-		printf("running %s with args \"",rc);
-		for ( j = 0; j < argc; j++ ) {
-			printf("%s ", arguments[j]);
-		}
-		printf("\" on console %s\n", console);
-		waitfor(run(rc, arguments, console, 0));
-		printf("done.\n");
+		run(rc, arguments, console, 0);
+		//waitfor(run(rc, arguments, console, 0));
 	}
 
 	if ( 0 == create_swap) {
@@ -414,19 +409,9 @@ init_main(int argc, char * * argv)
 			/*
 			 arguments[0] = tty_commands[0];
 			 */
-			    printf("running %s with args \"",tty_commands[0]);
-			    for ( j = 0; j < argc; j++ ) {
-				    printf("%s ", arguments[j]);
-			    }
-			    printf("\" on console %s\n", first_terminal);
 			pid1 = run(tty_commands[0], arguments, first_terminal, 1);
 		}
 		if ( pid2 == 0 && tty_commands[1] ) {
-			    printf("running %s with args \"",tty_commands[0]);
-			    for ( j = 0; j < argc; j++ ) {
-				    printf("%s ", arguments[j]);
-			    }
-			    printf("\" on console %s\n", first_terminal);
 			pid2 = run(tty_commands[1], arguments, second_terminal, 1);
 		}
 		wpid = wait(&status);

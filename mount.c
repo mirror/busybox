@@ -174,17 +174,26 @@ extern int mount_main (int argc, char **argv)
     char *filesystemType = "auto";
     char *device = NULL;
     char *directory = NULL;
+    struct stat statBuf;
     int all = 0;
     int i;
+
+    if (stat("/etc/fstab", &statBuf) < 0) 
+	fprintf(stderr, "/etc/fstab file missing -- Please install one.\n\n");
 
     if (argc == 1) {
 	FILE *mountTable;
 	if ((mountTable = setmntent ("/proc/mounts", "r"))) {
 	    struct mntent *m;
 	    while ((m = getmntent (mountTable)) != 0) {
+		struct fstab* fstabItem;
 		char *blockDevice = m->mnt_fsname;
-		if (strcmp (blockDevice, "/dev/root") == 0)
-		    blockDevice = (getfsfile ("/"))->fs_spec;
+		/* Note that if /etc/fstab is missing, libc can't fix up /dev/root for us */
+		if (strcmp (blockDevice, "/dev/root") == 0) {
+		    fstabItem = getfsfile ("/");
+		    if (fstabItem != NULL)
+			blockDevice = fstabItem->fs_spec;
+		}
 		printf ("%s on %s type %s (%s)\n", blockDevice, m->mnt_dir,
 			m->mnt_type, m->mnt_opts);
 	    }
