@@ -127,6 +127,10 @@ int tail_main(int argc, char **argv)
 	for (i = 0; i < nfiles; i++) {
 		if (fds[i] == -1)
 			continue;
+		if (!count) {
+			lseek(fds[i], 0, SEEK_END);
+			continue;
+		}
 		seen = 0;
 		if (show_headers || (!hide_headers && nfiles > 1))
 			printf("%s==> %s <==\n", i == 0 ? "" : "\n", argv[optind + i]);
