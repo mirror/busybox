@@ -33,7 +33,7 @@
 
 // if fn is NULL then input is stdin and output is stdout
 static int convert(char *fn, int ConvType) {
-	char c;
+	int c;
 	char *tempFn = NULL;
 	FILE *in = stdin, *out = stdout;
 

@@ -804,7 +804,7 @@ extern int dpkg_main(int argc, char **argv)
 
 	package_t *p, *packages = NULL;
 	void *status = NULL;
-	char opt = 0;
+	int opt = 0;
 	int optflag = 0;
 
 	while ((opt = getopt(argc, argv, "iruc")) != -1) {
