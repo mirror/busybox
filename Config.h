@@ -327,10 +327,10 @@
 #endif
 #endif
 //
+#ifdef BB_TAR
 #ifdef BB_FEATURE_TAR_GZIP
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
-#endif
 #endif
 //
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT

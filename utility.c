@@ -142,7 +142,7 @@ extern void perror_msg_and_die(const char *s, ...)
 	exit(EXIT_FAILURE);
 }
 
-#if defined BB_INIT
+#if defined BB_INIT || defined BB_MKSWAP || defined BB_MOUNT
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
@@ -536,7 +536,7 @@ const char *time_string(time_t timeVal)
 }
 #endif /* BB_TAR || BB_AR */
 
-#if defined BB_TAR || defined BB_CP_MV || defined BB_AR
+#if defined BB_TAR || defined BB_CP_MV || defined BB_AR || defined BB_DD
 /*
  * Write all of the supplied buffer out to a file.
  * This does multiple writes as necessary.
@@ -565,7 +565,7 @@ int full_write(int fd, const char *buf, int len)
 #endif /* BB_TAR || BB_CP_MV || BB_AR */
 
 
-#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH || defined BB_CP_MV
+#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH || defined BB_CP_MV || defined BB_DD
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -866,7 +866,7 @@ extern int parse_mode(const char *s, mode_t * theMode)
 
 #if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS \
  || defined BB_TAR || defined BB_ID || defined BB_LOGGER \
- || defined BB_LOGNAME || defined BB_WHOAMI
+ || defined BB_LOGNAME || defined BB_WHOAMI || defined BB_SH
 
 /* This parses entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox, since we want to avoid using the glibc NSS stuff, which
