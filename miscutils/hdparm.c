@@ -48,7 +48,7 @@
 #include <asm/byteorder.h>
 
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if (__BYTE_ORDER == __BIG_ENDIAN) && !defined(__USE_XOPEN)
 #define __USE_XOPEN
 #endif
 

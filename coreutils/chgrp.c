@@ -48,7 +48,6 @@ int chgrp_main(int argc, char **argv)
 	long gid;
 	int recursiveFlag;
 	int retval = EXIT_SUCCESS;
-	char *p;
 
 	recursiveFlag = bb_getopt_ulflags(argc, argv, "R");
 
