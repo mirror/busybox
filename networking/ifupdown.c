@@ -564,7 +564,8 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result = 0;
 	if (execable("/sbin/udhcpc")) {
-		execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+		execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+		execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
 	} else if (execable("/sbin/pump")) {
 		result = execute("pump -i %iface% -k", ifd, exec);
 	} else if (execable("/sbin/dhclient")) {
