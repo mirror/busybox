@@ -134,6 +134,7 @@ static _syscall2(int, bdflush, int, func, int, data);
 #define INIT_SCRIPT  "/etc/init.d/rcS"   /* Default sysinit script. */
 #endif
 
+static const int MAXENV = 16;	/* Number of env. vars */
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
 
@@ -394,7 +395,8 @@ static void console_init()
 
 static pid_t run(char *command, char *terminal, int get_enter)
 {
-	int i, fd;
+	int i=0, j=0;
+	int fd;
 	pid_t pid;
 	char *tmpCmd;
         char *cmd[255], *cmdpath;
@@ -406,14 +408,23 @@ static pid_t run(char *command, char *terminal, int get_enter)
 #endif
 
 		"\nPlease press Enter to activate this console. ";
-	char *environment[] = {
+	char *environment[MAXENV+1] = {
 		"HOME=/",
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
 		"SHELL=/bin/sh",
 		termType,
-		"USER=root",
-		0
+		"USER=root"
 	};
+
+	while (environment[i]) i++;
+	while ((environ[j]) && (i < MAXENV)) {
+		if (strncmp(environ[j], "TERM=", 5))
+			environment[i++] = environ[j];
+		else {
+			snprintf(termType, sizeof(termType) - 1, environ[j]);
+		}
+		j++;
+	}
 
 	if ((pid = fork()) == 0) {
 		/* Clean up */
