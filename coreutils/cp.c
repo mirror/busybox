@@ -42,7 +42,7 @@
 #include "libcoreutils/coreutils.h"
 
 /* WARNING!! ORDER IS IMPORTANT!! */
-static const char cp_opts[] = "pdRfiar";
+static const char cp_opts[] = "pdRfiarP";
 
 extern int cp_main(int argc, char **argv)
 {
@@ -72,6 +72,12 @@ extern int cp_main(int argc, char **argv)
 		 * -r was marked as obsolete in SUSv3, but is included for compatability
  		 */
 		flags |= FILEUTILS_RECUR;
+	}
+	if (flags & 128) {
+		/* Make -P a synonym for -d,
+		 * -d is the GNU option while -P is the POSIX 2003 option
+		 */
+		flags |= FILEUTILS_DEREFERENCE;
 	}
 
 	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */

@@ -204,7 +204,7 @@
 	"Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n" \
 	"\n" \
 	"\t-a\tSame as -dpR\n" \
-	"\t-d\tPreserves links\n" \
+	"\t-d,-P\tPreserves links\n" \
 	"\t-p\tPreserves file attributes if possible\n" \
 	"\t-f\tforce (implied; ignored) - always set\n" \
 	"\t-i\tinteractive, prompt before overwrite\n" \
