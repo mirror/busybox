@@ -21,8 +21,9 @@ Checkout the Latest Code from CVS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is a necessary first step. Please do not try to work with the last
-released version, as there is a good chance that somebody has already worked
-on the area you had in mind and your patch might already be obsolete.
+released version, as there is a good chance that somebody has already fixed
+the bug you found. Somebody might have even added the feature you had in mind.
+Don't make your work obsolete before you start!
 
 For information on how to check out Busybox from CVS, please look at the
 following links:
@@ -45,7 +46,8 @@ Archives can be found here:
 	http://opensource.lineo.com/lists/busybox/
 
 If you have a serious interest in Busybox, i.e. you are using it day-to-day or
-as part of an embedded project, it's a good idea to join the mailing list.
+as part of an embedded project, it would be a good idea to join the mailing
+list.
 
 A web-based sign-up form can be found here:
 
@@ -58,7 +60,7 @@ Coordinate with the Applet Maintainer
 Some (not all) of the applets in Busybox are "owned" by a maintainer who has
 put significant effort into it and is probably more familiar with it than
 others. To find the maintainer of an applet, look at the top of the .c file
-for a name following the word 'Copyright' or 'Written by'.
+for a name following the word 'Copyright' or 'Written by' or 'Maintainer'.
 
 Before plunging ahead, it's a good idea to send a message to the mailing list
 that says: "Hey, I was thinking about adding the 'transmogrify' feature to the
@@ -84,8 +86,8 @@ Knife" of embedded Linux, there are some applets that will not be accepted:
  - Any filesystem manipulation tools: Busybox is filesystem independent and
    we do not want to start adding mkfs/fsck tools for every (or any)
    filesystem under the sun. (fsck_minix.c and mkfs_minix.c are living on
-   borrowed time.)  There are far too many of these tools out there.  Use
-   the upstream version.  Not everything has to be part of Busybox.
+   borrowed time.) There are far too many of these tools out there.  Use
+   the upstream version. Not everything has to be part of Busybox.
 
  - Any partitioning tools: Partitioning a device is typically done once and
    only once, and tools which do this generally do not need to reside on the
@@ -101,6 +103,12 @@ Knife" of embedded Linux, there are some applets that will not be accepted:
    independent. Do not send us tools that cannot be used across multiple
    platforms / arches.
 
+ - Any daemons that are not essential to basic system operation. To date, only
+   syslogd and klogd meet this requirement. We do not need a web server, an
+   ftp daemon, a dhcp server, a mail transport agent or a dns resolver. If you
+   need one of those, you are welcome to ask the folks on the mailing list for
+   recommendations, but please don't bloat up Busybox with any of these.
+
 
 Bug Reporting
 ~~~~~~~~~~~~~
@@ -113,9 +121,19 @@ report to the tracking system can be found at:
 	
 The README file that comes with Busybox also describes how to submit a bug.
 
-A well-written bug report will include a transcript of a shell session that
+A well-written bug report should include a transcript of a shell session that
 demonstrates the bad behavior and enables anyone else to duplicate the bug on
-their own machine.
+their own machine. The following is such an example:
+
+	When I execute Busybox 'date' it produces unexpected results.
+
+	This is using GNU date:
+	$ date
+	Wed Mar 21 14:19:41 MST 2001
+
+	This is using Busybox date:
+	$ date
+	codswaddle
 
 
 Bug Triage
@@ -218,6 +236,10 @@ These are dirty jobs, but somebody's gotta do 'em.
 
  - Where appropriate, replace preprocessor defined macros and values with
    compile-time equivalents.
+
+ - Style guide compliance. See: docs/style-guide.txt
+
+ - Add testcases to tests/testcases.
 
  - Makefile improvements:
    http://www.canb.auug.org.au/~millerp/rmch/recu-make-cons-harm.html
@@ -382,6 +404,51 @@ opposite effect.
 
 
 
+Committing Changes to CVS
+-------------------------
+
+If you submit several patches that demonstrate that you are a skilled and wise
+coder, you may be invited to become a committer, thus enabling you to commit
+changes directly to CVS. This is nice because you don't have to wait for
+someone else to commit your change for you, you can just do it yourself.
+
+But note that this is a priviledge that comes with some responsibilities. You
+should test your changes before you commit them. You should also talk to an
+applet maintainer before you make any kind of sweeping changes to somebody
+else's code. Big changes should still go to the mailing list first. Remember,
+being wise, polite, and discreet is more important than being clever.
+
+
+When To Commit
+~~~~~~~~~~~~~~
+
+Generally, you should feel free to commit a change if:
+
+ - Your changes are small and don't touch many files
+ - You are fixing a bug
+ - Somebody has told you that it's okay
+ - It's obviously the Right Thing
+
+The more of the above are true, the better it is to just commit a change
+directly to CVS.
+
+
+When Not To Commit
+~~~~~~~~~~~~~~~~~~
+
+Even if you have commit rights, you should probably still post a patch to the
+mailing list if:
+
+ - Your changes are broad and touch many different files
+ - You are adding a feature
+ - Your changes are speculative or experimental (i.e. trying a new algorithm)
+ - You are not the maintainer and your changes make the maintainer cringe
+
+The more of the above are true, the better it is to post a patch to the
+mailing list instead of committing.
+
+
+
 Final Words
 -----------
 
@@ -390,9 +457,5 @@ you're having difficulty following some of the steps outlined in this
 document don't worry, the folks on the Busybox mailing list are a fairly
 good-natured bunch and will work with you to help get your patches into shape
 or help you make contributions.
-
-If you submit several patches that demonstrate that you are a skilled and wise
-coder, you may be invited to become a committer, thus enabling you to commit
-changes directly to CVS.
 
 
