@@ -181,7 +181,7 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 			*head = *list;
 		
 			/* recursive check for sub-archives */
-			if ((funct & RECURSIVE) == RECURSIVE) 
+			if ( funct & RECURSIVE ) 
 		        	head = getHeaders(srcFd, head, funct);
 			lseek(srcFd, head->offset + head->size, SEEK_SET);
 		}
@@ -207,7 +207,7 @@ static headerL_t *findEntry(headerL_t *head, const char *filename)
  */
 static int displayEntry(headerL_t *head, int funct)
 {
-	if ((funct & VERBOSE) == VERBOSE) {
+	if ( funct & VERBOSE ) {
 		printf("%s %d/%d %8d %s ", modeString(head->mode), head->uid, head->gid, head->size, timeString(head->mtime));
 	}
 	printf("%s\n", head->name);
@@ -232,22 +232,22 @@ extern int ar_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "ovtpxR")) != -1) {
 		switch (opt) {
 		case 'o':
-			funct = funct | PRESERVE_DATE;
+			funct |= PRESERVE_DATE;
 			break;
 		case 'v':
-			funct = funct | VERBOSE;
+			funct |= VERBOSE;
 			break;
 		case 't':
-			funct = funct | DISPLAY;
+			funct |= DISPLAY;
 			break;
 		case 'x':
-			funct = funct | EXT_TO_FILE;
+			funct |= EXT_TO_FILE;
 			break;
 		case 'p':
-			funct = funct | EXT_TO_STDOUT;
+			funct |= EXT_TO_STDOUT;
 			break;
 		case 'R':
-			funct = funct | RECURSIVE;
+			funct |= RECURSIVE;
 			break;
 		default:
 			usage(ar_usage);
@@ -288,14 +288,14 @@ extern int ar_main(int argc, char **argv)
 		extractList = header;
 	
        while(extractList->next != NULL) {	
-		if ( (funct & EXT_TO_FILE) == EXT_TO_FILE) {
+		if ( funct & EXT_TO_FILE ) {
 			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
 			
 			extractAr(srcFd, dstFd, extractList);
 		}
-		if ( (funct & EXT_TO_STDOUT) == EXT_TO_STDOUT)	
+		if ( funct & EXT_TO_STDOUT )	
 			extractAr(srcFd, fileno(stdout), extractList);	
-		if ( (funct & DISPLAY) == DISPLAY)
+		if ( (funct & DISPLAY) || (funct & VERBOSE))
 			displayEntry(extractList, funct);
 		extractList=extractList->next;
 	}
