@@ -114,11 +114,6 @@ static void print_no_pop(void)
 	print_base(stack[pointer-1]);
 }
 
-static void print(void)
-{
-	print_base(pop());
-}
-
 struct op {
 	const char *name;
 	void (*function) (void);
@@ -155,10 +150,8 @@ static void stack_machine(const char *argument)
 	double d;
 	const struct op *o = operators;
 
-	if (argument == 0) {
-		print();
+	if (argument == 0)
 		return;
-	}
 
 	d = strtod(argument, &endPointer);
 
