@@ -1012,6 +1012,7 @@ Options:
 		-k      Make module autoclean-able.
 		-v      verbose output
 		-x      do not export externs
+		-L      Prevent simultaneous loads of the same module
 
 -------------------------------
 
@@ -2320,4 +2321,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.86 2001/01/03 01:06:30 bug1 Exp $
+# $Id: busybox.pod,v 1.87 2001/01/24 19:15:07 andersen Exp $

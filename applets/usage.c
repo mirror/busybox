@@ -545,7 +545,9 @@ const char insmod_usage[] =
 	"Options:\n"
 	"\t-f\tForce module to load into the wrong kernel version.\n"
 	"\t-k\tMake module autoclean-able.\n"
-	"\t-v\tverbose output\n" "\t-x\tdo not export externs"
+	"\t-v\tverbose output\n" 
+	"\t-L\tLock to prevent simultaneous loads of a module\n"
+	"\t-x\tdo not export externs"
 #endif
 	;
 #endif

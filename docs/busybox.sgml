@@ -1697,6 +1697,7 @@
 			-k	Make module autoclean-able.
 			-v	Verbose output
 			-x	Do not export externs
+			-L	Prevent simultaneous loads of the same module
 		</screen>
 		</para>
 	</sect1>
