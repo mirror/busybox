@@ -26,20 +26,21 @@
 
 extern int cat_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
+
 	if (argc == 1) {
 		print_file(stdin);
-		exit(TRUE);
+		return status;
 	}
 
 	while (--argc > 0) {
 		if(!(strcmp(*++argv, "-"))) {
 			print_file(stdin);
 		} else if (print_file_by_name(*argv) == FALSE) {
-			perror(*argv);
-			exit(FALSE);
+			status = EXIT_FAILURE;
 		}
 	}
-	return(TRUE);
+	return status;
 }
 
 /*

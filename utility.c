@@ -1636,12 +1636,13 @@ extern int print_file_by_name(char *filename)
 	FILE *file;
 	file = fopen(filename, "r");
 	if (file == NULL) {
+		errorMsg("%s: %s\n", filename, strerror(errno));
 		return FALSE;
 	}
 	print_file(file);
 	return TRUE;
 }
-#endif /* BB_CAT || BB_LSMOD */
+#endif /* BB_CAT */
 
 #if defined BB_ECHO || defined BB_TR
 char process_escape_sequence(char **ptr)
