@@ -1194,7 +1194,7 @@
 #define modprobe_trivial_usage \
 	"[FILE ...]"
 #define modprobe_full_usage \
-	"Used for hight level module loading and unloading."
+	"Used for high level module loading and unloading."
 #define modprobe_example_usage \
 	"$ modprobe cdrom\n" 
 
