@@ -667,11 +667,11 @@ ls_main(int argc, char * * argv)
 	while (argi < argc)
 		i |= list_item(argv[argi++]);
 	newline();
-	return i;
+	exit( i);
 
 print_usage_message:
 	fprintf(stderr, "Usage: %s\n", ls_usage);
-	return 1;
+	exit( FALSE);
 }
 
 #endif

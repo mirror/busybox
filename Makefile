@@ -4,7 +4,7 @@ BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
 # Leave this off for production use.
-#DODEBUG=true
+DODEBUG=true
 
 #This will choke on a non-debian system
 ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
@@ -41,7 +41,7 @@ links:
 	- ./busybox.mkll | sort >busybox.links
 	
 clean:
-	- rm -f busybox busybox.links *~ *.o 
+	- rm -f busybox busybox.links *~ *.o core 
 
 distclean: clean
 	- rm -f busybox

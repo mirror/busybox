@@ -249,7 +249,7 @@ void
 configure_terminals( int serial_cons );
 
 extern int
-init_main(struct FileInfo * i, int argc, char * * argv)
+init_main(int argc, char * * argv)
 {
 	static const char * const	rc = "etc/rc";
 	const char *				arguments[100];
@@ -370,8 +370,10 @@ Read the instructions in the install.html file.
 	}
 	arguments[j] = 0;
 
-	if ( run_rc )
+	if ( run_rc ) {
+		printf("running %s\n",rc);
 		waitfor(run(rc, arguments, console, 0));
+	}
 
 	if ( 0 == create_swap) {
 	  if (unlink("/etc/swappartition")) {
