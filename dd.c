@@ -57,6 +57,7 @@ extern int dd_main(int argc, char **argv)
 	uintmax_t totalSize;
 	uintmax_t readSize;
 	unsigned char buf[BUFSIZ];
+	off_t jumped;
 
 	argc--;
 	argv++;
@@ -117,7 +118,7 @@ extern int dd_main(int argc, char **argv)
 	if (outFile == NULL)
 		outFd = fileno(stdout);
 	else
-		outFd = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+		outFd = open(outFile, O_WRONLY | O_CREAT, 0666);
 
 	if (outFd < 0) {
 		/* Note that we are not freeing buf or closing
@@ -129,10 +130,9 @@ extern int dd_main(int argc, char **argv)
 		fatalError( outFile);
 	}
 
-	lseek(inFd, skipBlocks * blockSize, SEEK_SET);
-	lseek(outFd, seekBlocks * blockSize, SEEK_SET);
+	lseek(inFd, (off_t) (skipBlocks * blockSize), SEEK_SET);
+	jumped = lseek(outFd, (off_t) (seekBlocks * blockSize), SEEK_SET);
 	totalSize=count*blockSize;
-	printf("totalsize is %d\n",(int) totalSize);
 	while ((readSize = totalSize - inTotal) > 0) {
 		if (readSize > BUFSIZ)
 			readSize=BUFSIZ;
@@ -148,7 +148,6 @@ extern int dd_main(int argc, char **argv)
 #ifdef BB_FEATURE_CLEAN_UP
 	close(inFd);
 	close(outFd);
-	free(buf);
 #endif
 
 	printf("%ld+%d records in\n", (long) (inTotal / blockSize),
