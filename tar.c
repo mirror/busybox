@@ -108,9 +108,7 @@ typedef struct {
  */
 static int listFlag;
 static int extractFlag;
-#ifdef BB_FEATURE_TAR_CREATE
 static int createFlag;
-#endif
 static int verboseFlag;
 static int tostdoutFlag;
 
@@ -185,9 +183,7 @@ extern int tar_main (int argc, char **argv)
 
     errorFlag = FALSE;
     extractFlag = FALSE;
-#ifdef BB_FEATURE_TAR_CREATE
     createFlag = FALSE;
-#endif
     listFlag = FALSE;
     verboseFlag = FALSE;
     tostdoutFlag = FALSE;
@@ -199,90 +195,85 @@ extern int tar_main (int argc, char **argv)
     /* 
      * Parse the options.
      */
-    if (**argv == '-') {
+    if (**argv == '-')
 	options = (*argv++) + 1;
-	argc--;
-	for (; *options; options++) {
-	    switch (*options) {
-	    case 'f':
-		if (tarName != NULL) {
-		    fprintf (stderr, "Only one 'f' option allowed\n");
+    else 
+	options = (*argv++);
+    argc--;
 
-		    exit (FALSE);
-		}
-
-		tarName = *argv++;
-		argc--;
-
-		break;
-
-	    case 't':
-		listFlag = TRUE;
-		break;
-
-	    case 'x':
-		extractFlag = TRUE;
-		break;
-#ifdef BB_FEATURE_TAR_CREATE
-	    case 'c':
-		createFlag = TRUE;
-		break;
-#else
-	    case 'c':
-		fprintf (stderr, "This version of tar was not compiled with tar creation support.\n" );
-
-		exit (FALSE);
-#endif
-
-	    case 'v':
-		verboseFlag = TRUE;
-		break;
-
-	    case 'O':
-		tostdoutFlag = TRUE;
-		break;
-
-	    case '-':
-		usage( tar_usage);
-		break;
-
-	    default:
-		fprintf (stderr, "Unknown tar flag '%c'\n"
-			"Try `tar --help' for more information\n", 
-			*options);
+    for (; *options; options++) {
+	switch (*options) {
+	case 'f':
+	    if (tarName != NULL) {
+		fprintf (stderr, "Only one 'f' option allowed\n");
 
 		exit (FALSE);
 	    }
+
+	    tarName = *argv++;
+	    argc--;
+
+	    break;
+
+	case 't':
+	    if (extractFlag == TRUE || createFlag == TRUE )
+		goto flagError;
+	    listFlag = TRUE;
+	    break;
+
+	case 'x':
+	    if (listFlag == TRUE || createFlag == TRUE )
+		goto flagError;
+	    extractFlag = TRUE;
+	    break;
+	case 'c':
+	    if (extractFlag == TRUE || listFlag == TRUE)
+		goto flagError;
+	    createFlag = TRUE;
+	    break;
+
+	case 'v':
+	    verboseFlag = TRUE;
+	    break;
+
+	case 'O':
+	    tostdoutFlag = TRUE;
+	    break;
+
+	case '-':
+	    usage( tar_usage);
+	    break;
+
+	default:
+	    fprintf (stderr, "Unknown tar flag '%c'\n"
+		    "Try `tar --help' for more information\n", 
+		    *options);
+	    exit (FALSE);
 	}
-    }
-
-    /* 
-     * Validate the options.
-     */
-    if (extractFlag + listFlag 
-#ifdef BB_FEATURE_TAR_CREATE
-	    + createFlag 
-#endif 
-	    != (TRUE+FALSE+FALSE)) {
-	fprintf (stderr,
-		 "Exactly one of 'c', 'x' or 't' must be specified\n");
-
-	exit (FALSE);
     }
 
     /* 
      * Do the correct type of action supplying the rest of the
      * command line arguments as the list of files to process.
      */
-#ifdef BB_FEATURE_TAR_CREATE
-    if (createFlag==TRUE)
+    if (createFlag==TRUE) {
+#ifndef BB_FEATURE_TAR_CREATE
+	fprintf (stderr, "This version of tar was not compiled with tar creation support.\n" );
+	exit (FALSE);
+#else
 	writeTarFile (argc, argv);
-    else
 #endif 
+    } else {
 	readTarFile (argc, argv);
-    if (errorFlag==TRUE)
+    }
+    if (errorFlag==TRUE) {
 	fprintf (stderr, "\n");
+    }
     exit (!errorFlag);
+
+flagError:
+    fprintf (stderr, "Exactly one of 'c', 'x' or 't' must be specified\n");
+    exit (FALSE);
 }
 
 

@@ -1,10 +1,18 @@
 0.42
 	* Made tar creation support in busybox tar optional.
+	You no longer _have_ to put a "-" in front of tar options.
 	* Made grep and grep -h do the right thing wrt printing
 	    the file name (it failed to print files names in many cases).
 	* Fix a namespace aliasing problem wereby if du was built in, the 
 	    symlink for both du and dutmp would be installed, or then rm was 
 	    built in, the symlinks for both rm and rmmod would be installed.
+	* Added a closelog() to init.c after loging -- fix thanks to 
+	    Taketoshi Sano <kgh12351@nifty.ne.jp>
+	* Rewrote and simplified logger.  Added the "-t" option, and made it
+	    behave itself a bit better.
+	* Optional support contributed by Ben Collins <bcollins@debian.org> 
+	    for the kernel init chroot patch by Werner Almesberger, which 
+	    allows init to chroot to a new device, and umount the old one.
 
 
 	-Erik Andersen

@@ -139,3 +139,10 @@
 // Enable support for creation of tar files.
 //#define BB_FEATURE_TAR_CREATE
 //
+// Allow init to permenently chroot, and umount the old root fs
+// just like an initrd does.  Requires a kernel patch by Werner Almesberger.
+// ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
+#ifdef BB_MOUNT
+#define BB_FEATURE_INIT_CHROOT
+#endif
+//

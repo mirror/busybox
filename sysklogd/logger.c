@@ -22,16 +22,11 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
-#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <ctype.h>
-#include <netdb.h>
 
 #if !defined BB_SYSLOGD
 
@@ -56,6 +51,7 @@ static const char logger_usage[] =
     "Write MESSAGE to the system log.  If MESSAGE is '-', log stdin.\n\n"
     "Options:\n"
     "\t-s\tLog to stderr as well as the system log.\n"
+    "\t-t\tLog using the specified tag (defaults to user name).\n"
     "\t-p\tEnter the message with the specified priority.\n"
     "\t\tThis may be numerical or a ``facility.level'' pair.\n";
 
@@ -116,14 +112,14 @@ pencode(char* s)
 
 extern int logger_main(int argc, char **argv)
 {
-    struct sockaddr_un sunx;
-    int fd, pri = LOG_USER|LOG_NOTICE;
+    int pri = LOG_USER|LOG_NOTICE;
+    int option = 0;
     int fromStdinFlag=FALSE;
-    int toStdErrFlag=FALSE;
     int stopLookingAtMeLikeThat=FALSE;
-    char *message, buf[1024], buf1[1024];
-    time_t  now;
-    size_t addrLength;
+    char *message, buf[1024], name[128];
+    
+    /* Fill out the name string early (may be overwritten later */
+    my_getpwuid(name, geteuid());
 
     /* Parse any options */
     while (--argc > 0 && **(++argv) == '-') {
@@ -134,13 +130,20 @@ extern int logger_main(int argc, char **argv)
 	while (*(++(*argv)) && stopLookingAtMeLikeThat==FALSE) {
 	    switch (**argv) {
 	    case 's':
-		toStdErrFlag = TRUE;
+		option |= LOG_PERROR;
 		break;
 	    case 'p':
 		if (--argc == 0) {
 		    usage(logger_usage);
 		}
 		pri = pencode(*(++argv));
+		stopLookingAtMeLikeThat=TRUE;
+		break;
+	    case 't':
+		if (--argc == 0) {
+		    usage(logger_usage);
+		}
+		strncpy(name, *(++argv), sizeof(name));
 		stopLookingAtMeLikeThat=TRUE;
 		break;
 	    default:
@@ -152,10 +155,10 @@ extern int logger_main(int argc, char **argv)
     if (fromStdinFlag==TRUE) {
 	/* read from stdin */
 	int c, i=0;
-	while ((c = getc(stdin)) != EOF && i<sizeof(buf1)) {
-	    buf1[i++]=c;
+	while ((c = getc(stdin)) != EOF && i<sizeof(buf)) {
+	    buf[i++]=c;
 	}
-	message=buf1;
+	message=buf;
     } else {
 	if (argc>=1) {
 		message=*argv;
@@ -165,30 +168,10 @@ extern int logger_main(int argc, char **argv)
 	}
     }
 
-    memset(&sunx, 0, sizeof(sunx));
-    sunx.sun_family = AF_UNIX;	/* Unix domain socket */
-    strncpy(sunx.sun_path, _PATH_LOG, sizeof(sunx.sun_path));
-    if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0 ) {
-        perror("Couldn't obtain descriptor for socket " _PATH_LOG);
-	exit( FALSE);
-    }
+    openlog( name, option, (pri | LOG_FACMASK)); 
+    syslog( pri, message);
+    closelog();
 
-    addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
-
-    if (connect(fd, (struct sockaddr *) &sunx, addrLength)) {
-	perror("Could not connect to socket " _PATH_LOG);
-	exit( FALSE);
-    }
-
-    time(&now);
-    snprintf (buf, sizeof(buf), "<%d>%.15s %s", pri, ctime(&now)+4, message);
-    
-    if (toStdErrFlag==TRUE)
-	fprintf(stderr, "%s\n", buf);
-
-    write( fd, buf, strlen(buf)+1);
-
-    close(fd);
     exit( TRUE);
 }
 

@@ -17,7 +17,7 @@
 
 
 PROG=busybox
-VERSION=0.41
+VERSION=0.42
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
@@ -33,7 +33,6 @@ ARCH=`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
 
 GCCMAJVERSION=$(shell $(CC) --version | sed -n "s/^\([^\.]*\).*/\1/p" )
 GCCMINVERSION=$(shell $(CC) --version | sed -n "s/^[^\.]*\.\([^\.]*\)[\.].*/\1/p" )
-GCCEGCS=$(shell $(CC) --version | sed -n "s/.*\(egcs\).*/\1/p" )
 
 GCCSUPPORTSOPTSIZE=$(shell \
 if ( test $(GCCMAJVERSION) -eq 2 ) ; then \
@@ -50,26 +49,11 @@ else \
     fi; \
 fi; )
 
-GCCISEGCS=$(shell \
-if ( test "x$(GCCEGCS)" == "xegcs" ) ; then \
-		echo "true"; \
-	else \
-		echo "false"; \
-	fi; )
-
-EGCSEXTREMEFLAGS = -m386 -mcpu=i386 -march=i386 -malign-jumps=1 -malign-loops=1 -malign-functions=1
-GCCEXTREMEFLAGS  = -m386 -malign-jumps=1 -malign-loops=1 -malign-functions=1
-
-ifeq ($(GCCISEGCS), true)
-	EXTREMEFLAGS = $(EGCSEXTREMEFLAGS)
-else
-	EXTREMEFLAGS = $(GCCEXTREMEFLAGS)
-endif
 
 ifeq ($(GCCSUPPORTSOPTSIZE), true)
-	OPTIMIZATION=-Os $(EXTREMEFLAGS)
+    OPTIMIZATION=-Os
 else
-	OPTIMIZATION=-O2 $(EXTREMEFLAGS)
+    OPTIMIZATION=-O2
 endif
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
