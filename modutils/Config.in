@@ -58,6 +58,27 @@ config CONFIG_FEATURE_INSMOD_LOADINKMEM
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_INSMOD_LOAD_MAP
+	bool "  Enable load map (-m) option" 
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  Enabling this, one would be able to get a load map
+	  output on stdout. This makes kernel module debugging
+	  easier.
+	  If you don't plan to debug kernel modules, you
+	  don't need this option.
+
+config CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL
+	bool "  Symbols in load map"
+	default y
+	depends on CONFIG_FEATURE_INSMOD_LOAD_MAP
+	help
+	  Without this option, -m will only output section
+	  load map.
+	  With this option, -m will also output symbols
+	  load map.
+
 config CONFIG_LSMOD
 	bool "lsmod"
 	default n

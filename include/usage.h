@@ -1032,6 +1032,11 @@
 "	::shutdown:/bin/umount -a -r\n" \
 "	::shutdown:/sbin/swapoff -a\n"
 
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+  #define USAGE_INSMOD_MAP(a) a
+#else
+  #define USAGE_INSMOD_MAP(a)
+#endif
 #define insmod_trivial_usage \
 	"[OPTION]... MODULE [symbol=value]..."
 #define insmod_full_usage \
@@ -1041,7 +1046,8 @@
 	"\t-k\tMake module autoclean-able.\n" \
 	"\t-v\tverbose output\n"  \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
-	"\t-x\tdo not export externs"
+	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout") \
+	"\t-x\tdo not export externs\n"
 
 #define ip_trivial_usage \
 	"[ OPTIONS ] { address | link | route | tunnel } { COMMAND | help }"

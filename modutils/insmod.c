@@ -234,7 +234,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.93 2003/01/23 04:48:34 andersen Exp $"
+#ident "$Id: insmod.c,v 1.94 2003/01/23 04:57:35 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -455,7 +455,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.93 2003/01/23 04:48:34 andersen Exp $"
+#ident "$Id: insmod.c,v 1.94 2003/01/23 04:57:35 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -3706,6 +3706,98 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 }
 #endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+static void print_load_map(struct obj_file *f)
+{
+	struct obj_symbol *sym;
+	struct obj_symbol **all, **p;
+	struct obj_section *sec;
+	int i, nsyms, *loaded;
+
+	/* Report on the section layout.  */
+
+	printf("Sections:       Size      %-*s  Align\n",
+			(int) (2 * sizeof(void *)), "Address");
+
+	for (sec = f->load_order; sec; sec = sec->load_next) {
+		int a;
+		unsigned long tmp;
+
+		for (a = -1, tmp = sec->header.sh_addralign; tmp; ++a)
+			tmp >>= 1;
+		if (a == -1)
+			a = 0;
+
+		printf("%-15s %08lx  %0*lx  2**%d\n",
+				sec->name,
+				(long)sec->header.sh_size,
+				(int) (2 * sizeof(void *)),
+				(long)sec->header.sh_addr,
+				a);
+	}
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL
+	/* Quick reference which section indicies are loaded.  */
+
+	loaded = alloca(sizeof(int) * (i = f->header.e_shnum));
+	while (--i >= 0)
+		loaded[i] = (f->sections[i]->header.sh_flags & SHF_ALLOC) != 0;
+
+	/* Collect the symbols we'll be listing.  */
+
+	for (nsyms = i = 0; i < HASH_BUCKETS; ++i)
+		for (sym = f->symtab[i]; sym; sym = sym->next)
+			if (sym->secidx <= SHN_HIRESERVE
+					&& (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+				++nsyms;
+
+	all = alloca(nsyms * sizeof(struct obj_symbol *));
+
+	for (i = 0, p = all; i < HASH_BUCKETS; ++i)
+		for (sym = f->symtab[i]; sym; sym = sym->next)
+			if (sym->secidx <= SHN_HIRESERVE
+					&& (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+				*p++ = sym;
+
+	/* And list them.  */
+	printf("\nSymbols:\n");
+	for (p = all; p < all + nsyms; ++p) {
+		char type = '?';
+		unsigned long value;
+
+		sym = *p;
+		if (sym->secidx == SHN_ABS) {
+			type = 'A';
+			value = sym->value;
+		} else if (sym->secidx == SHN_UNDEF) {
+			type = 'U';
+			value = 0;
+		} else {
+			sec = f->sections[sym->secidx];
+
+			if (sec->header.sh_type == SHT_NOBITS)
+				type = 'B';
+			else if (sec->header.sh_flags & SHF_ALLOC) {
+				if (sec->header.sh_flags & SHF_EXECINSTR)
+					type = 'T';
+				else if (sec->header.sh_flags & SHF_WRITE)
+					type = 'D';
+				else
+					type = 'R';
+			}
+			value = sym->value + sec->header.sh_addr;
+		}
+
+		if (ELFW(ST_BIND) (sym->info) == STB_LOCAL)
+			type = tolower(type);
+
+		printf("%0*lx %c %s\n", (int) (2 * sizeof(void *)), value,
+				type, sym->name);
+	}
+#endif
+}
+
+#endif
+
 extern int insmod_main( int argc, char **argv)
 {
 	int opt;
@@ -3731,9 +3823,16 @@ extern int insmod_main( int argc, char **argv)
 #else
 	FILE *fp;
 #endif
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+	int flag_print_load_map = 0;
+#endif
 
 	/* Parse any options */
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+	while ((opt = getopt(argc, argv, "fkqsvxmLo:")) > 0) {
+#else
 	while ((opt = getopt(argc, argv, "fkqsvxLo:")) > 0) {
+#endif
 		switch (opt) {
 			case 'f':			/* force loading */
 				flag_force_load = 1;
@@ -3766,6 +3865,11 @@ extern int insmod_main( int argc, char **argv)
 				 * that.  So be careful and plan your life around not
 				 * loading the same module 50 times concurrently. */
 				break;
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+			case 'm':			/* print module load map */
+				flag_print_load_map = 1;
+				break;
+#endif
 			default:
 				show_usage();
 		}
@@ -4004,6 +4108,11 @@ extern int insmod_main( int argc, char **argv)
 		delete_module(m_name);
 		goto out;
 	}
+
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+	if(flag_print_load_map)
+		print_load_map(f);
+#endif
 
 	exit_status = EXIT_SUCCESS;
 
