@@ -1,10 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Utility routines.
+ * Mini copy_file implementation for busybox
  *
- * Copyright (C) tons of folks.  Tracking down who wrote what
- * isn't something I'm going to worry about...  If you wrote something
- * here, please feel free to acknowledge your work.
+ *
+ * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,179 +19,226 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
- * Permission has been granted to redistribute this code under the GPL.
- *
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <utime.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>
+#include <utime.h>
+#include <errno.h>
+#include <dirent.h>
+#include <stdlib.h>
+
 #include "libbb.h"
 
-
-/*
- * Copy one file to another, while possibly preserving its modes, times, and
- * modes.  Returns TRUE if successful, or FALSE on a failure with an error
- * message output.  (Failure is not indicated if attributes cannot be set.)
- * -Erik Andersen
- */
-int
-copy_file(const char *src_name, const char *dst_name,
-		 int set_modes, int follow_links, int force_flag, int quiet_flag)
+int copy_file(const char *source, const char *dest, int flags)
 {
-	FILE *src_file = NULL;
-	FILE *dst_file = NULL;
-	struct stat srcStatBuf;
-	struct stat dstStatBuf;
-	struct utimbuf times;
-	int src_status;
-	int dst_status;
+	struct stat source_stat;
+	struct stat dest_stat;
+	int dest_exists = 1;
+	int status = 0;
 
-	if (follow_links == TRUE) {
-		src_status = stat(src_name, &srcStatBuf);
-		dst_status = stat(dst_name, &dstStatBuf);
-	} else {
-		src_status = lstat(src_name, &srcStatBuf);
-		dst_status = lstat(dst_name, &dstStatBuf);
+	if (((flags & CP_PRESERVE_SYMLINKS) && lstat(source, &source_stat) < 0) ||
+			(!(flags & CP_PRESERVE_SYMLINKS) &&
+			 stat(source, &source_stat) < 0)) {
+		perror_msg("%s", source);
+		return -1;
 	}
 
-	if (src_status < 0) {
-		if (!quiet_flag) {
-			perror_msg("%s", src_name);
+	if (stat(dest, &dest_stat) < 0) {
+		if (errno != ENOENT) {
+			perror_msg("unable to stat `%s'", dest);
+			return -1;
 		}
-		return FALSE;
+		dest_exists = 0;
 	}
 
-	if ((dst_status < 0) || force_flag) {
-		unlink(dst_name);
-		dstStatBuf.st_ino = -1;
-		dstStatBuf.st_dev = -1;
+	if (dest_exists && source_stat.st_rdev == dest_stat.st_rdev &&
+			source_stat.st_ino == dest_stat.st_ino) {
+		error_msg("`%s' and `%s' are the same file", source, dest);
+		return -1;
 	}
 
-	if ((srcStatBuf.st_dev == dstStatBuf.st_dev) &&
-		(srcStatBuf.st_ino == dstStatBuf.st_ino)) {
-		if (!quiet_flag) {
-			error_msg("Copying file \"%s\" to itself", src_name);
+	if (S_ISDIR(source_stat.st_mode)) {
+		DIR *dp;
+		struct dirent *d;
+
+		if (!(flags & CP_RECUR)) {
+			error_msg("%s: omitting directory", source);
+			return -1;
 		}
-		return FALSE;
-	}
 
-	if (S_ISDIR(srcStatBuf.st_mode)) {
-		//fprintf(stderr, "copying directory %s to %s\n", srcName, destName);
-		/* Make sure the directory is writable */
-		dst_status = create_path(dst_name, 0777777 ^ umask(0));
-		if ((dst_status < 0) && (errno != EEXIST)) {
-			if (!quiet_flag) {
-				perror_msg("%s", dst_name);
+		/* Create DEST.  */
+		if (dest_exists) {
+			if (!S_ISDIR(dest_stat.st_mode)) {
+				error_msg("`%s' is not a directory", dest);
+				return -1;
 			}
-			return FALSE;
-		}
-	} else if (S_ISLNK(srcStatBuf.st_mode)) {
-		char link_val[BUFSIZ + 1];
-		int link_size;
+		} else {
+			mode_t mode, saved_umask;
+			saved_umask = umask(0);
 
-		//fprintf(stderr, "copying link %s to %s\n", srcName, destName);
-		/* Warning: This could possibly truncate silently, to BUFSIZ chars */
-		link_size = readlink(src_name, &link_val[0], BUFSIZ);
-		if (link_size < 0) {
-			if (quiet_flag) {
-				perror_msg("%s", src_name);
+			mode = source_stat.st_mode;
+			if (!(flags & CP_PRESERVE_STATUS))
+				mode = source_stat.st_mode & ~saved_umask;
+			mode |= S_IRWXU;
+
+			if (mkdir(dest, mode) < 0) {
+				umask(saved_umask);
+				perror_msg("cannot create directory `%s'", dest);
+				return -1;
 			}
-			return FALSE;
+
+			umask(saved_umask);
 		}
-		link_val[link_size] = '\0';
-		src_status = symlink(link_val, dst_name);
-		if (src_status < 0) {
-			if (!quiet_flag) {
-				perror_msg("%s", dst_name);
+		
+		/* Recursively copy files in SOURCE.  */
+		if ((dp = opendir(source)) == NULL) {
+			perror_msg("unable to open directory `%s'", source);
+			status = -1;
+			goto end;
+		}
+
+		while ((d = readdir(dp)) != NULL) {
+			char *new_source, *new_dest;
+
+			if (strcmp(d->d_name, ".") == 0 ||
+					strcmp(d->d_name, "..") == 0)
+				continue;
+
+			new_source = concat_path_file(source, d->d_name);
+			new_dest = concat_path_file(dest, d->d_name);
+			if (copy_file(new_source, new_dest, flags) < 0)
+				status = -1;
+			free(new_source);
+			free(new_dest);
+		}
+		
+		/* ??? What if an error occurs in readdir?  */
+
+		if (closedir(dp) < 0) {
+			perror_msg("unable to close directory `%s'", source);
+			status = -1;
+		}
+	} else if (S_ISREG(source_stat.st_mode)) {
+		FILE *sfp, *dfp;
+
+		if (dest_exists) {
+			if (flags & CP_INTERACTIVE) {
+				fprintf(stderr, "cp: overwrite `%s'? ", dest);
+				if (!ask_confirmation())
+					return 0;
 			}
-			return FALSE;
+
+			if ((dfp = fopen(dest, "w")) == NULL) {
+				if (!(flags & CP_FORCE)) {
+					perror_msg("unable to open `%s'", dest);
+					return -1;
+				}
+
+				if (unlink(dest) < 0) {
+					perror_msg("unable to remove `%s'", dest);
+					return -1;
+				}
+
+				dest_exists = 0;
+			}
 		}
+
+		if (!dest_exists) {
+			int fd;
+
+			if ((fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode)) < 0 ||
+					(dfp = fdopen(fd, "w")) == NULL) {
+				if (fd >= 0)
+					close(fd);
+				perror_msg("unable to open `%s'", dest);
+				return -1;
+			}
+		}
+
+		if ((sfp = fopen(source, "r")) == NULL) {
+			fclose(dfp);
+			perror_msg("unable to open `%s'", source);
+			status = -1;
+			goto end;
+		}
+
+		copy_file_chunk(sfp, dfp, source_stat.st_size);
+
+		if (fclose(dfp) < 0) {
+			perror_msg("unable to close `%s'", dest);
+			status = -1;
+		}
+
+		if (fclose(sfp) < 0) {
+			perror_msg("unable to close `%s'", source);
+			status = -1;
+		}
+	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
+			S_ISSOCK(source_stat.st_mode)) {
+		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
+			perror_msg("unable to create `%s'", dest);
+			return -1;
+		}
+	} else if (S_ISFIFO(source_stat.st_mode)) {
+		mode_t mode, saved_umask;
+		saved_umask = umask(0);
+
+		mode = source_stat.st_mode;
+		if (!(flags & CP_PRESERVE_STATUS))
+			mode = source_stat.st_mode & ~saved_umask;
+		mode |= S_IRWXU;
+
+		if (mkfifo(dest, mode) < 0) {
+			umask(saved_umask);
+			perror_msg("cannot create fifo `%s'", dest);
+			return -1;
+		}
+
+		umask(saved_umask);
+	} else if (S_ISLNK(source_stat.st_mode)) {
+		char buf[BUFSIZ + 1];
+
+		if (readlink(source, buf, BUFSIZ) < 0) {
+			perror_msg("cannot read `%s'", source);
+			return -1;
+		}
+		buf[BUFSIZ] = '\0';
+
+		if (symlink(buf, dest) < 0) {
+			perror_msg("cannot create symlink `%s'", dest);
+			return -1;
+		}
+
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-		if (set_modes == TRUE) {
-			/* Try to set owner, but fail silently like GNU cp */
-			lchown(dst_name, srcStatBuf.st_uid, srcStatBuf.st_gid);
-		}
+		if (flags & CP_PRESERVE_STATUS)
+			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
+				perror_msg("unable to preserve ownership of `%s'", dest);
 #endif
-		return TRUE;
-	} else if (S_ISFIFO(srcStatBuf.st_mode)) {
-		//fprintf(stderr, "copying fifo %s to %s\n", srcName, destName);
-		if (mkfifo(dst_name, 0644) < 0) {
-			if (!quiet_flag) {
-				perror_msg("%s", dst_name);
-			}
-			return FALSE;
-		}
-	} else if (S_ISBLK(srcStatBuf.st_mode) || S_ISCHR(srcStatBuf.st_mode)
-			   || S_ISSOCK(srcStatBuf.st_mode)) {
-		//fprintf(stderr, "copying soc, blk, or chr %s to %s\n", srcName, destName);
-		if (mknod(dst_name, srcStatBuf.st_mode, srcStatBuf.st_rdev) < 0) {
-			if (!quiet_flag) {
-				perror_msg("%s", dst_name);
-			}
-			return FALSE;
-		}
-	} else if (S_ISREG(srcStatBuf.st_mode)) {
-		//fprintf(stderr, "copying regular file %s to %s\n", srcName, destName);
-		src_file = fopen(src_name, "r");
-		if (src_file == NULL) {
-			if (!quiet_flag) {
-				perror_msg("%s", src_name);
-			}
-			return FALSE;
-		}
-
-	 	dst_file = fopen(dst_name, "w");
-		chmod(dst_name, srcStatBuf.st_mode);
-		if (dst_file == NULL) {
-			if (!quiet_flag) {
-				perror_msg("%s", dst_name);
-			}
-			fclose(src_file);
-			return FALSE;
-		}
-
-		if (copy_file_chunk(src_file, dst_file, srcStatBuf.st_size)==FALSE) {
-			goto error_exit;
-		}
-
-		fclose(src_file);
-		if (fclose(dst_file) < 0) {
-			return FALSE;
-		}
+		return 0;
+	} else {
+		error_msg("internal error: unrecognized file type");
+		return -1;
 	}
 
-	if (set_modes == TRUE) {
-		/* This is fine, since symlinks never get here */
-		if (chown(dst_name, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0)
-			perror_msg("%s", dst_name);
-		if (chmod(dst_name, srcStatBuf.st_mode) < 0)
-			perror_msg("%s", dst_name);
-		times.actime = srcStatBuf.st_atime;
-		times.modtime = srcStatBuf.st_mtime;
-		if (utime(dst_name, &times) < 0)
-			perror_msg("%s", dst_name);
+end:
+
+	if (flags & CP_PRESERVE_STATUS) {
+		struct utimbuf times;
+
+		times.actime = source_stat.st_atime;
+		times.modtime = source_stat.st_mtime;
+		if (utime(dest, &times) < 0)
+			perror_msg("unable to preserve times of `%s'", dest);
+		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
+			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
+			perror_msg("unable to preserve ownership of `%s'", dest);
+		}
+		if (chmod(dest, source_stat.st_mode) < 0)
+			perror_msg("unable to preserve permissions of `%s'", dest);
 	}
 
-	return TRUE;
-
-error_exit:
-	perror_msg("%s", dst_name);
-	fclose(src_file);
-	fclose(dst_file);
-
-	return FALSE;
+	return 0;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

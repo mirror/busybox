@@ -80,8 +80,8 @@
 #ifdef BB_CMP
 	APPLET(cmp, cmp_main, _BB_DIR_USR_BIN)
 #endif
-#ifdef BB_CP_MV
-	APPLET(cp, cp_mv_main, _BB_DIR_BIN)
+#ifdef BB_CP
+	APPLET(cp, cp_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_CUT
 	APPLET(cut, cut_main, _BB_DIR_USR_BIN)
@@ -269,8 +269,8 @@
 #ifdef BB_MT
 	APPLET(mt, mt_main, _BB_DIR_BIN)
 #endif
-#ifdef BB_CP_MV
-	APPLET(mv, cp_mv_main, _BB_DIR_BIN)
+#ifdef BB_MV
+	APPLET(mv, mv_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_NC
 	APPLET(nc, nc_main, _BB_DIR_USR_BIN)

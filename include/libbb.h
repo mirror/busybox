@@ -93,8 +93,7 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
-int copy_file(const char *src_name, const char *dst_name,
-		 int set_modes, int follow_links, int force_flag, int quiet_flag);
+int copy_file(const char *source, const char *dest, int flags);
 int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize);
 char *buildName(const char *dirName, const char *fileName);
 int makeString(int argc, const char **argv, char *buf, int bufLen);
@@ -254,5 +253,13 @@ extern int gz_open(FILE *compressed_file, int *pid);
 #define CT_UNIX2DOS	1
 #define CT_DOS2UNIX	2
 /* extern int convert(char *fn, int ConvType); */
+
+enum {
+	CP_PRESERVE_STATUS = 1,
+	CP_PRESERVE_SYMLINKS = 2,
+	CP_RECUR = 4,
+	CP_FORCE = 8,
+	CP_INTERACTIVE = 16
+};
 
 #endif /* __LIBBB_H__ */
