@@ -43,45 +43,47 @@ static int fs_link(const char *link_destname, const char *link_srcname,
 {
 	int status;
 	int src_is_dir;
-	char *src_name;
+	char *src_name = 0;
+	const char *src;
 
 	if (link_destname==NULL)
 		return(FALSE);
 
-	src_name = (char *) xmalloc(strlen(link_srcname)+strlen(link_destname)+1);
-
 	if (link_srcname==NULL)
-		strcpy(src_name, link_destname);
+		src = link_destname;
 	else
-		strcpy(src_name, link_srcname);
+		src = link_srcname;
 
 	if (flag&LN_NODEREFERENCE)
-		src_is_dir = is_directory(src_name, TRUE, NULL);
+		src_is_dir = is_directory(src, TRUE, NULL);
 	else
-		src_is_dir = is_directory(src_name, FALSE, NULL);	
+		src_is_dir = is_directory(src, FALSE, NULL);
 	
 	if ((src_is_dir==TRUE)&&((flag&LN_NODEREFERENCE)==0)) {
 		char* srcdir_name;
 
 		srcdir_name = xstrdup(link_destname);
-		strcat(src_name, "/");
-		strcat(src_name, get_last_path_component(srcdir_name));
+		src_name = concat_path_file(src, get_last_path_component(srcdir_name));
+		src = src_name;
 		free(srcdir_name);
 	}
 	
 	if (flag&LN_FORCE)
-		unlink(src_name);
+		unlink(src);
 		
 	if (flag&LN_SYMLINK)
-		status = symlink(link_destname, src_name);
+		status = symlink(link_destname, src);
 	else
-		status = link(link_destname, src_name);
+		status = link(link_destname, src);
 
 	if (status != 0) {
-		perror_msg(src_name);
-		return(FALSE);
+		perror_msg(src);
+		status = FALSE;
+	} else {
+		status = TRUE;
 	}
-	return(TRUE);
+	free(src_name);
+	return status;
 }
 
 extern int ln_main(int argc, char **argv)

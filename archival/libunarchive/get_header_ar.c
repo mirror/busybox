@@ -91,8 +91,7 @@ file_header_t *get_header_ar(FILE *src_stream)
 		}
 	} else {
 		/* short filenames */
-		typed->name = xcalloc(1, 16);
-		strncpy(typed->name, ar.formated.name, 16);
+               typed->name = xstrndup(ar.formated.name, 16);
 	}
 	typed->name[strcspn(typed->name, " /")]='\0';
 

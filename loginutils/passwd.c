@@ -173,7 +173,7 @@ extern int passwd_main(int argc, char **argv)
 	ruid = getuid();
 	pw = (struct passwd *) getpwuid(ruid);
 	if (!pw) {
-		error_msg_and_die("Cannot determine your user name.\n");
+               error_msg_and_die("Cannot determine your user name.");
 	}
 	myname = (char *) xstrdup(pw->pw_name);
 	if (optind < argc) {

@@ -119,8 +119,7 @@ static int gunzip_file (const char *path, int flags)
 	} else {
 	    error_msg_and_die("Invalid extension");
 	}
-	out_path = (char *) xcalloc(sizeof(char), length + 1);
-	strncpy(out_path, path, length);
+       out_path = xstrndup(path, length);
 			
 	/* Open output file */
 	out_file = xfopen(out_path, "w");

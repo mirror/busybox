@@ -58,9 +58,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				return(NULL);
 			}
 		}
-		full_name = xmalloc(strlen(prefix) + strlen(path) + 1);
-		strcpy(full_name, prefix);
-		strcat(full_name, path);
+               bb_asprintf(&full_name, "%s%s", prefix, path);
 	} else {
 		full_name = file_entry->name;
 	}

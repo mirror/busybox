@@ -96,9 +96,7 @@ const char *normalize(const char *arg)
                 free(BUFFER);
 
         if (!quote) { /* Just copy arg */
-                BUFFER=xmalloc(strlen(arg)+1);
-
-                strcpy(BUFFER,arg);
+               BUFFER=xstrdup(arg);
                 return BUFFER;
         }
 
@@ -204,7 +202,6 @@ static const int LONG_OPTIONS_INCR = 10;
 /* Register a long option. The contents of name is copied. */
 void add_longopt(const char *name,int has_arg)
 {
-        char *tmp;
         if (!name) { /* init */
                 free(long_options);
                 long_options=NULL;
@@ -228,9 +225,7 @@ void add_longopt(const char *name,int has_arg)
                 long_options[long_options_nr-1].has_arg=has_arg;
                 long_options[long_options_nr-1].flag=NULL;
                 long_options[long_options_nr-1].val=LONG_OPT;
-                tmp = xmalloc(strlen(name)+1);
-                strcpy(tmp,name);
-                long_options[long_options_nr-1].name=tmp;
+               long_options[long_options_nr-1].name=xstrdup(name);
         }
         long_options_nr++;
 }
@@ -326,7 +321,7 @@ int getopt_main(int argc, char *argv[])
                         /* For some reason, the original getopt gave no error
                            when there were no arguments. */
                         printf(" --\n");
-                        exit(0);
+                       return 0;
                 } else
                         error_msg_and_die("missing optstring argument");
         }
@@ -336,7 +331,7 @@ int getopt_main(int argc, char *argv[])
                 optstr=xmalloc(strlen(argv[1])+1);
                 strcpy(optstr,argv[1]+strspn(argv[1],"-+"));
                 argv[1]=argv[0];
-                exit(generate_output(argv+1,argc-1,optstr,long_options));
+               return (generate_output(argv+1,argc-1,optstr,long_options));
         }
 
         while ((opt=getopt_long(argc,argv,shortopts,longopts,NULL)) != EOF)
@@ -347,8 +342,7 @@ int getopt_main(int argc, char *argv[])
                 case 'o':
                         if (optstr)
                                 free(optstr);
-                        optstr=xmalloc(strlen(optarg)+1);
-                        strcpy(optstr,optarg);
+                       optstr=xstrdup(optarg);
                         break;
                 case 'l':
                         add_long_options(optarg);
@@ -356,8 +350,7 @@ int getopt_main(int argc, char *argv[])
                 case 'n':
                         if (name)
                                 free(name);
-                        name=xmalloc(strlen(optarg)+1);
-                        strcpy(name,optarg);
+                       name=xstrdup(optarg);
                         break;
                 case 'q':
                         quiet_errors=1;
@@ -369,7 +362,7 @@ int getopt_main(int argc, char *argv[])
                         set_shell(optarg);
                         break;
                 case 'T':
-                        exit(4);
+                       return 4;
                 case 'u':
                         quote=0;
                         break;
@@ -381,8 +374,7 @@ int getopt_main(int argc, char *argv[])
                 if (optind >= argc)
                         error_msg_and_die("missing optstring argument");
                 else {
-                        optstr=xmalloc(strlen(argv[optind])+1);
-                        strcpy(optstr,argv[optind]);
+                       optstr=xstrdup(argv[optind]);
                         optind++;
                 }
         }
@@ -390,7 +382,7 @@ int getopt_main(int argc, char *argv[])
                 argv[optind-1]=name;
         else
                 argv[optind-1]=argv[0];
-        exit(generate_output(argv+optind-1,argc-optind+1,optstr,long_options));
+       return (generate_output(argv+optind-1,argc-optind+1,optstr,long_options));
 }
 
 /*

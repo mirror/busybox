@@ -232,7 +232,7 @@ static void termio_final(struct options *op, struct termio *tp,
 				  struct chardata *cp);
 static int caps_lock(const char *s);
 static int bcode(const char *s);
-static void error(const char *fmt, ...);
+static void error(const char *fmt, ...) __attribute__ ((noreturn));
 
 /* The following is used for understandable diagnostics. */
 
@@ -299,8 +299,7 @@ int getty_main(int argc, char **argv)
 		int iv;
 
 		iv = getpid();
-		if (ioctl(0, TIOCSPGRP, &iv) < 0)
-			perror_msg("ioctl() TIOCSPGRP call failed");
+		ioctl(0, TIOCSPGRP, &iv);
 	}
 #endif
 	/* Initialize the termio settings (raw mode, eight-bit, blocking i/o). */
@@ -368,7 +367,6 @@ int getty_main(int argc, char **argv)
 
 	(void) execl(options.login, options.login, "--", logname, (char *) 0);
 	error("%s: can't exec %s: %m", options.tty, options.login);
-	return (0);					/* quiet GCC */
 }
 
 /* parse-args - parse command-line arguments */
@@ -382,10 +380,9 @@ static void parse_args(int argc, char **argv, struct options *op)
 	while (isascii(c = getopt(argc, argv, "I:LH:f:hil:mt:wn"))) {
 		switch (c) {
 		case 'I':
-			if (!(op->initstring = strdup(optarg))) {
+			if (!(op->initstring = strdup(optarg)))
 				error("can't malloc initstring");
-				break;
-			}
+				
 			{
 				char ch, *p, *q;
 				int i;

@@ -146,12 +146,8 @@ static int null (VALUE *v)
 
 static void tostring (VALUE *v)
 {
-	char *temp;
-
 	if (v->type == integer) {
-		temp = xmalloc (4 * (sizeof (int) / sizeof (char)));
-		sprintf (temp, "%d", v->u.i);
-		v->u.s = temp;
+               bb_asprintf (&(v->u.s), "%d", v->u.i);
 		v->type = string;
 	}
 }
@@ -377,9 +373,7 @@ static VALUE *eval6 (void)
 		else {
 			v = xmalloc (sizeof(VALUE));
 			v->type = string;
-			v->u.s = strncpy ((char *) xmalloc (i2->u.i + 1),
-				l->u.s + i1->u.i - 1, i2->u.i);
-				v->u.s[i2->u.i] = 0;
+                       v->u.s = xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
 		}
 		freev (l);
 		freev (i1);

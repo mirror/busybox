@@ -40,7 +40,7 @@ needcrypt-$(CONFIG_LOGIN) := y
 needcrypt-$(CONFIG_SU)    := y
 
 ifeq ($(needcrypt-y),y)
-  libraries-y +=-lcrypt
+  LIBRARIES += -lcrypt
 endif
 
 $(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))

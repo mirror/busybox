@@ -233,7 +233,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.87 2002/07/02 19:14:23 andersen Exp $"
+#ident "$Id: insmod.c,v 1.88 2002/07/19 00:05:48 sandman Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -454,7 +454,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.87 2002/07/02 19:14:23 andersen Exp $"
+#ident "$Id: insmod.c,v 1.88 2002/07/19 00:05:48 sandman Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -740,7 +740,7 @@ static int n_ext_modules_used;
 extern int delete_module(const char *);
 
 static char *m_filename;
-static char m_fullName[FILENAME_MAX];
+static char *m_fullName;
 
 
 
@@ -3503,10 +3503,8 @@ extern int insmod_main( int argc, char **argv)
 		tmp[len] = '\0';
 	}
 
-	if (len > (sizeof(m_fullName)-3))
-		error_msg_and_die("%s: module name too long", tmp);
+       bb_asprintf(&m_fullName, "%s.o", tmp, ".o");
 
-	strcat(strcpy(m_fullName, tmp), ".o");
 	if (!m_name) {
 		m_name = tmp;
 	} else {
@@ -3522,25 +3520,32 @@ extern int insmod_main( int argc, char **argv)
 		/* Hmm.  Could not open it.  First search under /lib/modules/`uname -r`,
 		 * but do not error out yet if we fail to find it... */
 		if (uname(&myuname) == 0) {
-			char module_dir[FILENAME_MAX];
+                       char *module_dir;
+                       char *tmdn;
 			char real_module_dir[FILENAME_MAX];
-			snprintf (module_dir, sizeof(module_dir), "%s/%s", 
-					_PATH_MODULES, myuname.release);
+
+                       tmdn = concat_path_file(_PATH_MODULES, myuname.release);
 			/* Jump through hoops in case /lib/modules/`uname -r`
 			 * is a symlink.  We do not want recursive_action to
 			 * follow symlinks, but we do want to follow the
 			 * /lib/modules/`uname -r` dir, So resolve it ourselves
 			 * if it is a link... */
-			if (realpath (module_dir, real_module_dir) == NULL)
-				strcpy(real_module_dir, module_dir);
-			recursive_action(real_module_dir, TRUE, FALSE, FALSE,
+                       if (realpath (tmdn, real_module_dir) == NULL)
+                               module_dir = tmdn;
+                       else
+                               module_dir = real_module_dir;
+                       recursive_action(module_dir, TRUE, FALSE, FALSE,
 					check_module_name_match, 0, m_fullName);
+                       free(tmdn);
 		}
 
 		/* Check if we have found anything yet */
 		if (m_filename == 0 || ((fp = fopen(m_filename, "r")) == NULL))
 		{
 			char module_dir[FILENAME_MAX];
+
+                       free(m_filename);
+                       m_filename = 0;
 			if (realpath (_PATH_MODULES, module_dir) == NULL)
 				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this

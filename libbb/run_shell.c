@@ -60,9 +60,8 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 	args [0] = get_last_path_component ( xstrdup ( shell ));
 	
 	if ( loginshell ) {
-		char *args0 = xmalloc ( xstrlen ( args [0] ) + 2 );
-		args0 [0] = '-';
-		strcpy ( args0 + 1, args [0] );
+		char *args0;
+		bb_asprintf ( &args0, "-%s", args [0] );
 		args [0] = args0;
 	}
     

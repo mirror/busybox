@@ -47,7 +47,7 @@ endif
 
 
 busybox: depend $(libraries-y)
-	$(CC) $(LDFLAGS) $(libraries-y) $(LIBRARIES) -o $@
+	$(CC) $(LDFLAGS) -o $@ $(libraries-y) $(LIBRARIES)
 	$(STRIPCMD) $@
 
 busybox.links: applets/busybox.mkll
