@@ -241,7 +241,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 	int status = 0;
 
 	if (strcmp(filesystemType, "auto") == 0) {
-		static const char *noauto_array[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", "devfs", 0 };
+		static const char *noauto_array[] = { "tmpfs", "shm", "proc", "ramfs", "devpts", "devfs", "usbdevfs", 0 };
 		const char **noauto_fstype;
 		const int num_of_filesystems = sysfs(3, 0, 0);
 		char buf[255];
