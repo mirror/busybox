@@ -438,7 +438,7 @@ static VALUE *eval3 (void)
 		if (nextarg ("+"))
 			op = '+';
 		else if (nextarg ("-"))
-			op = '+';
+			op = '-';
 		else
 			return l;
 		args++;
