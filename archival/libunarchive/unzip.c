@@ -83,7 +83,7 @@ typedef struct huft_s {
 } huft_t;
 
 static int gunzip_src_fd;
-static unsigned int gunzip_bytes_out;	/* number of output bytes */
+unsigned int gunzip_bytes_out;	/* number of output bytes */
 static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 
 /* gunzip_window size--must be a power of two, and
@@ -92,7 +92,7 @@ static const int gunzip_wsize = 0x8000;
 static unsigned char *gunzip_window;
 
 static unsigned int *gunzip_crc_table;
-static unsigned int gunzip_crc;
+unsigned int gunzip_crc;
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX 16	/* maximum bit length of any code (16 for explode) */
