@@ -353,7 +353,7 @@ extern int mount_main(int argc, char **argv)
 			perror_msg_and_die( "\nDEVMTAB_GET_MOUNTS");
 
 		for( i = 0 ; i < numfilesystems ; i++) {
-			fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
+			printf( "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
 					mntentlist[i].mnt_dir, mntentlist[i].mnt_type, 
 					mntentlist[i].mnt_opts, mntentlist[i].mnt_freq, 
 					mntentlist[i].mnt_passno);

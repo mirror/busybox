@@ -290,7 +290,7 @@ static int builtin_env(struct child_prog *dummy)
 	char **e;
 
 	for (e = environ; *e; e++) {
-		fprintf(stdout, "%s\n", *e);
+		printf( "%s\n", *e);
 	}
 	return (0);
 }
@@ -406,7 +406,7 @@ static int builtin_jobs(struct child_prog *child)
 static int builtin_pwd(struct child_prog *dummy)
 {
 	getcwd(cwd, MAX_LINE);
-	fprintf(stdout, "%s\n", cwd);
+	printf( "%s\n", cwd);
 	return EXIT_SUCCESS;
 }
 
@@ -566,7 +566,7 @@ static int builtin_source(struct child_prog *child)
 
 	input = fopen(child->argv[1], "r");
 	if (!input) {
-		fprintf(stdout, "Couldn't open file '%s'\n", child->argv[1]);
+		printf( "Couldn't open file '%s'\n", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -583,7 +583,7 @@ static int builtin_source(struct child_prog *child)
 static int builtin_unset(struct child_prog *child)
 {
 	if (child->argv[1] == NULL) {
-		fprintf(stdout, "unset: parameter required.\n");
+		printf( "unset: parameter required.\n");
 		return EXIT_FAILURE;
 	}
 	unsetenv(child->argv[1]);
@@ -1704,7 +1704,7 @@ int shell_main(int argc_l, char **argv_l)
 		FILE *prof_input;
 		prof_input = fopen("/etc/profile", "r");
 		if (!prof_input) {
-			fprintf(stdout, "Couldn't open file '/etc/profile'\n");
+			printf( "Couldn't open file '/etc/profile'\n");
 		} else {
 			int tmp_fd = fileno(prof_input);
 			mark_open(tmp_fd);	
@@ -1749,12 +1749,12 @@ int shell_main(int argc_l, char **argv_l)
 		interactive=TRUE;
 	}
 	if (interactive==TRUE) {
-		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
+		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
-		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell (lash)\n", BB_VER, BB_BT);
-		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
+		printf( "\n\nBusyBox v%s (%s) Built-in shell (lash)\n", BB_VER, BB_BT);
+		printf( "Enter 'help' for a list of built-in commands.\n\n");
 	} else if (local_pending_command==NULL) {
-		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
+		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = xfopen(argv[optind], "r");
 		mark_open(fileno(input));  /* be lazy, never mark this closed */
 	}
