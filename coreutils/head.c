@@ -25,6 +25,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "busybox.h"
 
 static int head(int len, FILE *fp)
@@ -47,7 +48,7 @@ int head_main(int argc, char **argv)
 	FILE *fp;
 	int need_headers, opt, len = 10, status = EXIT_SUCCESS;
 
-	if (( argc >= 2 ) && ( strlen ( argv [1] ) >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
+	if (( argc >= 2 ) && ( argv [1][0] == '-' ) && isdigit ( argv [1][1] )) {
 		len = atoi ( &argv [1][1] );
 		optind = 2;
 	}
