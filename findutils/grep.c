@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> /* for getopt() */
+#include <getopt.h>
 #include <regex.h>
 #include <string.h> /* for strerror() */
 #include <errno.h>
