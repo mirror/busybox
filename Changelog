@@ -1,4 +1,4 @@
-0.44
+0.45
 	* Now compiles vs libc5 (which can save lots of space for 
 	    embedded systems).
 	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
