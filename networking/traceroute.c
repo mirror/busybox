@@ -420,12 +420,10 @@ send_probe(int seq, int ttl)
 
 int
 #ifndef CONFIG_TRACEROUTE
-main(argc, argv)
+main(int argc, char *argv[])
 #else
-traceroute_main(argc, argv)
+traceroute_main(int argc, char *argv[])
 #endif
-	int argc;
-	char *argv[];
 {
 	extern char *optarg;
 	extern int optind;
