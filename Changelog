@@ -8,6 +8,7 @@
 	* Major adjustment of init.c.  Code is now readable IMHO,
 	    and much more solid.
 	* Wrote sed -- weighs only 1.8k (5.8k with full regular expressions!).
+	* Fixed a stupid seg-fault in sync
 
 	 -Erik Andersen
 

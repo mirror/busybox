@@ -37,8 +37,8 @@
 
 
 static const char tar_usage[] =
-    "Create, extract, or list files from a TAR file\n\n"
-    "usage: tar -[cxtvOf] [tarFileName] [FILE] ...\n"
+    "tar -[cxtvOf] [tarFileName] [FILE] ...\n"
+    "Create, extract, or list files from a tar file\n\n"
     "\tc=create, x=extract, t=list contents, v=verbose,\n"
     "\tO=extract to stdout, f=tarfile or \"-\" for stdin\n";
 
@@ -151,10 +151,8 @@ extern int tar_main (int argc, char **argv)
     argc--;
     argv++;
 
-    if (argc < 1) {
-	fprintf (stderr, "%s", tar_usage);
-	exit (FALSE);
-    }
+    if (argc < 1)
+	usage( tar_usage);
 
 
     errorFlag = FALSE;

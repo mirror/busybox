@@ -45,18 +45,18 @@
 //#define DEBUG_INIT
 
 #define CONSOLE         "/dev/console"	/* Logical system console */
-#define VT_PRIMARY      "/dev/tty0"	/* Primary virtual console */
-#define VT_SECONDARY    "/dev/tty1"	/* Virtual console */
-#define VT_LOG          "/dev/tty2"	/* Virtual console */
+#define VT_PRIMARY      "/dev/tty1"	/* Primary virtual console */
+#define VT_SECONDARY    "/dev/tty2"	/* Virtual console */
+#define VT_LOG          "/dev/tty3"	/* Virtual console */
 #define SERIAL_CON0     "/dev/ttyS0"    /* Primary serial console */
 #define SERIAL_CON1     "/dev/ttyS1"    /* Serial console */
 #define SHELL           "/bin/sh"	/* Default shell */
 #define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
-static char *console = VT_PRIMARY;
-static char *second_terminal = VT_SECONDARY;
-static char *log = "/dev/tty3";
+static char *console = CONSOLE;
+static char *second_console = VT_SECONDARY;
+static char *log = VT_LOG;
 
 
 
@@ -173,21 +173,21 @@ static void console_init()
 	}
 #endif
     } else {
-	console = VT_PRIMARY;
-	tried_vtprimary++;
+	console = CONSOLE;
+	tried_devcons++;
     }
 
     while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
-	/* Can't open selected console -- try vt1 */
-	if (!tried_vtprimary) {
-	    tried_vtprimary++;
-	    console = VT_PRIMARY;
-	    continue;
-	}
 	/* Can't open selected console -- try /dev/console */
 	if (!tried_devcons) {
 	    tried_devcons++;
 	    console = CONSOLE;
+	    continue;
+	}
+	/* Can't open selected console -- try vt1 */
+	if (!tried_vtprimary) {
+	    tried_vtprimary++;
+	    console = VT_PRIMARY;
 	    continue;
 	}
 	break;
@@ -449,7 +449,7 @@ extern int init_main(int argc, char **argv)
 	    pid1 = run(tty0_commands, console, wait_for_enter);
 	}
 	if (pid2 == 0 && tty1_commands) {
-	    pid2 = run(tty1_commands, second_terminal, TRUE);
+	    pid2 = run(tty1_commands, second_console, TRUE);
 	}
 	wpid = wait(&status);
 	if (wpid > 0 ) {
