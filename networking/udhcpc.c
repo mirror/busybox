@@ -58,7 +58,7 @@ static unsigned long server_addr;
 static unsigned long timeout;
 static int packet_num; /* = 0 */
 static int fd_main;
-#define DEBUG
+/* #define DEBUG */
 
 #define VERSION "0.9.7"
 
