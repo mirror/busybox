@@ -84,6 +84,8 @@
 	    - `fdflush', `length' and `printf' crashed when run without arguments
 	    - `fdflush' tried to flush itself using *argv
 	    - added "skip" and "seek" to dd.
+	* swapoff -a was not working.  Now it is.
+	* init did not cleanly unmount filesystems on reboot.  Now it does.
 
 
 	-Erik Andersen

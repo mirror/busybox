@@ -36,13 +36,16 @@ static int whichApp;
 static const char *appName;
 
 static const char swapoff_usage[] =
+	"swapoff [OPTION] [device]\n\n"
+	"Stop swapping virtual memory pages on the given device.\n\n"
+	"Options:\n"
+	"\t-a\tStop swapping on all swap devices\n";
 
-	"swapoff device\n"
-	"\nStop swapping virtual memory pages on the given device.\n";
 static const char swapon_usage[] =
-
-	"swapon device\n"
-	"\nStart swapping virtual memory pages on the given device.\n";
+	"swapon [OPTION] [device]\n\n"
+	"Start swapping virtual memory pages on the given device.\n\n"
+	"Options:\n"
+	"\t-a\tStart swapping on all swap devices\n";
 
 
 #define SWAPON_APP   1
@@ -85,12 +88,6 @@ static void do_em_all()
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	struct stat statBuf;
-
-	if (stat("/etc/fstab", &statBuf) < 0)
-		fprintf(stderr,
-				"/etc/fstab file missing -- Please install one.\n\n");
-
 	if (strcmp(*argv, "swapon") == 0) {
 		appName = *argv;
 		whichApp = SWAPON_APP;
@@ -100,8 +97,9 @@ extern int swap_on_off_main(int argc, char **argv)
 		whichApp = SWAPOFF_APP;
 	}
 
-	if (argc < 2)
+	if (argc != 2) {
 		goto usage_and_exit;
+	}
 	argc--;
 	argv++;
 
@@ -110,6 +108,7 @@ extern int swap_on_off_main(int argc, char **argv)
 		while (*++(*argv))
 			switch (**argv) {
 			case 'a':
+				whine_if_fstab_is_missing();
 				do_em_all();
 				break;
 			default:

@@ -1298,5 +1298,19 @@ extern char *find_unused_loop_device(void)
 }
 #endif							/* BB_FEATURE_MOUNT_LOOP */
 
+#if defined BB_MTAB
+#define whine_if_fstab_is_missing() {}
+#else
+extern void whine_if_fstab_is_missing()
+{
+	struct stat statBuf;
+
+	if (stat("/etc/fstab", &statBuf) < 0)
+		fprintf(stderr,
+				"/etc/fstab file missing -- install one to name /dev/root.\n\n");
+}
+#endif
+
+
 
 /* END CODE */

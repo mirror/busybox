@@ -62,7 +62,7 @@ endif
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS += -Wall -g -D_GNU_SOURCE -DDEBUG_INIT
+    CFLAGS += -Wall -g -D_GNU_SOURCE
     STRIP   =
     LDFLAGS =
 else

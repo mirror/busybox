@@ -53,7 +53,7 @@
 #include <linux/loop.h>
 
 
-static int use_loop = 0;
+static int use_loop = FALSE;
 #endif
 
 extern const char mtab_file[];	/* Defined in utility.c */
@@ -114,13 +114,14 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 		 char *mtab_opts)
 {
 	int status = 0;
+	char *lofile = NULL;
 
 #if defined BB_MTAB
 	if (fakeIt == FALSE)
 #endif
 	{
 #if defined BB_FEATURE_MOUNT_LOOP
-		if (use_loop) {
+		if (use_loop==TRUE) {
 			int loro = flags & MS_RDONLY;
 			char *lofile = specialfile;
 
@@ -137,6 +138,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 				fprintf(stderr, "WARNING: loop device is read-only\n");
 				flags &= ~MS_RDONLY;
 			}
+			use_loop = FALSE;
 		}
 #endif
 		status =
@@ -157,27 +159,13 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 
 	/* Bummer.  mount failed.  Clean up */
 #if defined BB_FEATURE_MOUNT_LOOP
-	if (specialfile != NULL) {
+	if (lofile != NULL) {
 		del_loop(specialfile);
 	}
 #endif
 	return (FALSE);
 }
 
-
-
-#if defined BB_MTAB
-#define whine_if_fstab_is_missing() {}
-#else
-extern void whine_if_fstab_is_missing()
-{
-	struct stat statBuf;
-
-	if (stat("/etc/fstab", &statBuf) < 0)
-		fprintf(stderr,
-				"/etc/fstab file missing -- install one to name /dev/root.\n\n");
-}
-#endif
 
 
 /* Seperate standard mount options from the nonstandard string options */
@@ -204,7 +192,7 @@ parse_mount_options(char *options, unsigned long *flags, char *strflags)
 		}
 #if defined BB_FEATURE_MOUNT_LOOP
 		if (gotone == FALSE && !strcasecmp("loop", options)) {	/* loop device support */
-			use_loop = 1;
+			use_loop = TRUE;
 			gotone = TRUE;
 		}
 #endif
@@ -229,7 +217,7 @@ parse_mount_options(char *options, unsigned long *flags, char *strflags)
 int
 mount_one(char *blockDevice, char *directory, char *filesystemType,
 		  unsigned long flags, char *string_flags, int useMtab, int fakeIt,
-		  char *mtab_opts)
+		  char *mtab_opts, int whineOnErrors)
 {
 	int status = 0;
 
@@ -270,9 +258,11 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 						  fakeIt, mtab_opts);
 	}
 
-	if (status == FALSE) {
-		fprintf(stderr, "Mounting %s on %s failed: %s\n",
-				blockDevice, directory, strerror(errno));
+	if (status == FALSE && whineOnErrors == TRUE) {
+		if (whineOnErrors == TRUE) {
+			fprintf(stderr, "Mounting %s on %s failed: %s\n",
+					blockDevice, directory, strerror(errno));
+		}
 		return (FALSE);
 	}
 	return (TRUE);
@@ -387,18 +377,28 @@ extern int mount_main(int argc, char **argv)
 			exit(FALSE);
 		}
 		while ((m = getmntent(f)) != NULL) {
-			// If the file system isn't noauto, and isn't mounted on /, 
+			// If the file system isn't noauto, 
 			// and isn't swap or nfs, then mount it
 			if ((!strstr(m->mnt_opts, "noauto")) &&
-				(m->mnt_dir[1] != '\0') &&
 				(!strstr(m->mnt_type, "swap")) &&
 				(!strstr(m->mnt_type, "nfs"))) {
 				flags = 0;
 				*string_flags = '\0';
 				parse_mount_options(m->mnt_opts, &flags, string_flags);
-				mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
+				/* If the directory is /, try to remount
+				 * with the options specified in fstab */
+				if (m->mnt_dir[0] == '/' && m->mnt_dir[1] == '\0') {
+					flags |= MS_REMOUNT;
+				}
+				if (mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
 						  flags, string_flags, useMtab, fakeIt,
-						  extra_opts);
+						  extra_opts, FALSE)) 
+				{
+					/* Try again, but this time try a remount */
+					mount_one(m->mnt_fsname, m->mnt_dir, m->mnt_type,
+							  flags|MS_REMOUNT, string_flags, useMtab, fakeIt,
+							  extra_opts, TRUE);
+				}
 			}
 		}
 		endmntent(f);
@@ -414,7 +414,7 @@ extern int mount_main(int argc, char **argv)
 #endif
 			exit(mount_one(device, directory, filesystemType,
 						   flags, string_flags, useMtab, fakeIt,
-						   extra_opts));
+						   extra_opts, TRUE));
 		} else {
 			goto goodbye;
 		}

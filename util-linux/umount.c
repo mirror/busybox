@@ -29,6 +29,7 @@
 #include <fstab.h>
 #include <errno.h>
 
+
 static const char umount_usage[] =
 	"umount [flags] filesystem|directory\n\n"
 	"Flags:\n" "\t-a:\tUnmount all file systems"
@@ -56,113 +57,6 @@ static int useMtab = TRUE;
 static int umountAll = FALSE;
 static int doRemount = FALSE;
 extern const char mtab_file[];	/* Defined in utility.c */
-
-#define MIN(x,y) (x > y ? x : y)
-
-static int do_umount(const char *name, int useMtab)
-{
-	int status;
-	char *blockDevice = mtab_getinfo(name, MTAB_GETDEVICE);
-
-	if (blockDevice && strcmp(blockDevice, name) == 0)
-		name = mtab_getinfo(blockDevice, MTAB_GETMOUNTPT);
-
-	status = umount(name);
-
-#if defined BB_FEATURE_MOUNT_LOOP
-	if (blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
-		/* this was a loop device, delete it */
-		del_loop(blockDevice);
-#endif
-#if defined BB_FEATURE_REMOUNT
-	if (status != 0 && doRemount == TRUE && errno == EBUSY) {
-		status = mount(blockDevice, name, NULL,
-					   MS_MGC_VAL | MS_REMOUNT | MS_RDONLY, NULL);
-		if (status == 0) {
-			fprintf(stderr, "umount: %s busy - remounted read-only\n",
-					blockDevice);
-			/* TODO: update mtab if BB_MTAB is defined */
-		} else {
-			fprintf(stderr, "umount: Cannot remount %s read-only\n",
-					blockDevice);
-		}
-	}
-#endif
-	if (status == 0) {
-#if defined BB_MTAB
-		if (useMtab == TRUE)
-			erase_mtab(name);
-#endif
-		return (TRUE);
-	}
-	return (FALSE);
-}
-
-static int umount_all(int useMtab)
-{
-	int status = TRUE;
-	char *mountpt;
-	void *iter;
-
-	for (mountpt = mtab_first(&iter); mountpt; mountpt = mtab_next(&iter)) {
-		status = do_umount(mountpt, useMtab);
-		if (status != 0) {
-			/* Don't bother retrying the umount on busy devices */
-			if (errno == EBUSY) {
-				perror(mountpt);
-				continue;
-			}
-			status = do_umount(mountpt, useMtab);
-			if (status != 0) {
-				printf("Couldn't umount %s on %s: %s\n",
-					   mountpt, mtab_getinfo(mountpt, MTAB_GETDEVICE),
-					   strerror(errno));
-			}
-		}
-	}
-	return (status);
-}
-
-extern int umount_main(int argc, char **argv)
-{
-	if (argc < 2) {
-		usage(umount_usage);
-	}
-
-	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*++(*argv))
-			switch (**argv) {
-			case 'a':
-				umountAll = TRUE;
-				break;
-#ifdef BB_MTAB
-			case 'n':
-				useMtab = FALSE;
-				break;
-#endif
-#ifdef BB_FEATURE_REMOUNT
-			case 'r':
-				doRemount = TRUE;
-				break;
-#endif
-			default:
-				usage(umount_usage);
-			}
-	}
-
-	mtab_read();
-	if (umountAll == TRUE) {
-		exit(umount_all(useMtab));
-	}
-	if (do_umount(*argv, useMtab) == 0)
-		exit(TRUE);
-	else {
-		perror("umount");
-		exit(FALSE);
-	}
-}
-
 
 
 /* These functions are here because the getmntent functions do not appear
@@ -257,3 +151,111 @@ void mtab_free(void)
 		this = next;
 	}
 }
+
+static int do_umount(const char *name, int useMtab)
+{
+	int status;
+	char *blockDevice = mtab_getinfo(name, MTAB_GETDEVICE);
+
+	if (blockDevice && strcmp(blockDevice, name) == 0)
+		name = mtab_getinfo(blockDevice, MTAB_GETMOUNTPT);
+
+	status = umount(name);
+
+#if defined BB_FEATURE_MOUNT_LOOP
+	if (blockDevice != NULL && !strncmp("/dev/loop", blockDevice, 9))
+		/* this was a loop device, delete it */
+		del_loop(blockDevice);
+#endif
+#if defined BB_FEATURE_REMOUNT
+	if (status != 0 && doRemount == TRUE && errno == EBUSY) {
+		status = mount(blockDevice, name, NULL,
+					   MS_MGC_VAL | MS_REMOUNT | MS_RDONLY, NULL);
+		if (status == 0) {
+			fprintf(stderr, "umount: %s busy - remounted read-only\n",
+					blockDevice);
+			/* TODO: update mtab if BB_MTAB is defined */
+		} else {
+			fprintf(stderr, "umount: Cannot remount %s read-only\n",
+					blockDevice);
+		}
+	}
+#endif
+	if (status == 0) {
+#if defined BB_MTAB
+		if (useMtab == TRUE)
+			erase_mtab(name);
+#endif
+		return (TRUE);
+	}
+	return (FALSE);
+}
+
+static int umount_all(int useMtab)
+{
+	int status = TRUE;
+	char *mountpt;
+	void *iter;
+
+	for (mountpt = mtab_first(&iter); mountpt; mountpt = mtab_next(&iter)) {
+		/* Never umount /proc on a umount -a */
+		if (strstr(mountpt, "proc")!= NULL)
+			continue;
+		status = do_umount(mountpt, useMtab);
+		if (status != 0) {
+			/* Don't bother retrying the umount on busy devices */
+			if (errno == EBUSY) {
+				perror(mountpt);
+				continue;
+			}
+			status = do_umount(mountpt, useMtab);
+			if (status != 0) {
+				printf("Couldn't umount %s on %s: %s\n",
+					   mountpt, mtab_getinfo(mountpt, MTAB_GETDEVICE),
+					   strerror(errno));
+			}
+		}
+	}
+	return (status);
+}
+
+extern int umount_main(int argc, char **argv)
+{
+	if (argc < 2) {
+		usage(umount_usage);
+	}
+
+	/* Parse any options */
+	while (--argc > 0 && **(++argv) == '-') {
+		while (*++(*argv))
+			switch (**argv) {
+			case 'a':
+				umountAll = TRUE;
+				break;
+#ifdef BB_MTAB
+			case 'n':
+				useMtab = FALSE;
+				break;
+#endif
+#ifdef BB_FEATURE_REMOUNT
+			case 'r':
+				doRemount = TRUE;
+				break;
+#endif
+			default:
+				usage(umount_usage);
+			}
+	}
+
+	mtab_read();
+	if (umountAll == TRUE) {
+		exit(umount_all(useMtab));
+	}
+	if (do_umount(*argv, useMtab) == 0)
+		exit(TRUE);
+	else {
+		perror("umount");
+		exit(FALSE);
+	}
+}
+

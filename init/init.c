@@ -22,6 +22,11 @@
  *
  */
 
+/* Turn this on to disable all the dangerous 
+   rebooting stuff when debugging.
+#define DEBUG_INIT
+*/
+
 #include "internal.h"
 #include <stdio.h>
 #include <string.h>
@@ -78,7 +83,8 @@ typedef enum {
 	RESPAWN,
 	ASKFIRST,
 	WAIT,
-	ONCE
+	ONCE,
+	CTRLALTDEL
 } initActionEnum;
 
 /* And now a list of the actions we support in the version of init */
@@ -93,6 +99,7 @@ static const struct initActionType actions[] = {
 	{"askfirst", ASKFIRST},
 	{"wait", WAIT},
 	{"once", ONCE},
+	{"ctrlaltdel", CTRLALTDEL},
 	{0}
 };
 
@@ -113,6 +120,7 @@ static char *log = VT_LOG;
 static int kernelVersion = 0;
 static char termType[32] = "TERM=ansi";
 static char console[32] = _PATH_CONSOLE;
+static void delete_initAction(initAction * action);
 
 
 /* print a message to the specified device:
@@ -131,8 +139,8 @@ void message(int device, char *fmt, ...)
 		va_start(arguments, fmt);
 		vsnprintf(msg, sizeof(msg), fmt, arguments);
 		va_end(arguments);
-		openlog("init", 0, LOG_DAEMON);
-		syslog(LOG_DAEMON | LOG_NOTICE, msg);
+		openlog("init", 0, LOG_USER);
+		syslog(LOG_USER|LOG_INFO, msg);
 		closelog();
 	}
 #else
@@ -146,11 +154,12 @@ void message(int device, char *fmt, ...)
 			log_fd = -2;
 			/* log to main console instead */
 			device = CONSOLE;
-		} else if ((log_fd = device_open(log, O_RDWR | O_NDELAY)) < 0) {
-			log_fd = -1;
+		} else if ((log_fd = device_open(log, O_RDWR|O_NDELAY)) < 0) {
+			log_fd = -2;
 			fprintf(stderr, "Bummer, can't write to log on %s!\r\n", log);
 			fflush(stderr);
-			return;
+			log = NULL;
+			device = CONSOLE;
 		}
 	}
 	if ((device & LOG) && (log_fd >= 0)) {
@@ -303,10 +312,10 @@ static void console_init()
 		/* check for serial console and disable logging to tty3 & running a
 		   * shell to tty2 */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
-			message(LOG | CONSOLE,
-					"serial console detected.  Disabling virtual terminals.\r\n");
 			log = NULL;
 			secondConsole = NULL;
+			message(LOG | CONSOLE,
+					"serial console detected.  Disabling virtual terminals.\r\n");
 		}
 		close(fd);
 	}
@@ -319,6 +328,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 	pid_t pid;
 	char *tmpCmd;
 	char *cmd[255];
+	char buf[255];
 	static const char press_enter[] =
 
 		"\nPlease press Enter to activate this console. ";
@@ -333,7 +343,9 @@ static pid_t run(char *command, char *terminal, int get_enter)
 
 
 	if ((pid = fork()) == 0) {
+#ifdef DEBUG_INIT
 		pid_t shell_pgid = getpid();
+#endif
 
 		/* Clean up */
 		close(0);
@@ -369,30 +381,40 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			 */
 			char c;
 
+#ifdef DEBUG_INIT
 			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
 					command, shell_pgid, terminal);
+#endif
 			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 			read(fileno(stdin), &c, 1);
 		}
 
-		/* Log the process name and args */
-		message(LOG, "Starting pid %d, console %s: '",
-				shell_pgid, terminal, command);
-
-		/* Convert command (char*) into cmd (char**, one word per string) */
-		for (tmpCmd = command, i = 0;
-			 (tmpCmd = strsep(&command, " \t")) != NULL;) {
-			if (*tmpCmd != '\0') {
-				cmd[i] = tmpCmd;
 #ifdef DEBUG_INIT
-				message(LOG, "%s ", tmpCmd);
+		/* Log the process name and args */
+		message(LOG, "Starting pid %d, console %s: '%s'\r\n",
+				shell_pgid, terminal, command);
 #endif
-				tmpCmd++;
-				i++;
+
+		/* See if any special /bin/sh requiring characters are present */
+		if (strpbrk(command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
+			cmd[0] = SHELL;
+			cmd[1] = "-c";
+			strcpy(buf, "exec ");
+			strncat(buf, command, sizeof(buf) - strlen(buf) - 1);
+			cmd[2] = buf;
+			cmd[3] = NULL;
+		} else {
+			/* Convert command (char*) into cmd (char**, one word per string) */
+			for (tmpCmd = command, i = 0;
+				 (tmpCmd = strsep(&command, " \t")) != NULL;) {
+				if (*tmpCmd != '\0') {
+					cmd[i] = tmpCmd;
+					tmpCmd++;
+					i++;
+				}
 			}
+			cmd[i] = NULL;
 		}
-		cmd[i] = NULL;
-		message(LOG, "'\r\n");
 
 		/* Now run it.  The new program will take over this PID, 
 		 * so nothing further in init.c should be run. */
@@ -413,9 +435,8 @@ static int waitfor(char *command, char *terminal, int get_enter)
 
 	while (1) {
 		wpid = wait(&status);
-		if (wpid > 0) {
-			message(LOG, "Process '%s' (pid %d) exited.\n", command, wpid);
-			break;
+		if (wpid > 0 && wpid != pid) {
+			continue;
 		}
 		if (wpid == pid)
 			break;
@@ -424,7 +445,7 @@ static int waitfor(char *command, char *terminal, int get_enter)
 }
 
 /* Make sure there is enough memory to do something useful. *
- * Calls swapon if needed so be sure /proc is mounted. */
+ * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
 static void check_memory()
 {
 	struct stat statBuf;
@@ -434,7 +455,7 @@ static void check_memory()
 
 	if (stat("/etc/fstab", &statBuf) == 0) {
 		/* Try to turn on swap */
-		waitfor("/bin/swapon swapon -a", log, FALSE);
+		system("/sbin/swapon swapon -a");
 		if (mem_total() < 3500)
 			goto goodnight;
 	} else
@@ -448,31 +469,45 @@ static void check_memory()
 		sleep(1);
 }
 
+/* Run all commands to be run right before halt/reboot */
+static void run_lastAction(void)
+{
+	initAction *a;
+	for (a = initActionList; a; a = a->nextPtr) {
+		if (a->action == CTRLALTDEL) {
+			waitfor(a->process, a->console, FALSE);
+			delete_initAction(a);
+		}
+	}
+}
+
+
 #ifndef DEBUG_INIT
 static void shutdown_system(void)
 {
+
 	/* first disable our SIGHUP signal */
 	signal(SIGHUP, SIG_DFL);
 
 	/* Allow Ctrl-Alt-Del to reboot system. */
 	reboot(RB_ENABLE_CAD);
-	message(CONSOLE, "\r\nThe system is going down NOW !!\r\n");
+
+	message(CONSOLE|LOG, "\r\nThe system is going down NOW !!\r\n");
 	sync();
 
 	/* Send signals to every process _except_ pid 1 */
-	message(CONSOLE, "Sending SIGTERM to all processes.\r\n");
+	message(CONSOLE|LOG, "Sending SIGTERM to all processes.\r\n");
 	kill(-1, SIGTERM);
-	sleep(5);
+	sleep(1);
 	sync();
 
-	message(CONSOLE, "Sending SIGKILL to all processes.\r\n");
+	message(CONSOLE|LOG, "Sending SIGKILL to all processes.\r\n");
 	kill(-1, SIGKILL);
-	sleep(5);
+	sleep(1);
 
-	message(CONSOLE, "Disabling swap.\r\n");
-	waitfor("swapoff -a", console, FALSE);
-	message(CONSOLE, "Unmounting filesystems.\r\n");
-	waitfor("umount -a -r", console, FALSE);
+	/* run everything to be run at "ctrlaltdel" */
+	run_lastAction();
+
 	sync();
 	if (kernelVersion > 0 && kernelVersion <= 2 * 65536 + 2 * 256 + 11) {
 		/* bdflush, kupdate not needed for kernels >2.2.11 */
@@ -484,14 +519,14 @@ static void shutdown_system(void)
 static void halt_signal(int sig)
 {
 	shutdown_system();
-	message(CONSOLE,
+	message(CONSOLE|LOG,
 			"The system is halted. Press %s or turn off power\r\n",
 			(secondConsole == NULL)	/* serial console */
 			? "Reset" : "CTRL-ALT-DEL");
 	sync();
 
 	/* allow time for last message to reach serial console */
-	sleep(5);
+	sleep(2);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
 	if (sig == SIGUSR2)
@@ -505,7 +540,7 @@ static void halt_signal(int sig)
 static void reboot_signal(int sig)
 {
 	shutdown_system();
-	message(CONSOLE, "Please stand by while rebooting the system.\r\n");
+	message(CONSOLE|LOG, "Please stand by while rebooting the system.\r\n");
 	sync();
 
 	/* allow time for last message to reach serial console */
@@ -631,7 +666,7 @@ void new_initAction(initActionEnum action, char *process, char *cons)
 //      newAction->process, newAction->action, newAction->console);
 }
 
-void delete_initAction(initAction * action)
+static void delete_initAction(initAction * action)
 {
 	initAction *a, *b = NULL;
 
@@ -669,6 +704,10 @@ void parse_inittab(void)
 	if (file == NULL) {
 		/* No inittab file -- set up some default behavior */
 #endif
+		/* Swapoff on halt/reboot */
+		new_initAction(CTRLALTDEL, "/bin/umount -a -r > /dev/null 2>&1", console);
+		/* Umount all filesystems on halt/reboot */
+		new_initAction(CTRLALTDEL, "/bin/umount -a -r > /dev/null 2>&1", console);
 		/* Askfirst shell on tty1 */
 		new_initAction(ASKFIRST, SHELL, console);
 		/* Askfirst shell on tty2 */
@@ -756,6 +795,8 @@ void parse_inittab(void)
 #endif
 }
 
+
+
 extern int init_main(int argc, char **argv)
 {
 	initAction *a;
@@ -768,9 +809,6 @@ extern int init_main(int argc, char **argv)
 		usage("init\n\nInit is the parent of all processes.\n\n"
 			  "This version of init is designed to be run only by the kernel\n");
 	}
-	/* Fix up argv[0] to be certain we claim to be init */
-	strncpy(argv[0], "init", strlen(argv[0]));
-
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
 	signal(SIGUSR1, halt_signal);
@@ -838,6 +876,10 @@ extern int init_main(int argc, char **argv)
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
+	
+	/* Fix up argv[0] to be certain we claim to be init */
+	strncpy(argv[0], "init", strlen(argv[0])+1);
+	strncpy(argv[1], "\0", strlen(argv[1])+1);
 
 	/* Now run everything that needs to be run */
 

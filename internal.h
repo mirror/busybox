@@ -31,6 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+//#include <sys/param.h>
 #include <mntent.h>
 
 
@@ -186,6 +187,7 @@ extern pid_t findInitPid();
 #if defined BB_INIT || defined BB_SYSLOGD
 extern int device_open(char *device, int mode);
 #endif
+extern void whine_if_fstab_is_missing();
 
 #if defined BB_FEATURE_MOUNT_LOOP
 extern int del_loop(const char *device);
