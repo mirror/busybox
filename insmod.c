@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.41 2001/01/26 01:52:14 andersen Exp $"
+#ident "$Id: insmod.c,v 1.42 2001/01/26 02:23:57 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.41 2001/01/26 01:52:14 andersen Exp $"
+#ident "$Id: insmod.c,v 1.42 2001/01/26 02:23:57 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -339,7 +339,7 @@ static const int MODUTILS_OBJ_H = 1;
 #define Elf32_RelM	Elf32_Rel
 
 #else
-#error insmod.c no platform specified
+#error Sorry, but insmod.c does not yet support this architecture...
 #endif
 
 #ifndef ElfW
