@@ -113,7 +113,7 @@
 #define applet_name "hush"
 #include "standalone.h"
 #define shell_main main
-#define BB_FEATURE_SH_SIMPLE_PROMPT
+#undef BB_FEATURE_SH_FANCY_PROMPT
 #endif
 
 typedef enum {
@@ -843,7 +843,7 @@ static int static_peek(struct in_str *i)
 
 static inline void cmdedit_set_initial_prompt(void)
 {
-#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
+#ifndef BB_FEATURE_SH_FANCY_PROMPT
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
@@ -855,7 +855,7 @@ static inline void cmdedit_set_initial_prompt(void)
 static inline void setup_prompt_string(int promptmode, char **prompt_str)
 {
 	debug_printf("setup_prompt_string %d ",promptmode);
-#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
+#ifndef BB_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 1) {
 		if (PS1)

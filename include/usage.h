@@ -1166,7 +1166,7 @@
 	"Name:       debian\n" \
 	"Address:    127.0.0.1\n" 
 
-#ifdef BB_FEATURE_SIMPLE_PING
+#ifndef BB_FEATURE_FANCY_PING
 #define ping_trivial_usage "host"
 #define ping_full_usage    "Send ICMP ECHO_REQUEST packets to network hosts"
 #else
@@ -1433,7 +1433,7 @@
 	"$ syslogd -R 192.168.1.1:601\n"
 
 
-#ifdef BB_FEATURE_SIMPLE_TAIL
+#ifndef BB_FEATURE_FANCY_TAIL
   #define USAGE_UNSIMPLE_TAIL(a)
 #else
   #define USAGE_UNSIMPLE_TAIL(a) a

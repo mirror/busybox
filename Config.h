@@ -192,8 +192,8 @@
 // enable ls -L
 #define BB_FEATURE_LS_FOLLOWLINKS
 //
-// Change ping implementation -- simplified, featureless, but really small.
-//#define BB_FEATURE_SIMPLE_PING
+// Disable for a smaller (but less functional) ping
+#define BB_FEATURE_FANCY_PING
 //
 // Make init use a simplified /etc/inittab file (recommended).
 #define BB_FEATURE_USE_INITTAB
@@ -213,9 +213,9 @@
 // enable syslogd -C
 //#define BB_FEATURE_IPC_SYSLOG
 //
-//Simple tail implementation (2.34k vs 3k for the full one).
+//Disable for a simple tail implementation (2.34k vs 3k for the full one).
 //Both provide 'tail -f', but this cuts out -c, -q, -s, and -v. 
-#define BB_FEATURE_SIMPLE_TAIL
+#define BB_FEATURE_FANCY_TAIL
 //
 // Enable support for loop devices in mount
 #define BB_FEATURE_MOUNT_LOOP
@@ -273,12 +273,11 @@
 // Only relevant if BB_SH is enabled. Off by default.
 //#define BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
-// Some deeply embedded systems don't have usernames or even hostnames,
-// and the default prompt can look rather hideous on them. Uncomment
-// this option for a simpler, path-only prompt (which was the default until
-// around BusyBox-0.48). On by default.
+// Uncomment this option for a fancy shell prompt that includes the
+// current username and hostname.  On systems that don't have usernames
+// or hostnames, this can look hideous.
 // Only relevant if BB_SH is enabled.
-#define BB_FEATURE_SH_SIMPLE_PROMPT
+//#define BB_FEATURE_SH_FANCY_PROMPT
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY
@@ -389,12 +388,12 @@
 		#undef BB_FEATURE_COMMAND_EDITING
 		#undef BB_FEATURE_COMMAND_TAB_COMPLETION
 		#undef BB_FEATURE_COMMAND_USERNAME_COMPLETION
-		#define BB_FEATURE_SH_SIMPLE_PROMPT
+		#undef BB_FEATURE_SH_FANCY_PROMPT
 	#endif
 #else
 	#undef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 	#undef BB_FEATURE_SH_STANDALONE_SHELL
-	#undef BB_FEATURE_SH_SIMPLE_PROMPT
+	#undef BB_FEATURE_SH_FANCY_PROMPT
 #endif
 //
 #ifdef BB_KILLALL

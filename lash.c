@@ -436,7 +436,7 @@ static int builtin_export(struct child_prog *child)
 	res = putenv(v);
 	if (res)
 		fprintf(stderr, "export: %m\n");
-#ifndef BB_FEATURE_SH_SIMPLE_PROMPT
+#ifdef BB_FEATURE_SH_FANCY_PROMPT
 	if (strncmp(v, "PS1=", 4)==0)
 		PS1 = getenv("PS1");
 #endif
@@ -809,7 +809,7 @@ static void restore_redirects(int squirrel[])
 
 static inline void cmdedit_set_initial_prompt(void)
 {
-#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
+#ifndef BB_FEATURE_SH_FANCY_PROMPT
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
@@ -820,7 +820,7 @@ static inline void cmdedit_set_initial_prompt(void)
 
 static inline void setup_prompt_string(char **prompt_str)
 {
-#ifdef BB_FEATURE_SH_SIMPLE_PROMPT
+#ifndef BB_FEATURE_SH_FANCY_PROMPT
 	/* Set up the prompt */
 	if (shell_context == 0) {
 		if (PS1)

@@ -73,7 +73,7 @@ int tail_main(int argc, char **argv)
 			case 'f':
 				follow = 1;
 				break;
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 			case 'c':
 				units = BYTES;
 				/* FALLS THROUGH */
@@ -85,7 +85,7 @@ int tail_main(int argc, char **argv)
 				if (optarg[0] == '+')
 					from_top = 1;
 				break;
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 			case 'q':
 				hide_headers = 1;
 				break;
@@ -118,7 +118,7 @@ int tail_main(int argc, char **argv)
 		}
 	}
 	
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 	/* tail the files */
 	if (!from_top && units == BYTES)
 		tailbuf = xmalloc(count);
@@ -132,7 +132,7 @@ int tail_main(int argc, char **argv)
 			printf("%s==> %s <==\n", i == 0 ? "" : "\n", argv[optind + i]);
 		while ((nread = safe_read(fds[i], buf, sizeof(buf))) > 0) {
 			if (from_top) {
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 				if (units == BYTES) {
 					if (count - 1 <= seen)
 						nwrite = nread;
@@ -165,7 +165,7 @@ int tail_main(int argc, char **argv)
 					break;
 				}
 			} else {
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 				if (units == BYTES) {
 					if (nread < count) {
 						memmove(tailbuf, tailbuf + nread, count - nread);
@@ -199,7 +199,7 @@ int tail_main(int argc, char **argv)
 			status = EXIT_FAILURE;
 		}
 
-#ifndef BB_FEATURE_SIMPLE_TAIL
+#ifdef BB_FEATURE_FANCY_TAIL
 		if (!from_top && units == BYTES) {
 			if (count < seen)
 				seen = count;
