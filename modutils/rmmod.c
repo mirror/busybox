@@ -26,8 +26,32 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/syscall.h>
 #include "busybox.h"
+
+#ifdef CONFIG_FEATURE_2_6_MODULES
+static inline void filename2modname(char *modname, const char *filename)
+{
+	const char *afterslash;
+	unsigned int i;
+
+	afterslash = strrchr(filename, '/');
+	if (!afterslash)
+		afterslash = filename;
+	else
+		afterslash++;
+
+	/* Convert to underscores, stop at first . */
+	for (i = 0; afterslash[i] && afterslash[i] != '.'; i++) {
+		if (afterslash[i] == '-')
+			modname[i] = '_';
+		else
+			modname[i] = afterslash[i];
+	}
+	modname[i] = '\0';
+}
+#endif
 
 extern int rmmod_main(int argc, char **argv)
 {
@@ -81,10 +105,18 @@ extern int rmmod_main(int argc, char **argv)
 	if (optind == argc)
 		bb_show_usage();
 
-	for (n = optind; n < argc; n++) {
-		if (syscall(__NR_delete_module, argv[n], flags) < 0) {
-			bb_perror_msg("%s", argv[n]);
-			ret = EXIT_FAILURE;
+	{
+#ifdef CONFIG_FEATURE_2_6_MODULES
+		char module_name[strlen(argv[n]) + 1];
+		filename2modname(module_name, argv[n]);
+#else
+#define module_name		argv[n]
+#endif
+		for (n = optind; n < argc; n++) {
+			if (syscall(__NR_delete_module, module_name, flags) < 0) {
+				bb_perror_msg("%s", argv[n]);
+				ret = EXIT_FAILURE;
+			}
 		}
 	}
 
