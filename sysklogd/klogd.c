@@ -33,9 +33,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h> /* for our signal() handlers */
-#include <string.h> /* strncpy() */
-#include <errno.h>  /* errno and friends */
+#include <signal.h>		/* for our signal() handlers */
+#include <string.h>		/* strncpy() */
+#include <errno.h>		/* errno and friends */
 #include <unistd.h>
 #include <ctype.h>
 #include <sys/syslog.h>
@@ -54,13 +54,13 @@ static void klogd_signal(int sig)
 {
 	klogctl(7, NULL, 0);
 	klogctl(0, 0, 0);
-	//logMessage(0, "Kernel log daemon exiting.");
+	/* logMessage(0, "Kernel log daemon exiting."); */
 	syslog_msg(LOG_DAEMON, 0, "Kernel log daemon exiting.");
 	exit(TRUE);
 }
 
-static void doKlogd (void) __attribute__ ((noreturn));
-static void doKlogd (void)
+static void doKlogd(void) __attribute__ ((noreturn));
+static void doKlogd(void)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
@@ -87,30 +87,32 @@ static void doKlogd (void)
 
 			if (errno == EINTR)
 				continue;
-			snprintf(message, 79, "klogd: Error return from sys_sycall: %d - %s.\n", 
-												errno, strerror(errno));
+			snprintf(message, 79,
+					 "klogd: Error return from sys_sycall: %d - %s.\n", errno,
+					 strerror(errno));
 			syslog_msg(LOG_DAEMON, LOG_SYSLOG | LOG_ERR, message);
 			exit(1);
 		}
 
 		/* klogctl buffer parsing modelled after code in dmesg.c */
-		start=&log_buffer[0];
-		lastc='\0';
-		for (i=0; i<n; i++) {
+		start = &log_buffer[0];
+		lastc = '\0';
+		for (i = 0; i < n; i++) {
 			if (lastc == '\0' && log_buffer[i] == '<') {
 				priority = 0;
 				i++;
 				while (isdigit(log_buffer[i])) {
-					priority = priority*10+(log_buffer[i]-'0');
+					priority = priority * 10 + (log_buffer[i] - '0');
 					i++;
 				}
-				if (log_buffer[i] == '>') i++;
+				if (log_buffer[i] == '>')
+					i++;
 				start = &log_buffer[i];
 			}
 			if (log_buffer[i] == '\n') {
-				log_buffer[i] = '\0';  /* zero terminate this message */
+				log_buffer[i] = '\0';	/* zero terminate this message */
 				syslog_msg(LOG_DAEMON, LOG_KERN | priority, start);
-				start = &log_buffer[i+1];
+				start = &log_buffer[i + 1];
 				priority = LOG_INFO;
 			}
 			lastc = log_buffer[i];
@@ -127,11 +129,11 @@ extern int klogd_main(int argc, char **argv)
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "n")) > 0) {
 		switch (opt) {
-			case 'n':
-				doFork = FALSE;
-				break;
-			default:
-				show_usage();
+		case 'n':
+			doFork = FALSE;
+			break;
+		default:
+			show_usage();
 		}
 	}
 
@@ -140,11 +142,11 @@ extern int klogd_main(int argc, char **argv)
 		if (daemon(0, 1) < 0)
 			perror_msg_and_die("daemon");
 #else
-			error_msg_and_die("daemon not supported");
+		error_msg_and_die("daemon not supported");
 #endif
 	}
 	doKlogd();
-	
+
 	return EXIT_SUCCESS;
 }
 

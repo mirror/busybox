@@ -69,7 +69,7 @@ static char *license_msg[] = {
 #include "libbb.h"
 
 #ifdef CONFIG_FEATURE_UNCOMPRESS
-int uncompress ( FILE *in, FILE *out );
+int uncompress(FILE * in, FILE * out);
 #endif
 
 static FILE *in_file, *out_file;
@@ -78,7 +78,7 @@ static FILE *in_file, *out_file;
 static unsigned char *window;
 static unsigned long *crc_table;
 
-static unsigned long crc; /* shift register contents */
+static unsigned long crc;	/* shift register contents */
 
 /* Return codes from gzip */
 static const int ERROR = 1;
@@ -90,21 +90,21 @@ static const int ERROR = 1;
 static const int WSIZE = 0x8000;
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
-static const int BMAX = 16;		/* maximum bit length of any code (16 for explode) */
-static const int N_MAX = 288;		/* maximum number of codes in any set */
+static const int BMAX = 16;	/* maximum bit length of any code (16 for explode) */
+static const int N_MAX = 288;	/* maximum number of codes in any set */
 
-static long bytes_out;		/* number of output bytes */
+static long bytes_out;	/* number of output bytes */
 static unsigned long outcnt;	/* bytes in output buffer */
 
-static unsigned hufts;		/* track memory usage */
-static unsigned long bb;			/* bit buffer */
+static unsigned hufts;	/* track memory usage */
+static unsigned long bb;	/* bit buffer */
 static unsigned bk;		/* bits in bit buffer */
 
 typedef struct huft_s {
-	unsigned char e;		/* number of extra bits or operation */
-	unsigned char b;		/* number of bits in this code or subcode */
+	unsigned char e;	/* number of extra bits or operation */
+	unsigned char b;	/* number of bits in this code or subcode */
 	union {
-		unsigned short n;		/* literal, length base, or distance base */
+		unsigned short n;	/* literal, length base, or distance base */
 		struct huft_s *t;	/* pointer to next level of table */
 	} v;
 } huft_t;
@@ -115,11 +115,11 @@ static const unsigned short mask_bits[] = {
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-//static int error_number = 0;
+/* static int error_number = 0; */
 /* ========================================================================
  * Signal and error handler.
  */
- 
+
 static void abort_gzip(void)
 {
 	error_msg("gzip aborted\n");
@@ -128,26 +128,28 @@ static void abort_gzip(void)
 
 static void make_crc_table(void)
 {
-	const unsigned long poly = 0xedb88320;      /* polynomial exclusive-or pattern */
-	unsigned short i;                /* counter for all possible eight bit values */
+	const unsigned long poly = 0xedb88320;	/* polynomial exclusive-or pattern */
+	unsigned short i;	/* counter for all possible eight bit values */
 
 	/* initial shift register value */
-	crc = 0xffffffffL;	
+	crc = 0xffffffffL;
 	crc_table = (unsigned long *) malloc(256 * sizeof(unsigned long));
 
 	/* Compute and print table of CRC's, five per line */
 	for (i = 0; i < 256; i++) {
-		unsigned long table_entry;      /* crc shift register */
-		char k;	/* byte being shifted into crc apparatus */
+		unsigned long table_entry;	/* crc shift register */
+		char k;			/* byte being shifted into crc apparatus */
 
 		table_entry = i;
-	   /* The idea to initialize the register with the byte instead of
-	     * zero was stolen from Haruhiko Okumura's ar002
-	     */
+		/* The idea to initialize the register with the byte instead of
+		   * zero was stolen from Haruhiko Okumura's ar002
+		 */
 		for (k = 8; k; k--) {
-			table_entry = table_entry & 1 ? (table_entry >> 1) ^ poly : table_entry >> 1;
+			table_entry =
+				table_entry & 1 ? (table_entry >> 1) ^ poly : table_entry >>
+				1;
 		}
-		crc_table[i]=table_entry;
+		crc_table[i] = table_entry;
 	}
 }
 
@@ -179,7 +181,7 @@ static void flush_window(void)
  * each table. 
  * t: table to free
  */
-static int huft_free(huft_t *t)
+static int huft_free(huft_t * t)
 {
 	huft_t *p, *q;
 
@@ -209,36 +211,37 @@ typedef unsigned char extra_bits_t;
  * t:	result: starting table
  * m:	maximum lookup bits, returns actual
  */
-static int huft_build(unsigned int *b, const unsigned int n, const unsigned int s, 
-	const unsigned short *d, const extra_bits_t *e, huft_t **t, int *m)
+static int huft_build(unsigned int *b, const unsigned int n,
+					  const unsigned int s, const unsigned short *d,
+					  const extra_bits_t * e, huft_t ** t, int *m)
 {
-	unsigned a;		/* counter for codes of length k */
+	unsigned a;			/* counter for codes of length k */
 	unsigned c[BMAX + 1];	/* bit length count table */
-	unsigned f;		/* i repeats in table every f entries */
-	int g;			/* maximum code length */
-	int h;			/* table level */
+	unsigned f;			/* i repeats in table every f entries */
+	int g;				/* maximum code length */
+	int h;				/* table level */
 	register unsigned i;	/* counter, current code */
 	register unsigned j;	/* counter */
 	register int k;		/* number of bits in current code */
-	int l;			/* bits per table (returned in m) */
-	register unsigned *p;		/* pointer into c[], b[], or v[] */
+	int l;				/* bits per table (returned in m) */
+	register unsigned *p;	/* pointer into c[], b[], or v[] */
 	register huft_t *q;	/* points to current table */
-	huft_t r;		/* table entry for structure assignment */
+	huft_t r;			/* table entry for structure assignment */
 	huft_t *u[BMAX];	/* table stack */
 	unsigned v[N_MAX];	/* values in order of bit length */
 	register int w;		/* bits before this table == (l * h) */
 	unsigned x[BMAX + 1];	/* bit offsets, then code stack */
 	unsigned *xp;		/* pointer into x */
-	int y;			/* number of dummy codes added */
-	unsigned z;		/* number of entries in current table */
+	int y;				/* number of dummy codes added */
+	unsigned z;			/* number of entries in current table */
 
 	/* Generate counts for each bit length */
-	memset ((void *)(c), 0, sizeof(c));
+	memset((void *) (c), 0, sizeof(c));
 	p = b;
 	i = n;
 	do {
-		c[*p]++;	/* assume all entries <= BMAX */
-		p++;		/* Can't combine with above line (Solaris bug) */
+		c[*p]++;		/* assume all entries <= BMAX */
+		p++;			/* Can't combine with above line (Solaris bug) */
 	} while (--i);
 	if (c[0] == n) {	/* null input--all zero length codes */
 		*t = (huft_t *) NULL;
@@ -274,7 +277,7 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 	x[1] = j = 0;
 	p = c + 1;
 	xp = x + 2;
-	while (--i) {			/* note that i == g from above */
+	while (--i) {		/* note that i == g from above */
 		*xp++ = (j += *p++);
 	}
 
@@ -287,7 +290,7 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 	} while (++i < n);
 
 	/* Generate the Huffman codes and for each, make the table entries */
-	x[0] = i = 0;			/* first Huffman code is zero */
+	x[0] = i = 0;		/* first Huffman code is zero */
 	p = v;				/* grab values in bit order */
 	h = -1;				/* no tables yet--level -1 */
 	w = -l;				/* bits decoded == (l * h) */
@@ -303,7 +306,7 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 			/* make tables up to required level */
 			while (k > w + l) {
 				h++;
-				w += l;		/* previous table always l bits */
+				w += l;	/* previous table always l bits */
 
 				/* compute minimum size table less than or equal to l bits */
 				z = (z = g - w) > (unsigned) l ? l : z;	/* upper limit on table size */
@@ -316,15 +319,15 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 						f -= *xp;	/* else deduct codes from patterns */
 					}
 				}
-				z = 1 << j;		/* table entries for j-bit table */
+				z = 1 << j;	/* table entries for j-bit table */
 
 				/* allocate and link in new table */
 				q = (huft_t *) xmalloc((z + 1) * sizeof(huft_t));
 
 				hufts += z + 1;	/* track memory usage */
-				*t = q + 1;		/* link to list for huft_free() */
+				*t = q + 1;	/* link to list for huft_free() */
 				*(t = &(q->v.t)) = NULL;
-				u[h] = ++q;		/* table starts after link */
+				u[h] = ++q;	/* table starts after link */
 
 				/* connect to last table, if there is one */
 				if (h) {
@@ -340,11 +343,11 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 			/* set up table entry in r */
 			r.b = (unsigned char) (k - w);
 			if (p >= v + n)
-				r.e = 99;		/* out of values--invalid code */
+				r.e = 99;	/* out of values--invalid code */
 			else if (*p < s) {
 				r.e = (unsigned char) (*p < 256 ? 16 : 15);	/* 256 is end-of-block code */
 				r.v.n = (unsigned short) (*p);	/* simple code is just the value */
-				p++;			/* one compiler does not like *p++ */
+				p++;	/* one compiler does not like *p++ */
 			} else {
 				r.e = (unsigned char) e[*p - s];	/* non-simple--look up in lists */
 				r.v.n = d[*p++ - s];
@@ -362,7 +365,7 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
 
 			/* backup over finished tables */
 			while ((i & ((1 << w) - 1)) != x[h]) {
-				h--;			/* don't need to update q */
+				h--;	/* don't need to update q */
 				w -= l;
 			}
 		}
@@ -378,52 +381,52 @@ static int huft_build(unsigned int *b, const unsigned int n, const unsigned int 
  * tl, td: literal/length and distance decoder tables
  * bl, bd: number of bits decoded by tl[] and td[]
  */
-static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
+static int inflate_codes(huft_t * tl, huft_t * td, int bl, int bd)
 {
-	register unsigned long e;		/* table entry flag/number of extra bits */
-	unsigned long n, d;				/* length and index for copy */
-	unsigned long w;				/* current window position */
-	huft_t *t;				/* pointer to table entry */
-	unsigned ml, md;			/* masks for bl and bd bits */
-	register unsigned long b;				/* bit buffer */
-	register unsigned k;		/* number of bits in bit buffer */
+	register unsigned long e;	/* table entry flag/number of extra bits */
+	unsigned long n, d;	/* length and index for copy */
+	unsigned long w;	/* current window position */
+	huft_t *t;			/* pointer to table entry */
+	unsigned ml, md;	/* masks for bl and bd bits */
+	register unsigned long b;	/* bit buffer */
+	register unsigned k;	/* number of bits in bit buffer */
 
 	/* make local copies of globals */
-	b = bb;					/* initialize bit buffer */
+	b = bb;				/* initialize bit buffer */
 	k = bk;
-	w = outcnt;				/* initialize window position */
+	w = outcnt;			/* initialize window position */
 
 	/* inflate the coded data */
-	ml = mask_bits[bl];			/* precompute masks for speed */
+	ml = mask_bits[bl];	/* precompute masks for speed */
 	md = mask_bits[bd];
-	for (;;) {				/* do until end of block */
+	for (;;) {			/* do until end of block */
 		while (k < (unsigned) bl) {
-			b |= ((unsigned long)fgetc(in_file)) << k;
+			b |= ((unsigned long) fgetc(in_file)) << k;
 			k += 8;
 		}
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
-		do {
-			if (e == 99) {
-				return 1;
-			}
-			b >>= t->b;
-			k -= t->b;
-			e -= 16;
-			while (k < e) {
-				b |= ((unsigned long)fgetc(in_file)) << k;
-				k += 8;
-			}
-		} while ((e = (t = t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
+			do {
+				if (e == 99) {
+					return 1;
+				}
+				b >>= t->b;
+				k -= t->b;
+				e -= 16;
+				while (k < e) {
+					b |= ((unsigned long) fgetc(in_file)) << k;
+					k += 8;
+				}
+			} while ((e =
+					  (t = t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
 		b >>= t->b;
 		k -= t->b;
-		if (e == 16) {		/* then it's a literal */
+		if (e == 16) {	/* then it's a literal */
 			window[w++] = (unsigned char) t->v.n;
 			if (w == WSIZE) {
-				outcnt=(w),
-				flush_window();
+				outcnt = (w), flush_window();
 				w = 0;
 			}
-		} else {				/* it's an EOB or a length */
+		} else {		/* it's an EOB or a length */
 
 			/* exit if end of block */
 			if (e == 15) {
@@ -432,7 +435,7 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 
 			/* get length of block to copy */
 			while (k < e) {
-				b |= ((unsigned long)fgetc(in_file)) << k;
+				b |= ((unsigned long) fgetc(in_file)) << k;
 				k += 8;
 			}
 			n = t->v.n + ((unsigned) b & mask_bits[e]);
@@ -441,7 +444,7 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 
 			/* decode distance of block to copy */
 			while (k < (unsigned) bd) {
-				b |= ((unsigned long)fgetc(in_file)) << k;
+				b |= ((unsigned long) fgetc(in_file)) << k;
 				k += 8;
 			}
 
@@ -453,14 +456,16 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 					k -= t->b;
 					e -= 16;
 					while (k < e) {
-						b |= ((unsigned long)fgetc(in_file)) << k;
+						b |= ((unsigned long) fgetc(in_file)) << k;
 						k += 8;
 					}
-				} while ((e = (t = t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
+				} while ((e =
+						  (t =
+						   t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
 			b >>= t->b;
 			k -= t->b;
 			while (k < e) {
-				b |= ((unsigned long)fgetc(in_file)) << k;
+				b |= ((unsigned long) fgetc(in_file)) << k;
 				k += 8;
 			}
 			d = w - t->v.n - ((unsigned) b & mask_bits[e]);
@@ -469,20 +474,21 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 
 			/* do the copy */
 			do {
-				n -= (e = (e = WSIZE - ((d &= WSIZE - 1) > w ? d : w)) > n ? n : e);
+				n -= (e =
+					  (e =
+					   WSIZE - ((d &= WSIZE - 1) > w ? d : w)) > n ? n : e);
 #if !defined(NOMEMCPY) && !defined(DEBUG)
 				if (w - d >= e) {	/* (this test assumes unsigned comparison) */
 					memcpy(window + w, window + d, e);
 					w += e;
 					d += e;
-				} else			/* do it slow to avoid memcpy() overlap */
+				} else	/* do it slow to avoid memcpy() overlap */
 #endif							/* !NOMEMCPY */
 					do {
 						window[w++] = window[d++];
 					} while (--e);
 				if (w == WSIZE) {
-					outcnt=(w),
-					flush_window();
+					outcnt = (w), flush_window();
 					w = 0;
 				}
 			} while (n);
@@ -498,28 +504,30 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 	return 0;
 }
 
-static const unsigned short cplens[] = {     /* Copy lengths for literal codes 257..285 */
-    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-    35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+static const unsigned short cplens[] = {	/* Copy lengths for literal codes 257..285 */
+	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
 };
+
 /* note: see note #13 above about the 258 in this list. */
-static const extra_bits_t cplext[] = {  /* Extra bits for literal codes 257..285 */
-    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
-};                 /* 99==invalid */
-static const unsigned short cpdist[] = {     /* Copy offsets for distance codes 0..29 */
-    1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
-    257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-    8193, 12289, 16385, 24577
+static const extra_bits_t cplext[] = {	/* Extra bits for literal codes 257..285 */
+	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
+};						/* 99==invalid */
+static const unsigned short cpdist[] = {	/* Copy offsets for distance codes 0..29 */
+	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+	257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+	8193, 12289, 16385, 24577
 };
-static const extra_bits_t cpdext[] = {  /* Extra bits for distance codes */
-    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-    7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-    12, 12, 13, 13
+static const extra_bits_t cpdext[] = {	/* Extra bits for distance codes */
+	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+	12, 12, 13, 13
 };
+
 /* Tables for deflate from PKZIP's appnote.txt. */
-static const extra_bits_t border[] = {  /* Order of the bit length code lengths */
-    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+static const extra_bits_t border[] = {	/* Order of the bit length code lengths */
+	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
 };
 
 /*
@@ -531,8 +539,8 @@ static const extra_bits_t border[] = {  /* Order of the bit length code lengths 
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
-	register unsigned long b;			/* bit buffer */
-	register unsigned k;		/* number of bits in bit buffer */
+	register unsigned long b;	/* bit buffer */
+	register unsigned k;	/* number of bits in bit buffer */
 
 	/* make local bit buffer */
 	b = bb;
@@ -540,7 +548,7 @@ static int inflate_block(int *e)
 
 	/* read in last block bit */
 	while (k < 1) {
-		b |= ((unsigned long)fgetc(in_file)) << k;
+		b |= ((unsigned long) fgetc(in_file)) << k;
 		k += 8;
 	}
 	*e = (int) b & 1;
@@ -549,7 +557,7 @@ static int inflate_block(int *e)
 
 	/* read in block type */
 	while (k < 2) {
-		b |= ((unsigned long)fgetc(in_file)) << k;
+		b |= ((unsigned long) fgetc(in_file)) << k;
 		k += 8;
 	}
 	t = (unsigned) b & 3;
@@ -562,286 +570,287 @@ static int inflate_block(int *e)
 
 	/* inflate that block type */
 	switch (t) {
-	case 0:	/* Inflate stored */
-		{
-			unsigned long n;			/* number of bytes in block */
-			unsigned long w;			/* current window position */
-			register unsigned long b_stored;			/* bit buffer */
-			register unsigned long k_stored;		/* number of bits in bit buffer */
+	case 0:			/* Inflate stored */
+	{
+		unsigned long n;	/* number of bytes in block */
+		unsigned long w;	/* current window position */
+		register unsigned long b_stored;	/* bit buffer */
+		register unsigned long k_stored;	/* number of bits in bit buffer */
 
-			/* make local copies of globals */
-			b_stored = bb;				/* initialize bit buffer */
-			k_stored = bk;
-			w = outcnt;			/* initialize window position */
+		/* make local copies of globals */
+		b_stored = bb;	/* initialize bit buffer */
+		k_stored = bk;
+		w = outcnt;		/* initialize window position */
 
-			/* go to byte boundary */
-			n = k_stored & 7;
-			b_stored >>= n;
-			k_stored -= n;
+		/* go to byte boundary */
+		n = k_stored & 7;
+		b_stored >>= n;
+		k_stored -= n;
 
-			/* get the length and its complement */
-			while (k_stored < 16) {
-				b_stored |= ((unsigned long)fgetc(in_file)) << k_stored;
-				k_stored += 8;
-			}
-			n = ((unsigned) b_stored & 0xffff);
-			b_stored >>= 16;
-			k_stored -= 16;
-			while (k_stored < 16) {
-				b_stored |= ((unsigned long)fgetc(in_file)) << k_stored;
-				k_stored += 8;
-			}
-			if (n != (unsigned) ((~b_stored) & 0xffff)) {
-				return 1;		/* error in compressed data */
-			}
-			b_stored >>= 16;
-			k_stored -= 16;
-
-			/* read and output the compressed data */
-			while (n--) {
-				while (k_stored < 8) {
-					b_stored |= ((unsigned long)fgetc(in_file)) << k_stored;
-					k_stored += 8;
-				}
-				window[w++] = (unsigned char) b_stored;
-				if (w == (unsigned long)WSIZE) {
-					outcnt=(w),
-					flush_window();
-					w = 0;
-				}
-				b_stored >>= 8;
-				k_stored -= 8;
-			}
-
-			/* restore the globals from the locals */
-			outcnt = w;			/* restore global window pointer */
-			bb = b_stored;				/* restore global bit buffer */
-			bk = k_stored;
-			return 0;
+		/* get the length and its complement */
+		while (k_stored < 16) {
+			b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+			k_stored += 8;
 		}
-	case 1:	/* Inflate fixed 
-			 * decompress an inflated type 1 (fixed Huffman codes) block.  We should
-			 * either replace this with a custom decoder, or at least precompute the
-			 * Huffman tables.
-			 */
-		{
-			int i;					/* temporary variable */
-			huft_t *tl;				/* literal/length code table */
-			huft_t *td;				/* distance code table */
-			int bl;					/* lookup bits for tl */
-			int bd;					/* lookup bits for td */
-			unsigned int l[288];	/* length list for huft_build */
+		n = ((unsigned) b_stored & 0xffff);
+		b_stored >>= 16;
+		k_stored -= 16;
+		while (k_stored < 16) {
+			b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+			k_stored += 8;
+		}
+		if (n != (unsigned) ((~b_stored) & 0xffff)) {
+			return 1;	/* error in compressed data */
+		}
+		b_stored >>= 16;
+		k_stored -= 16;
 
-			/* set up literal table */
-			for (i = 0; i < 144; i++) {
-				l[i] = 8;
+		/* read and output the compressed data */
+		while (n--) {
+			while (k_stored < 8) {
+				b_stored |= ((unsigned long) fgetc(in_file)) << k_stored;
+				k_stored += 8;
 			}
-			for (; i < 256; i++) {
-				l[i] = 9;
+			window[w++] = (unsigned char) b_stored;
+			if (w == (unsigned long) WSIZE) {
+				outcnt = (w), flush_window();
+				w = 0;
 			}
-			for (; i < 280; i++) {
-				l[i] = 7;
-			}
-			for (; i < 288; i++) {	/* make a complete, but wrong code set */
-				l[i] = 8;
-			}
-			bl = 7;
-			if ((i = huft_build(l, 288, 257, cplens, cplext, &tl, &bl)) != 0) {
-				return i;
-			}
+			b_stored >>= 8;
+			k_stored -= 8;
+		}
 
-			/* set up distance table */
-			for (i = 0; i < 30; i++) {	/* make an incomplete code set */
-				l[i] = 5;
-			}
-			bd = 5;
-			if ((i = huft_build(l, 30, 0, cpdist, cpdext, &td, &bd)) > 1) {
-				huft_free(tl);
-				return i;
-			}
+		/* restore the globals from the locals */
+		outcnt = w;		/* restore global window pointer */
+		bb = b_stored;	/* restore global bit buffer */
+		bk = k_stored;
+		return 0;
+	}
+	case 1:			/* Inflate fixed 
+						   * decompress an inflated type 1 (fixed Huffman codes) block.  We should
+						   * either replace this with a custom decoder, or at least precompute the
+						   * Huffman tables.
+						 */
+	{
+		int i;			/* temporary variable */
+		huft_t *tl;		/* literal/length code table */
+		huft_t *td;		/* distance code table */
+		int bl;			/* lookup bits for tl */
+		int bd;			/* lookup bits for td */
+		unsigned int l[288];	/* length list for huft_build */
 
-			/* decompress until an end-of-block code */
-			if (inflate_codes(tl, td, bl, bd))
-				return 1;
+		/* set up literal table */
+		for (i = 0; i < 144; i++) {
+			l[i] = 8;
+		}
+		for (; i < 256; i++) {
+			l[i] = 9;
+		}
+		for (; i < 280; i++) {
+			l[i] = 7;
+		}
+		for (; i < 288; i++) {	/* make a complete, but wrong code set */
+			l[i] = 8;
+		}
+		bl = 7;
+		if ((i = huft_build(l, 288, 257, cplens, cplext, &tl, &bl)) != 0) {
+			return i;
+		}
 
-			/* free the decoding tables, return */
+		/* set up distance table */
+		for (i = 0; i < 30; i++) {	/* make an incomplete code set */
+			l[i] = 5;
+		}
+		bd = 5;
+		if ((i = huft_build(l, 30, 0, cpdist, cpdext, &td, &bd)) > 1) {
 			huft_free(tl);
-			huft_free(td);
-			return 0;
+			return i;
 		}
-	case 2:	/* Inflate dynamic */
-		{
-			const int dbits = 6;					/* bits in base distance lookup table */
-			const int lbits = 9;					/* bits in base literal/length lookup table */
 
-			int i;						/* temporary variables */
-			unsigned j;
-			unsigned l;					/* last length */
-			unsigned m;					/* mask for bit lengths table */
-			unsigned n;					/* number of lengths to get */
-			huft_t *tl;			/* literal/length code table */
-			huft_t *td;			/* distance code table */
-			int bl;						/* lookup bits for tl */
-			int bd;						/* lookup bits for td */
-			unsigned nb;				/* number of bit length codes */
-			unsigned nl;				/* number of literal/length codes */
-			unsigned nd;				/* number of distance codes */
+		/* decompress until an end-of-block code */
+		if (inflate_codes(tl, td, bl, bd))
+			return 1;
 
-			unsigned ll[286 + 30];		/* literal/length and distance code lengths */
-			register unsigned long b_dynamic;	/* bit buffer */
-			register unsigned k_dynamic;		/* number of bits in bit buffer */
+		/* free the decoding tables, return */
+		huft_free(tl);
+		huft_free(td);
+		return 0;
+	}
+	case 2:			/* Inflate dynamic */
+	{
+		const int dbits = 6;	/* bits in base distance lookup table */
+		const int lbits = 9;	/* bits in base literal/length lookup table */
 
-			/* make local bit buffer */
-			b_dynamic = bb;
-			k_dynamic = bk;
+		int i;			/* temporary variables */
+		unsigned j;
+		unsigned l;		/* last length */
+		unsigned m;		/* mask for bit lengths table */
+		unsigned n;		/* number of lengths to get */
+		huft_t *tl;		/* literal/length code table */
+		huft_t *td;		/* distance code table */
+		int bl;			/* lookup bits for tl */
+		int bd;			/* lookup bits for td */
+		unsigned nb;	/* number of bit length codes */
+		unsigned nl;	/* number of literal/length codes */
+		unsigned nd;	/* number of distance codes */
 
-			/* read in table lengths */
-			while (k_dynamic < 5) {
-				b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
+		unsigned ll[286 + 30];	/* literal/length and distance code lengths */
+		register unsigned long b_dynamic;	/* bit buffer */
+		register unsigned k_dynamic;	/* number of bits in bit buffer */
+
+		/* make local bit buffer */
+		b_dynamic = bb;
+		k_dynamic = bk;
+
+		/* read in table lengths */
+		while (k_dynamic < 5) {
+			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			k_dynamic += 8;
+		}
+		nl = 257 + ((unsigned) b_dynamic & 0x1f);	/* number of literal/length codes */
+		b_dynamic >>= 5;
+		k_dynamic -= 5;
+		while (k_dynamic < 5) {
+			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			k_dynamic += 8;
+		}
+		nd = 1 + ((unsigned) b_dynamic & 0x1f);	/* number of distance codes */
+		b_dynamic >>= 5;
+		k_dynamic -= 5;
+		while (k_dynamic < 4) {
+			b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+			k_dynamic += 8;
+		}
+		nb = 4 + ((unsigned) b_dynamic & 0xf);	/* number of bit length codes */
+		b_dynamic >>= 4;
+		k_dynamic -= 4;
+		if (nl > 286 || nd > 30) {
+			return 1;	/* bad lengths */
+		}
+
+		/* read in bit-length-code lengths */
+		for (j = 0; j < nb; j++) {
+			while (k_dynamic < 3) {
+				b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
 				k_dynamic += 8;
 			}
-			nl = 257 + ((unsigned) b_dynamic & 0x1f);	/* number of literal/length codes */
-			b_dynamic >>= 5;
-			k_dynamic -= 5;
-			while (k_dynamic < 5) {
-				b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
-				k_dynamic += 8;
-			}
-			nd = 1 + ((unsigned) b_dynamic & 0x1f);	/* number of distance codes */
-			b_dynamic >>= 5;
-			k_dynamic -= 5;
-			while (k_dynamic < 4) {
-				b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
-				k_dynamic += 8;
-			}
-			nb = 4 + ((unsigned) b_dynamic & 0xf);	/* number of bit length codes */
-			b_dynamic >>= 4;
-			k_dynamic -= 4;
-			if (nl > 286 || nd > 30) {
-				return 1;	/* bad lengths */
-			}
+			ll[border[j]] = (unsigned) b_dynamic & 7;
+			b_dynamic >>= 3;
+			k_dynamic -= 3;
+		}
+		for (; j < 19; j++) {
+			ll[border[j]] = 0;
+		}
 
-			/* read in bit-length-code lengths */
-			for (j = 0; j < nb; j++) {
-				while (k_dynamic < 3) {
-					b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
+		/* build decoding table for trees--single level, 7 bit lookup */
+		bl = 7;
+		if ((i = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl)) != 0) {
+			if (i == 1) {
+				huft_free(tl);
+			}
+			return i;	/* incomplete code set */
+		}
+
+		/* read in literal and distance code lengths */
+		n = nl + nd;
+		m = mask_bits[bl];
+		i = l = 0;
+		while ((unsigned) i < n) {
+			while (k_dynamic < (unsigned) bl) {
+				b_dynamic |= ((unsigned long) fgetc(in_file)) << k_dynamic;
+				k_dynamic += 8;
+			}
+			j = (td = tl + ((unsigned) b_dynamic & m))->b;
+			b_dynamic >>= j;
+			k_dynamic -= j;
+			j = td->v.n;
+			if (j < 16) {	/* length of code in bits (0..15) */
+				ll[i++] = l = j;	/* save last length in l */
+			} else if (j == 16) {	/* repeat last length 3 to 6 times */
+				while (k_dynamic < 2) {
+					b_dynamic |=
+						((unsigned long) fgetc(in_file)) << k_dynamic;
 					k_dynamic += 8;
 				}
-				ll[border[j]] = (unsigned) b_dynamic & 7;
+				j = 3 + ((unsigned) b_dynamic & 3);
+				b_dynamic >>= 2;
+				k_dynamic -= 2;
+				if ((unsigned) i + j > n) {
+					return 1;
+				}
+				while (j--) {
+					ll[i++] = l;
+				}
+			} else if (j == 17) {	/* 3 to 10 zero length codes */
+				while (k_dynamic < 3) {
+					b_dynamic |=
+						((unsigned long) fgetc(in_file)) << k_dynamic;
+					k_dynamic += 8;
+				}
+				j = 3 + ((unsigned) b_dynamic & 7);
 				b_dynamic >>= 3;
 				k_dynamic -= 3;
-			}
-			for (; j < 19; j++) {
-				ll[border[j]] = 0;
-			}
-
-			/* build decoding table for trees--single level, 7 bit lookup */
-			bl = 7;
-			if ((i = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl)) != 0) {
-				if (i == 1) {
-					huft_free(tl);
+				if ((unsigned) i + j > n) {
+					return 1;
 				}
-				return i;			/* incomplete code set */
-			}
-
-			/* read in literal and distance code lengths */
-			n = nl + nd;
-			m = mask_bits[bl];
-			i = l = 0;
-			while ((unsigned) i < n) {
-				while (k_dynamic < (unsigned) bl) {
-					b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
+				while (j--) {
+					ll[i++] = 0;
+				}
+				l = 0;
+			} else {	/* j == 18: 11 to 138 zero length codes */
+				while (k_dynamic < 7) {
+					b_dynamic |=
+						((unsigned long) fgetc(in_file)) << k_dynamic;
 					k_dynamic += 8;
 				}
-				j = (td = tl + ((unsigned) b_dynamic & m))->b;
-				b_dynamic >>= j;
-				k_dynamic -= j;
-				j = td->v.n;
-				if (j < 16) {			/* length of code in bits (0..15) */
-					ll[i++] = l = j;	/* save last length in l */
+				j = 11 + ((unsigned) b_dynamic & 0x7f);
+				b_dynamic >>= 7;
+				k_dynamic -= 7;
+				if ((unsigned) i + j > n) {
+					return 1;
 				}
-				else if (j == 16) {		/* repeat last length 3 to 6 times */
-					while (k_dynamic < 2) {
-						b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
-						k_dynamic += 8;
-					}
-					j = 3 + ((unsigned) b_dynamic & 3);
-					b_dynamic >>= 2;
-					k_dynamic -= 2;
-					if ((unsigned) i + j > n) {
-						return 1;
-					}
-					while (j--) {
-						ll[i++] = l;
-					}
-				} else if (j == 17) {	/* 3 to 10 zero length codes */
-					while (k_dynamic < 3) {
-						b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
-						k_dynamic += 8;
-					}
-					j = 3 + ((unsigned) b_dynamic & 7);
-					b_dynamic >>= 3;
-					k_dynamic -= 3;
-					if ((unsigned) i + j > n) {
-						return 1;
-					}
-					while (j--) {
-						ll[i++] = 0;
-					}
-					l = 0;
-				} else {		/* j == 18: 11 to 138 zero length codes */
-					while (k_dynamic < 7) {
-						b_dynamic |= ((unsigned long)fgetc(in_file)) << k_dynamic;
-						k_dynamic += 8;
-					}
-					j = 11 + ((unsigned) b_dynamic & 0x7f);
-					b_dynamic >>= 7;
-					k_dynamic -= 7;
-					if ((unsigned) i + j > n) {
-						return 1;
-					}
-					while (j--) {
-						ll[i++] = 0;
-					}
-					l = 0;
+				while (j--) {
+					ll[i++] = 0;
 				}
+				l = 0;
 			}
-
-			/* free decoding table for trees */
-			huft_free(tl);
-
-			/* restore the global bit buffer */
-			bb = b_dynamic;
-			bk = k_dynamic;
-
-			/* build the decoding tables for literal/length and distance codes */
-			bl = lbits;
-			if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
-				if (i == 1) {
-					error_msg("Incomplete literal tree");
-					huft_free(tl);
-				}
-				return i;			/* incomplete code set */
-			}
-			bd = dbits;
-			if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
-				if (i == 1) {
-					error_msg("incomplete distance tree");
-					huft_free(td);
-				}
-				huft_free(tl);
-				return i;			/* incomplete code set */
-			}
-
-			/* decompress until an end-of-block code */
-			if (inflate_codes(tl, td, bl, bd))
-				return 1;
-
-			/* free the decoding tables, return */
-			huft_free(tl);
-			huft_free(td);
-			return 0;
 		}
+
+		/* free decoding table for trees */
+		huft_free(tl);
+
+		/* restore the global bit buffer */
+		bb = b_dynamic;
+		bk = k_dynamic;
+
+		/* build the decoding tables for literal/length and distance codes */
+		bl = lbits;
+		if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
+			if (i == 1) {
+				error_msg("Incomplete literal tree");
+				huft_free(tl);
+			}
+			return i;	/* incomplete code set */
+		}
+		bd = dbits;
+		if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
+			if (i == 1) {
+				error_msg("incomplete distance tree");
+				huft_free(td);
+			}
+			huft_free(tl);
+			return i;	/* incomplete code set */
+		}
+
+		/* decompress until an end-of-block code */
+		if (inflate_codes(tl, td, bl, bd))
+			return 1;
+
+		/* free the decoding tables, return */
+		huft_free(tl);
+		huft_free(td);
+		return 0;
+	}
 	default:
 		/* bad block type */
 		return 2;
@@ -853,7 +862,7 @@ static int inflate_block(int *e)
  *
  * GLOBAL VARIABLES: outcnt, bk, bb, hufts, inptr
  */
-extern int inflate(FILE *in, FILE *out)
+extern int inflate(FILE * in, FILE * out)
 {
 	int e;				/* last block flag */
 	int r;				/* result code */
@@ -868,7 +877,7 @@ extern int inflate(FILE *in, FILE *out)
 	out_file = out;
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
-	window = xmalloc((size_t)(((2L*WSIZE)+1L)*sizeof(unsigned char)));
+	window = xmalloc((size_t) (((2L * WSIZE) + 1L) * sizeof(unsigned char)));
 	bytes_out = 0L;
 
 	/* Create the crc table */
@@ -910,40 +919,35 @@ extern int inflate(FILE *in, FILE *out)
  *   The magic header has already been checked. The output buffer is cleared.
  * in, out: input and output file descriptors
  */
-extern int unzip(FILE *l_in_file, FILE *l_out_file)
+extern int unzip(FILE * l_in_file, FILE * l_out_file)
 {
 	unsigned char buf[8];	/* extended local header */
 	unsigned char flags;	/* compression flags */
 	typedef void (*sig_type) (int);
 	unsigned short i;
-	unsigned char magic [2];
+	unsigned char magic[2];
 
 	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGINT, (sig_type) abort_gzip);
 	}
-#ifdef SIGTERM
-//	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-//		(void) signal(SIGTERM, (sig_type) abort_gzip);
-//	}
-#endif
 #ifdef SIGHUP
 	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
 		(void) signal(SIGHUP, (sig_type) abort_gzip);
 	}
 #endif
 
-	magic [0] = fgetc(l_in_file);
-	magic [1] = fgetc(l_in_file);
-	
+	magic[0] = fgetc(l_in_file);
+	magic[1] = fgetc(l_in_file);
+
 #ifdef CONFIG_FEATURE_UNCOMPRESS
 	/* Magic header for compress files, 1F 9d = \037\235 */
-	if (( magic [0] == 0x1F ) && ( magic [1] == 0x9d)) {
-		return uncompress ( l_in_file, l_out_file );
+	if ((magic[0] == 0x1F) && (magic[1] == 0x9d)) {
+		return uncompress(l_in_file, l_out_file);
 	}
 #endif
 
 	/* Magic header for gzip files, 1F 8B = \037\213 */
-	if (( magic [0] != 0x1F ) || ( magic [1] != 0x8b)) {
+	if ((magic[0] != 0x1F) || (magic[1] != 0x8b)) {
 		error_msg("Invalid gzip magic");
 		return EXIT_FAILURE;
 	}
@@ -951,7 +955,7 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	/* Check the compression method */
 	if (fgetc(l_in_file) != 8) {
 		error_msg("Unknown compression method");
-		return(-1);
+		return (-1);
 	}
 
 	flags = (unsigned char) fgetc(l_in_file);
@@ -963,7 +967,8 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 
 	if (flags & 0x04) {
 		/* bit 2 set: extra field present */
-		const unsigned short extra = fgetc(l_in_file) + (fgetc(l_in_file) << 8);
+		const unsigned short extra =
+			fgetc(l_in_file) + (fgetc(l_in_file) << 8);
 
 		for (i = 0; i < extra; i++) {
 			fgetc(l_in_file);
@@ -994,11 +999,14 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 	fread(buf, 1, 8, l_in_file);
 
 	/* Validate decompression - crc */
-	if ((unsigned int)((buf[0] | (buf[1] << 8)) |((buf[2] | (buf[3] << 8)) << 16)) != (crc ^ 0xffffffffL)) {
+	if ((unsigned int) ((buf[0] | (buf[1] << 8)) |
+						((buf[2] | (buf[3] << 8)) << 16)) !=
+		(crc ^ 0xffffffffL)) {
 		error_msg("invalid compressed data--crc error");
 	}
 	/* Validate decompression - size */
-	if (((buf[4] | (buf[5] << 8)) |((buf[6] | (buf[7] << 8)) << 16)) != (unsigned long) bytes_out) {
+	if (((buf[4] | (buf[5] << 8)) | ((buf[6] | (buf[7] << 8)) << 16)) !=
+		(unsigned long) bytes_out) {
 		error_msg("invalid compressed data--length error");
 	}
 
@@ -1011,7 +1019,8 @@ extern int unzip(FILE *l_in_file, FILE *l_out_file)
 extern void gz_close(int gunzip_pid)
 {
 	if (kill(gunzip_pid, SIGTERM) == -1) {
-		error_msg_and_die("***  Couldnt kill old gunzip process *** aborting");
+		error_msg_and_die
+			("***  Couldnt kill old gunzip process *** aborting");
 	}
 
 	if (waitpid(gunzip_pid, NULL, 0) == -1) {
