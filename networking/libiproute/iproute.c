@@ -809,7 +809,7 @@ int do_iproute(int argc, char **argv)
 {
 	const char *ip_route_commands[] = { "add", "append", "change", "chg",
 		"delete", "del", "get", "list", "show", "prepend", "replace", "test", "flush", 0 };
-	unsigned short command_num = 6;
+	unsigned short command_num = 7;
 	unsigned int flags = 0;
 	int cmd = RTM_NEWROUTE;
 
@@ -850,4 +850,3 @@ int do_iproute(int argc, char **argv)
 
 	return iproute_modify(cmd, flags, argc-1, argv+1);
 }
-
