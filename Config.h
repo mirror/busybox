@@ -60,7 +60,6 @@
 //#define BB_LOADKMAP
 #define BB_LOGGER
 //#define BB_LOGNAME
-#define BB_LOGREAD
 #define BB_LS
 #define BB_LSMOD
 //#define BB_MAKEDEVS
@@ -200,7 +199,11 @@
 #define BB_FEATURE_KLOGD
 //
 // enable syslogd -R remotehost
+//
 #define BB_FEATURE_REMOTE_LOG
+// enable syslogd -C
+#define BB_FEATURE_IPC_SYSLOG
+//
 //
 //Simple tail implementation (2.34k vs 3k for the full one).
 //Both provide 'tail -f', but this cuts out -c, -q, -s, and -v. 
@@ -423,6 +426,12 @@
 #if defined BB_INSMOD || defined BB_LSMOD
 #if ! defined BB_FEATURE_NEW_MODULE_INTERFACE && ! defined BB_FEATURE_OLD_MODULE_INTERFACE
 #define BB_FEATURE_NEW_MODULE_INTERFACE
+#endif
+#endif
+//
+#ifdef BB_SYSLOGD
+#if defined BB_FEATURE_IPC_SYSLOG
+#define BB_LOGREAD
 #endif
 #endif
 //
