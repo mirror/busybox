@@ -102,14 +102,30 @@ static void add_inode(const ino_t ino)
 	inode_hash_list[i] = inode;
 }
 
+/* Clear inode hash list */
+static void reset_inode_list(void)
+{
+	int i;
+	INODETYPE *inode;
+
+	for (i = 0; i < HASH_SIZE; i++) {
+		while (inode_hash_list[i] != NULL) {
+			inode = inode_hash_list[i]->next;
+			free(inode_hash_list[i]);
+			inode_hash_list[i] = inode;
+		}
+	}
+}
+
 /* tiny recursive du */
 static long du(char *filename)
 {
 	struct stat statbuf;
 	long sum;
+	int len;
 
 	if ((lstat(filename, &statbuf)) != 0) {
-		fprintf(stdout, "du: %s: %s\n", filename, strerror(errno));
+		printf("du: %s: %s\n", filename, strerror(errno));
 		return 0;
 	}
 
@@ -118,7 +134,9 @@ static long du(char *filename)
 
 	/* Don't add in stuff pointed to by symbolic links */
 	if (S_ISLNK(statbuf.st_mode)) {
-		return 0;
+		sum = 0L;
+		if (du_depth == 1)
+			print(sum, filename);
 	}
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
@@ -126,8 +144,14 @@ static long du(char *filename)
 
 		dir = opendir(filename);
 		if (!dir) {
+			du_depth--;
 			return 0;
 		}
+
+		len = strlen(filename);
+		if (filename[len - 1] == '/')
+			filename[--len] = '\0';
+
 		while ((entry = readdir(dir))) {
 			char newfile[PATH_MAX + 1];
 			char *name = entry->d_name;
@@ -137,8 +161,9 @@ static long du(char *filename)
 				continue;
 			}
 
-			if (strlen(filename) + strlen(name) + 1 > PATH_MAX) {
+			if (len + strlen(name) + 1 > PATH_MAX) {
 				fprintf(stderr, name_too_long, "du");
+				du_depth--;
 				return 0;
 			}
 			sprintf(newfile, "%s/%s", filename, name);
@@ -150,9 +175,14 @@ static long du(char *filename)
 	}
 	else if (statbuf.st_nlink > 1 && !count_hardlinks) {
 		/* Add files with hard links only once */
-		if (is_in_list(statbuf.st_ino))
-			return 0;
-		add_inode(statbuf.st_ino);
+		if (is_in_list(statbuf.st_ino)) {
+			sum = 0L;
+			if (du_depth == 1)
+				print(sum, filename);
+		}
+		else {
+			add_inode(statbuf.st_ino);
+		}
 	}
 	du_depth--;
 	return sum;
@@ -198,13 +228,14 @@ int du_main(int argc, char **argv)
 
 		for (; i < argc; i++) {
 			sum = du(argv[i]);
-			if ((sum) && (isDirectory(argv[i], FALSE, NULL))) {
+			if (sum && isDirectory(argv[i], FALSE, NULL)) {
 				print_normal(sum, argv[i]);
 			}
+			reset_inode_list();
 		}
 	}
 
 	exit(0);
 }
 
-/* $Id: du.c,v 1.14 2000/02/19 18:16:49 erik Exp $ */
+/* $Id: du.c,v 1.15 2000/02/21 17:27:17 erik Exp $ */
