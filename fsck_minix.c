@@ -146,7 +146,7 @@ static int termios_set = 0;
 #define MAX_DEPTH 32
 static int name_depth = 0;
 // static char name_list[MAX_DEPTH][PATH_MAX + 1];
-static char **name_list;
+static char **name_list = NULL;
 
 static char *inode_buffer = NULL;
 
@@ -1248,14 +1248,33 @@ static void alloc_name_list(void)
 	int i;
 
 	name_list = malloc(sizeof(char *) * MAX_DEPTH);
+	if (!name_list) { 
+		fprintf(stderr,"fsck_minix: name_list: %s\n", strerror(errno));
+		exit(1); 
+	}
 	for (i = 0; i < MAX_DEPTH; i++) {
 		name_list[i] = malloc(sizeof(char) * PATH_MAX + 1);
+		if (!name_list[i]) {
+			fprintf(stderr,"fsck_minix: name_list: %s\n", strerror(errno));
+			exit(1); 
+		}
 	}
 }
 
+/* execute this atexit() to deallocate name_list[] */
+/* piptigger was here */
 static void free_name_list(void)
 {
-	if (name_list) free(name_list);
+	int i;
+
+	if (name_list) { 
+		for (i = 0; i < MAX_DEPTH; i++) {
+			if (name_list[i]) {
+				free(name_list[i]);
+			}
+		}
+		free(name_list);
+	}
 }
 
 extern int fsck_minix_main(int argc, char **argv)
