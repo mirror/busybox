@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdio.h>
+#include <errno.h>
 #if 0
 #include <unistd.h>
 #include <sys/stat.h>
@@ -49,7 +50,10 @@ du(char *filename)
     struct stat statbuf;
     size_t	sum;
 
-    if ((lstat(filename, &statbuf)) != 0) { return 0; }
+    if ((lstat(filename, &statbuf)) != 0) { 
+	fprintf(stdout, "du: %s: %s\n", filename, strerror(errno));
+	return 0; 
+    }
     sum = statbuf.st_blocks;
 
     if (S_ISDIR(statbuf.st_mode)) {
@@ -104,12 +108,14 @@ du_main(int argc, char **argv)
     if (i >= argc) {
 	du(".");
     } else {
+	int sum;
 	for ( ; i < argc; i++) {
-	    printf("%-7d %s\n", du(argv[i]) >> 1, argv[i]);
+	    sum = du(argv[i]) >> 1;
+	    if (sum) printf("%-7d %s\n", du(argv[i]) >> 1, argv[i]);
 	}
     }
 
     exit(0);
 }
 
-/* $Id: du.c,v 1.3 1999/12/10 06:45:42 andersen Exp $ */
+/* $Id: du.c,v 1.4 1999/12/10 07:40:08 beppu Exp $ */
