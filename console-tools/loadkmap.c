@@ -41,7 +41,7 @@ struct kbentry {
 
 static const char loadkmap_usage[] = "loadkmap\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"Loads a binary keyboard translation table from standard input.\n"
+	"\nLoads a binary keyboard translation table from standard input.\n"
 #endif
 	;
 

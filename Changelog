@@ -41,6 +41,9 @@
 	    couldn't maintain it very well, so including it was not really
 	    very appropriate.  Those wanting an fdisk are invited to
 	    grab a copy from util-linux.
+	* Added 'dumpkmap' to allow people to dump a binary keymap, which can 
+	    then be loaded in by 'loadkmap' -- submitted by
+	    Arne Bernin <arne@matrix.loopback.org>
 	* Fixed NFS so it supports 2.4.x kernels and NFSv3.
 
 

@@ -25,6 +25,7 @@
 #define BB_DMESG
 #define BB_DUTMP
 #define BB_DU
+#define BB_DUMPKMAP
 #define BB_ECHO
 #define BB_FBSET
 #define BB_FDFLUSH

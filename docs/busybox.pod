@@ -56,7 +56,7 @@ terse runtime description of their behavior.
 Currently defined functions include:
 
 ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
-dc, dd, deallocvt, df, dirname, dmesg, du, dutmp, echo, false, fbset,
+dc, dd, deallocvt, df, dirname, dmesg, du, dumpkmap, dutmp, echo, false, fbset,
 fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
 head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
@@ -437,6 +437,14 @@ Example:
 	12      ./docs/CVS
 	104     ./docs
 	2417    .
+
+-------------------------------
+
+=item dumpkmap
+
+Usage: dumpkmap
+
+Prints out a binary keyboard translation table to standard input.
 
 -------------------------------
 
@@ -2020,4 +2028,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.55 2000/07/08 00:09:30 andersen Exp $
+# $Id: busybox.pod,v 1.56 2000/07/11 17:29:36 andersen Exp $

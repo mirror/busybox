@@ -87,6 +87,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_DU
 	{"du", du_main, _BB_DIR_BIN},
 #endif
+#ifdef BB_DUMPKMAP
+	{"dumpkmap", dumpkmap_main, _BB_DIR_BIN},
+#endif
 #ifdef BB_DUTMP
 	{"dutmp", dutmp_main, _BB_DIR_USR_SBIN},
 #endif

@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini loadkmap implementation for busybox
+ * Mini dumpkmap implementation for busybox
  *
- * Copyright (C) 1998 Enrique Zanardi <ezanardi@ull.es>
+ * Copyright (C) Arne Bernin <arne@matrix.loopback.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,77 +32,69 @@ struct kbentry {
 	unsigned char kb_index;
 	unsigned short kb_value;
 };
-#define KDSKBENT        0x4B47  /* sets one entry in translation table */
+#define KDGKBENT        0x4B46  /* gets one entry in translation table */
 
 /* From <linux/keyboard.h> */
 #define NR_KEYS         128
 #define MAX_NR_KEYMAPS  256
 
 
-static const char loadkmap_usage[] = "loadkmap\n"
+static const char dumpkmap_usage[] = "dumpkmap\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nLoads a binary keyboard translation table from standard input.\n"
+	"\nPrints out a binary keyboard translation table to standard input.\n"
 #endif
 	;
 
 
-int loadkmap_main(int argc, char **argv)
+int dumpkmap_main(int argc, char **argv)
 {
 	struct kbentry ke;
-	u_short *ibuff;
-	int i, j, fd, readsz, pos, ibuffsz = NR_KEYS * sizeof(u_short);
-	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap", buff[7];
+	int i, j, fd;
+	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap";
 
 	if (argc>=2 && *argv[1]=='-') {
-		usage(loadkmap_usage);
+		usage(dumpkmap_usage);
 	}
 
 	fd = open("/dev/tty0", O_RDWR);
 	if (fd < 0) {
 		fprintf(stderr, "Error opening /dev/tty0: %s\n", strerror(errno));
-		exit(FALSE);
+		return 1;
 	}
 
-	read(0, buff, 7);
-	if (0 != strncmp(buff, magic, 7)) {
-		fprintf(stderr, "This is not a valid binary keymap.\n");
-		exit(FALSE);
-	}
+	write(1, magic, 7);
 
-	if (MAX_NR_KEYMAPS != read(0, flags, MAX_NR_KEYMAPS)) {
-		fprintf(stderr, "Error reading keymap flags: %s\n",
-				strerror(errno));
-		exit(FALSE);
-	}
-
-	ibuff = (u_short *) malloc(ibuffsz);
-	if (!ibuff) {
-		fprintf(stderr, "Out of memory.\n");
-		exit(FALSE);
-	}
+	for (i=0; i < MAX_NR_KEYMAPS; i++) flags[i]=0;
+	flags[0]=1; 
+	flags[1]=1;
+	flags[2]=1;
+	flags[4]=1;
+	flags[5]=1;
+	flags[6]=1;
+	flags[8]=1;
+	flags[9]=1;
+	flags[10]=1;
+	flags[12]=1;
+	
+	/* dump flags */
+	for (i=0; i < MAX_NR_KEYMAPS; i++) write(1,&flags[i],1); 
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
 		if (flags[i] == 1) {
-			pos = 0;
-			while (pos < ibuffsz) {
-				if ((readsz = read(0, (char *) ibuff + pos, ibuffsz - pos))
-					< 0) {
-					fprintf(stderr, "Error reading keymap: %s\n",
-							strerror(errno));
-					exit(FALSE);
-				}
-				pos += readsz;
-			}
 			for (j = 0; j < NR_KEYS; j++) {
 				ke.kb_index = j;
 				ke.kb_table = i;
-				ke.kb_value = ibuff[j];
-				ioctl(fd, KDSKBENT, &ke);
+				if (ioctl(fd, KDGKBENT, &ke) < 0) {
+				
+					fprintf(stderr, "ioctl returned: %s, %s, %s, %xqq\n",strerror(errno),(char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
+					}
+				else {
+					write(1,&ke.kb_value,2);	
+					}	
+				
 			}
 		}
 	}
-	/* Don't bother to close files.  Exit does that 
-	 * automagically, so we can save a few bytes */
-	/* close(fd); */
-	return(TRUE);
+	close(fd);
+	return 0;
 }

@@ -132,16 +132,19 @@
 		</para>
 
 		<para>
-		ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear, cp, cut, date,
-		dc, dd, deallocvt, df, dirname, dmesg, du, dutmp, echo, false, fbset,
-		fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
-		head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
-		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
-		mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-		nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
-		setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
-		tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
-		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
+		ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear,
+		cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, du,
+		dumpkmap, dutmp, echo, false, fbset, fdflush, find, free,
+		freeramdisk, fsck.minix, grep, gunzip, gzip, halt, head,
+		hostid, hostname, id, init, insmod, kill, killall, length, ln,
+		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
+		makedevs, mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp,
+		more, mount, mt, mv, nc, nslookup, ping, poweroff, printf, ps,
+		pwd, reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sleep,
+		sort, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet,
+		test, touch, tr, true, tty, umount, uname, uniq, update,
+		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes,
+		zcat, [
 		</para>
 	</sect1>
 
@@ -780,6 +783,18 @@
 			104	./docs
 			2417	.
 		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dumpkmap">
+	    <title>dumpkmap</title>
+
+		<para>
+		Usage: dumpkmap
+		</para>
+
+		<para>
+		Prints out a binary keyboard translation table to standard input.
 		</para>
 	</sect1>
 

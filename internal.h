@@ -117,6 +117,7 @@ extern int deallocvt_main(int argc, char** argv);
 extern int df_main(int argc, char** argv);
 extern int dmesg_main(int argc, char** argv);
 extern int du_main(int argc, char** argv);
+extern int dumpkmap_main(int argc, char** argv);
 extern int dutmp_main(int argc, char** argv);
 extern int echo_main(int argc, char** argv);
 extern int false_main(int argc, char** argv);
