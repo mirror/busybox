@@ -58,10 +58,10 @@ int make_directory (char *path, long mode, int flags)
 	}
 	ret = mkdir(path, mode);
 	if (ret == -1) {
-		if (errno == EEXIST) {
+		if ((flags == FILEUTILS_RECUR) && (errno == EEXIST)) {
 			ret = 0;
 		} else {
-			perror_msg("Cannot create directory %s", path);
+			perror_msg("Cannot create directory '%s'", path);
 		}
 	}
 	return(ret);
