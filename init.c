@@ -411,6 +411,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 
 	if ((pid = fork()) == 0) {
 		/* Clean up */
+		ioctl(0, TIOCNOTTY, 0);
 		close(0);
 		close(1);
 		close(2);
@@ -430,7 +431,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
-		ioctl(0, TIOCSCTTY, 0);
+		ioctl(0, TIOCSCTTY, 1);
 		tcsetpgrp(0, getpgrp());
 		set_term(0);
 
