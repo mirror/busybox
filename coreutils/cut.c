@@ -102,10 +102,10 @@ static void decompose_list(const char *list)
 static void cut_file(FILE *file)
 {
 	char *line;
+	unsigned int cr_hits = 0;
 
 	/* go through every line in the file */
 	for (line = NULL; (line = get_line_from_file(file)) != NULL; free(line)) {
-
 		/* cut based on chars/bytes */
 		if (part == 'c' || part == 'b') {
 			int i;
@@ -129,34 +129,47 @@ static void cut_file(FILE *file)
 			char *start = line;
 			unsigned int delims_hit = 0;
 
-			for (ptr = line; (ptr = strchr(ptr, delim)) != NULL; ptr++) {
-				delims_hit++;
-				if (delims_hit == (startpos - 1)) {
-					start = ptr+1;
-				}
-				if (delims_hit == endpos) {
-					break;
-				}
-			}
-			/* we didn't hit any delimeters */
-			if (delims_hit == 0 && !supress_non_delimited_lines) {
-				fputs(line, stdout);
-			}
-			/* we =did= hit some delimiters */
-			else if (delims_hit > 0) {
-				/* we have a fixed end point */
-				if (ptr) {
-					while (start < ptr) {
+			if (delim == '\n') {
+				cr_hits++;
+				if (cr_hits >= startpos && cr_hits <= endpos) {
+					while (*start && *start != '\n') {
 						fputc(*start, stdout);
 						start++;
 					}
 					fputc('\n', stdout);
 				}
-				/* or we're just going til the end of the line */
-				else {
-					while (*start) {
-						fputc(*start, stdout);
-						start++;
+			}
+			else {
+				for (ptr = line; (ptr = strchr(ptr, delim)) != NULL; ptr++) {
+					delims_hit++;
+					if (delims_hit == (startpos - 1)) {
+						start = ptr+1;
+					}
+					if (delims_hit == endpos) {
+						break;
+					}
+				}
+			
+				/* we didn't hit any delimeters */
+				if (delims_hit == 0 && !supress_non_delimited_lines) {
+					fputs(line, stdout);
+				}
+				/* we =did= hit some delimiters */
+				else if (delims_hit > 0) {
+					/* we have a fixed end point */
+					if (ptr) {
+						while (start < ptr) {
+							fputc(*start, stdout);
+							start++;
+						}
+						fputc('\n', stdout);
+					}
+					/* or we're just going til the end of the line */
+					else {
+						while (*start) {
+							fputc(*start, stdout);
+							start++;
+						}
 					}
 				}
 			}
