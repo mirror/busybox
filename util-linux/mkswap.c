@@ -173,12 +173,6 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 }
 
 
-static void die(const char *str)
-{
-	error_msg("%s\n", str);
-	exit(EXIT_FAILURE);
-}
-
 static void page_ok(int page)
 {
 	if (version == 0)
@@ -191,7 +185,7 @@ static void page_bad(int page)
 		bit_test_and_clear(signature_page, page);
 	else {
 		if (badpages == MAX_BADPAGES)
-			die("too many bad pages");
+			error_msg_and_die("too many bad pages\n");
 		p->badpages[badpages] = page;
 	}
 	badpages++;
@@ -212,7 +206,7 @@ static void check_blocks(void)
 		}
 		if (do_seek && lseek(DEV, current_page * pagesize, SEEK_SET) !=
 			current_page * pagesize)
-			die("seek failed in check_blocks");
+			error_msg_and_die("seek failed in check_blocks\n");
 		if ((do_seek = (pagesize != read(DEV, buffer, pagesize)))) {
 			page_bad(current_page++);
 			continue;
@@ -369,7 +363,7 @@ int mkswap_main(int argc, char **argv)
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
-		die("Will not try to make swapdevice on '%s'");
+		error_msg_and_die("Will not try to make swapdevice on '%s'\n", device_name);
 
 #ifdef __sparc__
 	if (!force && version == 0) {
@@ -378,7 +372,7 @@ int mkswap_main(int argc, char **argv)
 		unsigned short *q, sum;
 
 		if (read(DEV, buffer, 512) != 512)
-			die("fatal: first page unreadable");
+			error_msg_and_die("fatal: first page unreadable\n");
 		if (buffer[508] == 0xDA && buffer[509] == 0xBE) {
 			q = (unsigned short *) (buffer + 510);
 			for (sum = 0; q >= (unsigned short *) buffer;)
@@ -397,7 +391,7 @@ int mkswap_main(int argc, char **argv)
 	if (version == 0 || check)
 		check_blocks();
 	if (version == 0 && !bit_test_and_clear(signature_page, 0))
-		die("fatal: first page unreadable");
+		error_msg_and_die("fatal: first page unreadable\n");
 	if (version == 1) {
 		p->version = version;
 		p->last_page = PAGES - 1;
@@ -406,23 +400,23 @@ int mkswap_main(int argc, char **argv)
 
 	goodpages = PAGES - badpages - 1;
 	if (goodpages <= 0)
-		die("Unable to set up swap-space: unreadable");
+		error_msg_and_die("Unable to set up swap-space: unreadable\n");
 	printf("Setting up swapspace version %d, size = %ld bytes\n",
 		   version, (long) (goodpages * pagesize));
 	write_signature((version == 0) ? "SWAP-SPACE" : "SWAPSPACE2");
 
 	offset = ((version == 0) ? 0 : 1024);
 	if (lseek(DEV, offset, SEEK_SET) != offset)
-		die("unable to rewind swap-device");
+		error_msg_and_die("unable to rewind swap-device\n");
 	if (write(DEV, (char *) signature_page + offset, pagesize - offset)
 		!= pagesize - offset)
-		die("unable to write signature page");
+		error_msg_and_die("unable to write signature page\n");
 
 	/*
 	 * A subsequent swapon() will fail if the signature
 	 * is not actually on disk. (This is a kernel bug.)
 	 */
 	if (fsync(DEV))
-		die("fsync failed");
+		error_msg_and_die("fsync failed\n");
 	return EXIT_SUCCESS;
 }
