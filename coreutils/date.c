@@ -138,8 +138,15 @@ int date_main(int argc, char **argv)
 	time_t tm;
 	struct tm tm_time;
 
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+	int ifmt = 0;
+#define GETOPT_ISOFMT  "I::"
+#else
+#define GETOPT_ISOFMT
+#endif
+
 	/* Interpret command line args */
-	while ((c = getopt(argc, argv, "Rs:ud:")) != EOF) {
+	while ((c = getopt(argc, argv, "Rs:ud:" GETOPT_ISOFMT )) != EOF) {
 		switch (c) {
 			case 'R':
 				rfc822 = 1;
@@ -160,10 +167,30 @@ int date_main(int argc, char **argv)
 				if ((date_str != NULL) || ((date_str = optarg) == NULL))
 					show_usage();
 				break;
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+			case 'I': 
+				if ( !optarg ) 
+					ifmt = 1;
+				else {
+					int ifmt_len = xstrlen ( optarg );
+			
+					if (( ifmt_len <= 4 ) && ( strncmp ( optarg, "date", ifmt_len ) == 0 ))
+						ifmt = 1;
+					else if (( ifmt_len <= 5 ) && ( strncmp ( optarg, "hours", ifmt_len ) == 0 ))
+						ifmt = 2;
+					else if (( ifmt_len <= 7 ) && ( strncmp ( optarg, "minutes", ifmt_len ) == 0 ))
+						ifmt = 3;
+					else if (( ifmt_len <= 7 ) && ( strncmp ( optarg, "seconds", ifmt_len ) == 0 ))
+						ifmt = 4;
+				}			 
+				if ( ifmt )
+					break; // else show_usage();
+#endif
 			default:
 				show_usage();
 		}
 	}
+
 
 	if ((date_fmt == NULL) && (optind < argc) && (argv[optind][0] == '+'))
 		date_fmt = &argv[optind][1];   /* Skip over the '+' */
@@ -220,12 +247,33 @@ int date_main(int argc, char **argv)
 
 	/* Deal with format string */
 	if (date_fmt == NULL) {
-		date_fmt = (rfc822
-					? (utc
-					   ? "%a, %e %b %Y %H:%M:%S GMT"
-					   : "%a, %e %b %Y %H:%M:%S %z")
-					: "%a %b %e %H:%M:%S %Z %Y");
-
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+		switch ( ifmt ) {
+			case  4: 
+				date_fmt = utc ? "%Y-%m-%dT%H:%M:%SZ" : "%Y-%m-%dT%H:%M:%S%z";
+				break;
+			case  3: 
+				date_fmt = utc ? "%Y-%m-%dT%H:%MZ" : "%Y-%m-%dT%H:%M%z";
+				break;
+			case  2: 
+				date_fmt = utc ? "%Y-%m-%dT%HZ" : "%Y-%m-%dT%H%z";
+				break;
+			case  1: 
+				date_fmt = "%Y-%m-%d";  
+				break;
+			case  0:
+			default: 
+#endif
+				date_fmt = (rfc822
+				            ? (utc
+				               ? "%a, %e %b %Y %H:%M:%S GMT"
+				               : "%a, %e %b %Y %H:%M:%S %z")
+				            : "%a %b %e %H:%M:%S %Z %Y");
+				            
+#ifdef CONFIG_FEATURE_DATE_ISOFMT
+				break;
+		}
+#endif
 	} else if (*date_fmt == '\0') {
 		/* Imitate what GNU 'date' does with NO format string! */
 		printf("\n");
