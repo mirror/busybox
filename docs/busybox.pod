@@ -61,7 +61,7 @@ fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
 head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-nslookup, ping, poweroff, printf, ps, pwd, reboot, rm, rmdir, rmmod, sed,
+nslookup, ping, poweroff, printf, ps, pwd, reboot, renice, rm, rmdir, rmmod, sed,
 setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
 tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
 uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
@@ -1386,6 +1386,16 @@ Instructs the kernel to reboot the system.
 
 -------------------------------
 
+=item renice
+
+Usage: renice priority pid [pid ...]
+
+Changes priority of running processes. Allowed priorities range
+from 20 (the process runs only when nothing else is running) to 0
+(default priority) to -20 (almost nothing else ever gets to run).
+
+-------------------------------
+
 =item rm
 
 Usage: rm [OPTION]... FILE...
@@ -2034,4 +2044,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.58 2000/07/21 15:10:57 proski Exp $
+# $Id: busybox.pod,v 1.59 2000/07/21 21:32:12 andersen Exp $

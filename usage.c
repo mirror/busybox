@@ -859,6 +859,18 @@ const char reboot_usage[] =
 	;
 #endif
 
+	
+#if defined BB_RENICE
+const char renice_usage[] =
+	"renice priority pid [pid ...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nChanges priority of running processes. Allowed priorities range\n"
+	"from 20 (the process runs only when nothing else is running) to 0\n"
+	"(default priority) to -20 (almost nothing else ever gets to run).\n"
+#endif
+	;
+#endif
+
 #if defined BB_RM
 const char rm_usage[] =
 	"rm [OPTION]... FILE...\n"

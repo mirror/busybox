@@ -73,6 +73,7 @@
 #define BB_PS
 #define BB_PWD
 #define BB_REBOOT
+#define BB_RENICE
 #define BB_RM
 #define BB_RMDIR
 #define BB_RMMOD

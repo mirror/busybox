@@ -250,6 +250,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_REBOOT
 	{"reboot", reboot_main, _BB_DIR_SBIN, reboot_usage},
 #endif
+#ifdef BB_RENICE
+	{"renice", renice_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_RM
 	{"rm", rm_main, _BB_DIR_BIN, rm_usage},
 #endif
@@ -484,8 +487,9 @@ int main(int argc, char **argv)
 #ifdef BB_SH
 	/* Add in a special case hack -- whenever **argv == '-'
 	 * (i.e. '-su' or '-sh') always invoke the shell */
-	if (**argv == '-')
+	if (**argv == '-' && *(*argv+1)!= '-') {
 		exit(((*(shell_main)) (argc, argv)));
+	}
 #endif
 
 	while (a->name != 0) {
