@@ -349,6 +349,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_WHOAMI
 	{"whoami", whoami_main, _BB_DIR_USR_BIN, whoami_usage},
 #endif
+#ifdef BB_XARGS
+	{"xargs", xargs_main, _BB_DIR_USR_BIN, xargs_usage},
+#endif
 #ifdef BB_YES
 	{"yes", yes_main, _BB_DIR_USR_BIN, yes_usage},
 #endif

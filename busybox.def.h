@@ -113,6 +113,7 @@
 #define BB_UNAME
 #define BB_UNIX2DOS
 #define BB_UPDATE
+#define BB_XARGS
 #define BB_YES
 // End of Applications List
 //

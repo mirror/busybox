@@ -1432,6 +1432,17 @@ const char whoami_usage[] =
 	;
 #endif
 
+#if defined BB_XARGS
+const char xargs_usage[] =
+       "xargs [-0prtx] [-e[eof-str]] [-i[replace-str]] [-l[max-lines]]\n"
+       "[-n max-args] [-s max-chars] [-P max-procs] [--null] [--eof[=eof-str]]\n"
+       "[--replace[=replace-str]] [--max-lines[=max-lines]] [--interactive]\n"
+       "[--max-chars=max-chars] [--verbose] [--exit] [--max-procs=max-procs]\n"
+       "[--max-args=max-args] [--no-run-if-empty] [--help]\n"
+       "[command [initial-arguments]]\n"
+       "\nBuild and execute command on lines from standard input.\n"; 
+#endif
+
 #if defined BB_YES
 const char yes_usage[] =
 	"yes [OPTION]... [STRING]...\n"

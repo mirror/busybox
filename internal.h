@@ -221,6 +221,7 @@ extern int wc_main(int argc, char** argv);
 extern int wget_main(int argc, char** argv);
 extern int which_main(int argc, char** argv);
 extern int whoami_main(int argc, char** argv);
+extern int xargs_main(int argc, char** argv);
 extern int yes_main(int argc, char** argv);
 
 extern const char ar_usage[];
@@ -331,6 +332,7 @@ extern const char wc_usage[];
 extern const char wget_usage[];
 extern const char which_usage[];
 extern const char whoami_usage[];
+extern const char xargs_usage[];
 extern const char yes_usage[];
 
 extern const char *applet_name;

@@ -16,18 +16,13 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------
 
-* Make insmod actually work
 * dnsdomainname
 * traceroute/netstat
-* rdate
 * hwclock
 * stty
-* wget (or whatever I call it)
 * tftp
 * ftp
 * group/commonize strings, remove dups (for i18n, l10n)
-* consider making a unified option parser (if it can be done 
-    modular, small, etc.) 
 
 -----------------------
 
