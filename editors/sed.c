@@ -618,6 +618,15 @@ static int do_subst_command(sed_cmd_t * sed_cmd, char **line)
 	do {
 		int i;
 
+		/* Work around bug in glibc regexec, demonstrated by:
+		   echo " a.b" | busybox sed 's [^ .]* x g'
+		   The match_count check is so not to break
+		   echo "hi" | busybox sed 's/^/!/g' */
+		if(!regmatch[0].rm_so && !regmatch[0].rm_eo && match_count) {
+			pipe_putc(*(oldline++));
+			continue;
+		}
+
 		match_count++;
 
 		/* If we aren't interested in this match, output old line to
@@ -1071,6 +1080,14 @@ extern int sed_main(int argc, char **argv)
 	/* destroy command strings on exit */
 	if (atexit(free_and_close_stuff) == -1)
 		bb_perror_msg_and_die("atexit");
+#endif
+
+#define LIE_TO_AUTOCONF
+#ifdef LIE_TO_AUTOCONF
+	if(argc==2 && !strcmp(argv[1],"--version")) {
+		printf("This is not GNU sed version 4.0\n");
+		exit(0);
+	}
 #endif
 
 	/* do normal option parsing */
