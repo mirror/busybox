@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include "libbb.h"
 
@@ -27,7 +28,9 @@
 extern void print_file(FILE *file)
 {
 	fflush(stdout);
-	copyfd(fileno(file), fileno(stdout));
+	if (copyfd(fileno(file), fileno(stdout), 0) == -1) {
+		exit(EXIT_FAILURE);
+	}
 	fclose(file);
 }
 

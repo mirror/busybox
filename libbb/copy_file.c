@@ -183,7 +183,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			}
 		}
 
-		if (copy_file_chunk(sfp, dfp, -1) < 0)
+		if (copyfd(fileno(sfp), fileno(dfp), 0) == -1)
 			status = -1;
 
 		if (fclose(dfp) < 0) {

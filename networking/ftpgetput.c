@@ -56,51 +56,6 @@ typedef struct ftp_host_info_s {
 static char verbose_flag;
 static char do_continue = 0;
 
-static int copyfd_chunk(int fd1, int fd2, const off_t chunksize)
-{
-	size_t nread;
-	size_t nwritten;
-	size_t size;
-	size_t remaining;
-	char buffer[BUFSIZ];
-
-	if (chunksize) {
-		remaining = chunksize;
-	} else {
-		remaining = -1;
-	}
-
-	do {
-		if ((chunksize > BUFSIZ) || (chunksize == 0)) {
-			size = BUFSIZ;
-		} else {
-			size = chunksize;
-		}
-
-		nread = safe_read(fd1, buffer, size);
-
-		if (nread <= 0) {
-			if (chunksize) {
-				perror_msg_and_die("read error");
-			} else {
-				return(0);
-			}
-		}
-
-		nwritten = full_write(fd2, buffer, nread);
-
-		if (nwritten != nread) {
-			error_msg_and_die("Unable to write all data");
-		}
-
-		if (chunksize) {
-			remaining -= nwritten;
-		}
-	} while (remaining != 0);
-
-	return 0;
-}
-
 static ftp_host_info_t *ftp_init(void)
 {
 	ftp_host_info_t *host;
@@ -252,7 +207,9 @@ static int ftp_recieve(FILE *control_stream, const char *host, const char *local
 	}
 
 	/* Copy the file */
-	copyfd_chunk(fd_data, fd_local, filesize);
+	if (copyfd(fd_data, fd_local, filesize) == -1) {
+		exit(EXIT_FAILURE);
+	}
 
 	/* close it all down */
 	close(fd_data);
@@ -311,7 +268,9 @@ static int ftp_send(FILE *control_stream, const char *host, const char *server_p
 	}
 
 	/* transfer the file  */
-	copyfd_chunk(fd_local, fd_data, 0);
+	if (copyfd(fd_local, fd_data, 0) == -1) {
+		exit(EXIT_FAILURE);
+	}
 
 	/* close it all down */
 	close(fd_data);

@@ -24,27 +24,54 @@
 #include <errno.h>
 #include "libbb.h"
 
-
-extern int copyfd(int fd1, int fd2)
+/* If chunksize is 0 copy untill EOF */
+extern int copyfd(int fd1, int fd2, const off_t chunksize)
 {
-	char buf[8192];
-	ssize_t nread, nwrote;
+	size_t nread;
+	size_t nwritten;
+	size_t size;
+	size_t remaining;
+	char buffer[BUFSIZ];
 
-	while (1) {
-		nread = safe_read(fd1, buf, sizeof(buf));
-		if (nread == 0)
-			break;
-		if (nread == -1) {
-			perror_msg("read");
-			return -1;
-		}
-
-		nwrote = full_write(fd2, buf, nread);
-		if (nwrote == -1) {
-			perror_msg("write");
-			return -1;
-		}
+	if (chunksize) {
+		remaining = chunksize;
+	} else {
+		remaining = -1;
 	}
+
+	do {
+		if ((chunksize > BUFSIZ) || (chunksize == 0)) {
+			size = BUFSIZ;
+		} else {
+			size = chunksize;
+		}
+
+		nread = safe_read(fd1, buffer, size);
+
+		if (nread == -1) {
+			perror_msg("read failure");
+			return(-1);
+		}
+		else if (nread == 0) {
+			if (chunksize) {
+				error_msg("Unable to read all data");
+				return(-1);
+			} else {
+				return(0);
+			}
+		}
+
+		nwritten = full_write(fd2, buffer, nread);
+
+		if (nwritten != nread) {
+			error_msg("Unable to write all data");
+			return(-1);
+		}
+
+		if (chunksize) {
+			remaining -= nwritten;
+		}
+	} while (remaining != 0);
 
 	return 0;
 }
