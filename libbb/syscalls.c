@@ -29,7 +29,7 @@
 #include <sys/syscall.h>
 #include "libbb.h"
 
-int sysfs( int option, unsigned int fs_index, char * buf)
+int sysfs(int option, unsigned int fs_index, char * buf)
 {
 	return(syscall(__NR_sysfs, option, fs_index, buf));
 }
@@ -39,37 +39,37 @@ int pivot_root(const char * new_root,const char * put_old)
 #ifndef __NR_pivot_root
 #warning This kernel does not support the pivot_root syscall
 #warning -> The pivot_root system call is being stubbed out...
-    /* BusyBox was compiled against a kernel that did not support
-     *  the pivot_root system call.  To make this application work,
-     *  you will need to recompile with a kernel supporting the
-     *  pivot_root system call.
-     */
-    bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-	    "BusyBox with a kernel supporting the pivot_root system call.\n");
-    errno=ENOSYS;
-    return -1;
+	/* BusyBox was compiled against a kernel that did not support
+	 *  the pivot_root system call.  To make this application work,
+	 *  you will need to recompile with a kernel supporting the
+	 *  pivot_root system call.
+	 */
+	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	             "BusyBox with a kernel supporting the pivot_root system call.\n");
+	errno = ENOSYS;
+	return -1;
 #else
-    return(syscall(__NR_pivot_root, new_root, put_old));
-#endif
+	return(syscall(__NR_pivot_root, new_root, put_old));
+#endif /* __NR_pivot_root */
 }
 
 
-
-/* These syscalls are not included in ancient glibc versions */
+/* These syscalls are not included in ancient glibc versions,
+   so we have to define them ourselves, whee ! */
 #if ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
 
 int bdflush(int func, int data)
 {
-    return(syscall(__NR_bdflush, func, data));
+	return(syscall(__NR_bdflush, func, data));
 }
 
 #ifndef __alpha__
 # define __NR_klogctl __NR_syslog
 int klogctl(int type, char *b, int len)
 {
-    return(syscall(__NR_klogctl, type, b, len));
+	return(syscall(__NR_klogctl, type, b, len));
 }
-#endif
+#endif /* __alpha__ */
 
 
 int umount2(const char * special_file, int flags)
@@ -77,22 +77,21 @@ int umount2(const char * special_file, int flags)
 #ifndef __NR_pivot_root
 #warning This kernel does not support the umount2 syscall
 #warning -> The umount2 system call is being stubbed out...
-    /* BusyBox was compiled against a kernel that did not support
-     *  the umount2 system call.  To make this application work,
-     *  you will need to recompile with a kernel supporting the
-     *  umount2 system call.
-     */
-    bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-	    "BusyBox with a kernel supporting the umount2 system call.\n");
-    errno=ENOSYS;
-    return -1;
+	/* BusyBox was compiled against a kernel that did not support
+	 *  the umount2 system call.  To make this application work,
+	 *  you will need to recompile with a kernel supporting the
+	 *  umount2 system call.
+	 */
+	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	             "BusyBox with a kernel supporting the umount2 system call.\n");
+	errno = ENOSYS;
+	return -1;
 #else
-    return(syscall(__NR_umount2, special_file, flags));
-#endif
+	return(syscall(__NR_umount2, special_file, flags));
+#endif /* __NR_pivot_root */
 }
 
-
-#endif
+#endif /* old glibc check */
 
 
 /* END CODE */
