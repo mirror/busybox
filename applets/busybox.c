@@ -76,6 +76,9 @@ static const struct Applet applets[] = {
 #ifdef BB_DF					//bin
 	{"df", df_main},
 #endif
+#ifdef BB_DIRNAME				//usr/bin
+	{"dirname", dirname_main},
+#endif
 #ifdef BB_DMESG					//bin
 	{"dmesg", dmesg_main},
 #endif
@@ -260,6 +263,9 @@ static const struct Applet applets[] = {
 #endif
 #ifdef BB_TOUCH					//usr/bin
 	{"touch", touch_main},
+#endif
+#ifdef BB_TR					//usr/bin
+	{"tr", tr_main},
 #endif
 #ifdef BB_TRUE_FALSE			//bin
 	{"true", true_main},

@@ -28,6 +28,9 @@ Dave Cinege <dcinege@psychosis.com>
     more(v2), makedevs, dutmp, modularization, auto links file, 
     various fixes, Linux Router Project maintenance
 
+John Lombardo <john@deltanet.com>	
+	dirname, tr
+
 Linus Torvalds <torvalds@transmeta.com>
     mkswap, fsck.minix, mkfs.minix
 

@@ -18,6 +18,7 @@
 #define BB_DD
 #define BB_DEALLOCVT
 #define BB_DF
+#define BB_DIRNAME
 #define BB_DMESG
 //#define BB_DUTMP
 #define BB_DU
@@ -84,6 +85,7 @@
 // Don't turn BB_TELNET on.  It doesn't work.
 #define BB_TELNET
 #define BB_TOUCH
+#define BB_TR
 #define BB_TRUE_FALSE
 #define BB_TTY
 #define BB_UPTIME
