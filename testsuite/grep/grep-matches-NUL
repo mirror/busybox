@@ -1,0 +1,3 @@
+# XFAIL
+echo -e '\0' >foo
+busybox grep . foo
