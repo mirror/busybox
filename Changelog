@@ -1,3 +1,6 @@
+0.33
+	* Fixed a bug where init could hang instead of rebooting.
+
 0.32
 	* More changes -- many thanks to Lineo for paying me to work on
 	    busybox.  If you have any problems please let me know ASAP
