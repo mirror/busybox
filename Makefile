@@ -168,14 +168,13 @@ test tests:
 	cd tests && $(MAKE) all
 
 clean:
-	- rm -f busybox.links *~ *.o core
-	- rm -rf _install
 	cd tests && $(MAKE) clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.lineo.com/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html
-	- rm -rf docs/busybox
+	- rm -rf docs/busybox _install
+	- rm -f busybox.links *~ *.o core
 
 distclean: clean
 	- rm -f busybox
