@@ -213,10 +213,16 @@ static const struct option hwclock_long_options[] = {
 	}
 
 	/* If -u or -l wasnt give check if we are using utc */
-	if ((opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME)) == 0) {
+	if (opt & HWCLOCK_OPT_UTC) {
+		utc = 1;
+	}
+	else if (opt & HWCLOCK_OPT_LOCALTIME) {
+		utc = 0;
+	}
+	else {
 		utc = check_utc();
 	}
-
+	
 	if (opt & HWCLOCK_OPT_HCTOSYS) {
 		return to_sys_clock ( utc );
 	}
