@@ -1,5 +1,5 @@
 Name: busybox
-Version: 0.40
+Version: 0.41
 Release: 1
 Group: System/Utilities
 Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.
@@ -21,7 +21,7 @@ embedded system.
 %setup -q -n %{Name}-%{Version}
 
 %Build
-BB_INIT_SCRIPT='\"/etc/rc.d/init.d/rcS\"' make
+make
 
 %Install
 rm -rf $RPM_BUILD_ROOT

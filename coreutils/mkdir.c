@@ -84,7 +84,7 @@ extern int mkdir_main(int argc, char **argv)
 
 	strcpy (buf, *argv);
 	status=stat(buf, &statBuf);
-	if (status != -1 && status != ENOENT ) {
+	if (parentFlag == FALSE && status != -1 && status != ENOENT ) {
 	    fprintf(stderr, "%s: File exists\n", buf);
 	    exit( FALSE);
 	}
@@ -93,7 +93,7 @@ extern int mkdir_main(int argc, char **argv)
 	    createPath(buf, mode);
 	}
 	else { 
-	    if (mkdir (buf, mode) != 0) {
+	    if (mkdir (buf, mode) != 0 && parentFlag == FALSE) {
 		perror(buf);
 		exit( FALSE);
 	    }

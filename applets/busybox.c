@@ -5,6 +5,16 @@
 
 static int been_there_done_that = 0;
 
+#if 0
+void exit (int status) __attribute__ ((noreturn));
+void exit (int status) { _exit(status); };
+void abort (void) __attribute__ ((__noreturn__));
+void abort (void) { _exit(0); };
+int atexit (void (*__func) (void)) { _exit(0); };
+void *__libc_stack_end;
+#endif
+
+
 static const struct Applet applets[] = {
 
 #ifdef BB_BUSYBOX		//bin
@@ -219,6 +229,9 @@ static const struct Applet applets[] = {
     {"true", true_main},
     {"false", false_main},
 #endif
+#ifdef BB_WC			//usr/bin
+    {"wc",  wc_main},
+#endif
 #ifdef BB_UNAME			//bin
     {"uname",  uname_main},
 #endif
@@ -240,6 +253,8 @@ static const struct Applet applets[] = {
 #endif
     {0}
 };
+
+
 
 int main(int argc, char **argv)
 {

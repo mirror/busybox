@@ -18,7 +18,6 @@ around to it some time. If you have any good ideas, please let me know.
 * hwclock
 * killall
 * stty
-* wc
 * tr
 * expr (maybe?)  (ash builtin?)
 

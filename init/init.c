@@ -331,7 +331,7 @@ static void console_init()
 static pid_t run(char* command, 
 	char *terminal, int get_enter)
 {
-    int i;
+    int i, fd;
     pid_t pid;
     char* tmpCmd;
     char* cmd[255];
@@ -357,21 +357,20 @@ static pid_t run(char* command,
 	close(2);
 	setsid();
 
-	if (device_open(terminal, O_RDWR) < 0) {
-	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
-	    exit(1);
-	}
-	dup(0);
-	dup(0);
-	tcsetpgrp (0, getpgrp());
-	set_term(0);
-
 	/* Reset signal handlers set for parent process */
 	signal(SIGUSR1, SIG_DFL);
 	signal(SIGUSR2, SIG_DFL);
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
 
+	if ((fd = device_open(terminal, O_RDWR)) < 0) {
+	    message(LOG|CONSOLE, "Bummer, can't open %s\r\n", terminal);
+	    exit(1);
+	}
+	dup(fd);
+	dup(fd);
+	tcsetpgrp (0, getpgrp());
+	set_term(0);
 
 	if (get_enter==TRUE) {
 	    /*
@@ -389,19 +388,21 @@ static pid_t run(char* command,
 	    read(fileno(stdin), &c, 1);
 	}
 
+	/* Log the process name and args */
+	message(LOG|CONSOLE, "Starting pid %d, console %s: '", 
+		shell_pgid, terminal, command);
+
 	/* Convert command (char*) into cmd (char**, one word per string) */
 	for (tmpCmd=command, i=0; (tmpCmd=strsep(&command, " \t")) != NULL;) {
 	    if (*tmpCmd != '\0') {
 		cmd[i] = tmpCmd;
+		message(LOG|CONSOLE, "%s ", tmpCmd);
 		tmpCmd++;
 		i++;
 	    }
 	}
 	cmd[i] = NULL;
-
-	/* Log the process name and args */
-	message(LOG, "Starting pid %d, console %s: '%s'\r\n", 
-		shell_pgid, terminal, cmd[0]);
+	message(LOG|CONSOLE, "'\r\n");
 
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
@@ -540,8 +541,8 @@ void new_initAction (initActionEnum action,
     } else
 	strncpy(newAction->console, console, 255);
     newAction->pid = 0;
-//    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
-//	    newAction->process, newAction->action, newAction->console);
+    message(LOG|CONSOLE, "process='%s' action='%d' console='%s'\n",
+	    newAction->process, newAction->action, newAction->console);
 }
 
 void delete_initAction (initAction *action)
@@ -672,11 +673,8 @@ extern int init_main(int argc, char **argv)
 	usage( "init\n\nInit is the parent of all processes.\n\n"
 		"This version of init is designed to be run only by the kernel\n");
     }
-
-    /* from the controlling terminal */
-    setsid();
-
-    /* Set up sig handlers  -- be sure to clear all of these in run() */
+    /* Set up sig handlers  -- be sure to
+     * clear all of these in run() */
     signal(SIGUSR1, halt_signal);
     signal(SIGUSR2, reboot_signal);
     signal(SIGINT, reboot_signal);
@@ -686,7 +684,7 @@ extern int init_main(int argc, char **argv)
      * SIGINT on CAD so we can shut things down gracefully... */
     reboot(RB_DISABLE_CAD);
 #endif 
-    
+
     /* Figure out where the default console should be */
     console_init();
 
@@ -695,11 +693,11 @@ extern int init_main(int argc, char **argv)
     close(1);
     close(2);
     set_term(0);
+    setsid();
 
     /* Make sure PATH is set to something sane */
     putenv(_PATH_STDPATH);
 
-   
     /* Hello world */
 #ifndef DEBUG_INIT
     message(LOG|CONSOLE, 

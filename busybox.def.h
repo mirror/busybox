@@ -72,12 +72,13 @@
 #define BB_SORT
 #define BB_SWAPONOFF
 #define BB_SYNC
-//#define BB_SYSLOGD
+#define BB_SYSLOGD
 #define BB_TAIL
 #define BB_TAR
 #define BB_TEE
 #define BB_TOUCH
 #define BB_TRUE_FALSE
+#define BB_WC
 #define BB_UMOUNT
 #define BB_UNIQ
 #define BB_UPDATE

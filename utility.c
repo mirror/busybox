@@ -396,7 +396,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 		int (*dirAction) (const char *fileName, struct stat* statbuf))
 {
     int status;
-    struct stat statbuf;
+    struct stat statbuf, statbuf1;
     struct dirent *next;
 
     if (followLinks == TRUE)
@@ -404,6 +404,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
     else
 	status = lstat(fileName, &statbuf);
 
+    status = lstat(fileName, &statbuf);
     if (status < 0) {
 	perror(fileName);
 	return (FALSE);
@@ -424,8 +425,14 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 		return (TRUE);
 	} 
     }
+    
+    status = lstat(fileName, &statbuf1);
+    if (status < 0) {
+	perror(fileName);
+	return (FALSE);
+    }
 
-    if (S_ISDIR(statbuf.st_mode)) {
+    if (S_ISDIR(statbuf.st_mode) && S_ISDIR(statbuf1.st_mode)) {
 	DIR *dir;
 	dir = opendir(fileName);
 	if (!dir) {

@@ -12,6 +12,9 @@ ________________________________________________________________________________
                     BusyBox 0.38, Functions and the Arguments they Support 
 
 
+New Apps that have been added to BusyBox since this document was written:
+    ping, hostname, mkfifo, free, tail, du, tee, head, sort, uniq, lsmod, rmmod, fbset, and loadacm.
+
 
 
 ______________________________________________________________________________________________________
@@ -154,7 +157,7 @@ cp [option] fileA fileB
 
                         attributes      group permissions and time information.
 
-		-R      recursive	Copy to the current location and all subdirectories in the tree.
+		-R      recursive	Copies directories recursively
 
 
 
@@ -321,7 +324,7 @@ fsck.minix [-larvsmf] /dev/name
 
 		-r	Perform interactive repairs. 
 
-		-q	Perform automatic repairs
+		-a	Perform automatic repairs
 
 		-v	Verbose
 
@@ -712,75 +715,31 @@ ________________________________________________________________________________
 
 
 
-
 sed
+	Usage: sed [-n] -e script [file...]
 
-	Sed scripts are subject to the following format: 's/regexp/replacement/[gp]' which attempts to
+	Allowed sed scripts come in the following form:
+		'ADDR [!] COMMAND'
 
-	to match regexp against the pattern space and if successful, replaces the matched portion with
+		where address ADDR can be:
+		  NUMBER    Match specified line number
+		  $         Match last line
+		  /REGEXP/  Match specified regexp
+		  (! inverts the meaning of the match)
 
-	replacement -r or -R  Remove contents of directories recursively.
+		and COMMAND can be:
+		  s/regexp/replacement/[igp]
+		     which attempt to match regexp against the pattern space
+		     and if successful replaces the matched portion with replacement.
 
+		  aTEXT
+		     which appends TEXT after the pattern space
+	Options:
+	-e      add the script to the commands to be executed
+	-n      suppress automatic printing of pattern space
 
+	This version of sed matches full regular expresions.
 
-
-________________________________________________________________________________________________________
-
-
-
-
-
-rmdir [OPTION] ... directory
-
-	Remove directories if they are empty.
-
-
-
-
-
-________________________________________________________________________________________________________
-
-
-
-
-
-rmdir [OPTION] ... directory
-
-	Remove directories if they are empty.
-
-
-
-
-________________________________________________________________________________________________________
-
-
-
-
-
-sed
-
-	Sed scripts are subject to the following format:  's/regexp/replacement/[gp]' which attempts to
-
-	match regexp against the pattern space and if successful, replaces the matched portion with 
-
-	replacement.  This version of sed matches
-
-        full regular expressions.
-
-		-e	Add the script to the commands to be executed.
-
-		-n 	Suppress automatic printing of pattern space..
-
-		-e	Add the script to the commands to be executed.
-
-		-n 	Suppress automatic printing of pattern space..
-
-		-e	Add the script to the commands to be executed.
-
-		-n 	Suppress automatic printing of pattern space.
-
-
-	
 
 
 ________________________________________________________________________________________________________
@@ -977,9 +936,25 @@ ________________________________________________________________________________
 
 zcat [options] files
 
-	Uncompress file from gzip, gunzip or compress command or standard input if file is '-'.
+	Usage: zcat [OPTION]... FILE
 
-		-c	Write output to standard output.
+	Uncompress FILE (or standard input if FILE is '-').
+	(When invoked as zcat, defaults to having -c turned on)
+
+	Options:
+		-c      Write output to standard output
+		-t      Test compressed file integrity
+
+
+
+
+________________________________________________________________________________________________________
+
+
+
+
+
+gunzip  (Same as zcat, but without the "-c" option.)
 
 
 
@@ -991,22 +966,13 @@ ________________________________________________________________________________
 
 
 
-gunzip  (Same as zcat)
+gzip [OPTION]... FILE
 
+	Compress FILE with maximum compression.
+	When FILE is -, reads standard input.  Implies -c.
 
-
-
-
-________________________________________________________________________________________________________
-
-
-
-
-
-
-gzip   (Same as zcat)
-
-
+	Options:
+		-c      Write output to standard output instead of FILE.gz
 
 
 

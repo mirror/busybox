@@ -125,6 +125,7 @@ extern int touch_main(int argc, char** argv);
 extern int tput_main(int argc, char** argv);
 extern int true_main(int argc, char** argv);
 extern int tryopen_main(int argc, char** argv);
+extern int wc_main(int argc, char** argv);
 extern int umount_main(int argc, char** argv);
 extern int uniq_main(int argc, char** argv);
 extern int update_main(int argc, char** argv);

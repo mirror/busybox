@@ -1,12 +1,17 @@
 0.41
+	* New App: wc -- contributed by Edward Betts <edward@debian.org>
 	* Fixed a bug in both cp and mv preventing 'cp foo/README bar'
 	    type commands (file in a directory to another directory) 
 	    from working.
 	* Fixed a logger bug that caused garbage to be written to the syslog 
 	    (unless you used busybox syslog, which hid the bug).  Thanks
 	    to Alex Holden <alex@linuxhacker.org> for the fix.
+	* /bin/true and /bin/false were echoing a blank line when run.  Now fixed.
+	* mkdir -p would print an error when asked to mkdir an existing dir
+	    with no interveining subdirectories.
+	* Fixed "syslogd -O" so that it works.
 
-	-Erik Andersen, 
+	-Erik Andersen
 
 0.40
 	* New Apps: sort, uniq. -beppu

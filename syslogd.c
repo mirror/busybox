@@ -337,11 +337,13 @@ extern int syslogd_main(int argc, char **argv)
 #ifdef BB_KLOGD
     int startKlogd = TRUE;
 #endif
+    int stopDoingThat = FALSE;
     char *p;
     char **argv1=argv;
     
     while (--argc > 0 && **(++argv1) == '-') {
-	while (*(++(*argv1))) {
+	stopDoingThat = FALSE;
+	while (stopDoingThat == FALSE && *(++(*argv1))) {
 	    switch (**argv1) {
 	    case 'm':
 		if (--argc == 0) {
@@ -362,6 +364,7 @@ extern int syslogd_main(int argc, char **argv)
 		    usage(syslogd_usage);
 		}
 		logFilePath = *(++argv1);
+		stopDoingThat = TRUE;
 		break;
 	    default:
 		usage(syslogd_usage);

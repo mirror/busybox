@@ -27,12 +27,12 @@
 extern int
 true_main(int argc, char** argv)
 {
-	return( TRUE);
+	exit( TRUE);
 }
 
 extern int
 false_main(int argc, char** argv)
 {
-	return( FALSE);
+	exit( FALSE);
 }
 
