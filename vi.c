@@ -19,13 +19,13 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.1 2001/04/04 17:31:15 andersen Exp $";
+	"$Id: vi.c,v 1.2 2001/04/04 19:29:48 andersen Exp $";
 
 /*
  * To compile for standalone use:
- *	gcc -Wall -Os -DSTANDALONE -o vi vi.c
+ *	gcc -Wall -Os -s -DSTANDALONE -o vi vi.c
  *	  or
- *	gcc -Wall -Os -DSTANDALONE -DCRASHME -o vi vi.c		# include testing features
+ *	gcc -Wall -Os -s -DSTANDALONE -DCRASHME -o vi vi.c		# include testing features
  *	strip vi
  */
 
@@ -43,6 +43,7 @@ char *vi_Version =
 
 //----  Feature --------------  Bytes to immplement
 #ifdef STANDALONE
+#define vi_main                 main
 #define BB_FEATURE_VI_COLON	// 4288
 #define BB_FEATURE_VI_YANKMARK	// 1408
 #define BB_FEATURE_VI_SEARCH	// 1088
@@ -81,15 +82,6 @@ char *vi_Version =
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
-#ifdef __linux__
-#include <stdint.h>		// INT32_MAX
-#else							/* __linux__ */
-#include <values.h>
-extern int strncasecmp(const char *s1, const char *s2, size_t n);
-
-#define INT32_MAX 	MAXINT
-#include <libgen.h>		//
-#endif							/* __linux__ */
 
 #ifndef TRUE
 #define TRUE			((int)1)
@@ -302,14 +294,10 @@ static int crashme = 0;
 #endif							/* BB_FEATURE_VI_CRASHME */
 
 
-#ifdef STANDALONE
-int main(int argc, char **argv)
-#else
 extern int vi_main(int argc, char **argv)
-#endif					/* STANDALONE */
 {
 	extern char *optarg;
-	char c;
+	int c;
 
 #ifdef BB_FEATURE_VI_YANKMARK
 	int i;
@@ -448,7 +436,9 @@ static void edit_file(Byte * fn)
 	signal(SIGFPE, core_sig);
 	signal(SIGBUS, core_sig);
 	signal(SIGSEGV, core_sig);
+#ifdef SIGSYS
 	signal(SIGSYS, core_sig);
+#endif	
 	signal(SIGWINCH, winch_sig);
 	signal(SIGTSTP, suspend_sig);
 	sig = setjmp(restart);
@@ -3100,7 +3090,9 @@ static void core_sig(int sig)
 	signal(SIGFPE, core_sig);
 	signal(SIGBUS, core_sig);
 	signal(SIGSEGV, core_sig);
+#ifdef SIGSYS
 	signal(SIGSYS, core_sig);
+#endif
 
 	dot = bound_dot(dot);	// make sure "dot" is valid
 
