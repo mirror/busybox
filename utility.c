@@ -439,6 +439,8 @@ int fullRead(int fd, char *buf, int len)
  * Walk down all the directories under the specified 
  * location, and do something (something specified
  * by the fileAction and dirAction function pointers).
+ *
+ * TODO: check if ftw(3) can replace this to reduce code size...
  */
 int
 recursiveAction(const char *fileName, int recurse, int followLinks, int delayDirAction,
