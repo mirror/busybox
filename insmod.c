@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.37 2001/01/24 19:07:09 andersen Exp $"
+#ident "$Id: insmod.c,v 1.38 2001/01/24 23:34:48 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.37 2001/01/24 19:07:09 andersen Exp $"
+#ident "$Id: insmod.c,v 1.38 2001/01/24 23:34:48 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -519,10 +519,6 @@ int arch_init_module (struct obj_file *f, struct new_module *);
 #define _PATH_MODULES	"/lib/modules"
 static const int STRVERSIONLEN = 32;
 
-#if !defined(BB_FEATURE_INSMOD_NEW_KERNEL) && !defined(BB_FEATURE_INSMOD_OLD_KERNEL)
-#error "Must have ether BB_FEATURE_INSMOD_NEW_KERNEL or BB_FEATURE_INSMOD_OLD_KERNEL defined"
-#endif
-
 /*======================================================================*/
 
 int flag_force_load = 0;
@@ -615,7 +611,7 @@ extern int delete_module(const char *);
 
    -- Bryan Rittmeyer <bryan@ixiacom.com>                    */
 
-#ifdef BB_FEATURE_INSMOD_OLD_KERNEL
+#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
 _syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks)
 #endif
 
@@ -1549,7 +1545,7 @@ old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 
 #endif   /* BB_FEATURE_INSMOD_VERSION_CHECKING */
 
-#ifdef BB_FEATURE_INSMOD_OLD_KERNEL
+#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
 
 /* Fetch all the symbols and divvy them up as appropriate for the modules.  */
 
@@ -1757,7 +1753,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 #define old_create_mod_use_count(x) TRUE
 #define old_init_module(x, y, z) TRUE
 
-#endif							/* BB_FEATURE_INSMOD_OLD_KERNEL */
+#endif							/* BB_FEATURE_OLD_MODULE_INTERFACE */
 
 
 
@@ -2036,7 +2032,7 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 #endif   /* BB_FEATURE_INSMOD_VERSION_CHECKING */
 
 
-#ifdef BB_FEATURE_INSMOD_NEW_KERNEL
+#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
 
 /* Fetch the loaded modules, and all currently exported symbols.  */
 
@@ -2310,7 +2306,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 #define new_create_module_ksymtab(x)
 #define query_module(v, w, x, y, z) -1
 
-#endif							/* BB_FEATURE_INSMOD_NEW_KERNEL */
+#endif							/* BB_FEATURE_NEW_MODULE_INTERFACE */
 
 
 /*======================================================================*/
@@ -2997,7 +2993,7 @@ extern int insmod_main( int argc, char **argv)
 	k_new_syscalls = !query_module(NULL, 0, NULL, 0, NULL);
 
 	if (k_new_syscalls) {
-#ifdef BB_FEATURE_INSMOD_NEW_KERNEL
+#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
 		if (!new_get_kernel_symbols())
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
@@ -3006,7 +3002,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 #endif
 	} else {
-#ifdef BB_FEATURE_INSMOD_OLD_KERNEL
+#ifdef BB_FEATURE_OLD_MODULE_INTERFACE
 		if (!old_get_kernel_symbols(m_name))
 			goto out;
 		k_crcs = old_is_kernel_checksummed();

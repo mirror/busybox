@@ -89,7 +89,37 @@ int main(int argc, char **argv)
 {
 	struct BB_applet search_applet, *applet;
 	const char				*s;
-	applet_name = "busybox";
+
+	for (s = applet_name = argv[0]; *s != '\0';) {
+		if (*s++ == '/')
+			applet_name = s;
+	}
+
+#ifdef BB_SH
+	/* Add in a special case hack -- whenever **argv == '-'
+	 * (i.e. '-su' or '-sh') always invoke the shell */
+	if (**argv == '-' && *(*argv+1)!= '-') {
+		exit(((*(shell_main)) (argc, argv)));
+	}
+#endif
+
+	/* Do a binary search to find the applet entry given the name. */
+	search_applet.name = applet_name;
+	applet = bsearch(&search_applet, applets, NUM_APPLETS,
+			sizeof(struct BB_applet), applet_name_compare);
+	if (applet != NULL) {
+		if (applet->usage && argv[1] && strcmp(argv[1], "--help") == 0)
+			usage(applet->usage); 
+		exit((*(applet->main)) (argc, argv));
+	}
+
+	error_msg_and_die("applet not found\n");
+}
+
+
+int busybox_main(int argc, char **argv)
+{
+	int col = 0, len, i;
 
 #ifdef BB_FEATURE_INSTALLER	
 	/* 
@@ -120,37 +150,6 @@ int main(int argc, char **argv)
 		return rc;
 	}
 #endif /* BB_FEATURE_INSTALLER */
-
-	for (s = applet_name = argv[0]; *s != '\0';) {
-		if (*s++ == '/')
-			applet_name = s;
-	}
-
-#ifdef BB_SH
-	/* Add in a special case hack -- whenever **argv == '-'
-	 * (i.e. '-su' or '-sh') always invoke the shell */
-	if (**argv == '-' && *(*argv+1)!= '-') {
-		exit(((*(shell_main)) (argc, argv)));
-	}
-#endif
-
-	/* Do a binary search to find the applet entry given the name. */
-	search_applet.name = applet_name;
-	applet = bsearch(&search_applet, applets, NUM_APPLETS,
-			sizeof(struct BB_applet), applet_name_compare);
-	if (applet != NULL) {
-		if (applet->usage && argv[1] && strcmp(argv[1], "--help") == 0)
-			usage(applet->usage); 
-		exit((*(applet->main)) (argc, argv));
-	}
-
-	return(busybox_main(argc, argv));
-}
-
-
-int busybox_main(int argc, char **argv)
-{
-	int col = 0, len, i;
 
 	argc--;
 

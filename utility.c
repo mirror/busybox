@@ -137,7 +137,7 @@ extern void perror_msg_and_die(const char *s, ...)
 	exit(EXIT_FAILURE);
 }
 
-#if defined BB_INIT || defined BB_MKSWAP || defined BB_MOUNT
+#if defined BB_INIT || defined BB_MKSWAP || defined BB_MOUNT || defined BB_NFSMOUNT
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
@@ -1386,7 +1386,7 @@ extern void *xcalloc(size_t nmemb, size_t size)
 }
 #endif
 
-#if defined BB_FEATURE_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET
+#if defined BB_NFSMOUNT || defined BB_LS || defined BB_SH || defined BB_WGET
 # ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
@@ -1404,7 +1404,7 @@ extern char * xstrdup (const char *s) {
 # endif
 #endif
 
-#if defined BB_FEATURE_NFSMOUNT
+#if defined BB_NFSMOUNT
 extern char * xstrndup (const char *s, int n) {
 	char *t;
 

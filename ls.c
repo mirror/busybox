@@ -171,6 +171,8 @@ static unsigned short column = 0;
 static unsigned short terminal_width;
 static unsigned short column_width;
 static unsigned short tabstops;
+#else
+# define column_width	COLUMN_WIDTH 
 #endif
 
 static int status = EXIT_SUCCESS;
@@ -236,7 +238,7 @@ static void nexttabstop( void )
 			column++;
 		}
 	}
-	nexttab= column + column_width + COLUMN_GAP ;
+	nexttab= column + column_width + COLUMN_GAP; 
 }
 
 /*----------------------------------------------------------------------*/
@@ -429,8 +431,10 @@ void showfiles(struct dnode **dn, int nfiles)
 			;
 		if (column_width < len) column_width= len;
 	}
-#endif
 	ncols= (int)(terminal_width / (column_width + COLUMN_GAP));
+#else
+	ncols= TERMINAL_WIDTH;
+#endif
 	switch (style_fmt) {
 		case STYLE_LONG:	/* one record per line, extended info */
 		case STYLE_SINGLE:	/* one record per line */

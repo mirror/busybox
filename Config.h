@@ -258,17 +258,11 @@
 //Turn on fbset readmode support
 //#define BB_FEATURE_FBSET_READMODE
 //
-// You must enable one or both of these features
-// Support installing modules from pre 2.1 kernels
-//#define BB_FEATURE_INSMOD_OLD_KERNEL
-// Support installing modules from kernel versions after 2.1.18
-#define BB_FEATURE_INSMOD_NEW_KERNEL
+// Support insmod/lsmod/rmmod for post 2.1 kernels
+//#define BB_FEATURE_NEW_MODULE_INTERFACE
 //
-// You must enable one or both of these features
-// Support modules status from pre 2.1 kernels
-//#define BB_FEATURE_LSMOD_OLD_KERNEL
-// Support modules status from kernel versions after 2.1.18
-#define BB_FEATURE_LSMOD_NEW_KERNEL
+// Support insmod/lsmod/rmmod for pre 2.1 kernels
+//#define BB_FEATURE_OLD_MODULE_INTERFACE
 //
 // Support module version checking
 //#define BB_FEATURE_INSMOD_VERSION_CHECKING
@@ -308,7 +302,9 @@
 #ifdef BB_FEATURE_MOUNT_MTAB_SUPPORT
 #define BB_MTAB
 #endif
-#endif
+#else
+#undef BB_MTAB
+#endif	
 //
 #if defined BB_FEATURE_SH_COMMAND_EDITING && defined BB_SH
 #define BB_CMDEDIT
@@ -320,11 +316,13 @@
 #endif
 #endif
 //
-#ifdef BB_FEATURE_LINUXRC
+#if defined BB_FEATURE_LINUXRC || defined BB_LINUXRC
 #ifndef BB_INIT
 #define BB_INIT
 #endif
+#ifndef BB_LINUXRC
 #define BB_LINUXRC
+#endif
 #endif
 //
 #ifdef BB_GZIP
@@ -369,8 +367,8 @@
 #endif
 #endif
 //
-#if defined BB_INSMOD
-#ifndef BB_FEATURE_INSMOD_OLD_KERNEL
-#define BB_FEATURE_INSMOD_NEW_KERNEL
+#if defined BB_INSMOD || defined BB_LSMOD
+#ifndef BB_FEATURE_NEW_MODULE_INTERFACE
+#define BB_FEATURE_NEW_MODULE_INTERFACE
 #endif
 #endif

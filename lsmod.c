@@ -40,11 +40,7 @@
 
 
 
-#if !defined(BB_FEATURE_LSMOD_NEW_KERNEL) && !defined(BB_FEATURE_LSMOD_OLD_KERNEL)
-#error "Must have ether BB_FEATURE_LSMOD_NEW_KERNEL or BB_FEATURE_LSMOD_OLD_KERNEL defined"
-#endif
-
-#ifdef BB_FEATURE_LSMOD_NEW_KERNEL
+#ifdef BB_FEATURE_NEW_MODULE_INTERFACE
 
 struct module_info
 {
@@ -132,7 +128,7 @@ extern int lsmod_main(int argc, char **argv)
 	return( 0);
 }
 
-#else /*BB_FEATURE_LSMOD_OLD_KERNEL*/
+#else /*BB_FEATURE_OLD_MODULE_INTERFACE*/
 
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
@@ -157,4 +153,4 @@ extern int lsmod_main(int argc, char **argv)
 	return 1;
 }
 
-#endif /*BB_FEATURE_LSMOD_OLD_KERNEL*/
+#endif /*BB_FEATURE_OLD_MODULE_INTERFACE*/
