@@ -1,671 +1,1789 @@
 ---------------------
-PatchSet 3926
-Date: 2004/02/09 10:01:01
+PatchSet 3976 
+Date: 2004/03/09 21:27:32
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Buffalo appears to have resolved their GPL problems
+David Anders (prpplague) submitted this patch to allow login to work
+when the device nodes are symlinks on a read only file system.
 
-Members:
-	docs/busybox.net/products.html:1.5->1.6
-	docs/busybox.net/shame.html:1.7->1.8
+Members: 
+	loginutils/login.c:1.13->1.14 
 
 ---------------------
-PatchSet 3927
-Date: 2004/02/09 10:57:04
+PatchSet 3977 
+Date: 2004/03/09 21:32:57
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Update URL
+Note that /proc must be mounted for filesystem type autodetection
+to work.  Without /proc mounted, one must explicitly specify the
+type of every filesystem being mounted.
 
-Members:
-	docs/busybox.net/products.html:1.6->1.7
+Members: 
+	include/usage.h:1.192->1.193 
 
 ---------------------
-PatchSet 3928
-Date: 2004/02/10 01:07:45
-Author: andersen
-Branch: HEAD
-Tag: (none)
-Log:
-Support disabling pipe and redirect support
-
-Members:
-	shell/lash.c:1.151->1.152
-
----------------------
-PatchSet 3929
-Date: 2004/02/10 01:28:36
-Author: andersen
-Branch: HEAD
-Tag: (none)
-Log:
-Initial effort at disabling job control as well
-
-Members:
-	shell/lash.c:1.152->1.153
-
----------------------
-PatchSet 3930
-Date: 2004/02/10 01:30:21
-Author: andersen
-Branch: HEAD
-Tag: (none)
-Log:
-oops.  Leave the default feature set enbled for now...
-
-Members:
-	shell/lash.c:1.153->1.154
-
----------------------
-PatchSet 3931
-Date: 2004/02/13 08:09:43
-Author: andersen
-Branch: HEAD
-Tag: (none)
-Log:
-Accomodate the fact that newer libc versions may in fact not
-contain query_module and friends and more
-
-Members:
-	libbb/module_syscalls.c:1.13->1.14
-
----------------------
-PatchSet 3932
-Date: 2004/02/14 21:33:39
-Author: andersen
-Branch: HEAD
-Tag: (none)
-Log:
-Avoid naming conflict with symbol in newer glibc headers
-
-Members:
-	miscutils/hdparm.c:1.9->1.10
-
----------------------
-PatchSet 3933
-Date: 2004/02/17 07:51:31
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-define option names to be clearer, simplify nested if statements, remove
-un-needed if statement, minor indenting change
-
-Members:
-	coreutils/date.c:1.41->1.42
-
----------------------
-PatchSet 3934
-Date: 2004/02/17 07:58:04
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Woops, im getting ahead of myself, we dont have the -r (refernece)
-option yet
-
-Members:
-	coreutils/date.c:1.42->1.43
-
----------------------
-PatchSet 3935
-Date: 2004/02/17 10:16:21
+PatchSet 3978 
+Date: 2004/03/10 07:42:37
 Author: mjn3
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Patch from Florian Schirmer <jolt@tuxbox.org>.  When I rewrote the parser,
-I overlooked the case of someone wanting to use a valid but empty suid
-config file.
+In spite of the feature freeze, check in a complete rework of route which
+fixes some bugs, adds some error checking, and removes _lots_ of bloat.
+Text size on i386...
+              old     new
+   ipv6      5425    3523
+   no ipv6   3143    2193
 
-Members:
-	applets/applets.c:1.21->1.22
+Members: 
+	include/inet_common.h:1.3->1.4 
+	include/usage.h:1.193->1.194 
+	libbb/inet_common.c:1.7->1.8 
+	networking/route.c:1.23->1.24 
 
 ---------------------
-PatchSet 3936
-Date: 2004/02/17 11:55:06
+PatchSet 3979 
+Date: 2004/03/10 09:10:53
 Author: bug1
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Dont strip trailing '/' until _after_ i test to set if its there !
+Patch by Seth W. Klein, the -l switch was reversed
 
-Members:
-	archival/libunarchive/get_header_tar.c:1.30->1.31
+Members: 
+	coreutils/du.c:1.58->1.59 
 
 ---------------------
-PatchSet 3937
-Date: 2004/02/17 12:04:13
+PatchSet 3980 
+Date: 2004/03/10 09:58:51
 Author: bug1
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Remove debugging
+When displaying the size in 1kB blocks round up if an odd number of
+blocks
 
-Members:
-	archival/libunarchive/get_header_tar.c:1.31->1.32
+Members: 
+	coreutils/du.c:1.59->1.60 
 
 ---------------------
-PatchSet 3938
-Date: 2004/02/17 12:22:21
+PatchSet 3981 
+Date: 2004/03/10 10:47:37
 Author: bug1
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Add the -r option, patch from Rob with some help from myself.
+Patch from Thomas Frohlich to fix an option ordering bug of mine.
 
-Members:
-	coreutils/date.c:1.43->1.44
+Members: 
+	util-linux/hwclock.c:1.8->1.9 
 
 ---------------------
-PatchSet 3939
-Date: 2004/02/17 20:04:34
+PatchSet 3982 
+Date: 2004/03/11 13:34:24
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Mark Lord writes:
+Paul Mundt, lethal at linux-sh dot org writes:
 
-The config file processing for inetd in busybox-1.00-pre7 and newer
-is broken -- the saved command argv[] values overwrite each other.
+Here's a follow-up replacement to the patch I sent earlier, this adjusts some
+of the semantics of the dynamic variable setting. Namely, dynamic vars can hook
+a set handler (which RANDOM uses to adjust the seed). They'll only lose their
+dynamic status if they're unset.
 
-Patch to fix it is attached.
+I've used the same approach that bash does to come up with the random number,
+mostly just for consistency.
 
-Cheers
---
-Mark Lord
-Real-Time Remedies Inc.
+For example:
 
-Members:
-	networking/inetd.c:1.14->1.15
+$ echo $RANDOM
+13759
+$ echo $RANDOM
+20057
+$ echo $RANDOM
+1502
+$ export RANDOM=42
+$ echo $RANDOM
+24179
+$ echo $RANDOM
+2046
+$ unset RANDOM
+$ echo $RANDOM
+
+$ export RANDOM=42
+$ echo $RANDOM
+42
+$
+
+Members: 
+	shell/ash.c:1.90->1.91 
 
 ---------------------
-PatchSet 3940
-Date: 2004/02/17 20:08:11
+PatchSet 3983 
+Date: 2004/03/12 22:07:10
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Remove the unused CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV option.
+Fix awk entry, which was not showing up in BusyBox.txt for some reason
 
-Members:
-	networking/Config.in:1.25->1.26
+Members: 
+	include/usage.h:1.194->1.195 
 
 ---------------------
-PatchSet 3941
-Date: 2004/02/18 09:40:41
+PatchSet 3984 
+Date: 2004/03/12 22:08:13
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Add prototypes for safe_strtol and friends
+
+Members: 
+	include/libbb.h:1.127->1.128 
+
+---------------------
+PatchSet 3985 
+Date: 2004/03/12 22:08:42
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix some goofy formatting
+
+Members: 
+	shell/lash.c:1.155->1.156 
+
+---------------------
+PatchSet 3986 
+Date: 2004/03/12 22:10:40
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Hideki IWAMOTO writes:
+
+Current `tr' implementation has a problem, if `plain char' is signed.
+
+[current cvs version]
+
+>echo a | _install/usr/bin/tr '\0' '\377'
+Segmentation fault (core dumped)
+
+[patched version]
+
+>echo a | _install/usr/bin/tr '\0' '\377'
+a
+
+Members: 
+	coreutils/tr.c:1.36->1.37 
+
+---------------------
+PatchSet 3987 
+Date: 2004/03/13 08:32:14
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix some doc generation problems
+
+Members: 
+	docs/autodocifier.pl:1.24->1.25 
+	docs/busybox_footer.pod:1.12->1.13 
+
+---------------------
+PatchSet 3988 
+Date: 2004/03/13 08:33:10
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Update docs for start_stop_daemon to match reality.  Update
+the reality a bit to better match debian behavior.
+
+Members: 
+	debianutils/start_stop_daemon.c:1.12->1.13 
+	include/applets.h:1.111->1.112 
+	include/usage.h:1.195->1.196 
+
+---------------------
+PatchSet 3989 
+Date: 2004/03/13 18:17:37
 Author: mjn3
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Fix vstype[] to match VS* defines.  Patch from OpenWrt by mbm.
+I redid route.
 
-Members:
-	shell/ash.c:1.89->1.90
+Members: 
+	AUTHORS:1.40->1.41 
 
 ---------------------
-PatchSet 3942
-Date: 2004/02/18 09:54:15
+PatchSet 3990 
+Date: 2004/03/15 08:28:13
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Remove trailing whitespace.  Update copyright to include 2004.
+
+Members: 
+	AUTHORS:1.41->1.42 
+	Changelog:1.289->1.290 
+	INSTALL:1.3->1.4 
+	Makefile:1.289->1.290 
+	README:1.30->1.31 
+	Rules.mak:1.28->1.29 
+	TODO:1.86->1.87 
+	applets/Makefile:1.4->1.5 
+	applets/Makefile.in:1.3->1.4 
+	applets/applets.c:1.23->1.24 
+	applets/busybox.c:1.144->1.145 
+	archival/Config.in:1.14->1.15 
+	archival/Makefile:1.6->1.7 
+	archival/Makefile.in:1.4->1.5 
+	archival/ar.c:1.47->1.48 
+	archival/cpio.c:1.14->1.15 
+	archival/dpkg.c:1.75->1.76 
+	archival/dpkg_deb.c:1.31->1.32 
+	archival/gunzip.c:1.78->1.79 
+	archival/gzip.c:1.61->1.62 
+	archival/rpm.c:1.5->1.6 
+	archival/rpm2cpio.c:1.11->1.12 
+	archival/tar.c:1.187->1.188 
+	archival/libunarchive/Makefile:1.4->1.5 
+	archival/libunarchive/Makefile.in:1.21->1.22 
+	archival/libunarchive/data_extract_all.c:1.18->1.19 
+	archival/libunarchive/decompress_bunzip2.c:1.11->1.12 
+	archival/libunarchive/decompress_uncompress.c:1.9->1.10 
+	archival/libunarchive/decompress_unzip.c:1.32->1.33 
+	archival/libunarchive/filter_accept_list_reassign.c:1.4->1.5 
+	archival/libunarchive/get_header_ar.c:1.8->1.9 
+	archival/libunarchive/get_header_cpio.c:1.8->1.9 
+	archival/libunarchive/get_header_tar.c:1.35->1.36 
+	archival/libunarchive/uncompress.c:1.9->1.10 
+	archival/libunarchive/unzip.c:1.32->1.33 
+	console-tools/Makefile:1.3->1.4 
+	console-tools/Makefile.in:1.4->1.5 
+	console-tools/chvt.c:1.21->1.22 
+	console-tools/clear.c:1.17->1.18 
+	console-tools/deallocvt.c:1.28->1.29 
+	console-tools/dumpkmap.c:1.17->1.18 
+	console-tools/loadkmap.c:1.27->1.28 
+	console-tools/openvt.c:1.7->1.8 
+	console-tools/reset.c:1.12->1.13 
+	console-tools/setkeycodes.c:1.14->1.15 
+	coreutils/Config.in:1.23->1.24 
+	coreutils/Makefile:1.2->1.3 
+	coreutils/Makefile.in:1.8->1.9 
+	coreutils/basename.c:1.22->1.23 
+	coreutils/cal.c:1.8->1.9 
+	coreutils/chgrp.c:1.17->1.18 
+	coreutils/chmod.c:1.16->1.17 
+	coreutils/chown.c:1.25->1.26 
+	coreutils/chroot.c:1.30->1.31 
+	coreutils/cut.c:1.27->1.28 
+	coreutils/date.c:1.44->1.45 
+	coreutils/df.c:1.55->1.56 
+	coreutils/dirname.c:1.19->1.20 
+	coreutils/dos2unix.c:1.17->1.18 
+	coreutils/du.c:1.60->1.61 
+	coreutils/echo.c:1.17->1.18 
+	coreutils/expr.c:1.16->1.17 
+	coreutils/false.c:1.3->1.4 
+	coreutils/id.c:1.23->1.24 
+	coreutils/install.c:1.8->1.9 
+	coreutils/ln.c:1.44->1.45 
+	coreutils/ls.c:1.106->1.107 
+	coreutils/md5_sha1_sum.c:1.5->1.6 
+	coreutils/mknod.c:1.25->1.26 
+	coreutils/mv.c:1.20->1.21 
+	coreutils/printf.c:1.21->1.22 
+	coreutils/rmdir.c:1.23->1.24 
+	coreutils/tail.c:1.46->1.47 
+	coreutils/tee.c:1.23->1.24 
+	coreutils/test.c:1.24->1.25 
+	coreutils/touch.c:1.27->1.28 
+	coreutils/tr.c:1.37->1.38 
+	coreutils/true.c:1.3->1.4 
+	coreutils/uudecode.c:1.21->1.22 
+	coreutils/wc.c:1.27->1.28 
+	coreutils/who.c:1.2->1.3 
+	coreutils/libcoreutils/Makefile:1.2->1.3 
+	coreutils/libcoreutils/Makefile.in:1.2->1.3 
+	debian/changelog:1.39->1.40 
+	debian/control:1.19->1.20 
+	debianutils/Config.in:1.6->1.7 
+	debianutils/Makefile:1.2->1.3 
+	debianutils/Makefile.in:1.4->1.5 
+	debianutils/mktemp.c:1.3->1.4 
+	debianutils/run_parts.c:1.6->1.7 
+	debianutils/which.c:1.8->1.9 
+	docs/busybox.sgml:1.53->1.54 
+	docs/busybox_header.pod:1.12->1.13 
+	docs/contributing.txt:1.9->1.10 
+	docs/new-applet-HOWTO.txt:1.8->1.9 
+	docs/style-guide.txt:1.16->1.17 
+	docs/busybox.net/about.html:1.1->1.2 
+	docs/busybox.net/busybox-growth.ps:1.1->1.2 
+	docs/busybox.net/copyright.txt:1.1->1.2 
+	docs/busybox.net/cvs_anon.html:1.10->1.11 
+	docs/busybox.net/cvs_howto.html:1.1->1.2 
+	docs/busybox.net/cvs_write.html:1.8->1.9 
+	docs/busybox.net/docs.html:1.1->1.2 
+	docs/busybox.net/download.html:1.1->1.2 
+	docs/busybox.net/footer.html:1.2->1.3 
+	docs/busybox.net/header.html:1.7->1.8 
+	docs/busybox.net/license.html:1.2->1.3 
+	docs/busybox.net/lists.html:1.2->1.3 
+	docs/busybox.net/news.html:1.11->1.12 
+	docs/busybox.net/oldnews.html:1.20->1.21 
+	docs/busybox.net/screenshot.html:1.9->1.10 
+	docs/busybox.net/images/busybox.png:1.1->1.2 
+	docs/busybox.net/images/ltbutton2.png:1.1->1.2 
+	editors/Config.in:1.9->1.10 
+	editors/Makefile:1.3->1.4 
+	editors/Makefile.in:1.4->1.5 
+	editors/awk.c:1.6->1.7 
+	editors/patch.c:1.1->1.2 
+	editors/sed.c:1.160->1.161 
+	editors/vi.c:1.33->1.34 
+	examples/busybox.spec:1.40->1.41 
+	examples/depmod.pl:1.3->1.4 
+	examples/inittab:1.8->1.9 
+	examples/undeb:1.2->1.3 
+	examples/unrpm:1.3->1.4 
+	examples/bootfloppy/bootfloppy.txt:1.3->1.4 
+	examples/bootfloppy/mkrootfs.sh:1.3->1.4 
+	examples/bootfloppy/syslinux.cfg:1.1->1.2 
+	examples/bootfloppy/etc/profile:1.1->1.2 
+	examples/udhcp/udhcpd.conf:1.2->1.3 
+	findutils/Config.in:1.9->1.10 
+	findutils/Makefile:1.3->1.4 
+	findutils/Makefile.in:1.3->1.4 
+	findutils/find.c:1.39->1.40 
+	findutils/grep.c:1.80->1.81 
+	findutils/xargs.c:1.33->1.34 
+	include/busybox.h:1.55->1.56 
+	include/libbb.h:1.128->1.129 
+	include/unarchive.h:1.22->1.23 
+	init/Makefile:1.4->1.5 
+	init/Makefile.in:1.7->1.8 
+	init/halt.c:1.23->1.24 
+	init/init.c:1.198->1.199 
+	init/init_shared.c:1.4->1.5 
+	init/poweroff.c:1.20->1.21 
+	init/reboot.c:1.31->1.32 
+	libbb/Makefile:1.9->1.10 
+	libbb/README:1.3->1.4 
+	libbb/bb_asprintf.c:1.3->1.4 
+	libbb/chomp.c:1.8->1.9 
+	libbb/concat_path_file.c:1.11->1.12 
+	libbb/copyfd.c:1.11->1.12 
+	libbb/correct_password.c:1.2->1.3 
+	libbb/device_open.c:1.4->1.5 
+	libbb/dump.c:1.8->1.9 
+	libbb/error_msg.c:1.5->1.6 
+	libbb/error_msg_and_die.c:1.4->1.5 
+	libbb/fgets_str.c:1.6->1.7 
+	libbb/find_mount_point.c:1.4->1.5 
+	libbb/find_pid_by_name.c:1.13->1.14 
+	libbb/find_root_device.c:1.11->1.12 
+	libbb/full_read.c:1.5->1.6 
+	libbb/full_write.c:1.5->1.6 
+	libbb/get_console.c:1.8->1.9 
+	libbb/get_line_from_file.c:1.6->1.7 
+	libbb/get_terminal_width_height.c:1.1->1.2 
+	libbb/hash_fd.c:1.5->1.6 
+	libbb/herror_msg.c:1.4->1.5 
+	libbb/herror_msg_and_die.c:1.5->1.6 
+	libbb/human_readable.c:1.8->1.9 
+	libbb/inode_hash.c:1.6->1.7 
+	libbb/interface.c:1.20->1.21 
+	libbb/isdirectory.c:1.4->1.5 
+	libbb/kernel_version.c:1.4->1.5 
+	libbb/loop.c:1.7->1.8 
+	libbb/messages.c:1.11->1.12 
+	libbb/module_syscalls.c:1.15->1.16 
+	libbb/mtab.c:1.4->1.5 
+	libbb/mtab_file.c:1.8->1.9 
+	libbb/my_getgrgid.c:1.6->1.7 
+	libbb/my_getgrnam.c:1.6->1.7 
+	libbb/my_getpwnam.c:1.6->1.7 
+	libbb/my_getpwnamegid.c:1.6->1.7 
+	libbb/my_getpwuid.c:1.6->1.7 
+	libbb/parse_mode.c:1.6->1.7 
+	libbb/parse_number.c:1.3->1.4 
+	libbb/perror_msg.c:1.4->1.5 
+	libbb/perror_msg_and_die.c:1.4->1.5 
+	libbb/print_file.c:1.8->1.9 
+	libbb/printf.c:1.3->1.4 
+	libbb/process_escape_sequence.c:1.4->1.5 
+	libbb/pw_encrypt.c:1.3->1.4 
+	libbb/read_package_field.c:1.8->1.9 
+	libbb/recursive_action.c:1.10->1.11 
+	libbb/run_parts.c:1.10->1.11 
+	libbb/run_shell.c:1.5->1.6 
+	libbb/safe_read.c:1.3->1.4 
+	libbb/safe_strncpy.c:1.3->1.4 
+	libbb/safe_write.c:1.2->1.3 
+	libbb/setup_environment.c:1.3->1.4 
+	libbb/syscalls.c:1.12->1.13 
+	libbb/syslog_msg_with_name.c:1.5->1.6 
+	libbb/trim.c:1.7->1.8 
+	libbb/u_signal_names.c:1.3->1.4 
+	libbb/vdprintf.c:1.4->1.5 
+	libbb/verror_msg.c:1.5->1.6 
+	libbb/vfork_daemon_rexec.c:1.2->1.3 
+	libbb/vherror_msg.c:1.6->1.7 
+	libbb/vperror_msg.c:1.4->1.5 
+	libbb/wfopen.c:1.4->1.5 
+	libbb/xconnect.c:1.12->1.13 
+	libbb/xfuncs.c:1.13->1.14 
+	libbb/xgetlarg.c:1.4->1.5 
+	libbb/xgetularg.c:1.1->1.2 
+	libbb/xreadlink.c:1.4->1.5 
+	libbb/xregcomp.c:1.4->1.5 
+	libpwdgrp/Makefile:1.2->1.3 
+	libpwdgrp/Makefile.in:1.2->1.3 
+	libpwdgrp/__getgrent.c:1.5->1.6 
+	libpwdgrp/__getpwent.c:1.3->1.4 
+	libpwdgrp/fgetgrent.c:1.3->1.4 
+	libpwdgrp/fgetpwent.c:1.2->1.3 
+	libpwdgrp/getgrgid.c:1.4->1.5 
+	libpwdgrp/getgrnam.c:1.4->1.5 
+	libpwdgrp/getpw.c:1.2->1.3 
+	libpwdgrp/getpwnam.c:1.3->1.4 
+	libpwdgrp/getpwuid.c:1.5->1.6 
+	libpwdgrp/grent.c:1.4->1.5 
+	libpwdgrp/initgroups.c:1.6->1.7 
+	libpwdgrp/putpwent.c:1.3->1.4 
+	libpwdgrp/pwent.c:1.5->1.6 
+	libpwdgrp/setgroups.c:1.4->1.5 
+	libpwdgrp/shadow.c:1.7->1.8 
+	loginutils/Makefile:1.2->1.3 
+	loginutils/Makefile.in:1.6->1.7 
+	loginutils/addgroup.c:1.11->1.12 
+	loginutils/adduser.c:1.8->1.9 
+	loginutils/getty.c:1.9->1.10 
+	loginutils/login.c:1.14->1.15 
+	loginutils/su.c:1.6->1.7 
+	miscutils/Config.in:1.13->1.14 
+	miscutils/Makefile:1.6->1.7 
+	miscutils/Makefile.in:1.11->1.12 
+	miscutils/adjtimex.c:1.5->1.6 
+	miscutils/dc.c:1.17->1.18 
+	miscutils/hdparm.c:1.10->1.11 
+	miscutils/last.c:1.1->1.2 
+	miscutils/makedevs.c:1.15->1.16 
+	miscutils/mt.c:1.24->1.25 
+	miscutils/rx.c:1.1->1.2 
+	miscutils/strings.c:1.12->1.13 
+	miscutils/time.c:1.5->1.6 
+	miscutils/watchdog.c:1.7->1.8 
+	modutils/Config.in:1.10->1.11 
+	modutils/Makefile:1.3->1.4 
+	modutils/Makefile.in:1.2->1.3 
+	modutils/insmod.c:1.112->1.113 
+	modutils/lsmod.c:1.40->1.41 
+	modutils/rmmod.c:1.26->1.27 
+	networking/Config.in:1.27->1.28 
+	networking/Makefile:1.6->1.7 
+	networking/Makefile.in:1.17->1.18 
+	networking/ftpgetput.c:1.15->1.16 
+	networking/httpd.c:1.24->1.25 
+	networking/ifconfig.c:1.28->1.29 
+	networking/ifupdown.c:1.35->1.36 
+	networking/nc.c:1.22->1.23 
+	networking/netstat.c:1.10->1.11 
+	networking/nslookup.c:1.31->1.32 
+	networking/ping.c:1.55->1.56 
+	networking/ping6.c:1.5->1.6 
+	networking/route.c:1.24->1.25 
+	networking/telnet.c:1.42->1.43 
+	networking/telnetd.c:1.10->1.11 
+	networking/tftp.c:1.25->1.26 
+	networking/traceroute.c:1.12->1.13 
+	networking/vconfig.c:1.4->1.5 
+	networking/wget.c:1.70->1.71 
+	networking/libiproute/Makefile:1.2->1.3 
+	networking/libiproute/Makefile.in:1.4->1.5 
+	networking/libiproute/ip_parse_common_args.c:1.5->1.6 
+	networking/libiproute/ipaddress.c:1.10->1.11 
+	networking/libiproute/iplink.c:1.8->1.9 
+	networking/libiproute/iproute.c:1.12->1.13 
+	networking/libiproute/iptunnel.c:1.6->1.7 
+	networking/libiproute/libnetlink.c:1.5->1.6 
+	networking/libiproute/ll_proto.c:1.5->1.6 
+	networking/libiproute/utils.h:1.2->1.3 
+	networking/libiproute/linux/pkt_sched.h:1.1->1.2 
+	networking/udhcp/AUTHORS:1.3->1.4 
+	networking/udhcp/ChangeLog:1.7->1.8 
+	networking/udhcp/Makefile:1.2->1.3 
+	networking/udhcp/Makefile.in:1.9->1.10 
+	networking/udhcp/README:1.3->1.4 
+	networking/udhcp/README.udhcpc:1.3->1.4 
+	networking/udhcp/README.udhcpd:1.1->1.2 
+	networking/udhcp/arpping.c:1.6->1.7 
+	networking/udhcp/arpping.h:1.3->1.4 
+	networking/udhcp/clientpacket.c:1.6->1.7 
+	networking/udhcp/common.c:1.5->1.6 
+	networking/udhcp/common.h:1.2->1.3 
+	networking/udhcp/dhcpc.c:1.16->1.17 
+	networking/udhcp/dhcpd.c:1.5->1.6 
+	networking/udhcp/dhcpd.h:1.5->1.6 
+	networking/udhcp/dumpleases.c:1.8->1.9 
+	networking/udhcp/files.c:1.13->1.14 
+	networking/udhcp/frontend.c:1.1->1.2 
+	networking/udhcp/leases.c:1.5->1.6 
+	networking/udhcp/options.c:1.7->1.8 
+	networking/udhcp/packet.c:1.4->1.5 
+	networking/udhcp/packet.h:1.2->1.3 
+	networking/udhcp/script.c:1.12->1.13 
+	networking/udhcp/serverpacket.c:1.4->1.5 
+	networking/udhcp/socket.c:1.7->1.8 
+	patches/eject.diff:1.1->1.2 
+	patches/tftp_timeout_multicast.diff:1.1->1.2 
+	patches/udhcp_additional_items.diff:1.1->1.2 
+	patches/udhcp_config_paths.diff:1.1->1.2 
+	patches/udhcpd_foreground.diff:1.1->1.2 
+	procps/Makefile:1.3->1.4 
+	procps/Makefile.in:1.5->1.6 
+	procps/free.c:1.21->1.22 
+	procps/kill.c:1.51->1.52 
+	procps/pidof.c:1.9->1.10 
+	procps/ps.c:1.51->1.52 
+	procps/renice.c:1.8->1.9 
+	procps/sysctl.c:1.2->1.3 
+	procps/top.c:1.10->1.11 
+	procps/uptime.c:1.17->1.18 
+	scripts/mkdep.c:1.2->1.3 
+	scripts/split-include.c:1.1->1.2 
+	scripts/config/Kconfig-language.txt:1.1->1.2 
+	scripts/config/Makefile:1.3->1.4 
+	scripts/config/checklist.c:1.1->1.2 
+	scripts/config/dialog.h:1.1->1.2 
+	scripts/config/lex.zconf.c_shipped:1.2->1.3 
+	scripts/config/mconf.c:1.3->1.4 
+	scripts/config/menu.c:1.2->1.3 
+	scripts/config/menubox.c:1.3->1.4 
+	scripts/config/util.c:1.1->1.2 
+	scripts/config/zconf.tab.c_shipped:1.3->1.4 
+	shell/Config.in:1.12->1.13 
+	shell/Makefile:1.3->1.4 
+	shell/Makefile.in:1.2->1.3 
+	shell/ash.c:1.91->1.92 
+	shell/hush.c:1.63->1.64 
+	shell/lash.c:1.156->1.157 
+	shell/msh.c:1.15->1.16 
+	sysdeps/linux/Config.in:1.13->1.14 
+	sysklogd/Config.in:1.6->1.7 
+	sysklogd/Makefile:1.4->1.5 
+	sysklogd/Makefile.in:1.2->1.3 
+	sysklogd/klogd.c:1.19->1.20 
+	sysklogd/logger.c:1.38->1.39 
+	sysklogd/logread.c:1.14->1.15 
+	sysklogd/syslogd.c:1.107->1.108 
+	util-linux/Config.in:1.10->1.11 
+	util-linux/Makefile:1.5->1.6 
+	util-linux/Makefile.in:1.5->1.6 
+	util-linux/dmesg.c:1.31->1.32 
+	util-linux/fbset.c:1.33->1.34 
+	util-linux/fdisk.c:1.17->1.18 
+	util-linux/freeramdisk.c:1.24->1.25 
+	util-linux/fsck_minix.c:1.38->1.39 
+	util-linux/hwclock.c:1.9->1.10 
+	util-linux/mkfs_minix.c:1.40->1.41 
+	util-linux/more.c:1.59->1.60 
+	util-linux/mount.c:1.115->1.116 
+	util-linux/nfsmount.c:1.26->1.27 
+	util-linux/pivot_root.c:1.7->1.8 
+	util-linux/swaponoff.c:1.35->1.36 
+	util-linux/umount.c:1.63->1.64 
+
+---------------------
+PatchSet 3991 
+Date: 2004/03/15 08:46:37
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Oops.  Using the wrong variable was a rather stupid
+thing for me to do.
+
+Members: 
+	networking/ftpgetput.c:1.16->1.17 
+
+---------------------
+PatchSet 3992 
+Date: 2004/03/16 05:14:10
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from vodz to fix the dynamic vars patch, which I should not
+have checked in.  Vladimir writes:
+
+Your patch have many problem.
+1. You always added + time(). This cannot reset RANDOM=value for debuging
+with
+replay sequential.
+2. Hmm. I examine bash 2.04 source. This pseudorandom generator use low bits
+of
+counter value. You use high bits. This make bad pseudorandom values after
+have
+0-value. For example, if + time() do remove, your generator always return 0
+after
+first generate 0.
+3. Memory leak per call. Use ash-unlike unecessary bb_strdup function.
+4. Unsupport show last $RANDOM value for "set" and "export" command.
+5. Bloat code. Busybox-unlike patch - added unstandart feature as default
+hardcode.
+
+Last patch attached.
+
+Erik, why you apply Paul patch with have 5-th point problem? :(
+
+Last patch have ash change xwrite() to fresh libbb/bb_full_write interfase
+(haved loop after EINTR).
+
+
+--w
+vodz
+
+Members: 
+	shell/Config.in:1.13->1.14 
+	shell/ash.c:1.92->1.93 
+
+---------------------
+PatchSet 3993 
+Date: 2004/03/19 10:53:52
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix broken arg parsing (was not passing pointer to items so p, argc, and argv
+were only modified locally).  Fix error reporting to properly describe why
+ioctls fail.
+
+Members: 
+	miscutils/hdparm.c:1.11->1.12 
+
+---------------------
+PatchSet 3994 
+Date: 2004/03/19 12:16:18
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Only use R_68K_GOTOFF if it is defined
+
+Members: 
+	modutils/insmod.c:1.113->1.114 
+
+---------------------
+PatchSet 3995 
+Date: 2004/03/19 12:17:04
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Add missing ELFCLASSM for m68k
+
+Members: 
+	modutils/insmod.c:1.114->1.115 
+
+---------------------
+PatchSet 3996 
+Date: 2004/03/19 21:00:03
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+As noted in a patch from Kendrick Hamilton, rmmod was only
+half way converted, and still used the old delete_module(),
+call rather than a syscall, in one spot.
+
+Members: 
+	modutils/rmmod.c:1.27->1.28 
+
+---------------------
+PatchSet 3997 
+Date: 2004/03/19 23:27:08
+Author: mjn3
+Branch: HEAD
+Tag: (none) 
+Log:
+Oops.. got a bit to aggressive with size optimization and global replace.  :-(
+
+Members: 
+	networking/route.c:1.25->1.26 
+
+---------------------
+PatchSet 3998 
+Date: 2004/03/20 00:56:46
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Tito noticed a printf that should have been a bb_error_msg.
+
+Members: 
+	miscutils/hdparm.c:1.12->1.13 
+
+---------------------
+PatchSet 3999 
+Date: 2004/03/21 18:01:46
+Author: sandman
+Branch: HEAD
+Tag: (none) 
+Log:
+The utc variable was not modified according to the -u/-l command line
+parameters.
+
+Members: 
+	util-linux/hwclock.c:1.10->1.11 
+
+---------------------
+PatchSet 4000 
+Date: 2004/03/22 21:27:39
+Author: sandman
+Branch: HEAD
+Tag: (none) 
+Log:
+Some corrections from vodz:
+- Make -u/-l mutually exclusive
+- Minor size reduction
+
+Members: 
+	util-linux/hwclock.c:1.11->1.12 
+
+---------------------
+PatchSet 4001 
+Date: 2004/03/23 23:15:36
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Brian Pomerantz writes:
+
+I've noticed a bug in the "autowidth" feature more, and is probably in
+others.  The call to the function get_terminal_width_height() passes
+in a file descriptor but that file descriptor is never used, instead
+the ioctl() is called with 0.  In more_main() the call to
+get_terminal_width_height() passes 0 as the file descriptor instead of
+fileno(cin).  This isn't a problem when you more a file (e.g. "more
+/etc/passwd") but when you pipe a file to it (e.g. "cat /etc/passwd |
+more") the size of the terminal cannot be determined because file
+descriptor 0 is not a terminal.  The fix is simple, I've attached a
+patch for more.c and get_terminal_width_height.c.
+
+
+BAPper
+
+Members: 
+	coreutils/ls.c:1.107->1.108 
+	libbb/get_terminal_width_height.c:1.2->1.3 
+	util-linux/more.c:1.60->1.61 
+
+---------------------
+PatchSet 4002 
+Date: 2004/03/27 09:40:15
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Update docs
+
+Members: 
+	README:1.31->1.32 
+	TODO:1.87->1.88(DEAD) 
+	docs/busybox_footer.pod:1.13->1.14 
+	docs/busybox_header.pod:1.13->1.14 
+
+---------------------
+PatchSet 4003 
+Date: 2004/03/27 09:49:57
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Vladimir N. Oleynik (vodz) writes:
+
+Ok. Last patch reduce 73 bytes for compensate (and over) your changes ;-)
+
+Comments:
+Added cin_fileno variable, auto setted to 0 from BSS and have "eq" stdin
+descriptor if isatty(stout)==0, removed global variable FILE* cin.
+Removed default setting to terminal_width/terminal_height, this used
+only from main() and setted after call get_terminal_width_height()
+always correct.
+Variable please_display_more_prompt changed to bits logic, have size
+reducing.
+--w
+vodz
+
+Members: 
+	util-linux/more.c:1.61->1.62 
+
+---------------------
+PatchSet 4004 
+Date: 2004/03/27 10:02:41
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+s/fileno\(stdin\)/STDIN_FILENO/g
+s/fileno\(stdout\)/STDOUT_FILENO/g
+
+Members: 
+	archival/bunzip2.c:1.17->1.18 
+	archival/cpio.c:1.15->1.16 
+	archival/gunzip.c:1.79->1.80 
+	archival/rpm2cpio.c:1.12->1.13 
+	archival/tar.c:1.188->1.189 
+	archival/uncompress.c:1.3->1.4 
+	archival/unzip.c:1.6->1.7 
+	archival/libunarchive/data_extract_to_stdout.c:1.4->1.5 
+	coreutils/ls.c:1.108->1.109 
+	coreutils/md5_sha1_sum.c:1.6->1.7 
+	libbb/dump.c:1.9->1.10 
+	libbb/print_file.c:1.9->1.10 
+	networking/ftpgetput.c:1.17->1.18 
+	networking/nc.c:1.23->1.24 
+	networking/tftp.c:1.26->1.27 
+	networking/wget.c:1.71->1.72 
+	patches/tftp_timeout_multicast.diff:1.2->1.3 
+	shell/cmdedit.c:1.89->1.90 
+	shell/hush.c:1.64->1.65 
+	shell/lash.c:1.157->1.158 
+	util-linux/more.c:1.62->1.63 
+
+---------------------
+PatchSet 4005 
+Date: 2004/03/27 10:08:53
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+passwd and sulogin also need libcrypt, via libbb/pw_encrypt()
+
+Members: 
+	loginutils/Makefile.in:1.7->1.8 
+
+---------------------
+PatchSet 4006 
+Date: 2004/03/27 11:26:32
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Add missing include files
+
+Members: 
+	archival/libunarchive/data_extract_to_stdout.c:1.5->1.6 
+	libbb/dump.c:1.10->1.11 
+	libbb/print_file.c:1.10->1.11 
+
+---------------------
+PatchSet 4007 
+Date: 2004/03/27 11:35:46
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Yet more doc cleanups
+
+Members: 
+	docs/busybox_header.pod:1.14->1.15 
+	include/usage.h:1.196->1.197 
+
+---------------------
+PatchSet 4008 
+Date: 2004/03/29 08:20:08
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+As noted by Martin Schwenke, the example for find was wrong
+
+Members: 
+	include/usage.h:1.197->1.198 
+
+---------------------
+PatchSet 4009 
+Date: 2004/03/30 09:08:58
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+The fdisk llseek junk was redundant, since both uClibc and glibc
+automatically promote lseek and friends to their 64 bit counterparts
+when CONFIG_LFS is enabled, since it enables __USE_FILE_OFFSET64
+
+Members: 
+	util-linux/Config.in:1.11->1.12 
+	util-linux/fdisk.c:1.18->1.19 
+
+---------------------
+PatchSet 4010 
+Date: 2004/03/30 09:13:05
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Go ahead and kill off the FDISK_SUPPORT_LARGE_DISKS option,
+as it is redundant....
+
+Members: 
+	util-linux/Config.in:1.12->1.13 
+
+---------------------
+PatchSet 4011 
+Date: 2004/03/30 09:21:54
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+As waldi noticed, checks for the size of an off_t and casting
+etc was also redundant and possibly buggy...
+
+Members: 
+	util-linux/fdisk.c:1.19->1.20 
+
+---------------------
+PatchSet 4012 
+Date: 2004/03/30 09:33:18
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Sigh.  what a mess.
+
+Members: 
+	util-linux/fdisk.c:1.20->1.21 
+
+---------------------
+PatchSet 4013 
+Date: 2004/03/31 11:12:51
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Thomas Winkler -- vi -R did not work
+
+Members: 
+	editors/vi.c:1.34->1.35 
+
+---------------------
+PatchSet 4014 
+Date: 2004/03/31 11:21:24
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Thomas Winkler showing the the system time for each process
+when running 'top'
+
+Members: 
+	patches/top_system_cpu.diff:INITIAL->1.1 
+
+---------------------
+PatchSet 4015 
+Date: 2004/03/31 11:30:08
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Thomas Winkler:
+
+ifconfig did not look up hostnames, so
+	ifconfig lo localhost
+would not work, you have to do
+	ifconfig lo 127.0.0.1
+
+Members: 
+	networking/ifconfig.c:1.29->1.30 
+
+---------------------
+PatchSet 4016 
+Date: 2004/03/31 11:42:40
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Junio Hamano, junio at twinsun dot com writes:
+
+The sed command in busybox 1.0.0-pre8 loses leading whitespace
+in 'a' command ('i' and 'c' commands are also affected).  A
+patch to fix this is attached at the end of this message.
+
+The following is a transcript that reproduces the problem.  The
+first run uses busybox 1.0.0-pre3 as "/bin/sed" command, which
+gets the expected result.  Later in the test, /bin/sed symlink
+is changed to point at busybox 1.0.0-pre8 and the test script is
+run again, which shows the failure.
+
+=== reproduction recipe ===
+* Part 1.  Use busybox 1.0.0-pre3 as sed; this works.
+
+root# cd /tmp
+root# cat 1.sh
+#!/bin/sh
+
+cd /tmp
+rm -f ipsec.conf ipsec.conf+
+cat >ipsec.conf <<\EOF
+version 2.0
+
+config setup
+        klipsdebug=none
+        plutodebug=none
+        plutostderrlog=/dev/null
+
+conn %default
+        keyingtries=1
+        ...
+EOF
+sed -e '/^config setup/a\
+	nat_traversal=yes' ipsec.conf >ipsec.conf+
+mv -f ipsec.conf+ ipsec.conf
+root# sh -x 1.sh
++ cd /tmp
++ rm -f ipsec.conf ipsec.conf+
++ cat
++ sed -e /^config setup/a\
+        nat_traversal=yes ipsec.conf
++ mv -f ipsec.conf+ ipsec.conf
+root# cat ipsec.conf
+version 2.0
+
+config setup
+        nat_traversal=yes
+        klipsdebug=none
+        plutodebug=none
+        plutostderrlog=/dev/null
+
+conn %default
+        keyingtries=1
+        ...
+root# sed --version
+sed: invalid option -- -
+BusyBox v1.00-pre3 (2004.02.26-18:47+0000) multi-call binary
+
+Usage: sed [-nef] pattern [files...]
+
+* Part 2.  Continuing from the above, use busybox 1.0.0-pre8
+  as sed; this fails.
+
+root# ln -s busybox-pre8 /bin/sed-8
+root# mv /bin/sed-8 /bin/sed
+root# sed --version
+This is not GNU sed version 4.0
+root# sed --
+BusyBox v1.00-pre8 (2004.03.30-02:44+0000) multi-call binary
+
+Usage: sed [-nef] pattern [files...]
+root# sh -x 1.sh
++ cd /tmp
++ rm -f ipsec.conf ipsec.conf+
++ cat
++ sed -e /^config setup/a\
+        nat_traversal=yes ipsec.conf
++ mv -f ipsec.conf+ ipsec.conf
+root# cat ipsec.conf
+version 2.0
+
+config setup
+nat_traversal=yes
+        klipsdebug=none
+        plutodebug=none
+        plutostderrlog=/dev/null
+
+conn %default
+        keyingtries=1
+        ...
+root#
+=== reproduction recipe ends here ===
+
+This problem was introduced in 1.0.0-pre4.  The problem is that
+the command argument parsing code strips leading whitespaces too
+aggressively.  When running the above example, the piece of code
+in question gets "\n\tnat_traversal=yes" as its argument in
+cmdstr variable (shown part in the following patch).  What it
+needs to do at this point is to strip the first newline and
+nothing else, but it instead strips all the leading whitespaces
+at the beginning of the string, thus losing the tab character.
+The following patch fixes this.
+
+Members: 
+	editors/sed.c:1.161->1.162 
+
+---------------------
+PatchSet 4017 
+Date: 2004/03/31 11:53:37
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Hideki IWAMOTO adding support for 'cmp -n'
+
+Members: 
+	patches/cmp_n.diff:INITIAL->1.1 
+
+---------------------
+PatchSet 4018 
+Date: 2004/04/01 09:23:30
 Author: landley
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Add -i option to sed, to edit files in-place.
+The last patch broke:
+sed -i "/^boo/a fred" ipsec.conf
 
-Members:
-	editors/sed.c:1.159->1.160
+Which works in gnu sed.  (And is _supposed_ to strip all the whitespace before
+"fred".)
+
+It also broke:
+sed -i -e "/^boo/a \\" -e "   fred" ipsec.conf
+
+I.E. there can legally be spaces between the a and the backslash at the end of
+the line.
+
+And strangely enough, gnu sed accepts the following syntax as well:
+sed -i "/^boo/a \\  fred" ipsec.conf
+
+Which is a way of having the significant whitespace at the start of the line,
+all on one line.  (But notice that the whitespace BEFORE the slash is still
+stripped, as is the slash itself.  And notice that the naieve placement of
+"\n" there doesn't work, it puts an n at the start of the appended line.  The
+double slashing is for shell escapes because you could escape the quote, you
+see.  It's turned into a single backslash.  But \n there is _not_ turned into
+a newline by the shell.  So there.)
+
+This makes all three syntaxes work in my tests.  I should probably start
+writing better documentation at some point.  I posted my current sedtests.py
+file to the list, which needs a lot more tests added as well...
+
+Members: 
+	editors/sed.c:1.162->1.163 
 
 ---------------------
-PatchSet 3943
-Date: 2004/02/18 10:14:17
-Author: mjn3
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from OpenWrt.
-
-Members:
-	modutils/insmod.c:1.111->1.112
-
----------------------
-PatchSet 3944
-Date: 2004/02/18 12:58:00
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-remove debugging
-
-Members:
-	networking/inetd.c:1.15->1.16
-
----------------------
-PatchSet 3945
-Date: 2004/02/18 13:12:53
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Formatting
-
-Members:
-	networking/inetd.c:1.16->1.17
-
----------------------
-PatchSet 3946
-Date: 2004/02/18 13:19:58
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Dont use same variable and struct name
-
-Members:
-	networking/inetd.c:1.17->1.18
-
----------------------
-PatchSet 3947
-Date: 2004/02/19 00:44:08
+PatchSet 4019 
+Date: 2004/04/03 12:36:03
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Chris Larson (kergoth) writes:
+Everything should be made as simple as possible.  But no simpler.
 
-I was adding -s/--symbolic-link support to busybox cp when I noticed a
-bug with -r/-a.  Test case:
-
-mkdir -p test/out
-cd test
-busybox cp -a * out/
-
-Will never return until we run out of open files or similar.
-Coreutils cp on the other hand will error with "cannot copy a directory,
-`out', into itself, `out'".  Patch attached.
-
-Members:
-	libbb/copy_file.c:1.28->1.29
+Members: 
+	util-linux/fdformat.c:1.3->1.4 
 
 ---------------------
-PatchSet 3948
-Date: 2004/02/19 01:52:29
+PatchSet 4020 
+Date: 2004/04/05 14:03:34
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Chris Larson (kergoth) writes:
+rename uncompress.c to decompress_uncompress.c
+rename unzip.c to decompress_unzip.c
 
-As Manuel points out, this is a flawed fix, and doesnt fix the
-following:
-
-mkdir -p cpa cpb cpc
-cp -a cpa cpa/cpb/cpc
-
-Attached what appears to be a more sane fix.  Apply on top of previous.
-Please confirm sanity.
-
-Members:
-	libbb/copy_file.c:1.29->1.30
+Members: 
+	archival/libunarchive/Makefile.in:1.22->1.23 
+	archival/libunarchive/uncompress.c:1.10->1.11(DEAD) 
+	archival/libunarchive/unzip.c:1.33->1.34(DEAD) 
 
 ---------------------
-PatchSet 3949
-Date: 2004/02/19 08:48:30
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Add extra comments, freakout if a pax archive is encoutered.
-
-Members:
-	archival/libunarchive/get_header_tar.c:1.32->1.33
-
----------------------
-PatchSet 3950
-Date: 2004/02/20 02:25:18
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-A strict interpretation of the ustar format requires the type flag to be
-interpreted, we cannot depend on the file type being set in the mode
-field.
-
-Members:
-	archival/libunarchive/get_header_tar.c:1.33->1.34
-
----------------------
-PatchSet 3951
-Date: 2004/02/20 02:34:42
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Fix up hard links
-
-Members:
-	archival/libunarchive/get_header_tar.c:1.34->1.35
-
----------------------
-PatchSet 3952
-Date: 2004/02/20 09:55:37
+PatchSet 4021 
+Date: 2004/04/05 14:08:08
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Document missing cp options
+Tito, farmatito at tiscali dot it writes:
 
-Members:
-	include/usage.h:1.187->1.188
+Hi to all,
+I discovered a little bug in hdparm.c
+(really two little bugs...I've made...sigh! Mea culpa).
+Some vars were  modified only locally and this could lead to wrong
+results to be displayed with the -I switch and maybe with others.
+Attached is a patch that fix it ( +88b).
+
+Also attached is second patch that reduces the size a little bit:
+   text    data     bss     dec     hex filename
+    27984     624     900   29508    7344 hdparm.o (without bug-fix)
+    28072     624     900   29596    739c hdparm.o (with bug-fix)
+    28141     624     900   29665    73e1 hdparm.o (original)
+but maybe this one can wait as we are in a feature freeze.
+
+Ciao,
+Tito
+
+Members: 
+	miscutils/hdparm.c:1.13->1.14 
 
 ---------------------
-PatchSet 3953
-Date: 2004/02/21 07:49:54
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Use return instead of exit, use == instead of & ==, left justify labels,
-adjustment of whitespace.
-
-Members:
-	coreutils/mv.c:1.19->1.20
-
----------------------
-PatchSet 3954
-Date: 2004/02/21 09:20:56
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Sometimes i get carried away with the use of function pointers, im sure
-it seemed like a good idea at the time.
-
-Members:
-	archival/libunarchive/seek_by_char.c:1.3->1.4
-	include/libbb.h:1.126->1.127
-	libbb/copyfd.c:1.9->1.10
-
----------------------
-PatchSet 3955
-Date: 2004/02/22 00:27:34
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-No need to check proxy env variable twice, ignore proxy env variable if
-its set to 0
-
-Members:
-	networking/wget.c:1.68->1.69
-
----------------------
-PatchSet 3956
-Date: 2004/02/22 02:58:57
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Return 1 upon failure
-
-Members:
-	coreutils/md5_sha1_sum.c:1.4->1.5
-
----------------------
-PatchSet 3957
-Date: 2004/02/22 03:33:53
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Ptch by Hideki IWAMOTO, fix a bug preventing tftp from getting or
-putting more than 0xffff blocks.
-
-Members:
-	networking/tftp.c:1.21->1.22
-
----------------------
-PatchSet 3958
-Date: 2004/02/22 04:12:58
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Update usage for ftpget and ftpput
-
-Members:
-	include/usage.h:1.188->1.189
-
----------------------
-PatchSet 3959
-Date: 2004/02/22 04:17:26
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Thomas Geulig, remove duplicate header
-
-Members:
-	init/init_shared.c:1.3->1.4
-
----------------------
-PatchSet 3960
-Date: 2004/02/22 04:44:21
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Fixup braces (patch from Thomas Geulig), run through indent and manually
-adjust.
-
-Members:
-	miscutils/crond.c:1.12->1.13
-
----------------------
-PatchSet 3961
-Date: 2004/02/22 04:58:36
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-remove duplicate header declarations
-
-Members:
-	networking/inetd.c:1.18->1.19
-
----------------------
-PatchSet 3962
-Date: 2004/02/22 07:20:25
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from Hideki IWAMOTO, output debugging messages to stderr
-
-Members:
-	networking/tftp.c:1.22->1.23
-
----------------------
-PatchSet 3963
-Date: 2004/02/22 07:38:36
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from Florian Schirmer. compile fix for debug builds
-
-Members:
-	miscutils/devfsd.c:1.7->1.8
-
----------------------
-PatchSet 3964
-Date: 2004/02/22 08:33:37
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Use /var/lib/hwclock for adjtime, its really a state file rather than a
-config file, so it should be in /etc, FHS mentions it also.
-
-Members:
-	util-linux/hwclock.c:1.6->1.7
-
----------------------
-PatchSet 3965
-Date: 2004/02/22 09:11:33
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Use bb_getopt_ulflags, marginal saving, better argument checking.
-
-Members:
-	util-linux/hwclock.c:1.7->1.8
-
----------------------
-PatchSet 3966
-Date: 2004/02/22 09:45:57
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from James Zhu, telnetd window resizing support.
-
-Members:
-	networking/telnetd.c:1.9->1.10
-
----------------------
-PatchSet 3967
-Date: 2004/02/22 11:13:28
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Vodz. last_patch_128
-- declare applet_using as static from applets.c
-- small correction to cmdedit,
-   previous version cleared history after Ctrl-C
-- small spelling correction (by Friedrich Lobenstock)
-
-Members:
-	applets/applets.c:1.22->1.23
-	shell/cmdedit.c:1.88->1.89
-
----------------------
-PatchSet 3968
-Date: 2004/02/22 11:25:13
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from Vodz, cleanup memory usage, send strdup error messages to
-syslog.
-
-Members:
-	networking/inetd.c:1.19->1.20
-
----------------------
-PatchSet 3969
-Date: 2004/02/22 11:35:13
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from Chris Larson (kergoth), to allow multiple directores to be
-unmounted at once.
-
-Members:
-	docs/busybox.sgml:1.52->1.53
-	util-linux/umount.c:1.62->1.63
-
----------------------
-PatchSet 3970
-Date: 2004/02/22 11:46:49
+PatchSet 4022 
+Date: 2004/04/05 14:24:07
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-For the time being, revert the changes for detecting copying
-a directory into itself.  It is harder to do this correctly
-than it appears.  Not trying at all seems a better compromise
-for the time being, untill we can implement this correctly.
+Per suggestion by Pawel Sakowski, fix the dash_arith() prototype
+to return a long.  We were needlessly truncating to an int.
 
-Members:
-	libbb/copy_file.c:1.30->1.31
+Members: 
+	shell/ash.c:1.93->1.94 
 
 ---------------------
-PatchSet 3971
-Date: 2004/02/22 11:55:09
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Patch from Dmitry Zakharov, this line was missedfrom the last patch
-
-Members:
-	editors/awk.c:1.5->1.6
-
----------------------
-PatchSet 3972
-Date: 2004/02/22 12:17:33
-Author: bug1
-Branch: HEAD
-Tag: (none)
-Log:
-Fix from Paul Kortekaas for syslog -C option, size should be in kB.
-
-Members:
-	sysklogd/syslogd.c:1.106->1.107
-
----------------------
-PatchSet 3973
-Date: 2004/02/22 12:25:47
+PatchSet 4023 
+Date: 2004/04/05 15:30:15
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Fernando Silveira writes:
+Patch adding support for ibs= and obs= to dd
 
-Hi,
-
-  Well, I made this patch a long time ago (08/2002) because it was a
-  need of a project, but had no time to send it to you. It adds support
-  to `autologin' option of the telnet protocol. It has been used since
-  made with busybox 0.60.3 at production and I had no problems with it.
-  I have ported it to the HEAD revision of the CVS server (20040211) and
-  I hope you enjoy and apply it to the official sources. :)
-
-Thanks a lot!
-
-Members:
-	include/usage.h:1.189->1.190
-	networking/Config.in:1.26->1.27
-	networking/telnet.c:1.41->1.42
+Members: 
+	patches/dd_ibs_and_obs.diff:INITIAL->1.1 
 
 ---------------------
-PatchSet 3974
-Date: 2004/02/22 12:27:04
+PatchSet 4024 
+Date: 2004/04/05 19:46:24
 Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-Bump up version in preparation for -pre8
+Some test additions
 
-Members:
-	Rules.mak:1.27->1.28
+Members: 
+	testsuite/cp/cp-a-files-to-dir:INITIAL->1.1 
+	testsuite/cp/cp-a-preserves-links:INITIAL->1.1 
+	testsuite/cp/cp-d-files-to-dir:INITIAL->1.1 
+	testsuite/cp/cp-files-to-dir:INITIAL->1.1 
+	testsuite/cp/cp-preserves-links:1.1->1.2 
 
 ---------------------
-PatchSet 3975
-Date: 2004/02/23 08:11:07
-Author: bug1
+PatchSet 4025 
+Date: 2004/04/06 01:41:39
+Author: andersen
 Branch: HEAD
-Tag: (none)
+Tag: (none) 
 Log:
-bb_full_fd_action was incorrectly returning an error message causing
-major breaking.
+Fix the test suite script so it actually works and actually flags
+all errors as such.  Make verbose mode exit on FAIL and provide a
+printout of the failed test run.
 
-Members:
-	libbb/copyfd.c:1.10->1.11
+Members: 
+	testsuite/runtest:1.6->1.7 
+
+---------------------
+PatchSet 4026 
+Date: 2004/04/06 10:38:18
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix non standard 'date -R' formatting
+
+Members: 
+	coreutils/date.c:1.45->1.46 
+
+---------------------
+PatchSet 4027 
+Date: 2004/04/06 12:09:47
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Kill off the old 'tests' stuff.  Write a ton of new tests for the
+'testsuite' dir.  Fix a bunch of broken tests.  Fix the testsuite
+'runtest' script so it actually reports all failures and provides
+meaningful feedback.
+ -Erik
+
+Members: 
+	testsuite/runtest:1.7->1.8 
+	testsuite/basename/basename-works:INITIAL->1.1 
+	testsuite/cmp/cmp-detects-difference:1.2->1.3 
+	testsuite/cp/cp-a-files-to-dir:1.1->1.2 
+	testsuite/cp/cp-a-preserves-links:1.1->1.2 
+	testsuite/cp/cp-d-files-to-dir:1.1->1.2 
+	testsuite/cp/cp-does-not-copy-unreadable-file:1.1->1.2 
+	testsuite/cp/cp-preserves-links:1.2->1.3 
+	testsuite/date/date-R-works:INITIAL->1.1 
+	testsuite/date/date-format-works:INITIAL->1.1 
+	testsuite/date/date-u-works:INITIAL->1.1 
+	testsuite/date/date-works:INITIAL->1.1 
+	testsuite/dirname/dirname-works:INITIAL->1.1 
+	testsuite/du/du-h-works:INITIAL->1.1 
+	testsuite/du/du-k-works:INITIAL->1.1 
+	testsuite/du/du-l-works:INITIAL->1.1 
+	testsuite/du/du-m-works:INITIAL->1.1 
+	testsuite/du/du-s-works:INITIAL->1.1 
+	testsuite/du/du-works:INITIAL->1.1 
+	testsuite/echo/echo-prints-argument:1.1->1.2 
+	testsuite/expr/expr-works:INITIAL->1.1 
+	testsuite/grep/grep-matches-NUL:1.2->1.3 
+	testsuite/head/head-n-works:INITIAL->1.1 
+	testsuite/head/head-works:INITIAL->1.1 
+	testsuite/hostid/hostid-works:INITIAL->1.1 
+	testsuite/hostname/hostname-d-works:INITIAL->1.1 
+	testsuite/hostname/hostname-i-works:INITIAL->1.1 
+	testsuite/hostname/hostname-s-works:INITIAL->1.1 
+	testsuite/hostname/hostname-works:INITIAL->1.1 
+	testsuite/id/id-g-works:INITIAL->1.1 
+	testsuite/id/id-u-works:INITIAL->1.1 
+	testsuite/id/id-un-works:INITIAL->1.1 
+	testsuite/id/id-ur-works:INITIAL->1.1 
+	testsuite/ln/ln-creates-hard-links:INITIAL->1.1 
+	testsuite/ln/ln-creates-soft-links:INITIAL->1.1 
+	testsuite/ln/ln-force-creates-hard-links:INITIAL->1.1 
+	testsuite/ln/ln-force-creates-soft-links:INITIAL->1.1 
+	testsuite/ln/ln-preserves-hard-links:INITIAL->1.1 
+	testsuite/ln/ln-preserves-soft-links:INITIAL->1.1 
+	testsuite/ls/ls-1-works:INITIAL->1.1 
+	testsuite/ls/ls-h-works:INITIAL->1.1 
+	testsuite/ls/ls-l-works:INITIAL->1.1 
+	testsuite/ls/ls-s-works:INITIAL->1.1 
+	testsuite/mv/mv-files-to-dir:INITIAL->1.1 
+	testsuite/mv/mv-follows-links:INITIAL->1.1 
+	testsuite/mv/mv-moves-empty-file:INITIAL->1.1 
+	testsuite/mv/mv-moves-hardlinks:INITIAL->1.1 
+	testsuite/mv/mv-moves-large-file:INITIAL->1.1 
+	testsuite/mv/mv-moves-small-file:INITIAL->1.1 
+	testsuite/mv/mv-moves-symlinks:INITIAL->1.1 
+	testsuite/mv/mv-moves-unreadable-files:INITIAL->1.1 
+	testsuite/mv/mv-preserves-hard-links:INITIAL->1.1 
+	testsuite/mv/mv-preserves-links:INITIAL->1.1 
+	testsuite/mv/mv-refuses-mv-dir-to-subdir:INITIAL->1.1 
+	testsuite/mv/mv-removes-source-file:INITIAL->1.1 
+	testsuite/pwd/pwd-prints-working-directory:1.1->1.2 
+	testsuite/sed/sed-append-next-line:1.2->1.3 
+	testsuite/sort/sort-n-works:INITIAL->1.1 
+	testsuite/sort/sort-r-works:INITIAL->1.1 
+	testsuite/sort/sort-works:INITIAL->1.1 
+	testsuite/strings/strings-works-like-GNU:1.1->1.2 
+	testsuite/tail/tail-n-works:INITIAL->1.1 
+	testsuite/tail/tail-works:INITIAL->1.1 
+	testsuite/tar/tar-extracts-multiple-files:1.1->1.2 
+	testsuite/tr/tr-d-works:INITIAL->1.1 
+	testsuite/tr/tr-non-gnu:INITIAL->1.1 
+	testsuite/tr/tr-works:INITIAL->1.1 
+	testsuite/uptime/uptime-works:INITIAL->1.1 
+	testsuite/uuencode/uuencode-sets-standard-input-mode-correctly:1.1->1.2 
+	testsuite/which/which-uses-default-path:1.2->1.3 
+	testsuite/xargs/xargs-works:INITIAL->1.1 
+
+---------------------
+PatchSet 4028 
+Date: 2004/04/06 12:10:50
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Simplify, make formatting better match the procps version
+
+Members: 
+	procps/uptime.c:1.18->1.19 
+
+---------------------
+PatchSet 4029 
+Date: 2004/04/06 12:34:02
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Minor tar test update
+
+Members: 
+	testsuite/tar/tar-extracts-multiple-files:1.2->1.3 
+
+---------------------
+PatchSet 4030 
+Date: 2004/04/06 12:46:56
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Make 'allyesconfig' be a bit less stupid
+
+Members: 
+	Makefile:1.290->1.291 
+
+---------------------
+PatchSet 4031 
+Date: 2004/04/06 12:51:45
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Yet more 'make allyesconfig' adjustments
+
+Members: 
+	Makefile:1.291->1.292 
+
+---------------------
+PatchSet 4032 
+Date: 2004/04/06 12:56:25
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Christian Grigis, christian.grigis at smartdata dot ch writes:
+
+Hello everyone,
+
+Busybox's insmod fails to locate a module when that module is the only one
+existing in the /lib/modules directory (with a unique name).
+
+Example:
+
+# find /lib/modules/ -type f
+/lib/modules/kernel/drivers/char/bios.o
+# insmod bios
+insmod: bios.o: no module by that name found
+# touch /lib/modules/dummy
+# find /lib/modules/ -type f
+/lib/modules/kernel/drivers/char/bios.o
+/lib/modules/dummy
+# insmod bios
+Using /lib/modules/kernel/drivers/char/bios.o
+
+As long as there is another file in the /lib/modules directory, insmod
+finds it OK.
+
+I tracked the problem down to 'check_module_name_match()' in insmod.c:
+
+It returns TRUE when a match is found, and FALSE otherwise. In the case
+where there is only one module in the /lib/modules directory (or more that
+one module, but all with the same name), 'recursive_action()' will return
+TRUE and we end up on line 4196 in 'insmod.c' which returns an error.
+[The reason it works with more than one module with different
+names is that in this case there will always be one not matching,
+'recursive_action()' will return FALSE and we end up in line 4189.]
+
+Now, from the implementation of 'recursive_action()' and from other
+usages of it (tar.c, etc.), it seems to me that FALSE should be returned
+to indicate that we want to stop the recursion, so TRUE and FALSE should
+be inverted in 'check_module_name_match()'.
+
+At the same time, 'recursive_action()' continues to recurse even after
+the recursive call has returned FALSE; again in my understanding and
+other usages of it, we can safely stop recursing at this point.
+
+
+Here is my patch against 1.00-pre8:
+
+Members: 
+	libbb/recursive_action.c:1.11->1.12 
+	modutils/insmod.c:1.115->1.116 
+
+---------------------
+PatchSet 4033 
+Date: 2004/04/06 13:04:14
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Michael Tokarev, mjt at tls dot msk dot ru writes:
+
+Initialize all fields of struct dep_t.
+Without that, e.g. `busybox modprobe -v char-major-10-144' *sometimes*
+fails this way (strace):
+
+ write(1, "insmod    nvram `\213\f\10\n", 21) = 21
+
+Note the garbage after module name which is taken from the m_options field,
+which is not initialized in the alias reading/parsing part.
+(Shell properly complains to this command, telling it can't find the
+closing backtick)
+
+Members: 
+	modutils/modprobe.c:1.28->1.29 
+
+---------------------
+PatchSet 4034 
+Date: 2004/04/06 13:05:04
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Michael Tokarev, mjt at tls dot msk dot ru writes:
+
+alias 'off' parsing fix.
+It is not
+ alias off module
+it is
+ alias module off
+
+Members: 
+	modutils/modprobe.c:1.29->1.30 
+
+---------------------
+PatchSet 4035 
+Date: 2004/04/06 13:06:03
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Michael Tokarev, mjt at tls dot msk dot ru writes:
+
+Fix parsing of all tag-value pairs (in modules.conf in particular).
+Without this fix, code chokes badly on lines where either value or
+both tag+value are missing, like bare
+ alias
+line, or alias w/o the value like
+ alias some-module
+(syntactically incorrect, but no need for coredumps either).
+
+Members: 
+	modutils/modprobe.c:1.30->1.31 
+
+---------------------
+PatchSet 4036 
+Date: 2004/04/06 15:28:34
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix it so usage is _always_ in sync with applets.c.  Previously,
+broken depends allowed these to get out of sync.
+
+Members: 
+	Makefile:1.292->1.293 
+	Rules.mak:1.29->1.30 
+	applets/Makefile.in:1.4->1.5 
+	applets/applets.c:1.24->1.25 
+	applets/usage.c:1.59->1.60(DEAD) 
+
+---------------------
+PatchSet 4037 
+Date: 2004/04/06 16:19:52
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix it so build dependancies actually work and do something useful
+
+Members: 
+	Makefile:1.293->1.294 
+
+---------------------
+PatchSet 4038 
+Date: 2004/04/06 16:26:25
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Eliminate all trace of the sgml based docs.  It was a noble effort,
+but it just never worked out...
+
+Members: 
+	Makefile:1.294->1.295 
+	docs/autodocifier.pl:1.25->1.26 
+	docs/busybox.sgml:1.54->1.55(DEAD) 
+
+---------------------
+PatchSet 4039 
+Date: 2004/04/06 16:39:19
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Yet more doc updates
+
+Members: 
+	README:1.32->1.33 
+	docs/busybox_header.pod:1.15->1.16 
+	docs/busybox.net/screenshot.html:1.10->1.11 
+
+---------------------
+PatchSet 4040 
+Date: 2004/04/06 17:36:20
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+yet-more doc updates and cleanups
+
+Members: 
+	include/usage.h:1.198->1.199 
+
+---------------------
+PatchSet 4041 
+Date: 2004/04/06 17:56:00
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix indenting
+
+Members: 
+	networking/Makefile.in:1.18->1.19 
+
+---------------------
+PatchSet 4042 
+Date: 2004/04/06 17:59:43
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Seem not many people are using 'ipaddr' since it has
+never worked....  Most people use 'ip addr foo' I suppose.
+
+Members: 
+	include/applets.h:1.112->1.113 
+
+---------------------
+PatchSet 4043 
+Date: 2004/04/06 18:16:36
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Yet more doc cleanups.  Many thanks to Robert P. J. Day for
+kindly reviewing the existing docs and providing helpful feedback.
+
+Members: 
+	include/usage.h:1.199->1.200 
+
+---------------------
+PatchSet 4044 
+Date: 2004/04/06 18:52:02
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Yet more doc updates
+
+Members: 
+	AUTHORS:1.42->1.43 
+	docs/busybox_footer.pod:1.14->1.15 
+	include/usage.h:1.200->1.201 
+
+---------------------
+PatchSet 4045 
+Date: 2004/04/06 18:53:09
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix buffalo url
+
+Members: 
+	docs/busybox.net/products.html:1.7->1.8 
+
+---------------------
+PatchSet 4046 
+Date: 2004/04/06 18:58:37
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Bump version to -pre9
+
+Members: 
+	Rules.mak:1.30->1.31 
+
+---------------------
+PatchSet 4047 
+Date: 2004/04/07 10:17:14
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Update the default config
+
+Members: 
+	sysdeps/linux/defconfig:1.6->1.7 
+
+---------------------
+PatchSet 4048 
+Date: 2004/04/07 10:34:27
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Remove the CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN option.  It was sortof
+stupid and didn't work properly anyways.
+
+Members: 
+	debian/config-static:1.14->1.15 
+	debian/config-udeb:1.18->1.19 
+	debian/config-udeb-linux:1.1->1.2 
+	shell/Config.in:1.14->1.15 
+	shell/ash.c:1.94->1.95 
+	shell/hush.c:1.65->1.66 
+	shell/lash.c:1.158->1.159 
+	shell/msh.c:1.16->1.17 
+
+---------------------
+PatchSet 4049 
+Date: 2004/04/07 11:34:16
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Add an example inetd.conf file
+
+Members: 
+	examples/inetd.conf:INITIAL->1.1 
+
+---------------------
+PatchSet 4050 
+Date: 2004/04/07 13:26:57
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+More doc updates
+
+Members: 
+	docs/busybox.net/license.html:1.3->1.4 
+	docs/busybox.net/products.html:1.8->1.9 
+	docs/busybox.net/shame.html:1.9->1.10 
+
+---------------------
+PatchSet 4051 
+Date: 2004/04/07 13:57:15
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Mention Acronis PartitionExpert
+
+Members: 
+	docs/busybox.net/shame.html:1.10->1.11 
+
+---------------------
+PatchSet 4052 
+Date: 2004/04/07 15:02:40
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Minor update
+
+Members: 
+	docs/busybox.net/shame.html:1.11->1.12 
+
+---------------------
+PatchSet 4053 
+Date: 2004/04/07 15:07:27
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix url
+
+Members: 
+	docs/busybox.net/shame.html:1.12->1.13 
 
