@@ -89,7 +89,7 @@ static int addgroup(const char *filename, char *group, gid_t gid)
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	FILE *etc_gshadow;
-	char *gshadow = shadow_file;
+	const char *gshadow = shadow_file;
 #endif
 
 	struct group gr;
@@ -162,4 +162,4 @@ int addgroup_main(int argc, char **argv)
 	return addgroup(group_file, group, gid);
 }
 
-/* $Id: addgroup.c,v 1.3 2002/07/03 23:19:18 andersen Exp $ */
+/* $Id: addgroup.c,v 1.4 2002/07/21 17:33:27 sandman Exp $ */
