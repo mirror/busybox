@@ -157,6 +157,17 @@ config EXTRA_CFLAGS_OPTIONS
 
 endmenu
 
+menu 'Installation Options'
+
+config CONFIG_INSTALL_NO_USR
+	bool "Don't use /usr"
+	default n
+	help
+	  Disable use of /usr. Don't activate this option if you don't know,
+	  that you really want this behaviour.
+
+endmenu
+
 source archival/Config.in
 source console-tools/Config.in
 source debianutils/Config.in

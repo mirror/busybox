@@ -41,6 +41,11 @@
   #define APPLET_ODDNAME(a,b,c,d,e) {a,b,c,d},
 #endif
 
+#ifdef CONFIG_INSTALL_NO_USR
+#define _BB_DIR_USR_BIN _BB_DIR_BIN
+#define _BB_DIR_USR_SBIN _BB_DIR_SBIN
+#endif
+
 
 
 #ifdef CONFIG_TEST
