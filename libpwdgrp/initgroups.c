@@ -104,7 +104,7 @@ int initgroups(__const char *user, gid_t gid)
 					group_list = (gid_t *) realloc(group_list, num_groups *
 						sizeof(gid_t *));
 #endif
-					group_list[num_groups] = group->gr_gid;
+					group_list[num_groups-1] = group->gr_gid;
 				}
 				tmp_mem++;
 			}
