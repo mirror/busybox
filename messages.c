@@ -81,9 +81,9 @@
 #if defined bb_need_too_few_args || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(too_few_args, "too few arguments\n")
 #endif
-
-
-
+#if defined bb_need_name_longer_then_foo || ! defined BB_DECLARE_EXTERN
+	BB_DEF_MESSAGE(name_longer_then_foo, "Names longer then %d chars not supported.\n")
+#endif
 
 
 #endif /* _BB_MESSAGES_C */

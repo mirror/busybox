@@ -39,6 +39,7 @@
 #include "internal.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_io_error
+#define bb_need_name_longer_then_foo
 #include "messages.c"
 #include <stdio.h>
 #include <dirent.h>
@@ -57,12 +58,13 @@
 #define MINOR(dev) ((dev)&0xff)
 #endif
 
+#define NAME_SIZE	100
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
 struct TarHeader
 {
                                 /* byte offset */
-	char name[100];               /*   0-99 */
+	char name[NAME_SIZE];         /*   0-99 */
 	char mode[8];                 /* 100-107 */
 	char uid[8];                  /* 108-115 */
 	char gid[8];                  /* 116-123 */
@@ -70,7 +72,7 @@ struct TarHeader
 	char mtime[12];               /* 136-147 */
 	char chksum[8];               /* 148-155 */
 	char typeflag;                /* 156-156 */
-	char linkname[100];           /* 157-256 */
+	char linkname[NAME_SIZE];     /* 157-256 */
 	char magic[6];                /* 257-262 */
 	char version[2];              /* 263-264 */
 	char uname[32];               /* 265-296 */
@@ -102,6 +104,8 @@ enum TarFileType
 	DIRTYPE  = '5',            /* directory */
 	FIFOTYPE = '6',            /* FIFO special */
 	CONTTYPE = '7',            /* reserved */
+	GNULONGLINK = 'K',         /* GNU long (>100 chars) link name */
+	GNULONGNAME = 'L',         /* GNU long (>100 chars) file name */
 };
 typedef enum TarFileType TarFileType;
 
@@ -496,6 +500,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 {
 	int status, tarFd=-1;
 	int errorFlag=FALSE;
+	int skipNextHeaderFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
 	char** tmpList;
@@ -517,7 +522,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 	/* Read the tar file, and iterate over it one file at a time */
 	while ( (status = fullRead(tarFd, (char*)&rawHeader, TAR_BLOCK_SIZE)) == TAR_BLOCK_SIZE ) {
 
-		/* First, try to read the header */
+		/* Try to read the header */
 		if ( readTarHeader(&rawHeader, &header) == FALSE ) {
 			if ( *(header.name) == '\0' ) {
 				goto endgame;
@@ -530,6 +535,19 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		if ( *(header.name) == '\0' )
 				goto endgame;
 		header.tarFd = tarFd;
+
+		/* Skip funky extra GNU headers that precede long files */
+		if ( (header.type == GNULONGNAME) || (header.type == GNULONGLINK) ) {
+			skipNextHeaderFlag=TRUE;
+			tarExtractRegularFile(&header, FALSE, FALSE);
+			continue;
+		}
+		if ( skipNextHeaderFlag == TRUE ) { 
+			skipNextHeaderFlag=FALSE;
+			errorMsg(name_longer_then_foo, NAME_SIZE); 
+			tarExtractRegularFile(&header, FALSE, FALSE);
+			continue;
+		}
 
 #if defined BB_FEATURE_TAR_EXCLUDE
 		{
@@ -671,7 +689,15 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 				if (tarExtractSpecial( &header, extractFlag, tostdoutFlag)==FALSE)
 					errorFlag=TRUE;
 				break;
+#if 0
+			/* Handled earlier */
+			case GNULONGNAME:
+			case GNULONGLINK:
+				skipNextHeaderFlag=TRUE;
+				break;
+#endif
 			default:
+				errorMsg("Unknown file type '%c' in tar file\n", header.type);
 				close( tarFd);
 				return( FALSE);
 		}
@@ -895,6 +921,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 			tbInfo->statBuf.st_ino == statbuf->st_ino) {
 		errorMsg("%s: file is the archive; skipping\n", fileName);
 		return( TRUE);
+	}
+
+	if (strlen(fileName) >= NAME_SIZE) {
+		errorMsg(name_longer_then_foo, NAME_SIZE);
+		return ( TRUE);
 	}
 
 	if (writeTarHeader(tbInfo, fileName, statbuf)==FALSE) {
