@@ -100,6 +100,7 @@
 #define BB_UPTIME
 #define BB_USLEEP
 #define BB_WC
+#define BB_WGET
 #define BB_WHICH
 #define BB_WHOAMI
 #define BB_UUENCODE

@@ -328,6 +328,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_WC
 	{"wc", wc_main, _BB_DIR_USR_BIN, wc_usage},
 #endif
+#ifdef BB_WGET
+	{"wget", wget_main, _BB_DIR_USR_BIN, wget_usage},
+#endif
 #ifdef BB_WHICH
 	{"which", which_main, _BB_DIR_USR_BIN, which_usage},
 #endif
