@@ -41,15 +41,13 @@
 #include <scsi/scsi.h>          /* SCSI_IOCTL_GET_IDLUN */
 #undef u_char
 
-#ifdef HAVE_blkpg_h
-#include <linux/blkpg.h>
-#endif
-
 #include <sys/ioctl.h>
 #include <sys/param.h>
 
-#include <linux/types.h>        /* for __u32, __u16, __u8, __s16 */
-#include <linux/major.h>        /* FLOPPY_MAJOR */
+#include <stdint.h>        /* for uint32_t, uint16_t, uint8_t, int16_t, etc */
+
+/* Copied from linux/major.h */
+#define FLOPPY_MAJOR	2
 
 #include <sys/utsname.h>
 
@@ -497,7 +495,7 @@ check_aix_label( void )
 
 
 #ifndef BSD_DISKMAGIC
-#define BSD_DISKMAGIC     ((__u32) 0x82564557)
+#define BSD_DISKMAGIC     ((uint32_t) 0x82564557)
 #endif
 
 #ifndef BSD_MAXPARTITIONS
@@ -520,31 +518,31 @@ check_aix_label( void )
 #define BSD_SBSIZE        8192          /* max size of fs superblock */
 
 struct xbsd_disklabel {
-	__u32   d_magic;                /* the magic number */
-	__s16   d_type;                 /* drive type */
-	__s16   d_subtype;              /* controller/d_type specific */
+	uint32_t   d_magic;                /* the magic number */
+	int16_t   d_type;                 /* drive type */
+	int16_t   d_subtype;              /* controller/d_type specific */
 	char    d_typename[16];         /* type name, e.g. "eagle" */
 	char    d_packname[16];                 /* pack identifier */
 			/* disk geometry: */
-	__u32   d_secsize;              /* # of bytes per sector */
-	__u32   d_nsectors;             /* # of data sectors per track */
-	__u32   d_ntracks;              /* # of tracks per cylinder */
-	__u32   d_ncylinders;           /* # of data cylinders per unit */
-	__u32   d_secpercyl;            /* # of data sectors per cylinder */
-	__u32   d_secperunit;           /* # of data sectors per unit */
+	uint32_t   d_secsize;              /* # of bytes per sector */
+	uint32_t   d_nsectors;             /* # of data sectors per track */
+	uint32_t   d_ntracks;              /* # of tracks per cylinder */
+	uint32_t   d_ncylinders;           /* # of data cylinders per unit */
+	uint32_t   d_secpercyl;            /* # of data sectors per cylinder */
+	uint32_t   d_secperunit;           /* # of data sectors per unit */
 	/*
 	 * Spares (bad sector replacements) below
 	 * are not counted in d_nsectors or d_secpercyl.
 	 * Spare sectors are assumed to be physical sectors
 	 * which occupy space at the end of each track and/or cylinder.
 	 */
-	__u16   d_sparespertrack;       /* # of spare sectors per track */
-	__u16   d_sparespercyl;         /* # of spare sectors per cylinder */
+	uint16_t   d_sparespertrack;       /* # of spare sectors per track */
+	uint16_t   d_sparespercyl;         /* # of spare sectors per cylinder */
 	/*
 	 * Alternate cylinders include maintenance, replacement,
 	 * configuration description areas, etc.
 	 */
-	__u32   d_acylinders;           /* # of alt. cylinders per unit */
+	uint32_t   d_acylinders;           /* # of alt. cylinders per unit */
 
 			/* hardware characteristics: */
 	/*
@@ -563,30 +561,30 @@ struct xbsd_disklabel {
 	 * Finally, d_cylskew is the offset of sector 0 on cylinder N
 	 * relative to sector 0 on cylinder N-1.
 	 */
-	__u16   d_rpm;                  /* rotational speed */
-	__u16   d_interleave;           /* hardware sector interleave */
-	__u16   d_trackskew;            /* sector 0 skew, per track */
-	__u16   d_cylskew;              /* sector 0 skew, per cylinder */
-	__u32   d_headswitch;           /* head switch time, usec */
-	__u32   d_trkseek;              /* track-to-track seek, usec */
-	__u32   d_flags;                /* generic flags */
+	uint16_t   d_rpm;                  /* rotational speed */
+	uint16_t   d_interleave;           /* hardware sector interleave */
+	uint16_t   d_trackskew;            /* sector 0 skew, per track */
+	uint16_t   d_cylskew;              /* sector 0 skew, per cylinder */
+	uint32_t   d_headswitch;           /* head switch time, usec */
+	uint32_t   d_trkseek;              /* track-to-track seek, usec */
+	uint32_t   d_flags;                /* generic flags */
 #define NDDATA 5
-	__u32   d_drivedata[NDDATA];    /* drive-type specific information */
+	uint32_t   d_drivedata[NDDATA];    /* drive-type specific information */
 #define NSPARE 5
-	__u32   d_spare[NSPARE];        /* reserved for future use */
-	__u32   d_magic2;               /* the magic number (again) */
-	__u16   d_checksum;             /* xor of data incl. partitions */
+	uint32_t   d_spare[NSPARE];        /* reserved for future use */
+	uint32_t   d_magic2;               /* the magic number (again) */
+	uint16_t   d_checksum;             /* xor of data incl. partitions */
 			/* filesystem and partition information: */
-	__u16   d_npartitions;          /* number of partitions in following */
-	__u32   d_bbsize;               /* size of boot area at sn0, bytes */
-	__u32   d_sbsize;               /* max size of fs superblock, bytes */
+	uint16_t   d_npartitions;          /* number of partitions in following */
+	uint32_t   d_bbsize;               /* size of boot area at sn0, bytes */
+	uint32_t   d_sbsize;               /* max size of fs superblock, bytes */
 	struct xbsd_partition    {      /* the partition table */
-		__u32   p_size;         /* number of sectors in partition */
-		__u32   p_offset;       /* starting sector */
-		__u32   p_fsize;        /* filesystem basic fragment size */
-		__u8    p_fstype;       /* filesystem type, see below */
-		__u8    p_frag;         /* filesystem fragments per block */
-		__u16   p_cpg;          /* filesystem cylinders per group */
+		uint32_t   p_size;         /* number of sectors in partition */
+		uint32_t   p_offset;       /* starting sector */
+		uint32_t   p_fsize;        /* filesystem basic fragment size */
+		uint8_t    p_fstype;       /* filesystem type, see below */
+		uint8_t    p_frag;         /* filesystem fragments per block */
+		uint16_t   p_cpg;          /* filesystem cylinders per group */
 	} d_partitions[BSD_MAXPARTITIONS]; /* actually may be more */
 };
 
@@ -792,9 +790,9 @@ typedef struct {
 #define SGI_INFO_MAGIC          0x00072959
 #define SGI_INFO_MAGIC_SWAPPED  0x59290700
 #define SGI_SSWAP16(x) (sgi_other_endian ? __swap16(x) \
-				 : (__u16)(x))
+				 : (uint16_t)(x))
 #define SGI_SSWAP32(x) (sgi_other_endian ? __swap32(x) \
-				 : (__u32)(x))
+				 : (uint32_t)(x))
 
 #define sgilabel ((sgi_partition *)MBRbuffer)
 #define sgiparam (sgilabel->devparam)
@@ -820,8 +818,8 @@ typedef struct {
 	unsigned short nsect;      /* Sectors per track */
 	unsigned char spare3[4];   /* Even more magic... */
 	struct sun_partition {
-		__u32 start_cylinder;
-		__u32 num_sectors;
+		uint32_t start_cylinder;
+		uint32_t num_sectors;
 	} partitions[8];
 	unsigned short magic;      /* Magic number */
 	unsigned short csum;       /* Label xor'd checksum */
@@ -831,9 +829,9 @@ typedef struct {
 #define SUN_LABEL_MAGIC_SWAPPED  0xBEDA
 #define sunlabel ((sun_partition *)MBRbuffer)
 #define SUN_SSWAP16(x) (sun_other_endian ? __swap16(x) \
-				 : (__u16)(x))
+				 : (uint16_t)(x))
 #define SUN_SSWAP32(x) (sun_other_endian ? __swap32(x) \
-				 : (__u32)(x))
+				 : (uint32_t)(x))
 
 /*
  * llseek.c -- stub calling the llseek system call
@@ -855,7 +853,7 @@ typedef struct {
 #define my_llseek lseek
 
 #else
-#include <linux/unistd.h>       /* for __NR__llseek */
+#include <asm/unistd.h>       /* for __NR__llseek */
 
 static int _llseek (unsigned int, unsigned long,
 		   unsigned long, ext2_loff_t *, unsigned int);
@@ -1761,12 +1759,12 @@ alpha_bootblock_checksum (char *boot)
 #if defined(CONFIG_FEATURE_SGI_LABEL) || defined(CONFIG_FEATURE_SUN_LABEL)
 static inline unsigned short
 __swap16(unsigned short x) {
-	return (((__u16)(x) & 0xFF) << 8) | (((__u16)(x) & 0xFF00) >> 8);
+	return (((uint16_t)(x) & 0xFF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8);
 }
 
-static inline __u32
-__swap32(__u32 x) {
-	return (((__u32)(x) & 0xFF) << 24) | (((__u32)(x) & 0xFF00) << 8) | (((__u32)(x) & 0xFF0000) >> 8) | (((__u32)(x) & 0xFF000000) >> 24);
+static inline uint32_t
+__swap32(uint32_t x) {
+	return (((uint32_t)(x) & 0xFF) << 24) | (((uint32_t)(x) & 0xFF00) << 8) | (((uint32_t)(x) & 0xFF0000) >> 8) | (((uint32_t)(x) & 0xFF000000) >> 24);
 }
 #endif
 
@@ -1987,8 +1985,8 @@ sgi_list_table( int xtra ) {
 	   w + 1, _("Device"));
     for (i = 0 ; i < partitions; i++) {
 	    if( sgi_get_num_sectors(i) || debug ) {
-	    __u32 start = sgi_get_start_sector(i);
-	    __u32 len = sgi_get_num_sectors(i);
+	    uint32_t start = sgi_get_start_sector(i);
+	    uint32_t len = sgi_get_num_sectors(i);
 	    kpi++;              /* only count nonempty partitions */
 	    printf(
 		"%2d: %s %4s %9ld %9ld %9ld  %2x  %s\n",
@@ -2011,8 +2009,8 @@ sgi_list_table( int xtra ) {
     {
 	if (sgilabel->directory[i].vol_file_size)
 	{
-	    __u32 start = SGI_SSWAP32(sgilabel->directory[i].vol_file_start);
-	    __u32 len = SGI_SSWAP32(sgilabel->directory[i].vol_file_size);
+	    uint32_t start = SGI_SSWAP32(sgilabel->directory[i].vol_file_start);
+	    uint32_t len = SGI_SSWAP32(sgilabel->directory[i].vol_file_size);
 	    char*name = sgilabel->directory[i].vol_file_name;
 	    printf(_("%2d: %-10s sector%5u size%8u\n"),
 		    i, name, (unsigned int) start, (unsigned int) len);
@@ -3222,8 +3220,8 @@ sun_list_table(int xtra) {
 	       w + 1, _("Device"));
 	for (i = 0 ; i < partitions; i++) {
 		if (sunlabel->partitions[i].num_sectors) {
-			__u32 start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
-			__u32 len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
+			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
+			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
 			printf(
 			    "%s %c%c %9ld %9ld %9ld%c  %2x  %s\n",
 /* device */              partname(disk_device, i+1, w),
