@@ -11,7 +11,7 @@ sub continuation {
 	while (<$fh>) {
 		my $s = $_;
 		$s =~ s/\\\s*$//;
-		$s =~ s/#.*$//;
+		#$s =~ s/#.*$//;
 		push @line, $s;
 		last unless (/\\\s*$/);
 	}
@@ -31,7 +31,7 @@ sub beautify {
 			s/"//g;
 			s/%/%%/g;
 			s/\$/\\\$/g;
-			eval qq[ sprintf(qq#$_#) ]
+			eval qq[ sprintf(qq{$_}) ]
 		} @line
 	);
 	return $text;
@@ -275,4 +275,4 @@ John BEPPU <beppu@lineo.com>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.18 2001/04/05 19:35:17 beppu Exp $
+# $Id: autodocifier.pl,v 1.19 2001/04/05 20:03:33 beppu Exp $

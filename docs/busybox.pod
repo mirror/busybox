@@ -631,7 +631,8 @@ Example:
 
 	$ fbset
 	mode 1024x768-76
-			geometry 1024 768 1024 768 16
+		# D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz
+		geometry 1024 768 1024 768 16
 		timings 12714 128 32 16 4 128 4
 		accel false
 		rgba 5/11,6/5,5/0,0/0
@@ -738,6 +739,7 @@ Parse command options
 Example:
 
 	$ cat getopt.test
+	#!/bin/sh
 	GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
 	       -n 'example.busybox' -- $@`
 	if [ $? != 0 ] ; then  exit 1 ; fi
@@ -939,10 +941,15 @@ it has the following default behavior:
 
 	::sysinit:/etc/init.d/rcS
 	::askfirst:/bin/sh
+	::ctrlaltdel:/sbin/reboot
+	::shutdown:/sbin/swapoff -a
+	::shutdown:/bin/umount -a -r
 
 if it detects that /dev/console is _not_ a serial console, it will also run:
 
 	tty2::askfirst:/bin/sh
+	tty3::askfirst:/bin/sh
+	tty4::askfirst:/bin/sh
 
 If you choose to use an /etc/inittab file, the inittab entry format is as follows:
 
@@ -968,7 +975,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 	<action>: 
 
 		Valid actions include: sysinit, respawn, askfirst, wait, 
-		once, and ctrlaltdel.
+		once, ctrlaltdel, and shutdown.
 
 		The available actions can be classified into two groups: actions
 		that are run only once, and actions that are re-run when the specified
@@ -982,9 +989,12 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 			'wait' actions, like  'sysinit' actions, cause init to wait until
 			the specified task completes.  'once' actions are asyncronous,
 			therefore, init does not wait for them to complete.  'ctrlaltdel'
-			actions are run immediately before init causes the system to reboot
-			(unmounting filesystems with a 'ctrlaltdel' action is a very good
-			idea).
+			actions are run when the system detects that someone on the system
+                       console has pressed the CTRL-ALT-DEL key combination.  Typically one
+                       wants to run 'reboot' at this point to cause the system to reboot.
+			Finally the 'shutdown' action specifies the actions to taken when
+                       init is told to reboot.  Unmounting filesystems and disabling swap
+                       is a very good here
 
 		Run repeatedly actions:
 
@@ -1007,20 +1017,37 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 
 Example /etc/inittab file:
 
+	# This is run first except when booting in single-user mode.
+	#
 	::sysinit:/etc/init.d/rcS
 	
-		::askfirst:-/bin/sh
-		tty2::askfirst:-/bin/sh
+	# /bin/sh invocations on selected ttys
+	#
+	# Start an askfirst shell on the console (whatever that may be)
+	::askfirst:-/bin/sh
+	# Start an askfirst shell on /dev/tty2-4
+	tty2::askfirst:-/bin/sh
 	tty3::askfirst:-/bin/sh
 	tty4::askfirst:-/bin/sh
 	
+	# /sbin/getty invocations for selected ttys
+	#
 	tty4::respawn:/sbin/getty 38400 tty5
 	tty5::respawn:/sbin/getty 38400 tty6
 	
 	
-		
-		::ctrlaltdel:/bin/umount -a -r
-	::ctrlaltdel:/sbin/swapoff -a
+	# Example of how to put a getty on a serial line (for a terminal)
+	#
+	#::respawn:/sbin/getty -L ttyS0 9600 vt100
+	#::respawn:/sbin/getty -L ttyS1 9600 vt100
+	#
+	# Example how to put a getty on a modem line.
+	#::respawn:/sbin/getty 57600 ttyS2
+	
+	# Stuff to do before rebooting
+	::ctrlaltdel:/sbin/reboot
+	::shutdown:/bin/umount -a -r
+	::shutdown:/sbin/swapoff -a
 
 
 -------------------------------
@@ -1519,7 +1546,8 @@ Netcat opens a pipe to IP:port
 Example:
 
 	$ nc foobar.somedomain.com 25
-	220 foobar ESMTP Exim 3.12 help
+	220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
+	help
 	214-Commands supported:
 	214-    HELO EHLO MAIL RCPT DATA AUTH
 	214     NOOP QUIT RSET HELP
@@ -1717,7 +1745,7 @@ Remove the DIRECTORY(ies), if they are empty.
 
 Example:
 
-
+	# rmdir /tmp/foo
 
 -------------------------------
 
@@ -2152,7 +2180,8 @@ Options:
 Example:
 
 	$ uname -a
-	Linux debian 2.2.15pre13 
+	Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
+	 
 
 -------------------------------
 
@@ -2268,6 +2297,18 @@ Example:
 	<encoded file snipped>
 	$ uudecode busybox busybox > busybox.uu
 	$
+
+-------------------------------
+
+=item B<vi>
+
+vi [OPTION] [FILE]...
+
+edit FILE.
+
+Options:
+
+	-R	Read-only- do not write to the file. 
 
 -------------------------------
 
@@ -2511,4 +2552,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.94 2001/04/05 19:41:23 beppu Exp $
+# $Id: busybox.pod,v 1.95 2001/04/05 20:03:33 beppu Exp $
