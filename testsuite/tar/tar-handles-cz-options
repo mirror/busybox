@@ -1,4 +1,3 @@
-# XFAIL
 touch foo
 busybox tar czf foo.tar.gz foo
 gzip -d foo.tar.gz
