@@ -1,0 +1,7 @@
+echo foo >foo
+echo bar >bar
+if busybox cmp -s foo bar; then
+	return 1
+else
+	return 0
+fi

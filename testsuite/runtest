@@ -1,0 +1,97 @@
+#!/bin/sh
+
+PATH=$(dirname $(pwd)):$PATH
+
+run_applet_testcase ()
+{
+	local applet=$1
+	local testcase=$2
+
+	local status=0
+	local U=
+	local X=
+
+	local uc_applet=$(echo $applet | tr a-z A-Z)
+	local testname=$(basename $testcase)
+
+	if grep -q "^# CONFIG_${uc_applet} is not set$" ../.config; then
+		echo "UNSUPPORTED: $testname"
+		return 0
+	fi
+
+	if grep -q "^# UNSUPPORTED: " $testcase; then
+		local feature=`sed -ne 's/.*UNSUPPORTED: //p' $testcase`
+
+		if grep -q "^# ${feature} is not set$" ../.config; then
+			echo "UNSUPPORTED: $testname"
+			return 0
+		fi
+	fi
+
+	if grep -q "^# XFAIL$" $testcase; then
+		U=U
+		X=X
+	fi
+
+	mkdir tmp
+	pushd tmp >/dev/null
+
+	if . ../$testcase >/dev/null 2>&1; then
+		echo "${U}PASS: $testname"
+		if [ "$U" ]; then
+			status=1
+		fi
+	else
+		echo "${X}FAIL: $testname"
+		if [ ! "$X" ]; then
+			status=1
+		fi
+	fi
+
+	popd >/dev/null
+	rm -rf tmp
+
+	return $status
+}
+
+run_applet_tests ()
+{
+	local applet=$1
+
+	local status=0
+
+	for testcase in $applet/*; do
+		if [ "$testcase" = "$applet/CVS" ]; then
+			continue
+		fi
+
+		if run_applet_testcase $applet $testcase; then
+			:
+		else
+			status=1
+		fi
+	done
+
+	return $status
+}
+
+
+status=0
+
+if [ $# -ne 0 ]; then
+	applets="$@"
+else
+	applets="*"
+fi
+
+for applet in $applets; do
+	if [ "$applet" != CVS -a -d "$applet" ]; then
+		if run_applet_tests $applet; then
+			:
+		else
+			status=1
+		fi
+	fi
+done
+
+exit $status

@@ -1,0 +1,6 @@
+busybox sed -e 's/.*root=/\1/' >output <<EOF
+BOOT_IMAGE=vmlinuz root=/dev/hda5 initrd=init1
+EOF
+cmp -s output - <<EOF
+/dev/hda5 initrd=init1
+EOF

@@ -1,0 +1,2 @@
+echo foo | gzip -c | busybox gunzip -c > output
+echo foo | cmp - output

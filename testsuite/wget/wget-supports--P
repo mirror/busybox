@@ -1,0 +1,3 @@
+mkdir foo
+busybox wget -q -P foo http://www.google.com/
+test -s foo/index.html

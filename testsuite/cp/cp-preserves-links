@@ -1,0 +1,4 @@
+touch foo
+ln -s foo bar
+busybox cp -d bar baz
+test -L baz
