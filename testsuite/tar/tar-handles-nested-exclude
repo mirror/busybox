@@ -1,3 +1,4 @@
+# UNSUPPORTED: CONFIG_FEATURE_TAR_EXCLUDE
 mkdir foo
 touch foo/bar
 tar cf foo.tar foo

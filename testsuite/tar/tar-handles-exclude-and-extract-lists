@@ -1,3 +1,4 @@
+# UNSUPPORTED: CONFIG_FEATURE_TAR_EXCLUDE
 touch foo bar baz
 tar cf foo.tar foo bar baz
 echo foo >foo.exclude
