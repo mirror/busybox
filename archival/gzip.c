@@ -305,8 +305,6 @@ DECLARE(ush, d_buf, DIST_BUFSIZE);
 DECLARE(uch, window, 2L * WSIZE);
 DECLARE(ush, tab_prefix, 1L << BITS);
 
-static int crc_table_empty = 1;
-
 static int foreground;	/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
 static int exit_code = OK;	/* program exit code */
@@ -387,14 +385,13 @@ static ulg updcrc(uch * s, unsigned n)
 	register ulg c;		/* temporary variable */
 	static unsigned long crc_32_tab[256];
 
-	if (crc_table_empty) {
+	if (crc_32_tab[1] == 0x00000000L) {
 		unsigned long csr;	/* crc shift register */
 		const unsigned long e = 0xedb88320L;	/* polynomial exclusive-or pattern */
 		int i;			/* counter for all possible eight bit values */
 		int k;			/* byte being shifted into crc apparatus */
 
 		/* Compute table of CRC's. */
-		crc_32_tab[0] = 0x00000000L;
 		for (i = 1; i < 256; i++) {
 			csr = i;
 			/* The idea to initialize the register with the byte instead of
