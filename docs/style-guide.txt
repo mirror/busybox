@@ -195,17 +195,23 @@ because it looks like whitespace; using lower-case is easy on the eyes.
 
 		hitList
 		TotalChars
-		szFileName (blech)
+		szFileName
+		pf_Nfol_TriState
 
 	Preferred:
 
 		hit_list
 		total_chars
 		file_name
+		sensible_name
 
-The exception to this rule are enums, macros, and constant variables which
-should all be in upper-case, with words optionally seperatedy by underscores
-(i.e. FIFOTYPE, ISBLKDEV()). 
+Exceptions:
+
+ - Enums, macros, and constant variables should all be in upper-case with
+   words optionally seperatedy by underscores (i.e. FIFOTYPE, ISBLKDEV()).
+
+ - Nobody is going to get mad at you for using 'pvar' as the name of a
+   variable that is a pointer to 'var'.
 
 Note: The Busybox codebase is very much a mixture of code gathered from a
 variety of sources. This explains why the current codebase contains such a
@@ -217,6 +223,11 @@ file that uses alternate naming conventions should -- at his own convenience
 low priority task. Perhaps in the future we will include some magical Perl
 script that can go through and convert variable names, left as an exercise for
 the reader for now.
+
+For the time being, if you want to do a search-and-replace of a variable name
+in different files, do the following in the busybox directory:
+
+	$ perl -pi -e 's/\bOldVar\b/new_var/g' *.[ch]
 
 
 
@@ -353,6 +364,79 @@ obvious that you are testing for equivalence. The former example with the
 "not" (!) operator makes it look like you are testing for an error. In a more
 perfect world, we would have a streq() function in the string library, but
 that ain't the world we're living in.
+
+
+Avoid Dangerous String Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Unfortunately, the way C handles strings makes them prone to overruns when
+certain library functions are (mis)used. The following table  offers a summary
+of some of the more notorious troublemakers:
+
+function     overflows         preferred
+----------------------------------------
+strcpy       dest string       strncpy
+strcat       dest string       strncat
+gets         string it gets    fgets
+getwd        buf string        getcwd
+[v]sprintf   str buffer        [v]snprintf
+realpath     path buffer       use with pathconf
+[vf]scanf    its arguments     just avoid it
+
+
+The above is by no means a complete list. Be careful out there.
+
+
+
+Avoid Big Static Buffers
+------------------------
+
+First, some background to put this discussion in context: Static buffers look
+like this in code:
+
+	/* in a .c file outside any functions */
+	static char *buffer[BUFSIZ]; /* happily used by any function in this file,
+	                                but ick! big! */
+
+The problem with these is that any time any busybox app is run, you pay a
+memory penalty for this buffer, even if the applet that uses said buffer is
+not run. This can be fixed, thusly:
+
+	static char *buffer
+	...
+	other_func()
+	{
+		strcpy(buffer, lotsa_chars); /* happily uses global *buffer */
+	...
+	foo_main()
+	{
+		buffer = xmalloc(sizeof(char)*BUFSIZ);
+	...
+
+However, this approach trades bss segment for text segment. Rather than
+mallocing the buffers (and thus growing the text size), buffers can be
+declared on the stack in the *_main() function and made available globally by
+assigning them to a global pointer thusly:
+
+	static char *pbuffer
+	...
+	other_func()
+	{
+		strcpy(pbuffer, lotsa_chars); /* happily uses global *pbuffer */
+	...
+	foo_main()
+	{
+		char *buffer[BUFSIZ]; /* declared locally, on stack */
+		pbuffer = buffer;     /* but available globally */
+	...
+
+Thus:
+ - global static buffers are eliminated
+ - we don't grow the text segment as much because no malloc() call is made;
+   memory is automatically allocated on the stack when execution context
+   enters the function. (We still grow text a little bit because of the
+   assignment, but that's cheap compared to a function call.)
+ - the buffer is still available globally via the pointer
 
 
 
