@@ -445,7 +445,7 @@ static int builtin_exec(struct child_prog *child)
 static int builtin_exit(struct child_prog *child)
 {
 	if (child->argv[1] == NULL)
-		exit(EXIT_SUCCESS);
+		exit(last_return_code);
 	exit (atoi(child->argv[1]));
 }
 
@@ -814,17 +814,14 @@ static int file_get(struct in_str *i)
 		if (i->__promptme && interactive && i->file == stdin) {
 			get_user_input(i);
 			i->promptmode=2;
+			i->__promptme = 0;
+			if (i->p && *i->p) {
+				ch=*i->p++;
+			}
 		} else {
-			static char buffer;
-			buffer = fgetc(i->file);
-			i->p = &buffer;
+			ch = fgetc(i->file);
 		}
 
-		i->__promptme = 0;
-
-		if (i->p && *i->p) {
-			ch=*i->p++;
-		}
 		debug_printf("b_getch: got a %d\n", ch);
 	}
 	if (ch == '\n') i->__promptme=1;
@@ -839,9 +836,10 @@ static int file_peek(struct in_str *i)
 	if (i->p && *i->p) {
 		return *i->p;
 	} else {
-		static char buffer;
-		buffer = fgetc(i->file);
-		i->p = &buffer;
+		static char buffer[2];
+		buffer[0] = fgetc(i->file);
+		buffer[1] = '\0';
+		i->p = buffer;
 		debug_printf("b_peek: got a %d\n", *i->p);
 		return *i->p; 
 	}
@@ -2081,6 +2079,8 @@ int shell_main(int argc, char **argv)
 	int opt;
 	FILE *input;
 
+	last_return_code=EXIT_SUCCESS;
+
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;
 	global_argv = argv;
@@ -2110,7 +2110,7 @@ int shell_main(int argc, char **argv)
 					global_argv = argv+optind;
 					global_argc = argc-optind;
 					opt = parse_string_outer(optarg);
-					exit(opt);
+					goto final_return;
 				}
 				break;
 			case 'i':
@@ -2136,13 +2136,14 @@ int shell_main(int argc, char **argv)
 			isatty(fileno(stdin)) && isatty(fileno(stdout))) {
 		interactive++;
 	}
-	
+
+	debug_printf("\ninteractive=%d\n", interactive);
 	if (interactive) {
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\nhush -- the humble shell v0.01 (testing)\n\n");
-		exit(parse_file_outer(stdin));
+		opt=parse_file_outer(stdin);
+		goto final_return;
 	}
-	debug_printf("\ninteractive=%d\n", interactive);
 
 	debug_printf("\nrunning script '%s'\n", argv[optind]);
 	global_argv = argv+optind;
@@ -2154,5 +2155,6 @@ int shell_main(int argc, char **argv)
 	fclose(input.file);
 #endif
 
-	return(opt);
+final_return:
+	return(opt?opt:last_return_code);
 }
