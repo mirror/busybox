@@ -37,7 +37,7 @@ extern int remove_file(const char *path, int flags)
 	struct stat path_stat;
 	int path_exists = 1;
 
-	if (stat(path, &path_stat) < 0) {
+	if (lstat(path, &path_stat) < 0) {
 		if (errno != ENOENT) {
 			perror_msg("unable to stat `%s'", path);
 			return -1;
@@ -110,6 +110,7 @@ extern int remove_file(const char *path, int flags)
 		return status;
 	} else {
 		if ((!(flags & FILEUTILS_FORCE) && access(path, W_OK) < 0 &&
+					!S_ISLNK(path_stat.st_mode) &&
 					isatty(0)) ||
 				(flags & FILEUTILS_INTERACTIVE)) {
 			fprintf(stderr, "%s: remove `%s'? ", applet_name, path);
