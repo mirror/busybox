@@ -1686,7 +1686,7 @@ int shell_main(int argc_l, char **argv_l)
 
 	shell_context = 0;
 	cwd=NULL;
-#ifdef BB_FEATURE_STANDALONE_SHELL
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	/* These variables need re-initializing when recursing */
 	local_pending_command = NULL;
 	job_list.head = NULL;
