@@ -300,6 +300,7 @@ CONFIG_WC=y
 CONFIG_DMESG=y
 # CONFIG_FBSET is not set
 # CONFIG_FDFLUSH is not set
+# CONFIG_FDISK is not set
 # CONFIG_FREERAMDISK is not set
 # CONFIG_FSCK_MINIX is not set
 # CONFIG_MKFS_MINIX is not set

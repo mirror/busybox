@@ -1,90 +1,129 @@
 #!/usr/bin/make -f
 
-export DH_VERBOSE=1
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This is the debhelper compatibility version to use.
 export DH_COMPAT=3
 
-# These wont actually do anything yet, need to hack Rules.mak
+VERSION = $(shell dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+ARCH = $(shell dpkg --print-architecture)
+
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -g
+	DODEBUG = true
 endif
-ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
-	INSTALL_PROGRAM += -s
+ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+	DODEBUG = true
 endif
 
-busybox-deb:
-	dh_testdir
-	dh_testroot
+build-arch: build-arch-stamp
+build-arch-stamp:
 	$(MAKE) clean
 	cp ./debian/config-deb .config
-	cp ./debian/Rules.mak.shared Rules.mak
 	$(MAKE) dep
-	$(MAKE)
-	install -D busybox ./debian/busybox-unstable/bin/busybox
-	dh_installchangelogs Changelog -pbusybox-unstable
-	dh_installdocs -pbusybox-unstable
-	dh_strip -pbusybox-unstable
-	dh_compress -pbusybox-unstable
-	dh_fixperms -pbusybox-unstable
-	dh_installdeb -pbusybox-unstable
-	dh_shlibdeps -pbusybox-unstable
-	dh_gencontrol -pbusybox-unstable
-	dh_md5sums -pbusybox-unstable
-	dh_builddeb -pbusybox-unstable
-			
-busybox-udeb:
-	dh_testdir
-	dh_testroot
-	$(MAKE) clean
-	cp ./debian/config-udeb .config
-	cp ./debian/Rules.mak.shared Rules.mak
-	$(MAKE) dep
-	$(MAKE)
-	$(MAKE) PREFIX=./debian/busybox-udeb/ install
-	dh_strip -pbusybox-unstable-udeb
-	dh_compress -pbusybox-unstable-udeb
-	dh_fixperms -pbusybox-unstable-udeb
-	dh_installdeb -pbusybox-unstable-udeb
-	dh_shlibdeps -pbusybox-unstable-udeb
-	dh_gencontrol -pbusybox-unstable-udeb
-	dh_md5sums -pbusybox-unstable-udeb
-	dh_builddeb -pbusybox-unstable-udeb
+	$(MAKE) DODEBUG=$(DODEBUG)
+	install busybox busybox-deb
 
-
-busybox-static:
-	dh_testdir
-	dh_testroot
 	$(MAKE) clean
 	cp ./debian/config-static .config
-	cp ./debian/Rules.mak.static Rules.mak
 	$(MAKE) dep
-	$(MAKE)
-	install -D busybox ./debian/busybox-unstable-static/bin/busybox
-	dh_installchangelogs Changelog -pbusybox-unstable-static
-	dh_installdocs -pbusybox-unstable-static
-	dh_strip -pbusybox-unstable-static
-	dh_compress -pbusybox-unstable-static
-	dh_fixperms -pbusybox-unstable-static
-	dh_installdeb -pbusybox-unstable-static
-	dh_shlibdeps -pbusybox-unstable-static
-	dh_gencontrol -pbusybox-unstable-static
-	dh_md5sums -pbusybox-unstable-static
-	dh_builddeb -pbusybox-unstable-static
+	$(MAKE) DOSTATIC=true DODEBUG=$(DODEBUG)
+	install busybox busybox-static
 
-binary-arch: busybox-deb busybox-udeb busybox-static
+	$(MAKE) clean
+	cp ./debian/config-udeb .config
+	$(MAKE) dep
+	$(MAKE) DODEBUG=$(DODEBUG)
 
-binary-indep:
+	touch build-arch-stamp
+
+build-indep: build-indep-stamp
+build-indep-stamp:
+	$(MAKE) newdoc
+
+	touch build-indep-stamp
+
+build: build-arch build-indep
+
+clean:
 	dh_testdir
 	dh_testroot
-	$(MAKE) clean
-	$(MAKE) newdoc
-	dh_installdocs -pbusybox-unstable-doc
-	dh_installchangelogs Changelog -pbusybox-unstable-doc
-	dh_compress -pbusybox-unstable-doc
-	dh_fixperms -pbusybox-unstable-doc
-	dh_installdeb -pbusybox-unstable-doc
-	dh_gencontrol -pbusybox-unstable-doc
-	dh_md5sums -pbusybox-unstable-doc
-	dh_builddeb -pbusybox-unstable-doc
+	rm -f build-arch-stamp build-indep-stamp
+
+	$(MAKE) distclean
+	-rm -f busybox-deb busybox-static
+
+	dh_clean
+
+install: build-arch
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	install busybox-deb $(CURDIR)/debian/busybox-cvs/bin/busybox
+	install busybox-static $(CURDIR)/debian/busybox-cvs-static/bin/busybox
+	$(MAKE) PREFIX=$(CURDIR)/debian/busybox-cvs-udeb install
+
+# Build architecture-independent files here.
+# Pass -i to all debhelper commands in this target to reduce clutter.
+binary-indep: build
+	dh_testdir -i
+	dh_testroot -i
+#	dh_installdebconf -i
+	dh_installdocs -i
+#	dh_installexamples -i
+#	dh_installmenu -i
+#	dh_installlogrotate -i
+#	dh_installemacsen -i
+#	dh_installpam -i
+#	dh_installmime -i
+#	dh_installinit -i
+#	dh_installcron -i
+#	dh_installman -i
+#	dh_installinfo -i
+#	dh_undocumented -i
+	dh_installchangelogs Changelog -i
+	dh_link -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+#	dh_perl -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+# Build architecture-dependent files here.
+binary-arch: build-arch install
+	dh_testdir -a
+	dh_testroot -a
+#	dh_installdebconf -a
+	dh_installdocs -a -Nbusybox-cvs-udeb
+#	dh_installexamples -a
+#	dh_installmenu -a
+#	dh_installlogrotate -a
+#	dh_installemacsen -a
+#	dh_installpam -a
+#	dh_installmime -a
+#	dh_installinit -a
+#	dh_installcron -a
+#	dh_installman -a
+#	dh_installinfo -a
+#	dh_undocumented -a
+	dh_installchangelogs Changelog -a -Nbusybox-cvs-udeb
+	dh_strip -a
+	dh_link -a
+	dh_compress -a
+	dh_fixperms -a
+#	dh_makeshlibs -a
+	dh_installdeb -a
+#	dh_perl -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_md5sums -a -Nbusybox-cvs-udeb
+	dh_builddeb -a -Nbusybox-cvs-udeb
+	dpkg-distaddfile busybox-cvs-udeb-$(VERSION)_$(ARCH).udeb debian-installer optional
+	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb-$(VERSION)_$(ARCH).udeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install configure
+.PHONY: build clean binary-indep binary-arch binary install

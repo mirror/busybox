@@ -1,21 +1,21 @@
-Source: busybox-unstable
+Source: busybox-cvs
 Priority: optional
 Maintainer: Erik Andersen <andersee@debian.org>
 Build-Depends: debhelper (>= 2.1.18), dpkg-dev (>= 1.7.0)
 Build-Depends-Indep: sgmltools-lite, w3m
 Standards-Version: 3.2.1.0
 
-Package: busybox-unstable-doc
+Package: busybox-cvs-doc
 Architecture: all
 Section: doc
 Description: Documentation for busybox
  Documentation in various formats on busybox commands and their options.
 
-Package: busybox-unstable
+Package: busybox-cvs
 Architecture: any
 Depends: ${shlibs:Depends}
-Conflicts: busybox-unstable-static, busybox, busybox-static
-Replaces: busybox-unstable-static, busybox, busybox-static
+Conflicts: busybox-cvs-static, busybox, busybox-static
+Replaces: busybox-cvs-static, busybox, busybox-static
 Section: utils
 Description: Tiny utilities for small and embedded systems. 
  BusyBox combines tiny versions of many common UNIX utilities into a single
@@ -31,11 +31,11 @@ Description: Tiny utilities for small and embedded systems.
  to install BusyBox to the current directory (you do not want to do this
  in / on your Debian system!).
 
-Package: busybox-unstable-static
+Package: busybox-cvs-static
 Architecture: any
 Depends: ${shlibs:Depends}
-Conflicts: busybox-unstable, busybox-static, busybox
-Replaces: busybox-unstable, busybox-static, busybox
+Conflicts: busybox-cvs, busybox-static, busybox
+Replaces: busybox-cvs, busybox-static, busybox
 Section: shells
 Description: Standalone rescue shell with tons of builtin utilities. 
  BusyBox combines tiny versions of many common UNIX utilities into a single
@@ -53,7 +53,7 @@ Description: Standalone rescue shell with tons of builtin utilities.
  your system from certain destruction.  Invoke "busybox", and it will list the
  available builtin commands.
 
-Package: busybox-unstable-udeb
+Package: busybox-cvs-udeb
 Architecture: any
 Depends: ${shlibs:Depends}
 Section: debian-installer
