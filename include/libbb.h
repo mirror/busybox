@@ -479,7 +479,7 @@ extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 
 #define HASH_SHA1	1
 #define HASH_MD5	2
-extern int hash_fd(int fd, const off_t size, const uint8_t hash_algo, uint8_t *hashval);
+extern int hash_fd(int fd, const size_t size, const uint8_t hash_algo, uint8_t *hashval);
 
 
 #endif /* __LIBCONFIG_H__ */

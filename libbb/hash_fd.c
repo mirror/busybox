@@ -166,10 +166,11 @@ static void sha1_begin(sha1_ctx_t *ctx)
 
 /* SHA1 hash data in an array of bytes into hash buffer and call the        */
 /* hash_compile function as required.                                       */
-static void sha1_hash(const unsigned char data[], unsigned int len, sha1_ctx_t *ctx)
+static void sha1_hash(const void *data, size_t len, void *ctx_v)
 {
-	uint32_t pos = (uint32_t) (ctx->count[0] & SHA1_MASK),
-		freeb = SHA1_BLOCK_SIZE - pos;
+	sha1_ctx_t *ctx = (sha1_ctx_t *) ctx_v;
+	uint32_t pos = (uint32_t) (ctx->count[0] & SHA1_MASK);
+	uint32_t freeb = SHA1_BLOCK_SIZE - pos;
 	const unsigned char *sp = data;
 
 	if ((ctx->count[0] += len) < len)
@@ -706,6 +707,15 @@ static void md5_hash_bytes(const void *buffer, size_t len, md5_ctx_t *ctx)
 	}
 }
 
+static void md5_hash(const void *buffer, size_t length, void *md5_ctx)
+{
+	if (length % 64 == 0) {
+		md5_hash_block(buffer, length, md5_ctx);
+	} else {
+		md5_hash_bytes(buffer, length, md5_ctx);
+	}
+}
+
 /* Process the remaining bytes in the buffer and put result from CTX
  * in first 16 bytes following RESBUF.  The result is always in little
  * endian byte order, so that a byte-wise output yields to the wanted
@@ -760,13 +770,17 @@ static void *md5_end(void *resbuf, md5_ctx_t *ctx)
 
 
 
-extern int hash_fd(int src_fd, const off_t size, const uint8_t hash_algo,
+extern int hash_fd(int src_fd, const size_t size, const uint8_t hash_algo,
 				   uint8_t * hashval)
 {
 	int result = EXIT_SUCCESS;
-	off_t hashed_count = 0;
-	unsigned int blocksize = 0;
+//	size_t hashed_count = 0;
+	size_t blocksize = 0;
+	size_t remaining = size;
 	unsigned char *buffer = NULL;
+	void (*hash_fn_ptr)(const void *, size_t, void *) = NULL;
+	void *cx = NULL;
+
 #ifdef CONFIG_SHA1SUM
 	sha1_ctx_t sha1_cx;
 #endif
@@ -779,13 +793,17 @@ extern int hash_fd(int src_fd, const off_t size, const uint8_t hash_algo,
 	if (hash_algo == HASH_SHA1) {
 		/* Ensure that BLOCKSIZE is a multiple of 64.  */
 		blocksize = 65536;
-		buffer = malloc(blocksize);
+		buffer = xmalloc(blocksize);
+		hash_fn_ptr = sha1_hash;
+		cx = &sha1_cx;
 	}
 #endif
 #ifdef CONFIG_MD5SUM
 	if (hash_algo == HASH_MD5) {
 		blocksize = 4096;
-		buffer = malloc(blocksize + 72);
+		buffer = xmalloc(blocksize + 72);
+		hash_fn_ptr = md5_hash;
+		cx = &md5_cx;
 	}
 #endif
 	
@@ -801,33 +819,29 @@ extern int hash_fd(int src_fd, const off_t size, const uint8_t hash_algo,
 	}
 #endif
 	/* Iterate over full file contents.  */
-	do {
-		const ssize_t count = bb_full_read(src_fd, buffer, blocksize);
+	while ((remaining == (size_t) -1) || (remaining > 0)) {
+		size_t read_try;
+		ssize_t read_got;
 
-		if (count < 1) {
+		if (remaining > blocksize) {
+			read_try = blocksize;
+		} else {
+			read_try = remaining;
+		}
+		read_got = bb_full_read(src_fd, buffer, read_try);
+		if (read_got < 1) {
 			/* count == 0 means short read
 			 * count == -1 means read error */
-			result = count - 1;
+			result = read_got - 1;
 			break;
 		}
-		hashed_count += count;
+		if (remaining != (size_t) -1) {
+			remaining -= read_got;
+		}
 
 		/* Process buffer */
-#ifdef CONFIG_SHA1SUM
-		if (hash_algo == HASH_SHA1) {
-			sha1_hash(buffer, count, &sha1_cx);
-		}
-#endif
-#ifdef CONFIG_MD5SUM
-		if (hash_algo == HASH_MD5) {
-			if (count % 64 == 0) {
-				md5_hash_block(buffer, count, &md5_cx);
-			} else {
-				md5_hash_bytes(buffer, count, &md5_cx);
-			}
-		}
-#endif
-	} while ((size == (off_t) - 1) || (hashed_count < size));
+		hash_fn_ptr(buffer, read_got, cx);
+	}
 
 	/* Finalize and write the hash into our buffer.  */
 #ifdef CONFIG_SHA1SUM
