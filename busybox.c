@@ -358,12 +358,86 @@ const struct BB_applet applets[] = {
 };
 
 
+#ifdef BB_FEATURE_INSTALLER
+/* 
+ * directory table
+ *      this should be consistent w/ the enum, internal.h::Location,
+ *      or else...
+ */
+static char* install_dir[] = {
+    "/",
+    "/bin",
+    "/sbin",
+    "/usr/bin",
+    "/usr/sbin",
+	NULL
+};
+
+/* abstract link() */
+typedef int (*__link_f)(const char *, const char *);
+
+/* create (sym)links for each applet */
+int install_links(const char *busybox, int use_symbolic_links)
+{
+    __link_f Link = link;
+
+    char	command[256];
+	int		i;
+	int		rc = 0;
+
+	if (use_symbolic_links) Link = symlink;
+
+    for (i = 0; applets[i].name != NULL; i++) {
+        sprintf (
+			command, 
+			"%s/%s", 
+			install_dir[applets[i].location], 
+			applets[i].name
+		);
+#if 0
+        rc |= Link(busybox, command);
+#else
+        puts(command);
+#endif
+		if (rc) {
+			fprintf(stderr,"busybox : %s : %s\n", command, strerror(errno));
+			break;
+		}
+    }
+	return rc;
+}
+
+#if 0
+int uninstall_links() ?
+#endif
+#endif /* BB_FEATURE_INSTALLER */
+
 
 int main(int argc, char **argv)
 {
 	char				*s;
 	char				*name;
 	const struct BB_applet	*a		= applets;
+
+#ifdef BB_FEATURE_INSTALLER	
+	if (argc > 1 && (strcmp(argv[1], "--install") == 0)) {
+		int use_symbolic_links = 0;
+
+		/* to use symlinks, or to not use symlinks... */
+		if (argc > 2) {
+			if ((strcmp(argv[2], "-s") == 0)) { 
+				use_symbolic_links = 1; 
+			}
+		}
+		/* 
+		 * FIXME : 
+		 * I need a clever unix trick that'll tell
+		 * me where to find the currently running
+		 * busybox binary
+		 */
+		return install_links("/bin/busybox", use_symbolic_links);
+	}
+#endif /* BB_FEATURE_INSTALLER */
 
 	for (s = name = argv[0]; *s != '\0';) {
 		if (*s++ == '/')
