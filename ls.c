@@ -605,7 +605,7 @@ static int list_single(struct dnode *dn)
 	for (i=0; i<=31; i++) {
 		switch (list_fmt & (1<<i)) {
 			case LIST_INO:
-				printf("%7ld ", dn->dstat.st_ino);
+				printf("%7ld ", (long int)dn->dstat.st_ino);
 				column += 8;
 				break;
 			case LIST_BLOCKS:

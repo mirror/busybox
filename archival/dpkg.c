@@ -837,7 +837,7 @@ extern int dpkg_main(int argc, char **argv)
 		optind++;
 	}
 
-	make_directory(infodir, S_IRWXU, FILEUTILS_RECUR);
+	make_directory((char *)infodir, S_IRWXU, FILEUTILS_RECUR);
 
 	status = status_read();
 
