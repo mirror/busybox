@@ -19,8 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <features.h>
 #if defined (__GLIBC__) && !defined(__UCLIBC__)
-#include <asm/posix_types.h>
+#include <linux/posix_types.h>
 #endif
 #include <stdio.h>
 #include <errno.h>
