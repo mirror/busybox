@@ -148,7 +148,7 @@ int addgroup_main(int argc, char **argv)
 
 	/* get remaining args */
 	if(bb_getopt_ulflags(argc, argv, "g:", &group)) {
-		gid = strtol(group, NULL, 10);
+		gid = bb_xgetlarg(group, 10, 0, LONG_MAX);
 	}
 
 	if (optind < argc) {
@@ -160,10 +160,10 @@ int addgroup_main(int argc, char **argv)
 
 	if (optind < argc) {
 		user = argv[optind];
-		optind++;
 	} else {
 		user = "";
 	}
+	
 	if_i_am_not_root();
 
 	/* werk */
