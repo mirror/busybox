@@ -680,7 +680,9 @@ static interfaces_file *read_interfaces(char *filename)
 {
 	interface_defn *currif = NULL;
 	interfaces_file *defn;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	mapping_defn *currmap = NULL;
+#endif
 	FILE *f;
 	char firstword[80];
 	char *buf = NULL;
@@ -708,6 +710,7 @@ static interfaces_file *read_interfaces(char *filename)
 		}
 
 		if (strcmp(firstword, "mapping") == 0) {
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 			currmap = xmalloc(sizeof(mapping_defn));
 			currmap->max_matches = 0;
 			currmap->n_matches = 0;
@@ -733,6 +736,7 @@ static interfaces_file *read_interfaces(char *filename)
 				*where = currmap;
 				currmap->next = NULL;
 			}
+#endif
 			currently_processing = MAPPING;
 		} else if (strcmp(firstword, "iface") == 0) {
 			{
@@ -871,6 +875,7 @@ static interfaces_file *read_interfaces(char *filename)
 				currif->n_options++;
 				break;
 			case MAPPING:
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 				if (strcmp(firstword, "script") == 0) {
 					if (currmap->script != NULL) {
 						error_msg("%s:%d: duplicate script in mapping", filename, line);
@@ -889,6 +894,7 @@ static interfaces_file *read_interfaces(char *filename)
 					error_msg("%s:%d: misplaced option", filename, line);
 					return NULL;
 				}
+#endif
 				break;
 			case NONE:
 			default:
@@ -1064,6 +1070,7 @@ static int iface_down(interface_defn *iface)
 	return (1);
 }
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 static int popen2(FILE **in, FILE **out, char *command, ...)
 {
 	va_list ap;
@@ -1145,7 +1152,7 @@ static int run_mapping(char *physical, char *logical, int len, mapping_defn * ma
 
 	return 1;
 }
-
+#endif /* CONFIG_FEATURE_IFUPDOWN_IPV6 */
 
 static int lookfor_iface(char **ifaces, int n_ifaces, char *iface)
 {
@@ -1198,7 +1205,11 @@ extern int ifupdown_main(int argc, char **argv)
 		cmds = iface_down;
 	}
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 	while ((i = getopt(argc, argv, "i:hvnamf")) != -1) {
+#else
+	while ((i = getopt(argc, argv, "i:hvnaf")) != -1) {
+#endif
 		switch (i) {
 		case 'i':	/* interfaces */
 			interfaces = xstrdup(optarg);
@@ -1212,9 +1223,11 @@ extern int ifupdown_main(int argc, char **argv)
 		case 'n':	/* no-act */
 			no_act = 1;
 			break;
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 		case 'm':	/* no-mappings */
 			run_mappings = 0;
 			break;
+#endif
 		case 'f':	/* force */
 			force = 1;
 			break;
@@ -1247,7 +1260,7 @@ extern int ifupdown_main(int argc, char **argv)
 	if (state_fp != NULL) {
 		char buf[80];
 		char *p;
-
+#if 0
 		if (!no_act) {
 			int flags;
 			struct flock lock;
@@ -1267,7 +1280,7 @@ extern int ifupdown_main(int argc, char **argv)
 				perror_msg_and_die("failed to lock statefile %s", statefile);
 			}
 		}
-
+#endif
 		rewind(state_fp);
 		while ((p = fgets(buf, sizeof buf, state_fp)) != NULL) {
 			char *pch;
@@ -1338,6 +1351,7 @@ extern int ifupdown_main(int argc, char **argv)
 				liface[79] = 0;
 			}
 		}
+#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
 		if ((cmds == iface_up) && run_mappings) {
 			mapping_defn *currmap;
 
@@ -1354,6 +1368,7 @@ extern int ifupdown_main(int argc, char **argv)
 				}
 			}
 		}
+#endif
 
 		for (currif = defn->ifaces; currif; currif = currif->next) {
 			if (strcmp(liface, currif->iface) == 0) {
@@ -1367,19 +1382,12 @@ extern int ifupdown_main(int argc, char **argv)
 					error_msg("Configuring interface %s=%s (%s)", iface, liface, currif->address_family->name);
 				}
 
-				switch (cmds(currif)) {
-				case -1:
+				if (cmds(currif) == -1) {
 					printf
 						("Don't seem to be have all the variables for %s/%s.\n",
 						 liface, currif->address_family->name);
-					break;
-				case 0:
-					/* this wasn't entirely successful, should it be added to
-					 *      the state file?
-					 */
-				case 1:
-					/* successful */
 				}
+
 				currif->iface = oldiface;
 			}
 		}

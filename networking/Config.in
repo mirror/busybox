@@ -85,6 +85,14 @@ config CONFIG_FEATURE_IFUPDOWN_IPX
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_IFUPDOWN_MAPPING
+	bool "  Enable mapping support"
+	default n
+	depends on CONFIG_IFUPDOWN
+	help
+	  This enables support for the "mapping" stanza, unless you have
+	  a weird network setup you dont need it.
+
 config CONFIG_IP
 	bool "ip"
 	default n
