@@ -39,7 +39,7 @@ extern int dutmp_main(int argc, char **argv)
 	}
 
 /* Kludge around the fact that the binary format for utmp has changed. */
-#if __GNU_LIBRARY__ < 5 || defined __UCLIBC__
+#if __GNU_LIBRARY__ < 5
 	/* Linux libc5 */
 	while (read(file, (void*)&ut, sizeof(struct utmp))) {
 		printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
