@@ -1260,8 +1260,8 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 			 */
 			search_applet.name = newJob->progs[i].argv[0];
 
-#ifdef BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
-			/* If you enable BB_FEATURE_SH_BUILTINS_ALWAYS_WIN, then
+#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+			/* If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then
 			 * if you run /bin/cat, it will use BusyBox cat even if 
 			 * /bin/cat exists on the filesystem and is _not_ busybox.
 			 * Some systems want this, others do not.  Choose wisely.  :-)

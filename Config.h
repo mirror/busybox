@@ -231,18 +231,18 @@
 // Enable command line editing in the shell
 #define BB_FEATURE_SH_COMMAND_EDITING
 //
-//Allow the shell to invoke all the compiled in BusyBox commands as if they
-//were shell builtins.  Nice for staticly linking an emergency rescue shell
-//among other thing.
+//Allow the shell to invoke all the compiled in BusyBox applets as if they
+//were shell builtins.  Nice for staticly linking an emergency rescue shell,
+//among other things.
 #define BB_FEATURE_SH_STANDALONE_SHELL
 //
-//When this is enabled, busybox shell builtins can be called using full path
-//names.  This causes builtins (i.e. every single busybox command) to override
+//When this is enabled, busybox shell applets can be called using full path
+//names.  This causes applets (i.e., most busybox commands) to override
 //real commands on the filesystem.  For example, if you run run /bin/cat, it
 //will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
-//BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+//BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)
