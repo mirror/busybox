@@ -193,6 +193,7 @@ static int get_address(char *delimiter, char *my_str, int *linenum, regex_t **re
 	else if (my_str[idx] == '/' || my_str[idx] == '\\') {
 		int idx_start = 1;
 
+		*delimiter = '/';
 		if (my_str[idx] == '\\') {
 			idx_start++;
 			*delimiter = my_str[++idx];
