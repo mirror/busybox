@@ -244,8 +244,6 @@ static void message(int device, char *fmt, ...)
 	}
 }
 
-#define CTRLCHAR(ch)	((ch)-0x40)
-
 /* Set terminal settings to reasonable defaults */
 void set_term(int fd)
 {
@@ -254,14 +252,14 @@ void set_term(int fd)
 	tcgetattr(fd, &tty);
 
 	/* set control chars */
-	tty.c_cc[VINTR]  = CTRLCHAR('C');	/* Ctrl-C */
-	tty.c_cc[VQUIT]  = CTRLCHAR('\\');	/* Ctrl-\ */
-	tty.c_cc[VERASE] = CTRLCHAR('?');	/* Ctrl-? */
-	tty.c_cc[VKILL]  = CTRLCHAR('U');	/* Ctrl-U */
-	tty.c_cc[VEOF]   = CTRLCHAR('D');	/* Ctrl-D */
-	tty.c_cc[VSTART] = CTRLCHAR('Q');	/* Ctrl-Q */
-	tty.c_cc[VSTOP]  = CTRLCHAR('S');	/* Ctrl-S */
-	tty.c_cc[VSUSP]  = CTRLCHAR('Z');	/* Ctrl-Z */
+	tty.c_cc[VINTR]  = 3;	/* C-c */
+	tty.c_cc[VQUIT]  = 28;	/* C-\ */
+	tty.c_cc[VERASE] = 127; /* C-? */
+	tty.c_cc[VKILL]  = 21;	/* C-u */
+	tty.c_cc[VEOF]   = 4;	/* C-d */
+	tty.c_cc[VSTART] = 17;	/* C-q */
+	tty.c_cc[VSTOP]  = 19;	/* C-s */
+	tty.c_cc[VSUSP]  = 26;	/* C-z */
 
 	/* use line dicipline 0 */
 	tty.c_line = 0;
