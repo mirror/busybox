@@ -279,8 +279,6 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				}
 
 				cp += len;
-			} else if (finished) {
-				break;
 			}
 		}
 
@@ -306,8 +304,11 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			}
 
 
-			/* receive packet */
+			if (finished) {
+				break;
+			}
 
+			/* receive packet */
 
 			memset(&from, 0, sizeof(from));
 			fromlen = sizeof(from);
@@ -359,7 +360,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 		} while (timeout && (len >= 0));
 
-		if (len < 0) {
+		if ((finished) || (len < 0)) {
 			break;
 		}
 
