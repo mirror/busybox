@@ -994,6 +994,30 @@
 	"Checks file types and compares values returning an exit\n" \
 	"code determined by the value of EXPRESSION."
 
+#ifdef BB_FEATURE_TFTP_GET
+  #define USAGE_TFTP_GET(a) a
+#else
+  #define USAGE_TFTP_GET(a)
+#endif
+#ifdef BB_FEATURE_TFTP_PUT
+  #define USAGE_TFTP_PUT(a) a
+#else
+  #define USAGE_TFTP_PUT(a)
+#endif
+
+#define tftp_trivial_usage \
+	"command SOURCE DEST"
+#define tftp_full_usage \
+	"Transfers a file from/to a tftp server using \"octet\" mode.\n\n" \
+	"Commands:\n" \
+        USAGE_TFTP_GET(	\
+        "\tget\tGet file from server SOURCE and store to local DEST.\n" \
+        ) \
+        USAGE_TFTP_PUT(	\
+	"\tput\tPut local file SOURCE to server DEST.\n" \
+	) \
+	"\nWhen nameing a server, use the syntax \"server:file\"."
+
 #define touch_trivial_usage \
 	"[-c] file [file ...]"
 #define touch_full_usage \

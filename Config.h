@@ -104,6 +104,7 @@
 //#define BB_TEE
 //#define BB_TEST
 //#define BB_TELNET
+#define BB_TFTP
 #define BB_TOUCH
 //#define BB_TR
 #define BB_TRUE_FALSE
@@ -311,6 +312,10 @@
 //
 // Support for the -A -B and -C context flags in grep
 //#define BB_FEATURE_GREP_CONTEXT
+//
+// Tell tftp what commands that should be supported.
+#define BB_FEATURE_TFTP_PUT
+#define BB_FEATURE_TFTP_GET
 //
 // End of Features List
 //

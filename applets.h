@@ -356,6 +356,9 @@
 #ifdef BB_TEST
 	APPLET(test, test_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_TFTP
+	APPLET(tftp, tftp_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef BB_TOUCH
 	APPLET(touch, touch_main, _BB_DIR_BIN)
 #endif
