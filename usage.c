@@ -1299,6 +1299,17 @@ const char wc_usage[] =
 	;
 #endif
 
+#if defined BB_WGET
+const char wget_usage[] = "wget [-c] [-O file] url\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nwget retrieves files via HTTP\n\n"
+	"Options:\n"
+	"\t-c\tcontinue retrieval of aborted transfers\n"
+	"\t-O\tsave to filename ('-' for stdout)\n"
+#endif
+	;
+#endif
+
 #if defined BB_WHICH
 const char which_usage[] =
 	"which [COMMAND ...]\n"
