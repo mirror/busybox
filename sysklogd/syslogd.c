@@ -509,11 +509,11 @@ static void doSyslogd (void)
 	memset (&sunx, 0, sizeof (sunx));
 	sunx.sun_family = AF_UNIX;
 	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
-	if ((sock_fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0)
+	if ((sock_fd = socket (AF_UNIX, SOCK_DGRAM, 0)) < 0)
 		perror_msg_and_die ("Couldn't get file descriptor for socket " _PATH_LOG);
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
-	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) || (listen (sock_fd, 5)))
+	if (bind (sock_fd, (struct sockaddr *) &sunx, addrLength) < 0)
 		perror_msg_and_die ("Could not connect to socket " _PATH_LOG);
 
 	if (chmod (lfile, 0666) < 0)
