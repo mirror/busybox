@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.26 2002/12/02 21:18:08 bug1 Exp $";
+	"$Id: vi.c,v 1.27 2002/12/03 21:48:15 bug1 Exp $";
 
 /*
  * To compile for standalone use:
@@ -3951,7 +3951,7 @@ static void crash_test()
 {
 	static time_t oldtim;
 	time_t tim;
-	char d[2], buf[BUFSIZ], msg[BUFSIZ];
+	char d[2], msg[BUFSIZ];
 
 	msg[0] = '\0';
 	if (end < text) {
@@ -3975,7 +3975,7 @@ static void crash_test()
 
 	if (strlen(msg) > 0) {
 		alarm(0);
-		printf(buf, "\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
+		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
 			totalcmds, last_input_char, msg, SOs, SOn);
 		fflush(stdout);
 		while (read(0, d, 1) > 0) {
