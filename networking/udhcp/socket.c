@@ -130,29 +130,3 @@ int listen_socket(unsigned int ip, int port, char *inf)
 	
 	return fd;
 }
-
-
-int raw_socket(int ifindex)
-{
-	int fd;
-	struct sockaddr_ll sock;
-
-	DEBUG(LOG_INFO, "Opening raw socket on ifindex %d", ifindex);
-	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %m");
-		return -1;
-	}
-
-	while (fd >= 0 && fd < 3) fd = dup(fd); /* don't let daemon close fds on us */
-	
-	sock.sll_family = AF_PACKET;
-	sock.sll_protocol = htons(ETH_P_IP);
-	sock.sll_ifindex = ifindex;
-	if (bind(fd, (struct sockaddr *) &sock, sizeof(sock)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %m");
-		close(fd);
-		return -1;
-	}
-
-	return fd;
-}

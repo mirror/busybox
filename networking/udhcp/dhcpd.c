@@ -43,6 +43,7 @@
 #include "files.h"
 #include "serverpacket.h"
 #include "common.h"
+#include "signalpipe.h"
 
 
 /* globals */
@@ -50,7 +51,11 @@ struct dhcpOfferedAddr *leases;
 struct server_config_t server_config;
 
 
+#ifdef COMBINED_BINARY	
 int udhcpd_main(int argc, char *argv[])
+#else
+int main(int argc, char *argv[])
+#endif
 {	
 	fd_set rfds;
 	struct timeval tv;
@@ -64,16 +69,13 @@ int udhcpd_main(int argc, char *argv[])
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease;
 	int max_sock;
-	int sig;
 	unsigned long num_ips;
 	
-	start_log("server");
-
 	memset(&server_config, 0, sizeof(struct server_config_t));
-	
-	if (argc < 2)
-		read_config(DHCPD_CONF_FILE);
-	else read_config(argv[1]);
+	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
+
+	/* Start the log, sanitize fd's, and write a pid file */
+	start_log_and_pid("udhcpd", server_config.pidfile);
 
 	if ((option = find_option(server_config.options, DHCP_LEASE_TIME))) {
 		memcpy(&server_config.lease, option->data + 2, 4);
@@ -90,18 +92,19 @@ int udhcpd_main(int argc, char *argv[])
 		server_config.max_leases = num_ips;
 	}
 
-	leases = xcalloc(sizeof(struct dhcpOfferedAddr), server_config.max_leases);
+	leases = xcalloc(server_config.max_leases, sizeof(struct dhcpOfferedAddr));
 	read_leases(server_config.lease_file);
 
 	if (read_interface(server_config.interface, &server_config.ifindex,
 			   &server_config.server, server_config.arp) < 0)
-		return(1);
+		return 1;
 
-#ifndef CONFIG_FEATURE_UDHCP_DEBUG
-	background(server_config.pidfile);
+#ifndef UDHCP_DEBUG
+	background(server_config.pidfile); /* hold lock during fork. */
 #endif
 
-	udhcp_set_signal_pipe(0);
+	/* Setup the signal pipe */
+	udhcp_sp_setup();
 
 	timeout_end = time(0) + server_config.auto_time;
 	while(1) { /* loop until universe collapses */
@@ -109,18 +112,15 @@ int udhcpd_main(int argc, char *argv[])
 		if (server_socket < 0)
 			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
 				LOG(LOG_ERR, "FATAL: couldn't create server socket, %m");
-				return(2);
+				return 2;
 			}			
 
-		FD_ZERO(&rfds);
-		FD_SET(server_socket, &rfds);
-		FD_SET(udhcp_signal_pipe[0], &rfds);
+		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
 		if (server_config.auto_time) {
 			tv.tv_sec = timeout_end - time(0);
 			tv.tv_usec = 0;
 		}
 		if (!server_config.auto_time || tv.tv_sec > 0) {
-			max_sock = server_socket > udhcp_signal_pipe[0] ? server_socket : udhcp_signal_pipe[0];
 			retval = select(max_sock + 1, &rfds, NULL, NULL, 
 					server_config.auto_time ? &tv : NULL);
 		} else retval = 0; /* If we already timed out, fall through */
@@ -134,20 +134,18 @@ int udhcpd_main(int argc, char *argv[])
 			continue;
 		}
 		
-		if (FD_ISSET(udhcp_signal_pipe[0], &rfds)) {
-			if (read(udhcp_signal_pipe[0], &sig, sizeof(sig)) < 0)
-				continue; /* probably just EINTR */
-			switch (sig) {
-			case SIGUSR1:
-				LOG(LOG_INFO, "Received a SIGUSR1");
-				write_leases();
-				/* why not just reset the timeout, eh */
-				timeout_end = time(0) + server_config.auto_time;
-				continue;
-			case SIGTERM:
-				LOG(LOG_INFO, "Received a SIGTERM");
-				return(0);
-			}
+		switch (udhcp_sp_read(&rfds)) {
+		case SIGUSR1:
+			LOG(LOG_INFO, "Received a SIGUSR1");
+			write_leases();
+			/* why not just reset the timeout, eh */
+			timeout_end = time(0) + server_config.auto_time;
+			continue;
+		case SIGTERM:
+			LOG(LOG_INFO, "Received a SIGTERM");
+			return 0;
+		case 0: break;		/* no signal */
+		default: continue;	/* signal or error (probably EINTR) */
 		}
 
 		if ((bytes = get_packet(&packet, server_socket)) < 0) { /* this waits for a packet - idle */
@@ -251,3 +249,4 @@ int udhcpd_main(int argc, char *argv[])
 
 	return 0;
 }
+

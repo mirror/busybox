@@ -117,6 +117,7 @@ static int check_ip(u_int32_t addr)
 	} else return 0;
 }
 
+
 /* find an assignable address, it check_expired is true, we check all the expired leases as well.
  * Maybe this should try expired leases by age... */
 u_int32_t find_address(int check_expired) 

@@ -18,10 +18,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "version.h"
-#include "busybox.h"
+#ifndef _COMMON_H
+#define _COMMON_H
 
-#ifndef CONFIG_FEATURE_UDHCP_SYSLOG
+#include "version.h"
+#include "libbb_udhcp.h"
+
+
+#ifndef UDHCP_SYSLOG
 enum syslog_levels {
 	LOG_EMERG = 0,
 	LOG_ALERT,
@@ -35,18 +39,17 @@ enum syslog_levels {
 #include <syslog.h>
 #endif
 
-void start_log(const char *client_server);
+void background(const char *pidfile);
+void start_log_and_pid(const char *client_server, const char *pidfile);
 void background(const char *pidfile);
 void udhcp_logging(int level, const char *fmt, ...);
-
-extern int udhcp_signal_pipe[2];
-void udhcp_set_signal_pipe(int sig_add);
-
-
+                                                                                
 #define LOG(level, str, args...) udhcp_logging(level, str, ## args)
 
-#ifdef CONFIG_FEATURE_UDHCP_DEBUG
-# define DEBUG(level, str, args...) udhcp_logging(level, str, ## args)
+#ifdef UDHCP_DEBUG
+# define DEBUG(level, str, args...) LOG(level, str, ## args)
 #else
 # define DEBUG(level, str, args...) do {;} while(0)
+#endif
+
 #endif

@@ -33,22 +33,14 @@ CONFIG_UDHCP_SHARED=n
 endif
 endif
 
-ifeq ($(CONFIG_UDHCPD), y)
-CONFIG_UDHCP_LEASES_FILE=y
-else
-ifeq ($(CONFIG_UDHCPD), y)
-CONFIG_UDHCP_LEASES_FILE=y
-else
-CONFIG_UDHCP_LEASES_FILE=n
-endif
-endif
-
 UDHCP-y:=
-UDHCP-$(CONFIG_UDHCP_SHARED)    += options.c socket.c packet.c common.c
-UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c script.c
-UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c serverpacket.c
+UDHCP-$(CONFIG_UDHCP_SHARED)    += common.c options.c packet.c pidfile.c \
+				   signalpipe.c socket.c
+UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c clientsocket.c \
+				   script.c
+UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c \
+				   serverpacket.c
 UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
-UDHCP-$(CONFIG_UDHCP_LEASES_FILE) += leases_file.c
 UDHCP_OBJS=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 
 libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)

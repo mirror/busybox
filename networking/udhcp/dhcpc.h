@@ -2,6 +2,11 @@
 #ifndef _DHCPC_H
 #define _DHCPC_H
 
+#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
+
+/* allow libbb_udhcp.h to redefine DEFAULT_SCRIPT */
+#include "libbb_udhcp.h"
+
 #define INIT_SELECTING	0
 #define REQUESTING	1
 #define BOUND		2

@@ -16,6 +16,13 @@
 #include "options.h"
 #include "common.h"
 
+/* 
+ * Domain names may have 254 chars, and string options can be 254
+ * chars long. However, 80 bytes will be enough for most, and won't
+ * hog up memory. If you have a special application, change it
+ */
+#define READ_CONFIG_BUF_SIZE 80
+
 /* on these functions, make sure you datatype matches */
 static int read_ip(const char *line, void *arg)
 {
@@ -66,23 +73,23 @@ static int read_yn(const char *line, void *arg)
 	return retval;
 }
 
-#define READ_CONFIG_BUF_SIZE 512        /* domainname may have 254 chars */
 
 /* read a dhcp option and add it to opt_list */
 static int read_opt(const char *const_line, void *arg)
 {
-	char line[READ_CONFIG_BUF_SIZE];
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
 	struct dhcp_option *option;
 	int retval = 0, length;
-	char buffer[256];                       /* max opt length */
-	u_int16_t result_u16;
-	u_int32_t result_u32;
-	void *valptr;
+	char buffer[8];
+	char *line;
+	u_int16_t *result_u16 = (u_int16_t *) buffer;
+	u_int32_t *result_u32 = (u_int32_t *) buffer;
+
+	/* Cheat, the only const line we'll actually get is "" */
+	line = (char *) const_line;
+	if (!(opt = strtok(line, " \t="))) return 0;
 	
-	if (!(opt = strtok(strcpy(line, const_line), " \t="))) return 0;
-		
 	for (option = dhcp_options; option->code; option++)
 		if (!strcasecmp(option->name, opt))
 			break;
@@ -90,11 +97,10 @@ static int read_opt(const char *const_line, void *arg)
 	if (!option->code) return 0;
 
 	do {
-		val = strtok(NULL, ", \t");
-		if(!val)
-			break;
+		if (!(val = strtok(NULL, ", \t"))) break;
 		length = option_lengths[option->flags & TYPE_MASK];
-		valptr = NULL;
+		retval = 0;
+		opt = buffer; /* new meaning for variable opt */
 		switch (option->flags & TYPE_MASK) {
 		case OPTION_IP:
 			retval = read_ip(val, buffer);
@@ -108,9 +114,8 @@ static int read_opt(const char *const_line, void *arg)
 			length = strlen(val);
 			if (length > 0) {
 				if (length > 254) length = 254;
-				endptr = buffer + length;
-				endptr[0] = 0;
-				valptr = val;
+				opt = val;
+				retval = 1;
 			}
 			break;
 		case OPTION_BOOLEAN:
@@ -118,43 +123,36 @@ static int read_opt(const char *const_line, void *arg)
 			break;
 		case OPTION_U8:
 			buffer[0] = strtoul(val, &endptr, 0);
-			valptr = buffer;
+			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_U16:
-			result_u16 = htons(strtoul(val, &endptr, 0));
-			valptr = &result_u16;
+			*result_u16 = htons(strtoul(val, &endptr, 0));
+			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_S16:
-			result_u16 = htons(strtol(val, &endptr, 0));
-			valptr = &result_u16;
+			*result_u16 = htons(strtol(val, &endptr, 0));
+			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_U32:
-			result_u32 = htonl(strtoul(val, &endptr, 0));
-			valptr = &result_u32;
+			*result_u32 = htonl(strtoul(val, &endptr, 0));	
+			retval = (endptr[0] == '\0');
 			break;
 		case OPTION_S32:
-			result_u32 = htonl(strtol(val, &endptr, 0));	
-			valptr = &result_u32;
+			*result_u32 = htonl(strtol(val, &endptr, 0));	
+			retval = (endptr[0] == '\0');
 			break;
 		default:
-			retval = 0;
 			break;
-		}
-		if (valptr) {
-			memcpy(buffer, valptr, length);
-			retval = (endptr[0] == '\0');
 		}
 		if (retval) 
-			attach_option(opt_list, option, buffer, length);
-		else
-			break;
-	} while (option->flags & OPTION_LIST);
+			attach_option(opt_list, option, opt, length);
+	} while (retval && option->flags & OPTION_LIST);
 	return retval;
 }
 
 
 static const struct config_keyword keywords[] = {
-	/* keyword      handler   variable address              default     */
+	/* keyword	handler   variable address		default */
 	{"start",	read_ip,  &(server_config.start),	"192.168.0.20"},
 	{"end",		read_ip,  &(server_config.end),		"192.168.0.254"},
 	{"interface",	read_str, &(server_config.interface),	"eth0"},
@@ -167,7 +165,7 @@ static const struct config_keyword keywords[] = {
 	{"conflict_time",read_u32,&(server_config.conflict_time),"3600"},
 	{"offer_time",	read_u32, &(server_config.offer_time),	"60"},
 	{"min_lease",	read_u32, &(server_config.min_lease),	"60"},
-	{"lease_file",  read_str, &(server_config.lease_file),	LEASES_FILE},
+	{"lease_file",	read_str, &(server_config.lease_file),	LEASES_FILE},
 	{"pidfile",	read_str, &(server_config.pidfile),	"/var/run/udhcpd.pid"},
 	{"notify_file", read_str, &(server_config.notify_file),	""},
 	{"siaddr",	read_ip,  &(server_config.siaddr),	"0.0.0.0"},
@@ -181,9 +179,11 @@ static const struct config_keyword keywords[] = {
 int read_config(const char *file)
 {
 	FILE *in;
-	char buffer[READ_CONFIG_BUF_SIZE], orig[READ_CONFIG_BUF_SIZE];
-	char *token, *line;
-	int i;
+	char buffer[READ_CONFIG_BUF_SIZE], *token, *line;
+#ifdef UDHCP_DEBUG
+	char orig[READ_CONFIG_BUF_SIZE];
+#endif
+	int i, lm = 0;
 
 	for (i = 0; keywords[i].keyword[0]; i++)
 		if (keywords[i].def[0])
@@ -195,27 +195,27 @@ int read_config(const char *file)
 	}
 	
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
+		lm++;
 		if (strchr(buffer, '\n')) *(strchr(buffer, '\n')) = '\0';
+#ifdef UDHCP_DEBUG
 		strcpy(orig, buffer);
+#endif
 		if (strchr(buffer, '#')) *(strchr(buffer, '#')) = '\0';
-		token = strtok(buffer, " \t");
-		if(!token)
-			continue;
-		line = strtok(NULL, "");
-		if(!line)
-			continue;
-		while(*line == '=' || isspace(*line))
-		line++;
+
+		if (!(token = strtok(buffer, " \t"))) continue;
+		if (!(line = strtok(NULL, ""))) continue;		
+		
+		/* eat leading whitespace */
+		line = line + strspn(line, " \t=");
 		/* eat trailing whitespace */
 		for (i = strlen(line); i > 0 && isspace(line[i - 1]); i--);
 		line[i] = '\0';
-		if (*line == '\0')
-			continue;
 		
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					LOG(LOG_ERR, "unable to parse '%s'", orig);
+					LOG(LOG_ERR, "Failure parsing line %d of %s", lm, file);
+					DEBUG(LOG_ERR, "unable to parse '%s'", orig);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);
 				}

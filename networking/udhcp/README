@@ -11,19 +11,22 @@ compile time options
 
 The Makefile contains three of the compile time options:
 	
-	DEBUG: If DEBUG is defined, udhcpd will output extra debugging
-	output, compile with -g, and not fork to the background when run.
-	SYSLOG: If SYSLOG is defined, udhcpd will log all its messages
-	syslog, otherwise, it will attempt to log them to stdout.
+	UDHCP_DEBUG: If UDHCP_DEBUG is defined, udhcpd will output extra
+	debugging output, compile with -g, and not fork to the background when
+	run.
+	UDHCP_SYSLOG: If UDHCP_SYSLOG is defined, udhcpd will log all its
+	messages syslog, otherwise, it will attempt to log them to stdout.
 	
 	COMBINED_BINARY: If COMBINED_BINARY is define, one binary, udhcpd,
 	is created. If called as udhcpd, the dhcp server will be started.
 	If called as udhcpc, the dhcp client will be started.
 	
-dhcpd.h contains the other two compile time options:
+dhcpd.h contains the other three compile time options:
 	
 	LEASE_TIME: The default lease time if not specified in the config
 	file.
+
+	LEASES_FILE: The default file for storing leases.
 	
 	DHCPD_CONFIG_FILE: The defualt config file to use.
 	

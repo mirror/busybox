@@ -1,8 +1,6 @@
-0.9.10
-  Size optimization (over 3k), more busybox integration
-  (Vladimir Oleynik <dzo@simtreas.ru>
-
 0.9.9 (pending)
++ Various other size optimizations (Vladimir)
++ Change strerror(errno) to %m (Vladimir N. Oleynik <dzo@simtreas.ru>)
 + Fixed a little endian problem in mton (Bastian Blank <waldi@debian.org>)
 + Fixed a arpping alignment problem (Rui He <rhe@3eti.com>)
 + Added sanity check for max_leases (udhcp bug #1285) (me)
@@ -36,7 +34,7 @@
   udhcp bug#1256
 + Fixed reading of client id (David Poole <davep@portsmith.com>)
 + change sys_errlist[] to strerror() as it aparently doesn't exist
-  (Erik Andersen <andersen@codepoet.org>)
+  (Erik Andersen <andersee@codepoet.org>)
 + fixed get_raw_packet so it returns -2 on non fatal errors
   (Ted Lemon <Ted.Lemon@nominum.com>)
 + Improved (hopefully) NAKing behavior (me)

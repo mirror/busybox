@@ -1,5 +1,13 @@
 /* libbb_udhcp.h - busybox compatability wrapper */
 
+/* bit of a hack, do this no matter what the order of the includes.
+ * (for busybox) */
+
+#ifdef CONFIG_INSTALL_NO_USR
+#undef DEFUALT_SCRIPT
+#define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
+#endif
+
 #ifndef _LIBBB_UDHCP_H
 #define _LIBBB_UDHCP_H
 
@@ -7,21 +15,15 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_UDHCP_SYSLOG
-#define SYSLOG
+#define UDHCP_SYSLOG
 #endif
 
 #ifdef CONFIG_FEATURE_UDHCP_DEBUG
-#define DEBUG
+#define UDHCP_DEBUG
 #endif
 
 #define COMBINED_BINARY
 #include "version.h"
-
-#ifdef CONFIG_INSTALL_NO_USR
-#define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
-#else
-#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
-#endif
 
 #define xfopen bb_xfopen
 
@@ -35,8 +37,6 @@
 
 #define xmalloc malloc
 #define xcalloc calloc
-
-#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 
 static inline FILE *xfopen(const char *file, const char *mode)
 {

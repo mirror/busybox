@@ -44,7 +44,11 @@ int arpping(u_int32_t yiaddr, u_int32_t ip, unsigned char *mac, char *interface)
 
 
 	if ((s = socket (PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) == -1) {
+#ifdef IN_BUSYBOX
 		LOG(LOG_ERR, bb_msg_can_not_create_raw_socket);
+#else
+		LOG(LOG_ERR, "Could not open raw socket");
+#endif
 		return -1;
 	}
 	
