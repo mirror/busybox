@@ -41,8 +41,10 @@ extern int mkdir_main (int argc, char **argv)
 		switch (opt) {
 		case 'm':
 			mode = 0777;
-			if (!parse_mode (optarg, &mode))
+			if (!parse_mode (optarg, &mode)) {
 				error_msg_and_die ("invalid mode `%s'", optarg);
+			}
+			umask(0);
 			break;
 		case 'p':
 			flags |= FILEUTILS_RECUR;

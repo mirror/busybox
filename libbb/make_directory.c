@@ -38,24 +38,41 @@
  * Also create parent directories as necessary if flags contains
  * FILEUTILS_RECUR.  */
 
+static mode_t default_permission(char *path, mode_t old_permision)
+{
+	struct stat statbuf;
+	char *pp;
+
+	statbuf.st_mode = 0777;
+
+	/* stat the directory */
+	pp = strrchr(path, '/');
+	if ((pp) && (pp != path)) {
+		*pp = '\0';
+		stat(path, &statbuf);
+		*pp = '/';
+	}
+
+	return(statbuf.st_mode & old_permision);
+}
+
 int make_directory (char *path, long mode, int flags)
 {
 	int ret;
-	
-	/* Calling apps probably should use 0777 instead of -1
-	 * then we dont need this condition
-	 */
-	if (mode == -1) {
-		mode = 0777;
-	}
+
 	if (flags == FILEUTILS_RECUR) {
 		char *pp = strrchr(path, '/');
 		if ((pp) && (pp != path)) {
 			*pp = '\0';
-			make_directory(path, mode, flags);
+			make_directory(path, -1, flags);
 			*pp = '/';
 		}
 	}
+
+	if (mode == -1) {
+		mode = default_permission(path, 07777);
+	}
+
 	ret = mkdir(path, mode);
 	if (ret == -1) {
 		if ((flags == FILEUTILS_RECUR) && (errno == EEXIST)) {
@@ -64,5 +81,6 @@ int make_directory (char *path, long mode, int flags)
 			perror_msg_and_die("Cannot create directory '%s'", path);
 		}
 	}
+
 	return(ret);
 }
