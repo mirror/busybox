@@ -1,3 +1,10 @@
+busybox (1:0.52-1.1) unstable; urgency=high
+
+  * Non-maintainer upload
+  * Fixed wget -P handling (closes: #106223).
+
+ -- Matt Kraai <kraai@debian.org>  Wed, 25 Jul 2001 11:01:38 -0600
+
 busybox (1:0.52-1) unstable; urgency=high
 
   * New version released.  See changelog for details.
