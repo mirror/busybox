@@ -195,9 +195,6 @@
 //Make sure nothing is printed to the console on boot
 //#define BB_FEATURE_EXTRA_QUIET
 //
-//Should syslogd also provide klogd support?
-#define BB_FEATURE_KLOGD
-//
 // enable syslogd -R remotehost
 #define BB_FEATURE_REMOTE_LOG
 //
