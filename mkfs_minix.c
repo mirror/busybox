@@ -644,7 +644,7 @@ char *filename;
 
 extern int mkfs_minix_main(int argc, char **argv)
 {
-	int i;
+	int i=1;
 	char *tmp;
 	struct stat statbuf;
 	char *listfile = NULL;
@@ -660,43 +660,57 @@ extern int mkfs_minix_main(int argc, char **argv)
 #endif
 	
 	/* Parse options */
-	//printf("argc='%d'  argv='%s'\n", argc, *argv);
+printf("erik: argc='%d'  argv='%s'\n", argc, *argv);
 	argv++;
 	while (--argc >= 0 && *argv && **argv) {
 		if (**argv == '-') {
 			stopIt=FALSE;
 			while (i > 0 && *++(*argv) && stopIt==FALSE) {
-				//printf("argc='%d'  argv='%s'\n", argc, *argv);
+printf("erik: argc='%d'  argv='%s'\n", argc, *argv);
 				switch (**argv) {
 					case 'c':
 						check = 1;
 						break;
 					case 'i':
-						if (--argc == 0) {
-							goto goodbye;
+						{
+							char *cp=NULL;
+							if (*(*argv+1) != 0) {
+								cp = ++(*argv);
+							} else {
+								if (--argc == 0) {
+									goto goodbye;
+								}
+								cp = *(++argv);
+							}
+							req_nr_inodes = strtoul(cp, &tmp, 0);
+							if (*tmp)
+								show_usage();
+printf("erik: nr_inodes=%ld\n", req_nr_inodes);
+							stopIt=TRUE;
+							break;
 						}
-						req_nr_inodes = (unsigned long) atol(*(++argv));
-						break;
 					case 'l':
 						if (--argc == 0) {
 							goto goodbye;
 						}
 						listfile = *(++argv);
+printf("erik: listfile='%s'\n", listfile);
 						break;
 					case 'n':
 						{
 							char *cp=NULL;
 
-							if (--argc == 0) {
-								goto goodbye;
-							}
 							if (*(*argv+1) != 0) {
 								cp = ++(*argv);
 							} else {
+								if (--argc == 0) {
+									goto goodbye;
+								}
 								cp = *(++argv);
 							}
 							i = strtoul(cp, &tmp, 0);
 							//printf("cp='%s'   i='%d'\n", cp, i);
+printf("erik: namelen=%d\n", i);
 							if (*tmp)
 								show_usage();
 							if (i == 14)
@@ -727,7 +741,7 @@ goodbye:
 				}
 			}
 		} else {
-			//printf("else:  argc='%d'  argv='%s'\n", argc, *argv);
+printf("else:  argc='%d'  argv='%s'\n", argc, *argv);
 			if (device_name == NULL)
 				device_name = *argv;
 			else if (BLOCKS == 0)
