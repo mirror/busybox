@@ -21,6 +21,9 @@
 	* Due to the license change, I can now use minix code.  Minux tr replaces
 	    the BSD derived tr, saving 4k and eliminating bsearch(3) from the
 	    list of used Libc symbols.
+	* Add support for "noatime" and "nodiratime" mount flags to mount.
+	* Changed 'umount -f' to mean force, and actually use umount2.
+	* Changed 'umount -l' to mean "Do not free loop device".
 	* More doc updates
 
 	 -Erik
