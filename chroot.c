@@ -56,6 +56,7 @@ int chroot_main(int argc, char **argv)
 #else
 		char shell[] = "/bin/sh";
 		char *shell_argv[2] = { shell, NULL };
+		applet_name = shell;
 		shell_main(1, shell_argv);
 		return EXIT_SUCCESS;
 #endif
