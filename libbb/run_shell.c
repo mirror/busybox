@@ -36,14 +36,20 @@
 #include <syslog.h>
 #include <ctype.h>
 #include "libbb.h"
-
+#ifdef CONFIG_SELINUX
+#include <proc_secure.h>
+#endif
 
 /* Run SHELL, or DEFAULT_SHELL if SHELL is empty.
    If COMMAND is nonzero, pass it to the shell with the -c option.
    If ADDITIONAL_ARGS is nonzero, pass it to the shell as more
    arguments.  */
 
-void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args )
+void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args
+#ifdef CONFIG_SELINUX
+	, security_id_t sid
+#endif
+)
 {
 	const char **args;
 	int argno = 1;
@@ -71,6 +77,11 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 			args [argno++] = *additional_args;
 	}
 	args [argno] = 0;
+#ifdef CONFIG_SELINUX
+	if(sid)
+		execve_secure(shell, (char **) args, environ, sid);
+	else
+#endif
 	execv ( shell, (char **) args );
 	bb_perror_msg_and_die ( "cannot run %s", shell );
 }

@@ -41,7 +41,11 @@ extern long* find_pid_by_name( const char* pidName)
 	procps_status_t * p;
 
 	pidList = xmalloc(sizeof(long));
+#ifdef CONFIG_SELINUX
+	while ((p = procps_scan(0, 0, NULL)) != 0) {
+#else
 	while ((p = procps_scan(0)) != 0) {
+#endif
 		if (strcmp(p->short_cmd, pidName) == 0) {
 			pidList=xrealloc( pidList, sizeof(long) * (i+2));
 			pidList[i++]=p->pid;

@@ -31,6 +31,11 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
+#ifdef CONFIG_SELINUX
+#include <fs_secure.h>
+#include <ss.h>
+#include <flask_util.h>          /* for is_flask_enabled() */
+#endif
 
 static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefold bug */
 
@@ -47,6 +52,13 @@ extern int ps_main(int argc, char **argv)
 #define terminal_width  TERMINAL_WIDTH
 #endif
 
+#ifdef CONFIG_SELINUX
+	int use_selinux = 0;
+	security_id_t sid;
+	if(is_flask_enabled() && argv[1] && !strcmp(argv[1], "-c") )
+		use_selinux = 1;
+#endif
+
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
@@ -54,10 +66,31 @@ extern int ps_main(int argc, char **argv)
 			terminal_width = win.ws_col - 1;
 #endif
 
+#ifdef CONFIG_SELINUX
+	if(use_selinux)
+		printf("  PID Context                          Stat Command\n");
+	else
+#endif
 	printf("  PID  Uid     VmSize Stat Command\n");
+#ifdef CONFIG_SELINUX
+	while ((p = procps_scan(1, use_selinux, &sid)) != 0) {
+#else
 	while ((p = procps_scan(1)) != 0) {
+#endif
 		char *namecmd = p->cmd;
 
+#ifdef CONFIG_SELINUX
+		if(use_selinux)
+		{
+			char sbuf[128];
+			len = sizeof(sbuf);
+			if(security_sid_to_context(sid, (security_context_t)&sbuf, &len))
+				strcpy(sbuf, "unknown");
+
+			len = printf("%5d %-32s %s ", p->pid, sbuf, p->state);
+		}
+		else
+#endif
 		if(p->rss == 0)
 			len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
 		else

@@ -28,9 +28,13 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/types.h>
+#ifdef CONFIG_SELINUX
+#include <proc_secure.h>
+#include <flask_util.h>
+#endif
 
-#define NO_GROUP          1
-#define NO_USER           2
+#define JUST_USER         1
+#define JUST_GROUP        2
 #define PRINT_REAL        4
 #define NAME_NOT_NUMBER   8
 
@@ -40,10 +44,13 @@ extern int id_main(int argc, char **argv)
 	long pwnam, grnam;
 	int uid, gid;
 	int flags;
+#ifdef CONFIG_SELINUX
+	int is_flask_enabled_flag = is_flask_enabled();
+#endif
 	
 	flags = bb_getopt_ulflags(argc, argv, "ugrn");
 
-	if (((flags & (NO_USER | NO_GROUP)) == (NO_USER | NO_GROUP))
+	if (((flags & (JUST_USER | JUST_GROUP)) == (JUST_USER | JUST_GROUP))
 		|| (argc > optind + 1)
 	) {
 		bb_show_usage();
@@ -67,9 +74,9 @@ extern int id_main(int argc, char **argv)
 	pwnam=my_getpwnam(user);
 	grnam=my_getgrnam(group);
 
-	if (flags & (NO_GROUP | NO_USER)) {
+	if (flags & (JUST_GROUP | JUST_USER)) {
 		char *s = group;
-		if (flags & NO_GROUP) {
+		if (flags & JUST_USER) {
 			s = user;
 			grnam = pwnam;
 		}
@@ -79,7 +86,24 @@ extern int id_main(int argc, char **argv)
 			printf("%ld\n", grnam);
 		}
 	} else {
+#ifdef CONFIG_SELINUX
+		printf("uid=%ld(%s) gid=%ld(%s)", pwnam, user, grnam, group);
+		if(is_flask_enabled_flag)
+		{
+			security_id_t mysid = getsecsid();
+			char context[80];
+			int len = sizeof(context);
+			context[0] = '\0';
+			if(security_sid_to_context(mysid, context, &len))
+				strcpy(context, "unknown");
+			printf(" context=%s\n", context);
+		}
+		else
+			printf("\n");
+#else
 		printf("uid=%ld(%s) gid=%ld(%s)\n", pwnam, user, grnam, group);
+#endif
+
 	}
 
 	bb_fflush_stdout_and_exit(0);

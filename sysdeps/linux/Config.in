@@ -106,6 +106,13 @@ config CONFIG_FEATURE_SUID_CONFIG_QUIET
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_SELINUX
+	bool "Support NSA Security Enhanced Linux"
+	default n
+	help
+	  Enable support for SE Linux in applets ls, ps, and id.  Also provide
+	  the option of compiling in SE Linux applets.
+
 endmenu
 
 menu 'Build Options'

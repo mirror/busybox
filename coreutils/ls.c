@@ -62,6 +62,11 @@ enum {
 #include <termios.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
+#ifdef CONFIG_SELINUX
+#include <fs_secure.h>
+#include <flask_util.h>
+#include <ss.h>
+#endif
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 #include <time.h>
@@ -89,14 +94,15 @@ enum {
 #define LIST_NLINKS		(1U<<3)
 #define LIST_ID_NAME	(1U<<4)
 #define LIST_ID_NUMERIC	(1U<<5)
-#define LIST_SIZE		(1U<<6)
-#define LIST_DEV		(1U<<7)
-#define LIST_DATE_TIME	(1U<<8)
-#define LIST_FULLTIME	(1U<<9)
-#define LIST_FILENAME	(1U<<10)
-#define LIST_SYMLINK	(1U<<11)
-#define LIST_FILETYPE	(1U<<12)
-#define LIST_EXEC		(1U<<13)
+#define LIST_CONTEXT	(1U<<6)
+#define LIST_SIZE		(1U<<7)
+#define LIST_DEV		(1U<<8)
+#define LIST_DATE_TIME	(1U<<9)
+#define LIST_FULLTIME	(1U<<10)
+#define LIST_FILENAME	(1U<<11)
+#define LIST_SYMLINK	(1U<<12)
+#define LIST_FILETYPE	(1U<<13)
+#define LIST_EXEC	(1U<<14)
 
 #define LIST_MASK       ((LIST_EXEC << 1) - 1)
 
@@ -179,6 +185,9 @@ struct dnode {			/* the basic node */
 	char *name;			/* the dir entry name */
 	char *fullname;		/* the dir entry name */
 	struct stat dstat;	/* the file stat info */
+#ifdef CONFIG_SELINUX
+	security_id_t sid;
+#endif
 	struct dnode *next;	/* point at the next node */
 };
 typedef struct dnode dnode_t;
@@ -188,6 +197,10 @@ static struct dnode **dnalloc(int);
 static int list_single(struct dnode *);
 
 static unsigned int all_fmt;
+
+#ifdef CONFIG_SELINUX
+static int is_flask_enabled_flag;
+#endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static unsigned short terminal_width = TERMINAL_WIDTH;
@@ -203,26 +216,49 @@ static struct dnode *my_stat(char *fullname, char *name)
 {
 	struct stat dstat;
 	struct dnode *cur;
+#ifdef CONFIG_SELINUX
+	security_id_t sid;
+#endif
+	int rc;
 
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 	if (all_fmt & FOLLOW_LINKS) {
-		if (stat(fullname, &dstat)) {
+#ifdef CONFIG_SELINUX
+		if(is_flask_enabled_flag)
+			rc = stat_secure(fullname, &dstat, &sid);
+		else
+#endif
+			rc = stat(fullname, &dstat);
+		if(rc)
+		{
 			bb_perror_msg("%s", fullname);
 			status = EXIT_FAILURE;
 			return 0;
 		}
 	} else
 #endif
-	if (lstat(fullname, &dstat)) {
-		bb_perror_msg("%s", fullname);
-		status = EXIT_FAILURE;
-	return 0;
+	{
+#ifdef CONFIG_SELINUX
+		if(is_flask_enabled_flag)
+			rc = lstat_secure(fullname, &dstat, &sid);
+		else
+#endif
+			rc = lstat(fullname, &dstat);
+		if(rc)
+		{
+			bb_perror_msg("%s", fullname);
+			status = EXIT_FAILURE;
+			return 0;
+		}
 	}
 
 	cur = (struct dnode *) xmalloc(sizeof(struct dnode));
 	cur->fullname = fullname;
 	cur->name = name;
 	cur->dstat = dstat;
+#ifdef CONFIG_SELINUX
+	cur->sid = sid;
+#endif
 	return cur;
 }
 
@@ -451,6 +487,9 @@ static void showfiles(struct dnode **dn, int nfiles)
 		/* find the longest file name-  use that as the column width */
 		for (i = 0; i < nfiles; i++) {
 			int len = strlen(dn[i]->name) +
+#ifdef CONFIG_SELINUX
+			((all_fmt & LIST_CONTEXT) ? 33 : 0) +
+#endif
 			((all_fmt & LIST_INO) ? 8 : 0) +
 			((all_fmt & LIST_BLOCKS) ? 5 : 0);
 			if (column_width < len)
@@ -695,6 +734,21 @@ static int list_single(struct dnode *dn)
 			column += 13;
 			break;
 #endif
+#ifdef CONFIG_SELINUX
+		case LIST_CONTEXT:
+			{
+				char context[64];
+				int len = sizeof(context);
+				if(security_sid_to_context(dn->sid, context, &len))
+				{
+					strcpy(context, "unknown");
+					len = 7;
+				}
+				printf("%-32s ", context);
+				column += MAX(33, len);
+			}
+			break;
+#endif
 		case LIST_FILENAME:
 #ifdef CONFIG_FEATURE_LS_COLOR
 			errno = 0;
@@ -774,6 +828,9 @@ static const char ls_opts[] = "1AaCdgilnsx"
 						 "h"
 #endif
 						 "k"
+#ifdef CONFIG_SELINUX
+						"K"
+#endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 						 "T:w:"
 #endif
@@ -834,7 +891,12 @@ static const unsigned opt_flags[] = {
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 LS_DISP_HR,						/* h */
 #endif
+#ifndef CONFIG_SELINUX
 	0,							/* k - ingored */
+#else
+	LIST_CONTEXT,				/* k */
+	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
+#endif
 };
 
 
@@ -849,6 +911,9 @@ extern int ls_main(int argc, char **argv)
 	int opt;
 	int oi, ac;
 	char **av;
+#ifdef CONFIG_SELINUX
+	is_flask_enabled_flag = is_flask_enabled();
+#endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
@@ -910,6 +975,9 @@ extern int ls_main(int argc, char **argv)
 			}
 			if (flags & TIME_MASK_TRIGGER) {
 				all_fmt &= ~TIME_MASK;
+			}
+			if (flags & LIST_CONTEXT) {
+				all_fmt |= STYLE_SINGLE;
 			}
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 			if (opt == 'l') {

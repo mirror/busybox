@@ -16,7 +16,12 @@
 #include <time.h>
 
 #include "busybox.h"
-
+#ifdef CONFIG_SELINUX
+#include <flask_util.h>
+#include <get_sid_list.h>
+#include <proc_secure.h>
+#include <fs_secure.h>
+#endif
 
 #ifdef CONFIG_FEATURE_U_W_TMP
 // import from utmp.c
@@ -73,6 +78,10 @@ extern int login_main(int argc, char **argv)
 	int opt_fflag = 0;
 	char *opt_host = 0;
 	int alarmstarted = 0;	
+#ifdef CONFIG_SELINUX
+	int flask_enabled = is_flask_enabled();
+	security_id_t sid = 0, old_tty_sid, new_tty_sid;
+#endif
 
 	username[0]=0;
 	amroot = ( getuid ( ) == 0 );
@@ -217,6 +226,36 @@ auth_ok:
 #ifdef CONFIG_FEATURE_U_W_TMP
 	setutmp ( username, tty );
 #endif
+#ifdef CONFIG_SELINUX
+	if (flask_enabled)
+	{
+		struct stat st;
+
+		if (get_default_sid(username, 0, &sid))
+		{
+			fprintf(stderr, "Unable to get SID for %s\n", username);
+			exit(1);
+		}
+		if (stat_secure(tty, &st, &old_tty_sid))
+		{
+			fprintf(stderr, "stat_secure(%.100s) failed: %.100s\n", tty, strerror(errno));
+			return EXIT_FAILURE;
+		}
+		if (security_change_sid (sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
+		{
+			fprintf(stderr, "security_change_sid(%.100s) failed: %.100s\n", tty, strerror(errno));
+			return EXIT_FAILURE;
+		}
+		if(chsid(tty, new_tty_sid) != 0)
+		{
+			fprintf(stderr, "chsid(%.100s, %d) failed: %.100s\n", tty, new_tty_sid, strerror(errno));
+			return EXIT_FAILURE;
+		}
+	}
+	else
+		sid = 0;
+#endif
+
 	if ( *tty != '/' ) 
 		snprintf ( full_tty, sizeof( full_tty ) - 1, "/dev/%s", tty);
 	else
@@ -239,7 +278,11 @@ auth_ok:
 	if ( pw-> pw_uid == 0 ) 
 		syslog ( LOG_INFO, "root login %s\n", fromhost );
 	
-	run_shell ( pw-> pw_shell, 1, 0, 0 );	/* exec the shell finally. */
+	run_shell ( pw-> pw_shell, 1, 0, 0
+#ifdef CONFIG_SELINUX
+	, sid
+#endif
+	 );	/* exec the shell finally. */
 	
 	return EXIT_FAILURE;
 }

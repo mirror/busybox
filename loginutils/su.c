@@ -156,7 +156,11 @@ int su_main ( int argc, char **argv )
 
 	change_identity ( pw );	
 	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );
-	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args );
+	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args
+#ifdef CONFIG_SELINUX
+	, 0
+#endif
+	);
 	
 	return EXIT_FAILURE;
 }

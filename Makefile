@@ -31,6 +31,11 @@ DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	networking/libiproute networking/udhcp procps loginutils shell \
 	sysklogd util-linux libbb libpwdgrp coreutils/libcoreutils
 
+ifeq ($(strip $(CONFIG_SELINUX)),y)
+CFLAGS += -I/usr/include/selinux
+LIBRARIES += -lsecure
+endif
+
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links #doc
