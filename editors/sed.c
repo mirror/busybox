@@ -457,6 +457,7 @@ void add_cmd(char *cmdstr)
 {
 	static char *add_cmd_line=NULL;
 	sed_cmd_t *sed_cmd;
+	int temp;
 
 	/* Append this line to any unfinished line from last time. */
 	if(add_cmd_line) {
@@ -471,7 +472,7 @@ void add_cmd(char *cmdstr)
 	} else add_cmd_line=NULL;
 
 	/* If this line ends with backslash, request next line. */
-	int temp=strlen(cmdstr);
+	temp=strlen(cmdstr);
 	if(temp && cmdstr[temp-1]=='\\') {
 		if(!add_cmd_line) add_cmd_line=strdup(cmdstr);
 		add_cmd_line[temp-1]=0;
