@@ -129,6 +129,11 @@
 // pretty/useful).
 //
 //
+// BusyBox will, by default, malloc space for its buffers.  This costs code
+// size for the call to xmalloc.  You can use the following feature to have
+// them put on the stack.  For some very small machines with limited stack
+// space, this can be deadly.  For most folks, this works just fine...
+//#define BB_FEATURE_BUFFERS_GO_ON_STACK
 //
 // Turn this on to use Erik's very cool devps, and devmtab kernel drivers,
 // thereby eliminating the need for the /proc filesystem and thereby saving

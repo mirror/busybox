@@ -1222,8 +1222,8 @@ int gunzip_main(int argc, char **argv)
 	int force = 0;
 	struct stat statBuf;
 	char *delFileName;
-	char ifname[MAX_PATH_LEN + 1];	/* input file name */
-	char ofname[MAX_PATH_LEN + 1];	/* output file name */
+	RESERVE_BB_BUFFER(ifname, MAX_PATH_LEN+1);  /* input file name */
+	RESERVE_BB_BUFFER(ofname, MAX_PATH_LEN+1);  /* output file name */
 
 	method = DEFLATED;	/* default compression method */
 	exit_code = OK;	/* let's go out on a limb and assume everything will run fine (wink wink) */

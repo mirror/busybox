@@ -51,7 +51,7 @@ static void myread(int num, char *buffer)
 int rpmunpack_main(int argc, char **argv)
 {
   int len, status = 0;
-  char buffer[BUFSIZ];
+  RESERVE_BB_BUFFER(buffer, BUFSIZ);
 
   /* Get our own program name */
   if ((progname = strrchr(argv[0], '/')) == NULL)

@@ -402,7 +402,7 @@ The problem with these is that any time any busybox app is run, you pay a
 memory penalty for this buffer, even if the applet that uses said buffer is
 not run. This can be fixed, thusly:
 
-	static char *buffer
+	static char *buffer;
 	...
 	other_func()
 	{
@@ -418,7 +418,7 @@ mallocing the buffers (and thus growing the text size), buffers can be
 declared on the stack in the *_main() function and made available globally by
 assigning them to a global pointer thusly:
 
-	static char *pbuffer
+	static char *pbuffer;
 	...
 	other_func()
 	{
@@ -430,13 +430,13 @@ assigning them to a global pointer thusly:
 		pbuffer = buffer;     /* but available globally */
 	...
 
-Thus:
- - global static buffers are eliminated
- - we don't grow the text segment as much because no malloc() call is made;
-   memory is automatically allocated on the stack when execution context
-   enters the function. (We still grow text a little bit because of the
-   assignment, but that's cheap compared to a function call.)
- - the buffer is still available globally via the pointer
+This last approach has some advantages (low code size, space not used until
+it's needed), but can be a problem in some low resource machines that have
+very limited stack space (e.g., uCLinux).  busybox.h declares a macro that
+implements compile-time selection between xmalloc() and stack creation, so
+you can code the line in question as
+		RESERVE_BB_BUFFER(buffer, BUFSIZ);
+and the right thing will happen, based on the customer's configuration.
 
 
 

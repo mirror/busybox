@@ -266,4 +266,12 @@ char *format(unsigned long val, unsigned long hr);
 #define GIGABYTE (MEGABYTE*1024)
 #endif
 
+#ifdef BB_FEATURE_BUFFERS_GO_ON_STACK
+#define RESERVE_BB_BUFFER(buffer,len)           char buffer[len]
+#define RESERVE_BB_UBUFFER(buffer,len) unsigned char buffer[len]
+#else
+#define RESERVE_BB_BUFFER(buffer,len)           char *buffer=xmalloc(len)
+#define RESERVE_BB_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
+#endif
+
 #endif /* _BB_INTERNAL_H_ */

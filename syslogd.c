@@ -209,7 +209,7 @@ static void domark(int sig)
 static const int BUFSIZE = 1023;
 static int serveConnection (int conn)
 {
-	char   buf[ BUFSIZE + 1 ];
+	RESERVE_BB_BUFFER(buf, BUFSIZE + 1);
 	int    n_read;
 
 	while ((n_read = read (conn, buf, BUFSIZE )) > 0) {
@@ -296,7 +296,7 @@ static void doSyslogd (void)
 	int sock_fd;
 	fd_set fds;
 
-	char lfile[BUFSIZ];
+	RESERVE_BB_BUFFER(lfile, BUFSIZ);
 
 	/* Set up signal handlers. */
 	signal (SIGINT,  quit_signal);

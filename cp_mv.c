@@ -175,8 +175,8 @@ extern int cp_mv_main(int argc, char **argv)
 {
 	volatile int i;
 	int c;
-	char baseDestName[BUFSIZ + 1]; /* not declared globally == less bss used */
-	pBaseDestName = baseDestName; /* but available globally */
+	RESERVE_BB_BUFFER(baseDestName,BUFSIZ + 1);
+	pBaseDestName = baseDestName; /* available globally */
 
 	if (*applet_name == 'c' && *(applet_name + 1) == 'p')
 		dz_i = is_cp;
