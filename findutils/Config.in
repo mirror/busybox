@@ -39,6 +39,21 @@ config CONFIG_FEATURE_FIND_XDEV
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_FIND_NEWER
+	bool "  Enable -newer option for comparing file mtimes"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Support the 'find -newer' option for finding any files which have
+	  a modified time that is more recent than the specified FILE.
+
+config CONFIG_FEATURE_FIND_INUM
+	bool "  Enable inode number matching (-inum) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Support the 'fine -inum' option for searching by inode number.
+
 config CONFIG_GREP
 	bool "grep"
 	default n

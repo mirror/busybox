@@ -34,6 +34,9 @@
 #include <ctype.h>
 #include "busybox.h"
 
+//XXX just found out about libbb/messages.c . maybe move stuff there ? - ghoz
+const char msg_req_arg[] = "option `%s' requires an argument";
+const char msg_invalid_arg[] = "invalid argument `%s' to `%s'";
 
 static char *pattern;
 
@@ -56,6 +59,13 @@ static dev_t *xdev_dev;
 static int xdev_count = 0;
 #endif
 
+#ifdef CONFIG_FEATURE_FIND_NEWER
+time_t newer_mtime;
+#endif
+
+#ifdef CONFIG_FEATURE_FIND_INUM
+static ino_t inode_num;
+#endif
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
@@ -109,7 +119,19 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		}
 	}
 #endif
-
+#ifdef CONFIG_FEATURE_FIND_NEWER
+	if (newer_mtime != 0) {
+		time_t file_age = newer_mtime - statbuf->st_mtime;
+		if (file_age >= 0)
+			goto no_match;
+	}
+#endif
+#ifdef CONFIG_FEATURE_FIND_INUM
+	if (inode_num != 0) {
+		if (!(statbuf->st_ino == inode_num))
+			goto no_match;
+	}
+#endif
 	puts(fileName);
 no_match:
 	return (TRUE);
@@ -145,7 +167,7 @@ static int find_type(char *type)
 	}
 
 	if (mask == 0 || type[1] != '\0')
-		error_msg_and_die("invalid argument `%s' to `-type'", type);
+		error_msg_and_die(msg_invalid_arg, type, "-type");
 
 	return mask;
 }
@@ -170,24 +192,22 @@ int find_main(int argc, char **argv)
 			}
 		else if (strcmp(argv[i], "-name") == 0) {
 			if (++i == argc)
-				error_msg_and_die("option `-name' requires an argument");
+				error_msg_and_die(msg_req_arg, "-name");
 			pattern = argv[i];
 #ifdef CONFIG_FEATURE_FIND_TYPE
 		} else if (strcmp(argv[i], "-type") == 0) {
 			if (++i == argc)
-				error_msg_and_die("option `-type' requires an argument");
+				error_msg_and_die(msg_req_arg, "-type");
 			type_mask = find_type(argv[i]);
 #endif
 #ifdef CONFIG_FEATURE_FIND_PERM
 		} else if (strcmp(argv[i], "-perm") == 0) {
 			char *end;
 			if (++i == argc)
-				error_msg_and_die("option `-perm' requires an argument");
+				error_msg_and_die(msg_req_arg, "-perm");
 			perm_mask = strtol(argv[i], &end, 8);
-			if (end[0] != '\0')
-				error_msg_and_die("invalid argument `%s' to `-perm'", argv[i]);
-			if (perm_mask > 07777)
-				error_msg_and_die("invalid argument `%s' to `-perm'", argv[i]);
+			if ((end[0] != '\0') || (perm_mask > 07777))
+				error_msg_and_die(msg_invalid_arg, argv[i], "-perm");
 			if ((perm_char = argv[i][0]) == '-')
 				perm_mask = -perm_mask;
 #endif
@@ -195,10 +215,10 @@ int find_main(int argc, char **argv)
 		} else if (strcmp(argv[i], "-mtime") == 0) {
 			char *end;
 			if (++i == argc)
-				error_msg_and_die("option `-mtime' requires an argument");
+				error_msg_and_die(msg_req_arg, "-mtime");
 			mtime_days = strtol(argv[i], &end, 10);
 			if (end[0] != '\0')
-				error_msg_and_die("invalid argument `%s' to `-mtime'", argv[i]);
+				error_msg_and_die(msg_invalid_arg, argv[i], "-mtime");
 			if ((mtime_char = argv[i][0]) == '-')
 				mtime_days = -mtime_days;
 #endif
@@ -222,6 +242,24 @@ int find_main(int argc, char **argv)
 					xdev_dev [i-1] = stbuf. st_dev;
 				}
 			}						
+#endif
+#ifdef CONFIG_FEATURE_FIND_NEWER
+		} else if (strcmp(argv[i], "-newer") == 0) {
+			struct stat stat_newer;
+			if (++i == argc)
+				error_msg_and_die(msg_req_arg, "-newer");
+		    if (stat (argv[i], &stat_newer) != 0)
+				error_msg_and_die("file %s not found", argv[i]);
+			newer_mtime = stat_newer.st_mtime;
+#endif
+#ifdef CONFIG_FEATURE_FIND_INUM
+		} else if (strcmp(argv[i], "-inum") == 0) {
+			char *end;
+			if (++i == argc)
+				error_msg_and_die(msg_req_arg, "-inum");
+			inode_num = strtol(argv[i], &end, 10);
+			if (end[0] != '\0')
+				error_msg_and_die(msg_invalid_arg, argv[i], "-inum");
 #endif
 		} else
 			show_usage();
