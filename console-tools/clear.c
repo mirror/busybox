@@ -20,6 +20,8 @@
  *
  */
 
+/* no options, no getopt */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "busybox.h"

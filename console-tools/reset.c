@@ -21,13 +21,15 @@
  *
  */
 
+/* no options, no getopt */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "busybox.h"
 
 extern int reset_main(int argc, char **argv)
 {
-	   printf("\033[?25h\033c\033[J");
-       return EXIT_SUCCESS;
+	printf("\033[?25h\033c\033[J");
+	return EXIT_SUCCESS;
 }
 
