@@ -96,12 +96,11 @@ int uname_main(int argc, char **argv)
 
 	strcpy(uname_info.processor, "unknown");
 
-	for (delta=utsname_offset ; toprint ; delta++, toprint >>= 1) {
+	for (opt=0,delta=utsname_offset ; toprint ; delta++, toprint >>= 1) {
 		if (toprint & 1) {
-			printf("%s ", ((char *)(&uname_info)) + *delta );
+			printf("%s%s", (opt++==0)? "": " ", ((char *)(&uname_info)) + *delta);
 		}
 	}
-
 	putchar('\n');
 
 	return EXIT_SUCCESS;
