@@ -2,7 +2,7 @@ busybox (1:0.52-1) unstable; urgency=high
 
   * New version released.  See changelog for details.
 
- -- Erik Andersen <andersee@debian.org>  Fri,  6 Jul 2001 14:28:05 -0600
+ -- Erik Andersen <andersee@debian.org>  Sat,  7 Jul 2001 01:23:45 -0600
 
 busybox (1:0.51-10) unstable; urgency=high
 

@@ -1,27 +1,49 @@
 0.52
 	
     Critical Bugfixes:
-	* Glenn McGrath -- Fix gunzip, zcat when reading from stdin
+	* Glenn McGrath -- Fixed gunzip, zcat when reading from stdin
+	* Marc Karasek and Kanoj (kernel serial.c maintainer) -- fixed init
+	    problem on serial consoles with 2.4.3+ kernels.
 	
-    New Applet:
-	* Laurence Anderson -- rpm2cpio applet, obsoletes rpmunpack.
+    New Applets:
+	* Laurence Anderson -- rpm2cpio applet, this obsoletes rpmunpack 
+	    which has now been removed from BusyBox 
 	* Laurence Anderson and Glenn McGrath -- cpio applet, currently 
 	    only supports unpacking the ascii cpio format.
-	* Vladimir Oleynik -- ash, most function busybox shell.
-	* Larry Doolittle -- hush, small shell desinged specifically
-	    for busybox.
-	* Erik Anderson -- msh, minix shell, only uses vfork, so can be
-	    used on uClinux systems.
+	* Vladimir Oleynik and Erik Andersen -- added ash, the most correct
+	    busybox shell.
+	* Larry Doolittle -- hush, small shell designed specifically
+	    for busybox.  Quite usable but still a work in progress.
+	* Erik Andersen -- msh, minix shell.  A very small but capable shell
+	    that only uses vfork, so it can be used on uClinux systems.
 
     Other Changes:
     	* Sterling Huxley -- Several bugfixes for the vi applet.
 	* Glenn McGrath -- Restructure unarchiving code to make more code
 	    common to the ar, cpio, dpkg, dpkg-deb applets.
-	    tar applet hasnt been assimilated yet.
+	    tar applet has not yet been assimilated...
 	* Matt Kraai -- Rewrote cp, dirname, mkdir, mv, and rm.
+	* Paul J.Y. Lahaie <pjlahaie@linuxcare.com> -- Fixed an endian-ness
+	    bug in md5sum (in 0.51, md5sum on big endian machines was broken)
+	* Mark Whitley -- rewrote cut, major updates to grep and sed. 
+	* Erik Andersen -- bunches of insmod fixes.  It should now always 
+	    work (no more segfault or missing symbols problems).
+	* Bernhard Kuhn <kuhn@lpr.e-technik.tu-muenchen.de> and Jinux Kim
+	    added uClinux/m68k insmod support.
+	* Manuel Novoa III -- rewrote make_human_readable so ls, du, and df
+	    should work as expected.  Eliminated use of floats.
+	* Aaron Lehmann <aaronl@vitelus.com> -- Scrubbed gzip.c
+	* Alan Modra <amodra@bigpond.net.au> -- fixed an hard to spot
+	    bug breaking gunzip checksum checking.
+	* Gennady Feldman -- Fixed 'syslog -C' 
+	* Gernot Poerner <gp@it-netservice.de> -- Added mount bind support.
+	* Adam Heath <doogie@debian.org>  -- wget arbitrary header support
+	* John Beppu -- updated the automagical doc generator
+	* Zillions of other bugfixes, optimizations, and cleanups.
 
 
-	-Erik Andersen, not yet released
+
+	 -Erik Andersen, 7 July 2001
 
 
 0.51
