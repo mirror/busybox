@@ -70,17 +70,17 @@ extern int ar_main(int argc, char **argv)
 
 	/* check ar magic */
 	fread(ar_magic, 1, 8, src_stream);
+	archive_offset = 8;
 	if (strncmp(ar_magic,"!<arch>",7) != 0) {
 		error_msg_and_die("invalid magic");
 	}
-	archive_offset = 8;
 
-	extract_names = malloc(sizeof(char *));
-	extract_names[0] = NULL;
+	/* Create a list of files to extract */
 	while (optind < argc) {
+		extract_names = xrealloc(extract_names, sizeof(char *) * (num_of_entries + 2));
+		extract_names[num_of_entries] = xstrdup(argv[optind]);
 		num_of_entries++;
-		*extract_names = realloc(*extract_names, num_of_entries);
-		extract_names[num_of_entries - 1] = xstrdup(argv[optind]);
+		extract_names[num_of_entries] = NULL;
 		optind++;
 	}
 

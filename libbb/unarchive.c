@@ -232,25 +232,24 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 	int i;
 	char *buffer = NULL;
 
-	if (extract_names == NULL) {
-		return(NULL);
-	}
 	archive_offset = 0;
 	while ((file_entry = get_headers(src_stream)) != NULL) {
 		found = FALSE;
-		if (extract_names[0] != NULL) {
+		if (extract_names == NULL) {
+			found = TRUE;
+		} else {
 			for(i = 0; extract_names[i] != 0; i++) {
 				if (strcmp(extract_names[i], file_entry->name) == 0) {
 					found = TRUE;
 				}
 			}
-			if (!found) {
-				/* seek past the data entry */
-				seek_sub_file(src_stream, file_entry->size);
-				continue;
-			}
 		}
-		buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
+		if (found) {
+			buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
+		} else {
+			/* seek past the data entry */
+			seek_sub_file(src_stream, file_entry->size);
+		}
 	}
 	return(buffer);
 }
@@ -544,17 +543,14 @@ char *deb_extract(const char *package_filename, FILE *out_stream,
 	FILE *deb_stream;
 	FILE *uncompressed_stream = NULL;
 	file_header_t *ar_header = NULL;
+	char **file_list = NULL;
 	char *output_buffer = NULL;
 	char *ared_file = NULL;
 	char ar_magic[8];
-	char **file_list;
 	int gunzip_pid;
 
-	if (filename == NULL) {
-		file_list = xmalloc(sizeof(char *));
-		file_list[0] = NULL;
-	} else {
-		file_list = xmalloc(sizeof(char *) * 3);
+	if (filename != NULL) {
+		file_list = xmalloc(sizeof(char *) * 2);
 		file_list[0] = xstrdup(filename);
 		file_list[1] = NULL;
 	}

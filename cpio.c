@@ -68,25 +68,28 @@ extern int cpio_main(int argc, char **argv)
 		}
 	}
 
-	if (extract_function & extract_all_to_fs && extract_function & extract_list) {
+	if ((extract_function & extract_all_to_fs) && (extract_function & extract_list)) {
 		extract_function ^= extract_all_to_fs; /* If specify t, don't extract*/
 	}
 
-	if (extract_function & extract_all_to_fs && extract_function & extract_verbose_list) { /* The meaning of v changes on extract */
+	if ((extract_function & extract_all_to_fs) && (extract_function & extract_verbose_list)) {
+		/* The meaning of v changes on extract */
 		extract_function ^= extract_verbose_list;
 		extract_function |= extract_list;
 	}
 
-	extract_names = malloc(4);
 	while (optind < argc) {
+		extract_names = xrealloc(extract_names, sizeof(char *) * (num_of_entries + 2));
+		extract_names[num_of_entries] = xstrdup(argv[optind]);
 		num_of_entries++;
-		*extract_names = realloc(*extract_names, num_of_entries);
-		extract_names[num_of_entries - 1] = xstrdup(argv[optind]);
+		extract_names[num_of_entries] = NULL;
 		optind++;
 	}
 
 	unarchive(src_stream, stdout, &get_header_cpio, extract_function, "./", extract_names);
-	if (oldmask) umask(oldmask); /* Restore umask if we changed it */
+	if (oldmask) {
+		umask(oldmask); /* Restore umask if we changed it */
+	}
 	return EXIT_SUCCESS;
 }
 
