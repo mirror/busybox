@@ -175,7 +175,6 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
         list = (headerL_t *) malloc(sizeof(headerL_t));
 
         if (checkArMagic(srcFd)==TRUE) {
-		printf("found ar header ");
         	while(readArEntry(srcFd, list) == TRUE) {
 			list->next = (headerL_t *) malloc(sizeof(headerL_t));
         		*list->next = *head;
@@ -187,8 +186,6 @@ static headerL_t *getHeaders(int srcFd, headerL_t *head, int funct)
 			lseek(srcFd, head->offset + head->size, SEEK_SET);
 		}
 	}
-	else 
-		printf("not an ar header\n");
         return(head);
 }
 
