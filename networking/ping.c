@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.48 2002/02/01 16:54:00 kraai Exp $
+ * $Id: ping.c,v 1.49 2002/03/20 11:59:28 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -175,6 +175,12 @@ static int in_cksum(unsigned short *buf, int sz)
 
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING
+static char *hostname = NULL;
+void noresp(int ign)
+{
+	printf("No response from %s\n", h->h_name);
+	exit(0);
+}
 
 static void ping(const char *host)
 {
@@ -184,12 +190,6 @@ static void ping(const char *host)
 	int pingsock, c;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 
-	void noresp(int ign)
-	{
-		printf("No response from %s\n", h->h_name);
-		exit(0);
-	}
-
 	pingsock = create_icmp_socket();
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
@@ -197,6 +197,7 @@ static void ping(const char *host)
 	pingaddr.sin_family = AF_INET;
 	h = xgethostbyname(host);
 	memcpy(&pingaddr.sin_addr, h->h_addr, sizeof(pingaddr.sin_addr));
+	hostname = h->h_name;
 
 	pkt = (struct icmp *) packet;
 	memset(pkt, 0, sizeof(packet));
