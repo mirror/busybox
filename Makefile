@@ -267,7 +267,12 @@ applet_source_list: busybox.sh Config.h
 doc: olddoc
 
 # Old Docs...
-olddoc: docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
+olddoc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
+
+docs/busybox.pod : docs/busybox_header.pod usage.h docs/busybox_footer.pod
+	- ( cat docs/busybox_header.pod; \
+	    docs/autodocifier.pl usage.h; \
+	    cat docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
 	@echo
