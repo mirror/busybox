@@ -78,6 +78,7 @@ BB_SRC_DIR = .
 # to something more interesting, like "powerpc-linux-".
 CROSS =
 CC = $(CROSS)gcc
+AR = $(CROSS)ar
 STRIPTOOL = $(CROSS)strip
 
 # To compile vs uClibc, just use the compiler wrapper built by uClibc...
