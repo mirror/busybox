@@ -55,11 +55,8 @@
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
-
-#define isBlank(ch)     (((ch) == ' ') || ((ch) == '\t'))
-#define isDecimal(ch)   (((ch) >= '0') && ((ch) <= '9'))
-#define isOctal(ch)     (((ch) >= '0') && ((ch) <= '7'))
-#define isWildCard(ch)  (((ch) == '*') || ((ch) == '?') || ((ch) == '['))
+static inline int isDecimal(ch) { return ((ch >= '0') && (ch <= '9')); }
+static inline int isOctal(ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 /* Macros for min/max.  */
 #ifndef MIN
