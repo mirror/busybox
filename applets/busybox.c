@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	/* Add in a special case hack -- whenever **argv == '-'
 	 * (i.e. '-su' or '-sh') always invoke the shell */
 	if (**argv == '-' && *(*argv+1)!= '-') {
-		exit(((*(shell_main)) (argc, argv)));
+		applet_name = "sh";
 	}
 #endif
 
