@@ -26,8 +26,11 @@
 #include <fstab.h>
 #include <errno.h>
 
-const char umount_usage[] = "\tumount {filesystem|directory}\n"
-"or to unmount all mounted file systems:\n\tumount -a\n";
+const char umount_usage[] = 
+"Usage: umount filesystem\n"
+"   or: umount directory\n"
+"   or: umount -a"
+"to unmount all mounted file systems.\n";
 
 static int
 umount_all()

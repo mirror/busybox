@@ -68,7 +68,7 @@ static int dirAction(const char *fileName)
 	exit(FALSE);
     }
     while ((entry = readdir(dir)) != NULL) {
-	recursiveAction( entry->d_name, recursiveFlag, dereferenceFlag, fileAction, dirAction);
+	recursiveAction( entry->d_name, recursiveFlag, dereferenceFlag, FALSE, fileAction, dirAction);
     }
     return( TRUE);
 }

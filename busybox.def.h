@@ -39,12 +39,12 @@
 //#define BB_PRINTF
 #define BB_PWD
 #define BB_REBOOT
-//#define BB_RM
+#define BB_RM
 #define BB_RMDIR
 #define BB_SLEEP
 ////#define BB_SWAPOFF
 //#define BB_SWAPON
-//#define BB_SYNC
+#define BB_SYNC
 #define BB_TAR
 #define BB_TOUCH
 #define BB_TRUE

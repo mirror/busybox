@@ -121,7 +121,7 @@ char *chunkstrdup(const char *str);
 void freeChunks(void);
 int fullWrite(int fd, const char *buf, int len);
 int fullRead(int fd, char *buf, int len);
-int recursiveAction(const char *fileName, int recurse, int followLinks,
+int recursiveAction(const char *fileName, int recurse, int followLinks, int delayDirAction,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf),
 	  int (*dirAction) (const char *fileName, struct stat* statbuf));
 int match(const char* text, const char * pattern);

@@ -1,11 +1,12 @@
 #include "internal.h"
 
-const char	sync_usage[] = "sync\n"
-"\n"
-"\tWrite all buffered filesystem blocks to disk.\n";
-
 extern int
-sync_main(struct FileInfo * i, int argc, char * * argv)
+sync_main(int argc, char * * argv)
 {
+    if ( **(argv+1) == '-' ) {
+	fprintf(stderr, "Usage: sync\nWrite all buffered filesystem blocks to disk.\n");
+	exit(FALSE);
+    }
 	return sync();
 }
+

@@ -21,63 +21,59 @@
 
 #include "internal.h"
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <time.h>
 #include <utime.h>
-#include <errno.h>
-
-const char mv_usage[] = "source-file [source-file ...] destination-file\n"
-    "\n" "\tMove the source files to the destination.\n" "\n";
+#include <dirent.h>
 
 
+static const char mv_usage[] = "mv SOURCE DEST\n"
+"   or: mv SOURCE... DIRECTORY\n"
+"Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n";
 
-extern int mv_main (int argc, char **argv)
+
+static const char *srcName;
+static const char *destName;
+static const char *skipName;
+static int dirFlag = FALSE;
+
+
+extern int mv_main(int argc, char **argv)
 {
-    const char *srcName;
-    const char *destName;
-    const char *lastArg;
-    int dirFlag;
+    char newdestName[NAME_MAX];
 
     if (argc < 3) {
-	fprintf (stderr, "Usage: %s %s", *argv, mv_usage);
+	fprintf(stderr, "Usage: %s", mv_usage);
 	exit (FALSE);
     }
-    lastArg = argv[argc - 1];
+    argc--;
+    argv++;
 
-    dirFlag = isDirectory (lastArg);
+    destName = argv[argc - 1];
+    dirFlag = isDirectory(destName);
 
-    if ((argc > 3) && !dirFlag) {
-	fprintf (stderr, "%s: not a directory\n", lastArg);
+    if ((argc > 3) && dirFlag==FALSE) {
+	fprintf(stderr, "%s: not a directory\n", destName);
 	exit (FALSE);
     }
 
-    while (argc-- > 2) {
-	srcName = *(++argv);
-
-	if (access (srcName, 0) < 0) {
-	    perror (srcName);
-	    continue;
+    while (argc-- > 1) {
+	srcName = *(argv++);
+	skipName = strrchr(srcName, '/');
+	if (skipName) 
+	    skipName++;
+	strcpy(newdestName, destName);
+	if (dirFlag==TRUE) {
+	    strcat(newdestName, "/");
+	    if ( skipName != NULL)
+		strcat(newdestName, strstr(srcName, skipName));
 	}
-
-	destName = lastArg;
-
-	if (dirFlag==TRUE)
-	    destName = buildName (destName, srcName);
-
-	if (rename (srcName, destName) >= 0)
-	    continue;
-
-	if (errno != EXDEV) {
-	    perror (destName);
-	    continue;
+	if (copyFile(srcName, newdestName, FALSE, FALSE)  == FALSE) {
+	    exit( FALSE);
 	}
-
-	if (!copyFile (srcName, destName, TRUE, FALSE))
-	    continue;
-
-	if (unlink (srcName) < 0)
+	if (unlink (srcName) < 0) {
 	    perror (srcName);
+	    exit( FALSE);
+	}
     }
-    exit (TRUE);
+    exit( TRUE);
 }

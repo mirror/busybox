@@ -62,7 +62,7 @@ static int dirAction(const char *fileName, struct stat* statbuf)
     while ((entry = readdir(dir)) != NULL) {
 	char dirName[NAME_MAX];
 	sprintf(dirName, "%s/%s", fileName, entry->d_name);
-	recursiveAction( dirName, TRUE, dereferenceFlag, fileAction, dirAction);
+	recursiveAction( dirName, TRUE, dereferenceFlag, FALSE, fileAction, dirAction);
     }
     return( TRUE);
 }
@@ -123,34 +123,3 @@ int find_main(int argc, char **argv)
     dirAction( directory, NULL); 
     exit(TRUE);
 }
-
-
-
-#ifdef foobar
-
-#include "internal.h"
-#include <errno.h>
-#include <stdio.h>
-
-const char	find_usage[] = "find dir [pattern]\n"
-"\n"
-"\tFind files.\n";
-
-extern int
-find_main(struct FileInfo * i, int argc, char * * argv)
-{
-	i->recursive=1;
-	i->processDirectoriesAfterTheirContents=1;
-	return monadic_main(i, argc, argv);
-}
-
-extern int
-find_fn(const struct FileInfo * i)
-{
-	printf("%s\n",i->source);
-
-	return(0);      
-}
-
-
-#endif

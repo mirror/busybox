@@ -48,7 +48,7 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 {
     char newdestName[NAME_MAX];
     strcpy(newdestName, destName);
-    if (dirFlag==TRUE && newdestName[strlen(newdestName)-1]!= '/' ) {
+    if (dirFlag==TRUE) {
 	strcat(newdestName, "/");
 	if ( skipName != NULL)
 	    strcat(newdestName, strstr(fileName, skipName));
@@ -104,10 +104,12 @@ extern int cp_main(int argc, char **argv)
     while (argc-- > 1) {
 	srcName = *(argv++);
 	skipName = strrchr(srcName, '/');
-	if (skipName) skipName++;
-	if (recursiveAction(srcName, recursiveFlag, followLinks,
-			       fileAction, fileAction) == FALSE)
+	if (skipName) 
+	    skipName++;
+	if (recursiveAction(srcName, recursiveFlag, followLinks, FALSE,
+			       fileAction, fileAction) == FALSE) {
 	    exit( FALSE);
+	}
     }
     exit( TRUE);
 }

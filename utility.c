@@ -188,36 +188,8 @@ copyFile( const char *srcName, const char *destName,
 #endif
 
 
-#ifdef BB_MV
-/*
- * Build a path name from the specified directory name and file name.
- * If the directory name is NULL, then the original fileName is returned.
- * The built path is in a static area, and is overwritten for each call.
- */
-char *buildName(const char *dirName, const char *fileName)
-{
-    const char *cp;
-    static char buf[PATH_LEN];
 
-    if ((dirName == NULL) || (*dirName == '\0')) {
-	strcpy(buf, fileName);
-	return buf;
-    }
-
-    cp = strrchr(fileName, '/');
-
-    if (cp)
-	fileName = cp + 1;
-
-    strcpy(buf, dirName);
-    strcat(buf, "/");
-
-    return buf;
-}
-#endif
-
-
-
+#ifdef BB_TAR
 /*
  * Return the standard ls-like mode string from a file mode.
  * This is static and so is overwritten on each call.
@@ -239,15 +211,10 @@ const char *modeString(int mode)
 	buf[0] = 'b';
     if (S_ISFIFO(mode))
 	buf[0] = 'p';
-#ifdef	S_ISLNK
     if (S_ISLNK(mode))
 	buf[0] = 'l';
-#endif
-#ifdef	S_ISSOCK
     if (S_ISSOCK(mode))
 	buf[0] = 's';
-#endif
-
     /*
      * Now fill in the normal file permissions.
      */
@@ -284,7 +251,6 @@ const char *modeString(int mode)
 }
 
 
-#ifdef BB_TAR
 /*
  * Get the time string to be used for a file.
  * This is down to the minute for new files, but only the date for old files.
@@ -467,7 +433,7 @@ int fullRead(int fd, char *buf, int len)
  * by the fileAction and dirAction function pointers).
  */
 int
-recursiveAction(const char *fileName, int recurse, int followLinks,
+recursiveAction(const char *fileName, int recurse, int followLinks, int delayDirAction,
 		int (*fileAction) (const char *fileName, struct stat* statbuf),
 		int (*dirAction) (const char *fileName, struct stat* statbuf))
 {
@@ -501,7 +467,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	    perror(fileName);
 	    return (FALSE);
 	}
-	if (dirAction != NULL) {
+	if (dirAction != NULL && delayDirAction == FALSE) {
 	    status = dirAction(fileName, &statbuf);
 	    if (status == FALSE) {
 		perror(fileName);
@@ -516,8 +482,8 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	    }
 	    sprintf(nextFile, "%s/%s", fileName, next->d_name);
 	    status =
-		recursiveAction(nextFile, TRUE, followLinks, fileAction,
-				dirAction);
+		recursiveAction(nextFile, TRUE, followLinks, delayDirAction, 
+			fileAction, dirAction);
 	    if (status < 0) {
 		closedir(dir);
 		return (FALSE);
@@ -527,6 +493,13 @@ recursiveAction(const char *fileName, int recurse, int followLinks,
 	if (status < 0) {
 	    perror(fileName);
 	    return (FALSE);
+	}
+	if (dirAction != NULL && delayDirAction == TRUE) {
+	    status = dirAction(fileName, &statbuf);
+	    if (status == FALSE) {
+		perror(fileName);
+		return (FALSE);
+	    }
 	}
     } else {
 	if (fileAction == NULL)

@@ -13,7 +13,7 @@ swapoff_fn(const struct FileInfo * i)
 {
 	struct mntent   entries[100];
 	int	     count = 0;
-	FILE *	  swapsTable = setmntent("/etc/swaps", "r");
+	FILE *	  swapsTable = setmntent("/proc/swaps", "r");
 	struct mntent * m;
 
 	if (!(swapoff(i->source))) {

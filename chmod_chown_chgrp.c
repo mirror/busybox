@@ -138,7 +138,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	exit( FALSE);
     }
     while (argc-- > 1) {
-	if (recursiveAction( *(++argv), recursiveFlag, TRUE, fileAction, fileAction)==FALSE)
+	if (recursiveAction( *(++argv), recursiveFlag, TRUE, FALSE, fileAction, fileAction)==FALSE)
 	    exit( FALSE);
     }
     exit(TRUE);
