@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.8 2003/09/12 11:27:15 bug1 Exp $
+/* $Id: telnetd.c,v 1.9 2003/12/19 11:30:13 andersen Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -116,6 +116,8 @@ static struct tsession *sessions;
    FIXME - if we mean to send 0xFF to the terminal then it will be escaped,
    what is the escape character?  We aren't handling that situation here.
 
+   CR-LF ->'s CR mapping is also done here, for convenience
+
   */
 static char *
 remove_iacs(struct tsession *ts, int *pnum_totty) {
@@ -128,7 +130,14 @@ remove_iacs(struct tsession *ts, int *pnum_totty) {
 
 	while (ptr < end) {
 		if (*ptr != IAC) {
+			int c = *ptr;
 			*totty++ = *ptr++;
+			/* We now map \r\n ==> \r for pragmatic reasons.
+			 * Many client implementations send \r\n when
+			 * the user hits the CarriageReturn key.
+			 */
+			if (c == '\r' && (*ptr == '\n' || *ptr == 0) && ptr < end)
+				ptr++;
 		}
 		else {
 			if ((ptr+2) < end) {
