@@ -71,7 +71,7 @@ extern int more_main(int argc, char **argv)
 	int please_display_more_prompt = 0;
 	struct stat st;
 	FILE *file;
-	int len;
+	int len, page_height;
 
 #if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
 	struct winsize win = { 0, 0, 0, 0 };
@@ -114,6 +114,7 @@ extern int more_main(int argc, char **argv)
 
 #endif
 		len = 0;
+		page_height = terminal_height;
 		while ((c = getc(file)) != EOF) {
 
 			if (please_display_more_prompt) {
@@ -162,6 +163,7 @@ extern int more_main(int argc, char **argv)
 				fflush(stdout);
 #endif
 				len=0;
+				page_height = terminal_height;
 			}
 
 			/* 
@@ -188,10 +190,14 @@ extern int more_main(int argc, char **argv)
 				 * no lines get lost off the top. */
 				if (len) {
 					div_t result = div( len, terminal_width); 
-					if (result.quot)
-						terminal_height-=(result.quot-1);
+					if (result.quot) {
+						if (result.rem)
+							page_height-=result.quot;
+						else
+							page_height-=(result.quot-1);
+					}
 				}
-				if (++lines == terminal_height) {
+				if (++lines == page_height) {
 					please_display_more_prompt = 1;
 				}
 				len=0;
