@@ -405,6 +405,9 @@ extern int mount_main(int argc, char **argv)
 		argv++;
 	}
 
+	if (device == NULL && directory == NULL)
+		goto goodbye;
+
 	if (all == TRUE || directory == NULL) {
 		struct mntent *m;
 		FILE *f = setmntent("/etc/fstab", "r");
