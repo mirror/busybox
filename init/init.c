@@ -288,30 +288,27 @@ void set_term(int fd)
 	tcsetattr(fd, TCSANOW, &tty);
 }
 
-/* How much memory does this machine have? */
+/* How much memory does this machine have?
+   Units are kBytes to avoid overflow on 4GB machines */
 static int check_free_memory()
 {
 	struct sysinfo info;
+	unsigned int result, u, s=10;
 
-	/* Pre initialize mem_unit in case this kernel is something prior to
-	 * the linux 2.4 kernel (which will actually fill in mem_unit... */
-	sysinfo(&info);
 	if (sysinfo(&info) != 0) {
-		printf("Error checking free memory: %s\n", strerror(errno));
+		perrorMsg("Error checking free memory: ");
 		return -1;
 	}
-	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
-	if (info.mem_unit==0) {
-		info.mem_unit=1;
-	}
-	info.mem_unit*=1024;
-	
-	/* Note:  These values can in theory overflow a 32 bit unsigned long (i.e.
-	 * mem >=  Gib), but who puts more then 4GiB ram+swap on an embedded
-	 * system? */
-	info.totalram/=info.mem_unit; 
-	info.totalswap/=info.mem_unit;
-	return(info.totalram+info.totalswap);
+
+	/* Kernels 2.0.x and 2.2.x return info.mem_unit==0 with values in bytes.
+	 * Kernels 2.4.0 return info.mem_unit in bytes. */
+	u = info.mem_unit;
+	if (u==0) u=1;
+	while ( (u&1) == 0 && s > 0 ) { u>>=1; s--; }
+	result = (info.totalram>>s) + (info.totalswap>>s);
+	result = result*u;
+	if (result < 0) result = INT_MAX;
+	return result;
 }
 
 static void console_init()
